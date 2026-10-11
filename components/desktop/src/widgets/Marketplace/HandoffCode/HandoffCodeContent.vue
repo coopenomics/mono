@@ -1,22 +1,25 @@
 <script lang="ts" setup>
-import { computed } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
+import { Zeus } from '@coopenomics/sdk';
 import { useSessionStore } from 'src/entities/Session';
+import { loadHandoffCode } from 'src/entities/MarketplaceHandoff';
 import { HandoffQr } from 'src/widgets/Marketplace/HandoffQr';
 import { BaseBanner, EmptyState } from 'src/shared/ui/base';
-import { encodeHandoffToken, HandoffTokenKind } from 'src/shared/lib/marketplace';
+import { FailAlert } from 'src/shared/api';
+import { HandoffTokenKind } from 'src/shared/lib/marketplace';
 import { participantVerificationView } from 'src/shared/lib/verification';
 import { HANDOFF_CODE_COPY, type AccountHandoffKind } from './copy';
 
 /**
- * Содержимое экрана account-bound кода передачи — QR-код плюс пояснение. Единый
- * источник на оба стола и три точки показа на каждом:
- *  - заказчик (`kind=receive`): страница меню «Показать QR» + диалог из шапки
- *    «Моих заказов» и детали заказа;
- *  - поставщик (`kind=pickup`): страница меню «Показать QR» + диалог из
- *    шапки «Подготовки отгрузки».
+ * Содержимое экрана кода передачи пайщика — QR-код плюс пояснение. Единый
+ * источник на оба стола и все точки показа:
+ *  - заказчик (`kind=receive`): страница меню «Показать QR», диалог из шапки
+ *    «Моих заказов» и детали заказа, карточка заявления на возврат;
+ *  - поставщик (`kind=pickup`): страница меню «Показать QR».
  *
- * Код привязан к личности (аккаунт из сессии), детерминирован и оффлайн —
- * backend токен не минтит. Тексты — из `HANDOFF_CODE_COPY` по `kind`.
+ * Код отдаёт сервер (`marketplaceHandoffCode`, 598-62): стол его не собирает.
+ * Сейчас код бессрочен; временные коды второго этапа придут тем же запросом
+ * со сроком действия, и этот экран обновит QR по его истечении.
  */
 
 const props = withDefaults(
@@ -44,19 +47,41 @@ const needsPassportWarning = computed(() => {
   return !levels.some((level) => level.type === 'passport_onsite');
 });
 
-const code = computed(() =>
-  session.username
-    ? encodeHandoffToken({
-        kind: props.kind,
-        coopname: props.coopname,
-        account: session.username,
-      })
-    : '',
-);
+const code = ref('');
+const loading = ref(true);
+
+async function load(): Promise<void> {
+  if (!session.username) {
+    code.value = '';
+    loading.value = false;
+    return;
+  }
+  loading.value = true;
+  try {
+    const result = await loadHandoffCode({
+      kind:
+        props.kind === HandoffTokenKind.Pickup
+          ? Zeus.MarketplaceHandoffCodeKind.PICKUP
+          : Zeus.MarketplaceHandoffCodeKind.RECEIVE,
+    });
+    code.value = result.code;
+  } catch (e) {
+    code.value = '';
+    FailAlert(e);
+  } finally {
+    loading.value = false;
+  }
+}
+
+// realtime: нет источника — код выдаёт сервер по запросу и он бессрочен; срок действия придёт со вторым этапом 598-62, тогда QR обновится по его истечении
+watch(() => [props.kind, session.username], () => void load());
+onMounted(load);
 </script>
 
 <template lang="pug">
-.handoff-code(v-if="code")
+.handoff-code(v-if="loading")
+  q-skeleton(type="rect", :width="`${size}px`", :height="`${size}px`")
+.handoff-code(v-else-if="code")
   BaseBanner(v-if="needsPassportWarning", variant="warn")
     | {{ $t('marketplace.handoffCodeContent.passportHint1') }}
     | {{ $t('marketplace.handoffCodeContent.passportHint2') }}

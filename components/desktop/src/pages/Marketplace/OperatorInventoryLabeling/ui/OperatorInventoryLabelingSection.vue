@@ -23,12 +23,8 @@ import {
 } from 'src/shared/ui/base'
 import type { BaseSelectOption } from 'src/shared/ui/base'
 import { PageHint } from 'src/shared/ui/domain'
-import {
-  HandoffTokenKind,
-  decodeScannedCode,
-  printBarcodeSheet,
-  marketLiveTables,
-} from 'src/shared/lib/marketplace'
+import { printBarcodeSheet, marketLiveTables, useMarketplaceHandoffSignal } from 'src/shared/lib/marketplace'
+import { resolveScan } from 'src/entities/MarketplaceHandoff'
 import {
   buildPlacementOptions,
   containerLabel,
@@ -563,14 +559,26 @@ const resolvingBox = ref(false)
 
 async function onBoxScanned(raw: string): Promise<void> {
   if (resolvingBox.value) return
-  const token = decodeScannedCode(raw, coopname.value)
-  if (!token || token.kind !== HandoffTokenKind.Container || !token.container_code) {
-    FailAlert(new Error(t('marketplace.error.notBoxQr')))
-    return
-  }
   resolvingBox.value = true
   try {
-    const container = await resolveContainerByCode({ code: token.container_code })
+    // Строку разбирает сервер — тот же путь, что у общего сканера стола.
+    const visit = await resolveScan({ braname: braname.value.trim(), code: raw })
+    if (visit.target !== Zeus.MarketplaceScanTarget.CONTAINER || !visit.container_code) {
+      FailAlert(new Error(t('marketplace.error.notBoxQr')))
+      return
+    }
+    await openBoxByCode(visit.container_code)
+  } catch (e) {
+    FailAlert(e, t('marketplace.operatorInventoryLabeling.boxNotFoundError'))
+  } finally {
+    resolvingBox.value = false
+  }
+}
+
+/** Бокс по коду с этикетки: с камеры в этом разделе или с общего сканера стола. */
+async function openBoxByCode(code: string): Promise<void> {
+  try {
+    const container = await resolveContainerByCode({ code })
     if (container.braname !== braname.value.trim()) {
       FailAlert(
         new Error(t('marketplace.error.foreignBoxLabeling', { code: container.code })),
@@ -583,10 +591,18 @@ async function onBoxScanned(raw: string): Promise<void> {
     openBox(container)
   } catch (e) {
     FailAlert(e, t('marketplace.operatorInventoryLabeling.boxNotFoundError'))
-  } finally {
-    resolvingBox.value = false
   }
 }
+
+// Дело «бокс» с общего сканера стола (598-62): кладовщик отсканировал QR тары
+// где угодно на столе — показываем содержимое здесь.
+const handoffSignal = useMarketplaceHandoffSignal()
+async function consumeHandoffSignal(): Promise<void> {
+  const matter = handoffSignal.consume()
+  if (!matter || matter.kind !== 'container') return
+  await openBoxByCode(matter.container_code)
+}
+watch(() => handoffSignal.pending, () => void consumeHandoffSignal())
 
 // ─── Наращивание сетки прямо на карте склада ──
 // Склад не проектируют в отдельном окне — его достраивают по мере того, как
@@ -860,7 +876,8 @@ useLiveReload(marketLiveTables('reception', 'order', 'writeoff'), () => reloadLi
 
 onMounted(async () => {
   await branchStore.ensureLoaded(coopname.value)
-  void load()
+  await load()
+  await consumeHandoffSignal()
 })
 </script>
 

@@ -3815,6 +3815,21 @@
     "accountant": "deny",
     "auditor": "deny"
   },
+  "marketplaceHandoffCode": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass",
+    "candidate": "deny",
+    "newcomer": "pass",
+    "supplierPending": "pass",
+    "supplierRejected": "pass",
+    "branchTrusted": "pass",
+    "capitalMember": "pass",
+    "exited": "deny"
+  },
   "marketplaceIssuanceActPayload": {
     "guest": "deny",
     "member": "pass",
@@ -4696,6 +4711,21 @@
     "cashier": "deny",
     "accountant": "deny",
     "auditor": "deny"
+  },
+  "marketplaceResolveScan": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "deny",
+    "candidate": "deny",
+    "newcomer": "deny",
+    "supplierPending": "deny",
+    "supplierRejected": "deny",
+    "branchTrusted": "deny",
+    "capitalMember": "deny",
+    "exited": "deny"
   },
   "marketplaceReturnClaim": {
     "guest": "deny",
