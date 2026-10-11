@@ -447,7 +447,8 @@ q-page.boxreg(role='region', :aria-label='$t("marketplace.containerRegistry.page
   PageTabs(:tabs='tabs', :active-key='tab', @select='onSelectTab')
 
   template(v-if='tab === "containers"')
-    .boxreg__filters
+    //- Искать нечего, пока тары нет: отбор появляется вместе с первым боксом.
+    .boxreg__filters(v-if='containers.length')
       BaseInput.boxreg__search.field-flush(
         v-model='search',
         type='search',
@@ -603,9 +604,9 @@ q-page.boxreg(role='region', :aria-label='$t("marketplace.containerRegistry.page
     flex-wrap: wrap;
   }
 
+  // Поиск занимает всю строку; отбор по участку встаёт справа своей шириной.
   &__search {
     flex: 1 1 320px;
-    max-width: 420px;
   }
 
   &__branch {
