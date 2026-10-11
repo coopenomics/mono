@@ -57,7 +57,11 @@ export class EduEnrollmentDTO {
   @Field(() => String, { nullable: true, description: 'Причина, по которой подписку не удалось закрыть' })
   close_error!: string | null;
 
-  constructor(e: EdubridgeEnrollmentRecord, course?: EdubridgeCourseRecord | null) {
+  @Field(() => Boolean, { description: 'Подписку можно продлить: программа продолжается после оплаченного срока' })
+  renewable!: boolean;
+
+  constructor(e: EdubridgeEnrollmentRecord, course?: EdubridgeCourseRecord | null, renewable = true) {
+    this.renewable = renewable;
     this.group_id = e.group_id ?? null;
     this.id = e.id;
     this.learner_id = e.learner_id;

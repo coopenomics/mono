@@ -16,10 +16,8 @@ import {
   CHAIN_PORT,
   COUNCIL_PORT,
   EXPENSE_CHASSIS_PORT,
-  DECISION_TRACKING_PORT,
   DOCUMENT_DECLARATION_PORT,
   DOCUMENT_PORT,
-  FREE_DECISION_PORT,
   DESKTOP_GRANTS_FILTER_REGISTRY_PORT,
   DESKTOP_GRANTS_REGISTRY_PORT,
   EXTENSION_CONFIG_PORT,
@@ -52,11 +50,9 @@ export const edubridgePorts = {
     ROLE_ASSIGNMENTS_PORT,
     CHAIN_PORT,
     COUNCIL_PORT,
-    DECISION_TRACKING_PORT,
     // Документы ЦПП в реестре шаблонов кооператива: без объявления совет их не утверждает.
     DOCUMENT_DECLARATION_PORT,
     DOCUMENT_PORT,
-    FREE_DECISION_PORT,
     DESKTOP_GRANTS_FILTER_REGISTRY_PORT,
     DESKTOP_GRANTS_REGISTRY_PORT,
     // Расходы программы ведёт общее шасси расходов: своего у расширения нет.

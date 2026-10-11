@@ -139,7 +139,7 @@ describe('Образование: аннулирование подписки п
     const shareBefore = await wallet(SHARE_WALLET)
     const programBefore = await wallet(PROGRAM_WALLET)
 
-    await councilGrants(await guaranteeAgenda(claim.id))
+    await councilGrants(await guaranteeAgenda(claim))
 
     const approved = await waitFor(async () => {
       const c = await claimOf(granted.id)
@@ -163,7 +163,7 @@ describe('Образование: аннулирование подписки п
     const shareBefore = await wallet(SHARE_WALLET)
     const programBefore = await wallet(PROGRAM_WALLET)
 
-    await councilDeclines(await guaranteeAgenda(claim.id))
+    await councilDeclines(await guaranteeAgenda(claim))
 
     const closedClaim = await waitFor(async () => {
       const c = await claimOf(declined.id)

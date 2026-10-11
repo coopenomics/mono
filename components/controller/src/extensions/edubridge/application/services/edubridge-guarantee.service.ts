@@ -1,21 +1,15 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { OnEvent } from '@nestjs/event-emitter';
-import { createHash, randomUUID } from 'crypto';
+import { createHash } from 'crypto';
 import { Cooperative } from 'cooptypes';
-import { chainErrorCode, DomainError, platformSettings } from '@coopenomics/extension-kit';
+import { chainErrorCode, DomainError } from '@coopenomics/extension-kit';
 import {
   COUNCIL_PORT,
-  DECISION_TRACKING_PORT,
   DOCUMENT_PORT,
-  DecisionEventType,
-  DecisionTrackedEvent,
-  FREE_DECISION_PORT,
   LOGGER_PORT,
   type ICouncilPort,
-  type IDecisionTrackingPort,
   type IDocumentPort,
-  type IFreeDecisionPort,
   type ILoggerPort,
+  type InnerDocumentAggregate,
   type InnerGeneratedDocument,
   type ISignedDocument,
 } from '@coopenomics/innercoop';
@@ -33,8 +27,6 @@ import { EdubridgeGroupService } from './edubridge-group.service';
 import { EdubridgeEnrollmentService, isCancellable } from './edubridge-enrollment.service';
 import { t } from '../../i18n';
 
-/** Поле реквизитов, куда ядро записывает решение совета по заявлению. */
-const GUARANTEE_VARS_FIELD = 'education_guarantee_decision';
 /** Ответ цепи на повторную публикацию того же заявления. */
 const ALREADY_PUBLISHED = /уже (опубликован|существует|подан)/i;
 const MAX_REASON = 2000;
@@ -69,8 +61,6 @@ export class EdubridgeGuaranteeService {
     private readonly enrollmentService: EdubridgeEnrollmentService,
     @Inject(EDUBRIDGE_CHAIN_PORT) private readonly chain: EdubridgeChainPort,
     @Inject(DOCUMENT_PORT) private readonly documents: IDocumentPort,
-    @Inject(FREE_DECISION_PORT) private readonly freeDecisions: IFreeDecisionPort,
-    @Inject(DECISION_TRACKING_PORT) private readonly tracking: IDecisionTrackingPort,
     @Inject(COUNCIL_PORT) private readonly council: ICouncilPort,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
     private readonly groups: EdubridgeGroupService
@@ -89,6 +79,13 @@ export class EdubridgeGuaranteeService {
       if (course) states.push(this.stateOf(enrollment, course, byEnrollment.get(enrollment.id) ?? null));
     }
     return states;
+  }
+
+  /** Подписанное заявление участника — документом, как он его подписал; чужое заявление не отдаётся. */
+  async claimDocument(coopname: string, member: string, claimId: string): Promise<InnerDocumentAggregate | null> {
+    const claim = await this.claims.findById(coopname, claimId);
+    if (!claim || claim.member_username !== member) throw DomainError.notFound('EDUBRIDGE_GUARANTEE_CLAIM_NOT_FOUND');
+    return this.documents.buildAggregate(claim.statement_document as unknown as ISignedDocument);
   }
 
   /** Заявление (3013) без подписи — участник читает его перед подписью. */
@@ -113,9 +110,9 @@ export class EdubridgeGuaranteeService {
   }
 
   /**
-   * Подача: заявление публикуется в цепи и тут же выносится на совет. Шаги
-   * повторяемы — сбой на проекте решения оставляет заявление поданным, вопрос
-   * совету довыносит очередь.
+   * Подача: заявление публикуется в цепи, и контракт тем же действием ставит
+   * его в повестку совета. Номер вопроса читается следом; не прочитался —
+   * его дочитывает очередь.
    */
   async submit(
     coopname: string,
@@ -132,7 +129,7 @@ export class EdubridgeGuaranteeService {
       await this.chain.claimGuarantee({ coopname, username: member, sub_hash: enrollment.sub_hash, statement: document as never });
     } catch (e) {
       if (!ALREADY_PUBLISHED.test((e as Error)?.message ?? '')) throw e;
-      this.logger.warn(`[EDU.GUARANTEE] заявление по подписке ${enrollment.sub_hash} уже в цепи — продолжаем с проекта решения`);
+      this.logger.warn(`[EDU.GUARANTEE] заявление по подписке ${enrollment.sub_hash} уже в цепи — продолжаем с номера вопроса`);
     }
     const saved = await this.claims.save(
       this.claims.create({
@@ -150,22 +147,19 @@ export class EdubridgeGuaranteeService {
     );
     this.logger.info(`[EDU.GUARANTEE] ${member}: заявление ${saved.claim_hash} по курсу «${course.title}» подано`);
     try {
-      return await this.publish(coopname, saved, course);
+      return await this.publish(coopname, saved);
     } catch (e) {
       this.logger.error(`[EDU.GUARANTEE] вопрос по заявлению ${saved.claim_hash} совету не вынесен: ${(e as Error)?.message ?? e}`);
       return saved;
     }
   }
 
-  /** Заявления, поданные в цепь, но не дошедшие до совета из-за сбоя, — их довыносит очередь. */
+  /** Заявления, у которых номер вопроса совета не прочитался при подаче, — его дочитывает очередь. */
   async publishPending(coopname: string): Promise<number> {
     let published = 0;
     for (const claim of await this.claims.findSubmittedWithoutProject(coopname)) {
       try {
-        const course = await this.courses.findById(coopname, claim.course_id);
-        if (!course) continue;
-        await this.publish(coopname, claim, course);
-        published += 1;
+        if ((await this.publish(coopname, claim)).council_agenda_id) published += 1;
       } catch (e) {
         this.logger.error(`[EDU.GUARANTEE] вопрос по заявлению ${claim.claim_hash} совету не вынесен: ${(e as Error)?.message ?? e}`);
       }
@@ -173,17 +167,38 @@ export class EdubridgeGuaranteeService {
     return published;
   }
 
-  /** Совет удовлетворил заявление: подписка аннулируется, стоимость возвращается, протокол уходит в реестр. */
-  @OnEvent(DecisionTrackedEvent.eventName)
-  async onDecisionTracked(event: DecisionTrackedEvent): Promise<void> {
-    const r = event.result;
-    if (!r.matched || r.metadata?.extension !== 'edubridge' || !r.metadata?.guarantee_claim_id) return;
-    const coopname = platformSettings().coopname;
-    const claim = await this.claims.findById(coopname, String(r.metadata.guarantee_claim_id));
+  /**
+   * Совет удовлетворил заявление (`edubridge::onwarrauth` из `soviet::exec`):
+   * протокол 3014 подписан председателем и пришёл с действием, контракт уже
+   * аннулировал подписку и вернул взнос. Заявление закрывается, запись
+   * подписки приводится к цепи, доступ отзывается.
+   */
+  async onCouncilApproved(coopname: string, subHash: string, authorization: ISignedDocument | undefined): Promise<void> {
+    const enrollment = await this.enrollments.findBySubHash(subHash);
+    if (!enrollment || enrollment.coopname !== coopname) return;
+    const claim = await this.claims.findByEnrollment(coopname, enrollment.id);
     if (!claim || claim.status !== EduGuaranteeClaimStatus.SUBMITTED) return;
-    claim.council_decision_id = r.decision_id ? String(r.decision_id) : null;
-    claim.decided_at = r.decision_date ? new Date(r.decision_date) : new Date();
-    await this.grant(coopname, claim);
+    const meta = (authorization?.meta ?? {}) as Record<string, unknown>;
+    if (meta.decision_id !== undefined && meta.decision_id !== null) claim.council_decision_id = String(meta.decision_id);
+    if (authorization?.hash) claim.decision_hash = authorization.hash.toLowerCase();
+    claim.decided_at = new Date();
+    claim.status = EduGuaranteeClaimStatus.APPROVED;
+    await this.claims.save(claim);
+    // Подписка могла закрыться, пока совет решал: возвращать по ней уже нечего, решение остаётся в заявлении.
+    if (isCancellable(enrollment)) await this.enrollmentService.cancelByGuarantee(coopname, enrollment, claim.amount);
+    this.logger.info(`[EDU.GUARANTEE] заявление ${claim.claim_hash} удовлетворено: подписка аннулирована, ${claim.amount} возвращено на паевой`);
+  }
+
+  /** Совет отказал (`edubridge::onwarrdecl`): контракт снял заморозку взноса сам, заявление закрывается. */
+  async onCouncilDeclinedBySub(coopname: string, subHash: string): Promise<void> {
+    const enrollment = await this.enrollments.findBySubHash(subHash);
+    if (!enrollment || enrollment.coopname !== coopname) return;
+    const claim = await this.claims.findByEnrollment(coopname, enrollment.id);
+    if (!claim || claim.status !== EduGuaranteeClaimStatus.SUBMITTED) return;
+    claim.status = EduGuaranteeClaimStatus.DECLINED;
+    claim.decided_at = new Date();
+    await this.claims.save(claim);
+    this.logger.info(`[EDU.GUARANTEE] заявление ${claim.claim_hash}: совет отказал`);
   }
 
   /** Совет отклонил вопрос либо не уложился в срок: заявление закрывается, подписка остаётся как была. */
@@ -220,69 +235,24 @@ export class EdubridgeGuaranteeService {
     return claim?.status === EduGuaranteeClaimStatus.SUBMITTED;
   }
 
-  private async grant(coopname: string, claim: EdubridgeGuaranteeClaimRecord): Promise<void> {
+  /**
+   * Вопрос совету ставит сам контракт (`warrclaim` → `soviet::createagenda`,
+   * тип `eduguarantee`, hash = хэш подписки, документ — заявление 3013). Здесь
+   * запоминается номер вопроса: по нему приходит снятие по сроку.
+   */
+  private async publish(coopname: string, claim: EdubridgeGuaranteeClaimRecord): Promise<EdubridgeGuaranteeClaimRecord> {
+    if (claim.council_agenda_id) return claim;
     const enrollment = await this.enrollments.findById(coopname, claim.enrollment_id);
-    const course = await this.courses.findById(coopname, claim.course_id);
-    if (!enrollment || !course) return;
-    const decision = await this.documents.generate({
-      data: {
-        registry_id: Cooperative.Registry.EducationGuaranteeDecision.registry_id,
-        coopname,
-        username: claim.member_username,
-        lang: 'ru',
-        decision_id: Number(claim.council_decision_id ?? 0),
-        claim_hash: claim.claim_hash,
-        course_title: course.title,
-        amount: claim.amount,
-        skip_save: false,
-      } as Cooperative.Registry.EducationGuaranteeDecision.Action,
-    });
-    // Подписка могла закрыться, пока совет решал (истёк срок, выход из кооператива):
-    // возвращать по ней уже нечего, решение совета остаётся в заявлении.
-    if (isCancellable(enrollment)) {
-      await this.enrollmentService.cancelByGuarantee(coopname, enrollment, { claim_hash: claim.claim_hash, decision: unsigned(decision) });
-    }
-    claim.decision_hash = decision.hash.toLowerCase();
-    claim.status = EduGuaranteeClaimStatus.APPROVED;
-    await this.claims.save(claim);
-    this.logger.info(`[EDU.GUARANTEE] заявление ${claim.claim_hash} удовлетворено: подписка аннулирована, ${claim.amount} возвращено на паевой`);
-  }
-
-  /** Вопрос совету — проект свободного решения; по принятию ядро сообщает событием с нашими метаданными. */
-  private async publish(coopname: string, claim: EdubridgeGuaranteeClaimRecord, course: EdubridgeCourseRecord): Promise<EdubridgeGuaranteeClaimRecord> {
-    if (claim.council_project_hash) return claim;
-    const projectId = randomUUID();
-    const number = claim.claim_hash.slice(0, 8).toUpperCase();
-    const title = t('edubridge.guarantee.decision.title', { member: claim.member_username, course: course.title });
-    await this.freeDecisions.createProjectOfFreeDecision({
-      id: projectId,
-      title,
-      question: t('edubridge.guarantee.decision.question', { member: claim.member_username, number, course: course.title }),
-      decision: t('edubridge.guarantee.decision.decision', { member: claim.member_username, number, course: course.title, amount: claim.amount, reason: claim.reason }),
-    });
-    const author = platformSettings().coopname; // документы совета формируются от имени кооператива
-    const project = await this.freeDecisions.generateProjectOfFreeDecisionDocument(
-      { project_id: projectId, coopname, username: author, registry_id: Cooperative.Registry.ProjectFreeDecision.registry_id, title },
-      {}
-    );
-    await this.freeDecisions.publishProjectOfFreeDecision({
-      coopname,
-      username: author,
-      meta: JSON.stringify({ extension: 'edubridge', guarantee_claim_id: claim.id, project_id: projectId, title }),
-      document: projectDocument(project),
-    });
-    await this.tracking.registerTrackingRule({
-      hash: project.hash,
-      event_type: DecisionEventType.SOVIET_DECISION,
-      vars_field: GUARANTEE_VARS_FIELD,
-      metadata: { extension: 'edubridge', guarantee_claim_id: claim.id, project_id: projectId },
-    });
-    claim.council_project_hash = project.hash.toLowerCase();
-    claim.council_agenda_id = await this.lookupAgendaId(coopname, project.hash);
+    if (!enrollment) return claim;
+    const agendaId = await this.lookupAgendaId(coopname, enrollment.sub_hash);
+    // Номер не прочитался — запись остаётся без него, и очередь спросит снова.
+    if (!agendaId) return claim;
+    claim.council_agenda_id = agendaId;
+    claim.council_project_hash = enrollment.sub_hash.toLowerCase();
     return this.claims.save(claim);
   }
 
-  /** Номер вопроса в повестке совета по хэшу проекта решения: по нему придёт отклонение либо снятие по сроку. */
+  /** Номер вопроса в повестке совета по хэшу подписки: по нему придёт отклонение либо снятие по сроку. */
   private async lookupAgendaId(coopname: string, projectHash: string): Promise<string | null> {
     try {
       const decisions = await this.council.getDecisions(coopname);
@@ -330,15 +300,4 @@ function cleanReason(reason: string): string {
 
 function cleanLinks(links: string[] | undefined): string[] {
   return (links ?? []).map((l) => String(l).trim()).filter(Boolean).slice(0, MAX_LINKS);
-}
-
-/** Проект свободного решения в виде документа для публикации — подписей у него ещё нет. */
-function projectDocument<M>(project: { hash: string; meta: M }) {
-  const meta = project.meta as Record<string, any>;
-  return { version: meta?.version || '1.0', hash: project.hash, doc_hash: meta?.doc_hash || project.hash, meta_hash: meta?.meta_hash || project.hash, meta: project.meta, signatures: meta?.signatures || [] };
-}
-
-function unsigned(doc: InnerGeneratedDocument): ISignedDocument {
-  const meta = doc.meta as Record<string, any>;
-  return { version: meta?.version || '1.0', hash: doc.hash, doc_hash: meta?.doc_hash || doc.hash, meta_hash: meta?.meta_hash || doc.hash, meta: doc.meta as ISignedDocument['meta'], signatures: meta?.signatures || [] };
 }

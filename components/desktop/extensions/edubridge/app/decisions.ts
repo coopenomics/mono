@@ -7,6 +7,8 @@ import { t } from '../i18n';
 /**
  * Обработчики решений совета по заявлениям «Образовательного моста».
  *
+ * У каждого типа решения свой обработчик протокола.
+ *
  * `eduacptrid` — приём паевого взноса результатом интеллектуальной деятельности:
  * контракт ставит в повестку заявление преподавателя (3008), а протокол совета
  * (3009) собирается из его метаданных и номера решения. Автор повестки —
@@ -33,6 +35,33 @@ export function registerEdubridgeDecisionHandlers(): void {
         rid_hash: statementMeta.rid_hash,
         amount: statementMeta.amount,
         rid_type: statementMeta.rid_type,
+      };
+      return await new DigitalDocument().generate(protocolAction, { lang: 'ru' });
+    },
+  });
+
+  // `eduguarantee` — аннулирование подписки по гарантийным условиям: контракт
+  // ставит в повестку заявление участника (3013), протокол совета (3014)
+  // собирается из его метаданных и номера решения.
+  decisionFactory.registerHandler('eduguarantee', {
+    generateHandler: async ({ decision_id, row }) => {
+      if (!row.table?.statement?.meta) {
+        throw new Error(t('edubridge.decision.guaranteeMetaMissing'));
+      }
+      const statementMeta = JSON.parse(row.table.statement.meta) as Cooperative.Registry.EducationGuaranteeStatement.Action;
+      if (!statementMeta.claim_hash || !statementMeta.amount) {
+        throw new Error(t('edubridge.decision.guaranteeMetaInvalid'));
+      }
+      const { info } = useSystemStore();
+      const protocolAction: Cooperative.Registry.EducationGuaranteeDecision.Action = {
+        registry_id: Cooperative.Registry.EducationGuaranteeDecision.registry_id,
+        coopname: info.coopname,
+        username: String(row.table.username),
+        lang: 'ru',
+        decision_id,
+        claim_hash: statementMeta.claim_hash,
+        course_title: statementMeta.course_title,
+        amount: statementMeta.amount,
       };
       return await new DigitalDocument().generate(protocolAction, { lang: 'ru' });
     },

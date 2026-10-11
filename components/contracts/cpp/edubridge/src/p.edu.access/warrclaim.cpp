@@ -6,8 +6,11 @@
  * заявлением. Заявление (шаблон 3013) рассматривает совет: при удовлетворении
  * подписка закрывается с возвратом всей списанной стоимости на паевой
  * (`cancelsub`), при отказе у участника остаётся обычный отказ от подписки.
- * Здесь заявление публикуется в реестре документов — совет и участник видят
- * подписанное основание. Движений средств нет, подписка остаётся действующей.
+ * Здесь заявление публикуется в реестре документов и тем же действием
+ * ставится в повестку совета (тип решения `eduguarantee`, hash = sub_hash,
+ * документ повестки — это заявление). Совет подписывает протокол (шаблон
+ * 3014) — приходит `onwarrauth`, отказывает либо не решает в срок —
+ * `onwarrdecl`. Движений средств нет, подписка остаётся действующей.
  *
  * Guards:
  *  - заявление не пустое и подписано ключом самого пайщика;
@@ -49,13 +52,35 @@ void edubridge::warrclaim(eosio::name coopname,
   // истечёт за время рассмотрения, преподавателям он не выделяется.
   subs.modify(sub, RamPayer::of(subs, coopname), [&](auto& s) { s.plan.value().claimed = true; });
 
+  // Заявление — в реестр документов пакетом процесса подписки (package = sub_hash).
   Soviet::make_complete_document(_edubridge, coopname, username,
                                  "warrclaim"_n,
-                                 statement.hash, statement);
+                                 sub_hash, statement);
+
+  // Повестка совета: hash = sub_hash, чтобы обратные вызовы нашли подписку;
+  // автор повестки — участник, документ — его заявление; протокол 3014 берёт
+  // деловые поля из метаданных заявления.
+  action(permission_level{_edubridge, "active"_n}, _soviet, "createagenda"_n,
+    std::make_tuple(
+      coopname,
+      username,
+      get_valid_soviet_action(_edubridge_guarantee_action),
+      sub_hash,
+      _edubridge,
+      "onwarrauth"_n,
+      "onwarrdecl"_n,
+      statement,
+      std::string("")
+    )
+  ).send();
 }
 
 /**
  * @brief Совет отказал по заявлению об аннулировании подписки по гарантийным условиям.
+ *
+ * Общий порядок отказа — `Edubridge::decline_guarantee`: его же зовёт
+ * обратный вызов совета `onwarrdecl`. Действие оставлено для заявлений,
+ * поданных до повестки контракта.
  *
  * Заморозка взноса снимается, подписка продолжает действовать. Гарантийный
  * срок группы ещё идёт — подписка возвращается к обычному порядку. Срок уже
@@ -78,16 +103,26 @@ void edubridge::warrdecline(eosio::name coopname,
                "EDUBRIDGE_SUBSCRIPTION_NOT_OWNER: Подписка принадлежит другому пайщику");
   eosio::check(sub->has_plan() && sub->plan.value().claimed,
                "EDUBRIDGE_GUARANTEE_CLAIM_NOT_FOUND: По подписке нет заявления по гарантийным условиям на рассмотрении");
+  Edubridge::decline_guarantee(coopname, subs, sub);
+}
 
-  const auto now = eosio::time_point_sec(eosio::current_time_point());
-  const edu_terms terms = Edubridge::get_terms_or_fail(coopname, sub->course_id);
+/**
+ * @brief Обратный вызов совета: по заявлению об аннулировании подписки по
+ * гарантийным условиям отказано либо вопрос снят с повестки по сроку.
+ *
+ * Подписки могло уже не быть (закрылась, пока совет решал) — тогда снимать
+ * нечего, и действие завершается без отказа, чтобы совет закрыл вопрос.
+ *
+ * @ingroup public_edubridge_actions
+ */
+void edubridge::onwarrdecl(eosio::name coopname,
+                           checksum256 hash,
+                           std::string reason) {
+  require_auth(_soviet);
 
-  subs.modify(sub, RamPayer::of(subs, coopname), [&](auto& s) {
-    auto& plan = s.plan.value();
-    plan.claimed = false;
-    if (!Edubridge::is_guarantee_running(terms, now)) {
-      plan.drop_dues();
-      Edubridge::close_guarantee(coopname, terms, s, now);
-    }
-  });
+  edu_subscriptions_index subs(_edubridge, coopname.value);
+  auto by_hash = subs.get_index<"byhash"_n>();
+  auto found = by_hash.find(hash);
+  if (found == by_hash.end() || !found->has_plan() || !found->plan.value().claimed) return;
+  Edubridge::decline_guarantee(coopname, subs, subs.find(found->id));
 }

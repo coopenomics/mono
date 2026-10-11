@@ -16,9 +16,10 @@ export function daysLeft(paidUntil: unknown, now = new Date()): number | null {
   return Math.max(0, Math.ceil((until - now.getTime()) / DAY_MS));
 }
 
-/** Подписку пора продлить: действует, а оплаченный срок кончается в ближайшие дни. */
-export function isRenewSoon(e: Pick<IEnrollment, 'status' | 'paid_until'>, now = new Date()): boolean {
-  if (!isLiveEnrollment(e)) return false;
+/** Подписку пора продлить: действует, программа идёт дальше, а оплаченный срок кончается в ближайшие дни. */
+export function isRenewSoon(e: Pick<IEnrollment, 'status' | 'paid_until' | 'renewable'>, now = new Date()): boolean {
+  // Программа, оплаченная до конца, заканчивается сама: продлевать её нечем.
+  if (!isLiveEnrollment(e) || !e.renewable) return false;
   const left = daysLeft(e.paid_until, now);
   return left !== null && left <= RENEW_SOON_DAYS;
 }

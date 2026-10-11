@@ -13,6 +13,14 @@ export async function fetchMyGuarantees(): Promise<IGuaranteeState[]> {
   return result;
 }
 
+export type IGuaranteeClaimDocument = Queries.Edubridge.MyGuaranteeClaimDocument.IOutput[typeof Queries.Edubridge.MyGuaranteeClaimDocument.name];
+
+/** Подписанное заявление участника — документом. */
+export async function fetchMyGuaranteeClaimDocument(claim_id: string): Promise<IGuaranteeClaimDocument> {
+  const { [Queries.Edubridge.MyGuaranteeClaimDocument.name]: result } = await client.Query(Queries.Edubridge.MyGuaranteeClaimDocument.query, { variables: { claim_id } });
+  return result;
+}
+
 /**
  * Заявление об аннулировании подписки по гарантийным условиям: сервер
  * формирует документ (стоимость и срок гарантии считает он), участник

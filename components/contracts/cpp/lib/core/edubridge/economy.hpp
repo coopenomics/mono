@@ -451,4 +451,38 @@ inline void check_no_pending_lesson(eosio::name coopname, const edu_terms& terms
                "EDUBRIDGE_SUBSCRIPTION_LESSON_PENDING: По подписке не завершён расчёт за проведённое занятие");
 }
 
+// ── Заявление по гарантийным условиям ─────────────────────────────────────
+
+/**
+ * Отказ по заявлению об аннулировании подписки: заморозка взноса снимается,
+ * подписка продолжает действовать. Гарантийный срок группы уже вышел — оплата
+ * занятий периода остаётся на кошельке программы, оплата непроведённых занятий
+ * выделяется в резерв преподавателям, удержание уменьшается до суммы
+ * возможного возврата.
+ */
+inline void decline_guarantee(eosio::name coopname, edu_subscriptions_index& subs, edu_subscriptions_index::const_iterator sub) {
+  const auto now = eosio::time_point_sec(eosio::current_time_point());
+  const edu_terms terms = get_terms_or_fail(coopname, sub->course_id);
+  subs.modify(sub, RamPayer::of(subs, coopname), [&](auto& s) {
+    auto& plan = s.plan.value();
+    plan.claimed = false;
+    if (!is_guarantee_running(terms, now)) {
+      plan.drop_dues();
+      close_guarantee(coopname, terms, s, now);
+    }
+  });
+}
+
+/**
+ * Заявление удовлетворено: участник забирает взнос по подписке целиком, его
+ * занятия в суммы преподавателей за гарантийный период не входят, подписка
+ * закрывается.
+ */
+inline void grant_guarantee(eosio::name coopname, edu_subscriptions_index& subs, edu_subscriptions_index::const_iterator sub) {
+  const edu_terms terms = get_terms_or_fail(coopname, sub->course_id);
+  check_no_pending_lesson(coopname, terms, *sub);
+  settle_closing(coopname, *sub, sub->charged_or_zero(), true, true);
+  subs.erase(sub);
+}
+
 } // namespace Edubridge

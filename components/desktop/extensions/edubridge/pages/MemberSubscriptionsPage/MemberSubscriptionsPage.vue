@@ -6,7 +6,7 @@
   //- Напоминание о продлении: взнос вносится заново на каждый период, и срок подходит.
   BaseBanner.q-mb-md(v-for="row in dueSoon" :key="asText(row.id)" variant="warn")
     template(#icon)
-      q-icon(name="event_upcoming")
+      q-icon(name="event")
     | {{ $t('edubridge.memberSubscriptionsPage.renewNotice', { courseTitle: row.course_title, date: row.paid_until ? formatDate(row.paid_until) : '______' }) }}
     template(#action)
       BaseButton(variant="primary" size="sm" @click="extend(row)") {{ $t('edubridge.memberSubscriptionsPage.extend') }}
@@ -42,7 +42,7 @@
       BaseBadge(:variant="accessOf(row.access_state).variant") {{ $t(`edubridge.access.short.${row.access_state}`) }}
     //- «Продлить» нажимают каждый период — кнопка в строке; остальные действия — в панели.
     template(#cell-actions="{ row }")
-      BaseButton(v-if="isActive(row)" variant="primary" size="sm" @click.stop="extend(row)") {{ $t('edubridge.memberSubscriptionsPage.extend') }}
+      BaseButton(v-if="isActive(row) && row.renewable" variant="primary" size="sm" @click.stop="extend(row)") {{ $t('edubridge.memberSubscriptionsPage.extend') }}
   EmptyState(v-else :title="$t('edubridge.memberSubscriptionsPage.emptyTitle')" :body="$t('edubridge.memberSubscriptionsPage.emptyBody')")
     template(#icon)
       q-icon(name="school" size="32px")
@@ -85,7 +85,11 @@
       DataRow(:label="$t('edubridge.memberSubscriptionsPage.columns.paidUntil')" :value="details.paid_until ? formatDate(details.paid_until) : '______'" :hint="isRenewSoon(details) ? $t('edubridge.memberSubscriptionsPage.daysLeft', { n: daysLeft(details.paid_until) }, Number(daysLeft(details.paid_until))) : undefined")
       DataRow(v-if="!isActive(details) && details.refund_reason" :label="$t('edubridge.memberSubscriptionsPage.details.refund')" :value="refundReason(details.refund_reason)")
       template(v-if="guaranteeOf(details)")
-        DataRow(v-if="claimOf(details)" :label="$t('edubridge.memberSubscriptionsPage.details.guaranteeClaim')" :value="`${$t('edubridge.guaranteeClaim.claimNumber', { number: claimOf(details)?.number })} · ${$t(`edubridge.guaranteeClaim.status.${claimOf(details)?.status}`)}`")
+        //- Заявление по гарантии — состояние и сам подписанный документ.
+        template(v-if="claimOf(details)")
+          DataRow(:label="$t('edubridge.memberSubscriptionsPage.details.guaranteeClaim')" :value="$t(`edubridge.guaranteeClaim.status.${claimOf(details)?.status}`)")
+          CardListSkeleton.q-mt-sm(v-if="claimDocumentLoading" :count="1")
+          ComplexDocument.q-mt-sm(v-else-if="claimDocument" :document="claimDocument" collapsible)
         DataRow(v-else-if="canClaimGuarantee(details) && guaranteeOf(details)?.guarantee_until" :label="$t('edubridge.memberSubscriptionsPage.details.guaranteeUntil')" :value="formatDate(guaranteeOf(details)?.guarantee_until)")
     template(v-if="details" #footer)
       .edu-sub__footer
@@ -98,13 +102,13 @@
           BaseButton(v-if="!underReview.has(asText(details.id))" variant="ghost" @click="openCancel(details)") {{ $t('edubridge.memberSubscriptionsPage.cancelSubscription') }}
           BaseButton(v-if="canClaimGuarantee(details)" variant="secondary" @click="openGuarantee(details)") {{ $t('edubridge.guaranteeClaim.open') }}
           q-space
-          BaseButton(variant="primary" @click="extend(details)") {{ $t('edubridge.memberSubscriptionsPage.extend') }}
+          BaseButton(v-if="details.renewable" variant="primary" @click="extend(details)") {{ $t('edubridge.memberSubscriptionsPage.extend') }}
 
   GuaranteeClaimDialog(v-model="guaranteeOpen" :state="guaranteeTarget" @submitted="load")
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { Zeus } from '@coopenomics/sdk';
 import { asText } from 'src/shared/lib/utils';
@@ -129,7 +133,8 @@ import {
 } from '../../entities/Learner';
 import { ReturnToShareCard } from '../../features/ReturnToShare';
 import { SubscribeDialog } from '../../features/Subscribe';
-import { GuaranteeClaimDialog, fetchMyGuarantees, type IGuaranteeState } from '../../features/Guarantee';
+import { GuaranteeClaimDialog, fetchMyGuaranteeClaimDocument, fetchMyGuarantees, type IGuaranteeClaimDocument, type IGuaranteeState } from '../../features/Guarantee';
+import { ComplexDocument } from 'src/shared/ui/ComplexDocument';
 import { daysLeft, isRenewSoon } from '../../shared/lib/subscriptionDue';
 import { useLiveReload } from 'src/shared/lib/realtime';
 import { EduLive } from '../../shared/lib/live';
@@ -188,6 +193,25 @@ const canClaimGuarantee = (row: IEnrollment) => Boolean(guaranteeOf(row)?.availa
 const detailsOpen = ref(false);
 const detailsId = ref<string | null>(null);
 const details = computed(() => enrollments.value.find((e) => asText(e.id) === detailsId.value) ?? null);
+
+/** Подписанное заявление по гарантии открытой подписки; ошибка чтения панель не ломает. */
+const claimDocument = ref<IGuaranteeClaimDocument | null>(null);
+const claimDocumentLoading = ref(false);
+watch(
+  () => (details.value ? asText(claimOf(details.value)?.id ?? '') : ''),
+  async (claimId) => {
+    claimDocument.value = null;
+    if (!claimId) return;
+    claimDocumentLoading.value = true;
+    try {
+      claimDocument.value = await fetchMyGuaranteeClaimDocument(claimId);
+    } catch {
+      claimDocument.value = null;
+    } finally {
+      claimDocumentLoading.value = false;
+    }
+  },
+);
 function openDetails(row: IEnrollment): void {
   detailsId.value = asText(row.id);
   detailsOpen.value = true;

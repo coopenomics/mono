@@ -114,6 +114,10 @@ export * as Delassign from './delassign'
 
 /** Публикация заявления о взносе, покрытом кошельком программы целиком. */
 export * as Regstatement from './regstatement'
+/** Обратный вызов совета: заявление по гарантийным условиям удовлетворено (p.edu.access) */
+export * as OnWarrAuth from './onWarrAuth'
+/** Обратный вызов совета: по заявлению по гарантийным условиям отказано (p.edu.access) */
+export * as OnWarrDecl from './onWarrDecl'
 export * as Warrclaim from './warrclaim'
 export * as Warrdecline from './warrdecline'
 export * as Warrgrant from './warrgrant'

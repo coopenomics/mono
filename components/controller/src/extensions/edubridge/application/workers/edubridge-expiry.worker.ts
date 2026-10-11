@@ -105,6 +105,8 @@ export class EdubridgeExpiryWorker {
     const until = new Date(Date.now() + days * 86_400_000);
     const soon = await this.enrollments.findExpiringSoon(coopname, until);
     for (const enrollment of soon) {
+      // Программа оплачена до конца — продлевать нечего, напоминание не шлётся.
+      if (!(await this.enrollmentService.isRenewable(enrollment))) continue;
       const [learner, course] = await Promise.all([
         this.learners.findById(coopname, enrollment.learner_id),
         this.courses.findById(coopname, enrollment.course_id),

@@ -7253,6 +7253,8 @@ export type ValueTypes = {
 	refund_reason?:boolean | `@${string}`,
 	/** Возвращено при отмене */
 	refunded_amount?:boolean | `@${string}`,
+	/** Подписку можно продлить: программа продолжается после оплаченного срока */
+	renewable?:boolean | `@${string}`,
 	/** Состояние подписки */
 	status?:boolean | `@${string}`,
 	/** Ключ подписки в цепи */
@@ -15507,6 +15509,7 @@ edubridgeMyContributionDocuments?: [{	contribution_id: ValueTypes["ID"] | Variab
 	edubridgeMyContributions?:ValueTypes["EduContribution"],
 	/** Подписки моих обучающихся: курс, доступ, срок */
 	edubridgeMyEnrollments?:ValueTypes["EduEnrollment"],
+edubridgeMyGuaranteeClaimDocument?: [{	claim_id: ValueTypes["ID"] | Variable<any, string>},ValueTypes["DocumentAggregate"]],
 	/** Гарантийные условия по моим подпискам и поданные заявления */
 	edubridgeMyGuarantees?:ValueTypes["EduGuaranteeState"],
 	/** Мои обучающиеся */
@@ -24067,6 +24070,8 @@ export type ResolverInputTypes = {
 	refund_reason?:boolean | `@${string}`,
 	/** Возвращено при отмене */
 	refunded_amount?:boolean | `@${string}`,
+	/** Подписку можно продлить: программа продолжается после оплаченного срока */
+	renewable?:boolean | `@${string}`,
 	/** Состояние подписки */
 	status?:boolean | `@${string}`,
 	/** Ключ подписки в цепи */
@@ -32061,6 +32066,7 @@ edubridgeMyContributionDocuments?: [{	contribution_id: ResolverInputTypes["ID"]}
 	edubridgeMyContributions?:ResolverInputTypes["EduContribution"],
 	/** Подписки моих обучающихся: курс, доступ, срок */
 	edubridgeMyEnrollments?:ResolverInputTypes["EduEnrollment"],
+edubridgeMyGuaranteeClaimDocument?: [{	claim_id: ResolverInputTypes["ID"]},ResolverInputTypes["DocumentAggregate"]],
 	/** Гарантийные условия по моим подпискам и поданные заявления */
 	edubridgeMyGuarantees?:ResolverInputTypes["EduGuaranteeState"],
 	/** Мои обучающиеся */
@@ -40364,6 +40370,8 @@ export type ModelTypes = {
 	refund_reason?: string | undefined | null,
 	/** Возвращено при отмене */
 	refunded_amount?: string | undefined | null,
+	/** Подписку можно продлить: программа продолжается после оплаченного срока */
+	renewable: boolean,
 	/** Состояние подписки */
 	status: ModelTypes["EduEnrollmentStatus"],
 	/** Ключ подписки в цепи */
@@ -48466,6 +48474,8 @@ export type ModelTypes = {
 	edubridgeMyContributions: Array<ModelTypes["EduContribution"]>,
 	/** Подписки моих обучающихся: курс, доступ, срок */
 	edubridgeMyEnrollments: Array<ModelTypes["EduEnrollment"]>,
+	/** Моё подписанное заявление об аннулировании подписки по гарантийным условиям */
+	edubridgeMyGuaranteeClaimDocument?: ModelTypes["DocumentAggregate"] | undefined | null,
 	/** Гарантийные условия по моим подпискам и поданные заявления */
 	edubridgeMyGuarantees: Array<ModelTypes["EduGuaranteeState"]>,
 	/** Мои обучающиеся */
@@ -57152,6 +57162,8 @@ export type GraphQLTypes = {
 	refund_reason?: string | undefined | null,
 	/** Возвращено при отмене */
 	refunded_amount?: string | undefined | null,
+	/** Подписку можно продлить: программа продолжается после оплаченного срока */
+	renewable: boolean,
 	/** Состояние подписки */
 	status: GraphQLTypes["EduEnrollmentStatus"],
 	/** Ключ подписки в цепи */
@@ -65875,6 +65887,8 @@ export type GraphQLTypes = {
 	edubridgeMyContributions: Array<GraphQLTypes["EduContribution"]>,
 	/** Подписки моих обучающихся: курс, доступ, срок */
 	edubridgeMyEnrollments: Array<GraphQLTypes["EduEnrollment"]>,
+	/** Моё подписанное заявление об аннулировании подписки по гарантийным условиям */
+	edubridgeMyGuaranteeClaimDocument?: GraphQLTypes["DocumentAggregate"] | undefined | null,
 	/** Гарантийные условия по моим подпискам и поданные заявления */
 	edubridgeMyGuarantees: Array<GraphQLTypes["EduGuaranteeState"]>,
 	/** Мои обучающиеся */

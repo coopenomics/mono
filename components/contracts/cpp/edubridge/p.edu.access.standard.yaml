@@ -186,7 +186,7 @@ actions:
       он не направляется. Подписка и доступ действуют до решения совета;
       обычный отказ от подписки в это время закрыт.
 
-  - name: edubridge::warrgrant
+  - name: edubridge::onwarrauth
     human: Удовлетворить заявление по гарантийным условиям
     actor: council
     role: closer
@@ -528,28 +528,28 @@ documents:
     title: Заявление о конвертации паевого взноса в членский взнос по ЦПП «Образование»
     registry_id: 3011
     signed_by: [member]
-    stored_in: "реестр документов (package = hash заявления)"
+    stored_in: "реестр документов (package = хэш подписки)"
     note: "Подписывается пайщиком при оплате каждого периода курса. Содержит сумму, название курса и период. Подписка хранит hash последнего заявления (edusubs.statement_hash). Источник правды — components/cooptypes/src/cooperative/registry/3011.EducationConvertStatement"
 
   - action: edubridge::warrclaim
     title: Заявление об аннулировании Подписки по Гарантийным условиям
     registry_id: 3013
     signed_by: [member]
-    stored_in: "реестр документов (package = hash заявления)"
+    stored_in: "реестр документов (package = хэш подписки)"
     note: "Подписывается участником в гарантийный срок подписки. Содержит причину аннулирования и стоимость подписки."
 
-  - action: edubridge::warrgrant
+  - action: edubridge::onwarrauth
     title: Протокол решения Совета об аннулировании Подписки по Гарантийным условиям
     registry_id: 3014
     signed_by: [council]
-    stored_in: "реестр документов (package = номер заявления)"
+    stored_in: "реестр документов (package = хэш подписки)"
     note: "Формируется при удовлетворении заявления советом; публикуется вместе с возвратом стоимости подписки."
 
   - action: edubridge::retshare
     title: Заявление об аннулировании соглашений об участии в целевых потребительских программах
     registry_id: 190
     signed_by: [member]
-    stored_in: "реестр документов (package = hash заявления)"
+    stored_in: "реестр документов (package = хэш подписки)"
     note: "Подписывается при выходе из кооператива вместе с заявлением на выход. В таблице все программы пайщика; по программе «Образование» — остаток кошелька программы и возврат по действующим подпискам на день подписания (пп. 4.2.4, 4.2.5 Положения). Источник правды — components/cooptypes/src/cooperative/registry/190.ProgramAgreementsAnnulmentStatement"
 
 # ── Секция 6. Операции (Ledger2) ────────────────────────────────────────────
@@ -622,7 +622,7 @@ operations:
     wallet_from: w.edu.escrow
     wallet_to: w.edu.fund
     amount_ref: удержанное сверх суммы возможного возврата | всё удержанное при закрытии подписки
-    triggered_by: edubridge::unlockfee, edubridge::chargelesson, edubridge::chargefee, edubridge::cancelsub, edubridge::warrgrant, edubridge::warrdecline, edubridge::expiresub
+    triggered_by: edubridge::unlockfee, edubridge::chargelesson, edubridge::chargefee, edubridge::cancelsub, edubridge::onwarrauth, edubridge::warrdecline, edubridge::expiresub
     description: >
       Часть удержанного, которую участник уже не может потребовать назад,
       становится свободными средствами программы: после гарантийного срока —
@@ -639,7 +639,7 @@ operations:
     wallet_from: w.edu.fund        # Фонд ЦПП «Образование» — свободные средства
     wallet_to: w.edu.teach         # Резерв выплат преподавателям
     amount_ref: оплата занятий по плановой ставке | взнос преподавателей за проведённые занятия
-    triggered_by: edubridge::chargefee, edubridge::unlockfee, edubridge::cancelsub, edubridge::warrgrant, edubridge::expiresub
+    triggered_by: edubridge::chargefee, edubridge::unlockfee, edubridge::cancelsub, edubridge::onwarrauth, edubridge::expiresub
     description: >
       Оплата занятий, заложенная во взнос участника, выделяется в резерв
       выплат преподавателям: сразу при взносе, если гарантийный срок истёк,
@@ -655,7 +655,7 @@ operations:
     wallet_from: w.edu.teach
     wallet_to: w.edu.fund
     amount_ref: резерв подписки за непроведённые занятия | разница между плановой ставкой и ставкой преподавателя
-    triggered_by: edubridge::cancelsub, edubridge::warrgrant, edubridge::expiresub, edubridge::chargelesson
+    triggered_by: edubridge::cancelsub, edubridge::onwarrauth, edubridge::expiresub, edubridge::chargelesson
     description: >
       Подписка отменена либо закрыта — резерв за её непроведённые занятия
       возвращается в свободные средства программы. При расчёте занятия тем же
@@ -674,7 +674,7 @@ operations:
     available_delta: "+refund на w.edu.member"
     blocked_delta: null
     amount_ref: cancelsub.refund
-    triggered_by: edubridge::cancelsub, edubridge::warrgrant
+    triggered_by: edubridge::cancelsub, edubridge::onwarrauth
     description: >
       При отмене подписки сумма возврата, посчитанная по Положению о
       программе, переходит из фонда на кошелёк программы участника.
@@ -691,7 +691,7 @@ operations:
     available_delta: "-amount на w.edu.member; +amount на w.wal.share"
     blocked_delta: null
     amount_ref: cancelsub.refund | retshare.amount (весь остаток w.edu.member)
-    triggered_by: edubridge::cancelsub, edubridge::warrgrant, edubridge::retshare
+    triggered_by: edubridge::cancelsub, edubridge::onwarrauth, edubridge::retshare
     description: >
       Обратная конвертация: членский взнос программы возвращается в паевой
       взнос участника только с прекращением участия в программе. При отмене

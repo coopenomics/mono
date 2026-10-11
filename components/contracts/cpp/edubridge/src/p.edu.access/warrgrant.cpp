@@ -37,14 +37,47 @@ void edubridge::warrgrant(eosio::name coopname,
                "EDUBRIDGE_SUBSCRIPTION_NOT_OWNER: Подписка принадлежит другому пайщику");
   eosio::check(sub->has_plan(), "EDUBRIDGE_SUBSCRIPTION_LEGACY: Подписка открыта до учёта занятий: закройте её действием expiresub");
 
-  const edu_terms terms = Edubridge::get_terms_or_fail(coopname, sub->course_id);
-  Edubridge::check_no_pending_lesson(coopname, terms, *sub);
+  Edubridge::grant_guarantee(coopname, subs, sub);
 
-  // Участник забирает взнос целиком; его занятия в суммы преподавателей за гарантийный период не входят.
-  Edubridge::settle_closing(coopname, *sub, sub->charged_or_zero(), true, true);
-  subs.erase(sub);
-
+  // Протокол — в реестр документов пакетом процесса подписки (package = sub_hash).
   Soviet::make_complete_document(_edubridge, coopname, username,
                                  "warrgrant"_n,
-                                 claim_hash, decision);
+                                 sub_hash, decision);
+}
+
+/**
+ * @brief Обратный вызов совета: заявление об аннулировании подписки по
+ * гарантийным условиям удовлетворено.
+ *
+ * Совет проголосовал, председатель подписал протокол (шаблон 3014) — совет
+ * вызывает это действие с протоколом. Подписка аннулируется, весь взнос по
+ * ней возвращается в паевой взнос участника; сумму берёт контракт. Протокол
+ * публикуется в реестре документов пакетом подписки.
+ *
+ * Guards:
+ *  - вызывает только контракт совета;
+ *  - протокол не пустой;
+ *  - подписка существует, и по ней рассматривается заявление;
+ *  - по подписке завершён расчёт за открытое занятие группы.
+ *
+ * @ingroup public_edubridge_actions
+ */
+void edubridge::onwarrauth(eosio::name coopname,
+                           checksum256 hash,
+                           document2 authorization) {
+  require_auth(_soviet);
+  eosio::check(!is_empty_document(authorization),
+               "EDUBRIDGE_GUARANTEE_DECISION_REQUIRED: Отсутствует протокол решения совета по заявлению об аннулировании подписки");
+
+  edu_subscriptions_index subs(_edubridge, coopname.value);
+  auto sub = Edubridge::get_subscription_or_fail(subs, hash);
+  eosio::check(sub->has_plan() && sub->plan.value().claimed,
+               "EDUBRIDGE_GUARANTEE_CLAIM_NOT_FOUND: По подписке нет заявления по гарантийным условиям на рассмотрении");
+  const eosio::name username = sub->username;
+
+  Edubridge::grant_guarantee(coopname, subs, sub);
+
+  Soviet::make_complete_document(_edubridge, coopname, username,
+                                 "onwarrauth"_n,
+                                 hash, authorization);
 }

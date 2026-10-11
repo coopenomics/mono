@@ -2,7 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { DomainError } from '@coopenomics/extension-kit';
 import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { EduEnrollmentStatus, EduGroupStatus } from '../../domain/enums';
-import type { EdubridgeCourseRecord, EdubridgeGroupRecord } from '../../infrastructure/entities';
+import type { EdubridgeCourseRecord, EdubridgeEnrollmentRecord, EdubridgeGroupRecord } from '../../infrastructure/entities';
 import { EdubridgeCourseKyselyRepository } from '../../infrastructure/repositories/edubridge-course.kysely-repository';
 import { EdubridgeEnrollmentKyselyRepository } from '../../infrastructure/repositories/edubridge-enrollment.kysely-repository';
 import { EdubridgeGroupKyselyRepository } from '../../infrastructure/repositories/edubridge-group.kysely-repository';
@@ -293,6 +293,21 @@ export class EdubridgeGroupService {
     }
   }
 
+  /**
+   * Подписку можно продлить: группа идёт, и программа продолжается после
+   * оплаченного срока. Программа, оплаченная до конца, заканчивается сама —
+   * продлевать её нечем.
+   */
+  async isRenewable(enrollment: Pick<EdubridgeEnrollmentRecord, 'coopname' | 'group_id' | 'paid_until'>): Promise<boolean> {
+    if (!enrollment.group_id) return true;
+    const group = await this.groups.findById(enrollment.coopname, enrollment.group_id);
+    if (!group) return true;
+    if (group.status !== EduGroupStatus.ACTIVE) return false;
+    const end = programEndsAt(group);
+    if (!end || !enrollment.paid_until) return true;
+    return new Date(enrollment.paid_until).getTime() < end.getTime();
+  }
+
   /** Условия всех групп — в цепь: при запуске, для групп, заведённых до расчётов на контракте. */
   async pushAll(coopname: string): Promise<void> {
     for (const course of await this.courses.listAll(coopname)) {
@@ -328,12 +343,17 @@ function termsOf(course: EdubridgeCourseRecord): Partial<EdubridgeGroupRecord> {
   return Object.fromEntries(TERM_FIELDS.map((f) => [f, course[f]])) as Partial<EdubridgeGroupRecord>;
 }
 
-/** Срок программы группы вышел: от дня начала прошли все её месяцы. Группа без конечной программы не заканчивается. */
-function hasEnded(group: EdubridgeGroupRecord, now: Date = new Date()): boolean {
+/** Конец программы группы: начало занятий плюс все её месяцы; `null` — программа без конца либо начало не назначено. */
+export function programEndsAt(group: Pick<EdubridgeGroupRecord, 'starts_at' | 'starts_at_time' | 'lessons_per_month' | 'lessons_total'>): Date | null {
   const months = courseMonths(group.lessons_per_month, group.lessons_total);
   const start = startMomentOf(group);
-  if (!start || !months) return false;
-  return addMonths(new Date(start), months).getTime() <= now.getTime();
+  return start && months ? addMonths(new Date(start), months) : null;
+}
+
+/** Срок программы группы вышел: от дня начала прошли все её месяцы. Группа без конечной программы не заканчивается. */
+function hasEnded(group: EdubridgeGroupRecord, now: Date = new Date()): boolean {
+  const end = programEndsAt(group);
+  return Boolean(end) && (end as Date).getTime() <= now.getTime();
 }
 
 /**

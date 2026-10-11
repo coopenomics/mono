@@ -192,6 +192,18 @@ describe('EdubridgeGroupService — группа как единица расч�
     }
   });
 
+  it('подписку можно продлить, пока программа группы идёт после оплаченного срока; оплаченную до конца программы — нельзя', async () => {
+    // 8 занятий по 8 в месяц — программа в один месяц: с 01.09.2099 по 01.10.2099.
+    const { service } = make({ groups: [group({ lessons_total: 8 })] });
+    const sub = (paid: string | null, groupId: string | null = 'G1') => ({ coopname: 'voskhod', group_id: groupId, paid_until: paid ? new Date(paid) : null }) as any;
+    await expect(service.isRenewable(sub('2099-09-20'))).resolves.toBe(true);
+    await expect(service.isRenewable(sub('2099-10-01'))).resolves.toBe(false);
+    // Программа без конца продлевается всегда; завершённая группа — никогда.
+    await expect(make({ groups: [group({ lessons_total: 0 })] }).service.isRenewable(sub('2199-01-01'))).resolves.toBe(true);
+    await expect(make({ groups: [group({ status: EduGroupStatus.CLOSED })] }).service.isRenewable(sub('2099-09-20'))).resolves.toBe(false);
+    await expect(service.isRenewable(sub('2099-09-20', null))).resolves.toBe(true);
+  });
+
   it('группа завершается сама, когда срок программы вышел и действующих подписок нет; с действующей подпиской она идёт дальше', async () => {
     // 64 занятия по 8 в месяц — восемь месяцев от дня начала.
     const over = make({ groups: [group({ starts_at: '2025-01-10' })], enrollments: [{ status: EduEnrollmentStatus.EXPIRED }] });

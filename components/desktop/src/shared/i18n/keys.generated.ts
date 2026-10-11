@@ -3075,6 +3075,8 @@ export type MessageKey =
   | 'edubridge.courseGroups.title'
   | 'edubridge.courseGroups.titleHint'
   | 'edubridge.courseGroups.titleLabel'
+  | 'edubridge.decision.guaranteeMetaInvalid'
+  | 'edubridge.decision.guaranteeMetaMissing'
   | 'edubridge.decision.ridMetaInvalid'
   | 'edubridge.decision.ridMetaMissing'
   | 'edubridge.eduGateDocumentStep.buildError'

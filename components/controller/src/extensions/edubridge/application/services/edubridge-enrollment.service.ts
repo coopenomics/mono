@@ -108,13 +108,22 @@ export class EdubridgeEnrollmentService {
     this.logger.setContext(EdubridgeEnrollmentService.name);
   }
 
-  async listMine(coopname: string, member: string): Promise<Array<{ enrollment: EdubridgeEnrollmentRecord; course: EdubridgeCourseRecord | null }>> {
+  async listMine(coopname: string, member: string): Promise<Array<{ enrollment: EdubridgeEnrollmentRecord; course: EdubridgeCourseRecord | null; renewable: boolean }>> {
     const rows = await this.enrollments.findByMember(coopname, member);
-    const result: Array<{ enrollment: EdubridgeEnrollmentRecord; course: EdubridgeCourseRecord | null }> = [];
+    const result: Array<{ enrollment: EdubridgeEnrollmentRecord; course: EdubridgeCourseRecord | null; renewable: boolean }> = [];
     for (const enrollment of rows) {
-      result.push({ enrollment, course: await this.groups.courseOf(coopname, enrollment.course_id, enrollment.group_id) });
+      result.push({
+        enrollment,
+        course: await this.groups.courseOf(coopname, enrollment.course_id, enrollment.group_id),
+        renewable: await this.groups.isRenewable(enrollment),
+      });
     }
     return result;
+  }
+
+  /** Подписку можно продлить: программа группы продолжается после оплаченного срока. */
+  isRenewable(enrollment: EdubridgeEnrollmentRecord): Promise<boolean> {
+    return this.groups.isRenewable(enrollment);
   }
 
   courseOf(enrollment: EdubridgeEnrollmentRecord): Promise<EdubridgeCourseRecord | null> {
@@ -314,25 +323,12 @@ export class EdubridgeEnrollmentService {
 
   /**
    * Совет удовлетворил заявление по гарантийным условиям (п. 4.4.4 Положения):
-   * подписка аннулируется, вся списанная стоимость возвращается сразу на
-   * паевой, протокол совета публикуется той же транзакцией.
+   * контракт по решению совета сам аннулировал подписку и вернул весь взнос
+   * на паевой. Здесь запись подписки приводится к цепи и отзывается доступ;
+   * сумма возврата — из заявления, она читается для записи.
    */
-  async cancelByGuarantee(
-    coopname: string,
-    enrollment: EdubridgeEnrollmentRecord,
-    grant: { claim_hash: string; decision: ISignedDocument }
-  ): Promise<EdubridgeEnrollmentRecord> {
+  async cancelByGuarantee(coopname: string, enrollment: EdubridgeEnrollmentRecord, refund: string): Promise<EdubridgeEnrollmentRecord> {
     if (!isCancellable(enrollment)) throw DomainError.badRequest('EDUBRIDGE_SUBSCRIPTION_ALREADY_CLOSED');
-    // Возврат — весь взнос по подписке; сумму берёт контракт, здесь она читается для записи.
-    const chainSub = await this.chain.readSubscription(coopname, enrollment.sub_hash);
-    const refund = chainSub?.charged ?? enrollment.paid_amount;
-    await this.chain.grantGuarantee({
-      coopname,
-      username: enrollment.member_username,
-      claim_hash: grant.claim_hash,
-      sub_hash: enrollment.sub_hash,
-      decision: grant.decision as never,
-    });
     enrollment.status = EduEnrollmentStatus.CANCELLED;
     enrollment.cancelled_at = new Date();
     // Остаток по подписке контракт разнёс сам; учёт курса в записи сверяется с цепью.

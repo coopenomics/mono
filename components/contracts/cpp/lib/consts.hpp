@@ -73,6 +73,7 @@ static constexpr eosio::name _marketplace_return_action = "mktretrn"_n;       //
 
 // edubridge linked actions
 static constexpr eosio::name _edubridge_rid_action = "eduacptrid"_n;          ///< Приём паевого взноса результатом интеллектуальной деятельности преподавателя по решению совета (p.edu.rid)
+static constexpr eosio::name _edubridge_guarantee_action = "eduguarantee"_n; ///< Аннулирование подписки по гарантийным условиям (p.edu.access)
 
 // branch linked actions
 static constexpr eosio::name _branch_aid_action = "brnaid"_n;                ///< Материальная помощь доверенному КУ по решению совета (p.brn.aid)
@@ -136,6 +137,7 @@ static const std::set<eosio::name> soviet_actions = {
 
     //EDUBRIDGE
     "eduacptrid"_n, //заявление преподавателя о паевом взносе результатом интеллектуальной деятельности на повестку совета (p.edu.rid)
+    "eduguarantee"_n, //заявление участника об аннулировании подписки по гарантийным условиям на повестку совета (p.edu.access)
 };
 
 //program_ids

@@ -55,6 +55,7 @@ export * as MySettlement from './mySettlement'
 /** Моя выписка: зачисления и возвраты с состоянием */
 export * as MySettlementJournal from './mySettlementJournal'
 /** Заявления моего возврата паевого взноса */
+export * as MyGuaranteeClaimDocument from './myGuaranteeClaimDocument'
 export * as MyShareReturnDocuments from './myShareReturnDocuments'
 /** Назначения преподавателей кооператива */
 export * as Assignments from './assignments'

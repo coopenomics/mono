@@ -133,7 +133,7 @@ describe.runIf(SHORT_DAYS)('Образование: конец гарантий�
     const claim = await submitGuaranteeClaim(learner, token, granted.id, 'Занятия не подошли')
     // Второе заявление подаётся до конца срока и останется на рассмотрении, когда срок выйдет.
     await submitGuaranteeClaim(learner, token, declined.id, 'Хочу вернуть взнос')
-    await councilGrants(await guaranteeAgenda(claim.id))
+    await councilGrants(await guaranteeAgenda(claim))
     await waitFor(async () => ((await claimOf(granted.id))?.status === 'APPROVED' ? true : null),
       { timeoutMs: 180_000, intervalMs: 2_000, label: 'заявление по гарантии удовлетворено' })
     const closed = await enrollmentOf(token, granted.id)
@@ -153,7 +153,7 @@ describe.runIf(SHORT_DAYS)('Образование: конец гарантий�
   }, 1_200_000)
 
   it(caseName('edu.teach.side.07', 'совет отказал после срока: преподавателю заведён один взнос на занятия периода — только по оставшемуся ученику'), async () => {
-    await councilDeclines(await guaranteeAgenda((await claimOf(declined.id)).id))
+    await councilDeclines(await guaranteeAgenda(await claimOf(declined.id)))
     await waitFor(async () => ((await claimOf(declined.id))?.status === 'DECLINED' ? true : null),
       { timeoutMs: 180_000, intervalMs: 2_000, label: 'заявление по гарантии отклонено советом' })
     expect((await enrollmentOf(token, declined.id))?.status, 'подписка продолжает действовать').toBe('ACTIVE')

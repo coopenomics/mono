@@ -1,6 +1,6 @@
 import { UseGuards } from '@nestjs/common';
-import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
-import { GeneratedDocumentDTO, GqlJwtAuthGuard, platformSettings, RequireRight, RightsGuard, SELF } from '@coopenomics/extension-kit';
+import { Args, ID, Mutation, Query, Resolver } from '@nestjs/graphql';
+import { DocumentAggregateDTO, GeneratedDocumentDTO, GqlJwtAuthGuard, platformSettings, RequireRight, RightsGuard, SELF } from '@coopenomics/extension-kit';
 import type { ISignedDocument } from '@coopenomics/innercoop';
 import { CurrentEduMember } from '../decorators/current-edu-member.decorator';
 import { EduGuaranteeClaimDTO, EduGuaranteeStateDTO, EduGuaranteeStatementInputDTO, EduSubmitGuaranteeClaimInputDTO } from '../dto/edu-guarantee.dto';
@@ -19,6 +19,14 @@ export class EdubridgeGuaranteeResolver {
   @RequireRight('EduEnrollment', 'read:own', SELF)
   async edubridgeMyGuarantees(@CurrentEduMember() m: IEdubridgeMembership): Promise<EduGuaranteeStateDTO[]> {
     return (await this.guarantee.statesOf(coop(), m.username as string)).map((s) => new EduGuaranteeStateDTO(s));
+  }
+
+  @Query(() => DocumentAggregateDTO, { nullable: true, name: 'edubridgeMyGuaranteeClaimDocument', description: 'Моё подписанное заявление об аннулировании подписки по гарантийным условиям' })
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('EduEnrollment', 'read:own', SELF)
+  async edubridgeMyGuaranteeClaimDocument(@CurrentEduMember() m: IEdubridgeMembership, @Args('claim_id', { type: () => ID }) id: string): Promise<DocumentAggregateDTO | null> {
+    const aggregate = await this.guarantee.claimDocument(coop(), m.username as string, id);
+    return aggregate ? new DocumentAggregateDTO(aggregate) : null;
   }
 
   @Mutation(() => GeneratedDocumentDTO, {

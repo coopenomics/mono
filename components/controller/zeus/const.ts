@@ -3201,6 +3201,9 @@ export const AllTypesProps: Record<string,any> = {
 		edubridgeMyContributionDocuments:{
 
 		},
+		edubridgeMyGuaranteeClaimDocument:{
+
+		},
 		edubridgeMyShareReturnDocuments:{
 
 		},
@@ -5880,6 +5883,7 @@ export const ReturnTypes: Record<string,any> = {
 		period:"EduEnrollmentPeriod",
 		refund_reason:"String",
 		refunded_amount:"String",
+		renewable:"Boolean",
 		status:"EduEnrollmentStatus",
 		sub_hash:"String"
 	},
@@ -8710,6 +8714,7 @@ export const ReturnTypes: Record<string,any> = {
 		edubridgeMyContributionDocuments:"EduContributionDocument",
 		edubridgeMyContributions:"EduContribution",
 		edubridgeMyEnrollments:"EduEnrollment",
+		edubridgeMyGuaranteeClaimDocument:"DocumentAggregate",
 		edubridgeMyGuarantees:"EduGuaranteeState",
 		edubridgeMyLearners:"EduLearner",
 		edubridgeMyLessons:"EduLesson",

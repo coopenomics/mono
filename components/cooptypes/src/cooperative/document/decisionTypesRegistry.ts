@@ -4,6 +4,7 @@ import {
   BranchFinancialAidProtocol, // 1112
   DecisionOfParticipantApplication, // 501
   DecisionOfParticipantExit, // 201
+  EducationGuaranteeDecision, // 3014
   EducationRidDecision, // 3009
   FreeDecision,
   MarketplaceReturnCancelDecision, // 1117
@@ -146,6 +147,13 @@ export const decisionTypesRegistry: Record<string, IDecisionTypeInfo> = {
     title: 'Приём паевого взноса результатом интеллектуальной деятельности преподавателя',
     description: 'Заявление преподавателя о паевом взносе материалами занятия по договору участия в хозяйственной деятельности ЦПП «Образование».',
     protocol_registry_id: EducationRidDecision.registry_id,
+    extension: 'edubridge',
+  },
+  eduguarantee: {
+    type: 'eduguarantee',
+    title: 'Аннулирование подписки по гарантийным условиям',
+    description: 'Заявление участника об аннулировании подписки на курс по гарантийным условиям ЦПП «Образование» с возвратом взноса.',
+    protocol_registry_id: EducationGuaranteeDecision.registry_id,
     extension: 'edubridge',
   },
 }

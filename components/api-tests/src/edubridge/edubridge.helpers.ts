@@ -16,7 +16,7 @@ import { Cooperative } from 'cooptypes'
 import type { Who } from '../core'
 import { CHAIRMAN, COOP, amount, declineDecisionOnChain, deposit, gql, signDocument, tokenOf, waitFor } from '../core'
 import type { AgendaRow, TemplateRow } from '../documents/docs-reports.helpers'
-import { agendaAll, agendaByHash, authorizeFreeDecision, blank, declineDecision, propose, templates, vote, waitTemplate } from '../documents/docs-reports.helpers'
+import { agendaAll, agendaByHash, authorizeFreeDecision, blank, propose, templates, vote, waitTemplate } from '../documents/docs-reports.helpers'
 
 export const EXTENSION = 'edubridge'
 
@@ -478,19 +478,44 @@ export async function agendaWith(marker: string): Promise<AgendaRow> {
   }, { timeoutMs: 90_000, intervalMs: 1_500, label: `вопрос совету с меткой ${marker.slice(0, 12)}` })
 }
 
-/** Вопрос совету по заявлению о гарантии. */
-export const guaranteeAgenda = agendaWith
+/**
+ * Вопрос совету по заявлению о гарантии ставит в повестку контракт: тип
+ * решения `eduguarantee`, документ вопроса — заявление участника с его номером.
+ */
+export async function guaranteeAgenda(claim: { number: string }): Promise<AgendaRow> {
+  const chairman = await tokenOf(CHAIRMAN)
+  const number = claim.number.toLowerCase()
+  return waitFor(async () => {
+    for (const row of (await agendaAll(chairman)).filter(a => a.type === 'eduguarantee')) {
+      const full = await agendaByHash(chairman, row.hash)
+      if (String(full?.statementMeta?.claim_hash ?? '').toLowerCase().startsWith(number)) return full
+    }
+    return null
+  }, { timeoutMs: 90_000, intervalMs: 1_500, label: `вопрос совету по заявлению № ЗАП-${claim.number}` })
+}
 
-/** Совет удовлетворяет заявление: голоса «за» и утверждение председателем. */
+/**
+ * Совет удовлетворяет заявление: голоса «за», председатель подписывает
+ * протокол (3014) и утверждает решение — контракт по обратному вызову сам
+ * аннулирует подписку и возвращает взнос.
+ */
 export async function councilGrants(agenda: AgendaRow): Promise<void> {
+  const chairman = await tokenOf(CHAIRMAN)
   await vote(agenda, 'for')
-  await authorizeFreeDecision(agenda)
+  const meta = agenda.statementMeta
+  const protocol = await waitFor(() => gql<any>(chairman, GENERATE, {
+    i: { data: { registry_id: R.EducationGuaranteeDecision.registry_id, coopname: COOP, username: agenda.username, decision_id: agenda.id, claim_hash: meta.claim_hash, course_title: meta.course_title, amount: meta.amount } },
+  }), { timeoutMs: 90_000, intervalMs: 2_000, label: `протокол решения ${agenda.id} об аннулировании подписки` })
+  const signed = await signDocument(CHAIRMAN.wif, protocol.generateDocument, CHAIRMAN.account, 1)
+  await gql(chairman, 'mutation($d:AuthorizeDecisionInput!){ authorizeDecision(data:$d){ __typename } }', {
+    d: { coopname: COOP, chairman: CHAIRMAN.account, decision_id: agenda.id, document: signed },
+  })
 }
 
 /** Совет отклоняет заявление: голоса «против» и отклонение вопроса. */
 export async function councilDeclines(agenda: AgendaRow): Promise<void> {
   await vote(agenda, 'against')
-  await declineDecision(agenda.id)
+  await declineDecisionOnChain(agenda.id)
 }
 
 /**

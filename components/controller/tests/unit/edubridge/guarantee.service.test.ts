@@ -10,7 +10,7 @@ import { EduGuaranteeClaimStatus } from '~/extensions/edubridge/domain/enums/gua
 const logger = { setContext: jest.fn(), info: jest.fn(), warn: jest.fn(), error: jest.fn() } as any;
 const DAY = 24 * 60 * 60 * 1000;
 
-function make(opts: { guaranteeDays?: number; startedDaysAgo?: number; status?: EduEnrollmentStatus; claim?: any; projectFails?: boolean } = {}) {
+function make(opts: { guaranteeDays?: number; startedDaysAgo?: number; status?: EduEnrollmentStatus; claim?: any; agendaUnread?: boolean } = {}) {
   const enrollment = {
     id: 'E1',
     coopname: 'voskhod',
@@ -37,22 +37,15 @@ function make(opts: { guaranteeDays?: number; startedDaysAgo?: number; status?: 
     create: jest.fn((d: any) => ({ id: 'G1', ...d })),
     save: jest.fn(async (c: any) => { store.claim = c; return c; }),
   } as any;
-  const enrollments = { findById: jest.fn(async () => enrollment), findByMember: jest.fn(async () => [enrollment]) } as any;
+  const enrollments = { findById: jest.fn(async () => enrollment), findByMember: jest.fn(async () => [enrollment]), findBySubHash: jest.fn(async (hash: string) => (hash.toLowerCase() === 's1' ? enrollment : null)) } as any;
   const courses = { findById: jest.fn(async () => course) } as any;
   const enrollmentService = { cancelByGuarantee: jest.fn(async () => enrollment) } as any;
   const chain = { claimGuarantee: jest.fn(async () => ({})), declineGuarantee: jest.fn(async () => ({})) } as any;
   const documents = { generate: jest.fn(async (r: any) => ({ hash: `H${r.data.registry_id}`, html: '', full_title: '', binary: '', meta: {} })) } as any;
-  const freeDecisions = {
-    createProjectOfFreeDecision: jest.fn(async () => {
-      if (opts.projectFails) throw new Error('совет недоступен');
-    }),
-    generateProjectOfFreeDecisionDocument: jest.fn(async () => ({ hash: 'PROJECT', meta: {} })),
-    publishProjectOfFreeDecision: jest.fn(async () => undefined),
-  } as any;
-  const tracking = { registerTrackingRule: jest.fn(async () => undefined) } as any;
-  const council = { getDecisions: jest.fn(async () => [{ id: 7, hash: 'project' }]) } as any;
-  const service = new EdubridgeGuaranteeService(claims, enrollments, courses, enrollmentService, chain, documents, freeDecisions, tracking, council, logger, { viewOf: (c: any) => c, courseOf: jest.fn(async (...a: any[]) => (courses as any).findById(a[0], a[1])), openFor: jest.fn(async () => ({ id: 'G1', chain_ref: '3', course_id: 'C1' })), get: jest.fn(async () => ({ id: 'G1', chain_ref: '3', course_id: 'C1' })), list: jest.fn(async () => [{ id: 'G1', chain_ref: '7', course_id: 'C1', status: 'active', starts_at: null, teacher_reserve_balance: null, teacher_settled_total: null }]), firstOf: jest.fn(async () => ({ id: 'G1', chain_ref: '7', course_id: 'C1', status: 'active' })), saveFunds: jest.fn(async (g: any, r: string, st: string) => { g.teacher_reserve_balance = r; g.teacher_settled_total = st; return true; }) } as any);
-  return { service, claims, chain, documents, freeDecisions, tracking, enrollmentService, store, enrollment };
+  // Вопрос в повестку ставит контракт: его хэш — хэш подписки.
+  const council = { getDecisions: jest.fn(async () => (opts.agendaUnread ? [] : [{ id: 7, hash: 's1' }])) } as any;
+  const service = new EdubridgeGuaranteeService(claims, enrollments, courses, enrollmentService, chain, documents, council, logger, { viewOf: (c: any) => c, courseOf: jest.fn(async (...a: any[]) => (courses as any).findById(a[0], a[1])), openFor: jest.fn(async () => ({ id: 'G1', chain_ref: '3', course_id: 'C1' })), get: jest.fn(async () => ({ id: 'G1', chain_ref: '3', course_id: 'C1' })), list: jest.fn(async () => [{ id: 'G1', chain_ref: '7', course_id: 'C1', status: 'active', starts_at: null, teacher_reserve_balance: null, teacher_settled_total: null }]), firstOf: jest.fn(async () => ({ id: 'G1', chain_ref: '7', course_id: 'C1', status: 'active' })), saveFunds: jest.fn(async (g: any, r: string, st: string) => { g.teacher_reserve_balance = r; g.teacher_settled_total = st; return true; }) } as any);
+  return { service, claims, chain, documents, council, enrollmentService, store, enrollment };
 }
 
 const signed = { hash: 'DOC', meta: {}, signatures: [{ signer: 'ant' }] } as any;
@@ -73,17 +66,16 @@ describe('EdubridgeGuaranteeService', () => {
     }
   });
 
-  it('подача: заявление уходит в цепь, вопрос выносится на совет с номером повестки', async () => {
-    const { service, chain, tracking, store } = make();
+  it('подача: заявление уходит в цепь, вопрос в повестку ставит контракт, номер вопроса запоминается', async () => {
+    const { service, chain, store } = make();
     const claim = await service.submit('voskhod', 'ant', 'E1', '  не подошла программа  ', [' https://x.ru/a ', ''], signed);
     expect(chain.claimGuarantee).toHaveBeenCalledWith(expect.objectContaining({ username: 'ant', sub_hash: 'S1' }));
     expect(claim.status).toBe(EduGuaranteeClaimStatus.SUBMITTED);
     expect(claim.reason).toBe('не подошла программа');
     expect(claim.links).toEqual(['https://x.ru/a']);
     expect(claim.amount).toBe('1000.0000 RUB');
-    expect(store.claim.council_project_hash).toBe('project');
+    expect(store.claim.council_project_hash).toBe('s1');
     expect(store.claim.council_agenda_id).toBe('7');
-    expect(tracking.registerTrackingRule.mock.calls[0][0].metadata).toMatchObject({ extension: 'edubridge', guarantee_claim_id: 'G1' });
   });
 
   it('чужая подписка, пустая причина, заявление без подписи участника, повторное заявление — отказ', async () => {
@@ -94,32 +86,47 @@ describe('EdubridgeGuaranteeService', () => {
     await expect(again.service.submit('voskhod', 'ant', 'E1', 'причина', [], signed)).rejects.toMatchObject({ code: 'EDUBRIDGE_GUARANTEE_ALREADY_CLAIMED' });
   });
 
-  it('сбой при вынесении на совет оставляет заявление поданным; очередь довыносит вопрос', async () => {
-    const failing = make({ projectFails: true });
+  it('номер вопроса не прочитался при подаче — заявление остаётся поданным, номер дочитывает очередь', async () => {
+    const failing = make({ agendaUnread: true });
     const claim = await failing.service.submit('voskhod', 'ant', 'E1', 'причина', [], signed);
     expect(claim.status).toBe(EduGuaranteeClaimStatus.SUBMITTED);
     expect(claim.council_project_hash ?? null).toBeNull();
 
     const later = make({ claim: { ...claim } });
     await expect(later.service.publishPending('voskhod')).resolves.toBe(1);
-    expect(later.store.claim.council_project_hash).toBe('project');
+    expect(later.store.claim.council_agenda_id).toBe('7');
   });
 
-  it('совет удовлетворил: подписка закрывается с протоколом, заявление удовлетворено', async () => {
+  it('совет удовлетворил (обратный вызов контракта): заявление закрывается с протоколом, запись подписки приводится к цепи', async () => {
     const pending = { id: 'G1', coopname: 'voskhod', member_username: 'ant', enrollment_id: 'E1', course_id: 'C1', claim_hash: 'abcdef0123', amount: '1000.0000 RUB', status: EduGuaranteeClaimStatus.SUBMITTED };
-    const { service, enrollmentService, store, enrollment } = make({ claim: pending });
-    await service.onDecisionTracked({ result: { matched: true, metadata: { extension: 'edubridge', guarantee_claim_id: 'G1' }, decision_id: 12, decision_date: '2026-10-05T10:00:00Z' } } as any);
-    expect(enrollmentService.cancelByGuarantee).toHaveBeenCalledWith('voskhod', enrollment, expect.objectContaining({ claim_hash: 'abcdef0123' }));
+    const { service, enrollmentService, store, enrollment, chain } = make({ claim: pending });
+    await service.onCouncilApproved('voskhod', 'S1', { hash: 'H3014', meta: { decision_id: 12 }, signatures: [] } as any);
+    // Подписку аннулировал и взнос вернул контракт: сервер в цепь не обращается, сумма — из заявления.
+    expect(enrollmentService.cancelByGuarantee).toHaveBeenCalledWith('voskhod', enrollment, '1000.0000 RUB');
+    expect(Object.keys(chain)).not.toContain('grantGuarantee');
     expect(store.claim.status).toBe(EduGuaranteeClaimStatus.APPROVED);
     expect(store.claim.council_decision_id).toBe('12');
     expect(store.claim.decision_hash).toBe('h3014');
   });
 
-  it('решение совета по чужому вопросу и повторное решение заявление не трогают', async () => {
-    const done = make({ claim: { id: 'G1', status: EduGuaranteeClaimStatus.APPROVED } });
-    await done.service.onDecisionTracked({ result: { matched: true, metadata: { extension: 'edubridge', guarantee_claim_id: 'G1' } } } as any);
-    await done.service.onDecisionTracked({ result: { matched: true, metadata: { extension: 'edubridge', rid_hash: 'r' } } } as any);
+  it('решение по чужой подписке, повторное решение и решение по закрытой подписке запись не трогают', async () => {
+    const done = make({ claim: { id: 'G1', enrollment_id: 'E1', status: EduGuaranteeClaimStatus.APPROVED } });
+    await done.service.onCouncilApproved('voskhod', 'S1', undefined);
+    await done.service.onCouncilApproved('voskhod', 'чужая', undefined);
     expect(done.enrollmentService.cancelByGuarantee).not.toHaveBeenCalled();
+    // Подписка закрылась, пока совет решал: заявление удовлетворено, возвращать нечего.
+    const closed = make({ status: EduEnrollmentStatus.EXPIRED, claim: { id: 'G1', enrollment_id: 'E1', amount: '1000.0000 RUB', status: EduGuaranteeClaimStatus.SUBMITTED } });
+    await closed.service.onCouncilApproved('voskhod', 'S1', undefined);
+    expect(closed.store.claim.status).toBe(EduGuaranteeClaimStatus.APPROVED);
+    expect(closed.enrollmentService.cancelByGuarantee).not.toHaveBeenCalled();
+  });
+
+  it('совет отказал (обратный вызов контракта): заявление отклонено, заморозку снял контракт', async () => {
+    const { service, store, chain, enrollmentService } = make({ claim: { id: 'G1', enrollment_id: 'E1', member_username: 'ant', status: EduGuaranteeClaimStatus.SUBMITTED } });
+    await service.onCouncilDeclinedBySub('voskhod', 'S1');
+    expect(store.claim.status).toBe(EduGuaranteeClaimStatus.DECLINED);
+    expect(chain.declineGuarantee).not.toHaveBeenCalled();
+    expect(enrollmentService.cancelByGuarantee).not.toHaveBeenCalled();
   });
 
   it('совет отклонил либо не решил в срок: заявление закрывается, заморозка взноса снимается, подписка остаётся', async () => {

@@ -81,6 +81,27 @@ export class EdubridgeApprovalListener {
     await this.teachers.onCouncilDeclinedByHash(String(d.coopname), String(d.hash));
   }
 
+  /**
+   * Совет удовлетворил заявление по гарантийным условиям: `soviet::exec` вызвал
+   * `edubridge::onwarrauth` с подписанным председателем протоколом 3014;
+   * контракт аннулировал подписку и вернул взнос.
+   */
+  @OnEvent(`action::${CONTRACT}::${EdubridgeContract.Actions.OnWarrAuth.actionName}`)
+  async onGuaranteeApproved(action: InnerChainActionRecord): Promise<void> {
+    const d = action.data as EdubridgeContract.Actions.OnWarrAuth.IOnWarrAuth;
+    if (!d?.coopname || !d?.hash) return;
+    const protocol = d.authorization ? DomainToBlockchainUtils.convertChainDocumentToDomainFormat(d.authorization as never) : undefined;
+    await this.guarantee.onCouncilApproved(String(d.coopname), String(d.hash), protocol as never);
+  }
+
+  /** Совет отказал по заявлению по гарантийным условиям (`edubridge::onwarrdecl`). */
+  @OnEvent(`action::${CONTRACT}::${EdubridgeContract.Actions.OnWarrDecl.actionName}`)
+  async onGuaranteeDeclined(action: InnerChainActionRecord): Promise<void> {
+    const d = action.data as EdubridgeContract.Actions.OnWarrDecl.IOnWarrDecl;
+    if (!d?.coopname || !d?.hash) return;
+    await this.guarantee.onCouncilDeclinedBySub(String(d.coopname), String(d.hash));
+  }
+
   /** Совет отклонил вопрос о приёме результата — заявление помечается, материалы снимает председатель. */
   @OnEvent(`action::${SOVIET}::${SovietContract.Actions.Decisions.Declinedec.actionName}`)
   async onCouncilDeclined(action: InnerChainActionRecord): Promise<void> {

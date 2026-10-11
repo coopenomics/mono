@@ -254,6 +254,20 @@ export interface IOnRidDecl {
   reason: string
 }
 
+/** Обратный вызов совета: заявление по гарантийным условиям удовлетворено; hash — хэш подписки. */
+export interface IOnWarrAuth {
+  coopname: IName
+  hash: IChecksum256
+  authorization: IDocument2
+}
+
+/** Обратный вызов совета: по заявлению по гарантийным условиям отказано либо вопрос снят; hash — хэш подписки. */
+export interface IOnWarrDecl {
+  coopname: IName
+  hash: IChecksum256
+  reason: string
+}
+
 export interface ISignRidAct {
   coopname: IName
   username: IName

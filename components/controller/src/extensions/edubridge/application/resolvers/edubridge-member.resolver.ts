@@ -59,7 +59,7 @@ export class EdubridgeMemberResolver {
   @RequireRight('EduEnrollment', 'read:own', SELF)
   async edubridgeMyEnrollments(@CurrentEduMember() m: IEdubridgeMembership): Promise<EduEnrollmentDTO[]> {
     const rows = await this.enrollments.listMine(coop(), m.username as string);
-    return rows.map(({ enrollment, course }) => new EduEnrollmentDTO(enrollment, course));
+    return rows.map(({ enrollment, course, renewable }) => new EduEnrollmentDTO(enrollment, course, renewable));
   }
 
   @Query(() => EduQuoteDTO, { name: 'edubridgeQuote', description: 'Сумма взноса за период и хватает ли паевого' })
@@ -94,7 +94,7 @@ export class EdubridgeMemberResolver {
     @Args('enrollment_id', { type: () => ID }) id: string
   ): Promise<EduEnrollmentDTO> {
     const saved = await this.enrollments.cancel(coop(), m.username as string, id);
-    return new EduEnrollmentDTO(saved, await this.enrollments.courseOf(saved));
+    return new EduEnrollmentDTO(saved, await this.enrollments.courseOf(saved), await this.enrollments.isRenewable(saved));
   }
 
   @Mutation(() => EduEnrollmentDTO, { name: 'edubridgeSubscribe', description: 'Получить доступ: конвертировать паевой в членский и открыть/продлить подписку' })
@@ -102,6 +102,6 @@ export class EdubridgeMemberResolver {
   @RequireRight('EduEnrollment', 'create:own', SELF)
   async edubridgeSubscribe(@CurrentEduMember() m: IEdubridgeMembership, @Args('data') data: EduSubscribeInputDTO): Promise<EduEnrollmentDTO> {
     const saved = await this.enrollments.subscribe(coop(), m.username as string, data.learner_id, data.course_id, data.period, data.document, data.group_id);
-    return new EduEnrollmentDTO(saved, await this.enrollments.courseOf(saved));
+    return new EduEnrollmentDTO(saved, await this.enrollments.courseOf(saved), await this.enrollments.isRenewable(saved));
   }
 }
