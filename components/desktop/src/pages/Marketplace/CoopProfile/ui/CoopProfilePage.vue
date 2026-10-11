@@ -12,7 +12,7 @@ import {
   updateCooperativeProfile,
   type MarketplaceSupplierProfileView,
 } from 'src/entities/MarketplaceSupplierProfile';
-import { SupplierProfileForm } from 'src/widgets/Marketplace/SupplierProfileForm';
+import { SupplierProfileForm, type SupplierProfilePreview } from 'src/widgets/Marketplace/SupplierProfileForm';
 import { SupplierProfileHead } from 'src/widgets/Marketplace/SupplierProfileHead';
 
 /**
@@ -27,6 +27,8 @@ const coopname = computed(() => String(route.params.coopname ?? ''));
 const profile = ref<MarketplaceSupplierProfileView | null>(null);
 const loading = ref(true);
 const firstLoad = useFirstLoad(loading);
+// Черновик формы: шапка показывает обложку и название до сохранения.
+const preview = ref<SupplierProfilePreview>({ displayName: '', coverUrl: undefined });
 
 async function load(): Promise<void> {
   loading.value = true;
@@ -69,14 +71,19 @@ q-page.coop-profile(role="region", :aria-label="$t('marketplace.coopProfilePage.
     q-skeleton(type="rect", height="320px")
 
   template(v-else)
-    SupplierProfileHead(v-if="profile", :profile="profile")
+    SupplierProfileHead(
+      v-if="profile",
+      :profile="profile",
+      :name-override="preview.displayName",
+      :cover-override="preview.coverUrl"
+    )
       template(#actions)
         BaseButton(variant="secondary", size="sm", @click="openProfile")
           template(#icon-left)
             q-icon(name="visibility", size="16px")
           | {{ $t('marketplace.coopProfilePage.openProfileAction') }}
 
-    SupplierProfileForm(:profile="profile", :save="updateCooperativeProfile", @saved="onSaved")
+    SupplierProfileForm(:profile="profile", :save="updateCooperativeProfile", @saved="onSaved", @preview="preview = $event")
 </template>
 
 <style scoped lang="scss">

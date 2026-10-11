@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { computed, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { t } from 'src/shared/i18n';
 import { fileToBase64 } from 'src/shared/lib/utils';
@@ -9,11 +9,14 @@ import type {
   IUpdateSupplierProfileInput,
   MarketplaceSupplierProfileView,
 } from 'src/entities/MarketplaceSupplierProfile';
+import type { SupplierProfilePreview } from './SupplierProfileForm.types';
 
 /**
  * Форма профиля поставщика: обложка, название и рассказ о себе. Одна форма на
  * два стола — поставщик правит свой профиль, администратор — профиль
- * кооператива; чем сохранять, решает страница (`save`).
+ * кооператива; чем сохранять, решает страница (`save`). Каждая правка уходит
+ * наверх черновиком `preview`: выбранная обложка и название видны в шапке
+ * сразу, до сохранения.
  */
 const ABOUT_MAX = 4000;
 const NAME_MAX = 200;
@@ -27,6 +30,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'saved', profile: MarketplaceSupplierProfileView): void;
+  (e: 'preview', preview: SupplierProfilePreview): void;
 }>();
 
 const displayName = ref('');
@@ -34,6 +38,8 @@ const about = ref('');
 const coverFile = ref<File | null>(null);
 const removeCover = ref(false);
 const saving = ref(false);
+/** Адрес выбранного файла для предпросмотра; живёт до следующего выбора. */
+const coverPreviewUrl = ref<string | null>(null);
 
 /** Обложка, которая останется после сохранения: новая, прежняя либо никакой. */
 const currentCoverUrl = computed(() => (removeCover.value ? null : props.profile?.cover_url ?? null));
@@ -53,14 +59,38 @@ watch(
     about.value = profile?.about ?? '';
     coverFile.value = null;
     removeCover.value = false;
+    releasePreview();
   },
   { immediate: true },
 );
 
+function releasePreview(): void {
+  if (coverPreviewUrl.value) URL.revokeObjectURL(coverPreviewUrl.value);
+  coverPreviewUrl.value = null;
+}
+
 function onCoverPicked(value: File | File[] | null): void {
   coverFile.value = Array.isArray(value) ? value[0] ?? null : value;
-  if (coverFile.value) removeCover.value = false;
+  releasePreview();
+  if (coverFile.value) {
+    removeCover.value = false;
+    coverPreviewUrl.value = URL.createObjectURL(coverFile.value);
+  }
 }
+
+// Черновик для шапки: новая обложка, снятая обложка либо сохранённая.
+watch(
+  [displayName, coverPreviewUrl, removeCover],
+  () => {
+    emit('preview', {
+      displayName: displayName.value.trim(),
+      coverUrl: coverPreviewUrl.value ?? (removeCover.value ? null : undefined),
+    });
+  },
+  { immediate: true },
+);
+
+onBeforeUnmount(releasePreview);
 
 function onCoverError(error: FileUploaderError): void {
   FailAlert(error.message);
