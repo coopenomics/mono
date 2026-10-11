@@ -3,22 +3,19 @@ import { computed, onMounted, ref, watch } from 'vue';
 import { useLiveReload } from 'src/shared/lib/realtime';
 import { useFirstLoad } from 'src/shared/lib/composables';
 import { debounce } from 'quasar';
-import { useRoute, useRouter } from 'vue-router';
+import { useRoute } from 'vue-router';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { OperatorBranchBar, useOperatorBranchStore } from 'src/entities/OperatorBranch';
 import { Avatar, BaseBadge, BaseButton, BaseDialog, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
 import { AccountBadge, PageHint } from 'src/shared/ui/domain';
 import { VerifyIdentityDialog } from 'src/features/User/VerifyIdentity';
-import { ScannerDialog } from 'src/widgets/Marketplace/ScannerDialog';
+import { useUniversalScanner } from 'src/widgets/Marketplace/UniversalScanner';
 import { GoodsManifest, type GoodsManifestLine } from 'src/widgets/Marketplace/GoodsManifest';
 import { StockRestockPanel } from 'src/widgets/Marketplace/StockRestockPanel';
 import { orderStatusDisplay } from 'src/widgets/Marketplace/OrderCard';
 import { marketplaceOrderSaleUnitLabel } from 'src/shared/lib/consts/marketplace-units';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import {
-  decodeScannedCode,
-  HandoffTokenKind,
-  handoffStageRoute,
   useMarketplaceHandoffSignal,
   marketLiveTables,
 } from 'src/shared/lib/marketplace';
@@ -54,7 +51,6 @@ import { t } from 'src/shared/i18n';
  */
 
 const route = useRoute();
-const router = useRouter();
 const store = useOperatorBranchStore();
 const globalStore = useGlobalStore();
 const handoffSignal = useMarketplaceHandoffSignal();
@@ -410,9 +406,9 @@ function canCancel(saga: MarketplaceIssuanceSagaView): boolean {
   return !saga.awaits_operator_close && !saga.awaits_council && saga.stage !== 'CLOSED';
 }
 
-// QR-код получения: оператор сканирует account-bound код заказчика → резолвим
-// аккаунт против ленты своего КУ и показываем РАЗОМ все его заказы на выдачу.
-const scanDialogOpen = ref(false);
+// Код получения: общий сканер стола нашёл заказчика → резолвим аккаунт против
+// ленты своего КУ и показываем РАЗОМ все его заказы на выдачу.
+const scanner = useUniversalScanner();
 const pickupDialogOpen = ref(false);
 const pickupAccount = ref('');
 const pickupOrders = computed(() =>
@@ -458,38 +454,6 @@ function startPickupIssuance(): void {
   startOpen(pickupOrders.value);
 }
 
-async function onQrScanned(code: string): Promise<void> {
-  scanDialogOpen.value = false;
-  const token = decodeScannedCode(code, coopname.value);
-  if (!token) {
-    FailAlert(
-      new Error(
-        t('marketplace.error.issuanceCodeUnrecognized'),
-      ),
-    );
-    return;
-  }
-  if (token.coopname && token.coopname !== coopname.value) {
-    FailAlert(new Error(t('marketplace.error.codeWrongCoop')));
-    return;
-  }
-  // Код поставщика/ТТН на столе выдачи — НЕ ошибка: сканер универсален, оператору
-  // не нужно знать, кто пришёл. Ведём его на «Ожидаемые поставки» с тем же кодом —
-  // целевой стол сам откроет приёмку.
-  if (token.kind !== HandoffTokenKind.Receive) {
-    handoffSignal.post(code);
-    void router.push({
-      name: handoffStageRoute('reception'),
-      params: { coopname: coopname.value },
-    });
-    return;
-  }
-  // Заказы не обязательны: пайщик мог «просто зайти» — оператор предложит
-  // ему имущество со склада кооператива (докладка, requirement 76).
-  pickupAccount.value = token.account;
-  await resolvePickup();
-}
-
 /**
  * Резолв отсканированного кода получения: есть позиции «к выдаче» — сразу
  * открываем полную выдачу (промежуточное окно «Открыть выдачу» — лишний клик);
@@ -512,17 +476,15 @@ async function resolvePickup(): Promise<void> {
   pickupDialogOpen.value = true;
 }
 
-// Код передачи мог прийти с универсального сканера (или со стола приёмки) через
-// общий стор `useMarketplaceHandoffSignal` — не через URL query (было раньше):
-// query-параметр живёт в истории роутера, и его нужно было стирать сразу после
-// чтения, а `router.replace` для этого не дожидался (fire-and-forget). Если
-// страница успевала пересобраться в промежутке (первый заход на стол в сессии —
-// догрузка чанка/стора КУ), код уже был стёрт из URL и терялся безвозвратно.
-// Стор переживает переход между страницами как есть — терять нечего.
+// Дело приходит с общего сканера стола через стор `useMarketplaceHandoffSignal`
+// (не через URL: query стирался раньше, чем страница успевала его прочитать).
+// Сервер уже разобрал код; пайщик без дел тоже ведёт сюда — ему предлагают
+// докладку со склада.
 async function consumeHandoffSignal(): Promise<void> {
-  const code = handoffSignal.consume();
-  if (!code) return;
-  await onQrScanned(code);
+  const matter = handoffSignal.consume();
+  if (!matter || matter.kind !== 'issuance') return;
+  pickupAccount.value = matter.account;
+  await resolvePickup();
 }
 
 function onOpened(): void {
@@ -532,7 +494,7 @@ function onOpened(): void {
 watch(braname, () => void load());
 
 // Повторный заход с новым кодом (универсальный сканер уже на этом столе).
-watch(() => handoffSignal.pendingCode, () => void consumeHandoffSignal());
+watch(() => handoffSignal.pending, () => void consumeHandoffSignal());
 
 // Realtime: сага двинулась (пайщик подписал заявление / совет решил / пайщик
 // подписал акт) — лента перечитывается, а автозакрытие ставит закрывающую
@@ -570,13 +532,13 @@ q-page.issuance(role='region', :aria-label='$t("marketplace.operatorIssuance.ari
       | {{ $t('marketplace.operatorIssuance.hintLine4') }}
       | {{ $t('marketplace.operatorIssuance.hintLine5') }}
 
-    //- Действие страницы — в шапку (канон Teleport), как на столе приёмки:
-    //- сканирование кода получения заказчика всегда в одном месте сверху.
+    //- Действие страницы — в шапку (канон Teleport): один общий сканер стола,
+    //- сервер сам определяет, кто пришёл и за чем.
     Teleport(to="#header-actions-host", defer)
-      BaseButton(variant='primary', size='sm', @click='scanDialogOpen = true')
+      BaseButton(variant='primary', size='sm', @click='scanner.open()')
         template(#icon-left)
           q-icon(name='qr_code_scanner', size='16px')
-        | {{ $t('marketplace.operatorIssuance.scanButton') }}
+        | {{ $t('marketplace.universalScannerHost.scanButton') }}
 
     //- Канон загрузки: скелетон, а не спиннер.
     CardListSkeleton(v-if='firstLoad', :count='3')
@@ -662,8 +624,6 @@ q-page.issuance(role='region', :aria-label='$t("marketplace.operatorIssuance.ari
     :orders='selectedOrders',
     @opened='onOpened'
   )
-
-  ScannerDialog(v-model='scanDialogOpen', :title='$t("marketplace.operatorIssuance.scanDialogTitle")', @scanned='onQrScanned')
 
   //- Верификация личности получателя (единожды): без неё сервер не откроет
   //- выдачу. Оператор сверяет с паспортом данные пайщика, которые сервер

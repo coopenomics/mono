@@ -93,6 +93,8 @@ import { MarketplaceInventoryResolver } from './resolvers/marketplace-inventory.
 import { MarketplaceStorageCellResolver } from './resolvers/marketplace-storage-cell.resolver';
 import { MarketplaceContainerResolver } from './resolvers/marketplace-container.resolver';
 import { MarketplaceContainerService } from './services/marketplace-container.service';
+import { MarketplaceScanResolver } from './resolvers/marketplace-scan.resolver';
+import { MarketplaceScanService } from './services/marketplace-scan.service';
 import { MarketplaceExtensionConfigService } from './services/marketplace-extension-config.service';
 import { MarketplaceWarehouseSettingsService } from './services/marketplace-warehouse-settings.service';
 import { MarketplaceStorageCellService } from './services/marketplace-storage-cell.service';
@@ -255,6 +257,8 @@ import {
     MarketplaceStorageCellService,
     MarketplaceContainerResolver,
     MarketplaceContainerService,
+    MarketplaceScanResolver,
+    MarketplaceScanService,
     MarketplaceExtensionConfigService,
     MarketplaceWarehouseSettingsService,
     MarketplaceStockResolver,
@@ -543,6 +547,8 @@ import {
     MarketplaceStorageCellService,
     MarketplaceContainerResolver,
     MarketplaceContainerService,
+    MarketplaceScanResolver,
+    MarketplaceScanService,
     MarketplaceExtensionConfigService,
     MarketplaceWarehouseSettingsService,
     MarketplaceAplReceptionResolver,

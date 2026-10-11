@@ -8,6 +8,10 @@ export * as ListContainers from './listContainers'
 export * as ListContainerTypes from './listContainerTypes'
 /** Эпик 19: бокс по коду с этикетки или отсканированного QR */
 export * as ResolveContainerByCode from './resolveContainerByCode'
+/** 598-62: визит на участок по отсканированному коду — кто пришёл и какие дела у него на участке */
+export * as ResolveScan from './resolveScan'
+/** 598-62: код передачи пайщика для показа оператору участка */
+export * as HandoffCode from './handoffCode'
 /** Список marketplace-детализаций ПВЗ кооператива */
 export * as ListKUDetails from './listKUDetails'
 /** Заказы пайщика-заказчика (стол заказчика) */

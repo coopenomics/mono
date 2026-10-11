@@ -1169,6 +1169,10 @@ export const AllTypesProps: Record<string,any> = {
 	MarketplaceHandBackReturnInput:{
 
 	},
+	MarketplaceHandoffCodeInput:{
+		kind:"MarketplaceHandoffCodeKind"
+	},
+	MarketplaceHandoffCodeKind: "enum" as const,
 	MarketplaceInventoryOrigin: "enum" as const,
 	MarketplaceInventoryOwnership: "enum" as const,
 	MarketplaceInventorySplitEntryInput:{
@@ -1294,6 +1298,9 @@ export const AllTypesProps: Record<string,any> = {
 	MarketplaceResolveContainerByCodeInput:{
 
 	},
+	MarketplaceResolveScanInput:{
+
+	},
 	MarketplaceResolveStockProposalInput:{
 
 	},
@@ -1329,6 +1336,8 @@ export const AllTypesProps: Record<string,any> = {
 
 	},
 	MarketplaceSaleForm: "enum" as const,
+	MarketplaceScanMatterKind: "enum" as const,
+	MarketplaceScanTarget: "enum" as const,
 	MarketplaceSetCartDeliveryPointInput:{
 
 	},
@@ -3188,6 +3197,9 @@ export const AllTypesProps: Record<string,any> = {
 		marketplaceGetShipment:{
 			data:"MarketplaceGetShipmentInput"
 		},
+		marketplaceHandoffCode:{
+			data:"MarketplaceHandoffCodeInput"
+		},
 		marketplaceIssuanceActPayload:{
 			data:"MarketplaceIssuanceOrderInput"
 		},
@@ -3305,6 +3317,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		marketplaceResolveContainerByCode:{
 			data:"MarketplaceResolveContainerByCodeInput"
+		},
+		marketplaceResolveScan:{
+			data:"MarketplaceResolveScanInput"
 		},
 		marketplaceReturnClaim:{
 
@@ -6160,6 +6175,11 @@ export const ReturnTypes: Record<string,any> = {
 		total_amount:"String",
 		total_units:"Float"
 	},
+	MarketplaceHandoffCode:{
+		code:"String",
+		expires_at:"DateTime",
+		kind:"MarketplaceHandoffCodeKind"
+	},
 	MarketplaceInventoryItem:{
 		arrival_price:"String",
 		barcode_format:"MarketplaceBarcodeFormat",
@@ -6595,6 +6615,19 @@ export const ReturnTypes: Record<string,any> = {
 		rating_avg:"Float",
 		reviews_count:"Int",
 		stars_breakdown:"MarketplaceReviewStarsCount"
+	},
+	MarketplaceScanMatter:{
+		ids:"String",
+		kind:"MarketplaceScanMatterKind"
+	},
+	MarketplaceScanVisit:{
+		account:"String",
+		container_code:"String",
+		display_name:"String",
+		focus_claim_id:"String",
+		matters:"MarketplaceScanMatter",
+		shipment_id:"String",
+		target:"MarketplaceScanTarget"
 	},
 	MarketplaceShipment:{
 		braname:"String",
@@ -8087,6 +8120,7 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceGetPersonalWalletHistory:"MarketplaceBranchWalletHistoryPaginationResult",
 		marketplaceGetShipment:"MarketplaceShipment",
 		marketplaceGetSupplierPaymentSettings:"MarketplaceSupplierPaymentSettings",
+		marketplaceHandoffCode:"MarketplaceHandoffCode",
 		marketplaceIssuanceActPayload:"GeneratedDocument",
 		marketplaceIssuanceClosePayload:"MarketplaceIssuanceClosePayload",
 		marketplaceIssuanceConvertPayload:"GeneratedDocument",
@@ -8138,6 +8172,7 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceOpenWriteoffDraft:"MarketplaceWriteoffProposal",
 		marketplaceRegistrationOfferStatus:"MarketplaceRegistrationOfferStatus",
 		marketplaceResolveContainerByCode:"MarketplaceContainer",
+		marketplaceResolveScan:"MarketplaceScanVisit",
 		marketplaceReturnClaim:"MarketplaceReturnClaim",
 		marketplaceReturnClaimChairmanSignablePayload:"MarketplaceReturnAcceptancePayload",
 		marketplaceReturnClaimSignablePayload:"GeneratedDocument",

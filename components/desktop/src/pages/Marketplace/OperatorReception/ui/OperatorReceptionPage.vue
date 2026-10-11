@@ -3,7 +3,7 @@ import { computed, onMounted, ref, watch } from 'vue';
 import { useLiveReload } from 'src/shared/lib/realtime';
 import { useFirstLoad } from 'src/shared/lib/composables';
 import { debounce } from 'quasar';
-import { useRoute, useRouter } from 'vue-router';
+import { useRoute } from 'vue-router';
 import { Zeus } from '@coopenomics/sdk';
 import { SuccessAlert, FailAlert } from 'src/shared/api';
 import { OperatorBranchBar, useOperatorBranchStore } from 'src/entities/OperatorBranch';
@@ -11,16 +11,13 @@ import { Avatar, BaseBadge, BaseButton, BaseCard, BaseCheckbox, BaseDialog, Base
 import type { BaseBadgeVariant } from 'src/shared/ui/base';
 import { AccountBadge, PageHint } from 'src/shared/ui/domain';
 import { ActDialogLayout } from 'src/widgets/Marketplace/ActDialogLayout';
-import { ScannerDialog } from 'src/widgets/Marketplace/ScannerDialog';
+import { useUniversalScanner } from 'src/widgets/Marketplace/UniversalScanner';
 import { GoodsManifest, type GoodsManifestLine } from 'src/widgets/Marketplace/GoodsManifest';
 import { marketplaceOrderSaleUnitLabel, marketplaceSaleUnitLabel } from 'src/shared/lib/consts/marketplace-units';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { formatDateToLocalTimezone } from 'src/shared/lib/utils/dates';
 import {
-  decodeScannedCode,
-  HandoffTokenKind,
   groupAplReceptions,
-  handoffStageRoute,
   useMarketplaceHandoffSignal,
   marketLiveTables,
   type ReceptionGroup,
@@ -62,7 +59,6 @@ import { t } from 'src/shared/i18n';
 
 // Активный КУ оператора — из общего контекста стола (без ввода кода вручную).
 const route = useRoute();
-const router = useRouter();
 const store = useOperatorBranchStore();
 const handoffSignal = useMarketplaceHandoffSignal();
 const coopname = computed(() => String(route.params.coopname ?? ''));
@@ -357,11 +353,11 @@ const expectedDeliveries = computed<ExpectedDelivery[]>(() => {
   return out;
 });
 
-// QR-код передачи (Эпик 14, агрегирующая приёмка): оператор сканирует
-// account-bound код поставщика → грузим ВСЕ единицы имущества этого поставщика,
-// ожидающие приёмки на этом КУ (единый базис «акцепт поставщика на КУ», R4),
-// и открываем агрегирующую страницу приёмки.
-const scanDialogOpen = ref(false);
+// Код поставщика (Эпик 14, агрегирующая приёмка): общий сканер стола нашёл
+// поставщика → грузим ВСЕ единицы имущества этого поставщика, ожидающие
+// приёмки на этом КУ (единый базис «акцепт поставщика на КУ», R4), и
+// открываем агрегирующую страницу приёмки.
+const scanner = useUniversalScanner();
 const pickupDialogOpen = ref(false);
 const pickupAccount = ref('');
 // Режим приёмки по ТТН экспедитора: id партии из shipment-bound QR. null —
@@ -572,49 +568,14 @@ async function openPickupForShipment(shipment_id: string): Promise<void> {
   }
 }
 
-async function onQrScanned(code: string): Promise<void> {
-  scanDialogOpen.value = false;
-  const token = decodeScannedCode(code, coopname.value);
-  if (!token) {
-    FailAlert(
-      new Error(
-        t('marketplace.error.receptionCodeUnrecognized'),
-      ),
-    );
-    return;
-  }
-  if (token.coopname && token.coopname !== coopname.value) {
-    FailAlert(new Error(t('marketplace.error.codeWrongCoop')));
-    return;
-  }
-  if (token.kind === HandoffTokenKind.Shipment && token.shipment_id) {
-    await openPickupForShipment(token.shipment_id);
-    return;
-  }
-  if (token.kind === HandoffTokenKind.Pickup) {
-    await openPickupForSupplier(token.account);
-    return;
-  }
-  // Код получения заказчика (receive) на столе приёмки — НЕ ошибка: сканер
-  // универсален, оператору не нужно знать, кто пришёл. Ведём его на «Выдачу
-  // заказов» с тем же кодом — целевой стол сам откроет выдачу.
-  handoffSignal.post(code);
-  void router.push({
-    name: handoffStageRoute('issuance'),
-    params: { coopname: coopname.value },
-  });
-}
-
-// Код передачи мог прийти с универсального сканера (или со стола выдачи) через
-// общий стор `useMarketplaceHandoffSignal` — не через URL query (было раньше):
-// query-параметр нужно было стирать сразу после чтения, а `router.replace` для
-// этого не дожидался (fire-and-forget). Если страница успевала пересобраться в
-// промежутке (первый заход на стол в сессии — догрузка чанка/стора КУ), код уже
-// был стёрт из URL и терялся безвозвратно. Стор переживает переход как есть.
+// Дело приходит с общего сканера стола через стор `useMarketplaceHandoffSignal`
+// (не через URL: query стирался раньше, чем страница успевала его прочитать).
+// Сервер уже разобрал код; здесь только открываем приёмку по найденному.
 async function consumeHandoffSignal(): Promise<void> {
-  const code = handoffSignal.consume();
-  if (!code) return;
-  await onQrScanned(code);
+  const matter = handoffSignal.consume();
+  if (!matter) return;
+  if (matter.kind === 'shipment') await openPickupForShipment(matter.shipment_id);
+  else if (matter.kind === 'reception') await openPickupForSupplier(matter.account);
 }
 
 // Сформировать акты / отказать в приёмке: на каждую партию — createAplReception
@@ -720,7 +681,7 @@ async function cancelReceptionGroup(group: ReceptionGroup<MarketplaceAplReceptio
 watch(braname, () => void load());
 
 // Повторный заход с новым кодом (универсальный сканер уже на этом столе).
-watch(() => handoffSignal.pendingCode, () => void consumeHandoffSignal());
+watch(() => handoffSignal.pending, () => void consumeHandoffSignal());
 
 // Realtime вместо поллинга: статус акта меняет поставщик со своего устройства
 // (подписал приёмку → PENDING_CHAIRMAN_RECEPTION_SIGN, у оператора сама
@@ -755,13 +716,13 @@ q-page.reception(role='region', :aria-label='$t("marketplace.operatorReception.a
       q-icon(name='storefront', size='48px')
 
   template(v-else)
-    //- Действие страницы — в шапку (канон Teleport): сканирование QR-кода
-    //- передачи (код поставщика / ТТН экспедитора) всегда в одном месте сверху.
+    //- Действие страницы — в шапку (канон Teleport): один общий сканер стола,
+    //- сервер сам определяет, кто пришёл и за чем.
     Teleport(to="#header-actions-host", defer)
-      BaseButton(variant='primary', size='sm', @click='scanDialogOpen = true')
+      BaseButton(variant='primary', size='sm', @click='scanner.open()')
         template(#icon-left)
           q-icon(name='qr_code_scanner', size='16px')
-        | {{ $t('marketplace.operatorReception.scanButton') }}
+        | {{ $t('marketplace.universalScannerHost.scanButton') }}
 
     PageHint(storage-key='mp:operator-reception:banner-dismissed')
       | {{ $t('marketplace.operatorReception.hintLine1') }}
@@ -861,8 +822,6 @@ q-page.reception(role='region', :aria-label='$t("marketplace.operatorReception.a
     :group='signGroup',
     @signed='onChairmanSigned'
   )
-
-  ScannerDialog(v-model='scanDialogOpen', :title='$t("marketplace.operatorReception.scanDialogTitle")', @scanned='onQrScanned')
 
   //- Эпик 14: агрегирующая приёмка. Каркас — ActDialogLayout (как выдача и
   //- подписи АПП): lead + карточка позиций + футер BaseDialog.

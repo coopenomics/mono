@@ -32,13 +32,9 @@ import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { marketplaceOrderSaleUnitLabel } from 'src/shared/lib/consts/marketplace-units';
 import { MarketplaceSaleForm } from 'src/shared/lib/consts';
 import { quantizeSaleQuantity } from 'src/shared/lib/marketplace/sale-quantity-step';
-import {
-  HandoffTokenKind,
-  decodeScannedCode,
-  printBarcodeSheet,
-  useActsPreview,
-  type ReceptionGroup,
-} from 'src/shared/lib/marketplace';
+import { printBarcodeSheet, useActsPreview, type ReceptionGroup } from 'src/shared/lib/marketplace';
+import { resolveScan } from 'src/entities/MarketplaceHandoff';
+import { Zeus } from '@coopenomics/sdk';
 import {
   fetchChairmanSignablePayloads,
   signReceptionGroupAsChairman,
@@ -588,14 +584,15 @@ function setPlacementForAll(value: string | null): void {
  */
 async function onBoxScanned(raw: string): Promise<void> {
   if (resolvingCode.value) return;
-  const token = decodeScannedCode(raw, coopname.value);
-  if (!token || token.kind !== HandoffTokenKind.Container || !token.container_code) {
-    FailAlert(new Error(t('marketplace.error.notBoxQr')));
-    return;
-  }
   resolvingCode.value = true;
   try {
-    const container = await resolveContainerByCode({ code: token.container_code });
+    // Строку разбирает сервер — тот же путь, что у общего сканера стола.
+    const visit = await resolveScan({ braname: props.group?.braname ?? '', code: raw });
+    if (visit.target !== Zeus.MarketplaceScanTarget.CONTAINER || !visit.container_code) {
+      FailAlert(new Error(t('marketplace.error.notBoxQr')));
+      return;
+    }
+    const container = await resolveContainerByCode({ code: visit.container_code });
     if (container.braname !== props.group?.braname) {
       FailAlert(
         new Error(t('marketplace.error.foreignBoxReception', { code: container.code })),

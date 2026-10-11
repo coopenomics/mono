@@ -10,8 +10,8 @@ import { OperatorBranchBar, useOperatorBranchStore } from 'src/entities/Operator
 import { BaseBadge, BaseButton, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
 import { PageTabs, type PageTab } from 'src/shared/ui/layout';
-import { ScannerDialog } from 'src/widgets/Marketplace/ScannerDialog';
-import { marketLiveTables, decodeReturnClaimCode } from 'src/shared/lib/marketplace';
+import { useUniversalScanner } from 'src/widgets/Marketplace/UniversalScanner';
+import { marketLiveTables, useMarketplaceHandoffSignal } from 'src/shared/lib/marketplace';
 import { marketplaceOrderSaleUnitLabel } from 'src/shared/lib/consts/marketplace-units';
 import { formatAsset2Digits } from 'src/shared/lib/utils';
 import { returnClaimStatusLabel, returnClaimStatusVariant } from '../../OrdererReturnClaims';
@@ -31,10 +31,10 @@ import { t } from 'src/shared/i18n';
  * инлайн в карточке списка, а архивная карточка была усечённой и никуда не
  * вела — вводило разнобой ровно там, где должна быть одна и та же модель.
  *
- * Исключение — «быстрый путь» сканирования QR: пайщик, пришедший на очный
- * осмотр, показывает QR своей заявки, председатель сканирует и сразу попадает
- * в решение по ней (минуя список и детальную страницу) — это осознанный
- * ярлык для живой очереди на стойке ПВЗ, а не альтернативный путь навигации.
+ * Исключение — «быстрый путь» через общий сканер стола: пайщик, пришедший на
+ * очный осмотр, показывает свой код, сервер находит его заявление, и
+ * председатель сразу попадает в решение по нему (минуя список и детальную
+ * страницу) — это осознанный ярлык для живой очереди на стойке ПВЗ.
  */
 
 const route = useRoute();
@@ -47,8 +47,9 @@ const loading = ref(true);
 /** Скелетон — только на первой загрузке; дочитка обновляет молча. */
 const firstLoad = useFirstLoad(loading);
 
+const scanner = useUniversalScanner();
+const handoffSignal = useMarketplaceHandoffSignal();
 const onSiteDialog = ref(false);
-const scanDialogOpen = ref(false);
 const selectedClaim = ref<MarketplaceReturnClaimView | null>(null);
 
 const activeKey = ref<'all' | 'pending' | 'approved' | 'council' | 'archive'>('all');
@@ -125,17 +126,19 @@ function openDetail(claim: MarketplaceReturnClaimView): void {
 }
 
 /**
- * Пайщик, пришедший на очный осмотр, показывает QR своей заявки — председатель
- * сканирует и сразу попадает в решение по НЕЙ, не листая список руками.
+ * Дело с общего сканера стола: сервер нашёл заявление пайщика на осмотр на
+ * этом участке — открываем решение по нему. Несколько заявлений у одного
+ * пайщика — показываем вкладку «ожидают визита», председатель выбирает сам.
  */
-function onQrScanned(code: string): void {
-  scanDialogOpen.value = false;
-  const claimId = decodeReturnClaimCode(code, coopname.value);
-  if (!claimId) {
-    FailAlert(new Error(t('marketplace.error.returnClaimCodeUnrecognized')));
+async function consumeHandoffSignal(): Promise<void> {
+  const matter = handoffSignal.consume();
+  if (!matter || matter.kind !== 'return') return;
+  if (!matter.claim_id) {
+    activeKey.value = 'approved';
     return;
   }
-  const claim = items.value.find((c) => c.id === claimId);
+  if (!items.value.length) await load();
+  const claim = items.value.find((c) => c.id === matter.claim_id);
   if (!claim) {
     FailAlert(new Error(t('marketplace.error.returnClaimNotFoundOnBranch')));
     return;
@@ -158,6 +161,9 @@ function onDecided(): void {
 
 watch(braname, () => void load());
 
+// Повторный заход с новым кодом (общий сканер уже на этом столе).
+watch(() => handoffSignal.pending, () => void consumeHandoffSignal());
+
 // Realtime: пайщик подаёт заявление / второй председатель решает с другого
 // устройства — лента возвратов КУ обновляется сразу, человек у стойки не ждёт.
 // Сигналы приходят в служебный канал персонала КУ; чужие участки фильтруем.
@@ -169,7 +175,8 @@ useLiveReload(marketLiveTables('return'), () => reloadLive());
 
 onMounted(async () => {
   await store.ensureLoaded(coopname.value);
-  void load();
+  await load();
+  await consumeHandoffSignal();
 });
 </script>
 
@@ -186,13 +193,13 @@ q-page.returns(role='region', :aria-label='$t("marketplace.operatorReturnClaimsP
       q-icon(name='storefront', size='48px')
 
   template(v-else)
-    //- Действие страницы — в шапку (канон Teleport): пайщик показывает QR
-    //- своей заявки, председатель сканирует и сразу попадает в решение по ней.
+    //- Действие страницы — в шапку (канон Teleport): один общий сканер стола,
+    //- сервер сам определяет, кто пришёл и за чем.
     Teleport(to="#header-actions-host", defer)
-      BaseButton(variant='primary', size='sm', @click='scanDialogOpen = true')
+      BaseButton(variant='primary', size='sm', @click='scanner.open()')
         template(#icon-left)
           q-icon(name='qr_code_scanner', size='16px')
-        | {{ $t('marketplace.operatorReturnClaimsPage.scanButton') }}
+        | {{ $t('marketplace.universalScannerHost.scanButton') }}
 
     PageHint(storage-key='mp:operator-returns:banner-dismissed')
       | {{ $t('marketplace.operatorReturnClaimsPage.introText') }}
@@ -231,12 +238,6 @@ q-page.returns(role='region', :aria-label='$t("marketplace.operatorReturnClaimsP
     :claim='selectedClaim',
     :braname='braname',
     @decided='onDecided'
-  )
-  ScannerDialog(
-    v-model='scanDialogOpen',
-    :title='$t("marketplace.operatorReturnClaimsPage.scanDialogTitle")',
-    :idle-caption='$t("marketplace.operatorReturnClaimsPage.scanDialogCaption")',
-    @scanned='onQrScanned'
   )
 </template>
 

@@ -1,0 +1,136 @@
+feature: marketplace.scan
+title: Единый сканер стола ПВЗ — визит пайщика по любому коду передачи
+
+# Заведено 11.10.2026 (598-62). Оператор участка сканирует любой код одним
+# сканером: код заказчика, код поставщика, код заявления на возврат, голый
+# логин, QR накладной, QR бокса. Сервер разбирает строку и отвечает визитом:
+# кто пришёл и какие дела у него на этом участке в порядке приоритета —
+# выдать заказы, принять поставку, осмотреть возврат. Код партии и код бокса
+# ведут к предмету. Разбор строки живёт только в контроллере; стол в браузере
+# код не разбирает. Код пайщику отдаёт сервер — задел под временные коды.
+
+sources:
+  backend:
+    - components/controller/src/extensions/marketplace/domain/marketplace-handoff-code.ts
+    - components/controller/src/extensions/marketplace/application/services/marketplace-scan.service.ts
+    - components/controller/src/extensions/marketplace/application/resolvers/marketplace-scan.resolver.ts
+    - components/controller/src/extensions/marketplace/application/dto/marketplace-scan.dto.ts
+  ui:
+    - components/desktop/src/widgets/Marketplace/UniversalScanner/**
+    - components/desktop/src/shared/lib/marketplace/handoff-signal.ts
+    - components/desktop/src/shared/lib/marketplace/handoff-token.ts
+
+cases:
+  - id: mkt.scan.happy.01
+    level: backend
+    kind: happy
+    scenario: разбор строки читает все пять видов кода, голый логин и код бокса с этикетки
+    expect: вид, кооператив и ссылка разобраны; логин считается кодом заказчика, BX-код — кодом бокса
+    test: components/controller/tests/unit/marketplace/marketplace-scan.test.ts
+    api: components/api-tests/src/marketplace/scan.test.ts
+    status: written
+
+  - id: mkt.scan.side.01
+    level: backend
+    kind: side
+    scenario: пустая строка, адрес сайта, лишний сегмент, неизвестный вид, пустой кооператив
+    expect: разбор отвечает «не код»
+    test: components/controller/tests/unit/marketplace/marketplace-scan.test.ts
+    api: components/api-tests/src/marketplace/scan.test.ts
+    status: written
+
+  - id: mkt.scan.happy.02
+    level: backend
+    kind: happy
+    scenario: код заказчика, у которого на участке есть заказы к выдаче, ожидаемая поставка и одобренный возврат
+    expect: три дела в порядке выдача, приёмка, возврат; чужие заказы и заявления не попадают; имя из сертификата
+    test: components/controller/tests/unit/marketplace/marketplace-scan.test.ts
+    api: components/api-tests/src/marketplace/scan.test.ts
+    status: written
+
+  - id: mkt.scan.happy.03
+    level: backend
+    kind: happy
+    scenario: код заявления на возврат, которое ждёт осмотра на этом участке
+    expect: визит заявителя с отметкой заявления и делом «возврат»
+    test: components/controller/tests/unit/marketplace/marketplace-scan.test.ts
+    api: components/api-tests/src/marketplace/scan.test.ts
+    status: written
+
+  - id: mkt.scan.side.02
+    level: backend
+    kind: side
+    scenario: код заявления другого участка или не в статусе осмотра
+    expect: визит заявителя собирается, заявление не отмечается
+    test: components/controller/tests/unit/marketplace/marketplace-scan.test.ts
+    api: components/api-tests/src/marketplace/scan.test.ts
+    status: written
+
+  - id: mkt.scan.side.03
+    level: backend
+    kind: side
+    scenario: пайщик без дел на участке
+    expect: визит с пустым списком дел, не ошибка — стол предлагает докладку
+    test: components/controller/tests/unit/marketplace/marketplace-scan.test.ts
+    api: components/api-tests/src/marketplace/scan.test.ts
+    status: written
+
+  - id: mkt.scan.happy.04
+    level: backend
+    kind: happy
+    scenario: QR накладной экспедитора на партию своего участка
+    expect: визит указывает на партию, дел нет
+    test: components/controller/tests/unit/marketplace/marketplace-scan.test.ts
+    api: components/api-tests/src/marketplace/scan.test.ts
+    status: written
+
+  - id: mkt.scan.happy.05
+    level: backend
+    kind: happy
+    scenario: QR бокса или код с этикетки своего участка
+    expect: визит указывает на бокс
+    test: components/controller/tests/unit/marketplace/marketplace-scan.test.ts
+    api: components/api-tests/src/marketplace/scan.test.ts
+    status: written
+
+  - id: mkt.scan.break.01
+    level: backend
+    kind: break
+    scenario: партия и бокс другого участка, код чужого кооператива, нераспознанная строка, несуществующее заявление
+    expect: отказ своим кодом для каждого случая
+    test: components/controller/tests/unit/marketplace/marketplace-scan.test.ts
+    api: components/api-tests/src/marketplace/scan.test.ts
+    status: written
+
+  - id: mkt.scan.happy.06
+    level: backend
+    kind: happy
+    scenario: пайщик запрашивает свой код на получение и на приёмку
+    expect: сервер отдаёт код вида blago:receive и blago:pickup без срока действия
+    test: components/controller/tests/unit/marketplace/marketplace-scan.test.ts
+    api: components/api-tests/src/marketplace/scan.test.ts
+    status: written
+
+  - id: mkt.scan.side.04
+    level: backend
+    kind: side
+    scenario: визит запрашивает пайщик без прав оператора участка либо оператор чужого участка
+    expect: отказ по правам
+    test: components/api-tests/src/rights/matrix.test.ts
+    status: written
+
+  - id: mkt.scan.ui.01
+    level: ui
+    kind: happy
+    scenario: оператор на любом столе ПВЗ нажимает «Сканировать», вводит логин пайщика с заказом к выдаче и одобренным возвратом
+    expect: лист выбора с двумя делами; выбор «Выдать» открывает выдачу, выбор «Возврат» открывает осмотр заявления
+    test: ~
+    status: missing
+
+  - id: mkt.scan.ui.02
+    level: ui
+    kind: side
+    scenario: оператор вводит код бокса на столе выдачи
+    expect: открывается содержимое бокса на складе; переброса между столами нет
+    test: ~
+    status: missing
