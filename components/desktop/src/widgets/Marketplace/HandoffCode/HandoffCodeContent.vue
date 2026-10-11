@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { Zeus } from '@coopenomics/sdk';
 import { useSessionStore } from 'src/entities/Session';
 import { loadHandoffCode } from 'src/entities/MarketplaceHandoff';
@@ -8,6 +8,7 @@ import { BaseBanner, EmptyState } from 'src/shared/ui/base';
 import { FailAlert } from 'src/shared/api';
 import { HandoffTokenKind } from 'src/shared/lib/marketplace';
 import { participantVerificationView } from 'src/shared/lib/verification';
+import { formatDateToLocalTimezone } from 'src/shared/lib/utils/dates';
 import { HANDOFF_CODE_COPY, type AccountHandoffKind } from './copy';
 
 /**
@@ -17,9 +18,9 @@ import { HANDOFF_CODE_COPY, type AccountHandoffKind } from './copy';
  *    «Моих заказов» и детали заказа, карточка заявления на возврат;
  *  - поставщик (`kind=pickup`): страница меню «Показать QR».
  *
- * Код отдаёт сервер (`marketplaceHandoffCode`, 598-62): стол его не собирает.
- * Сейчас код бессрочен; временные коды второго этапа придут тем же запросом
- * со сроком действия, и этот экран обновит QR по его истечении.
+ * Код отдаёт сервер (`marketplaceHandoffCode`, 598-62): случайный, живёт
+ * сутки. Стол его не собирает; по истечении срока экран сам запрашивает
+ * новый код.
  */
 
 const props = withDefaults(
@@ -48,11 +49,33 @@ const needsPassportWarning = computed(() => {
 });
 
 const code = ref('');
+const expiresAt = ref<Date | null>(null);
 const loading = ref(true);
+
+const validUntil = computed(() =>
+  expiresAt.value ? formatDateToLocalTimezone(expiresAt.value.toISOString()) : '',
+);
+
+let renewTimer: ReturnType<typeof setTimeout> | null = null;
+
+function clearRenew(): void {
+  if (renewTimer) clearTimeout(renewTimer);
+  renewTimer = null;
+}
+
+/** По истечении срока запросить новый код — экран пайщика живёт сутками в кармане. */
+function scheduleRenew(at: Date | null): void {
+  clearRenew();
+  if (!at || typeof window === 'undefined') return;
+  const delay = Math.max(at.getTime() - Date.now(), 1000);
+  // timing: schedule — перевыпуск кода точно по истечении его срока действия
+  renewTimer = setTimeout(() => void load(), delay);
+}
 
 async function load(): Promise<void> {
   if (!session.username) {
     code.value = '';
+    expiresAt.value = null;
     loading.value = false;
     return;
   }
@@ -65,17 +88,21 @@ async function load(): Promise<void> {
           : Zeus.MarketplaceHandoffCodeKind.RECEIVE,
     });
     code.value = result.code;
+    expiresAt.value = result.expires_at ? new Date(String(result.expires_at)) : null;
+    scheduleRenew(expiresAt.value);
   } catch (e) {
     code.value = '';
+    expiresAt.value = null;
     FailAlert(e);
   } finally {
     loading.value = false;
   }
 }
 
-// realtime: нет источника — код выдаёт сервер по запросу и он бессрочен; срок действия придёт со вторым этапом 598-62, тогда QR обновится по его истечении
+// realtime: нет источника — код выдаёт сервер по запросу; новый код запрашивается по истечении срока действия
 watch(() => [props.kind, session.username], () => void load());
 onMounted(load);
+onBeforeUnmount(clearRenew);
 </script>
 
 <template lang="pug">
@@ -87,6 +114,7 @@ onMounted(load);
     | {{ $t('marketplace.handoffCodeContent.passportHint2') }}
     | {{ $t('marketplace.handoffCodeContent.passportHint3') }}
   HandoffQr(:value="code", :size="size", :caption="copy.caption")
+  .handoff-code__until(v-if="validUntil") {{ $t('marketplace.handoffCodeContent.validUntil', { until: validUntil }) }}
 EmptyState(
   v-else,
   :title="$t('marketplace.handoffCodeContent.codeUnavailableTitle')",
@@ -105,5 +133,10 @@ EmptyState(
   max-width: 480px;
   margin: 0 auto;
   text-align: center;
+
+  &__until {
+    font-size: var(--p-fs-body-sm);
+    color: var(--p-ink-3);
+  }
 }
 </style>

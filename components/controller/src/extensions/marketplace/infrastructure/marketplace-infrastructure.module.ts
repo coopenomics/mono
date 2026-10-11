@@ -95,6 +95,8 @@ import { MARKETPLACE_ISSUANCE_SAGA_REPOSITORY } from '../domain/repositories/mar
 import { MARKETPLACE_WRITEOFF_PROPOSAL_REPOSITORY } from '../domain/repositories/marketplace-writeoff-proposal.repository';
 import { MARKETPLACE_CART_REPOSITORY } from '../domain/repositories/marketplace-cart.repository';
 import { MARKETPLACE_SUPPLIER_SETTINGS_REPOSITORY } from '../domain/repositories/marketplace-supplier-settings.repository';
+import { MARKETPLACE_HANDOFF_CODE_REPOSITORY } from '../domain/repositories/marketplace-handoff-code.repository';
+import { MarketplaceHandoffCodeRepositoryAdapter } from './adapters/marketplace-handoff-code-repository.adapter';
 import { MarketplaceLiveFeedSubscriber } from './realtime/marketplace-live-feed.subscriber';
 import { MARKETPLACE_INVENTORY_STORE, MARKETPLACE_ORDER_STORE, MARKETPLACE_SECURE_DUE_STORE, marketplaceStoreProviders } from './database/marketplace-stores';
 
@@ -263,6 +265,11 @@ import { MARKETPLACE_INVENTORY_STORE, MARKETPLACE_ORDER_STORE, MARKETPLACE_SECUR
       provide: MARKETPLACE_SUPPLIER_SETTINGS_REPOSITORY,
       useClass: MarketplaceSupplierSettingsRepositoryAdapter,
     },
+    // Временные коды передачи (598-62)
+    {
+      provide: MARKETPLACE_HANDOFF_CODE_REPOSITORY,
+      useClass: MarketplaceHandoffCodeRepositoryAdapter,
+    },
   ],
   exports: [
     // Шлюзы, которыми пользуются фоновые задачи слоя application.
@@ -309,6 +316,8 @@ import { MARKETPLACE_INVENTORY_STORE, MARKETPLACE_ORDER_STORE, MARKETPLACE_SECUR
     MARKETPLACE_CART_REPOSITORY,
     // Настройки выплат поставщика
     MARKETPLACE_SUPPLIER_SETTINGS_REPOSITORY,
+    // Временные коды передачи
+    MARKETPLACE_HANDOFF_CODE_REPOSITORY,
   ],
 })
 export class MarketplaceInfrastructureModule {}

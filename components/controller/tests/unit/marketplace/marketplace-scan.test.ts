@@ -6,8 +6,12 @@
  */
 import {
   encodeMarketplaceHandoffCode,
+  HANDOFF_CODE_TTL_HOURS,
   MarketplaceHandoffCodeKind,
+  normalizeToken,
   parseMarketplaceHandoffCode,
+  TOKEN_LENGTH,
+  tokenFromBytes,
 } from '~/extensions/marketplace/domain/marketplace-handoff-code';
 import {
   MarketplaceHandoffCodeKindDTO,
@@ -18,8 +22,17 @@ import { MarketplaceScanService } from '~/extensions/marketplace/application/ser
 
 const COOP = 'voskhod';
 const KU = 'pvz1';
+const NOW = new Date('2026-10-11T12:00:00.000Z');
+const HOUR_MS = 60 * 60 * 1000;
+const TOKEN = 'K7Q2M9XD4H';
 
-function build(overrides: Partial<Record<'orders' | 'claims' | 'shipments' | 'containers' | 'reception' | 'display', Record<string, jest.Mock>>> = {}) {
+function build(overrides: Partial<Record<'orders' | 'claims' | 'shipments' | 'containers' | 'reception' | 'display' | 'codes', Record<string, jest.Mock>>> = {}) {
+  const codes = {
+    findByToken: jest.fn().mockResolvedValue(null),
+    findLiveByAccount: jest.fn().mockResolvedValue(null),
+    create: jest.fn().mockImplementation(async (input) => ({ id: 'hc1', issued_at: NOW, ...input })),
+    ...overrides.codes,
+  };
   const orders = { listForIssuanceByBraname: jest.fn().mockResolvedValue([]), ...overrides.orders };
   const claims = {
     findById: jest.fn().mockResolvedValue(null),
@@ -34,23 +47,27 @@ function build(overrides: Partial<Record<'orders' | 'claims' | 'shipments' | 'co
     orders as never,
     claims as never,
     shipments as never,
+    codes as never,
     containers as never,
     reception as never,
     display as never
   );
-  return { service, orders, claims, shipments, containers, reception, display };
+  return { service, orders, claims, shipments, containers, reception, display, codes };
 }
 
 describe('разбор кода передачи', () => {
   // mkt.scan.happy.01
-  it('читает все пять видов, голый логин и код бокса с этикетки', () => {
+  it('читает временный код пайщика, коды предметов с префиксом и без, голый логин и код бокса с этикетки', () => {
+    expect(parseMarketplaceHandoffCode(TOKEN, COOP)).toEqual({ kind: 'token', coopname: COOP, ref: TOKEN });
+    expect(parseMarketplaceHandoffCode(' k7q2-m9xd 4h ', COOP)).toEqual({ kind: 'token', coopname: COOP, ref: TOKEN });
+    expect(parseMarketplaceHandoffCode('shipment:voskhod:sh-1', COOP)).toEqual({ kind: MarketplaceHandoffCodeKind.Shipment, coopname: COOP, ref: 'sh-1' });
+    expect(parseMarketplaceHandoffCode('container:voskhod:BX-0001', COOP)?.ref).toBe('BX-0001');
+    expect(parseMarketplaceHandoffCode('blago:shipment:voskhod:sh-1', COOP)?.ref).toBe('sh-1');
+    expect(parseMarketplaceHandoffCode('blago:container:voskhod:BX-0001', COOP)?.kind).toBe(MarketplaceHandoffCodeKind.Container);
     expect(parseMarketplaceHandoffCode('blago:receive:voskhod:ant', COOP)).toEqual({
       kind: MarketplaceHandoffCodeKind.Receive, coopname: COOP, ref: 'ant',
     });
     expect(parseMarketplaceHandoffCode(' blago:return:voskhod:claim-1 ', COOP)?.kind).toBe(MarketplaceHandoffCodeKind.Return);
-    expect(parseMarketplaceHandoffCode('blago:pickup:voskhod:ant', COOP)?.kind).toBe(MarketplaceHandoffCodeKind.Pickup);
-    expect(parseMarketplaceHandoffCode('blago:shipment:voskhod:sh-1', COOP)?.ref).toBe('sh-1');
-    expect(parseMarketplaceHandoffCode('blago:container:voskhod:BX-0001', COOP)?.ref).toBe('BX-0001');
     expect(parseMarketplaceHandoffCode('ant', COOP)).toEqual({ kind: MarketplaceHandoffCodeKind.Receive, coopname: COOP, ref: 'ant' });
     expect(parseMarketplaceHandoffCode('bx-0007', COOP)).toEqual({ kind: MarketplaceHandoffCodeKind.Container, coopname: COOP, ref: 'BX-0007' });
   });
@@ -60,13 +77,20 @@ describe('разбор кода передачи', () => {
     expect(parseMarketplaceHandoffCode('', COOP)).toBeNull();
     expect(parseMarketplaceHandoffCode('https://example.org', COOP)).toBeNull();
     expect(parseMarketplaceHandoffCode('blago:receive:voskhod:ant:extra', COOP)).toBeNull();
-    expect(parseMarketplaceHandoffCode('blago:order:voskhod:1', COOP)).toBeNull();
-    expect(parseMarketplaceHandoffCode('blago:receive::ant', COOP)).toBeNull();
+    expect(parseMarketplaceHandoffCode('order:voskhod:1', COOP)).toBeNull();
+    expect(parseMarketplaceHandoffCode('receive::ant', COOP)).toBeNull();
+    expect(normalizeToken('K7Q2M9XD4')).toBeNull();
+    expect(normalizeToken('K7Q2M9XD40')).toBeNull();
   });
 
-  it('сборка и разбор взаимно обратны', () => {
-    const code = { kind: MarketplaceHandoffCodeKind.Pickup, coopname: COOP, ref: 'supplier1' };
+  it('сборка и разбор взаимно обратны; случайный код длины TOKEN_LENGTH из алфавита без 0/O/1/I', () => {
+    const code = { kind: MarketplaceHandoffCodeKind.Shipment, coopname: COOP, ref: 'sh-1' };
+    expect(encodeMarketplaceHandoffCode(code)).toBe('shipment:voskhod:sh-1');
     expect(parseMarketplaceHandoffCode(encodeMarketplaceHandoffCode(code), COOP)).toEqual(code);
+    const token = tokenFromBytes(new Uint8Array([0, 31, 32, 255, 7, 8, 9, 10, 11, 12]));
+    expect(token).toHaveLength(TOKEN_LENGTH);
+    expect(normalizeToken(token)).toBe(token);
+    expect(token).not.toMatch(/[01OI]/);
   });
 });
 
@@ -194,11 +218,40 @@ describe('визит по коду', () => {
   });
 
   // mkt.scan.happy.06
-  it('код пайщику отдаёт сервер: получение и приёмка, бессрочно', () => {
-    const { service } = build();
-    expect(service.handoffCodeFor(COOP, 'ant', MarketplaceHandoffCodeKindDTO.RECEIVE)).toEqual({
-      kind: MarketplaceHandoffCodeKindDTO.RECEIVE, code: 'blago:receive:voskhod:ant', expires_at: null,
+  it('код пайщику выдаёт сервер: случайный, на сутки; пока действует — тот же самый', async () => {
+    const { service, codes } = build();
+    const issued = await service.handoffCodeFor(COOP, 'ant', MarketplaceHandoffCodeKindDTO.RECEIVE, NOW);
+    expect(issued.kind).toBe(MarketplaceHandoffCodeKindDTO.RECEIVE);
+    expect(normalizeToken(issued.code)).toBe(issued.code);
+    expect(issued.expires_at).toEqual(new Date(NOW.getTime() + HANDOFF_CODE_TTL_HOURS * HOUR_MS));
+    expect(codes.create).toHaveBeenCalledWith({ coopname: COOP, account: 'ant', token: issued.code, expires_at: issued.expires_at });
+
+    codes.findLiveByAccount.mockResolvedValue({ token: TOKEN, account: 'ant', expires_at: new Date(NOW.getTime() + HOUR_MS) });
+    const same = await service.handoffCodeFor(COOP, 'ant', MarketplaceHandoffCodeKindDTO.PICKUP, NOW);
+    expect(same).toEqual({ kind: MarketplaceHandoffCodeKindDTO.PICKUP, code: TOKEN, expires_at: new Date(NOW.getTime() + HOUR_MS) });
+    expect(codes.create).toHaveBeenCalledTimes(1);
+  });
+
+  // mkt.scan.happy.07
+  it('временный код из таблицы ведёт к пайщику; код не из таблицы разбирается как логин', async () => {
+    const { service, codes } = build({
+      codes: { findByToken: jest.fn().mockResolvedValue({ token: TOKEN, account: 'ant', expires_at: new Date(NOW.getTime() + HOUR_MS) }) },
     });
-    expect(service.handoffCodeFor(COOP, 'ant', MarketplaceHandoffCodeKindDTO.PICKUP).code).toBe('blago:pickup:voskhod:ant');
+    const visit = await service.resolveVisit(COOP, KU, 'k7q2 m9xd 4h', NOW);
+    expect(visit).toMatchObject({ target: MarketplaceScanTarget.PERSON, account: 'ant' });
+    expect(codes.findByToken).toHaveBeenCalledWith(COOP, TOKEN);
+
+    codes.findByToken.mockResolvedValue(null);
+    const byLogin = await service.resolveVisit(COOP, KU, 'EKATERINA2', NOW);
+    expect(byLogin).toMatchObject({ target: MarketplaceScanTarget.PERSON, account: 'ekaterina2' });
+    await expect(service.resolveVisit(COOP, KU, 'K7Q2M9XD4H', NOW)).rejects.toMatchObject({ code: 'MARKETPLACE_SCAN_CODE_UNRECOGNIZED' });
+  });
+
+  // mkt.scan.break.02
+  it('истёкший код отвечает своим кодом ошибки, а не «не распознан»', async () => {
+    const { service } = build({
+      codes: { findByToken: jest.fn().mockResolvedValue({ token: TOKEN, account: 'ant', expires_at: new Date(NOW.getTime() - 1) }) },
+    });
+    await expect(service.resolveVisit(COOP, KU, TOKEN, NOW)).rejects.toMatchObject({ code: 'MARKETPLACE_SCAN_CODE_EXPIRED' });
   });
 });
