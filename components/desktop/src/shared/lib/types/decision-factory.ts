@@ -16,6 +16,12 @@ export interface IGenerateDecisionData {
 export type GenerateDecisionHandler = (data: IGenerateDecisionData) => Promise<any>
 
 /**
+ * Общий способ генерации для решения без собственного обработчика: получает
+ * ещё и тип решения. Возвращает `null`, если тип ему неизвестен.
+ */
+export type GenerateDecisionFallback = (decisionType: string, data: IGenerateDecisionData) => Promise<any | null>
+
+/**
  * Компонент для отображения дополнительной информации по решению
  */
 export type DecisionInfoComponent = Component<{ agenda: IAgenda }>
