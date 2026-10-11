@@ -136,15 +136,16 @@
       "field": {
         "account": {
           "label": "Аккаунт GetCourse",
-          "note": "Поддомен школы: <аккаунт>.getcourse.ru"
+          "note": "Имя аккаунта (school — для school.getcourse.ru) либо домен школы"
         },
         "apiKey": {
           "label": "API-ключ",
           "note": "Настройки → Интеграции → API"
         }
       },
-      "groupNotFound": "Группа не найдена в аккаунте GetCourse",
+      "groupNotFound": "Группа с таким названием не найдена в аккаунте GetCourse",
       "notConfigured": "GetCourse не настроен",
+      "unreachable": "Школа GetCourse по адресу {host} не отвечает: {message}. Проверьте поле «Аккаунт»",
       "notConfiguredFull": "GetCourse не настроен: укажите аккаунт и API-ключ",
       "pingOk": "Ключ принят, групп в аккаунте — {count}"
     },

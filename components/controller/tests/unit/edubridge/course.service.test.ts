@@ -44,7 +44,9 @@ function make(contracts: string[] = ['teach']) {
   const lessons = { findByCourse: jest.fn(async () => lessonsOfCourse.list) } as any;
   // Курс открывается с первой группой; её условия уходят в цепь.
   const groups = { create: jest.fn(async () => ({ id: 'G1' })), applyCourseTerms: jest.fn(async () => undefined) } as any;
-  return { service: new EdubridgeCourseService(courses, teachers, skillspace, images, names, economy, teacherService, sections, enrollments, lessons, groups), groups, enrollmentsOfCourse, lessonsOfCourse, courses, teachers, images, economy, saved, teacherService, sections };
+  // Группы школы GetCourse — из них выбирается привязка курса.
+  const getcourse = { listGroups: jest.fn(async () => [{ id: '9', name: 'Алгебра: 7 класс' }]) } as any;
+  return { service: new EdubridgeCourseService(courses, teachers, skillspace, images, names, economy, teacherService, sections, enrollments, lessons, groups, getcourse), groups, getcourse, enrollmentsOfCourse, lessonsOfCourse, courses, teachers, images, economy, saved, teacherService, sections };
 }
 
 const base = {
@@ -121,14 +123,16 @@ describe('EdubridgeCourseService — конструктор курса', () => {
     await expect(service.create('voskhod', 'ant', { ...base, external_ref: ref })).rejects.toThrow(/UUID курса из реестра школы/);
   });
 
-  it('platformCourses: курсы школы с их группами; для других носителей — пусто', async () => {
+  it('platformCourses: курсы Skillspace с их группами, группы GetCourse; для очного — пусто', async () => {
     const { service } = make();
     const list = await service.platformCourses('voskhod', EduAccessCarrier.SKILLSPACE);
     expect(list).toEqual([
       { id: COURSE_UUID, name: 'Тестовый курс [coop]', groups: [{ id: GROUP_UUID, name: 'Группа А' }] },
       { id: 'aaaaaaaa-0000-4000-8000-000000000001', name: 'Другой', groups: [] },
     ]);
-    expect(await service.platformCourses('voskhod', EduAccessCarrier.GETCOURSE)).toEqual([]);
+    // GetCourse: привязка курса — название группы школы; двоеточие в названии её не режет.
+    expect(await service.platformCourses('voskhod', EduAccessCarrier.GETCOURSE)).toEqual([{ id: 'Алгебра: 7 класс', name: 'Алгебра: 7 класс', groups: [] }]);
+    expect(await service.platformCourses('voskhod', EduAccessCarrier.ONSITE)).toEqual([]);
   });
 
   it('преподаватель без договора УХД — отказ с именем', async () => {

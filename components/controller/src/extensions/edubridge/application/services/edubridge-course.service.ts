@@ -5,6 +5,7 @@ import type { EdubridgeCourseRecord } from '../../infrastructure/entities';
 import type { EduCourseImage } from '../../infrastructure/entities/edubridge-course.record';
 import { EdubridgeCourseKyselyRepository, type EduCourseFilter } from '../../infrastructure/repositories/edubridge-course.kysely-repository';
 import { EdubridgeTeacherKyselyRepository } from '../../infrastructure/repositories/edubridge-teacher.kysely-repository';
+import { GetCourseConnector } from '../../infrastructure/connectors/getcourse.connector';
 import { SkillspaceConnector, splitSkillspaceRef } from '../../infrastructure/connectors/skillspace.connector';
 import type {
   EduCourseImageUploadInputDTO,
@@ -68,15 +69,20 @@ export class EdubridgeCourseService {
     private readonly sections: EdubridgeSectionsService,
     private readonly enrollments: EdubridgeEnrollmentKyselyRepository,
     private readonly lessons: EdubridgeLessonKyselyRepository,
-    private readonly groups: EdubridgeGroupService
+    private readonly groups: EdubridgeGroupService,
+    private readonly getcourse: GetCourseConnector
   ) {}
 
   /**
-   * Курсы школы Skillspace с группами — конструктор курса выбирает привязку из
-   * них, а не вводит руками: числовой номер из адреса конструктора в API не
+   * Курсы школы с группами — конструктор курса выбирает привязку из них, а не
+   * вводит руками. У GetCourse это группы школы. У Skillspace — курсы и их группы: числовой номер из адреса конструктора в API не
    * существует, а UUID из адреса чаще всего принадлежит модулю, не курсу.
    */
   async platformCourses(coopname: string, carrier: EduAccessCarrier): Promise<EduPlatformCourseDTO[]> {
+    // GetCourse: ученик зачисляется в группу школы, привязка курса — её название.
+    if (carrier === EduAccessCarrier.GETCOURSE) {
+      return (await this.getcourse.listGroups(coopname)).map((g) => ({ id: g.name, name: g.name, groups: [] }));
+    }
     if (carrier !== EduAccessCarrier.SKILLSPACE) return [];
     const [courses, groups] = await Promise.all([this.skillspace.listCourses(coopname), this.skillspace.listGroups(coopname)]);
     return courses.map((c) => ({

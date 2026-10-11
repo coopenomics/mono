@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { DomainError } from '@coopenomics/extension-kit';
 import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
-import { EduEnrollmentStatus, EduGroupStatus } from '../../domain/enums';
+import { EduAccessCarrier, EduEnrollmentStatus, EduGroupStatus } from '../../domain/enums';
 import type { EdubridgeCourseRecord, EdubridgeEnrollmentRecord, EdubridgeGroupRecord } from '../../infrastructure/entities';
 import { EdubridgeCourseKyselyRepository } from '../../infrastructure/repositories/edubridge-course.kysely-repository';
 import { EdubridgeEnrollmentKyselyRepository } from '../../infrastructure/repositories/edubridge-enrollment.kysely-repository';
@@ -281,7 +281,7 @@ export class EdubridgeGroupService {
         // Дата курса меняет начало группы, только когда день другой: момент, названный на стенде, остаётся.
         if (sameDay(course.starts_at, group.starts_at) === false) Object.assign(group, { starts_at: course.starts_at, starts_at_time: null });
         // Группа на площадке задаётся в панели группы: привязка курса меняет её, только когда сменился сам курс площадки.
-        if (platformCourseOf(group.external_ref) !== platformCourseOf(course.external_ref)) group.external_ref = course.external_ref;
+        if (platformCourseOf(group.external_ref, course.carrier) !== platformCourseOf(course.external_ref, course.carrier)) group.external_ref = course.external_ref;
         reopenBeforeStart(group);
       }
       try {
@@ -393,8 +393,10 @@ function reopenBeforeStart(group: EdubridgeGroupRecord): void {
 }
 
 /** Курс площадки из привязки вида «курс:группа». */
-function platformCourseOf(externalRef: string | null | undefined): string {
-  return String(externalRef ?? '').split(':')[0];
+function platformCourseOf(externalRef: string | null | undefined, carrier?: EduAccessCarrier | string | null): string {
+  const ref = String(externalRef ?? '');
+  // «Курс:группа» — привязка Skillspace. У остальных площадок привязка цельная: название группы GetCourse может содержать двоеточие.
+  return carrier === EduAccessCarrier.SKILLSPACE ? ref.split(':')[0] : ref;
 }
 
 /** Дата начала для показа у курса: ближайшая группа с открытым набором, иначе самая поздняя дата идущих групп. */

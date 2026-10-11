@@ -24,6 +24,7 @@ export const COURSE_FORM_HELP = {
   direction: t('edubridge.courseFormHelp.direction'),
   carrier: t('edubridge.courseFormHelp.carrier'),
   skillspaceCourse: t('edubridge.courseFormHelp.skillspaceCourse'),
+  getcourseGroup: t('edubridge.courseFormHelp.getcourseGroup'),
   skillspaceCourseEmpty: t('edubridge.courseFormHelp.skillspaceCourseEmpty'),
   skillspaceGroup: t('edubridge.courseFormHelp.skillspaceGroup'),
   skillspaceGroupEmpty: t('edubridge.courseFormHelp.skillspaceGroupEmpty'),

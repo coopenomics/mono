@@ -1,6 +1,6 @@
 /** Коннекторы площадок — формат запросов по официальной документации; площадке уходит только почта. */
 import { SkillspaceConnector } from '~/extensions/edubridge/infrastructure/connectors/skillspace.connector';
-import { GetCourseConnector } from '~/extensions/edubridge/infrastructure/connectors/getcourse.connector';
+import { GetCourseConnector, getcourseHost } from '~/extensions/edubridge/infrastructure/connectors/getcourse.connector';
 import { EduRecipientType } from '~/extensions/edubridge/domain/enums';
 
 const fetchMock = jest.fn();
@@ -105,11 +105,48 @@ describe('GetCourseConnector', () => {
     expect(params.user.group_name).toEqual(['G:revoked']);
   });
 
-  it('check: GET /pl/api/account/groups, группа ищется по имени или id', async () => {
-    fetchMock.mockReturnValueOnce(ok({ info: { items: [{ id: 9, name: 'Алгебра-7' }] } }));
-    const r = await gc().check('voskhod', 'Алгебра-7');
-    expect(r.found).toBe(true);
+  it('check: GET /pl/api/account/groups, группа ищется только по названию — номер привязкой не считается', async () => {
+    // Настоящий ответ GetCourse: группы массивом в `info`.
+    fetchMock.mockReturnValue(ok({ success: true, info: [{ id: 9, name: 'Алгебра: 7 класс', last_added_at: null }] }));
+    const connector = gc();
+    await expect(connector.check('voskhod', 'Алгебра: 7 класс')).resolves.toMatchObject({ found: true, title: 'Алгебра: 7 класс' });
     expect(fetchMock.mock.calls[0]![0]).toContain('https://school.getcourse.ru/pl/api/account/groups?key=KEY');
+    // Выдача передаёт привязку площадке как название: номер группы создал бы группу с названием-числом.
+    await expect(connector.check('voskhod', '9')).resolves.toMatchObject({ found: false });
+    // Экспорт ограничен 100 запросами за 2 часа: второй вопрос взят из памяти.
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    await expect(connector.listGroups('voskhod')).resolves.toEqual([{ id: '9', name: 'Алгебра: 7 класс' }]);
+  });
+
+  it('отказ GetCourse приходит с HTTP 200: неверный ключ проверку подключения не проходит', async () => {
+    fetchMock.mockReturnValue(ok({ success: false, info: [], error_message: 'Неавторизованное API-обращение', error: true, error_code: 901 }));
+    const connector = gc();
+    await expect(connector.ping('voskhod')).resolves.toMatchObject({ ok: false, message: expect.stringContaining('Неавторизованное API-обращение') });
+    await expect(connector.check('voskhod', 'Алгебра-7')).resolves.toMatchObject({ found: false, unavailable: true });
+    await expect(connector.listGroups('voskhod')).resolves.toEqual([]);
+  });
+
+  it('верный ключ: проверка подключения называет число групп; прежний вид ответа `info.items` тоже читается', async () => {
+    fetchMock.mockReturnValueOnce(ok({ success: true, info: [{ id: 1, name: 'А' }, { id: 2, name: 'Б' }] }));
+    await expect(gc().ping('voskhod')).resolves.toMatchObject({ ok: true, message: expect.stringContaining('2') });
+    fetchMock.mockReturnValueOnce(ok({ success: true, info: { items: [{ id: 1, name: 'А' }] } }));
+    await expect(gc().listGroups('voskhod')).resolves.toEqual([{ id: '1', name: 'А' }]);
+  });
+
+  it('адрес школы: имя аккаунта даёт поддомен GetCourse, домен школы и адрес целиком берутся как есть', async () => {
+    expect(getcourseHost('school')).toBe('school.getcourse.ru');
+    expect(getcourseHost(' School.getcourse.ru ')).toBe('school.getcourse.ru');
+    expect(getcourseHost('https://jivojum.ru/login?x=1')).toBe('jivojum.ru');
+    fetchMock.mockReturnValueOnce(ok({ success: true, info: [] }));
+    await new GetCourseConnector(cfg({ getcourse_account: 'https://jivojum.ru/', getcourse_api_key: 'KEY' })).ping('voskhod');
+    expect(String(fetchMock.mock.calls[0]![0])).toContain('https://jivojum.ru/pl/api/account/groups?key=KEY');
+  });
+
+  it('школа не отвечает: проверка подключения называет адрес и причину, а не «fetch failed»', async () => {
+    fetchMock.mockRejectedValueOnce(Object.assign(new TypeError('fetch failed'), { cause: { code: 'ENOTFOUND' } }));
+    const result = await new GetCourseConnector(cfg({ getcourse_account: 'нет-такой', getcourse_api_key: 'KEY' })).ping('voskhod');
+    expect(result.ok).toBe(false);
+    expect(result.message).toContain('ENOTFOUND');
   });
 });
 

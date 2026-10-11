@@ -1156,6 +1156,7 @@ export type MessageKey =
   | 'edubridge.getcourseConnector.notConfigured'
   | 'edubridge.getcourseConnector.notConfiguredFull'
   | 'edubridge.getcourseConnector.pingOk'
+  | 'edubridge.getcourseConnector.unreachable'
   | 'edubridge.group.defaultTitle'
   | 'edubridge.guarantee.untilCourseStart'
   | 'edubridge.httpCarrier.platformUnavailable'

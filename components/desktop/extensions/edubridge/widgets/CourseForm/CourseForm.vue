@@ -155,6 +155,17 @@ BaseForm.edu-course-form(ref="formEl" :loading="loading" :error="error" @submit=
       )
         template(#append)
           FieldHelp(:text="platformCourses.length ? COURSE_FORM_HELP.skillspaceCourse : COURSE_FORM_HELP.skillspaceCourseEmpty")
+    //- GetCourse: группа школы выбирается из её списка; список не пришёл — название вводится текстом.
+    BaseSelect(
+      v-else-if="isGetcourse && platformCourses.length"
+      v-model="skillspaceCourseId"
+      :label="$t('edubridge.courseForm.getcourseGroupLabel')"
+      :options="platformCourseOptions"
+      searchable
+      required
+    )
+      template(#append)
+        FieldHelp(:text="COURSE_FORM_HELP.getcourseGroup")
     BaseInput(v-else-if="isPlatform" v-model="form.external_ref" :label="$t('edubridge.courseForm.externalRefLabel')" mono required)
       template(#append)
         FieldHelp(:text="COURSE_FORM_HELP.externalRef")
@@ -282,6 +293,7 @@ const {
   carrierOptions,
   isPlatform,
   isSkillspace,
+  isGetcourse,
   platformCourseOptions,
   platformGroupOptions,
   sectionOptions,

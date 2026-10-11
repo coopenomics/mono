@@ -1,4 +1,4 @@
-import { computed, inject, onBeforeUnmount, onMounted, provide, reactive, ref, watch, type ComputedRef, type InjectionKey } from 'vue';
+import { computed, inject, onBeforeUnmount, onMounted, provide, reactive, ref, watch, type ComputedRef, type InjectionKey, type Ref } from 'vue';
 import { Zeus } from '@coopenomics/sdk';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useSystemStore } from 'src/entities/System/model';
@@ -242,6 +242,23 @@ function useFeePreview(economy: ReturnType<typeof useEconomyFields>) {
 
 const directionOptions = Object.entries(DIRECTION_LABELS).map(([value, label]) => ({ value, label }));
 
+/** Реестр школы читается под выбранную площадку; смена площадки читает его заново. */
+function watchPlatformCatalog(form: CourseFormFields, hasCatalog: ComputedRef<boolean>, platformCourses: Ref<IPlatformCourse[]>): void {
+  watch(
+    () => (hasCatalog.value ? form.carrier : null),
+    async (carrier) => {
+      platformCourses.value = [];
+      if (!carrier) return;
+      try {
+        platformCourses.value = await fetchPlatformCourses(carrier);
+      } catch (e) {
+        FailAlert(e);
+      }
+    },
+    { immediate: true },
+  );
+}
+
 /**
  * Выдача доступа. Носитель зависит от направления: онлайн-платформа —
  * Skillspace/GetCourse, закрытое сообщество — Telegram/ВКонтакте, очное — очно.
@@ -256,6 +273,9 @@ function useAccess(form: CourseFormFields) {
   const carrierOptions = computed(() => allowedCarriers.value.map((value) => ({ value, label: CARRIER_LABELS[value] ?? value })));
   const isPlatform = computed(() => PLATFORM_CARRIERS.includes(form.carrier));
   const isSkillspace = computed(() => form.carrier === Zeus.EduAccessCarrier.SKILLSPACE);
+  const isGetcourse = computed(() => form.carrier === Zeus.EduAccessCarrier.GETCOURSE);
+  /** Привязка выбирается из реестра школы: курсы Skillspace либо группы GetCourse. */
+  const hasCatalog = computed(() => isSkillspace.value || isGetcourse.value);
   const platformCourseOptions = computed(() => platformCourses.value.map((c) => ({ value: c.id, label: c.name })));
   const platformGroupOptions = computed(
     () => platformCourses.value.find((c) => c.id === skillspaceCourseId.value)?.groups.map((g) => ({ value: g.id, label: g.name })) ?? [],
@@ -269,19 +289,10 @@ function useAccess(form: CourseFormFields) {
   });
   watch([skillspaceCourseId, skillspaceGroupId], ([course, group]) => {
     if (isSkillspace.value) form.external_ref = course ? (group ? `${course}:${group}` : course) : '';
+    // GetCourse: привязка — название группы школы целиком.
+    else if (isGetcourse.value && course) form.external_ref = course;
   });
-  watch(
-    isSkillspace,
-    async (on) => {
-      if (!on || platformCourses.value.length) return;
-      try {
-        platformCourses.value = await fetchPlatformCourses(Zeus.EduAccessCarrier.SKILLSPACE);
-      } catch (e) {
-        FailAlert(e);
-      }
-    },
-    { immediate: true },
-  );
+  watchPlatformCatalog(form, hasCatalog, platformCourses);
   // Сменили направление — носитель вне его списка теряет смысл: берём первый допустимый.
   watch(
     () => form.direction,
@@ -294,6 +305,10 @@ function useAccess(form: CourseFormFields) {
   });
 
   function fillAccess(c: ICourse): void {
+    if (c.carrier === Zeus.EduAccessCarrier.GETCOURSE) {
+      skillspaceCourseId.value = c.external_ref || null;
+      return;
+    }
     if (c.carrier !== Zeus.EduAccessCarrier.SKILLSPACE) return;
     const [course = '', group = ''] = c.external_ref.split(':');
     skillspaceCourseId.value = course || null;
@@ -308,6 +323,8 @@ function useAccess(form: CourseFormFields) {
     carrierOptions,
     isPlatform,
     isSkillspace,
+    isGetcourse,
+    hasCatalog,
     platformCourseOptions,
     platformGroupOptions,
     fillAccess,
