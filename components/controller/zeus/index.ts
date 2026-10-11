@@ -12847,8 +12847,6 @@ export type ValueTypes = {
 	container_code?:boolean | `@${string}`,
 	/** Имя пайщика из сертификата. */
 	display_name?:boolean | `@${string}`,
-	/** Заявление на возврат, на которое указал код, если оно ждёт осмотра на этом участке. */
-	focus_claim_id?:boolean | `@${string}`,
 	/** Дела пайщика на этом участке в порядке приоритета; пустой список — дел нет. */
 	matters?:ValueTypes["MarketplaceScanMatter"],
 	/** Партия, если код указал на партию. */
@@ -30721,8 +30719,6 @@ export type ResolverInputTypes = {
 	container_code?:boolean | `@${string}`,
 	/** Имя пайщика из сертификата. */
 	display_name?:boolean | `@${string}`,
-	/** Заявление на возврат, на которое указал код, если оно ждёт осмотра на этом участке. */
-	focus_claim_id?:boolean | `@${string}`,
 	/** Дела пайщика на этом участке в порядке приоритета; пустой список — дел нет. */
 	matters?:ResolverInputTypes["MarketplaceScanMatter"],
 	/** Партия, если код указал на партию. */
@@ -47965,8 +47961,6 @@ export type ModelTypes = {
 	container_code?: string | undefined | null,
 	/** Имя пайщика из сертификата. */
 	display_name?: string | undefined | null,
-	/** Заявление на возврат, на которое указал код, если оно ждёт осмотра на этом участке. */
-	focus_claim_id?: string | undefined | null,
 	/** Дела пайщика на этом участке в порядке приоритета; пустой список — дел нет. */
 	matters: Array<ModelTypes["MarketplaceScanMatter"]>,
 	/** Партия, если код указал на партию. */
@@ -66317,8 +66311,6 @@ export type GraphQLTypes = {
 	container_code?: string | undefined | null,
 	/** Имя пайщика из сертификата. */
 	display_name?: string | undefined | null,
-	/** Заявление на возврат, на которое указал код, если оно ждёт осмотра на этом участке. */
-	focus_claim_id?: string | undefined | null,
 	/** Дела пайщика на этом участке в порядке приоритета; пустой список — дел нет. */
 	matters: Array<GraphQLTypes["MarketplaceScanMatter"]>,
 	/** Партия, если код указал на партию. */

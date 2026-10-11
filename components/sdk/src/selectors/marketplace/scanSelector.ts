@@ -15,7 +15,6 @@ export const rawScanVisitSelector = {
   account: true,
   display_name: true,
   matters: rawScanMatterSelector,
-  focus_claim_id: true,
   shipment_id: true,
   container_code: true,
 }

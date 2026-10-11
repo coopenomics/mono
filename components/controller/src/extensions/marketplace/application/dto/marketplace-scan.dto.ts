@@ -84,12 +84,6 @@ export class MarketplaceScanVisitDTO {
   })
   matters!: MarketplaceScanMatterDTO[];
 
-  @Field(() => String, {
-    nullable: true,
-    description: 'Заявление на возврат, на которое указал код, если оно ждёт осмотра на этом участке.',
-  })
-  focus_claim_id!: string | null;
-
   @Field(() => String, { nullable: true, description: 'Партия, если код указал на партию.' })
   shipment_id!: string | null;
 

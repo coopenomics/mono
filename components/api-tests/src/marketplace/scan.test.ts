@@ -14,7 +14,7 @@ import { KRG, pickOffer, placeOrder } from './flow'
 import { PHOTO, fundShare, issuedOrder } from './mkt-flows.helpers'
 import { prepareReceivedOrder } from './issuance.helpers'
 
-const VISIT = 'target account display_name matters{ kind ids } focus_claim_id shipment_id container_code'
+const VISIT = 'target account display_name matters{ kind ids } shipment_id container_code'
 const SCAN = `query($d:MarketplaceResolveScanInput!){ marketplaceResolveScan(data:$d){ ${VISIT} } }`
 const CODE = 'query($d:MarketplaceHandoffCodeInput!){ marketplaceHandoffCode(data:$d){ kind code expires_at } }'
 const CREATE_TYPE = 'mutation($d:MarketplaceCreateContainerTypeInput!){ marketplaceCreateContainerType(data:$d){ id } }'
@@ -80,18 +80,15 @@ beforeAll(async () => {
 }, 120_000)
 
 describe('Стол заказов — единый сканер: разбор кода', () => {
-  it(caseName('mkt.scan.happy.01', 'старый код заказчика и голый логин ведут к одному и тому же пайщику; старый код поставщика — к нему же'), async () => {
-    const byCode = await scan(operatorToken, KRG, `blago:receive:${COOP}:${ivanpetrov.account}`)
+  it(caseName('mkt.scan.happy.01', 'голый логин — ручной ввод оператора — ведёт к пайщику; логин поставщика — к поставщику'), async () => {
     const byLogin = await scan(operatorToken, KRG, ivanpetrov.account)
-    expect(byCode).toMatchObject({ target: 'PERSON', account: ivanpetrov.account, shipment_id: null, container_code: null })
-    expect(byLogin).toMatchObject({ target: 'PERSON', account: ivanpetrov.account })
-    expect(byLogin.matters).toEqual(byCode.matters)
-    const supplierVisit = await scan(operatorToken, KRG, `blago:pickup:${COOP}:${sidorov.account}`)
+    expect(byLogin).toMatchObject({ target: 'PERSON', account: ivanpetrov.account, shipment_id: null, container_code: null })
+    const supplierVisit = await scan(operatorToken, KRG, sidorov.account)
     expect(supplierVisit).toMatchObject({ target: 'PERSON', account: sidorov.account })
   })
 
-  it(caseName('mkt.scan.side.01', 'пустая строка, адрес сайта, лишний сегмент и неизвестный вид — код не распознан'), async () => {
-    for (const code of ['   ', 'https://example.org', `blago:receive:${COOP}:${ivanpetrov.account}:extra`, `order:${COOP}:1`, `receive::${ivanpetrov.account}`, 'K7Q2M9XD4H']) {
+  it(caseName('mkt.scan.side.01', 'пустая строка, адрес сайта, лишний сегмент, неизвестный вид, прежний код с учётной записью — код не распознан'), async () => {
+    for (const code of ['   ', 'https://example.org', `blago:receive:${COOP}:${ivanpetrov.account}:extra`, `order:${COOP}:1`, `receive::${ivanpetrov.account}`, `blago:receive:${COOP}:${ivanpetrov.account}`, `pickup:${COOP}:${sidorov.account}`, 'K7Q2M9XD4H']) {
       const err = await gqlError(operatorToken, SCAN, { d: { braname: KRG, code } })
       expect(['422', 'MARKETPLACE_SCAN_CODE_UNRECOGNIZED'], `код «${code}»`).toContain(String(err?.code))
     }
@@ -132,8 +129,8 @@ describe('Стол заказов — единый сканер: дела пай
   }, 900_000)
 
   it(caseName('mkt.scan.happy.02', 'у заказчика на участке заказ к выдаче и одобренный возврат — дела в порядке выдача, затем возврат; чужие дела не попадают'), async () => {
-    const visit = await scan(operatorToken, KRG, `blago:receive:${COOP}:${ekaterina.account}`)
-    expect(visit).toMatchObject({ target: 'PERSON', account: ekaterina.account, focus_claim_id: null })
+    const visit = await scan(operatorToken, KRG, ekaterina.account)
+    expect(visit).toMatchObject({ target: 'PERSON', account: ekaterina.account })
     expect(visit.display_name, 'имя из сертификата').toBeTruthy()
     const kinds = (visit.matters as any[]).map(m => m.kind)
     expect(kinds.indexOf('ISSUANCE'), 'выдача раньше возврата').toBeLessThan(kinds.indexOf('RETURN'))
@@ -144,21 +141,8 @@ describe('Стол заказов — единый сканер: дела пай
     expect(matter(other, 'RETURN')?.ids ?? []).not.toContain(claimId)
   })
 
-  it(caseName('mkt.scan.happy.03', 'код заявления ведёт к заявителю и отмечает заявление, если оно ждёт осмотра здесь'), async () => {
-    const visit = await scan(operatorToken, KRG, `blago:return:${COOP}:${claimId}`)
-    expect(visit).toMatchObject({ target: 'PERSON', account: ekaterina.account, focus_claim_id: claimId })
-    expect(matter(visit, 'RETURN').ids).toContain(claimId)
-  })
-
-  it(caseName('mkt.scan.side.02', 'код заявления на другом участке: визит заявителя собирается, заявление не отмечается'), async () => {
-    // Председатель кооператива видит любой участок; заявление ждёт осмотра на КРГ, а не на ОДН.
-    const visit = await scan(chairmanToken, ODN, `blago:return:${COOP}:${claimId}`)
-    expect(visit).toMatchObject({ target: 'PERSON', account: ekaterina.account, focus_claim_id: null })
-    expect(matter(visit, 'RETURN')?.ids ?? []).not.toContain(claimId)
-  })
-
   it(caseName('mkt.scan.side.03', 'пайщик без дел на этом участке — визит с пустым списком дел, не ошибка'), async () => {
-    const visit = await scan(chairmanToken, ODN, `blago:receive:${COOP}:${ekaterina.account}`)
+    const visit = await scan(chairmanToken, ODN, ekaterina.account)
     expect(visit).toMatchObject({ target: 'PERSON', account: ekaterina.account })
     expect(matter(visit, 'ISSUANCE')?.ids ?? []).not.toContain(issuanceOrderId)
   })
@@ -199,8 +183,7 @@ describe('Стол заказов — единый сканер: партия и
   it(caseName('mkt.scan.break.01', 'партия и бокс другого участка, чужой кооператив, несуществующие заявление и партия — отказ своим кодом'), async () => {
     expectCode(await gqlError(chairmanToken, SCAN, { d: { braname: ODN, code: `blago:shipment:${COOP}:${shipmentId}` } }), 'MARKETPLACE_SCAN_SHIPMENT_OTHER_BRANCH')
     expectCode(await gqlError(chairmanToken, SCAN, { d: { braname: ODN, code: box.code } }), 'MARKETPLACE_SCAN_CONTAINER_OTHER_BRANCH')
-    expectCode(await gqlError(operatorToken, SCAN, { d: { braname: KRG, code: `blago:receive:othercoop:${ekaterina.account}` } }), 'MARKETPLACE_SCAN_CODE_WRONG_COOP')
-    expectCode(await gqlError(operatorToken, SCAN, { d: { braname: KRG, code: `blago:return:${COOP}:${UNKNOWN_ID}` } }), 'MARKETPLACE_SCAN_RETURN_CLAIM_NOT_FOUND')
+    expectCode(await gqlError(operatorToken, SCAN, { d: { braname: KRG, code: `shipment:othercoop:${shipmentId}` } }), 'MARKETPLACE_SCAN_CODE_WRONG_COOP')
     expectCode(await gqlError(operatorToken, SCAN, { d: { braname: KRG, code: `blago:shipment:${COOP}:${UNKNOWN_ID}` } }), 'MARKETPLACE_SCAN_SHIPMENT_NOT_FOUND')
     expectCode(await gqlError(operatorToken, SCAN, { d: { braname: KRG, code: 'BX-9999999' } }), 'MARKETPLACE_CONTAINER_NOT_FOUND_BY_CODE')
     await gql(operatorToken, UPDATE_BOX, { d: { container_id: box.id, is_active: false } })
