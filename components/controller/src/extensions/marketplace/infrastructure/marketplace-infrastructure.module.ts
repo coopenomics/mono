@@ -99,6 +99,8 @@ import { MARKETPLACE_CART_REPOSITORY } from '../domain/repositories/marketplace-
 import { MARKETPLACE_SUPPLIER_SETTINGS_REPOSITORY } from '../domain/repositories/marketplace-supplier-settings.repository';
 import { MARKETPLACE_SUPPLIER_PROFILE_REPOSITORY } from '../domain/repositories/marketplace-supplier-profile.repository';
 import { MARKETPLACE_REVIEW_REPOSITORY } from '../domain/repositories/marketplace-review.repository';
+import { MARKETPLACE_HANDOFF_CODE_REPOSITORY } from '../domain/repositories/marketplace-handoff-code.repository';
+import { MarketplaceHandoffCodeRepositoryAdapter } from './adapters/marketplace-handoff-code-repository.adapter';
 import { MarketplaceLiveFeedSubscriber } from './realtime/marketplace-live-feed.subscriber';
 import { MARKETPLACE_INVENTORY_STORE, MARKETPLACE_ORDER_STORE, marketplaceStoreProviders } from './database/marketplace-stores';
 
@@ -276,6 +278,11 @@ import { MARKETPLACE_INVENTORY_STORE, MARKETPLACE_ORDER_STORE, marketplaceStoreP
       provide: MARKETPLACE_REVIEW_REPOSITORY,
       useClass: MarketplaceReviewRepositoryAdapter,
     },
+    // Временные коды передачи (598-62)
+    {
+      provide: MARKETPLACE_HANDOFF_CODE_REPOSITORY,
+      useClass: MarketplaceHandoffCodeRepositoryAdapter,
+    },
   ],
   exports: [
     // Шлюзы, которыми пользуются фоновые задачи слоя application.
@@ -323,6 +330,8 @@ import { MARKETPLACE_INVENTORY_STORE, MARKETPLACE_ORDER_STORE, marketplaceStoreP
     // Профиль поставщика и отзывы заказчиков
     MARKETPLACE_SUPPLIER_PROFILE_REPOSITORY,
     MARKETPLACE_REVIEW_REPOSITORY,
+    // Временные коды передачи
+    MARKETPLACE_HANDOFF_CODE_REPOSITORY,
   ],
 })
 export class MarketplaceInfrastructureModule {}

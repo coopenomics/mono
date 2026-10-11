@@ -1471,6 +1471,15 @@ export interface MarketplaceContainerType {
   width_cm: Generated<number>;
 }
 
+export interface MarketplaceHandoffCode {
+  account: string;
+  coopname: string;
+  expires_at: Timestamp;
+  id: Generated<string>;
+  issued_at: Generated<Timestamp>;
+  token: string;
+}
+
 export interface MarketplaceInventory {
   arrival_price: Numeric | null;
   barcode_format: string | null;
@@ -2383,6 +2392,7 @@ export interface DB {
   marketplace_consolidated_request: MarketplaceConsolidatedRequest;
   marketplace_container: MarketplaceContainer;
   marketplace_container_type: MarketplaceContainerType;
+  marketplace_handoff_code: MarketplaceHandoffCode;
   marketplace_inventory: MarketplaceInventory;
   marketplace_issuance_saga: MarketplaceIssuanceSaga;
   marketplace_ku_details: MarketplaceKuDetails;

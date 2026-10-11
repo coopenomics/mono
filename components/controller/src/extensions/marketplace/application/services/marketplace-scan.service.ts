@@ -1,10 +1,18 @@
+import { randomBytes } from 'node:crypto';
 import { Inject, Injectable } from '@nestjs/common';
 import { DomainError } from '@coopenomics/extension-kit';
 import {
-  encodeMarketplaceHandoffCode,
+  HANDOFF_CODE_TTL_HOURS,
+  isAccountName,
   MarketplaceHandoffCodeKind,
   parseMarketplaceHandoffCode,
+  TOKEN_LENGTH,
+  tokenFromBytes,
 } from '../../domain/marketplace-handoff-code';
+import {
+  MARKETPLACE_HANDOFF_CODE_REPOSITORY,
+  type MarketplaceHandoffCodeDomainRepository,
+} from '../../domain/repositories/marketplace-handoff-code.repository';
 import { MarketplaceReturnClaimStatuses } from '../../domain/entities/marketplace-return-claim.types';
 import {
   MARKETPLACE_ORDER_REPOSITORY,
@@ -46,6 +54,8 @@ export class MarketplaceScanService {
     private readonly claimRepo: MarketplaceReturnClaimDomainRepository,
     @Inject(MARKETPLACE_SHIPMENT_REPOSITORY)
     private readonly shipmentRepo: MarketplaceShipmentDomainRepository,
+    @Inject(MARKETPLACE_HANDOFF_CODE_REPOSITORY)
+    private readonly codes: MarketplaceHandoffCodeDomainRepository,
     private readonly containers: MarketplaceContainerService,
     @Inject(MARKETPLACE_APL_RECEPTION_SERVICE)
     private readonly reception: MarketplaceAplReceptionService,
@@ -53,10 +63,20 @@ export class MarketplaceScanService {
     private readonly display: MarketplaceOrderDisplayService
   ) {}
 
-  async resolveVisit(coopname: string, braname: string, raw: string): Promise<MarketplaceScanVisitDTO> {
+  async resolveVisit(coopname: string, braname: string, raw: string, now: Date = new Date()): Promise<MarketplaceScanVisitDTO> {
     const code = parseMarketplaceHandoffCode(raw, coopname);
     if (!code) throw DomainError.badRequest('MARKETPLACE_SCAN_CODE_UNRECOGNIZED');
     if (code.coopname !== coopname) throw DomainError.badRequest('MARKETPLACE_SCAN_CODE_WRONG_COOP');
+
+    if (code.kind === 'token') {
+      const issued = await this.codes.findByToken(coopname, code.ref);
+      // Код не из таблицы — это мог быть логин прописными: пробуем как ручной ввод.
+      if (!issued) return this.manualVisit(coopname, braname, raw);
+      if (issued.expires_at.getTime() <= now.getTime()) {
+        throw DomainError.badRequest('MARKETPLACE_SCAN_CODE_EXPIRED');
+      }
+      return this.personVisit(coopname, braname, issued.account, null);
+    }
 
     switch (code.kind) {
       case MarketplaceHandoffCodeKind.Shipment:
@@ -71,20 +91,33 @@ export class MarketplaceScanService {
   }
 
   /**
-   * Код, который пайщик показывает оператору. Сейчас код детерминирован от
-   * учётной записи и бессрочен; временные коды второго этапа меняют только
-   * этот метод и обратное превращение в `personVisit`.
+   * Код, который пайщик показывает оператору: случайный, живёт сутки, один на
+   * учётную запись. Пока код действует, сервер отдаёт его же; по истечении
+   * выдаёт новый. Вид (получение / приёмка) на содержимое не влияет — дела на
+   * участке сервер собирает по учётной записи.
    */
-  handoffCodeFor(coopname: string, account: string, kind: MarketplaceHandoffCodeKindDTO): MarketplaceHandoffCodeDTO {
-    const codeKind =
-      kind === MarketplaceHandoffCodeKindDTO.PICKUP
-        ? MarketplaceHandoffCodeKind.Pickup
-        : MarketplaceHandoffCodeKind.Receive;
-    return {
-      kind,
-      code: encodeMarketplaceHandoffCode({ kind: codeKind, coopname, ref: account }),
-      expires_at: null,
-    };
+  async handoffCodeFor(
+    coopname: string,
+    account: string,
+    kind: MarketplaceHandoffCodeKindDTO,
+    now: Date = new Date()
+  ): Promise<MarketplaceHandoffCodeDTO> {
+    const live = await this.codes.findLiveByAccount(coopname, account, now);
+    if (live) return { kind, code: live.token, expires_at: live.expires_at };
+    const created = await this.codes.create({
+      coopname,
+      account,
+      token: tokenFromBytes(randomBytes(TOKEN_LENGTH)),
+      expires_at: new Date(now.getTime() + HANDOFF_CODE_TTL_HOURS * 60 * 60 * 1000),
+    });
+    return { kind, code: created.token, expires_at: created.expires_at };
+  }
+
+  /** Строка, похожая на код пайщика, но не из таблицы: логин прописными либо мусор. */
+  private async manualVisit(coopname: string, braname: string, raw: string): Promise<MarketplaceScanVisitDTO> {
+    const login = raw.trim().toLowerCase();
+    if (!isAccountName(login)) throw DomainError.badRequest('MARKETPLACE_SCAN_CODE_UNRECOGNIZED');
+    return this.personVisit(coopname, braname, login, null);
   }
 
   private async shipmentVisit(coopname: string, braname: string, shipment_id: string): Promise<MarketplaceScanVisitDTO> {

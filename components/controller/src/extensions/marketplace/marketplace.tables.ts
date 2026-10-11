@@ -9,6 +9,7 @@ export default [
   'marketplace_consolidated_request',
   'marketplace_container',
   'marketplace_container_type',
+  'marketplace_handoff_code',
   'marketplace_inventory',
   'marketplace_issuance_saga',
   'marketplace_ku_details',

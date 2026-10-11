@@ -7,7 +7,14 @@ title: Единый сканер стола ПВЗ — визит пайщика
 # кто пришёл и какие дела у него на этом участке в порядке приоритета —
 # выдать заказы, принять поставку, осмотреть возврат. Код партии и код бокса
 # ведут к предмету. Разбор строки живёт только в контроллере; стол в браузере
-# код не разбирает. Код пайщику отдаёт сервер — задел под временные коды.
+# код не разбирает.
+#
+# Второй этап 11.10.2026 (598-62): код пайщика временный — случайная строка
+# из 10 знаков, выдаёт сервер, живёт сутки (решение владельца), хранится в
+# таблице marketplace_handoff_code; по истечении выдаётся новый. Префикс
+# `blago:` из кодов убран (решение владельца), старые накладные и этикетки
+# сервер понимает. Старый код пайщика с учётной записью и голый логин —
+# ручной путь оператора.
 
 sources:
   backend:
@@ -15,6 +22,10 @@ sources:
     - components/controller/src/extensions/marketplace/application/services/marketplace-scan.service.ts
     - components/controller/src/extensions/marketplace/application/resolvers/marketplace-scan.resolver.ts
     - components/controller/src/extensions/marketplace/application/dto/marketplace-scan.dto.ts
+    - components/controller/src/extensions/marketplace/domain/repositories/marketplace-handoff-code.repository.ts
+    - components/controller/src/extensions/marketplace/infrastructure/adapters/marketplace-handoff-code-repository.adapter.ts
+    - components/controller/src/extensions/marketplace/infrastructure/entities/marketplace-handoff-code.entity.ts
+    - components/controller/src/extensions/marketplace/migrations/database/1791736800000-handoff-code.ts
   ui:
     - components/desktop/src/widgets/Marketplace/UniversalScanner/**
     - components/desktop/src/shared/lib/marketplace/handoff-signal.ts
@@ -105,10 +116,29 @@ cases:
   - id: mkt.scan.happy.06
     level: backend
     kind: happy
-    scenario: пайщик запрашивает свой код на получение и на приёмку
-    expect: сервер отдаёт код вида blago:receive и blago:pickup без срока действия
+    scenario: пайщик запрашивает свой код; запрашивает повторно, пока код действует
+    expect: сервер выдаёт случайный код из 10 знаков на сутки; повторный запрос отдаёт тот же код; по коду сервер ведёт к пайщику
     test: components/controller/tests/unit/marketplace/marketplace-scan.test.ts
     api: components/api-tests/src/marketplace/scan.test.ts
+    status: written
+
+  - id: mkt.scan.happy.07
+    level: backend
+    kind: happy
+    scenario: оператор сканирует временный код из таблицы, с дефисами и строчными; строка похожа на код, но в таблице её нет
+    expect: код ведёт к пайщику; строка не из таблицы разбирается как логин, иначе отказ «не распознан»
+    test: components/controller/tests/unit/marketplace/marketplace-scan.test.ts
+    api: components/api-tests/src/marketplace/scan.test.ts
+    status: written
+
+  - id: mkt.scan.break.02
+    level: backend
+    kind: break
+    scenario: оператор сканирует код, срок которого истёк
+    expect: отказ MARKETPLACE_SCAN_CODE_EXPIRED, не «не распознан»
+    test: components/controller/tests/unit/marketplace/marketplace-scan.test.ts
+    external: unreachable
+    external_reason: "срок кода — сутки, снаружи время стенда не сдвинуть; выдача и разбор действующего кода проверены случаями happy.06 и happy.07"
     status: written
 
   - id: mkt.scan.side.04

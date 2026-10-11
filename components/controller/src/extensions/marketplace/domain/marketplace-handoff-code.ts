@@ -4,23 +4,29 @@
  * за чем. Разбор строки живёт только здесь: стол в браузере код не разбирает,
  * а передаёт строку запросом `marketplaceResolveScan`.
  *
- * Формат: `blago:<kind>:<coopname>:<ref>`.
- *  - `receive`   — код заказчика: ref — учётная запись;
- *  - `pickup`    — код поставщика: ref — учётная запись;
- *  - `return`    — код заявления на гарантийный возврат: ref — id заявления;
- *  - `shipment`  — QR на накладной экспедитора: ref — id партии;
- *  - `container` — QR на боксе: ref — код бокса с этикетки (`BX-0001`).
+ * Код пайщика — временный: случайная строка из `TOKEN_LENGTH` знаков, которую
+ * выдал сервер и которая живёт `HANDOFF_CODE_TTL_HOURS`. Её сервер ищет в
+ * таблице кодов и так узнаёт учётную запись. Алфавит без 0/O/1/I — код
+ * читается с экрана и набирается руками без ошибок.
+ *
+ * Коды предметов постоянны: `<kind>:<coopname>:<ref>`
+ *  - `shipment:<coop>:<id партии>`   — QR на накладной экспедитора;
+ *  - `container:<coop>:<код бокса>`  — QR на боксе (`BX-0001`).
+ * Старый формат с префиксом `blago:` (четыре сегмента) сервер понимает: такие
+ * накладные и этикетки уже напечатаны. Старые коды пайщика `receive`/`pickup`
+ * с учётной записью внутри и код заявления `return` разбираются как ручной
+ * ввод — они не секрет, оператор сам отвечает за сверку личности.
  *
  * Ручной ввод без камеры: голый логин пайщика считается кодом заказчика, код
- * бокса с этикетки — кодом бокса. Имена учётных записей и кооперативов в цепи
- * состоят из `a–z`, `1–5`, `.`, id — из hex и `-`: двоеточия там нет, и
- * разделитель однозначен.
- *
- * Второй этап (временные коды): меняется только то, как ref кода заказчика и
- * поставщика превращается в учётную запись; формат и виды остаются.
+ * бокса с этикетки — кодом бокса.
  */
 
-export const HANDOFF_CODE_PREFIX = 'blago';
+export const HANDOFF_CODE_TTL_HOURS = 24;
+export const TOKEN_LENGTH = 10;
+/** Без 0/O/1/I: 32 знака, по пять бит на знак. */
+export const TOKEN_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+
+const LEGACY_PREFIX = 'blago';
 const SEP = ':';
 
 export enum MarketplaceHandoffCodeKind {
@@ -31,11 +37,9 @@ export enum MarketplaceHandoffCodeKind {
   Container = 'container',
 }
 
-export interface MarketplaceHandoffCode {
-  kind: MarketplaceHandoffCodeKind;
-  coopname: string;
-  ref: string;
-}
+export type MarketplaceHandoffCode =
+  | { kind: MarketplaceHandoffCodeKind; coopname: string; ref: string }
+  | { kind: 'token'; coopname: string; ref: string };
 
 const KINDS = new Set<string>(Object.values(MarketplaceHandoffCodeKind));
 
@@ -45,28 +49,56 @@ const CONTAINER_CODE_RE = /^BX-\d{4,}$/i;
 /** Учётная запись цепи: `a-z`, `1-5`, `.`, до 12 символов. */
 const ACCOUNT_NAME_RE = /(^[a-z1-5.]{1,11}[a-z1-5]$)|(^[a-z1-5.]{12}[a-j1-5]$)/;
 
-export function encodeMarketplaceHandoffCode(code: MarketplaceHandoffCode): string {
-  return [HANDOFF_CODE_PREFIX, code.kind, code.coopname, code.ref].join(SEP);
+const TOKEN_RE = new RegExp(`^[${TOKEN_ALPHABET}]{${TOKEN_LENGTH}}$`);
+
+/** Голый логин пайщика — ручной путь оператора без камеры. */
+export function isAccountName(value: string): boolean {
+  return ACCOUNT_NAME_RE.test(value);
+}
+
+export function encodeMarketplaceHandoffCode(code: { kind: MarketplaceHandoffCodeKind; coopname: string; ref: string }): string {
+  return [code.kind, code.coopname, code.ref].join(SEP);
+}
+
+/** Случайный код пайщика из байтов, которые дал вызывающий (`crypto.randomBytes`). */
+export function tokenFromBytes(bytes: Uint8Array): string {
+  let out = '';
+  for (let i = 0; i < TOKEN_LENGTH; i++) out += TOKEN_ALPHABET[bytes[i] % TOKEN_ALPHABET.length];
+  return out;
+}
+
+/** Строка из сканера или с клавиатуры в виде кода пайщика: без пробелов и дефисов, прописными. */
+export function normalizeToken(raw: string): string | null {
+  const value = raw.replace(/[\s-]/g, '').toUpperCase();
+  return TOKEN_RE.test(value) ? value : null;
 }
 
 /**
  * Разобрать строку из сканера или из поля ручного ввода. `null` — строка не
  * является кодом передачи. Принадлежность кооперативу здесь не сверяется:
- * это делает сервис, чтобы ответить своим кодом ошибки.
+ * это делает сервис, чтобы ответить своим кодом ошибки. Код пайщика
+ * возвращается видом `token`: учётную запись по нему знает только таблица.
  */
-export function parseMarketplaceHandoffCode(
-  raw: string,
-  coopname: string
-): MarketplaceHandoffCode | null {
+export function parseMarketplaceHandoffCode(raw: string, coopname: string): MarketplaceHandoffCode | null {
   const value = raw.trim();
   if (!value) return null;
-  if (value.startsWith(HANDOFF_CODE_PREFIX + SEP)) {
-    const parts = value.split(SEP);
-    if (parts.length !== 4) return null;
-    const [, kind, codeCoopname, ref] = parts;
-    if (!KINDS.has(kind) || !codeCoopname || !ref) return null;
-    return { kind: kind as MarketplaceHandoffCodeKind, coopname: codeCoopname, ref };
-  }
+  return value.includes(SEP) ? parseStructured(value) : parseBare(value, coopname);
+}
+
+/** `<kind>:<coop>:<ref>` либо старый `blago:<kind>:<coop>:<ref>`. */
+function parseStructured(value: string): MarketplaceHandoffCode | null {
+  const parts = value.split(SEP);
+  if (parts.length === 4 && parts[0] === LEGACY_PREFIX) parts.shift();
+  if (parts.length !== 3) return null;
+  const [kind, codeCoopname, ref] = parts;
+  if (!KINDS.has(kind) || !codeCoopname || !ref) return null;
+  return { kind: kind as MarketplaceHandoffCodeKind, coopname: codeCoopname, ref };
+}
+
+/** Строка без разделителя: временный код, код бокса с этикетки либо логин. */
+function parseBare(value: string, coopname: string): MarketplaceHandoffCode | null {
+  const token = normalizeToken(value);
+  if (token) return { kind: 'token', coopname, ref: token };
   if (CONTAINER_CODE_RE.test(value)) {
     return { kind: MarketplaceHandoffCodeKind.Container, coopname, ref: value.toUpperCase() };
   }

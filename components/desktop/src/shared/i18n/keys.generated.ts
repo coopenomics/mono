@@ -3792,6 +3792,7 @@ export type MessageKey =
   | 'marketplace.handoffCodeContent.passportHint1'
   | 'marketplace.handoffCodeContent.passportHint2'
   | 'marketplace.handoffCodeContent.passportHint3'
+  | 'marketplace.handoffCodeContent.validUntil'
   | 'marketplace.handoffCopy.deliveryHint'
   | 'marketplace.handoffCopy.deliveryLoginHint'
   | 'marketplace.handoffCopy.receiveHint'

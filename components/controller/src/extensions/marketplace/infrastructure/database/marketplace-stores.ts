@@ -10,6 +10,7 @@ import { MarketplaceCartEntity } from '../entities/marketplace-cart.entity';
 import { MarketplaceCategoryEntity } from '../entities/marketplace-category.entity';
 import { MarketplaceConsolidatedRequestEntity } from '../entities/marketplace-consolidated-request.entity';
 import { MarketplaceContainerTypeEntity, MarketplaceContainerEntity } from '../entities/marketplace-container.entity';
+import { MarketplaceHandoffCodeEntity } from '../entities/marketplace-handoff-code.entity';
 import { MarketplaceInventoryEntity } from '../entities/marketplace-inventory.entity';
 import { MarketplaceIssuanceSagaEntity } from '../entities/marketplace-issuance-saga.entity';
 import { MarketplaceModerationLogEntity } from '../entities/marketplace-moderation-log.entity';
@@ -43,6 +44,7 @@ export const MARKETPLACE_CART_ITEM_STORE = Symbol('Marketplace.MARKETPLACE_CART_
 export const MARKETPLACE_CART_STORE = Symbol('Marketplace.MARKETPLACE_CART_STORE');
 export const MARKETPLACE_CATEGORY_STORE = Symbol('Marketplace.MARKETPLACE_CATEGORY_STORE');
 export const MARKETPLACE_CONSOLIDATED_REQUEST_STORE = Symbol('Marketplace.MARKETPLACE_CONSOLIDATED_REQUEST_STORE');
+export const MARKETPLACE_HANDOFF_CODE_STORE = Symbol('Marketplace.MARKETPLACE_HANDOFF_CODE_STORE');
 export const MARKETPLACE_CONTAINER_TYPE_STORE = Symbol('Marketplace.MARKETPLACE_CONTAINER_TYPE_STORE');
 export const MARKETPLACE_CONTAINER_STORE = Symbol('Marketplace.MARKETPLACE_CONTAINER_STORE');
 export const MARKETPLACE_INVENTORY_STORE = Symbol('Marketplace.MARKETPLACE_INVENTORY_STORE');
@@ -159,6 +161,17 @@ export const marketplaceStoreProviders: Provider[] = [
         table: 'marketplace_consolidated_request',
         primaryKey: ['id'],
         updatedAt: 'updated_at',
+        sameNames: true,
+      }),
+  },
+  {
+    provide: MARKETPLACE_HANDOFF_CODE_STORE,
+    inject: [KYSELY],
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    useFactory: (db: Kysely<any>) =>
+      new TableStore<MarketplaceHandoffCodeEntity>(db, {
+        table: 'marketplace_handoff_code',
+        primaryKey: ['id'],
         sameNames: true,
       }),
   },

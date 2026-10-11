@@ -80,7 +80,7 @@ beforeAll(async () => {
 }, 120_000)
 
 describe('Стол заказов — единый сканер: разбор кода', () => {
-  it(caseName('mkt.scan.happy.01', 'код заказчика и голый логин ведут к одному и тому же пайщику; код поставщика — к нему же'), async () => {
+  it(caseName('mkt.scan.happy.01', 'старый код заказчика и голый логин ведут к одному и тому же пайщику; старый код поставщика — к нему же'), async () => {
     const byCode = await scan(operatorToken, KRG, `blago:receive:${COOP}:${ivanpetrov.account}`)
     const byLogin = await scan(operatorToken, KRG, ivanpetrov.account)
     expect(byCode).toMatchObject({ target: 'PERSON', account: ivanpetrov.account, shipment_id: null, container_code: null })
@@ -91,19 +91,27 @@ describe('Стол заказов — единый сканер: разбор к
   })
 
   it(caseName('mkt.scan.side.01', 'пустая строка, адрес сайта, лишний сегмент и неизвестный вид — код не распознан'), async () => {
-    for (const code of ['   ', 'https://example.org', `blago:receive:${COOP}:${ivanpetrov.account}:extra`, `blago:order:${COOP}:1`, `blago:receive::${ivanpetrov.account}`]) {
+    for (const code of ['   ', 'https://example.org', `blago:receive:${COOP}:${ivanpetrov.account}:extra`, `order:${COOP}:1`, `receive::${ivanpetrov.account}`, 'K7Q2M9XD4H']) {
       const err = await gqlError(operatorToken, SCAN, { d: { braname: KRG, code } })
       expect(['422', 'MARKETPLACE_SCAN_CODE_UNRECOGNIZED'], `код «${code}»`).toContain(String(err?.code))
     }
   })
 
-  it(caseName('mkt.scan.happy.06', 'пайщик получает свой код на получение и на приёмку — бессрочно'), async () => {
+  it(caseName('mkt.scan.happy.06', 'пайщик получает случайный код на сутки; повторный запрос отдаёт тот же код; сервер ведёт по нему к пайщику'), async () => {
     const receive = (await gql<any>(memberToken, CODE, { d: { kind: 'RECEIVE' } })).marketplaceHandoffCode
-    expect(receive).toEqual({ kind: 'RECEIVE', code: `blago:receive:${COOP}:${ekaterina.account}`, expires_at: null })
+    expect(receive.kind).toBe('RECEIVE')
+    expect(receive.code).toMatch(/^[A-HJ-NP-Z2-9]{10}$/)
+    const ttlMs = new Date(receive.expires_at).getTime() - Date.now()
+    expect(ttlMs).toBeGreaterThan(23 * 60 * 60 * 1000)
+    expect(ttlMs).toBeLessThanOrEqual(24 * 60 * 60 * 1000)
+    const again = (await gql<any>(memberToken, CODE, { d: { kind: 'PICKUP' } })).marketplaceHandoffCode
+    expect(again.code, 'пока код действует, он один').toBe(receive.code)
     const pickup = (await gql<any>(supplierToken, CODE, { d: { kind: 'PICKUP' } })).marketplaceHandoffCode
-    expect(pickup).toMatchObject({ kind: 'PICKUP', code: `blago:pickup:${COOP}:${sidorov.account}` })
-    // Код, который выдал сервер, сервер же и разбирает.
+    expect(pickup.code).not.toBe(receive.code)
+    // Код, который выдал сервер, сервер же и разбирает — и с дефисами, и строчными.
     expect(await scan(operatorToken, KRG, receive.code)).toMatchObject({ target: 'PERSON', account: ekaterina.account })
+    expect(await scan(operatorToken, KRG, `${receive.code.slice(0, 5).toLowerCase()}-${receive.code.slice(5)}`)).toMatchObject({ account: ekaterina.account })
+    expect(await scan(operatorToken, KRG, pickup.code)).toMatchObject({ target: 'PERSON', account: sidorov.account })
   })
 })
 
@@ -174,15 +182,17 @@ describe('Стол заказов — единый сканер: партия и
   }, 300_000)
 
   it(caseName('mkt.scan.happy.04', 'QR накладной ведёт к партии своего участка, дел нет'), async () => {
-    const visit = await scan(operatorToken, KRG, `blago:shipment:${COOP}:${shipmentId}`)
+    const visit = await scan(operatorToken, KRG, `shipment:${COOP}:${shipmentId}`)
     expect(visit).toMatchObject({ target: 'SHIPMENT', shipment_id: shipmentId, account: null, matters: [] })
+    expect(await scan(operatorToken, KRG, `blago:shipment:${COOP}:${shipmentId}`), 'старый формат с префиксом').toMatchObject({ shipment_id: shipmentId })
     // Поставщик этой партии приходит на приёмку — его код даёт дело «принять поставку».
     const supplierVisit = await scan(operatorToken, KRG, `blago:pickup:${COOP}:${sidorov.account}`)
     expect(matter(supplierVisit, 'RECEPTION')?.ids ?? []).not.toHaveLength(0)
   })
 
   it(caseName('mkt.scan.happy.05', 'QR бокса и код с этикетки ведут к боксу своего участка'), async () => {
-    expect(await scan(operatorToken, KRG, `blago:container:${COOP}:${box.code}`)).toMatchObject({ target: 'CONTAINER', container_code: box.code, matters: [] })
+    expect(await scan(operatorToken, KRG, `container:${COOP}:${box.code}`)).toMatchObject({ target: 'CONTAINER', container_code: box.code, matters: [] })
+    expect(await scan(operatorToken, KRG, `blago:container:${COOP}:${box.code}`), 'старая этикетка').toMatchObject({ container_code: box.code })
     expect(await scan(operatorToken, KRG, box.code.toLowerCase())).toMatchObject({ target: 'CONTAINER', container_code: box.code })
   })
 
