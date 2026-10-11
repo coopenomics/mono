@@ -6154,6 +6154,7 @@ export type MessageKey =
   | 'processDecisions.error.mktwroffMetaInvalid'
   | 'processDecisions.error.mktwroffMetaMissing'
   | 'processDecisions.error.projectIdMissing'
+  | 'processDecisions.error.statementMetaMissing'
   | 'processDecisions.processDecisions.titleWithAuthor'
   | 'processDecisions.processDecisions.untitledQuestion'
   | 'processDecisions.processDecisions.voteTitle'

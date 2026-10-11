@@ -402,8 +402,12 @@ async function cancelOne(saga: MarketplaceIssuanceSagaView): Promise<void> {
 function stageOf(saga: MarketplaceIssuanceSagaView) {
   return issuanceStageDisplay(saga);
 }
+/**
+ * Снять выдачу можно, пока заявление не ушло в совет и после его ответа.
+ * Пока совет рассматривает заявление, сервер отмену не принимает — кнопки нет.
+ */
 function canCancel(saga: MarketplaceIssuanceSagaView): boolean {
-  return !saga.awaits_operator_close && saga.stage !== 'CLOSED';
+  return !saga.awaits_operator_close && !saga.awaits_council && saga.stage !== 'CLOSED';
 }
 
 // QR-код получения: оператор сканирует account-bound код заказчика → резолвим
@@ -634,7 +638,7 @@ q-page.issuance(role='region', :aria-label='$t("marketplace.operatorIssuance.ari
               ) {{ $t('common.action.close') }}
               BaseButton(
                 v-else-if='canCancel(x.saga)',
-                variant='ghost',
+                variant='secondary',
                 size='sm',
                 :loading='cancellingOrders.has(x.order.id)',
                 @click='cancelOne(x.saga)'

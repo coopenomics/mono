@@ -1,4 +1,9 @@
-import type { DecisionHandlersRegistry, IDecisionHandler, IGenerateDecisionData } from '../types/decision-factory'
+import type {
+  DecisionHandlersRegistry,
+  GenerateDecisionFallback,
+  IDecisionHandler,
+  IGenerateDecisionData,
+} from '../types/decision-factory'
 import { t, t as i18nT } from 'src/shared/i18n';
 
 /**
@@ -7,6 +12,15 @@ import { t, t as i18nT } from 'src/shared/i18n';
  */
 class DecisionFactory {
   private handlers: DecisionHandlersRegistry = {}
+  private fallback: GenerateDecisionFallback | null = null
+
+  /**
+   * Общий способ для решений без собственного обработчика. Собственный
+   * обработчик нужен, только когда протокол не выводится из заявления.
+   */
+  registerFallback(fallback: GenerateDecisionFallback): void {
+    this.fallback = fallback
+  }
 
   /**
    * Регистрирует обработчик для типа решения
@@ -45,16 +59,16 @@ class DecisionFactory {
   async generateDocument(decisionType: string, data: IGenerateDecisionData): Promise<any> {
     const handler = this.getHandler(decisionType)
 
-    if (!handler) {
-      throw new Error(t('decisionFactory.error.handlerNotFound', { decisionType }))
-    }
-
     try {
-      return await handler.generateHandler(data)
+      if (handler) return await handler.generateHandler(data)
+      const document = this.fallback ? await this.fallback(decisionType, data) : null
+      if (document) return document
     } catch (error) {
       console.error(`Ошибка при генерации документа решения типа ${decisionType}:`, error)
       throw new Error(t('decisionFactory.error.generateError', { message: error instanceof Error ? error.message : i18nT('api.error.unknown') }))
     }
+
+    throw new Error(t('decisionFactory.error.handlerNotFound', { decisionType }))
   }
 
   /**

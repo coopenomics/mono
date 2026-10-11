@@ -1,6 +1,6 @@
 import { Cooperative } from 'cooptypes';
-import { decisionFactory } from 'src/shared/lib/decision-factory';
-import { DigitalDocument } from 'src/shared/lib/document';
+import { decisionFactory, type IGenerateDecisionData } from 'src/shared/lib/decision-factory';
+import { DigitalDocument, type IGeneratedDocument } from 'src/shared/lib/document';
 import { useSystemStore } from 'src/entities/System/model';
 import { useGenerateFreeDecision } from 'src/features/FreeDecision/GenerateDecision';
 import {
@@ -13,11 +13,66 @@ import { useGenerateEstablishmentDecision } from 'src/features/Ku/GenerateEstabl
 import { useGenerateMembershipExitDecision } from 'src/features/Membership/GenerateMembershipExitDecision';
 import { t } from 'src/shared/i18n';
 
+/** Поля метаданных заявления, которые фабрика документов проставляет сама. */
+const META_SERVICE_KEYS = new Set([
+  'title', 'registry_id', 'lang', 'generator', 'version', 'coopname', 'username', 'created_at', 'block_num', 'timezone', 'links',
+]);
+
+/**
+ * Протокол решения из реестра типов решений, собранный из заявления: номер
+ * шаблона протокола — из реестра, прикладные поля — из метаданных
+ * подписанного заявления, автор и номер — из самого решения. Тот же способ,
+ * которым протокол собирает робот совета (`RobotDecisionService.protocolData`):
+ * ручное утверждение и робот обязаны давать один и тот же документ.
+ *
+ * Работает для любого решения реестра, чьи поля протокола выводятся из
+ * заявления, — так утверждаются выдача имущества пайщику (`mktissue`) и отмена
+ * сделки по гарантийному возврату (`mktretrn`). Тип вне реестра не его забота.
+ */
+async function generateProtocolFromStatement(
+  decisionType: string,
+  { decision_id, username, row }: IGenerateDecisionData,
+): Promise<IGeneratedDocument | null> {
+  const typeInfo = Cooperative.Document.decisionTypesRegistry[decisionType];
+  if (!typeInfo) return null;
+
+  const rawMeta = row.table?.statement?.meta;
+  if (!rawMeta) {
+    throw new Error(t('processDecisions.error.statementMetaMissing'));
+  }
+  const statementMeta = (typeof rawMeta === 'string' ? JSON.parse(rawMeta) : rawMeta) as Record<string, unknown>;
+  const business = Object.fromEntries(
+    Object.entries(statementMeta).filter(([key]) => !META_SERVICE_KEYS.has(key)),
+  );
+
+  const { info } = useSystemStore();
+  const hash = row.table?.hash ? String(row.table.hash) : '';
+  const data: Record<string, unknown> = {
+    ...business,
+    registry_id: typeInfo.protocol_registry_id,
+    coopname: info.coopname,
+    username,
+    lang: 'ru',
+    decision_id,
+    decision_hash: hash,
+  };
+  // Поля протокола, которых в заявлении нет буквально, но они выводятся из него
+  // или из самого решения.
+  if (Array.isArray(business.items) && data.items_count === undefined) data.items_count = business.items.length;
+  if (data.receiver === undefined) data.receiver = username;
+  if (data.meet_hash === undefined && hash) data.meet_hash = hash;
+
+  return await new DigitalDocument().generate(data as never, { lang: 'ru' });
+}
+
 /**
  * Регистрация обработчиков базовых решений
  * Этот файл содержит регистрацию всех встроенных обработчиков решений
  */
 export function registerBaseDecisionHandlers() {
+  // Решение из реестра без собственного обработчика утверждается по заявлению.
+  decisionFactory.registerFallback(generateProtocolFromStatement);
+
   // Обработчик для FreeDecision (свободное решение)
   decisionFactory.registerHandler('freedecision', {
     generateHandler: async ({ decision_id, username, row }) => {
