@@ -16,10 +16,19 @@ import type { MarketplaceSupplierProfileView } from 'src/entities/MarketplaceSup
  */
 const props = defineProps<{
   profile: MarketplaceSupplierProfileView;
+  /** Название из черновика формы; пустое — из профиля. */
+  nameOverride?: string | null;
+  /** Обложка из черновика: адрес файла, `null` — снята, `undefined` — из профиля. */
+  coverOverride?: string | null;
 }>();
 
+const displayName = computed(() => props.nameOverride || props.profile.display_name);
+const coverUrl = computed(() =>
+  props.coverOverride === undefined ? props.profile.cover_url : props.coverOverride,
+);
+
 // Инициалы — по словам названия; кавычки вокруг имени кооператива в них не нужны.
-const avatarName = computed(() => props.profile.display_name.replace(/["«»„“”']/g, '').trim());
+const avatarName = computed(() => displayName.value.replace(/["«»„“”']/g, '').trim());
 const hasReviews = computed(() => props.profile.reviews_count > 0 && props.profile.rating_avg != null);
 const ratingLabel = computed(() =>
   (props.profile.rating_avg ?? 0).toLocaleString(uiLocale(), { minimumFractionDigits: 1, maximumFractionDigits: 1 }),
@@ -29,13 +38,13 @@ const ratingLabel = computed(() =>
 <template lang="pug">
 BaseCard.profile-head
   //- Обложка: снимок поставщика либо спокойная полоса; значок перекрывает её край.
-  .profile-head__cover(:class="{ 'profile-head__cover--blank': !profile.cover_url }")
+  .profile-head__cover(:class="{ 'profile-head__cover--blank': !coverUrl }")
     q-img.profile-head__cover-img(
-      v-if="profile.cover_url",
-      :src="profile.cover_url",
+      v-if="coverUrl",
+      :src="coverUrl",
       fit="cover",
       no-spinner,
-      :alt="profile.display_name"
+      :alt="displayName"
     )
   .profile-head__body
     .profile-head__avatar
@@ -45,7 +54,7 @@ BaseCard.profile-head
         .profile-head__context
           slot(name="context")
             span {{ profile.is_cooperative ? $t('marketplace.supplierProfileHead.eyebrowCooperative') : $t('marketplace.supplierProfileHead.eyebrowSupplier') }}
-        h1.profile-head__name {{ profile.display_name }}
+        h1.profile-head__name {{ displayName }}
         .profile-head__facts(v-if="$slots.facts")
           slot(name="facts")
       .profile-head__actions(v-if="$slots.actions")
@@ -94,13 +103,22 @@ BaseCard.profile-head
     padding: 0 var(--p-6) var(--p-6);
   }
 
-  // Значок стоит на краю обложки, кольцо цвета поверхности отделяет его от снимка.
+  // Значок стоит на краю обложки поверх снимка; кольцо цвета поверхности
+  // отделяет его от обложки. Цвет — общий для всех значков.
   &__avatar {
+    position: relative;
+    z-index: 1;
     display: inline-grid;
-    margin-top: calc(-1 * var(--p-7));
+    margin-top: calc(-1 * var(--p-8));
     padding: var(--p-1);
     border-radius: 50%;
     background: var(--p-surface);
+
+    :deep(.avatar) {
+      width: 80px;
+      height: 80px;
+      font-size: var(--p-fs-h1);
+    }
   }
 
   &__row {
