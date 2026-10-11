@@ -2350,13 +2350,8 @@
       "aboutHint": "{count} из {max} знаков",
       "aboutLabel": "О себе",
       "aboutTooLong": "Текст длиннее {max} знаков",
-      "coverLabel": "Обложка",
-      "coverPickHint": "JPEG, PNG или WEBP, до 10 МБ",
-      "coverPickTitle": "Выберите изображение",
-      "nameHint": "Пустое поле — имя из сертификата",
-      "nameLabel": "Название",
-      "nameTooLong": "Название длиннее {max} знаков",
-      "removeCoverAction": "Убрать обложку",
+      "coverTooLarge": "Файл больше 10 МБ",
+      "coverWrongType": "Нужен JPEG, PNG или WEBP",
       "saveAction": "Сохранить",
       "savedNotice": "Профиль сохранён"
     },
@@ -2658,11 +2653,15 @@
       "warrantyReturnLabel": "Гарантийный возврат"
     },
     "supplierProfileHead": {
+      "addCover": "Добавить обложку",
+      "changeCover": "Сменить обложку",
+      "editName": "Изменить название",
       "eyebrowCooperative": "Склад кооператива",
       "eyebrowSupplier": "Поставщик",
       "offersLabel": "Предложений",
       "ratingLabel": "Оценка",
       "ratingOutOf": "из 5",
+      "removeCover": "Убрать обложку",
       "reviewsLabel": "Отзывов"
     }
   }
