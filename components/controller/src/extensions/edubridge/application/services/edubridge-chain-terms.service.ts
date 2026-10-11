@@ -1,4 +1,5 @@
 import { guaranteeSeconds } from '../../domain/economy/guarantee';
+import { eduMonthSeconds } from '../../domain/economy/time-scale';
 import { Inject, Injectable } from '@nestjs/common';
 import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { EDUBRIDGE_CHAIN_PORT, type EdubridgeChainPort } from '../../domain/ports/edubridge-chain.port';
@@ -40,6 +41,8 @@ export class EdubridgeChainTermsService {
       discount_bp: Number(course.course_discount_bp ?? 0),
       guarantee_secs: guaranteeSeconds(course),
       starts_at: course.starts_at ? toChainTime(new Date(course.starts_at)) : CHAIN_EPOCH,
+      // Длина месяца: в работе 0 — календарные месяцы; на стенде со сжатым временем — секунды.
+      month_secs: eduMonthSeconds(),
     });
   }
 

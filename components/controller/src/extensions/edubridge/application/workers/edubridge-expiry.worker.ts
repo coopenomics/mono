@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
+import { isWorkerTurn } from '../../domain/economy/time-scale';
 import { chainErrorCode, platformSettings } from '@coopenomics/extension-kit';
 import { LOGGER_PORT, NOTIFICATION_PORT, type ILoggerPort, type INotificationPort } from '@coopenomics/innercoop';
 import { Workflows } from '@coopenomics/notifications';
@@ -42,9 +43,9 @@ export class EdubridgeExpiryWorker {
     this.logger.setContext(EdubridgeExpiryWorker.name);
   }
 
-  @Cron(CronExpression.EVERY_10_MINUTES)
+  @Cron(CronExpression.EVERY_MINUTE)
   async tick(): Promise<void> {
-    if (this.running) return;
+    if (this.running || !isWorkerTurn()) return;
     const coopname = platformSettings().coopname;
     if (!coopname) return;
     this.running = true;

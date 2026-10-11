@@ -30,7 +30,7 @@ import {
   type IEduEnrollmentEventPayload,
 } from '../events/edubridge.events';
 import { EdubridgeFundsService } from './edubridge-funds.service';
-import { EdubridgeGroupService } from './edubridge-group.service';
+import { EdubridgeGroupService, startMomentOf } from './edubridge-group.service';
 import { EdubridgeLearnerService } from './edubridge-learner.service';
 import { refundOf } from './edubridge-refund';
 import { DomainError } from '@coopenomics/extension-kit';
@@ -366,7 +366,7 @@ export class EdubridgeEnrollmentService {
     if (!course) throw DomainError.notFound('EDUBRIDGE_COURSE_NOT_FOUND');
     // Отмена по недобору — пока занятия не начались ни в одной группе курса.
     const now = new Date();
-    if ((await this.groups.list(coopname, courseId)).some((g) => g.starts_at && new Date(g.starts_at) <= now)) {
+    if ((await this.groups.list(coopname, courseId)).some((g) => { const start = startMomentOf(g); return Boolean(start) && new Date(start as string) <= now; })) {
       throw DomainError.badRequest('EDUBRIDGE_UNDERFILL_CANCEL_COURSE_STARTED');
     }
     // Курс снимается с публикации первым: пока идут возвраты, на отменённый

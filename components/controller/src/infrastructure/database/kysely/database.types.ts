@@ -1242,6 +1242,7 @@ export interface EdubridgeGroups {
   pay_per_learner: Generated<boolean>;
   planned_hourly_rate: Generated<string>;
   starts_at: Timestamp | null;
+  starts_at_time: Timestamp | null;
   status: Generated<string>;
   teacher_reserve_balance: string | null;
   teacher_settled_total: string | null;

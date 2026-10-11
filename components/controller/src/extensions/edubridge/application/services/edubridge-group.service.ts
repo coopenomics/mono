@@ -9,6 +9,7 @@ import { EdubridgeGroupKyselyRepository } from '../../infrastructure/repositorie
 import { EdubridgeLessonKyselyRepository } from '../../infrastructure/repositories/edubridge-lesson.kysely-repository';
 import { courseMonths } from '../../domain/economy/course-fee.calculator';
 import { addMonths } from '../../domain/economy/course-period.calculator';
+import { isTimeCompressed } from '../../domain/economy/time-scale';
 import { EdubridgeChainTermsService } from './edubridge-chain-terms.service';
 import { t } from '../../i18n';
 
@@ -29,6 +30,8 @@ export interface EduGroupInput {
   course_id: string;
   title?: string | null;
   starts_at?: string | null;
+  /** Начало занятий через столько минут — только на стенде со сжатым временем. */
+  starts_in_minutes?: number | null;
   external_ref?: string | null;
 }
 
@@ -36,6 +39,8 @@ export interface EduGroupUpdate {
   id: string;
   title?: string | null;
   starts_at?: string | null;
+  /** Начало занятий через столько минут — только на стенде со сжатым временем. */
+  starts_in_minutes?: number | null;
   external_ref?: string | null;
   enrollment_open?: boolean | null;
 }
@@ -91,7 +96,7 @@ export class EdubridgeGroupService {
         changed.add(group.course_id);
         continue;
       }
-      if (group.enrollment_closed_on_start || !hasStarted(group.starts_at)) continue;
+      if (group.enrollment_closed_on_start || !hasStarted(startMomentOf(group))) continue;
       group.enrollment_open = false;
       group.enrollment_closed_on_start = true;
       await this.groups.save(group);
@@ -122,7 +127,8 @@ export class EdubridgeGroupService {
       ...course,
       ...terms,
       chain_ref: group.chain_ref,
-      starts_at: group.starts_at,
+      // Начало занятий глазами расчётов — момент: на стенде со сжатым временем он с точностью до минуты.
+      starts_at: startMomentOf(group),
       external_ref: group.external_ref || course.external_ref,
       teacher_reserve_balance: group.teacher_reserve_balance,
       teacher_settled_total: group.teacher_settled_total,
@@ -185,6 +191,7 @@ export class EdubridgeGroupService {
       starts_at: input.starts_at ?? (existing.length ? null : course.starts_at),
       ...termsOf(course),
     });
+    if (input.starts_in_minutes !== undefined && input.starts_in_minutes !== null) setStartIn(entity, input.starts_in_minutes);
     const stored = await this.groups.save(entity);
     // Запись перечитывается: номер группы для цепи выдаёт база при вставке.
     const group = (await this.groups.findById(coopname, stored.id)) ?? stored;
@@ -207,11 +214,11 @@ export class EdubridgeGroupService {
     if (!course) throw DomainError.notFound('EDUBRIDGE_COURSE_NOT_FOUND');
     if (input.title?.trim()) group.title = input.title.trim();
     if (input.external_ref !== undefined && input.external_ref !== null) group.external_ref = input.external_ref.trim();
-    if (input.starts_at !== undefined && sameDay(input.starts_at, group.starts_at) === false) await this.moveStart(course, group, input.starts_at);
+    await this.applyStart(course, group, input);
     if (typeof input.enrollment_open === 'boolean') {
       group.enrollment_open = input.enrollment_open;
       // Набор в начавшейся группе задан администратором — сам он больше не закрывается.
-      if (hasStarted(group.starts_at)) group.enrollment_closed_on_start = true;
+      if (hasStarted(startMomentOf(group))) group.enrollment_closed_on_start = true;
     }
     const saved = await this.groups.save(group);
     await this.syncCourseStart(coopname, group.course_id);
@@ -235,10 +242,22 @@ export class EdubridgeGroupService {
     await this.courses.save(course);
   }
 
+  /** Начало занятий из правки группы: минуты (стенд со сжатым временем) либо другая дата. */
+  private async applyStart(course: EdubridgeCourseRecord, group: EdubridgeGroupRecord, input: EduGroupUpdate): Promise<void> {
+    const minutes = input.starts_in_minutes;
+    if (minutes !== undefined && minutes !== null) return this.moveStart(course, group, null, minutes);
+    if (input.starts_at !== undefined && sameDay(input.starts_at, group.starts_at) === false) await this.moveStart(course, group, input.starts_at);
+  }
+
   /** Новая дата начала занятий: до первого занятия; от неё идут гарантийный срок и занятия в цепи. */
-  private async moveStart(course: EdubridgeCourseRecord, group: EdubridgeGroupRecord, startsAt: string | null): Promise<void> {
+  private async moveStart(course: EdubridgeCourseRecord, group: EdubridgeGroupRecord, startsAt: string | null, inMinutes?: number): Promise<void> {
     if ((await this.lessons.findByGroup(group.coopname, group.id)).length) throw DomainError.badRequest('EDUBRIDGE_COURSE_START_LOCKED_BY_LESSONS');
-    group.starts_at = startsAt || null;
+    if (inMinutes === undefined) {
+      group.starts_at = startsAt || null;
+      group.starts_at_time = null;
+    } else {
+      setStartIn(group, inMinutes);
+    }
     reopenBeforeStart(group);
     await this.chainTerms.pushCourse(this.viewOf(course, group));
   }
@@ -259,7 +278,8 @@ export class EdubridgeGroupService {
       Object.assign(group, termsOf(course));
       // Единственная группа курса идёт с его датой начала и привязкой к площадке.
       if (groups.length === 1) {
-        group.starts_at = course.starts_at;
+        // Дата курса меняет начало группы, только когда день другой: момент, названный на стенде, остаётся.
+        if (sameDay(course.starts_at, group.starts_at) === false) Object.assign(group, { starts_at: course.starts_at, starts_at_time: null });
         // Группа на площадке задаётся в панели группы: привязка курса меняет её, только когда сменился сам курс площадки.
         if (platformCourseOf(group.external_ref) !== platformCourseOf(course.external_ref)) group.external_ref = course.external_ref;
         reopenBeforeStart(group);
@@ -311,8 +331,28 @@ function termsOf(course: EdubridgeCourseRecord): Partial<EdubridgeGroupRecord> {
 /** Срок программы группы вышел: от дня начала прошли все её месяцы. Группа без конечной программы не заканчивается. */
 function hasEnded(group: EdubridgeGroupRecord, now: Date = new Date()): boolean {
   const months = courseMonths(group.lessons_per_month, group.lessons_total);
-  if (!group.starts_at || !months) return false;
-  return addMonths(new Date(group.starts_at), months).getTime() <= now.getTime();
+  const start = startMomentOf(group);
+  if (!start || !months) return false;
+  return addMonths(new Date(start), months).getTime() <= now.getTime();
+}
+
+/**
+ * Момент начала занятий группы: названный с точностью до минуты (стенд со
+ * сжатым временем) либо начало дня из даты начала.
+ */
+export function startMomentOf(group: Pick<EdubridgeGroupRecord, 'starts_at' | 'starts_at_time'>): string | null {
+  return group.starts_at_time ? new Date(group.starts_at_time).toISOString() : group.starts_at;
+}
+
+/**
+ * «Начало через N минут» — только на стенде со сжатым временем: в работе
+ * начало занятий называется датой.
+ */
+function setStartIn(group: Partial<EdubridgeGroupRecord>, minutes: number): void {
+  if (!isTimeCompressed()) throw DomainError.badRequest('EDUBRIDGE_START_IN_MINUTES_STAND_ONLY');
+  const moment = new Date(Date.now() + Math.max(0, minutes) * 60_000);
+  group.starts_at = moment.toISOString().slice(0, 10);
+  group.starts_at_time = moment;
 }
 
 /** День начала занятий наступил; группа без даты начала не начиналась. */
@@ -325,7 +365,7 @@ function hasStarted(startsAt: string | null | undefined, now: Date = new Date())
  * открыт и закроется сам в новый день начала.
  */
 function reopenBeforeStart(group: EdubridgeGroupRecord): void {
-  if (!group.enrollment_closed_on_start || hasStarted(group.starts_at)) return;
+  if (!group.enrollment_closed_on_start || hasStarted(startMomentOf(group))) return;
   group.enrollment_closed_on_start = false;
   group.enrollment_open = true;
 }

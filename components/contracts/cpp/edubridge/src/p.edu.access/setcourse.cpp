@@ -7,6 +7,10 @@
  * начала занятий. Взнос участника, резерв преподавателям, взнос
  * преподавателя за занятие и возврат считаются отсюда.
  *
+ * `month_secs` — длина месяца в секундах для стенда разработки со сжатым
+ * временем; в работе приложение передаёт 0, и контракт считает календарными
+ * месяцами. При действующих подписках она тоже не меняется.
+ *
  * При действующих подписках денежные условия не меняются: участники вносили
  * взнос по ним. Дата начала занятий не меняется после первого занятия.
  *
@@ -31,7 +35,8 @@ void edubridge::setcourse(eosio::name coopname,
                           bool course_payment,
                           uint32_t discount_bp,
                           uint32_t guarantee_secs,
-                          eosio::time_point_sec starts_at) {
+                          eosio::time_point_sec starts_at,
+                          uint32_t month_secs) {
   require_auth(coopname);
 
   Edubridge::check_money(planned_rate, "Плановая ставка");
@@ -56,6 +61,7 @@ void edubridge::setcourse(eosio::name coopname,
     t.discount_bp       = discount_bp;
     t.guarantee_secs    = guarantee_secs;
     t.starts_at         = starts_at;
+    t.month_secs        = month_secs;
   };
 
   if (it == terms.end()) {
@@ -72,7 +78,7 @@ void edubridge::setcourse(eosio::name coopname,
       eosio::check(it->planned_rate == planned_rate && it->per_learner == per_learner && it->target_fee_month == target_fee_month &&
                      it->lessons_per_month == lessons_per_month && it->lessons_total == lessons_total &&
                      it->lesson_minutes == lesson_minutes && it->discount_bp == discount_bp &&
-                     it->guarantee_secs == guarantee_secs,
+                     it->guarantee_secs == guarantee_secs && it->month_len() == month_secs,
                    "EDUBRIDGE_COURSE_TERMS_LOCKED: По курсу есть действующие подписки: ставка, способ расчёта с преподавателем, взнос, расписание, скидка и гарантийный срок не меняются");
     }
     eosio::check(it->lessons_opened == 0 || it->starts_at == starts_at,

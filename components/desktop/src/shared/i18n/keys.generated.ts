@@ -3065,6 +3065,8 @@ export type MessageKey =
   | 'edubridge.courseGroups.settled'
   | 'edubridge.courseGroups.startLockedHint'
   | 'edubridge.courseGroups.startsAtLabel'
+  | 'edubridge.courseGroups.startsInMinutesHint'
+  | 'edubridge.courseGroups.startsInMinutesLabel'
   | 'edubridge.courseGroups.state.cancelled'
   | 'edubridge.courseGroups.state.closed'
   | 'edubridge.courseGroups.state.enrolling'

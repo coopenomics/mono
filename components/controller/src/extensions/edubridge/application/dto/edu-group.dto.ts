@@ -1,5 +1,5 @@
 import { Field, ID, InputType, Int, ObjectType } from '@nestjs/graphql';
-import { IsBoolean, IsDateString, IsOptional, IsString, IsUUID, Length } from 'class-validator';
+import { IsBoolean, IsDateString, IsInt, IsOptional, IsString, IsUUID, Length, Max, Min } from 'class-validator';
 import { EduGroupStatus } from '../../domain/enums';
 import type { EdubridgeGroupRecord } from '../../infrastructure/entities';
 
@@ -13,6 +13,7 @@ export class EduGroupDTO {
   @Field(() => Boolean, { description: 'Набор в группу открыт' }) enrollment_open!: boolean;
   @Field(() => String, { description: 'Привязка к площадке: курс и, если есть, группа площадки' }) external_ref!: string;
   @Field(() => String, { nullable: true, description: 'Дата начала занятий группы' }) starts_at!: string | null;
+  @Field(() => Date, { nullable: true, description: 'Момент начала занятий с точностью до минуты — назван на стенде разработки со сжатым временем' }) starts_at_time!: Date | null;
   @Field(() => String, { description: 'Членский взнос за месяц в группе' }) fee_month!: string;
   @Field(() => String, { description: 'Плановая ставка часа в группе' }) planned_hourly_rate!: string;
   @Field(() => Boolean, { description: 'Взнос преподавателя за занятие считается за каждого участника; иначе фиксированный за занятие' }) pay_per_learner!: boolean;
@@ -33,6 +34,7 @@ export class EduGroupDTO {
       enrollment_open: e.enrollment_open,
       external_ref: e.external_ref ?? '',
       starts_at: e.starts_at ? new Date(e.starts_at).toISOString().slice(0, 10) : null,
+      starts_at_time: e.starts_at_time ?? null,
       fee_month: e.fee_month,
       planned_hourly_rate: e.planned_hourly_rate,
       pay_per_learner: Boolean(e.pay_per_learner),
@@ -64,6 +66,13 @@ export class EduCreateGroupInputDTO {
   @IsDateString()
   starts_at?: string | null;
 
+  @Field(() => Int, { nullable: true, description: 'Начало занятий через столько минут — только на стенде разработки со сжатым временем' })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(100000)
+  starts_in_minutes?: number | null;
+
   @Field(() => String, { nullable: true, description: 'Привязка к площадке: курс и, если есть, группа площадки; пусто — как у курса' })
   @IsOptional()
   @IsString()
@@ -88,6 +97,13 @@ export class EduUpdateGroupInputDTO {
   @IsOptional()
   @IsDateString()
   starts_at?: string | null;
+
+  @Field(() => Int, { nullable: true, description: 'Начало занятий через столько минут — только на стенде разработки со сжатым временем' })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(100000)
+  starts_in_minutes?: number | null;
 
   @Field(() => String, { nullable: true, description: 'Привязка к площадке' })
   @IsOptional()

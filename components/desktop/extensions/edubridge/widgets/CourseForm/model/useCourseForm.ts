@@ -49,6 +49,8 @@ function emptyForm(): CourseFormFields {
     course_payment_enabled: false,
     course_discount_percent: 0,
     starts_at: null,
+    // Начало первой группы через столько минут — называется только на стенде со сжатым временем.
+    starts_in_minutes: null,
     guarantee_days: 14,
     direction: Zeus.EduCourseDirection.ONLINE_PLATFORM,
     carrier: Zeus.EduAccessCarrier.SKILLSPACE,

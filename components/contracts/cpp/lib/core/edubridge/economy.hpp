@@ -53,7 +53,9 @@ inline uint32_t days_in_month(int64_t y, uint32_t m) {
  * Числа, которого в месяце нет, не бывает: 31 января плюс месяц — последний
  * день февраля.
  */
-inline eosio::time_point_sec add_months(eosio::time_point_sec from, uint32_t months) {
+inline eosio::time_point_sec add_months(eosio::time_point_sec from, uint32_t months, uint32_t month_secs = 0) {
+  // Стенд разработки со сжатым временем: месяц — заданное число секунд.
+  if (month_secs > 0) return eosio::time_point_sec(from.sec_since_epoch() + months * month_secs);
   const uint32_t sec = from.sec_since_epoch();
   const int64_t z = static_cast<int64_t>(sec / SECONDS_IN_DAY) + 719468;
   const int64_t era = z / 146097;
@@ -144,17 +146,17 @@ inline FeeQuote quote_fee(const edu_terms& terms, const edu_subscription& sub, e
   if (period == SubscriptionPeriod::MONTH) {
     q.months = 1;
     q.paid_from = from;
-    q.paid_until = add_months(from, 1);
+    q.paid_until = add_months(from, 1, terms.month_len());
   } else {
     eosio::check(period == SubscriptionPeriod::COURSE, "EDUBRIDGE_PERIOD_INVALID: Недопустимый период оплаты: ожидается month либо course");
     const uint32_t total = terms.months_total();
     eosio::check(terms.course_payment && total > 0, "EDUBRIDGE_COURSE_PAYMENT_DISABLED: Взнос за весь курс по этому курсу не принимается");
     const eosio::time_point_sec start = terms.is_started() ? terms.starts_at : from;
-    const eosio::time_point_sec end = add_months(start, total);
+    const eosio::time_point_sec end = add_months(start, total, terms.month_len());
     const eosio::time_point_sec base = from > start ? from : start;
     eosio::check(base < end, "EDUBRIDGE_COURSE_FULLY_PAID: Курс оплачен до конца программы");
     uint32_t months = 1;
-    while (months < total && add_months(base, months) < end) months += 1;
+    while (months < total && add_months(base, months, terms.month_len()) < end) months += 1;
     q.months = months;
     q.paid_from = base;
     q.paid_until = end;

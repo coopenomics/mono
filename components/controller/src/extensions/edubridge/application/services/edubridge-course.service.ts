@@ -142,7 +142,7 @@ export class EdubridgeCourseService {
     }
     // Курс открывается с первой группой: её условия уходят в цепь, по ним
     // контракт считает взносы, резерв и возвраты.
-    await this.groups.create(coopname, { course_id: saved.id });
+    await this.groups.create(coopname, { course_id: saved.id, starts_in_minutes: input.starts_in_minutes });
     // Преподаватели курса сразу получают допуск к нему.
     await this.teacherService.syncCourseAssignments(coopname, saved);
     // Перечитываем: save() не подгружает раздел и уровень, а ответ показывает их названия.

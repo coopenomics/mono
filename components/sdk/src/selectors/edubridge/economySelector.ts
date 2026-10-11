@@ -4,6 +4,9 @@ import type { MakeAllFieldsRequired } from '../../utils/MakeAllFieldsRequired'
 const rawEconomySettingsSelector = {
   markup_percent: true,
   max_course_discount_percent: true,
+  time_compressed: true,
+  day_seconds: true,
+  month_seconds: true,
 }
 const _validateSettings: MakeAllFieldsRequired<ValueTypes['EduEconomySettings']> = rawEconomySettingsSelector
 export const eduEconomySettingsSelector = Selector('EduEconomySettings')(rawEconomySettingsSelector)

@@ -11,32 +11,20 @@
  * ученикам, преподаватель подписывает акт и заявление на неё.
  */
 
-const SECONDS_IN_DAY = 24 * 60 * 60;
-/** Сутки гарантийного срока на стенде разработки: одна минута. */
-const DEV_SECONDS_IN_DAY = 60;
+import { eduDaySeconds, isDayShortened } from './time-scale';
 
 /**
- * Длина суток гарантийного срока, секунд. То же значение уходит в контракт,
- * поэтому срок на сервере и в цепи совпадает.
- *
- *  - В работе (`NODE_ENV=production`, боевая и тестовая сеть) — всегда сутки:
- *    переменная не действует, укоротить срок там нельзя.
- *  - На стенде разработки (`NODE_ENV=development`) — одна минута сама собой:
- *    сценарии «гарантийный срок вышел» проверяются за минуты, помнить о
- *    переключателе не нужно. Переменная `EDUBRIDGE_GUARANTEE_DAY_SECONDS`
- *    задаёт другую длину (86400 — настоящие сутки).
- *  - В тестах — сутки, пока переменная не задана; стенд внешних тестов задаёт её сам.
+ * Длина суток гарантийного срока, секунд — из общей шкалы времени образования:
+ * в работе сутки, на стенде разработки минута. То же значение уходит в
+ * контракт, поэтому срок на сервере и в цепи совпадает.
  */
 export function guaranteeDaySeconds(): number {
-  if (process.env.NODE_ENV === 'production') return SECONDS_IN_DAY;
-  const custom = Number(process.env.EDUBRIDGE_GUARANTEE_DAY_SECONDS);
-  if (Number.isFinite(custom) && custom > 0) return Math.floor(custom);
-  return process.env.NODE_ENV === 'development' ? DEV_SECONDS_IN_DAY : SECONDS_IN_DAY;
+  return eduDaySeconds();
 }
 
 /** Сутки гарантийного срока укорочены — об этом узел пишет в журнал при запуске расширения. */
 export function isGuaranteeDayShortened(): boolean {
-  return guaranteeDaySeconds() !== SECONDS_IN_DAY;
+  return isDayShortened();
 }
 
 /** Гарантийный срок курса в секундах — так его хранит контракт. */

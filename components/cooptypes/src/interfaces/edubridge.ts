@@ -171,6 +171,8 @@ export interface ISetcourse {
   guarantee_secs: IUint32
   /** Начало занятий; нулевое время — курс не активирован. */
   starts_at: ITimePointSec
+  /** Длина месяца, секунд: 0 — календарные месяцы; не ноль только на стенде разработки со сжатым временем. */
+  month_secs: IUint32
 }
 
 export interface IExpiresub {
@@ -383,6 +385,8 @@ export interface IEduTerms {
   last_held_at: ITimePointSec
   /** Подписок с незакрытым гарантийным сроком: пока они есть, суммы преподавателей за гарантийный период не окончательны. */
   subs_locked: IUint32
+  /** Длина месяца, секунд: нет значения либо 0 — календарные месяцы. */
+  month_secs?: IUint32
 }
 
 /** eduassigns (scope = coopname, ключ — assignment_id) — допуск преподавателя к курсу и его ставка. */

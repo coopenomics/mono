@@ -173,6 +173,15 @@ BaseForm.edu-course-form(ref="formEl" :loading="loading" :error="error" @submit=
       )
         template(#append)
           FieldHelp(:text="COURSE_FORM_HELP.startsAt")
+      BaseInput(
+        v-if="timeScale.compressed.value"
+        v-model="startsInMinutes"
+        :label="$t('edubridge.courseGroups.startsInMinutesLabel')"
+        type="number"
+        min="0"
+        stack-label
+        :hint="$t('edubridge.courseGroups.startsInMinutesHint', { day: Math.round(timeScale.daySeconds.value / 60), month: Math.round(timeScale.monthSeconds.value / 60) })"
+      )
       BaseSelect(
         v-if="isSkillspace"
         v-model="skillspaceGroupId"
@@ -223,6 +232,7 @@ import { COURSE_IMAGE_ACCEPT, type ICourse } from '../../entities/Course';
 import { createCourseFormState, injectCourseForm, type CourseFormSection } from './model/useCourseForm';
 import { COURSE_FORM_HELP } from './model/courseFormHelp';
 import { programSpanLabel } from '../../shared/lib/courseMonths';
+import { minutesOf, useTimeScale } from '../../shared/lib/timeScale';
 
 /**
  * Конструктор курса. На полной странице правки каждый раздел — отдельный шаг,
@@ -302,6 +312,13 @@ const programMonths = computed(() => programSpanLabel(lessonsPerMonth.value, les
 
 /** Раздел «Первая группа» — только по своему шагу мастера нового курса: у существующего курса группы ведутся отдельно. */
 const show = (section: CourseFormSection): boolean => (props.section ? props.section === section : section !== 'group');
+
+const timeScale = useTimeScale();
+/** Поле «начало через N минут» первой группы: в форме — текст, на сервер — число либо пусто. */
+const startsInMinutes = computed<string | number>({
+  get: () => form.starts_in_minutes ?? '',
+  set: (v) => (form.starts_in_minutes = minutesOf(v)),
+});
 
 async function submit(): Promise<void> {
   emit('busy', true);

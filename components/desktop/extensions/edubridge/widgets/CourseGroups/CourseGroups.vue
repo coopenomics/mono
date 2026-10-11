@@ -19,7 +19,7 @@ BaseCard(variant="default" :title="$t('edubridge.courseGroups.title')")
   )
     template(#cell-title="{ row }")
       .text-weight-medium {{ row.title }}
-    template(#cell-starts_at="{ row }") {{ formatDate(row.starts_at) }}
+    template(#cell-starts_at="{ row }") {{ formatStart(row) }}
     template(#cell-learners_active="{ row }")
       span.t-num {{ row.learners_active }}
     template(#cell-lessons_held="{ row }")
@@ -51,6 +51,7 @@ BaseCard(variant="default" :title="$t('edubridge.courseGroups.title')")
       BaseForm(v-if="!readonly && details.status === Zeus.EduGroupStatus.ACTIVE" :loading="busy" @submit="onSave")
         BaseInput(v-model="form.title" :label="$t('edubridge.courseGroups.titleLabel')" required)
         BaseInput(v-model="form.starts_at" :label="$t('edubridge.courseGroups.startsAtLabel')" type="date" stack-label :disabled="details.lessons_held > 0" :hint="details.lessons_held > 0 ? $t('edubridge.courseGroups.startLockedHint') : ''")
+        BaseInput(v-if="timeScale.compressed.value && details.lessons_held === 0" v-model="form.starts_in_minutes" :label="$t('edubridge.courseGroups.startsInMinutesLabel')" type="number" min="0" stack-label :hint="standHint")
         BaseSelect(v-if="platformGroupOptions.length" v-model="form.platform_group" :label="$t('edubridge.courseGroups.platformGroupLabel')" :options="platformGroupOptions" :hint="$t('edubridge.courseGroups.platformGroupHint')")
         BaseCheckbox(v-model="form.enrollment_open")
           | {{ $t('edubridge.courseGroups.enrollmentOpenCheckbox') }}
@@ -65,6 +66,7 @@ BaseCard(variant="default" :title="$t('edubridge.courseGroups.title')")
       .t-sm.t-muted.q-mb-md {{ $t('edubridge.courseGroups.createNote') }}
       BaseInput(v-model="createForm.title" :label="$t('edubridge.courseGroups.titleLabel')" :hint="$t('edubridge.courseGroups.titleHint')")
       BaseInput(v-model="createForm.starts_at" :label="$t('edubridge.courseGroups.startsAtLabel')" type="date" stack-label)
+      BaseInput(v-if="timeScale.compressed.value" v-model="createForm.starts_in_minutes" :label="$t('edubridge.courseGroups.startsInMinutesLabel')" type="number" min="0" stack-label :hint="standHint")
       BaseSelect(v-if="platformGroupOptions.length" v-model="createForm.platform_group" :label="$t('edubridge.courseGroups.platformGroupLabel')" :options="platformGroupOptions" :hint="$t('edubridge.courseGroups.platformGroupHint')")
       template(#footer)
         .row.justify-end.q-gutter-sm
@@ -81,6 +83,7 @@ import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { useFirstLoad } from 'src/shared/lib/composables';
 import { useLiveReload } from 'src/shared/lib/realtime';
 import { EduLive } from '../../shared/lib/live';
+import { minutesOf, useTimeScale } from '../../shared/lib/timeScale';
 import { BaseBadge, BaseButton, BaseCard, BaseCheckbox, BaseDialog, BaseForm, BaseInput, BaseSelect, BaseTable, type BaseTableColumn } from 'src/shared/ui/base';
 import { DataRow, DetailsDrawer } from 'src/shared/ui/domain';
 import { fetchPlatformCourses, type ICourse } from '../../entities/Course';
@@ -115,6 +118,19 @@ const columns: BaseTableColumn<IGroup>[] = [
 ];
 
 const formatDate = (v: unknown) => (v ? new Date(String(v)).toLocaleDateString('ru-RU') : '______');
+/** Начало занятий: дата; на стенде со сжатым временем — с часами и минутами. */
+const formatStart = (g: IGroup) =>
+  g.starts_at_time ? new Date(String(g.starts_at_time)).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : formatDate(g.starts_at);
+
+const timeScale = useTimeScale();
+const standHint = computed(() =>
+  t('edubridge.courseGroups.startsInMinutesHint', { day: Math.round(timeScale.daySeconds.value / 60), month: Math.round(timeScale.monthSeconds.value / 60) }),
+);
+/** Начало группы для сервера: минуты, названные на стенде, либо дата. */
+const startOf = (f: { starts_at: string; starts_in_minutes: string | number }) => {
+  const minutes = timeScale.compressed.value ? minutesOf(f.starts_in_minutes) : null;
+  return minutes === null ? { starts_at: f.starts_at || null } : { starts_in_minutes: minutes };
+};
 
 /** Состояние группы словами: набор открыт, набор закрыт, завершена, отменена. */
 function stateOf(g: IGroup): { label: string; variant: 'pos' | 'neutral' | 'warn' } {
@@ -158,7 +174,7 @@ async function load(): Promise<void> {
 const detailsOpen = ref(false);
 const detailsId = ref<string | null>(null);
 const details = computed(() => groups.value.find((g) => asText(g.id) === detailsId.value) ?? null);
-const form = reactive({ title: '', starts_at: '', platform_group: '', enrollment_open: true });
+const form = reactive({ title: '', starts_at: '', starts_in_minutes: '' as string | number, platform_group: '', enrollment_open: true });
 
 /** Экономика открытой группы; пока не прочитана — блок не показывается. */
 const groupEconomy = ref<ICourseEconomy | null>(null);
@@ -174,7 +190,7 @@ async function loadGroupEconomy(groupId: string): Promise<void> {
 function openDetails(row: IGroup): void {
   detailsId.value = asText(row.id);
   void loadGroupEconomy(asText(row.id));
-  Object.assign(form, { title: row.title, starts_at: row.starts_at ?? '', platform_group: platformGroupOf(row.external_ref), enrollment_open: row.enrollment_open });
+  Object.assign(form, { title: row.title, starts_at: row.starts_at ?? '', starts_in_minutes: '', platform_group: platformGroupOf(row.external_ref), enrollment_open: row.enrollment_open });
   detailsOpen.value = true;
 }
 
@@ -194,13 +210,13 @@ async function onSave(): Promise<void> {
         id: asText(details.value.id),
         title: form.title,
         // Дата начала закреплена после первого занятия — тогда она не отправляется.
-        ...(details.value.lessons_held > 0 ? {} : { starts_at: form.starts_at || null }),
+        ...(details.value.lessons_held > 0 ? {} : startOf(form)),
         ...(platformCourseId.value ? { external_ref: refOf(form.platform_group) } : {}),
         // Набор отправляется, когда его изменил администратор: иначе его ведёт дата начала.
         ...(form.enrollment_open === details.value.enrollment_open ? {} : { enrollment_open: form.enrollment_open }),
       }),
     );
-    if (details.value) form.enrollment_open = details.value.enrollment_open;
+    if (details.value) Object.assign(form, { enrollment_open: details.value.enrollment_open, starts_at: details.value.starts_at ?? '', starts_in_minutes: '' });
     SuccessAlert(t('edubridge.courseGroups.saved'));
   } catch (e) {
     FailAlert(e);
@@ -210,10 +226,10 @@ async function onSave(): Promise<void> {
 }
 
 const createOpen = ref(false);
-const createForm = reactive({ title: '', starts_at: '', platform_group: '' });
+const createForm = reactive({ title: '', starts_at: '', starts_in_minutes: '' as string | number, platform_group: '' });
 
 function openCreate(): void {
-  Object.assign(createForm, { title: '', starts_at: '', platform_group: '' });
+  Object.assign(createForm, { title: '', starts_at: '', starts_in_minutes: '', platform_group: '' });
   createOpen.value = true;
 }
 
@@ -224,7 +240,7 @@ async function onCreate(): Promise<void> {
       await createGroup({
         course_id: asText(props.course.id),
         title: createForm.title || null,
-        starts_at: createForm.starts_at || null,
+        ...startOf(createForm),
         ...(platformCourseId.value ? { external_ref: refOf(createForm.platform_group) } : {}),
       }),
     );

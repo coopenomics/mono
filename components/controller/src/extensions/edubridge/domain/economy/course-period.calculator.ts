@@ -9,6 +9,8 @@
  * всю программу заново. То же при переходе с помесячного взноса — оплаченный
  * месяц засчитывается, взнос разом идёт за остаток.
  */
+import { eduMonthSeconds } from './time-scale';
+
 
 export interface CoursePeriod {
   /** Сколько месяцев оплачивает взнос; неполный последний считается месяцем. */
@@ -23,6 +25,9 @@ export interface CoursePeriod {
  * 31 января плюс месяц — последний день февраля.
  */
 export function addMonths(date: Date, months: number): Date {
+  // Стенд разработки со сжатым временем: месяц — заданное число секунд, как в условиях группы в цепи.
+  const monthSeconds = eduMonthSeconds();
+  if (monthSeconds > 0) return new Date(date.getTime() + months * monthSeconds * 1000);
   const result = new Date(date);
   const day = result.getUTCDate();
   result.setUTCDate(1);

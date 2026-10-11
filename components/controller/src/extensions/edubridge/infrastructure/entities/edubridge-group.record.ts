@@ -40,6 +40,12 @@ export class EdubridgeGroupRecord {
   /** Дата начала занятий группы; `null` — ещё не назначена. */
   public starts_at!: string | null;
 
+  /**
+   * Момент начала занятий с точностью до минуты; `null` — началом считается
+   * начало дня `starts_at`. Задаётся только на стенде со сжатым временем.
+   */
+  public starts_at_time!: Date | null;
+
   public lessons_per_month!: number;
 
   public lessons_total!: number;

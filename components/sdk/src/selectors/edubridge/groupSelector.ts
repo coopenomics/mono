@@ -9,6 +9,7 @@ const rawGroupSelector = {
   enrollment_open: true,
   external_ref: true,
   starts_at: true,
+  starts_at_time: true,
   fee_month: true,
   planned_hourly_rate: true,
   pay_per_learner: true,

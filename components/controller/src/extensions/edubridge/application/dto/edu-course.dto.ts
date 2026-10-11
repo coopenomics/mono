@@ -311,6 +311,13 @@ export class EduCourseInputDTO {
   @IsDateString()
   starts_at?: string | null;
 
+  @Field(() => Int, { nullable: true, description: 'Начало занятий первой группы нового курса через столько минут — только на стенде разработки со сжатым временем' })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(100000)
+  starts_in_minutes?: number | null;
+
   @Field(() => Boolean, { nullable: true, description: 'Принимать взнос за весь курс разом; иначе взнос только помесячный' })
   @IsOptional()
   @IsBoolean()

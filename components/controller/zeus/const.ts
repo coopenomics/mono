@@ -4079,10 +4079,6 @@ export const AllTypesProps: Record<string,any> = {
 }
 
 export const ReturnTypes: Record<string,any> = {
-	auth:{
-		roles:"String",
-		self:"String"
-	},
 	AccessGrant:{
 		action:"String",
 		resource:"String"
@@ -5863,8 +5859,11 @@ export const ReturnTypes: Record<string,any> = {
 		username:"String"
 	},
 	EduEconomySettings:{
+		day_seconds:"Int",
 		markup_percent:"Float",
-		max_course_discount_percent:"Float"
+		max_course_discount_percent:"Float",
+		month_seconds:"Int",
+		time_compressed:"Boolean"
 	},
 	EduEnrollment:{
 		access_state:"EduAccessState",
@@ -5929,6 +5928,7 @@ export const ReturnTypes: Record<string,any> = {
 		pay_per_learner:"Boolean",
 		planned_hourly_rate:"String",
 		starts_at:"String",
+		starts_at_time:"DateTime",
 		status:"EduGroupStatus",
 		teacher_reserve_balance:"String",
 		teacher_settled_total:"String",

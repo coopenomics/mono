@@ -167,6 +167,31 @@ describe('EdubridgeGroupService — группа как единица расч�
     expect(fresh.chainTerms.pushCourse).toHaveBeenCalledWith(expect.objectContaining({ starts_at: '2026-10-01' }));
   });
 
+  it('начало через N минут называется только при сжатом времени стенда: момент с минутами уходит в цепь, дата его сбрасывает', async () => {
+    const mode = (value: string | undefined) => ((process.env as Record<string, string | undefined>).NODE_ENV = value);
+    const previous = process.env.NODE_ENV;
+    try {
+      // Вне стенда разработки начало называется датой.
+      const real = make({ groups: [group()] });
+      await expect(real.service.update('voskhod', { id: 'G1', starts_in_minutes: 3 })).rejects.toMatchObject({ code: 'EDUBRIDGE_START_IN_MINUTES_STAND_ONLY' });
+      mode('development');
+      const stand = make({ groups: [group()] });
+      const before = Date.now();
+      const moved = await stand.service.update('voskhod', { id: 'G1', starts_in_minutes: 3 });
+      const moment = new Date(moved.starts_at_time as Date).getTime();
+      expect(moment).toBeGreaterThanOrEqual(before + 180_000);
+      expect(moment).toBeLessThanOrEqual(Date.now() + 180_000);
+      expect(moved.starts_at).toBe(new Date(moment).toISOString().slice(0, 10));
+      // Расчёты и цепь видят момент, а не начало дня; набор до него открыт.
+      expect(stand.chainTerms.pushCourse).toHaveBeenLastCalledWith(expect.objectContaining({ starts_at: new Date(moment).toISOString() }));
+      expect(moved.enrollment_open).toBe(true);
+      // Дата, названная после, момент сбрасывает.
+      await expect(stand.service.update('voskhod', { id: 'G1', starts_at: '2099-12-01' })).resolves.toMatchObject({ starts_at: '2099-12-01', starts_at_time: null });
+    } finally {
+      mode(previous);
+    }
+  });
+
   it('группа завершается сама, когда срок программы вышел и действующих подписок нет; с действующей подпиской она идёт дальше', async () => {
     // 64 занятия по 8 в месяц — восемь месяцев от дня начала.
     const over = make({ groups: [group({ starts_at: '2025-01-10' })], enrollments: [{ status: EduEnrollmentStatus.EXPIRED }] });

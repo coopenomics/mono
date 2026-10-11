@@ -52,6 +52,10 @@ struct [[eosio::table, eosio::contract(EDUBRIDGE)]] edu_terms {
   uint64_t open_lesson_id;             ///< занятие, по которому идёт расчёт; 0 — открытого занятия нет
   eosio::time_point_sec last_held_at;  ///< дата последнего закрытого занятия
   uint32_t subs_locked = 0;            ///< подписок с незакрытым гарантийным сроком: пока они есть, суммы преподавателей за гарантийный период не окончательны
+  eosio::binary_extension<uint32_t> month_secs; ///< длина месяца, секунд: оплаченный период и длительность программы считаются ею; 0 либо нет значения — календарные месяцы. Не ноль только на стенде разработки со сжатым временем
+
+  /// Длина месяца в секундах; 0 — календарные месяцы.
+  uint32_t month_len() const { return month_secs.has_value() ? month_secs.value() : 0; }
 
   uint64_t primary_key() const { return course_id; }
 

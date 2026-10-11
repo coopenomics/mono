@@ -110,7 +110,8 @@ public:
                                    bool course_payment,
                                    uint32_t discount_bp,
                                    uint32_t guarantee_secs,
-                                   eosio::time_point_sec starts_at);
+                                   eosio::time_point_sec starts_at,
+                                   uint32_t month_secs);
 
   /**
    * @brief Открыть подписку на курс для обучающегося. Срок и взнос считает

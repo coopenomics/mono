@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
+import { isWorkerTurn } from '../../domain/economy/time-scale';
 import { platformSettings } from '@coopenomics/extension-kit';
 import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { EdubridgeTeacherService } from '../services/edubridge-teacher.service';
@@ -19,8 +20,9 @@ export class EdubridgeHoldWorker {
     this.logger.setContext(EdubridgeHoldWorker.name);
   }
 
-  @Cron(CronExpression.EVERY_10_MINUTES)
+  @Cron(CronExpression.EVERY_MINUTE)
   async publishDue(): Promise<void> {
+    if (!isWorkerTurn()) return;
     const coopname = platformSettings().coopname;
     try {
       // Гарантийный срок группы вышел и суммы окончательны — преподавателям заводятся взносы за занятия периода.

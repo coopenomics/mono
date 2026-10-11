@@ -13,6 +13,15 @@ export class EduEconomySettingsDTO {
 
   @Field(() => Float, { description: 'Предельная скидка за взнос разом за весь курс при этом целевом членском взносе, проценты' })
   max_course_discount_percent!: number;
+
+  @Field(() => Boolean, { description: 'Время сжато (стенд разработки): сутки и месяцы укорочены, начало занятий называется в минутах' })
+  time_compressed!: boolean;
+
+  @Field(() => Int, { description: 'Длина суток, секунд' })
+  day_seconds!: number;
+
+  @Field(() => Int, { description: 'Длина месяца, секунд; 0 — календарные месяцы' })
+  month_seconds!: number;
 }
 
 @InputType('EduSetEconomySettingsInput')

@@ -1,3 +1,4 @@
+import { eduDaySeconds, eduMonthSeconds, isTimeCompressed } from '../../domain/economy/time-scale';
 import { Inject, Injectable } from '@nestjs/common';
 import { EXTENSION_REPOSITORY, type ExtensionDomainRepository, platformSettings, DomainError } from '@coopenomics/extension-kit';
 import {
@@ -56,6 +57,11 @@ const MINUTES_IN_HOUR = 60;
  * расчёт членского взноса за курс. Суммы считает сервер — стол их только
  * показывает, поэтому взнос всегда соответствует часам и ставкам.
  */
+/** Шкала времени узла для стола: на стенде разработки она сжата. */
+function timeScale(): Pick<EduEconomySettingsDTO, 'time_compressed' | 'day_seconds' | 'month_seconds'> {
+  return { time_compressed: isTimeCompressed(), day_seconds: eduDaySeconds(), month_seconds: eduMonthSeconds() };
+}
+
 @Injectable()
 export class EdubridgeEconomyService {
   constructor(
@@ -201,14 +207,14 @@ export class EdubridgeEconomyService {
 
   async settings(): Promise<EduEconomySettingsDTO> {
     const markup = (await this.config.load()).markup_percent;
-    return { markup_percent: markup, max_course_discount_percent: maxCourseDiscountPercent(markup) };
+    return { markup_percent: markup, max_course_discount_percent: maxCourseDiscountPercent(markup), ...timeScale() };
   }
 
   /** Целевой членский взнос один на кооператив: меняется в разделе «Экономика», действует на все курсы. */
   async setMarkup(markupPercent: number): Promise<EduEconomySettingsDTO> {
     const saved = await this.extensions.patchConfig(EDUBRIDGE_EXTENSION_NAME, { markup_percent: markupPercent });
     this.config.set(saved.config);
-    return { markup_percent: markupPercent, max_course_discount_percent: maxCourseDiscountPercent(markupPercent) };
+    return { markup_percent: markupPercent, max_course_discount_percent: maxCourseDiscountPercent(markupPercent), ...timeScale() };
   }
 
   /**

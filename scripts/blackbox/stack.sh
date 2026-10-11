@@ -116,6 +116,8 @@ EOF
   # Короткие сутки гарантийного срока «Образования»: сценарии «срок вышел»
   # проходят за минуты. То же значение читают наборы (api_tests_env).
   set_env "$ctl_env" EDUBRIDGE_GUARANTEE_DAY_SECONDS "$GUARANTEE_DAY_SECONDS"
+  # Месяцы на полигоне календарные: наборы сверяют оплаченный период с календарём.
+  set_env "$ctl_env" EDUBRIDGE_MONTH_SECONDS 0
   set_env "$ctl_env" GEOCODER_PROVIDER yandex
   set_env "$ctl_env" GEOCODER_API_KEY blackbox-geocoder-key
   set_env "$ctl_env" GEOCODER_BASE_URL "http://stub:8090/geocoder"
