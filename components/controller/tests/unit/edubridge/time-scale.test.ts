@@ -27,13 +27,13 @@ describe('Шкала времени образования — сжатое вр
     expect(addMonths(new Date('2026-01-31T00:00:00Z'), 1)).toEqual(new Date('2026-02-28T00:00:00Z'));
   });
 
-  it('на стенде разработки сутки — минута, месяц — тридцать минут, очереди — каждую минуту', () => {
+  it('на стенде разработки сутки — минута, месяц — десять минут, очереди — каждую минуту', () => {
     mode('development');
     expect(eduDaySeconds()).toBe(60);
-    expect(eduMonthSeconds()).toBe(1800);
+    expect(eduMonthSeconds()).toBe(600);
     expect(isTimeCompressed()).toBe(true);
     expect(workerPaceSeconds()).toBe(60);
-    expect(addMonths(new Date('2026-10-11T10:00:00Z'), 2)).toEqual(new Date('2026-10-11T11:00:00Z'));
+    expect(addMonths(new Date('2026-10-11T10:00:00Z'), 2)).toEqual(new Date('2026-10-11T10:20:00Z'));
     expect(isWorkerTurn(new Date('2026-10-11T10:07:00Z'))).toBe(true);
   });
 
@@ -44,8 +44,8 @@ describe('Шкала времени образования — сжатое вр
     expect(isTimeCompressed()).toBe(false);
     expect(isWorkerTurn(new Date('2026-10-11T10:07:00Z'))).toBe(false);
     expect(isWorkerTurn(new Date('2026-10-11T10:10:00Z'))).toBe(true);
-    put('EDUBRIDGE_MONTH_SECONDS', '600');
-    expect(eduMonthSeconds()).toBe(600);
+    put('EDUBRIDGE_MONTH_SECONDS', '900');
+    expect(eduMonthSeconds()).toBe(900);
   });
 
   it('настоящие сутки на стенде разработки месяц не сжимают; вне стенда разработки сжатия нет', () => {
