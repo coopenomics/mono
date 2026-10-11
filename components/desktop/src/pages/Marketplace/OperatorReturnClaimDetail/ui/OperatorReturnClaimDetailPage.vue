@@ -7,6 +7,7 @@ import { Zeus } from '@coopenomics/sdk';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { BaseBadge, BaseButton, BaseCard } from 'src/shared/ui/base';
 import { ActivityTimeline, type ActivityEvent } from 'src/shared/ui/domain';
+import { BaseDocument } from 'src/shared/ui/BaseDocument';
 import { marketLiveTables } from 'src/shared/lib/marketplace';
 import { marketplaceOrderSaleUnitLabel } from 'src/shared/lib/consts/marketplace-units';
 import { formatAsset2Digits } from 'src/shared/lib/utils';
@@ -222,6 +223,12 @@ q-page.return-detail(role='region', :aria-label='$t("marketplace.operatorReturnC
             template(#icon-left)
               q-icon(name='undo', size='16px')
             | {{ $t('marketplace.operatorReturnClaimDetail.handBackButton') }}
+
+      //- Само заявление пайщика — текстом, с подписями: решение принимают по нему.
+      BaseCard.return-detail__card(v-if='claim.statement')
+        template(#head)
+          .t-h3 {{ $t('marketplace.operatorReturnClaimDetail.statementHeader') }}
+        BaseDocument(:document-aggregate='claim.statement')
 
       BaseCard.return-detail__card(v-if='timelineEvents.length')
         template(#head)

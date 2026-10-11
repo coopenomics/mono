@@ -12687,6 +12687,8 @@ export type ValueTypes = {
 	reason_text?:boolean | `@${string}`,
 	/** Якорный hash on-chain return_request. */
 	request_hash?:boolean | `@${string}`,
+	/** Заявление пайщика на гарантийный возврат с подписями — текст для чтения. Отдаётся при запросе одного заявления; в списках пусто. */
+	statement?:ValueTypes["DocumentAggregate"],
 	/** Текущий статус заявления. */
 	status?:boolean | `@${string}`,
 	/** Хэш транзакции submretrn в блокчейне. */
@@ -30758,6 +30760,8 @@ export type ResolverInputTypes = {
 	reason_text?:boolean | `@${string}`,
 	/** Якорный hash on-chain return_request. */
 	request_hash?:boolean | `@${string}`,
+	/** Заявление пайщика на гарантийный возврат с подписями — текст для чтения. Отдаётся при запросе одного заявления; в списках пусто. */
+	statement?:ResolverInputTypes["DocumentAggregate"],
 	/** Текущий статус заявления. */
 	status?:boolean | `@${string}`,
 	/** Хэш транзакции submretrn в блокчейне. */
@@ -48200,6 +48204,8 @@ export type ModelTypes = {
 	reason_text: string,
 	/** Якорный hash on-chain return_request. */
 	request_hash: string,
+	/** Заявление пайщика на гарантийный возврат с подписями — текст для чтения. Отдаётся при запросе одного заявления; в списках пусто. */
+	statement?: ModelTypes["DocumentAggregate"] | undefined | null,
 	/** Текущий статус заявления. */
 	status: ModelTypes["MarketplaceReturnClaimStatus"],
 	/** Хэш транзакции submretrn в блокчейне. */
@@ -66714,6 +66720,8 @@ export type GraphQLTypes = {
 	reason_text: string,
 	/** Якорный hash on-chain return_request. */
 	request_hash: string,
+	/** Заявление пайщика на гарантийный возврат с подписями — текст для чтения. Отдаётся при запросе одного заявления; в списках пусто. */
+	statement?: GraphQLTypes["DocumentAggregate"] | undefined | null,
 	/** Текущий статус заявления. */
 	status: GraphQLTypes["MarketplaceReturnClaimStatus"],
 	/** Хэш транзакции submretrn в блокчейне. */

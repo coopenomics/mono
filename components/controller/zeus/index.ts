@@ -12689,6 +12689,8 @@ export type ValueTypes = {
 	reason_text?:boolean | `@${string}`,
 	/** Якорный hash on-chain return_request. */
 	request_hash?:boolean | `@${string}`,
+	/** Заявление пайщика на гарантийный возврат с подписями — текст для чтения. Отдаётся при запросе одного заявления; в списках пусто. */
+	statement?:ValueTypes["DocumentAggregate"],
 	/** Текущий статус заявления. */
 	status?:boolean | `@${string}`,
 	/** Хэш транзакции submretrn в блокчейне. */
@@ -30762,6 +30764,8 @@ export type ResolverInputTypes = {
 	reason_text?:boolean | `@${string}`,
 	/** Якорный hash on-chain return_request. */
 	request_hash?:boolean | `@${string}`,
+	/** Заявление пайщика на гарантийный возврат с подписями — текст для чтения. Отдаётся при запросе одного заявления; в списках пусто. */
+	statement?:ResolverInputTypes["DocumentAggregate"],
 	/** Текущий статус заявления. */
 	status?:boolean | `@${string}`,
 	/** Хэш транзакции submretrn в блокчейне. */
@@ -48206,6 +48210,8 @@ export type ModelTypes = {
 	reason_text: string,
 	/** Якорный hash on-chain return_request. */
 	request_hash: string,
+	/** Заявление пайщика на гарантийный возврат с подписями — текст для чтения. Отдаётся при запросе одного заявления; в списках пусто. */
+	statement?: ModelTypes["DocumentAggregate"] | undefined | null,
 	/** Текущий статус заявления. */
 	status: ModelTypes["MarketplaceReturnClaimStatus"],
 	/** Хэш транзакции submretrn в блокчейне. */
@@ -50240,7 +50246,7 @@ export type ModelTypes = {
 	marketplaceCreateBranchExpense: string,
 	/** Заведение типа боксов с габаритами и объёмом. */
 	marketplaceCreateContainerType: ModelTypes["MarketplaceContainerType"],
-	/** Председатель кооперативного участка заводит партию боксов одного типа; коды выдаются последовательно. */
+	/** Заведение партии боксов одного типа на участке; коды выдаются последовательно. Председатель участка заводит боксы у себя, председатель кооператива — на любом участке. */
 	marketplaceCreateContainers: Array<ModelTypes["MarketplaceContainer"]>,
 	/** Добавить собственную категорию кооператива */
 	marketplaceCreateCustomCategory: ModelTypes["MarketplaceCategory"],
@@ -66722,6 +66728,8 @@ export type GraphQLTypes = {
 	reason_text: string,
 	/** Якорный hash on-chain return_request. */
 	request_hash: string,
+	/** Заявление пайщика на гарантийный возврат с подписями — текст для чтения. Отдаётся при запросе одного заявления; в списках пусто. */
+	statement?: GraphQLTypes["DocumentAggregate"] | undefined | null,
 	/** Текущий статус заявления. */
 	status: GraphQLTypes["MarketplaceReturnClaimStatus"],
 	/** Хэш транзакции submretrn в блокчейне. */
@@ -68891,7 +68899,7 @@ export type GraphQLTypes = {
 	marketplaceCreateBranchExpense: string,
 	/** Заведение типа боксов с габаритами и объёмом. */
 	marketplaceCreateContainerType: GraphQLTypes["MarketplaceContainerType"],
-	/** Председатель кооперативного участка заводит партию боксов одного типа; коды выдаются последовательно. */
+	/** Заведение партии боксов одного типа на участке; коды выдаются последовательно. Председатель участка заводит боксы у себя, председатель кооператива — на любом участке. */
 	marketplaceCreateContainers: Array<GraphQLTypes["MarketplaceContainer"]>,
 	/** Добавить собственную категорию кооператива */
 	marketplaceCreateCustomCategory: GraphQLTypes["MarketplaceCategory"],

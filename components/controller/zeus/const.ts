@@ -7743,6 +7743,7 @@ export const ReturnTypes: Record<string,any> = {
 		product_name:"String",
 		reason_text:"String",
 		request_hash:"String",
+		statement:"DocumentAggregate",
 		status:"MarketplaceReturnClaimStatus",
 		submretrn_tx_hash:"String",
 		supplier_account:"String",
