@@ -163,3 +163,13 @@ cases:
     test: components/controller/tests/unit/rights/extension-rights-tables.test.ts
     api: components/api-tests/src/rights/matrix.test.ts
     status: written
+
+  - id: rep.draft.side.09
+    level: backend
+    kind: side
+    scenario: список черновиков и отметок о сдаче с пустым годом — стол передаёт невыбранный год значением null
+    expect: год в условие запроса не попадает, отбор идёт по кооперативу и владельцу; список не пустеет
+    test: components/controller/tests/unit/reports/reports.kysely-repositories.test.ts
+    external: unreachable
+    external_reason: "проверяются условия запросов к базе — снаружи они не видны"
+    status: written

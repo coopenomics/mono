@@ -43,8 +43,8 @@ export class ExtensionKyselyRepository<TConfig = any> implements ExtensionDomain
   /** Без фильтра — все расширения: каталог вызывает поиск без условий. */
   async find(filter?: Partial<ExtensionDomainEntity<TConfig>>): Promise<ExtensionDomainEntity<TConfig>[]> {
     let query = this.db.selectFrom('extensions').selectAll();
-    if (filter?.name !== undefined) query = query.where('name', '=', filter.name);
-    if (filter?.enabled !== undefined) query = query.where('enabled', '=', filter.enabled);
+    if (filter?.name != null) query = query.where('name', '=', filter.name);
+    if (filter?.enabled != null) query = query.where('enabled', '=', filter.enabled);
     const rows = await query.execute();
     return rows.map((row) => this.toDomain(row));
   }

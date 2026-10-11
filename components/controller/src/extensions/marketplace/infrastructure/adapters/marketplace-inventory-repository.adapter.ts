@@ -182,7 +182,7 @@ private readonly repo: TableStore<MarketplaceInventoryEntity>,
     if (filter.ownership) where.ownership = filter.ownership;
     if (filter.reserved_order_id) where.reserved_order_id = filter.reserved_order_id;
     if (filter.free_only) where.reserved_order_id = isNull();
-    if (filter.published !== undefined) {
+    if (filter.published != null) {
       where.published_offer_id = filter.published ? notNull() : isNull();
     }
     if (filter.published_offer_id) where.published_offer_id = filter.published_offer_id;

@@ -30,7 +30,7 @@ const EXACT = ['account', 'name', 'receiver', 'global_sequence'] as const;
 function conditions(eb: ActionExpression, filter: ActionFilterDomainInterface): Condition[] {
   const exact = EXACT.filter((column) => filter[column]).map((column) => eb(column, '=', String(filter[column])));
   const block = filter.block_num ? [eb('block_num', '=', String(filter.block_num))] : [];
-  const repeat = filter.repeat !== undefined ? [eb('repeat', '=', filter.repeat)] : [];
+  const repeat = filter.repeat != null ? [eb('repeat', '=', filter.repeat)] : [];
   return [...exact, ...block, ...repeat, ...Object.entries(filter.data ?? {}).map(dataCondition)];
 }
 
