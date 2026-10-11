@@ -14,7 +14,7 @@ import {
 } from '@coopenomics/innercoop';
 import { EduAccessState, EduCourseStatus, EduEnrollmentPeriod, EduEnrollmentStatus } from '../../domain/enums';
 import { courseMonths, feeForMonths } from '../../domain/economy/course-fee.calculator';
-import { addMonths, remainingCoursePeriod } from '../../domain/economy/course-period.calculator';
+import { monthPeriod, remainingCoursePeriod } from '../../domain/economy/course-period.calculator';
 import { RefundReason, type RefundCalculation } from '../../domain/economy/refund.calculator';
 import { EDUBRIDGE_CHAIN_PORT, type EdubridgeChainPort } from '../../domain/ports/edubridge-chain.port';
 import type { EdubridgeCourseRecord, EdubridgeEnrollmentRecord, EdubridgeLearnerRecord } from '../../infrastructure/entities';
@@ -180,13 +180,17 @@ export class EdubridgeEnrollmentService {
   }
 
   /**
-   * Помесячный взнос оплачивает месяц. Взнос за весь курс разом — месяцы до
+   * Помесячный взнос оплачивает месяц — от начала занятий, если запись сделана
+   * раньше, и не дальше конца программы. Взнос за весь курс разом — месяцы до
    * конца программы со скидкой курса: пришедший в середине вносит за остаток.
+   * Показ до транзакции: срок и сумму считает контракт тем же порядком.
    */
   private termsOf(course: EdubridgeCourseRecord, period: EduEnrollmentPeriod, from: Date): PeriodTerms {
     if (period === EduEnrollmentPeriod.MONTH) {
+      const month = monthPeriod(course.starts_at ? new Date(course.starts_at) : null, courseMonths(course.lessons_per_month, course.lessons_total), from);
+      if (!month) throw DomainError.badRequest('EDUBRIDGE_ENROLLMENT_COURSE_FULLY_PAID');
       const fee = feeForMonths(course.fee_month, 1, 0);
-      return { months: 1, paidUntil: addMonths(from, 1), baseAmount: fee.base, discountAmount: fee.discount, amount: fee.amount };
+      return { months: 1, paidUntil: month.paid_until, baseAmount: fee.base, discountAmount: fee.discount, amount: fee.amount };
     }
     if (period !== EduEnrollmentPeriod.COURSE) {
       throw DomainError.badRequest('EDUBRIDGE_ENROLLMENT_YEAR_PERIOD_DISABLED');
@@ -255,6 +259,8 @@ export class EdubridgeEnrollmentService {
     groupId?: string | null
   ): Promise<EdubridgeEnrollmentRecord> {
     const plan = await this.plan(coopname, member, learnerId, courseId, period, groupId);
+    const lost = await this.restoreLost(coopname, member, learnerId, courseId, plan, period);
+    if (lost) return lost;
     const funding = await this.planFunding(coopname, member, plan);
     this.assertStatementMatches(document, plan, funding);
     if (!funding.enough) {
@@ -302,6 +308,36 @@ export class EdubridgeEnrollmentService {
       trx_id: trxId,
     };
     this.events.emit(plan.isExtension ? EDUBRIDGE_ENROLLMENT_EXTENDED_EVENT : EDUBRIDGE_ENROLLMENT_OPENED_EVENT, payload);
+    return saved;
+  }
+
+  /**
+   * Взнос в цепи прошёл, а запись на узле не сохранилась (сбой базы после
+   * транзакции): подписка в цепи есть, записи нет. Повторная запись второй
+   * взнос не берёт — запись заводится по данным цепи, доступ выдаётся.
+   */
+  private async restoreLost(
+    coopname: string,
+    member: string,
+    learnerId: string,
+    courseId: string,
+    plan: EnrollmentPlan,
+    period: EduEnrollmentPeriod
+  ): Promise<EdubridgeEnrollmentRecord | null> {
+    if (plan.existing) return null;
+    const sub = await this.chain.readSubscription(coopname, plan.subHash).catch(() => null);
+    if (!sub?.plan) return null;
+    const entity = this.enrollments.create({ coopname, member_username: member, learner_id: learnerId, course_id: courseId, group_id: plan.groupId, sub_hash: plan.subHash });
+    Object.assign(entity, await this.chainState(coopname, plan), {
+      period,
+      status: EduEnrollmentStatus.ACTIVE,
+      statement_hash: String(sub.statement_hash ?? '').toLowerCase(),
+      access_state: EduAccessState.PENDING,
+      joined_at: new Date(),
+    });
+    const saved = await this.enrollments.save(entity);
+    this.logger.warn(`[EDU.SUB] ${member}: подписка ${plan.subHash} была в цепи без записи на узле — запись восстановлена, второй взнос не взят`);
+    this.events.emit(EDUBRIDGE_ENROLLMENT_OPENED_EVENT, { coopname, enrollment_id: saved.id, learner_id: saved.learner_id, course_id: saved.course_id, member_username: member, trx_id: plan.subHash } as IEduEnrollmentEventPayload);
     return saved;
   }
 

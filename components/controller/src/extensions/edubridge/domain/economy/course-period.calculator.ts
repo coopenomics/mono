@@ -38,6 +38,24 @@ export function addMonths(date: Date, months: number): Date {
 }
 
 /**
+ * Оплаченный срок помесячного взноса — как его считает контракт: месяц от
+ * `from`, но не раньше начала занятий, и не дальше конца программы.
+ *
+ * @param startsAt начало занятий; `null` — не назначено, месяц идёт от `from`
+ * @param courseMonths длительность программы в месяцах; 0 — программа без конца
+ * @returns `null`, когда оплачивать нечего: программа закончилась либо оплачена до конца
+ */
+export function monthPeriod(startsAt: Date | null, courseMonths: number, from: Date): CoursePeriod | null {
+  const start = startsAt ?? from;
+  const base = from > start ? from : start;
+  const paidUntil = addMonths(base, 1);
+  if (!startsAt || !(courseMonths > 0)) return { months: 1, paid_until: paidUntil };
+  const end = addMonths(start, courseMonths);
+  if (base >= end) return null;
+  return { months: 1, paid_until: paidUntil > end ? end : paidUntil };
+}
+
+/**
  * @param startsAt день начала занятий; `null` — день не назначен, курс отсчитывается от `from`
  * @param courseMonths длительность курса в месяцах
  * @param from с какого дня идёт новый оплаченный срок: сегодня либо конец уже оплаченного

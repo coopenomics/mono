@@ -23,7 +23,7 @@ const course = {
   starts_at: null,
 } as any;
 
-function make(opts: { existing?: any; available?: string; program?: string; course?: any; chainSub?: any } = {}) {
+function make(opts: { existing?: any; available?: string; program?: string; course?: any; chainSub?: any; lostSub?: any } = {}) {
   const saved: any[] = [];
   const enrollments = {
     findByPair: jest.fn(async () => opts.existing ?? null),
@@ -40,11 +40,16 @@ function make(opts: { existing?: any; available?: string; program?: string; cour
   const learnerService = { getOwned: jest.fn(async () => learner) } as any;
   // Сверка учёта курса с цепью после закрытия подписки — отдельный сервис.
   const funds = { afterClosed: jest.fn(async (_c: string, e: any) => { e.locked_amount = null; }) } as any;
+  // Строка подписки появляется в цепи после взноса; `lostSub` — она уже там, а записи на узле нет.
+  let paid = Boolean(opts.existing);
   const chain = {
-    convertAndSubscribe: jest.fn(async () => ({ transaction_id: 'TRX1' })),
+    convertAndSubscribe: jest.fn(async () => {
+      paid = true;
+      return { transaction_id: 'TRX1' };
+    }),
     cancelSubscription: jest.fn(async () => ({ transaction_id: 'TRX2' })),
     // Строка подписки в цепи: суммы и срок после взноса приложение читает отсюда.
-    readSubscription: jest.fn(async () => opts.chainSub ?? null),
+    readSubscription: jest.fn(async () => opts.lostSub ?? (paid ? opts.chainSub ?? null : null)),
   } as any;
   const documents = { generate: jest.fn(async () => ({ hash: 'ABC', html: '', full_title: '', binary: '', meta: {} })) } as any;
   // Кошелёк программы и главный паевой: взнос берётся сначала с программы.
@@ -283,6 +288,15 @@ describe('EdubridgeEnrollmentService — удержание взноса', () =>
     const saved = await service.subscribe('voskhod', 'ant', 'L1', 'C1', EduEnrollmentPeriod.MONTH, await docFor(service, EduEnrollmentPeriod.MONTH));
     expect(chain.convertAndSubscribe.mock.calls[0][3].lock).toBeUndefined();
     expect(saved.locked_amount).toBe('1000.0000 RUB');
+    expect(saved.paid_until!.toISOString()).toBe('2026-12-01T00:00:00.000Z');
+  });
+
+  it('взнос в цепи прошёл, а записи на узле нет: повторная запись второй взнос не берёт, запись заводится по данным цепи', async () => {
+    const lostSub = { charged: '1000.0000 RUB', locked: '1000.0000 RUB', paid_until: '2026-12-01T00:00:00', statement_hash: 'AB12', plan: { version: 1 } };
+    const { service, chain } = make({ available: '0.0000 RUB', lostSub });
+    const saved = await service.subscribe('voskhod', 'ant', 'L1', 'C1', EduEnrollmentPeriod.MONTH, { hash: 'любой', meta: {}, signatures: [] } as any);
+    expect(chain.convertAndSubscribe).not.toHaveBeenCalled();
+    expect(saved).toMatchObject({ status: EduEnrollmentStatus.ACTIVE, access_state: EduAccessState.PENDING, paid_amount: '1000.0000 RUB', statement_hash: 'ab12' });
     expect(saved.paid_until!.toISOString()).toBe('2026-12-01T00:00:00.000Z');
   });
 

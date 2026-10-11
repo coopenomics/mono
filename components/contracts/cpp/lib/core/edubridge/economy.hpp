@@ -132,8 +132,11 @@ struct FeeQuote {
  * @brief Расчёт взноса участника.
  *
  * Помесячный взнос оплачивает месяц от конца уже оплаченного срока либо от
- * сегодняшнего дня. Взнос разом оплачивает месяцы до конца программы со
- * скидкой курса: пришедший в середине вносит за остаток.
+ * сегодняшнего дня, но не раньше начала занятий: записавшийся заранее
+ * оплачивает месяц занятий, а не дни ожидания. За конец программы оплаченный
+ * срок не выходит, и взнос за оплаченную до конца программу не принимается.
+ * Взнос разом оплачивает месяцы до конца программы со скидкой курса:
+ * пришедший в середине вносит за остаток.
  */
 inline FeeQuote quote_fee(const edu_terms& terms, const edu_subscription& sub, eosio::name period, eosio::time_point_sec now) {
   eosio::check(terms.lessons_per_month > 0 && terms.lesson_minutes > 0 && terms.planned_rate.amount > 0,
@@ -144,9 +147,17 @@ inline FeeQuote quote_fee(const edu_terms& terms, const edu_subscription& sub, e
   FeeQuote q;
   uint32_t discount_bp = 0;
   if (period == SubscriptionPeriod::MONTH) {
+    const eosio::time_point_sec start = terms.is_started() ? terms.starts_at : from;
+    const eosio::time_point_sec base = from > start ? from : start;
     q.months = 1;
-    q.paid_from = from;
-    q.paid_until = add_months(from, 1, terms.month_len());
+    q.paid_from = base;
+    q.paid_until = add_months(base, 1, terms.month_len());
+    const uint32_t total = terms.months_total();
+    if (terms.is_started() && total > 0) {
+      const eosio::time_point_sec end = add_months(start, total, terms.month_len());
+      eosio::check(base < end, "EDUBRIDGE_COURSE_FULLY_PAID: Курс оплачен до конца программы");
+      if (q.paid_until > end) q.paid_until = end;
+    }
   } else {
     eosio::check(period == SubscriptionPeriod::COURSE, "EDUBRIDGE_PERIOD_INVALID: Недопустимый период оплаты: ожидается month либо course");
     const uint32_t total = terms.months_total();
