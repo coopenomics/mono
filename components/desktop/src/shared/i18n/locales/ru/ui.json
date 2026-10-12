@@ -659,6 +659,38 @@
       "requiredError": "Заполните поле",
       "ruleError": "Значение должно удовлетворять правилу: {rule}",
       "urlError": "Нужна ссылка вида https://…"
+    },
+    "expenseProposalDetails": {
+      "memoNumberLabel": "№ служебной записки",
+      "initiatorLabel": "Инициатор",
+      "createdLabel": "Создан",
+      "plannedAmountLabel": "Сумма по смете",
+      "actualSpentLabel": "Фактически израсходовано",
+      "documentsTitle": "Документы",
+      "itemsTitle": "Позиции расхода",
+      "itemTitle": "Позиция №{index} — {description}",
+      "recipientLabel": "Получатель",
+      "paymentMethodLabel": "Способ оплаты",
+      "itemPlannedAmountLabel": "Сумма (план)",
+      "itemActualAmountLabel": "Фактически",
+      "recipientDetailsLabel": "Реквизиты получателя",
+      "paymentPurposeLabel": "Назначение платежа",
+      "supportingDocsTitle": "Подтверждающие документы",
+      "otherDocsTitle": "Прочие документы",
+      "statusHistoryTitle": "История состояний",
+      "awaitingCouncilChip": "Ожидает решения совета",
+      "notPaidChip": "Не будет оплачена",
+      "docDateLabel": "документ от {date}",
+      "fileUrlUnavailable": "Ссылка на файл недоступна",
+      "historyMemoCreated": "Служебная записка создана",
+      "historyStatementSigned": "Заявление на расход подписано",
+      "historyApproved": "Совет утвердил расход — протокол решения подписан",
+      "historyRejected": "Совет отклонил расход",
+      "historyDocAttached": "Приложен документ",
+      "historyReportSubmitted": "Отчёт по смете подан — ожидает закрытия расхода",
+      "historyClosed": "Расход закрыт",
+      "notFoundTitle": "Расход не найден",
+      "notFoundBody": "Служебная записка с таким номером отсутствует или ещё не синхронизирована."
     }
   }
 }

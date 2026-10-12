@@ -281,19 +281,6 @@
         "in": "Поступление на кошелёк программы",
         "out": "Выбытие с кошелька программы",
         "idLabel": "Идентификатор"
-      },
-      "expense": {
-        "numberLabel": "Номер записки",
-        "creatorLabel": "Подал",
-        "createdLabel": "Создан",
-        "plannedLabel": "Сумма по смете",
-        "actualLabel": "Оплачено",
-        "itemsTitle": "Позиции",
-        "itemTitle": "Позиция {index}",
-        "recipientLabel": "Получатель",
-        "mechanicsLabel": "Способ оплаты",
-        "plannedItemLabel": "По смете",
-        "actualItemLabel": "Оплачено"
       }
     },
     "adminMembersPage": {

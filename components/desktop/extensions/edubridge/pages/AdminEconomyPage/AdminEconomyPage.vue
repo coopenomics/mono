@@ -77,25 +77,9 @@
       @open="openExpense"
     )
 
-    DetailsDrawer(v-model="expenseDetailsOpen" :title="expenseTitle(expense)" :width="560")
-      template(v-if="expense")
-        BaseBadge.q-mb-md(:variant="proposalStatusVariant(expense.status)") {{ proposalStatusLabel(expense.status) }}
-        DataRow(:label="$t('edubridge.adminEconomyPage.expense.numberLabel')" :value="shortExpenseId(asText(expense.expense_hash))" mono copyable)
-        DataRow(:label="$t('edubridge.adminEconomyPage.expense.creatorLabel')")
-          template(#value-override)
-            IdentityCell(:account-name="expense.creator" :full-name="expense.creator_name" copyable)
-        DataRow(:label="$t('edubridge.adminEconomyPage.expense.createdLabel')" :value="formatDate(expense.created_at)")
-        DataRow(:label="$t('edubridge.adminEconomyPage.expense.plannedLabel')" :value="formatAsset2Digits(expense.total_planned)")
-        DataRow(v-if="hasActual(expense.total_actual)" :label="$t('edubridge.adminEconomyPage.expense.actualLabel')" :value="formatAsset2Digits(expense.total_actual)")
-        .edu-expense__section(v-for="(item, idx) in expense.items" :key="item.item_hash")
-          .edu-expense__head
-            .t-eyebrow {{ $t('edubridge.adminEconomyPage.expense.itemTitle', { index: idx + 1 }) }}
-            BaseBadge(:variant="itemStatusVariant(item.status)") {{ itemStatusLabel(item.status, item.mechanics) }}
-          .edu-expense__title {{ item.description || '______' }}
-          DataRow(:label="$t('edubridge.adminEconomyPage.expense.recipientLabel')" :value="item.recipient_name || item.recipient || '______'")
-          DataRow(:label="$t('edubridge.adminEconomyPage.expense.mechanicsLabel')" :value="mechanicsLabel(item.mechanics)")
-          DataRow(:label="$t('edubridge.adminEconomyPage.expense.plannedItemLabel')" :value="formatAsset2Digits(item.planned_amount)")
-          DataRow(v-if="hasActual(item.actual_amount)" :label="$t('edubridge.adminEconomyPage.expense.actualItemLabel')" :value="formatAsset2Digits(item.actual_amount)")
+    //- Расход целиком показывает общий виджет шасси — тот же, что на странице расхода Благороста.
+    DetailsDrawer(v-model="expenseDetailsOpen" :title="expenseTitle(expense)" :width="640")
+      ExpenseProposalDetails(v-if="expenseHash" :expense-hash="expenseHash" :creator-name="expense?.creator_name" :recipient-names="recipientNames")
 
     ExpenseCreateDialog(
       v-model="expenseOpen"
@@ -134,15 +118,14 @@ import { useFirstLoad } from 'src/shared/lib/composables';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { asDateInput, asText } from 'src/shared/lib/utils';
 import { formatAsset2Digits, splitAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
-import { BaseBadge, BaseButton, BaseCard, BaseForm, BaseInput, BaseTable, EmptyState, FieldHelp, type BaseTableColumn } from 'src/shared/ui/base';
-import { itemStatusLabel, itemStatusVariant, mechanicsLabel, proposalStatusLabel, proposalStatusVariant, shortExpenseId } from 'src/shared/lib/expenses';
+import { BaseButton, BaseCard, BaseForm, BaseInput, BaseTable, EmptyState, FieldHelp, type BaseTableColumn } from 'src/shared/ui/base';
 import { DataRow, DetailsDrawer, IdentityCell, PageHint } from 'src/shared/ui/domain';
 import { MoneyFlowGuide } from '../../widgets/MoneyFlowGuide';
 import { PROGRAM_WALLET_ICONS, PROGRAM_WALLET_ORDER, type ProgramWalletId } from '../../shared/lib/programWallets';
 import { FeeAmount } from '../../shared/ui/FeeAmount';
 import { StatStrip, type StatStripItem } from '../../shared/ui/StatStrip';
 import { PageTabs, type PageTab } from 'src/shared/ui/layout';
-import { ExpenseCreateDialog, ExpenseProposalList, type ExpenseCreatePayload, type ExpenseProposalListRow } from 'src/shared/ui/domain';
+import { ExpenseCreateDialog, ExpenseProposalDetails, ExpenseProposalList, type ExpenseCreatePayload, type ExpenseProposalListRow } from 'src/shared/ui/domain';
 import {
   EDU_EXPENSE_WALLET,
   createExpense,
@@ -258,8 +241,10 @@ function openExpense(hash: string): void {
   expenseHash.value = hash;
   expenseDetailsOpen.value = true;
 }
-/** Оплаченная сумма показывается, когда по расходу уже что-то выплачено. */
-const hasActual = (v: string | null | undefined) => Boolean(v) && Number.parseFloat(String(v)) > 0;
+// Имена получателей по позициям знает проекция программы — шасси хранит только учётные имена.
+const recipientNames = computed<Record<string, string>>(() =>
+  Object.fromEntries((expense.value?.items ?? []).filter((i) => i.recipient_name).map((i) => [i.item_hash, i.recipient_name as string])),
+);
 const movements = computed<IFundMovement[]>(() => fund.value?.movements ?? []);
 
 const movementColumns: BaseTableColumn<IFundMovement>[] = [
@@ -347,24 +332,6 @@ onMounted(load);
 }
 .edu-economy__dir--out {
   color: var(--p-ink-3);
-}
-/* Позиции расхода — отдельными блоками под сводкой. */
-.edu-expense__section {
-  margin-top: var(--p-5);
-  padding-top: var(--p-4);
-  border-top: 1px solid var(--p-line);
-}
-.edu-expense__head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--p-2);
-  margin-bottom: var(--p-2);
-}
-.edu-expense__title {
-  font-weight: 600;
-  color: var(--p-ink);
-  margin-bottom: var(--p-2);
 }
 .edu-economy__amount {
   display: flex;

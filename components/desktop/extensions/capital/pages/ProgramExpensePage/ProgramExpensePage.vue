@@ -6,122 +6,29 @@ q-page.program-expense-page
       q-icon(name='arrow_back', size='18px')
       span {{ $t('capital.programExpensePage.backToExpensesLabel') }}
 
+  //- Расход целиком показывает общий виджет шасси; странице Благороста остаётся
+  //- имя инициатора из своего пула и действие совета — закрыть расход.
   .program-expense-page__content
-    template(v-if='loading && !expense')
-      .skel
-        q-skeleton(type='rect', height='96px')
-        q-skeleton(type='rect', height='180px')
-        q-skeleton(type='rect', height='180px')
-
-    template(v-else-if='expense')
-      //- Статус сущности — вверху страницы (сумма — в сводке, не дублируем).
-      //- Справа — действие совета: закрыть расход, когда отчёт по смете подан.
-      .head-row
-        BaseChip(:variant='proposalStatusVariant(expense.status)') {{ proposalStatusLabel(expense.status) }}
+    ExpenseProposalDetails(
+      ref='details',
+      :expense-hash='expenseHash',
+      :creator-name='expense?.creator_name',
+      :recipient-names='recipientNames'
+    )
+      template(#actions='{ proposal }')
         BaseButton(
-          v-if='canClose',
+          v-if='canClose(proposal.status)',
           variant='primary',
           size='sm',
           :loading='closing',
           @click='closeExpense'
         ) {{ $t('capital.programExpensePage.closeExpenseLabel') }}
-
-      BaseCard
-        .summary
-          DataRow(:label='$t("capital.programExpensePage.memoNumberLabel")', :value='shortExpenseId(expense.expense_hash)', mono, copyable)
-          DataRow(:label='$t("capital.programExpensePage.initiatorLabel")', :value='expense.creator_name')
-          DataRow(:label='$t("capital.programExpensePage.createdLabel")', :value='formatDate(expense.created_at)')
-          DataRow(:label='$t("capital.programExpensePage.plannedAmountLabel")', :value='formatAsset2Digits(expense.total_planned)')
-          DataRow(
-            v-if='hasActual',
-            :label='$t("capital.programExpensePage.actualSpentLabel")',
-            :value='formatAsset2Digits(expense.total_actual)'
-          )
-
-      //- Документы расхода — заявление (СЗ) и протокол решения совета. Клик
-      //- открывает документ во всплывающем окне (доменный канон шасси).
-      .section(v-if='hasDocuments')
-        .t-eyebrow.t-muted {{ $t('capital.programExpensePage.documentsTitle') }}
-        BaseCard
-          ExpenseProposalDocuments(
-            :statement='proposal?.statement_doc',
-            :decision='proposal?.decision_doc'
-          )
-
-      .section
-        .t-eyebrow.t-muted {{ $t('capital.programExpensePage.itemsTitle') }}
-        .items
-          BaseCard(v-for='(item, idx) in itemRows', :key='item.item_hash')
-            .item
-              .item__head
-                .item__title {{ $t('capital.programExpensePage.itemTitle', { index: idx + 1, description: item.description }) }}
-                //- У отклонённой СЗ позиции ничего не «ожидают» — оплат не будет.
-                BaseChip(v-if='isDeclined', variant='neutral') {{ $t('capital.programExpensePage.notPaidChip') }}
-                BaseChip(v-else, :variant='itemStatusVariant(item.status)') {{ itemStatusLabel(item.status, item.mechanics) }}
-              .item__rows
-                DataRow(:label='$t("capital.programExpensePage.recipientLabel")', :value='item.recipient_name')
-                DataRow(:label='$t("capital.programExpensePage.paymentMethodLabel")', :value='mechanicsLabel(item.mechanics)')
-                DataRow(:label='$t("capital.programExpensePage.itemPlannedAmountLabel")', :value='formatAsset2Digits(item.planned_amount)')
-                DataRow(v-if='itemHasActual(item)', :label='$t("capital.programExpensePage.itemActualAmountLabel")', :value='formatAsset2Digits(item.actual_amount)')
-                DataRow(
-                  v-if='item.requisite',
-                  :label='$t("capital.programExpensePage.recipientDetailsLabel")',
-                  :value='item.requisite.requisites'
-                )
-                DataRow(
-                  v-if='item.requisite?.payment_purpose',
-                  :label='$t("capital.programExpensePage.paymentPurposeLabel")',
-                  :value='item.requisite.payment_purpose'
-                )
-              .item__files(v-if='item.files.length')
-                .t-sm.t-muted {{ $t('capital.programExpensePage.supportingDocsTitle') }}
-                button.file-link(
-                  v-for='file in item.files',
-                  :key='file.id',
-                  type='button',
-                  :disabled='openingId === file.id',
-                  @click='openFile(file)'
-                )
-                  q-icon(name='attach_file', size='16px')
-                  span {{ fileKindLabel(file.kind) }}: {{ fileLabel(file) }}
-                  q-spinner(v-if='openingId === file.id', size='14px')
-
-      //- Документы, не привязанные к конкретной позиции (или с потерянной
-      //- привязкой) — чтобы любой приложенный файл можно было открыть со страницы.
-      .section(v-if='unmatchedFiles.length')
-        .t-eyebrow.t-muted {{ $t('capital.programExpensePage.otherDocsTitle') }}
-        BaseCard
-          .item__files.item__files--flat
-            button.file-link(
-              v-for='file in unmatchedFiles',
-              :key='file.id',
-              type='button',
-              :disabled='openingId === file.id',
-              @click='openFile(file)'
-            )
-              q-icon(name='attach_file', size='16px')
-              span {{ fileKindLabel(file.kind) }}: {{ fileLabel(file) }}
-              q-spinner(v-if='openingId === file.id', size='14px')
-
-      .section
-        .t-eyebrow.t-muted {{ $t('capital.programExpensePage.statusHistoryTitle') }}
-        BaseCard
-          ActivityTimeline(:events='timeline', group-by-date)
-
-    .empty(v-else)
-      EmptyState(
-        :title='$t("capital.programExpensePage.notFoundTitle")',
-        :body='$t("capital.programExpensePage.notFoundBody")'
-      )
-        template(#icon)
-          q-icon(name='receipt_long', size='48px')
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useLiveReload } from 'src/shared/lib/realtime';
 import { CAPITAL_LIVE_TABLES } from 'app/extensions/capital/shared/lib/live';
-import { uiLocale } from 'src/shared/i18n';
 import { useRoute, useRouter } from 'vue-router';
 import { Zeus } from '@coopenomics/sdk';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
@@ -129,76 +36,43 @@ import { useSystemStore } from 'src/entities/System/model';
 import { useSessionStore } from 'src/entities/Session';
 import { useDesktopStore } from 'src/entities/Desktop';
 import { BaseButton } from 'src/shared/ui/base/BaseButton';
-import { BaseCard } from 'src/shared/ui/base/BaseCard';
-import { BaseChip } from 'src/shared/ui/base/BaseChip';
-import { EmptyState } from 'src/shared/ui/base/EmptyState';
-import { DataRow } from 'src/shared/ui/domain/DataRow';
-import { ActivityTimeline } from 'src/shared/ui/domain/ActivityTimeline';
-import type { ActivityEvent } from 'src/shared/ui/domain/ActivityTimeline';
-import { ExpenseProposalDocuments } from 'src/shared/ui/domain/ExpenseProposalDocuments';
-import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
+import { ExpenseProposalDetails } from 'src/shared/ui/domain/ExpenseProposalDetails';
 import { api } from 'app/extensions/capital/entities/ProgramExpense/api';
-import {
-  useProgramExpenseStore,
-  proposalStatusLabel,
-  proposalStatusVariant,
-  itemStatusLabel,
-  itemStatusVariant,
-  mechanicsLabel,
-  fileKindLabel,
-  shortExpenseId,
-  type IExpenseProposalAggregate,
-  type IExpenseProposalFile,
-  type IExpenseRequisite,
-  type IProgramExpenseItem,
-} from 'app/extensions/capital/entities/ProgramExpense/model';
+import { useProgramExpenseStore, shortExpenseId } from 'app/extensions/capital/entities/ProgramExpense/model';
 import { t } from '../../i18n';
 
 const route = useRoute();
 const router = useRouter();
 const system = useSystemStore();
 const session = useSessionStore();
+const desktopStore = useDesktopStore();
+const store = useProgramExpenseStore();
 
 function goBack(): void {
   void router.push({ name: 'capital-program-expenses' });
 }
-const desktopStore = useDesktopStore();
-const store = useProgramExpenseStore();
 
 const expenseHash = computed(() => String(route.params.expense_hash ?? ''));
 const expense = computed(() => store.programExpense);
+const details = ref<InstanceType<typeof ExpenseProposalDetails> | null>(null);
 
-const proposal = ref<IExpenseProposalAggregate | null>(null);
-const files = ref<IExpenseProposalFile[]>([]);
-const requisites = ref<IExpenseRequisite[]>([]);
-const loading = ref(false);
+// Имена получателей по позициям знает проекция Благороста — шасси хранит только учётные имена.
+const recipientNames = computed<Record<string, string>>(() =>
+  Object.fromEntries((expense.value?.items ?? []).filter((i) => i.recipient_name).map((i) => [i.item_hash, i.recipient_name as string])),
+);
 
 async function refresh(): Promise<void> {
   try {
-    loading.value = true;
-    const coopname = system.info.coopname;
-    const hash = expenseHash.value;
-    // Реквизиты и файлы — вспомогательные: их отказ не должен прятать смету.
-    const [, proposalResult, filesResult, requisitesResult] = await Promise.allSettled([
-      store.loadProgramExpense({ coopname, expense_hash: hash }),
-      api.loadExpenseProposal(hash),
-      api.loadExpenseFiles(coopname, hash),
-      api.loadExpenseRequisites(coopname, hash),
-    ]);
-    proposal.value = proposalResult.status === 'fulfilled' ? proposalResult.value : null;
-    files.value = filesResult.status === 'fulfilled' ? filesResult.value : [];
-    requisites.value = requisitesResult.status === 'fulfilled' ? requisitesResult.value : [];
+    await Promise.all([store.loadProgramExpense({ coopname: system.info.coopname, expense_hash: expenseHash.value }), details.value?.refresh()]);
   } catch (e) {
     FailAlert(e);
-  } finally {
-    loading.value = false;
   }
 }
 
 // Заявка на расход программы живёт по ленте изменений Благороста.
 useLiveReload(CAPITAL_LIVE_TABLES, () => refresh());
 
-onMounted(refresh);
+onMounted(() => void store.loadProgramExpense({ coopname: system.info.coopname, expense_hash: expenseHash.value }).catch(FailAlert));
 
 // Номер СЗ — в заголовок шапки на время просмотра страницы.
 watch(
@@ -210,28 +84,8 @@ watch(
 );
 onUnmounted(() => desktopStore.clearPageTitleOverride());
 
-const hasActual = computed(
-  () => parseFloat(expense.value?.total_actual ?? '0') > 0,
-);
-
-// Документы расхода (заявление/протокол) показываем, только когда пришёл их
-// html — иначе открывать нечего и секция не нужна.
-const hasDocuments = computed(
-  () =>
-    Boolean(proposal.value?.statement_doc?.rawDocument?.html) ||
-    Boolean(proposal.value?.decision_doc?.rawDocument?.html),
-);
-
-const isDeclined = computed(
-  () => expense.value?.status === Zeus.ExpenseProposalStatus.DECLINED,
-);
-
 // Закрытие расхода — финальное действие совета по поданному СЗ-отчёту.
-const canClose = computed(
-  () =>
-    expense.value?.status === Zeus.ExpenseProposalStatus.REPORT_SUBMITTED &&
-    (session.isChairman || session.isMember),
-);
+const canClose = (status: Zeus.ExpenseProposalStatus) => status === Zeus.ExpenseProposalStatus.REPORT_SUBMITTED && (session.isChairman || session.isMember);
 
 const closing = ref(false);
 async function closeExpense(): Promise<void> {
@@ -246,157 +100,6 @@ async function closeExpense(): Promise<void> {
     closing.value = false;
   }
 }
-
-type ItemRow = IProgramExpenseItem & {
-  requisite: IExpenseRequisite | null;
-  files: IExpenseProposalFile[];
-};
-
-// Чейн отдаёт хэши в верхнем регистре, файловое хранилище — в нижнем;
-// сравниваем без учёта регистра, иначе документы «исчезают» с позиций.
-const normalizeHash = (value?: string | null): string =>
-  (value ?? '').toLowerCase();
-
-const itemRows = computed<ItemRow[]>(() => {
-  const items = expense.value?.items ?? [];
-  return items.map((item) => ({
-    ...item,
-    requisite:
-      requisites.value.find(
-        (r) => normalizeHash(r.item_hash) === normalizeHash(item.item_hash),
-      ) ?? null,
-    files: files.value.filter(
-      (f) => normalizeHash(f.item_hash) === normalizeHash(item.item_hash),
-    ),
-  }));
-});
-
-// Файлы, не сопоставленные ни одной позиции (нет item_hash или позиция не
-// найдена) — выводятся отдельной секцией, чтобы их тоже можно было открыть.
-const unmatchedFiles = computed<IExpenseProposalFile[]>(() => {
-  const itemHashes = new Set(
-    (expense.value?.items ?? []).map((i) => normalizeHash(i.item_hash)),
-  );
-  return files.value.filter((f) => !itemHashes.has(normalizeHash(f.item_hash)));
-});
-
-function itemHasActual(item: IProgramExpenseItem): boolean {
-  return parseFloat(item.actual_amount ?? '0') > 0;
-}
-
-function formatDate(iso: string): string {
-  if (!iso) return '—';
-  try {
-    return new Date(iso).toLocaleString(uiLocale());
-  } catch {
-    return iso;
-  }
-}
-
-function fileLabel(file: IExpenseProposalFile): string {
-  if (file.original_filename) return file.original_filename;
-  const date = file.uploaded_at
-    ? new Date(String(file.uploaded_at)).toLocaleString(uiLocale())
-    : '';
-  return t('capital.programExpensePage.docDateLabel', { date });
-}
-
-// Списочные запросы файлов отдают записи без read_url (он короткоживущий) —
-// свежая ссылка запрашивается по id в момент клика.
-const openingId = ref<number | null>(null);
-async function openFile(file: IExpenseProposalFile): Promise<void> {
-  try {
-    openingId.value = file.id;
-    const url = await api.getExpenseFileReadUrl(file.id);
-    if (!url) throw new Error(t('capital.error.expenseFileUrlUnavailable'));
-    window.open(url, '_blank', 'noopener');
-  } catch (e) {
-    FailAlert(e);
-  } finally {
-    openingId.value = null;
-  }
-}
-
-// История состояний собирается из фактов, которые уже есть в данных:
-// дат СЗ, подписей документов (заявление/решение) и загруженных первичных
-// документов. Отдельной журнальной таблицы у шасси нет — финальные статусы
-// контракт хранит в рабочем состоянии, история действий живёт в парсере.
-function firstSignatureDate(
-  doc: NonNullable<IExpenseProposalAggregate>['statement_doc'] | null | undefined,
-): string | null {
-  const signatures = doc?.document?.signatures;
-  if (!signatures?.length) return null;
-  return signatures[0]?.signed_at ?? null;
-}
-
-const timeline = computed<ActivityEvent[]>(() => {
-  const e = expense.value;
-  if (!e) return [];
-  const events: ActivityEvent[] = [
-    {
-      id: 'created',
-      type: 'create',
-      title: t('capital.programExpensePage.historyMemoCreated'),
-      actor: e.creator_name,
-      date: e.created_at,
-    },
-  ];
-
-  const statementSigned = firstSignatureDate(proposal.value?.statement_doc);
-  if (statementSigned) {
-    events.push({
-      id: 'statement',
-      type: 'sign',
-      title: t('capital.programExpensePage.historyStatementSigned'),
-      actor: e.creator_name,
-      date: statementSigned,
-    });
-  }
-
-  const decisionSigned = firstSignatureDate(proposal.value?.decision_doc);
-  if (decisionSigned || e.status === Zeus.ExpenseProposalStatus.DECLINED) {
-    const declined = e.status === Zeus.ExpenseProposalStatus.DECLINED;
-    events.push({
-      id: 'decision',
-      type: declined ? 'reject' : 'sign',
-      title: declined
-        ? t('capital.programExpensePage.historyRejected')
-        : t('capital.programExpensePage.historyApproved'),
-      date: decisionSigned ?? e.updated_at,
-    });
-  }
-
-  files.value.forEach((f) => {
-    events.push({
-      id: `file-${f.id}`,
-      type: 'update',
-      title: t('capital.programExpensePage.historyDocAttached'),
-      description: fileLabel(f),
-      date: String(f.uploaded_at),
-    });
-  });
-
-  if (e.status === Zeus.ExpenseProposalStatus.REPORT_SUBMITTED) {
-    events.push({
-      id: 'report',
-      type: 'system',
-      title: t('capital.programExpensePage.historyReportSubmitted'),
-      date: e.updated_at,
-    });
-  }
-  if (e.status === Zeus.ExpenseProposalStatus.CLOSED) {
-    events.push({
-      id: 'closed',
-      type: 'system',
-      title: t('capital.programExpensePage.historyClosedCapitalized'),
-      date: e.updated_at,
-    });
-  }
-
-  return events.sort(
-    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
-  );
-});
 </script>
 
 <style lang="scss" scoped>
@@ -413,9 +116,6 @@ const timeline = computed<ActivityEvent[]>(() => {
 
 .program-expense-page__content {
   padding: var(--p-6, 24px);
-  display: flex;
-  flex-direction: column;
-  gap: var(--p-4);
 }
 
 @media (max-width: 768px) {
@@ -441,101 +141,5 @@ const timeline = computed<ActivityEvent[]>(() => {
 }
 .expense-back:hover {
   color: var(--p-ink);
-}
-
-.skel {
-  display: flex;
-  flex-direction: column;
-  gap: var(--p-3);
-}
-
-.head-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--p-3);
-}
-
-.summary {
-  display: flex;
-  flex-direction: column;
-  gap: var(--p-1);
-}
-
-.section {
-  display: flex;
-  flex-direction: column;
-  gap: var(--p-2);
-}
-
-.items {
-  display: flex;
-  flex-direction: column;
-  gap: var(--p-3);
-}
-
-.item {
-  display: flex;
-  flex-direction: column;
-  gap: var(--p-3);
-}
-
-.item__head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--p-2);
-}
-
-.item__title {
-  font-size: var(--p-fs-body);
-  font-weight: 600;
-  color: var(--p-ink);
-}
-
-.item__rows {
-  display: flex;
-  flex-direction: column;
-  gap: var(--p-1);
-}
-
-.item__files {
-  display: flex;
-  flex-direction: column;
-  gap: var(--p-1);
-  padding-top: var(--p-2);
-  border-top: 1px solid var(--p-line);
-}
-
-/* Вариант секции вне карточки позиции — без разделителя сверху. */
-.item__files--flat {
-  padding-top: 0;
-  border-top: none;
-}
-
-.file-link {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--p-1);
-  padding: 0;
-  border: none;
-  background: transparent;
-  color: var(--p-primary);
-  font-size: var(--p-fs-body-sm);
-  cursor: pointer;
-  text-align: left;
-
-  &:hover {
-    text-decoration: underline;
-  }
-
-  &:disabled {
-    opacity: 0.6;
-    cursor: default;
-  }
-}
-
-.empty {
-  margin-top: var(--p-6);
 }
 </style>
