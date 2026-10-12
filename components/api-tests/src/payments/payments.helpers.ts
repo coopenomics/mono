@@ -4,8 +4,11 @@
  */
 import { spawnSync } from 'node:child_process'
 import crypto from 'node:crypto'
-import type { Who } from '../core'
-import { CHAIN_URL, REPO_ROOT, gql } from '../core'
+// По модулям, не из '../core': индекс ядра тянет vitest, а помощники нужны и
+// засеву стенда документации (src/seed), который идёт вне прогона тестов.
+import type { Who } from '../core/auth'
+import { gql } from '../core/client'
+import { CHAIN_URL, REPO_ROOT } from '../core/env'
 
 /** Поля платежа, которые читают тесты. */
 export const PAYMENT_FIELDS = 'id hash username status type direction quantity symbol message blockchain_data can_change_status is_final payment_details{ amount_plus_fee amount_without_fee data }'

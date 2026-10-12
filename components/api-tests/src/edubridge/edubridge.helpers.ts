@@ -13,8 +13,18 @@
  */
 import crypto from 'node:crypto'
 import { Cooperative } from 'cooptypes'
-import type { Who } from '../core'
-import { CHAIRMAN, COOP, amount, declineDecisionOnChain, deposit, gql, signDocument, tokenOf, waitFor } from '../core'
+// Импорт по модулям, а не из '../core': индекс ядра тянет expect.ts с vitest,
+// а помощники нужны и вне прогона тестов — засеву стенда документации
+// (src/seed/edubridge), который идёт обычным esno.
+import type { Who } from '../core/auth'
+import { tokenOf } from '../core/auth'
+import { gql } from '../core/client'
+import { declineDecisionOnChain } from '../core/council'
+import { signDocument } from '../core/documents'
+import { COOP } from '../core/env'
+import { CHAIRMAN } from '../core/roles'
+import { waitFor } from '../core/wait'
+import { amount, deposit } from '../core/wallet'
 import type { AgendaRow, TemplateRow } from '../documents/docs-reports.helpers'
 import { agendaAll, agendaByHash, authorizeFreeDecision, blank, propose, templates, vote, waitTemplate } from '../documents/docs-reports.helpers'
 
@@ -433,8 +443,8 @@ export async function approveContract(approval: any): Promise<void> {
  * председателя. Ставку за час преподаватель себе не называет — её назначает
  * администратор при приёме; по умолчанию она равна плановой ставке курсов набора.
  */
-export async function onboardTeacher(who: Who, token: string, hourlyRate = PLANNED_RATE, opts: { approve?: boolean } = {}): Promise<void> {
-  await gql(token, SAVE_PROFILE, { d: { about: 'Веду занятия набора внешнего слоя' } })
+export async function onboardTeacher(who: Who, token: string, hourlyRate = PLANNED_RATE, opts: { approve?: boolean, about?: string } = {}): Promise<void> {
+  await gql(token, SAVE_PROFILE, { d: { about: opts.about ?? 'Веду занятия набора внешнего слоя' } })
   await signOffer(who, token, 'TEACHER')
   const { document, contract_number } = await signedContract(who, token)
   await gql(token, SIGN_CONTRACT, { d: { document, contract_number } })

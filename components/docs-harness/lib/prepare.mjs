@@ -36,7 +36,31 @@ function readRootEnv() {
   if (out.COOPBACK_HOST_PORT && !out.CONTROLLER_GRAPHQL_URL) {
     out.CONTROLLER_GRAPHQL_URL = `http://127.0.0.1:${out.COOPBACK_HOST_PORT}/v1/graphql`;
   }
+  // Засев «Образования» живёт в api-tests: там адрес контроллера зовётся API_URL.
+  if (out.CONTROLLER_GRAPHQL_URL && !out.API_URL) out.API_URL = out.CONTROLLER_GRAPHQL_URL;
   return out;
+}
+
+/**
+ * Команда pnpm, запускающая фазу группы. Группы Стола заказов и Благороста
+ * живут в boot (seed-<группа>/index.ts), группа «Образования» — в api-tests
+ * (src/seed/edubridge): её фазы собраны из помощников внешнего слоя тестов,
+ * которые уже умеют подключать ЦПП, подписывать оферты и договоры, вести
+ * подписки и занятия. Запускается тем же esno из boot — у api-tests своего нет.
+ */
+export function seedCommand(group, phase) {
+  if (group === 'edubridge') {
+    return ['--filter', '@coopenomics/boot', 'exec', 'esno',
+      path.join(REPO_ROOT, 'components/api-tests/src/seed/edubridge/index.ts'), phase];
+  }
+  return ['--filter', '@coopenomics/boot', 'exec', 'esno', `src/scripts/seed-${group}/index.ts`, phase];
+}
+
+/** Файл засева группы — есть ли у группы сценарий подготовки. */
+export function seedEntry(group) {
+  return group === 'edubridge'
+    ? path.join(REPO_ROOT, 'components/api-tests/src/seed/edubridge/index.ts')
+    : path.join(REPO_ROOT, 'components/boot', `src/scripts/seed-${group}/index.ts`);
 }
 
 /**
@@ -53,16 +77,11 @@ export function runPrepare(specs, { log = () => {} } = {}) {
     const m = String(spec).match(/^([\w-]+):([\w-]+)$/);
     if (!m) throw new Error(`prepare: не понимаю спецификацию «${spec}» (формат: <группа>:<фаза>)`);
     const [, group, phase] = m;
-    const scriptPath = `src/scripts/seed-${group}/index.ts`;
-    if (!fs.existsSync(path.join(REPO_ROOT, 'components/boot', scriptPath))) {
-      throw new Error(`prepare: нет seed-группы «${group}» (${scriptPath})`);
+    if (!fs.existsSync(seedEntry(group))) {
+      throw new Error(`prepare: нет seed-группы «${group}» (${path.relative(REPO_ROOT, seedEntry(group))})`);
     }
     log(`prepare ${spec}`);
-    const r = spawnSync(
-      'pnpm',
-      ['--filter', '@coopenomics/boot', 'exec', 'esno', scriptPath, phase],
-      { cwd: REPO_ROOT, stdio: 'inherit', env }
-    );
+    const r = spawnSync('pnpm', seedCommand(group, phase), { cwd: REPO_ROOT, stdio: 'inherit', env });
     if (r.status !== 0) throw new Error(`prepare ${spec} провалилась`);
     done.push(spec);
   }

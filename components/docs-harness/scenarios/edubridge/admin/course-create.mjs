@@ -1,0 +1,52 @@
+// Сценарий: администратор добавляет курс. Форма заполняется целиком, курс
+// сохраняется черновиком — публикация показана на странице курса.
+
+import { loginAsChairman } from '../../../lib/harness.mjs';
+import { EDU, openPage, settleAfterLogin, fill, pick } from '../../../lib/edu.mjs';
+
+export const meta = {
+  mode: 'docs',
+  feature: 'edubridge.admin',
+  title: 'Добавление курса',
+  docPath: 'new/edubridge/admin/course-create.md',
+  assetsDir: 'assets/new/edubridge/admin/course-create',
+  role: 'chairman',
+  prepare: ['edubridge:01-install', 'edubridge:02-course', 'edubridge:03-teacher'],
+};
+
+export default async ({ page, context, shot }) => {
+  await loginAsChairman(page, context);
+  await settleAfterLogin(page);
+
+  await openPage(page, EDU.admin('courses/new'), 'Название');
+  await shot(page, '01-empty-form', 'Форма нового курса: название, раздел и уровень, расписание, описание и учебная программа, затем занятия, взнос, выдача доступа и преподаватели.');
+
+  await fill(page, 'Название', 'Алгебра: уравнения и неравенства, 8 класс');
+  await pick(page, 'Раздел', EDU.SECTION_TITLE);
+  await fill(page, 'Расписание', 'Пн, Ср 16:00–17:30');
+  await fill(page, 'Описание', 'Линейные и квадратные уравнения, системы, неравенства и их системы. Каждое занятие — теория и практикум.', 'textarea');
+  await fill(page, 'Учебная программа', '1. Линейные уравнения\n2. Квадратные уравнения\n3. Системы уравнений\n4. Неравенства', 'textarea');
+  await shot(page, '02-course-basics', 'Заполнены название, раздел, расписание, описание и программа. Описание и программа видны в каталоге всем посетителям.');
+
+  await fill(page, 'Занятий в месяц', '8');
+  await fill(page, 'Длительность занятия', '90');
+  await fill(page, 'Занятий в программе', '32');
+  await fill(page, 'Гарантийный срок', '14');
+  await fill(page, 'Плановая ставка часа', '1000');
+  await page.waitForTimeout(800);
+  await shot(page, '03-lessons-and-fee', 'Занятия и взнос: число занятий в месяц и в программе, длительность занятия, гарантийный срок на материалы, плановая ставка часа. Ниже расчёт взноса ученика: оплата занятий по ставке и целевой членский взнос кооператива.');
+
+  const teacherSelect = page.locator('label:has-text("Назначить преподавателя")').first();
+  if (await teacherSelect.isVisible().catch(() => false)) {
+    await teacherSelect.click();
+    await page.locator('.q-menu .q-item').first().waitFor({ state: 'visible', timeout: 10000 }).catch(() => {});
+    await shot(page, '04-teacher-pick', 'Преподаватели курса выбираются из пайщиков с подписанным договором участия и назначенной ставкой. У курса может быть несколько преподавателей.');
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(400);
+  }
+
+  await page.locator('button:has-text("Добавить курс")').last().click();
+  await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
+  await page.waitForTimeout(2000);
+  await shot(page, '05-course-saved', 'Курс сохранён черновиком и открыт на своей странице. В каталог он попадёт после публикации.');
+};

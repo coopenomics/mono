@@ -516,8 +516,9 @@ cmd_ui() {
   cd "$HARNESS_DIR"
   case "$app" in
     marketplace) node bin/run-marketplace-all.mjs ;;
-    blagorost|edubridge)
-      echo "✗ сюита «$app» на стенде CI ещё не заведена (см. bin/run-marketplace-all.mjs как образец)" >&2
+    edubridge) node bin/run-edubridge-all.mjs ;;
+    blagorost)
+      echo "✗ сюита «$app» на стенде CI ещё не заведена: её раннер зовёт reboot:extra между группами" >&2
       exit 2 ;;
     *) echo "✗ неизвестное приложение «$app»" >&2; exit 2 ;;
   esac

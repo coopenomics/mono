@@ -245,9 +245,32 @@ nav:
 
   - Образование:
     - new/edubridge/index.md
+    - Подключение:
+      - Установка приложения: new/edubridge/admin/install.md
+      - Подключение ЦПП советом: new/edubridge/admin/configure.md
     - Стол администратора:
       - new/edubridge/admin/index.md
+      - Разделы и уровни: new/edubridge/admin/sections.md
+      - Курсы: new/edubridge/admin/courses.md
+      - Добавление курса: new/edubridge/admin/course-create.md
+      - Страница курса: new/edubridge/admin/course.md
+      - Площадки: new/edubridge/admin/platforms.md
+      - Преподаватели: new/edubridge/admin/teachers.md
+      - Ученики: new/edubridge/admin/members.md
+      - Взносы преподавателей: new/edubridge/admin/contributions.md
+      - Экономика программы: new/edubridge/admin/economy.md
     - Стол участника:
       - new/edubridge/member/index.md
+      - Каталог курсов: new/edubridge/member/catalog.md
+      - Карточка курса: new/edubridge/member/course.md
+      - Подключение ученика: new/edubridge/member/onboarding.md
+      - Обучающиеся: new/edubridge/member/learners.md
+      - Получение доступа к курсу: new/edubridge/member/subscribe.md
+      - Мои подписки: new/edubridge/member/subscriptions.md
     - Стол преподавателя:
       - new/edubridge/teacher/index.md
+      - Подключение преподавателя: new/edubridge/teacher/onboarding.md
+      - Профиль: new/edubridge/teacher/profile.md
+      - Назначения: new/edubridge/teacher/assignments.md
+      - Занятия: new/edubridge/teacher/lessons.md
+      - Расчёты: new/edubridge/teacher/settlement.md

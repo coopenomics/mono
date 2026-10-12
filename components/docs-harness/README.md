@@ -87,8 +87,12 @@ node lib/install.mjs <сценарий> [--md]       # кадры (и проза
 снимает. Это список для вычитки прозы — читать все кадры подряд не нужно.
 
 Новое приложение заводится в трёх местах: раннер `bin/run-<приложение>-all.mjs`
-(образец — `run-marketplace-all.mjs`), ветка `case` в `cmd_ui` в `stack.sh`,
-список `options` у `workflow_dispatch` в `.github/workflows/ui-docs.yaml`.
+(группы сценариев поверх общего `lib/suite.mjs`; образцы — `run-marketplace-all.mjs`,
+`run-edubridge-all.mjs`), ветка `case` в `cmd_ui` в `stack.sh`, список `options`
+у `workflow_dispatch` в `.github/workflows/ui-docs.yaml`. Стенд готовят фазы
+засева: Стол заказов — `components/boot/src/scripts/seed-marketplace`,
+«Образование» — `components/api-tests/src/seed/edubridge` (на помощниках
+внешнего слоя тестов); какая команда у какой группы — `lib/prepare.mjs`.
 
 ## Как добавить новый сценарий
 

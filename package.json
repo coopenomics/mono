@@ -92,6 +92,7 @@
     "test:integration": "bash scripts/run-integration-tests.sh",
     "test:cross-runtime": "pnpm --filter @coopenomics/auth run test:cross-runtime",
     "test:ui:marketplace": "node components/docs-harness/bin/run-marketplace-all.mjs",
+    "test:ui:edubridge": "node components/docs-harness/bin/run-edubridge-all.mjs",
     "registry:sync": "node components/docs-harness/bin/registry-sync.mjs",
     "docs:pull": "node components/docs-harness/bin/pull-run.mjs",
     "docs:diff": "node components/docs-harness/bin/diff-shots.mjs"

@@ -13,6 +13,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { seedCommand } from './prepare.mjs';
 
 const HARNESS_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const REPO_ROOT = path.resolve(HARNESS_ROOT, '../..');
@@ -51,7 +52,46 @@ export const KNOWN_FIXTURES = {
   novikov: { email: 'novikov@voskhod.coop', firstName: 'Сергей', lastName: 'Новиков', middleName: 'Петрович' },
   fedorova: { email: 'fedorova@voskhod.coop', firstName: 'Ольга', lastName: 'Фёдорова', middleName: 'Дмитриевна' },
   morozov: { email: 'morozov@voskhod.coop', firstName: 'Артём', lastName: 'Морозов', middleName: 'Сергеевич' },
+
+  // === Приложение «Образование» ===
+  // Преподаватель с договором и назначением на курс — рабочая фикстура столов
+  // преподавателя и администратора.
+  orlova: { email: 'orlova@voskhod.coop', firstName: 'Мария', lastName: 'Орлова', middleName: 'Викторовна' },
+  // Ученик (пайщик-родитель) с обучающимся и подпиской — рабочая фикстура стола ученика.
+  gromova: { email: 'gromova@voskhod.coop', firstName: 'Наталья', lastName: 'Громова', middleName: 'Петровна' },
+  // Пулы для сценариев подключения к столам: подпись оферты не отменяется,
+  // пайщик расходуется за прогон (см. freshEduFixture).
+  lebedev: { email: 'lebedev@voskhod.coop', firstName: 'Павел', lastName: 'Лебедев', middleName: 'Андреевич' },
+  volkova: { email: 'volkova@voskhod.coop', firstName: 'Ирина', lastName: 'Волкова', middleName: 'Сергеевна' },
+  kuznetsova: { email: 'kuznetsova@voskhod.coop', firstName: 'Елена', lastName: 'Кузнецова', middleName: 'Олеговна' },
+  belov: { email: 'belov@voskhod.coop', firstName: 'Георгий', lastName: 'Белов', middleName: 'Ильич' },
 };
+
+/** Пулы подключения к столам «Образования»: ученик и преподаватель. */
+export const EDU_GATE_POOLS = {
+  parent: ['lebedev', 'volkova'],
+  teacher: ['kuznetsova', 'belov'],
+};
+
+/**
+ * Пайщик, ещё не подключённый к столу «Образования» (ученика либо
+ * преподавателя). Расход — файл state/edu-gate-used.json, как у Стола заказов.
+ */
+export function freshEduFixture(kind, { log = () => {} } = {}) {
+  const pool = EDU_GATE_POOLS[kind];
+  if (!pool) throw new Error(`нет пула подключения «${kind}» (parent | teacher)`);
+  const usedFile = path.join(HARNESS_ROOT, 'state/edu-gate-used.json');
+  const used = fs.existsSync(usedFile) ? JSON.parse(fs.readFileSync(usedFile, 'utf8')) : {};
+  const taken = used[kind] ?? [];
+  const next = pool.find((name) => !taken.includes(name));
+  if (!next) {
+    throw new Error(`пул подключения «${kind}» исчерпан (${pool.join(', ')}): оферта не отменяется, нужен чистый стенд либо новые профили`);
+  }
+  ensureFixture(next, { log });
+  fs.mkdirSync(path.dirname(usedFile), { recursive: true });
+  fs.writeFileSync(usedFile, JSON.stringify({ ...used, [kind]: [...taken, next] }, null, 2));
+  return next;
+}
 
 // Кандидаты для сценария гейта, по порядку расходования.
 export const GATE_POOL = ['petrova', 'kozlova', 'novikov', 'fedorova', 'morozov'];
@@ -184,7 +224,7 @@ export function fixturesOfScenario(scenario, meta = {}) {
  * глобальном prepare: фаза 06b одобряет витрину, а до сценария модерации
  * витрина обязана оставаться PENDING (catalog-empty, offer-moderation).
  */
-export function runSeedPhase(phase, { log = () => {}, echo = false } = {}) {
+export function runSeedPhase(phase, { log = () => {}, echo = false, group = 'marketplace' } = {}) {
   const ports = harnessPorts();
   const pg = readEnvFile(path.join(REPO_ROOT, 'components/controller/.env'));
   const env = {
@@ -199,11 +239,7 @@ export function runSeedPhase(phase, { log = () => {}, echo = false } = {}) {
     CONTROLLER_GRAPHQL_URL: `http://127.0.0.1:${ports.controller}/v1/graphql`,
   };
   log(`seed-фаза ${phase}...`);
-  const r = spawnSync(
-    'pnpm',
-    ['--filter', '@coopenomics/boot', 'exec', 'esno', 'src/scripts/seed-marketplace/index.ts', phase],
-    { cwd: REPO_ROOT, env, encoding: 'utf8' }
-  );
+  const r = spawnSync('pnpm', seedCommand(group, phase), { cwd: REPO_ROOT, env, encoding: 'utf8' });
   if (r.status !== 0) {
     throw new Error(`seed-фаза ${phase} упала:
 ${(r.stderr || r.stdout || '').slice(-2000)}`);
