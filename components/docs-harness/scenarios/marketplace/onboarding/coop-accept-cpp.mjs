@@ -103,21 +103,24 @@ export default async ({ page, context, shot, env, expect }) => {
     // фаза 01: она подхватывает опубликованное решение по hash шага и не
     // создаёт дубликата. В жизни это делает совет на своём столе.
     runSeedPhase('01-l1-accept', { log: (m) => console.log(`[coop-accept-cpp] ${m}`) });
-
-    await page.reload({ waitUntil: 'domcontentloaded' });
-    await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
-    await page.waitForTimeout(2000);
-    await dismissOnboardingDialogs(page);
   }
+
+  // После утверждения страница подключения закрывается (маршрут с gate), а у
+  // председателя открываются рабочие страницы стола администратора.
+  await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/market-admin/orders`, { waitUntil: 'domcontentloaded' });
+  await page.waitForSelector('text=Реестр заказов', { timeout: 60000 });
+  await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
+  await page.waitForTimeout(1500);
+  await dismissOnboardingDialogs(page);
 
   await shot(
     page,
     '04-connected',
-    'ЦПП «Стол заказов» подключена: совет утвердил Положение и шаблон оферты, оферта зарегистрирована, пайщики могут пользоваться столом. Ниже разблокированы оставшиеся шаги подключения — кооперативные участки и пункты выдачи.',
+    'ЦПП «Стол заказов» подключена: совет утвердил Положение и шаблон оферты, оферта зарегистрирована. Страница подключения закрылась, у председателя открылся стол администратора — первым делом реестр заказов.',
     {
       expect: async (p) => {
-        await expect(p.locator('text=«Стол заказов» подключена').first())
-          .toBeVisible({ timeout: 30000 });
+        await expect(p.locator('text=Реестр заказов').first()).toBeVisible({ timeout: 30000 });
+        await expect(p.locator('text=Недостаточно прав доступа')).toHaveCount(0);
       },
     },
   );

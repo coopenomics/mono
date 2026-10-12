@@ -447,11 +447,12 @@ export async function onboardTeacher(who: Who, token: string, hourlyRate = PLANN
   // Оферта первой: без неё сервер отказывает в сохранении профиля
   // (EDUBRIDGE_TEACHER_OFFER_REQUIRED) — так показал засев стенда документации 12.10.2026.
   await signOffer(who, token, 'TEACHER')
+  await gql(token, SAVE_PROFILE, { d: { about: opts.about ?? 'Веду занятия набора внешнего слоя' } })
   // Подпись оферты уходит в цепь; право преподавателя сервер выводит из зеркала
   // узла (PROGRAM_AGREEMENT_PORT), которое приходит позже ответа мутации —
-  // сохраняем профиль, как только сервер его принимает.
+  // договор подписываем, когда сервер уже видит оферту.
   await waitFor(async () => {
-    const r = await gqlRaw<any>(token, SAVE_PROFILE, { d: { about: opts.about ?? 'Веду занятия набора внешнего слоя' } })
+    const r = await gqlRaw<any>(token, MY_CONTRACT)
     if (!r.errors.length) return true
     if (r.errors[0].code === 'EDUBRIDGE_TEACHER_OFFER_REQUIRED') return null
     throw new ApiError(r.errors, r.status)

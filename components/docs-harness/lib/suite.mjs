@@ -22,7 +22,7 @@ import { ensureChairmanPassword, ensureChairmanTokens, ensureTokens, forgetLogin
 const HARNESS_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const REPO_ROOT = path.resolve(HARNESS_ROOT, '../..');
 
-export async function runSuite({ app, groups, args = [] }) {
+export async function runSuite({ app, groups, args = [], extraFixtures = [] }) {
 const GROUPS = groups;
   const REBOOT = args.includes('--reboot');
   const only = (args.find((a) => a.startsWith('--only=')) ?? '').replace('--only=', '');
@@ -167,7 +167,8 @@ const GROUPS = groups;
   // Пайщиков создаём заранее и все сразу, а не по ходу: создание идёт через
   // цепь и занимает секунды, и делать это в середине прогона — значит мешать
   // шум инфраструктуры с результатом сценария.
-  const needed = new Set();
+  // Пайщики, которых ждут фазы засева, а не сами сценарии (например, председатели участков).
+  const needed = new Set(extraFixtures);
   for (const item of plan) {
     for (const n of fixturesOfScenario(item.scenario)) needed.add(n);
   }

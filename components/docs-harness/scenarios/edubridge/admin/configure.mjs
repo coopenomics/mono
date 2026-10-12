@@ -44,15 +44,15 @@ export default async ({ page, context, shot, expect }) => {
 
     // Голоса совета, протоколы, утверждение форм документов — фаза засева.
     runSeedPhase('01-install', { group: 'edubridge', log: (m) => console.log(`[configure] ${m}`) });
-    await page.reload({ waitUntil: 'domcontentloaded' });
-    await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
-    await page.waitForTimeout(2000);
-    await dismissOnboardingDialogs(page);
   }
 
-  await shot(page, '04-connected', 'ЦПП «Образование» подключена: совет утвердил положение, шаблоны оферт и договора. Пайщики могут вступать по офертам и записываться на курсы.', {
+  // После утверждения страница подключения закрывается (маршрут с gate), а у
+  // председателя открываются рабочие страницы стола администратора.
+  await openPage(page, EDU.admin('courses'), 'Курсы');
+  await shot(page, '04-connected', 'ЦПП «Образование» подключена: совет утвердил положение, шаблоны оферт и договора. Страница подключения закрылась, у председателя открылся стол администратора — первым делом курсы.', {
     expect: async (p) => {
-      await expect(p.locator('text=ЦПП «Образование» подключена').first()).toBeVisible({ timeout: 60000 });
+      await expect(p.locator('text=Курсов пока нет').or(p.locator('text=Курсы')).first()).toBeVisible({ timeout: 60000 });
+      await expect(p.locator('text=Недостаточно прав доступа')).toHaveCount(0);
     },
   });
 };

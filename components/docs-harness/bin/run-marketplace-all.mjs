@@ -187,4 +187,6 @@ const GROUPS = [
 ];
 
 
-process.exit(await runSuite({ app: 'marketplace', groups: GROUPS, args: process.argv.slice(2) }));
+// Фазы засева ждут всех председателей участков и пул гейта (chairmyt — участок
+// Мытищи, petrova — первый кандидат пула), хотя сценарии их по имени не зовут.
+process.exit(await runSuite({ app: 'marketplace', groups: GROUPS, args: process.argv.slice(2), extraFixtures: ['chairmyt', 'petrova'] }));
