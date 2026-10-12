@@ -27,9 +27,26 @@ import DOMPurify from 'dompurify';
  */
 export function sanitizeDocumentHtml(html: string | null | undefined): string {
   if (!html) return '';
-  return DOMPurify.sanitize(html, {
-    ADD_TAGS: ['style'],
-    ADD_ATTR: ['class', 'id'],
-    WHOLE_DOCUMENT: true,
-  });
+  return collapseTemplateLineBreaks(
+    DOMPurify.sanitize(html, {
+      ADD_TAGS: ['style'],
+      ADD_ATTR: ['class', 'id'],
+      WHOLE_DOCUMENT: true,
+    }),
+  );
+}
+
+/**
+ * Переносы строк из исходника шаблона — не часть документа. Читалка держит
+ * `white-space: pre-wrap`, чтобы сохранять переносы в тексте полей (причина
+ * обращения, описание), но при этом каждый перенос между тегами
+ * отформатированного шаблона превращался в пустую строку: заявление выглядело
+ * раздвинутым по сравнению с шаблонами, написанными в одну строку. Переносы
+ * с отступами рядом с тегом убираем, перенос внутри текста остаётся.
+ */
+export function collapseTemplateLineBreaks(html: string): string {
+  return html
+    .replace(/>[ \t]*\n\s*</g, '><')
+    .replace(/>[ \t]*\n\s*/g, '> ')
+    .replace(/[ \t]*\n\s*</g, ' <');
 }
