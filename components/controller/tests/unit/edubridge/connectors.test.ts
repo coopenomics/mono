@@ -142,6 +142,17 @@ describe('GetCourseConnector', () => {
     expect(String(fetchMock.mock.calls[0]![0])).toContain('https://jivojum.ru/pl/api/account/groups?key=KEY');
   });
 
+  it('адрес школы с шаблоном из настроек: готовый домен в поле «Аккаунт» окончание не удваивает', async () => {
+    const withTemplate = (account: string) =>
+      new GetCourseConnector({ get: async () => ({ account, api_key: 'KEY' }), apiBase: async () => 'https://{account}.getcourse.ru' } as any);
+    for (const [account, host] of [['jivojum', 'jivojum.getcourse.ru'], ['jivojum.getcourse.ru', 'jivojum.getcourse.ru'], ['jivojum.ru', 'jivojum.ru']]) {
+      fetchMock.mockReset();
+      fetchMock.mockReturnValueOnce(ok({ success: true, info: [] }));
+      await withTemplate(account).ping('voskhod');
+      expect(String(fetchMock.mock.calls[0]![0])).toContain(`https://${host}/pl/api/account/groups`);
+    }
+  });
+
   it('школа не отвечает: проверка подключения называет адрес и причину, а не «fetch failed»', async () => {
     fetchMock.mockRejectedValueOnce(Object.assign(new TypeError('fetch failed'), { cause: { code: 'ENOTFOUND' } }));
     const result = await new GetCourseConnector(cfg({ getcourse_account: 'нет-такой', getcourse_api_key: 'KEY' })).ping('voskhod');

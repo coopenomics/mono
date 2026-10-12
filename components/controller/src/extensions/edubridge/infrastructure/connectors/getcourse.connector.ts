@@ -88,8 +88,9 @@ export class GetCourseConnector implements AccessCarrierConnector {
   /** Адрес API школы: из настроек расширения, по умолчанию — площадка GetCourse; `{account}` — аккаунт школы. */
   private async apiBase(account: string): Promise<string> {
     const template = await this.credentials.apiBase?.(this.carrier);
-    if (template) return template.replace('{account}', account).replace(/\/+$/, '');
-    return `https://${getcourseHost(account)}`;
+    if (!template) return `https://${getcourseHost(account)}`;
+    // Обычный шаблон площадки: в поле может стоять уже готовый домен — окончание к нему не дописывается.
+    return template.replace('{account}.getcourse.ru', getcourseHost(account)).replace('{account}', account.trim()).replace(/\/+$/, '');
   }
 
   private readonly groupsCache = new Map<string, { at: number; groups: GetcourseGroup[] }>();

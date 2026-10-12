@@ -16,18 +16,20 @@
           BaseButton(variant="secondary" size="sm" :loading="busy === c.carrier + ':toggle'" @click="toggle(c)") {{ c.enabled ? $t('edubridge.adminConnectorsPage.disableButton') : $t('edubridge.adminConnectorsPage.enableButton') }}
           BaseButton(variant="secondary" size="sm" :disabled="!c.configured" :loading="busy === c.carrier" @click="check(c)") {{ $t('edubridge.adminConnectorsPage.checkButton') }}
 
-  BaseDialog(v-model="credentialsOpen" :title="editing ? $t(`edubridge.adminConnectorsPage.credentialsDialogTitleFor`, { carrier: carrierLabel(editing.carrier) }) : $t('edubridge.adminConnectorsPage.credentialsDialogTitle')" size="md")
+  BaseDialog(v-model="credentialsOpen" :title="editing ? $t(`edubridge.adminConnectorsPage.credentialsDialogTitleFor`, { carrier: carrierLabel(editing.carrier) }) : $t('edubridge.adminConnectorsPage.credentialsDialogTitle')" size="lg")
     BaseForm(v-if="editing" :loading="savingCredentials" @submit="saveCredentials")
-      BaseInput(
-        v-for="f in editing.credential_fields"
-        :key="f.key"
-        v-model="credentialValues[f.key]"
-        :label="f.label"
-        :type="f.secret ? 'password' : 'text'"
-        :hint="f.is_set ? (f.note ? $t('edubridge.adminConnectorsPage.credentialKeepHintWithNote', { note: f.note }) : $t('edubridge.adminConnectorsPage.credentialKeepHint')) : (f.note ?? undefined)"
-        :required="!f.is_set"
-        mono
-      )
+      //- Подсказка поля занимает до двух строк: поля разнесены, чтобы она не налезала на соседнее.
+      .edu-connectors__fields
+        BaseInput(
+          v-for="f in editing.credential_fields"
+          :key="f.key"
+          v-model="credentialValues[f.key]"
+          :label="f.label"
+          :type="f.secret ? 'password' : 'text'"
+          :hint="f.is_set ? (f.note ? $t('edubridge.adminConnectorsPage.credentialKeepHintWithNote', { note: f.note }) : $t('edubridge.adminConnectorsPage.credentialKeepHint')) : (f.note ?? undefined)"
+          :required="!f.is_set"
+          mono
+        )
       template(#footer)
         .row.justify-end.q-gutter-sm
           BaseButton(variant="ghost" type="button" :disabled="savingCredentials" @click="credentialsOpen = false") {{ $t('edubridge.adminConnectorsPage.cancel') }}
@@ -141,6 +143,12 @@ onMounted(load);
 </script>
 
 <style scoped>
+.edu-connectors__fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-6);
+  margin-bottom: var(--p-5);
+}
 .edu-connector {
   height: 100%;
   display: flex;
