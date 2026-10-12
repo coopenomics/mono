@@ -89,13 +89,26 @@ export class MarketplaceNotificationService implements OnModuleInit {
     this.logger.log('MarketplaceNotificationService инициализирован');
   }
 
+  /**
+   * Имя участка для текста уведомления. Участок — учётная запись со своим
+   * сертификатом; пайщику показывается его название, не учётное имя. Если
+   * сертификата нет, остаётся учётное имя — уведомление важнее формы.
+   */
+  private async branchDisplayName(braname: string): Promise<string> {
+    try {
+      return (await this.accountPort.getDisplayName(braname)) || braname;
+    } catch {
+      return braname;
+    }
+  }
+
   @OnEvent(MARKETPLACE_APL_SUPPLIER_SIGN_REQUEST_EVENT)
   async handleAplSupplierSignRequest(event: MarketplaceAplSupplierSignRequestEvent): Promise<void> {
     try {
       const supplierName = await this.accountPort.getDisplayName(event.supplier_account);
       const payload: Workflows.MarketplaceAplSupplierSignRequest.IPayload = {
         supplierName,
-        kuName: event.ku_name,
+        kuName: await this.branchDisplayName(event.ku_name),
         ttnNumber: event.ttn_number,
         expeditorName: event.expeditor_name,
         coopname: event.coopname,
@@ -126,12 +139,7 @@ export class MarketplaceNotificationService implements OnModuleInit {
     try {
       const operatorName = await this.accountPort.getDisplayName(event.operator_account);
       const supplierName = await this.accountPort.getDisplayName(event.supplier_account);
-      let kuName = event.braname;
-      try {
-        kuName = await this.accountPort.getDisplayName(event.braname);
-      } catch {
-        /* оставляем braname */
-      }
+      const kuName = await this.branchDisplayName(event.braname);
       const payload: Workflows.MarketplaceAplReceptionCancelledBySupplier.IPayload = {
         operatorName,
         supplierName,
@@ -294,12 +302,7 @@ export class MarketplaceNotificationService implements OnModuleInit {
   async handleOrderReadyToReceive(event: MarketplaceOrderReadyToReceiveEvent): Promise<void> {
     try {
       const ordererName = await this.accountPort.getDisplayName(event.orderer_account);
-      let kuName = event.braname;
-      try {
-        kuName = await this.accountPort.getDisplayName(event.braname);
-      } catch {
-        /* оставляем braname */
-      }
+      const kuName = await this.branchDisplayName(event.braname);
       // Верификация личности (105-28): неверифицированному получателю напоминаем
       // взять паспорт — без базового уровня оператор не откроет выдачу.
       let passportReminder = '';
@@ -429,12 +432,7 @@ export class MarketplaceNotificationService implements OnModuleInit {
     }
     try {
       const ordererName = await this.accountPort.getDisplayName(event.orderer_account);
-      let kuName = event.braname;
-      try {
-        kuName = await this.accountPort.getDisplayName(event.braname);
-      } catch {
-        /* оставляем braname */
-      }
+      const kuName = await this.branchDisplayName(event.braname);
       const decisionHuman = t('marketplace.notification.inspectionInviteTitle', { kuName });
       const payload: Workflows.MarketplaceReturnClaimDecided.IPayload = {
         ordererName,
@@ -523,12 +521,7 @@ export class MarketplaceNotificationService implements OnModuleInit {
   async handleReturnCouncilDecided(event: MarketplaceReturnCouncilDecidedEvent): Promise<void> {
     try {
       const ordererName = await this.accountPort.getDisplayName(event.orderer_account);
-      let kuName = event.delivery_braname;
-      try {
-        kuName = await this.accountPort.getDisplayName(event.delivery_braname);
-      } catch {
-        /* оставляем braname */
-      }
+      const kuName = await this.branchDisplayName(event.delivery_braname);
       const payload: Workflows.MarketplaceReturnCouncilDecided.IPayload = {
         ordererName,
         kuName,
@@ -562,12 +555,7 @@ export class MarketplaceNotificationService implements OnModuleInit {
   async handleIssuanceDecidedOffline(event: MarketplaceIssuanceDecidedOfflineEvent): Promise<void> {
     try {
       const ordererName = await this.accountPort.getDisplayName(event.orderer_account);
-      let kuName = event.braname;
-      try {
-        kuName = await this.accountPort.getDisplayName(event.braname);
-      } catch {
-        /* оставляем braname */
-      }
+      const kuName = await this.branchDisplayName(event.braname);
       const payload: Workflows.MarketplaceIssuanceDecided.IPayload = {
         ordererName,
         kuName,
@@ -712,12 +700,7 @@ export class MarketplaceNotificationService implements OnModuleInit {
       const ordererName = await this.accountPort.getDisplayName(event.orderer_account);
       // КУ резолвится в человеческое имя участка (account_kind=branch); при сбое
       // деградируем к braname, чтобы текст не остался пустым.
-      let kuName = event.delivery_braname;
-      try {
-        kuName = await this.accountPort.getDisplayName(event.delivery_braname);
-      } catch {
-        /* оставляем braname */
-      }
+      const kuName = await this.branchDisplayName(event.delivery_braname);
       const reasonExcerpt =
         event.reason.length > 240 ? event.reason.slice(0, 240) + '…' : event.reason;
       const payload: Workflows.MarketplaceOrderDeclinedBySupplier.IPayload = {
@@ -752,8 +735,8 @@ export class MarketplaceNotificationService implements OnModuleInit {
       const reasonExcerpt = reason.length > 240 ? reason.slice(0, 240) + '…' : reason;
       const payload: Workflows.MarketplaceSupplierClaimIssued.IPayload = {
         supplierName,
-        kuName: event.braname,
-        amount: event.amount,
+        kuName: await this.branchDisplayName(event.braname),
+        amount: AmountFormatterUtils.formatAmountSafe(event.amount),
         reasonExcerpt,
         coopname: event.coopname,
         claim_id: event.claim_id,
