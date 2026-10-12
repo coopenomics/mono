@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { isWorkerTurn, reportWindowEndsAt } from '../../domain/economy/time-scale';
+import { isWorkerTurn } from '../../domain/economy/time-scale';
 import { chainErrorCode, platformSettings } from '@coopenomics/extension-kit';
 import { LOGGER_PORT, NOTIFICATION_PORT, type ILoggerPort, type INotificationPort } from '@coopenomics/innercoop';
 import { Workflows } from '@coopenomics/notifications';
@@ -14,6 +14,7 @@ import { EdubridgeAccessOutboxService } from '../services/edubridge-access-outbo
 import { EdubridgeEnrollmentService } from '../services/edubridge-enrollment.service';
 import { EdubridgeFundsService } from '../services/edubridge-funds.service';
 import { EdubridgeGuaranteeService } from '../services/edubridge-guarantee.service';
+import { EdubridgeSettlementService } from '../services/edubridge-settlement.service';
 
 /**
  * Граница оплаченного периода: предупредить заранее, а по наступлению —
@@ -36,6 +37,7 @@ export class EdubridgeExpiryWorker {
     private readonly funds: EdubridgeFundsService,
     private readonly enrollmentService: EdubridgeEnrollmentService,
     private readonly guarantee: EdubridgeGuaranteeService,
+    private readonly settlement: EdubridgeSettlementService,
     @Inject(EDUBRIDGE_CHAIN_PORT) private readonly chain: EdubridgeChainPort,
     @Inject(NOTIFICATION_PORT) private readonly notifications: INotificationPort,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
@@ -53,7 +55,8 @@ export class EdubridgeExpiryWorker {
       // Сначала освобождается удержанное, которое уже нельзя потребовать назад, затем закрываются истёкшие подписки.
       await this.funds.unlockDue(coopname);
       await this.expire(coopname);
-      await this.closeReported(coopname);
+      // Отчитаны все занятия программы группы — её истёкшие подписки закрываются в цепи.
+      await this.settlement.closeReported(coopname);
       // Подписки, не закрывшиеся при выходе пайщика: возврат по ним должен дойти до кошелька программы.
       await this.enrollmentService.retryPendingClosures(coopname);
       // Заявления по гарантийным условиям, не дошедшие до совета из-за сбоя.
@@ -67,45 +70,28 @@ export class EdubridgeExpiryWorker {
   }
 
   /**
-   * Оплаченный срок вышел: доступ отзывается сразу. Подписка в цепи остаётся на
-   * срок отчёта преподавателя — по ней ещё проходит расчёт занятий, проведённых
-   * в оплаченный срок; закрывает её `closeReported`.
+   * Оплаченный срок вышел: доступ отзывается сразу. Подписка в цепи остаётся —
+   * по ней ещё проходит расчёт занятий, проведённых в оплаченный срок. Закрывает
+   * её `EdubridgeSettlementService`: по полному отчёту о программе либо по
+   * слову администратора.
    */
   async expire(coopname: string): Promise<number> {
     const due = await this.enrollments.findExpired(coopname, new Date());
     for (const enrollment of due) {
       try {
         enrollment.status = EduEnrollmentStatus.EXPIRED;
-        enrollment.chain_close_after = reportWindowEndsAt(enrollment.paid_until ?? new Date());
+        // Отметка «подписка ещё в цепи»: её снимает закрытие расчётов.
+        enrollment.chain_close_after = enrollment.paid_until ?? new Date();
         await this.enrollments.save(enrollment);
         const course = await this.courses.findById(coopname, enrollment.course_id);
         const trigger = `expire:${enrollment.id}:${enrollment.paid_until?.toISOString()}`;
         if (course) await this.outbox.enqueue({ coopname, enrollment, kind: EduAccessTaskKind.REVOKE, carrier: course.carrier, trigger });
-        this.logger.info(`[EDU.EXPIRY] подписка ${enrollment.id} истекла — доступ отзывается, расчёт в цепи закроется ${enrollment.chain_close_after.toISOString()}`);
+        this.logger.info(`[EDU.EXPIRY] подписка ${enrollment.id} истекла — доступ отзывается, расчёты по ней открыты до отчёта о занятиях`);
       } catch (e) {
         this.logger.warn(`[EDU.EXPIRY] подписка ${enrollment.sub_hash}: ${(e as Error)?.message ?? e}`);
       }
     }
     return due.length;
-  }
-
-  /** Срок на отчёт преподавателя вышел — подписка закрывается в цепи, остаток резерва уходит на кошелёк программы. */
-  async closeReported(coopname: string): Promise<number> {
-    let closed = 0;
-    for (const enrollment of await this.enrollments.findChainCloseDue(coopname, new Date())) {
-      try {
-        const trx = await this.closeInChain(coopname, enrollment.sub_hash, `close:${enrollment.id}`);
-        enrollment.chain_close_after = null;
-        await this.funds.afterClosed(coopname, enrollment);
-        await this.enrollments.save(enrollment);
-        closed += 1;
-        this.logger.info(`[EDU.EXPIRY] подписка ${enrollment.id}: срок на отчёт вышел — expiresub ${trx}`);
-      } catch (e) {
-        // Расчёт по открытому занятию ещё идёт — закрытие повторится на следующем проходе.
-        this.logger.warn(`[EDU.EXPIRY] expiresub ${enrollment.sub_hash}: ${(e as Error)?.message ?? e}`);
-      }
-    }
-    return closed;
   }
 
   /**

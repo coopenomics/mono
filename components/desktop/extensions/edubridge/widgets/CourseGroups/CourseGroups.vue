@@ -48,6 +48,15 @@ BaseCard(variant="default" :title="$t('edubridge.courseGroups.title')")
         DataRow(:label="$t('edubridge.adminCoursePage.groupProgramLabel')" :value="formatAsset2Digits(groupEconomy.group_program_month)" align="spread")
       .t-sm.t-muted.q-mt-sm.q-mb-md {{ $t('edubridge.courseGroups.termsNote') }}
 
+      //- Действующих подписок нет, а группа идёт: преподаватель ещё отчитывается о занятиях.
+      //- Отчитаны все занятия программы — группа завершится сама. Отчётов больше не будет — её завершает администратор.
+      BaseBanner.q-mb-md(v-if="canFinish" variant="info")
+        template(#icon)
+          q-icon(name="pending_actions")
+        | {{ details.settlement_pending > 0 ? $t('edubridge.courseGroups.finishNotePending', { count: details.settlement_pending }) : $t('edubridge.courseGroups.finishNote') }}
+        template(#action)
+          BaseButton(variant="secondary" size="sm" :loading="busy" @click="finishConfirm = true") {{ $t('edubridge.courseGroups.finish') }}
+
       BaseForm(v-if="!readonly && details.status === Zeus.EduGroupStatus.ACTIVE" :loading="busy" @submit="onSave")
         BaseInput(v-model="form.title" :label="$t('edubridge.courseGroups.titleLabel')" required)
         BaseInput(v-model="form.starts_at" :label="$t('edubridge.courseGroups.startsAtLabel')" type="date" stack-label :disabled="details.lessons_held > 0" :hint="details.lessons_held > 0 ? $t('edubridge.courseGroups.startLockedHint') : ''")
@@ -72,6 +81,13 @@ BaseCard(variant="default" :title="$t('edubridge.courseGroups.title')")
         .row.justify-end.q-gutter-sm
           BaseButton(variant="ghost" type="button" :disabled="busy" @click="createOpen = false") {{ $t('common.action.cancel') }}
           BaseButton(variant="primary" type="submit" :loading="busy") {{ $t('edubridge.courseGroups.create') }}
+
+  BaseDialog(v-model="finishConfirm" :title="$t('edubridge.courseGroups.finishConfirmTitle')" size="md")
+    .t-sm {{ $t('edubridge.courseGroups.finishConfirmText') }}
+    template(#footer)
+      .row.justify-end.q-gutter-sm
+        BaseButton(variant="ghost" :disabled="busy" @click="finishConfirm = false") {{ $t('common.action.cancel') }}
+        BaseButton(variant="danger" :loading="busy" @click="onFinish") {{ $t('edubridge.courseGroups.finish') }}
 </template>
 
 <script setup lang="ts">
@@ -84,11 +100,11 @@ import { useFirstLoad } from 'src/shared/lib/composables';
 import { useLiveReload } from 'src/shared/lib/realtime';
 import { EduLive } from '../../shared/lib/live';
 import { minutesOf, useTimeScale } from '../../shared/lib/timeScale';
-import { BaseBadge, BaseButton, BaseCard, BaseCheckbox, BaseDialog, BaseForm, BaseInput, BaseSelect, BaseTable, type BaseTableColumn } from 'src/shared/ui/base';
+import { BaseBadge, BaseBanner, BaseButton, BaseCard, BaseCheckbox, BaseDialog, BaseForm, BaseInput, BaseSelect, BaseTable, type BaseTableColumn } from 'src/shared/ui/base';
 import { DataRow, DetailsDrawer } from 'src/shared/ui/domain';
 import { fetchPlatformCourses, type ICourse } from '../../entities/Course';
 import { fetchCourseEconomy, type ICourseEconomy } from '../../entities/Economy';
-import { createGroup, fetchCourseGroups, updateGroup, type IGroup } from '../../entities/Group';
+import { createGroup, fetchCourseGroups, finishGroup, updateGroup, type IGroup } from '../../entities/Group';
 import { t } from '../../i18n';
 
 /**
@@ -199,6 +215,31 @@ function replace(group: IGroup): void {
   if (i >= 0) groups.value[i] = group;
   else groups.value.push(group);
   emit('changed');
+}
+
+const finishConfirm = ref(false);
+/** Группу завершает администратор, когда занятия начались и действующих подписок в ней нет. */
+const canFinish = computed(
+  () =>
+    !props.readonly &&
+    Boolean(details.value) &&
+    details.value?.status === Zeus.EduGroupStatus.ACTIVE &&
+    details.value?.learners_active === 0 &&
+    !details.value?.enrollment_open,
+);
+/** Завершение группы: расчёты закрываются, резерв за занятия без отчёта уходит на кошелёк программы. */
+async function onFinish(): Promise<void> {
+  if (!details.value) return;
+  busy.value = true;
+  try {
+    replace(await finishGroup(asText(details.value.id)));
+    finishConfirm.value = false;
+    SuccessAlert(t('edubridge.courseGroups.finished'));
+  } catch (e) {
+    FailAlert(e);
+  } finally {
+    busy.value = false;
+  }
 }
 
 async function onSave(): Promise<void> {

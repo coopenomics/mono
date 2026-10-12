@@ -10,6 +10,7 @@ import { EdubridgeLessonKyselyRepository } from '../../infrastructure/repositori
 import { courseMonths } from '../../domain/economy/course-fee.calculator';
 import { addMonths } from '../../domain/economy/course-period.calculator';
 import { isTimeCompressed } from '../../domain/economy/time-scale';
+import { isResumable } from '../../domain/lib/resumable';
 import { EdubridgeChainTermsService } from './edubridge-chain-terms.service';
 import { t } from '../../i18n';
 
@@ -108,12 +109,34 @@ export class EdubridgeGroupService {
 
   /** Срок программы группы вышел, действующих подписок нет — группа завершена; возвращает, завершена ли. */
   private async finishEnded(group: EdubridgeGroupRecord): Promise<boolean> {
-    if (!hasEnded(group) || (await this.hasLiveSubscriptions(group.coopname, group.id))) return false;
+    if (!hasEnded(group)) return false;
+    const rows = await this.enrollments.findByGroup(group.coopname, group.id);
+    // Действующие подписки либо открытые расчёты: преподаватель ещё отчитывается о занятиях — группа идёт.
+    if (rows.some((e) => isLive(e) || isResumable(e))) return false;
+    await this.markFinished(group);
+    this.logger.info(`Группа «${group.title}» завершена: срок программы вышел, расчёты закрыты`);
+    return true;
+  }
+
+  /**
+   * Администратор завершает группу: её программа закончена, отчётов по занятиям
+   * больше не будет. Расчёты по истёкшим подпискам к этому моменту закрывает
+   * вызывающий; с действующими подписками группа не завершается.
+   */
+  async finish(coopname: string, groupId: string): Promise<EdubridgeGroupRecord> {
+    const group = await this.get(coopname, groupId);
+    if (group.status !== EduGroupStatus.ACTIVE) throw DomainError.badRequest('EDUBRIDGE_GROUP_NOT_ACTIVE');
+    if (await this.hasLiveSubscriptions(coopname, groupId)) throw DomainError.badRequest('EDUBRIDGE_GROUP_FINISH_LIVE_SUBSCRIPTIONS');
+    await this.markFinished(group);
+    this.logger.info(`Группа «${group.title}» завершена администратором`);
+    await this.syncCourseStart(coopname, group.course_id);
+    return group;
+  }
+
+  private async markFinished(group: EdubridgeGroupRecord): Promise<void> {
     group.status = EduGroupStatus.CLOSED;
     group.enrollment_open = false;
     await this.groups.save(group);
-    this.logger.info(`Группа «${group.title}» завершена: срок программы вышел`);
-    return true;
   }
 
   /**
@@ -331,7 +354,7 @@ export class EdubridgeGroupService {
   /** Есть ли по группе действующие подписки. */
   async hasLiveSubscriptions(coopname: string, groupId: string): Promise<boolean> {
     const rows = await this.enrollments.findByGroup(coopname, groupId);
-    return rows.some((e) => e.status === EduEnrollmentStatus.ACTIVE || e.status === EduEnrollmentStatus.PENDING);
+    return rows.some(isLive);
   }
 
   /** По группе уже вносили взнос либо проводили занятие — её условия закреплены. */
@@ -356,6 +379,11 @@ export function programEndsAt(group: Pick<EdubridgeGroupRecord, 'starts_at' | 's
 function hasEnded(group: EdubridgeGroupRecord, now: Date = new Date()): boolean {
   const end = programEndsAt(group);
   return Boolean(end) && (end as Date).getTime() <= now.getTime();
+}
+
+/** Действующая подписка: оплачена либо ожидает подключения. */
+function isLive(e: Pick<EdubridgeEnrollmentRecord, 'status'>): boolean {
+  return e.status === EduEnrollmentStatus.ACTIVE || e.status === EduEnrollmentStatus.PENDING;
 }
 
 /**

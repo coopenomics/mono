@@ -32,6 +32,12 @@ export async function createGroup(data: ICreateGroupInput): Promise<IGroup> {
   return result;
 }
 
+/** Завершить группу: расчёты по её подпискам с вышедшим оплаченным сроком закрываются, резерв за занятия без отчёта уходит на кошелёк программы. */
+export async function finishGroup(group_id: string): Promise<IGroup> {
+  const { [Mutations.Edubridge.FinishGroup.name]: result } = await client.Mutation(Mutations.Edubridge.FinishGroup.mutation, { variables: { group_id } });
+  return result;
+}
+
 export async function updateGroup(data: IUpdateGroupInput): Promise<IGroup> {
   const { [Mutations.Edubridge.UpdateGroup.name]: result } = await client.Mutation(Mutations.Edubridge.UpdateGroup.mutation, { variables: { data } });
   return result;

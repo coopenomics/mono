@@ -56,6 +56,7 @@ export * as CreateAssignment from './createAssignment'
 export * as CloseAssignment from './closeAssignment'
 export * as DeleteCourse from './deleteCourse'
 /** Группы курса: открыть, изменить, завершить */
+export * as FinishGroup from './finishGroup'
 export * as CreateGroup from './createGroup'
 export * as UpdateGroup from './updateGroup'
 export * as SetAssignmentRate from './setAssignmentRate'

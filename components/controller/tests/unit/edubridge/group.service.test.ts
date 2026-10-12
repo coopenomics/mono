@@ -192,6 +192,23 @@ describe('EdubridgeGroupService — группа как единица расч�
     }
   });
 
+  it('срок программы вышел, а расчёты по истёкшей подписке открыты — группа идёт: преподаватель ещё отчитывается о занятиях', async () => {
+    const open = { status: EduEnrollmentStatus.EXPIRED, chain_close_after: new Date('2025-10-01') };
+    const waiting = make({ groups: [group({ starts_at: '2025-01-10' })], enrollments: [open] });
+    await expect(waiting.service.list('voskhod', 'C1')).resolves.toEqual([expect.objectContaining({ status: EduGroupStatus.ACTIVE })]);
+    // Расчёты закрыты — группа завершается сама.
+    const closed = make({ groups: [group({ starts_at: '2025-01-10' })], enrollments: [{ status: EduEnrollmentStatus.EXPIRED, chain_close_after: null }] });
+    await expect(closed.service.list('voskhod', 'C1')).resolves.toEqual([expect.objectContaining({ status: EduGroupStatus.CLOSED })]);
+  });
+
+  it('администратор завершает группу без действующих подписок; с действующей подпиской и завершённую повторно — отказ', async () => {
+    const idle = make({ groups: [group({ starts_at: '2025-01-10' })], enrollments: [{ status: EduEnrollmentStatus.EXPIRED, chain_close_after: new Date('2025-10-01') }] });
+    await expect(idle.service.finish('voskhod', 'G1')).resolves.toMatchObject({ status: EduGroupStatus.CLOSED, enrollment_open: false });
+    await expect(idle.service.finish('voskhod', 'G1')).rejects.toMatchObject({ code: 'EDUBRIDGE_GROUP_NOT_ACTIVE' });
+    const busy = make({ groups: [group()], enrollments: [{ status: EduEnrollmentStatus.ACTIVE }] });
+    await expect(busy.service.finish('voskhod', 'G1')).rejects.toMatchObject({ code: 'EDUBRIDGE_GROUP_FINISH_LIVE_SUBSCRIPTIONS' });
+  });
+
   it('подписку можно продлить у программы длиннее месяца, пока она идёт после оплаченного срока; программу в один месяц и оплаченную до конца — нельзя', async () => {
     // 16 занятий по 8 в месяц — программа в два месяца: с 01.09.2099 по 01.11.2099.
     const { service } = make({ groups: [group({ lessons_total: 16 })] });

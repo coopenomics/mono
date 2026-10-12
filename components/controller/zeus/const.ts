@@ -2082,6 +2082,9 @@ export const AllTypesProps: Record<string,any> = {
 		edubridgeDeleteCourse:{
 
 		},
+		edubridgeFinishGroup:{
+
+		},
 		edubridgeGuaranteeStatement:{
 			data:"EduGuaranteeStatementInput"
 		},
@@ -5932,6 +5935,7 @@ export const ReturnTypes: Record<string,any> = {
 		lessons_total:"Int",
 		pay_per_learner:"Boolean",
 		planned_hourly_rate:"String",
+		settlement_pending:"Int",
 		starts_at:"String",
 		starts_at_time:"DateTime",
 		status:"EduGroupStatus",
@@ -7805,6 +7809,7 @@ export const ReturnTypes: Record<string,any> = {
 		edubridgeCreateGroup:"EduGroup",
 		edubridgeDeclineContribution:"EduContribution",
 		edubridgeDeleteCourse:"Boolean",
+		edubridgeFinishGroup:"EduGroup",
 		edubridgeGuaranteeStatement:"GeneratedDocument",
 		edubridgeHoldContribution:"EduContribution",
 		edubridgeMarkLearnerRemoved:"EduLearnerAccount",

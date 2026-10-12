@@ -23,9 +23,10 @@ export class EduGroupDTO {
   @Field(() => String, { nullable: true, description: 'Выплачено преподавателям по группе' }) teacher_settled_total!: string | null;
   @Field(() => Int, { description: 'Участников с действующей подпиской' }) learners_active!: number;
   @Field(() => Int, { description: 'Проведено занятий' }) lessons_held!: number;
+  @Field(() => Int, { description: 'Подписок с вышедшим оплаченным сроком, расчёты по которым ещё открыты' }) settlement_pending!: number;
   @Field(() => Date) created_at!: Date;
 
-  constructor(e: EdubridgeGroupRecord, counts: { learners_active: number; lessons_held: number } = { learners_active: 0, lessons_held: 0 }) {
+  constructor(e: EdubridgeGroupRecord, counts: { learners_active: number; lessons_held: number; settlement_pending?: number } = { learners_active: 0, lessons_held: 0 }) {
     Object.assign(this, {
       id: e.id,
       course_id: e.course_id,
@@ -43,6 +44,7 @@ export class EduGroupDTO {
       teacher_reserve_balance: e.teacher_reserve_balance,
       teacher_settled_total: e.teacher_settled_total,
       created_at: e.created_at,
+      settlement_pending: 0,
       ...counts,
     });
   }

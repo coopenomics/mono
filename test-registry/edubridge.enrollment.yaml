@@ -20,6 +20,7 @@ sources:
     - components/controller/src/extensions/edubridge/application/services/edubridge-refund.ts
     - components/controller/src/extensions/edubridge/domain/economy/guarantee.ts
     - components/controller/src/extensions/edubridge/domain/economy/time-scale.ts
+    - components/controller/src/extensions/edubridge/application/services/edubridge-settlement.service.ts
     - components/controller/src/extensions/edubridge/application/services/edubridge-guarantee.service.ts
     - components/controller/src/extensions/edubridge/application/resolvers/edubridge-guarantee.resolver.ts
     - components/controller/src/extensions/edubridge/infrastructure/repositories/edubridge-guarantee-claim.kysely-repository.ts
@@ -570,9 +571,9 @@ cases:
   - id: edu.enroll.side.36
     level: backend
     kind: side
-    scenario: "Оплаченный срок подписки вышел. Преподаватель отчитывается о занятии этого срока позже. Участник опоздал с взносом и продлевает подписку. Срок на отчёт вышел."
-    expect: "Доступ отзывается в конце оплаченного срока, подписка в цепи живёт ещё семь суток: занятие оплаченного срока по ней рассчитывается, опоздавший участник её продлевает и получает доступ заново. По истечении срока на отчёт подписка закрывается в цепи, учёт курса выравнивается; идущий расчёт занятия закрытие откладывает."
-    test: components/controller/tests/unit/edubridge/expiry.worker.test.ts
+    scenario: "Оплаченный срок подписки вышел. Преподаватель отчитывается о занятии этого срока позже. Участник опоздал с взносом и продлевает подписку. Преподаватель отчитался обо всех занятиях программы. Администратор завершает группу."
+    expect: "Доступ отзывается в конце оплаченного срока, подписка в цепи живёт без срока: занятие оплаченного срока по ней рассчитывается, опоздавший участник её продлевает и получает доступ заново. Пока расчёты открыты, группа идёт. Подписка закрывается в цепи, когда отчитаны все занятия программы группы, либо когда администратор завершает группу; с действующими подписками группа не завершается; резерв за занятия без отчёта уходит на кошелёк программы. Идущий расчёт занятия закрытие откладывает."
+    test: components/controller/tests/unit/edubridge/settlement.service.test.ts
     external: unreachable
     external_reason: "окончание оплаченного месяца на полигоне не наступает: месяцы там календарные"
     status: written

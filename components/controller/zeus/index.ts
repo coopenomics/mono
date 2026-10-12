@@ -7374,6 +7374,8 @@ export type ValueTypes = {
 	pay_per_learner?:boolean | `@${string}`,
 	/** Плановая ставка часа в группе */
 	planned_hourly_rate?:boolean | `@${string}`,
+	/** Подписок с вышедшим оплаченным сроком, расчёты по которым ещё открыты */
+	settlement_pending?:boolean | `@${string}`,
 	/** Дата начала занятий группы */
 	starts_at?:boolean | `@${string}`,
 	/** Момент начала занятий с точностью до минуты — назван на стенде разработки со сжатым временем */
@@ -13530,6 +13532,7 @@ edubridgeCreateExpense?: [{	data: ValueTypes["EduCreateExpenseInput"] | Variable
 edubridgeCreateGroup?: [{	data: ValueTypes["EduCreateGroupInput"] | Variable<any, string>},ValueTypes["EduGroup"]],
 edubridgeDeclineContribution?: [{	data: ValueTypes["EduDeclineContributionInput"] | Variable<any, string>},ValueTypes["EduContribution"]],
 edubridgeDeleteCourse?: [{	id: ValueTypes["ID"] | Variable<any, string>},boolean | `@${string}`],
+edubridgeFinishGroup?: [{	group_id: ValueTypes["ID"] | Variable<any, string>},ValueTypes["EduGroup"]],
 edubridgeGuaranteeStatement?: [{	data: ValueTypes["EduGuaranteeStatementInput"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 edubridgeHoldContribution?: [{	data: ValueTypes["EduHoldContributionInput"] | Variable<any, string>},ValueTypes["EduContribution"]],
 edubridgeMarkLearnerRemoved?: [{	data: ValueTypes["EduMarkLearnerRemovedInput"] | Variable<any, string>},ValueTypes["EduLearnerAccount"]],
@@ -24189,6 +24192,8 @@ export type ResolverInputTypes = {
 	pay_per_learner?:boolean | `@${string}`,
 	/** Плановая ставка часа в группе */
 	planned_hourly_rate?:boolean | `@${string}`,
+	/** Подписок с вышедшим оплаченным сроком, расчёты по которым ещё открыты */
+	settlement_pending?:boolean | `@${string}`,
 	/** Дата начала занятий группы */
 	starts_at?:boolean | `@${string}`,
 	/** Момент начала занятий с точностью до минуты — назван на стенде разработки со сжатым временем */
@@ -30164,6 +30169,7 @@ edubridgeCreateExpense?: [{	data: ResolverInputTypes["EduCreateExpenseInput"]},b
 edubridgeCreateGroup?: [{	data: ResolverInputTypes["EduCreateGroupInput"]},ResolverInputTypes["EduGroup"]],
 edubridgeDeclineContribution?: [{	data: ResolverInputTypes["EduDeclineContributionInput"]},ResolverInputTypes["EduContribution"]],
 edubridgeDeleteCourse?: [{	id: ResolverInputTypes["ID"]},boolean | `@${string}`],
+edubridgeFinishGroup?: [{	group_id: ResolverInputTypes["ID"]},ResolverInputTypes["EduGroup"]],
 edubridgeGuaranteeStatement?: [{	data: ResolverInputTypes["EduGuaranteeStatementInput"]},ResolverInputTypes["GeneratedDocument"]],
 edubridgeHoldContribution?: [{	data: ResolverInputTypes["EduHoldContributionInput"]},ResolverInputTypes["EduContribution"]],
 edubridgeMarkLearnerRemoved?: [{	data: ResolverInputTypes["EduMarkLearnerRemovedInput"]},ResolverInputTypes["EduLearnerAccount"]],
@@ -40485,6 +40491,8 @@ export type ModelTypes = {
 	pay_per_learner: boolean,
 	/** Плановая ставка часа в группе */
 	planned_hourly_rate: string,
+	/** Подписок с вышедшим оплаченным сроком, расчёты по которым ещё открыты */
+	settlement_pending: number,
 	/** Дата начала занятий группы */
 	starts_at?: string | undefined | null,
 	/** Момент начала занятий с точностью до минуты — назван на стенде разработки со сжатым временем */
@@ -46371,6 +46379,8 @@ export type ModelTypes = {
 	edubridgeDeclineContribution: ModelTypes["EduContribution"],
 	/** Удалить курс без подписок и занятий */
 	edubridgeDeleteCourse: boolean,
+	/** Завершить группу: расчёты по подпискам с вышедшим оплаченным сроком закрываются, резерв за занятия без отчёта уходит на кошелёк программы */
+	edubridgeFinishGroup: ModelTypes["EduGroup"],
 	/** Сформировать заявление об аннулировании подписки по гарантийным условиям */
 	edubridgeGuaranteeStatement: ModelTypes["GeneratedDocument"],
 	/** Передать материалы занятия на ответственное хранение на срок гарантии курса */
@@ -57289,6 +57299,8 @@ export type GraphQLTypes = {
 	pay_per_learner: boolean,
 	/** Плановая ставка часа в группе */
 	planned_hourly_rate: string,
+	/** Подписок с вышедшим оплаченным сроком, расчёты по которым ещё открыты */
+	settlement_pending: number,
 	/** Дата начала занятий группы */
 	starts_at?: string | undefined | null,
 	/** Момент начала занятий с точностью до минуты — назван на стенде разработки со сжатым временем */
@@ -63605,6 +63617,8 @@ export type GraphQLTypes = {
 	edubridgeDeclineContribution: GraphQLTypes["EduContribution"],
 	/** Удалить курс без подписок и занятий */
 	edubridgeDeleteCourse: boolean,
+	/** Завершить группу: расчёты по подпискам с вышедшим оплаченным сроком закрываются, резерв за занятия без отчёта уходит на кошелёк программы */
+	edubridgeFinishGroup: GraphQLTypes["EduGroup"],
 	/** Сформировать заявление об аннулировании подписки по гарантийным условиям */
 	edubridgeGuaranteeStatement: GraphQLTypes["GeneratedDocument"],
 	/** Передать материалы занятия на ответственное хранение на срок гарантии курса */

@@ -19,6 +19,7 @@ const rawGroupSelector = {
   teacher_settled_total: true,
   learners_active: true,
   lessons_held: true,
+  settlement_pending: true,
   created_at: true,
 }
 const _validateGroup: MakeAllFieldsRequired<ValueTypes['EduGroup']> = rawGroupSelector

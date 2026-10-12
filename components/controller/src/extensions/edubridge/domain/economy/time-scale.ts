@@ -65,11 +65,3 @@ export function isWorkerTurn(now: Date = new Date()): boolean {
   const paceMinutes = Math.max(1, Math.round(workerPaceSeconds() / 60));
   return now.getMinutes() % paceMinutes === 0;
 }
-
-/** Срок на отчёт преподавателя о занятиях оплаченного срока, суток. */
-const REPORT_WINDOW_DAYS = 7;
-
-/** До какого момента подписка с вышедшим оплаченным сроком остаётся в цепи: срок на отчёт преподавателя. */
-export function reportWindowEndsAt(paidUntil: Date): Date {
-  return new Date(paidUntil.getTime() + REPORT_WINDOW_DAYS * eduDaySeconds() * 1000);
-}

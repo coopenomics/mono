@@ -22,6 +22,7 @@ import { EdubridgeGroupKyselyRepository } from '../infrastructure/repositories/e
 import { EdubridgeAdminKyselyRepository } from '../infrastructure/repositories/edubridge-admin.kysely-repository';
 import { EdubridgeReturnService } from './services/edubridge-return.service';
 import { EdubridgeFundsService } from './services/edubridge-funds.service';
+import { EdubridgeSettlementService } from './services/edubridge-settlement.service';
 import { EdubridgeChainTermsService } from './services/edubridge-chain-terms.service';
 import { EdubridgeGroupService } from './services/edubridge-group.service';
 import { EdubridgeReturnResolver } from './resolvers/edubridge-return.resolver';
@@ -127,6 +128,7 @@ import { EdubridgeLiveFeedService } from './services/edubridge-live-feed.service
     EdubridgeOnboardingService,
     EdubridgeLearnerService,
     EdubridgeFundsService,
+    EdubridgeSettlementService,
     EdubridgeChainTermsService,
     EdubridgeGroupService,
     EdubridgeEnrollmentService,
