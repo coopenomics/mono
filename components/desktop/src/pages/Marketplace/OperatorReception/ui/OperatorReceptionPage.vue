@@ -572,7 +572,7 @@ async function openPickupForShipment(shipment_id: string): Promise<void> {
 // (не через URL: query стирался раньше, чем страница успевала его прочитать).
 // Сервер уже разобрал код; здесь только открываем приёмку по найденному.
 async function consumeHandoffSignal(): Promise<void> {
-  const matter = handoffSignal.consume();
+  const matter = handoffSignal.consume(['shipment', 'reception']);
   if (!matter) return;
   if (matter.kind === 'shipment') await openPickupForShipment(matter.shipment_id);
   else if (matter.kind === 'reception') await openPickupForSupplier(matter.account);

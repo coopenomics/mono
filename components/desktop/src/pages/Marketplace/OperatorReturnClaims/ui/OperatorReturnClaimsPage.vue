@@ -131,7 +131,7 @@ function openDetail(claim: MarketplaceReturnClaimView): void {
  * пайщика — показываем вкладку «ожидают визита», председатель выбирает сам.
  */
 async function consumeHandoffSignal(): Promise<void> {
-  const matter = handoffSignal.consume();
+  const matter = handoffSignal.consume(['return']);
   if (!matter || matter.kind !== 'return') return;
   if (!matter.claim_id) {
     activeKey.value = 'approved';

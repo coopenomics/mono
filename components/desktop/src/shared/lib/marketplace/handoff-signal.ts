@@ -26,9 +26,15 @@ export const useMarketplaceHandoffSignal = defineStore('marketplaceHandoffSignal
     pending.value = matter;
   }
 
-  /** Забрать дело на обработку и сразу освободить — повторный маунт не переспросит то же самое. */
-  function consume(): MarketplaceHandoffMatter | null {
+  /**
+   * Забрать дело СВОЕГО вида и освободить сигнал — повторный маунт не
+   * переспросит то же самое. Чужое дело остаётся: сканер постит его ещё до
+   * перехода, и стол, с которого сканировали, видит сигнал первым — он не
+   * должен съесть дело, адресованное другому столу.
+   */
+  function consume(kinds: MarketplaceHandoffMatter['kind'][]): MarketplaceHandoffMatter | null {
     const matter = pending.value;
+    if (!matter || !kinds.includes(matter.kind)) return null;
     pending.value = null;
     return matter;
   }
