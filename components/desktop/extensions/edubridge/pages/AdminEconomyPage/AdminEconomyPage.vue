@@ -17,8 +17,9 @@
   template(v-if="tab === 'money'")
     //- Четыре остатка — одной полосой по пути денег: кошельки учеников →
     //- удержано по гарантии → фонд → резерв преподавателям. У каждого свой значок.
+    //- Плитки лежат на фоне страницы сами по себе: карточка вокруг карточек перегружает экран.
     //- Схема пути взноса открывается кнопкой в строке вкладок; плитки идут в том же порядке.
-    StatStrip(:items="walletStats" :loading="firstLoad")
+    StatStrip(:items="walletStats" :loading="firstLoad" :framed="false")
 
     //- Таблица стоит на месте, пока идёт первая загрузка либо есть строки:
     //- фоновое обновление по ленте изменений её не прячет и не показывает заново.
@@ -67,12 +68,34 @@
         DataRow(:label="$t('edubridge.adminEconomyPage.movement.idLabel')" :value="asText(movement.id)" mono copyable)
 
   template(v-else-if="tab === 'expenses'")
+    //- Строка открывает расход в правой панели: записка, кто подал, суммы и позиции.
     ExpenseProposalList(
       :rows="expenseRows"
       :loading="firstLoad"
       :empty-title="$t('edubridge.adminEconomyPage.expensesEmptyTitle')"
       :empty-body="$t('edubridge.adminEconomyPage.expensesEmptyBody')"
+      @open="openExpense"
     )
+
+    DetailsDrawer(v-model="expenseDetailsOpen" :title="expenseTitle(expense)" :width="560")
+      template(v-if="expense")
+        BaseBadge.q-mb-md(:variant="proposalStatusVariant(expense.status)") {{ proposalStatusLabel(expense.status) }}
+        DataRow(:label="$t('edubridge.adminEconomyPage.expense.numberLabel')" :value="shortExpenseId(asText(expense.expense_hash))" mono copyable)
+        DataRow(:label="$t('edubridge.adminEconomyPage.expense.creatorLabel')")
+          template(#value-override)
+            IdentityCell(:account-name="expense.creator" :full-name="expense.creator_name" copyable)
+        DataRow(:label="$t('edubridge.adminEconomyPage.expense.createdLabel')" :value="formatDate(expense.created_at)")
+        DataRow(:label="$t('edubridge.adminEconomyPage.expense.plannedLabel')" :value="formatAsset2Digits(expense.total_planned)")
+        DataRow(v-if="hasActual(expense.total_actual)" :label="$t('edubridge.adminEconomyPage.expense.actualLabel')" :value="formatAsset2Digits(expense.total_actual)")
+        .edu-expense__section(v-for="(item, idx) in expense.items" :key="item.item_hash")
+          .edu-expense__head
+            .t-eyebrow {{ $t('edubridge.adminEconomyPage.expense.itemTitle', { index: idx + 1 }) }}
+            BaseBadge(:variant="itemStatusVariant(item.status)") {{ itemStatusLabel(item.status, item.mechanics) }}
+          .edu-expense__title {{ item.description || '______' }}
+          DataRow(:label="$t('edubridge.adminEconomyPage.expense.recipientLabel')" :value="item.recipient_name || item.recipient || '______'")
+          DataRow(:label="$t('edubridge.adminEconomyPage.expense.mechanicsLabel')" :value="mechanicsLabel(item.mechanics)")
+          DataRow(:label="$t('edubridge.adminEconomyPage.expense.plannedItemLabel')" :value="formatAsset2Digits(item.planned_amount)")
+          DataRow(v-if="hasActual(item.actual_amount)" :label="$t('edubridge.adminEconomyPage.expense.actualItemLabel')" :value="formatAsset2Digits(item.actual_amount)")
 
     ExpenseCreateDialog(
       v-model="expenseOpen"
@@ -111,7 +134,8 @@ import { useFirstLoad } from 'src/shared/lib/composables';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { asDateInput, asText } from 'src/shared/lib/utils';
 import { formatAsset2Digits, splitAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
-import { BaseButton, BaseCard, BaseForm, BaseInput, BaseTable, EmptyState, FieldHelp, type BaseTableColumn } from 'src/shared/ui/base';
+import { BaseBadge, BaseButton, BaseCard, BaseForm, BaseInput, BaseTable, EmptyState, FieldHelp, type BaseTableColumn } from 'src/shared/ui/base';
+import { itemStatusLabel, itemStatusVariant, mechanicsLabel, proposalStatusLabel, proposalStatusVariant, shortExpenseId } from 'src/shared/lib/expenses';
 import { DataRow, DetailsDrawer, IdentityCell, PageHint } from 'src/shared/ui/domain';
 import { MoneyFlowGuide } from '../../widgets/MoneyFlowGuide';
 import { PROGRAM_WALLET_ICONS, PROGRAM_WALLET_ORDER, type ProgramWalletId } from '../../shared/lib/programWallets';
@@ -213,17 +237,29 @@ function openMovement(row: IFundMovement): void {
   movementOpen.value = true;
 }
 // Список расходов собирает общий виджет шасси: заголовком идёт назначение
-// первой позиции — так расход узнаётся, не раскрывая карточку.
+// первой позиции — так расход узнаётся, не раскрывая карточку. Сумму виджет
+// показывает как есть, поэтому она форматируется здесь.
+const expenseTitle = (e: IExpense | null) => e?.items[0]?.description || i18nT('edubridge.adminEconomyPage.expenseFallbackTitle');
 const expenseRows = computed<ExpenseProposalListRow[]>(() =>
   expenses.value.map((e) => ({
     expense_hash: asText(e.expense_hash),
-    title: e.items[0]?.description || i18nT('edubridge.adminEconomyPage.expenseFallbackTitle'),
+    title: expenseTitle(e),
     status: e.status,
-    total_planned: e.total_planned,
+    total_planned: formatAsset2Digits(e.total_planned),
     creator_name: e.creator_name,
     created_at: toIso(e.created_at),
   })),
 );
+/** Расход в правой панели — по хэшу: после обновления списка панель показывает свежее состояние. */
+const expenseDetailsOpen = ref(false);
+const expenseHash = ref<string | null>(null);
+const expense = computed(() => expenses.value.find((e) => asText(e.expense_hash) === expenseHash.value) ?? null);
+function openExpense(hash: string): void {
+  expenseHash.value = hash;
+  expenseDetailsOpen.value = true;
+}
+/** Оплаченная сумма показывается, когда по расходу уже что-то выплачено. */
+const hasActual = (v: string | null | undefined) => Boolean(v) && Number.parseFloat(String(v)) > 0;
 const movements = computed<IFundMovement[]>(() => fund.value?.movements ?? []);
 
 const movementColumns: BaseTableColumn<IFundMovement>[] = [
@@ -311,6 +347,24 @@ onMounted(load);
 }
 .edu-economy__dir--out {
   color: var(--p-ink-3);
+}
+/* Позиции расхода — отдельными блоками под сводкой. */
+.edu-expense__section {
+  margin-top: var(--p-5);
+  padding-top: var(--p-4);
+  border-top: 1px solid var(--p-line);
+}
+.edu-expense__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--p-2);
+  margin-bottom: var(--p-2);
+}
+.edu-expense__title {
+  font-weight: 600;
+  color: var(--p-ink);
+  margin-bottom: var(--p-2);
 }
 .edu-economy__amount {
   display: flex;

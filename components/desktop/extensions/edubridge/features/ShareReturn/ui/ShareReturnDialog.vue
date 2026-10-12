@@ -26,7 +26,6 @@ BaseDialog(:model-value="modelValue" :title="$t('edubridge.shareReturn.title')" 
   .edu-share-return__empty.q-mt-md(v-else)
     .t-sm {{ $t('edubridge.shareReturn.noMethods') }}
     BaseButton.q-mt-sm(variant="secondary" @click="goToMethods") {{ $t('edubridge.shareReturn.addMethod') }}
-  .t-sm.t-muted.q-mt-md {{ $t('edubridge.shareReturn.note') }}
   template(#footer)
     BaseButton(variant="ghost" :disabled="busy" @click="close") {{ $t('common.action.cancel') }}
     BaseButton(variant="primary" :loading="busy" :disabled="!canSubmit" @click="submit") {{ $t('edubridge.shareReturn.submit') }}
