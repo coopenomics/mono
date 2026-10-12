@@ -81,6 +81,10 @@ describe('Стол заказов — типы боксов', () => {
 
     const seen = (await gql<any>(operator, LIST_TYPES, {})).marketplaceListContainerTypes
     expect(seen.map((t: any) => t.id)).toContain(type.id)
+    // Стол шлёт необязательный отбор явным null. До 12.10.2026 null уходил в
+    // условие как IS NULL, и реестр типов на столе был пуст при любом составе.
+    const asDesk = (await gql<any>(chairman, LIST_TYPES, { a: null })).marketplaceListContainerTypes
+    expect(asDesk.map((t: any) => t.id), 'отбор null = без отбора').toContain(type.id)
   })
 
   it(caseName('mkt.store.side.01', 'объём типа можно задать вручную; нулевой габарит и пустое название — отказ'), async () => {
