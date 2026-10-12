@@ -26,7 +26,10 @@ export class AvailableCategoryMapper {
    */
   static toEntity(domain: AvailableCategoryDomainEntity): AvailableCategoryEntity {
     const entity = new AvailableCategoryEntity();
-    entity.id = domain.id;
+    // Новая запись приходит с id 0: хранилище считает нуль ключом и делает
+    // upsert в одну и ту же строку — тогда из набора категорий выживала
+    // только последняя. Без id база выдаёт номер сама.
+    if (domain.id) entity.id = domain.id;
     entity.coopname = domain.coopname;
     entity.categoryId = domain.categoryId;
     entity.typeId = domain.typeId;

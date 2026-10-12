@@ -16,6 +16,9 @@ const CREATE = 'mutation($i:CreateCustomCategoryInput!){ marketplaceCreateCustom
 const DELETE = 'mutation($id:Int!){ marketplaceDeleteCustomCategory(categoryId:$id) }'
 const REMOVE_AVAILABLE = 'mutation($i:RemoveAvailableCategoriesInput!){ marketplaceRemoveAvailableCategories(input:$i) }'
 const STATS = 'query{ marketplaceGetAvailabilityStats{ totalAvailable categoriesCount typesCount hasRestrictions } }'
+const REPLACE_AVAILABLE = 'mutation($i:ReplaceAvailableItemsInput!){ marketplaceReplaceAvailableItems(input:$i){ categoryId typeId } }'
+const CLEAR_AVAILABLE = 'mutation{ marketplaceClearAvailableCategories }'
+const AVAILABLE = 'query{ marketplaceGetAvailableCategories{ categoryId typeId } }'
 
 const code = (e: { code: unknown } | null) => String(e?.code ?? '')
 const norm = (s: string) => s.trim().toLowerCase()
@@ -109,5 +112,23 @@ describe('категории кооператива', () => {
 
     expect((await categories()).map(c => c.id).sort()).toEqual(before)
     expect((await gql<any>(chair, STATS)).marketplaceGetAvailabilityStats).toEqual(statsBefore)
+  })
+
+  // До 12.10.2026 из набора выживала только последняя категория: новая
+  // запись шла в хранилище с id 0, и каждая следующая затирала предыдущую.
+  it(caseName('mkt.cat.side.10', 'ограничение каталога набором категорий сохраняет весь набор, очистка открывает каталог'), async () => {
+    const base = (await categories()).filter(c => c.mvp_baseline).slice(0, 3)
+    expect(base.length, 'в справочнике не меньше трёх базовых категорий').toBe(3)
+    const ids = base.map(c => c.id).sort()
+    try {
+      await gql(chair, REPLACE_AVAILABLE, { i: { categoryIds: ids, categoryTypes: [] } })
+      const stored = (await gql<any>(chair, AVAILABLE)).marketplaceGetAvailableCategories as { categoryId: number, typeId: number | null }[]
+      expect(stored.filter(a => a.typeId == null).map(a => a.categoryId).sort()).toEqual(ids)
+      expect((await gql<any>(chair, STATS)).marketplaceGetAvailabilityStats.categoriesCount).toBe(ids.length)
+    } finally {
+      await gql(chair, CLEAR_AVAILABLE)
+    }
+    expect((await gql<any>(chair, AVAILABLE)).marketplaceGetAvailableCategories).toEqual([])
+    expect((await gql<any>(chair, STATS)).marketplaceGetAvailabilityStats.hasRestrictions).toBe(false)
   })
 })
