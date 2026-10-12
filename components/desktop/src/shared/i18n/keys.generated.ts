@@ -5774,6 +5774,7 @@ export type MessageKey =
   | 'marketplace.operatorIssuance.closeError'
   | 'marketplace.operatorIssuance.closedMessage'
   | 'marketplace.operatorIssuance.emptyBody'
+  | 'marketplace.operatorIssuance.emptyNoStockHint'
   | 'marketplace.operatorIssuance.emptyTitle'
   | 'marketplace.operatorIssuance.emptyWithStockHint'
   | 'marketplace.operatorIssuance.feedLoadError'
