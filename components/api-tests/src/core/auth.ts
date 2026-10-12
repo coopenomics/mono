@@ -91,10 +91,18 @@ async function refreshFromFile(who: Who): Promise<string | null> {
   const stored = all[who.account]
   if (!stored)
     return null
-  const d = await gql<any>(null, REFRESH, { d: { access_token: stored.access, refresh_token: stored.refresh } })
-  const fresh = { ...stored, access: d.refresh.tokens.access.token as string, refresh: d.refresh.tokens.refresh.token as string }
-  writeTokensFile({ ...all, [who.account]: fresh })
-  return fresh.access
+  try {
+    const d = await gql<any>(null, REFRESH, { d: { access_token: stored.access, refresh_token: stored.refresh } })
+    const fresh = { ...stored, access: d.refresh.tokens.access.token as string, refresh: d.refresh.tokens.refresh.token as string }
+    writeTokensFile({ ...all, [who.account]: fresh })
+    return fresh.access
+  }
+  catch (e) {
+    // Пара не продлевается (например, выпущена рукопожатием CoopID) — токен
+    // доступа из файла живёт ещё полчаса, этого засеву хватает.
+    console.error(`[auth] ${who.account}: refresh не прошёл (${(e as Error).message.slice(0, 100)}), беру токен доступа из файла`)
+    return stored.access
+  }
 }
 
 /** Забыть токен (после выхода или смены ключа). */

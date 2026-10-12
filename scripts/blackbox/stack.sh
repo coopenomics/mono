@@ -86,8 +86,11 @@ POSTGRES_PASSWORD=${PG_PASSWORD}
 POSTGRES_DATABASE=voskhod
 COOPNAME=voskhod
 # Рабочий стол и шлюз стенда — для визуальных сценариев (ui-docs.yaml).
+# Адрес возврата клиента CoopID — тот же шлюз: иначе authentik отвечает
+# redirect_uri_no_match, и вход по паролю со стола не проходит.
 DESKTOP_HOST_PORT=${DESKTOP_PORT}
 NGINX_HOST_PORT=${NGINX_PORT}
+COOPID_REDIRECT_URI=http://localhost:${NGINX_PORT}/auth/callback.html
 EOF
 
   # boot работает на хосте и ходит в сервисы через проброшенные порты.

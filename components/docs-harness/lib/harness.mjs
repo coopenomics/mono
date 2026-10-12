@@ -163,7 +163,7 @@ function rememberPassword(email, password) {
   fsSync.writeFileSync(PASSWORDS_FILE, JSON.stringify(all, null, 2) + '\n');
 }
 
-async function loginFlow(page, { email, wif }) {
+async function loginFlow(page, { email, wif, account }) {
   // timeout 150s: первый заход на роут signin компилирует его chunk в холодном
   // Vite (dev-стенд); SSR-сборка отвечает сразу.
   await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/auth/signin`, { waitUntil: 'domcontentloaded', timeout: 150000 });
@@ -184,12 +184,52 @@ async function loginFlow(page, { email, wif }) {
       await page.locator('label:has-text("Повторите пароль")').locator('input').first().fill(HARNESS_PASSWORD);
       await page.waitForTimeout(300);
       await page.locator('button:has-text("Задать пароль и войти")').click();
-      rememberPassword(email, HARNESS_PASSWORD);
     }
   }
 
   await passSecondFactorIfAsked(page, email);
   await awaitLeftSignin(page, email);
+  if (!password) rememberPassword(email, HARNESS_PASSWORD);
+  if (account) await exportSessionTokens(page, account, email);
+}
+
+// Токены сессии из браузера — в файл засева (state/tokens.json).
+//
+// Переход на пароль отзывает все сессии пайщика, в том числе токены, снятые
+// подписью до входа. Фазам засева после сценариев подключения нужен живой
+// токен председателя — берём его из хранилища стола (IndexedDB кооператива,
+// ключ coopid.session.tokens, пишет @coopenomics/auth после рукопожатия).
+async function exportSessionTokens(page, account, email) {
+  const stored = await page.evaluate(async (coop) => {
+    const open = () => new Promise((resolve, reject) => {
+      const req = indexedDB.open(coop);
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+    try {
+      const db = await open();
+      if (!db.objectStoreNames.contains('store')) return null;
+      const raw = await new Promise((resolve, reject) => {
+        const req = db.transaction('store').objectStore('store').get('coopid.session.tokens');
+        req.onsuccess = () => resolve(req.result ?? null);
+        req.onerror = () => reject(req.error);
+      });
+      return typeof raw === 'string' ? JSON.parse(raw) : raw;
+    } catch (e) {
+      return { error: String(e) };
+    }
+  }, env.COOPNAME).catch((e) => ({ error: String(e) }));
+  const tokens = stored?.tokens;
+  if (!tokens?.accessToken) {
+    console.log(`  ⚠ токены сессии ${account} из браузера не прочитаны: ${stored?.error ?? 'в хранилище пусто'}`);
+    return;
+  }
+  const file = path.join(HARNESS_ROOT, 'state/tokens.json');
+  const all = fsSync.existsSync(file) ? JSON.parse(fsSync.readFileSync(file, 'utf8')) : {};
+  all[account] = { access: tokens.accessToken, refresh: tokens.refreshToken, email };
+  fsSync.mkdirSync(path.dirname(file), { recursive: true });
+  fsSync.writeFileSync(file, JSON.stringify(all, null, 2) + '\n');
+  process.env.API_TOKENS_FILE = file;
 }
 
 // Второй фактор по письму: код из почты стенда (Mailpit, MAILPIT_URL).
@@ -217,13 +257,13 @@ async function passSecondFactorIfAsked(page, email) {
 
 // Вход председателя кооператива.
 export async function loginAsChairman(page, context, { signAgreements = true } = {}) {
-  await loginFlow(page, { email: env.CHAIRMAN_EMAIL, wif: env.CHAIRMAN_WIF });
+  await loginFlow(page, { email: env.CHAIRMAN_EMAIL, wif: env.CHAIRMAN_WIF, account: 'ant' });
   if (signAgreements) await passFirstLoginAgreements(page);
 }
 
 // Вход пайщика по фикстуре (state/participants/<username>.json: { username, email, wif }).
 export async function loginAs(page, fixture, { signAgreements = true } = {}) {
-  await loginFlow(page, { email: fixture.email, wif: fixture.wif });
+  await loginFlow(page, { email: fixture.email, wif: fixture.wif, account: fixture.username });
   if (signAgreements) await passFirstLoginAgreements(page);
 }
 
