@@ -8,7 +8,6 @@ import { BaseBanner, EmptyState } from 'src/shared/ui/base';
 import { FailAlert } from 'src/shared/api';
 import { HandoffTokenKind } from 'src/shared/lib/marketplace';
 import { participantVerificationView } from 'src/shared/lib/verification';
-import { formatDateToLocalTimezone } from 'src/shared/lib/utils/dates';
 import { HANDOFF_CODE_COPY, type AccountHandoffKind } from './copy';
 
 /**
@@ -51,10 +50,6 @@ const needsPassportWarning = computed(() => {
 const code = ref('');
 const expiresAt = ref<Date | null>(null);
 const loading = ref(true);
-
-const validUntil = computed(() =>
-  expiresAt.value ? formatDateToLocalTimezone(expiresAt.value.toISOString()) : '',
-);
 
 let renewTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -114,7 +109,7 @@ onBeforeUnmount(clearRenew);
     | {{ $t('marketplace.handoffCodeContent.passportHint2') }}
     | {{ $t('marketplace.handoffCodeContent.passportHint3') }}
   HandoffQr(:value="code", :size="size", :caption="copy.caption")
-  .handoff-code__until(v-if="validUntil") {{ $t('marketplace.handoffCodeContent.validUntil', { until: validUntil }) }}
+  .handoff-code__until(v-if="expiresAt") {{ $t('marketplace.handoffCodeContent.validUntil') }}
 EmptyState(
   v-else,
   :title="$t('marketplace.handoffCodeContent.codeUnavailableTitle')",
