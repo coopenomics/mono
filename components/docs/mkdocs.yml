@@ -225,6 +225,7 @@ nav:
     - Заключение: new/marketplace/conclusion.md
 
   - Благорост:
+    - new/blagorost/index.md
     - Адаптация: new/blagorost/adaptation.md
     - Профиль: new/blagorost/profile.md
     - Кошельки: new/blagorost/wallets.md
@@ -241,3 +242,12 @@ nav:
     - Результат интеллектуальной деятельности: new/blagorost/intellectual-property.md
     - Инвестирование: new/blagorost/investments.md
   
+
+  - Образование:
+    - new/edubridge/index.md
+    - Стол администратора:
+      - new/edubridge/admin/index.md
+    - Стол участника:
+      - new/edubridge/member/index.md
+    - Стол преподавателя:
+      - new/edubridge/teacher/index.md
