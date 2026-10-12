@@ -97,9 +97,16 @@ export default async ({ page, shot, expect }) => {
     .filter({ hasText: 'Добавить в корзину' })
     .first();
   const qtyInput = cartDialog.locator('input[type="number"]').first();
-  await qtyInput.click();
-  await qtyInput.fill('');
-  await qtyInput.type(String(ORDER_QUANTITY));
+  // Очищать поле нельзя: пустое значение модель превращает в 0 и перерисовывает
+  // поле под руками — набранные следом цифры терялись («10» → «0»). Выделяем
+  // текущее значение и печатаем поверх; при расхождении повторяем.
+  for (let attempt = 0; attempt < 3; attempt++) {
+    await qtyInput.click();
+    await qtyInput.press('ControlOrMeta+a');
+    await qtyInput.type(String(ORDER_QUANTITY), { delay: 120 });
+    await page.waitForTimeout(500);
+    if ((await qtyInput.inputValue()) === String(ORDER_QUANTITY)) break;
+  }
   await qtyInput.blur();
   await page.waitForTimeout(800);
 
