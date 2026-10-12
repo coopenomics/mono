@@ -13,6 +13,11 @@
 #   - каждая фаза — отдельный подкоманд, чтобы workflow видел время каждой.
 #
 # Использование: scripts/blackbox/stack.sh <env|image|infra|boot|app|seed|tests|apitests|rights|dbcov|collect|summary>
+#
+# Второй потребитель стенда — визуальные сценарии docs-harness (workflow
+# ui-docs.yaml): те же фазы до app, затем desktop (собранный SSR рабочий стол
+# на хосте), browser (chromium для Playwright), ui <приложение> (сюита),
+# uidiff <приложение> (сравнение кадров с документацией) и uisummary.
 
 set -euo pipefail
 
@@ -355,6 +360,27 @@ cmd_collect() {
   docker stats --no-stream > "$OUT/logs/stats.txt" 2>&1 || true
 }
 
+# Таблица времени шагов текущей задачи из API GitHub — общая для обеих сводок.
+summary_phases() {
+  echo "## $1"
+  echo
+  if [ -n "${GITHUB_RUN_ID:-}" ] && command -v gh >/dev/null; then
+    gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/attempts/${GITHUB_RUN_ATTEMPT:-1}/jobs" \
+      --jq '.jobs[0].steps[] | select(.started_at and .completed_at) | [.name, .conclusion, .started_at, .completed_at] | @tsv' \
+      | python3 -c '
+import sys, datetime as d
+p = lambda s: d.datetime.fromisoformat(s.replace("Z", "+00:00"))
+print("| фаза | итог | время |")
+print("|---|---|---|")
+for line in sys.stdin:
+    name, concl, a, b = line.rstrip("\n").split("\t")
+    s = int((p(b) - p(a)).total_seconds())
+    print(f"| {name} | {concl} | {s // 60} мин {s % 60} с |")
+' || echo "_время фаз недоступно_"
+  fi
+  echo
+}
+
 # Сводка в Job Summary: время фаз из API GitHub и итог тестов из JUnit.
 cmd_summary() {
   local summary="${GITHUB_STEP_SUMMARY:-$OUT/summary.md}"
@@ -365,23 +391,7 @@ cmd_summary() {
       echo "> в логе шага «Стенд — засев Стола заказов»."
       echo
     fi
-    echo "## Black-box: время фаз"
-    echo
-    if [ -n "${GITHUB_RUN_ID:-}" ] && command -v gh >/dev/null; then
-      gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/attempts/${GITHUB_RUN_ATTEMPT:-1}/jobs" \
-        --jq '.jobs[0].steps[] | select(.started_at and .completed_at) | [.name, .conclusion, .started_at, .completed_at] | @tsv' \
-        | python3 -c '
-import sys, datetime as d
-p = lambda s: d.datetime.fromisoformat(s.replace("Z", "+00:00"))
-print("| фаза | итог | время |")
-print("|---|---|---|")
-for line in sys.stdin:
-    name, concl, a, b = line.rstrip("\n").split("\t")
-    s = int((p(b) - p(a)).total_seconds())
-    print(f"| {name} | {concl} | {s // 60} мин {s % 60} с |")
-' || echo "_время фаз недоступно_"
-    fi
-    echo
+    summary_phases "Black-box: время фаз"
     echo "## Black-box: тесты"
     echo
     local junit found=0
@@ -425,6 +435,130 @@ PY
   } >> "$summary"
 }
 
+# ── Визуальные сценарии docs-harness (workflow ui-docs.yaml) ──────────────────
+#
+# Рабочий стол на стенде CI — собранный SSR-сервер (`quasar build --mode ssr`
+# делает общий шаг `pnpm lerna run build`), запущенный на хосте: так кадры
+# документации снимаются с той же сборки, что крутится у кооперативов, а не с
+# dev-сервера Vite с его холодной компиляцией маршрутов. Переменные клиента
+# SSR-сервер берёт из окружения процесса (generateConfig.ts), поэтому .env
+# рабочего стола экспортируется перед запуском.
+DESKTOP_PORT=2999
+HARNESS_DIR=components/docs-harness
+
+desktop_ready() {
+  curl -sf -o /dev/null --max-time 3 "http://127.0.0.1:${DESKTOP_PORT}/"
+}
+
+cmd_desktop() {
+  load_stack
+  local env_file=components/desktop/.env
+  cp components/desktop/.env-example "$env_file"
+  set_env "$env_file" NODE_ENV production
+  set_env "$env_file" BACKEND_URL "http://127.0.0.1:${API_PORT}"
+  set_env "$env_file" CHAIN_URL "http://127.0.0.1:${CHAIN_PORT}"
+  set_env "$env_file" SSR_BACKEND_URL "http://127.0.0.1:${API_PORT}"
+  set_env "$env_file" SSR_CHAIN_URL "http://127.0.0.1:${CHAIN_PORT}"
+  set_env "$env_file" CHAIN_ID "$(chain_id)"
+  # Секрет сервера — тот же, что у контроллера: SSR спрашивает у него стол пайщика по cookie.
+  set_env "$env_file" SERVER_SECRET "$(grep -E '^SERVER_SECRET=' components/controller/.env | cut -d= -f2-)"
+  # Порт сервера документации на стенде свободен — ставим тот, что ждут сценарии.
+  set_env "$env_file" DESKTOP_HOST_PORT "$DESKTOP_PORT"
+
+  if [ ! -f components/desktop/dist/ssr/index.js ]; then
+    echo "▸ dist/ssr нет — собираем рабочий стол..."
+    pnpm --filter @coopenomics/desktop build
+  fi
+
+  mkdir -p "$OUT/logs"
+  echo "▸ Запускаем SSR-сервер рабочего стола на :${DESKTOP_PORT}..."
+  (
+    # Не `source`: в примере окружения есть значения с пробелами без кавычек
+    # (COOP_SHORT_NAME), и оболочка приняла бы хвост за команду.
+    while IFS= read -r line; do
+      case "$line" in ''|'#'*) continue ;; esac
+      export "$line"
+    done < "$env_file"
+    export PORT="$DESKTOP_PORT"
+    cd components/desktop
+    nohup pnpm run start > "$OUT/logs/desktop.log" 2>&1 &
+  )
+  if ! stack_wait_for "рабочий стол" 180 3 desktop_ready; then
+    tail -100 "$OUT/logs/desktop.log"
+    exit 1
+  fi
+  echo "  ✓ рабочий стол отвечает на :${DESKTOP_PORT}"
+}
+
+# Браузер Playwright — отдельной фазой, чтобы время установки было видно в сводке.
+cmd_browser() {
+  cd "$HARNESS_DIR"
+  pnpm exec playwright install --with-deps chromium
+}
+
+# Окружение сценариев: адрес стола, режим роутера и кооператив. Сценарии читают
+# порты из корневого .env (их пишет фаза env), BASE_URL задаём явно.
+ui_env() {
+  load_stack
+  export BASE_URL="http://127.0.0.1:${DESKTOP_PORT}"
+  export ROUTER_MODE="${ROUTER_MODE:-hash}"
+  export COOPNAME=voskhod
+  export CI=true
+}
+
+# Сюита приложения. Раннер сам заводит пайщиков-фикстуры и гоняет фазы
+# подготовки, заявленные сценариями (meta.prepare), поэтому фаза seed
+# стенду документации не нужна: группа L0 Стола заказов снимает подключение
+# ЦПП на девственном стенде, а засев сделал бы его «уже подключённым».
+cmd_ui() {
+  local app="${1:?приложение: marketplace | blagorost | edubridge}"
+  ui_env
+  cd "$HARNESS_DIR"
+  case "$app" in
+    marketplace) node bin/run-marketplace-all.mjs ;;
+    blagorost|edubridge)
+      echo "✗ сюита «$app» на стенде CI ещё не заведена (см. bin/run-marketplace-all.mjs как образец)" >&2
+      exit 2 ;;
+    *) echo "✗ неизвестное приложение «$app»" >&2; exit 2 ;;
+  esac
+}
+
+# Сравнение свежих кадров с кадрами в components/docs — список для вычитки.
+cmd_uidiff() {
+  local app="${1:?приложение}"
+  cd "$HARNESS_DIR"
+  node bin/diff-shots.mjs --app="$app" --summary
+}
+
+cmd_uisummary() {
+  local app="${1:?приложение}"
+  local summary="${GITHUB_STEP_SUMMARY:-$OUT/summary.md}"
+  {
+    summary_phases "Документация ${app}: время фаз"
+    local suite="$HARNESS_DIR/shots/_suite/summary.json"
+    if [ -s "$suite" ]; then
+      python3 - "$suite" <<'PY'
+import json, sys
+d = json.load(open(sys.argv[1]))
+print(f"## Сценарии: зелёных {d['passed']}, красных {d['failed']}")
+print()
+print("| сценарий | итог | время | причина |")
+print("|---|---|---|---|")
+for r in d["results"]:
+    mark = "✅" if r["status"] == "passed" else "❌"
+    reason = (r.get("reason") or "").replace("|", "¦")[:160]
+    print(f"| {r['scenario']} | {mark} | {r.get('durationSec', 0)} с | {reason} |")
+print()
+PY
+    else
+      echo "_сводки сюиты нет — до сценариев прогон не дошёл_"
+      echo
+    fi
+    local diff="$HARNESS_DIR/shots/_suite/diff.md"
+    [ -s "$diff" ] && cat "$diff"
+  } >> "$summary"
+}
+
 case "${1:-}" in
   env) cmd_env ;;
   image) cmd_image ;;
@@ -440,5 +574,10 @@ case "${1:-}" in
   dbcov) shift; cmd_dbcov "$@" ;;
   collect) cmd_collect ;;
   summary) cmd_summary ;;
-  *) echo "использование: $0 <env|image|infra|boot|app|seed|tests|apitests|cardcoop|rights|faults|dbcov|collect|summary>" >&2; exit 2 ;;
+  desktop) cmd_desktop ;;
+  browser) cmd_browser ;;
+  ui) shift; cmd_ui "$@" ;;
+  uidiff) shift; cmd_uidiff "$@" ;;
+  uisummary) shift; cmd_uisummary "$@" ;;
+  *) echo "использование: $0 <env|image|infra|boot|app|seed|tests|apitests|cardcoop|rights|faults|dbcov|collect|summary|desktop|browser|ui|uidiff|uisummary>" >&2; exit 2 ;;
 esac

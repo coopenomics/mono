@@ -92,7 +92,9 @@
     "test:integration": "bash scripts/run-integration-tests.sh",
     "test:cross-runtime": "pnpm --filter @coopenomics/auth run test:cross-runtime",
     "test:ui:marketplace": "node components/docs-harness/bin/run-marketplace-all.mjs",
-    "registry:sync": "node components/docs-harness/bin/registry-sync.mjs"
+    "registry:sync": "node components/docs-harness/bin/registry-sync.mjs",
+    "docs:pull": "node components/docs-harness/bin/pull-run.mjs",
+    "docs:diff": "node components/docs-harness/bin/diff-shots.mjs"
   },
   "devDependencies": {
     "@intlify/message-compiler": "^11.4.12",

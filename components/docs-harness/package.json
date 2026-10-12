@@ -6,7 +6,9 @@
   "type": "module",
   "scripts": {
     "shoot": "node bin/shoot.mjs",
-    "shoot:blagorost": "node bin/shoot-blagorost-all.mjs"
+    "shoot:blagorost": "node bin/shoot-blagorost-all.mjs",
+    "pull": "node bin/pull-run.mjs",
+    "diff": "node bin/diff-shots.mjs"
   },
   "license": "ISC",
   "devDependencies": {
