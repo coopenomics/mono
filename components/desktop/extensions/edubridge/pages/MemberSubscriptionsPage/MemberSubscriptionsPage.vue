@@ -78,6 +78,11 @@
       .edu-sub__badges
         BaseBadge(:variant="statusOf(details.status).variant") {{ statusOf(details.status).label }}
         BaseBadge(:variant="accessOf(details.access_state).variant") {{ accessOf(details.access_state).label }}
+      //- Что делать, чтобы попасть на занятия: зависит от площадки курса.
+      BaseBanner.q-mb-md(v-if="accessHowTo(details)" variant="info")
+        template(#icon)
+          q-icon(name="login")
+        | {{ accessHowTo(details) }}
       DataRow(:label="$t('edubridge.memberSubscriptionsPage.details.learner')" :value="learnerName(details.learner_id)")
       DataRow(:label="$t('edubridge.memberSubscriptionsPage.details.period')" :value="periodLabel(details.period)")
       DataRow(:label="$t('edubridge.memberSubscriptionsPage.details.paidAmount')" :value="formatAsset2Digits(details.paid_amount)")
@@ -155,6 +160,8 @@ const courses = ref<ICatalogCourse[]>([]);
 const loading = ref(true);
 const firstLoad = useFirstLoad(loading);
 const extendOpen = ref(false);
+/** Площадки, для которых есть своя инструкция по входу. */
+const ACCESS_HOW_TO_CARRIERS: string[] = [Zeus.EduAccessCarrier.SKILLSPACE, Zeus.EduAccessCarrier.GETCOURSE, Zeus.EduAccessCarrier.ONSITE];
 const lockedCourseId = ref<string | null>(null);
 const lockedGroupId = ref<string | null>(null);
 const cancelOpen = ref(false);
@@ -165,6 +172,17 @@ const cancelBusy = ref(false);
 const walletRev = ref(0);
 
 // Идентификатор из API приходит скаляром без точного типа — сравниваем как текст.
+/**
+ * Краткая инструкция по входу: доступ выдан — что сделать на площадке курса,
+ * доступ выдаётся — подождать. У закрытой подписки инструкции нет.
+ */
+function accessHowTo(row: IEnrollment): string {
+  if (!isActive(row)) return '';
+  if (row.access_state !== Zeus.EduAccessState.GRANTED) return t('edubridge.memberSubscriptionsPage.accessHowTo.pending');
+  const contact = learners.value.find((l) => asText(l.id) === asText(row.learner_id))?.recipient_value || '______';
+  const key = row.carrier && ACCESS_HOW_TO_CARRIERS.includes(row.carrier) ? row.carrier : 'other';
+  return t(`edubridge.memberSubscriptionsPage.accessHowTo.${key}`, { contact });
+}
 const learnerName = (id: unknown) => learners.value.find((l) => asText(l.id) === asText(id))?.display_name ?? '______';
 const periodLabel = (p: string) => PERIOD_LABELS[p] ?? p;
 const statusOf = (s: string) => ENROLLMENT_STATUS_LABELS[s] ?? { label: s, variant: 'neutral' as const };

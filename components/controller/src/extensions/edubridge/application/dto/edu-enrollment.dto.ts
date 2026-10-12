@@ -2,7 +2,7 @@ import { Field, ID, InputType, Int, ObjectType } from '@nestjs/graphql';
 import { IsEnum, IsOptional, IsUUID, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 import { SignedDigitalDocumentInputDTO } from '@coopenomics/extension-kit';
-import { EduAccessState, EduEnrollmentPeriod, EduEnrollmentStatus } from '../../domain/enums';
+import { EduAccessState, EduEnrollmentPeriod, EduEnrollmentStatus, EduAccessCarrier } from '../../domain/enums';
 import type { EdubridgeCourseRecord, EdubridgeEnrollmentRecord } from '../../infrastructure/entities';
 import './edu-enums.registration';
 
@@ -57,11 +57,15 @@ export class EduEnrollmentDTO {
   @Field(() => String, { nullable: true, description: 'Причина, по которой подписку не удалось закрыть' })
   close_error!: string | null;
 
+  @Field(() => EduAccessCarrier, { nullable: true, description: 'Площадка курса: где обучающийся получает доступ' })
+  carrier!: EduAccessCarrier | null;
+
   @Field(() => Boolean, { description: 'Подписку можно продлить: программа продолжается после оплаченного срока' })
   renewable!: boolean;
 
   constructor(e: EdubridgeEnrollmentRecord, course?: EdubridgeCourseRecord | null, renewable = true) {
     this.renewable = renewable;
+    this.carrier = course?.carrier ?? null;
     this.group_id = e.group_id ?? null;
     this.id = e.id;
     this.learner_id = e.learner_id;

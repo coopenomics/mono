@@ -5871,6 +5871,7 @@ export const ReturnTypes: Record<string,any> = {
 	EduEnrollment:{
 		access_state:"EduAccessState",
 		cancelled_at:"DateTime",
+		carrier:"EduAccessCarrier",
 		close_error:"String",
 		close_pending:"Boolean",
 		course_id:"ID",

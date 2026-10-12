@@ -7229,6 +7229,8 @@ export type ValueTypes = {
 	access_state?:boolean | `@${string}`,
 	/** Когда подписка отменена */
 	cancelled_at?:boolean | `@${string}`,
+	/** Площадка курса: где обучающийся получает доступ */
+	carrier?:boolean | `@${string}`,
 	/** Причина, по которой подписку не удалось закрыть */
 	close_error?:boolean | `@${string}`,
 	/** Подписка не закрылась при выходе пайщика из кооператива и ожидает повторного закрытия */
@@ -24046,6 +24048,8 @@ export type ResolverInputTypes = {
 	access_state?:boolean | `@${string}`,
 	/** Когда подписка отменена */
 	cancelled_at?:boolean | `@${string}`,
+	/** Площадка курса: где обучающийся получает доступ */
+	carrier?:boolean | `@${string}`,
 	/** Причина, по которой подписку не удалось закрыть */
 	close_error?:boolean | `@${string}`,
 	/** Подписка не закрылась при выходе пайщика из кооператива и ожидает повторного закрытия */
@@ -40346,6 +40350,8 @@ export type ModelTypes = {
 	access_state: ModelTypes["EduAccessState"],
 	/** Когда подписка отменена */
 	cancelled_at?: ModelTypes["DateTime"] | undefined | null,
+	/** Площадка курса: где обучающийся получает доступ */
+	carrier?: ModelTypes["EduAccessCarrier"] | undefined | null,
 	/** Причина, по которой подписку не удалось закрыть */
 	close_error?: string | undefined | null,
 	/** Подписка не закрылась при выходе пайщика из кооператива и ожидает повторного закрытия */
@@ -57138,6 +57144,8 @@ export type GraphQLTypes = {
 	access_state: GraphQLTypes["EduAccessState"],
 	/** Когда подписка отменена */
 	cancelled_at?: GraphQLTypes["DateTime"] | undefined | null,
+	/** Площадка курса: где обучающийся получает доступ */
+	carrier?: GraphQLTypes["EduAccessCarrier"] | undefined | null,
 	/** Причина, по которой подписку не удалось закрыть */
 	close_error?: string | undefined | null,
 	/** Подписка не закрылась при выходе пайщика из кооператива и ожидает повторного закрытия */

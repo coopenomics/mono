@@ -157,8 +157,9 @@ const columns: BaseTableColumn<ILessonRow>[] = [
   { key: 'lesson_number', label: t('edubridge.teacherLessonsPage.column.number'), width: '70px', nowrap: true },
   { key: 'lesson', label: t('edubridge.teacherLessonsPage.column.lesson') },
   { key: 'held_at', label: t('edubridge.teacherLessonsPage.column.heldAt'), width: '130px', nowrap: true },
-  { key: 'amount', label: t('edubridge.teacherLessonsPage.column.amount'), numeric: true, width: '150px', nowrap: true },
-  { key: 'status', label: t('edubridge.teacherLessonsPage.column.status'), width: '240px', nowrap: true },
+  // Вместо суммы у занятия гарантийного срока стоит пояснение — колонке нужна его ширина.
+  { key: 'amount', label: t('edubridge.teacherLessonsPage.column.amount'), numeric: true, width: '230px', nowrap: true },
+  { key: 'status', label: t('edubridge.teacherLessonsPage.column.status'), width: '220px', nowrap: true },
   { key: 'actions', label: '', align: 'right', width: '200px', nowrap: true },
 ];
 

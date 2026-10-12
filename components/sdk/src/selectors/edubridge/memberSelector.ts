@@ -21,6 +21,7 @@ const rawEnrollmentSelector = {
   paid_until: true,
   status: true,
   access_state: true,
+  carrier: true,
   renewable: true,
   sub_hash: true,
   group_id: true,
