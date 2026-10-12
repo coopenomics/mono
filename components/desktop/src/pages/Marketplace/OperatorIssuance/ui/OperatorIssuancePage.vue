@@ -7,7 +7,7 @@ import { useRoute } from 'vue-router';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { OperatorBranchBar, useOperatorBranchStore } from 'src/entities/OperatorBranch';
 import { Avatar, BaseBadge, BaseButton, BaseDialog, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
-import { AccountBadge, PageHint } from 'src/shared/ui/domain';
+import { AccountBadge, IdentityCell, PageHint } from 'src/shared/ui/domain';
 import { VerifyIdentityDialog } from 'src/features/User/VerifyIdentity';
 import { useUniversalScanner } from 'src/widgets/Marketplace/UniversalScanner';
 import { GoodsManifest, type GoodsManifestLine } from 'src/widgets/Marketplace/GoodsManifest';
@@ -411,6 +411,10 @@ function canCancel(saga: MarketplaceIssuanceSagaView): boolean {
 const scanner = useUniversalScanner();
 const pickupDialogOpen = ref(false);
 const pickupAccount = ref('');
+/** Имя пайщика из визита сканера — заказов может не быть, а человек у стойки есть. */
+const pickupDisplayName = ref('');
+/** На складе участка есть что предложить — панель докладки сообщает после загрузки. */
+const restockAvailable = ref(false);
 const pickupOrders = computed(() =>
   items.value.filter(
     (o) => o.orderer_account === pickupAccount.value && ISSUANCE_STATUSES.includes(o.status),
@@ -430,7 +434,7 @@ const pickupNeedsVerification = computed(() =>
   pickupOrders.value.some((o) => o.orderer_verification_passed === false),
 );
 const pickupOrdererName = computed(
-  () => pickupOrders.value.find((o) => o.orderer_name)?.orderer_name ?? '',
+  () => pickupOrders.value.find((o) => o.orderer_name)?.orderer_name ?? pickupDisplayName.value,
 );
 
 // Личность подтверждена — перечитываем ленту (заказы получателя больше не
@@ -484,6 +488,7 @@ async function consumeHandoffSignal(): Promise<void> {
   const matter = handoffSignal.consume(['issuance']);
   if (!matter || matter.kind !== 'issuance') return;
   pickupAccount.value = matter.account;
+  pickupDisplayName.value = matter.display_name ?? '';
   await resolvePickup();
 }
 
@@ -641,9 +646,15 @@ q-page.issuance(role='region', :aria-label='$t("marketplace.operatorIssuance.ari
   //- При готовых позициях это окно НЕ показывается: скан открывает выдачу сразу.
   BaseDialog(v-model='pickupDialogOpen', :title='$t("marketplace.operatorIssuance.issueDialogTitle")', size='sm')
     .issuance__resolve
-      .issuance__resolve-account {{ pickupAccount }}
+      IdentityCell(:account-name='pickupAccount', :full-name='pickupOrdererName || null')
       .issuance__resolve-hint(v-if='pickupOrders.length') {{ $t('marketplace.operatorIssuance.readyAtPointText') }}
-      .issuance__resolve-empty(v-else) {{ $t('marketplace.operatorIssuance.emptyWithStockHint') }}
+      EmptyState(
+        v-else,
+        :title='$t("marketplace.operatorIssuance.emptyTitle")',
+        :body='restockAvailable ? $t("marketplace.operatorIssuance.emptyWithStockHint") : $t("marketplace.operatorIssuance.emptyNoStockHint")'
+      )
+        template(#icon)
+          q-icon(name='inventory_2', size='40px')
       .issuance__resolve-item(v-for='line in pickupLines', :key='line.key')
         .issuance__resolve-item-info
           .issuance__resolve-item-title {{ line.name }}
@@ -668,7 +679,8 @@ q-page.issuance(role='region', :aria-label='$t("marketplace.operatorIssuance.ari
       StockRestockPanel(
         v-if='pickupAccount',
         :braname='braname',
-        :member-account='pickupAccount'
+        :member-account='pickupAccount',
+        @loaded='(count) => (restockAvailable = count > 0)'
       )
 </template>
 
@@ -788,13 +800,6 @@ q-page.issuance(role='region', :aria-label='$t("marketplace.operatorIssuance.ari
     width: 100%;
     padding-top: var(--p-2, 8px);
     border-top: 1px solid var(--p-line);
-  }
-
-  &__resolve-account {
-    font-size: var(--p-fs-body, 14px);
-    font-weight: 600;
-    color: var(--p-ink);
-    font-family: var(--font-mono);
   }
 
   &__resolve-hint,

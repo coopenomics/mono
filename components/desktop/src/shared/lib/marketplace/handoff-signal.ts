@@ -8,10 +8,10 @@ import { ref } from 'vue';
  * идентификатору и сам ничего не разбирает.
  */
 export type MarketplaceHandoffMatter =
-  | { kind: 'issuance'; account: string }
-  | { kind: 'reception'; account: string }
+  | { kind: 'issuance'; account: string; display_name: string | null }
+  | { kind: 'reception'; account: string; display_name: string | null }
   | { kind: 'shipment'; shipment_id: string }
-  | { kind: 'return'; account: string; claim_id: string | null }
+  | { kind: 'return'; account: string; display_name: string | null; claim_id: string | null }
   | { kind: 'container'; container_code: string };
 
 /**

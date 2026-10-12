@@ -55,13 +55,14 @@ const MATTER_ROUTE: Record<MarketplaceHandoffMatter['kind'], string> = {
 
 function matterOf(v: MarketplaceScanVisitView, m: MarketplaceScanMatterView): MarketplaceHandoffMatter {
   const account = v.account ?? '';
+  const display_name = v.display_name ?? null;
   switch (m.kind) {
     case Zeus.MarketplaceScanMatterKind.RECEPTION:
-      return { kind: 'reception', account };
+      return { kind: 'reception', account, display_name };
     case Zeus.MarketplaceScanMatterKind.RETURN:
-      return { kind: 'return', account, claim_id: m.ids.length === 1 ? m.ids[0] : null };
+      return { kind: 'return', account, display_name, claim_id: m.ids.length === 1 ? m.ids[0] : null };
     default:
-      return { kind: 'issuance', account };
+      return { kind: 'issuance', account, display_name };
   }
 }
 
@@ -96,7 +97,7 @@ function dispatch(v: MarketplaceScanVisitView): void {
   }
   // Пайщик без дел на участке — стол выдачи покажет его и предложит докладку.
   if (v.matters.length === 0) {
-    go({ kind: 'issuance', account: v.account ?? '' });
+    go({ kind: 'issuance', account: v.account ?? '', display_name: v.display_name ?? null });
     return;
   }
   if (v.matters.length === 1) {
