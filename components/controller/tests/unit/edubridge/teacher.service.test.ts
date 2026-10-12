@@ -485,17 +485,16 @@ describe('EdubridgeTeacherService', () => {
     expect(declined.decline_reason).toMatch(/не соответствует/);
   });
 
-  it('отказ после решения совета: declinerid с протоколом этого решения', async () => {
-    const { service, chain, documents, store } = make();
+  it('после принятого решения совета отказа нет: председатель исполняет решение актом', async () => {
+    const { service, chain, store } = make();
     const c = await contributionOfLesson(service, store);
     await service.submitContribution('voskhod', 'teach', c.id, signedBy('teach'));
     c.status = EduContributionStatus.COUNCIL_APPROVED;
     c.council_decision_id = '42';
-    const declined = await service.decline('voskhod', c.id, 'Преподаватель отозвал результат');
-    expect(documents.generate).toHaveBeenLastCalledWith(expect.objectContaining({ data: expect.objectContaining({ registry_id: R.EducationRidDecision.registry_id, decision_id: 42 }) }));
-    expect(chain.declineRid).toHaveBeenCalledWith(expect.objectContaining({ rid_hash: c.rid_hash }));
+    await expect(service.decline('voskhod', c.id, 'Преподаватель отозвал результат')).rejects.toMatchObject({ code: 'EDUBRIDGE_CONTRIBUTION_DECLINE_NOT_SUBMITTED' });
+    expect(chain.declineRid).not.toHaveBeenCalled();
     expect(chain.recallRid).not.toHaveBeenCalled();
-    expect(declined.status).toBe(EduContributionStatus.DECLINED);
+    expect(c.status).toBe(EduContributionStatus.COUNCIL_APPROVED);
   });
 
   it('подача запоминает номер вопроса в повестке совета; отклонение и просрочка помечают заявление', async () => {

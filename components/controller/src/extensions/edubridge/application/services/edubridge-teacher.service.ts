@@ -1360,24 +1360,13 @@ export class EdubridgeTeacherService {
   async decline(coopname: string, contributionId: string, reason: string): Promise<EdubridgeContributionRecord> {
     const c = await this.teachers.findContribution(coopname, contributionId);
     if (!c) throw DomainError.notFound('EDUBRIDGE_CONTRIBUTION_NOT_FOUND');
-    if (![EduContributionStatus.SUBMITTED, EduContributionStatus.COUNCIL_APPROVED, EduContributionStatus.ACT_SIGNED].includes(c.status)) {
-      throw DomainError.badRequest('EDUBRIDGE_CONTRIBUTION_DECLINE_NOT_SUBMITTED');
-    }
+    if (c.status !== EduContributionStatus.SUBMITTED) throw DomainError.badRequest('EDUBRIDGE_CONTRIBUTION_DECLINE_NOT_SUBMITTED');
     if (!reason?.trim()) throw DomainError.badRequest('EDUBRIDGE_CONTRIBUTION_DECLINE_REASON_REQUIRED');
-    // Отказ преподавателю — только по решению совета: принятому либо отклонённому вопросу повестки.
-    if (!c.council_decision_id && c.council_outcome !== EduCouncilOutcome.DECLINED) {
-      throw DomainError.badRequest('EDUBRIDGE_CONTRIBUTION_DECLINE_REQUIRES_COUNCIL');
-    }
-    if (c.council_decision_id) {
-      // Решение совета есть, приём не состоялся: заявление закрывается его протоколом.
-      const decision = await this.councilProtocol(coopname, c);
-      await this.chain.declineRid({ coopname, rid_hash: c.rid_hash, decision } as never);
-      c.decision_hash = decision.hash.toLowerCase();
-    } else {
-      // Совет отклонил вопрос о приёме — отрицательного протокола у него не бывает.
-      // Материалы снимаются с хранения с основанием (Дт 76 / Кт 08).
-      await this.chain.recallRid({ coopname, rid_hash: c.rid_hash, reason: t('edubridge.teacher.ridRecallReason', { reason: reason.trim() }) } as never);
-    }
+    // Отказ преподавателю — только вслед за отказом совета. Принятое решение
+    // председатель исполняет: приём идёт актом, отказа после него нет.
+    if (c.council_outcome !== EduCouncilOutcome.DECLINED) throw DomainError.badRequest('EDUBRIDGE_CONTRIBUTION_DECLINE_REQUIRES_COUNCIL');
+    // Отрицательного протокола у совета не бывает — материалы снимаются с хранения с основанием (Дт 76 / Кт 08).
+    await this.chain.recallRid({ coopname, rid_hash: c.rid_hash, reason: t('edubridge.teacher.ridRecallReason', { reason: reason.trim() }) } as never);
     c.decline_reason = reason;
     c.status = EduContributionStatus.DECLINED;
     c.decided_at = new Date();

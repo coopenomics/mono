@@ -104,9 +104,8 @@ const columns: BaseTableColumn<IContribution>[] = [
   { key: 'actions', label: '', align: 'right', width: '190px', nowrap: true },
 ];
 
-const DECLINABLE = new Set<string>([Zeus.EduContributionStatus.SUBMITTED, Zeus.EduContributionStatus.COUNCIL_APPROVED, Zeus.EduContributionStatus.ACT_SIGNED]);
-/** Отказ в приёме оформляется только по решению совета: вопрос рассмотрен — принят либо отклонён. */
-const canDecline = (c: IContribution) => DECLINABLE.has(c.status) && Boolean(c.council_decision_id || c.council_outcome === Zeus.EduCouncilOutcome.DECLINED);
+/** Отказ в приёме — только вслед за отказом совета. Принятое решение председатель исполняет актом, отказа после него нет. */
+const canDecline = (c: IContribution) => c.status === Zeus.EduContributionStatus.SUBMITTED && c.council_outcome === Zeus.EduCouncilOutcome.DECLINED;
 const statusOf = (s: string) => CONTRIBUTION_STATUS_LABELS[s] ?? { label: s, variant: 'neutral' as const };
 const ridType = (t: string) => RID_TYPE_LABELS[t] ?? t;
 // ФИО известны по договору преподавателя; без него остаётся учётное имя.

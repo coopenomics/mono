@@ -8,7 +8,7 @@ title: Образовательный мост — договор УХД, наз
 # проект свободного решения совета с правилом отслеживания → DecisionTrackedEvent
 # → COUNCIL_APPROVED → акт 3010 подписывает преподаватель → acceptrid с
 # протоколом 3009 (Дт 04 / Кт 08 и Дт 76 / Кт 80 с переводом w.edu.hold →
-# w.edu.share). Отклонение — declinerid с причиной.
+# w.edu.share). Отказ — только после отказа совета: recallrid с причиной.
 #
 # Материалы занятия до заявления лежат на ответственном хранении: акт 3012 →
 # holdrid (Дт 08 / Кт 76, w.edu.hold). Рекламация внутри срока — recallrid
@@ -116,8 +116,8 @@ cases:
   - id: edu.teach.happy.03
     level: backend
     kind: happy
-    scenario: Отклонение взноса.
-    expect: declinerid, DECLINED, причина сохранена.
+    scenario: Отклонение взноса после отказа совета.
+    expect: recallrid, DECLINED, причина сохранена.
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
     api: components/api-tests/src/edubridge/lessons.test.ts
     status: passing
@@ -351,8 +351,8 @@ cases:
   - id: edu.teach.side.12
     level: backend
     kind: side
-    scenario: "Решение совета есть, приём не состоялся — председатель закрывает заявление."
-    expect: "declinerid с протоколом 3009 по номеру принятого решения; recallrid не вызывается."
+    scenario: "Совет принял решение о приёме — председатель пробует отказать."
+    expect: "Отказ отклоняется (EDUBRIDGE_CONTRIBUTION_DECLINE_NOT_SUBMITTED): принятое решение исполняется актом; declinerid и recallrid не вызываются."
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
     api: components/api-tests/src/edubridge/lessons.test.ts
     status: passing

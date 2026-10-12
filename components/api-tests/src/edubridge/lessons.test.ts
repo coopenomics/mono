@@ -343,7 +343,7 @@ describe('Образование: занятия и взносы препода�
       expect((await holdMaterials(teacher, token, again.contribution.id)).status).toBe('HELD')
     })
 
-    it(caseName('edu.teach.side.12', 'решение совета есть, приём не состоялся — председатель закрывает заявление протоколом'), async () => {
+    it(caseName('edu.teach.side.12', 'совет принял решение о приёме — отказа у председателя больше нет, решение исполняется актом'), async () => {
       const third = (await reportLesson(token, nowAssignment.id, 3)).contribution
       await holdMaterials(teacher, token, third.id)
       await submitStatement(teacher, token, third.id)
@@ -351,11 +351,9 @@ describe('Образование: занятия и взносы препода�
       await waitFor(async () => ((await mine(third.id))?.status === 'COUNCIL_APPROVED' ? true : null),
         { timeoutMs: 120_000, intervalMs: 1_500, label: 'решение совета по третьему взносу' })
 
-      const declined = (await gql<any>(chairman, DECLINE_CONTRIBUTION, { d: { contribution_id: third.id, reason: 'Преподаватель отозвал материалы' } })).edubridgeDeclineContribution
-      expect(declined).toMatchObject({ status: 'DECLINED', decline_reason: 'Преподаватель отозвал материалы' })
-      expect(declined.council_decision_id, 'решение совета названо').toBeTruthy()
-      expect(declined.decision_hash, 'протокол совета опубликован').toMatch(/^[0-9a-f]{64}$/)
-      expectCode(await gqlError(token, RID_ACT, { id: third.id }), 'EDUBRIDGE_ACT_BEFORE_COUNCIL_DECISION')
+      // Принятое решение совета председатель исполняет: отказ после него не оформляется.
+      expectCode(await gqlError(chairman, DECLINE_CONTRIBUTION, { d: { contribution_id: third.id, reason: 'Преподаватель отозвал материалы' } }), 'EDUBRIDGE_CONTRIBUTION_DECLINE_NOT_SUBMITTED')
+      expect((await mine(third.id)).status, 'взнос ждёт акт преподавателя').toBe('COUNCIL_APPROVED')
     }, 480_000)
 
     it(caseName('edu.teach.side.19', 'совет отклонил вопрос о приёме — заявление помечено исходом совета и остаётся на рассмотрении'), async () => {
