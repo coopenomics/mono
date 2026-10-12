@@ -8,7 +8,7 @@
   BaseBanner.q-mb-md(v-for="p in pendingTransfers" :key="asText(p.id)" variant="warn")
     template(#icon)
       q-icon(name="schedule")
-    | {{ $t('edubridge.teacherLessonsPage.pendingTransfer', { lessonNumber: p.lesson_number, courseTitle: p.course_title }) }}
+    | {{ $t('edubridge.teacherLessonsPage.pendingTransfer', { lessons: lessonNumbersOf(p), courseTitle: p.course_title }, packOf(p).length) }}
     template(#action)
       BaseButton(variant="primary" size="sm" :loading="rowBusy === asText(p.id)" @click="onTransfer(p)") {{ $t('edubridge.teacherLessonsPage.transferMaterials') }}
 
@@ -30,7 +30,11 @@
       .t-muted.t-sm {{ row.course_title }}
     template(#cell-held_at="{ row }") {{ formatDate(row.held_at) }}
     template(#cell-amount="{ row }")
-      span.t-num(v-if="row.contribution") {{ formatAsset2Digits(row.contribution.amount) }}
+      //- Взнос за гарантийный срок один на несколько занятий: сумма стоит у первого из них, у остальных — ссылка на него.
+      template(v-if="row.contribution")
+        span.t-num(v-if="isPackHead(row)") {{ formatAsset2Digits(row.contribution.amount) }}
+        span.t-muted.t-sm(v-else) {{ $t('edubridge.teacherLessonsPage.amountInPack', { lessonNumber: packOf(row)[0].lesson_number }) }}
+        .t-muted.t-sm(v-if="isPackHead(row) && packOf(row).length > 1") {{ $t('edubridge.teacherLessonsPage.amountForLessons', { lessons: lessonNumbersOf(row) }) }}
       //- Занятие гарантийного срока: сумма станет окончательной после срока, одна на все занятия периода.
       span.t-muted.t-sm(v-else-if="row.learners_count") {{ $t('edubridge.teacherLessonsPage.amountAfterGuarantee') }}
       span(v-else) ______
@@ -42,8 +46,10 @@
       template(v-else) ______
     //- Действие за преподавателем — своей колонкой справа, как в реестрах Стола заказов; нажатие строку не открывает.
     template(#cell-actions="{ row }")
-      BaseButton(v-if="actionOf(row) === 'transfer'" variant="primary" size="sm" :loading="rowBusy === asText(row.id)" @click.stop="onTransfer(row)") {{ $t('edubridge.teacherLessonsPage.transferMaterials') }}
-      BaseButton(v-else-if="actionOf(row) === 'sign'" variant="primary" size="sm" :loading="rowBusy === asText(row.id)" @click.stop="onSignAct(row)") {{ $t('edubridge.teacherLessonsPage.signAct') }}
+      //- У взноса на несколько занятий действие одно — в строке первого занятия.
+      template(v-if="isPackHead(row)")
+        BaseButton(v-if="actionOf(row) === 'transfer'" variant="primary" size="sm" :loading="rowBusy === asText(row.id)" @click.stop="onTransfer(row)") {{ $t('edubridge.teacherLessonsPage.transferMaterials') }}
+        BaseButton(v-else-if="actionOf(row) === 'sign'" variant="primary" size="sm" :loading="rowBusy === asText(row.id)" @click.stop="onSignAct(row)") {{ $t('edubridge.teacherLessonsPage.signAct') }}
 
   //- Занятие целиком: сведения, материалы, взнос и его состояние; действие преподавателя — внизу панели.
   DetailsDrawer(v-model="detailsOpen" :title="details ? (details.topic || $t('edubridge.teacherLessonsPage.lessonTitle', { number: details.lesson_number })) : ''" :width="560")
@@ -206,7 +212,19 @@ watch(groupOptions, (options) => {
 });
 
 /** Занятия, по которым материалы ещё не переданы на хранение: они держат следующий отчёт по своему курсу. */
-const pendingTransfers = computed(() => rows.value.filter((r) => actionOf(r) === 'transfer'));
+/**
+ * Занятия одного взноса по порядку номеров. Взнос за гарантийный срок один на
+ * все занятия периода: документы по нему подписываются один раз.
+ */
+const packOf = (row: ILessonRow): ILessonRow[] => {
+  if (!row.contribution_id) return [row];
+  return rows.value.filter((r) => asText(r.contribution_id) === asText(row.contribution_id)).sort((a, b) => Number(a.lesson_number) - Number(b.lesson_number));
+};
+/** Первое занятие взноса: у него стоят сумма и действие. */
+const isPackHead = (row: ILessonRow): boolean => asText(packOf(row)[0].id) === asText(row.id);
+const lessonNumbersOf = (row: ILessonRow): string => packOf(row).map((r) => r.lesson_number).join(', ');
+/** Взносы, по которым преподаватель ещё не подписал документы, — по одному на взнос. */
+const pendingTransfers = computed(() => rows.value.filter((r) => actionOf(r) === 'transfer' && isPackHead(r)));
 /** Занятие, из-за которого отчёт по выбранной группе сейчас не принимается: порядок занятий ведётся внутри группы. */
 const reportBlockedBy = computed(() => {
   const assignment = assignments.value.find((a) => asText(a.id) === asText(form.assignment_id));
@@ -300,7 +318,7 @@ async function onTransfer(lesson: ILesson): Promise<void> {
   rowBusy.value = asText(lesson.id);
   try {
     replaceContribution(await commitLessonMaterials(c));
-    SuccessAlert(t('edubridge.teacherLessonsPage.reportSuccess'));
+    SuccessAlert(t('edubridge.teacherLessonsPage.documentsSigned'));
   } catch (e) {
     FailAlert(e);
   } finally {
