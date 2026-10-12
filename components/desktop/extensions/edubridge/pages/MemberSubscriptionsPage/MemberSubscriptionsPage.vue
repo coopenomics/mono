@@ -160,8 +160,13 @@ const courses = ref<ICatalogCourse[]>([]);
 const loading = ref(true);
 const firstLoad = useFirstLoad(loading);
 const extendOpen = ref(false);
-/** Площадки, для которых есть своя инструкция по входу. */
-const ACCESS_HOW_TO_CARRIERS: string[] = [Zeus.EduAccessCarrier.SKILLSPACE, Zeus.EduAccessCarrier.GETCOURSE, Zeus.EduAccessCarrier.ONSITE];
+/** Инструкция по входу для площадки: ключ словаря называется явно, из значения площадки он не собирается. */
+type AccessHowToKey = 'edubridge.memberSubscriptionsPage.accessHowTo.skillspace' | 'edubridge.memberSubscriptionsPage.accessHowTo.getcourse' | 'edubridge.memberSubscriptionsPage.accessHowTo.onsite';
+const ACCESS_HOW_TO: Partial<Record<string, AccessHowToKey>> = {
+  [Zeus.EduAccessCarrier.SKILLSPACE]: 'edubridge.memberSubscriptionsPage.accessHowTo.skillspace',
+  [Zeus.EduAccessCarrier.GETCOURSE]: 'edubridge.memberSubscriptionsPage.accessHowTo.getcourse',
+  [Zeus.EduAccessCarrier.ONSITE]: 'edubridge.memberSubscriptionsPage.accessHowTo.onsite',
+};
 const lockedCourseId = ref<string | null>(null);
 const lockedGroupId = ref<string | null>(null);
 const cancelOpen = ref(false);
@@ -180,8 +185,7 @@ function accessHowTo(row: IEnrollment): string {
   if (!isActive(row)) return '';
   if (row.access_state !== Zeus.EduAccessState.GRANTED) return t('edubridge.memberSubscriptionsPage.accessHowTo.pending');
   const contact = learners.value.find((l) => asText(l.id) === asText(row.learner_id))?.recipient_value || '______';
-  const key = row.carrier && ACCESS_HOW_TO_CARRIERS.includes(row.carrier) ? row.carrier : 'other';
-  return t(`edubridge.memberSubscriptionsPage.accessHowTo.${key}`, { contact });
+  return t((row.carrier && ACCESS_HOW_TO[row.carrier]) || 'edubridge.memberSubscriptionsPage.accessHowTo.other', { contact });
 }
 const learnerName = (id: unknown) => learners.value.find((l) => asText(l.id) === asText(id))?.display_name ?? '______';
 const periodLabel = (p: string) => PERIOD_LABELS[p] ?? p;

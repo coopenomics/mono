@@ -1,5 +1,6 @@
 import type { DesktopWalletCard } from 'src/shared/lib/types/desktop-wallet';
 import { walletCards as capitalWalletCards } from '../../../extensions/capital/install';
+import { walletCards as edubridgeWalletCards } from '../../../extensions/edubridge/install';
 import { walletCards as marketWalletCards } from '../../../extensions/market/install';
 import { t } from 'src/shared/i18n';
 
@@ -34,6 +35,7 @@ const CORE_WALLET_CARDS: DesktopWalletCard[] = [
 
 const WALLET_CARDS_BY_EXTENSION: Record<string, DesktopWalletCard[]> = {
   capital: capitalWalletCards,
+  edubridge: edubridgeWalletCards,
   market: marketWalletCards,
 };
 

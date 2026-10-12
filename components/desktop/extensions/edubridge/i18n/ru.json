@@ -752,7 +752,11 @@
       "teacherProfileRouteTitle": "Профиль",
       "teacherRouteTitle": "Преподаватель",
       "teacherWorkspaceTitle": "Стол преподавателя",
-      "teachersRouteTitle": "Преподаватели"
+      "teachersRouteTitle": "Преподаватели",
+      "walletDescription": "Образование",
+      "walletMemberLabel": "Кошелёк программы",
+      "walletTeacherShareLabel": "Паевой взнос преподавателя",
+      "walletTeacherHoldLabel": "Материалы на хранении"
     },
     "learner": {
       "recipient": {

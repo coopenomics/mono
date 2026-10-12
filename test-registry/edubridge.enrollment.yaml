@@ -586,6 +586,22 @@ cases:
     external: unreachable
     external_reason: "середина программы и её конец на полигоне не наступают: месяцы там календарные; расчёт по остатку повторяет расчёт контракта и проверяется модульно"
     status: written
+  - id: edu.enroll.side.38
+    level: backend
+    kind: side
+    scenario: "Подписка отменена, оформлена снова в той же группе и отменена второй раз."
+    expect: "Каждая отмена ставит отзыв доступа под номером своей транзакции; без номера ключ собирается из хэша подписки и момента отмены. Вторая отмена — новая задача, доступ на площадке закрыт."
+    test: components/controller/tests/unit/edubridge/enrollment.service.test.ts
+    api: components/api-tests/src/edubridge/platforms.test.ts
+    status: passing
+  - id: edu.enroll.side.39
+    level: backend
+    kind: side
+    scenario: "Служба и слушатель цепи ставят задачу доступа по одной транзакции."
+    expect: "Номер транзакции у обоих в одном виде (нижний регистр, из ответа узла) — защита от повтора оставляет одну задачу."
+    test: components/controller/tests/unit/edubridge/trx-id.test.ts
+    api: components/api-tests/src/edubridge/platforms.test.ts
+    status: passing
   - id: edu.enroll.ui.06
     level: ui
     kind: happy

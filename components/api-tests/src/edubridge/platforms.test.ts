@@ -268,6 +268,36 @@ describe('Образование: выдача доступа на площад�
       expect(await removals()).toBe(1)
     }, 480_000)
 
+    it(caseName('edu.enroll.side.38', 'подписка отменена, оформлена снова в той же группе и отменена второй раз — доступ на площадке отозван оба раза'), async () => {
+      const course = await skillspaceCourse()
+      await fundShare(member, token, amount(course.fee_month) * 2)
+      learnerNo += 1
+      const email = `learner-${learnerNo}-${crypto.randomBytes(3).toString('hex')}@school.example`
+      const learner = (await gql<any>(token, ADD_LEARNER, { d: { display_name: `Иванов Пётр Сергеевич ${learnerNo}`, recipient_type: 'EMAIL', recipient_value: email } })).edubridgeAddLearner
+      const removals = async (): Promise<number> =>
+        (await stubRequests(`${SS}/course/${SS_COURSE}/student-remove`)).filter(r => formOf(r.body).get('email') === email).length
+      const doneTasks = async (id: string, kind: string): Promise<number> => (await tasksOf(id)).filter(t => t.kind === kind && t.status === 'DONE').length
+
+      const opened = await subscribe(member, token, learner.id, course.id)
+      await taskIn(opened.id, 'GRANT', ['DONE'])
+      await gql(token, CANCEL_ENROLLMENT, { id: opened.id })
+      await taskIn(opened.id, 'REVOKE', ['DONE'])
+      expect(await removals()).toBe(1)
+
+      // Та же группа — тот же хэш подписки: вторая отмена обязана завести свой отзыв.
+      const again = await subscribe(member, token, learner.id, course.id)
+      expect(again.sub_hash).toBe(opened.sub_hash)
+      await waitFor(async () => ((await enrollmentOf(token, again.id))?.access_state === 'GRANTED' ? true : null),
+        { timeoutMs: 120_000, intervalMs: 2_000, label: 'доступ по повторной подписке выдан' })
+      // Служба и слушатель цепи ставят выдачу по одной транзакции — задача одна, второго приглашения нет.
+      expect(await doneTasks(again.id, 'GRANT')).toBe(again.id === opened.id ? 2 : 1)
+
+      await gql(token, CANCEL_ENROLLMENT, { id: again.id })
+      await waitFor(async () => ((await removals()) === 2 ? true : null),
+        { timeoutMs: 120_000, intervalMs: 2_000, label: 'второй отзыв ушёл площадке' })
+      expect((await enrollmentOf(token, again.id))?.access_state).toBe('REVOKED')
+    }, 480_000)
+
     it(caseName('edu.access.side.11', 'аккаунт обучающегося без подписок: администратор отмечает, что удалил его с площадки; новая выдача отметку снимает'), async () => {
       const course = await skillspaceCourse()
       learnerNo += 1

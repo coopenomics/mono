@@ -1,3 +1,4 @@
+import { trxIdOf } from '../../domain/lib/trx-id';
 import { Inject, Injectable } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { isWorkerTurn } from '../../domain/economy/time-scale';
@@ -102,7 +103,7 @@ export class EdubridgeExpiryWorker {
   private async closeInChain(coopname: string, subHash: string, fallback: string): Promise<string> {
     try {
       const result = await this.chain.expireSubscription({ coopname, sub_hash: subHash });
-      return String((result as { transaction_id?: string })?.transaction_id ?? fallback);
+      return trxIdOf(result) ?? fallback;
     } catch (e) {
       if (chainErrorCode(e) !== SUBSCRIPTION_GONE) throw e;
       this.logger.warn(`[EDU.EXPIRY] подписки ${subHash} в цепи уже нет — закрываем запись и отзываем доступ`);

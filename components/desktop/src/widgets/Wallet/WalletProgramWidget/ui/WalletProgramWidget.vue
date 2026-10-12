@@ -92,8 +92,14 @@ const walletByName = computed<Map<string, IUserWalletData>>(() => {
   return map;
 });
 
+/** Есть ли на кошельке средства: доступные либо заблокированные. */
+const hasFunds = (row?: IUserWalletData): boolean => parseFloat(row?.available || '0') > 0 || parseFloat(row?.blocked || '0') > 0;
+
 const cardEntries = computed<WalletCardEntry[]>(() =>
-  collectWalletCards(installedExtensions.value).map((card) => {
+  collectWalletCards(installedExtensions.value)
+    // Кошелёк одной роли (преподаватель, поставщик) без средств карточку не занимает.
+    .filter((card) => !card.hideWhenEmpty || hasFunds(walletByName.value.get(card.wallet_name)))
+    .map((card) => {
     const row = walletByName.value.get(card.wallet_name);
     const available = splitAsset(row?.available);
     const blocked = splitAsset(row?.blocked);

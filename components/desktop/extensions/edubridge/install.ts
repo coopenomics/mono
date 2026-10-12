@@ -10,6 +10,7 @@ import { invalidateAttention, sharedAttention } from './entities/Admin';
 import { EduLive } from './shared/lib/live';
 import { agreementsBase } from 'src/shared/lib/consts/workspaces';
 import type { IWorkspaceConfig, IWorkspaceRoute, IWorkspaceRouteMeta } from 'src/shared/lib/types/workspace';
+import type { DesktopWalletCard } from 'src/shared/lib/types/desktop-wallet';
 import { registerEdubridgeDecisionHandlers } from './app/decisions';
 import {
   AdminConnectorsPage,
@@ -126,6 +127,18 @@ function teacherWorkspace(): IWorkspaceConfig {
     memberPage('settlement', 'edubridge-settlement', TeacherSettlementPage, { title: t('edubridge.install.settlementRouteTitle'), icon: 'account_balance_wallet', requires: 'EduTeacherWallet:read:own' }),
   ]);
 }
+
+/**
+ * Кошельки ЦПП «Образование» на странице кошелька пайщика. Кошелёк программы
+ * ученика виден всегда: на него возвращается взнос при отмене подписки, с него
+ * идёт следующий взнос. Два кошелька преподавателя — паевой взнос по программе
+ * и материалы на ответственном хранении — показываются, когда на них есть средства.
+ */
+export const walletCards: DesktopWalletCard[] = [
+  { wallet_name: 'w.edu.member', label: t('edubridge.install.walletMemberLabel'), description: t('edubridge.install.walletDescription'), accent: 'wallet', icon: 'school' },
+  { wallet_name: 'w.edu.share', label: t('edubridge.install.walletTeacherShareLabel'), description: t('edubridge.install.walletDescription'), accent: 'wallet', icon: 'co_present', hideWhenEmpty: true },
+  { wallet_name: 'w.edu.hold', label: t('edubridge.install.walletTeacherHoldLabel'), description: t('edubridge.install.walletDescription'), accent: 'wallet', icon: 'inventory_2', hideWhenEmpty: true },
+];
 
 export default async function (): Promise<IWorkspaceConfig[]> {
   // Решения совета по заявлениям образования: протокол собирается по заявлению,

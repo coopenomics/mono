@@ -1,3 +1,4 @@
+import { chainTrigger } from '../../domain/lib/trx-id';
 import { Inject, Injectable } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { EdubridgeContract } from 'cooptypes';
@@ -66,7 +67,7 @@ export class EdubridgeAccessListener {
       enrollment.status = EduEnrollmentStatus.ACTIVE;
       await this.enrollments.save(enrollment);
     }
-    await this.enqueueGrant(enrollment.coopname, enrollment.id, action.transaction_id);
+    await this.enqueueGrant(enrollment.coopname, enrollment.id, chainTrigger(action.transaction_id));
   }
 
   @OnEvent(chainEvent(EdubridgeContract.Actions.Expiresub.actionName))
@@ -80,7 +81,7 @@ export class EdubridgeAccessListener {
     }
     const course = await this.courses.findById(enrollment.coopname, enrollment.course_id);
     if (!course) return;
-    await this.outbox.enqueue({ coopname: enrollment.coopname, enrollment, kind: EduAccessTaskKind.REVOKE, carrier: course.carrier, trigger: action.transaction_id });
+    await this.outbox.enqueue({ coopname: enrollment.coopname, enrollment, kind: EduAccessTaskKind.REVOKE, carrier: course.carrier, trigger: chainTrigger(action.transaction_id) });
   }
 
   /** Смена контакта: отзыв старого адреса и выдача нового без повторной оплаты. */

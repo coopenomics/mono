@@ -1,7 +1,7 @@
 /** «Получить доступ»: котировка, взнос помесячно и разом за весь курс, продление против открытия, нехватка паевого, одна транзакция convert+opensub. */
 import { EdubridgeEnrollmentService } from '~/extensions/edubridge/application/services/edubridge-enrollment.service';
 import { EduAccessState, EduCourseStatus, EduEnrollmentPeriod, EduEnrollmentStatus } from '~/extensions/edubridge/domain/enums';
-import { EDUBRIDGE_ENROLLMENT_EXTENDED_EVENT, EDUBRIDGE_ENROLLMENT_OPENED_EVENT } from '~/extensions/edubridge/application/events/edubridge.events';
+import { EDUBRIDGE_ENROLLMENT_CANCELLED_EVENT, EDUBRIDGE_ENROLLMENT_EXTENDED_EVENT, EDUBRIDGE_ENROLLMENT_OPENED_EVENT } from '~/extensions/edubridge/application/events/edubridge.events';
 import { Cooperative } from 'cooptypes';
 
 const logger = { setContext: jest.fn(), info: jest.fn(), warn: jest.fn(), error: jest.fn() } as any;
@@ -117,7 +117,8 @@ describe('EdubridgeEnrollmentService', () => {
     expect(saved.status).toBe(EduEnrollmentStatus.ACTIVE);
     expect(saved.access_state).toBe(EduAccessState.PENDING);
     expect(saved.statement_hash).toBe('deadbeef');
-    expect(events.emit).toHaveBeenCalledWith(EDUBRIDGE_ENROLLMENT_OPENED_EVENT, expect.objectContaining({ trx_id: 'TRX1' }));
+    // Ключ задачи доступа — номер транзакции в нижнем регистре: в том же виде его ставит слушатель цепи.
+    expect(events.emit).toHaveBeenCalledWith(EDUBRIDGE_ENROLLMENT_OPENED_EVENT, expect.objectContaining({ trx_id: 'trx1' }));
   });
 
   it('действующая подписка: взнос без открытия, срок от текущего paid_until, событие extended, доступ не трогаем', async () => {
@@ -364,6 +365,27 @@ describe('EdubridgeEnrollmentService — удержание взноса', () =>
     expect(chain.cancelSubscription.mock.calls[0]).toHaveLength(1);
     expect(funds.afterClosed).toHaveBeenCalledWith('voskhod', expect.objectContaining({ id: 'E1', status: EduEnrollmentStatus.CANCELLED }));
     expect(saved.locked_amount).toBeNull();
+  });
+
+  it('отмена ставит отзыв доступа под номером своей транзакции: вторая отмена той же подписки — новая задача', async () => {
+    const existing = { id: 'E1', coopname: 'voskhod', member_username: 'ant', learner_id: 'L1', course_id: 'C1', sub_hash: 'aabb', period: EduEnrollmentPeriod.MONTH, paid_amount: '1000.0000 RUB', paid_months: 1, status: EduEnrollmentStatus.ACTIVE, paid_until: new Date('2099-01-01') } as any;
+    const { service, chain, events } = make({ existing });
+    await service.cancel('voskhod', 'ant', 'E1');
+    // Подписка оформлена снова в той же группе: хэш прежний, отмена — другая транзакция.
+    existing.status = EduEnrollmentStatus.ACTIVE;
+    chain.cancelSubscription.mockResolvedValueOnce({ response: { transaction_id: 'TRX3' } });
+    await service.cancel('voskhod', 'ant', 'E1');
+    const triggers = events.emit.mock.calls.filter((c: any[]) => c[0] === EDUBRIDGE_ENROLLMENT_CANCELLED_EVENT).map((c: any[]) => c[1].trx_id);
+    expect(triggers).toEqual(['trx2', 'trx3']);
+  });
+
+  it('цепь не назвала номер транзакции отмены — ключ отзыва собирается из хэша подписки и момента отмены', async () => {
+    const existing = { id: 'E1', coopname: 'voskhod', member_username: 'ant', learner_id: 'L1', course_id: 'C1', sub_hash: 'aabb', period: EduEnrollmentPeriod.MONTH, paid_amount: '1000.0000 RUB', paid_months: 1, status: EduEnrollmentStatus.ACTIVE, paid_until: new Date('2099-01-01') } as any;
+    const { service, chain, events } = make({ existing });
+    chain.cancelSubscription.mockResolvedValueOnce({});
+    await service.cancel('voskhod', 'ant', 'E1');
+    const [, payload] = events.emit.mock.calls.find((c: any[]) => c[0] === EDUBRIDGE_ENROLLMENT_CANCELLED_EVENT);
+    expect(payload.trx_id).toMatch(/^cancel:aabb:\d{4}-/);
   });
 });
 

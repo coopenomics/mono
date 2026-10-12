@@ -16,6 +16,7 @@ import { EduAccessState, EduCourseStatus, EduEnrollmentPeriod, EduEnrollmentStat
 import { courseMonths, feeForLessons, feeForMonths } from '../../domain/economy/course-fee.calculator';
 import { monthPeriod, remainingCoursePeriod } from '../../domain/economy/course-period.calculator';
 import { isResumable } from '../../domain/lib/resumable';
+import { trxIdOf } from '../../domain/lib/trx-id';
 import { RefundReason, type RefundCalculation } from '../../domain/economy/refund.calculator';
 import { EDUBRIDGE_CHAIN_PORT, type EdubridgeChainPort } from '../../domain/ports/edubridge-chain.port';
 import type { EdubridgeCourseRecord, EdubridgeEnrollmentRecord, EdubridgeLearnerRecord } from '../../infrastructure/entities';
@@ -85,6 +86,9 @@ export interface EnrollmentPlan {
   paidUntil: Date;
   subHash: string;
 }
+
+/** Ключ задачи отзыва доступа по отмене: свой у каждой отмены одной и той же подписки. */
+const cancelTrigger = (e: EdubridgeEnrollmentRecord): string => `cancel:${e.sub_hash}:${(e.cancelled_at ?? new Date()).toISOString()}`;
 
 /**
  * Путь «Получить доступ»: котировка → заявление о конвертации (3011) →
@@ -283,7 +287,7 @@ export class EdubridgeEnrollmentService {
     }
 
     const result = await this.sendPayment(coopname, member, plan, period, funding, document);
-    const trxId = String((result as { transaction_id?: string })?.transaction_id ?? document.hash);
+    const trxId = trxIdOf(result) ?? document.hash.toLowerCase();
     this.logger.info(`[EDU.SUB] ${member}: ${plan.isExtension ? 'extendsub' : 'opensub'} ${plan.subHash} до ${plan.paidUntil.toISOString()} (trx ${trxId})`);
 
     const { saved, opened } = await this.saveAfterPayment(coopname, member, learnerId, courseId, plan, period, document);
@@ -410,7 +414,7 @@ export class EdubridgeEnrollmentService {
       learner_id: saved.learner_id,
       course_id: saved.course_id,
       member_username: saved.member_username,
-      trx_id: saved.sub_hash,
+      trx_id: cancelTrigger(saved),
     };
     this.events.emit(EDUBRIDGE_ENROLLMENT_CANCELLED_EVENT, payload);
     this.logger.info(`[EDU.SUB] подписка ${saved.sub_hash} аннулирована по гарантийным условиям: возврат ${refund} на паевой`);
@@ -544,7 +548,7 @@ export class EdubridgeEnrollmentService {
     // Основание и сумму возврата определяет контракт. Здесь то же правило
     // приложено к строке подписки из цепи — для записи итога.
     const refund = await this.refundFor(coopname, enrollment, course, underfilled);
-    await this.chain.cancelSubscription({
+    const cancelled = await this.chain.cancelSubscription({
       coopname,
       username: enrollment.member_username,
       sub_hash: enrollment.sub_hash,
@@ -567,7 +571,9 @@ export class EdubridgeEnrollmentService {
       learner_id: saved.learner_id,
       course_id: saved.course_id,
       member_username: saved.member_username,
-      trx_id: saved.sub_hash,
+      // Ключ задачи отзыва — номер транзакции отмены: повторная подписка в той же
+      // группе живёт под тем же хэшем, и по хэшу второй отзыв сочли бы повтором первого.
+      trx_id: trxIdOf(cancelled) ?? cancelTrigger(saved),
     };
     this.events.emit(EDUBRIDGE_ENROLLMENT_CANCELLED_EVENT, payload);
     this.logger.info(
