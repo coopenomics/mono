@@ -3,7 +3,7 @@ import { EdubridgeChainAdapter } from '~/extensions/edubridge/infrastructure/ada
 import { Cooperative } from 'cooptypes';
 
 function make() {
-  const chain = { initialize: jest.fn(), transact: jest.fn(async (a: any) => a) } as any;
+  const chain = { initialize: jest.fn(), transact: jest.fn(async (a: any) => a), getSingleRow: jest.fn(async () => null) } as any;
   const vault = { getWif: jest.fn(async () => 'WIF') } as any;
   return { adapter: new EdubridgeChainAdapter(chain, vault), chain, vault };
 }
@@ -110,5 +110,17 @@ describe('EdubridgeChainAdapter — состав транзакций подпи
     expect(sent.map((a: any) => a.name)).toEqual(['openlesson', 'chargelesson', 'holdrid']);
     expect(sent[2].data.amount).toBeUndefined();
     expect(sent[2].data.act.meta).toBe('{"c":3}');
+  });
+
+  it('строки таблиц цепи читаются по числовому ключу: строку библиотека цепи приняла бы за имя аккаунта', async () => {
+    const { adapter, chain } = make();
+    await adapter.readTerms('voskhod', '1004');
+    await adapter.readAssignment('voskhod', '77');
+    await adapter.readCourseFunds('voskhod', 1004);
+    const keys = chain.getSingleRow.mock.calls.map((c: unknown[]) => c[3]);
+    expect(keys).toEqual([1004, 77, 1004]);
+    // Подписка и занятие ищутся по хэшу — строкой, по вторичному индексу.
+    await adapter.readSubscription('voskhod', 'AB12');
+    expect(chain.getSingleRow.mock.calls[3].slice(3)).toEqual(['AB12', 'secondary', 'sha256']);
   });
 });

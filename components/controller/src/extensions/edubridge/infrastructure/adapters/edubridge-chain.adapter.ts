@@ -16,6 +16,15 @@ import type { EdubridgeChainPort, EduSubscribeExtras } from '../../domain/ports/
  * Все действия `edubridge` требуют `require_auth(coopname)`: пайщик подписывает
  * документ, транзакцию отправляет кооператив своим ключом из хранилища.
  */
+/**
+ * Числовой ключ строки таблицы цепи. Ключ уходит числом: строку библиотека
+ * цепи читает как имя аккаунта, и «1004» превращается в другое число — строка
+ * таблицы не находится.
+ */
+function chainKey(ref: string | number): number {
+  return Number(ref);
+}
+
 @Injectable()
 export class EdubridgeChainAdapter implements EdubridgeChainPort {
   constructor(
@@ -154,7 +163,7 @@ export class EdubridgeChainAdapter implements EdubridgeChainPort {
   }
 
   readTerms(coopname: string, courseRef: string | number): Promise<EdubridgeContract.Tables.EduTerms.IEduTerms | null> {
-    return this.chain.getSingleRow(this.code, coopname, EdubridgeContract.Tables.EduTerms.tableName, String(courseRef));
+    return this.chain.getSingleRow(this.code, coopname, EdubridgeContract.Tables.EduTerms.tableName, chainKey(courseRef));
   }
 
 async declineGuarantee(data: EdubridgeContract.Actions.Warrdecline.IWarrdecline): Promise<InnerTransactResult> {
@@ -163,7 +172,7 @@ async declineGuarantee(data: EdubridgeContract.Actions.Warrdecline.IWarrdecline)
   }
 
   readAssignment(coopname: string, assignmentRef: string | number): Promise<EdubridgeContract.Tables.EduAssigns.IEduAssignment | null> {
-    return this.chain.getSingleRow(this.code, coopname, EdubridgeContract.Tables.EduAssigns.tableName, String(assignmentRef));
+    return this.chain.getSingleRow(this.code, coopname, EdubridgeContract.Tables.EduAssigns.tableName, chainKey(assignmentRef));
   }
 
     readLesson(coopname: string, ridHash: string): Promise<EdubridgeContract.Tables.EduLessons.IEduLesson | null> {
@@ -171,7 +180,7 @@ async declineGuarantee(data: EdubridgeContract.Actions.Warrdecline.IWarrdecline)
   }
 
   readCourseFunds(coopname: string, courseRef: string | number): Promise<EdubridgeContract.Tables.EduCourses.IEduCourse | null> {
-    return this.chain.getSingleRow(this.code, coopname, EdubridgeContract.Tables.EduCourses.tableName, String(courseRef));
+    return this.chain.getSingleRow(this.code, coopname, EdubridgeContract.Tables.EduCourses.tableName, chainKey(courseRef));
   }
 
   async holdRid(data: EdubridgeContract.Actions.Holdrid.IHoldrid): Promise<InnerTransactResult> {

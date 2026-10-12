@@ -3238,6 +3238,8 @@ export type MessageKey =
   | 'edubridge.moneyFlow.scheme.escrowNote'
   | 'edubridge.moneyFlow.scheme.fundShare'
   | 'edubridge.moneyFlow.scheme.reserveShare'
+  | 'edubridge.moneyFlow.scheme.teacherShare'
+  | 'edubridge.moneyFlow.scheme.teacherShareNote'
   | 'edubridge.moneyFlow.step.allot.text'
   | 'edubridge.moneyFlow.step.allot.when'
   | 'edubridge.moneyFlow.step.convert.text'

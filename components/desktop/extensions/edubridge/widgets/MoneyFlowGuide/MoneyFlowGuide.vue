@@ -60,7 +60,7 @@ const BOXES: Box[] = [
   { key: 'escrow', x: 130, y: 236, w: 300, tone: 'escrow', label: t('edubridge.moneyFlow.node.escrow'), note: t('edubridge.moneyFlow.scheme.escrowNote') },
   { key: 'reserve', x: 6, y: 390, w: 250, tone: 'reserve', label: t('edubridge.moneyFlow.node.reserve'), note: t('edubridge.moneyFlow.scheme.reserveShare') },
   { key: 'fund', x: 304, y: 390, w: 250, tone: 'fund', label: t('edubridge.moneyFlow.node.fund'), note: t('edubridge.moneyFlow.scheme.fundShare') },
-  { key: 'teacherShare', x: 6, y: 546, w: 250, tone: 'outer', label: t('edubridge.moneyFlow.node.teacherShare') },
+  { key: 'teacherShare', x: 6, y: 546, w: 250, tone: 'outer', label: t('edubridge.moneyFlow.scheme.teacherShare'), note: t('edubridge.moneyFlow.scheme.teacherShareNote') },
   { key: 'expenseRecipient', x: 304, y: 546, w: 250, tone: 'outer', label: t('edubridge.moneyFlow.node.expenseRecipient') },
 ];
 
