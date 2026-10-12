@@ -104,3 +104,10 @@ export async function next(page) {
   await page.locator('button:has-text("Далее")').last().click();
   await page.waitForTimeout(700);
 }
+
+/** Прокрутка содержимого вниз колесом: страница стола крутится внутри контейнера, window.scrollTo её не двигает. */
+export async function scrollDown(page, px = 1200) {
+  await page.mouse.move(850, 500);
+  await page.mouse.wheel(0, px);
+  await page.waitForTimeout(600);
+}

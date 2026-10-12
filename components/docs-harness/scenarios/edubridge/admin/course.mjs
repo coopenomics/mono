@@ -2,7 +2,7 @@
 // публикация и действия.
 
 import { loginAsChairman } from '../../../lib/harness.mjs';
-import { EDU, openPage, settleAfterLogin } from '../../../lib/edu.mjs';
+import { EDU, openPage, settleAfterLogin, scrollDown } from '../../../lib/edu.mjs';
 
 export const meta = {
   mode: 'docs',
@@ -23,7 +23,6 @@ export default async ({ page, context, shot }) => {
   await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
   await page.waitForTimeout(1200);
   await shot(page, '01-course', 'Страница курса: условия, преподаватели, экономика — оплата занятий по плановой ставке и целевой членский взнос во взносе одного обучающегося.');
-  await page.locator('text=Группы').first().scrollIntoViewIfNeeded();
-  await page.waitForTimeout(500);
+  await scrollDown(page, 1500);
   await shot(page, '02-groups', 'Группы курса: обучающиеся, проведённые занятия, резерв выплат и выплаченное преподавателям. Условия группы закреплены на день её открытия.');
 };

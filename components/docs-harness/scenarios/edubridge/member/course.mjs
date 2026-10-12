@@ -1,7 +1,7 @@
 // Сценарий: карточка курса — описание, программа, преподаватель, доступ.
 
 import { loginAs } from '../../../lib/harness.mjs';
-import { EDU, loadFixture, openPage, settleAfterLogin } from '../../../lib/edu.mjs';
+import { EDU, loadFixture, openPage, settleAfterLogin, scrollDown } from '../../../lib/edu.mjs';
 
 export const meta = {
   mode: 'docs',
@@ -23,7 +23,6 @@ export default async ({ page, shot }) => {
   await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
   await page.waitForTimeout(1200);
   await shot(page, '01-course', 'Карточка курса: взнос в месяц, начало занятий и длительность программы, описание, учебная программа и преподаватель. Кнопка «Получить доступ» ведёт к оформлению подписки.');
-  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-  await page.waitForTimeout(600);
+  await scrollDown(page, 1500);
   await shot(page, '02-syllabus', 'Учебная программа курса и преподаватель, который его ведёт.');
 };

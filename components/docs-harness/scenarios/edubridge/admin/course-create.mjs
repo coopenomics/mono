@@ -43,6 +43,8 @@ export default async ({ page, context, shot }) => {
   await shot(page, '04-fee', 'Взнос: плановая ставка часа и способ расчёта с преподавателем. Ниже расчёт взноса ученика — оплата занятий по ставке и целевой членский взнос кооператива; отдельно взнос за весь курс разом со скидкой.');
 
   await next(page); // выдача доступа
+  await pick(page, 'Тип направления', 'Очное обучение');
+  await page.waitForTimeout(400);
   await shot(page, '05-access', 'Выдача доступа: направление и носитель — очно по коду пропуска либо курс на площадке.');
 
   await next(page); // первая группа
@@ -57,7 +59,9 @@ export default async ({ page, context, shot }) => {
   }
 
   await page.locator('button:has-text("Добавить курс")').last().click();
+  // Курс сохранён — открылась его страница с хлебной крошкой к реестру.
+  await page.waitForSelector('text=К реестру курсов', { timeout: 30000 });
   await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
-  await page.waitForTimeout(2000);
+  await page.waitForTimeout(1200);
   await shot(page, '07-course-saved', 'Курс сохранён черновиком и открыт на своей странице. В каталог он попадёт после публикации.');
 };

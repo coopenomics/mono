@@ -217,7 +217,12 @@ async function phase05(): Promise<void> {
   const assignment = ((await gql<any>(token, MY_ASSIGNMENTS)).edubridgeMyAssignments as any[]).find(a => a.status === 'ACTIVE')
   if (!assignment)
     throw new Error(`${TEACHER}: нет действующего назначения — сначала фаза 03-teacher`)
+  // Вчера: контроллер принимает следующее занятие только датой не раньше предыдущего,
+  // а форма стола шлёт дату без времени — полночь сегодняшнего дня.
+  const yesterday = new Date(Date.now() - 24 * 3600 * 1000)
+  yesterday.setUTCHours(12, 0, 0, 0)
   const { lesson, contribution } = await reportLesson(token, assignment.id, 1, {
+    held_at: yesterday.toISOString(),
     topic: 'Числа и вычисления: действия с дробями',
     materials: ['https://cloud.voskhod.coop/edu/oge-math/01-konspekt.pdf', 'https://cloud.voskhod.coop/edu/oge-math/01-zadaniya.pdf'],
   })

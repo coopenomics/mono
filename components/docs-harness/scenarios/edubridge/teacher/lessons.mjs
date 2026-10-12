@@ -36,7 +36,8 @@ export default async ({ page, shot }) => {
   await shot(page, '02-report-dialog', 'Отчёт о занятии: номер, дата, тема и материалы по одной ссылке на строку. Материалы передаются кооперативу на ответственное хранение вместе с отчётом.');
 
   await page.locator('.q-dialog button:has-text("Создать отчёт")').last().click();
-  await page.waitForSelector('text=Отчёт о занятии', { state: 'hidden', timeout: 30000 }).catch(() => {});
+  // Окно закрывается после ответа контроллера; отказ (порядок дат, незакрытое занятие) оставляет его открытым — сценарий падает.
+  await page.waitForSelector('text=Отчёт о занятии', { state: 'hidden', timeout: 30000 });
   await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
   await page.waitForTimeout(1500);
   await shot(page, '03-reported', 'Занятие № 2 в журнале. Пока материалы не переданы на хранение, следующий отчёт по курсу не принимается.');
@@ -49,7 +50,7 @@ export default async ({ page, shot }) => {
     await shot(page, '04-held', 'Материалы переданы: подписан акт передачи на ответственное хранение. Они хранятся гарантийный срок курса, затем заявление о взносе уходит совету.');
   }
 
-  await row(page, 'Числа и вычисления').click().catch(() => {});
+  await row(page, 'Алгебраические выражения').click();
   await page.waitForTimeout(1200);
   await shot(page, '05-details', 'Занятие целиком: курс, номер, дата, длительность, обучающиеся с оплаченным доступом, взнос и его состояние, материалы.');
 };
