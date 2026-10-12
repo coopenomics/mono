@@ -62,8 +62,6 @@ export async function tokenOf(who: Who): Promise<string> {
   return token
 }
 
-const REFRESH = 'mutation($d:RefreshInput!){ refresh(data:$d){ tokens{ access{ token } refresh{ token } } } }'
-
 interface StoredTokens { access: string, refresh: string, email?: string }
 
 /** Файл токенов раннера: { [account]: { access, refresh } }. */
@@ -87,22 +85,12 @@ export function writeTokensFile(all: Record<string, StoredTokens>): void {
 }
 
 async function refreshFromFile(who: Who): Promise<string | null> {
-  const all = readTokensFile()
-  const stored = all[who.account]
-  if (!stored)
-    return null
-  try {
-    const d = await gql<any>(null, REFRESH, { d: { access_token: stored.access, refresh_token: stored.refresh } })
-    const fresh = { ...stored, access: d.refresh.tokens.access.token as string, refresh: d.refresh.tokens.refresh.token as string }
-    writeTokensFile({ ...all, [who.account]: fresh })
-    return fresh.access
-  }
-  catch (e) {
-    // Пара не продлевается (например, выпущена рукопожатием CoopID) — токен
-    // доступа из файла живёт ещё полчаса, этого засеву хватает.
-    console.error(`[auth] ${who.account}: refresh не прошёл (${(e as Error).message.slice(0, 100)}), беру токен доступа из файла`)
-    return stored.access
-  }
+  // Токен из файла — тот, которым работает стол в браузере. Продлевать его
+  // мутацией refresh нельзя: сервер гасит прежнюю пару, и стол теряет вход
+  // посреди сценария. Токен доступа живёт 30 минут, засев укладывается; свежий
+  // снимает харнесс повторным входом (docs-harness lib/tokens.mjs).
+  const stored = readTokensFile()[who.account]
+  return stored?.access ?? null
 }
 
 /** Забыть токен (после выхода или смены ключа). */

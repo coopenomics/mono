@@ -28,6 +28,7 @@
  * вставить пустой config (без done-флагов), потом гонять её.
  */
 import { Client, Mutations, Queries } from '@coopenomics/sdk'
+import { loginChairman } from '../../lib/chairman-login'
 import { Cooperative, SovietContract } from 'cooptypes'
 import Blockchain from '../../../blockchain'
 import config from '../../../configs'
@@ -149,7 +150,7 @@ export async function phase02b(): Promise<void> {
     username: CHAIRMAN,
   })
   log(`логин председателя ${CHAIRMAN_EMAIL} в controller (${apiUrl})...`)
-  await client.login(CHAIRMAN_EMAIL, wif)
+  await loginChairman(client, CHAIRMAN_EMAIL, wif)
 
   // Все 5 членов совета используют один общий ключ (см. boot/src/init/infra.ts:
   // changekey раздаёт каждому config.default_public_key). Vote SDK-класса подписывает

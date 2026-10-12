@@ -14,6 +14,7 @@
  * фаза становится no-op.
  */
 import { Client, Mutations, Queries } from '@coopenomics/sdk'
+import { loginChairman } from '../../lib/chairman-login'
 import { CapitalContract, SovietContract } from 'cooptypes'
 import { createHash } from 'node:crypto'
 import Blockchain from '../../../blockchain'
@@ -211,7 +212,7 @@ export async function phase07(): Promise<void> {
     username: CHAIRMAN,
   })
   log(`логин ${CHAIRMAN_EMAIL}...`)
-  await client.login(CHAIRMAN_EMAIL, wif)
+  await loginChairman(client, CHAIRMAN_EMAIL, wif)
 
   // Поллинг до 60с пока parser не индексирует createproject от фазы 06.
   // После reboot:extra controller-БД пуста, индексация занимает ~3-10с.

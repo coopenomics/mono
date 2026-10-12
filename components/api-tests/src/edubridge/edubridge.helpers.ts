@@ -18,7 +18,7 @@ import { Cooperative } from 'cooptypes'
 // (src/seed/edubridge), который идёт обычным esno.
 import type { Who } from '../core/auth'
 import { tokenOf } from '../core/auth'
-import { gql } from '../core/client'
+import { ApiError, gql, gqlRaw } from '../core/client'
 import { declineDecisionOnChain } from '../core/council'
 import { signDocument } from '../core/documents'
 import { COOP } from '../core/env'
@@ -447,10 +447,15 @@ export async function onboardTeacher(who: Who, token: string, hourlyRate = PLANN
   // Оферта первой: без неё сервер отказывает в сохранении профиля
   // (EDUBRIDGE_TEACHER_OFFER_REQUIRED) — так показал засев стенда документации 12.10.2026.
   await signOffer(who, token, 'TEACHER')
-  // Подпись оферты уходит в цепь; профиль сервер принимает по подписи из зеркала узла — ждём её.
-  await waitFor(async () => ((await offersState(token)).teacher.signed_at ? true : null),
-    { timeoutMs: 60_000, intervalMs: 1_000, label: `оферта преподавателя ${who.account} в зеркале узла` })
-  await gql(token, SAVE_PROFILE, { d: { about: opts.about ?? 'Веду занятия набора внешнего слоя' } })
+  // Подпись оферты уходит в цепь; право преподавателя сервер выводит из зеркала
+  // узла (PROGRAM_AGREEMENT_PORT), которое приходит позже ответа мутации —
+  // сохраняем профиль, как только сервер его принимает.
+  await waitFor(async () => {
+    const r = await gqlRaw<any>(token, SAVE_PROFILE, { d: { about: opts.about ?? 'Веду занятия набора внешнего слоя' } })
+    if (!r.errors.length) return true
+    if (r.errors[0].code === 'EDUBRIDGE_TEACHER_OFFER_REQUIRED') return null
+    throw new ApiError(r.errors, r.status)
+  }, { timeoutMs: 60_000, intervalMs: 1_000, label: `оферта преподавателя ${who.account} в зеркале узла` })
   const { document, contract_number } = await signedContract(who, token)
   await gql(token, SIGN_CONTRACT, { d: { document, contract_number } })
   await gql(await tokenOf(CHAIRMAN), SET_TEACHER_RATE, { d: { username: who.account, hourly_rate: hourlyRate } })

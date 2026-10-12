@@ -88,7 +88,7 @@ export default async ({ page, context, shot, env, expect }) => {
     await page.locator('.q-dialog button:has-text("Объявить")').last().click();
     await page.waitForTimeout(2000);
     await signAllAgreements(page);
-    await page.locator('text=В совете, text=Ожидаем решение совета').first()
+    await page.locator('text=В совете').or(page.locator('text=Ожидаем решение совета')).first()
       .waitFor({ state: 'visible', timeout: 120000 });
     await page.waitForTimeout(800);
     await dismissOnboardingDialogs(page);

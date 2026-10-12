@@ -16,6 +16,7 @@ import path from 'node:path'
 import { randomUUID } from 'node:crypto'
 import { fileURLToPath } from 'node:url'
 import { Client, Mutations } from '@coopenomics/sdk'
+import { loginChairman } from '../../lib/chairman-login'
 import { Generator } from '@coopenomics/factory'
 import Blockchain from '../../../blockchain'
 import config from '../../../configs'
@@ -47,7 +48,7 @@ export async function phase04(): Promise<void> {
     wif,
     username: CHAIRMAN,
   })
-  await client.login(CHAIRMAN_EMAIL, wif)
+  await loginChairman(client, CHAIRMAN_EMAIL, wif)
 
   for (const member of SUPPLIERS) {
     try {

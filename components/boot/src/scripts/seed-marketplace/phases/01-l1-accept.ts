@@ -26,6 +26,7 @@
  * Идемпотентна: шаг с done=true пропускается.
  */
 import { Client, Mutations, Queries } from '@coopenomics/sdk'
+import { loginChairman } from '../../lib/chairman-login'
 import { Cooperative, SovietContract } from 'cooptypes'
 import Blockchain from '../../../blockchain'
 import config from '../../../configs'
@@ -103,7 +104,7 @@ export async function phase01(): Promise<void> {
 
   const client = Client.create({ api_url: apiUrl, chain_url: chainUrl, chain_id: chainId, wif, username: CHAIRMAN })
   log(`логин председателя ${CHAIRMAN_EMAIL} в controller (${apiUrl})`)
-  await client.login(CHAIRMAN_EMAIL, wif)
+  await loginChairman(client, CHAIRMAN_EMAIL, wif)
 
   const readState = async () => {
     const resp = await client.Query(Queries.Onboarding.GetExtensionOnboardingState.query, {

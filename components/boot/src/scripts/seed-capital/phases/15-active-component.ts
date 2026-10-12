@@ -14,6 +14,7 @@
  * с назначенным мастером, готовый принимать коммиты.
  */
 import { Client, Mutations } from '@coopenomics/sdk'
+import { loginChairman } from '../../lib/chairman-login'
 import { CapitalContract, SovietContract } from 'cooptypes'
 import Blockchain from '../../../blockchain'
 import config from '../../../configs'
@@ -114,7 +115,7 @@ export async function phase15(): Promise<void> {
 
   const client = Client.create({ api_url: apiUrl, chain_url: chainUrl, chain_id: info.chain_id, wif, username: CHAIRMAN })
   log(`логин ${CHAIRMAN_EMAIL}...`)
-  await client.login(CHAIRMAN_EMAIL, wif)
+  await loginChairman(client, CHAIRMAN_EMAIL, wif)
 
   log(`setmaster ant → component «Минимальный продукт»`)
   await client.Mutation(Mutations.Capital.SetMaster.mutation, {

@@ -24,6 +24,7 @@
  * Идемпотентно: если УХД уже active — фаза no-op.
  */
 import { Client, Mutations } from '@coopenomics/sdk'
+import { loginChairman } from '../../lib/chairman-login'
 import { CapitalContract } from 'cooptypes'
 import { Client as PgClient } from 'pg'
 import Blockchain from '../../../blockchain'
@@ -119,7 +120,7 @@ export async function phase04b(): Promise<void> {
     username: CHAIRMAN,
   })
   log(`логин ${CHAIRMAN_EMAIL} в controller (${apiUrl})...`)
-  await client.login(CHAIRMAN_EMAIL, wif)
+  await loginChairman(client, CHAIRMAN_EMAIL, wif)
 
   // Ждём пока parser положит approval в pg + добываем оригинальный document
   // (signedDocument с ant'овой подписью id=1).
