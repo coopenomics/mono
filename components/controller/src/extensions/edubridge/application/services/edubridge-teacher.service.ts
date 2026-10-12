@@ -1177,15 +1177,16 @@ export class EdubridgeTeacherService {
 
   /**
    * Совет решения о приёме не принял: отклонил вопрос либо не уложился в срок.
-   * Отрицательного протокола у совета не бывает, поэтому заявление только
-   * помечается — материалы с хранения снимает председатель (`decline`).
+   * Здесь заявление только помечается исходом; закрывает его обратный вызов
+   * контракта `onriddecl` (`onCouncilDeclinedByHash`) — он идёт тем же
+   * действием совета, пометка нужна, чтобы различить отказ и срок.
    */
   async onCouncilGaveUp(coopname: string, agendaId: string, outcome: EduCouncilOutcome): Promise<void> {
     const c = await this.teachers.findContributionByAgendaId(coopname, agendaId);
     if (!c || c.status !== EduContributionStatus.SUBMITTED) return;
     c.council_outcome = outcome;
     await this.teachers.saveContribution(c);
-    this.logger.info(`[EDU.RID] совет не принял решение по взносу ${c.rid_hash} (${outcome}) — материалы ждут снятия с хранения`);
+    this.logger.info(`[EDU.RID] совет не принял решение по взносу ${c.rid_hash} (${outcome})`);
   }
 
   /**
@@ -1211,13 +1212,24 @@ export class EdubridgeTeacherService {
     this.logger.info(`[EDU.RID] совет принял решение ${c.council_decision_id ?? ''} по взносу ${c.rid_hash} — ждём акт преподавателя`);
   }
 
-  /** Совет отказал (`edubridge::onriddecl`): заявление помечается, материалы снимает председатель. */
-  async onCouncilDeclinedByHash(coopname: string, ridHash: string): Promise<void> {
+  /**
+   * Совет отказал (`edubridge::onriddecl` — отказ по вопросу либо снятие по
+   * сроку): отказ исполняется сразу, без участия председателя. Отрицательного
+   * протокола у совета не бывает — материалы снимаются с хранения с основанием
+   * совета (Дт 76 / Кт 08), взнос закрывается; занятие отчитывается заново.
+   */
+  async onCouncilDeclinedByHash(coopname: string, ridHash: string, reason: string): Promise<void> {
     const c = await this.teachers.findContributionByRidHash(ridHash.toLowerCase());
     if (!c || c.coopname !== coopname || c.status !== EduContributionStatus.SUBMITTED) return;
-    c.council_outcome = EduCouncilOutcome.DECLINED;
-    await this.teachers.saveContribution(c);
-    this.logger.info(`[EDU.RID] совет отказал в приёме взноса ${c.rid_hash} — материалы ждут снятия с хранения`);
+    const basis = reason.trim() || t('edubridge.teacher.councilDeclinedReason');
+    await this.chain.recallRid({ coopname, rid_hash: c.rid_hash, reason: t('edubridge.teacher.ridRecallReason', { reason: basis }) } as never);
+    c.council_outcome = c.council_outcome ?? EduCouncilOutcome.DECLINED;
+    c.decline_reason = basis;
+    c.status = EduContributionStatus.DECLINED;
+    c.decided_at = new Date();
+    const saved = await this.teachers.saveContribution(c);
+    this.events.emit(EDUBRIDGE_CONTRIBUTION_DECIDED_EVENT, { coopname, contribution_id: saved.id, teacher_username: c.teacher_username, accepted: false });
+    this.logger.info(`[EDU.RID] совет отказал в приёме взноса ${c.rid_hash} — материалы сняты с хранения: ${basis}`);
   }
 
   /**

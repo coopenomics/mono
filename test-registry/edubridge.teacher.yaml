@@ -8,7 +8,7 @@ title: Образовательный мост — договор УХД, наз
 # проект свободного решения совета с правилом отслеживания → DecisionTrackedEvent
 # → COUNCIL_APPROVED → акт 3010 подписывает преподаватель → acceptrid с
 # протоколом 3009 (Дт 04 / Кт 08 и Дт 76 / Кт 80 с переводом w.edu.hold →
-# w.edu.share). Отказ — только после отказа совета: recallrid с причиной.
+# w.edu.share). Отказ совета исполняет обратный вызов onriddecl: recallrid с причиной совета.
 #
 # Материалы занятия до заявления лежат на ответственном хранении: акт 3012 →
 # holdrid (Дт 08 / Кт 76, w.edu.hold). Рекламация внутри срока — recallrid
@@ -116,8 +116,8 @@ cases:
   - id: edu.teach.happy.03
     level: backend
     kind: happy
-    scenario: Отклонение взноса после отказа совета.
-    expect: recallrid, DECLINED, причина сохранена.
+    scenario: Отказ совета по взносу исполняется обратным вызовом контракта.
+    expect: onriddecl → recallrid с причиной совета, DECLINED, причина сохранена; председатель отдельно ничего не оформляет.
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
     api: components/api-tests/src/edubridge/lessons.test.ts
     status: passing
@@ -343,8 +343,8 @@ cases:
   - id: edu.teach.side.11
     level: backend
     kind: side
-    scenario: "Председатель оформляет отказ в приёме взноса: до рассмотрения советом и после отклонения вопроса советом."
-    expect: "Без решения совета отказ не оформляется; совет отклонил вопрос — материалы сняты с хранения с основанием, протокола нет."
+    scenario: "Председатель пробует отказать в приёме взноса до рассмотрения советом; совет отклоняет вопрос."
+    expect: "Без отказа совета отказ не оформляется (EDUBRIDGE_CONTRIBUTION_DECLINE_REQUIRES_COUNCIL); отказ совета сам снимает материалы с хранения с основанием совета, протокола нет."
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
     api: components/api-tests/src/edubridge/lessons.test.ts
     status: passing
@@ -471,7 +471,7 @@ cases:
     level: backend
     kind: side
     scenario: "Совет отклонил вопрос о приёме результата либо не принял решение в срок."
-    expect: "Подача запоминает номер вопроса в повестке; заявление помечается исходом совета и остаётся на рассмотрении — материалы снимает председатель; чужой вопрос и заявление в другом статусе не помечаются."
+    expect: "Подача запоминает номер вопроса в повестке; исход совета помечает заявление, обратный вызов контракта закрывает взнос (DECLINED, материалы сняты с хранения, протокола нет)."
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
     api: components/api-tests/src/edubridge/lessons.test.ts
     status: passing

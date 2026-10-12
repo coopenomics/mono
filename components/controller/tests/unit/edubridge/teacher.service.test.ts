@@ -454,35 +454,46 @@ describe('EdubridgeTeacherService', () => {
     await expect(service.act('voskhod', 'teach', c.id)).rejects.toThrow(/после решения совета/);
   });
 
-  it('отказ совета обратным вызовом контракта помечает заявление исходом; материалы ждут снятия', async () => {
-    const { service, store } = make();
-    const c = await contributionOfLesson(service, store);
-    await service.submitContribution('voskhod', 'teach', c.id, signedBy('teach'));
-    await service.onCouncilDeclinedByHash('voskhod', c.rid_hash);
-    expect(c.status).toBe(EduContributionStatus.SUBMITTED);
-    expect(c.council_outcome).toBe(EduCouncilOutcome.DECLINED);
-  });
-
-  it('отказ без решения совета не оформляется; совет отклонил вопрос — материалы снимаются с хранения с основанием', async () => {
+  it('отказ совета обратным вызовом контракта исполняется сразу: материалы сняты с хранения с основанием совета, взнос отклонён', async () => {
     const { service, chain, documents, store } = make();
     const c = await contributionOfLesson(service, store);
     await service.submitContribution('voskhod', 'teach', c.id, signedBy('teach'));
     documents.generate.mockClear();
-    // Совет заявление ещё не рассмотрел: в одиночку администратор преподавателю не отказывает.
-    await expect(service.decline('voskhod', c.id, 'Материал не соответствует программе')).rejects.toMatchObject({ code: 'EDUBRIDGE_CONTRIBUTION_DECLINE_REQUIRES_COUNCIL' });
-    expect(chain.recallRid).not.toHaveBeenCalled();
-    expect(c.status).toBe(EduContributionStatus.SUBMITTED);
-
-    c.council_outcome = EduCouncilOutcome.DECLINED;
-    const declined = await service.decline('voskhod', c.id, 'Материал не соответствует программе');
-    // Отрицательного протокола у совета не бывает: собирать его не из чего.
+    await service.onCouncilDeclinedByHash('voskhod', c.rid_hash, 'Материал не соответствует программе');
+    expect(c.status).toBe(EduContributionStatus.DECLINED);
+    expect(c.council_outcome).toBe(EduCouncilOutcome.DECLINED);
+    expect(c.decline_reason).toBe('Материал не соответствует программе');
+    // Отрицательного протокола у совета не бывает: собирать его не из чего, declinerid не зовётся.
     expect(documents.generate).not.toHaveBeenCalled();
     expect(chain.declineRid).not.toHaveBeenCalled();
     expect(chain.recallRid).toHaveBeenCalledWith(
       expect.objectContaining({ rid_hash: c.rid_hash, reason: 'совет не принял решение о приёме: Материал не соответствует программе' })
     );
-    expect(declined.status).toBe(EduContributionStatus.DECLINED);
-    expect(declined.decline_reason).toMatch(/не соответствует/);
+    // Повторный вызов и вызов по закрытому взносу ничего не делают.
+    await service.onCouncilDeclinedByHash('voskhod', c.rid_hash, 'повторно');
+    expect(chain.recallRid).toHaveBeenCalledTimes(1);
+  });
+
+  it('снятие вопроса по сроку: исход «срок» помечен действием совета, обратный вызов закрывает взнос с основанием совета', async () => {
+    const { service, chain, store } = make();
+    const c = await contributionOfLesson(service, store);
+    await service.submitContribution('voskhod', 'teach', c.id, signedBy('teach', 'STMT'));
+    await service.onCouncilGaveUp('voskhod', '77', EduCouncilOutcome.EXPIRED);
+    await service.onCouncilDeclinedByHash('voskhod', c.rid_hash, '');
+    expect(c.status).toBe(EduContributionStatus.DECLINED);
+    expect(c.council_outcome).toBe(EduCouncilOutcome.EXPIRED);
+    expect(c.decline_reason).toBe('совет отказал в приёме');
+    expect(chain.recallRid).toHaveBeenCalledTimes(1);
+  });
+
+  it('отказ рукой председателя без отказа совета не оформляется', async () => {
+    const { service, chain, store } = make();
+    const c = await contributionOfLesson(service, store);
+    await service.submitContribution('voskhod', 'teach', c.id, signedBy('teach'));
+    // Совет заявление ещё не рассмотрел: в одиночку администратор преподавателю не отказывает.
+    await expect(service.decline('voskhod', c.id, 'Материал не соответствует программе')).rejects.toMatchObject({ code: 'EDUBRIDGE_CONTRIBUTION_DECLINE_REQUIRES_COUNCIL' });
+    expect(chain.recallRid).not.toHaveBeenCalled();
+    expect(c.status).toBe(EduContributionStatus.SUBMITTED);
   });
 
   it('после принятого решения совета отказа нет: председатель исполняет решение актом', async () => {
@@ -505,7 +516,7 @@ describe('EdubridgeTeacherService', () => {
 
     await service.onCouncilGaveUp('voskhod', '77', EduCouncilOutcome.DECLINED);
     expect(c.council_outcome).toBe(EduCouncilOutcome.DECLINED);
-    // Заявление остаётся на рассмотрении: материалы снимает председатель, а не автомат.
+    // Пометка — только исход; закрывает взнос обратный вызов контракта `onriddecl` тем же действием совета.
     expect(c.status).toBe(EduContributionStatus.SUBMITTED);
   });
 
@@ -773,10 +784,9 @@ describe('EdubridgeTeacherService — занятия и гарантийный �
     teachers.createContribution.mockImplementation((d: any) => ({ ...d, id: `K${++n}`, created_at: new Date('2026-02-01') }));
     const first = await service.reportLesson('voskhod', 'teach', report as any);
     const firstContribution = store.get('K1');
-    // Совет отклонил вопрос о приёме — председатель оформил отказ, материалы сняты с хранения.
+    // Совет отклонил вопрос о приёме — обратный вызов контракта снял материалы с хранения.
     firstContribution.status = EduContributionStatus.SUBMITTED;
-    firstContribution.council_outcome = EduCouncilOutcome.DECLINED;
-    await service.decline('voskhod', 'K1', 'Совет отклонил вопрос');
+    await service.onCouncilDeclinedByHash('voskhod', firstContribution.rid_hash, 'Совет отклонил вопрос');
     const again = await service.reportLesson('voskhod', 'teach', { ...report, topic: 'Дроби, повтор' } as any);
     expect(again.id).toBe(first.id);
     expect(again.topic).toBe('Дроби, повтор');

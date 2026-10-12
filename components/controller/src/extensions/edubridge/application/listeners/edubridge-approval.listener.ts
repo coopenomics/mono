@@ -73,12 +73,12 @@ export class EdubridgeApprovalListener {
     await this.teachers.onCouncilApproved(String(d.coopname), String(d.hash), protocol as never);
   }
 
-  /** Совет отказал в приёме РИД (`edubridge::onriddecl`) — заявление помечается по хэшу материалов. */
+  /** Совет отказал в приёме РИД (`edubridge::onriddecl`) — отказ исполняется сразу: материалы снимаются с хранения с основанием совета. */
   @OnEvent(`action::${CONTRACT}::${EdubridgeContract.Actions.OnRidDecl.actionName}`)
   async onRidDeclined(action: InnerChainActionRecord): Promise<void> {
     const d = action.data as EdubridgeContract.Actions.OnRidDecl.IOnRidDecl;
     if (!d?.coopname || !d?.hash) return;
-    await this.teachers.onCouncilDeclinedByHash(String(d.coopname), String(d.hash));
+    await this.teachers.onCouncilDeclinedByHash(String(d.coopname), String(d.hash), String(d.reason ?? ''));
   }
 
   /**
@@ -102,7 +102,7 @@ export class EdubridgeApprovalListener {
     await this.guarantee.onCouncilDeclinedBySub(String(d.coopname), String(d.hash));
   }
 
-  /** Совет отклонил вопрос о приёме результата — заявление помечается, материалы снимает председатель. */
+  /** Совет отклонил вопрос о приёме результата — заявление помечается исходом; закрывает его обратный вызов `onriddecl`. */
   @OnEvent(`action::${SOVIET}::${SovietContract.Actions.Decisions.Declinedec.actionName}`)
   async onCouncilDeclined(action: InnerChainActionRecord): Promise<void> {
     await this.councilGaveUp(action, EduCouncilOutcome.DECLINED);

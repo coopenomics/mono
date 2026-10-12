@@ -314,18 +314,21 @@ describe('Образование: занятия и взносы препода�
       expect(amount((await gql<any>(token, SETTLEMENT)).edubridgeMySettlement.program_share)).toBe(LESSON_COST - 400)
     })
 
-    it(caseName('edu.teach.side.11', 'отказ в приёме — только по решению совета: без него не оформляется, после отклонения вопроса советом материалы сняты с хранения'), async () => {
+    it(caseName('edu.teach.side.11', 'отказ в приёме — только отказом совета: председатель в одиночку не отказывает, отказ совета контракт исполняет сам'), async () => {
       expectCode(await gqlError(chairman, DECLINE_CONTRIBUTION, { d: { contribution_id: second.id, reason: '   ' } }), 'EDUBRIDGE_CONTRIBUTION_DECLINE_REASON_REQUIRED')
       expectCode(await gqlError(token, DECLINE_CONTRIBUTION, { d: { contribution_id: second.id, reason: 'сам себе' } }), NO_RIGHTS)
       // Совет заявление ещё не рассмотрел: в одиночку председатель преподавателю не отказывает.
       expectCode(await gqlError(chairman, DECLINE_CONTRIBUTION, { d: { contribution_id: second.id, reason: 'Материалы неполные' } }), 'EDUBRIDGE_CONTRIBUTION_DECLINE_REQUIRES_COUNCIL')
       expect((await mine(second.id)).status, 'заявление осталось на рассмотрении совета').toBe('SUBMITTED')
 
+      // Совет отклонил вопрос: обратный вызов контракта снял материалы с хранения, взнос закрыт без участия председателя.
       await councilDeclinesRid(await agendaWith(second.rid_hash))
-      await waitFor(async () => ((await mine(second.id))?.council_outcome === 'DECLINED' ? true : null),
-        { timeoutMs: 120_000, intervalMs: 1_500, label: 'исход совета отмечен у заявления' })
-      const declined = (await gql<any>(chairman, DECLINE_CONTRIBUTION, { d: { contribution_id: second.id, reason: 'Материалы неполные' } })).edubridgeDeclineContribution
-      expect(declined).toMatchObject({ status: 'DECLINED', decline_reason: 'Материалы неполные', council_decision_id: null, decision_hash: null })
+      const declined = await waitFor(async () => {
+        const c = await mine(second.id)
+        return c?.status === 'DECLINED' ? c : null
+      }, { timeoutMs: 120_000, intervalMs: 1_500, label: 'отказ совета исполнен' })
+      expect(declined).toMatchObject({ status: 'DECLINED', council_outcome: 'DECLINED', council_decision_id: null, decision_hash: null })
+      expect(declined.decline_reason, 'основание — причина совета').toBeTruthy()
       expectCode(await gqlError(chairman, DECLINE_CONTRIBUTION, { d: { contribution_id: second.id, reason: 'повторно' } }), 'EDUBRIDGE_CONTRIBUTION_DECLINE_NOT_SUBMITTED')
     }, 480_000)
 
@@ -356,20 +359,17 @@ describe('Образование: занятия и взносы препода�
       expect((await mine(third.id)).status, 'взнос ждёт акт преподавателя').toBe('COUNCIL_APPROVED')
     }, 480_000)
 
-    it(caseName('edu.teach.side.19', 'совет отклонил вопрос о приёме — заявление помечено исходом совета и остаётся на рассмотрении'), async () => {
+    it(caseName('edu.teach.side.19', 'совет отклонил вопрос о приёме — взнос закрыт исходом совета, протокола нет'), async () => {
       const fourth = (await reportLesson(token, nowAssignment.id, 4)).contribution
       await holdMaterials(teacher, token, fourth.id)
       await submitStatement(teacher, token, fourth.id)
       await councilDeclinesRid(await agendaWith(fourth.rid_hash))
 
-      const marked = await waitFor(async () => {
+      const declined = await waitFor(async () => {
         const c = await mine(fourth.id)
-        return c?.council_outcome ? c : null
-      }, { timeoutMs: 120_000, intervalMs: 1_500, label: 'исход совета отмечен у заявления' })
-      expect(marked).toMatchObject({ status: 'SUBMITTED', council_outcome: 'DECLINED', council_decision_id: null })
-      // Материалы снимает председатель.
-      const declined = (await gql<any>(chairman, DECLINE_CONTRIBUTION, { d: { contribution_id: fourth.id, reason: 'Совет отклонил вопрос' } })).edubridgeDeclineContribution
-      expect(declined.status).toBe('DECLINED')
+        return c?.status === 'DECLINED' ? c : null
+      }, { timeoutMs: 120_000, intervalMs: 1_500, label: 'отказ совета исполнен' })
+      expect(declined).toMatchObject({ status: 'DECLINED', council_outcome: 'DECLINED', council_decision_id: null, decision_hash: null })
       // Администратор видит взносы всех преподавателей, преподаватель — только свои.
       const all = (await gql<any>(await tokenOf(COUNCIL), ALL_CONTRIBUTIONS)).edubridgeContributions as any[]
       expect(all.map(c => c.id)).toContain(fourth.id)
