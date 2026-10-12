@@ -259,7 +259,7 @@ nav:
       - Ученики: new/edubridge/admin/members.md
       - Взносы преподавателей: new/edubridge/admin/contributions.md
       - Экономика программы: new/edubridge/admin/economy.md
-    - Стол участника:
+    - Стол ученика:
       - new/edubridge/member/index.md
       - Каталог курсов: new/edubridge/member/catalog.md
       - Карточка курса: new/edubridge/member/course.md
