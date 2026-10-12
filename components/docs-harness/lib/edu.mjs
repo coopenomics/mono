@@ -51,7 +51,10 @@ export async function settleAfterLogin(page) {
  * <label> — тогда ищем по placeholder.
  */
 export function field(page, label, kind = 'input') {
-  return page.locator(`label:has-text("${label}")`).locator(kind).first()
+  // has-text ищет подстроку без учёта регистра: «Код пропуска» совпадает с
+  // выбранным пунктом селекта «Очно (код пропуска)». Селект держит readonly
+  // input — исключаем его, текстовые поля остаются.
+  return page.locator(`label:has-text("${label}")`).locator(`${kind}:not([readonly])`).first()
     .or(page.locator(`${kind}[placeholder*="${label}"]`).first());
 }
 
