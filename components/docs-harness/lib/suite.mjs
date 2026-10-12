@@ -17,6 +17,7 @@ import { fileURLToPath } from 'node:url';
 import { ensureDesktopConfig } from './desktop-config.mjs';
 import { ensureFixture, fixturesOfScenario } from './fixtures.mjs';
 import { collectPrepare, runPrepare } from './prepare.mjs';
+import { ensureTokens, forgetLoginState } from './tokens.mjs';
 
 const HARNESS_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const REPO_ROOT = path.resolve(HARNESS_ROOT, '../..');
@@ -118,6 +119,8 @@ const GROUPS = groups;
     // Расход пула гейта считается по этому файлу. На новой цепи ни одна оферта
     // не подписана, поэтому пул снова целиком свободен — без сброса сценарий
     // гейта падает «пул исчерпан» на чистом стенде.
+    // Пароли и токены прежней цепи недействительны.
+    forgetLoginState();
     for (const f of ['state/gate-used.json', 'state/edu-gate-used.json']) {
       const gateUsed = path.join(HARNESS_ROOT, f);
       if (fs.existsSync(gateUsed)) {
@@ -179,6 +182,16 @@ const GROUPS = groups;
         process.exit(2);
       }
     }
+  }
+
+  // ── Токены для засева ──────────────────────────────────────────────────────
+  // Подписью, до первого входа со стола: вход переводит пайщика на пароль, и
+  // подпись его больше не впускает, а фазам засева токены нужны и после L0.
+  try {
+    ensureTokens([...needed], { log: (m) => console.log(`    ${m}`) });
+  } catch (e) {
+    console.error(`✗ ${e.message}`);
+    return 2;
   }
 
   // ── Подготовка стенда ──────────────────────────────────────────────────────

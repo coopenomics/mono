@@ -447,6 +447,9 @@ export async function onboardTeacher(who: Who, token: string, hourlyRate = PLANN
   // Оферта первой: без неё сервер отказывает в сохранении профиля
   // (EDUBRIDGE_TEACHER_OFFER_REQUIRED) — так показал засев стенда документации 12.10.2026.
   await signOffer(who, token, 'TEACHER')
+  // Подпись оферты уходит в цепь; профиль сервер принимает по подписи из зеркала узла — ждём её.
+  await waitFor(async () => ((await offersState(token)).teacher.signed_at ? true : null),
+    { timeoutMs: 60_000, intervalMs: 1_000, label: `оферта преподавателя ${who.account} в зеркале узла` })
   await gql(token, SAVE_PROFILE, { d: { about: opts.about ?? 'Веду занятия набора внешнего слоя' } })
   const { document, contract_number } = await signedContract(who, token)
   await gql(token, SIGN_CONTRACT, { d: { document, contract_number } })

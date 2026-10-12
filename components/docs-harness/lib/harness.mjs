@@ -136,49 +136,120 @@ export async function openBrowser({ storageState } = {}) {
   return { browser, context, page, consoleLog, failures };
 }
 
-// Логин председателя через форму. Кэширует storageState.
-// Учитывает что vue-router в текущем десктопе работает в hash-режиме
-// (URL вида http://host/#/voskhod/...), а не history.
-export async function loginAsChairman(page, context, { signAgreements = true } = {}) {
+// ── Вход ───────────────────────────────────────────────────────────────────
+//
+// Форма входа с 24.09.2026 не пускает по одному ключу: ключ доступа переводит
+// на шаг «Задать пароль и войти» (пароль ставится на CoopID, вход дальше идёт
+// по паролю через authentik). Поэтому вход пайщика в harness — в два пути:
+// пароль уже известен (state/passwords.json) → email + пароль; иначе → email +
+// ключ → новый пароль дважды → «Задать пароль и войти», пароль запоминается.
+// После перехода на пароль вход подписью для пайщика закрыт — засеву стенда
+// токены снимаются до этого (lib/suite.mjs, bin/shoot.mjs → state/tokens.json).
+//
+// Пароль у всех пайщиков стенда один: он живёт только на одноразовом стенде и
+// в кадры не попадает.
+export const HARNESS_PASSWORD = 'Harness-2026-pass!1';
+const PASSWORDS_FILE = path.join(HARNESS_ROOT, 'state/passwords.json');
+
+export function knownPassword(email) {
+  if (!fsSync.existsSync(PASSWORDS_FILE)) return null;
+  return JSON.parse(fsSync.readFileSync(PASSWORDS_FILE, 'utf8'))[email] ?? null;
+}
+
+function rememberPassword(email, password) {
+  const all = fsSync.existsSync(PASSWORDS_FILE) ? JSON.parse(fsSync.readFileSync(PASSWORDS_FILE, 'utf8')) : {};
+  all[email] = password;
+  fsSync.mkdirSync(path.dirname(PASSWORDS_FILE), { recursive: true });
+  fsSync.writeFileSync(PASSWORDS_FILE, JSON.stringify(all, null, 2) + '\n');
+}
+
+async function loginFlow(page, { email, wif }) {
   // timeout 150s: первый заход на роут signin компилирует его chunk в холодном
-  // Vite (optimizeDeps + on-demand transform модульного графа), что не укладывается
-  // в 60с; последующие сценарии переиспользуют скомпилированный chunk и быстры.
+  // Vite (dev-стенд); SSR-сборка отвечает сразу.
   await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/auth/signin`, { waitUntil: 'domcontentloaded', timeout: 150000 });
   await page.waitForSelector('button:has-text("Войти")', { timeout: 150000 });
   await cleanViteOverlays(page);
-  await page.locator('input[type="email"]').first().fill(env.CHAIRMAN_EMAIL);
-  await page.locator('input[type="password"]').first().fill(env.CHAIRMAN_WIF);
+  const password = knownPassword(email);
+  await page.locator('input[type="email"]').first().fill(email);
+  await page.locator('input[type="password"]').first().fill(password ?? wif);
   await cleanViteOverlays(page);
   await page.locator('button:has-text("Войти")').click();
-  // Ждём пока URL уйдёт от signin (либо в chairman/user/soviet/participant).
-  // Используем waitForFunction вместо waitForURL — он более forgiving по hash.
-  await page.waitForFunction(
+
+  if (!password) {
+    // Ключ доступа → шаг установки пароля.
+    const newPassword = page.locator('label:has-text("Новый пароль")').locator('input').first();
+    const migrate = await newPassword.waitFor({ state: 'visible', timeout: 20000 }).then(() => true).catch(() => false);
+    if (migrate) {
+      await newPassword.fill(HARNESS_PASSWORD);
+      await page.locator('label:has-text("Повторите пароль")').locator('input').first().fill(HARNESS_PASSWORD);
+      await page.waitForTimeout(300);
+      await page.locator('button:has-text("Задать пароль и войти")').click();
+      rememberPassword(email, HARNESS_PASSWORD);
+    }
+  }
+
+  await passSecondFactorIfAsked(page, email);
+  await awaitLeftSignin(page, email);
+}
+
+// Второй фактор по письму: код из почты стенда (Mailpit, MAILPIT_URL).
+// У свежего пайщика факторов нет — шаг не показывается.
+async function passSecondFactorIfAsked(page, email) {
+  const otpField = page.locator('text=Код из письма').first();
+  const asked = await otpField.waitFor({ state: 'visible', timeout: 8000 }).then(() => true).catch(() => false);
+  if (!asked) return;
+  const base = process.env.MAILPIT_URL || 'http://127.0.0.1:8025';
+  let code = null;
+  for (let i = 0; i < 20 && !code; i++) {
+    const list = await fetch(`${base}/api/v1/search?query=${encodeURIComponent(`to:${email}`)}&limit=1`).then((r) => r.json()).catch(() => null);
+    const id = list?.messages?.[0]?.ID;
+    if (id) {
+      const msg = await fetch(`${base}/api/v1/message/${id}`).then((r) => r.json()).catch(() => null);
+      code = ((msg?.Text || msg?.HTML || '').match(/\b\d{6}\b/) || [])[0] || null;
+    }
+    if (!code) await page.waitForTimeout(1500);
+  }
+  if (!code) throw new Error(`вход ${email}: сервер ждёт код из письма, а в почте стенда (${base}) кода нет`);
+  await page.keyboard.type(code, { delay: 40 });
+  await page.waitForTimeout(500);
+  await page.locator('button:has-text("Подтвердить")').first().click().catch(() => {});
+}
+
+// Вход председателя кооператива.
+export async function loginAsChairman(page, context, { signAgreements = true } = {}) {
+  await loginFlow(page, { email: env.CHAIRMAN_EMAIL, wif: env.CHAIRMAN_WIF });
+  if (signAgreements) await passFirstLoginAgreements(page);
+}
+
+// Вход пайщика по фикстуре (state/participants/<username>.json: { username, email, wif }).
+export async function loginAs(page, fixture, { signAgreements = true } = {}) {
+  await loginFlow(page, { email: fixture.email, wif: fixture.wif });
+  if (signAgreements) await passFirstLoginAgreements(page);
+}
+
+// Вход считается состоявшимся, когда адрес ушёл с формы входа. Прежде отказ
+// глотался молча, и падал первый же экран сценария с «нужен вход», а причина
+// (не отправилась форма, отказ сервера) терялась. Теперь — кадр и текст формы.
+async function awaitLeftSignin(page, email) {
+  const left = await page.waitForFunction(
     () => !/auth\/signin/.test(window.location.href),
     { timeout: 30000 },
-  ).catch(() => {});
+  ).then(() => true).catch(() => false);
   await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
-  if (signAgreements) await passFirstLoginAgreements(page);
+  if (left) return;
+  const notice = await page.evaluate(() => {
+    const notes = Array.from(document.querySelectorAll('.q-notification, .q-field__messages, [role="alert"]'))
+      .map((el) => el.textContent?.trim()).filter(Boolean);
+    const disabled = Array.from(document.querySelectorAll('button')).filter((b) => /Войти/.test(b.textContent || '')).map((b) => b.disabled);
+    return { notes, disabled, url: location.href };
+  });
+  const shotPath = path.join(HARNESS_ROOT, 'shots', 'LOGIN-FAIL.png');
+  await page.screenshot({ path: shotPath, fullPage: true }).catch(() => {});
+  throw new Error(`вход ${email} не состоялся: адрес остался ${notice.url}; кнопка «Войти» disabled=${JSON.stringify(notice.disabled)}; сообщения формы: ${notice.notes.join(' | ') || 'нет'} (кадр ${shotPath})`);
 }
 
 // Логин обычного пайщика по фикстуре (state/participants/<username>.json).
 // fixture: { username, email, wif, ... }
-export async function loginAs(page, fixture, { signAgreements = true } = {}) {
-  // timeout 150s: см. комментарий в loginAsChairman — холодная компиляция chunk'а
-  // роута signin в Vite не укладывается в 60с на первом заходе.
-  await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/auth/signin`, { waitUntil: 'domcontentloaded', timeout: 150000 });
-  await page.waitForSelector('button:has-text("Войти")', { timeout: 150000 });
-  await cleanViteOverlays(page);
-  await page.locator('input[type="email"]').first().fill(fixture.email);
-  await page.locator('input[type="password"]').first().fill(fixture.wif);
-  await cleanViteOverlays(page);
-  await page.locator('button:has-text("Войти")').click();
-  await page.waitForFunction(
-    () => !/auth\/signin/.test(window.location.href),
-    { timeout: 30000 },
-  ).catch(() => {});
-  await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
-  if (signAgreements) await passFirstLoginAgreements(page);
-}
 
 
 // Соглашения первого входа — свойство стенда, а не сценария.

@@ -3,6 +3,9 @@
  * головного блока его ключом. Токены кешируются на прогон — вход не то, что
  * проверяет большинство тестов, а каждый лишний вход — лишний круг до цепи.
  */
+import fs from 'node:fs'
+import path from 'node:path'
+import process from 'node:process'
 import ecc from 'eosjs-ecc'
 import { gql } from './client'
 import { CHAIN_URL } from './env'
@@ -32,14 +35,66 @@ export async function login(who: Who): Promise<string> {
   return d.login.tokens.access.token as string
 }
 
-/** Токен из кеша прогона, при первом обращении — вход. */
+/**
+ * Токен из кеша прогона, при первом обращении — вход.
+ *
+ * Пайщик, перешедший на пароль (стол документации входит так — иначе форма
+ * входа не пускает), подписью больше не входит: сервер отвечает
+ * AUTH_PASSWORD_SET_KEY_LOGIN_DISABLED. Для него токены берутся из файла
+ * `API_TOKENS_FILE` — раннер сюиты documentation снимает их подписью ДО входа
+ * со стола, — и продлеваются мутацией refresh; новая пара пишется обратно.
+ */
 export async function tokenOf(who: Who): Promise<string> {
   const cached = tokens.get(who.account)
   if (cached)
     return cached
-  const token = await login(who)
+  let token: string
+  try {
+    token = await login(who)
+  }
+  catch (e) {
+    const stored = await refreshFromFile(who)
+    if (!stored)
+      throw e
+    token = stored
+  }
   tokens.set(who.account, token)
   return token
+}
+
+const REFRESH = 'mutation($d:RefreshInput!){ refresh(data:$d){ tokens{ access{ token } refresh{ token } } } }'
+
+interface StoredTokens { access: string, refresh: string, email?: string }
+
+/** Файл токенов раннера: { [account]: { access, refresh } }. */
+export function tokensFile(): string | null {
+  return process.env.API_TOKENS_FILE || null
+}
+
+export function readTokensFile(): Record<string, StoredTokens> {
+  const file = tokensFile()
+  if (!file || !fs.existsSync(file))
+    return {}
+  return JSON.parse(fs.readFileSync(file, 'utf8')) as Record<string, StoredTokens>
+}
+
+export function writeTokensFile(all: Record<string, StoredTokens>): void {
+  const file = tokensFile()
+  if (!file)
+    return
+  fs.mkdirSync(path.dirname(file), { recursive: true })
+  fs.writeFileSync(file, `${JSON.stringify(all, null, 2)}\n`)
+}
+
+async function refreshFromFile(who: Who): Promise<string | null> {
+  const all = readTokensFile()
+  const stored = all[who.account]
+  if (!stored)
+    return null
+  const d = await gql<any>(null, REFRESH, { d: { access_token: stored.access, refresh_token: stored.refresh } })
+  const fresh = { ...stored, access: d.refresh.tokens.access.token as string, refresh: d.refresh.tokens.refresh.token as string }
+  writeTokensFile({ ...all, [who.account]: fresh })
+  return fresh.access
 }
 
 /** Забыть токен (после выхода или смены ключа). */
