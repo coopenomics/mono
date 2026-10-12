@@ -34,8 +34,26 @@ export class DebtBlockchainAdapter implements DebtBlockchainPort {
     });
   }
 
-  createLoan(data: DebtContract.Actions.CreateLoan.ICreateLoan): Promise<InnerTransactResult> {
-    return this.send(data.coopname, DebtContract.Actions.CreateLoan.actionName, data);
+  /** Заявление с договором займа и договор залога уходят одной транзакцией: совет видит полный пакет. */
+  async createLoan(
+    data: DebtContract.Actions.CreateLoan.ICreateLoan,
+    pledge: DebtContract.Actions.LoanPledge.ILoanPledge
+  ): Promise<InnerTransactResult> {
+    await this.initWithCoopKey(data.coopname);
+    const authorization = [{ actor: data.coopname, permission: 'active' }];
+    const account = DebtContract.contractName.production;
+    return this.chain.transact([
+      { account, name: DebtContract.Actions.CreateLoan.actionName, authorization, data },
+      { account, name: DebtContract.Actions.LoanPledge.actionName, authorization, data: pledge },
+    ]);
+  }
+
+  chairmanSign(data: DebtContract.Actions.LoanChSign.ILoanChSign): Promise<InnerTransactResult> {
+    return this.send(data.coopname, DebtContract.Actions.LoanChSign.actionName, data);
+  }
+
+  signAct(data: DebtContract.Actions.LoanActSign.ILoanActSign): Promise<InnerTransactResult> {
+    return this.send(data.coopname, DebtContract.Actions.LoanActSign.actionName, data);
   }
 
   retryPay(data: DebtContract.Actions.RetryPay.IRetryPay): Promise<InnerTransactResult> {

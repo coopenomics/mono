@@ -14,7 +14,8 @@ void debt::cancelloan(eosio::name coopname, checksum256 debt_hash, std::string r
 
   auto d = Debt::Core::get_debt_or_fail(coopname, debt_hash);
   eosio::check(d.source == _debt, "Заём другого приложения отменяется в нём");
-  eosio::check(d.status == Debt::Status::CREATED || d.status == Debt::Status::AUTHORIZED || d.status == Debt::Status::SIGNED,
+  eosio::check(d.status == Debt::Status::CREATED || d.status == Debt::Status::AUTHORIZED ||
+                   d.status == Debt::Status::SIGNED || d.status == Debt::Status::PAYDECLINED,
                "Отменить можно только заём до выплаты; платёж у кассира отменяет кассир");
 
   Debt::Core::abandon_before_issue(coopname, d);

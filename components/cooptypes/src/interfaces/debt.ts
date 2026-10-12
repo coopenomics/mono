@@ -52,11 +52,32 @@ export interface ILoandecl {
   reason: string
 }
 
+export interface ILoanpledge {
+  coopname: IName
+  username: IName
+  debt_hash: IChecksum256
+  pledge_contract: IDocument2
+}
+
+export interface ILoanchsign {
+  coopname: IName
+  debt_hash: IChecksum256
+  signed_pledge_contract: IDocument2
+  act: IDocument2
+}
+
 export interface ILoansigned {
   coopname: IName
   username: IName
   debt_hash: IChecksum256
   signed_contract: IDocument2
+}
+
+export interface ILoanactsign {
+  coopname: IName
+  username: IName
+  debt_hash: IChecksum256
+  act: IDocument2
 }
 
 export interface ILoansgndecl {
@@ -175,6 +196,9 @@ export interface IDebt {
   extension_statement: IDocument2
   last_pay_error: string
   memo: string
+  pledge_contract?: IDocument2
+  signed_pledge_contract?: IDocument2
+  act?: IDocument2
 }
 
 export interface ISummary {

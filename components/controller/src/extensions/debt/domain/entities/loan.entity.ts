@@ -39,6 +39,9 @@ export class LoanDomainEntity extends BaseDomainEntity<ILoanDatabaseData> implem
   public signed_contract?: ISignedDocument;
   public decision?: ISignedDocument;
   public extension_statement?: ISignedDocument;
+  public pledge_contract?: ISignedDocument;
+  public signed_pledge_contract?: ISignedDocument;
+  public act?: ISignedDocument;
   public last_pay_error?: string;
   public memo?: string;
 
@@ -80,6 +83,9 @@ export class LoanDomainEntity extends BaseDomainEntity<ILoanDatabaseData> implem
     this.signed_contract = blockchainData.signed_contract ?? this.signed_contract;
     this.decision = blockchainData.decision ?? this.decision;
     this.extension_statement = blockchainData.extension_statement ?? this.extension_statement;
+    this.pledge_contract = blockchainData.pledge_contract ?? this.pledge_contract;
+    this.signed_pledge_contract = blockchainData.signed_pledge_contract ?? this.signed_pledge_contract;
+    this.act = blockchainData.act ?? this.act;
     this.last_pay_error = blockchainData.last_pay_error;
     this.memo = blockchainData.memo;
     this.status = LoanDomainEntity.resolveStatus(this.present, blockchainData.status, blockchainData.issued_at);

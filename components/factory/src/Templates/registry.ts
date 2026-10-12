@@ -43,6 +43,9 @@ import * as LoanContractProperty from './1052.LoanContractProperty'
 import * as LoanContractShare from './1053.LoanContractShare'
 import * as LoanRepaymentStatement from './1054.LoanRepaymentStatement'
 import * as LoanExtensionStatement from './1055.LoanExtensionStatement'
+import * as LoanPledgeContract from './1056.LoanPledgeContract'
+import * as LoanPledgeAct from './1057.LoanPledgeAct'
+import * as GenerationLoanStatement from './1058.GenerationLoanStatement'
 
 import * as GenerationPropertyInvestStatement from './1060.GenerationPropertyInvestStatement'
 import * as GenerationPropertyInvestDecision from './1061.GenerationPropertyInvestDecision'
@@ -152,6 +155,9 @@ export const Registry = {
   1053: LoanContractShare,
   1054: LoanRepaymentStatement,
   1055: LoanExtensionStatement,
+  1056: LoanPledgeContract,
+  1057: LoanPledgeAct,
+  1058: GenerationLoanStatement,
   1060: GenerationPropertyInvestStatement,
   1061: GenerationPropertyInvestDecision,
   1062: GenerationPropertyInvestAct,

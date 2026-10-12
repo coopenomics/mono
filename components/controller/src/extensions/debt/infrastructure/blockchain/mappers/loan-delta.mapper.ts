@@ -7,7 +7,7 @@ import { LoanDomainEntity } from '../../../domain/entities/loan.entity';
 import type { ILoanBlockchainData } from '../../../domain/interfaces/loan-blockchain.interface';
 import { DebtContractInfoService } from '../../services/debt-contract-info.service';
 
-const DOCUMENT_FIELDS = ['statement', 'contract', 'signed_contract', 'decision', 'extension_statement'] as const;
+const DOCUMENT_FIELDS = ['statement', 'contract', 'signed_contract', 'decision', 'extension_statement', 'pledge_contract', 'signed_pledge_contract', 'act'] as const;
 
 /** Маппер дельт таблицы `debt::debts` в блокчейн-данные займа. */
 @Injectable()

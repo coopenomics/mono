@@ -10,6 +10,7 @@ export enum LoanStatus {
   AUTHORIZED = 'AUTHORIZED',
   SIGNED = 'SIGNED',
   PAYING = 'PAYING',
+  PAYDECLINED = 'PAYDECLINED',
   ISSUED = 'ISSUED',
   OVERDUE = 'OVERDUE',
   CLOSED = 'CLOSED',
@@ -23,8 +24,9 @@ registerEnumType(LoanStatus, {
   valuesMap: {
     CREATED: { description: 'Заявление подано, на рассмотрении совета' },
     AUTHORIZED: { description: 'Совет разрешил, договор ожидает подписи председателя' },
-    SIGNED: { description: 'Договор подписан, кассир отклонил платёж по реквизитам, ожидает повтора' },
-    PAYING: { description: 'Передан на выплату кассиру' },
+    SIGNED: { description: 'Председатель подписал договор, договор залога и акт; акт ожидает подписи пайщика' },
+    PAYING: { description: 'Акт подписан, передан на выплату кассиру' },
+    PAYDECLINED: { description: 'Кассир отклонил платёж по реквизитам, ожидает повтора или отмены' },
     ISSUED: { description: 'Выдан, идёт срок возврата' },
     OVERDUE: { description: 'Срок возврата прошёл' },
     CLOSED: { description: 'Закрыт возвратом или обращением обеспечения' },
@@ -39,6 +41,7 @@ export const CHAIN_STATUS_TO_LOAN_STATUS: Record<string, LoanStatus> = {
   authorized: LoanStatus.AUTHORIZED,
   signed: LoanStatus.SIGNED,
   paying: LoanStatus.PAYING,
+  paydeclined: LoanStatus.PAYDECLINED,
   issued: LoanStatus.ISSUED,
   overdue: LoanStatus.OVERDUE,
 };

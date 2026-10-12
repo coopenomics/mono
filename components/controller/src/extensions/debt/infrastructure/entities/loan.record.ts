@@ -31,6 +31,9 @@ export class LoanRecord extends ChainRecord {
   signed_contract!: ISignedDocument | null;
   decision!: ISignedDocument | null;
   extension_statement!: ISignedDocument | null;
+  pledge_contract!: ISignedDocument | null;
+  signed_pledge_contract!: ISignedDocument | null;
+  act!: ISignedDocument | null;
   last_pay_error!: string | null;
   memo!: string | null;
   status!: LoanStatus;

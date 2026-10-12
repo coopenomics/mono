@@ -1045,6 +1045,7 @@ export interface DebtLoans {
   _created_at: Generated<Timestamp>;
   _id: Generated<string>;
   _updated_at: Generated<Timestamp>;
+  act: Json | null;
   amount: string | null;
   block_num: Generated<number>;
   blockchain_status: string | null;
@@ -1061,11 +1062,13 @@ export interface DebtLoans {
   last_pay_error: string | null;
   memo: string | null;
   overdue_at: Timestamp | null;
+  pledge_contract: Json | null;
   pledged: string | null;
   present: Generated<boolean>;
   remaining: string | null;
   requested_due_at: Timestamp | null;
   signed_contract: Json | null;
+  signed_pledge_contract: Json | null;
   source: string | null;
   source_ref: string | null;
   statement: Json | null;

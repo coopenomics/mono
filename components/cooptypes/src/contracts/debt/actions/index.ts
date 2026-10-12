@@ -2,9 +2,12 @@
 
 // Заём под обеспечение паевым взносом
 export * as CreateLoan from './createLoan'
+export * as LoanPledge from './loanPledge'
 export * as LoanAuth from './loanAuth'
 export * as LoanDecl from './loanDecl'
+export * as LoanChSign from './loanChSign'
 export * as LoanSigned from './loanSigned'
+export * as LoanActSign from './loanActSign'
 export * as LoanSignDecl from './loanSignDecl'
 export * as LoanPaid from './loanPaid'
 export * as LoanPayDecl from './loanPayDecl'

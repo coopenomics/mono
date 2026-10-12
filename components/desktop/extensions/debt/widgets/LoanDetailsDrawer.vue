@@ -12,8 +12,11 @@ DetailsDrawer(
       .loan-details__eyebrow {{ outstanding ? $t('debt.loanDetails.remainingLabel') : $t('debt.loanDetails.amountLabel') }}
       .loan-details__amount {{ formatAmount(outstanding ? loan.remaining : loan.amount) }}
 
-    BaseBanner(v-if='loan.status === "SIGNED"', variant='warn')
+    BaseBanner(v-if='loan.status === "PAYDECLINED"', variant='warn')
       | {{ $t('debt.loanDetails.payDeclinedHint') }}
+
+    BaseBanner(v-if='canSignAct', variant='info')
+      | {{ $t('debt.loanDetails.actPendingHint') }}
 
     BaseBanner(v-if='extensionPending', variant='info')
       | {{ $t('debt.loanDetails.extensionPendingHint') }}
@@ -39,7 +42,7 @@ DetailsDrawer(
         :value='formatDate(loan.requested_due_at)'
       )
       DataRow(
-        v-if='loan.status === "SIGNED" && loan.last_pay_error',
+        v-if='loan.status === "PAYDECLINED" && loan.last_pay_error',
         :label='$t("debt.loanDetails.payErrorLabel")',
         :value='loan.last_pay_error',
         align='vertical'
@@ -49,8 +52,15 @@ DetailsDrawer(
       .loan-details__eyebrow {{ $t('debt.loanDetails.documentsTitle') }}
       LoanDocuments(:loan='loan')
 
-  template(v-if='loan && (canCancel || canRetry || canRepay)', #footer)
+  template(v-if='loan && (canCancel || canRetry || canRepay || canSignAct)', #footer)
     .loan-details__footer
+      BaseButton(
+        v-if='canSignAct',
+        variant='primary',
+        :loading='busy === "act"',
+        :disabled='busy !== null',
+        @click='onSignAct'
+      ) {{ $t('debt.loanDetails.actSignAction') }}
       BaseButton(
         v-if='canRepay && !extensionPending',
         variant='secondary',
@@ -133,9 +143,9 @@ const emit = defineEmits<{
 
 const desktop = useDesktopStore();
 const session = useSessionStore();
-const { cancel, retryPayment } = useLoanActions();
+const { cancel, retryPayment, signAct } = useLoanActions();
 
-const busy = ref<'cancel' | 'retry' | null>(null);
+const busy = ref<'cancel' | 'retry' | 'act' | null>(null);
 const confirmOpen = ref(false);
 const repayOpen = ref(false);
 const extendOpen = ref(false);
@@ -171,8 +181,27 @@ const canCancel = computed(() => {
   return loan.username === session.username || desktop.hasGrant('debt', 'Loan:cancel:all');
 });
 const canRetry = computed(
-  () => props.loan?.status === 'SIGNED' && props.loan?.source === 'debt' && desktop.hasGrant('debt', 'Loan:retry-pay'),
+  () => props.loan?.status === 'PAYDECLINED' && props.loan?.source === 'debt' && desktop.hasGrant('debt', 'Loan:retry-pay'),
 );
+
+// Акт подписывает заёмщик после подписи председателя; совету кнопка не показывается.
+const canSignAct = computed(
+  () => props.loan?.status === 'SIGNED' && props.loan.username === session.username && Boolean(props.loan.act),
+);
+
+async function onSignAct(): Promise<void> {
+  if (!props.loan) return;
+  try {
+    busy.value = 'act';
+    await signAct(props.loan);
+    SuccessAlert(t('debt.loanDetails.actSignedMessage'));
+    emit('changed');
+  } catch (e) {
+    FailAlert(e);
+  } finally {
+    busy.value = null;
+  }
+}
 
 async function onCancel(): Promise<void> {
   if (!props.loan) return;

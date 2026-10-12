@@ -15,7 +15,7 @@ export const debtStoreProviders: Provider[] = [
       new TableStore<LoanRecord>(db, {
         table: 'debt_loans',
         primaryKey: ['_id'],
-        json: ['statement', 'contract', 'signed_contract', 'decision', 'extension_statement'],
+        json: ['statement', 'contract', 'signed_contract', 'decision', 'extension_statement', 'pledge_contract', 'signed_pledge_contract', 'act'],
         sameNames: true,
       }),
   },

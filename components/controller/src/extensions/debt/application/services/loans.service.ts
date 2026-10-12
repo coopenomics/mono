@@ -113,14 +113,27 @@ export class LoansService {
   async toOutput(loan: LoanDomainEntity): Promise<LoanOutputDTO> {
     const aggregate = (doc?: LoanDomainEntity['statement']): Promise<InnerDocumentAggregate | null | undefined> =>
       doc ? this.documents.buildAggregate(doc) : Promise.resolve(undefined);
-    const [statement, contract, signed_contract, decision, extension_statement] = await Promise.all([
-      aggregate(loan.statement),
-      aggregate(loan.contract),
-      aggregate(loan.signed_contract),
-      aggregate(loan.decision),
-      aggregate(loan.extension_statement),
-    ]);
-    const aggregates: LoanDocumentAggregates = { statement, contract, signed_contract, decision, extension_statement };
+    const [statement, contract, signed_contract, decision, extension_statement, pledge_contract, signed_pledge_contract, act] =
+      await Promise.all([
+        aggregate(loan.statement),
+        aggregate(loan.contract),
+        aggregate(loan.signed_contract),
+        aggregate(loan.decision),
+        aggregate(loan.extension_statement),
+        aggregate(loan.pledge_contract),
+        aggregate(loan.signed_pledge_contract),
+        aggregate(loan.act),
+      ]);
+    const aggregates: LoanDocumentAggregates = {
+      statement,
+      contract,
+      signed_contract,
+      decision,
+      extension_statement,
+      pledge_contract,
+      signed_pledge_contract,
+      act,
+    };
     return LoanOutputDTO.fromDomain(loan, aggregates);
   }
 }

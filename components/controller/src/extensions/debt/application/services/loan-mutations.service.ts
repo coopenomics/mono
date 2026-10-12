@@ -18,11 +18,20 @@ import { LoanStatus } from '../../domain/enums/loan-status.enum';
 import { LoansService } from './loans.service';
 import { t } from '../../i18n';
 import type { CreateLoanInputDTO } from '../dto/create-loan.input';
-import type { CancelLoanInputDTO, ExtendLoanInputDTO, LoanRefInputDTO, RepayLoanInputDTO } from '../dto/loan-action.inputs';
+import type {
+  CancelLoanInputDTO,
+  ChairmanSignLoanInputDTO,
+  ExtendLoanInputDTO,
+  LoanRefInputDTO,
+  RepayLoanInputDTO,
+  SignLoanActInputDTO,
+} from '../dto/loan-action.inputs';
 import type {
   GenerateExtensionStatementInputDTO,
   GenerateLoanContractInputDTO,
   GenerateLoanDecisionInputDTO,
+  GenerateLoanPledgeActInputDTO,
+  GenerateLoanPledgeContractInputDTO,
   GenerateLoanStatementInputDTO,
   GenerateRepaymentStatementInputDTO,
 } from '../documents-dto/loan-documents.dto';
@@ -82,6 +91,25 @@ export class LoanMutationsService {
     });
   }
 
+  async generatePledgeContract(
+    data: GenerateLoanPledgeContractInputDTO,
+    options?: GenerateDocumentOptionsInputDTO
+  ): Promise<InnerGeneratedDocument> {
+    const entry = this.collateralOrFail(data.collateral);
+    return this.documents.generate({
+      data: { ...data, ...this.basisOf(entry), registry_id: Cooperative.Registry.LoanPledgeContract.registry_id },
+      options,
+    });
+  }
+
+  async generatePledgeAct(data: GenerateLoanPledgeActInputDTO, options?: GenerateDocumentOptionsInputDTO): Promise<InnerGeneratedDocument> {
+    const entry = this.collateralOrFail(data.collateral);
+    return this.documents.generate({
+      data: { ...data, ...this.basisOf(entry), registry_id: Cooperative.Registry.LoanPledgeAct.registry_id },
+      options,
+    });
+  }
+
   async generateDecision(data: GenerateLoanDecisionInputDTO, options?: GenerateDocumentOptionsInputDTO): Promise<InnerGeneratedDocument> {
     const entry = this.collateralOrFail(data.collateral);
     return this.documents.generate({
@@ -134,12 +162,45 @@ export class LoanMutationsService {
       due_at: input.due_at,
       statement: toChainDocument(input.statement),
       contract: toChainDocument(input.contract),
+    }, {
+      coopname: input.coopname,
+      username: input.username,
+      debt_hash: input.debt_hash,
+      pledge_contract: toChainDocument(input.pledge_contract),
+    });
+  }
+
+  /** Председатель подписал договор залога и акт; заём должен ждать его подписи после решения совета. */
+  async chairmanSign(input: ChairmanSignLoanInputDTO): Promise<InnerTransactResult> {
+    const loan = await this.loans.getByHash(input.debt_hash);
+    if (loan.status !== LoanStatus.AUTHORIZED) {
+      throw new DomainError('DEBT_CHAIRMAN_SIGN_NOT_ALLOWED', { debtHash: input.debt_hash }, httpStatus.CONFLICT);
+    }
+    return this.chain.chairmanSign({
+      coopname: input.coopname,
+      debt_hash: input.debt_hash,
+      signed_pledge_contract: toChainDocument(input.signed_pledge_contract),
+      act: toChainDocument(input.act),
+    });
+  }
+
+  /** Пайщик подписал акт: после подписи председателя, по своему займу. */
+  async signAct(input: SignLoanActInputDTO): Promise<InnerTransactResult> {
+    const loan = await this.loans.getByHash(input.debt_hash);
+    if (loan.status !== LoanStatus.SIGNED) {
+      throw new DomainError('DEBT_ACT_SIGN_NOT_ALLOWED', { debtHash: input.debt_hash }, httpStatus.CONFLICT);
+    }
+    return this.chain.signAct({
+      coopname: input.coopname,
+      username: input.username,
+      debt_hash: input.debt_hash,
+      act: toChainDocument(input.act),
     });
   }
 
   async retryPay(input: LoanRefInputDTO): Promise<InnerTransactResult> {
     const loan = await this.loans.getByHash(input.debt_hash);
-    if (loan.status !== LoanStatus.SIGNED) {
+    if (loan.status !== LoanStatus.PAYDECLINED) {
       throw new DomainError('DEBT_RETRY_NOT_ALLOWED', { debtHash: input.debt_hash }, httpStatus.CONFLICT);
     }
     return this.chain.retryPay({ coopname: input.coopname, debt_hash: input.debt_hash });

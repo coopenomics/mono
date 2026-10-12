@@ -19,6 +19,8 @@ import { ensureCapitalConfigured } from './shared/ensureCapitalConfigured'
  */
 const blockchain = new Blockchain(config.network, config.private_keys)
 const DEBT = DebtContract.contractName.production
+// Председатель совета стенда — им же подписывает одобрения processApprove.
+const CHAIRMAN = 'ant'
 
 const rub = (n: number) => `${n.toFixed(4)} RUB`
 const inSeconds = (s: number) => new Date(Date.now() + s * 1000).toISOString().slice(0, 19)
@@ -39,6 +41,38 @@ async function tx(account: string, name: string, data: any, actor = COOP) {
   }, { blocksBehind: 3, expireSeconds: 30 })
 }
 
+/** Документ с подписями нескольких сторон — для договора залога и акта. */
+function signedByAll(...signers: string[]) {
+  const base = signedBy(signers[0])
+  return { ...base, signatures: signers.map((signer, i) => ({ ...base.signatures[0], id: i + 1, signer })) }
+}
+
+/**
+ * Подпись председателя — как кнопка одобрения на его столе: договор залога и
+ * акт одним действием, затем договор займа через запрос одобрения.
+ */
+async function chairmanSign(username: string, debtHash: string) {
+  const chsign: DebtContract.Actions.LoanChSign.ILoanChSign = {
+    coopname: COOP,
+    debt_hash: debtHash,
+    signed_pledge_contract: signedByAll(username, CHAIRMAN),
+    act: signedBy(CHAIRMAN),
+  }
+  await tx(DEBT, DebtContract.Actions.LoanChSign.actionName, chsign)
+  await processApprove(blockchain, COOP, debtHash)
+}
+
+/** Вторая подпись пайщика под актом: после неё сумма уходит кассиру. */
+async function memberSignsAct(username: string, debtHash: string) {
+  const sign: DebtContract.Actions.LoanActSign.ILoanActSign = {
+    coopname: COOP,
+    username,
+    debt_hash: debtHash,
+    act: signedByAll(CHAIRMAN, username),
+  }
+  await tx(DEBT, DebtContract.Actions.LoanActSign.actionName, sign)
+}
+
 async function createLoan(username: string, amount: string, dueInSeconds: number, collateral = 'blago') {
   const debtHash = generateRandomSHA256()
   const data: DebtContract.Actions.CreateLoan.ICreateLoan = {
@@ -52,10 +86,18 @@ async function createLoan(username: string, amount: string, dueInSeconds: number
     contract: signedBy(username),
   }
   await tx(DEBT, DebtContract.Actions.CreateLoan.actionName, data)
+  // Договор залога идёт следом, как в транзакции заявления на столе.
+  const pledge: DebtContract.Actions.LoanPledge.ILoanPledge = {
+    coopname: COOP,
+    username,
+    debt_hash: debtHash,
+    pledge_contract: signedBy(username),
+  }
+  await tx(DEBT, DebtContract.Actions.LoanPledge.actionName, pledge)
   return debtHash
 }
 
-/** Полный путь выдачи: совет → подпись председателя → кассир. */
+/** Полный путь выдачи: совет → подписи председателя → акт пайщика → кассир. */
 async function issueLoan(username: string, amount: string, dueInSeconds: number) {
   const debtHash = await createLoan(username, amount, dueInSeconds)
   expect((await getDebt(debtHash)).status).toBe(DebtContract.Status.CREATED)
@@ -63,7 +105,9 @@ async function issueLoan(username: string, amount: string, dueInSeconds: number)
   await processLastDecision(blockchain, COOP)
   expect((await getDebt(debtHash)).status).toBe(DebtContract.Status.AUTHORIZED)
 
-  await processApprove(blockchain, COOP, debtHash)
+  await chairmanSign(username, debtHash)
+  expect((await getDebt(debtHash)).status).toBe(DebtContract.Status.SIGNED)
+  await memberSignsAct(username, debtHash)
   expect((await getDebt(debtHash)).status).toBe(DebtContract.Status.PAYING)
 
   const payout: GatewayContract.Actions.CompleteOutcome.ICompleteOutcome = { coopname: COOP, outcome_hash: debtHash }
@@ -108,7 +152,13 @@ describe('Беспроцентный заём под паевой взнос «�
     await processLastDecision(blockchain, COOP)
     expect((await getDebt(debtHash)).status).toBe(DebtContract.Status.AUTHORIZED)
 
-    await processApprove(blockchain, COOP, debtHash)
+    await chairmanSign(username, debtHash)
+    const signed = await getDebt(debtHash)
+    expect(signed.status).toBe(DebtContract.Status.SIGNED)
+    // До подписи акта пайщиком сумма к выдаче не начислена.
+    expect((await getUserWallet(blockchain, username, 'w.dbt.pend')).available).toBe(0)
+
+    await memberSignsAct(username, debtHash)
     const paying = await getDebt(debtHash)
     expect(paying.status).toBe(DebtContract.Status.PAYING)
     expect((await getUserWallet(blockchain, username, 'w.dbt.pend')).available).toBe(30)
@@ -189,14 +239,15 @@ describe('Беспроцентный заём под паевой взнос «�
     await programInvest(blockchain, username, 200_000)
     const debtHash = await createLoan(username, rub(8), 3600)
     await processLastDecision(blockchain, COOP)
-    await processApprove(blockchain, COOP, debtHash)
+    await chairmanSign(username, debtHash)
+    await memberSignsAct(username, debtHash)
     expect((await getDebt(debtHash)).status).toBe(DebtContract.Status.PAYING)
 
     const decline: GatewayContract.Actions.DeclineOutcome.IOutDecline = { coopname: COOP, outcome_hash: debtHash, reason: 'реквизиты не прошли' }
     await tx(GatewayContract.contractName.production, GatewayContract.Actions.DeclineOutcome.actionName, decline)
-    const signed = await getDebt(debtHash)
-    expect(signed.status).toBe(DebtContract.Status.SIGNED)
-    expect(signed.last_pay_error).toContain('реквизиты')
+    const declined = await getDebt(debtHash)
+    expect(declined.status).toBe(DebtContract.Status.PAYDECLINED)
+    expect(declined.last_pay_error).toContain('реквизиты')
     // Начисление к выдаче остаётся: решение в силе.
     expect((await getUserWallet(blockchain, username, 'w.dbt.pend')).available).toBe(8)
 

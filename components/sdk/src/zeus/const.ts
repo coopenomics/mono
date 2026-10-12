@@ -569,8 +569,13 @@ export const AllTypesProps: Record<string,any> = {
 	DebtCancelLoanInput:{
 
 	},
+	DebtChairmanSignLoanInput:{
+		act:"SignedDigitalDocumentInput",
+		signed_pledge_contract:"SignedDigitalDocumentInput"
+	},
 	DebtCreateLoanInput:{
 		contract:"SignedDigitalDocumentInput",
+		pledge_contract:"SignedDigitalDocumentInput",
 		statement:"SignedDigitalDocumentInput"
 	},
 	DebtExtendLoanInput:{
@@ -588,6 +593,12 @@ export const AllTypesProps: Record<string,any> = {
 	DebtGenerateLoanDecisionInput:{
 
 	},
+	DebtGenerateLoanPledgeActInput:{
+
+	},
+	DebtGenerateLoanPledgeContractInput:{
+
+	},
 	DebtGenerateLoanStatementInput:{
 
 	},
@@ -603,6 +614,9 @@ export const AllTypesProps: Record<string,any> = {
 	DebtLoanStatus: "enum" as const,
 	DebtRepayLoanInput:{
 		statement:"SignedDigitalDocumentInput"
+	},
+	DebtSignLoanActInput:{
+		act:"SignedDigitalDocumentInput"
 	},
 	DebtStatus: "enum" as const,
 	DeclineAgreementInput:{
@@ -1855,6 +1869,9 @@ export const AllTypesProps: Record<string,any> = {
 		chairmanDeclineApprove:{
 			data:"DeclineApproveInput"
 		},
+		chairmanSignDebtLoan:{
+			data:"DebtChairmanSignLoanInput"
+		},
 		chatcoopCreateAccount:{
 			data:"CreateMatrixAccountInputDTO"
 		},
@@ -1999,6 +2016,14 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		generateDebtLoanDecisionDocument:{
 			data:"DebtGenerateLoanDecisionInput",
+			options:"GenerateDocumentOptionsInput"
+		},
+		generateDebtLoanPledgeActDocument:{
+			data:"DebtGenerateLoanPledgeActInput",
+			options:"GenerateDocumentOptionsInput"
+		},
+		generateDebtLoanPledgeContractDocument:{
+			data:"DebtGenerateLoanPledgeContractInput",
 			options:"GenerateDocumentOptionsInput"
 		},
 		generateDebtLoanStatementDocument:{
@@ -2553,6 +2578,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		signBySecretaryOnAnnualGeneralMeet:{
 			data:"SignBySecretaryOnAnnualGeneralMeetInput"
+		},
+		signDebtLoanAct:{
+			data:"DebtSignLoanActInput"
 		},
 		sovietRobotDelegateKey:{
 			data:"RobotDelegateKeyInput"
@@ -5336,6 +5364,7 @@ export const ReturnTypes: Record<string,any> = {
 		_created_at:"DateTime",
 		_id:"String",
 		_updated_at:"DateTime",
+		act:"DocumentAggregate",
 		amount:"String",
 		block_num:"Float",
 		collateral:"String",
@@ -5351,11 +5380,13 @@ export const ReturnTypes: Record<string,any> = {
 		issued_at:"String",
 		last_pay_error:"String",
 		overdue_at:"String",
+		pledge_contract:"DocumentAggregate",
 		pledged:"String",
 		present:"Boolean",
 		remaining:"String",
 		requested_due_at:"String",
 		signed_contract:"DocumentAggregate",
+		signed_pledge_contract:"DocumentAggregate",
 		source:"String",
 		source_ref:"String",
 		statement:"DocumentAggregate",
@@ -7128,6 +7159,7 @@ export const ReturnTypes: Record<string,any> = {
 		cardcoopTakeEntryProfile:"CardcoopEntryProfile",
 		chairmanConfirmApprove:"Approval",
 		chairmanDeclineApprove:"Approval",
+		chairmanSignDebtLoan:"Transaction",
 		chatcoopCreateAccount:"Boolean",
 		chatcoopCreateCalendarEvent:"ChatCoopCalendarEvent",
 		chatcoopCreateCalendarIcsSubscription:"ChatCoopCalendarIcsUrlResponse",
@@ -7176,6 +7208,8 @@ export const ReturnTypes: Record<string,any> = {
 		generateDebtExtensionStatementDocument:"GeneratedDocument",
 		generateDebtLoanContractDocument:"GeneratedDocument",
 		generateDebtLoanDecisionDocument:"GeneratedDocument",
+		generateDebtLoanPledgeActDocument:"GeneratedDocument",
+		generateDebtLoanPledgeContractDocument:"GeneratedDocument",
 		generateDebtLoanStatementDocument:"GeneratedDocument",
 		generateDebtRepaymentStatementDocument:"GeneratedDocument",
 		generateDocument:"GeneratedDocument",
@@ -7355,6 +7389,7 @@ export const ReturnTypes: Record<string,any> = {
 		setWif:"Boolean",
 		signByPresiderOnAnnualGeneralMeet:"MeetAggregate",
 		signBySecretaryOnAnnualGeneralMeet:"MeetAggregate",
+		signDebtLoanAct:"Transaction",
 		sovietRobotDelegateKey:"RobotKeyStatus",
 		sovietRobotRetryDecision:"RobotDecision",
 		sovietRobotRevokeKey:"Boolean",

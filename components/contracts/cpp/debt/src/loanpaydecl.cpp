@@ -16,7 +16,7 @@ void debt::loanpaydecl(eosio::name coopname, checksum256 debt_hash, std::string 
   eosio::check(d.status == Debt::Status::PAYING, "Отказ платежа приходит по займу, переданному кассиру");
 
   Debt::Core::modify_debt(coopname, d.id, [&](auto& row) {
-    row.status = Debt::Status::SIGNED;
+    row.status = Debt::Status::PAYDECLINED;
     row.last_pay_error = reason.empty() ? std::string("Платёж отклонён кассиром") : reason;
   });
 

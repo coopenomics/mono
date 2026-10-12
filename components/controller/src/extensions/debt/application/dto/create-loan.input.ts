@@ -45,4 +45,9 @@ export class CreateLoanInputDTO {
   @ValidateNested()
   @Type(() => SignedDigitalDocumentInputDTO)
   contract!: SignedDigitalDocumentInputDTO;
+
+  @Field(() => SignedDigitalDocumentInputDTO, { description: 'Договор залога имущественного права с подписью пайщика' })
+  @ValidateNested()
+  @Type(() => SignedDigitalDocumentInputDTO)
+  pledge_contract!: SignedDigitalDocumentInputDTO;
 }

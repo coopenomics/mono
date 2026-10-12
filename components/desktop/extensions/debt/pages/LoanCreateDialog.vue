@@ -70,6 +70,9 @@ BaseDialog(
         required
       )
 
+  //- Договор займа и договор залога называют паспорт физического лица: без него документы не собираются.
+  CollectPassportDialog(v-model='passportDialogOpen', @saved='onPassportSaved')
+
   template(#footer)
     .loan-form__footer
       template(v-if='prepared')
@@ -83,7 +86,7 @@ BaseDialog(
           variant='primary',
           :loading='submitting',
           :disabled='!canSubmit',
-          @click='prepare'
+          @click='onContinue'
         ) {{ $t('debt.createDialog.submitLabel') }}
 </template>
 
@@ -105,6 +108,7 @@ import { EmptyState } from 'src/shared/ui/base/EmptyState';
 import { AmountInput } from 'src/shared/ui/domain/AmountInput';
 import { PaymentMethodSelect } from 'src/shared/ui/domain/PaymentMethodSelect';
 import { DocumentHtmlReader } from 'src/shared/ui/DocumentHtmlReader';
+import { CollectPassportDialog, useRequirePassport } from 'src/features/User/CollectPassport';
 import { getCollateralOptions, type ICollateralOption } from '../api';
 import { collateralLabel, defaultDueDate, formatAmount, useLoanActions } from '../model';
 import type { IPreparedLoan } from '../model/useLoanActions';
@@ -120,6 +124,7 @@ const system = useSystemStore();
 const session = useSessionStore();
 const { prepareLoan, signLoan } = useLoanActions();
 const router = useRouter();
+const { passportDialogOpen, requirePassport, onPassportSaved } = useRequirePassport();
 const route = useRoute();
 
 const symbol = computed(() => system.governSymbol);
@@ -156,6 +161,7 @@ const reviewDocs = computed(() =>
   prepared.value
     ? [
         { key: 'contract', title: t('debt.createDialog.contractTitle'), html: prepared.value.contractDoc.html },
+        { key: 'pledge', title: t('debt.createDialog.pledgeContractTitle'), html: prepared.value.pledgeDoc.html },
         { key: 'statement', title: t('debt.createDialog.statementTitle'), html: prepared.value.statementDoc.html },
       ]
     : [],
@@ -241,7 +247,17 @@ function goToMethods(): void {
   void router.push({ name: 'payment-methods', params: { coopname: route.params.coopname } });
 }
 
-// Первый шаг: собрать заявление и договор по введённому и показать их на прочтение.
+// Паспорт нужен физическому лицу; у ИП и организации в договоры идут ОГРНИП и ОГРН.
+function onContinue(): void {
+  const type = session.privateAccount?.type;
+  if (type && type !== 'individual') {
+    void prepare();
+    return;
+  }
+  void requirePassport(prepare);
+}
+
+// Первый шаг: собрать заявление, договор займа и договор залога по введённому и показать их на прочтение.
 async function prepare(): Promise<void> {
   if (!selected.value || form.amount === null || !form.method_id) return;
   try {

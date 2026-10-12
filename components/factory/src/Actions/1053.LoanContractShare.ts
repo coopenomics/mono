@@ -3,7 +3,7 @@ import { LoanContractShare } from '../Templates'
 import { DocFactory } from '../Factory'
 import type { IGeneratedDocument, IGenerationOptions, IMetaDocument, ITemplate } from '../Interfaces'
 import type { MongoDBConnector } from '../Services/Databazor'
-import { amountFields, collateralProgramDative, formatDateRu, loanContractNumber, resolveLoanBasis } from './loan/shared'
+import { amountFields, formatDateRu, loanContractNumber, partyIdentity, resolveLoanBasis } from './loan/shared'
 
 export { LoanContractShare as Template } from '../Templates'
 
@@ -33,7 +33,7 @@ export class Factory extends DocFactory<LoanContractShare.Action> {
       ...basis,
       ...amountFields(data.amount),
       due_at: formatDateRu(data.due_at),
-      collateral_program_dative: collateralProgramDative(data.collateral),
+      party_identity: partyIdentity(userData),
     }
     await this.validate(combinedData, template.model)
     const translation = template.translations[meta.lang]

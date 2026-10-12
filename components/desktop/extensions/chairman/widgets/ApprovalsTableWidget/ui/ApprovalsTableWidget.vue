@@ -40,6 +40,7 @@ div
               :approval-hash='props.row.approval_hash'
               :coopname='props.row.coopname'
               :approved-document='props.row.document'
+              :approval-action='`${props.row.callback_contract}::${props.row.callback_action_approve}`'
             )
             DeclineApprovalButton(
               v-if='props.row.status === "PENDING" && is_approval_declinable(props.row.callback_contract, props.row.callback_action_approve)'

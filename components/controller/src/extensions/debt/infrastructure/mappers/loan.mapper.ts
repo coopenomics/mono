@@ -65,6 +65,9 @@ export class LoanMapper {
       signed_contract: optional(entity.signed_contract),
       decision: optional(entity.decision),
       extension_statement: optional(entity.extension_statement),
+      pledge_contract: optional(entity.pledge_contract),
+      signed_pledge_contract: optional(entity.signed_pledge_contract),
+      act: optional(entity.act),
       last_pay_error: text(entity.last_pay_error),
       memo: text(entity.memo),
     };
@@ -91,6 +94,9 @@ export class LoanMapper {
       signed_contract: column(domain.signed_contract),
       decision: column(domain.decision),
       extension_statement: column(domain.extension_statement),
+      pledge_contract: column(domain.pledge_contract),
+      signed_pledge_contract: column(domain.signed_pledge_contract),
+      act: column(domain.act),
       last_pay_error: column(domain.last_pay_error),
       memo: column(domain.memo),
     };

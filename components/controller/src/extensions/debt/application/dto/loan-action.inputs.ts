@@ -59,3 +59,30 @@ export class ExtendLoanInputDTO extends LoanRefInputDTO {
   @Type(() => SignedDigitalDocumentInputDTO)
   statement!: SignedDigitalDocumentInputDTO;
 }
+
+/** Подпись председателя под договором залога и актом передачи права в залог. */
+@InputType('DebtChairmanSignLoanInput')
+export class ChairmanSignLoanInputDTO extends LoanRefInputDTO {
+  @Field(() => SignedDigitalDocumentInputDTO, { description: 'Договор залога с подписями пайщика и председателя' })
+  @ValidateNested()
+  @Type(() => SignedDigitalDocumentInputDTO)
+  signed_pledge_contract!: SignedDigitalDocumentInputDTO;
+
+  @Field(() => SignedDigitalDocumentInputDTO, { description: 'Акт передачи права в залог с подписью председателя' })
+  @ValidateNested()
+  @Type(() => SignedDigitalDocumentInputDTO)
+  act!: SignedDigitalDocumentInputDTO;
+}
+
+/** Подпись пайщика под актом передачи права в залог. */
+@InputType('DebtSignLoanActInput')
+export class SignLoanActInputDTO extends LoanRefInputDTO {
+  @Field(() => String, { description: 'Пайщик-заёмщик' })
+  @IsString()
+  username!: string;
+
+  @Field(() => SignedDigitalDocumentInputDTO, { description: 'Акт передачи права в залог с подписями председателя и пайщика' })
+  @ValidateNested()
+  @Type(() => SignedDigitalDocumentInputDTO)
+  act!: SignedDigitalDocumentInputDTO;
+}

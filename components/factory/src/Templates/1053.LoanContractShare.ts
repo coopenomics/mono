@@ -30,9 +30,9 @@ export const Schema: JSONSchemaType<Model> = {
     basis_date: { type: 'string' },
     amount_digits: { type: 'string' },
     due_at: { type: 'string' },
-    collateral_program_dative: { type: 'string' },
+    party_identity: { type: 'string' },
   },
-  required: ['meta', 'coop', 'vars', 'user', 'short_hash', 'basis_number', 'basis_date', 'amount_digits', 'due_at', 'collateral_program_dative'],
+  required: ['meta', 'coop', 'vars', 'user', 'short_hash', 'basis_number', 'basis_date', 'amount_digits', 'due_at', 'party_identity'],
   additionalProperties: true,
 }
 

@@ -41,6 +41,8 @@ interface Props {
   approvalHash: string;
   coopname: string;
   approvedDocument: IDocumentAggregate;
+  /** Вид запроса `контракт::действие` — по нему расширение готовит дополнительные подписи. */
+  approvalAction?: string;
 }
 
 const props = defineProps<Props>();
@@ -63,6 +65,7 @@ const confirmApproval = async () => {
       props.coopname,
       props.approvalHash,
       props.approvedDocument,
+      props.approvalAction,
     );
     SuccessAlert(t('chairman.confirmApprovalButton.successMessage'));
     emit('confirmed');

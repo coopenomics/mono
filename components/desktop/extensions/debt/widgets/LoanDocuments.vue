@@ -61,7 +61,13 @@ const docs = computed<DocEntry[]>(() => {
   } else {
     add(props.loan.contract, t('debt.loanDetails.contractTitle'), 'contract');
   }
+  if (props.loan.signed_pledge_contract) {
+    add(props.loan.signed_pledge_contract, t('debt.loanDetails.signedPledgeContractTitle'), 'signed_pledge_contract');
+  } else {
+    add(props.loan.pledge_contract, t('debt.loanDetails.pledgeContractTitle'), 'pledge_contract');
+  }
   add(props.loan.decision, t('debt.loanDetails.decisionTitle'), 'decision');
+  add(props.loan.act, t('debt.loanDetails.actTitle'), 'act');
   add(props.loan.extension_statement, t('debt.loanDetails.extensionStatementTitle'), 'extension_statement');
   return out;
 });

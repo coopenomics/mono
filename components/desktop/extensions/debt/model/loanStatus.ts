@@ -5,8 +5,9 @@ import { t } from '../i18n';
 const VARIANTS: Record<string, BaseBadgeVariant> = {
   CREATED: 'info',
   AUTHORIZED: 'info',
-  SIGNED: 'warn',
+  SIGNED: 'info',
   PAYING: 'info',
+  PAYDECLINED: 'warn',
   ISSUED: 'pos',
   OVERDUE: 'neg',
   CLOSED: 'neutral',
@@ -24,7 +25,7 @@ export function loanStatusVariant(status: string): BaseBadgeVariant {
 
 /** До выплаты заём отменяется: обеспечение возвращается в программу. */
 export function isCancellable(status: string): boolean {
-  return status === 'CREATED' || status === 'AUTHORIZED' || status === 'SIGNED';
+  return status === 'CREATED' || status === 'AUTHORIZED' || status === 'SIGNED' || status === 'PAYDECLINED';
 }
 
 /** Заём выдан и не закрыт — у него есть остаток и срок. */

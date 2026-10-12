@@ -48,7 +48,7 @@ export async function registerCapitalDocuments(port: IDocumentDeclarationPort): 
     doc(R.CapitalizationMoneyInvestStatement.registry_id, 'form', 68, { bundle: 'capital_forms' }),
     doc(R.ResultContributionStatement.registry_id, 'form', 69, { bundle: 'capital_forms' }),
     doc(R.ResultContributionAct.registry_id, 'form', 70, { bundle: 'capital_forms' }),
-    doc(R.GetLoanStatement.registry_id, 'form', 71, { bundle: 'capital_forms' }),
+    doc(R.GenerationLoanStatement.registry_id, 'form', 71, { bundle: 'capital_forms' }),
     doc(R.GenerationPropertyInvestStatement.registry_id, 'form', 72, { bundle: 'capital_forms' }),
     doc(R.GenerationPropertyInvestAct.registry_id, 'form', 73, { bundle: 'capital_forms' }),
     doc(R.CapitalizationPropertyInvestStatement.registry_id, 'form', 74, { bundle: 'capital_forms' }),

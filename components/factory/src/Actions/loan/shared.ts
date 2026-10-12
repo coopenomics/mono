@@ -2,6 +2,8 @@ import { Cooperative, Debt } from 'cooptypes'
 import type { DocFactory } from '../../Factory'
 import { Udata } from '../../Models/Udata'
 import { amountWithSymbolRu } from '../../Utils/amountDigits'
+import type { InternalGetUserResult } from '../../Factory'
+import type { ExternalEntrepreneurData, ExternalIndividualData, ExternalOrganizationData } from '../../Models'
 
 /**
  * Общие данные документов беспроцентного займа: основание (договор об участии
@@ -124,4 +126,52 @@ export function collateralProgramDative(collateral: string): string {
   // Наименование в реестре: «имущественное право на возврат части паевого взноса по целевой потребительской программе «…»».
   const m = /по (целевой потребительской программе .*)$/u.exec(entry.human_name)
   return m ? m[1] : entry.human_name
+}
+
+/**
+ * Данные стороны в преамбуле договора займа и договора залога: у физического
+ * лица — паспорт и адрес, у ИП — ОГРНИП, у организации — ОГРН. Без паспорта
+ * договор физическому лицу не собирается: пайщик вносит его перед заявлением.
+ */
+export function partyIdentity(user: InternalGetUserResult): string {
+  switch (user.type) {
+    case 'individual': {
+      const d = user.data as ExternalIndividualData
+      const p = d.passport
+      if (!p || !p.series || !p.number) throw new Error('Для документов займа нужны паспортные данные пайщика')
+      return `, паспорт: серия ${p.series}, № ${p.number}, выданный ${p.issued_by} ${formatDateRu(p.issued_at)}, проживающий по адресу: ${d.full_address}`
+    }
+    case 'entrepreneur': {
+      const d = user.data as ExternalEntrepreneurData
+      return `, ОГРНИП ${d.details.ogrn}, ИНН ${d.details.inn}, адрес: ${d.full_address}`
+    }
+    case 'organization': {
+      const d = user.data as ExternalOrganizationData
+      return `, ОГРН ${d.details.ogrn}, ИНН ${d.details.inn}, адрес: ${d.full_address}`
+    }
+    default:
+      throw new Error(`Неизвестный тип пайщика: ${user.type}`)
+  }
+}
+
+/** Реквизиты залогодателя в разделе «Адреса и реквизиты сторон» договора залога, по строке на реквизит. */
+export function pledgerRequisites(user: InternalGetUserResult): string {
+  switch (user.type) {
+    case 'individual': {
+      const d = user.data as ExternalIndividualData
+      const p = d.passport
+      if (!p || !p.series || !p.number) throw new Error('Для документов займа нужны паспортные данные пайщика')
+      return [`Регистрация: ${d.full_address}`, `Паспорт серия: ${p.series}`, `Номер: ${p.number}`, `Выдан: ${formatDateRu(p.issued_at)}`, `Кем: ${p.issued_by}`, `Телефон: ${d.phone}`].join('\n')
+    }
+    case 'entrepreneur': {
+      const d = user.data as ExternalEntrepreneurData
+      return [`Регистрация: ${d.full_address}`, `ОГРНИП: ${d.details.ogrn}`, `ИНН: ${d.details.inn}`, `Телефон: ${d.phone}`].join('\n')
+    }
+    case 'organization': {
+      const d = user.data as ExternalOrganizationData
+      return [`Юр. адрес: ${d.full_address}`, `ОГРН: ${d.details.ogrn}`, `ИНН: ${d.details.inn}`, `КПП: ${d.details.kpp}`, `Телефон: ${d.phone}`].join('\n')
+    }
+    default:
+      throw new Error(`Неизвестный тип пайщика: ${user.type}`)
+  }
 }

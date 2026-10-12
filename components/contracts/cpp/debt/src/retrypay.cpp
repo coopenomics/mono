@@ -13,7 +13,7 @@ void debt::retrypay(eosio::name coopname, checksum256 debt_hash) {
   require_auth(coopname);
 
   auto d = Debt::Core::get_debt_or_fail(coopname, debt_hash);
-  eosio::check(d.status == Debt::Status::SIGNED, "Повторить платёж можно по подписанному договору после отказа кассира");
+  eosio::check(d.status == Debt::Status::PAYDECLINED, "Повторить платёж можно по подписанному договору после отказа кассира");
   eosio::check(!d.last_pay_error.empty(), "Повторная отправка возможна только после отказа платежа");
 
   Debt::Core::modify_debt(coopname, d.id, [&](auto& row) { row.status = Debt::Status::PAYING; });

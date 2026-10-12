@@ -15,6 +15,11 @@ export async function getLoans(variables: ILoansInput): Promise<ILoansResult> {
   return result;
 }
 
+export async function getLoan(debt_hash: string): Promise<ILoan> {
+  const { [Q.DebtLoan.name]: result } = await client.Query(Q.DebtLoan.query, { variables: { debt_hash } });
+  return result as ILoan;
+}
+
 export async function getCollateralOptions(coopname: string): Promise<ICollateralOption[]> {
   const { [Q.DebtCollateralOptions.name]: result } = await client.Query(Q.DebtCollateralOptions.query, {
     variables: { coopname },
@@ -40,6 +45,22 @@ export async function generateLoanContract(data: Mutations.Debt.GenerateDebtLoan
   return result;
 }
 
+export async function generateLoanPledgeContract(data: Mutations.Debt.GenerateDebtLoanPledgeContractDocument.IInput['data']) {
+  const { [M.GenerateDebtLoanPledgeContractDocument.name]: result } = await client.Mutation(
+    M.GenerateDebtLoanPledgeContractDocument.mutation,
+    { variables: { data, options: lang } },
+  );
+  return result;
+}
+
+export async function generateLoanPledgeAct(data: Mutations.Debt.GenerateDebtLoanPledgeActDocument.IInput['data']) {
+  const { [M.GenerateDebtLoanPledgeActDocument.name]: result } = await client.Mutation(
+    M.GenerateDebtLoanPledgeActDocument.mutation,
+    { variables: { data, options: lang } },
+  );
+  return result;
+}
+
 export async function generateLoanDecision(data: Mutations.Debt.GenerateDebtLoanDecisionDocument.IInput['data']) {
   const { [M.GenerateDebtLoanDecisionDocument.name]: result } = await client.Mutation(
     M.GenerateDebtLoanDecisionDocument.mutation,
@@ -50,6 +71,14 @@ export async function generateLoanDecision(data: Mutations.Debt.GenerateDebtLoan
 
 export async function createLoan(data: Mutations.Debt.CreateDebtLoan.IInput['data']) {
   return client.Mutation(M.CreateDebtLoan.mutation, { variables: { data } });
+}
+
+export async function chairmanSignLoan(data: Mutations.Debt.ChairmanSignDebtLoan.IInput['data']) {
+  return client.Mutation(M.ChairmanSignDebtLoan.mutation, { variables: { data } });
+}
+
+export async function signLoanAct(data: Mutations.Debt.SignDebtLoanAct.IInput['data']) {
+  return client.Mutation(M.SignDebtLoanAct.mutation, { variables: { data } });
 }
 
 export async function cancelLoan(data: Mutations.Debt.CancelDebtLoan.IInput['data']) {

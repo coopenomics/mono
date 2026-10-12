@@ -99,7 +99,7 @@ export class DebtManagementService {
       data: {
         ...data,
         ...(await this.loanBasis(data.coopname, data.username)),
-        registry_id: Cooperative.Registry.GetLoanStatement.registry_id,
+        registry_id: Cooperative.Registry.GenerationLoanStatement.registry_id,
       },
       options,
     });

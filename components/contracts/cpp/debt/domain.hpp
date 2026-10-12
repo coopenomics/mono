@@ -49,6 +49,23 @@ namespace Debt::Core {
 #endif
   }
 
+  /// Документ в поле-расширении есть, когда он записан и не пуст: пустое расширение пишется как пустой документ.
+  inline bool has_doc(const eosio::binary_extension<document2>& e) {
+    return e.has_value() && !is_empty_document(e.value());
+  }
+
+  /// Председатель совета кооператива — вторая подпись под договором залога и актом.
+  inline eosio::name chairman_of(eosio::name coopname) {
+    return get_board_by_type_or_fail(coopname, "soviet"_n).get_chairman();
+  }
+
+  /// Привязка документа к пакету заявления в совете.
+  inline void link_document(eosio::name coopname, eosio::name username, const eosio::checksum256& debt_hash,
+                            const document2& doc) {
+    Action::send<newlink_interface>(_soviet, "newlink"_n, _debt, coopname, username,
+                                    get_valid_soviet_action(Names::SovietActions::CREATE_DEBT), debt_hash, doc);
+  }
+
   inline debt get_debt_or_fail(eosio::name coopname, const eosio::checksum256& debt_hash) {
     auto d = Debt::get_debt(coopname, debt_hash);
     eosio::check(d.has_value(), "Заём не найден");
@@ -131,7 +148,7 @@ namespace Debt::Core {
   /// Заём ещё не выдан: обеспечение возвращается в программу, начисление к выдаче снимается, запись удаляется.
   inline void abandon_before_issue(eosio::name coopname, const debt& d) {
     const auto& c = Debt::get_collateral_or_fail(d.collateral);
-    if (d.status == Status::SIGNED) {
+    if (d.status == Status::PAYDECLINED) {
       Ledger2::apply(_debt, coopname, operations::debt::CANCEL, processes::debt::LOAN, d.amount, d.username,
                      d.debt_hash, Memo::get_cancel_memo(d.debt_hash));
     }

@@ -13,11 +13,20 @@ import {
 import type { IMonoAccount } from '@coopenomics/innercoop';
 import { LoanMutationsService } from '../services/loan-mutations.service';
 import { CreateLoanInputDTO } from '../dto/create-loan.input';
-import { CancelLoanInputDTO, ExtendLoanInputDTO, LoanRefInputDTO, RepayLoanInputDTO } from '../dto/loan-action.inputs';
+import {
+  CancelLoanInputDTO,
+  ChairmanSignLoanInputDTO,
+  ExtendLoanInputDTO,
+  LoanRefInputDTO,
+  RepayLoanInputDTO,
+  SignLoanActInputDTO,
+} from '../dto/loan-action.inputs';
 import {
   GenerateExtensionStatementInputDTO,
   GenerateLoanContractInputDTO,
   GenerateLoanDecisionInputDTO,
+  GenerateLoanPledgeActInputDTO,
+  GenerateLoanPledgeContractInputDTO,
   GenerateLoanStatementInputDTO,
   GenerateRepaymentStatementInputDTO,
 } from '../documents-dto/loan-documents.dto';
@@ -56,6 +65,32 @@ export class LoanMutationsResolver {
     @Args('options', { type: () => GenerateDocumentOptionsInputDTO, nullable: true }) options: GenerateDocumentOptionsInputDTO
   ): Promise<GeneratedDocumentDTO> {
     return this.mutations.generateContract(data, options) as Promise<GeneratedDocumentDTO>;
+  }
+
+  @Mutation(() => GeneratedDocumentDTO, {
+    name: 'generateDebtLoanPledgeContractDocument',
+    description: 'Собрать договор залога имущественного права к договору о беспроцентном займе.',
+  })
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Loan', ['generate:own', 'generate:all'], { owner: 'data.username' })
+  async generateDebtLoanPledgeContractDocument(
+    @Args('data', { type: () => GenerateLoanPledgeContractInputDTO }) data: GenerateLoanPledgeContractInputDTO,
+    @Args('options', { type: () => GenerateDocumentOptionsInputDTO, nullable: true }) options: GenerateDocumentOptionsInputDTO
+  ): Promise<GeneratedDocumentDTO> {
+    return this.mutations.generatePledgeContract(data, options) as Promise<GeneratedDocumentDTO>;
+  }
+
+  @Mutation(() => GeneratedDocumentDTO, {
+    name: 'generateDebtLoanPledgeActDocument',
+    description: 'Собрать акт передачи имущественного права в залог по решению совета.',
+  })
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Loan', 'generate:all')
+  async generateDebtLoanPledgeActDocument(
+    @Args('data', { type: () => GenerateLoanPledgeActInputDTO }) data: GenerateLoanPledgeActInputDTO,
+    @Args('options', { type: () => GenerateDocumentOptionsInputDTO, nullable: true }) options: GenerateDocumentOptionsInputDTO
+  ): Promise<GeneratedDocumentDTO> {
+    return this.mutations.generatePledgeAct(data, options) as Promise<GeneratedDocumentDTO>;
   }
 
   @Mutation(() => GeneratedDocumentDTO, {
@@ -108,6 +143,28 @@ export class LoanMutationsResolver {
   @RequireRight('Loan', 'create:own', { owner: 'data.username' })
   async createDebtLoan(@Args('data', { type: () => CreateLoanInputDTO }) data: CreateLoanInputDTO): Promise<TransactionDTO> {
     return this.mutations.createLoan(data) as Promise<TransactionDTO>;
+  }
+
+  @Mutation(() => TransactionDTO, {
+    name: 'chairmanSignDebtLoan',
+    description: 'Председатель подписал договор залога и акт передачи права в залог; договор займа он подписывает через одобрение.',
+  })
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Loan', 'sign:all')
+  async chairmanSignDebtLoan(
+    @Args('data', { type: () => ChairmanSignLoanInputDTO }) data: ChairmanSignLoanInputDTO
+  ): Promise<TransactionDTO> {
+    return this.mutations.chairmanSign(data) as Promise<TransactionDTO>;
+  }
+
+  @Mutation(() => TransactionDTO, {
+    name: 'signDebtLoanAct',
+    description: 'Пайщик подписал акт передачи права в залог: сумма начисляется к выдаче, платёж уходит кассиру.',
+  })
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Loan', 'sign-act:own', { owner: 'data.username' })
+  async signDebtLoanAct(@Args('data', { type: () => SignLoanActInputDTO }) data: SignLoanActInputDTO): Promise<TransactionDTO> {
+    return this.mutations.signAct(data) as Promise<TransactionDTO>;
   }
 
   @Mutation(() => TransactionDTO, {

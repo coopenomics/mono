@@ -14,6 +14,7 @@ void debt::loanauth(eosio::name coopname, checksum256 debt_hash, document2 decis
 
   auto d = Debt::Core::get_debt_or_fail(coopname, debt_hash);
   eosio::check(d.status == Debt::Status::CREATED, "Заём уже рассмотрен советом");
+  eosio::check(Debt::Core::has_doc(d.pledge_contract), "К заявлению не приложен договор залога");
 
   Debt::Core::modify_debt(coopname, d.id, [&](auto& row) {
     row.status = Debt::Status::AUTHORIZED;

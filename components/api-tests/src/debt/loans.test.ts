@@ -1,8 +1,9 @@
 /**
  * Беспроцентный заём под обеспечение паевым взносом — весь путь через API,
- * как его проходят рабочие столы: пайщик подаёт заявление с договором, совет
- * принимает решение, председатель подписывает договор, касса отклоняет и
- * затем проводит платёж, пайщик возвращает заём частями и продлевает срок.
+ * как его проходят рабочие столы: пайщик подаёт заявление с договором займа
+ * и договором залога, совет принимает решение, председатель подписывает
+ * договор займа, договор залога и акт, пайщик подписывает акт, касса
+ * отклоняет и затем проводит платёж, пайщик возвращает заём частями и продлевает срок.
  *
  * Один пайщик и один заём на файл: шаги идут по порядку и опираются друг на
  * друга. Второй заём того же пайщика проверяет отмену до решения совета.
@@ -25,6 +26,7 @@ import {
   REPAY_AVAILABLE,
   REPAY_LOAN,
   RETRY_PAY,
+  SIGN_ACT,
   approveLoanByCouncil,
   awaitLoanStatus,
   dueIn,
@@ -33,6 +35,7 @@ import {
   loanOf,
   randomHash,
   repayInput,
+  signActAsMember,
   signContractAsChairman,
   signedLoanDocuments,
   submitLoan,
@@ -49,6 +52,7 @@ let chairToken = ''
 let methodId = ''
 let draft: LoanDraft
 let loan: SubmittedLoan
+let decisionId = 0
 
 describe('Беспроцентные займы: заём под паевой взнос в «Благоросте»', () => {
   beforeAll(async () => {
@@ -94,6 +98,7 @@ describe('Беспроцентные займы: заём под паевой в
     expect(Number.parseFloat(mirror.pledged)).toBeCloseTo(LOAN, 4)
     expect(mirror.statement?.hash).toBeTruthy()
     expect(mirror.contract?.hash).toBeTruthy()
+    expect(mirror.pledge_contract?.hash).toBeTruthy()
 
     const after = await capitalWallets(token, member.account)
     expect(after.blago).toBeCloseTo(before.blago - LOAN, 4)
@@ -124,16 +129,29 @@ describe('Беспроцентные займы: заём под паевой в
   })
 
   it(caseName('dbt.loan.backend.pay.02', 'до подписи председателя платёж кассиру не заводится'), async () => {
-    await approveLoanByCouncil(draft)
+    decisionId = await approveLoanByCouncil(draft)
     const mirror = await awaitLoanStatus(token, loan.debt_hash, 'AUTHORIZED')
     expect(mirror.decision?.hash).toBeTruthy()
     expect(await paymentByHash(chairToken, loan.debt_hash, { username: member.account })).toBeNull()
   })
 
-  it(caseName('dbt.loan.backend.pay.01', 'председатель подписал договор — заём передан на выплату, кассиру заведён исходящий платёж'), async () => {
-    await signContractAsChairman(loan)
-    const mirror = await awaitLoanStatus(token, loan.debt_hash, 'PAYING')
+  it(caseName('dbt.loan.backend.act.02', 'до подписи председателя пайщик акт подписать не может'), async () => {
+    expectCode(await gqlError(token, SIGN_ACT, { d: { coopname: COOP, username: member.account, debt_hash: loan.debt_hash, act: toChainDoc(loan.contractSigned) } }), 'DEBT_ACT_SIGN_NOT_ALLOWED')
+  })
+
+  it(caseName('dbt.loan.backend.pay.01', 'председатель подписал договор займа, договор залога и акт — заём ждёт подписи акта пайщиком, платёж кассиру не заведён'), async () => {
+    await signContractAsChairman(loan, draft, decisionId)
+    const mirror = await awaitLoanStatus(token, loan.debt_hash, 'SIGNED')
     expect(mirror.signed_contract?.hash).toBe(mirror.contract?.hash)
+    expect(mirror.signed_pledge_contract?.hash).toBe(mirror.pledge_contract?.hash)
+    expect(mirror.act?.hash).toBeTruthy()
+    expect(await paymentByHash(chairToken, loan.debt_hash, { username: member.account })).toBeNull()
+  })
+
+  it(caseName('dbt.loan.backend.act.01', 'пайщик подписал акт — заём передан на выплату, кассиру заведён платёж по реквизитам заявления'), async () => {
+    await signActAsMember(loan, member)
+    const mirror = await awaitLoanStatus(token, loan.debt_hash, 'PAYING')
+    expect(mirror.act?.hash).toBe(loan.actSigned.hash)
 
     const payment = await waitFor(async () => (await paymentByHash(chairToken, loan.debt_hash, { username: member.account })) ?? null,
       { timeoutMs: 60_000, intervalMs: 1_000, label: 'платёж по займу у кассира' })
@@ -147,7 +165,7 @@ describe('Беспроцентные займы: заём под паевой в
     const payment = await paymentByHash(chairToken, loan.debt_hash, { username: member.account })
     await gql<any>(chairToken, SET_STATUS, { d: { id: payment.id, status: 'CANCELLED', message: 'Неверный номер телефона' } })
 
-    const mirror = await awaitLoanStatus(token, loan.debt_hash, 'SIGNED')
+    const mirror = await awaitLoanStatus(token, loan.debt_hash, 'PAYDECLINED')
     expect(mirror.last_pay_error).toContain('Неверный номер телефона')
     expect(mirror.decision?.hash).toBeTruthy()
     // Обеспечение остаётся на кошельке обеспечения: заём не отменён.

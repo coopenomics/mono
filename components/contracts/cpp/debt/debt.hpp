@@ -50,13 +50,22 @@ public:
     [[eosio::action]] void createloan(eosio::name coopname, eosio::name username, eosio::name collateral,
                                       checksum256 debt_hash, eosio::asset amount, eosio::time_point_sec due_at,
                                       document2 statement, document2 contract);
+    /// Пайщик приложил договор залога имущественного права; идёт одной транзакцией с заявлением.
+    [[eosio::action]] void loanpledge(eosio::name coopname, eosio::name username, checksum256 debt_hash,
+                                      document2 pledge_contract);
     /// Совет разрешил выдачу: договор уходит председателю на подпись.
     [[eosio::action]] void loanauth(eosio::name coopname, checksum256 debt_hash, document2 decision);
     /// Совет отказал: обеспечение возвращается, запись удаляется.
     [[eosio::action]] void loandecl(eosio::name coopname, checksum256 debt_hash, std::string reason);
-    /// Председатель подписал договор: сумма начислена к выдаче, платёж передан кассиру.
+    /// Председатель подписал договор залога и акт передачи права в залог; идёт одной транзакцией с подписью договора займа.
+    [[eosio::action]] void loanchsign(eosio::name coopname, checksum256 debt_hash, document2 signed_pledge_contract,
+                                      document2 act);
+    /// Председатель подписал договор займа: заём ждёт подписи акта пайщиком.
     [[eosio::action]] void loansigned(eosio::name coopname, eosio::name username, checksum256 debt_hash,
                                       document2 signed_contract);
+    /// Пайщик подписал акт передачи права в залог: сумма начислена к выдаче, платёж передан кассиру.
+    [[eosio::action]] void loanactsign(eosio::name coopname, eosio::name username, checksum256 debt_hash,
+                                       document2 act);
     /// Председатель отказался подписывать договор: обеспечение возвращается, запись удаляется.
     [[eosio::action]] void loansgndecl(eosio::name coopname, eosio::name username, checksum256 debt_hash,
                                        std::string reason);

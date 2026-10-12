@@ -16,7 +16,7 @@ import { LOAN_REPOSITORY, type LoanRepository } from '../../domain/repositories/
  * до выплаты, возвращать и продлевать. Чей заём — сверяет сервис по записи.
  */
 const MEMBER_RIGHTS = {
-  Loan: ['read:own', 'create:own', 'generate:own', 'cancel:own', 'repay:own', 'extend:own'],
+  Loan: ['read:own', 'create:own', 'generate:own', 'cancel:own', 'repay:own', 'extend:own', 'sign-act:own'],
   LoanCollateral: ['read:own'],
 };
 
@@ -24,7 +24,8 @@ const MEMBER_RIGHTS = {
  * Таблица прав займов (C28-87): роль → право `Ресурс:действие`.
  *
  * Совет видит все займы и формирует протокол решения; председатель, кроме
- * того, повторяет платёж после отказа кассира и отменяет выдачу. Совет
+ * того, подписывает договор залога и акт, повторяет платёж после отказа
+ * кассира и отменяет выдачу. Акт со своей стороны подписывает заёмщик. Совет
  * проходит по роли в любом статусе учётной записи, поэтому права пайщика
  * названы в его строке повторно.
  */
@@ -44,7 +45,7 @@ export const debtRightsTable: RightsTable<MemberRole, never> = {
     {
       when: [],
       rights: {
-        Loan: ['cancel:all', 'retry-pay', 'sweep'],
+        Loan: ['cancel:all', 'retry-pay', 'sweep', 'sign:all', 'generate:all'],
       },
     },
   ],

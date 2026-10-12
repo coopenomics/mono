@@ -31,6 +31,9 @@ export const rawLoanSelector = {
   signed_contract: rawDocumentAggregateSelector,
   decision: rawDocumentAggregateSelector,
   extension_statement: rawDocumentAggregateSelector,
+  pledge_contract: rawDocumentAggregateSelector,
+  signed_pledge_contract: rawDocumentAggregateSelector,
+  act: rawDocumentAggregateSelector,
 }
 
 const _validate: MakeAllFieldsRequired<ValueTypes['DebtLoan']> = rawLoanSelector

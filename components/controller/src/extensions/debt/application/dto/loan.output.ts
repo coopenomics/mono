@@ -12,6 +12,9 @@ export interface LoanDocumentAggregates {
   signed_contract?: InnerDocumentAggregate | null;
   decision?: InnerDocumentAggregate | null;
   extension_statement?: InnerDocumentAggregate | null;
+  pledge_contract?: InnerDocumentAggregate | null;
+  signed_pledge_contract?: InnerDocumentAggregate | null;
+  act?: InnerDocumentAggregate | null;
 }
 
 @ObjectType('DebtLoan', { description: 'Беспроцентный заём пайщика' })
@@ -92,6 +95,18 @@ export class LoanOutputDTO extends BaseOutputDTO {
   @CouncilField(['username'])
   extension_statement?: DocumentAggregateDTO | null;
 
+  @Field(() => DocumentAggregateDTO, { nullable: true, description: 'Договор залога имущественного права с подписью пайщика' })
+  @CouncilField(['username'])
+  pledge_contract?: DocumentAggregateDTO | null;
+
+  @Field(() => DocumentAggregateDTO, { nullable: true, description: 'Договор залога с подписью председателя' })
+  @CouncilField(['username'])
+  signed_pledge_contract?: DocumentAggregateDTO | null;
+
+  @Field(() => DocumentAggregateDTO, { nullable: true, description: 'Акт передачи права в залог: подпись председателя, затем пайщика' })
+  @CouncilField(['username'])
+  act?: DocumentAggregateDTO | null;
+
   static fromDomain(entity: LoanDomainEntity, aggregates?: LoanDocumentAggregates): LoanOutputDTO {
     const dto = new LoanOutputDTO();
     dto._id = entity._id as string;
@@ -123,6 +138,9 @@ export class LoanOutputDTO extends BaseOutputDTO {
     dto.signed_contract = wrap(aggregates?.signed_contract);
     dto.decision = wrap(aggregates?.decision);
     dto.extension_statement = wrap(aggregates?.extension_statement);
+    dto.pledge_contract = wrap(aggregates?.pledge_contract);
+    dto.signed_pledge_contract = wrap(aggregates?.signed_pledge_contract);
+    dto.act = wrap(aggregates?.act);
     return dto;
   }
 }

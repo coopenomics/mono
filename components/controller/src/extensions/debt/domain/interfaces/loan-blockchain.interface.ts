@@ -27,6 +27,9 @@ export interface ILoanBlockchainData {
   signed_contract?: ISignedDocument;
   decision?: ISignedDocument;
   extension_statement?: ISignedDocument;
+  pledge_contract?: ISignedDocument;
+  signed_pledge_contract?: ISignedDocument;
+  act?: ISignedDocument;
   last_pay_error: string;
   memo: string;
 }

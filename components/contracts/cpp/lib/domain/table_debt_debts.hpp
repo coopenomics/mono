@@ -1,4 +1,5 @@
 #pragma once
+#include <eosio/binary_extension.hpp>
 
 
 #include "../core/ram_payer.hpp"
@@ -24,8 +25,9 @@ using namespace eosio;
 namespace Status {
   constexpr name CREATED    = "created"_n;    ///< Заявление и договор подписаны пайщиком, обеспечение заблокировано, повестка в совете
   constexpr name AUTHORIZED = "authorized"_n; ///< Совет разрешил выдачу, договор ждёт подписи председателя
-  constexpr name SIGNED     = "signed"_n;     ///< Председатель подписал договор, сумма начислена к выдаче
-  constexpr name PAYING     = "paying"_n;     ///< Платёж передан кассиру
+  constexpr name SIGNED     = "signed"_n;     ///< Председатель подписал договор, договор залога и акт; акт ждёт подписи пайщика
+  constexpr name PAYING     = "paying"_n;     ///< Акт подписан обеими сторонами, сумма начислена к выдаче, платёж передан кассиру
+  constexpr name PAYDECLINED = "paydeclined"_n; ///< Кассир отклонил платёж по реквизитам; заём ждёт повтора или отмены
   constexpr name ISSUED     = "issued"_n;     ///< Заём выдан, идёт срок возврата
   constexpr name OVERDUE    = "overdue"_n;    ///< Срок возврата прошёл
 }
@@ -66,6 +68,11 @@ struct [[eosio::table, eosio::contract(DEBT_CONTRACT)]] debt {
   document2      extension_statement;///< Заявление о продлении срока
   std::string    last_pay_error;     ///< Причина последнего отказа платежа
   std::string    memo;               ///< Заметка
+  // Поля добавлены в хвост struct как binary_extension: уже записанные строки
+  // читаются без них. Пустой документ в них равен отсутствию.
+  eosio::binary_extension<document2> pledge_contract;        ///< Договор залога имущественного права с подписью пайщика
+  eosio::binary_extension<document2> signed_pledge_contract; ///< Договор залога с подписью председателя
+  eosio::binary_extension<document2> act;                    ///< Акт передачи права в залог: подпись председателя, затем пайщика
 
   uint64_t primary_key() const { return id; }
   uint64_t by_username() const { return username.value; }

@@ -13,7 +13,8 @@ import { chairmanApprove } from '../capital/cap-results.helpers'
 export const GENERATED = 'full_title html hash meta binary'
 export const LOAN_FIELDS = `debt_hash contract_number status coopname username collateral source amount remaining pledged
   created_at issued_at due_at requested_due_at overdue_at last_pay_error
-  statement{ hash } contract{ hash } signed_contract{ hash } decision{ hash } extension_statement{ hash }`
+  statement{ hash } contract{ hash } signed_contract{ hash } decision{ hash } extension_statement{ hash }
+  pledge_contract{ hash } signed_pledge_contract{ hash } act{ hash }`
 
 export const GET_LOAN = `query($h:String!){ debtLoan(debt_hash:$h){ ${LOAN_FIELDS} } }`
 export const LOANS = `query($f:DebtLoanFilterInput!,$o:PaginationInput){ debtLoans(filter:$f, options:$o){ totalCount items{ debt_hash status username remaining } } }`
@@ -24,6 +25,8 @@ export const CANCEL_LOAN = 'mutation($d:DebtCancelLoanInput!){ cancelDebtLoan(da
 export const RETRY_PAY = 'mutation($d:DebtLoanRefInput!){ retryDebtLoanPayment(data:$d){ __typename } }'
 export const REPAY_LOAN = 'mutation($d:DebtRepayLoanInput!){ repayDebtLoan(data:$d){ __typename } }'
 export const EXTEND_LOAN = 'mutation($d:DebtExtendLoanInput!){ extendDebtLoan(data:$d){ __typename } }'
+export const CHAIRMAN_SIGN = 'mutation($d:DebtChairmanSignLoanInput!){ chairmanSignDebtLoan(data:$d){ __typename } }'
+export const SIGN_ACT = 'mutation($d:DebtSignLoanActInput!){ signDebtLoanAct(data:$d){ __typename } }'
 
 const INSTALL = 'mutation($d:ExtensionInput!){ installExtension(data:$d){ name is_installed } }'
 
@@ -78,10 +81,16 @@ export interface SubmittedLoan {
   /** Договор из генератора — его же подписывает председатель второй подписью. */
   contractGenerated: any
   contractSigned: any
+  /** Договор залога — так же: подпись пайщика, затем председателя. */
+  pledgeGenerated: any
+  pledgeSigned: any
+  /** Акт из генератора с подписью председателя — пайщик ставит вторую. */
+  actGenerated?: any
+  actSigned?: any
 }
 
-/** Заявление и договор из генератора с подписью пайщика — как диалог заявления на столе. */
-export async function signedLoanDocuments(draft: LoanDraft): Promise<{ input: Record<string, unknown>, contractGenerated: any, contractSigned: any }> {
+/** Заявление, договор займа и договор залога из генератора с подписью пайщика — как окно заявления на столе. */
+export async function signedLoanDocuments(draft: LoanDraft): Promise<{ input: Record<string, unknown>, contractGenerated: any, contractSigned: any, pledgeGenerated: any, pledgeSigned: any }> {
   const token = await tokenOf(draft.member)
   const base = {
     coopname: COOP,
@@ -96,14 +105,18 @@ export async function signedLoanDocuments(draft: LoanDraft): Promise<{ input: Re
   const statement = await signDocument(draft.member.wif, st.generateDebtLoanStatementDocument, draft.member.account, 1)
   const contractGenerated = ct.generateDebtLoanContractDocument
   const contractSigned = await signDocument(draft.member.wif, contractGenerated, draft.member.account, 1)
-  return { input: { ...base, statement, contract: contractSigned }, contractGenerated, contractSigned }
+  // Договор залога ссылается на договор займа по его дате.
+  const pl = await gql<any>(token, `mutation($d:DebtGenerateLoanPledgeContractInput!){ generateDebtLoanPledgeContractDocument(data:$d){ ${GENERATED} } }`, { d: { ...base, contract_date: String(contractGenerated.meta.created_at) } })
+  const pledgeGenerated = pl.generateDebtLoanPledgeContractDocument
+  const pledgeSigned = await signDocument(draft.member.wif, pledgeGenerated, draft.member.account, 1)
+  return { input: { ...base, statement, contract: contractSigned, pledge_contract: pledgeSigned }, contractGenerated, contractSigned, pledgeGenerated, pledgeSigned }
 }
 
 /** Пайщик подаёт заявление на заём. */
 export async function submitLoan(draft: LoanDraft): Promise<SubmittedLoan> {
   const docs = await signedLoanDocuments(draft)
   await gql<any>(await tokenOf(draft.member), CREATE_LOAN, { d: docs.input })
-  return { debt_hash: draft.debt_hash, contractGenerated: docs.contractGenerated, contractSigned: docs.contractSigned }
+  return { debt_hash: draft.debt_hash, contractGenerated: docs.contractGenerated, contractSigned: docs.contractSigned, pledgeGenerated: docs.pledgeGenerated, pledgeSigned: docs.pledgeSigned }
 }
 
 /**
@@ -137,10 +150,29 @@ export async function approveLoanByCouncil(draft: LoanDraft): Promise<number> {
   return id
 }
 
-/** Председатель ставит вторую подпись на договор пайщика — запрос одобрения с хэшем займа. */
-export async function signContractAsChairman(loan: SubmittedLoan): Promise<void> {
+/**
+ * Подпись председателя — как кнопка одобрения на его столе: вторая подпись под
+ * договором залога, акт передачи права в залог по протоколу решения, затем
+ * вторая подпись под договором займа через запрос одобрения с хэшем займа.
+ */
+export async function signContractAsChairman(loan: SubmittedLoan, draft: LoanDraft, decisionId: number): Promise<void> {
+  const token = await tokenOf(CHAIRMAN)
+  const signedPledge = await signDocument(DEFAULT_WIF, loan.pledgeGenerated, CHAIRMAN.account, 2, [loan.pledgeSigned])
+  const act = await gql<any>(token, `mutation($d:DebtGenerateLoanPledgeActInput!){ generateDebtLoanPledgeActDocument(data:$d){ ${GENERATED} } }`, {
+    d: { coopname: COOP, username: draft.member.account, debt_hash: draft.debt_hash, amount: rubAsset(draft.amount), due_at: draft.due_at, collateral: draft.collateral ?? 'blago', decision_id: decisionId },
+  })
+  loan.actGenerated = act.generateDebtLoanPledgeActDocument
+  loan.actSigned = await signDocument(DEFAULT_WIF, loan.actGenerated, CHAIRMAN.account, 1)
+  await gql<any>(token, CHAIRMAN_SIGN, { d: { coopname: COOP, debt_hash: loan.debt_hash, signed_pledge_contract: toChainDoc(signedPledge), act: toChainDoc(loan.actSigned) } })
+
   const approved = await signDocument(DEFAULT_WIF, loan.contractGenerated, CHAIRMAN.account, 2, [loan.contractSigned])
   await chairmanApprove(loan.debt_hash, toChainDoc(approved))
+}
+
+/** Пайщик ставит вторую подпись под актом, который подписал председатель. */
+export async function signActAsMember(loan: SubmittedLoan, member: Who): Promise<void> {
+  const act = await signDocument(member.wif, loan.actGenerated, member.account, 2, [loan.actSigned])
+  await gql<any>(await tokenOf(member), SIGN_ACT, { d: { coopname: COOP, username: member.account, debt_hash: loan.debt_hash, act: toChainDoc(act) } })
 }
 
 /** Заявление о возврате с подписью пайщика и вход мутации возврата. */

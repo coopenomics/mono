@@ -50,6 +50,22 @@ export class GenerateLoanStatementInputDTO extends LoanDocumentBaseInputDTO {
 @InputType('DebtGenerateLoanContractInput')
 export class GenerateLoanContractInputDTO extends LoanDocumentBaseInputDTO {}
 
+/** Договор залога имущественного права: ссылается на договор займа по дате. */
+@InputType('DebtGenerateLoanPledgeContractInput')
+export class GenerateLoanPledgeContractInputDTO extends LoanDocumentBaseInputDTO {
+  @Field(() => String, { description: 'Дата договора о беспроцентном займе' })
+  @IsString()
+  contract_date!: string;
+}
+
+/** Акт передачи имущественного права в залог: ссылается на протокол совета. */
+@InputType('DebtGenerateLoanPledgeActInput')
+export class GenerateLoanPledgeActInputDTO extends LoanDocumentBaseInputDTO {
+  @Field(() => Int, { description: 'Номер решения совета' })
+  @IsInt()
+  decision_id!: number;
+}
+
 @InputType('DebtGenerateLoanDecisionInput')
 export class GenerateLoanDecisionInputDTO extends LoanDocumentBaseInputDTO {
   @Field(() => Int, { description: 'Номер решения совета' })

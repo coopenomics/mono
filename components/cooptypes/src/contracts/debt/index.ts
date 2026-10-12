@@ -18,6 +18,7 @@ export enum Status {
   AUTHORIZED = 'authorized',
   SIGNED = 'signed',
   PAYING = 'paying',
+  PAYDECLINED = 'paydeclined',
   ISSUED = 'issued',
   OVERDUE = 'overdue',
 }
