@@ -43,11 +43,20 @@ export const meta = {
 async function setNumber(page, label, value) {
   const input = page.locator(`.q-field:has-text("${label}") input`).first();
   await input.click();
-  await input.fill('');
-  await input.type(String(value));
+  // Поле суммы (AmountInput) на фокусе выделяет содержимое в следующем кадре
+  // отрисовки: печать сразу после клика теряла первую цифру («250» → «50,00»).
+  // Ждём выделение, затем выделяем сами и печатаем поверх.
+  await page.waitForTimeout(250);
+  await input.press('ControlOrMeta+a');
+  await input.type(String(value), { delay: 40 });
   await input.blur();
   await page.waitForTimeout(300);
   return input;
+}
+
+/** Значение числового поля как число: поле суммы показывает «250,00». */
+async function numberOf(input) {
+  return Number((await input.inputValue()).replace(/\s/g, '').replace(',', '.'));
 }
 
 export default async ({ page, shot, expect }) => {
@@ -85,7 +94,7 @@ export default async ({ page, shot, expect }) => {
   // Срок годности живёт на первом шаге: он определяет, до какого момента
   // имущество можно выдать заказчику.
   const shelf = await setNumber(page, 'Срок годности', 30);
-  expect(await shelf.inputValue()).toBe('30');
+  expect(await numberOf(shelf)).toBe(30);
   await page.waitForTimeout(500);
 
   await shot(
@@ -107,7 +116,7 @@ export default async ({ page, shot, expect }) => {
   const price = await setNumber(page, 'Цена за', 250);
   // Проверяем, что значение дошло до модели: управляемые поля молча
   // возвращаются к значениям по умолчанию, если ввод не был зафиксирован.
-  expect(await price.inputValue()).toBe('250');
+  expect(await numberOf(price)).toBe(250);
 
   await shot(
     page,
@@ -122,7 +131,7 @@ export default async ({ page, shot, expect }) => {
   // не разберут остаток.
   await page.waitForSelector('text=Сколько готовы отдать заказчикам', { timeout: 20000 });
   const qty = await setNumber(page, 'Доступное количество', 100);
-  expect(await qty.inputValue()).toBe('100');
+  expect(await numberOf(qty)).toBe(100);
 
   await shot(
     page,
@@ -146,8 +155,9 @@ export default async ({ page, shot, expect }) => {
   // в 10 литров дают наглядные 40% на «Входящих заказах» поставщика.
   const minVol = page.locator('.q-field:has-text("Минимальный объём поставки") input').first();
   await minVol.click();
-  await minVol.fill('');
-  await minVol.type('25');
+  await page.waitForTimeout(250);
+  await minVol.press('ControlOrMeta+a');
+  await minVol.type('25', { delay: 40 });
   await minVol.blur();
   await page.waitForTimeout(500);
 

@@ -12,7 +12,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { cleanViteOverlays, env, loginAs, loginAsChairman, pickBranchIfAsked } from '../../../lib/harness.mjs';
+import { SHOT_SCALE, SHOT_VIEWPORT, cleanViteOverlays, env, loginAs, loginAsChairman, pickBranchIfAsked } from '../../../lib/harness.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const loadFixture = (username) =>
@@ -45,11 +45,15 @@ export default async ({ page, shot, expect }) => {
   // администратора в разделе «Боксы кооператива», вкладка «Типы боксов».
   // Оператор участка свою партию боксов заводит уже выбранного типа.
   const chairmanContext = await page.context().browser().newContext({
-    viewport: page.viewportSize(),
+    viewport: SHOT_VIEWPORT,
+    deviceScaleFactor: SHOT_SCALE,
     locale: 'ru-RU',
   });
+  const admin = await chairmanContext.newPage();
+  // Строка реестра типов: имя типа совпадает с подсказкой поля «Название» в
+  // окне, поэтому ищем именно в таблице, а не по всей странице.
+  const typeRow = admin.locator('tbody tr').filter({ hasText: 'Ящик 60×40×30' }).first();
   try {
-    const admin = await chairmanContext.newPage();
     await admin.addInitScript(() => { window.print = () => {}; });
     await loginAsChairman(admin, chairmanContext);
     await pickBranchIfAsked(admin);
@@ -63,7 +67,7 @@ export default async ({ page, shot, expect }) => {
     await admin.waitForTimeout(1200);
     await cleanViteOverlays(admin);
 
-    const hasType = await admin.locator('text=Ящик 60×40×30').count();
+    const hasType = await typeRow.count();
     if (!hasType) {
       await shot(
         admin,
@@ -88,6 +92,7 @@ export default async ({ page, shot, expect }) => {
 
       await admin.locator('.q-dialog button:has-text("Завести")').last().click();
       await admin.waitForTimeout(2500);
+      await admin.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
     }
 
     await shot(
@@ -95,11 +100,16 @@ export default async ({ page, shot, expect }) => {
       '03-types-list',
       'Реестр типов боксов кооператива: габариты, объём и предельный вес. Дальше участки заводят боксы партиями выбранного типа.',
       {
-        expect: async (p) => {
-          await expect(p.locator('text=Ящик 60×40×30').first()).toBeVisible({ timeout: 15000 });
+        expect: async () => {
+          await expect(typeRow).toBeVisible({ timeout: 15000 });
         },
       },
     );
+  } catch (e) {
+    // Кадр поломки сюита снимает с основной страницы; стол администратора
+    // открыт во втором контексте — снимаем его сами, иначе причина не видна.
+    await shot(admin, '00-admin-fail', 'Стол администратора в момент поломки сценария.', { allowError: true }).catch(() => {});
+    throw e;
   } finally {
     await chairmanContext.close();
   }

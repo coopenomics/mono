@@ -81,7 +81,12 @@ export default async ({ page, shot, expect }) => {
 
   // «В корзину» открывает диалог с количеством — товар кладётся только после
   // подтверждения. Прежняя версия сразу уходила в корзину и находила её пустой.
-  await page.getByText('В корзину').first().click();
+  // Заказываем именно предложение поставщика из сценария offer-create: вся
+  // цепочка дальше (сводный заказ, партия, приёмка, выдача) ищет его по имени.
+  // Первая карточка каталога — не обязательно оно: рядом витрина из фазы 06.
+  const juiceCard = page.locator('.mp-catalog-offer-card').filter({ hasText: 'Яблочный сок' }).first();
+  await expect(juiceCard, 'в каталоге нет предложения «Яблочный сок» — сценарий offer-create не опубликовал его').toBeVisible({ timeout: 20000 });
+  await juiceCard.getByText('В корзину').first().click();
   await page.waitForTimeout(2000);
   await cleanViteOverlays(page);
 
@@ -108,7 +113,7 @@ export default async ({ page, shot, expect }) => {
         // от неё, и расхождение здесь тихо уронит суммы всей цепочки.
         expect(await qtyInput.inputValue()).toBe(String(ORDER_QUANTITY));
         const total = await cartDialog.locator('.add-to-cart__total').first().innerText();
-        const price = await cartDialog.locator('.add-to-cart__price').first().innerText();
+        const price = await cartDialog.locator('.add-to-cart__sale').first().innerText();
         const num = (t) => Number.parseFloat(String(t).replace(/[^\d,.]/g, '').replace(/\s/g, '').replace(',', '.'));
         expect(num(total)).toBeCloseTo(num(price) * ORDER_QUANTITY, 2);
       },
