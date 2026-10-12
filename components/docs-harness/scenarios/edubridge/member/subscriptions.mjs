@@ -24,6 +24,7 @@ export default async ({ page, shot }) => {
   await page.waitForTimeout(1200);
   await shot(page, '02-details', 'Подписка целиком: обучающийся, расписание, внесённый взнос, гарантийный срок и заявление по гарантии, возврат при отмене.');
 
+  await closeDialog(page); // панель подписки закрыта — кнопка в таблице доступна
   const extend = page.locator('button:has-text("Продлить")').first();
   if (await extend.isVisible().catch(() => false)) {
     await extend.click();

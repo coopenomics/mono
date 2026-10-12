@@ -23,7 +23,7 @@ export default async ({ page, shot }) => {
   await openPage(page, EDU.member('onboarding'), 'оферту ученика');
   await page.locator('.q-checkbox').last().waitFor({ state: 'visible', timeout: 60000 });
   await shot(page, '01-offer', 'Чтобы записываться на курсы, пайщик подписывает оферту ученика по ЦПП «Образование». Документ читается целиком на странице, затем галочка согласия и кнопка подписи.');
-  await signGateStep(page, 'Подписать оферту');
+  await signGateStep(page, 'Подписать');
 
   await openPage(page, EDU.member('catalog'), 'Каталог');
   await shot(page, '02-after', 'После подписи стол ученика открыт: каталог, обучающиеся и подписки. Оферта подписывается один раз.');

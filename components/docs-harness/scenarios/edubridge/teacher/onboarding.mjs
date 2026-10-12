@@ -29,12 +29,12 @@ export default async ({ page, shot }) => {
   await page.waitForTimeout(1500);
 
   await page.locator('.q-checkbox').last().waitFor({ state: 'visible', timeout: 60000 });
-  await shot(page, '02-offer', 'Оферта преподавателя: документ читается целиком на странице, затем галочка согласия и кнопка «Подписать оферту». Подписывается прочитанный экземпляр.');
-  await signGateStep(page, 'Подписать оферту');
+  await shot(page, '02-offer', 'Оферта преподавателя: документ читается целиком на странице, затем галочка согласия и кнопка «Подписать и продолжить». Подписывается прочитанный экземпляр.');
+  await signGateStep(page, 'Подписать');
 
   await page.locator('.q-checkbox').last().waitFor({ state: 'visible', timeout: 60000 });
   await shot(page, '03-contract', 'Договор участия в хозяйственной деятельности: подписывают преподаватель и председатель совета. Заключается один раз; к курсам преподавателя допускает администратор.');
-  await signGateStep(page, 'Подписать договор');
+  await signGateStep(page, 'Подписать');
 
   await openPage(page, EDU.teacher('profile'), 'Договор участия');
   await shot(page, '04-profile-pending', 'После подписи договор ожидает подписи председателя совета. Назначения на курсы начнут действовать после его подписания.');

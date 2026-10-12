@@ -25,14 +25,17 @@ export default async ({ page, shot }) => {
   await page.locator('button:has-text("Создать отчёт")').first().click();
   await page.waitForSelector('text=Отчёт о занятии', { timeout: 15000 });
   await page.waitForTimeout(600);
+  // Список курсов открывается сам при фокусе — закрываем кликом по заголовку окна.
+  await page.locator('.q-dialog :text("Отчёт о занятии")').first().click().catch(() => {});
+  await page.waitForTimeout(300);
   const today = new Date().toISOString().slice(0, 10);
   await fill(page, 'Номер занятия', '2');
   await fill(page, 'Дата занятия', today);
-  await fill(page, 'Тема', 'Алгебраические выражения: тождественные преобразования');
+  await fill(page, 'Тема занятия', 'Алгебраические выражения: тождественные преобразования');
   await fill(page, 'Материалы занятия', 'https://cloud.voskhod.coop/edu/oge-math/02-konspekt.pdf\nhttps://cloud.voskhod.coop/edu/oge-math/02-zadaniya.pdf', 'textarea');
   await shot(page, '02-report-dialog', 'Отчёт о занятии: номер, дата, тема и материалы по одной ссылке на строку. Материалы передаются кооперативу на ответственное хранение вместе с отчётом.');
 
-  await page.locator('.q-dialog button[type="submit"], .q-dialog button:has-text("Создать")').last().click();
+  await page.locator('.q-dialog button:has-text("Создать отчёт")').last().click();
   await page.waitForSelector('text=Отчёт о занятии', { state: 'hidden', timeout: 30000 }).catch(() => {});
   await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
   await page.waitForTimeout(1500);

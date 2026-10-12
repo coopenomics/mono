@@ -27,11 +27,10 @@ export default async ({ page, shot }) => {
   if (await other.isVisible().catch(() => false)) await other.click();
   await fill(page, 'Фамилия, имя, отчество', 'Громова Вера Николаевна');
   await pick(page, 'Способ получения доступа', 'Очно').catch(() => {});
-  const code = page.locator('label:has-text("Код пропуска")').locator('input').first();
-  if (await code.isVisible().catch(() => false)) await code.fill('ПР-2042');
+  await fill(page, 'Код пропуска', 'ПР-2042');
   await shot(page, '02-new-learner', 'Новый обучающийся: фамилия, имя, отчество и способ получения доступа — очно по коду пропуска, на электронную почту или в Telegram. На этот адрес уходит доступ к курсу.');
 
-  await page.locator('button:has-text("Сохранить"), button[type="submit"]').last().click();
+  await page.locator('.q-dialog button:has-text("Добавить")').last().click();
   await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
   await page.waitForTimeout(1500);
   await shot(page, '03-added', 'Обучающийся добавлен. Записать его на курс можно из каталога либо из его карточки.');

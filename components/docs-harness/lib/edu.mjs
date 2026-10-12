@@ -45,9 +45,14 @@ export async function settleAfterLogin(page) {
   await dismissOnboardingDialogs(page);
 }
 
-/** Поле формы по подписи (BaseInput): label → input/textarea внутри. */
+/**
+ * Поле формы по подписи (BaseInput): label → input/textarea внутри. Пустое
+ * поле Quasar держит подпись плавающей, и текст подписи может не попасть в
+ * <label> — тогда ищем по placeholder.
+ */
 export function field(page, label, kind = 'input') {
-  return page.locator(`label:has-text("${label}")`).locator(kind).first();
+  return page.locator(`label:has-text("${label}")`).locator(kind).first()
+    .or(page.locator(`${kind}[placeholder*="${label}"]`).first());
 }
 
 export async function fill(page, label, value, kind = 'input') {
@@ -70,11 +75,12 @@ export async function pick(page, label, optionText) {
  * Шаг документа в шлюзе стола (EduGateDocumentStep): документ прочитан —
  * галочка согласия — кнопка подписи. Подпись идёт ключом пайщика из сессии.
  */
-export async function signGateStep(page, buttonText, { timeout = 90000 } = {}) {
+export async function signGateStep(page, buttonText = 'Подписать', { timeout = 90000 } = {}) {
   const agree = page.locator('.q-checkbox').last();
   await agree.waitFor({ state: 'visible', timeout: 60000 });
   await agree.click();
-  const btn = page.locator(`button:has-text("${buttonText}")`).last();
+  // Промежуточный шаг подписывает «Подписать и продолжить», последний — «Подписать оферту»/«Подписать договор».
+  const btn = page.locator('button').filter({ hasText: buttonText }).last();
   await btn.waitFor({ state: 'visible', timeout: 15000 });
   await btn.click();
   // Шаг исчезает после подписи: кнопка либо пропадает, либо открывается следующий шаг.
@@ -91,4 +97,10 @@ export function row(page, text) {
 export async function closeDialog(page) {
   await page.keyboard.press('Escape');
   await page.waitForTimeout(600);
+}
+
+/** Кнопка «Далее» пошаговой формы. */
+export async function next(page) {
+  await page.locator('button:has-text("Далее")').last().click();
+  await page.waitForTimeout(700);
 }
