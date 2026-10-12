@@ -85,8 +85,10 @@ export default async ({ page, shot, expect, context }) => {
 
   // Окно «Отправка списания в совет»: сначала причина, затем Заявление.
   const dialog = page.locator('[id^="q-portal--dialog--"]').filter({ hasText: 'Причина списания' }).first();
-  await dialog.waitFor({ state: 'visible', timeout: 30000 });
-  await dialog.locator('.q-field', { hasText: 'Причина списания' }).locator('input').first().fill(WRITEOFF_REASON);
+  // Обёртка портала для Playwright «скрыта» всегда — ждём поле внутри окна.
+  const reasonInput = dialog.locator('.q-field', { hasText: 'Причина списания' }).locator('input').first();
+  await reasonInput.waitFor({ state: 'visible', timeout: 30000 });
+  await reasonInput.fill(WRITEOFF_REASON);
   await page.waitForTimeout(400);
 
   await shot(
@@ -96,7 +98,7 @@ export default async ({ page, shot, expect, context }) => {
   );
 
   // «Далее» — последняя кнопка подвала окна; сервер формирует Заявление.
-  await dialog.locator('button').last().click();
+  await dialog.locator('button:has-text("Далее")').last().click();
   const signDialog = page.locator('[id^="q-portal--dialog--"]').filter({ has: page.locator('.submit-council__doc') }).first();
   await signDialog.locator('.submit-council__doc').waitFor({ state: 'visible', timeout: 60000 });
   await page.waitForTimeout(800);

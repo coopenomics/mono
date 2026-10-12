@@ -420,7 +420,10 @@ export async function pickBranchIfAsked(page, { timeout = 12000 } = {}) {
  */
 export async function confirmIdentityIfAsked(page, { shot, timeout = 6000 } = {}) {
   const dialog = page.locator('[id^="q-portal--dialog--"]').filter({ hasText: 'Проверка личности' }).first();
-  const asked = await dialog.waitFor({ state: 'visible', timeout }).then(() => true).catch(() => false);
+  // Обёртка портала сама нулевого размера и для Playwright «скрыта» всегда —
+  // видимость проверяем по заголовку окна внутри неё.
+  const title = dialog.locator('text=Проверка личности').first();
+  const asked = await title.waitFor({ state: 'visible', timeout }).then(() => true).catch(() => false);
   if (!asked) return false;
   await page.waitForTimeout(1200);
   if (shot) {
@@ -436,7 +439,7 @@ export async function confirmIdentityIfAsked(page, { shot, timeout = 6000 } = {}
   const confirm = dialog.locator('button:has-text("Личность подтверждена")').first();
   await expect(confirm).toBeEnabled({ timeout: 15000 });
   await confirm.click();
-  await dialog.waitFor({ state: 'hidden', timeout: 30000 });
+  await page.locator('text=Проверка личности').first().waitFor({ state: 'hidden', timeout: 30000 });
   await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
   await page.waitForTimeout(2500);
   return true;
