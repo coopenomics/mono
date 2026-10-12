@@ -96,7 +96,9 @@ export default async ({ page, shot, expect }) => {
     waitUntil: 'domcontentloaded',
     timeout: 60000,
   });
-  await page.waitForSelector('text=Сформированные партии', { timeout: 60000 });
+  // Страница — таблица партий: заголовка «Сформированные партии» больше нет,
+  // ждём строку партии на участок.
+  await page.locator('tbody tr').filter({ hasText: 'Красногорск' }).first().waitFor({ state: 'visible', timeout: 60000 });
   await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
   await page.waitForTimeout(2500);
   await cleanViteOverlays(page);

@@ -411,6 +411,37 @@ export async function pickBranchIfAsked(page, { timeout = 12000 } = {}) {
 // страницу под разными именами — тест, который ничего не проверяет.
 // Поэтому: перебираем известные варианты разметки, а если пункта нет —
 // падаем, а не «continue».
+/**
+ * Сверка личности получателя на пункте выдачи. Перед первой выдачей пайщику
+ * стол поднимает окно «Проверка личности»: оператор сверяет паспорт и
+ * прикладывает снимок пайщика с паспортом — без снимка кнопка подтверждения
+ * закрыта. Сверка делается один раз на пайщика, поэтому окно видит только
+ * первый по порядку сценарий выдачи. Возвращает true, если окно было.
+ */
+export async function confirmIdentityIfAsked(page, { shot, timeout = 6000 } = {}) {
+  const dialog = page.locator('[id^="q-portal--dialog--"]').filter({ hasText: 'Проверка личности' }).first();
+  const asked = await dialog.waitFor({ state: 'visible', timeout }).then(() => true).catch(() => false);
+  if (!asked) return false;
+  await page.waitForTimeout(1200);
+  if (shot) {
+    await shot(
+      page,
+      '02b-identity-check',
+      'Проверка личности перед первой выдачей пайщику: оператор сверяет с паспортом данные, которые сервер показывает только на время сверки, и прикладывает снимок пайщика с раскрытым паспортом. Сверка делается один раз; снимки хранятся до решения совета.',
+    );
+  }
+  await dialog.locator('input[type="file"]').first()
+    .setInputFiles(path.join(HARNESS_ROOT, 'fixtures/sok.jpg'));
+  await page.waitForTimeout(1500);
+  const confirm = dialog.locator('button:has-text("Личность подтверждена")').first();
+  await expect(confirm).toBeEnabled({ timeout: 15000 });
+  await confirm.click();
+  await dialog.waitFor({ state: 'hidden', timeout: 30000 });
+  await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
+  await page.waitForTimeout(2500);
+  return true;
+}
+
 export async function clickMenu(page, text, { timeout = 15000 } = {}) {
   const candidates = [
     `.rail__item:has(.rail__item-label:text-is("${text}"))`,

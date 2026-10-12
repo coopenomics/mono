@@ -14,7 +14,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { cleanViteOverlays, env, loginAs, pickBranchIfAsked } from '../../../lib/harness.mjs';
+import { cleanViteOverlays, confirmIdentityIfAsked, env, loginAs, pickBranchIfAsked } from '../../../lib/harness.mjs';
 // Цена приёмки — оттуда, где её задаёт акт: две копии числа разъехались бы
 // молча, и проверка цены выдачи перестала бы что-либо значить.
 import { FACT_UNIT_PRICE as RECEPTION_UNIT_PRICE } from './apl-reception-create.mjs';
@@ -92,6 +92,7 @@ export default async ({ page, shot, expect }) => {
   await page.waitForTimeout(8000);
   await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
   await cleanViteOverlays(page);
+  await confirmIdentityIfAsked(page, { shot });
 
   await expect(page.locator('text=Нераспознанный код')).toHaveCount(0, { timeout: 15000 });
   const issueDialog = page.locator('[id^="q-portal--dialog--"]').filter({ hasText: 'Открытие выдачи пайщику' }).first();
