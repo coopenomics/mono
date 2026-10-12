@@ -21,7 +21,7 @@ import path from 'node:path'
 import process from 'node:process'
 import type { Who } from '../../core/auth'
 import { tokenOf } from '../../core/auth'
-import { gql } from '../../core/client'
+import { gql, gqlRaw } from '../../core/client'
 import { REPO_ROOT } from '../../core/env'
 import { CHAIRMAN } from '../../core/roles'
 import { waitFor } from '../../core/wait'
@@ -139,7 +139,9 @@ async function phase02(): Promise<void> {
 async function phase03(): Promise<void> {
   const who = fixture(TEACHER)
   const token = await tokenOf(who)
-  const contract = (await gql<any>(token, MY_CONTRACT)).edubridgeMyContract
+  // До оферты запрос договора отказывает (EDUBRIDGE_TEACHER_OFFER_REQUIRED) — это «договора нет».
+  const probe = await gqlRaw<any>(token, MY_CONTRACT)
+  const contract = probe.errors.length ? null : probe.data?.edubridgeMyContract
   if (contract?.status === 'ACTIVE') {
     log(`${TEACHER}: договор № ${contract.contract_number} действует`)
   }
