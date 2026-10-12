@@ -477,7 +477,7 @@ async function resolvePickup(): Promise<void> {
 // Сервер уже разобрал код; пайщик без дел тоже ведёт на стол выдачи — ему предлагают
 // докладку со склада.
 async function consumeHandoffSignal(): Promise<void> {
-  const matter = handoffSignal.consume();
+  const matter = handoffSignal.consume(['issuance']);
   if (!matter || matter.kind !== 'issuance') return;
   pickupAccount.value = matter.account;
   await resolvePickup();

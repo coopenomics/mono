@@ -598,7 +598,7 @@ async function openBoxByCode(code: string): Promise<void> {
 // где угодно на столе — показываем содержимое здесь.
 const handoffSignal = useMarketplaceHandoffSignal()
 async function consumeHandoffSignal(): Promise<void> {
-  const matter = handoffSignal.consume()
+  const matter = handoffSignal.consume(['container'])
   if (!matter || matter.kind !== 'container') return
   await openBoxByCode(matter.container_code)
 }
