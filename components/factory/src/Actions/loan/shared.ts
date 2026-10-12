@@ -104,6 +104,19 @@ export function collateralText(
   throw new Error('Не указано обеспечение займа: ключ реестра обеспечения или номер приложения об ответственном хранении')
 }
 
+/**
+ * Обеспечение в заявлении пайщика. У обеспечения паевым взносом заявление
+ * называет его размер — он равен сумме займа; имущество на ответственном
+ * хранении описано приложением, размер там не пишется.
+ */
+export function statementCollateralText(
+  data: { collateral?: string, storage_appendix_number?: string, amount: string },
+  basis: LoanBasis,
+): string {
+  const text = collateralText(data, basis)
+  return data.collateral ? `${text} в размере ${amountWithSymbolRu(data.amount)}` : text
+}
+
 /** Программа в дательном падеже для договора под паевой взнос: «целевой потребительской программе «Благорост»». */
 export function collateralProgramDative(collateral: string): string {
   const entry = Debt.findCollateral(collateral)

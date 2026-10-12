@@ -4,7 +4,7 @@ import { DocFactory } from '../Factory'
 import type { IGeneratedDocument, IGenerationOptions, IMetaDocument, ITemplate } from '../Interfaces'
 import type { MongoDBConnector } from '../Services/Databazor'
 import { PaymentMethod } from '../Models/PaymentMethod'
-import { amountFields, collateralText, formatDateRu, loanContractNumber, resolveLoanBasis } from './loan/shared'
+import { amountFields, formatDateRu, loanContractNumber, resolveLoanBasis, statementCollateralText } from './loan/shared'
 
 export { GetLoanStatement as Template } from '../Templates'
 
@@ -40,7 +40,7 @@ export class Factory extends DocFactory<GetLoanStatement.Action> {
       ...amountFields(data.amount),
       due_at: formatDateRu(data.due_at),
       payment_details: this.formatPaymentDetails(paymentMethod, user.full_name_or_short_name),
-      collateral_text: collateralText(data, basis),
+      collateral_text: statementCollateralText(data, basis),
     }
     await this.validate(combinedData, template.model)
     const translation = template.translations[meta.lang]
