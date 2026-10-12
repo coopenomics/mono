@@ -17,6 +17,19 @@ services:
       - "id.card.coop:127.0.0.1"
   parser2:
     user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
+  # Рабочий стол для визуальных сценариев (workflow ui-docs): собранный SSR
+  # сервер из dist/ssr (сборка — общий шаг `pnpm lerna run build` на хосте),
+  # а не dev-сервер Vite. За nginx стенда, как у кооперативов: сессия живёт в
+  # cookie бэкенда, и с другого порта браузер её не отдаёт — поэтому стол и
+  # бэкенд обязаны быть за одним адресом. Порт сервера — тот, что ждёт nginx.
+  desktop:
+    user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
+    command: pnpm --filter @coopenomics/desktop run start
+    environment:
+      PORT: "2999"
+      SSR_BACKEND_URL: http://nginx/backend
+      SSR_CHAIN_URL: http://nginx/api
+      HOME: /tmp
   # Журнал запросов к базе: после прогона по нему видно, какие таблицы внешний
   # слой читал и писал (scripts/blackbox/db-coverage.mjs) — карта готовности
   # к уходу с TypeORM (C28-81). На dev-стендах не включается.

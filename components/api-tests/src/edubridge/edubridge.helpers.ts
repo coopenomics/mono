@@ -444,8 +444,10 @@ export async function approveContract(approval: any): Promise<void> {
  * администратор при приёме; по умолчанию она равна плановой ставке курсов набора.
  */
 export async function onboardTeacher(who: Who, token: string, hourlyRate = PLANNED_RATE, opts: { approve?: boolean, about?: string } = {}): Promise<void> {
-  await gql(token, SAVE_PROFILE, { d: { about: opts.about ?? 'Веду занятия набора внешнего слоя' } })
+  // Оферта первой: без неё сервер отказывает в сохранении профиля
+  // (EDUBRIDGE_TEACHER_OFFER_REQUIRED) — так показал засев стенда документации 12.10.2026.
   await signOffer(who, token, 'TEACHER')
+  await gql(token, SAVE_PROFILE, { d: { about: opts.about ?? 'Веду занятия набора внешнего слоя' } })
   const { document, contract_number } = await signedContract(who, token)
   await gql(token, SIGN_CONTRACT, { d: { document, contract_number } })
   await gql(await tokenOf(CHAIRMAN), SET_TEACHER_RATE, { d: { username: who.account, hourly_rate: hourlyRate } })

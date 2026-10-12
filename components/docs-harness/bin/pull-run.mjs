@@ -56,6 +56,8 @@ if (!RUN) {
 const name = `ui-docs-${APP}-${RUN}`;
 const appDir = path.join(HARNESS_ROOT, 'shots', APP);
 fs.rmSync(appDir, { recursive: true, force: true });
+// Сводка сюиты тоже в артефакте; gh отказывается писать поверх существующих файлов.
+fs.rmSync(path.join(HARNESS_ROOT, 'shots/_suite'), { recursive: true, force: true });
 fs.mkdirSync(path.join(HARNESS_ROOT, 'shots'), { recursive: true });
 gh('run', 'download', '-R', REPO, RUN, '-n', name, '-D', path.join(HARNESS_ROOT, 'shots'));
 

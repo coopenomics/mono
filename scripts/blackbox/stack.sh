@@ -85,6 +85,9 @@ POSTGRES_USERNAME=postgres
 POSTGRES_PASSWORD=${PG_PASSWORD}
 POSTGRES_DATABASE=voskhod
 COOPNAME=voskhod
+# Рабочий стол и шлюз стенда — для визуальных сценариев (ui-docs.yaml).
+DESKTOP_HOST_PORT=${DESKTOP_PORT}
+NGINX_HOST_PORT=${NGINX_PORT}
 EOF
 
   # boot работает на хосте и ходит в сервисы через проброшенные порты.
@@ -354,7 +357,7 @@ cmd_collect() {
   mkdir -p "$OUT/logs"
   docker compose ps -a > "$OUT/logs/ps.txt" 2>&1 || true
   local svc
-  for svc in node parser2 coopback postgres mongo monoredis minio mailpit stub authentik-server authentik-worker; do
+  for svc in node parser2 coopback postgres mongo monoredis minio mailpit stub authentik-server authentik-worker desktop nginx; do
     docker compose logs --no-color --timestamps "$svc" > "$OUT/logs/$svc.log" 2>&1 || true
   done
   docker stats --no-stream > "$OUT/logs/stats.txt" 2>&1 || true
@@ -438,16 +441,19 @@ PY
 # ── Визуальные сценарии docs-harness (workflow ui-docs.yaml) ──────────────────
 #
 # Рабочий стол на стенде CI — собранный SSR-сервер (`quasar build --mode ssr`
-# делает общий шаг `pnpm lerna run build`), запущенный на хосте: так кадры
-# документации снимаются с той же сборки, что крутится у кооперативов, а не с
-# dev-сервера Vite с его холодной компиляцией маршрутов. Переменные клиента
-# SSR-сервер берёт из окружения процесса (generateConfig.ts), поэтому .env
-# рабочего стола экспортируется перед запуском.
+# делает общий шаг `pnpm lerna run build`) в контейнере desktop за nginx
+# стенда, как у кооперативов: сессия пайщика живёт в cookie бэкенда, и если
+# стол и бэкенд на разных портах, браузер cookie не отдаёт — после входа каждый
+# переход снова просит войти (так упал первый прогон 12.10.2026). Адреса
+# клиента в .env стола относительные (/backend, /api), шлюз — nginx dev.conf.
+# Стенд открывается по localhost: на 127.0.0.1 шлюз отвечает переадресацией.
 DESKTOP_PORT=2999
+NGINX_PORT=8088
+DESKTOP_URL="http://localhost:${NGINX_PORT}"
 HARNESS_DIR=components/docs-harness
 
 desktop_ready() {
-  curl -sf -o /dev/null --max-time 3 "http://127.0.0.1:${DESKTOP_PORT}/"
+  curl -sf -o /dev/null --max-time 5 "${DESKTOP_URL}/"
 }
 
 cmd_desktop() {
@@ -455,39 +461,23 @@ cmd_desktop() {
   local env_file=components/desktop/.env
   cp components/desktop/.env-example "$env_file"
   set_env "$env_file" NODE_ENV production
-  set_env "$env_file" BACKEND_URL "http://127.0.0.1:${API_PORT}"
-  set_env "$env_file" CHAIN_URL "http://127.0.0.1:${CHAIN_PORT}"
-  set_env "$env_file" SSR_BACKEND_URL "http://127.0.0.1:${API_PORT}"
-  set_env "$env_file" SSR_CHAIN_URL "http://127.0.0.1:${CHAIN_PORT}"
   set_env "$env_file" CHAIN_ID "$(chain_id)"
   # Секрет сервера — тот же, что у контроллера: SSR спрашивает у него стол пайщика по cookie.
   set_env "$env_file" SERVER_SECRET "$(grep -E '^SERVER_SECRET=' components/controller/.env | cut -d= -f2-)"
-  # Порт сервера документации на стенде свободен — ставим тот, что ждут сценарии.
-  set_env "$env_file" DESKTOP_HOST_PORT "$DESKTOP_PORT"
 
   if [ ! -f components/desktop/dist/ssr/index.js ]; then
     echo "▸ dist/ssr нет — собираем рабочий стол..."
     pnpm --filter @coopenomics/desktop build
   fi
 
-  mkdir -p "$OUT/logs"
-  echo "▸ Запускаем SSR-сервер рабочего стола на :${DESKTOP_PORT}..."
-  (
-    # Не `source`: в примере окружения есть значения с пробелами без кавычек
-    # (COOP_SHORT_NAME), и оболочка приняла бы хвост за команду.
-    while IFS= read -r line; do
-      case "$line" in ''|'#'*) continue ;; esac
-      export "$line"
-    done < "$env_file"
-    export PORT="$DESKTOP_PORT"
-    cd components/desktop
-    nohup pnpm run start > "$OUT/logs/desktop.log" 2>&1 &
-  )
-  if ! stack_wait_for "рабочий стол" 180 3 desktop_ready; then
-    tail -100 "$OUT/logs/desktop.log"
+  echo "▸ Запускаем рабочий стол и шлюз стенда (${DESKTOP_URL})..."
+  docker compose up -d desktop
+  docker compose up -d nginx
+  if ! stack_wait_for "рабочий стол за шлюзом" 240 3 desktop_ready; then
+    docker compose logs --tail 100 desktop nginx
     exit 1
   fi
-  echo "  ✓ рабочий стол отвечает на :${DESKTOP_PORT}"
+  echo "  ✓ рабочий стол отвечает на ${DESKTOP_URL}"
 }
 
 # Браузер Playwright — отдельной фазой, чтобы время установки было видно в сводке.
@@ -500,7 +490,7 @@ cmd_browser() {
 # порты из корневого .env (их пишет фаза env), BASE_URL задаём явно.
 ui_env() {
   load_stack
-  export BASE_URL="http://127.0.0.1:${DESKTOP_PORT}"
+  export BASE_URL="$DESKTOP_URL"
   export ROUTER_MODE="${ROUTER_MODE:-hash}"
   export COOPNAME=voskhod
   export CI=true
