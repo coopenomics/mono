@@ -1315,11 +1315,23 @@ export class EdubridgeTeacherService {
     this.logger.info(`[EDU.RID] взнос ${c.rid_hash} принят — акт подписан председателем, право требования в кошельке ${c.teacher_username}`);
   }
 
-  /** Председатель отказал в подписи акта (`edubridge::dclridact`): заявление закрывается с его причиной. */
+  /**
+   * Председатель отказал в подписи акта (`edubridge::dclridact`): решение совета
+   * есть, приём не состоялся — заявление закрывается протоколом этого решения
+   * (`declinerid`) с причиной председателя.
+   */
   async onActDeclined(coopname: string, ridHash: string, reason: string): Promise<void> {
     const c = await this.teachers.findContributionByRidHash(ridHash.toLowerCase());
     if (!c || c.coopname !== coopname || c.status !== EduContributionStatus.ACT_SIGNED) return;
-    await this.decline(coopname, c.id, reason.trim() || t('edubridge.teacher.actDeclinedReason'));
+    const decision = await this.councilProtocol(coopname, c);
+    await this.chain.declineRid({ coopname, rid_hash: c.rid_hash, decision } as never);
+    c.decision_hash = decision.hash.toLowerCase();
+    c.decline_reason = reason.trim() || t('edubridge.teacher.actDeclinedReason');
+    c.status = EduContributionStatus.DECLINED;
+    c.decided_at = new Date();
+    const saved = await this.teachers.saveContribution(c);
+    this.events.emit(EDUBRIDGE_CONTRIBUTION_DECIDED_EVENT, { coopname, contribution_id: saved.id, teacher_username: c.teacher_username, accepted: false });
+    this.logger.info(`[EDU.RID] председатель отказал в подписи акта по взносу ${c.rid_hash} — заявление закрыто протоколом совета`);
   }
 
   /**
@@ -1367,24 +1379,6 @@ export class EdubridgeTeacherService {
     } catch (e) {
       this.logger.error(`[EDU.RID] резерв по курсу после приёма ${c.rid_hash} не обновлён: ${(e as Error)?.message ?? e}`);
     }
-  }
-
-  async decline(coopname: string, contributionId: string, reason: string): Promise<EdubridgeContributionRecord> {
-    const c = await this.teachers.findContribution(coopname, contributionId);
-    if (!c) throw DomainError.notFound('EDUBRIDGE_CONTRIBUTION_NOT_FOUND');
-    if (c.status !== EduContributionStatus.SUBMITTED) throw DomainError.badRequest('EDUBRIDGE_CONTRIBUTION_DECLINE_NOT_SUBMITTED');
-    if (!reason?.trim()) throw DomainError.badRequest('EDUBRIDGE_CONTRIBUTION_DECLINE_REASON_REQUIRED');
-    // Отказ преподавателю — только вслед за отказом совета. Принятое решение
-    // председатель исполняет: приём идёт актом, отказа после него нет.
-    if (c.council_outcome !== EduCouncilOutcome.DECLINED) throw DomainError.badRequest('EDUBRIDGE_CONTRIBUTION_DECLINE_REQUIRES_COUNCIL');
-    // Отрицательного протокола у совета не бывает — материалы снимаются с хранения с основанием (Дт 76 / Кт 08).
-    await this.chain.recallRid({ coopname, rid_hash: c.rid_hash, reason: t('edubridge.teacher.ridRecallReason', { reason: reason.trim() }) } as never);
-    c.decline_reason = reason;
-    c.status = EduContributionStatus.DECLINED;
-    c.decided_at = new Date();
-    const saved = await this.teachers.saveContribution(c);
-    this.events.emit(EDUBRIDGE_CONTRIBUTION_DECIDED_EVENT, { coopname, contribution_id: saved.id, teacher_username: c.teacher_username, accepted: false });
-    return saved;
   }
 
   // ── Расчёт ─────────────────────────────────────────────────────────────────

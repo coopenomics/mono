@@ -343,16 +343,8 @@ cases:
   - id: edu.teach.side.11
     level: backend
     kind: side
-    scenario: "Председатель пробует отказать в приёме взноса до рассмотрения советом; совет отклоняет вопрос."
-    expect: "Без отказа совета отказ не оформляется (EDUBRIDGE_CONTRIBUTION_DECLINE_REQUIRES_COUNCIL); отказ совета сам снимает материалы с хранения с основанием совета, протокола нет."
-    test: components/controller/tests/unit/edubridge/teacher.service.test.ts
-    api: components/api-tests/src/edubridge/lessons.test.ts
-    status: passing
-  - id: edu.teach.side.12
-    level: backend
-    kind: side
-    scenario: "Совет принял решение о приёме — председатель пробует отказать."
-    expect: "Отказ отклоняется (EDUBRIDGE_CONTRIBUTION_DECLINE_NOT_SUBMITTED): принятое решение исполняется актом; declinerid и recallrid не вызываются."
+    scenario: "Совет отклоняет вопрос о приёме взноса; отдельной операции отказа у председателя нет."
+    expect: "Отказ совета сам снимает материалы с хранения с основанием совета (recallrid), взнос DECLINED, протокола нет; declinerid не вызывается."
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
     api: components/api-tests/src/edubridge/lessons.test.ts
     status: passing

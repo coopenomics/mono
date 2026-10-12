@@ -133,7 +133,6 @@ describe('операции образования под общим гардом
       ['edubridge-economy.resolver.ts', 'edubridgeSetEconomySettings'],
       ['edubridge-economy.resolver.ts', 'edubridgeCreateExpense'],
       ['edubridge-teacher.resolver.ts', 'edubridgeSetAssignmentRate'],
-      ['edubridge-teacher.resolver.ts', 'edubridgeDeclineContribution'],
     ];
     for (const [file, operation] of money) {
       const requirement = req(file, operation);

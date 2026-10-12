@@ -17,7 +17,6 @@ import {
   EduSetAssignmentRateInputDTO,
   EduContributionDTO,
   EduContributionDocumentDTO,
-  EduDeclineContributionInputDTO,
   EduSignActInputDTO,
   EduSignContractInputDTO,
   EduHoldContributionInputDTO,
@@ -298,12 +297,5 @@ export class EdubridgeTeacherResolver {
   @RequireRight('EduContribution', 'read:own', SELF)
   async edubridgeMyContributionDocuments(@CurrentEduMember() m: IEdubridgeMembership, @Args('contribution_id', { type: () => ID }) id: string): Promise<EduContributionDocumentDTO[]> {
     return (await this.teachers.contributionDocuments(coop(), id, m.username as string)).map(({ kind, aggregate }) => new EduContributionDocumentDTO(kind, aggregate));
-  }
-
-  @Mutation(() => EduContributionDTO, { name: 'edubridgeDeclineContribution', description: 'Отклонить взнос РИД с причиной' })
-  @UseGuards(GqlJwtAuthGuard, RightsGuard)
-  @RequireRight('EduContribution', 'decide')
-  async edubridgeDeclineContribution(@Args('data') data: EduDeclineContributionInputDTO): Promise<EduContributionDTO> {
-    return new EduContributionDTO(await this.teachers.decline(coop(), data.contribution_id, data.reason));
   }
 }

@@ -227,12 +227,6 @@ export class EduSignActInputDTO {
   @ValidateNested() @Type(() => SignedDigitalDocumentInputDTO) document!: SignedDigitalDocumentInputDTO;
 }
 
-@InputType('EduDeclineContributionInput')
-export class EduDeclineContributionInputDTO {
-  @Field(() => ID, { description: 'Взнос' }) @IsUUID() contribution_id!: string;
-  @Field(() => String, { description: 'Причина' }) @IsString() @Length(1, 2000) reason!: string;
-}
-
 /** Расчёт преподавателя: что причитается и где получить. */
 @ObjectType('EduTeacherSettlement')
 export class EduTeacherSettlementDTO {

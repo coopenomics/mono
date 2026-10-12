@@ -25,7 +25,6 @@ import {
   CLOSE_ASSIGNMENT,
   CREATE_ASSIGNMENT,
   CREATE_COURSE,
-  DECLINE_CONTRIBUTION,
   HOLD_CONTRIBUTION,
   MY_CONTRIBUTIONS,
   MY_LESSONS,
@@ -314,12 +313,8 @@ describe('Образование: занятия и взносы препода�
       expect(amount((await gql<any>(token, SETTLEMENT)).edubridgeMySettlement.program_share)).toBe(LESSON_COST - 400)
     })
 
-    it(caseName('edu.teach.side.11', 'отказ в приёме — только отказом совета: председатель в одиночку не отказывает, отказ совета контракт исполняет сам'), async () => {
-      expectCode(await gqlError(chairman, DECLINE_CONTRIBUTION, { d: { contribution_id: second.id, reason: '   ' } }), 'EDUBRIDGE_CONTRIBUTION_DECLINE_REASON_REQUIRED')
-      expectCode(await gqlError(token, DECLINE_CONTRIBUTION, { d: { contribution_id: second.id, reason: 'сам себе' } }), NO_RIGHTS)
-      // Совет заявление ещё не рассмотрел: в одиночку председатель преподавателю не отказывает.
-      expectCode(await gqlError(chairman, DECLINE_CONTRIBUTION, { d: { contribution_id: second.id, reason: 'Материалы неполные' } }), 'EDUBRIDGE_CONTRIBUTION_DECLINE_REQUIRES_COUNCIL')
-      expect((await mine(second.id)).status, 'заявление осталось на рассмотрении совета').toBe('SUBMITTED')
+    it(caseName('edu.teach.side.11', 'отказ в приёме — только отказом совета: отдельной операции отказа у председателя нет, отказ совета контракт исполняет сам'), async () => {
+      expect((await mine(second.id)).status, 'заявление на рассмотрении совета').toBe('SUBMITTED')
 
       // Совет отклонил вопрос: обратный вызов контракта снял материалы с хранения, взнос закрыт без участия председателя.
       await councilDeclinesRid(await agendaWith(second.rid_hash))
@@ -329,7 +324,6 @@ describe('Образование: занятия и взносы препода�
       }, { timeoutMs: 120_000, intervalMs: 1_500, label: 'отказ совета исполнен' })
       expect(declined).toMatchObject({ status: 'DECLINED', council_outcome: 'DECLINED', council_decision_id: null, decision_hash: null })
       expect(declined.decline_reason, 'основание — причина совета').toBeTruthy()
-      expectCode(await gqlError(chairman, DECLINE_CONTRIBUTION, { d: { contribution_id: second.id, reason: 'повторно' } }), 'EDUBRIDGE_CONTRIBUTION_DECLINE_NOT_SUBMITTED')
     }, 480_000)
 
     it(caseName('edu.teach.side.14', 'совет отказал в приёме — занятие отчитывается заново: строка журнала та же, взнос новый'), async () => {
@@ -345,19 +339,6 @@ describe('Образование: занятия и взносы препода�
       // Материалы повторного занятия переданы на хранение — журнал курса открыт для следующего занятия.
       expect((await holdMaterials(teacher, token, again.contribution.id)).status).toBe('HELD')
     })
-
-    it(caseName('edu.teach.side.12', 'совет принял решение о приёме — отказа у председателя больше нет, решение исполняется актом'), async () => {
-      const third = (await reportLesson(token, nowAssignment.id, 3)).contribution
-      await holdMaterials(teacher, token, third.id)
-      await submitStatement(teacher, token, third.id)
-      await councilGrantsRid(await agendaWith(third.rid_hash), third)
-      await waitFor(async () => ((await mine(third.id))?.status === 'COUNCIL_APPROVED' ? true : null),
-        { timeoutMs: 120_000, intervalMs: 1_500, label: 'решение совета по третьему взносу' })
-
-      // Принятое решение совета председатель исполняет: отказ после него не оформляется.
-      expectCode(await gqlError(chairman, DECLINE_CONTRIBUTION, { d: { contribution_id: third.id, reason: 'Преподаватель отозвал материалы' } }), 'EDUBRIDGE_CONTRIBUTION_DECLINE_NOT_SUBMITTED')
-      expect((await mine(third.id)).status, 'взнос ждёт акт преподавателя').toBe('COUNCIL_APPROVED')
-    }, 480_000)
 
     it(caseName('edu.teach.side.19', 'совет отклонил вопрос о приёме — взнос закрыт исходом совета, протокола нет'), async () => {
       const fourth = (await reportLesson(token, nowAssignment.id, 4)).contribution

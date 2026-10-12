@@ -61,7 +61,6 @@ export * as CreateGroup from './createGroup'
 export * as UpdateGroup from './updateGroup'
 export * as SetAssignmentRate from './setAssignmentRate'
 /** Отклонить взнос РИД */
-export * as DeclineContribution from './declineContribution'
 /** Повторить задачу выдачи */
 export * as MarkLearnerRemoved from './markLearnerRemoved'
 export * as RetryEnrollmentClose from './retryEnrollmentClose'

@@ -154,8 +154,6 @@ export const closeAssignment = (id: string) => m<IAssignment>(Mutations.Edubridg
 /** Прекращение договора по соглашению сторон; вернётся null, когда прекращать нечего. */
 export const terminateContract = (username: string, reason: string) =>
   m<IContract | null>(Mutations.Edubridge.TerminateContract.mutation, Mutations.Edubridge.TerminateContract.name, { username, reason });
-export const declineContribution = (contribution_id: string, reason: string) =>
-  m<IContribution>(Mutations.Edubridge.DeclineContribution.mutation, Mutations.Edubridge.DeclineContribution.name, { data: { contribution_id, reason } });
 
 function who() {
   const session = useSessionStore();
