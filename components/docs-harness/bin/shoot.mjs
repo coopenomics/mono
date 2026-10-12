@@ -18,7 +18,7 @@ import path from 'node:path';
 import { spawn, spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { ensureFixture } from '../lib/fixtures.mjs';
-import { ensureTokens, forgetLoginState } from '../lib/tokens.mjs';
+import { ensureChairmanPassword, ensureChairmanTokens, ensureTokens, forgetLoginState } from '../lib/tokens.mjs';
 
 const HARNESS_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 // Harness живёт в components/docs-harness/, репо-корень — на два уровня выше.
@@ -221,6 +221,7 @@ function ensureFixtures(meta) {
   if (names.size === 0) ok('сценарий не требует фикстур');
   // Токены подписью для prepare-фаз — до входа со стола (см. lib/tokens.mjs).
   try {
+    ensureChairmanPassword({ log });
     ensureTokens([...names], { log });
   } catch (e) {
     die(e.message);
@@ -301,6 +302,7 @@ function ensureDraft() {
   await ensureDesktop(distRebuilt);
   const meta = await loadMeta();
   ensureFixtures(meta);
+  if (Array.isArray(meta.prepare) && meta.prepare.length) await ensureChairmanTokens({ log });
   await runPrepare(meta.prepare);
   runScenario();
   ensureDraft();

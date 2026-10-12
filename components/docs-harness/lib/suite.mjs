@@ -17,7 +17,7 @@ import { fileURLToPath } from 'node:url';
 import { ensureDesktopConfig } from './desktop-config.mjs';
 import { ensureFixture, fixturesOfScenario } from './fixtures.mjs';
 import { collectPrepare, runPrepare } from './prepare.mjs';
-import { ensureTokens, forgetLoginState } from './tokens.mjs';
+import { ensureChairmanPassword, ensureChairmanTokens, ensureTokens, forgetLoginState } from './tokens.mjs';
 
 const HARNESS_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const REPO_ROOT = path.resolve(HARNESS_ROOT, '../..');
@@ -188,7 +188,10 @@ const GROUPS = groups;
   // Подписью, до первого входа со стола: вход переводит пайщика на пароль, и
   // подпись его больше не впускает, а фазам засева токены нужны и после L0.
   try {
-    ensureTokens([...needed], { log: (m) => console.log(`    ${m}`) });
+    const slog = (m) => console.log(`    ${m}`);
+    if (ensureChairmanPassword({ log: slog }) === 'created') slog('председателю поставлен пароль стенда, ключ прежний');
+    ensureTokens([...needed], { log: slog });
+    await ensureChairmanTokens({ log: slog });
   } catch (e) {
     console.error(`✗ ${e.message}`);
     return 2;

@@ -156,7 +156,7 @@ export function knownPassword(email) {
   return JSON.parse(fsSync.readFileSync(PASSWORDS_FILE, 'utf8'))[email] ?? null;
 }
 
-function rememberPassword(email, password) {
+export function rememberPassword(email, password) {
   const all = fsSync.existsSync(PASSWORDS_FILE) ? JSON.parse(fsSync.readFileSync(PASSWORDS_FILE, 'utf8')) : {};
   all[email] = password;
   fsSync.mkdirSync(path.dirname(PASSWORDS_FILE), { recursive: true });
@@ -226,7 +226,7 @@ async function exportSessionTokens(page, account, email) {
   }
   const file = path.join(HARNESS_ROOT, 'state/tokens.json');
   const all = fsSync.existsSync(file) ? JSON.parse(fsSync.readFileSync(file, 'utf8')) : {};
-  all[account] = { access: tokens.accessToken, refresh: tokens.refreshToken, email };
+  all[account] = { access: tokens.accessToken, refresh: tokens.refreshToken, email, at: Date.now() };
   fsSync.mkdirSync(path.dirname(file), { recursive: true });
   fsSync.writeFileSync(file, JSON.stringify(all, null, 2) + '\n');
   process.env.API_TOKENS_FILE = file;
