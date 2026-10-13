@@ -750,7 +750,13 @@ function monthTerms(course: EdubridgeCourseRecord, from: Date, minutesOpened: nu
   if (!month) throw DomainError.badRequest('EDUBRIDGE_ENROLLMENT_COURSE_FULLY_PAID');
   const ahead = Math.max(0, Number(course.minutes_total || 0) - minutesOpened);
   if (month.partial && ahead === 0) throw DomainError.badRequest('EDUBRIDGE_ENROLLMENT_COURSE_FULLY_PAID');
-  const byRemainder = month.partial && ahead < Number(course.minutes_per_month || 0);
-  const fee = byRemainder ? feeForMinutes(course.fee_month, ahead, Number(course.minutes_per_month || 0)) : feeForMonths(course.fee_month, 1, 0);
+  const fee = monthFee(course, month.partial, ahead);
   return { months: 1, paidUntil: month.paid_until, baseAmount: fee.base, discountAmount: fee.discount, amount: fee.amount };
+}
+
+/** Взнос за месяц: полный либо по остатку минут программы, когда месяц неполный и минут впереди меньше месяца. */
+function monthFee(course: EdubridgeCourseRecord, partial: boolean, minutesAhead: number): ReturnType<typeof feeForMonths> {
+  const perMonth = Number(course.minutes_per_month || 0);
+  if (partial && minutesAhead < perMonth) return feeForMinutes(course.fee_month, minutesAhead, perMonth);
+  return feeForMonths(course.fee_month, 1, 0);
 }

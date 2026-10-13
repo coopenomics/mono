@@ -1,7 +1,7 @@
 /** Конструктор курса: носитель по направлению, идентификатор площадки, преподаватели только с договором. */
 import { DomainError } from '@coopenomics/extension-kit';
 import { EdubridgeCourseService } from '~/extensions/edubridge/application/services/edubridge-course.service';
-import { EduAccessCarrier, EduContractStatus, EduCourseDirection, EduCourseStatus } from '~/extensions/edubridge/domain/enums';
+import { EduAccessCarrier, EduContractStatus, EduCourseDirection, EduCourseStatus, EduLessonStatus } from '~/extensions/edubridge/domain/enums';
 
 const COURSE_UUID = '0cd16d12-6ade-40f2-8830-b0673dde8b9e';
 const GROUP_UUID = '426fa814-9a36-4e9a-9fb0-ca5672afe667';
@@ -53,7 +53,7 @@ const base = {
   title: 'Алгебра',
   section_id: SECTION_ID,
   level_id: LEVEL_ID,
-  schedule_slots: [{ weekday: 2, time: '17:00', minutes: 60, assignment_id: null, cost: '1000.0000 RUB' }, { weekday: 4, time: '17:00', minutes: 60, assignment_id: null, cost: '1000.0000 RUB' }],
+  schedule_slots: [{ weekday: 2, time: '17:00', minutes: 60, assignment_id: null, hourly_rate: '1000.0000 RUB' }, { weekday: 4, time: '17:00', minutes: 60, assignment_id: null, hourly_rate: '1000.0000 RUB' }],
   program_months: 8,
   course_payment_enabled: false,
   course_discount_percent: 0,
@@ -286,7 +286,7 @@ describe('EdubridgeCourseService — обложка курса', () => {
     const current = { id: 'C1', external_ref: '', status: EduCourseStatus.PUBLISHED, fee_month: '9600.0000 RUB', planned_hourly_rate: '1000.0000 RUB', schedule_slots: base.schedule_slots, program_months: base.program_months, minutes_per_month: 520 };
     courses.findById.mockImplementation(async () => ({ ...current }));
     enrollmentsOfCourse.list = [{ status: 'active' }];
-    const pricier = base.schedule_slots.map((s) => ({ ...s, cost: '2000.0000 RUB' }));
+    const pricier = base.schedule_slots.map((s) => ({ ...s, hourly_rate: '2000.0000 RUB' }));
     await expect(service.update('voskhod', 'ant', { ...base, id: 'C1', schedule_slots: pricier })).resolves.toBeDefined();
     // Плановая ставка — среднее по окнам: два часовых окна по 2000 дают 2000 в час.
     expect(groups.applyCourseTerms).toHaveBeenCalledWith('voskhod', expect.objectContaining({ planned_hourly_rate: '2000.0000 RUB' }));
@@ -299,7 +299,7 @@ describe('EdubridgeCourseService — обложка курса', () => {
     enrollmentsOfCourse.list = [{ status: 'expired' }];
     await expect(service.remove('voskhod', 'C1')).rejects.toMatchObject({ code: 'EDUBRIDGE_COURSE_DELETE_HAS_SUBSCRIPTIONS' });
     enrollmentsOfCourse.list = [];
-    lessonsOfCourse.list = [{ id: 'L1' }];
+    lessonsOfCourse.list = [{ id: 'L1', status: EduLessonStatus.HELD }];
     await expect(service.remove('voskhod', 'C1')).rejects.toMatchObject({ code: 'EDUBRIDGE_COURSE_DELETE_HAS_LESSONS' });
     expect(courses.remove).not.toHaveBeenCalled();
     lessonsOfCourse.list = [];

@@ -321,7 +321,7 @@
     "EDUBRIDGE_LESSON_DATE_INVALID": "Момент занятия не распознан",
     "EDUBRIDGE_PROGRAM_FULL": "Программа заполнена: в ней {minutesTotal} минут занятий, свободных минут для занятия нет",
     "EDUBRIDGE_RESERVE_EMPTY": "Резерв расписания исчерпан: свободно {minutesLeft} мин. Внеочередное занятие берётся только из резерва",
-    "EDUBRIDGE_SCHEDULE_COST_INVALID": "Стоимость занятия окна — сумма с символом, например «1000.0000 RUB»",
+    "EDUBRIDGE_SCHEDULE_RATE_INVALID": "Стоимость часа преподавателя в окне — сумма с символом, например «1000.0000 RUB»",
     "EDUBRIDGE_SCHEDULE_REQUIRED": "Задайте хотя бы одно окно расписания: из окон считаются минуты занятий и взнос",
     "EDUBRIDGE_SCHEDULE_WEEKDAY_INVALID": "День недели окна расписания: от 1 (понедельник) до 7 (воскресенье)",
     "EDUBRIDGE_SCHEDULE_TIME_INVALID": "Время начала окна расписания — «ЧЧ:ММ»",

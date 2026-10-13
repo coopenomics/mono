@@ -772,11 +772,8 @@ export class EdubridgeTeacherService {
     const heldAt = new Date(lesson.held_at);
     // Расчёт идёт внутри группы занятия: участники других групп курса в него не входят.
     const subscriptions = lesson.group_id ? await this.enrollments.findByGroup(coopname, lesson.group_id) : await this.enrollments.findByCourse(coopname, course.id);
-    for (const enrollment of subscriptions) {
-      // Отбор по записи приложения — только чтобы не слать заведомо лишнее; право на расчёт проверяет контракт.
-      // Истёкшая подписка в сроке на отчёт ещё в цепи: занятие её оплаченного срока по ней рассчитывается.
-      const chargeable = enrollment.status === EduEnrollmentStatus.ACTIVE || isResumable(enrollment);
-      if (!chargeable || !enrollment.paid_until || new Date(enrollment.paid_until) <= heldAt) continue;
+    // Отбор по записи приложения — только чтобы не слать заведомо лишнее; право на расчёт проверяет контракт.
+    for (const enrollment of subscriptions.filter((e) => paidAt(e, heldAt))) {
       try {
         await this.chain.chargeLesson({ coopname, rid_hash: c.rid_hash, sub_hash: enrollment.sub_hash });
       } catch (e) {
@@ -1573,4 +1570,13 @@ function rateLockedBy(contract: EdubridgeTeacherContractRecord | null): boolean 
 /** Ставка задана, когда сумма больше нуля: «0.0000 RUB» — ещё не названа. */
 function isPositiveRate(rate: string | null | undefined): boolean {
   return rateValue(rate) > 0;
+}
+
+/**
+ * Доступ подписки оплачен на момент занятия. Истёкшая подписка в сроке на отчёт
+ * ещё в цепи: занятие её оплаченного срока по ней рассчитывается.
+ */
+function paidAt(enrollment: Parameters<typeof isResumable>[0] & { paid_until?: Date | string | null }, heldAt: Date): boolean {
+  const chargeable = enrollment.status === EduEnrollmentStatus.ACTIVE || isResumable(enrollment);
+  return chargeable && Boolean(enrollment.paid_until) && new Date(enrollment.paid_until as string) > heldAt;
 }

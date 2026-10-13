@@ -14,7 +14,6 @@ export const COURSE_FORM_HELP = {
   description: t('edubridge.courseFormHelp.description'),
   syllabus: t('edubridge.courseFormHelp.syllabus'),
   programMonths: t('edubridge.courseFormHelp.programMonths'),
-  monthlyLoad: t('edubridge.courseFormHelp.monthlyLoad'),
   payPerLearner: t('edubridge.courseFormHelp.payPerLearner'),
   startsAt: t('edubridge.courseFormHelp.startsAt'),
   guaranteeDays: t('edubridge.courseFormHelp.guaranteeDays'),

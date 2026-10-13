@@ -177,23 +177,29 @@ export class EdubridgeCalendarService {
     const lesson = await this.planned(coopname, input.lesson_id);
     const group = await this.group(coopname, lesson.group_id as string);
     if (input.held_at) lesson.held_at = momentOf(input.held_at);
-    if (input.minutes !== undefined && input.minutes !== null) {
-      const minutes = minutesOf(input.minutes, group.lesson_minutes);
-      const all = (await this.lessons.findByGroup(coopname, group.id)).filter((l) => l.id !== lesson.id);
-      // Внеочередное занятие удлиняется из резерва, остальные — из свободных минут программы.
-      const left = lesson.origin === EduLessonOrigin.EXTRA ? this.reserveTotal(group) - this.reserveUsed(all) : this.budget(group, all);
-      if (left < minutes) throw DomainError.badRequest(lesson.origin === EduLessonOrigin.EXTRA ? 'EDUBRIDGE_RESERVE_EMPTY' : 'EDUBRIDGE_PROGRAM_FULL', { minutesLeft: Math.max(0, left), minutesTotal: group.minutes_total });
-      lesson.duration_minutes = minutes;
-    }
-    if (input.assignment_id !== undefined) {
-      const assignment = input.assignment_id ? await this.courseAssignment(coopname, group.course_id, input.assignment_id) : null;
-      lesson.assignment_id = assignment?.id ?? null;
-      lesson.teacher_username = assignment?.teacher_username ?? null;
-    }
+    if (input.minutes !== undefined && input.minutes !== null) await this.resize(coopname, group, lesson, input.minutes);
+    if (input.assignment_id !== undefined) await this.reassign(coopname, group, lesson, input.assignment_id);
     if (input.topic !== undefined && input.topic !== null) lesson.topic = input.topic.trim();
     // Перенесённое занятие больше не привязано к окну: перестройка расписания его не трогает, резерв оно не тратит.
     if (lesson.origin === EduLessonOrigin.SCHEDULE) lesson.origin = EduLessonOrigin.MOVED;
     return this.lessons.save(lesson);
+  }
+
+  /** Новая длительность: внеочередное занятие удлиняется из резерва, остальные — из свободных минут программы. */
+  private async resize(coopname: string, group: EdubridgeGroupRecord, lesson: EdubridgeLessonRecord, wanted: number): Promise<void> {
+    const minutes = minutesOf(wanted, group.lesson_minutes);
+    const all = (await this.lessons.findByGroup(coopname, group.id)).filter((l) => l.id !== lesson.id);
+    const extra = lesson.origin === EduLessonOrigin.EXTRA;
+    const left = extra ? this.reserveTotal(group) - this.reserveUsed(all) : this.budget(group, all);
+    if (left < minutes) throw DomainError.badRequest(extra ? 'EDUBRIDGE_RESERVE_EMPTY' : 'EDUBRIDGE_PROGRAM_FULL', { minutesLeft: Math.max(0, left), minutesTotal: group.minutes_total });
+    lesson.duration_minutes = minutes;
+  }
+
+  /** Преподаватель занятия — по допуску к курсу группы; пусто — преподаватель снят. */
+  private async reassign(coopname: string, group: EdubridgeGroupRecord, lesson: EdubridgeLessonRecord, assignmentId: string | null): Promise<void> {
+    const assignment = assignmentId ? await this.courseAssignment(coopname, group.course_id, assignmentId) : null;
+    lesson.assignment_id = assignment?.id ?? null;
+    lesson.teacher_username = assignment?.teacher_username ?? null;
   }
 
   /** Отмена запланированного занятия: номер и место в программе свободны. */

@@ -15,7 +15,7 @@ const logger = { setContext: jest.fn(), info: jest.fn(), warn: jest.fn(), error:
 const signedBy = (signer: string, hash = 'ABC') => ({ hash, doc_hash: hash, meta_hash: hash, version: '1.0', meta: {}, signatures: [{ signer }] }) as any;
 
 function make(
-  opts: { learners?: number; lessonAmount?: string; contract?: boolean | EduContractStatus; assignmentStatus?: EduAssignmentStatus; lessonsTotal?: number; guaranteeDays?: number; subsLocked?: number; deferred?: string; plannedRate?: string; startsAt?: Date | null; courseTeachers?: string[]; profile?: { about: string; hourly_rate: string } | null } = {}
+  opts: { learners?: number; calendar?: boolean; lessonAmount?: string; contract?: boolean | EduContractStatus; assignmentStatus?: EduAssignmentStatus; lessonsTotal?: number; guaranteeDays?: number; subsLocked?: number; deferred?: string; plannedRate?: string; startsAt?: Date | null; courseTeachers?: string[]; profile?: { about: string; hourly_rate: string } | null } = {}
 ) {
   const assignment = { id: 'A1', coopname: 'voskhod', teacher_username: 'teach', course_id: 'C1', status: opts.assignmentStatus ?? EduAssignmentStatus.ACTIVE, period_from: '2025-09-01', period_to: '2027-06-01', created_at: new Date('2026-01-01') } as any;
   const store = new Map<string, any>();

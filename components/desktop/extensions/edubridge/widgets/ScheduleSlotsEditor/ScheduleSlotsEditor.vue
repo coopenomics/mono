@@ -1,6 +1,6 @@
 <template lang="pug">
-//- Окна расписания: каждая строка — день недели, время начала, длительность и
-//- преподаватель. Из окон и даты начала группы строится календарь занятий.
+//- Окна расписания: каждая строка — день недели, время начала, длительность,
+//- стоимость часа преподавателя и преподаватель. Из окон и даты начала группы строится календарь занятий.
 .edu-slots
   .edu-slots__row(v-for="(slot, i) in modelValue" :key="i")
     BaseSelect.edu-slots__day(:model-value="slot.weekday" :label="$t('edubridge.scheduleSlots.weekdayLabel')" :options="dayChoices" :disabled="disabled" @update:model-value="patch(i, { weekday: Number($event) })")
@@ -8,8 +8,10 @@
     BaseInput.edu-slots__time(v-if="slot.weekday !== RESERVE_WEEKDAY" :model-value="slot.time" :label="$t('edubridge.scheduleSlots.timeLabel')" type="time" stack-label :disabled="disabled" @update:model-value="patch(i, { time: String($event ?? '') })")
     .edu-slots__time.t-sm.t-muted.edu-slots__reserve-note(v-else) {{ $t('edubridge.scheduleSlots.reserveNote') }}
     BaseInput.edu-slots__minutes(:model-value="slot.minutes" :label="$t('edubridge.scheduleSlots.minutesLabel')" type="number" min="5" step="5" :disabled="disabled" @update:model-value="patch(i, { minutes: Number($event || 0) })")
-    //- Плановая стоимость занятия окна для одного участника: из неё складывается взнос, она же потолок взноса преподавателя.
-    BaseInput.edu-slots__cost(:model-value="slot.cost" :label="$t('edubridge.scheduleSlots.costLabel')" type="number" min="0" :suffix="symbol" :disabled="disabled" @update:model-value="patch(i, { cost: String($event ?? '') })")
+    //- Стоимость часа преподавателя в окне: из неё и минут окна складывается стоимость занятия для участника; членский взнос кооператива сверх неё.
+    BaseInput.edu-slots__rate(:model-value="slot.hourly_rate" :label="$t('edubridge.scheduleSlots.rateLabel', { symbol })" type="number" min="0" :disabled="disabled" @update:model-value="patch(i, { hourly_rate: String($event ?? '') })")
+      template(#append)
+        FieldHelp(:text="$t('edubridge.scheduleSlots.rateHelp')")
     BaseSelect.edu-slots__teacher(v-if="teacherOptions.length" :model-value="slot.assignment_id" :label="$t('edubridge.scheduleSlots.teacherLabel')" :options="teacherChoices" clearable :disabled="disabled" @update:model-value="patch(i, { assignment_id: $event ? String($event) : null })")
     BaseButton.edu-slots__remove(variant="ghost" icon-only :aria-label="$t('edubridge.scheduleSlots.remove')" :disabled="disabled" @click="remove(i)")
       template(#icon-left)
@@ -23,7 +25,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
-import { BaseButton, BaseInput, BaseSelect } from 'src/shared/ui/base';
+import { BaseButton, BaseInput, BaseSelect, FieldHelp } from 'src/shared/ui/base';
 import { RESERVE_WEEKDAY, WEEKDAY_OPTIONS, type IScheduleSlot } from '../../entities/Lesson';
 import { t } from '../../i18n';
 
@@ -39,7 +41,7 @@ const props = withDefaults(
     teacherOptions?: { value: string; label: string }[];
     /** Длительность занятия курса — подставляется в новое окно. */
     defaultMinutes?: number;
-    /** Символ валюты кооператива — подпись у поля стоимости. */
+    /** Символ валюты кооператива — в подписи поля стоимости часа. */
     symbol?: string;
     disabled?: boolean;
   }>(),
@@ -63,7 +65,7 @@ function add(): void {
   const last = props.modelValue[props.modelValue.length - 1];
   emit('update:modelValue', [
     ...props.modelValue,
-    { weekday: last ? Math.min(7, last.weekday + 2) : 2, time: last?.time ?? '17:00', minutes: last?.minutes ?? props.defaultMinutes, assignment_id: last?.assignment_id ?? null, cost: last?.cost ?? '' },
+    { weekday: last ? Math.min(7, last.weekday + 2) : 2, time: last?.time ?? '17:00', minutes: last?.minutes ?? props.defaultMinutes, assignment_id: last?.assignment_id ?? null, hourly_rate: last?.hourly_rate ?? '' },
   ]);
 }
 </script>
@@ -90,8 +92,8 @@ function add(): void {
 .edu-slots__minutes {
   flex: 0 1 120px;
 }
-.edu-slots__cost {
-  flex: 0 1 160px;
+.edu-slots__rate {
+  flex: 0 1 190px;
 }
 .edu-slots__teacher {
   flex: 2 1 200px;

@@ -1,4 +1,4 @@
-import { normalizeSlots, programOf } from '../../domain/lib/schedule';
+import { normalizeSlots, programOf, slotLessonCost } from '../../domain/lib/schedule';
 import { guaranteeSeconds } from '../../domain/economy/guarantee';
 import { eduMonthSeconds } from '../../domain/economy/time-scale';
 import { Inject, Injectable } from '@nestjs/common';
@@ -37,7 +37,7 @@ export class EdubridgeChainTermsService {
       minutes_per_month: Number(course.minutes_per_month),
       minutes_total: Number(course.minutes_total),
       // Окна в том же порядке, в каком их держит запись: занятие называет окно индексом.
-      slots: normalizeSlots(course.schedule_slots ?? []).map((s) => ({ minutes: s.minutes, cost: s.cost })),
+      slots: normalizeSlots(course.schedule_slots ?? []).map((s) => ({ minutes: s.minutes, cost: slotLessonCost(s) })),
       course_payment: Boolean(course.course_payment_enabled),
       discount_bp: Number(course.course_discount_bp ?? 0),
       guarantee_secs: guaranteeSeconds(course),

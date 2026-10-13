@@ -274,7 +274,6 @@ export class EdubridgeCourseService {
   }
 
   private fields(input: EduCourseInputDTO, fee: { fee_month: string }): Partial<EdubridgeCourseRecord> {
-    const platform = PLATFORM_CARRIERS.includes(input.carrier);
     const slots = normalizeSlots(input.schedule_slots);
     return {
       title: input.title,
@@ -282,17 +281,27 @@ export class EdubridgeCourseService {
       level_id: input.level_id ?? null,
       description: input.description ?? '',
       syllabus: input.syllabus ?? '',
-      schedule: slots.length ? formatSlots(slots) : input.schedule ?? '',
+      schedule: scheduleLine(slots, input.schedule),
       schedule_slots: slots,
       report_days: input.report_days ?? 7,
       teacher_usernames: input.teacher_usernames ?? [],
       ...economyFields(input, fee),
-      direction: input.direction,
-      carrier: input.carrier,
-      external_ref: platform ? (input.external_ref ?? '').trim() : '',
+      ...accessFields(input),
       sort_order: input.sort_order ?? 0,
     };
   }
+}
+
+/** Расписание строкой для каталога — из окон; без окон — как введено. */
+function scheduleLine(slots: ReturnType<typeof normalizeSlots>, typed: string | null | undefined): string {
+  if (slots.length) return formatSlots(slots);
+  return typed ?? '';
+}
+
+/** Выдача доступа: идентификатор на площадке есть только у носителей с API. */
+function accessFields(input: EduCourseInputDTO): Pick<EdubridgeCourseRecord, 'direction' | 'carrier' | 'external_ref'> {
+  const platform = PLATFORM_CARRIERS.includes(input.carrier);
+  return { direction: input.direction, carrier: input.carrier, external_ref: platform ? (input.external_ref ?? '').trim() : '' };
 }
 
 /** Экономика курса: расписание, ставка, гарантия и посчитанные взносы. */

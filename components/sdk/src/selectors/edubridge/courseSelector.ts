@@ -25,7 +25,7 @@ const rawCatalogCourseSelector = {
   fee_course: true,
   fee_course_base: true,
   course_discount_amount: true,
-  schedule_slots: { weekday: true, time: true, minutes: true, assignment_id: true, cost: true },
+  schedule_slots: { weekday: true, time: true, minutes: true, assignment_id: true, hourly_rate: true },
   report_days: true,
 }
 

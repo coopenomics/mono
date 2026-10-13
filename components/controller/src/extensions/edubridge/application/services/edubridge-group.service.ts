@@ -211,20 +211,7 @@ export class EdubridgeGroupService {
     const course = await this.courses.findById(coopname, input.course_id);
     if (!course) throw DomainError.notFound('EDUBRIDGE_COURSE_NOT_FOUND');
     const existing = await this.groups.findByCourse(coopname, course.id);
-    const entity = this.groups.create({
-      coopname,
-      course_id: course.id,
-      title: input.title?.trim() || t('edubridge.group.defaultTitle', { number: existing.length + 1 }),
-      status: EduGroupStatus.ACTIVE,
-      enrollment_open: true,
-      external_ref: (input.external_ref ?? course.external_ref ?? '').trim(),
-      // Первая группа наследует дату начала курса; у следующих её называет администратор.
-      starts_at: input.starts_at ?? (existing.length ? null : course.starts_at),
-      ...termsOf(course),
-      // Окна расписания и срок на отчёт — образец курса; у группы они свои.
-      schedule_slots: course.schedule_slots ?? [],
-      report_days: course.report_days ?? 7,
-    });
+    const entity = this.groups.create(newGroupFields(coopname, course, input, existing.length));
     if (input.starts_in_minutes !== undefined && input.starts_in_minutes !== null) setStartIn(entity, input.starts_in_minutes);
     const stored = await this.groups.save(entity);
     // Запись перечитывается: номер группы для цепи выдаёт база при вставке.
@@ -315,13 +302,7 @@ export class EdubridgeGroupService {
       if (group.status !== EduGroupStatus.ACTIVE || (await this.isTouched(coopname, group.id))) continue;
       Object.assign(group, termsOf(course), { schedule_slots: course.schedule_slots ?? [], report_days: course.report_days ?? 7 });
       // Единственная группа курса идёт с его датой начала и привязкой к площадке.
-      if (groups.length === 1) {
-        // Дата курса меняет начало группы, только когда день другой: момент, названный на стенде, остаётся.
-        if (sameDay(course.starts_at, group.starts_at) === false) Object.assign(group, { starts_at: course.starts_at, starts_at_time: null });
-        // Группа на площадке задаётся в панели группы: привязка курса меняет её, только когда сменился сам курс площадки.
-        if (platformCourseOf(group.external_ref, course.carrier) !== platformCourseOf(course.external_ref, course.carrier)) group.external_ref = course.external_ref;
-        reopenBeforeStart(group);
-      }
+      if (groups.length === 1) followCourse(group, course);
       try {
         await this.chainTerms.pushCourse(this.viewOf(course, group));
         await this.groups.save(group);
@@ -435,6 +416,33 @@ function reopenBeforeStart(group: EdubridgeGroupRecord): void {
   if (!group.enrollment_closed_on_start || hasStarted(startMomentOf(group))) return;
   group.enrollment_closed_on_start = false;
   group.enrollment_open = true;
+}
+
+/** Поля новой группы: снимок условий курса, первая группа наследует дату начала и привязку к площадке. */
+function newGroupFields(coopname: string, course: EdubridgeCourseRecord, input: EduGroupInput, existingCount: number): Partial<EdubridgeGroupRecord> {
+  return {
+    coopname,
+    course_id: course.id,
+    title: input.title?.trim() || t('edubridge.group.defaultTitle', { number: existingCount + 1 }),
+    status: EduGroupStatus.ACTIVE,
+    enrollment_open: true,
+    external_ref: (input.external_ref ?? course.external_ref ?? '').trim(),
+    // Первая группа наследует дату начала курса; у следующих её называет администратор.
+    starts_at: input.starts_at ?? (existingCount ? null : course.starts_at),
+    ...termsOf(course),
+    // Окна расписания и срок на отчёт — образец курса; у группы они свои.
+    schedule_slots: course.schedule_slots ?? [],
+    report_days: course.report_days ?? 7,
+  };
+}
+
+/** Единственная группа курса идёт с его датой начала и привязкой к площадке. */
+function followCourse(group: EdubridgeGroupRecord, course: EdubridgeCourseRecord): void {
+  // Дата курса меняет начало группы, только когда день другой: момент, названный на стенде, остаётся.
+  if (sameDay(course.starts_at, group.starts_at) === false) Object.assign(group, { starts_at: course.starts_at, starts_at_time: null });
+  // Группа на площадке задаётся в панели группы: привязка курса меняет её, только когда сменился сам курс площадки.
+  if (platformCourseOf(group.external_ref, course.carrier) !== platformCourseOf(course.external_ref, course.carrier)) group.external_ref = course.external_ref;
+  reopenBeforeStart(group);
 }
 
 /** Курс площадки из привязки вида «курс:группа». */

@@ -79,6 +79,9 @@ export class EduCourseEconomyInputDTO {
 /** Расчёт взноса: себестоимость, целевой членский взнос, взнос за месяц и за весь курс разом. */
 @ObjectType('EduCourseFee')
 export class EduCourseFeeDTO {
+  @Field(() => Float, { description: 'Занятий в месяц по окнам расписания: окон недели на 52/12' })
+  lessons_per_month!: number;
+
   @Field(() => Float, { description: 'Часов занятий в месяц' })
   hours_per_month!: number;
 

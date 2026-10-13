@@ -70,12 +70,13 @@ const state = provideCourseForm(() => course.value);
 
 const allSteps: Array<StepperStep & { key: CourseFormSection }> = [
   { key: 'course', label: t('edubridge.adminCourseEditPage.step.course.label'), description: t('edubridge.adminCourseEditPage.step.course.description') },
-  { key: 'cover', label: t('edubridge.adminCourseEditPage.step.cover.label'), description: t('edubridge.adminCourseEditPage.step.cover.description'), optional: true },
+  // Расписание, программа и взнос — одним шагом: всё, из чего складывается взнос, рядом.
   { key: 'lessons', label: t('edubridge.adminCourseEditPage.step.lessons.label'), description: t('edubridge.adminCourseEditPage.step.lessons.description') },
-  { key: 'price', label: t('edubridge.adminCourseEditPage.step.price.label'), description: t('edubridge.adminCourseEditPage.step.price.description') },
   { key: 'access', label: t('edubridge.adminCourseEditPage.step.access.label'), description: t('edubridge.adminCourseEditPage.step.access.description') },
   { key: 'group', label: t('edubridge.adminCourseEditPage.step.group.label'), description: t('edubridge.adminCourseEditPage.step.group.description'), optional: true },
   { key: 'teachers', label: t('edubridge.adminCourseEditPage.step.teachers.label'), description: t('edubridge.adminCourseEditPage.step.teachers.description'), optional: true },
+  // Обложка — последней: снимок для каталога не мешает расчёту.
+  { key: 'cover', label: t('edubridge.adminCourseEditPage.step.cover.label'), description: t('edubridge.adminCourseEditPage.step.cover.description'), optional: true },
 ];
 // Первая группа заводится вместе с новым курсом; у существующего группы ведутся на странице курса.
 const steps = allSteps.filter((s) => s.key !== 'group' || !isEdit.value);
@@ -128,9 +129,8 @@ const { clearDraft } = isEdit.value
       {
         form: state.form,
         cover: state.draftCover,
-        lessonsPerMonth: state.lessonsPerMonth,
-        lessonsTotal: state.lessonsTotal,
-        lessonMinutes: state.lessonMinutes,
+        programMonths: state.programMonths,
+        payPerLearner: state.payPerLearner,
         guaranteeDays: state.guaranteeDays,
         coursePayment: state.coursePayment,
         courseDiscount: state.courseDiscount,

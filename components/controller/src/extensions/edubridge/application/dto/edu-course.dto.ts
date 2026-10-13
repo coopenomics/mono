@@ -1,16 +1,13 @@
 import { Field, Float, ID, InputType, Int, ObjectType } from '@nestjs/graphql';
-import { ArrayUnique, IsArray, IsBoolean, IsDateString, IsEnum, IsInt, IsNotEmpty, IsNumber, IsOptional, IsString, IsUUID, Length, Matches, Max, Min, ValidateNested } from 'class-validator';
+import { ArrayUnique, IsArray, IsBoolean, IsDateString, IsEnum, IsInt, IsNotEmpty, IsNumber, IsOptional, IsString, IsUUID, Length, Max, Min, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
-import { createPaginationResult, validationMessage } from '@coopenomics/extension-kit';
+import { createPaginationResult } from '@coopenomics/extension-kit';
 import { feeForMonths } from '../../domain/economy/course-fee.calculator';
 import { EduAccessCarrier, EduCourseDirection, EduCourseStatus } from '../../domain/enums';
 import type { EdubridgeCourseRecord } from '../../infrastructure/entities';
 import type { EduCourseImage } from '../../infrastructure/entities/edubridge-course.record';
 import { EduScheduleSlotDTO, EduScheduleSlotInputDTO } from './edu-schedule.dto';
 import './edu-enums.registration';
-
-/** Сумма в формате цепи: «1000.0000 RUB». */
-const ASSET_PATTERN = /^\d+\.\d{4} [A-Z]{1,7}$/;
 
 /** Раздел и уровень курса из справочника: ссылки и названия для показа. */
 function taxonomyOf(e: EdubridgeCourseRecord) {
@@ -117,22 +114,33 @@ export class EduCatalogCourseDTO {
     this.report_days = e.report_days ?? 7;
     this.image_record = e.image ?? null;
     this.teacher_usernames = e.teacher_usernames ?? [];
-    this.lessons_per_month = e.lessons_per_month;
-    this.lessons_total = e.lessons_total;
-    this.lesson_minutes = e.lesson_minutes;
-    this.program_months = e.program_months ?? 0;
-    this.minutes_per_month = e.minutes_per_month ?? 0;
-    this.minutes_total = e.minutes_total ?? 0;
     this.starts_at = e.starts_at;
     this.fee_month = e.fee_month;
-    this.course_months = this.program_months;
-    // Взнос разом — месячный за месяцы курса со скидкой; тем же расчётом его берёт подписка.
-    const full = e.course_payment_enabled && this.course_months > 0 ? feeForMonths(e.fee_month, this.course_months, e.course_discount_bp / 100) : null;
-    this.fee_course = full?.amount ?? null;
-    // Полный взнос за программу виден всегда — и когда взнос принимается только помесячно.
-    this.fee_course_base = this.course_months > 0 ? feeForMonths(e.fee_month, this.course_months, 0).base : null;
-    this.course_discount_amount = full?.discount ?? null;
+    Object.assign(this, programFieldsOf(e), courseFeeFieldsOf(e));
   }
+}
+
+/** Числа программы курса: занятия и минуты для показа, длительность в месяцах. */
+function programFieldsOf(e: EdubridgeCourseRecord): Pick<EduCatalogCourseDTO, 'lessons_per_month' | 'lessons_total' | 'lesson_minutes' | 'program_months' | 'minutes_per_month' | 'minutes_total' | 'course_months'> {
+  const months = e.program_months ?? 0;
+  return {
+    lessons_per_month: e.lessons_per_month,
+    lessons_total: e.lessons_total,
+    lesson_minutes: e.lesson_minutes,
+    program_months: months,
+    minutes_per_month: e.minutes_per_month ?? 0,
+    minutes_total: e.minutes_total ?? 0,
+    course_months: months,
+  };
+}
+
+/** Взнос за весь курс: разом со скидкой — когда кооператив его принимает; полный помесячный виден всегда. */
+function courseFeeFieldsOf(e: EdubridgeCourseRecord): Pick<EduCatalogCourseDTO, 'fee_course' | 'fee_course_base' | 'course_discount_amount'> {
+  const months = e.program_months ?? 0;
+  if (months <= 0) return { fee_course: null, fee_course_base: null, course_discount_amount: null };
+  // Взнос разом — месячный за месяцы курса со скидкой; тем же расчётом его берёт подписка.
+  const full = e.course_payment_enabled ? feeForMonths(e.fee_month, months, e.course_discount_bp / 100) : null;
+  return { fee_course: full?.amount ?? null, fee_course_base: feeForMonths(e.fee_month, months, 0).base, course_discount_amount: full?.discount ?? null };
 }
 
 /** Курс для владельца и администратора — со всеми служебными полями. */

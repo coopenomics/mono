@@ -15,13 +15,6 @@ BaseForm.edu-course-form(ref="formEl" :loading="loading" :error="error" @submit=
       BaseSelect(:model-value="form.level_id" :label="$t('edubridge.courseForm.levelLabel')" :options="levelOptions" creatable clearable :disabled="!form.section_id" @update:model-value="pickLevel")
         template(#append)
           FieldHelp(:text="COURSE_FORM_HELP.level")
-    //- Расписание — окнами: день недели, время, длительность. Строка для каталога собирается из окон сама.
-    .edu-course-form__group
-      .edu-course-form__group-title {{ $t('edubridge.courseForm.scheduleLabel') }}
-        FieldHelp.q-ml-xs(:text="COURSE_FORM_HELP.schedule")
-      ScheduleSlotsEditor(v-model="form.schedule_slots" :default-minutes="Number(form.schedule_slots[0]?.minutes || 60)" :symbol="symbol")
-      //- Стоимость занятий месяца по окнам — та же, что в контракте; появляется, когда расчёт посчитан.
-      .t-sm.t-muted.q-mt-sm(v-if="fee") {{ $t('edubridge.courseForm.teachMonthLine', { amount: formatAsset2Digits(fee.cost_month) }) }}
     BaseInput(v-model="form.description" :label="$t('edubridge.courseForm.descriptionLabel')" type="textarea" :rows="3" autogrow)
       template(#append)
         FieldHelp(:text="COURSE_FORM_HELP.description")
@@ -29,26 +22,10 @@ BaseForm.edu-course-form(ref="formEl" :loading="loading" :error="error" @submit=
       template(#append)
         FieldHelp(:text="COURSE_FORM_HELP.syllabus")
 
-  section.edu-course-form__section(v-if="show('cover')")
-    .edu-course-form__legend(v-if="!section") {{ $t('edubridge.courseForm.section.cover') }}
-    //- Обложка во всю ширину, в тех же пропорциях, что и в каталоге; замена и
-    //- удаление — строкой под снимком, всегда на виду.
-    template(v-if="previewUrl")
-      .edu-course-form__cover
-        q-img(:src="previewUrl" :ratio="16 / 9" fit="cover" no-spinner)
-      .edu-course-form__cover-actions
-        span.t-meta.t-muted {{ $t('edubridge.courseForm.coverHint') }}
-        q-space
-        BaseButton(variant="ghost" size="sm" type="button" @click="removeImage") {{ $t('edubridge.courseForm.coverRemove') }}
-        BaseButton(variant="secondary" size="sm" type="button" @click="pickImage") {{ $t('edubridge.courseForm.coverReplace') }}
-    .edu-course-form__picker(v-else role="button" tabindex="0" @click="pickImage" @keydown.enter="pickImage")
-      q-icon(name="add_photo_alternate" size="24px")
-      .t-sm.text-weight-medium {{ $t('edubridge.courseForm.coverUpload') }}
-      .t-meta.t-muted {{ $t('edubridge.courseForm.coverHint') }}
-    input.edu-course-form__file(ref="fileInput" type="file" :accept="COURSE_IMAGE_ACCEPT" @change="onFilePicked")
-
-  //- Расписание и сроки — отдельным шагом: сколько занятий, сколько длится
-  //- занятие и программа, когда начало и какой гарантийный срок.
+  //- Занятия и взнос — один шаг. Сверху вниз по ходу расчёта: окна расписания
+  //- со стоимостью часа преподавателя и что они дают за месяц; программа и
+  //- гарантийный срок; способ расчёта с преподавателем и взнос разом; итог.
+  //- Всё, из чего складывается взнос, стоит рядом и пересчитывается на глазах.
   section.edu-course-form__section(v-if="show('lessons')")
     .edu-course-form__legend(v-if="!section") {{ $t('edubridge.courseForm.section.lessons') }}
     //- Условия курса — для новых групп: у групп с участниками они закреплены на день открытия.
@@ -57,41 +34,26 @@ BaseForm.edu-course-form(ref="formEl" :loading="loading" :error="error" @submit=
         q-icon(name="lock")
       | {{ $t('edubridge.courseForm.termsLockedBanner') }}
     .edu-course-form__group
-      .edu-course-form__group-title {{ $t('edubridge.courseForm.group.lessons') }}
-      //- Минуты занятий считаются из окон расписания; администратор называет только длительность программы.
+      .edu-course-form__group-title {{ $t('edubridge.courseForm.scheduleLabel') }}
+        FieldHelp.q-ml-xs(:text="COURSE_FORM_HELP.schedule")
+      ScheduleSlotsEditor(v-model="form.schedule_slots" :default-minutes="Number(form.schedule_slots[0]?.minutes || 60)" :symbol="symbol")
+      //- Что расписание даёт за месяц: занятия, часы и стоимость часов преподавателей — считает сервер, как и взнос.
+      .edu-course-form__breakdown(v-if="fee")
+        DataRow(:label="$t('edubridge.courseForm.summary.lessonsPerMonth')" :value="formatNumber(fee.lessons_per_month)" align="spread")
+        DataRow(:label="$t('edubridge.courseForm.summary.hoursPerMonth')" :value="formatNumber(fee.hours_per_month)" align="spread")
+        DataRow(:label="$t('edubridge.courseForm.summary.costMonth')" :value="formatAsset2Digits(fee.cost_month)" align="spread")
+    .edu-course-form__group
+      .edu-course-form__group-title {{ $t('edubridge.courseForm.group.program') }}
+      //- Дата начала занятий — у группы: она задаётся на шаге «Первая группа» и в панели группы.
       .edu-course-form__pair
         BaseInput(v-model="programMonths" :label="$t('edubridge.courseForm.programMonthsLabel')" type="number" min="0" required)
           template(#append)
             FieldHelp(:text="COURSE_FORM_HELP.programMonths")
-        BaseInput(:model-value="monthlyLoad" :label="$t('edubridge.courseForm.monthlyLoadLabel')" readonly)
-          template(#append)
-            FieldHelp(:text="COURSE_FORM_HELP.monthlyLoad")
-
-      //- Дата начала занятий — у группы: она задаётся на шаге «Первая группа» и в панели группы.
-      .edu-course-form__pair
-        BaseInput(
-          v-model="guaranteeDays"
-          :label="$t('edubridge.courseForm.guaranteeDaysLabel')"
-          type="number"
-        )
+        BaseInput(v-model="guaranteeDays" :label="$t('edubridge.courseForm.guaranteeDaysLabel')" type="number")
           template(#append)
             FieldHelp(:text="COURSE_FORM_HELP.guaranteeDays")
-        //- Пустая ячейка держит поле в половину ряда, как у полей выше.
-        div
-
-  //- Взнос не вводится руками: он складывается из часов занятий по плановой
-  //- ставке и целевого членского взноса кооператива. Итог расчёта стоит первым
-  //- и меняется на глазах, ниже — то, из чего он складывается.
-  section.edu-course-form__section(v-if="show('price')")
-    .edu-course-form__legend(v-if="!section") {{ $t('edubridge.courseForm.section.price') }}
-    BaseBanner(v-if="termsLocked && section" variant="info")
-      template(#icon)
-        q-icon(name="lock")
-      | {{ $t('edubridge.courseForm.termsLockedBanner') }}
-
-    //- Порядок по смыслу расчёта: способ расчёта с преподавателем, ставка,
-    //- затем взнос за весь курс и — когда он принимается — скидка за него.
     .edu-course-form__group
+      .edu-course-form__group-title {{ $t('edubridge.courseForm.group.terms') }}
       //- Способ расчёта с преподавателем задаётся при создании курса; при
       //- действующих подписках контракт его менять не даёт.
       .edu-course-form__check
@@ -122,7 +84,7 @@ BaseForm.edu-course-form(ref="formEl" :loading="loading" :error="error" @submit=
         StatTile(:caption="$t('edubridge.courseForm.total.feeMonth')" :value="formatAsset2Digits(fee.fee_month)")
         StatTile(:caption="courseFeeLabel" :value="courseFeeShown ? formatAsset2Digits(fee.fee_course) : '______'")
       .edu-course-form__breakdown
-        DataRow(:label="$t('edubridge.courseForm.total.costMonth')" :value="formatAsset2Digits(fee.cost_month)" align="spread")
+        DataRow(:label="$t('edubridge.courseForm.summary.costMonth')" :value="formatAsset2Digits(fee.cost_month)" align="spread")
         DataRow(:label="$t('edubridge.courseForm.total.markup', { percent: fee.markup_percent })" :value="formatAsset2Digits(fee.markup_month)" align="spread")
         template(v-if="courseFeeShown")
           DataRow(:label="$t('edubridge.courseForm.total.feeCourseBase')" :value="formatAsset2Digits(fee.fee_course_base)" align="spread")
@@ -221,6 +183,25 @@ BaseForm.edu-course-form(ref="formEl" :loading="loading" :error="error" @submit=
       template(#append)
         FieldHelp(:text="teacherHint")
 
+  //- Обложка — последней: снимок для каталога, расчёту не мешает.
+  section.edu-course-form__section(v-if="show('cover')")
+    .edu-course-form__legend(v-if="!section") {{ $t('edubridge.courseForm.section.cover') }}
+    //- Обложка во всю ширину, в тех же пропорциях, что и в каталоге; замена и
+    //- удаление — строкой под снимком, всегда на виду.
+    template(v-if="previewUrl")
+      .edu-course-form__cover
+        q-img(:src="previewUrl" :ratio="16 / 9" fit="cover" no-spinner)
+      .edu-course-form__cover-actions
+        span.t-meta.t-muted {{ $t('edubridge.courseForm.coverHint') }}
+        q-space
+        BaseButton(variant="ghost" size="sm" type="button" @click="removeImage") {{ $t('edubridge.courseForm.coverRemove') }}
+        BaseButton(variant="secondary" size="sm" type="button" @click="pickImage") {{ $t('edubridge.courseForm.coverReplace') }}
+    .edu-course-form__picker(v-else role="button" tabindex="0" @click="pickImage" @keydown.enter="pickImage")
+      q-icon(name="add_photo_alternate" size="24px")
+      .t-sm.text-weight-medium {{ $t('edubridge.courseForm.coverUpload') }}
+      .t-meta.t-muted {{ $t('edubridge.courseForm.coverHint') }}
+    input.edu-course-form__file(ref="fileInput" type="file" :accept="COURSE_IMAGE_ACCEPT" @change="onFilePicked")
+
   template(v-if="!hideFooter" #footer)
     .row.justify-end.q-gutter-sm
       BaseButton(variant="ghost" type="button" :disabled="loading" @click="emit('cancel')") {{ $t('edubridge.courseForm.cancel') }}
@@ -238,7 +219,6 @@ import { COURSE_IMAGE_ACCEPT, type ICourse } from '../../entities/Course';
 import { createCourseFormState, injectCourseForm, type CourseFormSection } from './model/useCourseForm';
 import { COURSE_FORM_HELP } from './model/courseFormHelp';
 import { minutesOf, useTimeScale } from '../../shared/lib/timeScale';
-import { t } from '../../i18n';
 
 /**
  * Конструктор курса. На полной странице правки каждый раздел — отдельный шаг,
@@ -306,9 +286,8 @@ watch(programIsLong, (long) => {
   if (!long) coursePayment.value = false;
 });
 
-/** Нагрузка в месяц из окон расписания — считает сервер вместе со взносом; до ответа — прочерк. */
-const monthlyLoad = computed(() => (fee.value ? t('edubridge.courseForm.monthlyLoadValue', { hours: fee.value.hours_per_month }) : '______'));
-
+/** Число занятий и часов за месяц — до двух знаков, как считает сервер. */
+const formatNumber = (value: number): string => Number(value || 0).toLocaleString('ru-RU', { maximumFractionDigits: 2 });
 
 /** Раздел «Первая группа» — только по своему шагу мастера нового курса: у существующего курса группы ведутся отдельно. */
 const show = (section: CourseFormSection): boolean => (props.section ? props.section === section : section !== 'group');

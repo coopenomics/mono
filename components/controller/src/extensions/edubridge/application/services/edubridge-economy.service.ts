@@ -51,7 +51,6 @@ const MOVEMENTS_LIMIT = 50;
 
 /** Базисных пунктов в проценте: скидка хранится целым числом, а показывается процентами. */
 const BP_IN_PERCENT = 100;
-const MINUTES_IN_HOUR = 60;
 
 /**
  * Экономика программы: целевой членский взнос кооператива, ставки часа преподавателей и
@@ -353,9 +352,9 @@ export class EdubridgeEconomyService {
     };
   }
 
-  private calculate(input: EduCourseEconomyInputDTO, markupPercent: number): CourseFeeCalculation {
+  private calculate(input: EduCourseEconomyInputDTO, markupPercent: number): CourseFeeWithProgram {
     const program = programOf(normalizeSlots(input.schedule_slots), input.program_months);
-    return calculateCourseFee({
+    const calc = calculateCourseFee({
       minutes_per_month: program.minutes_per_month,
       teach_month: program.teach_month,
       markup_percent: markupPercent,
@@ -363,12 +362,16 @@ export class EdubridgeEconomyService {
       // Скидка действует, только когда кооператив принимает взнос разом.
       course_discount_percent: input.course_payment_enabled ? (input.course_discount_percent ?? 0) : 0,
     });
+    return { ...calc, lessons_per_month: program.lessons_per_month };
   }
 
-  private toFeeDTO(calc: CourseFeeCalculation, markupPercent: number): EduCourseFeeDTO {
+  private toFeeDTO(calc: CourseFeeWithProgram, markupPercent: number): EduCourseFeeDTO {
     return { ...calc, markup_percent: markupPercent };
   }
 }
+
+/** Расчёт взноса вместе с числом занятий в месяц — для показа в форме курса. */
+type CourseFeeWithProgram = CourseFeeCalculation & { lessons_per_month: number };
 
 /** Подписи движений — языком выписки, без кодов операций. */
 const MOVEMENT_TITLES: Record<string, { title: string; direction: string }> = {

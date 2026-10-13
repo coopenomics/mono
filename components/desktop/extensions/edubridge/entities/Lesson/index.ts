@@ -11,14 +11,14 @@ export type ICalendarLesson = Queries.Edubridge.LessonCalendar.IOutput[typeof Qu
 export type ILessonCalendarFilter = NonNullable<Queries.Edubridge.LessonCalendar.IInput['filter']>;
 export type IPlanLessonInput = Mutations.Edubridge.PlanLesson.IInput['data'];
 export type IMoveLessonInput = Mutations.Edubridge.MoveLesson.IInput['data'];
-/** Окно расписания: день недели, время начала, длительность и допуск преподавателя. */
+/** Окно расписания: день недели, время начала, длительность, стоимость часа преподавателя и допуск преподавателя. */
 export interface IScheduleSlot {
   weekday: number;
   time: string;
   minutes: number;
   assignment_id: string | null;
-  /** Плановая стоимость занятия окна для одного участника: в форме — число, в цепь — сумма с символом. */
-  cost: string;
+  /** Плановая стоимость часа преподавателя в окне: в форме — число, на сервер — сумма с символом. Членский взнос кооператива в неё не входит. */
+  hourly_rate: string;
 }
 
 /** Состояние занятия словами; просроченное — запланированное, у которого вышел срок на отчёт. */

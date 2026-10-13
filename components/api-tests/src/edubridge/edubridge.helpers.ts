@@ -282,10 +282,9 @@ export function dayFromNow(days: number): string {
 }
 
 /** Параметры очного курса: доступ выдаётся пропуском, чужих площадок не нужно. */
-/** Окна расписания курса: вторник и четверг в 17:00, по столько минут; стоимость занятия — по плановой ставке за минуты. */
-export function courseSlots(minutes: number, perWeek = 2, hourly = PLANNED_RATE): { weekday: number, time: string, minutes: number, cost: string }[] {
-  const cost = `${(amount(hourly) * minutes / 60).toFixed(4)} RUB`
-  return [2, 4, 6, 1, 3, 5, 7].slice(0, perWeek).map(weekday => ({ weekday, time: '17:00', minutes, cost }))
+/** Окна расписания курса: вторник и четверг в 17:00, по столько минут; стоимость часа преподавателя — плановая ставка. */
+export function courseSlots(minutes: number, perWeek = 2, hourly = PLANNED_RATE): { weekday: number, time: string, minutes: number, hourly_rate: string }[] {
+  return [2, 4, 6, 1, 3, 5, 7].slice(0, perWeek).map(weekday => ({ weekday, time: '17:00', minutes, hourly_rate: hourly }))
 }
 
 /** Минут занятий в месяц по окнам — как считает сервер: минуты недели на 52/12. */
@@ -612,7 +611,7 @@ export async function planLesson(groupId: string, over: Record<string, unknown> 
   const chairman = await tokenOf(CHAIRMAN)
   if (!longReportWindow.has(groupId)) {
     // Внеочередные занятия тестов идут из резерва: окна по дням сняты, резерв большой; стоимость резерва — по плановой ставке.
-    await gql(chairman, SET_GROUP_SCHEDULE, { d: { group_id: groupId, slots: [{ weekday: 8, time: '', minutes: 600, cost: `${(amount(PLANNED_RATE) * 10).toFixed(4)} RUB` }], report_days: 365 } })
+    await gql(chairman, SET_GROUP_SCHEDULE, { d: { group_id: groupId, slots: [{ weekday: 8, time: '', minutes: 600, hourly_rate: PLANNED_RATE }], report_days: 365 } })
     longReportWindow.add(groupId)
   }
   const d = { group_id: groupId, held_at: new Date(Date.now() - 2 * 3600_000).toISOString(), ...over }

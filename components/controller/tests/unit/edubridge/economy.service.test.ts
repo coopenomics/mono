@@ -8,7 +8,7 @@ const COURSE_ID = '0cd16d12-6ade-40f2-8830-b0673dde8b9e';
 /** Курс: два часовых окна в неделю (520 минут в месяц), программа восемь месяцев, плановая ставка 1000 ₽/ч, взнос только помесячный. */
 const COURSE = {
   id: COURSE_ID,
-  schedule_slots: [{ weekday: 2, time: '17:00', minutes: 60, assignment_id: null, cost: '1000.0000 RUB' }, { weekday: 4, time: '17:00', minutes: 60, assignment_id: null, cost: '1000.0000 RUB' }],
+  schedule_slots: [{ weekday: 2, time: '17:00', minutes: 60, assignment_id: null, hourly_rate: '1000.0000 RUB' }, { weekday: 4, time: '17:00', minutes: 60, assignment_id: null, hourly_rate: '1000.0000 RUB' }],
   program_months: 8,
   lessons_per_month: 9,
   lessons_total: 72,
@@ -66,7 +66,7 @@ function make(
 }
 
 const params = {
-  schedule_slots: [{ weekday: 2, time: '17:00', minutes: 60, assignment_id: null, cost: '1000.0000 RUB' }, { weekday: 4, time: '17:00', minutes: 60, assignment_id: null, cost: '1000.0000 RUB' }],
+  schedule_slots: [{ weekday: 2, time: '17:00', minutes: 60, assignment_id: null, hourly_rate: '1000.0000 RUB' }, { weekday: 4, time: '17:00', minutes: 60, assignment_id: null, hourly_rate: '1000.0000 RUB' }],
   program_months: 8,
   course_payment_enabled: true,
   course_discount_percent: 0,
@@ -131,7 +131,7 @@ describe('Расчёт взноса курса', () => {
   });
 
   it('нулевая ставка даёт нулевой взнос — курс без себестоимости', () => {
-    const calc = calculateCourseFee({ ...base, hourly_rate: '0.0000 RUB' });
+    const calc = calculateCourseFee({ ...base, teach_month: '0.0000 RUB' });
     expect(calc.fee_month).toBe('0.0000 RUB');
   });
 });

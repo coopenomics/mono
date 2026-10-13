@@ -248,7 +248,7 @@ async function onSaveSchedule(): Promise<void> {
     replace(
       await setGroupSchedule({
         group_id: asText(details.value.id),
-        slots: slots.value.map((s) => ({ weekday: Number(s.weekday), time: s.time, minutes: Number(s.minutes), assignment_id: s.assignment_id || null, cost: formatToAsset(String(s.cost || '0').replace(',', '.'), symbol.value) })),
+        slots: slots.value.map((s) => ({ weekday: Number(s.weekday), time: s.time, minutes: Number(s.minutes), assignment_id: s.assignment_id || null, hourly_rate: formatToAsset(String(s.hourly_rate || '0').replace(',', '.'), symbol.value) })),
       }),
     );
     SuccessAlert(t('edubridge.courseGroups.scheduleSaved'));
@@ -292,7 +292,7 @@ async function onCancelUnderfilled(): Promise<void> {
 function openDetails(row: IGroup): void {
   detailsId.value = asText(row.id);
   void loadGroupEconomy(asText(row.id));
-  slots.value = (row.schedule_slots ?? []).map((s) => ({ weekday: s.weekday, time: s.time, minutes: s.minutes, assignment_id: s.assignment_id ?? null, cost: s.cost ? String(parseFloat(s.cost)) : '' }));
+  slots.value = (row.schedule_slots ?? []).map((s) => ({ weekday: s.weekday, time: s.time, minutes: s.minutes, assignment_id: s.assignment_id ? String(s.assignment_id) : null, hourly_rate: s.hourly_rate ? String(parseFloat(s.hourly_rate)) : '' }));
   Object.assign(form, { title: row.title, starts_at: row.starts_at ?? '', starts_in_minutes: '', platform_group: platformGroupOf(row.external_ref), enrollment_open: row.enrollment_open });
   detailsOpen.value = true;
 }

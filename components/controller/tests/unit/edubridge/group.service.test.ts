@@ -1,7 +1,7 @@
 /** Группа — единица расчёта: снимок условий курса, свой номер в цепи, набор, привязка к площадке. */
 import { EdubridgeGroupService } from '~/extensions/edubridge/application/services/edubridge-group.service';
 import { chainAssignmentRef, targetFeeMonth } from '~/extensions/edubridge/application/services/edubridge-chain-terms.service';
-import { EduEnrollmentStatus, EduGroupStatus } from '~/extensions/edubridge/domain/enums';
+import { EduAccessCarrier, EduEnrollmentStatus, EduGroupStatus } from '~/extensions/edubridge/domain/enums';
 
 const logger = { setContext: jest.fn(), info: jest.fn(), warn: jest.fn(), error: jest.fn() } as any;
 
@@ -10,6 +10,7 @@ const course = {
   coopname: 'voskhod',
   chain_ref: '3',
   title: 'Алгебра',
+  carrier: EduAccessCarrier.SKILLSPACE,
   external_ref: 'course-uuid',
   starts_at: '2026-09-01',
   lessons_per_month: 8,
@@ -256,7 +257,7 @@ describe('условия для цепи', () => {
 
   it('целевой членский взнос за месяц — месячный взнос без оплаты занятий по плановой ставке', () => {
     // Два окна по 300 в неделю — 2600 в месяц из взноса 3000.
-    const slot = (cost: string) => ({ weekday: 2, time: '17:00', minutes: 60, assignment_id: null, cost });
+    const slot = (hourly_rate: string) => ({ weekday: 2, time: '17:00', minutes: 60, assignment_id: null, cost });
     expect(targetFeeMonth({ fee_month: '3000.0000 RUB', schedule_slots: [slot('300.0000 RUB'), slot('300.0000 RUB')], program_months: 8 })).toBe('400.0000 RUB');
     // Одно окно по 300: 1300 за месяц.
     expect(targetFeeMonth({ fee_month: '3000.0000 RUB', schedule_slots: [slot('300.0000 RUB')], program_months: 8 })).toBe('1700.0000 RUB');

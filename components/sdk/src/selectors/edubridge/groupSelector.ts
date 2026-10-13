@@ -15,7 +15,7 @@ const rawGroupSelector = {
   pay_per_learner: true,
   lessons_total: true,
   guarantee_days: true,
-  schedule_slots: { weekday: true, time: true, minutes: true, assignment_id: true, cost: true },
+  schedule_slots: { weekday: true, time: true, minutes: true, assignment_id: true, hourly_rate: true },
   schedule: true,
   report_days: true,
   lessons_per_month: true,

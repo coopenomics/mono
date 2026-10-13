@@ -20,14 +20,23 @@ function readTarget(target: DraftTarget): unknown {
   return isRef(target) ? target.value : toRaw(target);
 }
 
+/**
+ * Из черновика берутся только поля, которые есть у формы сейчас: поле, снятое
+ * с формы после сохранения черновика, иначе вернулось бы в запрос и сервер
+ * отклонил бы его как неизвестное.
+ */
+function knownFields(target: Record<string, unknown>, value: Record<string, unknown>): Record<string, unknown> {
+  return Object.fromEntries(Object.entries(value).filter(([key]) => key in target));
+}
+
 function writeTarget(target: DraftTarget, value: unknown): void {
   if (isRef(target)) {
     // Объект формы мержим поверх дефолтов: старый черновик не должен терять
     // поля, добавленные в форму после его сохранения.
-    target.value = isPlainObject(value) && isPlainObject(target.value) ? { ...target.value, ...value } : value;
+    target.value = isPlainObject(value) && isPlainObject(target.value) ? { ...target.value, ...knownFields(target.value, value) } : value;
     return;
   }
-  if (isPlainObject(value)) Object.assign(target, value);
+  if (isPlainObject(value)) Object.assign(target, knownFields(target, value));
 }
 
 /**
