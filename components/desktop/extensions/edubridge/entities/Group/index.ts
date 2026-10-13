@@ -38,6 +38,19 @@ export async function finishGroup(group_id: string): Promise<IGroup> {
   return result;
 }
 
+/** Отмена группы по недобору: подписки группы закрываются, взносы возвращаются на паевой; курс и другие группы идут дальше. */
+export async function cancelGroupUnderfilled(group_id: string): Promise<number> {
+  const { [Mutations.Edubridge.CancelGroupUnderfilled.name]: result } = await client.Mutation(Mutations.Edubridge.CancelGroupUnderfilled.mutation, { variables: { group_id } });
+  return result;
+}
+
+/** Окна расписания группы и срок на отчёт: календарь занятий перестраивается. */
+export type ISetGroupScheduleInput = Mutations.Edubridge.SetGroupSchedule.IInput['data'];
+export async function setGroupSchedule(data: ISetGroupScheduleInput): Promise<IGroup> {
+  const { [Mutations.Edubridge.SetGroupSchedule.name]: result } = await client.Mutation(Mutations.Edubridge.SetGroupSchedule.mutation, { variables: { data } });
+  return result;
+}
+
 export async function updateGroup(data: IUpdateGroupInput): Promise<IGroup> {
   const { [Mutations.Edubridge.UpdateGroup.name]: result } = await client.Mutation(Mutations.Edubridge.UpdateGroup.mutation, { variables: { data } });
   return result;

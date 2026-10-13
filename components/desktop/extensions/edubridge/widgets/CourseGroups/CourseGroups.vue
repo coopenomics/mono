@@ -57,6 +57,15 @@ BaseCard(variant="default" :title="$t('edubridge.courseGroups.title')")
         template(#action)
           BaseButton(variant="secondary" size="sm" :loading="busy" @click="finishConfirm = true") {{ $t('edubridge.courseGroups.finish') }}
 
+      //- Расписание группы — окнами; из них и даты начала строится календарь занятий группы.
+      template(v-if="details.status === Zeus.EduGroupStatus.ACTIVE")
+        .t-eyebrow.q-mt-lg.q-mb-xs {{ $t('edubridge.courseGroups.scheduleTitle') }}
+        .t-sm.t-muted.q-mb-sm {{ $t('edubridge.courseGroups.scheduleNote') }}
+        ScheduleSlotsEditor(v-model="slots" :teacher-options="teacherOptions" :default-minutes="details.lesson_minutes" :disabled="readonly")
+        BaseInput.q-mt-sm(v-model="reportDays" :label="$t('edubridge.courseGroups.reportDaysLabel')" type="number" min="0" :disabled="readonly" :hint="$t('edubridge.courseGroups.reportDaysHint')")
+        .row.justify-end.q-mt-sm(v-if="!readonly")
+          BaseButton(variant="secondary" size="sm" :loading="scheduleBusy" @click="onSaveSchedule") {{ $t('edubridge.courseGroups.saveSchedule') }}
+
       BaseForm(v-if="!readonly && details.status === Zeus.EduGroupStatus.ACTIVE" :loading="busy" @submit="onSave")
         BaseInput(v-model="form.title" :label="$t('edubridge.courseGroups.titleLabel')" required)
         BaseInput(v-model="form.starts_at" :label="$t('edubridge.courseGroups.startsAtLabel')" type="date" stack-label :disabled="details.lessons_held > 0" :hint="details.lessons_held > 0 ? $t('edubridge.courseGroups.startLockedHint') : ''")
@@ -67,6 +76,8 @@ BaseCard(variant="default" :title="$t('edubridge.courseGroups.title')")
         .t-sm.t-muted.q-mt-xs {{ $t('edubridge.courseGroups.enrollmentHint') }}
         template(#footer)
           .row.justify-end.q-gutter-sm
+            //- Отмена по недобору — пока занятия группы не начались: подписки закрываются с возвратом на паевой.
+            BaseButton(v-if="!groupStarted" variant="danger" type="button" :loading="cancelling" @click="onCancelUnderfilled") {{ $t('edubridge.courseGroups.cancelUnderfilled') }}
             BaseButton(variant="primary" type="submit" :loading="busy") {{ $t('common.action.save') }}
 
   //- Новая группа: условия берутся с курса на день открытия.
@@ -104,7 +115,12 @@ import { BaseBadge, BaseBanner, BaseButton, BaseCard, BaseCheckbox, BaseDialog, 
 import { DataRow, DetailsDrawer } from 'src/shared/ui/domain';
 import { fetchPlatformCourses, type ICourse } from '../../entities/Course';
 import { fetchCourseEconomy, type ICourseEconomy } from '../../entities/Economy';
-import { createGroup, fetchCourseGroups, finishGroup, updateGroup, type IGroup } from '../../entities/Group';
+import { cancelGroupUnderfilled, createGroup, fetchCourseGroups, finishGroup, setGroupSchedule, updateGroup, type IGroup } from '../../entities/Group';
+import { fetchAssignments, type IAssignment } from '../../entities/Teacher';
+import { type IScheduleSlot } from '../../entities/Lesson';
+import { ScheduleSlotsEditor } from '../ScheduleSlotsEditor';
+import { useConfirm } from 'src/shared/lib/composables';
+import { useFioCache } from 'src/shared/lib/account/useFioCache';
 import { t } from '../../i18n';
 
 /**
@@ -203,9 +219,80 @@ async function loadGroupEconomy(groupId: string): Promise<void> {
   }
 }
 
+/** Окна расписания группы и срок на отчёт — правятся отдельно от названия и даты: сохранение перестраивает календарь. */
+const slots = ref<IScheduleSlot[]>([]);
+const reportDays = ref<string | number>('7');
+const scheduleBusy = ref(false);
+const assignments = ref<IAssignment[]>([]);
+const { fioCache, enrichFio } = useFioCache();
+/** Допуски преподавателей к этому курсу: преподаватель окна выбирается из них. */
+const teacherOptions = computed(() =>
+  assignments.value
+    .filter((a) => asText(a.course_id) === asText(props.course.id) && a.status === Zeus.EduAssignmentStatus.ACTIVE)
+    .map((a) => ({ value: asText(a.id), label: fioCache.value.get(a.teacher_username) || a.teacher_username })),
+);
+async function loadAssignments(): Promise<void> {
+  try {
+    assignments.value = await fetchAssignments();
+    void enrichFio(assignments.value.map((a) => a.teacher_username));
+  } catch {
+    assignments.value = [];
+  }
+}
+async function onSaveSchedule(): Promise<void> {
+  if (!details.value) return;
+  scheduleBusy.value = true;
+  try {
+    replace(
+      await setGroupSchedule({
+        group_id: asText(details.value.id),
+        slots: slots.value.map((s) => ({ weekday: Number(s.weekday), time: s.time, minutes: Number(s.minutes), assignment_id: s.assignment_id || null })),
+        report_days: Number(reportDays.value || 0),
+      }),
+    );
+    SuccessAlert(t('edubridge.courseGroups.scheduleSaved'));
+  } catch (e) {
+    FailAlert(e);
+  } finally {
+    scheduleBusy.value = false;
+  }
+}
+
+const { confirm } = useConfirm();
+const cancelling = ref(false);
+/** Занятия группы начались: отмена по недобору закрыта, остаётся отказ участника от подписки. */
+const groupStarted = computed(() => {
+  const start = details.value?.starts_at_time ?? details.value?.starts_at;
+  return Boolean(start) && new Date(String(start)) <= new Date();
+});
+async function onCancelUnderfilled(): Promise<void> {
+  if (!details.value) return;
+  const agreed = await confirm({
+    title: t('edubridge.courseGroups.cancelUnderfilledConfirmTitle'),
+    message: t('edubridge.courseGroups.cancelUnderfilledConfirmMessage', { groupTitle: details.value.title }),
+    note: t('edubridge.courseGroups.cancelUnderfilledConfirmNote'),
+    confirmLabel: t('edubridge.courseGroups.cancelUnderfilled'),
+    danger: true,
+  });
+  if (!agreed) return;
+  cancelling.value = true;
+  try {
+    const count = await cancelGroupUnderfilled(asText(details.value.id));
+    SuccessAlert(count > 0 ? t('edubridge.courseGroups.cancelledWithRefunds', { count }) : t('edubridge.courseGroups.cancelledNoSubscriptions'));
+    await load();
+    emit('changed');
+  } catch (e) {
+    FailAlert(e);
+  } finally {
+    cancelling.value = false;
+  }
+}
+
 function openDetails(row: IGroup): void {
   detailsId.value = asText(row.id);
   void loadGroupEconomy(asText(row.id));
+  slots.value = (row.schedule_slots ?? []).map((s) => ({ weekday: s.weekday, time: s.time, minutes: s.minutes, assignment_id: s.assignment_id ?? null }));
+  reportDays.value = String(row.report_days ?? 7);
   Object.assign(form, { title: row.title, starts_at: row.starts_at ?? '', starts_in_minutes: '', platform_group: platformGroupOf(row.external_ref), enrollment_open: row.enrollment_open });
   detailsOpen.value = true;
 }
@@ -298,6 +385,7 @@ watch(() => props.course.id, load);
 onMounted(() => {
   void load();
   void loadPlatformGroups();
+  void loadAssignments();
 });
 // Группы меняются набором, занятиями и взносами участников — блок обновляется сам.
 useLiveReload([EduLive.groups, EduLive.enrollments, EduLive.lessons], load);

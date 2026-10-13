@@ -89,6 +89,8 @@
       DataRow(:label="$t('edubridge.memberSubscriptionsPage.details.paidAmount')" :value="formatAsset2Digits(details.paid_amount)")
       //- Сведения курса — чтобы из подписки было видно, когда занятия; сам курс открывается внизу панели.
       DataRow(v-if="courseOf(details)?.schedule" :label="$t('edubridge.memberSubscriptionsPage.details.schedule')" :value="courseOf(details)?.schedule")
+      //- Ближайшее занятие группы — из календаря группы.
+      DataRow(v-if="nextLesson" :label="$t('edubridge.memberSubscriptionsPage.details.nextLesson')" :value="formatLessonMoment(nextLesson.held_at)")
       DataRow(:label="$t('edubridge.memberSubscriptionsPage.columns.paidUntil')" :value="details.paid_until ? formatDate(details.paid_until) : '______'" :hint="isRenewSoon(details) ? $t('edubridge.memberSubscriptionsPage.daysLeft', { n: daysLeft(details.paid_until) }, Number(daysLeft(details.paid_until))) : undefined")
       DataRow(v-if="!isActive(details) && details.refund_reason" :label="$t('edubridge.memberSubscriptionsPage.details.refund')" :value="refundReason(details.refund_reason)")
       template(v-if="guaranteeOf(details)")
@@ -125,6 +127,7 @@ import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { BaseBanner, BaseBadge, BaseButton, BaseDialog, EmptyState, BaseTable, type BaseTableColumn, CardListSkeleton } from 'src/shared/ui/base';
 import { DataRow, PageHint, DetailsDrawer } from 'src/shared/ui/domain';
 import { fetchCatalog, type ICatalogCourse } from '../../entities/Course';
+import { fetchGroupLessons, formatLessonMoment, type ICalendarLesson } from '../../entities/Lesson';
 import {
   ACCESS_STATE_LABELS,
   ENROLLMENT_STATUS_LABELS,
@@ -238,6 +241,21 @@ watch(
     }
   },
 );
+/** Ближайшее запланированное занятие группы открытой подписки. */
+const groupLessons = ref<ICalendarLesson[]>([]);
+const nextLesson = computed(() => {
+  const now = Date.now();
+  return groupLessons.value
+    .filter((l) => l.status === Zeus.EduLessonStatus.PLANNED && new Date(String(l.held_at)).getTime() >= now)
+    .sort((a, b) => String(a.held_at).localeCompare(String(b.held_at)))[0] ?? null;
+});
+watch(
+  () => (details.value?.group_id ? asText(details.value.group_id) : null),
+  async (groupId) => {
+    groupLessons.value = groupId ? await fetchGroupLessons(groupId).catch(() => []) : [];
+  },
+);
+
 function openDetails(row: IEnrollment): void {
   detailsId.value = asText(row.id);
   detailsOpen.value = true;

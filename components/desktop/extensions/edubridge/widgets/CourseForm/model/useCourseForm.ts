@@ -40,6 +40,8 @@ function emptyForm(): CourseFormFields {
     description: '',
     syllabus: '',
     schedule: '',
+    schedule_slots: [],
+    report_days: 7,
     teacher_usernames: [],
     lessons_per_month: 8,
     lessons_total: 8,
@@ -449,6 +451,8 @@ function fillForm(form: CourseFormFields, c: ICourse): void {
     description: c.description,
     syllabus: c.syllabus,
     schedule: c.schedule,
+    schedule_slots: (c.schedule_slots ?? []).map((s) => ({ weekday: s.weekday, time: s.time, minutes: s.minutes, assignment_id: s.assignment_id ?? null })),
+    report_days: c.report_days ?? 7,
     teacher_usernames: [...c.teacher_usernames],
     direction: c.direction,
     carrier: c.carrier,
@@ -499,6 +503,9 @@ export function createCourseFormState(course: CourseSource) {
         image: cover.imagePayload(),
         external_ref: access.isPlatform.value ? form.external_ref : '',
         guarantee_days: Number(economy.guaranteeDays.value || 0),
+        // Поля чисел приходят строками из полей ввода.
+        report_days: Number(form.report_days ?? 7),
+        schedule_slots: (form.schedule_slots ?? []).map((s) => ({ weekday: Number(s.weekday), time: s.time, minutes: Number(s.minutes), assignment_id: s.assignment_id || null })),
         ...economy.economyParams.value,
         pay_per_learner: economy.payPerLearner.value,
       };

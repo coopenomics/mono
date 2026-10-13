@@ -11,6 +11,7 @@ export const COURSE_FORM_HELP = {
   level:
     t('edubridge.courseFormHelp.level'),
   schedule: t('edubridge.courseFormHelp.schedule'),
+  reportDays: t('edubridge.courseFormHelp.reportDays'),
   description: t('edubridge.courseFormHelp.description'),
   syllabus: t('edubridge.courseFormHelp.syllabus'),
   lessonsPerMonth: t('edubridge.courseFormHelp.lessonsPerMonth'),

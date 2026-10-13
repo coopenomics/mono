@@ -15,9 +15,12 @@ BaseForm.edu-course-form(ref="formEl" :loading="loading" :error="error" @submit=
       BaseSelect(:model-value="form.level_id" :label="$t('edubridge.courseForm.levelLabel')" :options="levelOptions" creatable clearable :disabled="!form.section_id" @update:model-value="pickLevel")
         template(#append)
           FieldHelp(:text="COURSE_FORM_HELP.level")
-    BaseInput(v-model="form.schedule" :label="$t('edubridge.courseForm.scheduleLabel')" :placeholder="$t('edubridge.courseForm.schedulePlaceholder')")
-      template(#append)
-        FieldHelp(:text="COURSE_FORM_HELP.schedule")
+    //- Расписание — окнами: день недели, время, длительность. Строка для каталога собирается из окон сама.
+    .edu-course-form__group
+      .edu-course-form__group-title {{ $t('edubridge.courseForm.scheduleLabel') }}
+        FieldHelp.q-ml-xs(:text="COURSE_FORM_HELP.schedule")
+      ScheduleSlotsEditor(v-model="form.schedule_slots" :default-minutes="Number(lessonMinutes || 60)")
+      BaseInput.q-mt-sm(v-if="!form.schedule_slots.length" v-model="form.schedule" :label="$t('edubridge.courseForm.scheduleTextLabel')" :placeholder="$t('edubridge.courseForm.schedulePlaceholder')")
     BaseInput(v-model="form.description" :label="$t('edubridge.courseForm.descriptionLabel')" type="textarea" :rows="3" autogrow)
       template(#append)
         FieldHelp(:text="COURSE_FORM_HELP.description")
@@ -70,6 +73,11 @@ BaseForm.edu-course-form(ref="formEl" :loading="loading" :error="error" @submit=
           template(#append)
             FieldHelp(:text="COURSE_FORM_HELP.programMonths")
 
+      //- Срок на отчёт преподавателя: после него занятие в календаре помечено просроченным, отчёт принимает только администратор.
+      .edu-course-form__pair
+        BaseInput(v-model="form.report_days" :label="$t('edubridge.courseForm.reportDaysLabel')" type="number" min="0")
+          template(#append)
+            FieldHelp(:text="COURSE_FORM_HELP.reportDays")
       //- Дата начала занятий — у группы: она задаётся на шаге «Первая группа» и в панели группы.
       .edu-course-form__pair
         BaseInput(
@@ -239,6 +247,7 @@ import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { BaseBanner, BaseButton, BaseCheckbox, BaseForm, BaseInput, BaseSelect, FieldHelp } from 'src/shared/ui/base';
 import { DataRow, IdentityCell } from 'src/shared/ui/domain';
 import { StatTile } from '../../shared/ui/StatStrip';
+import { ScheduleSlotsEditor } from '../ScheduleSlotsEditor';
 import { COURSE_IMAGE_ACCEPT, type ICourse } from '../../entities/Course';
 import { createCourseFormState, injectCourseForm, type CourseFormSection } from './model/useCourseForm';
 import { COURSE_FORM_HELP } from './model/courseFormHelp';

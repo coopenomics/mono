@@ -1,10 +1,17 @@
 <template lang="pug">
 .q-pa-md
   PageHint.q-mb-md(storage-key="edu:teacher-lessons:banner-dismissed")
-    | {{ $t('edubridge.teacherLessonsPage.hintMaterials') }}
+    | {{ $t('edubridge.teacherLessonsPage.hintCalendar') }}
 
-  //- Занятия курса отчитываются по порядку: пока материалы занятия не переданы
-  //- на хранение, следующий отчёт по этому курсу не принимается.
+  //- Занятия, по которым отчёт открыт прямо сейчас: занятие прошло, срок на отчёт не вышел.
+  BaseBanner.q-mb-md(v-for="l in awaitingReport" :key="asText(l.id)" variant="warn")
+    template(#icon)
+      q-icon(name="event_available")
+    | {{ $t('edubridge.teacherLessonsPage.awaitingReport', { number: l.lesson_number, courseTitle: l.course_title, moment: formatLessonMoment(l.held_at), until: formatLessonMoment(l.report_until) }) }}
+    template(#action)
+      BaseButton(variant="primary" size="sm" @click="openReport(l)") {{ $t('edubridge.teacherLessonsPage.reportButton') }}
+
+  //- Взносы, по которым преподаватель ещё не подписал документы.
   BaseBanner.q-mb-md(v-for="p in pendingTransfers" :key="asText(p.id)" variant="warn")
     template(#icon)
       q-icon(name="schedule")
@@ -12,40 +19,48 @@
     template(#action)
       BaseButton(variant="primary" size="sm" :loading="rowBusy === asText(p.id)" @click="onTransfer(p)") {{ $t('edubridge.teacherLessonsPage.transferMaterials') }}
 
+  //- Календарь преподавателя: его занятия по месяцам; плитка открывает занятие, у запланированного — отчёт.
+  BaseCard.q-mb-md(variant="default" :title="$t('edubridge.teacherLessonsPage.calendarTitle')")
+    CardListSkeleton(v-if="firstLoad" :count="1")
+    LessonCalendar(v-else :lessons="lessons" :label-of="(l) => l.group_title || l.course_title" @select="openLesson")
+
   //- Журнал — реестр взносов: строка — один взнос, с ним все занятия, за которые он
   //- заведён (за гарантийный срок — на несколько занятий сразу). Строка открывает
   //- правую панель; материалы и длительность каждого занятия — в ней.
-  BaseTable(
-    v-if="firstLoad || rows.length"
-    :columns="columns"
-    :rows="rows"
-    row-key="id"
-    :loading="firstLoad"
-    :clickable-rows="true"
-    min-width="1100px"
-    @row-click="openDetails"
-  )
-    template(#cell-lesson_number="{ row }") {{ lessonNumbersOf(row) }}
-    template(#cell-lesson="{ row }")
-      .edu-lessons__title {{ titleOf(row) }}
-      .t-muted.t-sm {{ row.course_title }}
-    template(#cell-held_at="{ row }") {{ heldRangeOf(row) }}
-    template(#cell-amount="{ row }")
-      span.t-num(v-if="row.contribution") {{ formatAsset2Digits(row.contribution.amount) }}
-      //- Занятие гарантийного срока: сумма станет окончательной после срока, одна на все занятия периода.
-      span.t-muted.t-sm(v-else-if="row.learners_count") {{ $t('edubridge.teacherLessonsPage.amountAfterGuarantee') }}
-      span(v-else) ______
-      //- Срез курса на дату занятия: по скольким участникам контракт провёл расчёт.
-      .t-muted.t-sm(v-if="row.learners_count") {{ $t('edubridge.teacherLessonsPage.learnersLine', { count: row.learners_count }) }}
-    template(#cell-status="{ row }")
-      BaseBadge(v-if="row.contribution" :variant="statusOf(row.contribution.status).variant") {{ statusOf(row.contribution.status).label }}
-      BaseBadge(v-else-if="row.learners_count" variant="info") {{ $t('edubridge.teacherLessonsPage.statusInGuarantee') }}
-      template(v-else) ______
-    //- Действие за преподавателем — своей колонкой справа, как в реестрах Стола заказов; нажатие строку не открывает.
-    //- Документы подписываются на взнос целиком: одна кнопка на строку, занятий в ней может быть несколько.
-    template(#cell-actions="{ row }")
-      BaseButton(v-if="actionOf(row) === 'transfer'" variant="primary" size="sm" :loading="rowBusy === asText(row.id)" @click.stop="onTransfer(row)") {{ $t('edubridge.teacherLessonsPage.transferMaterials') }}
-      BaseButton(v-else-if="actionOf(row) === 'sign'" variant="primary" size="sm" :loading="rowBusy === asText(row.id)" @click.stop="onSignAct(row)") {{ $t('edubridge.teacherLessonsPage.signAct') }}
+  BaseCard(variant="default" :title="$t('edubridge.teacherLessonsPage.journalTitle')")
+    BaseTable(
+      v-if="firstLoad || rows.length"
+      :columns="columns"
+      :rows="rows"
+      row-key="id"
+      :loading="firstLoad"
+      :clickable-rows="true"
+      min-width="1100px"
+      @row-click="openDetails"
+    )
+      template(#cell-lesson_number="{ row }") {{ lessonNumbersOf(row) }}
+      template(#cell-lesson="{ row }")
+        .edu-lessons__title {{ titleOf(row) }}
+        .t-muted.t-sm {{ row.course_title }}
+      template(#cell-held_at="{ row }") {{ heldRangeOf(row) }}
+      template(#cell-amount="{ row }")
+        span.t-num(v-if="row.contribution") {{ formatAsset2Digits(row.contribution.amount) }}
+        //- Занятие гарантийного срока: сумма станет окончательной после срока, одна на все занятия периода.
+        span.t-muted.t-sm(v-else-if="row.learners_count") {{ $t('edubridge.teacherLessonsPage.amountAfterGuarantee') }}
+        span(v-else) ______
+        //- Срез курса на дату занятия: по скольким участникам контракт провёл расчёт.
+        .t-muted.t-sm(v-if="row.learners_count") {{ $t('edubridge.teacherLessonsPage.learnersLine', { count: row.learners_count }) }}
+      template(#cell-status="{ row }")
+        BaseBadge(v-if="row.contribution" :variant="statusOf(row.contribution.status).variant") {{ statusOf(row.contribution.status).label }}
+        BaseBadge(v-else-if="row.learners_count" variant="info") {{ $t('edubridge.teacherLessonsPage.statusInGuarantee') }}
+        template(v-else) ______
+      //- Действие за преподавателем — своей колонкой справа; нажатие строку не открывает.
+      template(#cell-actions="{ row }")
+        BaseButton(v-if="actionOf(row) === 'transfer'" variant="primary" size="sm" :loading="rowBusy === asText(row.id)" @click.stop="onTransfer(row)") {{ $t('edubridge.teacherLessonsPage.transferMaterials') }}
+        BaseButton(v-else-if="actionOf(row) === 'sign'" variant="primary" size="sm" :loading="rowBusy === asText(row.id)" @click.stop="onSignAct(row)") {{ $t('edubridge.teacherLessonsPage.signAct') }}
+    EmptyState(v-if="!firstLoad && !rows.length" :title="$t('edubridge.teacherLessonsPage.emptyTitle')" :body="$t('edubridge.teacherLessonsPage.emptyBody')")
+      template(#icon)
+        q-icon(name="event_available" size="32px")
 
   //- Взнос целиком: состояние и сумма, затем каждое занятие с датой, длительностью и материалами; действие преподавателя — внизу панели.
   DetailsDrawer(v-model="detailsOpen" :title="details ? titleOf(details) : ''" :width="560")
@@ -61,7 +76,7 @@
       .edu-lesson__section(v-for="l in details.lessons" :key="asText(l.id)")
         .t-eyebrow.q-mb-sm {{ $t('edubridge.teacherLessonsPage.lessonTitle', { number: l.lesson_number }) }}
         DataRow(v-if="l.topic" :label="$t('edubridge.teacherLessonsPage.details.topic')" :value="l.topic")
-        DataRow(:label="$t('edubridge.teacherLessonsPage.details.heldAt')" :value="formatDate(l.held_at)")
+        DataRow(:label="$t('edubridge.teacherLessonsPage.details.heldAt')" :value="formatLessonMoment(l.held_at)")
         DataRow(:label="$t('edubridge.teacherLessonsPage.details.duration')" :value="$t('edubridge.teacherLessonsPage.durationMinutes', { minutes: l.duration_minutes })")
         .t-muted.t-sm.q-mt-sm {{ $t('edubridge.teacherLessonsPage.details.materials') }}
         .edu-lesson__files(v-if="l.materials.length")
@@ -74,82 +89,76 @@
         BaseButton(v-if="detailsAction === 'transfer'" variant="primary" :loading="rowBusy === asText(details?.id)" @click="details && onTransfer(details)") {{ $t('edubridge.teacherLessonsPage.transferMaterials') }}
         BaseButton(v-else variant="primary" :loading="rowBusy === asText(details?.id)" @click="details && onSignAct(details)") {{ $t('edubridge.teacherLessonsPage.signAct') }}
 
-  EmptyState(v-if="!firstLoad && !lessons.length" :title="$t('edubridge.teacherLessonsPage.emptyTitle')" :body="$t('edubridge.teacherLessonsPage.emptyBody')")
-    template(#icon)
-      q-icon(name="event_available" size="32px")
-
-  //- Пока отчёт создаётся и материалы передаются на хранение, окно не закрывается.
-  BaseDialog(:model-value="reportOpen" :title="$t('edubridge.teacherLessonsPage.dialogTitle')" size="md" @update:model-value="onReportDialog")
-    BaseForm(:loading="busy" @submit="onReport")
-      BaseSelect(v-model="form.assignment_id" :label="$t('edubridge.teacherLessonsPage.courseLabel')" :options="assignmentOptions" required)
-      //- Занятие отчитывается для группы: у курса с несколькими идущими группами её выбирают.
-      BaseSelect(v-if="groupOptions.length > 1" v-model="form.group_id" :label="$t('edubridge.teacherLessonsPage.groupLabel')" :options="groupOptions" required)
-      BaseBanner.q-mb-sm(v-if="reportBlockedBy" variant="warn")
+  //- Занятие из календаря: запланированное — с кнопкой отчёта, проведённое без взноса — с материалами.
+  DetailsDrawer(v-model="lessonOpen" :title="lessonInView ? $t('edubridge.lesson.numberShort', { number: lessonInView.lesson_number }) + ' · ' + lessonInView.course_title : ''" :width="520")
+    template(v-if="lessonInView")
+      LessonDetails(:lesson="lessonInView")
+      BaseBanner.q-mt-md(v-if="lessonInView.status === Zeus.EduLessonStatus.PLANNED && !isReportable(lessonInView)" variant="info")
         template(#icon)
           q-icon(name="schedule")
-        | {{ $t('edubridge.teacherLessonsPage.reportBlocked', { lessonNumber: reportBlockedBy.lesson_number }) }}
-      .row.q-col-gutter-md
-        .col-6
-          BaseInput(v-model="lessonNumber" :label="$t('edubridge.teacherLessonsPage.lessonNumberLabel')" type="number" required)
-        .col-6
-          BaseInput(v-model="heldAt" :label="$t('edubridge.teacherLessonsPage.heldAtLabel')" type="date" stack-label required)
+        | {{ lessonInView.overdue ? $t('edubridge.teacherLessonsPage.reportOverdue') : $t('edubridge.teacherLessonsPage.reportAfterLesson', { moment: formatLessonMoment(lessonInView.ends_at) }) }}
+    template(v-if="lessonInView && isReportable(lessonInView)" #footer)
+      .row.justify-end
+        BaseButton(variant="primary" @click="openReport(lessonInView)") {{ $t('edubridge.teacherLessonsPage.reportButton') }}
+
+  //- Отчёт по занятию календаря: тема и материалы. Номер, дата и длительность названы календарём.
+  //- Пока отчёт создаётся и материалы передаются на хранение, окно не закрывается.
+  BaseDialog(:model-value="reportOpen" :title="reportTarget ? $t('edubridge.teacherLessonsPage.dialogTitleFor', { number: reportTarget.lesson_number }) : ''" size="md" @update:model-value="onReportDialog")
+    BaseForm(:loading="busy" @submit="onReport")
+      template(v-if="reportTarget")
+        DataRow(:label="$t('edubridge.teacherLessonsPage.details.course')" :value="reportTarget.group_title ? `${reportTarget.course_title} · ${reportTarget.group_title}` : reportTarget.course_title")
+        DataRow(:label="$t('edubridge.teacherLessonsPage.details.heldAt')" :value="formatLessonMoment(reportTarget.held_at)")
+        DataRow.q-mb-md(:label="$t('edubridge.teacherLessonsPage.details.duration')" :value="$t('edubridge.teacherLessonsPage.durationMinutes', { minutes: reportTarget.duration_minutes })")
       BaseInput(v-model="form.topic" :label="$t('edubridge.teacherLessonsPage.topicLabel')")
       BaseInput(v-model="materialsText" :label="$t('edubridge.teacherLessonsPage.materialsLabel')" type="textarea" :rows="3" :hint="$t('edubridge.teacherLessonsPage.materialsHint')" required)
       template(#footer)
         .row.justify-end.q-gutter-sm
           BaseButton(variant="ghost" type="button" :disabled="busy" @click="reportOpen = false") {{ $t('edubridge.teacherLessonsPage.cancel') }}
-          BaseButton(variant="primary" type="submit" :loading="busy" :disabled="Boolean(reportBlockedBy)") {{ $t('edubridge.teacherLessonsPage.submit') }}
+          BaseButton(variant="primary" type="submit" :loading="busy") {{ $t('edubridge.teacherLessonsPage.submit') }}
 </template>
 
 <script setup lang="ts">
-import { useHeaderActions } from 'src/shared/hooks';
-import { HeaderActionButton } from '../../shared/ui/HeaderActionButton';
-import { computed, onMounted, reactive, ref, watch } from 'vue';
+import { computed, onMounted, reactive, ref } from 'vue';
 import { Zeus } from '@coopenomics/sdk';
 import { useFirstLoad } from 'src/shared/lib/composables';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { asText } from 'src/shared/lib/utils';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
-import { BaseBadge, BaseBanner, BaseButton, BaseDialog, BaseForm, BaseInput, BaseSelect, EmptyState, BaseTable, type BaseTableColumn } from 'src/shared/ui/base';
+import { BaseBadge, BaseBanner, BaseButton, BaseCard, BaseDialog, BaseForm, BaseInput, CardListSkeleton, EmptyState, BaseTable, type BaseTableColumn } from 'src/shared/ui/base';
 import { DataRow, DetailsDrawer, PageHint } from 'src/shared/ui/domain';
-import {
-  CONTRIBUTION_STATUS_LABELS,
-  commitLessonMaterials,
-  fetchMyAssignments,
-  fetchMyContributions,
-  fetchMyLessons,
-  reportLesson,
-  signAct,
-  type IAssignment,
-  type IContribution,
-  type ILesson,
-} from '../../entities/Teacher';
-import { fetchMyTeachingGroups, type IGroup } from '../../entities/Group';
+import { CONTRIBUTION_STATUS_LABELS, commitLessonMaterials, fetchMyContributions, fetchMyLessons, reportLesson, signAct, type IContribution, type ILesson } from '../../entities/Teacher';
+import { formatLessonMoment, isReportable } from '../../entities/Lesson';
+import { LessonCalendar } from '../../widgets/LessonCalendar';
+import { LessonDetails } from '../../widgets/LessonDetails';
 import { useLiveReload } from 'src/shared/lib/realtime';
 import { EduLive } from '../../shared/lib/live';
 import { lessonActionOf } from '../../shared/lib/lessonAction';
 import { t } from '../../i18n';
 
 /**
- * Журнал занятий преподавателя. Отчёт — это и есть взнос результатом работы:
- * сумму считает сервер по ставке часа, а материалы уходят кооперативу на
- * ответственное хранение тем же действием — акт хранения и заявление о паевом
- * взносе подписываются сразу после отчёта. Состояние взноса видно в строке
- * занятия; после решения совета здесь же подписывается акт приёма-передачи.
+ * Занятия преподавателя: календарь и журнал. Занятия в календаре ставит
+ * администратор; преподаватель отчитывается по занятию после его конца —
+ * темой и материалами. Отчёт — это и есть взнос результатом работы: сумму
+ * считает контракт по ставке часа, а материалы уходят кооперативу на
+ * ответственное хранение тем же действием. Состояние взноса видно в журнале;
+ * после решения совета здесь же подписывается акт приёма-передачи.
  */
 const lessons = ref<ILesson[]>([]);
 const contributions = ref<IContribution[]>([]);
 const rowBusy = ref<string | null>(null);
-const assignments = ref<IAssignment[]>([]);
 // Признак включён с самого начала: до конца первой загрузки на экране каркас, а не «пусто».
 const loading = ref(true);
 const firstLoad = useFirstLoad(loading);
 const busy = ref(false);
 const reportOpen = ref(false);
-const lessonNumber = ref('1');
-const heldAt = ref('');
+const reportTarget = ref<ILesson | null>(null);
 const materialsText = ref('');
-const form = reactive<{ assignment_id: string; group_id: string | null; topic: string }>({ assignment_id: '', group_id: null, topic: '' });
+const form = reactive<{ topic: string }>({ topic: '' });
+
+/** Проведённые занятия — журнал; запланированные живут в календаре. */
+const heldLessons = computed(() => lessons.value.filter((l) => l.status === Zeus.EduLessonStatus.HELD));
+/** Занятия, по которым отчёт открыт сейчас — по порядку дат. */
+const awaitingReport = computed(() => lessons.value.filter((l) => isReportable(l)).sort((a, b) => String(a.held_at).localeCompare(String(b.held_at))));
 
 /**
  * Строка журнала: взнос вместе с занятиями, за которые он заведён. Взнос за
@@ -158,16 +167,11 @@ const form = reactive<{ assignment_id: string; group_id: string | null; topic: s
  */
 type ILessonRow = ILesson & { contribution: IContribution | null; lessons: ILesson[] };
 
-// Сетка таблицы: «Занятие» без ширины получает остаток. Сумма заданных ширин —
-// 900px при минимуме таблицы 1100px, занятию остаётся не меньше 200px.
 const columns: BaseTableColumn<ILessonRow>[] = [
   { key: 'lesson_number', label: t('edubridge.teacherLessonsPage.column.number'), width: '80px', nowrap: true },
   { key: 'lesson', label: t('edubridge.teacherLessonsPage.column.lesson') },
-  // Занятия одного взноса могут идти в разные дни — колонка вмещает две даты.
-  { key: 'held_at', label: t('edubridge.teacherLessonsPage.column.heldAt'), width: '200px', nowrap: true },
-  // Вместо суммы у занятия гарантийного срока стоит пояснение — колонке нужна его ширина.
+  { key: 'held_at', label: t('edubridge.teacherLessonsPage.column.heldAt'), width: '220px', nowrap: true },
   { key: 'amount', label: t('edubridge.teacherLessonsPage.column.amount'), numeric: true, width: '180px', nowrap: true },
-  // Самое длинное состояние — «Акт ожидает подписи председателя» — помещается в значок целиком.
   { key: 'status', label: t('edubridge.teacherLessonsPage.column.status'), width: '260px', nowrap: true },
   { key: 'actions', label: '', align: 'right', width: '180px', nowrap: true },
 ];
@@ -191,7 +195,7 @@ function packLessons(all: ILesson[]): ILesson[][] {
 const lastOf = (row: ILessonRow): ILesson => row.lessons[row.lessons.length - 1];
 // Журнал — свежие записи сверху: по дате последнего занятия, при одной дате — по номеру.
 const rows = computed<ILessonRow[]>(() =>
-  packLessons(lessons.value)
+  packLessons(heldLessons.value)
     .map((pack) => ({ ...pack[0], lessons: pack, contribution: contributionOf(pack[0]) }))
     .sort((a, b) => String(lastOf(b).held_at).localeCompare(String(lastOf(a).held_at)) || byNumber(b, a)),
 );
@@ -206,7 +210,7 @@ function heldRangeOf(row: ILessonRow): string {
   return first === last ? first : `${first} – ${last}`;
 }
 
-/** Занятие в правой панели — по идентификатору: панель показывает свежее состояние после действия и обновления журнала. */
+/** Взнос в правой панели — по идентификатору: панель показывает свежее состояние после действия и обновления журнала. */
 const detailsOpen = ref(false);
 const detailsId = ref<string | null>(null);
 const details = computed(() => rows.value.find((r) => asText(r.id) === detailsId.value) ?? null);
@@ -217,52 +221,36 @@ function openDetails(row: ILessonRow): void {
   detailsOpen.value = true;
 }
 
+/** Занятие из календаря — в своей панели: проведённое ведёт к записи журнала, запланированное — к отчёту. */
+const lessonOpen = ref(false);
+const lessonInViewId = ref<string | null>(null);
+const lessonInView = computed(() => lessons.value.find((l) => asText(l.id) === lessonInViewId.value) ?? null);
+function openLesson(l: ILesson): void {
+  const row = rows.value.find((r) => r.lessons.some((x) => asText(x.id) === asText(l.id)));
+  if (row) {
+    openDetails(row);
+    return;
+  }
+  lessonInViewId.value = asText(l.id);
+  lessonOpen.value = true;
+}
+
 function replaceContribution(c: IContribution): void {
   const i = contributions.value.findIndex((x) => x.id === c.id);
   if (i >= 0) contributions.value[i] = c;
   else contributions.value.unshift(c);
 }
 
-/** Идущие группы курса выбранного допуска: расчёт занятия идёт внутри группы. */
-const teachingGroups = ref<IGroup[]>([]);
-const groupOptions = computed(() => {
-  const assignment = assignments.value.find((a) => asText(a.id) === asText(form.assignment_id));
-  if (!assignment) return [];
-  return teachingGroups.value.filter((g) => asText(g.course_id) === asText(assignment.course_id)).map((g) => ({ value: asText(g.id), label: g.title }));
-});
-// Группа одна — она и берётся; несколько — преподаватель выбирает.
-watch(groupOptions, (options) => {
-  if (!options.some((o) => o.value === form.group_id)) form.group_id = options.length === 1 ? options[0].value : null;
-});
-
-/** Взносы, по которым преподаватель ещё не подписал документы: они держат следующий отчёт по своему курсу. */
+/** Взносы, по которым преподаватель ещё не подписал документы. */
 const pendingTransfers = computed(() => rows.value.filter((r) => actionOf(r) === 'transfer'));
-/** Занятие, из-за которого отчёт по выбранной группе сейчас не принимается: порядок занятий ведётся внутри группы. */
-const reportBlockedBy = computed(() => {
-  const assignment = assignments.value.find((a) => asText(a.id) === asText(form.assignment_id));
-  if (!assignment) return null;
-  return (
-    pendingTransfers.value.find(
-      (r) => asText(r.course_id) === asText(assignment.course_id) && (!form.group_id || !r.group_id || asText(r.group_id) === asText(form.group_id)),
-    ) ?? null
-  );
-});
-
-const assignmentOptions = computed(() =>
-  assignments.value
-    .filter((a) => a.status === Zeus.EduAssignmentStatus.ACTIVE)
-    .map((a) => ({ value: asText(a.id), label: a.course_title })),
-);
 
 const formatDate = (v: unknown) => (v ? new Date(String(v)).toLocaleDateString('ru-RU') : '______');
 
 async function load(): Promise<void> {
   loading.value = true;
   try {
-    const [l, a, c, g] = await Promise.all([fetchMyLessons(), fetchMyAssignments(), fetchMyContributions(), fetchMyTeachingGroups()]);
-    teachingGroups.value = g;
+    const [l, c] = await Promise.all([fetchMyLessons(), fetchMyContributions()]);
     lessons.value = l;
-    assignments.value = a;
     contributions.value = c;
   } catch (e) {
     FailAlert(e);
@@ -275,13 +263,11 @@ function onReportDialog(open: boolean): void {
   if (!busy.value) reportOpen.value = open;
 }
 
-function openReport(): void {
-  const next = lessons.value.reduce((max, l) => Math.max(max, l.lesson_number), 0) + 1;
-  lessonNumber.value = String(next);
-  heldAt.value = new Date().toISOString().slice(0, 10);
+function openReport(lesson: ILesson): void {
+  reportTarget.value = lesson;
   materialsText.value = '';
-  form.assignment_id = assignmentOptions.value[0]?.value ?? '';
-  form.topic = '';
+  form.topic = lesson.topic ?? '';
+  lessonOpen.value = false;
   reportOpen.value = true;
 }
 
@@ -292,22 +278,20 @@ function openReport(): void {
  * переданными материалами, без промежуточного состояния.
  */
 async function onReport(): Promise<void> {
+  if (!reportTarget.value) return;
   busy.value = true;
   let created: ILesson | null = null;
   try {
     created = await reportLesson({
-      assignment_id: form.assignment_id,
-      group_id: form.group_id,
-      lesson_number: Number(lessonNumber.value),
+      lesson_id: asText(reportTarget.value.id),
       topic: form.topic,
-      held_at: heldAt.value ? new Date(heldAt.value).toISOString() : undefined,
       materials: materialsText.value.split('\n').map((s) => s.trim()).filter(Boolean),
-    } as never);
+    });
     const fresh = await fetchMyContributions();
     const draft = fresh.find((c) => asText(c.id) === asText(created?.contribution_id)) ?? null;
     const held = draft ? await commitLessonMaterials(draft) : null;
     contributions.value = held ? fresh.map((c) => (c.id === held.id ? held : c)) : fresh;
-    lessons.value = [created, ...lessons.value];
+    lessons.value = lessons.value.map((l) => (asText(l.id) === asText(created?.id) ? (created as ILesson) : l));
     reportOpen.value = false;
     // В гарантийный срок отчёт сохраняется без документов: акт и заявление — после срока.
     SuccessAlert(t(created.contribution_id ? 'edubridge.teacherLessonsPage.reportSuccess' : 'edubridge.teacherLessonsPage.reportSavedInGuarantee'));
@@ -357,10 +341,7 @@ async function onSignAct(lesson: ILesson): Promise<void> {
 // появится в нём один раз, уже в готовом виде.
 useLiveReload([EduLive.lessons, EduLive.assignments, EduLive.contributions], () => (busy.value ? undefined : load()));
 
-const { registerAction } = useHeaderActions();
-
 onMounted(() => {
-  registerAction({ id: 'edubridge:create-lesson-report', component: HeaderActionButton, props: { label: t('edubridge.teacherLessonsPage.reportButton'), icon: 'add', onClick: openReport } });
   void load();
 });
 </script>

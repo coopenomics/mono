@@ -27,8 +27,6 @@
             template(#menu)
               q-menu(anchor="bottom right" self="top right")
                 q-list.edu-course__menu(dense)
-                  q-item(v-if="!started" clickable v-close-popup :disable="cancelling" @click="cancelUnderfilled")
-                    q-item-section.text-negative {{ $t('edubridge.adminCoursePage.cancelUnderfilledMenuItem') }}
                   q-item(clickable v-close-popup :disable="deleting" @click="removeCourse")
                     q-item-section.text-negative {{ $t('edubridge.adminCoursePage.deleteMenuItem') }}
       //- Числа курса — те же и в том же порядке, что видит ученик в каталоге.
@@ -44,6 +42,26 @@
     //- Группы курса — на всю ширину под шапкой: набор идёт в группу, деньги и
     //- занятия считаются внутри неё. В узкой колонке реестр не помещается.
     CourseGroups.q-mb-md(:course="course" :readonly="!canManageCourses" @changed="reloadEconomy")
+
+    //- Календарь занятий курса по всем группам: что запланировано, что проведено, что просрочено.
+    BaseCard.q-mb-md(variant="default" :title="$t('edubridge.adminCoursePage.calendarTitle')")
+      template(v-if="canManageCourses" #actions)
+        BaseButton(variant="secondary" size="sm" @click="planOpen = true")
+          template(#icon-left)
+            q-icon(name="add" size="18px")
+          | {{ $t('edubridge.adminCalendarPage.planButton') }}
+      LessonCalendar(:lessons="lessons" :label-of="lessonLabel" @select="openLesson")
+
+    DetailsDrawer(v-model="lessonOpen" :title="lesson ? $t('edubridge.lesson.numberShort', { number: lesson.lesson_number }) + ' · ' + lesson.group_title : ''" :width="520")
+      template(v-if="lesson")
+        LessonDetails(:lesson="lesson" :teacher-name="lesson.teacher_username ? fioCache.get(lesson.teacher_username) : null")
+      template(v-if="lesson && canManageCourses && lesson.status === Zeus.EduLessonStatus.PLANNED" #footer)
+        .row.justify-end.q-gutter-sm
+          BaseButton(variant="danger" :loading="lessonBusy" @click="onCancelLesson") {{ $t('edubridge.adminCalendarPage.cancelLesson') }}
+          BaseButton(variant="primary" @click="moveOpen = true") {{ $t('edubridge.adminCalendarPage.moveLesson') }}
+
+    PlanLessonDialog(v-model="planOpen" :group-options="groupOptions" :teacher-options="teacherOptions" @saved="onLessonSaved")
+    PlanLessonDialog(v-model="moveOpen" :lesson="lesson" :teacher-options="teacherOptions" @saved="onLessonSaved")
 
     .row.q-col-gutter-md
       .col-12.col-md-8
@@ -122,12 +140,18 @@ import { useDesktopStore } from 'src/entities/Desktop/model';
 import { useFioCache } from 'src/shared/lib/account/useFioCache';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { BaseBadge, BaseBanner, BaseButton, BaseCard, CardListSkeleton, EmptyState, FieldHelp } from 'src/shared/ui/base';
-import { AccountBadge, DataRow } from 'src/shared/ui/domain';
+import { AccountBadge, DataRow, DetailsDrawer } from 'src/shared/ui/domain';
+import { cancelLesson, fetchLessonCalendar, type ICalendarLesson } from '../../entities/Lesson';
+import { fetchAssignments, type IAssignment } from '../../entities/Teacher';
+import { fetchCourseGroups, type IGroup } from '../../entities/Group';
+import { LessonCalendar } from '../../widgets/LessonCalendar';
+import { LessonDetails } from '../../widgets/LessonDetails';
+import { PlanLessonDialog } from '../../features/PlanLesson';
 import {
   CARRIER_LABELS,
   COURSE_STATUS_LABELS,
   DIRECTION_LABELS,
-  cancelCourseUnderfilled, deleteCourse,
+  deleteCourse,
   fetchCourse,
   setCourseStatus,
   type ICourse,
@@ -161,10 +185,59 @@ const loading = ref(true);
 const firstLoad = useFirstLoad(loading);
 const busy = ref(false);
 const economy = ref<ICourseEconomy | null>(null);
-const cancelling = ref(false);
-// Пока занятия не начались, набор можно отменить: после первого занятия у
-// участников остаётся отказ от подписки, а не отмена курса.
-const started = computed(() => Boolean(course.value?.starts_at) && new Date(String(course.value?.starts_at)) <= new Date());
+
+/** Календарь курса: занятия всех его групп. */
+const lessons = ref<ICalendarLesson[]>([]);
+const groups = ref<IGroup[]>([]);
+const assignments = ref<IAssignment[]>([]);
+const lessonOpen = ref(false);
+const lessonId = ref<string | null>(null);
+const lesson = computed(() => lessons.value.find((l) => asText(l.id) === lessonId.value) ?? null);
+const lessonBusy = ref(false);
+const planOpen = ref(false);
+const moveOpen = ref(false);
+const lessonLabel = (l: ICalendarLesson): string => [l.group_title, l.teacher_username ? fioCache.value.get(l.teacher_username) || l.teacher_username : ''].filter(Boolean).join(' · ');
+const groupOptions = computed(() => groups.value.filter((g) => g.status === Zeus.EduGroupStatus.ACTIVE).map((g) => ({ value: asText(g.id), label: g.title, lessonMinutes: g.lesson_minutes })));
+const teacherOptions = computed(() =>
+  assignments.value
+    .filter((a) => asText(a.course_id) === asText(course.value?.id) && a.status === Zeus.EduAssignmentStatus.ACTIVE)
+    .map((a) => ({ value: asText(a.id), label: fioCache.value.get(a.teacher_username) || a.teacher_username })),
+);
+function openLesson(l: ICalendarLesson): void {
+  lessonId.value = asText(l.id);
+  lessonOpen.value = true;
+}
+function onLessonSaved(l: ICalendarLesson): void {
+  const i = lessons.value.findIndex((x) => asText(x.id) === asText(l.id));
+  if (i >= 0) lessons.value[i] = l;
+  else lessons.value.push(l);
+  void loadCalendar();
+}
+async function onCancelLesson(): Promise<void> {
+  if (!lesson.value) return;
+  lessonBusy.value = true;
+  try {
+    onLessonSaved(await cancelLesson(asText(lesson.value.id)));
+    SuccessAlert(t('edubridge.adminCalendarPage.cancelled'));
+  } catch (e) {
+    FailAlert(e);
+  } finally {
+    lessonBusy.value = false;
+  }
+}
+async function loadCalendar(): Promise<void> {
+  if (!course.value) return;
+  try {
+    const id = asText(course.value.id);
+    const [l, g, a] = await Promise.all([fetchLessonCalendar({ course_id: id }), fetchCourseGroups(id), fetchAssignments()]);
+    lessons.value = l;
+    groups.value = g;
+    assignments.value = a;
+    void enrichFio([...new Set([...a.map((x) => x.teacher_username), ...(l.map((x) => x.teacher_username).filter(Boolean) as string[])])]);
+  } catch (e) {
+    FailAlert(e);
+  }
+}
 const formatDate = (v: unknown) => (v ? new Date(String(v)).toLocaleDateString('ru-RU') : '______');
 
 const status = computed(() => COURSE_STATUS_LABELS[course.value?.status ?? ''] ?? { label: course.value?.status ?? '', variant: 'neutral' as const });
@@ -218,6 +291,7 @@ async function load(): Promise<void> {
     if (pageLeft) return;
     if (course.value) desktopStore.setPageTitleOverride(t('edubridge.adminCoursePage.pageTitle'));
     economy.value = await fetchCourseEconomy(id);
+    await loadCalendar();
   } catch (e) {
     FailAlert(e);
   } finally {
@@ -233,27 +307,6 @@ watch(
   },
   { immediate: true },
 );
-
-async function cancelUnderfilled(): Promise<void> {
-  if (!course.value) return;
-  const agreed = await confirm({
-    title: t('edubridge.adminCoursePage.cancelUnderfilledConfirmTitle'),
-    message: t('edubridge.adminCoursePage.cancelUnderfilledConfirmMessage', { courseTitle: course.value.title }),
-    note: t('edubridge.adminCoursePage.cancelUnderfilledConfirmNote'),
-    confirmLabel: t('edubridge.adminCoursePage.cancelUnderfilledConfirmButton'),
-    danger: true,
-  });
-  if (!agreed) return;
-  cancelling.value = true;
-  try {
-    const count = await cancelCourseUnderfilled(asText(course.value.id));
-    SuccessAlert(count > 0 ? t('edubridge.adminCoursePage.cancelledWithRefunds', { count }) : t('edubridge.adminCoursePage.cancelledNoSubscriptions'));
-  } catch (e) {
-    FailAlert(e);
-  } finally {
-    cancelling.value = false;
-  }
-}
 
 const deleting = ref(false);
 
@@ -294,6 +347,7 @@ async function setStatus(next: ICourse['status']): Promise<void> {
 
 // Живое обновление: данные меняются в цепи и на столах других участников.
 useLiveReload([EduLive.courses, EduLive.enrollments], load);
+useLiveReload([EduLive.lessons, EduLive.groups, EduLive.assignments], loadCalendar);
 
 onMounted(load);
 onBeforeUnmount(() => {

@@ -49,6 +49,13 @@
             .edu-course__section-title {{ $t('edubridge.courseCardPage.syllabusTitle') }}
             .edu-course__text(v-if="course.syllabus") {{ course.syllabus }}
             .t-muted.t-sm(v-else) {{ $t('edubridge.courseCardPage.syllabusEmpty') }}
+          //- Ближайшие занятия группы, в которую записан обучающийся: из календаря группы.
+          section(v-if="nextLessons.length")
+            .edu-course__section-title {{ $t('edubridge.courseCardPage.nextLessonsTitle') }}
+            .edu-course__lessons
+              .edu-course__lesson(v-for="l in nextLessons" :key="asText(l.id)")
+                span.edu-course__lesson-moment {{ formatLessonMoment(l.held_at) }}
+                span.t-muted.t-sm {{ l.topic || $t('edubridge.lesson.numberShort', { number: l.lesson_number }) }}
 
       .col-12.col-md-4(v-if="hasSide")
         BaseCard(variant="default" :title="course.teacher_usernames.length > 1 ? $t('edubridge.courseCardPage.teachersTitleMany') : $t('edubridge.courseCardPage.teachersTitleOne')")
@@ -70,6 +77,8 @@
 
 <script setup lang="ts">
 import { fetchOpenGroups } from '../../entities/Group';
+import { fetchGroupLessons, formatLessonMoment, type ICalendarLesson } from '../../entities/Lesson';
+import { Zeus } from '@coopenomics/sdk';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { asText } from 'src/shared/lib/utils';
@@ -110,6 +119,21 @@ const firstLoad = useFirstLoad(loading);
 const subscribeOpen = ref(false);
 /** Мои действующие подписки на этот курс: по ним видно, что доступ уже оплачен и до какого дня. */
 const ownEnrollments = ref<IEnrollment[]>([]);
+/** Ближайшие занятия группы по моей подписке: три запланированных от текущего момента. */
+const groupLessons = ref<ICalendarLesson[]>([]);
+const nextLessons = computed(() => {
+  const now = Date.now();
+  return groupLessons.value
+    .filter((l) => l.status === Zeus.EduLessonStatus.PLANNED && new Date(String(l.held_at)).getTime() >= now)
+    .sort((a, b) => String(a.held_at).localeCompare(String(b.held_at)))
+    .slice(0, 3);
+});
+watch(
+  () => ownEnrollments.value.map((e) => asText(e.group_id)).filter(Boolean)[0] ?? null,
+  async (groupId) => {
+    groupLessons.value = groupId ? await fetchGroupLessons(groupId).catch(() => []) : [];
+  },
+);
 /** Самый поздний оплаченный срок среди них. */
 const paidUntil = computed(() => {
   const dates = ownEnrollments.value.map((e) => (e.paid_until ? new Date(String(e.paid_until)).getTime() : 0)).filter(Boolean);
@@ -234,6 +258,21 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+.edu-course__lessons {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-2);
+}
+.edu-course__lesson {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--p-1) var(--p-3);
+  align-items: baseline;
+}
+.edu-course__lesson-moment {
+  font-weight: 600;
+  color: var(--p-ink);
+}
 .edu-course__guest {
   font-size: var(--p-fs-meta);
   color: var(--p-ink-3);
