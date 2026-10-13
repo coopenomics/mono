@@ -272,14 +272,15 @@ export class EduLessonDTO {
   @Field(() => Date, { description: 'Момент занятия' }) held_at!: Date;
   @Field(() => Date, { description: 'Конец занятия' }) ends_at!: Date;
   @Field(() => Date, { description: 'До какого момента принимается отчёт' }) report_until!: Date;
-  @Field(() => Boolean, { description: 'Срок на отчёт вышел, отчёта нет' }) overdue!: boolean;
+  @Field(() => Boolean, { description: 'Срок на отчёт вышел, отчёта нет; у занятия без обучающихся с оплаченным доступом отчёт не ждут' }) overdue!: boolean;
+  @Field(() => Int, { description: 'Обучающихся с оплаченным доступом на дату занятия: ноль — расчёта по занятию не будет, отчёт не требуется' }) learners_paid!: number;
   @Field(() => Date, { nullable: true, description: 'Когда подан отчёт' }) reported_at!: Date | null;
   @Field(() => Int, { description: 'Длительность, минут' }) duration_minutes!: number;
   @Field(() => Int, { nullable: true, description: 'Участников с оплаченным доступом, по которым проведён расчёт за занятие' }) learners_count!: number | null;
   @Field(() => [String], { description: 'Материалы занятия' }) materials!: string[];
   @Field(() => ID, { nullable: true, description: 'Взнос, оформленный по занятию' }) contribution_id!: string | null;
 
-  constructor(e: EdubridgeLessonRecord, titles: { course: string; group?: string; reportDays?: number }) {
+  constructor(e: EdubridgeLessonRecord, titles: { course: string; group?: string; reportDays?: number; learnersPaid?: number }) {
     const reportDays = titles.reportDays ?? 7;
     this.id = e.id;
     this.course_id = e.course_id;
@@ -295,13 +296,24 @@ export class EduLessonDTO {
     this.held_at = e.held_at;
     this.ends_at = lessonEndsAt(e);
     this.report_until = reportUntil(e, reportDays);
-    this.overdue = e.status === EduLessonStatus.PLANNED && this.report_until.getTime() < Date.now();
+    this.learners_paid = titles.learnersPaid ?? 0;
+    this.overdue = isOverdue(e, this.report_until, this.learners_paid);
     this.reported_at = e.reported_at ?? null;
     this.duration_minutes = e.duration_minutes;
     this.learners_count = e.learners_count ?? null;
     this.materials = e.materials ?? [];
     this.contribution_id = e.contribution_id;
   }
+}
+
+/**
+ * Отчёт просрочен: занятие запланировано, срок на отчёт вышел, и отчёта ждут —
+ * на дату занятия есть обучающиеся с оплаченным доступом. Без них рассчитывать
+ * занятие не с кем, и просрочки нет.
+ */
+function isOverdue(lesson: EdubridgeLessonRecord, reportUntilAt: Date, learnersPaid: number): boolean {
+  if (lesson.status !== EduLessonStatus.PLANNED || learnersPaid <= 0) return false;
+  return reportUntilAt.getTime() < Date.now();
 }
 
 /** Возврат паевого взноса со стола расчёта: оба заявления подписаны разом. */

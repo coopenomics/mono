@@ -95,7 +95,12 @@
   DetailsDrawer(v-model="lessonOpen" :title="lessonInView ? $t('edubridge.lesson.numberShort', { number: lessonInView.lesson_number }) + ' · ' + lessonInView.course_title : ''" :width="520")
     template(v-if="lessonInView")
       LessonDetails(:lesson="lessonInView" :teacher-name="lessonInView.teacher_username ? fioCache.get(lessonInView.teacher_username) : null")
-      BaseBanner.q-mt-md(v-if="lessonInView.status === Zeus.EduLessonStatus.PLANNED && !isReportable(lessonInView)" variant="info")
+      //- Занятие прошло, а обучающихся с оплаченным доступом на его дату не было: отчёта не ждём.
+      BaseBanner.q-mt-md(v-if="hasEnded(lessonInView) && !isReportable(lessonInView)" variant="info")
+        template(#icon)
+          q-icon(name="group_off")
+        | {{ $t('edubridge.teacherLessonsPage.noLearnersNote') }}
+      BaseBanner.q-mt-md(v-else-if="lessonInView.status === Zeus.EduLessonStatus.PLANNED && !isReportable(lessonInView)" variant="info")
         template(#icon)
           q-icon(name="schedule")
         | {{ $t('edubridge.teacherLessonsPage.reportAfterLesson', { moment: formatLessonMoment(lessonInView.ends_at) }) }}
@@ -129,7 +134,7 @@ import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { BaseBadge, BaseBanner, BaseButton, BaseCard, BaseDialog, BaseForm, BaseInput, CardListSkeleton, EmptyState, BaseTable, type BaseTableColumn } from 'src/shared/ui/base';
 import { DataRow, DetailsDrawer, PageHint } from 'src/shared/ui/domain';
 import { CONTRIBUTION_STATUS_LABELS, commitLessonMaterials, fetchMyContributions, fetchMyLessons, reportLesson, signAct, type IContribution, type ILesson } from '../../entities/Teacher';
-import { formatLessonMoment, isReportable } from '../../entities/Lesson';
+import { formatLessonMoment, hasEnded, isReportable } from '../../entities/Lesson';
 import { LessonCalendar } from '../../widgets/LessonCalendar';
 import { LessonDetails } from '../../widgets/LessonDetails';
 import { useFioCache } from 'src/shared/lib/account/useFioCache';

@@ -960,6 +960,21 @@ describe('Допуски по списку «Курс ведут»', () => {
     expect(teachers.saveAssignment).not.toHaveBeenCalled();
   });
 
+  it('занятие без обучающихся с оплаченным доступом отчёта не ждёт: просрочки нет; с оплаченной на его дату подпиской — просрочено', async () => {
+    const { service, enrollments } = make();
+    const heldAt = new Date(Date.now() - 30 * 86400_000);
+    const lesson = { id: 'LX', coopname: 'voskhod', course_id: 'C1', group_id: 'G1', lesson_number: 9, held_at: heldAt, duration_minutes: 60, status: 'planned', origin: 'schedule', topic: '', materials: [], contribution_id: null } as any;
+    enrollments.findByGroup.mockResolvedValue([]);
+    expect((await service.lessonDtos('voskhod', [lesson]))[0]).toMatchObject({ learners_paid: 0, overdue: false });
+    // Одна подписка оплачена на дату занятия, у второй оплаченный срок вышел раньше, третья отозвана.
+    enrollments.findByGroup.mockResolvedValue([
+      { status: 'active', paid_until: new Date(Date.now() + 86400_000) },
+      { status: 'active', paid_until: new Date(heldAt.getTime() - 86400_000) },
+      { status: 'cancelled', paid_until: new Date(Date.now() + 86400_000) },
+    ]);
+    expect((await service.lessonDtos('voskhod', [lesson]))[0]).toMatchObject({ learners_paid: 1, overdue: true });
+  });
+
   it('период — от начала занятий на весь срок программы; без даты — от сегодня', () => {
     // Месяц — четыре недели: восемь месяцев программы — 224 дня, последний день назначения — 223-й от начала.
     expect(coursePeriod({ starts_at: '2026-09-23', program_months: 8 } as any)).toEqual({ from: '2026-09-23', to: '2027-05-04' });

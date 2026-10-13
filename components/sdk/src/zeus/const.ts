@@ -6037,6 +6037,7 @@ export const ReturnTypes: Record<string,any> = {
 		held_at:"DateTime",
 		id:"ID",
 		learners_count:"Int",
+		learners_paid:"Int",
 		lesson_number:"Int",
 		materials:"String",
 		origin:"EduLessonOrigin",

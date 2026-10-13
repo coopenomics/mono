@@ -23,7 +23,7 @@ import {
   type IWalletWithdrawPort,
 } from '@coopenomics/innercoop';
 import { EduAssignmentStatus, EduContractStatus, EduContributionStatus, EduCouncilOutcome, EduEnrollmentStatus, EduGroupStatus, EduLessonStatus, EduRidType, EduContributionDocumentKind, EduShareReturnDocumentKind } from '../../domain/enums';
-import type { EdubridgeGroupRecord } from '../../infrastructure/entities';
+import type { EdubridgeEnrollmentRecord, EdubridgeGroupRecord } from '../../infrastructure/entities';
 import type { EdubridgeShareReturnRecord } from '../../infrastructure/entities';
 import { guaranteeEndsAt, guaranteeSeconds, isGuaranteeRunning } from '../../domain/economy/guarantee';
 import { EdubridgeFundsService } from './edubridge-funds.service';
@@ -937,16 +937,21 @@ export class EdubridgeTeacherService {
     return this.lessons.findByTeacher(coopname, teacher);
   }
 
-  /** Занятия для стола: названия курса и группы, срок на отчёт — из группы. */
+  /** Занятия для стола: названия курса и группы, срок на отчёт — из группы, число обучающихся с оплаченным доступом — по подпискам группы. */
   async lessonDtos(coopname: string, lessons: EdubridgeLessonRecord[]): Promise<EduLessonDTO[]> {
     const titles = await this.courseTitles(coopname, lessons.map((l) => l.course_id));
     const groups = new Map<string, EdubridgeGroupRecord | null>();
+    // Подписки группы читаются один раз: по ним считается, есть ли на дату занятия обучающиеся с оплаченным доступом.
+    const subscriptions = new Map<string, EdubridgeEnrollmentRecord[]>();
     for (const id of new Set(lessons.map((l) => l.group_id).filter(Boolean) as string[])) {
       groups.set(id, await this.groups.get(coopname, id).catch(() => null));
+      subscriptions.set(id, await this.enrollments.findByGroup(coopname, id).catch(() => []));
     }
     return lessons.map((l) => {
       const group = l.group_id ? groups.get(l.group_id) : null;
-      return new EduLessonDTO(l, { course: titles.get(l.course_id) ?? '', group: group?.title, reportDays: group?.report_days });
+      const heldAt = new Date(l.held_at);
+      const learnersPaid = (l.group_id ? subscriptions.get(l.group_id) ?? [] : []).filter((e) => paidAt(e, heldAt)).length;
+      return new EduLessonDTO(l, { course: titles.get(l.course_id) ?? '', group: group?.title, reportDays: group?.report_days, learnersPaid });
     });
   }
 

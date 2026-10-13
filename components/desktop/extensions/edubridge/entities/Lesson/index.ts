@@ -34,9 +34,18 @@ export function lessonStateOf(l: Pick<ICalendarLesson, 'status' | 'overdue'>): {
   return LESSON_STATE_LABELS[l.status] ?? { label: String(l.status), variant: 'neutral' };
 }
 
-/** Отчёт по занятию открыт: занятие закончилось. Просрочка показывается, приём не держит. */
-export function isReportable(l: Pick<ICalendarLesson, 'status' | 'ends_at'>, now: Date = new Date()): boolean {
+/** Занятие запланировано и закончилось. */
+export function hasEnded(l: Pick<ICalendarLesson, 'status' | 'ends_at'>, now: Date = new Date()): boolean {
   return l.status === Zeus.EduLessonStatus.PLANNED && new Date(String(l.ends_at)) <= now;
+}
+
+/**
+ * Отчёт по занятию открыт: занятие закончилось, и на его дату в группе есть
+ * обучающиеся с оплаченным доступом. Без них рассчитывать занятие не с кем —
+ * отчёта не ждут. Просрочка показывается, приём не держит.
+ */
+export function isReportable(l: Pick<ICalendarLesson, 'status' | 'ends_at' | 'learners_paid'>, now: Date = new Date()): boolean {
+  return hasEnded(l, now) && Number(l.learners_paid) > 0;
 }
 
 export async function fetchLessonCalendar(filter: ILessonCalendarFilter = {}): Promise<ICalendarLesson[]> {

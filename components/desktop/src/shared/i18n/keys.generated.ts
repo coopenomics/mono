@@ -3411,6 +3411,7 @@ export type MessageKey =
   | 'edubridge.teacherLessonsPage.lessonTitle'
   | 'edubridge.teacherLessonsPage.materialsHint'
   | 'edubridge.teacherLessonsPage.materialsLabel'
+  | 'edubridge.teacherLessonsPage.noLearnersNote'
   | 'edubridge.teacherLessonsPage.packTitle'
   | 'edubridge.teacherLessonsPage.pendingTransfer'
   | 'edubridge.teacherLessonsPage.reportAfterLesson'

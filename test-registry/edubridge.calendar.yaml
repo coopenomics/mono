@@ -89,3 +89,10 @@ cases:
     expect: "Запланированные занятия отмечаются отменёнными и отчёта не ждут; проведённые остаются; повтор ничего не меняет."
     test: components/controller/tests/unit/edubridge/calendar.service.test.ts
     status: written
+  - id: edu.cal.side.22
+    level: backend
+    kind: side
+    scenario: "Занятие идущей группы прошло, а на его дату в группе нет обучающихся с оплаченным доступом (решение владельца 13.10.2026)."
+    expect: "У занятия число обучающихся с оплаченным доступом — ноль, просрочки нет; отчёта от преподавателя не ждут. С оплаченной на дату занятия подпиской занятие ждёт отчёта."
+    test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    status: written
