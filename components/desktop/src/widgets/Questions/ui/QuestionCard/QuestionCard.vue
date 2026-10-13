@@ -10,7 +10,7 @@
 
     .question-card__main
       .question-card__title {{ documentTitle }}
-      .question-card__applicant {{ getApplicantName() }}
+      .question-card__applicant {{ applicantName }}
 
     //- Кнопки голосования — прижаты к правому краю строки.
     .question-card__voting(@click.stop)
@@ -32,27 +32,23 @@
       BaseButton(variant='ghost', size='sm', @click='openDetails')
         q-icon.q-mr-xs(name='open_in_new', size='16px')
         | {{ $t('questions.questionCard.details') }}
-      ChairmanDecisionButton
+      ChairmanDecisionButton(:agenda='agenda', :is-processing='isProcessing', @authorize='$emit("authorize")', @decline='$emit("decline")')
 
-  //- Подробности вопроса: сведения по нему (например, что заявитель рассказал
-  //- о себе) — первыми, ниже документы пакета строками. Содержимое дроуэра
-  //- рисуется только открытым: сведения грузятся по первому открытию.
+  //- Подробности вопроса: сведения по нему — первыми, ниже документы пакета
+  //- строками. Содержимое панели рисуется только открытой: сведения грузятся по
+  //- первому открытию. Тот же вопрос открывается отдельной страницей кнопкой в шапке.
   DetailsDrawer(
     v-model='detailsOpen',
     :title='$t(`questions.questionCard.detailsTitle`, { id: agenda.table.id })',
     :width='720'
   )
+    template(#actions)
+      BaseButton(variant='ghost', size='sm', :aria-label='$t("questions.questionCard.openFullPageAriaLabel")', @click='openFullPage')
+        template(#icon-left)
+          q-icon(name='open_in_full', size='16px')
+        | {{ $t('questions.questionCard.openFullPageButton') }}
     .question-card__details
-      .question-card__details-title {{ documentTitle }}
-      .question-card__applicant {{ getApplicantName() }}
-
-      component.q-mt-md(
-        v-if='infoComponent',
-        :is='infoComponent',
-        :agenda='agenda'
-      )
-
-      ComplexDocument.q-mt-md(:documents='agenda.documents', collapsible)
+      QuestionDetails(:agenda='agenda')
 
     //- Голосовать и утверждать можно, не закрывая подробности.
     template(#footer)
@@ -66,24 +62,23 @@
           @vote-for='$emit("vote-for")',
           @vote-against='$emit("vote-against")'
         )
-        ChairmanDecisionButton
+        ChairmanDecisionButton(:agenda='agenda', :is-processing='isProcessing', @authorize='$emit("authorize")', @decline='$emit("decline")')
 </template>
 
 <script setup lang="ts">
-import { computed, defineComponent, h, ref } from 'vue';
-import { ComplexDocument } from 'src/shared/ui/ComplexDocument';
+import { computed, ref } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+import { copyToClipboard } from 'quasar';
 import { formatToFromNow } from 'src/shared/lib/utils/dates/formatToFromNow';
-import { getShortNameFromCertificate } from 'src/shared/lib/utils/getNameFromCertificate';
-import { VotingButtons } from '../VotingButtons';
-import { useSessionStore } from 'src/entities/Session';
 import type { IAgenda } from 'src/entities/Agenda/model';
-import { Cooperative } from 'cooptypes';
 import { BaseButton } from 'src/shared/ui/base/BaseButton';
 import { DetailsDrawer } from 'src/shared/ui/domain';
-import { copyToClipboard, QTooltip } from 'quasar';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
-import { decisionFactory } from 'src/shared/lib/decision-factory';
 import { t } from 'src/shared/i18n';
+import { VotingButtons } from '../VotingButtons';
+import { ChairmanDecisionButton } from '../ChairmanDecisionButton';
+import { QuestionDetails } from '../QuestionDetails';
+import { AGENDA_QUESTION_ROUTE, applicantNameOf, isQuestionRejected, questionTitleOf } from '../../model';
 
 const props = defineProps({
   agenda: {
@@ -108,19 +103,14 @@ const props = defineProps({
   },
 });
 
+defineEmits(['authorize', 'decline', 'vote-for', 'vote-against']);
 
-const session = useSessionStore();
-const isChairman = computed(() => session.isChairman);
+const route = useRoute();
+const router = useRouter();
 
-// Отрицательный консенсус: против проголосовало большинство состава совета.
-// Порог зеркален контракту (votefor/declinedec): против*100 > состав*50, строго.
-// council_members_count приходит обогащённым в DTO решения с бэкенда.
-const isRejected = computed(() => {
-  const table = props.agenda.table as { votes_against?: string[]; council_members_count?: number };
-  const against = table.votes_against?.length ?? 0;
-  const members = table.council_members_count ?? 0;
-  return members > 0 && against * 100 > members * 50;
-});
+const isRejected = computed(() => isQuestionRejected(props.agenda));
+const documentTitle = computed(() => questionTitleOf(props.agenda));
+const applicantName = computed(() => applicantNameOf(props.agenda));
 
 // Состояние раскрытия — локальное для каждой карточки.
 const detailsOpen = ref(false);
@@ -128,44 +118,10 @@ const openDetails = () => {
   detailsOpen.value = true;
 };
 
-const emit = defineEmits(['authorize', 'decline', 'vote-for', 'vote-against']);
-
-/**
- * Действие председателя по вопросу. Нужно и в строке вопроса, и в подвале
- * дроуэра, поэтому собрано один раз. Отрицательный консенсус — явное
- * отклонение (контракт declinedec), иначе утверждение, доступное после
- * принятия советом.
- */
-const ChairmanDecisionButton = defineComponent({
-  name: 'ChairmanDecisionButton',
-  setup() {
-    return () => {
-      if (!isChairman.value) return null;
-      if (isRejected.value) {
-        return h(
-          BaseButton,
-          { variant: 'negative', size: 'sm', loading: props.isProcessing, onClick: () => emit('decline') },
-          () => t('questions.questionCard.decline')
-        );
-      }
-      const approved = Boolean(props.agenda.table.approved);
-      return h('span', { class: 'question-card__approve' }, [
-        h(
-          BaseButton,
-          {
-            variant: 'primary',
-            size: 'sm',
-            disabled: !approved,
-            loading: props.isProcessing,
-            onClick: () => emit('authorize'),
-          },
-          () => t('questions.questionCard.approve')
-        ),
-        approved ? null : h(QTooltip, null, () => t('questions.questionCard.approveDisabledHint')),
-      ]);
-    };
-  },
-});
+/** Тот же вопрос на отдельной странице: на всю ширину и со своим адресом. */
+function openFullPage(): void {
+  void router.push({ name: AGENDA_QUESTION_ROUTE, params: { coopname: route.params.coopname, id: String(props.agenda.table.id) } });
+}
 
 // Копирование идентификатора вопроса по клику на плашку с номером.
 const copyId = async () => {
@@ -175,55 +131,6 @@ const copyId = async () => {
   } catch {
     FailAlert(t('questions.questionCard.copyFailed'));
   }
-};
-
-// Компонент дополнительной информации для конкретного типа решения.
-const infoComponent = computed(() => {
-  const type = props.agenda.table?.type;
-  if (!type) return null;
-  return decisionFactory.getInfoComponent(type);
-});
-
-const documentTitle = computed(() => getDocumentTitle());
-
-// Получение заголовка документа с поддержкой агрегатов
-function getDocumentTitle() {
-  const agenda = props.agenda;
-  const statement = agenda.documents?.statement;
-  const rawDocument = statement?.documentAggregate?.rawDocument;
-  const meta = rawDocument?.meta as
-    | Cooperative.Document.IMetaDocument
-    | undefined;
-  if (meta?.title) {
-    return meta.title;
-  }
-
-  const tableMeta = agenda.table?.statement?.meta;
-  if (tableMeta && typeof tableMeta === 'object' && (tableMeta as any).title) {
-    return (tableMeta as any).title;
-  }
-
-  if (tableMeta && typeof tableMeta === 'string') {
-    try {
-      const parsed = JSON.parse(tableMeta);
-      if (parsed?.title) {
-        return parsed.title;
-      }
-    } catch {
-      // ignore parse errors
-    }
-  }
-
-  return t('questions.questionCard.untitledQuestion');
-}
-
-// Получение имени заявителя
-const getApplicantName = () => {
-  const certificate = props.agenda.table.username_certificate;
-  if (certificate) {
-    return getShortNameFromCertificate(certificate);
-  }
-  return t('questions.questionCard.accountFallback', { username: props.agenda.table.username });
 };
 </script>
 
@@ -317,20 +224,10 @@ const getApplicantName = () => {
   align-items: center;
   gap: var(--p-2, 8px);
 }
-:deep(.question-card__approve) {
-  display: inline-flex;
-}
 
 /* Подробности вопроса в дроуэре */
 .question-card__details {
   padding: var(--p-4, 16px);
-}
-.question-card__details-title {
-  font-size: var(--p-fs-h3, 15px);
-  font-weight: 600;
-  line-height: 1.4;
-  color: var(--p-ink);
-  overflow-wrap: anywhere;
 }
 .question-card__drawer-footer {
   display: flex;

@@ -2202,23 +2202,17 @@ export type ValueTypes = {
 	represented_by?:ValueTypes["RepresentedBy"],
 	/** Краткое название организации */
 	short_name?:boolean | `@${string}`,
-	/** Доверенные аккаунты; пусто, если состав участка недоступен запрашивающему
-
-Требуемые роли: chairman, member.  */
+	/** Доверенные аккаунты; пусто, если состав участка недоступен запрашивающему */
 	trusted?:ValueTypes["Individual"],
 	/** Сертификаты доверенных лиц участка (ФИО) */
 	trusted_certificates?:ValueTypes["IndividualCertificate"],
-	/** Председатель кооперативного участка; пусто, если состав участка недоступен запрашивающему
-
-Требуемые роли: chairman, member.  */
+	/** Председатель кооперативного участка; пусто, если состав участка недоступен запрашивающему */
 	trustee?:ValueTypes["Individual"],
 	/** Сертификат председателя кооперативного участка (ФИО) */
 	trustee_certificate?:ValueTypes["IndividualCertificate"],
 	/** Тип организации */
 	type?:boolean | `@${string}`,
-	/** Пайщики в белом списке приватного участка (ФИО); пусто, если участок не свой
-
-Требуемые роли: chairman, member.  */
+	/** Пайщики в белом списке приватного участка (ФИО); пусто, если участок не свой */
 	whitelist_certificates?:ValueTypes["IndividualCertificate"],
 		__typename?: boolean | `@${string}`,
 	['...on Branch']?: Omit<ValueTypes["Branch"], "...on Branch">
@@ -3363,9 +3357,7 @@ export type ValueTypes = {
 	block_num?:boolean | `@${string}`,
 	/** Статус из блокчейна */
 	blockchain_status?:boolean | `@${string}`,
-	/** Контракт участника
-
-Требуемые роли: chairman, member.  */
+	/** Контракт участника */
 	contract?:ValueTypes["DocumentAggregate"],
 	/** Вклад как автор */
 	contributed_as_author?:boolean | `@${string}`,
@@ -3536,13 +3528,9 @@ export type ValueTypes = {
 	_updated_at?:boolean | `@${string}`,
 	/** Сумма долга */
 	amount?:boolean | `@${string}`,
-	/** Одобренное заявление
-
-Требуемые роли: chairman, member.  */
+	/** Одобренное заявление */
 	approved_statement?:ValueTypes["DocumentAggregate"],
-	/** Протокол решения совета
-
-Требуемые роли: chairman, member.  */
+	/** Протокол решения совета */
 	authorization?:ValueTypes["DocumentAggregate"],
 	/** Номер блока последнего обновления */
 	block_num?:boolean | `@${string}`,
@@ -3562,9 +3550,7 @@ export type ValueTypes = {
 	project_hash?:boolean | `@${string}`,
 	/** Дата погашения */
 	repaid_at?:boolean | `@${string}`,
-	/** Заявление на получение ссуды
-
-Требуемые роли: chairman, member.  */
+	/** Заявление на получение ссуды */
 	statement?:ValueTypes["DocumentAggregate"],
 	/** Статус долга */
 	status?:boolean | `@${string}`,
@@ -3583,13 +3569,9 @@ export type ValueTypes = {
 	_updated_at?:boolean | `@${string}`,
 	/** Сумма расхода */
 	amount?:boolean | `@${string}`,
-	/** Одобренная записка
-
-Требуемые роли: chairman, member.  */
+	/** Одобренная записка */
 	approved_statement?:ValueTypes["DocumentAggregate"],
-	/** Авторизация расхода
-
-Требуемые роли: chairman, member.  */
+	/** Авторизация расхода */
 	authorization?:ValueTypes["DocumentAggregate"],
 	/** Номер блока последнего обновления */
 	block_num?:boolean | `@${string}`,
@@ -3601,9 +3583,7 @@ export type ValueTypes = {
 	description?:boolean | `@${string}`,
 	/** Хеш расхода */
 	expense_hash?:boolean | `@${string}`,
-	/** Служебная записка о расходе
-
-Требуемые роли: chairman, member.  */
+	/** Служебная записка о расходе */
 	expense_statement?:ValueTypes["DocumentAggregate"],
 	/** ID фонда */
 	fund_id?:boolean | `@${string}`,
@@ -6957,6 +6937,46 @@ export type ValueTypes = {
 	teacher_username?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on EduContribution']?: Omit<ValueTypes["EduContribution"], "...on EduContribution">
+}>;
+	["EduContributionBrief"]: AliasType<{
+	/** Сумма паевого взноса */
+	amount?:boolean | `@${string}`,
+	/** Курс */
+	course_id?:boolean | `@${string}`,
+	/** Название курса */
+	course_title?:boolean | `@${string}`,
+	/** Когда преподаватель оформил взнос */
+	created_at?:boolean | `@${string}`,
+	/** Описание результата */
+	description?:boolean | `@${string}`,
+	/** Длительность занятия, минут */
+	duration_minutes?:boolean | `@${string}`,
+	/** Название группы */
+	group_title?:boolean | `@${string}`,
+	/** Момент занятия */
+	held_at?:boolean | `@${string}`,
+	/** До какой даты материалы держались гарантийным сроком */
+	hold_until?:boolean | `@${string}`,
+	/** Стоимость часа преподавателя в окне расписания */
+	hourly_rate?:boolean | `@${string}`,
+	/** Участников с оплаченным доступом, по которым проведён расчёт за занятие */
+	learners_count?:boolean | `@${string}`,
+	/** Номер занятия в программе */
+	lesson_number?:boolean | `@${string}`,
+	/** Тема занятия */
+	lesson_topic?:boolean | `@${string}`,
+	/** Материалы занятия: ссылки на внешние хранилища */
+	links?:boolean | `@${string}`,
+	/** Ключ взноса в цепи */
+	rid_hash?:boolean | `@${string}`,
+	/** Тип результата интеллектуальной деятельности */
+	rid_type?:boolean | `@${string}`,
+	/** Имя преподавателя */
+	teacher_name?:boolean | `@${string}`,
+	/** Преподаватель */
+	teacher_username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on EduContributionBrief']?: Omit<ValueTypes["EduContributionBrief"], "...on EduContributionBrief">
 }>;
 	["EduContributionDocument"]: AliasType<{
 	/** Подписанный документ с исходником */
@@ -15605,6 +15625,7 @@ edubridgeCatalog?: [{	filter?: ValueTypes["EduCatalogFilterInput"] | undefined |
 edubridgeCatalogCourse?: [{	id: ValueTypes["ID"] | Variable<any, string>},ValueTypes["EduCatalogCourse"]],
 	/** Площадки и их состояние (ключи не выдаются) */
 	edubridgeConnectors?:ValueTypes["EduConnectorBinding"],
+edubridgeContributionBrief?: [{	rid_hash: string | Variable<any, string>},ValueTypes["EduContributionBrief"]],
 edubridgeContributionDocuments?: [{	contribution_id: ValueTypes["ID"] | Variable<any, string>},ValueTypes["EduContributionDocument"]],
 	/** Взносы РИД всех преподавателей */
 	edubridgeContributions?:ValueTypes["EduContribution"],
@@ -19262,23 +19283,17 @@ export type ResolverInputTypes = {
 	represented_by?:ResolverInputTypes["RepresentedBy"],
 	/** Краткое название организации */
 	short_name?:boolean | `@${string}`,
-	/** Доверенные аккаунты; пусто, если состав участка недоступен запрашивающему
-
-Требуемые роли: chairman, member.  */
+	/** Доверенные аккаунты; пусто, если состав участка недоступен запрашивающему */
 	trusted?:ResolverInputTypes["Individual"],
 	/** Сертификаты доверенных лиц участка (ФИО) */
 	trusted_certificates?:ResolverInputTypes["IndividualCertificate"],
-	/** Председатель кооперативного участка; пусто, если состав участка недоступен запрашивающему
-
-Требуемые роли: chairman, member.  */
+	/** Председатель кооперативного участка; пусто, если состав участка недоступен запрашивающему */
 	trustee?:ResolverInputTypes["Individual"],
 	/** Сертификат председателя кооперативного участка (ФИО) */
 	trustee_certificate?:ResolverInputTypes["IndividualCertificate"],
 	/** Тип организации */
 	type?:boolean | `@${string}`,
-	/** Пайщики в белом списке приватного участка (ФИО); пусто, если участок не свой
-
-Требуемые роли: chairman, member.  */
+	/** Пайщики в белом списке приватного участка (ФИО); пусто, если участок не свой */
 	whitelist_certificates?:ResolverInputTypes["IndividualCertificate"],
 		__typename?: boolean | `@${string}`
 }>;
@@ -20402,9 +20417,7 @@ export type ResolverInputTypes = {
 	block_num?:boolean | `@${string}`,
 	/** Статус из блокчейна */
 	blockchain_status?:boolean | `@${string}`,
-	/** Контракт участника
-
-Требуемые роли: chairman, member.  */
+	/** Контракт участника */
 	contract?:ResolverInputTypes["DocumentAggregate"],
 	/** Вклад как автор */
 	contributed_as_author?:boolean | `@${string}`,
@@ -20572,13 +20585,9 @@ export type ResolverInputTypes = {
 	_updated_at?:boolean | `@${string}`,
 	/** Сумма долга */
 	amount?:boolean | `@${string}`,
-	/** Одобренное заявление
-
-Требуемые роли: chairman, member.  */
+	/** Одобренное заявление */
 	approved_statement?:ResolverInputTypes["DocumentAggregate"],
-	/** Протокол решения совета
-
-Требуемые роли: chairman, member.  */
+	/** Протокол решения совета */
 	authorization?:ResolverInputTypes["DocumentAggregate"],
 	/** Номер блока последнего обновления */
 	block_num?:boolean | `@${string}`,
@@ -20598,9 +20607,7 @@ export type ResolverInputTypes = {
 	project_hash?:boolean | `@${string}`,
 	/** Дата погашения */
 	repaid_at?:boolean | `@${string}`,
-	/** Заявление на получение ссуды
-
-Требуемые роли: chairman, member.  */
+	/** Заявление на получение ссуды */
 	statement?:ResolverInputTypes["DocumentAggregate"],
 	/** Статус долга */
 	status?:boolean | `@${string}`,
@@ -20618,13 +20625,9 @@ export type ResolverInputTypes = {
 	_updated_at?:boolean | `@${string}`,
 	/** Сумма расхода */
 	amount?:boolean | `@${string}`,
-	/** Одобренная записка
-
-Требуемые роли: chairman, member.  */
+	/** Одобренная записка */
 	approved_statement?:ResolverInputTypes["DocumentAggregate"],
-	/** Авторизация расхода
-
-Требуемые роли: chairman, member.  */
+	/** Авторизация расхода */
 	authorization?:ResolverInputTypes["DocumentAggregate"],
 	/** Номер блока последнего обновления */
 	block_num?:boolean | `@${string}`,
@@ -20636,9 +20639,7 @@ export type ResolverInputTypes = {
 	description?:boolean | `@${string}`,
 	/** Хеш расхода */
 	expense_hash?:boolean | `@${string}`,
-	/** Служебная записка о расходе
-
-Требуемые роли: chairman, member.  */
+	/** Служебная записка о расходе */
 	expense_statement?:ResolverInputTypes["DocumentAggregate"],
 	/** ID фонда */
 	fund_id?:boolean | `@${string}`,
@@ -23899,6 +23900,45 @@ export type ResolverInputTypes = {
 	status?:boolean | `@${string}`,
 	/** Акт передачи материалов на ответственное хранение */
 	storage_act_hash?:boolean | `@${string}`,
+	/** Преподаватель */
+	teacher_username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["EduContributionBrief"]: AliasType<{
+	/** Сумма паевого взноса */
+	amount?:boolean | `@${string}`,
+	/** Курс */
+	course_id?:boolean | `@${string}`,
+	/** Название курса */
+	course_title?:boolean | `@${string}`,
+	/** Когда преподаватель оформил взнос */
+	created_at?:boolean | `@${string}`,
+	/** Описание результата */
+	description?:boolean | `@${string}`,
+	/** Длительность занятия, минут */
+	duration_minutes?:boolean | `@${string}`,
+	/** Название группы */
+	group_title?:boolean | `@${string}`,
+	/** Момент занятия */
+	held_at?:boolean | `@${string}`,
+	/** До какой даты материалы держались гарантийным сроком */
+	hold_until?:boolean | `@${string}`,
+	/** Стоимость часа преподавателя в окне расписания */
+	hourly_rate?:boolean | `@${string}`,
+	/** Участников с оплаченным доступом, по которым проведён расчёт за занятие */
+	learners_count?:boolean | `@${string}`,
+	/** Номер занятия в программе */
+	lesson_number?:boolean | `@${string}`,
+	/** Тема занятия */
+	lesson_topic?:boolean | `@${string}`,
+	/** Материалы занятия: ссылки на внешние хранилища */
+	links?:boolean | `@${string}`,
+	/** Ключ взноса в цепи */
+	rid_hash?:boolean | `@${string}`,
+	/** Тип результата интеллектуальной деятельности */
+	rid_type?:boolean | `@${string}`,
+	/** Имя преподавателя */
+	teacher_name?:boolean | `@${string}`,
 	/** Преподаватель */
 	teacher_username?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
@@ -32283,6 +32323,7 @@ edubridgeCatalog?: [{	filter?: ResolverInputTypes["EduCatalogFilterInput"] | und
 edubridgeCatalogCourse?: [{	id: ResolverInputTypes["ID"]},ResolverInputTypes["EduCatalogCourse"]],
 	/** Площадки и их состояние (ключи не выдаются) */
 	edubridgeConnectors?:ResolverInputTypes["EduConnectorBinding"],
+edubridgeContributionBrief?: [{	rid_hash: string},ResolverInputTypes["EduContributionBrief"]],
 edubridgeContributionDocuments?: [{	contribution_id: ResolverInputTypes["ID"]},ResolverInputTypes["EduContributionDocument"]],
 	/** Взносы РИД всех преподавателей */
 	edubridgeContributions?:ResolverInputTypes["EduContribution"],
@@ -35835,23 +35876,17 @@ export type ModelTypes = {
 	represented_by: ModelTypes["RepresentedBy"],
 	/** Краткое название организации */
 	short_name: string,
-	/** Доверенные аккаунты; пусто, если состав участка недоступен запрашивающему
-
-Требуемые роли: chairman, member.  */
+	/** Доверенные аккаунты; пусто, если состав участка недоступен запрашивающему */
 	trusted?: Array<ModelTypes["Individual"]> | undefined | null,
 	/** Сертификаты доверенных лиц участка (ФИО) */
 	trusted_certificates: Array<ModelTypes["IndividualCertificate"]>,
-	/** Председатель кооперативного участка; пусто, если состав участка недоступен запрашивающему
-
-Требуемые роли: chairman, member.  */
+	/** Председатель кооперативного участка; пусто, если состав участка недоступен запрашивающему */
 	trustee?: ModelTypes["Individual"] | undefined | null,
 	/** Сертификат председателя кооперативного участка (ФИО) */
 	trustee_certificate: ModelTypes["IndividualCertificate"],
 	/** Тип организации */
 	type: string,
-	/** Пайщики в белом списке приватного участка (ФИО); пусто, если участок не свой
-
-Требуемые роли: chairman, member.  */
+	/** Пайщики в белом списке приватного участка (ФИО); пусто, если участок не свой */
 	whitelist_certificates?: Array<ModelTypes["IndividualCertificate"]> | undefined | null
 };
 	["BranchEstablishmentDecisionGenerateDocumentInput"]: {
@@ -36950,9 +36985,7 @@ export type ModelTypes = {
 	block_num?: number | undefined | null,
 	/** Статус из блокчейна */
 	blockchain_status?: string | undefined | null,
-	/** Контракт участника
-
-Требуемые роли: chairman, member.  */
+	/** Контракт участника */
 	contract?: ModelTypes["DocumentAggregate"] | undefined | null,
 	/** Вклад как автор */
 	contributed_as_author?: string | undefined | null,
@@ -37117,13 +37150,9 @@ export type ModelTypes = {
 	_updated_at: ModelTypes["DateTime"],
 	/** Сумма долга */
 	amount?: string | undefined | null,
-	/** Одобренное заявление
-
-Требуемые роли: chairman, member.  */
+	/** Одобренное заявление */
 	approved_statement?: ModelTypes["DocumentAggregate"] | undefined | null,
-	/** Протокол решения совета
-
-Требуемые роли: chairman, member.  */
+	/** Протокол решения совета */
 	authorization?: ModelTypes["DocumentAggregate"] | undefined | null,
 	/** Номер блока последнего обновления */
 	block_num?: number | undefined | null,
@@ -37143,9 +37172,7 @@ export type ModelTypes = {
 	project_hash?: string | undefined | null,
 	/** Дата погашения */
 	repaid_at?: string | undefined | null,
-	/** Заявление на получение ссуды
-
-Требуемые роли: chairman, member.  */
+	/** Заявление на получение ссуды */
 	statement?: ModelTypes["DocumentAggregate"] | undefined | null,
 	/** Статус долга */
 	status: ModelTypes["DebtStatus"],
@@ -37162,13 +37189,9 @@ export type ModelTypes = {
 	_updated_at: ModelTypes["DateTime"],
 	/** Сумма расхода */
 	amount?: string | undefined | null,
-	/** Одобренная записка
-
-Требуемые роли: chairman, member.  */
+	/** Одобренная записка */
 	approved_statement?: ModelTypes["DocumentAggregate"] | undefined | null,
-	/** Авторизация расхода
-
-Требуемые роли: chairman, member.  */
+	/** Авторизация расхода */
 	authorization?: ModelTypes["DocumentAggregate"] | undefined | null,
 	/** Номер блока последнего обновления */
 	block_num?: number | undefined | null,
@@ -37180,9 +37203,7 @@ export type ModelTypes = {
 	description?: string | undefined | null,
 	/** Хеш расхода */
 	expense_hash: string,
-	/** Служебная записка о расходе
-
-Требуемые роли: chairman, member.  */
+	/** Служебная записка о расходе */
 	expense_statement?: ModelTypes["DocumentAggregate"] | undefined | null,
 	/** ID фонда */
 	fund_id?: number | undefined | null,
@@ -40332,6 +40353,44 @@ export type ModelTypes = {
 	status: ModelTypes["EduContributionStatus"],
 	/** Акт передачи материалов на ответственное хранение */
 	storage_act_hash?: string | undefined | null,
+	/** Преподаватель */
+	teacher_username: string
+};
+	["EduContributionBrief"]: {
+		/** Сумма паевого взноса */
+	amount: string,
+	/** Курс */
+	course_id?: ModelTypes["ID"] | undefined | null,
+	/** Название курса */
+	course_title: string,
+	/** Когда преподаватель оформил взнос */
+	created_at: ModelTypes["DateTime"],
+	/** Описание результата */
+	description: string,
+	/** Длительность занятия, минут */
+	duration_minutes?: number | undefined | null,
+	/** Название группы */
+	group_title: string,
+	/** Момент занятия */
+	held_at?: ModelTypes["DateTime"] | undefined | null,
+	/** До какой даты материалы держались гарантийным сроком */
+	hold_until?: ModelTypes["DateTime"] | undefined | null,
+	/** Стоимость часа преподавателя в окне расписания */
+	hourly_rate?: string | undefined | null,
+	/** Участников с оплаченным доступом, по которым проведён расчёт за занятие */
+	learners_count?: number | undefined | null,
+	/** Номер занятия в программе */
+	lesson_number?: number | undefined | null,
+	/** Тема занятия */
+	lesson_topic: string,
+	/** Материалы занятия: ссылки на внешние хранилища */
+	links: Array<string>,
+	/** Ключ взноса в цепи */
+	rid_hash: string,
+	/** Тип результата интеллектуальной деятельности */
+	rid_type: ModelTypes["EduRidType"],
+	/** Имя преподавателя */
+	teacher_name: string,
 	/** Преподаватель */
 	teacher_username: string
 };
@@ -48803,6 +48862,8 @@ export type ModelTypes = {
 	edubridgeCatalogCourse: ModelTypes["EduCatalogCourse"],
 	/** Площадки и их состояние (ключи не выдаются) */
 	edubridgeConnectors: Array<ModelTypes["EduConnectorBinding"]>,
+	/** Сведения о взносе результатом работы для вопроса совета: курс, группа, занятие, материалы и сумма */
+	edubridgeContributionBrief?: ModelTypes["EduContributionBrief"] | undefined | null,
 	/** Документы взноса результатом работы: заявление, акт хранения, акт приёма-передачи */
 	edubridgeContributionDocuments: Array<ModelTypes["EduContributionDocument"]>,
 	/** Взносы РИД всех преподавателей */
@@ -52478,23 +52539,17 @@ export type GraphQLTypes = {
 	represented_by: GraphQLTypes["RepresentedBy"],
 	/** Краткое название организации */
 	short_name: string,
-	/** Доверенные аккаунты; пусто, если состав участка недоступен запрашивающему
-
-Требуемые роли: chairman, member.  */
+	/** Доверенные аккаунты; пусто, если состав участка недоступен запрашивающему */
 	trusted?: Array<GraphQLTypes["Individual"]> | undefined | null,
 	/** Сертификаты доверенных лиц участка (ФИО) */
 	trusted_certificates: Array<GraphQLTypes["IndividualCertificate"]>,
-	/** Председатель кооперативного участка; пусто, если состав участка недоступен запрашивающему
-
-Требуемые роли: chairman, member.  */
+	/** Председатель кооперативного участка; пусто, если состав участка недоступен запрашивающему */
 	trustee?: GraphQLTypes["Individual"] | undefined | null,
 	/** Сертификат председателя кооперативного участка (ФИО) */
 	trustee_certificate: GraphQLTypes["IndividualCertificate"],
 	/** Тип организации */
 	type: string,
-	/** Пайщики в белом списке приватного участка (ФИО); пусто, если участок не свой
-
-Требуемые роли: chairman, member.  */
+	/** Пайщики в белом списке приватного участка (ФИО); пусто, если участок не свой */
 	whitelist_certificates?: Array<GraphQLTypes["IndividualCertificate"]> | undefined | null,
 	['...on Branch']: Omit<GraphQLTypes["Branch"], "...on Branch">
 };
@@ -53639,9 +53694,7 @@ export type GraphQLTypes = {
 	block_num?: number | undefined | null,
 	/** Статус из блокчейна */
 	blockchain_status?: string | undefined | null,
-	/** Контракт участника
-
-Требуемые роли: chairman, member.  */
+	/** Контракт участника */
 	contract?: GraphQLTypes["DocumentAggregate"] | undefined | null,
 	/** Вклад как автор */
 	contributed_as_author?: string | undefined | null,
@@ -53812,13 +53865,9 @@ export type GraphQLTypes = {
 	_updated_at: GraphQLTypes["DateTime"],
 	/** Сумма долга */
 	amount?: string | undefined | null,
-	/** Одобренное заявление
-
-Требуемые роли: chairman, member.  */
+	/** Одобренное заявление */
 	approved_statement?: GraphQLTypes["DocumentAggregate"] | undefined | null,
-	/** Протокол решения совета
-
-Требуемые роли: chairman, member.  */
+	/** Протокол решения совета */
 	authorization?: GraphQLTypes["DocumentAggregate"] | undefined | null,
 	/** Номер блока последнего обновления */
 	block_num?: number | undefined | null,
@@ -53838,9 +53887,7 @@ export type GraphQLTypes = {
 	project_hash?: string | undefined | null,
 	/** Дата погашения */
 	repaid_at?: string | undefined | null,
-	/** Заявление на получение ссуды
-
-Требуемые роли: chairman, member.  */
+	/** Заявление на получение ссуды */
 	statement?: GraphQLTypes["DocumentAggregate"] | undefined | null,
 	/** Статус долга */
 	status: GraphQLTypes["DebtStatus"],
@@ -53859,13 +53906,9 @@ export type GraphQLTypes = {
 	_updated_at: GraphQLTypes["DateTime"],
 	/** Сумма расхода */
 	amount?: string | undefined | null,
-	/** Одобренная записка
-
-Требуемые роли: chairman, member.  */
+	/** Одобренная записка */
 	approved_statement?: GraphQLTypes["DocumentAggregate"] | undefined | null,
-	/** Авторизация расхода
-
-Требуемые роли: chairman, member.  */
+	/** Авторизация расхода */
 	authorization?: GraphQLTypes["DocumentAggregate"] | undefined | null,
 	/** Номер блока последнего обновления */
 	block_num?: number | undefined | null,
@@ -53877,9 +53920,7 @@ export type GraphQLTypes = {
 	description?: string | undefined | null,
 	/** Хеш расхода */
 	expense_hash: string,
-	/** Служебная записка о расходе
-
-Требуемые роли: chairman, member.  */
+	/** Служебная записка о расходе */
 	expense_statement?: GraphQLTypes["DocumentAggregate"] | undefined | null,
 	/** ID фонда */
 	fund_id?: number | undefined | null,
@@ -57232,6 +57273,46 @@ export type GraphQLTypes = {
 	/** Преподаватель */
 	teacher_username: string,
 	['...on EduContribution']: Omit<GraphQLTypes["EduContribution"], "...on EduContribution">
+};
+	["EduContributionBrief"]: {
+	__typename: "EduContributionBrief",
+	/** Сумма паевого взноса */
+	amount: string,
+	/** Курс */
+	course_id?: GraphQLTypes["ID"] | undefined | null,
+	/** Название курса */
+	course_title: string,
+	/** Когда преподаватель оформил взнос */
+	created_at: GraphQLTypes["DateTime"],
+	/** Описание результата */
+	description: string,
+	/** Длительность занятия, минут */
+	duration_minutes?: number | undefined | null,
+	/** Название группы */
+	group_title: string,
+	/** Момент занятия */
+	held_at?: GraphQLTypes["DateTime"] | undefined | null,
+	/** До какой даты материалы держались гарантийным сроком */
+	hold_until?: GraphQLTypes["DateTime"] | undefined | null,
+	/** Стоимость часа преподавателя в окне расписания */
+	hourly_rate?: string | undefined | null,
+	/** Участников с оплаченным доступом, по которым проведён расчёт за занятие */
+	learners_count?: number | undefined | null,
+	/** Номер занятия в программе */
+	lesson_number?: number | undefined | null,
+	/** Тема занятия */
+	lesson_topic: string,
+	/** Материалы занятия: ссылки на внешние хранилища */
+	links: Array<string>,
+	/** Ключ взноса в цепи */
+	rid_hash: string,
+	/** Тип результата интеллектуальной деятельности */
+	rid_type: GraphQLTypes["EduRidType"],
+	/** Имя преподавателя */
+	teacher_name: string,
+	/** Преподаватель */
+	teacher_username: string,
+	['...on EduContributionBrief']: Omit<GraphQLTypes["EduContributionBrief"], "...on EduContributionBrief">
 };
 	["EduContributionDocument"]: {
 	__typename: "EduContributionDocument",
@@ -66344,6 +66425,8 @@ export type GraphQLTypes = {
 	edubridgeCatalogCourse: GraphQLTypes["EduCatalogCourse"],
 	/** Площадки и их состояние (ключи не выдаются) */
 	edubridgeConnectors: Array<GraphQLTypes["EduConnectorBinding"]>,
+	/** Сведения о взносе результатом работы для вопроса совета: курс, группа, занятие, материалы и сумма */
+	edubridgeContributionBrief?: GraphQLTypes["EduContributionBrief"] | undefined | null,
 	/** Документы взноса результатом работы: заявление, акт хранения, акт приёма-передачи */
 	edubridgeContributionDocuments: Array<GraphQLTypes["EduContributionDocument"]>,
 	/** Взносы РИД всех преподавателей */

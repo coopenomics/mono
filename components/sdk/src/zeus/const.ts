@@ -3198,6 +3198,9 @@ export const AllTypesProps: Record<string,any> = {
 		edubridgeCatalogCourse:{
 
 		},
+		edubridgeContributionBrief:{
+
+		},
 		edubridgeContributionDocuments:{
 
 		},
@@ -4116,6 +4119,10 @@ export const AllTypesProps: Record<string,any> = {
 }
 
 export const ReturnTypes: Record<string,any> = {
+	auth:{
+		roles:"String",
+		self:"String"
+	},
 	AccessGrant:{
 		action:"String",
 		resource:"String"
@@ -5824,6 +5831,26 @@ export const ReturnTypes: Record<string,any> = {
 		statement_hash:"String",
 		status:"EduContributionStatus",
 		storage_act_hash:"String",
+		teacher_username:"String"
+	},
+	EduContributionBrief:{
+		amount:"String",
+		course_id:"ID",
+		course_title:"String",
+		created_at:"DateTime",
+		description:"String",
+		duration_minutes:"Int",
+		group_title:"String",
+		held_at:"DateTime",
+		hold_until:"DateTime",
+		hourly_rate:"String",
+		learners_count:"Int",
+		lesson_number:"Int",
+		lesson_topic:"String",
+		links:"String",
+		rid_hash:"String",
+		rid_type:"EduRidType",
+		teacher_name:"String",
 		teacher_username:"String"
 	},
 	EduContributionDocument:{
@@ -8774,6 +8801,7 @@ export const ReturnTypes: Record<string,any> = {
 		edubridgeCatalog:"PaginatedEduCatalogCoursesPaginationResult",
 		edubridgeCatalogCourse:"EduCatalogCourse",
 		edubridgeConnectors:"EduConnectorBinding",
+		edubridgeContributionBrief:"EduContributionBrief",
 		edubridgeContributionDocuments:"EduContributionDocument",
 		edubridgeContributions:"EduContribution",
 		edubridgeCourse:"EduCourse",

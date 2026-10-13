@@ -38,16 +38,32 @@ function plainText(s: string | null | undefined): string {
 }
 
 /**
+ * Внутренний путь из адреса в payload: только свой кооператив и только
+ * повестка совета. Абсолютный адрес целиком не используем — навигация внутри
+ * приложения идёт роутером, а не перезагрузкой.
+ */
+function agendaPathOf(url: unknown, coopname: string): string | undefined {
+  if (typeof url !== 'string' || !url) return undefined;
+  try {
+    const path = new URL(url, window.location.origin).pathname.replace(/\/+$/, '');
+    return path.startsWith(`/${coopname}/soviet/agenda`) ? path : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
  * Deep-link уведомления — внутренний маршрут, куда ведёт нажатие. Уведомления
  * безопасности («вход с нового устройства») несут в payload `securityUrl` — по
  * этому маркеру ведём на страницу настроек: там карточка активных сессий с
- * кнопками завершения. Абсолютный URL из payload не используем — навигация
- * внутри приложения идёт роутером, а не перезагрузкой.
+ * кнопками завершения. Оповещение о новом вопросе совета несёт `agendaUrl` —
+ * адрес страницы этого вопроса.
  */
 function linkFromNotification(n: IInboxNotification, coopname: string): string | undefined {
   const p = (n.payload ?? null) as Record<string, unknown> | null;
-  if (p && typeof p.securityUrl === 'string' && p.securityUrl) return `/${coopname}/user/settings`;
-  return undefined;
+  if (!p) return undefined;
+  if (typeof p.securityUrl === 'string' && p.securityUrl) return `/${coopname}/user/settings`;
+  return agendaPathOf(p.agendaUrl, coopname);
 }
 
 function toItem(n: IInboxNotification, coopname: string): NotificationItem {

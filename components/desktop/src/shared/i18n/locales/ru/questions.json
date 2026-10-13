@@ -11,6 +11,8 @@
       "details": "Подробнее",
       "detailsTitle": "Вопрос № {id}",
       "expiresIn": "Истекает {fromNow}",
+      "openFullPageAriaLabel": "Открыть вопрос отдельной страницей",
+      "openFullPageButton": "Открыть страницу",
       "untitledQuestion": "Вопрос без заголовка"
     },
     "questionsTable": {

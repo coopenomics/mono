@@ -36,6 +36,7 @@ import type { IEdubridgeMembership } from '../membership/edubridge-membership.se
 import { EdubridgeTeacherService } from '../services/edubridge-teacher.service';
 import { EdubridgeApprovalsService } from '../services/edubridge-approvals.service';
 import { EduApprovalDTO } from '../dto/edu-approval.dto';
+import { EduContributionBriefDTO } from '../dto/edu-contribution-brief.dto';
 
 const coop = () => platformSettings().coopname;
 
@@ -281,6 +282,17 @@ export class EdubridgeTeacherResolver {
     const contributions = await this.teachers.listContributions(coop());
     const learners = await this.teachers.learnersByContribution(coop(), contributions);
     return contributions.map((c) => new EduContributionDTO(c, learners.get(c.id) ?? null));
+  }
+
+  @Query(() => EduContributionBriefDTO, {
+    name: 'edubridgeContributionBrief',
+    nullable: true,
+    description: 'Сведения о взносе результатом работы для вопроса совета: курс, группа, занятие, материалы и сумма',
+  })
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('EduContribution', 'read:all')
+  edubridgeContributionBrief(@Args('rid_hash', { type: () => String }) ridHash: string): Promise<EduContributionBriefDTO | null> {
+    return this.teachers.contributionBrief(coop(), ridHash);
   }
 
   @Query(() => [EduContributionDocumentDTO], { name: 'edubridgeContributionDocuments', description: 'Документы взноса результатом работы: заявление, акт хранения, акт приёма-передачи' })

@@ -1,6 +1,7 @@
 {
   "soviet": {
     "install": {
+      "agendaQuestionTitle": "Вопрос повестки",
       "agendaTitle": "Повестка совета",
       "cooperativesRegistryTitle": "Реестр кооперативов",
       "documentTemplatesTitle": "Шаблоны документов",

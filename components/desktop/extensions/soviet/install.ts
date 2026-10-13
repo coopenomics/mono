@@ -7,6 +7,8 @@ import { useSystemStore } from 'src/entities/System/model';
 import { useSessionStore } from 'src/entities/Session';
 import { api as agendaApi } from 'src/entities/Agenda';
 import { ListOfAgendaQuestions } from 'src/pages/Cooperative/ListOfAgenda';
+import { AgendaQuestionPage } from 'src/pages/Cooperative/AgendaQuestion';
+import { AGENDA_QUESTION_ROUTE } from 'src/widgets/Questions';
 import { ListOfParticipantsPage } from 'src/pages/Cooperative/ListOfParticipants';
 import { ParticipantDetailsPage } from 'src/pages/Cooperative/ParticipantDetails';
 // Страница «Персонал» (назначение ролей, Story 6.11) временно снята со стола
@@ -65,6 +67,19 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               title: t('soviet.install.agendaTitle'),
               icon: 'fa-solid fa-check-to-slot',
               requires: 'Agenda:read',
+            },
+          },
+          {
+            // Страница вопроса повестки: сюда ведут «Открыть страницу» из панели
+            // вопроса и оповещение членам совета. Подсветку раздела в меню держит menuKey.
+            path: 'agenda/:id',
+            name: AGENDA_QUESTION_ROUTE,
+            component: markRaw(AgendaQuestionPage),
+            meta: {
+              title: t('soviet.install.agendaQuestionTitle'),
+              requires: 'Agenda:read',
+              hidden: true,
+              menuKey: 'agenda',
             },
           },
           {

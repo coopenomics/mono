@@ -65,6 +65,7 @@ export * as Assignments from './assignments'
 export * as Contributions from './contributions'
 /** Документы взноса: заявление, акт хранения, акт приёма-передачи */
 export * as ContributionDocuments from './contributionDocuments'
+export * as ContributionBrief from './contributionBrief'
 /** Реестр пайщиков приложения */
 export * as Members from './members'
 /** Сводная карточка пайщика */

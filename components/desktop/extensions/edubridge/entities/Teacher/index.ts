@@ -19,6 +19,8 @@ export type ISettlement = Queries.Edubridge.MySettlement.IOutput['edubridgeMySet
 export type ILesson = Queries.Edubridge.MyLessons.IOutput['edubridgeMyLessons'][number];
 /** Документ взноса на одном из шагов его пути: заявление, акт хранения, акт приёма-передачи. */
 export type IContributionDocument = Queries.Edubridge.ContributionDocuments.IOutput['edubridgeContributionDocuments'][number];
+/** Сведения о взносе для вопроса совета: курс, группа, занятие, материалы и сумма. */
+export type IContributionBrief = NonNullable<Queries.Edubridge.ContributionBrief.IOutput['edubridgeContributionBrief']>;
 export type ILessonReportInput = Mutations.Edubridge.ReportLesson.IInput['data'];
 export type IAssignmentInput = Mutations.Edubridge.CreateAssignment.IInput['data'];
 
@@ -70,6 +72,11 @@ export const saveTeacherProfile = (data: ITeacherProfileInput) =>
   m<ITeacherProfile>(Mutations.Edubridge.SaveTeacherProfile.mutation, Mutations.Edubridge.SaveTeacherProfile.name, { data });
 export const fetchMyAssignments = () => q<IAssignment[]>(Queries.Edubridge.MyAssignments.query, Queries.Edubridge.MyAssignments.name);
 export const fetchMyContributions = () => q<IContribution[]>(Queries.Edubridge.MyContributions.query, Queries.Edubridge.MyContributions.name);
+/** Сведения о взносе по его ключу из заявления; взноса нет — `null`. */
+export async function fetchContributionBrief(rid_hash: string): Promise<IContributionBrief | null> {
+  const { [Queries.Edubridge.ContributionBrief.name]: result } = await client.Query(Queries.Edubridge.ContributionBrief.query, { variables: { rid_hash } });
+  return result ?? null;
+}
 export const fetchMyLessons = () => q<ILesson[]>(Queries.Edubridge.MyLessons.query, Queries.Edubridge.MyLessons.name);
 export const reportLesson = (data: ILessonReportInput) => m<ILesson>(Mutations.Edubridge.ReportLesson.mutation, Mutations.Edubridge.ReportLesson.name, { data });
 export const fetchMySettlement = () => q<ISettlement>(Queries.Edubridge.MySettlement.query, Queries.Edubridge.MySettlement.name);

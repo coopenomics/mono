@@ -53,6 +53,28 @@ const rawContributionSelector = {
 const _validateContribution: MakeAllFieldsRequired<ValueTypes['EduContribution']> = rawContributionSelector
 export const eduContributionSelector = Selector('EduContribution')(rawContributionSelector)
 
+const rawContributionBriefSelector = {
+  rid_hash: true,
+  teacher_username: true,
+  teacher_name: true,
+  course_id: true,
+  course_title: true,
+  group_title: true,
+  lesson_number: true,
+  lesson_topic: true,
+  held_at: true,
+  duration_minutes: true,
+  learners_count: true,
+  hourly_rate: true,
+  amount: true,
+  rid_type: true,
+  description: true,
+  links: true,
+  hold_until: true,
+  created_at: true,
+}
+export const eduContributionBriefSelector = Selector('EduContributionBrief')(rawContributionBriefSelector)
+
 const rawSettlementSelector = { accepted_total: true, program_share: true, available: true, last_accepted_at: true }
 const _validateSettlement: MakeAllFieldsRequired<ValueTypes['EduTeacherSettlement']> = rawSettlementSelector
 export const eduTeacherSettlementSelector = Selector('EduTeacherSettlement')(rawSettlementSelector)

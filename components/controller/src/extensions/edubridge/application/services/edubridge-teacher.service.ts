@@ -23,6 +23,7 @@ import {
   type IWalletWithdrawPort,
 } from '@coopenomics/innercoop';
 import { EduAssignmentStatus, EduContractStatus, EduContributionStatus, EduCouncilOutcome, EduEnrollmentStatus, EduGroupStatus, EduLessonStatus, EduRidType, EduContributionDocumentKind, EduShareReturnDocumentKind } from '../../domain/enums';
+import { EduContributionBriefDTO } from '../dto/edu-contribution-brief.dto';
 import type { EdubridgeEnrollmentRecord, EdubridgeGroupRecord } from '../../infrastructure/entities';
 import type { EdubridgeShareReturnRecord } from '../../infrastructure/entities';
 import { guaranteeEndsAt, guaranteeSeconds, isGuaranteeRunning } from '../../domain/economy/guarantee';
@@ -588,6 +589,26 @@ export class EdubridgeTeacherService {
       if (lesson?.learners_count) result.set(c.id, lesson.learners_count);
     }
     return result;
+  }
+
+  /**
+   * Сведения о взносе для вопроса совета: что передаётся кооперативу, по какому
+   * курсу, группе и занятию. Ключ — хэш взноса из заявления преподавателя.
+   */
+  async contributionBrief(coopname: string, ridHash: string): Promise<EduContributionBriefDTO | null> {
+    const c = await this.teachers.findContributionByRidHash(ridHash);
+    if (!c || c.coopname !== coopname) return null;
+    const lesson = c.lesson_id ? await this.lessons.findById(coopname, c.lesson_id) : null;
+    const courseId = lesson ? lesson.course_id : (await this.teachers.findAssignment(coopname, c.assignment_id))?.course_id;
+    const course = courseId ? await this.courses.findById(coopname, courseId) : null;
+    const group = lesson?.group_id ? await this.groups.get(coopname, lesson.group_id).catch(() => null) : null;
+    const names = await this.names.displayNames([c.teacher_username]);
+    return new EduContributionBriefDTO(c, {
+      course: course ? { id: course.id, title: course.title } : null,
+      group,
+      lesson,
+      teacherName: names.get(c.teacher_username) ?? '',
+    });
   }
 
   listContributions(coopname: string, teacher?: string, statuses?: EduContributionStatus[]) {

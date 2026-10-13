@@ -2,6 +2,7 @@ import { Cooperative } from 'cooptypes';
 import { decisionFactory } from 'src/shared/lib/decision-factory';
 import { DigitalDocument } from 'src/shared/lib/document';
 import { useSystemStore } from 'src/entities/System/model';
+import { RidDecisionInfo } from '../widgets/RidDecisionInfo';
 import { t } from '../i18n';
 
 /**
@@ -13,7 +14,8 @@ import { t } from '../i18n';
  * контракт ставит в повестку заявление преподавателя (3008), а протокол совета
  * (3009) собирается из его метаданных и номера решения. Автор повестки —
  * преподаватель, протокол и пишется о нём; состав совета, голоса и реквизиты
- * кооператива фабрика берёт сама по номеру решения.
+ * кооператива фабрика берёт сама по номеру решения. Рядом с заявлением совет
+ * видит сведения о взносе: курс, группу, занятие, материалы и сумму.
  */
 export function registerEdubridgeDecisionHandlers(): void {
   decisionFactory.registerHandler('eduacptrid', {
@@ -38,6 +40,7 @@ export function registerEdubridgeDecisionHandlers(): void {
       };
       return await new DigitalDocument().generate(protocolAction, { lang: 'ru' });
     },
+    infoComponent: RidDecisionInfo,
   });
 
   // `eduguarantee` — аннулирование подписки по гарантийным условиям: контракт

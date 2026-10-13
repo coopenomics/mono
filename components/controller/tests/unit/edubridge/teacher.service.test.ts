@@ -960,6 +960,27 @@ describe('Допуски по списку «Курс ведут»', () => {
     expect(teachers.saveAssignment).not.toHaveBeenCalled();
   });
 
+  it('сведения о взносе для вопроса совета: курс, группа, занятие, преподаватель и сумма — по ключу взноса из заявления', async () => {
+    const { service, store, lessonStore } = make();
+    const heldAt = new Date('2026-10-13T18:40:00Z');
+    lessonStore.set(3, { id: 'L3', course_id: 'C1', group_id: 'G1', lesson_number: 3, held_at: heldAt, duration_minutes: 60, slot_index: 0, topic: 'Дроби', learners_count: 2 });
+    store.set('K7', { id: 'K7', coopname: 'voskhod', teacher_username: 'teach', assignment_id: 'A1', rid_hash: 'abc123', rid_type: 'lesson_recording', links: ['https://disk.example/rec'], description: 'Запись занятия', amount: '1000.0000 RUB', lesson_id: 'L3', hold_until: null, created_at: new Date('2026-10-13T19:00:00Z') });
+    expect(await service.contributionBrief('voskhod', 'abc123')).toMatchObject({
+      rid_hash: 'abc123', course_id: 'C1', course_title: 'Алгебра', group_title: 'Группа 1', lesson_number: 3, lesson_topic: 'Дроби', held_at: heldAt,
+      duration_minutes: 60, learners_count: 2, teacher_name: 'Иванов Иван Иванович', amount: '1000.0000 RUB', links: ['https://disk.example/rec'],
+      // У группы теста окон расписания нет — стоимости часа окна нет.
+      hourly_rate: null,
+    });
+  });
+
+  it('сведения о взносе: чужой кооператив и неизвестный ключ дают пусто; взнос вне журнала занятий отдаёт курс по допуску', async () => {
+    const { service, store } = make();
+    store.set('K8', { id: 'K8', coopname: 'voskhod', teacher_username: 'teach', assignment_id: 'A1', rid_hash: 'def456', rid_type: 'lesson_recording', links: [], description: '', amount: '500.0000 RUB', lesson_id: null, hold_until: null, created_at: new Date('2026-10-13T19:00:00Z') });
+    expect(await service.contributionBrief('othercoop', 'def456')).toBeNull();
+    expect(await service.contributionBrief('voskhod', 'нет-такого')).toBeNull();
+    expect(await service.contributionBrief('voskhod', 'def456')).toMatchObject({ course_title: 'Алгебра', group_title: '', lesson_number: null, held_at: null, learners_count: null });
+  });
+
   it('занятие без обучающихся с оплаченным доступом отчёта не ждёт: просрочки нет; с оплаченной на его дату подпиской — просрочено', async () => {
     const { service, enrollments } = make();
     const heldAt = new Date(Date.now() - 30 * 86400_000);

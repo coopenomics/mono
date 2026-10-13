@@ -646,3 +646,20 @@ cases:
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
     api: components/api-tests/src/edubridge/teacher.test.ts
     status: written
+
+  - id: edu.teach.happy.30
+    level: backend
+    kind: happy
+    scenario: "Совет открывает вопрос о приёме паевого взноса результатом работы: стол запрашивает сведения о взносе по ключу из заявления (решение владельца 13.10.2026)."
+    expect: "Узел отдаёт курс, группу, занятие с темой и длительностью, преподавателя, число обучающихся с оплаченным доступом, материалы и сумму взноса."
+    test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    status: written   # прогон — CI на полигоне ci/tests
+
+  - id: edu.teach.side.31
+    level: backend
+    kind: side
+    scenario: "Сведения о взносе запрошены по неизвестному ключу, по ключу взноса другого кооператива либо по взносу вне журнала занятий."
+    expect: "Неизвестный ключ и чужой кооператив дают пустой ответ; у взноса без занятия курс берётся по допуску, занятие и группа пусты."
+    test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    status: written   # прогон — CI на полигоне ci/tests
+
