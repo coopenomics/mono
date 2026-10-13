@@ -13,6 +13,7 @@
 // Отдельного случая реестра у сценария нет: он — обязательная ступень перед
 // проведением списания на складе участка, которое и закрывает основной случай.
 
+import { runSeedPhase } from '../../../lib/fixtures.mjs';
 import { cleanViteOverlays, env, loginAs, loginAsChairman } from '../../../lib/harness.mjs';
 
 /**
@@ -131,4 +132,7 @@ export default async ({ page, context, shot, expect }) => {
       },
     },
   );
+
+  // Ручной путь снят — возвращаем робота совета остальным сценариям.
+  runSeedPhase('08-robot-on', { log: (m) => console.log(`[writeoff-authorize] ${m}`) });
 };

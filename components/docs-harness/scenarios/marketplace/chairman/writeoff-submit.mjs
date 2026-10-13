@@ -12,6 +12,7 @@
 //
 // Фикстура: председатель кооператива.
 
+import { runSeedPhase } from '../../../lib/fixtures.mjs';
 import { cleanViteOverlays, env, loginAsChairman } from '../../../lib/harness.mjs';
 
 /** Причина списания — обязательна, её увидит совет в Заявлении. */
@@ -35,6 +36,11 @@ export const meta = {
 };
 
 export default async ({ page, shot, expect, context }) => {
+  // Робот совета утверждает списание за секунду — ручной путь совета (сценарий
+  // writeoff-authorize) с ним не снять. Выключаем; обратно включает
+  // writeoff-authorize после своих кадров.
+  runSeedPhase('08-robot-off', { log: (m) => console.log(`[writeoff-submit] ${m}`) });
+
   await loginAsChairman(page, context);
 
   await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/market-admin/writeoffs`, {

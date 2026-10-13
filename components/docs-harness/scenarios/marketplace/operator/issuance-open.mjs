@@ -100,7 +100,7 @@ export default async ({ page, shot, expect }) => {
 
   // Выдаём меньше принятого: поле факта управляемое, без blur модель остаётся
   // с прежним количеством и акт уйдёт на полном объёме.
-  const factQty = issueDialog.locator('.correction-table__fact input').first();
+  const factQty = issueDialog.locator('.correction-table__row input[type="number"]').first();
   const acceptedQty = Number.parseFloat(await factQty.inputValue());
 
   // Цена, с которой открылась выдача. Имущество приняли дешевле объявленного
@@ -110,7 +110,7 @@ export default async ({ page, shot, expect }) => {
   // прихода, и счёт материалов уйдёт в минус на всю разницу (так и было до
   // 14 августа: приход 1800 ₽, выбытие 2000 ₽).
   // В блоке правки два поля подряд: количество и цена за единицу отпуска.
-  const factPriceInput = issueDialog.locator('.correction-table__fact input').nth(1);
+  const factPriceInput = issueDialog.locator('.correction-table__row input[type="number"]').nth(1);
   const openedPrice = Number.parseFloat(await factPriceInput.inputValue());
   await factQty.click();
   await factQty.fill(String(ISSUE_QUANTITY));
@@ -139,7 +139,7 @@ export default async ({ page, shot, expect }) => {
     },
   );
 
-  await page.locator('button:has-text("Подписать и отправить пайщику")').first().click();
+  await page.locator('button:has-text("Отправить пайщику на подпись")').first().click();
   await page.waitForTimeout(10000);
   await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
   await cleanViteOverlays(page);

@@ -69,7 +69,7 @@ async function sumByLabel(dialog, label) {
  * читать сумму сразу после ввода значит читать доредактированное состояние.
  */
 async function setFactField(dialog, index, value, prevTotal) {
-  const input = dialog.locator('.correction-table__fact input').nth(index);
+  const input = dialog.locator('.correction-table__row input[type="number"]').nth(index);
   await input.click();
   await input.fill(String(value));
   await input.blur();
@@ -115,8 +115,8 @@ export default async ({ page, shot, expect }) => {
   const dialog = page.locator('[id^="q-portal--dialog--"]').filter({ hasText: 'Открытие выдачи пайщику' }).first();
   await expect(dialog.locator('text=Открытие выдачи пайщику').first()).toBeVisible({ timeout: 20000 });
 
-  const qtyInput = dialog.locator('.correction-table__fact input').first();
-  const priceInput = dialog.locator('.correction-table__fact input').nth(1);
+  const qtyInput = dialog.locator('.correction-table__row input[type="number"]').first();
+  const priceInput = dialog.locator('.correction-table__row input[type="number"]').nth(1);
   const plannedQty = Number.parseFloat(await qtyInput.inputValue());
   const unitPrice = Number.parseFloat(await priceInput.inputValue());
   const baseTotal = await sumByLabel(dialog, 'Итого к оплате');

@@ -86,7 +86,7 @@ export default async ({ page, shot, expect }) => {
     },
   );
 
-  await dialog.locator('button:has-text("Подписать и отправить пайщику")').first().click();
+  await dialog.locator('button:has-text("Отправить пайщику на подпись")').first().click();
   await page.waitForTimeout(12000);
   await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
   await cleanViteOverlays(page);
