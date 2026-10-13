@@ -41,6 +41,9 @@ if (docPath) {
   if (exists && !forceMd) {
     console.log(`  md   ${docPath} уже существует — не перезаписываю (PNG обновлены).`);
     console.log(`       Если правил прозу в ${draftSrc} — прогони ещё раз с флагом --md.`);
+  } else if (!(await fs.access(draftSrc).then(() => true).catch(() => false))) {
+    // Страницы ещё нет и черновика нет: кадры положены, текст пишется отдельно.
+    console.log(`  md   ${docPath} не существует, черновика ${draftSrc} нет — кадры обновлены, страница ждёт текста.`);
   } else {
     await fs.mkdir(path.dirname(destDoc), { recursive: true });
     await fs.copyFile(draftSrc, destDoc);
