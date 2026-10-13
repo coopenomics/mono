@@ -1,6 +1,7 @@
 import { computed, inject, onBeforeUnmount, onMounted, provide, reactive, ref, watch, type ComputedRef, type InjectionKey, type Ref } from 'vue';
 import { Zeus } from '@coopenomics/sdk';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
+import { extractGraphQLErrorMessages } from 'src/shared/api/errors';
 import { useSystemStore } from 'src/entities/System/model';
 import { asText, fileToBase64, formatToAsset } from 'src/shared/lib/utils';
 import { courseMonthsLabel as courseMonthsText } from '../../../shared/lib/courseMonths';
@@ -136,11 +137,19 @@ function useEconomyFields(symbol: ComputedRef<string>, form: CourseFormFields) {
   const coursePayment = ref(false);
   const courseDiscount = ref('0');
 
+  /** Длительность программы числом: в поле допустима запятая. */
+  const programMonthsNumber = computed(() => Number(String(programMonths.value ?? '').replace(',', '.') || 0));
+  /** Длительность — с шагом в неделю, это четверть месяца: 3,5 — три месяца и две недели. */
+  const programMonthsError = computed(() => {
+    const months = programMonthsNumber.value;
+    return Number.isInteger(months * 4) && months >= 0 ? '' : i18nT('edubridge.useCourseForm.programMonthsStepError');
+  });
+
   const economyParams = computed(() => ({
     // Минуты занятий считает сервер из окон расписания; длительность программы — месяцами.
     // Стоимость часа приходит числом из поля — на сервер уходит суммой с символом кооператива.
     schedule_slots: (form.schedule_slots ?? []).map((s) => ({ weekday: Number(s.weekday), time: s.time, minutes: Number(s.minutes), assignment_id: s.assignment_id || null, hourly_rate: formatToAsset(String(s.hourly_rate || '0').replace(',', '.'), symbol.value) })),
-    program_months: Number(programMonths.value || 0),
+    program_months: programMonthsNumber.value,
     course_payment_enabled: coursePayment.value,
     course_discount_percent: coursePayment.value ? Number(courseDiscount.value || 0) : 0,
   }));
@@ -153,7 +162,7 @@ function useEconomyFields(symbol: ComputedRef<string>, form: CourseFormFields) {
     courseDiscount.value = String(c.course_discount_percent);
   }
 
-  return { programMonths, payPerLearner, guaranteeDays, coursePayment, courseDiscount, economyParams, fillEconomy };
+  return { programMonths, programMonthsError, payPerLearner, guaranteeDays, coursePayment, courseDiscount, economyParams, fillEconomy };
 }
 
 /**
@@ -180,8 +189,10 @@ function useTermsLocks() {
 
 /** Расчёт взноса считает сервер: та же арифметика, что при сохранении курса. */
 function useFeePreview(economy: ReturnType<typeof useEconomyFields>) {
-  const { economyParams, coursePayment, courseDiscount } = economy;
+  const { economyParams, coursePayment, courseDiscount, programMonthsError } = economy;
   const fee = ref<ICourseFee | null>(null);
+  /** Почему расчёта нет: ошибка ввода либо отказ сервера. Пусто — параметры ещё не заполнены. */
+  const feeError = ref('');
   const discountError = computed(() =>
     coursePayment.value && fee.value && Number(courseDiscount.value || 0) > fee.value.max_course_discount_percent
       ? i18nT('edubridge.useCourseForm.discountTooLargeError', { maxDiscountPercent: fee.value.max_course_discount_percent })
@@ -202,25 +213,43 @@ function useFeePreview(economy: ReturnType<typeof useEconomyFields>) {
       : COURSE_FORM_HELP.coursePayment,
   );
   const courseFeeShown = computed(() => coursePayment.value && (fee.value?.course_months ?? 0) > 0);
-  const courseFeeLabel = computed(() => (courseFeeShown.value ? i18nT('edubridge.useCourseForm.courseFeeLabelWithMonths', { courseMonths: courseMonthsLabel.value }) : i18nT('edubridge.useCourseForm.courseFeeLabel')));
+  /** У программы с концом полная сумма для обучающегося видна всегда: разом со скидкой либо помесячно за всю программу. */
+  const programFeeShown = computed(() => (fee.value?.course_months ?? 0) > 0);
+  const courseFeeLabel = computed(() => {
+    if (courseFeeShown.value) return i18nT('edubridge.useCourseForm.courseFeeLabelWithMonths', { courseMonths: courseMonthsLabel.value });
+    if (programFeeShown.value) return i18nT('edubridge.useCourseForm.programFeeLabel', { courseMonths: courseMonthsLabel.value });
+    return i18nT('edubridge.useCourseForm.courseFeeLabel');
+  });
+  const courseFeeValue = computed(() => {
+    if (!fee.value || !programFeeShown.value) return '';
+    return courseFeeShown.value ? fee.value.fee_course : fee.value.fee_course_base;
+  });
 
   let previewTimer: ReturnType<typeof setTimeout> | null = null;
   watch(
     economyParams,
     (params) => {
       if (previewTimer) clearTimeout(previewTimer);
+      feeError.value = '';
       // Пока параметры неполные, считать нечего: сервер такой набор отклонит.
       if (!params.schedule_slots.length || params.schedule_slots.some((slot) => !(slot.minutes >= 5) || !(parseFloat(slot.hourly_rate) >= 0))) {
         fee.value = null;
         return;
       }
+      // Ошибка ввода названа у поля и в блоке расчёта: расчёт не пропадает молча.
+      if (programMonthsError.value) {
+        fee.value = null;
+        feeError.value = programMonthsError.value;
+        return;
+      }
       // timing: debounce — взнос пересчитывается, когда ввод утих, а не на каждую букву.
-    previewTimer = setTimeout(async () => {
+      previewTimer = setTimeout(async () => {
         try {
           fee.value = await fetchCourseFeePreview(params);
-        } catch {
-          // Расчёт — подсказка: отказ сервера здесь не мешает заполнять форму дальше.
+        } catch (e) {
+          // Расчёт — подсказка: отказ сервера не мешает заполнять форму дальше, но причина видна.
           fee.value = null;
+          feeError.value = extractGraphQLErrorMessages(e) || i18nT('edubridge.useCourseForm.feePreviewFailed');
         }
       }, 400);
     },
@@ -230,7 +259,7 @@ function useFeePreview(economy: ReturnType<typeof useEconomyFields>) {
     if (previewTimer) clearTimeout(previewTimer);
   });
 
-  return { fee, discountError, discountHint, discountLimit, coursePaymentHint, courseFeeShown, courseFeeLabel };
+  return { fee, feeError, discountError, discountHint, discountLimit, coursePaymentHint, courseFeeShown, courseFeeLabel, courseFeeValue };
 }
 
 const directionOptions = Object.entries(DIRECTION_LABELS).map(([value, label]) => ({ value, label }));
@@ -487,6 +516,11 @@ export function createCourseFormState(course: CourseSource) {
 
   async function submit(): Promise<ICourse | null> {
     error.value = '';
+    // Ошибка ввода останавливает сохранение здесь: сервер ответил бы отказом схемы без понятного текста.
+    if (economy.programMonthsError.value) {
+      error.value = economy.programMonthsError.value;
+      return null;
+    }
     loading.value = true;
     try {
       const data: ICreateCourseInput = {

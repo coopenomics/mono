@@ -189,6 +189,14 @@ cases:
     test: components/controller/tests/unit/edubridge/economy.service.test.ts
     api: components/api-tests/src/edubridge/economy.test.ts
     status: passing
+  - id: edu.econ.side.07
+    level: backend
+    kind: side
+    scenario: "Длительность программы с шагом в неделю: 3,5 месяца — три месяца и две недели; шаг мельче недели."
+    expect: "Минуты программы и взнос за курс считаются за 14 недель, последний месяц оплачивается долей по минутам; шаг мельче недели отклоняется с кодом."
+    test: components/controller/tests/unit/edubridge/economy.service.test.ts
+    api: components/api-tests/src/edubridge/economy.test.ts
+    status: written
   - id: edu.econ.break.04
     level: backend
     kind: break

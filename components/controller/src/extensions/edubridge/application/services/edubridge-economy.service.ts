@@ -12,7 +12,7 @@ import {
   type InnerLedger2Operation,
 } from '@coopenomics/innercoop';
 import { EDUBRIDGE_EXTENSION_NAME } from '../../constants/edubridge.constants';
-import { normalizeSlots, programOf, round2 } from '../../domain/lib/schedule';
+import { normalizeSlots, programMonthsOf, programOf, round2 } from '../../domain/lib/schedule';
 import { EduAssignmentStatus, EduEnrollmentStatus, EduGroupStatus, EduLessonStatus, EduSettlementEntryKind, EduSettlementEntryStatus } from '../../domain/enums';
 import type { EduSettlementEntryDTO } from '../dto/edu-teacher.dto';
 import { calculateCourseFee, costOfHours, maxCourseDiscountPercent, type CourseFeeCalculation } from '../../domain/economy/course-fee.calculator';
@@ -353,12 +353,13 @@ export class EdubridgeEconomyService {
   }
 
   private calculate(input: EduCourseEconomyInputDTO, markupPercent: number): CourseFeeWithProgram {
-    const program = programOf(normalizeSlots(input.schedule_slots), input.program_months);
+    const months = programMonthsOf(input.program_months);
+    const program = programOf(normalizeSlots(input.schedule_slots), months);
     const calc = calculateCourseFee({
       minutes_per_month: program.minutes_per_month,
       teach_month: program.teach_month,
       markup_percent: markupPercent,
-      program_months: program.minutes_per_month > 0 ? Math.max(0, Math.floor(input.program_months || 0)) : 0,
+      program_months: program.minutes_per_month > 0 ? months : 0,
       // Скидка действует, только когда кооператив принимает взнос разом.
       course_discount_percent: input.course_payment_enabled ? (input.course_discount_percent ?? 0) : 0,
     });

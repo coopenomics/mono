@@ -324,7 +324,8 @@ export class EdubridgeGroupService {
     const group = await this.groups.findById(enrollment.coopname, enrollment.group_id);
     if (!group) return true;
     if (group.status !== EduGroupStatus.ACTIVE) return false;
-    if (Number(group.program_months) === 1) return false;
+    // Программа не длиннее месяца оплачивается одним взносом.
+    if (Number(group.program_months) > 0 && Number(group.program_months) <= 1) return false;
     const end = programEndsAt(group);
     if (!end || !enrollment.paid_until) return true;
     return new Date(enrollment.paid_until).getTime() < end.getTime();

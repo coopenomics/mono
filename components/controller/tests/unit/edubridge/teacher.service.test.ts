@@ -961,7 +961,10 @@ describe('Допуски по списку «Курс ведут»', () => {
   });
 
   it('период — от начала занятий на весь срок программы; без даты — от сегодня', () => {
-    expect(coursePeriod({ starts_at: '2026-09-23', program_months: 8 } as any)).toEqual({ from: '2026-09-23', to: '2027-05-22' });
+    // Месяц — четыре недели: восемь месяцев программы — 224 дня, последний день назначения — 223-й от начала.
+    expect(coursePeriod({ starts_at: '2026-09-23', program_months: 8 } as any)).toEqual({ from: '2026-09-23', to: '2027-05-04' });
+    // Три месяца и две недели — 98 дней.
+    expect(coursePeriod({ starts_at: '2026-09-23', program_months: 3.5 } as any)).toEqual({ from: '2026-09-23', to: '2026-12-29' });
     expect(coursePeriod({ starts_at: '2026-01-31', program_months: 1 } as any)).toEqual({ from: '2026-01-31', to: '2026-02-27' });
     expect(coursePeriod({ starts_at: null, program_months: 1 } as any).from).toBe(new Date().toISOString().slice(0, 10));
   });

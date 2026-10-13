@@ -26,7 +26,7 @@ export class EduGroupDTO {
   @Field(() => Int, { description: 'Срок на отчёт преподавателя о занятии, дней после занятия' }) report_days!: number;
   @Field(() => Float, { description: 'Занятий в месяц по окнам расписания: окон недели на четыре — для показа' }) lessons_per_month!: number;
   @Field(() => Int, { description: 'Длительность занятия по первому окну, минут' }) lesson_minutes!: number;
-  @Field(() => Int, { description: 'Длительность программы, месяцев; ноль — программа без конца' }) program_months!: number;
+  @Field(() => Float, { description: 'Длительность программы, месяцев, с шагом в неделю (0,25): 3,5 — три месяца и две недели; ноль — программа без конца' }) program_months!: number;
   @Field(() => Int, { description: 'Минут занятий в месяц — по ним контракт считает взнос' }) minutes_per_month!: number;
   @Field(() => Int, { description: 'Минут занятий в программе; ноль — программа без конца' }) minutes_total!: number;
   @Field(() => String, { nullable: true, description: 'Остаток резерва преподавателям по группе' }) teacher_reserve_balance!: string | null;

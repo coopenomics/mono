@@ -20,7 +20,7 @@ export interface CourseFeeParams {
   teach_month: string;
   /** Наценка кооператива, проценты. */
   markup_percent: number;
-  /** Длительность программы в месяцах; ноль — курс без конечной программы. */
+  /** Длительность программы в месяцах с шагом в неделю (0,25); ноль — курс без конечной программы. */
   program_months: number;
   /** Скидка за взнос разом за весь курс, проценты. */
   course_discount_percent: number;
@@ -85,20 +85,39 @@ export interface FeeForMonths {
  */
 export function feeForMonths(feeMonth: string, months: number, discountPercent: number): FeeForMonths {
   const { amount, symbol } = parseAmount(feeMonth);
-  const base = amount * Math.max(0, Math.floor(months));
-  // Деление нацело по сотым долям процента — как в контракте (`Edubridge::quote_fee`).
+  // Месяцы — с шагом в неделю (четверть месяца): неполный месяц оплачивается долей месячного взноса, нацело.
+  const weeks = Math.max(0, Math.round(months * WEEKS_IN_MONTH));
+  const base = Number((BigInt(amount) * BigInt(weeks)) / BigInt(WEEKS_IN_MONTH));
+  return withDiscount(base, discountPercent, symbol);
+}
+
+/** Недель в месяце: месяц сроков и программ — четыре недели. */
+const WEEKS_IN_MONTH = 4;
+
+/** Скидка от суммы: деление нацело по сотым долям процента — как в контракте (`Edubridge::quote_fee`). */
+function withDiscount(base: number, discountPercent: number, symbol: string): FeeForMonths {
   const discount = Math.floor((base * Math.round(discountPercent * 100)) / 10000);
   return { base: formatAmount(base, symbol), discount: formatAmount(discount, symbol), amount: formatAmount(base - discount, symbol) };
 }
 
 /**
- * Взнос за неполный последний месяц — доля месячного взноса за минуты занятий,
- * которые в группе ещё впереди. Деление нацело — как в контракте (`Edubridge::quote_fee`).
+ * Взнос за минуты занятий — доля месячного взноса: неполный последний месяц и
+ * остаток программы. Деление нацело — как в контракте (`Edubridge::quote_fee`).
  */
-export function feeForMinutes(feeMonth: string, minutes: number, minutesPerMonth: number): FeeForMonths {
+export function feeForMinutes(feeMonth: string, minutes: number, minutesPerMonth: number, discountPercent = 0): FeeForMonths {
   const { amount, symbol } = parseAmount(feeMonth);
   const base = minutesPerMonth > 0 ? Number((BigInt(amount) * BigInt(Math.max(0, minutes))) / BigInt(minutesPerMonth)) : 0;
-  return { base: formatAmount(base, symbol), discount: formatAmount(0, symbol), amount: formatAmount(base, symbol) };
+  return withDiscount(base, discountPercent, symbol);
+}
+
+/**
+ * Взнос за срок — как считает контракт: за оплаченные минуты. Минут меньше,
+ * чем в полных месяцах срока (остаток программы, неполный месяц), — доля
+ * месячного взноса по минутам; иначе месячный взнос на число месяцев.
+ */
+export function feeForPeriod(feeMonth: string, months: number, minutes: number, minutesPerMonth: number, discountPercent = 0): FeeForMonths {
+  if (minutes < minutesPerMonth * months) return feeForMinutes(feeMonth, minutes, minutesPerMonth, discountPercent);
+  return feeForMonths(feeMonth, months, discountPercent);
 }
 
 /** Стоимость часов по ставке — общий множитель себестоимости. */
@@ -115,7 +134,8 @@ export function calculateCourseFee(params: CourseFeeParams): CourseFeeCalculatio
   const markupMonth = Math.round((costMonth * params.markup_percent) / 100);
   const feeMonth = costMonth + markupMonth;
 
-  const months = Math.max(0, Math.floor(params.program_months || 0));
+  // Длительность — с шагом в неделю: 3,5 месяца — три месяца и две недели.
+  const months = Math.max(0, Math.round(Number(params.program_months || 0) * WEEKS_IN_MONTH) / WEEKS_IN_MONTH);
   const course = feeForMonths(formatAmount(feeMonth, symbol), months, params.course_discount_percent);
 
   return {
@@ -127,7 +147,7 @@ export function calculateCourseFee(params: CourseFeeParams): CourseFeeCalculatio
     fee_course_base: course.base,
     course_discount_amount: course.discount,
     fee_course: course.amount,
-    cost_course: formatAmount(costMonth * months, symbol),
+    cost_course: formatAmount(Math.floor(costMonth * months), symbol),
     max_course_discount_percent: maxCourseDiscountPercent(params.markup_percent),
   };
 }

@@ -36,6 +36,18 @@ describe('Срок взноса за весь курс', () => {
     expect(remainingCoursePeriod(START, 9, new Date('2027-07-01T06:00:00Z'))).toBeNull();
   });
 
+  it('программа в три месяца и две недели заканчивается через 98 дней; с начала оплачиваются четыре срока, последний неполный', () => {
+    const end = new Date(START.getTime() + 98 * 86400_000);
+    const r = remainingCoursePeriod(START, 3.5, START);
+    expect(r?.months).toBe(4);
+    expect(r?.paid_until.getTime()).toBe(end.getTime());
+    // Четвёртый месяц обрезан концом программы — неполный.
+    const last = monthPeriod(START, 3.5, new Date(START.getTime() + 84 * 86400_000));
+    expect(last).toMatchObject({ partial: true });
+    expect(last?.paid_until.getTime()).toBe(end.getTime());
+    expect(monthPeriod(START, 3.5, end)).toBeNull();
+  });
+
   it('у курса без конечной программы срока нет', () => {
     expect(remainingCoursePeriod(START, 0, START)).toBeNull();
   });

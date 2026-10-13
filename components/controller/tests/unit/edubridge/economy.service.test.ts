@@ -1,6 +1,6 @@
 /** Экономика курса: себестоимость из часов по ставке, наценка кооператива, взнос за весь курс разом со скидкой, план и факт. */
 import { EdubridgeEconomyService } from '~/extensions/edubridge/application/services/edubridge-economy.service';
-import { calculateCourseFee, feeForMonths, maxCourseDiscountPercent } from '~/extensions/edubridge/domain/economy/course-fee.calculator';
+import { calculateCourseFee, feeForMonths, feeForPeriod, maxCourseDiscountPercent } from '~/extensions/edubridge/domain/economy/course-fee.calculator';
 import { EduAssignmentStatus, EduContractStatus } from '~/extensions/edubridge/domain/enums';
 
 const COURSE_ID = '0cd16d12-6ade-40f2-8830-b0673dde8b9e';
@@ -73,6 +73,27 @@ const params = {
 };
 
 const base = { minutes_per_month: 480, program_months: 8, teach_month: '8000.0000 RUB', markup_percent: 20, course_discount_percent: 0 };
+
+describe('Программа с неполным месяцем', () => {
+  it('3,5 месяца — три месяца и две недели: взнос за курс и себестоимость — за 14 недель', () => {
+    const calc = calculateCourseFee({ ...base, program_months: 3.5, course_discount_percent: 10 });
+    expect(calc.course_months).toBe(3.5);
+    expect(calc.fee_course_base).toBe('33600.0000 RUB');
+    expect(calc.course_discount_amount).toBe('3360.0000 RUB');
+    expect(calc.fee_course).toBe('30240.0000 RUB');
+    expect(calc.cost_course).toBe('28000.0000 RUB');
+  });
+
+  it('взнос за срок считается по оплаченным минутам: остаток программы меньше полных месяцев — доля месячного взноса', () => {
+    // Четыре срока по месяцу, а минут в программе на три с половиной: 1680 из 1920.
+    expect(feeForPeriod('9600.0000 RUB', 4, 1680, 480, 10)).toEqual({ base: '33600.0000 RUB', discount: '3360.0000 RUB', amount: '30240.0000 RUB' });
+    // Последний неполный месяц: две недели — половина месячного взноса.
+    expect(feeForPeriod('9600.0000 RUB', 1, 240, 480)).toEqual({ base: '4800.0000 RUB', discount: '0.0000 RUB', amount: '4800.0000 RUB' });
+    // Минут хватает на полные месяцы — месячный взнос на число месяцев.
+    expect(feeForPeriod('9600.0000 RUB', 3, 1440, 480)).toEqual({ base: '28800.0000 RUB', discount: '0.0000 RUB', amount: '28800.0000 RUB' });
+    expect(feeForMonths('9600.0000 RUB', 3.5, 0).base).toBe('33600.0000 RUB');
+  });
+});
 
 describe('Расчёт взноса курса', () => {
   it('себестоимость — часы по ставке, взнос — с наценкой кооператива', () => {

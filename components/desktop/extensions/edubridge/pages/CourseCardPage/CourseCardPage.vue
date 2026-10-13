@@ -37,7 +37,7 @@
         FeeAmount(:value="course.fee_course ?? course.fee_course_base ?? ''" size="lg")
       StatTile(:value="lessonsPerMonth" :caption="$t('edubridge.course.lessonsPerMonthCaption')")
       StatTile(:value="hoursPerMonth" :caption="$t('edubridge.course.hoursPerMonthCaption')")
-      StatTile(v-if="Number(course.program_months) > 0" :value="course.program_months" :caption="$t('edubridge.course.programMonthsCaption', Number(course.program_months))")
+      StatTile(v-if="Number(course.program_months) > 0" :value="programSpanTile" :caption="$t('edubridge.course.programSpanCaption')")
 
     .row.q-col-gutter-md
       .col-12(:class="hasSide ? 'col-md-8' : ''")
@@ -92,7 +92,7 @@ import { BaseBadge, BaseButton, BaseCard, CardListSkeleton, EmptyState } from 's
 import { fetchCatalogCourse, type ICatalogCourse } from '../../entities/Course';
 import { fetchMyLearners, type ILearner, fetchMyEnrollments, type IEnrollment } from '../../entities/Learner';
 import { RENEW_SOON_DAYS, daysLeft, isLiveEnrollment } from '../../shared/lib/subscriptionDue';
-import { programSpanLabel } from '../../shared/lib/courseMonths';
+import { programSpanCompact, programSpanLabel } from '../../shared/lib/courseMonths';
 import { SubscribeDialog } from '../../features/Subscribe';
 import { FeeAmount } from '../../shared/ui/FeeAmount';
 import { CourseHero } from '../../widgets/CourseHero';
@@ -158,6 +158,8 @@ const enrollmentClosed = ref(false);
 /** Свои подписки читает только участник, подписавший оферту ученика. */
 const canSeeGuarantee = computed(() => session.isAuth && desktopStore.hasGrant('edubridge-member', 'EduEnrollment:read:own'));
 const { fioCache, enrichFio } = useFioCache();
+/** Длительность программы для плитки: «9 месяцев», «3 мес. 2 нед.». */
+const programSpanTile = computed(() => programSpanCompact(course.value?.program_months));
 /** Занятий и часов в месяц — по окнам расписания на четыре недели месяца. */
 const lessonsPerMonth = computed(() => Number(course.value?.lessons_per_month || 0).toLocaleString('ru-RU', { maximumFractionDigits: 2 }));
 const hoursPerMonth = computed(() => (Number(course.value?.minutes_per_month || 0) / 60).toLocaleString('ru-RU', { maximumFractionDigits: 2 }));

@@ -47,7 +47,7 @@ BaseForm.edu-course-form(ref="formEl" :loading="loading" :error="error" @submit=
       .edu-course-form__group-title {{ $t('edubridge.courseForm.group.program') }}
       //- Дата начала занятий — у группы: она задаётся на шаге «Первая группа» и в панели группы.
       .edu-course-form__pair
-        BaseInput(v-model="programMonths" :label="$t('edubridge.courseForm.programMonthsLabel')" type="number" min="0" required)
+        BaseInput(v-model="programMonths" :label="$t('edubridge.courseForm.programMonthsLabel')" type="number" min="0" step="0.25" :error="programMonthsError" required)
           template(#append)
             FieldHelp(:text="COURSE_FORM_HELP.programMonths")
         BaseInput(v-model="guaranteeDays" :label="$t('edubridge.courseForm.guaranteeDaysLabel')" type="number")
@@ -83,13 +83,18 @@ BaseForm.edu-course-form(ref="formEl" :loading="loading" :error="error" @submit=
       .edu-course-form__group-title {{ $t('edubridge.courseForm.group.total') }}
       .edu-course-form__tiles
         StatTile(:caption="$t('edubridge.courseForm.total.feeMonth')" :value="formatAsset2Digits(fee.fee_month)")
-        StatTile(:caption="courseFeeLabel" :value="courseFeeShown ? formatAsset2Digits(fee.fee_course) : '______'")
+        StatTile(:caption="courseFeeLabel" :value="courseFeeValue ? formatAsset2Digits(courseFeeValue) : '______'")
       .edu-course-form__breakdown
         DataRow(:label="$t('edubridge.courseForm.summary.costMonth')" :value="formatAsset2Digits(fee.cost_month)" align="spread")
         DataRow(:label="$t('edubridge.courseForm.total.markup', { percent: fee.markup_percent })" :value="formatAsset2Digits(fee.markup_month)" align="spread")
         template(v-if="courseFeeShown")
           DataRow(:label="$t('edubridge.courseForm.total.feeCourseBase')" :value="formatAsset2Digits(fee.fee_course_base)" align="spread")
           DataRow(:label="$t('edubridge.courseForm.total.courseDiscount')" :value="formatAsset2Digits(fee.course_discount_amount)" align="spread")
+    //- Расчёта нет: причина названа — ошибка ввода либо отказ сервера; без причины — параметры ещё не заполнены.
+    BaseBanner(v-else-if="feeError" variant="warn")
+      template(#icon)
+        q-icon(name="warning_amber")
+      | {{ $t('edubridge.courseForm.total.failed', { reason: feeError }) }}
     .t-sm.t-muted(v-else) {{ $t('edubridge.courseForm.total.empty') }}
 
   section.edu-course-form__section(v-if="show('access')")
@@ -247,18 +252,21 @@ const {
   onFilePicked,
   removeImage,
   programMonths,
+  programMonthsError,
   payPerLearner,
   termsLocked,
   guaranteeDays,
   coursePayment,
   courseDiscount,
   fee,
+  feeError,
   discountError,
   discountHint,
   discountLimit,
   coursePaymentHint,
   courseFeeShown,
   courseFeeLabel,
+  courseFeeValue,
   platformCourses,
   skillspaceCourseId,
   skillspaceGroupId,
@@ -281,7 +289,7 @@ const {
 } = state;
 
 /** Программа длиннее одного месяца: только у такой взнос за весь курс отличается от помесячного. */
-const programIsLong = computed(() => Number(programMonths.value || 0) > 1);
+const programIsLong = computed(() => Number(String(programMonths.value ?? '').replace(',', '.') || 0) > 1);
 // Программа сокращена до месяца — взнос за весь курс больше не принимается.
 watch(programIsLong, (long) => {
   if (!long) coursePayment.value = false;
@@ -312,6 +320,8 @@ async function submit(): Promise<void> {
 const formEl = ref<InstanceType<typeof BaseForm> | null>(null);
 
 async function validate(): Promise<boolean> {
+  // Ошибка длительности программы держит шаг: правила полей о ней не знают.
+  if (show('lessons') && programMonthsError.value) return false;
   return Boolean(await formEl.value?.validate());
 }
 

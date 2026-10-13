@@ -38,7 +38,7 @@
         FeeAmount(:value="course.fee_course ?? course.fee_course_base ?? ''" size="lg")
       StatTile(:value="lessonsPerMonth" :caption="$t('edubridge.course.lessonsPerMonthCaption')")
       StatTile(:value="hoursPerMonth" :caption="$t('edubridge.course.hoursPerMonthCaption')")
-      StatTile(v-if="Number(course.program_months) > 0" :value="course.program_months" :caption="$t('edubridge.course.programMonthsCaption', Number(course.program_months))")
+      StatTile(v-if="Number(course.program_months) > 0" :value="programSpanTile" :caption="$t('edubridge.course.programSpanCaption')")
 
     //- Группы курса — на всю ширину под шапкой: набор идёт в группу, деньги и
     //- занятия считаются внутри неё. В узкой колонке реестр не помещается.
@@ -164,6 +164,7 @@ import { CourseHero } from '../../widgets/CourseHero';
 import { StatTile } from '../../shared/ui/StatStrip';
 import { useLiveReload } from 'src/shared/lib/realtime';
 import { EduLive } from '../../shared/lib/live';
+import { programSpanCompact } from '../../shared/lib/courseMonths';
 import { t } from '../../i18n';
 import { useEduRights } from '../../shared/lib/rights';
 
@@ -239,6 +240,8 @@ async function loadCalendar(): Promise<void> {
     FailAlert(e);
   }
 }
+/** Длительность программы для плитки: «9 месяцев», «3 мес. 2 нед.». */
+const programSpanTile = computed(() => programSpanCompact(course.value?.program_months));
 /** Занятий и часов в месяц — по окнам расписания на четыре недели месяца. */
 const lessonsPerMonth = computed(() => Number(course.value?.lessons_per_month || 0).toLocaleString('ru-RU', { maximumFractionDigits: 2 }));
 const hoursPerMonth = computed(() => (Number(course.value?.minutes_per_month || 0) / 60).toLocaleString('ru-RU', { maximumFractionDigits: 2 }));

@@ -1,6 +1,6 @@
 import { EdubridgeCalendarService } from '~/extensions/edubridge/application/services/edubridge-calendar.service';
 import { EduLessonOrigin, EduLessonStatus } from '~/extensions/edubridge/domain/enums';
-import { formatSlots, normalizeSlots, programOf, slotOccurrences, zonedParts } from '~/extensions/edubridge/domain/lib/schedule';
+import { formatSlots, normalizeSlots, programMonthsOf, programOf, slotOccurrences, zonedParts } from '~/extensions/edubridge/domain/lib/schedule';
 import { lessonEndsAt, reportUntil } from '~/extensions/edubridge/domain/lib/lesson-dates';
 
 jest.mock('@coopenomics/extension-kit', () => ({
@@ -86,6 +86,12 @@ describe('Окна расписания и моменты занятий', () =>
   it('числа программы из окон: минуты недели на четыре недели месяца, занятия — для показа, длительность — по первому окну', () => {
     expect(programOf(TUE_THU, 8)).toEqual({ minutes_per_month: 480, minutes_total: 3840, lessons_per_month: 8, lessons_per_month_exact: 8, lessons_total: 64, lesson_minutes: 60, reserve_per_month: 0, teach_month: '8000.0000 RUB', planned_hourly_rate: '1000.0000 RUB' });
     expect(programOf([{ weekday: 6, minutes: 90, hourly_rate: '1500.0000 RUB' }], 0)).toEqual({ minutes_per_month: 360, minutes_total: 0, lessons_per_month: 4, lessons_per_month_exact: 4, lessons_total: 0, lesson_minutes: 90, reserve_per_month: 0, teach_month: '6000.0000 RUB', planned_hourly_rate: '1000.0000 RUB' });
+    // Длительность с шагом в неделю: 3,5 месяца — три месяца и две недели, 14 недель по два занятия.
+    expect(programOf(TUE_THU, 3.5)).toMatchObject({ minutes_per_month: 480, minutes_total: 1680, lessons_per_month: 8, lessons_total: 28 });
+    expect(programMonthsOf(3.5)).toBe(3.5);
+    expect(programMonthsOf(0.25)).toBe(0.25);
+    expect(programMonthsOf(0)).toBe(0);
+    for (const bad of [3.3, -1, 121, Number.NaN]) expect(() => programMonthsOf(bad)).toThrow(expect.objectContaining({ code: 'EDUBRIDGE_PROGRAM_MONTHS_INVALID' }));
     // Резерв входит в минуты программы, но не в занятия по расписанию.
     expect(programOf([...TUE_THU, RESERVE], 2)).toEqual({ minutes_per_month: 720, minutes_total: 1440, lessons_per_month: 8, lessons_per_month_exact: 8, lessons_total: 16, lesson_minutes: 60, reserve_per_month: 240, teach_month: '12000.0000 RUB', planned_hourly_rate: '1000.0000 RUB' });
     expect(formatSlots(normalizeSlots([...TUE_THU, RESERVE]))).toBe('Вт, Чт 17:00–18:00; резерв 60 мин в неделю');

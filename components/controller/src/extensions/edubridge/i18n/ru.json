@@ -325,6 +325,7 @@
     "EDUBRIDGE_SCHEDULE_REQUIRED": "Задайте хотя бы одно окно расписания: из окон считаются минуты занятий и взнос",
     "EDUBRIDGE_SCHEDULE_WEEKDAY_INVALID": "День недели окна расписания: от 1 (понедельник) до 7 (воскресенье)",
     "EDUBRIDGE_SCHEDULE_TIME_INVALID": "Время начала окна расписания — «ЧЧ:ММ»",
+    "EDUBRIDGE_PROGRAM_MONTHS_INVALID": "Длительность программы задаётся с шагом в неделю, это четверть месяца. Например, 3,5 — три месяца и две недели",
     "EDUBRIDGE_SCHEDULE_MINUTES_INVALID": "Длительность занятия — от 5 минут до суток",
     "EDUBRIDGE_SCHEDULE_TEACHER_NOT_ASSIGNED": "Преподаватель не допущен к курсу этой группы",
     "EDUBRIDGE_REPORT_DAYS_INVALID": "Срок на отчёт — от 0 до 365 дней",

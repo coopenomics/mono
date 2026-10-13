@@ -13,7 +13,7 @@ import {
   type IUserWalletPort,
 } from '@coopenomics/innercoop';
 import { EduAccessState, EduCourseStatus, EduEnrollmentPeriod, EduEnrollmentStatus, EduGroupStatus } from '../../domain/enums';
-import { feeForMinutes, feeForMonths } from '../../domain/economy/course-fee.calculator';
+import { feeForPeriod } from '../../domain/economy/course-fee.calculator';
 import { monthPeriod, remainingCoursePeriod } from '../../domain/economy/course-period.calculator';
 import { isResumable } from '../../domain/lib/resumable';
 import { trxIdOf } from '../../domain/lib/trx-id';
@@ -50,8 +50,16 @@ const BP_IN_PERCENT = 100;
 
 
 /** Условия взноса за выбранный период: сколько месяцев, до какого дня и сколько вносить. */
+/** Минуты группы и подписки из цепи: отчитано занятий в группе и оплачено по подписке. */
+interface ProgramMinutes {
+  opened: number;
+  paid: number;
+}
+
 interface PeriodTerms {
   months: number;
+  /** Сколько месяцев занятий оплачено по минутам, с шагом в неделю: у программы с неполным последним месяцем — 3,5, а не 4. */
+  span: number;
   paidUntil: Date;
   /** Сумма помесячных взносов за эти месяцы. */
   baseAmount: string;
@@ -79,6 +87,8 @@ export interface EnrollmentPlan {
   amount: string;
   /** Месяцев оплачивает взнос. */
   months: number;
+  /** Месяцев занятий по оплаченным минутам, с шагом в неделю — для показа. */
+  span: number;
   baseAmount: string;
   discountAmount: string;
   symbol: string;
@@ -161,7 +171,10 @@ export class EdubridgeEnrollmentService {
     const course = this.groups.viewOf(program, group);
 
     const symbol = course.fee_month.split(' ')[1] ?? '';
-    const terms = this.termsOf(course, period, paidFrom(isExtension ? existing : null), await this.lessonsOpened(coopname, course));
+    const terms = this.termsOf(course, period, paidFrom(isExtension ? existing : null), {
+      opened: await this.lessonsOpened(coopname, course),
+      paid: isExtension && existing ? await this.minutesPaid(coopname, existing.sub_hash) : 0,
+    });
 
     return {
       learner,
@@ -171,6 +184,7 @@ export class EdubridgeEnrollmentService {
       period,
       amount: terms.amount,
       months: terms.months,
+      span: terms.span,
       baseAmount: terms.baseAmount,
       discountAmount: terms.discountAmount,
       symbol,
@@ -205,8 +219,8 @@ export class EdubridgeEnrollmentService {
    * конца программы со скидкой курса: пришедший в середине вносит за остаток.
    * Показ до транзакции: срок и сумму считает контракт тем же порядком.
    */
-  private termsOf(course: EdubridgeCourseRecord, period: EduEnrollmentPeriod, from: Date, minutesOpened: number): PeriodTerms {
-    if (period === EduEnrollmentPeriod.MONTH) return monthTerms(course, from, minutesOpened);
+  private termsOf(course: EdubridgeCourseRecord, period: EduEnrollmentPeriod, from: Date, minutes: ProgramMinutes): PeriodTerms {
+    if (period === EduEnrollmentPeriod.MONTH) return monthTerms(course, from, minutes);
     if (period !== EduEnrollmentPeriod.COURSE) {
       throw DomainError.badRequest('EDUBRIDGE_ENROLLMENT_YEAR_PERIOD_DISABLED');
     }
@@ -216,8 +230,12 @@ export class EdubridgeEnrollmentService {
     }
     const rest = remainingCoursePeriod(course.starts_at ? new Date(course.starts_at) : null, total, from);
     if (!rest) throw DomainError.badRequest('EDUBRIDGE_ENROLLMENT_COURSE_FULLY_PAID');
-    const fee = feeForMonths(course.fee_month, rest.months, course.course_discount_bp / BP_IN_PERCENT);
-    return { months: rest.months, paidUntil: rest.paid_until, baseAmount: fee.base, discountAmount: fee.discount, amount: fee.amount };
+    // Взнос — за оплаченные минуты, как в контракте: программа с неполным последним месяцем оплачивается по остатку минут.
+    const perMonth = Number(course.minutes_per_month || 0);
+    const covered = Math.min(perMonth * rest.months, minutesLeft(course, minutes.paid));
+    if (covered <= 0) throw DomainError.badRequest('EDUBRIDGE_ENROLLMENT_COURSE_FULLY_PAID');
+    const fee = feeForPeriod(course.fee_month, rest.months, covered, perMonth, course.course_discount_bp / BP_IN_PERCENT);
+    return { months: rest.months, span: spanOf(covered, perMonth, rest.months), paidUntil: rest.paid_until, baseAmount: fee.base, discountAmount: fee.discount, amount: fee.amount };
   }
 
   async quote(coopname: string, member: string, learnerId: string, courseId: string, period: EduEnrollmentPeriod, groupId?: string | null): Promise<EduQuoteDTO> {
@@ -225,7 +243,7 @@ export class EdubridgeEnrollmentService {
     const funding = await this.planFunding(coopname, member, plan);
     return {
       amount: plan.amount,
-      months: plan.months,
+      months: plan.span,
       base_amount: plan.baseAmount,
       discount_amount: plan.discountAmount,
       from_program: funding.fromProgram,
@@ -333,6 +351,16 @@ export class EdubridgeEnrollmentService {
     // Ученик вписался в курс: от этого дня (не раньше начала занятий) идёт его гарантийный срок.
     if (!plan.isExtension) entity.joined_at = new Date();
     return { saved: await this.enrollments.save(entity), opened };
+  }
+
+  /** Сколько минут занятий уже оплачено по подписке в цепи: взнос не оплачивает минут больше, чем осталось в программе. */
+  private async minutesPaid(coopname: string, subHash: string): Promise<number> {
+    try {
+      return Number((await this.chain.readSubscription(coopname, subHash))?.plan?.minutes_paid ?? 0);
+    } catch {
+      // Подписка не прочиталась — показ считает срок полным, сумму проверит контракт.
+      return 0;
+    }
   }
 
   /** Сколько минут занятий группы уже отчитано в цепи: от них считается остаток программы для неполного месяца. */
@@ -745,18 +773,27 @@ function paidFrom(existing: EdubridgeEnrollmentRecord | null): Date {
  * контракт. Неполный последний месяц оплачивается по остатку: за занятия,
  * которые в группе ещё впереди.
  */
-function monthTerms(course: EdubridgeCourseRecord, from: Date, minutesOpened: number): PeriodTerms {
+function monthTerms(course: EdubridgeCourseRecord, from: Date, minutes: ProgramMinutes): PeriodTerms {
   const month = monthPeriod(course.starts_at ? new Date(course.starts_at) : null, Number(course.program_months || 0), from);
   if (!month) throw DomainError.badRequest('EDUBRIDGE_ENROLLMENT_COURSE_FULLY_PAID');
-  const ahead = Math.max(0, Number(course.minutes_total || 0) - minutesOpened);
+  const perMonth = Number(course.minutes_per_month || 0);
+  const ahead = Math.max(0, Number(course.minutes_total || 0) - minutes.opened);
   if (month.partial && ahead === 0) throw DomainError.badRequest('EDUBRIDGE_ENROLLMENT_COURSE_FULLY_PAID');
-  const fee = monthFee(course, month.partial, ahead);
-  return { months: 1, paidUntil: month.paid_until, baseAmount: fee.base, discountAmount: fee.discount, amount: fee.amount };
+  // Неполный последний месяц — за минуты, которые в группе ещё впереди; и не больше, чем осталось оплатить в программе.
+  const covered = Math.min(month.partial ? Math.min(perMonth, ahead) : perMonth, minutesLeft(course, minutes.paid));
+  if (covered <= 0) throw DomainError.badRequest('EDUBRIDGE_ENROLLMENT_COURSE_FULLY_PAID');
+  const fee = feeForPeriod(course.fee_month, 1, covered, perMonth);
+  return { months: 1, span: spanOf(covered, perMonth, 1), paidUntil: month.paid_until, baseAmount: fee.base, discountAmount: fee.discount, amount: fee.amount };
 }
 
-/** Взнос за месяц: полный либо по остатку минут программы, когда месяц неполный и минут впереди меньше месяца. */
-function monthFee(course: EdubridgeCourseRecord, partial: boolean, minutesAhead: number): ReturnType<typeof feeForMonths> {
-  const perMonth = Number(course.minutes_per_month || 0);
-  if (partial && minutesAhead < perMonth) return feeForMinutes(course.fee_month, minutesAhead, perMonth);
-  return feeForMonths(course.fee_month, 1, 0);
+/** Месяцев занятий по оплаченным минутам, с шагом в неделю; не больше числа сроков взноса. */
+function spanOf(minutes: number, perMonth: number, months: number): number {
+  if (!(perMonth > 0)) return months;
+  return Math.min(months, Math.round((minutes / perMonth) * 4) / 4);
+}
+
+/** Минут программы осталось оплатить по подписке; у программы без конца ограничения нет. */
+function minutesLeft(course: EdubridgeCourseRecord, paid: number): number {
+  const total = Number(course.minutes_total || 0);
+  return total > 0 ? Math.max(0, total - paid) : Number.MAX_SAFE_INTEGER;
 }

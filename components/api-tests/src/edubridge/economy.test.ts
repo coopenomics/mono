@@ -163,6 +163,18 @@ describe('Образование: экономика курса — взнос, 
     expectCode(await gqlError(chairman, CREATE_COURSE, { d: courseInput(section, { ...BASE, schedule_slots: [] }) }), 'EDUBRIDGE_SCHEDULE_REQUIRED')
   })
 
+  it(caseName('edu.econ.side.07', 'длительность программы с шагом в неделю: 3,5 месяца — три месяца и две недели; шаг мельче недели не принимается'), async () => {
+    const fee = await preview({ program_months: 3.5, course_payment_enabled: true, course_discount_percent: 10 })
+    expect(fee.course_months).toBe(3.5)
+    expect(amount(fee.fee_month)).toBe(9600)
+    expect(amount(fee.fee_course_base)).toBe(33600)
+    expect(amount(fee.fee_course)).toBe(30240)
+    const course = (await gql<any>(chairman, CREATE_COURSE, { d: courseInput(section, { ...BASE, program_months: 3.5 }) })).edubridgeCreateCourse
+    expect(course).toMatchObject({ program_months: 3.5, minutes_per_month: 480, minutes_total: 1680 })
+    expectCode(await gqlError(chairman, FEE_PREVIEW, { d: { ...BASE, program_months: 3.3 } }), 'EDUBRIDGE_PROGRAM_MONTHS_INVALID')
+    expectCode(await gqlError(chairman, CREATE_COURSE, { d: courseInput(section, { ...BASE, program_months: 3.3 }) }), 'EDUBRIDGE_PROGRAM_MONTHS_INVALID')
+  })
+
   it(caseName('edu.econ.side.02', 'ставка часа не назначается пайщику без договора преподавателя'), async () => {
     const plain = freshMember({ prefix: 'educ' })
     const d = { username: plain.account, hourly_rate: '1000.0000 RUB' }

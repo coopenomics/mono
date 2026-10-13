@@ -46,6 +46,20 @@ inline eosio::time_point_sec add_months(eosio::time_point_sec from, uint32_t mon
   return eosio::time_point_sec(from.sec_since_epoch() + months * len);
 }
 
+/**
+ * @brief Конец программы группы от дня начала занятий.
+ *
+ * Программа длится столько, сколько занимают её минуты по расписанию: месяцы
+ * могут быть неполными — три месяца и две недели. Целое число месяцев даёт то
+ * же, что `add_months`.
+ */
+template <typename Terms>
+inline eosio::time_point_sec program_end(const Terms& terms, eosio::time_point_sec start) {
+  const uint64_t len = terms.month_len() > 0 ? terms.month_len() : SECONDS_IN_MONTH;
+  const uint64_t span = static_cast<uint64_t>(terms.minutes_total) * len / terms.minutes_per_month;
+  return eosio::time_point_sec(start.sec_since_epoch() + static_cast<uint32_t>(span));
+}
+
 // ── Условия курса ────────────────────────────────────────────────────────
 
 /// Условия курса; бросает, если администратор их ещё не задал.
@@ -124,7 +138,9 @@ struct FeeQuote {
  * оплачивает месяц занятий, а не дни ожидания. За конец программы оплаченный
  * срок не выходит, и взнос за оплаченную до конца программу не принимается.
  * Неполный последний месяц оплачивается по остатку: за минуты занятий,
- * которые в группе ещё не проведены, долей месячного взноса.
+ * которые в группе ещё не проведены, долей месячного взноса. Программа может
+ * длиться неполное число месяцев (три месяца и две недели): её конец считается
+ * по минутам программы, взнос — по оплаченным минутам.
  * Взнос разом оплачивает месяцы до конца программы со скидкой курса:
  * пришедший в середине вносит за остаток.
  */
@@ -146,7 +162,7 @@ inline FeeQuote quote_fee(const edu_terms& terms, const edu_subscription& sub, e
     q.paid_until = add_months(base, 1, terms.month_len());
     const uint32_t total = terms.months_total();
     if (terms.is_started() && total > 0) {
-      const eosio::time_point_sec end = add_months(start, total, terms.month_len());
+      const eosio::time_point_sec end = program_end(terms, start);
       eosio::check(base < end, "EDUBRIDGE_COURSE_FULLY_PAID: Курс оплачен до конца программы");
       if (q.paid_until > end) {
         // Последний неполный месяц: оплачиваются минуты занятий, которые в группе ещё впереди.
@@ -161,7 +177,7 @@ inline FeeQuote quote_fee(const edu_terms& terms, const edu_subscription& sub, e
     const uint32_t total = terms.months_total();
     eosio::check(terms.course_payment && total > 0, "EDUBRIDGE_COURSE_PAYMENT_DISABLED: Взнос за весь курс по этому курсу не принимается");
     const eosio::time_point_sec start = terms.is_started() ? terms.starts_at : from;
-    const eosio::time_point_sec end = add_months(start, total, terms.month_len());
+    const eosio::time_point_sec end = program_end(terms, start);
     const eosio::time_point_sec base = from > start ? from : start;
     eosio::check(base < end, "EDUBRIDGE_COURSE_FULLY_PAID: Курс оплачен до конца программы");
     uint32_t months = 1;
@@ -182,10 +198,12 @@ inline FeeQuote quote_fee(const edu_terms& terms, const edu_subscription& sub, e
   }
   q.minutes = minutes;
 
+  // Взнос идёт за оплаченные минуты: полные месяцы — месячным взносом, неполный
+  // месяц и остаток программы — долей месячного взноса по минутам.
   eosio::asset base_amount = terms.fee_month() * static_cast<int64_t>(q.months);
-  if (period == SubscriptionPeriod::MONTH && month_minutes < terms.minutes_per_month) {
+  if (minutes < terms.minutes_per_month * q.months) {
     base_amount = eosio::asset(
-        static_cast<int64_t>(static_cast<__int128>(terms.fee_month().amount) * month_minutes / terms.minutes_per_month),
+        static_cast<int64_t>(static_cast<__int128>(terms.fee_month().amount) * minutes / terms.minutes_per_month),
         base_amount.symbol);
   }
   const eosio::asset discount(base_amount.amount * discount_bp / BP_IN_WHOLE, base_amount.symbol);

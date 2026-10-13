@@ -1528,18 +1528,20 @@ export function withoutContractError(teachers: string[]): DomainError {
   return DomainError.badRequest('EDUBRIDGE_COURSE_TEACHERS_WITHOUT_CONTRACT', { teachers: teachers.join(', ') });
 }
 
+/** Дней в месяце программы: четыре недели. Сжатие времени стенда на срок назначения не действует — он в календарных днях. */
+const PROGRAM_MONTH_DAYS = 28;
+
 /**
  * Период назначения по курсу: от начала занятий (или сегодня) на весь срок
  * программы — столько месяцев, сколько нужно на все занятия.
  */
 export function coursePeriod(course: Pick<EdubridgeCourseRecord, 'starts_at' | 'program_months'>): { from: string; to: string } {
   const from = course.starts_at ? String(course.starts_at).slice(0, 10) : new Date().toISOString().slice(0, 10);
-  const months = Math.max(1, Number(course.program_months || 0));
-  const start = new Date(`${from}T00:00:00Z`);
-  // День прижимается к концу месяца: от 31 января месяц кончается в феврале, а не в марте.
-  const target = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + months, 1));
-  const lastDay = new Date(Date.UTC(target.getUTCFullYear(), target.getUTCMonth() + 1, 0)).getUTCDate();
-  target.setUTCDate(Math.min(start.getUTCDate(), lastDay) - 1);
+  // Программа без конца — назначение на месяц; месяц — четыре недели, как у сроков подписки.
+  const months = Number(course.program_months || 0) > 0 ? Number(course.program_months) : 1;
+  const days = Math.round(months * PROGRAM_MONTH_DAYS);
+  const target = new Date(`${from}T00:00:00Z`);
+  target.setUTCDate(target.getUTCDate() + days - 1);
   return { from, to: target.toISOString().slice(0, 10) };
 }
 

@@ -1,4 +1,4 @@
-import { Field, ID, InputType, Int, ObjectType } from '@nestjs/graphql';
+import { Field, ID, InputType, Int, ObjectType, Float } from '@nestjs/graphql';
 import { IsEnum, IsOptional, IsUUID, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 import { SignedDigitalDocumentInputDTO } from '@coopenomics/extension-kit';
@@ -114,7 +114,7 @@ export class EduQuoteDTO {
   @Field(() => String, { description: 'Сумма членского взноса за период' })
   amount!: string;
 
-  @Field(() => Int, { description: 'Сколько месяцев оплачивает взнос: один при помесячном, месяцы до конца курса при взносе разом' })
+  @Field(() => Float, { description: 'Сколько месяцев занятий оплачивает взнос, с шагом в неделю (0,25): один при помесячном, месяцы до конца курса при взносе разом; у программы с неполным последним месяцем — 3,5' })
   months!: number;
 
   @Field(() => String, { description: 'Сумма помесячных взносов за эти месяцы' })

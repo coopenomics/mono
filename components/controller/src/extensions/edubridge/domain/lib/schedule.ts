@@ -242,8 +242,19 @@ export interface ProgramNumbers {
   planned_hourly_rate: string;
 }
 
+/**
+ * Длительность программы в месяцах с шагом в неделю: месяц — четыре недели,
+ * 3,5 — три месяца и две недели. Ноль — программа без конца.
+ */
+export function programMonthsOf(raw: unknown): number {
+  const months = Number(raw ?? 0);
+  const weeks = months * WEEKS_PER_MONTH;
+  if (!Number.isFinite(months) || months < 0 || months > 120 || Math.abs(weeks - Math.round(weeks)) > 1e-9) throw DomainError.badRequest('EDUBRIDGE_PROGRAM_MONTHS_INVALID');
+  return Math.round(weeks) / WEEKS_PER_MONTH;
+}
+
 export function programOf(slots: readonly Pick<EduScheduleSlot, 'minutes' | 'weekday' | 'hourly_rate'>[], programMonths: number): ProgramNumbers {
-  const months = Math.max(0, Math.floor(Number(programMonths || 0)));
+  const months = Math.max(0, Number(programMonths || 0));
   const weekly = slots.filter((s) => !isReserveSlot(s as EduScheduleSlot));
   const minutesPerMonth = Math.round(weeklyMinutes(slots) * WEEKS_PER_MONTH);
   const lessonsPerMonth = Math.round(weekly.length * WEEKS_PER_MONTH);
@@ -256,10 +267,10 @@ export function programOf(slots: readonly Pick<EduScheduleSlot, 'minutes' | 'wee
     teach_month: assetOf(teachMonth, symbol),
     planned_hourly_rate: assetOf(hourly, symbol),
     minutes_per_month: minutesPerMonth,
-    minutes_total: minutesPerMonth * months,
+    minutes_total: Math.round(minutesPerMonth * months),
     lessons_per_month: lessonsPerMonth,
     lessons_per_month_exact: exactLessonsPerMonth(slots),
-    lessons_total: lessonsPerMonth * months,
+    lessons_total: Math.round(lessonsPerMonth * months),
     lesson_minutes: Number((weekly[0] ?? slots[0])?.minutes ?? 60),
     reserve_per_month: Math.round(weeklyMinutes(slots.filter((s) => isReserveSlot(s as EduScheduleSlot))) * WEEKS_PER_MONTH),
   };

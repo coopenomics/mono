@@ -1180,9 +1180,14 @@ export interface EdubridgeCourses {
   lessons_per_month: Generated<number>;
   lessons_total: Generated<number>;
   level_id: string | null;
+  minutes_per_month: Generated<number>;
+  minutes_total: Generated<number>;
   pay_per_learner: Generated<boolean>;
   planned_hourly_rate: Generated<string>;
+  program_months: Generated<number>;
+  report_days: Generated<number>;
   schedule: Generated<string>;
+  schedule_slots: Generated<Json>;
   section_id: string | null;
   sort_order: Generated<number>;
   starts_at: Timestamp | null;
@@ -1240,8 +1245,13 @@ export interface EdubridgeGroups {
   lesson_minutes: Generated<number>;
   lessons_per_month: Generated<number>;
   lessons_total: Generated<number>;
+  minutes_per_month: Generated<number>;
+  minutes_total: Generated<number>;
   pay_per_learner: Generated<boolean>;
   planned_hourly_rate: Generated<string>;
+  program_months: Generated<number>;
+  report_days: Generated<number>;
+  schedule_slots: Generated<Json>;
   starts_at: Timestamp | null;
   starts_at_time: Timestamp | null;
   status: Generated<string>;
@@ -1287,7 +1297,7 @@ export interface EdubridgeLearners {
 }
 
 export interface EdubridgeLessons {
-  assignment_id: string;
+  assignment_id: string | null;
   contribution_id: string | null;
   coopname: string;
   course_id: string;
@@ -1299,7 +1309,11 @@ export interface EdubridgeLessons {
   learners_count: number | null;
   lesson_number: number;
   materials: Generated<Json>;
-  teacher_username: string;
+  origin: Generated<string>;
+  reported_at: Timestamp | null;
+  slot_index: Generated<number>;
+  status: Generated<string>;
+  teacher_username: string | null;
   topic: Generated<string>;
 }
 

@@ -56,8 +56,8 @@ export class EduCourseEconomyInputDTO {
   @Type(() => EduScheduleSlotInputDTO)
   schedule_slots!: EduScheduleSlotInputDTO[];
 
-  @Field(() => Int, { description: 'Длительность программы, месяцев; ноль — программа без конца' })
-  @IsInt()
+  @Field(() => Float, { description: 'Длительность программы, месяцев, с шагом в неделю (0,25): 3,5 — три месяца и две недели; ноль — программа без конца' })
+  @IsNumber()
   @Min(0)
   @Max(120)
   program_months!: number;
@@ -97,7 +97,7 @@ export class EduCourseFeeDTO {
   @Field(() => String, { description: 'Членский взнос за месяц' })
   fee_month!: string;
 
-  @Field(() => Int, { description: 'Длительность курса в месяцах; ноль — у курса нет конечной программы' })
+  @Field(() => Float, { description: 'Длительность курса в месяцах, с шагом в неделю (0,25); ноль — у курса нет конечной программы' })
   course_months!: number;
 
   @Field(() => String, { description: 'Сумма помесячных взносов за весь курс' })

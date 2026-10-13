@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PaginationInputDTO, type PaginationResult, DomainError } from '@coopenomics/extension-kit';
 import { CARRIERS_BY_DIRECTION, EduAccessCarrier, EduCourseStatus, EduLessonStatus, PLATFORM_CARRIERS } from '../../domain/enums';
-import { formatSlots, normalizeSlots, programOf } from '../../domain/lib/schedule';
+import { formatSlots, normalizeSlots, programMonthsOf, programOf } from '../../domain/lib/schedule';
 import type { EdubridgeCourseRecord } from '../../infrastructure/entities';
 import type { EduCourseImage } from '../../infrastructure/entities/edubridge-course.record';
 import { EdubridgeCourseKyselyRepository, type EduCourseFilter } from '../../infrastructure/repositories/edubridge-course.kysely-repository';
@@ -311,8 +311,8 @@ function economyFields(input: EduCourseInputDTO, fee: { fee_month: string }): Pa
   if (!slots.length) throw DomainError.badRequest('EDUBRIDGE_SCHEDULE_REQUIRED');
   return {
     // Числа программы и плановая ставка как среднее — из окон; стоимость занятия живёт в окне.
-    ...programOf(slots, input.program_months ?? 0),
-    program_months: Math.max(0, Math.floor(input.program_months ?? 0)),
+    ...programOf(slots, programMonthsOf(input.program_months)),
+    program_months: programMonthsOf(input.program_months),
     pay_per_learner: input.pay_per_learner ?? true,
     starts_at: input.starts_at || null,
     guarantee_days: input.guarantee_days ?? DEFAULT_GUARANTEE_DAYS,
