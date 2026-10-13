@@ -31,7 +31,7 @@ import { EdubridgeGroupService } from './edubridge-group.service';
 import { EdubridgeEnrollmentKyselyRepository } from '../../infrastructure/repositories/edubridge-enrollment.kysely-repository';
 import { chainAssignmentRef, EdubridgeChainTermsService, toChainTime } from './edubridge-chain-terms.service';
 import { isResumable } from '../../domain/lib/resumable';
-import { formatDate, formatDateTime, lessonEndsAt, reportUntil } from '../../domain/lib/lesson-dates';
+import { formatDate, formatDateTime, lessonEndsAt } from '../../domain/lib/lesson-dates';
 import { EDUBRIDGE_CHAIN_PORT, type EdubridgeChainPort } from '../../domain/ports/edubridge-chain.port';
 import type {
   EdubridgeContributionRecord,
@@ -863,7 +863,7 @@ export class EdubridgeTeacherService {
 
     const assignment = await this.reportingAssignment(coopname, teacher, lesson, program.id);
     const previous = await this.previousReport(coopname, lesson);
-    this.assertReportWindow(lesson, group.report_days ?? 7);
+    this.assertReportWindow(lesson);
     return { contract, assignment, course, group, lesson, previous };
   }
 
@@ -896,13 +896,13 @@ export class EdubridgeTeacherService {
     return contribution;
   }
 
-  /** Отчёт принимается после конца занятия и до конца срока на отчёт. */
-  private assertReportWindow(lesson: EdubridgeLessonRecord, reportDays: number): void {
-    const now = Date.now();
-    if (lessonEndsAt(lesson).getTime() > now + CLOCK_SKEW_MS) throw DomainError.badRequest('EDUBRIDGE_LESSON_REPORT_TOO_EARLY');
-    if (reportUntil(lesson, reportDays).getTime() < now) {
-      throw DomainError.badRequest('EDUBRIDGE_LESSON_REPORT_OVERDUE', { lessonNumber: lesson.lesson_number, reportUntil: formatDateTime(reportUntil(lesson, reportDays)) });
-    }
+  /**
+   * Отчёт принимается после конца занятия. Срок на отчёт приём не держит:
+   * просроченное занятие календарь показывает отдельно, отчёт по нему
+   * принимается, пока группа идёт (решение владельца 13.10.2026).
+   */
+  private assertReportWindow(lesson: EdubridgeLessonRecord): void {
+    if (lessonEndsAt(lesson).getTime() > Date.now() + CLOCK_SKEW_MS) throw DomainError.badRequest('EDUBRIDGE_LESSON_REPORT_TOO_EARLY');
   }
 
   /**

@@ -258,7 +258,7 @@ describe('EdubridgeTeacherService — договор УХД и приложен�
     expect(above.teachers.saveAssignment).not.toHaveBeenCalled();
   });
 
-  it('отчёт — только по занятию календаря в окне отчёта: занятие ещё идёт, срок вышел, чужое, отменённое и повторный отчёт отклоняются', async () => {
+  it('отчёт — только по занятию календаря после его конца: занятие ещё идёт, чужое, отменённое и повторный отчёт отклоняются; просроченное принимается', async () => {
     const { service, planLesson, chain } = make();
     planLesson(1);
     planLesson(2, { held_at: new Date(Date.now() + 3600_000) });
@@ -267,7 +267,8 @@ describe('EdubridgeTeacherService — договор УХД и приложен�
     planLesson(5, { status: 'cancelled' });
     const report = (n: number) => service.reportLesson('voskhod', 'teach', { lesson_id: `LS${n}`, materials: ['https://video/1'] } as any);
     await expect(report(2)).rejects.toMatchObject({ code: 'EDUBRIDGE_LESSON_REPORT_TOO_EARLY' });
-    await expect(report(3)).rejects.toMatchObject({ code: 'EDUBRIDGE_LESSON_REPORT_OVERDUE' });
+    // Срок на отчёт вышел месяц назад: календарь показывает просрочку, приём не держит.
+    await expect(report(3)).resolves.toMatchObject({ lesson_number: 3, status: 'held' });
     await expect(report(4)).rejects.toMatchObject({ code: 'EDUBRIDGE_LESSON_OTHER_TEACHER' });
     await expect(report(5)).rejects.toMatchObject({ code: 'EDUBRIDGE_LESSON_CANCELLED' });
     expect(chain.openLesson).not.toHaveBeenCalled();

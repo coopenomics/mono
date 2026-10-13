@@ -65,11 +65,6 @@ BaseForm.edu-course-form(ref="formEl" :loading="loading" :error="error" @submit=
           template(#append)
             FieldHelp(:text="COURSE_FORM_HELP.monthlyLoad")
 
-      //- Срок на отчёт преподавателя: после него занятие в календаре помечено просроченным, отчёт принимает только администратор.
-      .edu-course-form__pair
-        BaseInput(v-model="form.report_days" :label="$t('edubridge.courseForm.reportDaysLabel')" type="number" min="0")
-          template(#append)
-            FieldHelp(:text="COURSE_FORM_HELP.reportDays")
       //- Дата начала занятий — у группы: она задаётся на шаге «Первая группа» и в панели группы.
       .edu-course-form__pair
         BaseInput(

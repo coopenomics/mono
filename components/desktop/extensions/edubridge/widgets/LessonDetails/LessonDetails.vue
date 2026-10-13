@@ -10,7 +10,7 @@ div
   DataRow(:label="$t('edubridge.lessonDetails.duration')" :value="$t('edubridge.teacherLessonsPage.durationMinutes', { minutes: lesson.duration_minutes })")
   DataRow(:label="$t('edubridge.lessonDetails.teacher')" :value="teacherName || lesson.teacher_username || $t('edubridge.lessonDetails.teacherNone')")
   DataRow(v-if="lesson.topic" :label="$t('edubridge.lessonDetails.topic')" :value="lesson.topic")
-  //- Запланированное занятие: до какого момента принимается отчёт.
+  //- Запланированное занятие: срок отчёта без просрочки; после него занятие помечено просроченным, отчёт принимается.
   DataRow(v-if="lesson.status === Zeus.EduLessonStatus.PLANNED" :label="$t('edubridge.lessonDetails.reportUntil')" :value="formatLessonMoment(lesson.report_until)")
   template(v-if="lesson.status === Zeus.EduLessonStatus.HELD")
     DataRow(v-if="lesson.reported_at" :label="$t('edubridge.lessonDetails.reportedAt')" :value="formatLessonMoment(lesson.reported_at)")

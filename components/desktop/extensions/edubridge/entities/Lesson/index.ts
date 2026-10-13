@@ -32,9 +32,9 @@ export function lessonStateOf(l: Pick<ICalendarLesson, 'status' | 'overdue'>): {
   return LESSON_STATE_LABELS[l.status] ?? { label: String(l.status), variant: 'neutral' };
 }
 
-/** Отчёт по занятию открыт: занятие закончилось, срок на отчёт не вышел. */
-export function isReportable(l: Pick<ICalendarLesson, 'status' | 'ends_at' | 'report_until'>, now: Date = new Date()): boolean {
-  return l.status === Zeus.EduLessonStatus.PLANNED && new Date(String(l.ends_at)) <= now && new Date(String(l.report_until)) >= now;
+/** Отчёт по занятию открыт: занятие закончилось. Просрочка показывается, приём не держит. */
+export function isReportable(l: Pick<ICalendarLesson, 'status' | 'ends_at'>, now: Date = new Date()): boolean {
+  return l.status === Zeus.EduLessonStatus.PLANNED && new Date(String(l.ends_at)) <= now;
 }
 
 export async function fetchLessonCalendar(filter: ILessonCalendarFilter = {}): Promise<ICalendarLesson[]> {

@@ -62,7 +62,6 @@ BaseCard(variant="default" :title="$t('edubridge.courseGroups.title')")
         .t-eyebrow.q-mt-lg.q-mb-xs {{ $t('edubridge.courseGroups.scheduleTitle') }}
         .t-sm.t-muted.q-mb-sm {{ $t('edubridge.courseGroups.scheduleNote') }}
         ScheduleSlotsEditor(v-model="slots" :teacher-options="teacherOptions" :default-minutes="details.lesson_minutes" :disabled="readonly")
-        BaseInput.q-mt-sm(v-model="reportDays" :label="$t('edubridge.courseGroups.reportDaysLabel')" type="number" min="0" :disabled="readonly" :hint="$t('edubridge.courseGroups.reportDaysHint')")
         .row.justify-end.q-mt-sm(v-if="!readonly")
           BaseButton(variant="secondary" size="sm" :loading="scheduleBusy" @click="onSaveSchedule") {{ $t('edubridge.courseGroups.saveSchedule') }}
 
@@ -221,7 +220,6 @@ async function loadGroupEconomy(groupId: string): Promise<void> {
 
 /** Окна расписания группы и срок на отчёт — правятся отдельно от названия и даты: сохранение перестраивает календарь. */
 const slots = ref<IScheduleSlot[]>([]);
-const reportDays = ref<string | number>('7');
 const scheduleBusy = ref(false);
 const assignments = ref<IAssignment[]>([]);
 const { fioCache, enrichFio } = useFioCache();
@@ -247,7 +245,6 @@ async function onSaveSchedule(): Promise<void> {
       await setGroupSchedule({
         group_id: asText(details.value.id),
         slots: slots.value.map((s) => ({ weekday: Number(s.weekday), time: s.time, minutes: Number(s.minutes), assignment_id: s.assignment_id || null })),
-        report_days: Number(reportDays.value || 0),
       }),
     );
     SuccessAlert(t('edubridge.courseGroups.scheduleSaved'));
@@ -292,7 +289,6 @@ function openDetails(row: IGroup): void {
   detailsId.value = asText(row.id);
   void loadGroupEconomy(asText(row.id));
   slots.value = (row.schedule_slots ?? []).map((s) => ({ weekday: s.weekday, time: s.time, minutes: s.minutes, assignment_id: s.assignment_id ?? null }));
-  reportDays.value = String(row.report_days ?? 7);
   Object.assign(form, { title: row.title, starts_at: row.starts_at ?? '', starts_in_minutes: '', platform_group: platformGroupOf(row.external_ref), enrollment_open: row.enrollment_open });
   detailsOpen.value = true;
 }

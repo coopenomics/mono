@@ -319,7 +319,6 @@
     "EDUBRIDGE_LESSON_OTHER_TEACHER": "Занятие закреплено за другим преподавателем",
     "EDUBRIDGE_LESSON_CANCELLED": "Занятие № {lessonNumber} отменено: отчёт по нему не принимается",
     "EDUBRIDGE_LESSON_NOT_PLANNED": "Занятие № {lessonNumber} уже проведено либо отменено: перенос и отмена доступны только запланированному",
-    "EDUBRIDGE_LESSON_REPORT_OVERDUE": "Срок на отчёт по занятию № {lessonNumber} вышел {reportUntil}: обратитесь к администратору",
     "EDUBRIDGE_LESSON_DATE_INVALID": "Момент занятия не распознан",
     "EDUBRIDGE_PROGRAM_FULL": "Программа заполнена: в ней {minutesTotal} минут занятий, свободных минут для занятия нет",
     "EDUBRIDGE_RESERVE_EMPTY": "Резерв расписания исчерпан: свободно {minutesLeft} мин. Внеочередное занятие берётся только из резерва",

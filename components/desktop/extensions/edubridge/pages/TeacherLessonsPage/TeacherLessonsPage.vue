@@ -7,7 +7,7 @@
   BaseBanner.q-mb-md(v-for="l in awaitingReport" :key="asText(l.id)" variant="warn")
     template(#icon)
       q-icon(name="event_available")
-    | {{ $t('edubridge.teacherLessonsPage.awaitingReport', { number: l.lesson_number, courseTitle: l.course_title, moment: formatLessonMoment(l.held_at), until: formatLessonMoment(l.report_until) }) }}
+    | {{ $t(l.overdue ? 'edubridge.teacherLessonsPage.awaitingReportOverdue' : 'edubridge.teacherLessonsPage.awaitingReport', { number: l.lesson_number, courseTitle: l.course_title, moment: formatLessonMoment(l.held_at) }) }}
     template(#action)
       BaseButton(variant="primary" size="sm" @click="openReport(l)") {{ $t('edubridge.teacherLessonsPage.reportButton') }}
 
@@ -96,7 +96,7 @@
       BaseBanner.q-mt-md(v-if="lessonInView.status === Zeus.EduLessonStatus.PLANNED && !isReportable(lessonInView)" variant="info")
         template(#icon)
           q-icon(name="schedule")
-        | {{ lessonInView.overdue ? $t('edubridge.teacherLessonsPage.reportOverdue') : $t('edubridge.teacherLessonsPage.reportAfterLesson', { moment: formatLessonMoment(lessonInView.ends_at) }) }}
+        | {{ $t('edubridge.teacherLessonsPage.reportAfterLesson', { moment: formatLessonMoment(lessonInView.ends_at) }) }}
     template(v-if="lessonInView && isReportable(lessonInView)" #footer)
       .row.justify-end
         BaseButton(variant="primary" @click="openReport(lessonInView)") {{ $t('edubridge.teacherLessonsPage.reportButton') }}
