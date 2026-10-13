@@ -5894,6 +5894,7 @@ export const ReturnTypes: Record<string,any> = {
 		fee_course_base:"String",
 		fee_month:"String",
 		hours_per_month:"Float",
+		lessons_per_month:"Float",
 		markup_month:"String",
 		markup_percent:"Float",
 		max_course_discount_percent:"Float"
@@ -6131,7 +6132,7 @@ export const ReturnTypes: Record<string,any> = {
 	},
 	EduScheduleSlot:{
 		assignment_id:"ID",
-		cost:"String",
+		hourly_rate:"String",
 		minutes:"Int",
 		time:"String",
 		weekday:"Int"
