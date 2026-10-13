@@ -14,7 +14,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { cleanViteOverlays, env, loginAs, pickBranchIfAsked } from '../../../lib/harness.mjs';
+import { cleanViteOverlays, env, loginAs, pickBranchIfAsked, signReceiptIfAsked } from '../../../lib/harness.mjs';
 import { makeSolidPng } from '../../../lib/png.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -48,8 +48,15 @@ export const meta = {
 };
 
 export default async ({ page, shot, expect }) => {
-  await loginAs(page, loadFixture('orderer2'));
+  // Автоподпись соглашений выключена: оверлей акта обязан дойти до подписи,
+  // а не закрыться каскадом первого входа.
+  await loginAs(page, loadFixture('orderer2'), { signAgreements: false });
   await pickBranchIfAsked(page);
+
+  // Выдачу со склада оператор отправил пайщику на подпись (stock-issuance) —
+  // без подписи заказ не получен, и возвращать по нему нечего.
+  const signed = await signReceiptIfAsked(page);
+  expect(signed, 'оверлей «Подписать и получить» не появился: акт выдачи со склада не дошёл до пайщика').toBe(true);
 
   await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/market/my-orders`, {
     waitUntil: 'domcontentloaded',
@@ -59,6 +66,15 @@ export default async ({ page, shot, expect }) => {
   await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
   await page.waitForTimeout(3000);
   await cleanViteOverlays(page);
+
+  // После подписи заявление уходит совету, акт закрывается после его решения —
+  // ждём, пока заказ станет полученным, перечитывая страницу.
+  for (let i = 0; i < 12; i++) {
+    if (await page.getByText('Получен', { exact: true }).first().isVisible().catch(() => false)) break;
+    await page.waitForTimeout(8000);
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
+  }
 
   await page.getByText('Яблочный сок').first().click({ force: true });
   await page.waitForSelector('text=Факт выдачи', { timeout: 30000 });

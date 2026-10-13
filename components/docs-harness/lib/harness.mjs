@@ -445,6 +445,37 @@ export async function confirmIdentityIfAsked(page, { shot, timeout = 6000 } = {}
   return true;
 }
 
+/**
+ * Подпись заказчика за получение. После «Отправить пайщику на подпись» на
+ * столе ПВЗ у заказчика поднимается оверлей «Подпишите документ» с кнопкой
+ * «Подписать и получить»; пока акт не подписан, оверлей перекрывает ему все
+ * страницы. Оверлей поднимает лента изменений стола и на первой странице после
+ * входа может не успеть — тогда его ждут на столе заказчика. Возвращает true,
+ * если подпись поставлена.
+ */
+export async function signReceiptIfAsked(page, { timeout = 30000 } = {}) {
+  const receiveBtn = page.locator('button:has-text("Подписать и получить")').first();
+  let shown = await receiveBtn.waitFor({ state: 'visible', timeout }).then(() => true).catch(() => false);
+  if (!shown) {
+    await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/market/my-orders`, { waitUntil: 'domcontentloaded', timeout: 60000 });
+    shown = await receiveBtn.waitFor({ state: 'visible', timeout: 45000 }).then(() => true).catch(() => false);
+  }
+  if (!shown) return false;
+  await page.waitForTimeout(800);
+  await receiveBtn.click();
+  await page.waitForTimeout(1500);
+  for (let i = 0; i < 4; i++) {
+    const dlgSign = page.locator('.q-dialog button:has-text("Подписать")').last();
+    if (!(await dlgSign.count())) break;
+    await dlgSign.click({ force: true }).catch(() => {});
+    await page.waitForTimeout(2500);
+  }
+  await receiveBtn.waitFor({ state: 'hidden', timeout: 60000 }).catch(() => {});
+  await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
+  await page.waitForTimeout(2000);
+  return true;
+}
+
 export async function clickMenu(page, text, { timeout = 15000 } = {}) {
   const candidates = [
     `.rail__item:has(.rail__item-label:text-is("${text}"))`,
