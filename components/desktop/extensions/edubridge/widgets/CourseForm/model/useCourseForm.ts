@@ -187,12 +187,8 @@ function useTermsLocks() {
   return { termsLocked, startLocked, loadLocks };
 }
 
-/** Расчёт взноса считает сервер: та же арифметика, что при сохранении курса. */
-function useFeePreview(economy: ReturnType<typeof useEconomyFields>) {
-  const { economyParams, coursePayment, courseDiscount, programMonthsError } = economy;
-  const fee = ref<ICourseFee | null>(null);
-  /** Почему расчёта нет: ошибка ввода либо отказ сервера. Пусто — параметры ещё не заполнены. */
-  const feeError = ref('');
+/** Подписи и пределы расчёта взноса: скидка, взнос за курс и полная сумма за программу. */
+function useFeeLabels(fee: Ref<ICourseFee | null>, coursePayment: Ref<boolean>, courseDiscount: Ref<string>) {
   const discountError = computed(() =>
     coursePayment.value && fee.value && Number(courseDiscount.value || 0) > fee.value.max_course_discount_percent
       ? i18nT('edubridge.useCourseForm.discountTooLargeError', { maxDiscountPercent: fee.value.max_course_discount_percent })
@@ -224,6 +220,17 @@ function useFeePreview(economy: ReturnType<typeof useEconomyFields>) {
     if (!fee.value || !programFeeShown.value) return '';
     return courseFeeShown.value ? fee.value.fee_course : fee.value.fee_course_base;
   });
+
+  return { discountError, discountHint, discountLimit, coursePaymentHint, courseFeeShown, courseFeeLabel, courseFeeValue };
+}
+
+/** Расчёт взноса считает сервер: та же арифметика, что при сохранении курса. */
+function useFeePreview(economy: ReturnType<typeof useEconomyFields>) {
+  const { economyParams, coursePayment, courseDiscount, programMonthsError } = economy;
+  const fee = ref<ICourseFee | null>(null);
+  /** Почему расчёта нет: ошибка ввода либо отказ сервера. Пусто — параметры ещё не заполнены. */
+  const feeError = ref('');
+  const labels = useFeeLabels(fee, coursePayment, courseDiscount);
 
   let previewTimer: ReturnType<typeof setTimeout> | null = null;
   watch(
@@ -259,7 +266,7 @@ function useFeePreview(economy: ReturnType<typeof useEconomyFields>) {
     if (previewTimer) clearTimeout(previewTimer);
   });
 
-  return { fee, feeError, discountError, discountHint, discountLimit, coursePaymentHint, courseFeeShown, courseFeeLabel, courseFeeValue };
+  return { fee, feeError, ...labels };
 }
 
 const directionOptions = Object.entries(DIRECTION_LABELS).map(([value, label]) => ({ value, label }));

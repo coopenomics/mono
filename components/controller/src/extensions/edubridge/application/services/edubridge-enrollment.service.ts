@@ -171,10 +171,8 @@ export class EdubridgeEnrollmentService {
     const course = this.groups.viewOf(program, group);
 
     const symbol = course.fee_month.split(' ')[1] ?? '';
-    const terms = this.termsOf(course, period, paidFrom(isExtension ? existing : null), {
-      opened: await this.lessonsOpened(coopname, course),
-      paid: isExtension && existing ? await this.minutesPaid(coopname, existing.sub_hash) : 0,
-    });
+    const extended = isExtension ? existing : null;
+    const terms = this.termsOf(course, period, paidFrom(extended), await this.programMinutes(coopname, course, extended));
 
     return {
       learner,
@@ -351,6 +349,11 @@ export class EdubridgeEnrollmentService {
     // Ученик вписался в курс: от этого дня (не раньше начала занятий) идёт его гарантийный срок.
     if (!plan.isExtension) entity.joined_at = new Date();
     return { saved: await this.enrollments.save(entity), opened };
+  }
+
+  /** Минуты из цепи для расчёта срока: отчитано в группе и оплачено по продлеваемой подписке. */
+  private async programMinutes(coopname: string, course: EdubridgeCourseRecord, extended: Pick<EdubridgeEnrollmentRecord, 'sub_hash'> | null): Promise<ProgramMinutes> {
+    return { opened: await this.lessonsOpened(coopname, course), paid: extended ? await this.minutesPaid(coopname, extended.sub_hash) : 0 };
   }
 
   /** Сколько минут занятий уже оплачено по подписке в цепи: взнос не оплачивает минут больше, чем осталось в программе. */

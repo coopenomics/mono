@@ -49,16 +49,8 @@ export class EduGroupDTO {
       fee_month: e.fee_month,
       planned_hourly_rate: e.planned_hourly_rate,
       pay_per_learner: Boolean(e.pay_per_learner),
-      lessons_total: round2(exactLessonsPerMonth(e.schedule_slots ?? []) * (e.program_months ?? 0)),
       guarantee_days: e.guarantee_days,
-      schedule_slots: (e.schedule_slots ?? []).map((s) => new EduScheduleSlotDTO(s)),
-      schedule: formatSlots(e.schedule_slots ?? []),
-      report_days: e.report_days ?? 7,
-      lessons_per_month: exactLessonsPerMonth(e.schedule_slots ?? []),
-      lesson_minutes: e.lesson_minutes,
-      program_months: e.program_months ?? 0,
-      minutes_per_month: e.minutes_per_month ?? 0,
-      minutes_total: e.minutes_total ?? 0,
+      ...scheduleFieldsOf(e),
       teacher_reserve_balance: e.teacher_reserve_balance,
       teacher_settled_total: e.teacher_settled_total,
       created_at: e.created_at,
@@ -66,6 +58,24 @@ export class EduGroupDTO {
       ...counts,
     });
   }
+}
+
+/** Расписание и числа программы группы: окна, строка расписания, занятия и минуты. */
+function scheduleFieldsOf(e: EdubridgeGroupRecord) {
+  const slots = e.schedule_slots ?? [];
+  const months = e.program_months ?? 0;
+  const lessons = exactLessonsPerMonth(slots);
+  return {
+    schedule_slots: slots.map((s) => new EduScheduleSlotDTO(s)),
+    schedule: formatSlots(slots),
+    report_days: e.report_days ?? 7,
+    lessons_per_month: lessons,
+    lessons_total: round2(lessons * months),
+    lesson_minutes: e.lesson_minutes,
+    program_months: months,
+    minutes_per_month: e.minutes_per_month ?? 0,
+    minutes_total: e.minutes_total ?? 0,
+  };
 }
 
 /** Новая группа курса: условия берутся с курса на день открытия. */
