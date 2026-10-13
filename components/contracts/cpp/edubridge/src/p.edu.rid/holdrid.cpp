@@ -12,8 +12,8 @@
  * курса от начала занятий. Кооператив принимает материалы как объект — паевым
  * взносом они становятся позже, по заявлению преподавателя и решению совета.
  *
- * Запись занятия стирается, курс открыт для следующего занятия. Запись
- * материалов запоминает курс: при приёме результат оплачивается из резерва
+ * Запись занятия стирается — в цепи остаётся только запись материалов. Она
+ * запоминает курс: при приёме результат оплачивается из резерва
  * преподавателям этого курса.
  *
  * Одна ledger2-операция:
@@ -21,7 +21,7 @@
  *    у кооператива возникло обязательство перед преподавателем.
  *
  * Guards:
- *  - занятие открыто этим преподавателем, по нему рассчитан хотя бы один участник;
+ *  - занятие открыто этим преподавателем, окно расчёта закрыто, рассчитан хотя бы один участник;
  *  - подпись акта валидна (username);
  *  - преподаватель — активный член кооператива с действующим договором УХД.
  *
@@ -61,6 +61,7 @@ void edubridge::holdrid(eosio::name coopname,
     eosio::check(lesson->username == username, "EDUBRIDGE_LESSON_NOT_OWNER: Занятие открыто другим преподавателем");
     eosio::check(!lesson->deferred,
                  "EDUBRIDGE_LESSON_DEFERRED: Занятие проведено в гарантийный срок: материалы принимаются после срока, вместе с остальными занятиями периода");
+    eosio::check(lesson->settled, "EDUBRIDGE_LESSON_CHARGING: Окно расчёта по занятию ещё открыто");
     eosio::check(lesson->amount.amount > 0,
                  "EDUBRIDGE_LESSON_WITHOUT_LEARNERS: На дату занятия нет участников с оплаченным доступом: взнос преподавателя не начислен");
     amount        = lesson->amount;
@@ -77,6 +78,7 @@ void edubridge::holdrid(eosio::name coopname,
       eosio::check(lesson != lessons_by_hash.end(), "EDUBRIDGE_LESSON_NOT_FOUND: Занятие с указанным hash не найдено");
       eosio::check(lesson->username == username, "EDUBRIDGE_LESSON_NOT_OWNER: Занятие открыто другим преподавателем");
       eosio::check(lesson->deferred, "EDUBRIDGE_LESSON_NOT_DEFERRED: Занятие проведено после гарантийного срока: материалы по нему принимаются отдельно");
+      eosio::check(lesson->settled, "EDUBRIDGE_LESSON_CHARGING: Окно расчёта по занятию ещё открыто");
       if (assignment_id == 0) {
         assignment_id = lesson->assignment_id;
         course_id     = lesson->course_id;
@@ -134,14 +136,6 @@ void edubridge::holdrid(eosio::name coopname,
     r.course_id        = course_id;
     rid_id             = r.id;
   });
-
-  // Расчёт по занятию завершён: курс открыт для следующего занятия.
-  if (single) {
-    Edubridge::update_terms(coopname, course_id, [&](auto& t) {
-      t.open_lesson_id = 0;
-      t.last_held_at   = held_at;
-    });
-  }
 
   // ── o.edu.hold: ISSUE → w.edu.hold (Дт 08 / Кт 76) ────────────────────
   Ledger2::apply(_edubridge, coopname,

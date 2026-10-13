@@ -37,7 +37,7 @@ void edubridge::cancelsub(eosio::name coopname,
 
   const auto now = eosio::time_point_sec(eosio::current_time_point());
   const edu_terms terms = Edubridge::get_terms_or_fail(coopname, sub->course_id);
-  Edubridge::check_no_pending_lesson(coopname, terms, *sub);
+  Edubridge::check_no_charging(terms);
 
   eosio::asset refund;
   bool to_share = false;

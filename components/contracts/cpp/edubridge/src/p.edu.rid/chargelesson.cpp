@@ -23,10 +23,10 @@
  *    вернувший взнос по гарантийным условиям, в эту сумму не входит.
  *
  * Guards:
- *  - занятие открыто; подписка — того же курса и ведёт учёт занятий;
+ *  - занятие открыто, окно расчёта по нему не закрыто; подписка — того же курса и ведёт учёт занятий;
  *  - дата занятия внутри оплаченного срока подписки;
  *  - это занятие по подписке ещё не считалось;
- *  - в резерве подписки есть оплата занятия.
+ *  - в резерве подписки есть оплата занятия на всю его длительность.
  *
  * @ingroup public_edubridge_actions
  */
@@ -47,13 +47,15 @@ void edubridge::chargelesson(eosio::name coopname,
   eosio::check(sub->course_id == lesson->course_id, "EDUBRIDGE_SUBSCRIPTION_OTHER_COURSE: Подписка открыта на другой курс");
 
   const auto& plan = sub->plan.value();
-  eosio::check(plan.last_lesson < lesson->number, "EDUBRIDGE_LESSON_ALREADY_CHARGED: Расчёт за это занятие по подписке уже прошёл");
+  eosio::check(!lesson->settled, "EDUBRIDGE_LESSON_SETTLED: Окно расчёта по занятию закрыто");
+  eosio::check(!plan.has_charged(lesson->number), "EDUBRIDGE_LESSON_ALREADY_CHARGED: Расчёт за это занятие по подписке уже прошёл");
   eosio::check(Edubridge::lesson_covered(*sub, lesson->held_at),
                "EDUBRIDGE_LESSON_NOT_COVERED: На дату занятия доступ по подписке не оплачен");
 
   const edu_terms terms = Edubridge::get_terms_or_fail(coopname, lesson->course_id);
-  const eosio::asset unit = terms.lesson_unit();
-  eosio::check(plan.lessons_done < plan.lessons_paid && plan.reserve >= unit,
+  // Оплата занятия — за столько занятий курса, сколько занимает его длительность.
+  const eosio::asset unit = terms.lesson_unit() * static_cast<int64_t>(lesson->units);
+  eosio::check(plan.lessons_done + lesson->units <= plan.lessons_paid && plan.reserve >= unit,
                "EDUBRIDGE_SUBSCRIPTION_RESERVE_EMPTY: В резерве подписки нет оплаты занятия");
 
   // За каждого участника — взнос по ставке преподавателя с каждой подписки.
@@ -79,8 +81,8 @@ void edubridge::chargelesson(eosio::name coopname,
     // Гарантийный срок не закрыт — взнос удержан целиком, в резерв преподавателям он ещё не выделен.
     locked = !p.released;
     p.reserve      -= unit;
-    p.lessons_done += 1;
-    p.last_lesson   = lesson->number;
+    p.lessons_done += lesson->units;
+    p.charged.push_back(lesson->number);
     if (locked) {
       // Взнос преподавателя запоминается в подписке по его допуску: в сумму
       // допуска он перейдёт, когда подписка закроет гарантийный срок.

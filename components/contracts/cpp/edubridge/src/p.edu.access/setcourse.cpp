@@ -69,7 +69,7 @@ void edubridge::setcourse(eosio::name coopname,
       t.course_id      = course_id;
       t.subs_active    = 0;
       t.lessons_opened = 0;
-      t.open_lesson_id = 0;
+      t.charging       = 0;
       t.subs_locked    = 0;
       fill(t);
     });

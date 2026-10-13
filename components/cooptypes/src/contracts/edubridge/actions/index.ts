@@ -103,10 +103,11 @@ export * as Unlockfee from './unlockfee'
 /** Условия курса, по которым контракт считает суммы. */
 export * as Setcourse from './setcourse'
 
-/** Расчёт занятия: отчёт преподавателя, отзыв отчёта, расчёт по одной подписке. */
+/** Расчёт занятия: отчёт преподавателя, отзыв отчёта, расчёт по одной подписке, закрытие окна расчёта. */
 export * as Openlesson from './openlesson'
 export * as Droplesson from './droplesson'
 export * as Chargelesson from './chargelesson'
+export * as Closecharge from './closecharge'
 
 /** Допуск преподавателя к курсу и его ставка. */
 export * as Setassign from './setassign'

@@ -3,7 +3,7 @@ import type * as Edubridge from '../../../interfaces/edubridge'
 import { Actors } from '../../../common'
 
 /**
- * Отчёт преподавателя о занятии (процесс p.edu.rid): открывает расчёт с участниками.
+ * Отчёт преподавателя о занятии календаря (процесс p.edu.rid): открывает расчёт с участниками.
  */
 export const authorizations = [{ permissions: [Permissions.active], actor: Actors._coopname }] as const
 

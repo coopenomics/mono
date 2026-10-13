@@ -192,13 +192,23 @@ export interface IHoldrid {
   act: IDocument2
 }
 
-/** Преподаватель отчитался о занятии — открывается расчёт с участниками. */
+/** Преподаватель отчитался о занятии календаря — открывается расчёт с участниками. */
 export interface IOpenlesson {
   coopname: IName
   username: IName
   rid_hash: IChecksum256
   assignment_id: IUint64
   held_at: ITimePointSec
+  /** Номер занятия в программе курса — из календаря группы. */
+  number: IUint32
+  /** Длительность занятия, минут — из календаря группы. */
+  minutes: IUint32
+}
+
+/** Окно расчёта по занятию закрыто: подписки группы рассчитаны. */
+export interface IClosecharge {
+  coopname: IName
+  rid_hash: IChecksum256
 }
 
 export interface IDroplesson {
@@ -366,7 +376,8 @@ export interface IEduSubPlan {
   paid_from: ITimePointSec
   lessons_paid: IUint32
   lessons_done: IUint32
-  last_lesson: IUint32
+  /** Номера занятий группы, рассчитанных по подписке. */
+  charged: IUint32[]
   /** Остаток оплаты занятий по плановой ставке — за непроведённые занятия. */
   reserve: IAsset
   /** Взнос преподавателей за проведённые занятия, ещё не выделенный в резерв. */
@@ -394,9 +405,12 @@ export interface IEduTerms {
   guarantee_secs: IUint32
   starts_at: ITimePointSec
   subs_active: IUint32
+  /** Занятий программы проведено: сумма занятий, которые заняли отчитанные занятия. */
   lessons_opened: IUint32
-  open_lesson_id: IUint64
-  last_held_at: ITimePointSec
+  /** Занятий в окне расчёта с участниками. */
+  charging: IUint32
+  /** Номера отчитанных занятий группы. */
+  numbers: IUint32[]
   /** Подписок с незакрытым гарантийным сроком: пока они есть, суммы преподавателей за гарантийный период не окончательны. */
   subs_locked: IUint32
   /** Длина месяца, секунд: нет значения либо 0 — календарные месяцы. */
@@ -425,6 +439,8 @@ export interface IEduLesson {
   number: IUint32
   held_at: ITimePointSec
   minutes: IUint32
+  /** Занятий программы занимает: длительность в занятиях курса. */
+  units: IUint32
   rate: IAsset
   /** Ставка преподавателя за проведённое время: за одного участника либо за всё занятие. */
   charge: IAsset
@@ -433,6 +449,8 @@ export interface IEduLesson {
   created_at: ITimePointSec
   /** Занятие гарантийного срока: документы с суммой — после срока, одной суммой за период. */
   deferred: IBool
+  /** Окно расчёта закрыто: подписки рассчитаны. */
+  settled: IBool
 }
 
 /**

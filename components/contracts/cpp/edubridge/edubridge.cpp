@@ -19,7 +19,7 @@
 #include "src/p.edu.spend/onexpdone.cpp"
 #include "src/p.edu.access/expiresub.cpp"
 
-// ── p.edu.rid (14 actions) ───── паевой взнос РИД преподавателя ────────
+// ── p.edu.rid (15 actions) ───── паевой взнос РИД преподавателя ────────
 #include "src/p.edu.rid/openlesson.cpp"
 #include "src/p.edu.rid/chargelesson.cpp"
 #include "src/p.edu.rid/holdrid.cpp"

@@ -37,7 +37,7 @@ using namespace Edubridge;
  *    курс — рабочее состояние в RAM, стирается по истечении либо отмене.
  *  - **p.edu.spend** (2 actions): createexp, onexpdone — расход программы из
  *    фонда через общее шасси расходов.
- *  - **p.edu.rid** (14 actions): openlesson, chargelesson, droplesson,
+ *  - **p.edu.rid** (15 actions): openlesson, chargelesson, closecharge, droplesson,
  *    holdrid, submitrid, onridauth, onriddecl, signridact, apprvridact,
  *    dclridact, acceptrid, declinerid, recallrid,
  *    wthshare — преподаватель отчитывается по занятию, контракт по одной
@@ -289,15 +289,24 @@ public:
                                  document2 act);
 
   /**
-   * @brief Преподаватель отчитался о занятии — открыть расчёт с участниками.
-   * Фиксирует дату и ставку преподавателя на курсе; длительность — по условиям курса.
+   * @brief Преподаватель отчитался о занятии календаря — открыть расчёт с участниками.
+   * Номер, дата и длительность — из календаря группы; ставка преподавателя фиксируется на момент отчёта.
    * @ingroup public_edubridge_actions
    */
   [[eosio::action]] void openlesson(eosio::name coopname,
                                     eosio::name username,
                                     checksum256 rid_hash,
                                     uint64_t assignment_id,
-                                    eosio::time_point_sec held_at);
+                                    eosio::time_point_sec held_at,
+                                    uint32_t number,
+                                    uint32_t minutes);
+
+  /**
+   * @brief Закрыть окно расчёта по занятию: подписки группы рассчитаны.
+   * @ingroup public_edubridge_actions
+   */
+  [[eosio::action]] void closecharge(eosio::name coopname,
+                                     checksum256 rid_hash);
 
   /**
    * @brief Отозвать отчёт о занятии до расчёта с участниками.

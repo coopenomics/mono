@@ -40,7 +40,7 @@ void edubridge::expiresub(eosio::name coopname,
   }
 
   const edu_terms terms = Edubridge::get_terms_or_fail(coopname, sub->course_id);
-  Edubridge::check_no_pending_lesson(coopname, terms, *sub);
+  Edubridge::check_no_charging(terms);
 
   Edubridge::settle_closing(coopname, *sub, eosio::asset(0, _root_govern_symbol), false);
   subs.erase(sub);
