@@ -65,8 +65,6 @@ const rawLessonSelector = {
   topic: true,
   held_at: true,
   duration_minutes: true,
-  lesson_minutes: true,
-  units: true,
   learners_count: true,
   group_id: true,
   group_title: true,

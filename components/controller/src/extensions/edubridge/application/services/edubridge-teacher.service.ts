@@ -403,7 +403,7 @@ export class EdubridgeTeacherService {
       period_from: input.period_from,
       period_to: input.period_to,
       // Нагрузка по умолчанию — всё расписание курса: один преподаватель ведёт его целиком.
-      minutes_per_month: input.minutes_per_month ?? course.lessons_per_month * course.lesson_minutes,
+      minutes_per_month: input.minutes_per_month ?? course.minutes_per_month,
       hourly_rate: hourlyRate,
       status: EduAssignmentStatus.ACTIVE,
     });
@@ -937,7 +937,7 @@ export class EdubridgeTeacherService {
     }
     return lessons.map((l) => {
       const group = l.group_id ? groups.get(l.group_id) : null;
-      return new EduLessonDTO(l, { course: titles.get(l.course_id) ?? '', group: group?.title, reportDays: group?.report_days, lessonMinutes: group?.lesson_minutes });
+      return new EduLessonDTO(l, { course: titles.get(l.course_id) ?? '', group: group?.title, reportDays: group?.report_days });
     });
   }
 
@@ -1563,9 +1563,9 @@ export function rateCoverageError(
  * Период назначения по курсу: от начала занятий (или сегодня) на весь срок
  * программы — столько месяцев, сколько нужно на все занятия.
  */
-export function coursePeriod(course: Pick<EdubridgeCourseRecord, 'starts_at' | 'lessons_total' | 'lessons_per_month'>): { from: string; to: string } {
+export function coursePeriod(course: Pick<EdubridgeCourseRecord, 'starts_at' | 'program_months'>): { from: string; to: string } {
   const from = course.starts_at ? String(course.starts_at).slice(0, 10) : new Date().toISOString().slice(0, 10);
-  const months = Math.max(1, Math.ceil((course.lessons_total || 0) / Math.max(1, course.lessons_per_month || 1)));
+  const months = Math.max(1, Number(course.program_months || 0));
   const start = new Date(`${from}T00:00:00Z`);
   // День прижимается к концу месяца: от 31 января месяц кончается в феврале, а не в марте.
   const target = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + months, 1));

@@ -3,10 +3,10 @@
  *
  * Занятие берётся из календаря группы: приложение называет его номер в
  * программе, дату и длительность. Запись занятия фиксирует ставку
- * преподавателя на курсе. Взнос преподавателя — его ставка за проведённое
- * время, но не больше оплаты занятий, заложенной во взнос участника: занятие
- * длиннее занятия курса занимает в программе столько занятий, сколько в нём
- * укладывается, неполное — за целое. После отчёта приложение по одной подписке
+ * преподавателя на курсе. Учёт идёт в минутах: занятие занимает в программе
+ * свои минуты, участник оплачивает их по плановой ставке. Взнос преподавателя
+ * — его ставка за проведённое время, но не больше оплаты этих минут
+ * участником. После отчёта приложение по одной подписке
  * вызывает `chargelesson`, закрывает окно расчёта `closecharge`, затем
  * преподаватель передаёт материалы `holdrid`.
  *
@@ -19,8 +19,8 @@
  * Guards:
  *  - допуск принадлежит преподавателю, его договор действует;
  *  - курс активирован, дата занятия — не раньше начала занятий и не в будущем;
- *  - номер занятия в программе курса и ещё не занят;
- *  - занятий программы хватает на длительность занятия.
+ *  - номер занятия ещё не занят;
+ *  - минут программы хватает на длительность занятия.
  *
  * @ingroup public_edubridge_actions
  */
@@ -47,14 +47,10 @@ void edubridge::openlesson(eosio::name coopname,
   eosio::check(terms.is_started() && held_at >= Edubridge::day_start(terms.starts_at), "EDUBRIDGE_LESSON_BEFORE_COURSE_START: Занятие не может быть раньше начала занятий курса");
   eosio::check(held_at <= now, "EDUBRIDGE_LESSON_IN_FUTURE: Дата занятия не может быть в будущем");
   eosio::check(number > 0, "EDUBRIDGE_LESSON_NUMBER_INVALID: Номер занятия начинается с единицы");
-  eosio::check(terms.lessons_total == 0 || number <= terms.lessons_total,
-               "EDUBRIDGE_LESSON_OUT_OF_PLAN: Номер занятия выходит за программу курса");
   eosio::check(!terms.has_number(number), "EDUBRIDGE_LESSON_NUMBER_TAKEN: Занятие с этим номером уже отчитано");
-  eosio::check(minutes > 0 && terms.lesson_minutes > 0, "EDUBRIDGE_LESSON_MINUTES_INVALID: Длительность занятия не задана");
-  // Длительность в занятиях курса: неполное занятие занимает целое.
-  const uint32_t units = (minutes + terms.lesson_minutes - 1) / terms.lesson_minutes;
-  eosio::check(terms.lessons_total == 0 || terms.lessons_opened + units <= terms.lessons_total,
-               "EDUBRIDGE_LESSONS_PROGRAM_COMPLETED: Занятий программы курса на это занятие не осталось");
+  eosio::check(minutes > 0, "EDUBRIDGE_LESSON_MINUTES_INVALID: Длительность занятия не задана");
+  eosio::check(terms.minutes_total == 0 || terms.minutes_opened + minutes <= terms.minutes_total,
+               "EDUBRIDGE_LESSONS_PROGRAM_COMPLETED: Минут программы курса на это занятие не осталось");
 
   edu_lessons_index lessons(_edubridge, coopname.value);
   auto by_hash = lessons.get_index<"byhash"_n>();
@@ -64,10 +60,10 @@ void edubridge::openlesson(eosio::name coopname,
   eosio::check(rids_by_hash.find(rid_hash) == rids_by_hash.end(),
                "EDUBRIDGE_RID_ALREADY_HELD: Материалы с указанным hash уже приняты на ответственное хранение");
 
-  // Ставка преподавателя за проведённое время, не больше оплаты занятий,
+  // Ставка преподавателя за проведённое время, не больше оплаты минут занятия,
   // заложенной во взнос участника: на курсе с расчётом за каждого участника
   // это взнос за одного, на курсе с фиксированным расчётом — за всё занятие.
-  const eosio::asset unit = terms.lesson_unit() * static_cast<int64_t>(units);
+  const eosio::asset unit = terms.minutes_cost(minutes);
   const eosio::asset rate = assign->rate <= terms.planned_rate ? assign->rate : terms.planned_rate;
   eosio::asset charge(rate.amount * static_cast<int64_t>(minutes) / 60, rate.symbol);
   if (charge > unit) charge = unit;
@@ -85,7 +81,6 @@ void edubridge::openlesson(eosio::name coopname,
     l.number        = number;
     l.held_at       = held_at;
     l.minutes       = minutes;
-    l.units         = units;
     l.rate          = rate;
     l.charge        = charge;
     l.learners      = 0;
@@ -96,7 +91,7 @@ void edubridge::openlesson(eosio::name coopname,
   });
 
   Edubridge::update_terms(coopname, assign->course_id, [&](auto& t) {
-    t.lessons_opened += units;
+    t.minutes_opened += minutes;
     t.charging       += 1;
     t.numbers.push_back(number);
   });
@@ -136,7 +131,7 @@ void edubridge::closecharge(eosio::name coopname,
  * @brief Отзыв отчёта о занятии до расчёта с участниками.
  *
  * Преподаватель ошибся в дате либо длительности, либо на дату занятия нет
- * участников с оплаченным доступом: запись занятия стирается, номер и занятия
+ * участников с оплаченным доступом: запись занятия стирается, номер и минуты
  * программы возвращаются группе. После первого расчёта по подписке занятие
  * доводится до конца действием `holdrid`. Движений средств нет.
  *
@@ -160,10 +155,10 @@ void edubridge::droplesson(eosio::name coopname,
     }
   }
   const uint32_t number  = found->number;
-  const uint32_t units   = found->units;
+  const uint32_t minutes = found->minutes;
   const bool     settled = found->settled;
   Edubridge::update_terms(coopname, found->course_id, [&](auto& t) {
-    t.lessons_opened = t.lessons_opened > units ? t.lessons_opened - units : 0;
+    t.minutes_opened = t.minutes_opened > minutes ? t.minutes_opened - minutes : 0;
     if (!settled && t.charging > 0) t.charging -= 1;
     t.drop_number(number);
   });

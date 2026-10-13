@@ -36,8 +36,8 @@
         FeeAmount(:value="course.fee_month" size="lg")
       StatTile(v-if="Number(course.course_months) > 1 && (course.fee_course || course.fee_course_base)" :caption="course.fee_course ? $t('edubridge.course.feeCourseCaption') : $t('edubridge.course.feeCourseTotalCaption')")
         FeeAmount(:value="course.fee_course ?? course.fee_course_base ?? ''" size="lg")
-      StatTile(:value="course.lessons_per_month" :caption="$t('edubridge.course.lessonsPerMonthCaption', { minutes: course.lesson_minutes }, Number(course.lessons_per_month))")
-      StatTile(:value="course.lessons_total" :caption="$t('edubridge.course.lessonsTotalCaption', Number(course.lessons_total))")
+      StatTile(:value="hoursPerMonth" :caption="$t('edubridge.course.hoursPerMonthCaption', { lessons: course.lessons_per_month, minutes: course.lesson_minutes })")
+      StatTile(v-if="Number(course.program_months) > 0" :value="course.program_months" :caption="$t('edubridge.course.programMonthsCaption', Number(course.program_months))")
 
     //- Группы курса — на всю ширину под шапкой: набор идёт в группу, деньги и
     //- занятия считаются внутри неё. В узкой колонке реестр не помещается.
@@ -238,6 +238,8 @@ async function loadCalendar(): Promise<void> {
     FailAlert(e);
   }
 }
+/** Часов занятий в месяц — из минут по окнам расписания. */
+const hoursPerMonth = computed(() => (Number(course.value?.minutes_per_month || 0) / 60).toLocaleString('ru-RU', { maximumFractionDigits: 1 }));
 const formatDate = (v: unknown) => (v ? new Date(String(v)).toLocaleDateString('ru-RU') : '______');
 
 const status = computed(() => COURSE_STATUS_LABELS[course.value?.status ?? ''] ?? { label: course.value?.status ?? '', variant: 'neutral' as const });

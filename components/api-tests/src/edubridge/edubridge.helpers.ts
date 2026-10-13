@@ -249,7 +249,7 @@ export async function fundShare(who: Who, token: string, sum: number): Promise<v
 
 // ── Курс ───────────────────────────────────────────────────────────────────
 
-export const COURSE_FIELDS = 'id title status fee_month starts_at guarantee_days lessons_per_month lessons_total teacher_usernames section_id'
+export const COURSE_FIELDS = 'id title status fee_month starts_at guarantee_days lessons_per_month lessons_total lesson_minutes program_months minutes_per_month minutes_total teacher_usernames section_id'
 export const SAVE_SECTION = 'mutation($d:EduSaveSectionInput!){ edubridgeSaveSection(data:$d){ id title } }'
 export const CREATE_COURSE = `mutation($d:EduCourseInput!){ edubridgeCreateCourse(data:$d){ ${COURSE_FIELDS} } }`
 export const UPDATE_COURSE = `mutation($d:EduUpdateCourseInput!){ edubridgeUpdateCourse(data:$d){ ${COURSE_FIELDS} } }`
@@ -282,14 +282,24 @@ export function dayFromNow(days: number): string {
 }
 
 /** Параметры очного курса: доступ выдаётся пропуском, чужих площадок не нужно. */
+/** Окна расписания курса: вторник и четверг в 17:00, по столько минут. */
+export function courseSlots(minutes: number, perWeek = 2): { weekday: number, time: string, minutes: number }[] {
+  return [2, 4, 6, 1, 3, 5, 7].slice(0, perWeek).map(weekday => ({ weekday, time: '17:00', minutes }))
+}
+
+/** Минут занятий в месяц по окнам — как считает сервер: минуты недели на 52/12. */
+export function monthMinutes(slots: { minutes: number }[]): number {
+  return Math.round(slots.reduce((s, x) => s + x.minutes, 0) * 52 / 12)
+}
+
 export function courseInput(sectionId: string, over: Record<string, unknown> = {}): Record<string, unknown> {
   return {
     title: `Курс внешнего слоя ${number16()}`,
     section_id: sectionId,
     description: 'Курс набора api-tests',
-    lessons_per_month: 8,
-    lessons_total: 32,
-    lesson_minutes: 60,
+    // Два часовых окна в неделю: 520 минут в месяц; программа четыре месяца.
+    schedule_slots: courseSlots(60),
+    program_months: 4,
     planned_hourly_rate: PLANNED_RATE,
     guarantee_days: 14,
     direction: 'ONSITE',
@@ -350,7 +360,7 @@ export const QUOTE = `query($d:EduQuoteInput!){ edubridgeQuote(data:$d){
 } }`
 export const CONVERT_STATEMENT = 'mutation($d:EduQuoteInput!){ edubridgeConvertStatement(data:$d){ full_title html hash meta binary } }'
 export const SUBSCRIBE = `mutation($d:EduSubscribeInput!){ edubridgeSubscribe(data:$d){ ${ENROLLMENT_FIELDS} } }`
-export const REFUND_PREVIEW = 'query($id:ID!){ edubridgeRefundPreview(enrollment_id:$id){ reason refund withheld lessons_paid lessons_used to_share } }'
+export const REFUND_PREVIEW = 'query($id:ID!){ edubridgeRefundPreview(enrollment_id:$id){ reason refund withheld minutes_paid minutes_used to_share } }'
 export const CANCEL_ENROLLMENT = `mutation($id:ID!){ edubridgeCancelEnrollment(enrollment_id:$id){ ${ENROLLMENT_FIELDS} } }`
 export const RETURN_BALANCE = 'query{ edubridgeReturnBalance{ available refunds total subscriptions } }'
 
@@ -568,7 +578,7 @@ export async function councilDeclinesRid(agenda: AgendaRow): Promise<void> {
 
 const DOC = 'full_title html hash meta binary'
 const SIGNED = 'version hash doc_hash meta_hash meta signatures{ id signer public_key signature signed_at signed_hash meta }'
-export const LESSON_FIELDS = 'id course_id course_title group_id group_title lesson_number teacher_username assignment_id status origin held_at ends_at report_until overdue reported_at duration_minutes lesson_minutes units materials topic contribution_id learners_count'
+export const LESSON_FIELDS = 'id course_id course_title group_id group_title lesson_number teacher_username assignment_id status origin held_at ends_at report_until overdue reported_at duration_minutes materials topic contribution_id learners_count'
 export const CONTRIBUTION_FIELDS = 'id teacher_username assignment_id rid_hash rid_type amount status description links hold_until storage_act_hash statement_hash act_hash council_decision_id council_outcome decision_hash decline_reason decided_at'
 export const REPORT_LESSON = `mutation($d:EduLessonReportInput!){ edubridgeReportLesson(data:$d){ ${LESSON_FIELDS} } }`
 export const MY_LESSONS = `query{ edubridgeMyLessons{ ${LESSON_FIELDS} } }`

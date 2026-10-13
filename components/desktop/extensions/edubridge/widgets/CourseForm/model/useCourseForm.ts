@@ -131,10 +131,9 @@ function useCover(course: CourseSource) {
 }
 
 /** Параметры занятий — числами в полях; ставка уходит asset-строкой «1000.0000 RUB». */
-function useEconomyFields(symbol: ComputedRef<string>) {
-  const lessonsPerMonth = ref('8');
-  const lessonsTotal = ref('8');
-  const lessonMinutes = ref('60');
+function useEconomyFields(symbol: ComputedRef<string>, form: CourseFormFields) {
+  /** Длительность программы, месяцев; ноль — программа без конца. */
+  const programMonths = ref('1');
   const plannedRate = ref('');
   /** Способ расчёта с преподавателем: за каждого участника либо фиксированный за занятие. */
   const payPerLearner = ref(true);
@@ -143,18 +142,16 @@ function useEconomyFields(symbol: ComputedRef<string>) {
   const courseDiscount = ref('0');
 
   const economyParams = computed(() => ({
-    lessons_per_month: Number(lessonsPerMonth.value || 0),
-    lessons_total: Number(lessonsTotal.value || 0),
-    lesson_minutes: Number(lessonMinutes.value || 0),
+    // Минуты занятий считает сервер из окон расписания; длительность программы — месяцами.
+    schedule_slots: (form.schedule_slots ?? []).map((s) => ({ weekday: Number(s.weekday), time: s.time, minutes: Number(s.minutes), assignment_id: s.assignment_id || null })),
+    program_months: Number(programMonths.value || 0),
     planned_hourly_rate: formatToAsset(String(plannedRate.value || '0').replace(',', '.'), symbol.value),
     course_payment_enabled: coursePayment.value,
     course_discount_percent: coursePayment.value ? Number(courseDiscount.value || 0) : 0,
   }));
 
   function fillEconomy(c: ICourse): void {
-    lessonsPerMonth.value = String(c.lessons_per_month);
-    lessonsTotal.value = String(c.lessons_total);
-    lessonMinutes.value = String(c.lesson_minutes);
+    programMonths.value = String(c.program_months ?? 0);
     plannedRate.value = c.planned_hourly_rate ? String(parseFloat(c.planned_hourly_rate)) : '';
     payPerLearner.value = Boolean(c.pay_per_learner);
     guaranteeDays.value = String(c.guarantee_days);
@@ -162,7 +159,7 @@ function useEconomyFields(symbol: ComputedRef<string>) {
     courseDiscount.value = String(c.course_discount_percent);
   }
 
-  return { lessonsPerMonth, lessonsTotal, lessonMinutes, plannedRate, payPerLearner, guaranteeDays, coursePayment, courseDiscount, economyParams, fillEconomy };
+  return { programMonths, plannedRate, payPerLearner, guaranteeDays, coursePayment, courseDiscount, economyParams, fillEconomy };
 }
 
 /**
@@ -474,7 +471,7 @@ export function createCourseFormState(course: CourseSource) {
   const error = ref('');
   const form = emptyForm();
   const cover = useCover(course);
-  const economy = useEconomyFields(symbol);
+  const economy = useEconomyFields(symbol, form);
   const feePreview = useFeePreview(economy);
   const access = useAccess(form);
   const teachers = useTeachers(form);
@@ -505,7 +502,6 @@ export function createCourseFormState(course: CourseSource) {
         guarantee_days: Number(economy.guaranteeDays.value || 0),
         // Поля чисел приходят строками из полей ввода.
         report_days: Number(form.report_days ?? 7),
-        schedule_slots: (form.schedule_slots ?? []).map((s) => ({ weekday: Number(s.weekday), time: s.time, minutes: Number(s.minutes), assignment_id: s.assignment_id || null })),
         ...economy.economyParams.value,
         pay_per_learner: economy.payPerLearner.value,
       };

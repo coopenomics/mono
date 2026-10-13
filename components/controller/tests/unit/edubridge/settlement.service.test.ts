@@ -12,10 +12,10 @@ const pendingSub = (id: string, groupId = 'G1') => ({ id, sub_hash: `h${id}`, gr
 
 function make(opts: { pending: any[]; lessonsTotal?: number; lessonsOpened?: number; openLesson?: number }) {
   const enrollments = { findSettlementPending: jest.fn(async () => opts.pending), save: jest.fn(async (e: any) => e) } as any;
-  const groups = { findById: jest.fn(async (_c: string, id: string) => ({ id, title: 'Группа 1', chain_ref: '1004', lessons_total: opts.lessonsTotal ?? 8 })) } as any;
+  const groups = { findById: jest.fn(async (_c: string, id: string) => ({ id, title: 'Группа 1', chain_ref: '1004', minutes_total: (opts.lessonsTotal ?? 8) * 60 })) } as any;
   const funds = { afterClosed: jest.fn(async () => undefined) } as any;
   const chain = {
-    readTerms: jest.fn(async () => ({ lessons_opened: opts.lessonsOpened ?? 0, open_lesson_id: opts.openLesson ?? 0 })),
+    readTerms: jest.fn(async () => ({ minutes_opened: (opts.lessonsOpened ?? 0) * 60, charging: opts.openLesson ? 1 : 0 })),
     expireSubscription: jest.fn(async () => ({ transaction_id: 'TRX' })),
   } as any;
   return { service: new EdubridgeSettlementService(enrollments, groups, funds, chain, logger), chain, funds, enrollments };

@@ -1,16 +1,20 @@
 /** Экономика курса: себестоимость из часов по ставке, наценка кооператива, взнос за весь курс разом со скидкой, план и факт. */
 import { EdubridgeEconomyService } from '~/extensions/edubridge/application/services/edubridge-economy.service';
-import { calculateCourseFee, courseMonths, feeForMonths, maxCourseDiscountPercent } from '~/extensions/edubridge/domain/economy/course-fee.calculator';
+import { calculateCourseFee, feeForMonths, maxCourseDiscountPercent } from '~/extensions/edubridge/domain/economy/course-fee.calculator';
 import { EduAssignmentStatus, EduContractStatus } from '~/extensions/edubridge/domain/enums';
 
 const COURSE_ID = '0cd16d12-6ade-40f2-8830-b0673dde8b9e';
 
-/** Курс: восемь занятий в месяц по часу, плановая ставка 1000 ₽/ч, взнос только помесячный. */
+/** Курс: два часовых окна в неделю (520 минут в месяц), программа восемь месяцев, плановая ставка 1000 ₽/ч, взнос только помесячный. */
 const COURSE = {
   id: COURSE_ID,
-  lessons_per_month: 8,
-  lessons_total: 64,
+  schedule_slots: [{ weekday: 2, time: '17:00', minutes: 60, assignment_id: null }, { weekday: 4, time: '17:00', minutes: 60, assignment_id: null }],
+  program_months: 8,
+  lessons_per_month: 9,
+  lessons_total: 72,
   lesson_minutes: 60,
+  minutes_per_month: 520,
+  minutes_total: 4160,
   planned_hourly_rate: '1000.0000 RUB',
   course_payment_enabled: false,
   course_discount_bp: 0,
@@ -63,15 +67,14 @@ function make(
 }
 
 const params = {
-  lessons_per_month: 8,
-  lessons_total: 64,
-  lesson_minutes: 60,
+  schedule_slots: [{ weekday: 2, time: '17:00', minutes: 60, assignment_id: null }, { weekday: 4, time: '17:00', minutes: 60, assignment_id: null }],
+  program_months: 8,
   planned_hourly_rate: '1000.0000 RUB',
   course_payment_enabled: true,
   course_discount_percent: 0,
 };
 
-const base = { lessons_per_month: 8, lessons_total: 64, lesson_hours: 1, hourly_rate: '1000.0000 RUB', markup_percent: 20, course_discount_percent: 0 };
+const base = { minutes_per_month: 480, program_months: 8, hourly_rate: '1000.0000 RUB', markup_percent: 20, course_discount_percent: 0 };
 
 describe('Расчёт взноса курса', () => {
   it('себестоимость — часы по ставке, взнос — с наценкой кооператива', () => {
@@ -82,18 +85,15 @@ describe('Расчёт взноса курса', () => {
     expect(calc.fee_month).toBe('9600.0000 RUB');
   });
 
-  it('занятие в полтора часа: часы считаются из минут', () => {
-    const calc = calculateCourseFee({ ...base, lessons_per_month: 4, lesson_hours: 90 / 60, markup_percent: 0 });
-    expect(calc.hours_per_month).toBe(6);
-    expect(calc.fee_month).toBe('6000.0000 RUB');
+  it('себестоимость считается ровно по минутам: 520 минут в месяц по 1000 — 8666,6667', () => {
+    const calc = calculateCourseFee({ ...base, minutes_per_month: 520, markup_percent: 0 });
+    expect(calc.hours_per_month).toBe(8.67);
+    expect(calc.fee_month).toBe('8666.6667 RUB');
   });
 
-  it('курс длится столько месяцев, сколько занимает программа; неполный месяц — месяц', () => {
-    expect(courseMonths(8, 64)).toBe(8);
-    expect(courseMonths(8, 72)).toBe(9);
-    expect(courseMonths(8, 65)).toBe(9);
-    expect(courseMonths(8, 0)).toBe(0);
-    expect(courseMonths(0, 64)).toBe(0);
+  it('длительность курса — месяцы программы, как их назвал администратор', () => {
+    expect(calculateCourseFee({ ...base, program_months: 9 }).course_months).toBe(9);
+    expect(calculateCourseFee({ ...base, program_months: 0 }).course_months).toBe(0);
   });
 
   it('взнос за весь курс — месячный за месяцы курса, а не за двенадцать', () => {
@@ -127,7 +127,7 @@ describe('Расчёт взноса курса', () => {
   });
 
   it('курс без конечной программы: взноса за курс нет', () => {
-    const calc = calculateCourseFee({ ...base, lessons_total: 0 });
+    const calc = calculateCourseFee({ ...base, program_months: 0 });
     expect(calc.course_months).toBe(0);
     expect(calc.fee_course).toBe('0.0000 RUB');
   });
@@ -168,7 +168,7 @@ describe('EdubridgeEconomyService', () => {
 
   it('взнос за курс без программы — отказ: считать его не от чего', async () => {
     const { service } = make({ markup: 20 });
-    await expect(service.feeForCourse({ ...params, lessons_total: 0 })).rejects.toThrow(/укажите, сколько в ней занятий/);
+    await expect(service.feeForCourse({ ...params, program_months: 0 })).rejects.toThrow(/укажите, сколько в ней занятий/);
   });
 
   it('ставку часа правит администратор — она пишется в договор преподавателя', async () => {

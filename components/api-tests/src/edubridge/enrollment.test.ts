@@ -161,7 +161,7 @@ describe('Образование: ученик — оферта, обучающ�
   it(caseName('edu.enroll.happy.06', 'отмена до начала занятий возвращает всю стоимость на кошелёк программы'), async () => {
     const shareBefore = await wallet(SHARE_WALLET)
     const preview = (await gql<any>(token, REFUND_PREVIEW, { id: first.id })).edubridgeRefundPreview
-    expect(preview).toMatchObject({ reason: 'before_start', lessons_used: 0, to_share: false })
+    expect(preview).toMatchObject({ reason: 'before_start', minutes_used: 0, to_share: false })
     expect(amount(preview.refund)).toBeCloseTo(fee, 4)
     expect(amount(preview.withheld)).toBe(0)
 
@@ -221,8 +221,8 @@ describe('Образование: ученик — оферта, обучающ�
     // Ученик вписался в идущий курс сегодня: оплаченные занятия ещё не начались,
     // остаточная стоимость равна всему взносу, возвращается её половина.
     const preview = (await gql<any>(token, REFUND_PREVIEW, { id: running.id })).edubridgeRefundPreview
-    expect(preview).toMatchObject({ reason: 'refusal', lessons_used: 0, to_share: false })
-    expect(preview.lessons_paid).toBe(courseRunning.lessons_per_month)
+    expect(preview).toMatchObject({ reason: 'refusal', minutes_used: 0, to_share: false })
+    expect(preview.minutes_paid).toBe(courseRunning.minutes_per_month)
     expect(amount(preview.refund)).toBeCloseTo(fee / 2, 4)
     expect(amount(preview.withheld)).toBeCloseTo(fee / 2, 4)
 

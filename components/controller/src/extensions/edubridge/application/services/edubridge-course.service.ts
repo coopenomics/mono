@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PaginationInputDTO, type PaginationResult, DomainError } from '@coopenomics/extension-kit';
 import { CARRIERS_BY_DIRECTION, EduAccessCarrier, EduCourseStatus, EduLessonStatus, PLATFORM_CARRIERS } from '../../domain/enums';
-import { formatSlots, normalizeSlots } from '../../domain/lib/schedule';
+import { formatSlots, normalizeSlots, programOf } from '../../domain/lib/schedule';
 import type { EdubridgeCourseRecord } from '../../infrastructure/entities';
 import type { EduCourseImage } from '../../infrastructure/entities/edubridge-course.record';
 import { EdubridgeCourseKyselyRepository, type EduCourseFilter } from '../../infrastructure/repositories/edubridge-course.kysely-repository';
@@ -33,9 +33,8 @@ const DEFAULT_GUARANTEE_DAYS = 14;
 /** Параметры расчёта взноса из формы курса. */
 function economyParams(input: EduCourseInputDTO): EduCourseEconomyInputDTO {
   return {
-    lessons_per_month: input.lessons_per_month,
-    lessons_total: input.lessons_total,
-    lesson_minutes: input.lesson_minutes,
+    schedule_slots: input.schedule_slots ?? [],
+    program_months: input.program_months ?? 0,
     planned_hourly_rate: input.planned_hourly_rate,
     course_payment_enabled: input.course_payment_enabled ?? false,
     course_discount_percent: input.course_discount_percent ?? 0,
@@ -299,10 +298,12 @@ export class EdubridgeCourseService {
 
 /** Экономика курса: расписание, ставка, гарантия и посчитанные взносы. */
 function economyFields(input: EduCourseInputDTO, fee: { fee_month: string }): Partial<EdubridgeCourseRecord> {
+  const slots = normalizeSlots(input.schedule_slots);
+  // Расписание обязательно: из окон считаются минуты занятий, по ним — взнос.
+  if (!slots.length) throw DomainError.badRequest('EDUBRIDGE_SCHEDULE_REQUIRED');
   return {
-    lessons_per_month: input.lessons_per_month,
-    lessons_total: input.lessons_total,
-    lesson_minutes: input.lesson_minutes,
+    ...programOf(slots, input.program_months ?? 0),
+    program_months: Math.max(0, Math.floor(input.program_months ?? 0)),
     planned_hourly_rate: input.planned_hourly_rate,
     pay_per_learner: input.pay_per_learner ?? true,
     starts_at: input.starts_at || null,

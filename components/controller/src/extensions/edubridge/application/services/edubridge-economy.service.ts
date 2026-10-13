@@ -12,6 +12,7 @@ import {
   type InnerLedger2Operation,
 } from '@coopenomics/innercoop';
 import { EDUBRIDGE_EXTENSION_NAME } from '../../constants/edubridge.constants';
+import { normalizeSlots, programOf } from '../../domain/lib/schedule';
 import { EduAssignmentStatus, EduEnrollmentStatus, EduGroupStatus, EduLessonStatus, EduSettlementEntryKind, EduSettlementEntryStatus } from '../../domain/enums';
 import type { EduSettlementEntryDTO } from '../dto/edu-teacher.dto';
 import { calculateCourseFee, costOfHours, maxCourseDiscountPercent, type CourseFeeCalculation } from '../../domain/economy/course-fee.calculator';
@@ -345,9 +346,8 @@ export class EdubridgeEconomyService {
   /** Параметры курса в виде, понятном расчёту. */
   paramsOf(course: EdubridgeCourseRecord): EduCourseEconomyInputDTO {
     return {
-      lessons_per_month: course.lessons_per_month,
-      lessons_total: course.lessons_total,
-      lesson_minutes: course.lesson_minutes,
+      schedule_slots: course.schedule_slots ?? [],
+      program_months: course.program_months ?? 0,
       planned_hourly_rate: course.planned_hourly_rate,
       course_payment_enabled: course.course_payment_enabled,
       course_discount_percent: course.course_discount_bp / BP_IN_PERCENT,
@@ -355,12 +355,12 @@ export class EdubridgeEconomyService {
   }
 
   private calculate(input: EduCourseEconomyInputDTO, markupPercent: number): CourseFeeCalculation {
+    const program = programOf(normalizeSlots(input.schedule_slots), input.program_months);
     return calculateCourseFee({
-      lessons_per_month: input.lessons_per_month,
-      lesson_hours: input.lesson_minutes / MINUTES_IN_HOUR,
+      minutes_per_month: program.minutes_per_month,
       hourly_rate: input.planned_hourly_rate,
       markup_percent: markupPercent,
-      lessons_total: input.lessons_total,
+      program_months: program.minutes_per_month > 0 ? Math.max(0, Math.floor(input.program_months || 0)) : 0,
       // Скидка действует, только когда кооператив принимает взнос разом.
       course_discount_percent: input.course_payment_enabled ? (input.course_discount_percent ?? 0) : 0,
     });

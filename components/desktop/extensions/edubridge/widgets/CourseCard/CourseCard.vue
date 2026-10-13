@@ -44,7 +44,7 @@ const props = defineProps<{ course: ICatalogCourse }>();
 const emit = defineEmits<{ open: [] }>();
 
 /** Длительность программы — тем же расчётом, что в форме и на странице курса. */
-const months = computed(() => programSpanLabel(props.course.lessons_per_month, props.course.lessons_total));
+const months = computed(() => programSpanLabel(props.course.program_months));
 /** Программа на один месяц: взнос за месяц и есть взнос за курс. */
 const singleMonth = computed(() => Number(props.course.course_months) === 1);
 /** Полный взнос за весь курс: разом со скидкой, а когда разом не принимается — сумма помесячных. */

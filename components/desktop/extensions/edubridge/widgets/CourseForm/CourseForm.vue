@@ -19,7 +19,7 @@ BaseForm.edu-course-form(ref="formEl" :loading="loading" :error="error" @submit=
     .edu-course-form__group
       .edu-course-form__group-title {{ $t('edubridge.courseForm.scheduleLabel') }}
         FieldHelp.q-ml-xs(:text="COURSE_FORM_HELP.schedule")
-      ScheduleSlotsEditor(v-model="form.schedule_slots" :default-minutes="Number(lessonMinutes || 60)")
+      ScheduleSlotsEditor(v-model="form.schedule_slots" :default-minutes="Number(form.schedule_slots[0]?.minutes || 60)")
       BaseInput.q-mt-sm(v-if="!form.schedule_slots.length" v-model="form.schedule" :label="$t('edubridge.courseForm.scheduleTextLabel')" :placeholder="$t('edubridge.courseForm.schedulePlaceholder')")
     BaseInput(v-model="form.description" :label="$t('edubridge.courseForm.descriptionLabel')" type="textarea" :rows="3" autogrow)
       template(#append)
@@ -57,21 +57,14 @@ BaseForm.edu-course-form(ref="formEl" :loading="loading" :error="error" @submit=
       | {{ $t('edubridge.courseForm.termsLockedBanner') }}
     .edu-course-form__group
       .edu-course-form__group-title {{ $t('edubridge.courseForm.group.lessons') }}
+      //- Минуты занятий считаются из окон расписания; администратор называет только длительность программы.
       .edu-course-form__pair
-        BaseInput(v-model="lessonsPerMonth" :label="$t('edubridge.courseForm.lessonsPerMonthLabel')" type="number" required)
-          template(#append)
-            FieldHelp(:text="COURSE_FORM_HELP.lessonsPerMonth")
-        BaseInput(v-model="lessonMinutes" :label="$t('edubridge.courseForm.lessonMinutesLabel')" type="number" required)
-          template(#append)
-            FieldHelp(:text="COURSE_FORM_HELP.lessonMinutes")
-      //- Длительность программы стоит рядом с числом занятий и считается сама: занятия программы, делённые на занятия в месяц.
-      .edu-course-form__pair
-        BaseInput(v-model="lessonsTotal" :label="$t('edubridge.courseForm.lessonsTotalLabel')" type="number" required)
-          template(#append)
-            FieldHelp(:text="COURSE_FORM_HELP.lessonsTotal")
-        BaseInput(:model-value="programMonths" :label="$t('edubridge.courseForm.programMonthsLabel')" readonly)
+        BaseInput(v-model="programMonths" :label="$t('edubridge.courseForm.programMonthsLabel')" type="number" min="0" required)
           template(#append)
             FieldHelp(:text="COURSE_FORM_HELP.programMonths")
+        BaseInput(:model-value="monthlyLoad" :label="$t('edubridge.courseForm.monthlyLoadLabel')" readonly)
+          template(#append)
+            FieldHelp(:text="COURSE_FORM_HELP.monthlyLoad")
 
       //- Срок на отчёт преподавателя: после него занятие в календаре помечено просроченным, отчёт принимает только администратор.
       .edu-course-form__pair
@@ -251,7 +244,6 @@ import { ScheduleSlotsEditor } from '../ScheduleSlotsEditor';
 import { COURSE_IMAGE_ACCEPT, type ICourse } from '../../entities/Course';
 import { createCourseFormState, injectCourseForm, type CourseFormSection } from './model/useCourseForm';
 import { COURSE_FORM_HELP } from './model/courseFormHelp';
-import { programSpanLabel } from '../../shared/lib/courseMonths';
 import { minutesOf, useTimeScale } from '../../shared/lib/timeScale';
 
 /**
@@ -279,9 +271,7 @@ const {
   pickImage,
   onFilePicked,
   removeImage,
-  lessonsPerMonth,
-  lessonsTotal,
-  lessonMinutes,
+  programMonths,
   plannedRate,
   payPerLearner,
   termsLocked,
@@ -317,18 +307,14 @@ const {
 } = state;
 
 /** Программа длиннее одного месяца: только у такой взнос за весь курс отличается от помесячного. */
-const programIsLong = computed(() => {
-  const perMonth = Number(lessonsPerMonth.value || 0);
-  const total = Number(lessonsTotal.value || 0);
-  return perMonth > 0 && total > perMonth;
-});
+const programIsLong = computed(() => Number(programMonths.value || 0) > 1);
 // Программа сокращена до месяца — взнос за весь курс больше не принимается.
 watch(programIsLong, (long) => {
   if (!long) coursePayment.value = false;
 });
 
-/** Длительность программы — показ рядом с числом занятий; расчёт общий со страницей курса. */
-const programMonths = computed(() => programSpanLabel(lessonsPerMonth.value, lessonsTotal.value) || '______');
+/** Нагрузка в месяц из окон расписания — считает сервер вместе со взносом; до ответа — прочерк. */
+const monthlyLoad = computed(() => (fee.value ? t('edubridge.courseForm.monthlyLoadValue', { hours: fee.value.hours_per_month }) : '______'));
 
 
 /** Раздел «Первая группа» — только по своему шагу мастера нового курса: у существующего курса группы ведутся отдельно. */

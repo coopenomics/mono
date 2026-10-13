@@ -57,8 +57,8 @@ const rawRefundPreviewSelector = {
   reason: true,
   refund: true,
   withheld: true,
-  lessons_paid: true,
-  lessons_used: true,
+  minutes_paid: true,
+  minutes_used: true,
   to_share: true,
 }
 const _validateRefundPreview: MakeAllFieldsRequired<ValueTypes['EduRefundPreview']> = rawRefundPreviewSelector

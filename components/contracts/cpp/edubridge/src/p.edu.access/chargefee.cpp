@@ -59,7 +59,7 @@ void edubridge::chargefee(eosio::name coopname,
                  quote.amount, username, sub_hash,
                  Edubridge::Memo::get_collect_fee_memo());
 
-  const bool first = sub->plan.value().lessons_paid == 0;
+  const bool first = sub->plan.value().minutes_paid == 0;
   const bool guarantee = Edubridge::is_guarantee_running(terms, now);
 
   if (guarantee) {
@@ -89,7 +89,7 @@ void edubridge::chargefee(eosio::name coopname,
 
     auto& plan = s.plan.value();
     if (first) plan.paid_from = quote.paid_from;
-    plan.lessons_paid += quote.lessons;
+    plan.minutes_paid += quote.minutes;
     plan.reserve      += quote.teach;
 
     s.period         = period;

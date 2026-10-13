@@ -34,9 +34,9 @@ export interface RefundChainState {
   /** Собрано по подписке («9600.0000 RUB»). */
   charged: string;
   /** Занятий оплачено. */
-  lessons_paid: number;
+  minutes_paid: number;
   /** Занятий, по которым прошёл расчёт. */
-  lessons_done: number;
+  minutes_done: number;
 }
 
 export interface RefundParams {
@@ -57,16 +57,16 @@ export interface RefundCalculation {
   /** Сколько остаётся на кошельке программы. */
   withheld: string;
   /** Занятий оплачено. */
-  lessons_paid: number;
+  minutes_paid: number;
   /** Занятий проведено к моменту отмены. */
-  lessons_used: number;
+  minutes_used: number;
   /** Возврат идёт сразу на паевой (отмена решения кооператива). */
   to_share: boolean;
 }
 
 export function calculateRefund(params: RefundParams): RefundCalculation {
   const { amount: charged, symbol } = parseAmount(params.chain.charged);
-  const base = { lessons_paid: params.chain.lessons_paid, lessons_used: params.chain.lessons_done };
+  const base = { minutes_paid: params.chain.minutes_paid, minutes_used: params.chain.minutes_done };
   const whole = (reason: RefundReason, toShare: boolean): RefundCalculation => ({
     reason,
     refund: formatAmount(charged, symbol),
@@ -79,7 +79,7 @@ export function calculateRefund(params: RefundParams): RefundCalculation {
   if (!params.starts_at || params.now < params.starts_at) return whole(RefundReason.BEFORE_START, false);
 
   // Половина остаточной стоимости — то же деление нацело, что в контракте.
-  const { lessons_paid: paid, lessons_done: done } = params.chain;
+  const { minutes_paid: paid, minutes_done: done } = params.chain;
   const residual = paid > 0 && done < paid ? Math.floor((charged * (paid - done)) / paid) : 0;
   const refund = Math.floor(residual / 2);
   return {

@@ -7,7 +7,7 @@ import { EdubridgeEnrollmentService } from '~/extensions/edubridge/application/s
 import { EduEnrollmentStatus } from '~/extensions/edubridge/domain/enums';
 
 const logger = { setContext: jest.fn(), info: jest.fn(), warn: jest.fn(), error: jest.fn() } as any;
-const course = { id: 'C1', title: 'Алгебра', lessons_per_month: 8, lessons_total: 64, starts_at: null } as any;
+const course = { id: 'C1', title: 'Алгебра', program_months: 8, minutes_per_month: 480, starts_at: null } as any;
 
 function enrollment(over: Record<string, unknown> = {}) {
   return {

@@ -13,7 +13,7 @@ import {
   type IUserWalletPort,
 } from '@coopenomics/innercoop';
 import { EduAccessState, EduCourseStatus, EduEnrollmentPeriod, EduEnrollmentStatus, EduGroupStatus } from '../../domain/enums';
-import { courseMonths, feeForLessons, feeForMonths } from '../../domain/economy/course-fee.calculator';
+import { feeForMinutes, feeForMonths } from '../../domain/economy/course-fee.calculator';
 import { monthPeriod, remainingCoursePeriod } from '../../domain/economy/course-period.calculator';
 import { isResumable } from '../../domain/lib/resumable';
 import { trxIdOf } from '../../domain/lib/trx-id';
@@ -205,12 +205,12 @@ export class EdubridgeEnrollmentService {
    * конца программы со скидкой курса: пришедший в середине вносит за остаток.
    * Показ до транзакции: срок и сумму считает контракт тем же порядком.
    */
-  private termsOf(course: EdubridgeCourseRecord, period: EduEnrollmentPeriod, from: Date, lessonsOpened: number): PeriodTerms {
-    if (period === EduEnrollmentPeriod.MONTH) return monthTerms(course, from, lessonsOpened);
+  private termsOf(course: EdubridgeCourseRecord, period: EduEnrollmentPeriod, from: Date, minutesOpened: number): PeriodTerms {
+    if (period === EduEnrollmentPeriod.MONTH) return monthTerms(course, from, minutesOpened);
     if (period !== EduEnrollmentPeriod.COURSE) {
       throw DomainError.badRequest('EDUBRIDGE_ENROLLMENT_YEAR_PERIOD_DISABLED');
     }
-    const total = courseMonths(course.lessons_per_month, course.lessons_total);
+    const total = Number(course.program_months || 0);
     if (!course.course_payment_enabled || total === 0) {
       throw DomainError.badRequest('EDUBRIDGE_ENROLLMENT_COURSE_PAYMENT_DISABLED');
     }
@@ -335,10 +335,10 @@ export class EdubridgeEnrollmentService {
     return { saved: await this.enrollments.save(entity), opened };
   }
 
-  /** Сколько занятий группы уже отчитано в цепи: от него считается остаток программы для неполного месяца. */
+  /** Сколько минут занятий группы уже отчитано в цепи: от них считается остаток программы для неполного месяца. */
   private async lessonsOpened(coopname: string, course: EdubridgeCourseRecord): Promise<number> {
     try {
-      return Number((await this.chain.readTerms(coopname, course.chain_ref))?.lessons_opened ?? 0);
+      return Number((await this.chain.readTerms(coopname, course.chain_ref))?.minutes_opened ?? 0);
     } catch {
       // Условия группы не прочитались — показ считает месяц полным, сумму проверит контракт.
       return 0;
@@ -745,12 +745,12 @@ function paidFrom(existing: EdubridgeEnrollmentRecord | null): Date {
  * контракт. Неполный последний месяц оплачивается по остатку: за занятия,
  * которые в группе ещё впереди.
  */
-function monthTerms(course: EdubridgeCourseRecord, from: Date, lessonsOpened: number): PeriodTerms {
-  const month = monthPeriod(course.starts_at ? new Date(course.starts_at) : null, courseMonths(course.lessons_per_month, course.lessons_total), from);
+function monthTerms(course: EdubridgeCourseRecord, from: Date, minutesOpened: number): PeriodTerms {
+  const month = monthPeriod(course.starts_at ? new Date(course.starts_at) : null, Number(course.program_months || 0), from);
   if (!month) throw DomainError.badRequest('EDUBRIDGE_ENROLLMENT_COURSE_FULLY_PAID');
-  const ahead = Math.max(0, course.lessons_total - lessonsOpened);
+  const ahead = Math.max(0, Number(course.minutes_total || 0) - minutesOpened);
   if (month.partial && ahead === 0) throw DomainError.badRequest('EDUBRIDGE_ENROLLMENT_COURSE_FULLY_PAID');
-  const byRemainder = month.partial && ahead < course.lessons_per_month;
-  const fee = byRemainder ? feeForLessons(course.fee_month, ahead, course.lessons_per_month) : feeForMonths(course.fee_month, 1, 0);
+  const byRemainder = month.partial && ahead < Number(course.minutes_per_month || 0);
+  const fee = byRemainder ? feeForMinutes(course.fee_month, ahead, Number(course.minutes_per_month || 0)) : feeForMonths(course.fee_month, 1, 0);
   return { months: 1, paidUntil: month.paid_until, baseAmount: fee.base, discountAmount: fee.discount, amount: fee.amount };
 }

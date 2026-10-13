@@ -123,9 +123,9 @@ async function phase02(): Promise<void> {
     description: COURSE_DESCRIPTION,
     syllabus: COURSE_SYLLABUS,
     schedule: COURSE_SCHEDULE,
-    lessons_per_month: 8,
-    lessons_total: 32,
-    lesson_minutes: 90,
+    // Два окна по полтора часа в неделю, программа четыре месяца.
+    schedule_slots: [{ weekday: 2, time: '18:00', minutes: 90 }, { weekday: 4, time: '18:00', minutes: 90 }],
+    program_months: 4,
     planned_hourly_rate: PLANNED_RATE,
     guarantee_days: 14,
     course_payment_enabled: true,

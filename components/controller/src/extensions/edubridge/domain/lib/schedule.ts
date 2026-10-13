@@ -141,8 +141,37 @@ export function slotOccurrences(slots: readonly EduScheduleSlot[], startsAt: Dat
   return out;
 }
 
-/** Сколько занятий программы занимает занятие такой длительности: неполное — за целое. */
-export function unitsOf(minutes: number, lessonMinutes: number): number {
-  if (!(lessonMinutes > 0)) return 1;
-  return Math.max(1, Math.ceil(minutes / lessonMinutes));
+/** Недель в месяце для перевода недельного расписания в месячное: 52 недели на 12 месяцев. */
+export const WEEKS_PER_MONTH = 52 / 12;
+
+/** Минут занятий в неделю по окнам расписания. */
+export function weeklyMinutes(slots: readonly Pick<EduScheduleSlot, 'minutes'>[]): number {
+  return slots.reduce((sum, s) => sum + Number(s.minutes || 0), 0);
+}
+
+/** Числа программы из окон расписания и длительности в месяцах; учёт — в минутах, занятия — для показа. */
+export interface ProgramNumbers {
+  /** Минут занятий в месяц: минуты недели на 52/12. */
+  minutes_per_month: number;
+  /** Минут занятий в программе; 0 — программа без конца. */
+  minutes_total: number;
+  /** Занятий в месяц для показа. */
+  lessons_per_month: number;
+  /** Занятий в программе для показа; 0 — программа без конца. */
+  lessons_total: number;
+  /** Длительность занятия по первому окну — длительность по умолчанию для занятия сверх расписания. */
+  lesson_minutes: number;
+}
+
+export function programOf(slots: readonly Pick<EduScheduleSlot, 'minutes'>[], programMonths: number): ProgramNumbers {
+  const months = Math.max(0, Math.floor(Number(programMonths || 0)));
+  const minutesPerMonth = Math.round(weeklyMinutes(slots) * WEEKS_PER_MONTH);
+  const lessonsPerMonth = Math.round(slots.length * WEEKS_PER_MONTH);
+  return {
+    minutes_per_month: minutesPerMonth,
+    minutes_total: minutesPerMonth * months,
+    lessons_per_month: lessonsPerMonth,
+    lessons_total: lessonsPerMonth * months,
+    lesson_minutes: Number(slots[0]?.minutes ?? 60),
+  };
 }

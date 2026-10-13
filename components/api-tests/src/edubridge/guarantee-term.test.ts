@@ -124,7 +124,7 @@ describe.runIf(SHORT_DAYS)('Образование: конец гарантий�
     expect((await contributions()).length, 'взносов и документов с суммой нет').toBe(before)
     // Занятия проведены всем троим: по каждой подписке два из восьми.
     for (const e of [stays, granted, declined])
-      expect((await gql<any>(token, REFUND_PREVIEW, { id: e.id })).edubridgeRefundPreview.lessons_used).toBe(2)
+      expect((await gql<any>(token, REFUND_PREVIEW, { id: e.id })).edubridgeRefundPreview.minutes_used).toBe(120)
   })
 
   it(caseName('edu.enroll.side.29', 'заявление по гарантии удовлетворено: весь взнос возвращён, хотя занятия уже проведены'), async () => {
@@ -184,6 +184,6 @@ describe.runIf(SHORT_DAYS)('Образование: конец гарантий�
     expect(r.contribution).toMatchObject({ status: 'DRAFT' })
     // Ученик, которому совет отказал, продолжает учиться: его взнос разморожен и участвует в расчёте.
     expect(amount(r.contribution.amount)).toBe(LESSON * 2)
-    expect((await gql<any>(token, REFUND_PREVIEW, { id: declined.id })).edubridgeRefundPreview.lessons_used).toBe(3)
+    expect((await gql<any>(token, REFUND_PREVIEW, { id: declined.id })).edubridgeRefundPreview.minutes_used).toBe(180)
   }, 300_000)
 })

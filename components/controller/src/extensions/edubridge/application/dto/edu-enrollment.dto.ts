@@ -168,11 +168,11 @@ export class EduRefundPreviewDTO {
   @Field(() => String, { description: 'Сколько остаётся в фонде программы' })
   withheld!: string;
 
-  @Field(() => Int, { description: 'Занятий оплачено периодом' })
-  lessons_paid!: number;
+  @Field(() => Int, { description: 'Минут занятий оплачено периодом' })
+  minutes_paid!: number;
 
-  @Field(() => Int, { description: 'Занятий прошло к моменту отмены' })
-  lessons_used!: number;
+  @Field(() => Int, { description: 'Минут занятий прошло к моменту отмены' })
+  minutes_used!: number;
 
   @Field(() => Boolean, { description: 'Возврат идёт сразу на паевой' })
   to_share!: boolean;

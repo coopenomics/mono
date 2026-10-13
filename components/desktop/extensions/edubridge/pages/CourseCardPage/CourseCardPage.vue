@@ -35,8 +35,8 @@
         FeeAmount(:value="course.fee_month" size="lg")
       StatTile(v-if="Number(course.course_months) > 1 && (course.fee_course || course.fee_course_base)" :caption="course.fee_course ? $t('edubridge.course.feeCourseCaption') : $t('edubridge.course.feeCourseTotalCaption')")
         FeeAmount(:value="course.fee_course ?? course.fee_course_base ?? ''" size="lg")
-      StatTile(:value="course.lessons_per_month" :caption="$t('edubridge.course.lessonsPerMonthCaption', { minutes: course.lesson_minutes }, Number(course.lessons_per_month))")
-      StatTile(:value="course.lessons_total" :caption="$t('edubridge.course.lessonsTotalCaption', Number(course.lessons_total))")
+      StatTile(:value="hoursPerMonth" :caption="$t('edubridge.course.hoursPerMonthCaption', { lessons: course.lessons_per_month, minutes: course.lesson_minutes })")
+      StatTile(v-if="Number(course.program_months) > 0" :value="course.program_months" :caption="$t('edubridge.course.programMonthsCaption', Number(course.program_months))")
 
     .row.q-col-gutter-md
       .col-12(:class="hasSide ? 'col-md-8' : ''")
@@ -139,7 +139,7 @@ const paidUntil = computed(() => {
   const dates = ownEnrollments.value.map((e) => (e.paid_until ? new Date(String(e.paid_until)).getTime() : 0)).filter(Boolean);
   return dates.length ? new Date(Math.max(...dates)) : null;
 });
-const programSpan = computed(() => programSpanLabel(course.value?.lessons_per_month, course.value?.lessons_total));
+const programSpan = computed(() => programSpanLabel(course.value?.program_months));
 /** Правая колонка нужна, когда есть кого назвать. */
 const hasSide = computed(() => Boolean(course.value?.teacher_usernames.length));
 const left = computed(() => daysLeft(paidUntil.value));
@@ -157,6 +157,8 @@ const enrollmentClosed = ref(false);
 /** Свои подписки читает только участник, подписавший оферту ученика. */
 const canSeeGuarantee = computed(() => session.isAuth && desktopStore.hasGrant('edubridge-member', 'EduEnrollment:read:own'));
 const { fioCache, enrichFio } = useFioCache();
+/** Часов занятий в месяц — из минут по окнам расписания. */
+const hoursPerMonth = computed(() => (Number(course.value?.minutes_per_month || 0) / 60).toLocaleString('ru-RU', { maximumFractionDigits: 1 }));
 const formatDate = (v: unknown) => (v ? new Date(String(v)).toLocaleDateString('ru-RU') : '______');
 
 // Преподаватель посетителю — по имени: учётное имя ничего ему не говорит.

@@ -182,7 +182,7 @@ describe('Образование: преподаватель — профиль,
     const assignment = (await gql<any>(chairman, CREATE_ASSIGNMENT, { d })).edubridgeCreateAssignment
     expect(assignment).toMatchObject({ teacher_username: teacher.account, course_id: course.id, course_title: course.title, status: 'ACTIVE' })
     // Нагрузка по умолчанию — всё расписание курса.
-    expect(assignment.minutes_per_month).toBe(course.lessons_per_month * 60)
+    expect(assignment.minutes_per_month).toBe(course.minutes_per_month)
 
     const mine = await assignmentsOf()
     expect(mine.map(a => a.id)).toEqual([assignment.id])

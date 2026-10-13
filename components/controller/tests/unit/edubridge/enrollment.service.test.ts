@@ -15,10 +15,13 @@ const course = {
   // Взнос за весь курс разом принимается, скидка 10%: программа 64 занятия по 8 в месяц — восемь месяцев.
   course_payment_enabled: true,
   course_discount_bp: 1000,
+  program_months: 8,
+  minutes_per_month: 480,
+  minutes_total: 3840,
   lessons_per_month: 8,
   lessons_total: 64,
   lesson_minutes: 60,
-  // Себестоимость месяца — 8 часов по 100: из взноса 1000 в резерв выплат преподавателям уходит 800.
+  // Себестоимость месяца — 480 минут по 100 в час: из взноса 1000 в резерв выплат преподавателям уходит 800.
   planned_hourly_rate: '100.0000 RUB',
   starts_at: null,
 } as any;
@@ -51,7 +54,7 @@ function make(opts: { existing?: any; available?: string; program?: string; cour
     cancelSubscription: jest.fn(async () => ({ transaction_id: 'TRX2' })),
     // Строка подписки в цепи: суммы и срок после взноса приложение читает отсюда.
     // Условия группы в цепи: сколько её занятий уже отчитано.
-    readTerms: jest.fn(async () => ({ lessons_opened: opts.lessonsOpened ?? 0 })),
+    readTerms: jest.fn(async () => ({ minutes_opened: (opts.lessonsOpened ?? 0) * 60 })),
     readSubscription: jest.fn(async () => opts.lostSub ?? (paid ? opts.chainSub ?? null : null)),
   } as any;
   const documents = { generate: jest.fn(async () => ({ hash: 'ABC', html: '', full_title: '', binary: '', meta: {} })) } as any;
@@ -174,7 +177,7 @@ describe('EdubridgeEnrollmentService', () => {
   });
 
   it('курс без конечной программы — взнос за курс отклоняется', async () => {
-    const { service } = make({ course: { ...course, lessons_total: 0 } });
+    const { service } = make({ course: { ...course, program_months: 0, minutes_total: 0 } });
     await expect(service.quote('voskhod', 'ant', 'L1', 'C1', EduEnrollmentPeriod.COURSE)).rejects.toThrow(/доступен помесячный взнос/);
   });
 
@@ -298,7 +301,7 @@ describe('EdubridgeEnrollmentService — удержание взноса', () =>
 
   it('неполный последний месяц программы оплачивается по остатку занятий; полный — целиком', async () => {
     // Программа в один месяц (8 занятий) началась 20 дней назад: до её конца меньше месяца.
-    const started = { ...course, lessons_total: 8, starts_at: new Date(Date.now() - 20 * 86400_000).toISOString() };
+    const started = { ...course, program_months: 1, minutes_total: 480, starts_at: new Date(Date.now() - 20 * 86400_000).toISOString() };
     const partial = await make({ course: started, lessonsOpened: 5 }).service.quote('voskhod', 'ant', 'L1', 'C1', EduEnrollmentPeriod.MONTH);
     // Впереди три занятия из восьми: взнос — три восьмых месячного.
     expect(partial.amount).toBe('375.0000 RUB');
@@ -406,7 +409,7 @@ describe('EdubridgeEnrollmentService — отмена подписки', () => {
   };
 
   /** Строка подписки в цепи: взнос собран, занятий не проводилось. */
-  const onChain = (charged: string) => ({ charged, locked: charged, plan: { version: 1, lessons_paid: 8, lessons_done: 0 } });
+  const onChain = (charged: string) => ({ charged, locked: charged, plan: { version: 1, minutes_paid: 480, minutes_done: 0 } });
 
   it('до активации курса подписка отменяется с полным возвратом на кошелёк программы', async () => {
     const { service, chain } = make({ existing: { ...paid }, chainSub: onChain('9600.0000 RUB') });

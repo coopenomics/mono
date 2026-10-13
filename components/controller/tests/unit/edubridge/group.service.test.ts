@@ -15,6 +15,9 @@ const course = {
   lessons_per_month: 8,
   lessons_total: 64,
   lesson_minutes: 60,
+  program_months: 8,
+  minutes_per_month: 480,
+  minutes_total: 3840,
   planned_hourly_rate: '300.0000 RUB',
   pay_per_learner: true,
   guarantee_days: 14,
@@ -62,6 +65,9 @@ const group = (extra: Record<string, unknown> = {}) => ({
   lessons_per_month: 8,
   lessons_total: 64,
   lesson_minutes: 60,
+  program_months: 8,
+  minutes_per_month: 480,
+  minutes_total: 3840,
   planned_hourly_rate: '300.0000 RUB',
   pay_per_learner: true,
   guarantee_days: 14,
@@ -217,14 +223,14 @@ describe('EdubridgeGroupService — группа как единица расч�
 
   it('подписку можно продлить у программы длиннее месяца, пока она идёт после оплаченного срока; программу в один месяц и оплаченную до конца — нельзя', async () => {
     // 16 занятий по 8 в месяц — программа в два месяца: с 01.09.2099 по 01.11.2099.
-    const { service } = make({ groups: [group({ lessons_total: 16 })] });
+    const { service } = make({ groups: [group({ program_months: 2 })] });
     const sub = (paid: string | null, groupId: string | null = 'G1') => ({ coopname: 'voskhod', group_id: groupId, paid_until: paid ? new Date(paid) : null }) as any;
     await expect(service.isRenewable(sub('2099-10-01'))).resolves.toBe(true);
     await expect(service.isRenewable(sub('2099-11-01'))).resolves.toBe(false);
     // Программа в один месяц оплачивается одним взносом: продления нет, даже когда оплаченный срок кончается раньше программы.
-    await expect(make({ groups: [group({ lessons_total: 8 })] }).service.isRenewable(sub('2099-09-20'))).resolves.toBe(false);
+    await expect(make({ groups: [group({ program_months: 1 })] }).service.isRenewable(sub('2099-09-20'))).resolves.toBe(false);
     // Программа без конца продлевается всегда; завершённая группа — никогда.
-    await expect(make({ groups: [group({ lessons_total: 0 })] }).service.isRenewable(sub('2199-01-01'))).resolves.toBe(true);
+    await expect(make({ groups: [group({ program_months: 0 })] }).service.isRenewable(sub('2199-01-01'))).resolves.toBe(true);
     await expect(make({ groups: [group({ status: EduGroupStatus.CLOSED })] }).service.isRenewable(sub('2099-09-20'))).resolves.toBe(false);
     await expect(service.isRenewable(sub('2099-09-20', null))).resolves.toBe(true);
   });
@@ -237,7 +243,7 @@ describe('EdubridgeGroupService — группа как единица расч�
     const busy = make({ groups: [group({ starts_at: '2025-01-10' })], enrollments: [{ status: EduEnrollmentStatus.ACTIVE }] });
     await expect(busy.service.list('voskhod', 'C1')).resolves.toEqual([expect.objectContaining({ status: EduGroupStatus.ACTIVE, enrollment_open: false })]);
     // Срок программы ещё идёт, и группа без конечной программы не заканчивается.
-    const running = make({ groups: [group({ starts_at: '2026-09-01' }), group({ id: 'G2', starts_at: '2020-01-10', lessons_total: 0 })] });
+    const running = make({ groups: [group({ starts_at: '2026-09-01' }), group({ id: 'G2', starts_at: '2020-01-10', program_months: 0 })] });
     await expect(running.service.list('voskhod', 'C1')).resolves.toEqual([expect.objectContaining({ status: EduGroupStatus.ACTIVE }), expect.objectContaining({ status: EduGroupStatus.ACTIVE })]);
   });
 });
@@ -249,9 +255,9 @@ describe('условия для цепи', () => {
   });
 
   it('целевой членский взнос за месяц — месячный взнос без оплаты занятий по плановой ставке', () => {
-    // 8 занятий по часу по 300 — 2400 из взноса 3000.
-    expect(targetFeeMonth({ fee_month: '3000.0000 RUB', planned_hourly_rate: '300.0000 RUB', lesson_minutes: 60, lessons_per_month: 8 })).toBe('600.0000 RUB');
-    // Занятие 45 минут: 225 за занятие, 1800 за месяц.
-    expect(targetFeeMonth({ fee_month: '3000.0000 RUB', planned_hourly_rate: '300.0000 RUB', lesson_minutes: 45, lessons_per_month: 8 })).toBe('1200.0000 RUB');
+    // 480 минут по 300 в час — 2400 из взноса 3000.
+    expect(targetFeeMonth({ fee_month: '3000.0000 RUB', planned_hourly_rate: '300.0000 RUB', minutes_per_month: 480 })).toBe('600.0000 RUB');
+    // 360 минут в месяц: 1800 за месяц.
+    expect(targetFeeMonth({ fee_month: '3000.0000 RUB', planned_hourly_rate: '300.0000 RUB', minutes_per_month: 360 })).toBe('1200.0000 RUB');
   });
 });

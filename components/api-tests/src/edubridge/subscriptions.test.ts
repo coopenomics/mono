@@ -50,7 +50,7 @@ const GENERATE_ANNULMENT = `mutation($d:ProgramAgreementsAnnulmentGenerateDocume
 const ESCROW_WALLET = 'w.edu.escrow'
 const DAY_MS = 24 * 60 * 60 * 1000
 /** Взнос за курс разом: восемь месяцев программы, скидка 10%. */
-const COURSE_PAYMENT = { lessons_per_month: 8, lessons_total: 64, course_payment_enabled: true, course_discount_percent: 10 }
+const COURSE_PAYMENT = { program_months: 8, course_payment_enabled: true, course_discount_percent: 10 }
 
 describe('Образование: подписки — продление, взнос за курс, удержание, недобор', () => {
   let chairman = ''
@@ -215,7 +215,7 @@ describe('Образование: подписки — продление, вз�
       // До начала занятий возвращается всё внесённое.
       const refund = (await gql<any>(token, REFUND_PREVIEW, { id: paid.id })).edubridgeRefundPreview
       expect(amount(refund.refund)).toBeCloseTo(fee * 8 * 0.9, 4)
-      expect(refund.lessons_paid).toBe(64)
+      expect(refund.minutes_paid).toBe(4160)
     })
 
     it(caseName('edu.enroll.break.05', 'взнос за курс не принимается: курс оплачен до конца, кооператив принимает только помесячный, выбран год'), async () => {

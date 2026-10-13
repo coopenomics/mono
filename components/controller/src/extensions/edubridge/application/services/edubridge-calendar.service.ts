@@ -8,7 +8,7 @@ import { EdubridgeGroupKyselyRepository } from '../../infrastructure/repositorie
 import { EdubridgeLessonKyselyRepository } from '../../infrastructure/repositories/edubridge-lesson.kysely-repository';
 import { EdubridgeTeacherKyselyRepository } from '../../infrastructure/repositories/edubridge-teacher.kysely-repository';
 import { eduMonthSeconds, isTimeCompressed } from '../../domain/economy/time-scale';
-import { type EduScheduleSlot, type SlotOccurrence, normalizeSlots, slotOccurrences, unitsOf } from '../../domain/lib/schedule';
+import { type EduScheduleSlot, type SlotOccurrence, normalizeSlots, slotOccurrences } from '../../domain/lib/schedule';
 import { startMomentOf } from '../../domain/lib/group-start';
 
 export interface EduScheduleInput {
@@ -98,13 +98,12 @@ export class EdubridgeCalendarService {
     let used = 0;
     const taken = new Set(kept.filter((l) => l.status !== EduLessonStatus.CANCELLED).map((l) => l.lesson_number));
     for (const { at, slot } of occurrences) {
-      const units = unitsOf(slot.minutes, group.lesson_minutes);
-      if (used + units > budget) break;
+      const minutes = Number(slot.minutes);
+      if (used + minutes > budget) break;
       const assignment = slot.assignment_id ? await this.cached(assignments, coopname, slot.assignment_id) : null;
-      const number = nextFree(taken, group.lessons_total);
-      if (!number) break;
+      const number = nextFree(taken);
       taken.add(number);
-      used += units;
+      used += minutes;
       created.push(
         await this.lessons.save(
           this.lessons.create({
@@ -142,11 +141,9 @@ export class EdubridgeCalendarService {
     const minutes = minutesOf(input.minutes, group.lesson_minutes);
     const assignment = input.assignment_id ? await this.courseAssignment(coopname, group.course_id, input.assignment_id) : null;
     const all = await this.lessons.findByGroup(coopname, group.id);
-    const units = unitsOf(minutes, group.lesson_minutes);
-    await this.makeRoom(group, all, units);
+    await this.makeRoom(group, all, minutes);
     const live = all.filter((l) => l.status !== EduLessonStatus.CANCELLED);
-    const number = nextFree(new Set(live.map((l) => l.lesson_number)), group.lessons_total);
-    if (!number) throw DomainError.badRequest('EDUBRIDGE_PROGRAM_FULL', { lessonsTotal: group.lessons_total });
+    const number = nextFree(new Set(live.map((l) => l.lesson_number)));
     const lesson = await this.lessons.save(
       this.lessons.create({
         coopname,
@@ -178,7 +175,7 @@ export class EdubridgeCalendarService {
     if (input.minutes !== undefined && input.minutes !== null) {
       const minutes = minutesOf(input.minutes, group.lesson_minutes);
       const all = (await this.lessons.findByGroup(coopname, group.id)).filter((l) => l.id !== lesson.id);
-      if (this.budget(group, all) < unitsOf(minutes, group.lesson_minutes)) throw DomainError.badRequest('EDUBRIDGE_PROGRAM_FULL', { lessonsTotal: group.lessons_total });
+      if (this.budget(group, all) < minutes) throw DomainError.badRequest('EDUBRIDGE_PROGRAM_FULL', { minutesTotal: group.minutes_total });
       lesson.duration_minutes = minutes;
     }
     if (input.assignment_id !== undefined) {
@@ -217,27 +214,27 @@ export class EdubridgeCalendarService {
     return (await this.lessons.findByGroup(coopname, groupId)).sort(byDate);
   }
 
-  /** Сколько занятий программы ещё свободно с учётом живых занятий группы. */
+  /** Сколько минут программы ещё свободно с учётом живых занятий группы. */
   private budget(group: EdubridgeGroupRecord, lessons: EdubridgeLessonRecord[]): number {
-    const used = lessons.filter((l) => l.status !== EduLessonStatus.CANCELLED).reduce((sum, l) => sum + unitsOf(l.duration_minutes, group.lesson_minutes), 0);
-    const total = group.lessons_total > 0 ? group.lessons_total : group.lessons_per_month * OPEN_PROGRAM_MONTHS + used;
+    const used = lessons.filter((l) => l.status !== EduLessonStatus.CANCELLED).reduce((sum, l) => sum + Number(l.duration_minutes || 0), 0);
+    const total = group.minutes_total > 0 ? group.minutes_total : group.minutes_per_month * OPEN_PROGRAM_MONTHS + used;
     return Math.max(0, total - used);
   }
 
-  /** Освободить место под занятие: последние запланированные по расписанию стираются. */
-  private async makeRoom(group: EdubridgeGroupRecord, all: EdubridgeLessonRecord[], units: number): Promise<void> {
+  /** Освободить минуты под занятие: последние запланированные по расписанию стираются. */
+  private async makeRoom(group: EdubridgeGroupRecord, all: EdubridgeLessonRecord[], minutes: number): Promise<void> {
     let budget = this.budget(group, all);
-    if (budget >= units) return;
+    if (budget >= minutes) return;
     const movable = all
       .filter((l) => l.status === EduLessonStatus.PLANNED && l.origin === EduLessonOrigin.SCHEDULE)
       .sort((a, b) => new Date(b.held_at).getTime() - new Date(a.held_at).getTime());
     const removed: EdubridgeLessonRecord[] = [];
     for (const lesson of movable) {
-      if (budget >= units) break;
+      if (budget >= minutes) break;
       removed.push(lesson);
-      budget += unitsOf(lesson.duration_minutes, group.lesson_minutes);
+      budget += Number(lesson.duration_minutes || 0);
     }
-    if (budget < units) throw DomainError.badRequest('EDUBRIDGE_PROGRAM_FULL', { lessonsTotal: group.lessons_total });
+    if (budget < minutes) throw DomainError.badRequest('EDUBRIDGE_PROGRAM_FULL', { minutesTotal: group.minutes_total });
     await this.lessons.deleteMany(removed.map((l) => l.id));
     for (const r of removed) all.splice(all.indexOf(r), 1);
     this.logger.info(`[EDU.CAL] группа «${group.title}»: ради дополнительного занятия снято занятий по расписанию ${removed.length}`);
@@ -271,11 +268,11 @@ export class EdubridgeCalendarService {
   }
 }
 
-/** Наименьший свободный номер в программе; программа без конца — следующий за занятыми. */
-function nextFree(taken: Set<number>, lessonsTotal: number): number | null {
-  const limit = lessonsTotal > 0 ? lessonsTotal : taken.size + 1;
-  for (let n = 1; n <= limit; n += 1) if (!taken.has(n)) return n;
-  return null;
+/** Наименьший свободный номер занятия в группе. */
+function nextFree(taken: Set<number>): number {
+  let n = 1;
+  while (taken.has(n)) n += 1;
+  return n;
 }
 
 /**

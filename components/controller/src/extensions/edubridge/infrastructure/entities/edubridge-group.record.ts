@@ -53,6 +53,15 @@ export class EdubridgeGroupRecord {
 
   public lesson_minutes!: number;
 
+  /** Длительность программы, месяцев; 0 — программа без конца. */
+  public program_months!: number;
+
+  /** Минут занятий в месяц — по ним контракт считает взнос. */
+  public minutes_per_month!: number;
+
+  /** Минут занятий в программе; 0 — программа без конца. */
+  public minutes_total!: number;
+
   /** Плановая ставка часа, заложенная во взнос каждого участника группы. */
   public planned_hourly_rate!: string;
 

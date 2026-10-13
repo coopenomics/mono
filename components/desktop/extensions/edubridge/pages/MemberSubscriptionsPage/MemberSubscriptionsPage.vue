@@ -54,7 +54,7 @@
     CardListSkeleton(v-if="!refund" :count="1")
     template(v-else)
       DataRow(:label="$t('edubridge.memberSubscriptionsPage.cancelDialog.paidLabel')" :value="formatAsset2Digits(cancelTarget?.paid_amount ?? '')")
-      DataRow(:label="$t('edubridge.memberSubscriptionsPage.cancelDialog.lessonsUsedLabel')" :value="$t(`edubridge.memberSubscriptionsPage.cancelDialog.lessonsUsedValue`, { lessonsUsed: refund.lessons_used, lessonsPaid: refund.lessons_paid })")
+      DataRow(:label="$t('edubridge.memberSubscriptionsPage.cancelDialog.lessonsUsedLabel')" :value="$t(`edubridge.memberSubscriptionsPage.cancelDialog.lessonsUsedValue`, { hoursUsed: minutesToHours(refund.minutes_used), hoursPaid: minutesToHours(refund.minutes_paid) })")
       DataRow(:label="$t('edubridge.memberSubscriptionsPage.cancelDialog.refundLabel')" :value="formatAsset2Digits(refund.refund)")
       DataRow(:label="$t('edubridge.memberSubscriptionsPage.cancelDialog.withheldLabel')" :value="formatAsset2Digits(refund.withheld)")
       .t-sm.t-muted.q-mt-sm {{ refundReason(refund.reason) }}
@@ -298,6 +298,8 @@ function extend(row: IEnrollment): void {
   extendOpen.value = true;
 }
 /** Курс подписки из каталога — за расписанием; снятый с публикации курс в каталоге не найдётся. */
+/** Минуты занятий — часами с одним знаком: так их читает участник. */
+const minutesToHours = (minutes: unknown) => (Number(minutes || 0) / 60).toLocaleString('ru-RU', { maximumFractionDigits: 1 });
 const courseOf = (row: IEnrollment) => courses.value.find((c) => asText(c.id) === asText(row.course_id)) ?? null;
 function openCourse(row: IEnrollment): void {
   void router.push({ name: 'edubridge-catalog-course', params: { coopname: route.params.coopname, id: asText(row.course_id) } });

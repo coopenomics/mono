@@ -58,6 +58,9 @@ function make(
       chain_ref: '7',
       lessons_total: opts.lessonsTotal ?? 64,
       lesson_minutes: 60,
+      program_months: 8,
+      minutes_per_month: 480,
+      minutes_total: 3840,
       guarantee_days: opts.guaranteeDays ?? 14,
       planned_hourly_rate: opts.plannedRate ?? '1000.0000 RUB',
       // По умолчанию гарантийный срок группы вышел месяц назад: отчёт сразу даёт взнос и документы.
@@ -906,7 +909,7 @@ describe('Профиль преподавателя — рассказ о себ
 
 describe('Допуски по списку «Курс ведут»', () => {
   const course = (teachers: string[]) =>
-    ({ id: 'C1', title: 'Алгебра', schedule: 'Вт, Чт 17–19', teacher_usernames: teachers, starts_at: '2026-09-23', lessons_total: 64, lessons_per_month: 8, lesson_minutes: 60, planned_hourly_rate: '1000.0000 RUB' }) as any;
+    ({ id: 'C1', title: 'Алгебра', schedule: 'Вт, Чт 17–19', teacher_usernames: teachers, starts_at: '2026-09-23', program_months: 8, minutes_per_month: 480, lesson_minutes: 60, planned_hourly_rate: '1000.0000 RUB' }) as any;
 
   it('добавленный в курс преподаватель сразу получает действующий допуск, уже допущенный — нет', async () => {
     const { service, teachers } = make({ assignmentStatus: EduAssignmentStatus.ACTIVE, courseTeachers: ['teach', 'newbie'] });
@@ -963,9 +966,9 @@ describe('Допуски по списку «Курс ведут»', () => {
   });
 
   it('период — от начала занятий на весь срок программы; без даты — от сегодня', () => {
-    expect(coursePeriod({ starts_at: '2026-09-23', lessons_total: 64, lessons_per_month: 8 } as any)).toEqual({ from: '2026-09-23', to: '2027-05-22' });
-    expect(coursePeriod({ starts_at: '2026-01-31', lessons_total: 5, lessons_per_month: 8 } as any)).toEqual({ from: '2026-01-31', to: '2026-02-27' });
-    expect(coursePeriod({ starts_at: null, lessons_total: 8, lessons_per_month: 8 } as any).from).toBe(new Date().toISOString().slice(0, 10));
+    expect(coursePeriod({ starts_at: '2026-09-23', program_months: 8 } as any)).toEqual({ from: '2026-09-23', to: '2027-05-22' });
+    expect(coursePeriod({ starts_at: '2026-01-31', program_months: 1 } as any)).toEqual({ from: '2026-01-31', to: '2026-02-27' });
+    expect(coursePeriod({ starts_at: null, program_months: 1 } as any).from).toBe(new Date().toISOString().slice(0, 10));
   });
 
   it('ставка преподавателя выше плановой ставки курса — отказ с объяснением; не выше — пусто', () => {

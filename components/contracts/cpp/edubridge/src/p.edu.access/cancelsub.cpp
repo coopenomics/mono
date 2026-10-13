@@ -42,7 +42,7 @@ void edubridge::cancelsub(eosio::name coopname,
   eosio::asset refund;
   bool to_share = false;
   if (underfilled) {
-    eosio::check(sub->plan.value().lessons_done == 0, "EDUBRIDGE_UNDERFILL_AFTER_LESSONS: Отмена по недобору возможна только до первого занятия");
+    eosio::check(sub->plan.value().minutes_done == 0, "EDUBRIDGE_UNDERFILL_AFTER_LESSONS: Отмена по недобору возможна только до первого занятия");
     refund = sub->charged_or_zero();
     to_share = true;
   } else if (!terms.is_started() || now < terms.starts_at) {

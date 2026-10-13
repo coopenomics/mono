@@ -18,7 +18,7 @@
  *
  * Guards:
  *  - плановая ставка и целевой членский взнос в символе кооператива, ставка > 0;
- *  - занятий в месяц и минут в занятии > 0;
+ *  - минут занятий в месяц > 0;
  *  - скидка за взнос разом не больше целевого членского взноса;
  *  - при действующих подписках денежные условия прежние.
  *
@@ -29,9 +29,8 @@ void edubridge::setcourse(eosio::name coopname,
                           eosio::asset planned_rate,
                           bool per_learner,
                           eosio::asset target_fee_month,
-                          uint32_t lessons_per_month,
-                          uint32_t lessons_total,
-                          uint32_t lesson_minutes,
+                          uint32_t minutes_per_month,
+                          uint32_t minutes_total,
                           bool course_payment,
                           uint32_t discount_bp,
                           uint32_t guarantee_secs,
@@ -43,8 +42,7 @@ void edubridge::setcourse(eosio::name coopname,
   eosio::check(target_fee_month.is_valid() && target_fee_month.amount >= 0 &&
                  target_fee_month.symbol == _root_govern_symbol,
                "EDUBRIDGE_TARGET_FEE_INVALID: Некорректный целевой членский взнос");
-  eosio::check(lessons_per_month > 0, "EDUBRIDGE_LESSONS_PER_MONTH_INVALID: Число занятий в месяц должно быть больше нуля");
-  eosio::check(lesson_minutes > 0, "EDUBRIDGE_LESSON_MINUTES_INVALID: Длительность занятия должна быть больше нуля");
+  eosio::check(minutes_per_month > 0, "EDUBRIDGE_MINUTES_PER_MONTH_INVALID: Минут занятий в месяц должно быть больше нуля");
   eosio::check(discount_bp <= Edubridge::BP_IN_WHOLE, "EDUBRIDGE_DISCOUNT_INVALID: Скидка не может быть больше ста процентов");
 
   edu_terms_index terms(_edubridge, coopname.value);
@@ -54,9 +52,8 @@ void edubridge::setcourse(eosio::name coopname,
     t.planned_rate      = planned_rate;
     t.per_learner       = per_learner;
     t.target_fee_month  = target_fee_month;
-    t.lessons_per_month = lessons_per_month;
-    t.lessons_total     = lessons_total;
-    t.lesson_minutes    = lesson_minutes;
+    t.minutes_per_month = minutes_per_month;
+    t.minutes_total     = minutes_total;
     t.course_payment    = course_payment;
     t.discount_bp       = discount_bp;
     t.guarantee_secs    = guarantee_secs;
@@ -68,7 +65,7 @@ void edubridge::setcourse(eosio::name coopname,
     terms.emplace(RamPayer::of(terms, coopname), [&](auto& t) {
       t.course_id      = course_id;
       t.subs_active    = 0;
-      t.lessons_opened = 0;
+      t.minutes_opened = 0;
       t.charging       = 0;
       t.subs_locked    = 0;
       fill(t);
@@ -76,12 +73,12 @@ void edubridge::setcourse(eosio::name coopname,
   } else {
     if (it->subs_active > 0) {
       eosio::check(it->planned_rate == planned_rate && it->per_learner == per_learner && it->target_fee_month == target_fee_month &&
-                     it->lessons_per_month == lessons_per_month && it->lessons_total == lessons_total &&
-                     it->lesson_minutes == lesson_minutes && it->discount_bp == discount_bp &&
+                     it->minutes_per_month == minutes_per_month && it->minutes_total == minutes_total &&
+                     it->discount_bp == discount_bp &&
                      it->guarantee_secs == guarantee_secs && it->month_len() == month_secs,
                    "EDUBRIDGE_COURSE_TERMS_LOCKED: По курсу есть действующие подписки: ставка, способ расчёта с преподавателем, взнос, расписание, скидка и гарантийный срок не меняются");
     }
-    eosio::check(it->lessons_opened == 0 || it->starts_at == starts_at,
+    eosio::check(it->minutes_opened == 0 || it->starts_at == starts_at,
                  "EDUBRIDGE_COURSE_START_LOCKED: Занятия уже идут: дата начала не меняется");
     terms.modify(it, RamPayer::of(terms, coopname), fill);
   }

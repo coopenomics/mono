@@ -638,7 +638,7 @@ export const AllTypesProps: Record<string,any> = {
 	EduCouncilOutcome: "enum" as const,
 	EduCourseDirection: "enum" as const,
 	EduCourseEconomyInput:{
-
+		schedule_slots:"EduScheduleSlotInput"
 	},
 	EduCourseImageUploadInput:{
 
@@ -5775,6 +5775,9 @@ export const ReturnTypes: Record<string,any> = {
 		lessons_total:"Int",
 		level_id:"ID",
 		level_title:"String",
+		minutes_per_month:"Int",
+		minutes_total:"Int",
+		program_months:"Int",
 		report_days:"Int",
 		schedule:"String",
 		schedule_slots:"EduScheduleSlot",
@@ -5849,8 +5852,11 @@ export const ReturnTypes: Record<string,any> = {
 		lessons_total:"Int",
 		level_id:"ID",
 		level_title:"String",
+		minutes_per_month:"Int",
+		minutes_total:"Int",
 		pay_per_learner:"Boolean",
 		planned_hourly_rate:"String",
+		program_months:"Int",
 		report_days:"Int",
 		schedule:"String",
 		schedule_slots:"EduScheduleSlot",
@@ -5970,8 +5976,11 @@ export const ReturnTypes: Record<string,any> = {
 		lessons_held:"Int",
 		lessons_per_month:"Int",
 		lessons_total:"Int",
+		minutes_per_month:"Int",
+		minutes_total:"Int",
 		pay_per_learner:"Boolean",
 		planned_hourly_rate:"String",
+		program_months:"Int",
 		report_days:"Int",
 		schedule:"String",
 		schedule_slots:"EduScheduleSlot",
@@ -6026,7 +6035,6 @@ export const ReturnTypes: Record<string,any> = {
 		held_at:"DateTime",
 		id:"ID",
 		learners_count:"Int",
-		lesson_minutes:"Int",
 		lesson_number:"Int",
 		materials:"String",
 		origin:"EduLessonOrigin",
@@ -6035,8 +6043,7 @@ export const ReturnTypes: Record<string,any> = {
 		reported_at:"DateTime",
 		status:"EduLessonStatus",
 		teacher_username:"String",
-		topic:"String",
-		units:"Int"
+		topic:"String"
 	},
 	EduLevel:{
 		archived:"Boolean",
@@ -6109,8 +6116,8 @@ export const ReturnTypes: Record<string,any> = {
 		to_convert:"String"
 	},
 	EduRefundPreview:{
-		lessons_paid:"Int",
-		lessons_used:"Int",
+		minutes_paid:"Int",
+		minutes_used:"Int",
 		reason:"String",
 		refund:"String",
 		to_share:"Boolean",

@@ -1,6 +1,6 @@
 import { EdubridgeCalendarService } from '~/extensions/edubridge/application/services/edubridge-calendar.service';
 import { EduLessonOrigin, EduLessonStatus } from '~/extensions/edubridge/domain/enums';
-import { formatSlots, normalizeSlots, slotOccurrences, unitsOf, zonedParts } from '~/extensions/edubridge/domain/lib/schedule';
+import { formatSlots, normalizeSlots, programOf, slotOccurrences, zonedParts } from '~/extensions/edubridge/domain/lib/schedule';
 import { lessonEndsAt, reportUntil } from '~/extensions/edubridge/domain/lib/lesson-dates';
 
 jest.mock('@coopenomics/extension-kit', () => ({
@@ -27,6 +27,9 @@ function groupOf(over: Record<string, unknown> = {}) {
     lessons_per_month: 8,
     lessons_total: 12,
     lesson_minutes: 60,
+    program_months: 2,
+    minutes_per_month: 360,
+    minutes_total: 720,
     schedule_slots: TUE_THU,
     report_days: 7,
     ...over,
@@ -78,11 +81,10 @@ describe('Окна расписания и моменты занятий', () =>
     expect(zonedParts(out[0].at, 'Europe/Moscow')).toMatchObject({ weekday: 4, hour: 17, minute: 0 });
   });
 
-  it('длительность в занятиях программы: неполное занятие — за целое', () => {
-    expect(unitsOf(60, 60)).toBe(1);
-    expect(unitsOf(90, 60)).toBe(2);
-    expect(unitsOf(120, 60)).toBe(2);
-    expect(unitsOf(45, 60)).toBe(1);
+  it('числа программы из окон: минуты недели на 52/12, занятия — для показа, длительность — по первому окну', () => {
+    expect(programOf(TUE_THU, 8)).toEqual({ minutes_per_month: 520, minutes_total: 4160, lessons_per_month: 9, lessons_total: 72, lesson_minutes: 60 });
+    expect(programOf([{ minutes: 90 }], 0)).toEqual({ minutes_per_month: 390, minutes_total: 0, lessons_per_month: 4, lessons_total: 0, lesson_minutes: 90 });
+    expect(programOf([], 3).minutes_per_month).toBe(0);
   });
 
   it('конец занятия и срок на отчёт: настоящие сутки в работе, сжатые — на стенде', () => {
@@ -107,7 +109,7 @@ describe('EdubridgeCalendarService — календарь группы', () => {
   beforeEach(() => { process.env.NODE_ENV = 'production'; });
   afterEach(() => { process.env.NODE_ENV = previousMode; });
 
-  it('календарь строится на всю программу: 12 занятий по вторникам и четвергам, номера по порядку дат, преподаватель из окна', async () => {
+  it('календарь строится на всю программу: 720 минут — 12 часовых занятий по вторникам и четвергам, номера по порядку дат, преподаватель из окна', async () => {
     const { service, group, live } = make();
     const built = await service.rebuild('voskhod', group);
     expect(built).toHaveLength(12);
@@ -127,7 +129,7 @@ describe('EdubridgeCalendarService — календарь группы', () => {
     expect(store.has('H1')).toBe(true);
     expect(store.has('X1')).toBe(true);
     expect(store.has('S1')).toBe(false);
-    // Проведённое — одно занятие, дополнительное двухчасовое — два: по расписанию остаётся девять.
+    // Проведённое — 60 минут, дополнительное — 120: из 720 минут по расписанию остаётся девять часовых.
     const scheduled = live().filter((l) => l.origin === EduLessonOrigin.SCHEDULE && l.status === EduLessonStatus.PLANNED);
     expect(scheduled).toHaveLength(9);
     expect(scheduled.map((l) => l.lesson_number)).toEqual([3, 4, 5, 6, 7, 8, 9, 10, 11]);
@@ -143,8 +145,8 @@ describe('EdubridgeCalendarService — календарь группы', () => {
     expect(lessons.deleteMany).toHaveBeenLastCalledWith(expect.arrayContaining([lastBefore.id]));
     expect(live()).toHaveLength(11);
     expect(extra.lesson_number).toBe(11);
-    const units = live().reduce((sum, l) => sum + unitsOf(l.duration_minutes, 60), 0);
-    expect(units).toBe(12);
+    const minutes = live().reduce((sum, l) => sum + l.duration_minutes, 0);
+    expect(minutes).toBe(720);
   });
 
   it('программа заполнена проведёнными и назначенными занятиями: дополнительное и удлинение отклоняются; чужой допуск в окне — отказ', async () => {

@@ -24,8 +24,11 @@ export class EduGroupDTO {
   @Field(() => [EduScheduleSlotDTO], { description: 'Окна расписания группы' }) schedule_slots!: EduScheduleSlotDTO[];
   @Field(() => String, { description: 'Расписание группы строкой, собрано из окон' }) schedule!: string;
   @Field(() => Int, { description: 'Срок на отчёт преподавателя о занятии, дней после занятия' }) report_days!: number;
-  @Field(() => Int, { description: 'Занятий в месяц по расписанию' }) lessons_per_month!: number;
-  @Field(() => Int, { description: 'Длительность занятия курса, минут' }) lesson_minutes!: number;
+  @Field(() => Int, { description: 'Занятий в месяц по окнам расписания — для показа' }) lessons_per_month!: number;
+  @Field(() => Int, { description: 'Длительность занятия по первому окну, минут' }) lesson_minutes!: number;
+  @Field(() => Int, { description: 'Длительность программы, месяцев; ноль — программа без конца' }) program_months!: number;
+  @Field(() => Int, { description: 'Минут занятий в месяц — по ним контракт считает взнос' }) minutes_per_month!: number;
+  @Field(() => Int, { description: 'Минут занятий в программе; ноль — программа без конца' }) minutes_total!: number;
   @Field(() => String, { nullable: true, description: 'Остаток резерва преподавателям по группе' }) teacher_reserve_balance!: string | null;
   @Field(() => String, { nullable: true, description: 'Выплачено преподавателям по группе' }) teacher_settled_total!: string | null;
   @Field(() => Int, { description: 'Участников с действующей подпиской' }) learners_active!: number;
@@ -53,6 +56,9 @@ export class EduGroupDTO {
       report_days: e.report_days ?? 7,
       lessons_per_month: e.lessons_per_month,
       lesson_minutes: e.lesson_minutes,
+      program_months: e.program_months ?? 0,
+      minutes_per_month: e.minutes_per_month ?? 0,
+      minutes_total: e.minutes_total ?? 0,
       teacher_reserve_balance: e.teacher_reserve_balance,
       teacher_settled_total: e.teacher_settled_total,
       created_at: e.created_at,

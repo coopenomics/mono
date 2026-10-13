@@ -2,7 +2,7 @@ import { Field, Float, ID, InputType, Int, ObjectType } from '@nestjs/graphql';
 import { ArrayUnique, IsArray, IsBoolean, IsDateString, IsEnum, IsInt, IsNotEmpty, IsNumber, IsOptional, IsString, IsUUID, Length, Matches, Max, Min, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 import { createPaginationResult, validationMessage } from '@coopenomics/extension-kit';
-import { courseMonths, feeForMonths } from '../../domain/economy/course-fee.calculator';
+import { feeForMonths } from '../../domain/economy/course-fee.calculator';
 import { EduAccessCarrier, EduCourseDirection, EduCourseStatus } from '../../domain/enums';
 import type { EdubridgeCourseRecord } from '../../infrastructure/entities';
 import type { EduCourseImage } from '../../infrastructure/entities/edubridge-course.record';
@@ -70,14 +70,23 @@ export class EduCatalogCourseDTO {
   @Field(() => [String], { description: 'Преподаватели курса (учётные имена пайщиков)' })
   teacher_usernames!: string[];
 
-  @Field(() => Int, { description: 'Занятий в месяц по расписанию' })
+  @Field(() => Int, { description: 'Занятий в месяц по окнам расписания — для показа' })
   lessons_per_month!: number;
 
-  @Field(() => Int, { description: 'Занятий во всей программе курса' })
+  @Field(() => Int, { description: 'Занятий во всей программе курса — для показа; ноль — программа без конца' })
   lessons_total!: number;
 
-  @Field(() => Int, { description: 'Длительность занятия, минут' })
+  @Field(() => Int, { description: 'Длительность занятия по первому окну расписания, минут' })
   lesson_minutes!: number;
+
+  @Field(() => Int, { description: 'Длительность программы, месяцев; ноль — программа без конца' })
+  program_months!: number;
+
+  @Field(() => Int, { description: 'Минут занятий в месяц по окнам расписания — по ним считается взнос' })
+  minutes_per_month!: number;
+
+  @Field(() => Int, { description: 'Минут занятий в программе; ноль — программа без конца' })
+  minutes_total!: number;
 
   @Field(() => String, { nullable: true, description: 'Дата активации курса — с неё начинаются занятия' })
   starts_at!: string | null;
@@ -111,9 +120,12 @@ export class EduCatalogCourseDTO {
     this.lessons_per_month = e.lessons_per_month;
     this.lessons_total = e.lessons_total;
     this.lesson_minutes = e.lesson_minutes;
+    this.program_months = e.program_months ?? 0;
+    this.minutes_per_month = e.minutes_per_month ?? 0;
+    this.minutes_total = e.minutes_total ?? 0;
     this.starts_at = e.starts_at;
     this.fee_month = e.fee_month;
-    this.course_months = courseMonths(e.lessons_per_month, e.lessons_total);
+    this.course_months = this.program_months;
     // Взнос разом — месячный за месяцы курса со скидкой; тем же расчётом его берёт подписка.
     const full = e.course_payment_enabled && this.course_months > 0 ? feeForMonths(e.fee_month, this.course_months, e.course_discount_bp / 100) : null;
     this.fee_course = full?.amount ?? null;
@@ -295,23 +307,11 @@ export class EduCourseInputDTO {
   // Взносы за месяц и за весь курс считает сервер: часы занятий по ставке плюс
   // наценка кооператива. Произвольная сумма курса разошлась бы с обязательствами
   // перед преподавателями, поэтому во входных данных её нет.
-  @Field(() => Int, { description: 'Занятий в месяц по расписанию' })
+  @Field(() => Int, { description: 'Длительность программы, месяцев; ноль — программа без конца' })
   @IsInt()
-  @Min(1)
-  @Max(62)
-  lessons_per_month!: number;
-
-  @Field(() => Int, { description: 'Занятий во всей программе курса' })
-  @IsInt()
-  @Min(1)
-  @Max(2000)
-  lessons_total!: number;
-
-  @Field(() => Int, { description: 'Длительность занятия, минут' })
-  @IsInt()
-  @Min(5)
-  @Max(480)
-  lesson_minutes!: number;
+  @Min(0)
+  @Max(120)
+  program_months!: number;
 
   @Field(() => String, { description: 'Плановая ставка часа по программе («1000.0000 RUB»)' })
   @Matches(ASSET_PATTERN, { message: validationMessage('edubridge.eduCourseInput.plannedHourlyRate.format') })

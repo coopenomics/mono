@@ -53,9 +53,8 @@ const base = {
   title: 'Алгебра',
   section_id: SECTION_ID,
   level_id: LEVEL_ID,
-  lessons_per_month: 8,
-  lessons_total: 64,
-  lesson_minutes: 60,
+  schedule_slots: [{ weekday: 2, time: '17:00', minutes: 60, assignment_id: null }, { weekday: 4, time: '17:00', minutes: 60, assignment_id: null }],
+  program_months: 8,
   planned_hourly_rate: '1000.0000 RUB',
   course_payment_enabled: false,
   course_discount_percent: 0,
@@ -77,10 +76,11 @@ describe('EdubridgeCourseService — конструктор курса', () => {
     const { service, economy, saved } = make();
     const course = await service.create('voskhod', 'ant', { ...base, course_payment_enabled: true, course_discount_percent: 10 });
     expect(economy.feeForCourse).toHaveBeenCalledWith(
-      expect.objectContaining({ lessons_per_month: 8, lesson_minutes: 60, course_payment_enabled: true, course_discount_percent: 10 })
+      expect.objectContaining({ program_months: 8, course_payment_enabled: true, course_discount_percent: 10 })
     );
     expect(course.fee_month).toBe('9600.0000 RUB');
-    expect(saved[0].lessons_total).toBe(64);
+    // Числа программы считаются из окон: два часовых окна в неделю — 520 минут в месяц, 4160 за восемь месяцев.
+    expect(saved[0]).toMatchObject({ minutes_per_month: 520, minutes_total: 4160, program_months: 8, lesson_minutes: 60, lessons_per_month: 9, lessons_total: 72 });
     expect(saved[0].course_payment_enabled).toBe(true);
     expect(saved[0].course_discount_bp).toBe(1000);
   });
@@ -284,7 +284,7 @@ describe('EdubridgeCourseService — обложка курса', () => {
 
   it('условия курса правятся всегда: они действуют для новых групп, а группам без участников передаются сразу', async () => {
     const { service, courses, groups, enrollmentsOfCourse } = make();
-    const current = { id: 'C1', external_ref: '', status: EduCourseStatus.PUBLISHED, fee_month: '9600.0000 RUB', planned_hourly_rate: '1000.0000 RUB', lessons_per_month: base.lessons_per_month, lesson_minutes: base.lesson_minutes };
+    const current = { id: 'C1', external_ref: '', status: EduCourseStatus.PUBLISHED, fee_month: '9600.0000 RUB', planned_hourly_rate: '1000.0000 RUB', schedule_slots: base.schedule_slots, program_months: base.program_months, minutes_per_month: 520 };
     courses.findById.mockImplementation(async () => ({ ...current }));
     enrollmentsOfCourse.list = [{ status: 'active' }];
     await expect(service.update('voskhod', 'ant', { ...base, id: 'C1', planned_hourly_rate: '2000.0000 RUB' })).resolves.toBeDefined();

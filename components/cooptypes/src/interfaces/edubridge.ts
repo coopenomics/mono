@@ -161,9 +161,10 @@ export interface ISetcourse {
   /** Взнос преподавателя за занятие считается за каждого участника; false — фиксированный за занятие. */
   per_learner: IBool
   target_fee_month: IAsset
-  lessons_per_month: IUint32
-  lessons_total: IUint32
-  lesson_minutes: IUint32
+  /** Минут занятий в месяц: минуты недели на 52/12. */
+  minutes_per_month: IUint32
+  /** Минут занятий в программе; 0 — программа без конца. */
+  minutes_total: IUint32
   course_payment: IBool
   /** Скидка за взнос разом, сотые доли процента. */
   discount_bp: IUint32
@@ -374,8 +375,10 @@ export interface IEduSubscription {
 export interface IEduSubPlan {
   version: number
   paid_from: ITimePointSec
-  lessons_paid: IUint32
-  lessons_done: IUint32
+  /** Минут занятий оплачено всеми взносами. */
+  minutes_paid: IUint32
+  /** Минут занятий, по которым прошёл расчёт. */
+  minutes_done: IUint32
   /** Номера занятий группы, рассчитанных по подписке. */
   charged: IUint32[]
   /** Остаток оплаты занятий по плановой ставке — за непроведённые занятия. */
@@ -396,17 +399,16 @@ export interface IEduTerms {
   planned_rate: IAsset
   per_learner: IBool
   target_fee_month: IAsset
-  lessons_per_month: IUint32
-  lessons_total: IUint32
-  lesson_minutes: IUint32
+  minutes_per_month: IUint32
+  minutes_total: IUint32
   course_payment: IBool
   discount_bp: IUint32
   /** Гарантийный срок, секунд: дни курса × длина суток. */
   guarantee_secs: IUint32
   starts_at: ITimePointSec
   subs_active: IUint32
-  /** Занятий программы проведено: сумма занятий, которые заняли отчитанные занятия. */
-  lessons_opened: IUint32
+  /** Минут занятий отчитано по группе. */
+  minutes_opened: IUint32
   /** Занятий в окне расчёта с участниками. */
   charging: IUint32
   /** Номера отчитанных занятий группы. */
@@ -439,8 +441,6 @@ export interface IEduLesson {
   number: IUint32
   held_at: ITimePointSec
   minutes: IUint32
-  /** Занятий программы занимает: длительность в занятиях курса. */
-  units: IUint32
   rate: IAsset
   /** Ставка преподавателя за проведённое время: за одного участника либо за всё занятие. */
   charge: IAsset

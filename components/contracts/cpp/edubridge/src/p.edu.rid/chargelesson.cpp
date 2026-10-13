@@ -26,7 +26,7 @@
  *  - занятие открыто, окно расчёта по нему не закрыто; подписка — того же курса и ведёт учёт занятий;
  *  - дата занятия внутри оплаченного срока подписки;
  *  - это занятие по подписке ещё не считалось;
- *  - в резерве подписки есть оплата занятия на всю его длительность.
+ *  - оплаченных минут подписки и резерва хватает на минуты занятия.
  *
  * @ingroup public_edubridge_actions
  */
@@ -53,9 +53,9 @@ void edubridge::chargelesson(eosio::name coopname,
                "EDUBRIDGE_LESSON_NOT_COVERED: На дату занятия доступ по подписке не оплачен");
 
   const edu_terms terms = Edubridge::get_terms_or_fail(coopname, lesson->course_id);
-  // Оплата занятия — за столько занятий курса, сколько занимает его длительность.
-  const eosio::asset unit = terms.lesson_unit() * static_cast<int64_t>(lesson->units);
-  eosio::check(plan.lessons_done + lesson->units <= plan.lessons_paid && plan.reserve >= unit,
+  // Оплата занятия — его минуты по плановой ставке.
+  const eosio::asset unit = terms.minutes_cost(lesson->minutes);
+  eosio::check(plan.minutes_done + lesson->minutes <= plan.minutes_paid && plan.reserve >= unit,
                "EDUBRIDGE_SUBSCRIPTION_RESERVE_EMPTY: В резерве подписки нет оплаты занятия");
 
   // За каждого участника — взнос по ставке преподавателя с каждой подписки.
@@ -81,7 +81,7 @@ void edubridge::chargelesson(eosio::name coopname,
     // Гарантийный срок не закрыт — взнос удержан целиком, в резерв преподавателям он ещё не выделен.
     locked = !p.released;
     p.reserve      -= unit;
-    p.lessons_done += lesson->units;
+    p.minutes_done += lesson->minutes;
     p.charged.push_back(lesson->number);
     if (locked) {
       // Взнос преподавателя запоминается в подписке по его допуску: в сумму

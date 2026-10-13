@@ -3,7 +3,7 @@ import { calculateRefund, RefundReason } from '~/extensions/edubridge/domain/eco
 
 const START = new Date('2026-10-01T00:00:00Z');
 /** Взнос 3000 за 8 занятий. */
-const chain = (done: number) => ({ charged: '3000.0000 RUB', lessons_paid: 8, lessons_done: done });
+const chain = (done: number) => ({ charged: '3000.0000 RUB', minutes_paid: 480, minutes_done: done * 60 });
 
 describe('calculateRefund — возврат взноса при отмене подписки', () => {
   it('до начала занятий возвращается весь взнос на кошелёк членских взносов', () => {
@@ -25,7 +25,7 @@ describe('calculateRefund — возврат взноса при отмене п
   it('отказ в ходе подписки: половина остаточной стоимости от полного взноса', () => {
     // Проведено 3 занятия из 8: остаточная стоимость 3000 × 5 / 8 = 1875, возврат — половина.
     const r = calculateRefund({ chain: chain(3), starts_at: START, now: new Date('2026-10-12T00:00:00Z') });
-    expect(r).toMatchObject({ reason: RefundReason.REFUSAL, refund: '937.5000 RUB', withheld: '2062.5000 RUB', lessons_paid: 8, lessons_used: 3, to_share: false });
+    expect(r).toMatchObject({ reason: RefundReason.REFUSAL, refund: '937.5000 RUB', withheld: '2062.5000 RUB', minutes_paid: 480, minutes_used: 180, to_share: false });
   });
 
   it('занятия ещё не проводились — возвращается половина взноса', () => {
@@ -40,7 +40,7 @@ describe('calculateRefund — возврат взноса при отмене п
   });
 
   it('подписки в цепи нет — сумма нулевая', () => {
-    const r = calculateRefund({ chain: { charged: '0.0000 RUB', lessons_paid: 0, lessons_done: 0 }, starts_at: START, now: new Date('2026-10-12T00:00:00Z') });
+    const r = calculateRefund({ chain: { charged: '0.0000 RUB', minutes_paid: 0, minutes_done: 0 }, starts_at: START, now: new Date('2026-10-12T00:00:00Z') });
     expect(r.refund).toBe('0.0000 RUB');
   });
 });

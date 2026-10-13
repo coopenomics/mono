@@ -1,5 +1,7 @@
+import { Type } from 'class-transformer';
+import { EduScheduleSlotInputDTO } from './edu-schedule.dto';
 import { Field, Float, InputType, Int, ObjectType } from '@nestjs/graphql';
-import { IsBoolean, IsInt, IsNumber, IsOptional, IsString, Length, Matches, Max, Min } from 'class-validator';
+import { IsBoolean, IsInt, IsNumber, IsOptional, IsString, Length, Matches, Max, Min, IsArray, ValidateNested } from 'class-validator';
 import { validationMessage } from '@coopenomics/extension-kit';
 
 /** Сумма в формате цепи: «1000.0000 RUB». */
@@ -48,23 +50,17 @@ export class EduSetTeacherRateInputDTO {
 /** Параметры, из которых складывается взнос за курс. */
 @InputType('EduCourseEconomyInput')
 export class EduCourseEconomyInputDTO {
-  @Field(() => Int, { description: 'Занятий в месяц по расписанию' })
-  @IsInt()
-  @Min(1)
-  @Max(62)
-  lessons_per_month!: number;
+  @Field(() => [EduScheduleSlotInputDTO], { description: 'Окна расписания: по их минутам считается взнос' })
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => EduScheduleSlotInputDTO)
+  schedule_slots!: EduScheduleSlotInputDTO[];
 
-  @Field(() => Int, { description: 'Занятий во всей программе курса' })
+  @Field(() => Int, { description: 'Длительность программы, месяцев; ноль — программа без конца' })
   @IsInt()
-  @Min(1)
-  @Max(2000)
-  lessons_total!: number;
-
-  @Field(() => Int, { description: 'Длительность занятия, минут' })
-  @IsInt()
-  @Min(5)
-  @Max(480)
-  lesson_minutes!: number;
+  @Min(0)
+  @Max(120)
+  program_months!: number;
 
   @Field(() => String, { description: 'Плановая ставка часа по программе («1000.0000 RUB»)' })
   @Matches(ASSET_PATTERN, { message: validationMessage('edubridge.eduCourseEconomyInput.plannedHourlyRate.format') })

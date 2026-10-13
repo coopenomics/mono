@@ -40,15 +40,14 @@ struct [[eosio::table, eosio::contract(EDUBRIDGE)]] edu_terms {
   eosio::asset planned_rate;           ///< плановая ставка за час, заложенная во взнос участника — предел ставки преподавателя
   bool per_learner;                    ///< взнос преподавателя за занятие считается за каждого участника; false — фиксированный за занятие
   eosio::asset target_fee_month;       ///< целевой членский взнос за месяц
-  uint32_t lessons_per_month;          ///< занятий в месяц по расписанию
-  uint32_t lessons_total;              ///< занятий в программе курса; 0 — курс без конечной программы
-  uint32_t lesson_minutes;             ///< длительность занятия, минут
+  uint32_t minutes_per_month;          ///< минут занятий в месяц по расписанию: минуты недели на 52/12
+  uint32_t minutes_total;              ///< минут занятий в программе курса; 0 — курс без конечной программы
   bool course_payment;                 ///< взнос разом за весь курс разрешён
   uint32_t discount_bp;                ///< скидка за взнос разом, сотые доли процента
   uint32_t guarantee_secs;             ///< гарантийный срок, секунд (приложение передаёт дни × длину суток); 0 — гарантия не объявлена
   eosio::time_point_sec starts_at;     ///< начало занятий; нулевое время — курс не активирован
   uint32_t subs_active;                ///< действующих подписок — при них денежные условия не меняются
-  uint32_t lessons_opened;             ///< занятий программы проведено: сумма занятий, которые заняли отчитанные занятия (двойное занятие — два)
+  uint32_t minutes_opened;             ///< минут занятий отчитано по группе
   uint32_t charging;                   ///< занятий в окне расчёта с участниками: отчёт подан, расчёт по подпискам не закрыт
   std::vector<uint32_t> numbers;       ///< номера отчитанных занятий группы: номер занимается один раз; отзыв отчёта освобождает его
   uint32_t subs_locked = 0;            ///< подписок с незакрытым гарантийным сроком: пока они есть, суммы преподавателей за гарантийный период не окончательны
@@ -74,20 +73,20 @@ struct [[eosio::table, eosio::contract(EDUBRIDGE)]] edu_terms {
     }
   }
 
-  /// Оплата одного занятия за одного участника по плановой ставке.
-  eosio::asset lesson_unit() const {
-    return eosio::asset(planned_rate.amount * static_cast<int64_t>(lesson_minutes) / 60, planned_rate.symbol);
+  /// Оплата минут занятий за одного участника по плановой ставке часа.
+  eosio::asset minutes_cost(uint32_t minutes) const {
+    return eosio::asset(static_cast<int64_t>(static_cast<__int128>(planned_rate.amount) * minutes / 60), planned_rate.symbol);
   }
 
-  /// Членский взнос за месяц: оплата занятий месяца по плановой ставке и целевой членский взнос.
+  /// Членский взнос за месяц: оплата минут месяца по плановой ставке и целевой членский взнос.
   eosio::asset fee_month() const {
-    return lesson_unit() * static_cast<int64_t>(lessons_per_month) + target_fee_month;
+    return minutes_cost(minutes_per_month) + target_fee_month;
   }
 
   /// Длительность курса в месяцах; неполный последний месяц считается месяцем. 0 — программа без конца.
   uint32_t months_total() const {
-    if (lessons_per_month == 0 || lessons_total == 0) return 0;
-    return (lessons_total + lessons_per_month - 1) / lessons_per_month;
+    if (minutes_per_month == 0 || minutes_total == 0) return 0;
+    return (minutes_total + minutes_per_month - 1) / minutes_per_month;
   }
 };
 
@@ -140,7 +139,6 @@ struct [[eosio::table, eosio::contract(EDUBRIDGE)]] edu_lesson {
   uint32_t number;                 ///< номер занятия в курсе
   eosio::time_point_sec held_at;   ///< дата проведения
   uint32_t minutes;                ///< длительность, минут — из календаря группы
-  uint32_t units;                  ///< занятий программы занимает: длительность в занятиях курса, неполное — за целое
   eosio::asset rate;               ///< ставка преподавателя на момент отчёта
   eosio::asset charge;             ///< ставка преподавателя за проведённое время: взнос за одного участника либо фиксированный взнос за занятие
   uint32_t learners;               ///< участников с оплаченным доступом, по которым прошёл расчёт

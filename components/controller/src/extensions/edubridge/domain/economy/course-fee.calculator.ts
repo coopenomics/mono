@@ -14,16 +14,14 @@ const SCALE = 10 ** PRECISION;
 
 
 export interface CourseFeeParams {
-  /** Занятий в месяц по расписанию курса. */
-  lessons_per_month: number;
-  /** Часов в одном занятии. */
-  lesson_hours: number;
+  /** Минут занятий в месяц по окнам расписания. */
+  minutes_per_month: number;
   /** Ставка часа, по которой считается себестоимость («1000.0000 RUB»). */
   hourly_rate: string;
   /** Наценка кооператива, проценты. */
   markup_percent: number;
-  /** Занятий в программе курса; ноль — курс без конечной программы. */
-  lessons_total: number;
+  /** Длительность программы в месяцах; ноль — курс без конечной программы. */
+  program_months: number;
   /** Скидка за взнос разом за весь курс, проценты. */
   course_discount_percent: number;
 }
@@ -72,16 +70,6 @@ export function maxCourseDiscountPercent(markupPercent: number): number {
   return Math.floor((markupPercent / (100 + markupPercent)) * 100);
 }
 
-/**
- * Длительность курса в месяцах — программа, разложенная по месячной нагрузке.
- * Неполный последний месяц считается месяцем: занятия в нём идут. Ноль —
- * у курса нет конечной программы, и взнос за него вносят только помесячно.
- */
-export function courseMonths(lessonsPerMonth: number, lessonsTotal: number): number {
-  if (!(lessonsPerMonth > 0) || !(lessonsTotal > 0)) return 0;
-  return Math.ceil(lessonsTotal / lessonsPerMonth);
-}
-
 export interface FeeForMonths {
   /** Сумма помесячных взносов за эти месяцы. */
   base: string;
@@ -104,12 +92,12 @@ export function feeForMonths(feeMonth: string, months: number, discountPercent: 
 }
 
 /**
- * Взнос за неполный последний месяц — доля месячного взноса за занятия,
+ * Взнос за неполный последний месяц — доля месячного взноса за минуты занятий,
  * которые в группе ещё впереди. Деление нацело — как в контракте (`Edubridge::quote_fee`).
  */
-export function feeForLessons(feeMonth: string, lessons: number, lessonsPerMonth: number): FeeForMonths {
+export function feeForMinutes(feeMonth: string, minutes: number, minutesPerMonth: number): FeeForMonths {
   const { amount, symbol } = parseAmount(feeMonth);
-  const base = lessonsPerMonth > 0 ? Number((BigInt(amount) * BigInt(Math.max(0, lessons))) / BigInt(lessonsPerMonth)) : 0;
+  const base = minutesPerMonth > 0 ? Number((BigInt(amount) * BigInt(Math.max(0, minutes))) / BigInt(minutesPerMonth)) : 0;
   return { base: formatAmount(base, symbol), discount: formatAmount(0, symbol), amount: formatAmount(base, symbol) };
 }
 
@@ -121,13 +109,15 @@ export function costOfHours(hourlyRate: string, hours: number): string {
 
 export function calculateCourseFee(params: CourseFeeParams): CourseFeeCalculation {
   const { amount: rate, symbol } = parseAmount(params.hourly_rate);
-  const hoursPerMonth = round2(params.lessons_per_month * params.lesson_hours);
+  const minutes = Math.max(0, Math.floor(params.minutes_per_month || 0));
+  const hoursPerMonth = round2(minutes / 60);
 
-  const costMonth = Math.round(rate * hoursPerMonth);
+  // Себестоимость — ровно по минутам, как считает контракт (`minutes_cost`); часы — только для показа.
+  const costMonth = Math.round((rate * minutes) / 60);
   const markupMonth = Math.round((costMonth * params.markup_percent) / 100);
   const feeMonth = costMonth + markupMonth;
 
-  const months = courseMonths(params.lessons_per_month, params.lessons_total);
+  const months = Math.max(0, Math.floor(params.program_months || 0));
   const course = feeForMonths(formatAmount(feeMonth, symbol), months, params.course_discount_percent);
 
   return {

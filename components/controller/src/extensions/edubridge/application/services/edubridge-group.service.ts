@@ -7,7 +7,6 @@ import { EdubridgeCourseKyselyRepository } from '../../infrastructure/repositori
 import { EdubridgeEnrollmentKyselyRepository } from '../../infrastructure/repositories/edubridge-enrollment.kysely-repository';
 import { EdubridgeGroupKyselyRepository } from '../../infrastructure/repositories/edubridge-group.kysely-repository';
 import { EdubridgeLessonKyselyRepository } from '../../infrastructure/repositories/edubridge-lesson.kysely-repository';
-import { courseMonths } from '../../domain/economy/course-fee.calculator';
 import { addMonths } from '../../domain/economy/course-period.calculator';
 import { isTimeCompressed } from '../../domain/economy/time-scale';
 import { isResumable } from '../../domain/lib/resumable';
@@ -24,6 +23,9 @@ const TERM_FIELDS = [
   'lessons_per_month',
   'lessons_total',
   'lesson_minutes',
+  'program_months',
+  'minutes_per_month',
+  'minutes_total',
   'planned_hourly_rate',
   'pay_per_learner',
   'guarantee_days',
@@ -341,7 +343,7 @@ export class EdubridgeGroupService {
     const group = await this.groups.findById(enrollment.coopname, enrollment.group_id);
     if (!group) return true;
     if (group.status !== EduGroupStatus.ACTIVE) return false;
-    if (courseMonths(group.lessons_per_month, group.lessons_total) === 1) return false;
+    if (Number(group.program_months) === 1) return false;
     const end = programEndsAt(group);
     if (!end || !enrollment.paid_until) return true;
     return new Date(enrollment.paid_until).getTime() < end.getTime();
@@ -395,8 +397,8 @@ function termsOf(course: EdubridgeCourseRecord): Partial<EdubridgeGroupRecord> {
 }
 
 /** Конец программы группы: начало занятий плюс все её месяцы; `null` — программа без конца либо начало не назначено. */
-export function programEndsAt(group: Pick<EdubridgeGroupRecord, 'starts_at' | 'starts_at_time' | 'lessons_per_month' | 'lessons_total'>): Date | null {
-  const months = courseMonths(group.lessons_per_month, group.lessons_total);
+export function programEndsAt(group: Pick<EdubridgeGroupRecord, 'starts_at' | 'starts_at_time' | 'program_months'>): Date | null {
+  const months = Math.max(0, Number(group.program_months || 0));
   const start = startMomentOf(group);
   return start && months ? addMonths(new Date(start), months) : null;
 }

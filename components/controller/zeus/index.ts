@@ -6841,16 +6841,22 @@ export type ValueTypes = {
 	/** Идентификатор курса */
 	id?:boolean | `@${string}`,
 	image_url?:boolean | `@${string}`,
-	/** Длительность занятия, минут */
+	/** Длительность занятия по первому окну расписания, минут */
 	lesson_minutes?:boolean | `@${string}`,
-	/** Занятий в месяц по расписанию */
+	/** Занятий в месяц по окнам расписания — для показа */
 	lessons_per_month?:boolean | `@${string}`,
-	/** Занятий во всей программе курса */
+	/** Занятий во всей программе курса — для показа; ноль — программа без конца */
 	lessons_total?:boolean | `@${string}`,
 	/** Уровень внутри раздела из справочника; пусто — без уровня */
 	level_id?:boolean | `@${string}`,
 	/** Уровень внутри раздела: «7 класс», «Ступень 1»; пусто — без уровня */
 	level_title?:boolean | `@${string}`,
+	/** Минут занятий в месяц по окнам расписания — по ним считается взнос */
+	minutes_per_month?:boolean | `@${string}`,
+	/** Минут занятий в программе; ноль — программа без конца */
+	minutes_total?:boolean | `@${string}`,
+	/** Длительность программы, месяцев; ноль — программа без конца */
+	program_months?:boolean | `@${string}`,
 	/** Срок на отчёт преподавателя о занятии, дней после занятия */
 	report_days?:boolean | `@${string}`,
 	/** Расписание занятий */
@@ -6998,20 +7004,26 @@ export type ValueTypes = {
 	/** Идентификатор курса */
 	id?:boolean | `@${string}`,
 	image_url?:boolean | `@${string}`,
-	/** Длительность занятия, минут */
+	/** Длительность занятия по первому окну расписания, минут */
 	lesson_minutes?:boolean | `@${string}`,
-	/** Занятий в месяц по расписанию */
+	/** Занятий в месяц по окнам расписания — для показа */
 	lessons_per_month?:boolean | `@${string}`,
-	/** Занятий во всей программе курса */
+	/** Занятий во всей программе курса — для показа; ноль — программа без конца */
 	lessons_total?:boolean | `@${string}`,
 	/** Уровень внутри раздела из справочника; пусто — без уровня */
 	level_id?:boolean | `@${string}`,
 	/** Уровень внутри раздела: «7 класс», «Ступень 1»; пусто — без уровня */
 	level_title?:boolean | `@${string}`,
+	/** Минут занятий в месяц по окнам расписания — по ним считается взнос */
+	minutes_per_month?:boolean | `@${string}`,
+	/** Минут занятий в программе; ноль — программа без конца */
+	minutes_total?:boolean | `@${string}`,
 	/** Взнос преподавателя за занятие считается за каждого участника; иначе фиксированный за занятие */
 	pay_per_learner?:boolean | `@${string}`,
 	/** Плановая ставка часа, заложенная во взнос каждого участника */
 	planned_hourly_rate?:boolean | `@${string}`,
+	/** Длительность программы, месяцев; ноль — программа без конца */
+	program_months?:boolean | `@${string}`,
 	/** Срок на отчёт преподавателя о занятии, дней после занятия */
 	report_days?:boolean | `@${string}`,
 	/** Расписание занятий */
@@ -7076,14 +7088,12 @@ export type ValueTypes = {
 	course_discount_percent?: number | undefined | null | Variable<any, string>,
 	/** Принимать взнос за весь курс разом; иначе взнос только помесячный */
 	course_payment_enabled?: boolean | undefined | null | Variable<any, string>,
-	/** Длительность занятия, минут */
-	lesson_minutes: number | Variable<any, string>,
-	/** Занятий в месяц по расписанию */
-	lessons_per_month: number | Variable<any, string>,
-	/** Занятий во всей программе курса */
-	lessons_total: number | Variable<any, string>,
 	/** Плановая ставка часа по программе («1000.0000 RUB») */
-	planned_hourly_rate: string | Variable<any, string>
+	planned_hourly_rate: string | Variable<any, string>,
+	/** Длительность программы, месяцев; ноль — программа без конца */
+	program_months: number | Variable<any, string>,
+	/** Окна расписания: по их минутам считается взнос */
+	schedule_slots: Array<ValueTypes["EduScheduleSlotInput"]> | Variable<any, string>
 };
 	["EduCourseFee"]: AliasType<{
 	/** Себестоимость курса */
@@ -7136,18 +7146,14 @@ export type ValueTypes = {
 	guarantee_days?: number | undefined | null | Variable<any, string>,
 	/** Обложка курса: новое изображение (base64, ≤ 10 МБ, JPEG/PNG/WEBP), прежнее (bucket_key) или null — убрать */
 	image?: ValueTypes["EduCourseImageUploadInput"] | undefined | null | Variable<any, string>,
-	/** Длительность занятия, минут */
-	lesson_minutes: number | Variable<any, string>,
-	/** Занятий в месяц по расписанию */
-	lessons_per_month: number | Variable<any, string>,
-	/** Занятий во всей программе курса */
-	lessons_total: number | Variable<any, string>,
 	/** Уровень внутри раздела из справочника; пусто — без уровня */
 	level_id?: ValueTypes["ID"] | undefined | null | Variable<any, string>,
 	/** Взнос преподавателя за занятие считается за каждого участника; иначе фиксированный за занятие */
 	pay_per_learner?: boolean | undefined | null | Variable<any, string>,
 	/** Плановая ставка часа по программе («1000.0000 RUB») */
 	planned_hourly_rate: string | Variable<any, string>,
+	/** Длительность программы, месяцев; ноль — программа без конца */
+	program_months: number | Variable<any, string>,
 	/** Срок на отчёт преподавателя о занятии, дней после занятия */
 	report_days?: number | undefined | null | Variable<any, string>,
 	/** Расписание строкой — когда окна расписания не заданы */
@@ -7372,18 +7378,24 @@ export type ValueTypes = {
 	id?:boolean | `@${string}`,
 	/** Участников с действующей подпиской */
 	learners_active?:boolean | `@${string}`,
-	/** Длительность занятия курса, минут */
+	/** Длительность занятия по первому окну, минут */
 	lesson_minutes?:boolean | `@${string}`,
 	/** Проведено занятий */
 	lessons_held?:boolean | `@${string}`,
-	/** Занятий в месяц по расписанию */
+	/** Занятий в месяц по окнам расписания — для показа */
 	lessons_per_month?:boolean | `@${string}`,
 	/** Занятий в программе группы */
 	lessons_total?:boolean | `@${string}`,
+	/** Минут занятий в месяц — по ним контракт считает взнос */
+	minutes_per_month?:boolean | `@${string}`,
+	/** Минут занятий в программе; ноль — программа без конца */
+	minutes_total?:boolean | `@${string}`,
 	/** Взнос преподавателя за занятие считается за каждого участника; иначе фиксированный за занятие */
 	pay_per_learner?:boolean | `@${string}`,
 	/** Плановая ставка часа в группе */
 	planned_hourly_rate?:boolean | `@${string}`,
+	/** Длительность программы, месяцев; ноль — программа без конца */
+	program_months?:boolean | `@${string}`,
 	/** Срок на отчёт преподавателя о занятии, дней после занятия */
 	report_days?:boolean | `@${string}`,
 	/** Расписание группы строкой, собрано из окон */
@@ -7519,8 +7531,6 @@ export type ValueTypes = {
 	id?:boolean | `@${string}`,
 	/** Участников с оплаченным доступом, по которым проведён расчёт за занятие */
 	learners_count?:boolean | `@${string}`,
-	/** Длительность занятия курса, минут — единица программы */
-	lesson_minutes?:boolean | `@${string}`,
 	/** Номер занятия в программе */
 	lesson_number?:boolean | `@${string}`,
 	/** Материалы занятия */
@@ -7539,8 +7549,6 @@ export type ValueTypes = {
 	teacher_username?:boolean | `@${string}`,
 	/** Тема занятия */
 	topic?:boolean | `@${string}`,
-	/** Сколько занятий программы занимает: длительность в занятиях курса, неполное — за целое */
-	units?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on EduLesson']?: Omit<ValueTypes["EduLesson"], "...on EduLesson">
 }>;
@@ -7750,10 +7758,10 @@ export type ValueTypes = {
 	/** Как доставляется пропуск обучающемуся */
 ["EduRecipientType"]:EduRecipientType;
 	["EduRefundPreview"]: AliasType<{
-	/** Занятий оплачено периодом */
-	lessons_paid?:boolean | `@${string}`,
-	/** Занятий прошло к моменту отмены */
-	lessons_used?:boolean | `@${string}`,
+	/** Минут занятий оплачено периодом */
+	minutes_paid?:boolean | `@${string}`,
+	/** Минут занятий прошло к моменту отмены */
+	minutes_used?:boolean | `@${string}`,
 	/** Основание возврата по Положению ЦПП */
 	reason?:boolean | `@${string}`,
 	/** Сколько вернётся ученику */
@@ -8088,18 +8096,14 @@ export type ValueTypes = {
 	id: ValueTypes["ID"] | Variable<any, string>,
 	/** Обложка курса: новое изображение (base64, ≤ 10 МБ, JPEG/PNG/WEBP), прежнее (bucket_key) или null — убрать */
 	image?: ValueTypes["EduCourseImageUploadInput"] | undefined | null | Variable<any, string>,
-	/** Длительность занятия, минут */
-	lesson_minutes: number | Variable<any, string>,
-	/** Занятий в месяц по расписанию */
-	lessons_per_month: number | Variable<any, string>,
-	/** Занятий во всей программе курса */
-	lessons_total: number | Variable<any, string>,
 	/** Уровень внутри раздела из справочника; пусто — без уровня */
 	level_id?: ValueTypes["ID"] | undefined | null | Variable<any, string>,
 	/** Взнос преподавателя за занятие считается за каждого участника; иначе фиксированный за занятие */
 	pay_per_learner?: boolean | undefined | null | Variable<any, string>,
 	/** Плановая ставка часа по программе («1000.0000 RUB») */
 	planned_hourly_rate: string | Variable<any, string>,
+	/** Длительность программы, месяцев; ноль — программа без конца */
+	program_months: number | Variable<any, string>,
 	/** Срок на отчёт преподавателя о занятии, дней после занятия */
 	report_days?: number | undefined | null | Variable<any, string>,
 	/** Расписание строкой — когда окна расписания не заданы */
@@ -23782,16 +23786,22 @@ export type ResolverInputTypes = {
 	/** Идентификатор курса */
 	id?:boolean | `@${string}`,
 	image_url?:boolean | `@${string}`,
-	/** Длительность занятия, минут */
+	/** Длительность занятия по первому окну расписания, минут */
 	lesson_minutes?:boolean | `@${string}`,
-	/** Занятий в месяц по расписанию */
+	/** Занятий в месяц по окнам расписания — для показа */
 	lessons_per_month?:boolean | `@${string}`,
-	/** Занятий во всей программе курса */
+	/** Занятий во всей программе курса — для показа; ноль — программа без конца */
 	lessons_total?:boolean | `@${string}`,
 	/** Уровень внутри раздела из справочника; пусто — без уровня */
 	level_id?:boolean | `@${string}`,
 	/** Уровень внутри раздела: «7 класс», «Ступень 1»; пусто — без уровня */
 	level_title?:boolean | `@${string}`,
+	/** Минут занятий в месяц по окнам расписания — по ним считается взнос */
+	minutes_per_month?:boolean | `@${string}`,
+	/** Минут занятий в программе; ноль — программа без конца */
+	minutes_total?:boolean | `@${string}`,
+	/** Длительность программы, месяцев; ноль — программа без конца */
+	program_months?:boolean | `@${string}`,
 	/** Срок на отчёт преподавателя о занятии, дней после занятия */
 	report_days?:boolean | `@${string}`,
 	/** Расписание занятий */
@@ -23934,20 +23944,26 @@ export type ResolverInputTypes = {
 	/** Идентификатор курса */
 	id?:boolean | `@${string}`,
 	image_url?:boolean | `@${string}`,
-	/** Длительность занятия, минут */
+	/** Длительность занятия по первому окну расписания, минут */
 	lesson_minutes?:boolean | `@${string}`,
-	/** Занятий в месяц по расписанию */
+	/** Занятий в месяц по окнам расписания — для показа */
 	lessons_per_month?:boolean | `@${string}`,
-	/** Занятий во всей программе курса */
+	/** Занятий во всей программе курса — для показа; ноль — программа без конца */
 	lessons_total?:boolean | `@${string}`,
 	/** Уровень внутри раздела из справочника; пусто — без уровня */
 	level_id?:boolean | `@${string}`,
 	/** Уровень внутри раздела: «7 класс», «Ступень 1»; пусто — без уровня */
 	level_title?:boolean | `@${string}`,
+	/** Минут занятий в месяц по окнам расписания — по ним считается взнос */
+	minutes_per_month?:boolean | `@${string}`,
+	/** Минут занятий в программе; ноль — программа без конца */
+	minutes_total?:boolean | `@${string}`,
 	/** Взнос преподавателя за занятие считается за каждого участника; иначе фиксированный за занятие */
 	pay_per_learner?:boolean | `@${string}`,
 	/** Плановая ставка часа, заложенная во взнос каждого участника */
 	planned_hourly_rate?:boolean | `@${string}`,
+	/** Длительность программы, месяцев; ноль — программа без конца */
+	program_months?:boolean | `@${string}`,
 	/** Срок на отчёт преподавателя о занятии, дней после занятия */
 	report_days?:boolean | `@${string}`,
 	/** Расписание занятий */
@@ -24010,14 +24026,12 @@ export type ResolverInputTypes = {
 	course_discount_percent?: number | undefined | null,
 	/** Принимать взнос за весь курс разом; иначе взнос только помесячный */
 	course_payment_enabled?: boolean | undefined | null,
-	/** Длительность занятия, минут */
-	lesson_minutes: number,
-	/** Занятий в месяц по расписанию */
-	lessons_per_month: number,
-	/** Занятий во всей программе курса */
-	lessons_total: number,
 	/** Плановая ставка часа по программе («1000.0000 RUB») */
-	planned_hourly_rate: string
+	planned_hourly_rate: string,
+	/** Длительность программы, месяцев; ноль — программа без конца */
+	program_months: number,
+	/** Окна расписания: по их минутам считается взнос */
+	schedule_slots: Array<ResolverInputTypes["EduScheduleSlotInput"]>
 };
 	["EduCourseFee"]: AliasType<{
 	/** Себестоимость курса */
@@ -24069,18 +24083,14 @@ export type ResolverInputTypes = {
 	guarantee_days?: number | undefined | null,
 	/** Обложка курса: новое изображение (base64, ≤ 10 МБ, JPEG/PNG/WEBP), прежнее (bucket_key) или null — убрать */
 	image?: ResolverInputTypes["EduCourseImageUploadInput"] | undefined | null,
-	/** Длительность занятия, минут */
-	lesson_minutes: number,
-	/** Занятий в месяц по расписанию */
-	lessons_per_month: number,
-	/** Занятий во всей программе курса */
-	lessons_total: number,
 	/** Уровень внутри раздела из справочника; пусто — без уровня */
 	level_id?: ResolverInputTypes["ID"] | undefined | null,
 	/** Взнос преподавателя за занятие считается за каждого участника; иначе фиксированный за занятие */
 	pay_per_learner?: boolean | undefined | null,
 	/** Плановая ставка часа по программе («1000.0000 RUB») */
 	planned_hourly_rate: string,
+	/** Длительность программы, месяцев; ноль — программа без конца */
+	program_months: number,
 	/** Срок на отчёт преподавателя о занятии, дней после занятия */
 	report_days?: number | undefined | null,
 	/** Расписание строкой — когда окна расписания не заданы */
@@ -24299,18 +24309,24 @@ export type ResolverInputTypes = {
 	id?:boolean | `@${string}`,
 	/** Участников с действующей подпиской */
 	learners_active?:boolean | `@${string}`,
-	/** Длительность занятия курса, минут */
+	/** Длительность занятия по первому окну, минут */
 	lesson_minutes?:boolean | `@${string}`,
 	/** Проведено занятий */
 	lessons_held?:boolean | `@${string}`,
-	/** Занятий в месяц по расписанию */
+	/** Занятий в месяц по окнам расписания — для показа */
 	lessons_per_month?:boolean | `@${string}`,
 	/** Занятий в программе группы */
 	lessons_total?:boolean | `@${string}`,
+	/** Минут занятий в месяц — по ним контракт считает взнос */
+	minutes_per_month?:boolean | `@${string}`,
+	/** Минут занятий в программе; ноль — программа без конца */
+	minutes_total?:boolean | `@${string}`,
 	/** Взнос преподавателя за занятие считается за каждого участника; иначе фиксированный за занятие */
 	pay_per_learner?:boolean | `@${string}`,
 	/** Плановая ставка часа в группе */
 	planned_hourly_rate?:boolean | `@${string}`,
+	/** Длительность программы, месяцев; ноль — программа без конца */
+	program_months?:boolean | `@${string}`,
 	/** Срок на отчёт преподавателя о занятии, дней после занятия */
 	report_days?:boolean | `@${string}`,
 	/** Расписание группы строкой, собрано из окон */
@@ -24441,8 +24457,6 @@ export type ResolverInputTypes = {
 	id?:boolean | `@${string}`,
 	/** Участников с оплаченным доступом, по которым проведён расчёт за занятие */
 	learners_count?:boolean | `@${string}`,
-	/** Длительность занятия курса, минут — единица программы */
-	lesson_minutes?:boolean | `@${string}`,
 	/** Номер занятия в программе */
 	lesson_number?:boolean | `@${string}`,
 	/** Материалы занятия */
@@ -24461,8 +24475,6 @@ export type ResolverInputTypes = {
 	teacher_username?:boolean | `@${string}`,
 	/** Тема занятия */
 	topic?:boolean | `@${string}`,
-	/** Сколько занятий программы занимает: длительность в занятиях курса, неполное — за целое */
-	units?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
 	["EduLessonCalendarFilter"]: {
@@ -24661,10 +24673,10 @@ export type ResolverInputTypes = {
 	/** Как доставляется пропуск обучающемуся */
 ["EduRecipientType"]:EduRecipientType;
 	["EduRefundPreview"]: AliasType<{
-	/** Занятий оплачено периодом */
-	lessons_paid?:boolean | `@${string}`,
-	/** Занятий прошло к моменту отмены */
-	lessons_used?:boolean | `@${string}`,
+	/** Минут занятий оплачено периодом */
+	minutes_paid?:boolean | `@${string}`,
+	/** Минут занятий прошло к моменту отмены */
+	minutes_used?:boolean | `@${string}`,
 	/** Основание возврата по Положению ЦПП */
 	reason?:boolean | `@${string}`,
 	/** Сколько вернётся ученику */
@@ -24988,18 +25000,14 @@ export type ResolverInputTypes = {
 	id: ResolverInputTypes["ID"],
 	/** Обложка курса: новое изображение (base64, ≤ 10 МБ, JPEG/PNG/WEBP), прежнее (bucket_key) или null — убрать */
 	image?: ResolverInputTypes["EduCourseImageUploadInput"] | undefined | null,
-	/** Длительность занятия, минут */
-	lesson_minutes: number,
-	/** Занятий в месяц по расписанию */
-	lessons_per_month: number,
-	/** Занятий во всей программе курса */
-	lessons_total: number,
 	/** Уровень внутри раздела из справочника; пусто — без уровня */
 	level_id?: ResolverInputTypes["ID"] | undefined | null,
 	/** Взнос преподавателя за занятие считается за каждого участника; иначе фиксированный за занятие */
 	pay_per_learner?: boolean | undefined | null,
 	/** Плановая ставка часа по программе («1000.0000 RUB») */
 	planned_hourly_rate: string,
+	/** Длительность программы, месяцев; ноль — программа без конца */
+	program_months: number,
 	/** Срок на отчёт преподавателя о занятии, дней после занятия */
 	report_days?: number | undefined | null,
 	/** Расписание строкой — когда окна расписания не заданы */
@@ -40212,16 +40220,22 @@ export type ModelTypes = {
 	/** Идентификатор курса */
 	id: ModelTypes["ID"],
 	image_url?: string | undefined | null,
-	/** Длительность занятия, минут */
+	/** Длительность занятия по первому окну расписания, минут */
 	lesson_minutes: number,
-	/** Занятий в месяц по расписанию */
+	/** Занятий в месяц по окнам расписания — для показа */
 	lessons_per_month: number,
-	/** Занятий во всей программе курса */
+	/** Занятий во всей программе курса — для показа; ноль — программа без конца */
 	lessons_total: number,
 	/** Уровень внутри раздела из справочника; пусто — без уровня */
 	level_id?: ModelTypes["ID"] | undefined | null,
 	/** Уровень внутри раздела: «7 класс», «Ступень 1»; пусто — без уровня */
 	level_title: string,
+	/** Минут занятий в месяц по окнам расписания — по ним считается взнос */
+	minutes_per_month: number,
+	/** Минут занятий в программе; ноль — программа без конца */
+	minutes_total: number,
+	/** Длительность программы, месяцев; ноль — программа без конца */
+	program_months: number,
 	/** Срок на отчёт преподавателя о занятии, дней после занятия */
 	report_days: number,
 	/** Расписание занятий */
@@ -40354,20 +40368,26 @@ export type ModelTypes = {
 	/** Идентификатор курса */
 	id: ModelTypes["ID"],
 	image_url?: string | undefined | null,
-	/** Длительность занятия, минут */
+	/** Длительность занятия по первому окну расписания, минут */
 	lesson_minutes: number,
-	/** Занятий в месяц по расписанию */
+	/** Занятий в месяц по окнам расписания — для показа */
 	lessons_per_month: number,
-	/** Занятий во всей программе курса */
+	/** Занятий во всей программе курса — для показа; ноль — программа без конца */
 	lessons_total: number,
 	/** Уровень внутри раздела из справочника; пусто — без уровня */
 	level_id?: ModelTypes["ID"] | undefined | null,
 	/** Уровень внутри раздела: «7 класс», «Ступень 1»; пусто — без уровня */
 	level_title: string,
+	/** Минут занятий в месяц по окнам расписания — по ним считается взнос */
+	minutes_per_month: number,
+	/** Минут занятий в программе; ноль — программа без конца */
+	minutes_total: number,
 	/** Взнос преподавателя за занятие считается за каждого участника; иначе фиксированный за занятие */
 	pay_per_learner: boolean,
 	/** Плановая ставка часа, заложенная во взнос каждого участника */
 	planned_hourly_rate: string,
+	/** Длительность программы, месяцев; ноль — программа без конца */
+	program_months: number,
 	/** Срок на отчёт преподавателя о занятии, дней после занятия */
 	report_days: number,
 	/** Расписание занятий */
@@ -40427,14 +40447,12 @@ export type ModelTypes = {
 	course_discount_percent?: number | undefined | null,
 	/** Принимать взнос за весь курс разом; иначе взнос только помесячный */
 	course_payment_enabled?: boolean | undefined | null,
-	/** Длительность занятия, минут */
-	lesson_minutes: number,
-	/** Занятий в месяц по расписанию */
-	lessons_per_month: number,
-	/** Занятий во всей программе курса */
-	lessons_total: number,
 	/** Плановая ставка часа по программе («1000.0000 RUB») */
-	planned_hourly_rate: string
+	planned_hourly_rate: string,
+	/** Длительность программы, месяцев; ноль — программа без конца */
+	program_months: number,
+	/** Окна расписания: по их минутам считается взнос */
+	schedule_slots: Array<ModelTypes["EduScheduleSlotInput"]>
 };
 	["EduCourseFee"]: {
 		/** Себестоимость курса */
@@ -40485,18 +40503,14 @@ export type ModelTypes = {
 	guarantee_days?: number | undefined | null,
 	/** Обложка курса: новое изображение (base64, ≤ 10 МБ, JPEG/PNG/WEBP), прежнее (bucket_key) или null — убрать */
 	image?: ModelTypes["EduCourseImageUploadInput"] | undefined | null,
-	/** Длительность занятия, минут */
-	lesson_minutes: number,
-	/** Занятий в месяц по расписанию */
-	lessons_per_month: number,
-	/** Занятий во всей программе курса */
-	lessons_total: number,
 	/** Уровень внутри раздела из справочника; пусто — без уровня */
 	level_id?: ModelTypes["ID"] | undefined | null,
 	/** Взнос преподавателя за занятие считается за каждого участника; иначе фиксированный за занятие */
 	pay_per_learner?: boolean | undefined | null,
 	/** Плановая ставка часа по программе («1000.0000 RUB») */
 	planned_hourly_rate: string,
+	/** Длительность программы, месяцев; ноль — программа без конца */
+	program_months: number,
 	/** Срок на отчёт преподавателя о занятии, дней после занятия */
 	report_days?: number | undefined | null,
 	/** Расписание строкой — когда окна расписания не заданы */
@@ -40706,18 +40720,24 @@ export type ModelTypes = {
 	id: ModelTypes["ID"],
 	/** Участников с действующей подпиской */
 	learners_active: number,
-	/** Длительность занятия курса, минут */
+	/** Длительность занятия по первому окну, минут */
 	lesson_minutes: number,
 	/** Проведено занятий */
 	lessons_held: number,
-	/** Занятий в месяц по расписанию */
+	/** Занятий в месяц по окнам расписания — для показа */
 	lessons_per_month: number,
 	/** Занятий в программе группы */
 	lessons_total: number,
+	/** Минут занятий в месяц — по ним контракт считает взнос */
+	minutes_per_month: number,
+	/** Минут занятий в программе; ноль — программа без конца */
+	minutes_total: number,
 	/** Взнос преподавателя за занятие считается за каждого участника; иначе фиксированный за занятие */
 	pay_per_learner: boolean,
 	/** Плановая ставка часа в группе */
 	planned_hourly_rate: string,
+	/** Длительность программы, месяцев; ноль — программа без конца */
+	program_months: number,
 	/** Срок на отчёт преподавателя о занятии, дней после занятия */
 	report_days: number,
 	/** Расписание группы строкой, собрано из окон */
@@ -40841,8 +40861,6 @@ export type ModelTypes = {
 	id: ModelTypes["ID"],
 	/** Участников с оплаченным доступом, по которым проведён расчёт за занятие */
 	learners_count?: number | undefined | null,
-	/** Длительность занятия курса, минут — единица программы */
-	lesson_minutes: number,
 	/** Номер занятия в программе */
 	lesson_number: number,
 	/** Материалы занятия */
@@ -40860,9 +40878,7 @@ export type ModelTypes = {
 	/** Преподаватель занятия; пусто — не назначен */
 	teacher_username?: string | undefined | null,
 	/** Тема занятия */
-	topic: string,
-	/** Сколько занятий программы занимает: длительность в занятиях курса, неполное — за целое */
-	units: number
+	topic: string
 };
 	["EduLessonCalendarFilter"]: {
 	course_id?: ModelTypes["ID"] | undefined | null,
@@ -41045,10 +41061,10 @@ export type ModelTypes = {
 };
 	["EduRecipientType"]:EduRecipientType;
 	["EduRefundPreview"]: {
-		/** Занятий оплачено периодом */
-	lessons_paid: number,
-	/** Занятий прошло к моменту отмены */
-	lessons_used: number,
+		/** Минут занятий оплачено периодом */
+	minutes_paid: number,
+	/** Минут занятий прошло к моменту отмены */
+	minutes_used: number,
 	/** Основание возврата по Положению ЦПП */
 	reason: string,
 	/** Сколько вернётся ученику */
@@ -41357,18 +41373,14 @@ export type ModelTypes = {
 	id: ModelTypes["ID"],
 	/** Обложка курса: новое изображение (base64, ≤ 10 МБ, JPEG/PNG/WEBP), прежнее (bucket_key) или null — убрать */
 	image?: ModelTypes["EduCourseImageUploadInput"] | undefined | null,
-	/** Длительность занятия, минут */
-	lesson_minutes: number,
-	/** Занятий в месяц по расписанию */
-	lessons_per_month: number,
-	/** Занятий во всей программе курса */
-	lessons_total: number,
 	/** Уровень внутри раздела из справочника; пусто — без уровня */
 	level_id?: ModelTypes["ID"] | undefined | null,
 	/** Взнос преподавателя за занятие считается за каждого участника; иначе фиксированный за занятие */
 	pay_per_learner?: boolean | undefined | null,
 	/** Плановая ставка часа по программе («1000.0000 RUB») */
 	planned_hourly_rate: string,
+	/** Длительность программы, месяцев; ноль — программа без конца */
+	program_months: number,
 	/** Срок на отчёт преподавателя о занятии, дней после занятия */
 	report_days?: number | undefined | null,
 	/** Расписание строкой — когда окна расписания не заданы */
@@ -57093,16 +57105,22 @@ export type GraphQLTypes = {
 	/** Идентификатор курса */
 	id: GraphQLTypes["ID"],
 	image_url?: string | undefined | null,
-	/** Длительность занятия, минут */
+	/** Длительность занятия по первому окну расписания, минут */
 	lesson_minutes: number,
-	/** Занятий в месяц по расписанию */
+	/** Занятий в месяц по окнам расписания — для показа */
 	lessons_per_month: number,
-	/** Занятий во всей программе курса */
+	/** Занятий во всей программе курса — для показа; ноль — программа без конца */
 	lessons_total: number,
 	/** Уровень внутри раздела из справочника; пусто — без уровня */
 	level_id?: GraphQLTypes["ID"] | undefined | null,
 	/** Уровень внутри раздела: «7 класс», «Ступень 1»; пусто — без уровня */
 	level_title: string,
+	/** Минут занятий в месяц по окнам расписания — по ним считается взнос */
+	minutes_per_month: number,
+	/** Минут занятий в программе; ноль — программа без конца */
+	minutes_total: number,
+	/** Длительность программы, месяцев; ноль — программа без конца */
+	program_months: number,
 	/** Срок на отчёт преподавателя о занятии, дней после занятия */
 	report_days: number,
 	/** Расписание занятий */
@@ -57250,20 +57268,26 @@ export type GraphQLTypes = {
 	/** Идентификатор курса */
 	id: GraphQLTypes["ID"],
 	image_url?: string | undefined | null,
-	/** Длительность занятия, минут */
+	/** Длительность занятия по первому окну расписания, минут */
 	lesson_minutes: number,
-	/** Занятий в месяц по расписанию */
+	/** Занятий в месяц по окнам расписания — для показа */
 	lessons_per_month: number,
-	/** Занятий во всей программе курса */
+	/** Занятий во всей программе курса — для показа; ноль — программа без конца */
 	lessons_total: number,
 	/** Уровень внутри раздела из справочника; пусто — без уровня */
 	level_id?: GraphQLTypes["ID"] | undefined | null,
 	/** Уровень внутри раздела: «7 класс», «Ступень 1»; пусто — без уровня */
 	level_title: string,
+	/** Минут занятий в месяц по окнам расписания — по ним считается взнос */
+	minutes_per_month: number,
+	/** Минут занятий в программе; ноль — программа без конца */
+	minutes_total: number,
 	/** Взнос преподавателя за занятие считается за каждого участника; иначе фиксированный за занятие */
 	pay_per_learner: boolean,
 	/** Плановая ставка часа, заложенная во взнос каждого участника */
 	planned_hourly_rate: string,
+	/** Длительность программы, месяцев; ноль — программа без конца */
+	program_months: number,
 	/** Срок на отчёт преподавателя о занятии, дней после занятия */
 	report_days: number,
 	/** Расписание занятий */
@@ -57327,14 +57351,12 @@ export type GraphQLTypes = {
 	course_discount_percent?: number | undefined | null,
 	/** Принимать взнос за весь курс разом; иначе взнос только помесячный */
 	course_payment_enabled?: boolean | undefined | null,
-	/** Длительность занятия, минут */
-	lesson_minutes: number,
-	/** Занятий в месяц по расписанию */
-	lessons_per_month: number,
-	/** Занятий во всей программе курса */
-	lessons_total: number,
 	/** Плановая ставка часа по программе («1000.0000 RUB») */
-	planned_hourly_rate: string
+	planned_hourly_rate: string,
+	/** Длительность программы, месяцев; ноль — программа без конца */
+	program_months: number,
+	/** Окна расписания: по их минутам считается взнос */
+	schedule_slots: Array<GraphQLTypes["EduScheduleSlotInput"]>
 };
 	["EduCourseFee"]: {
 	__typename: "EduCourseFee",
@@ -57387,18 +57409,14 @@ export type GraphQLTypes = {
 	guarantee_days?: number | undefined | null,
 	/** Обложка курса: новое изображение (base64, ≤ 10 МБ, JPEG/PNG/WEBP), прежнее (bucket_key) или null — убрать */
 	image?: GraphQLTypes["EduCourseImageUploadInput"] | undefined | null,
-	/** Длительность занятия, минут */
-	lesson_minutes: number,
-	/** Занятий в месяц по расписанию */
-	lessons_per_month: number,
-	/** Занятий во всей программе курса */
-	lessons_total: number,
 	/** Уровень внутри раздела из справочника; пусто — без уровня */
 	level_id?: GraphQLTypes["ID"] | undefined | null,
 	/** Взнос преподавателя за занятие считается за каждого участника; иначе фиксированный за занятие */
 	pay_per_learner?: boolean | undefined | null,
 	/** Плановая ставка часа по программе («1000.0000 RUB») */
 	planned_hourly_rate: string,
+	/** Длительность программы, месяцев; ноль — программа без конца */
+	program_months: number,
 	/** Срок на отчёт преподавателя о занятии, дней после занятия */
 	report_days?: number | undefined | null,
 	/** Расписание строкой — когда окна расписания не заданы */
@@ -57624,18 +57642,24 @@ export type GraphQLTypes = {
 	id: GraphQLTypes["ID"],
 	/** Участников с действующей подпиской */
 	learners_active: number,
-	/** Длительность занятия курса, минут */
+	/** Длительность занятия по первому окну, минут */
 	lesson_minutes: number,
 	/** Проведено занятий */
 	lessons_held: number,
-	/** Занятий в месяц по расписанию */
+	/** Занятий в месяц по окнам расписания — для показа */
 	lessons_per_month: number,
 	/** Занятий в программе группы */
 	lessons_total: number,
+	/** Минут занятий в месяц — по ним контракт считает взнос */
+	minutes_per_month: number,
+	/** Минут занятий в программе; ноль — программа без конца */
+	minutes_total: number,
 	/** Взнос преподавателя за занятие считается за каждого участника; иначе фиксированный за занятие */
 	pay_per_learner: boolean,
 	/** Плановая ставка часа в группе */
 	planned_hourly_rate: string,
+	/** Длительность программы, месяцев; ноль — программа без конца */
+	program_months: number,
 	/** Срок на отчёт преподавателя о занятии, дней после занятия */
 	report_days: number,
 	/** Расписание группы строкой, собрано из окон */
@@ -57771,8 +57795,6 @@ export type GraphQLTypes = {
 	id: GraphQLTypes["ID"],
 	/** Участников с оплаченным доступом, по которым проведён расчёт за занятие */
 	learners_count?: number | undefined | null,
-	/** Длительность занятия курса, минут — единица программы */
-	lesson_minutes: number,
 	/** Номер занятия в программе */
 	lesson_number: number,
 	/** Материалы занятия */
@@ -57791,8 +57813,6 @@ export type GraphQLTypes = {
 	teacher_username?: string | undefined | null,
 	/** Тема занятия */
 	topic: string,
-	/** Сколько занятий программы занимает: длительность в занятиях курса, неполное — за целое */
-	units: number,
 	['...on EduLesson']: Omit<GraphQLTypes["EduLesson"], "...on EduLesson">
 };
 	["EduLessonCalendarFilter"]: {
@@ -58002,10 +58022,10 @@ export type GraphQLTypes = {
 ["EduRecipientType"]: EduRecipientType;
 	["EduRefundPreview"]: {
 	__typename: "EduRefundPreview",
-	/** Занятий оплачено периодом */
-	lessons_paid: number,
-	/** Занятий прошло к моменту отмены */
-	lessons_used: number,
+	/** Минут занятий оплачено периодом */
+	minutes_paid: number,
+	/** Минут занятий прошло к моменту отмены */
+	minutes_used: number,
 	/** Основание возврата по Положению ЦПП */
 	reason: string,
 	/** Сколько вернётся ученику */
@@ -58339,18 +58359,14 @@ export type GraphQLTypes = {
 	id: GraphQLTypes["ID"],
 	/** Обложка курса: новое изображение (base64, ≤ 10 МБ, JPEG/PNG/WEBP), прежнее (bucket_key) или null — убрать */
 	image?: GraphQLTypes["EduCourseImageUploadInput"] | undefined | null,
-	/** Длительность занятия, минут */
-	lesson_minutes: number,
-	/** Занятий в месяц по расписанию */
-	lessons_per_month: number,
-	/** Занятий во всей программе курса */
-	lessons_total: number,
 	/** Уровень внутри раздела из справочника; пусто — без уровня */
 	level_id?: GraphQLTypes["ID"] | undefined | null,
 	/** Взнос преподавателя за занятие считается за каждого участника; иначе фиксированный за занятие */
 	pay_per_learner?: boolean | undefined | null,
 	/** Плановая ставка часа по программе («1000.0000 RUB») */
 	planned_hourly_rate: string,
+	/** Длительность программы, месяцев; ноль — программа без конца */
+	program_months: number,
 	/** Срок на отчёт преподавателя о занятии, дней после занятия */
 	report_days?: number | undefined | null,
 	/** Расписание строкой — когда окна расписания не заданы */

@@ -95,8 +95,9 @@ public:
   /**
    * @brief Задать условия курса: плановую ставку часа, способ расчёта с
    * преподавателем (за каждого участника либо фиксированный за занятие),
-   * целевой членский взнос за месяц, расписание, скидку за взнос разом,
-   * гарантийный срок и дату начала занятий. По ним контракт считает все суммы.
+   * целевой членский взнос за месяц, минуты занятий в месяц и в программе,
+   * скидку за взнос разом, гарантийный срок и дату начала занятий. По ним
+   * контракт считает все суммы: учёт ведётся в минутах занятий.
    * @ingroup public_edubridge_actions
    */
   [[eosio::action]] void setcourse(eosio::name coopname,
@@ -104,9 +105,8 @@ public:
                                    eosio::asset planned_rate,
                                    bool per_learner,
                                    eosio::asset target_fee_month,
-                                   uint32_t lessons_per_month,
-                                   uint32_t lessons_total,
-                                   uint32_t lesson_minutes,
+                                   uint32_t minutes_per_month,
+                                   uint32_t minutes_total,
                                    bool course_payment,
                                    uint32_t discount_bp,
                                    uint32_t guarantee_secs,

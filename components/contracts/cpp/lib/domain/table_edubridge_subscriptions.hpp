@@ -47,8 +47,8 @@ struct edu_due {
 struct edu_sub_plan {
   uint8_t version = 0;               ///< 1 — учёт занятий ведётся; 0 — подписка открыта до его появления
   eosio::time_point_sec paid_from;   ///< с какого дня идёт оплаченный срок
-  uint32_t lessons_paid = 0;         ///< занятий оплачено всеми взносами
-  uint32_t lessons_done = 0;         ///< занятий, по которым прошёл расчёт
+  uint32_t minutes_paid = 0;         ///< минут занятий оплачено всеми взносами
+  uint32_t minutes_done = 0;         ///< минут занятий, по которым прошёл расчёт
   std::vector<uint32_t> charged;     ///< номера занятий группы, рассчитанных по этой подписке: второго расчёта за номер нет; стирается вместе с подпиской
   eosio::asset reserve;              ///< остаток оплаты занятий по плановой ставке — за непроведённые занятия
   eosio::asset due;                  ///< взнос преподавателей за проведённые занятия, ещё не выделенный в резерв: гарантийный срок идёт, взнос удержан целиком
@@ -77,7 +77,7 @@ struct edu_sub_plan {
     dues.clear();
   }
 
-  EOSLIB_SERIALIZE(edu_sub_plan, (version)(paid_from)(lessons_paid)(lessons_done)(charged)(reserve)(due)(released)(dues)(claimed))
+  EOSLIB_SERIALIZE(edu_sub_plan, (version)(paid_from)(minutes_paid)(minutes_done)(charged)(reserve)(due)(released)(dues)(claimed))
 };
 
 /**

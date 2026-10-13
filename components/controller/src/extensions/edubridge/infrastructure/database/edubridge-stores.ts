@@ -86,7 +86,7 @@ export const edubridgeStoreProviders: Provider[] = [
     useFactory: (db: Kysely<any>) =>
       new TableStore<EdubridgeCourseRecord>(db, {
         table: 'edubridge_courses',
-        columns: ['id', 'coopname', 'chain_ref', 'title', 'section_id', 'level_id', 'subject', 'grade', 'description', 'syllabus', 'schedule', 'schedule_slots', 'report_days', 'image', 'teacher_usernames', 'lessons_per_month', 'lessons_total', 'lesson_minutes', 'planned_hourly_rate', 'pay_per_learner', 'starts_at', 'guarantee_days', 'teacher_reserve_balance', 'teacher_settled_total', 'course_payment_enabled', 'course_discount_bp', 'fee_month', 'direction', 'carrier', 'external_ref', 'external_title_seen', 'external_checked_at', 'status', 'sort_order', 'created_at', 'updated_at'],
+        columns: ['id', 'coopname', 'chain_ref', 'title', 'section_id', 'level_id', 'subject', 'grade', 'description', 'syllabus', 'schedule', 'schedule_slots', 'report_days', 'image', 'teacher_usernames', 'lessons_per_month', 'lessons_total', 'lesson_minutes', 'program_months', 'minutes_per_month', 'minutes_total', 'planned_hourly_rate', 'pay_per_learner', 'starts_at', 'guarantee_days', 'teacher_reserve_balance', 'teacher_settled_total', 'course_payment_enabled', 'course_discount_bp', 'fee_month', 'direction', 'carrier', 'external_ref', 'external_title_seen', 'external_checked_at', 'status', 'sort_order', 'created_at', 'updated_at'],
         primaryKey: ['id'],
         json: ['image', 'teacher_usernames', 'schedule_slots'],
         dates: ['starts_at'],
@@ -127,7 +127,7 @@ export const edubridgeStoreProviders: Provider[] = [
     useFactory: (db: Kysely<any>) =>
       new TableStore<EdubridgeGroupRecord>(db, {
         table: 'edubridge_groups',
-        columns: ['id', 'coopname', 'chain_ref', 'course_id', 'title', 'status', 'enrollment_open', 'enrollment_closed_on_start', 'external_ref', 'starts_at', 'starts_at_time', 'lessons_per_month', 'lessons_total', 'lesson_minutes', 'planned_hourly_rate', 'pay_per_learner', 'guarantee_days', 'course_payment_enabled', 'course_discount_bp', 'fee_month', 'schedule_slots', 'report_days', 'teacher_reserve_balance', 'teacher_settled_total', 'created_at', 'updated_at'],
+        columns: ['id', 'coopname', 'chain_ref', 'course_id', 'title', 'status', 'enrollment_open', 'enrollment_closed_on_start', 'external_ref', 'starts_at', 'starts_at_time', 'lessons_per_month', 'lessons_total', 'lesson_minutes', 'program_months', 'minutes_per_month', 'minutes_total', 'planned_hourly_rate', 'pay_per_learner', 'guarantee_days', 'course_payment_enabled', 'course_discount_bp', 'fee_month', 'schedule_slots', 'report_days', 'teacher_reserve_balance', 'teacher_settled_total', 'created_at', 'updated_at'],
         primaryKey: ['id'],
         json: ['schedule_slots'],
         dates: ['starts_at'],

@@ -31,6 +31,6 @@ export function refundOf(
 /** Что контракт ведёт по подписке; без учёта занятий — нули. */
 function chainState(chain: ChainSubscription | null, zero: string): RefundChainState {
   const plan = chain?.plan;
-  if (!chain || !plan || Number(plan.version) !== 1) return { charged: zero, lessons_paid: 0, lessons_done: 0 };
-  return { charged: chain.charged ?? zero, lessons_paid: Number(plan.lessons_paid), lessons_done: Number(plan.lessons_done) };
+  if (!chain || !plan || Number(plan.version) !== 1) return { charged: zero, minutes_paid: 0, minutes_done: 0 };
+  return { charged: chain.charged ?? zero, minutes_paid: Number(plan.minutes_paid), minutes_done: Number(plan.minutes_done) };
 }
