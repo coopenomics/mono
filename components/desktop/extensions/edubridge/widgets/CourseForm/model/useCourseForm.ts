@@ -43,9 +43,6 @@ function emptyForm(): CourseFormFields {
     schedule_slots: [],
     report_days: 7,
     teacher_usernames: [],
-    lessons_per_month: 8,
-    lessons_total: 8,
-    lesson_minutes: 60,
     planned_hourly_rate: '',
     pay_per_learner: true,
     course_payment_enabled: false,
@@ -216,7 +213,7 @@ function useFeePreview(economy: ReturnType<typeof useEconomyFields>) {
     (params) => {
       if (previewTimer) clearTimeout(previewTimer);
       // Пока параметры неполные, считать нечего: сервер такой набор отклонит.
-      if (params.lessons_per_month < 1 || params.lessons_total < 1 || params.lesson_minutes < 5) {
+      if (!params.schedule_slots.length || params.schedule_slots.some((slot) => !(slot.minutes >= 5))) {
         fee.value = null;
         return;
       }
