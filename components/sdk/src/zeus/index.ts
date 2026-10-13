@@ -7562,7 +7562,7 @@ export type ValueTypes = {
 	/** До какого момента */
 	to?: string | undefined | null | Variable<any, string>
 };
-	/** Откуда занятие в календаре: из окон расписания либо назначено отдельно */
+	/** Откуда занятие в календаре: из окон расписания, из резерва либо перенесено */
 ["EduLessonOrigin"]:EduLessonOrigin;
 	["EduLessonReportInput"]: {
 	/** Занятие из календаря группы */
@@ -7833,7 +7833,7 @@ export type ValueTypes = {
 	minutes?:boolean | `@${string}`,
 	/** Время начала «ЧЧ:ММ» по часовому поясу кооператива */
 	time?:boolean | `@${string}`,
-	/** День недели: 1 — понедельник … 7 — воскресенье */
+	/** День недели: 1 — понедельник … 7 — воскресенье; 8 — резерв */
 	weekday?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on EduScheduleSlot']?: Omit<ValueTypes["EduScheduleSlot"], "...on EduScheduleSlot">
@@ -7843,9 +7843,9 @@ export type ValueTypes = {
 	assignment_id?: ValueTypes["ID"] | undefined | null | Variable<any, string>,
 	/** Длительность занятия, минут */
 	minutes: number | Variable<any, string>,
-	/** Время начала «ЧЧ:ММ» по часовому поясу кооператива */
+	/** Время начала «ЧЧ:ММ» по часовому поясу кооператива; у резерва пусто */
 	time: string | Variable<any, string>,
-	/** День недели: 1 — понедельник … 7 — воскресенье */
+	/** День недели: 1 — понедельник … 7 — воскресенье; 8 — резерв для внеочередных занятий */
 	weekday: number | Variable<any, string>
 };
 	["EduSection"]: AliasType<{
@@ -24487,7 +24487,7 @@ export type ResolverInputTypes = {
 	/** До какого момента */
 	to?: string | undefined | null
 };
-	/** Откуда занятие в календаре: из окон расписания либо назначено отдельно */
+	/** Откуда занятие в календаре: из окон расписания, из резерва либо перенесено */
 ["EduLessonOrigin"]:EduLessonOrigin;
 	["EduLessonReportInput"]: {
 	/** Занятие из календаря группы */
@@ -24746,7 +24746,7 @@ export type ResolverInputTypes = {
 	minutes?:boolean | `@${string}`,
 	/** Время начала «ЧЧ:ММ» по часовому поясу кооператива */
 	time?:boolean | `@${string}`,
-	/** День недели: 1 — понедельник … 7 — воскресенье */
+	/** День недели: 1 — понедельник … 7 — воскресенье; 8 — резерв */
 	weekday?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
@@ -24755,9 +24755,9 @@ export type ResolverInputTypes = {
 	assignment_id?: ResolverInputTypes["ID"] | undefined | null,
 	/** Длительность занятия, минут */
 	minutes: number,
-	/** Время начала «ЧЧ:ММ» по часовому поясу кооператива */
+	/** Время начала «ЧЧ:ММ» по часовому поясу кооператива; у резерва пусто */
 	time: string,
-	/** День недели: 1 — понедельник … 7 — воскресенье */
+	/** День недели: 1 — понедельник … 7 — воскресенье; 8 — резерв для внеочередных занятий */
 	weekday: number
 };
 	["EduSection"]: AliasType<{
@@ -41131,7 +41131,7 @@ export type ModelTypes = {
 	minutes: number,
 	/** Время начала «ЧЧ:ММ» по часовому поясу кооператива */
 	time: string,
-	/** День недели: 1 — понедельник … 7 — воскресенье */
+	/** День недели: 1 — понедельник … 7 — воскресенье; 8 — резерв */
 	weekday: number
 };
 	["EduScheduleSlotInput"]: {
@@ -41139,9 +41139,9 @@ export type ModelTypes = {
 	assignment_id?: ModelTypes["ID"] | undefined | null,
 	/** Длительность занятия, минут */
 	minutes: number,
-	/** Время начала «ЧЧ:ММ» по часовому поясу кооператива */
+	/** Время начала «ЧЧ:ММ» по часовому поясу кооператива; у резерва пусто */
 	time: string,
-	/** День недели: 1 — понедельник … 7 — воскресенье */
+	/** День недели: 1 — понедельник … 7 — воскресенье; 8 — резерв для внеочередных занятий */
 	weekday: number
 };
 	["EduSection"]: {
@@ -57825,7 +57825,7 @@ export type GraphQLTypes = {
 	/** До какого момента */
 	to?: string | undefined | null
 };
-	/** Откуда занятие в календаре: из окон расписания либо назначено отдельно */
+	/** Откуда занятие в календаре: из окон расписания, из резерва либо перенесено */
 ["EduLessonOrigin"]: EduLessonOrigin;
 	["EduLessonReportInput"]: {
 		/** Занятие из календаря группы */
@@ -58097,7 +58097,7 @@ export type GraphQLTypes = {
 	minutes: number,
 	/** Время начала «ЧЧ:ММ» по часовому поясу кооператива */
 	time: string,
-	/** День недели: 1 — понедельник … 7 — воскресенье */
+	/** День недели: 1 — понедельник … 7 — воскресенье; 8 — резерв */
 	weekday: number,
 	['...on EduScheduleSlot']: Omit<GraphQLTypes["EduScheduleSlot"], "...on EduScheduleSlot">
 };
@@ -58106,9 +58106,9 @@ export type GraphQLTypes = {
 	assignment_id?: GraphQLTypes["ID"] | undefined | null,
 	/** Длительность занятия, минут */
 	minutes: number,
-	/** Время начала «ЧЧ:ММ» по часовому поясу кооператива */
+	/** Время начала «ЧЧ:ММ» по часовому поясу кооператива; у резерва пусто */
 	time: string,
-	/** День недели: 1 — понедельник … 7 — воскресенье */
+	/** День недели: 1 — понедельник … 7 — воскресенье; 8 — резерв для внеочередных занятий */
 	weekday: number
 };
 	["EduSection"]: {
@@ -69364,9 +69364,10 @@ export enum EduGuaranteeClaimStatus {
 	EXPIRED = "EXPIRED",
 	SUBMITTED = "SUBMITTED"
 }
-/** Откуда занятие в календаре: из окон расписания либо назначено отдельно */
+/** Откуда занятие в календаре: из окон расписания, из резерва либо перенесено */
 export enum EduLessonOrigin {
 	EXTRA = "EXTRA",
+	MOVED = "MOVED",
 	SCHEDULE = "SCHEDULE"
 }
 /** Состояние занятия в календаре группы */

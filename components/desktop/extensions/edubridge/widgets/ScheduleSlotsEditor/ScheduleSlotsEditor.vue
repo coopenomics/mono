@@ -3,8 +3,10 @@
 //- преподаватель. Из окон и даты начала группы строится календарь занятий.
 .edu-slots
   .edu-slots__row(v-for="(slot, i) in modelValue" :key="i")
-    BaseSelect.edu-slots__day(:model-value="slot.weekday" :label="$t('edubridge.scheduleSlots.weekdayLabel')" :options="WEEKDAY_OPTIONS" :disabled="disabled" @update:model-value="patch(i, { weekday: Number($event) })")
-    BaseInput.edu-slots__time(:model-value="slot.time" :label="$t('edubridge.scheduleSlots.timeLabel')" type="time" stack-label :disabled="disabled" @update:model-value="patch(i, { time: String($event ?? '') })")
+    BaseSelect.edu-slots__day(:model-value="slot.weekday" :label="$t('edubridge.scheduleSlots.weekdayLabel')" :options="dayChoices" :disabled="disabled" @update:model-value="patch(i, { weekday: Number($event) })")
+    //- Резервное окно дня и времени не имеет: его минуты администратор ставит в календарь внеочередным занятием.
+    BaseInput.edu-slots__time(v-if="slot.weekday !== RESERVE_WEEKDAY" :model-value="slot.time" :label="$t('edubridge.scheduleSlots.timeLabel')" type="time" stack-label :disabled="disabled" @update:model-value="patch(i, { time: String($event ?? '') })")
+    .edu-slots__time.t-sm.t-muted.edu-slots__reserve-note(v-else) {{ $t('edubridge.scheduleSlots.reserveNote') }}
     BaseInput.edu-slots__minutes(:model-value="slot.minutes" :label="$t('edubridge.scheduleSlots.minutesLabel')" type="number" min="5" step="5" :disabled="disabled" @update:model-value="patch(i, { minutes: Number($event || 0) })")
     BaseSelect.edu-slots__teacher(v-if="teacherOptions.length" :model-value="slot.assignment_id" :label="$t('edubridge.scheduleSlots.teacherLabel')" :options="teacherChoices" clearable :disabled="disabled" @update:model-value="patch(i, { assignment_id: $event ? String($event) : null })")
     BaseButton.edu-slots__remove(variant="ghost" icon-only :aria-label="$t('edubridge.scheduleSlots.remove')" :disabled="disabled" @click="remove(i)")
@@ -20,7 +22,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { BaseButton, BaseInput, BaseSelect } from 'src/shared/ui/base';
-import { WEEKDAY_OPTIONS, type IScheduleSlot } from '../../entities/Lesson';
+import { RESERVE_WEEKDAY, WEEKDAY_OPTIONS, type IScheduleSlot } from '../../entities/Lesson';
 import { t } from '../../i18n';
 
 /**
@@ -42,6 +44,8 @@ const props = withDefaults(
 const emit = defineEmits<{ 'update:modelValue': [IScheduleSlot[]] }>();
 
 const teacherChoices = computed(() => [{ value: '', label: t('edubridge.scheduleSlots.teacherNone') }, ...props.teacherOptions]);
+/** Дни недели и резерв: минуты резерва входят в программу, в календарь их ставит администратор сам. */
+const dayChoices = [...WEEKDAY_OPTIONS, { value: RESERVE_WEEKDAY, label: t('edubridge.scheduleSlots.reserve') }];
 
 function patch(i: number, change: Partial<IScheduleSlot>): void {
   emit('update:modelValue', props.modelValue.map((s, k) => (k === i ? { ...s, ...change } : s)));
@@ -87,5 +91,9 @@ function add(): void {
 }
 .edu-slots__remove {
   margin-top: var(--p-5);
+}
+.edu-slots__reserve-note {
+  align-self: center;
+  padding-top: var(--p-4);
 }
 </style>

@@ -42,15 +42,15 @@ cases:
   - id: edu.cal.side.02
     level: backend
     kind: side
-    scenario: "Дополнительное занятие при заполненной программе занимает место последнего запланированного по расписанию; двухчасовое — двух."
-    expect: "Последние занятия по расписанию сняты, дополнительное получило наименьший свободный номер; занятий программы не больше, чем в курсе."
+    scenario: "Внеочередное занятие берётся только из резерва расписания: занятия по расписанию остаются, резерв исчерпан — отказ."
+    expect: "Занятие получило наименьший свободный номер; после исчерпания резерва — EDUBRIDGE_RESERVE_EMPTY."
     test: components/controller/tests/unit/edubridge/calendar.service.test.ts
     status: written
   - id: edu.cal.break.01
     level: backend
     kind: break
     scenario: "Программа заполнена проведёнными и назначенными занятиями: дополнительное занятие, перенос с удлинением и окно с чужим преподавателем."
-    expect: "Отказ EDUBRIDGE_PROGRAM_FULL; окно с допуском другого курса — EDUBRIDGE_SCHEDULE_TEACHER_NOT_ASSIGNED; перенос и отмена проведённого — EDUBRIDGE_LESSON_NOT_PLANNED."
+    expect: "Отказ EDUBRIDGE_RESERVE_EMPTY; окно с допуском другого курса — EDUBRIDGE_SCHEDULE_TEACHER_NOT_ASSIGNED; перенос и отмена проведённого — EDUBRIDGE_LESSON_NOT_PLANNED."
     test: components/controller/tests/unit/edubridge/calendar.service.test.ts
     status: written
   - id: edu.cal.side.03

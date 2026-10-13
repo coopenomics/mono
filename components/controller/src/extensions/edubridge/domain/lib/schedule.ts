@@ -7,7 +7,7 @@ import { t } from '../../i18n';
  * местное время кооператива (часовой пояс из настроек контура).
  */
 export interface EduScheduleSlot {
-  /** День недели: 1 — понедельник … 7 — воскресенье. */
+  /** День недели: 1 — понедельник … 7 — воскресенье; 8 — резерв: минуты для внеочередных занятий. */
   weekday: number;
   /** Время начала «ЧЧ:ММ» по часовому поясу кооператива. */
   time: string;
@@ -19,16 +19,21 @@ export interface EduScheduleSlot {
 
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
 
+/** «Восьмой день» окна — резерв: его минуты входят в программу, а в календарь их ставит администратор внеочередным занятием. */
+export const RESERVE_WEEKDAY = 8;
+
+export const isReserveSlot = (s: Pick<EduScheduleSlot, 'weekday'>): boolean => Number(s.weekday) === RESERVE_WEEKDAY;
+
 /** Окна в рабочем виде: проверены и упорядочены по дню недели и времени. */
 export function normalizeSlots(raw: readonly Partial<EduScheduleSlot>[] | null | undefined): EduScheduleSlot[] {
   const slots = (raw ?? []).map((s) => {
     const weekday = Number(s.weekday);
     const time = String(s.time ?? '').trim();
     const minutes = Number(s.minutes);
-    if (!Number.isInteger(weekday) || weekday < 1 || weekday > 7) throw DomainError.badRequest('EDUBRIDGE_SCHEDULE_WEEKDAY_INVALID');
-    if (!TIME_RE.test(time)) throw DomainError.badRequest('EDUBRIDGE_SCHEDULE_TIME_INVALID');
+    if (!Number.isInteger(weekday) || weekday < 1 || weekday > RESERVE_WEEKDAY) throw DomainError.badRequest('EDUBRIDGE_SCHEDULE_WEEKDAY_INVALID');
+    if (weekday !== RESERVE_WEEKDAY && !TIME_RE.test(time)) throw DomainError.badRequest('EDUBRIDGE_SCHEDULE_TIME_INVALID');
     if (!Number.isInteger(minutes) || minutes < 5 || minutes > 24 * 60) throw DomainError.badRequest('EDUBRIDGE_SCHEDULE_MINUTES_INVALID');
-    return { weekday, time, minutes, assignment_id: s.assignment_id ? String(s.assignment_id) : null };
+    return { weekday, time: weekday === RESERVE_WEEKDAY ? '' : time, minutes, assignment_id: s.assignment_id ? String(s.assignment_id) : null };
   });
   return slots.sort((a, b) => a.weekday - b.weekday || a.time.localeCompare(b.time));
 }
@@ -39,7 +44,9 @@ export function normalizeSlots(raw: readonly Partial<EduScheduleSlot>[] | null |
  */
 export function formatSlots(slots: readonly EduScheduleSlot[]): string {
   const groups = new Map<string, number[]>();
+  const reserve = weeklyMinutes(slots.filter(isReserveSlot));
   for (const s of slots) {
+    if (isReserveSlot(s)) continue;
     const key = `${s.time}|${s.minutes}`;
     groups.set(key, [...(groups.get(key) ?? []), s.weekday]);
   }
@@ -49,6 +56,7 @@ export function formatSlots(slots: readonly EduScheduleSlot[]): string {
       const names = [...new Set(days)].sort((a, b) => a - b).map((d) => t(`edubridge.schedule.weekday.${d}` as never)).join(', ');
       return `${names} ${time}–${addMinutes(time, Number(minutes))}`;
     })
+    .concat(reserve > 0 ? [t('edubridge.schedule.reserveLine', { minutes: reserve })] : [])
     .join('; ');
 }
 
@@ -126,13 +134,15 @@ export interface SlotOccurrence {
 export function slotOccurrences(slots: readonly EduScheduleSlot[], startsAt: Date, limit: number, tz: string = eduTimezone()): SlotOccurrence[] {
   if (!slots.length || limit <= 0) return [];
   const out: SlotOccurrence[] = [];
+  const weekly = slots.filter((s) => !isReserveSlot(s));
+  if (!weekly.length) return [];
   const start = zonedParts(startsAt, tz);
   // Перебор по дням от дня начала; верхняя граница страхует от бесконечного цикла при нулевом лимите на день.
   const day = Date.UTC(start.year, start.month - 1, start.day);
   for (let offset = 0; offset < 366 * 3 && out.length < limit; offset += 1) {
     const d = new Date(day + offset * 24 * 60 * 60 * 1000);
     const weekday = ((d.getUTCDay() + 6) % 7) + 1;
-    for (const slot of slots) {
+    for (const slot of weekly) {
       if (slot.weekday !== weekday || out.length >= limit) continue;
       const [h, m] = slot.time.split(':').map(Number);
       out.push({ at: zonedMoment(d.getUTCFullYear(), d.getUTCMonth() + 1, d.getUTCDate(), h, m, tz), slot });
@@ -161,17 +171,21 @@ export interface ProgramNumbers {
   lessons_total: number;
   /** Длительность занятия по первому окну — длительность по умолчанию для занятия сверх расписания. */
   lesson_minutes: number;
+  /** Минут резерва в месяц — для внеочередных занятий. */
+  reserve_per_month: number;
 }
 
-export function programOf(slots: readonly Pick<EduScheduleSlot, 'minutes'>[], programMonths: number): ProgramNumbers {
+export function programOf(slots: readonly Pick<EduScheduleSlot, 'minutes' | 'weekday'>[], programMonths: number): ProgramNumbers {
   const months = Math.max(0, Math.floor(Number(programMonths || 0)));
+  const weekly = slots.filter((s) => !isReserveSlot(s as EduScheduleSlot));
   const minutesPerMonth = Math.round(weeklyMinutes(slots) * WEEKS_PER_MONTH);
-  const lessonsPerMonth = Math.round(slots.length * WEEKS_PER_MONTH);
+  const lessonsPerMonth = Math.round(weekly.length * WEEKS_PER_MONTH);
   return {
     minutes_per_month: minutesPerMonth,
     minutes_total: minutesPerMonth * months,
     lessons_per_month: lessonsPerMonth,
     lessons_total: lessonsPerMonth * months,
-    lesson_minutes: Number(slots[0]?.minutes ?? 60),
+    lesson_minutes: Number((weekly[0] ?? slots[0])?.minutes ?? 60),
+    reserve_per_month: Math.round(weeklyMinutes(slots.filter((s) => isReserveSlot(s as EduScheduleSlot))) * WEEKS_PER_MONTH),
   };
 }

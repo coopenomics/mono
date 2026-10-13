@@ -62,6 +62,9 @@ export async function cancelLesson(lesson_id: string): Promise<ICalendarLesson> 
   return result;
 }
 
+/** «Восьмой день» окна — резерв: минуты входят в программу, занятие из них назначает администратор. */
+export const RESERVE_WEEKDAY = 8;
+
 /** Дни недели коротко: 1 — понедельник … 7 — воскресенье. */
 export const WEEKDAY_OPTIONS = [1, 2, 3, 4, 5, 6, 7].map((value) => ({ value, label: t(`edubridge.schedule.weekday.${value}` as never) }));
 

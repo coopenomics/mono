@@ -6,7 +6,7 @@ BaseDialog(:model-value="modelValue" :title="lesson ? $t('edubridge.planLesson.m
     .t-sm.t-muted.q-mb-md {{ lesson ? $t('edubridge.planLesson.moveNote') : $t('edubridge.planLesson.note') }}
     BaseSelect(v-if="!lesson && groupOptions.length !== 1" v-model="form.group_id" :label="$t('edubridge.planLesson.groupLabel')" :options="groupOptions" required)
     BaseInput(v-model="form.held_at" :label="$t('edubridge.planLesson.momentLabel')" type="datetime-local" stack-label required)
-    BaseInput(v-model="form.minutes" :label="$t('edubridge.planLesson.minutesLabel')" type="number" min="5" step="5" required :hint="$t('edubridge.planLesson.minutesHint')")
+    BaseInput(v-model="form.minutes" :label="$t('edubridge.planLesson.minutesLabel')" type="number" min="5" step="5" required)
     BaseSelect(v-if="teacherOptions.length" v-model="form.assignment_id" :label="$t('edubridge.planLesson.teacherLabel')" :options="teacherChoices" clearable)
     BaseInput(v-model="form.topic" :label="$t('edubridge.planLesson.topicLabel')")
     template(#footer)

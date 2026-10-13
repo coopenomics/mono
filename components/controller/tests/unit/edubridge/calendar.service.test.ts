@@ -13,6 +13,8 @@ const TUE_THU = [
   { weekday: 2, time: '17:00', minutes: 60, assignment_id: 'A1' },
   { weekday: 4, time: '17:00', minutes: 60, assignment_id: 'A1' },
 ];
+/** Резерв: час в неделю на внеочередные занятия — 260 минут в месяц, 520 за два месяца программы. */
+const RESERVE = { weekday: 8, time: '', minutes: 60, assignment_id: null };
 
 /** Группа курса: 12 занятий по 60 минут, 8 в месяц, начало в среду 14.10.2026. */
 function groupOf(over: Record<string, unknown> = {}) {
@@ -82,8 +84,11 @@ describe('Окна расписания и моменты занятий', () =>
   });
 
   it('числа программы из окон: минуты недели на 52/12, занятия — для показа, длительность — по первому окну', () => {
-    expect(programOf(TUE_THU, 8)).toEqual({ minutes_per_month: 520, minutes_total: 4160, lessons_per_month: 9, lessons_total: 72, lesson_minutes: 60 });
-    expect(programOf([{ minutes: 90 }], 0)).toEqual({ minutes_per_month: 390, minutes_total: 0, lessons_per_month: 4, lessons_total: 0, lesson_minutes: 90 });
+    expect(programOf(TUE_THU, 8)).toEqual({ minutes_per_month: 520, minutes_total: 4160, lessons_per_month: 9, lessons_total: 72, lesson_minutes: 60, reserve_per_month: 0 });
+    expect(programOf([{ weekday: 6, minutes: 90 }], 0)).toEqual({ minutes_per_month: 390, minutes_total: 0, lessons_per_month: 4, lessons_total: 0, lesson_minutes: 90, reserve_per_month: 0 });
+    // Резерв входит в минуты программы, но не в занятия по расписанию.
+    expect(programOf([...TUE_THU, RESERVE], 2)).toEqual({ minutes_per_month: 780, minutes_total: 1560, lessons_per_month: 9, lessons_total: 18, lesson_minutes: 60, reserve_per_month: 260 });
+    expect(formatSlots(normalizeSlots([...TUE_THU, RESERVE]))).toBe('Вт, Чт 17:00–18:00; резерв 60 мин в неделю');
     expect(programOf([], 3).minutes_per_month).toBe(0);
   });
 
@@ -135,32 +140,32 @@ describe('EdubridgeCalendarService — календарь группы', () => {
     expect(scheduled.map((l) => l.lesson_number)).toEqual([3, 4, 5, 6, 7, 8, 9, 10, 11]);
   });
 
-  it('дополнительное занятие при заполненной программе снимает последние по расписанию; двухчасовое — два', async () => {
-    const { service, group, live, lessons } = make();
+  it('внеочередное занятие берётся только из резерва: занятия по расписанию остаются, резерв исчерпан — отказ', async () => {
+    // Программа 1240 минут: 720 по окнам и 520 резерва — в календарь по окнам идут ровно 12 занятий.
+    const { service, group, live } = make({ group: groupOf({ schedule_slots: [...TUE_THU, RESERVE], minutes_total: 1240 }) });
     await service.rebuild('voskhod', group);
-    const lastBefore = live()[11];
+    expect(live()).toHaveLength(12);
     const extra = await service.plan('voskhod', { group_id: 'G1', held_at: '2026-10-24T10:00:00Z', minutes: 120, assignment_id: 'A2', topic: 'Контрольная' });
-    expect(extra).toMatchObject({ origin: EduLessonOrigin.EXTRA, status: EduLessonStatus.PLANNED, teacher_username: 'other', duration_minutes: 120 });
-    // Сняты два последних занятия по расписанию, свободный номер — освободившийся 11.
-    expect(lessons.deleteMany).toHaveBeenLastCalledWith(expect.arrayContaining([lastBefore.id]));
-    expect(live()).toHaveLength(11);
-    expect(extra.lesson_number).toBe(11);
-    const minutes = live().reduce((sum, l) => sum + l.duration_minutes, 0);
-    expect(minutes).toBe(720);
+    expect(extra).toMatchObject({ origin: EduLessonOrigin.EXTRA, status: EduLessonStatus.PLANNED, teacher_username: 'other', duration_minutes: 120, lesson_number: 13 });
+    expect(live()).toHaveLength(13);
+    // Резерва осталось 400 минут: ещё одно занятие на 400 проходит, следующее — нет.
+    await expect(service.plan('voskhod', { group_id: 'G1', held_at: '2026-10-25T10:00:00Z', minutes: 400 })).resolves.toMatchObject({ lesson_number: 14 });
+    await expect(service.plan('voskhod', { group_id: 'G1', held_at: '2026-10-26T10:00:00Z', minutes: 30 })).rejects.toMatchObject({ code: 'EDUBRIDGE_RESERVE_EMPTY' });
   });
 
   it('программа заполнена проведёнными и назначенными занятиями: дополнительное и удлинение отклоняются; чужой допуск в окне — отказ', async () => {
     const full = Array.from({ length: 12 }, (_, i) => ({ id: `F${i + 1}`, group_id: 'G1', lesson_number: i + 1, status: i < 6 ? EduLessonStatus.HELD : EduLessonStatus.PLANNED, origin: EduLessonOrigin.EXTRA, held_at: new Date(Date.UTC(2026, 9, 15 + i)), duration_minutes: 60 }));
     const { service } = make({ lessons: full });
-    await expect(service.plan('voskhod', { group_id: 'G1', held_at: '2026-12-01T10:00:00Z' })).rejects.toMatchObject({ code: 'EDUBRIDGE_PROGRAM_FULL' });
-    await expect(service.move('voskhod', { lesson_id: 'F12', minutes: 120 })).rejects.toMatchObject({ code: 'EDUBRIDGE_PROGRAM_FULL' });
+    // Резерва в окнах нет: внеочередное занятие и удлинение внеочередного отклоняются резервом.
+    await expect(service.plan('voskhod', { group_id: 'G1', held_at: '2026-12-01T10:00:00Z' })).rejects.toMatchObject({ code: 'EDUBRIDGE_RESERVE_EMPTY' });
+    await expect(service.move('voskhod', { lesson_id: 'F12', minutes: 120 })).rejects.toMatchObject({ code: 'EDUBRIDGE_RESERVE_EMPTY' });
     await expect(service.move('voskhod', { lesson_id: 'F1', held_at: '2026-12-01T10:00:00Z' })).rejects.toMatchObject({ code: 'EDUBRIDGE_LESSON_NOT_PLANNED' });
     await expect(service.cancel('voskhod', 'F1')).rejects.toMatchObject({ code: 'EDUBRIDGE_LESSON_NOT_PLANNED' });
     await expect(service.setSchedule('voskhod', { group_id: 'G1', slots: [{ weekday: 1, time: '10:00', minutes: 60, assignment_id: 'AX' }] })).rejects.toMatchObject({ code: 'EDUBRIDGE_SCHEDULE_TEACHER_NOT_ASSIGNED' });
   });
 
-  it('отмена освобождает номер: следующее дополнительное занятие получает его; перенос меняет дату и преподавателя', async () => {
-    const { service, group, live, store } = make();
+  it('отмена освобождает номер: следующее внеочередное занятие получает его; перенос меняет дату и преподавателя', async () => {
+    const { service, group, live, store } = make({ group: groupOf({ schedule_slots: [...TUE_THU, RESERVE], minutes_total: 1240 }) });
     await service.rebuild('voskhod', group);
     const fifth = live()[4];
     const cancelled = await service.cancel('voskhod', fifth.id);
@@ -171,6 +176,9 @@ describe('EdubridgeCalendarService — календарь группы', () => {
     const moved = await service.move('voskhod', { lesson_id: replacement.id, held_at: '2026-11-01T10:00:00Z', assignment_id: 'A2', topic: 'Перенос' });
     expect(moved).toMatchObject({ lesson_number: 5, teacher_username: 'other', topic: 'Перенос', origin: EduLessonOrigin.EXTRA });
     expect(moved.held_at.toISOString()).toBe('2026-11-01T10:00:00.000Z');
+    // Перенос занятия по расписанию: оно выходит из-под перестройки и резерв не тратит.
+    const scheduled = live().find((l) => l.origin === EduLessonOrigin.SCHEDULE) as any;
+    await expect(service.move('voskhod', { lesson_id: scheduled.id, held_at: '2026-11-02T10:00:00Z' })).resolves.toMatchObject({ origin: EduLessonOrigin.MOVED });
   });
 
   it('окна расписания группы: сохраняются, срок на отчёт проверяется, календарь перестраивается', async () => {

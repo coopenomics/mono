@@ -6,7 +6,7 @@ import type { EduScheduleSlot } from '../../domain/lib/schedule';
 /** Окно расписания: день недели, время начала, длительность и преподаватель. */
 @ObjectType('EduScheduleSlot')
 export class EduScheduleSlotDTO {
-  @Field(() => Int, { description: 'День недели: 1 — понедельник … 7 — воскресенье' }) weekday!: number;
+  @Field(() => Int, { description: 'День недели: 1 — понедельник … 7 — воскресенье; 8 — резерв' }) weekday!: number;
   @Field(() => String, { description: 'Время начала «ЧЧ:ММ» по часовому поясу кооператива' }) time!: string;
   @Field(() => Int, { description: 'Длительность занятия, минут' }) minutes!: number;
   @Field(() => ID, { nullable: true, description: 'Допуск преподавателя, который ведёт занятия окна; пусто — преподаватель не назначен' }) assignment_id!: string | null;
@@ -21,15 +21,15 @@ export class EduScheduleSlotDTO {
 
 @InputType('EduScheduleSlotInput')
 export class EduScheduleSlotInputDTO {
-  @Field(() => Int, { description: 'День недели: 1 — понедельник … 7 — воскресенье' })
+  @Field(() => Int, { description: 'День недели: 1 — понедельник … 7 — воскресенье; 8 — резерв для внеочередных занятий' })
   @IsInt()
   @Min(1)
-  @Max(7)
+  @Max(8)
   weekday!: number;
 
-  @Field(() => String, { description: 'Время начала «ЧЧ:ММ» по часовому поясу кооператива' })
+  @Field(() => String, { description: 'Время начала «ЧЧ:ММ» по часовому поясу кооператива; у резерва пусто' })
   @IsString()
-  @Matches(/^([01]\d|2[0-3]):[0-5]\d$/)
+  @Matches(/^$|^([01]\d|2[0-3]):[0-5]\d$/)
   time!: string;
 
   @Field(() => Int, { description: 'Длительность занятия, минут' })

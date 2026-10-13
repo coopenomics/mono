@@ -611,7 +611,8 @@ const longReportWindow = new Set<string>()
 export async function planLesson(groupId: string, over: Record<string, unknown> = {}): Promise<any> {
   const chairman = await tokenOf(CHAIRMAN)
   if (!longReportWindow.has(groupId)) {
-    await gql(chairman, SET_GROUP_SCHEDULE, { d: { group_id: groupId, slots: [], report_days: 365 } })
+    // Внеочередные занятия тестов идут из резерва: окна по дням сняты, резерв большой.
+    await gql(chairman, SET_GROUP_SCHEDULE, { d: { group_id: groupId, slots: [{ weekday: 8, time: '', minutes: 600 }], report_days: 365 } })
     longReportWindow.add(groupId)
   }
   const d = { group_id: groupId, held_at: new Date(Date.now() - 2 * 3600_000).toISOString(), ...over }

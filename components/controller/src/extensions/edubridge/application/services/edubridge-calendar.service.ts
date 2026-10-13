@@ -8,7 +8,7 @@ import { EdubridgeGroupKyselyRepository } from '../../infrastructure/repositorie
 import { EdubridgeLessonKyselyRepository } from '../../infrastructure/repositories/edubridge-lesson.kysely-repository';
 import { EdubridgeTeacherKyselyRepository } from '../../infrastructure/repositories/edubridge-teacher.kysely-repository';
 import { eduMonthSeconds, isTimeCompressed } from '../../domain/economy/time-scale';
-import { type EduScheduleSlot, type SlotOccurrence, normalizeSlots, slotOccurrences } from '../../domain/lib/schedule';
+import { type EduScheduleSlot, type SlotOccurrence, isReserveSlot, normalizeSlots, programOf, slotOccurrences } from '../../domain/lib/schedule';
 import { startMomentOf } from '../../domain/lib/group-start';
 
 export interface EduScheduleInput {
@@ -89,7 +89,8 @@ export class EdubridgeCalendarService {
     const start = startMomentOf(group);
     if (!start || !group.schedule_slots?.length || group.status !== EduGroupStatus.ACTIVE) return kept;
 
-    const budget = this.budget(group, kept);
+    // Занятия по окнам занимают программу без минут резерва: резерв ставится в календарь администратором.
+    const budget = Math.max(0, this.budget(group, kept) - Math.max(0, this.reserveTotal(group) - this.reserveUsed(kept)));
     const occurrences = isTimeCompressed()
       ? compressedOccurrences(group, new Date(start), budget)
       : slotOccurrences(group.schedule_slots, new Date(start), budget);
@@ -131,9 +132,9 @@ export class EdubridgeCalendarService {
   }
 
   /**
-   * Занятие сверх расписания: администратор называет дату, длительность и
-   * преподавателя. Место в программе берётся у последних запланированных по
-   * расписанию занятий; без них — программа заполнена.
+   * Внеочередное занятие из резерва расписания: администратор называет дату,
+   * длительность и преподавателя. Минуты берутся только из резерва —
+   * занятия по расписанию остаются на месте; резерв исчерпан — отказ.
    */
   async plan(coopname: string, input: EduPlanLessonInput): Promise<EdubridgeLessonRecord> {
     const group = await this.group(coopname, input.group_id);
@@ -141,7 +142,8 @@ export class EdubridgeCalendarService {
     const minutes = minutesOf(input.minutes, group.lesson_minutes);
     const assignment = input.assignment_id ? await this.courseAssignment(coopname, group.course_id, input.assignment_id) : null;
     const all = await this.lessons.findByGroup(coopname, group.id);
-    await this.makeRoom(group, all, minutes);
+    const reserveLeft = this.reserveTotal(group) - this.reserveUsed(all);
+    if (reserveLeft < minutes) throw DomainError.badRequest('EDUBRIDGE_RESERVE_EMPTY', { minutesLeft: Math.max(0, reserveLeft) });
     const live = all.filter((l) => l.status !== EduLessonStatus.CANCELLED);
     const number = nextFree(new Set(live.map((l) => l.lesson_number)));
     const lesson = await this.lessons.save(
@@ -175,7 +177,9 @@ export class EdubridgeCalendarService {
     if (input.minutes !== undefined && input.minutes !== null) {
       const minutes = minutesOf(input.minutes, group.lesson_minutes);
       const all = (await this.lessons.findByGroup(coopname, group.id)).filter((l) => l.id !== lesson.id);
-      if (this.budget(group, all) < minutes) throw DomainError.badRequest('EDUBRIDGE_PROGRAM_FULL', { minutesTotal: group.minutes_total });
+      // Внеочередное занятие удлиняется из резерва, остальные — из свободных минут программы.
+      const left = lesson.origin === EduLessonOrigin.EXTRA ? this.reserveTotal(group) - this.reserveUsed(all) : this.budget(group, all);
+      if (left < minutes) throw DomainError.badRequest(lesson.origin === EduLessonOrigin.EXTRA ? 'EDUBRIDGE_RESERVE_EMPTY' : 'EDUBRIDGE_PROGRAM_FULL', { minutesLeft: Math.max(0, left), minutesTotal: group.minutes_total });
       lesson.duration_minutes = minutes;
     }
     if (input.assignment_id !== undefined) {
@@ -184,8 +188,8 @@ export class EdubridgeCalendarService {
       lesson.teacher_username = assignment?.teacher_username ?? null;
     }
     if (input.topic !== undefined && input.topic !== null) lesson.topic = input.topic.trim();
-    // Перенесённое занятие больше не привязано к окну: перестройка расписания его не трогает.
-    lesson.origin = EduLessonOrigin.EXTRA;
+    // Перенесённое занятие больше не привязано к окну: перестройка расписания его не трогает, резерв оно не тратит.
+    if (lesson.origin === EduLessonOrigin.SCHEDULE) lesson.origin = EduLessonOrigin.MOVED;
     return this.lessons.save(lesson);
   }
 
@@ -217,27 +221,22 @@ export class EdubridgeCalendarService {
   /** Сколько минут программы ещё свободно с учётом живых занятий группы. */
   private budget(group: EdubridgeGroupRecord, lessons: EdubridgeLessonRecord[]): number {
     const used = lessons.filter((l) => l.status !== EduLessonStatus.CANCELLED).reduce((sum, l) => sum + Number(l.duration_minutes || 0), 0);
-    const total = group.minutes_total > 0 ? group.minutes_total : group.minutes_per_month * OPEN_PROGRAM_MONTHS + used;
+    const total = group.minutes_total > 0 ? group.minutes_total : group.minutes_per_month * OPEN_PROGRAM_MONTHS;
     return Math.max(0, total - used);
   }
 
-  /** Освободить минуты под занятие: последние запланированные по расписанию стираются. */
-  private async makeRoom(group: EdubridgeGroupRecord, all: EdubridgeLessonRecord[], minutes: number): Promise<void> {
-    let budget = this.budget(group, all);
-    if (budget >= minutes) return;
-    const movable = all
-      .filter((l) => l.status === EduLessonStatus.PLANNED && l.origin === EduLessonOrigin.SCHEDULE)
-      .sort((a, b) => new Date(b.held_at).getTime() - new Date(a.held_at).getTime());
-    const removed: EdubridgeLessonRecord[] = [];
-    for (const lesson of movable) {
-      if (budget >= minutes) break;
-      removed.push(lesson);
-      budget += Number(lesson.duration_minutes || 0);
-    }
-    if (budget < minutes) throw DomainError.badRequest('EDUBRIDGE_PROGRAM_FULL', { minutesTotal: group.minutes_total });
-    await this.lessons.deleteMany(removed.map((l) => l.id));
-    for (const r of removed) all.splice(all.indexOf(r), 1);
-    this.logger.info(`[EDU.CAL] группа «${group.title}»: ради дополнительного занятия снято занятий по расписанию ${removed.length}`);
+  /** Минут резерва на всю программу; у программы без конца — на горизонт календаря. */
+  private reserveTotal(group: EdubridgeGroupRecord): number {
+    const program = programOf(group.schedule_slots ?? [], group.program_months);
+    const months = group.program_months > 0 ? group.program_months : OPEN_PROGRAM_MONTHS;
+    return program.reserve_per_month * months;
+  }
+
+  /** Минут резерва уже занято внеочередными занятиями. */
+  private reserveUsed(lessons: EdubridgeLessonRecord[]): number {
+    return lessons
+      .filter((l) => l.status !== EduLessonStatus.CANCELLED && l.origin === EduLessonOrigin.EXTRA)
+      .reduce((sum, l) => sum + Number(l.duration_minutes || 0), 0);
   }
 
   private async group(coopname: string, groupId: string): Promise<EdubridgeGroupRecord> {
@@ -282,9 +281,9 @@ function nextFree(taken: Set<number>): number {
 function compressedOccurrences(group: EdubridgeGroupRecord, start: Date, limit: number): SlotOccurrence[] {
   const perMonth = Math.max(1, group.lessons_per_month);
   const step = Math.max(1000, Math.floor((eduMonthSeconds() * 1000) / perMonth));
-  const slots = group.schedule_slots;
+  const slots = (group.schedule_slots ?? []).filter((s) => !isReserveSlot(s));
   const out: SlotOccurrence[] = [];
-  for (let i = 0; i < limit; i += 1) {
+  for (let i = 0; i < limit && slots.length; i += 1) {
     const slot = slots[i % slots.length];
     out.push({ at: new Date(start.getTime() + i * step), slot });
   }

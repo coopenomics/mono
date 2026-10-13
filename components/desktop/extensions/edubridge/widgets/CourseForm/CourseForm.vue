@@ -20,7 +20,6 @@ BaseForm.edu-course-form(ref="formEl" :loading="loading" :error="error" @submit=
       .edu-course-form__group-title {{ $t('edubridge.courseForm.scheduleLabel') }}
         FieldHelp.q-ml-xs(:text="COURSE_FORM_HELP.schedule")
       ScheduleSlotsEditor(v-model="form.schedule_slots" :default-minutes="Number(form.schedule_slots[0]?.minutes || 60)")
-      BaseInput.q-mt-sm(v-if="!form.schedule_slots.length" v-model="form.schedule" :label="$t('edubridge.courseForm.scheduleTextLabel')" :placeholder="$t('edubridge.courseForm.schedulePlaceholder')")
     BaseInput(v-model="form.description" :label="$t('edubridge.courseForm.descriptionLabel')" type="textarea" :rows="3" autogrow)
       template(#append)
         FieldHelp(:text="COURSE_FORM_HELP.description")
@@ -245,6 +244,7 @@ import { COURSE_IMAGE_ACCEPT, type ICourse } from '../../entities/Course';
 import { createCourseFormState, injectCourseForm, type CourseFormSection } from './model/useCourseForm';
 import { COURSE_FORM_HELP } from './model/courseFormHelp';
 import { minutesOf, useTimeScale } from '../../shared/lib/timeScale';
+import { t } from '../../i18n';
 
 /**
  * Конструктор курса. На полной странице правки каждый раздел — отдельный шаг,
