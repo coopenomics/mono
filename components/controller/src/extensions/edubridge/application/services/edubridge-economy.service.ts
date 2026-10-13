@@ -12,7 +12,7 @@ import {
   type InnerLedger2Operation,
 } from '@coopenomics/innercoop';
 import { EDUBRIDGE_EXTENSION_NAME } from '../../constants/edubridge.constants';
-import { normalizeSlots, programOf } from '../../domain/lib/schedule';
+import { normalizeSlots, programOf, round2 } from '../../domain/lib/schedule';
 import { EduAssignmentStatus, EduEnrollmentStatus, EduGroupStatus, EduLessonStatus, EduSettlementEntryKind, EduSettlementEntryStatus } from '../../domain/enums';
 import type { EduSettlementEntryDTO } from '../dto/edu-teacher.dto';
 import { calculateCourseFee, costOfHours, maxCourseDiscountPercent, type CourseFeeCalculation } from '../../domain/economy/course-fee.calculator';
@@ -362,7 +362,7 @@ export class EdubridgeEconomyService {
       // Скидка действует, только когда кооператив принимает взнос разом.
       course_discount_percent: input.course_payment_enabled ? (input.course_discount_percent ?? 0) : 0,
     });
-    return { ...calc, lessons_per_month: program.lessons_per_month };
+    return { ...calc, lessons_per_month: program.lessons_per_month_exact, reserve_hours_per_month: round2(program.reserve_per_month / 60) };
   }
 
   private toFeeDTO(calc: CourseFeeWithProgram, markupPercent: number): EduCourseFeeDTO {
@@ -371,7 +371,7 @@ export class EdubridgeEconomyService {
 }
 
 /** Расчёт взноса вместе с числом занятий в месяц — для показа в форме курса. */
-type CourseFeeWithProgram = CourseFeeCalculation & { lessons_per_month: number };
+type CourseFeeWithProgram = CourseFeeCalculation & { lessons_per_month: number; reserve_hours_per_month: number };
 
 /** Подписи движений — языком выписки, без кодов операций. */
 const MOVEMENT_TITLES: Record<string, { title: string; direction: string }> = {

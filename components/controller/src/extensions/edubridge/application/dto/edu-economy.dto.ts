@@ -85,6 +85,9 @@ export class EduCourseFeeDTO {
   @Field(() => Float, { description: 'Часов занятий в месяц' })
   hours_per_month!: number;
 
+  @Field(() => Float, { description: 'Из них часов резерва для внеочередных занятий в месяц' })
+  reserve_hours_per_month!: number;
+
   @Field(() => String, { description: 'Себестоимость месяца — часы по ставке' })
   cost_month!: string;
 

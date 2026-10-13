@@ -1,8 +1,8 @@
-import { Field, ID, InputType, Int, ObjectType } from '@nestjs/graphql';
+import { Field, ID, InputType, Int, ObjectType, Float } from '@nestjs/graphql';
 import { IsBoolean, IsDateString, IsInt, IsOptional, IsString, IsUUID, Length, Max, Min } from 'class-validator';
 import { EduGroupStatus } from '../../domain/enums';
 import type { EdubridgeGroupRecord } from '../../infrastructure/entities';
-import { formatSlots } from '../../domain/lib/schedule';
+import { exactLessonsPerMonth, formatSlots, round2 } from '../../domain/lib/schedule';
 import { EduScheduleSlotDTO } from './edu-schedule.dto';
 
 /** Группа (набор) курса: свои дата начала, условия, участники, занятия и учёт средств. */
@@ -19,12 +19,12 @@ export class EduGroupDTO {
   @Field(() => String, { description: 'Членский взнос за месяц в группе' }) fee_month!: string;
   @Field(() => String, { description: 'Плановая ставка часа в группе' }) planned_hourly_rate!: string;
   @Field(() => Boolean, { description: 'Взнос преподавателя за занятие считается за каждого участника; иначе фиксированный за занятие' }) pay_per_learner!: boolean;
-  @Field(() => Int, { description: 'Занятий в программе группы' }) lessons_total!: number;
+  @Field(() => Float, { description: 'Занятий в программе группы — для показа' }) lessons_total!: number;
   @Field(() => Int, { description: 'Гарантийный срок, дней' }) guarantee_days!: number;
   @Field(() => [EduScheduleSlotDTO], { description: 'Окна расписания группы' }) schedule_slots!: EduScheduleSlotDTO[];
   @Field(() => String, { description: 'Расписание группы строкой, собрано из окон' }) schedule!: string;
   @Field(() => Int, { description: 'Срок на отчёт преподавателя о занятии, дней после занятия' }) report_days!: number;
-  @Field(() => Int, { description: 'Занятий в месяц по окнам расписания — для показа' }) lessons_per_month!: number;
+  @Field(() => Float, { description: 'Занятий в месяц по окнам расписания: окон недели на 52/12 — для показа' }) lessons_per_month!: number;
   @Field(() => Int, { description: 'Длительность занятия по первому окну, минут' }) lesson_minutes!: number;
   @Field(() => Int, { description: 'Длительность программы, месяцев; ноль — программа без конца' }) program_months!: number;
   @Field(() => Int, { description: 'Минут занятий в месяц — по ним контракт считает взнос' }) minutes_per_month!: number;
@@ -49,12 +49,12 @@ export class EduGroupDTO {
       fee_month: e.fee_month,
       planned_hourly_rate: e.planned_hourly_rate,
       pay_per_learner: Boolean(e.pay_per_learner),
-      lessons_total: e.lessons_total,
+      lessons_total: round2(exactLessonsPerMonth(e.schedule_slots ?? []) * (e.program_months ?? 0)),
       guarantee_days: e.guarantee_days,
       schedule_slots: (e.schedule_slots ?? []).map((s) => new EduScheduleSlotDTO(s)),
       schedule: formatSlots(e.schedule_slots ?? []),
       report_days: e.report_days ?? 7,
-      lessons_per_month: e.lessons_per_month,
+      lessons_per_month: exactLessonsPerMonth(e.schedule_slots ?? []),
       lesson_minutes: e.lesson_minutes,
       program_months: e.program_months ?? 0,
       minutes_per_month: e.minutes_per_month ?? 0,

@@ -6843,7 +6843,7 @@ export type ValueTypes = {
 	image_url?:boolean | `@${string}`,
 	/** Длительность занятия по первому окну расписания, минут */
 	lesson_minutes?:boolean | `@${string}`,
-	/** Занятий в месяц по окнам расписания — для показа */
+	/** Занятий в месяц по окнам расписания: окон недели на 52/12 — для показа */
 	lessons_per_month?:boolean | `@${string}`,
 	/** Занятий во всей программе курса — для показа; ноль — программа без конца */
 	lessons_total?:boolean | `@${string}`,
@@ -7006,7 +7006,7 @@ export type ValueTypes = {
 	image_url?:boolean | `@${string}`,
 	/** Длительность занятия по первому окну расписания, минут */
 	lesson_minutes?:boolean | `@${string}`,
-	/** Занятий в месяц по окнам расписания — для показа */
+	/** Занятий в месяц по окнам расписания: окон недели на 52/12 — для показа */
 	lessons_per_month?:boolean | `@${string}`,
 	/** Занятий во всей программе курса — для показа; ноль — программа без конца */
 	lessons_total?:boolean | `@${string}`,
@@ -7118,6 +7118,8 @@ export type ValueTypes = {
 	markup_percent?:boolean | `@${string}`,
 	/** Предельная скидка при текущем целевом членском взносе, проценты */
 	max_course_discount_percent?:boolean | `@${string}`,
+	/** Из них часов резерва для внеочередных занятий в месяц */
+	reserve_hours_per_month?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on EduCourseFee']?: Omit<ValueTypes["EduCourseFee"], "...on EduCourseFee">
 }>;
@@ -7380,9 +7382,9 @@ export type ValueTypes = {
 	lesson_minutes?:boolean | `@${string}`,
 	/** Проведено занятий */
 	lessons_held?:boolean | `@${string}`,
-	/** Занятий в месяц по окнам расписания — для показа */
+	/** Занятий в месяц по окнам расписания: окон недели на 52/12 — для показа */
 	lessons_per_month?:boolean | `@${string}`,
-	/** Занятий в программе группы */
+	/** Занятий в программе группы — для показа */
 	lessons_total?:boolean | `@${string}`,
 	/** Минут занятий в месяц — по ним контракт считает взнос */
 	minutes_per_month?:boolean | `@${string}`,
@@ -23788,7 +23790,7 @@ export type ResolverInputTypes = {
 	image_url?:boolean | `@${string}`,
 	/** Длительность занятия по первому окну расписания, минут */
 	lesson_minutes?:boolean | `@${string}`,
-	/** Занятий в месяц по окнам расписания — для показа */
+	/** Занятий в месяц по окнам расписания: окон недели на 52/12 — для показа */
 	lessons_per_month?:boolean | `@${string}`,
 	/** Занятий во всей программе курса — для показа; ноль — программа без конца */
 	lessons_total?:boolean | `@${string}`,
@@ -23946,7 +23948,7 @@ export type ResolverInputTypes = {
 	image_url?:boolean | `@${string}`,
 	/** Длительность занятия по первому окну расписания, минут */
 	lesson_minutes?:boolean | `@${string}`,
-	/** Занятий в месяц по окнам расписания — для показа */
+	/** Занятий в месяц по окнам расписания: окон недели на 52/12 — для показа */
 	lessons_per_month?:boolean | `@${string}`,
 	/** Занятий во всей программе курса — для показа; ноль — программа без конца */
 	lessons_total?:boolean | `@${string}`,
@@ -24056,6 +24058,8 @@ export type ResolverInputTypes = {
 	markup_percent?:boolean | `@${string}`,
 	/** Предельная скидка при текущем целевом членском взносе, проценты */
 	max_course_discount_percent?:boolean | `@${string}`,
+	/** Из них часов резерва для внеочередных занятий в месяц */
+	reserve_hours_per_month?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
 	["EduCourseImageUploadInput"]: {
@@ -24311,9 +24315,9 @@ export type ResolverInputTypes = {
 	lesson_minutes?:boolean | `@${string}`,
 	/** Проведено занятий */
 	lessons_held?:boolean | `@${string}`,
-	/** Занятий в месяц по окнам расписания — для показа */
+	/** Занятий в месяц по окнам расписания: окон недели на 52/12 — для показа */
 	lessons_per_month?:boolean | `@${string}`,
-	/** Занятий в программе группы */
+	/** Занятий в программе группы — для показа */
 	lessons_total?:boolean | `@${string}`,
 	/** Минут занятий в месяц — по ним контракт считает взнос */
 	minutes_per_month?:boolean | `@${string}`,
@@ -40222,7 +40226,7 @@ export type ModelTypes = {
 	image_url?: string | undefined | null,
 	/** Длительность занятия по первому окну расписания, минут */
 	lesson_minutes: number,
-	/** Занятий в месяц по окнам расписания — для показа */
+	/** Занятий в месяц по окнам расписания: окон недели на 52/12 — для показа */
 	lessons_per_month: number,
 	/** Занятий во всей программе курса — для показа; ноль — программа без конца */
 	lessons_total: number,
@@ -40370,7 +40374,7 @@ export type ModelTypes = {
 	image_url?: string | undefined | null,
 	/** Длительность занятия по первому окну расписания, минут */
 	lesson_minutes: number,
-	/** Занятий в месяц по окнам расписания — для показа */
+	/** Занятий в месяц по окнам расписания: окон недели на 52/12 — для показа */
 	lessons_per_month: number,
 	/** Занятий во всей программе курса — для показа; ноль — программа без конца */
 	lessons_total: number,
@@ -40476,7 +40480,9 @@ export type ModelTypes = {
 	/** Целевой членский взнос кооператива, проценты */
 	markup_percent: number,
 	/** Предельная скидка при текущем целевом членском взносе, проценты */
-	max_course_discount_percent: number
+	max_course_discount_percent: number,
+	/** Из них часов резерва для внеочередных занятий в месяц */
+	reserve_hours_per_month: number
 };
 	["EduCourseImageUploadInput"]: {
 	/** Содержимое нового изображения в base64 */
@@ -40722,9 +40728,9 @@ export type ModelTypes = {
 	lesson_minutes: number,
 	/** Проведено занятий */
 	lessons_held: number,
-	/** Занятий в месяц по окнам расписания — для показа */
+	/** Занятий в месяц по окнам расписания: окон недели на 52/12 — для показа */
 	lessons_per_month: number,
-	/** Занятий в программе группы */
+	/** Занятий в программе группы — для показа */
 	lessons_total: number,
 	/** Минут занятий в месяц — по ним контракт считает взнос */
 	minutes_per_month: number,
@@ -57107,7 +57113,7 @@ export type GraphQLTypes = {
 	image_url?: string | undefined | null,
 	/** Длительность занятия по первому окну расписания, минут */
 	lesson_minutes: number,
-	/** Занятий в месяц по окнам расписания — для показа */
+	/** Занятий в месяц по окнам расписания: окон недели на 52/12 — для показа */
 	lessons_per_month: number,
 	/** Занятий во всей программе курса — для показа; ноль — программа без конца */
 	lessons_total: number,
@@ -57270,7 +57276,7 @@ export type GraphQLTypes = {
 	image_url?: string | undefined | null,
 	/** Длительность занятия по первому окну расписания, минут */
 	lesson_minutes: number,
-	/** Занятий в месяц по окнам расписания — для показа */
+	/** Занятий в месяц по окнам расписания: окон недели на 52/12 — для показа */
 	lessons_per_month: number,
 	/** Занятий во всей программе курса — для показа; ноль — программа без конца */
 	lessons_total: number,
@@ -57382,6 +57388,8 @@ export type GraphQLTypes = {
 	markup_percent: number,
 	/** Предельная скидка при текущем целевом членском взносе, проценты */
 	max_course_discount_percent: number,
+	/** Из них часов резерва для внеочередных занятий в месяц */
+	reserve_hours_per_month: number,
 	['...on EduCourseFee']: Omit<GraphQLTypes["EduCourseFee"], "...on EduCourseFee">
 };
 	["EduCourseImageUploadInput"]: {
@@ -57644,9 +57652,9 @@ export type GraphQLTypes = {
 	lesson_minutes: number,
 	/** Проведено занятий */
 	lessons_held: number,
-	/** Занятий в месяц по окнам расписания — для показа */
+	/** Занятий в месяц по окнам расписания: окон недели на 52/12 — для показа */
 	lessons_per_month: number,
-	/** Занятий в программе группы */
+	/** Занятий в программе группы — для показа */
 	lessons_total: number,
 	/** Минут занятий в месяц — по ним контракт считает взнос */
 	minutes_per_month: number,

@@ -8,6 +8,7 @@ import type { EdubridgeCourseRecord } from '../../infrastructure/entities';
 import type { EduCourseImage } from '../../infrastructure/entities/edubridge-course.record';
 import { EduScheduleSlotDTO, EduScheduleSlotInputDTO } from './edu-schedule.dto';
 import './edu-enums.registration';
+import { exactLessonsPerMonth, round2 } from '../../domain/lib/schedule';
 
 /** Раздел и уровень курса из справочника: ссылки и названия для показа. */
 function taxonomyOf(e: EdubridgeCourseRecord) {
@@ -67,10 +68,10 @@ export class EduCatalogCourseDTO {
   @Field(() => [String], { description: 'Преподаватели курса (учётные имена пайщиков)' })
   teacher_usernames!: string[];
 
-  @Field(() => Int, { description: 'Занятий в месяц по окнам расписания — для показа' })
+  @Field(() => Float, { description: 'Занятий в месяц по окнам расписания: окон недели на 52/12 — для показа' })
   lessons_per_month!: number;
 
-  @Field(() => Int, { description: 'Занятий во всей программе курса — для показа; ноль — программа без конца' })
+  @Field(() => Float, { description: 'Занятий во всей программе курса — для показа; ноль — программа без конца' })
   lessons_total!: number;
 
   @Field(() => Int, { description: 'Длительность занятия по первому окну расписания, минут' })
@@ -123,9 +124,10 @@ export class EduCatalogCourseDTO {
 /** Числа программы курса: занятия и минуты для показа, длительность в месяцах. */
 function programFieldsOf(e: EdubridgeCourseRecord): Pick<EduCatalogCourseDTO, 'lessons_per_month' | 'lessons_total' | 'lesson_minutes' | 'program_months' | 'minutes_per_month' | 'minutes_total' | 'course_months'> {
   const months = e.program_months ?? 0;
+  const lessons = exactLessonsPerMonth(e.schedule_slots ?? []);
   return {
-    lessons_per_month: e.lessons_per_month,
-    lessons_total: e.lessons_total,
+    lessons_per_month: lessons,
+    lessons_total: round2(lessons * months),
     lesson_minutes: e.lesson_minutes,
     program_months: months,
     minutes_per_month: e.minutes_per_month ?? 0,

@@ -98,11 +98,19 @@ function add(): void {
 .edu-slots__teacher {
   flex: 2 1 200px;
 }
+/* Поле ввода — 40px, под ним место под подсказку; кнопка 36px центрируется по полю, а не по ячейке. */
 .edu-slots__remove {
-  margin-top: var(--p-5);
+  margin-top: 2px;
 }
+/* Подпись резерва занимает ячейку времени: той же ширины и высоты поля, одной строкой. */
 .edu-slots__reserve-note {
-  align-self: center;
-  padding-top: var(--p-4);
+  flex: 0 1 130px;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  height: 40px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 </style>

@@ -141,7 +141,7 @@
       "teacherLabel": "Преподаватель",
       "teacherNone": "Не назначен",
       "reserve": "Резерв",
-      "reserveNote": "Минуты для внеочередных занятий",
+      "reserveNote": "Без времени",
       "remove": "Убрать окно",
       "empty": "Окон расписания нет: занятия назначаются по одному.",
       "add": "Добавить окно"
@@ -197,7 +197,7 @@
       "accessTitle": "Выдача доступа",
       "backToRegistry": "К реестру курсов",
       "carrierLabel": "Площадка",
-      "costMonthLabel": "По плановой ставке",
+      "costMonthLabel": "Стоимость часов преподавателей",
       "deleteConfirmButton": "Удалить",
       "deleteConfirmMessage": "Курс «{courseTitle}» будет удалён без возможности восстановления.",
       "deleteConfirmTitle": "Удалить курс",
@@ -221,9 +221,9 @@
       "moreActionsAriaLabel": "Ещё действия",
       "notFoundBody": "Возможно, курс удалён из реестра.",
       "notFoundTitle": "Курс не найден",
-      "overFeeWarning": "Обязательства перед преподавателями больше собранного взноса — поднимите плановую ставку часа.",
+      "overFeeWarning": "По ставкам допусков взнос преподавателя за месяц выше взноса одного обучающегося. Поднимите стоимость часа в окнах расписания или снизьте ставку допуска.",
       "pageTitle": "Курс",
-      "plannedHourlyRateLabel": "Плановая ставка часа",
+      "plannedHourlyRateLabel": "Стоимость часа преподавателя",
       "payModeLabel": "Расчёт с преподавателем",
       "groupTitle": "По всем группам в месяц",
       "groupFeeLabel": "Взносы за обучающихся",
@@ -606,7 +606,8 @@
         "ONLINE_PLATFORM": "Онлайн-платформа",
         "ONSITE": "Очное обучение"
       },
-      "hoursPerMonthCaption": "ч занятий в месяц: {lessons} по {minutes} мин",
+      "lessonsPerMonthCaption": "занятий в месяц",
+      "hoursPerMonthCaption": "часов занятий в месяц",
       "programMonthsCaption": "месяц программы | месяца программы | месяцев программы",
       "status": {
         "ARCHIVED": "В архиве",
@@ -669,7 +670,8 @@
       "summary": {
         "lessonsPerMonth": "Занятий в месяц",
         "hoursPerMonth": "Часов в месяц",
-        "costMonth": "Стоимость часов преподавателей в месяц"
+        "costMonth": "Стоимость часов преподавателей в месяц",
+        "reserveHours": "Из них часов резерва"
       },
       "guaranteeDaysLabel": "Гарантийный срок, дней",
       "programMonthsLabel": "Длительность программы, месяцев",
@@ -1188,7 +1190,7 @@
       "empty": "Групп у курса нет",
       "lessonsOf": "{held} из {total}",
       "feeMonth": "Взнос в месяц",
-      "plannedRate": "Плановая ставка часа",
+      "plannedRate": "Стоимость часа преподавателя",
       "payMode": "Расчёт с преподавателем",
       "guarantee": "Гарантийный срок",
       "learners": "Обучающихся",

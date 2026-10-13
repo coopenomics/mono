@@ -35,7 +35,8 @@
         FeeAmount(:value="course.fee_month" size="lg")
       StatTile(v-if="Number(course.course_months) > 1 && (course.fee_course || course.fee_course_base)" :caption="course.fee_course ? $t('edubridge.course.feeCourseCaption') : $t('edubridge.course.feeCourseTotalCaption')")
         FeeAmount(:value="course.fee_course ?? course.fee_course_base ?? ''" size="lg")
-      StatTile(:value="hoursPerMonth" :caption="$t('edubridge.course.hoursPerMonthCaption', { lessons: course.lessons_per_month, minutes: course.lesson_minutes })")
+      StatTile(:value="lessonsPerMonth" :caption="$t('edubridge.course.lessonsPerMonthCaption')")
+      StatTile(:value="hoursPerMonth" :caption="$t('edubridge.course.hoursPerMonthCaption')")
       StatTile(v-if="Number(course.program_months) > 0" :value="course.program_months" :caption="$t('edubridge.course.programMonthsCaption', Number(course.program_months))")
 
     .row.q-col-gutter-md
@@ -157,8 +158,9 @@ const enrollmentClosed = ref(false);
 /** Свои подписки читает только участник, подписавший оферту ученика. */
 const canSeeGuarantee = computed(() => session.isAuth && desktopStore.hasGrant('edubridge-member', 'EduEnrollment:read:own'));
 const { fioCache, enrichFio } = useFioCache();
-/** Часов занятий в месяц — из минут по окнам расписания. */
-const hoursPerMonth = computed(() => (Number(course.value?.minutes_per_month || 0) / 60).toLocaleString('ru-RU', { maximumFractionDigits: 1 }));
+/** Занятий и часов в месяц — по окнам расписания, до двух знаков: 52/12 недель в месяце дают дробь. */
+const lessonsPerMonth = computed(() => Number(course.value?.lessons_per_month || 0).toLocaleString('ru-RU', { maximumFractionDigits: 2 }));
+const hoursPerMonth = computed(() => (Number(course.value?.minutes_per_month || 0) / 60).toLocaleString('ru-RU', { maximumFractionDigits: 2 }));
 const formatDate = (v: unknown) => (v ? new Date(String(v)).toLocaleDateString('ru-RU') : '______');
 
 // Преподаватель посетителю — по имени: учётное имя ничего ему не говорит.

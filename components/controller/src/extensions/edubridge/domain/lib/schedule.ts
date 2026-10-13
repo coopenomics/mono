@@ -207,6 +207,14 @@ export function slotOccurrences(slots: readonly EduScheduleSlot[], startsAt: Dat
 /** Недель в месяце для перевода недельного расписания в месячное: 52 недели на 12 месяцев. */
 export const WEEKS_PER_MONTH = 52 / 12;
 
+/** До двух знаков: занятия в месяц по 52/12 недель — число дробное, округление до целого вводило бы в заблуждение. */
+export const round2 = (value: number): number => Math.round(value * 100) / 100;
+
+/** Занятий в месяц по окнам недели (без резерва), точно: окон недели на 52/12. */
+export function exactLessonsPerMonth(slots: readonly Pick<EduScheduleSlot, 'weekday'>[]): number {
+  return round2(slots.filter((s) => !isReserveSlot(s)).length * WEEKS_PER_MONTH);
+}
+
 /** Минут занятий в неделю по окнам расписания. */
 export function weeklyMinutes(slots: readonly Pick<EduScheduleSlot, 'minutes'>[]): number {
   return slots.reduce((sum, s) => sum + Number(s.minutes || 0), 0);
@@ -218,8 +226,10 @@ export interface ProgramNumbers {
   minutes_per_month: number;
   /** Минут занятий в программе; 0 — программа без конца. */
   minutes_total: number;
-  /** Занятий в месяц для показа. */
+  /** Занятий в месяц, целое — для записи; точное значение — `lessons_per_month_exact`. */
   lessons_per_month: number;
+  /** Занятий в месяц точно, до двух знаков — для показа. */
+  lessons_per_month_exact: number;
   /** Занятий в программе для показа; 0 — программа без конца. */
   lessons_total: number;
   /** Длительность занятия по первому окну — длительность по умолчанию для занятия сверх расписания. */
@@ -248,6 +258,7 @@ export function programOf(slots: readonly Pick<EduScheduleSlot, 'minutes' | 'wee
     minutes_per_month: minutesPerMonth,
     minutes_total: minutesPerMonth * months,
     lessons_per_month: lessonsPerMonth,
+    lessons_per_month_exact: exactLessonsPerMonth(slots),
     lessons_total: lessonsPerMonth * months,
     lesson_minutes: Number((weekly[0] ?? slots[0])?.minutes ?? 60),
     reserve_per_month: Math.round(weeklyMinutes(slots.filter((s) => isReserveSlot(s as EduScheduleSlot))) * WEEKS_PER_MONTH),

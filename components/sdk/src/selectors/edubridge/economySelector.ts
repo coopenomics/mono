@@ -14,6 +14,7 @@ export const eduEconomySettingsSelector = Selector('EduEconomySettings')(rawEcon
 const rawCourseFeeSelector = {
   lessons_per_month: true,
   hours_per_month: true,
+  reserve_hours_per_month: true,
   cost_month: true,
   markup_month: true,
   fee_month: true,

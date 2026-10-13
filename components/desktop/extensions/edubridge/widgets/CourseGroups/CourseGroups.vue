@@ -23,7 +23,7 @@ BaseCard(variant="default" :title="$t('edubridge.courseGroups.title')")
     template(#cell-learners_active="{ row }")
       span.t-num {{ row.learners_active }}
     template(#cell-lessons_held="{ row }")
-      span.t-num {{ $t('edubridge.courseGroups.lessonsOf', { held: row.lessons_held, total: row.lessons_total }) }}
+      span.t-num {{ $t('edubridge.courseGroups.lessonsOf', { held: row.lessons_held, total: formatLessons(row.lessons_total) }) }}
     template(#cell-status="{ row }")
       BaseBadge(:variant="stateOf(row).variant") {{ stateOf(row).label }}
   .t-muted.t-sm(v-else) {{ $t('edubridge.courseGroups.empty') }}
@@ -37,7 +37,7 @@ BaseCard(variant="default" :title="$t('edubridge.courseGroups.title')")
       DataRow(:label="$t('edubridge.courseGroups.payMode')" :value="details.pay_per_learner ? $t('edubridge.adminCoursePage.payModePerLearner') : $t('edubridge.adminCoursePage.payModeFixed')" align="spread")
       DataRow(:label="$t('edubridge.courseGroups.guarantee')" :value="`${details.guarantee_days} ${pluralizeDays(Number(details.guarantee_days))}`" align="spread")
       DataRow(:label="$t('edubridge.courseGroups.learners')" :value="String(details.learners_active)" align="spread")
-      DataRow(:label="$t('edubridge.courseGroups.lessons')" :value="$t('edubridge.courseGroups.lessonsOf', { held: details.lessons_held, total: details.lessons_total })" align="spread")
+      DataRow(:label="$t('edubridge.courseGroups.lessons')" :value="$t('edubridge.courseGroups.lessonsOf', { held: details.lessons_held, total: formatLessons(details.lessons_total) })" align="spread")
       DataRow(v-if="details.teacher_reserve_balance" :label="$t('edubridge.courseGroups.reserve')" :value="formatAsset2Digits(details.teacher_reserve_balance)" align="spread")
       DataRow(v-if="details.teacher_settled_total" :label="$t('edubridge.courseGroups.settled')" :value="formatAsset2Digits(details.teacher_settled_total)" align="spread")
       //- Месяц этой группы при нынешнем числе обучающихся.
@@ -227,6 +227,9 @@ const assignments = ref<IAssignment[]>([]);
 const { fioCache, enrichFio } = useFioCache();
 const system = useSystemStore();
 const symbol = computed(() => system.governSymbol);
+/** Занятий в программе — дробь по 52/12 недель в месяце, до двух знаков. */
+const formatLessons = (value: unknown): string => Number(value || 0).toLocaleString('ru-RU', { maximumFractionDigits: 2 });
+
 /** Допуски преподавателей к этому курсу: преподаватель окна выбирается из них. */
 const teacherOptions = computed(() =>
   assignments.value

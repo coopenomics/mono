@@ -41,6 +41,7 @@ BaseForm.edu-course-form(ref="formEl" :loading="loading" :error="error" @submit=
       .edu-course-form__breakdown(v-if="fee")
         DataRow(:label="$t('edubridge.courseForm.summary.lessonsPerMonth')" :value="formatNumber(fee.lessons_per_month)" align="spread")
         DataRow(:label="$t('edubridge.courseForm.summary.hoursPerMonth')" :value="formatNumber(fee.hours_per_month)" align="spread")
+        DataRow(v-if="fee.reserve_hours_per_month > 0" :label="$t('edubridge.courseForm.summary.reserveHours')" :value="formatNumber(fee.reserve_hours_per_month)" align="spread")
         DataRow(:label="$t('edubridge.courseForm.summary.costMonth')" :value="formatAsset2Digits(fee.cost_month)" align="spread")
     .edu-course-form__group
       .edu-course-form__group-title {{ $t('edubridge.courseForm.group.program') }}
