@@ -97,11 +97,14 @@ function add(): void {
 .edu-slots__teacher {
   grid-column: span 2;
 }
-/* Широкий блок (форма курса, страница группы): все поля окна одной строкой; имени преподавателя — двойная ширина. */
-@container edu-slots (min-width: 680px) {
-  .edu-slots__fields {
+/* Блок без колонки преподавателя (форма курса): четыре поля помещаются в одну строку уже с 560px. */
+@container edu-slots (min-width: 560px) {
+  .edu-slots:not(.edu-slots--with-teacher) .edu-slots__fields {
     grid-template-columns: 1.1fr 1fr 0.8fr 1.4fr;
   }
+}
+/* Широкий блок с преподавателем (страница группы): все поля окна одной строкой; имени преподавателя — двойная ширина. */
+@container edu-slots (min-width: 680px) {
   .edu-slots--with-teacher .edu-slots__fields {
     grid-template-columns: 1fr 0.9fr 0.7fr 1.5fr 1.9fr;
   }
