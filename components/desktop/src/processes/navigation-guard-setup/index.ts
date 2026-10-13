@@ -2,7 +2,7 @@ import { Router } from 'vue-router';
 import { useSessionStore } from 'src/entities/Session';
 import { useDesktopStore } from 'src/entities/Desktop/model';
 import { useSystemStore } from 'src/entities/System/model';
-import { LocalStorage } from 'quasar';
+import { rememberReturnAfterAuth } from 'src/shared/lib/navigation';
 import { Zeus } from '@coopenomics/sdk';
 
 // Функция для получения URL для редиректа
@@ -110,7 +110,7 @@ export function setupNavigationGuard(router: Router, serverResponse?: ServerResp
         // Получаем URL для редиректа
         console.log('требуем аудентификацию ', to)
         const redirectUrl = getRedirectUrl(router, to);
-        LocalStorage.set('redirectAfterLogin', redirectUrl);
+        rememberReturnAfterAuth(redirectUrl);
       }
       // Перенаправляем на страницу входа
       answer(401);

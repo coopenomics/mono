@@ -111,7 +111,7 @@
 <script lang="ts" setup>
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
-import { LocalStorage } from 'quasar';
+import { goToReturnAfterAuth } from 'src/shared/lib/navigation';
 import { Queries } from '@coopenomics/sdk';
 import { client } from 'src/shared/api/client';
 import { useSessionStore } from 'src/entities/Session';
@@ -240,25 +240,6 @@ const canMigrate = computed(
     repeatPassword.value === newPassword.value,
 );
 
-function navigateToSavedUrl(): boolean {
-  if (!process.env.CLIENT) return false;
-  const redirectUrl = LocalStorage.getItem('redirectAfterLogin') as string;
-  if (!redirectUrl) return false;
-  LocalStorage.remove('redirectAfterLogin');
-  try {
-    if (redirectUrl.startsWith('#')) {
-      void router.push(redirectUrl.substring(1));
-    } else {
-      const url = new URL(redirectUrl);
-      void router.push(url.pathname + url.search);
-    }
-  } catch (e) {
-    console.error('Error parsing URL, using direct navigation', e);
-    window.location.href = redirectUrl;
-  }
-  return true;
-}
-
 function untilLoadComplete(): Promise<void> {
   if (session.loadComplete) return Promise.resolve();
   return new Promise((resolve) => {
@@ -295,7 +276,7 @@ async function finishLogin(): Promise<void> {
     } catch (e) {
       console.warn('[BOOTRACE] не удалось перезагрузить стол после входа:', e);
     }
-    if (!navigateToSavedUrl()) {
+    if (!goToReturnAfterAuth(router)) {
       desktops.selectDefaultWorkspace(true);
       desktops.goToDefaultPage(router);
     }

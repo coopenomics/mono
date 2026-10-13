@@ -92,6 +92,7 @@ import { BaseBadge, BaseButton, BaseCard, CardListSkeleton, EmptyState } from 's
 import { fetchCatalogCourse, type ICatalogCourse } from '../../entities/Course';
 import { fetchMyLearners, type ILearner, fetchMyEnrollments, type IEnrollment } from '../../entities/Learner';
 import { RENEW_SOON_DAYS, daysLeft, isLiveEnrollment } from '../../shared/lib/subscriptionDue';
+import { rememberReturnAfterAuth } from 'src/shared/lib/navigation';
 import { ACCESS_QUERY, accessModeOf, type AccessMode } from '../../shared/lib/accessIntent';
 import { programSpanCompact, programSpanLabel } from '../../shared/lib/courseMonths';
 import { SubscribeDialog } from '../../features/Subscribe';
@@ -182,6 +183,8 @@ function goBack(): void {
 async function getAccess(mode: AccessMode, resumed = false): Promise<void> {
   dialogMode.value = mode;
   if (!session.isAuth) {
+    // Гость уходит на регистрацию либо вход: курс и намерение запоминаются, после входа он возвращается к оформлению доступа.
+    rememberReturnAfterAuth(router.resolve({ name: 'edubridge-catalog-course', params: route.params, query: { [ACCESS_QUERY]: mode } }).href);
     void router.push({ name: 'signup', params: { coopname: route.params.coopname } });
     return;
   }

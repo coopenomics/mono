@@ -93,6 +93,7 @@ import { useDesktopStore } from 'src/entities/Desktop';
 import { Zeus } from '@coopenomics/sdk';
 import { updateOpenReplayUser } from 'src/shared/config';
 import { t } from 'src/shared/i18n';
+import { goToReturnAfterAuth } from 'src/shared/lib/navigation';
 
 const session = useSessionStore();
 const router = useRouter();
@@ -188,6 +189,8 @@ watch(
  * на регистрацию, так что уходить раньше бессмысленно.
  */
 const goToCabinet = (): void => {
+  // Человека привела на регистрацию кнопка либо защищённая страница — возвращаем его туда же, к начатому.
+  if (goToReturnAfterAuth(router)) return;
   const target = desktops.getDefaultPageRoute();
   if (target && target.name !== 'signup') {
     desktops.goToDefaultPage(router);
