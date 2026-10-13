@@ -480,19 +480,15 @@ inline void settle_closing(eosio::name coopname, const edu_subscription& sub, eo
 }
 
 /**
- * @brief По подписке нет занятия, ожидающего расчёта.
+ * @brief По группе нет занятия в окне расчёта.
  *
- * Пока по открытому занятию курса расчёт с этой подпиской не прошёл, закрыть
- * её нельзя: оплата занятия ушла бы мимо преподавателя.
+ * Пока приложение рассчитывает отчитанное занятие по подпискам, подписка
+ * группы не закрывается: оплата занятия ушла бы мимо преподавателя. Окно
+ * живёт один проход приложения и закрывается действием `closecharge`.
  */
-inline void check_no_pending_lesson(eosio::name coopname, const edu_terms& terms, const edu_subscription& sub) {
-  if (terms.open_lesson_id == 0 || !sub.has_plan()) return;
-  edu_lessons_index lessons(_edubridge, coopname.value);
-  auto lesson = lessons.find(terms.open_lesson_id);
-  if (lesson == lessons.end()) return;
-  const auto& plan = sub.plan.value();
-  eosio::check(!lesson_covered(sub, lesson->held_at) || plan.last_lesson >= lesson->number,
-               "EDUBRIDGE_SUBSCRIPTION_LESSON_PENDING: По подписке не завершён расчёт за проведённое занятие");
+inline void check_no_charging(const edu_terms& terms) {
+  eosio::check(terms.charging == 0,
+               "EDUBRIDGE_LESSON_CHARGING: По группе идёт расчёт за занятие: закрытие подписки повторяется после него");
 }
 
 // ── Заявление по гарантийным условиям ─────────────────────────────────────
@@ -524,7 +520,7 @@ inline void decline_guarantee(eosio::name coopname, edu_subscriptions_index& sub
  */
 inline void grant_guarantee(eosio::name coopname, edu_subscriptions_index& subs, edu_subscriptions_index::const_iterator sub) {
   const edu_terms terms = get_terms_or_fail(coopname, sub->course_id);
-  check_no_pending_lesson(coopname, terms, *sub);
+  check_no_charging(terms);
   settle_closing(coopname, *sub, sub->charged_or_zero(), true, true);
   subs.erase(sub);
 }

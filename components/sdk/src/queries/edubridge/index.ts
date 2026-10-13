@@ -21,6 +21,8 @@ export * as CourseFeePreview from './courseFeePreview'
 export * as CourseEconomy from './courseEconomy'
 /** Группы курса и группы с открытым набором */
 export * as CourseGroups from './courseGroups'
+export * as GroupLessons from './groupLessons'
+export * as LessonCalendar from './lessonCalendar'
 export * as OpenGroups from './openGroups'
 export * as MyTeachingGroups from './myTeachingGroups'
 /** Преподаватели, которых можно назначить на курс (с договором УХД) */

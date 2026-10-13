@@ -54,6 +54,10 @@ import {
   pendingActApproval,
   reopenEnrollment,
   reportLesson,
+  planLesson,
+  groupOfAssignment,
+  CANCEL_LESSON,
+  MOVE_LESSON,
   signOffer,
   signTransferAct,
   submitStatement,
@@ -139,21 +143,29 @@ describe('Образование: занятия и взносы препода�
       expect(((await gql<any>(token, MY_LESSONS)).edubridgeMyLessons as any[]).map(l => l.id)).toContain(r.lesson.id)
     })
 
-    it(caseName('edu.teach.break.04', 'занятие вне программы курса и повторный отчёт по тому же занятию отклоняются'), async () => {
-      const report = (n: number) => gqlError(token, REPORT_LESSON, { d: { assignment_id: nowAssignment.id, lesson_number: n, materials: ['https://example.org/x'] } })
-      expectCode(await report(now.lessons_total + 1), 'EDUBRIDGE_LESSON_OUT_OF_PLAN')
-      expectCode(await report(1), 'EDUBRIDGE_LESSON_REPORT_ALREADY_SUBMITTED')
-      // Занятия отчитываются по порядку: следующее — после передачи материалов предыдущего на хранение.
-      expectCode(await report(2), 'EDUBRIDGE_LESSON_PREVIOUS_NOT_CLOSED')
-      expect(((await gql<any>(token, MY_LESSONS)).edubridgeMyLessons as any[]).filter(l => l.course_id === now.id)).toHaveLength(1)
+    it(caseName('edu.teach.break.04', 'повторный отчёт по занятию, отчёт по отменённому и по неизвестному занятию отклоняются'), async () => {
+      const { group } = await groupOfAssignment(token, nowAssignment.id)
+      const mine = ((await gql<any>(token, MY_LESSONS)).edubridgeMyLessons as any[]).filter(l => l.course_id === now.id)
+      const report = (lessonId: string) => gqlError(token, REPORT_LESSON, { d: { lesson_id: lessonId, materials: ['https://example.org/x'] } })
+      expectCode(await report(mine[0].id), 'EDUBRIDGE_LESSON_REPORT_ALREADY_SUBMITTED')
+      // Отменённое администратором занятие освобождает номер: отчёта по нему нет.
+      const spare = await planLesson(group.id, { assignment_id: nowAssignment.id })
+      const cancelled = (await gql<any>(chairman, CANCEL_LESSON, { id: spare.id })).edubridgeCancelLesson
+      expect(cancelled.status).toBe('CANCELLED')
+      expectCode(await report(spare.id), 'EDUBRIDGE_LESSON_CANCELLED')
+      expectCode(await report('00000000-0000-4000-8000-000000000000'), 'EDUBRIDGE_LESSON_NOT_FOUND')
+      expect(((await gql<any>(token, MY_LESSONS)).edubridgeMyLessons as any[]).filter(l => l.course_id === now.id && l.status === 'HELD')).toHaveLength(1)
     })
 
-    it(caseName('edu.teach.break.07', 'дата занятия в будущем либо раньше периода допуска отклоняется'), async () => {
-      const report = (over: Record<string, unknown>) =>
-        gqlError(token, REPORT_LESSON, { d: { assignment_id: nowAssignment.id, lesson_number: 9, materials: ['https://example.org/x'], ...over } })
-      expectCode(await report({ held_at: new Date(Date.now() + DAY_MS).toISOString() }), 'EDUBRIDGE_LESSON_REPORT_TOO_EARLY')
-      expectCode(await report({ held_at: new Date(Date.now() - 30 * DAY_MS).toISOString() }), 'EDUBRIDGE_LESSON_BEFORE_ASSIGNMENT_PERIOD')
-      expect(((await gql<any>(token, MY_LESSONS)).edubridgeMyLessons as any[]).map(l => l.lesson_number)).not.toContain(9)
+    it(caseName('edu.teach.break.07', 'отчёт до конца занятия отклоняется; проведённое занятие не переносится и не отменяется'), async () => {
+      const { group } = await groupOfAssignment(token, nowAssignment.id)
+      const ahead = await planLesson(group.id, { assignment_id: nowAssignment.id, held_at: new Date(Date.now() + DAY_MS).toISOString() })
+      expect(ahead.status).toBe('PLANNED')
+      expectCode(await gqlError(token, REPORT_LESSON, { d: { lesson_id: ahead.id, materials: ['https://example.org/x'] } }), 'EDUBRIDGE_LESSON_REPORT_TOO_EARLY')
+      await gql(chairman, CANCEL_LESSON, { id: ahead.id })
+      const held = ((await gql<any>(token, MY_LESSONS)).edubridgeMyLessons as any[]).find(l => l.course_id === now.id && l.status === 'HELD')
+      expectCode(await gqlError(chairman, MOVE_LESSON, { d: { lesson_id: held.id, held_at: new Date().toISOString() } }), 'EDUBRIDGE_LESSON_NOT_PLANNED')
+      expectCode(await gqlError(chairman, CANCEL_LESSON, { id: held.id }), 'EDUBRIDGE_LESSON_NOT_PLANNED')
     })
 
     it(caseName('edu.teach.happy.09', 'акт передачи материалов на ответственное хранение называет курс, занятие и материалы'), async () => {
@@ -361,15 +373,15 @@ describe('Образование: занятия и взносы препода�
   describe('курс с идущим гарантийным сроком: отчёты без взноса и документов', () => {
     it(caseName('edu.teach.side.21', 'в гарантийный срок группы отчёт сохраняется без взноса: документов с суммой нет, следующее занятие отчитывается сразу'), async () => {
       const contributionsBefore = ((await gql<any>(token, MY_CONTRIBUTIONS)).edubridgeMyContributions as any[]).length
-      const first = (await gql<any>(token, REPORT_LESSON, { d: { assignment_id: heldAssignment.id, lesson_number: 1, materials: ['https://example.org/held-1'], topic: 'Первое занятие группы' } })).edubridgeReportLesson
-      expect(first).toMatchObject({ course_id: held.id, lesson_number: 1, duration_minutes: 60, contribution_id: null, materials: ['https://example.org/held-1'] })
+      const first = (await reportLesson(token, heldAssignment.id, 1, { materials: ['https://example.org/held-1'], topic: 'Первое занятие группы' })).lesson
+      expect(first).toMatchObject({ course_id: held.id, lesson_number: 1, duration_minutes: 60, contribution_id: null, materials: ['https://example.org/held-1'], status: 'HELD' })
 
       // Взноса и документов по занятию нет: сумма станет окончательной после гарантийного срока.
       expect(((await gql<any>(token, MY_CONTRIBUTIONS)).edubridgeMyContributions as any[]).length).toBe(contributionsBefore)
       // Отчёт закрывает занятие: следующее отчитывается сразу, повторный отчёт по тому же — нет.
-      const second = (await gql<any>(token, REPORT_LESSON, { d: { assignment_id: heldAssignment.id, lesson_number: 2, materials: ['https://example.org/held-2'] } })).edubridgeReportLesson
+      const second = (await reportLesson(token, heldAssignment.id, 2, { materials: ['https://example.org/held-2'] })).lesson
       expect(second).toMatchObject({ lesson_number: 2, contribution_id: null })
-      expectCode(await gqlError(token, REPORT_LESSON, { d: { assignment_id: heldAssignment.id, lesson_number: 1, materials: ['https://example.org/x'] } }), 'EDUBRIDGE_LESSON_REPORT_ALREADY_SUBMITTED')
+      expectCode(await gqlError(token, REPORT_LESSON, { d: { lesson_id: first.id, materials: ['https://example.org/x'] } }), 'EDUBRIDGE_LESSON_REPORT_ALREADY_SUBMITTED')
       expect(((await gql<any>(token, MY_LESSONS)).edubridgeMyLessons as any[]).filter(l => l.course_id === held.id).map(l => l.lesson_number).sort()).toEqual([1, 2])
     })
 
@@ -388,17 +400,22 @@ describe('Образование: занятия и взносы препода�
     const pendingToken = await login(pending)
     await onboardTeacher(pending, pendingToken, RATE, { approve: false })
     const early = await admit(now.id, pending)
-    const report = (t: string, assignmentId: string) =>
-      gqlError(t, REPORT_LESSON, { d: { assignment_id: assignmentId, lesson_number: 7, materials: ['https://example.org/x'] } })
-    expectCode(await report(pendingToken, early.id), 'EDUBRIDGE_CONTRACT_NOT_APPROVED')
+    const { group: nowGroup } = await groupOfAssignment(token, nowAssignment.id)
+    const { group: heldGroup } = await groupOfAssignment(token, heldAssignment.id)
+    const report = (t: string, lessonId: string) =>
+      gqlError(t, REPORT_LESSON, { d: { lesson_id: lessonId, materials: ['https://example.org/x'] } })
+    // Занятие закреплено за преподавателем с договором на подписи у председателя.
+    const theirs = await planLesson(nowGroup.id, { assignment_id: early.id })
+    expectCode(await report(pendingToken, theirs.id), 'EDUBRIDGE_CONTRACT_NOT_APPROVED')
 
-    // Чужое назначение и снятый допуск.
-    expectCode(await report(token, early.id), 'EDUBRIDGE_ASSIGNMENT_NOT_FOUND')
+    // Чужое занятие и снятый допуск.
+    expectCode(await report(token, theirs.id), 'EDUBRIDGE_LESSON_OTHER_TEACHER')
+    const ours = await planLesson(heldGroup.id, { assignment_id: heldAssignment.id })
     await gql(chairman, CLOSE_ASSIGNMENT, { id: early.id })
     await gql(chairman, CLOSE_ASSIGNMENT, { id: heldAssignment.id })
-    expectCode(await report(token, heldAssignment.id), 'EDUBRIDGE_ASSIGNMENT_NOT_ACTIVE')
+    expectCode(await report(token, ours.id), 'EDUBRIDGE_ASSIGNMENT_NOT_ACTIVE')
     // Пайщик без оферты преподавателя к отчётам не допущен вовсе.
     const plain = freshMember({ prefix: 'eduj' })
-    expectCode(await report(await login(plain), nowAssignment.id), NO_RIGHTS)
+    expectCode(await report(await login(plain), ours.id), NO_RIGHTS)
   })
 })

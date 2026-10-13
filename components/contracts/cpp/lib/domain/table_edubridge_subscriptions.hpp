@@ -49,12 +49,18 @@ struct edu_sub_plan {
   eosio::time_point_sec paid_from;   ///< с какого дня идёт оплаченный срок
   uint32_t lessons_paid = 0;         ///< занятий оплачено всеми взносами
   uint32_t lessons_done = 0;         ///< занятий, по которым прошёл расчёт
-  uint32_t last_lesson = 0;          ///< номер последнего занятия курса, рассчитанного по этой подписке
+  std::vector<uint32_t> charged;     ///< номера занятий группы, рассчитанных по этой подписке: второго расчёта за номер нет; стирается вместе с подпиской
   eosio::asset reserve;              ///< остаток оплаты занятий по плановой ставке — за непроведённые занятия
   eosio::asset due;                  ///< взнос преподавателей за проведённые занятия, ещё не выделенный в резерв: гарантийный срок идёт, взнос удержан целиком
   bool released = false;             ///< гарантийный срок группы по подписке закрыт: оплата занятий выделена в резерв, удерживается только сумма возможного возврата
   std::vector<edu_due> dues;         ///< тот же `due` по допускам преподавателей: при закрытии гарантийного срока переходит в их суммы за гарантийный период
   bool claimed = false;              ///< подано заявление об аннулировании по гарантийным условиям: взнос заморожен до решения совета
+
+  /// Занятие с этим номером по подписке уже рассчитано.
+  bool has_charged(uint32_t number) const {
+    for (const auto n : charged) if (n == number) return true;
+    return false;
+  }
 
   /// Взнос преподавателя за занятие гарантийного срока — к сумме допуска.
   void add_due(uint64_t assignment_id, const eosio::asset& amount) {
@@ -71,7 +77,7 @@ struct edu_sub_plan {
     dues.clear();
   }
 
-  EOSLIB_SERIALIZE(edu_sub_plan, (version)(paid_from)(lessons_paid)(lessons_done)(last_lesson)(reserve)(due)(released)(dues)(claimed))
+  EOSLIB_SERIALIZE(edu_sub_plan, (version)(paid_from)(lessons_paid)(lessons_done)(charged)(reserve)(due)(released)(dues)(claimed))
 };
 
 /**

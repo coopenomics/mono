@@ -152,6 +152,11 @@ export class EdubridgeChainAdapter implements EdubridgeChainPort {
     return this.one(EdubridgeContract.Actions.Chargelesson.actionName, data, data.coopname);
   }
 
+  async closeCharge(data: EdubridgeContract.Actions.Closecharge.IClosecharge): Promise<InnerTransactResult> {
+    await this.prepare(data.coopname);
+    return this.one(EdubridgeContract.Actions.Closecharge.actionName, data, data.coopname);
+  }
+
   // ── Чтение расчётов контракта ──────────────────────────────────────────
 
   private get code(): string {

@@ -1,4 +1,4 @@
-import { TableStore } from '@coopenomics/extension-kit';
+import { TableStore, oneOf, within } from '@coopenomics/extension-kit';
 import { EDUBRIDGE_LESSON_STORE } from '../database/edubridge-stores';
 import { Inject, Injectable } from '@nestjs/common';
 import { EdubridgeLessonRecord } from '../entities';
@@ -31,6 +31,17 @@ export class EdubridgeLessonKyselyRepository {
 
   findById(coopname: string, id: string): Promise<EdubridgeLessonRecord | null> {
     return this.repo.findOne({ coopname, id });
+  }
+
+  /** Занятия кооператива за окно дат — календарь школы; отбор по группе и преподавателю — у вызывающего. */
+  findInRange(coopname: string, from: Date, to: Date): Promise<EdubridgeLessonRecord[]> {
+    return this.repo.find({ coopname, held_at: within(from, to) }, { order: { held_at: 'ASC' } });
+  }
+
+  /** Запланированные занятия из окон расписания стираются при перестройке календаря группы. */
+  deleteMany(ids: string[]): Promise<number> {
+    if (!ids.length) return Promise.resolve(0);
+    return this.repo.delete({ id: oneOf(ids) });
   }
 
   create(data: Partial<EdubridgeLessonRecord>): EdubridgeLessonRecord {

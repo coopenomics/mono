@@ -48,9 +48,9 @@ struct [[eosio::table, eosio::contract(EDUBRIDGE)]] edu_terms {
   uint32_t guarantee_secs;             ///< гарантийный срок, секунд (приложение передаёт дни × длину суток); 0 — гарантия не объявлена
   eosio::time_point_sec starts_at;     ///< начало занятий; нулевое время — курс не активирован
   uint32_t subs_active;                ///< действующих подписок — при них денежные условия не меняются
-  uint32_t lessons_opened;             ///< номер последнего открытого занятия
-  uint64_t open_lesson_id;             ///< занятие, по которому идёт расчёт; 0 — открытого занятия нет
-  eosio::time_point_sec last_held_at;  ///< дата последнего закрытого занятия
+  uint32_t lessons_opened;             ///< занятий программы проведено: сумма занятий, которые заняли отчитанные занятия (двойное занятие — два)
+  uint32_t charging;                   ///< занятий в окне расчёта с участниками: отчёт подан, расчёт по подпискам не закрыт
+  std::vector<uint32_t> numbers;       ///< номера отчитанных занятий группы: номер занимается один раз; отзыв отчёта освобождает его
   uint32_t subs_locked = 0;            ///< подписок с незакрытым гарантийным сроком: пока они есть, суммы преподавателей за гарантийный период не окончательны
   eosio::binary_extension<uint32_t> month_secs; ///< длина месяца, секунд: оплаченный период и длительность программы считаются ею; 0 либо нет значения — календарные месяцы. Не ноль только на стенде разработки со сжатым временем
 
@@ -60,6 +60,19 @@ struct [[eosio::table, eosio::contract(EDUBRIDGE)]] edu_terms {
   uint64_t primary_key() const { return course_id; }
 
   bool is_started() const { return starts_at.sec_since_epoch() > 0; }
+
+  /// Номер занятия уже занят отчитанным занятием группы.
+  bool has_number(uint32_t number) const {
+    for (const auto n : numbers) if (n == number) return true;
+    return false;
+  }
+
+  /// Освободить номер занятия после отзыва отчёта.
+  void drop_number(uint32_t number) {
+    for (auto it = numbers.begin(); it != numbers.end(); ++it) {
+      if (*it == number) { numbers.erase(it); return; }
+    }
+  }
 
   /// Оплата одного занятия за одного участника по плановой ставке.
   eosio::asset lesson_unit() const {
@@ -126,13 +139,15 @@ struct [[eosio::table, eosio::contract(EDUBRIDGE)]] edu_lesson {
   eosio::name username;            ///< пайщик-преподаватель
   uint32_t number;                 ///< номер занятия в курсе
   eosio::time_point_sec held_at;   ///< дата проведения
-  uint32_t minutes;                ///< длительность, минут
+  uint32_t minutes;                ///< длительность, минут — из календаря группы
+  uint32_t units;                  ///< занятий программы занимает: длительность в занятиях курса, неполное — за целое
   eosio::asset rate;               ///< ставка преподавателя на момент отчёта
   eosio::asset charge;             ///< ставка преподавателя за проведённое время: взнос за одного участника либо фиксированный взнос за занятие
   uint32_t learners;               ///< участников с оплаченным доступом, по которым прошёл расчёт
   eosio::asset amount;             ///< взнос преподавателя за занятие
   eosio::time_point_sec created_at;
   bool deferred = false;           ///< занятие гарантийного срока: документов с суммой нет до конца срока, сумма — в допуске преподавателя
+  bool settled = false;            ///< окно расчёта закрыто: подписки рассчитаны, новых расчётов по занятию нет
 
   uint64_t primary_key() const { return id; }
   checksum256 by_hash()  const { return rid_hash; }

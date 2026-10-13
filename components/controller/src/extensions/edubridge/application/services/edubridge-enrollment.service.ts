@@ -12,7 +12,7 @@ import {
   type ISignedDocument,
   type IUserWalletPort,
 } from '@coopenomics/innercoop';
-import { EduAccessState, EduCourseStatus, EduEnrollmentPeriod, EduEnrollmentStatus } from '../../domain/enums';
+import { EduAccessState, EduCourseStatus, EduEnrollmentPeriod, EduEnrollmentStatus, EduGroupStatus } from '../../domain/enums';
 import { courseMonths, feeForLessons, feeForMonths } from '../../domain/economy/course-fee.calculator';
 import { monthPeriod, remainingCoursePeriod } from '../../domain/economy/course-period.calculator';
 import { isResumable } from '../../domain/lib/resumable';
@@ -422,26 +422,20 @@ export class EdubridgeEnrollmentService {
   }
 
   /**
-   * Отмена курса по недобору: кооператив не открыл группу и отменяет своё
+   * Отмена группы по недобору: кооператив не открыл группу и отменяет своё
    * решение, поэтому взнос возвращается целиком и сразу на паевой — заявления
-   * от учеников это не требует. Пока занятия не начались: после первого
-   * занятия отменять нечего, есть отказ от подписки.
+   * от учеников это не требует. Пока занятия группы не начались: после первого
+   * занятия отменять нечего, есть отказ от подписки. Другие группы курса идут
+   * дальше.
    */
-  async cancelCourse(coopname: string, courseId: string): Promise<EdubridgeEnrollmentRecord[]> {
-    const course = await this.courses.findById(coopname, courseId);
-    if (!course) throw DomainError.notFound('EDUBRIDGE_COURSE_NOT_FOUND');
-    // Отмена по недобору — пока занятия не начались ни в одной группе курса.
-    const now = new Date();
-    if ((await this.groups.list(coopname, courseId)).some((g) => { const start = startMomentOf(g); return Boolean(start) && new Date(start as string) <= now; })) {
-      throw DomainError.badRequest('EDUBRIDGE_UNDERFILL_CANCEL_COURSE_STARTED');
-    }
-    // Курс снимается с публикации первым: пока идут возвраты, на отменённый
-    // курс никто не должен успеть подписаться.
-    if (course.status === EduCourseStatus.PUBLISHED) {
-      course.status = EduCourseStatus.ARCHIVED;
-      await this.courses.save(course);
-    }
-    const active = (await this.enrollments.findByCourse(coopname, courseId)).filter((e) => isCancellable(e));
+  async cancelGroup(coopname: string, groupId: string): Promise<EdubridgeEnrollmentRecord[]> {
+    const group = await this.groups.get(coopname, groupId);
+    if (group.status !== EduGroupStatus.ACTIVE) throw DomainError.badRequest('EDUBRIDGE_GROUP_NOT_ACTIVE');
+    const start = startMomentOf(group);
+    if (start && new Date(start).getTime() <= Date.now()) throw DomainError.badRequest('EDUBRIDGE_UNDERFILL_CANCEL_GROUP_STARTED');
+    // Группа закрывается первой: пока идут возвраты, в неё никто не должен успеть записаться.
+    await this.groups.cancel(coopname, group);
+    const active = (await this.enrollments.findByGroup(coopname, groupId)).filter((e) => isCancellable(e));
     const cancelled: EdubridgeEnrollmentRecord[] = [];
     const failed: string[] = [];
     for (const enrollment of active) {
@@ -449,10 +443,10 @@ export class EdubridgeEnrollmentService {
         cancelled.push(await this.cancelOne(coopname, enrollment, true));
       } catch (e) {
         failed.push(enrollment.id);
-        this.logger.error(`[EDU.SUB] недобор по курсу ${courseId}: подписка ${enrollment.id} не отменена — ${(e as Error)?.message ?? e}`);
+        this.logger.error(`[EDU.SUB] недобор в группе ${groupId}: подписка ${enrollment.id} не отменена — ${(e as Error)?.message ?? e}`);
       }
     }
-    this.logger.info(`[EDU.SUB] курс ${courseId} отменён по недобору: возвращено подписок ${cancelled.length}, с ошибкой ${failed.length}`);
+    this.logger.info(`[EDU.SUB] группа «${group.title}» отменена по недобору: возвращено подписок ${cancelled.length}, с ошибкой ${failed.length}`);
     if (failed.length) {
       throw DomainError.badRequest('EDUBRIDGE_UNDERFILL_CANCEL_PARTIAL', { cancelled: cancelled.length, failed: failed.length });
     }

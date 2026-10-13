@@ -1,0 +1,77 @@
+feature: edubridge.calendar
+title: Образовательный мост — календарь занятий, окна расписания, отчёт по занятию календаря
+
+# Правка 13.10.2026 (7DD-25), решение владельца: расписание задаётся окнами
+# (день недели, время начала, длительность, преподаватель), из окон и даты
+# начала группы строится календарь — занятия лежат в журнале заранее со
+# статусом «запланировано», отчёт преподавателя переводит их в «проведено».
+# Порядка отчётов нет: контракт принимает номер и длительность занятия из
+# календаря, окно расчёта по занятию закрывает closecharge. Программа курса —
+# предел: дополнительное занятие занимает место последних запланированных по
+# расписанию; отменённое занятие освобождает номер. Отмена по недобору — группой.
+
+sources:
+  contract:
+    - components/contracts/cpp/edubridge/src/p.edu.rid/openlesson.cpp
+    - components/contracts/cpp/edubridge/src/p.edu.rid/chargelesson.cpp
+    - components/contracts/cpp/lib/domain/table_edubridge_terms.hpp
+  backend:
+    - components/controller/src/extensions/edubridge/application/services/edubridge-calendar.service.ts
+    - components/controller/src/extensions/edubridge/application/resolvers/edubridge-calendar.resolver.ts
+    - components/controller/src/extensions/edubridge/application/dto/edu-schedule.dto.ts
+    - components/controller/src/extensions/edubridge/domain/lib/schedule.ts
+    - components/controller/src/extensions/edubridge/domain/lib/lesson-dates.ts
+    - components/controller/src/extensions/edubridge/infrastructure/entities/edubridge-lesson.record.ts
+    - components/controller/src/extensions/edubridge/migrations/database/1791710000000-lesson-calendar.ts
+
+cases:
+  - id: edu.cal.happy.01
+    level: backend
+    kind: happy
+    scenario: "Окна расписания «Вт, Чт 17:00, 60 минут» и дата начала группы в среду: календарь строится на всю программу."
+    expect: "Первое занятие — ближайший четверг от даты начала, далее по вторникам и четвергам; номера по порядку дат; строка расписания собрана из окон."
+    test: components/controller/tests/unit/edubridge/calendar.service.test.ts
+    status: written
+  - id: edu.cal.side.01
+    level: backend
+    kind: side
+    scenario: "Перестройка календаря после смены окон: проведённые и назначенные отдельно занятия остаются, запланированные по расписанию строятся заново в пределах программы."
+    expect: "Проведённое занятие на месте, дополнительное на месте, по расписанию занятий столько, сколько осталось в программе."
+    test: components/controller/tests/unit/edubridge/calendar.service.test.ts
+    status: written
+  - id: edu.cal.side.02
+    level: backend
+    kind: side
+    scenario: "Дополнительное занятие при заполненной программе занимает место последнего запланированного по расписанию; двухчасовое — двух."
+    expect: "Последние занятия по расписанию сняты, дополнительное получило наименьший свободный номер; занятий программы не больше, чем в курсе."
+    test: components/controller/tests/unit/edubridge/calendar.service.test.ts
+    status: written
+  - id: edu.cal.break.01
+    level: backend
+    kind: break
+    scenario: "Программа заполнена проведёнными и назначенными занятиями: дополнительное занятие, перенос с удлинением и окно с чужим преподавателем."
+    expect: "Отказ EDUBRIDGE_PROGRAM_FULL; окно с допуском другого курса — EDUBRIDGE_SCHEDULE_TEACHER_NOT_ASSIGNED; перенос и отмена проведённого — EDUBRIDGE_LESSON_NOT_PLANNED."
+    test: components/controller/tests/unit/edubridge/calendar.service.test.ts
+    status: written
+  - id: edu.cal.side.03
+    level: backend
+    kind: side
+    scenario: "Отмена запланированного занятия освобождает номер: следующее дополнительное занятие получает его."
+    expect: "Отменённое остаётся в календаре со статусом «отменено», новое занятие — с тем же номером."
+    test: components/controller/tests/unit/edubridge/calendar.service.test.ts
+    status: written
+  - id: edu.cal.side.04
+    level: backend
+    kind: side
+    scenario: "Стенд со сжатым временем: окна раскладываются равными шагами по сжатому месяцу, конец занятия и срок на отчёт сжаты так же, как сутки."
+    expect: "Занятий в месяц столько, сколько по условиям группы; окно отчёта у занятия — по длине суток стенда."
+    test: components/controller/tests/unit/edubridge/calendar.service.test.ts
+    status: written
+  - id: edu.cal.side.05
+    level: backend
+    kind: side
+    scenario: "Отмена группы по недобору: подписки группы закрываются с возвратом, курс и другие группы идут дальше."
+    expect: "Группа отменена, курс не архивирован, подписки других групп не тронуты."
+    test: components/controller/tests/unit/edubridge/enrollment.service.test.ts
+    api: components/api-tests/src/edubridge/groups.test.ts
+    status: written

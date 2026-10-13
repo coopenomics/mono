@@ -8,7 +8,11 @@ export * as ReportLesson from './reportLesson'
 /** Отменить подписку с возвратом членского взноса */
 export * as CancelEnrollment from './cancelEnrollment'
 /** Отменить курс по недобору */
-export * as CancelCourseUnderfilled from './cancelCourseUnderfilled'
+export * as CancelGroupUnderfilled from './cancelGroupUnderfilled'
+export * as CancelLesson from './cancelLesson'
+export * as MoveLesson from './moveLesson'
+export * as PlanLesson from './planLesson'
+export * as SetGroupSchedule from './setGroupSchedule'
 /** Подать расход программы из фонда */
 export * as CreateExpense from './createExpense'
 /** Задать наценку кооператива */

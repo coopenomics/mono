@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PaginationInputDTO, type PaginationResult, DomainError } from '@coopenomics/extension-kit';
-import { CARRIERS_BY_DIRECTION, EduAccessCarrier, EduCourseStatus, PLATFORM_CARRIERS } from '../../domain/enums';
+import { CARRIERS_BY_DIRECTION, EduAccessCarrier, EduCourseStatus, EduLessonStatus, PLATFORM_CARRIERS } from '../../domain/enums';
+import { formatSlots, normalizeSlots } from '../../domain/lib/schedule';
 import type { EdubridgeCourseRecord } from '../../infrastructure/entities';
 import type { EduCourseImage } from '../../infrastructure/entities/edubridge-course.record';
 import { EdubridgeCourseKyselyRepository, type EduCourseFilter } from '../../infrastructure/repositories/edubridge-course.kysely-repository';
@@ -228,7 +229,7 @@ export class EdubridgeCourseService {
   async remove(coopname: string, id: string): Promise<void> {
     const course = await this.get(coopname, id);
     if ((await this.enrollments.findByCourse(coopname, id)).length) throw DomainError.badRequest('EDUBRIDGE_COURSE_DELETE_HAS_SUBSCRIPTIONS');
-    if ((await this.lessons.findByCourse(coopname, id)).length) throw DomainError.badRequest('EDUBRIDGE_COURSE_DELETE_HAS_LESSONS');
+    if ((await this.lessons.findByCourse(coopname, id)).some((l) => l.status === EduLessonStatus.HELD)) throw DomainError.badRequest('EDUBRIDGE_COURSE_DELETE_HAS_LESSONS');
     await this.teachers.deleteAssignmentsOfCourse(coopname, id);
     await this.courses.remove(coopname, id);
     if (course.image) await this.images.deleteImage(course.image.bucket_key).catch(() => undefined);
@@ -276,13 +277,16 @@ export class EdubridgeCourseService {
 
   private fields(input: EduCourseInputDTO, fee: { fee_month: string }): Partial<EdubridgeCourseRecord> {
     const platform = PLATFORM_CARRIERS.includes(input.carrier);
+    const slots = normalizeSlots(input.schedule_slots);
     return {
       title: input.title,
       section_id: input.section_id,
       level_id: input.level_id ?? null,
       description: input.description ?? '',
       syllabus: input.syllabus ?? '',
-      schedule: input.schedule ?? '',
+      schedule: slots.length ? formatSlots(slots) : input.schedule ?? '',
+      schedule_slots: slots,
+      report_days: input.report_days ?? 7,
       teacher_usernames: input.teacher_usernames ?? [],
       ...economyFields(input, fee),
       direction: input.direction,

@@ -280,11 +280,11 @@ cases:
   - id: edu.teach.break.04
     level: backend
     kind: break
-    scenario: Отчёт по занятию вне плана курса и повторный отчёт по тому же занятию.
-    expect: Отказ в обоих случаях — журнал ведётся по программе курса.
+    scenario: Повторный отчёт по занятию, отчёт по отменённому занятию и по занятию, которого нет в календаре.
+    expect: Отказ в каждом случае — отчёт принимается только по запланированному занятию календаря, по одному разу.
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
     api: components/api-tests/src/edubridge/lessons.test.ts
-    status: passing
+    status: written
   - id: edu.teach.side.07
     level: backend
     kind: side
@@ -378,11 +378,25 @@ cases:
   - id: edu.teach.break.07
     level: backend
     kind: break
-    scenario: "Дата занятия в будущем либо раньше периода назначения."
-    expect: "Отчёт отклоняется до записи в журнал."
+    scenario: "Отчёт до конца занятия, после срока на отчёт и по занятию другого преподавателя; перенос и отмена проведённого занятия."
+    expect: "Отчёт отклоняется с кодом окна отчёта либо чужого занятия; проведённое занятие не переносится и не отменяется."
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
     api: components/api-tests/src/edubridge/lessons.test.ts
-    status: passing
+    status: written
+  - id: edu.teach.side.30
+    level: backend
+    kind: side
+    scenario: "Занятия группы отчитываются в любой очерёдности: третье по номеру раньше первого; номер и длительность уходят в цепь из календаря, окно расчёта закрывается тем же проходом."
+    expect: "Оба отчёта приняты, порядок не проверяется; openlesson получает number и minutes, после расчёта по подпискам вызван closecharge."
+    test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    status: written
+  - id: edu.teach.side.31
+    level: backend
+    kind: side
+    scenario: "Двухчасовое занятие календаря: длительность в отчёте не называется, уходит в цепь из календаря."
+    expect: "openlesson получает minutes 120; занятие занимает два занятия программы — считает контракт."
+    test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    status: written
   - id: edu.teach.side.14
     level: backend
     kind: side

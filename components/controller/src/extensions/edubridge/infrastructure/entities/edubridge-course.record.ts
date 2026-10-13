@@ -1,6 +1,7 @@
 import { EdubridgeLevelRecord } from './edubridge-level.record';
 import { EdubridgeSectionRecord } from './edubridge-section.record';
 import { EduAccessCarrier, EduCourseDirection, EduCourseStatus } from '../../domain/enums';
+import type { EduScheduleSlot } from '../../domain/lib/schedule';
 
 /** Снимок объекта bucket'а `edubridge:images`; ссылка на чтение подписывается при отдаче. */
 export interface EduCourseImage {
@@ -45,7 +46,14 @@ export class EdubridgeCourseRecord {
   /** Учебная программа (markdown). */
   public syllabus!: string;
 
+  /** Расписание строкой для каталога: собирается из окон, когда они заданы. */
   public schedule!: string;
+
+  /** Окна расписания — образец для новых групп курса. */
+  public schedule_slots!: EduScheduleSlot[];
+
+  /** Срок на отчёт преподавателя о занятии, дней после занятия. */
+  public report_days!: number;
 
   /** Обложка карточки курса; `null` — без изображения. */
   public image!: EduCourseImage | null;

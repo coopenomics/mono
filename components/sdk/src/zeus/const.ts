@@ -646,7 +646,8 @@ export const AllTypesProps: Record<string,any> = {
 	EduCourseInput:{
 		carrier:"EduAccessCarrier",
 		direction:"EduCourseDirection",
-		image:"EduCourseImageUploadInput"
+		image:"EduCourseImageUploadInput",
+		schedule_slots:"EduScheduleSlotInput"
 	},
 	EduCourseStatus: "enum" as const,
 	EduCoursesFilterInput:{
@@ -657,9 +658,6 @@ export const AllTypesProps: Record<string,any> = {
 		statement:"ExpenseProposalStatementSignedDocumentInput"
 	},
 	EduCreateGroupInput:{
-
-	},
-	EduDeclineContributionInput:{
 
 	},
 	EduEnrollmentPeriod: "enum" as const,
@@ -679,14 +677,25 @@ export const AllTypesProps: Record<string,any> = {
 	EduLearnerInput:{
 		recipient_type:"EduRecipientType"
 	},
+	EduLessonCalendarFilter:{
+
+	},
+	EduLessonOrigin: "enum" as const,
 	EduLessonReportInput:{
 
 	},
+	EduLessonStatus: "enum" as const,
 	EduMarkLearnerRemovedInput:{
+
+	},
+	EduMoveLessonInput:{
 
 	},
 	EduOfferKind: "enum" as const,
 	EduOnboardingSource: "enum" as const,
+	EduPlanLessonInput:{
+
+	},
 	EduQueueFilterInput:{
 		statuses:"EduAccessTaskStatus"
 	},
@@ -714,6 +723,9 @@ export const AllTypesProps: Record<string,any> = {
 	EduSaveSectionInput:{
 
 	},
+	EduScheduleSlotInput:{
+
+	},
 	EduSectionsFilterInput:{
 
 	},
@@ -732,6 +744,9 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	EduSetEconomySettingsInput:{
 
+	},
+	EduSetGroupScheduleInput:{
+		slots:"EduScheduleSlotInput"
 	},
 	EduSetTeacherRateInput:{
 
@@ -768,7 +783,8 @@ export const AllTypesProps: Record<string,any> = {
 	EduUpdateCourseInput:{
 		carrier:"EduAccessCarrier",
 		direction:"EduCourseDirection",
-		image:"EduCourseImageUploadInput"
+		image:"EduCourseImageUploadInput",
+		schedule_slots:"EduScheduleSlotInput"
 	},
 	EduUpdateGroupInput:{
 
@@ -2049,10 +2065,13 @@ export const AllTypesProps: Record<string,any> = {
 		edubridgeArchiveSection:{
 			data:"EduArchiveInput"
 		},
-		edubridgeCancelCourseUnderfilled:{
+		edubridgeCancelEnrollment:{
 
 		},
-		edubridgeCancelEnrollment:{
+		edubridgeCancelGroupUnderfilled:{
+
+		},
+		edubridgeCancelLesson:{
 
 		},
 		edubridgeCheckConnector:{
@@ -2076,9 +2095,6 @@ export const AllTypesProps: Record<string,any> = {
 		edubridgeCreateGroup:{
 			data:"EduCreateGroupInput"
 		},
-		edubridgeDeclineContribution:{
-			data:"EduDeclineContributionInput"
-		},
 		edubridgeDeleteCourse:{
 
 		},
@@ -2093,6 +2109,12 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		edubridgeMarkLearnerRemoved:{
 			data:"EduMarkLearnerRemovedInput"
+		},
+		edubridgeMoveLesson:{
+			data:"EduMoveLessonInput"
+		},
+		edubridgePlanLesson:{
+			data:"EduPlanLessonInput"
 		},
 		edubridgeRemoveLearner:{
 
@@ -2147,6 +2169,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		edubridgeSetEconomySettings:{
 			data:"EduSetEconomySettingsInput"
+		},
+		edubridgeSetGroupSchedule:{
+			data:"EduSetGroupScheduleInput"
 		},
 		edubridgeSetTeacherRate:{
 			data:"EduSetTeacherRateInput"
@@ -3194,6 +3219,12 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		edubridgeExpenses:{
 			options:"PaginationInput"
+		},
+		edubridgeGroupLessons:{
+
+		},
+		edubridgeLessonCalendar:{
+			filter:"EduLessonCalendarFilter"
 		},
 		edubridgeMemberCard:{
 
@@ -5744,7 +5775,9 @@ export const ReturnTypes: Record<string,any> = {
 		lessons_total:"Int",
 		level_id:"ID",
 		level_title:"String",
+		report_days:"Int",
 		schedule:"String",
+		schedule_slots:"EduScheduleSlot",
 		section_id:"ID",
 		section_title:"String",
 		starts_at:"String",
@@ -5818,7 +5851,9 @@ export const ReturnTypes: Record<string,any> = {
 		level_title:"String",
 		pay_per_learner:"Boolean",
 		planned_hourly_rate:"String",
+		report_days:"Int",
 		schedule:"String",
+		schedule_slots:"EduScheduleSlot",
 		section_id:"ID",
 		section_title:"String",
 		sort_order:"Int",
@@ -5931,10 +5966,15 @@ export const ReturnTypes: Record<string,any> = {
 		guarantee_days:"Int",
 		id:"ID",
 		learners_active:"Int",
+		lesson_minutes:"Int",
 		lessons_held:"Int",
+		lessons_per_month:"Int",
 		lessons_total:"Int",
 		pay_per_learner:"Boolean",
 		planned_hourly_rate:"String",
+		report_days:"Int",
+		schedule:"String",
+		schedule_slots:"EduScheduleSlot",
 		settlement_pending:"Int",
 		starts_at:"String",
 		starts_at_time:"DateTime",
@@ -5975,16 +6015,25 @@ export const ReturnTypes: Record<string,any> = {
 		removed_at:"DateTime"
 	},
 	EduLesson:{
+		assignment_id:"ID",
 		contribution_id:"ID",
 		course_id:"ID",
 		course_title:"String",
 		duration_minutes:"Int",
+		ends_at:"DateTime",
 		group_id:"ID",
+		group_title:"String",
 		held_at:"DateTime",
 		id:"ID",
 		learners_count:"Int",
 		lesson_number:"Int",
 		materials:"String",
+		origin:"EduLessonOrigin",
+		overdue:"Boolean",
+		report_until:"DateTime",
+		reported_at:"DateTime",
+		status:"EduLessonStatus",
+		teacher_username:"String",
 		topic:"String"
 	},
 	EduLevel:{
@@ -6070,6 +6119,12 @@ export const ReturnTypes: Record<string,any> = {
 		refunds:"String",
 		subscriptions:"Int",
 		total:"String"
+	},
+	EduScheduleSlot:{
+		assignment_id:"ID",
+		minutes:"Int",
+		time:"String",
+		weekday:"Int"
 	},
 	EduSection:{
 		archived:"Boolean",
@@ -7798,8 +7853,9 @@ export const ReturnTypes: Record<string,any> = {
 		edubridgeAddLearner:"EduLearner",
 		edubridgeArchiveLevel:"EduLevel",
 		edubridgeArchiveSection:"EduSection",
-		edubridgeCancelCourseUnderfilled:"Int",
 		edubridgeCancelEnrollment:"EduEnrollment",
+		edubridgeCancelGroupUnderfilled:"Int",
+		edubridgeCancelLesson:"EduLesson",
 		edubridgeCheckConnector:"EduConnectorBinding",
 		edubridgeCloseAssignment:"EduAssignment",
 		edubridgeConvertStatement:"GeneratedDocument",
@@ -7807,12 +7863,13 @@ export const ReturnTypes: Record<string,any> = {
 		edubridgeCreateCourse:"EduCourse",
 		edubridgeCreateExpense:"String",
 		edubridgeCreateGroup:"EduGroup",
-		edubridgeDeclineContribution:"EduContribution",
 		edubridgeDeleteCourse:"Boolean",
 		edubridgeFinishGroup:"EduGroup",
 		edubridgeGuaranteeStatement:"GeneratedDocument",
 		edubridgeHoldContribution:"EduContribution",
 		edubridgeMarkLearnerRemoved:"EduLearnerAccount",
+		edubridgeMoveLesson:"EduLesson",
+		edubridgePlanLesson:"EduLesson",
 		edubridgeRemoveLearner:"Boolean",
 		edubridgeReorderLevels:"EduSection",
 		edubridgeReorderSections:"EduSection",
@@ -7831,6 +7888,7 @@ export const ReturnTypes: Record<string,any> = {
 		edubridgeSetConnectorEnabled:"EduConnectorBinding",
 		edubridgeSetCourseStatus:"EduCourse",
 		edubridgeSetEconomySettings:"EduEconomySettings",
+		edubridgeSetGroupSchedule:"EduGroup",
 		edubridgeSetTeacherRate:"String",
 		edubridgeShareWithdrawStatement:"GeneratedDocument",
 		edubridgeSignAct:"EduContribution",
@@ -8712,6 +8770,8 @@ export const ReturnTypes: Record<string,any> = {
 		edubridgeCourses:"PaginatedEduCoursesPaginationResult",
 		edubridgeEconomySettings:"EduEconomySettings",
 		edubridgeExpenses:"PaginatedEduExpensesPaginationResult",
+		edubridgeGroupLessons:"EduLesson",
+		edubridgeLessonCalendar:"EduLesson",
 		edubridgeMemberCard:"EduMemberCard",
 		edubridgeMembers:"EduMemberRow",
 		edubridgeMyAssignments:"EduAssignment",

@@ -220,6 +220,17 @@
     "group": {
       "defaultTitle": "Группа {number}"
     },
+    "schedule": {
+      "weekday": {
+        "1": "Пн",
+        "2": "Вт",
+        "3": "Ср",
+        "4": "Чт",
+        "5": "Пт",
+        "6": "Сб",
+        "7": "Вс"
+      }
+    },
     "roles": {
       "admin": {
         "title": "Администратор образования",
@@ -303,18 +314,27 @@
     "EDUBRIDGE_LEARNER_HAS_ACTIVE_SUBSCRIPTIONS": "У обучающегося есть действующие подписки — дождитесь окончания периода",
     "EDUBRIDGE_LEARNER_NOT_FOUND": "Обучающийся не найден",
     "EDUBRIDGE_LEARNER_SELF_ALREADY_ADDED": "Вы уже добавлены как обучающийся",
-    "EDUBRIDGE_LESSON_BEFORE_ASSIGNMENT_PERIOD": "Дата занятия раньше начала периода назначения",
     "EDUBRIDGE_LESSON_NOT_FOUND": "Занятие не найдено",
-    "EDUBRIDGE_LESSON_OUT_OF_PLAN": "Занятие вне плана курса: в программе {lessonsTotal} занятий",
+    "EDUBRIDGE_LESSON_OTHER_TEACHER": "Занятие закреплено за другим преподавателем",
+    "EDUBRIDGE_LESSON_CANCELLED": "Занятие № {lessonNumber} отменено: отчёт по нему не принимается",
+    "EDUBRIDGE_LESSON_NOT_PLANNED": "Занятие № {lessonNumber} уже проведено либо отменено: перенос и отмена доступны только запланированному",
+    "EDUBRIDGE_LESSON_REPORT_OVERDUE": "Срок на отчёт по занятию № {lessonNumber} вышел {reportUntil}: обратитесь к администратору",
+    "EDUBRIDGE_LESSON_DATE_INVALID": "Момент занятия не распознан",
+    "EDUBRIDGE_PROGRAM_FULL": "Программа заполнена: в ней {lessonsTotal} занятий, свободного места для занятия нет",
+    "EDUBRIDGE_SCHEDULE_WEEKDAY_INVALID": "День недели окна расписания: от 1 (понедельник) до 7 (воскресенье)",
+    "EDUBRIDGE_SCHEDULE_TIME_INVALID": "Время начала окна расписания — «ЧЧ:ММ»",
+    "EDUBRIDGE_SCHEDULE_MINUTES_INVALID": "Длительность занятия — от 5 минут до суток",
+    "EDUBRIDGE_SCHEDULE_TEACHER_NOT_ASSIGNED": "Преподаватель не допущен к курсу этой группы",
+    "EDUBRIDGE_REPORT_DAYS_INVALID": "Срок на отчёт — от 0 до 365 дней",
+    "EDUBRIDGE_GROUP_NOT_ACTIVE": "Группа завершена либо отменена: занятия по ней не отчитываются",
     "EDUBRIDGE_LESSON_NOT_PAID_BY_LEARNERS": "По курсу «{courseTitle}» нет оплаченных учениками часов: отчёт о занятии не принимается",
     "EDUBRIDGE_GROUP_NOT_FOUND": "Группа курса не найдена",
+    "EDUBRIDGE_UNDERFILL_CANCEL_GROUP_STARTED": "Занятия группы уже начались: отмена по недобору недоступна",
     "EDUBRIDGE_GROUP_ENROLLMENT_CLOSED": "Набор в группу закрыт",
     "EDUBRIDGE_LEARNER_HAS_SUBSCRIPTIONS": "У обучающегося есть действующая подписка: аккаунт на площадке ему нужен",
     "EDUBRIDGE_GROUP_CHOICE_REQUIRED": "У курса несколько идущих групп: выберите группу",
-    "EDUBRIDGE_LESSON_PREVIOUS_NOT_CLOSED": "По занятию № {lessonNumber} материалы не переданы на ответственное хранение. Следующий отчёт принимается после передачи материалов",
-    "EDUBRIDGE_LESSON_DATE_BEFORE_PREVIOUS": "Занятия курса отчитываются по порядку дат: занятие № {lessonNumber} проведено {heldAt}, дата нового занятия должна быть не раньше",
     "EDUBRIDGE_LESSON_REPORT_ALREADY_SUBMITTED": "Отчёт по занятию № {lessonNumber} уже подан",
-    "EDUBRIDGE_LESSON_REPORT_TOO_EARLY": "Отчёт подаётся после занятия: дата занятия ещё не наступила",
+    "EDUBRIDGE_LESSON_REPORT_TOO_EARLY": "Отчёт подаётся после занятия: занятие ещё не закончилось",
     "EDUBRIDGE_LEVEL_ALREADY_EXISTS": "Уровень «{title}» в разделе «{sectionTitle}» уже есть",
     "EDUBRIDGE_LEVEL_ARCHIVED": "Уровень «{title}» в архиве",
     "EDUBRIDGE_LEVEL_NOT_FOUND": "Уровень не найден",
@@ -356,7 +376,6 @@
     "EDUBRIDGE_TEACHER_RATE_REQUIRED": "Укажите ставку за час",
     "EDUBRIDGE_TEACHER_RATE_NOT_COVERED": "Ставка на курсе {contractRate} выше плановой ставки курса {plannedRate}. Ставка преподавателя на курсе устанавливается в пределах плановой",
     "EDUBRIDGE_TRANSFER_ACT_STALE": "Акт передачи материалов устарел — сформируйте и подпишите его заново",
-    "EDUBRIDGE_UNDERFILL_CANCEL_COURSE_STARTED": "Занятия по курсу уже начались — отмена по недобору невозможна",
     "EDUBRIDGE_UNDERFILL_CANCEL_PARTIAL": "Возвращено подписок: {cancelled}, не удалось: {failed}. Повторите отмену."
   }
 }

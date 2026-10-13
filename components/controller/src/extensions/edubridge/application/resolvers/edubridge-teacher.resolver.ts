@@ -104,22 +104,20 @@ export class EdubridgeTeacherResolver {
     return own.map((c) => new EduContributionDTO(c, ownLearners.get(c.id) ?? null));
   }
 
-  @Query(() => [EduLessonDTO], { name: 'edubridgeMyLessons', description: 'Мои проведённые занятия' })
+  @Query(() => [EduLessonDTO], { name: 'edubridgeMyLessons', description: 'Мои занятия: запланированные в календаре и проведённые' })
   @UseGuards(GqlJwtAuthGuard, RightsGuard)
   @RequireRight('EduAssignment', 'read:own', SELF)
   async edubridgeMyLessons(@CurrentEduMember() m: IEdubridgeMembership): Promise<EduLessonDTO[]> {
-    const lessons = await this.teachers.listLessons(coop(), m.username as string);
-    const titles = await this.teachers.courseTitles(coop(), lessons.map((l) => l.course_id));
-    return lessons.map((l) => new EduLessonDTO(l, titles.get(l.course_id) ?? ''));
+    return this.teachers.lessonDtos(coop(), await this.teachers.listLessons(coop(), m.username as string));
   }
 
-  @Mutation(() => EduLessonDTO, { name: 'edubridgeReportLesson', description: 'Отчитаться о проведённом занятии: материалы и взнос по ставке часа' })
+  @Mutation(() => EduLessonDTO, { name: 'edubridgeReportLesson', description: 'Отчитаться о занятии календаря: материалы, взнос по ставке часа считает контракт' })
   @UseGuards(GqlJwtAuthGuard, RightsGuard)
   @RequireRight('EduContribution', 'create:own', SELF)
   async edubridgeReportLesson(@CurrentEduMember() m: IEdubridgeMembership, @Args('data') data: EduLessonReportInputDTO): Promise<EduLessonDTO> {
     const lesson = await this.teachers.reportLesson(coop(), m.username as string, data);
-    const titles = await this.teachers.courseTitles(coop(), [lesson.course_id]);
-    return new EduLessonDTO(lesson, titles.get(lesson.course_id) ?? '');
+    const [dto] = await this.teachers.lessonDtos(coop(), [lesson]);
+    return dto;
   }
 
   @Mutation(() => GeneratedDocumentDTO, { name: 'edubridgeRidStorageAct', description: 'Сформировать акт передачи материалов занятия на ответственное хранение для подписи' })

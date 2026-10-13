@@ -22,6 +22,8 @@ const rawCatalogCourseSelector = {
   fee_course: true,
   fee_course_base: true,
   course_discount_amount: true,
+  schedule_slots: { weekday: true, time: true, minutes: true, assignment_id: true },
+  report_days: true,
 }
 
 const _validateCatalogCourse: MakeAllFieldsRequired<ValueTypes['EduCatalogCourse']> = rawCatalogCourseSelector

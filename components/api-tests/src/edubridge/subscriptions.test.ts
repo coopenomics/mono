@@ -38,7 +38,8 @@ import {
 } from './edubridge.helpers'
 
 const FUND = 'query{ edubridgeProgramFund{ fund_balance wallets{ id available } } }'
-const CANCEL_UNDERFILLED = 'mutation($id:ID!){ edubridgeCancelCourseUnderfilled(course_id:$id) }'
+const CANCEL_UNDERFILLED = 'mutation($id:ID!){ edubridgeCancelGroupUnderfilled(group_id:$id) }'
+const COURSE_GROUP_IDS = 'query($id:ID!){ edubridgeCourseGroups(course_id:$id){ id status } }'
 const RETRY_CLOSE = 'mutation($d:EduRetryEnrollmentCloseInput!){ edubridgeRetryEnrollmentClose(data:$d){ id status } }'
 const CONVERT_STATEMENT = 'mutation($d:EduQuoteInput!){ edubridgeConvertStatement(data:$d){ full_title html hash meta binary } }'
 const GENERATE_ANNULMENT = `mutation($d:ProgramAgreementsAnnulmentGenerateDocumentInput!,$o:GenerateDocumentOptionsInput){
@@ -274,9 +275,10 @@ describe('Образование: подписки — продление, вз�
       const programBefore = await wallet(PROGRAM_WALLET)
       const theirShare = await walletOf(secondToken, second.account, SHARE_WALLET)
 
-      // Отменяет администратор, не участник.
-      expect(await gqlError(token, CANCEL_UNDERFILLED, { id: course.id })).not.toBeNull()
-      expect((await gql<any>(chairman, CANCEL_UNDERFILLED, { id: course.id })).edubridgeCancelCourseUnderfilled).toBe(2)
+      // Отменяет администратор, не участник; отменяется группа, а не курс.
+      const [group] = (await gql<any>(chairman, COURSE_GROUP_IDS, { id: course.id })).edubridgeCourseGroups as any[]
+      expect(await gqlError(token, CANCEL_UNDERFILLED, { id: group.id })).not.toBeNull()
+      expect((await gql<any>(chairman, CANCEL_UNDERFILLED, { id: group.id })).edubridgeCancelGroupUnderfilled).toBe(2)
 
       const closed = await enrollmentOf(token, mine.id)
       expect(closed).toMatchObject({ status: 'CANCELLED', refund_reason: 'underfilled' })
@@ -286,8 +288,9 @@ describe('Образование: подписки — продление, вз�
       expect((await enrollmentOf(secondToken, theirs.id))?.status).toBe('CANCELLED')
       expect(await walletOf(secondToken, second.account, SHARE_WALLET)).toBeCloseTo(theirShare + fee, 4)
 
-      // Курс снят с витрины, подписаться на него больше нельзя.
-      expect((await gql<any>(chairman, COURSE, { id: course.id })).edubridgeCourse.status).toBe('ARCHIVED')
+      // Группа отменена, набор в неё закрыт; курс остаётся на витрине для следующих групп.
+      expect(((await gql<any>(chairman, COURSE_GROUP_IDS, { id: course.id })).edubridgeCourseGroups as any[]).find(g => g.id === group.id).status).toBe('CANCELLED')
+      expect((await gql<any>(chairman, COURSE, { id: course.id })).edubridgeCourse.status).toBe('PUBLISHED')
       expectCode(await gqlError(secondToken, QUOTE, input(secondSelf.id, course.id)), 'EDUBRIDGE_COURSE_NOT_FOUND_OR_UNPUBLISHED')
     })
 

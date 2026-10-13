@@ -2,7 +2,7 @@ import { Injectable, UseGuards } from '@nestjs/common';
 import { Args, ID, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { DomainError, GqlJwtAuthGuard, OptionalGqlJwtAuthGuard, platformSettings, RequireRight, RightsGuard, SELF } from '@coopenomics/extension-kit';
 import { EduCreateGroupInputDTO, EduGroupDTO, EduUpdateGroupInputDTO } from '../dto/edu-group.dto';
-import { EduEnrollmentStatus, EduGroupStatus } from '../../domain/enums';
+import { EduEnrollmentStatus, EduGroupStatus, EduLessonStatus } from '../../domain/enums';
 import type { EdubridgeGroupRecord } from '../../infrastructure/entities';
 import { EdubridgeEnrollmentKyselyRepository } from '../../infrastructure/repositories/edubridge-enrollment.kysely-repository';
 import { EdubridgeLessonKyselyRepository } from '../../infrastructure/repositories/edubridge-lesson.kysely-repository';
@@ -32,7 +32,7 @@ export class EdubridgeGroupResolver {
     const subscriptions = await this.enrollments.findByGroup(coop(), group.id);
     return new EduGroupDTO(group, {
       learners_active: subscriptions.filter((e) => e.status === EduEnrollmentStatus.ACTIVE).length,
-      lessons_held: (await this.lessons.findByGroup(coop(), group.id)).length,
+      lessons_held: (await this.lessons.findByGroup(coop(), group.id)).filter((l) => l.status === EduLessonStatus.HELD).length,
       settlement_pending: subscriptions.filter((e) => isResumable(e)).length,
     });
   }

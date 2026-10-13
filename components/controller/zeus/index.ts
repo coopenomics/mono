@@ -6851,8 +6851,12 @@ export type ValueTypes = {
 	level_id?:boolean | `@${string}`,
 	/** Уровень внутри раздела: «7 класс», «Ступень 1»; пусто — без уровня */
 	level_title?:boolean | `@${string}`,
+	/** Срок на отчёт преподавателя о занятии, дней после занятия */
+	report_days?:boolean | `@${string}`,
 	/** Расписание занятий */
 	schedule?:boolean | `@${string}`,
+	/** Окна расписания курса — образец для его групп */
+	schedule_slots?:ValueTypes["EduScheduleSlot"],
 	/** Раздел каталога из справочника */
 	section_id?:boolean | `@${string}`,
 	/** Раздел каталога — область знаний: «Математика», «Духовные практики» */
@@ -7008,8 +7012,12 @@ export type ValueTypes = {
 	pay_per_learner?:boolean | `@${string}`,
 	/** Плановая ставка часа, заложенная во взнос каждого участника */
 	planned_hourly_rate?:boolean | `@${string}`,
+	/** Срок на отчёт преподавателя о занятии, дней после занятия */
+	report_days?:boolean | `@${string}`,
 	/** Расписание занятий */
 	schedule?:boolean | `@${string}`,
+	/** Окна расписания курса — образец для его групп */
+	schedule_slots?:ValueTypes["EduScheduleSlot"],
 	/** Раздел каталога из справочника */
 	section_id?:boolean | `@${string}`,
 	/** Раздел каталога — область знаний: «Математика», «Духовные практики» */
@@ -7140,8 +7148,12 @@ export type ValueTypes = {
 	pay_per_learner?: boolean | undefined | null | Variable<any, string>,
 	/** Плановая ставка часа по программе («1000.0000 RUB») */
 	planned_hourly_rate: string | Variable<any, string>,
-	/** Расписание занятий */
+	/** Срок на отчёт преподавателя о занятии, дней после занятия */
+	report_days?: number | undefined | null | Variable<any, string>,
+	/** Расписание строкой — когда окна расписания не заданы */
 	schedule?: string | undefined | null | Variable<any, string>,
+	/** Окна расписания: день недели, время начала, длительность, преподаватель; образец для групп курса */
+	schedule_slots?: Array<ValueTypes["EduScheduleSlotInput"]> | undefined | null | Variable<any, string>,
 	/** Раздел каталога из справочника */
 	section_id: ValueTypes["ID"] | Variable<any, string>,
 	/** Порядок в каталоге */
@@ -7203,12 +7215,6 @@ export type ValueTypes = {
 	starts_in_minutes?: number | undefined | null | Variable<any, string>,
 	/** Название группы; не названа — «Группа N» */
 	title?: string | undefined | null | Variable<any, string>
-};
-	["EduDeclineContributionInput"]: {
-	/** Взнос */
-	contribution_id: ValueTypes["ID"] | Variable<any, string>,
-	/** Причина */
-	reason: string | Variable<any, string>
 };
 	["EduEconomySettings"]: AliasType<{
 	/** Длина суток, секунд */
@@ -7366,14 +7372,24 @@ export type ValueTypes = {
 	id?:boolean | `@${string}`,
 	/** Участников с действующей подпиской */
 	learners_active?:boolean | `@${string}`,
+	/** Длительность занятия курса, минут */
+	lesson_minutes?:boolean | `@${string}`,
 	/** Проведено занятий */
 	lessons_held?:boolean | `@${string}`,
+	/** Занятий в месяц по расписанию */
+	lessons_per_month?:boolean | `@${string}`,
 	/** Занятий в программе группы */
 	lessons_total?:boolean | `@${string}`,
 	/** Взнос преподавателя за занятие считается за каждого участника; иначе фиксированный за занятие */
 	pay_per_learner?:boolean | `@${string}`,
 	/** Плановая ставка часа в группе */
 	planned_hourly_rate?:boolean | `@${string}`,
+	/** Срок на отчёт преподавателя о занятии, дней после занятия */
+	report_days?:boolean | `@${string}`,
+	/** Расписание группы строкой, собрано из окон */
+	schedule?:boolean | `@${string}`,
+	/** Окна расписания группы */
+	schedule_slots?:ValueTypes["EduScheduleSlot"],
 	/** Подписок с вышедшим оплаченным сроком, расчёты по которым ещё открыты */
 	settlement_pending?:boolean | `@${string}`,
 	/** Дата начала занятий группы */
@@ -7482,6 +7498,8 @@ export type ValueTypes = {
 	recipient_value: string | Variable<any, string>
 };
 	["EduLesson"]: AliasType<{
+	/** Допуск преподавателя */
+	assignment_id?:boolean | `@${string}`,
 	/** Взнос, оформленный по занятию */
 	contribution_id?:boolean | `@${string}`,
 	/** Курс */
@@ -7490,9 +7508,13 @@ export type ValueTypes = {
 	course_title?:boolean | `@${string}`,
 	/** Длительность, минут */
 	duration_minutes?:boolean | `@${string}`,
+	/** Конец занятия */
+	ends_at?:boolean | `@${string}`,
 	/** Группа курса */
 	group_id?:boolean | `@${string}`,
-	/** Когда проведено */
+	/** Название группы */
+	group_title?:boolean | `@${string}`,
+	/** Момент занятия */
 	held_at?:boolean | `@${string}`,
 	id?:boolean | `@${string}`,
 	/** Участников с оплаченным доступом, по которым проведён расчёт за занятие */
@@ -7501,25 +7523,45 @@ export type ValueTypes = {
 	lesson_number?:boolean | `@${string}`,
 	/** Материалы занятия */
 	materials?:boolean | `@${string}`,
+	/** Из окон расписания либо назначено отдельно */
+	origin?:boolean | `@${string}`,
+	/** Срок на отчёт вышел, отчёта нет */
+	overdue?:boolean | `@${string}`,
+	/** До какого момента принимается отчёт */
+	report_until?:boolean | `@${string}`,
+	/** Когда подан отчёт */
+	reported_at?:boolean | `@${string}`,
+	/** Запланировано, проведено либо отменено */
+	status?:boolean | `@${string}`,
+	/** Преподаватель занятия; пусто — не назначен */
+	teacher_username?:boolean | `@${string}`,
 	/** Тема занятия */
 	topic?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on EduLesson']?: Omit<ValueTypes["EduLesson"], "...on EduLesson">
 }>;
-	["EduLessonReportInput"]: {
-	/** Назначение, по которому проведено занятие */
-	assignment_id: ValueTypes["ID"] | Variable<any, string>,
-	/** Группа курса, для которой проведено занятие; не названа — единственная идущая группа курса */
+	["EduLessonCalendarFilter"]: {
+	course_id?: ValueTypes["ID"] | undefined | null | Variable<any, string>,
+	/** С какого момента */
+	from?: string | undefined | null | Variable<any, string>,
 	group_id?: ValueTypes["ID"] | undefined | null | Variable<any, string>,
-	/** Когда проведено (по умолчанию — сейчас) */
-	held_at?: string | undefined | null | Variable<any, string>,
-	/** Номер занятия в программе курса */
-	lesson_number: number | Variable<any, string>,
+	/** Учётное имя преподавателя */
+	teacher_username?: string | undefined | null | Variable<any, string>,
+	/** До какого момента */
+	to?: string | undefined | null | Variable<any, string>
+};
+	/** Откуда занятие в календаре: из окон расписания либо назначено отдельно */
+["EduLessonOrigin"]:EduLessonOrigin;
+	["EduLessonReportInput"]: {
+	/** Занятие из календаря группы */
+	lesson_id: ValueTypes["ID"] | Variable<any, string>,
 	/** Материалы занятия — ссылки на записи, конспекты, задания */
 	materials: Array<string> | Variable<any, string>,
 	/** Тема занятия */
 	topic?: string | undefined | null | Variable<any, string>
 };
+	/** Состояние занятия в календаре группы */
+["EduLessonStatus"]:EduLessonStatus;
 	["EduLevel"]: AliasType<{
 	/** В архиве: не предлагается новым курсам и в каталоге */
 	archived?:boolean | `@${string}`,
@@ -7563,6 +7605,18 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on EduMemberRow']?: Omit<ValueTypes["EduMemberRow"], "...on EduMemberRow">
 }>;
+	["EduMoveLessonInput"]: {
+	/** Допуск преподавателя; пустая строка — снять преподавателя */
+	assignment_id?: ValueTypes["ID"] | undefined | null | Variable<any, string>,
+	/** Новый момент занятия */
+	held_at?: string | undefined | null | Variable<any, string>,
+	/** Занятие */
+	lesson_id: ValueTypes["ID"] | Variable<any, string>,
+	/** Длительность, минут */
+	minutes?: number | undefined | null | Variable<any, string>,
+	/** Тема занятия */
+	topic?: string | undefined | null | Variable<any, string>
+};
 	/** Оферта ЦПП «Образование»: ученик или преподаватель */
 ["EduOfferKind"]:EduOfferKind;
 	["EduOfferState"]: AliasType<{
@@ -7589,6 +7643,18 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on EduOnboardingState']?: Omit<ValueTypes["EduOnboardingState"], "...on EduOnboardingState">
 }>;
+	["EduPlanLessonInput"]: {
+	/** Допуск преподавателя; пусто — преподаватель назначается позже */
+	assignment_id?: ValueTypes["ID"] | undefined | null | Variable<any, string>,
+	/** Группа */
+	group_id: ValueTypes["ID"] | Variable<any, string>,
+	/** Момент занятия */
+	held_at: string | Variable<any, string>,
+	/** Длительность, минут; пусто — длительность занятия курса */
+	minutes?: number | undefined | null | Variable<any, string>,
+	/** Тема занятия */
+	topic?: string | undefined | null | Variable<any, string>
+};
 	["EduPlatformCourse"]: AliasType<{
 	/** Группы курса; пустой список — зачисление на курс напрямую */
 	groups?:ValueTypes["EduPlatformGroup"],
@@ -7748,6 +7814,28 @@ export type ValueTypes = {
 	/** Название раздела */
 	title: string | Variable<any, string>
 };
+	["EduScheduleSlot"]: AliasType<{
+	/** Допуск преподавателя, который ведёт занятия окна; пусто — преподаватель не назначен */
+	assignment_id?:boolean | `@${string}`,
+	/** Длительность занятия, минут */
+	minutes?:boolean | `@${string}`,
+	/** Время начала «ЧЧ:ММ» по часовому поясу кооператива */
+	time?:boolean | `@${string}`,
+	/** День недели: 1 — понедельник … 7 — воскресенье */
+	weekday?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on EduScheduleSlot']?: Omit<ValueTypes["EduScheduleSlot"], "...on EduScheduleSlot">
+}>;
+	["EduScheduleSlotInput"]: {
+	/** Допуск преподавателя */
+	assignment_id?: ValueTypes["ID"] | undefined | null | Variable<any, string>,
+	/** Длительность занятия, минут */
+	minutes: number | Variable<any, string>,
+	/** Время начала «ЧЧ:ММ» по часовому поясу кооператива */
+	time: string | Variable<any, string>,
+	/** День недели: 1 — понедельник … 7 — воскресенье */
+	weekday: number | Variable<any, string>
+};
 	["EduSection"]: AliasType<{
 	/** В архиве: не предлагается новым курсам и в каталоге */
 	archived?:boolean | `@${string}`,
@@ -7790,6 +7878,14 @@ export type ValueTypes = {
 	["EduSetEconomySettingsInput"]: {
 	/** Целевой членский взнос, проценты */
 	markup_percent: number | Variable<any, string>
+};
+	["EduSetGroupScheduleInput"]: {
+	/** Группа */
+	group_id: ValueTypes["ID"] | Variable<any, string>,
+	/** Срок на отчёт преподавателя о занятии, дней после занятия */
+	report_days?: number | undefined | null | Variable<any, string>,
+	/** Окна расписания; пусто — занятия по расписанию из календаря снимаются */
+	slots: Array<ValueTypes["EduScheduleSlotInput"]> | Variable<any, string>
 };
 	["EduSetTeacherRateInput"]: {
 	/** Ставка часа («1000.0000 RUB») */
@@ -8000,8 +8096,12 @@ export type ValueTypes = {
 	pay_per_learner?: boolean | undefined | null | Variable<any, string>,
 	/** Плановая ставка часа по программе («1000.0000 RUB») */
 	planned_hourly_rate: string | Variable<any, string>,
-	/** Расписание занятий */
+	/** Срок на отчёт преподавателя о занятии, дней после занятия */
+	report_days?: number | undefined | null | Variable<any, string>,
+	/** Расписание строкой — когда окна расписания не заданы */
 	schedule?: string | undefined | null | Variable<any, string>,
+	/** Окна расписания: день недели, время начала, длительность, преподаватель; образец для групп курса */
+	schedule_slots?: Array<ValueTypes["EduScheduleSlotInput"]> | undefined | null | Variable<any, string>,
 	/** Раздел каталога из справочника */
 	section_id: ValueTypes["ID"] | Variable<any, string>,
 	/** Порядок в каталоге */
@@ -13521,8 +13621,9 @@ editBranch?: [{	data: ValueTypes["EditBranchInput"] | Variable<any, string>},Val
 edubridgeAddLearner?: [{	data: ValueTypes["EduLearnerInput"] | Variable<any, string>},ValueTypes["EduLearner"]],
 edubridgeArchiveLevel?: [{	data: ValueTypes["EduArchiveInput"] | Variable<any, string>},ValueTypes["EduLevel"]],
 edubridgeArchiveSection?: [{	data: ValueTypes["EduArchiveInput"] | Variable<any, string>},ValueTypes["EduSection"]],
-edubridgeCancelCourseUnderfilled?: [{	course_id: ValueTypes["ID"] | Variable<any, string>},boolean | `@${string}`],
 edubridgeCancelEnrollment?: [{	enrollment_id: ValueTypes["ID"] | Variable<any, string>},ValueTypes["EduEnrollment"]],
+edubridgeCancelGroupUnderfilled?: [{	group_id: ValueTypes["ID"] | Variable<any, string>},boolean | `@${string}`],
+edubridgeCancelLesson?: [{	lesson_id: ValueTypes["ID"] | Variable<any, string>},ValueTypes["EduLesson"]],
 edubridgeCheckConnector?: [{	carrier: ValueTypes["EduAccessCarrier"] | Variable<any, string>},ValueTypes["EduConnectorBinding"]],
 edubridgeCloseAssignment?: [{	id: ValueTypes["ID"] | Variable<any, string>},ValueTypes["EduAssignment"]],
 edubridgeConvertStatement?: [{	data: ValueTypes["EduQuoteInput"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
@@ -13530,12 +13631,13 @@ edubridgeCreateAssignment?: [{	data: ValueTypes["EduAssignmentInput"] | Variable
 edubridgeCreateCourse?: [{	data: ValueTypes["EduCourseInput"] | Variable<any, string>},ValueTypes["EduCourse"]],
 edubridgeCreateExpense?: [{	data: ValueTypes["EduCreateExpenseInput"] | Variable<any, string>},boolean | `@${string}`],
 edubridgeCreateGroup?: [{	data: ValueTypes["EduCreateGroupInput"] | Variable<any, string>},ValueTypes["EduGroup"]],
-edubridgeDeclineContribution?: [{	data: ValueTypes["EduDeclineContributionInput"] | Variable<any, string>},ValueTypes["EduContribution"]],
 edubridgeDeleteCourse?: [{	id: ValueTypes["ID"] | Variable<any, string>},boolean | `@${string}`],
 edubridgeFinishGroup?: [{	group_id: ValueTypes["ID"] | Variable<any, string>},ValueTypes["EduGroup"]],
 edubridgeGuaranteeStatement?: [{	data: ValueTypes["EduGuaranteeStatementInput"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 edubridgeHoldContribution?: [{	data: ValueTypes["EduHoldContributionInput"] | Variable<any, string>},ValueTypes["EduContribution"]],
 edubridgeMarkLearnerRemoved?: [{	data: ValueTypes["EduMarkLearnerRemovedInput"] | Variable<any, string>},ValueTypes["EduLearnerAccount"]],
+edubridgeMoveLesson?: [{	data: ValueTypes["EduMoveLessonInput"] | Variable<any, string>},ValueTypes["EduLesson"]],
+edubridgePlanLesson?: [{	data: ValueTypes["EduPlanLessonInput"] | Variable<any, string>},ValueTypes["EduLesson"]],
 edubridgeRemoveLearner?: [{	id: ValueTypes["ID"] | Variable<any, string>},boolean | `@${string}`],
 edubridgeReorderLevels?: [{	data: ValueTypes["EduReorderInput"] | Variable<any, string>},ValueTypes["EduSection"]],
 edubridgeReorderSections?: [{	data: ValueTypes["EduReorderInput"] | Variable<any, string>},ValueTypes["EduSection"]],
@@ -13554,6 +13656,7 @@ edubridgeSetConnectorCredentials?: [{	data: ValueTypes["EduSetConnectorCredentia
 edubridgeSetConnectorEnabled?: [{	data: ValueTypes["EduSetConnectorEnabledInput"] | Variable<any, string>},ValueTypes["EduConnectorBinding"]],
 edubridgeSetCourseStatus?: [{	data: ValueTypes["EduSetCourseStatusInput"] | Variable<any, string>},ValueTypes["EduCourse"]],
 edubridgeSetEconomySettings?: [{	data: ValueTypes["EduSetEconomySettingsInput"] | Variable<any, string>},ValueTypes["EduEconomySettings"]],
+edubridgeSetGroupSchedule?: [{	data: ValueTypes["EduSetGroupScheduleInput"] | Variable<any, string>},ValueTypes["EduGroup"]],
 edubridgeSetTeacherRate?: [{	data: ValueTypes["EduSetTeacherRateInput"] | Variable<any, string>},boolean | `@${string}`],
 edubridgeShareWithdrawStatement?: [{	data: ValueTypes["EduShareWithdrawStatementInput"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 edubridgeSignAct?: [{	data: ValueTypes["EduSignActInput"] | Variable<any, string>},ValueTypes["EduContribution"]],
@@ -15501,6 +15604,8 @@ edubridgeCourses?: [{	filter?: ValueTypes["EduCoursesFilterInput"] | undefined |
 	/** Целевой членский взнос кооператива и предельная скидка за взнос разом за весь курс */
 	edubridgeEconomySettings?:ValueTypes["EduEconomySettings"],
 edubridgeExpenses?: [{	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedEduExpensesPaginationResult"]],
+edubridgeGroupLessons?: [{	group_id: ValueTypes["ID"] | Variable<any, string>},ValueTypes["EduLesson"]],
+edubridgeLessonCalendar?: [{	filter?: ValueTypes["EduLessonCalendarFilter"] | undefined | null | Variable<any, string>},ValueTypes["EduLesson"]],
 edubridgeMemberCard?: [{	username: string | Variable<any, string>},ValueTypes["EduMemberCard"]],
 edubridgeMembers?: [{	search?: string | undefined | null | Variable<any, string>},ValueTypes["EduMemberRow"]],
 	/** Мои назначения */
@@ -15519,7 +15624,7 @@ edubridgeMyGuaranteeClaimDocument?: [{	claim_id: ValueTypes["ID"] | Variable<any
 	edubridgeMyGuarantees?:ValueTypes["EduGuaranteeState"],
 	/** Мои обучающиеся */
 	edubridgeMyLearners?:ValueTypes["EduLearner"],
-	/** Мои проведённые занятия */
+	/** Мои занятия: запланированные в календаре и проведённые */
 	edubridgeMyLessons?:ValueTypes["EduLesson"],
 	/** Мой расчёт: принятые взносы и доступное к возврату */
 	edubridgeMySettlement?:ValueTypes["EduTeacherSettlement"],
@@ -23683,8 +23788,12 @@ export type ResolverInputTypes = {
 	level_id?:boolean | `@${string}`,
 	/** Уровень внутри раздела: «7 класс», «Ступень 1»; пусто — без уровня */
 	level_title?:boolean | `@${string}`,
+	/** Срок на отчёт преподавателя о занятии, дней после занятия */
+	report_days?:boolean | `@${string}`,
 	/** Расписание занятий */
 	schedule?:boolean | `@${string}`,
+	/** Окна расписания курса — образец для его групп */
+	schedule_slots?:ResolverInputTypes["EduScheduleSlot"],
 	/** Раздел каталога из справочника */
 	section_id?:boolean | `@${string}`,
 	/** Раздел каталога — область знаний: «Математика», «Духовные практики» */
@@ -23835,8 +23944,12 @@ export type ResolverInputTypes = {
 	pay_per_learner?:boolean | `@${string}`,
 	/** Плановая ставка часа, заложенная во взнос каждого участника */
 	planned_hourly_rate?:boolean | `@${string}`,
+	/** Срок на отчёт преподавателя о занятии, дней после занятия */
+	report_days?:boolean | `@${string}`,
 	/** Расписание занятий */
 	schedule?:boolean | `@${string}`,
+	/** Окна расписания курса — образец для его групп */
+	schedule_slots?:ResolverInputTypes["EduScheduleSlot"],
 	/** Раздел каталога из справочника */
 	section_id?:boolean | `@${string}`,
 	/** Раздел каталога — область знаний: «Математика», «Духовные практики» */
@@ -23964,8 +24077,12 @@ export type ResolverInputTypes = {
 	pay_per_learner?: boolean | undefined | null,
 	/** Плановая ставка часа по программе («1000.0000 RUB») */
 	planned_hourly_rate: string,
-	/** Расписание занятий */
+	/** Срок на отчёт преподавателя о занятии, дней после занятия */
+	report_days?: number | undefined | null,
+	/** Расписание строкой — когда окна расписания не заданы */
 	schedule?: string | undefined | null,
+	/** Окна расписания: день недели, время начала, длительность, преподаватель; образец для групп курса */
+	schedule_slots?: Array<ResolverInputTypes["EduScheduleSlotInput"]> | undefined | null,
 	/** Раздел каталога из справочника */
 	section_id: ResolverInputTypes["ID"],
 	/** Порядок в каталоге */
@@ -24026,12 +24143,6 @@ export type ResolverInputTypes = {
 	starts_in_minutes?: number | undefined | null,
 	/** Название группы; не названа — «Группа N» */
 	title?: string | undefined | null
-};
-	["EduDeclineContributionInput"]: {
-	/** Взнос */
-	contribution_id: ResolverInputTypes["ID"],
-	/** Причина */
-	reason: string
 };
 	["EduEconomySettings"]: AliasType<{
 	/** Длина суток, секунд */
@@ -24184,14 +24295,24 @@ export type ResolverInputTypes = {
 	id?:boolean | `@${string}`,
 	/** Участников с действующей подпиской */
 	learners_active?:boolean | `@${string}`,
+	/** Длительность занятия курса, минут */
+	lesson_minutes?:boolean | `@${string}`,
 	/** Проведено занятий */
 	lessons_held?:boolean | `@${string}`,
+	/** Занятий в месяц по расписанию */
+	lessons_per_month?:boolean | `@${string}`,
 	/** Занятий в программе группы */
 	lessons_total?:boolean | `@${string}`,
 	/** Взнос преподавателя за занятие считается за каждого участника; иначе фиксированный за занятие */
 	pay_per_learner?:boolean | `@${string}`,
 	/** Плановая ставка часа в группе */
 	planned_hourly_rate?:boolean | `@${string}`,
+	/** Срок на отчёт преподавателя о занятии, дней после занятия */
+	report_days?:boolean | `@${string}`,
+	/** Расписание группы строкой, собрано из окон */
+	schedule?:boolean | `@${string}`,
+	/** Окна расписания группы */
+	schedule_slots?:ResolverInputTypes["EduScheduleSlot"],
 	/** Подписок с вышедшим оплаченным сроком, расчёты по которым ещё открыты */
 	settlement_pending?:boolean | `@${string}`,
 	/** Дата начала занятий группы */
@@ -24295,6 +24416,8 @@ export type ResolverInputTypes = {
 	recipient_value: string
 };
 	["EduLesson"]: AliasType<{
+	/** Допуск преподавателя */
+	assignment_id?:boolean | `@${string}`,
 	/** Взнос, оформленный по занятию */
 	contribution_id?:boolean | `@${string}`,
 	/** Курс */
@@ -24303,9 +24426,13 @@ export type ResolverInputTypes = {
 	course_title?:boolean | `@${string}`,
 	/** Длительность, минут */
 	duration_minutes?:boolean | `@${string}`,
+	/** Конец занятия */
+	ends_at?:boolean | `@${string}`,
 	/** Группа курса */
 	group_id?:boolean | `@${string}`,
-	/** Когда проведено */
+	/** Название группы */
+	group_title?:boolean | `@${string}`,
+	/** Момент занятия */
 	held_at?:boolean | `@${string}`,
 	id?:boolean | `@${string}`,
 	/** Участников с оплаченным доступом, по которым проведён расчёт за занятие */
@@ -24314,24 +24441,44 @@ export type ResolverInputTypes = {
 	lesson_number?:boolean | `@${string}`,
 	/** Материалы занятия */
 	materials?:boolean | `@${string}`,
+	/** Из окон расписания либо назначено отдельно */
+	origin?:boolean | `@${string}`,
+	/** Срок на отчёт вышел, отчёта нет */
+	overdue?:boolean | `@${string}`,
+	/** До какого момента принимается отчёт */
+	report_until?:boolean | `@${string}`,
+	/** Когда подан отчёт */
+	reported_at?:boolean | `@${string}`,
+	/** Запланировано, проведено либо отменено */
+	status?:boolean | `@${string}`,
+	/** Преподаватель занятия; пусто — не назначен */
+	teacher_username?:boolean | `@${string}`,
 	/** Тема занятия */
 	topic?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
-	["EduLessonReportInput"]: {
-	/** Назначение, по которому проведено занятие */
-	assignment_id: ResolverInputTypes["ID"],
-	/** Группа курса, для которой проведено занятие; не названа — единственная идущая группа курса */
+	["EduLessonCalendarFilter"]: {
+	course_id?: ResolverInputTypes["ID"] | undefined | null,
+	/** С какого момента */
+	from?: string | undefined | null,
 	group_id?: ResolverInputTypes["ID"] | undefined | null,
-	/** Когда проведено (по умолчанию — сейчас) */
-	held_at?: string | undefined | null,
-	/** Номер занятия в программе курса */
-	lesson_number: number,
+	/** Учётное имя преподавателя */
+	teacher_username?: string | undefined | null,
+	/** До какого момента */
+	to?: string | undefined | null
+};
+	/** Откуда занятие в календаре: из окон расписания либо назначено отдельно */
+["EduLessonOrigin"]:EduLessonOrigin;
+	["EduLessonReportInput"]: {
+	/** Занятие из календаря группы */
+	lesson_id: ResolverInputTypes["ID"],
 	/** Материалы занятия — ссылки на записи, конспекты, задания */
 	materials: Array<string>,
 	/** Тема занятия */
 	topic?: string | undefined | null
 };
+	/** Состояние занятия в календаре группы */
+["EduLessonStatus"]:EduLessonStatus;
 	["EduLevel"]: AliasType<{
 	/** В архиве: не предлагается новым курсам и в каталоге */
 	archived?:boolean | `@${string}`,
@@ -24372,6 +24519,18 @@ export type ResolverInputTypes = {
 	username?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	["EduMoveLessonInput"]: {
+	/** Допуск преподавателя; пустая строка — снять преподавателя */
+	assignment_id?: ResolverInputTypes["ID"] | undefined | null,
+	/** Новый момент занятия */
+	held_at?: string | undefined | null,
+	/** Занятие */
+	lesson_id: ResolverInputTypes["ID"],
+	/** Длительность, минут */
+	minutes?: number | undefined | null,
+	/** Тема занятия */
+	topic?: string | undefined | null
+};
 	/** Оферта ЦПП «Образование»: ученик или преподаватель */
 ["EduOfferKind"]:EduOfferKind;
 	["EduOfferState"]: AliasType<{
@@ -24396,6 +24555,18 @@ export type ResolverInputTypes = {
 	teacher?:ResolverInputTypes["EduOfferState"],
 		__typename?: boolean | `@${string}`
 }>;
+	["EduPlanLessonInput"]: {
+	/** Допуск преподавателя; пусто — преподаватель назначается позже */
+	assignment_id?: ResolverInputTypes["ID"] | undefined | null,
+	/** Группа */
+	group_id: ResolverInputTypes["ID"],
+	/** Момент занятия */
+	held_at: string,
+	/** Длительность, минут; пусто — длительность занятия курса */
+	minutes?: number | undefined | null,
+	/** Тема занятия */
+	topic?: string | undefined | null
+};
 	["EduPlatformCourse"]: AliasType<{
 	/** Группы курса; пустой список — зачисление на курс напрямую */
 	groups?:ResolverInputTypes["EduPlatformGroup"],
@@ -24548,6 +24719,27 @@ export type ResolverInputTypes = {
 	/** Название раздела */
 	title: string
 };
+	["EduScheduleSlot"]: AliasType<{
+	/** Допуск преподавателя, который ведёт занятия окна; пусто — преподаватель не назначен */
+	assignment_id?:boolean | `@${string}`,
+	/** Длительность занятия, минут */
+	minutes?:boolean | `@${string}`,
+	/** Время начала «ЧЧ:ММ» по часовому поясу кооператива */
+	time?:boolean | `@${string}`,
+	/** День недели: 1 — понедельник … 7 — воскресенье */
+	weekday?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["EduScheduleSlotInput"]: {
+	/** Допуск преподавателя */
+	assignment_id?: ResolverInputTypes["ID"] | undefined | null,
+	/** Длительность занятия, минут */
+	minutes: number,
+	/** Время начала «ЧЧ:ММ» по часовому поясу кооператива */
+	time: string,
+	/** День недели: 1 — понедельник … 7 — воскресенье */
+	weekday: number
+};
 	["EduSection"]: AliasType<{
 	/** В архиве: не предлагается новым курсам и в каталоге */
 	archived?:boolean | `@${string}`,
@@ -24589,6 +24781,14 @@ export type ResolverInputTypes = {
 	["EduSetEconomySettingsInput"]: {
 	/** Целевой членский взнос, проценты */
 	markup_percent: number
+};
+	["EduSetGroupScheduleInput"]: {
+	/** Группа */
+	group_id: ResolverInputTypes["ID"],
+	/** Срок на отчёт преподавателя о занятии, дней после занятия */
+	report_days?: number | undefined | null,
+	/** Окна расписания; пусто — занятия по расписанию из календаря снимаются */
+	slots: Array<ResolverInputTypes["EduScheduleSlotInput"]>
 };
 	["EduSetTeacherRateInput"]: {
 	/** Ставка часа («1000.0000 RUB») */
@@ -24792,8 +24992,12 @@ export type ResolverInputTypes = {
 	pay_per_learner?: boolean | undefined | null,
 	/** Плановая ставка часа по программе («1000.0000 RUB») */
 	planned_hourly_rate: string,
-	/** Расписание занятий */
+	/** Срок на отчёт преподавателя о занятии, дней после занятия */
+	report_days?: number | undefined | null,
+	/** Расписание строкой — когда окна расписания не заданы */
 	schedule?: string | undefined | null,
+	/** Окна расписания: день недели, время начала, длительность, преподаватель; образец для групп курса */
+	schedule_slots?: Array<ResolverInputTypes["EduScheduleSlotInput"]> | undefined | null,
 	/** Раздел каталога из справочника */
 	section_id: ResolverInputTypes["ID"],
 	/** Порядок в каталоге */
@@ -30158,8 +30362,9 @@ editBranch?: [{	data: ResolverInputTypes["EditBranchInput"]},ResolverInputTypes[
 edubridgeAddLearner?: [{	data: ResolverInputTypes["EduLearnerInput"]},ResolverInputTypes["EduLearner"]],
 edubridgeArchiveLevel?: [{	data: ResolverInputTypes["EduArchiveInput"]},ResolverInputTypes["EduLevel"]],
 edubridgeArchiveSection?: [{	data: ResolverInputTypes["EduArchiveInput"]},ResolverInputTypes["EduSection"]],
-edubridgeCancelCourseUnderfilled?: [{	course_id: ResolverInputTypes["ID"]},boolean | `@${string}`],
 edubridgeCancelEnrollment?: [{	enrollment_id: ResolverInputTypes["ID"]},ResolverInputTypes["EduEnrollment"]],
+edubridgeCancelGroupUnderfilled?: [{	group_id: ResolverInputTypes["ID"]},boolean | `@${string}`],
+edubridgeCancelLesson?: [{	lesson_id: ResolverInputTypes["ID"]},ResolverInputTypes["EduLesson"]],
 edubridgeCheckConnector?: [{	carrier: ResolverInputTypes["EduAccessCarrier"]},ResolverInputTypes["EduConnectorBinding"]],
 edubridgeCloseAssignment?: [{	id: ResolverInputTypes["ID"]},ResolverInputTypes["EduAssignment"]],
 edubridgeConvertStatement?: [{	data: ResolverInputTypes["EduQuoteInput"]},ResolverInputTypes["GeneratedDocument"]],
@@ -30167,12 +30372,13 @@ edubridgeCreateAssignment?: [{	data: ResolverInputTypes["EduAssignmentInput"]},R
 edubridgeCreateCourse?: [{	data: ResolverInputTypes["EduCourseInput"]},ResolverInputTypes["EduCourse"]],
 edubridgeCreateExpense?: [{	data: ResolverInputTypes["EduCreateExpenseInput"]},boolean | `@${string}`],
 edubridgeCreateGroup?: [{	data: ResolverInputTypes["EduCreateGroupInput"]},ResolverInputTypes["EduGroup"]],
-edubridgeDeclineContribution?: [{	data: ResolverInputTypes["EduDeclineContributionInput"]},ResolverInputTypes["EduContribution"]],
 edubridgeDeleteCourse?: [{	id: ResolverInputTypes["ID"]},boolean | `@${string}`],
 edubridgeFinishGroup?: [{	group_id: ResolverInputTypes["ID"]},ResolverInputTypes["EduGroup"]],
 edubridgeGuaranteeStatement?: [{	data: ResolverInputTypes["EduGuaranteeStatementInput"]},ResolverInputTypes["GeneratedDocument"]],
 edubridgeHoldContribution?: [{	data: ResolverInputTypes["EduHoldContributionInput"]},ResolverInputTypes["EduContribution"]],
 edubridgeMarkLearnerRemoved?: [{	data: ResolverInputTypes["EduMarkLearnerRemovedInput"]},ResolverInputTypes["EduLearnerAccount"]],
+edubridgeMoveLesson?: [{	data: ResolverInputTypes["EduMoveLessonInput"]},ResolverInputTypes["EduLesson"]],
+edubridgePlanLesson?: [{	data: ResolverInputTypes["EduPlanLessonInput"]},ResolverInputTypes["EduLesson"]],
 edubridgeRemoveLearner?: [{	id: ResolverInputTypes["ID"]},boolean | `@${string}`],
 edubridgeReorderLevels?: [{	data: ResolverInputTypes["EduReorderInput"]},ResolverInputTypes["EduSection"]],
 edubridgeReorderSections?: [{	data: ResolverInputTypes["EduReorderInput"]},ResolverInputTypes["EduSection"]],
@@ -30191,6 +30397,7 @@ edubridgeSetConnectorCredentials?: [{	data: ResolverInputTypes["EduSetConnectorC
 edubridgeSetConnectorEnabled?: [{	data: ResolverInputTypes["EduSetConnectorEnabledInput"]},ResolverInputTypes["EduConnectorBinding"]],
 edubridgeSetCourseStatus?: [{	data: ResolverInputTypes["EduSetCourseStatusInput"]},ResolverInputTypes["EduCourse"]],
 edubridgeSetEconomySettings?: [{	data: ResolverInputTypes["EduSetEconomySettingsInput"]},ResolverInputTypes["EduEconomySettings"]],
+edubridgeSetGroupSchedule?: [{	data: ResolverInputTypes["EduSetGroupScheduleInput"]},ResolverInputTypes["EduGroup"]],
 edubridgeSetTeacherRate?: [{	data: ResolverInputTypes["EduSetTeacherRateInput"]},boolean | `@${string}`],
 edubridgeShareWithdrawStatement?: [{	data: ResolverInputTypes["EduShareWithdrawStatementInput"]},ResolverInputTypes["GeneratedDocument"]],
 edubridgeSignAct?: [{	data: ResolverInputTypes["EduSignActInput"]},ResolverInputTypes["EduContribution"]],
@@ -32063,6 +32270,8 @@ edubridgeCourses?: [{	filter?: ResolverInputTypes["EduCoursesFilterInput"] | und
 	/** Целевой членский взнос кооператива и предельная скидка за взнос разом за весь курс */
 	edubridgeEconomySettings?:ResolverInputTypes["EduEconomySettings"],
 edubridgeExpenses?: [{	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedEduExpensesPaginationResult"]],
+edubridgeGroupLessons?: [{	group_id: ResolverInputTypes["ID"]},ResolverInputTypes["EduLesson"]],
+edubridgeLessonCalendar?: [{	filter?: ResolverInputTypes["EduLessonCalendarFilter"] | undefined | null},ResolverInputTypes["EduLesson"]],
 edubridgeMemberCard?: [{	username: string},ResolverInputTypes["EduMemberCard"]],
 edubridgeMembers?: [{	search?: string | undefined | null},ResolverInputTypes["EduMemberRow"]],
 	/** Мои назначения */
@@ -32081,7 +32290,7 @@ edubridgeMyGuaranteeClaimDocument?: [{	claim_id: ResolverInputTypes["ID"]},Resol
 	edubridgeMyGuarantees?:ResolverInputTypes["EduGuaranteeState"],
 	/** Мои обучающиеся */
 	edubridgeMyLearners?:ResolverInputTypes["EduLearner"],
-	/** Мои проведённые занятия */
+	/** Мои занятия: запланированные в календаре и проведённые */
 	edubridgeMyLessons?:ResolverInputTypes["EduLesson"],
 	/** Мой расчёт: принятые взносы и доступное к возврату */
 	edubridgeMySettlement?:ResolverInputTypes["EduTeacherSettlement"],
@@ -40005,8 +40214,12 @@ export type ModelTypes = {
 	level_id?: ModelTypes["ID"] | undefined | null,
 	/** Уровень внутри раздела: «7 класс», «Ступень 1»; пусто — без уровня */
 	level_title: string,
+	/** Срок на отчёт преподавателя о занятии, дней после занятия */
+	report_days: number,
 	/** Расписание занятий */
 	schedule: string,
+	/** Окна расписания курса — образец для его групп */
+	schedule_slots: Array<ModelTypes["EduScheduleSlot"]>,
 	/** Раздел каталога из справочника */
 	section_id?: ModelTypes["ID"] | undefined | null,
 	/** Раздел каталога — область знаний: «Математика», «Духовные практики» */
@@ -40147,8 +40360,12 @@ export type ModelTypes = {
 	pay_per_learner: boolean,
 	/** Плановая ставка часа, заложенная во взнос каждого участника */
 	planned_hourly_rate: string,
+	/** Срок на отчёт преподавателя о занятии, дней после занятия */
+	report_days: number,
 	/** Расписание занятий */
 	schedule: string,
+	/** Окна расписания курса — образец для его групп */
+	schedule_slots: Array<ModelTypes["EduScheduleSlot"]>,
 	/** Раздел каталога из справочника */
 	section_id?: ModelTypes["ID"] | undefined | null,
 	/** Раздел каталога — область знаний: «Математика», «Духовные практики» */
@@ -40272,8 +40489,12 @@ export type ModelTypes = {
 	pay_per_learner?: boolean | undefined | null,
 	/** Плановая ставка часа по программе («1000.0000 RUB») */
 	planned_hourly_rate: string,
-	/** Расписание занятий */
+	/** Срок на отчёт преподавателя о занятии, дней после занятия */
+	report_days?: number | undefined | null,
+	/** Расписание строкой — когда окна расписания не заданы */
 	schedule?: string | undefined | null,
+	/** Окна расписания: день недели, время начала, длительность, преподаватель; образец для групп курса */
+	schedule_slots?: Array<ModelTypes["EduScheduleSlotInput"]> | undefined | null,
 	/** Раздел каталога из справочника */
 	section_id: ModelTypes["ID"],
 	/** Порядок в каталоге */
@@ -40332,12 +40553,6 @@ export type ModelTypes = {
 	starts_in_minutes?: number | undefined | null,
 	/** Название группы; не названа — «Группа N» */
 	title?: string | undefined | null
-};
-	["EduDeclineContributionInput"]: {
-	/** Взнос */
-	contribution_id: ModelTypes["ID"],
-	/** Причина */
-	reason: string
 };
 	["EduEconomySettings"]: {
 		/** Длина суток, секунд */
@@ -40483,14 +40698,24 @@ export type ModelTypes = {
 	id: ModelTypes["ID"],
 	/** Участников с действующей подпиской */
 	learners_active: number,
+	/** Длительность занятия курса, минут */
+	lesson_minutes: number,
 	/** Проведено занятий */
 	lessons_held: number,
+	/** Занятий в месяц по расписанию */
+	lessons_per_month: number,
 	/** Занятий в программе группы */
 	lessons_total: number,
 	/** Взнос преподавателя за занятие считается за каждого участника; иначе фиксированный за занятие */
 	pay_per_learner: boolean,
 	/** Плановая ставка часа в группе */
 	planned_hourly_rate: string,
+	/** Срок на отчёт преподавателя о занятии, дней после занятия */
+	report_days: number,
+	/** Расписание группы строкой, собрано из окон */
+	schedule: string,
+	/** Окна расписания группы */
+	schedule_slots: Array<ModelTypes["EduScheduleSlot"]>,
 	/** Подписок с вышедшим оплаченным сроком, расчёты по которым ещё открыты */
 	settlement_pending: number,
 	/** Дата начала занятий группы */
@@ -40587,7 +40812,9 @@ export type ModelTypes = {
 	recipient_value: string
 };
 	["EduLesson"]: {
-		/** Взнос, оформленный по занятию */
+		/** Допуск преподавателя */
+	assignment_id?: ModelTypes["ID"] | undefined | null,
+	/** Взнос, оформленный по занятию */
 	contribution_id?: ModelTypes["ID"] | undefined | null,
 	/** Курс */
 	course_id: ModelTypes["ID"],
@@ -40595,9 +40822,13 @@ export type ModelTypes = {
 	course_title: string,
 	/** Длительность, минут */
 	duration_minutes: number,
+	/** Конец занятия */
+	ends_at: ModelTypes["DateTime"],
 	/** Группа курса */
 	group_id?: ModelTypes["ID"] | undefined | null,
-	/** Когда проведено */
+	/** Название группы */
+	group_title: string,
+	/** Момент занятия */
 	held_at: ModelTypes["DateTime"],
 	id: ModelTypes["ID"],
 	/** Участников с оплаченным доступом, по которым проведён расчёт за занятие */
@@ -40606,23 +40837,41 @@ export type ModelTypes = {
 	lesson_number: number,
 	/** Материалы занятия */
 	materials: Array<string>,
+	/** Из окон расписания либо назначено отдельно */
+	origin: ModelTypes["EduLessonOrigin"],
+	/** Срок на отчёт вышел, отчёта нет */
+	overdue: boolean,
+	/** До какого момента принимается отчёт */
+	report_until: ModelTypes["DateTime"],
+	/** Когда подан отчёт */
+	reported_at?: ModelTypes["DateTime"] | undefined | null,
+	/** Запланировано, проведено либо отменено */
+	status: ModelTypes["EduLessonStatus"],
+	/** Преподаватель занятия; пусто — не назначен */
+	teacher_username?: string | undefined | null,
 	/** Тема занятия */
 	topic: string
 };
-	["EduLessonReportInput"]: {
-	/** Назначение, по которому проведено занятие */
-	assignment_id: ModelTypes["ID"],
-	/** Группа курса, для которой проведено занятие; не названа — единственная идущая группа курса */
+	["EduLessonCalendarFilter"]: {
+	course_id?: ModelTypes["ID"] | undefined | null,
+	/** С какого момента */
+	from?: string | undefined | null,
 	group_id?: ModelTypes["ID"] | undefined | null,
-	/** Когда проведено (по умолчанию — сейчас) */
-	held_at?: string | undefined | null,
-	/** Номер занятия в программе курса */
-	lesson_number: number,
+	/** Учётное имя преподавателя */
+	teacher_username?: string | undefined | null,
+	/** До какого момента */
+	to?: string | undefined | null
+};
+	["EduLessonOrigin"]:EduLessonOrigin;
+	["EduLessonReportInput"]: {
+	/** Занятие из календаря группы */
+	lesson_id: ModelTypes["ID"],
 	/** Материалы занятия — ссылки на записи, конспекты, задания */
 	materials: Array<string>,
 	/** Тема занятия */
 	topic?: string | undefined | null
 };
+	["EduLessonStatus"]:EduLessonStatus;
 	["EduLevel"]: {
 		/** В архиве: не предлагается новым курсам и в каталоге */
 	archived: boolean,
@@ -40660,6 +40909,18 @@ export type ModelTypes = {
 	/** Учётное имя пайщика */
 	username: string
 };
+	["EduMoveLessonInput"]: {
+	/** Допуск преподавателя; пустая строка — снять преподавателя */
+	assignment_id?: ModelTypes["ID"] | undefined | null,
+	/** Новый момент занятия */
+	held_at?: string | undefined | null,
+	/** Занятие */
+	lesson_id: ModelTypes["ID"],
+	/** Длительность, минут */
+	minutes?: number | undefined | null,
+	/** Тема занятия */
+	topic?: string | undefined | null
+};
 	["EduOfferKind"]:EduOfferKind;
 	["EduOfferState"]: {
 		/** Оферта */
@@ -40679,6 +40940,18 @@ export type ModelTypes = {
 	parent: ModelTypes["EduOfferState"],
 	/** Оферта преподавателя */
 	teacher: ModelTypes["EduOfferState"]
+};
+	["EduPlanLessonInput"]: {
+	/** Допуск преподавателя; пусто — преподаватель назначается позже */
+	assignment_id?: ModelTypes["ID"] | undefined | null,
+	/** Группа */
+	group_id: ModelTypes["ID"],
+	/** Момент занятия */
+	held_at: string,
+	/** Длительность, минут; пусто — длительность занятия курса */
+	minutes?: number | undefined | null,
+	/** Тема занятия */
+	topic?: string | undefined | null
 };
 	["EduPlatformCourse"]: {
 		/** Группы курса; пустой список — зачисление на курс напрямую */
@@ -40823,6 +41096,26 @@ export type ModelTypes = {
 	/** Название раздела */
 	title: string
 };
+	["EduScheduleSlot"]: {
+		/** Допуск преподавателя, который ведёт занятия окна; пусто — преподаватель не назначен */
+	assignment_id?: ModelTypes["ID"] | undefined | null,
+	/** Длительность занятия, минут */
+	minutes: number,
+	/** Время начала «ЧЧ:ММ» по часовому поясу кооператива */
+	time: string,
+	/** День недели: 1 — понедельник … 7 — воскресенье */
+	weekday: number
+};
+	["EduScheduleSlotInput"]: {
+	/** Допуск преподавателя */
+	assignment_id?: ModelTypes["ID"] | undefined | null,
+	/** Длительность занятия, минут */
+	minutes: number,
+	/** Время начала «ЧЧ:ММ» по часовому поясу кооператива */
+	time: string,
+	/** День недели: 1 — понедельник … 7 — воскресенье */
+	weekday: number
+};
 	["EduSection"]: {
 		/** В архиве: не предлагается новым курсам и в каталоге */
 	archived: boolean,
@@ -40863,6 +41156,14 @@ export type ModelTypes = {
 	["EduSetEconomySettingsInput"]: {
 	/** Целевой членский взнос, проценты */
 	markup_percent: number
+};
+	["EduSetGroupScheduleInput"]: {
+	/** Группа */
+	group_id: ModelTypes["ID"],
+	/** Срок на отчёт преподавателя о занятии, дней после занятия */
+	report_days?: number | undefined | null,
+	/** Окна расписания; пусто — занятия по расписанию из календаря снимаются */
+	slots: Array<ModelTypes["EduScheduleSlotInput"]>
 };
 	["EduSetTeacherRateInput"]: {
 	/** Ставка часа («1000.0000 RUB») */
@@ -41056,8 +41357,12 @@ export type ModelTypes = {
 	pay_per_learner?: boolean | undefined | null,
 	/** Плановая ставка часа по программе («1000.0000 RUB») */
 	planned_hourly_rate: string,
-	/** Расписание занятий */
+	/** Срок на отчёт преподавателя о занятии, дней после занятия */
+	report_days?: number | undefined | null,
+	/** Расписание строкой — когда окна расписания не заданы */
 	schedule?: string | undefined | null,
+	/** Окна расписания: день недели, время начала, длительность, преподаватель; образец для групп курса */
+	schedule_slots?: Array<ModelTypes["EduScheduleSlotInput"]> | undefined | null,
 	/** Раздел каталога из справочника */
 	section_id: ModelTypes["ID"],
 	/** Порядок в каталоге */
@@ -46357,10 +46662,12 @@ export type ModelTypes = {
 	edubridgeArchiveLevel: ModelTypes["EduLevel"],
 	/** Убрать раздел в архив либо вернуть */
 	edubridgeArchiveSection: ModelTypes["EduSection"],
-	/** Отменить курс по недобору: подписки закрываются, взносы возвращаются участникам на паевой */
-	edubridgeCancelCourseUnderfilled: number,
 	/** Отменить подписку с возвратом членского взноса по Положению ЦПП */
 	edubridgeCancelEnrollment: ModelTypes["EduEnrollment"],
+	/** Отменить группу по недобору: подписки группы закрываются, взносы возвращаются участникам на паевой */
+	edubridgeCancelGroupUnderfilled: number,
+	/** Отменить запланированное занятие: номер и место в программе свободны */
+	edubridgeCancelLesson: ModelTypes["EduLesson"],
 	/** Проверить площадку сейчас */
 	edubridgeCheckConnector: ModelTypes["EduConnectorBinding"],
 	/** Снять допуск преподавателя к курсу */
@@ -46375,8 +46682,6 @@ export type ModelTypes = {
 	edubridgeCreateExpense: string,
 	/** Открыть новую группу курса */
 	edubridgeCreateGroup: ModelTypes["EduGroup"],
-	/** Отклонить взнос РИД с причиной */
-	edubridgeDeclineContribution: ModelTypes["EduContribution"],
 	/** Удалить курс без подписок и занятий */
 	edubridgeDeleteCourse: boolean,
 	/** Завершить группу: расчёты по подпискам с вышедшим оплаченным сроком закрываются, резерв за занятия без отчёта уходит на кошелёк программы */
@@ -46387,13 +46692,17 @@ export type ModelTypes = {
 	edubridgeHoldContribution: ModelTypes["EduContribution"],
 	/** Отметить, что аккаунт обучающегося удалён с площадки */
 	edubridgeMarkLearnerRemoved: ModelTypes["EduLearnerAccount"],
+	/** Перенести запланированное занятие: дата, длительность, преподаватель, тема */
+	edubridgeMoveLesson: ModelTypes["EduLesson"],
+	/** Назначить занятие сверх расписания: дата, длительность, преподаватель */
+	edubridgePlanLesson: ModelTypes["EduLesson"],
 	/** Удалить обучающегося без действующих подписок */
 	edubridgeRemoveLearner: boolean,
 	/** Порядок уровней раздела — их последовательность */
 	edubridgeReorderLevels: Array<ModelTypes["EduSection"]>,
 	/** Порядок разделов */
 	edubridgeReorderSections: Array<ModelTypes["EduSection"]>,
-	/** Отчитаться о проведённом занятии: материалы и взнос по ставке часа */
+	/** Отчитаться о занятии календаря: материалы, взнос по ставке часа считает контракт */
 	edubridgeReportLesson: ModelTypes["EduLesson"],
 	/** Получить возврат паевого взноса по программе «Образование»: перевод в Цифровой Кошелёк и заявка на возврат по двум подписанным заявлениям */
 	edubridgeRequestShareReturn: ModelTypes["EduTeacherSettlement"],
@@ -46423,6 +46732,8 @@ export type ModelTypes = {
 	edubridgeSetCourseStatus: ModelTypes["EduCourse"],
 	/** Задать целевой членский взнос кооператива */
 	edubridgeSetEconomySettings: ModelTypes["EduEconomySettings"],
+	/** Задать окна расписания группы и срок на отчёт: календарь занятий перестраивается */
+	edubridgeSetGroupSchedule: ModelTypes["EduGroup"],
 	/** Задать ставку часа преподавателя */
 	edubridgeSetTeacherRate: string,
 	/** Сформировать заявление о трансляции паевого взноса из ЦПП «Образование» в ЦПП «Цифровой Кошелёк» для подписи */
@@ -48474,6 +48785,10 @@ export type ModelTypes = {
 	edubridgeEconomySettings: ModelTypes["EduEconomySettings"],
 	/** Расходы программы: что оплачивается из фонда */
 	edubridgeExpenses: ModelTypes["PaginatedEduExpensesPaginationResult"],
+	/** Занятия группы для участника: что было и что будет */
+	edubridgeGroupLessons: Array<ModelTypes["EduLesson"]>,
+	/** Календарь занятий школы: по курсу, группе, преподавателю и окну дат */
+	edubridgeLessonCalendar: Array<ModelTypes["EduLesson"]>,
 	/** Сводная карточка пайщика: обучающиеся, курсы, оплаты, выдача */
 	edubridgeMemberCard: ModelTypes["EduMemberCard"],
 	/** Ученики приложения: у каждого свои обучающиеся и подписки */
@@ -48496,7 +48811,7 @@ export type ModelTypes = {
 	edubridgeMyGuarantees: Array<ModelTypes["EduGuaranteeState"]>,
 	/** Мои обучающиеся */
 	edubridgeMyLearners: Array<ModelTypes["EduLearner"]>,
-	/** Мои проведённые занятия */
+	/** Мои занятия: запланированные в календаре и проведённые */
 	edubridgeMyLessons: Array<ModelTypes["EduLesson"]>,
 	/** Мой расчёт: принятые взносы и доступное к возврату */
 	edubridgeMySettlement: ModelTypes["EduTeacherSettlement"],
@@ -56776,8 +57091,12 @@ export type GraphQLTypes = {
 	level_id?: GraphQLTypes["ID"] | undefined | null,
 	/** Уровень внутри раздела: «7 класс», «Ступень 1»; пусто — без уровня */
 	level_title: string,
+	/** Срок на отчёт преподавателя о занятии, дней после занятия */
+	report_days: number,
 	/** Расписание занятий */
 	schedule: string,
+	/** Окна расписания курса — образец для его групп */
+	schedule_slots: Array<GraphQLTypes["EduScheduleSlot"]>,
 	/** Раздел каталога из справочника */
 	section_id?: GraphQLTypes["ID"] | undefined | null,
 	/** Раздел каталога — область знаний: «Математика», «Духовные практики» */
@@ -56933,8 +57252,12 @@ export type GraphQLTypes = {
 	pay_per_learner: boolean,
 	/** Плановая ставка часа, заложенная во взнос каждого участника */
 	planned_hourly_rate: string,
+	/** Срок на отчёт преподавателя о занятии, дней после занятия */
+	report_days: number,
 	/** Расписание занятий */
 	schedule: string,
+	/** Окна расписания курса — образец для его групп */
+	schedule_slots: Array<GraphQLTypes["EduScheduleSlot"]>,
 	/** Раздел каталога из справочника */
 	section_id?: GraphQLTypes["ID"] | undefined | null,
 	/** Раздел каталога — область знаний: «Математика», «Духовные практики» */
@@ -57064,8 +57387,12 @@ export type GraphQLTypes = {
 	pay_per_learner?: boolean | undefined | null,
 	/** Плановая ставка часа по программе («1000.0000 RUB») */
 	planned_hourly_rate: string,
-	/** Расписание занятий */
+	/** Срок на отчёт преподавателя о занятии, дней после занятия */
+	report_days?: number | undefined | null,
+	/** Расписание строкой — когда окна расписания не заданы */
 	schedule?: string | undefined | null,
+	/** Окна расписания: день недели, время начала, длительность, преподаватель; образец для групп курса */
+	schedule_slots?: Array<GraphQLTypes["EduScheduleSlotInput"]> | undefined | null,
 	/** Раздел каталога из справочника */
 	section_id: GraphQLTypes["ID"],
 	/** Порядок в каталоге */
@@ -57127,12 +57454,6 @@ export type GraphQLTypes = {
 	starts_in_minutes?: number | undefined | null,
 	/** Название группы; не названа — «Группа N» */
 	title?: string | undefined | null
-};
-	["EduDeclineContributionInput"]: {
-		/** Взнос */
-	contribution_id: GraphQLTypes["ID"],
-	/** Причина */
-	reason: string
 };
 	["EduEconomySettings"]: {
 	__typename: "EduEconomySettings",
@@ -57291,14 +57612,24 @@ export type GraphQLTypes = {
 	id: GraphQLTypes["ID"],
 	/** Участников с действующей подпиской */
 	learners_active: number,
+	/** Длительность занятия курса, минут */
+	lesson_minutes: number,
 	/** Проведено занятий */
 	lessons_held: number,
+	/** Занятий в месяц по расписанию */
+	lessons_per_month: number,
 	/** Занятий в программе группы */
 	lessons_total: number,
 	/** Взнос преподавателя за занятие считается за каждого участника; иначе фиксированный за занятие */
 	pay_per_learner: boolean,
 	/** Плановая ставка часа в группе */
 	planned_hourly_rate: string,
+	/** Срок на отчёт преподавателя о занятии, дней после занятия */
+	report_days: number,
+	/** Расписание группы строкой, собрано из окон */
+	schedule: string,
+	/** Окна расписания группы */
+	schedule_slots: Array<GraphQLTypes["EduScheduleSlot"]>,
 	/** Подписок с вышедшим оплаченным сроком, расчёты по которым ещё открыты */
 	settlement_pending: number,
 	/** Дата начала занятий группы */
@@ -57407,6 +57738,8 @@ export type GraphQLTypes = {
 };
 	["EduLesson"]: {
 	__typename: "EduLesson",
+	/** Допуск преподавателя */
+	assignment_id?: GraphQLTypes["ID"] | undefined | null,
 	/** Взнос, оформленный по занятию */
 	contribution_id?: GraphQLTypes["ID"] | undefined | null,
 	/** Курс */
@@ -57415,9 +57748,13 @@ export type GraphQLTypes = {
 	course_title: string,
 	/** Длительность, минут */
 	duration_minutes: number,
+	/** Конец занятия */
+	ends_at: GraphQLTypes["DateTime"],
 	/** Группа курса */
 	group_id?: GraphQLTypes["ID"] | undefined | null,
-	/** Когда проведено */
+	/** Название группы */
+	group_title: string,
+	/** Момент занятия */
 	held_at: GraphQLTypes["DateTime"],
 	id: GraphQLTypes["ID"],
 	/** Участников с оплаченным доступом, по которым проведён расчёт за занятие */
@@ -57426,24 +57763,44 @@ export type GraphQLTypes = {
 	lesson_number: number,
 	/** Материалы занятия */
 	materials: Array<string>,
+	/** Из окон расписания либо назначено отдельно */
+	origin: GraphQLTypes["EduLessonOrigin"],
+	/** Срок на отчёт вышел, отчёта нет */
+	overdue: boolean,
+	/** До какого момента принимается отчёт */
+	report_until: GraphQLTypes["DateTime"],
+	/** Когда подан отчёт */
+	reported_at?: GraphQLTypes["DateTime"] | undefined | null,
+	/** Запланировано, проведено либо отменено */
+	status: GraphQLTypes["EduLessonStatus"],
+	/** Преподаватель занятия; пусто — не назначен */
+	teacher_username?: string | undefined | null,
 	/** Тема занятия */
 	topic: string,
 	['...on EduLesson']: Omit<GraphQLTypes["EduLesson"], "...on EduLesson">
 };
-	["EduLessonReportInput"]: {
-		/** Назначение, по которому проведено занятие */
-	assignment_id: GraphQLTypes["ID"],
-	/** Группа курса, для которой проведено занятие; не названа — единственная идущая группа курса */
+	["EduLessonCalendarFilter"]: {
+		course_id?: GraphQLTypes["ID"] | undefined | null,
+	/** С какого момента */
+	from?: string | undefined | null,
 	group_id?: GraphQLTypes["ID"] | undefined | null,
-	/** Когда проведено (по умолчанию — сейчас) */
-	held_at?: string | undefined | null,
-	/** Номер занятия в программе курса */
-	lesson_number: number,
+	/** Учётное имя преподавателя */
+	teacher_username?: string | undefined | null,
+	/** До какого момента */
+	to?: string | undefined | null
+};
+	/** Откуда занятие в календаре: из окон расписания либо назначено отдельно */
+["EduLessonOrigin"]: EduLessonOrigin;
+	["EduLessonReportInput"]: {
+		/** Занятие из календаря группы */
+	lesson_id: GraphQLTypes["ID"],
 	/** Материалы занятия — ссылки на записи, конспекты, задания */
 	materials: Array<string>,
 	/** Тема занятия */
 	topic?: string | undefined | null
 };
+	/** Состояние занятия в календаре группы */
+["EduLessonStatus"]: EduLessonStatus;
 	["EduLevel"]: {
 	__typename: "EduLevel",
 	/** В архиве: не предлагается новым курсам и в каталоге */
@@ -57487,6 +57844,18 @@ export type GraphQLTypes = {
 	username: string,
 	['...on EduMemberRow']: Omit<GraphQLTypes["EduMemberRow"], "...on EduMemberRow">
 };
+	["EduMoveLessonInput"]: {
+		/** Допуск преподавателя; пустая строка — снять преподавателя */
+	assignment_id?: GraphQLTypes["ID"] | undefined | null,
+	/** Новый момент занятия */
+	held_at?: string | undefined | null,
+	/** Занятие */
+	lesson_id: GraphQLTypes["ID"],
+	/** Длительность, минут */
+	minutes?: number | undefined | null,
+	/** Тема занятия */
+	topic?: string | undefined | null
+};
 	/** Оферта ЦПП «Образование»: ученик или преподаватель */
 ["EduOfferKind"]: EduOfferKind;
 	["EduOfferState"]: {
@@ -57512,6 +57881,18 @@ export type GraphQLTypes = {
 	/** Оферта преподавателя */
 	teacher: GraphQLTypes["EduOfferState"],
 	['...on EduOnboardingState']: Omit<GraphQLTypes["EduOnboardingState"], "...on EduOnboardingState">
+};
+	["EduPlanLessonInput"]: {
+		/** Допуск преподавателя; пусто — преподаватель назначается позже */
+	assignment_id?: GraphQLTypes["ID"] | undefined | null,
+	/** Группа */
+	group_id: GraphQLTypes["ID"],
+	/** Момент занятия */
+	held_at: string,
+	/** Длительность, минут; пусто — длительность занятия курса */
+	minutes?: number | undefined | null,
+	/** Тема занятия */
+	topic?: string | undefined | null
 };
 	["EduPlatformCourse"]: {
 	__typename: "EduPlatformCourse",
@@ -57672,6 +58053,28 @@ export type GraphQLTypes = {
 	/** Название раздела */
 	title: string
 };
+	["EduScheduleSlot"]: {
+	__typename: "EduScheduleSlot",
+	/** Допуск преподавателя, который ведёт занятия окна; пусто — преподаватель не назначен */
+	assignment_id?: GraphQLTypes["ID"] | undefined | null,
+	/** Длительность занятия, минут */
+	minutes: number,
+	/** Время начала «ЧЧ:ММ» по часовому поясу кооператива */
+	time: string,
+	/** День недели: 1 — понедельник … 7 — воскресенье */
+	weekday: number,
+	['...on EduScheduleSlot']: Omit<GraphQLTypes["EduScheduleSlot"], "...on EduScheduleSlot">
+};
+	["EduScheduleSlotInput"]: {
+		/** Допуск преподавателя */
+	assignment_id?: GraphQLTypes["ID"] | undefined | null,
+	/** Длительность занятия, минут */
+	minutes: number,
+	/** Время начала «ЧЧ:ММ» по часовому поясу кооператива */
+	time: string,
+	/** День недели: 1 — понедельник … 7 — воскресенье */
+	weekday: number
+};
 	["EduSection"]: {
 	__typename: "EduSection",
 	/** В архиве: не предлагается новым курсам и в каталоге */
@@ -57714,6 +58117,14 @@ export type GraphQLTypes = {
 	["EduSetEconomySettingsInput"]: {
 		/** Целевой членский взнос, проценты */
 	markup_percent: number
+};
+	["EduSetGroupScheduleInput"]: {
+		/** Группа */
+	group_id: GraphQLTypes["ID"],
+	/** Срок на отчёт преподавателя о занятии, дней после занятия */
+	report_days?: number | undefined | null,
+	/** Окна расписания; пусто — занятия по расписанию из календаря снимаются */
+	slots: Array<GraphQLTypes["EduScheduleSlotInput"]>
 };
 	["EduSetTeacherRateInput"]: {
 		/** Ставка часа («1000.0000 RUB») */
@@ -57924,8 +58335,12 @@ export type GraphQLTypes = {
 	pay_per_learner?: boolean | undefined | null,
 	/** Плановая ставка часа по программе («1000.0000 RUB») */
 	planned_hourly_rate: string,
-	/** Расписание занятий */
+	/** Срок на отчёт преподавателя о занятии, дней после занятия */
+	report_days?: number | undefined | null,
+	/** Расписание строкой — когда окна расписания не заданы */
 	schedule?: string | undefined | null,
+	/** Окна расписания: день недели, время начала, длительность, преподаватель; образец для групп курса */
+	schedule_slots?: Array<GraphQLTypes["EduScheduleSlotInput"]> | undefined | null,
 	/** Раздел каталога из справочника */
 	section_id: GraphQLTypes["ID"],
 	/** Порядок в каталоге */
@@ -63595,10 +64010,12 @@ export type GraphQLTypes = {
 	edubridgeArchiveLevel: GraphQLTypes["EduLevel"],
 	/** Убрать раздел в архив либо вернуть */
 	edubridgeArchiveSection: GraphQLTypes["EduSection"],
-	/** Отменить курс по недобору: подписки закрываются, взносы возвращаются участникам на паевой */
-	edubridgeCancelCourseUnderfilled: number,
 	/** Отменить подписку с возвратом членского взноса по Положению ЦПП */
 	edubridgeCancelEnrollment: GraphQLTypes["EduEnrollment"],
+	/** Отменить группу по недобору: подписки группы закрываются, взносы возвращаются участникам на паевой */
+	edubridgeCancelGroupUnderfilled: number,
+	/** Отменить запланированное занятие: номер и место в программе свободны */
+	edubridgeCancelLesson: GraphQLTypes["EduLesson"],
 	/** Проверить площадку сейчас */
 	edubridgeCheckConnector: GraphQLTypes["EduConnectorBinding"],
 	/** Снять допуск преподавателя к курсу */
@@ -63613,8 +64030,6 @@ export type GraphQLTypes = {
 	edubridgeCreateExpense: string,
 	/** Открыть новую группу курса */
 	edubridgeCreateGroup: GraphQLTypes["EduGroup"],
-	/** Отклонить взнос РИД с причиной */
-	edubridgeDeclineContribution: GraphQLTypes["EduContribution"],
 	/** Удалить курс без подписок и занятий */
 	edubridgeDeleteCourse: boolean,
 	/** Завершить группу: расчёты по подпискам с вышедшим оплаченным сроком закрываются, резерв за занятия без отчёта уходит на кошелёк программы */
@@ -63625,13 +64040,17 @@ export type GraphQLTypes = {
 	edubridgeHoldContribution: GraphQLTypes["EduContribution"],
 	/** Отметить, что аккаунт обучающегося удалён с площадки */
 	edubridgeMarkLearnerRemoved: GraphQLTypes["EduLearnerAccount"],
+	/** Перенести запланированное занятие: дата, длительность, преподаватель, тема */
+	edubridgeMoveLesson: GraphQLTypes["EduLesson"],
+	/** Назначить занятие сверх расписания: дата, длительность, преподаватель */
+	edubridgePlanLesson: GraphQLTypes["EduLesson"],
 	/** Удалить обучающегося без действующих подписок */
 	edubridgeRemoveLearner: boolean,
 	/** Порядок уровней раздела — их последовательность */
 	edubridgeReorderLevels: Array<GraphQLTypes["EduSection"]>,
 	/** Порядок разделов */
 	edubridgeReorderSections: Array<GraphQLTypes["EduSection"]>,
-	/** Отчитаться о проведённом занятии: материалы и взнос по ставке часа */
+	/** Отчитаться о занятии календаря: материалы, взнос по ставке часа считает контракт */
 	edubridgeReportLesson: GraphQLTypes["EduLesson"],
 	/** Получить возврат паевого взноса по программе «Образование»: перевод в Цифровой Кошелёк и заявка на возврат по двум подписанным заявлениям */
 	edubridgeRequestShareReturn: GraphQLTypes["EduTeacherSettlement"],
@@ -63661,6 +64080,8 @@ export type GraphQLTypes = {
 	edubridgeSetCourseStatus: GraphQLTypes["EduCourse"],
 	/** Задать целевой членский взнос кооператива */
 	edubridgeSetEconomySettings: GraphQLTypes["EduEconomySettings"],
+	/** Задать окна расписания группы и срок на отчёт: календарь занятий перестраивается */
+	edubridgeSetGroupSchedule: GraphQLTypes["EduGroup"],
 	/** Задать ставку часа преподавателя */
 	edubridgeSetTeacherRate: string,
 	/** Сформировать заявление о трансляции паевого взноса из ЦПП «Образование» в ЦПП «Цифровой Кошелёк» для подписи */
@@ -65893,6 +66314,10 @@ export type GraphQLTypes = {
 	edubridgeEconomySettings: GraphQLTypes["EduEconomySettings"],
 	/** Расходы программы: что оплачивается из фонда */
 	edubridgeExpenses: GraphQLTypes["PaginatedEduExpensesPaginationResult"],
+	/** Занятия группы для участника: что было и что будет */
+	edubridgeGroupLessons: Array<GraphQLTypes["EduLesson"]>,
+	/** Календарь занятий школы: по курсу, группе, преподавателю и окну дат */
+	edubridgeLessonCalendar: Array<GraphQLTypes["EduLesson"]>,
 	/** Сводная карточка пайщика: обучающиеся, курсы, оплаты, выдача */
 	edubridgeMemberCard: GraphQLTypes["EduMemberCard"],
 	/** Ученики приложения: у каждого свои обучающиеся и подписки */
@@ -65915,7 +66340,7 @@ export type GraphQLTypes = {
 	edubridgeMyGuarantees: Array<GraphQLTypes["EduGuaranteeState"]>,
 	/** Мои обучающиеся */
 	edubridgeMyLearners: Array<GraphQLTypes["EduLearner"]>,
-	/** Мои проведённые занятия */
+	/** Мои занятия: запланированные в календаре и проведённые */
 	edubridgeMyLessons: Array<GraphQLTypes["EduLesson"]>,
 	/** Мой расчёт: принятые взносы и доступное к возврату */
 	edubridgeMySettlement: GraphQLTypes["EduTeacherSettlement"],
@@ -68907,6 +69332,17 @@ export enum EduGuaranteeClaimStatus {
 	EXPIRED = "EXPIRED",
 	SUBMITTED = "SUBMITTED"
 }
+/** Откуда занятие в календаре: из окон расписания либо назначено отдельно */
+export enum EduLessonOrigin {
+	EXTRA = "EXTRA",
+	SCHEDULE = "SCHEDULE"
+}
+/** Состояние занятия в календаре группы */
+export enum EduLessonStatus {
+	CANCELLED = "CANCELLED",
+	HELD = "HELD",
+	PLANNED = "PLANNED"
+}
 /** Оферта ЦПП «Образование»: ученик или преподаватель */
 export enum EduOfferKind {
 	PARENT = "PARENT",
@@ -69908,7 +70344,6 @@ type ZEUS_VARIABLES = {
 	["EduCoursesFilterInput"]: ValueTypes["EduCoursesFilterInput"];
 	["EduCreateExpenseInput"]: ValueTypes["EduCreateExpenseInput"];
 	["EduCreateGroupInput"]: ValueTypes["EduCreateGroupInput"];
-	["EduDeclineContributionInput"]: ValueTypes["EduDeclineContributionInput"];
 	["EduEnrollmentPeriod"]: ValueTypes["EduEnrollmentPeriod"];
 	["EduEnrollmentStatus"]: ValueTypes["EduEnrollmentStatus"];
 	["EduExpenseItemInput"]: ValueTypes["EduExpenseItemInput"];
@@ -69917,10 +70352,15 @@ type ZEUS_VARIABLES = {
 	["EduGuaranteeStatementInput"]: ValueTypes["EduGuaranteeStatementInput"];
 	["EduHoldContributionInput"]: ValueTypes["EduHoldContributionInput"];
 	["EduLearnerInput"]: ValueTypes["EduLearnerInput"];
+	["EduLessonCalendarFilter"]: ValueTypes["EduLessonCalendarFilter"];
+	["EduLessonOrigin"]: ValueTypes["EduLessonOrigin"];
 	["EduLessonReportInput"]: ValueTypes["EduLessonReportInput"];
+	["EduLessonStatus"]: ValueTypes["EduLessonStatus"];
 	["EduMarkLearnerRemovedInput"]: ValueTypes["EduMarkLearnerRemovedInput"];
+	["EduMoveLessonInput"]: ValueTypes["EduMoveLessonInput"];
 	["EduOfferKind"]: ValueTypes["EduOfferKind"];
 	["EduOnboardingSource"]: ValueTypes["EduOnboardingSource"];
+	["EduPlanLessonInput"]: ValueTypes["EduPlanLessonInput"];
 	["EduQueueFilterInput"]: ValueTypes["EduQueueFilterInput"];
 	["EduQuoteInput"]: ValueTypes["EduQuoteInput"];
 	["EduRecipientType"]: ValueTypes["EduRecipientType"];
@@ -69931,12 +70371,14 @@ type ZEUS_VARIABLES = {
 	["EduRidType"]: ValueTypes["EduRidType"];
 	["EduSaveLevelInput"]: ValueTypes["EduSaveLevelInput"];
 	["EduSaveSectionInput"]: ValueTypes["EduSaveSectionInput"];
+	["EduScheduleSlotInput"]: ValueTypes["EduScheduleSlotInput"];
 	["EduSectionsFilterInput"]: ValueTypes["EduSectionsFilterInput"];
 	["EduSetAssignmentRateInput"]: ValueTypes["EduSetAssignmentRateInput"];
 	["EduSetConnectorCredentialsInput"]: ValueTypes["EduSetConnectorCredentialsInput"];
 	["EduSetConnectorEnabledInput"]: ValueTypes["EduSetConnectorEnabledInput"];
 	["EduSetCourseStatusInput"]: ValueTypes["EduSetCourseStatusInput"];
 	["EduSetEconomySettingsInput"]: ValueTypes["EduSetEconomySettingsInput"];
+	["EduSetGroupScheduleInput"]: ValueTypes["EduSetGroupScheduleInput"];
 	["EduSetTeacherRateInput"]: ValueTypes["EduSetTeacherRateInput"];
 	["EduSettlementEntryKind"]: ValueTypes["EduSettlementEntryKind"];
 	["EduSettlementEntryStatus"]: ValueTypes["EduSettlementEntryStatus"];

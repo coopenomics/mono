@@ -42,7 +42,9 @@ function make(opts: { groups?: any[]; enrollments?: any[]; lessons?: any[]; cour
   const enrollments = { findByGroup: jest.fn(async () => opts.enrollments ?? []) } as any;
   const lessons = { findByGroup: jest.fn(async () => opts.lessons ?? []) } as any;
   const chainTerms = { pushCourse: jest.fn(async () => undefined), tryPushCourse: jest.fn(async () => true) } as any;
-  return { service: new EdubridgeGroupService(groups, courses, enrollments, lessons, chainTerms, logger), store, chainTerms, groups, record, courses };
+  // Календарь перестраивается службой календаря: здесь важно, что её зовут, а не что она строит.
+  const calendar = { rebuild: jest.fn(async () => []) } as any;
+  return { service: new EdubridgeGroupService(groups, courses, enrollments, lessons, chainTerms, calendar, logger), store, chainTerms, groups, record, courses, calendar };
 }
 
 const group = (extra: Record<string, unknown> = {}) => ({
@@ -160,8 +162,12 @@ describe('EdubridgeGroupService — группа как единица расч�
   });
 
   it('дата начала группы не меняется после первого занятия; до него — меняется и уходит в цепь', async () => {
-    const held = make({ groups: [group()], lessons: [{ id: 'L1' }] });
+    const held = make({ groups: [group()], lessons: [{ id: 'L1', status: 'held' }] });
     await expect(held.service.update('voskhod', { id: 'G1', starts_at: '2026-10-01' })).rejects.toMatchObject({ code: 'EDUBRIDGE_COURSE_START_LOCKED_BY_LESSONS' });
+    // Запланированное занятие календаря дату не держит: календарь перестраивается от новой даты.
+    const planned = make({ groups: [group()], lessons: [{ id: 'L2', status: 'planned' }] });
+    await expect(planned.service.update('voskhod', { id: 'G1', starts_at: '2026-10-01' })).resolves.toMatchObject({ starts_at: '2026-10-01' });
+    expect(planned.calendar.rebuild).toHaveBeenCalledWith('voskhod', expect.objectContaining({ id: 'G1' }));
     const fresh = make({ groups: [group()] });
     await expect(fresh.service.update('voskhod', { id: 'G1', starts_at: '2026-10-01', enrollment_open: false })).resolves.toMatchObject({ starts_at: '2026-10-01', enrollment_open: false });
     expect(fresh.chainTerms.pushCourse).toHaveBeenCalledWith(expect.objectContaining({ starts_at: '2026-10-01' }));

@@ -25,6 +25,8 @@ import { EdubridgeFundsService } from './services/edubridge-funds.service';
 import { EdubridgeSettlementService } from './services/edubridge-settlement.service';
 import { EdubridgeChainTermsService } from './services/edubridge-chain-terms.service';
 import { EdubridgeGroupService } from './services/edubridge-group.service';
+import { EdubridgeCalendarService } from './services/edubridge-calendar.service';
+import { EdubridgeCalendarResolver } from './resolvers/edubridge-calendar.resolver';
 import { EdubridgeReturnResolver } from './resolvers/edubridge-return.resolver';
 import { EdubridgeGuaranteeResolver } from './resolvers/edubridge-guarantee.resolver';
 import { EdubridgeGuaranteeService } from './services/edubridge-guarantee.service';
@@ -131,6 +133,7 @@ import { EdubridgeLiveFeedService } from './services/edubridge-live-feed.service
     EdubridgeSettlementService,
     EdubridgeChainTermsService,
     EdubridgeGroupService,
+    EdubridgeCalendarService,
     EdubridgeEnrollmentService,
     EdubridgeReturnService,
     EdubridgeGuaranteeService,
@@ -155,6 +158,7 @@ import { EdubridgeLiveFeedService } from './services/edubridge-live-feed.service
     EdubridgeCourseFieldsResolver,
     EdubridgeCourseAdminResolver,
     EdubridgeGroupResolver,
+    EdubridgeCalendarResolver,
     EdubridgeSectionsResolver,
     EdubridgeSectionsService,
     EdubridgeSectionKyselyRepository,

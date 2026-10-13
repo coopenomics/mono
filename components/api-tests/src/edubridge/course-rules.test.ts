@@ -16,7 +16,7 @@ import {
   CREATE_COURSE,
   MY_ASSIGNMENTS,
   NO_RIGHTS,
-  REPORT_LESSON,
+  reportLessonError,
   SET_COURSE_STATUS,
   UPDATE_COURSE,
   addLearner,
@@ -117,9 +117,7 @@ describe('Образование: правила курса — удаление
     const assignment = (await gql<any>(chairman, CREATE_ASSIGNMENT, {
       d: { teacher_username: teacher.account, course_id: course.id, period_from: dayFromNow(-10), period_to: dayFromNow(120) },
     })).edubridgeCreateAssignment
-    const report = (n: number) =>
-      gqlError(teacherToken, REPORT_LESSON, { d: { assignment_id: assignment.id, lesson_number: n, materials: ['https://example.org/x'] } })
-    expectCode(await report(1), 'EDUBRIDGE_LESSON_NOT_PAID_BY_LEARNERS')
+    expectCode(await reportLessonError(teacherToken, assignment.id, 1), 'EDUBRIDGE_LESSON_NOT_PAID_BY_LEARNERS')
 
     // Ученик оплатил месяц — восемь занятий. Каждое отчитывается отдельно, взнос — по ставке 900 за занятие.
     await subscribe(learner, token, self.id, course.id)

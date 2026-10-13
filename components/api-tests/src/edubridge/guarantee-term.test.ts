@@ -24,7 +24,6 @@ import {
   MY_CONTRIBUTIONS,
   MY_LESSONS,
   REFUND_PREVIEW,
-  REPORT_LESSON,
   SET_COURSE_STATUS,
   SHARE_WALLET,
   addLearner,
@@ -119,7 +118,7 @@ describe.runIf(SHORT_DAYS)('Образование: конец гарантий�
     expect(Date.now(), 'гарантийный срок группы ещё идёт').toBeLessThan(endsAt)
     const before = (await contributions()).length
     for (const n of [1, 2]) {
-      const lesson = (await gql<any>(teacherToken, REPORT_LESSON, { d: { assignment_id: assignment.id, lesson_number: n, materials: [`https://example.org/term-${n}`], topic: `Занятие ${n}` } })).edubridgeReportLesson
+      const { lesson } = await reportLesson(teacherToken, assignment.id, n, { materials: [`https://example.org/term-${n}`], topic: `Занятие ${n}` })
       expect(lesson).toMatchObject({ lesson_number: n, contribution_id: null })
     }
     expect((await contributions()).length, 'взносов и документов с суммой нет').toBe(before)

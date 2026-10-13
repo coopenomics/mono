@@ -50,6 +50,8 @@ export interface EdubridgeChainPort {
   dropLesson(data: EdubridgeContract.Actions.Droplesson.IDroplesson): Promise<InnerTransactResult>;
   /** Расчёт за занятие по одной подписке. */
   chargeLesson(data: EdubridgeContract.Actions.Chargelesson.IChargelesson): Promise<InnerTransactResult>;
+  /** Окно расчёта по занятию закрыто: подписки группы рассчитаны. */
+  closeCharge(data: EdubridgeContract.Actions.Closecharge.IClosecharge): Promise<InnerTransactResult>;
   /** Приём материалов занятия на ответственное хранение; сумму и срок берёт контракт из записи занятия. */
   holdRid(data: EdubridgeContract.Actions.Holdrid.IHoldrid): Promise<InnerTransactResult>;
   submitRid(data: EdubridgeContract.Actions.Submitrid.ISubmitrid): Promise<InnerTransactResult>;

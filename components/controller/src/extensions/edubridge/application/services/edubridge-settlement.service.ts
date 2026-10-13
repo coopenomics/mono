@@ -68,11 +68,11 @@ export class EdubridgeSettlementService {
     return closed;
   }
 
-  /** Программа группы отчитана целиком: занятий в цепи столько, сколько в программе, и расчёт последнего завершён. */
+  /** Программа группы отчитана целиком: занятий в цепи столько, сколько в программе, и окон расчёта нет. */
   private async fullyReported(coopname: string, group: EdubridgeGroupRecord): Promise<boolean> {
     if (!(group.lessons_total > 0)) return false;
     const terms = await this.chain.readTerms(coopname, group.chain_ref).catch(() => null);
-    return Boolean(terms) && Number(terms?.lessons_opened) >= group.lessons_total && Number(terms?.open_lesson_id ?? 0) === 0;
+    return Boolean(terms) && Number(terms?.lessons_opened) >= group.lessons_total && Number(terms?.charging ?? 0) === 0;
   }
 
   private async closeAll(coopname: string, pending: EdubridgeEnrollmentRecord[]): Promise<number> {

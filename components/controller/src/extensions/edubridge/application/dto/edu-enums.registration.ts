@@ -12,6 +12,8 @@ import {
   EduCourseDirection,
   EduCourseStatus,
   EduGroupStatus,
+  EduLessonOrigin,
+  EduLessonStatus,
   EduEnrollmentPeriod,
   EduEnrollmentStatus,
   EduRecipientType,
@@ -26,6 +28,8 @@ registerEnumType(EduAccessCarrier, { name: 'EduAccessCarrier', description: 'Н�
 registerEnumType(EduCourseDirection, { name: 'EduCourseDirection', description: 'Тип направления курса (внутренний признак)' });
 registerEnumType(EduCourseStatus, { name: 'EduCourseStatus', description: 'Состояние курса в каталоге' });
 registerEnumType(EduGroupStatus, { name: 'EduGroupStatus', description: 'Состояние группы курса' });
+registerEnumType(EduLessonStatus, { name: 'EduLessonStatus', description: 'Состояние занятия в календаре группы' });
+registerEnumType(EduLessonOrigin, { name: 'EduLessonOrigin', description: 'Откуда занятие в календаре: из окон расписания либо назначено отдельно' });
 registerEnumType(EduRecipientType, { name: 'EduRecipientType', description: 'Как доставляется пропуск обучающемуся' });
 registerEnumType(EduEnrollmentPeriod, { name: 'EduEnrollmentPeriod', description: 'За какой срок вносится членский взнос: помесячно либо разом за весь курс' });
 registerEnumType(EduEnrollmentStatus, { name: 'EduEnrollmentStatus', description: 'Состояние подписки обучающегося на курс' });

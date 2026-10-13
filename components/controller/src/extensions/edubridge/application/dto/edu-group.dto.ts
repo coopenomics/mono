@@ -2,6 +2,8 @@ import { Field, ID, InputType, Int, ObjectType } from '@nestjs/graphql';
 import { IsBoolean, IsDateString, IsInt, IsOptional, IsString, IsUUID, Length, Max, Min } from 'class-validator';
 import { EduGroupStatus } from '../../domain/enums';
 import type { EdubridgeGroupRecord } from '../../infrastructure/entities';
+import { formatSlots } from '../../domain/lib/schedule';
+import { EduScheduleSlotDTO } from './edu-schedule.dto';
 
 /** Группа (набор) курса: свои дата начала, условия, участники, занятия и учёт средств. */
 @ObjectType('EduGroup')
@@ -19,6 +21,11 @@ export class EduGroupDTO {
   @Field(() => Boolean, { description: 'Взнос преподавателя за занятие считается за каждого участника; иначе фиксированный за занятие' }) pay_per_learner!: boolean;
   @Field(() => Int, { description: 'Занятий в программе группы' }) lessons_total!: number;
   @Field(() => Int, { description: 'Гарантийный срок, дней' }) guarantee_days!: number;
+  @Field(() => [EduScheduleSlotDTO], { description: 'Окна расписания группы' }) schedule_slots!: EduScheduleSlotDTO[];
+  @Field(() => String, { description: 'Расписание группы строкой, собрано из окон' }) schedule!: string;
+  @Field(() => Int, { description: 'Срок на отчёт преподавателя о занятии, дней после занятия' }) report_days!: number;
+  @Field(() => Int, { description: 'Занятий в месяц по расписанию' }) lessons_per_month!: number;
+  @Field(() => Int, { description: 'Длительность занятия курса, минут' }) lesson_minutes!: number;
   @Field(() => String, { nullable: true, description: 'Остаток резерва преподавателям по группе' }) teacher_reserve_balance!: string | null;
   @Field(() => String, { nullable: true, description: 'Выплачено преподавателям по группе' }) teacher_settled_total!: string | null;
   @Field(() => Int, { description: 'Участников с действующей подпиской' }) learners_active!: number;
@@ -41,6 +48,11 @@ export class EduGroupDTO {
       pay_per_learner: Boolean(e.pay_per_learner),
       lessons_total: e.lessons_total,
       guarantee_days: e.guarantee_days,
+      schedule_slots: (e.schedule_slots ?? []).map((s) => new EduScheduleSlotDTO(s)),
+      schedule: formatSlots(e.schedule_slots ?? []),
+      report_days: e.report_days ?? 7,
+      lessons_per_month: e.lessons_per_month,
+      lesson_minutes: e.lesson_minutes,
       teacher_reserve_balance: e.teacher_reserve_balance,
       teacher_settled_total: e.teacher_settled_total,
       created_at: e.created_at,

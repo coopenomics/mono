@@ -6,6 +6,7 @@ import { courseMonths, feeForMonths } from '../../domain/economy/course-fee.calc
 import { EduAccessCarrier, EduCourseDirection, EduCourseStatus } from '../../domain/enums';
 import type { EdubridgeCourseRecord } from '../../infrastructure/entities';
 import type { EduCourseImage } from '../../infrastructure/entities/edubridge-course.record';
+import { EduScheduleSlotDTO, EduScheduleSlotInputDTO } from './edu-schedule.dto';
 import './edu-enums.registration';
 
 /** Сумма в формате цепи: «1000.0000 RUB». */
@@ -54,6 +55,12 @@ export class EduCatalogCourseDTO {
   @Field(() => String, { description: 'Расписание занятий' })
   schedule!: string;
 
+  @Field(() => [EduScheduleSlotDTO], { description: 'Окна расписания курса — образец для его групп' })
+  schedule_slots!: EduScheduleSlotDTO[];
+
+  @Field(() => Int, { description: 'Срок на отчёт преподавателя о занятии, дней после занятия' })
+  report_days!: number;
+
   /** Ключ обложки в bucket'е; ссылку `image_url` подписывает резолвер поля. */
   image_record: EduCourseImage | null = null;
 
@@ -97,6 +104,8 @@ export class EduCatalogCourseDTO {
     this.description = e.description;
     this.syllabus = e.syllabus;
     this.schedule = e.schedule;
+    this.schedule_slots = (e.schedule_slots ?? []).map((s) => new EduScheduleSlotDTO(s));
+    this.report_days = e.report_days ?? 7;
     this.image_record = e.image ?? null;
     this.teacher_usernames = e.teacher_usernames ?? [];
     this.lessons_per_month = e.lessons_per_month;
@@ -251,10 +260,24 @@ export class EduCourseInputDTO {
   @IsString()
   syllabus?: string;
 
-  @Field(() => String, { nullable: true, description: 'Расписание занятий' })
+  @Field(() => String, { nullable: true, description: 'Расписание строкой — когда окна расписания не заданы' })
   @IsOptional()
   @IsString()
   schedule?: string;
+
+  @Field(() => [EduScheduleSlotInputDTO], { nullable: true, description: 'Окна расписания: день недели, время начала, длительность, преподаватель; образец для групп курса' })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => EduScheduleSlotInputDTO)
+  schedule_slots?: EduScheduleSlotInputDTO[] | null;
+
+  @Field(() => Int, { nullable: true, description: 'Срок на отчёт преподавателя о занятии, дней после занятия' })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(365)
+  report_days?: number | null;
 
   @Field(() => EduCourseImageUploadInputDTO, { nullable: true, description: 'Обложка курса: новое изображение (base64, ≤ 10 МБ, JPEG/PNG/WEBP), прежнее (bucket_key) или null — убрать' })
   @IsOptional()

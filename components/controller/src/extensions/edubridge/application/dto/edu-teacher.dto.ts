@@ -3,7 +3,8 @@ import { IsArray, IsDateString, IsEnum, IsInt, IsOptional, IsString, IsUUID, Len
 import { Type } from 'class-transformer';
 import { DocumentAggregateDTO, SignedDigitalDocumentInputDTO, validationMessage } from '@coopenomics/extension-kit';
 import type { InnerDocumentAggregate } from '@coopenomics/innercoop';
-import { EduAssignmentStatus, EduContractStatus, EduContributionDocumentKind, EduContributionStatus, EduCouncilOutcome, EduRidType, EduSettlementEntryKind, EduSettlementEntryStatus, EduShareReturnDocumentKind } from '../../domain/enums';
+import { EduAssignmentStatus, EduContractStatus, EduContributionDocumentKind, EduContributionStatus, EduCouncilOutcome, EduLessonOrigin, EduLessonStatus, EduRidType, EduSettlementEntryKind, EduSettlementEntryStatus, EduShareReturnDocumentKind } from '../../domain/enums';
+import { lessonEndsAt, reportUntil } from '../../domain/lib/lesson-dates';
 import type {
   EdubridgeContributionRecord,
   EdubridgeLessonRecord,
@@ -236,23 +237,12 @@ export class EduTeacherSettlementDTO {
   @Field(() => Date, { nullable: true, description: 'Дата последнего принятого взноса' }) last_accepted_at!: Date | null;
 }
 
-/** Отчёт преподавателя после занятия: что провёл и какими материалами это подтверждается. */
+/** Отчёт преподавателя после занятия календаря: какими материалами подтверждается работа. */
 @InputType('EduLessonReportInput')
 export class EduLessonReportInputDTO {
-  @Field(() => ID, { description: 'Назначение, по которому проведено занятие' })
+  @Field(() => ID, { description: 'Занятие из календаря группы' })
   @IsUUID()
-  assignment_id!: string;
-
-  @Field(() => ID, { nullable: true, description: 'Группа курса, для которой проведено занятие; не названа — единственная идущая группа курса' })
-  @IsOptional()
-  @IsUUID()
-  group_id?: string | null;
-
-  @Field(() => Int, { description: 'Номер занятия в программе курса' })
-  @IsInt()
-  @Min(1)
-  @Max(2000)
-  lesson_number!: number;
+  lesson_id!: string;
 
   @Field(() => [String], { description: 'Материалы занятия — ссылки на записи, конспекты, задания' })
   @IsArray()
@@ -263,14 +253,9 @@ export class EduLessonReportInputDTO {
   @IsOptional()
   @IsString()
   topic?: string;
-
-  @Field(() => String, { nullable: true, description: 'Когда проведено (по умолчанию — сейчас)' })
-  @IsOptional()
-  @IsDateString()
-  held_at?: string;
 }
 
-/** Проведённое занятие в журнале курса. */
+/** Занятие группы: в календаре и в журнале. */
 @ObjectType('EduLesson')
 export class EduLessonDTO {
   @Field(() => ID) id!: string;
@@ -278,21 +263,40 @@ export class EduLessonDTO {
   @Field(() => String, { description: 'Название курса' }) course_title!: string;
   @Field(() => Int, { description: 'Номер занятия в программе' }) lesson_number!: number;
   @Field(() => ID, { nullable: true, description: 'Группа курса' }) group_id!: string | null;
+  @Field(() => String, { description: 'Название группы' }) group_title!: string;
+  @Field(() => String, { nullable: true, description: 'Преподаватель занятия; пусто — не назначен' }) teacher_username!: string | null;
+  @Field(() => ID, { nullable: true, description: 'Допуск преподавателя' }) assignment_id!: string | null;
+  @Field(() => EduLessonStatus, { description: 'Запланировано, проведено либо отменено' }) status!: EduLessonStatus;
+  @Field(() => EduLessonOrigin, { description: 'Из окон расписания либо назначено отдельно' }) origin!: EduLessonOrigin;
   @Field(() => String, { description: 'Тема занятия' }) topic!: string;
-  @Field(() => Date, { description: 'Когда проведено' }) held_at!: Date;
+  @Field(() => Date, { description: 'Момент занятия' }) held_at!: Date;
+  @Field(() => Date, { description: 'Конец занятия' }) ends_at!: Date;
+  @Field(() => Date, { description: 'До какого момента принимается отчёт' }) report_until!: Date;
+  @Field(() => Boolean, { description: 'Срок на отчёт вышел, отчёта нет' }) overdue!: boolean;
+  @Field(() => Date, { nullable: true, description: 'Когда подан отчёт' }) reported_at!: Date | null;
   @Field(() => Int, { description: 'Длительность, минут' }) duration_minutes!: number;
   @Field(() => Int, { nullable: true, description: 'Участников с оплаченным доступом, по которым проведён расчёт за занятие' }) learners_count!: number | null;
   @Field(() => [String], { description: 'Материалы занятия' }) materials!: string[];
   @Field(() => ID, { nullable: true, description: 'Взнос, оформленный по занятию' }) contribution_id!: string | null;
 
-  constructor(e: EdubridgeLessonRecord, courseTitle: string) {
+  constructor(e: EdubridgeLessonRecord, titles: { course: string; group?: string; reportDays?: number }) {
+    const reportDays = titles.reportDays ?? 7;
     this.id = e.id;
     this.course_id = e.course_id;
-    this.course_title = courseTitle;
+    this.course_title = titles.course;
     this.lesson_number = e.lesson_number;
     this.group_id = e.group_id ?? null;
+    this.group_title = titles.group ?? '';
+    this.teacher_username = e.teacher_username ?? null;
+    this.assignment_id = e.assignment_id ?? null;
+    this.status = e.status;
+    this.origin = e.origin;
     this.topic = e.topic;
     this.held_at = e.held_at;
+    this.ends_at = lessonEndsAt(e);
+    this.report_until = reportUntil(e, reportDays);
+    this.overdue = e.status === EduLessonStatus.PLANNED && this.report_until.getTime() < Date.now();
+    this.reported_at = e.reported_at ?? null;
     this.duration_minutes = e.duration_minutes;
     this.learners_count = e.learners_count ?? null;
     this.materials = e.materials ?? [];

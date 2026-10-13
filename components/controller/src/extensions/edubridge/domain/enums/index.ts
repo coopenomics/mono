@@ -47,6 +47,24 @@ export enum EduGroupStatus {
   CANCELLED = 'cancelled',
 }
 
+/** Состояние занятия в календаре группы. */
+export enum EduLessonStatus {
+  /** Занятие в календаре, отчёта ещё нет. */
+  PLANNED = 'planned',
+  /** Преподаватель отчитался, расчёт с участниками прошёл. */
+  HELD = 'held',
+  /** Занятие отменено администратором: номер и место в программе свободны. */
+  CANCELLED = 'cancelled',
+}
+
+/** Откуда занятие в календаре. */
+export enum EduLessonOrigin {
+  /** Построено из окон расписания группы. */
+  SCHEDULE = 'schedule',
+  /** Назначено администратором отдельно от расписания. */
+  EXTRA = 'extra',
+}
+
 /** Как доставляется пропуск обучающемуся. */
 export enum EduRecipientType {
   EMAIL = 'email',

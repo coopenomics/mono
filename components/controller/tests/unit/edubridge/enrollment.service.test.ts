@@ -32,6 +32,7 @@ function make(opts: { existing?: any; available?: string; program?: string; cour
     findByLearnerAndGroup: jest.fn(async (_c: string, _l: string, groupId: string) => (opts.byGroup ? opts.byGroup[groupId] ?? null : opts.existing ?? null)),
     findById: jest.fn(async () => opts.existing ?? null),
     findByCourse: jest.fn(async () => (opts.existing ? [opts.existing] : [])),
+    findByGroup: jest.fn(async () => (opts.existing ? [opts.existing] : [])),
     create: jest.fn((d: any) => ({ ...d })),
     save: jest.fn(async (e: any) => { saved.push(e); return { ...e, id: e.id ?? 'E1' }; }),
   } as any;
@@ -61,8 +62,9 @@ function make(opts: { existing?: any; available?: string; program?: string; cour
     })),
   } as any;
   const events = { emit: jest.fn() } as any;
-  const service = new EdubridgeEnrollmentService(enrollments, courses, learnerService, funds, { findByEnrollment: jest.fn(async () => null) } as any, chain, documents, wallets, logger, events, { viewOf: (c: any) => c, courseOf: jest.fn(async (...a: any[]) => (courses as any).findById(a[0], a[1])), openFor: jest.fn(async () => ({ id: 'G1', chain_ref: '3', course_id: 'C1' })), get: jest.fn(async () => ({ id: 'G1', chain_ref: '3', course_id: 'C1' })), list: jest.fn(async () => [{ id: 'G1', chain_ref: '3', course_id: 'C1', status: 'active', starts_at: (opts.course ?? course).starts_at ?? null }]), firstOf: jest.fn(async () => ({ id: 'G1', chain_ref: '7', course_id: 'C1', status: 'active' })), saveFunds: jest.fn(async (g: any, r: string, st: string) => { g.teacher_reserve_balance = r; g.teacher_settled_total = st; return true; }) } as any);
-  return { service, enrollments, courses, chain, events, documents, saved, funds };
+  const groups = { viewOf: (c: any) => c, courseOf: jest.fn(async (...a: any[]) => (courses as any).findById(a[0], a[1])), openFor: jest.fn(async () => ({ id: 'G1', chain_ref: '3', course_id: 'C1' })), get: jest.fn(async () => ({ id: 'G1', chain_ref: '3', course_id: 'C1', title: 'Группа 1', status: 'active', starts_at: (opts.course ?? course).starts_at ?? null })), cancel: jest.fn(async (_c: string, g: any) => ({ ...g, status: 'cancelled', enrollment_open: false })), list: jest.fn(async () => [{ id: 'G1', chain_ref: '3', course_id: 'C1', status: 'active', starts_at: (opts.course ?? course).starts_at ?? null }]), firstOf: jest.fn(async () => ({ id: 'G1', chain_ref: '7', course_id: 'C1', status: 'active' })), saveFunds: jest.fn(async (g: any, r: string, st: string) => { g.teacher_reserve_balance = r; g.teacher_settled_total = st; return true; }) } as any;
+  const service = new EdubridgeEnrollmentService(enrollments, courses, learnerService, funds, { findByEnrollment: jest.fn(async () => null) } as any, chain, documents, wallets, logger, events, groups);
+  return { service, enrollments, courses, chain, events, documents, saved, funds, groups };
 }
 
 const doc = { hash: 'DEADBEEF', meta: {}, signatures: [] } as any;
@@ -429,43 +431,44 @@ describe('EdubridgeEnrollmentService — отмена подписки', () => {
     expect(chain.cancelSubscription).not.toHaveBeenCalled();
   });
 
-  it('отмена по недобору закрывает подписки курса и возвращает взносы на паевой', async () => {
+  it('отмена по недобору закрывает подписки группы и возвращает взносы на паевой', async () => {
     const { service, chain } = make({ existing: { ...paid }, chainSub: onChain('9600.0000 RUB') });
-    const cancelled = await service.cancelCourse('voskhod', 'C1');
+    const cancelled = await service.cancelGroup('voskhod', 'G1');
     expect(cancelled).toHaveLength(1);
     const [payload] = chain.cancelSubscription.mock.calls[0];
     expect(payload.underfilled).toBe(true);
     expect(cancelled[0].refunded_amount).toBe('9600.0000 RUB');
   });
 
-  it('отмена по недобору снимает курс с публикации: на отменённый курс больше не подписаться', async () => {
-    const { service, courses } = make({ existing: { ...paid } });
-    await service.cancelCourse('voskhod', 'C1');
-    expect(courses.save).toHaveBeenCalledWith(expect.objectContaining({ status: EduCourseStatus.ARCHIVED }));
+  it('отмена по недобору закрывает группу, а не курс: другие группы курса идут дальше', async () => {
+    const { service, courses, groups } = make({ existing: { ...paid } });
+    await service.cancelGroup('voskhod', 'G1');
+    expect(groups.cancel).toHaveBeenCalledWith('voskhod', expect.objectContaining({ id: 'G1' }));
+    expect(courses.save).not.toHaveBeenCalledWith(expect.objectContaining({ status: EduCourseStatus.ARCHIVED }));
   });
 
   it('отмена по недобору: сбой по одной подписке не обрывает остальные, итог сообщает, сколько осталось', async () => {
     const { service, chain, enrollments } = make({ existing: { ...paid } });
-    enrollments.findByCourse.mockResolvedValue([{ ...paid, id: 'E1', sub_hash: 'a1' }, { ...paid, id: 'E2', sub_hash: 'a2' }, { ...paid, id: 'E3', sub_hash: 'a3' }]);
+    enrollments.findByGroup.mockResolvedValue([{ ...paid, id: 'E1', sub_hash: 'a1' }, { ...paid, id: 'E2', sub_hash: 'a2' }, { ...paid, id: 'E3', sub_hash: 'a3' }]);
     chain.cancelSubscription.mockImplementation(async (d: any) => {
       if (d.sub_hash === 'a2') throw new Error('цепь не отвечает');
       return { transaction_id: 'T' };
     });
-    await expect(service.cancelCourse('voskhod', 'C1')).rejects.toThrow(/Возвращено подписок: 2, не удалось: 1/);
+    await expect(service.cancelGroup('voskhod', 'G1')).rejects.toThrow(/Возвращено подписок: 2, не удалось: 1/);
     expect(chain.cancelSubscription).toHaveBeenCalledTimes(3);
   });
 
   it('продлённая до старта подписка при недоборе возвращается целиком — оба взноса', async () => {
     const twice = { ...paid, paid_amount: '2000.0000 RUB', paid_months: 2 };
     const { service } = make({ existing: twice, chainSub: onChain('2000.0000 RUB') });
-    const [cancelled] = await service.cancelCourse('voskhod', 'C1');
+    const [cancelled] = await service.cancelGroup('voskhod', 'G1');
     expect(cancelled.refunded_amount).toBe('2000.0000 RUB');
   });
 
   it('отмена по недобору после начала занятий отклоняется', async () => {
     const started = { ...course, starts_at: '2026-01-01' };
     const { service, chain } = make({ existing: { ...paid }, course: started });
-    await expect(service.cancelCourse('voskhod', 'C1')).rejects.toThrow(/занятия по курсу уже начались/i);
+    await expect(service.cancelGroup('voskhod', 'G1')).rejects.toThrow(/занятия группы уже начались/i);
     expect(chain.cancelSubscription).not.toHaveBeenCalled();
   });
 });

@@ -18,7 +18,7 @@ import { Cooperative } from 'cooptypes'
 // (src/seed/edubridge), который идёт обычным esno.
 import type { Who } from '../core/auth'
 import { tokenOf } from '../core/auth'
-import { ApiError, gql, gqlRaw } from '../core/client'
+import { ApiError, gql, gqlError, gqlRaw, type GqlError } from '../core/client'
 import { declineDecisionOnChain } from '../core/council'
 import { signDocument } from '../core/documents'
 import { COOP } from '../core/env'
@@ -568,10 +568,16 @@ export async function councilDeclinesRid(agenda: AgendaRow): Promise<void> {
 
 const DOC = 'full_title html hash meta binary'
 const SIGNED = 'version hash doc_hash meta_hash meta signatures{ id signer public_key signature signed_at signed_hash meta }'
-export const LESSON_FIELDS = 'id course_id course_title lesson_number held_at duration_minutes materials topic contribution_id'
+export const LESSON_FIELDS = 'id course_id course_title group_id group_title lesson_number teacher_username assignment_id status origin held_at ends_at report_until overdue reported_at duration_minutes materials topic contribution_id learners_count'
 export const CONTRIBUTION_FIELDS = 'id teacher_username assignment_id rid_hash rid_type amount status description links hold_until storage_act_hash statement_hash act_hash council_decision_id council_outcome decision_hash decline_reason decided_at'
 export const REPORT_LESSON = `mutation($d:EduLessonReportInput!){ edubridgeReportLesson(data:$d){ ${LESSON_FIELDS} } }`
 export const MY_LESSONS = `query{ edubridgeMyLessons{ ${LESSON_FIELDS} } }`
+export const GROUP_LESSONS = `query($id:ID!){ edubridgeGroupLessons(group_id:$id){ ${LESSON_FIELDS} } }`
+export const LESSON_CALENDAR = `query($f:EduLessonCalendarFilter){ edubridgeLessonCalendar(filter:$f){ ${LESSON_FIELDS} } }`
+export const PLAN_LESSON = `mutation($d:EduPlanLessonInput!){ edubridgePlanLesson(data:$d){ ${LESSON_FIELDS} } }`
+export const MOVE_LESSON = `mutation($d:EduMoveLessonInput!){ edubridgeMoveLesson(data:$d){ ${LESSON_FIELDS} } }`
+export const CANCEL_LESSON = `mutation($id:ID!){ edubridgeCancelLesson(lesson_id:$id){ ${LESSON_FIELDS} } }`
+export const SET_GROUP_SCHEDULE = `mutation($d:EduSetGroupScheduleInput!){ edubridgeSetGroupSchedule(data:$d){ id schedule report_days schedule_slots{ weekday time minutes assignment_id } } }`
 export const MY_CONTRIBUTIONS = `query{ edubridgeMyContributions{ ${CONTRIBUTION_FIELDS} } }`
 export const ALL_CONTRIBUTIONS = `query{ edubridgeContributions{ ${CONTRIBUTION_FIELDS} } }`
 export const RID_STORAGE_ACT = `mutation($id:ID!){ edubridgeRidStorageAct(contribution_id:$id){ ${DOC} } }`
@@ -588,10 +594,65 @@ export async function contributionOf(token: string, id: string): Promise<any | u
 }
 
 /** Отчёт о занятии; возвращает строку журнала и черновик взноса по ней. */
+/** Группы, которым помощник уже поставил долгий срок на отчёт: занятия в тестах назначаются на прошедшее время. */
+const longReportWindow = new Set<string>()
+
+/** Занятие группы в календаре: администратор назначает его отдельно от расписания; по умолчанию — два часа назад. */
+export async function planLesson(groupId: string, over: Record<string, unknown> = {}): Promise<any> {
+  const chairman = await tokenOf(CHAIRMAN)
+  if (!longReportWindow.has(groupId)) {
+    await gql(chairman, SET_GROUP_SCHEDULE, { d: { group_id: groupId, slots: [], report_days: 365 } })
+    longReportWindow.add(groupId)
+  }
+  const d = { group_id: groupId, held_at: new Date(Date.now() - 2 * 3600_000).toISOString(), ...over }
+  return (await gql<any>(chairman, PLAN_LESSON, { d })).edubridgePlanLesson
+}
+
+/** Идущая группа курса по допуску преподавателя: занятия календаря и отчёты живут в ней. */
+export async function groupOfAssignment(token: string, assignmentId: string, groupId?: string): Promise<{ assignment: any, group: any }> {
+  const assignment = ((await gql<any>(token, MY_ASSIGNMENTS)).edubridgeMyAssignments as any[]).find(a => a.id === assignmentId)
+  if (!assignment)
+    throw new Error(`допуск ${assignmentId} преподавателю не виден`)
+  const groups = (await gql<any>(await tokenOf(CHAIRMAN), STARTED_GROUPS, { id: assignment.course_id })).edubridgeCourseGroups as any[]
+  const group = groupId ? groups.find(g => g.id === groupId) : groups.find(g => g.status === 'ACTIVE') ?? groups[0]
+  if (!group)
+    throw new Error(`у курса ${assignment.course_id} нет группы`)
+  return { assignment, group }
+}
+
+/**
+ * Занятие календаря под отчёт: запланированное занятие группы с этим номером
+ * либо новое занятие сверх расписания на два часа назад (номер выдаёт сервер:
+ * наименьший свободный в программе).
+ */
+export async function calendarLesson(token: string, assignmentId: string, lessonNumber: number, over: Record<string, unknown> = {}): Promise<any> {
+  const { assignment, group } = await groupOfAssignment(token, assignmentId, over.group_id as string | undefined)
+  const planned = ((await gql<any>(token, GROUP_LESSONS, { id: group.id })).edubridgeGroupLessons as any[])
+    .find(l => l.lesson_number === lessonNumber && l.status !== 'CANCELLED')
+  if (planned)
+    return planned
+  const held_at = typeof over.held_at === 'string' ? new Date(over.held_at as string) : new Date(Date.now() - 2 * 3600_000)
+  // Занятие не раньше дня начала занятий группы: контракт сравнивает с началом дня.
+  const floor = group.starts_at ? new Date(group.starts_at).getTime() + 1000 : 0
+  return planLesson(group.id, { assignment_id: assignment.id, held_at: new Date(Math.max(held_at.getTime(), floor)).toISOString() })
+}
+
+/** Отчёт преподавателя по занятию календаря с этим номером; занятия в календаре нет — оно назначается. */
 export async function reportLesson(token: string, assignmentId: string, lessonNumber: number, over: Record<string, unknown> = {}): Promise<{ lesson: any, contribution: any }> {
-  const d = { assignment_id: assignmentId, lesson_number: lessonNumber, materials: [`https://example.org/lesson-${lessonNumber}`], topic: `Тема занятия ${lessonNumber}`, ...over }
+  const planned = await calendarLesson(token, assignmentId, lessonNumber, over)
+  const d = { lesson_id: planned.id, materials: [`https://example.org/lesson-${lessonNumber}`], topic: `Тема занятия ${lessonNumber}`, ...pick(over, ['materials', 'topic']) }
   const lesson = (await gql<any>(token, REPORT_LESSON, { d })).edubridgeReportLesson
-  return { lesson, contribution: await contributionOf(token, lesson.contribution_id) }
+  return { lesson, contribution: lesson.contribution_id ? await contributionOf(token, lesson.contribution_id) : null }
+}
+
+/** Тот же отчёт, но ожидается отказ: возвращает ошибку сервера. */
+export async function reportLessonError(token: string, assignmentId: string, lessonNumber: number, over: Record<string, unknown> = {}): Promise<GqlError | null> {
+  const planned = await calendarLesson(token, assignmentId, lessonNumber, over)
+  return gqlError(token, REPORT_LESSON, { d: { lesson_id: planned.id, materials: ['https://example.org/x'], ...pick(over, ['materials', 'topic']) } })
+}
+
+function pick(source: Record<string, unknown>, keys: string[]): Record<string, unknown> {
+  return Object.fromEntries(keys.filter(k => source[k] !== undefined).map(k => [k, source[k]]))
 }
 
 /** Преподаватель подписывает акт передачи материалов на ответственное хранение. */

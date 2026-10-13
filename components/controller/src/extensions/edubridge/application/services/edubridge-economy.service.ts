@@ -12,7 +12,7 @@ import {
   type InnerLedger2Operation,
 } from '@coopenomics/innercoop';
 import { EDUBRIDGE_EXTENSION_NAME } from '../../constants/edubridge.constants';
-import { EduAssignmentStatus, EduEnrollmentStatus, EduGroupStatus, EduSettlementEntryKind, EduSettlementEntryStatus } from '../../domain/enums';
+import { EduAssignmentStatus, EduEnrollmentStatus, EduGroupStatus, EduLessonStatus, EduSettlementEntryKind, EduSettlementEntryStatus } from '../../domain/enums';
 import type { EduSettlementEntryDTO } from '../dto/edu-teacher.dto';
 import { calculateCourseFee, costOfHours, maxCourseDiscountPercent, type CourseFeeCalculation } from '../../domain/economy/course-fee.calculator';
 import type { EdubridgeCourseRecord } from '../../infrastructure/entities';
@@ -328,7 +328,7 @@ export class EdubridgeEconomyService {
       total.fees += toMinor(terms.fee_month) * learners;
       total.teachers += teachersOfMonth(Boolean(terms.pay_per_learner), learners, teachersMinor);
       total.locked = total.locked || enrollments.length > 0;
-      total.started = total.started || (await this.lessons.findByGroup(coopname, group.id)).length > 0;
+      total.started = total.started || (await this.lessons.findByGroup(coopname, group.id)).some((l) => l.status === EduLessonStatus.HELD);
     }
     return {
       group_id: named?.id ?? null,

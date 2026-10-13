@@ -79,6 +79,14 @@ function make(
     create: jest.fn((d: any) => ({ id: `LS${d.lesson_number}`, ...d })),
     save: jest.fn(async (l: any) => { lessonStore.set(l.lesson_number, l); return l; }),
   } as any;
+  // Занятие календаря: запланировано на вчера, закреплено за преподавателем; отчёт по нему — по идентификатору.
+  const planLesson = (n: number, over: Record<string, unknown> = {}) => {
+    const lesson = { id: `LS${n}`, coopname: 'voskhod', course_id: 'C1', group_id: 'G1', lesson_number: n, held_at: new Date(Date.now() - 86400_000), duration_minutes: 60, status: 'planned', origin: 'schedule', reported_at: null, assignment_id: 'A1', teacher_username: 'teach', materials: [], topic: '', contribution_id: null, learners_count: null, ...over };
+    lessonStore.set(n, lesson);
+    return lesson;
+  };
+  // Календарь группы по умолчанию: три занятия, отчёт по ним открыт.
+  if (opts.calendar !== false) for (const n of [1, 2, 3]) planLesson(n);
   const lessonOpen = { current: false };
   const chain = {
     holdRid: jest.fn(async () => ({})), recallRid: jest.fn(async () => ({})),
@@ -88,6 +96,7 @@ function make(
     // Расчёт занятия ведёт контракт: число участников и сумму приложение читает из записи занятия.
     openLesson: jest.fn(async () => { lessonOpen.current = true; return {}; }),
     chargeLesson: jest.fn(async () => ({})),
+    closeCharge: jest.fn(async () => ({})),
     dropLesson: jest.fn(async () => { lessonOpen.current = false; return {}; }),
     // Условия группы и допуск в цепи: сколько подписок не закрыло гарантийный срок и сумма за занятия периода.
     readTerms: jest.fn(async () => ({ subs_locked: opts.subsLocked ?? 0 })),
@@ -116,8 +125,8 @@ function make(
   // Данные пайщика: сюда пишутся номер и дата договора для документов преподавателя.
   const udata = { save: jest.fn(async () => undefined), get: jest.fn(async () => null) } as any;
   const walletWithdraw = { createWithdraw: jest.fn(async () => ({ withdraw_hash: 'WH' })) } as any;
-  const service = new EdubridgeTeacherService(teachers, courses, lessons, chain, documents, council, wallets, avatars, names, funds, udata, logger, events, walletWithdraw, chainTerms, enrollments, { viewOf: (c: any) => c, courseOf: jest.fn(async (...a: any[]) => (courses as any).findById(a[0], a[1])), openFor: jest.fn(async () => ({ id: 'G1', chain_ref: '3', course_id: 'C1' })), get: jest.fn(async () => ({ id: 'G1', chain_ref: '3', course_id: 'C1' })), list: jest.fn(async () => [{ id: 'G1', chain_ref: '7', course_id: 'C1', status: 'active', starts_at: null, teacher_reserve_balance: null, teacher_settled_total: null }]), firstOf: jest.fn(async () => ({ id: 'G1', chain_ref: '7', course_id: 'C1', status: 'active' })), saveFunds: jest.fn(async (g: any, r: string, st: string) => { g.teacher_reserve_balance = r; g.teacher_settled_total = st; return true; }) } as any);
-  return { chainTerms, enrollments, udata, service, teachers, courses, chain, documents, council, funds, store, assignment, avatars, names, lessons, wallets, balances, walletWithdraw, returns };
+  const service = new EdubridgeTeacherService(teachers, courses, lessons, chain, documents, council, wallets, avatars, names, funds, udata, logger, events, walletWithdraw, chainTerms, enrollments, { viewOf: (c: any) => c, courseOf: jest.fn(async (...a: any[]) => (courses as any).findById(a[0], a[1])), openFor: jest.fn(async () => ({ id: 'G1', chain_ref: '3', course_id: 'C1' })), get: jest.fn(async () => ({ id: 'G1', chain_ref: '3', course_id: 'C1', title: 'Группа 1', status: 'active', report_days: 7 })), list: jest.fn(async () => [{ id: 'G1', chain_ref: '7', course_id: 'C1', status: 'active', starts_at: null, teacher_reserve_balance: null, teacher_settled_total: null }]), firstOf: jest.fn(async () => ({ id: 'G1', chain_ref: '7', course_id: 'C1', status: 'active' })), saveFunds: jest.fn(async (g: any, r: string, st: string) => { g.teacher_reserve_balance = r; g.teacher_settled_total = st; return true; }) } as any);
+  return { chainTerms, enrollments, udata, service, teachers, courses, chain, documents, council, funds, store, assignment, avatars, names, lessons, wallets, balances, walletWithdraw, returns, planLesson, lessonStore };
 }
 
 
@@ -182,7 +191,7 @@ describe('EdubridgeTeacherService — договор УХД и приложен�
     const terminated = await service.terminateContract('voskhod', 'teach', 'выход преподавателя из кооператива');
     expect(chain.terminateContract).toHaveBeenCalledWith({ coopname: 'voskhod', username: 'teach', contract_hash: 'h', reason: 'выход преподавателя из кооператива' });
     expect(terminated?.status).toBe(EduContractStatus.TERMINATED);
-    await expect(service.reportLesson('voskhod', 'teach', { assignment_id: 'A1', lesson_number: 1, materials: ['x'] } as any)).rejects.toThrow(/прекращён/);
+    await expect(service.reportLesson('voskhod', 'teach', { lesson_id: 'LS1', materials: ['x'] } as any)).rejects.toThrow(/прекращён/);
 
     const again = await service.signContract('voskhod', 'teach', signedBy('teach', 'NEW'), 'N2');
     expect(chain.signContract).toHaveBeenCalled();
@@ -246,19 +255,33 @@ describe('EdubridgeTeacherService — договор УХД и приложен�
     expect(above.teachers.saveAssignment).not.toHaveBeenCalled();
   });
 
-  it('занятия курса отчитываются по порядку: без передачи материалов по предыдущему и с датой раньше него отчёт не принимается', async () => {
-    const { service, store } = make();
-    const first = { assignment_id: 'A1', lesson_number: 1, materials: ['https://video/1'], topic: 'Тема', held_at: '2026-03-10T10:00:00Z' } as any;
-    const lesson = await service.reportLesson('voskhod', 'teach', first);
-    // Материалы первого занятия не переданы — расчёт по нему в цепи не закрыт.
-    await expect(service.reportLesson('voskhod', 'teach', { ...first, lesson_number: 2 })).rejects.toMatchObject({ code: 'EDUBRIDGE_LESSON_PREVIOUS_NOT_CLOSED' });
-    [...store.values()].find((c) => c.lesson_id === lesson.id).status = EduContributionStatus.HELD;
-    await expect(service.reportLesson('voskhod', 'teach', { ...first, lesson_number: 2, held_at: '2026-03-01T10:00:00Z' })).rejects.toMatchObject({ code: 'EDUBRIDGE_LESSON_DATE_BEFORE_PREVIOUS' });
+  it('отчёт — только по занятию календаря в окне отчёта: занятие ещё идёт, срок вышел, чужое, отменённое и повторный отчёт отклоняются', async () => {
+    const { service, planLesson, chain } = make();
+    planLesson(1);
+    planLesson(2, { held_at: new Date(Date.now() + 3600_000) });
+    planLesson(3, { held_at: new Date(Date.now() - 30 * 86400_000) });
+    planLesson(4, { teacher_username: 'other', assignment_id: 'A9' });
+    planLesson(5, { status: 'cancelled' });
+    const report = (n: number) => service.reportLesson('voskhod', 'teach', { lesson_id: `LS${n}`, materials: ['https://video/1'] } as any);
+    await expect(report(2)).rejects.toMatchObject({ code: 'EDUBRIDGE_LESSON_REPORT_TOO_EARLY' });
+    await expect(report(3)).rejects.toMatchObject({ code: 'EDUBRIDGE_LESSON_REPORT_OVERDUE' });
+    await expect(report(4)).rejects.toMatchObject({ code: 'EDUBRIDGE_LESSON_OTHER_TEACHER' });
+    await expect(report(5)).rejects.toMatchObject({ code: 'EDUBRIDGE_LESSON_CANCELLED' });
+    expect(chain.openLesson).not.toHaveBeenCalled();
+    // Порядка отчётов нет: третье по номеру занятие отчитывается раньше первого, номер и длительность уходят в цепь из календаря.
+    planLesson(6);
+    const sixth = await report(6);
+    expect(sixth.status).toBe('held');
+    expect(chain.openLesson).toHaveBeenCalledWith(expect.objectContaining({ number: 6, minutes: 60 }));
+    expect(chain.closeCharge).toHaveBeenCalledWith(expect.objectContaining({ rid_hash: expect.any(String) }));
+    await expect(report(6)).rejects.toMatchObject({ code: 'EDUBRIDGE_LESSON_REPORT_ALREADY_SUBMITTED' });
+    await expect(report(1)).resolves.toMatchObject({ lesson_number: 1, status: 'held' });
   });
 
   it('взнос за занятие считает контракт: расчёт по каждой подписке, сумма и число участников — из цепи', async () => {
-    const report = { assignment_id: 'A1', lesson_number: 1, materials: ['https://video/1'], topic: 'Тема' } as any;
+    const report = { lesson_id: 'LS1', materials: ['https://video/1'], topic: 'Тема' } as any;
     const group = make({ learners: 3, lessonAmount: '900.0000 RUB' });
+    group.planLesson(1);
     const lesson = await group.service.reportLesson('voskhod', 'teach', report);
     // Допуск со ставкой — в цепь перед занятием, затем отчёт и расчёт по подписке.
     expect(group.chainTerms.pushAssignment).toHaveBeenCalled();
@@ -269,8 +292,11 @@ describe('EdubridgeTeacherService — договор УХД и приложен�
     expect(lesson.learners_count).toBe(3);
     // Участников с оплаченным доступом нет — отчёт отзывается, занятие учениками не оплачено.
     const empty = make({ learners: 0, lessonAmount: '0.0000 RUB' });
+    empty.planLesson(1);
     await expect(empty.service.reportLesson('voskhod', 'teach', report)).rejects.toMatchObject({ code: 'EDUBRIDGE_LESSON_NOT_PAID_BY_LEARNERS' });
     expect(empty.chain.dropLesson).toHaveBeenCalled();
+    // Занятие остаётся в календаре запланированным: отчёт подаётся заново.
+    expect(empty.lessonStore.get(1).status).toBe('planned');
   });
 
   it('ставка на курсе правится в пределах плановой; взнос за занятие считается по ней', async () => {
@@ -347,8 +373,7 @@ describe('EdubridgeTeacherService — договор УХД и приложен�
  */
 async function contributionOfLesson(service: any, store: Map<string, any>, lessonNumber = 1) {
   const lesson = await service.reportLesson('voskhod', 'teach', {
-    assignment_id: 'A1',
-    lesson_number: lessonNumber,
+    lesson_id: `LS${lessonNumber}`,
     materials: ['https://video/1'],
     topic: 'Тема',
   });
@@ -603,7 +628,7 @@ describe('EdubridgeTeacherService — преподаватели коопера�
 });
 
 describe('EdubridgeTeacherService — занятия и гарантийный срок', () => {
-  const report = { assignment_id: 'A1', lesson_number: 1, materials: ['https://video/1'], topic: 'Дроби' };
+  const report = { lesson_id: 'LS1', materials: ['https://video/1'], topic: 'Дроби' };
 
   it('отчёт о занятии: взнос считается как часы по ставке, заявление держится гарантийный срок', async () => {
     const { service, store } = make();
@@ -616,9 +641,9 @@ describe('EdubridgeTeacherService — занятия и гарантийный �
     expect(contribution.hold_until).toBeInstanceOf(Date);
   });
 
-  it('занятие вне плана курса отклоняется', async () => {
-    const { service } = make({ lessonsTotal: 8 });
-    await expect(service.reportLesson('voskhod', 'teach', { ...report, lesson_number: 9 } as any)).rejects.toThrow(/вне плана курса/);
+  it('занятия вне календаря нет: отчёт по неизвестному занятию отклоняется', async () => {
+    const { service } = make();
+    await expect(service.reportLesson('voskhod', 'teach', { ...report, lesson_id: 'LS9' } as any)).rejects.toMatchObject({ code: 'EDUBRIDGE_LESSON_NOT_FOUND' });
   });
 
   it('повторный отчёт по тому же занятию отклоняется', async () => {
@@ -631,7 +656,7 @@ describe('EdubridgeTeacherService — занятия и гарантийный �
     const { service, chain, store } = make();
     // Курс ещё не активирован, гарантия 14 дней: срок считается от сегодняшнего
     // дня, дата занятия на него не влияет.
-    const lesson = await service.reportLesson('voskhod', 'teach', { ...report, held_at: '2026-01-01T10:00:00Z' } as any);
+    const lesson = await service.reportLesson('voskhod', 'teach', report as any);
     const contribution = [...store.values()].find((c) => c.lesson_id === lesson.id);
     const held = await service.holdContribution('voskhod', 'teach', contribution.id, signedBy('teach', 'HOLD'));
     const [payload] = chain.holdRid.mock.calls[0];
@@ -669,7 +694,7 @@ describe('EdubridgeTeacherService — занятия и гарантийный �
     // Отчёт по тому же занятию второй раз не принимается; следующее занятие — сразу.
     await expect(service.reportLesson('voskhod', 'teach', report as any)).rejects.toMatchObject({ code: 'EDUBRIDGE_LESSON_REPORT_ALREADY_SUBMITTED' });
     chain.readLesson.mockResolvedValueOnce(null);
-    const second = await service.reportLesson('voskhod', 'teach', { ...report, lesson_number: 2 } as any);
+    const second = await service.reportLesson('voskhod', 'teach', { ...report, lesson_id: 'LS2' } as any);
     expect(second.contribution_id).toBeNull();
     expect(lessons.save).toHaveBeenCalled();
   });
@@ -733,18 +758,12 @@ describe('EdubridgeTeacherService — занятия и гарантийный �
     expect(chain.holdRid).not.toHaveBeenCalled();
   });
 
-  it('дата занятия в будущем и раньше периода назначения отклоняется', async () => {
-    const { service } = make();
-    const tomorrow = new Date(Date.now() + 86400_000).toISOString();
-    await expect(service.reportLesson('voskhod', 'teach', { ...report, held_at: tomorrow } as any)).rejects.toThrow(/ещё не наступила/);
-    await expect(service.reportLesson('voskhod', 'teach', { ...report, held_at: '2025-01-01T10:00:00Z' } as any)).rejects.toThrow(/раньше начала периода/);
-  });
-
-  it('занятие всегда длиной по курсу: длительность в отчёте не называется и в цепь не уходит', async () => {
-    const { service, store, chain } = make();
+  it('длительность занятия — из календаря: двухчасовое занятие уходит в цепь со своими минутами', async () => {
+    const { service, store, chain, planLesson } = make();
+    planLesson(1, { duration_minutes: 120 });
     const lesson = await service.reportLesson('voskhod', 'teach', report as any);
-    expect(lesson.duration_minutes).toBe(60);
-    expect(chain.openLesson.mock.calls[0][0]).not.toHaveProperty('minutes');
+    expect(lesson.duration_minutes).toBe(120);
+    expect(chain.openLesson.mock.calls[0][0]).toMatchObject({ number: 1, minutes: 120 });
     expect(store.size).toBe(1);
   });
 

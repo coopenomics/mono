@@ -1,4 +1,5 @@
 import { EduGroupStatus } from '../../domain/enums';
+import type { EduScheduleSlot } from '../../domain/lib/schedule';
 
 /**
  * Группа (набор) курса — единица расчёта. Курс — программа с условиями по
@@ -59,6 +60,12 @@ export class EdubridgeGroupRecord {
   public pay_per_learner!: boolean;
 
   public guarantee_days!: number;
+
+  /** Окна расписания группы: из них и даты начала строится календарь занятий. */
+  public schedule_slots!: EduScheduleSlot[];
+
+  /** Срок на отчёт преподавателя о занятии, дней после занятия. */
+  public report_days!: number;
 
   public course_payment_enabled!: boolean;
 

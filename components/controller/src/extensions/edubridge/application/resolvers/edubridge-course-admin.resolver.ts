@@ -80,13 +80,13 @@ export class EdubridgeCourseAdminResolver {
   }
 
   @Mutation(() => Int, {
-    name: 'edubridgeCancelCourseUnderfilled',
-    description: 'Отменить курс по недобору: подписки закрываются, взносы возвращаются участникам на паевой',
+    name: 'edubridgeCancelGroupUnderfilled',
+    description: 'Отменить группу по недобору: подписки группы закрываются, взносы возвращаются участникам на паевой',
   })
   @UseGuards(GqlJwtAuthGuard, RightsGuard)
   @RequireRight('EduCourse', 'manage')
-  async edubridgeCancelCourseUnderfilled(@Args('course_id', { type: () => ID }) courseId: string): Promise<number> {
-    const cancelled = await this.enrollments.cancelCourse(platformSettings().coopname, courseId);
+  async edubridgeCancelGroupUnderfilled(@Args('group_id', { type: () => ID }) groupId: string): Promise<number> {
+    const cancelled = await this.enrollments.cancelGroup(platformSettings().coopname, groupId);
     return cancelled.length;
   }
 
