@@ -145,6 +145,8 @@ export class EdubridgeGroupService {
     group.status = EduGroupStatus.CLOSED;
     group.enrollment_open = false;
     await this.groups.save(group);
+    // Занятия, о которых преподаватель не отчитался, не состоятся: отчёта по завершённой группе цепь не примет.
+    await this.calendar.cancelPlanned(group.coopname, group);
   }
 
   /**
@@ -318,17 +320,19 @@ export class EdubridgeGroupService {
   }
 
   /**
-   * Допуски курса изменились: преподаватели окон идущих групп расставляются
-   * заново, календарь групп с изменёнными окнами перестраивается. Отказ по
-   * одной группе остальные не держит.
+   * Календари групп курса приводятся к допускам и состоянию групп. У идущей
+   * группы преподаватели окон расставляются заново, календарь с изменёнными
+   * окнами перестраивается. У завершённой и отменённой запланированные занятия
+   * снимаются — так чинятся и группы, закрытые до этого правила. Отказ по одной
+   * группе остальные не держит.
    */
-  async syncTeachers(coopname: string, courseId: string): Promise<void> {
+  async syncCalendars(coopname: string, courseId: string): Promise<void> {
     for (const group of await this.groups.findByCourse(coopname, courseId)) {
-      if (group.status !== EduGroupStatus.ACTIVE) continue;
       try {
-        if (await this.calendar.syncTeachers(coopname, group)) await this.calendar.rebuild(coopname, group);
+        if (group.status !== EduGroupStatus.ACTIVE) await this.calendar.cancelPlanned(coopname, group);
+        else if (await this.calendar.syncTeachers(coopname, group)) await this.calendar.rebuild(coopname, group);
       } catch (e) {
-        this.logger.warn(`Преподаватели окон группы «${group.title}» не расставлены: ${(e as Error)?.message ?? e}`);
+        this.logger.warn(`Календарь группы «${group.title}» не приведён в порядок: ${(e as Error)?.message ?? e}`);
       }
     }
   }
@@ -356,6 +360,8 @@ export class EdubridgeGroupService {
     group.status = EduGroupStatus.CANCELLED;
     group.enrollment_open = false;
     const saved = await this.groups.save(group);
+    // Набор не состоялся — занятий группы не будет, отчётов по ним от преподавателя не ждём.
+    await this.calendar.cancelPlanned(coopname, saved);
     await this.syncCourseStart(coopname, group.course_id);
     return saved;
   }

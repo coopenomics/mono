@@ -47,7 +47,7 @@ function make(opts: { groups?: any[]; enrollments?: any[]; lessons?: any[]; cour
   const lessons = { findByGroup: jest.fn(async () => opts.lessons ?? []) } as any;
   const chainTerms = { pushCourse: jest.fn(async () => undefined), tryPushCourse: jest.fn(async () => true) } as any;
   // Календарь перестраивается службой календаря: здесь важно, что её зовут, а не что она строит.
-  const calendar = { rebuild: jest.fn(async () => []), syncTeachers: jest.fn(async () => false) } as any;
+  const calendar = { rebuild: jest.fn(async () => []), syncTeachers: jest.fn(async () => false), cancelPlanned: jest.fn(async () => 0) } as any;
   return { service: new EdubridgeGroupService(groups, courses, enrollments, lessons, chainTerms, calendar, logger), store, chainTerms, groups, record, courses, calendar };
 }
 

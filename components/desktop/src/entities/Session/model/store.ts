@@ -6,6 +6,7 @@ import { chainFetch } from 'src/shared/lib/chain';
 import { WalletPluginPrivateKey } from '@wharfkit/wallet-plugin-privatekey';
 import {
   clearPinCache,
+  hasPinCache,
   clearSession,
   configureTokenStorage,
   getWallet,
@@ -122,6 +123,36 @@ export const useSessionStore = defineStore('session', (): ISessionStore => {
   // Что серверный рендер знал о пайщике: гидратируется на клиент, чтобы тот
   // понял, узнал ли его сервер (и нужно ли поставить cookie сессии).
   const serverSessionStatus = ref<ServerSessionStatus>(null);
+
+  /**
+   * След событий сессии в хранилище браузера — для разбора выбросов на вход.
+   * Пайщика иногда уводит на вход при живой сессии (dev-стенд, перезагрузка во
+   * время обновления, раз из десятков): из хранилища пропадает локальный кэш
+   * ключа, а что его стёрло, по журналам не видно — запись из консоли не
+   * успевает уйти до перезагрузки страницы. След переживает перезагрузку:
+   * кто закрыл сессию, из какого места, что ответил серверный рендер.
+   * Поведение входа он не меняет, секретов не содержит. Читать: в консоли
+   * браузера `JSON.parse(localStorage.getItem('coop:session-trace'))`.
+   */
+  const SESSION_TRACE_KEY = 'coop:session-trace';
+  const SESSION_TRACE_LIMIT = 12;
+  const traceSession = (event: string, details: Record<string, unknown> = {}): void => {
+    if (typeof window === 'undefined') return;
+    try {
+      const saved: unknown = JSON.parse(localStorage.getItem(SESSION_TRACE_KEY) || '[]');
+      const entry = {
+        at: new Date().toISOString(),
+        event,
+        url: window.location.pathname,
+        server: serverSessionStatus.value,
+        stack: (new Error().stack ?? '').split('\n').slice(2, 8).map((line) => line.trim()),
+        ...details,
+      };
+      localStorage.setItem(SESSION_TRACE_KEY, JSON.stringify([...(Array.isArray(saved) ? saved : []), entry].slice(-SESSION_TRACE_LIMIT)));
+    } catch {
+      // След — подсказка для разбора: сбой записи вход не затрагивает.
+    }
+  };
   const currentUserAccount = ref<IAccount | undefined>();
 
   const session = ref();
@@ -399,6 +430,7 @@ export const useSessionStore = defineStore('session', (): ISessionStore => {
   };
 
   const close = async (): Promise<void> => {
+    traceSession('close', { wasAuth: isAuth.value });
     isAuth.value = false;
     session.value = undefined;
     currentUserAccount.value = undefined;
@@ -459,6 +491,7 @@ export const useSessionStore = defineStore('session', (): ISessionStore => {
     // ключей и токенов в браузере уже никого не откроют — забываем устройство,
     // иначе кабинет считал бы себя вошедшим и получал отказ на каждом запросе.
     if (serverSessionExpired.value && typeof window !== 'undefined') {
+      traceSession('server-session-expired');
       serverSessionExpired.value = false;
       await close();
       return;
@@ -495,7 +528,10 @@ export const useSessionStore = defineStore('session', (): ISessionStore => {
           return;
         }
         if (await establishCoopIdSession()) return;
+        // Токены сессии в браузере есть, а поднять её не вышло: пайщик уйдёт на вход при живой сессии.
+        if (hasTokens) traceSession('restore-failed', { pinCache: await hasPinCache(coopStorage()).catch(() => null) });
       } catch (e: any) {
+        traceSession('restore-error', { message: e instanceof Error ? e.message : String(e) });
         console.error(e);
       }
 

@@ -96,6 +96,22 @@ export class EdubridgeCalendarService {
     return true;
   }
 
+  /**
+   * Группа завершена либо отменена: её запланированные занятия не состоятся и
+   * отчёта не ждут — они отмечаются отменёнными. Проведённые остаются.
+   *
+   * @returns сколько занятий снято
+   */
+  async cancelPlanned(coopname: string, group: EdubridgeGroupRecord): Promise<number> {
+    const planned = (await this.lessons.findByGroup(coopname, group.id)).filter((l) => l.status === EduLessonStatus.PLANNED);
+    for (const lesson of planned) {
+      lesson.status = EduLessonStatus.CANCELLED;
+      await this.lessons.save(lesson);
+    }
+    if (planned.length) this.logger.info(`[EDU.CAL] группа «${group.title}» закрыта: запланированных занятий снято ${planned.length}`);
+    return planned.length;
+  }
+
   /** Действующие допуски курса в порядке их выдачи. */
   private async activeAssignments(coopname: string, courseId: string): Promise<EdubridgeTeacherAssignmentRecord[]> {
     return (await this.teachers.listAssignments(coopname))

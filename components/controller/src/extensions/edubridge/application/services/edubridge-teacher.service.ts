@@ -412,7 +412,7 @@ export class EdubridgeTeacherService {
     const chainRef = saved.chain_ref ?? (await this.teachers.findAssignment(coopname, saved.id))?.chain_ref;
     await this.pushAssignmentToGroups({ ...saved, chain_ref: chainRef as string }, course);
     // Допущенный преподаватель сразу встаёт в окна групп без преподавателя: занятия календаря получают его.
-    await this.groups.syncTeachers(coopname, course.id);
+    await this.groups.syncCalendars(coopname, course.id);
     // Список «Курс ведут» и допуски — одно и то же: допущенный стоит в курсе.
     if (!(course.teacher_usernames ?? []).includes(saved.teacher_username)) {
       course.teacher_usernames = [...(course.teacher_usernames ?? []), saved.teacher_username];
@@ -506,7 +506,7 @@ export class EdubridgeTeacherService {
         a.status = EduAssignmentStatus.CLOSED;
         await this.dropAssignmentFromGroups(await this.teachers.saveAssignment(a), course);
         // Окна снятого преподавателя переходят к оставшимся допускам курса.
-        await this.groups.syncTeachers(coopname, course.id);
+        await this.groups.syncCalendars(coopname, course.id);
         this.logger.info(`Допуск снят: ${a.teacher_username} → «${course.title}»`);
       }
     }
@@ -551,8 +551,8 @@ export class EdubridgeTeacherService {
     for (const course of await this.courses.listAll(coopname)) {
       try {
         await this.syncCourseAssignments(coopname, course);
-        // Группы, открытые до расстановки преподавателей по окнам: окна без преподавателя получают допуски курса.
-        await this.groups.syncTeachers(coopname, course.id);
+        // Группы, открытые до расстановки преподавателей по окнам, получают допуски курса; у закрытых групп снимаются запланированные занятия.
+        await this.groups.syncCalendars(coopname, course.id);
       } catch (e) {
         this.logger.warn(`Назначения курса «${course.title}» не сведены: ${(e as Error)?.message ?? e}`);
       }
@@ -567,7 +567,7 @@ export class EdubridgeTeacherService {
     const closedCourse = await this.courses.findById(coopname, a.course_id);
     if (closedCourse) await this.dropAssignmentFromGroups(saved, closedCourse);
     // Окна снятого преподавателя переходят к оставшимся допускам курса.
-    if (closedCourse) await this.groups.syncTeachers(coopname, closedCourse.id);
+    if (closedCourse) await this.groups.syncCalendars(coopname, closedCourse.id);
     // Снятый допуск убирает преподавателя и из списка «Курс ведут» — иначе
     // сверка по курсу выдала бы назначение заново.
     const course = await this.courses.findById(coopname, a.course_id);

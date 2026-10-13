@@ -178,6 +178,14 @@ describe('EdubridgeCalendarService — календарь группы', () => {
     expect(groups.save).toHaveBeenCalledTimes(1);
   });
 
+  it('группа завершена либо отменена: запланированные занятия снимаются, проведённые остаются; повтор ничего не меняет', async () => {
+    const lesson = (id: string, status: EduLessonStatus) => ({ id, coopname: 'voskhod', course_id: 'C1', group_id: 'G1', lesson_number: Number(id.slice(1)), held_at: new Date('2026-10-20T14:00:00Z'), duration_minutes: 60, slot_index: 0, assignment_id: 'A1', teacher_username: 'teach', status, origin: EduLessonOrigin.SCHEDULE });
+    const { service, group, store } = make({ group: groupOf({ status: 'closed' }), lessons: [lesson('L1', EduLessonStatus.PLANNED), lesson('L2', EduLessonStatus.HELD), lesson('L3', EduLessonStatus.PLANNED)] });
+    expect(await service.cancelPlanned('voskhod', group)).toBe(2);
+    expect([...store.values()].map((l: any) => l.status)).toEqual([EduLessonStatus.CANCELLED, EduLessonStatus.HELD, EduLessonStatus.CANCELLED]);
+    expect(await service.cancelPlanned('voskhod', group)).toBe(0);
+  });
+
   it('допуск снят: запланированное отдельно занятие переходит к преподавателю своего окна, проведённое остаётся за прежним', async () => {
     const gone = { id: 'AG', chain_ref: '9', course_id: 'C1', teacher_username: 'gone', status: 'closed' };
     const lesson = (id: string, over: Record<string, unknown>) => ({ id, coopname: 'voskhod', course_id: 'C1', group_id: 'G1', lesson_number: Number(id.slice(1)), held_at: new Date('2026-10-20T14:00:00Z'), duration_minutes: 60, slot_index: 0, assignment_id: 'AG', teacher_username: 'gone', ...over });
