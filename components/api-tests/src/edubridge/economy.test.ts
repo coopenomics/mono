@@ -193,9 +193,9 @@ describe('Образование: экономика курса — взнос, 
       expect(amount(q.base_amount)).toBe(76800)
       expect(amount(q.discount_amount)).toBe(7680)
       expect(amount(q.amount)).toBe(69120)
-      // Оплачено до конца программы: восемь месяцев от дня начала занятий.
+      // Оплачено до конца программы: восемь месяцев по четыре недели от дня начала занятий.
       const end = new Date(`${dayFromNow(30)}T00:00:00.000Z`)
-      end.setMonth(end.getMonth() + 8)
+      end.setUTCDate(end.getUTCDate() + 8 * 28)
       expect(Math.abs(Date.parse(q.paid_until) - end.getTime())).toBeLessThan(36 * 60 * 60 * 1000)
 
       // Занятия идут третий месяц: оплачиваются оставшиеся шесть.

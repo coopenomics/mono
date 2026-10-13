@@ -31,50 +31,19 @@ inline constexpr uint32_t BP_IN_WHOLE = 10000;
 
 // ── Календарь ────────────────────────────────────────────────────────────
 
-/// Дней от 1970-01-01 до даты гражданского календаря.
-inline int64_t days_from_civil(int64_t y, uint32_t m, uint32_t d) {
-  y -= m <= 2;
-  const int64_t era = (y >= 0 ? y : y - 399) / 400;
-  const uint32_t yoe = static_cast<uint32_t>(y - era * 400);
-  const uint32_t doy = (153 * (m + (m > 2 ? -3 : 9)) + 2) / 5 + d - 1;
-  const uint32_t doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
-  return era * 146097 + static_cast<int64_t>(doe) - 719468;
-}
-
-inline uint32_t days_in_month(int64_t y, uint32_t m) {
-  static const uint32_t days[] = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
-  const bool leap = (y % 4 == 0 && y % 100 != 0) || y % 400 == 0;
-  return m == 2 && leap ? 29 : days[m - 1];
-}
+/// Месяц сроков и программ — четыре недели: в 28 днях каждого дня недели ровно четыре, занятия по окнам и оплаченные минуты сходятся.
+inline constexpr uint32_t SECONDS_IN_MONTH = 28 * SECONDS_IN_DAY;
 
 /**
- * @brief Дата плюс календарные месяцы; время суток сохраняется.
+ * @brief Дата плюс месяцы по четыре недели; время суток сохраняется.
  *
- * Числа, которого в месяце нет, не бывает: 31 января плюс месяц — последний
- * день февраля.
+ * Календарная длина месяца не учитывается: оплаченный срок и программа
+ * считаются неделями, как и расписание.
  */
 inline eosio::time_point_sec add_months(eosio::time_point_sec from, uint32_t months, uint32_t month_secs = 0) {
   // Стенд разработки со сжатым временем: месяц — заданное число секунд.
-  if (month_secs > 0) return eosio::time_point_sec(from.sec_since_epoch() + months * month_secs);
-  const uint32_t sec = from.sec_since_epoch();
-  const int64_t z = static_cast<int64_t>(sec / SECONDS_IN_DAY) + 719468;
-  const int64_t era = z / 146097;
-  const uint32_t doe = static_cast<uint32_t>(z - era * 146097);
-  const uint32_t yoe = (doe - doe / 1460 + doe / 36524 - doe / 146096) / 365;
-  int64_t y = static_cast<int64_t>(yoe) + era * 400;
-  const uint32_t doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
-  const uint32_t mp = (5 * doy + 2) / 153;
-  uint32_t d = doy - (153 * mp + 2) / 5 + 1;
-  uint32_t m = mp < 10 ? mp + 3 : mp - 9;
-  y += m <= 2;
-
-  const uint32_t total = (m - 1) + months;
-  y += total / 12;
-  m = total % 12 + 1;
-  const uint32_t last = days_in_month(y, m);
-  if (d > last) d = last;
-
-  return eosio::time_point_sec(static_cast<uint32_t>(days_from_civil(y, m, d)) * SECONDS_IN_DAY + sec % SECONDS_IN_DAY);
+  const uint32_t len = month_secs > 0 ? month_secs : SECONDS_IN_MONTH;
+  return eosio::time_point_sec(from.sec_since_epoch() + months * len);
 }
 
 // ── Условия курса ────────────────────────────────────────────────────────

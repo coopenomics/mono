@@ -42,7 +42,7 @@ export class EdubridgeChainTermsService {
       discount_bp: Number(course.course_discount_bp ?? 0),
       guarantee_secs: guaranteeSeconds(course),
       starts_at: course.starts_at ? toChainTime(new Date(course.starts_at)) : CHAIN_EPOCH,
-      // Длина месяца: в работе 0 — календарные месяцы; на стенде со сжатым временем — секунды.
+      // Длина месяца: в работе 0 — месяц в четыре недели (28 дней); на стенде со сжатым временем — секунды.
       month_secs: eduMonthSeconds(),
     });
   }

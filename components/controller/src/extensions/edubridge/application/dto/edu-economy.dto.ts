@@ -22,7 +22,7 @@ export class EduEconomySettingsDTO {
   @Field(() => Int, { description: 'Длина суток, секунд' })
   day_seconds!: number;
 
-  @Field(() => Int, { description: 'Длина месяца, секунд; 0 — календарные месяцы' })
+  @Field(() => Int, { description: 'Длина месяца, секунд; 0 — месяц в четыре недели (28 дней)' })
   month_seconds!: number;
 }
 

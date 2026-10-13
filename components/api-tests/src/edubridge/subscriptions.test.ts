@@ -131,8 +131,7 @@ describe('Образование: подписки — продление, вз�
       expect(q.is_extension).toBe(true)
       expect(q.sub_hash).toBe(enrollment.sub_hash)
       const added = Date.parse(q.paid_until) - Date.parse(enrollment.paid_until)
-      expect(added, 'продление — на месяц от конца оплаченного срока').toBeGreaterThanOrEqual(28 * DAY_MS)
-      expect(added).toBeLessThanOrEqual(31 * DAY_MS + 60_000)
+      expect(added, 'продление — на месяц в четыре недели от конца оплаченного срока').toBe(28 * DAY_MS)
 
       const held = await escrow()
       const extended = await subscribe(learner, token, self.id, course.id)

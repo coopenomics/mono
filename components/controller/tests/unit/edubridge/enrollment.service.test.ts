@@ -140,23 +140,22 @@ describe('EdubridgeEnrollmentService', () => {
   });
 
   it('взнос за весь курс: пришедший в середине вносит за оставшиеся месяцы, срок — до конца курса', async () => {
-    // Курс начался пять с половиной месяцев назад: из восьми месяцев осталось три (неполный считается месяцем).
-    const startsAt = new Date(); startsAt.setMonth(startsAt.getMonth() - 5); startsAt.setDate(startsAt.getDate() - 10);
+    // Месяц — четыре недели. Курс начался пять месяцев и десять дней назад: из восьми месяцев осталось три (неполный считается месяцем).
+    const startsAt = new Date(Date.now() - (5 * 28 + 10) * 86400_000);
     const { service } = make({ available: '20000.0000 RUB', course: { ...course, starts_at: startsAt } });
     const q = await service.quote('voskhod', 'ant', 'L1', 'C1', EduEnrollmentPeriod.COURSE);
     expect(q.months).toBe(3);
     expect(q.base_amount).toBe('3000.0000 RUB');
     expect(q.discount_amount).toBe('300.0000 RUB');
     expect(q.amount).toBe('2700.0000 RUB');
-    const end = new Date(startsAt); end.setMonth(end.getMonth() + 8);
-    // Календарные месяцы считаются с прижатием к концу месяца — как в контракте.
-    expect(Math.abs(q.paid_until.getTime() - end.getTime())).toBeLessThan(4 * 86400_000);
+    const end = new Date(startsAt.getTime() + 8 * 28 * 86400_000);
+    expect(q.paid_until.getTime()).toBe(end.getTime());
   });
 
   it('взнос за весь курс после помесячного: оплаченный месяц засчитан, взнос — за остаток', async () => {
-    const until = new Date(); until.setMonth(until.getMonth() + 1);
+    const until = new Date(Date.now() + 28 * 86400_000);
     const existing = { id: 'E9', status: EduEnrollmentStatus.ACTIVE, paid_until: until, access_state: EduAccessState.GRANTED, learner_id: 'L1', course_id: 'C1', sub_hash: 'x' };
-    const startsAt = new Date(until); startsAt.setMonth(startsAt.getMonth() - 1);
+    const startsAt = new Date(until.getTime() - 28 * 86400_000);
     const { service } = make({ existing, course: { ...course, starts_at: startsAt } });
     const q = await service.quote('voskhod', 'ant', 'L1', 'C1', EduEnrollmentPeriod.COURSE);
     expect(q.is_extension).toBe(true);
@@ -164,8 +163,8 @@ describe('EdubridgeEnrollmentService', () => {
   });
 
   it('курс оплачен до конца программы — повторный взнос за курс не принимается', async () => {
-    const startsAt = new Date(); startsAt.setMonth(startsAt.getMonth() - 1);
-    const until = new Date(startsAt); until.setMonth(until.getMonth() + 8);
+    const startsAt = new Date(Date.now() - 28 * 86400_000);
+    const until = new Date(startsAt.getTime() + 8 * 28 * 86400_000);
     const existing = { id: 'E9', status: EduEnrollmentStatus.ACTIVE, paid_until: until, access_state: EduAccessState.GRANTED, learner_id: 'L1', course_id: 'C1', sub_hash: 'x' };
     const { service } = make({ existing, course: { ...course, starts_at: startsAt } });
     await expect(service.quote('voskhod', 'ant', 'L1', 'C1', EduEnrollmentPeriod.COURSE)).rejects.toThrow(/оплачен до конца программы/);

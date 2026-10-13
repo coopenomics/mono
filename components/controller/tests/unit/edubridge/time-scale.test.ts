@@ -23,7 +23,7 @@ describe('Шкала времени образования — сжатое вр
     expect(eduMonthSeconds()).toBe(0);
     expect(isTimeCompressed()).toBe(false);
     expect(workerPaceSeconds()).toBe(600);
-    // Месяц календарный: 31 января + месяц — последний день февраля.
+    // Месяц — четыре недели: 31 января + 28 дней — 28 февраля.
     expect(addMonths(new Date('2026-01-31T00:00:00Z'), 1)).toEqual(new Date('2026-02-28T00:00:00Z'));
   });
 
@@ -37,7 +37,7 @@ describe('Шкала времени образования — сжатое вр
     expect(isWorkerTurn(new Date('2026-10-11T10:07:00Z'))).toBe(true);
   });
 
-  it('длина месяца задаётся переменной: ноль возвращает календарные месяцы и обычный темп очередей', () => {
+  it('длина месяца задаётся переменной: ноль возвращает месяц в четыре недели и обычный темп очередей', () => {
     mode('development');
     put('EDUBRIDGE_MONTH_SECONDS', '0');
     expect(eduMonthSeconds()).toBe(0);

@@ -19,22 +19,18 @@ export interface CoursePeriod {
   paid_until: Date;
 }
 
+/** Месяц сроков и программ — четыре недели: в 28 днях каждого дня недели ровно четыре, занятия по окнам и оплаченные минуты сходятся. */
+export const MONTH_DAYS = 28;
+
 /**
- * Дата плюс календарные месяцы — так же, как считает контракт
- * (`Edubridge::add_months`): числа, которого в месяце нет, не бывает,
- * 31 января плюс месяц — последний день февраля.
+ * Дата плюс месяцы по четыре недели — так же, как считает контракт
+ * (`Edubridge::add_months`). Календарная длина месяца не учитывается.
  */
 export function addMonths(date: Date, months: number): Date {
   // Стенд разработки со сжатым временем: месяц — заданное число секунд, как в условиях группы в цепи.
   const monthSeconds = eduMonthSeconds();
-  if (monthSeconds > 0) return new Date(date.getTime() + months * monthSeconds * 1000);
-  const result = new Date(date);
-  const day = result.getUTCDate();
-  result.setUTCDate(1);
-  result.setUTCMonth(result.getUTCMonth() + months);
-  const last = new Date(Date.UTC(result.getUTCFullYear(), result.getUTCMonth() + 1, 0)).getUTCDate();
-  result.setUTCDate(Math.min(day, last));
-  return result;
+  const len = monthSeconds > 0 ? monthSeconds : MONTH_DAYS * 24 * 60 * 60;
+  return new Date(date.getTime() + months * len * 1000);
 }
 
 /**

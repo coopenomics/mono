@@ -9,7 +9,7 @@
  *    переменные не действуют.
  *  - `NODE_ENV=development` — сжатие включено само собой.
  *  - `EDUBRIDGE_GUARANTEE_DAY_SECONDS` — своя длина суток (86400 — настоящие).
- *  - `EDUBRIDGE_MONTH_SECONDS` — своя длина месяца; 0 — календарные месяцы.
+ *  - `EDUBRIDGE_MONTH_SECONDS` — своя длина месяца; 0 — месяц в четыре недели (28 дней).
  */
 const SECONDS_IN_DAY = 24 * 60 * 60;
 /** Сутки на стенде разработки: одна минута. */
@@ -36,7 +36,7 @@ export function isDayShortened(): boolean {
   return eduDaySeconds() !== SECONDS_IN_DAY;
 }
 
-/** Длина месяца, секунд; 0 — календарные месяцы. */
+/** Длина месяца, секунд; 0 — месяц в четыре недели (28 дней). */
 export function eduMonthSeconds(): number {
   if (inProduction()) return 0;
   const raw = process.env.EDUBRIDGE_MONTH_SECONDS;
