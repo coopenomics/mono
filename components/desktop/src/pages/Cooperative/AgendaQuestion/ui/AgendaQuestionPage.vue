@@ -59,6 +59,7 @@ import { ChairmanDecisionButton, QuestionDetails, VotingButtons, isQuestionRejec
 const route = useRoute();
 const router = useRouter();
 
+// realtime: живое обновление повестки по таблицам решений и состава совета — в useAgendaBoard
 const { decisions, loading, isProcessing, isVotedFor, isVotedAgainst, isVotedAny, onAuthorizeDecision, onDeclineDecision, onVoteFor, onVoteAgainst, load } = useAgendaBoard();
 const firstLoad = useFirstLoad(loading);
 

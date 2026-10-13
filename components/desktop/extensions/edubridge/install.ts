@@ -1,7 +1,8 @@
 import './i18n';
 import { markRaw, type Component } from 'vue';
 import { fetchMyEnrollments } from './entities/Learner';
-import { fetchMyContributions } from './entities/Teacher';
+import { fetchMyContributions, fetchMyLessons } from './entities/Teacher';
+import { isReportable } from './entities/Lesson';
 import { isRenewSoon } from './shared/lib/subscriptionDue';
 import { lessonActionsCount } from './shared/lib/lessonAction';
 import { refreshMenuBadges, registerMenuBadge } from 'src/shared/lib/menuBadges';
@@ -33,6 +34,7 @@ import {
   MemberSubscriptionsPage,
   TeacherAssignmentsPage,
   TeacherLessonsPage,
+  TeacherReportsPage,
   TeacherOnboardingPage,
   TeacherProfilePage,
   TeacherSettlementPage,
@@ -128,6 +130,7 @@ function teacherWorkspace(): IWorkspaceConfig {
     memberPage('profile', 'edubridge-teacher-profile', TeacherProfilePage, { title: t('edubridge.install.teacherProfileRouteTitle'), icon: 'badge', requires: 'EduAssignment:read:own' }),
     memberPage('assignments', 'edubridge-assignments', TeacherAssignmentsPage, { title: t('edubridge.install.assignmentsRouteTitle'), icon: 'assignment', requires: 'EduAssignment:read:own' }),
     memberPage('lessons', 'edubridge-lessons', TeacherLessonsPage, { title: t('edubridge.install.lessonsRouteTitle'), icon: 'event_available', requires: 'EduContribution:create:own' }),
+    memberPage('reports', 'edubridge-reports', TeacherReportsPage, { title: t('edubridge.install.reportsRouteTitle'), icon: 'fact_check', requires: 'EduContribution:create:own' }),
     memberPage('settlement', 'edubridge-settlement', TeacherSettlementPage, { title: t('edubridge.install.settlementRouteTitle'), icon: 'account_balance_wallet', requires: 'EduTeacherWallet:read:own' }),
   ]);
 }
@@ -162,16 +165,18 @@ export default async function (): Promise<IWorkspaceConfig[]> {
     }
   });
   registerLiveReload([EduLive.enrollments], () => refreshMenuBadges(['edubridge-subscriptions']));
-  // Стол преподавателя: сколько занятий ждут его действия — передать материалы либо подписать акт после совета.
-  registerMenuBadge('edubridge-lessons', async () => {
+  // Стол преподавателя, пункт «Отчёты»: сколько дел за ним — занятия без отчёта,
+  // материалы на передачу и акты на подпись.
+  registerMenuBadge('edubridge-reports', async () => {
     try {
-      return lessonActionsCount((await fetchMyContributions()).map((c) => c.status));
+      const [lessons, contributions] = await Promise.all([fetchMyLessons(), fetchMyContributions()]);
+      return lessons.filter((l) => isReportable(l)).length + lessonActionsCount(contributions.map((c) => c.status));
     } catch {
-      // Свои взносы читает только преподаватель с договором — остальным число не показывается.
+      // Свои занятия и взносы читает только преподаватель с договором — остальным число не показывается.
       return 0;
     }
   });
-  registerLiveReload([EduLive.contributions], () => refreshMenuBadges(['edubridge-lessons']));
+  registerLiveReload([EduLive.contributions, EduLive.lessons], () => refreshMenuBadges(['edubridge-reports']));
   // Числа меняются по факту — подпись председателя, выдача доступа в фоне, —
   // и пункты меню узнают об этом по ленте изменений, а не опросом раз в минуту.
   registerLiveReload([EduLive.approvals, EduLive.teacherContracts, EduLive.accessTasks], () => {

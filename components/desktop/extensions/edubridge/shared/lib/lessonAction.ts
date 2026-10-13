@@ -10,7 +10,7 @@ export function lessonActionOf(status: string | null | undefined): LessonAction 
   return null;
 }
 
-/** Сколько занятий ждут действия преподавателя — число на пункте меню «Занятия». */
+/** Сколько занятий ждут действия преподавателя — слагаемое числа на пункте меню «Отчёты». */
 export function lessonActionsCount(statuses: Array<string | null | undefined>): number {
   return statuses.filter((s) => lessonActionOf(s) !== null).length;
 }

@@ -45,7 +45,7 @@ export class EdubridgeNotificationListener {
         lessonTitle: lesson?.topic || contribution.description || '',
         decisionId: contribution.council_decision_id ?? '',
         coopname: payload.coopname,
-        deepLinkUrl: `${platformSettings().frontendUrl}/${payload.coopname}/edubridge-teacher/lessons`,
+        deepLinkUrl: `${platformSettings().frontendUrl}/${payload.coopname}/edubridge-teacher/reports`,
       });
     } catch (e) {
       this.logger.warn(`уведомление преподавателю о решении совета: ${(e as Error)?.message ?? e}`);
