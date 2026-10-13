@@ -287,9 +287,9 @@ export function courseSlots(minutes: number, perWeek = 2, hourly = PLANNED_RATE)
   return [2, 4, 6, 1, 3, 5, 7].slice(0, perWeek).map(weekday => ({ weekday, time: '17:00', minutes, hourly_rate: hourly }))
 }
 
-/** Минут занятий в месяц по окнам — как считает сервер: минуты недели на 52/12. */
+/** Минут занятий в месяц по окнам — как считает сервер: минуты недели на четыре недели месяца. */
 export function monthMinutes(slots: { minutes: number }[]): number {
-  return Math.round(slots.reduce((s, x) => s + x.minutes, 0) * 52 / 12)
+  return slots.reduce((s, x) => s + x.minutes, 0) * 4
 }
 
 export function courseInput(sectionId: string, over: Record<string, unknown> = {}): Record<string, unknown> {
@@ -297,7 +297,7 @@ export function courseInput(sectionId: string, over: Record<string, unknown> = {
     title: `Курс внешнего слоя ${number16()}`,
     section_id: sectionId,
     description: 'Курс набора api-tests',
-    // Два часовых окна в неделю: 520 минут в месяц; программа четыре месяца.
+    // Два часовых окна в неделю: 480 минут в месяц; программа четыре месяца.
     schedule_slots: courseSlots(60),
     program_months: 4,
     guarantee_days: 14,

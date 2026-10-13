@@ -204,13 +204,13 @@ export function slotOccurrences(slots: readonly EduScheduleSlot[], startsAt: Dat
   return out;
 }
 
-/** Недель в месяце для перевода недельного расписания в месячное: 52 недели на 12 месяцев. */
-export const WEEKS_PER_MONTH = 52 / 12;
+/** Недель в месяце для перевода недельного расписания в месячное: четыре, как считают на калькуляторе; так же считает контракт. */
+export const WEEKS_PER_MONTH = 4;
 
-/** До двух знаков: занятия в месяц по 52/12 недель — число дробное, округление до целого вводило бы в заблуждение. */
+/** До двух знаков — на случай дробных чисел показа. */
 export const round2 = (value: number): number => Math.round(value * 100) / 100;
 
-/** Занятий в месяц по окнам недели (без резерва), точно: окон недели на 52/12. */
+/** Занятий в месяц по окнам недели (без резерва): окон недели на четыре. */
 export function exactLessonsPerMonth(slots: readonly Pick<EduScheduleSlot, 'weekday'>[]): number {
   return round2(slots.filter((s) => !isReserveSlot(s)).length * WEEKS_PER_MONTH);
 }
@@ -222,13 +222,13 @@ export function weeklyMinutes(slots: readonly Pick<EduScheduleSlot, 'minutes'>[]
 
 /** Числа программы из окон расписания и длительности в месяцах; учёт — в минутах, занятия — для показа. */
 export interface ProgramNumbers {
-  /** Минут занятий в месяц: минуты недели на 52/12. */
+  /** Минут занятий в месяц: минуты недели на четыре. */
   minutes_per_month: number;
   /** Минут занятий в программе; 0 — программа без конца. */
   minutes_total: number;
-  /** Занятий в месяц, целое — для записи; точное значение — `lessons_per_month_exact`. */
+  /** Занятий в месяц — для записи. */
   lessons_per_month: number;
-  /** Занятий в месяц точно, до двух знаков — для показа. */
+  /** Занятий в месяц для показа — то же число; поле оставлено для расчёта взноса. */
   lessons_per_month_exact: number;
   /** Занятий в программе для показа; 0 — программа без конца. */
   lessons_total: number;
@@ -236,7 +236,7 @@ export interface ProgramNumbers {
   lesson_minutes: number;
   /** Минут резерва в месяц — для внеочередных занятий. */
   reserve_per_month: number;
-  /** Оплата занятий месяца одним участником: стоимости окон недели на 52/12, как считает контракт. */
+  /** Оплата занятий месяца одним участником: стоимости окон недели на четыре, как считает контракт. */
   teach_month: string;
   /** Стоимость часа преподавателя как среднее по окнам, взвешенное минутами, — для показа и ставки допуска по умолчанию. */
   planned_hourly_rate: string;
@@ -247,10 +247,10 @@ export function programOf(slots: readonly Pick<EduScheduleSlot, 'minutes' | 'wee
   const weekly = slots.filter((s) => !isReserveSlot(s as EduScheduleSlot));
   const minutesPerMonth = Math.round(weeklyMinutes(slots) * WEEKS_PER_MONTH);
   const lessonsPerMonth = Math.round(weekly.length * WEEKS_PER_MONTH);
-  // Как в контракте (`edu_terms::teach_month`): сумма стоимостей окон недели на 52/12, нацело.
+  // Как в контракте (`edu_terms::teach_month`): сумма стоимостей окон недели на четыре недели.
   const symbol = String(slots[0]?.hourly_rate ?? '').trim().split(' ')[1] ?? '';
   const weekCost = slots.reduce((sum, s) => sum + (ASSET_RE.test(String(s.hourly_rate ?? '')) ? assetMinor(slotLessonCost(s)) : 0), 0);
-  const teachMonth = Math.floor((weekCost * 52) / 12);
+  const teachMonth = weekCost * WEEKS_PER_MONTH;
   const hourly = minutesPerMonth > 0 ? Math.round((teachMonth * 60) / minutesPerMonth) : 0;
   return {
     teach_month: assetOf(teachMonth, symbol),

@@ -50,7 +50,7 @@ struct [[eosio::table, eosio::contract(EDUBRIDGE)]] edu_terms {
   std::vector<edu_slot_terms> slots;   ///< окна расписания: по индексу окна отчёт о занятии находит его стоимость
   bool per_learner;                    ///< взнос преподавателя за занятие считается за каждого участника; false — фиксированный за занятие
   eosio::asset target_fee_month;       ///< целевой членский взнос за месяц
-  uint32_t minutes_per_month;          ///< минут занятий в месяц по расписанию: минуты недели на 52/12
+  uint32_t minutes_per_month;          ///< минут занятий в месяц по расписанию: минуты недели на четыре недели месяца
   uint32_t minutes_total;              ///< минут занятий в программе курса; 0 — курс без конечной программы
   bool course_payment;                 ///< взнос разом за весь курс разрешён
   uint32_t discount_bp;                ///< скидка за взнос разом, сотые доли процента
@@ -83,11 +83,14 @@ struct [[eosio::table, eosio::contract(EDUBRIDGE)]] edu_terms {
     }
   }
 
-  /// Оплата занятий месяца одним участником: стоимости окон недели на 52/12.
+  /// Недель в месяце для перевода недельного расписания в месячное: месяц считается как четыре недели, как на калькуляторе.
+  static constexpr int64_t WEEKS_PER_MONTH = 4;
+
+  /// Оплата занятий месяца одним участником: стоимости окон недели на четыре недели месяца.
   eosio::asset teach_month() const {
     __int128 week = 0;
     for (const auto& s : slots) week += s.cost.amount;
-    return eosio::asset(static_cast<int64_t>(week * 52 / 12), target_fee_month.symbol);
+    return eosio::asset(static_cast<int64_t>(week * WEEKS_PER_MONTH), target_fee_month.symbol);
   }
 
   /// Оплата части месяца пропорционально минутам: взнос по остатку программы и резерв подписки.

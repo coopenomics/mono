@@ -68,7 +68,7 @@ export class EduCatalogCourseDTO {
   @Field(() => [String], { description: 'Преподаватели курса (учётные имена пайщиков)' })
   teacher_usernames!: string[];
 
-  @Field(() => Float, { description: 'Занятий в месяц по окнам расписания: окон недели на 52/12 — для показа' })
+  @Field(() => Float, { description: 'Занятий в месяц по окнам расписания: окон недели на четыре — для показа' })
   lessons_per_month!: number;
 
   @Field(() => Float, { description: 'Занятий во всей программе курса — для показа; ноль — программа без конца' })

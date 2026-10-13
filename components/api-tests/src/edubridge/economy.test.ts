@@ -42,7 +42,7 @@ const COURSE_FEES = 'query($id:ID!){ edubridgeCourse(id:$id){ id fee_month fee_c
 const FUND = 'query{ edubridgeProgramFund{ fund_balance members_balance wallets{ id name available summary } movements{ id title amount direction } } }'
 const COURSE_QUOTE = (learnerId: string, courseId: string) => ({ d: { learner_id: learnerId, course_id: courseId, period: 'COURSE' } })
 
-/** Курс набора: два часовых окна в неделю — 520 минут в месяц, программа восемь месяцев, плановая ставка 1000. */
+/** Курс набора: два часовых окна в неделю — 480 минут в месяц, программа восемь месяцев, плановая ставка 1000. */
 const BASE = { schedule_slots: courseSlots(60), program_months: 8 }
 const MARKUP = 20
 const ASSET = /^\d+\.\d{4} RUB$/
@@ -68,12 +68,12 @@ describe('Образование: экономика курса — взнос, 
     await educationOff()
   })
 
-  it(caseName('edu.econ.happy.01', '520 минут в месяц при ставке 1000 и целевом членском взносе 20% дают взнос 10400 за месяц'), async () => {
+  it(caseName('edu.econ.happy.01', '480 минут в месяц при ставке 1000 и целевом членском взносе 20% дают взнос 9600 за месяц'), async () => {
     const fee = await preview()
-    expect(fee.hours_per_month).toBe(8.67)
-    expect(amount(fee.cost_month)).toBeCloseTo(8666.6667, 3)
-    expect(amount(fee.markup_month)).toBeCloseTo(1733.3333, 3)
-    expect(amount(fee.fee_month)).toBe(10400)
+    expect(fee.hours_per_month).toBe(8)
+    expect(amount(fee.cost_month)).toBe(8000)
+    expect(amount(fee.markup_month)).toBe(1600)
+    expect(amount(fee.fee_month)).toBe(9600)
     expect(fee.markup_percent).toBe(MARKUP)
     for (const field of ['cost_month', 'markup_month', 'fee_month']) expect(fee[field], field).toMatch(ASSET)
   })
@@ -100,7 +100,7 @@ describe('Образование: экономика курса — взнос, 
     finally {
       await gql(chairman, SET_SETTINGS, { d: { markup_percent: MARKUP } })
     }
-    expect(amount((await preview()).fee_month)).toBe(10400)
+    expect(amount((await preview()).fee_month)).toBe(9600)
   })
 
   it(caseName('edu.econ.happy.09', 'длительность курса — месяцы программы, названные администратором; минуты программы — месячные на месяцы'), async () => {
@@ -108,16 +108,16 @@ describe('Образование: экономика курса — взнос, 
     expect((await preview({ program_months: 9 })).course_months).toBe(9)
     expect((await preview({ program_months: 1 })).course_months).toBe(1)
     const course = (await gql<any>(chairman, CREATE_COURSE, { d: courseInput(section, { ...BASE, program_months: 3 }) })).edubridgeCreateCourse
-    expect(course).toMatchObject({ program_months: 3, minutes_per_month: 520, minutes_total: 1560, lesson_minutes: 60 })
+    expect(course).toMatchObject({ program_months: 3, minutes_per_month: 480, minutes_total: 1440, lesson_minutes: 60 })
   })
 
   it(caseName('edu.econ.happy.10', 'взнос за весь курс разом при скидке 10% — сумма помесячных за месяцы курса минус скидка'), async () => {
     const fee = await preview({ course_payment_enabled: true, course_discount_percent: 10 })
     expect(fee.course_months).toBe(8)
-    expect(amount(fee.fee_course_base)).toBe(83200)
-    expect(amount(fee.course_discount_amount)).toBe(8320)
-    expect(amount(fee.fee_course)).toBe(74880)
-    expect(amount(fee.cost_course)).toBeCloseTo(69333.3336, 3)
+    expect(amount(fee.fee_course_base)).toBe(76800)
+    expect(amount(fee.course_discount_amount)).toBe(7680)
+    expect(amount(fee.fee_course)).toBe(69120)
+    expect(amount(fee.cost_course)).toBe(64000)
   })
 
   it(caseName('edu.econ.break.01', 'скидка больше предельной отклоняется: взнос за курс оказался бы ниже оплаты часов преподавателей'), async () => {
@@ -150,9 +150,9 @@ describe('Образование: экономика курса — взнос, 
     const saved = (await gql<any>(chairman, CREATE_COURSE, { d })).edubridgeCreateCourse
     const fees = (await gql<any>(chairman, COURSE_FEES, { id: saved.id })).edubridgeCourse
     expect(fees).toMatchObject({ course_payment_enabled: false, course_discount_percent: 0, fee_course: null })
-    expect(amount(fees.fee_month)).toBe(10400)
+    expect(amount(fees.fee_month)).toBe(9600)
     // Полный взнос за программу виден и без взноса разом: восемь месяцев по 9 600.
-    expect(amount(fees.fee_course_base)).toBe(83200)
+    expect(amount(fees.fee_course_base)).toBe(76800)
   })
 
   it(caseName('edu.econ.break.04', 'курс без занятий в программе не сохраняется и не считается'), async () => {
@@ -190,9 +190,9 @@ describe('Образование: экономика курса — взнос, 
       const ahead = await course(30)
       const q = await quote(ahead.id)
       expect(q.months).toBe(8)
-      expect(amount(q.base_amount)).toBe(83200)
-      expect(amount(q.discount_amount)).toBe(8320)
-      expect(amount(q.amount)).toBe(74880)
+      expect(amount(q.base_amount)).toBe(76800)
+      expect(amount(q.discount_amount)).toBe(7680)
+      expect(amount(q.amount)).toBe(69120)
       // Оплачено до конца программы: восемь месяцев от дня начала занятий.
       const end = new Date(`${dayFromNow(30)}T00:00:00.000Z`)
       end.setMonth(end.getMonth() + 8)
@@ -212,7 +212,7 @@ describe('Образование: экономика курса — взнос, 
       // Только помесячный взнос: взнос за курс закрыт, помесячный открыт.
       const monthly = await publishCourse(chairman, section, 30, BASE)
       expectCode(await gqlError(token, QUOTE, COURSE_QUOTE(self.id, monthly.id)), 'EDUBRIDGE_ENROLLMENT_COURSE_PAYMENT_DISABLED')
-      expect(amount((await gql<any>(token, QUOTE, { d: { learner_id: self.id, course_id: monthly.id, period: 'MONTH' } })).edubridgeQuote.amount)).toBe(10400)
+      expect(amount((await gql<any>(token, QUOTE, { d: { learner_id: self.id, course_id: monthly.id, period: 'MONTH' } })).edubridgeQuote.amount)).toBe(9600)
     })
   })
 
@@ -229,7 +229,7 @@ describe('Образование: экономика курса — взнос, 
 
     it(caseName('edu.econ.happy.04', 'план и факт курса: нагрузка допущенного преподавателя по его ставке укладывается во взнос'), async () => {
       const economy = (await gql<any>(chairman, COURSE_ECONOMY, { id: led.id })).edubridgeCourseEconomy
-      expect(amount(economy.plan.fee_month)).toBe(10400)
+      expect(amount(economy.plan.fee_month)).toBe(9600)
       expect(amount(economy.plan.cost_month)).toBe(8000)
       expect(economy.teachers).toHaveLength(1)
       expect(economy.teachers[0]).toMatchObject({ username: teacher.account, hours_per_month: 8 })

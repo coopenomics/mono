@@ -227,7 +227,7 @@ const assignments = ref<IAssignment[]>([]);
 const { fioCache, enrichFio } = useFioCache();
 const system = useSystemStore();
 const symbol = computed(() => system.governSymbol);
-/** Занятий в программе — дробь по 52/12 недель в месяце, до двух знаков. */
+/** Занятий в программе — число по окнам недели на четыре недели месяца. */
 const formatLessons = (value: unknown): string => Number(value || 0).toLocaleString('ru-RU', { maximumFractionDigits: 2 });
 
 /** Допуски преподавателей к этому курсу: преподаватель окна выбирается из них. */

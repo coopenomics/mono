@@ -216,7 +216,7 @@ describe('Образование: подписки — продление, вз�
       // До начала занятий возвращается всё внесённое.
       const refund = (await gql<any>(token, REFUND_PREVIEW, { id: paid.id })).edubridgeRefundPreview
       expect(amount(refund.refund)).toBeCloseTo(fee * 8 * 0.9, 4)
-      expect(refund.minutes_paid).toBe(4160)
+      expect(refund.minutes_paid).toBe(3840)
     })
 
     it(caseName('edu.enroll.break.05', 'взнос за курс не принимается: курс оплачен до конца, кооператив принимает только помесячный, выбран год'), async () => {

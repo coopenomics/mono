@@ -13,7 +13,7 @@ const TUE_THU = [
   { weekday: 2, time: '17:00', minutes: 60, assignment_id: 'A1', hourly_rate: '1000.0000 RUB' },
   { weekday: 4, time: '17:00', minutes: 60, assignment_id: 'A1', hourly_rate: '1000.0000 RUB' },
 ];
-/** Резерв: час в неделю на внеочередные занятия — 260 минут в месяц, 520 за два месяца программы. */
+/** Резерв: час в неделю на внеочередные занятия — 240 минут в месяц, 480 за два месяца программы. */
 const RESERVE = { weekday: 8, time: '', minutes: 60, assignment_id: null, hourly_rate: '1000.0000 RUB' };
 
 /** Группа курса: 12 занятий по 60 минут, 8 в месяц, начало в среду 14.10.2026. */
@@ -83,11 +83,11 @@ describe('Окна расписания и моменты занятий', () =>
     expect(zonedParts(out[0].at, 'Europe/Moscow')).toMatchObject({ weekday: 4, hour: 17, minute: 0 });
   });
 
-  it('числа программы из окон: минуты недели на 52/12, занятия — для показа, длительность — по первому окну', () => {
-    expect(programOf(TUE_THU, 8)).toEqual({ minutes_per_month: 520, minutes_total: 4160, lessons_per_month: 9, lessons_total: 72, lesson_minutes: 60, reserve_per_month: 0, teach_month: '8666.6666 RUB', planned_hourly_rate: '1000.0000 RUB' });
-    expect(programOf([{ weekday: 6, minutes: 90, hourly_rate: '1500.0000 RUB' }], 0)).toEqual({ minutes_per_month: 390, minutes_total: 0, lessons_per_month: 4, lessons_total: 0, lesson_minutes: 90, reserve_per_month: 0, teach_month: '6500.0000 RUB', planned_hourly_rate: '1000.0000 RUB' });
+  it('числа программы из окон: минуты недели на четыре недели месяца, занятия — для показа, длительность — по первому окну', () => {
+    expect(programOf(TUE_THU, 8)).toEqual({ minutes_per_month: 480, minutes_total: 3840, lessons_per_month: 8, lessons_per_month_exact: 8, lessons_total: 64, lesson_minutes: 60, reserve_per_month: 0, teach_month: '8000.0000 RUB', planned_hourly_rate: '1000.0000 RUB' });
+    expect(programOf([{ weekday: 6, minutes: 90, hourly_rate: '1500.0000 RUB' }], 0)).toEqual({ minutes_per_month: 360, minutes_total: 0, lessons_per_month: 4, lessons_per_month_exact: 4, lessons_total: 0, lesson_minutes: 90, reserve_per_month: 0, teach_month: '6000.0000 RUB', planned_hourly_rate: '1000.0000 RUB' });
     // Резерв входит в минуты программы, но не в занятия по расписанию.
-    expect(programOf([...TUE_THU, RESERVE], 2)).toEqual({ minutes_per_month: 780, minutes_total: 1560, lessons_per_month: 9, lessons_total: 18, lesson_minutes: 60, reserve_per_month: 260, teach_month: '13000.0000 RUB', planned_hourly_rate: '1000.0000 RUB' });
+    expect(programOf([...TUE_THU, RESERVE], 2)).toEqual({ minutes_per_month: 720, minutes_total: 1440, lessons_per_month: 8, lessons_per_month_exact: 8, lessons_total: 16, lesson_minutes: 60, reserve_per_month: 240, teach_month: '12000.0000 RUB', planned_hourly_rate: '1000.0000 RUB' });
     expect(formatSlots(normalizeSlots([...TUE_THU, RESERVE]))).toBe('Вт, Чт 17:00–18:00; резерв 60 мин в неделю');
     expect(programOf([], 3).minutes_per_month).toBe(0);
   });
@@ -141,8 +141,8 @@ describe('EdubridgeCalendarService — календарь группы', () => {
   });
 
   it('внеочередное занятие берётся только из резерва: занятия по расписанию остаются, резерв исчерпан — отказ', async () => {
-    // Программа 1240 минут: 720 по окнам и 520 резерва — в календарь по окнам идут ровно 12 занятий.
-    const { service, group, live } = make({ group: groupOf({ schedule_slots: [...TUE_THU, RESERVE], minutes_total: 1240 }) });
+    // Программа 1200 минут: 720 по окнам и 480 резерва — в календарь по окнам идут ровно 12 занятий.
+    const { service, group, live } = make({ group: groupOf({ schedule_slots: [...TUE_THU, RESERVE], minutes_total: 1200 }) });
     await service.rebuild('voskhod', group);
     expect(live()).toHaveLength(12);
     const extra = await service.plan('voskhod', { group_id: 'G1', held_at: '2026-10-24T10:00:00Z', minutes: 120, assignment_id: 'A2', topic: 'Контрольная' });
@@ -165,7 +165,7 @@ describe('EdubridgeCalendarService — календарь группы', () => {
   });
 
   it('отмена освобождает номер: следующее внеочередное занятие получает его; перенос меняет дату и преподавателя', async () => {
-    const { service, group, live, store } = make({ group: groupOf({ schedule_slots: [...TUE_THU, RESERVE], minutes_total: 1240 }) });
+    const { service, group, live, store } = make({ group: groupOf({ schedule_slots: [...TUE_THU, RESERVE], minutes_total: 1200 }) });
     await service.rebuild('voskhod', group);
     const fifth = live()[4];
     const cancelled = await service.cancel('voskhod', fifth.id);

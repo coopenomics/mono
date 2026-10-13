@@ -239,7 +239,7 @@ async function loadCalendar(): Promise<void> {
     FailAlert(e);
   }
 }
-/** Занятий и часов в месяц — по окнам расписания, до двух знаков: 52/12 недель в месяце дают дробь. */
+/** Занятий и часов в месяц — по окнам расписания на четыре недели месяца. */
 const lessonsPerMonth = computed(() => Number(course.value?.lessons_per_month || 0).toLocaleString('ru-RU', { maximumFractionDigits: 2 }));
 const hoursPerMonth = computed(() => (Number(course.value?.minutes_per_month || 0) / 60).toLocaleString('ru-RU', { maximumFractionDigits: 2 }));
 const formatDate = (v: unknown) => (v ? new Date(String(v)).toLocaleDateString('ru-RU') : '______');

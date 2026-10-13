@@ -78,8 +78,8 @@ describe('EdubridgeCourseService — конструктор курса', () => {
       expect.objectContaining({ program_months: 8, course_payment_enabled: true, course_discount_percent: 10 })
     );
     expect(course.fee_month).toBe('9600.0000 RUB');
-    // Числа программы считаются из окон: два часовых окна в неделю — 520 минут в месяц, 4160 за восемь месяцев.
-    expect(saved[0]).toMatchObject({ minutes_per_month: 520, minutes_total: 4160, program_months: 8, lesson_minutes: 60, lessons_per_month: 9, lessons_total: 72 });
+    // Числа программы считаются из окон: два часовых окна в неделю — 480 минут в месяц, 3840 за восемь месяцев.
+    expect(saved[0]).toMatchObject({ minutes_per_month: 480, minutes_total: 3840, program_months: 8, lesson_minutes: 60, lessons_per_month: 8, lessons_total: 64 });
     expect(saved[0].course_payment_enabled).toBe(true);
     expect(saved[0].course_discount_bp).toBe(1000);
   });

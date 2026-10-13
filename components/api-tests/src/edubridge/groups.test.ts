@@ -127,7 +127,7 @@ describe('Образование: группы курса и расчёт зан
         fee_month: course.fee_month,
         planned_hourly_rate: PLANNED_RATE,
         pay_per_learner: true,
-        minutes_total: 2080,
+        minutes_total: 1920,
         program_months: 4,
         guarantee_days: 14,
         learners_active: 0,
@@ -248,21 +248,21 @@ describe('Образование: группы курса и расчёт зан
       const theirs = await subscribe(learner, token, child.id, course.id)
 
       // Занятий не было: возврат — половина взноса.
-      expect(await preview(mine.id)).toMatchObject({ reason: 'refusal', minutes_paid: 520, minutes_used: 0 })
+      expect(await preview(mine.id)).toMatchObject({ reason: 'refusal', minutes_paid: 480, minutes_used: 0 })
       expect(amount((await preview(mine.id)).refund)).toBeCloseTo(fee / 2, 2)
 
       // Занятие проведено: расчёт прошёл по обеим подпискам, взнос преподавателя — за каждого обучающегося.
       expect(await heldLesson(assignment.id, 1), 'ставка 900 за двоих').toBe(1800)
       const afterFirst = await preview(mine.id)
-      expect(afterFirst).toMatchObject({ reason: 'refusal', minutes_paid: 520, minutes_used: 60 })
-      // Из 520 оплаченных минут проведено 60: остаточная стоимость — 460/520 взноса.
-      expect(amount(afterFirst.refund)).toBeCloseTo(fee * 460 / 520 / 2, 2)
+      expect(afterFirst).toMatchObject({ reason: 'refusal', minutes_paid: 480, minutes_used: 60 })
+      // Из 480 оплаченных минут проведено 60: остаточная стоимость — 420/480 взноса.
+      expect(amount(afterFirst.refund)).toBeCloseTo(fee * 420 / 480 / 2, 2)
       expect(amount(afterFirst.withheld)).toBeCloseTo(fee - amount(afterFirst.refund), 4)
 
       expect(await heldLesson(assignment.id, 2)).toBe(1800)
       const afterSecond = await preview(mine.id)
       expect(afterSecond.minutes_used).toBe(120)
-      expect(amount(afterSecond.refund)).toBeCloseTo(fee * 400 / 520 / 2, 2)
+      expect(amount(afterSecond.refund)).toBeCloseTo(fee * 360 / 480 / 2, 2)
 
       // Отказ возвращает ровно названное на кошелёк программы.
       const own = await walletOf(token, learner.account, PROGRAM_WALLET)

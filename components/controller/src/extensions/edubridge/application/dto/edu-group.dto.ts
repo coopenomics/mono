@@ -24,7 +24,7 @@ export class EduGroupDTO {
   @Field(() => [EduScheduleSlotDTO], { description: 'Окна расписания группы' }) schedule_slots!: EduScheduleSlotDTO[];
   @Field(() => String, { description: 'Расписание группы строкой, собрано из окон' }) schedule!: string;
   @Field(() => Int, { description: 'Срок на отчёт преподавателя о занятии, дней после занятия' }) report_days!: number;
-  @Field(() => Float, { description: 'Занятий в месяц по окнам расписания: окон недели на 52/12 — для показа' }) lessons_per_month!: number;
+  @Field(() => Float, { description: 'Занятий в месяц по окнам расписания: окон недели на четыре — для показа' }) lessons_per_month!: number;
   @Field(() => Int, { description: 'Длительность занятия по первому окну, минут' }) lesson_minutes!: number;
   @Field(() => Int, { description: 'Длительность программы, месяцев; ноль — программа без конца' }) program_months!: number;
   @Field(() => Int, { description: 'Минут занятий в месяц — по ним контракт считает взнос' }) minutes_per_month!: number;
