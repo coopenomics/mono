@@ -152,18 +152,22 @@ export default async ({ page, shot, expect }) => {
     },
   );
 
-  // ── Цена повышена ────────────────────────────────────────────────────────
+  // ── Цену поднять нельзя ──────────────────────────────────────────────────
+  // Форма обрезает цену до цены приёмки: поднять её при выдаче нельзя, отказали
+  // бы и сервер, и контракт. Набранное вдвое большее значение возвращается к
+  // потолку, итог — к исходному.
   const dearerTotal = await setFactField(dialog, 1, (unitPrice * 2).toFixed(2), cheaperTotal);
+  const cappedPrice = Number.parseFloat(await priceInput.inputValue());
 
   await shot(
     page,
     '03-dearer',
-    'Цена поднята выше заказанной: итог вырос, и разница показана как доплата по факту — она спишется с паевого взноса пайщика.',
+    'Оператор пробует поднять цену выше цены приёмки: форма возвращает её к потолку, итог к оплате равен исходному. Цена при выдаче только снижается — уценкой.',
     {
       preserveNotifications: true,
       expect: async () => {
-        expect(dearerTotal).toBeGreaterThan(cheaperTotal);
-        expect(dearerTotal).toBeGreaterThan(baseTotal);
+        expect(cappedPrice).toBe(unitPrice);
+        expect(dearerTotal).toBe(baseTotal);
       },
     },
   );

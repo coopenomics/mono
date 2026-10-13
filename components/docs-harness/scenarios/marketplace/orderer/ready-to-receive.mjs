@@ -68,9 +68,23 @@ export default async ({ page, shot, expect }) => {
   // После «Подписать и отправить пайщику» на столе ПВЗ у заказчицы всплывает
   // persistent-оверлей: акт с фактом выдачи и кнопка «Подписать и получить».
   const receiveBtn = page.locator('button:has-text("Подписать и получить")').first();
-  const gateShown = await receiveBtn.waitFor({ state: 'visible', timeout: 30000 })
+  let gateShown = await receiveBtn.waitFor({ state: 'visible', timeout: 30000 })
     .then(() => true)
     .catch(() => false);
+  // Оверлей поднимает лента изменений стола: на первой странице после входа он
+  // может не успеть. Без подписи заказчицы выдача не закрывается, и оверлей
+  // перекрывает ей все следующие сценарии — открываем стол заказчика и ждём ещё.
+  if (!gateShown) {
+    await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/market/my-orders`, {
+      waitUntil: 'domcontentloaded',
+      timeout: 60000,
+    });
+    gateShown = await receiveBtn.waitFor({ state: 'visible', timeout: 45000 })
+      .then(() => true)
+      .catch(() => false);
+  }
+  // Выдача открыта сценарием issuance-open — акт обязан ждать подписи.
+  expect(gateShown, 'оверлей «Подписать и получить» не появился: акт выдачи не дошёл до заказчицы').toBe(true);
 
   if (gateShown) {
     await page.waitForTimeout(1000);

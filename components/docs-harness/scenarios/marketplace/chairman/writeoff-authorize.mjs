@@ -63,6 +63,16 @@ async function openAgenda(p) {
   await cleanViteOverlays(p);
 }
 
+/**
+ * Нажатие на кнопку голоса. Прогон 13.10.2026: обычный click ждал 30 с и падал —
+ * нажатие перехватывал невидимый слой поверх карточки (на кадре его нет).
+ * Кнопка при этом видима и доступна, поэтому нажимаем её самим элементом.
+ */
+async function pressVote(button) {
+  await button.waitFor({ state: 'visible', timeout: 30000 });
+  await button.evaluate((el) => el.click());
+}
+
 export default async ({ page, context, shot, expect }) => {
   await loginAsChairman(page, context);
   await openAgenda(page);
@@ -77,7 +87,11 @@ export default async ({ page, context, shot, expect }) => {
   );
 
   // Голос председателя — первый из трёх необходимых.
-  await card.locator('.vote-btn--for').first().click();
+  // Голос автора проекта контракт засчитывает сам: председатель подал
+  // Заявление — его «за» уже стоит. Нажимаем, только если голоса ещё нет.
+  const forBtn = card.locator('.vote-btn--for').first();
+  const alreadyFor = Number.parseInt((await forBtn.innerText()).replace(/\D/g, '') || '0', 10) > 0;
+  if (!alreadyFor) await pressVote(forBtn);
   await page.waitForTimeout(VOTE_SETTLE_MS);
 
   // Остальные голосуют каждый в своём окне: сессия хранится в IndexedDB
@@ -94,7 +108,7 @@ export default async ({ page, context, shot, expect }) => {
       await openAgenda(voterPage);
       const voterCard = writeoffCard(voterPage);
       await voterCard.waitFor({ state: 'visible', timeout: 60000 });
-      await voterCard.locator('.vote-btn--for').first().click();
+      await pressVote(voterCard.locator('.vote-btn--for').first());
       await voterPage.waitForTimeout(VOTE_SETTLE_MS);
     } finally {
       await voterContext.close();
