@@ -1,6 +1,6 @@
 import { EdubridgeCalendarService } from '~/extensions/edubridge/application/services/edubridge-calendar.service';
 import { EduLessonOrigin, EduLessonStatus } from '~/extensions/edubridge/domain/enums';
-import { formatSlots, normalizeSlots, programMonthsOf, programOf, slotOccurrences, zonedParts } from '~/extensions/edubridge/domain/lib/schedule';
+import { fillSlotTeachers, formatSlots, normalizeSlots, programMonthsOf, programOf, slotOccurrences, zonedParts } from '~/extensions/edubridge/domain/lib/schedule';
 import { lessonEndsAt, reportUntil } from '~/extensions/edubridge/domain/lib/lesson-dates';
 
 jest.mock('@coopenomics/extension-kit', () => ({
@@ -53,15 +53,18 @@ function make(opts: { group?: any; lessons?: any[]; assignments?: Record<string,
   const groups = { findById: jest.fn(async () => group), save: jest.fn(async (g: any) => g) } as any;
   const courses = { findById: jest.fn(async () => ({ id: 'C1' })) } as any;
   const assignments: Record<string, any> = {
-    A1: { id: 'A1', course_id: 'C1', teacher_username: 'teach', status: 'active' },
-    A2: { id: 'A2', course_id: 'C1', teacher_username: 'other', status: 'active' },
-    AX: { id: 'AX', course_id: 'C9', teacher_username: 'alien', status: 'active' },
+    A1: { id: 'A1', chain_ref: '1', course_id: 'C1', teacher_username: 'teach', status: 'active' },
+    A2: { id: 'A2', chain_ref: '2', course_id: 'C1', teacher_username: 'other', status: 'active' },
+    AX: { id: 'AX', chain_ref: '3', course_id: 'C9', teacher_username: 'alien', status: 'active' },
     ...opts.assignments,
   };
-  const teachers = { findAssignment: jest.fn(async (_c: string, id: string) => assignments[id] ?? null) } as any;
+  const teachers = {
+    findAssignment: jest.fn(async (_c: string, id: string) => assignments[id] ?? null),
+    listAssignments: jest.fn(async () => Object.values(assignments)),
+  } as any;
   const service = new EdubridgeCalendarService(lessons, groups, courses, teachers, logger);
   const live = () => [...store.values()].filter((l) => l.status !== EduLessonStatus.CANCELLED).sort((a, b) => a.held_at - b.held_at);
-  return { service, group, store, lessons, live };
+  return { service, group, groups, store, lessons, live };
 }
 
 const moscow = (iso: string) => new Date(iso).toISOString();
@@ -75,6 +78,21 @@ describe('Окна расписания и моменты занятий', () =>
     expect(() => normalizeSlots([{ weekday: 9, time: '17:00', minutes: 60, hourly_rate: '1000.0000 RUB' }])).toThrow(expect.objectContaining({ code: 'EDUBRIDGE_SCHEDULE_WEEKDAY_INVALID' }));
     expect(() => normalizeSlots([{ weekday: 1, time: '25:00', minutes: 60, hourly_rate: '1000.0000 RUB' }])).toThrow(expect.objectContaining({ code: 'EDUBRIDGE_SCHEDULE_TIME_INVALID' }));
     expect(() => normalizeSlots([{ weekday: 1, time: '17:00', minutes: 1, hourly_rate: '1000.0000 RUB' }])).toThrow(expect.objectContaining({ code: 'EDUBRIDGE_SCHEDULE_MINUTES_INVALID' }));
+  });
+
+  it('преподаватели окон — по действующим допускам курса: пустое окно и окно снятого допуска заполняются по очереди, назначенные не трогаются', () => {
+    const slot = (assignment_id: string | null, weekday = 2) => ({ weekday, time: '17:00', minutes: 60, assignment_id, hourly_rate: '1000.0000 RUB' });
+    // Один допуск — он встаёт во все пустые окна.
+    expect(fillSlotTeachers([slot(null), slot(null, 4)], ['A1'])?.map((s) => s.assignment_id)).toEqual(['A1', 'A1']);
+    // Два допуска — первому окну первый, второму второй, третьему снова первый.
+    expect(fillSlotTeachers([slot(null), slot(null, 4), slot(null, 6)], ['A1', 'A2'])?.map((s) => s.assignment_id)).toEqual(['A1', 'A2', 'A1']);
+    // Назначенное администратором окно остаётся; окно снятого допуска переходит к действующему.
+    expect(fillSlotTeachers([slot('A2'), slot('GONE', 4), slot(null, 6)], ['A1', 'A2'])?.map((s) => s.assignment_id)).toEqual(['A2', 'A1', 'A2']);
+    // Менять нечего — `null`: группа не сохраняется, календарь не перестраивается.
+    expect(fillSlotTeachers([slot('A1'), slot('A2', 4)], ['A1', 'A2'])).toBeNull();
+    expect(fillSlotTeachers([slot(null)], [])).toBeNull();
+    // Допусков не осталось — окно снятого допуска освобождается.
+    expect(fillSlotTeachers([slot('GONE')], [])?.map((s) => s.assignment_id)).toEqual([null]);
   });
 
   it('от среды 14.10.2026 занятия по вторникам и четвергам идут с четверга 15.10, 17:00 по Москве', () => {
@@ -144,6 +162,32 @@ describe('EdubridgeCalendarService — календарь группы', () => {
     const scheduled = live().filter((l) => l.origin === EduLessonOrigin.SCHEDULE && l.status === EduLessonStatus.PLANNED);
     expect(scheduled).toHaveLength(9);
     expect(scheduled.map((l) => l.lesson_number)).toEqual([3, 4, 5, 6, 7, 8, 9, 10, 11]);
+  });
+
+  it('группа с окнами без преподавателя: допуски курса встают в окна, занятия календаря получают преподавателей; чужой курс в расстановку не идёт', async () => {
+    const empty = TUE_THU.map((s) => ({ ...s, assignment_id: null }));
+    const { service, group, groups, live } = make({ group: groupOf({ schedule_slots: empty }) });
+    expect(await service.syncTeachers('voskhod', group)).toBe(true);
+    expect(group.schedule_slots.map((s: any) => s.assignment_id)).toEqual(['A1', 'A2']);
+    expect(groups.save).toHaveBeenCalledTimes(1);
+    await service.rebuild('voskhod', group);
+    expect(new Set(live().map((l: any) => l.teacher_username))).toEqual(new Set(['teach', 'other']));
+    expect(live().every((l: any) => l.assignment_id)).toBe(true);
+    // Повторная расстановка ничего не меняет.
+    expect(await service.syncTeachers('voskhod', group)).toBe(false);
+    expect(groups.save).toHaveBeenCalledTimes(1);
+  });
+
+  it('допуск снят: запланированное отдельно занятие переходит к преподавателю своего окна, проведённое остаётся за прежним', async () => {
+    const gone = { id: 'AG', chain_ref: '9', course_id: 'C1', teacher_username: 'gone', status: 'closed' };
+    const lesson = (id: string, over: Record<string, unknown>) => ({ id, coopname: 'voskhod', course_id: 'C1', group_id: 'G1', lesson_number: Number(id.slice(1)), held_at: new Date('2026-10-20T14:00:00Z'), duration_minutes: 60, slot_index: 0, assignment_id: 'AG', teacher_username: 'gone', ...over });
+    const { service, group, store } = make({
+      assignments: { AG: gone },
+      lessons: [lesson('L1', { status: EduLessonStatus.PLANNED, origin: EduLessonOrigin.EXTRA }), lesson('L2', { status: EduLessonStatus.HELD, origin: EduLessonOrigin.SCHEDULE })],
+    });
+    await service.rebuild('voskhod', group);
+    expect(store.get('L1')).toMatchObject({ assignment_id: 'A1', teacher_username: 'teach' });
+    expect(store.get('L2')).toMatchObject({ assignment_id: 'AG', teacher_username: 'gone' });
   });
 
   it('внеочередное занятие берётся только из резерва: занятия по расписанию остаются, резерв исчерпан — отказ', async () => {

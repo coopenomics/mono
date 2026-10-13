@@ -411,6 +411,8 @@ export class EdubridgeTeacherService {
     // Номер допуска для цепи выдаёт база при вставке — он дочитывается.
     const chainRef = saved.chain_ref ?? (await this.teachers.findAssignment(coopname, saved.id))?.chain_ref;
     await this.pushAssignmentToGroups({ ...saved, chain_ref: chainRef as string }, course);
+    // Допущенный преподаватель сразу встаёт в окна групп без преподавателя: занятия календаря получают его.
+    await this.groups.syncTeachers(coopname, course.id);
     // Список «Курс ведут» и допуски — одно и то же: допущенный стоит в курсе.
     if (!(course.teacher_usernames ?? []).includes(saved.teacher_username)) {
       course.teacher_usernames = [...(course.teacher_usernames ?? []), saved.teacher_username];
@@ -486,6 +488,7 @@ export class EdubridgeTeacherService {
     const listed = new Set(course.teacher_usernames ?? []);
     const forCourse = (await this.teachers.listAssignments(coopname)).filter((a) => a.course_id === course.id);
     const period = coursePeriod(course);
+    await this.extendPeriods(forCourse, period.to);
     for (const teacher of listed) {
       if (forCourse.some((a) => a.teacher_username === teacher && a.status !== EduAssignmentStatus.CLOSED)) continue;
       await this.createAssignment(coopname, {
@@ -502,8 +505,25 @@ export class EdubridgeTeacherService {
       if (!listed.has(a.teacher_username) && a.status === EduAssignmentStatus.ACTIVE) {
         a.status = EduAssignmentStatus.CLOSED;
         await this.dropAssignmentFromGroups(await this.teachers.saveAssignment(a), course);
+        // Окна снятого преподавателя переходят к оставшимся допускам курса.
+        await this.groups.syncTeachers(coopname, course.id);
         this.logger.info(`Допуск снят: ${a.teacher_username} → «${course.title}»`);
       }
+    }
+  }
+
+  /**
+   * Программу курса продлили — срок действующего допуска растёт до её конца.
+   * Срок только растёт: укороченный вручную допуск остаётся как есть.
+   */
+  private async extendPeriods(assignments: EdubridgeTeacherAssignmentRecord[], programEnd: string): Promise<void> {
+    for (const a of assignments) {
+      if (a.status !== EduAssignmentStatus.ACTIVE || dayOf(a.period_to) >= dayOf(programEnd)) continue;
+      const others = assignments.filter((x) => x !== a && x.teacher_username === a.teacher_username && x.status === EduAssignmentStatus.ACTIVE);
+      // Несколько допусков одного преподавателя — периоды расставлены вручную, их не трогаем.
+      if (others.length) continue;
+      a.period_to = programEnd;
+      await this.teachers.saveAssignment(a);
     }
   }
 
@@ -531,6 +551,8 @@ export class EdubridgeTeacherService {
     for (const course of await this.courses.listAll(coopname)) {
       try {
         await this.syncCourseAssignments(coopname, course);
+        // Группы, открытые до расстановки преподавателей по окнам: окна без преподавателя получают допуски курса.
+        await this.groups.syncTeachers(coopname, course.id);
       } catch (e) {
         this.logger.warn(`Назначения курса «${course.title}» не сведены: ${(e as Error)?.message ?? e}`);
       }
@@ -544,6 +566,8 @@ export class EdubridgeTeacherService {
     const saved = await this.teachers.saveAssignment(a);
     const closedCourse = await this.courses.findById(coopname, a.course_id);
     if (closedCourse) await this.dropAssignmentFromGroups(saved, closedCourse);
+    // Окна снятого преподавателя переходят к оставшимся допускам курса.
+    if (closedCourse) await this.groups.syncTeachers(coopname, closedCourse.id);
     // Снятый допуск убирает преподавателя и из списка «Курс ведут» — иначе
     // сверка по курсу выдала бы назначение заново.
     const course = await this.courses.findById(coopname, a.course_id);

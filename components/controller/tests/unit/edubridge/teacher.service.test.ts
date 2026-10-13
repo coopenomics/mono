@@ -128,7 +128,7 @@ function make(
   // Данные пайщика: сюда пишутся номер и дата договора для документов преподавателя.
   const udata = { save: jest.fn(async () => undefined), get: jest.fn(async () => null) } as any;
   const walletWithdraw = { createWithdraw: jest.fn(async () => ({ withdraw_hash: 'WH' })) } as any;
-  const service = new EdubridgeTeacherService(teachers, courses, lessons, chain, documents, council, wallets, avatars, names, funds, udata, logger, events, walletWithdraw, chainTerms, enrollments, { viewOf: (c: any) => c, courseOf: jest.fn(async (...a: any[]) => (courses as any).findById(a[0], a[1])), openFor: jest.fn(async () => ({ id: 'G1', chain_ref: '3', course_id: 'C1' })), get: jest.fn(async () => ({ id: 'G1', chain_ref: '3', course_id: 'C1', title: 'Группа 1', status: 'active', report_days: 7 })), list: jest.fn(async () => [{ id: 'G1', chain_ref: '7', course_id: 'C1', status: 'active', starts_at: null, teacher_reserve_balance: null, teacher_settled_total: null }]), firstOf: jest.fn(async () => ({ id: 'G1', chain_ref: '7', course_id: 'C1', status: 'active' })), saveFunds: jest.fn(async (g: any, r: string, st: string) => { g.teacher_reserve_balance = r; g.teacher_settled_total = st; return true; }) } as any);
+  const service = new EdubridgeTeacherService(teachers, courses, lessons, chain, documents, council, wallets, avatars, names, funds, udata, logger, events, walletWithdraw, chainTerms, enrollments, { syncTeachers: jest.fn(async () => undefined), viewOf: (c: any) => c, courseOf: jest.fn(async (...a: any[]) => (courses as any).findById(a[0], a[1])), openFor: jest.fn(async () => ({ id: 'G1', chain_ref: '3', course_id: 'C1' })), get: jest.fn(async () => ({ id: 'G1', chain_ref: '3', course_id: 'C1', title: 'Группа 1', status: 'active', report_days: 7 })), list: jest.fn(async () => [{ id: 'G1', chain_ref: '7', course_id: 'C1', status: 'active', starts_at: null, teacher_reserve_balance: null, teacher_settled_total: null }]), firstOf: jest.fn(async () => ({ id: 'G1', chain_ref: '7', course_id: 'C1', status: 'active' })), saveFunds: jest.fn(async (g: any, r: string, st: string) => { g.teacher_reserve_balance = r; g.teacher_settled_total = st; return true; }) } as any);
   return { chainTerms, enrollments, udata, service, teachers, courses, chain, documents, council, funds, store, assignment, avatars, names, lessons, wallets, balances, walletWithdraw, returns, planLesson, lessonStore };
 }
 
@@ -919,7 +919,7 @@ describe('Допуски по списку «Курс ведут»', () => {
         status: EduAssignmentStatus.ACTIVE,
         schedule: 'Вт, Чт 17–19',
         period_from: '2026-09-23',
-        period_to: '2027-05-22',
+        period_to: '2027-05-04',
         expected_result: 'Проведение занятий курса «Алгебра» по его учебной программе',
       })
     );
@@ -973,7 +973,7 @@ describe('Допуски по списку «Курс ведут»', () => {
 
 describe('EduAssignmentDTO — назначение в ответе API', () => {
   const course = { title: 'Алгебра', description: 'Про уравнения', syllabus: '1. Линейные уравнения' };
-  const entity = { id: 'A1', teacher_username: 'teach', course_id: 'C1', schedule: 'Вт', expected_result: 'Занятия', period_from: '2026-09-23', period_to: '2027-05-22', minutes_per_month: 480, status: EduAssignmentStatus.ACTIVE, created_at: new Date('2026-09-23') } as any;
+  const entity = { id: 'A1', teacher_username: 'teach', course_id: 'C1', schedule: 'Вт', expected_result: 'Занятия', period_from: '2026-09-23', period_to: '2027-05-04', minutes_per_month: 480, status: EduAssignmentStatus.ACTIVE, created_at: new Date('2026-09-23') } as any;
 
   it('назначение — рабочий допуск: полей приложения к договору в ответе нет', () => {
     const dto = new EduAssignmentDTO(entity, course) as unknown as Record<string, unknown>;

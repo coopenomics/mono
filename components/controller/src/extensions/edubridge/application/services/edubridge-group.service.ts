@@ -220,6 +220,8 @@ export class EdubridgeGroupService {
     await this.closeStarted([group]);
     await this.syncCourseStart(coopname, course.id);
     await this.chainTerms.pushCourse(this.viewOf(course, group));
+    // Окна новой группы сразу получают преподавателей курса: занятия календаря строятся уже с ними.
+    await this.calendar.syncTeachers(coopname, group);
     await this.calendar.rebuild(coopname, group);
     this.logger.info(`Группа «${group.title}» курса «${course.title}» открыта, номер в цепи ${group.chain_ref}`);
     return group;
@@ -306,9 +308,27 @@ export class EdubridgeGroupService {
       try {
         await this.chainTerms.pushCourse(this.viewOf(course, group));
         await this.groups.save(group);
+        // Окна пришли с курса без преподавателей — расставляем их по допускам заново.
+        await this.calendar.syncTeachers(coopname, group);
         await this.calendar.rebuild(coopname, group);
       } catch (e) {
         this.logger.warn(`Условия группы «${group.title}» курса «${course.title}» не обновлены: ${(e as Error)?.message ?? e}`);
+      }
+    }
+  }
+
+  /**
+   * Допуски курса изменились: преподаватели окон идущих групп расставляются
+   * заново, календарь групп с изменёнными окнами перестраивается. Отказ по
+   * одной группе остальные не держит.
+   */
+  async syncTeachers(coopname: string, courseId: string): Promise<void> {
+    for (const group of await this.groups.findByCourse(coopname, courseId)) {
+      if (group.status !== EduGroupStatus.ACTIVE) continue;
+      try {
+        if (await this.calendar.syncTeachers(coopname, group)) await this.calendar.rebuild(coopname, group);
+      } catch (e) {
+        this.logger.warn(`Преподаватели окон группы «${group.title}» не расставлены: ${(e as Error)?.message ?? e}`);
       }
     }
   }

@@ -20,3 +20,4 @@ export { AdminContributionsPage } from './AdminContributionsPage';
 export { AdminEconomyPage } from './AdminEconomyPage';
 export { AdminSectionsPage } from './AdminSectionsPage';
 export { AdminCalendarPage } from './AdminCalendarPage';
+export { AdminGroupPage } from './AdminGroupPage';

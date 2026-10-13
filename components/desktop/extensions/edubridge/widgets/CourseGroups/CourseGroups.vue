@@ -28,56 +28,14 @@ BaseCard(variant="default" :title="$t('edubridge.courseGroups.title')")
       BaseBadge(:variant="stateOf(row).variant") {{ stateOf(row).label }}
   .t-muted.t-sm(v-else) {{ $t('edubridge.courseGroups.empty') }}
 
-  //- Группа целиком: условия закреплены на день открытия, правятся название, дата начала, набор и привязка к площадке.
-  DetailsDrawer(v-model="detailsOpen" :title="details?.title || $t('edubridge.courseGroups.title')" :width="520")
-    template(v-if="details")
-      BaseBadge.q-mb-md(:variant="stateOf(details).variant") {{ stateOf(details).label }}
-      DataRow(:label="$t('edubridge.courseGroups.feeMonth')" :value="formatAsset2Digits(details.fee_month)" align="spread")
-      DataRow(:label="$t('edubridge.courseGroups.plannedRate')" :value="formatAsset2Digits(details.planned_hourly_rate)" align="spread")
-      DataRow(:label="$t('edubridge.courseGroups.payMode')" :value="details.pay_per_learner ? $t('edubridge.adminCoursePage.payModePerLearner') : $t('edubridge.adminCoursePage.payModeFixed')" align="spread")
-      DataRow(:label="$t('edubridge.courseGroups.guarantee')" :value="`${details.guarantee_days} ${pluralizeDays(Number(details.guarantee_days))}`" align="spread")
-      DataRow(:label="$t('edubridge.courseGroups.learners')" :value="String(details.learners_active)" align="spread")
-      DataRow(:label="$t('edubridge.courseGroups.lessons')" :value="$t('edubridge.courseGroups.lessonsOf', { held: details.lessons_held, total: formatLessons(details.lessons_total) })" align="spread")
-      DataRow(v-if="details.teacher_reserve_balance" :label="$t('edubridge.courseGroups.reserve')" :value="formatAsset2Digits(details.teacher_reserve_balance)" align="spread")
-      DataRow(v-if="details.teacher_settled_total" :label="$t('edubridge.courseGroups.settled')" :value="formatAsset2Digits(details.teacher_settled_total)" align="spread")
-      //- Месяц этой группы при нынешнем числе обучающихся.
-      template(v-if="groupEconomy")
-        .t-eyebrow.q-mt-lg.q-mb-xs {{ $t('edubridge.courseGroups.monthTitle') }}
-        DataRow(:label="$t('edubridge.adminCoursePage.groupFeeLabel')" :value="formatAsset2Digits(groupEconomy.group_fee_month)" align="spread")
-        DataRow(:label="$t('edubridge.adminCoursePage.groupTeachersLabel')" :value="formatAsset2Digits(groupEconomy.group_teachers_month)" align="spread")
-        DataRow(:label="$t('edubridge.adminCoursePage.groupProgramLabel')" :value="formatAsset2Digits(groupEconomy.group_program_month)" align="spread")
-      .t-sm.t-muted.q-mt-sm.q-mb-md {{ $t('edubridge.courseGroups.termsNote') }}
-
-      //- Действующих подписок нет, а группа идёт: преподаватель ещё отчитывается о занятиях.
-      //- Отчитаны все занятия программы — группа завершится сама. Отчётов больше не будет — её завершает администратор.
-      BaseBanner.q-mb-md(v-if="canFinish" variant="info")
-        template(#icon)
-          q-icon(name="pending_actions")
-        | {{ details.settlement_pending > 0 ? $t('edubridge.courseGroups.finishNotePending', { count: details.settlement_pending }) : $t('edubridge.courseGroups.finishNote') }}
-        template(#action)
-          BaseButton(variant="secondary" size="sm" :loading="busy" @click="finishConfirm = true") {{ $t('edubridge.courseGroups.finish') }}
-
-      //- Расписание группы — окнами; из них и даты начала строится календарь занятий группы.
-      template(v-if="details.status === Zeus.EduGroupStatus.ACTIVE")
-        .t-eyebrow.q-mt-lg.q-mb-xs {{ $t('edubridge.courseGroups.scheduleTitle') }}
-        .t-sm.t-muted.q-mb-sm {{ $t('edubridge.courseGroups.scheduleNote') }}
-        ScheduleSlotsEditor(v-model="slots" :teacher-options="teacherOptions" :default-minutes="details.lesson_minutes" :symbol="symbol" :disabled="readonly")
-        .row.justify-end.q-mt-sm(v-if="!readonly")
-          BaseButton(variant="secondary" size="sm" :loading="scheduleBusy" @click="onSaveSchedule") {{ $t('edubridge.courseGroups.saveSchedule') }}
-
-      BaseForm(v-if="!readonly && details.status === Zeus.EduGroupStatus.ACTIVE" :loading="busy" @submit="onSave")
-        BaseInput(v-model="form.title" :label="$t('edubridge.courseGroups.titleLabel')" required)
-        BaseInput(v-model="form.starts_at" :label="$t('edubridge.courseGroups.startsAtLabel')" type="date" stack-label :disabled="details.lessons_held > 0" :hint="details.lessons_held > 0 ? $t('edubridge.courseGroups.startLockedHint') : ''")
-        BaseInput(v-if="timeScale.compressed.value && details.lessons_held === 0" v-model="form.starts_in_minutes" :label="$t('edubridge.courseGroups.startsInMinutesLabel')" type="number" min="0" stack-label :hint="standHint")
-        BaseSelect(v-if="platformGroupOptions.length" v-model="form.platform_group" :label="$t('edubridge.courseGroups.platformGroupLabel')" :options="platformGroupOptions" :hint="$t('edubridge.courseGroups.platformGroupHint')")
-        BaseCheckbox(v-model="form.enrollment_open")
-          | {{ $t('edubridge.courseGroups.enrollmentOpenCheckbox') }}
-        .t-sm.t-muted.q-mt-xs {{ $t('edubridge.courseGroups.enrollmentHint') }}
-        template(#footer)
-          .row.justify-end.q-gutter-sm
-            //- Отмена по недобору — пока занятия группы не начались: подписки закрываются с возвратом на паевой.
-            BaseButton(v-if="!groupStarted" variant="danger" type="button" :loading="cancelling" @click="onCancelUnderfilled") {{ $t('edubridge.courseGroups.cancelUnderfilled') }}
-            BaseButton(variant="primary" type="submit" :loading="busy") {{ $t('common.action.save') }}
+  //- Группа целиком — в правой панели; та же группа открывается отдельной страницей кнопкой в шапке панели.
+  DetailsDrawer(v-model="detailsOpen" :title="details?.title || $t('edubridge.courseGroups.title')" :width="560")
+    template(v-if="details" #actions)
+      BaseButton(variant="ghost" size="sm" :aria-label="$t('edubridge.courseGroups.openFullPageAriaLabel')" @click="openFullPage")
+        template(#icon-left)
+          q-icon(name="open_in_full" size="16px")
+        | {{ $t('edubridge.courseGroups.openFullPageButton') }}
+    GroupDetails(v-if="details" :course="course" :group="details" :readonly="readonly" @changed="replace" @reload="onGroupsChanged")
 
   //- Новая группа: условия берутся с курса на день открытия.
   BaseDialog(v-model="createOpen" :title="$t('edubridge.courseGroups.createTitle')" size="sm")
@@ -91,44 +49,28 @@ BaseCard(variant="default" :title="$t('edubridge.courseGroups.title')")
         .row.justify-end.q-gutter-sm
           BaseButton(variant="ghost" type="button" :disabled="busy" @click="createOpen = false") {{ $t('common.action.cancel') }}
           BaseButton(variant="primary" type="submit" :loading="busy") {{ $t('edubridge.courseGroups.create') }}
-
-  BaseDialog(v-model="finishConfirm" :title="$t('edubridge.courseGroups.finishConfirmTitle')" size="md")
-    .t-sm {{ $t('edubridge.courseGroups.finishConfirmText') }}
-    template(#footer)
-      .row.justify-end.q-gutter-sm
-        BaseButton(variant="ghost" :disabled="busy" @click="finishConfirm = false") {{ $t('common.action.cancel') }}
-        BaseButton(variant="danger" :loading="busy" @click="onFinish") {{ $t('edubridge.courseGroups.finish') }}
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue';
-import { Zeus } from '@coopenomics/sdk';
+import { useRoute, useRouter } from 'vue-router';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
-import { asText, pluralizeDays } from 'src/shared/lib/utils';
-import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
+import { asText } from 'src/shared/lib/utils';
 import { useFirstLoad } from 'src/shared/lib/composables';
 import { useLiveReload } from 'src/shared/lib/realtime';
 import { EduLive } from '../../shared/lib/live';
 import { minutesOf, useTimeScale } from '../../shared/lib/timeScale';
-import { BaseBadge, BaseBanner, BaseButton, BaseCard, BaseCheckbox, BaseDialog, BaseForm, BaseInput, BaseSelect, BaseTable, type BaseTableColumn } from 'src/shared/ui/base';
-import { DataRow, DetailsDrawer } from 'src/shared/ui/domain';
+import { BaseBadge, BaseButton, BaseCard, BaseDialog, BaseForm, BaseInput, BaseSelect, BaseTable, type BaseTableColumn } from 'src/shared/ui/base';
+import { DetailsDrawer } from 'src/shared/ui/domain';
 import { fetchPlatformCourses, type ICourse } from '../../entities/Course';
-import { fetchCourseEconomy, type ICourseEconomy } from '../../entities/Economy';
-import { cancelGroupUnderfilled, createGroup, fetchCourseGroups, finishGroup, setGroupSchedule, updateGroup, type IGroup } from '../../entities/Group';
-import { fetchAssignments, type IAssignment } from '../../entities/Teacher';
-import { type IScheduleSlot } from '../../entities/Lesson';
-import { ScheduleSlotsEditor } from '../ScheduleSlotsEditor';
-import { useConfirm } from 'src/shared/lib/composables';
-import { useFioCache } from 'src/shared/lib/account/useFioCache';
-import { useSystemStore } from 'src/entities/System/model';
-import { formatToAsset } from 'src/shared/lib/utils';
+import { createGroup, fetchCourseGroups, type IGroup } from '../../entities/Group';
+import { GroupDetails, groupStateOf } from '../GroupDetails';
 import { t } from '../../i18n';
 
 /**
  * Группы курса на странице администратора. Набор идёт в группу; у каждой свои
- * участники, занятия и учёт средств. Условия группы — снимок условий курса на
- * день открытия, поэтому здесь правятся только название, дата начала, набор и
- * привязка к группе площадки.
+ * участники, занятия и учёт средств. Строка реестра открывает группу в правой
+ * панели; кнопка в шапке панели открывает её отдельной страницей.
  */
 const props = defineProps<{
   course: ICourse;
@@ -136,6 +78,9 @@ const props = defineProps<{
   readonly?: boolean;
 }>();
 const emit = defineEmits<{ changed: [] }>();
+
+const route = useRoute();
+const router = useRouter();
 
 const groups = ref<IGroup[]>([]);
 const loading = ref(true);
@@ -150,10 +95,13 @@ const columns: BaseTableColumn<IGroup>[] = [
   { key: 'status', label: t('edubridge.courseGroups.column.status'), width: '150px', nowrap: true },
 ];
 
+const stateOf = groupStateOf;
 const formatDate = (v: unknown) => (v ? new Date(String(v)).toLocaleDateString('ru-RU') : '______');
 /** Начало занятий: дата; на стенде со сжатым временем — с часами и минутами. */
 const formatStart = (g: IGroup) =>
   g.starts_at_time ? new Date(String(g.starts_at_time)).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : formatDate(g.starts_at);
+/** Занятий в программе — число по окнам недели на четыре недели месяца. */
+const formatLessons = (value: unknown): string => Number(value || 0).toLocaleString('ru-RU', { maximumFractionDigits: 2 });
 
 const timeScale = useTimeScale();
 const standHint = computed(() =>
@@ -165,14 +113,7 @@ const startOf = (f: { starts_at: string; starts_in_minutes: string | number }) =
   return minutes === null ? { starts_at: f.starts_at || null } : { starts_in_minutes: minutes };
 };
 
-/** Состояние группы словами: набор открыт, набор закрыт, завершена, отменена. */
-function stateOf(g: IGroup): { label: string; variant: 'pos' | 'neutral' | 'warn' } {
-  if (g.status === Zeus.EduGroupStatus.CLOSED) return { label: t('edubridge.courseGroups.state.closed'), variant: 'neutral' };
-  if (g.status === Zeus.EduGroupStatus.CANCELLED) return { label: t('edubridge.courseGroups.state.cancelled'), variant: 'neutral' };
-  return g.enrollment_open ? { label: t('edubridge.courseGroups.state.enrolling'), variant: 'pos' } : { label: t('edubridge.courseGroups.state.running'), variant: 'warn' };
-}
-
-// Группы площадки, привязанной к курсу: доступ участнику выдаётся в группу площадки его группы.
+// Группы площадки, привязанной к курсу: новая группа открывается с привязкой к одной из них.
 const platformCourseId = computed(() => String(props.course.external_ref ?? '').split(':')[0]);
 const platformGroups = ref<{ id: string; name: string }[]>([]);
 const platformGroupOptions = computed(() => [
@@ -180,7 +121,6 @@ const platformGroupOptions = computed(() => [
   ...platformGroups.value.map((g) => ({ value: g.id, label: g.name })),
 ].slice(platformGroups.value.length ? 0 : 1));
 const refOf = (platformGroup: string): string => (platformGroup ? `${platformCourseId.value}:${platformGroup}` : platformCourseId.value);
-const platformGroupOf = (externalRef: string): string => String(externalRef ?? '').split(':')[1] ?? '';
 
 async function loadPlatformGroups(): Promise<void> {
   if (!platformCourseId.value) return;
@@ -207,97 +147,16 @@ async function load(): Promise<void> {
 const detailsOpen = ref(false);
 const detailsId = ref<string | null>(null);
 const details = computed(() => groups.value.find((g) => asText(g.id) === detailsId.value) ?? null);
-const form = reactive({ title: '', starts_at: '', starts_in_minutes: '' as string | number, platform_group: '', enrollment_open: true });
-
-/** Экономика открытой группы; пока не прочитана — блок не показывается. */
-const groupEconomy = ref<ICourseEconomy | null>(null);
-async function loadGroupEconomy(groupId: string): Promise<void> {
-  groupEconomy.value = null;
-  try {
-    groupEconomy.value = await fetchCourseEconomy(asText(props.course.id), groupId);
-  } catch {
-    groupEconomy.value = null;
-  }
-}
-
-/** Окна расписания группы и срок на отчёт — правятся отдельно от названия и даты: сохранение перестраивает календарь. */
-const slots = ref<IScheduleSlot[]>([]);
-const scheduleBusy = ref(false);
-const assignments = ref<IAssignment[]>([]);
-const { fioCache, enrichFio } = useFioCache();
-const system = useSystemStore();
-const symbol = computed(() => system.governSymbol);
-/** Занятий в программе — число по окнам недели на четыре недели месяца. */
-const formatLessons = (value: unknown): string => Number(value || 0).toLocaleString('ru-RU', { maximumFractionDigits: 2 });
-
-/** Допуски преподавателей к этому курсу: преподаватель окна выбирается из них. */
-const teacherOptions = computed(() =>
-  assignments.value
-    .filter((a) => asText(a.course_id) === asText(props.course.id) && a.status === Zeus.EduAssignmentStatus.ACTIVE)
-    .map((a) => ({ value: asText(a.id), label: fioCache.value.get(a.teacher_username) || a.teacher_username })),
-);
-async function loadAssignments(): Promise<void> {
-  try {
-    assignments.value = await fetchAssignments();
-    void enrichFio(assignments.value.map((a) => a.teacher_username));
-  } catch {
-    assignments.value = [];
-  }
-}
-async function onSaveSchedule(): Promise<void> {
-  if (!details.value) return;
-  scheduleBusy.value = true;
-  try {
-    replace(
-      await setGroupSchedule({
-        group_id: asText(details.value.id),
-        slots: slots.value.map((s) => ({ weekday: Number(s.weekday), time: s.time, minutes: Number(s.minutes), assignment_id: s.assignment_id || null, hourly_rate: formatToAsset(String(s.hourly_rate || '0').replace(',', '.'), symbol.value) })),
-      }),
-    );
-    SuccessAlert(t('edubridge.courseGroups.scheduleSaved'));
-  } catch (e) {
-    FailAlert(e);
-  } finally {
-    scheduleBusy.value = false;
-  }
-}
-
-const { confirm } = useConfirm();
-const cancelling = ref(false);
-/** Занятия группы начались: отмена по недобору закрыта, остаётся отказ участника от подписки. */
-const groupStarted = computed(() => {
-  const start = details.value?.starts_at_time ?? details.value?.starts_at;
-  return Boolean(start) && new Date(String(start)) <= new Date();
-});
-async function onCancelUnderfilled(): Promise<void> {
-  if (!details.value) return;
-  const agreed = await confirm({
-    title: t('edubridge.courseGroups.cancelUnderfilledConfirmTitle'),
-    message: t('edubridge.courseGroups.cancelUnderfilledConfirmMessage', { groupTitle: details.value.title }),
-    note: t('edubridge.courseGroups.cancelUnderfilledConfirmNote'),
-    confirmLabel: t('edubridge.courseGroups.cancelUnderfilled'),
-    danger: true,
-  });
-  if (!agreed) return;
-  cancelling.value = true;
-  try {
-    const count = await cancelGroupUnderfilled(asText(details.value.id));
-    SuccessAlert(count > 0 ? t('edubridge.courseGroups.cancelledWithRefunds', { count }) : t('edubridge.courseGroups.cancelledNoSubscriptions'));
-    await load();
-    emit('changed');
-  } catch (e) {
-    FailAlert(e);
-  } finally {
-    cancelling.value = false;
-  }
-}
 
 function openDetails(row: IGroup): void {
   detailsId.value = asText(row.id);
-  void loadGroupEconomy(asText(row.id));
-  slots.value = (row.schedule_slots ?? []).map((s) => ({ weekday: s.weekday, time: s.time, minutes: s.minutes, assignment_id: s.assignment_id ? String(s.assignment_id) : null, hourly_rate: s.hourly_rate ? String(parseFloat(s.hourly_rate)) : '' }));
-  Object.assign(form, { title: row.title, starts_at: row.starts_at ?? '', starts_in_minutes: '', platform_group: platformGroupOf(row.external_ref), enrollment_open: row.enrollment_open });
   detailsOpen.value = true;
+}
+
+/** Та же группа на отдельной странице: на всю ширину и со своим адресом. */
+function openFullPage(): void {
+  if (!details.value) return;
+  void router.push({ name: 'edubridge-admin-group', params: { coopname: route.params.coopname, id: asText(props.course.id), groupId: asText(details.value.id) } });
 }
 
 function replace(group: IGroup): void {
@@ -307,53 +166,10 @@ function replace(group: IGroup): void {
   emit('changed');
 }
 
-const finishConfirm = ref(false);
-/** Группу завершает администратор, когда занятия начались и действующих подписок в ней нет. */
-const canFinish = computed(
-  () =>
-    !props.readonly &&
-    Boolean(details.value) &&
-    details.value?.status === Zeus.EduGroupStatus.ACTIVE &&
-    details.value?.learners_active === 0 &&
-    !details.value?.enrollment_open,
-);
-/** Завершение группы: расчёты закрываются, резерв за занятия без отчёта уходит на кошелёк программы. */
-async function onFinish(): Promise<void> {
-  if (!details.value) return;
-  busy.value = true;
-  try {
-    replace(await finishGroup(asText(details.value.id)));
-    finishConfirm.value = false;
-    SuccessAlert(t('edubridge.courseGroups.finished'));
-  } catch (e) {
-    FailAlert(e);
-  } finally {
-    busy.value = false;
-  }
-}
-
-async function onSave(): Promise<void> {
-  if (!details.value) return;
-  busy.value = true;
-  try {
-    replace(
-      await updateGroup({
-        id: asText(details.value.id),
-        title: form.title,
-        // Дата начала закреплена после первого занятия — тогда она не отправляется.
-        ...(details.value.lessons_held > 0 ? {} : startOf(form)),
-        ...(platformCourseId.value ? { external_ref: refOf(form.platform_group) } : {}),
-        // Набор отправляется, когда его изменил администратор: иначе его ведёт дата начала.
-        ...(form.enrollment_open === details.value.enrollment_open ? {} : { enrollment_open: form.enrollment_open }),
-      }),
-    );
-    if (details.value) Object.assign(form, { enrollment_open: details.value.enrollment_open, starts_at: details.value.starts_at ?? '', starts_in_minutes: '' });
-    SuccessAlert(t('edubridge.courseGroups.saved'));
-  } catch (e) {
-    FailAlert(e);
-  } finally {
-    busy.value = false;
-  }
+/** Состав групп изменился в панели (отмена по недобору) — реестр перечитывается. */
+async function onGroupsChanged(): Promise<void> {
+  await load();
+  emit('changed');
 }
 
 const createOpen = ref(false);
@@ -388,18 +204,9 @@ watch(() => props.course.id, load);
 onMounted(() => {
   void load();
   void loadPlatformGroups();
-  void loadAssignments();
 });
-// Группы меняются набором, занятиями и взносами участников — блок обновляется сам.
-useLiveReload([EduLive.groups, EduLive.enrollments, EduLive.lessons], load);
+// Группы меняются набором, занятиями, взносами участников и допусками преподавателей — блок обновляется сам.
+useLiveReload([EduLive.groups, EduLive.enrollments, EduLive.lessons, EduLive.assignments], load);
 defineExpose({ reload: load });
 </script>
 
-<style scoped>
-.edu-row-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--p-space-2, 8px);
-  justify-content: flex-end;
-}
-</style>

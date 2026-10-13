@@ -77,6 +77,30 @@ function slotRate(s: Partial<EduScheduleSlot>): string {
   return rate;
 }
 
+/**
+ * Преподаватели окон по действующим допускам курса. Окно без преподавателя
+ * либо с допуском, которого среди действующих уже нет, получает допуск по
+ * очереди: первый допуск — первому такому окну, второй — второму, и снова по
+ * кругу. Назначенные администратором окна не трогаются. Допусков нет — окна
+ * остаются без преподавателя.
+ *
+ * @param activeIds действующие допуски курса в порядке их выдачи
+ * @returns новые окна либо `null`, когда менять нечего
+ */
+export function fillSlotTeachers(slots: readonly EduScheduleSlot[], activeIds: readonly string[]): EduScheduleSlot[] | null {
+  const active = new Set(activeIds);
+  let turn = 0;
+  let changed = false;
+  const next = slots.map((slot) => {
+    if (slot.assignment_id && active.has(slot.assignment_id)) return slot;
+    const assignment_id = activeIds.length ? activeIds[turn++ % activeIds.length] : null;
+    if (assignment_id === (slot.assignment_id ?? null)) return slot;
+    changed = true;
+    return { ...slot, assignment_id };
+  });
+  return changed ? next : null;
+}
+
 /** Стоимость занятия окна для одного участника — стоимость часа за минуты окна; в таком виде окно уходит в контракт. */
 export function slotLessonCost(slot: Pick<EduScheduleSlot, 'minutes' | 'hourly_rate'>): string {
   const rate = String(slot.hourly_rate ?? '').trim();

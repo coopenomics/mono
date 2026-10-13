@@ -8,7 +8,7 @@ import { EdubridgeGroupKyselyRepository } from '../../infrastructure/repositorie
 import { EdubridgeLessonKyselyRepository } from '../../infrastructure/repositories/edubridge-lesson.kysely-repository';
 import { EdubridgeTeacherKyselyRepository } from '../../infrastructure/repositories/edubridge-teacher.kysely-repository';
 import { eduMonthSeconds, isTimeCompressed } from '../../domain/economy/time-scale';
-import { type EduScheduleSlot, type SlotOccurrence, isReserveSlot, normalizeSlots, programOf, reserveIndex, slotOccurrences } from '../../domain/lib/schedule';
+import { fillSlotTeachers, isReserveSlot, normalizeSlots, programOf, reserveIndex, slotOccurrences, type EduScheduleSlot, type SlotOccurrence } from '../../domain/lib/schedule';
 import { startMomentOf } from '../../domain/lib/group-start';
 
 export interface EduScheduleInput {
@@ -72,8 +72,51 @@ export class EdubridgeCalendarService {
     group.schedule_slots = slots;
     if (input.report_days !== undefined && input.report_days !== null) group.report_days = reportDaysOf(input.report_days);
     const saved = await this.groups.save(group);
+    // Окно без преподавателя получает его из допусков курса: занятие без преподавателя отчитать некому.
+    await this.syncTeachers(coopname, saved);
     await this.rebuild(coopname, saved);
     return saved;
+  }
+
+  /**
+   * Преподаватели окон группы — по действующим допускам курса. Окно без
+   * преподавателя либо с допуском, который снят, получает допуск по очереди.
+   * Зовётся, когда меняются допуски курса либо окна группы; календарь после
+   * этого перестраивает вызывающий.
+   *
+   * @returns `true` — окна изменились и группа сохранена
+   */
+  async syncTeachers(coopname: string, group: EdubridgeGroupRecord): Promise<boolean> {
+    const active = await this.activeAssignments(coopname, group.course_id);
+    const slots = fillSlotTeachers(group.schedule_slots ?? [], active.map((a) => a.id));
+    if (!slots) return false;
+    group.schedule_slots = slots;
+    await this.groups.save(group);
+    this.logger.info(`[EDU.CAL] группа «${group.title}»: преподаватели окон расставлены по допускам курса`);
+    return true;
+  }
+
+  /** Действующие допуски курса в порядке их выдачи. */
+  private async activeAssignments(coopname: string, courseId: string): Promise<EdubridgeTeacherAssignmentRecord[]> {
+    return (await this.teachers.listAssignments(coopname))
+      .filter((a) => a.course_id === courseId && a.status === EduAssignmentStatus.ACTIVE)
+      .sort((x, y) => Number(x.chain_ref ?? 0) - Number(y.chain_ref ?? 0));
+  }
+
+  /**
+   * Занятия, назначенные отдельно и перенесённые, идут за преподавателем своего
+   * окна, когда своего преподавателя у них нет либо его допуск снят.
+   */
+  private async retargetKept(coopname: string, group: EdubridgeGroupRecord, kept: EdubridgeLessonRecord[]): Promise<void> {
+    const active = new Map((await this.activeAssignments(coopname, group.course_id)).map((a) => [a.id, a]));
+    const slots = group.schedule_slots ?? [];
+    for (const lesson of kept.filter((l) => needsTeacher(l, active))) {
+      const target = active.get(slots[Number(lesson.slot_index ?? 0)]?.assignment_id ?? '');
+      if (!target && !lesson.assignment_id) continue;
+      lesson.assignment_id = target?.id ?? null;
+      lesson.teacher_username = target?.teacher_username ?? null;
+      await this.lessons.save(lesson);
+    }
   }
 
   /**
@@ -86,6 +129,7 @@ export class EdubridgeCalendarService {
     const planned = all.filter((l) => l.status === EduLessonStatus.PLANNED && l.origin === EduLessonOrigin.SCHEDULE);
     await this.lessons.deleteMany(planned.map((l) => l.id));
     const kept = all.filter((l) => !planned.includes(l));
+    await this.retargetKept(coopname, group, kept);
     const start = startMomentOf(group);
     if (!start || !group.schedule_slots?.length || group.status !== EduGroupStatus.ACTIVE) return kept;
 
@@ -274,6 +318,12 @@ export class EdubridgeCalendarService {
     if (!cache.has(id)) cache.set(id, await this.teachers.findAssignment(coopname, id));
     return cache.get(id) ?? null;
   }
+}
+
+/** Запланированное занятие без преподавателя либо с преподавателем, чей допуск снят. */
+function needsTeacher(lesson: EdubridgeLessonRecord, active: Map<string, unknown>): boolean {
+  if (lesson.status !== EduLessonStatus.PLANNED) return false;
+  return !lesson.assignment_id || !active.has(lesson.assignment_id);
 }
 
 /** Наименьший свободный номер занятия в группе. */

@@ -3,13 +3,15 @@
   PageHint.q-mb-md(storage-key="edu:teacher-lessons:banner-dismissed")
     | {{ $t('edubridge.teacherLessonsPage.hintCalendar') }}
 
-  //- Занятия, по которым отчёт открыт прямо сейчас: занятие прошло, срок на отчёт не вышел.
-  BaseBanner.q-mb-md(v-for="l in awaitingReport" :key="asText(l.id)" variant="warn")
+  //- Занятия, по которым отчёт открыт прямо сейчас. Показаны ближайшие три: остальные — строкой,
+  //- они открываются из календаря ниже. Иначе баннеры занимают экран и календарь уезжает вниз.
+  BaseBanner.q-mb-md(v-for="l in awaitingShown" :key="asText(l.id)" variant="warn")
     template(#icon)
       q-icon(name="event_available")
-    | {{ $t(l.overdue ? 'edubridge.teacherLessonsPage.awaitingReportOverdue' : 'edubridge.teacherLessonsPage.awaitingReport', { number: l.lesson_number, courseTitle: l.course_title, moment: formatLessonMoment(l.held_at) }) }}
+    | {{ $t(l.overdue ? 'edubridge.teacherLessonsPage.awaitingReportOverdue' : 'edubridge.teacherLessonsPage.awaitingReport', { number: l.lesson_number, courseTitle: l.course_title, groupTitle: l.group_title, moment: formatLessonMoment(l.held_at) }) }}
     template(#action)
       BaseButton(variant="primary" size="sm" @click="openReport(l)") {{ $t('edubridge.teacherLessonsPage.reportButton') }}
+  .t-sm.t-muted.q-mb-md(v-if="awaitingMore > 0") {{ $t('edubridge.teacherLessonsPage.awaitingMore', awaitingMore) }}
 
   //- Взносы, по которым преподаватель ещё не подписал документы.
   BaseBanner.q-mb-md(v-for="p in pendingTransfers" :key="asText(p.id)" variant="warn")
@@ -159,6 +161,10 @@ const form = reactive<{ topic: string }>({ topic: '' });
 const heldLessons = computed(() => lessons.value.filter((l) => l.status === Zeus.EduLessonStatus.HELD));
 /** Занятия, по которым отчёт открыт сейчас — по порядку дат. */
 const awaitingReport = computed(() => lessons.value.filter((l) => isReportable(l)).sort((a, b) => String(a.held_at).localeCompare(String(b.held_at))));
+/** Баннеров под отчёт на экране — не больше трёх; остальные занятия названы числом. */
+const AWAITING_SHOWN = 3;
+const awaitingShown = computed(() => awaitingReport.value.slice(0, AWAITING_SHOWN));
+const awaitingMore = computed(() => Math.max(0, awaitingReport.value.length - AWAITING_SHOWN));
 
 /**
  * Строка журнала: взнос вместе с занятиями, за которые он заведён. Взнос за

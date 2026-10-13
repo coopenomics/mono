@@ -75,3 +75,10 @@ cases:
     test: components/controller/tests/unit/edubridge/enrollment.service.test.ts
     api: components/api-tests/src/edubridge/groups.test.ts
     status: written
+  - id: edu.cal.side.20
+    level: backend
+    kind: side
+    scenario: "Допуск к курсу есть, а окна расписания группы без преподавателя (замечание владельца 13.10.2026: занятия строились без преподавателя, его календарь был пуст)."
+    expect: "Окно без преподавателя и окно снятого допуска получают действующие допуски курса по очереди; назначенные окна не трогаются; занятия календаря строятся с преподавателем; запланированное отдельно занятие переходит к преподавателю своего окна."
+    test: components/controller/tests/unit/edubridge/calendar.service.test.ts
+    status: written
