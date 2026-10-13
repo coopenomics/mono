@@ -14,7 +14,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { cleanViteOverlays, env, loginAs, pickBranchIfAsked, signReceiptIfAsked } from '../../../lib/harness.mjs';
+import { SHOT_SCALE, SHOT_VIEWPORT, cleanViteOverlays, env, loginAs, pickBranchIfAsked, signReceiptIfAsked } from '../../../lib/harness.mjs';
 import { makeSolidPng } from '../../../lib/png.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -34,7 +34,7 @@ export const meta = {
   role: 'user',
   mode: 'docs',
   fixture: 'orderer2',
-  fixtures: ['orderer2'],
+  fixtures: ['orderer2', 'chairkrg'],
   feature: 'marketplace.stock',
   cases: ['mkt.stock.happy.04'],
   prepare: [
@@ -67,13 +67,34 @@ export default async ({ page, shot, expect }) => {
   await page.waitForTimeout(3000);
   await cleanViteOverlays(page);
 
-  // После подписи заявление уходит совету, акт закрывается после его решения —
-  // ждём, пока заказ станет полученным, перечитывая страницу.
-  for (let i = 0; i < 12; i++) {
-    if (await page.getByText('Получен', { exact: true }).first().isVisible().catch(() => false)) break;
-    await page.waitForTimeout(8000);
-    await page.reload({ waitUntil: 'domcontentloaded' });
-    await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
+  // После подписи пайщика выдачу закрывает стол ПВЗ: вторую подпись акта он
+  // ставит сам, но только пока открыт у оператора. В цепочке первого заказа
+  // стол открывает сценарий issuance-finalize; здесь открываем его во втором
+  // окне и ждём, пока заказ станет полученным.
+  const operatorContext = await page.context().browser().newContext({
+    viewport: SHOT_VIEWPORT,
+    deviceScaleFactor: SHOT_SCALE,
+    locale: 'ru-RU',
+  });
+  try {
+    const operatorPage = await operatorContext.newPage();
+    await loginAs(operatorPage, loadFixture('chairkrg'));
+    await pickBranchIfAsked(operatorPage);
+    await operatorPage.goto(`${env.APP_PREFIX}/${env.COOPNAME}/market-pvz/issuance`, {
+      waitUntil: 'domcontentloaded',
+      timeout: 60000,
+    });
+    await operatorPage.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
+    let received = false;
+    for (let i = 0; i < 18 && !received; i++) {
+      await page.waitForTimeout(8000);
+      await page.reload({ waitUntil: 'domcontentloaded' });
+      await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
+      received = await page.getByText('Получен', { exact: true }).first().isVisible().catch(() => false);
+    }
+    expect(received, 'заказ со склада не стал полученным: стол ПВЗ не закрыл выдачу после подписи пайщика').toBe(true);
+  } finally {
+    await operatorContext.close();
   }
 
   await page.getByText('Яблочный сок').first().click({ force: true });
