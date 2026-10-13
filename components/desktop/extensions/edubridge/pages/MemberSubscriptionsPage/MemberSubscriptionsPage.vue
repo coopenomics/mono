@@ -68,6 +68,7 @@
     :courses="courses"
     :locked-course-id="lockedCourseId"
     :locked-group-id="lockedGroupId"
+    :preferred-learner-id="extendLearnerId"
     @learner-added="onLearnerAdded"
     @subscribed="onSubscribed"
   )
@@ -169,6 +170,7 @@ const ACCESS_HOW_TO: Partial<Record<string, AccessHowToKey>> = {
 };
 const lockedCourseId = ref<string | null>(null);
 const lockedGroupId = ref<string | null>(null);
+const extendLearnerId = ref<string | null>(null);
 const cancelOpen = ref(false);
 const cancelTarget = ref<IEnrollment | null>(null);
 const refund = ref<IRefundPreview | null>(null);
@@ -273,6 +275,8 @@ async function load(): Promise<void> {
 function extend(row: IEnrollment): void {
   lockedCourseId.value = asText(row.course_id);
   lockedGroupId.value = row.group_id ? asText(row.group_id) : null;
+  // Продлевается подписка этого обучающегося: окно открывается на нём, а не на самом пайщике.
+  extendLearnerId.value = asText(row.learner_id);
   extendOpen.value = true;
 }
 /** Курс подписки из каталога — за расписанием; снятый с публикации курс в каталоге не найдётся. */

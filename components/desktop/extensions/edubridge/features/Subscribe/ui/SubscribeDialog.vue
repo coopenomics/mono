@@ -11,9 +11,24 @@ BaseDialog(:model-value="modelValue" :title="$t('edubridge.subscribeDialog.getAc
     .edu-subscribe__who
       .t-eyebrow.q-mb-sm {{ $t('edubridge.subscribeDialog.whoTitle') }}
       .edu-subscribe__tiles
-        BaseRadioCard(v-for="l in pool" :key="asText(l.id)" v-model="who" :value="asText(l.id)" :title="l.is_self ? $t('edubridge.learnerForm.whoSelf') : l.display_name" :disabled="addingSelf")
+        //- Обучающийся с действующей подпиской в этой группе второй раз в неё не записывается — плитка закрыта и говорит почему.
+        BaseRadioCard(
+          v-for="l in pool"
+          :key="asText(l.id)"
+          v-model="who"
+          :value="asText(l.id)"
+          :title="l.is_self ? $t('edubridge.learnerForm.whoSelf') : l.display_name"
+          :description="isEnrolled(l) ? $t('edubridge.subscribeDialog.alreadyEnrolled') : undefined"
+          :disabled="addingSelf || isEnrolled(l)"
+        )
         BaseRadioCard(v-if="!hasSelf" v-model="who" :value="WHO_SELF" :title="$t('edubridge.learnerForm.whoSelf')" :disabled="addingSelf")
         BaseRadioCard(v-model="who" :value="WHO_OTHER" :title="$t('edubridge.learnerForm.whoOther')" :disabled="addingSelf")
+
+    //- Набор в группы выбранного курса закрыт — расчёта нет, окно говорит об этом до обращения к серверу.
+    BaseBanner(v-if="enrollmentClosed" variant="warn")
+      template(#icon)
+        q-icon(name="event_busy")
+      | {{ $t('edubridge.subscribeDialog.enrollmentClosed') }}
 
     //- Два способа внести взнос — рядом, с полными суммами: скидка за взнос
     //- разом видна как разница в рублях. Второй способ есть не у каждого курса.
@@ -57,7 +72,7 @@ import { Zeus } from '@coopenomics/sdk';
 import { asDateInput, asText } from 'src/shared/lib/utils';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
-import { BaseButton, BaseDialog, BaseRadioCard, BaseSelect } from 'src/shared/ui/base';
+import { BaseBanner, BaseButton, BaseDialog, BaseRadioCard, BaseSelect } from 'src/shared/ui/base';
 import { DataRow } from 'src/shared/ui/domain';
 import { DepositButton } from 'src/features/Wallet/DepositToWallet';
 import type { DigitalDocument } from 'src/shared/lib/document';
@@ -84,6 +99,10 @@ const props = defineProps<{
   lockedCourseId?: string | null;
   /** Продление: взнос идёт в группу подписки, выбора группы нет. */
   lockedGroupId?: string | null;
+  /** Действующие подписки пайщика: записанный в группу обучающийся второй раз в неё не выбирается. */
+  enrolled?: Pick<IEnrollment, 'learner_id' | 'group_id' | 'course_id'>[];
+  /** Обучающийся, для которого окно открыто: выбран сразу. */
+  preferredLearnerId?: string | null;
 }>();
 const emit = defineEmits<{
   'update:modelValue': [v: boolean];
@@ -166,19 +185,38 @@ const groupOptions = computed(() =>
   })),
 );
 
+/** Группы курса прочитаны, и открытого набора нет ни в одной. Продление идёт в своей группе и от набора не зависит. */
+const groupsLoaded = ref(false);
+const enrollmentClosed = computed(() => Boolean(courseId.value) && !props.lockedGroupId && groupsLoaded.value && !openGroups.value.length);
+
+/**
+ * У обучающегося уже есть действующая подписка в выбранной группе. В окне
+ * продления (группа задана страницей) плитка открыта — взнос идёт по этой подписке.
+ */
+function isEnrolled(l: ILearner): boolean {
+  if (props.lockedGroupId || !courseId.value) return false;
+  return (props.enrolled ?? []).some(
+    (e) => asText(e.learner_id) === asText(l.id) && asText(e.course_id) === courseId.value && (!groupId.value || !e.group_id || asText(e.group_id) === groupId.value),
+  );
+}
+
 async function loadGroups(): Promise<void> {
   openGroups.value = [];
+  groupsLoaded.value = false;
   groupId.value = props.lockedGroupId ?? null;
   // Продление идёт в группе подписки: набор в ней закрыт, выбирать не из чего.
   if (!courseId.value || props.lockedGroupId) return;
   try {
     openGroups.value = await fetchOpenGroups(courseId.value);
+    groupsLoaded.value = true;
   } catch {
     // Группы не прочитаны — сервер запишет в единственную группу с открытым набором.
     openGroups.value = [];
   }
   // Группа называется всегда: запись в другую группу курса — новая подписка, а не продление прежней.
   if (openGroups.value.length) groupId.value = asText(openGroups.value[0].id);
+  // Выбранный обучающийся в этой группе уже записан — выбор переходит к свободному.
+  pickDefaultLearner();
 }
 
 watch([courseId, () => props.lockedGroupId], loadGroups, { immediate: true });
@@ -192,7 +230,7 @@ async function reloadQuotes(): Promise<void> {
   monthQuote.value = null;
   courseQuote.value = null;
   statement.value = null;
-  if (!learnerId.value || !courseId.value) return;
+  if (!learnerId.value || !courseId.value || enrollmentClosed.value) return;
   const pair = { learner_id: learnerId.value, course_id: courseId.value, group_id: groupId.value };
   try {
     monthQuote.value = await fetchQuote({ ...pair, period: Zeus.EduEnrollmentPeriod.MONTH });
@@ -223,10 +261,16 @@ watch(
   },
 );
 
-/** Обучающийся по умолчанию — сам пайщик: так подписка на себя оформляется в два клика. */
+/**
+ * Обучающийся по умолчанию: тот, для кого окно открыто, иначе сам пайщик — так
+ * подписка на себя оформляется в два клика. Записанный в выбранную группу не
+ * выбирается: окно открывается на свободном обучающемся либо без выбора.
+ */
 function pickDefaultLearner(): void {
-  if (learnerId.value && pool.value.some((l) => asText(l.id) === learnerId.value)) return;
-  learnerId.value = asText((pool.value.find((l) => l.is_self) ?? pool.value[0])?.id) || null;
+  const free = pool.value.filter((l) => !isEnrolled(l));
+  if (learnerId.value && free.some((l) => asText(l.id) === learnerId.value)) return;
+  const preferred = free.find((l) => asText(l.id) === props.preferredLearnerId);
+  learnerId.value = asText((preferred ?? free.find((l) => l.is_self) ?? free[0])?.id) || null;
 }
 
 watch(
@@ -241,7 +285,11 @@ watch(
 watch(
   () => props.modelValue,
   (open) => {
-    if (open) pickDefaultLearner();
+    if (!open) return;
+    // Окно открыто для другого обучающегося либо в другом режиме — прежний выбор не держится.
+    learnerId.value = null;
+    if (!props.lockedCourseId) courseId.value = null;
+    pickDefaultLearner();
   },
   { immediate: true },
 );

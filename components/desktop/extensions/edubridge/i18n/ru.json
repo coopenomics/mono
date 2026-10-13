@@ -572,7 +572,8 @@
       "syllabusTitle": "Учебная программа",
       "teachersTitleMany": "Курс ведут",
       "teachersTitleOne": "Курс ведёт",
-      "backToCatalog": "К каталогу курсов"
+      "backToCatalog": "К каталогу курсов",
+      "enrollAnother": "Записать обучающегося"
     },
     "courseForm": {
       "addTeacherLabel": "Назначить преподавателя",
@@ -813,7 +814,7 @@
         "createdAt": "Добавлен",
         "subscriptions": "Подписки",
         "paidUntil": "оплачено до {date}",
-        "noSubscriptions": "Подписок пока нет — курс выбирается в каталоге.",
+        "noSubscriptions": "Подписок пока нет.",
         "enroll": "Записать на курс"
       }
     },
@@ -907,7 +908,9 @@
       "topUpWallet": "Пополнить кошелёк",
       "groupLabel": "Группа",
       "groupOption": "{title}, начало {startsAt}",
-      "whoTitle": "Кто будет обучаться"
+      "whoTitle": "Кто будет обучаться",
+      "alreadyEnrolled": "уже записан",
+      "enrollmentClosed": "Набор в группы этого курса закрыт. Выберите другой курс."
     },
     "teacherAssignmentsPage": {
       "aboutTitle": "О курсе",

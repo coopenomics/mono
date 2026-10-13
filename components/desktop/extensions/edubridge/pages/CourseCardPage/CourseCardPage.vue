@@ -14,15 +14,18 @@
         //- Длительность программы словами: ученик не делит занятия на месяцы сам.
         span(v-if="programSpan") {{ $t('edubridge.courseCardPage.programSpan', { span: programSpan }) }}
       template(#actions)
-        //- Доступ уже оплачен: срок виден, главное действие — продление; записать ещё одного обучающегося — рядом.
+        //- Доступ уже оплачен: срок виден. Продление — только у подписки, которую можно продлить:
+        //- программа, оплаченная до конца, заканчивается сама. Пока набор открыт, рядом — запись ещё одного обучающегося.
         template(v-if="paidUntil")
           .edu-course__access
             BaseBadge(variant="pos") {{ $t('edubridge.courseCardPage.accessPaidUntil', { date: formatDate(paidUntil) }) }}
-            .edu-course__due(v-if="renewSoon") {{ $t('edubridge.courseCardPage.daysLeft', { n: left }, Number(left)) }}
-          BaseButton(variant="primary" @click="getAccess") {{ $t('edubridge.courseCardPage.extend') }}
+            .edu-course__due(v-if="renewable && renewSoon") {{ $t('edubridge.courseCardPage.daysLeft', { n: left }, Number(left)) }}
+          .edu-course__buttons
+            BaseButton(v-if="!enrollmentClosed" :variant="renewable ? 'secondary' : 'primary'" @click="getAccess('enroll')") {{ $t('edubridge.courseCardPage.enrollAnother') }}
+            BaseButton(v-if="renewable" variant="primary" @click="getAccess('extend')") {{ $t('edubridge.courseCardPage.extend') }}
         //- Занятия во всех группах начались — набор закрыт, записаться можно в следующую группу.
         BaseBadge(v-else-if="enrollmentClosed" variant="neutral") {{ $t('edubridge.courseCardPage.enrollmentClosed') }}
-        BaseButton(v-else variant="primary" @click="getAccess") {{ $t('edubridge.courseCardPage.getAccess') }}
+        BaseButton(v-else variant="primary" @click="getAccess('enroll')") {{ $t('edubridge.courseCardPage.getAccess') }}
         .edu-course__guest(v-if="!session.isAuth") {{ $t('edubridge.courseCardPage.guestHint') }}
       //- Обе полные суммы рядом: скидка видна как разница в рублях, а не как
       //- цена «от …», которую участник ни разу не вносит.
@@ -57,6 +60,9 @@
       :learners="learners"
       :courses="course ? [course] : []"
       :locked-course-id="asText(course?.id) || null"
+      :locked-group-id="dialogMode === 'extend' ? asText(renewableEnrollment?.group_id) || null : null"
+      :preferred-learner-id="dialogMode === 'extend' ? asText(renewableEnrollment?.learner_id) || null : null"
+      :enrolled="dialogMode === 'enroll' ? ownEnrollments : []"
       @learner-added="onLearnerAdded"
       @subscribed="onSubscribed"
     )
@@ -114,6 +120,13 @@ const programSpan = computed(() => programSpanLabel(course.value?.lessons_per_mo
 const hasSide = computed(() => Boolean(course.value?.teacher_usernames.length));
 const left = computed(() => daysLeft(paidUntil.value));
 const renewSoon = computed(() => left.value !== null && left.value <= RENEW_SOON_DAYS);
+/** Подписка, которую можно продлить: программа идёт дальше оплаченного срока. Первой берётся та, что кончается раньше. */
+const renewableEnrollment = computed(
+  () => [...ownEnrollments.value].filter((e) => e.renewable).sort((a, b) => String(a.paid_until).localeCompare(String(b.paid_until)))[0] ?? null,
+);
+const renewable = computed(() => Boolean(renewableEnrollment.value));
+/** Зачем открыто окно подписки: записать обучающегося либо продлить действующую подписку. */
+const dialogMode = ref<'enroll' | 'extend'>('enroll');
 const learners = ref<ILearner[]>([]);
 /** Набор закрыт: групп с открытым набором у курса нет. Пока группы не прочитаны — кнопка остаётся. */
 const enrollmentClosed = ref(false);
@@ -135,7 +148,8 @@ function goBack(): void {
   void router.push({ name: 'edubridge-catalog', params: { coopname: route.params.coopname } });
 }
 
-async function getAccess(): Promise<void> {
+async function getAccess(mode: 'enroll' | 'extend'): Promise<void> {
+  dialogMode.value = mode;
   if (!session.isAuth) {
     void router.push({ name: 'signup', params: { coopname: route.params.coopname } });
     return;
@@ -253,6 +267,12 @@ onBeforeUnmount(() => {
   flex-direction: column;
   align-items: flex-end;
   gap: var(--p-1);
+}
+.edu-course__buttons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--p-2);
 }
 .edu-course__due {
   font-size: var(--p-fs-meta, 12px);

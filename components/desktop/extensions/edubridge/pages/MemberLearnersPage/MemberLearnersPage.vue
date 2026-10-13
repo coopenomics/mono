@@ -55,12 +55,22 @@
             q-icon(name="edit" size="18px")
           | {{ $t('edubridge.memberLearnersPage.editAriaLabel') }}
         q-space
-        BaseButton(variant="primary" @click="goToCatalog") {{ $t('edubridge.memberLearnersPage.details.enroll') }}
+        BaseButton(variant="primary" :loading="enrollLoading" @click="openEnroll") {{ $t('edubridge.memberLearnersPage.details.enroll') }}
+
+  //- Запись обучающегося на курс — здесь же: курс выбирается в окне, обучающийся уже выбран.
+  SubscribeDialog(
+    v-model="enrollOpen"
+    :learners="learners"
+    :courses="courses"
+    :preferred-learner-id="currentId"
+    :enrolled="liveEnrollments"
+    @learner-added="onLearnerSaved"
+    @subscribed="load"
+  )
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
 import { asDateInput, asText } from 'src/shared/lib/utils';
 import { useFirstLoad } from 'src/shared/lib/composables';
 import { FailAlert } from 'src/shared/api';
@@ -78,6 +88,9 @@ import {
   type ILearner,
 } from '../../entities/Learner';
 import { LearnerForm } from '../../widgets/LearnerForm';
+import { SubscribeDialog } from '../../features/Subscribe';
+import { fetchCatalog, type ICatalogCourse } from '../../entities/Course';
+import { isLiveEnrollment } from '../../shared/lib/subscriptionDue';
 import { HeaderActionButton } from '../../shared/ui/HeaderActionButton';
 import { t } from '../../i18n';
 import { useLiveReload } from 'src/shared/lib/realtime';
@@ -89,8 +102,6 @@ import { EduLive } from '../../shared/lib/live';
  * правка. Курсы и сроки целиком живут на соседней странице «Мои подписки».
  */
 const { registerAction } = useHeaderActions();
-const route = useRoute();
-const router = useRouter();
 
 const learners = ref<ILearner[]>([]);
 const enrollments = ref<IEnrollment[]>([]);
@@ -159,8 +170,22 @@ function onFormCancel(): void {
   if (current.value) mode.value = 'view';
   else drawerOpen.value = false;
 }
-function goToCatalog(): void {
-  void router.push({ name: 'edubridge-catalog', params: { coopname: route.params.coopname } });
+/** Действующие подписки: по ним окно записи закрывает плитку уже записанного обучающегося. */
+const liveEnrollments = computed(() => enrollments.value.filter(isLiveEnrollment));
+/** Курсы каталога для окна записи читаются при первом открытии окна. */
+const courses = ref<ICatalogCourse[]>([]);
+const enrollOpen = ref(false);
+const enrollLoading = ref(false);
+async function openEnroll(): Promise<void> {
+  enrollLoading.value = true;
+  try {
+    courses.value = (await fetchCatalog({ options: { page: 1, limit: 200, sortBy: 'sort_order', sortOrder: 'ASC' } })).items;
+    enrollOpen.value = true;
+  } catch (e) {
+    FailAlert(e);
+  } finally {
+    enrollLoading.value = false;
+  }
 }
 
 // Живое обновление: данные меняются в цепи и на столах других участников.
