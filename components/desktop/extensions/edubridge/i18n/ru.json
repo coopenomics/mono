@@ -164,7 +164,9 @@
       "reportUntil": "Отчёт принимается до",
       "reportedAt": "Отчёт подан",
       "learners": "Обучающихся в расчёте",
-      "materials": "Материалы занятия"
+      "materials": "Материалы занятия",
+      "units": "В программе",
+      "unitsValue": "{units} занятие по {minutes} мин | {units} занятия по {minutes} мин | {units} занятий по {minutes} мин"
     },
     "planLesson": {
       "title": "Назначить занятие",
@@ -174,7 +176,8 @@
       "groupLabel": "Группа",
       "momentLabel": "Дата и время",
       "minutesLabel": "Длительность, минут",
-      "minutesHint": "Занятие длиннее занятия курса занимает в программе несколько занятий.",
+      "minutesHint": "Единица программы — занятие курса. Занятие длиннее занимает в программе несколько занятий.",
+      "unitsHint": "Занимает {units} занятие программы по {lessonMinutes} мин | Занимает {units} занятия программы по {lessonMinutes} мин | Занимает {units} занятий программы по {lessonMinutes} мин",
       "teacherLabel": "Преподаватель",
       "topicLabel": "Тема",
       "submit": "Назначить",

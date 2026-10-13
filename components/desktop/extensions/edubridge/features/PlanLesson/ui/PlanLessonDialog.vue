@@ -6,7 +6,7 @@ BaseDialog(:model-value="modelValue" :title="lesson ? $t('edubridge.planLesson.m
     .t-sm.t-muted.q-mb-md {{ lesson ? $t('edubridge.planLesson.moveNote') : $t('edubridge.planLesson.note') }}
     BaseSelect(v-if="!lesson && groupOptions.length !== 1" v-model="form.group_id" :label="$t('edubridge.planLesson.groupLabel')" :options="groupOptions" required)
     BaseInput(v-model="form.held_at" :label="$t('edubridge.planLesson.momentLabel')" type="datetime-local" stack-label required)
-    BaseInput(v-model="form.minutes" :label="$t('edubridge.planLesson.minutesLabel')" type="number" min="5" step="5" required :hint="$t('edubridge.planLesson.minutesHint')")
+    BaseInput(v-model="form.minutes" :label="$t('edubridge.planLesson.minutesLabel')" type="number" min="5" step="5" required :hint="unitsHint")
     BaseSelect(v-if="teacherOptions.length" v-model="form.assignment_id" :label="$t('edubridge.planLesson.teacherLabel')" :options="teacherChoices" clearable)
     BaseInput(v-model="form.topic" :label="$t('edubridge.planLesson.topicLabel')")
     template(#footer)
@@ -40,6 +40,15 @@ const emit = defineEmits<{ 'update:modelValue': [boolean]; saved: [ICalendarLess
 const busy = ref(false);
 const form = reactive({ group_id: '', held_at: '', minutes: '60' as string | number, assignment_id: '' as string | null, topic: '' });
 const teacherChoices = computed(() => [{ value: '', label: t('edubridge.scheduleSlots.teacherNone') }, ...props.teacherOptions]);
+
+/** Единица программы — занятие курса: подсказка называет, сколько занятий программы займёт названная длительность. */
+const lessonMinutes = computed(() => props.lesson?.lesson_minutes ?? props.groupOptions.find((g) => g.value === form.group_id)?.lessonMinutes ?? 0);
+const unitsHint = computed(() => {
+  const minutes = Number(form.minutes || 0);
+  if (!lessonMinutes.value || !minutes) return t('edubridge.planLesson.minutesHint');
+  const units = Math.max(1, Math.ceil(minutes / lessonMinutes.value));
+  return t('edubridge.planLesson.unitsHint', { units, lessonMinutes: lessonMinutes.value }, units);
+});
 
 /** Момент для поля «datetime-local» — местное время без секунд. */
 function toLocalInput(value: Date): string {

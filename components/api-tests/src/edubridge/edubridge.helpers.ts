@@ -568,7 +568,7 @@ export async function councilDeclinesRid(agenda: AgendaRow): Promise<void> {
 
 const DOC = 'full_title html hash meta binary'
 const SIGNED = 'version hash doc_hash meta_hash meta signatures{ id signer public_key signature signed_at signed_hash meta }'
-export const LESSON_FIELDS = 'id course_id course_title group_id group_title lesson_number teacher_username assignment_id status origin held_at ends_at report_until overdue reported_at duration_minutes materials topic contribution_id learners_count'
+export const LESSON_FIELDS = 'id course_id course_title group_id group_title lesson_number teacher_username assignment_id status origin held_at ends_at report_until overdue reported_at duration_minutes lesson_minutes units materials topic contribution_id learners_count'
 export const CONTRIBUTION_FIELDS = 'id teacher_username assignment_id rid_hash rid_type amount status description links hold_until storage_act_hash statement_hash act_hash council_decision_id council_outcome decision_hash decline_reason decided_at'
 export const REPORT_LESSON = `mutation($d:EduLessonReportInput!){ edubridgeReportLesson(data:$d){ ${LESSON_FIELDS} } }`
 export const MY_LESSONS = `query{ edubridgeMyLessons{ ${LESSON_FIELDS} } }`

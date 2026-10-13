@@ -937,7 +937,7 @@ export class EdubridgeTeacherService {
     }
     return lessons.map((l) => {
       const group = l.group_id ? groups.get(l.group_id) : null;
-      return new EduLessonDTO(l, { course: titles.get(l.course_id) ?? '', group: group?.title, reportDays: group?.report_days });
+      return new EduLessonDTO(l, { course: titles.get(l.course_id) ?? '', group: group?.title, reportDays: group?.report_days, lessonMinutes: group?.lesson_minutes });
     });
   }
 

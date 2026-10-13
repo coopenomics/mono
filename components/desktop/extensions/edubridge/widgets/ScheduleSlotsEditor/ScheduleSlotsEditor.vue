@@ -5,7 +5,7 @@
   .edu-slots__row(v-for="(slot, i) in modelValue" :key="i")
     BaseSelect.edu-slots__day(:model-value="slot.weekday" :label="$t('edubridge.scheduleSlots.weekdayLabel')" :options="WEEKDAY_OPTIONS" :disabled="disabled" @update:model-value="patch(i, { weekday: Number($event) })")
     BaseInput.edu-slots__time(:model-value="slot.time" :label="$t('edubridge.scheduleSlots.timeLabel')" type="time" stack-label :disabled="disabled" @update:model-value="patch(i, { time: String($event ?? '') })")
-    BaseInput.edu-slots__minutes(:model-value="slot.minutes" :label="$t('edubridge.scheduleSlots.minutesLabel')" type="number" min="5" step="5" :disabled="disabled" @update:model-value="patch(i, { minutes: Number($event || 0) })")
+    BaseInput.edu-slots__minutes(:model-value="slot.minutes" :label="$t('edubridge.scheduleSlots.minutesLabel')" type="number" min="5" step="5" :disabled="disabled" :hint="unitsHint(slot.minutes)" @update:model-value="patch(i, { minutes: Number($event || 0) })")
     BaseSelect.edu-slots__teacher(v-if="teacherOptions.length" :model-value="slot.assignment_id" :label="$t('edubridge.scheduleSlots.teacherLabel')" :options="teacherChoices" clearable :disabled="disabled" @update:model-value="patch(i, { assignment_id: $event ? String($event) : null })")
     BaseButton.edu-slots__remove(variant="ghost" icon-only :aria-label="$t('edubridge.scheduleSlots.remove')" :disabled="disabled" @click="remove(i)")
       template(#icon-left)
@@ -42,6 +42,12 @@ const props = withDefaults(
 const emit = defineEmits<{ 'update:modelValue': [IScheduleSlot[]] }>();
 
 const teacherChoices = computed(() => [{ value: '', label: t('edubridge.scheduleSlots.teacherNone') }, ...props.teacherOptions]);
+
+/** Единица программы — занятие курса: окно длиннее занимает несколько занятий программы. */
+function unitsHint(minutes: number): string {
+  const units = Math.max(1, Math.ceil(Number(minutes || 0) / Math.max(1, props.defaultMinutes)));
+  return units > 1 ? t('edubridge.planLesson.unitsHint', { units, lessonMinutes: props.defaultMinutes }, units) : '';
+}
 
 function patch(i: number, change: Partial<IScheduleSlot>): void {
   emit('update:modelValue', props.modelValue.map((s, k) => (k === i ? { ...s, ...change } : s)));

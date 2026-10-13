@@ -5,6 +5,7 @@ import { DocumentAggregateDTO, SignedDigitalDocumentInputDTO, validationMessage 
 import type { InnerDocumentAggregate } from '@coopenomics/innercoop';
 import { EduAssignmentStatus, EduContractStatus, EduContributionDocumentKind, EduContributionStatus, EduCouncilOutcome, EduLessonOrigin, EduLessonStatus, EduRidType, EduSettlementEntryKind, EduSettlementEntryStatus, EduShareReturnDocumentKind } from '../../domain/enums';
 import { lessonEndsAt, reportUntil } from '../../domain/lib/lesson-dates';
+import { unitsOf } from '../../domain/lib/schedule';
 import type {
   EdubridgeContributionRecord,
   EdubridgeLessonRecord,
@@ -275,12 +276,16 @@ export class EduLessonDTO {
   @Field(() => Boolean, { description: 'Срок на отчёт вышел, отчёта нет' }) overdue!: boolean;
   @Field(() => Date, { nullable: true, description: 'Когда подан отчёт' }) reported_at!: Date | null;
   @Field(() => Int, { description: 'Длительность, минут' }) duration_minutes!: number;
+  @Field(() => Int, { description: 'Длительность занятия курса, минут — единица программы' }) lesson_minutes!: number;
+  @Field(() => Int, { description: 'Сколько занятий программы занимает: длительность в занятиях курса, неполное — за целое' }) units!: number;
   @Field(() => Int, { nullable: true, description: 'Участников с оплаченным доступом, по которым проведён расчёт за занятие' }) learners_count!: number | null;
   @Field(() => [String], { description: 'Материалы занятия' }) materials!: string[];
   @Field(() => ID, { nullable: true, description: 'Взнос, оформленный по занятию' }) contribution_id!: string | null;
 
-  constructor(e: EdubridgeLessonRecord, titles: { course: string; group?: string; reportDays?: number }) {
+  constructor(e: EdubridgeLessonRecord, titles: { course: string; group?: string; reportDays?: number; lessonMinutes?: number }) {
     const reportDays = titles.reportDays ?? 7;
+    this.lesson_minutes = titles.lessonMinutes ?? e.duration_minutes;
+    this.units = unitsOf(e.duration_minutes, this.lesson_minutes);
     this.id = e.id;
     this.course_id = e.course_id;
     this.course_title = titles.course;

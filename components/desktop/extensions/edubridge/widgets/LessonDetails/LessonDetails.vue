@@ -8,6 +8,8 @@ div
   DataRow(:label="$t('edubridge.lessonDetails.number')" :value="String(lesson.lesson_number)")
   DataRow(:label="$t('edubridge.lessonDetails.moment')" :value="formatLessonMoment(lesson.held_at)")
   DataRow(:label="$t('edubridge.lessonDetails.duration')" :value="$t('edubridge.teacherLessonsPage.durationMinutes', { minutes: lesson.duration_minutes })")
+  //- Кратность программе: единица — занятие курса; двухчасовое занятие при часовом занятии курса занимает два.
+  DataRow(:label="$t('edubridge.lessonDetails.units')" :value="$t('edubridge.lessonDetails.unitsValue', { units: lesson.units, minutes: lesson.lesson_minutes }, Number(lesson.units))")
   DataRow(:label="$t('edubridge.lessonDetails.teacher')" :value="teacherName || lesson.teacher_username || $t('edubridge.lessonDetails.teacherNone')")
   DataRow(v-if="lesson.topic" :label="$t('edubridge.lessonDetails.topic')" :value="lesson.topic")
   //- Запланированное занятие: до какого момента принимается отчёт.

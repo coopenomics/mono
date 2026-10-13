@@ -7519,6 +7519,8 @@ export type ValueTypes = {
 	id?:boolean | `@${string}`,
 	/** Участников с оплаченным доступом, по которым проведён расчёт за занятие */
 	learners_count?:boolean | `@${string}`,
+	/** Длительность занятия курса, минут — единица программы */
+	lesson_minutes?:boolean | `@${string}`,
 	/** Номер занятия в программе */
 	lesson_number?:boolean | `@${string}`,
 	/** Материалы занятия */
@@ -7537,6 +7539,8 @@ export type ValueTypes = {
 	teacher_username?:boolean | `@${string}`,
 	/** Тема занятия */
 	topic?:boolean | `@${string}`,
+	/** Сколько занятий программы занимает: длительность в занятиях курса, неполное — за целое */
+	units?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on EduLesson']?: Omit<ValueTypes["EduLesson"], "...on EduLesson">
 }>;
@@ -24437,6 +24441,8 @@ export type ResolverInputTypes = {
 	id?:boolean | `@${string}`,
 	/** Участников с оплаченным доступом, по которым проведён расчёт за занятие */
 	learners_count?:boolean | `@${string}`,
+	/** Длительность занятия курса, минут — единица программы */
+	lesson_minutes?:boolean | `@${string}`,
 	/** Номер занятия в программе */
 	lesson_number?:boolean | `@${string}`,
 	/** Материалы занятия */
@@ -24455,6 +24461,8 @@ export type ResolverInputTypes = {
 	teacher_username?:boolean | `@${string}`,
 	/** Тема занятия */
 	topic?:boolean | `@${string}`,
+	/** Сколько занятий программы занимает: длительность в занятиях курса, неполное — за целое */
+	units?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
 	["EduLessonCalendarFilter"]: {
@@ -40833,6 +40841,8 @@ export type ModelTypes = {
 	id: ModelTypes["ID"],
 	/** Участников с оплаченным доступом, по которым проведён расчёт за занятие */
 	learners_count?: number | undefined | null,
+	/** Длительность занятия курса, минут — единица программы */
+	lesson_minutes: number,
 	/** Номер занятия в программе */
 	lesson_number: number,
 	/** Материалы занятия */
@@ -40850,7 +40860,9 @@ export type ModelTypes = {
 	/** Преподаватель занятия; пусто — не назначен */
 	teacher_username?: string | undefined | null,
 	/** Тема занятия */
-	topic: string
+	topic: string,
+	/** Сколько занятий программы занимает: длительность в занятиях курса, неполное — за целое */
+	units: number
 };
 	["EduLessonCalendarFilter"]: {
 	course_id?: ModelTypes["ID"] | undefined | null,
@@ -57759,6 +57771,8 @@ export type GraphQLTypes = {
 	id: GraphQLTypes["ID"],
 	/** Участников с оплаченным доступом, по которым проведён расчёт за занятие */
 	learners_count?: number | undefined | null,
+	/** Длительность занятия курса, минут — единица программы */
+	lesson_minutes: number,
 	/** Номер занятия в программе */
 	lesson_number: number,
 	/** Материалы занятия */
@@ -57777,6 +57791,8 @@ export type GraphQLTypes = {
 	teacher_username?: string | undefined | null,
 	/** Тема занятия */
 	topic: string,
+	/** Сколько занятий программы занимает: длительность в занятиях курса, неполное — за целое */
+	units: number,
 	['...on EduLesson']: Omit<GraphQLTypes["EduLesson"], "...on EduLesson">
 };
 	["EduLessonCalendarFilter"]: {

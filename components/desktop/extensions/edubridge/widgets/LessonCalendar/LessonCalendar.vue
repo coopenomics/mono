@@ -28,7 +28,6 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
-import { Zeus } from '@coopenomics/sdk';
 import { asText } from 'src/shared/lib/utils';
 import { BaseButton } from 'src/shared/ui/base';
 import { WEEKDAY_OPTIONS, type ICalendarLesson } from '../../entities/Lesson';

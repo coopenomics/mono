@@ -6026,6 +6026,7 @@ export const ReturnTypes: Record<string,any> = {
 		held_at:"DateTime",
 		id:"ID",
 		learners_count:"Int",
+		lesson_minutes:"Int",
 		lesson_number:"Int",
 		materials:"String",
 		origin:"EduLessonOrigin",
@@ -6034,7 +6035,8 @@ export const ReturnTypes: Record<string,any> = {
 		reported_at:"DateTime",
 		status:"EduLessonStatus",
 		teacher_username:"String",
-		topic:"String"
+		topic:"String",
+		units:"Int"
 	},
 	EduLevel:{
 		archived:"Boolean",
