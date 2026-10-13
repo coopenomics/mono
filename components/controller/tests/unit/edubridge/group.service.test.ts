@@ -223,7 +223,7 @@ describe('EdubridgeGroupService — группа как единица расч�
   });
 
   it('подписку можно продлить у программы длиннее месяца, пока она идёт после оплаченного срока; программу в один месяц и оплаченную до конца — нельзя', async () => {
-    // 16 занятий по 8 в месяц — программа в два месяца: с 01.09.2099 по 01.11.2099.
+    // Программа в два месяца по четыре недели: с 01.09.2099 по 27.10.2099.
     const { service } = make({ groups: [group({ program_months: 2 })] });
     const sub = (paid: string | null, groupId: string | null = 'G1') => ({ coopname: 'voskhod', group_id: groupId, paid_until: paid ? new Date(paid) : null }) as any;
     await expect(service.isRenewable(sub('2099-10-01'))).resolves.toBe(true);
@@ -234,6 +234,11 @@ describe('EdubridgeGroupService — группа как единица расч�
     await expect(make({ groups: [group({ program_months: 0 })] }).service.isRenewable(sub('2199-01-01'))).resolves.toBe(true);
     await expect(make({ groups: [group({ status: EduGroupStatus.CLOSED })] }).service.isRenewable(sub('2099-09-20'))).resolves.toBe(false);
     await expect(service.isRenewable(sub('2099-09-20', null))).resolves.toBe(true);
+    // Начало группы названо с долями секунды (стенд), а цепь хранит оплаченный срок целыми секундами:
+    // подписка, оплаченная до конца программы, не продлевается — доли секунды её продлеваемой не делают.
+    const stand = make({ groups: [group({ program_months: 2, starts_at: '2099-09-01', starts_at_time: new Date('2099-09-01T10:00:00.286Z') })] });
+    await expect(stand.service.isRenewable(sub('2099-10-27T10:00:00Z'))).resolves.toBe(false);
+    await expect(stand.service.isRenewable(sub('2099-10-27T09:59:59Z'))).resolves.toBe(true);
   });
 
   it('группа завершается сама, когда срок программы вышел и действующих подписок нет; с действующей подпиской она идёт дальше', async () => {

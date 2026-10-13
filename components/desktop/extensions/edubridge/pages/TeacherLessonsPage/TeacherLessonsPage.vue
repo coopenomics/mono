@@ -94,7 +94,7 @@
   //- Занятие из календаря: запланированное — с кнопкой отчёта, проведённое без взноса — с материалами.
   DetailsDrawer(v-model="lessonOpen" :title="lessonInView ? $t('edubridge.lesson.numberShort', { number: lessonInView.lesson_number }) + ' · ' + lessonInView.course_title : ''" :width="520")
     template(v-if="lessonInView")
-      LessonDetails(:lesson="lessonInView")
+      LessonDetails(:lesson="lessonInView" :teacher-name="lessonInView.teacher_username ? fioCache.get(lessonInView.teacher_username) : null")
       BaseBanner.q-mt-md(v-if="lessonInView.status === Zeus.EduLessonStatus.PLANNED && !isReportable(lessonInView)" variant="info")
         template(#icon)
           q-icon(name="schedule")
@@ -120,7 +120,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue';
+import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { Zeus } from '@coopenomics/sdk';
 import { useFirstLoad } from 'src/shared/lib/composables';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
@@ -132,6 +132,7 @@ import { CONTRIBUTION_STATUS_LABELS, commitLessonMaterials, fetchMyContributions
 import { formatLessonMoment, isReportable } from '../../entities/Lesson';
 import { LessonCalendar } from '../../widgets/LessonCalendar';
 import { LessonDetails } from '../../widgets/LessonDetails';
+import { useFioCache } from 'src/shared/lib/account/useFioCache';
 import { useLiveReload } from 'src/shared/lib/realtime';
 import { EduLive } from '../../shared/lib/live';
 import { lessonActionOf } from '../../shared/lib/lessonAction';
@@ -231,6 +232,15 @@ function openDetails(row: ILessonRow): void {
 const lessonOpen = ref(false);
 const lessonInViewId = ref<string | null>(null);
 const lessonInView = computed(() => lessons.value.find((l) => asText(l.id) === lessonInViewId.value) ?? null);
+/** Преподаватель занятия показан по имени, а не по учётной записи; имена дочитываются по мере появления занятий. */
+const { fioCache, enrichFio } = useFioCache();
+watch(
+  () => lessons.value.map((l) => l.teacher_username).filter((u): u is string => Boolean(u)),
+  (usernames) => {
+    if (usernames.length) void enrichFio([...new Set(usernames)]);
+  },
+  { immediate: true },
+);
 function openLesson(l: ILesson): void {
   const row = rows.value.find((r) => r.lessons.some((x) => asText(x.id) === asText(l.id)));
   if (row) {

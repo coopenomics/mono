@@ -12,7 +12,7 @@ import { isTimeCompressed } from '../../domain/economy/time-scale';
 import { isResumable } from '../../domain/lib/resumable';
 import { EdubridgeChainTermsService } from './edubridge-chain-terms.service';
 import { EdubridgeCalendarService } from './edubridge-calendar.service';
-import { hasStarted, startMomentOf } from '../../domain/lib/group-start';
+import { hasStarted, startMomentOf, wholeSeconds } from '../../domain/lib/group-start';
 import { EduLessonStatus } from '../../domain/enums';
 
 export { startMomentOf };
@@ -429,7 +429,8 @@ function isLive(e: Pick<EdubridgeEnrollmentRecord, 'status'>): boolean {
  */
 function setStartIn(group: Partial<EdubridgeGroupRecord>, minutes: number): void {
   if (!isTimeCompressed()) throw DomainError.badRequest('EDUBRIDGE_START_IN_MINUTES_STAND_ONLY');
-  const moment = new Date(Date.now() + Math.max(0, minutes) * 60_000);
+  // Момент — целыми секундами, как его хранит цепь: от него считаются конец программы и оплаченные сроки.
+  const moment = wholeSeconds(new Date(Date.now() + Math.max(0, minutes) * 60_000));
   group.starts_at = moment.toISOString().slice(0, 10);
   group.starts_at_time = moment;
 }
