@@ -61,7 +61,7 @@ BaseCard(variant="default" :title="$t('edubridge.courseGroups.title')")
       template(v-if="details.status === Zeus.EduGroupStatus.ACTIVE")
         .t-eyebrow.q-mt-lg.q-mb-xs {{ $t('edubridge.courseGroups.scheduleTitle') }}
         .t-sm.t-muted.q-mb-sm {{ $t('edubridge.courseGroups.scheduleNote') }}
-        ScheduleSlotsEditor(v-model="slots" :teacher-options="teacherOptions" :default-minutes="details.lesson_minutes" :disabled="readonly")
+        ScheduleSlotsEditor(v-model="slots" :teacher-options="teacherOptions" :default-minutes="details.lesson_minutes" :symbol="symbol" :disabled="readonly")
         .row.justify-end.q-mt-sm(v-if="!readonly")
           BaseButton(variant="secondary" size="sm" :loading="scheduleBusy" @click="onSaveSchedule") {{ $t('edubridge.courseGroups.saveSchedule') }}
 
@@ -120,6 +120,8 @@ import { type IScheduleSlot } from '../../entities/Lesson';
 import { ScheduleSlotsEditor } from '../ScheduleSlotsEditor';
 import { useConfirm } from 'src/shared/lib/composables';
 import { useFioCache } from 'src/shared/lib/account/useFioCache';
+import { useSystemStore } from 'src/entities/System/model';
+import { formatToAsset } from 'src/shared/lib/utils';
 import { t } from '../../i18n';
 
 /**
@@ -223,6 +225,8 @@ const slots = ref<IScheduleSlot[]>([]);
 const scheduleBusy = ref(false);
 const assignments = ref<IAssignment[]>([]);
 const { fioCache, enrichFio } = useFioCache();
+const system = useSystemStore();
+const symbol = computed(() => system.governSymbol);
 /** Допуски преподавателей к этому курсу: преподаватель окна выбирается из них. */
 const teacherOptions = computed(() =>
   assignments.value
@@ -244,7 +248,7 @@ async function onSaveSchedule(): Promise<void> {
     replace(
       await setGroupSchedule({
         group_id: asText(details.value.id),
-        slots: slots.value.map((s) => ({ weekday: Number(s.weekday), time: s.time, minutes: Number(s.minutes), assignment_id: s.assignment_id || null })),
+        slots: slots.value.map((s) => ({ weekday: Number(s.weekday), time: s.time, minutes: Number(s.minutes), assignment_id: s.assignment_id || null, cost: formatToAsset(String(s.cost || '0').replace(',', '.'), symbol.value) })),
       }),
     );
     SuccessAlert(t('edubridge.courseGroups.scheduleSaved'));
@@ -288,7 +292,7 @@ async function onCancelUnderfilled(): Promise<void> {
 function openDetails(row: IGroup): void {
   detailsId.value = asText(row.id);
   void loadGroupEconomy(asText(row.id));
-  slots.value = (row.schedule_slots ?? []).map((s) => ({ weekday: s.weekday, time: s.time, minutes: s.minutes, assignment_id: s.assignment_id ?? null }));
+  slots.value = (row.schedule_slots ?? []).map((s) => ({ weekday: s.weekday, time: s.time, minutes: s.minutes, assignment_id: s.assignment_id ?? null, cost: s.cost ? String(parseFloat(s.cost)) : '' }));
   Object.assign(form, { title: row.title, starts_at: row.starts_at ?? '', starts_in_minutes: '', platform_group: platformGroupOf(row.external_ref), enrollment_open: row.enrollment_open });
   detailsOpen.value = true;
 }

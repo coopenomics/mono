@@ -2,11 +2,11 @@
  * @brief Преподаватель отчитался о проведённом занятии — открывается расчёт.
  *
  * Занятие берётся из календаря группы: приложение называет его номер в
- * программе, дату и длительность. Запись занятия фиксирует ставку
- * преподавателя на курсе. Учёт идёт в минутах: занятие занимает в программе
- * свои минуты, участник оплачивает их по плановой ставке. Взнос преподавателя
- * — его ставка за проведённое время, но не больше оплаты этих минут
- * участником. После отчёта приложение по одной подписке
+ * программе, дату, длительность и окно расписания. Запись занятия фиксирует
+ * ставку преподавателя на курсе и стоимость занятия для участника по окну.
+ * Учёт идёт в минутах: занятие занимает в программе свои минуты. Взнос
+ * преподавателя — его ставка за проведённое время, но не больше стоимости
+ * занятия по окну. После отчёта приложение по одной подписке
  * вызывает `chargelesson`, закрывает окно расчёта `closecharge`, затем
  * преподаватель передаёт материалы `holdrid`.
  *
@@ -30,7 +30,8 @@ void edubridge::openlesson(eosio::name coopname,
                            uint64_t assignment_id,
                            eosio::time_point_sec held_at,
                            uint32_t number,
-                           uint32_t minutes) {
+                           uint32_t minutes,
+                           uint32_t slot) {
   require_auth(coopname);
 
   get_participant_or_fail(coopname, username);
@@ -60,11 +61,12 @@ void edubridge::openlesson(eosio::name coopname,
   eosio::check(rids_by_hash.find(rid_hash) == rids_by_hash.end(),
                "EDUBRIDGE_RID_ALREADY_HELD: Материалы с указанным hash уже приняты на ответственное хранение");
 
-  // Ставка преподавателя за проведённое время, не больше оплаты минут занятия,
-  // заложенной во взнос участника: на курсе с расчётом за каждого участника
-  // это взнос за одного, на курсе с фиксированным расчётом — за всё занятие.
-  const eosio::asset unit = terms.minutes_cost(minutes);
-  const eosio::asset rate = assign->rate <= terms.planned_rate ? assign->rate : terms.planned_rate;
+  // Стоимость занятия для участника — по окну расписания. Взнос преподавателя
+  // — его ставка за проведённое время, не больше этой стоимости: на курсе с
+  // расчётом за каждого участника это взнос за одного, на курсе с фиксированным
+  // расчётом — за всё занятие.
+  const eosio::asset unit = terms.slot_cost(slot, minutes);
+  const eosio::asset rate = assign->rate;
   eosio::asset charge(rate.amount * static_cast<int64_t>(minutes) / 60, rate.symbol);
   if (charge > unit) charge = unit;
 
@@ -81,6 +83,7 @@ void edubridge::openlesson(eosio::name coopname,
     l.number        = number;
     l.held_at       = held_at;
     l.minutes       = minutes;
+    l.cost          = unit;
     l.rate          = rate;
     l.charge        = charge;
     l.learners      = 0;

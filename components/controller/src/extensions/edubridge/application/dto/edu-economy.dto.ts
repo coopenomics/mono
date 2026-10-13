@@ -62,9 +62,6 @@ export class EduCourseEconomyInputDTO {
   @Max(120)
   program_months!: number;
 
-  @Field(() => String, { description: 'Плановая ставка часа по программе («1000.0000 RUB»)' })
-  @Matches(ASSET_PATTERN, { message: validationMessage('edubridge.eduCourseEconomyInput.plannedHourlyRate.format') })
-  planned_hourly_rate!: string;
 
   @Field(() => Boolean, { nullable: true, description: 'Принимать взнос за весь курс разом; иначе взнос только помесячный' })
   @IsOptional()

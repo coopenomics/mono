@@ -43,7 +43,7 @@ const FUND = 'query{ edubridgeProgramFund{ fund_balance members_balance wallets{
 const COURSE_QUOTE = (learnerId: string, courseId: string) => ({ d: { learner_id: learnerId, course_id: courseId, period: 'COURSE' } })
 
 /** Курс набора: два часовых окна в неделю — 520 минут в месяц, программа восемь месяцев, плановая ставка 1000. */
-const BASE = { schedule_slots: courseSlots(60), program_months: 8, planned_hourly_rate: '1000.0000 RUB' }
+const BASE = { schedule_slots: courseSlots(60), program_months: 8 }
 const MARKUP = 20
 const ASSET = /^\d+\.\d{4} RUB$/
 

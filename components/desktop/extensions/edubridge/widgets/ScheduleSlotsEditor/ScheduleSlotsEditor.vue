@@ -8,6 +8,8 @@
     BaseInput.edu-slots__time(v-if="slot.weekday !== RESERVE_WEEKDAY" :model-value="slot.time" :label="$t('edubridge.scheduleSlots.timeLabel')" type="time" stack-label :disabled="disabled" @update:model-value="patch(i, { time: String($event ?? '') })")
     .edu-slots__time.t-sm.t-muted.edu-slots__reserve-note(v-else) {{ $t('edubridge.scheduleSlots.reserveNote') }}
     BaseInput.edu-slots__minutes(:model-value="slot.minutes" :label="$t('edubridge.scheduleSlots.minutesLabel')" type="number" min="5" step="5" :disabled="disabled" @update:model-value="patch(i, { minutes: Number($event || 0) })")
+    //- Плановая стоимость занятия окна для одного участника: из неё складывается взнос, она же потолок взноса преподавателя.
+    BaseInput.edu-slots__cost(:model-value="slot.cost" :label="$t('edubridge.scheduleSlots.costLabel')" type="number" min="0" :suffix="symbol" :disabled="disabled" @update:model-value="patch(i, { cost: String($event ?? '') })")
     BaseSelect.edu-slots__teacher(v-if="teacherOptions.length" :model-value="slot.assignment_id" :label="$t('edubridge.scheduleSlots.teacherLabel')" :options="teacherChoices" clearable :disabled="disabled" @update:model-value="patch(i, { assignment_id: $event ? String($event) : null })")
     BaseButton.edu-slots__remove(variant="ghost" icon-only :aria-label="$t('edubridge.scheduleSlots.remove')" :disabled="disabled" @click="remove(i)")
       template(#icon-left)
@@ -37,9 +39,11 @@ const props = withDefaults(
     teacherOptions?: { value: string; label: string }[];
     /** Длительность занятия курса — подставляется в новое окно. */
     defaultMinutes?: number;
+    /** Символ валюты кооператива — подпись у поля стоимости. */
+    symbol?: string;
     disabled?: boolean;
   }>(),
-  { teacherOptions: () => [], defaultMinutes: 60, disabled: false },
+  { teacherOptions: () => [], defaultMinutes: 60, symbol: '', disabled: false },
 );
 const emit = defineEmits<{ 'update:modelValue': [IScheduleSlot[]] }>();
 
@@ -59,7 +63,7 @@ function add(): void {
   const last = props.modelValue[props.modelValue.length - 1];
   emit('update:modelValue', [
     ...props.modelValue,
-    { weekday: last ? Math.min(7, last.weekday + 2) : 2, time: last?.time ?? '17:00', minutes: last?.minutes ?? props.defaultMinutes, assignment_id: last?.assignment_id ?? null },
+    { weekday: last ? Math.min(7, last.weekday + 2) : 2, time: last?.time ?? '17:00', minutes: last?.minutes ?? props.defaultMinutes, assignment_id: last?.assignment_id ?? null, cost: last?.cost ?? '' },
   ]);
 }
 </script>
@@ -85,6 +89,9 @@ function add(): void {
 }
 .edu-slots__minutes {
   flex: 0 1 120px;
+}
+.edu-slots__cost {
+  flex: 0 1 160px;
 }
 .edu-slots__teacher {
   flex: 2 1 200px;

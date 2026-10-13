@@ -282,9 +282,10 @@ export function dayFromNow(days: number): string {
 }
 
 /** Параметры очного курса: доступ выдаётся пропуском, чужих площадок не нужно. */
-/** Окна расписания курса: вторник и четверг в 17:00, по столько минут. */
-export function courseSlots(minutes: number, perWeek = 2): { weekday: number, time: string, minutes: number }[] {
-  return [2, 4, 6, 1, 3, 5, 7].slice(0, perWeek).map(weekday => ({ weekday, time: '17:00', minutes }))
+/** Окна расписания курса: вторник и четверг в 17:00, по столько минут; стоимость занятия — по плановой ставке за минуты. */
+export function courseSlots(minutes: number, perWeek = 2, hourly = PLANNED_RATE): { weekday: number, time: string, minutes: number, cost: string }[] {
+  const cost = `${(amount(hourly) * minutes / 60).toFixed(4)} RUB`
+  return [2, 4, 6, 1, 3, 5, 7].slice(0, perWeek).map(weekday => ({ weekday, time: '17:00', minutes, cost }))
 }
 
 /** Минут занятий в месяц по окнам — как считает сервер: минуты недели на 52/12. */
@@ -300,7 +301,6 @@ export function courseInput(sectionId: string, over: Record<string, unknown> = {
     // Два часовых окна в неделю: 520 минут в месяц; программа четыре месяца.
     schedule_slots: courseSlots(60),
     program_months: 4,
-    planned_hourly_rate: PLANNED_RATE,
     guarantee_days: 14,
     direction: 'ONSITE',
     carrier: 'ONSITE',
@@ -611,8 +611,8 @@ const longReportWindow = new Set<string>()
 export async function planLesson(groupId: string, over: Record<string, unknown> = {}): Promise<any> {
   const chairman = await tokenOf(CHAIRMAN)
   if (!longReportWindow.has(groupId)) {
-    // Внеочередные занятия тестов идут из резерва: окна по дням сняты, резерв большой.
-    await gql(chairman, SET_GROUP_SCHEDULE, { d: { group_id: groupId, slots: [{ weekday: 8, time: '', minutes: 600 }], report_days: 365 } })
+    // Внеочередные занятия тестов идут из резерва: окна по дням сняты, резерв большой; стоимость резерва — по плановой ставке.
+    await gql(chairman, SET_GROUP_SCHEDULE, { d: { group_id: groupId, slots: [{ weekday: 8, time: '', minutes: 600, cost: `${(amount(PLANNED_RATE) * 10).toFixed(4)} RUB` }], report_days: 365 } })
     longReportWindow.add(groupId)
   }
   const d = { group_id: groupId, held_at: new Date(Date.now() - 2 * 3600_000).toISOString(), ...over }

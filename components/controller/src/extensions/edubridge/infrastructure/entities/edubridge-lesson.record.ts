@@ -40,6 +40,9 @@ export class EdubridgeLessonRecord {
   /** Когда преподаватель отчитался; `null` — отчёта нет. */
   public reported_at!: Date | null;
 
+  /** Индекс окна расписания в условиях группы: по нему контракт берёт стоимость занятия. */
+  public slot_index!: number;
+
   /** Длительность занятия, минут: по умолчанию — из расписания курса. */
   public duration_minutes!: number;
 

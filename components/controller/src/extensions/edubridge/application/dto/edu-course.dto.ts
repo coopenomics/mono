@@ -150,7 +150,7 @@ export class EduCourseDTO extends EduCatalogCourseDTO {
   @Field(() => String, { nullable: true, description: 'Название курса на площадке при последней сверке' })
   external_title_seen!: string | null;
 
-  @Field(() => String, { description: 'Плановая ставка часа, заложенная во взнос каждого участника' })
+  @Field(() => String, { description: 'Плановая ставка часа — среднее по окнам расписания; стоимость занятия задаётся окном' })
   planned_hourly_rate!: string;
 
   @Field(() => Boolean, { description: 'Взнос преподавателя за занятие считается за каждого участника; иначе фиксированный за занятие' })
@@ -313,9 +313,6 @@ export class EduCourseInputDTO {
   @Max(120)
   program_months!: number;
 
-  @Field(() => String, { description: 'Плановая ставка часа по программе («1000.0000 RUB»)' })
-  @Matches(ASSET_PATTERN, { message: validationMessage('edubridge.eduCourseInput.plannedHourlyRate.format') })
-  planned_hourly_rate!: string;
 
   @Field(() => Boolean, { nullable: true, description: 'Взнос преподавателя за занятие считается за каждого участника; иначе фиксированный за занятие' })
   @IsOptional()

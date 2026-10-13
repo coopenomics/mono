@@ -15,6 +15,19 @@ export interface EduScheduleSlot {
   minutes: number;
   /** Допуск преподавателя, который ведёт занятия этого окна; `null` — преподаватель не назначен. */
   assignment_id: string | null;
+  /** Плановая стоимость занятия окна для одного участника («1000.0000 RUB»): заложена во взнос, потолок взноса преподавателя. */
+  cost: string;
+}
+
+const ASSET_RE = /^\d+\.\d{4} [A-Z]{1,7}$/;
+const ASSET_SCALE = 10_000;
+
+function assetMinor(value: string): number {
+  return Math.round(Number(value.trim().split(' ')[0]) * ASSET_SCALE);
+}
+
+function assetOf(minor: number, symbol: string): string {
+  return `${(minor / ASSET_SCALE).toFixed(4)} ${symbol}`;
 }
 
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
@@ -33,7 +46,9 @@ export function normalizeSlots(raw: readonly Partial<EduScheduleSlot>[] | null |
     if (!Number.isInteger(weekday) || weekday < 1 || weekday > RESERVE_WEEKDAY) throw DomainError.badRequest('EDUBRIDGE_SCHEDULE_WEEKDAY_INVALID');
     if (weekday !== RESERVE_WEEKDAY && !TIME_RE.test(time)) throw DomainError.badRequest('EDUBRIDGE_SCHEDULE_TIME_INVALID');
     if (!Number.isInteger(minutes) || minutes < 5 || minutes > 24 * 60) throw DomainError.badRequest('EDUBRIDGE_SCHEDULE_MINUTES_INVALID');
-    return { weekday, time: weekday === RESERVE_WEEKDAY ? '' : time, minutes, assignment_id: s.assignment_id ? String(s.assignment_id) : null };
+    const cost = String(s.cost ?? '').trim();
+    if (!ASSET_RE.test(cost)) throw DomainError.badRequest('EDUBRIDGE_SCHEDULE_COST_INVALID');
+    return { weekday, time: weekday === RESERVE_WEEKDAY ? '' : time, minutes, assignment_id: s.assignment_id ? String(s.assignment_id) : null, cost };
   });
   return slots.sort((a, b) => a.weekday - b.weekday || a.time.localeCompare(b.time));
 }
@@ -119,10 +134,17 @@ export function zonedMoment(year: number, month: number, day: number, hour: numb
   return new Date(guess);
 }
 
-/** Один момент занятия из календаря: когда и по какому окну. */
+/** Один момент занятия из календаря: когда, по какому окну и под каким индексом окно стоит в условиях группы. */
 export interface SlotOccurrence {
   at: Date;
   slot: EduScheduleSlot;
+  index: number;
+}
+
+/** Индекс резервного окна в окнах группы; `null` — резерва нет. Индексы — по порядку окон, как они ушли в цепь. */
+export function reserveIndex(slots: readonly Pick<EduScheduleSlot, 'weekday'>[]): number | null {
+  const i = slots.findIndex(isReserveSlot);
+  return i >= 0 ? i : null;
 }
 
 /**
@@ -134,7 +156,7 @@ export interface SlotOccurrence {
 export function slotOccurrences(slots: readonly EduScheduleSlot[], startsAt: Date, limit: number, tz: string = eduTimezone()): SlotOccurrence[] {
   if (!slots.length || limit <= 0) return [];
   const out: SlotOccurrence[] = [];
-  const weekly = slots.filter((s) => !isReserveSlot(s));
+  const weekly = slots.map((slot, index) => ({ slot, index })).filter((x) => !isReserveSlot(x.slot));
   if (!weekly.length) return [];
   const start = zonedParts(startsAt, tz);
   // Перебор по дням от дня начала; верхняя граница страхует от бесконечного цикла при нулевом лимите на день.
@@ -142,10 +164,10 @@ export function slotOccurrences(slots: readonly EduScheduleSlot[], startsAt: Dat
   for (let offset = 0; offset < 366 * 3 && out.length < limit; offset += 1) {
     const d = new Date(day + offset * 24 * 60 * 60 * 1000);
     const weekday = ((d.getUTCDay() + 6) % 7) + 1;
-    for (const slot of weekly) {
+    for (const { slot, index } of weekly) {
       if (slot.weekday !== weekday || out.length >= limit) continue;
       const [h, m] = slot.time.split(':').map(Number);
-      out.push({ at: zonedMoment(d.getUTCFullYear(), d.getUTCMonth() + 1, d.getUTCDate(), h, m, tz), slot });
+      out.push({ at: zonedMoment(d.getUTCFullYear(), d.getUTCMonth() + 1, d.getUTCDate(), h, m, tz), slot, index });
     }
   }
   return out;
@@ -173,14 +195,25 @@ export interface ProgramNumbers {
   lesson_minutes: number;
   /** Минут резерва в месяц — для внеочередных занятий. */
   reserve_per_month: number;
+  /** Оплата занятий месяца одним участником: стоимости окон недели на 52/12, как считает контракт. */
+  teach_month: string;
+  /** Плановая ставка часа как среднее по окнам — для показа и ставки допуска по умолчанию. */
+  planned_hourly_rate: string;
 }
 
-export function programOf(slots: readonly Pick<EduScheduleSlot, 'minutes' | 'weekday'>[], programMonths: number): ProgramNumbers {
+export function programOf(slots: readonly Pick<EduScheduleSlot, 'minutes' | 'weekday' | 'cost'>[], programMonths: number): ProgramNumbers {
   const months = Math.max(0, Math.floor(Number(programMonths || 0)));
   const weekly = slots.filter((s) => !isReserveSlot(s as EduScheduleSlot));
   const minutesPerMonth = Math.round(weeklyMinutes(slots) * WEEKS_PER_MONTH);
   const lessonsPerMonth = Math.round(weekly.length * WEEKS_PER_MONTH);
+  // Как в контракте (`edu_terms::teach_month`): сумма стоимостей окон недели на 52/12, нацело.
+  const symbol = String(slots[0]?.cost ?? '').trim().split(' ')[1] ?? '';
+  const weekCost = slots.reduce((sum, s) => sum + (ASSET_RE.test(String(s.cost ?? '')) ? assetMinor(String(s.cost)) : 0), 0);
+  const teachMonth = Math.floor((weekCost * 52) / 12);
+  const hourly = minutesPerMonth > 0 ? Math.round((teachMonth * 60) / minutesPerMonth) : 0;
   return {
+    teach_month: assetOf(teachMonth, symbol),
+    planned_hourly_rate: assetOf(hourly, symbol),
     minutes_per_month: minutesPerMonth,
     minutes_total: minutesPerMonth * months,
     lessons_per_month: lessonsPerMonth,

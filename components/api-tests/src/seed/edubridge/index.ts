@@ -48,6 +48,7 @@ import {
   signOffer,
   subscribe,
   walletOf,
+  courseSlots,
 } from '../../edubridge/edubridge.helpers'
 
 const log = (...a: unknown[]) => console.error('[seed-edubridge]', ...a)
@@ -124,9 +125,8 @@ async function phase02(): Promise<void> {
     syllabus: COURSE_SYLLABUS,
     schedule: COURSE_SCHEDULE,
     // Два окна по полтора часа в неделю, программа четыре месяца.
-    schedule_slots: [{ weekday: 2, time: '18:00', minutes: 90 }, { weekday: 4, time: '18:00', minutes: 90 }],
+    schedule_slots: courseSlots(90, 2, PLANNED_RATE).map(s => ({ ...s, time: '18:00' })),
     program_months: 4,
-    planned_hourly_rate: PLANNED_RATE,
     guarantee_days: 14,
     course_payment_enabled: true,
     course_discount_percent: 10,

@@ -142,7 +142,7 @@ export const edubridgeStoreProviders: Provider[] = [
     useFactory: (db: Kysely<any>) =>
       new TableStore<EdubridgeLessonRecord>(db, {
         table: 'edubridge_lessons',
-        columns: ['id', 'coopname', 'teacher_username', 'course_id', 'group_id', 'assignment_id', 'lesson_number', 'held_at', 'status', 'origin', 'reported_at', 'duration_minutes', 'materials', 'topic', 'contribution_id', 'learners_count', 'created_at'],
+        columns: ['id', 'coopname', 'teacher_username', 'course_id', 'group_id', 'assignment_id', 'lesson_number', 'held_at', 'status', 'origin', 'reported_at', 'slot_index', 'duration_minutes', 'materials', 'topic', 'contribution_id', 'learners_count', 'created_at'],
         primaryKey: ['id'],
         json: ['materials'],
         sameNames: true,

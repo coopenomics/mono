@@ -35,6 +35,7 @@ import {
   signedConvertStatement,
   subscribe,
   walletOf,
+  courseSlots,
 } from './edubridge.helpers'
 
 const FUND = 'query{ edubridgeProgramFund{ fund_balance wallets{ id available } } }'
@@ -163,7 +164,7 @@ describe('Образование: подписки — продление, вз�
     })
 
     it(caseName('edu.enroll.happy.11', 'остаток кошелька программы покрывает часть взноса — с паевого конвертируется только недостача'), async () => {
-      const pricey = await publishCourse(chairman, section, 30, { planned_hourly_rate: '5000.0000 RUB' })
+      const pricey = await publishCourse(chairman, section, 30, { schedule_slots: courseSlots(60, 2, '5000.0000 RUB') })
       const price = amount(pricey.fee_month)
       const onProgram = await wallet(PROGRAM_WALLET)
       expect(price, 'взнос дороже остатка кошелька программы').toBeGreaterThan(onProgram)

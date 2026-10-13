@@ -393,7 +393,7 @@ export class EdubridgeTeacherService {
     if (input.period_to < input.period_from) throw DomainError.badRequest('EDUBRIDGE_ASSIGNMENT_PERIOD_INVALID');
     const contract = await this.assertCanTeach(coopname, input.teacher_username.trim());
     await this.assertPeriodFree(coopname, input.teacher_username.trim(), course.id, input.period_from, input.period_to);
-    const hourlyRate = rateOnCourse(input.hourly_rate, contract.hourly_rate, course.planned_hourly_rate);
+    const hourlyRate = rateOnCourse(input.hourly_rate, contract.hourly_rate);
     const entity = this.teachers.createAssignment({
       coopname,
       teacher_username: input.teacher_username.trim(),
@@ -456,8 +456,6 @@ export class EdubridgeTeacherService {
     const course = await this.courses.findById(coopname, a.course_id);
     if (!course) throw DomainError.notFound('EDUBRIDGE_COURSE_NOT_FOUND');
     if (!isPositiveRate(hourlyRate)) throw DomainError.badRequest('EDUBRIDGE_TEACHER_RATE_REQUIRED');
-    const error = rateCoverageError(hourlyRate, course.planned_hourly_rate);
-    if (error) throw error;
     a.hourly_rate = hourlyRate;
     const saved = await this.teachers.saveAssignment(a);
     // Ставка в цепи действует на занятия, открытые после правки.
@@ -479,16 +477,6 @@ export class EdubridgeTeacherService {
     }
   }
 
-  /** Плановая ставка курса снижена — ставки действующих допусков опускаются до неё. */
-  private async capAssignmentRates(course: EdubridgeCourseRecord, assignments: EdubridgeTeacherAssignmentRecord[]): Promise<void> {
-    for (const a of assignments) {
-      if (a.status !== EduAssignmentStatus.ACTIVE || !rateCoverageError(a.hourly_rate, course.planned_hourly_rate)) continue;
-      a.hourly_rate = course.planned_hourly_rate;
-      await this.pushAssignmentToGroups(await this.teachers.saveAssignment(a), course);
-      this.logger.info(`Ставка на курсе опущена до плановой: ${a.teacher_username} → «${course.title}»`);
-    }
-  }
-
   /**
    * Допуски по списку «Курс ведут». Преподаватель, добавленный в курс, сразу
    * получает действующее назначение и видит курс на своём столе; у убранного
@@ -498,7 +486,6 @@ export class EdubridgeTeacherService {
     const listed = new Set(course.teacher_usernames ?? []);
     const forCourse = (await this.teachers.listAssignments(coopname)).filter((a) => a.course_id === course.id);
     const period = coursePeriod(course);
-    await this.capAssignmentRates(course, forCourse.filter((a) => listed.has(a.teacher_username)));
     for (const teacher of listed) {
       if (forCourse.some((a) => a.teacher_username === teacher && a.status !== EduAssignmentStatus.CLOSED)) continue;
       await this.createAssignment(coopname, {
@@ -771,6 +758,7 @@ export class EdubridgeTeacherService {
         held_at: toChainTime(new Date(lesson.held_at)),
         number: lesson.lesson_number,
         minutes: lesson.duration_minutes,
+        slot: Number(lesson.slot_index ?? 0),
       });
     }
   }
@@ -1544,22 +1532,6 @@ export function withoutContractError(teachers: string[]): DomainError {
 }
 
 /**
- * Покрывают ли взносы учеников ставку преподавателя: взнос посчитан от
- * плановой ставки курса, и ставка выше неё резервом выплат не обеспечена.
- * Текст отказа либо `null`. Одна проверка для назначения и для формы курса.
- */
-export function rateCoverageError(
-  contractRate: string | null | undefined,
-  plannedRate: string | null | undefined,
-  teacher?: string
-): DomainError | null {
-  if (rateValue(contractRate) <= rateValue(plannedRate)) return null;
-  return teacher
-    ? DomainError.badRequest('EDUBRIDGE_COURSE_TEACHER_RATE_NOT_COVERED', { teacher, contractRate, plannedRate })
-    : DomainError.badRequest('EDUBRIDGE_TEACHER_RATE_NOT_COVERED', { contractRate, plannedRate });
-}
-
-/**
  * Период назначения по курсу: от начала занятий (или сегодня) на весь срок
  * программы — столько месяцев, сколько нужно на все занятия.
  */
@@ -1576,18 +1548,11 @@ export function coursePeriod(course: Pick<EdubridgeCourseRecord, 'starts_at' | '
 
 /**
  * Ставка преподавателя на курсе при назначении: названная администратором
- * либо ставка из договора, но не выше плановой; названная выше плановой — отказ.
+ * либо ставка из договора. Потолок держит само занятие: взнос преподавателя
+ * не больше стоимости занятия по окну расписания.
  */
-export function rateOnCourse(named: string | null | undefined, contractRate: string, plannedRate: string): string {
-  const rate = named || rateForCourse(contractRate, plannedRate);
-  const error = rateCoverageError(rate, plannedRate);
-  if (error) throw error;
-  return rate;
-}
-
-/** Ставка преподавателя на курсе по умолчанию: из договора, но не выше плановой ставки курса. */
-export function rateForCourse(contractRate: string, plannedRate: string): string {
-  return rateValue(contractRate) > rateValue(plannedRate) ? plannedRate : contractRate;
+export function rateOnCourse(named: string | null | undefined, contractRate: string): string {
+  return named || contractRate;
 }
 
 function rateValue(rate: string | null | undefined): number {

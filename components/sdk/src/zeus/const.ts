@@ -6131,6 +6131,7 @@ export const ReturnTypes: Record<string,any> = {
 	},
 	EduScheduleSlot:{
 		assignment_id:"ID",
+		cost:"String",
 		minutes:"Int",
 		time:"String",
 		weekday:"Int"

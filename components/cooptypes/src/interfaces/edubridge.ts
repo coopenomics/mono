@@ -153,11 +153,15 @@ export interface IOpensub {
 }
 
 /** Условия курса: по ним контракт считает все суммы процесса. */
+/** Окно расписания в условиях группы: длительность и плановая стоимость занятия для одного участника. */
+export interface IEduSlotTerms {
+  minutes: IUint32
+  cost: IAsset
+}
+
 export interface ISetcourse {
   coopname: IName
   course_id: IUint64
-  /** Плановая ставка часа, заложенная во взнос участника, — предел ставки преподавателя. */
-  planned_rate: IAsset
   /** Взнос преподавателя за занятие считается за каждого участника; false — фиксированный за занятие. */
   per_learner: IBool
   target_fee_month: IAsset
@@ -165,6 +169,8 @@ export interface ISetcourse {
   minutes_per_month: IUint32
   /** Минут занятий в программе; 0 — программа без конца. */
   minutes_total: IUint32
+  /** Окна расписания со стоимостью занятия; по индексу окна отчёт о занятии находит стоимость. */
+  slots: IEduSlotTerms[]
   course_payment: IBool
   /** Скидка за взнос разом, сотые доли процента. */
   discount_bp: IUint32
@@ -204,6 +210,8 @@ export interface IOpenlesson {
   number: IUint32
   /** Длительность занятия, минут — из календаря группы. */
   minutes: IUint32
+  /** Индекс окна расписания в условиях группы — по нему стоимость занятия. */
+  slot: IUint32
 }
 
 /** Окно расчёта по занятию закрыто: подписки группы рассчитаны. */
@@ -396,7 +404,8 @@ export interface IEduSubPlan {
 /** eduterms (scope = coopname, ключ — course_id) — условия курса, по которым считаются суммы. */
 export interface IEduTerms {
   course_id: IUint64
-  planned_rate: IAsset
+  /** Окна расписания со стоимостью занятия. */
+  slots: IEduSlotTerms[]
   per_learner: IBool
   target_fee_month: IAsset
   minutes_per_month: IUint32
@@ -441,6 +450,8 @@ export interface IEduLesson {
   number: IUint32
   held_at: ITimePointSec
   minutes: IUint32
+  /** Стоимость занятия для одного участника по окну расписания. */
+  cost: IAsset
   rate: IAsset
   /** Ставка преподавателя за проведённое время: за одного участника либо за всё занятие. */
   charge: IAsset

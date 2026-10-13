@@ -1,3 +1,4 @@
+import { normalizeSlots, programOf } from '../../domain/lib/schedule';
 import { guaranteeSeconds } from '../../domain/economy/guarantee';
 import { eduMonthSeconds } from '../../domain/economy/time-scale';
 import { Inject, Injectable } from '@nestjs/common';
@@ -31,11 +32,12 @@ export class EdubridgeChainTermsService {
     await this.chain.setCourse({
       coopname: course.coopname,
       course_id: Number(course.chain_ref),
-      planned_rate: course.planned_hourly_rate,
       per_learner: Boolean(course.pay_per_learner),
       target_fee_month: targetFeeMonth(course),
       minutes_per_month: Number(course.minutes_per_month),
       minutes_total: Number(course.minutes_total),
+      // Окна в том же порядке, в каком их держит запись: занятие называет окно индексом.
+      slots: normalizeSlots(course.schedule_slots ?? []).map((s) => ({ minutes: s.minutes, cost: s.cost })),
       course_payment: Boolean(course.course_payment_enabled),
       discount_bp: Number(course.course_discount_bp ?? 0),
       guarantee_secs: guaranteeSeconds(course),
@@ -106,11 +108,10 @@ export function chainAssignmentRef(assignment: Pick<EdubridgeTeacherAssignmentRe
  * по плановой ставке. Оплата занятия считается так же, как в контракте
  * (`edu_terms::lesson_unit`): ставка за минуты занятия, нацело.
  */
-export function targetFeeMonth(course: Pick<EdubridgeCourseRecord, 'fee_month' | 'planned_hourly_rate' | 'minutes_per_month'>): string {
+export function targetFeeMonth(course: Pick<EdubridgeCourseRecord, 'fee_month' | 'schedule_slots' | 'program_months'>): string {
   const [feeRaw, symbol = ''] = String(course.fee_month ?? '').trim().split(' ');
   const fee = Math.round((Number.parseFloat(feeRaw) || 0) * ASSET_SCALE);
-  const rate = Math.round((Number.parseFloat(String(course.planned_hourly_rate ?? '').split(' ')[0]) || 0) * ASSET_SCALE);
-  const teach = Math.floor((rate * Number(course.minutes_per_month)) / MINUTES_IN_HOUR);
+  const teach = Math.round((Number.parseFloat(programOf(course.schedule_slots ?? [], course.program_months ?? 0).teach_month) || 0) * ASSET_SCALE);
   const target = Math.max(0, fee - teach);
   return `${(target / ASSET_SCALE).toFixed(4)} ${symbol}`.trim();
 }

@@ -16,8 +16,8 @@ const SCALE = 10 ** PRECISION;
 export interface CourseFeeParams {
   /** Минут занятий в месяц по окнам расписания. */
   minutes_per_month: number;
-  /** Ставка часа, по которой считается себестоимость («1000.0000 RUB»). */
-  hourly_rate: string;
+  /** Оплата занятий месяца одним участником по стоимости окон («8666.6667 RUB»). */
+  teach_month: string;
   /** Наценка кооператива, проценты. */
   markup_percent: number;
   /** Длительность программы в месяцах; ноль — курс без конечной программы. */
@@ -108,12 +108,10 @@ export function costOfHours(hourlyRate: string, hours: number): string {
 }
 
 export function calculateCourseFee(params: CourseFeeParams): CourseFeeCalculation {
-  const { amount: rate, symbol } = parseAmount(params.hourly_rate);
+  const { amount: costMonth, symbol } = parseAmount(params.teach_month);
   const minutes = Math.max(0, Math.floor(params.minutes_per_month || 0));
+  // Часы — только для показа: себестоимость месяца приходит суммой стоимостей окон, как считает контракт.
   const hoursPerMonth = round2(minutes / 60);
-
-  // Себестоимость — ровно по минутам, как считает контракт (`minutes_cost`); часы — только для показа.
-  const costMonth = Math.round((rate * minutes) / 60);
   const markupMonth = Math.round((costMonth * params.markup_percent) / 100);
   const feeMonth = costMonth + markupMonth;
 

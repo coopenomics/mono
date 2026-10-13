@@ -302,7 +302,6 @@
     "EDUBRIDGE_COURSE_SKILLSPACE_REF_INVALID": "Для Skillspace нужен UUID курса из реестра школы (и UUID группы, если она есть) — числовой номер из адреса конструктора площадка не знает",
     "EDUBRIDGE_COURSE_START_ONLY_FORWARD": "Занятия уже начались: дату активации можно только сдвинуть вперёд",
     "EDUBRIDGE_COURSE_TEACHERS_WITHOUT_CONTRACT": "Нет договора участия в хозяйственной деятельности: {teachers}",
-    "EDUBRIDGE_COURSE_TEACHER_RATE_NOT_COVERED": "{teacher}: ставка на курсе {contractRate} выше плановой ставки курса {plannedRate}. Ставка преподавателя на курсе устанавливается в пределах плановой",
     "EDUBRIDGE_ENROLLMENT_COURSE_FULLY_PAID": "Курс уже оплачен до конца программы",
     "EDUBRIDGE_ENROLLMENT_COURSE_PAYMENT_DISABLED": "Взнос за весь курс разом по этому курсу не принимается — доступен помесячный взнос",
     "EDUBRIDGE_ENROLLMENT_STATEMENT_STALE": "Условия оплаты изменились с момента формирования заявления — сформируйте и подпишите его заново",
@@ -322,6 +321,7 @@
     "EDUBRIDGE_LESSON_DATE_INVALID": "Момент занятия не распознан",
     "EDUBRIDGE_PROGRAM_FULL": "Программа заполнена: в ней {minutesTotal} минут занятий, свободных минут для занятия нет",
     "EDUBRIDGE_RESERVE_EMPTY": "Резерв расписания исчерпан: свободно {minutesLeft} мин. Внеочередное занятие берётся только из резерва",
+    "EDUBRIDGE_SCHEDULE_COST_INVALID": "Стоимость занятия окна — сумма с символом, например «1000.0000 RUB»",
     "EDUBRIDGE_SCHEDULE_REQUIRED": "Задайте хотя бы одно окно расписания: из окон считаются минуты занятий и взнос",
     "EDUBRIDGE_SCHEDULE_WEEKDAY_INVALID": "День недели окна расписания: от 1 (понедельник) до 7 (воскресенье)",
     "EDUBRIDGE_SCHEDULE_TIME_INVALID": "Время начала окна расписания — «ЧЧ:ММ»",
@@ -376,7 +376,6 @@
     "EDUBRIDGE_TEACHER_ABOUT_REQUIRED": "Расскажите о себе",
     "EDUBRIDGE_TEACHER_RATE_NOT_ASSIGNED": "Преподавателю не назначена ставка за час ({teachers}). Назначьте ставку в карточке преподавателя, затем добавьте его в курс",
     "EDUBRIDGE_TEACHER_RATE_REQUIRED": "Укажите ставку за час",
-    "EDUBRIDGE_TEACHER_RATE_NOT_COVERED": "Ставка на курсе {contractRate} выше плановой ставки курса {plannedRate}. Ставка преподавателя на курсе устанавливается в пределах плановой",
     "EDUBRIDGE_TRANSFER_ACT_STALE": "Акт передачи материалов устарел — сформируйте и подпишите его заново",
     "EDUBRIDGE_UNDERFILL_CANCEL_PARTIAL": "Возвращено подписок: {cancelled}, не удалось: {failed}. Повторите отмену."
   }

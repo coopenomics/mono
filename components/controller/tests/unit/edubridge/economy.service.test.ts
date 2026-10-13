@@ -8,14 +8,13 @@ const COURSE_ID = '0cd16d12-6ade-40f2-8830-b0673dde8b9e';
 /** Курс: два часовых окна в неделю (520 минут в месяц), программа восемь месяцев, плановая ставка 1000 ₽/ч, взнос только помесячный. */
 const COURSE = {
   id: COURSE_ID,
-  schedule_slots: [{ weekday: 2, time: '17:00', minutes: 60, assignment_id: null }, { weekday: 4, time: '17:00', minutes: 60, assignment_id: null }],
+  schedule_slots: [{ weekday: 2, time: '17:00', minutes: 60, assignment_id: null, cost: '1000.0000 RUB' }, { weekday: 4, time: '17:00', minutes: 60, assignment_id: null, cost: '1000.0000 RUB' }],
   program_months: 8,
   lessons_per_month: 9,
   lessons_total: 72,
   lesson_minutes: 60,
   minutes_per_month: 520,
   minutes_total: 4160,
-  planned_hourly_rate: '1000.0000 RUB',
   course_payment_enabled: false,
   course_discount_bp: 0,
   fee_month: '9600.0000 RUB',
@@ -67,14 +66,13 @@ function make(
 }
 
 const params = {
-  schedule_slots: [{ weekday: 2, time: '17:00', minutes: 60, assignment_id: null }, { weekday: 4, time: '17:00', minutes: 60, assignment_id: null }],
+  schedule_slots: [{ weekday: 2, time: '17:00', minutes: 60, assignment_id: null, cost: '1000.0000 RUB' }, { weekday: 4, time: '17:00', minutes: 60, assignment_id: null, cost: '1000.0000 RUB' }],
   program_months: 8,
-  planned_hourly_rate: '1000.0000 RUB',
   course_payment_enabled: true,
   course_discount_percent: 0,
 };
 
-const base = { minutes_per_month: 480, program_months: 8, hourly_rate: '1000.0000 RUB', markup_percent: 20, course_discount_percent: 0 };
+const base = { minutes_per_month: 480, program_months: 8, teach_month: '8000.0000 RUB', markup_percent: 20, course_discount_percent: 0 };
 
 describe('Расчёт взноса курса', () => {
   it('себестоимость — часы по ставке, взнос — с наценкой кооператива', () => {
@@ -85,8 +83,8 @@ describe('Расчёт взноса курса', () => {
     expect(calc.fee_month).toBe('9600.0000 RUB');
   });
 
-  it('себестоимость считается ровно по минутам: 520 минут в месяц по 1000 — 8666,6667', () => {
-    const calc = calculateCourseFee({ ...base, minutes_per_month: 520, markup_percent: 0 });
+  it('себестоимость — стоимости окон месяца, часы только для показа', () => {
+    const calc = calculateCourseFee({ ...base, minutes_per_month: 520, teach_month: '8666.6667 RUB', markup_percent: 0 });
     expect(calc.hours_per_month).toBe(8.67);
     expect(calc.fee_month).toBe('8666.6667 RUB');
   });

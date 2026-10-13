@@ -43,7 +43,6 @@ function emptyForm(): CourseFormFields {
     schedule_slots: [],
     report_days: 7,
     teacher_usernames: [],
-    planned_hourly_rate: '',
     pay_per_learner: true,
     course_payment_enabled: false,
     course_discount_percent: 0,
@@ -131,7 +130,6 @@ function useCover(course: CourseSource) {
 function useEconomyFields(symbol: ComputedRef<string>, form: CourseFormFields) {
   /** Длительность программы, месяцев; ноль — программа без конца. */
   const programMonths = ref('1');
-  const plannedRate = ref('');
   /** Способ расчёта с преподавателем: за каждого участника либо фиксированный за занятие. */
   const payPerLearner = ref(true);
   const guaranteeDays = ref('14');
@@ -140,23 +138,22 @@ function useEconomyFields(symbol: ComputedRef<string>, form: CourseFormFields) {
 
   const economyParams = computed(() => ({
     // Минуты занятий считает сервер из окон расписания; длительность программы — месяцами.
-    schedule_slots: (form.schedule_slots ?? []).map((s) => ({ weekday: Number(s.weekday), time: s.time, minutes: Number(s.minutes), assignment_id: s.assignment_id || null })),
+    // Стоимость окна приходит числом из поля — в цепь уходит суммой с символом кооператива.
+    schedule_slots: (form.schedule_slots ?? []).map((s) => ({ weekday: Number(s.weekday), time: s.time, minutes: Number(s.minutes), assignment_id: s.assignment_id || null, cost: formatToAsset(String(s.cost || '0').replace(',', '.'), symbol.value) })),
     program_months: Number(programMonths.value || 0),
-    planned_hourly_rate: formatToAsset(String(plannedRate.value || '0').replace(',', '.'), symbol.value),
     course_payment_enabled: coursePayment.value,
     course_discount_percent: coursePayment.value ? Number(courseDiscount.value || 0) : 0,
   }));
 
   function fillEconomy(c: ICourse): void {
     programMonths.value = String(c.program_months ?? 0);
-    plannedRate.value = c.planned_hourly_rate ? String(parseFloat(c.planned_hourly_rate)) : '';
     payPerLearner.value = Boolean(c.pay_per_learner);
     guaranteeDays.value = String(c.guarantee_days);
     coursePayment.value = c.course_payment_enabled;
     courseDiscount.value = String(c.course_discount_percent);
   }
 
-  return { programMonths, plannedRate, payPerLearner, guaranteeDays, coursePayment, courseDiscount, economyParams, fillEconomy };
+  return { programMonths, payPerLearner, guaranteeDays, coursePayment, courseDiscount, economyParams, fillEconomy };
 }
 
 /**
@@ -213,7 +210,7 @@ function useFeePreview(economy: ReturnType<typeof useEconomyFields>) {
     (params) => {
       if (previewTimer) clearTimeout(previewTimer);
       // Пока параметры неполные, считать нечего: сервер такой набор отклонит.
-      if (!params.schedule_slots.length || params.schedule_slots.some((slot) => !(slot.minutes >= 5))) {
+      if (!params.schedule_slots.length || params.schedule_slots.some((slot) => !(slot.minutes >= 5) || !(parseFloat(slot.cost) >= 0))) {
         fee.value = null;
         return;
       }
@@ -445,7 +442,7 @@ function fillForm(form: CourseFormFields, c: ICourse): void {
     description: c.description,
     syllabus: c.syllabus,
     schedule: c.schedule,
-    schedule_slots: (c.schedule_slots ?? []).map((s) => ({ weekday: s.weekday, time: s.time, minutes: s.minutes, assignment_id: s.assignment_id ?? null })),
+    schedule_slots: (c.schedule_slots ?? []).map((s) => ({ weekday: s.weekday, time: s.time, minutes: s.minutes, assignment_id: s.assignment_id ?? null, cost: s.cost ? String(parseFloat(s.cost)) : '' })),
     report_days: c.report_days ?? 7,
     teacher_usernames: [...c.teacher_usernames],
     direction: c.direction,

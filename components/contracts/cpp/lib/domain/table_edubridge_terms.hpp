@@ -35,9 +35,19 @@ using namespace eosio;
  * что в `edu_subscription::course_id` и `edu_course::course_id`. Учёт средств
  * курса лежит отдельно, в `educourses`.
  */
+/// Окно расписания в условиях группы: длительность и плановая стоимость занятия для одного участника.
+struct edu_slot_terms {
+  uint32_t minutes;    ///< длительность занятия окна, минут
+  eosio::asset cost;   ///< стоимость занятия окна для участника — заложена во взнос, потолок взноса преподавателя
+
+  friend bool operator==(const edu_slot_terms& a, const edu_slot_terms& b) { return a.minutes == b.minutes && a.cost == b.cost; }
+
+  EOSLIB_SERIALIZE(edu_slot_terms, (minutes)(cost))
+};
+
 struct [[eosio::table, eosio::contract(EDUBRIDGE)]] edu_terms {
   uint64_t course_id;                  ///< курс (off-chain id приложения)
-  eosio::asset planned_rate;           ///< плановая ставка за час, заложенная во взнос участника — предел ставки преподавателя
+  std::vector<edu_slot_terms> slots;   ///< окна расписания: по индексу окна отчёт о занятии находит его стоимость
   bool per_learner;                    ///< взнос преподавателя за занятие считается за каждого участника; false — фиксированный за занятие
   eosio::asset target_fee_month;       ///< целевой членский взнос за месяц
   uint32_t minutes_per_month;          ///< минут занятий в месяц по расписанию: минуты недели на 52/12
@@ -73,14 +83,30 @@ struct [[eosio::table, eosio::contract(EDUBRIDGE)]] edu_terms {
     }
   }
 
-  /// Оплата минут занятий за одного участника по плановой ставке часа.
-  eosio::asset minutes_cost(uint32_t minutes) const {
-    return eosio::asset(static_cast<int64_t>(static_cast<__int128>(planned_rate.amount) * minutes / 60), planned_rate.symbol);
+  /// Оплата занятий месяца одним участником: стоимости окон недели на 52/12.
+  eosio::asset teach_month() const {
+    __int128 week = 0;
+    for (const auto& s : slots) week += s.cost.amount;
+    return eosio::asset(static_cast<int64_t>(week * 52 / 12), target_fee_month.symbol);
   }
 
-  /// Членский взнос за месяц: оплата минут месяца по плановой ставке и целевой членский взнос.
+  /// Оплата части месяца пропорционально минутам: взнос по остатку программы и резерв подписки.
+  eosio::asset teach_for_minutes(uint32_t minutes) const {
+    if (minutes_per_month == 0) return eosio::asset(0, target_fee_month.symbol);
+    return eosio::asset(static_cast<int64_t>(static_cast<__int128>(teach_month().amount) * minutes / minutes_per_month), target_fee_month.symbol);
+  }
+
+  /// Стоимость занятия по окну для одного участника; занятие другой длины — пропорционально минутам окна.
+  eosio::asset slot_cost(uint32_t slot, uint32_t minutes) const {
+    eosio::check(slot < slots.size(), "EDUBRIDGE_SLOT_NOT_FOUND: Окна расписания с таким номером у группы нет");
+    const auto& s = slots[slot];
+    if (s.minutes == 0 || minutes == s.minutes) return s.cost;
+    return eosio::asset(static_cast<int64_t>(static_cast<__int128>(s.cost.amount) * minutes / s.minutes), s.cost.symbol);
+  }
+
+  /// Членский взнос за месяц: оплата занятий месяца и целевой членский взнос.
   eosio::asset fee_month() const {
-    return minutes_cost(minutes_per_month) + target_fee_month;
+    return teach_month() + target_fee_month;
   }
 
   /// Длительность курса в месяцах; неполный последний месяц считается месяцем. 0 — программа без конца.
@@ -139,8 +165,9 @@ struct [[eosio::table, eosio::contract(EDUBRIDGE)]] edu_lesson {
   uint32_t number;                 ///< номер занятия в курсе
   eosio::time_point_sec held_at;   ///< дата проведения
   uint32_t minutes;                ///< длительность, минут — из календаря группы
+  eosio::asset cost;               ///< стоимость занятия для одного участника — по окну расписания; столько списывается из резерва подписки
   eosio::asset rate;               ///< ставка преподавателя на момент отчёта
-  eosio::asset charge;             ///< ставка преподавателя за проведённое время: взнос за одного участника либо фиксированный взнос за занятие
+  eosio::asset charge;             ///< ставка преподавателя за проведённое время, не больше стоимости занятия: взнос за одного участника либо фиксированный взнос за занятие
   uint32_t learners;               ///< участников с оплаченным доступом, по которым прошёл расчёт
   eosio::asset amount;             ///< взнос преподавателя за занятие
   eosio::time_point_sec created_at;

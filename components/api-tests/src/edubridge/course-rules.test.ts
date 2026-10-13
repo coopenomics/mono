@@ -34,6 +34,7 @@ import {
   reopenEnrollment,
   signOffer,
   subscribe,
+  courseSlots,
 } from './edubridge.helpers'
 
 const DELETE_COURSE = 'mutation($id:ID!){ edubridgeDeleteCourse(id:$id) }'
@@ -99,8 +100,8 @@ describe('Образование: правила курса — удаление
     await subscribe(learner, token, self.id, course.id)
     const update = (over: Record<string, unknown>) => gqlError(chairman, UPDATE_COURSE, { d: { ...input, id: course.id, ...over } })
 
-    // Плановая ставка курса меняется: взнос курса пересчитан.
-    expect(await update({ planned_hourly_rate: '1200.0000 RUB' })).toBeNull()
+    // Стоимость окон меняется: взнос курса пересчитан.
+    expect(await update({ schedule_slots: courseSlots(60, 2, '1200.0000 RUB') })).toBeNull()
     const repriced = (await gql<any>(chairman, COURSE, { id: course.id })).edubridgeCourse
     expect(amount(repriced.fee_month)).toBeGreaterThan(amount(course.fee_month))
     // Обучающийся идущей группы продлевает подписку по прежнему взносу: её условия закреплены.
@@ -108,7 +109,7 @@ describe('Образование: правила курса — удаление
     expect(extension.is_extension).toBe(true)
     expect(amount(extension.amount)).toBeCloseTo(amount(course.fee_month), 4)
     // Правка описания и расписания проходит как прежде.
-    expect(await update({ planned_hourly_rate: '1200.0000 RUB', description: 'Описание уточнено', schedule: 'Вт и Чт, 18:00' })).toBeNull()
+    expect(await update({ schedule_slots: courseSlots(60, 2, '1200.0000 RUB'), description: 'Описание уточнено' })).toBeNull()
   })
 
   it(caseName('edu.teach.side.24', 'взнос за занятие — в пределах оплаченных занятий подписки; без оплаченного доступа отчёт не принимается'), async () => {

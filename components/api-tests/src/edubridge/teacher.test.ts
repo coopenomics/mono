@@ -40,6 +40,7 @@ import {
   publishCourse,
   signOffer,
   signedContract,
+  courseSlots,
 } from './edubridge.helpers'
 
 /** Ставка преподавателя ниже плановой ставки курсов набора. */
@@ -191,26 +192,25 @@ describe('Образование: преподаватель — профиль,
     expectCode(await gqlError(token, CREATE_ASSIGNMENT, { d }), NO_RIGHTS)
   })
 
-  it(caseName('edu.teach.side.18', 'ставка преподавателя на курсе не бывает выше плановой ставки курса'), async () => {
-    // Договорная ставка 900, плановая ставка курса 500: допуск выдаётся со ставкой курса.
-    const cheap = await publishCourse(chairman, section, 30, { planned_hourly_rate: '500.0000 RUB' })
+  it(caseName('edu.teach.side.18', 'ставка преподавателя на курсе — из договора; администратор правит её в любую сторону, потолок держит стоимость занятия по окну'), async () => {
+    // Договорная ставка 900, окна курса по 500 за час: допуск выдаётся с договорной ставкой.
+    const cheap = await publishCourse(chairman, section, 30, { schedule_slots: courseSlots(60, 2, '500.0000 RUB') })
     const admit = { d: { teacher_username: teacher.account, course_id: cheap.id, period_from: dayFromNow(0), period_to: dayFromNow(90) } }
     const assignment = (await gql<any>(chairman, CREATE_ASSIGNMENT, admit)).edubridgeCreateAssignment
-    expect(assignment).toMatchObject({ status: 'ACTIVE', hourly_rate: '500.0000 RUB' })
-    // Поднять ставку допуска выше плановой нельзя, опустить — можно.
-    expectCode(await gqlError(chairman, SET_ASSIGNMENT_RATE, { d: { assignment_id: assignment.id, hourly_rate: '501.0000 RUB' } }), 'EDUBRIDGE_TEACHER_RATE_NOT_COVERED')
+    expect(assignment).toMatchObject({ status: 'ACTIVE', hourly_rate: RATE })
+    const raised = (await gql<any>(chairman, SET_ASSIGNMENT_RATE, { d: { assignment_id: assignment.id, hourly_rate: '950.0000 RUB' } })).edubridgeSetAssignmentRate
+    expect(raised.hourly_rate).toBe('950.0000 RUB')
     const lowered = (await gql<any>(chairman, SET_ASSIGNMENT_RATE, { d: { assignment_id: assignment.id, hourly_rate: '450.0000 RUB' } })).edubridgeSetAssignmentRate
     expect(lowered.hourly_rate).toBe('450.0000 RUB')
     expectCode(await gqlError(token, SET_ASSIGNMENT_RATE, { d: { assignment_id: assignment.id, hourly_rate: '400.0000 RUB' } }), NO_RIGHTS)
-    // На курсе с плановой ставкой выше договорной действует договорная.
     expect((await assignmentsOf()).find(a => a.course_id === course.id)?.hourly_rate).toBe(RATE)
   })
 
-  it(caseName('edu.teacher.break.sync-01', 'преподаватель, записанный в курс с плановой ставкой ниже договорной, получает допуск со ставкой курса'), async () => {
-    const input = courseInput(section, { planned_hourly_rate: '500.0000 RUB', teacher_usernames: [teacher.account] })
+  it(caseName('edu.teacher.break.sync-01', 'преподаватель, записанный в курс с окнами дешевле договорной ставки, получает допуск с договорной ставкой'), async () => {
+    const input = courseInput(section, { schedule_slots: courseSlots(60, 2, '500.0000 RUB'), teacher_usernames: [teacher.account] })
     const saved = (await gql<any>(chairman, CREATE_COURSE, { d: input })).edubridgeCreateCourse
     expect(saved.teacher_usernames).toEqual([teacher.account])
-    expect((await assignmentsOf()).find(a => a.course_id === saved.id)).toMatchObject({ status: 'ACTIVE', hourly_rate: '500.0000 RUB' })
+    expect((await assignmentsOf()).find(a => a.course_id === saved.id)).toMatchObject({ status: 'ACTIVE', hourly_rate: RATE })
   })
 
   let led: any

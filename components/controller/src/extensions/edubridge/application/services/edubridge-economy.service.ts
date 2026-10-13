@@ -348,7 +348,6 @@ export class EdubridgeEconomyService {
     return {
       schedule_slots: course.schedule_slots ?? [],
       program_months: course.program_months ?? 0,
-      planned_hourly_rate: course.planned_hourly_rate,
       course_payment_enabled: course.course_payment_enabled,
       course_discount_percent: course.course_discount_bp / BP_IN_PERCENT,
     };
@@ -358,7 +357,7 @@ export class EdubridgeEconomyService {
     const program = programOf(normalizeSlots(input.schedule_slots), input.program_months);
     return calculateCourseFee({
       minutes_per_month: program.minutes_per_month,
-      hourly_rate: input.planned_hourly_rate,
+      teach_month: program.teach_month,
       markup_percent: markupPercent,
       program_months: program.minutes_per_month > 0 ? Math.max(0, Math.floor(input.program_months || 0)) : 0,
       // Скидка действует, только когда кооператив принимает взнос разом.

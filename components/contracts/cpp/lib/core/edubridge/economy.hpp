@@ -160,7 +160,7 @@ struct FeeQuote {
  * пришедший в середине вносит за остаток.
  */
 inline FeeQuote quote_fee(const edu_terms& terms, const edu_subscription& sub, eosio::name period, eosio::time_point_sec now) {
-  eosio::check(terms.minutes_per_month > 0 && terms.planned_rate.amount > 0,
+  eosio::check(terms.minutes_per_month > 0 && !terms.slots.empty(),
                "EDUBRIDGE_COURSE_TERMS_NOT_SET: Условия курса не заданы");
   const bool paid = sub.has_plan() && sub.plan.value().minutes_paid > 0;
   const eosio::time_point_sec from = paid && sub.paid_until > now ? sub.paid_until : now;
@@ -221,7 +221,7 @@ inline FeeQuote quote_fee(const edu_terms& terms, const edu_subscription& sub, e
   }
   const eosio::asset discount(base_amount.amount * discount_bp / BP_IN_WHOLE, base_amount.symbol);
   q.amount = base_amount - discount;
-  q.teach = terms.minutes_cost(minutes);
+  q.teach = terms.teach_for_minutes(minutes);
   eosio::check(q.teach <= q.amount, "EDUBRIDGE_DISCOUNT_ABOVE_TARGET_FEE: Скидка курса больше целевого членского взноса");
   return q;
 }

@@ -35,7 +35,6 @@ function economyParams(input: EduCourseInputDTO): EduCourseEconomyInputDTO {
   return {
     schedule_slots: input.schedule_slots ?? [],
     program_months: input.program_months ?? 0,
-    planned_hourly_rate: input.planned_hourly_rate,
     course_payment_enabled: input.course_payment_enabled ?? false,
     course_discount_percent: input.course_discount_percent ?? 0,
   };
@@ -302,9 +301,9 @@ function economyFields(input: EduCourseInputDTO, fee: { fee_month: string }): Pa
   // Расписание обязательно: из окон считаются минуты занятий, по ним — взнос.
   if (!slots.length) throw DomainError.badRequest('EDUBRIDGE_SCHEDULE_REQUIRED');
   return {
+    // Числа программы и плановая ставка как среднее — из окон; стоимость занятия живёт в окне.
     ...programOf(slots, input.program_months ?? 0),
     program_months: Math.max(0, Math.floor(input.program_months ?? 0)),
-    planned_hourly_rate: input.planned_hourly_rate,
     pay_per_learner: input.pay_per_learner ?? true,
     starts_at: input.starts_at || null,
     guarantee_days: input.guarantee_days ?? DEFAULT_GUARANTEE_DAYS,

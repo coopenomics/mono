@@ -7020,7 +7020,7 @@ export type ValueTypes = {
 	minutes_total?:boolean | `@${string}`,
 	/** Взнос преподавателя за занятие считается за каждого участника; иначе фиксированный за занятие */
 	pay_per_learner?:boolean | `@${string}`,
-	/** Плановая ставка часа, заложенная во взнос каждого участника */
+	/** Плановая ставка часа — среднее по окнам расписания; стоимость занятия задаётся окном */
 	planned_hourly_rate?:boolean | `@${string}`,
 	/** Длительность программы, месяцев; ноль — программа без конца */
 	program_months?:boolean | `@${string}`,
@@ -7088,8 +7088,6 @@ export type ValueTypes = {
 	course_discount_percent?: number | undefined | null | Variable<any, string>,
 	/** Принимать взнос за весь курс разом; иначе взнос только помесячный */
 	course_payment_enabled?: boolean | undefined | null | Variable<any, string>,
-	/** Плановая ставка часа по программе («1000.0000 RUB») */
-	planned_hourly_rate: string | Variable<any, string>,
 	/** Длительность программы, месяцев; ноль — программа без конца */
 	program_months: number | Variable<any, string>,
 	/** Окна расписания: по их минутам считается взнос */
@@ -7150,8 +7148,6 @@ export type ValueTypes = {
 	level_id?: ValueTypes["ID"] | undefined | null | Variable<any, string>,
 	/** Взнос преподавателя за занятие считается за каждого участника; иначе фиксированный за занятие */
 	pay_per_learner?: boolean | undefined | null | Variable<any, string>,
-	/** Плановая ставка часа по программе («1000.0000 RUB») */
-	planned_hourly_rate: string | Variable<any, string>,
 	/** Длительность программы, месяцев; ноль — программа без конца */
 	program_months: number | Variable<any, string>,
 	/** Срок на отчёт преподавателя о занятии, дней после занятия */
@@ -7829,6 +7825,8 @@ export type ValueTypes = {
 	["EduScheduleSlot"]: AliasType<{
 	/** Допуск преподавателя, который ведёт занятия окна; пусто — преподаватель не назначен */
 	assignment_id?:boolean | `@${string}`,
+	/** Плановая стоимость занятия окна для одного участника («1000.0000 RUB») */
+	cost?:boolean | `@${string}`,
 	/** Длительность занятия, минут */
 	minutes?:boolean | `@${string}`,
 	/** Время начала «ЧЧ:ММ» по часовому поясу кооператива */
@@ -7841,6 +7839,8 @@ export type ValueTypes = {
 	["EduScheduleSlotInput"]: {
 	/** Допуск преподавателя */
 	assignment_id?: ValueTypes["ID"] | undefined | null | Variable<any, string>,
+	/** Плановая стоимость занятия окна для одного участника («1000.0000 RUB») */
+	cost: string | Variable<any, string>,
 	/** Длительность занятия, минут */
 	minutes: number | Variable<any, string>,
 	/** Время начала «ЧЧ:ММ» по часовому поясу кооператива; у резерва пусто */
@@ -8100,8 +8100,6 @@ export type ValueTypes = {
 	level_id?: ValueTypes["ID"] | undefined | null | Variable<any, string>,
 	/** Взнос преподавателя за занятие считается за каждого участника; иначе фиксированный за занятие */
 	pay_per_learner?: boolean | undefined | null | Variable<any, string>,
-	/** Плановая ставка часа по программе («1000.0000 RUB») */
-	planned_hourly_rate: string | Variable<any, string>,
 	/** Длительность программы, месяцев; ноль — программа без конца */
 	program_months: number | Variable<any, string>,
 	/** Срок на отчёт преподавателя о занятии, дней после занятия */
@@ -23960,7 +23958,7 @@ export type ResolverInputTypes = {
 	minutes_total?:boolean | `@${string}`,
 	/** Взнос преподавателя за занятие считается за каждого участника; иначе фиксированный за занятие */
 	pay_per_learner?:boolean | `@${string}`,
-	/** Плановая ставка часа, заложенная во взнос каждого участника */
+	/** Плановая ставка часа — среднее по окнам расписания; стоимость занятия задаётся окном */
 	planned_hourly_rate?:boolean | `@${string}`,
 	/** Длительность программы, месяцев; ноль — программа без конца */
 	program_months?:boolean | `@${string}`,
@@ -24026,8 +24024,6 @@ export type ResolverInputTypes = {
 	course_discount_percent?: number | undefined | null,
 	/** Принимать взнос за весь курс разом; иначе взнос только помесячный */
 	course_payment_enabled?: boolean | undefined | null,
-	/** Плановая ставка часа по программе («1000.0000 RUB») */
-	planned_hourly_rate: string,
 	/** Длительность программы, месяцев; ноль — программа без конца */
 	program_months: number,
 	/** Окна расписания: по их минутам считается взнос */
@@ -24087,8 +24083,6 @@ export type ResolverInputTypes = {
 	level_id?: ResolverInputTypes["ID"] | undefined | null,
 	/** Взнос преподавателя за занятие считается за каждого участника; иначе фиксированный за занятие */
 	pay_per_learner?: boolean | undefined | null,
-	/** Плановая ставка часа по программе («1000.0000 RUB») */
-	planned_hourly_rate: string,
 	/** Длительность программы, месяцев; ноль — программа без конца */
 	program_months: number,
 	/** Срок на отчёт преподавателя о занятии, дней после занятия */
@@ -24742,6 +24736,8 @@ export type ResolverInputTypes = {
 	["EduScheduleSlot"]: AliasType<{
 	/** Допуск преподавателя, который ведёт занятия окна; пусто — преподаватель не назначен */
 	assignment_id?:boolean | `@${string}`,
+	/** Плановая стоимость занятия окна для одного участника («1000.0000 RUB») */
+	cost?:boolean | `@${string}`,
 	/** Длительность занятия, минут */
 	minutes?:boolean | `@${string}`,
 	/** Время начала «ЧЧ:ММ» по часовому поясу кооператива */
@@ -24753,6 +24749,8 @@ export type ResolverInputTypes = {
 	["EduScheduleSlotInput"]: {
 	/** Допуск преподавателя */
 	assignment_id?: ResolverInputTypes["ID"] | undefined | null,
+	/** Плановая стоимость занятия окна для одного участника («1000.0000 RUB») */
+	cost: string,
 	/** Длительность занятия, минут */
 	minutes: number,
 	/** Время начала «ЧЧ:ММ» по часовому поясу кооператива; у резерва пусто */
@@ -25004,8 +25002,6 @@ export type ResolverInputTypes = {
 	level_id?: ResolverInputTypes["ID"] | undefined | null,
 	/** Взнос преподавателя за занятие считается за каждого участника; иначе фиксированный за занятие */
 	pay_per_learner?: boolean | undefined | null,
-	/** Плановая ставка часа по программе («1000.0000 RUB») */
-	planned_hourly_rate: string,
 	/** Длительность программы, месяцев; ноль — программа без конца */
 	program_months: number,
 	/** Срок на отчёт преподавателя о занятии, дней после занятия */
@@ -40384,7 +40380,7 @@ export type ModelTypes = {
 	minutes_total: number,
 	/** Взнос преподавателя за занятие считается за каждого участника; иначе фиксированный за занятие */
 	pay_per_learner: boolean,
-	/** Плановая ставка часа, заложенная во взнос каждого участника */
+	/** Плановая ставка часа — среднее по окнам расписания; стоимость занятия задаётся окном */
 	planned_hourly_rate: string,
 	/** Длительность программы, месяцев; ноль — программа без конца */
 	program_months: number,
@@ -40447,8 +40443,6 @@ export type ModelTypes = {
 	course_discount_percent?: number | undefined | null,
 	/** Принимать взнос за весь курс разом; иначе взнос только помесячный */
 	course_payment_enabled?: boolean | undefined | null,
-	/** Плановая ставка часа по программе («1000.0000 RUB») */
-	planned_hourly_rate: string,
 	/** Длительность программы, месяцев; ноль — программа без конца */
 	program_months: number,
 	/** Окна расписания: по их минутам считается взнос */
@@ -40507,8 +40501,6 @@ export type ModelTypes = {
 	level_id?: ModelTypes["ID"] | undefined | null,
 	/** Взнос преподавателя за занятие считается за каждого участника; иначе фиксированный за занятие */
 	pay_per_learner?: boolean | undefined | null,
-	/** Плановая ставка часа по программе («1000.0000 RUB») */
-	planned_hourly_rate: string,
 	/** Длительность программы, месяцев; ноль — программа без конца */
 	program_months: number,
 	/** Срок на отчёт преподавателя о занятии, дней после занятия */
@@ -41127,6 +41119,8 @@ export type ModelTypes = {
 	["EduScheduleSlot"]: {
 		/** Допуск преподавателя, который ведёт занятия окна; пусто — преподаватель не назначен */
 	assignment_id?: ModelTypes["ID"] | undefined | null,
+	/** Плановая стоимость занятия окна для одного участника («1000.0000 RUB») */
+	cost: string,
 	/** Длительность занятия, минут */
 	minutes: number,
 	/** Время начала «ЧЧ:ММ» по часовому поясу кооператива */
@@ -41137,6 +41131,8 @@ export type ModelTypes = {
 	["EduScheduleSlotInput"]: {
 	/** Допуск преподавателя */
 	assignment_id?: ModelTypes["ID"] | undefined | null,
+	/** Плановая стоимость занятия окна для одного участника («1000.0000 RUB») */
+	cost: string,
 	/** Длительность занятия, минут */
 	minutes: number,
 	/** Время начала «ЧЧ:ММ» по часовому поясу кооператива; у резерва пусто */
@@ -41377,8 +41373,6 @@ export type ModelTypes = {
 	level_id?: ModelTypes["ID"] | undefined | null,
 	/** Взнос преподавателя за занятие считается за каждого участника; иначе фиксированный за занятие */
 	pay_per_learner?: boolean | undefined | null,
-	/** Плановая ставка часа по программе («1000.0000 RUB») */
-	planned_hourly_rate: string,
 	/** Длительность программы, месяцев; ноль — программа без конца */
 	program_months: number,
 	/** Срок на отчёт преподавателя о занятии, дней после занятия */
@@ -57284,7 +57278,7 @@ export type GraphQLTypes = {
 	minutes_total: number,
 	/** Взнос преподавателя за занятие считается за каждого участника; иначе фиксированный за занятие */
 	pay_per_learner: boolean,
-	/** Плановая ставка часа, заложенная во взнос каждого участника */
+	/** Плановая ставка часа — среднее по окнам расписания; стоимость занятия задаётся окном */
 	planned_hourly_rate: string,
 	/** Длительность программы, месяцев; ноль — программа без конца */
 	program_months: number,
@@ -57351,8 +57345,6 @@ export type GraphQLTypes = {
 	course_discount_percent?: number | undefined | null,
 	/** Принимать взнос за весь курс разом; иначе взнос только помесячный */
 	course_payment_enabled?: boolean | undefined | null,
-	/** Плановая ставка часа по программе («1000.0000 RUB») */
-	planned_hourly_rate: string,
 	/** Длительность программы, месяцев; ноль — программа без конца */
 	program_months: number,
 	/** Окна расписания: по их минутам считается взнос */
@@ -57413,8 +57405,6 @@ export type GraphQLTypes = {
 	level_id?: GraphQLTypes["ID"] | undefined | null,
 	/** Взнос преподавателя за занятие считается за каждого участника; иначе фиксированный за занятие */
 	pay_per_learner?: boolean | undefined | null,
-	/** Плановая ставка часа по программе («1000.0000 RUB») */
-	planned_hourly_rate: string,
 	/** Длительность программы, месяцев; ноль — программа без конца */
 	program_months: number,
 	/** Срок на отчёт преподавателя о занятии, дней после занятия */
@@ -58093,6 +58083,8 @@ export type GraphQLTypes = {
 	__typename: "EduScheduleSlot",
 	/** Допуск преподавателя, который ведёт занятия окна; пусто — преподаватель не назначен */
 	assignment_id?: GraphQLTypes["ID"] | undefined | null,
+	/** Плановая стоимость занятия окна для одного участника («1000.0000 RUB») */
+	cost: string,
 	/** Длительность занятия, минут */
 	minutes: number,
 	/** Время начала «ЧЧ:ММ» по часовому поясу кооператива */
@@ -58104,6 +58096,8 @@ export type GraphQLTypes = {
 	["EduScheduleSlotInput"]: {
 		/** Допуск преподавателя */
 	assignment_id?: GraphQLTypes["ID"] | undefined | null,
+	/** Плановая стоимость занятия окна для одного участника («1000.0000 RUB») */
+	cost: string,
 	/** Длительность занятия, минут */
 	minutes: number,
 	/** Время начала «ЧЧ:ММ» по часовому поясу кооператива; у резерва пусто */
@@ -58363,8 +58357,6 @@ export type GraphQLTypes = {
 	level_id?: GraphQLTypes["ID"] | undefined | null,
 	/** Взнос преподавателя за занятие считается за каждого участника; иначе фиксированный за занятие */
 	pay_per_learner?: boolean | undefined | null,
-	/** Плановая ставка часа по программе («1000.0000 RUB») */
-	planned_hourly_rate: string,
 	/** Длительность программы, месяцев; ноль — программа без конца */
 	program_months: number,
 	/** Срок на отчёт преподавателя о занятии, дней после занятия */

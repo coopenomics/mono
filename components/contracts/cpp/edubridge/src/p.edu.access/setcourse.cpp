@@ -1,10 +1,10 @@
 /**
  * @brief Условия курса: по ним контракт считает все суммы процесса.
  *
- * Администратор задаёт плановую ставку часа, способ расчёта с преподавателем
- * (за каждого участника либо фиксированный за занятие), целевой членский
- * взнос за месяц, расписание, скидку за взнос разом, гарантийный срок и дату
- * начала занятий. Взнос участника, резерв преподавателям, взнос
+ * Администратор задаёт окна расписания со стоимостью занятия каждого окна,
+ * способ расчёта с преподавателем (за каждого участника либо фиксированный за
+ * занятие), целевой членский взнос за месяц, минуты занятий, скидку за взнос
+ * разом, гарантийный срок и дату начала занятий. Взнос участника, резерв преподавателям, взнос
  * преподавателя за занятие и возврат считаются отсюда.
  *
  * `month_secs` — длина месяца в секундах для стенда разработки со сжатым
@@ -17,7 +17,7 @@
  * Движений средств нет.
  *
  * Guards:
- *  - плановая ставка и целевой членский взнос в символе кооператива, ставка > 0;
+ *  - хотя бы одно окно; стоимость окна и целевой членский взнос в символе кооператива;
  *  - минут занятий в месяц > 0;
  *  - скидка за взнос разом не больше целевого членского взноса;
  *  - при действующих подписках денежные условия прежние.
@@ -26,11 +26,11 @@
  */
 void edubridge::setcourse(eosio::name coopname,
                           uint64_t course_id,
-                          eosio::asset planned_rate,
                           bool per_learner,
                           eosio::asset target_fee_month,
                           uint32_t minutes_per_month,
                           uint32_t minutes_total,
+                          std::vector<edu_slot_terms> slots,
                           bool course_payment,
                           uint32_t discount_bp,
                           uint32_t guarantee_secs,
@@ -38,7 +38,12 @@ void edubridge::setcourse(eosio::name coopname,
                           uint32_t month_secs) {
   require_auth(coopname);
 
-  Edubridge::check_money(planned_rate, "Плановая ставка");
+  eosio::check(!slots.empty(), "EDUBRIDGE_SCHEDULE_REQUIRED: У курса нет окон расписания");
+  for (const auto& s : slots) {
+    eosio::check(s.minutes > 0, "EDUBRIDGE_SCHEDULE_MINUTES_INVALID: Длительность окна расписания должна быть больше нуля");
+    eosio::check(s.cost.is_valid() && s.cost.amount >= 0 && s.cost.symbol == _root_govern_symbol,
+                 "EDUBRIDGE_SLOT_COST_INVALID: Некорректная стоимость занятия окна расписания");
+  }
   eosio::check(target_fee_month.is_valid() && target_fee_month.amount >= 0 &&
                  target_fee_month.symbol == _root_govern_symbol,
                "EDUBRIDGE_TARGET_FEE_INVALID: Некорректный целевой членский взнос");
@@ -49,7 +54,7 @@ void edubridge::setcourse(eosio::name coopname,
   auto it = terms.find(course_id);
 
   auto fill = [&](edu_terms& t) {
-    t.planned_rate      = planned_rate;
+    t.slots             = slots;
     t.per_learner       = per_learner;
     t.target_fee_month  = target_fee_month;
     t.minutes_per_month = minutes_per_month;
@@ -72,11 +77,11 @@ void edubridge::setcourse(eosio::name coopname,
     });
   } else {
     if (it->subs_active > 0) {
-      eosio::check(it->planned_rate == planned_rate && it->per_learner == per_learner && it->target_fee_month == target_fee_month &&
+      eosio::check(it->slots == slots && it->per_learner == per_learner && it->target_fee_month == target_fee_month &&
                      it->minutes_per_month == minutes_per_month && it->minutes_total == minutes_total &&
                      it->discount_bp == discount_bp &&
                      it->guarantee_secs == guarantee_secs && it->month_len() == month_secs,
-                   "EDUBRIDGE_COURSE_TERMS_LOCKED: По курсу есть действующие подписки: ставка, способ расчёта с преподавателем, взнос, расписание, скидка и гарантийный срок не меняются");
+                   "EDUBRIDGE_COURSE_TERMS_LOCKED: По курсу есть действующие подписки: окна со стоимостью, способ расчёта с преподавателем, взнос, минуты, скидка и гарантийный срок не меняются");
     }
     eosio::check(it->minutes_opened == 0 || it->starts_at == starts_at,
                  "EDUBRIDGE_COURSE_START_LOCKED: Занятия уже идут: дата начала не меняется");

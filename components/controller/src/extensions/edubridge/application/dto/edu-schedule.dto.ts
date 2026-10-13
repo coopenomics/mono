@@ -10,12 +10,14 @@ export class EduScheduleSlotDTO {
   @Field(() => String, { description: 'Время начала «ЧЧ:ММ» по часовому поясу кооператива' }) time!: string;
   @Field(() => Int, { description: 'Длительность занятия, минут' }) minutes!: number;
   @Field(() => ID, { nullable: true, description: 'Допуск преподавателя, который ведёт занятия окна; пусто — преподаватель не назначен' }) assignment_id!: string | null;
+  @Field(() => String, { description: 'Плановая стоимость занятия окна для одного участника («1000.0000 RUB»)' }) cost!: string;
 
   constructor(s: EduScheduleSlot) {
     this.weekday = s.weekday;
     this.time = s.time;
     this.minutes = s.minutes;
     this.assignment_id = s.assignment_id ?? null;
+    this.cost = s.cost ?? '';
   }
 }
 
@@ -42,6 +44,11 @@ export class EduScheduleSlotInputDTO {
   @IsOptional()
   @IsUUID()
   assignment_id?: string | null;
+
+  @Field(() => String, { description: 'Плановая стоимость занятия окна для одного участника («1000.0000 RUB»)' })
+  @IsString()
+  @Matches(/^\d+\.\d{4} [A-Z]{1,7}$/)
+  cost!: string;
 }
 
 /** Окна расписания группы и срок на отчёт: календарь занятий перестраивается. */

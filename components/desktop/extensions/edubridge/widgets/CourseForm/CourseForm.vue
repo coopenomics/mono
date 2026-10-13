@@ -19,7 +19,9 @@ BaseForm.edu-course-form(ref="formEl" :loading="loading" :error="error" @submit=
     .edu-course-form__group
       .edu-course-form__group-title {{ $t('edubridge.courseForm.scheduleLabel') }}
         FieldHelp.q-ml-xs(:text="COURSE_FORM_HELP.schedule")
-      ScheduleSlotsEditor(v-model="form.schedule_slots" :default-minutes="Number(form.schedule_slots[0]?.minutes || 60)")
+      ScheduleSlotsEditor(v-model="form.schedule_slots" :default-minutes="Number(form.schedule_slots[0]?.minutes || 60)" :symbol="symbol")
+      //- Стоимость занятий месяца по окнам — та же, что в контракте; появляется, когда расчёт посчитан.
+      .t-sm.t-muted.q-mt-sm(v-if="fee") {{ $t('edubridge.courseForm.teachMonthLine', { amount: formatAsset2Digits(fee.cost_month) }) }}
     BaseInput(v-model="form.description" :label="$t('edubridge.courseForm.descriptionLabel')" type="textarea" :rows="3" autogrow)
       template(#append)
         FieldHelp(:text="COURSE_FORM_HELP.description")
@@ -96,9 +98,6 @@ BaseForm.edu-course-form(ref="formEl" :loading="loading" :error="error" @submit=
         BaseCheckbox(v-model="payPerLearner")
           | {{ $t('edubridge.courseForm.payPerLearnerCheckbox') }}
         FieldHelp(:text="COURSE_FORM_HELP.payPerLearner")
-      BaseInput(v-model="plannedRate" :label="$t('edubridge.courseForm.plannedRateLabel')" type="number" :suffix="symbol" required)
-        template(#append)
-          FieldHelp(:text="COURSE_FORM_HELP.plannedRate")
       .edu-course-form__check
         //- Взнос за весь курс — для программ длиннее месяца: у месячной он равен помесячному, переключатель недоступен.
         BaseCheckbox(v-model="coursePayment" :disabled="!programIsLong && !coursePayment")
@@ -267,7 +266,6 @@ const {
   onFilePicked,
   removeImage,
   programMonths,
-  plannedRate,
   payPerLearner,
   termsLocked,
   guaranteeDays,

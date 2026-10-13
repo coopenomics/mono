@@ -25,10 +25,8 @@ void edubridge::setassign(eosio::name coopname,
 
   Edubridge::check_money(rate, "Ставка преподавателя");
   Edubridge::get_active_contract_or_fail(coopname, username);
-  const edu_terms terms = Edubridge::get_terms_or_fail(coopname, course_id);
-  eosio::check(rate <= terms.planned_rate,
-               std::string{"EDUBRIDGE_RATE_ABOVE_PLANNED: Ставка преподавателя выше плановой ставки курса: плановая "} +
-                 terms.planned_rate.to_string());
+  // Потолок ставки держит само занятие: взнос преподавателя не больше стоимости занятия по окну.
+  Edubridge::get_terms_or_fail(coopname, course_id);
 
   edu_assignments_index assigns(_edubridge, coopname.value);
   auto it = assigns.find(assignment_id);

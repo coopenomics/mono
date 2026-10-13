@@ -53,8 +53,8 @@ void edubridge::chargelesson(eosio::name coopname,
                "EDUBRIDGE_LESSON_NOT_COVERED: На дату занятия доступ по подписке не оплачен");
 
   const edu_terms terms = Edubridge::get_terms_or_fail(coopname, lesson->course_id);
-  // Оплата занятия — его минуты по плановой ставке.
-  const eosio::asset unit = terms.minutes_cost(lesson->minutes);
+  // Оплата занятия участником — стоимость по окну расписания, записана при отчёте.
+  const eosio::asset unit = lesson->cost;
   eosio::check(plan.minutes_done + lesson->minutes <= plan.minutes_paid && plan.reserve >= unit,
                "EDUBRIDGE_SUBSCRIPTION_RESERVE_EMPTY: В резерве подписки нет оплаты занятия");
 

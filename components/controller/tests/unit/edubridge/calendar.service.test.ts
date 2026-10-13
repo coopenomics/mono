@@ -10,11 +10,11 @@ jest.mock('@coopenomics/extension-kit', () => ({
 
 const logger = { setContext: jest.fn(), info: jest.fn(), warn: jest.fn(), error: jest.fn() } as any;
 const TUE_THU = [
-  { weekday: 2, time: '17:00', minutes: 60, assignment_id: 'A1' },
-  { weekday: 4, time: '17:00', minutes: 60, assignment_id: 'A1' },
+  { weekday: 2, time: '17:00', minutes: 60, assignment_id: 'A1', cost: '1000.0000 RUB' },
+  { weekday: 4, time: '17:00', minutes: 60, assignment_id: 'A1', cost: '1000.0000 RUB' },
 ];
 /** Резерв: час в неделю на внеочередные занятия — 260 минут в месяц, 520 за два месяца программы. */
-const RESERVE = { weekday: 8, time: '', minutes: 60, assignment_id: null };
+const RESERVE = { weekday: 8, time: '', minutes: 60, assignment_id: null, cost: '1000.0000 RUB' };
 
 /** Группа курса: 12 занятий по 60 минут, 8 в месяц, начало в среду 14.10.2026. */
 function groupOf(over: Record<string, unknown> = {}) {
@@ -68,13 +68,13 @@ const moscow = (iso: string) => new Date(iso).toISOString();
 
 describe('Окна расписания и моменты занятий', () => {
   it('окна проверяются и строятся в строку «Вт, Чт 17:00–18:00»; время — местное время кооператива', () => {
-    const slots = normalizeSlots([{ weekday: 4, time: '17:00', minutes: 60, assignment_id: null }, { weekday: 2, time: '17:00', minutes: 60, assignment_id: 'A1' }]);
+    const slots = normalizeSlots([{ weekday: 4, time: '17:00', minutes: 60, assignment_id: null, cost: '1000.0000 RUB' }, { weekday: 2, time: '17:00', minutes: 60, assignment_id: 'A1', cost: '1000.0000 RUB' }]);
     expect(slots.map((s) => s.weekday)).toEqual([2, 4]);
     expect(formatSlots(slots)).toBe('Вт, Чт 17:00–18:00');
-    expect(formatSlots([...slots, { weekday: 6, time: '10:30', minutes: 90, assignment_id: null }])).toBe('Вт, Чт 17:00–18:00; Сб 10:30–12:00');
-    expect(() => normalizeSlots([{ weekday: 8, time: '17:00', minutes: 60 }])).toThrow(expect.objectContaining({ code: 'EDUBRIDGE_SCHEDULE_WEEKDAY_INVALID' }));
-    expect(() => normalizeSlots([{ weekday: 1, time: '25:00', minutes: 60 }])).toThrow(expect.objectContaining({ code: 'EDUBRIDGE_SCHEDULE_TIME_INVALID' }));
-    expect(() => normalizeSlots([{ weekday: 1, time: '17:00', minutes: 1 }])).toThrow(expect.objectContaining({ code: 'EDUBRIDGE_SCHEDULE_MINUTES_INVALID' }));
+    expect(formatSlots([...slots, { weekday: 6, time: '10:30', minutes: 90, assignment_id: null, cost: '1500.0000 RUB' }])).toBe('Вт, Чт 17:00–18:00; Сб 10:30–12:00');
+    expect(() => normalizeSlots([{ weekday: 8, time: '17:00', minutes: 60, cost: '1000.0000 RUB' }])).toThrow(expect.objectContaining({ code: 'EDUBRIDGE_SCHEDULE_WEEKDAY_INVALID' }));
+    expect(() => normalizeSlots([{ weekday: 1, time: '25:00', minutes: 60, cost: '1000.0000 RUB' }])).toThrow(expect.objectContaining({ code: 'EDUBRIDGE_SCHEDULE_TIME_INVALID' }));
+    expect(() => normalizeSlots([{ weekday: 1, time: '17:00', minutes: 1, cost: '1000.0000 RUB' }])).toThrow(expect.objectContaining({ code: 'EDUBRIDGE_SCHEDULE_MINUTES_INVALID' }));
   });
 
   it('от среды 14.10.2026 занятия по вторникам и четвергам идут с четверга 15.10, 17:00 по Москве', () => {
@@ -84,10 +84,10 @@ describe('Окна расписания и моменты занятий', () =>
   });
 
   it('числа программы из окон: минуты недели на 52/12, занятия — для показа, длительность — по первому окну', () => {
-    expect(programOf(TUE_THU, 8)).toEqual({ minutes_per_month: 520, minutes_total: 4160, lessons_per_month: 9, lessons_total: 72, lesson_minutes: 60, reserve_per_month: 0 });
-    expect(programOf([{ weekday: 6, minutes: 90 }], 0)).toEqual({ minutes_per_month: 390, minutes_total: 0, lessons_per_month: 4, lessons_total: 0, lesson_minutes: 90, reserve_per_month: 0 });
+    expect(programOf(TUE_THU, 8)).toEqual({ minutes_per_month: 520, minutes_total: 4160, lessons_per_month: 9, lessons_total: 72, lesson_minutes: 60, reserve_per_month: 0, teach_month: '8666.6666 RUB', planned_hourly_rate: '1000.0000 RUB' });
+    expect(programOf([{ weekday: 6, minutes: 90, cost: '1500.0000 RUB' }], 0)).toEqual({ minutes_per_month: 390, minutes_total: 0, lessons_per_month: 4, lessons_total: 0, lesson_minutes: 90, reserve_per_month: 0, teach_month: '6500.0000 RUB', planned_hourly_rate: '1000.0000 RUB' });
     // Резерв входит в минуты программы, но не в занятия по расписанию.
-    expect(programOf([...TUE_THU, RESERVE], 2)).toEqual({ minutes_per_month: 780, minutes_total: 1560, lessons_per_month: 9, lessons_total: 18, lesson_minutes: 60, reserve_per_month: 260 });
+    expect(programOf([...TUE_THU, RESERVE], 2)).toEqual({ minutes_per_month: 780, minutes_total: 1560, lessons_per_month: 9, lessons_total: 18, lesson_minutes: 60, reserve_per_month: 260, teach_month: '13000.0000 RUB', planned_hourly_rate: '1000.0000 RUB' });
     expect(formatSlots(normalizeSlots([...TUE_THU, RESERVE]))).toBe('Вт, Чт 17:00–18:00; резерв 60 мин в неделю');
     expect(programOf([], 3).minutes_per_month).toBe(0);
   });
@@ -161,7 +161,7 @@ describe('EdubridgeCalendarService — календарь группы', () => {
     await expect(service.move('voskhod', { lesson_id: 'F12', minutes: 120 })).rejects.toMatchObject({ code: 'EDUBRIDGE_RESERVE_EMPTY' });
     await expect(service.move('voskhod', { lesson_id: 'F1', held_at: '2026-12-01T10:00:00Z' })).rejects.toMatchObject({ code: 'EDUBRIDGE_LESSON_NOT_PLANNED' });
     await expect(service.cancel('voskhod', 'F1')).rejects.toMatchObject({ code: 'EDUBRIDGE_LESSON_NOT_PLANNED' });
-    await expect(service.setSchedule('voskhod', { group_id: 'G1', slots: [{ weekday: 1, time: '10:00', minutes: 60, assignment_id: 'AX' }] })).rejects.toMatchObject({ code: 'EDUBRIDGE_SCHEDULE_TEACHER_NOT_ASSIGNED' });
+    await expect(service.setSchedule('voskhod', { group_id: 'G1', slots: [{ weekday: 1, time: '10:00', minutes: 60, assignment_id: 'AX', cost: '1000.0000 RUB' }] })).rejects.toMatchObject({ code: 'EDUBRIDGE_SCHEDULE_TEACHER_NOT_ASSIGNED' });
   });
 
   it('отмена освобождает номер: следующее внеочередное занятие получает его; перенос меняет дату и преподавателя', async () => {

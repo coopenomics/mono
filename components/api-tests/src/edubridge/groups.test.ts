@@ -36,6 +36,8 @@ import {
   signOffer,
   subscribe,
   walletOf,
+  courseSlots,
+  PLANNED_RATE,
 } from './edubridge.helpers'
 
 const GROUP_FIELDS = 'id course_id title status enrollment_open starts_at fee_month planned_hourly_rate pay_per_learner lessons_total guarantee_days learners_active lessons_held'
@@ -123,7 +125,7 @@ describe('Образование: группы курса и расчёт зан
         enrollment_open: true,
         starts_at: dayFromNow(30),
         fee_month: course.fee_month,
-        planned_hourly_rate: input.planned_hourly_rate,
+        planned_hourly_rate: PLANNED_RATE,
         pay_per_learner: true,
         minutes_total: 2080,
         program_months: 4,
@@ -143,12 +145,12 @@ describe('Образование: группы курса и расчёт зан
 
     it(caseName('edu.enroll.side.26', 'условия курса изменены: группа с обучающимися остаётся на прежних, новая группа берёт новые; группа с подписками не завершается'), async () => {
       // При действующих подписках условия курса правятся: они действуют для новых групп.
-      await gql(chairman, UPDATE_COURSE, { d: { ...input, id: course.id, planned_hourly_rate: '1200.0000 RUB' } })
+      await gql(chairman, UPDATE_COURSE, { d: { ...input, id: course.id, schedule_slots: courseSlots(60, 2, '1200.0000 RUB') } })
       const repriced = (await gql<any>(chairman, COURSE, { id: course.id })).edubridgeCourse
       expect(amount(repriced.fee_month), 'взнос курса пересчитан по новой ставке').toBeGreaterThan(amount(course.fee_month))
 
       const kept = (await groupsOf(course.id)).find(g => g.id === first.id)
-      expect(kept).toMatchObject({ fee_month: course.fee_month, planned_hourly_rate: input.planned_hourly_rate })
+      expect(kept).toMatchObject({ fee_month: course.fee_month, planned_hourly_rate: PLANNED_RATE })
       // Продление в прежней группе — по её взносу.
       const extension = (await gql<any>(token, QUOTE, quoteInput(self.id, course.id, first.id))).edubridgeQuote
       expect(extension.group_id, 'продление — в группе подписки').toBe(first.id)

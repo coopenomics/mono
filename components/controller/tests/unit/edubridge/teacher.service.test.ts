@@ -1,5 +1,5 @@
 /** Преподавательский контур: ДУХД и приложение двухподписные через одобрение председателя, взнос РИД, решение совета повесткой контракта, акт → acceptrid, отклонение. */
-import { EdubridgeTeacherService, coursePeriod, rateCoverageError } from '~/extensions/edubridge/application/services/edubridge-teacher.service';
+import { EdubridgeTeacherService, coursePeriod } from '~/extensions/edubridge/application/services/edubridge-teacher.service';
 import { EduAssignmentStatus, EduContractStatus, EduContributionStatus, EduCouncilOutcome } from '~/extensions/edubridge/domain/enums';
 import { Cooperative } from 'cooptypes';
 import { EduAssignmentDTO } from '~/extensions/edubridge/application/dto/edu-teacher.dto';
@@ -244,18 +244,13 @@ describe('EdubridgeTeacherService — договор УХД и приложен�
     await expect(freed.service.createAssignment('voskhod', admit('2026-09-01', '2026-12-31'))).resolves.toMatchObject({ status: EduAssignmentStatus.ACTIVE });
   });
 
-  it('назначение на курс: ставка на курсе — из договора, но не выше плановой; названная выше плановой — отказ', async () => {
+  it('назначение на курс: ставка на курсе — из договора либо названная администратором; потолок держит стоимость занятия по окну', async () => {
     const input = { teacher_username: 'teach', course_id: 'C1', period_from: '2027-09-01', period_to: '2028-06-01' } as any;
-    const covered = make();
-    await expect(covered.service.createAssignment('voskhod', input)).resolves.toMatchObject({ teacher_username: 'teach', status: EduAssignmentStatus.ACTIVE, hourly_rate: '1000.0000 RUB' });
-    // В договоре 1000, плановая ставка курса 900: на этом курсе преподаватель ведёт занятия за 900.
-    const dear = make({ plannedRate: '900.0000 RUB' });
-    await expect(dear.service.createAssignment('voskhod', input)).resolves.toMatchObject({ hourly_rate: '900.0000 RUB' });
-    // Администратор называет ставку ниже договорной — она и действует.
+    await expect(make().service.createAssignment('voskhod', input)).resolves.toMatchObject({ teacher_username: 'teach', status: EduAssignmentStatus.ACTIVE, hourly_rate: '1000.0000 RUB' });
+    // Плановая ставка курса 900 допуску не мешает: взнос за занятие контракт ограничит стоимостью окна.
+    await expect(make({ plannedRate: '900.0000 RUB' }).service.createAssignment('voskhod', input)).resolves.toMatchObject({ hourly_rate: '1000.0000 RUB' });
     await expect(make().service.createAssignment('voskhod', { ...input, hourly_rate: '700.0000 RUB' })).resolves.toMatchObject({ hourly_rate: '700.0000 RUB' });
-    const above = make({ plannedRate: '900.0000 RUB' });
-    await expect(above.service.createAssignment('voskhod', { ...input, hourly_rate: '950.0000 RUB' })).rejects.toThrow(/выше плановой ставки курса/);
-    expect(above.teachers.saveAssignment).not.toHaveBeenCalled();
+    await expect(make({ plannedRate: '900.0000 RUB' }).service.createAssignment('voskhod', { ...input, hourly_rate: '950.0000 RUB' })).resolves.toMatchObject({ hourly_rate: '950.0000 RUB' });
   });
 
   it('отчёт — только по занятию календаря после его конца: занятие ещё идёт, чужое, отменённое и повторный отчёт отклоняются; просроченное принимается', async () => {
@@ -303,9 +298,8 @@ describe('EdubridgeTeacherService — договор УХД и приложен�
     expect(empty.lessonStore.get(1).status).toBe('planned');
   });
 
-  it('ставка на курсе правится в пределах плановой; взнос за занятие считается по ней', async () => {
+  it('ставка на курсе правится администратором; нулевая — отказ', async () => {
     const { service, teachers } = make();
-    await expect(service.setAssignmentRate('voskhod', 'A1', '1200.0000 RUB')).rejects.toThrow(/выше плановой ставки курса/);
     await expect(service.setAssignmentRate('voskhod', 'A1', '0.0000 RUB')).rejects.toMatchObject({ code: 'EDUBRIDGE_TEACHER_RATE_REQUIRED' });
     expect(teachers.saveAssignment).not.toHaveBeenCalled();
     await expect(service.setAssignmentRate('voskhod', 'A1', '800.0000 RUB')).resolves.toMatchObject({ hourly_rate: '800.0000 RUB' });
@@ -972,11 +966,6 @@ describe('Допуски по списку «Курс ведут»', () => {
     expect(coursePeriod({ starts_at: null, program_months: 1 } as any).from).toBe(new Date().toISOString().slice(0, 10));
   });
 
-  it('ставка преподавателя выше плановой ставки курса — отказ с объяснением; не выше — пусто', () => {
-    expect(rateCoverageError('1200.0000 RUB', '1000.0000 RUB')?.message).toContain('выше плановой ставки курса');
-    expect(rateCoverageError('1000.0000 RUB', '1000.0000 RUB')).toBeNull();
-    expect(rateCoverageError(undefined, '1000.0000 RUB')).toBeNull();
-  });
 });
 
 describe('EduAssignmentDTO — назначение в ответе API', () => {

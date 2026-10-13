@@ -131,7 +131,6 @@ const { clearDraft } = isEdit.value
         lessonsPerMonth: state.lessonsPerMonth,
         lessonsTotal: state.lessonsTotal,
         lessonMinutes: state.lessonMinutes,
-        plannedRate: state.plannedRate,
         guaranteeDays: state.guaranteeDays,
         coursePayment: state.coursePayment,
         courseDiscount: state.courseDiscount,

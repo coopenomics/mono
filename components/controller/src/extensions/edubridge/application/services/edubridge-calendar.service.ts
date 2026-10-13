@@ -8,7 +8,7 @@ import { EdubridgeGroupKyselyRepository } from '../../infrastructure/repositorie
 import { EdubridgeLessonKyselyRepository } from '../../infrastructure/repositories/edubridge-lesson.kysely-repository';
 import { EdubridgeTeacherKyselyRepository } from '../../infrastructure/repositories/edubridge-teacher.kysely-repository';
 import { eduMonthSeconds, isTimeCompressed } from '../../domain/economy/time-scale';
-import { type EduScheduleSlot, type SlotOccurrence, isReserveSlot, normalizeSlots, programOf, slotOccurrences } from '../../domain/lib/schedule';
+import { type EduScheduleSlot, type SlotOccurrence, isReserveSlot, normalizeSlots, programOf, reserveIndex, slotOccurrences } from '../../domain/lib/schedule';
 import { startMomentOf } from '../../domain/lib/group-start';
 
 export interface EduScheduleInput {
@@ -98,7 +98,7 @@ export class EdubridgeCalendarService {
     const created: EdubridgeLessonRecord[] = [];
     let used = 0;
     const taken = new Set(kept.filter((l) => l.status !== EduLessonStatus.CANCELLED).map((l) => l.lesson_number));
-    for (const { at, slot } of occurrences) {
+    for (const { at, slot, index } of occurrences) {
       const minutes = Number(slot.minutes);
       if (used + minutes > budget) break;
       const assignment = slot.assignment_id ? await this.cached(assignments, coopname, slot.assignment_id) : null;
@@ -117,6 +117,7 @@ export class EdubridgeCalendarService {
             status: EduLessonStatus.PLANNED,
             origin: EduLessonOrigin.SCHEDULE,
             reported_at: null,
+            slot_index: index,
             assignment_id: assignment?.id ?? null,
             teacher_username: assignment?.teacher_username ?? null,
             materials: [],
@@ -143,7 +144,8 @@ export class EdubridgeCalendarService {
     const assignment = input.assignment_id ? await this.courseAssignment(coopname, group.course_id, input.assignment_id) : null;
     const all = await this.lessons.findByGroup(coopname, group.id);
     const reserveLeft = this.reserveTotal(group) - this.reserveUsed(all);
-    if (reserveLeft < minutes) throw DomainError.badRequest('EDUBRIDGE_RESERVE_EMPTY', { minutesLeft: Math.max(0, reserveLeft) });
+    const reserve = reserveIndex(group.schedule_slots ?? []);
+    if (reserve === null || reserveLeft < minutes) throw DomainError.badRequest('EDUBRIDGE_RESERVE_EMPTY', { minutesLeft: Math.max(0, reserveLeft) });
     const live = all.filter((l) => l.status !== EduLessonStatus.CANCELLED);
     const number = nextFree(new Set(live.map((l) => l.lesson_number)));
     const lesson = await this.lessons.save(
@@ -157,6 +159,7 @@ export class EdubridgeCalendarService {
         status: EduLessonStatus.PLANNED,
         origin: EduLessonOrigin.EXTRA,
         reported_at: null,
+        slot_index: reserve,
         assignment_id: assignment?.id ?? null,
         teacher_username: assignment?.teacher_username ?? null,
         materials: [],
@@ -281,11 +284,11 @@ function nextFree(taken: Set<number>): number {
 function compressedOccurrences(group: EdubridgeGroupRecord, start: Date, limit: number): SlotOccurrence[] {
   const perMonth = Math.max(1, group.lessons_per_month);
   const step = Math.max(1000, Math.floor((eduMonthSeconds() * 1000) / perMonth));
-  const slots = (group.schedule_slots ?? []).filter((s) => !isReserveSlot(s));
+  const slots = (group.schedule_slots ?? []).map((slot, index) => ({ slot, index })).filter((x) => !isReserveSlot(x.slot));
   const out: SlotOccurrence[] = [];
   for (let i = 0; i < limit && slots.length; i += 1) {
-    const slot = slots[i % slots.length];
-    out.push({ at: new Date(start.getTime() + i * step), slot });
+    const { slot, index } = slots[i % slots.length];
+    out.push({ at: new Date(start.getTime() + i * step), slot, index });
   }
   return out;
 }

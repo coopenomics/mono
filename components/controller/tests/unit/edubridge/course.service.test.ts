@@ -53,9 +53,8 @@ const base = {
   title: 'Алгебра',
   section_id: SECTION_ID,
   level_id: LEVEL_ID,
-  schedule_slots: [{ weekday: 2, time: '17:00', minutes: 60, assignment_id: null }, { weekday: 4, time: '17:00', minutes: 60, assignment_id: null }],
+  schedule_slots: [{ weekday: 2, time: '17:00', minutes: 60, assignment_id: null, cost: '1000.0000 RUB' }, { weekday: 4, time: '17:00', minutes: 60, assignment_id: null, cost: '1000.0000 RUB' }],
   program_months: 8,
-  planned_hourly_rate: '1000.0000 RUB',
   course_payment_enabled: false,
   course_discount_percent: 0,
   direction: EduCourseDirection.ONLINE_PLATFORM,
@@ -161,7 +160,7 @@ describe('EdubridgeCourseService — конструктор курса', () => {
     expect(teacherService.syncCourseAssignments).toHaveBeenCalledWith('voskhod', course);
   });
 
-  it('преподаватель со ставкой в договоре выше плановой ставки курса в курс ставится: его ставку на курсе ограничивает допуск', async () => {
+  it('преподаватель со ставкой в договоре выше стоимости окон в курс ставится: потолок держит само занятие', async () => {
     const { service, teachers, courses, teacherService } = make(['teach']);
     teachers.listContracts.mockResolvedValue([{ teacher_username: 'teach', status: EduContractStatus.ACTIVE, hourly_rate: '1500.0000 RUB' }]);
     await expect(service.create('voskhod', 'ant', { ...base, teacher_usernames: ['teach'] })).resolves.toBeDefined();
@@ -287,7 +286,9 @@ describe('EdubridgeCourseService — обложка курса', () => {
     const current = { id: 'C1', external_ref: '', status: EduCourseStatus.PUBLISHED, fee_month: '9600.0000 RUB', planned_hourly_rate: '1000.0000 RUB', schedule_slots: base.schedule_slots, program_months: base.program_months, minutes_per_month: 520 };
     courses.findById.mockImplementation(async () => ({ ...current }));
     enrollmentsOfCourse.list = [{ status: 'active' }];
-    await expect(service.update('voskhod', 'ant', { ...base, id: 'C1', planned_hourly_rate: '2000.0000 RUB' })).resolves.toBeDefined();
+    const pricier = base.schedule_slots.map((s) => ({ ...s, cost: '2000.0000 RUB' }));
+    await expect(service.update('voskhod', 'ant', { ...base, id: 'C1', schedule_slots: pricier })).resolves.toBeDefined();
+    // Плановая ставка — среднее по окнам: два часовых окна по 2000 дают 2000 в час.
     expect(groups.applyCourseTerms).toHaveBeenCalledWith('voskhod', expect.objectContaining({ planned_hourly_rate: '2000.0000 RUB' }));
   });
 
