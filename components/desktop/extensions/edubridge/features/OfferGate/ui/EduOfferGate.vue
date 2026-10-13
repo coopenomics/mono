@@ -24,7 +24,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { useRoute, useRouter, type RouteLocationRaw } from 'vue-router';
 import { Zeus } from '@coopenomics/sdk';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useDesktopStore } from 'src/entities/Desktop/model';
@@ -57,6 +57,11 @@ const props = defineProps<{
   contractDescription?: string;
   /** Куда уйти после подписи. */
   targetRoute: string;
+  /**
+   * Откуда человека привели на подпись: после неё он возвращается туда же и
+   * продолжает начатое, а не начинает с рабочей страницы стола.
+   */
+  returnTo?: RouteLocationRaw;
 }>();
 
 const route = useRoute();
@@ -182,7 +187,7 @@ async function onSigned(key: string): Promise<void> {
  */
 async function goToDesk(): Promise<void> {
   await desktopStore.loadDesktop();
-  void router.replace({ name: props.targetRoute, params: { coopname: route.params.coopname } });
+  void router.replace(props.returnTo ?? { name: props.targetRoute, params: { coopname: route.params.coopname } });
 }
 
 // Договор преподавателя подписывает или отклоняет председатель, пока

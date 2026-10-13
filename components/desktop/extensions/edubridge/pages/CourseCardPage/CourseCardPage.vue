@@ -92,6 +92,7 @@ import { BaseBadge, BaseButton, BaseCard, CardListSkeleton, EmptyState } from 's
 import { fetchCatalogCourse, type ICatalogCourse } from '../../entities/Course';
 import { fetchMyLearners, type ILearner, fetchMyEnrollments, type IEnrollment } from '../../entities/Learner';
 import { RENEW_SOON_DAYS, daysLeft, isLiveEnrollment } from '../../shared/lib/subscriptionDue';
+import { ACCESS_QUERY, accessModeOf, type AccessMode } from '../../shared/lib/accessIntent';
 import { programSpanCompact, programSpanLabel } from '../../shared/lib/courseMonths';
 import { SubscribeDialog } from '../../features/Subscribe';
 import { FeeAmount } from '../../shared/ui/FeeAmount';
@@ -178,7 +179,7 @@ function goBack(): void {
   void router.push({ name: 'edubridge-catalog', params: { coopname: route.params.coopname } });
 }
 
-async function getAccess(mode: 'enroll' | 'extend'): Promise<void> {
+async function getAccess(mode: AccessMode, resumed = false): Promise<void> {
   dialogMode.value = mode;
   if (!session.isAuth) {
     void router.push({ name: 'signup', params: { coopname: route.params.coopname } });
@@ -187,7 +188,14 @@ async function getAccess(mode: 'enroll' | 'extend'): Promise<void> {
   // Оферта ученика не подписана — бэкенд откажет в подписке, поэтому
   // сначала гейт подключения (право `Onboarding:learner` живёт ровно до подписи).
   if (desktopStore.hasGrant('edubridge-member', 'Onboarding:learner')) {
-    void router.push({ name: 'edubridge-member-onboarding', params: { coopname: route.params.coopname } });
+    // Возврат с подписи, а право на шлюз ещё стоит: второй раз на подпись не уводим — иначе круг.
+    if (resumed) return;
+    // Курс и намерение едут в адресе: после подписи человек возвращается сюда же, к оформлению доступа.
+    void router.push({
+      name: 'edubridge-member-onboarding',
+      params: { coopname: route.params.coopname },
+      query: { course: String(route.params.id), [ACCESS_QUERY]: mode },
+    });
     return;
   }
   try {
@@ -240,6 +248,19 @@ async function loadOwnEnrollments(): Promise<void> {
   }
 }
 
+/**
+ * Человек вернулся с подписи оферты: оформление доступа продолжается с места,
+ * где его прервала подпись. Намерение из адреса снимается сразу — перезагрузка
+ * страницы диалог заново не открывает.
+ */
+async function resumeAccess(): Promise<void> {
+  const mode = accessModeOf(route.query[ACCESS_QUERY]);
+  if (!mode) return;
+  const { [ACCESS_QUERY]: _intent, ...query } = route.query;
+  await router.replace({ name: route.name ?? undefined, params: route.params, query });
+  await getAccess(mode, true);
+}
+
 // Живое обновление: администратор правит курс — карточка показывает новое.
 useLiveReload([EduLive.courses, EduLive.enrollments], loadCourse);
 
@@ -251,6 +272,7 @@ onMounted(async () => {
     await loadCourse();
     // Ответ пришёл после ухода со страницы: заголовок шапки уже сброшен, возвращать его нельзя.
     if (course.value && !pageLeft) desktopStore.setPageTitleOverride(t('edubridge.courseCardPage.pageTitle'));
+    if (course.value && !pageLeft) await resumeAccess();
   } catch (e) {
     FailAlert(e);
   } finally {
