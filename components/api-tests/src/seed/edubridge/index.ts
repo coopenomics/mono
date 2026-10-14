@@ -52,7 +52,6 @@ import {
   groupOfAssignment,
   PLAN_LESSON,
   REPORT_LESSON,
-  SET_GROUP_SCHEDULE,
 } from '../../edubridge/edubridge.helpers'
 
 const log = (...a: unknown[]) => console.error('[seed-edubridge]', ...a)
@@ -128,8 +127,14 @@ async function phase02(): Promise<void> {
     description: COURSE_DESCRIPTION,
     syllabus: COURSE_SYLLABUS,
     schedule: COURSE_SCHEDULE,
-    // Два окна по полтора часа в неделю, программа четыре месяца.
-    schedule_slots: courseSlots(90, 2, PLANNED_RATE).map(s => ({ ...s, time: '18:00' })),
+    // Два окна по полтора часа в неделю и резерв на полтора часа для
+    // внеочередных занятий, программа четыре месяца. Резерв заводится вместе с
+    // курсом: окна попадают в условия группы в цепи при её открытии, а
+    // сохранение расписания группы условия в цепи не меняет.
+    schedule_slots: [
+      ...courseSlots(90, 2, PLANNED_RATE).map(s => ({ ...s, time: '18:00' })),
+      { weekday: 8, time: '', minutes: 90, hourly_rate: PLANNED_RATE },
+    ],
     program_months: 4,
     guarantee_days: 14,
     course_payment_enabled: true,
@@ -227,24 +232,12 @@ async function phase05(): Promise<void> {
 
   // Занятия по окнам расписания идут с завтрашнего дня — отчитаться пока не
   // по чему. Администратор ставит внеочередное занятие на два часа назад из
-  // резерва группы. Стоимость занятия контракт берёт из окна условий группы
-  // с тем же номером, а условия закреплены при открытии группы двумя окнами —
-  // поэтому резерв встаёт первым (номер 0), окна курса остаются следом и
-  // календарь сохраняет вторники и четверги.
+  // резерва курса (фаза 02).
   const chairman = await tokenOf(CHAIRMAN)
   const { group } = await groupOfAssignment(token, assignment.id)
-  await gql(chairman, SET_GROUP_SCHEDULE, {
-    d: {
-      group_id: group.id,
-      slots: [
-        { weekday: 8, time: '', minutes: 180, hourly_rate: PLANNED_RATE },
-        ...courseSlots(90, 2, PLANNED_RATE).map(s => ({ ...s, time: '18:00' })),
-      ],
-    },
-  })
   const floor = group.starts_at ? new Date(group.starts_at).getTime() + 1000 : 0
   const planned = (await gql<any>(chairman, PLAN_LESSON, {
-    d: { group_id: group.id, assignment_id: assignment.id, held_at: new Date(Math.max(Date.now() - 2 * 3600_000, floor)).toISOString() },
+    d: { group_id: group.id, assignment_id: assignment.id, minutes: 90, held_at: new Date(Math.max(Date.now() - 2 * 3600_000, floor)).toISOString() },
   })).edubridgePlanLesson
   const lesson = (await gql<any>(token, REPORT_LESSON, {
     d: {
