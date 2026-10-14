@@ -268,8 +268,6 @@ describe('EdubridgeTeacherService — договор УХД и приложен�
     await expect(report(5)).rejects.toMatchObject({ code: 'EDUBRIDGE_LESSON_CANCELLED' });
     // Отклонённый отчёт до цепи не доходит.
     expect(chain.openLesson).not.toHaveBeenCalled();
-    // Срок на отчёт вышел месяц назад: календарь показывает просрочку, приём не держит.
-    await expect(report(3)).resolves.toMatchObject({ lesson_number: 3, status: 'held' });
     // Порядка отчётов нет: третье по номеру занятие отчитывается раньше первого, номер и длительность уходят в цепь из календаря.
     planLesson(6);
     const sixth = await report(6);
@@ -278,6 +276,8 @@ describe('EdubridgeTeacherService — договор УХД и приложен�
     expect(chain.closeCharge).toHaveBeenCalledWith(expect.objectContaining({ rid_hash: expect.any(String) }));
     await expect(report(6)).rejects.toMatchObject({ code: 'EDUBRIDGE_LESSON_REPORT_ALREADY_SUBMITTED' });
     await expect(report(1)).resolves.toMatchObject({ lesson_number: 1, status: 'held' });
+    // Срок на отчёт вышел месяц назад: календарь показывает просрочку, приём не держит.
+    await expect(report(3)).resolves.toMatchObject({ lesson_number: 3, status: 'held' });
   });
 
   it('взнос за занятие считает контракт: расчёт по каждой подписке, сумма и число участников — из цепи', async () => {

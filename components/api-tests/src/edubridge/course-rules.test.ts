@@ -130,6 +130,6 @@ describe('Образование: правила курса — удаление
     }
     expect(amounts).toEqual(Array.from({ length: 8 }, () => 900))
     // Оплаченные занятия исчерпаны: девятый отчёт не принимается.
-    expectCode(await report(9), 'EDUBRIDGE_LESSON_NOT_PAID_BY_LEARNERS')
+    expectCode(await reportLessonError(teacherToken, assignment.id, 9), 'EDUBRIDGE_LESSON_NOT_PAID_BY_LEARNERS')
   }, 600_000)
 })

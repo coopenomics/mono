@@ -6,6 +6,8 @@ title: Образовательный мост — каталог курсов �
 # привязку к площадке, состояние). Управление курсами — владелец/администратор
 # (EduCourse:manage), enforcement — EdubridgeAccessGuard по матрице.
 
+# Правка 14.10.2026: форма курса держит окна редактора и длительность программы отдельно
+# от ввода курса — поведение прежнее, исправлена ошибка проверки типов выпуска в testnet.
 sources:
   backend:
     - components/controller/src/extensions/edubridge/application/resolvers/edubridge-catalog.resolver.ts

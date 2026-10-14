@@ -163,9 +163,10 @@ export async function agendaByHash(token: string, hash: string): Promise<AgendaR
 }
 
 /** Все вопросы повестки — для проверок «новый проект не создан». */
-export async function agendaAll(token: string): Promise<{ id: number, hash: string, meta: string }[]> {
-  const d = await gql<any>(token, 'query{ getAgenda{ table{ id hash meta } } }')
-  return (d.getAgenda as any[]).map(a => ({ id: Number(a.table.id), hash: String(a.table.hash ?? ''), meta: String(a.table.meta ?? '') }))
+export async function agendaAll(token: string): Promise<{ id: number, hash: string, meta: string, type: string }[]> {
+  // Тип решения нужен приложениям: свой вопрос в повестке находят по нему.
+  const d = await gql<any>(token, 'query{ getAgenda{ table{ id hash meta type } } }')
+  return (d.getAgenda as any[]).map(a => ({ id: Number(a.table.id), hash: String(a.table.hash ?? ''), meta: String(a.table.meta ?? ''), type: String(a.table.type ?? '') }))
 }
 
 /** Голоса членов совета ключом стенда — общий помощник совета (core/council). */

@@ -192,7 +192,8 @@ describe('EdubridgeGroupService — группа как единица расч�
       const before = Date.now();
       const moved = await stand.service.update('voskhod', { id: 'G1', starts_in_minutes: 3 });
       const moment = new Date(moved.starts_at_time as Date).getTime();
-      expect(moment).toBeGreaterThanOrEqual(before + 180_000);
+      // Момент хранится целыми секундами (как срок в цепи): доли секунды отсекаются.
+      expect(moment).toBeGreaterThanOrEqual(Math.floor(before / 1000) * 1000 + 180_000);
       expect(moment).toBeLessThanOrEqual(Date.now() + 180_000);
       expect(moved.starts_at).toBe(new Date(moment).toISOString().slice(0, 10));
       // Расчёты и цепь видят момент, а не начало дня; набор до него открыт.
