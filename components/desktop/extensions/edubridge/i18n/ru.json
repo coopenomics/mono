@@ -481,7 +481,7 @@
         "hourlyRate": "Ставка часа",
         "signedAt": "Подписан",
         "teacher": "Преподаватель",
-        "pending": "Ждёт подписи председателя"
+        "pending": "На подписи"
       },
       "contract": {
         "numberLabel": "Номер договора",

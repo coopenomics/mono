@@ -31,9 +31,11 @@
     template(#cell-signed_at="{ row }") {{ formatDate(row.signed_at) }}
     //- Что ждёт подписи председателя у этого преподавателя: один документ — названием, несколько — числом.
     template(#cell-pending="{ row }")
-      BaseBadge(v-if="row.pending_approvals.length" variant="warn")
-        | {{ row.pending_approvals.length === 1 ? row.pending_approvals[0] : $t('edubridge.adminTeachersPage.pendingMany', { n: row.pending_approvals.length }) }}
-        q-tooltip(v-if="row.pending_approvals.length > 1" max-width="320px") {{ row.pending_approvals.join('; ') }}
+      //- Метка не шире колонки: длинное название обрезается многоточием, целиком — в подсказке.
+      .edu-teachers__pending(v-if="row.pending_approvals.length")
+        BaseBadge(variant="warn")
+          | {{ row.pending_approvals.length === 1 ? row.pending_approvals[0] : $t('edubridge.adminTeachersPage.pendingMany', { n: row.pending_approvals.length }) }}
+        q-tooltip(max-width="320px") {{ row.pending_approvals.join('; ') }}
 
   EmptyState(v-if="!firstLoad && !teachers.length" :title="$t('edubridge.adminTeachersPage.emptyTitle')" :body="$t('edubridge.adminTeachersPage.emptyBody')")
     template(#icon)
@@ -91,7 +93,7 @@ const columns: BaseTableColumn<ITeacher>[] = [
   { key: 'hourly_rate', label: i18nT('edubridge.adminTeachersPage.column.hourlyRate'), numeric: true, width: '150px', nowrap: true },
   { key: 'assignments', label: i18nT('edubridge.adminTeachersPage.column.assignments'), width: '130px', nowrap: true },
   { key: 'signed_at', label: i18nT('edubridge.adminTeachersPage.column.signedAt'), width: '130px', nowrap: true },
-  { key: 'pending', label: i18nT('edubridge.adminTeachersPage.column.pending'), width: '260px' },
+  { key: 'pending', label: i18nT('edubridge.adminTeachersPage.column.pending'), width: '240px', nowrap: true },
 ];
 
 const contractStatusOf = (s: string) => CONTRACT_STATUS_LABELS[s] ?? { label: s, variant: 'neutral' as const };
@@ -142,6 +144,18 @@ onMounted(load);
 </script>
 
 <style scoped>
+/* Метка документа на подписи не выходит за колонку: лишнее — многоточием. */
+.edu-teachers__pending {
+  max-width: 220px;
+}
+.edu-teachers__pending :deep(.base-badge) {
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
+}
 .edu-teachers__person {
   display: flex;
   align-items: center;
