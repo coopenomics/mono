@@ -15,7 +15,7 @@ function make(due: any[]) {
   const chain = { expireSubscription: jest.fn(async () => ({ transaction_id: 'TRX' })) } as any;
   const settlement = { closeReported: jest.fn(async () => 0) } as any;
   const funds = { unlockDue: jest.fn(async () => 0), afterClosed: jest.fn(async () => undefined) } as any;
-  const worker = new EdubridgeExpiryWorker(enrollments, {} as any, courses, outbox, {} as any, funds, { retryPendingClosures: jest.fn(async () => 0) } as any, { publishPending: jest.fn(async () => 0) } as any, settlement, chain, {} as any, logger);
+  const worker = new EdubridgeExpiryWorker(enrollments, {} as any, courses, outbox, funds, { retryPendingClosures: jest.fn(async () => 0) } as any, { publishPending: jest.fn(async () => 0) } as any, settlement, chain, {} as any, logger);
   return { worker, enrollments, outbox, chain, funds, settlement };
 }
 

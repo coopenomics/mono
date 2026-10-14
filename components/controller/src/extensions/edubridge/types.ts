@@ -27,8 +27,6 @@ export interface IConnectorsConfig {
 export interface IConfig {
   coopAcceptance: ICoopAcceptanceConfig;
   connectors: IConnectorsConfig;
-  /** За сколько дней до конца оплаченного периода предупреждать пайщика. */
-  expiry_notice_days: number;
   /** Интервал воркера очереди выдачи доступа, секунд (архитектура: ≤ 30). */
   outbox_interval_sec: number;
   /** Связка с Благоростом: столы capital — только преподавателям, оферты capital при вступлении скрыты. */
@@ -48,7 +46,6 @@ export interface IConfig {
 export const defaultConfig: IConfig = {
   coopAcceptance: { accepted: false, accepted_at: '' },
   connectors: { skillspace_api_key: '', getcourse_account: '', getcourse_api_key: '' },
-  expiry_notice_days: 7,
   outbox_interval_sec: 30,
   capital_integration: true,
   markup_percent: 30,
@@ -101,17 +98,6 @@ export const Schema = z.object({
         // i18n-ignore: скрытое служебное поле конфигурации (visible: false), пайщику не показывается
         note: 'Ключи площадок задаются на странице «Площадки» стола администратора; здесь — только прежние значения.',
         visible: false,
-      })
-    ),
-  expiry_notice_days: z
-    .number()
-    .int()
-    .min(0)
-    .default(7)
-    .describe(
-      describeField({
-        label: t('edubridge.edubridgeExtension.field.expiryNoticeDays.label'),
-        note: t('edubridge.edubridgeExtension.field.expiryNoticeDays.hint'),
       })
     ),
   outbox_interval_sec: z

@@ -10,7 +10,6 @@ import { EDUBRIDGE_CHAIN_PORT, type EdubridgeChainPort } from '../../domain/port
 import { EdubridgeCourseKyselyRepository } from '../../infrastructure/repositories/edubridge-course.kysely-repository';
 import { EdubridgeEnrollmentKyselyRepository } from '../../infrastructure/repositories/edubridge-enrollment.kysely-repository';
 import { EdubridgeLearnerKyselyRepository } from '../../infrastructure/repositories/edubridge-learner.kysely-repository';
-import { EdubridgeConfigHolder } from '../config/edubridge-config.holder';
 import { EdubridgeAccessOutboxService } from '../services/edubridge-access-outbox.service';
 import { EdubridgeEnrollmentService } from '../services/edubridge-enrollment.service';
 import { EdubridgeFundsService } from '../services/edubridge-funds.service';
@@ -25,6 +24,10 @@ import { EdubridgeSettlementService } from '../services/edubridge-settlement.ser
 /** Код отказа контракта: подписки с таким hash в цепи нет. */
 const SUBSCRIPTION_GONE = 'EDUBRIDGE_SUBSCRIPTION_NOT_FOUND';
 
+
+/** За сколько дней до конца оплаченного периода пайщик получает напоминание о продлении. Внутренняя константа приложения, не настройка кооператива. */
+const EXPIRY_NOTICE_DAYS = 7;
+
 @Injectable()
 export class EdubridgeExpiryWorker {
   private running = false;
@@ -34,7 +37,6 @@ export class EdubridgeExpiryWorker {
     private readonly learners: EdubridgeLearnerKyselyRepository,
     private readonly courses: EdubridgeCourseKyselyRepository,
     private readonly outbox: EdubridgeAccessOutboxService,
-    private readonly config: EdubridgeConfigHolder,
     private readonly funds: EdubridgeFundsService,
     private readonly enrollmentService: EdubridgeEnrollmentService,
     private readonly guarantee: EdubridgeGuaranteeService,
@@ -112,9 +114,7 @@ export class EdubridgeExpiryWorker {
   }
 
   async notifyExpiring(coopname: string): Promise<number> {
-    const days = (await this.config.load()).expiry_notice_days;
-    if (!days || days <= 0) return 0;
-    const until = new Date(Date.now() + days * 86_400_000);
+    const until = new Date(Date.now() + EXPIRY_NOTICE_DAYS * 86_400_000);
     const soon = await this.enrollments.findExpiringSoon(coopname, until);
     for (const enrollment of soon) {
       // Программа оплачена до конца — продлевать нечего, напоминание не шлётся.
