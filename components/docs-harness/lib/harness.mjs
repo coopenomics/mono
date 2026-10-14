@@ -165,7 +165,24 @@ export function rememberPassword(email, password) {
   fsSync.writeFileSync(PASSWORDS_FILE, JSON.stringify(all, null, 2) + '\n');
 }
 
-async function loginFlow(page, { email, wif, account }) {
+/**
+ * Вход с одним повтором. Прогон 14.10.2026: сразу после поднятия стенда
+ * authentik отдавал 404 на OIDC-конфигурацию приложения coopid, хотя описания
+ * были применены, и форма показывала «Не удалось выполнить операцию». Через
+ * полминуты тот же вход проходит — повторяем один раз, потом падаем честно.
+ */
+async function loginFlow(page, creds) {
+  try {
+    await loginFlowOnce(page, creds);
+  } catch (e) {
+    if (!/не состоялся/.test(String(e?.message))) throw e;
+    console.log(`  ⚠ ${String(e.message).slice(0, 160)} — повторяю вход через 30 с`);
+    await page.waitForTimeout(30000);
+    await loginFlowOnce(page, creds);
+  }
+}
+
+async function loginFlowOnce(page, { email, wif, account }) {
   // timeout 150s: первый заход на роут signin компилирует его chunk в холодном
   // Vite (dev-стенд); SSR-сборка отвечает сразу.
   await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/auth/signin`, { waitUntil: 'domcontentloaded', timeout: 150000 });
