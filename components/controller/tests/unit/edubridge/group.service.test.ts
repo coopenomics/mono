@@ -261,10 +261,11 @@ describe('условия для цепи', () => {
   });
 
   it('целевой членский взнос за месяц — месячный взнос без оплаты занятий по плановой ставке', () => {
-    // Два окна по 300 в неделю — 2600 в месяц из взноса 3000.
-    const slot = (hourly_rate: string) => ({ weekday: 2, time: '17:00', minutes: 60, assignment_id: null, cost });
-    expect(targetFeeMonth({ fee_month: '3000.0000 RUB', schedule_slots: [slot('300.0000 RUB'), slot('300.0000 RUB')], program_months: 8 })).toBe('400.0000 RUB');
-    // Одно окно по 300: 1300 за месяц.
-    expect(targetFeeMonth({ fee_month: '3000.0000 RUB', schedule_slots: [slot('300.0000 RUB')], program_months: 8 })).toBe('1700.0000 RUB');
+    // Окно — час занятия по 300 в час: 300 в неделю, 1200 за месяц в четыре недели.
+    const slot = (hourly_rate: string) => ({ weekday: 2, time: '17:00', minutes: 60, assignment_id: null, hourly_rate });
+    // Два окна — 2400 оплаты занятий в месяц из взноса 3000.
+    expect(targetFeeMonth({ fee_month: '3000.0000 RUB', schedule_slots: [slot('300.0000 RUB'), slot('300.0000 RUB')], program_months: 8 })).toBe('600.0000 RUB');
+    // Одно окно — 1200 в месяц.
+    expect(targetFeeMonth({ fee_month: '3000.0000 RUB', schedule_slots: [slot('300.0000 RUB')], program_months: 8 })).toBe('1800.0000 RUB');
   });
 });

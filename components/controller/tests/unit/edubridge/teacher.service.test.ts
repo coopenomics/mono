@@ -35,7 +35,8 @@ function make(
     listProfiles: jest.fn(async () => (profileState.current ? [profileState.current] : [])),
     saveProfile: jest.fn(async (d: any) => { profileState.current = { ...d }; return profileState.current; }),
     findAssignment: jest.fn(async () => assignment),
-    listAssignments: jest.fn(async () => [assignment]),
+    // Допуски отбираются по преподавателю, как в хранилище.
+    listAssignments: jest.fn(async (_c?: string, f?: { teacher?: string }) => [assignment].filter((a) => !f?.teacher || a.teacher_username === f.teacher)),
     createAssignment: jest.fn((d: any) => ({ ...d })),
     saveAssignment: jest.fn(async (a: any) => a),
     listContributions: jest.fn(async () => [...store.values()]),
@@ -52,8 +53,9 @@ function make(
     saveShareReturn: jest.fn(async (r: any) => { const saved = { ...r, id: 'R1', created_at: new Date('2026-10-07') }; returns.set('R1', saved); return saved; }),
   } as any;
   const courses = {
-    findById: jest.fn(async () => ({
-      id: 'C1',
+    // Курс отдаётся под запрошенным идентификатором; без идентификатора — C1.
+    findById: jest.fn(async (_c?: string, id?: string) => ({
+      id: id ?? 'C1',
       title: 'Алгебра',
       chain_ref: '7',
       lessons_total: opts.lessonsTotal ?? 64,
@@ -262,11 +264,12 @@ describe('EdubridgeTeacherService — договор УХД и приложен�
     planLesson(5, { status: 'cancelled' });
     const report = (n: number) => service.reportLesson('voskhod', 'teach', { lesson_id: `LS${n}`, materials: ['https://video/1'] } as any);
     await expect(report(2)).rejects.toMatchObject({ code: 'EDUBRIDGE_LESSON_REPORT_TOO_EARLY' });
-    // Срок на отчёт вышел месяц назад: календарь показывает просрочку, приём не держит.
-    await expect(report(3)).resolves.toMatchObject({ lesson_number: 3, status: 'held' });
     await expect(report(4)).rejects.toMatchObject({ code: 'EDUBRIDGE_LESSON_OTHER_TEACHER' });
     await expect(report(5)).rejects.toMatchObject({ code: 'EDUBRIDGE_LESSON_CANCELLED' });
+    // Отклонённый отчёт до цепи не доходит.
     expect(chain.openLesson).not.toHaveBeenCalled();
+    // Срок на отчёт вышел месяц назад: календарь показывает просрочку, приём не держит.
+    await expect(report(3)).resolves.toMatchObject({ lesson_number: 3, status: 'held' });
     // Порядка отчётов нет: третье по номеру занятие отчитывается раньше первого, номер и длительность уходят в цепь из календаря.
     planLesson(6);
     const sixth = await report(6);
@@ -718,7 +721,8 @@ describe('EdubridgeTeacherService — занятия и гарантийный �
   });
 
   it('после гарантийного срока заводится один взнос на все занятия периода: сумма из допуска в цепи, материалы принимаются одним актом', async () => {
-    const { service, chain, store, lessons } = make();
+    // Календарь по умолчанию не заводится: в группе ровно два отчитанных занятия теста.
+    const { service, chain, store, lessons } = make({ calendar: false });
     for (const n of [1, 2]) {
       await lessons.save({ id: `LS${n}`, coopname: 'voskhod', course_id: 'C1', group_id: 'G1', assignment_id: 'A1', teacher_username: 'teach', lesson_number: n, learners_count: 2, contribution_id: null, materials: [`https://video/${n}`], held_at: new Date(Date.now() - 40 * 86400_000), topic: `Тема ${n}`, duration_minutes: 60 });
     }

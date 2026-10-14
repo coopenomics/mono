@@ -1,3 +1,4 @@
+import type { IScheduleSlot } from '../../../entities/Lesson';
 import { computed, inject, onBeforeUnmount, onMounted, provide, reactive, ref, watch, type ComputedRef, type InjectionKey, type Ref } from 'vue';
 import { Zeus } from '@coopenomics/sdk';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
@@ -31,7 +32,8 @@ import { t as i18nT } from '../../../i18n';
 export type CourseFormSection = 'course' | 'cover' | 'lessons' | 'access' | 'group' | 'teachers';
 
 type CourseSource = () => ICourse | null | undefined;
-type CourseFormFields = ICreateCourseInput & { teacher_usernames: string[] };
+// Длительность программы форма держит отдельным полем ввода, окна — в виде редактора окон.
+type CourseFormFields = Omit<ICreateCourseInput, 'program_months' | 'schedule_slots'> & { teacher_usernames: string[]; schedule_slots: IScheduleSlot[] };
 
 function emptyForm(): CourseFormFields {
   return reactive<CourseFormFields>({

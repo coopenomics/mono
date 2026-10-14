@@ -103,7 +103,8 @@ describe('Окна расписания и моменты занятий', () =>
 
   it('числа программы из окон: минуты недели на четыре недели месяца, занятия — для показа, длительность — по первому окну', () => {
     expect(programOf(TUE_THU, 8)).toEqual({ minutes_per_month: 480, minutes_total: 3840, lessons_per_month: 8, lessons_per_month_exact: 8, lessons_total: 64, lesson_minutes: 60, reserve_per_month: 0, teach_month: '8000.0000 RUB', planned_hourly_rate: '1000.0000 RUB' });
-    expect(programOf([{ weekday: 6, minutes: 90, hourly_rate: '1500.0000 RUB' }], 0)).toEqual({ minutes_per_month: 360, minutes_total: 0, lessons_per_month: 4, lessons_per_month_exact: 4, lessons_total: 0, lesson_minutes: 90, reserve_per_month: 0, teach_month: '6000.0000 RUB', planned_hourly_rate: '1000.0000 RUB' });
+    // Окно 90 минут по 1500 в час: занятие 2250, за четыре недели 9000; средняя стоимость часа — те же 1500.
+    expect(programOf([{ weekday: 6, minutes: 90, hourly_rate: '1500.0000 RUB' }], 0)).toEqual({ minutes_per_month: 360, minutes_total: 0, lessons_per_month: 4, lessons_per_month_exact: 4, lessons_total: 0, lesson_minutes: 90, reserve_per_month: 0, teach_month: '9000.0000 RUB', planned_hourly_rate: '1500.0000 RUB' });
     // Длительность с шагом в неделю: 3,5 месяца — три месяца и две недели, 14 недель по два занятия.
     expect(programOf(TUE_THU, 3.5)).toMatchObject({ minutes_per_month: 480, minutes_total: 1680, lessons_per_month: 8, lessons_total: 28 });
     expect(programMonthsOf(3.5)).toBe(3.5);
@@ -206,8 +207,8 @@ describe('EdubridgeCalendarService — календарь группы', () => {
     const extra = await service.plan('voskhod', { group_id: 'G1', held_at: '2026-10-24T10:00:00Z', minutes: 120, assignment_id: 'A2', topic: 'Контрольная' });
     expect(extra).toMatchObject({ origin: EduLessonOrigin.EXTRA, status: EduLessonStatus.PLANNED, teacher_username: 'other', duration_minutes: 120, lesson_number: 13 });
     expect(live()).toHaveLength(13);
-    // Резерва осталось 400 минут: ещё одно занятие на 400 проходит, следующее — нет.
-    await expect(service.plan('voskhod', { group_id: 'G1', held_at: '2026-10-25T10:00:00Z', minutes: 400 })).resolves.toMatchObject({ lesson_number: 14 });
+    // Резерва осталось 360 минут (480 − 120): ещё одно занятие на 360 проходит, следующее — нет.
+    await expect(service.plan('voskhod', { group_id: 'G1', held_at: '2026-10-25T10:00:00Z', minutes: 360 })).resolves.toMatchObject({ lesson_number: 14 });
     await expect(service.plan('voskhod', { group_id: 'G1', held_at: '2026-10-26T10:00:00Z', minutes: 30 })).rejects.toMatchObject({ code: 'EDUBRIDGE_RESERVE_EMPTY' });
   });
 

@@ -22,7 +22,7 @@
         BaseButton(variant="primary" @click="moveOpen = true") {{ $t('edubridge.adminCalendarPage.moveLesson') }}
 
   PlanLessonDialog(v-model="planOpen" :group-options="groupOptions" :teacher-options="teacherOptionsFor(planCourseId)" @saved="onSaved")
-  PlanLessonDialog(v-model="moveOpen" :lesson="details" :teacher-options="teacherOptionsFor(details?.course_id)" @saved="onSaved")
+  PlanLessonDialog(v-model="moveOpen" :lesson="details" :teacher-options="teacherOptionsFor(details ? String(details.course_id) : null)" @saved="onSaved")
 </template>
 
 <script setup lang="ts">

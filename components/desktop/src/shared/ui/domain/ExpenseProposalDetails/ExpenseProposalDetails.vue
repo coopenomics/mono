@@ -206,8 +206,10 @@ function firstSignatureDate(doc: ExpenseProposalAggregate['statement_doc'] | nul
 const timeline = computed<ActivityEvent[]>(() => {
   const p = proposal.value;
   if (!p) return [];
-  const actor = props.creatorName || p.username;
-  const events: ActivityEvent[] = [{ id: 'created', type: 'create', title: t('ui.expenseProposalDetails.historyMemoCreated'), actor, date: p.created_at }];
+  const actor = props.creatorName || p.username || undefined;
+  // Даты записи приходят необязательными: событие без даты встаёт по пустой строке.
+  const at = (v: unknown): string => String(v ?? '');
+  const events: ActivityEvent[] = [{ id: 'created', type: 'create', title: t('ui.expenseProposalDetails.historyMemoCreated'), actor, date: at(p.created_at) }];
   const statementSigned = firstSignatureDate(p.statement_doc);
   if (statementSigned) events.push({ id: 'statement', type: 'sign', title: t('ui.expenseProposalDetails.historyStatementSigned'), actor, date: statementSigned });
   const decisionSigned = firstSignatureDate(p.decision_doc);
@@ -217,12 +219,12 @@ const timeline = computed<ActivityEvent[]>(() => {
       id: 'decision',
       type: declined ? 'reject' : 'sign',
       title: declined ? t('ui.expenseProposalDetails.historyRejected') : t('ui.expenseProposalDetails.historyApproved'),
-      date: decisionSigned ?? p.updated_at,
+      date: decisionSigned ?? at(p.updated_at),
     });
   }
   files.value.forEach((f) => events.push({ id: `file-${f.id}`, type: 'update', title: t('ui.expenseProposalDetails.historyDocAttached'), description: fileLabel(f), date: String(f.uploaded_at) }));
-  if (p.status === Zeus.ExpenseProposalStatus.REPORT_SUBMITTED) events.push({ id: 'report', type: 'system', title: t('ui.expenseProposalDetails.historyReportSubmitted'), date: p.updated_at });
-  if (p.status === Zeus.ExpenseProposalStatus.CLOSED) events.push({ id: 'closed', type: 'system', title: t('ui.expenseProposalDetails.historyClosed'), date: p.updated_at });
+  if (p.status === Zeus.ExpenseProposalStatus.REPORT_SUBMITTED) events.push({ id: 'report', type: 'system', title: t('ui.expenseProposalDetails.historyReportSubmitted'), date: at(p.updated_at) });
+  if (p.status === Zeus.ExpenseProposalStatus.CLOSED) events.push({ id: 'closed', type: 'system', title: t('ui.expenseProposalDetails.historyClosed'), date: at(p.updated_at) });
   return events.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 });
 </script>
