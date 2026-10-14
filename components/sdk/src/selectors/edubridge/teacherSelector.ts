@@ -98,6 +98,7 @@ const rawLessonSelector = {
   report_until: true,
   overdue: true,
   learners_paid: true,
+  expected_amount: true,
   reported_at: true,
   materials: true,
   contribution_id: true,

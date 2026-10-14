@@ -23,6 +23,7 @@ import {
   type IWalletWithdrawPort,
 } from '@coopenomics/innercoop';
 import { EduAssignmentStatus, EduContractStatus, EduContributionStatus, EduCouncilOutcome, EduEnrollmentStatus, EduGroupStatus, EduLessonStatus, EduRidType, EduContributionDocumentKind, EduShareReturnDocumentKind } from '../../domain/enums';
+import { expectedLessonAmount } from '../../domain/lib/lesson-charge';
 import { EduContributionBriefDTO } from '../dto/edu-contribution-brief.dto';
 import type { EdubridgeEnrollmentRecord, EdubridgeGroupRecord } from '../../infrastructure/entities';
 import type { EdubridgeShareReturnRecord } from '../../infrastructure/entities';
@@ -968,12 +969,24 @@ export class EdubridgeTeacherService {
       groups.set(id, await this.groups.get(coopname, id).catch(() => null));
       subscriptions.set(id, await this.enrollments.findByGroup(coopname, id).catch(() => []));
     }
+    const rates = await this.assignmentRates(coopname, lessons);
     return lessons.map((l) => {
-      const group = l.group_id ? groups.get(l.group_id) : null;
+      const group = l.group_id ? groups.get(l.group_id) ?? null : null;
       const heldAt = new Date(l.held_at);
       const learnersPaid = (l.group_id ? subscriptions.get(l.group_id) ?? [] : []).filter((e) => paidAt(e, heldAt)).length;
-      return new EduLessonDTO(l, { course: titles.get(l.course_id) ?? '', group: group?.title, reportDays: group?.report_days, learnersPaid });
+      const expectedAmount = lessonAmountOf(l, group, rates.get(l.assignment_id ?? '') ?? null, learnersPaid);
+      return new EduLessonDTO(l, { course: titles.get(l.course_id) ?? '', group: group?.title, reportDays: group?.report_days, learnersPaid, expectedAmount });
     });
+  }
+
+  /** Ставки часа допусков, по которым ведутся занятия: читаются по одному разу на допуск. */
+  private async assignmentRates(coopname: string, lessons: EdubridgeLessonRecord[]): Promise<Map<string, string>> {
+    const rates = new Map<string, string>();
+    for (const id of new Set(lessons.map((l) => l.assignment_id).filter(Boolean) as string[])) {
+      const a = await this.teachers.findAssignment(coopname, id).catch(() => null);
+      if (a?.hourly_rate) rates.set(id, a.hourly_rate);
+    }
+    return rates;
   }
 
   /**
@@ -1622,6 +1635,21 @@ function rateLockedBy(contract: EdubridgeTeacherContractRecord | null): boolean 
 /** Ставка задана, когда сумма больше нуля: «0.0000 RUB» — ещё не названа. */
 function isPositiveRate(rate: string | null | undefined): boolean {
   return rateValue(rate) > 0;
+}
+
+/**
+ * Показ суммы взноса за занятие: у отчитанного — по обучающимся, по которым
+ * прошёл расчёт, у остальных — по обучающимся с оплаченным доступом на дату.
+ */
+function lessonAmountOf(l: EdubridgeLessonRecord, group: EdubridgeGroupRecord | null, rate: string | null, learnersPaid: number): string | null {
+  if (!group) return null;
+  return expectedLessonAmount({
+    slot: group.schedule_slots?.[l.slot_index],
+    minutes: l.duration_minutes,
+    rate,
+    perLearner: Boolean(group.pay_per_learner),
+    learners: l.learners_count ?? learnersPaid,
+  });
 }
 
 /**

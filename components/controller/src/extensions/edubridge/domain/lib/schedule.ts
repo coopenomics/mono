@@ -27,11 +27,11 @@ export interface EduScheduleSlot {
 const ASSET_RE = /^\d+\.\d{4} [A-Z]{1,7}$/;
 const ASSET_SCALE = 10_000;
 
-function assetMinor(value: string): number {
+export function assetMinor(value: string): number {
   return Math.round(Number(value.trim().split(' ')[0]) * ASSET_SCALE);
 }
 
-function assetOf(minor: number, symbol: string): string {
+export function assetOf(minor: number, symbol: string): string {
   return `${(minor / ASSET_SCALE).toFixed(4)} ${symbol}`;
 }
 

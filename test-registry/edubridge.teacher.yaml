@@ -678,3 +678,19 @@ cases:
     test: ~
     status: missing   # проверяется владельцем на стенде; сценарий harness не заведён
 
+  - id: edu.teach.happy.33
+    level: backend
+    kind: happy
+    scenario: "Преподаватель открывает «Отчёты»: у занятия без отчёта видна сумма взноса до отчёта (решение владельца 14.10.2026)."
+    expect: "Показ суммы повторяет арифметику контракта: ставка допуска за минуты с отсечением, не больше стоимости занятия по окну; за каждого обучающегося с оплаченным доступом либо одна сумма на занятие, не больше оплаты всех обучающихся."
+    test: components/controller/tests/unit/edubridge/lesson-charge.test.ts
+    status: written   # прогон — CI на полигоне ci/tests
+
+  - id: edu.teach.side.34
+    level: backend
+    kind: side
+    scenario: "Показ суммы за занятие без обучающихся, без ставки допуска либо без стоимости окна."
+    expect: "Сумма не показывается: посчитать нечем."
+    test: components/controller/tests/unit/edubridge/lesson-charge.test.ts
+    status: written   # прогон — CI на полигоне ci/tests
+
