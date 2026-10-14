@@ -17,10 +17,13 @@ export const meta = {
 export default async ({ page, context, shot }) => {
   await loginAsChairman(page, context);
   await settleAfterLogin(page);
-  await openPage(page, EDU.admin('teachers'), 'Орлова');
+  // Ждём строку таблицы, а не имя: узкая колонка прячет имя многоточием, и текст
+  // для браузера «скрыт», хотя строка на месте.
+  await openPage(page, EDU.admin('teachers'), 'Преподаватели');
+  await row(page, 'orlova').waitFor({ state: 'visible', timeout: 60000 });
   await shot(page, '01-teachers', 'Преподаватели с подписанным договором участия: договор, ставка часа, курсы. Выше — договоры, которые ждут подписи председателя в запросах одобрений.');
 
-  await row(page, 'Орлова').click();
+  await row(page, 'orlova').click();
   await page.waitForTimeout(1200);
   await shot(page, '02-card', 'Карточка преподавателя: договор с датами подписей, ставка, рассказ о себе и курсы, к которым преподаватель допущен.');
 
