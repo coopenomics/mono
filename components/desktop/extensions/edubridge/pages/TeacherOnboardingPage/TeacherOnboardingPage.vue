@@ -4,7 +4,6 @@ EduOfferGate(
   :hint="$t('edubridge.teacherOnboardingPage.hint')"
   :offer-description="$t('edubridge.teacherOnboardingPage.offerDescription')"
   :offer-title="$t('edubridge.teacherOnboardingPage.offerTitle')"
-  :contract-description="$t('edubridge.teacherOnboardingPage.contractDescription')"
   target-route="edubridge-teacher-profile"
 )
 </template>

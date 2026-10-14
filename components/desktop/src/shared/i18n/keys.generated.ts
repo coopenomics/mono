@@ -3440,7 +3440,6 @@ export type MessageKey =
   | 'edubridge.teacherLessonsPage.submit'
   | 'edubridge.teacherLessonsPage.topicLabel'
   | 'edubridge.teacherLessonsPage.transferMaterials'
-  | 'edubridge.teacherOnboardingPage.contractDescription'
   | 'edubridge.teacherOnboardingPage.hint'
   | 'edubridge.teacherOnboardingPage.offerDescription'
   | 'edubridge.teacherOnboardingPage.offerTitle'
