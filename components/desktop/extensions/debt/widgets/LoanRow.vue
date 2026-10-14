@@ -10,13 +10,23 @@
     .loan-row__amount {{ money }}
     .loan-row__caption {{ moneyCaption }}
   .loan-row__state
-    BaseBadge(:variant='loanStatusVariant(loan.status)') {{ loanStatusLabel(loan.status) }}
+    //- Акт ждёт подписи пайщика: действие стоит на месте состояния, чтобы его было видно сразу.
+    BaseButton(
+      v-if='canSignAct',
+      variant='primary',
+      size='sm',
+      :loading='signing',
+      @click.stop='$emit("sign-act", loan)'
+    ) {{ $t('debt.loanDetails.actSignAction') }}
+    BaseBadge(v-else, :variant='loanStatusVariant(loan.status)') {{ loanStatusLabel(loan.status, loan) }}
     .loan-row__caption(v-if='stateCaption') {{ stateCaption }}
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue';
 import { BaseBadge } from 'src/shared/ui/base/BaseBadge';
+import { BaseButton } from 'src/shared/ui/base/BaseButton';
+import { useSessionStore } from 'src/entities/Session';
 import type { ILoan } from '../api';
 import {
   collateralLabel,
@@ -29,8 +39,14 @@ import {
 } from '../model';
 import { t } from '../i18n';
 
-const props = defineProps<{ loan: ILoan }>();
-defineEmits<{ (e: 'open', loan: ILoan): void }>();
+const props = defineProps<{ loan: ILoan; signing?: boolean }>();
+defineEmits<{ (e: 'open', loan: ILoan): void; (e: 'sign-act', loan: ILoan): void }>();
+const session = useSessionStore();
+
+// Акт подписывает заёмщик после подписи председателя.
+const canSignAct = computed(
+  () => props.loan.status === 'SIGNED' && props.loan.username === session.username && Boolean(props.loan.act),
+);
 
 const meta = computed(() =>
   [

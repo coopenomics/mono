@@ -21,7 +21,14 @@ q-page.loans
       q-icon(name='request_quote', size='48px')
 
   .loans__list(v-if='items.length')
-    LoanRow(v-for='loan in items', :key='loan.debt_hash', :loan='loan', @open='open')
+    LoanRow(
+      v-for='loan in items',
+      :key='loan.debt_hash',
+      :loan='loan',
+      :signing='signingHash === loan.debt_hash',
+      @open='open',
+      @sign-act='onSignAct'
+    )
 
   .row.justify-center.q-my-md(v-if='hasMore')
     BaseButton(variant='ghost', :loading='loading', @click='loadMore') {{ $t('debt.loansPage.loadMoreAction') }}
@@ -35,7 +42,9 @@ import { computed, onMounted, ref } from 'vue';
 import { BaseButton, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
 import type { ILoan } from '../api';
-import { useLiveLoanList } from '../model';
+import { useLiveLoanList, useLoanActions } from '../model';
+import { FailAlert, SuccessAlert } from 'src/shared/api';
+import { t } from '../i18n';
 import LoanRow from '../widgets/LoanRow.vue';
 import LoanDetailsDrawer from '../widgets/LoanDetailsDrawer.vue';
 import LoanCreateDialog from './LoanCreateDialog.vue';
@@ -49,6 +58,22 @@ const drawerOpen = ref(false);
 const activeHash = ref<string | null>(null);
 // Панель читает заём из списка: дочитка по ленте обновляет и открытую панель.
 const active = computed<ILoan | null>(() => items.value.find((l) => l.debt_hash === activeHash.value) ?? null);
+
+const { signAct } = useLoanActions();
+const signingHash = ref<string | null>(null);
+
+async function onSignAct(loan: ILoan): Promise<void> {
+  try {
+    signingHash.value = loan.debt_hash;
+    await signAct(loan);
+    SuccessAlert(t('debt.loanDetails.actSignedMessage'));
+    await reload(true);
+  } catch (e) {
+    FailAlert(e);
+  } finally {
+    signingHash.value = null;
+  }
+}
 
 function open(loan: ILoan): void {
   activeHash.value = loan.debt_hash;

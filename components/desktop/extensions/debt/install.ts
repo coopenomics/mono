@@ -6,6 +6,12 @@ import { LoansPage, LoansRegistryPage } from './pages';
 import { EXTENSION_SLOTS, registerSlotComponent } from 'src/shared/lib/extension-slots';
 import { registerDebtDecisionHandlers } from './app/decisions';
 import { registerDebtApprovalHooks } from './app/approvals';
+import { refreshMenuBadges, registerMenuBadge } from 'src/shared/lib/menuBadges';
+import { registerLiveReload } from 'src/shared/lib/realtime';
+import { useSessionStore } from 'src/entities/Session';
+import { useSystemStore } from 'src/entities/System/model';
+import { getLoans } from './api';
+import { DEBT_LIVE_TABLES } from './model';
 import LoanDebtWidget from './widgets/LoanDebtWidget.vue';
 import { t } from './i18n';
 
@@ -13,6 +19,15 @@ import { t } from './i18n';
 export default async function (): Promise<IWorkspaceConfig[]> {
   registerDebtDecisionHandlers();
   registerDebtApprovalHooks();
+  // Число на пункте «Мои займы» — сколько актов ждёт подписи пайщика.
+  registerMenuBadge('debt-loans', async () => {
+    const session = useSessionStore();
+    const { info } = useSystemStore();
+    if (!session.isAuth || !info.coopname) return 0;
+    const page = await getLoans({ filter: { coopname: info.coopname, status: 'SIGNED' as never }, options: { page: 1, limit: 50 } });
+    return page.items.filter((loan) => loan.username === session.username && Boolean(loan.act)).length;
+  });
+  registerLiveReload(DEBT_LIVE_TABLES, () => refreshMenuBadges(['debt-loans']));
   // Задолженность по займам — на странице профиля участника «Благороста».
   registerSlotComponent(EXTENSION_SLOTS.capitalProfileAfterWallets, 'debt:loan-debt', LoanDebtWidget);
 

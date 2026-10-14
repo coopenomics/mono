@@ -5379,6 +5379,7 @@ export const ReturnTypes: Record<string,any> = {
 		id:"Int",
 		issued_at:"String",
 		last_pay_error:"String",
+		member_name:"String",
 		overdue_at:"String",
 		pledge_contract:"DocumentAggregate",
 		pledged:"String",

@@ -45,6 +45,12 @@ void debt::repayloan(eosio::name coopname, eosio::name username, checksum256 deb
   if (remaining.amount == 0) {
     // Остаток обеспечения сверх займа (не возникает при обеспечении один к одному) тоже возвращается.
     Debt::Core::unpledge(c, coopname, username, d.pledged - release, debt_hash);
+    // Нулевой остаток записывается до удаления строки: по нему зеркало отличает
+    // погашенный заём от закрытого обращением обеспечения.
+    Debt::Core::modify_debt(coopname, d.id, [&](auto& row) {
+      row.remaining = remaining;
+      row.pledged -= release;
+    });
     Debt::Core::erase_debt(coopname, d.id);
   } else {
     Debt::Core::modify_debt(coopname, d.id, [&](auto& row) {

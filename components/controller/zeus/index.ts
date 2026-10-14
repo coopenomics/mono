@@ -6593,6 +6593,8 @@ export type ValueTypes = {
 	issued_at?:boolean | `@${string}`,
 	/** Причина последнего отказа платежа */
 	last_pay_error?:boolean | `@${string}`,
+	/** Наименование пайщика по удостоверению: ФИО либо название организации */
+	member_name?:boolean | `@${string}`,
 	/** Переход в просрочку */
 	overdue_at?:boolean | `@${string}`,
 	/** Договор залога имущественного права с подписью пайщика */
@@ -22298,6 +22300,8 @@ export type ResolverInputTypes = {
 	issued_at?:boolean | `@${string}`,
 	/** Причина последнего отказа платежа */
 	last_pay_error?:boolean | `@${string}`,
+	/** Наименование пайщика по удостоверению: ФИО либо название организации */
+	member_name?:boolean | `@${string}`,
 	/** Переход в просрочку */
 	overdue_at?:boolean | `@${string}`,
 	/** Договор залога имущественного права с подписью пайщика */
@@ -37548,6 +37552,8 @@ export type ModelTypes = {
 	issued_at?: string | undefined | null,
 	/** Причина последнего отказа платежа */
 	last_pay_error?: string | undefined | null,
+	/** Наименование пайщика по удостоверению: ФИО либо название организации */
+	member_name?: string | undefined | null,
 	/** Переход в просрочку */
 	overdue_at?: string | undefined | null,
 	/** Договор залога имущественного права с подписью пайщика */
@@ -53187,6 +53193,8 @@ export type GraphQLTypes = {
 	issued_at?: string | undefined | null,
 	/** Причина последнего отказа платежа */
 	last_pay_error?: string | undefined | null,
+	/** Наименование пайщика по удостоверению: ФИО либо название организации */
+	member_name?: string | undefined | null,
 	/** Переход в просрочку */
 	overdue_at?: string | undefined | null,
 	/** Договор залога имущественного права с подписью пайщика */

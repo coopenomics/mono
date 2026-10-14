@@ -7,7 +7,7 @@ DetailsDrawer(
   .loan-details(v-if='loan')
     //- Состояние — один раз бейджем; главное число крупно с подписью.
     .loan-details__head
-      BaseBadge(:variant='loanStatusVariant(loan.status)') {{ loanStatusLabel(loan.status) }}
+      BaseBadge(:variant='loanStatusVariant(loan.status)') {{ loanStatusLabel(loan.status, loan) }}
     .loan-details__sum
       .loan-details__eyebrow {{ outstanding ? $t('debt.loanDetails.remainingLabel') : $t('debt.loanDetails.amountLabel') }}
       .loan-details__amount {{ formatAmount(outstanding ? loan.remaining : loan.amount) }}

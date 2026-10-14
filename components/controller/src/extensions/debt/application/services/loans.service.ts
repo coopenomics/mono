@@ -5,7 +5,10 @@ import {
   DOCUMENT_PORT,
   type IChainPort,
   type IDocumentPort,
+  type IUserCertificatePort,
+  InnerAccountType,
   type InnerDocumentAggregate,
+  USER_CERTIFICATE_PORT,
 } from '@coopenomics/innercoop';
 import { DomainError, type PaginationInputDTO, type PaginationResult } from '@coopenomics/extension-kit';
 import httpStatus from 'http-status';
@@ -34,6 +37,7 @@ export class LoansService {
   constructor(
     @Inject(LOAN_REPOSITORY) private readonly loans: LoanRepository,
     @Inject(DOCUMENT_PORT) private readonly documents: IDocumentPort,
+    @Inject(USER_CERTIFICATE_PORT) private readonly certificates: IUserCertificatePort,
     @Inject(CHAIN_PORT) private readonly chain: IChainPort
   ) {}
 
@@ -134,6 +138,19 @@ export class LoansService {
       signed_pledge_contract,
       act,
     };
-    return LoanOutputDTO.fromDomain(loan, aggregates);
+    return LoanOutputDTO.fromDomain(loan, aggregates, await this.memberName(loan.username));
+  }
+
+  /** Наименование пайщика по удостоверению: организация — название, иначе ФИО; без удостоверения — пусто. */
+  private async memberName(username?: string): Promise<string | null> {
+    if (!username) return null;
+    try {
+      const cert = await this.certificates.getCertificateByUsername(username);
+      if (!cert) return null;
+      if (cert.type === InnerAccountType.organization) return cert.short_name?.trim() || null;
+      return [cert.last_name, cert.first_name, cert.middle_name].filter((part) => part && part.trim()).join(' ').trim() || null;
+    } catch {
+      return null;
+    }
   }
 }

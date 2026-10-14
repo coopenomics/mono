@@ -26,6 +26,7 @@ export const rawLoanSelector = {
   requested_due_at: true,
   overdue_at: true,
   last_pay_error: true,
+  member_name: true,
   statement: rawDocumentAggregateSelector,
   contract: rawDocumentAggregateSelector,
   signed_contract: rawDocumentAggregateSelector,

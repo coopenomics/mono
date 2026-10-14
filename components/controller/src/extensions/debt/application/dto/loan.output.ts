@@ -107,7 +107,10 @@ export class LoanOutputDTO extends BaseOutputDTO {
   @CouncilField(['username'])
   act?: DocumentAggregateDTO | null;
 
-  static fromDomain(entity: LoanDomainEntity, aggregates?: LoanDocumentAggregates): LoanOutputDTO {
+  @Field(() => String, { nullable: true, description: 'Наименование пайщика по удостоверению: ФИО либо название организации' })
+  member_name?: string | null;
+
+  static fromDomain(entity: LoanDomainEntity, aggregates?: LoanDocumentAggregates, memberName?: string | null): LoanOutputDTO {
     const dto = new LoanOutputDTO();
     dto._id = entity._id as string;
     dto._created_at = entity._created_at as Date;
@@ -132,6 +135,7 @@ export class LoanOutputDTO extends BaseOutputDTO {
     dto.requested_due_at = entity.requested_due_at;
     dto.overdue_at = entity.overdue_at;
     dto.last_pay_error = entity.last_pay_error;
+    dto.member_name = memberName ?? null;
     const wrap = (a?: InnerDocumentAggregate | null) => (a ? new DocumentAggregateDTO(a) : a === null ? null : undefined);
     dto.statement = wrap(aggregates?.statement);
     dto.contract = wrap(aggregates?.contract);

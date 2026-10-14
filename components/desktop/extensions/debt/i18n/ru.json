@@ -38,6 +38,24 @@
       "title": "Задолженность по займам",
       "totalCaption": "остаток к возврату"
     },
+    "decisionInfo": {
+      "amountLabel": "Сумма займа",
+      "collateralLabel": "Обеспечение",
+      "dueLabel": "Срок возврата",
+      "openLoansLabel": "Открытые займы пайщика",
+      "openLoansNone": "нет",
+      "openLoansValue": "{count} на {total}",
+      "overdueLabel": "В просрочке",
+      "overdueValue": "{count}",
+      "payoutLabel": "Выдача",
+      "payoutValue": "перечислением по реквизитам из заявления",
+      "pledgedLabel": "Сумма обеспечения",
+      "storageLabel": "Имущество на хранении",
+      "storageValue": "приложение № {number}",
+      "termLabel": "Срок",
+      "termValue": "{count} дн.",
+      "title": "Условия займа"
+    },
     "error": {
       "invalidCreatedebtMeta": "Данные заявления на заём неполные",
       "missingCreatedebtMeta": "В заявлении на заём нет данных для протокола решения"
@@ -152,10 +170,12 @@
       "DECLINED": "Отклонён",
       "ISSUED": "Выдан",
       "OVERDUE": "Просрочен",
+      "PAYDECLINED": "Ожидает повтора платежа",
       "PAYING": "Передан на выплату",
+      "REPAID": "Погашен",
       "SIGNED": "Ожидает подписи акта",
       "UNDEFINED": "Не определено",
-      "PAYDECLINED": "Ожидает повтора платежа"
+      "WRITTEN_OFF": "Закрыт обеспечением"
     }
   }
 }

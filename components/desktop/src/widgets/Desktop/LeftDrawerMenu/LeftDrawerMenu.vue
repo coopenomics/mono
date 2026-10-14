@@ -45,7 +45,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted, watch } from 'vue';
+import { computed, ref, onMounted, onBeforeUnmount, watch } from 'vue';
 import { useLiveReload } from 'src/shared/lib/realtime';
 import { marketLiveTables } from 'src/shared/lib/marketplace';
 import { useRouter } from 'vue-router';
@@ -65,6 +65,7 @@ import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { AppDrawer } from 'src/shared/ui/layout/AppDrawer';
 import type { RailItem } from 'src/shared/ui/layout/AppDrawer';
 import { useMenuSubItemsReader } from 'src/shared/hooks/useMenuSubItems';
+import { hasMenuBadge, menuBadgeOf, refreshMenuBadges } from 'src/shared/lib/menuBadges';
 import { RailUserCard } from 'src/shared/ui/domain/RailUserCard';
 import { WorkspaceSwitcher } from 'src/widgets/Desktop/WorkspaceSwitcher';
 import { useUpdateWatch } from 'src/entities/AppVersion/model';
@@ -156,8 +157,9 @@ const filteredRoutes = computed<RouteRecordRaw[]>(() => {
 const CART_ROUTE = 'marketplace-cart';
 
 function badgeFor(routeName: string): string | number | undefined {
-  if (routeName !== CART_ROUTE) return undefined;
-  return cartStore.positionsCount || undefined;
+  if (routeName === CART_ROUTE) return cartStore.positionsCount || undefined;
+  // Остальные пункты — по числам, которые зарегистрировали расширения.
+  return menuBadgeOf(routeName);
 }
 
 const railItems = computed<RailItem[]>(() =>
@@ -340,6 +342,26 @@ const userCardCollapsed = computed<boolean>({
 onMounted(() => {
   const saved = localStorage.getItem(STORAGE_KEY_USERCARD_COLLAPSED);
   if (saved !== null) manualCollapsed.value = saved === 'true';
+});
+
+/**
+ * Числа дел на пунктах: спрашиваем, когда пункты видны, при каждом переходе
+ * (дело на странице могли только что закрыть) и раз в минуту.
+ */
+const MENU_BADGE_POLL_MS = 60_000;
+const badgeRoutes = computed(() => filteredRoutes.value.map((r) => String(r.name)).filter(hasMenuBadge));
+function refreshBadges(): void {
+  if (badgeRoutes.value.length) void refreshMenuBadges(badgeRoutes.value);
+}
+watch(() => [badgeRoutes.value.join(','), router.currentRoute.value.fullPath], refreshBadges);
+let badgeTimer: ReturnType<typeof setInterval> | null = null;
+onMounted(() => {
+  refreshBadges();
+  // timing: schedule — счётчики пунктов меню сервер событиями не шлёт, они перечитываются по расписанию.
+  badgeTimer = setInterval(refreshBadges, MENU_BADGE_POLL_MS);
+});
+onBeforeUnmount(() => {
+  if (badgeTimer) clearInterval(badgeTimer);
 });
 
 // --- Триггеры действий ----------------------------------------------------

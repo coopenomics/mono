@@ -14,14 +14,14 @@ q-page.registry
   )
     template(#cell-number='{ row }')
       .registry__number {{ row.contract_number }}
-      .registry__meta {{ sourceLabel(row.source) }}
+      .registry__meta {{ collateralLabel(row.collateral) || sourceLabel(row.source) }}
     template(#cell-member='{ row }')
-      IdentityCell(:account-name='row.username || ""')
+      IdentityCell(:account-name='row.username || ""', :full-name='row.member_name')
     template(#cell-amount='{ row }') {{ formatAmount(row.amount) }}
-    template(#cell-remaining='{ row }') {{ isOutstanding(row.status) ? formatAmount(row.remaining) : '' }}
+    template(#cell-remaining='{ row }') {{ formatAmount(remainingAmount(row)) }}
     template(#cell-due='{ row }') {{ formatDate(row.due_at) }}
     template(#cell-status='{ row }')
-      BaseBadge(:variant='loanStatusVariant(row.status)') {{ loanStatusLabel(row.status) }}
+      BaseBadge(:variant='loanStatusVariant(row.status)') {{ loanStatusLabel(row.status, row) }}
 
   EmptyState(
     v-if='!items.length && !firstLoad',
@@ -45,10 +45,11 @@ import { IdentityCell } from 'src/shared/ui/domain';
 import { PageTabs, type PageTab } from 'src/shared/ui/layout';
 import type { ILoan } from '../api';
 import {
+  collateralLabel,
   formatAmount,
   formatDate,
-  isOutstanding,
   loanStatusLabel,
+  remainingAmount,
   loanStatusVariant,
   sourceLabel,
   useLiveLoanList,

@@ -14,6 +14,7 @@ import {
   NOTIFICATION_PORT,
   PAYMENT_METHOD_PORT,
   PAYMENT_PORT,
+  USER_CERTIFICATE_PORT,
   VAULT_PORT,
 } from '@coopenomics/innercoop';
 
@@ -27,6 +28,7 @@ export const debtPorts = {
     NOTIFICATION_PORT,
     PAYMENT_METHOD_PORT,
     PAYMENT_PORT,
+    USER_CERTIFICATE_PORT,
     VAULT_PORT,
   ],
   optional: [

@@ -3,6 +3,7 @@ import { decisionFactory } from 'src/shared/lib/decision-factory';
 import { useSystemStore } from 'src/entities/System/model';
 import { generateLoanDecision } from '../api';
 import { t } from '../i18n';
+import LoanDecisionInfoWidget from '../widgets/LoanDecisionInfoWidget.vue';
 
 /**
  * Обработчик решения совета о предоставлении беспроцентного займа
@@ -41,5 +42,7 @@ export function registerDebtDecisionHandlers(): void {
         decision_id,
       });
     },
+    // Сумма, срок, обеспечение и долг пайщика — до документов вопроса.
+    infoComponent: LoanDecisionInfoWidget,
   });
 }
