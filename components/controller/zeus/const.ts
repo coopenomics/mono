@@ -6195,6 +6195,7 @@ export const ReturnTypes: Record<string,any> = {
 		contract_status:"EduContractStatus",
 		display_name:"String",
 		hourly_rate:"String",
+		pending_approvals:"String",
 		signed_at:"DateTime",
 		username:"String"
 	},

@@ -43,11 +43,19 @@
         //- можно удалить в кабинете школы и отметить это здесь.
         template(v-for="l in card.learners" :key="asText(l.id)")
           DataRow(:label="l.display_name" :value="l.recipient_value ?? $t('edubridge.adminMembersPage.card.contactHidden')" mono :copyable="Boolean(l.recipient_value)")
-          .edu-member__account(v-if="accountOf(l)?.removed_at")
-            .t-sm.t-muted {{ $t('edubridge.adminMembersPage.account.removed', { date: formatDate(String(accountOf(l)?.removed_at ?? '')) }) }}
-          .edu-member__account(v-else-if="canMarkRemoved(l)")
-            .t-sm.t-muted {{ $t('edubridge.adminMembersPage.account.noSubscriptions', { platforms: platformsOf(l) }) }}
-            BaseButton(v-if="canManageQueue" variant="secondary" size="sm" :loading="marking === asText(l.id)" @click="onMarkRemoved(l)") {{ $t('edubridge.adminMembersPage.account.markRemoved') }}
+          //- Аккаунт на площадке — отдельной строкой: удалён ли он. Удаляет администратор в
+          //- кабинете школы и отмечает здесь: место на тарифе площадки освобождается.
+          DataRow(
+            v-if="accountOf(l)?.removed_at || canMarkRemoved(l)"
+            :label="$t('edubridge.adminMembersPage.account.label', { platforms: platformsOf(l) })"
+            :hint="accountOf(l)?.removed_at ? undefined : $t('edubridge.adminMembersPage.account.hint')"
+          )
+            template(#value-override)
+              .edu-member__account
+                BaseBadge(v-if="accountOf(l)?.removed_at" variant="neutral") {{ $t('edubridge.adminMembersPage.account.removedOn', { date: formatDate(String(accountOf(l)?.removed_at ?? '')) }) }}
+                template(v-else)
+                  BaseBadge(variant="warn") {{ $t('edubridge.adminMembersPage.account.notRemoved') }}
+                  BaseButton(v-if="canManageQueue" variant="ghost" size="sm" :loading="marking === asText(l.id)" @click="onMarkRemoved(l)") {{ $t('edubridge.adminMembersPage.account.markRemoved') }}
 
       .edu-member__section
         .edu-member__head
@@ -272,10 +280,9 @@ watch(
 /* Строка об аккаунте на площадке стоит под адресом обучающегося: пояснение слева, действие справа. */
 .edu-member__account {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--p-3);
-  padding: var(--p-1) 0 var(--p-3);
+  gap: var(--p-2);
 }
 .edu-member__head {
   margin-bottom: var(--p-2);

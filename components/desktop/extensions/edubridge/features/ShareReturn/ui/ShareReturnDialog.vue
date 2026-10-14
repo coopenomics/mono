@@ -1,19 +1,9 @@
 <template lang="pug">
-//- Возврат паевого взноса одной кнопкой: сумма и реквизиты, два заявления
-//- подписываются разом. Без реквизитов — ссылка туда, где их завести.
+//- Возврат паевого взноса одной кнопкой: возвращается вся доступная сумма, пайщик
+//- выбирает только реквизиты; два заявления подписываются разом. Без реквизитов —
+//- ссылка туда, где их завести.
 BaseDialog(:model-value="modelValue" :title="$t('edubridge.shareReturn.title')" size="sm" @update:model-value="(v) => $emit('update:modelValue', v)")
-  AmountInput(
-    v-model="amount"
-    :label="$t('edubridge.shareReturn.amountLabel')"
-    :symbol="symbol"
-    :precision="2"
-    :min="0"
-    :max="available"
-    :balance="available"
-    show-max
-    show-balance
-    :disabled="busy"
-  )
+  DataRow(:label="$t('edubridge.shareReturn.amountLabel')" :value="formatAsset2Digits(`${available.toFixed(4)} ${symbol}`)" align="spread")
   BaseSelect.q-mt-md(
     v-if="loadingMethods || methodOptions.length"
     v-model="methodId"
@@ -36,7 +26,8 @@ import { computed, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { BaseButton, BaseDialog, BaseSelect, type BaseSelectOption } from 'src/shared/ui/base';
-import { AmountInput } from 'src/shared/ui/domain';
+import { DataRow } from 'src/shared/ui/domain';
+import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { paymentMethodDescription, paymentMethodLabel, useWalletStore } from 'src/entities/Wallet';
 import { useSystemStore } from 'src/entities/System/model';
 import { useSessionStore } from 'src/entities/Session';
@@ -52,23 +43,20 @@ const walletStore = useWalletStore();
 const { info } = useSystemStore();
 const session = useSessionStore();
 
-const amount = ref<number | string | null>(null);
 const methodId = ref<string | null>(null);
 const busy = ref(false);
 const loadingMethods = ref(false);
 
-const amountValue = computed(() => Number.parseFloat(String(amount.value ?? '').replace(',', '.')) || 0);
 const methodOptions = computed<BaseSelectOption[]>(() =>
   walletStore.methods.map((m) => ({ value: String(m.method_id), label: paymentMethodLabel(m), caption: paymentMethodDescription(m) })),
 );
-const canSubmit = computed(() => amountValue.value > 0 && amountValue.value <= props.available && !!methodId.value && !busy.value);
+const canSubmit = computed(() => props.available > 0 && !!methodId.value && !busy.value);
 
 // Реквизиты читаются при открытии: пайщик мог завести их только что.
 watch(
   () => props.modelValue,
   async (open) => {
     if (!open) return;
-    amount.value = null;
     methodId.value = null;
     loadingMethods.value = true;
     try {
@@ -95,7 +83,8 @@ async function submit(): Promise<void> {
   if (!canSubmit.value || !methodId.value) return;
   busy.value = true;
   try {
-    await requestShareReturn(`${amountValue.value.toFixed(4)} ${props.symbol}`, methodId.value);
+    // Возвращается вся доступная сумма: другой суммы пайщик здесь не выбирает.
+    await requestShareReturn(`${props.available.toFixed(4)} ${props.symbol}`, methodId.value);
     SuccessAlert(t('edubridge.shareReturn.success'));
     emit('done');
     close();

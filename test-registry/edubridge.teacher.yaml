@@ -694,3 +694,11 @@ cases:
     test: components/controller/tests/unit/edubridge/lesson-charge.test.ts
     status: written   # прогон — CI на полигоне ci/tests
 
+  - id: edu.teach.happy.35
+    level: backend
+    kind: happy
+    scenario: "Администратор открывает реестр преподавателей: у каждого видно, какие его документы ждут подписи председателя (решение владельца 14.10.2026)."
+    expect: "Узел раскладывает документы на подписи председателя по преподавателям и отдаёт их названия; без расширения председателя список пуст, отказа нет."
+    test: components/controller/tests/unit/edubridge/approvals.service.test.ts
+    status: written   # прогон — CI на полигоне ci/tests
+

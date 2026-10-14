@@ -29,6 +29,11 @@
       span(v-if="row.assignments_active") {{ row.assignments_active }}
       span.t-muted(v-else) {{ $t('edubridge.adminTeachersPage.noCourses') }}
     template(#cell-signed_at="{ row }") {{ formatDate(row.signed_at) }}
+    //- Что ждёт подписи председателя у этого преподавателя: один документ — названием, несколько — числом.
+    template(#cell-pending="{ row }")
+      BaseBadge(v-if="row.pending_approvals.length" variant="warn")
+        | {{ row.pending_approvals.length === 1 ? row.pending_approvals[0] : $t('edubridge.adminTeachersPage.pendingMany', { n: row.pending_approvals.length }) }}
+        q-tooltip(v-if="row.pending_approvals.length > 1" max-width="320px") {{ row.pending_approvals.join('; ') }}
 
   EmptyState(v-if="!firstLoad && !teachers.length" :title="$t('edubridge.adminTeachersPage.emptyTitle')" :body="$t('edubridge.adminTeachersPage.emptyBody')")
     template(#icon)
@@ -86,6 +91,7 @@ const columns: BaseTableColumn<ITeacher>[] = [
   { key: 'hourly_rate', label: i18nT('edubridge.adminTeachersPage.column.hourlyRate'), numeric: true, width: '150px', nowrap: true },
   { key: 'assignments', label: i18nT('edubridge.adminTeachersPage.column.assignments'), width: '130px', nowrap: true },
   { key: 'signed_at', label: i18nT('edubridge.adminTeachersPage.column.signedAt'), width: '130px', nowrap: true },
+  { key: 'pending', label: i18nT('edubridge.adminTeachersPage.column.pending'), width: '260px' },
 ];
 
 const contractStatusOf = (s: string) => CONTRACT_STATUS_LABELS[s] ?? { label: s, variant: 'neutral' as const };

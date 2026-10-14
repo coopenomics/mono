@@ -23,14 +23,13 @@
         .t-muted.t-sm {{ row.course_title }}
       template(#cell-held_at="{ row }") {{ heldRangeOf(row) }}
       template(#cell-amount="{ row }")
+        //- У отчитанного занятия — сумма взноса; до отчёта — показ суммы по тем же условиям: контракт запишет её при отчёте.
         span.t-num(v-if="row.contribution") {{ formatAsset2Digits(row.contribution.amount) }}
-        //- До взноса — расчёт по ставке допуска, окну и обучающимся; окончательную сумму считает контракт.
-        template(v-else-if="expectedOf(row)")
-          span.t-num {{ formatAsset2Digits(expectedOf(row)) }}
-          .t-muted.t-sm {{ $t('edubridge.teacherReportsPage.expectedLine') }}
+        span.t-num(v-else-if="expectedOf(row)") {{ formatAsset2Digits(expectedOf(row)) }}
         span(v-else) ______
-        //- Срез курса на дату занятия: по скольким участникам контракт провёл расчёт.
-        .t-muted.t-sm(v-if="row.learners_count") {{ $t('edubridge.teacherLessonsPage.learnersLine', { count: row.learners_count }) }}
+      //- Обучающиеся с оплаченным доступом на дату занятия: у отчитанного — те, по кому прошёл расчёт.
+      template(#cell-learners="{ row }")
+        span.t-num {{ learnersOf(row) }}
       template(#cell-status="{ row }")
         BaseBadge(v-if="row.awaiting" :variant="row.overdue ? 'neg' : 'warn'") {{ $t(row.overdue ? 'edubridge.teacherReportsPage.overdue' : 'edubridge.teacherReportsPage.awaiting') }}
         BaseBadge(v-else-if="row.contribution" :variant="statusOf(row.contribution.status).variant") {{ statusOf(row.contribution.status).label }}
@@ -52,7 +51,7 @@
       DataRow(:label="$t('edubridge.teacherLessonsPage.details.course')" :value="details.course_title")
       DataRow(:label="$t('edubridge.teacherLessonsPage.details.number')" :value="lessonNumbersOf(details)")
       DataRow(v-if="details.learners_count" :label="$t('edubridge.teacherLessonsPage.details.learners')" :value="String(details.learners_count)")
-      DataRow(v-if="!details.contribution && expectedOf(details)" :label="$t('edubridge.teacherLessonsPage.details.amount')" :value="formatAsset2Digits(expectedOf(details))" :hint="$t('edubridge.teacherReportsPage.expectedHint')")
+      DataRow(v-if="!details.contribution && expectedOf(details)" :label="$t('edubridge.teacherLessonsPage.details.amount')" :value="formatAsset2Digits(expectedOf(details))" )
       template(v-if="details.contribution")
         DataRow(:label="$t('edubridge.teacherLessonsPage.details.amount')" :value="formatAsset2Digits(details.contribution.amount)")
         DataRow(v-if="details.contribution.hold_until" :label="$t('edubridge.teacherLessonsPage.details.holdUntil')" :value="formatDate(details.contribution.hold_until)")
@@ -119,7 +118,8 @@ const columns: BaseTableColumn<ILessonRow>[] = [
   { key: 'lesson_number', label: t('edubridge.teacherLessonsPage.column.number'), width: '80px', nowrap: true },
   { key: 'lesson', label: t('edubridge.teacherLessonsPage.column.lesson') },
   { key: 'held_at', label: t('edubridge.teacherLessonsPage.column.heldAt'), width: '220px', nowrap: true },
-  { key: 'amount', label: t('edubridge.teacherLessonsPage.column.amount'), numeric: true, width: '180px', nowrap: true },
+  { key: 'learners', label: t('edubridge.teacherReportsPage.column.learners'), numeric: true, width: '130px', nowrap: true },
+  { key: 'amount', label: t('edubridge.teacherLessonsPage.column.amount'), numeric: true, width: '160px', nowrap: true },
   { key: 'status', label: t('edubridge.teacherLessonsPage.column.status'), width: '260px', nowrap: true },
   { key: 'actions', label: '', align: 'right', width: '180px', nowrap: true },
 ];
@@ -153,6 +153,8 @@ const rows = computed<ILessonRow[]>(() => {
 const actionsCount = computed(() => rows.value.filter((r) => actionOf(r)).length);
 /** Сумма взноса до расчёта — показ сервера по занятию строки; окончательную сумму считает контракт. */
 const expectedOf = (row: ILessonRow): string => String(row.expected_amount ?? '');
+/** Обучающихся по строке: по кому прошёл расчёт, до расчёта — с оплаченным доступом на дату занятия. */
+const learnersOf = (row: ILessonRow): number => Number(row.learners_count ?? row.learners_paid ?? 0);
 const lessonNumbersOf = (row: ILessonRow): string => row.lessons.map((l) => l.lesson_number).join(', ');
 /** Заголовок записи — номер занятия; у взноса на несколько занятий — их номера. Тема — в панели. */
 const titleOf = (row: ILessonRow): string =>

@@ -20,4 +20,37 @@ describe('EdubridgeApprovalsService — документы преподават�
   it('без расширения председателя — пустой список, а не отказ', async () => {
     await expect(new EdubridgeApprovalsService(null).pendingForTeacher('voskhod', 'ant')).resolves.toEqual([]);
   });
+
+  it('реестр преподавателей: документы на подписи председателя разложены по преподавателям, названиями', async () => {
+    const port = {
+      list: jest.fn(async () => [
+        { approval_hash: 'a1', username: 'ant', action: 'apprvridact', created_at: '2026-10-14T00:00:00Z' },
+        { approval_hash: 'a2', username: 'ant', action: 'apprvcontr', created_at: '2026-10-14T00:00:00Z' },
+        { approval_hash: 'a3', username: 'bob', action: 'apprvridact', created_at: '2026-10-14T00:00:00Z' },
+      ]),
+    };
+    const byTeacher = await new EdubridgeApprovalsService(port as any).pendingByTeacher('voskhod');
+    expect(port.list).toHaveBeenCalledWith({ coopname: 'voskhod', actions: ['apprvcontr', 'apprvridact'], statuses: ['pending'] });
+    expect(byTeacher.get('ant')).toHaveLength(2);
+    expect(byTeacher.get('bob')).toHaveLength(1);
+    expect(byTeacher.get('carl')).toBeUndefined();
+    await expect(new EdubridgeApprovalsService(null).pendingByTeacher('voskhod')).resolves.toEqual(new Map());
+  });
+
+  it('реестр преподавателей: документы на подписи председателя разложены по преподавателям, названиями', async () => {
+    const port = {
+      list: jest.fn(async () => [
+        { approval_hash: 'a1', username: 'ant', action: 'apprvridact', created_at: '2026-10-14T00:00:00Z' },
+        { approval_hash: 'a2', username: 'ant', action: 'apprvcontr', created_at: '2026-10-14T00:00:00Z' },
+        { approval_hash: 'a3', username: 'bob', action: 'apprvridact', created_at: '2026-10-14T00:00:00Z' },
+      ]),
+    };
+    const byTeacher = await new EdubridgeApprovalsService(port as any).pendingByTeacher('voskhod');
+    expect(port.list).toHaveBeenCalledWith({ coopname: 'voskhod', actions: ['apprvcontr', 'apprvridact'], statuses: ['pending'] });
+    expect(byTeacher.get('ant')).toHaveLength(2);
+    expect(byTeacher.get('bob')).toHaveLength(1);
+    expect(byTeacher.get('carl')).toBeUndefined();
+    await expect(new EdubridgeApprovalsService(null).pendingByTeacher('voskhod')).resolves.toEqual(new Map());
+  });
 });
+

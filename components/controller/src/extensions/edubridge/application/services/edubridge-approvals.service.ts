@@ -25,6 +25,15 @@ export class EdubridgeApprovalsService {
     return found.length;
   }
 
+  /** Документы на подписи председателя по преподавателям: учётное имя — названия документов. */
+  async pendingByTeacher(coopname: string): Promise<Map<string, string[]>> {
+    const result = new Map<string, string[]>();
+    if (!this.approvals) return result;
+    const found = await this.approvals.list({ coopname, actions: Object.keys(EDU_APPROVAL_TITLES), statuses: ['pending'] });
+    for (const a of found) result.set(a.username, [...(result.get(a.username) ?? []), EDU_APPROVAL_TITLES[a.action] ?? a.action]);
+    return result;
+  }
+
   /** Документы преподавателя, которые ждут подписи председателя. */
   async pendingForTeacher(coopname: string, username: string): Promise<EduApprovalDTO[]> {
     if (!this.approvals) return [];

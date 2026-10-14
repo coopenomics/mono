@@ -195,8 +195,10 @@ export class EdubridgeTeacherResolver {
   @Query(() => [EduTeacherDTO], { name: 'edubridgeTeachers', description: 'Преподаватели кооператива с договором и числом назначений' })
   @UseGuards(GqlJwtAuthGuard, RightsGuard)
   @RequireRight('EduAssignment', 'read:all')
-  edubridgeTeachers(): Promise<EduTeacherDTO[]> {
-    return this.teachers.listTeachers(coop());
+  async edubridgeTeachers(): Promise<EduTeacherDTO[]> {
+    // У каждого преподавателя — документы, которые ждут подписи председателя: реестр показывает, к кому идти.
+    const [rows, pending] = await Promise.all([this.teachers.listTeachers(coop()), this.approvals.pendingByTeacher(coop())]);
+    return rows.map((r) => ({ ...r, pending_approvals: pending.get(r.username) ?? [] }));
   }
 
   @Query(() => DocumentAggregateDTO, { name: 'edubridgeTeacherContractDocument', nullable: true, description: 'Подписанный договор участия в хозяйственной деятельности преподавателя' })

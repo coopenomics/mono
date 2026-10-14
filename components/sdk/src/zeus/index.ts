@@ -8060,6 +8060,8 @@ export type ValueTypes = {
 	display_name?:boolean | `@${string}`,
 	/** Ставка часа преподавателя */
 	hourly_rate?:boolean | `@${string}`,
+	/** Документы преподавателя, которые ждут подписи председателя: названия */
+	pending_approvals?:boolean | `@${string}`,
 	/** Договор подписан преподавателем */
 	signed_at?:boolean | `@${string}`,
 	/** Учётное имя */
@@ -25015,6 +25017,8 @@ export type ResolverInputTypes = {
 	display_name?:boolean | `@${string}`,
 	/** Ставка часа преподавателя */
 	hourly_rate?:boolean | `@${string}`,
+	/** Документы преподавателя, которые ждут подписи председателя: названия */
+	pending_approvals?:boolean | `@${string}`,
 	/** Договор подписан преподавателем */
 	signed_at?:boolean | `@${string}`,
 	/** Учётное имя */
@@ -41438,6 +41442,8 @@ export type ModelTypes = {
 	display_name: string,
 	/** Ставка часа преподавателя */
 	hourly_rate: string,
+	/** Документы преподавателя, которые ждут подписи председателя: названия */
+	pending_approvals: Array<string>,
 	/** Договор подписан преподавателем */
 	signed_at: ModelTypes["DateTime"],
 	/** Учётное имя */
@@ -58463,6 +58469,8 @@ export type GraphQLTypes = {
 	display_name: string,
 	/** Ставка часа преподавателя */
 	hourly_rate: string,
+	/** Документы преподавателя, которые ждут подписи председателя: названия */
+	pending_approvals: Array<string>,
 	/** Договор подписан преподавателем */
 	signed_at: GraphQLTypes["DateTime"],
 	/** Учётное имя */

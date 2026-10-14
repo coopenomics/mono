@@ -380,6 +380,8 @@ export class EdubridgeTeacherService {
         approved_at: c.approved_at ?? null,
         assignments_total: own.length,
         assignments_active: own.filter((a) => a.status === EduAssignmentStatus.ACTIVE).length,
+        // Документы на подпись председателя дописывает резолвер реестра: они живут у председателя.
+        pending_approvals: [],
       };
     });
   }

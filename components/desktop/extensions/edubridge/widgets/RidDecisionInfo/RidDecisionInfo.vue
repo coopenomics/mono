@@ -3,8 +3,6 @@
 //- кооперативу, по какому курсу, группе и занятию, на какую сумму. Совет
 //- читает их рядом с заявлением, прежде чем голосовать.
 .edu-rid-info
-  .t-eyebrow.q-mb-sm {{ $t('edubridge.ridDecisionInfo.title') }}
-
   CardListSkeleton(v-if="firstLoad" :count="1")
 
   BaseBanner(v-else-if="!brief" variant="info")
@@ -13,7 +11,6 @@
     | {{ $t('edubridge.ridDecisionInfo.missing') }}
 
   template(v-else)
-    .t-sm.q-mb-md {{ $t('edubridge.ridDecisionInfo.summary') }}
     DataRow(:label="$t('edubridge.ridDecisionInfo.course')" :value="brief.course_title || '______'")
     DataRow(v-if="brief.group_title" :label="$t('edubridge.ridDecisionInfo.group')" :value="brief.group_title")
     DataRow(v-if="lessonLine" :label="$t('edubridge.ridDecisionInfo.lesson')" :value="lessonLine" :hint="brief.lesson_topic ? $t('edubridge.ridDecisionInfo.lessonTopic', { topic: brief.lesson_topic }) : undefined")

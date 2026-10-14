@@ -63,6 +63,7 @@ export class EduTeacherDTO {
   @Field(() => Date, { nullable: true, description: 'Договор подписан председателем совета' }) approved_at!: Date | null;
   @Field(() => Number, { description: 'Назначений всего' }) assignments_total!: number;
   @Field(() => Number, { description: 'Назначений действует' }) assignments_active!: number;
+  @Field(() => [String], { description: 'Документы преподавателя, которые ждут подписи председателя: названия' }) pending_approvals!: string[];
 }
 
 @ObjectType('EduAssignment')

@@ -81,6 +81,7 @@ const rawTeacherSelector = {
   approved_at: true,
   assignments_total: true,
   assignments_active: true,
+  pending_approvals: true,
 }
 const _validateTeacher: MakeAllFieldsRequired<ValueTypes['EduTeacher']> = rawTeacherSelector
 export const eduTeacherSelector = Selector('EduTeacher')(rawTeacherSelector)

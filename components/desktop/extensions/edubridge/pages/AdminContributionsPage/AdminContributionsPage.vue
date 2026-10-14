@@ -14,8 +14,9 @@
       .t-muted.t-sm {{ ridType(row.rid_type) }}
     template(#cell-amount="{ row }")
       span.t-num {{ formatAsset2Digits(row.amount) }}
-      //- Срез курса на дату занятия: по скольким участникам контракт провёл расчёт.
-      .t-muted.t-sm(v-if="row.learners_count") {{ $t('edubridge.teacherLessonsPage.learnersLine', { count: row.learners_count }) }}
+    //- Срез курса на дату занятия: по скольким участникам контракт провёл расчёт.
+    template(#cell-learners_count="{ row }")
+      span.t-num {{ row.learners_count ?? '______' }}
     template(#cell-status="{ row }")
       BaseBadge(:variant="statusOf(row.status).variant") {{ statusOf(row.status).label }}
       //- Совет решения о приёме не принял: исход виден под состоянием, пока обратный вызов контракта закрывает взнос.
@@ -77,7 +78,8 @@ function openDetails(row: IContribution): void {
 const columns: BaseTableColumn<IContribution>[] = [
   { key: 'teacher_username', label: i18nT('edubridge.adminContributionsPage.columnTeacher'), width: '210px' },
   { key: 'description', label: i18nT('edubridge.adminContributionsPage.columnDescription') },
-  { key: 'amount', label: i18nT('edubridge.adminContributionsPage.columnAmount'), numeric: true, width: '120px', nowrap: true },
+  { key: 'learners_count', label: i18nT('edubridge.adminContributionsPage.columnLearners'), numeric: true, width: '130px', nowrap: true },
+  { key: 'amount', label: i18nT('edubridge.adminContributionsPage.columnAmount'), numeric: true, width: '140px', nowrap: true },
   { key: 'status', label: i18nT('edubridge.adminContributionsPage.columnStatus'), width: '260px', nowrap: true },
 ];
 
