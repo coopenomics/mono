@@ -227,16 +227,18 @@ async function phase05(): Promise<void> {
 
   // Занятия по окнам расписания идут с завтрашнего дня — отчитаться пока не
   // по чему. Администратор ставит внеочередное занятие на два часа назад из
-  // резерва группы: окна расписания курса сохраняются, к ним добавляется
-  // резерв на три часа.
+  // резерва группы. Стоимость занятия контракт берёт из окна условий группы
+  // с тем же номером, а условия закреплены при открытии группы двумя окнами —
+  // поэтому резерв встаёт первым (номер 0), окна курса остаются следом и
+  // календарь сохраняет вторники и четверги.
   const chairman = await tokenOf(CHAIRMAN)
   const { group } = await groupOfAssignment(token, assignment.id)
   await gql(chairman, SET_GROUP_SCHEDULE, {
     d: {
       group_id: group.id,
       slots: [
-        ...courseSlots(90, 2, PLANNED_RATE).map(s => ({ ...s, time: '18:00' })),
         { weekday: 8, time: '', minutes: 180, hourly_rate: PLANNED_RATE },
+        ...courseSlots(90, 2, PLANNED_RATE).map(s => ({ ...s, time: '18:00' })),
       ],
     },
   })
