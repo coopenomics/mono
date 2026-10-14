@@ -48,6 +48,8 @@ export default async ({ page, shot, expect }) => {
     viewport: SHOT_VIEWPORT,
     deviceScaleFactor: SHOT_SCALE,
     locale: 'ru-RU',
+    // Время на кадрах — московское, как у кооператива: в CI браузер иначе живёт в UTC.
+    timezoneId: 'Europe/Moscow',
   });
   const admin = await chairmanContext.newPage();
   // Строка реестра типов: имя типа совпадает с подсказкой поля «Название» в

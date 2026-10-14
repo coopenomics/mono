@@ -101,6 +101,8 @@ export default async ({ page, context, shot, expect }) => {
     const voterContext = await context.browser().newContext({
       viewport,
       locale: 'ru-RU',
+    // Время на кадрах — московское, как у кооператива: в CI браузер иначе живёт в UTC.
+    timezoneId: 'Europe/Moscow',
     });
     try {
       const voterPage = await voterContext.newPage();

@@ -90,6 +90,8 @@ export async function openBrowser({ storageState } = {}) {
     viewport: SHOT_VIEWPORT,
     deviceScaleFactor: SHOT_SCALE,
     locale: 'ru-RU',
+    // Время на кадрах — московское, как у кооператива: в CI браузер иначе живёт в UTC.
+    timezoneId: 'Europe/Moscow',
     storageState,
   });
   const page = await context.newPage();

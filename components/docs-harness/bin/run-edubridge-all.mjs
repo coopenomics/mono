@@ -62,8 +62,11 @@ const GROUPS = [
     name: 'Занятия и расчёты',
     scenarios: [
       'edubridge/teacher/lessons',
+      'edubridge/teacher/reports',
       'edubridge/teacher/settlement',
       'edubridge/admin/course',
+      'edubridge/admin/group',
+      'edubridge/admin/calendar',
     ],
   },
   {
