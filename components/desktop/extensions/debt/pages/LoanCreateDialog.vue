@@ -1,29 +1,11 @@
 <template lang="pug">
 BaseDialog(
   :model-value='modelValue',
-  :title='dialogTitle',
+  :title='$t("debt.createDialog.title")',
   size='md',
-  :maximized='!!prepared',
   @update:model-value='$emit("update:modelValue", $event)'
 )
-  //- Второй шаг: договор займа, договор залога и заявление читаются по одному,
-  //- как документы шлюза стола образования: шаги слева, документ целиком,
-  //- флажок прочтения и кнопка. Подписываются все три на последнем шаге.
-  .loan-review(v-if='prepared && reviewDoc')
-    BaseCard
-      VerticalStepper(:steps='reviewSteps', :active-key='reviewDoc.key', :completed='completedKeys')
-        template(#active='{ step }')
-          DocumentSignStep(
-            :key='step.key',
-            :html='reviewDoc.html',
-            :action-label='isLastReviewDoc ? $t("debt.createDialog.signLabel") : $t("debt.createDialog.submitLabel")',
-            :back-label='$t("debt.createDialog.backLabel")',
-            :busy='submitting',
-            @back='reviewBack',
-            @sign='isLastReviewDoc ? submit() : (reviewIndex += 1)'
-          )
-
-  .loan-form(v-else)
+  .loan-form
     //- До конца загрузки — каркас, а не «обеспечение недоступно».
     q-skeleton(v-if='loading', type='rect', height='180px')
 
@@ -83,7 +65,7 @@ BaseDialog(
   //- Договор займа и договор залога называют паспорт физического лица: без него документы не собираются.
   CollectPassportDialog(v-model='passportDialogOpen', @saved='onPassportSaved')
 
-  template(v-if='!prepared', #footer)
+  template(#footer)
     .loan-form__footer
         BaseButton(variant='ghost', @click='close') {{ $t('common.action.cancel') }}
         BaseButton(
@@ -112,13 +94,9 @@ import type { BaseSelectOption } from 'src/shared/ui/base/BaseSelect';
 import { EmptyState } from 'src/shared/ui/base/EmptyState';
 import { AmountInput } from 'src/shared/ui/domain/AmountInput';
 import { PaymentMethodSelect } from 'src/shared/ui/domain/PaymentMethodSelect';
-import { BaseCard } from 'src/shared/ui/base/BaseCard';
-import { VerticalStepper, type StepperStep } from 'src/shared/ui/domain/VerticalStepper';
-import { DocumentSignStep } from 'src/shared/ui/domain/DocumentSignStep';
 import { CollectPassportDialog, useRequirePassport } from 'src/features/User/CollectPassport';
 import { getCollateralOptions, type ICollateralOption } from '../api';
 import { collateralLabel, defaultDueDate, formatAmount, useLoanActions } from '../model';
-import type { IPreparedLoan } from '../model/useLoanActions';
 import { t } from '../i18n';
 
 const props = defineProps<{ modelValue: boolean }>();
@@ -141,8 +119,6 @@ const loading = ref(true);
 const submitting = ref(false);
 const options = ref<ICollateralOption[]>([]);
 const hasMethods = ref(false);
-// Собранные заявление и договор: пока они есть, окно показывает их на прочтение.
-const prepared = ref<IPreparedLoan | null>(null);
 
 const form = reactive({
   collateral: null as string | null,
@@ -164,30 +140,6 @@ const collateralOptions = computed<BaseSelectOption[]>(() =>
   })),
 );
 
-const reviewDocs = computed(() =>
-  prepared.value
-    ? [
-        { key: 'contract', title: t('debt.createDialog.contractTitle'), html: prepared.value.contractDoc.html },
-        { key: 'pledge', title: t('debt.createDialog.pledgeContractTitle'), html: prepared.value.pledgeDoc.html },
-        { key: 'statement', title: t('debt.createDialog.statementTitle'), html: prepared.value.statementDoc.html },
-      ]
-    : [],
-);
-const reviewSteps = computed<StepperStep[]>(() => reviewDocs.value.map((doc) => ({ key: doc.key, label: doc.title })));
-// Какой из документов сейчас на экране.
-const reviewIndex = ref(0);
-const completedKeys = computed(() => reviewDocs.value.slice(0, reviewIndex.value).map((doc) => doc.key));
-const reviewDoc = computed(() => reviewDocs.value[reviewIndex.value] ?? null);
-const isLastReviewDoc = computed(() => reviewIndex.value >= reviewDocs.value.length - 1);
-
-// Шапка окна: на форме — название действия, на чтении — документ и его номер по порядку.
-const dialogTitle = computed(() => (prepared.value ? t('debt.createDialog.reviewDialogTitle') : t('debt.createDialog.title')));
-
-// «Назад» с первого документа возвращает к форме, со следующих — к предыдущему документу.
-function reviewBack(): void {
-  if (reviewIndex.value > 0) reviewIndex.value -= 1;
-  else prepared.value = null;
-}
 
 const formReady = computed(() => !loading.value && available.value.length > 0 && hasMethods.value);
 
@@ -233,7 +185,6 @@ useLiveReload([liveTable(Ledger2Contract, Ledger2Contract.Tables.UserWallets)], 
 watch(
   () => props.modelValue,
   (open) => {
-    prepared.value = null;
     if (open) void load();
   },
   { immediate: true },
@@ -258,13 +209,13 @@ function onContinue(): void {
   void requirePassport(prepare);
 }
 
-// Первый шаг: собрать заявление, договор займа и договор залога по введённому и показать их на прочтение.
+// Собрать заявление, договор займа и договор залога по введённому, показать их
+// в едином окне подписи и подать заявление подписанными.
 async function prepare(): Promise<void> {
   if (!selected.value || form.amount === null || !form.method_id) return;
   try {
     submitting.value = true;
-    reviewIndex.value = 0;
-    prepared.value = await prepareLoan({
+    const prepared = await prepareLoan({
       collateral: selected.value.key,
       amount: form.amount,
       symbol: symbol.value,
@@ -272,19 +223,7 @@ async function prepare(): Promise<void> {
       due: form.due,
       method_id: form.method_id,
     });
-  } catch (e) {
-    FailAlert(e);
-  } finally {
-    submitting.value = false;
-  }
-}
-
-// Второй шаг: подпись прочитанных документов и подача заявления.
-async function submit(): Promise<void> {
-  if (!prepared.value) return;
-  try {
-    submitting.value = true;
-    await signLoan(prepared.value);
+    if (!(await signLoan(prepared))) return;
     SuccessAlert(t('debt.createDialog.submittedMessage'));
     form.amount = null;
     emit('created');
@@ -304,16 +243,6 @@ async function submit(): Promise<void> {
   gap: var(--p-2);
 }
 
-
-/* Документы читают колонкой привычной ширины по центру развёрнутого окна. */
-.loan-review {
-  display: flex;
-  flex-direction: column;
-  gap: var(--p-4);
-  width: 100%;
-  max-width: 960px;
-  margin: 0 auto;
-}
 
 .loan-form__footer {
   display: flex;

@@ -193,7 +193,7 @@ async function onSignAct(): Promise<void> {
   if (!props.loan) return;
   try {
     busy.value = 'act';
-    await signAct(props.loan);
+    if (!(await signAct(props.loan))) return;
     SuccessAlert(t('debt.loanDetails.actSignedMessage'));
     emit('changed');
   } catch (e) {

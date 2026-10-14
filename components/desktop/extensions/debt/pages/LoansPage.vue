@@ -65,7 +65,7 @@ const signingHash = ref<string | null>(null);
 async function onSignAct(loan: ILoan): Promise<void> {
   try {
     signingHash.value = loan.debt_hash;
-    await signAct(loan);
+    if (!(await signAct(loan))) return;
     SuccessAlert(t('debt.loanDetails.actSignedMessage'));
     await reload(true);
   } catch (e) {

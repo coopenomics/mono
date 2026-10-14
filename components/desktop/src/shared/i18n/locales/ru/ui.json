@@ -241,6 +241,13 @@
     "documentViewerDialog": {
       "unavailableText": "Документ недоступен"
     },
+    "documentsSignDialog": {
+      "backLabel": "Назад",
+      "continueLabel": "Продолжить",
+      "signLabel": "Подписать",
+      "stepText": "Документ {current} из {total}",
+      "title": "Подписание документов"
+    },
     "editableActions": {
       "cancelLabel": "Отменить"
     },

@@ -1,8 +1,9 @@
 import type { Cooperative } from 'cooptypes';
 import { useSystemStore } from 'src/entities/System/model';
 import { useSessionStore } from 'src/entities/Session';
-import { DigitalDocument, signDocument } from 'src/shared/lib/document';
+import { DigitalDocument } from 'src/shared/lib/document';
 import type { IDocumentAggregate } from 'src/entities/Document/model';
+import { useSignDocuments, type SignDocumentsRequest, type SignedDocumentsMap } from 'src/shared/lib/sign-documents';
 import { generateUniqueHash } from 'src/shared/lib/utils/generateUniqueHash';
 import { t } from '../i18n';
 import {
@@ -60,27 +61,33 @@ async function prepareLoanDocuments(base: ILoanBase, method_id: string): Promise
   return { base, statementDoc, contractDoc, pledgeDoc };
 }
 
-/** Подписи пайщика под тремя документами заявления. */
-async function signPreparedLoan(prepared: IPreparedLoan, username: string) {
-  const statement = await new DigitalDocument(prepared.statementDoc).sign<Cooperative.Registry.GetLoanStatement.Meta>(username, 1);
-  const contract = await new DigitalDocument(prepared.contractDoc).sign<Cooperative.Registry.LoanContractShare.Meta>(username, 1);
-  const pledge_contract = await new DigitalDocument(prepared.pledgeDoc).sign<Cooperative.Registry.LoanPledgeContract.Meta>(
-    username,
-    1,
-  );
-  return { statement, contract, pledge_contract };
+
+/** Документы заявления на подпись: договор займа, договор залога, заявление — в таком порядке читает пайщик. */
+function loanSignRequest(prepared: IPreparedLoan): SignDocumentsRequest {
+  return {
+    title: t('debt.createDialog.reviewDialogTitle'),
+    documents: [
+      { key: 'contract', title: t('debt.createDialog.contractTitle'), document: prepared.contractDoc },
+      { key: 'pledge_contract', title: t('debt.createDialog.pledgeContractTitle'), document: prepared.pledgeDoc },
+      { key: 'statement', title: t('debt.createDialog.statementTitle'), document: prepared.statementDoc },
+    ],
+  };
 }
 
-/** Вторая подпись пайщика под актом, который подписал председатель. */
-async function signActDocument(loan: ILoan, username: string) {
+/** Акт с подписью председателя на вторую подпись пайщика. */
+function actSignRequest(loan: ILoan): SignDocumentsRequest {
   const aggregate = loan.act as IDocumentAggregate | null | undefined;
   if (!aggregate?.rawDocument || !aggregate.document) throw new Error(t('debt.loanDetails.actMissingError'));
-  return signDocument(aggregate.rawDocument, username, 2, [aggregate.document]);
+  return {
+    title: t('debt.loanDetails.actTitle'),
+    documents: [{ key: 'act', title: t('debt.loanDetails.actTitle'), document: aggregate.rawDocument, signatureId: 2, existing: [aggregate.document] }],
+  };
 }
 
 export function useLoanActions() {
   const { info } = useSystemStore();
   const session = useSessionStore();
+  const { signDocuments } = useSignDocuments();
 
   /** Подготовка заявления: пайщик читает документы до подписи. Хэш займа — он же номер договора. */
   async function prepareLoan(draft: ILoanDraft): Promise<IPreparedLoan> {
@@ -92,16 +99,28 @@ export function useLoanActions() {
     return prepareLoanDocuments(base, draft.method_id);
   }
 
-  /** Подача заявления: три подписанных документа уходят в цепь одной транзакцией. */
-  async function signLoan(prepared: IPreparedLoan) {
-    const signed = await signPreparedLoan(prepared, session.username);
-    return createLoan({ ...prepared.base, ...signed });
+  /**
+   * Подача заявления: пайщик читает договор займа, договор залога и заявление
+   * в едином окне подписи; три подписанных документа уходят в цепь одной
+   * транзакцией. `null` — пайщик закрыл окно, заявление не подано.
+   */
+  async function signLoan(prepared: IPreparedLoan): Promise<SignedDocumentsMap | null> {
+    const signed = await signDocuments(loanSignRequest(prepared));
+    if (!signed) return null;
+    await createLoan({ ...prepared.base, statement: signed.statement, contract: signed.contract, pledge_contract: signed.pledge_contract });
+    return signed;
   }
 
-  /** Подпись акта передачи права в залог: после неё сумма уходит кассиру. */
-  async function signAct(loan: ILoan) {
-    const act = await signActDocument(loan, session.username);
-    return signLoanAct({ coopname: info.coopname, username: session.username, debt_hash: loan.debt_hash, act });
+  /**
+   * Подпись акта передачи права в залог: пайщик читает акт с подписью
+   * председателя и ставит вторую подпись; после неё сумма уходит кассиру.
+   * `false` — окно закрыто без подписи.
+   */
+  async function signAct(loan: ILoan): Promise<boolean> {
+    const signed = await signDocuments(actSignRequest(loan));
+    if (!signed) return false;
+    await signLoanAct({ coopname: info.coopname, username: session.username, debt_hash: loan.debt_hash, act: signed.act });
+    return true;
   }
 
   async function cancel(debt_hash: string) {
