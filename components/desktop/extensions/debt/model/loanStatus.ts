@@ -15,13 +15,17 @@ const VARIANTS: Record<string, BaseBadgeVariant> = {
   UNDEFINED: 'neutral',
 };
 
-/** Закрытый заём: остаток нулевой — погашен деньгами, иначе закрыт обращением обеспечения. */
-function closedKey(remaining?: string | null): 'REPAID' | 'WRITTEN_OFF' {
-  return (parseFloat(remaining ?? '0') || 0) > 0 ? 'WRITTEN_OFF' : 'REPAID';
+/**
+ * Закрытый заём: обеспечение обращается только из просрочки, поэтому заём,
+ * закрытый из состояния «выдан» или с нулевым остатком, погашен деньгами.
+ */
+function closedKey(loan: { remaining?: string | null; chain_status?: string | null }): 'REPAID' | 'WRITTEN_OFF' {
+  if ((parseFloat(loan.remaining ?? '0') || 0) === 0) return 'REPAID';
+  return loan.chain_status === 'issued' ? 'REPAID' : 'WRITTEN_OFF';
 }
 
-export function loanStatusLabel(status: string, loan?: { remaining?: string | null }): string {
-  if (status === 'CLOSED' && loan) return t(`debt.status.${closedKey(loan.remaining)}` as never);
+export function loanStatusLabel(status: string, loan?: { remaining?: string | null; chain_status?: string | null }): string {
+  if (status === 'CLOSED' && loan) return t(`debt.status.${closedKey(loan)}` as never);
   return t(`debt.status.${status in VARIANTS ? status : 'UNDEFINED'}` as never);
 }
 

@@ -107,6 +107,9 @@ export class LoanOutputDTO extends BaseOutputDTO {
   @CouncilField(['username'])
   act?: DocumentAggregateDTO | null;
 
+  @Field(() => String, { nullable: true, description: 'Состояние займа в цепи; у закрытого — последнее перед закрытием' })
+  chain_status?: string | null;
+
   @Field(() => String, { nullable: true, description: 'Наименование пайщика по удостоверению: ФИО либо название организации' })
   member_name?: string | null;
 
@@ -136,6 +139,7 @@ export class LoanOutputDTO extends BaseOutputDTO {
     dto.overdue_at = entity.overdue_at;
     dto.last_pay_error = entity.last_pay_error;
     dto.member_name = memberName ?? null;
+    dto.chain_status = entity.blockchain_status ?? null;
     const wrap = (a?: InnerDocumentAggregate | null) => (a ? new DocumentAggregateDTO(a) : a === null ? null : undefined);
     dto.statement = wrap(aggregates?.statement);
     dto.contract = wrap(aggregates?.contract);

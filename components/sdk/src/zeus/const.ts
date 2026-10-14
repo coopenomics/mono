@@ -5367,6 +5367,7 @@ export const ReturnTypes: Record<string,any> = {
 		act:"DocumentAggregate",
 		amount:"String",
 		block_num:"Float",
+		chain_status:"String",
 		collateral:"String",
 		contract:"DocumentAggregate",
 		contract_number:"String",

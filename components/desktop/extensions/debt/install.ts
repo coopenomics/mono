@@ -2,32 +2,32 @@ import './i18n';
 import { markRaw } from 'vue';
 import { agreementsBase } from 'src/shared/lib/consts/workspaces';
 import type { IWorkspaceConfig } from 'src/shared/lib/types/workspace';
-import { LoansPage, LoansRegistryPage } from './pages';
+import { LoanWalletsPage, LoansPage, LoansRegistryPage } from './pages';
 import { EXTENSION_SLOTS, registerSlotComponent } from 'src/shared/lib/extension-slots';
 import { registerDebtDecisionHandlers } from './app/decisions';
 import { registerDebtApprovalHooks } from './app/approvals';
-import { refreshMenuBadges, registerMenuBadge } from 'src/shared/lib/menuBadges';
-import { registerLiveReload } from 'src/shared/lib/realtime';
-import { useSessionStore } from 'src/entities/Session';
-import { useSystemStore } from 'src/entities/System/model';
-import { getLoans } from './api';
-import { DEBT_LIVE_TABLES } from './model';
+import { registerDebtMenuBadges } from './app/badges';
 import LoanDebtWidget from './widgets/LoanDebtWidget.vue';
 import { t } from './i18n';
 
-// Стол «Беспроцентные займы»: займы пайщика и реестр займов совета.
+import type { Component } from 'vue';
+
+/** Страница стола: путь, имя, компонент, подпись и значок меню, нужное право. */
+function page(path: string, name: string, component: Component, title: string, icon: string, requires: string) {
+  return {
+    path,
+    name,
+    component: markRaw(component),
+    meta: { title, icon, requires, agreements: agreementsBase, requiresAuth: true },
+    children: [],
+  };
+}
+
+// Стол «Беспроцентные займы»: займы пайщика, обеспечение и реестр займов совета.
 export default async function (): Promise<IWorkspaceConfig[]> {
   registerDebtDecisionHandlers();
   registerDebtApprovalHooks();
-  // Число на пункте «Мои займы» — сколько актов ждёт подписи пайщика.
-  registerMenuBadge('debt-loans', async () => {
-    const session = useSessionStore();
-    const { info } = useSystemStore();
-    if (!session.isAuth || !info.coopname) return 0;
-    const page = await getLoans({ filter: { coopname: info.coopname, status: 'SIGNED' as never }, options: { page: 1, limit: 50 } });
-    return page.items.filter((loan) => loan.username === session.username && Boolean(loan.act)).length;
-  });
-  registerLiveReload(DEBT_LIVE_TABLES, () => refreshMenuBadges(['debt-loans']));
+  registerDebtMenuBadges();
   // Задолженность по займам — на странице профиля участника «Благороста».
   registerSlotComponent(EXTENSION_SLOTS.capitalProfileAfterWallets, 'debt:loan-debt', LoanDebtWidget);
 
@@ -47,32 +47,9 @@ export default async function (): Promise<IWorkspaceConfig[]> {
         path: '/:coopname/debt',
         name: 'debt',
         children: [
-          {
-            path: 'loans',
-            name: 'debt-loans',
-            component: markRaw(LoansPage),
-            meta: {
-              title: t('debt.install.myLoansNavTitle'),
-              icon: 'request_quote',
-              requires: 'Loan:read:own',
-              agreements: agreementsBase,
-              requiresAuth: true,
-            },
-            children: [],
-          },
-          {
-            path: 'registry',
-            name: 'debt-registry',
-            component: markRaw(LoansRegistryPage),
-            meta: {
-              title: t('debt.install.registryNavTitle'),
-              icon: 'list_alt',
-              requires: 'Loan:read:all',
-              agreements: agreementsBase,
-              requiresAuth: true,
-            },
-            children: [],
-          },
+          page('loans', 'debt-loans', LoansPage, t('debt.install.myLoansNavTitle'), 'request_quote', 'Loan:read:own'),
+          page('collateral', 'debt-wallets', LoanWalletsPage, t('debt.install.walletsTitle'), 'account_balance_wallet', 'Loan:read:own'),
+          page('registry', 'debt-registry', LoansRegistryPage, t('debt.install.registryNavTitle'), 'list_alt', 'Loan:read:all'),
         ],
       },
     ],

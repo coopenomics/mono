@@ -6569,6 +6569,8 @@ export type ValueTypes = {
 	amount?:boolean | `@${string}`,
 	/** Номер блока крайней синхронизации с блокчейном */
 	block_num?:boolean | `@${string}`,
+	/** Состояние займа в цепи; у закрытого — последнее перед закрытием */
+	chain_status?:boolean | `@${string}`,
 	/** Ключ обеспечения из реестра обеспечения; пусто у займов других приложений */
 	collateral?:boolean | `@${string}`,
 	/** Договор с подписью пайщика */
@@ -22276,6 +22278,8 @@ export type ResolverInputTypes = {
 	amount?:boolean | `@${string}`,
 	/** Номер блока крайней синхронизации с блокчейном */
 	block_num?:boolean | `@${string}`,
+	/** Состояние займа в цепи; у закрытого — последнее перед закрытием */
+	chain_status?:boolean | `@${string}`,
 	/** Ключ обеспечения из реестра обеспечения; пусто у займов других приложений */
 	collateral?:boolean | `@${string}`,
 	/** Договор с подписью пайщика */
@@ -37528,6 +37532,8 @@ export type ModelTypes = {
 	amount?: string | undefined | null,
 	/** Номер блока крайней синхронизации с блокчейном */
 	block_num?: number | undefined | null,
+	/** Состояние займа в цепи; у закрытого — последнее перед закрытием */
+	chain_status?: string | undefined | null,
 	/** Ключ обеспечения из реестра обеспечения; пусто у займов других приложений */
 	collateral?: string | undefined | null,
 	/** Договор с подписью пайщика */
@@ -53169,6 +53175,8 @@ export type GraphQLTypes = {
 	amount?: string | undefined | null,
 	/** Номер блока крайней синхронизации с блокчейном */
 	block_num?: number | undefined | null,
+	/** Состояние займа в цепи; у закрытого — последнее перед закрытием */
+	chain_status?: string | undefined | null,
 	/** Ключ обеспечения из реестра обеспечения; пусто у займов других приложений */
 	collateral?: string | undefined | null,
 	/** Договор с подписью пайщика */

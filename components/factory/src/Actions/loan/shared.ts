@@ -119,6 +119,14 @@ export function statementCollateralText(
   return data.collateral ? `${text} в размере ${amountWithSymbolRu(data.amount)}` : text
 }
 
+/** Реквизиты в заявлении: название каждого реквизита жирным, значения как есть. */
+export function emphasizePaymentDetails(details: string): string {
+  return details
+    .split('\n')
+    .map(line => line.replace(/^([^:<]+):/, '<b>$1:</b>'))
+    .join('\n')
+}
+
 /** Программа в дательном падеже для договора под паевой взнос: «целевой потребительской программе «Благорост»». */
 export function collateralProgramDative(collateral: string): string {
   const entry = Debt.findCollateral(collateral)

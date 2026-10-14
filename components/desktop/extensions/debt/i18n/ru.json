@@ -22,7 +22,7 @@
       "noMethodsBody": "Заём перечисляется по реквизитам пайщика. Добавьте способ получения средств и вернитесь к заявлению.",
       "noMethodsTitle": "Добавьте реквизиты для получения займа",
       "pledgeContractTitle": "Договор залога имущественного права",
-      "reviewTitle": "{title}, документ {current} из {total}",
+      "reviewDialogTitle": "Документы заявления на заём",
       "signLabel": "Подписать и продолжить",
       "statementTitle": "Заявление на получение займа",
       "submitLabel": "Продолжить",
@@ -71,7 +71,8 @@
     "install": {
       "extensionName": "Беспроцентные займы",
       "myLoansNavTitle": "Мои займы",
-      "registryNavTitle": "Реестр займов"
+      "registryNavTitle": "Реестр займов",
+      "walletsTitle": "Обеспечение"
     },
     "loanDetails": {
       "actMissingError": "Акт ещё не подписан председателем",
@@ -176,6 +177,19 @@
       "SIGNED": "Ожидает подписи акта",
       "UNDEFINED": "Не определено",
       "WRITTEN_OFF": "Закрыт обеспечением"
+    },
+    "walletsPage": {
+      "availableLabel": "Доступно для обеспечения",
+      "availableSubtitle": "паевой взнос в программе",
+      "basisMissingSubtitle": "договор об участии в программе не подписан",
+      "hint": "Заём выдаётся на сумму не больше доступного обеспечения. На время займа эта сумма переходит на кошелёк обеспечения и возвращается в программу по мере возврата займа.",
+      "issuedLabel": "Не возвращено",
+      "issuedSubtitle": "выданные займы",
+      "issuedTitle": "Займы",
+      "pendingLabel": "К выдаче",
+      "pledgedLabel": "В обеспечении",
+      "pledgedSubtitle": "под действующие займы",
+      "pledgedTitle": "Обеспечение"
     }
   }
 }

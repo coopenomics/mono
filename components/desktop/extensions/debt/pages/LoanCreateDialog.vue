@@ -6,12 +6,22 @@ BaseDialog(
   :maximized='!!prepared',
   @update:model-value='$emit("update:modelValue", $event)'
 )
-  //- Второй шаг: заявление и договор на прочтение перед подписью.
-  //- Документы читают по одному на всю высоту окна: сначала договор, затем
-  //- заявление; подписываются оба на последнем. Документ называет шапка окна.
+  //- Второй шаг: договор займа, договор залога и заявление читаются по одному,
+  //- как документы шлюза стола образования: шаги слева, документ целиком,
+  //- флажок прочтения и кнопка. Подписываются все три на последнем шаге.
   .loan-review(v-if='prepared && reviewDoc')
-    .loan-review__preview(:key='reviewDoc.key')
-      DocumentHtmlReader(:html='reviewDoc.html')
+    BaseCard
+      VerticalStepper(:steps='reviewSteps', :active-key='reviewDoc.key', :completed='completedKeys')
+        template(#active='{ step }')
+          DocumentSignStep(
+            :key='step.key',
+            :html='reviewDoc.html',
+            :action-label='isLastReviewDoc ? $t("debt.createDialog.signLabel") : $t("debt.createDialog.submitLabel")',
+            :back-label='$t("debt.createDialog.backLabel")',
+            :busy='submitting',
+            @back='reviewBack',
+            @sign='isLastReviewDoc ? submit() : (reviewIndex += 1)'
+          )
 
   .loan-form(v-else)
     //- До конца загрузки — каркас, а не «обеспечение недоступно».
@@ -73,13 +83,8 @@ BaseDialog(
   //- Договор займа и договор залога называют паспорт физического лица: без него документы не собираются.
   CollectPassportDialog(v-model='passportDialogOpen', @saved='onPassportSaved')
 
-  template(#footer)
+  template(v-if='!prepared', #footer)
     .loan-form__footer
-      template(v-if='prepared')
-        BaseButton(variant='ghost', :disabled='submitting', @click='reviewBack') {{ $t('debt.createDialog.backLabel') }}
-        BaseButton(v-if='!isLastReviewDoc', variant='primary', @click='reviewIndex += 1') {{ $t('debt.createDialog.submitLabel') }}
-        BaseButton(v-else, variant='primary', :loading='submitting', @click='submit') {{ $t('debt.createDialog.signLabel') }}
-      template(v-else)
         BaseButton(variant='ghost', @click='close') {{ $t('common.action.cancel') }}
         BaseButton(
           v-if='formReady',
@@ -107,7 +112,9 @@ import type { BaseSelectOption } from 'src/shared/ui/base/BaseSelect';
 import { EmptyState } from 'src/shared/ui/base/EmptyState';
 import { AmountInput } from 'src/shared/ui/domain/AmountInput';
 import { PaymentMethodSelect } from 'src/shared/ui/domain/PaymentMethodSelect';
-import { DocumentHtmlReader } from 'src/shared/ui/DocumentHtmlReader';
+import { BaseCard } from 'src/shared/ui/base/BaseCard';
+import { VerticalStepper, type StepperStep } from 'src/shared/ui/domain/VerticalStepper';
+import { DocumentSignStep } from 'src/shared/ui/domain/DocumentSignStep';
 import { CollectPassportDialog, useRequirePassport } from 'src/features/User/CollectPassport';
 import { getCollateralOptions, type ICollateralOption } from '../api';
 import { collateralLabel, defaultDueDate, formatAmount, useLoanActions } from '../model';
@@ -166,21 +173,15 @@ const reviewDocs = computed(() =>
       ]
     : [],
 );
+const reviewSteps = computed<StepperStep[]>(() => reviewDocs.value.map((doc) => ({ key: doc.key, label: doc.title })));
 // Какой из документов сейчас на экране.
 const reviewIndex = ref(0);
+const completedKeys = computed(() => reviewDocs.value.slice(0, reviewIndex.value).map((doc) => doc.key));
 const reviewDoc = computed(() => reviewDocs.value[reviewIndex.value] ?? null);
 const isLastReviewDoc = computed(() => reviewIndex.value >= reviewDocs.value.length - 1);
 
 // Шапка окна: на форме — название действия, на чтении — документ и его номер по порядку.
-const dialogTitle = computed(() =>
-  prepared.value && reviewDoc.value
-    ? t('debt.createDialog.reviewTitle', {
-        title: reviewDoc.value.title,
-        current: reviewIndex.value + 1,
-        total: reviewDocs.value.length,
-      })
-    : t('debt.createDialog.title'),
-);
+const dialogTitle = computed(() => (prepared.value ? t('debt.createDialog.reviewDialogTitle') : t('debt.createDialog.title')));
 
 // «Назад» с первого документа возвращает к форме, со следующих — к предыдущему документу.
 function reviewBack(): void {
@@ -310,19 +311,8 @@ async function submit(): Promise<void> {
   flex-direction: column;
   gap: var(--p-4);
   width: 100%;
-  max-width: 860px;
+  max-width: 960px;
   margin: 0 auto;
-}
-
-/* Документ занимает всю высоту окна между шапкой и кнопками и листается внутри. */
-.loan-review__preview {
-  height: max(320px, calc(100vh - 200px));
-  overflow: auto;
-  padding: var(--p-4);
-  border: 1px solid var(--p-line);
-  border-radius: var(--p-r-sm);
-  background: var(--p-surface);
-  color: var(--p-ink);
 }
 
 .loan-form__footer {

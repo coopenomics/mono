@@ -216,6 +216,12 @@
         "signed": "Подписано"
       }
     },
+    "documentSignStep": {
+      "agreeLabel": "Я прочитал документ",
+      "buildError": "Документ не собрался",
+      "retry": "Повторить",
+      "signLabel": "Подписать"
+    },
     "documentSignatures": {
       "checksumCheckingText": "Проверяем контрольную сумму…",
       "checksumLabel": "Контрольная сумма",
