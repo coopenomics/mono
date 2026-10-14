@@ -44,11 +44,15 @@ import {
   offersState,
   onboardTeacher,
   publishCourse,
-  reportLesson,
   signOffer,
   subscribe,
   walletOf,
   courseSlots,
+  contributionOf,
+  groupOfAssignment,
+  PLAN_LESSON,
+  REPORT_LESSON,
+  SET_GROUP_SCHEDULE,
 } from '../../edubridge/edubridge.helpers'
 
 const log = (...a: unknown[]) => console.error('[seed-edubridge]', ...a)
@@ -209,25 +213,48 @@ async function phase04(): Promise<void> {
 async function phase05(): Promise<void> {
   const who = fixture(TEACHER)
   const token = await tokenOf(who)
+  // Журнал преподавателя — это и запланированные занятия календаря: признак
+  // засева — отчитанное занятие, а не любое.
   const lessons = (await gql<any>(token, MY_LESSONS)).edubridgeMyLessons as any[]
-  if (lessons.length) {
-    log(`${TEACHER}: занятий отчитано ${lessons.length}`)
+  const reported = lessons.filter(l => l.reported_at)
+  if (reported.length) {
+    log(`${TEACHER}: занятий отчитано ${reported.length}`)
     return
   }
   const assignment = ((await gql<any>(token, MY_ASSIGNMENTS)).edubridgeMyAssignments as any[]).find(a => a.status === 'ACTIVE')
   if (!assignment)
     throw new Error(`${TEACHER}: нет действующего назначения — сначала фаза 03-teacher`)
-  // Полночь сегодняшнего дня: контроллер принимает следующее занятие только
-  // датой не раньше предыдущего, форма стола шлёт дату без времени (полночь),
-  // а раньше начала периода назначения (сегодня) занятие не принимается.
-  const { lesson, contribution } = await reportLesson(token, assignment.id, 1, {
-    held_at: dayFromNow(0),
-    topic: 'Числа и вычисления: действия с дробями',
-    materials: ['https://cloud.voskhod.coop/edu/oge-math/01-konspekt.pdf', 'https://cloud.voskhod.coop/edu/oge-math/01-zadaniya.pdf'],
+
+  // Занятия по окнам расписания идут с завтрашнего дня — отчитаться пока не
+  // по чему. Администратор ставит внеочередное занятие на два часа назад из
+  // резерва группы: окна расписания курса сохраняются, к ним добавляется
+  // резерв на три часа.
+  const chairman = await tokenOf(CHAIRMAN)
+  const { group } = await groupOfAssignment(token, assignment.id)
+  await gql(chairman, SET_GROUP_SCHEDULE, {
+    d: {
+      group_id: group.id,
+      slots: [
+        ...courseSlots(90, 2, PLANNED_RATE).map(s => ({ ...s, time: '18:00' })),
+        { weekday: 8, time: '', minutes: 180, hourly_rate: PLANNED_RATE },
+      ],
+    },
   })
+  const floor = group.starts_at ? new Date(group.starts_at).getTime() + 1000 : 0
+  const planned = (await gql<any>(chairman, PLAN_LESSON, {
+    d: { group_id: group.id, assignment_id: assignment.id, held_at: new Date(Math.max(Date.now() - 2 * 3600_000, floor)).toISOString() },
+  })).edubridgePlanLesson
+  const lesson = (await gql<any>(token, REPORT_LESSON, {
+    d: {
+      lesson_id: planned.id,
+      topic: 'Числа и вычисления: действия с дробями',
+      materials: ['https://cloud.voskhod.coop/edu/oge-math/01-konspekt.pdf', 'https://cloud.voskhod.coop/edu/oge-math/01-zadaniya.pdf'],
+    },
+  })).edubridgeReportLesson
+  const contribution = lesson.contribution_id ? await contributionOf(token, lesson.contribution_id) : null
   if (contribution)
     await holdMaterials(who, token, contribution.id)
-  log(`${TEACHER}: занятие № ${lesson.lesson_number} отчитано, материалы переданы на хранение`)
+  log(`${TEACHER}: внеочередное занятие № ${lesson.lesson_number} отчитано, материалы переданы на хранение`)
 }
 
 const PHASES: Record<string, () => Promise<void>> = {

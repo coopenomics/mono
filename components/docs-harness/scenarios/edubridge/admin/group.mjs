@@ -20,7 +20,12 @@ export default async ({ page, context, shot, expect }) => {
   await page.locator(`text=${EDU.COURSE_TITLE}`).first().click();
   await page.waitForSelector('text=Группы', { timeout: 30000 });
   await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+  // Строка группы открывает боковую панель с условиями группы и её
+  // расписанием; отдельная страница — по «Открыть страницу».
   await row(page, 'Группа').click();
+  await page.waitForTimeout(1500);
+  await shot(page, '00-group-panel', 'Панель группы на странице курса: состояние набора, взнос, стоимость часа, обучающиеся и проведённые занятия, расчёт группы в месяц и окна расписания группы.');
+  await page.locator('button:has-text("Открыть страницу"), a:has-text("Открыть страницу")').first().click();
   await page.waitForURL(/\/groups\//, { timeout: 30000 });
   await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
   await page.waitForTimeout(1500);
