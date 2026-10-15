@@ -25,9 +25,11 @@ export function reportPage({ doc, p, title, description, rowDescription }) {
       await page.waitForTimeout(2000);
       await shot(page, '01-page', description);
       if (!rowDescription) return;
+      // Строку реестра раскрывает стрелка слева.
       const row = page.locator('tbody tr').first();
       if (await row.isVisible().catch(() => false)) {
-        await row.click();
+        const expander = row.locator('button, .q-icon').first();
+        await ((await expander.isVisible().catch(() => false)) ? expander : row).click();
         await page.waitForTimeout(1800);
         await shot(page, '02-row', rowDescription);
       }
