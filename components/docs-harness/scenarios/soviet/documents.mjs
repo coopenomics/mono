@@ -24,7 +24,8 @@ export default async ({ page, context, shot, expect }) => {
   await page.waitForTimeout(2000);
   await shot(page, '01-registry', 'Реестр документов кооператива: заявления, решения, протоколы и акты с датой, подписантами и пакетом процесса.');
 
-  const first = page.locator('tbody tr').first();
+  const titled = page.locator('.document-row').filter({ hasText: /Утверждение редакции|Служебная записка|Согласие/ }).first();
+  const first = (await titled.isVisible().catch(() => false)) ? titled : page.locator('.document-row').first();
   await expect(first, 'реестр документов пуст').toBeVisible({ timeout: 30000 });
   await first.click();
   await page.waitForTimeout(2000);

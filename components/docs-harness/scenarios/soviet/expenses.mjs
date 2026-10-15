@@ -22,7 +22,7 @@ export default async ({ page, context, shot, expect }) => {
   await openPage(page, SOVIET('expenses'), null);
   await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
   await page.waitForTimeout(2000);
-  const item = page.locator('text=Хозяйственные расходы').first();
+  const item = page.locator('text=Бумага и картриджи').first();
   await expect(item, 'в реестре нет служебной записки: фаза soviet:04-expense').toBeVisible({ timeout: 30000 });
   await shot(page, '01-registry', 'Реестр расходов кооператива: служебные записки с автором, датой, суммой и состоянием.');
   await item.click();
