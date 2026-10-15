@@ -3,7 +3,7 @@
 
 import { loginAs } from '../../../lib/harness.mjs';
 import { loadFixture, openPage, settleAfterLogin } from '../../../lib/edu.mjs';
-import { KU } from '../../../lib/ku.mjs';
+import { KU, fillPassportIfAsked } from '../../../lib/ku.mjs';
 
 export const meta = {
   mode: 'docs',
