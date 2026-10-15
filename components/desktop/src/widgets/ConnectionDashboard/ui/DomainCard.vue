@@ -25,7 +25,7 @@
             div(v-else).q-pa-sm
               .domain-warning.q-mb-md.full-width
                 .text-caption.text-orange-8.q-mb-sm
-                  | {{ $t('connectionDashboard.domainCard.delegateWarningLine1', { serverIp: SERVER_IP }) }}
+                  | {{ $t('connectionDashboard.domainCard.delegateWarningLine1', { serverIp: CONNECTOR_HOST }) }}
                   | {{ $t('connectionDashboard.domainCard.delegateWarningLine2') }}
                   | {{ $t('connectionDashboard.domainCard.delegateWarningLine3') }}
 
@@ -110,7 +110,7 @@ const connectionAgreement = useConnectionAgreementStore()
 const coop = useCooperativeStore()
 const { updateCoop } = useUpdateCoop()
 const session = useSessionStore()
-const { SERVER_IP } = useProviderSubscriptions()
+const { CONNECTOR_HOST } = useProviderSubscriptions()
 // Получаем instance напрямую из store
 const instance = computed(() => connectionAgreement.currentInstance)
 

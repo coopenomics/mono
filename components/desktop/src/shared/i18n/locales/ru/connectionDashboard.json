@@ -3,7 +3,7 @@
     "domainCard": {
       "cancelTooltip": "Отменить",
       "coopDataError": "Не удалось получить данные кооператива",
-      "delegateWarningLine1": "⚠️ Убедитесь, что домен делегирован IP-адрес: {serverIp}.",
+      "delegateWarningLine1": "⚠️ Убедитесь, что домен указывает CNAME-записью на {serverIp}.",
       "delegateWarningLine2": "Обновление домена перезагрузит цифровой кооператив.",
       "delegateWarningLine3": "Все данные будут сохранены.",
       "delegatedLabel": "Домен делегирован",

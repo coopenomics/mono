@@ -28,7 +28,7 @@
             .dns-record-item
               .record-label {{ $t('connectionAgreementStepper.domainValidationStep.addressLabel') }}
               .record-value.record-highlight
-                | {{ SERVER_IP }}
+                | {{ CONNECTOR_HOST }}
 
                 q-btn.copy-ip-btn(
                   size="sm"
@@ -80,7 +80,7 @@ const props = withDefaults(defineProps<IStepProps>(), {})
 
 const connectionAgreement = useConnectionAgreementStore()
 const { loadCurrentInstance } = connectionAgreement
-const { SERVER_IP } = useProviderSubscriptions()
+const { CONNECTOR_HOST } = useProviderSubscriptions()
 
 // Получаем данные напрямую из store
 const coop = computed(() => connectionAgreement.coop)
@@ -119,7 +119,7 @@ const handleReload = async () => {
 
 const copyIpAddress = async () => {
   try {
-    await copyToClipboard(SERVER_IP)
+    await copyToClipboard(CONNECTOR_HOST.value)
     SuccessAlert(t('connectionAgreementStepper.domainValidationStep.ipCopiedSuccess'))
   } catch (error) {
     console.error('Ошибка копирования:', error)
