@@ -517,6 +517,7 @@ cmd_ui() {
     edubridge) node bin/run-edubridge-all.mjs ;;
     ku) node bin/run-ku-all.mjs ;;
     robot) node bin/run-robot-all.mjs ;;
+    soviet) node bin/run-soviet-all.mjs ;;
     blagorost)
       echo "✗ сюита «$app» на стенде CI ещё не заведена: её раннер зовёт reboot:extra между группами" >&2
       exit 2 ;;
