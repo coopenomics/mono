@@ -254,6 +254,8 @@ nav:
       - Курсы: new/edubridge/admin/courses.md
       - Добавление курса: new/edubridge/admin/course-create.md
       - Страница курса: new/edubridge/admin/course.md
+      - Группа курса: new/edubridge/admin/group.md
+      - Календарь школы: new/edubridge/admin/calendar.md
       - Площадки: new/edubridge/admin/platforms.md
       - Преподаватели: new/edubridge/admin/teachers.md
       - Ученики: new/edubridge/admin/members.md
@@ -272,5 +274,6 @@ nav:
       - Подключение преподавателя: new/edubridge/teacher/onboarding.md
       - Профиль: new/edubridge/teacher/profile.md
       - Назначения: new/edubridge/teacher/assignments.md
-      - Занятия: new/edubridge/teacher/lessons.md
+      - Календарь: new/edubridge/teacher/lessons.md
+      - Отчёты: new/edubridge/teacher/reports.md
       - Расчёты: new/edubridge/teacher/settlement.md
