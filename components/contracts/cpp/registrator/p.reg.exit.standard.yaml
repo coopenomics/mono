@@ -387,3 +387,18 @@ operations:
     wallet_to: w.wal.share
     amount_ref: exit.quantity
     triggered_by: registrator::declinexit
+
+# ── Связи с другими процессами ──────────────────────────────────────────
+# Только по межконтрактным вызовам: consumes — процесс вызывает другой,
+# provides — другой процесс вызывает этот.
+related:
+  - process_type: p.brn.fees
+    relation: consumes
+    note: >
+      Процесс начисляет членский взнос кооперативного участка, на котором
+      исполнен заказ или числится пайщик.
+  - process_type: sov.authpkg
+    relation: consumes
+    note: >
+      Вопрос выносится в повестку совета: голосование и решение идут по
+      типовому порядку решений совета, итог возвращается в процесс.
