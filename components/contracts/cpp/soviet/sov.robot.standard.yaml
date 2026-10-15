@@ -121,8 +121,8 @@ states:
     description: >
       Срок действия делегирования прошёл. Запись остаётся в реестре, но подписи
       робота по ней не принимаются, пока член совета не продлит делегирование.
-    kind: virtual
-    virtual: true
+      Статус не хранится отдельно: контракт сравнивает срок с текущим временем.
+    kind: normal
 
   - name: revoked
     human: Отозвано
@@ -165,7 +165,7 @@ transitions:
     guards:
       - Новый срок в будущем либо бессрочно.
 
-  - from: delegated
+  - from: delegated | expired
     to: revoked
     action: soviet::disautomate
     actor: Член совета

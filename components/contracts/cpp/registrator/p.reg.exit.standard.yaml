@@ -140,10 +140,11 @@ states:
     description: >
       Совет отказал либо касса отклонила платёж. Резерв снят, запись выхода
       стёрта, членство и соглашения продолжают действовать.
-    kind: final
+    kind: virtual
+    virtual: true
 
 transitions:
-  - from: none
+  - from: "∅"
     to: pending
     action: registrator::exitcoop
     actor: member
@@ -181,6 +182,14 @@ transitions:
       - Совет принял положительное решение по повестке `leavecoop`.
       - Проверки программ и кошельков-блокеров пройдены повторно.
       - У пайщика с программными соглашениями приложено заявление об аннулировании.
+
+  - from: pending
+    to: completed
+    action: registrator::confirmexit
+    actor: soviet
+    guards:
+      - Совет одобрил выход.
+      - Возвращать пайщику нечего — платёж не создаётся, выход завершается сразу.
 
   - from: authorized
     to: completed
