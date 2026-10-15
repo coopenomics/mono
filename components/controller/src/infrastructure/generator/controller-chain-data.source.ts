@@ -1,11 +1,14 @@
-import { Injectable } from '@nestjs/common';
-import { DraftContract } from 'cooptypes';
+import { Inject, Injectable } from '@nestjs/common';
+import { DraftContract, MeetContract } from 'cooptypes';
 import type { IActionQuery, IChainDataSource, ITableQuery } from '@coopenomics/factory';
-import { DataSource } from 'typeorm';
-import { TypeOrmDraftRegistryRepository } from '~/infrastructure/database/typeorm/repositories/typeorm-draft-registry.repository';
+import { KYSELY, type Database } from '~/infrastructure/database/kysely/kysely.tokens';
+import { rawQuery } from '@coopenomics/extension-kit';
+import { DraftRegistryKyselyRepository } from '~/infrastructure/database/kysely/repositories/draft-registry.kysely-repository';
 import { BlockchainActionHistoryService } from '~/domain/parser/services/blockchain-action-history.service';
 import { BlockchainService } from '~/infrastructure/blockchain/blockchain.service';
 import { isHexHash } from '~/shared/sql/hex-value.util';
+import { EffectiveTemplateBlockResolver } from './effective-template-block.resolver';
+import { ChainTextService } from '~/domain/chain-text/chain-text.service';
 
 /**
  * Данные цепи для фабрики документов — из собственной базы узла.
@@ -22,10 +25,12 @@ import { isHexHash } from '~/shared/sql/hex-value.util';
 @Injectable()
 export class ControllerChainDataSource implements IChainDataSource {
   constructor(
-    private readonly dataSource: DataSource,
-    private readonly draftRegistry: TypeOrmDraftRegistryRepository,
+    @Inject(KYSELY) private readonly db: Database,
+    private readonly draftRegistry: DraftRegistryKyselyRepository,
     private readonly actionHistory: BlockchainActionHistoryService,
-    private readonly blockchainService: BlockchainService
+    private readonly blockchainService: BlockchainService,
+    private readonly effectiveBlock: EffectiveTemplateBlockResolver,
+    private readonly chainTextService: ChainTextService
   ) {}
 
   async getTableRows<T = any>(query: ITableQuery): Promise<T[]> {
@@ -36,7 +41,19 @@ export class ControllerChainDataSource implements IChainDataSource {
       if (fromRegistry) return fromRegistry;
     }
 
-    return this.readFromDeltas<T>(query);
+    const rows = await this.readFromDeltas<T>(query);
+
+    // Формулировки вопросов собрания в цепи лежат хешами — документы собираются по текстам.
+    if (query.code === MeetContract.contractName.production && query.table === MeetContract.Tables.Questions.tableName) {
+      const resolved = await this.chainTextService.resolveFields(rows as Record<string, unknown>[], [
+        'title',
+        'context',
+        'decision',
+      ]);
+      return resolved as unknown as T[];
+    }
+
+    return rows;
   }
 
   async getActions<T = any>(query: IActionQuery): Promise<T[]> {
@@ -64,26 +81,20 @@ export class ControllerChainDataSource implements IChainDataSource {
       const registryId = query.filter?.['registry_id'];
       if (registryId === undefined) return null;
 
-      const template = await this.draftRegistry.findTemplateAt(String(registryId), query.block_num);
+      // Без номера блока читается не текущее состояние сети, а редакция,
+      // утверждённая советом кооператива (см. EffectiveTemplateBlockResolver).
+      // Явный блок — пересборка подписанного документа — важнее.
+      const blockNum = query.block_num ?? (await this.effectiveBlock.resolve(String(registryId)));
+      const template = await this.draftRegistry.findTemplateAt(String(registryId), blockNum);
       return template ? ([template] as T[]) : ([] as T[]);
     }
 
     if (query.table === DraftContract.Tables.Translations.tableName) {
       const draftId = query.filter?.['draft_id'];
       if (draftId === undefined) return null;
+      const blockNum = query.block_num ?? (await this.effectiveBlock.resolve(String(draftId)));
 
-      // Языки заранее не известны — берём все версии этого шаблона на нужный
-      // блок и оставляем по одной свежей записи на язык.
-      const rows = await this.dataSource.query(
-        `SELECT DISTINCT ON (lang) value
-           FROM draft_translations
-          WHERE draft_id = $1::bigint
-            AND ($2::bigint IS NULL OR block_num <= $2::bigint)
-          ORDER BY lang, block_num DESC`,
-        [String(draftId), query.block_num ?? null]
-      );
-
-      return rows.map((r: { value: unknown }) => r.value) as T[];
+      return (await this.draftRegistry.findTranslationsAt(String(draftId), blockNum ?? undefined)) as T[];
     }
 
     return null;
@@ -113,7 +124,8 @@ export class ControllerChainDataSource implements IChainDataSource {
       conditions.push(`${hex ? `lower(${expression})` : expression} = ${placeholder}`);
     });
 
-    const rows = await this.dataSource.query(
+    const rows = await rawQuery<any>(
+      this.db,
       `SELECT DISTINCT ON (primary_key) value, present
          FROM blockchain_deltas d
         WHERE code = $1 AND scope = $2 AND "table" = $3
@@ -144,6 +156,7 @@ function mapToStrings(source: Record<string, unknown>): Record<string, string> {
  */
 function sanitizeKey(key: string): string {
   if (!/^[A-Za-z0-9_]+$/.test(key)) {
+    // i18n-ignore: внутренняя защита построителя запроса (недопустимое имя поля условия) — разработческая, до пайщика не доходит
     throw new Error(`Недопустимое имя поля в условии выборки: ${key}`);
   }
   return key;

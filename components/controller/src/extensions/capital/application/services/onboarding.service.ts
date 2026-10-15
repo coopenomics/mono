@@ -1,14 +1,12 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { v4 as uuid } from 'uuid';
-import { EXTENSION_REPOSITORY, ExtensionDomainRepository, platformSettings } from '@coopenomics/extension-kit';
-import type { ExtensionDomainEntity } from '@coopenomics/extension-kit';
+import { computeOnboardingExpiresAt, DomainError, EXTENSION_REPOSITORY, type ExtensionDomainEntity, ExtensionDomainRepository, platformSettings } from '@coopenomics/extension-kit';
 import { CapitalOnboardingStepInputDTO, CapitalOnboardingStepEnum, CapitalOnboardingStateDTO } from '../dto/onboarding.dto';
 import type { IConfig } from '../../capital-extension.module';
 import { Cooperative } from 'cooptypes';
-import type { ISignedDocument } from '@coopenomics/innercoop';
-import { IDecisionTrackingPort, DECISION_TRACKING_PORT, DecisionEventType } from '@coopenomics/innercoop';
-import { IFreeDecisionPort, FREE_DECISION_PORT } from '@coopenomics/innercoop';
-import { computeOnboardingExpiresAt } from '@coopenomics/extension-kit';
+import { DECISION_TRACKING_PORT, DecisionEventType, DOCUMENT_APPROVAL_PORT, FREE_DECISION_PORT, IDecisionTrackingPort, IDocumentApprovalPort, IFreeDecisionPort, type ILoggerPort, type ISignedDocument, LOGGER_PORT, ONBOARDING_COMPLETED_EVENT } from '@coopenomics/innercoop';
+import { isCapitalL1Complete } from '../onboarding/capital-l1';
 
 type OnboardingFlagKey =
   | 'onboarding_generator_program_template_done'
@@ -33,7 +31,10 @@ export class CapitalOnboardingService {
   constructor(
     @Inject(EXTENSION_REPOSITORY) private readonly extensionRepository: ExtensionDomainRepository<IConfig>,
     @Inject(FREE_DECISION_PORT) private readonly freeDecisionPort: IFreeDecisionPort,
-    @Inject(DECISION_TRACKING_PORT) private readonly decisionTrackingPort: IDecisionTrackingPort
+    @Inject(DECISION_TRACKING_PORT) private readonly decisionTrackingPort: IDecisionTrackingPort,
+    @Inject(DOCUMENT_APPROVAL_PORT) private readonly documentApprovals: IDocumentApprovalPort,
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
+    private readonly eventEmitter: EventEmitter2
   ) {}
 
   private mapStepToFlag(step: CapitalOnboardingStepEnum): OnboardingFlagKey {
@@ -49,7 +50,7 @@ export class CapitalOnboardingService {
       case CapitalOnboardingStepEnum.blagorost_offer_template:
         return 'onboarding_blagorost_offer_template_done';
       default:
-        throw new Error(`Неизвестный шаг онбординга: ${step}`);
+        throw DomainError.internal('CAPITAL_ONBOARDING_UNKNOWN_STEP', { step });
     }
   }
 
@@ -66,7 +67,7 @@ export class CapitalOnboardingService {
       case CapitalOnboardingStepEnum.blagorost_offer_template:
         return 'onboarding_blagorost_offer_template_hash';
       default:
-        throw new Error(`Неизвестный шаг онбординга: ${step}`);
+        throw DomainError.internal('CAPITAL_ONBOARDING_UNKNOWN_STEP', { step });
     }
   }
 
@@ -83,7 +84,7 @@ export class CapitalOnboardingService {
       case CapitalOnboardingStepEnum.blagorost_offer_template:
         return 'blagorost_offer_template';
       default:
-        throw new Error(`Неизвестный шаг онбординга: ${step}`);
+        throw DomainError.internal('CAPITAL_ONBOARDING_UNKNOWN_STEP', { step });
     }
   }
 
@@ -119,7 +120,7 @@ export class CapitalOnboardingService {
 
   private async loadExtension(): Promise<ExtensionDomainEntity<CapitalOnboardingConfig>> {
     const extension = await this.extensionRepository.findByName('capital');
-    if (!extension) throw new Error('Конфигурация расширения capital не найдена');
+    if (!extension) throw DomainError.internal('CAPITAL_EXTENSION_CONFIG_NOT_FOUND');
     const extensionConfig: CapitalOnboardingConfig = { ...extension.config };
 
     const patch: Partial<CapitalOnboardingConfig> = {};
@@ -163,23 +164,94 @@ export class CapitalOnboardingService {
     };
   }
 
-  public async getState(): Promise<CapitalOnboardingStateDTO> {
+  /**
+   * Сводит отметки шагов с утверждениями в цепи и дописывает недостающие.
+   *
+   * Отметка в настройке расширения — то, по чему capital решает, завершено ли
+   * подключение и пора ли предлагать свои программы вступающим. Ставит её
+   * приёмник решения совета, но решение может пройти мимо него: документ
+   * утвердили со вкладки «Шаблоны документов», пока контроллер не работал, или
+   * приёмник не узнал ключ шага. Тогда карточка подключения показывает «всё
+   * принято», а программ во вступлении нет. Источник правды — утверждение в
+   * цепи, поэтому отметка дописывается здесь же, а не только рисуется.
+   */
+  public async reconcileFlags(): Promise<ExtensionDomainEntity<IConfig>['config']> {
     const extension = await this.loadExtension();
-    return this.buildState(extension.config);
+    const patch: Partial<Record<OnboardingFlagKey, boolean>> = {};
+
+    for (const step of Object.values(CapitalOnboardingStepEnum)) {
+      const flagKey = this.mapStepToFlag(step);
+      if (extension.config[flagKey]) continue;
+      if (await this.documentApprovals.isStepApproved('capital', this.mapStepToVarsField(step))) {
+        patch[flagKey] = true;
+      }
+    }
+
+    if (Object.keys(patch).length === 0) return extension.config;
+
+    const updated = await this.extensionRepository.patchConfig('capital', patch as Partial<CapitalOnboardingConfig>);
+    this.logger.warn(
+      `[CAPITAL.ONBOARDING] отметки шагов дописаны по утверждениям в цепи: ${Object.keys(patch).join(', ')}`
+    );
+
+    // Дописана последняя отметка — подключение завершено; расширение
+    // перезапустится и зарегистрирует свои программы во вступлении.
+    // Параметры положений входят в подключение: без них завершения нет.
+    if (isCapitalL1Complete(updated.config)) {
+      this.eventEmitter.emit(ONBOARDING_COMPLETED_EVENT, { extension_name: 'capital' });
+    }
+    return updated.config;
+  }
+
+  public async getState(): Promise<CapitalOnboardingStateDTO> {
+    return this.buildState((await this.reconcileFlags()) as CapitalOnboardingConfig);
   }
 
   public async saveProgramDocDataHash(docDataHash: string): Promise<CapitalOnboardingStateDTO> {
-    await this.loadExtension();
+    const wasComplete = isCapitalL1Complete((await this.loadExtension()).config);
     const normalizedHash = docDataHash.trim();
 
     if (!normalizedHash) {
-      throw new Error('Hash PrivateData документов ЦПП не может быть пустым');
+      throw DomainError.internal('CAPITAL_PROGRAM_DOC_DATA_HASH_EMPTY');
     }
 
     const updated = await this.extensionRepository.patchConfig('capital', {
       capital_program_doc_data_hash: normalizedHash,
     } as Partial<CapitalOnboardingConfig>);
 
+    // Решения совета уже приняты (или перенесены из прежних протоколов), а
+    // параметры задали последними — подключение завершается сейчас: расширение
+    // перезапустится и предложит свои программы вступающим.
+    if (!wasComplete && isCapitalL1Complete(updated.config)) {
+      this.eventEmitter.emit(ONBOARDING_COMPLETED_EVENT, { extension_name: 'capital' });
+    }
+
+    return this.buildState(updated.config as CapitalOnboardingConfig);
+  }
+
+  /**
+   * Шаги про документы ведёт фабрика утверждений: проект решения собирается
+   * из текста шаблона в цепи, утверждение после решения фиксируется в цепи.
+   * `null` — у шага нет документов, он идёт прежним путём.
+   */
+  private async completeViaFactory(
+    step: CapitalOnboardingStepEnum,
+    flagKey: OnboardingFlagKey,
+    hashKey: OnboardingHashKey,
+    username: string,
+    title?: string,
+    doc_data_hash?: string
+  ): Promise<CapitalOnboardingStateDTO | null> {
+    const viaFactory = await this.documentApprovals.proposeOnboardingStep({
+      extension_name: 'capital',
+      step_key: this.mapStepToVarsField(step),
+      username,
+      title,
+      doc_data_hash,
+    });
+    if (!viaFactory) return null;
+    const patch = (viaFactory.approved ? { [flagKey]: true } : { [hashKey]: viaFactory.hash ?? '' }) as Partial<CapitalOnboardingConfig>;
+    const updated = await this.extensionRepository.patchConfig('capital', patch);
     return this.buildState(updated.config as CapitalOnboardingConfig);
   }
 
@@ -192,6 +264,46 @@ export class CapitalOnboardingService {
     if (extension.config[flagKey]) {
       return this.buildState(extension.config);
     }
+
+    const viaFactory = await this.completeViaFactory(
+      data.step,
+      flagKey,
+      hashKey,
+      username,
+      normalizedTitle,
+      extension.config.capital_program_doc_data_hash || undefined
+    );
+    if (viaFactory) return viaFactory;
+
+    const { project_id, hash: publishedHash, updated } = await this.publishLegacyStep(data, hashKey, username, normalizedTitle);
+
+    // Регистрируем правило отслеживания в фабрике
+    const varsField = this.mapStepToVarsField(data.step);
+
+    await this.decisionTrackingPort.registerTrackingRule({
+      hash: publishedHash,
+      event_type: DecisionEventType.SOVIET_DECISION,
+      vars_field: varsField,
+      metadata: {
+        onboarding_step: data.step,
+        project_id,
+        extension: 'capital',
+      },
+    });
+
+    return this.buildState(updated.config as CapitalOnboardingConfig);
+  }
+
+  /**
+   * Прежний путь шага без документов: проект свободного решения с текстом из
+   * карточки, публикация в повестку, хэш в настройке расширения.
+   */
+  private async publishLegacyStep(
+    data: CapitalOnboardingStepInputDTO,
+    hashKey: OnboardingHashKey,
+    username: string,
+    normalizedTitle?: string
+  ): Promise<{ project_id: string; hash: string; updated: ExtensionDomainEntity<CapitalOnboardingConfig> }> {
     const project_id = uuid();
     const actor = username;
 
@@ -238,20 +350,6 @@ export class CapitalOnboardingService {
       [hashKey]: generatedDoc.hash,
     } as Partial<CapitalOnboardingConfig>);
 
-    // Регистрируем правило отслеживания в фабрике
-    const varsField = this.mapStepToVarsField(data.step);
-
-    await this.decisionTrackingPort.registerTrackingRule({
-      hash: generatedDoc.hash,
-      event_type: DecisionEventType.SOVIET_DECISION,
-      vars_field: varsField,
-      metadata: {
-        onboarding_step: data.step,
-        project_id,
-        extension: 'capital',
-      },
-    });
-
-    return this.buildState(updated.config as CapitalOnboardingConfig);
+    return { project_id, hash: generatedDoc.hash, updated };
   }
 }

@@ -9,8 +9,8 @@
       q-spinner.q-mr-xs(v-if='saving' size='12px')
       span.priority-control__label {{ label }}
       q-icon.q-ml-xs(v-if='!readonly' name='arrow_drop_down' size='xs')
-    q-tooltip(anchor='bottom middle' self='top middle') Приоритет: {{ label }}
-    InlineSelectMenu(v-if='!readonly' title='Сменить приоритет' :options='menuOptions' :current='modelValue' @select='onSelect')
+    q-tooltip(anchor='bottom middle' self='top middle') {{ $t('capital.priorityControl.currentLabel', { priority: label }) }}
+    InlineSelectMenu(v-if='!readonly' :title='$t("capital.priorityControl.changeTitle")' :options='menuOptions' :current='modelValue' @select='onSelect')
 
   //- Компактная иконка — строки списков (задачи, проекты, компоненты)
   .priority-control__trigger(
@@ -19,8 +19,8 @@
   )
     q-spinner(v-if='saving' size='16px' :color='iconColor')
     q-icon(v-else :name='icon' :color='iconColor' size='18px')
-    q-tooltip(anchor='bottom middle' self='top middle') Приоритет: {{ label }}
-    InlineSelectMenu(v-if='!readonly' title='Сменить приоритет' :options='menuOptions' :current='modelValue' @select='onSelect')
+    q-tooltip(anchor='bottom middle' self='top middle') {{ $t('capital.priorityControl.currentLabel', { priority: label }) }}
+    InlineSelectMenu(v-if='!readonly' :title='$t("capital.priorityControl.changeTitle")' :options='menuOptions' :current='modelValue' @select='onSelect')
 </template>
 
 <script setup lang="ts">

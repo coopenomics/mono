@@ -1,6 +1,8 @@
 import type { DesktopWalletCard } from 'src/shared/lib/types/desktop-wallet';
 import { walletCards as capitalWalletCards } from '../../../extensions/capital/install';
+import { walletCards as edubridgeWalletCards } from '../../../extensions/edubridge/install';
 import { walletCards as marketWalletCards } from '../../../extensions/market/install';
+import { t } from 'src/shared/i18n';
 
 /**
  * Реестр-фабрика кошельков стола пайщика (путь B).
@@ -16,16 +18,16 @@ import { walletCards as marketWalletCards } from '../../../extensions/market/ins
  * остатка, который рендерится отдельной карточкой виджета) — у него
  * приоритет; кошельки расширений идут после него.
  *
- * Что НЕ устанавливается на стол пайщика: главный членский (`w.wal.member`,
- * программа ЦК) и Генератор (`w.cap.gen`, кооперативный кошелёк без L3).
+ * Что НЕ устанавливается на стол пайщика: Генератор (`w.cap.gen`,
+ * кооперативный кошелёк без L3). Членских кошельков в паевой модели нет.
  * Минимальный неснижаемый паевой остаток — отдельная карточка виджета,
  * не через реестр.
  */
 const CORE_WALLET_CARDS: DesktopWalletCard[] = [
   {
     wallet_name: 'w.wal.share',
-    label: 'Главный паевой кошелёк',
-    description: 'Цифровой кошелёк',
+    label: t('initInstalledExtensions.walletCardsRegistry.shareWalletLabel'),
+    description: t('initInstalledExtensions.walletCardsRegistry.shareWalletDescription'),
     accent: 'wallet',
     icon: 'account_balance_wallet',
   },
@@ -33,6 +35,7 @@ const CORE_WALLET_CARDS: DesktopWalletCard[] = [
 
 const WALLET_CARDS_BY_EXTENSION: Record<string, DesktopWalletCard[]> = {
   capital: capitalWalletCards,
+  edubridge: edubridgeWalletCards,
   market: marketWalletCards,
 };
 

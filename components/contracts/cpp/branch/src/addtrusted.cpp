@@ -20,7 +20,7 @@
     auto trusted_account = get_account_or_fail(trusted);
     eosio::check(trusted_account.type == "individual"_n, "Только физическое лицо может быть назначено доверенным кооперативного участка");
 
-    branches.modify(branch, coopname, [&](auto &b) {
+    branches.modify(branch, RamPayer::of(branches, coopname), [&](auto &b) {
         eosio::check(b.trustee != trusted,
             "Председатель кооперативного участка не может быть добавлен доверенным лицом");
         eosio::check(std::find(b.trusted.begin(), b.trusted.end(), trusted) == b.trusted.end(),

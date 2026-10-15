@@ -1,11 +1,9 @@
 import { Module } from '@nestjs/common';
 import { CategoryTreeDomainService, CATEGORY_TREE_DOMAIN_SERVICE } from './services/category-tree-domain.service';
-import { AttributeDomainService } from './services/attribute-domain.service';
 import {
   AvailableCategoryDomainService,
   AVAILABLE_CATEGORY_DOMAIN_SERVICE,
 } from './services/available-category-domain.service';
-import { RequestDomainService, REQUEST_DOMAIN_SERVICE } from './services/request-domain.service';
 import { MarketplaceInfrastructureModule } from '../infrastructure/marketplace-infrastructure.module';
 
 /**
@@ -27,26 +25,17 @@ import { MarketplaceInfrastructureModule } from '../infrastructure/marketplace-i
       useClass: CategoryTreeDomainService,
     },
     CategoryTreeDomainService,
-    AttributeDomainService,
     {
       provide: AVAILABLE_CATEGORY_DOMAIN_SERVICE,
       useClass: AvailableCategoryDomainService,
     },
     AvailableCategoryDomainService,
-    {
-      provide: REQUEST_DOMAIN_SERVICE,
-      useClass: RequestDomainService,
-    },
-    RequestDomainService,
   ],
   exports: [
     CategoryTreeDomainService,
-    AttributeDomainService,
     CATEGORY_TREE_DOMAIN_SERVICE,
     AvailableCategoryDomainService,
     AVAILABLE_CATEGORY_DOMAIN_SERVICE,
-    RequestDomainService,
-    REQUEST_DOMAIN_SERVICE,
   ],
 })
 export class MarketplaceExtensionDomainModule {}

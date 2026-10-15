@@ -10,9 +10,11 @@ q-dialog(
   q-card.column.no-wrap
     q-bar.bg-primary.text-white
       .text-subtitle1.ellipsis
-        | {{ reportTitle }} за {{ year }}{{ periodSuffix }}
+        | {{ $t('reports.reportEditorDialog.title', { reportTitle, year, periodSuffix }) }}
       q-space
+      BaseBadge(v-if='readonly', variant='neutral') {{ $t('reports.reportEditorDialog.readonlyLabel') }}
       q-chip(
+        v-else
         :color='saveStatusColor'
         text-color='white'
         dense
@@ -24,9 +26,9 @@ q-dialog(
         icon='fa-solid fa-sliders'
         @click='showActionsPanel = true'
       )
-        q-tooltip Действия
+        q-tooltip {{ $t('reports.reportEditorDialog.actionsLabel') }}
       q-btn(flat dense icon='fa-solid fa-xmark' @click='close')
-        q-tooltip Закрыть
+        q-tooltip {{ $t('common.action.close') }}
 
     //- Баннер ошибок генерации
     q-card-section.q-pa-sm(v-if='generationErrors.length')
@@ -46,9 +48,9 @@ q-dialog(
         //- заблуждение (пустые значения в подписанте/классификаторах).
         .stub-requisites(v-if='!readinessLoading && notReady')
           q-icon(name='fa-solid fa-circle-info' size='56px' color='orange')
-          .text-h6.q-mt-md.q-mb-sm Сначала заполните реквизиты
+          .text-h6.q-mt-md.q-mb-sm {{ $t('reports.reportEditorDialog.requisitesRequiredTitle') }}
           .text-body2.t-muted.q-mb-md
-            | Для отчёта «{{ reportTitle }}» не хватает обязательных полей. Заполните их в разделе «Реквизиты», после чего вернитесь сюда.
+            | {{ $t('reports.reportEditorDialog.requisitesRequiredText', { reportTitle }) }}
           .missing-chips.q-mb-lg
             q-chip(
               v-for='m in readiness?.missingFields'
@@ -60,15 +62,17 @@ q-dialog(
               icon='fa-solid fa-triangle-exclamation'
             ) {{ m.label }}
           q-btn(
+            v-if='!readonly'
             color='primary'
             icon='fa-solid fa-pen-to-square'
-            label='Перейти к реквизитам'
+            :label='$t("reports.reportEditorDialog.goToRequisitesLabel")'
             @click='goToRequisites'
             no-caps
           )
 
         BuhotchEditor(
           v-else-if='reportType === "BUHOTCH" && edits'
+          :inert='readonly'
           v-model:edits='buhotchEdits'
           :field-errors='fieldErrors'
           @dirty='onDirty'
@@ -78,7 +82,7 @@ q-dialog(
         //- часть которых условная, при закрытии диалога роняет Vue на
         //- размонтировании пустого узла («Cannot destructure property type of
         //- vnode as it is null»), и окно перестаёт закрываться.
-        .editor-stack(v-else-if='reportType && reportType !== "BUHOTCH" && edits')
+        .editor-stack(v-else-if='reportType && reportType !== "BUHOTCH" && edits', :inert='readonly')
           ZeroReportEditor(
             :report-type='reportType'
             v-model:edits='zeroEdits'
@@ -105,7 +109,7 @@ q-dialog(
 
         .stub-other(v-else-if='!isLoading && !reportType')
           q-icon(name='fa-solid fa-triangle-exclamation' size='48px' color='warning')
-          .text-subtitle1.q-mt-md Тип отчёта не задан
+          .text-subtitle1.q-mt-md {{ $t('reports.reportEditorDialog.reportTypeMissingTitle') }}
 
       //- Backdrop за панелью действий (только на mobile, закрывает панель по тапу).
       .action-backdrop(
@@ -122,7 +126,7 @@ q-dialog(
           v-if='$q.screen.lt.md'
           flat dense
           icon='fa-solid fa-chevron-right'
-          label='Скрыть'
+          :label='$t("reports.reportEditorDialog.hideLabel")'
           align='between'
           @click='showActionsPanel = false'
           no-caps
@@ -131,11 +135,16 @@ q-dialog(
         //- Валидация + кнопки генерации — только когда форма загружена
         //- (реквизиты заполнены, edits подтянулись). Для notReady показываем
         //- только блок отметок «не надо сдавать / сдан вне платформы» ниже.
-        template(v-if='!notReady')
+        //- Просмотр: только сведения о состоянии отчёта, действий нет.
+        .mark-hint.q-mb-md(v-if='readonly')
+          q-icon(name='visibility' size='14px')
+          |  {{ $t('reports.reportEditorDialog.readonlyHint') }}
+
+        template(v-if='!notReady && !readonly')
           .validation-badge.q-mb-sm(:class='{ ok: isValid, bad: !isValid }')
             q-icon(:name='isValid ? "fa-solid fa-check" : "fa-solid fa-triangle-exclamation"')
-            span(v-if='isValid') Форма валидна
-            span(v-else) Ошибок: {{ errorsCount }}
+            span(v-if='isValid') {{ $t('reports.reportEditorDialog.formValidLabel') }}
+            span(v-else) {{ $t('reports.reportEditorDialog.errorsCountLabel', { count: errorsCount }) }}
 
           //- Явный список ошибок полей — страховка на случай, если конкретное
           //- поле формы не подсвечивается инлайн (не все секции формы ещё
@@ -152,29 +161,29 @@ q-dialog(
                 q-item-label.text-caption.text-weight-medium {{ err.label }}
                 q-item-label(caption) {{ err.message }}
 
-          .text-subtitle2.q-mb-sm Действия
+          .text-subtitle2.q-mb-sm {{ $t('reports.reportEditorDialog.actionsLabel') }}
 
           q-btn.q-mb-sm(
             color='primary'
             icon='fa-solid fa-paper-plane'
-            label='Скачать для отправки'
+            :label='$t("reports.reportEditorDialog.downloadForSubmitLabel")'
             :disable='!canGenerate'
             :loading='isGenerating'
             @click='downloadXml'
             no-caps
           )
-            q-tooltip Сохраняет черновик, генерирует XML, валидирует XSD и скачивает файл
+            q-tooltip {{ $t('reports.reportEditorDialog.downloadForSubmitHint') }}
           q-btn.q-mb-sm(
             color='grey-7'
             icon='fa-solid fa-file-pdf'
-            label='Скачать для просмотра'
+            :label='$t("reports.reportEditorDialog.downloadForViewLabel")'
             :disable='!canGenerate || !hasPdfPaperView'
             :loading='pdfLoading'
             @click='downloadPdf'
             no-caps
           )
-            q-tooltip(v-if='!hasPdfPaperView') PDF-экспорт для {{ reportTitle }} пока не поддерживается
-            q-tooltip(v-else) Заполненный отчёт в PDF (из бумажного вида)
+            q-tooltip(v-if='!hasPdfPaperView') {{ $t('reports.reportEditorDialog.pdfExportUnsupported', { reportTitle }) }}
+            q-tooltip(v-else) {{ $t('reports.reportEditorDialog.downloadForViewHint') }}
 
           q-separator.q-my-md
 
@@ -182,23 +191,23 @@ q-dialog(
             outline
             color='grey-8'
             icon='fa-solid fa-rotate'
-            label='Перегенерировать'
+            :label='$t("reports.reportEditorDialog.regenerateLabel")'
             :disable='isLoading'
             @click='regenerate'
             no-caps
           )
-            q-tooltip Подтянуть актуальные данные из реестра; ваши правки сохраняются
+            q-tooltip {{ $t('reports.reportEditorDialog.regenerateHint') }}
 
           q-btn(
             v-if='hasDraft'
             flat
             color='negative'
             icon='fa-solid fa-trash'
-            label='Удалить черновик'
+            :label='$t("reports.reportEditorDialog.deleteDraftLabel")'
             @click='clearDraft'
             no-caps
           )
-            q-tooltip Вернуть форму к дефолтам
+            q-tooltip {{ $t('reports.reportEditorDialog.deleteDraftHint') }}
 
           q-separator.q-my-md
 
@@ -211,57 +220,59 @@ q-dialog(
 
         .mark-hint.q-mb-sm(v-if='isRealSubmitted')
           q-icon(name='fa-solid fa-circle-check' color='positive' size='14px')
-          |  Отчёт за этот период уже сдан (XML в архиве)
+          |  {{ $t('reports.reportEditorDialog.alreadySubmittedText') }}
 
         template(v-else-if='currentMark === "NOT_REQUIRED"')
           .mark-hint.q-mb-sm
             q-icon(name='fa-solid fa-circle-xmark' color='grey-7' size='14px')
-            |  Период отмечен как «не надо сдавать»
+            |  {{ $t('reports.reportEditorDialog.markedNotRequiredText') }}
           q-btn(
+            v-if='!readonly'
             color='grey-7'
             icon='fa-solid fa-rotate-left'
-            label='Снять отметку'
+            :label='$t("reports.reportEditorDialog.unmarkLabel")'
             :loading='markLoading'
             @click='clearMark'
             no-caps
           )
-            q-tooltip Вернуть обычный статус периода
+            q-tooltip {{ $t('reports.reportEditorDialog.restoreStatusHint') }}
 
         template(v-else-if='currentMark === "SUBMITTED_EXTERNALLY"')
           .mark-hint.q-mb-sm
             q-icon(name='fa-solid fa-circle-check' color='positive' size='14px')
-            |  Период отмечен как «сдан вне платформы»
+            |  {{ $t('reports.reportEditorDialog.markedSubmittedOffPlatformText') }}
           q-btn(
+            v-if='!readonly'
             color='grey-7'
             icon='fa-solid fa-rotate-left'
-            label='Снять отметку'
+            :label='$t("reports.reportEditorDialog.unmarkLabel")'
             :loading='markLoading'
             @click='clearMark'
             no-caps
           )
-            q-tooltip Вернуть обычный статус периода
+            q-tooltip {{ $t('reports.reportEditorDialog.restoreStatusHint') }}
 
-        template(v-else)
+        template(v-else-if='!readonly')
           q-btn.q-mb-sm(
             outline
             color='positive'
             icon='fa-solid fa-circle-check'
-            label='Отметить сданным'
+            :label='$t("reports.reportEditorDialog.markSubmittedLabel")'
             :loading='markLoading'
             @click='markSubmittedExternally'
             no-caps
           )
-            q-tooltip Если отчёт уже сдан в бумаге / через стороннюю систему. В архив XML не попадает, но ячейка станет зелёной.
+            q-tooltip {{ $t('reports.reportEditorDialog.markSubmittedHint') }}
           q-btn(
             outline
             color='grey-8'
             icon='fa-solid fa-ban'
-            label='Не надо сдавать'
+            :label='$t("reports.reportEditorDialog.markNotRequiredLabel")'
             :loading='markLoading'
             @click='markNotRequired'
             no-caps
           )
-            q-tooltip Отметить, что этот период сдавать не нужно — ячейка станет серой
+            q-tooltip {{ $t('reports.reportEditorDialog.markNotRequiredHint') }}
 
         q-space
 
@@ -269,7 +280,7 @@ q-dialog(
           flat
           color='grey-8'
           icon='fa-solid fa-xmark'
-          label='Закрыть'
+          :label='$t("common.action.close")'
           @click='close'
           no-caps
         )
@@ -321,7 +332,10 @@ q-dialog(
 </template>
 
 <script setup lang="ts">
+import { BaseBadge } from 'src/shared/ui/base/BaseBadge'
 import { computed, ref, watch } from 'vue'
+import { useConfirm } from 'src/shared/lib/composables'
+import { uiLocale } from 'src/shared/i18n';
 import { useQuasar } from 'quasar'
 import { useRoute, useRouter } from 'vue-router'
 import { Zeus } from '@coopenomics/sdk'
@@ -347,6 +361,7 @@ import PsvForm from 'extensions/reports/widgets/report-forms/PsvForm.vue'
 import Efs1Form from 'extensions/reports/widgets/report-forms/Efs1Form.vue'
 import UusnForm from 'extensions/reports/widgets/report-forms/UusnForm.vue'
 import { exportFormToPdf, makePdfFileName } from 'extensions/reports/widgets/report-forms/pdf-export'
+import { t, t as i18nT } from '../../../i18n';
 
 // Набор типов отчётов, для которых у нас есть paper-view для PDF-экспорта.
 // 5 MVP-форм; ДУСН/УУСН/УВ_Взносы скрыты в HIDDEN_IN_MVP и сюда не попадают.
@@ -402,15 +417,15 @@ interface BuhotchEdits {
 }
 
 const REPORT_TITLES: Record<string, string> = {
-  BUHOTCH: 'Бухотчётность (КНД 0710096)',
-  NDFL6: '6-НДФЛ',
-  RSV: 'РСВ',
-  DUSN: 'Декларация УСН',
-  FSS4: 'ЕФС-1',
-  PSV: 'Персонифицированные сведения',
-  UUSN: 'Уведомление УСН',
-  UV_VZNOSY: 'Уведомление о взносах',
-  UV_NDFL: 'Уведомление об исчисленном НДФЛ',
+  BUHOTCH: t('reports.reportEditorDialog.reportType.buhotch'),
+  NDFL6: t('reports.reportEditorDialog.reportType.ndfl6'),
+  RSV: t('reports.reportEditorDialog.reportType.rsv'),
+  DUSN: t('reports.reportEditorDialog.reportType.usn'),
+  FSS4: t('reports.reportEditorDialog.reportType.efs1'),
+  PSV: t('reports.reportEditorDialog.reportType.psv'),
+  UUSN: t('reports.reportEditorDialog.reportType.usnNotice'),
+  UV_VZNOSY: t('reports.reportEditorDialog.reportType.contributionsNotice'),
+  UV_NDFL: t('reports.reportEditorDialog.reportType.ndflNotice'),
 }
 
 const props = defineProps<{
@@ -418,6 +433,8 @@ const props = defineProps<{
   reportType: IReportType | null
   year: number
   period?: number | null
+  /** Просмотр: отчёт открыт на чтение, без правки, сохранения, формирования и отметок. */
+  readonly?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -529,6 +546,7 @@ interface ZeroReportEdits {
     middleName: string | null
     repDoc: string | null
     snils: string | null
+    inn: string | null
     sfrRegNumber: string | null
     pfrRegNumber: string | null
     chairmanPosition: string | null
@@ -562,7 +580,7 @@ const reportTitle = computed(() =>
 const periodSuffix = computed(() => {
   if (!props.period) return ''
   if (props.reportType === 'UV_NDFL') return ` · ${uvNdflPeriodTitle(props.period)}`
-  return ` · период ${props.period}`
+  return t('reports.reportEditorDialog.periodSuffixLabel', { period: props.period })
 })
 
 const notReady = computed(() => readiness.value !== null && readiness.value.ready === false)
@@ -584,11 +602,11 @@ const errorsCount = computed(() => {
 // Человекочитаемые названия секций формы — для расшифровки JSONPath из
 // серверной ошибки валидации (см. error-list ниже).
 const FIELD_SECTION_LABELS: Record<string, string> = {
-  header: 'Шапка',
-  organization: 'Организация',
-  signer: 'Подписант',
-  balance: 'Баланс',
-  notes: 'Пояснения',
+  header: t('reports.reportEditorDialog.tab.header'),
+  organization: t('reports.reportEditorDialog.tab.organization'),
+  signer: t('reports.reportEditorDialog.tab.signer'),
+  balance: t('reports.reportEditorDialog.tab.balance'),
+  notes: t('reports.reportEditorDialog.tab.notes'),
 }
 
 function humanizeFieldPath(path: string): string {
@@ -616,22 +634,24 @@ const saveStatusColor = computed(() => {
 })
 
 const saveStatusLabel = computed(() => {
-  if (isSaving.value) return 'Сохраняем…'
+  if (isSaving.value) return t('reports.reportEditorDialog.savingLabel')
   if (hasDraft.value && lastSavedAt.value) {
-    return `Черновик сохранён ${formatTime(lastSavedAt.value)}`
+    return t('reports.reportEditorDialog.draftSavedLabel', { time: formatTime(lastSavedAt.value) })
   }
-  if (hasDraft.value) return 'Черновик'
-  return 'Новый'
+  if (hasDraft.value) return t('reports.reportEditorDialog.draftLabel')
+  return t('reports.reportEditorDialog.newLabel')
 })
 
 function formatTime(d: Date): string {
-  return d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+  return d.toLocaleTimeString(uiLocale(), { hour: '2-digit', minute: '2-digit', second: '2-digit' })
 }
 
+// realtime: нет источника — редактор черновика отчёта: живое перечитывание затёрло бы правку; список отчётов и календарь живут по ленте.
 // Загрузка при открытии + реквизиты для paper-view.
 // immediate: true — DocumentsPage монтирует этот диалог через v-if, поэтому
 // на момент create() props.modelValue уже true и классический watcher
 // false→true никогда не сработает (компонент просто стоит пустой).
+// realtime: нет источника — редактор черновика отчёта: живое перечитывание затёрло бы ввод пайщика.
 watch(
   () => props.modelValue,
   async (open) => {
@@ -673,7 +693,7 @@ watch(
         currentMark.value = 'NOT_REQUIRED'
       }
     } catch (e) {
-      FailAlert(e, 'Ошибка загрузки формы')
+      FailAlert(e, t('reports.reportEditorDialog.formLoadError'))
     }
   },
   { immediate: true },
@@ -692,7 +712,7 @@ async function ensureGenerated(): Promise<{ xml: string; fileName: string } | nu
   await Promise.all([saveNow(), validateNow()])
   if (!isValid.value) {
     generationErrors.value = [
-      `Есть ${errorsCount.value} ошибок в полях формы — исправьте перед скачиванием.`,
+      t('reports.reportEditorDialog.formErrorsText', { count: errorsCount.value }),
     ]
     return null
   }
@@ -703,14 +723,14 @@ async function ensureGenerated(): Promise<{ xml: string; fileName: string } | nu
     JSON.stringify(edits.value),
   )
   if (!out) {
-    generationErrors.value = ['Пустой ответ от сервера']
+    generationErrors.value = [t('reports.reportEditorDialog.emptyResponseError')]
     return null
   }
   generationErrors.value = out.errors ?? []
   if (!out.xml) return null
   lastGeneratedXml.value = out.xml
   lastGeneratedFileName.value = out.fileName
-  if (out.isValid) SuccessAlert('XML сгенерирован и прошёл XSD-валидацию')
+  if (out.isValid) SuccessAlert(t('reports.reportEditorDialog.xmlGeneratedSuccess'))
   emit('generated')
   return { xml: out.xml, fileName: out.fileName }
 }
@@ -723,7 +743,7 @@ async function downloadXml(): Promise<void> {
     if (!r) return
     reportStore.triggerDownload(r.xml, r.fileName)
   } catch (e) {
-    FailAlert(e, 'Ошибка генерации XML')
+    FailAlert(e, t('reports.reportEditorDialog.xmlGenerateError'))
   } finally {
     isGenerating.value = false
   }
@@ -739,11 +759,11 @@ async function downloadPdf(): Promise<void> {
     // Ждём перерендера скрытого BuhotchForm (watch реактивно подхватил XML).
     await new Promise((resolve) => requestAnimationFrame(resolve))
     const root = pdfSource.value?.querySelector<HTMLElement>('.printable-form')
-    if (!root) throw new Error('PDF: бумажный вид не отрендерился')
+    if (!root) throw new Error(t('reports.error.pdfRenderFailed'))
     const name = makePdfFileName(props.reportType, props.year, props.period ?? null)
     await exportFormToPdf(root, name)
   } catch (e) {
-    FailAlert(e, 'Ошибка генерации PDF')
+    FailAlert(e, t('reports.reportEditorDialog.pdfGenerateError'))
   } finally {
     pdfLoading.value = false
   }
@@ -752,9 +772,9 @@ async function downloadPdf(): Promise<void> {
 async function regenerate(): Promise<void> {
   try {
     await regenerateDraft()
-    SuccessAlert('Свежие данные подтянуты, ваши правки сохранены')
+    SuccessAlert(t('reports.reportEditorDialog.regenerateSuccess'))
   } catch (e) {
-    FailAlert(e, 'Ошибка перегенерации')
+    FailAlert(e, t('reports.reportEditorDialog.regenerateError'))
   }
 }
 
@@ -762,15 +782,17 @@ async function clearDraft(): Promise<void> {
   try {
     await clear()
     await load()
-    SuccessAlert('Черновик удалён, форма перезаполнена дефолтами')
+    SuccessAlert(t('reports.reportEditorDialog.deleteDraftSuccess'))
   } catch (e) {
-    FailAlert(e, 'Ошибка удаления черновика')
+    FailAlert(e, t('reports.reportEditorDialog.deleteDraftError'))
   }
 }
 
+const { confirm } = useConfirm()
+
 async function applyMark(nextMark: CurrentMark, confirmMsg: string): Promise<void> {
   if (!props.reportType || markLoading.value) return
-  if (!window.confirm(confirmMsg)) return
+  if (!(await confirm({ title: i18nT('reports.reportEditorDialog.markConfirmTitle'), message: confirmMsg, confirmLabel: i18nT('reports.reportEditorDialog.markConfirmLabel') }))) return
   markLoading.value = true
   try {
     const sdkMark =
@@ -784,10 +806,10 @@ async function applyMark(nextMark: CurrentMark, confirmMsg: string): Promise<voi
       mark: sdkMark,
     })
     currentMark.value = nextMark
-    SuccessAlert(nextMark ? 'Отметка поставлена' : 'Отметка снята')
+    SuccessAlert(nextMark ? t('reports.reportEditorDialog.markSetSuccess') : t('reports.reportEditorDialog.markUnsetSuccess'))
     emit('marked')
   } catch (e) {
-    FailAlert(e, 'Ошибка установки отметки')
+    FailAlert(e, t('reports.reportEditorDialog.markSetError'))
   } finally {
     markLoading.value = false
   }
@@ -796,20 +818,20 @@ async function applyMark(nextMark: CurrentMark, confirmMsg: string): Promise<voi
 function markNotRequired(): void {
   void applyMark(
     'NOT_REQUIRED',
-    'Отметить период как «не надо сдавать»? В календаре ячейка станет серой.',
+    t('reports.reportEditorDialog.markNotRequiredConfirm'),
   )
 }
 
 function markSubmittedExternally(): void {
   void applyMark(
     'SUBMITTED_EXTERNALLY',
-    'Отметить период как сданный вне платформы? В календаре ячейка станет зелёной ' +
-      '(с обводкой — отличие от фактически сгенерированного XML).',
+    t('reports.reportEditorDialog.markSubmittedOffPlatformConfirm') +
+      t('reports.reportEditorDialog.markSubmittedOffPlatformConfirmSuffix'),
   )
 }
 
 function clearMark(): void {
-  void applyMark(null, 'Снять отметку? Статус периода вернётся к обычному.')
+  void applyMark(null, t('reports.reportEditorDialog.unmarkConfirm'))
 }
 
 function close(): void {

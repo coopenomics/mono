@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { TableStore, oneOf } from '@coopenomics/extension-kit';
+import { MARKETPLACE_SHIPMENT_STORE } from '../../infrastructure/database/marketplace-stores';
+import { Inject, Injectable } from '@nestjs/common';
 import { MarketplaceShipmentDomainEntity } from '../../domain/entities/marketplace-shipment.entity';
 import type { MarketplaceShipmentStatus } from '../../domain/entities/marketplace-shipment.types';
 import type {
@@ -14,8 +14,8 @@ import { MarketplaceShipmentMapper } from '../mappers/marketplace-shipment.mappe
 @Injectable()
 export class MarketplaceShipmentRepositoryAdapter implements MarketplaceShipmentDomainRepository {
   constructor(
-    @InjectRepository(MarketplaceShipmentEntity, 'marketplace')
-    private readonly repo: Repository<MarketplaceShipmentEntity>,
+    @Inject(MARKETPLACE_SHIPMENT_STORE)
+private readonly repo: TableStore<MarketplaceShipmentEntity>,
     private readonly mapper: MarketplaceShipmentMapper
   ) {}
 
@@ -37,7 +37,7 @@ export class MarketplaceShipmentRepositoryAdapter implements MarketplaceShipment
   }
 
   async findById(id: string): Promise<MarketplaceShipmentDomainEntity | null> {
-    const row = await this.repo.findOne({ where: { id } });
+    const row = await this.repo.findOne({ id });
     return row ? this.mapper.toDomain(row) : null;
   }
 
@@ -46,7 +46,7 @@ export class MarketplaceShipmentRepositoryAdapter implements MarketplaceShipment
     cycle_id: string,
     braname: string
   ): Promise<MarketplaceShipmentDomainEntity | null> {
-    const row = await this.repo.findOne({ where: { coopname, cycle_id, braname } });
+    const row = await this.repo.findOne({ coopname, cycle_id, braname });
     return row ? this.mapper.toDomain(row) : null;
   }
 
@@ -54,7 +54,7 @@ export class MarketplaceShipmentRepositoryAdapter implements MarketplaceShipment
     coopname: string,
     cycle_id: string
   ): Promise<MarketplaceShipmentDomainEntity[]> {
-    const rows = await this.repo.find({ where: { coopname, cycle_id } });
+    const rows = await this.repo.find({ coopname, cycle_id });
     return rows.map((r) => this.mapper.toDomain(r));
   }
 
@@ -62,7 +62,7 @@ export class MarketplaceShipmentRepositoryAdapter implements MarketplaceShipment
     coopname: string,
     ttn_number: string
   ): Promise<MarketplaceShipmentDomainEntity | null> {
-    const row = await this.repo.findOne({ where: { coopname, ttn_number } });
+    const row = await this.repo.findOne({ coopname, ttn_number });
     return row ? this.mapper.toDomain(row) : null;
   }
 
@@ -72,9 +72,9 @@ export class MarketplaceShipmentRepositoryAdapter implements MarketplaceShipment
     if (filter.offerer_account) where.offerer_account = filter.offerer_account;
     if (filter.braname) where.braname = filter.braname;
     if (filter.status) {
-      where.status = Array.isArray(filter.status) ? In(filter.status) : filter.status;
+      where.status = Array.isArray(filter.status) ? oneOf(filter.status) : filter.status;
     }
-    const rows = await this.repo.find({ where, order: { created_at: 'DESC' } });
+    const rows = await this.repo.find(where, { order: { created_at: 'DESC' } });
     return rows.map((r) => this.mapper.toDomain(r));
   }
 
@@ -83,7 +83,7 @@ export class MarketplaceShipmentRepositoryAdapter implements MarketplaceShipment
     newStatus: MarketplaceShipmentStatus
   ): Promise<MarketplaceShipmentDomainEntity> {
     await this.repo.update({ id }, { status: newStatus });
-    const row = await this.repo.findOneOrFail({ where: { id } });
+    const row = await this.repo.findOneOrFail({ id });
     return this.mapper.toDomain(row);
   }
 
@@ -92,7 +92,7 @@ export class MarketplaceShipmentRepositoryAdapter implements MarketplaceShipment
     ttn_document_id: string
   ): Promise<MarketplaceShipmentDomainEntity> {
     await this.repo.update({ id: shipment_id }, { ttn_document_id });
-    const row = await this.repo.findOneOrFail({ where: { id: shipment_id } });
+    const row = await this.repo.findOneOrFail({ id: shipment_id });
     return this.mapper.toDomain(row);
   }
 }

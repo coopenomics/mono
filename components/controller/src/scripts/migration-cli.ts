@@ -2,6 +2,7 @@
 import 'reflect-metadata';
 import mongoose from 'mongoose';
 import { MigrationManager } from '../migrator/migrationManager';
+import { runDatabaseMigrations } from '../migrator/database-migrations';
 import config from '../config/config';
 
 async function main() {
@@ -17,6 +18,8 @@ async function main() {
     // Подключение к MongoDB для миграций
     await mongoose.connect(config.mongoose.url);
     console.log('Connected to MongoDB for migrations');
+    // Таблицы, с которыми работают миграции данных, создаёт схема — она первой.
+    await runDatabaseMigrations();
     const migrationManager = new MigrationManager();
     await migrationManager.initialize();
 

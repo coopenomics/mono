@@ -9,7 +9,7 @@ export interface DocumentRepository {
    *   разным block_num. Второму подписанту нужна ровно та версия, которую
    *   подписал первый. Не передан — вернётся любая версия (легаси/превью).
    */
-  findByHash(hash: string, block_num?: number): Promise<DocumentDomainEntity | null>;
+  findByHash(hash: string, block_num?: number, meta?: unknown): Promise<DocumentDomainEntity | null>;
 }
 
 export const DOCUMENT_REPOSITORY = Symbol('DocumentRepository'); // Создаем уникальный токен

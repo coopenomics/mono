@@ -136,7 +136,7 @@ namespace Capital::Gamification {
     auto config = Capital::State::get_global_state(coopname).config;
     auto current_time = eosio::current_time_point();
 
-    contributors.modify(contributor, _capital, [&](auto &c) {
+    contributors.modify(contributor, RamPayer::of(contributors, coopname), [&](auto &c) {
       // Рассчитываем сколько дней прошло с последнего обновления
       uint32_t seconds_passed = current_time.sec_since_epoch() - c.last_energy_update.sec_since_epoch();
       double days_passed = static_cast<double>(seconds_passed) / 86400.0;
@@ -174,7 +174,7 @@ namespace Capital::Gamification {
 
     uint32_t prev_level = contributor->level;
     uint32_t new_level = 0;
-    contributors.modify(contributor, _capital, [&](auto &c) {
+    contributors.modify(contributor, RamPayer::of(contributors, coopname), [&](auto &c) {
       const LevelProgress progress = apply_contribution_to_levels(amount_minor, c.level, c.energy, config);
 
       c.level = progress.level;

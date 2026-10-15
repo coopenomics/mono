@@ -107,10 +107,10 @@ docker compose exec postgres psql -U coop_app_user -d authentik_db -c 'select 1'
 Учётка администратора authentik: `akadmin`, пароль — в
 `infra/coopid/secrets/authentik_bootstrap_password`.
 
-## Клиент card.coop (карта пайщика, Story 7.0)
+## Клиент card.coop (карта кооператора, Story 7.0)
 
 `coopid-cardcoop-client.yaml` заводит в CoopID кооператива confidential-клиента
-`cardcoop` — через него карта пайщика (card.coop при АНО) принимает пайщика
+`cardcoop` — через него карта кооператора (card.coop при АНО) принимает пайщика
 входом «через свой кооператив». Клиент отдельный от `coopid`: тот обслуживает
 рабочий стол самого кооператива (публичный, неявное согласие), а card.coop —
 сторонний сервис, поэтому здесь секрет на сервере и **явное согласие** пайщика

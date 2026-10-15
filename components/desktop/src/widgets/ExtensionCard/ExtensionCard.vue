@@ -16,16 +16,16 @@ article.app-card(
       h3.app-card__title {{ extension.title }}
       span.badge.badge--pos(v-if='isInstalled')
         q-icon(name='fa-solid fa-check' size='11px')
-        | Установлено
+        | {{ $t('extensionCard.extensionCard.installedBadge') }}
       span.badge.badge--warn(v-else-if='!extension.is_available')
         q-icon(name='fa-solid fa-screwdriver-wrench' size='11px')
-        | В разработке
+        | {{ $t('extensionCard.extensionCard.inDevelopmentBadge') }}
 
   p.app-card__desc(v-if='extension.description') {{ extension.description }}
 
   .app-card__foot(v-if='extension.is_available')
     span.app-card__more
-      | Подробнее
+      | {{ $t('extensionCard.extensionCard.moreLink') }}
       q-icon(name='fa-solid fa-arrow-right' size='12px')
 </template>
 

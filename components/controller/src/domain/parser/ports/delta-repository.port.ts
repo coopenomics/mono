@@ -62,6 +62,16 @@ export interface DeltaRepositoryPort {
   /**
    * Поиск дельт с флагом repeat = true
    */
+  /**
+   * Последнее состояние каждой строки таблицы, включая стёртые из цепи: дельта стирания
+   * несёт прежнее содержимое строки, и `present=false` означает, что в цепи её больше нет.
+   * `where` сравнивает поле значения как текст, без учёта регистра.
+   */
+  findLatestRows(
+    filters: { code: string; scope: string; table: string },
+    where?: Record<string, string>
+  ): Promise<{ primary_key: string; value: any; present: boolean; block_num: number }[]>;
+
   findRepeatableDeltas(): Promise<DeltaDomainInterface[]>;
 
   /**

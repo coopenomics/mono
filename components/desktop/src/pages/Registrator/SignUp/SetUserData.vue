@@ -1,10 +1,5 @@
 <template lang="pug">
-div
-  q-step(
-    :name='store.steps.SetUserData',
-    title='Заполните форму заявления на вступление',
-    :done='store.isStepDone("SetUserData")'
-  )
+div(v-show='store.isStep("SetUserData")')
     UserDataForm(
       v-model:userData='store.state.userData',
       @type-selected='onTypeSelected',
@@ -17,22 +12,22 @@ div
           full-width,
           standout='bg-teal text-white'
         )
-          | Я даю своё согласие на обработку своих персональных данных в соответствии с
+          | {{ $t('registrator.setUserData.consentPrefix') }}
           StaticPrivacyDialog(
             v-model:agree='store.state.agreements.condidential',
-            text='политикой конфиденциальности'
+            :text='$t("registrator.setUserData.privacyLinkText")'
           )
 
         .row.q-gutter-md.q-mt-lg.q-mb-lg
           BaseButton(variant='ghost', @click='store.prev()')
-            i.fa.fa-arrow-left
-            span.q-ml-md назад
+            q-icon(name='arrow_back')
+            span.q-ml-md {{ $t('registrator.setUserData.back') }}
 
           BaseButton(
             variant='primary',
             :disabled='!store.state.agreements.condidential',
             @click='setData(userDataForm)'
-          ) Продолжить
+          ) {{ $t('registrator.setUserData.submit') }}
 </template>
 
 <script lang="ts" setup>

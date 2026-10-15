@@ -1,37 +1,37 @@
 <template lang="pug">
 BaseDialog(
   :model-value='modelValue',
-  title='Метрика резонанса',
+  :title='$t("capital.superpositionHelpDialog.title")',
   size='lg',
   @update:model-value='emit("update:modelValue", $event)'
 )
   .sp-help
     .sp-help__intro
       p.sp-help__lead
-        | Это сводный показатель по всем метрикам компонента.
-        |  Он показывает, входит ли движение к целям в
-        strong  резонанс
-        | : ритмы согласованы и усиливают общее продвижение — или расходятся,
-        |  и общая интенсивность слабеет.
+        | {{ $t('capital.superpositionHelpDialog.summaryIntro') }}
+        |  {{ $t('capital.superpositionHelpDialog.resonanceIntroPre') }}
+        strong  {{ $t('capital.superpositionHelpDialog.resonanceWord') }}
+        | {{ $t('capital.superpositionHelpDialog.resonanceIntroPost') }}
+        |  {{ $t('capital.superpositionHelpDialog.intensityWeakens') }}
       p.sp-help__p
-        | Когда движение согласовано, сила продвижения растёт.
-        |  Когда ритмы разные — часть энергии не доходит до цели.
-        |  На мишени это видно сразу по форме, цвету и трём числам сверху.
+        | {{ $t('capital.superpositionHelpDialog.alignedGrowth') }}
+        |  {{ $t('capital.superpositionHelpDialog.mixedRhythmsLoss') }}
+        |  {{ $t('capital.superpositionHelpDialog.visibleOnTarget') }}
 
     .sp-help__step
       .sp-help__step-num 1
       .sp-help__step-body
-        .sp-help__h Откуда берётся картина
+        .sp-help__h {{ $t('capital.superpositionHelpDialog.sourceHeading') }}
         p.sp-help__p
-          | У каждой метрики свой ход во времени: то ближе к цели, то дальше.
-          |  Тип метрики не важен — деньги, сроки, охват или что угодно ещё.
-          |  Мы сравниваем не единицы измерения, а
-          strong  характер движения
-          | : идёт ли метрика к цели или отступает.
+          | {{ $t('capital.superpositionHelpDialog.metricOwnPath') }}
+          |  {{ $t('capital.superpositionHelpDialog.metricTypeIrrelevant') }}
+          |  {{ $t('capital.superpositionHelpDialog.compareNotUnitsPre') }}
+          strong  {{ $t('capital.superpositionHelpDialog.movementCharacterWord') }}
+          | {{ $t('capital.superpositionHelpDialog.compareNotUnitsPost') }}
         svg.sp-help__chart(
           viewBox='0 0 320 88',
           role='img',
-          aria-label='Две волны движения'
+          :aria-label='$t("capital.superpositionHelpDialog.wavesAriaLabel")'
         )
           line.sp-help__axis(x1='8', y1='44', x2='312', y2='44')
           path.sp-help__wave.sp-help__wave--pos(
@@ -44,26 +44,26 @@ BaseDialog(
           )
         .sp-help__legend
           span.sp-help__dot.sp-help__dot--pos
-          span К цели
+          span {{ $t('capital.superpositionHelpDialog.toTargetLabel') }}
           span.sp-help__dot.sp-help__dot--neg
-          span От цели
+          span {{ $t('capital.superpositionHelpDialog.fromTargetLabel') }}
 
     .sp-help__step
       .sp-help__step-num 2
       .sp-help__step-body
-        .sp-help__h Почему важен общий ритм
+        .sp-help__h {{ $t('capital.superpositionHelpDialog.rhythmHeading') }}
         p.sp-help__p
-          | Если несколько метрик движутся к целям согласованно, общий результат
-          |  усиливается. Если одна идёт вперёд, а другая назад — общий эффект слабее:
-          |  усилия тратятся, но точка продвижения почти не углубляется.
+          | {{ $t('capital.superpositionHelpDialog.alignedResultPre') }}
+          |  {{ $t('capital.superpositionHelpDialog.alignedResultMid') }}
+          |  {{ $t('capital.superpositionHelpDialog.effortWasted') }}
         p.sp-help__p
-          | Поэтому на экране важны не только «есть ли рост», но и
-          strong  насколько рост согласован
-          | . Согласованное движение даёт большую интенсивность продвижения к целям.
+          | {{ $t('capital.superpositionHelpDialog.notOnlyGrowthPre') }}
+          strong  {{ $t('capital.superpositionHelpDialog.howAlignedGrowthWord') }}
+          | {{ $t('capital.superpositionHelpDialog.alignedMovementGives') }}
         svg.sp-help__chart(
           viewBox='0 0 320 88',
           role='img',
-          aria-label='Согласованное сложение движений'
+          :aria-label='$t("capital.superpositionHelpDialog.alignedSumAriaLabel")'
         )
           line.sp-help__axis(x1='8', y1='44', x2='312', y2='44')
           path.sp-help__wave.sp-help__wave--ghost(
@@ -80,33 +80,33 @@ BaseDialog(
           )
         .sp-help__legend
           span.sp-help__dot.sp-help__dot--ghost
-          span Движения по отдельности
+          span {{ $t('capital.superpositionHelpDialog.movementsSeparately') }}
           span.sp-help__dot.sp-help__dot--sum
-          span Общий эффект при согласии
+          span {{ $t('capital.superpositionHelpDialog.combinedEffectAligned') }}
 
     .sp-help__step
       .sp-help__step-num 3
       .sp-help__step-body
-        .sp-help__h Как читать мишень
+        .sp-help__h {{ $t('capital.superpositionHelpDialog.readTargetHeading') }}
         p.sp-help__p
-          | Круг — тот же общий эффект в удобном виде. Секторы
-          strong  неравные
-          | : так видно давление и перекос баланса.
+          | {{ $t('capital.superpositionHelpDialog.circleSectorsIntro') }}
+          strong  {{ $t('capital.superpositionHelpDialog.unequalWord') }}
+          | {{ $t('capital.superpositionHelpDialog.pressureImbalance') }}
         ul.sp-help__list
           li
-            strong Ширина сектора
-            |  — сила влияния. Шире — сильнее давит на общую картину.
+            strong {{ $t('capital.superpositionHelpDialog.sectorWidthLabel') }}
+            |  {{ $t('capital.superpositionHelpDialog.sectorWidthExplain') }}
           li
-            strong Длина от центра
-            |  — движение: насколько метрика сейчас активна. Короче — слабее пульс.
+            strong {{ $t('capital.superpositionHelpDialog.centerLengthLabel') }}
+            |  {{ $t('capital.superpositionHelpDialog.centerLengthExplain') }}
           li
-            strong Зелёный
-            |  — рост к цели.
-            strong  Красный
-            |  — рост от цели (откат).
+            strong {{ $t('capital.superpositionHelpDialog.greenWord') }}
+            |  {{ $t('capital.superpositionHelpDialog.greenExplain') }}
+            strong  {{ $t('capital.superpositionHelpDialog.redWord') }}
+            |  {{ $t('capital.superpositionHelpDialog.redExplain') }}
           li
-            strong Центр
-            |  — сводка: резонанс и три составляющие. Наведите курсор.
+            strong {{ $t('capital.superpositionHelpDialog.centerWord') }}
+            |  {{ $t('capital.superpositionHelpDialog.centerExplain') }}
         SuperpositionTargetChart.sp-help__target-chart(
           :sectors='helpSectors',
           :size='200',
@@ -116,65 +116,65 @@ BaseDialog(
           :core-r='14',
           :core-fill='helpCoreFill',
           grad-prefix='help-',
-          aria-label='Пример мишени с неравными секторами'
+          :aria-label='$t("capital.superpositionHelpDialog.exampleAriaLabel")'
         )
         .sp-help__legend
           span.sp-help__dot.sp-help__dot--pos
-          span К цели, разная сила
+          span {{ $t('capital.superpositionHelpDialog.toTargetVaryingStrength') }}
           span.sp-help__dot.sp-help__dot--neg
-          span Откат
+          span {{ $t('capital.superpositionHelpDialog.rollbackWord') }}
 
     .sp-help__step
       .sp-help__step-num 4
       .sp-help__step-body
-        .sp-help__h Числа над мишенью
+        .sp-help__h {{ $t('capital.superpositionHelpDialog.numbersAboveHeading') }}
         p.sp-help__p
-          | В одном ряду четыре показателя: баланс, рост, движение и выделенный
-          strong  резонанс
-          | — единый процент от 0 до 100.
+          | {{ $t('capital.superpositionHelpDialog.fourIndicatorsPre') }}
+          strong  {{ $t('capital.superpositionHelpDialog.resonanceWord') }}
+          | {{ $t('capital.superpositionHelpDialog.percentFrom0to100') }}
         ul.sp-help__list
           li
-            strong Движение
-            |  — есть ли сейчас изменения. Ноль — тишина. Выше нуля — метрики менялись.
+            strong {{ $t('capital.superpositionHelpDialog.movementWord') }}
+            |  {{ $t('capital.superpositionHelpDialog.movementExplain') }}
           li
-            strong Рост
-            |  — ведут ли эти изменения к целям. Ноль — к целям сейчас не продвигаемся.
-            |  Выше — есть продвижение вперёд.
+            strong {{ $t('capital.superpositionHelpDialog.growthWord') }}
+            |  {{ $t('capital.superpositionHelpDialog.growthExplainPre') }}
+            |  {{ $t('capital.superpositionHelpDialog.growthExplainPost') }}
           li
-            strong Баланс
-            |  — согласованы ли направления метрик. Сто процентов — все в одной фазе
-            |  (или тишина, когда никто не тянет). Ниже — часть идёт к цели, часть от неё, усилия гасятся.
+            strong {{ $t('capital.superpositionHelpDialog.balanceWord') }}
+            |  {{ $t('capital.superpositionHelpDialog.balanceExplainPre') }}
+            |  {{ $t('capital.superpositionHelpDialog.balanceExplainPost') }}
           li
-            strong Резонанс
-            |  — сводный показатель из баланса, роста и движения.
+            strong {{ $t('capital.superpositionHelpDialog.resonanceWordStandalone') }}
+            |  {{ $t('capital.superpositionHelpDialog.resonanceExplain') }}
 
     .sp-help__step
       .sp-help__step-num 5
       .sp-help__step-body
-        .sp-help__h К чему стремиться
+        .sp-help__h {{ $t('capital.superpositionHelpDialog.strivingHeading') }}
         p.sp-help__p
-          | Чтобы система входила в резонанс и держала его, ориентируйтесь на три условия:
+          | {{ $t('capital.superpositionHelpDialog.threeConditionsIntro') }}
         ul.sp-help__list
           li
-            strong Рост не ниже нуля
-            |  — есть продвижение к целям, а не откат.
+            strong {{ $t('capital.superpositionHelpDialog.growthNotBelowZero') }}
+            |  {{ $t('capital.superpositionHelpDialog.growthNotBelowZeroExplain') }}
           li
-            strong Движение выше нуля
-            |  — процесс живой, метрики меняются, а не стоят на месте.
+            strong {{ $t('capital.superpositionHelpDialog.movementAboveZero') }}
+            |  {{ $t('capital.superpositionHelpDialog.movementAboveZeroExplain') }}
           li
-            strong Баланс стремится к 100%
-            |  — направления согласованы, метрики не гасят друг друга.
+            strong {{ $t('capital.superpositionHelpDialog.balanceTowards100') }}
+            |  {{ $t('capital.superpositionHelpDialog.balanceTowards100Explain') }}
         p.sp-help__p
-          | Вместе это даёт высокий процент
-          strong  резонанса
-          | : живое согласованное движение вперёд и максимальная интенсивность продвижения к целям.
+          | {{ $t('capital.superpositionHelpDialog.togetherHighPercentPre') }}
+          strong  {{ $t('capital.superpositionHelpDialog.resonanceWordGenitive') }}
+          | {{ $t('capital.superpositionHelpDialog.togetherHighPercentPost') }}
 
   template(#footer)
     BaseButton(
       variant='primary',
       type='button',
       @click='emit("update:modelValue", false)'
-    ) Понятно
+    ) {{ $t('capital.superpositionHelpDialog.acknowledgeAction') }}
 </template>
 
 <script setup lang="ts">
@@ -183,6 +183,7 @@ import { useQuasar } from 'quasar';
 import { BaseButton, BaseDialog } from 'src/shared/ui/base';
 import { buildPolarSectors, softHeatColor } from '../lib/superpositionPolar';
 import SuperpositionTargetChart from './SuperpositionTargetChart.vue';
+import { t } from '../../../../i18n';
 
 defineProps<{
   modelValue: boolean;
@@ -205,19 +206,19 @@ const helpSectors = computed(() => {
     [
       {
         metric_hash: 'help-strong',
-        title: 'Сильная к цели',
+        title: t('capital.superpositionHelpDialog.strongToTargetTag'),
         amplitude: 1,
         phase_rad: 0,
       },
       {
         metric_hash: 'help-weak',
-        title: 'Слабая к цели',
+        title: t('capital.superpositionHelpDialog.weakToTargetTag'),
         amplitude: 0.28,
         phase_rad: 0,
       },
       {
         metric_hash: 'help-corr',
-        title: 'Откат',
+        title: t('capital.superpositionHelpDialog.rollbackWord'),
         amplitude: 0.62,
         phase_rad: Math.PI,
       },

@@ -12,6 +12,7 @@
 //
 // Фикстура: председатель кооператива.
 
+import { runSeedPhase } from '../../../lib/fixtures.mjs';
 import { cleanViteOverlays, env, loginAsChairman } from '../../../lib/harness.mjs';
 
 /** Причина списания — обязательна, её увидит совет в Заявлении. */
@@ -35,6 +36,11 @@ export const meta = {
 };
 
 export default async ({ page, shot, expect, context }) => {
+  // Робот совета утверждает списание за секунду — ручной путь совета (сценарий
+  // writeoff-authorize) с ним не снять. Выключаем; обратно включает
+  // writeoff-authorize после своих кадров.
+  runSeedPhase('08-robot-off', { log: (m) => console.log(`[writeoff-submit] ${m}`) });
+
   await loginAsChairman(page, context);
 
   await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/market-admin/writeoffs`, {
@@ -51,40 +57,55 @@ export default async ({ page, shot, expect, context }) => {
   const firstCandidate = page.locator('.q-table tbody tr').first();
   await firstCandidate.waitFor({ state: 'visible', timeout: 30000 });
 
+  // Главное действие стола — кнопка «Отправить» в шапке. Пока ничего не
+  // выделено, она закрыта: пустой проект в совет не уходит.
+  const submitBtn = page.locator('#header-actions-host button').filter({ hasText: 'Отправить' }).first();
+
   await shot(
     page,
     '01-candidates',
-    'Кандидаты на списание — имущество на складах участков. «Просрочен» — первоочередные, «Без гарантии» — можно списать сразу, «Годен» — ещё в сроке. Пока ничего не выделено, подписать Заявление нельзя, а поле причины заблокировано.',
+    'Кандидаты на списание — имущество на складах участков. «Просрочен» — первоочередные, «Без гарантии» — можно списать сразу, «Годен» — ещё в сроке. Пока ничего не выделено, кнопка «Отправить» в шапке закрыта.',
     {
-      expect: async (p) => {
-        // Пустой проект в совет не уходит: без выделенных позиций главное
-        // действие стола заблокировано.
-        await expect(p.locator('button:has-text("Подписать и отправить в совет")').first())
-          .toBeDisabled({ timeout: 20000 });
+      expect: async () => {
+        await expect(submitBtn).toBeDisabled({ timeout: 20000 });
       },
     },
   );
 
   await firstCandidate.locator('.q-checkbox').first().click();
   await page.waitForTimeout(500);
-
-  // Поле причины разблокируется вместе с выделением — до него оно disabled.
-  const reasonField = page.locator('.q-field', { hasText: 'Причина списания' }).first();
-  await reasonField.locator('input').first().fill(WRITEOFF_REASON);
-  await page.waitForTimeout(400);
   await cleanViteOverlays(page);
 
   await shot(
     page,
     '02-selected',
-    'Позиция выделена, причина указана. Главное действие стола — «Подписать и отправить в совет» — стало доступным в шапке и показывает число выделенных позиций.',
+    'Позиция выделена: кнопка «Отправить» в шапке стала доступной и показывает число выделенных позиций, под таблицей — их сумма.',
+    {
+      expect: async () => {
+        await expect(submitBtn).toBeEnabled({ timeout: 20000 });
+      },
+    },
   );
 
-  await page.locator('button:has-text("Подписать и отправить в совет")').first().click({ timeout: 20000 });
+  await submitBtn.click({ timeout: 20000 });
 
-  // Заявление формируется сервером — ждём сам документ, а не паузу.
-  const signDialog = page.locator('.q-dialog').filter({ hasText: 'Подписание Заявления о списании' }).first();
-  await signDialog.waitFor({ state: 'visible', timeout: 30000 });
+  // Окно «Отправка списания в совет»: сначала причина, затем Заявление.
+  const dialog = page.locator('[id^="q-portal--dialog--"]').filter({ hasText: 'Причина списания' }).first();
+  // Обёртка портала для Playwright «скрыта» всегда — ждём поле внутри окна.
+  const reasonInput = dialog.locator('.q-field', { hasText: 'Причина списания' }).locator('input').first();
+  await reasonInput.waitFor({ state: 'visible', timeout: 30000 });
+  await reasonInput.fill(WRITEOFF_REASON);
+  await page.waitForTimeout(400);
+
+  await shot(
+    page,
+    '02b-reason',
+    'Окно отправки в совет: число выделенных позиций, их сумма и причина списания. Причина попадает в Заявление и в проект решения совета.',
+  );
+
+  // «Далее» — последняя кнопка подвала окна; сервер формирует Заявление.
+  await dialog.locator('button:has-text("Далее")').last().click();
+  const signDialog = page.locator('[id^="q-portal--dialog--"]').filter({ has: page.locator('.submit-council__doc') }).first();
   await signDialog.locator('.submit-council__doc').waitFor({ state: 'visible', timeout: 60000 });
   await page.waitForTimeout(800);
   await cleanViteOverlays(page);
@@ -95,12 +116,14 @@ export default async ({ page, shot, expect, context }) => {
     'Заявление о списании скоропорта целиком: состав имущества, суммы, причина. Подпись председателя выносит вопрос на повестку совета — сама по себе она имущество не списывает.',
   );
 
-  await signDialog.locator('button:has-text("Подписать и отправить в совет")').last().click();
+  // «Подписать» — последняя кнопка подвала окна с документом.
+  await signDialog.locator('button').last().click();
 
-  // После подписи стол сам переключается на вкладку «На повестке». Ждём именно
-  // строку ленты, а не текст «На повестке»: так называется ещё и таб, он есть
-  // на странице всегда, и ожидание по тексту прошло бы мгновенно и впустую.
-  await page.locator('.writeoffs__row').first().waitFor({ state: 'visible', timeout: 90000 });
+  // После подписи стол сам переключается на вкладку «На повестке». Ждём строку
+  // таблицы проектов со статусом, а не текст «На повестке»: так называется
+  // ещё и вкладка, она есть на странице всегда.
+  const agendaRow = page.locator('tbody tr').filter({ hasText: 'На повестке' }).first();
+  await agendaRow.waitFor({ state: 'visible', timeout: 90000 });
   await page.waitForTimeout(2000);
   await cleanViteOverlays(page);
 
@@ -109,12 +132,10 @@ export default async ({ page, shot, expect, context }) => {
     '04-on-agenda',
     'Проект списания на повестке совета. Дальше слово за советом: он утверждает списание протоколом, и только после этого председатель участка проводит выбытие со склада.',
     {
-      expect: async (p) => {
+      expect: async () => {
         // Проверяем результат, а не факт подписи: проект обязан появиться в
-        // ленте именно со статусом «На повестке».
-        await expect(p.locator('.writeoffs__row').first()).toBeVisible({ timeout: 30000 });
-        await expect(p.locator('.writeoffs__row').filter({ hasText: 'На повестке' }).first())
-          .toBeVisible({ timeout: 30000 });
+        // таблице именно со статусом «На повестке».
+        await expect(agendaRow).toBeVisible({ timeout: 30000 });
       },
     },
   );

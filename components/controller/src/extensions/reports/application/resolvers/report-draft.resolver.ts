@@ -1,10 +1,8 @@
 import { Args, Int, Mutation, Query, Resolver } from '@nestjs/graphql';
-import { BadRequestException, Inject, NotFoundException, UseGuards } from '@nestjs/common';
+import { Inject, NotFoundException, UseGuards } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
 import { validate, type ValidationError } from 'class-validator';
-import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser,
-  platformSettings,
-} from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, CurrentUser, platformSettings, DomainError, RequireRight, RightsGuard } from '@coopenomics/extension-kit';
 import type { IMonoAccount } from '@coopenomics/innercoop';
 import { ReportType } from '../../domain/enums/report-type.enum';
 import {
@@ -26,6 +24,11 @@ import { ZeroReportEditsInputDTO } from '../dto/zero-report-edits.dto';
 import { Ndfl6EditsInputDTO } from '../dto/ndfl6-edits.dto';
 import { UvNdflEditsInputDTO } from '../dto/uv-ndfl-edits.dto';
 
+/**
+ * Черновики отчётов. Читать черновик, собирать начальные значения и проверять
+ * поля вправе каждый, кто читает отчёты (член совета, ревизор) — отчёт
+ * открывается на просмотр; сохранять и удалять черновик — право ведения.
+ */
 @Resolver()
 export class ReportDraftResolver {
   constructor(
@@ -40,8 +43,8 @@ export class ReportDraftResolver {
       'Построить предзаполненные edits для формы: дефолты (ledger2 + реквизиты + корректировки), ' +
       'с наложением dirty-полей существующего черновика (если он есть).',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Report', 'read')
   async buildInitialReportEdits(
     @Args('reportType', { type: () => ReportType }) reportType: ReportType,
     @Args('year', { type: () => Int }) year: number,
@@ -76,8 +79,8 @@ export class ReportDraftResolver {
     name: 'saveReportDraft',
     description: 'Сохранить/обновить черновик формы отчёта (upsert по owner+type+year+period)',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Report', 'draft')
   async saveReportDraft(
     @Args('input') input: SaveReportDraftInputDTO,
     @CurrentUser() currentUser: IMonoAccount,
@@ -100,8 +103,8 @@ export class ReportDraftResolver {
     nullable: true,
     description: 'Получить черновик формы отчёта по типу+году+периоду (null если не существует)',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Report', 'read')
   async getReportDraft(
     @Args('reportType', { type: () => ReportType }) reportType: ReportType,
     @Args('year', { type: () => Int }) year: number,
@@ -122,8 +125,8 @@ export class ReportDraftResolver {
     name: 'listReportDrafts',
     description: 'Список черновиков форм отчётов текущего пользователя (с опциональной фильтрацией)',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Report', 'read')
   async listReportDrafts(
     @Args('filter', { type: () => ListReportDraftsFilterInputDTO, nullable: true })
     filter: ListReportDraftsFilterInputDTO | undefined,
@@ -145,8 +148,8 @@ export class ReportDraftResolver {
       'Валидировать edits-состояние формы: возвращает список ошибок полей ' +
       'с JSONPath (совпадает с editedFields-путями на клиенте).',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Report', 'read')
   async validateReportEdits(
     @Args('reportType', { type: () => ReportType }) reportType: ReportType,
     @Args('editsJson') editsJson: string,
@@ -155,9 +158,7 @@ export class ReportDraftResolver {
     try {
       parsed = JSON.parse(editsJson);
     } catch (err) {
-      throw new BadRequestException(
-        `editsJson: невалидный JSON (${err instanceof Error ? err.message : String(err)})`,
-      );
+      throw DomainError.badRequest('REPORTS_EDITS_JSON_INVALID', { message: err instanceof Error ? err.message : String(err) });
     }
     const dto = this.buildEditsInputDto(reportType, parsed);
     const errors = await validate(dto, { whitelist: false, forbidNonWhitelisted: false });
@@ -168,8 +169,8 @@ export class ReportDraftResolver {
     name: 'deleteReportDraft',
     description: 'Удалить черновик по id (только владелец)',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Report', 'draft')
   async deleteReportDraft(
     @Args('id') id: string,
     @CurrentUser() currentUser: IMonoAccount,
@@ -229,9 +230,7 @@ export class ReportDraftResolver {
     try {
       return JSON.parse(raw);
     } catch (err) {
-      throw new BadRequestException(
-        `editsJson: невалидный JSON (${err instanceof Error ? err.message : String(err)})`,
-      );
+      throw DomainError.badRequest('REPORTS_EDITS_JSON_INVALID', { message: err instanceof Error ? err.message : String(err) });
     }
   }
 

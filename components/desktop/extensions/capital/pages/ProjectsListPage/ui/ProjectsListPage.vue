@@ -191,6 +191,7 @@ function registerListHeaderActions(): void {
 }
 
 // Регистрируем действия в header только на корне списка
+// realtime: нет источника на странице — при открытии читается только раскрытие строк из браузера, данные грузит живой виджет списка.
 onMounted(async () => {
   // Загружаем сохраненное состояние expanded из LocalStorage
   loadProjectsExpandedState();

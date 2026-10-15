@@ -8,4 +8,5 @@ export interface CreateMembershipExitInputDomainInterface {
   username: string;
   exit_hash: string;
   statement: ISignedDocument;
+  annulment?: ISignedDocument;
 }

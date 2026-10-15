@@ -36,16 +36,39 @@ title: Списки Благороста — раздел «Компоненты
 # вложенные компоненты раскрытого проекта сортируются локально тем же полем
 # (shared/lib/listSort.ts). Права и инлайн-редактирование — в capital.priorities.
 
+# 2026-08-21: дерево маршрутов (projectTreeChildren.ts) переведено с meta.roles на
+# meta.requires='Capital:access' — канон грантов, см. extensions.narrowing-policies.
+# Поведение фильтров/сортировок не затронуто.
+# Правка 24.09.2026 (C28-83): ленты проектов, компонентов и задач живут по
+# ленте изменений — по сигналу перечитываются все показанные страницы одним
+# запросом (окно liveWindow), тихо, с сохранением позиции прокрутки. Фильтры,
+# сортировка и набор случаев не менялись.
+
+# Правка 24.09.2026 (C28-83), экраны: страницы, виджеты и панели фичи живут по
+# ленте изменений Благороста (CAPITAL_LIVE_TABLES); формы, диалоги выбора и
+# редакторы помечены «realtime: нет источника» с причиной. Поведение и набор
+# случаев не менялись.
+
+# Правка 24.09.2026 (C28-83): «развернуть все компоненты» срабатывает, когда
+# включён режим и пришёл список компонентов, — без задержек 200 и 50 мс;
+# искусственный скелетон на 100 мс при раскрытии компонента снят. Набор
+# случаев прежний.
+
+# Правка 25.09.2026 (C28-80): деловые отказы (не найдено, нет прав, уже есть,
+# неверный ввод) отвечают своим статусом — 404, 403, 409, 400, — а не 500
+# «внутренняя ошибка»: коды и тексты прежние, меняется только статус ответа, и
+# такие отказы больше не попадают в журнал ошибок сервера как поломки.
+
 sources:
   backend:
-    - components/controller/src/extensions/capital/infrastructure/repositories/sort-column.util.ts
-    - components/controller/src/extensions/capital/infrastructure/repositories/issue.typeorm-repository.ts
-    - components/controller/src/extensions/capital/infrastructure/repositories/project.typeorm-repository.ts
-    - components/controller/src/extensions/capital/infrastructure/repositories/commit.typeorm-repository.ts
-    - components/controller/src/extensions/capital/infrastructure/repositories/contributor.typeorm-repository.ts
-    - components/controller/src/extensions/capital/infrastructure/repositories/segment.typeorm-repository.ts
-    - components/controller/src/extensions/capital/infrastructure/repositories/story.typeorm-repository.ts
-    - components/controller/src/extensions/capital/infrastructure/repositories/time-entry.typeorm-repository.ts
+    - components/extension-kit/src/utils/sort-column.utils.ts
+    - components/controller/src/extensions/capital/infrastructure/repositories/issue.kysely-repository.ts
+    - components/controller/src/extensions/capital/infrastructure/repositories/project.kysely-repository.ts
+    - components/controller/src/extensions/capital/infrastructure/repositories/commit.kysely-repository.ts
+    - components/controller/src/extensions/capital/infrastructure/repositories/contributor.kysely-repository.ts
+    - components/controller/src/extensions/capital/infrastructure/repositories/segment.kysely-repository.ts
+    - components/controller/src/extensions/capital/infrastructure/repositories/story.kysely-repository.ts
+    - components/controller/src/extensions/capital/infrastructure/repositories/time-entry.kysely-repository.ts
     - components/controller/src/extensions/capital/application/dto/property_management/project-filter.input.ts
     - components/controller/src/extensions/capital/application/dto/generation/issue-filter.input.ts
   ui:
@@ -76,6 +99,7 @@ cases:
     scenario: список запрашивается с сортировкой по колонке сущности
     expect: сортировка применяется по этой колонке
     test: components/controller/tests/unit/capital/list-sort-column.test.ts
+    api: components/api-tests/src/capital/list-filters-sort.test.ts
     status: written
 
   - id: cap.lists.side.01
@@ -84,6 +108,7 @@ cases:
     scenario: поле сортировки не передано
     expect: список сортируется умолчанием, отказа нет
     test: components/controller/tests/unit/capital/list-sort-column.test.ts
+    api: components/api-tests/src/capital/list-filters-sort.test.ts
     status: written
 
   - id: cap.lists.side.02
@@ -92,14 +117,23 @@ cases:
     scenario: клиент прислал имя поля, которого у сущности нет (устаревшая ссылка, опечатка)
     expect: список отдаётся, сортировка падает на умолчание
     test: components/controller/tests/unit/capital/list-sort-column.test.ts
+    api: components/api-tests/src/capital/list-filters-sort.test.ts
     status: written
 
   - id: cap.lists.break.01
     level: backend
     kind: break
     scenario: в поле сортировки дописан SQL
-    expect: имя отвергается, применяется умолчание
+    expect: >
+      запрос отклоняется проверкой ввода (422) до построения запроса — то же
+      правило, что platform.sort.break.01; выбор колонки такое имя тоже не
+      пропускает и берёт умолчание — второй рубеж, если проверку ввода обойдут
+    # Сведено с platform.list-sort-order-by 25.09.2026 (C28-80): прежде здесь
+    # было «применяется умолчание», а платформенный реестр говорил «отказ».
+    # Посторонние символы — отказ; допустимое имя без колонки — умолчание
+    # (cap.lists.side.02, platform.sort.break.02).
     test: components/controller/tests/unit/capital/list-sort-column.test.ts
+    api: components/api-tests/src/capital/list-filters-sort.test.ts
     status: written
 
   # ── Что попадает в списки ─────────────────────────────────────────────────
@@ -180,6 +214,7 @@ cases:
     scenario: задачи запрашиваются без указания компонента пайщиком без допуска к чужому проекту
     expect: чужие задачи не попадают в выборку и не считаются в totalCount
     test: components/controller/tests/unit/capital/artifact-and-communication-access.test.ts
+    api: components/api-tests/src/capital/list-filters-sort.test.ts
     status: written
 
 # 2026-08-18: в ComponentListRow исправлено имя события перехода к родительскому
@@ -248,3 +283,36 @@ cases:
       странице задачи (право приходит с самой задачей, не от списка)
     status: missing
 
+
+  - id: cap.lists.side.94
+    level: backend
+    kind: side
+    scenario: >
+      хранилища зеркал Благороста после перевода на Kysely: условия правки и
+      удаления записей времени, выборка коммитов и историй проекта, чтение
+      проекта и адресов репозиториев; создание записи из дельты и версии перед
+      изменением
+    expect: >
+      условия запросов прежние: правятся и удаляются только подходящие записи,
+      хэши ищутся в нижнем регистре, удалённые в цепи проекты не отдаются;
+      устаревшая дельта запись не затирает, прежнее состояние перед изменением
+      уходит в версии
+    test: components/controller/tests/unit/capital/capital-chain-mirrors.test.ts
+    external: unreachable
+    external_reason: "проверяются условия запросов к базе и порядок работы с версиями — снаружи они не видны; поведение фичи через API покрыто её случаями во внешнем слое"
+    status: written
+
+# 2026-09-23 (EEA-6…EEA-9): тексты интерфейса, отказов и уведомлений фичи вынесены из
+# кода в словари i18n, отказы бэкенда переведены на DomainError с кодом — текст
+# и HTTP-статус ответа прежние. Сценарии фичи и её проверки не менялись.
+
+  # Скрытые страницы дерева проекта называют право стола вместо пустого списка
+  # ролей (C28-87, финал, 05.10.2026): ролей в маршрутах стола больше нет.
+  - id: cap.lists.side.95
+    level: backend
+    kind: side
+    scenario: страницы стола Благороста открывает кандидат, пайщик, член совета и председатель
+    expect: права страниц выдаёт таблица прав Благороста; страницы совета и настройки закрыты пайщику
+    test: components/controller/tests/unit/capital/capital-rights.test.ts
+    api: components/api-tests/src/rights/matrix.test.ts
+    status: written

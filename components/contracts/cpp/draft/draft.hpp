@@ -42,16 +42,18 @@
  */
 // Константы будут добавлены по мере необходимости
 
-class [[eosio::contract(DRAFT)]] draft : public eosio::contract {
+class [[eosio::contract(DRAFT)]] draft : public coop_contract {
 
 public:
   draft(eosio::name receiver, eosio::name code,
         eosio::datastream<const char *> ds)
-      : eosio::contract(receiver, code, ds) {}
+      : coop_contract(receiver, code, ds) {}
 
   void apply(uint64_t receiver, uint64_t code, uint64_t action);
   
   [[eosio::action]] void migrate();
+  /// Очистка отработавших записей по правилам контракта (lib/core/cleanup.hpp); плейбук вызывает её на каждом деплое.
+  [[eosio::action]] void cleanup();
   
   [[eosio::action]] void newid(eosio::name scope, uint64_t id);
 
@@ -69,6 +71,9 @@ public:
   [[eosio::action]] void edittrans(eosio::name scope, eosio::name username, uint64_t translate_id, std::string data);
 
   [[eosio::action]] void upversion(eosio::name scope, eosio::name username, uint64_t registry_id);
+
+  [[eosio::action]] void approve(eosio::name coopname, eosio::name username, uint64_t registry_id, uint64_t version,
+      uint64_t decision_id, eosio::time_point_sec approved_at, eosio::checksum256 text_hash);
 
   struct [[eosio::table, eosio::contract(DRAFT)]] counts : counts_base {};
   
@@ -89,3 +94,6 @@ public:
     return payer;
   }
 };
+
+// Плательщик за оперативную память строк таблицы — правило в lib/core/ram_payer.hpp.
+RAM_PAYER_CLASS(draft::counts, contract);

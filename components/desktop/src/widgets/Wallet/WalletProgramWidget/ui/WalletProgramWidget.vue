@@ -8,11 +8,11 @@
     v-if='minimumBalance',
     neutral,
     icon='savings',
-    title='Минимальный неснижаемый остаток',
-    subtitle='Возвращается при выходе из кооператива',
+    :title='$t("wallet.walletProgramWidget.minBalanceTitle")',
+    :subtitle='$t("wallet.walletProgramWidget.minBalanceSubtitle")',
     :balance='minimumBalance.amount',
     :symbol='minimumBalance.symbol',
-    balance-label='Зарезервировано'
+    :balance-label='$t("wallet.walletProgramWidget.reservedLabel")'
   )
 
   WalletCard(
@@ -29,8 +29,8 @@
 
 EmptyState(
   v-else,
-  title='Нет кошельков',
-  body='У вас пока нет кошельков на столе пайщика.'
+  :title='$t("wallet.walletProgramWidget.emptyTitle")',
+  :body='$t("wallet.walletProgramWidget.emptyBody")'
 )
   template(#icon)
     q-icon(name='inbox', size='48px')
@@ -86,8 +86,14 @@ const walletByName = computed<Map<string, IUserWalletData>>(() => {
   return map;
 });
 
+/** Есть ли на кошельке средства: доступные либо заблокированные. */
+const hasFunds = (row?: IUserWalletData): boolean => parseFloat(row?.available || '0') > 0 || parseFloat(row?.blocked || '0') > 0;
+
 const cardEntries = computed<WalletCardEntry[]>(() =>
-  collectWalletCards(installedExtensions.value).map((card) => {
+  collectWalletCards(installedExtensions.value)
+    // Кошелёк одной роли (преподаватель, поставщик) без средств карточку не занимает.
+    .filter((card) => !card.hideWhenEmpty || hasFunds(walletByName.value.get(card.wallet_name)))
+    .map((card) => {
     const row = walletByName.value.get(card.wallet_name);
     const available = splitAsset2Digits(row?.available);
     const blocked = splitAsset2Digits(row?.blocked);

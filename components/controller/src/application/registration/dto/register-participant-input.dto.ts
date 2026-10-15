@@ -1,8 +1,13 @@
 import { Field, InputType, registerEnumType } from '@nestjs/graphql';
-import { IsNotEmpty, IsOptional, IsString, ValidateNested } from 'class-validator';
+import { IsArray, IsNotEmpty, IsObject, IsOptional, IsString, ValidateNested } from 'class-validator';
+import { Type } from 'class-transformer';
+import { GraphQLJSON } from 'graphql-type-json';
 import { ParticipantApplicationSignedDocumentInputDTO } from '../../document/documents-dto/participant-application-document.dto';
-import { SignedDigitalDocumentInputDTO } from '@coopenomics/extension-kit';
-import type { RegisterParticipantDomainInterface } from '~/domain/participant/interfaces/register-participant-domain.interface';
+import { SignedDigitalDocumentInputDTO, validationMessage } from '@coopenomics/extension-kit';
+import type {
+  IntakeFormAnswerDomainInterface,
+  RegisterParticipantDomainInterface,
+} from '~/domain/participant/interfaces/register-participant-domain.interface';
 import { ProgramKey } from '~/domain/registration/enum';
 
 // Регистрируем enum для GraphQL
@@ -11,10 +16,22 @@ registerEnumType(ProgramKey, {
   description: 'Ключ выбранной программы регистрации',
 });
 
+@InputType('IntakeFormAnswerInput')
+export class IntakeFormAnswerInputDTO implements IntakeFormAnswerDomainInterface {
+  @Field({ description: 'Идентификатор анкеты из конфигурации регистрации' })
+  @IsNotEmpty({ message: validationMessage('registration.registerParticipantInput.formIdRequired') })
+  @IsString()
+  form_id!: string;
+
+  @Field(() => GraphQLJSON, { description: 'Значения полей анкеты: имя поля → значение' })
+  @IsObject({ message: validationMessage('registration.registerParticipantInput.valuesObjectRequired') })
+  values!: Record<string, unknown>;
+}
+
 @InputType('RegisterParticipantInput')
 export class RegisterParticipantInputDTO implements RegisterParticipantDomainInterface {
   @Field({ description: 'Имя аккаунта пайщика' })
-  @IsNotEmpty({ message: 'Поле "username" обязательно для заполнения.' })
+  @IsNotEmpty({ message: validationMessage('registration.registerParticipantInput.usernameRequired') })
   @IsString()
   username!: string;
 
@@ -27,35 +44,40 @@ export class RegisterParticipantInputDTO implements RegisterParticipantDomainInt
     description: 'Подписанный документ заявления на вступление в кооператив от пайщика',
   })
   @ValidateNested()
-  @IsNotEmpty({ message: 'Поле "statement" обязательно для заполнения.' })
+  @Type(() => ParticipantApplicationSignedDocumentInputDTO)
+  @IsNotEmpty({ message: validationMessage('registration.registerParticipantInput.statementRequired') })
   statement!: ParticipantApplicationSignedDocumentInputDTO;
 
   @Field(() => SignedDigitalDocumentInputDTO, {
     description: 'Подписанный документ политики конфиденциальности от пайщика',
   })
   @ValidateNested()
-  @IsNotEmpty({ message: 'Поле "privacy_agreement" обязательно для заполнения.' })
+  @Type(() => SignedDigitalDocumentInputDTO)
+  @IsNotEmpty({ message: validationMessage('registration.registerParticipantInput.privacyAgreementRequired') })
   privacy_agreement!: SignedDigitalDocumentInputDTO;
 
   @Field(() => SignedDigitalDocumentInputDTO, {
     description: 'Подписанный документ положения о цифровой подписи от пайщика',
   })
   @ValidateNested()
-  @IsNotEmpty({ message: 'Поле "signature_agreement" обязательно для заполнения.' })
+  @Type(() => SignedDigitalDocumentInputDTO)
+  @IsNotEmpty({ message: validationMessage('registration.registerParticipantInput.signatureAgreementRequired') })
   signature_agreement!: SignedDigitalDocumentInputDTO;
 
   @Field(() => SignedDigitalDocumentInputDTO, {
     description: 'Подписанный документ пользовательского соглашения от пайщика',
   })
   @ValidateNested()
-  @IsNotEmpty({ message: 'Поле "user_agreement" обязательно для заполнения.' })
+  @Type(() => SignedDigitalDocumentInputDTO)
+  @IsNotEmpty({ message: validationMessage('registration.registerParticipantInput.userAgreementRequired') })
   user_agreement!: SignedDigitalDocumentInputDTO;
 
   @Field(() => SignedDigitalDocumentInputDTO, {
     description: 'Подписанный документ положения целевой потребительской программы "Цифровой Кошелёк" от пайщика',
   })
   @ValidateNested()
-  @IsNotEmpty({ message: 'Поле "wallet_agreement" обязательно для заполнения.' })
+  @Type(() => SignedDigitalDocumentInputDTO)
+  @IsNotEmpty({ message: validationMessage('registration.registerParticipantInput.walletAgreementRequired') })
   wallet_agreement!: SignedDigitalDocumentInputDTO;
 
   @Field(() => SignedDigitalDocumentInputDTO, {
@@ -63,6 +85,7 @@ export class RegisterParticipantInputDTO implements RegisterParticipantDomainInt
     nullable: true,
   })
   @ValidateNested()
+  @Type(() => SignedDigitalDocumentInputDTO)
   @IsOptional()
   blagorost_offer?: SignedDigitalDocumentInputDTO;
 
@@ -71,6 +94,7 @@ export class RegisterParticipantInputDTO implements RegisterParticipantDomainInt
     nullable: true,
   })
   @ValidateNested()
+  @Type(() => SignedDigitalDocumentInputDTO)
   @IsOptional()
   generator_offer?: SignedDigitalDocumentInputDTO;
 
@@ -79,10 +103,21 @@ export class RegisterParticipantInputDTO implements RegisterParticipantDomainInt
     nullable: true,
   })
   @ValidateNested()
+  @Type(() => SignedDigitalDocumentInputDTO)
   @IsOptional()
   marketplace_offer?: SignedDigitalDocumentInputDTO;
 
   @Field(() => ProgramKey, { description: 'Ключ выбранной программы регистрации', nullable: true })
   @IsOptional()
   program_key?: ProgramKey;
+
+  @Field(() => [IntakeFormAnswerInputDTO], {
+    description: 'Ответы на анкеты вступления, которые объявили расширения для выбранной программы и типа аккаунта',
+    nullable: true,
+  })
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => IntakeFormAnswerInputDTO)
+  @IsOptional()
+  intake_answers?: IntakeFormAnswerInputDTO[];
 }

@@ -1,0 +1,182 @@
+name: UI docs
+
+# Визуальные сценарии docs-harness на стенде CI: кадры для документации,
+# вердикт сценария как теста и список кадров, которые разошлись с
+# документацией (components/docs). Стенд тот же, что у внешнего слоя
+# (blackbox.yaml, scripts/blackbox/stack.sh), плюс собранный SSR рабочий стол
+# и chromium для Playwright.
+#
+# Выход прогона — артефакт ui-docs-<приложение>-<run_id>: каталог
+# components/docs-harness/shots целиком (PNG, manifest.json, result.json,
+# draft.md, _suite/summary.json, _suite/diff.md). Скачать на стенд:
+#   pnpm docs:pull <приложение>            (components/docs-harness/bin/pull-run.mjs)
+# Дальше — как после локального прогона: проза в draft.md, lib/install.mjs.
+#
+# В релизный гейт сюита не входит и по расписанию не идёт: запуск — пушем в
+# ветку-полигон ci/ui-docs-<приложение> либо кнопкой workflow_dispatch.
+# Имя приложения берётся из имени ветки (ci/ui-docs-marketplace → marketplace)
+# или из поля запуска.
+on:
+  push:
+    branches: ['ci/ui-docs-*']
+  workflow_dispatch:
+    inputs:
+      app:
+        description: Приложение (каталог scenarios/<app> в docs-harness)
+        type: choice
+        required: true
+        default: marketplace
+        options: [marketplace, edubridge, blagorost]
+
+# Прогоны не отменяют друг друга — как у blackbox: полигон общий для
+# нескольких агентов, каждый пуш доводится до исхода.
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  ui-docs:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 240
+
+    env:
+      COMPOSE_FILE: ${{ github.workspace }}/docker-compose.yaml:${{ github.workspace }}/scripts/blackbox/docker-compose.blackbox.yml
+      BLACKBOX_OUT: ${{ github.workspace }}/.blackbox
+      CONTRACTS_MODE: test
+      APP: ${{ github.event.inputs.app || '' }}
+      # «Образование»: гарантийные сутки 30 с (14 дней = 7 мин), очередь взносов раз в минуту —
+      # путь взноса преподавателя от отчёта до выплаты укладывается в прогон.
+      GUARANTEE_DAY_SECONDS: 30
+      EDUBRIDGE_WORKER_PACE_SECONDS: 60
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Приложение
+        id: app
+        run: |
+          app="$APP"
+          if [ -z "$app" ]; then app="${GITHUB_REF_NAME#ci/ui-docs-}"; fi
+          echo "app=$app" >> "$GITHUB_OUTPUT"
+          echo "▸ приложение: $app"
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install workspace
+        run: pnpm install --frozen-lockfile
+
+      # Кеш контрактов общий с blackbox.yaml: ключ тот же.
+      - name: Контракты — кеш
+        id: contracts
+        uses: actions/cache/restore@v4
+        with:
+          path: components/contracts/build
+          key: blackbox-contracts-build-${{ env.CONTRACTS_MODE }}-${{ hashFiles('components/contracts/**', '!components/contracts/build/**', '!components/contracts/docs/**') }}
+          restore-keys: blackbox-contracts-build-${{ env.CONTRACTS_MODE }}-
+
+      - name: Контракты — CDT
+        if: steps.contracts.outputs.cache-hit != 'true'
+        timeout-minutes: 10
+        run: |
+          sudo apt-get -o Acquire::Retries=3 update
+          sudo apt-get -o Acquire::Retries=3 install -y --no-install-recommends \
+            curl ca-certificates cmake make build-essential \
+            libz3-4 libtinfo6 libxml2 zlib1g
+          curl -fsSL -o /tmp/cdt.deb \
+            https://git.coopenomics.world/C9S/cdt/releases/download/v4.2.0/cdt_4.2.0-1_amd64.deb
+          sudo apt-get install -y /tmp/cdt.deb
+          sudo mkdir -p /cdt
+          sudo ln -sfn /usr/opt/cdt/4.2.0 /cdt/build
+
+      - name: Контракты — компиляция
+        if: steps.contracts.outputs.cache-hit != 'true'
+        working-directory: components/contracts
+        env:
+          MAKEFLAGS: -j4
+        run: |
+          if [ -d build ]; then find build -type f -exec touch {} +; fi
+          ./build_contracts_cdt.sh "$CONTRACTS_MODE"
+
+      - name: Контракты — сохранить в кеш
+        if: steps.contracts.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: components/contracts/build
+          key: ${{ steps.contracts.outputs.cache-primary-key }}
+
+      # Собирает и рабочий стол (quasar build --mode ssr) — его запускает фаза desktop.
+      - name: Build all workspace packages
+        run: pnpm lerna run build
+
+      - name: Стенд — окружение и секреты
+        run: bash scripts/blackbox/stack.sh env
+
+      - name: Стенд — образ контроллера
+        run: bash scripts/blackbox/stack.sh image
+
+      - name: Стенд — базы, хранилище, CoopID, миграции
+        run: bash scripts/blackbox/stack.sh infra
+
+      - name: Стенд — цепь, контракты, совет и пайщики (boot:extra)
+        timeout-minutes: 30
+        run: bash scripts/blackbox/stack.sh boot
+
+      - name: Стенд — индексер и контроллер
+        id: app_up
+        timeout-minutes: 20
+        run: bash scripts/blackbox/stack.sh app
+
+      - name: Стенд — рабочий стол (SSR)
+        timeout-minutes: 15
+        run: bash scripts/blackbox/stack.sh desktop
+
+      - name: Браузер Playwright
+        timeout-minutes: 10
+        run: bash scripts/blackbox/stack.sh browser
+
+      - name: Сценарии ${{ steps.app.outputs.app }}
+        id: ui
+        timeout-minutes: 150
+        run: bash scripts/blackbox/stack.sh ui "${{ steps.app.outputs.app }}"
+
+      # Сравнение идёт и после красной сюиты: зелёные сценарии кадры сняли.
+      - name: Кадры против документации
+        if: always()
+        continue-on-error: true
+        run: bash scripts/blackbox/stack.sh uidiff "${{ steps.app.outputs.app }}"
+
+      - name: Логи стенда
+        if: always()
+        run: bash scripts/blackbox/stack.sh collect
+
+      - name: Артефакт — кадры и вердикты
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-docs-${{ steps.app.outputs.app }}-${{ github.run_id }}
+          path: components/docs-harness/shots
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Артефакт — логи стенда
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-docs-logs-${{ github.run_id }}
+          path: .blackbox
+          include-hidden-files: true
+          retention-days: 14
+
+      - name: Сводка
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash scripts/blackbox/stack.sh uisummary "${{ steps.app.outputs.app }}"

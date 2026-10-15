@@ -12,7 +12,7 @@
   // Или сообщение, если проект не загружен
   .breadcrumb-loading(v-else-if="project?.parent_hash && !parentProject")
     q-icon(name="folder", size="14px", color="grey-5")
-    span.text-grey-6 Загрузка проекта...
+    span.text-grey-6 {{ $t('capital.componentToProjectPathWidget.loadingText') }}
 
 
 </template>
@@ -78,6 +78,7 @@ watch(() => props.project, async (newProject) => {
 }, { immediate: true });
 
 // Инициализация
+// realtime: нет источника — данные приходят свойством от живого родителя и перечитываются здесь по watch.
 onMounted(async () => {
   if (props.project?.parent_hash) {
     await loadParentProject();

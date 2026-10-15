@@ -41,7 +41,7 @@ _Критичные правила и паттерны для AI-агентов 
 - **TypeScript 5.x** (strict mode; `noImplicitAny`, `strictNullChecks`)
 - **Node 20 LTS**
 - **NestJS** (`@nestjs/common`, `@nestjs/core`, `@nestjs/event-emitter`)
-- **TypeORM** + **PostgreSQL 14+**
+- **Kysely** (построитель запросов) + **PostgreSQL 14+**; TypeORM выведен из контроллера (C28-81)
 - **Redis 7+** (AOF + RDB **mandatory** для prod — startup validation)
 - **`@coopenomics/parser2` v1.0.0 MVP** (пост-миграция) + **`@coopenomics/coopos-ship-reader`** транзитивно
 - **`@wharfkit/antelope`** — chain SDK для submit
@@ -70,15 +70,21 @@ _Критичные правила и паттерны для AI-агентов 
 **NestJS / DI:**
 - Декораторы `@DomainKey({ primary, sync })` + `@SyncBehaviour({ forkPolicy, dlq })` + `@Versioned({ strategy })` — на sync-service классе. Metadata читается через `Reflect.getMetadata('sync:config', target)`.
 - `@Inject(ENTITY_REPOSITORY)` token — symbol, определён в `domain/repositories/{entity}.repository.ts`.
-- Dynamic modules через `{Contract}SyncModule.forEntity(Entity, TypeormEntity, Mapper)` — одна строка регистрации в `{contract}.module.ts`.
+- **`@Optional()` с типом `X | null` — только с явным `@Inject(X)`.** Тип-объединение метаданные TypeScript стирают до `Object`, Nest не может его подставить, и `@Optional()` молча отдаёт `null` — без ошибки на старте. Так 23.09.2026 были выключены ожидание разбора блока в `transact` и лента изменений; страховка — `tests/unit/blockchain/optional-deps-injection.test.ts`.
+- Dynamic modules через `{Contract}SyncModule.forEntity(Entity, Record, Mapper)` — одна строка регистрации в `{contract}.module.ts`.
 
-**TypeORM:**
-- Миграции `migrations/{timestamp-ms}-{name}.ts`. `synchronize: true` **запрещено** в prod.
-- `@Column({ type: 'bigint', nullable: true })` для `block_num`. Для `jsonb` — `@Column({ type: 'jsonb' })`.
+**База данных (Kysely, C28-81):**
+- **Запросы — только через Kysely.** Ядро: хранилища `infrastructure/database/kysely/repositories/*.kysely-repository.ts` на токене `KYSELY`, типы таблиц — `database.types.ts` (собираются из миграций: `pnpm schema:types`). Расширение ядро не импортирует: токен и помощники — из `@coopenomics/extension-kit`, записи и шлюзы таблиц (`TableStore`) — в `infrastructure/database/<имя>-stores.ts`. Запросы с соединениями и агрегатами — `store.sqlBuilder(alias)` (готовые фрагменты SQL с именованными параметрами) либо `rawQuery`.
+- **Число затронутых строк — только `affectedCount(await query.execute())`.** Таблице ленты изменений слой базы дописывает `RETURNING`, и Kysely отдаёт строки вместо счётчика; `executeTakeFirst()` на такой таблице вернёт строку либо пустоту.
+- **Транзакция — `inTransaction(db, work)` из каркаса.** Сигналы ленты изменений уходят после фиксации; голый `db.transaction()` этого не делает. Готовый SQL (`rawQuery`, `sqlBuilder`) слой базы не видит — после такой записи автор зовёт `publishLocal` сам.
+- **Схема — только миграциями SQL** (C28-79, гейт `pnpm check`). Правка схемы → `pnpm schema:generate <имя> [расширение]` (заготовка) → вписать SQL (переименование колонки — `RENAME COLUMN`) → `pnpm schema:check` → `pnpm schema:types`. Миграции ядра — `src/infrastructure/database/migrations/` (список в `index.ts`), расширения — `src/extensions/<имя>/migrations/database/` + `<имя>.database-migrations.ts` в записи реестра. Учёт — `schema_migrations`; применяются при подключении к базе, первым шагом `pnpm migrate` и `pnpm schema:migrate`. Стартовые `*-baseline.ts` идемпотентны, не править руками. Подробно — `migrations/README.md`.
+- **Миграции данных и цепи** — самописный мигратор, каталог `migrations/`, новые файлы `ГГГГММДДччмм__описание.ts` (`pnpm migration:generate`); прежние `V*` заморожены. Подключение для них — `DataSource` из `infrastructure/database/postgres/postgres-connection.ts` (готовые запросы поверх `pg`).
+- Ошибку базы драйвер отдаёт как есть: `error.code` (`23505` — нарушение уникальности), `error.constraint`.
+- `bigint` и `numeric` приходят строкой: числовые поля записи перечисляются в `numbers` шлюза, в условии — `String(value)`.
 - `ADD COLUMN NOT NULL` на больших таблицах — **двухэтапно**: ADD nullable → backfill → ALTER NOT NULL.
-- Repository `extends BaseBlockchainRepository<DomainEntity, TypeormEntity>`. `findBySyncKey`, `createIfNotExists`, `deleteByBlockNumGreaterThan`, `restoreFromVersions` — **наследуются**, не реализовывать руками.
-- **Контракт «entity с block_num → repo extends BaseBlockchainRepository» (Story 4.3).** Любая `*.typeorm-entity.ts` extends `BaseTypeormEntity` ОБЯЗАНА иметь репозиторий extends `BaseBlockchainRepository` — иначе `entity_versions` не пишется (silent), а форк-rollback превращается в hard delete без восстановления. CI grep-guard: `tests/unit/blockchain/base-blockchain-repository.contract.test.ts`. Allowlist для 5 off-chain entity (`comment`, `cycle`, `issue`, `story`, `time-entry` — vestigial block_num, не блокчейн-зеркала). Новое исключение в allowlist — только с обоснованием в audit-report.
-- **Архив форка вместо hard-delete (Story 4.4).** `handleFork(N, eventId?)` НЕ удаляет live-ряды и снимки версий — переносит в `invalidated_entities` / `invalidated_entity_versions` (атомарно через DataSource.transaction). Порядок: archiveInvalidatedSince → restoreFromVersions → archiveInvalidatedVersionsSince. `fork_event_id` группирует записи одного форка (для forensic). Retention — `BlockchainArchiveRetentionService` ежечасно удаляет архив старше `LIB - 1000` блоков. LIB читается через `BlockchainService.getInfo()` (вариант C, RPC `/v1/chain/get_info`). Окно `RETENTION_HORIZON_BLOCKS = 1000` ХАРДКОД (свойство сети, не оператора). Env-переключатели: `BLOCKCHAIN_ARCHIVE_RETENTION_ENABLED` (default true), `BLOCKCHAIN_ARCHIVE_RETENTION_CRON` (default `0 * * * *`).
+- Хранилище зеркала цепи `extends BaseChainRepository<DomainEntity, Record>` (`@coopenomics/extension-kit/sync`), запись — `extends ChainRecord`. `findBySyncKey`, `createIfNotExists`, `deleteByBlockNumGreaterThan`, `restoreFromVersions` — **наследуются**, не реализовывать руками.
+- **Контракт «запись с block_num → хранилище extends BaseChainRepository» (Story 4.3).** Любая запись зеркала (`extends ChainRecord`) ОБЯЗАНА иметь хранилище extends `BaseChainRepository` — иначе `entity_versions` не пишется (silent), а форк-rollback превращается в hard delete без восстановления. CI grep-guard: `tests/unit/blockchain/base-blockchain-repository.contract.test.ts`. Allowlist для 5 off-chain entity (`comment`, `cycle`, `issue`, `story`, `time-entry` — vestigial block_num, не блокчейн-зеркала). Новое исключение в allowlist — только с обоснованием в audit-report.
+- **Архив форка вместо hard-delete (Story 4.4).** `handleFork(N, eventId?)` НЕ удаляет live-ряды и снимки версий — переносит в `invalidated_entities` / `invalidated_entity_versions` (атомарно, одной транзакцией `ChainVersioningService`). Порядок: archiveInvalidatedSince → restoreFromVersions → archiveInvalidatedVersionsSince. `fork_event_id` группирует записи одного форка (для forensic). Retention — `BlockchainArchiveRetentionService` ежечасно удаляет архив старше `LIB - 1000` блоков. LIB читается через `BlockchainService.getInfo()` (вариант C, RPC `/v1/chain/get_info`). Окно `RETENTION_HORIZON_BLOCKS = 1000` ХАРДКОД (свойство сети, не оператора). Env-переключатели: `BLOCKCHAIN_ARCHIVE_RETENTION_ENABLED` (default true), `BLOCKCHAIN_ARCHIVE_RETENTION_CRON` (default `0 * * * *`).
 
 **parser2 integration:**
 - `ParserClient` subscribe с `subscriptionId = "controller-${coopname}"`, `consumerName = "primary"` (детерминирован), `startFromBlock: 'last_known'`.
@@ -101,46 +107,45 @@ sync-arch sanitation-эпик: blast radius на 22 entity + потребите�
 `updateFromBlockchain`. Не вводить namespace частично на одной entity — двойной канон хуже единого
 старого.
 
-### Dispatch pipeline (ADR-002, ADR-009) — СТРОГО
+### Dispatch pipeline (ADR-002, ADR-009) — как устроено сейчас
 
-В `BlockchainParserAdapterService.dispatch`:
+Единая точка входа — `infrastructure/blockchain/blockchain-consumer.service.ts`:
 
 ```
-1. dedup check (event_id) → return если exists
-2. save sync (через syncer)
-3. dedup.mark
-4. wake waiters (sync_key + block_num match)
-5. emit internal bus (delta:: immediate / action:: delayed 3s)
-6. emit pubsub {Entity}Updated (с entity из PG, не из raw delta)
+delta:  принадлежность кооперативу → dedup (event_id) → saveDelta → dedup.mark
+        → emit `delta::<code>::<table>` С ОЖИДАНИЕМ слушателей (проекции в базе),
+          не дольше BLOCKCHAIN_DELTA_LISTENERS_BARRIER_MS
+        → ChainDeltaWaiterService.wake(delta) — будим мутации, ждущие эту дельту
+action: dedup → saveAction → dedup.mark → в очередь ActionReleaseGate; emit
+        `action::<code>::<action>`, когда блок разобран целиком — пришло событие
+        следующего блока ИЛИ поток простаивает (parser2 дочитал дальше, у группы
+        lag = 0 и pending = 0). Таймеров нет; страховка
+        BLOCKCHAIN_ACTION_RELEASE_MAX_WAIT_MS — только если Redis не ответил
 ```
 
-- **Никогда** emit pubsub до save (INV-12).
-- **Никогда** emit action immediate — только `setTimeout(emit, config.blockchain.actionEmitDelayMs)`.
-- **Никогда** swallow ошибку в dispatch — re-throw либо DLQ.
+- Ожидающие будятся **после** слушателей дельты, не одновременно с ними: иначе ответ мутации прочитал бы проекцию до записи.
+- Упавший или зависший слушатель событие не держит — ошибка в журнал, событие подтверждается.
+- Проекции, которые нужны для ответа мутации, строятся **из дельт** (`delta::`), а не из действий: действия приходят с задержкой.
 
-### Write-mutation pattern (ADR-009, ADR-012) — СТРОГО
+### Write-mutation pattern (ADR-009) — ожидание встроено в отправку
 
-Application service:
+Мутация отвечает **после факта из цепи**, а не после выдуманной паузы. Писать для этого ничего не нужно: `BlockchainService.transact` — единственная отправка в цепь — возвращается, когда узел разобрал блок транзакции целиком (дельты сохранены, их слушатели отработали, проекции в базе свежие). Факт «блок разобран» — тот же, что выпускает действия в шину (`ActionReleaseGate`): событие следующего блока либо простой потока.
+
 ```typescript
-// 1. Pre-computed sync_key (deterministic)
-const expectedHash = computeEntityHash(input);
-
-// 2. Pre-gate: нет ли уже in-flight?
-const inflight = await this.pool.findActive(contract, table, expectedHash);
-if (inflight) return { status: 'conflict', existing_tx_hash: inflight.tx_hash, attempt: inflight.retry_count };
-
-// 3. Submit через pool (placeholder → submit → finalize)
-const tx = await this.pool.submitWithPool({ user_id, contract, table, sync_key: expectedHash, action_name }, input);
-
-// 4. Wait-for-delta
-const entity = await this.adapter.waitForDelta(contract, table, expectedHash, tx.applied_block, config.writeWaitDeltaMs);
-
-// 5. Discriminated return
-if (entity) return { entity, tx_hash: tx.tx_hash, status: 'applied' };
-return { tx_hash: tx.tx_hash, status: 'pending' };
+const tx = await this.chain.createProgramInvest(data);   // вернулся — изменения уже в базе
+return tx;                                                // стол перечитывает сразу
 ```
 
-**Никогда**: `chainPort.submitTx(...)` напрямую в resolver/service — только `pool.submitWithPool`.
+- Предел — `BLOCKCHAIN_WRITE_WAIT_DELTA_MS` (3000). Не дождались — ответ уходит как есть с предупреждением в журнал, стол догонит по ленте изменений.
+- **Изнутри разбора цепи транзакция не ждёт** (`chain-dispatch-context.ts`): обработчик дельты, ждущий свой же блок, держал бы потребителя. Такие транзакции отправляет автоматика, отвечать ей некому.
+- `transact(..., broadcast=false)` и мигратор (сервис без гейта) не ждут.
+- `afterTransact` (порт `CHAIN_DELTA_WAIT_PORT`) нужен, только когда ждётся изменение **из другой, более поздней транзакции**. Для блока своей транзакции он отвечает сразу — блок уже разобран.
+- На столе после мутации — **сразу перечитать**, без `setTimeout`, без «оптимистичных» патчей и без циклов ожидания. Старые паузы (`POST_CHAIN_REFETCH_MS`, `waitForStage`, `*_WAIT_ATTEMPTS`, `recentlySigned`, `waitAfterTransactBeforeChainTableRead`) удаляются при касании — это ловит гейт «пауза вместо факта».
+- Экраны живут по ленте изменений цепи (`ChainChangesService` → подписка `chainChanges` → `useLiveReload` на столе). Таблицу, которую читает экран, объявить в ленте: ядро — `CORE_TABLES` в `chain-changes.service.ts`, расширение — `CHAIN_CHANGES_PORT.declareTables` в `initialize()`; личная таблица — с `owner_field`.
+- Держат это гейты яруса F (`pnpm check:fact`, «тронул — перевёл»): «пауза вместо факта», «транзакция мимо факта», «экран без зеркала». Подробности — корневой `CLAUDE.md`.
+- Следующий шаг (ADR-012, не сделано): пул транзакций с placeholder/`sync_key` и повторной отправкой после форка.
+
+**Никогда**: `setTimeout`/`sleep` перед чтением после мутации — ни на сервере, ни на столе.
 **Никогда**: `chainPort.getX(...)` в read-path — только `repository.findBySyncKey`.
 
 ### `forwardRef` — только с разобранным циклом (СТРОГО)
@@ -221,15 +226,15 @@ node scripts/analyze-cycles.mjs        # ожидаемый вывод: обёр
 
 | Поле записи | Файл-декларация | Что сломается без него |
 |---|---|---|
-| `entities` | `<name>/<name>.entities.ts` | таблицы не создадутся, репозитории не поднимутся |
+| `databaseMigrations` | `<name>/<name>.database-migrations.ts` | таблицы не появятся на новом узле (гейт `check-schema-migrations`) |
 | `migrations` | `<name>/<name>.migrations.ts` | конфиг останется старой версии |
 | `ports` | `<name>/<name>.ports.ts` | расширение не пройдёт гейт capability |
 | `defaults` | — | расширение не поставится в новом кооперативе |
 
-Все четыре проверяются гейтом `pnpm check:boundaries`:
+Проверяются гейтами `pnpm check:boundaries` и «схема базы — только миграциями»:
 
-- **сущность вне декларации** — `check-extension-boundaries.mjs` падает: раньше
-  забывчивость страховал глоб, теперь состав объявляется явно;
+- **таблицы без миграций** — расширение со шлюзами таблиц (`infrastructure/database/*-stores.ts`)
+  либо перечнем `<name>.tables.ts` обязано объявить `<name>.database-migrations.ts`;
 - **порт вне заявки** — тот же скрипт: заявка отвечает на вопрос «что этому
   расширению позволено просить у кооператива» (ADR-16), и молча взятый порт
   делает её недостоверной;
@@ -245,40 +250,45 @@ node scripts/analyze-cycles.mjs        # ожидаемый вывод: обёр
 удалённый экспорт или новый обязательный параметр ломают расширения, которые
 собираются отдельно.
 
-### Доступ к полю объекта: роль ИЛИ принадлежность (`@AuthRoles`) — СТРОГО
+### Права операций и полей — таблица прав приложения (СТРОГО)
 
-Роль в `@AuthRoles` — это капабилити уровня кооператива (`chairman`, `member`,
-`user`). Её недостаточно там, где данные принадлежат самому пайщику:
-председатель кооперативного участка для кооператива — обычный пайщик, и по
-ролям он не прочитал бы даже собственный участок.
+Гарда ролей и `@AuthRoles` в контроллере нет (C28-87). Операция называет право
+из таблицы прав своего приложения и стоит под общим гардом:
 
-Для таких полей объявляется принадлежность — пути внутри самого объекта:
+```ts
+@UseGuards(GqlJwtAuthGuard, RightsGuard)
+@RequireRight('Wallet', ['read:own', 'read:all'], { owner: 'filter.username' })
+```
+
+- Таблицу (`роль → право`) и роли пайщика объявляет описание прав приложения
+  (`AppRights`): ядро — `application/rights/core-rights.ts`, расширение —
+  `application/access/<имя>-rights.ts`. Модуль даёт его под токеном `APP_RIGHTS`.
+- Право с охватом (`:own`, `:own-KU`, `:chaired-KU`, `:to-self`) обязано
+  назвать источник объекта третьим аргументом; запрос без имени охват «своё»
+  не подтверждает. За другого на узле не действует никто.
+- Права страниц рабочего стола выдаёт та же таблица (`desktopGrantsOf`),
+  маршрут стола называет право в `meta.requires`. Ролей на столе нет.
+- Гейт `node scripts/check-legacy-rights.mjs` держит долг на нуле.
+
+Поле объекта, которое читают совет и сам владелец объекта, помечается
+`@CouncilField([...пути владельца внутри объекта])`:
 
 ```ts
 const SELF_AT_BRANCH = ['trustee.username', 'trusted[].username'];
 
 @Field(() => [IndividualDTO], { nullable: true, description: '…' })
-@AuthRoles(['chairman', 'member'], { self: SELF_AT_BRANCH })
+@CouncilField(SELF_AT_BRANCH)
 public readonly trusted: IndividualDTO[];
 ```
 
-Правила:
-
-- **Путь считается от корня объекта, которому принадлежит поле**; сегмент `[]`
-  разворачивает массив (`trusted[].username`). Совпадение любого значения с
-  именем аккаунта запрашивающего открывает поле.
-- **Поле с `self` обязано быть `nullable`.** При отказе оно пустеет, а не
-  роняет ответ: в списке объектов часть своя, часть чужая, и исключение
-  обнулило бы весь список (`trusted: [Individual!]!` уронил бы весь
-  `getBranches`). Поля без `self` отказывают исключением, как раньше.
-- **Потребитель обязан пережить пустоту**: `branch.trustee?.username`, а не
-  `branch.trustee.username`.
-- **Директива `@auth` объявлена явно** в `graphql.module.ts`
+- Путь считается от корня объекта, которому принадлежит поле; сегмент `[]`
+  разворачивает массив. Совпадение любого значения с именем вошедшего
+  открывает поле.
+- Поле обязано быть `nullable`: при отказе оно пустеет, а не роняет ответ.
+  Потребитель обязан пережить пустоту (`branch.trustee?.username`).
+- Директива `@auth` объявлена явно в `graphql.module.ts`
   (`buildSchemaOptions.directives`). Новый аргумент, не попавший в объявление,
-  graphql-tools молча отбрасывает — условие доступа теряется без единой ошибки.
-- Это тот же принцип, что квалификаторы `:own` / `:own-KU` в матрице доступа
-  расширений: роль отвечает за «такой род данных вообще доступен»,
-  принадлежность — за «эти данные твои».
+  graphql-tools молча отбрасывает.
 
 ### Read-path (ADR-011) — СТРОГО
 
@@ -332,18 +342,18 @@ public readonly trusted: IndividualDTO[];
 - `pool-retry-on-fork` — pool auto-retry после fork.
 
 **Mock ban:**
-- **Не** mock'ать TypeORM в интеграционных тестах (testcontainers Postgres).
+- **Не** подменять базу в интеграционных тестах (testcontainers Postgres); в модульных тестах хранилищ — `tests/unit/helpers/kysely-recorder.ts`.
 - **Не** mock'ать parser2 в e2e — использовать staging SHiP или dockerized parser2.
 
 ### Code Quality & Style
 
 **Naming (жёстко):**
-- Entity classes: `{Name}DomainEntity`, `{Name}TypeormEntity`.
+- Entity classes: `{Name}DomainEntity`; запись таблицы — `{Name}Record` (файл `{name}.record.ts`).
 - Interfaces: `I{Name}DomainInterfaceBlockchainData`, `I{Name}DomainInterfaceDatabaseData`.
 - Mappers: `{Name}DeltaMapper`.
 - Syncers: `{Name}SyncService`.
-- Repositories: `{Name}Repository` (interface) + `{Name}TypeormRepository` (impl) + `{NAME}_REPOSITORY` (DI token).
-- Files: kebab-case с суффиксом (`project.entity.ts`, `project.typeorm-entity.ts`, `project-delta.mapper.ts`, `project-sync.service.ts`).
+- Repositories: `{Name}Repository` (interface) + `{Name}KyselyRepository` (impl, файл `{name}.kysely-repository.ts`) + `{NAME}_REPOSITORY` (DI token).
+- Files: kebab-case с суффиксом (`project.entity.ts`, `project.record.ts`, `project-delta.mapper.ts`, `project-sync.service.ts`).
 
 **Paths (жёстко):**
 - Per-contract: `extensions/{contract}/{domain|infrastructure|application}/...`.
@@ -386,7 +396,7 @@ public readonly trusted: IndividualDTO[];
 - Входные параметры: `PaginationInputDTO` из `@coopenomics/extension-kit` (page/limit/sortBy/sortOrder). НЕ изобретать локальные `{ limit, offset }`.
 - Возврат: `createPaginationResult(ItemDTO, 'PaginatedXxx')` → `PaginationResult<T>` с полями `items / totalCount / totalPages / currentPage`.
 - Resolver-сигнатура: `@Args('options', { nullable: true }) options?: PaginationInputDTO` + `Promise<PaginationResult<T>>` (см. `time-tracker.resolver.ts`, `expenses-management.resolver.ts`, `generation.resolver.ts` как канон).
-- Repository слой принимает `PaginationInputDTO` и сам считает offset/limit/sort через TypeORM `findAndCount`.
+- Repository слой принимает `PaginationInputDTO` и сам считает offset/limit/sort через `findAndCount` шлюза таблицы.
 
 ### Development Workflow
 
@@ -426,7 +436,7 @@ public readonly trusted: IndividualDTO[];
 
 ### ❌ Write-mutation anti-patterns
 
-- `chainPort.submitTx()` напрямую — **запрещено** (теряется pool tracking). Только через `pool.submitWithPool`.
+- Ответ мутации без `afterTransact` там, где стол сразу перечитывает данные, — **запрещено** в новом коде; пауза перед чтением — **запрещено** везде.
 - `hardcoded 3000` в setTimeout — **запрещено**. Только `config.blockchain.actionEmitDelayMs` / `writeWaitDeltaMs`.
 - Pre-gate отсутствует (два click'а пайщика создают duplicate submit) — **запрещено**. Всегда `pool.findActive` перед submit.
 
@@ -459,7 +469,7 @@ public readonly trusted: IndividualDTO[];
 
 - Reconciliation cron — sample N=100 rows, **не** full scan на hot path.
 - IPFS fetch для signed-doc — **lazy resolver вне consumer critical path**, не в mapper.
-- `waitForDelta` memory leak — timer cleanup обязателен (см. INV-T10).
+- Ожидание дельты держит таймер — снимать при любом исходе (INV-T10), так сделано в `ChainDeltaWaiterService`.
 
 ---
 

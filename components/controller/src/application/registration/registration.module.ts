@@ -8,9 +8,11 @@ import { ParticipantModule } from '../participant/participant.module';
 import { UserDomainModule } from '~/domain/user/user-domain.module';
 import { UserInfrastructureModule } from '~/infrastructure/user/user-infrastructure.module';
 import { AccountInfrastructureModule } from '~/infrastructure/account/account-infrastructure.module';
+import { CoreRightsModule } from '../rights/core-rights.module';
 
 @Module({
   imports: [
+    CoreRightsModule,
     AccountDomainModule,
     AccountInfrastructureModule,
     RegistrationDomainModule,

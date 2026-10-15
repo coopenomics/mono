@@ -1,11 +1,11 @@
 import { ProjectPropertyDomainEntity } from '../../domain/entities/project-property.entity';
-import { ProjectPropertyTypeormEntity } from '../entities/project-property.typeorm-entity';
+import { ProjectPropertyRecord } from '../entities/project-property.record';
 import type { IProjectPropertyDatabaseData } from '../../domain/interfaces/project-property-database.interface';
 import type { IProjectPropertyBlockchainData } from '../../domain/interfaces/project-property-blockchain.interface';
 import type { RequireFields } from '@coopenomics/extension-kit';
 
-type toEntityDatabasePart = RequireFields<Partial<ProjectPropertyTypeormEntity>, keyof IProjectPropertyDatabaseData>;
-type toEntityBlockchainPart = RequireFields<Partial<ProjectPropertyTypeormEntity>, keyof IProjectPropertyBlockchainData>;
+type toEntityDatabasePart = RequireFields<Partial<ProjectPropertyRecord>, keyof IProjectPropertyDatabaseData>;
+type toEntityBlockchainPart = RequireFields<Partial<ProjectPropertyRecord>, keyof IProjectPropertyBlockchainData>;
 
 type toDomainDatabasePart = RequireFields<Partial<ProjectPropertyDomainEntity>, keyof IProjectPropertyDatabaseData>;
 type toDomainBlockchainPart = RequireFields<Partial<ProjectPropertyDomainEntity>, keyof IProjectPropertyBlockchainData>;
@@ -17,7 +17,7 @@ export class ProjectPropertyMapper {
   /**
    * Преобразование TypeORM сущности в доменную сущность
    */
-  static toDomain(entity: ProjectPropertyTypeormEntity): ProjectPropertyDomainEntity {
+  static toDomain(entity: ProjectPropertyRecord): ProjectPropertyDomainEntity {
     const databaseData: toDomainDatabasePart = {
       _id: entity._id,
       block_num: entity.block_num,
@@ -52,7 +52,7 @@ export class ProjectPropertyMapper {
   /**
    * Преобразование доменной сущности в TypeORM сущность для создания
    */
-  static toEntity(domain: ProjectPropertyDomainEntity): Partial<ProjectPropertyTypeormEntity> {
+  static toEntity(domain: ProjectPropertyDomainEntity): Partial<ProjectPropertyRecord> {
     const dbPart: toEntityDatabasePart = {
       _id: domain._id,
       block_num: domain.block_num ?? 0,

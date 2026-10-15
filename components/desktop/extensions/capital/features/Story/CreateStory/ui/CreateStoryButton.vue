@@ -3,7 +3,7 @@ q-btn(
   color='primary',
   @click='handleCreateStory',
   :loading='loading',
-  label='Создать артефакт'
+  :label='$t("capital.createStoryButton.label")'
 )
 </template>
 

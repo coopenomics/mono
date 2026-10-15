@@ -1,4 +1,5 @@
 import { Zeus } from '@coopenomics/sdk';
+import { t } from '../../i18n';
 
 /**
  * Получение иконки приоритета задачи
@@ -40,13 +41,13 @@ export const getIssuePriorityColor = (priority: string) => {
 export const getIssuePriorityLabel = (priority: string) => {
   switch (priority) {
     case Zeus.IssuePriority.HIGH:
-      return 'Высокий';
+      return t('capital.issue.priority.high');
     case Zeus.IssuePriority.URGENT:
-      return 'Срочный';
+      return t('capital.issue.priority.urgent');
     case Zeus.IssuePriority.MEDIUM:
-      return 'Средний';
+      return t('capital.issue.priority.medium');
     case Zeus.IssuePriority.LOW:
-      return 'Низкий';
+      return t('capital.issue.priority.low');
     default:
       return priority;
   }

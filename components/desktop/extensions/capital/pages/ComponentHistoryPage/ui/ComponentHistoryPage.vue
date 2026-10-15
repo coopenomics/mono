@@ -2,7 +2,7 @@
 ProjectLogsTableWidget(
   :project-hash="projectHash"
   :show-components-logs="false"
-  title="История компонента"
+  :title="$t('capital.componentHistoryPage.title')"
 )
 </template>
 

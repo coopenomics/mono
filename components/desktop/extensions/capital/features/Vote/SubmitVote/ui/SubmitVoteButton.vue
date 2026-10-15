@@ -4,7 +4,7 @@ BaseButton(
   :loading='loading',
   :disabled='disabled',
   @click='handleSubmitVote'
-) Проголосовать
+) {{ $t('capital.submitVoteButton.label') }}
 </template>
 
 <script setup lang="ts">
@@ -12,6 +12,7 @@ import { ref } from 'vue';
 import { useSubmitVote } from '../model';
 import { FailAlert, SuccessAlert } from 'src/shared/api/alerts';
 import { BaseButton } from 'src/shared/ui/base';
+import { t } from '../../../../i18n';
 
 interface Props {
   coopname: string;
@@ -40,7 +41,7 @@ const handleSubmitVote = async () => {
       votes: props.votes,
     });
 
-    SuccessAlert('Голос успешно отправлен');
+    SuccessAlert(t('capital.submitVoteButton.success'));
     emit('voteSubmitted');
   } catch (error) {
     FailAlert(error);

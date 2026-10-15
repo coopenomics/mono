@@ -8,22 +8,22 @@
     color='primary',
     class='full-width',
     icon='drive_file_move',
-    :label='isAssignMode ? "Назначить компонент" : "Переместить"',
+    :label='isAssignMode ? $t("capital.moveIssueButton.assignTitle") : $t("capital.moveIssueButton.moveTitle")',
     :disable='isActionDisabled',
     @click='openDialog'
   )
 
   BaseDialog(
     v-model='dialogOpen',
-    :title='isAssignMode ? "Назначить компонент задаче" : "Перенос задачи в другой компонент"',
+    :title='isAssignMode ? $t("capital.moveIssueButton.assignAriaLabel") : $t("capital.moveIssueButton.moveAriaLabel")',
     size='md',
     @update:model-value='(v) => !v && resetDialog()'
   )
     Form.q-pa-sm(
       :handler-submit='confirmMove',
       :is-submitting='isSubmitting',
-      button-cancel-txt='Отменить',
-      :button-submit-txt='isAssignMode ? "Назначить" : "Перенести"',
+      :button-cancel-txt='$t("capital.moveIssueButton.cancel")',
+      :button-submit-txt='isAssignMode ? $t("capital.moveIssueButton.assignSubmit") : $t("capital.moveIssueButton.moveSubmit")',
       @cancel='close'
     )
       q-select.full-width(
@@ -41,7 +41,7 @@
         outlined,
         dense,
         autofocus,
-        :label='isAssignMode ? "Компонент" : "Компонент для переноса"',
+        :label='isAssignMode ? $t("capital.moveIssueButton.componentLabel") : $t("capital.moveIssueButton.componentPlaceholder")',
         :loading='optionsLoading',
         @filter='filterTargets',
         @keydown.enter='onEnterKey'
@@ -62,6 +62,7 @@ import { api as ProjectApi } from 'app/extensions/capital/entities/Project/api';
 import type { IProject } from 'app/extensions/capital/entities/Project/model';
 import type { IIssue, IIssuePermissions } from 'app/extensions/capital/entities/Issue/model';
 import { useMoveIssueToComponent } from '../model';
+import { t } from '../../../../i18n';
 
 interface TargetOption {
   project_hash: string;
@@ -126,7 +127,7 @@ const isActionDisabled = computed(() => {
 
 function formatTargetLabel(p: IProject, assignMode: boolean): string {
   const idPart = p.id != null && p.id !== undefined ? `[#${p.id}] ` : '';
-  const title = (p.title ?? '').trim() || 'Компонент';
+  const title = (p.title ?? '').trim() || t('capital.moveIssueButton.componentLabel');
   if (!assignMode) {
     return `${idPart}${title}`.trim();
   }
@@ -190,7 +191,7 @@ const loadTargets = async () => {
     filteredOptions.value = [...targetOptions.value];
   } catch (e: unknown) {
     console.error(e);
-    FailAlert(e, 'Не удалось загрузить список компонентов');
+    FailAlert(e, t('capital.moveIssueButton.loadError'));
     targetOptions.value = [];
     filteredOptions.value = [];
   } finally {
@@ -265,7 +266,7 @@ const confirmMove = async () => {
 
   const to = selectedHash.value?.trim();
   if (!to) {
-    FailAlert(null, 'Выберите компонент');
+    FailAlert(null, t('capital.moveIssueButton.selectRequired'));
     return;
   }
   isSubmitting.value = true;
@@ -275,7 +276,7 @@ const confirmMove = async () => {
       { issue_hash: props.issue.issue_hash, target_project_hash: to },
       from || null,
     );
-    SuccessAlert(isAssignMode.value ? 'Компонент назначен' : 'Задача перенесена');
+    SuccessAlert(isAssignMode.value ? t('capital.moveIssueButton.assignSuccess') : t('capital.moveIssueButton.moveSuccess'));
     emit('moved', {
       updatedIssue: updated,
       fromProjectHash: from,
@@ -283,7 +284,7 @@ const confirmMove = async () => {
     });
     close();
   } catch (e: unknown) {
-    FailAlert(e, isAssignMode.value ? 'Не удалось назначить компонент' : 'Не удалось перенести задачу');
+    FailAlert(e, isAssignMode.value ? t('capital.moveIssueButton.assignError') : t('capital.moveIssueButton.moveError'));
   } finally {
     isSubmitting.value = false;
   }

@@ -4,6 +4,7 @@ import type {
   InnerLedger2HistoryFilter,
   ILedger2HistoryPort,
   InnerLedger2HistoryResult,
+  InnerLedger2Wallet,
 } from '@coopenomics/innercoop';
 import { Ledger2Service } from '../../services/ledger2.service';
 
@@ -24,5 +25,9 @@ export class Ledger2InnercoopHistoryAdapter implements ILedger2HistoryPort {
 
   async getAccounts(coopname: string): Promise<InnerLedger2Account[]> {
     return this.ledger2Service.getAccounts(coopname);
+  }
+
+  async getWallets(coopname: string): Promise<InnerLedger2Wallet[]> {
+    return this.ledger2Service.getWallets(coopname);
   }
 }

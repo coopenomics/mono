@@ -3,7 +3,7 @@ import { WorkflowBuilder } from '../../base/workflow-builder';
 import { z } from 'zod';
 import { BaseWorkflowPayload } from '../../types';
 import { createEmailStep, createInAppStep, createPushStep } from '../../base/defaults';
-import { slugify } from '../../utils';
+import { nt } from '../../i18n';
 
 export const marketplaceAidCouncilDecidedPayloadSchema = z.object({
   memberName: z.string(),
@@ -19,31 +19,34 @@ export type IPayload = z.infer<typeof marketplaceAidCouncilDecidedPayloadSchema>
 
 export interface IWorkflow extends BaseWorkflowPayload, IPayload {}
 
-export const name = 'Решение совета по материальной помощи';
-export const id = slugify(name);
+export const name = nt('marketplaceAidCouncilDecided.name');
+// Идентификатор закреплён: раньше он вычислялся из названия, и правка
+// или перевод названия меняли бы его. Не менять — на него ссылаются подписки.
+export const id = 'reshenie-soveta-po-materialnoy-pomoschi';
 
 export const workflow: WorkflowDefinition<IWorkflow> = WorkflowBuilder
   .create<IWorkflow>()
   .name(name)
   .workflowId(id)
-  .description('Уведомление пайщику о решении совета по его заявлению на выплату материальной помощи — одобрено с передачей кассиру либо отклонено.')
+  .i18nKey('marketplaceAidCouncilDecided')
+  .description(nt('marketplaceAidCouncilDecided.description'))
   .payloadSchema(marketplaceAidCouncilDecidedPayloadSchema)
   .tags(['marketplace', 'member'])
   .addSteps([
     createEmailStep(
       'marketplace-aid-council-decided-email',
-      'Решение совета по заявлению на материальную помощь',
-      'Уважаемый {{payload.memberName}}!<br><br>Совет рассмотрел ваше заявление на выплату материальной помощи в размере <strong>{{payload.amount}}</strong>.<br><br>{{payload.outcomeHuman}}{{payload.reasonSuffix}}<br><br>Мои средства: {{payload.deepLinkUrl}}'
+      nt('marketplaceAidCouncilDecided.email.subject'),
+      nt('marketplaceAidCouncilDecided.email.body')
     ),
     createInAppStep(
       'marketplace-aid-council-decided-notification',
-      'Решение совета по материальной помощи',
-      '{{payload.outcomeHuman}} Сумма: {{payload.amount}}.{{payload.reasonSuffix}}'
+      nt('marketplaceAidCouncilDecided.inApp.subject'),
+      nt('marketplaceAidCouncilDecided.inApp.body')
     ),
     createPushStep(
       'marketplace-aid-council-decided-push',
-      'Решение совета',
-      '{{payload.outcomeHuman}} {{payload.amount}}.'
+      nt('marketplaceAidCouncilDecided.push.subject'),
+      nt('marketplaceAidCouncilDecided.push.body')
     ),
   ])
   .build();

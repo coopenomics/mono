@@ -25,12 +25,23 @@ export const LEDGER2_WALLET_REGISTRY: readonly WalletMeta[] = [
   { name: "w.wal.bill", human_name: "ЦК — биллинг пайщика (в леджере оператора)", kind: "USER_SHARED" },
   { name: "w.cap.blago", human_name: "ЦПП «Благорост» — единый кошелёк программы у пайщика", kind: "USER_SHARED" },
   { name: "w.cap.preimp", human_name: "Первичный учёт РИД-взносов до перехода на электронный учёт", kind: "USER_SHARED" },
-  { name: "w.mkt.order", human_name: "ЦПП «Стол Заказов» — резерв под заказ у пайщика", kind: "USER_SHARED" },
-  { name: "w.mkt.member", human_name: "ЦПП «Стол Заказов» — членский кошелёк пайщика программы", kind: "USER_SHARED" },
+  { name: "w.mkt.order", human_name: "ЦПП «Стол Заказов» — паевой резерв под заказ у пайщика", kind: "USER_SHARED" },
+  { name: "w.mkt.share", human_name: "ЦПП «Стол Заказов» — свободный паевой пайщика в программе", kind: "USER_SHARED" },
+  { name: "w.mkt.member", human_name: "ЦПП «Стол Заказов» — членский взнос пайщика в программе", kind: "USER_SHARED" },
+  { name: "w.mkt.claim", human_name: "ЦПП «Стол Заказов» — непризнанные гарантийные претензии поставщику", kind: "USER_SHARED" },
+  { name: "w.mkt.debt", human_name: "ЦПП «Стол Заказов» — признанный гарантийный долг поставщика к удержанию", kind: "USER_SHARED" },
+  { name: "w.mkt.topay", human_name: "ЦПП «Стол Заказов» — к оплате поставщику за принятое имущество", kind: "USER_SHARED" },
   { name: "w.brn.person", human_name: "Персональный кошелёк доверенного кооперативного участка", kind: "USER_SHARED" },
   { name: "w.brn.common", human_name: "Общий кошелёк членских взносов кооперативного участка", kind: "USER_SHARED" },
   { name: "w.exp.adv", human_name: "Подотчётные средства пайщика", kind: "USER_SHARED" },
   { name: "w.reg.pend", human_name: "Регистрационный взнос в ожидании решения совета", kind: "USER_SHARED" },
+  { name: "w.edu.expns", human_name: "Пул расходов ЦПП «Образование»", kind: "COOPERATIVE" },
+  { name: "w.edu.fund", human_name: "Фонд ЦПП «Образование»", kind: "COOPERATIVE" },
+  { name: "w.edu.escrow", human_name: "Взносы ЦПП «Образование», удержанные до конца гарантийного срока", kind: "COOPERATIVE" },
+  { name: "w.edu.teach", human_name: "Резерв выплат преподавателям ЦПП «Образование»", kind: "COOPERATIVE" },
+  { name: "w.edu.member", human_name: "ЦПП «Образование» — членский взнос пайщика за доступ к курсу", kind: "USER_SHARED" },
+  { name: "w.edu.hold", human_name: "ЦПП «Образование» — материалы преподавателя на ответственном хранении", kind: "USER_SHARED" },
+  { name: "w.edu.share", human_name: "ЦПП «Образование» — паевой взнос преподавателя по договору", kind: "USER_SHARED" },
   { name: "w.cap.gen", human_name: "ЦПП «Генератор» — единый кошелёк программы", kind: "COOPERATIVE" },
   { name: "w.reg.entry", human_name: "Вступительные взносы", kind: "COOPERATIVE" },
   { name: "w.wal.wthdrw", human_name: "Возвраты паевых взносов пайщикам (deprecated, не используется в новых операциях)", kind: "COOPERATIVE" },
@@ -70,21 +81,70 @@ export const LEDGER2_USER_SHARED_PROGRAM_MAPPING: readonly ProgramWalletMapping[
   { wallet_name: "w.cap.gen", required_program_id: 3, program_label: "Генератор" },
   { wallet_name: "w.cap.preimp", required_program_id: 0, program_label: null },
   { wallet_name: "w.mkt.order", required_program_id: 2, program_label: "Marketplace" },
+  { wallet_name: "w.mkt.share", required_program_id: 2, program_label: "Marketplace" },
   { wallet_name: "w.mkt.member", required_program_id: 2, program_label: "Marketplace" },
+  { wallet_name: "w.mkt.claim", required_program_id: 0, program_label: null },
+  { wallet_name: "w.mkt.debt", required_program_id: 0, program_label: null },
+  { wallet_name: "w.mkt.topay", required_program_id: 0, program_label: null },
   { wallet_name: "w.brn.person", required_program_id: 0, program_label: null },
   { wallet_name: "w.brn.common", required_program_id: 0, program_label: null },
   { wallet_name: "w.exp.adv", required_program_id: 0, program_label: null },
   { wallet_name: "w.reg.pend", required_program_id: 0, program_label: null },
+  { wallet_name: "w.edu.member", required_program_id: 5, program_label: "Образование" },
+  { wallet_name: "w.edu.hold", required_program_id: 6, program_label: "Образование-преподавание" },
+  { wallet_name: "w.edu.share", required_program_id: 6, program_label: "Образование-преподавание" },
+] as const
+
+/** Что выход из кооператива делает с кошельком пайщика. */
+export type ExitWalletPolicy = 'MAIN' | 'RETURN_TO_MAIN' | 'FORFEIT' | 'BLOCKER' | 'UNTOUCHED'
+
+export interface ExitWalletRule {
+  /** Машинный идентификатор кошелька. */
+  wallet_name: IName
+  /** MAIN — главный паевой, цель сбора; RETURN_TO_MAIN — возвращается пайщику; FORFEIT — остаётся кооперативу; BLOCKER — ненулевой остаток держит выход; UNTOUCHED — выход не трогает. */
+  policy: ExitWalletPolicy
+  /** Операция переноса на главный паевой; null у всех политик, кроме RETURN_TO_MAIN. */
+  transfer_op: IName | null
+  /** Для BLOCKER — причина отказа пайщику; для остальных — пояснение к решению. */
+  note: string
+}
+
+/**
+ * Что выход делает с каждым кошельком пайщика — точная копия `EXIT_WALLET_POLICY`
+ * из C++ (lib/core/ledger2/exit_policy.hpp). Контракт `confirmexit` обходит эту
+ * таблицу, собирает доступные балансы возвращаемых кошельков и ставит их на
+ * возврат; предрасчёт на столе считает по ней же — суммы совпадают.
+ */
+export const LEDGER2_EXIT_WALLET_POLICY: readonly ExitWalletRule[] = [
+  { wallet_name: "w.wal.share", policy: "MAIN", transfer_op: null, note: "Главный паевой взнос — на него собирается возврат" },
+  { wallet_name: "w.reg.minshr", policy: "RETURN_TO_MAIN", transfer_op: "o.reg.mvmin", note: "Минимальный паевой взнос" },
+  { wallet_name: "w.cap.blago", policy: "RETURN_TO_MAIN", transfer_op: "o.cap.wthcap", note: "Паевой взнос ЦПП «Благорост»" },
+  { wallet_name: "w.mkt.share", policy: "RETURN_TO_MAIN", transfer_op: "o.mkt.recall", note: "Свободный паевой взнос ЦПП «Стол заказов»" },
+  { wallet_name: "w.edu.share", policy: "RETURN_TO_MAIN", transfer_op: "o.edu.wthshr", note: "Паевой взнос преподавателя по ЦПП «Образование» (п. 9.8 договора)" },
+  { wallet_name: "w.edu.member", policy: "RETURN_TO_MAIN", transfer_op: "o.edu.retshr", note: "Членский взнос ЦПП «Образование» (п. 4.2.5 Положения)" },
+  { wallet_name: "w.mkt.member", policy: "FORFEIT", transfer_op: null, note: "Членский взнос ЦПП «Стол заказов» — Положение возврата не предусматривает" },
+  { wallet_name: "w.mkt.order", policy: "BLOCKER", transfer_op: null, note: "под заказы Стола заказов зарезервирован паевой взнос — завершите или отмените заказы" },
+  { wallet_name: "w.exp.adv", policy: "BLOCKER", transfer_op: null, note: "не закрыт подотчёт по служебной записке — отчитайтесь или верните аванс" },
+  { wallet_name: "w.edu.hold", policy: "BLOCKER", transfer_op: null, note: "идёт гарантийный срок по переданным материалам занятий — дождитесь его окончания" },
+  { wallet_name: "w.wal.member", policy: "UNTOUCHED", transfer_op: null, note: "Членская часть Цифрового кошелька — политика выхода не определена" },
+  { wallet_name: "w.cap.preimp", policy: "UNTOUCHED", transfer_op: null, note: "Пред-импорт РИД — учётный кошелёк, не средства пайщика" },
+  { wallet_name: "w.mkt.claim", policy: "UNTOUCHED", transfer_op: null, note: "Требование к контрагенту по договору поставки, а не участие пайщика" },
+  { wallet_name: "w.mkt.debt", policy: "UNTOUCHED", transfer_op: null, note: "Задолженность поставщика по договору поставки" },
+  { wallet_name: "w.mkt.topay", policy: "UNTOUCHED", transfer_op: null, note: "Обязательство кооператива перед поставщиком" },
+  { wallet_name: "w.brn.person", policy: "UNTOUCHED", transfer_op: null, note: "Распределение кооперативного участка — назначает председатель участка" },
+  { wallet_name: "w.brn.common", policy: "UNTOUCHED", transfer_op: null, note: "Общий кошелёк участка: L3-разрез по участку, а не по пайщику" },
+  { wallet_name: "w.reg.pend", policy: "UNTOUCHED", transfer_op: null, note: "Взнос кандидата до вступления — выходить ещё неоткуда" },
 ] as const
 
 /**
- * Сет паевых («боевых») кошельков пайщика, возвращаемых при выходе из кооператива.
- * Точная копия `LEDGER2_EXIT_REFUND_WALLETS` из C++. Контракт `confirmexit` обходит
- * этот сет, собирает доступные балансы и ставит их на возврат; backend-preview
- * считает по нему же — расчёт на фронте всегда совпадает с тем, что вернёт контракт.
+ * Кошельки, остатки которых возвращаются пайщику при выходе, — выведено из
+ * таблицы политики (MAIN + RETURN_TO_MAIN).
  */
 export const LEDGER2_EXIT_REFUND_WALLETS: readonly IName[] = [
-  "w.reg.minshr",
   "w.wal.share",
+  "w.reg.minshr",
   "w.cap.blago",
+  "w.mkt.share",
+  "w.edu.share",
+  "w.edu.member",
 ] as const

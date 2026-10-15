@@ -1,6 +1,6 @@
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { Logger, UseGuards } from '@nestjs/common';
-import { ActiveUserStatusGuard, GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser } from '@coopenomics/extension-kit';
+import { ActiveUserStatusGuard, GqlJwtAuthGuard, CurrentUser, RequireRight, RightsGuard } from '@coopenomics/extension-kit';
 import type { IMonoAccount } from '@coopenomics/innercoop';
 import { SecretaryRoomManagementService } from '../services/secretary-room-management.service';
 import {
@@ -11,6 +11,7 @@ import {
 } from '../dto/secretary-room.dto';
 import type { ChatcoopManagedMatrixRoomKind } from '../../domain/entities/managed-matrix-room.entity';
 import type { ManagedMatrixRoomDomainEntity } from '../../domain/entities/managed-matrix-room.entity';
+import { t } from '../../i18n';
 
 function mapManagedKind(kind: ChatcoopManagedMatrixRoomKind): ManagedRoomKindGql {
   switch (kind) {
@@ -28,7 +29,7 @@ function mapManagedKind(kind: ChatcoopManagedMatrixRoomKind): ManagedRoomKindGql
 function toDto(room: ManagedMatrixRoomDomainEntity): ChatcoopSecretaryRoomDTO {
   return {
     id: room.id,
-    displayLabel: room.displayLabel || 'Без названия',
+    displayLabel: room.displayLabel || t('chatcoop.secretaryRooms.untitled'),
     kind: mapManagedKind(room.kind),
     encrypted: room.encrypted,
     secretaryInRoom: room.secretaryInRoom,
@@ -41,7 +42,7 @@ function toDto(room: ManagedMatrixRoomDomainEntity): ChatcoopSecretaryRoomDTO {
  * Доступ — председатель и члены совета: они создают комнаты для звонков с секретарём и удаляют свои.
  */
 @Resolver()
-@UseGuards(GqlJwtAuthGuard, RolesGuard, ActiveUserStatusGuard)
+@UseGuards(GqlJwtAuthGuard, ActiveUserStatusGuard, RightsGuard)
 export class SecretaryRoomsResolver {
   private readonly logger = new Logger(SecretaryRoomsResolver.name);
 
@@ -51,7 +52,7 @@ export class SecretaryRoomsResolver {
     name: 'chatcoopListSecretaryRooms',
     description: 'Все комнаты реестра ChatCoop (системные/проектные — read-only, комнаты секретаря — удаляемые)',
   })
-  @AuthRoles(['chairman', 'member'])
+  @RequireRight('SecretaryRoom', 'manage')
   async listSecretaryRooms(
     @CurrentUser() user: IMonoAccount
   ): Promise<ChatcoopSecretaryRoomDTO[]> {
@@ -64,7 +65,7 @@ export class SecretaryRoomsResolver {
     name: 'chatcoopCreateSecretaryRoom',
     description: 'Создать комнату с секретарём (публичную или приватную); секретарь подключается сразу',
   })
-  @AuthRoles(['chairman', 'member'])
+  @RequireRight('SecretaryRoom', 'manage')
   async createSecretaryRoom(
     @CurrentUser() user: IMonoAccount,
     @Args('data', { type: () => CreateSecretaryRoomInputDTO }) data: CreateSecretaryRoomInputDTO
@@ -83,7 +84,7 @@ export class SecretaryRoomsResolver {
     name: 'chatcoopRemoveSecretaryRoom',
     description: 'Удалить комнату секретаря: вывести секретаря и снять комнату с синхронизации (возвращает идентификатор комнаты в реестре)',
   })
-  @AuthRoles(['chairman', 'member'])
+  @RequireRight('SecretaryRoom', 'manage')
   async removeSecretaryRoom(
     @CurrentUser() user: IMonoAccount,
     @Args('data', { type: () => RemoveSecretaryRoomInputDTO }) data: RemoveSecretaryRoomInputDTO

@@ -1,17 +1,14 @@
+import { EXPENSES_PROPOSAL_STORE, EXPENSES_REQUISITE_SNAPSHOT_STORE } from '../../infrastructure/database/expenses-stores';
+import { generateUniqueHash, QuantityUtils, type TableStore } from '@coopenomics/extension-kit';
 import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
+import { type ILoggerPort, type InnerPaymentDraft, type IPaymentPort, LOGGER_PORT, PAYMENT_PORT, PaymentDirection, PaymentStatus, PaymentType } from '@coopenomics/innercoop';
 import { ExpenseProposalDomainEntity } from '../../domain/entities/expense-proposal.entity';
 import { ExpenseProposalStatus } from '../../domain/enums/expense-proposal-status.enum';
-import { ExpenseProposalTypeormEntity } from '../../infrastructure/entities/expense-proposal.typeorm-entity';
+import { ExpenseProposalRecord } from '../../infrastructure/entities/expense-proposal.record';
 import { ExpenseProposalMapper } from '../../infrastructure/mappers/expense-proposal.mapper';
-import { ExpenseRequisiteSnapshotTypeormEntity } from '../../infrastructure/entities/expense-requisite-snapshot.typeorm-entity';
+import { ExpenseRequisiteSnapshotRecord } from '../../infrastructure/entities/expense-requisite-snapshot.record';
 import { EXPENSES_CHASSIS_CONFIG } from '../../domain/expenses-chassis.config';
-import { QuantityUtils } from '@coopenomics/extension-kit';
-import { PAYMENT_PORT, type IPaymentPort, type InnerPaymentDraft, PaymentStatus, PaymentType, PaymentDirection } from '@coopenomics/innercoop';
-import { generateUniqueHash } from '@coopenomics/extension-kit';
 
 /** Зеркало ExpenseDomain::RecipientType контракта expense. */
 const RECIPIENT_ORG = 2;
@@ -38,10 +35,10 @@ export class ExpensePaymentsListener implements OnModuleInit {
   constructor(
     @Inject(PAYMENT_PORT)
     private readonly payments: IPaymentPort,
-    @InjectRepository(ExpenseRequisiteSnapshotTypeormEntity)
-    private readonly snapshots: Repository<ExpenseRequisiteSnapshotTypeormEntity>,
-    @InjectRepository(ExpenseProposalTypeormEntity)
-    private readonly proposalEntities: Repository<ExpenseProposalTypeormEntity>,
+    @Inject(EXPENSES_REQUISITE_SNAPSHOT_STORE)
+    private readonly snapshots: TableStore<ExpenseRequisiteSnapshotRecord>,
+    @Inject(EXPENSES_PROPOSAL_STORE)
+    private readonly proposalEntities: TableStore<ExpenseProposalRecord>,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
     this.logger.setContext(ExpensePaymentsListener.name);
@@ -61,9 +58,7 @@ export class ExpensePaymentsListener implements OnModuleInit {
    * Идемпотентно: create пропускает позиции с существующим payment.hash = item_hash.
    */
   private async healMissingPayments(): Promise<void> {
-    const rows = await this.proposalEntities.find({
-      where: { status: ExpenseProposalStatus.AUTHORIZED, present: true },
-    });
+    const rows = await this.proposalEntities.find({ status: ExpenseProposalStatus.AUTHORIZED, present: true });
     if (!rows.length) return;
 
     this.logger.log(`Heal платежей: проверка ${rows.length} AUTHORIZED СЗ`);
@@ -86,13 +81,7 @@ export class ExpensePaymentsListener implements OnModuleInit {
       const existing = await this.payments.findByHash(itemHash);
       if (existing) continue;
 
-      const snapshot = await this.snapshots.findOne({
-        where: {
-          coopname: entity.coopname,
-          proposal_hash: entity.proposal_hash,
-          item_hash: itemHash,
-        },
-      });
+      const snapshot = await this.snapshots.findOne({ coopname: entity.coopname, proposal_hash: entity.proposal_hash, item_hash: itemHash, });
       if (!snapshot) {
         // СЗ авторизована, а реквизитов нет — кассир не сможет оплатить позицию.
         this.logger.error(

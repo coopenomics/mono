@@ -68,6 +68,12 @@ static constexpr eosio::name _change_action = "change"_n;
 static constexpr eosio::name _product_contribution_action = "productcntr"_n;
 static constexpr eosio::name _product_return_action = "productrtrn"_n;
 static constexpr eosio::name _marketplace_writeoff_action = "mktwroff"_n;     ///< Списание скоропорта по решению совета (p.mkt.wroff)
+static constexpr eosio::name _marketplace_issue_action = "mktissue"_n;        ///< Выдача имущества пайщику в паевой ветке Стола заказов по решению совета (p.mkt.supply)
+static constexpr eosio::name _marketplace_return_action = "mktretrn"_n;       ///< Гарантийный возврат: принятие имущества и восстановление паевого взноса по решению совета (p.mkt.return)
+
+// edubridge linked actions
+static constexpr eosio::name _edubridge_rid_action = "eduacptrid"_n;          ///< Приём паевого взноса результатом интеллектуальной деятельности преподавателя по решению совета (p.edu.rid)
+static constexpr eosio::name _edubridge_guarantee_action = "eduguarantee"_n; ///< Аннулирование подписки по гарантийным условиям (p.edu.access)
 
 // branch linked actions
 static constexpr eosio::name _branch_aid_action = "brnaid"_n;                ///< Материальная помощь доверенному КУ по решению совета (p.brn.aid)
@@ -82,6 +88,8 @@ static constexpr eosio::name _result_action = "result"_n;
 //program_types
 static constexpr eosio::name _wallet_program = "wallet"_n; ///< Главный Кошелёк
 static constexpr eosio::name _marketplace_program = "marketplace"_n; ///< Кошелёк программы "Маркетплейс"
+static constexpr eosio::name _eduparent_program = "eduparent"_n;     ///< ЦПП «Образование» — оферта родителя-слушателя
+static constexpr eosio::name _eduteacher_program = "eduteacher"_n;   ///< ЦПП «Образование» — оферта преподавателя
 
 static constexpr eosio::name _source_program = "generator"_n; ///< Кошелёк для генерации по договору УХД
 static constexpr eosio::name _capital_program = "capital"_n; ///< Кошелёк программы "Благорост"
@@ -90,6 +98,7 @@ static constexpr eosio::name _capital_program = "capital"_n; ///< Кошелёк
 static const std::set<eosio::name> soviet_actions = {
     "joincoop"_n, //регистрация пайщика
     "leavecoop"_n, //выход пайщика из кооператива (возврат паевого взноса)
+    "freedecision"_n, //свободное решение совета по произвольному вопросу повестки (sov.decision)
 
     //MEET
     "creategm"_n,//предложение повестки планового общего собрание
@@ -123,6 +132,12 @@ static const std::set<eosio::name> soviet_actions = {
     "authoffs2c"_n, //заявление на взнос имуществом
     "authoffc2r"_n, //заявление на возврат паевого взноса имуществом
     "mktwroff"_n, //проект списания скоропорта на повестку совета (p.mkt.wroff)
+    "mktissue"_n, //заявление о выдаче имущества пайщику в паевой ветке на повестку совета (p.mkt.supply)
+    "mktretrn"_n, //заявление о внесении паевого взноса имуществом при гарантийном возврате на повестку совета (p.mkt.return)
+
+    //EDUBRIDGE
+    "eduacptrid"_n, //заявление преподавателя о паевом взносе результатом интеллектуальной деятельности на повестку совета (p.edu.rid)
+    "eduguarantee"_n, //заявление участника об аннулировании подписки по гарантийным условиям на повестку совета (p.edu.access)
 };
 
 //program_ids
@@ -130,6 +145,8 @@ static constexpr uint64_t _wallet_program_id = 1;
 static constexpr uint64_t _marketplace_program_id = 2;
 static constexpr uint64_t _source_program_id = 3;
 static constexpr uint64_t _capital_program_id = 4;
+static constexpr uint64_t _eduparent_program_id = 5;
+static constexpr uint64_t _eduteacher_program_id = 6;
 
 
 
@@ -155,6 +172,7 @@ static constexpr uint64_t _capital_program_id = 4;
 #define LEDGER2 "ledger2"
 #define APPS "apps"
 #define BILLING "billing"
+#define EDUBRIDGE "edubridge"
 
 
 /**
@@ -180,6 +198,7 @@ static constexpr uint64_t _capital_program_id = 4;
     static constexpr eosio::name _ledger = "ledger"_n;
     static constexpr eosio::name _ledger2 = "ledger2"_n;
     static constexpr eosio::name _apps = "apps"_n;
+    static constexpr eosio::name _edubridge = "edubridge"_n;
     static constexpr eosio::name _expense = "expense"_n;
     static constexpr eosio::name _billing = "billing"_n;
     static constexpr eosio::name _power_account = "eosio.power"_n;
@@ -212,7 +231,8 @@ static constexpr uint64_t _capital_program_id = 4;
         "capital"_n,
         "apps"_n,
         "expense"_n,
-        "billing"_n
+        "billing"_n,
+        "edubridge"_n
         // Добавьте остальные стандартные или пользовательские контракты по необходимости
       };
 

@@ -1,3 +1,4 @@
+import { DomainError } from '@coopenomics/extension-kit';
 /**
  * Имя категории уникально глобально — одно и то же название не может завести
  * второй кооператив (решение заказчика 2026-08-10). Уникальность держится
@@ -9,4 +10,6 @@
 export const UX_CATEGORY_DISPLAY_NAME = 'ux_marketplace_category_display_name_lower';
 
 /** Отказ при занятом названии — один и тот же и на проверке, и на индексе. */
-export const CATEGORY_NAME_TAKEN = 'Категория с таким названием уже существует';
+export function categoryNameTaken(): DomainError {
+  return DomainError.conflict('MARKETPLACE_CATEGORY_NAME_TAKEN');
+}

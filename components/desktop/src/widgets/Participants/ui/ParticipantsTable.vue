@@ -1,80 +1,126 @@
 <template lang="pug">
-q-table.participants-table(
-  flat,
-  :grid='isMobile',
-  :rows='accounts',
-  :columns='columns',
-  row-key='username',
-  :pagination='pagination',
-  virtual-scroll,
-  :virtual-scroll-item-size='48',
-  :rows-per-page-options='[10]',
-  :loading='loading',
-  :no-data-label='"У кооператива нет пайщиков"'
-)
-  template(#header='props')
-    q-tr(:props='props')
-      q-th(auto-width)
-      q-th(v-for='col in props.cols', :key='col.name', :props='props') {{ col.label }}
-
-  template(#body='props')
-    q-tr(:key='`m_${props.row.username}`', :props='props')
-      q-td(auto-width)
-        ExpandToggleButton(
-          :expanded='expanded.get(props.row.username)',
-          @click='onToggleExpand(props.row.username)'
-        )
-
-      q-td(
-        style='max-width: 150px; word-wrap: break-word; white-space: normal'
-      ) {{ getName(props.row) }}
-      q-td {{ props.row.username }}
-
-      q-td {{ props.row.provider_account?.email || 'Не указан' }}
-
-      q-td {{ joinDate(props.row) }}
-
-      q-td
-        .participants-table__status
-          BaseBadge(:variant='getAccountStatusBadge(props.row).variant') {{ getAccountStatusBadge(props.row).label }}
-
-      q-td
-        .participants-table__verification
-          BaseBadge(:variant='verificationCell(props.row).variant') {{ verificationCell(props.row).short }}
-            q-tooltip {{ verificationCell(props.row).tooltip }}
-
-    q-tr.q-virtual-scroll--with-prev.no-hover(
-      no-hover,
-      v-if='expanded.get(props.row.username)',
-      :key='`e_${props.row.username}`',
-      :props='props'
+div
+  //- Компьютер: канон-таблица. Строка открывает данные пайщика в правом
+  //- дроуэре, «Подробнее» — явная подсказка, что это можно. Страницы, отбор и
+  //- сортировку по дате вступления делает сервер.
+  template(v-if='!isMobile')
+    BaseTable(
+      v-if='firstLoad || accounts.length',
+      :columns='columns',
+      :rows='accounts',
+      row-key='username',
+      :loading='loading',
+      :skeleton-rows='8',
+      clickable-rows,
+      sticky-header,
+      max-height='70vh',
+      min-width='1460px',
+      server-sort,
+      :sort-by='sortBy',
+      :descending='sortDescending',
+      @sort='(sort) => emit("sort", sort)',
+      @row-click='openDetails'
     )
-      q-td.no-hover(colspan='100%' style="padding: 0px !important;")
-        ParticipantDetails(
-          :participant='props.row',
-          :naming='naming',
-          @update='(newData) => onUpdate(props.row, newData)',
-          @verification-changed='emit("verification-changed")'
+      template(#cell-status='{ row }')
+        BaseBadge(:variant='getAccountStatusBadge(row).variant') {{ getAccountStatusBadge(row).label }}
+
+      template(#cell-verification='{ row }')
+        BaseBadge(:variant='verificationCell(row).variant') {{ verificationCell(row).short }}
+          q-tooltip {{ verificationCell(row).tooltip }}
+
+      template(#cell-actions='{ row }')
+        BaseButton(variant='ghost', size='sm', @click.stop='openDetails(row)')
+          q-icon.q-mr-xs(name='open_in_new', size='16px')
+          | {{ $t('participants.participantsTable.detailsLink') }}
+
+      template(v-if='showPager', #footer)
+        TablePager(
+          :label='$t("participants.participantsTable.emptyLabel")',
+          :page='pagination.page',
+          :rows-per-page='pagination.rowsPerPage',
+          :rows-number='pagination.rowsNumber',
+          @update:page='(page) => emit("update:page", page)'
         )
 
-  template(#item='props')
-    ParticipantCard(
-      :participant='props.row',
-      :expanded='expanded.get(props.row.username)',
+    EmptyState(v-else, :title='$t("participants.participantsTable.emptyTitle")', :body='$t("participants.participantsTable.emptyBody")')
+      template(#icon)
+        q-icon(name='groups', size='32px')
+
+  //- Телефон: карточки; каждая открывает тот же дроуэр во весь экран.
+  template(v-else)
+    CardListSkeleton(v-if='firstLoad', :count='4')
+    .participants-list(v-else-if='accounts.length')
+      ParticipantCard(
+        v-for='account in accounts',
+        :key='account.username',
+        :participant='account',
+        @open='openDetails(account)'
+      )
+      TablePager(
+        v-if='showPager',
+        :label='$t("participants.participantsTable.emptyLabel")',
+        :page='pagination.page',
+        :rows-per-page='pagination.rowsPerPage',
+        :rows-number='pagination.rowsNumber',
+        @update:page='(page) => emit("update:page", page)'
+      )
+    EmptyState(v-else, :title='$t("participants.participantsTable.emptyTitle")', :body='$t("participants.participantsTable.emptyBody")')
+      template(#icon)
+        q-icon(name='groups', size='32px')
+
+  //- Данные пайщика: верификация, сброс второго фактора, сведения при
+  //- вступлении, редактируемая анкета. На телефоне дроуэр во весь экран.
+  //- Открытый пайщик живёт в адресе (`?participant=<имя>`): ссылка
+  //- пересылается, «назад» закрывает панель, реестр под ней не сбрасывается.
+  DetailsDrawer(
+    :model-value='overlay.isOpen.value',
+    :title='selected ? getName(selected) : $t("participants.participantsTable.defaultDrawerTitle")',
+    :width='640',
+    @update:model-value='(v) => !v && overlay.close()'
+  )
+    template(#actions)
+      BaseButton(
+        variant='ghost',
+        size='sm',
+        :aria-label='$t("participants.participantsTable.openFullPageAriaLabel")',
+        @click='openFullPage'
+      )
+        template(#icon-left)
+          q-icon(name='open_in_full', size='16px')
+        | {{ $t('participants.participantsTable.openFullPageButton') }}
+
+    ParticipantDetails(
+      v-if='selected',
+      :key='selected.username',
+      :participant='selected',
       :naming='naming',
-      @toggle-expand='() => onToggleExpand(props.row.username)',
-      @update='onUpdate',
+      @update='(newData) => onUpdate(selected, newData)',
       @verification-changed='emit("verification-changed")'
     )
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue';
+import { computed, ref, watch } from 'vue';
+import { useRouter } from 'vue-router';
 import { useWindowSize } from 'src/shared/hooks';
 import moment from 'src/shared/lib/utils/dates/moment';
 import { ParticipantCard, ParticipantDetails } from '.';
 import { getName } from 'src/shared/lib/utils';
-import { ExpandToggleButton } from 'src/shared/ui/ExpandToggleButton';
+import {
+  BaseBadge,
+  BaseButton,
+  BaseTable,
+  CardListSkeleton,
+  EmptyState,
+  TablePager,
+  type BaseTableColumn,
+} from 'src/shared/ui/base';
+import { DetailsDrawer } from 'src/shared/ui/domain';
+import { useQueryOverlay } from 'src/shared/lib/navigation';
+import { useAccountStore } from 'src/entities/Account/model';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { PARTICIPANT_LIVE_TABLES } from '../model';
+import { useFirstLoad } from 'src/shared/lib/composables';
 import { getAccountStatusBadge } from 'src/entities/Account';
 import {
   highestVerificationLevel,
@@ -89,6 +135,7 @@ import {
   type IOrganizationData,
   type IEntrepreneurData,
 } from 'src/entities/Account/types';
+import { t } from 'src/shared/i18n';
 
 // Props
 const props = defineProps<{
@@ -96,12 +143,19 @@ const props = defineProps<{
   loading: boolean;
   /** Как называть верификатора и участок в подписи уровня. */
   naming?: VerificationNaming;
+  /** Текущая страница реестра; число строк всего знает сервер. */
+  pagination: { page: number; rowsPerPage: number; rowsNumber: number };
+  /** Колонка сортировки: `created_at` (добавлен) или `joined_at` (вступил). */
+  sortBy: string;
+  /** Сначала новые (true) или сначала старые. */
+  sortDescending: boolean;
 }>();
 
 // Emits
 const emit = defineEmits<{
-  (e: 'toggle-expand', id: string): void;
   (e: 'verification-changed'): void;
+  (e: 'update:page', page: number): void;
+  (e: 'sort', sort: { sortBy: string; descending: boolean }): void;
   (
     e: 'update',
     account: IAccount,
@@ -109,54 +163,85 @@ const emit = defineEmits<{
   ): void;
 }>();
 
-// Локальное состояние
-const expanded = reactive(new Map<string, boolean>());
-const pagination = ref({ rowsPerPage: 10 });
+// Открытый в дроуэре пайщик — имя аккаунта в адресе. Запись берём из свежего
+// списка: после правки анкеты или верификации список перечитывается, и дроуэр
+// должен показывать уже обновлённые данные.
+const overlay = useQueryOverlay('participant');
+const router = useRouter();
+const accountStore = useAccountStore();
+// Снимок — на случай, если пайщика нет в текущей странице: переключили
+// страницу или отбор, не закрыв дроуэр, или пришли по пересланной ссылке.
+const selectedSnapshot = ref<IAccount | null>(null);
+const selected = computed(
+  () =>
+    props.accounts.find((account) => account.username === overlay.value.value) ??
+    (selectedSnapshot.value?.username === overlay.value.value ? selectedSnapshot.value : null),
+);
+
+// Пайщика, которого нет на текущей странице реестра (пришли по ссылке или
+// сменили страницу при открытой панели), дочитываем отдельно. Пайщика со
+// страницы обновляет живой реестр родителя, отдельный снимок — своя подписка.
+const isOffPage = computed(
+  () =>
+    !!overlay.value.value &&
+    !props.accounts.some((account) => account.username === overlay.value.value),
+);
+const loadSnapshot = async (): Promise<void> => {
+  const username = overlay.value.value;
+  if (!username || !isOffPage.value) return;
+  try {
+    const account = await accountStore.fetchAccount(username);
+    if (account && overlay.value.value === username) selectedSnapshot.value = account;
+  } catch {
+    // Фоновое перечитывание молчит: следующий сигнал повторит.
+  }
+};
+watch(() => overlay.value.value, () => void loadSnapshot(), { immediate: true });
+useLiveReload(PARTICIPANT_LIVE_TABLES, loadSnapshot);
 const { isMobile } = useWindowSize();
 
-// Колонки таблицы
-const columns: any[] = [
+// Каркас и пустое состояние — только по первой загрузке: повторные дочитки
+// (после правки анкеты, верификации) идут молча, без мерцания.
+const firstLoad = useFirstLoad(() => props.loading);
+
+// Переключатель страниц нужен, только когда пайщиков больше одной страницы.
+const showPager = computed(() => props.pagination.rowsNumber > props.pagination.rowsPerPage);
+
+// Колонки таблицы. Даты две, и они о разном: «Добавлен» — когда запись о
+// человеке появилась на узле (есть у всех), «Вступил» — когда его принял совет
+// (у заявок ещё нет). Сортируют обе на сервере: реестр приходит страницами, и
+// сортировка одной страницы вводила бы в заблуждение. Остальные поля в базе
+// узла не лежат, по ним сортировки нет. Сумма заданных ширин (1200px) меньше
+// min-width таблицы (1460px) — остаток достаётся колонке ФИО; без этого запаса
+// она схлопывалась в ноль и буквы шли столбиком.
+const columns: BaseTableColumn<IAccount>[] = [
+  { key: 'name', label: t('participants.participantsTable.column.name'), field: (row) => getName(row) },
+  { key: 'username', label: t('participants.participantsTable.column.username'), field: 'username', width: '140px', nowrap: true },
   {
-    name: 'name',
-    align: 'left',
-    label: 'ФИО / Наименование',
-    field: 'name',
-    sortable: true,
-  },
-  {
-    name: 'username',
-    align: 'left',
-    label: 'Аккаунт',
-    field: 'username',
-    sortable: true,
-  },
-  {
-    name: 'email',
-    align: 'left',
+    key: 'email',
     label: 'Email',
-    field: 'email',
+    field: (row) => row.provider_account?.email || t('participants.participantsTable.emailMissing'),
+    width: '220px',
+  },
+  {
+    key: 'created_at',
+    label: t('participants.participantsTable.column.createdAt'),
+    field: (row) => addedDate(row),
+    width: '170px',
+    nowrap: true,
     sortable: true,
   },
   {
-    name: 'created_at',
-    align: 'left',
-    label: 'Дата вступления',
-    field: 'created_at',
+    key: 'joined_at',
+    label: t('participants.participantsTable.column.joinedAt'),
+    field: (row) => joinDate(row),
+    width: '190px',
+    nowrap: true,
     sortable: true,
   },
-  {
-    name: 'status',
-    align: 'left',
-    label: 'Статус',
-    field: 'status',
-    sortable: true,
-  },
-  {
-    name: 'verification',
-    align: 'left',
-    label: 'Верификация',
-    field: 'verification',
-  },
+  { key: 'status', label: t('participants.participantsTable.column.status'), field: (row) => getAccountStatusBadge(row).label, width: '200px' },
+  { key: 'verification', label: t('participants.participantsTable.column.verification'), field: (row) => verificationCell(row).short, width: '170px' },
+  { key: 'actions', label: '', width: '140px', align: 'right' },
 ];
 
 // Ячейка верификации: показываем один уровень — самый высокий из достигнутых
@@ -166,8 +251,8 @@ const columns: any[] = [
 // которого Vue-шаблону не даёт вызов функции.
 const NOT_VERIFIED_CELL = {
   variant: 'neutral' as BaseBadgeVariant,
-  short: 'Не верифицирован',
-  tooltip: 'Личность не подтверждена: паспорт сверяет председатель совета или кооперативный участок',
+  short: t('participants.participantsTable.notVerified'),
+  tooltip: t('participants.participantsTable.notVerifiedTooltip'),
 };
 
 const verificationCell = (row: IAccount) => {
@@ -181,60 +266,59 @@ const verificationCell = (row: IAccount) => {
 };
 
 // Форматирование даты
-const formatDate = (date?: string) =>
-  date ? moment(date).format('DD.MM.YY HH:mm:ss') : '';
+// Дата приходит из SDK и строкой (ISO), и объектом Date, а тип у неё в схеме
+// неизвестный. `String(date)` на объекте даёт «Wed Jan 15 2025 …» — moment
+// такой вид не разбирает, ругается в консоль и уходит в разбор силами
+// браузера. Поэтому значение отдаём как есть, приводя тип на месте.
+const asDateInput = (value: unknown): string | Date | undefined =>
+  value instanceof Date || typeof value === 'string' ? value : undefined;
+
+const formatDate = (date?: unknown) => {
+  const input = asDateInput(date);
+  return input ? moment(input).format('DD.MM.YY HH:mm:ss') : '';
+};
 
 // Дата вступления: дата приёма советом (participant_account.created_at). У вышедших
 // пайщик-запись стёрта (delpartcpnt) — фолбэк на дату регистрации аккаунта on-chain
 // (user_account.registered_at), чтобы не показывать «отсутствует».
+// Когда запись о человеке появилась на узле: у заявок это дата подачи, у
+// заведённых председателем — дата заведения. Есть у всех.
+const addedDate = (row: IAccount): string => {
+  const raw = row.provider_account?.created_at;
+  return raw ? formatDate(raw) : t('participants.participantsTable.missingValue');
+};
+
 const joinDate = (row: IAccount): string => {
   const raw = row.participant_account?.created_at || row.user_account?.registered_at;
-  const f = formatDate(raw ? String(raw) : undefined);
-  return f === '' ? 'отсутствует' : f;
+  const f = formatDate(raw);
+  return f === '' ? t('participants.participantsTable.missingValue') : f;
 };
 
 // События
-const onToggleExpand = (id: string) => {
-  expanded.set(id, !expanded.get(id));
-  emit('toggle-expand', id);
+const openDetails = (account: IAccount) => {
+  selectedSnapshot.value = account;
+  overlay.open(account.username);
+};
+
+const openFullPage = () => {
+  const username = overlay.value.value;
+  if (!username) return;
+  void router.push({ name: 'participant-details', params: { username } });
 };
 
 const onUpdate = (
-  account: IAccount,
+  account: IAccount | null,
   newData: IIndividualData | IOrganizationData | IEntrepreneurData,
 ) => {
-  emit('update', account, newData);
+  if (account) emit('update', account, newData);
 };
 </script>
 
 <style>
-.participants-table__status {
+/* Телефон: карточки столбиком, отступ задаёт сама .participant-card. */
+.participants-list {
   display: flex;
-  align-items: center;
-  gap: var(--p-2, 8px);
+  flex-direction: column;
 }
 
-.participants-table__verification {
-  display: flex;
-  align-items: center;
-  gap: var(--p-1);
-  flex-wrap: wrap;
-}
-
-/* Грид-режим (мобайл): карточки во всю ширину. Вертикальный отступ задаёт
-   сама .participant-card (margin-bottom) — его virtual-scroll учитывает,
-   тогда как margin/padding на grid-item игнорируется. */
-.participants-table .q-table__grid-item {
-  width: 100%;
-  padding: 0;
-}
-
-.no-hover.q-tr--hover,
-.no-hover.q-table__tr--hover,
-.no-hover:hover,
-.no-hover:focus {
-  background: transparent !important;
-  box-shadow: none !important;
-  cursor: default !important;
-}
 </style>

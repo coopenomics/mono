@@ -11,7 +11,7 @@
 
 Перед прогоном должны быть подняты:
 - блокчейн (`node` контейнер) — отдаёт chain info на `http://127.0.0.1:8888`
-- парсер (`cooparser`) + mongo с засеянным `voskhod`
+- индексатор цепи (`parser2`)
 - controller (`coopback`) — `http://127.0.0.1:2998`
 - desktop dev-сервер — `http://127.0.0.1:2999`
 
@@ -63,6 +63,38 @@ cd components/docs
 
 MkDocs **сам** переносит всё из `docs/` в `site/` (включая `assets/`), специально конфигурить копирование изображений не надо — абсолютные пути `/assets/new/…/*.png` в MD работают без доп. настроек.
 
+## Прогон в CI (workflow `ui-docs`)
+
+Сюита приложения гоняется на GitHub Actions без локального стенда: пуш в ветку
+`ci/ui-docs-<приложение>` либо кнопка workflow_dispatch с выбором приложения.
+Стенд поднимает `scripts/blackbox/stack.sh` (фазы до `app`, затем `desktop` —
+собранный SSR рабочий стол в контейнере за nginx стенда, http://localhost:8088,
+`browser` — chromium, `ui <приложение>` — раннер сюиты, `uidiff` — сравнение
+кадров с документацией, `uisummary`).
+
+Выход прогона — артефакт `ui-docs-<приложение>-<run_id>`: каталог `shots/`
+целиком. Скачать на стенд и работать как после локального прогона:
+
+```bash
+pnpm docs:pull --app=marketplace             # последний завершённый прогон ветки
+pnpm docs:pull --app=marketplace --run=<id>  # конкретный
+pnpm docs:diff --app=marketplace             # shots/_suite/diff.md: что разошлось с docs
+node lib/install.mjs <сценарий> [--md]       # кадры (и проза) в components/docs/docs
+```
+
+`bin/diff-shots.mjs` сравнивает свежие кадры с `components/docs/docs/<assetsDir>`
+попиксельно и перечисляет: красные сценарии, изменившиеся кадры (доля пикселей
+и страница), новые кадры и кадры документации, которых сценарий больше не
+снимает. Это список для вычитки прозы — читать все кадры подряд не нужно.
+
+Новое приложение заводится в трёх местах: раннер `bin/run-<приложение>-all.mjs`
+(группы сценариев поверх общего `lib/suite.mjs`; образцы — `run-marketplace-all.mjs`,
+`run-edubridge-all.mjs`), ветка `case` в `cmd_ui` в `stack.sh`, список `options`
+у `workflow_dispatch` в `.github/workflows/ui-docs.yaml`. Стенд готовят фазы
+засева: Стол заказов — `components/boot/src/scripts/seed-marketplace`,
+«Образование» — `components/api-tests/src/seed/edubridge` (на помощниках
+внешнего слоя тестов); какая команда у какой группы — `lib/prepare.mjs`.
+
 ## Как добавить новый сценарий
 
 1. Создать `scenarios/<раздел>/<имя>.mjs`:
@@ -87,3 +119,6 @@ MkDocs **сам** переносит всё из `docs/` в `site/` (включ�
 - `lib/harness.mjs` — бутстрап playwright, общие хелперы (logInAsChairman и т.д.)
 - `lib/render-md.mjs` — превращает `manifest.json` в `draft.md`
 - `lib/install.mjs` — копирует PNG (и draft.md для новых доков) в docs-репозиторий
+- `bin/run-marketplace-all.mjs` — сюита Стола заказов по цепочке состояния (образец раннера приложения)
+- `bin/diff-shots.mjs` — сравнение кадров прогона с кадрами в docs, отчёт `shots/_suite/diff.md`
+- `bin/pull-run.mjs` — скачивание артефакта прогона ui-docs с GitHub Actions в `shots/`

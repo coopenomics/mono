@@ -15,3 +15,6 @@ export * as ContractNames from './names'
  * При использовании этих разрешений необходимо заменить реальные значения для _contract и actionName для обеспечения корректной авторизации операций.
  */
 export * as Permissions from './permissions'
+
+/** Очистка текста, который человек пишет в редакторе, — общая для кабинета и сервера. */
+export * as Text from './text'

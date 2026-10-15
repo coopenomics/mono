@@ -1,11 +1,16 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { BranchContract, Ledger2Contract, MarketContract } from 'cooptypes';
+import { BranchContract, Ledger2Contract, MarketContract, SovietContract, type Interfaces } from 'cooptypes';
 import httpStatus from 'http-status';
-import type { MarketplaceCanonicalBlockchainPort } from '../../domain/ports/marketplace-canonical-blockchain.port';
-import { HttpApiError } from '@coopenomics/extension-kit';
+import {
+  MarketplaceCheckoutOrderActionKind,
+  type MarketplaceCanonicalBlockchainPort,
+  type MarketplaceCheckoutChainInput,
+} from '../../domain/ports/marketplace-canonical-blockchain.port';
+import { DomainError } from '@coopenomics/extension-kit';
 import { VAULT_PORT, type IVaultPort,
   CHAIN_PORT,
   type IChainPort,
+  type InnerChainAction,
   type InnerTransactResult,
 } from '@coopenomics/innercoop';
 
@@ -28,7 +33,7 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
   async createOrder(data: MarketContract.Actions.CreateOrder.ICreateOrder): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
     if (!wif) {
-      throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ кооператива для submit createorder');
+      throw new DomainError('MARKETPLACE_PRIVATE_KEY_NOT_FOUND_CREATEORDER', {}, httpStatus.BAD_GATEWAY);
     }
 
     this.blockchainService.initialize(data.coopname, wif);
@@ -49,7 +54,7 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
   async stockOrder(data: MarketContract.Actions.StockOrder.IStockOrder): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
     if (!wif) {
-      throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ кооператива для submit stockorder');
+      throw new DomainError('MARKETPLACE_PRIVATE_KEY_NOT_FOUND_STOCKORDER', {}, httpStatus.BAD_GATEWAY);
     }
 
     this.blockchainService.initialize(data.coopname, wif);
@@ -67,31 +72,11 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
     });
   }
 
-  async convert(data: MarketContract.Actions.Convert.IConvert): Promise<InnerTransactResult> {
-    const wif = await this.vaultDomainService.getWif(data.coopname);
-    if (!wif) {
-      throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ кооператива для submit convert');
-    }
-
-    this.blockchainService.initialize(data.coopname, wif);
-
-    return await this.blockchainService.transact({
-      account: MarketContract.contractName.production,
-      name: MarketContract.Actions.Convert.actionName,
-      authorization: [
-        {
-          actor: data.coopname,
-          permission: 'active',
-        },
-      ],
-      data,
-    });
-  }
 
   async markdown(data: MarketContract.Actions.Markdown.IMarkdown): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
     if (!wif) {
-      throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ кооператива для submit markdown');
+      throw new DomainError('MARKETPLACE_PRIVATE_KEY_NOT_FOUND_MARKDOWN', {}, httpStatus.BAD_GATEWAY);
     }
 
     this.blockchainService.initialize(data.coopname, wif);
@@ -112,7 +97,7 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
   async expireOrder(data: MarketContract.Actions.ExpireOrder.IExpireOrder): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
     if (!wif) {
-      throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ кооператива для submit expireorder');
+      throw new DomainError('MARKETPLACE_PRIVATE_KEY_NOT_FOUND_EXPIREORDER', {}, httpStatus.BAD_GATEWAY);
     }
 
     this.blockchainService.initialize(data.coopname, wif);
@@ -133,7 +118,7 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
   async closeOrder(data: MarketContract.Actions.CloseOrder.ICloseOrder): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
     if (!wif) {
-      throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ кооператива для submit closeorder');
+      throw new DomainError('MARKETPLACE_PRIVATE_KEY_NOT_FOUND_CLOSEORDER', {}, httpStatus.BAD_GATEWAY);
     }
 
     this.blockchainService.initialize(data.coopname, wif);
@@ -154,7 +139,7 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
   async cancelOrder(data: MarketContract.Actions.CancelOrder.ICancelOrder): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
     if (!wif) {
-      throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ кооператива для submit cancelorder');
+      throw new DomainError('MARKETPLACE_PRIVATE_KEY_NOT_FOUND_CANCELORDER', {}, httpStatus.BAD_GATEWAY);
     }
 
     this.blockchainService.initialize(data.coopname, wif);
@@ -175,7 +160,7 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
   async acceptOrder(data: MarketContract.Actions.AcceptOrder.IAcceptOrder): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
     if (!wif) {
-      throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ кооператива для submit acceptorder');
+      throw new DomainError('MARKETPLACE_PRIVATE_KEY_NOT_FOUND_ACCEPTORDER', {}, httpStatus.BAD_GATEWAY);
     }
 
     this.blockchainService.initialize(data.coopname, wif);
@@ -196,7 +181,7 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
   async declineOrder(data: MarketContract.Actions.DeclineOrder.IDeclineOrder): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
     if (!wif) {
-      throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ кооператива для submit declineorder');
+      throw new DomainError('MARKETPLACE_PRIVATE_KEY_NOT_FOUND_DECLINEORDER', {}, httpStatus.BAD_GATEWAY);
     }
 
     this.blockchainService.initialize(data.coopname, wif);
@@ -217,7 +202,7 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
   async signSupp(data: MarketContract.Actions.SignSupp.ISignSupp): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
     if (!wif) {
-      throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ кооператива для submit signsupp');
+      throw new DomainError('MARKETPLACE_PRIVATE_KEY_NOT_FOUND_SIGNSUPP', {}, httpStatus.BAD_GATEWAY);
     }
 
     this.blockchainService.initialize(data.coopname, wif);
@@ -238,7 +223,7 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
   async signChair(data: MarketContract.Actions.SignChair.ISignChair): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
     if (!wif) {
-      throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ кооператива для submit signchair');
+      throw new DomainError('MARKETPLACE_PRIVATE_KEY_NOT_FOUND_SIGNCHAIR', {}, httpStatus.BAD_GATEWAY);
     }
 
     this.blockchainService.initialize(data.coopname, wif);
@@ -259,10 +244,7 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
   async payOut(data: MarketContract.Actions.PayOut.IPayout): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
     if (!wif) {
-      throw new HttpApiError(
-        httpStatus.BAD_GATEWAY,
-        'Не найден приватный ключ кооператива для submit payout'
-      );
+      throw new DomainError('MARKETPLACE_PRIVATE_KEY_NOT_FOUND_PAYOUT', {}, httpStatus.BAD_GATEWAY);
     }
 
     this.blockchainService.initialize(data.coopname, wif);
@@ -280,61 +262,12 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
     });
   }
 
-  async signIss1(data: MarketContract.Actions.SignIss1.ISignIss1): Promise<InnerTransactResult> {
-    const wif = await this.vaultDomainService.getWif(data.coopname);
-    if (!wif) {
-      throw new HttpApiError(
-        httpStatus.BAD_GATEWAY,
-        'Не найден приватный ключ кооператива для submit signiss1'
-      );
-    }
 
-    this.blockchainService.initialize(data.coopname, wif);
-
-    return await this.blockchainService.transact({
-      account: MarketContract.contractName.production,
-      name: MarketContract.Actions.SignIss1.actionName,
-      authorization: [
-        {
-          actor: data.coopname,
-          permission: 'active',
-        },
-      ],
-      data,
-    });
-  }
-
-  async signIss2(data: MarketContract.Actions.SignIss2.ISignIss2): Promise<InnerTransactResult> {
-    const wif = await this.vaultDomainService.getWif(data.coopname);
-    if (!wif) {
-      throw new HttpApiError(
-        httpStatus.BAD_GATEWAY,
-        'Не найден приватный ключ кооператива для submit signiss2'
-      );
-    }
-
-    this.blockchainService.initialize(data.coopname, wif);
-
-    return await this.blockchainService.transact({
-      account: MarketContract.contractName.production,
-      name: MarketContract.Actions.SignIss2.actionName,
-      authorization: [
-        {
-          actor: data.coopname,
-          permission: 'active',
-        },
-      ],
-      data,
-    });
-  }
 
   async submRetrn(data: MarketContract.Actions.SubmRetrn.ISubmRetrn): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
     if (!wif) {
-      throw new HttpApiError(
-        httpStatus.BAD_GATEWAY,
-        'Не найден приватный ключ кооператива для submit submretrn'
-      );
+      throw new DomainError('MARKETPLACE_PRIVATE_KEY_NOT_FOUND_SUBMRETRN', {}, httpStatus.BAD_GATEWAY);
     }
     this.blockchainService.initialize(data.coopname, wif);
     return await this.blockchainService.transact({
@@ -348,10 +281,7 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
   async aprRetRem(data: MarketContract.Actions.AprRetRem.IAprRetRem): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
     if (!wif) {
-      throw new HttpApiError(
-        httpStatus.BAD_GATEWAY,
-        'Не найден приватный ключ кооператива для submit aprretrem'
-      );
+      throw new DomainError('MARKETPLACE_PRIVATE_KEY_NOT_FOUND_APRRETREM', {}, httpStatus.BAD_GATEWAY);
     }
     this.blockchainService.initialize(data.coopname, wif);
     return await this.blockchainService.transact({
@@ -365,10 +295,7 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
   async rejRetRem(data: MarketContract.Actions.RejRetRem.IRejRetRem): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
     if (!wif) {
-      throw new HttpApiError(
-        httpStatus.BAD_GATEWAY,
-        'Не найден приватный ключ кооператива для submit rejretrem'
-      );
+      throw new DomainError('MARKETPLACE_PRIVATE_KEY_NOT_FOUND_REJRETREM', {}, httpStatus.BAD_GATEWAY);
     }
     this.blockchainService.initialize(data.coopname, wif);
     return await this.blockchainService.transact({
@@ -382,10 +309,7 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
   async accRetrn(data: MarketContract.Actions.AccRetrn.IAccRetrn): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
     if (!wif) {
-      throw new HttpApiError(
-        httpStatus.BAD_GATEWAY,
-        'Не найден приватный ключ кооператива для submit accretrn'
-      );
+      throw new DomainError('MARKETPLACE_PRIVATE_KEY_NOT_FOUND_ACCRETRN', {}, httpStatus.BAD_GATEWAY);
     }
     this.blockchainService.initialize(data.coopname, wif);
     return await this.blockchainService.transact({
@@ -399,10 +323,7 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
   async rejRetrn(data: MarketContract.Actions.RejRetrn.IRejRetrn): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
     if (!wif) {
-      throw new HttpApiError(
-        httpStatus.BAD_GATEWAY,
-        'Не найден приватный ключ кооператива для submit rejretrn'
-      );
+      throw new DomainError('MARKETPLACE_PRIVATE_KEY_NOT_FOUND_REJRETRN', {}, httpStatus.BAD_GATEWAY);
     }
     this.blockchainService.initialize(data.coopname, wif);
     return await this.blockchainService.transact({
@@ -418,10 +339,7 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
   async propWroff(data: MarketContract.Actions.PropWroff.IPropWroff): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
     if (!wif) {
-      throw new HttpApiError(
-        httpStatus.BAD_GATEWAY,
-        'Не найден приватный ключ кооператива для submit propwroff'
-      );
+      throw new DomainError('MARKETPLACE_PRIVATE_KEY_NOT_FOUND_PROPWROFF', {}, httpStatus.BAD_GATEWAY);
     }
     this.blockchainService.initialize(data.coopname, wif);
     return await this.blockchainService.transact({
@@ -435,10 +353,7 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
   async execWroff(data: MarketContract.Actions.ExecWroff.IExecWroff): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
     if (!wif) {
-      throw new HttpApiError(
-        httpStatus.BAD_GATEWAY,
-        'Не найден приватный ключ кооператива для submit execwroff'
-      );
+      throw new DomainError('MARKETPLACE_PRIVATE_KEY_NOT_FOUND_EXECWROFF', {}, httpStatus.BAD_GATEWAY);
     }
     this.blockchainService.initialize(data.coopname, wif);
     return await this.blockchainService.transact({
@@ -452,10 +367,7 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
   async confirmWroff(data: MarketContract.Actions.ConfirmWroff.IConfirmWroff): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
     if (!wif) {
-      throw new HttpApiError(
-        httpStatus.BAD_GATEWAY,
-        'Не найден приватный ключ кооператива для submit confirmwroff'
-      );
+      throw new DomainError('MARKETPLACE_PRIVATE_KEY_NOT_FOUND_CONFIRMWROFF', {}, httpStatus.BAD_GATEWAY);
     }
     this.blockchainService.initialize(data.coopname, wif);
     return await this.blockchainService.transact({
@@ -479,10 +391,7 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
   ): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(coopname);
     if (!wif) {
-      throw new HttpApiError(
-        httpStatus.BAD_GATEWAY,
-        `Не найден приватный ключ кооператива для submit ${actionLabel}`
-      );
+      throw new DomainError('MARKETPLACE_PRIVATE_KEY_NOT_FOUND_GENERIC', { actionLabel }, httpStatus.BAD_GATEWAY);
     }
     this.blockchainService.initialize(coopname, wif);
     return await this.blockchainService.transact({
@@ -491,6 +400,104 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
       authorization: [{ actor: coopname, permission: 'active' }],
       data,
     });
+  }
+
+  // ── Паевая модель: выдача и возврат по решению совета (компонент 68) ──
+
+  async readyIssue(data: MarketContract.Actions.ReadyIssue.IReadyIssue): Promise<InnerTransactResult> {
+    return this.submitAsCoop(data.coopname, MarketContract.contractName.production, MarketContract.Actions.ReadyIssue.actionName, data, 'readyissue');
+  }
+
+  async issueStmt(data: MarketContract.Actions.IssueStmt.IIssueStmt): Promise<InnerTransactResult> {
+    return this.submitAsCoop(data.coopname, MarketContract.contractName.production, MarketContract.Actions.IssueStmt.actionName, data, 'issuestmt');
+  }
+
+  async issueAct1(data: MarketContract.Actions.IssueAct1.IIssueAct1): Promise<InnerTransactResult> {
+    return this.submitAsCoop(data.coopname, MarketContract.contractName.production, MarketContract.Actions.IssueAct1.actionName, data, 'issueact1');
+  }
+
+  async issueAct2(data: MarketContract.Actions.IssueAct2.IIssueAct2): Promise<InnerTransactResult> {
+    return this.submitAsCoop(data.coopname, MarketContract.contractName.production, MarketContract.Actions.IssueAct2.actionName, data, 'issueact2');
+  }
+
+  async cancelIssue(data: MarketContract.Actions.CancelIssue.ICancelIssue): Promise<InnerTransactResult> {
+    return this.submitAsCoop(data.coopname, MarketContract.contractName.production, MarketContract.Actions.CancelIssue.actionName, data, 'cancelissue');
+  }
+
+  async convert(data: MarketContract.Actions.Convert.IConvert): Promise<InnerTransactResult> {
+    return this.submitAsCoop(data.coopname, MarketContract.contractName.production, MarketContract.Actions.Convert.actionName, data, 'convert');
+  }
+
+  async checkout(input: MarketplaceCheckoutChainInput): Promise<InnerTransactResult> {
+    const wif = await this.vaultDomainService.getWif(input.coopname);
+    if (!wif) {
+      throw new DomainError('MARKETPLACE_PRIVATE_KEY_NOT_FOUND_CART_CHECKOUT', {}, httpStatus.BAD_GATEWAY);
+    }
+    const asCoop = (name: string, data: Record<string, any>): InnerChainAction => ({
+      account: MarketContract.contractName.production,
+      name,
+      authorization: [{ actor: input.coopname, permission: 'active' }],
+      data,
+    });
+    // Порядок действий в транзакции сохраняется: перевод первым, поэтому
+    // членского кошелька хватает уже первому заказу, а операция перевода
+    // остаётся первой в нитке того заказа, который оплачивает.
+    const actions: InnerChainAction[] = [];
+    if (input.convert) {
+      actions.push(asCoop(MarketContract.Actions.Convert.actionName, input.convert));
+    }
+    for (const order of input.orders) {
+      actions.push(
+        asCoop(
+          order.kind === MarketplaceCheckoutOrderActionKind.STOCK_ORDER
+            ? MarketContract.Actions.StockOrder.actionName
+            : MarketContract.Actions.CreateOrder.actionName,
+          order.data
+        )
+      );
+    }
+    if (actions.length === 0) {
+      throw DomainError.badRequest('MARKETPLACE_CART_CHECKOUT_NO_ACTIONS');
+    }
+    this.blockchainService.initialize(input.coopname, wif);
+    return await this.blockchainService.transact(actions);
+  }
+
+  async handBack(data: MarketContract.Actions.HandBack.IHandBack): Promise<InnerTransactResult> {
+    return this.submitAsCoop(data.coopname, MarketContract.contractName.production, MarketContract.Actions.HandBack.actionName, data, 'handback');
+  }
+
+  async payRetFee(data: MarketContract.Actions.PayRetFee.IPayRetFee): Promise<InnerTransactResult> {
+    return this.submitAsCoop(data.coopname, MarketContract.contractName.production, MarketContract.Actions.PayRetFee.actionName, data, 'payretfee');
+  }
+
+  async findReturnRequestByHash(coopname: string, request_hash: string): Promise<Interfaces.Marketplace.IReturnRequest | null> {
+    // Заявлений на возврат у кооператива немного и живут они до закрытия —
+    // полный скан области допустим; при росте перевести на индекс byhash.
+    const rows: Interfaces.Marketplace.IReturnRequest[] = await this.blockchainService.getAllRows(
+      MarketContract.contractName.production,
+      coopname,
+      MarketContract.Tables.RetRequests.tableName
+    );
+    const wanted = request_hash.toLowerCase();
+    return rows.find((r) => String(r.hash).toLowerCase() === wanted) ?? null;
+  }
+
+  async admitClaim(data: MarketContract.Actions.AdmitClaim.IAdmitClaim): Promise<InnerTransactResult> {
+    return this.submitAsCoop(data.coopname, MarketContract.contractName.production, MarketContract.Actions.AdmitClaim.actionName, data, 'admitclaim');
+  }
+
+
+  async findCouncilDecisionByHash(coopname: string, hash: string): Promise<SovietContract.Tables.Decisions.IDecision | null> {
+    // Решений у кооператива немного и живут они до исполнения — полный скан
+    // области допустим; при росте перевести на secondary-индекс byhash.
+    const rows: SovietContract.Tables.Decisions.IDecision[] = await this.blockchainService.getAllRows(
+      SovietContract.contractName.production,
+      coopname,
+      SovietContract.Tables.Decisions.tableName
+    );
+    const wanted = hash.toLowerCase();
+    return rows.find((r) => String(r.hash).toLowerCase() === wanted) ?? null;
   }
 
   async setFee(data: MarketContract.Actions.SetFee.ISetFee): Promise<InnerTransactResult> {
@@ -533,15 +540,6 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
     );
   }
 
-  async convertBranchFunds(data: BranchContract.Actions.Convert.IConvert): Promise<InnerTransactResult> {
-    return this.submitAsCoop(
-      data.coopname,
-      BranchContract.contractName.production,
-      BranchContract.Actions.Convert.actionName,
-      data,
-      'convert'
-    );
-  }
 
   async createAid(data: BranchContract.Actions.CreateAid.ICreateaid): Promise<InnerTransactResult> {
     return this.submitAsCoop(

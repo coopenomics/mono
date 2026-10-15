@@ -1,13 +1,14 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
 import { useRoute, useRouter } from 'vue-router';
 import { debounce } from 'quasar';
 import { Zeus } from '@coopenomics/sdk';
-import { FailAlert } from 'src/shared/api';
+import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { BaseBadge, BaseButton, BaseCard } from 'src/shared/ui/base';
 import { ActivityTimeline, type ActivityEvent } from 'src/shared/ui/domain';
-import { useMarketplaceRealtime } from 'src/shared/lib/marketplace';
-import { marketplaceOrderSaleUnit } from 'src/shared/lib/consts/marketplace-units';
+import { marketLiveTables } from 'src/shared/lib/marketplace';
+import { marketplaceOrderSaleUnitLabel } from 'src/shared/lib/consts/marketplace-units';
 import { formatAsset2Digits } from 'src/shared/lib/utils';
 import { formatDateToLocalTimezone, getTimezoneLabel } from 'src/shared/lib/utils/dates';
 import {
@@ -15,10 +16,12 @@ import {
   returnClaimStatusVariant,
   returnClaimDecisionLabel,
 } from '../../OrdererReturnClaims';
-import { defectCategoryLabel, type MarketplaceReturnClaimView } from '../../OperatorReturnClaims/api';
+import { defectCategoryLabel, handBackReturn, type MarketplaceReturnClaimView } from '../../OperatorReturnClaims/api';
+import { RETURN_CLAIM_NEGATIVE_DECISIONS } from '../../OrdererReturnClaims/api';
 import RemoteDecisionDialog from '../../OperatorReturnClaims/ui/RemoteDecisionDialog.vue';
 import OnSiteDecisionDialog from '../../OperatorReturnClaims/ui/OnSiteDecisionDialog.vue';
 import { fetchReturnClaim } from '../api';
+import { t } from 'src/shared/i18n';
 
 /**
  * Универсальная детальная страница заявления на гарантийный возврат — стол ПВЗ.
@@ -45,10 +48,28 @@ const onSiteDialog = ref(false);
 const status = computed(() => claim.value?.status ?? null);
 const isPendingReview = computed(() => status.value === Zeus.MarketplaceReturnClaimStatus.PENDING_CHAIRMAN_REVIEW);
 const isApprovedForVisit = computed(() => status.value === Zeus.MarketplaceReturnClaimStatus.APPROVED_FOR_VISIT);
+const isPendingCouncil = computed(() => status.value === Zeus.MarketplaceReturnClaimStatus.PENDING_COUNCIL);
+const isDeclinedByCouncil = computed(() => status.value === Zeus.MarketplaceReturnClaimStatus.DECLINED_BY_COUNCIL);
+// Выдать обратно можно только после отказа совета: пока повестка открыта, имущество ждёт решения.
+const canHandBack = computed(() => Boolean(claim.value) && isDeclinedByCouncil.value);
+const handingBack = ref(false);
+async function handBack(): Promise<void> {
+  const c = claim.value;
+  if (!c || handingBack.value) return;
+  handingBack.value = true;
+  try {
+    await handBackReturn({ claim_id: c.id, braname: c.delivery_braname });
+    SuccessAlert(t('marketplace.operatorReturnClaimDetail.handBackDoneMessage'));
+    await load();
+  } catch (e) {
+    FailAlert(e, t('marketplace.operatorReturnClaimDetail.handBackError'));
+  } finally {
+    handingBack.value = false;
+  }
+}
 
 function claimQuantityLabel(c: MarketplaceReturnClaimView): string {
-  const saleUnit = marketplaceOrderSaleUnit(c.actual_quantity, c.unit_of_measure, c.package_size);
-  return `${saleUnit.units}×${saleUnit.unitLabel}`;
+  return marketplaceOrderSaleUnitLabel(c.actual_quantity, c.unit_of_measure, c.package_size);
 }
 
 function formatDate(value: unknown): string {
@@ -71,11 +92,11 @@ const timelineEvents = computed<ActivityEvent[]>(() => {
     id: 'submitted',
     type: 'create',
     icon: 'assignment_return',
-    title: 'Заявление подано',
+    title: t('marketplace.operatorReturnClaimDetail.timelineCreatedTitle'),
     date: String(c.created_at),
   });
   for (const entry of c.decision_log) {
-    const isReject = entry.decision === 'reject_remote' || entry.decision === 'reject_at_visit';
+    const isReject = RETURN_CLAIM_NEGATIVE_DECISIONS.has(entry.decision);
     events.push({
       id: `decision-${entry.tx_hash}`,
       type: isReject ? 'reject' : 'sign',
@@ -93,7 +114,7 @@ async function load(): Promise<void> {
   try {
     claim.value = await fetchReturnClaim(claimId.value);
   } catch (e) {
-    FailAlert(e, 'Не удалось загрузить заявление на возврат');
+    FailAlert(e, t('marketplace.operatorReturnClaimDetail.loadError'));
   } finally {
     loading.value = false;
   }
@@ -125,23 +146,16 @@ const reloadLive = debounce(() => {
   if (loading.value) return;
   void load();
 }, 400);
-useMarketplaceRealtime(
-  {
-    MarketplaceReturnClaimStatusChangedEvent: (event) => {
-      if (event.claim_id === claimId.value) reloadLive();
-    },
-  },
-  { onResync: () => reloadLive() },
-);
+useLiveReload(marketLiveTables('return'), () => reloadLive());
 </script>
 
 <template lang="pug">
-q-page.return-detail(role='region', aria-label='Заявление на гарантийный возврат')
+q-page.return-detail(role='region', :aria-label='$t("marketplace.operatorReturnClaimDetail.ariaLabel")')
   .return-detail__col
     BaseButton.return-detail__back(variant='ghost', size='sm', @click='goBack')
       template(#icon-left)
         q-icon(name='arrow_back', size='16px')
-      | К гарантийным возвратам
+      | {{ $t('marketplace.operatorReturnClaimDetail.backToClaimsButton') }}
 
     q-inner-loading(:showing='loading && !claim')
       q-spinner(color='primary', size='2em')
@@ -151,7 +165,7 @@ q-page.return-detail(role='region', aria-label='Заявление на гара
         .return-detail__head
           q-icon.return-detail__icon(name='assignment_return', size='24px')
           .return-detail__head-text
-            .t-h2.return-detail__title Заказ {{ claim.order_id.slice(0, 8) }} · заказчик {{ claim.orderer_name || claim.orderer_account }}
+            .t-h2.return-detail__title {{ $t('marketplace.operatorReturnClaimDetail.orderOrdererText', { orderShort: claim.order_id.slice(0, 8), orderer: claim.orderer_name || claim.orderer_account }) }}
             .return-detail__sub
               span.return-detail__num №&nbsp;{{ claim.id.slice(0, 8) }}
               span(aria-hidden='true') ·
@@ -167,41 +181,51 @@ q-page.return-detail(role='region', aria-label='Заявление на гара
               target='_blank',
               rel='noopener'
             )
-              img(:src='p.url', :alt='`Фото ${i + 1}`')
+              img(:src='p.url', :alt='$t(`marketplace.operatorReturnClaimDetail.photoLabel`, { index: i + 1 })')
 
           .return-detail__facts
             .return-detail__fact
-              .return-detail__fact-label Количество к возврату
+              .return-detail__fact-label {{ $t('marketplace.operatorReturnClaimDetail.quantityLabel') }}
               .return-detail__fact-value {{ claimQuantityLabel(claim) }}
             .return-detail__fact
-              .return-detail__fact-label Сумма возврата
+              .return-detail__fact-label {{ $t('marketplace.operatorReturnClaimDetail.refundAmountLabel') }}
               .return-detail__fact-value.return-detail__fact-value--money {{ formatAsset2Digits(claim.fact_cost) }} ₽
             .return-detail__fact
-              .return-detail__fact-label Причина возврата
+              .return-detail__fact-label {{ $t('marketplace.operatorReturnClaimDetail.reasonLabel') }}
               .return-detail__fact-value {{ claim.reason_text }}
             .return-detail__fact(v-if='claim.defect_category')
-              .return-detail__fact-label Категория дефекта
+              .return-detail__fact-label {{ $t('marketplace.operatorReturnClaimDetail.defectCategoryLabel') }}
               .return-detail__fact-value {{ defectCategoryLabel(claim.defect_category) }}
             .return-detail__fact(v-if='isApprovedForVisit && lastDecisionAt')
-              .return-detail__fact-label Одобрено
+              .return-detail__fact-label {{ $t('marketplace.operatorReturnClaimDetail.approvedLabel') }}
               .return-detail__fact-value {{ formatDate(lastDecisionAt) }}
             .return-detail__fact(v-if='claim.ledger_snapshot')
-              .return-detail__fact-label Восстановлено пайщику
+              .return-detail__fact-label {{ $t('marketplace.operatorReturnClaimDetail.restoredToMemberLabel') }}
               .return-detail__fact-value.return-detail__fact-value--money {{ formatAsset2Digits(claim.ledger_snapshot.amount) }} ₽
 
-        .return-detail__actions(v-if='isPendingReview || isApprovedForVisit')
+        .return-detail__note(v-if='isPendingCouncil')
+          q-icon(name='schedule', size='16px')
+          span {{ $t('marketplace.operatorReturnClaimDetail.pendingBoardNote') }}
+        .return-detail__note(v-if='isDeclinedByCouncil')
+          q-icon(name='info', size='16px')
+          span {{ $t('marketplace.operatorReturnClaimDetail.declinedNote') }}
+        .return-detail__actions(v-if='isPendingReview || isApprovedForVisit || canHandBack')
           BaseButton(v-if='isPendingReview', variant='primary', size='sm', @click='startRemote')
             template(#icon-left)
               q-icon(name='gavel', size='16px')
-            | Принять решение
+            | {{ $t('marketplace.operatorReturnClaimDetail.decideButton') }}
           BaseButton(v-if='isApprovedForVisit', variant='secondary', size='sm', @click='startOnSite')
             template(#icon-left)
               q-icon(name='fact_check', size='16px')
-            | Очный осмотр
+            | {{ $t('marketplace.operatorReturnClaimDetail.acceptPropertyButton') }}
+          BaseButton(v-if='canHandBack', variant='secondary', size='sm', :loading='handingBack', @click='handBack')
+            template(#icon-left)
+              q-icon(name='undo', size='16px')
+            | {{ $t('marketplace.operatorReturnClaimDetail.handBackButton') }}
 
       BaseCard.return-detail__card(v-if='timelineEvents.length')
         template(#head)
-          .t-h3 Хронология
+          .t-h3 {{ $t('marketplace.operatorReturnClaimDetail.timelineHeader') }}
         ActivityTimeline(:events='timelineEvents', group-by-date)
 
     RemoteDecisionDialog(
@@ -337,6 +361,15 @@ q-page.return-detail(role='region', aria-label='Заявление на гара
       font-weight: 700;
       font-feature-settings: 'tnum' 1;
     }
+  }
+
+  &__note {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--p-2, 8px);
+    padding: var(--p-3, 12px) 0;
+    font-size: var(--p-fs-body-sm, 13px);
+    color: var(--p-ink-2);
   }
 
   &__actions {

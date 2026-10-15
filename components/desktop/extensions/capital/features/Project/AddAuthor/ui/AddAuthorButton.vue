@@ -4,29 +4,29 @@ span
     variant='primary',
     size='sm',
     :loading='isSubmitting',
-    aria-label='Добавить соавтора',
+    :aria-label='$t("capital.addAuthorButton.ariaLabel")',
     @click.stop='showDialog = true'
   )
     template(#icon-left)
       q-icon(name='add', size='18px')
-    | Соавтор
+    | {{ $t('capital.addAuthorButton.label') }}
 
   BaseDialog(
     v-model='showDialog',
-    title='Добавить соавторов',
+    :title='$t("capital.addAuthorButton.dialogTitle")',
     size='md',
     @update:model-value='(v) => !v && close()'
   )
     Form.q-pa-sm(
       :handler-submit='handleAddAuthors',
       :is-submitting='isSubmitting',
-      :button-cancel-txt='"Отменить"',
-      :button-submit-txt='"Добавить"',
+      :button-cancel-txt='$t("capital.addAuthorButton.cancel")',
+      :button-submit-txt='$t("common.action.add")',
       @cancel='close'
     )
       div(style='max-width: 400px')
         .text-body2.q-mb-sm
-          | ⚠️ После добавления соавторов их удаление будет невозможно. Для добавления соавторов они должны предварительно получить допуск на участие в проекте.
+          | {{ $t('capital.addAuthorButton.warningText') }}
 
         ContributorSelector(
           v-model='selectedAuthors'
@@ -34,13 +34,13 @@ span
           :dense='true'
           :disable='isSubmitting'
           :project-hash='props.project.project_hash'
-          placeholder='Выберите соавторов...'
-          label='Соавторы'
+          :placeholder='$t("capital.addAuthorButton.selectPlaceholder")'
+          :label='$t("capital.addAuthorButton.selectLabel")'
           class='authors-selector'
         )
 
         .text-caption.text-grey-6.q-mt-sm(v-if='selectedAuthors.length > 0')
-          | Выбрано соавторов: {{ selectedAuthors.length }}
+          | {{ $t('capital.addAuthorButton.selectedCount', { count: selectedAuthors.length }) }}
 </template>
 
 <script setup lang="ts">
@@ -53,6 +53,7 @@ import { BaseDialog } from 'src/shared/ui/base/BaseDialog';
 import { Form } from 'src/shared/ui/Form';
 import type { IProject } from '../../../../entities/Project/model';
 import type { IContributor } from '../../../../entities/Contributor/model';
+import { t } from '../../../../i18n';
 
 const props = defineProps<{ project: IProject }>();
 
@@ -84,14 +85,14 @@ const close = () => {
 
 const handleAddAuthors = async () => {
   if (selectedAuthors.value.length === 0) {
-    FailAlert('Выберите хотя бы одного соавтора');
+    FailAlert(t('capital.addAuthorButton.selectAtLeastOneError'));
     return;
   }
 
   // Проверяем, что у всех выбранных участников есть username
   const invalidContributors = selectedAuthors.value.filter(c => !c?.username);
   if (invalidContributors.length > 0) {
-    FailAlert('У некоторых выбранных участников отсутствует имя пользователя');
+    FailAlert(t('capital.addAuthorButton.missingUsernameError'));
     return;
   }
 
@@ -114,8 +115,8 @@ const handleAddAuthors = async () => {
 
     const count = authorUsernames.length;
     const message = count === 1
-      ? 'Соавтор добавлен'
-      : `Добавлено соавторов: ${count}`;
+      ? t('capital.addAuthorButton.singleAddedSuccess')
+      : t('capital.addAuthorButton.addedCountSuccess', { count });
 
     SuccessAlert(message);
     emit('authorsAdded');

@@ -1,0 +1,17 @@
+{
+  "bankDetailsCard": {
+    "bankDetailsCard": {
+      "accountNumberLabel": "Номер счета",
+      "accountNumberLengthError": "Номер счета должен содержать 20 цифр",
+      "bankNameLabel": "Наименование банка",
+      "bankNamePlaceholder": "ПАО Сбербанк",
+      "bikLabel": "БИК",
+      "bikLengthError": "БИК должен содержать 9 цифр",
+      "corrAccountLabel": "Корреспондентский счет",
+      "corrAccountLengthError": "Корреспондентский счет должен содержать 20 цифр",
+      "currencyLabel": "Валюта счёта",
+      "placeholder20Digits": "20 цифр",
+      "placeholder9Digits": "9 цифр"
+    }
+  }
+}

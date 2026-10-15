@@ -24,7 +24,7 @@ void registrator::confirmreg(eosio::name coopname, checksum256 registration_hash
   //оповещаем пользователя
   require_recipient(candidate -> username);
   
-  accounts.modify(account, _registrator, [&](auto &acc){
+  accounts.modify(account, RamPayer::of(accounts, coopname), [&](auto &acc){
     acc.status = "active"_n;
   });
   
@@ -76,7 +76,7 @@ void registrator::confirmreg(eosio::name coopname, checksum256 registration_hash
   auto coop_itr = cooperatives.find(coopname.value);
   
   if (coop_itr != cooperatives.end() && coop_itr->is_cooperative) {
-    cooperatives.modify(coop_itr, _registrator, [&](auto &coop) {
+    cooperatives.modify(coop_itr, RamPayer::of(cooperatives, coopname), [&](auto &coop) {
       if (coop.active_participants_count.has_value()) {
         coop.active_participants_count = coop.active_participants_count.value() + 1;
       } else {

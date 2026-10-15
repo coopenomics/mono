@@ -1,5 +1,5 @@
 <template lang="pug">
-ProjectInviteEditor(:placeholder='invitePlaceholder || "Введите приглашение..."')
+ProjectInviteEditor(:placeholder='invitePlaceholder || $t("capital.componentInvitePage.placeholder")')
 </template>
 
 <script lang="ts" setup>

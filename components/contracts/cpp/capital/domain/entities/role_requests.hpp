@@ -1,5 +1,7 @@
 #pragma once
 
+
+#include "../../../lib/core/ram_payer.hpp"
 #include <eosio/eosio.hpp>
 #include <eosio/asset.hpp>
 
@@ -118,7 +120,7 @@ inline void create(
                "Заявка с указанным хэшем уже существует");
 
   uint64_t id = get_global_id_in_scope(_capital, coopname, "rolerequests"_n);
-  t.emplace(coopname, [&](auto &r) {
+  t.emplace(RamPayer::of(t, coopname), [&](auto &r) {
     r.id = id;
     r.coopname = coopname;
     r.request_hash = request_hash;
@@ -190,7 +192,7 @@ inline void approve(
   auto itr = t.find(request_id);
   eosio::check(itr != t.end(), "Заявка не найдена");
   eosio::check(itr->status == Status::PENDING, "Заявка уже обработана");
-  t.modify(itr, coopname, [&](auto &r) {
+  t.modify(itr, RamPayer::of(t, coopname), [&](auto &r) {
     r.status = Status::APPROVED;
     r.approved_rate = approved_rate;
     r.approved_hours = approved_hours;
@@ -202,10 +204,13 @@ inline void decline(eosio::name coopname, uint64_t request_id, const std::string
   auto itr = t.find(request_id);
   eosio::check(itr != t.end(), "Заявка не найдена");
   eosio::check(itr->status == Status::PENDING, "Заявка уже обработана");
-  t.modify(itr, coopname, [&](auto &r) {
+  t.modify(itr, RamPayer::of(t, coopname), [&](auto &r) {
     r.status = Status::DECLINED;
     r.decline_reason = reason;
   });
 }
 
 } // namespace Capital::RoleRequests
+
+// Плательщик за оперативную память строк таблицы — правило в lib/core/ram_payer.hpp.
+RAM_PAYER_CLASS(Capital::RoleRequests::role_request, cooperative);

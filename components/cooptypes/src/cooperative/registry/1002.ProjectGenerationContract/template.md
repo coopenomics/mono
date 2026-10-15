@@ -1,7 +1,7 @@
 ПРИЛОЖЕНИЕ № {{appendix_short_hash}}
 к Договору об участии в хозяйственной деятельности № {{contributor_contract_number}}
 
-{{coop.city}}	 		             	        {{meta.created_at}}
+{{coop.city}}	 		             	        {{created_at}}
 
 {{full_abbr}} “{{vars.name}}” в лице Председателя Совета {{coop.chairman.last_name}} {{chairman.chairman.first_name}} {{chairman.chairman.middle_name}}, действующий на основании Устава, далее именуемый "Общество" и {{common_user.full_name_or_short_name}} далее именуемый(-ая) "Пайщик", далее совместно именуемые “Стороны”,  составили настоящее Приложение к Договору об участии в хозяйственной деятельности № {{contributor_contract_number}} от {{contributor_contract_created_at}} о нижеследующем:
 

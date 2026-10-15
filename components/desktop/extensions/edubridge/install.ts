@@ -1,0 +1,187 @@
+import './i18n';
+import { markRaw, type Component } from 'vue';
+import { fetchMyEnrollments } from './entities/Learner';
+import { fetchMyContributions, fetchMyLessons } from './entities/Teacher';
+import { isReportable } from './entities/Lesson';
+import { isRenewSoon } from './shared/lib/subscriptionDue';
+import { lessonActionsCount } from './shared/lib/lessonAction';
+import { refreshMenuBadges, registerMenuBadge } from 'src/shared/lib/menuBadges';
+import { registerLiveReload } from 'src/shared/lib/realtime';
+import { invalidateAttention, sharedAttention } from './entities/Admin';
+import { EduLive } from './shared/lib/live';
+import { agreementsBase } from 'src/shared/lib/consts/workspaces';
+import type { IWorkspaceConfig, IWorkspaceRoute, IWorkspaceRouteMeta } from 'src/shared/lib/types/workspace';
+import type { DesktopWalletCard } from 'src/shared/lib/types/desktop-wallet';
+import { registerEdubridgeDecisionHandlers } from './app/decisions';
+import {
+  AdminConnectorsPage,
+  AdminContributionsPage,
+  AdminEconomyPage,
+  AdminCoursePage,
+  AdminCourseEditPage,
+  AdminCoursesPage,
+  AdminMembersPage,
+  AdminSectionsPage,
+  AdminTeacherPage,
+  AdminTeachersPage,
+  CatalogPage,
+  ConfigurePage,
+  CourseCardPage,
+  MemberLearnersPage,
+  AdminCalendarPage,
+  AdminGroupPage,
+  MemberOnboardingPage,
+  MemberSubscriptionsPage,
+  TeacherAssignmentsPage,
+  TeacherLessonsPage,
+  TeacherReportsPage,
+  TeacherOnboardingPage,
+  TeacherProfilePage,
+  TeacherSettlementPage,
+} from './pages';
+import { t } from './i18n';
+
+/**
+ * Столы «Образовательного моста» — три, как в PRD (границы продукта):
+ *
+ *   edubridge          — «Стол администратора»: владелец и администратор в одном
+ *                        рабочем месте; часть страниц шире у владельца (площадки,
+ *                        администраторы, подключение). Курсы, преподаватели, ученики,
+ *                        взносы преподавателей. Очередь выдачи отдельной страницей не
+ *                        показывается: застрявшая выдача видна у ученика, там же её
+ *                        и повторяют.
+ *   edubridge-member   — «Стол ученика»: каталог курсов (открыт гостю после
+ *                        подключения ЦПП советом — витрина до вступления, как каталог
+ *                        в «Столе заказчика»), обучающиеся и отдельно подписки.
+ *   edubridge-teacher  — «Стол преподавателя»: назначения, взносы результатами
+ *                        работы, расчёт.
+ *
+ * Имена workspace обязаны посимвольно совпадать с `AppRegistry['edubridge'].desktops`
+ * в controller — иначе маршруты молча теряются. Видимость — канон грантов: backend
+ * (EdubridgeDesktopGrantsProvider) выдаёт права, фронт сверяет `meta.requires`.
+ * Страницы с `gate: true` — шлюзы онбординга: показываются, пока не подписаны
+ * оферта (и договор УХД у преподавателя).
+ */
+/**
+ * Что страница объявляет о себе: подпись, иконка и право стола; шлюз, скрытость
+ * и `menuKey` — по месту. `menuKey` держит подсветку раздела на скрытой странице:
+ * карточка курса — сосед реестра, а не его потомок, и без указания пункт меню
+ * гас, пока администратор смотрел курс.
+ */
+type PageMeta = Pick<IWorkspaceRouteMeta, 'title' | 'icon' | 'requires' | 'gate' | 'hidden' | 'menuKey'> & { requires: string };
+
+/** Страница для гостя: без входа и соглашений. */
+function publicPage(path: string, name: string, component: Component, meta: PageMeta & IWorkspaceRouteMeta): IWorkspaceRoute {
+  return { path, name, component: markRaw(component), meta, children: [] };
+}
+
+/** Страница пайщика: вход и базовые соглашения обязательны. */
+function memberPage(path: string, name: string, component: Component, meta: PageMeta): IWorkspaceRoute {
+  return publicPage(path, name, component, { ...meta, requiresAuth: true, agreements: agreementsBase });
+}
+
+function workspace(name: string, title: string, icon: string, defaultRoute: string, children: IWorkspaceRoute[]): IWorkspaceConfig {
+  return {
+    workspace: name,
+    extension_name: 'edubridge',
+    title,
+    icon,
+    defaultRoute,
+    routes: [{ meta: { title, icon }, path: `/:coopname/${name}`, name, children }],
+  };
+}
+
+/** «Стол администратора»: председатель и администратор ведут, член совета читает; каталог здесь не нужен — он в столе ученика. */
+function adminWorkspace(): IWorkspaceConfig {
+  return workspace('edubridge', t('edubridge.install.adminWorkspaceTitle'), 'admin_panel_settings', 'edubridge-admin-courses', [
+    memberPage('configure', 'edubridge-configure', ConfigurePage, { title: t('edubridge.install.configureRouteTitle'), icon: 'settings', requires: 'Extension:configure', gate: true }),
+    memberPage('courses', 'edubridge-admin-courses', AdminCoursesPage, { title: t('edubridge.install.coursesRouteTitle'), icon: 'library_books', requires: 'EduCourse:read' }),
+    memberPage('courses/new', 'edubridge-admin-course-new', AdminCourseEditPage, { title: t('edubridge.install.courseNewRouteTitle'), icon: 'library_books', requires: 'EduCourse:manage', hidden: true, menuKey: 'edubridge-admin-courses' }),
+    memberPage('courses/:id/edit', 'edubridge-admin-course-edit', AdminCourseEditPage, { title: t('edubridge.install.courseEditRouteTitle'), icon: 'library_books', requires: 'EduCourse:manage', hidden: true, menuKey: 'edubridge-admin-courses' }),
+    memberPage('courses/:id/groups/:groupId', 'edubridge-admin-group', AdminGroupPage, { title: t('edubridge.install.groupRouteTitle'), icon: 'library_books', requires: 'EduCourse:read', hidden: true, menuKey: 'edubridge-admin-courses' }),
+    memberPage('courses/:id', 'edubridge-admin-course', AdminCoursePage, { title: t('edubridge.install.courseRouteTitle'), icon: 'library_books', requires: 'EduCourse:read', hidden: true, menuKey: 'edubridge-admin-courses' }),
+    memberPage('calendar', 'edubridge-admin-calendar', AdminCalendarPage, { title: t('edubridge.install.calendarRouteTitle'), icon: 'calendar_month', requires: 'EduCourse:read' }),
+    memberPage('sections', 'edubridge-admin-sections', AdminSectionsPage, { title: t('edubridge.install.sectionsRouteTitle'), icon: 'category', requires: 'EduCourse:read' }),
+    memberPage('teachers', 'edubridge-admin-teachers', AdminTeachersPage, { title: t('edubridge.install.teachersRouteTitle'), icon: 'co_present', requires: 'EduAssignment:read:all' }),
+    memberPage('teachers/:username', 'edubridge-admin-teacher', AdminTeacherPage, { title: t('edubridge.install.teacherRouteTitle'), icon: 'co_present', requires: 'EduAssignment:read:all', hidden: true, menuKey: 'edubridge-admin-teachers' }),
+    memberPage('contributions', 'edubridge-admin-contributions', AdminContributionsPage, { title: t('edubridge.install.adminContributionsRouteTitle'), icon: 'workspace_premium', requires: 'EduContribution:read:all' }),
+    memberPage('economy', 'edubridge-admin-economy', AdminEconomyPage, { title: t('edubridge.install.economyRouteTitle'), icon: 'payments', requires: 'EduEconomy:read' }),
+    memberPage('members', 'edubridge-admin-registry', AdminMembersPage, { title: t('edubridge.install.membersRouteTitle'), icon: 'groups', requires: 'EduRegistry:read' }),
+    memberPage('platforms', 'edubridge-admin-connectors', AdminConnectorsPage, { title: t('edubridge.install.connectorsRouteTitle'), icon: 'hub', requires: 'EduConnector:manage' }),
+  ]);
+}
+
+/** «Стол ученика»: каталог (гостю — витрина), обучающиеся, подписки. Подписка
+    оформляется в карточке курса, поэтому кнопок «получить доступ» на столе нет. */
+function parentWorkspace(): IWorkspaceConfig {
+  return workspace('edubridge-member', t('edubridge.install.memberWorkspaceTitle'), 'local_library', 'edubridge-catalog', [
+    publicPage('catalog', 'edubridge-catalog', CatalogPage, { title: t('edubridge.install.catalogRouteTitle'), icon: 'school', requires: 'EduCatalog:read' }),
+    publicPage('catalog/:id', 'edubridge-catalog-course', CourseCardPage, { title: t('edubridge.install.catalogCourseRouteTitle'), icon: 'school', requires: 'EduCatalog:read', hidden: true, menuKey: 'edubridge-catalog' }),
+    memberPage('onboarding', 'edubridge-member-onboarding', MemberOnboardingPage, { title: t('edubridge.install.memberOnboardingRouteTitle'), icon: 'how_to_reg', requires: 'Onboarding:learner', gate: true }),
+    memberPage('learners', 'edubridge-learners', MemberLearnersPage, { title: t('edubridge.install.learnersRouteTitle'), icon: 'groups', requires: 'EduLearner:read:own' }),
+    memberPage('subscriptions', 'edubridge-subscriptions', MemberSubscriptionsPage, { title: t('edubridge.install.subscriptionsRouteTitle'), icon: 'card_membership', requires: 'EduEnrollment:read:own' }),
+  ]);
+}
+
+/** «Стол преподавателя»: назначения, занятия со взносами результатами работы, расчёт. */
+function teacherWorkspace(): IWorkspaceConfig {
+  return workspace('edubridge-teacher', t('edubridge.install.teacherWorkspaceTitle'), 'co_present', 'edubridge-teacher-profile', [
+    memberPage('onboarding', 'edubridge-teacher-onboarding', TeacherOnboardingPage, { title: t('edubridge.install.teacherOnboardingRouteTitle'), icon: 'how_to_reg', requires: 'Onboarding:teacher', gate: true }),
+    memberPage('profile', 'edubridge-teacher-profile', TeacherProfilePage, { title: t('edubridge.install.teacherProfileRouteTitle'), icon: 'badge', requires: 'EduAssignment:read:own' }),
+    memberPage('assignments', 'edubridge-assignments', TeacherAssignmentsPage, { title: t('edubridge.install.assignmentsRouteTitle'), icon: 'assignment', requires: 'EduAssignment:read:own' }),
+    memberPage('lessons', 'edubridge-lessons', TeacherLessonsPage, { title: t('edubridge.install.lessonsRouteTitle'), icon: 'event_available', requires: 'EduContribution:create:own' }),
+    memberPage('reports', 'edubridge-reports', TeacherReportsPage, { title: t('edubridge.install.reportsRouteTitle'), icon: 'fact_check', requires: 'EduContribution:create:own' }),
+    memberPage('settlement', 'edubridge-settlement', TeacherSettlementPage, { title: t('edubridge.install.settlementRouteTitle'), icon: 'account_balance_wallet', requires: 'EduTeacherWallet:read:own' }),
+  ]);
+}
+
+/**
+ * Кошельки ЦПП «Образование» на странице кошелька пайщика. Кошелёк программы
+ * ученика виден всегда: на него возвращается взнос при отмене подписки, с него
+ * идёт следующий взнос. Два кошелька преподавателя — паевой взнос по программе
+ * и материалы на ответственном хранении — показываются, когда на них есть средства.
+ */
+export const walletCards: DesktopWalletCard[] = [
+  { wallet_name: 'w.edu.member', label: t('edubridge.install.walletMemberLabel'), description: t('edubridge.install.walletDescription'), accent: 'wallet', icon: 'school' },
+  { wallet_name: 'w.edu.share', label: t('edubridge.install.walletTeacherShareLabel'), description: t('edubridge.install.walletDescription'), accent: 'wallet', icon: 'co_present', hideWhenEmpty: true },
+  { wallet_name: 'w.edu.hold', label: t('edubridge.install.walletTeacherHoldLabel'), description: t('edubridge.install.walletDescription'), accent: 'wallet', icon: 'inventory_2', hideWhenEmpty: true },
+];
+
+export default async function (): Promise<IWorkspaceConfig[]> {
+  // Решения совета по заявлениям образования: протокол собирается по заявлению,
+  // как по возврату в Столе заказов.
+  registerEdubridgeDecisionHandlers();
+  // Числа дел на пунктах меню стола администратора: документы преподавателей
+  // на подписи председателя и застрявшая выдача доступа ученикам.
+  registerMenuBadge('edubridge-admin-teachers', async () => (await sharedAttention()).teachers);
+  registerMenuBadge('edubridge-admin-registry', async () => (await sharedAttention()).learners);
+  // Стол ученика: сколько подписок пора продлить — взнос вносится заново на каждый период.
+  registerMenuBadge('edubridge-subscriptions', async () => {
+    try {
+      return (await fetchMyEnrollments()).filter((e) => isRenewSoon(e)).length;
+    } catch {
+      // Свои подписки читает только участник с офертой ученика — остальным число не показывается.
+      return 0;
+    }
+  });
+  registerLiveReload([EduLive.enrollments], () => refreshMenuBadges(['edubridge-subscriptions']));
+  // Стол преподавателя, пункт «Отчёты»: сколько дел за ним — занятия без отчёта,
+  // материалы на передачу и акты на подпись.
+  registerMenuBadge('edubridge-reports', async () => {
+    try {
+      const [lessons, contributions] = await Promise.all([fetchMyLessons(), fetchMyContributions()]);
+      return lessons.filter((l) => isReportable(l)).length + lessonActionsCount(contributions.map((c) => c.status));
+    } catch {
+      // Свои занятия и взносы читает только преподаватель с договором — остальным число не показывается.
+      return 0;
+    }
+  });
+  registerLiveReload([EduLive.contributions, EduLive.lessons], () => refreshMenuBadges(['edubridge-reports']));
+  // Числа меняются по факту — подпись председателя, выдача доступа в фоне, —
+  // и пункты меню узнают об этом по ленте изменений, а не опросом раз в минуту.
+  registerLiveReload([EduLive.approvals, EduLive.teacherContracts, EduLive.accessTasks], () => {
+    invalidateAttention();
+    return refreshMenuBadges(['edubridge-admin-teachers', 'edubridge-admin-registry']);
+  });
+  return [adminWorkspace(), parentWorkspace(), teacherWorkspace()];
+}

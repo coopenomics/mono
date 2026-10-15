@@ -1,4 +1,7 @@
 import { ControllerChainDataSource } from './controller-chain-data.source';
+import { Cooperative } from 'cooptypes';
+
+const R = Cooperative.Registry;
 
 /**
  * Источник данных цепи для фабрики документов заменил собой обозреватель
@@ -14,55 +17,63 @@ import { ControllerChainDataSource } from './controller-chain-data.source';
 describe('ControllerChainDataSource', () => {
   const query = jest.fn();
   const findTemplateAt = jest.fn();
+  const findTranslationsAt = jest.fn();
   const actionsFind = jest.fn();
   const getInfo = jest.fn();
+  const resolveFields = jest.fn();
 
   const source = new ControllerChainDataSource(
-    { query } as any,
-    { findTemplateAt } as any,
+    // Запросы журнала дельт уходят в базу готовым текстом с параметрами.
+    { executeQuery: async (compiled: any) => ({ rows: await query(compiled.sql, compiled.parameters) }) } as any,
+    { findTemplateAt, findTranslationsAt } as any,
     { find: actionsFind } as any,
-    { getInfo } as any
+    { getInfo } as any,
+    // Утверждённых редакций в этих пробах нет: читается текущее состояние.
+    { resolve: jest.fn(async () => undefined) } as any,
+    { resolveFields } as any
   );
 
   beforeEach(() => {
     query.mockReset().mockResolvedValue([]);
     findTemplateAt.mockReset().mockResolvedValue(null);
+    findTranslationsAt.mockReset().mockResolvedValue([]);
     actionsFind.mockReset().mockResolvedValue({ results: [], page: 1, limit: 10, total: 0 });
     getInfo.mockReset().mockResolvedValue({ head_block_num: 42 });
+    resolveFields.mockReset().mockImplementation(async (rows: unknown[]) => rows);
   });
 
   it('шаблон берётся из реестра на указанный блок', async () => {
-    findTemplateAt.mockResolvedValue({ registry_id: '100', title: 'Заявление' });
+    findTemplateAt.mockResolvedValue({ registry_id: String(R.ParticipantApplication.registry_id), title: 'Заявление' });
 
     const rows = await source.getTableRows({
       code: 'draft',
       scope: 'draft',
       table: 'drafts',
-      filter: { registry_id: '100' },
+      filter: { registry_id: String(R.ParticipantApplication.registry_id) },
       block_num: 500,
     });
 
-    expect(rows).toEqual([{ registry_id: '100', title: 'Заявление' }]);
-    expect(findTemplateAt).toHaveBeenCalledWith('100', 500);
+    expect(rows).toEqual([{ registry_id: String(R.ParticipantApplication.registry_id), title: 'Заявление' }]);
+    expect(findTemplateAt).toHaveBeenCalledWith(String(R.ParticipantApplication.registry_id), 500);
     // Журнал дельт для шаблонов не привлекается — у реестра своя история.
     expect(query).not.toHaveBeenCalled();
   });
 
   it('переводы отдаются по одному на язык', async () => {
-    query.mockResolvedValue([{ value: { lang: 'ru' } }, { value: { lang: 'en' } }]);
+    findTranslationsAt.mockResolvedValue([{ lang: 'ru' }, { lang: 'en' }]);
 
     const rows = await source.getTableRows({
       code: 'draft',
       scope: 'draft',
       table: 'translations',
-      filter: { draft_id: '100' },
+      filter: { draft_id: String(R.ParticipantApplication.registry_id) },
       block_num: 500,
     });
 
     expect(rows).toEqual([{ lang: 'ru' }, { lang: 'en' }]);
-    const [sql, params] = query.mock.calls[0];
-    expect(sql).toContain('DISTINCT ON (lang)');
-    expect(params).toEqual(['100', 500]);
+    // Выборку «по одной свежей записи на язык» держит реестр шаблонов (свой тест).
+    expect(findTranslationsAt).toHaveBeenCalledWith('100', 500);
+    expect(query).not.toHaveBeenCalled();
   });
 
   it('прочие таблицы читаются из журнала дельт с ограничением по блоку', async () => {
@@ -148,5 +159,25 @@ describe('ControllerChainDataSource', () => {
 
   it('текущий блок берётся у цепи', async () => {
     await expect(source.getCurrentBlock()).resolves.toBe(42);
+  });
+
+  it('формулировки вопросов собрания подставляются вместо хешей, прочие таблицы не трогаются', async () => {
+    const digest = 'a'.repeat(64);
+    query.mockResolvedValue([{ value: { id: 1, meet_id: 7, title: digest, context: '', decision: digest }, present: true }]);
+    resolveFields.mockImplementation(async (rows: any[]) =>
+      rows.map((row) => ({ ...row, title: 'Утвердить отчёт', decision: 'Утвердить' }))
+    );
+
+    const questions = await source.getTableRows({ code: 'meet', scope: 'voskhod', table: 'questions', filter: { meet_id: 7 } });
+    expect(resolveFields).toHaveBeenCalledWith([{ id: 1, meet_id: 7, title: digest, context: '', decision: digest }], [
+      'title',
+      'context',
+      'decision',
+    ]);
+    expect(questions).toEqual([{ id: 1, meet_id: 7, title: 'Утвердить отчёт', context: '', decision: 'Утвердить' }]);
+
+    resolveFields.mockClear();
+    await source.getTableRows({ code: 'meet', scope: 'voskhod', table: 'meets', filter: { hash: 'x' } });
+    expect(resolveFields).not.toHaveBeenCalled();
   });
 });

@@ -3,6 +3,7 @@
 export const AllTypesProps: Record<string,any> = {
 	AccountKind: "enum" as const,
 	AccountType: "enum" as const,
+	AccountVerificationFilter: "enum" as const,
 	ActionFiltersInput:{
 
 	},
@@ -130,22 +131,6 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	BankAccountInput:{
 		details:"BankAccountDetailsInput"
-	},
-	BillingConversionStatementGenerateDocumentInput:{
-
-	},
-	BillingConversionStatementSignedDocumentInput:{
-		meta:"BillingConversionStatementSignedMetaDocumentInput",
-		signatures:"SignatureInfoInput"
-	},
-	BillingConversionStatementSignedMetaDocumentInput:{
-
-	},
-	BillingConvertInput:{
-		document:"BillingConversionStatementSignedDocumentInput"
-	},
-	BillingPayInput:{
-
 	},
 	BranchEstablishmentDecisionGenerateDocumentInput:{
 
@@ -351,7 +336,22 @@ export const AllTypesProps: Record<string,any> = {
 	CapitalTopupProgramExpenseInput:{
 
 	},
+	CardcoopAttestationState: "enum" as const,
+	CardcoopEntryInput:{
+
+	},
+	CardcoopEntryOutcome: "enum" as const,
+	CardcoopEntryStatus: "enum" as const,
+	CardcoopRequestEntryDisclosureInput:{
+
+	},
 	CategoryTypeInput:{
+
+	},
+	ChainChangesInput:{
+		tables:"ChainTableInput"
+	},
+	ChainTableInput:{
 
 	},
 	ChairmanOnboardingAgendaInput:{
@@ -404,13 +404,23 @@ export const AllTypesProps: Record<string,any> = {
 	ConfirmApproveInput:{
 		approved_document:"SignedDigitalDocumentInput"
 	},
-	ContributionType: "enum" as const,
+	ConfirmEmailVerificationInputDTO:{
+
+	},
 	ContributorStatus: "enum" as const,
 	ConvertSegmentInput:{
 		convert_statement:"SignedDigitalDocumentInput"
 	},
-	CooperativeChainStatus: "enum" as const,
-	CooperativePaymentStatus: "enum" as const,
+	ConvertToAxonStatementGenerateDocumentInput:{
+
+	},
+	ConvertToAxonStatementSignedDocumentInput:{
+		meta:"ConvertToAxonStatementSignedMetaDocumentInput",
+		signatures:"SignatureInfoInput"
+	},
+	ConvertToAxonStatementSignedMetaDocumentInput:{
+
+	},
 	Country: "enum" as const,
 	CreateAnnualGeneralMeetInput:{
 		agenda:"AgendaGeneralMeetPointInput",
@@ -423,9 +433,6 @@ export const AllTypesProps: Record<string,any> = {
 		statement:"ExpenseProposalStatementSignedDocumentInput"
 	},
 	CreateBranchInput:{
-
-	},
-	CreateCategoryInput:{
 
 	},
 	CreateChatCoopCalendarEventInput:{
@@ -492,10 +499,8 @@ export const AllTypesProps: Record<string,any> = {
 	CreateMatrixAccountInputDTO:{
 
 	},
-	CreateMeasureInput:{
-		series_mode:"MetricSeriesMode"
-	},
 	CreateMembershipExitInput:{
+		annulment:"ProgramAgreementsAnnulmentSignedDocumentInput",
 		statement:"MembershipExitApplicationSignedDocumentInput"
 	},
 	CreateOrganizationDataInput:{
@@ -506,11 +511,6 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	CreateProcessTemplateInput:{
 
-	},
-	CreateProductCardInput:{
-		contribution_type:"ContributionType",
-		delivery_type:"DeliveryType",
-		type:"ProductCardType"
 	},
 	CreateProgramInvestInput:{
 		statement:"ProgramCapitalizationMoneyInvestStatementSignedDocumentInput"
@@ -530,11 +530,6 @@ export const AllTypesProps: Record<string,any> = {
 	CreateProjectPropertyInput:{
 
 	},
-	CreateRequestInput:{
-		attributes:"RequestAttributeInput",
-		images:"RequestImageInput",
-		type:"RequestTypeInput"
-	},
 	CreateSecretaryRoomInput:{
 
 	},
@@ -551,8 +546,6 @@ export const AllTypesProps: Record<string,any> = {
 	CreateWithdrawInput:{
 		statement:"ReturnByMoneySignedDocumentInput"
 	},
-	CriticalActionStatus: "enum" as const,
-	CriticalActionType: "enum" as const,
 	CurrentTableStatesFiltersInput:{
 
 	},
@@ -604,11 +597,14 @@ export const AllTypesProps: Record<string,any> = {
 	DeleteTrustedAccountInput:{
 
 	},
-	DeliveryType: "enum" as const,
 	DeltaFiltersInput:{
 
 	},
 	DocumentAction: "enum" as const,
+	DocumentApprovalRequirement: "enum" as const,
+	DocumentApprovalState: "enum" as const,
+	DocumentKind: "enum" as const,
+	DocumentTemplateEdition: "enum" as const,
 	EditBranchInput:{
 
 	},
@@ -617,6 +613,184 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	EditProjectInput:{
 		origin:"CapitalContentRevisionOrigin"
+	},
+	EduAccessCarrier: "enum" as const,
+	EduAccessState: "enum" as const,
+	EduAccessTaskKind: "enum" as const,
+	EduAccessTaskStatus: "enum" as const,
+	EduArchiveInput:{
+
+	},
+	EduAssignmentInput:{
+
+	},
+	EduAssignmentStatus: "enum" as const,
+	EduCatalogFilterInput:{
+
+	},
+	EduConnectorCredentialInput:{
+
+	},
+	EduConnectorHealth: "enum" as const,
+	EduContractStatus: "enum" as const,
+	EduContributionDocumentKind: "enum" as const,
+	EduContributionStatus: "enum" as const,
+	EduCouncilOutcome: "enum" as const,
+	EduCourseDirection: "enum" as const,
+	EduCourseEconomyInput:{
+		schedule_slots:"EduScheduleSlotInput"
+	},
+	EduCourseImageUploadInput:{
+
+	},
+	EduCourseInput:{
+		carrier:"EduAccessCarrier",
+		direction:"EduCourseDirection",
+		image:"EduCourseImageUploadInput",
+		schedule_slots:"EduScheduleSlotInput"
+	},
+	EduCourseStatus: "enum" as const,
+	EduCoursesFilterInput:{
+		status:"EduCourseStatus"
+	},
+	EduCreateExpenseInput:{
+		items:"EduExpenseItemInput",
+		statement:"ExpenseProposalStatementSignedDocumentInput"
+	},
+	EduCreateGroupInput:{
+
+	},
+	EduEnrollmentPeriod: "enum" as const,
+	EduEnrollmentStatus: "enum" as const,
+	EduExpenseItemInput:{
+		mechanics:"ExpenseMechanics",
+		recipient_type:"ExpenseRecipientType"
+	},
+	EduGroupStatus: "enum" as const,
+	EduGuaranteeClaimStatus: "enum" as const,
+	EduGuaranteeStatementInput:{
+
+	},
+	EduHoldContributionInput:{
+		document:"SignedDigitalDocumentInput"
+	},
+	EduLearnerInput:{
+		recipient_type:"EduRecipientType"
+	},
+	EduLessonCalendarFilter:{
+
+	},
+	EduLessonOrigin: "enum" as const,
+	EduLessonReportInput:{
+
+	},
+	EduLessonStatus: "enum" as const,
+	EduMarkLearnerRemovedInput:{
+
+	},
+	EduMoveLessonInput:{
+
+	},
+	EduOfferKind: "enum" as const,
+	EduOnboardingSource: "enum" as const,
+	EduPlanLessonInput:{
+
+	},
+	EduQueueFilterInput:{
+		statuses:"EduAccessTaskStatus"
+	},
+	EduQuoteInput:{
+		period:"EduEnrollmentPeriod"
+	},
+	EduRecipientType: "enum" as const,
+	EduReorderInput:{
+
+	},
+	EduRequestShareReturnInput:{
+		return_statement:"SignedDigitalDocumentInput",
+		transfer_statement:"SignedDigitalDocumentInput"
+	},
+	EduRetryEnrollmentCloseInput:{
+
+	},
+	EduRetryTaskInput:{
+
+	},
+	EduRidType: "enum" as const,
+	EduSaveLevelInput:{
+
+	},
+	EduSaveSectionInput:{
+
+	},
+	EduScheduleSlotInput:{
+
+	},
+	EduSectionsFilterInput:{
+
+	},
+	EduSetAssignmentRateInput:{
+
+	},
+	EduSetConnectorCredentialsInput:{
+		carrier:"EduAccessCarrier",
+		values:"EduConnectorCredentialInput"
+	},
+	EduSetConnectorEnabledInput:{
+		carrier:"EduAccessCarrier"
+	},
+	EduSetCourseStatusInput:{
+		status:"EduCourseStatus"
+	},
+	EduSetEconomySettingsInput:{
+
+	},
+	EduSetGroupScheduleInput:{
+		slots:"EduScheduleSlotInput"
+	},
+	EduSetTeacherRateInput:{
+
+	},
+	EduSettlementEntryKind: "enum" as const,
+	EduSettlementEntryStatus: "enum" as const,
+	EduShareReturnDocumentKind: "enum" as const,
+	EduShareWithdrawStatementInput:{
+
+	},
+	EduSignActInput:{
+		document:"SignedDigitalDocumentInput"
+	},
+	EduSignContractInput:{
+		document:"SignedDigitalDocumentInput"
+	},
+	EduSignOfferInput:{
+		document:"SignedDigitalDocumentInput",
+		kind:"EduOfferKind"
+	},
+	EduSubmitContributionInput:{
+		document:"SignedDigitalDocumentInput"
+	},
+	EduSubmitGuaranteeClaimInput:{
+		document:"SignedDigitalDocumentInput"
+	},
+	EduSubscribeInput:{
+		document:"SignedDigitalDocumentInput",
+		period:"EduEnrollmentPeriod"
+	},
+	EduTeacherProfileInput:{
+
+	},
+	EduUpdateCourseInput:{
+		carrier:"EduAccessCarrier",
+		direction:"EduCourseDirection",
+		image:"EduCourseImageUploadInput",
+		schedule_slots:"EduScheduleSlotInput"
+	},
+	EduUpdateGroupInput:{
+
+	},
+	EduUpdateLearnerInput:{
+		recipient_type:"EduRecipientType"
 	},
 	EntrepreneurDetailsInput:{
 
@@ -688,9 +862,6 @@ export const AllTypesProps: Record<string,any> = {
 	FinalizeProjectInput:{
 
 	},
-	FindPotentialMatchesInput:{
-
-	},
 	ForceRecoveryConsentVia: "enum" as const,
 	FreeDecisionGenerateDocumentInput:{
 
@@ -741,7 +912,7 @@ export const AllTypesProps: Record<string,any> = {
 
 	},
 	GetAccountsInput:{
-
+		verification:"AccountVerificationFilter"
 	},
 	GetBranchesInput:{
 
@@ -765,23 +936,11 @@ export const AllTypesProps: Record<string,any> = {
 	GetCapitalStoryByHashInput:{
 
 	},
-	GetCategoryAttributesInput:{
-
-	},
-	GetCategoryByIdInput:{
-
-	},
-	GetCategoryTreeInput:{
-
-	},
 	GetComponentMetricsInput:{
 		status:"MetricStatus"
 	},
 	GetContributorInput:{
 
-	},
-	GetCoopRequestsInput:{
-		type:"RequestTypeInput"
 	},
 	GetDebtInput:{
 
@@ -854,9 +1013,6 @@ export const AllTypesProps: Record<string,any> = {
 	GetPaymentMethodsInput:{
 
 	},
-	GetProductTypeByIdInput:{
-
-	},
 	GetProjectCommunicationRoomsInput:{
 
 	},
@@ -867,18 +1023,6 @@ export const AllTypesProps: Record<string,any> = {
 
 	},
 	GetPublicProvisionInput:{
-
-	},
-	GetRequestByHashInput:{
-
-	},
-	GetRequestInput:{
-
-	},
-	GetRequestStatisticsInput:{
-
-	},
-	GetRequiredAttributesInput:{
 
 	},
 	GetResultInput:{
@@ -893,13 +1037,14 @@ export const AllTypesProps: Record<string,any> = {
 	GetTranscriptionsInput:{
 
 	},
-	GetUserRequestsInput:{
-
-	},
 	GetUserSubscriptionsInput:{
 
 	},
 	GetVoteInput:{
+
+	},
+	GlobalSearchGroupStatus: "enum" as const,
+	GlobalSearchInput:{
 
 	},
 	ImportContributorInput:{
@@ -908,15 +1053,14 @@ export const AllTypesProps: Record<string,any> = {
 	Init:{
 		organization_data:"CreateInitOrganizationDataInput"
 	},
-	InitiateCriticalActionInput:{
-		action_type:"CriticalActionType",
-		payload:"JSON"
-	},
 	Install:{
 		soviet:"SovietMemberInput",
 		vars:"SetVarsInput"
 	},
 	InstanceStatus: "enum" as const,
+	IntakeFormAnswerInput:{
+		values:"JSON"
+	},
 	InvestStatus: "enum" as const,
 	IssueMetricBindingItemInput:{
 
@@ -928,6 +1072,7 @@ export const AllTypesProps: Record<string,any> = {
 	JoinKuDecisionInput:{
 
 	},
+	KeyRevocationStatus: "enum" as const,
 	KuAgendaPointInput:{
 
 	},
@@ -994,7 +1139,8 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	MarketplaceAcceptReturnAtVisitInput:{
 		inspection_photos:"MarketplaceReturnClaimPhotoUploadInput",
-		signed_statement:"MarketplaceReturnStatementSignedInput"
+		signed_reclamation:"MarketplaceReturnStatementSignedInput",
+		signed_statement:"MarketplaceReturnCancelStatementSignedInput"
 	},
 	MarketplaceAddSupplierInput:{
 		model:"MarketplaceSupplierModel"
@@ -1002,11 +1148,11 @@ export const AllTypesProps: Record<string,any> = {
 	MarketplaceAddToCartInput:{
 
 	},
-	MarketplaceAidStage: "enum" as const,
-	MarketplaceAidStatementSignablePayloadInput:{
+	MarketplaceAdmitSupplierClaimInput:{
 
 	},
-	MarketplaceAnnounceOrderReadyInput:{
+	MarketplaceAidStage: "enum" as const,
+	MarketplaceAidStatementSignablePayloadInput:{
 
 	},
 	MarketplaceAplReceptionByIdInput:{
@@ -1036,7 +1182,6 @@ export const AllTypesProps: Record<string,any> = {
 	MarketplaceAssignInventoryPlacementInput:{
 
 	},
-	MarketplaceAttributeType: "enum" as const,
 	MarketplaceBarcodeFormat: "enum" as const,
 	MarketplaceBarcodeStrategy: "enum" as const,
 	MarketplaceBindInventoryBarcodeInput:{
@@ -1050,10 +1195,11 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	MarketplaceCartItemBlocker: "enum" as const,
 	MarketplaceCheckoutCartInput:{
-		lines:"MarketplaceCheckoutSignedLineInput"
+		lines:"MarketplaceCheckoutSignedLineInput",
+		signed_convert:"MarketplaceConvertStatementSignedInput"
 	},
 	MarketplaceCheckoutSignedLineInput:{
-		signed_statement:"MarketplaceConvertStatementSignedInput"
+
 	},
 	MarketplaceClearInventoryLabelInput:{
 
@@ -1062,9 +1208,6 @@ export const AllTypesProps: Record<string,any> = {
 		signed_memo:"SignedDigitalDocumentInput"
 	},
 	MarketplaceConsolidatedRequestStatus: "enum" as const,
-	MarketplaceConvertBranchFundsInput:{
-
-	},
 	MarketplaceConvertStatementSignedInput:{
 		meta:"MarketplaceConvertStatementSignedMetaDocumentInput",
 		signatures:"SignatureInfoInput"
@@ -1096,7 +1239,7 @@ export const AllTypesProps: Record<string,any> = {
 		unit_of_measure:"MarketplaceUnitOfMeasure"
 	},
 	MarketplaceCreateOrderProposalLineInput:{
-		signiss1_act:"MarketplaceIssueActSignedDocumentInput"
+
 	},
 	MarketplaceCreateReturnClaimInput:{
 		defect_category:"MarketplaceReturnClaimDefectCategory",
@@ -1111,7 +1254,7 @@ export const AllTypesProps: Record<string,any> = {
 		order_items:"MarketplaceCreateOrderProposalLineInput"
 	},
 	MarketplaceCreateStockProposalLineInput:{
-		signiss1_act:"MarketplaceIssueActSignedDocumentInput"
+
 	},
 	MarketplaceCreateStorageCellInput:{
 
@@ -1134,12 +1277,12 @@ export const AllTypesProps: Record<string,any> = {
 	MarketplaceDistributeBranchFundsInput:{
 
 	},
-	MarketplaceEventsInput:{
-
-	},
 	MarketplaceFinalizeStockIssuanceInput:{
 		order_lines:"MarketplaceStockFinalizeLineInput",
 		signed_convert:"MarketplaceConvertStatementSignedInput"
+	},
+	MarketplaceFixIssuanceFactInput:{
+
 	},
 	MarketplaceGenerateInventoryLabelInput:{
 		format:"MarketplaceBarcodeFormat"
@@ -1151,21 +1294,20 @@ export const AllTypesProps: Record<string,any> = {
 	MarketplaceGetShipmentInput:{
 
 	},
+	MarketplaceHandBackReturnInput:{
+
+	},
+	MarketplaceInventoryOrigin: "enum" as const,
 	MarketplaceInventoryOwnership: "enum" as const,
 	MarketplaceInventorySplitEntryInput:{
 
 	},
 	MarketplaceInventoryStatus: "enum" as const,
-	MarketplaceIssueActPayloadInput:{
+	MarketplaceIssuanceDecisionMode: "enum" as const,
+	MarketplaceIssuanceOrderInput:{
 
 	},
-	MarketplaceIssueActSignedDocumentInput:{
-		meta:"MarketplaceIssueActSignedMetaDocumentInput",
-		signatures:"SignatureInfoInput"
-	},
-	MarketplaceIssueActSignedMetaDocumentInput:{
-
-	},
+	MarketplaceIssuanceSagaStage: "enum" as const,
 	MarketplaceKUStatus: "enum" as const,
 	MarketplaceListAidsInput:{
 
@@ -1187,6 +1329,9 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	MarketplaceListInventoryInput:{
 		statuses:"MarketplaceInventoryStatus"
+	},
+	MarketplaceListIssuanceSagasInput:{
+
 	},
 	MarketplaceListIssuancesByBranameInput:{
 
@@ -1247,6 +1392,9 @@ export const AllTypesProps: Record<string,any> = {
 	MarketplacePublishStockInput:{
 
 	},
+	MarketplaceReadyIssueInput:{
+
+	},
 	MarketplaceRejectOfferInput:{
 
 	},
@@ -1277,6 +1425,14 @@ export const AllTypesProps: Record<string,any> = {
 	MarketplaceRetireStorageCellsInput:{
 
 	},
+	MarketplaceReturnCancelStatementSignedInput:{
+		meta:"MarketplaceReturnCancelStatementSignedMetaDocumentInput",
+		signatures:"SignatureInfoInput"
+	},
+	MarketplaceReturnCancelStatementSignedMetaDocumentInput:{
+
+	},
+	MarketplaceReturnClaimDecisionMode: "enum" as const,
 	MarketplaceReturnClaimDefectCategory: "enum" as const,
 	MarketplaceReturnClaimExpectedResolution: "enum" as const,
 	MarketplaceReturnClaimPhotoUploadInput:{
@@ -1312,6 +1468,20 @@ export const AllTypesProps: Record<string,any> = {
 	MarketplaceSetTrusteeWeightInput:{
 
 	},
+	MarketplaceShareReturnActSignedInput:{
+		meta:"MarketplaceShareReturnActSignedMetaDocumentInput",
+		signatures:"SignatureInfoInput"
+	},
+	MarketplaceShareReturnActSignedMetaDocumentInput:{
+
+	},
+	MarketplaceShareReturnStatementSignedInput:{
+		meta:"MarketplaceShareReturnStatementSignedMetaDocumentInput",
+		signatures:"SignatureInfoInput"
+	},
+	MarketplaceShareReturnStatementSignedMetaDocumentInput:{
+
+	},
 	MarketplaceShipmentDeliveryVariant: "enum" as const,
 	MarketplaceShipmentGroupInput:{
 		delivery_variant:"MarketplaceShipmentDeliveryVariant",
@@ -1328,6 +1498,13 @@ export const AllTypesProps: Record<string,any> = {
 		placements:"MarketplaceAplReceptionPlacementInput",
 		signed_documents:"MarketplaceAplReceptionSignedDocumentInput"
 	},
+	MarketplaceSignIssuanceActInput:{
+		signed_act:"MarketplaceShareReturnActSignedInput"
+	},
+	MarketplaceSignIssuanceStatementInput:{
+		signed_convert:"MarketplaceConvertStatementSignedInput",
+		signed_statement:"MarketplaceShareReturnStatementSignedInput"
+	},
 	MarketplaceSignOnboardingOfferInput:{
 		document:"SignedDigitalDocumentInput"
 	},
@@ -1335,7 +1512,7 @@ export const AllTypesProps: Record<string,any> = {
 		splits:"MarketplaceInventorySplitEntryInput"
 	},
 	MarketplaceStockFinalizeLineInput:{
-		signed_signiss2_act:"MarketplaceIssueActSignedDocumentInput"
+		signed_statement:"MarketplaceShareReturnStatementSignedInput"
 	},
 	MarketplaceStockIssuancePrepareInput:{
 		items:"MarketplaceStockProposalItemInput"
@@ -1347,6 +1524,7 @@ export const AllTypesProps: Record<string,any> = {
 	MarketplaceSubmitWriteoffDraftInput:{
 		signed_statement:"SignedDigitalDocumentInput"
 	},
+	MarketplaceSupplierClaimStatus: "enum" as const,
 	MarketplaceSupplierMemberInput:{
 
 	},
@@ -1433,26 +1611,23 @@ export const AllTypesProps: Record<string,any> = {
 		addTrustedAccount:{
 			data:"AddTrustedAccountInput"
 		},
+		applyDocumentApprovalsSeed:{
+
+		},
 		approveVerification:{
 			data:"ApproveVerificationInput"
 		},
-		archiveProductCard:{
-
-		},
 		assignCapabilitySet:{
 			data:"AssignCapabilitySetInput"
+		},
+		assignRole:{
+			data:"RoleAssignmentInput"
 		},
 		authorizeDecision:{
 			data:"AuthorizeDecisionInput"
 		},
 		authorizeForceRecovery:{
 			data:"AuthorizeForceRecoveryInput"
-		},
-		billingConvert:{
-			input:"BillingConvertInput"
-		},
-		billingPay:{
-			input:"BillingPayInput"
 		},
 		cancelMembershipExit:{
 
@@ -1513,9 +1688,6 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		capitalCreateLocalProject:{
 			data:"CreateProjectInput"
-		},
-		capitalCreateMeasure:{
-			data:"CreateMeasureInput"
 		},
 		capitalCreateProcessTemplate:{
 			data:"CreateProcessTemplateInput"
@@ -1764,14 +1936,17 @@ export const AllTypesProps: Record<string,any> = {
 		capitalUpdateStory:{
 			data:"UpdateStoryInput"
 		},
+		cardcoopRequestEntryDisclosure:{
+			data:"CardcoopRequestEntryDisclosureInput"
+		},
+		cardcoopTakeEntryProfile:{
+			data:"CardcoopEntryInput"
+		},
 		chairmanConfirmApprove:{
 			data:"ConfirmApproveInput"
 		},
 		chairmanDeclineApprove:{
 			data:"DeclineApproveInput"
-		},
-		changeProviderHostingPlan:{
-
 		},
 		chatcoopCreateAccount:{
 			data:"CreateMatrixAccountInputDTO"
@@ -1809,8 +1984,8 @@ export const AllTypesProps: Record<string,any> = {
 		confirmAgreement:{
 			data:"ConfirmAgreementInput"
 		},
-		confirmCriticalAction:{
-
+		confirmEmailVerification:{
+			data:"ConfirmEmailVerificationInputDTO"
 		},
 		confirmMembershipExit:{
 
@@ -1820,9 +1995,6 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		createBranch:{
 			data:"CreateBranchInput"
-		},
-		createCategory:{
-			data:"CreateCategoryInput"
 		},
 		createDepositPayment:{
 			data:"CreateDepositPaymentInput"
@@ -1838,9 +2010,6 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		createMembershipExit:{
 			data:"CreateMembershipExitInput"
-		},
-		createProductCard:{
-			data:"CreateProductCardInput"
 		},
 		createProjectOfFreeDecision:{
 			data:"CreateProjectFreeDecisionInput"
@@ -1869,17 +2038,11 @@ export const AllTypesProps: Record<string,any> = {
 		deleteBranchWhitelist:{
 			data:"DeleteBranchWhitelistInput"
 		},
-		deleteCategory:{
-
-		},
 		deleteExpensePlan:{
 			data:"DeleteExpensePlanInput"
 		},
 		deletePaymentMethod:{
 			data:"DeletePaymentMethodInput"
-		},
-		deleteProductCard:{
-
 		},
 		deleteReportDraft:{
 
@@ -1892,6 +2055,159 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		editBranch:{
 			data:"EditBranchInput"
+		},
+		edubridgeAddLearner:{
+			data:"EduLearnerInput"
+		},
+		edubridgeArchiveLevel:{
+			data:"EduArchiveInput"
+		},
+		edubridgeArchiveSection:{
+			data:"EduArchiveInput"
+		},
+		edubridgeCancelEnrollment:{
+
+		},
+		edubridgeCancelGroupUnderfilled:{
+
+		},
+		edubridgeCancelLesson:{
+
+		},
+		edubridgeCheckConnector:{
+			carrier:"EduAccessCarrier"
+		},
+		edubridgeCloseAssignment:{
+
+		},
+		edubridgeConvertStatement:{
+			data:"EduQuoteInput"
+		},
+		edubridgeCreateAssignment:{
+			data:"EduAssignmentInput"
+		},
+		edubridgeCreateCourse:{
+			data:"EduCourseInput"
+		},
+		edubridgeCreateExpense:{
+			data:"EduCreateExpenseInput"
+		},
+		edubridgeCreateGroup:{
+			data:"EduCreateGroupInput"
+		},
+		edubridgeDeleteCourse:{
+
+		},
+		edubridgeFinishGroup:{
+
+		},
+		edubridgeGuaranteeStatement:{
+			data:"EduGuaranteeStatementInput"
+		},
+		edubridgeHoldContribution:{
+			data:"EduHoldContributionInput"
+		},
+		edubridgeMarkLearnerRemoved:{
+			data:"EduMarkLearnerRemovedInput"
+		},
+		edubridgeMoveLesson:{
+			data:"EduMoveLessonInput"
+		},
+		edubridgePlanLesson:{
+			data:"EduPlanLessonInput"
+		},
+		edubridgeRemoveLearner:{
+
+		},
+		edubridgeReorderLevels:{
+			data:"EduReorderInput"
+		},
+		edubridgeReorderSections:{
+			data:"EduReorderInput"
+		},
+		edubridgeReportLesson:{
+			data:"EduLessonReportInput"
+		},
+		edubridgeRequestShareReturn:{
+			data:"EduRequestShareReturnInput"
+		},
+		edubridgeRetryEnrollmentClose:{
+			data:"EduRetryEnrollmentCloseInput"
+		},
+		edubridgeRetryTask:{
+			data:"EduRetryTaskInput"
+		},
+		edubridgeRidAct:{
+
+		},
+		edubridgeRidStatement:{
+
+		},
+		edubridgeRidStorageAct:{
+
+		},
+		edubridgeSaveLevel:{
+			data:"EduSaveLevelInput"
+		},
+		edubridgeSaveSection:{
+			data:"EduSaveSectionInput"
+		},
+		edubridgeSaveTeacherProfile:{
+			data:"EduTeacherProfileInput"
+		},
+		edubridgeSetAssignmentRate:{
+			data:"EduSetAssignmentRateInput"
+		},
+		edubridgeSetConnectorCredentials:{
+			data:"EduSetConnectorCredentialsInput"
+		},
+		edubridgeSetConnectorEnabled:{
+			data:"EduSetConnectorEnabledInput"
+		},
+		edubridgeSetCourseStatus:{
+			data:"EduSetCourseStatusInput"
+		},
+		edubridgeSetEconomySettings:{
+			data:"EduSetEconomySettingsInput"
+		},
+		edubridgeSetGroupSchedule:{
+			data:"EduSetGroupScheduleInput"
+		},
+		edubridgeSetTeacherRate:{
+			data:"EduSetTeacherRateInput"
+		},
+		edubridgeShareWithdrawStatement:{
+			data:"EduShareWithdrawStatementInput"
+		},
+		edubridgeSignAct:{
+			data:"EduSignActInput"
+		},
+		edubridgeSignContract:{
+			data:"EduSignContractInput"
+		},
+		edubridgeSignOffer:{
+			input:"EduSignOfferInput"
+		},
+		edubridgeSubmitContribution:{
+			data:"EduSubmitContributionInput"
+		},
+		edubridgeSubmitGuaranteeClaim:{
+			data:"EduSubmitGuaranteeClaimInput"
+		},
+		edubridgeSubscribe:{
+			data:"EduSubscribeInput"
+		},
+		edubridgeTerminateContract:{
+
+		},
+		edubridgeUpdateCourse:{
+			data:"EduUpdateCourseInput"
+		},
+		edubridgeUpdateGroup:{
+			data:"EduUpdateGroupInput"
+		},
+		edubridgeUpdateLearner:{
+			data:"EduUpdateLearnerInput"
 		},
 		generateAnnualGeneralMeetAgendaDocument:{
 			data:"AnnualGeneralMeetingAgendaGenerateDocumentInput",
@@ -1909,8 +2225,8 @@ export const AllTypesProps: Record<string,any> = {
 			data:"AnnualGeneralMeetingVotingBallotGenerateDocumentInput",
 			options:"GenerateDocumentOptionsInput"
 		},
-		generateBillingConversionStatement:{
-			data:"BillingConversionStatementGenerateDocumentInput",
+		generateConvertToAxonStatement:{
+			data:"ConvertToAxonStatementGenerateDocumentInput",
 			options:"GenerateDocumentOptionsInput"
 		},
 		generateDocument:{
@@ -1946,6 +2262,10 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		generatePrivacyAgreement:{
 			data:"GenerateDocumentInput",
+			options:"GenerateDocumentOptionsInput"
+		},
+		generateProgramAgreementsAnnulment:{
+			data:"ProgramAgreementsAnnulmentGenerateDocumentInput",
 			options:"GenerateDocumentOptionsInput"
 		},
 		generateProjectOfFreeDecision:{
@@ -1988,9 +2308,6 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		initSystem:{
 			data:"Init"
-		},
-		initiateCriticalAction:{
-			data:"InitiateCriticalActionInput"
 		},
 		installExtension:{
 			data:"ExtensionInput"
@@ -2104,8 +2421,8 @@ export const AllTypesProps: Record<string,any> = {
 		marketplaceAddToCart:{
 			input:"MarketplaceAddToCartInput"
 		},
-		marketplaceAnnounceOrderReady:{
-			data:"MarketplaceAnnounceOrderReadyInput"
+		marketplaceAdmitSupplierClaim:{
+			data:"MarketplaceAdmitSupplierClaimInput"
 		},
 		marketplaceApproveOffer:{
 			input:"MarketplaceApproveOfferInput"
@@ -2125,6 +2442,9 @@ export const AllTypesProps: Record<string,any> = {
 		marketplaceCancelAplReception:{
 			data:"MarketplaceAplReceptionByIdInput"
 		},
+		marketplaceCancelIssuance:{
+			data:"MarketplaceIssuanceOrderInput"
+		},
 		marketplaceCancelOrder:{
 			input:"MarketplaceCancelOrderInput"
 		},
@@ -2143,11 +2463,11 @@ export const AllTypesProps: Record<string,any> = {
 		marketplaceClearInventoryLabel:{
 			data:"MarketplaceClearInventoryLabelInput"
 		},
+		marketplaceCloseIssuance:{
+			data:"MarketplaceSignIssuanceActInput"
+		},
 		marketplaceConfirmWriteoff:{
 			data:"MarketplaceConfirmWriteoffInput"
-		},
-		marketplaceConvertBranchFunds:{
-			data:"MarketplaceConvertBranchFundsInput"
 		},
 		marketplaceCreateAid:{
 			data:"MarketplaceCreateAidInput"
@@ -2172,9 +2492,6 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		marketplaceCreateOffer:{
 			input:"MarketplaceCreateOfferInput"
-		},
-		marketplaceCreateRequest:{
-			data:"CreateRequestInput"
 		},
 		marketplaceCreateReturnClaim:{
 			data:"MarketplaceCreateReturnClaimInput"
@@ -2215,14 +2532,23 @@ export const AllTypesProps: Record<string,any> = {
 		marketplaceFinalizeStockIssuance:{
 			data:"MarketplaceFinalizeStockIssuanceInput"
 		},
+		marketplaceFixIssuanceFact:{
+			data:"MarketplaceFixIssuanceFactInput"
+		},
 		marketplaceGenerateInventoryLabel:{
 			data:"MarketplaceGenerateInventoryLabelInput"
+		},
+		marketplaceHandBackReturn:{
+			data:"MarketplaceHandBackReturnInput"
 		},
 		marketplaceMoveContainer:{
 			data:"MarketplaceMoveContainerInput"
 		},
 		marketplacePublishStock:{
 			data:"MarketplacePublishStockInput"
+		},
+		marketplaceReadyIssue:{
+			data:"MarketplaceReadyIssueInput"
 		},
 		marketplaceRejectOffer:{
 			input:"MarketplaceRejectOfferInput"
@@ -2287,6 +2613,12 @@ export const AllTypesProps: Record<string,any> = {
 		marketplaceSignAplReceptionAsSupplier:{
 			data:"MarketplaceSignAplReceptionInput"
 		},
+		marketplaceSignIssuanceAct:{
+			data:"MarketplaceSignIssuanceActInput"
+		},
+		marketplaceSignIssuanceStatement:{
+			data:"MarketplaceSignIssuanceStatementInput"
+		},
 		marketplaceSignOnboardingOffer:{
 			input:"MarketplaceSignOnboardingOfferInput"
 		},
@@ -2332,8 +2664,11 @@ export const AllTypesProps: Record<string,any> = {
 		payWithheldTax:{
 			data:"PayWithheldTaxInput"
 		},
-		publishProductCard:{
-
+		processConvertToAxonStatement:{
+			data:"ProcessConvertToAxonStatementInput"
+		},
+		proposeDocumentApproval:{
+			data:"ProposeDocumentApprovalInput"
 		},
 		publishProjectOfFreeDecision:{
 			data:"PublishProjectFreeDecisionInput"
@@ -2356,6 +2691,9 @@ export const AllTypesProps: Record<string,any> = {
 		reportNotMe:{
 			data:"ReportNotMeInput"
 		},
+		requestEmailVerification:{
+			data:"RequestEmailVerificationInputDTO"
+		},
 		requestForceRecoveryConsent:{
 			data:"RequestForceRecoveryConsentInput"
 		},
@@ -2364,6 +2702,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		resetKey:{
 			data:"ResetKeyInput"
+		},
+		resetParticipantTwoFactor:{
+			data:"ResetParticipantTwoFactorInput"
 		},
 		restartAnnualGeneralMeet:{
 			data:"RestartAnnualGeneralMeetInput"
@@ -2376,6 +2717,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		revokeParticipantKey:{
 			data:"RevokeParticipantKeyInput"
+		},
+		revokeRole:{
+			data:"RoleAssignmentInput"
 		},
 		revokeSession:{
 			data:"RevokeSessionInput"
@@ -2416,6 +2760,12 @@ export const AllTypesProps: Record<string,any> = {
 		signBySecretaryOnAnnualGeneralMeet:{
 			data:"SignBySecretaryOnAnnualGeneralMeetInput"
 		},
+		sovietRobotDelegateKey:{
+			data:"RobotDelegateKeyInput"
+		},
+		sovietRobotRetryDecision:{
+			data:"RobotRetryDecisionInput"
+		},
 		startInstall:{
 			data:"StartInstallInput"
 		},
@@ -2452,8 +2802,8 @@ export const AllTypesProps: Record<string,any> = {
 		updateSystem:{
 			data:"Update"
 		},
-		uploadCooperativeCharter:{
-			data:"UploadCooperativeCharterInput"
+		uploadAvatar:{
+			data:"UploadAvatarInput"
 		},
 		uploadExpenseFile:{
 			data:"UploadExpenseFileInput"
@@ -2540,6 +2890,9 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	PaymentStatus: "enum" as const,
 	PaymentType: "enum" as const,
+	ProcessConvertToAxonStatementInput:{
+		signedDocument:"ConvertToAxonStatementSignedDocumentInput"
+	},
 	ProcessEdgeInput:{
 
 	},
@@ -2555,8 +2908,22 @@ export const AllTypesProps: Record<string,any> = {
 	ProcessesFilter:{
 
 	},
-	ProductCardStatus: "enum" as const,
-	ProductCardType: "enum" as const,
+	ProgramAgreementInput:{
+		wallets:"ProgramAgreementWalletInput"
+	},
+	ProgramAgreementWalletInput:{
+
+	},
+	ProgramAgreementsAnnulmentGenerateDocumentInput:{
+		programs:"ProgramAgreementInput"
+	},
+	ProgramAgreementsAnnulmentSignedDocumentInput:{
+		meta:"ProgramAgreementsAnnulmentSignedMetaDocumentInput",
+		signatures:"SignatureInfoInput"
+	},
+	ProgramAgreementsAnnulmentSignedMetaDocumentInput:{
+		programs:"ProgramAgreementInput"
+	},
 	ProgramCapitalizationMoneyInvestStatementGenerateDocumentInput:{
 
 	},
@@ -2587,7 +2954,9 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	ProjectPriority: "enum" as const,
 	ProjectStatus: "enum" as const,
-	ProviderSubscriptionStatus: "enum" as const,
+	ProposeDocumentApprovalInput:{
+
+	},
 	PublishProjectFreeDecisionInput:{
 		document:"ProjectFreeDecisionSignedDocumentInput"
 	},
@@ -2770,6 +3139,9 @@ export const AllTypesProps: Record<string,any> = {
 			filter:"VoteFilter",
 			options:"PaginationInput"
 		},
+		cardcoopEntry:{
+			data:"CardcoopEntryInput"
+		},
 		chairmanApproval:{
 
 		},
@@ -2807,6 +3179,95 @@ export const AllTypesProps: Record<string,any> = {
 		cooperativePrograms:{
 
 		},
+		documentApprovalsSeedPlan:{
+
+		},
+		documentTemplateBlank:{
+			edition:"DocumentTemplateEdition"
+		},
+		documentTemplates:{
+
+		},
+		documentTemplatesAttention:{
+
+		},
+		edubridgeCatalog:{
+			filter:"EduCatalogFilterInput",
+			options:"PaginationInput"
+		},
+		edubridgeCatalogCourse:{
+
+		},
+		edubridgeContributionBrief:{
+
+		},
+		edubridgeContributionDocuments:{
+
+		},
+		edubridgeCourse:{
+
+		},
+		edubridgeCourseEconomy:{
+
+		},
+		edubridgeCourseFeePreview:{
+			data:"EduCourseEconomyInput"
+		},
+		edubridgeCourseGroups:{
+
+		},
+		edubridgeCourses:{
+			filter:"EduCoursesFilterInput",
+			options:"PaginationInput"
+		},
+		edubridgeExpenses:{
+			options:"PaginationInput"
+		},
+		edubridgeGroupLessons:{
+
+		},
+		edubridgeLessonCalendar:{
+			filter:"EduLessonCalendarFilter"
+		},
+		edubridgeMemberCard:{
+
+		},
+		edubridgeMembers:{
+
+		},
+		edubridgeMyContributionDocuments:{
+
+		},
+		edubridgeMyGuaranteeClaimDocument:{
+
+		},
+		edubridgeMyShareReturnDocuments:{
+
+		},
+		edubridgeOpenGroups:{
+
+		},
+		edubridgePlatformCourses:{
+			carrier:"EduAccessCarrier"
+		},
+		edubridgeQueue:{
+			filter:"EduQueueFilterInput"
+		},
+		edubridgeQuote:{
+			data:"EduQuoteInput"
+		},
+		edubridgeRefundPreview:{
+
+		},
+		edubridgeSections:{
+			filter:"EduSectionsFilterInput"
+		},
+		edubridgeTeacherApprovals:{
+
+		},
+		edubridgeTeacherContractDocument:{
+
+		},
 		expenseFile:{
 
 		},
@@ -2839,11 +3300,11 @@ export const AllTypesProps: Record<string,any> = {
 			filters:"ActionFiltersInput",
 			pagination:"PaginationInput"
 		},
-		getBillingSummary:{
-
-		},
 		getBranches:{
 			data:"GetBranchesInput"
+		},
+		getCandidateIntake:{
+
 		},
 		getCapitalIssueLogs:{
 			data:"GetCapitalIssueLogsInput",
@@ -2851,15 +3312,6 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		getCapitalProjectLogs:{
 			data:"GetCapitalLogsInput"
-		},
-		getCooperativeCharter:{
-
-		},
-		getCooperativePayments:{
-
-		},
-		getCriticalActionAuditTrail:{
-
 		},
 		getCurrentTableStates:{
 			filters:"CurrentTableStatesFiltersInput",
@@ -2922,6 +3374,9 @@ export const AllTypesProps: Record<string,any> = {
 		getParticipantCapabilitySets:{
 
 		},
+		getParticipantLoginSecurity:{
+			data:"ResetParticipantTwoFactorInput"
+		},
 		getPaymentMethods:{
 			data:"GetPaymentMethodsInput"
 		},
@@ -2929,22 +3384,12 @@ export const AllTypesProps: Record<string,any> = {
 			data:"PaymentFiltersInput",
 			options:"PaginationInput"
 		},
-		getProductCard:{
-
-		},
-		getProductCards:{
-			status:"ProductCardStatus",
-			type:"ProductCardType"
-		},
 		getProgramWallet:{
 			filter:"ProgramWalletFilterInput"
 		},
 		getProgramWallets:{
 			filter:"ProgramWalletFilterInput",
 			options:"PaginationInput"
-		},
-		getProviderConnectionCatalog:{
-
 		},
 		getProviderSubscriptionById:{
 
@@ -2985,6 +3430,9 @@ export const AllTypesProps: Record<string,any> = {
 		getWithheldTaxPayments:{
 
 		},
+		globalSearch:{
+			data:"GlobalSearchInput"
+		},
 		kuDecision:{
 
 		},
@@ -3011,20 +3459,8 @@ export const AllTypesProps: Record<string,any> = {
 		marketplaceAplReceptionSupplierSignablePayloads:{
 			data:"MarketplaceAplReceptionByIdInput"
 		},
-		marketplaceAspectAttributes:{
-			data:"GetRequiredAttributesInput"
-		},
-		marketplaceCategoryAttributes:{
-			input:"GetCategoryAttributesInput"
-		},
-		marketplaceCategoryAttributesGrouped:{
-			input:"GetCategoryAttributesInput"
-		},
 		marketplaceCategoryOfferCounts:{
 
-		},
-		marketplaceFindPotentialMatches:{
-			data:"FindPotentialMatchesInput"
 		},
 		marketplaceGetBranchEconomy:{
 
@@ -3032,17 +3468,8 @@ export const AllTypesProps: Record<string,any> = {
 		marketplaceGetBranchWalletHistory:{
 			options:"PaginationInput"
 		},
-		marketplaceGetCategoryById:{
-			data:"GetCategoryByIdInput"
-		},
 		marketplaceGetCategoryRules:{
 
-		},
-		marketplaceGetCategoryTree:{
-			input:"GetCategoryTreeInput"
-		},
-		marketplaceGetCoopRequests:{
-			data:"GetCoopRequestsInput"
 		},
 		marketplaceGetOffer:{
 
@@ -3050,32 +3477,29 @@ export const AllTypesProps: Record<string,any> = {
 		marketplaceGetOrder:{
 			input:"MarketplaceGetOrderInput"
 		},
+		marketplaceGetOutgoingPayment:{
+
+		},
 		marketplaceGetPersonalWalletHistory:{
 			options:"PaginationInput"
-		},
-		marketplaceGetProductTypeById:{
-			data:"GetProductTypeByIdInput"
-		},
-		marketplaceGetRequest:{
-			data:"GetRequestInput"
-		},
-		marketplaceGetRequestByHash:{
-			data:"GetRequestByHashInput"
-		},
-		marketplaceGetRequestStatistics:{
-			data:"GetRequestStatisticsInput"
-		},
-		marketplaceGetSearchCategories:{
-			data:"SearchCategoriesInput"
 		},
 		marketplaceGetShipment:{
 			data:"MarketplaceGetShipmentInput"
 		},
-		marketplaceGetUserRequests:{
-			data:"GetUserRequestsInput"
+		marketplaceIssuanceActPayload:{
+			data:"MarketplaceIssuanceOrderInput"
 		},
-		marketplaceIssueActChairmanSignablePayload:{
-			data:"MarketplaceIssueActPayloadInput"
+		marketplaceIssuanceClosePayload:{
+			data:"MarketplaceIssuanceOrderInput"
+		},
+		marketplaceIssuanceConvertPayload:{
+			data:"MarketplaceIssuanceOrderInput"
+		},
+		marketplaceIssuanceSaga:{
+			data:"MarketplaceIssuanceOrderInput"
+		},
+		marketplaceIssuanceStatementPayload:{
+			data:"MarketplaceIssuanceOrderInput"
 		},
 		marketplaceListAids:{
 			data:"MarketplaceListAidsInput"
@@ -3112,6 +3536,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		marketplaceListInventory:{
 			data:"MarketplaceListInventoryInput"
+		},
+		marketplaceListIssuanceSagas:{
+			data:"MarketplaceListIssuanceSagasInput"
 		},
 		marketplaceListIssuancesByBraname:{
 			data:"MarketplaceListIssuancesByBranameInput"
@@ -3167,9 +3594,6 @@ export const AllTypesProps: Record<string,any> = {
 			data:"MarketplaceListWriteoffProposalsInput",
 			options:"PaginationInput"
 		},
-		marketplaceRequiredAttributes:{
-			data:"GetRequiredAttributesInput"
-		},
 		marketplaceResolveContainerByCode:{
 			data:"MarketplaceResolveContainerByCodeInput"
 		},
@@ -3182,23 +3606,14 @@ export const AllTypesProps: Record<string,any> = {
 		marketplaceReturnClaimSignablePayload:{
 			data:"MarketplaceReturnClaimSignablePayloadInput"
 		},
-		marketplaceSearchAttributes:{
-			input:"SearchAttributesInput"
-		},
-		marketplaceSearchDictionaryValues:{
-			input:"SearchDictionaryValuesInput"
-		},
-		marketplaceSearchRequests:{
-			data:"SearchRequestsInput"
-		},
 		marketplaceStockIssuancePayloads:{
 			data:"MarketplaceStockIssuancePrepareInput"
 		},
 		marketplaceStockProposalSignablePayloads:{
 			data:"MarketplaceResolveStockProposalInput"
 		},
-		marketplaceValidateAttributeValues:{
-			input:"ValidateAttributeValuesInput"
+		marketplaceSupplierClaim:{
+
 		},
 		marketplaceWriteoffProposal:{
 
@@ -3234,11 +3649,39 @@ export const AllTypesProps: Record<string,any> = {
 			filter:"ProcessesFilter",
 			pagination:"PaginationInput"
 		},
+		reportsLedgerAccounts:{
+
+		},
+		reportsLedgerHistory:{
+			input:"GetLedger2HistoryInput"
+		},
+		reportsLedgerPostings:{
+			input:"GetLedger2PostingsInput"
+		},
+		reportsLedgerWallets:{
+
+		},
+		reportsParticipantWallets:{
+
+		},
+		reportsProcess:{
+
+		},
+		reportsProcesses:{
+			filter:"ProcessesFilter",
+			pagination:"PaginationInput"
+		},
+		reportsSubjects:{
+
+		},
 		searchDocuments:{
 			data:"SearchDocumentsInput"
 		},
 		searchPrivateAccounts:{
 			data:"SearchPrivateAccountsInput"
+		},
+		sovietRobotJournal:{
+			options:"PaginationInput"
 		},
 		validateReportEdits:{
 			reportType:"ReportType"
@@ -3272,6 +3715,7 @@ export const AllTypesProps: Record<string,any> = {
 	RegisterParticipantInput:{
 		blagorost_offer:"SignedDigitalDocumentInput",
 		generator_offer:"SignedDigitalDocumentInput",
+		intake_answers:"IntakeFormAnswerInput",
 		marketplace_offer:"SignedDigitalDocumentInput",
 		privacy_agreement:"SignedDigitalDocumentInput",
 		program_key:"ProgramKey",
@@ -3312,26 +3756,21 @@ export const AllTypesProps: Record<string,any> = {
 	RepresentedByInput:{
 
 	},
-	RequestAttributeInput:{
+	RequestEmailVerificationInputDTO:{
 
 	},
 	RequestForceRecoveryConsentInput:{
 
 	},
-	RequestImageInput:{
-		imageType:"RequestImageTypeInput"
-	},
-	RequestImageType: "enum" as const,
-	RequestImageTypeInput: "enum" as const,
 	RequestKuTrustedInput:{
 		application:"BranchTrustedLiabilityAgreementSignedDocumentInput",
 		authority:"BranchTrustedPowerOfAttorneySignedDocumentInput"
 	},
-	RequestStatus: "enum" as const,
-	RequestType: "enum" as const,
-	RequestTypeInput: "enum" as const,
 	RequisiteSource: "enum" as const,
 	ResetKeyInput:{
+
+	},
+	ResetParticipantTwoFactorInput:{
 
 	},
 	RestartAnnualGeneralMeetInput:{
@@ -3377,6 +3816,18 @@ export const AllTypesProps: Record<string,any> = {
 	RevokeSessionInput:{
 
 	},
+	RobotDecisionStage: "enum" as const,
+	RobotDelegateKeyInput:{
+
+	},
+	RobotRetryDecisionInput:{
+
+	},
+	RobotVoteMode: "enum" as const,
+	RoleAssignmentInput:{
+
+	},
+	RolePermissionAccess: "enum" as const,
 	RoomMessageKind: "enum" as const,
 	SaveCapitalProgramDocDataInput:{
 
@@ -3387,22 +3838,10 @@ export const AllTypesProps: Record<string,any> = {
 	SbpDataInput:{
 
 	},
-	SearchAttributesInput:{
-
-	},
-	SearchCategoriesInput:{
-
-	},
-	SearchDictionaryValuesInput:{
-
-	},
 	SearchDocumentsInput:{
 
 	},
 	SearchPrivateAccountsInput:{
-
-	},
-	SearchRequestsInput:{
 
 	},
 	SegmentStatus: "enum" as const,
@@ -3514,8 +3953,11 @@ export const AllTypesProps: Record<string,any> = {
 		votes:"VoteDistributionInput"
 	},
 	Subscription:{
-		marketplaceEvents:{
-			input:"MarketplaceEventsInput"
+		chainChanges:{
+			input:"ChainChangesInput"
+		},
+		walletEvents:{
+			input:"WalletEventsInput"
 		}
 	},
 	SystemStatus: "enum" as const,
@@ -3592,7 +4034,7 @@ export const AllTypesProps: Record<string,any> = {
 		origin:"CapitalContentRevisionOrigin",
 		status:"StoryStatus"
 	},
-	UploadCooperativeCharterInput:{
+	UploadAvatarInput:{
 
 	},
 	UploadExpenseFileInput:{
@@ -3602,9 +4044,6 @@ export const AllTypesProps: Record<string,any> = {
 
 	},
 	UserStatus: "enum" as const,
-	ValidateAttributeValuesInput:{
-
-	},
 	VarsInput:{
 		coopenomics_agreement:"AgreementInput",
 		participant_application:"AgreementInput",
@@ -3646,6 +4085,9 @@ export const AllTypesProps: Record<string,any> = {
 		ballot:"BranchMeetingBallotSignedDocumentInput",
 		votes:"KuVoteItemInput"
 	},
+	WalletEventsInput:{
+
+	},
 	WalmoveInput:{
 
 	},
@@ -3683,6 +4125,7 @@ export const ReturnTypes: Record<string,any> = {
 	},
 	Account:{
 		account_kind:"AccountKind",
+		avatar_url:"String",
 		blockchain_account:"BlockchainAccount",
 		has_password:"Boolean",
 		participant_account:"ParticipantAccount",
@@ -3793,6 +4236,15 @@ export const ReturnTypes: Record<string,any> = {
 		status:"ApprovalStatus",
 		username:"String"
 	},
+	AssignableRole:{
+		assignments:"RoleAssignment",
+		description:"String",
+		extension_name:"String",
+		extension_title:"String",
+		key:"String",
+		permissions:"RolePermission",
+		title:"String"
+	},
 	AuthSequence:{
 		account:"String",
 		sequence:"String"
@@ -3874,27 +4326,6 @@ export const ReturnTypes: Record<string,any> = {
 		status:"ProjectStatus",
 		title:"String",
 		voting:"CapitalProjectVotingData"
-	},
-	BillingResult:{
-		paymentHash:"String",
-		transactionId:"String"
-	},
-	BillingSummary:{
-		coopname:"String",
-		currency:"String",
-		items:"BillingSummaryItem",
-		nextPaymentDue:"String",
-		paymentHash:"String",
-		periodDays:"Int",
-		totalAmount:"Float"
-	},
-	BillingSummaryItem:{
-		amount:"Float",
-		isFree:"Boolean",
-		status:"ProviderSubscriptionStatus",
-		subscriptionId:"Int",
-		subscriptionTypeId:"Int",
-		subscriptionTypeName:"String"
 	},
 	BlockchainAccount:{
 		account_name:"String",
@@ -4081,6 +4512,18 @@ export const ReturnTypes: Record<string,any> = {
 		type:"String",
 		username:"String",
 		username_display_name:"String"
+	},
+	CandidateIntake:{
+		answers:"CandidateIntakeAnswer",
+		program_key:"String",
+		username:"String"
+	},
+	CandidateIntakeAnswer:{
+		form_id:"String",
+		json_schema:"JSON",
+		submitted_at:"DateTime",
+		title:"String",
+		values:"JSON"
 	},
 	CapabilitySet:{
 		builtin:"Boolean",
@@ -4284,7 +4727,7 @@ export const ReturnTypes: Record<string,any> = {
 		_created_at:"DateTime",
 		_id:"String",
 		_updated_at:"DateTime",
-		amount:"Float",
+		amount:"String",
 		approved_statement:"DocumentAggregate",
 		authorization:"DocumentAggregate",
 		block_num:"Int",
@@ -4338,12 +4781,12 @@ export const ReturnTypes: Record<string,any> = {
 		_created_at:"DateTime",
 		_id:"String",
 		_updated_at:"DateTime",
-		amount:"Float",
+		amount:"String",
 		block_num:"Int",
 		blockchain_status:"String",
 		coopname:"String",
 		coordinator:"String",
-		coordinator_amount:"Float",
+		coordinator_amount:"String",
 		id:"Int",
 		invest_hash:"String",
 		invested_at:"String",
@@ -4993,15 +5436,37 @@ export const ReturnTypes: Record<string,any> = {
 		label:"WaveLabel",
 		value:"Float"
 	},
-	Category:{
-		coopname:"String",
-		description:"String",
-		icon:"String",
+	CardcoopEntry:{
+		cardNumber:"String",
 		id:"String",
-		is_active:"Boolean",
-		name:"String",
-		parent_id:"String",
-		sort_order:"Int"
+		memberships:"CardcoopEntryMembership",
+		networkUrl:"String",
+		outcome:"CardcoopEntryOutcome",
+		status:"CardcoopEntryStatus",
+		username:"String"
+	},
+	CardcoopEntryMembership:{
+		coopname:"String",
+		displayName:"String",
+		memberSince:"String"
+	},
+	CardcoopEntryProfile:{
+		profile:"JSON",
+		subjectType:"String"
+	},
+	CardcoopMyCard:{
+		cardNumber:"String",
+		enterUrl:"String",
+		issued:"Boolean",
+		memberSince:"String",
+		state:"CardcoopAttestationState"
+	},
+	ChainChange:{
+		block_num:"Int",
+		code:"String",
+		primary_key:"String",
+		scope:"String",
+		table:"String"
 	},
 	ChairmanOnboardingState:{
 		general_meet_done:"Boolean",
@@ -5020,10 +5485,6 @@ export const ReturnTypes: Record<string,any> = {
 		user_agreement_done:"Boolean",
 		voskhod_membership_done:"Boolean",
 		wallet_agreement_done:"Boolean"
-	},
-	ChangeHostingPlanResult:{
-		migration_state:"String",
-		new_price:"Float"
 	},
 	ChartOfAccountsItem:{
 		available:"String",
@@ -5100,18 +5561,6 @@ export const ReturnTypes: Record<string,any> = {
 		program_id:"Int",
 		type:"String"
 	},
-	CooperativeCharter:{
-		checksum_sha256:"String",
-		coopname:"String",
-		id:"Int",
-		mime_type:"String",
-		original_filename:"String",
-		read_url:"String",
-		size_bytes:"Int",
-		uploaded_at:"DateTime",
-		uploaded_by_username:"String",
-		username:"String"
-	},
 	CooperativeOperatorAccount:{
 		active_participants_count:"Float",
 		announce:"String",
@@ -5139,34 +5588,12 @@ export const ReturnTypes: Record<string,any> = {
 		username:"String",
 		verifications:"Verification"
 	},
-	CooperativePayment:{
-		created_at:"String",
-		last_error:"String",
-		payment_hash:"String",
-		quantity:"String",
-		reason:"String",
-		status:"CooperativePaymentStatus",
-		subject:"String",
-		tx_id:"String",
-		updated_at:"String"
-	},
 	CooperativeProgram:{
 		coopname:"String",
 		draft_id:"Int",
 		id:"Int",
 		is_active:"Boolean",
 		program_type:"String"
-	},
-	CooperativeRegistryItem:{
-		announce:"String",
-		charter:"CooperativeCharter",
-		coopname:"String",
-		created_at:"String",
-		description:"String",
-		has_provider_data:"Boolean",
-		name:"String",
-		status:"CooperativeChainStatus",
-		subscriptions:"ProviderSubscription"
 	},
 	CreateSubscriptionResponse:{
 		message:"String",
@@ -5182,32 +5609,13 @@ export const ReturnTypes: Record<string,any> = {
 		question:"String",
 		title:"String"
 	},
-	CriticalActionAuditEntry:{
-		action_type:"CriticalActionType",
-		confirmer_ids:"CriticalActionConfirmation",
-		created_at:"String",
-		finalized_at:"String",
-		id:"String",
-		initiated_at:"String",
-		initiator_id:"String",
-		payload_hash:"String",
-		status:"CriticalActionStatus",
-		target_id:"String"
-	},
-	CriticalActionConfirmation:{
-		at:"String",
-		by:"String"
-	},
 	CurrentInstanceDTO:{
 		blockchain_status:"String",
 		description:"String",
 		domain:"String",
 		image:"String",
 		is_delegated:"Boolean",
-		is_released:"Boolean",
-		is_restoring:"Boolean",
 		is_valid:"Boolean",
-		maintenance_mode:"Boolean",
 		progress:"Float",
 		status:"InstanceStatus",
 		title:"String"
@@ -5257,6 +5665,7 @@ export const ReturnTypes: Record<string,any> = {
 	DesktopWorkspace:{
 		defaultRoute:"String",
 		extension_name:"String",
+		extension_title:"String",
 		grants:"String",
 		icon:"String",
 		name:"String",
@@ -5267,17 +5676,558 @@ export const ReturnTypes: Record<string,any> = {
 		hash:"String",
 		rawDocument:"GeneratedDocument"
 	},
+	DocumentApprovalSeedItem:{
+		protocol_day_month_year:"String",
+		protocol_number:"String",
+		registry_id:"Int",
+		title:"String",
+		vars_field:"String",
+		version:"Int"
+	},
+	DocumentApprovalSeedResult:{
+		applied:"Int",
+		failed:"Int",
+		planned:"Int"
+	},
 	DocumentPackageAggregate:{
 		acts:"ActDetailAggregate",
 		decision:"DecisionDetailAggregate",
 		links:"DocumentAggregate",
 		statement:"StatementDetailAggregate"
 	},
+	DocumentTemplate:{
+		approval:"DocumentApprovalRequirement",
+		approved_at:"String",
+		approved_decision_id:"Int",
+		approved_version:"Int",
+		bundle:"String",
+		current_version:"Int",
+		effective_version:"Int",
+		extension_name:"String",
+		kind:"DocumentKind",
+		order:"Int",
+		pending_hash:"String",
+		registry_id:"Int",
+		state:"DocumentApprovalState",
+		title:"String"
+	},
+	DocumentTemplateBlank:{
+		html:"String",
+		registry_id:"Int",
+		text_hash:"String",
+		title:"String"
+	},
 	DocumentsAggregatePaginationResult:{
 		currentPage:"Int",
 		items:"DocumentPackageAggregate",
 		totalCount:"Int",
 		totalPages:"Int"
+	},
+	EduAccessTask:{
+		attempts:"Int",
+		carrier:"EduAccessCarrier",
+		created_at:"DateTime",
+		done_at:"DateTime",
+		enrollment_id:"ID",
+		id:"ID",
+		kind:"EduAccessTaskKind",
+		last_error:"String",
+		last_result:"String",
+		next_attempt_at:"DateTime",
+		status:"EduAccessTaskStatus",
+		updated_at:"DateTime"
+	},
+	EduApproval:{
+		action:"String",
+		approval_hash:"String",
+		created_at:"DateTime",
+		title:"String",
+		username:"String"
+	},
+	EduAssignment:{
+		course_description:"String",
+		course_id:"ID",
+		course_syllabus:"String",
+		course_title:"String",
+		created_at:"DateTime",
+		expected_result:"String",
+		hourly_rate:"String",
+		id:"ID",
+		minutes_per_month:"Int",
+		period_from:"String",
+		period_to:"String",
+		schedule:"String",
+		status:"EduAssignmentStatus",
+		teacher_username:"String"
+	},
+	EduAttention:{
+		learners:"Int",
+		teachers:"Int"
+	},
+	EduCatalogCourse:{
+		course_discount_amount:"String",
+		course_months:"Float",
+		description:"String",
+		fee_course:"String",
+		fee_course_base:"String",
+		fee_month:"String",
+		id:"ID",
+		image_url:"String",
+		lesson_minutes:"Int",
+		lessons_per_month:"Float",
+		lessons_total:"Float",
+		level_id:"ID",
+		level_title:"String",
+		minutes_per_month:"Int",
+		minutes_total:"Int",
+		program_months:"Float",
+		report_days:"Int",
+		schedule:"String",
+		schedule_slots:"EduScheduleSlot",
+		section_id:"ID",
+		section_title:"String",
+		starts_at:"String",
+		syllabus:"String",
+		teacher_usernames:"String",
+		title:"String"
+	},
+	EduConnectorBinding:{
+		carrier:"EduAccessCarrier",
+		configured:"Boolean",
+		credential_fields:"EduConnectorCredentialField",
+		enabled:"Boolean",
+		health:"EduConnectorHealth",
+		last_check_at:"DateTime",
+		last_check_message:"String"
+	},
+	EduConnectorCredentialField:{
+		is_set:"Boolean",
+		key:"String",
+		label:"String",
+		note:"String",
+		secret:"Boolean"
+	},
+	EduContribution:{
+		act_hash:"String",
+		amount:"String",
+		assignment_id:"ID",
+		council_decision_id:"String",
+		council_outcome:"EduCouncilOutcome",
+		created_at:"DateTime",
+		decided_at:"DateTime",
+		decision_hash:"String",
+		decline_reason:"String",
+		description:"String",
+		hold_until:"DateTime",
+		id:"ID",
+		learners_count:"Int",
+		links:"String",
+		rid_hash:"String",
+		rid_type:"EduRidType",
+		statement_hash:"String",
+		status:"EduContributionStatus",
+		storage_act_hash:"String",
+		teacher_username:"String"
+	},
+	EduContributionBrief:{
+		amount:"String",
+		course_id:"ID",
+		course_title:"String",
+		created_at:"DateTime",
+		description:"String",
+		duration_minutes:"Int",
+		group_title:"String",
+		held_at:"DateTime",
+		hold_until:"DateTime",
+		hourly_rate:"String",
+		learners_count:"Int",
+		lesson_number:"Int",
+		lesson_topic:"String",
+		links:"String",
+		rid_hash:"String",
+		rid_type:"EduRidType",
+		teacher_name:"String",
+		teacher_username:"String"
+	},
+	EduContributionDocument:{
+		document:"DocumentAggregate",
+		kind:"EduContributionDocumentKind"
+	},
+	EduCourse:{
+		carrier:"EduAccessCarrier",
+		course_discount_amount:"String",
+		course_discount_percent:"Float",
+		course_months:"Float",
+		course_payment_enabled:"Boolean",
+		created_at:"DateTime",
+		description:"String",
+		direction:"EduCourseDirection",
+		external_ref:"String",
+		external_title_seen:"String",
+		fee_course:"String",
+		fee_course_base:"String",
+		fee_month:"String",
+		guarantee_days:"Int",
+		id:"ID",
+		image_url:"String",
+		lesson_minutes:"Int",
+		lessons_per_month:"Float",
+		lessons_total:"Float",
+		level_id:"ID",
+		level_title:"String",
+		minutes_per_month:"Int",
+		minutes_total:"Int",
+		pay_per_learner:"Boolean",
+		planned_hourly_rate:"String",
+		program_months:"Float",
+		report_days:"Int",
+		schedule:"String",
+		schedule_slots:"EduScheduleSlot",
+		section_id:"ID",
+		section_title:"String",
+		sort_order:"Int",
+		starts_at:"String",
+		status:"EduCourseStatus",
+		syllabus:"String",
+		teacher_usernames:"String",
+		title:"String",
+		updated_at:"DateTime"
+	},
+	EduCourseEconomy:{
+		actual_cost_month:"String",
+		actual_hours_per_month:"Float",
+		group_fee_month:"String",
+		group_id:"String",
+		group_program_month:"String",
+		group_teachers_month:"String",
+		learners_active:"Int",
+		over_fee:"Boolean",
+		pay_per_learner:"Boolean",
+		plan:"EduCourseFee",
+		start_locked:"Boolean",
+		teachers:"EduCourseTeacherLoad",
+		terms_locked:"Boolean"
+	},
+	EduCourseFee:{
+		cost_course:"String",
+		cost_month:"String",
+		course_discount_amount:"String",
+		course_months:"Float",
+		fee_course:"String",
+		fee_course_base:"String",
+		fee_month:"String",
+		hours_per_month:"Float",
+		lessons_per_month:"Float",
+		markup_month:"String",
+		markup_percent:"Float",
+		max_course_discount_percent:"Float",
+		reserve_hours_per_month:"Float"
+	},
+	EduCourseTeacherLoad:{
+		cost_month:"String",
+		display_name:"String",
+		hourly_rate:"String",
+		hours_per_month:"Float",
+		username:"String"
+	},
+	EduEconomySettings:{
+		day_seconds:"Int",
+		markup_percent:"Float",
+		max_course_discount_percent:"Float",
+		month_seconds:"Int",
+		time_compressed:"Boolean"
+	},
+	EduEnrollment:{
+		access_state:"EduAccessState",
+		cancelled_at:"DateTime",
+		carrier:"EduAccessCarrier",
+		close_error:"String",
+		close_pending:"Boolean",
+		course_id:"ID",
+		course_title:"String",
+		group_id:"ID",
+		id:"ID",
+		learner_id:"ID",
+		paid_amount:"String",
+		paid_until:"DateTime",
+		period:"EduEnrollmentPeriod",
+		refund_reason:"String",
+		refunded_amount:"String",
+		renewable:"Boolean",
+		status:"EduEnrollmentStatus",
+		sub_hash:"String"
+	},
+	EduExpense:{
+		created_at:"DateTime",
+		creator:"String",
+		creator_name:"String",
+		expense_hash:"ID",
+		items:"EduExpenseItem",
+		status:"ExpenseProposalStatus",
+		total_actual:"String",
+		total_planned:"String",
+		updated_at:"DateTime"
+	},
+	EduExpenseItem:{
+		actual_amount:"String",
+		description:"String",
+		item_hash:"String",
+		mechanics:"ExpenseMechanics",
+		planned_amount:"String",
+		recipient:"String",
+		recipient_name:"String",
+		recipient_type:"ExpenseRecipientType",
+		status:"ExpenseItemStatus"
+	},
+	EduFundMovement:{
+		amount:"String",
+		at:"DateTime",
+		direction:"String",
+		display_name:"String",
+		id:"String",
+		title:"String",
+		username:"String"
+	},
+	EduGroup:{
+		course_id:"ID",
+		created_at:"DateTime",
+		enrollment_open:"Boolean",
+		external_ref:"String",
+		fee_month:"String",
+		guarantee_days:"Int",
+		id:"ID",
+		learners_active:"Int",
+		lesson_minutes:"Int",
+		lessons_held:"Int",
+		lessons_per_month:"Float",
+		lessons_total:"Float",
+		minutes_per_month:"Int",
+		minutes_total:"Int",
+		pay_per_learner:"Boolean",
+		planned_hourly_rate:"String",
+		program_months:"Float",
+		report_days:"Int",
+		schedule:"String",
+		schedule_slots:"EduScheduleSlot",
+		settlement_pending:"Int",
+		starts_at:"String",
+		starts_at_time:"DateTime",
+		status:"EduGroupStatus",
+		teacher_reserve_balance:"String",
+		teacher_settled_total:"String",
+		title:"String"
+	},
+	EduGuaranteeClaim:{
+		amount:"String",
+		created_at:"DateTime",
+		decided_at:"DateTime",
+		id:"ID",
+		links:"String",
+		number:"String",
+		reason:"String",
+		status:"EduGuaranteeClaimStatus"
+	},
+	EduGuaranteeState:{
+		amount:"String",
+		available:"Boolean",
+		claim:"EduGuaranteeClaim",
+		enrollment_id:"ID",
+		guarantee_until:"DateTime"
+	},
+	EduLearner:{
+		created_at:"DateTime",
+		display_name:"String",
+		id:"ID",
+		is_self:"Boolean",
+		recipient_type:"EduRecipientType",
+		recipient_value:"String"
+	},
+	EduLearnerAccount:{
+		active_enrollments:"Int",
+		carriers:"EduAccessCarrier",
+		learner_id:"ID",
+		removed_at:"DateTime"
+	},
+	EduLesson:{
+		assignment_id:"ID",
+		contribution_id:"ID",
+		course_id:"ID",
+		course_title:"String",
+		duration_minutes:"Int",
+		ends_at:"DateTime",
+		expected_amount:"String",
+		group_id:"ID",
+		group_title:"String",
+		held_at:"DateTime",
+		id:"ID",
+		learners_count:"Int",
+		learners_paid:"Int",
+		lesson_number:"Int",
+		materials:"String",
+		origin:"EduLessonOrigin",
+		overdue:"Boolean",
+		report_until:"DateTime",
+		reported_at:"DateTime",
+		status:"EduLessonStatus",
+		teacher_username:"String",
+		topic:"String"
+	},
+	EduLevel:{
+		archived:"Boolean",
+		id:"ID",
+		section_id:"ID",
+		sort_order:"Int",
+		title:"String"
+	},
+	EduMemberCard:{
+		display_name:"String",
+		enrollments:"EduEnrollment",
+		learner_accounts:"EduLearnerAccount",
+		learners:"EduLearner",
+		tasks:"EduAccessTask",
+		username:"String"
+	},
+	EduMemberRow:{
+		active_enrollments:"Int",
+		attention_count:"Int",
+		display_name:"String",
+		learners_count:"Int",
+		username:"String"
+	},
+	EduOfferState:{
+		kind:"EduOfferKind",
+		registry_id:"Float",
+		requires_gate:"Boolean",
+		signed_at:"String",
+		source:"EduOnboardingSource"
+	},
+	EduOnboardingState:{
+		parent:"EduOfferState",
+		teacher:"EduOfferState"
+	},
+	EduPlatformCourse:{
+		groups:"EduPlatformGroup",
+		id:"String",
+		name:"String"
+	},
+	EduPlatformGroup:{
+		id:"String",
+		name:"String"
+	},
+	EduProgramFund:{
+		fund_balance:"String",
+		members_balance:"String",
+		movements:"EduFundMovement",
+		wallets:"EduProgramWallet"
+	},
+	EduProgramWallet:{
+		available:"String",
+		hint:"String",
+		id:"String",
+		name:"String",
+		summary:"String"
+	},
+	EduQuote:{
+		amount:"String",
+		available:"String",
+		base_amount:"String",
+		discount_amount:"String",
+		enough:"Boolean",
+		from_program:"String",
+		group_id:"ID",
+		is_extension:"Boolean",
+		months:"Float",
+		paid_until:"DateTime",
+		shortfall:"String",
+		sub_hash:"String",
+		to_convert:"String"
+	},
+	EduRefundPreview:{
+		minutes_paid:"Int",
+		minutes_used:"Int",
+		reason:"String",
+		refund:"String",
+		to_share:"Boolean",
+		withheld:"String"
+	},
+	EduReturnBalance:{
+		available:"String",
+		refunds:"String",
+		subscriptions:"Int",
+		total:"String"
+	},
+	EduScheduleSlot:{
+		assignment_id:"ID",
+		hourly_rate:"String",
+		minutes:"Int",
+		time:"String",
+		weekday:"Int"
+	},
+	EduSection:{
+		archived:"Boolean",
+		id:"ID",
+		levels:"EduLevel",
+		sort_order:"Int",
+		title:"String"
+	},
+	EduSettlementEntry:{
+		amount:"String",
+		at:"DateTime",
+		contribution_id:"ID",
+		id:"String",
+		kind:"EduSettlementEntryKind",
+		payment_hash:"String",
+		return_id:"ID",
+		status:"EduSettlementEntryStatus",
+		title:"String"
+	},
+	EduShareReturnDocument:{
+		document:"DocumentAggregate",
+		kind:"EduShareReturnDocumentKind"
+	},
+	EduTeacher:{
+		about:"String",
+		approved_at:"DateTime",
+		assignments_active:"Float",
+		assignments_total:"Float",
+		avatar_url:"String",
+		contract_number:"String",
+		contract_status:"EduContractStatus",
+		display_name:"String",
+		hourly_rate:"String",
+		pending_approvals:"String",
+		signed_at:"DateTime",
+		username:"String"
+	},
+	EduTeacherContract:{
+		approved_at:"DateTime",
+		contract_hash:"String",
+		contract_number:"String",
+		decline_reason:"String",
+		hourly_rate:"String",
+		signed_at:"DateTime",
+		status:"EduContractStatus"
+	},
+	EduTeacherOption:{
+		contract_number:"String",
+		display_name:"String",
+		signed_at:"DateTime",
+		username:"String"
+	},
+	EduTeacherProfile:{
+		about:"String",
+		hourly_rate:"String",
+		rate_locked:"Boolean"
+	},
+	EduTeacherSettlement:{
+		accepted_total:"String",
+		available:"String",
+		last_accepted_at:"DateTime",
+		program_share:"String"
+	},
+	EmailVerificationRequestDTO:{
+		cooldown_seconds:"Int",
+		expires_seconds:"Int"
 	},
 	Entrepreneur:{
 		birthdate:"String",
@@ -5409,7 +6359,6 @@ export const ReturnTypes: Record<string,any> = {
 		image:"String",
 		instructions:"String",
 		is_available:"Boolean",
-		is_builtin:"Boolean",
 		is_installed:"Boolean",
 		is_internal:"Boolean",
 		name:"String",
@@ -5535,6 +6484,26 @@ export const ReturnTypes: Record<string,any> = {
 		period:"Int",
 		reportType:"ReportType",
 		year:"Int"
+	},
+	GlobalSearchGroup:{
+		extension_name:"String",
+		hits:"GlobalSearchHit",
+		icon:"String",
+		key:"String",
+		status:"GlobalSearchGroupStatus",
+		title:"String"
+	},
+	GlobalSearchHit:{
+		icon:"String",
+		key:"String",
+		route:"GlobalSearchRoute",
+		subtitle:"String",
+		title:"String"
+	},
+	GlobalSearchRoute:{
+		name:"String",
+		params:"JSON",
+		query:"JSON"
 	},
 	InboxNotification:{
 		actorSubscriberId:"String",
@@ -5778,50 +6747,6 @@ export const ReturnTypes: Record<string,any> = {
 	MarketplaceAplReceptionResult:{
 		apl_reception:"MarketplaceAplReception"
 	},
-	MarketplaceAplReceptionStatusChangedEvent:{
-		braname:"String",
-		reception_id:"String",
-		status:"MarketplaceAplReceptionStatus"
-	},
-	MarketplaceAttribute:{
-		attributeComplexId:"Int",
-		attributeId:"Int",
-		canBeModifiedAfterCreation:"Boolean",
-		categoryDependent:"Boolean",
-		complexIsCollection:"Boolean",
-		description:"String",
-		dictionary:"MarketplaceDictionary",
-		dictionaryId:"Int",
-		groupId:"Int",
-		groupName:"String",
-		hasDictionary:"Boolean",
-		isAspect:"Boolean",
-		isCollection:"Boolean",
-		isComplexAttribute:"Boolean",
-		isRequired:"Boolean",
-		maxValueCount:"Int",
-		maxValues:"Int",
-		name:"String",
-		type:"MarketplaceAttributeType"
-	},
-	MarketplaceAttributeGroup:{
-		attributes:"MarketplaceAttribute",
-		attributesCount:"Int",
-		groupId:"Int",
-		groupName:"String"
-	},
-	MarketplaceAttributeStats:{
-		aspectAttributes:"Int",
-		dictionaryAttributes:"Int",
-		requiredAttributes:"Int",
-		totalAttributes:"Int",
-		totalDictionaries:"Int",
-		totalDictionaryValues:"Int"
-	},
-	MarketplaceAttributeValidation:{
-		errors:"String",
-		isValid:"Boolean"
-	},
 	MarketplaceAvailabilityStats:{
 		categoriesCount:"Int",
 		hasRestrictions:"Boolean",
@@ -5902,11 +6827,6 @@ export const ReturnTypes: Record<string,any> = {
 		category_id:"Int",
 		count:"Int"
 	},
-	MarketplaceCategoryRequestCount:{
-		categoryId:"Int",
-		categoryName:"String",
-		count:"Int"
-	},
 	MarketplaceCategoryTreeNode:{
 		categoryName:"String",
 		children:"MarketplaceCategoryTreeNode",
@@ -5919,19 +6839,16 @@ export const ReturnTypes: Record<string,any> = {
 		types:"MarketplaceProductType",
 		typesCount:"Int"
 	},
-	MarketplaceCategoryTreeStats:{
-		availableTypes:"Int",
-		disabledCategories:"Int",
-		leafCategories:"Int",
-		rootCategories:"Int",
-		totalCategories:"Int",
-		totalTypes:"Int"
-	},
 	MarketplaceCheckoutFailedLine:{
+		code:"String",
 		offer_id:"String",
 		product_name:"String",
 		quantity:"Float",
 		reason:"String"
+	},
+	MarketplaceCheckoutPreview:{
+		convert:"MarketplaceConvertPayload",
+		lines:"MarketplaceCheckoutSignableLine"
 	},
 	MarketplaceCheckoutResult:{
 		cart:"MarketplaceCart",
@@ -5943,7 +6860,10 @@ export const ReturnTypes: Record<string,any> = {
 	},
 	MarketplaceCheckoutSignableLine:{
 		amount:"String",
-		document:"GeneratedDocument",
+		from_member:"String",
+		from_program:"String",
+		from_wallet:"String",
+		membership_fee:"String",
 		offer_id:"String",
 		order_hash:"String",
 		package_id:"String"
@@ -5991,6 +6911,11 @@ export const ReturnTypes: Record<string,any> = {
 		volume_m3:"String",
 		width_cm:"Int"
 	},
+	MarketplaceConvertPayload:{
+		amount:"String",
+		document:"GeneratedDocument",
+		membership_fee:"String"
+	},
 	MarketplaceCppStatus:{
 		accepted_at:"String",
 		accepted_by_board_decision_id:"String",
@@ -6010,40 +6935,8 @@ export const ReturnTypes: Record<string,any> = {
 		username:"String",
 		warehouse_settings:"MarketplaceWarehouseSettings"
 	},
-	MarketplaceDictionary:{
-		description:"String",
-		dictionaryId:"Int",
-		hasValuesWithPictures:"Boolean",
-		name:"String",
-		values:"MarketplaceDictionaryValue",
-		valuesCount:"Int"
-	},
-	MarketplaceDictionaryValue:{
-		dictionaryId:"Int",
-		dictionaryValueId:"Int",
-		fullDescription:"String",
-		hasInfo:"Boolean",
-		hasPicture:"Boolean",
-		info:"String",
-		picture:"String",
-		value:"String"
-	},
 	MarketplaceEconomyConfig:{
 		membership_fee_percent:"Float"
-	},
-	MarketplaceEvent:{
-		"...on MarketplaceAplReceptionStatusChangedEvent":"MarketplaceAplReceptionStatusChangedEvent",
-		"...on MarketplaceOfferModerationEvent":"MarketplaceOfferModerationEvent",
-		"...on MarketplaceOfferPublishedEvent":"MarketplaceOfferPublishedEvent",
-		"...on MarketplaceOfferStockChangedEvent":"MarketplaceOfferStockChangedEvent",
-		"...on MarketplaceOrderReadyToReceiveEvent":"MarketplaceOrderReadyToReceiveEvent",
-		"...on MarketplaceOrderStatusChangedEvent":"MarketplaceOrderStatusChangedEvent",
-		"...on MarketplacePaymentStatusChangedEvent":"MarketplacePaymentStatusChangedEvent",
-		"...on MarketplaceReceptionPendingSignEvent":"MarketplaceReceptionPendingSignEvent",
-		"...on MarketplaceReturnClaimStatusChangedEvent":"MarketplaceReturnClaimStatusChangedEvent",
-		"...on MarketplaceStockProposalCreatedEvent":"MarketplaceStockProposalCreatedEvent",
-		"...on MarketplaceStockProposalResolvedEvent":"MarketplaceStockProposalResolvedEvent",
-		"...on MarketplaceWriteoffStatusChangedEvent":"MarketplaceWriteoffStatusChangedEvent"
 	},
 	MarketplaceExpressPickupCandidate:{
 		braname:"String",
@@ -6057,6 +6950,7 @@ export const ReturnTypes: Record<string,any> = {
 		barcode_format:"MarketplaceBarcodeFormat",
 		barcode_value:"String",
 		braname:"String",
+		category_id:"Int",
 		cell_id:"String",
 		container_id:"String",
 		coopname:"String",
@@ -6067,9 +6961,11 @@ export const ReturnTypes: Record<string,any> = {
 		id:"String",
 		labeled_at:"DateTime",
 		labeled_by_operator_account:"String",
+		offer_id:"String",
 		order_id:"String",
 		orderer_account_snapshot:"String",
 		orderer_name:"String",
+		origin:"MarketplaceInventoryOrigin",
 		ownership:"MarketplaceInventoryOwnership",
 		package_size:"Float",
 		product_name_snapshot:"String",
@@ -6078,6 +6974,7 @@ export const ReturnTypes: Record<string,any> = {
 		received_at:"DateTime",
 		received_by_operator_account:"String",
 		reserved_order_id:"String",
+		return_claim_id:"String",
 		shipment_id:"String",
 		status:"MarketplaceInventoryStatus",
 		unit_of_measure:"MarketplaceUnitOfMeasure",
@@ -6085,6 +6982,44 @@ export const ReturnTypes: Record<string,any> = {
 	},
 	MarketplaceInventoryMutationResult:{
 		inventory:"MarketplaceInventoryItem"
+	},
+	MarketplaceIssuanceClosePayload:{
+		act_aggregate:"DocumentAggregate",
+		saga:"MarketplaceIssuanceSaga"
+	},
+	MarketplaceIssuanceFact:{
+		actual_quantity:"Float",
+		actual_unit_price:"String",
+		fact_cost:"String"
+	},
+	MarketplaceIssuanceSaga:{
+		act1_document:"SignedDigitalDocument",
+		act2_document:"SignedDigitalDocument",
+		awaits_council:"Boolean",
+		awaits_member_signature:"Boolean",
+		awaits_operator_close:"Boolean",
+		braname:"String",
+		closed_at:"DateTime",
+		created_at:"DateTime",
+		decided_at:"DateTime",
+		decision_id:"String",
+		decision_mode:"MarketplaceIssuanceDecisionMode",
+		fact:"MarketplaceIssuanceFact",
+		id:"ID",
+		last_error:"String",
+		member_account:"String",
+		operator_account:"String",
+		order_hash:"String",
+		order_id:"String",
+		proposal_id:"String",
+		protocol_document:"SignedDigitalDocument",
+		stage:"MarketplaceIssuanceSagaStage",
+		statement_document:"SignedDigitalDocument",
+		updated_at:"DateTime"
+	},
+	MarketplaceIssuanceStatementPayload:{
+		saga:"MarketplaceIssuanceSaga",
+		statement:"GeneratedDocument"
 	},
 	MarketplaceKUDetails:{
 		addressFull:"String",
@@ -6103,6 +7038,18 @@ export const ReturnTypes: Record<string,any> = {
 		status:"MarketplaceKUStatus",
 		updatedAt:"DateTime",
 		workingHours:"WorkingHours"
+	},
+	MarketplaceLedgerInvariant:{
+		actual:"String",
+		details:"MarketplaceLedgerInvariantDetail",
+		expected:"String",
+		invariant:"String",
+		ok:"Boolean",
+		violation:"String"
+	},
+	MarketplaceLedgerInvariantDetail:{
+		message:"String",
+		process_hash:"String"
 	},
 	MarketplaceMemberWallet:{
 		coopname:"String",
@@ -6166,16 +7113,15 @@ export const ReturnTypes: Record<string,any> = {
 		sort_order:"Int",
 		url:"String"
 	},
-	MarketplaceOfferModerationEvent:{
-		offer_id:"String",
-		status:"MarketplaceOfferStatus"
-	},
 	MarketplaceOfferPackage:{
 		id:"String",
 		is_default:"Boolean",
 		label:"String",
 		package_type:"String",
 		price:"String",
+		quantity_available:"Float",
+		quantity_blocked:"Float",
+		quantity_consumed:"Float",
 		size:"Float",
 		sort_order:"Int"
 	},
@@ -6184,15 +7130,6 @@ export const ReturnTypes: Record<string,any> = {
 		items:"MarketplaceOffer",
 		totalCount:"Int",
 		totalPages:"Int"
-	},
-	MarketplaceOfferPublishedEvent:{
-		category_id:"Int",
-		offer_id:"String"
-	},
-	MarketplaceOfferStockChangedEvent:{
-		offer_id:"String",
-		quantity_available:"Float",
-		unlimited_flag:"Boolean"
 	},
 	MarketplaceOnboardingState:{
 		agreement_id:"Int",
@@ -6203,10 +7140,9 @@ export const ReturnTypes: Record<string,any> = {
 	},
 	MarketplaceOrder:{
 		accepted_at:"DateTime",
+		accepted_cost:"String",
 		blocked_at:"DateTime",
 		cancelled_at:"DateTime",
-		chairman_account:"String",
-		chairman_signed_at:"DateTime",
 		checkout_id:"String",
 		coopname:"String",
 		create_tx:"MarketplaceOrderCreateTxSnapshot",
@@ -6225,6 +7161,9 @@ export const ReturnTypes: Record<string,any> = {
 		image_url:"String",
 		is_ready_announced:"Boolean",
 		issuance_fact:"MarketplaceOrderIssuanceFactSnapshot",
+		issue_closed_tx_hash:"String",
+		issue_decision_id:"String",
+		issue_statement_at:"DateTime",
 		last_status_reason:"String",
 		membership_fee:"String",
 		offer_hash:"String",
@@ -6232,16 +7171,14 @@ export const ReturnTypes: Record<string,any> = {
 		order_hash:"String",
 		orderer_account:"String",
 		orderer_name:"String",
-		orderer_signed_at:"DateTime",
 		orderer_verification_passed:"Boolean",
+		package_id:"String",
 		package_size:"Float",
 		price_per_unit:"String",
 		product_name:"String",
 		quantity:"Float",
 		received_at:"DateTime",
 		shipment_id:"String",
-		signiss1_tx_hash:"String",
-		signiss2_tx_hash:"String",
 		status:"MarketplaceOrderStatus",
 		supplier_account:"String",
 		supplier_name:"String",
@@ -6273,15 +7210,32 @@ export const ReturnTypes: Record<string,any> = {
 		totalCount:"Int",
 		totalPages:"Int"
 	},
-	MarketplaceOrderReadyToReceiveEvent:{
-		braname:"String",
-		order_hash:"String",
-		order_id:"String"
+	MarketplaceOutgoingPaymentCoreRecord:{
+		completed_at:"DateTime",
+		created_at:"DateTime",
+		id:"String",
+		memo:"String",
+		message:"String",
+		quantity:"Float",
+		status:"PaymentStatus",
+		symbol:"String"
 	},
-	MarketplaceOrderStatusChangedEvent:{
-		order_id:"String",
-		previous_status:"MarketplaceOrderStatus",
-		status:"MarketplaceOrderStatus"
+	MarketplaceOutgoingPaymentDetail:{
+		core_payment:"MarketplaceOutgoingPaymentCoreRecord",
+		order:"MarketplaceOutgoingPaymentOrderSummary",
+		payment:"MarketplaceOutgoingPaymentRequest"
+	},
+	MarketplaceOutgoingPaymentOrderSummary:{
+		accepted_cost:"String",
+		delivery_point_name:"String",
+		id:"String",
+		orderer_name:"String",
+		price_per_unit:"String",
+		product_name:"String",
+		quantity:"Float",
+		status:"MarketplaceOrderStatus",
+		total_cost:"String",
+		unit_of_measure:"String"
 	},
 	MarketplaceOutgoingPaymentRequest:{
 		amount:"String",
@@ -6295,16 +7249,14 @@ export const ReturnTypes: Record<string,any> = {
 		order_hash:"String",
 		order_id:"String",
 		payee_account:"String",
+		payee_name:"String",
 		payout_destination:"String",
 		payout_tx_hash:"String",
 		purpose:"String",
 		status:"MarketplaceOutgoingPaymentRequestStatus",
 		symbol:"String",
-		updated_at:"DateTime"
-	},
-	MarketplacePaymentStatusChangedEvent:{
-		payment_request_id:"String",
-		status:"MarketplaceOutgoingPaymentRequestStatus"
+		updated_at:"DateTime",
+		withheld_amount:"String"
 	},
 	MarketplacePersonalEconomy:{
 		personal_balance:"String"
@@ -6317,10 +7269,6 @@ export const ReturnTypes: Record<string,any> = {
 		typeId:"Int",
 		typeName:"String"
 	},
-	MarketplaceReceptionPendingSignEvent:{
-		ku_name:"String",
-		reception_id:"String"
-	},
 	MarketplaceRegistrationOfferStatus:{
 		agreement_id:"String",
 		agreement_type:"String",
@@ -6329,91 +7277,16 @@ export const ReturnTypes: Record<string,any> = {
 		registry_id:"Int",
 		title:"String"
 	},
-	MarketplaceRequest:{
-		articleNumber:"String",
-		attributes:"MarketplaceRequestAttributeValue",
-		availableUnits:"Int",
-		barcode:"String",
-		canBeEdited:"Boolean",
-		category:"MarketplaceCategoryTreeNode",
-		colorImageUrl:"String",
-		coopname:"String",
-		createdAt:"DateTime",
-		currencyCode:"String",
-		data:"String",
-		depth:"Int",
-		descriptionCategoryId:"Int",
-		dimensionUnit:"String",
-		discountPercentage:"Float",
-		geoNames:"String",
-		hasAllRequiredAttributes:"Boolean",
-		hasDiscount:"Boolean",
-		hash:"String",
-		height:"Int",
-		id:"Int",
-		images:"MarketplaceRequestImage",
-		isActive:"Boolean",
-		isOffer:"Boolean",
-		isOrder:"Boolean",
-		meta:"String",
-		name:"String",
-		oldPrice:"Float",
-		oldPriceAsNumber:"Float",
-		parentHash:"String",
-		price:"Float",
-		priceAsNumber:"Float",
-		primaryImageUrl:"String",
-		productLifecycleSecs:"Int",
-		productType:"MarketplaceProductType",
-		settledUnits:"Int",
-		status:"RequestStatus",
-		type:"RequestType",
-		typeId:"Int",
-		units:"Int",
-		updatedAt:"DateTime",
-		username:"String",
-		vat:"String",
-		warrantyDays:"Int",
-		weight:"Int",
-		weightUnit:"String",
-		width:"Int"
-	},
-	MarketplaceRequestAttributeValue:{
-		attribute:"MarketplaceAttribute",
-		attributeGroup:"String",
-		attributeId:"Int",
-		attributeType:"String",
-		complexId:"Int",
-		createdAt:"DateTime",
-		dictionaryValueId:"Int",
-		id:"Int",
-		isAspect:"Boolean",
-		isRequired:"Boolean",
-		value:"String"
-	},
-	MarketplaceRequestImage:{
-		createdAt:"DateTime",
-		description:"String",
-		fileName:"String",
-		id:"Int",
-		imageType:"RequestImageType",
-		imageUrl:"String",
-		is360Image:"Boolean",
-		isColorSample:"Boolean",
-		isPrimary:"Boolean",
-		sortOrder:"Int",
-		typeDescription:"String"
-	},
-	MarketplaceRequestStatistics:{
-		activeOffers:"Int",
-		activeOrders:"Int",
-		completedDeals:"Int",
-		requestsByCategory:"MarketplaceCategoryRequestCount",
-		totalRequests:"Int"
+	MarketplaceReturnAcceptancePayload:{
+		cancel_statement:"GeneratedDocument",
+		reclamation:"DocumentAggregate"
 	},
 	MarketplaceReturnClaim:{
+		accepted_at:"DateTime",
 		actual_quantity:"Float",
 		coopname:"String",
+		council_decision_id:"String",
+		council_decision_mode:"MarketplaceReturnClaimDecisionMode",
 		created_at:"DateTime",
 		decision_log:"MarketplaceReturnClaimDecisionEntry",
 		defect_category:"MarketplaceReturnClaimDefectCategory",
@@ -6475,11 +7348,6 @@ export const ReturnTypes: Record<string,any> = {
 		claim:"MarketplaceReturnClaim",
 		tx_hash:"String"
 	},
-	MarketplaceReturnClaimStatusChangedEvent:{
-		braname:"String",
-		claim_id:"String",
-		status:"MarketplaceReturnClaimStatus"
-	},
 	MarketplaceShipment:{
 		braname:"String",
 		coopname:"String",
@@ -6511,13 +7379,11 @@ export const ReturnTypes: Record<string,any> = {
 	MarketplaceStockAcceptOrderLine:{
 		offer_id:"String",
 		order_hash:"String",
-		signiss1_aggregate:"DocumentAggregate"
+		order_id:"String",
+		statement:"GeneratedDocument"
 	},
 	MarketplaceStockAcceptPayload:{
-		convert_amount:"String",
-		convert_document:"GeneratedDocument",
-		convert_hash:"String",
-		member_amount:"String",
+		convert:"MarketplaceConvertPayload",
 		order_lines:"MarketplaceStockAcceptOrderLine"
 	},
 	MarketplaceStockIssuanceOperatorLine:{
@@ -6527,7 +7393,6 @@ export const ReturnTypes: Record<string,any> = {
 		package_size:"Float",
 		product_name:"String",
 		quantity:"Float",
-		signiss1_document:"GeneratedDocument",
 		unit_price:"String"
 	},
 	MarketplaceStockProposal:{
@@ -6544,24 +7409,21 @@ export const ReturnTypes: Record<string,any> = {
 	},
 	MarketplaceStockProposalAcceptResult:{
 		order_ids:"String",
-		proposal:"MarketplaceStockProposal"
-	},
-	MarketplaceStockProposalCreatedEvent:{
-		braname:"String",
-		proposal_id:"String"
+		proposal:"MarketplaceStockProposal",
+		sagas:"MarketplaceIssuanceSaga"
 	},
 	MarketplaceStockProposalItem:{
 		offer_id:"String",
+		order_hash:"String",
+		order_id:"String",
+		ordered_quantity:"Float",
+		ordered_total_cost:"String",
 		package_label:"String",
 		package_size:"Float",
 		product_name:"String",
 		quantity:"Float",
 		unit_of_measure:"MarketplaceUnitOfMeasure",
 		unit_price:"String"
-	},
-	MarketplaceStockProposalResolvedEvent:{
-		braname:"String",
-		proposal_id:"String"
 	},
 	MarketplaceStorageCell:{
 		braname:"String",
@@ -6590,6 +7452,52 @@ export const ReturnTypes: Record<string,any> = {
 		cycle_id:"String",
 		orders:"MarketplaceOrder",
 		tx_hashes:"String"
+	},
+	MarketplaceSupplierClaim:{
+		actual_quantity:"Float",
+		amount:"String",
+		branch_contacts:"MarketplaceSupplierClaimBranchContacts",
+		claim_hash:"String",
+		coopname:"String",
+		created_at:"DateTime",
+		decided_at:"DateTime",
+		delivery_braname:"String",
+		delivery_branch_name:"String",
+		history:"MarketplaceReturnClaimDecisionEntry",
+		id:"String",
+		inspection_result:"String",
+		issued_at:"DateTime",
+		order_hash:"String",
+		order_id:"String",
+		orderer_account:"String",
+		orderer_name:"String",
+		package_size:"Float",
+		photos:"MarketplaceReturnClaimPhoto",
+		product_name:"String",
+		reason_text:"String",
+		reclamation:"DocumentAggregate",
+		return_claim_id:"String",
+		status:"MarketplaceSupplierClaimStatus",
+		supplier_account:"String",
+		unit_of_measure:"MarketplaceUnitOfMeasure",
+		updated_at:"DateTime"
+	},
+	MarketplaceSupplierClaimBranchContacts:{
+		address:"String",
+		email:"String",
+		name:"String",
+		operator_account:"String",
+		operator_name:"String",
+		phone:"String"
+	},
+	MarketplaceSupplierClaimResult:{
+		claim:"MarketplaceSupplierClaim",
+		tx_hash:"String"
+	},
+	MarketplaceSupplierClaimSummary:{
+		admitted_debt:"String",
+		not_admitted_total:"String",
+		symbol:"String"
 	},
 	MarketplaceSupplierPaymentSettings:{
 		has_payout_method:"Boolean",
@@ -6637,6 +7545,7 @@ export const ReturnTypes: Record<string,any> = {
 		is_expired:"Boolean",
 		key:"String",
 		lots_count:"Int",
+		origin:"MarketplaceInventoryOrigin",
 		package_size:"Float",
 		quantity:"String",
 		unit_of_measure:"MarketplaceUnitOfMeasure"
@@ -6689,10 +7598,6 @@ export const ReturnTypes: Record<string,any> = {
 		quantity:"String",
 		reason:"String",
 		unit_of_measure:"MarketplaceUnitOfMeasure"
-	},
-	MarketplaceWriteoffStatusChangedEvent:{
-		proposal_id:"String",
-		status:"MarketplaceWriteoffProposalStatus"
 	},
 	MatrixAccountStatusResponseDTO:{
 		hasAccount:"Boolean",
@@ -6786,14 +7691,31 @@ export const ReturnTypes: Record<string,any> = {
 		quantity:"String",
 		status:"MembershipExitStatus"
 	},
+	MembershipExitProgram:{
+		agreement_hash:"String",
+		agreement_signed_at:"String",
+		program_id:"Int",
+		refund:"String",
+		title:"String",
+		wallets:"MembershipExitWallet"
+	},
 	MembershipExitResult:{
 		exit_hash:"String",
 		status:"MembershipExitStatus"
 	},
 	MembershipExitReturnPreview:{
+		blockers:"String",
 		minimum_contribution:"String",
+		programs:"MembershipExitProgram",
 		share_contribution:"String",
 		total:"String"
+	},
+	MembershipExitWallet:{
+		balance:"String",
+		human_name:"String",
+		policy:"String",
+		returns:"Boolean",
+		wallet_name:"String"
 	},
 	MissingRequisiteField:{
 		key:"String",
@@ -6802,6 +7724,7 @@ export const ReturnTypes: Record<string,any> = {
 		source:"RequisiteSource"
 	},
 	MonoAccount:{
+		created_at:"String",
 		email:"String",
 		has_account:"Boolean",
 		initial_order:"String",
@@ -6823,13 +7746,12 @@ export const ReturnTypes: Record<string,any> = {
 		addParticipant:"Account",
 		addPaymentMethod:"PaymentMethod",
 		addTrustedAccount:"Branch",
+		applyDocumentApprovalsSeed:"DocumentApprovalSeedResult",
 		approveVerification:"VerificationReview",
-		archiveProductCard:"Boolean",
 		assignCapabilitySet:"Boolean",
+		assignRole:"AssignableRole",
 		authorizeDecision:"Transaction",
 		authorizeForceRecovery:"ForceRecoveryAuthorization",
-		billingConvert:"BillingResult",
-		billingPay:"BillingResult",
 		cancelMembershipExit:"Boolean",
 		capitalAddAuthor:"CapitalProject",
 		capitalAddFavorite:"CapitalFavorite",
@@ -6850,7 +7772,6 @@ export const ReturnTypes: Record<string,any> = {
 		capitalCreateExpense:"Transaction",
 		capitalCreateIssue:"CapitalIssue",
 		capitalCreateLocalProject:"CapitalProject",
-		capitalCreateMeasure:"CapitalMeasure",
 		capitalCreateProcessTemplate:"ProcessTemplate",
 		capitalCreateProgramExpense:"Transaction",
 		capitalCreateProgramInvest:"Transaction",
@@ -6926,9 +7847,10 @@ export const ReturnTypes: Record<string,any> = {
 		capitalUpdateMeasure:"CapitalMeasure",
 		capitalUpdateProcessTemplate:"ProcessTemplate",
 		capitalUpdateStory:"CapitalStory",
+		cardcoopRequestEntryDisclosure:"CardcoopEntry",
+		cardcoopTakeEntryProfile:"CardcoopEntryProfile",
 		chairmanConfirmApprove:"Approval",
 		chairmanDeclineApprove:"Approval",
-		changeProviderHostingPlan:"ChangeHostingPlanResult",
 		chatcoopCreateAccount:"Boolean",
 		chatcoopCreateCalendarEvent:"ChatCoopCalendarEvent",
 		chatcoopCreateCalendarIcsSubscription:"ChatCoopCalendarIcsUrlResponse",
@@ -6942,17 +7864,15 @@ export const ReturnTypes: Record<string,any> = {
 		completeChairmanGeneralMeetStep:"ChairmanOnboardingState",
 		completeExtensionOnboardingStep:"ExtensionOnboardingState",
 		confirmAgreement:"Transaction",
-		confirmCriticalAction:"PendingCriticalAction",
+		confirmEmailVerification:"Boolean",
 		confirmMembershipExit:"MembershipExitResult",
 		createAnnualGeneralMeet:"MeetAggregate",
 		createBranch:"Branch",
-		createCategory:"Category",
 		createDepositPayment:"GatewayPayment",
 		createExpensePlan:"ExpensePlan",
 		createExpenseProposal:"Transaction",
 		createInitialPayment:"GatewayPayment",
 		createMembershipExit:"MembershipExitResult",
-		createProductCard:"ProductCard",
 		createProjectOfFreeDecision:"CreatedProjectFreeDecision",
 		createWebPushSubscription:"CreateSubscriptionResponse",
 		createWithdraw:"CreateWithdrawResponse",
@@ -6962,20 +7882,69 @@ export const ReturnTypes: Record<string,any> = {
 		deleteAccount:"Boolean",
 		deleteBranch:"Boolean",
 		deleteBranchWhitelist:"Branch",
-		deleteCategory:"Boolean",
 		deleteExpensePlan:"Boolean",
 		deletePaymentMethod:"Boolean",
-		deleteProductCard:"Boolean",
 		deleteReportDraft:"Boolean",
 		deleteTrustedAccount:"Branch",
 		disableTwoFactor:"Boolean",
 		editBranch:"Branch",
+		edubridgeAddLearner:"EduLearner",
+		edubridgeArchiveLevel:"EduLevel",
+		edubridgeArchiveSection:"EduSection",
+		edubridgeCancelEnrollment:"EduEnrollment",
+		edubridgeCancelGroupUnderfilled:"Int",
+		edubridgeCancelLesson:"EduLesson",
+		edubridgeCheckConnector:"EduConnectorBinding",
+		edubridgeCloseAssignment:"EduAssignment",
+		edubridgeConvertStatement:"GeneratedDocument",
+		edubridgeCreateAssignment:"EduAssignment",
+		edubridgeCreateCourse:"EduCourse",
+		edubridgeCreateExpense:"String",
+		edubridgeCreateGroup:"EduGroup",
+		edubridgeDeleteCourse:"Boolean",
+		edubridgeFinishGroup:"EduGroup",
+		edubridgeGuaranteeStatement:"GeneratedDocument",
+		edubridgeHoldContribution:"EduContribution",
+		edubridgeMarkLearnerRemoved:"EduLearnerAccount",
+		edubridgeMoveLesson:"EduLesson",
+		edubridgePlanLesson:"EduLesson",
+		edubridgeRemoveLearner:"Boolean",
+		edubridgeReorderLevels:"EduSection",
+		edubridgeReorderSections:"EduSection",
+		edubridgeReportLesson:"EduLesson",
+		edubridgeRequestShareReturn:"EduTeacherSettlement",
+		edubridgeRetryEnrollmentClose:"EduEnrollment",
+		edubridgeRetryTask:"EduAccessTask",
+		edubridgeRidAct:"GeneratedDocument",
+		edubridgeRidStatement:"GeneratedDocument",
+		edubridgeRidStorageAct:"GeneratedDocument",
+		edubridgeSaveLevel:"EduLevel",
+		edubridgeSaveSection:"EduSection",
+		edubridgeSaveTeacherProfile:"EduTeacherProfile",
+		edubridgeSetAssignmentRate:"EduAssignment",
+		edubridgeSetConnectorCredentials:"EduConnectorBinding",
+		edubridgeSetConnectorEnabled:"EduConnectorBinding",
+		edubridgeSetCourseStatus:"EduCourse",
+		edubridgeSetEconomySettings:"EduEconomySettings",
+		edubridgeSetGroupSchedule:"EduGroup",
+		edubridgeSetTeacherRate:"String",
+		edubridgeShareWithdrawStatement:"GeneratedDocument",
+		edubridgeSignAct:"EduContribution",
+		edubridgeSignContract:"EduTeacherContract",
+		edubridgeSignOffer:"EduOnboardingState",
+		edubridgeSubmitContribution:"EduContribution",
+		edubridgeSubmitGuaranteeClaim:"EduGuaranteeClaim",
+		edubridgeSubscribe:"EduEnrollment",
+		edubridgeTerminateContract:"EduTeacherContract",
+		edubridgeUpdateCourse:"EduCourse",
+		edubridgeUpdateGroup:"EduGroup",
+		edubridgeUpdateLearner:"EduLearner",
 		enrollTwoFactor:"TwoFactorEnrollment",
 		generateAnnualGeneralMeetAgendaDocument:"GeneratedDocument",
 		generateAnnualGeneralMeetDecisionDocument:"GeneratedDocument",
 		generateAnnualGeneralMeetNotificationDocument:"GeneratedDocument",
 		generateBallotForAnnualGeneralMeetDocument:"GeneratedDocument",
-		generateBillingConversionStatement:"GeneratedDocument",
+		generateConvertToAxonStatement:"GeneratedDocument",
 		generateDocument:"GeneratedDocument",
 		generateExpenseProposalDecisionDocument:"GeneratedDocument",
 		generateExpenseProposalStatementDocument:"GeneratedDocument",
@@ -6985,6 +7954,7 @@ export const ReturnTypes: Record<string,any> = {
 		generateParticipantApplication:"GeneratedDocument",
 		generateParticipantApplicationDecision:"GeneratedDocument",
 		generatePrivacyAgreement:"GeneratedDocument",
+		generateProgramAgreementsAnnulment:"GeneratedDocument",
 		generateProjectOfFreeDecision:"GeneratedDocument",
 		generateRegistrationDocuments:"GenerateRegistrationDocumentsOutput",
 		generateReportFromEdits:"GeneratedReport",
@@ -6996,7 +7966,6 @@ export const ReturnTypes: Record<string,any> = {
 		generateUserAgreement:"GeneratedDocument",
 		generateWalletAgreement:"GeneratedDocument",
 		initSystem:"SystemInfo",
-		initiateCriticalAction:"PendingCriticalAction",
 		installExtension:"Extension",
 		installSystem:"SystemInfo",
 		kuApproveTrusted:"Transaction",
@@ -7031,13 +8000,14 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceAddAvailableCategoryTypes:"MarketplaceAvailableCategory",
 		marketplaceAddSupplier:"MarketplaceSupplier",
 		marketplaceAddToCart:"MarketplaceCart",
-		marketplaceAnnounceOrderReady:"MarketplaceOrder",
+		marketplaceAdmitSupplierClaim:"MarketplaceSupplierClaimResult",
 		marketplaceApproveOffer:"MarketplaceOffer",
 		marketplaceApproveReturnVisit:"MarketplaceReturnClaimResult",
 		marketplaceApproveSupplier:"MarketplaceSupplier",
 		marketplaceAssignInventoryPlacement:"MarketplaceInventoryMutationResult",
 		marketplaceBindInventoryBarcode:"MarketplaceInventoryMutationResult",
 		marketplaceCancelAplReception:"MarketplaceAplReceptionResult",
+		marketplaceCancelIssuance:"MarketplaceIssuanceSaga",
 		marketplaceCancelOrder:"MarketplaceCancelOrderResult",
 		marketplaceCancelStockOrder:"MarketplaceOrder",
 		marketplaceCancelStockProposal:"MarketplaceStockProposal",
@@ -7046,8 +8016,8 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceClearAvailableCategories:"Boolean",
 		marketplaceClearCart:"MarketplaceCart",
 		marketplaceClearInventoryLabel:"MarketplaceInventoryMutationResult",
+		marketplaceCloseIssuance:"MarketplaceIssuanceSaga",
 		marketplaceConfirmWriteoff:"MarketplaceWriteoffProposal",
-		marketplaceConvertBranchFunds:"Boolean",
 		marketplaceCreateAid:"Boolean",
 		marketplaceCreateAplReception:"MarketplaceAplReceptionResult",
 		marketplaceCreateBranchExpense:"String",
@@ -7056,7 +8026,6 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceCreateCustomCategory:"MarketplaceCategory",
 		marketplaceCreateExpressReception:"MarketplaceCreateExpressReceptionResult",
 		marketplaceCreateOffer:"MarketplaceOffer",
-		marketplaceCreateRequest:"MarketplaceRequest",
 		marketplaceCreateReturnClaim:"MarketplaceReturnClaimResult",
 		marketplaceCreateShipment:"MarketplaceCreateShipmentResult",
 		marketplaceCreateStockProposal:"MarketplaceStockProposal",
@@ -7070,9 +8039,12 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceDetailKU:"MarketplaceKUDetails",
 		marketplaceDistributeBranchFunds:"Boolean",
 		marketplaceFinalizeStockIssuance:"MarketplaceStockProposalAcceptResult",
+		marketplaceFixIssuanceFact:"MarketplaceIssuanceStatementPayload",
 		marketplaceGenerateInventoryLabel:"MarketplaceInventoryMutationResult",
+		marketplaceHandBackReturn:"MarketplaceReturnClaimResult",
 		marketplaceMoveContainer:"MarketplaceContainer",
 		marketplacePublishStock:"MarketplaceOffer",
+		marketplaceReadyIssue:"MarketplaceOrder",
 		marketplaceRejectOffer:"MarketplaceOffer",
 		marketplaceRejectReturnAtVisit:"MarketplaceReturnClaimResult",
 		marketplaceRejectReturnRemote:"MarketplaceReturnClaimResult",
@@ -7094,6 +8066,8 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceSetTrusteeWeight:"Boolean",
 		marketplaceSignAplReceptionAsChairman:"MarketplaceAplReceptionResult",
 		marketplaceSignAplReceptionAsSupplier:"MarketplaceAplReceptionResult",
+		marketplaceSignIssuanceAct:"MarketplaceIssuanceSaga",
+		marketplaceSignIssuanceStatement:"MarketplaceIssuanceSaga",
 		marketplaceSignOnboardingOffer:"MarketplaceOnboardingState",
 		marketplaceSplitInventory:"MarketplaceInventoryMutationResult",
 		marketplaceSubmitWriteoffDraft:"MarketplaceWriteoffProposal",
@@ -7109,23 +8083,28 @@ export const ReturnTypes: Record<string,any> = {
 		overspendExpenseItem:"Transaction",
 		payExpenseItem:"Transaction",
 		payWithheldTax:"String",
-		publishProductCard:"Boolean",
+		processConvertToAxonStatement:"Boolean",
+		proposeDocumentApproval:"DocumentTemplate",
 		publishProjectOfFreeDecision:"AgendaWithDocuments",
 		refresh:"RegisteredAccount",
 		registerAccount:"RegisteredAccount",
 		registerParticipant:"Account",
 		rejectVerification:"VerificationReview",
+		removeAvatar:"Boolean",
 		reportExpenseItem:"ExpenseReportResult",
 		reportNotMe:"RevokedSessionsResult",
+		requestEmailVerification:"EmailVerificationRequestDTO",
 		requestForceRecoveryConsent:"Boolean",
 		resendNotification:"Notification",
 		resetKey:"Boolean",
+		resetParticipantTwoFactor:"Boolean",
 		resetRegistration:"Account",
 		restartAnnualGeneralMeet:"MeetAggregate",
 		returnExpenseItem:"Transaction",
 		revokeAllSessions:"RevokedSessionsResult",
 		revokeCapabilitySet:"Boolean",
 		revokeParticipantKey:"RevokeKeyResult",
+		revokeRole:"AssignableRole",
 		revokeSession:"Boolean",
 		saveCapitalProgramDocDataHash:"CapitalOnboardingState",
 		saveMyPassport:"Account",
@@ -7139,6 +8118,9 @@ export const ReturnTypes: Record<string,any> = {
 		setWif:"Boolean",
 		signByPresiderOnAnnualGeneralMeet:"MeetAggregate",
 		signBySecretaryOnAnnualGeneralMeet:"MeetAggregate",
+		sovietRobotDelegateKey:"RobotKeyStatus",
+		sovietRobotRetryDecision:"RobotDecision",
+		sovietRobotRevokeKey:"Boolean",
 		startInstall:"StartInstallResult",
 		startResetKey:"Boolean",
 		submitExpenseReport:"Transaction",
@@ -7151,7 +8133,7 @@ export const ReturnTypes: Record<string,any> = {
 		updateReportRequisites:"ReportRequisitesView",
 		updateSettings:"Settings",
 		updateSystem:"SystemInfo",
-		uploadCooperativeCharter:"CooperativeCharter",
+		uploadAvatar:"String",
 		uploadExpenseFile:"ExpenseFile",
 		uploadPaymentProof:"PaymentFile",
 		verifyEmail:"Boolean",
@@ -7396,6 +8378,24 @@ export const ReturnTypes: Record<string,any> = {
 		totalCount:"Int",
 		totalPages:"Int"
 	},
+	PaginatedEduCatalogCoursesPaginationResult:{
+		currentPage:"Int",
+		items:"EduCatalogCourse",
+		totalCount:"Int",
+		totalPages:"Int"
+	},
+	PaginatedEduCoursesPaginationResult:{
+		currentPage:"Int",
+		items:"EduCourse",
+		totalCount:"Int",
+		totalPages:"Int"
+	},
+	PaginatedEduExpensesPaginationResult:{
+		currentPage:"Int",
+		items:"EduExpense",
+		totalCount:"Int",
+		totalPages:"Int"
+	},
 	PaginatedExpenseProposalsPaginationResult:{
 		currentPage:"Int",
 		items:"ExpenseProposal",
@@ -7423,6 +8423,12 @@ export const ReturnTypes: Record<string,any> = {
 	PaginatedMarketplaceWriteoffProposals:{
 		currentPage:"Int",
 		items:"MarketplaceWriteoffProposal",
+		totalCount:"Int",
+		totalPages:"Int"
+	},
+	PaginatedRobotDecisionsPaginationResult:{
+		currentPage:"Int",
+		items:"RobotDecision",
 		totalCount:"Int",
 		totalPages:"Int"
 	},
@@ -7463,6 +8469,10 @@ export const ReturnTypes: Record<string,any> = {
 		representative_position:"String",
 		type:"AccountType",
 		username:"String"
+	},
+	ParticipantLoginSecurity:{
+		totp_enabled:"Boolean",
+		totp_enrolled:"Boolean"
 	},
 	ParticipantVerification:{
 		attested_by:"String",
@@ -7520,18 +8530,6 @@ export const ReturnTypes: Record<string,any> = {
 		items:"PaymentMethod",
 		totalCount:"Int",
 		totalPages:"Int"
-	},
-	PendingCriticalAction:{
-		action_type:"CriticalActionType",
-		actor_id:"String",
-		confirmations:"CriticalActionConfirmation",
-		created_at:"String",
-		expires_at:"String",
-		finalized_at:"String",
-		id:"String",
-		payload:"JSON",
-		status:"CriticalActionStatus",
-		target_id:"String"
 	},
 	Permission:{
 		parent:"String",
@@ -7633,9 +8631,11 @@ export const ReturnTypes: Record<string,any> = {
 		title:"String"
 	},
 	ProcessSummary:{
+		amount:"String",
 		coopname:"String",
 		firstSeenAt:"DateTime",
 		lastSeenAt:"DateTime",
+		memo:"String",
 		processHash:"String",
 		processType:"String",
 		username:"String"
@@ -7669,28 +8669,6 @@ export const ReturnTypes: Record<string,any> = {
 		process_hash:"String",
 		process_type:"String"
 	},
-	ProductCard:{
-		braname:"String",
-		cancellation_fee_amount:"String",
-		category_id:"String",
-		contribution_type:"ContributionType",
-		coopname:"String",
-		created_at:"DateTime",
-		delivery_type:"DeliveryType",
-		description:"String",
-		id:"String",
-		images:"String",
-		membership_fee_amount:"String",
-		product_lifecycle_secs:"Int",
-		status:"ProductCardStatus",
-		title:"String",
-		type:"ProductCardType",
-		unit_cost:"String",
-		units:"Int",
-		updated_at:"DateTime",
-		username:"String",
-		warranty_period_secs:"Int"
-	},
 	ProgramWallet:{
 		agreement_id:"ID",
 		available:"String",
@@ -7708,32 +8686,6 @@ export const ReturnTypes: Record<string,any> = {
 		totalCount:"Int",
 		totalPages:"Int"
 	},
-	ProviderCatalogServerOption:{
-		description:"String",
-		instance_type_id:"Int",
-		name:"String",
-		price:"Float",
-		specs:"JSON",
-		subscription_type_id:"Int",
-		trial_days:"Int"
-	},
-	ProviderCatalogSubscriptionType:{
-		code:"String",
-		depends_on:"Int",
-		description:"String",
-		id:"Int",
-		is_mandatory:"Boolean",
-		is_one_time:"Boolean",
-		kind:"String",
-		name:"String",
-		period_days:"Int",
-		price:"Float",
-		trial_days:"Int"
-	},
-	ProviderConnectionCatalog:{
-		server_options:"ProviderCatalogServerOption",
-		types:"ProviderCatalogSubscriptionType"
-	},
 	ProviderSubscription:{
 		created_at:"String",
 		domain_valid:"Boolean",
@@ -7741,13 +8693,9 @@ export const ReturnTypes: Record<string,any> = {
 		id:"Float",
 		installation_progress:"Float",
 		instance_status:"String",
-		instance_type_id:"Float",
 		instance_username:"String",
 		is_trial:"Boolean",
-		kind:"String",
 		next_payment_due:"String",
-		package_low_water_axon:"Float",
-		packages_current_period_amount:"Float",
 		period_days:"Float",
 		price:"Float",
 		specific_data:"JSON",
@@ -7822,6 +8770,9 @@ export const ReturnTypes: Record<string,any> = {
 		capitalTimeStats:"CapitalTimeStats",
 		capitalVote:"CapitalVote",
 		capitalVotes:"PaginatedCapitalVotesPaginationResult",
+		cardcoopEntry:"CardcoopEntry",
+		cardcoopEntryAvailable:"Boolean",
+		cardcoopMyCard:"CardcoopMyCard",
 		chairmanApproval:"Approval",
 		chairmanApprovals:"PaginatedChairmanApprovalsPaginationResult",
 		chatcoopCheckUsernameAvailability:"Boolean",
@@ -7839,6 +8790,57 @@ export const ReturnTypes: Record<string,any> = {
 		checkReportReadiness:"ReportReadinessView",
 		cooperativeAgreements:"CoopAgreement",
 		cooperativePrograms:"CooperativeProgram",
+		documentApprovalsSeedPlan:"DocumentApprovalSeedItem",
+		documentTemplateBlank:"DocumentTemplateBlank",
+		documentTemplates:"DocumentTemplate",
+		documentTemplatesAttention:"Int",
+		edubridgeAssignments:"EduAssignment",
+		edubridgeAttention:"EduAttention",
+		edubridgeCatalog:"PaginatedEduCatalogCoursesPaginationResult",
+		edubridgeCatalogCourse:"EduCatalogCourse",
+		edubridgeConnectors:"EduConnectorBinding",
+		edubridgeContributionBrief:"EduContributionBrief",
+		edubridgeContributionDocuments:"EduContributionDocument",
+		edubridgeContributions:"EduContribution",
+		edubridgeCourse:"EduCourse",
+		edubridgeCourseEconomy:"EduCourseEconomy",
+		edubridgeCourseFeePreview:"EduCourseFee",
+		edubridgeCourseGroups:"EduGroup",
+		edubridgeCourses:"PaginatedEduCoursesPaginationResult",
+		edubridgeEconomySettings:"EduEconomySettings",
+		edubridgeExpenses:"PaginatedEduExpensesPaginationResult",
+		edubridgeGroupLessons:"EduLesson",
+		edubridgeLessonCalendar:"EduLesson",
+		edubridgeMemberCard:"EduMemberCard",
+		edubridgeMembers:"EduMemberRow",
+		edubridgeMyAssignments:"EduAssignment",
+		edubridgeMyContract:"EduTeacherContract",
+		edubridgeMyContractDocument:"DocumentAggregate",
+		edubridgeMyContributionDocuments:"EduContributionDocument",
+		edubridgeMyContributions:"EduContribution",
+		edubridgeMyEnrollments:"EduEnrollment",
+		edubridgeMyGuaranteeClaimDocument:"DocumentAggregate",
+		edubridgeMyGuarantees:"EduGuaranteeState",
+		edubridgeMyLearners:"EduLearner",
+		edubridgeMyLessons:"EduLesson",
+		edubridgeMySettlement:"EduTeacherSettlement",
+		edubridgeMySettlementJournal:"EduSettlementEntry",
+		edubridgeMyShareReturnDocuments:"EduShareReturnDocument",
+		edubridgeMyTeacherProfile:"EduTeacherProfile",
+		edubridgeMyTeachingGroups:"EduGroup",
+		edubridgeOnboardingState:"EduOnboardingState",
+		edubridgeOpenGroups:"EduGroup",
+		edubridgePlatformCourses:"EduPlatformCourse",
+		edubridgeProgramFund:"EduProgramFund",
+		edubridgeQueue:"EduAccessTask",
+		edubridgeQuote:"EduQuote",
+		edubridgeRefundPreview:"EduRefundPreview",
+		edubridgeReturnBalance:"EduReturnBalance",
+		edubridgeSections:"EduSection",
+		edubridgeTeacherApprovals:"EduApproval",
+		edubridgeTeacherContractDocument:"DocumentAggregate",
+		edubridgeTeacherOptions:"EduTeacherOption",
+		edubridgeTeachers:"EduTeacher",
 		expenseFile:"ExpenseFile",
 		expenseFilesByItem:"ExpenseFile",
 		expenseFilesByProposal:"ExpenseFile",
@@ -7850,19 +8852,15 @@ export const ReturnTypes: Record<string,any> = {
 		getAccounts:"AccountsPaginationResult",
 		getActions:"PaginatedActionsPaginationResult",
 		getAgenda:"AgendaWithDocuments",
+		getAssignableRoles:"AssignableRole",
 		getAvailableReports:"AvailableReport",
-		getBillingSummary:"BillingSummary",
 		getBranches:"Branch",
+		getCandidateIntake:"CandidateIntake",
 		getCapabilitySets:"CapabilitySet",
 		getCapitalIssueLogs:"PaginatedCapitalLogsPaginationResult",
 		getCapitalOnboardingState:"CapitalOnboardingState",
 		getCapitalProjectLogs:"PaginatedCapitalLogsPaginationResult",
-		getCategories:"Category",
 		getChairmanOnboardingState:"ChairmanOnboardingState",
-		getCooperativeCharter:"CooperativeCharter",
-		getCooperativePayments:"CooperativePayment",
-		getCooperativesRegistry:"CooperativeRegistryItem",
-		getCriticalActionAuditTrail:"CriticalActionAuditEntry",
 		getCurrentInstance:"CurrentInstanceDTO",
 		getCurrentTableStates:"PaginatedCurrentTableStatesPaginationResult",
 		getDeltas:"PaginatedDeltasPaginationResult",
@@ -7884,18 +8882,15 @@ export const ReturnTypes: Record<string,any> = {
 		getMeets:"MeetAggregate",
 		getMyAccess:"ParticipantAccess",
 		getMyCertificate:"ParticipantCertificate",
-		getMyProductCards:"ProductCard",
 		getNodeSyncState:"NodeSyncState",
 		getNotification:"NotificationDetail",
 		getNotifications:"NotificationPaginationResult",
 		getParticipantCapabilitySets:"CapabilitySetAssignment",
+		getParticipantLoginSecurity:"ParticipantLoginSecurity",
 		getPaymentMethods:"PaymentMethodPaginationResult",
 		getPayments:"PaginatedGatewayPaymentsPaginationResult",
-		getProductCard:"ProductCard",
-		getProductCards:"ProductCard",
 		getProgramWallet:"ProgramWallet",
 		getProgramWallets:"ProgramWalletsPaginationResult",
-		getProviderConnectionCatalog:"ProviderConnectionCatalog",
 		getProviderSubscriptionById:"ProviderSubscription",
 		getProviderSubscriptions:"ProviderSubscription",
 		getPublicProvision:"PublicProvision",
@@ -7916,6 +8911,7 @@ export const ReturnTypes: Record<string,any> = {
 		getWebPushSubscriptionStats:"SubscriptionStatsDto",
 		getWithheldTaxPayments:"WithheldTaxPaymentPage",
 		getWithheldTaxState:"WithheldTaxState",
+		globalSearch:"GlobalSearchGroup",
 		kuDecision:"KuDecision",
 		kuDecisions:"PaginatedKuDecisionsPaginationResult",
 		kuTrustRequests:"PaginatedKuTrustRequestsPaginationResult",
@@ -7924,41 +8920,31 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceAidStatementSignablePayload:"GeneratedDocument",
 		marketplaceAplReceptionChairmanSignablePayloads:"DocumentAggregate",
 		marketplaceAplReceptionSupplierSignablePayloads:"GeneratedDocument",
-		marketplaceAspectAttributes:"MarketplaceAttribute",
-		marketplaceAttributeStats:"MarketplaceAttributeStats",
-		marketplaceCategoryAttributes:"MarketplaceAttribute",
-		marketplaceCategoryAttributesGrouped:"MarketplaceAttributeGroup",
 		marketplaceCategoryOfferCounts:"MarketplaceCategoryOfferCount",
-		marketplaceCheckoutSignablePayloads:"MarketplaceCheckoutSignableLine",
+		marketplaceCheckoutSignablePayloads:"MarketplaceCheckoutPreview",
 		marketplaceCppStatus:"MarketplaceCppStatus",
 		marketplaceDefaultVitrine:"MarketplaceVitrine",
-		marketplaceFindPotentialMatches:"MarketplaceRequest",
 		marketplaceGetAvailabilityStats:"MarketplaceAvailabilityStats",
 		marketplaceGetAvailableCategories:"MarketplaceAvailableCategory",
 		marketplaceGetAvailableCategoryTree:"MarketplaceCategoryTreeNode",
 		marketplaceGetBranchEconomy:"MarketplaceBranchEconomy",
 		marketplaceGetBranchWalletHistory:"MarketplaceBranchWalletHistoryPaginationResult",
 		marketplaceGetCart:"MarketplaceCart",
-		marketplaceGetCategoryById:"MarketplaceCategoryTreeNode",
 		marketplaceGetCategoryRules:"MarketplaceAvailableCategory",
-		marketplaceGetCategoryTree:"MarketplaceCategoryTreeNode",
-		marketplaceGetCategoryTreeStats:"MarketplaceCategoryTreeStats",
-		marketplaceGetCoopRequests:"MarketplaceRequest",
 		marketplaceGetEconomyConfig:"MarketplaceEconomyConfig",
 		marketplaceGetOffer:"MarketplaceOffer",
 		marketplaceGetOrder:"MarketplaceOrder",
+		marketplaceGetOutgoingPayment:"MarketplaceOutgoingPaymentDetail",
 		marketplaceGetPersonalEconomy:"MarketplacePersonalEconomy",
 		marketplaceGetPersonalWalletHistory:"MarketplaceBranchWalletHistoryPaginationResult",
-		marketplaceGetProductTypeById:"MarketplaceProductType",
-		marketplaceGetRequest:"MarketplaceRequest",
-		marketplaceGetRequestByHash:"MarketplaceRequest",
-		marketplaceGetRequestStatistics:"MarketplaceRequestStatistics",
-		marketplaceGetRootCategories:"MarketplaceCategoryTreeNode",
-		marketplaceGetSearchCategories:"MarketplaceCategoryTreeNode",
 		marketplaceGetShipment:"MarketplaceShipment",
 		marketplaceGetSupplierPaymentSettings:"MarketplaceSupplierPaymentSettings",
-		marketplaceGetUserRequests:"MarketplaceRequest",
-		marketplaceIssueActChairmanSignablePayload:"GeneratedDocument",
+		marketplaceIssuanceActPayload:"GeneratedDocument",
+		marketplaceIssuanceClosePayload:"MarketplaceIssuanceClosePayload",
+		marketplaceIssuanceConvertPayload:"GeneratedDocument",
+		marketplaceIssuanceSaga:"MarketplaceIssuanceSaga",
+		marketplaceIssuanceStatementPayload:"GeneratedDocument",
+		marketplaceLedgerInvariants:"MarketplaceLedgerInvariant",
 		marketplaceListAids:"MarketplaceAid",
 		marketplaceListAllOffers:"MarketplaceOfferPaginationResult",
 		marketplaceListAllOrders:"MarketplaceOrderPaginationResult",
@@ -7974,6 +8960,7 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceListCoopCategories:"MarketplaceCategory",
 		marketplaceListExpressPickupsByBraname:"MarketplaceExpressPickupCandidate",
 		marketplaceListInventory:"MarketplaceInventoryItem",
+		marketplaceListIssuanceSagas:"MarketplaceIssuanceSaga",
 		marketplaceListIssuancesByBraname:"MarketplaceOrder",
 		marketplaceListKUDetails:"MarketplaceKUDetails",
 		marketplaceListModerationLog:"MarketplaceModerationLogEntry",
@@ -7989,6 +8976,7 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceListStock:"MarketplaceInventoryItem",
 		marketplaceListStockProposals:"MarketplaceStockProposal",
 		marketplaceListStorageCells:"MarketplaceStorageCell",
+		marketplaceListSupplierClaims:"MarketplaceSupplierClaim",
 		marketplaceListSupplierOrders:"MarketplaceOrderPaginationResult",
 		marketplaceListSupplierPickupOrders:"MarketplaceOrder",
 		marketplaceListSuppliers:"MarketplaceSupplier",
@@ -7999,17 +8987,14 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceOnboardingState:"MarketplaceOnboardingState",
 		marketplaceOpenWriteoffDraft:"MarketplaceWriteoffProposal",
 		marketplaceRegistrationOfferStatus:"MarketplaceRegistrationOfferStatus",
-		marketplaceRequiredAttributes:"MarketplaceAttribute",
 		marketplaceResolveContainerByCode:"MarketplaceContainer",
 		marketplaceReturnClaim:"MarketplaceReturnClaim",
-		marketplaceReturnClaimChairmanSignablePayload:"DocumentAggregate",
+		marketplaceReturnClaimChairmanSignablePayload:"MarketplaceReturnAcceptancePayload",
 		marketplaceReturnClaimSignablePayload:"GeneratedDocument",
-		marketplaceSearchAttributes:"MarketplaceAttribute",
-		marketplaceSearchDictionaryValues:"MarketplaceDictionaryValue",
-		marketplaceSearchRequests:"MarketplaceRequest",
 		marketplaceStockIssuancePayloads:"MarketplaceStockIssuanceOperatorLine",
 		marketplaceStockProposalSignablePayloads:"MarketplaceStockAcceptPayload",
-		marketplaceValidateAttributeValues:"MarketplaceAttributeValidation",
+		marketplaceSupplierClaim:"MarketplaceSupplierClaim",
+		marketplaceSupplierClaimSummary:"MarketplaceSupplierClaimSummary",
 		marketplaceWhoAmI:"MarketplaceCurrentMember",
 		marketplaceWriteoffPendingConfirmations:"MarketplaceWriteoffConfirmationGroup",
 		marketplaceWriteoffProposal:"MarketplaceWriteoffProposal",
@@ -8023,8 +9008,22 @@ export const ReturnTypes: Record<string,any> = {
 		paymentProofs:"PaymentFile",
 		process:"ProcessView",
 		processes:"ProcessSummaryPaginationResult",
+		reportsLedgerAccounts:"Ledger2Account",
+		reportsLedgerHistory:"Ledger2HistoryResponse",
+		reportsLedgerPostings:"Ledger2PostingsResponse",
+		reportsLedgerWallets:"Ledger2Wallet",
+		reportsParticipantWallets:"ReportsParticipantWallet",
+		reportsParticipants:"ReportsParticipant",
+		reportsProcess:"ProcessView",
+		reportsProcesses:"ProcessSummaryPaginationResult",
+		reportsSubjects:"ReportsSubject",
 		searchDocuments:"SearchResult",
 		searchPrivateAccounts:"PrivateAccountSearchResult",
+		sovietRobotCouncil:"RobotCouncil",
+		sovietRobotJournal:"PaginatedRobotDecisionsPaginationResult",
+		sovietRobotKeyStatus:"RobotKeyStatus",
+		sovietRobotKeys:"RobotKeyStatus",
+		sovietRobotRegistry:"RobotDecisionType",
 		validateReportEdits:"FieldError",
 		verificationReviewPhotos:"VerificationReviewPhoto",
 		verificationReviews:"VerificationReview"
@@ -8067,8 +9066,16 @@ export const ReturnTypes: Record<string,any> = {
 		title:"String"
 	},
 	RegistrationConfig:{
+		intake_forms:"RegistrationIntakeForm",
 		programs:"RegistrationProgram",
 		requires_selection:"Boolean"
+	},
+	RegistrationIntakeForm:{
+		description:"String",
+		id:"String",
+		order:"Int",
+		schema:"JSON",
+		title:"String"
 	},
 	RegistrationPayment:{
 		hash:"String",
@@ -8081,6 +9088,7 @@ export const ReturnTypes: Record<string,any> = {
 		applicable_account_types:"AccountType",
 		description:"String",
 		image_url:"String",
+		intake_forms:"RegistrationIntakeForm",
 		key:"String",
 		order:"Int",
 		requirements:"String",
@@ -8154,11 +9162,26 @@ export const ReturnTypes: Record<string,any> = {
 		phone:"RequisiteFieldView",
 		sfrRegNumber:"RequisiteFieldView",
 		signerFirstName:"RequisiteFieldView",
+		signerInn:"RequisiteFieldView",
 		signerLastName:"RequisiteFieldView",
 		signerMiddleName:"RequisiteFieldView",
 		signerRepDoc:"RequisiteFieldView",
 		signerSnils:"RequisiteFieldView",
 		signerType:"String"
+	},
+	ReportsParticipant:{
+		name:"String",
+		username:"String"
+	},
+	ReportsParticipantWallet:{
+		available:"String",
+		program_id:"String",
+		username:"String"
+	},
+	ReportsSubject:{
+		account_kind:"String",
+		name:"String",
+		username:"String"
 	},
 	RepresentedBy:{
 		based_on:"String",
@@ -8192,11 +9215,107 @@ export const ReturnTypes: Record<string,any> = {
 	RevokeKeyResult:{
 		must_recover:"Boolean",
 		sessions_revoked:"Int",
-		status:"String",
+		status:"KeyRevocationStatus",
 		target_id:"String"
 	},
 	RevokedSessionsResult:{
 		revoked:"Int"
+	},
+	RobotChairmanDelegation:{
+		delegated:"Boolean",
+		has_key:"Boolean",
+		username:"String"
+	},
+	RobotCouncil:{
+		board_id:"Int",
+		chairman:"String",
+		members:"RobotCouncilMember",
+		required_votes:"Int"
+	},
+	RobotCouncilMember:{
+		full_name:"String",
+		is_voting:"Boolean",
+		position:"String",
+		position_title:"String",
+		username:"String"
+	},
+	RobotDecision:{
+		attempts:"Int",
+		coopname:"String",
+		created_at:"DateTime",
+		decision_hash:"String",
+		decision_id:"Int",
+		decision_type:"String",
+		id:"String",
+		last_error:"String",
+		next_attempt_at:"DateTime",
+		protocol_hash:"String",
+		stage:"RobotDecisionStage",
+		tx_hashes:"String",
+		updated_at:"DateTime",
+		username:"String",
+		votes:"RobotVoteRecord",
+		waiting_for:"String"
+	},
+	RobotDecisionType:{
+		chairman:"RobotChairmanDelegation",
+		description:"String",
+		my_authorize:"Boolean",
+		my_follow:"String",
+		my_mode:"RobotVoteMode",
+		my_vote:"Boolean",
+		protocol_registry_id:"Int",
+		title:"String",
+		type:"String",
+		vote_quorum:"RobotQuorum",
+		voters:"RobotVoter",
+		warnings:"String"
+	},
+	RobotFollowGroup:{
+		count:"Int",
+		follow:"String"
+	},
+	RobotKeyStatus:{
+		chain_has_permission:"Boolean",
+		chain_key_matches:"Boolean",
+		has_key:"Boolean",
+		member:"String",
+		permission_name:"String",
+		public_key:"String",
+		updated_at:"DateTime"
+	},
+	RobotQuorum:{
+		delegated_count:"Int",
+		follow_groups:"RobotFollowGroup",
+		reachable:"Boolean",
+		reached:"Boolean",
+		required_count:"Int",
+		total_members:"Int"
+	},
+	RobotVoteRecord:{
+		at:"String",
+		member:"String",
+		permission:"String",
+		tx_id:"String"
+	},
+	RobotVoter:{
+		expires_at:"String",
+		follow:"String",
+		has_key:"Boolean",
+		limit:"String",
+		member:"String",
+		mode:"RobotVoteMode",
+		permission_name:"String"
+	},
+	RoleAssignment:{
+		assigned_at:"DateTime",
+		assigned_by:"String",
+		display_name:"String",
+		username:"String"
+	},
+	RolePermission:{
+		access:"RolePermissionAccess",
+		title:"String"
 	},
 	SbpAccount:{
 		phone:"String"
@@ -8258,8 +9377,9 @@ export const ReturnTypes: Record<string,any> = {
 		documentAggregate:"DocumentAggregate"
 	},
 	Subscription:{
-		marketplaceEvents:"MarketplaceEvent",
-		nodeSyncState:"NodeSyncState"
+		chainChanges:"ChainChange",
+		nodeSyncState:"NodeSyncState",
+		walletEvents:"WalletChangedEvent"
 	},
 	SubscriptionStatsDto:{
 		active:"Int",
@@ -8404,6 +9524,11 @@ export const ReturnTypes: Record<string,any> = {
 		wait_sec:"Int",
 		weight:"Int"
 	},
+	WalletChangedEvent:{
+		coopname:"String",
+		username:"String",
+		wallet_name:"String"
+	},
 	WebPushSubscriptionDto:{
 		authKey:"String",
 		createdAt:"DateTime",
@@ -8487,6 +9612,7 @@ export const ReturnTypes: Record<string,any> = {
 	ZeroReportSignerEdits:{
 		chairmanPosition:"String",
 		firstName:"String",
+		inn:"String",
 		lastName:"String",
 		middleName:"String",
 		pfrRegNumber:"String",

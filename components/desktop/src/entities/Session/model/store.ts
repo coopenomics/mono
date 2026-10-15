@@ -2,9 +2,11 @@ import { defineStore } from 'pinia';
 import { useGlobalStore } from 'src/shared/store';
 import { computed, ComputedRef, Ref, ref } from 'vue';
 import { Session } from '@wharfkit/session';
+import { chainFetch } from 'src/shared/lib/chain';
 import { WalletPluginPrivateKey } from '@wharfkit/wallet-plugin-privatekey';
 import {
   clearPinCache,
+  hasPinCache,
   clearSession,
   configureTokenStorage,
   getWallet,
@@ -23,9 +25,22 @@ import { useDisplayName } from 'src/shared/lib/composables/useDisplayName';
 import { useSystemStore } from 'src/entities/System/model';
 import { WalletPluginCoopId } from '../lib/walletPluginCoopId';
 import { createCoopIdStorage } from '../lib/coopidStorage';
+import { t } from 'src/shared/i18n';
+
+/** Состояние серверной сессии по cookie: гость, действующая, истёкшая, неизвестно. */
+type ServerSessionStatus = 'guest' | 'active' | 'expired' | 'unknown' | null;
 
 interface ISessionStore {
   isAuth: Ref<boolean>;
+  /** Сессия поднята с сервера по cookie (серверный рендер узнал пайщика). */
+  hydratedFromServer: Ref<boolean>;
+  /** Сервер ответил, что сессия истекла: локальный вход надо снять. */
+  serverSessionExpired: Ref<boolean>;
+  serverSessionStatus: Ref<ServerSessionStatus>;
+  /** Применить сессию, полученную с сервера: имя пайщика и, если есть, аккаунт. */
+  applyServerSession: (input: { username: string; account?: IAccount | null }) => void;
+  markServerSessionExpired: () => void;
+  setServerSessionStatus: (status: 'guest' | 'unknown') => void;
   username: ComputedRef<string>;
   displayName: ComputedRef<string>;
   init: () => Promise<void>;
@@ -72,6 +87,8 @@ interface ISessionStore {
   // Добавляю данные текущего пользователя
   currentUserAccount: Ref<IAccount | undefined>;
   setCurrentUserAccount: (account: IAccount | undefined) => void;
+  /** Ссылка на фотографию пайщика после её замены — снимок читают все столы. */
+  setAvatarUrl: (url: string | null) => void;
   clearAccount: () => void;
   // Computed свойства для текущего пользователя
   isRegistrationComplete: ComputedRef<boolean>;
@@ -96,6 +113,46 @@ export const useSessionStore = defineStore('session', (): ISessionStore => {
   const systemStore = useSystemStore();
   const isAuth = ref(false);
   const loadComplete = ref(false);
+  // Личность пришла с серверного рендера (cookie сессии → аккаунт), а не из
+  // восстановления ключей в браузере. Флаг живёт до первого `init()` на клиенте:
+  // ключи и токены есть только в браузере, их надо поднять как обычно.
+  const hydratedFromServer = ref(false);
+  // Сервер увидел cookie сессии, но сессия завершена или истекла: страница
+  // рендерится как «войдите», а не как гостевая.
+  const serverSessionExpired = ref(false);
+  // Что серверный рендер знал о пайщике: гидратируется на клиент, чтобы тот
+  // понял, узнал ли его сервер (и нужно ли поставить cookie сессии).
+  const serverSessionStatus = ref<ServerSessionStatus>(null);
+
+  /**
+   * След событий сессии в хранилище браузера — для разбора выбросов на вход.
+   * Пайщика иногда уводит на вход при живой сессии (dev-стенд, перезагрузка во
+   * время обновления, раз из десятков): из хранилища пропадает локальный кэш
+   * ключа, а что его стёрло, по журналам не видно — запись из консоли не
+   * успевает уйти до перезагрузки страницы. След переживает перезагрузку:
+   * кто закрыл сессию, из какого места, что ответил серверный рендер.
+   * Поведение входа он не меняет, секретов не содержит. Читать: в консоли
+   * браузера `JSON.parse(localStorage.getItem('coop:session-trace'))`.
+   */
+  const SESSION_TRACE_KEY = 'coop:session-trace';
+  const SESSION_TRACE_LIMIT = 12;
+  const traceSession = (event: string, details: Record<string, unknown> = {}): void => {
+    if (typeof window === 'undefined') return;
+    try {
+      const saved: unknown = JSON.parse(localStorage.getItem(SESSION_TRACE_KEY) || '[]');
+      const entry = {
+        at: new Date().toISOString(),
+        event,
+        url: window.location.pathname,
+        server: serverSessionStatus.value,
+        stack: (new Error().stack ?? '').split('\n').slice(2, 8).map((line) => line.trim()),
+        ...details,
+      };
+      localStorage.setItem(SESSION_TRACE_KEY, JSON.stringify([...(Array.isArray(saved) ? saved : []), entry].slice(-SESSION_TRACE_LIMIT)));
+    } catch {
+      // След — подсказка для разбора: сбой записи вход не затрагивает.
+    }
+  };
   const currentUserAccount = ref<IAccount | undefined>();
 
   const session = ref();
@@ -164,6 +221,7 @@ export const useSessionStore = defineStore('session', (): ISessionStore => {
   const armAutoLock = () => {
     if (!coopIdAccount.value) return;
     if (autoLockTimer) clearTimeout(autoLockTimer);
+    // timing: timeout — автоблокировка ключа после простоя
     autoLockTimer = setTimeout(() => {
       lockWalletNow();
     }, AUTO_LOCK_MS);
@@ -233,16 +291,16 @@ export const useSessionStore = defineStore('session', (): ISessionStore => {
         while (!wallet) {
           const pin = await requestPin();
           if (pin === null)
-            throw new Error('Для подписи нужен PIN-код');
+            throw new Error(t('session.error.pinRequired'));
           wallet = await unlockWithPin({ pin, storage }).catch(() => null);
-          if (!wallet) pinError.value = 'Неверный PIN-код';
+          if (!wallet) pinError.value = t('session.store.invalidPinError');
         }
         pinError.value = '';
       } else {
         // Дефолтный PIN — прозрачная разблокировка без спроса.
         const wallet = await unlockWithPin({ storage });
         if (!wallet)
-          throw new Error('CoopID keystore заперт: войдите заново (нет локального ключа)');
+          throw new Error(t('session.error.keystoreLocked'));
       }
     }
     // После любой разблокировки ключ снова доступен подписи документов.
@@ -297,7 +355,7 @@ export const useSessionStore = defineStore('session', (): ISessionStore => {
   const completePinUnlock = async (pin: string): Promise<boolean> => {
     const wallet = await unlockWithPin({ pin, storage: coopStorage() }).catch(() => null);
     if (!wallet) {
-      pinError.value = 'Неверный PIN-код';
+      pinError.value = t('session.store.invalidPinError');
       return false;
     }
     pinError.value = '';
@@ -326,18 +384,23 @@ export const useSessionStore = defineStore('session', (): ISessionStore => {
     if (opts?.persistPin) void persistPinCache({ storage }).catch(() => undefined);
 
     const wallet = await getWallet();
-    session.value = new Session({
-      actor: wallet.account,
-      permission: 'active',
-      chain: {
-        id: env.CHAIN_ID as string,
-        url: env.CHAIN_URL as string,
+    session.value = new Session(
+      {
+        actor: wallet.account,
+        permission: 'active',
+        chain: {
+          id: env.CHAIN_ID as string,
+          url: env.CHAIN_URL as string,
+        },
+        walletPlugin: new WalletPluginCoopId({
+          publicKey: wallet.publicKey,
+          ensureUnlocked: ensureWalletUnlocked,
+        }),
       },
-      walletPlugin: new WalletPluginCoopId({
-        publicKey: wallet.publicKey,
-        ensureUnlocked: ensureWalletUnlocked,
-      }),
-    });
+      // Отказ узла разбирается перехватчиком: дальше по стеку от ответа цепи
+      // остаётся одна строка без кода и тела.
+      { fetch: chainFetch },
+    );
     coopIdAccount.value = wallet.account;
     isAuth.value = true;
     // Документы кооператива подписываются ключом из общего стора — выдаём его туда,
@@ -352,11 +415,22 @@ export const useSessionStore = defineStore('session', (): ISessionStore => {
     currentUserAccount.value = account;
   };
 
+  /**
+   * Смена фотографии правит запись аккаунта в сторе: столы читают снимок
+   * оттуда, и без этого новая фотография держалась до ухода со страницы, а
+   * потом снова уступала место инициалам.
+   */
+  const setAvatarUrl = (url: string | null): void => {
+    if (!currentUserAccount.value) return;
+    currentUserAccount.value = { ...currentUserAccount.value, avatar_url: url };
+  };
+
   const clearAccount = () => {
     setCurrentUserAccount(undefined);
   };
 
   const close = async (): Promise<void> => {
+    traceSession('close', { wasAuth: isAuth.value });
     isAuth.value = false;
     session.value = undefined;
     currentUserAccount.value = undefined;
@@ -385,46 +459,64 @@ export const useSessionStore = defineStore('session', (): ISessionStore => {
     globalStore.logout();
   };
 
+  /** Серверный рендер опознал пайщика по cookie: кладём личность и аккаунт в стор до рендера. */
+  const applyServerSession = (input: { username: string; account?: IAccount | null }): void => {
+    isAuth.value = true;
+    coopIdAccount.value = input.username;
+    if (input.account) currentUserAccount.value = input.account;
+    loadComplete.value = true;
+    hydratedFromServer.value = true;
+    serverSessionStatus.value = 'active';
+  };
+
+  const markServerSessionExpired = (): void => {
+    serverSessionExpired.value = true;
+    serverSessionStatus.value = 'expired';
+  };
+
+  const setServerSessionStatus = (status: 'guest' | 'unknown'): void => {
+    serverSessionStatus.value = status;
+  };
+
   const init = async () => {
+    // На клиенте после гидрации личность известна, но ключей и токенов в памяти
+    // нет — они живут только в браузере. Снимаем серверную отметку и
+    // восстанавливаем сессию обычным путём; аккаунт при этом остаётся.
+    if (hydratedFromServer.value && typeof window !== 'undefined') {
+      hydratedFromServer.value = false;
+      isAuth.value = false;
+      coopIdAccount.value = '';
+    }
+    // Сервер видел cookie сессии, но сессия завершена или отозвана. Остатки
+    // ключей и токенов в браузере уже никого не откроют — забываем устройство,
+    // иначе кабинет считал бы себя вошедшим и получал отказ на каждом запросе.
+    if (serverSessionExpired.value && typeof window !== 'undefined') {
+      traceSession('server-session-expired');
+      serverSessionExpired.value = false;
+      await close();
+      return;
+    }
     // Сессия CoopID уже установлена — восстанавливать нечего, и трогать её нельзя.
-    // Ниже идёт ветка легаси-контура: она первым делом присваивает `isAuth`
-    // результат проверки легаси-ключа, а у входа по паролю такого ключа нет — и
-    // живая сессия на мгновение становилась неавторизованной. Кабинет на это
-    // мгновение разбирался и собирался заново: весь набор запросов кабинета
-    // уходил на сервер дважды подряд, вход растягивался на лишние секунды.
+    // Ниже идёт восстановление с нуля, и легаси-ветка в нём присваивает `isAuth`
+    // результат проверки легаси-ключа, которого у входа по паролю нет — живая
+    // сессия на мгновение становилась неавторизованной. Кабинет на это мгновение
+    // разбирался и собирался заново: весь набор запросов кабинета уходил на
+    // сервер дважды подряд, вход растягивался на лишние секунды.
     if (isAuth.value && coopIdAccount.value) return;
 
     if (!globalStore.hasCreditials) {
-      await globalStore.init();
-      isAuth.value = globalStore.hasCreditials;
-
-      try {
-        if (globalStore.hasCreditials) {
-          session.value = new Session({
-            actor: globalStore.username,
-            permission: 'active',
-            chain: {
-              id: env.CHAIN_ID as string,
-              url: env.CHAIN_URL as string,
-            },
-            walletPlugin: new WalletPluginPrivateKey(
-              globalStore.wif as PrivateKey,
-            ),
-          });
-          return;
-        }
-      } catch (e: any) {
-        console.error(e);
-        FailAlert(e);
-        close();
-        globalStore.logout();
-        return;
-      }
-
-      // Легаси-ключа нет — пробуем контур CoopID: токены восстанавливаем из
-      // персистентного хранилища (паритет с легаси — переживание F5), ключ
-      // поднимаем из локального PIN-кэша (мост подписи, Эпик 7). Полностью
-      // аддитивно: если CoopID-артефактов нет, ветка — no-op, легаси не задет.
+      // Сначала контур CoopID, легаси — только если контура на устройстве нет.
+      //
+      // Порядок обратный прежнему, и это принципиально. Легаси-записи в IndexedDB
+      // (ключ/токены под пустым паролем) переживают миграцию на пароль: их пишет
+      // регистрация, а стирал прежде только переход «ключ → пароль» из кабинета.
+      // Пока легаси проверялся первым, мигрировавший пайщик после F5 получал
+      // сессию на РОТИРОВАННОМ ключе и отозванных токенах — до живого vault'а
+      // дело не доходило вовсе. Кто на устройстве не входил по паролю, токенов
+      // CoopID здесь не найдёт, и легаси-ветка ниже отработает как раньше.
+      //
+      // Токены — из персистентного хранилища (паритет с легаси: переживание F5),
+      // ключ — из локального PIN-кэша (мост подписи, Эпик 7).
       try {
         configureTokenStorage(coopStorage());
         const hasTokens = await restoreSession();
@@ -433,11 +525,44 @@ export const useSessionStore = defineStore('session', (): ISessionStore => {
           // Кастомный PIN: keystore заперт после reload — поднимаем блокирующий
           // PIN-гейт. PinPrompt разблокирует ключ и до-инициализирует кабинет.
           pinUnlockPending.value = true;
-        } else {
-          await establishCoopIdSession();
+          return;
+        }
+        if (await establishCoopIdSession()) return;
+        // Токены сессии в браузере есть, а поднять её не вышло: пайщик уйдёт на вход при живой сессии.
+        if (hasTokens) traceSession('restore-failed', { pinCache: await hasPinCache(coopStorage()).catch(() => null) });
+      } catch (e: any) {
+        traceSession('restore-error', { message: e instanceof Error ? e.message : String(e) });
+        console.error(e);
+      }
+
+      // Легаси-контур: вход по ключу доступа. Живой сценарий здесь один —
+      // незаконченная регистрация: `createUser` кладёт ключ и токены в IndexedDB,
+      // и остаток регистрации (заявление, оплата, ожидание совета) держится на них.
+      await globalStore.init();
+      isAuth.value = globalStore.hasCreditials;
+
+      try {
+        if (globalStore.hasCreditials) {
+          session.value = new Session(
+            {
+              actor: globalStore.username,
+              permission: 'active',
+              chain: {
+                id: env.CHAIN_ID as string,
+                url: env.CHAIN_URL as string,
+              },
+              walletPlugin: new WalletPluginPrivateKey(
+                globalStore.wif as PrivateKey,
+              ),
+            },
+            { fetch: chainFetch },
+          );
         }
       } catch (e: any) {
         console.error(e);
+        FailAlert(e);
+        close();
+        globalStore.logout();
       }
     }
   };
@@ -499,6 +624,12 @@ export const useSessionStore = defineStore('session', (): ISessionStore => {
 
   return {
     isAuth,
+    hydratedFromServer,
+    serverSessionExpired,
+    serverSessionStatus,
+    applyServerSession,
+    markServerSessionExpired,
+    setServerSessionStatus,
     init,
     session,
     establishCoopIdSession,
@@ -522,6 +653,7 @@ export const useSessionStore = defineStore('session', (): ISessionStore => {
     loadComplete,
     currentUserAccount,
     setCurrentUserAccount,
+    setAvatarUrl,
     clearAccount,
     isRegistrationComplete,
     isFullyActive,

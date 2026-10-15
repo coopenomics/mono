@@ -1,4 +1,5 @@
 import { PaymentStatus } from '@coopenomics/innercoop';
+import { t } from '~/i18n';
 
 /**
  * Статусы платежей — перечень живёт в контракте `@coopenomics/innercoop`:
@@ -12,15 +13,15 @@ export { PaymentStatus as PaymentStatusEnum };
  * Человекочитаемые названия статусов
  */
 export const PAYMENT_STATUS_LABELS: Record<PaymentStatus, string> = {
-  [PaymentStatus.AWAITING_AUTHORIZATION]: 'Ожидает решения совета',
-  [PaymentStatus.PENDING]: 'Ожидает оплаты',
-  [PaymentStatus.PROCESSING]: 'Обрабатывается',
-  [PaymentStatus.PAID]: 'Оплачен',
-  [PaymentStatus.COMPLETED]: 'Обработан',
-  [PaymentStatus.FAILED]: 'Не удался',
-  [PaymentStatus.EXPIRED]: 'Истек',
-  [PaymentStatus.CANCELLED]: 'Отменен',
-  [PaymentStatus.REFUNDED]: 'Отклонен',
+  [PaymentStatus.AWAITING_AUTHORIZATION]: t('gateway.paymentStatus.status.pendingCouncil'),
+  [PaymentStatus.PENDING]: t('gateway.paymentStatus.status.pendingPayment'),
+  [PaymentStatus.PROCESSING]: t('gateway.paymentStatus.status.processing'),
+  [PaymentStatus.PAID]: t('gateway.paymentStatus.status.paid'),
+  [PaymentStatus.COMPLETED]: t('gateway.paymentStatus.status.processed'),
+  [PaymentStatus.FAILED]: t('gateway.paymentStatus.status.failed'),
+  [PaymentStatus.EXPIRED]: t('gateway.paymentStatus.status.expired'),
+  [PaymentStatus.CANCELLED]: t('gateway.paymentStatus.status.cancelled'),
+  [PaymentStatus.REFUNDED]: t('gateway.paymentStatus.status.rejected'),
 };
 
 /**

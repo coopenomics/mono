@@ -8,13 +8,13 @@ q-dialog(
   q-card.meet-wizard
     //- ===== Шапка =====
     header.meet-wizard__bar
-      .meet-wizard__bar-title Созыв общего собрания
+      .meet-wizard__bar-title {{ $t('meet.createMeetForm.title') }}
       q-btn(
         flat,
         round,
         dense,
         icon='close',
-        aria-label='Закрыть',
+        :aria-label='$t("common.action.close")',
         :disable='loading',
         @click='$emit("update:modelValue", false)'
       )
@@ -23,10 +23,10 @@ q-dialog(
     .meet-wizard__body
       .meet-wizard__col
         p.meet-wizard__intro
-          | При созыве собрания формируется документ повестки и направляется
-          | в совет на решение. После принятия решения собрание планируется,
-          | а пайщики получают уведомление с предложением ознакомиться с повесткой
-          | и подписать его.
+          | {{ $t('meet.createMeetForm.introLine1') }}
+          | {{ $t('meet.createMeetForm.introLine2') }}
+          | {{ $t('meet.createMeetForm.introLine3') }}
+          | {{ $t('meet.createMeetForm.introLine4') }}
 
         VerticalStepper(
           :steps='steps',
@@ -40,45 +40,45 @@ q-dialog(
               q-select(
                 v-model='formData.type',
                 :options='meetTypeOptions',
-                label='Тип собрания',
+                :label='$t("meet.createMeetForm.typeLabel")',
                 outlined,
                 emit-value,
                 map-options,
-                :rules='[(v) => !!v || "Выберите тип собрания"]'
+                :rules='[(v) => !!v || $t("meet.createMeetForm.typeRequired")]'
               )
               UserSearchSelector(
                 v-model='formData.presider',
-                label='Председатель собрания',
+                :label='$t("meet.createMeetForm.presiderLabel")',
                 outlined,
-                :rules='[(v) => !!v || "Укажите председателя"]'
+                :rules='[(v) => !!v || $t("meet.createMeetForm.presiderRequired")]'
               )
               UserSearchSelector(
                 v-model='formData.secretary',
-                label='Секретарь собрания',
+                :label='$t("meet.createMeetForm.secretaryLabel")',
                 outlined,
-                :rules='[(v) => !!v || "Укажите секретаря"]'
+                :rules='[(v) => !!v || $t("meet.createMeetForm.secretaryRequired")]'
               )
               .meet-wizard__dates
                 q-input(
                   v-model='formData.open_at',
-                  :label='`Открытие (мин. через 15 дней, ${timezoneLabel})`',
+                  :label='$t(`meet.createMeetForm.openAtLabel`, { timezone: timezoneLabel })',
                   type='datetime-local',
                   outlined,
                   stack-label,
-                  :rules='[(v) => !!v || "Укажите дату открытия"]'
+                  :rules='[(v) => !!v || $t("meet.createMeetForm.openAtRequired")]'
                 )
                 q-input(
                   v-model='formData.close_at',
-                  :label='`Закрытие (${timezoneLabel})`',
+                  :label='$t(`meet.createMeetForm.closeAtLabel`, { timezone: timezoneLabel })',
                   type='datetime-local',
                   outlined,
                   stack-label,
-                  :rules='[(v) => !!v || "Укажите дату закрытия"]'
+                  :rules='[(v) => !!v || $t("meet.createMeetForm.closeAtRequired")]'
                 )
               q-input(
                 v-model='formData.details',
-                label='Доп. информация для пайщиков (необязательно)',
-                hint='Например: ссылка на трансляцию, как участвовать',
+                :label='$t("meet.createMeetForm.detailsLabel")',
+                :hint='$t("meet.createMeetForm.detailsHint")',
                 type='textarea',
                 outlined,
                 autogrow,
@@ -90,10 +90,10 @@ q-dialog(
             //- ---------- Шаг 2: Повестка ----------
             q-form.meet-wizard__step(v-else-if='step.key === "agenda"', ref='agendaForm', greedy)
               .meet-wizard__agenda-empty(v-if='!agendaPoints.length')
-                | Добавьте хотя бы один вопрос повестки.
+                | {{ $t('meet.createMeetForm.agendaEmpty') }}
               .meet-agenda-card(v-for='(point, index) in agendaPoints', :key='index')
                 .meet-agenda-card__head
-                  span.meet-agenda-card__num Вопрос {{ index + 1 }}
+                  span.meet-agenda-card__num {{ $t('meet.createMeetForm.agendaPointNumber', { index: index + 1 }) }}
                   q-btn(
                     v-if='agendaPoints.length > 1',
                     flat,
@@ -101,28 +101,28 @@ q-dialog(
                     round,
                     size='sm',
                     icon='delete_outline',
-                    aria-label='Удалить вопрос',
+                    :aria-label='$t("meet.createMeetForm.removeQuestion")',
                     @click='removeAgendaPoint(index)'
                   )
                 q-input(
                   v-model='point.title',
-                  label='Вопрос',
+                  :label='$t("meet.createMeetForm.questionLabel")',
                   outlined,
                   type='textarea',
                   autogrow,
-                  :rules='[(v) => !!v || "Сформулируйте вопрос"]'
+                  :rules='[(v) => !!v || $t("meet.createMeetForm.questionRequired")]'
                 )
                 q-input(
                   v-model='point.decision',
-                  label='Проект решения',
+                  :label='$t("meet.createMeetForm.decisionLabel")',
                   outlined,
                   type='textarea',
                   autogrow,
-                  :rules='[(v) => !!v || "Укажите проект решения"]'
+                  :rules='[(v) => !!v || $t("meet.createMeetForm.decisionRequired")]'
                 )
                 q-input(
                   v-model='point.context',
-                  label='Приложения (необязательно)',
+                  :label='$t("meet.createMeetForm.contextLabel")',
                   outlined,
                   type='textarea',
                   autogrow
@@ -130,42 +130,42 @@ q-dialog(
               .meet-wizard__add
                 BaseButton(variant='ghost', size='sm', @click='addAgendaPoint')
                   q-icon(name='add', size='16px')
-                  span.q-ml-sm Добавить вопрос
+                  span.q-ml-sm {{ $t('meet.createMeetForm.addQuestion') }}
 
             //- ---------- Шаг 3: Проверка ----------
             .meet-wizard__step(v-else-if='step.key === "review"')
               .meet-review
                 .meet-review__row
-                  span.meet-review__label Тип собрания
+                  span.meet-review__label {{ $t('meet.createMeetForm.typeLabel') }}
                   span.meet-review__value {{ selectedTypeLabel }}
                 .meet-review__row
-                  span.meet-review__label Председатель
+                  span.meet-review__label {{ $t('meet.createMeetForm.presiderReviewLabel') }}
                   span.meet-review__value {{ formData.presider || '—' }}
                 .meet-review__row
-                  span.meet-review__label Секретарь
+                  span.meet-review__label {{ $t('meet.createMeetForm.secretaryReviewLabel') }}
                   span.meet-review__value {{ formData.secretary || '—' }}
                 .meet-review__row
-                  span.meet-review__label Открытие
+                  span.meet-review__label {{ $t('meet.createMeetForm.openAtReviewLabel') }}
                   span.meet-review__value {{ formatLocal(formData.open_at) }}
                 .meet-review__row
-                  span.meet-review__label Закрытие
+                  span.meet-review__label {{ $t('meet.createMeetForm.closeAtReviewLabel') }}
                   span.meet-review__value {{ formatLocal(formData.close_at) }}
                 .meet-review__row(v-if='formData.details')
-                  span.meet-review__label Доп. информация
+                  span.meet-review__label {{ $t('meet.createMeetForm.detailsReviewLabel') }}
                   span.meet-review__value {{ formData.details }}
-              .meet-review__agenda-title Повестка ({{ agendaPoints.length }})
+              .meet-review__agenda-title {{ $t('meet.createMeetForm.agendaCount', { count: agendaPoints.length }) }}
               .meet-review__agenda
                 .meet-agenda-card(v-for='(p, i) in agendaPoints', :key='i')
                   .meet-agenda-card__head
-                    span.meet-agenda-card__num Вопрос {{ i + 1 }}
+                    span.meet-agenda-card__num {{ $t('meet.createMeetForm.agendaPointNumber', { index: i + 1 }) }}
                   .meet-review__field
-                    span.meet-review__field-label Вопрос
+                    span.meet-review__field-label {{ $t('meet.createMeetForm.questionLabel') }}
                     span.meet-review__field-value {{ p.title || '—' }}
                   .meet-review__field
-                    span.meet-review__field-label Проект решения
+                    span.meet-review__field-label {{ $t('meet.createMeetForm.decisionLabel') }}
                     span.meet-review__field-value {{ p.decision || '—' }}
                   .meet-review__field(v-if='p.context')
-                    span.meet-review__field-label Приложения
+                    span.meet-review__field-label {{ $t('meet.createMeetForm.contextReviewLabel') }}
                     span.meet-review__field-value {{ p.context }}
 
     //- ===== Подвал: навигация =====
@@ -175,7 +175,7 @@ q-dialog(
         variant='ghost',
         :disabled='loading',
         @click='$emit("update:modelValue", false)'
-      ) Отмена
+      ) {{ $t('common.action.cancel') }}
       BaseButton(
         v-else,
         variant='ghost',
@@ -183,14 +183,14 @@ q-dialog(
         @click='goBack'
       )
         q-icon(name='arrow_back', size='16px')
-        span.q-ml-sm Назад
+        span.q-ml-sm {{ $t('common.action.back') }}
       q-space
       BaseButton(
         v-if='activeKey !== "review"',
         variant='primary',
         @click='goNext'
       )
-        span.q-mr-sm Далее
+        span.q-mr-sm {{ $t('common.action.next') }}
         q-icon(name='arrow_forward', size='16px')
       BaseButton(
         v-else,
@@ -199,11 +199,12 @@ q-dialog(
         @click='handleSubmit'
       )
         q-icon(name='campaign', size='16px')
-        span.q-ml-sm Объявить собрание
+        span.q-ml-sm {{ $t('meet.createMeetForm.submit') }}
 </template>
 
 <script setup lang="ts">
 import { reactive, computed, watch, ref } from 'vue';
+import { uiLocale, t } from 'src/shared/i18n';
 import type { QForm } from 'quasar';
 import { useAgendaPoints } from 'src/shared/hooks/useAgendaPoints';
 import {
@@ -223,7 +224,7 @@ import type { AgendaPoint } from 'src/shared/hooks/useAgendaPoints';
 
 const maxMeetDetailsLength = 10000;
 const validateMeetDetailsLength = (val: string | null | undefined): true | string =>
-  !val || val.length <= maxMeetDetailsLength || `Не более ${maxMeetDetailsLength} символов`;
+  !val || val.length <= maxMeetDetailsLength || t('meet.createMeetForm.detailsMaxLength', { max: maxMeetDetailsLength });
 
 const props = defineProps<{
   modelValue: boolean;
@@ -243,9 +244,9 @@ const system = useSystemStore();
 
 // ===== Шаги =====
 const steps: StepperStep[] = [
-  { key: 'basics', label: 'Параметры собрания', description: 'Тип, председатель, секретарь и сроки' },
-  { key: 'agenda', label: 'Повестка', description: 'Вопросы и проекты решений' },
-  { key: 'review', label: 'Проверка и созыв', description: 'Сверьте данные перед отправкой в совет' },
+  { key: 'basics', label: t('meet.createMeetForm.stepBasicsLabel'), description: t('meet.createMeetForm.stepBasicsDescription') },
+  { key: 'agenda', label: t('meet.createMeetForm.stepAgendaLabel'), description: t('meet.createMeetForm.stepAgendaDescription') },
+  { key: 'review', label: t('meet.createMeetForm.stepReviewLabel'), description: t('meet.createMeetForm.stepReviewDescription') },
 ];
 const activeKey = ref<string>('basics');
 const completedKeys = ref<string[]>([]);
@@ -267,7 +268,7 @@ async function goNext(): Promise<void> {
   }
   if (activeKey.value === 'agenda') {
     if (!agendaPoints.value.length) {
-      FailAlert('Добавьте хотя бы один вопрос повестки');
+      FailAlert(t('meet.createMeetForm.agendaEmptyValidation'));
       return;
     }
     const ok = await agendaForm.value?.validate();
@@ -294,11 +295,11 @@ const meetTypeOptions = computed(() => {
   // Председатель может выбирать любой тип, член совета — только внеочередное.
   if (props.isChairman) {
     return [
-      { label: 'Очередное собрание', value: 'regular' },
-      { label: 'Внеочередное собрание', value: 'extra' },
+      { label: t('meet.createMeetForm.typeOptionRegular'), value: 'regular' },
+      { label: t('meet.createMeetForm.typeOptionExtraordinary'), value: 'extra' },
     ];
   }
-  return [{ label: 'Внеочередное собрание', value: 'extra' }];
+  return [{ label: t('meet.createMeetForm.typeOptionExtraordinary'), value: 'extra' }];
 });
 const selectedTypeLabel = computed(
   () => meetTypeOptions.value.find((o) => o.value === formData.type)?.label || '—',
@@ -384,7 +385,7 @@ function formatLocal(local: string | undefined): string {
   if (!local) return '—';
   const d = new Date(local);
   if (Number.isNaN(d.getTime())) return local;
-  return `${d.toLocaleString('ru-RU', {
+  return `${d.toLocaleString(uiLocale(), {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',

@@ -26,7 +26,7 @@ import { AccountType } from '~/application/account/enum/account-type.enum';
 import { AccountKind } from '~/application/account/enum/account-kind.enum';
 import { BRANCH_BLOCKCHAIN_PORT, type BranchBlockchainPort } from '~/domain/branch/interfaces/branch-blockchain.port';
 import { normalizeUserEmail } from '~/utils/normalize-user-email';
-import { HttpApiError } from '@coopenomics/extension-kit';
+import { HttpApiError, DomainError } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class AccountDomainService {
@@ -54,7 +54,7 @@ export class AccountDomainService {
 
     if (exist && exist.status !== 'created') {
       if (await this.userRepository.isEmailTaken(userBody.email)) {
-        throw new HttpApiError(httpStatus.BAD_REQUEST, 'Пользователь с указанным EMAIL уже зарегистрирован');
+        throw DomainError.badRequest('USER_EMAIL_ALREADY_REGISTERED');
       }
     }
 
@@ -124,6 +124,7 @@ export class AccountDomainService {
    * @param username Имя пользователя
    * @param context Контекст для логирования (например, "регистрации", "обновления")
    */
+  // i18n-ignore: дефолт параметра context для строки лога setupNotificationSubscriber, не текст интерфейса
   async setupNotificationSubscriber(username: string, context = 'пользователя'): Promise<void> {
     this.logger.log(`Настройка identity получателя уведомлений для ${context} ${username}`);
 
@@ -147,7 +148,7 @@ export class AccountDomainService {
     // Создаем пользователя
     const user = await this.createUser({ ...data, role: 'user' });
     if (!user) {
-      throw new HttpApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Не удалось создать пользователя');
+      throw DomainError.internal('ACCOUNT_USER_CREATE_FAILED');
     }
 
     // Обновляем статус пользователя
@@ -158,7 +159,7 @@ export class AccountDomainService {
     });
 
     if (!updatedUser) {
-      throw new HttpApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Не удалось обновить пользователя');
+      throw DomainError.internal('ACCOUNT_USER_UPDATE_FAILED');
     }
 
     return {
@@ -233,6 +234,7 @@ export class AccountDomainService {
           is_email_verified: user.is_email_verified,
           subscriber_id: user.subscriber_id,
           subscriber_hash: user.subscriber_hash,
+          created_at: user.createdAt?.toISOString(),
         } as IMonoAccount)
       : null;
 
@@ -349,7 +351,7 @@ export class AccountDomainService {
     const privateAccount = account.private_account;
 
     if (!privateAccount) {
-      throw new Error(`Private account not found for user ${username}`);
+      throw DomainError.notFound('ACCOUNT_PRIVATE_DATA_NOT_FOUND', { username });
     }
 
     // Определяем тип аккаунта и извлекаем соответствующее имя

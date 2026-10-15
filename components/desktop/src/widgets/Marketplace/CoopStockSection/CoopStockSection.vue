@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { useFirstLoad } from 'src/shared/lib/composables';
 import { date } from 'quasar';
 import {
   BaseBadge,
@@ -7,21 +9,22 @@ import {
   BaseCard,
   BaseDialog,
   BaseInput,
+  BaseTable,
   EmptyState,
-  TableSkeleton,
-  type TableSkeletonColumn,
+  type BaseTableColumn,
 } from 'src/shared/ui/base';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { floorDecimalString } from 'src/shared/lib/utils/floorDecimalString';
-import { marketplaceOrderSaleUnit } from 'src/shared/lib/consts/marketplace-units';
-import { useMarketplaceRealtime } from 'src/shared/lib/marketplace';
+import { marketplaceOrderSaleUnitLabel } from 'src/shared/lib/consts/marketplace-units';
+import { marketLiveTables } from 'src/shared/lib/marketplace';
 import {
   listStock,
   publishStock,
   unpublishStock,
   type MarketplaceInventoryItemView,
 } from 'src/pages/Marketplace/OperatorOwnWarehouse/api';
+import { t } from 'src/shared/i18n';
 
 /**
  * Остаток кооператива на складе КУ (requirement 76): обезличенные позиции,
@@ -37,16 +40,21 @@ const emit = defineEmits<{ (e: 'count', value: number): void }>();
 
 const items = ref<MarketplaceInventoryItemView[]>([]);
 const loading = ref(true);
+/** Скелетон — только на первой загрузке; дочитка обновляет молча. */
+const firstLoad = useFirstLoad(loading);
 const selected = ref<Set<string>>(new Set());
 watch(items, (v) => emit('count', v.length), { immediate: true });
 
-const skeletonColumns: TableSkeletonColumn[] = [
-  { cell: 'icon', width: '40px' },
-  { label: 'Товар', cell: 'text' },
-  { label: 'Кол-во', class: 'num', cell: 'text', cellWidth: '80px' },
-  { label: 'Цена прибытия', class: 'num', cell: 'text', cellWidth: '100px' },
-  { label: 'Годен до', cell: 'text', cellWidth: '100px' },
-  { label: 'Состояние', cell: 'badge' },
+// Выбор ведём своей колонкой, а не галочками таблицы: зарезервированную под
+// заказ позицию выбирать нельзя, и встроенный выбор таблицы такого различия
+// не делает.
+const columns: BaseTableColumn<MarketplaceInventoryItemView>[] = [
+  { key: 'pick', label: '', width: '56px' },
+  { key: 'product', label: t('marketplace.coopStockSection.column.product'), width: '280px', sortable: true, field: 'product_name_snapshot' },
+  { key: 'quantity', label: t('marketplace.coopStockSection.column.quantity'), width: '130px', numeric: true },
+  { key: 'price', label: t('marketplace.coopStockSection.column.arrivalPrice'), width: '160px', numeric: true },
+  { key: 'expiry', label: t('marketplace.coopStockSection.column.expiry'), width: '130px', nowrap: true },
+  { key: 'state', label: t('marketplace.coopStockSection.column.state'), width: '170px' },
 ];
 
 const publishDialogOpen = ref(false);
@@ -71,13 +79,7 @@ async function reload(): Promise<void> {
 }
 
 onMounted(() => void reload());
-useMarketplaceRealtime(
-  {
-    MarketplaceStockProposalResolvedEvent: () => void reload(),
-    MarketplaceOfferStockChangedEvent: () => void reload(),
-  },
-  { onResync: () => void reload() },
-);
+useLiveReload(marketLiveTables('stock', 'offer'), () => reload());
 
 type StockState = 'free' | 'published' | 'reserved';
 function stateOf(i: MarketplaceInventoryItemView): StockState {
@@ -86,12 +88,19 @@ function stateOf(i: MarketplaceInventoryItemView): StockState {
   return 'free';
 }
 const STATE_BADGE: Record<StockState, { label: string; variant: 'neutral' | 'pos' | 'info' }> = {
-  free: { label: 'Свободна', variant: 'neutral' },
-  published: { label: 'На витрине', variant: 'pos' },
-  reserved: { label: 'Зарезервирована', variant: 'info' },
+  free: { label: t('marketplace.coopStockSection.stateFree'), variant: 'neutral' },
+  published: { label: t('marketplace.coopStockSection.stateOnDisplay'), variant: 'pos' },
+  reserved: { label: t('marketplace.coopStockSection.stateReserved'), variant: 'info' },
 };
 
+function isWarrantyReturn(i: MarketplaceInventoryItemView): boolean {
+  return i.origin === 'WARRANTY_RETURN';
+}
+
 const selectedItems = computed(() => items.value.filter((i) => selected.value.has(i.id)));
+// Возвращённое по гарантии публикуется как обычный остаток, но оператор обязан
+// понимать, что выставляет на витрину имущество, по которому была рекламация.
+const selectedWarrantyReturns = computed(() => selectedItems.value.filter(isWarrantyReturn));
 const selectedFree = computed(() => selectedItems.value.filter((i) => stateOf(i) === 'free'));
 const selectedPublished = computed(() =>
   selectedItems.value.filter((i) => stateOf(i) === 'published'),
@@ -105,8 +114,7 @@ function toggle(id: string): void {
 }
 
 function quantityLabel(i: MarketplaceInventoryItemView): string {
-  const saleUnit = marketplaceOrderSaleUnit(i.quantity_per_label, i.unit_of_measure, i.package_size);
-  return `${saleUnit.units}×${saleUnit.unitLabel}`;
+  return marketplaceOrderSaleUnitLabel(i.quantity_per_label, i.unit_of_measure, i.package_size);
 }
 
 function expiryLabel(i: MarketplaceInventoryItemView): string {
@@ -132,7 +140,7 @@ async function confirmPublish(): Promise<void> {
       price_per_unit: publishPrice.value ? publishPrice.value : null,
       warranty_days: publishWarrantyDays.value !== '' ? Number(publishWarrantyDays.value) : null,
     });
-    SuccessAlert('Остаток опубликован в каталоге предложением от кооператива.');
+    SuccessAlert(t('marketplace.coopStockSection.publishedHint'));
     publishDialogOpen.value = false;
     selected.value = new Set();
     await reload();
@@ -148,7 +156,7 @@ async function unpublishSelected(): Promise<void> {
     const affected = await unpublishStock({
       inventory_ids: selectedPublished.value.map((i) => i.id),
     });
-    SuccessAlert(`Снято с витрины позиций: ${affected}.`);
+    SuccessAlert(t('marketplace.coopStockSection.unpublishedMessage', { count: affected }));
     selected.value = new Set();
     await reload();
   } catch (e) {
@@ -158,16 +166,10 @@ async function unpublishSelected(): Promise<void> {
 </script>
 
 <template lang="pug">
-TableSkeleton(
-  v-if='loading && !items.length',
-  :columns='skeletonColumns',
-  :rows='4'
-)
-
 EmptyState(
-  v-else-if='!items.length',
-  title='Остатков нет',
-  body='Здесь появятся обезличенные позиции склада после недовыдач и отказов от получения.'
+  v-if='!firstLoad && !items.length',
+  :title='$t("marketplace.coopStockSection.emptyTitle")',
+  :body='$t("marketplace.coopStockSection.emptyBody")'
 )
   template(#icon)
     q-icon(name='warehouse', size='48px')
@@ -176,8 +178,8 @@ BaseCard.coop-stock(v-else)
   template(#head)
     .coop-stock__head
       q-icon(name='warehouse', size='22px')
-      span.coop-stock__title Остаток кооператива
-      span.coop-stock__hint осталось после недовыдач и отказов — можно заново предложить пайщикам
+      span.coop-stock__title {{ $t('marketplace.coopStockSection.sectionTitle') }}
+      span.coop-stock__hint {{ $t('marketplace.coopStockSection.sectionHint') }}
   template(#actions)
     .coop-stock__actions
       BaseButton(
@@ -185,67 +187,73 @@ BaseCard.coop-stock(v-else)
         variant='ghost',
         size='sm',
         @click='unpublishSelected'
-      ) Снять с витрины ({{ selectedPublished.length }})
+      ) {{ $t('marketplace.coopStockSection.unpublishButton', { count: selectedPublished.length }) }}
       BaseButton(
         v-if='selectedFree.length',
         variant='primary',
         size='sm',
         @click='openPublishDialog'
-      ) Опубликовать ({{ selectedFree.length }})
+      ) {{ $t('marketplace.coopStockSection.publishButton', { count: selectedFree.length }) }}
 
-  .table-wrap
-    .table-scroll
-      table.table
-        thead
-          tr
-            th
-            th Товар
-            th.num Кол-во
-            th.num Цена прибытия
-            th Годен до
-            th Состояние
-        tbody
-          tr(v-for='i in items', :key='i.id')
-            td
-              q-checkbox(
-                :model-value='selected.has(i.id)',
-                :disable='stateOf(i) === "reserved"',
-                dense,
-                @update:model-value='toggle(i.id)'
-              )
-            td {{ i.product_name_snapshot }}
-            td.num {{ quantityLabel(i) }}
-            td.num {{ i.arrival_price ? formatAsset2Digits(i.arrival_price) + ' ₽' : '—' }}
-            td {{ expiryLabel(i) }}
-            td
-              BaseBadge(:variant='STATE_BADGE[stateOf(i)].variant', size='sm')
-                | {{ STATE_BADGE[stateOf(i)].label }}
+  BaseTable(
+    :columns='columns',
+    :rows='items',
+    row-key='id',
+    hover,
+    min-width='930px',
+    sort-by='product'
+  )
+    template(#cell-pick='{ row }')
+      q-checkbox(
+        :model-value='selected.has(row.id)',
+        :disable='stateOf(row) === "reserved"',
+        dense,
+        @update:model-value='toggle(row.id)'
+      )
+    template(#cell-product='{ row }')
+      | {{ row.product_name_snapshot }}
+      BaseBadge.q-ml-sm(v-if='isWarrantyReturn(row)', variant='warn', size='sm') {{ $t('marketplace.coopStockSection.warrantyReturnLabel') }}
+    template(#cell-quantity='{ row }')
+      | {{ quantityLabel(row) }}
+    template(#cell-price='{ row }')
+      | {{ row.arrival_price ? formatAsset2Digits(row.arrival_price) + ' ₽' : '—' }}
+    template(#cell-expiry='{ row }')
+      | {{ expiryLabel(row) }}
+    template(#cell-state='{ row }')
+      BaseBadge(:variant='STATE_BADGE[stateOf(row)].variant', size='sm')
+        | {{ STATE_BADGE[stateOf(row)].label }}
 
 BaseDialog(
   v-model='publishDialogOpen',
-  title='Публикация остатка в каталог'
+  :title='$t("marketplace.coopStockSection.publishDialogTitle")'
 )
   .coop-stock__publish
     p.coop-stock__publish-note
-      | Выбранные позиции станут предложением от кооператива с мгновенной
-      | выдачей со склада. База цены — цена прибытия; укажите меньшую,
-      | чтобы продать с уценкой.
+      | {{ $t('marketplace.coopStockSection.publishText1') }}
+      | {{ $t('marketplace.coopStockSection.publishText2') }}
+      | {{ $t('marketplace.coopStockSection.publishText3') }}
+    .banner.banner--warn(v-if='selectedWarrantyReturns.length')
+      q-icon.banner__icon(name='assignment_return', size='18px')
+      .banner__body
+        | {{ $t('marketplace.coopStockSection.publishWarrantyNotice1') }}
+        | {{ $t('marketplace.coopStockSection.publishWarrantyNotice2', { count: selectedWarrantyReturns.length }) }}
+        | {{ $t('marketplace.coopStockSection.publishWarrantyNotice3') }}
     BaseInput(
       v-model='publishPrice',
-      label='Цена за единицу, ₽',
+      :label='$t("marketplace.coopStockSection.unitPriceLabel")',
       type='number',
-      hint='Пусто — по цене прибытия каждой позиции'
+      :hint='$t("marketplace.coopStockSection.unitPriceHint")'
     )
     BaseInput(
       v-model='publishWarrantyDays',
-      label='Срок гарантийного возврата, дней',
+      :label='$t("marketplace.coopStockSection.warrantyDaysLabel")',
       type='number',
-      hint='0 — вернуть нельзя (обычно для скоропорта)'
+      :hint='$t("marketplace.coopStockSection.warrantyDaysHint")'
     )
     .coop-stock__publish-actions
-      BaseButton(variant='ghost', @click='publishDialogOpen = false') Отменить
+      BaseButton(variant='ghost', @click='publishDialogOpen = false') {{ $t('marketplace.coopStockSection.cancelButton') }}
       BaseButton(variant='primary', :loading='publishing', @click='confirmPublish')
-        | Опубликовать {{ selectedFree.length }} поз.
+        | {{ $t('marketplace.coopStockSection.publishSubmit', { count: selectedFree.length }) }}
 </template>
 
 <style scoped lang="scss">

@@ -3,7 +3,7 @@ import { WorkflowBuilder } from '../../base/workflow-builder';
 import { z } from 'zod';
 import { BaseWorkflowPayload } from '../../types';
 import { createEmailStep, createInAppStep, createPushStep } from '../../base/defaults';
-import { slugify } from '../../utils';
+import { nt } from '../../i18n';
 
 export const marketplaceOfferRejectedPayloadSchema = z.object({
   supplierName: z.string(),
@@ -19,8 +19,10 @@ export type IPayload = z.infer<typeof marketplaceOfferRejectedPayloadSchema>;
 
 export interface IWorkflow extends BaseWorkflowPayload, IPayload {}
 
-export const name = 'Предложение отклонено модерацией';
-export const id = slugify(name);
+export const name = nt('marketplaceOfferRejected.name');
+// Идентификатор закреплён: раньше он вычислялся из названия, и правка
+// или перевод названия меняли бы его. Не менять — на него ссылаются подписки.
+export const id = 'predlozhenie-otkloneno-moderatsiey';
 
 /**
  * Предложение не допущено в каталог.
@@ -33,24 +35,25 @@ export const workflow: WorkflowDefinition<IWorkflow> = WorkflowBuilder
   .create<IWorkflow>()
   .name(name)
   .workflowId(id)
-  .description('Уведомление поставщику о том, что его предложение не прошло модерацию, с причиной отказа — карточку нужно поправить и отправить на повторную проверку.')
+  .i18nKey('marketplaceOfferRejected')
+  .description(nt('marketplaceOfferRejected.description'))
   .payloadSchema(marketplaceOfferRejectedPayloadSchema)
   .tags(['marketplace', 'offerer', 'offer'])
   .addSteps([
     createEmailStep(
       'marketplace-offer-rejected-email',
-      'Предложение не прошло модерацию: {{payload.productName}}',
-      'Уважаемый {{payload.supplierName}}!<br><br>Ваше предложение <strong>{{payload.productName}}</strong> не прошло модерацию и в каталоге не показывается.<br><br>Причина: {{payload.reason}}<br><br>Поправьте карточку имущества и отправьте её на повторную проверку: {{payload.deepLinkUrl}}'
+      nt('marketplaceOfferRejected.email.subject'),
+      nt('marketplaceOfferRejected.email.body')
     ),
     createInAppStep(
       'marketplace-offer-rejected-notification',
-      'Предложение не прошло модерацию',
-      '{{payload.productName}}: {{payload.reason}}'
+      nt('marketplaceOfferRejected.inApp.subject'),
+      nt('marketplaceOfferRejected.inApp.body')
     ),
     createPushStep(
       'marketplace-offer-rejected-push',
-      'Предложение не прошло модерацию',
-      '{{payload.productName}}: {{payload.reason}}'
+      nt('marketplaceOfferRejected.push.subject'),
+      nt('marketplaceOfferRejected.push.body')
     ),
   ])
   .build();

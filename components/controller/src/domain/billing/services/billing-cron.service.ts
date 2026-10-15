@@ -8,7 +8,7 @@ import {
 import { BillingProviderClient, type ProviderBillingSummary, type ProviderPackageInvoice } from '~/infrastructure/billing/billing-provider.client';
 import { CooperativeChainStatus, ProviderBillingInvoiceStatus, ProviderPackageInvoiceStatus } from '~/domain/billing/enums/billing-statuses.enum';
 import { BillingPaymentLogService } from '~/infrastructure/billing/billing-payment-log.service';
-import { BillingPaymentLogStatus } from '~/infrastructure/billing/entities/billing-payment-log.entity';
+import { BillingPaymentLogStatus } from '~/infrastructure/billing/billing-payment-log.record';
 import { ProviderService } from '~/application/provider/services/provider.service';
 
 /**

@@ -21,6 +21,7 @@ function processTypeByName(name: string): string {
   )
   if (!meta) {
     throw new Error(
+      // i18n-ignore: внутренняя ошибка-инвариант для разработчика (сверка с реестром процессов в коде), пайщик её не видит
       `[market/extensions] process_type marketplace::${name} отсутствует в LEDGER2_PROCESS_REGISTRY`,
     )
   }

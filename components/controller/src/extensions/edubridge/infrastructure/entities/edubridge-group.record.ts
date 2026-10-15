@@ -1,0 +1,94 @@
+import { EduGroupStatus } from '../../domain/enums';
+import type { EduScheduleSlot } from '../../domain/lib/schedule';
+
+/**
+ * Группа (набор) курса — единица расчёта. Курс — программа с условиями по
+ * умолчанию; участники записываются в группу, и деньги с занятиями считаются
+ * внутри неё: свои подписки, свои занятия, свой резерв преподавателям и свои
+ * возвраты. Группы одного курса идут одновременно и не пересекаются.
+ *
+ * Условия группы — снимок условий курса на день её открытия: по ним участники
+ * вносят взнос, и после открытия они не меняются. Новые условия курса
+ * действуют для следующих групп.
+ */
+export class EdubridgeGroupRecord {
+  public id!: string;
+
+  public coopname!: string;
+
+  /** Числовой номер группы для цепи (uint64): условия, учёт средств, занятия и подписки в контракте идут под ним. */
+  public chain_ref!: string;
+
+  public course_id!: string;
+
+  /** Название набора: «Группа 2», «Набор, январь 2027». */
+  public title!: string;
+
+  public status!: EduGroupStatus;
+
+  /** Набор в группу открыт: новые участники записываются в неё. */
+  public enrollment_open!: boolean;
+
+  /**
+   * Набор уже закрывался по началу занятий: дальше его ведёт администратор.
+   * Без отметки набор в начавшуюся группу закрывается сам.
+   */
+  public enrollment_closed_on_start!: boolean;
+
+  /** Привязка к площадке — курс и, если есть, группа площадки; доступ выдаётся туда. */
+  public external_ref!: string;
+
+  /** Дата начала занятий группы; `null` — ещё не назначена. */
+  public starts_at!: string | null;
+
+  /**
+   * Момент начала занятий с точностью до минуты; `null` — началом считается
+   * начало дня `starts_at`. Задаётся только на стенде со сжатым временем.
+   */
+  public starts_at_time!: Date | null;
+
+  public lessons_per_month!: number;
+
+  public lessons_total!: number;
+
+  public lesson_minutes!: number;
+
+  /** Длительность программы, месяцев; 0 — программа без конца. */
+  public program_months!: number;
+
+  /** Минут занятий в месяц — по ним контракт считает взнос. */
+  public minutes_per_month!: number;
+
+  /** Минут занятий в программе; 0 — программа без конца. */
+  public minutes_total!: number;
+
+  /** Плановая ставка часа, заложенная во взнос каждого участника группы. */
+  public planned_hourly_rate!: string;
+
+  /** Взнос преподавателя за занятие считается за каждого участника; иначе фиксированный за занятие. */
+  public pay_per_learner!: boolean;
+
+  public guarantee_days!: number;
+
+  /** Окна расписания группы: из них и даты начала строится календарь занятий. */
+  public schedule_slots!: EduScheduleSlot[];
+
+  /** Срок на отчёт преподавателя о занятии, дней после занятия. */
+  public report_days!: number;
+
+  public course_payment_enabled!: boolean;
+
+  public course_discount_bp!: number;
+
+  public fee_month!: string;
+
+  /** Остаток резерва преподавателям по группе — копия учёта в цепи. */
+  public teacher_reserve_balance!: string | null;
+
+  /** Выплачено преподавателям по группе — копия учёта в цепи. */
+  public teacher_settled_total!: string | null;
+
+  public created_at!: Date;
+
+  public updated_at!: Date;
+}

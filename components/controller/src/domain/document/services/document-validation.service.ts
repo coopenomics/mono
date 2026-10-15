@@ -2,6 +2,7 @@ import { Injectable, Inject, Logger } from '@nestjs/common';
 import { DOCUMENT_REPOSITORY, DocumentRepository } from '../repository/document.repository';
 import type { ISignedDocument } from '@coopenomics/innercoop';
 import { Classes } from '@coopenomics/sdk';
+import { t } from '~/i18n';
 
 export const DOCUMENT_VALIDATION_SERVICE = Symbol('DocumentValidationService');
 
@@ -64,7 +65,7 @@ export class DocumentValidationService {
       // 1. Проверяем подписи через SDK
       result.signatures_valid = this.verifySignatures(signedDoc);
       if (!result.signatures_valid) {
-        result.error_message = `Документ "${id}" имеет недействительные подписи`;
+        result.error_message = t('document.documentValidation.invalidSignatures', { id });
         this.logger.warn(result.error_message);
         return result;
       }
@@ -72,7 +73,7 @@ export class DocumentValidationService {
       // 2. Проверяем структуру документа через SDK
       const isStructureValid = Classes.Document.validateDocument(signedDoc);
       if (!isStructureValid) {
-        result.error_message = `Документ "${id}" не прошел структурную валидацию`;
+        result.error_message = t('document.documentValidation.structureInvalid', { id });
         this.logger.warn(result.error_message);
         return result;
       }
@@ -83,13 +84,13 @@ export class DocumentValidationService {
       result.hash_matches = hashCheckResult.matches;
 
       if (!result.original_found) {
-        result.error_message = `Оригинал документа "${id}" не найден в базе`;
+        result.error_message = t('document.documentValidation.originalNotFound', { id });
         this.logger.warn(result.error_message);
         return result;
       }
 
       if (!result.hash_matches) {
-        result.error_message = `Хеш документа "${id}" не совпадает с оригиналом`;
+        result.error_message = t('document.documentValidation.hashMismatch', { id });
         this.logger.warn(result.error_message);
         return result;
       }
@@ -98,8 +99,8 @@ export class DocumentValidationService {
       result.is_valid = true;
       return result;
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка';
-      result.error_message = `Ошибка валидации документа "${id}": ${errorMessage}`;
+      const errorMessage = error instanceof Error ? error.message : t('document.documentValidation.unknownError');
+      result.error_message = t('document.documentValidation.validationErrorWithMessage', { id, errorMessage });
       this.logger.error(result.error_message);
       return result;
     }

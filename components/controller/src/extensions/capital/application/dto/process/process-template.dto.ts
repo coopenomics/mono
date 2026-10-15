@@ -1,5 +1,5 @@
 import { ObjectType, Field, InputType, registerEnumType } from '@nestjs/graphql';
-import { IsString, IsOptional, IsArray, ValidateNested } from 'class-validator';
+import { IsString, IsOptional, IsArray, ValidateNested, IsUUID } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ProcessTemplateStatus } from '../../../domain/enums/process-status.enum';
 import { ProcessStepTemplateDTO, ProcessStepTemplateInputDTO } from './process-step.dto';
@@ -62,7 +62,7 @@ export class CreateProcessTemplateInputDTO {
 @InputType('UpdateProcessTemplateInput')
 export class UpdateProcessTemplateInputDTO {
   @Field(() => String)
-  @IsString()
+  @IsUUID()
   id!: string;
 
   @Field(() => String, { nullable: true })

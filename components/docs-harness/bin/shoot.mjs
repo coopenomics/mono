@@ -18,6 +18,7 @@ import path from 'node:path';
 import { spawn, spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { ensureFixture } from '../lib/fixtures.mjs';
+import { ensureChairmanPassword, ensureChairmanTokens, ensureTokens, forgetLoginState } from '../lib/tokens.mjs';
 
 const HARNESS_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 // Harness живёт в components/docs-harness/, репо-корень — на два уровня выше.
@@ -88,6 +89,7 @@ async function doReboot() {
   log('Полная перезагрузка стека через `pnpm run reboot:extra` (~3-5 мин)...');
   const r = spawnSync('pnpm', ['run', 'reboot:extra'], { cwd: REPO_ROOT, stdio: 'inherit' });
   if (r.status !== 0) die('pnpm run reboot:extra упал');
+  forgetLoginState();
   log('Чищу старые фикстуры пайщиков (WIF невалиден после новой цепочки)...');
   const stateDir = path.join(HARNESS_ROOT, 'state/participants');
   if (fs.existsSync(stateDir)) {
@@ -215,8 +217,15 @@ function ensureFixtures(meta) {
   for (const m of src.matchAll(/state\/participants\/([\w-]+)\.json/g)) {
     names.add(m[1]);
   }
-  if (names.size === 0) { ok('сценарий не требует фикстур'); return; }
   for (const name of names) ensureOneFixture(name);
+  if (names.size === 0) ok('сценарий не требует фикстур');
+  // Токены подписью для prepare-фаз — до входа со стола (см. lib/tokens.mjs).
+  try {
+    ensureChairmanPassword({ log });
+    ensureTokens([...names], { log });
+  } catch (e) {
+    die(e.message);
+  }
 }
 
 // 4.5. meta.prepare — заявленные сценарием seed-фазы для boot.
@@ -293,6 +302,7 @@ function ensureDraft() {
   await ensureDesktop(distRebuilt);
   const meta = await loadMeta();
   ensureFixtures(meta);
+  if (Array.isArray(meta.prepare) && meta.prepare.length) await ensureChairmanTokens({ log });
   await runPrepare(meta.prepare);
   runScenario();
   ensureDraft();

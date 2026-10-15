@@ -26,7 +26,7 @@
           text-color='white'
           icon='fa-solid fa-user'
           @remove='clearUsernameFilter'
-        ) Пайщик {{ fioCache.get(filters.username) || filters.username }}
+        ) {{ $t('reports.postingsPage.chip.participant', { name: fioCache.get(filters.username) || filters.username }) }}
         q-chip(
           v-if='filters.debitGlobalSequence'
           removable
@@ -34,7 +34,7 @@
           text-color='white'
           icon='fa-solid fa-hashtag'
           @remove='clearIdFilter'
-        ) № проводки {{ filters.debitGlobalSequence }}
+        ) {{ $t('reports.postingsPage.chip.postingNumber', { number: filters.debitGlobalSequence }) }}
         q-chip(
           v-if='filters.applyGlobalSequence'
           removable
@@ -42,7 +42,7 @@
           text-color='white'
           icon='fa-solid fa-hashtag'
           @remove='clearIdFilter'
-        ) № операции {{ filters.applyGlobalSequence }}
+        ) {{ $t('reports.postingsPage.chip.operationNumber', { number: filters.applyGlobalSequence }) }}
         q-chip(
           v-if='filters.processHash'
           removable
@@ -50,11 +50,11 @@
           text-color='white'
           icon='fa-solid fa-hashtag'
           @remove='clearIdFilter'
-        ) Процесс {{ filters.processHash.slice(0, 8) }}…
+        ) {{ $t('reports.postingsPage.chip.process', { hash: filters.processHash.slice(0, 8) }) }}
       .row.q-gutter-sm.items-end
         q-input.col-md-3.col-12(
           v-model='searchInput'
-          label='Поиск (№ проводки / операции / процесса)'
+          :label='$t("reports.postingsPage.searchLabel")'
           dense
           outlined
           clearable
@@ -65,7 +65,7 @@
             q-icon.cursor-pointer(name='fa-solid fa-magnifying-glass' @click='applySearch')
         q-input.col-md-2.col-12(
           v-model='filters.dateFrom'
-          label='С даты'
+          :label='$t("reports.postingsPage.dateFromLabel")'
           dense
           outlined
           clearable
@@ -83,10 +83,10 @@
                   @update:model-value='reload'
                 )
                   .row.items-center.justify-end
-                    q-btn(v-close-popup flat label='Готово' color='primary')
+                    q-btn(v-close-popup flat :label='$t("reports.postingsPage.dateDoneLabel")' color='primary')
         q-input.col-md-2.col-12(
           v-model='filters.dateTo'
-          label='По дату'
+          :label='$t("reports.postingsPage.dateToLabel")'
           dense
           outlined
           clearable
@@ -104,12 +104,12 @@
                   @update:model-value='reload'
                 )
                   .row.items-center.justify-end
-                    q-btn(v-close-popup flat label='Готово' color='primary')
+                    q-btn(v-close-popup flat :label='$t("reports.postingsPage.dateDoneLabel")' color='primary')
         q-btn.col-md-auto(
           v-if='hasAnyFilter'
           flat
           icon='fa-solid fa-rotate'
-          label='Сбросить'
+          :label='$t("reports.postingsPage.resetLabel")'
           @click='resetFilters'
         )
 
@@ -122,9 +122,9 @@
       :columns='columns'
       row-key='key'
       :loading='loading'
-      :pagination='pagination'
+      v-model:pagination='pagination'
       :rows-per-page-options='[25, 50, 100, 200]'
-      :no-data-label='"Проводки не найдены"'
+      :no-data-label='$t("reports.postingsPage.emptyLabel")'
       @request='onRequest'
     )
       template(#body='props')
@@ -136,7 +136,7 @@
               :rawId='props.row.debitGlobalSequence'
               @click='copyText(String(props.row.debitGlobalSequence))'
             )
-              q-tooltip Клик — копировать
+              q-tooltip {{ $t('reports.postingsPage.copyHintLabel') }}
             span.t-faint(v-else) —
           q-td
             EntityIdBadge(
@@ -144,7 +144,7 @@
               :rawId='shortHash(props.row.processHash)'
               @click='goToProcess(props.row.processHash)'
             )
-              q-tooltip Открыть процесс в реестре процессов
+              q-tooltip {{ $t('reports.postingsPage.openProcessLabel') }}
             span.t-faint(v-else) —
           q-td
             q-chip(
@@ -169,7 +169,7 @@
               icon='fa-solid fa-arrow-right'
               :to='{ name: "reports-operations", query: { operation_id: props.row.parentApplyGlobalSequence } }'
             )
-              q-tooltip К операции
+              q-tooltip {{ $t('reports.postingsPage.toOperationLabel') }}
 
       template(#item='props')
         .col-12
@@ -179,33 +179,33 @@
                 .text-caption.t-faint {{ formatDate(props.row.createdAt) }}
                 .text-body2.text-weight-medium {{ operationLabel(props.row.operationCode) }}
               .col-auto.text-right
-                .text-caption.t-faint Сумма
+                .text-caption.t-faint {{ $t('reports.postingsPage.amountLabel') }}
                 .text-body1.text-weight-bold.font-monospace {{ formatAmount(props.row.quantity) }}
               .col-auto
                 q-btn(
                   v-if='props.row.parentApplyGlobalSequence'
                   flat dense size='sm' color='primary'
                   icon='fa-solid fa-arrow-right'
-                  label='К операции'
+                  :label='$t("reports.postingsPage.toOperationLabel")'
                   :to='{ name: "reports-operations", query: { operation_id: props.row.parentApplyGlobalSequence } }'
                 )
             .row.q-mt-sm.items-center.q-gutter-x-md
-              .col-auto.text-caption.t-muted Дебет
+              .col-auto.text-caption.t-muted {{ $t('reports.postingsPage.column.debit') }}
               .col-auto
                 AccountIdCell(:account-code='debitCode(props.row.debitAccountId)')
-              .col-auto.text-caption.t-muted Кредит
+              .col-auto.text-caption.t-muted {{ $t('reports.postingsPage.column.credit') }}
               .col-auto
                 AccountIdCell(:account-code='creditCode(props.row.creditAccountId)')
             .col-12.text-caption.t-muted
-              | Пайщик: {{ fioCache.get(props.row.username ?? '') || props.row.username || '—' }}
+              | {{ $t('reports.postingsPage.participantLabel', { name: fioCache.get(props.row.username ?? '') || props.row.username || '—' }) }}
             .col-12.row.q-gutter-xs.q-mt-xs.items-center
-              .text-caption.t-muted № проводки
+              .text-caption.t-muted {{ $t('reports.postingsPage.column.postingId') }}
               EntityIdBadge(
                 v-if='props.row.debitGlobalSequence'
                 :rawId='props.row.debitGlobalSequence'
                 @click='copyText(String(props.row.debitGlobalSequence))'
               )
-              .text-caption.t-muted № процесса
+              .text-caption.t-muted {{ $t('reports.postingsPage.column.processId') }}
               EntityIdBadge(
                 v-if='props.row.processHash'
                 :rawId='shortHash(props.row.processHash)'
@@ -215,25 +215,27 @@
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
+import { useLiveReload } from 'src/shared/lib/realtime'
+import { LEDGER_LIVE_TABLES } from 'app/extensions/reports/shared/lib/live'
+import { useDeskFioCache, useDeskRegistries } from 'app/extensions/reports/shared/lib/registries'
+import { uiLocale } from 'src/shared/i18n';
 import { useRoute, useRouter } from 'vue-router'
 import { copyToClipboard } from 'quasar'
 import { useWindowSize } from 'src/shared/hooks'
 import { useSystemStore } from 'src/entities/System/model'
 import { FailAlert, SuccessAlert } from 'src/shared/api'
 import { EntityIdBadge } from 'src/shared/ui'
-import { useLedger2Store } from 'src/entities/Ledger2'
 import type { ILedger2Posting, ILedger2PostingsFilterInput } from 'src/entities/Ledger2'
-import { useAccountStore } from 'src/entities/Account'
 import { formatAsset2Digits } from 'src/shared/lib/utils'
 import { AccountIdCell } from '../../../shared/ui'
 import { Ledger2 } from 'cooptypes'
+import { t } from '../../../i18n';
 
 const { info } = useSystemStore()
 const { isMobile } = useWindowSize()
 const route = useRoute()
 const router = useRouter()
-const ledger2Store = useLedger2Store()
-const accountStore = useAccountStore()
+const registries = useDeskRegistries()
 
 // Реестр-источник: cooptypes/src/ledger2/operations.ts (LEDGER2_OPERATION_REGISTRY).
 // Без локальных копий human-name'ов.
@@ -302,7 +304,9 @@ function creditCode(id: number | null | undefined): number | null {
 
 const loading = ref(false)
 const items = ref<ILedger2Posting[]>([])
-const fioCache = ref(new Map<string, string>())
+// Имена субъектов отдаёт операция стола бухгалтера — без личных данных пайщиков.
+const deskNames = useDeskFioCache()
+const fioCache = deskNames.fioCache
 
 const pagination = ref({ page: 1, rowsPerPage: 50, rowsNumber: 0 })
 
@@ -389,9 +393,9 @@ async function clearIdFilter() {
 async function copyText(text: string) {
   try {
     await copyToClipboard(text)
-    SuccessAlert('Скопировано')
+    SuccessAlert(t('reports.postingsPage.copySuccess'))
   } catch {
-    FailAlert('Не удалось скопировать')
+    FailAlert(t('reports.postingsPage.copyError'))
   }
 }
 
@@ -409,7 +413,7 @@ function onDateToInput(value: string | number | null): void {
 const accountFilterLabel = computed(() => {
   if (filters.accountId !== null) {
     const displayCode = Math.round(filters.accountId / 1000)
-    return `Счёт ${displayCode}${filters.accountName ? ` — ${filters.accountName}` : ''}`
+    return t('reports.postingsPage.chip.account', { account: displayCode, accountSuffix: filters.accountName ? ` — ${filters.accountName}` : '' })
   }
   return ''
 })
@@ -432,7 +436,7 @@ async function clearUsernameFilter() {
 
 async function resolveAccountName(id: number) {
   try {
-    const accounts = await ledger2Store.loadAccounts(info.coopname)
+    const accounts = await registries.loadAccounts(info.coopname)
     const a = accounts.find((x) => x.id === id)
     if (a) filters.accountName = a.name
   } catch {
@@ -441,14 +445,14 @@ async function resolveAccountName(id: number) {
 }
 
 const columns = [
-  { name: 'createdAt', align: 'left' as const, label: 'Дата', field: 'createdAt' },
-  { name: 'postingId', align: 'left' as const, label: '№ проводки', field: 'debitGlobalSequence' },
-  { name: 'processHash', align: 'left' as const, label: '№ процесса', field: 'processHash' },
-  { name: 'operationCode', align: 'left' as const, label: 'Операция', field: 'operationCode' },
-  { name: 'debit', align: 'center' as const, label: 'Дебет', field: 'debitAccountId' },
-  { name: 'credit', align: 'center' as const, label: 'Кредит', field: 'creditAccountId' },
-  { name: 'quantity', align: 'right' as const, label: 'Сумма', field: 'quantity' },
-  { name: 'username', align: 'left' as const, label: 'Пайщик', field: 'username' },
+  { name: 'createdAt', align: 'left' as const, label: t('reports.postingsPage.column.date'), field: 'createdAt' },
+  { name: 'postingId', align: 'left' as const, label: t('reports.postingsPage.column.postingId'), field: 'debitGlobalSequence' },
+  { name: 'processHash', align: 'left' as const, label: t('reports.postingsPage.column.processId'), field: 'processHash' },
+  { name: 'operationCode', align: 'left' as const, label: t('reports.postingsPage.column.operation'), field: 'operationCode' },
+  { name: 'debit', align: 'center' as const, label: t('reports.postingsPage.column.debit'), field: 'debitAccountId' },
+  { name: 'credit', align: 'center' as const, label: t('reports.postingsPage.column.credit'), field: 'creditAccountId' },
+  { name: 'quantity', align: 'right' as const, label: t('reports.postingsPage.column.amount'), field: 'quantity' },
+  { name: 'username', align: 'left' as const, label: t('reports.postingsPage.column.participant'), field: 'username' },
   { name: 'actions', align: 'right' as const, label: '', field: 'parentApplyGlobalSequence', sortable: false },
 ]
 
@@ -484,7 +488,7 @@ async function resetFilters() {
 }
 
 function formatDate(d: string | Date): string {
-  return new Date(d).toLocaleString('ru-RU', {
+  return new Date(d).toLocaleString(uiLocale(), {
     day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
   })
 }
@@ -518,7 +522,7 @@ async function load() {
       input.dateTo = to
     }
 
-    const resp = await ledger2Store.loadPostings(input)
+    const resp = await registries.loadPostings(input)
     if (myId !== lastRequestId) return
     if (resp) {
       items.value = resp.items
@@ -542,32 +546,7 @@ function onRequest(props: { pagination: { page: number; rowsPerPage: number; row
 }
 
 async function enrichFio(rows: ILedger2Posting[]) {
-  const usernames = [
-    ...new Set(rows.map((o) => o.username).filter((u): u is string => !!u && !fioCache.value.has(u))),
-  ]
-  if (!usernames.length) return
-  await Promise.allSettled(
-    usernames.map(async (username) => {
-      try {
-        const acc = await accountStore.fetchAccount(username)
-        const pd = acc?.private_account
-        if (!pd) return
-        let fio = ''
-        if (pd.type === 'individual' && pd.individual_data) {
-          const d = pd.individual_data
-          fio = [d.last_name, d.first_name, d.middle_name].filter(Boolean).join(' ')
-        } else if (pd.type === 'organization' && pd.organization_data) {
-          fio = (pd.organization_data as any).short_name ?? username
-        } else if (pd.type === 'entrepreneur' && pd.entrepreneur_data) {
-          const d = pd.entrepreneur_data as any
-          fio = [d.last_name, d.first_name, d.middle_name].filter(Boolean).join(' ')
-        }
-        if (fio) fioCache.value.set(username, fio)
-      } catch {
-        // молча — username остаётся как fallback
-      }
-    }),
-  )
+  await deskNames.enrichFio(rows.map((row) => row.username))
 }
 
 onMounted(async () => {
@@ -597,6 +576,10 @@ onMounted(async () => {
     FailAlert(e)
   }
 })
+
+// Проводки живут по ленте: новая операция учёта перечитывает показанную
+// страницу с теми же фильтрами.
+useLiveReload(LEDGER_LIVE_TABLES, load)
 </script>
 
 <style scoped>

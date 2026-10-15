@@ -1,0 +1,311 @@
+/** Конструктор курса: носитель по направлению, идентификатор площадки, преподаватели только с договором. */
+import { DomainError } from '@coopenomics/extension-kit';
+import { EdubridgeCourseService } from '~/extensions/edubridge/application/services/edubridge-course.service';
+import { EduAccessCarrier, EduContractStatus, EduCourseDirection, EduCourseStatus, EduLessonStatus } from '~/extensions/edubridge/domain/enums';
+
+const COURSE_UUID = '0cd16d12-6ade-40f2-8830-b0673dde8b9e';
+const GROUP_UUID = '426fa814-9a36-4e9a-9fb0-ca5672afe667';
+
+const SECTION_ID = '11111111-1111-4111-8111-000000000001';
+const LEVEL_ID = '11111111-1111-4111-8111-000000000002';
+
+function make(contracts: string[] = ['teach']) {
+  const saved: any[] = [];
+  const enrollmentsOfCourse: { list: any[] } = { list: [] };
+  const courses = {
+    create: jest.fn((d: any) => ({ ...d })),
+    save: jest.fn(async (c: any) => { saved.push(c); return c; }),
+    remove: jest.fn(async () => 1),
+    // Сохранённое перечитывается после записи (раздел и уровень подгружаются связями).
+    findById: jest.fn(async (_coop: string, id: string) => saved.find((c) => c.id === id) ?? ({ id, external_ref: 'old', status: EduCourseStatus.DRAFT })),
+  } as any;
+  const teachers = {
+    listContracts: jest.fn(async () => contracts.map((t, i) => ({ teacher_username: t, contract_number: `УХД-${i + 1}`, status: t.startsWith('ex_') ? EduContractStatus.TERMINATED : EduContractStatus.ACTIVE, hourly_rate: t.startsWith('new_') ? '0.0000 RUB' : '1000.0000 RUB', signed_at: new Date('2026-02-01') }))),
+  } as any;
+  const skillspace = {
+    listCourses: jest.fn(async () => [{ id: COURSE_UUID, name: 'Тестовый курс [coop]', slug: 'testovyj-kurs-coop' }, { id: 'aaaaaaaa-0000-4000-8000-000000000001', name: 'Другой' }]),
+    listGroups: jest.fn(async () => [{ id: GROUP_UUID, courseId: COURSE_UUID, name: 'Группа А', studentsCount: 1 }]),
+  } as any;
+  const images = {
+    putImage: jest.fn(async (i: any) => ({ bucket_key: `courses/voskhod/${i.bytes.length}.jpg`, content_hash: 'h', mime_type: i.contentType })),
+    getReadUrl: jest.fn(async (k: string) => `https://x/${k}`),
+    deleteImage: jest.fn(async () => undefined),
+  } as any;
+  const names = { displayNames: jest.fn(async (us: string[]) => new Map(us.map((u) => [u, `ФИО ${u}`]))) } as any;
+  // Взносы считает экономика программы: курс сам сумму не назначает.
+  const economy = { feeForCourse: jest.fn(async () => ({ fee_month: '9600.0000 RUB' })) } as any;
+  // Преподаватели курса получают допуск к нему — здесь только факт вызова.
+  const teacherService = { syncCourseAssignments: jest.fn(async () => undefined) } as any;
+  // Раздел и уровень проверяет справочник — здесь только факт проверки.
+  const sections = { assertForCourse: jest.fn(async () => undefined) } as any;
+  // Действующие подписки курса: с ними взнос и плановая ставка не меняются.
+  const enrollments = { findByCourse: jest.fn(async () => enrollmentsOfCourse.list) } as any;
+  const lessonsOfCourse: { list: any[] } = { list: [] };
+  const lessons = { findByCourse: jest.fn(async () => lessonsOfCourse.list) } as any;
+  // Курс открывается с первой группой; её условия уходят в цепь.
+  const groups = { create: jest.fn(async () => ({ id: 'G1' })), applyCourseTerms: jest.fn(async () => undefined) } as any;
+  // Группы школы GetCourse — из них выбирается привязка курса.
+  const getcourse = { listGroups: jest.fn(async () => [{ id: '9', name: 'Алгебра: 7 класс' }]) } as any;
+  return { service: new EdubridgeCourseService(courses, teachers, skillspace, images, names, economy, teacherService, sections, enrollments, lessons, groups, getcourse), groups, getcourse, enrollmentsOfCourse, lessonsOfCourse, courses, teachers, images, economy, saved, teacherService, sections };
+}
+
+const base = {
+  title: 'Алгебра',
+  section_id: SECTION_ID,
+  level_id: LEVEL_ID,
+  schedule_slots: [{ weekday: 2, time: '17:00', minutes: 60, assignment_id: null, hourly_rate: '1000.0000 RUB' }, { weekday: 4, time: '17:00', minutes: 60, assignment_id: null, hourly_rate: '1000.0000 RUB' }],
+  program_months: 8,
+  course_payment_enabled: false,
+  course_discount_percent: 0,
+  direction: EduCourseDirection.ONLINE_PLATFORM,
+  carrier: EduAccessCarrier.SKILLSPACE,
+  external_ref: COURSE_UUID,
+} as any;
+
+describe('EdubridgeCourseService — конструктор курса', () => {
+  it('онлайн-платформа + Skillspace + идентификатор + преподаватель с договором: курс создаётся черновиком', async () => {
+    const { service, saved } = make();
+    const course = await service.create('voskhod', 'ant', { ...base, teacher_usernames: ['teach'] });
+    expect(course.status).toBe(EduCourseStatus.DRAFT);
+    expect(course.teacher_usernames).toEqual(['teach']);
+    expect(saved).toHaveLength(1);
+  });
+
+  it('параметры занятий сохраняются, а взнос приходит из расчёта экономики', async () => {
+    const { service, economy, saved } = make();
+    const course = await service.create('voskhod', 'ant', { ...base, course_payment_enabled: true, course_discount_percent: 10 });
+    expect(economy.feeForCourse).toHaveBeenCalledWith(
+      expect.objectContaining({ program_months: 8, course_payment_enabled: true, course_discount_percent: 10 })
+    );
+    expect(course.fee_month).toBe('9600.0000 RUB');
+    // Числа программы считаются из окон: два часовых окна в неделю — 480 минут в месяц, 3840 за восемь месяцев.
+    expect(saved[0]).toMatchObject({ minutes_per_month: 480, minutes_total: 3840, program_months: 8, lesson_minutes: 60, lessons_per_month: 8, lessons_total: 64 });
+    expect(saved[0].course_payment_enabled).toBe(true);
+    expect(saved[0].course_discount_bp).toBe(1000);
+  });
+
+  it('взнос только помесячный: скидка за курс не сохраняется', async () => {
+    const { service, saved } = make();
+    await service.create('voskhod', 'ant', { ...base, course_payment_enabled: false, course_discount_percent: 10 });
+    expect(saved[0].course_payment_enabled).toBe(false);
+    expect(saved[0].course_discount_bp).toBe(0);
+  });
+
+  it.each([
+    [EduCourseDirection.ONLINE_PLATFORM, EduAccessCarrier.TELEGRAM],
+    [EduCourseDirection.ONLINE_PLATFORM, EduAccessCarrier.ONSITE],
+    [EduCourseDirection.CLOSED_COMMUNITY, EduAccessCarrier.SKILLSPACE],
+    [EduCourseDirection.ONSITE, EduAccessCarrier.GETCOURSE],
+  ])('носитель не по направлению (%s + %s) — отказ', async (direction, carrier) => {
+    const { service } = make();
+    await expect(service.create('voskhod', 'ant', { ...base, direction, carrier })).rejects.toThrow(/недопустим для направления/);
+  });
+
+  it('площадка без идентификатора курса — отказ', async () => {
+    const { service } = make();
+    await expect(service.create('voskhod', 'ant', { ...base, external_ref: '  ' })).rejects.toThrow(/идентификатор курса/);
+  });
+
+  it('очное обучение: идентификатор площадки не нужен и не сохраняется', async () => {
+    const { service } = make();
+    const course = await service.create('voskhod', 'ant', {
+      ...base,
+      direction: EduCourseDirection.ONSITE,
+      carrier: EduAccessCarrier.ONSITE,
+      external_ref: 'что-то лишнее',
+    });
+    expect(course.external_ref).toBe('');
+  });
+
+  it.each(['131851', '77dc07a8-d949-40c1-ae20-b8c9314df709x', `${COURSE_UUID}:12`])('Skillspace: не UUID курса/группы (%s) — отказ с подсказкой про реестр школы', async (ref) => {
+    const { service } = make();
+    await expect(service.create('voskhod', 'ant', { ...base, external_ref: ref })).rejects.toThrow(/UUID курса из реестра школы/);
+  });
+
+  it('platformCourses: курсы Skillspace с их группами, группы GetCourse; для очного — пусто', async () => {
+    const { service } = make();
+    const list = await service.platformCourses('voskhod', EduAccessCarrier.SKILLSPACE);
+    expect(list).toEqual([
+      { id: COURSE_UUID, name: 'Тестовый курс [coop]', groups: [{ id: GROUP_UUID, name: 'Группа А' }] },
+      { id: 'aaaaaaaa-0000-4000-8000-000000000001', name: 'Другой', groups: [] },
+    ]);
+    // GetCourse: привязка курса — название группы школы; двоеточие в названии её не режет.
+    expect(await service.platformCourses('voskhod', EduAccessCarrier.GETCOURSE)).toEqual([{ id: 'Алгебра: 7 класс', name: 'Алгебра: 7 класс', groups: [] }]);
+    expect(await service.platformCourses('voskhod', EduAccessCarrier.ONSITE)).toEqual([]);
+  });
+
+  it('преподаватель без договора УХД — отказ с именем', async () => {
+    const { service } = make(['teach']);
+    await expect(service.create('voskhod', 'ant', { ...base, teacher_usernames: ['teach', 'stranger'] })).rejects.toThrow(/stranger/);
+  });
+
+  it('преподаватель с прекращённым договором на курс не назначается', async () => {
+    const { service } = make(['teach', 'ex_teach']);
+    await expect(service.create('voskhod', 'ant', { ...base, teacher_usernames: ['teach', 'ex_teach'] })).rejects.toThrow(/ex_teach/);
+  });
+
+  it('преподаватель без назначенной ставки в курс не ставится — отказ с именем', async () => {
+    const { service, courses } = make(['teach', 'new_teach']);
+    await expect(service.create('voskhod', 'ant', { ...base, teacher_usernames: ['teach', 'new_teach'] })).rejects.toMatchObject({
+      code: 'EDUBRIDGE_TEACHER_RATE_NOT_ASSIGNED',
+      params: { teachers: 'new_teach' },
+    });
+    expect(courses.save).not.toHaveBeenCalled();
+  });
+
+  it('преподаватели курса получают допуск к нему — сверка после сохранения', async () => {
+    const { service, teacherService, courses } = make(['teach']);
+    const course = await service.create('voskhod', 'ant', { ...base, teacher_usernames: ['teach'] });
+    expect(courses.save).toHaveBeenCalled();
+    expect(teacherService.syncCourseAssignments).toHaveBeenCalledWith('voskhod', course);
+  });
+
+  it('преподаватель со ставкой в договоре выше стоимости окон в курс ставится: потолок держит само занятие', async () => {
+    const { service, teachers, courses, teacherService } = make(['teach']);
+    teachers.listContracts.mockResolvedValue([{ teacher_username: 'teach', status: EduContractStatus.ACTIVE, hourly_rate: '1500.0000 RUB' }]);
+    await expect(service.create('voskhod', 'ant', { ...base, teacher_usernames: ['teach'] })).resolves.toBeDefined();
+    expect(courses.save).toHaveBeenCalled();
+    expect(teacherService.syncCourseAssignments).toHaveBeenCalled();
+  });
+
+  it('несколько преподавателей с договорами — сохраняются все', async () => {
+    const { service } = make(['a', 'b']);
+    const course = await service.create('voskhod', 'ant', { ...base, teacher_usernames: ['a', 'b'] });
+    expect(course.teacher_usernames).toEqual(['a', 'b']);
+  });
+
+  it('teacherOptions отдаёт преподавателей с договором и назначенной ставкой; без ставки и с прекращённым договором в списке нет', async () => {
+    const { service } = make(['a', 'b', 'new_c', 'ex_d']);
+    const options = await service.teacherOptions('voskhod');
+    expect(options.map((o) => o.username)).toEqual(['a', 'b']);
+    expect(options[0]!.contract_number).toBe('УХД-1');
+  });
+
+  it('обновление с новым идентификатором площадки сбрасывает сверку', async () => {
+    const { service } = make();
+    const course = await service.update('voskhod', 'ant', { ...base, id: 'C1', external_ref: `${COURSE_UUID}:${GROUP_UUID}` });
+    expect(course.external_ref).toBe(`${COURSE_UUID}:${GROUP_UUID}`);
+    expect(course.external_title_seen).toBeNull();
+    expect(course.external_checked_at).toBeNull();
+  });
+
+  it('та же привязка (пусть и с пробелами по краям) сверку не сбрасывает', async () => {
+    const { service, courses } = make();
+    const checkedAt = new Date('2026-09-01');
+    courses.findById.mockResolvedValueOnce({ id: 'C1', external_ref: COURSE_UUID, external_title_seen: 'Тестовый курс [coop]', external_checked_at: checkedAt, status: EduCourseStatus.DRAFT });
+    const course = await service.update('voskhod', 'ant', { ...base, id: 'C1', external_ref: ` ${COURSE_UUID} ` });
+    expect(course.external_ref).toBe(COURSE_UUID);
+    expect(course.external_title_seen).toBe('Тестовый курс [coop]');
+    expect(course.external_checked_at).toBe(checkedAt);
+  });
+});
+
+describe('EdubridgeCourseService — раздел и уровень из справочника', () => {
+  it('курс ссылается на раздел и уровень справочника, а не хранит их строкой', async () => {
+    const { service, saved, sections } = make();
+    await service.create('voskhod', 'ant', { ...base });
+    expect(saved[0]).toEqual(expect.objectContaining({ section_id: SECTION_ID, level_id: LEVEL_ID }));
+    expect(saved[0]).not.toHaveProperty('subject');
+    expect(sections.assertForCourse).toHaveBeenCalledWith('voskhod', SECTION_ID, LEVEL_ID, undefined);
+  });
+
+  it('курс без уровня сохраняется: уровень необязателен', async () => {
+    const { service, saved } = make();
+    await service.create('voskhod', 'ant', { ...base, level_id: null });
+    expect(saved[0].level_id).toBeNull();
+  });
+
+  it('справочник отказал (раздел в архиве, уровень чужого раздела) — курс не сохраняется', async () => {
+    const { service, saved, sections } = make();
+    sections.assertForCourse.mockRejectedValue(new Error('Уровень не принадлежит разделу'));
+    await expect(service.create('voskhod', 'ant', { ...base })).rejects.toThrow('Уровень не принадлежит разделу');
+    expect(saved).toHaveLength(0);
+  });
+});
+
+describe('EdubridgeCourseService — каталог', () => {
+  it('отбор по названию уровня уходит в хранилище вместе с признаком «опубликован»: уровень отбирается во всех разделах', async () => {
+    const { service, courses } = make();
+    courses.findPage = jest.fn(async () => ({ items: [], totalCount: 0, totalPages: 0, currentPage: 1 }));
+    await service.catalog('voskhod', { level_title: '1 класс' });
+    expect(courses.findPage).toHaveBeenCalledWith('voskhod', { level_title: '1 класс', status: 'published' }, undefined);
+  });
+});
+
+describe('EdubridgeCourseService — обложка курса', () => {
+  const png = Buffer.from('png-bytes').toString('base64');
+
+  it('новая обложка: base64 декодируется, кладётся в bucket, в курсе остаётся только ключ', async () => {
+    const { service, images } = make();
+    const course = await service.create('voskhod', 'ant', { ...base, image: { base64: png, mime_type: 'image/png' } });
+    expect(images.putImage).toHaveBeenCalledWith(expect.objectContaining({ contentType: 'image/png', coopname: 'voskhod', ownerAccount: 'ant' }));
+    expect(course.image).toEqual(expect.objectContaining({ mime_type: 'image/png', bucket_key: expect.stringContaining('courses/voskhod/') }));
+  });
+
+  it('без поля image обложка не меняется; null — убирает и удаляет старый объект', async () => {
+    const { service, courses, images } = make();
+    const old = { bucket_key: 'courses/voskhod/old.jpg', content_hash: 'o', mime_type: 'image/jpeg' };
+    // Один курс, как в базе: запись меняет его, перечитывание после сохранения видит новое.
+    const stored = { id: 'C1', external_ref: '', status: EduCourseStatus.DRAFT, image: old };
+    courses.findById = jest.fn(async () => stored);
+    const kept = await service.update('voskhod', 'ant', { ...base, id: 'C1' });
+    expect(kept.image).toEqual(old);
+    expect(images.deleteImage).not.toHaveBeenCalled();
+    const removed = await service.update('voskhod', 'ant', { ...base, id: 'C1', image: null });
+    expect(removed.image).toBeNull();
+    expect(images.deleteImage).toHaveBeenCalledWith('courses/voskhod/old.jpg');
+  });
+
+  it('bucket_key чужого курса не принимается; пустой base64 — отказ до bucket\'а', async () => {
+    const { service, images } = make();
+    await expect(service.update('voskhod', 'ant', { ...base, id: 'C1', image: { bucket_key: 'courses/voskhod/foreign.jpg' } })).rejects.toThrow(/не принадлежит/);
+    await expect(service.create('voskhod', 'ant', { ...base, image: { base64: '', mime_type: 'image/png' } })).rejects.toThrow(/Пустое изображение/);
+    expect(images.putImage).not.toHaveBeenCalled();
+  });
+
+  it('отказ bucket\'а (не тот MIME) доходит до пайщика своим кодом и текстом', async () => {
+    const { service, images } = make();
+    images.putImage = jest.fn(async () => {
+      throw DomainError.badRequest('EDUBRIDGE_COURSE_IMAGE_TYPE_UNSUPPORTED', { contentType: 'image/gif' });
+    });
+    const create = service.create('voskhod', 'ant', { ...base, image: { base64: png, mime_type: 'image/gif' } });
+    await expect(create).rejects.toThrow(/JPEG, PNG и WEBP/);
+    await expect(create).rejects.toMatchObject({ code: 'EDUBRIDGE_COURSE_IMAGE_TYPE_UNSUPPORTED', status: 400 });
+  });
+
+  it('прочий сбой bucket\'а — общий отказ без подробностей хранилища', async () => {
+    const { service, images } = make();
+    images.putImage = jest.fn(async () => { throw new Error('S3: connection reset'); });
+    await expect(service.create('voskhod', 'ant', { ...base, image: { base64: png, mime_type: 'image/png' } })).rejects.toMatchObject({
+      code: 'EDUBRIDGE_COURSE_IMAGE_SAVE_FAILED',
+    });
+  });
+
+  it('условия курса правятся всегда: они действуют для новых групп, а группам без участников передаются сразу', async () => {
+    const { service, courses, groups, enrollmentsOfCourse } = make();
+    const current = { id: 'C1', external_ref: '', status: EduCourseStatus.PUBLISHED, fee_month: '9600.0000 RUB', planned_hourly_rate: '1000.0000 RUB', schedule_slots: base.schedule_slots, program_months: base.program_months, minutes_per_month: 520 };
+    courses.findById.mockImplementation(async () => ({ ...current }));
+    enrollmentsOfCourse.list = [{ status: 'active' }];
+    const pricier = base.schedule_slots.map((s) => ({ ...s, hourly_rate: '2000.0000 RUB' }));
+    await expect(service.update('voskhod', 'ant', { ...base, id: 'C1', schedule_slots: pricier })).resolves.toBeDefined();
+    // Плановая ставка — среднее по окнам: два часовых окна по 2000 дают 2000 в час.
+    expect(groups.applyCourseTerms).toHaveBeenCalledWith('voskhod', expect.objectContaining({ planned_hourly_rate: '2000.0000 RUB' }));
+  });
+
+  it('удаляется только курс без подписок и занятий — вместе с допусками и обложкой', async () => {
+    const { service, courses, teachers, images, enrollmentsOfCourse, lessonsOfCourse } = make();
+    teachers.deleteAssignmentsOfCourse = jest.fn(async () => 1);
+    courses.findById.mockImplementation(async () => ({ id: 'C1', status: EduCourseStatus.DRAFT, image: { bucket_key: 'courses/voskhod/1.jpg' } }));
+    enrollmentsOfCourse.list = [{ status: 'expired' }];
+    await expect(service.remove('voskhod', 'C1')).rejects.toMatchObject({ code: 'EDUBRIDGE_COURSE_DELETE_HAS_SUBSCRIPTIONS' });
+    enrollmentsOfCourse.list = [];
+    lessonsOfCourse.list = [{ id: 'L1', status: EduLessonStatus.HELD }];
+    await expect(service.remove('voskhod', 'C1')).rejects.toMatchObject({ code: 'EDUBRIDGE_COURSE_DELETE_HAS_LESSONS' });
+    expect(courses.remove).not.toHaveBeenCalled();
+    lessonsOfCourse.list = [];
+    await service.remove('voskhod', 'C1');
+    expect(teachers.deleteAssignmentsOfCourse).toHaveBeenCalledWith('voskhod', 'C1');
+    expect(courses.remove).toHaveBeenCalledWith('voskhod', 'C1');
+    expect(images.deleteImage).toHaveBeenCalledWith('courses/voskhod/1.jpg');
+  });
+});

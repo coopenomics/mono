@@ -102,6 +102,23 @@ export interface IVars {
     protocol_number: string
     protocol_day_month_year: string
   }
+  // Образование
+  education_provision?: { // Положение о ЦПП «ОБРАЗОВАНИЕ»
+    protocol_number: string
+    protocol_day_month_year: string
+  }
+  education_parent_offer_template?: { // Шаблон оферты родителя-слушателя
+    protocol_number: string
+    protocol_day_month_year: string
+  }
+  education_teacher_offer_template?: { // Шаблон оферты преподавателя
+    protocol_number: string
+    protocol_day_month_year: string
+  }
+  education_contract_template?: { // Шаблон договора участия в хозяйственной деятельности (образование)
+    protocol_number: string
+    protocol_day_month_year: string
+  }
 
 }
 
@@ -193,6 +210,24 @@ export enum UdataKey {
 
   /** Дата создания оферты ЦПП «Стол заказов» */
   MARKETPLACE_AGREEMENT_CREATED_AT = 'marketplace_agreement_created_at',
+
+  /** Номер оферты родителя-слушателя ЦПП «Образование» */
+  EDUCATION_PARENT_AGREEMENT_NUMBER = 'education_parent_agreement_number',
+
+  /** Дата оферты родителя-слушателя ЦПП «Образование» */
+  EDUCATION_PARENT_AGREEMENT_CREATED_AT = 'education_parent_agreement_created_at',
+
+  /** Номер оферты преподавателя ЦПП «Образование» */
+  EDUCATION_TEACHER_AGREEMENT_NUMBER = 'education_teacher_agreement_number',
+
+  /** Дата оферты преподавателя ЦПП «Образование» */
+  EDUCATION_TEACHER_AGREEMENT_CREATED_AT = 'education_teacher_agreement_created_at',
+
+  /** Номер договора участия в хозяйственной деятельности (образование) */
+  EDUCATION_CONTRACT_NUMBER = 'education_contract_number',
+
+  /** Дата договора участия в хозяйственной деятельности (образование) */
+  EDUCATION_CONTRACT_CREATED_AT = 'education_contract_created_at',
 }
 
 /**

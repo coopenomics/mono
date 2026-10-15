@@ -5,7 +5,7 @@ div
     flat
     color='negative'
     class='full-width q-mt-md'
-    label='Удалить'
+    :label='$t("common.action.delete")'
     @click='showDialog = true'
     :loading='isSubmitting'
     size="sm"
@@ -20,8 +20,8 @@ div
     Form.q-pa-sm(
       :handler-submit='confirmDelete'
       :is-submitting='isSubmitting'
-      :button-cancel-txt='"Отменить"'
-      :button-submit-txt='"Удалить"'
+      :button-cancel-txt='$t("capital.deleteProjectSidebarButton.cancel")'
+      :button-submit-txt='$t("common.action.delete")'
       @cancel='close'
     )
       div(style='max-width: 360px')
@@ -34,6 +34,7 @@ import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { BaseDialog } from 'src/shared/ui/base/BaseDialog';
 import { Form } from 'src/shared/ui/Form';
 import { useDeleteProject } from '../model';
+import { t } from '../../../../i18n';
 
 interface Props {
   coopname: string;
@@ -45,7 +46,7 @@ interface Props {
 
 const props = withDefaults(defineProps<Props>(), {
   canDelete: false,
-  entityLabel: 'проект',
+  entityLabel: t('capital.deleteProjectSidebarButton.entityLabel'),
 });
 
 const emit = defineEmits<{
@@ -60,11 +61,11 @@ const showDialog = ref(false);
 const dialogTitle = computed(() => {
   const first = props.entityLabel.charAt(0).toUpperCase();
   const rest = props.entityLabel.slice(1);
-  return `Удаление ${first}${rest}`;
+  return t('capital.deleteProjectSidebarButton.dialogTitle', { firstLetter: first, rest });
 });
 
 const confirmMessage = computed(
-  () => `Вы уверены, что хотите удалить ${props.entityLabel}?`,
+  () => t('capital.deleteProjectSidebarButton.confirmText', { entityLabel: props.entityLabel }),
 );
 
 const close = () => {
@@ -79,11 +80,11 @@ const confirmDelete = async () => {
       coopname: props.coopname,
       project_hash: props.projectHash,
     });
-    SuccessAlert('Удалено');
+    SuccessAlert(t('capital.deleteProjectSidebarButton.success'));
     emit('deleted');
     close();
   } catch (e: unknown) {
-    FailAlert(e, 'Возникла ошибка при удалении');
+    FailAlert(e, t('capital.deleteProjectSidebarButton.error'));
     close();
   } finally {
     isSubmitting.value = false;

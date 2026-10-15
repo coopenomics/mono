@@ -145,6 +145,8 @@ const { subscriptions, isLoading, error, loadSubscriptions } = useProviderSubscr
 const { catalog, load: loadCatalog } = useConnectionCatalog()
 const { info } = useSystemStore()
 
+// Загружаем подписки при монтировании
+// realtime: нет источника — подписки кооператива ведёт сервер провайдера (другой узел), в ленте кооператива их нет.
 onMounted(async () => {
   await loadSubscriptions()
   // Каталог нужен не только диалогу: по нему подписывается текущий тариф.

@@ -11,6 +11,7 @@ const rawAccountSelector = {
   username: true,
   account_kind: true,
   has_password: true,
+  avatar_url: true,
   blockchain_account: rawBlockchainAccountSelector,
   provider_account: rawMonoAccountSelector,
   participant_account: rawParticipantAccountSelector,

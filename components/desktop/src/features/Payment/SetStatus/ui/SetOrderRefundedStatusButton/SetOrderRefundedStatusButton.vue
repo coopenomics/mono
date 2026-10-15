@@ -2,27 +2,27 @@
 BaseButton(variant="danger" size="sm" @click="showDialog=true")
   template(#icon-left)
     q-icon(name="cancel" size="14px").q-mr-xs
-  | Отклонить
+  | {{ $t('payment.setOrderRefundedStatusButton.title') }}
 
 BaseDialog(
   v-model='showDialog',
-  title='Отклонить платеж',
+  :title='$t("payment.setOrderRefundedStatusButton.dialogTitle")',
   size='sm',
   @update:model-value='(v) => !v && close()'
 )
   Form(
     :handler-submit="setRefund"
     :is-submitting="isSubmitting"
-    :button-cancel-txt="'Отменить'"
-    :button-submit-txt="'Продолжить'"
+    :button-cancel-txt="$t('payment.setOrderRefundedStatusButton.cancel')"
+    :button-submit-txt="$t('payment.setOrderRefundedStatusButton.confirm')"
     @cancel="close"
   )
-    p Вы уверены, что хотите отклонить платеж? При отклонении входящего платежа - верните средства пайщику. При отклонении исходящего платежа - система запустит соответствующую автоматическую цепочку обратных действий.
+    p {{ $t('payment.setOrderRefundedStatusButton.confirmText') }}
     BaseInput(
       v-model='reason',
-      label='Причина отклонения',
-      placeholder='Например: средства не поступили или пришли с чужого счёта',
-      hint='Причину увидит пайщик'
+      :label='$t("payment.setOrderRefundedStatusButton.reasonLabel")',
+      :placeholder='$t("payment.setOrderRefundedStatusButton.reasonPlaceholder")',
+      :hint='$t("payment.setOrderRefundedStatusButton.reasonHint")'
     )
 </template>
 <script lang="ts" setup>
@@ -33,6 +33,7 @@ import { BaseDialog } from 'src/shared/ui/base/BaseDialog';
 import { BaseButton } from 'src/shared/ui/base/BaseButton';
 import { BaseInput } from 'src/shared/ui/base/BaseInput';
 import { Form } from 'src/shared/ui/Form';
+import { t } from 'src/shared/i18n';
 const {setCancelledStatus} = useSetStatus()
 const isSubmitting = ref(false)
 const showDialog = ref(false)
@@ -56,10 +57,10 @@ const setRefund = async() => {
   isSubmitting.value = true
   try {
     await setCancelledStatus(props.id, reason.value || undefined)
-    SuccessAlert('Статус платежа обновлён')
+    SuccessAlert(t('payment.setOrderRefundedStatusButton.updateSuccess'))
     close()
   } catch(e: any) {
-    FailAlert(`Возникла ошибка: ${e.message}`)
+    FailAlert(t('payment.setOrderRefundedStatusButton.updateError', { message: e.message }))
     close()
   } finally {
     isSubmitting.value = false

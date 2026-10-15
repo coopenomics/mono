@@ -17,7 +17,7 @@ export class GenerateRegistrationDocumentsInputDTO {
   @IsEnum(AccountType)
   account_type!: AccountType;
 
-  @Field({ nullable: true, description: 'Ключ выбранной программы регистрации (опционально)' })
+  @Field(() => String, { nullable: true, description: 'Ключ выбранной программы регистрации (опционально)' })
   @IsEnum(ProgramKey)
   @IsOptional()
   program_key?: ProgramKey;

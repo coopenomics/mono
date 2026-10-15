@@ -6,13 +6,15 @@ import { NotifyAlert } from 'src/shared/api';
 import { navigateToPath } from 'src/shared/lib/navigation';
 import { api } from '../api';
 import { categoryFromWorkflowId, type IInboxNotification } from './types';
+import { t } from 'src/shared/i18n';
+import { registerLiveReload } from 'src/shared/lib/realtime';
 
 export * from './types';
 
 const namespace = 'notification-inbox';
 const PAGE_LIMIT = 20;
-/** Интервал поллинга непрочитанных. Live-подписки в репо нет — обновляем опросом. */
-const POLL_INTERVAL_MS = 30_000;
+/** Входящие пайщика в ленте изменений: новое уведомление и прочтение — сигнал. */
+const INBOX_TABLE = { code: 'core', table: 'notification_inbox' };
 
 /**
  * Тело уведомления шарится с email/push-шаблонами и несёт HTML (`<br>`, теги).
@@ -36,16 +38,32 @@ function plainText(s: string | null | undefined): string {
 }
 
 /**
+ * Внутренний путь из адреса в payload: только свой кооператив и только
+ * повестка совета. Абсолютный адрес целиком не используем — навигация внутри
+ * приложения идёт роутером, а не перезагрузкой.
+ */
+function agendaPathOf(url: unknown, coopname: string): string | undefined {
+  if (typeof url !== 'string' || !url) return undefined;
+  try {
+    const path = new URL(url, window.location.origin).pathname.replace(/\/+$/, '');
+    return path.startsWith(`/${coopname}/soviet/agenda`) ? path : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
  * Deep-link уведомления — внутренний маршрут, куда ведёт нажатие. Уведомления
  * безопасности («вход с нового устройства») несут в payload `securityUrl` — по
  * этому маркеру ведём на страницу настроек: там карточка активных сессий с
- * кнопками завершения. Абсолютный URL из payload не используем — навигация
- * внутри приложения идёт роутером, а не перезагрузкой.
+ * кнопками завершения. Оповещение о новом вопросе совета несёт `agendaUrl` —
+ * адрес страницы этого вопроса.
  */
 function linkFromNotification(n: IInboxNotification, coopname: string): string | undefined {
   const p = (n.payload ?? null) as Record<string, unknown> | null;
-  if (p && typeof p.securityUrl === 'string' && p.securityUrl) return `/${coopname}/user/settings`;
-  return undefined;
+  if (!p) return undefined;
+  if (typeof p.securityUrl === 'string' && p.securityUrl) return `/${coopname}/user/settings`;
+  return agendaPathOf(p.agendaUrl, coopname);
 }
 
 function toItem(n: IInboxNotification, coopname: string): NotificationItem {
@@ -67,7 +85,7 @@ export const useNotificationInboxStore = defineStore(namespace, () => {
   const currentPage = ref(1);
   const totalPages = ref(1);
 
-  let pollTimer: ReturnType<typeof setInterval> | null = null;
+  let inboxWatch: { dispose: () => void } | null = null;
   /**
    * Первый опрос после загрузки страницы задаёт БАЗУ счётчика, а не «прирост».
    * Без этого флага любое накопленное непрочитанное выглядело как «пришло
@@ -127,7 +145,7 @@ export const useNotificationInboxStore = defineStore(namespace, () => {
         // Тост должен не только сообщать, но и вести к действию: у уведомлений
         // безопасности — сразу к активным сессиям. Роутер в сторе недоступен —
         // переходим helper'ом, знающим режим роутера (hash в dev, history в проде).
-        link ? { label: 'Открыть', handler: () => navigateToPath(link) } : undefined,
+        link ? { label: t('common.action.open'), handler: () => navigateToPath(link) } : undefined,
       );
     }
   }
@@ -160,17 +178,31 @@ export const useNotificationInboxStore = defineStore(namespace, () => {
     }
   }
 
-  function startPolling(): void {
-    if (pollTimer) return;
-    void refreshUnreadCount();
-    pollTimer = setInterval(() => void refreshUnreadCount(), POLL_INTERVAL_MS);
+  /**
+   * Фоновый опрос не имеет права ронять отказ наружу. Обрыв связи на время
+   * обновления узла, отозванная сессия, таймаут — всё это раньше уходило
+   * необработанным отказом промиса раз в полминуты и было главным источником
+   * «Failed to fetch» и безымянных «[object Object]» в журнале ошибок браузера.
+   * Счётчик просто остаётся прежним до следующего удачного опроса; потерю
+   * сессии обрабатывает SDK сам (увод на вход), ему этот отказ не нужен.
+   */
+  function pollUnreadCount(): void {
+    refreshUnreadCount().catch((error) => {
+      console.warn('Не удалось обновить счётчик уведомлений:', error);
+    });
   }
 
-  function stopPolling(): void {
-    if (pollTimer) {
-      clearInterval(pollTimer);
-      pollTimer = null;
-    }
+  // Счётчик живёт по ленте изменений вместо опроса раз в 30 секунд: новое
+  // уведомление приходит сигналом, а после переподключения лента дочитывает сама.
+  function startWatching(): void {
+    if (inboxWatch) return;
+    pollUnreadCount();
+    inboxWatch = registerLiveReload([INBOX_TABLE], pollUnreadCount);
+  }
+
+  function stopWatching(): void {
+    inboxWatch?.dispose();
+    inboxWatch = null;
   }
 
   return {
@@ -184,7 +216,7 @@ export const useNotificationInboxStore = defineStore(namespace, () => {
     refreshUnreadCount,
     markRead,
     markAllRead,
-    startPolling,
-    stopPolling,
+    startWatching,
+    stopWatching,
   };
 });

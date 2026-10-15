@@ -17,7 +17,7 @@ void draft::edittrans(eosio::name scope, eosio::name username, uint64_t translat
   auto trans = translations.find(translate_id);
   eosio::check(trans != translations.end(), "Перевод не найден");
   
-  translations.modify(trans, _system, [&](auto &t){
+  translations.modify(trans, RamPayer::of(translations, scope), [&](auto &t){
     t.data = data;
   });
 

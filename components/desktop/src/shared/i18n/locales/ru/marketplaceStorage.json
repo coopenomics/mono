@@ -1,0 +1,19 @@
+{
+  "marketplaceStorage": {
+    "format": {
+      "boxAndCellLabel": "Бокс {containerCode} · {cellCode}",
+      "boxLabel": "Бокс {containerCode}",
+      "cellLabel": "Ячейка {cellCode}",
+      "noLocation": "Без места",
+      "volumeLabel": "{value} м³",
+      "zeroVolume": "0 м³"
+    },
+    "placementOptions": {
+      "boxOption": "Бокс {containerLabel}",
+      "cellOption": "Ячейка {cellCode}",
+      "emptyCaption": "пусто",
+      "oversizedCaption": "негабарит",
+      "positionsCount": "{count} поз."
+    }
+  }
+}

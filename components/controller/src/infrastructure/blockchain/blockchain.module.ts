@@ -2,6 +2,9 @@ import { Module, Global } from '@nestjs/common';
 import { BlockchainService } from './blockchain.service';
 import { RpcPool } from './rpc-pool.service';
 import { BlockchainConsumerService } from './blockchain-consumer.service';
+import { ChainDeltaWaiterService } from './chain-delta-waiter.service';
+import { ActionReleaseGate } from './action-release-gate.service';
+import { ChainChangesService } from './chain-changes.service';
 import { DraftRegistrySyncService } from './services/draft-registry-sync.service';
 import { BlockchainRepeatService } from './services/blockchain-repeat.service';
 import { RedisModule } from '../redis/redis.module';
@@ -17,6 +20,8 @@ import { ACCOUNT_BLOCKCHAIN_PORT } from '~/domain/account/interfaces/account-blo
 import { AccountBlockchainAdapter } from './adapters/account.adapter';
 import { SovietBlockchainAdapter } from './adapters/soviet-blockchain.adapter';
 import { SOVIET_BLOCKCHAIN_PORT } from '~/domain/common/ports/soviet-blockchain.port';
+import { DraftBlockchainAdapter } from './adapters/draft-blockchain.adapter';
+import { DRAFT_BLOCKCHAIN_PORT } from '~/domain/common/ports/draft-blockchain.port';
 import { MEET_BLOCKCHAIN_PORT } from '~/domain/meet/ports/meet-blockchain.port';
 import { MeetBlockchainAdapter } from './adapters/meet-blockchain.adapter';
 import { GatewayBlockchainAdapter } from './adapters/gateway-blockchain.adapter';
@@ -42,6 +47,13 @@ import { BlockchainArchiveRetentionService } from '~/shared/sync/services/blockc
     RpcPool,
     BlockchainService,
     BlockchainConsumerService,
+    // Ожидание изменения из цепи для ответов мутаций (ADR-009).
+    ChainDeltaWaiterService,
+    // Выпуск действий в шину по факту разбора блока, а не по таймеру.
+    ActionReleaseGate,
+    // Лента изменений цепи для столов — сигнал «перечитай» после разбора дельты.
+    ChainChangesService,
+    // Сигналы ленты для таблиц базы узла — после фиксации записи.
     DraftRegistrySyncService,
     BlockchainRepeatService,
     {
@@ -64,6 +76,10 @@ import { BlockchainArchiveRetentionService } from '~/shared/sync/services/blockc
     {
       provide: SOVIET_BLOCKCHAIN_PORT,
       useClass: SovietBlockchainAdapter,
+    },
+    {
+      provide: DRAFT_BLOCKCHAIN_PORT,
+      useClass: DraftBlockchainAdapter,
     },
     {
       provide: MEET_BLOCKCHAIN_PORT,
@@ -101,6 +117,8 @@ import { BlockchainArchiveRetentionService } from '~/shared/sync/services/blockc
     BlockchainArchiveRetentionService,
   ],
   exports: [
+    ChainDeltaWaiterService,
+    ChainChangesService,
     RpcPool,
     BlockchainService,
     BlockchainConsumerService,
@@ -110,6 +128,7 @@ import { BlockchainArchiveRetentionService } from '~/shared/sync/services/blockc
     SYSTEM_BLOCKCHAIN_PORT,
     ACCOUNT_BLOCKCHAIN_PORT,
     SOVIET_BLOCKCHAIN_PORT,
+    DRAFT_BLOCKCHAIN_PORT,
     MEET_BLOCKCHAIN_PORT,
     GATEWAY_BLOCKCHAIN_PORT,
     WALLET_BLOCKCHAIN_PORT,

@@ -3,15 +3,15 @@
   BaseCheckbox(
     :model-value='isPrivate',
     :disabled='busy',
-    label='Приватный участок — выбрать его при вступлении или смене может только пайщик из белого списка',
+    :label='$t("branch.branchPrivacyManager.privateToggleLabel")',
     @update:model-value='onTogglePrivate'
   )
   template(v-if='isPrivate')
-    .branch-privacy__subtitle.t-sm.t-muted Белый список пайщиков
+    .branch-privacy__subtitle.t-sm.t-muted {{ $t('branch.branchPrivacyManager.whitelistTitle') }}
     .branch-privacy__add
       UserSearchSelector.branch-privacy__search(
         v-model='selected',
-        label='Начните ввод ФИО пайщика',
+        :label='$t("branch.branchPrivacyManager.searchLabel")',
         :exclude='branchAccounts',
         dense
       )
@@ -20,18 +20,18 @@
         :disabled='!selected',
         :loading='busy',
         @click='onAdd'
-      ) Добавить
+      ) {{ $t('common.action.add') }}
     .branch-privacy__list(v-if='whitelist.length')
       .branch-privacy__member(v-for='member in whitelist', :key='member.username')
         span {{ memberName(member) }}
         button.icon-btn(
           type='button',
-          aria-label='Удалить из белого списка',
+          :aria-label='$t("branch.branchPrivacyManager.removeAriaLabel")',
           :disabled='busy',
           @click='onRemove(member.username)'
         )
           q-icon(name='close')
-    .t-sm.t-muted(v-else) Белый список пуст — добавьте пайщиков, которым разрешён выбор этого участка.
+    .t-sm.t-muted(v-else) {{ $t('branch.branchPrivacyManager.whitelistEmpty') }}
 </template>
 
 <script setup lang="ts">
@@ -42,6 +42,7 @@ import { useBranchStore, type IBranch } from 'src/entities/Branch/model';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { BaseButton, BaseCheckbox } from 'src/shared/ui/base';
 import { UserSearchSelector } from 'src/shared/ui';
+import { t } from 'src/shared/i18n';
 
 const props = defineProps<{ branch: IBranch }>();
 
@@ -66,7 +67,7 @@ async function onTogglePrivate(value: boolean) {
   busy.value = true;
   try {
     await setBranchPrivate({ coopname: info.coopname, braname: props.branch.braname, is_private: value });
-    SuccessAlert(value ? 'Участок сделан приватным' : 'Участок сделан публичным');
+    SuccessAlert(value ? t('branch.branchPrivacyManager.madePrivateSuccess') : t('branch.branchPrivacyManager.madePublicSuccess'));
   } catch (e: unknown) {
     FailAlert(e);
   } finally {
@@ -80,7 +81,7 @@ async function onAdd() {
   try {
     await addBranchWhitelist({ coopname: info.coopname, braname: props.branch.braname, account: selected.value });
     selected.value = '';
-    SuccessAlert('Пайщик добавлен в белый список участка');
+    SuccessAlert(t('branch.branchPrivacyManager.memberAddedSuccess'));
   } catch (e: unknown) {
     FailAlert(e);
   } finally {
@@ -92,7 +93,7 @@ async function onRemove(account: string) {
   busy.value = true;
   try {
     await deleteBranchWhitelist({ coopname: info.coopname, braname: props.branch.braname, account });
-    SuccessAlert('Пайщик удалён из белого списка участка');
+    SuccessAlert(t('branch.branchPrivacyManager.memberRemovedSuccess'));
   } catch (e: unknown) {
     FailAlert(e);
   } finally {

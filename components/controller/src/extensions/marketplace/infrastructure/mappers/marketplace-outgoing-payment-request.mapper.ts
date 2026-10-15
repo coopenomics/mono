@@ -18,6 +18,7 @@ export class MarketplaceOutgoingPaymentRequestMapper {
       symbol: row.symbol,
       purpose: row.purpose,
       payout_destination: row.payout_destination,
+      withheld_amount: row.withheld_amount ?? '0',
       status: row.status,
       completed_at: row.completed_at,
       decline_reason: row.decline_reason,

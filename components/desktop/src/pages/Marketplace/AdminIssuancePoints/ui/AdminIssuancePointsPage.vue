@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue'
-import { debounce } from 'quasar'
+import { useLiveReload } from 'src/shared/lib/realtime';
 import { useRoute } from 'vue-router'
 import { FailAlert, SuccessAlert } from 'src/shared/api'
 import { useSessionStore } from 'src/entities/Session'
@@ -12,15 +12,16 @@ import { useMarketplaceKUDetailsStore } from 'src/entities/MarketplaceKUDetails'
 // иначе тип стирается при компиляции → ReferenceError в шаблоне.
 import { GeocodeStatus, KuDetailsStatus } from 'src/entities/MarketplaceKUDetails'
 import type { IMarketplaceKUDetails } from 'src/entities/MarketplaceKUDetails'
-import { BaseBadge, BaseButton, BaseDialog, EmptyState, TableSkeleton } from 'src/shared/ui/base'
-import type { BaseBadgeVariant, TableSkeletonColumn } from 'src/shared/ui/base'
+import { BaseBadge, BaseButton, BaseDialog, BaseTable, EmptyState } from 'src/shared/ui/base'
+import type { BaseBadgeVariant, BaseTableColumn } from 'src/shared/ui/base'
 import { IdentityCell, PageHint } from 'src/shared/ui/domain'
-import { useDataPoller } from 'src/shared/lib/composables'
-import { useMarketplaceRealtime } from 'src/shared/lib/marketplace'
+import { useFirstLoad } from 'src/shared/lib/composables'
+import { marketLiveTables } from 'src/shared/lib/marketplace';
 // Map экспортируется как `Map` — импортируем под алиасом, чтобы не затенять
 // глобальный `Map` (используется в `rows`).
 import { Map as MapView } from 'src/shared/ui/Map'
 import { MarketplaceDetailKUDialog } from 'src/features/MarketplaceDetailKU'
+import { t } from 'src/shared/i18n';
 
 /**
  * Эпик 2: admin-стол «Пункты выдачи заказов».
@@ -43,7 +44,11 @@ const kuStore = useMarketplaceKUDetailsStore()
 const coopname = computed(() => String(route.params.coopname ?? ''))
 const isChairman = computed(() => session.isChairman ?? false)
 
-const loading = ref(false)
+// true до первого запроса: иначе первый кадр до загрузки показывает пустое
+// состояние вместо скелетона, и первая загрузка неотличима от пустого списка.
+const loading = ref(true)
+/** Скелетон — только на первой загрузке; дочитка обновляет молча. */
+const firstLoad = useFirstLoad(loading)
 // Ручной перезапуск геокода — показываем лоадер на кнопке, пока мутация идёт.
 const geocodingBranames = ref<Set<string>>(new Set())
 
@@ -69,18 +74,18 @@ const rows = computed<IssuancePointRow[]>(() => {
 const connectedCount = computed(() => rows.value.filter((r) => r.details).length)
 
 const STATUS_LABEL: Record<KuDetailsStatus, { label: string; variant: BaseBadgeVariant }> = {
-  ACTIVE: { label: 'Активен', variant: 'pos' },
-  INACTIVE: { label: 'Деактивирован', variant: 'neutral' },
+  ACTIVE: { label: t('marketplace.issuancePoints.status.active'), variant: 'pos' },
+  INACTIVE: { label: t('marketplace.issuancePoints.status.inactive'), variant: 'neutral' },
 }
 
 const GEOCODE_LABEL: Record<GeocodeStatus, { label: string; variant: BaseBadgeVariant }> = {
-  OK: { label: 'Координаты есть', variant: 'pos' },
-  PENDING: { label: 'Определяются…', variant: 'warn' },
-  FAILED: { label: 'Ошибка геокода', variant: 'neg' },
+  OK: { label: t('marketplace.issuancePoints.status.geocoded'), variant: 'pos' },
+  PENDING: { label: t('marketplace.issuancePoints.status.geocoding'), variant: 'warn' },
+  FAILED: { label: t('marketplace.issuancePoints.status.geocodeError'), variant: 'neg' },
 }
 
 function statusOf(row: IssuancePointRow): { label: string; variant: BaseBadgeVariant } {
-  if (!row.details) return { label: 'Не подключён', variant: 'neutral' }
+  if (!row.details) return { label: t('marketplace.issuancePoints.status.notConnected'), variant: 'neutral' }
   return STATUS_LABEL[row.details.status]
 }
 
@@ -102,8 +107,8 @@ const mapOpen = ref(false)
 const mapRow = ref<IssuancePointRow | null>(null)
 const mapTitle = computed(() =>
   mapRow.value
-    ? `Карта — ${mapRow.value.branch.short_name || mapRow.value.branch.full_name || mapRow.value.branch.braname}`
-    : 'Карта',
+    ? t('marketplace.issuancePoints.mapDialogTitle', { branchName: mapRow.value.branch.short_name || mapRow.value.branch.full_name || mapRow.value.branch.braname })
+    : t('marketplace.issuancePoints.mapButton'),
 )
 
 function hasCoords(row: IssuancePointRow): boolean {
@@ -127,13 +132,22 @@ function isGeocodePending(row: IssuancePointRow): boolean {
   )
 }
 
-const skeletonColumns: TableSkeletonColumn[] = [
-  { label: 'Участок', cell: 'text', class: 'col-ku', cellWidth: '220px' },
-  { label: 'Город', cell: 'text', class: 'col-city', cellWidth: '120px' },
-  { label: 'Адрес', cell: 'text', class: 'col-address', cellWidth: '280px' },
-  { label: 'Статус', cell: 'badge', class: 'col-status', cellWidth: '150px' },
-  { label: 'Геокод', cell: 'badge', class: 'col-geo', cellWidth: '180px' },
-  { label: 'Действия', class: 'col-action', cell: 'icon', cellWidth: '190px' },
+/**
+ * Ключ строки. Строки каркаса загрузки — пустышки без участка, поэтому лезть
+ * в `branch` напрямую нельзя: таблица зовёт ключ и для них, и страница падала
+ * целиком (белый экран на «Пунктах выдачи», 14.09.2026).
+ */
+function pointRowKey(row: IssuancePointRow): string {
+  return row.branch?.braname ?? ''
+}
+
+const columns: BaseTableColumn<IssuancePointRow>[] = [
+  { key: 'ku', label: t('marketplace.issuancePoints.column.branch'), width: '240px', sortable: true, field: (row) => branchName(row) },
+  { key: 'city', label: t('marketplace.issuancePoints.column.city'), width: '140px', sortable: true, field: (row) => row.branch.city ?? '' },
+  { key: 'address', label: t('marketplace.issuancePoints.column.address'), width: '300px', field: (row) => addressOf(row) },
+  { key: 'status', label: t('marketplace.issuancePoints.column.status'), width: '160px', sortable: true, field: (row) => statusOf(row).label },
+  { key: 'geo', label: t('marketplace.issuancePoints.column.geocode'), width: '190px' },
+  { key: 'actions', label: t('marketplace.issuancePoints.column.actions'), width: '200px' },
 ]
 
 async function load(): Promise<void> {
@@ -144,32 +158,21 @@ async function load(): Promise<void> {
       kuStore.load({ coopname: coopname.value, onlyActive: false }),
     ])
   } catch (e) {
-    FailAlert(e, 'Не удалось загрузить участки и пункты выдачи')
+    FailAlert(e, t('marketplace.issuancePoints.loadFailedError'))
   } finally {
     loading.value = false
   }
 }
 
-/** Тихое обновление ПВЗ-детализаций — для poll, пока геокодер в PENDING. */
+// Геокодер на бэкенде fire-and-forget: статус PENDING → OK/FAILED приходит
+// по ленте изменений (marketplace_ku_details), перечитываем тихо, без спиннера.
 async function reloadKuDetails(): Promise<void> {
   try {
     await kuStore.load({ coopname: coopname.value, onlyActive: false })
   } catch {
-    // Poll не спамит FailAlert — следующий тик или resync подхватят.
+    // Тихое обновление не спамит FailAlert — следующий сигнал ленты подхватит.
   }
 }
-
-const hasPendingGeocode = computed(() =>
-  kuStore.details.some((d) => d.geocodeStatus === GeocodeStatus.PENDING),
-)
-
-// После сохранения ПВЗ геокодер на бэкенде fire-and-forget: статус PENDING → OK/FAILED.
-// Пока есть PENDING — опрашиваем каждые 3 с (быстрее страховочного resync ws).
-useDataPoller(reloadKuDetails, {
-  interval: 3000,
-  immediate: true,
-  enabled: hasPendingGeocode,
-})
 
 function openAdd(branch: IBranch): void {
   dialogBranch.value = branch
@@ -190,9 +193,9 @@ async function onSaved(): Promise<void> {
 async function setStatus(row: IssuancePointRow, status: KuDetailsStatus): Promise<void> {
   try {
     await kuStore.setStatus({ coopname: coopname.value, coreBraname: row.branch.braname, status })
-    SuccessAlert(status === KuDetailsStatus.ACTIVE ? 'Пункт выдачи активирован' : 'Пункт выдачи деактивирован')
+    SuccessAlert(status === KuDetailsStatus.ACTIVE ? t('marketplace.issuancePoints.activatedSuccess') : t('marketplace.issuancePoints.deactivatedSuccess'))
   } catch (e) {
-    FailAlert(e, 'Не удалось изменить статус пункта выдачи')
+    FailAlert(e, t('marketplace.issuancePoints.toggleFailedError'))
   }
 }
 
@@ -201,16 +204,16 @@ async function retryGeocode(row: IssuancePointRow): Promise<void> {
   try {
     const updated = await kuStore.retryGeocode(coopname.value, row.branch.braname)
     if (updated.geocodeStatus === GeocodeStatus.OK) {
-      SuccessAlert('Координаты определены')
+      SuccessAlert(t('marketplace.issuancePoints.geocodedSuccess'))
     } else if (updated.geocodeStatus === GeocodeStatus.FAILED) {
       FailAlert(
-        new Error(updated.geocodeErrorMessage || 'Не удалось определить координаты'),
+        new Error(updated.geocodeErrorMessage || t('marketplace.issuancePoints.geocodeFailedError')),
       )
     } else {
-      SuccessAlert('Геокодинг запущен — статус обновится автоматически')
+      SuccessAlert(t('marketplace.issuancePoints.geocodingStartedInfo'))
     }
   } catch (e) {
-    FailAlert(e, 'Не удалось перезапустить геокодинг')
+    FailAlert(e, t('marketplace.issuancePoints.geocodeRetryFailedError'))
   } finally {
     const next = new Set(geocodingBranames.value)
     next.delete(row.branch.braname)
@@ -218,12 +221,7 @@ async function retryGeocode(row: IssuancePointRow): Promise<void> {
   }
 }
 
-// Страховочный resync ws-канала + catch-up на возврат вкладки (дополнение к poll).
-const reloadLive = debounce(() => {
-  if (loading.value) return
-  void load()
-}, 400)
-useMarketplaceRealtime({}, { onResync: () => reloadLive() })
+useLiveReload(marketLiveTables('ku'), reloadKuDetails);
 
 onMounted(() => {
   void load()
@@ -233,127 +231,117 @@ onMounted(() => {
 <template lang="pug">
 q-page.admin-pvz
   PageHint(storage-key='mp:admin-pvz:banner-dismissed')
-    | Пункты выдачи заказов — это кооперативные участки, подключённые к Столу
-    | заказов. Участки создаются на столе совета; здесь председатель делает их
-    | пунктами выдачи, указывая фактический адрес, контакты и режим работы.
-    | Адрес геокодируется автоматически для карты.
+    | {{ $t('marketplace.adminIssuancePoints.intro') }}
 
   .admin-pvz__toolbar
-    .admin-pvz__counter(v-if='!loading && rows.length')
-      | Подключено пунктов выдачи: {{ connectedCount }} из {{ rows.length }}
+    .admin-pvz__counter(v-if='!firstLoad && rows.length')
+      | {{ $t('marketplace.issuancePoints.connectedSummary', { connected: connectedCount, total: rows.length }) }}
 
-  TableSkeleton(
-    v-if='loading && !rows.length',
-    :columns='skeletonColumns',
-    :rows='5',
-    min-width='1140px'
+  BaseTable(
+    v-if='loading || rows.length',
+    :columns='columns',
+    :rows='rows',
+    :row-key='pointRowKey',
+    hover,
+    :loading='loading',
+    min-width='1230px',
+    sort-by='ku'
   )
-  .table-wrap(v-else-if='rows.length')
-    .table-scroll
-      table.table
-        thead
-          tr
-            th.col-ku Участок
-            th.col-city Город
-            th.col-address Адрес
-            th.col-status Статус
-            th.col-geo Геокод
-            th.col-action Действия
-        tbody
-          tr(v-for='row in rows', :key='row.branch.braname')
-            td.col-ku
-              IdentityCell(
-                :account-name='row.branch.braname',
-                :full-name='branchName(row)'
-              )
-            td.col-city {{ row.branch.city || '—' }}
-            td.col-address.admin-pvz__address {{ addressOf(row) }}
-            td.col-status
-              BaseBadge(:variant='statusOf(row).variant') {{ statusOf(row).label }}
-            td.col-geo
-              .admin-pvz__geo(v-if='row.details')
-                BaseBadge.admin-pvz__geo-badge(
-                  :variant='GEOCODE_LABEL[row.details.geocodeStatus].variant'
-                )
-                  q-spinner.admin-pvz__geo-spinner(
-                    v-if='isGeocodePending(row)',
-                    color='inherit',
-                    size='14px'
-                  )
-                  span {{ GEOCODE_LABEL[row.details.geocodeStatus].label }}
-                  q-tooltip(
-                    v-if='row.details.geocodeStatus === GeocodeStatus.FAILED && row.details.geocodeErrorMessage'
-                  ) {{ row.details.geocodeErrorMessage }}
-                BaseButton(
-                  v-if='hasCoords(row)',
-                  variant='ghost',
-                  icon-only,
-                  size='sm',
-                  aria-label='Открыть карту',
-                  @click='openMap(row)'
-                )
-                  template(#icon-left)
-                    q-icon(name='map', size='18px')
-              span.admin-pvz__dash(v-else) —
-            td.col-action
-              template(v-if='isChairman')
-                BaseButton(
-                  v-if='!row.details',
-                  variant='primary',
-                  size='sm',
-                  @click='openAdd(row.branch)'
-                )
-                  template(#icon-left)
-                    q-icon(name='add_location_alt', size='16px')
-                  | Сделать ПВЗ
-                .admin-pvz__actions(v-else)
-                  BaseButton(
-                    variant='ghost',
-                    icon-only,
-                    size='sm',
-                    aria-label='Изменить',
-                    @click='openEdit(row)'
-                  )
-                    template(#icon-left)
-                      q-icon(name='edit', size='18px')
-                  BaseButton(
-                    v-if='row.details.geocodeStatus !== GeocodeStatus.OK',
-                    variant='ghost',
-                    icon-only,
-                    size='sm',
-                    aria-label='Определить координаты',
-                    :loading='isGeocodingRow(row)',
-                    :disabled='isGeocodingRow(row)',
-                    @click='retryGeocode(row)'
-                  )
-                    template(#icon-left)
-                      q-icon(name='my_location', size='18px')
-                  BaseButton(
-                    v-if='row.details.status === KuDetailsStatus.ACTIVE',
-                    variant='ghost',
-                    icon-only,
-                    size='sm',
-                    aria-label='Деактивировать',
-                    @click='setStatus(row, KuDetailsStatus.INACTIVE)'
-                  )
-                    template(#icon-left)
-                      q-icon(name='block', size='18px')
-                  BaseButton(
-                    v-else,
-                    variant='ghost',
-                    icon-only,
-                    size='sm',
-                    aria-label='Активировать',
-                    @click='setStatus(row, KuDetailsStatus.ACTIVE)'
-                  )
-                    template(#icon-left)
-                      q-icon(name='check_circle', size='18px')
-              span.admin-pvz__dash(v-else) —
+    template(#cell-ku='{ row }')
+      IdentityCell(
+        :account-name='row.branch.braname',
+        :full-name='branchName(row)'
+      )
+    template(#cell-city='{ row }')
+      | {{ row.branch.city || '—' }}
+    template(#cell-address='{ row }')
+      .admin-pvz__address {{ addressOf(row) }}
+    template(#cell-status='{ row }')
+      BaseBadge(:variant='statusOf(row).variant') {{ statusOf(row).label }}
+    template(#cell-geo='{ row }')
+      .admin-pvz__geo(v-if='row.details')
+        BaseBadge.admin-pvz__geo-badge(
+          :variant='GEOCODE_LABEL[row.details.geocodeStatus].variant'
+        )
+          q-spinner.admin-pvz__geo-spinner(
+            v-if='isGeocodePending(row)',
+            color='inherit',
+            size='14px'
+          )
+          span {{ GEOCODE_LABEL[row.details.geocodeStatus].label }}
+          q-tooltip(
+            v-if='row.details.geocodeStatus === GeocodeStatus.FAILED && row.details.geocodeErrorMessage'
+          ) {{ row.details.geocodeErrorMessage }}
+        BaseButton(
+          v-if='hasCoords(row)',
+          variant='ghost',
+          icon-only,
+          size='sm',
+          :aria-label='$t("marketplace.issuancePoints.openMapAriaLabel")',
+          @click='openMap(row)'
+        )
+          template(#icon-left)
+            q-icon(name='map', size='18px')
+      span.admin-pvz__dash(v-else) —
+    template(#cell-actions='{ row }')
+      template(v-if='isChairman')
+        BaseButton(
+          v-if='!row.details',
+          variant='primary',
+          size='sm',
+          @click='openAdd(row.branch)'
+        )
+          template(#icon-left)
+            q-icon(name='add_location_alt', size='16px')
+          | {{ $t('marketplace.issuancePoints.makeIssuancePointButton') }}
+        .admin-pvz__actions(v-else)
+          BaseButton(
+            variant='ghost',
+            icon-only,
+            size='sm',
+            :aria-label='$t("marketplace.issuancePoints.editAriaLabel")',
+            @click='openEdit(row)'
+          )
+            template(#icon-left)
+              q-icon(name='edit', size='18px')
+          BaseButton(
+            v-if='row.details.geocodeStatus !== GeocodeStatus.OK',
+            variant='ghost',
+            icon-only,
+            size='sm',
+            :aria-label='$t("marketplace.issuancePoints.geocodeAriaLabel")',
+            :loading='isGeocodingRow(row)',
+            :disabled='isGeocodingRow(row)',
+            @click='retryGeocode(row)'
+          )
+            template(#icon-left)
+              q-icon(name='my_location', size='18px')
+          BaseButton(
+            v-if='row.details.status === KuDetailsStatus.ACTIVE',
+            variant='ghost',
+            icon-only,
+            size='sm',
+            :aria-label='$t("marketplace.issuancePoints.deactivateAriaLabel")',
+            @click='setStatus(row, KuDetailsStatus.INACTIVE)'
+          )
+            template(#icon-left)
+              q-icon(name='block', size='18px')
+          BaseButton(
+            v-else,
+            variant='ghost',
+            icon-only,
+            size='sm',
+            :aria-label='$t("marketplace.issuancePoints.activateAriaLabel")',
+            @click='setStatus(row, KuDetailsStatus.ACTIVE)'
+          )
+            template(#icon-left)
+              q-icon(name='check_circle', size='18px')
+      span.admin-pvz__dash(v-else) —
 
   EmptyState(
     v-else,
-    title='Кооперативных участков нет',
-    body='Создайте кооперативный участок на столе совета — после этого его можно будет подключить как пункт выдачи заказов.'
+    :title='$t("marketplace.issuancePoints.emptyTitle")',
+    :body='$t("marketplace.issuancePoints.emptyBody")'
   )
     template(#icon)
       q-icon(name='pin_drop', size='48px')

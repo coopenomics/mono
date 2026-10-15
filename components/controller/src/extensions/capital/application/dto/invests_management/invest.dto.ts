@@ -1,4 +1,4 @@
-import { ObjectType, Field, Int, Float } from '@nestjs/graphql';
+import { ObjectType, Field, Int } from '@nestjs/graphql';
 import { InvestStatus } from '../../../domain/enums/invest-status.enum';
 import { BaseOutputDTO } from '@coopenomics/extension-kit/sync';
 
@@ -61,11 +61,11 @@ export class InvestOutputDTO extends BaseOutputDTO {
   })
   blockchain_status?: string;
 
-  @Field(() => Float, {
+  @Field(() => String, {
     nullable: true,
     description: 'Сумма инвестиции',
   })
-  amount?: number;
+  amount?: string;
 
   @Field(() => String, {
     nullable: true,
@@ -85,9 +85,9 @@ export class InvestOutputDTO extends BaseOutputDTO {
   })
   coordinator?: string;
 
-  @Field(() => Float, {
+  @Field(() => String, {
     nullable: true,
     description: 'Сумма координатора',
   })
-  coordinator_amount?: number;
+  coordinator_amount?: string;
 }

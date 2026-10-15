@@ -28,6 +28,8 @@ void capital::act2pgprp(eosio::name coopname, eosio::name username, checksum256 
 
   // Проверяем документ
   verify_document_or_fail(act, { username });
+  // Акт подписан ключом аккаунта передающего имущество. Транзакцию шлёт кооператив, поэтому ключ сверяется с аккаунтом.
+  verify_signer_keys_or_fail(act, username);
 
   // Получаем предложение
   auto property = Capital::ProgramProperties::get_program_property_or_fail(coopname, property_hash);

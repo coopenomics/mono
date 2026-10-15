@@ -2,8 +2,8 @@
 .mp-ku-selector
   EmptyState(
     v-if="!loading && !details.length",
-    title="Нет доступных пунктов выдачи",
-    body="В этом кооперативе пока нет активных кооперативных участков (ПВЗ). Обратитесь в совет кооператива."
+    :title="$t('marketplace.kuSelector.emptyTitle')",
+    :body="$t('marketplace.kuSelector.emptyBody')"
   )
     template(#icon)
       q-icon(name="location_off", size="26px")
@@ -13,13 +13,15 @@
     :loading="loading",
     :selected-braname="modelValue",
     :map-min-height="mapMinHeight",
-    aria-label="Выбор кооперативного участка (пункта выдачи)",
+    :aria-label="$t('marketplace.kuSelector.ariaLabel')",
     @select="onSelect"
   )
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted } from 'vue'
+import { useLiveReload } from 'src/shared/lib/realtime'
+import { marketLiveTables } from 'src/shared/lib/marketplace'
 import { FailAlert } from 'src/shared/api'
 import { EmptyState } from 'src/shared/ui/base'
 import { KUMapWithList } from 'src/widgets/KUMapWithList'
@@ -27,6 +29,7 @@ import {
   useMarketplaceKUDetailsStore,
   type IMarketplaceKUDetails,
 } from 'src/entities/MarketplaceKUDetails'
+import { t } from 'src/shared/i18n';
 
 /**
  * Эпик 16 / Story 16.4: выбор кооперативного участка (ПВЗ) заказчиком.
@@ -62,9 +65,13 @@ onMounted(async () => {
   try {
     await kuStore.load({ coopname: props.coopname, onlyActive: true })
   } catch (e) {
-    FailAlert(e, 'Не удалось загрузить пункты выдачи')
+    FailAlert(e, t('marketplace.kuSelector.loadError'))
   }
 })
+
+// Список пунктов выдачи и карта живут по ленте: участки и их детали
+// перечитываются сами.
+useLiveReload(marketLiveTables('ku'), () => kuStore.load({ coopname: props.coopname, onlyActive: true }))
 </script>
 
 <style scoped lang="scss">

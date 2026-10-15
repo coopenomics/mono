@@ -1,3 +1,4 @@
+import { DomainError } from '@coopenomics/extension-kit';
 import { BlockchainService } from './blockchain.service';
 
 /**
@@ -29,7 +30,7 @@ describe('BlockchainService.getEndorsement — якоря нет в цепи', (
   });
 
   it('ABI контракта не найден → заверения нет', async () => {
-    const service = serviceWith(() => Promise.reject(new Error('ABI контракта ano не найден')));
+    const service = serviceWith(() => Promise.reject(DomainError.internal('BLOCKCHAIN_ABI_NOT_FOUND', { code: 'ano' })));
     await expect(service.getEndorsement('voskhod')).resolves.toBeNull();
   });
 

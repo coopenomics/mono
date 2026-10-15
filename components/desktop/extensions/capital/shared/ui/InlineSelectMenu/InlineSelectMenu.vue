@@ -29,13 +29,7 @@ q-menu(
 </template>
 
 <script setup lang="ts">
-export interface InlineSelectMenuOption {
-  value: string;
-  label: string;
-  icon: string;
-  iconColor: string;
-  iconSize?: string;
-}
+import type { InlineSelectMenuOption } from './InlineSelectMenu.types';
 
 defineProps<{
   title: string;

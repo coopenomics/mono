@@ -4,6 +4,7 @@ import QRCode from 'qrcode';
 import { copyToClipboard } from 'quasar';
 import { SuccessAlert, FailAlert } from 'src/shared/api';
 import { BaseButton } from 'src/shared/ui/base';
+import { t } from 'src/shared/i18n';
 
 /**
  * Эпик 14 / Story 14.3, 14.4: QR-код передачи на ПВЗ.
@@ -52,9 +53,9 @@ watch(() => [props.value, props.size], render, { immediate: true });
 async function copyCode(): Promise<void> {
   try {
     await copyToClipboard(props.value);
-    SuccessAlert('Код скопирован');
+    SuccessAlert(t('marketplace.handoffQr.copiedMessage'));
   } catch (e) {
-    FailAlert(e, 'Не удалось скопировать код');
+    FailAlert(e, t('marketplace.handoffQr.copyError'));
   }
 }
 </script>
@@ -62,14 +63,14 @@ async function copyCode(): Promise<void> {
 <template lang="pug">
 .handoff-qr
   .handoff-qr__frame(:style='{ width: size + "px", height: size + "px" }')
-    img.handoff-qr__img(v-if='dataUrl', :src='dataUrl', alt='QR-код передачи')
+    img.handoff-qr__img(v-if='dataUrl', :src='dataUrl', :alt='$t("marketplace.handoffQr.qrAlt")')
     .handoff-qr__fallback(v-else-if='failed')
       q-icon(name='error_outline', size='32px')
-      span Не удалось построить QR
+      span {{ $t('marketplace.handoffQr.buildError') }}
   .handoff-qr__caption(v-if='caption') {{ caption }}
   .handoff-qr__code
     code.handoff-qr__code-text {{ value }}
-    BaseButton(variant='ghost', size='sm', icon-only, aria-label='Скопировать код', @click='copyCode')
+    BaseButton(variant='ghost', size='sm', icon-only, :aria-label='$t("marketplace.handoffQr.copyAriaLabel")', @click='copyCode')
       template(#icon-left)
         q-icon(name='content_copy', size='16px')
 </template>

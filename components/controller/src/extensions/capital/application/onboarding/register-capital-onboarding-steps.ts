@@ -1,4 +1,5 @@
 import { type IOnboardingStepRegistryPort } from '@coopenomics/innercoop';
+import { t } from '../../i18n';
 
 /**
  * Регистрирует 5 шагов онбординга capital в платформенном реестре.
@@ -27,7 +28,7 @@ export function registerCapitalOnboardingSteps(
     event_type: 'SOVIET_DECISION',
     vars_field: 'generator_program_template',
     generator: 'free_decision',
-    default_title: 'Утверждение шаблона программы «Генератор»',
+    default_title: t('capital.onboardingSteps.generatorProgramTemplate.title'),
     order: 10,
   });
   port.registerStep({
@@ -36,7 +37,7 @@ export function registerCapitalOnboardingSteps(
     event_type: 'SOVIET_DECISION',
     vars_field: 'generation_contract_template',
     generator: 'free_decision',
-    default_title: 'Утверждение шаблона договора «Генерация»',
+    default_title: t('capital.onboardingSteps.generationContractTemplate.title'),
     order: 20,
   });
   port.registerStep({
@@ -45,7 +46,7 @@ export function registerCapitalOnboardingSteps(
     event_type: 'SOVIET_DECISION',
     vars_field: 'generator_offer_template',
     generator: 'free_decision',
-    default_title: 'Утверждение шаблона публичной оферты «Генератор»',
+    default_title: t('capital.onboardingSteps.generatorOfferTemplate.title'),
     order: 30,
   });
   port.registerStep({
@@ -54,7 +55,7 @@ export function registerCapitalOnboardingSteps(
     event_type: 'SOVIET_DECISION',
     vars_field: 'blagorost_provision',
     generator: 'free_decision',
-    default_title: 'Утверждение положения «Благорост»',
+    default_title: t('capital.onboardingSteps.blagorostProvision.title'),
     order: 40,
   });
   port.registerStep({
@@ -63,7 +64,7 @@ export function registerCapitalOnboardingSteps(
     event_type: 'SOVIET_DECISION',
     vars_field: 'blagorost_offer_template',
     generator: 'free_decision',
-    default_title: 'Утверждение шаблона публичной оферты «Благорост»',
+    default_title: t('capital.onboardingSteps.blagorostOfferTemplate.title'),
     order: 50,
   });
 }

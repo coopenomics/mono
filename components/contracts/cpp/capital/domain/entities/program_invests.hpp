@@ -1,5 +1,7 @@
 #pragma once
 
+
+#include "../../../lib/core/ram_payer.hpp"
 using namespace eosio;
 using std::string;
 
@@ -36,3 +38,6 @@ typedef eosio::multi_index<
 > program_invest_index;
 
 } // namespace Capital
+
+// Плательщик за оперативную память строк таблицы — правило в lib/core/ram_payer.hpp.
+RAM_PAYER_CLASS(Capital::program_invest, cooperative);

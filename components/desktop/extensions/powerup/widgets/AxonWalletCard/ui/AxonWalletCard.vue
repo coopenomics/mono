@@ -3,18 +3,18 @@
   .axon-wallet-card__head
     .axon-wallet-card__icon
       i.fas.fa-wallet
-    .axon-wallet-card__title Кошелёк AXON
+    .axon-wallet-card__title {{ $t('powerup.axonWalletCard.title') }}
 
   .axon-wallet-card__balance
     .axon-wallet-card__balance-value {{ formattedBalance }}
-    .axon-wallet-card__balance-label Доступно
+    .axon-wallet-card__balance-label {{ $t('powerup.axonWalletCard.availableLabel') }}
 
   .axon-wallet-card__details
     .detail-row
-      span.detail-label Минимальных квот
+      span.detail-label {{ $t('powerup.axonWalletCard.minQuotasLabel') }}
       span.detail-value {{ minQuotasDays }} {{ minQuotasDaysText }}
     .detail-row
-      span.detail-label Новых пайщиков
+      span.detail-label {{ $t('powerup.axonWalletCard.newMembersLabel') }}
       span.detail-value {{ maxNewMembers }} {{ maxNewMembersText }}
     .detail-row
       span.detail-label Пакетов документов
@@ -26,7 +26,7 @@
   BaseButton.axon-wallet-card__action(variant="primary", size="sm", block, @click="goToReplenishment")
     template(#icon-left)
       q-icon(name="open_in_new", size="16px")
-    | Пополнить у оператора
+    | {{ $t('powerup.axonWalletCard.replenishButton') }}
 </template>
 
 <script setup lang="ts">
@@ -83,6 +83,7 @@ const maxDocumentPackagesText = computed(() =>
 
 // Переход на сайт пополнения
 const goToReplenishment = () => {
+  // i18n-ignore: URL, не текст интерфейса
   window.open('https://лк.цифровой-кооператив.рф', '_blank');
 };
 </script>

@@ -9,14 +9,14 @@ span.agreement-link(@click.stop='(event) => showDialog(event)').q-ml-xs {{text}}
   )
     div.row.justify-center
       div(style="padding-bottom: 100px;").col-md-8.col-col-xs-12
-        Loader(v-if="isLoading" :text='`Загружаем документ...`')
+        Loader(v-if="isLoading" :text='$t(`agreementer.readAgreementDialog.loadingText`)')
         Form(
           :handler-submit="ok"
           :is-submitting="isSubmitting"
           :showSubmit="!isLoading"
           :showCancel="!isLoading"
-          button-cancel-text="Отменить"
-          button-submit-txt="Подтвердить"
+          :button-cancel-text="$t('agreementer.readAgreementDialog.cancel')"
+          :button-submit-txt="$t('common.action.confirm')"
           @cancel="clear"
         )
           slot

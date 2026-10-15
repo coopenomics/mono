@@ -1,0 +1,102 @@
+/**
+ * Предварительная сумма возврата членского взноса при отмене подписки — для
+ * показа участнику до отмены и записи итога после неё.
+ *
+ * Сумму возврата считает и проводит контракт (`edubridge::cancelsub`,
+ * `Edubridge::refusal_refund`). Здесь то же правило приложено к строке
+ * подписки, прочитанной из цепи: остаток оплаты непроведённых занятий ведёт
+ * контракт, приложение его не считает.
+ *
+ * Три основания. До начала занятий участник получает взнос целиком. Кооператив,
+ * не набравший группу, отменяет курс — тоже целиком, и сразу в паевой взнос:
+ * это отмена его собственного решения. Отказ в ходе подписки возвращает
+ * половину остаточной стоимости: доля всего взноса за занятия, по которым
+ * расчёт ещё не прошёл, делится пополам.
+ */
+
+const PRECISION = 4;
+const SCALE = 10 ** PRECISION;
+
+/** Основание возврата — от него зависит и сумма, и куда она идёт. */
+export enum RefundReason {
+  /** Ученик отменил подписку до активации курса. */
+  BEFORE_START = 'before_start',
+  /** Кооператив отменил курс по недобору. */
+  UNDERFILLED = 'underfilled',
+  /** Ученик отказался в ходе подписки. */
+  REFUSAL = 'refusal',
+  /** Совет удовлетворил заявление по гарантийным условиям: вся стоимость, сразу на паевой. */
+  GUARANTEE = 'guarantee',
+}
+
+/** Состояние подписки в цепи, от которого считается возврат. */
+export interface RefundChainState {
+  /** Собрано по подписке («9600.0000 RUB»). */
+  charged: string;
+  /** Занятий оплачено. */
+  minutes_paid: number;
+  /** Занятий, по которым прошёл расчёт. */
+  minutes_done: number;
+}
+
+export interface RefundParams {
+  /** Строка подписки из цепи. */
+  chain: RefundChainState;
+  /** Дата начала занятий; `null` — курс ещё не активирован. */
+  starts_at: Date | null;
+  /** Момент отмены. */
+  now: Date;
+  /** Отмена по недобору кооператива. */
+  underfilled?: boolean;
+}
+
+export interface RefundCalculation {
+  reason: RefundReason;
+  /** Сколько возвращается ученику. */
+  refund: string;
+  /** Сколько остаётся на кошельке программы. */
+  withheld: string;
+  /** Занятий оплачено. */
+  minutes_paid: number;
+  /** Занятий проведено к моменту отмены. */
+  minutes_used: number;
+  /** Возврат идёт сразу на паевой (отмена решения кооператива). */
+  to_share: boolean;
+}
+
+export function calculateRefund(params: RefundParams): RefundCalculation {
+  const { amount: charged, symbol } = parseAmount(params.chain.charged);
+  const base = { minutes_paid: params.chain.minutes_paid, minutes_used: params.chain.minutes_done };
+  const whole = (reason: RefundReason, toShare: boolean): RefundCalculation => ({
+    reason,
+    refund: formatAmount(charged, symbol),
+    withheld: formatAmount(0, symbol),
+    ...base,
+    to_share: toShare,
+  });
+
+  if (params.underfilled) return whole(RefundReason.UNDERFILLED, true);
+  if (!params.starts_at || params.now < params.starts_at) return whole(RefundReason.BEFORE_START, false);
+
+  // Половина остаточной стоимости — то же деление нацело, что в контракте.
+  const { minutes_paid: paid, minutes_done: done } = params.chain;
+  const residual = paid > 0 && done < paid ? Math.floor((charged * (paid - done)) / paid) : 0;
+  const refund = Math.floor(residual / 2);
+  return {
+    reason: RefundReason.REFUSAL,
+    refund: formatAmount(refund, symbol),
+    withheld: formatAmount(charged - refund, symbol),
+    ...base,
+    to_share: false,
+  };
+}
+
+function parseAmount(asset: string): { amount: number; symbol: string } {
+  const match = String(asset ?? '').trim().match(/^(\d+(?:\.\d+)?)\s+([A-Z]{1,7})$/);
+  if (!match) return { amount: 0, symbol: '' };
+  return { amount: Math.round(Number(match[1]) * SCALE), symbol: match[2] };
+}
+
+function formatAmount(minor: number, symbol: string): string {
+  return `${(minor / SCALE).toFixed(PRECISION)} ${symbol}`;
+}

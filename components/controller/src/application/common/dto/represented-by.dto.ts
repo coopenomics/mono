@@ -1,4 +1,5 @@
 import { InputType, ObjectType, Field } from '@nestjs/graphql';
+import { validationMessage } from '@coopenomics/extension-kit';
 import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
 import type { RepresentedByDomainInterface } from '~/domain/common/interfaces/represented-by.interface';
 
@@ -6,28 +7,28 @@ import type { RepresentedByDomainInterface } from '~/domain/common/interfaces/re
 @InputType()
 class RepresentedByBase {
   @Field(() => String, { description: 'Имя' })
-  @IsNotEmpty({ message: 'Имя не должно быть пустым' })
-  @IsString({ message: 'Имя должно быть строкой' })
+  @IsNotEmpty({ message: validationMessage('account.representedByDto.firstNameRequired') })
+  @IsString({ message: validationMessage('account.representedByDto.firstNameMustBeString') })
   first_name: string;
 
   @Field(() => String, { description: 'Фамилия' })
   @IsOptional() // Допускаем отсутствие или пустую строку
-  @IsString({ message: 'Фамилия должна быть строкой' })
+  @IsString({ message: validationMessage('account.representedByDto.lastNameMustBeString') })
   last_name: string;
 
   @Field(() => String, { description: 'Отчество' })
-  @IsNotEmpty({ message: 'Отчество не должно быть пустым' })
-  @IsString({ message: 'Отчество должно быть строкой' })
+  @IsNotEmpty({ message: validationMessage('account.representedByDto.middleNameRequired') })
+  @IsString({ message: validationMessage('account.representedByDto.middleNameMustBeString') })
   middle_name: string;
 
   @Field(() => String, { description: 'Должность' })
-  @IsNotEmpty({ message: 'Должность не должна быть пустой' })
-  @IsString({ message: 'Должность должна быть строкой' })
+  @IsNotEmpty({ message: validationMessage('account.representedByDto.positionRequired') })
+  @IsString({ message: validationMessage('account.representedByDto.positionMustBeString') })
   position: string;
 
   @Field(() => String, { description: 'На основании чего действует' })
-  @IsNotEmpty({ message: 'Поле "На основании чего действует" не должно быть пустым' })
-  @IsString({ message: 'Поле "На основании чего действует" должно быть строкой' })
+  @IsNotEmpty({ message: validationMessage('account.representedByDto.basedOnRequired') })
+  @IsString({ message: validationMessage('account.representedByDto.basedOnMustBeString') })
   based_on: string;
 
   constructor(data?: RepresentedByDomainInterface) {

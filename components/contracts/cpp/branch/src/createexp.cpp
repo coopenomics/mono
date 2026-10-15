@@ -36,6 +36,8 @@
   check_auth_or_fail(_branch, coopname, coopname, "createexp"_n);
 
   verify_document_or_fail(statement, {creator});
+  // Записку на расход участка подписывает тот, от чьего имени она подана.
+  verify_signer_keys_or_fail(statement, creator);
   eosio::check(!items.empty(), "Расход должен содержать хотя бы одну позицию");
 
   auto branch = get_branch_or_fail(coopname, braname);
@@ -61,7 +63,7 @@
   eosio::check(byhash.find(expense_hash) == byhash.end(),
                "Расход с таким идентификатором уже подан");
 
-  expenses.emplace(coopname, [&](auto& e) {
+  expenses.emplace(RamPayer::of(expenses, coopname), [&](auto& e) {
     e.id      = expenses.available_primary_key();
     e.hash    = expense_hash;
     e.braname = braname;

@@ -3,6 +3,7 @@ import { useInstallCooperativeStore } from 'src/entities/Installer/model'
 import { stripLegacyBankKpp } from 'src/shared/lib/utils/stripLegacyBankKpp';
 import { getMinSovietMembersCount } from '../lib';
 import { api } from '../api'
+import { t } from 'src/shared/i18n';
 
 export type IInstallInput = Mutations.System.InstallSystem.IInput['data']
 export type IInstallOutput = Mutations.System.InstallSystem.IOutput[typeof Mutations.System.InstallSystem.name]
@@ -40,7 +41,9 @@ export const useInstallCooperative = (): {
         }
       : data;
 
-    return await api.initSystem(payload);
+    // Код установки получен на шаге с ключом кооператива: сервер без него
+    // данные организации не примет — установка открыта без входа.
+    return await api.initSystem({ ...payload, install_code: store.install_code });
   }
 
   async function getInstallationStatus(installCode: string): Promise<IGetInstallationStatusOutput> {
@@ -49,15 +52,15 @@ export const useInstallCooperative = (): {
 
   async function install(): Promise<IInstallOutput> {
     if (!store.vars)
-      throw new Error('Переменные не установлены')
+      throw new Error(t('installer.error.varsNotSet'))
 
     const minSovietMembers = getMinSovietMembersCount();
 
     if (!store.soviet || store.soviet.length < minSovietMembers) {
       throw new Error(
         minSovietMembers === 1
-          ? 'Совет не установлен'
-          : `Совет должен включать не менее ${minSovietMembers} человек (председатель и члены совета)`,
+          ? t('installer.install.sovietNotSet')
+          : t('installer.install.sovietMinMembers', { minSovietMembers }),
       );
     }
 
@@ -66,7 +69,8 @@ export const useInstallCooperative = (): {
 
     const installData: IInstallInput = {
       soviet,
-      vars: store.vars
+      vars: store.vars,
+      install_code: store.install_code,
     };
 
     return await api.install(installData);

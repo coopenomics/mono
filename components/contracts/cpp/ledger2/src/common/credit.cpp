@@ -45,7 +45,7 @@ void ledger2::credit(eosio::name coopname,
     eosio::check(meta != nullptr,
                  std::string{"credit: unknown account id "} + std::to_string(account_id));
     const std::string acc_name{meta->name};
-    accounts.emplace(payer, [&](auto& a) {
+    accounts.emplace(RamPayer::of(accounts, coopname), [&](auto& a) {
       a.id             = account_id;
       a.name           = acc_name;
       a.account_type   = static_cast<uint8_t>(meta->type);
@@ -55,7 +55,7 @@ void ledger2::credit(eosio::name coopname,
         a.account_type, a.debit_balance, a.credit_balance);
     });
   } else {
-    accounts.modify(it, payer, [&](auto& a) {
+    accounts.modify(it, RamPayer::of(accounts, coopname), [&](auto& a) {
       a.credit_balance += amount;
       a.balance        = account2::compute_balance(
         a.account_type, a.debit_balance, a.credit_balance);

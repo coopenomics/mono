@@ -2,6 +2,7 @@ import { ref, computed } from 'vue';
 import { loadProviderSubscriptions } from '../api';
 import { useSystemStore } from 'src/entities/System/model';
 import { Queries } from '@coopenomics/sdk';
+import { t } from 'src/shared/i18n';
 
 /**
  * Специфичные данные для подписки на хостинг
@@ -39,8 +40,11 @@ const error = ref<string | null>(null);
 export function useProviderSubscriptions() {
   const system = useSystemStore();
 
-  // IP адрес сервера для делегирования домена
-  const SERVER_IP = '51.250.114.13';
+  // Имя точки входа кооператива для CNAME-записи домена кабинета. Запись-шаблон
+  // *.connector.coopenomics.world отвечает адресами всех L7-прокси, поэтому имя
+  // существует для любого кооператива заранее — выдавать записи не нужно, а
+  // куда ведёт кабинет, решается на стороне сети без участия кооператива.
+  const CONNECTOR_HOST = computed(() => `${system.info.coopname}.connector.coopenomics.world`);
 
   // Получить подписку на хостинг (id=1)
   const hostingSubscription = computed(() =>
@@ -71,7 +75,7 @@ export function useProviderSubscriptions() {
     // Проверяем доступность провайдера
     console.log('system.info', system.info);
     if (!system.info.is_providered) {
-      error.value = 'Функционал провайдера не доступен';
+      error.value = t('provider.providerModel.notAvailableError');
       return;
     }
 
@@ -81,7 +85,7 @@ export function useProviderSubscriptions() {
       subscriptions.value = await loadProviderSubscriptions();
       console.log('subscriptions', subscriptions.value);
     } catch (err: any) {
-      error.value = err.message || 'Ошибка загрузки подписок';
+      error.value = err.message || t('provider.providerModel.loadSubscriptionsError');
       console.error('Error loading provider subscriptions:', err);
     } finally {
       isLoading.value = false;
@@ -94,6 +98,7 @@ export function useProviderSubscriptions() {
   const startAutoRefresh = (intervalMs = 60000) => { // 1 минута по умолчанию
     loadSubscriptions(); // Первая загрузка
 
+    // timing: schedule — подписки кооператива ведёт сервер провайдера (другой узел), сигнала в ленте кооператива нет
     const interval = setInterval(() => {
       loadSubscriptions();
     }, intervalMs);
@@ -114,7 +119,7 @@ export function useProviderSubscriptions() {
     instanceStatus,
     loadSubscriptions,
     startAutoRefresh,
-    SERVER_IP,
+    CONNECTOR_HOST,
   };
 }
 

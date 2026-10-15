@@ -8,9 +8,16 @@ import { UserDomainModule } from '~/domain/user/user-domain.module';
 import { TokenApplicationModule } from '~/application/token/token-application.module';
 import { EventsInfrastructureModule } from '~/infrastructure/events/events.module';
 import { AuthV2InfrastructureModule } from '~/infrastructure/auth-v2/auth-v2-infrastructure.module';
+import { EmailVerificationModule } from '~/application/auth/email-verification/email-verification.module';
+import { AuthRateLimitGuard } from '~/application/auth-v2/rate-limit/auth-rate-limit.guard';
+import { FILE_STORAGE_PORT } from '@coopenomics/innercoop';
+import { bucketProvidersFor } from '@coopenomics/extension-kit';
+import { UserAvatarService } from './services/user-avatar.service';
+import { CoreRightsModule } from '../rights/core-rights.module';
 
 @Module({
   imports: [
+    CoreRightsModule,
     AccountDomainModule,
     UserDomainModule,
     TokenApplicationModule,
@@ -19,9 +26,23 @@ import { AuthV2InfrastructureModule } from '~/infrastructure/auth-v2/auth-v2-inf
     // инфраструктурный модуль (VAULT_REPOSITORY), а не AuthV2Module: тот через
     // AccountInfrastructureModule замыкается обратно на AccountModule (цикл).
     AuthV2InfrastructureModule,
+    // Отметка «адрес подтверждён кодом» с первого шага регистрации.
+    EmailVerificationModule,
   ],
   controllers: [],
-  providers: [AccountInteractor, AccountService, AccountResolver, RegistrationDeclineListener],
-  exports: [AccountInteractor, AccountService],
+  // Лимит на регистрацию: guard из auth-v2 нужен здесь как провайдер модуля —
+  // его хранилище (RATE_LIMIT_STORAGE) даёт AuthV2InfrastructureModule выше,
+  // а сам AuthV2Module сюда не импортируется (цикл через AccountInfrastructureModule).
+  providers: [
+    AccountInteractor,
+    AccountService,
+    AccountResolver,
+    RegistrationDeclineListener,
+    AuthRateLimitGuard,
+    UserAvatarService,
+    // Бакет фотографий пайщиков создаётся по объявлению `@UseBucket` сервиса.
+    ...bucketProvidersFor(FILE_STORAGE_PORT, [UserAvatarService]),
+  ],
+  exports: [AccountInteractor, AccountService, UserAvatarService],
 })
 export class AccountModule {}

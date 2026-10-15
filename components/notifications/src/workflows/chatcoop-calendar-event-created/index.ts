@@ -3,7 +3,7 @@ import { WorkflowBuilder } from '../../base/workflow-builder';
 import { z } from 'zod';
 import { BaseWorkflowPayload } from '../../types';
 import { createEmailStep, createInAppStep, createPushStep } from '../../base/defaults';
-import { slugify } from '../../utils';
+import { nt } from '../../i18n';
 
 export const chatcoopCalendarEventCreatedPayloadSchema = z.object({
   coopShortName: z.string(),
@@ -23,30 +23,33 @@ export type IPayload = z.infer<typeof chatcoopCalendarEventCreatedPayloadSchema>
 
 export interface IWorkflow extends BaseWorkflowPayload, IPayload {}
 
-export const name = 'Уведомление о новом событии календаря кооператива';
-export const id = slugify(name);
+export const name = nt('chatcoopCalendarEventCreated.name');
+// Идентификатор закреплён: раньше он вычислялся из названия, и правка
+// или перевод названия меняли бы его. Не менять — на него ссылаются подписки.
+export const id = 'uvedomlenie-o-novom-sobytii-kalendarya-kooperativa';
 
 export const workflow: WorkflowDefinition<IWorkflow> = WorkflowBuilder.create<IWorkflow>()
   .name(name)
   .workflowId(id)
-  .description('Создание события в календаре кооператива (стол связи): рассылка пайщикам')
+  .i18nKey('chatcoopCalendarEventCreated')
+  .description(nt('chatcoopCalendarEventCreated.description'))
   .payloadSchema(chatcoopCalendarEventCreatedPayloadSchema)
   .tags(['user'])
   .addSteps([
     createEmailStep(
       'chatcoop-cal-created-email',
-      'Новое событие в календаре {{payload.coopShortName}}: {{payload.title}}',
-      'Уважаемый пайщик!<br><br>В календаре кооператива создано новое событие.<br><br><strong>{{payload.title}}</strong><br><br>Начало: {{payload.startDate}} в {{payload.startTime}} ({{payload.timezone}})<br>Окончание: {{payload.endDate}} в {{payload.endTime}} ({{payload.timezone}})<br>Комната: {{payload.roomLabel}}<br>Автор: {{payload.actorUsername}}{% if payload.description %}<br><br>Описание:<div style="white-space:pre-wrap;">{{payload.description}}</div>{% endif %}<br><br>Открыть комнату на столе связи:<br><a href="{{payload.eventUrl}}">{{payload.eventUrl}}</a><br><br>С уважением, {{payload.coopShortName}}.'
+      nt('chatcoopCalendarEventCreated.email.subject'),
+      nt('chatcoopCalendarEventCreated.email.body')
     ),
     createInAppStep(
       'chatcoop-cal-created-inapp',
-      'Новое событие: {{payload.title}}',
-      '{{payload.startDate}} {{payload.startTime}} ({{payload.timezone}}), {{payload.roomLabel}}{% if payload.description %}. {{payload.description}}{% endif %}'
+      nt('chatcoopCalendarEventCreated.inApp.subject'),
+      nt('chatcoopCalendarEventCreated.inApp.body')
     ),
     createPushStep(
       'chatcoop-cal-created-push',
-      'Календарь: {{payload.title}}',
-      '{{payload.startDate}} {{payload.startTime}} ({{payload.timezone}})'
+      nt('chatcoopCalendarEventCreated.push.subject'),
+      nt('chatcoopCalendarEventCreated.push.body')
     ),
   ])
   .build();

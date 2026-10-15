@@ -4,21 +4,21 @@
     h2.extension-info__title {{ extension.title }}
     span.badge.badge--pos(v-if='extension.is_installed && extension.enabled')
       q-icon(name='fa-solid fa-check' size='11px')
-      | Установлено
+      | {{ $t('extensionInfo.extensionInfo.installedBadge') }}
     span.badge.badge--warn(v-else-if='extension.is_installed && !extension.enabled')
       q-icon(name='fa-solid fa-pause' size='11px')
-      | Отключено
+      | {{ $t('extensionInfo.extensionInfo.disabledBadge') }}
     span.badge.badge--warn(v-else-if='!extension.is_available')
       q-icon(name='fa-solid fa-screwdriver-wrench' size='11px')
-      | В разработке
+      | {{ $t('extensionInfo.extensionInfo.inDevelopmentBadge') }}
 
   ClientOnly
     template(#default)
-      vue-markdown.description(:source='extension.readme')
+      vue-markdown.description(:source='readmeBody')
 </template>
 
 <script lang="ts" setup>
-import { defineAsyncComponent } from 'vue';
+import { computed, defineAsyncComponent } from 'vue';
 import type { IExtension } from 'src/entities/Extension/model/types';
 import { ClientOnly } from 'src/shared/ui/ClientOnly';
 
@@ -31,7 +31,11 @@ interface Props {
   extension: IExtension;
 }
 
-defineProps<Props>();
+const props = defineProps<Props>();
+
+// Описание приложения начинается с заголовка «# Название». Название уже стоит
+// в шапке страницы, поэтому первый заголовок описания здесь не показывается.
+const readmeBody = computed(() => String(props.extension.readme ?? '').replace(/^\s*#\s+[^\n]*\n+/, ''));
 </script>
 
 <style scoped lang="scss">

@@ -65,9 +65,9 @@ export async function acceptFirstReturnClaim({ page, shot, expect }, { texts, ca
 
   await remoteDialog.locator('.mp-takeover__confirm').click();
 
-  // После приглашения заявление переходит в «ожидает визита», и на карточке
-  // появляется второе действие — очный осмотр.
-  const onSiteBtn = page.locator('button:has-text("Очный осмотр")').first();
+  // После приглашения заявление переходит в «Приглашение на участок», и на
+  // карточке появляется второе действие — «Приём имущества» (очный осмотр).
+  const onSiteBtn = page.locator('button:has-text("Приём имущества")').first();
   await onSiteBtn.waitFor({ state: 'visible', timeout: 90000 });
   await page.waitForTimeout(1200);
   await cleanViteOverlays(page);
@@ -102,7 +102,7 @@ export async function acceptFirstReturnClaim({ page, shot, expect }, { texts, ca
       // Деньги вернулись — это и есть результат приёма, а не сам факт клика.
       await expect(p.locator('text=Восстановлено пайщику').first()).toBeVisible({ timeout: 20000 });
       // Решение окончательное — действий по заявлению больше нет.
-      await expect(p.locator('button:has-text("Очный осмотр")')).toHaveCount(0);
+      await expect(p.locator('button:has-text("Приём имущества")')).toHaveCount(0);
       await expect(p.locator('button:has-text("Принять решение")')).toHaveCount(0);
     },
   });

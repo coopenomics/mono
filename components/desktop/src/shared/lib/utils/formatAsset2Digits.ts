@@ -1,4 +1,6 @@
 import { floorDecimalString } from './floorDecimalString';
+import { decimalSeparator } from '@coopenomics/i18n';
+import { currentLocale, uiLocale } from 'src/shared/i18n';
 
 /**
  * Форматирует актив для отображения: truncate (toward-zero) до 2 знаков
@@ -32,12 +34,22 @@ export const formatAsset2Digits = (value: string | null | undefined): string => 
   const negative = truncated.startsWith('-');
   const abs = negative ? truncated.slice(1) : truncated;
   const [intStr, decStr] = abs.split('.');
-  const intGrouped = new Intl.NumberFormat('ru-RU').format(BigInt(intStr));
-  const formattedNumber = `${negative ? '-' : ''}${intGrouped},${decStr}`;
+  const intGrouped = new Intl.NumberFormat(uiLocale()).format(BigInt(intStr));
+  const formattedNumber = `${negative ? '-' : ''}${intGrouped}${decimalSeparator(currentLocale())}${decStr}`;
 
   return currencySymbol
     ? `${formattedNumber} ${currencySymbol}`
     : formattedNumber;
+};
+
+/**
+ * Актив раздельно — число и тикер: для компонентов, которые печатают тикер
+ * сами (`WalletCard` принимает `balance` и `symbol` порознь). Число — тем же
+ * форматом, что {@link formatAsset2Digits}: "2000.0000 RUB" → { amount: "2 000,00", symbol: "RUB" }.
+ */
+export const splitAsset2Digits = (value: string | null | undefined): { amount: string; symbol: string } => {
+  const [number = '', symbol = ''] = (value ?? '').trim().split(' ');
+  return { amount: formatAsset2Digits(number || '0'), symbol };
 };
 
 /**

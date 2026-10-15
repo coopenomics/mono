@@ -15,7 +15,12 @@ import { ComponentMatrixAnnouncementService } from '../services/component-matrix
 import { ContentRevisionService } from '../services/content-revision.service';
 import { ContentEntityType } from '../../domain/enums/content-entity-type.enum';
 import { ContentRevisionOrigin } from '../../domain/enums/content-revision-origin.enum';
-import { waitAfterTransactBeforeChainTableRead, getAppliedBlockNum } from '@coopenomics/extension-kit';
+import {
+  chainTextMismatches,
+  PROJECT_CHAIN_TEXT_FIELDS,
+  type ProjectChainTexts,
+} from '../../domain/utils/chain-text-digest';
+import { isChainTextOf, getAppliedBlockNum } from '@coopenomics/extension-kit';
 import { CAPITAL_PROJECT_CREATED_EVENT, type ICapitalProjectCreatedPayload } from '@coopenomics/innercoop';
 
 /**
@@ -57,6 +62,10 @@ export class ProjectSyncService
   ): Promise<ISyncResult> {
     const existingEntity = await this.repository.findBySyncKey(syncKey, syncValue);
     const previousTitle = existingEntity?.title;
+    if (existingEntity && present) {
+      // i18n-ignore: метка для лога несовпадения текста (logger.error), до пайщика не доходит
+      this.reportTextMismatch(syncValue, blockchainData, existingEntity, 'дельта');
+    }
     const matrixRefsBeforeSync = existingEntity?.matrix_component_announcement_events ?? [];
 
     const result = await super.handleSyncDelta(syncKey, syncValue, blockchainData, blockNum, present);
@@ -96,14 +105,45 @@ export class ProjectSyncService
   }
 
   /**
+   * Текст в базе должен давать тот хеш, что лежит в цепи. Расхождение значит, что текст
+   * в базе потерян или записан мимо цепи, — восстановить его можно только из истории цепи.
+   */
+  private reportTextMismatch(
+    projectHash: string,
+    chain: Pick<IProjectDomainInterfaceBlockchainData, 'description' | 'invite'>,
+    entity: Pick<ProjectDomainEntity, 'description' | 'invite'>,
+    source: string
+  ): void {
+    const fields = chainTextMismatches(chain, { description: entity.description, invite: entity.invite });
+    if (fields.length > 0) {
+      this.logger.error(
+        `Текст проекта ${projectHash} в базе не совпадает с хешем в цепи (${source}): ${fields.join(', ')}`
+      );
+    }
+  }
+
+  /** В цепи хеш текста: подставляем отправленный текст, если в цепь лёг именно он. */
+  private withSentTexts(
+    chainRow: CapitalContract.Tables.Projects.IProject,
+    sentTexts?: ProjectChainTexts
+  ): CapitalContract.Tables.Projects.IProject {
+    const row = { ...chainRow };
+    for (const field of PROJECT_CHAIN_TEXT_FIELDS) {
+      const sent = sentTexts?.[field];
+      if (sent !== undefined && isChainTextOf(sent, chainRow[field])) row[field] = sent;
+    }
+    return row;
+  }
+
+  /**
    * Синхронизация проекта между блокчейном и базой данных
    */
   async syncProject(
     coopname: string,
     project_hash: string,
-    transactResult: InnerTransactResult
+    transactResult: InnerTransactResult,
+    sentTexts?: ProjectChainTexts
   ): Promise<ProjectDomainEntity | null> {
-    await waitAfterTransactBeforeChainTableRead();
     // Извлекаем данные проекта из блокчейна
     const blockchainProject = await this.capitalBlockchainPort.getProject(coopname, project_hash);
 
@@ -112,7 +152,7 @@ export class ProjectSyncService
       return null;
     }
 
-    const processedBlockchainProject: CapitalContract.Tables.Projects.IProject = blockchainProject;
+    const processedBlockchainProject = this.withSentTexts(blockchainProject, sentTexts);
 
     const hashLower = project_hash.trim().toLowerCase();
     const projectBeforeSync = await this.repository.findBySyncKey(ProjectDomainEntity.getSyncKey(), hashLower);
@@ -122,6 +162,8 @@ export class ProjectSyncService
       getAppliedBlockNum(transactResult),
       true
     );
+    // i18n-ignore: метка для лога несовпадения текста (logger.error), до пайщика не доходит
+    this.reportTextMismatch(hashLower, blockchainProject, projectEntity, 'после транзакции');
 
     // Текст пришёл из цепи мимо ContentRevisionService (правка не через API) — фиксируем редакцию CHAIN.
     try {

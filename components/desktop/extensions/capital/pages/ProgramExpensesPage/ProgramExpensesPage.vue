@@ -14,8 +14,8 @@ q-page.program-expenses-page(v-else)
       no-wrap
     )
       q-icon(name='add')
-      span.q-ml-sm(v-if='!isMobile') Создать расход
-      q-tooltip(v-if='isMobile') Создать расход
+      span.q-ml-sm(v-if='!isMobile') {{ $t('capital.programExpensesPage.createLabel') }}
+      q-tooltip(v-if='isMobile') {{ $t('capital.programExpensesPage.createLabel') }}
     q-btn(
       @click='openTopup',
       color='primary',
@@ -25,16 +25,16 @@ q-page.program-expenses-page(v-else)
       no-wrap
     )
       q-icon(name='account_balance_wallet')
-      span.q-ml-sm(v-if='!isMobile') Пополнить пул
-      q-tooltip(v-if='isMobile') Пополнить пул
+      span.q-ml-sm(v-if='!isMobile') {{ $t('capital.programExpensesPage.replenishLabel') }}
+      q-tooltip(v-if='isMobile') {{ $t('capital.programExpensesPage.replenishLabel') }}
 
   .pools.row.q-col-gutter-md
     .col-12.col-md-6
       WalletCard(
         neutral,
-        title='Инвест-пул',
-        subtitle='Источник пополнения',
-        balance-label='Доступно к распределению',
+        :title='$t("capital.programExpensesPage.investPoolTitle")',
+        :subtitle='$t("capital.programExpensesPage.investPoolSubtitle")',
+        :balance-label='$t("capital.programExpensesPage.investPoolBalanceLabel")',
         :balance='globalPool.amount',
         :symbol='globalPool.symbol',
         icon='savings',
@@ -43,9 +43,9 @@ q-page.program-expenses-page(v-else)
     .col-12.col-md-6
       WalletCard(
         program='blagorost',
-        title='Пул расходов',
-        subtitle='Кошелёк, с которого оплачиваются программные расходы',
-        balance-label='Доступно',
+        :title='$t("capital.programExpensesPage.expensePoolTitle")',
+        :subtitle='$t("capital.programExpensesPage.expensePoolSubtitle")',
+        :balance-label='$t("capital.programExpensesPage.expensePoolBalanceLabel")',
         :balance='expensePool.amount',
         :symbol='expensePool.symbol',
         icon='receipt_long',
@@ -56,7 +56,7 @@ q-page.program-expenses-page(v-else)
   ExpenseProposalList(
     :rows='listRows',
     :loading='loading',
-    empty-title='Программных расходов пока нет',
+    :empty-title='$t("capital.programExpensesPage.emptyTitle")',
     @open='openExpense'
   )
 
@@ -72,6 +72,9 @@ q-page.program-expenses-page(v-else)
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue';
+import { Ledger2Contract } from 'cooptypes';
+import { useLiveReload, liveTable } from 'src/shared/lib/realtime';
+import { CAPITAL_LIVE_TABLES } from 'app/extensions/capital/shared/lib/live';
 import { useRouter, useRoute } from 'vue-router';
 import { useSystemStore } from 'src/entities/System/model';
 import { useWindowSize } from 'src/shared/hooks';
@@ -123,12 +126,9 @@ const expensePool = computed(() => splitAsset(expenseWallet.value?.available));
 
 const loading = ref(false);
 
-/** Parser → PG обычно отстаёт от блока на 1–3с; ранний refetch вернёт пулы до topup. */
-const POST_CHAIN_REFETCH_MS = 3500;
-
-async function refresh(): Promise<void> {
+async function refresh(silent = false): Promise<void> {
   try {
-    loading.value = true;
+    if (!silent) loading.value = true;
     await Promise.all([
       store.loadProgramExpenses({
         coopname: coopname.value,
@@ -142,15 +142,22 @@ async function refresh(): Promise<void> {
   }
 }
 
-/** После topup обновляем оба пула с задержкой (инвест-пул + w.cap.pgexp). */
+/** После пополнения перечитываем оба пула сразу: ответ пришёл после разбора блока. */
 function onToppedUp(): void {
-  setTimeout(() => {
-    void Promise.all([
-      configStore.loadState({ coopname: coopname.value }),
-      ledger2Store.loadWallets(coopname.value),
-    ]);
-  }, POST_CHAIN_REFETCH_MS);
+  void Promise.all([
+    configStore.loadState({ coopname: coopname.value }),
+    ledger2Store.loadWallets(coopname.value),
+  ]);
 }
+
+// Расходы программы и пулы живут по ленте изменений: новая заявка, её оплата и
+// пополнение пула видны сразу (таблицы Благороста и кошельки кооператива).
+useLiveReload(
+  [...CAPITAL_LIVE_TABLES, liveTable(Ledger2Contract, Ledger2Contract.Tables.Wallets)],
+  () => {
+    if (isExpensesRoot.value) return refresh(true);
+  },
+);
 
 onMounted(() => {
   if (isExpensesRoot.value) void refresh();

@@ -1,10 +1,13 @@
 <template>
   <div class="recover-page">
     <RecoverConfirm :token="token" :coopname="coopname">
+      <template #actions>
+        <AuthActions />
+      </template>
+      <template #pane-foot> {{ $t('registrator.recoverConfirmPage.rememberedPasswordPrompt') }} <a class="auth-link" href="#" @click.prevent="goToSignIn">{{ $t('registrator.recoverConfirmPage.signInAction') }}</a>
+      </template>
       <template #footer>
-        <BaseButton variant="ghost" size="sm" @click="goToSignIn">
-          Вернуться ко входу
-        </BaseButton>
+        <a class="auth-link" href="#" @click.prevent="goToSignIn">{{ $t('registrator.recoverConfirmPage.backToSignInAction') }}</a>
       </template>
     </RecoverConfirm>
   </div>
@@ -14,6 +17,7 @@
 import { computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { RecoverConfirm } from 'src/widgets/Registrator/Recover/ui';
+import { AuthActions } from 'src/widgets/Registrator/AuthActions';
 
 const router = useRouter();
 const route = useRoute();
@@ -28,10 +32,6 @@ function goToSignIn(): void {
 
 <style scoped>
 .recover-page {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--p-6, 24px);
-  min-height: 100%;
+  min-height: inherit;
 }
 </style>

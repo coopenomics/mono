@@ -17,6 +17,7 @@ async function initCooperative() {
     // Получаем server_secret из переменных окружения
     const serverSecret = process.env.SERVER_SECRET;
     if (!serverSecret) {
+      // i18n-ignore: SERVER_SECRET не найден в переменных окружения — ошибка конфигурации при старте, до пайщика не доходит
       throw new Error('SERVER_SECRET не найден в переменных окружения');
     }
 

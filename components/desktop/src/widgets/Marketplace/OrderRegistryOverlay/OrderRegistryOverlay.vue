@@ -2,7 +2,7 @@
 DetailsDrawer(
   :model-value='overlay.isOpen.value',
   :width='860',
-  title='Заказ',
+  :title='$t("marketplace.orderRegistryOverlay.title")',
   @update:model-value='(v) => !v && overlay.close()'
 )
   template(#actions)
@@ -10,12 +10,12 @@ DetailsDrawer(
       v-if='fullPageRouteName',
       variant='ghost',
       size='sm',
-      aria-label='Открыть заказ на отдельной странице',
+      :aria-label='$t("marketplace.orderRegistryOverlay.openFullPageAriaLabel")',
       @click='openFullPage'
     )
       template(#icon-left)
         q-icon(name='open_in_full', size='16px')
-      | Открыть заказ
+      | {{ $t('marketplace.orderRegistryOverlay.openFullPageButton') }}
 
   OrderRegistryDetail(
     v-if='overlay.value.value',
@@ -51,6 +51,12 @@ const props = defineProps<{
   showOfferLink?: boolean;
   /** Маршрут полной страницы заказа своего стола; без него кнопки нет */
   fullPageRouteName?: string;
+  /**
+   * Пометка места, откуда заказ открыли: полная страница по ней называет
+   * кнопку возврата и знает запасной маршрут. Без пометки страница вернёт в
+   * свой реестр — это верно для реестра, но не для экономики участка.
+   */
+  from?: string;
 }>();
 
 const emit = defineEmits<{
@@ -65,6 +71,7 @@ function openFullPage(): void {
   void router.push({
     name: props.fullPageRouteName,
     params: { coopname: props.coopname, orderId: overlay.value.value },
+    ...(props.from ? { query: { from: props.from } } : {}),
   });
 }
 </script>

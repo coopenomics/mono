@@ -1,3 +1,4 @@
+import { lt } from '@coopenomics/i18n'
 /**
  * participant_certificate: чтение claims на клиенте (ЛК, Story 1.9) и offline-
  * верификация (Story 4.4). Здесь — только ДЕКОДИРОВАНИЕ payload и производные
@@ -91,8 +92,8 @@ export const CERTIFICATE_EXPIRING_WINDOW_MS = 60 * 60 * 1000
  * базовый (паспорт сверен при личной явке) → усиленный (внешний KYC, будущее).
  */
 export const VERIFICATION_TYPE_LABELS: Record<string, string> = {
-  coop_baseline: 'Начальный: подтверждён платежом',
-  passport_onsite: 'Базовый: личность сверена с паспортом',
+  coop_baseline: lt('authClient.verificationType.status.coopBaseline'),
+  passport_onsite: lt('authClient.verificationType.status.passportOnsite'),
 }
 
 /**
@@ -114,7 +115,8 @@ export function verificationLevelRank(type: string): number {
  * единственный, вернётся он.
  */
 export function highestVerificationType(types: readonly string[]): string | undefined {
-  if (!types.length) return undefined
+  if (!types.length)
+    return undefined
   return types.reduce((best, type) =>
     verificationLevelRank(type) > verificationLevelRank(best) ? type : best,
   )
@@ -127,8 +129,8 @@ export function verificationTypeLabel(type: string): string {
 
 /** Короткие названия уровней — для чипов в таблицах и карточках. */
 export const VERIFICATION_TYPE_SHORT_LABELS: Record<string, string> = {
-  coop_baseline: 'Начальный',
-  passport_onsite: 'Базовый',
+  coop_baseline: lt('authClient.verificationType.statusShort.coopBaseline'),
+  passport_onsite: lt('authClient.verificationType.statusShort.passportOnsite'),
 }
 
 /** Короткое название уровня; неизвестный — отдаём как есть (forward-compat). */
@@ -212,10 +214,10 @@ export function decodeParticipantCertificate(jws: string): ParticipantCertificat
     raw = decodeJwt(jws) as Record<string, unknown>
   }
   catch {
-    throw new AuthV2Error(AuthV2ErrorCode.ChainVerificationFailed, 'Некорректный participant_certificate: не удалось прочитать claims')
+    throw new AuthV2Error(AuthV2ErrorCode.ChainVerificationFailed, lt('authClient.certificate.invalidClaims'))
   }
   if (typeof raw.jti !== 'string' || typeof raw.exp !== 'number' || typeof raw.sub !== 'string')
-    throw new AuthV2Error(AuthV2ErrorCode.ChainVerificationFailed, 'participant_certificate без обязательных claims (jti/exp/sub)')
+    throw new AuthV2Error(AuthV2ErrorCode.ChainVerificationFailed, lt('authClient.certificate.missingClaims'))
 
   return {
     iss: String(raw.iss ?? ''),

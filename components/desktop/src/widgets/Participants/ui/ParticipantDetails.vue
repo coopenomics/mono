@@ -3,7 +3,7 @@
 //- Документы пайщика живут в отдельном «Реестре документов», здесь не дублируются.
 .participant-details
   .participant-details__verification
-    .participant-details__verification-title.t-sm.t-muted Верификация личности
+    .participant-details__verification-title.t-sm.t-muted {{ $t('participants.participantDetails.verificationTitle') }}
     template(v-if='currentLevel')
       .participant-details__verification-row
         BaseBadge(:variant='verificationBadgeVariant(currentLevel.type)') {{ currentLevel.short }}
@@ -16,32 +16,54 @@
         :key='level.type'
       ) {{ level.label }}{{ level.hint ? ` — ${level.hint}` : '' }}
     .participant-details__verification-row(v-else)
-      BaseBadge(variant='neutral') Не верифицирован
-      span.t-sm.t-muted Личность подтверждает председатель совета или кооперативный участок при предъявлении паспорта
+      BaseBadge(variant='neutral') {{ $t('participants.participantDetails.notVerified') }}
+      span.t-sm.t-muted {{ $t('participants.participantDetails.verificationHint') }}
     VerifyIdentityActions(
       :participant='participant',
       @changed='emit("verification-changed")'
     )
 
+  //- Второй фактор входа: председатель снимает приложение-аутентификатор
+  //- пайщику, потерявшему устройство с кодами.
+  ResetTwoFactorAction(:participant='participant')
+
+  //- Формы копируют данные один раз при создании — ключ по аккаунту
+  //- пересоздаёт их при смене пайщика, иначе в форме остаются чужие данные,
+  //- а сохранение записало бы их в аккаунт текущего пайщика.
+  //- Что пайщик сообщил о себе при вступлении: программа и ответы на анкеты
+  //- расширений. У вступивших до появления анкет блока нет.
+  CandidateIntakeAnswers.participant-details__intake(
+    :username='participant.username',
+    with-program,
+    quiet
+  )
+
   EditableIndividualCard(
     v-if="individualParticipantData"
+    :key="participant.username"
     :participantData="individualParticipantData"
+    :readonly="!canEdit"
     @update="onUpdate"
   )
   EditableEntrepreneurCard(
     v-if="entrepreneurParticipantData"
+    :key="participant.username"
     :participantData="entrepreneurParticipantData"
+    :readonly="!canEdit"
     @update="onUpdate"
   )
   EditableOrganizationCard(
     v-if="organizationParticipantData"
+    :key="participant.username"
     :participantData="organizationParticipantData"
+    :readonly="!canEdit"
     @update="onUpdate"
   )
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useDesktopStore } from 'src/entities/Desktop'
 import { BaseBadge } from 'src/shared/ui/base/BaseBadge'
 import {
   highestVerificationLevel,
@@ -50,6 +72,8 @@ import {
   type VerificationNaming,
 } from 'src/shared/lib/verification'
 import { VerifyIdentityActions } from 'src/features/User/VerifyIdentity'
+import { ResetTwoFactorAction } from 'src/features/User/ResetTwoFactor'
+import { CandidateIntakeAnswers } from 'src/entities/Registration'
 import { EditableEntrepreneurCard } from 'src/shared/ui/EditableEntrepreneurCard'
 import { EditableIndividualCard } from 'src/shared/ui/EditableIndividualCard'
 import { EditableOrganizationCard } from 'src/shared/ui/EditableOrganizationCard'
@@ -67,6 +91,10 @@ const props = defineProps<{
   /** Как называть верификатора и участок в подписи уровня. */
   naming?: VerificationNaming
 }>()
+
+// Данные пайщика правит председатель; остальным карточка открывается на просмотр, без кнопки «Сохранить».
+const desktop = useDesktopStore()
+const canEdit = computed(() => desktop.hasGrant('soviet', 'Account:update'))
 
 // Emits
 const emit = defineEmits<{
@@ -118,6 +146,12 @@ const onUpdate = (newData: IIndividualData | IOrganizationData | IEntrepreneurDa
   display: flex;
   flex-direction: column;
   gap: var(--p-2);
+  margin-bottom: var(--p-4);
+  padding-bottom: var(--p-4);
+  border-bottom: 1px solid var(--p-line);
+}
+
+.participant-details__intake {
   margin-bottom: var(--p-4);
   padding-bottom: var(--p-4);
   border-bottom: 1px solid var(--p-line);

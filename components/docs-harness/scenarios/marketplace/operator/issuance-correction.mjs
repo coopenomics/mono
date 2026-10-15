@@ -17,7 +17,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { cleanViteOverlays, env, loginAs, pickBranchIfAsked } from '../../../lib/harness.mjs';
+import { cleanViteOverlays, confirmIdentityIfAsked, env, loginAs, pickBranchIfAsked } from '../../../lib/harness.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -69,7 +69,7 @@ async function sumByLabel(dialog, label) {
  * читать сумму сразу после ввода значит читать доредактированное состояние.
  */
 async function setFactField(dialog, index, value, prevTotal) {
-  const input = dialog.locator('.correction-table__fact input').nth(index);
+  const input = dialog.locator('.correction-table__row input[type="number"]').nth(index);
   await input.click();
   await input.fill(String(value));
   await input.blur();
@@ -110,12 +110,13 @@ export default async ({ page, shot, expect }) => {
   await page.waitForTimeout(8000);
   await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
   await cleanViteOverlays(page);
+  await confirmIdentityIfAsked(page, { shot });
 
   const dialog = page.locator('[id^="q-portal--dialog--"]').filter({ hasText: 'Открытие выдачи пайщику' }).first();
   await expect(dialog.locator('text=Открытие выдачи пайщику').first()).toBeVisible({ timeout: 20000 });
 
-  const qtyInput = dialog.locator('.correction-table__fact input').first();
-  const priceInput = dialog.locator('.correction-table__fact input').nth(1);
+  const qtyInput = dialog.locator('.correction-table__row input[type="number"]').first();
+  const priceInput = dialog.locator('.correction-table__row input[type="number"]').nth(1);
   const plannedQty = Number.parseFloat(await qtyInput.inputValue());
   const unitPrice = Number.parseFloat(await priceInput.inputValue());
   const baseTotal = await sumByLabel(dialog, 'Итого к оплате');
@@ -151,18 +152,22 @@ export default async ({ page, shot, expect }) => {
     },
   );
 
-  // ── Цена повышена ────────────────────────────────────────────────────────
+  // ── Цену поднять нельзя ──────────────────────────────────────────────────
+  // Форма обрезает цену до цены приёмки: поднять её при выдаче нельзя, отказали
+  // бы и сервер, и контракт. Набранное вдвое большее значение возвращается к
+  // потолку, итог — к исходному.
   const dearerTotal = await setFactField(dialog, 1, (unitPrice * 2).toFixed(2), cheaperTotal);
+  const cappedPrice = Number.parseFloat(await priceInput.inputValue());
 
   await shot(
     page,
     '03-dearer',
-    'Цена поднята выше заказанной: итог вырос, и разница показана как доплата по факту — она спишется с паевого взноса пайщика.',
+    'Оператор пробует поднять цену выше цены приёмки: форма возвращает её к потолку, итог к оплате равен исходному. Цена при выдаче только снижается — уценкой.',
     {
       preserveNotifications: true,
       expect: async () => {
-        expect(dearerTotal).toBeGreaterThan(cheaperTotal);
-        expect(dearerTotal).toBeGreaterThan(baseTotal);
+        expect(cappedPrice).toBe(unitPrice);
+        expect(dearerTotal).toBe(baseTotal);
       },
     },
   );

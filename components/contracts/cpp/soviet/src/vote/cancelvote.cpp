@@ -32,7 +32,7 @@ void soviet::cancelvote(eosio::name coopname, eosio::name member, uint64_t decis
     uint64_t total_members = board.get_members_count();
     uint64_t consensus_percent = 50;
 
-    decisions.modify(decision, _soviet, [&](auto& row) {
+    decisions.modify(decision, RamPayer::of(decisions, coopname), [&](auto& row) {
       row.votes_for.erase(vote_for_it);
       uint64_t votes_for_count = row.votes_for.size();
       row.approved = (votes_for_count * 100 / total_members) > consensus_percent;
@@ -42,7 +42,7 @@ void soviet::cancelvote(eosio::name coopname, eosio::name member, uint64_t decis
   // Удаление голоса "против", если он существует
   auto vote_against_it = std::find(decision->votes_against.begin(), decision->votes_against.end(), member);
   if (vote_against_it != decision->votes_against.end()) {
-    decisions.modify(decision, _soviet, [&](auto& row) {
+    decisions.modify(decision, RamPayer::of(decisions, coopname), [&](auto& row) {
       row.votes_against.erase(vote_against_it);
     });
   }

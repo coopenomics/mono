@@ -24,7 +24,7 @@ namespace Capital::Core::Voting {
         st.config.creators_voting_percent
       );
     
-      projects.modify(project, coopname, [&](auto &p) {
+      projects.modify(project, RamPayer::of(projects, coopname), [&](auto &p) {
           p.voting.authors_voting_percent = st.config.authors_voting_percent;
           p.voting.creators_voting_percent = st.config.creators_voting_percent;
           p.voting.voting_deadline = time_point_sec(current_time_point().sec_since_epoch() + st.config.voting_period_in_days * 86400);
@@ -204,7 +204,7 @@ namespace Capital::Core::Voting {
 
         // Обновляем статус голосования только если участник получил право голоса
         if (!had_vote_before && should_have_vote) {
-            segments.modify(segment, _capital, [&](auto &s) {
+            segments.modify(segment, RamPayer::of(segments, coopname), [&](auto &s) {
                 s.has_vote = true;
             });
             

@@ -21,6 +21,8 @@ void capital::signact1(eosio::name coopname, eosio::name username, checksum256 r
   
   // Проверяем документ
   verify_document_or_fail(act, {username});
+  // Акт подписан ключом аккаунта самого участника. Транзакцию шлёт кооператив, поэтому ключ сверяется с аккаунтом.
+  verify_signer_keys_or_fail(act, username);
 
   // Проверяем результат и права
   auto exist_result = Capital::Results::get_result(coopname, result_hash);

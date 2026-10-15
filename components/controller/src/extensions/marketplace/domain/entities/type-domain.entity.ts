@@ -1,5 +1,4 @@
 import type { CategoryDomainEntity } from './category-domain.entity';
-import type { CategoryTypeAttributeDomainEntity } from './category-type-attribute-domain.entity';
 
 /**
  * Доменная сущность типа товара для marketplace расширения
@@ -11,7 +10,6 @@ export class TypeDomainEntity {
   public readonly disabled: boolean;
   public readonly descriptionCategoryId: number;
   public readonly category: CategoryDomainEntity;
-  public readonly categoryTypeAttributes: CategoryTypeAttributeDomainEntity[];
   public readonly createdAt: Date;
   public readonly updatedAt: Date;
 
@@ -21,7 +19,6 @@ export class TypeDomainEntity {
     disabled: boolean;
     descriptionCategoryId: number;
     category: CategoryDomainEntity;
-    categoryTypeAttributes?: CategoryTypeAttributeDomainEntity[];
     createdAt?: Date;
     updatedAt?: Date;
   }) {
@@ -30,7 +27,6 @@ export class TypeDomainEntity {
     this.disabled = data.disabled;
     this.descriptionCategoryId = data.descriptionCategoryId;
     this.category = data.category;
-    this.categoryTypeAttributes = data.categoryTypeAttributes || [];
     this.createdAt = data.createdAt || new Date();
     this.updatedAt = data.updatedAt || new Date();
   }
@@ -47,19 +43,5 @@ export class TypeDomainEntity {
    */
   getFullName(): string {
     return `${this.category.categoryName} / ${this.typeName}`;
-  }
-
-  /**
-   * Получает все атрибуты для данного типа
-   */
-  getAttributes(): CategoryTypeAttributeDomainEntity[] {
-    return this.categoryTypeAttributes;
-  }
-
-  /**
-   * Получает обязательные атрибуты
-   */
-  getRequiredAttributes(): CategoryTypeAttributeDomainEntity[] {
-    return this.categoryTypeAttributes.filter((cta) => cta.attribute.isRequired);
   }
 }

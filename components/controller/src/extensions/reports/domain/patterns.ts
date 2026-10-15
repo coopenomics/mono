@@ -16,6 +16,9 @@ export const INN_PATTERN = /^(\d{10}|\d{12})$/;
 /** ИНН юрлица (БУХОТЧ, ЕФС-1 УТ8: только 10). */
 export const INN_UL_PATTERN = /^\d{10}$/;
 
+/** ИНН физлица (ПСВ ПерсСвФЛ @ИННФЛ: только 12). */
+export const INN_FL_PATTERN = /^\d{12}$/;
+
 // КПП: 9 символов, формат NNNNLLNNN, где LL — 2 буквенно-цифровых символа.
 export const KPP_PATTERN = /^\d{4}[0-9A-Z]{2}\d{3}$/;
 

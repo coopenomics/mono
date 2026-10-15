@@ -1,18 +1,18 @@
 <template lang="pug">
 .voting-page(:class='{ "voting-page--standalone": isStandaloneVoting }')
-  WindowLoader(v-show='isInitialLoading', text='Загрузка данных голосования...')
+  WindowLoader(v-show='isInitialLoading', :text='$t("capital.componentVotingPage.loadingText")')
 
   .voting-page__body(v-show='!isInitialLoading')
     .voting-page__nav(v-if='isStandaloneVoting')
       BaseButton(variant='ghost', size='sm', @click='goBack')
         template(#icon-left)
           q-icon(name='arrow_back')
-        | К результатам
+        | {{ $t('capital.componentVotingPage.backToResultsLabel') }}
 
     EmptyState(
       v-if='!canShowVoting',
-      title='Голосование ещё не началось',
-      body='Голосование будет доступно после завершения работы над проектом. Следите за статусом на странице описания.'
+      :title='$t("capital.componentVotingPage.notStartedTitle")',
+      :body='$t("capital.componentVotingPage.notStartedBody")'
     )
       template(#icon)
         q-icon(name='how_to_vote')
@@ -34,29 +34,29 @@
               v-if='isStandaloneVoting || project.voting?.voting_deadline',
               compact,
               neutral,
-              title='Голосование до',
+              :title='$t("capital.componentVotingPage.deadlineTitle")',
               :balance='formatDeadline(project.voting?.voting_deadline)',
               symbol='',
-              balance-label='срок',
+              :balance-label='$t("capital.componentVotingPage.deadlineBalanceLabel")',
               icon='event'
             )
             WalletCard(
               compact,
               neutral,
-              title='На распределении',
+              :title='$t("capital.componentVotingPage.poolTitle")',
               :balance='formatMoneyAmount(project.voting.amounts.total_voting_pool)',
               :symbol='governSymbol',
-              balance-label='пул',
+              :balance-label='$t("capital.componentVotingPage.poolBalanceLabel")',
               icon='account_balance'
             )
             WalletCard(
               v-if='!isVotingCompleted(project)',
               compact,
               neutral,
-              title='Голосующая сумма',
+              :title='$t("capital.componentVotingPage.myVoteTitle")',
               :balance='formatMoneyAmount(project.voting.amounts.active_voting_amount)',
               :symbol='governSymbol',
-              balance-label='ваш голос',
+              :balance-label='$t("capital.componentVotingPage.myVoteBalanceLabel")',
               icon='payments'
             )
 
@@ -92,11 +92,13 @@
 
 <script lang="ts" setup>
 import { onMounted, onBeforeUnmount, ref, computed, watch } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { CAPITAL_LIVE_TABLES } from 'app/extensions/capital/shared/lib/live';
+import { uiLocale } from 'src/shared/i18n';
 import { useRoute, useRouter } from 'vue-router';
 import { useSystemStore } from 'src/entities/System/model';
-import { useExpandableState, useDataPoller } from 'src/shared/lib/composables';
+import { useExpandableState } from 'src/shared/lib/composables';
 import { goBackOr } from 'src/shared/lib/navigation';
-import { POLL_INTERVALS } from 'src/shared/lib/consts';
 import { WindowLoader } from 'src/shared/ui/Loader';
 import { EmptyState, BaseButton, BaseBadge } from 'src/shared/ui/base';
 import type { BaseBadgeVariant } from 'src/shared/ui/base';
@@ -110,6 +112,7 @@ import { useProjectLoader } from 'app/extensions/capital/entities/Project/model'
 import { useDesktopStore } from 'src/entities/Desktop/model';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { Zeus } from '@coopenomics/sdk';
+import { t } from '../../../i18n';
 
 const route = useRoute();
 const router = useRouter();
@@ -146,9 +149,9 @@ const isVotingCompleted = (proj: any) => {
 
 const statusLabel = computed(() => {
   const status = String(project.value?.status || '');
-  if (status === Zeus.ProjectStatus.VOTING) return 'Активно';
-  if (status === Zeus.ProjectStatus.RESULT) return 'Завершено';
-  return 'Неизвестно';
+  if (status === Zeus.ProjectStatus.VOTING) return t('capital.componentVotingPage.statusActive');
+  if (status === Zeus.ProjectStatus.RESULT) return t('capital.componentVotingPage.statusFinished');
+  return t('capital.componentVotingPage.statusUnknown');
 });
 
 const statusVariant = computed<BaseBadgeVariant>(() => {
@@ -161,18 +164,18 @@ const statusVariant = computed<BaseBadgeVariant>(() => {
 const voteFinished = computed(() => isVotingCompleted(project.value));
 
 const voteSectionEyebrow = computed(() =>
-  voteFinished.value ? 'Итоги' : 'Участие',
+  voteFinished.value ? t('capital.componentVotingPage.summaryLabel') : t('capital.componentVotingPage.participationLabel'),
 );
 
 const voteSectionTitle = computed(() =>
-  voteFinished.value ? 'Результаты голосования' : 'Распределение голосов',
+  voteFinished.value ? t('capital.componentVotingPage.resultsTitle') : t('capital.componentVotingPage.distributionTitle'),
 );
 
 function formatDeadline(deadline?: string) {
   if (!deadline) return '—';
   try {
     const date = new Date(deadline);
-    return date.toLocaleString('ru-RU', {
+    return date.toLocaleString(uiLocale(), {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
@@ -239,10 +242,9 @@ const reloadVotingData = async () => {
   }
 };
 
-const { start: startVotingPoll, stop: stopVotingPoll } = useDataPoller(
-  reloadVotingData,
-  { interval: POLL_INTERVALS.FAST, immediate: false },
-);
+// Живой экран: перечитывается по ленте изменений Благороста вместо опроса по
+// таймеру (набор таблиц — shared/lib/live).
+useLiveReload(CAPITAL_LIVE_TABLES, reloadVotingData);
 
 watch(
   () => project.value?.title,
@@ -260,11 +262,9 @@ onMounted(async () => {
   if (!canShowVoting.value) {
     isInitialLoading.value = false;
   }
-  startVotingPoll();
 });
 
 onBeforeUnmount(() => {
-  stopVotingPoll();
   if (isStandaloneVoting.value) {
     desktopStore.clearPageTitleOverride();
   }

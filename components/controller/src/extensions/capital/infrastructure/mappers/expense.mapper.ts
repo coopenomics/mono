@@ -1,12 +1,12 @@
 import { ExpenseDomainEntity } from '../../domain/entities/expense.entity';
-import { ExpenseTypeormEntity } from '../entities/expense.typeorm-entity';
+import { ExpenseRecord } from '../entities/expense.record';
 import type { IExpenseDatabaseData } from '../../domain/interfaces/expense-database.interface';
 import type { IExpenseBlockchainData } from '../../domain/interfaces/expense-blockchain.interface';
 import type { ISignedDocument } from '@coopenomics/innercoop';
 import type { RequireFields } from '@coopenomics/extension-kit';
 
-type toEntityDatabasePart = RequireFields<Partial<ExpenseTypeormEntity>, keyof IExpenseDatabaseData>;
-type toEntityBlockchainPart = RequireFields<Partial<ExpenseTypeormEntity>, keyof IExpenseBlockchainData>;
+type toEntityDatabasePart = RequireFields<Partial<ExpenseRecord>, keyof IExpenseDatabaseData>;
+type toEntityBlockchainPart = RequireFields<Partial<ExpenseRecord>, keyof IExpenseBlockchainData>;
 
 type toDomainDatabasePart = RequireFields<Partial<ExpenseDomainEntity>, keyof IExpenseDatabaseData>;
 type toDomainBlockchainPart = RequireFields<Partial<ExpenseDomainEntity>, keyof IExpenseBlockchainData>;
@@ -18,7 +18,7 @@ export class ExpenseMapper {
   /**
    * Преобразование TypeORM сущности в доменную сущность
    */
-  static toDomain(entity: ExpenseTypeormEntity): ExpenseDomainEntity {
+  static toDomain(entity: ExpenseRecord): ExpenseDomainEntity {
     const databaseData: toDomainDatabasePart = {
       _id: entity._id,
       block_num: entity.block_num,
@@ -41,7 +41,8 @@ export class ExpenseMapper {
         project_hash: entity.project_hash,
         expense_hash: entity.expense_hash,
         fund_id: entity.fund_id,
-        status: entity.status,
+        // Статус цепи как есть — из blockchain_status; доменный статус сущность выводит из него сама.
+        status: entity.blockchain_status as any,
         amount: entity.amount,
         description: entity.description,
         expense_statement: entity.expense_statement,
@@ -57,7 +58,7 @@ export class ExpenseMapper {
   /**
    * Преобразование доменной сущности в TypeORM сущность для создания
    */
-  static toEntity(domain: ExpenseDomainEntity): Partial<ExpenseTypeormEntity> {
+  static toEntity(domain: ExpenseDomainEntity): Partial<ExpenseRecord> {
     const dbPart: toEntityDatabasePart = {
       _id: domain._id,
       block_num: domain.block_num ?? 0,
@@ -79,7 +80,8 @@ export class ExpenseMapper {
         project_hash: domain.project_hash as string,
         expense_hash: domain.expense_hash,
         fund_id: domain.fund_id as string,
-        status: domain.blockchain_status as any,
+        // В колонку статуса идёт доменный статус; статус цепи как есть лежит в blockchain_status.
+        status: domain.status,
         amount: domain.amount as string,
         description: domain.description as string,
         expense_statement: domain.expense_statement as ISignedDocument,
@@ -96,8 +98,8 @@ export class ExpenseMapper {
    * Преобразование доменной сущности в данные для обновления TypeORM сущности
    * Обновляет только локальные поля базы данных, поля из блокчейна обновляются через синхронизацию
    */
-  static toUpdateEntity(domain: Partial<ExpenseDomainEntity>): Partial<ExpenseTypeormEntity> {
-    const updateData: Partial<ExpenseTypeormEntity> = {};
+  static toUpdateEntity(domain: Partial<ExpenseDomainEntity>): Partial<ExpenseRecord> {
+    const updateData: Partial<ExpenseRecord> = {};
 
     // Поля из базы данных (локальные)
     if (domain.block_num !== undefined) updateData.block_num = domain.block_num;

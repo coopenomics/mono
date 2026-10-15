@@ -12,6 +12,11 @@ export interface ICouncilOnboardingStep {
   question: string;
   decision: string;
   decisionPrefix?: string;
+  /**
+   * Документ для проекта решения собрать не удалось. Пока `decision` пуст и
+   * ошибки нет, окно показывает, что документ ещё формируется.
+   */
+  decisionError?: string | null;
   hash?: string | null;
   depends_on?: string[]; // ID шагов, которые должны быть завершены перед этим шагом
 }

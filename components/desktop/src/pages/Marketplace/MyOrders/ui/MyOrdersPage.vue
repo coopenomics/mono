@@ -1,5 +1,8 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { uiLocale, t } from 'src/shared/i18n';
+import { useFirstLoad } from 'src/shared/lib/composables';
 import { useRoute, useRouter } from 'vue-router';
 import { debounce } from 'quasar';
 import { FailAlert } from 'src/shared/api';
@@ -10,7 +13,7 @@ import { Map as MapView } from 'src/shared/ui/Map';
 import { PageHint } from 'src/shared/ui/domain';
 import { PageTabs, type PageTab } from 'src/shared/ui/layout';
 import { HandoffCodeDialog } from 'src/widgets/Marketplace/HandoffCode';
-import { HandoffTokenKind, useMarketplaceRealtime } from 'src/shared/lib/marketplace';
+import { HandoffTokenKind, marketLiveTables } from 'src/shared/lib/marketplace';
 import { fetchMyOrders } from '../api';
 import type { MarketplaceOrderStatusView, MarketplaceOrderView } from '../types';
 
@@ -45,7 +48,11 @@ const items = ref<MarketplaceOrderView[]>([]);
 const totalCount = ref(0);
 const totalPages = ref(0);
 const currentPage = ref(1);
-const loading = ref(false);
+// true до первого запроса: иначе первый кадр до загрузки показывает пустое
+// состояние вместо скелетона, и первая загрузка неотличима от пустого списка.
+const loading = ref(true);
+/** Скелетон — только на первой загрузке; дочитка обновляет молча. */
+const firstLoad = useFirstLoad(loading);
 const activeKey = ref('all');
 
 const hasMore = computed(() => currentPage.value < totalPages.value);
@@ -66,22 +73,22 @@ const receiveDialogOpen = ref(false);
 // «Готовятся» — принят → готовится → принят кооперативом (для заказчика это
 // единый этап «в работе»); «Отменены» — отмены, истёкшие циклы и возвраты.
 const FILTERS: Array<{ key: string; label: string; statuses: MarketplaceOrderStatusView[] | null }> = [
-  { key: 'all', label: 'Все', statuses: null },
-  { key: 'active', label: 'Активные', statuses: ['ACTIVE'] },
+  { key: 'all', label: t('marketplace.myOrdersPage.filterAll'), statuses: null },
+  { key: 'active', label: t('marketplace.myOrdersPage.filterActive'), statuses: ['ACTIVE'] },
   {
     key: 'pending-supplier',
-    label: 'Ждут поставщика',
+    label: t('marketplace.myOrdersPage.filterAwaitingSupplier'),
     statuses: ['ACCEPTED_PENDING_SUPPLIER', 'ACCEPTED_PENDING_SUPPLIER_INDIVIDUAL'],
   },
   {
     key: 'in-progress',
-    label: 'В работе',
-    statuses: ['ACCEPTED', 'SUPPLY_PREPARED', 'ACCEPTED_TO_COOP'],
+    label: t('marketplace.myOrdersPage.filterInProgress'),
+    statuses: ['ACCEPTED', 'SUPPLY_PREPARED', 'ACCEPTED_TO_COOP', 'READY_TO_RECEIVE', 'ISSUE_PENDING', 'ISSUE_AUTHORIZED', 'ISSUE_ACT1'],
   },
-  { key: 'received', label: 'Получены', statuses: ['RECEIVED'] },
+  { key: 'received', label: t('marketplace.myOrdersPage.filterReceived'), statuses: ['RECEIVED'] },
   {
     key: 'closed',
-    label: 'Отменены',
+    label: t('marketplace.myOrdersPage.filterCancelled'),
     statuses: [
       'CANCELLED_BY_ORDERER',
       'CANCELLED_BY_SUPPLIER',
@@ -103,13 +110,13 @@ const toCardModel = toOrderCardModel;
 const symbol = computed(() => system.governSymbol);
 
 function money(value: string | number): string {
-  return Number(value).toLocaleString('ru-RU');
+  return Number(value).toLocaleString(uiLocale());
 }
 
 function formatDate(iso: string): string {
   if (!iso) return '';
   const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? iso : d.toLocaleDateString('ru-RU');
+  return Number.isNaN(d.getTime()) ? iso : d.toLocaleDateString(uiLocale());
 }
 
 /**
@@ -164,7 +171,7 @@ function groupByCheckout(list: MarketplaceOrderView[]): OrderGroup[] {
  * Story 16.x: получение группируется ПО ПУНКТУ ВЫДАЧИ (КУ), слежение — по
  * корзине. Поездка за товаром — единица по пункту, не по корзине: на один КУ
  * заказчик приезжает разом и подписывает всё готовое одной сессией (бэкенд так
- * и делает — `signiss2` циклом по партии пункта). Поэтому готовые к выдаче
+ * и делает — бандл выдачи по партии пункта, заявления одним нажатием). Поэтому готовые к выдаче
  * позиции одного КУ (>=2 шт.) сводятся в ОДНУ карточку-партию с ОДНОЙ кнопкой
  * «Подписать и получить всё»; внутренние карточки — readonly (без своих кнопок).
  *
@@ -211,7 +218,7 @@ function openMap(order: OrderCardModel): void {
   mapTarget.value = {
     lat: order.pvzLat,
     lng: order.pvzLng,
-    name: order.pvzName || order.pvz || 'Пункт выдачи',
+    name: order.pvzName || order.pvz || t('marketplace.myOrdersPage.pvzFilterLabel'),
   };
   mapOpen.value = true;
 }
@@ -271,14 +278,11 @@ const reloadLive = debounce(() => {
   if (loading.value) return;
   void load(currentPage.value, false);
 }, 400);
-useMarketplaceRealtime(
-  { MarketplaceOrderStatusChangedEvent: () => reloadLive() },
-  { onResync: () => reloadLive() }
-);
+useLiveReload(marketLiveTables('order'), () => reloadLive());
 </script>
 
 <template lang="pug">
-q-page.orders(role="region", aria-label="Мои заказы")
+q-page.orders(role="region", :aria-label="$t('marketplace.myOrdersPage.ariaLabel')")
   //- Действия — в шапку (канон Teleport). «Показать QR» дублируем здесь и
   //- на детали заказа, чтобы код выдачи был под рукой везде, не только на
   //- отдельной странице.
@@ -286,22 +290,22 @@ q-page.orders(role="region", aria-label="Мои заказы")
     BaseButton(variant="secondary", size="sm", @click="goReceive")
       template(#icon-left)
         q-icon(name="qr_code_2", size="16px")
-      | Показать QR
+      | {{ $t('marketplace.myOrdersPage.showQrAction') }}
 
   PageHint(storage-key="mp:my-orders:banner-dismissed")
-    | Здесь все ваши заказы — от оформления до получения на пункте выдачи.
-    | Отменить заказ можно, пока его не принял поставщик. Получение оформит
-    | оператор на месте — акт вы подпишете там же.
+    | {{ $t('marketplace.myOrdersPage.bannerHintIntro') }}
+    | {{ $t('marketplace.myOrdersPage.bannerHintCancelWindow') }}
+    | {{ $t('marketplace.myOrdersPage.bannerHintOperatorSign') }}
 
   PageTabs.orders__tabs(:tabs="tabs", :active-key="activeKey", @select="onSelectTab")
 
   //- Канон загрузки: скелетон на первичной загрузке, не пустой экран.
-  CardListSkeleton(v-if="loading && !items.length", :count="3")
+  CardListSkeleton(v-if="firstLoad", :count="3")
 
   EmptyState(
-    v-if="!items.length && !loading",
-    title="У вас пока нет заказов",
-    body="Перейдите в каталог, чтобы оформить первый заказ."
+    v-if="!items.length && !firstLoad",
+    :title="$t('marketplace.myOrdersPage.emptyTitle')",
+    :body="$t('marketplace.myOrdersPage.emptyBody')"
   )
     template(#icon)
       q-icon(name="shopping_cart", size="48px")
@@ -314,8 +318,8 @@ q-page.orders(role="region", aria-label="Мои заказы")
       .orders__group(v-if="row.type === 'group'")
         .orders__group-head
           q-icon(name="receipt_long", size="18px", color="primary")
-          .orders__group-title Заказ от {{ formatDate(row.group.createdAt) }} · {{ row.group.deliveryName }}
-          .orders__group-meta {{ row.group.count }} поз. · {{ money(row.group.totalCost) }} {{ symbol }}
+          .orders__group-title {{ $t('marketplace.myOrdersPage.orderGroupTitle', { date: formatDate(row.group.createdAt), deliveryName: row.group.deliveryName }) }}
+          .orders__group-meta {{ $t('marketplace.myOrdersPage.orderGroupSummary', { count: row.group.count, amount: money(row.group.totalCost), symbol }) }}
         .orders__grid
           OrderCard(
             v-for="o in row.group.orders",
@@ -340,12 +344,12 @@ q-page.orders(role="region", aria-label="Мои заказы")
         )
 
   .row.justify-center.q-my-md(v-if="hasMore")
-    BaseButton(variant="ghost", :loading="loading", @click="onLoadMore") Загрузить ещё
+    BaseButton(variant="ghost", :loading="loading", @click="onLoadMore") {{ $t('marketplace.myOrdersPage.loadMoreAction') }}
 
   HandoffCodeDialog(v-model="receiveDialogOpen", :coopname="coopname", :kind="HandoffTokenKind.Receive")
 
   //- Карта пункта выдачи «куда ехать» — по клику на геопозицию карточки.
-  BaseDialog(v-model="mapOpen", :title="mapTarget?.name || 'Пункт выдачи'")
+  BaseDialog(v-model="mapOpen", :title="mapTarget?.name || $t('marketplace.myOrdersPage.pvzFilterLabel')")
     MapView(v-if="mapTarget", :lat="mapTarget.lat", :long="mapTarget.lng")
 </template>
 
@@ -357,15 +361,6 @@ q-page.orders(role="region", aria-label="Мои заказы")
   display: flex;
   flex-direction: column;
   gap: var(--p-4, 16px);
-
-  // Канон-tabbar тянется во всю ширину; в странице с боковыми отступами
-  // убираем его внутренний горизонтальный паддинг, чтобы вкладки шли от края.
-  &__tabs {
-    margin: 0 calc(-1 * var(--p-6, 24px));
-    :deep(.tabbar__tabs) {
-      padding: 0 var(--p-6, 24px);
-    }
-  }
 
   // Список строк на всю ширину (OrderCard layout="row"), не сетка плиток:
   // сверху вниз — от самого нового к самому старому, порядок читается

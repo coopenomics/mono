@@ -1,5 +1,7 @@
 #pragma once
 
+
+#include "../../../lib/core/ram_payer.hpp"
 #include "generation_amounts.hpp"
 
 using namespace eosio;
@@ -122,7 +124,7 @@ inline void create_commit(
   auto commit_id = get_global_id_in_scope(_capital, coopname, "commits"_n);
   
   // Создаем коммит в таблице commits
-  commits.emplace(coopname, [&](auto &c) {
+  commits.emplace(RamPayer::of(commits, coopname), [&](auto &c) {
     c.id = commit_id;
     c.status = Capital::Commits::Status::CREATED;
     c.coopname = coopname;
@@ -137,3 +139,6 @@ inline void create_commit(
 }
 
 } // namespace Capital::Commits
+
+// Плательщик за оперативную память строк таблицы — правило в lib/core/ram_payer.hpp.
+RAM_PAYER_CLASS(Capital::Commits::commit, cooperative);

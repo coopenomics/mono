@@ -3,11 +3,15 @@ import { decisionFactory } from 'src/shared/lib/decision-factory';
 import { DigitalDocument } from 'src/shared/lib/document';
 import { useSystemStore } from 'src/entities/System/model';
 import { useGenerateFreeDecision } from 'src/features/FreeDecision/GenerateDecision';
-import { useGenerateParticipantApplicationDecision } from 'src/features/Decision/ParticipantApplication';
+import {
+  ParticipantIntakeInfo,
+  useGenerateParticipantApplicationDecision,
+} from 'src/features/Decision/ParticipantApplication';
 import { useGenerateSovietDecisionOnAnnualMeet } from 'src/features/Meet/GenerateSovietDecision/model';
 import { useGenerateReturnByMoneyDecision } from 'src/features/Wallet/GenerateReturnByMoneyDecision';
 import { useGenerateEstablishmentDecision } from 'src/features/Ku/GenerateEstablishmentDecision';
 import { useGenerateMembershipExitDecision } from 'src/features/Membership/GenerateMembershipExitDecision';
+import { t } from 'src/shared/i18n';
 
 /**
  * Регистрация обработчиков базовых решений
@@ -18,7 +22,7 @@ export function registerBaseDecisionHandlers() {
   decisionFactory.registerHandler('freedecision', {
     generateHandler: async ({ decision_id, username, row }) => {
       if (!row.table?.statement?.meta) {
-        throw new Error('Отсутствуют метаданные заявления для решения freedecision');
+        throw new Error(t('processDecisions.error.freedecisionMetaMissing'));
       }
 
       const parsedDocumentMeta = JSON.parse(
@@ -26,7 +30,7 @@ export function registerBaseDecisionHandlers() {
       ) as Cooperative.Registry.FreeDecision.Action;
 
       if (!parsedDocumentMeta.project_id) {
-        throw new Error('Отсутствует project_id в метаданных заявления');
+        throw new Error(t('processDecisions.error.projectIdMissing'));
       }
 
       const { generateFreeDecision } = useGenerateFreeDecision();
@@ -42,7 +46,7 @@ export function registerBaseDecisionHandlers() {
   decisionFactory.registerHandler('branchdec', {
     generateHandler: async ({ decision_id, username, row }) => {
       if (!row.table?.statement?.meta) {
-        throw new Error('Отсутствуют метаданные заявления для решения branchdec');
+        throw new Error(t('processDecisions.error.branchdecMetaMissing'));
       }
 
       // в мете заявления (петиции 324) — реквизиты учреждаемого участка
@@ -72,17 +76,20 @@ export function registerBaseDecisionHandlers() {
         decision_id,
       });
     },
+    // Рядом с заявлением совет видит, что заявитель рассказал о себе в анкетах
+    // вступления (сопроводительное письмо и т.п.).
+    infoComponent: ParticipantIntakeInfo,
   });
 
   // Обработчик для AnnualGeneralMeetingSovietDecision (решение совета о годовом собрании)
   decisionFactory.registerHandler('creategm', {
     generateHandler: async ({ decision_id, username, row }) => {
       if (!row.table?.statement?.meta) {
-        throw new Error('Отсутствуют метаданные заявления для решения creategm');
+        throw new Error(t('processDecisions.error.creategmMetaMissing'));
       }
 
       if (!row.table?.hash) {
-        throw new Error('Отсутствует hash для решения creategm');
+        throw new Error(t('processDecisions.error.creategmHashMissing'));
       }
 
       const { generateSovietDecisionOnAnnualMeet } =
@@ -105,7 +112,7 @@ export function registerBaseDecisionHandlers() {
   decisionFactory.registerHandler('createwthd', {
     generateHandler: async ({ decision_id, username, row }) => {
       if (!row.table?.statement?.meta) {
-        throw new Error('Отсутствуют метаданные заявления для решения createwthd');
+        throw new Error(t('processDecisions.error.createwthdMetaMissing'));
       }
 
       const { generateReturnByMoneyDecision } =
@@ -116,7 +123,7 @@ export function registerBaseDecisionHandlers() {
       ) as Cooperative.Registry.ReturnByMoney.Action;
 
       if (!parsedDocumentMeta.payment_hash || !parsedDocumentMeta.quantity || !parsedDocumentMeta.currency) {
-        throw new Error('Некорректные метаданные заявления для решения createwthd');
+        throw new Error(t('processDecisions.error.createwthdMetaInvalid'));
       }
 
       return await generateReturnByMoneyDecision({
@@ -138,7 +145,7 @@ export function registerBaseDecisionHandlers() {
   decisionFactory.registerHandler('mktwroff', {
     generateHandler: async ({ decision_id, username, row }) => {
       if (!row.table?.statement?.meta) {
-        throw new Error('Отсутствуют метаданные заявления для решения mktwroff');
+        throw new Error(t('processDecisions.error.mktwroffMetaMissing'));
       }
 
       const statementMeta = JSON.parse(
@@ -146,7 +153,7 @@ export function registerBaseDecisionHandlers() {
       ) as Cooperative.Registry.MarketplaceWriteoffStatement.Action;
 
       if (!statementMeta.proposal_hash || !Array.isArray(statementMeta.items)) {
-        throw new Error('Некорректные метаданные заявления для решения mktwroff');
+        throw new Error(t('processDecisions.error.mktwroffMetaInvalid'));
       }
 
       const { info } = useSystemStore();
@@ -180,7 +187,7 @@ export function registerBaseDecisionHandlers() {
   decisionFactory.registerHandler('brnaid', {
     generateHandler: async ({ decision_id, username, row }) => {
       if (!row.table?.statement?.meta) {
-        throw new Error('Отсутствуют метаданные заявления для решения brnaid');
+        throw new Error(t('processDecisions.error.brnaidMetaMissing'));
       }
 
       const statementMeta = JSON.parse(
@@ -193,7 +200,7 @@ export function registerBaseDecisionHandlers() {
         !statementMeta.amount ||
         !statementMeta.username
       ) {
-        throw new Error('Некорректные метаданные заявления для решения brnaid');
+        throw new Error(t('processDecisions.error.brnaidMetaInvalid'));
       }
 
       const { info } = useSystemStore();

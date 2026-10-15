@@ -3,7 +3,7 @@ import { WorkflowBuilder } from '../../base/workflow-builder';
 import { z } from 'zod';
 import { BaseWorkflowPayload } from '../../types';
 import { createInAppStep, createPushStep } from '../../base/defaults';
-import { slugify } from '../../utils';
+import { nt } from '../../i18n';
 
 export const marketplaceAplReceptionCancelledBySupplierPayloadSchema = z.object({
   operatorName: z.string(),
@@ -18,28 +18,31 @@ export type IPayload = z.infer<typeof marketplaceAplReceptionCancelledBySupplier
 
 export interface IWorkflow extends BaseWorkflowPayload, IPayload {}
 
-export const name = 'Поставщик отменил приёмку на ПВЗ';
-export const id = slugify(name);
+export const name = nt('marketplaceAplReceptionCancelledBySupplier.name');
+// Идентификатор закреплён: раньше он вычислялся из названия, и правка
+// или перевод названия меняли бы его. Не менять — на него ссылаются подписки.
+export const id = 'postavschik-otmenil-priyomku-na-pvz';
 
 export const workflow: WorkflowDefinition<IWorkflow> = WorkflowBuilder
   .create<IWorkflow>()
   .name(name)
   .workflowId(id)
+  .i18nKey('marketplaceAplReceptionCancelledBySupplier')
   .description(
-    'Уведомление оператору ПВЗ, который сформировал акт приёмки: поставщик у стойки отказался подписывать и отменил черновик. Нужно повторить приёмку или оформить отказ в приёмке по партии.'
+    nt('marketplaceAplReceptionCancelledBySupplier.description')
   )
   .payloadSchema(marketplaceAplReceptionCancelledBySupplierPayloadSchema)
   .tags(['marketplace', 'operator'])
   .addSteps([
     createInAppStep(
       'marketplace-apl-reception-cancelled-by-supplier-notification',
-      'Поставщик отменил приёмку',
-      '{{payload.supplierName}} не подтвердил приёмку на КУ {{payload.kuName}}. Повторите приёмку или оформите отказ в приёмке по партии.'
+      nt('marketplaceAplReceptionCancelledBySupplier.inApp.subject'),
+      nt('marketplaceAplReceptionCancelledBySupplier.inApp.body')
     ),
     createPushStep(
       'marketplace-apl-reception-cancelled-by-supplier-push',
-      'Поставщик отменил приёмку',
-      '{{payload.supplierName}} на КУ {{payload.kuName}}: повторите приёмку или оформите отказ.'
+      nt('marketplaceAplReceptionCancelledBySupplier.push.subject'),
+      nt('marketplaceAplReceptionCancelledBySupplier.push.body')
     ),
   ])
   .build();

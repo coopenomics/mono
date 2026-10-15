@@ -33,7 +33,7 @@ const passport: VerificationTypeEntry = {
   attested_in: 'branch1',
 };
 
-describe('buildParticipantClaims (Story 7.0 карты пайщика, FR-E1)', () => {
+describe('buildParticipantClaims (Story 7.0 карты кооператора, FR-E1)', () => {
   it('принятый пайщик: member=true, дата приёма — verified_at начального уровня', () => {
     expect(buildParticipantClaims('voskhod', 'ant', [baseline, passport], account)).toEqual({
       coopname: 'voskhod',

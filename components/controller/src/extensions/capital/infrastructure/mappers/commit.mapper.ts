@@ -1,11 +1,11 @@
 import { CommitDomainEntity, type CommitData } from '../../domain/entities/commit.entity';
-import { CommitTypeormEntity } from '../entities/commit.typeorm-entity';
+import { CommitRecord } from '../entities/commit.record';
 import type { ICommitDatabaseData } from '../../domain/interfaces/commit-database.interface';
 import type { ICommitBlockchainData } from '../../domain/interfaces/commit-blockchain.interface';
 import type { RequireFields } from '@coopenomics/extension-kit';
 
-type toEntityDatabasePart = RequireFields<Partial<CommitTypeormEntity>, keyof ICommitDatabaseData>;
-type toEntityBlockchainPart = RequireFields<Partial<CommitTypeormEntity>, keyof ICommitBlockchainData>;
+type toEntityDatabasePart = RequireFields<Partial<CommitRecord>, keyof ICommitDatabaseData>;
+type toEntityBlockchainPart = RequireFields<Partial<CommitRecord>, keyof ICommitBlockchainData>;
 
 type toDomainDatabasePart = RequireFields<Partial<CommitDomainEntity>, keyof ICommitDatabaseData>;
 type toDomainBlockchainPart = RequireFields<Partial<CommitDomainEntity>, keyof ICommitBlockchainData>;
@@ -17,7 +17,7 @@ export class CommitMapper {
   /**
    * Преобразование TypeORM сущности в доменную сущность
    */
-  static toDomain(entity: CommitTypeormEntity): CommitDomainEntity {
+  static toDomain(entity: CommitRecord): CommitDomainEntity {
     const databaseData: toDomainDatabasePart = {
       _id: entity._id,
       block_num: entity.block_num,
@@ -56,7 +56,7 @@ export class CommitMapper {
   /**
    * Преобразование доменной сущности в TypeORM сущность для создания
    */
-  static toEntity(domain: CommitDomainEntity): Partial<CommitTypeormEntity> {
+  static toEntity(domain: CommitDomainEntity): Partial<CommitRecord> {
     const dbPart: toEntityDatabasePart = {
       _id: domain._id,
       block_num: domain.block_num ?? 0,
@@ -93,8 +93,8 @@ export class CommitMapper {
    * Преобразование доменной сущности в данные для обновления TypeORM сущности
    * Обновляет только локальные поля базы данных, поля из блокчейна обновляются через синхронизацию
    */
-  static toUpdateEntity(domain: Partial<CommitDomainEntity>): Partial<CommitTypeormEntity> {
-    const updateData: Partial<CommitTypeormEntity> = {};
+  static toUpdateEntity(domain: Partial<CommitDomainEntity>): Partial<CommitRecord> {
+    const updateData: Partial<CommitRecord> = {};
 
     // Поля из базы данных (локальные)
     if (domain.block_num !== undefined) updateData.block_num = domain.block_num;

@@ -19,7 +19,7 @@ q-btn-dropdown(
       q-item-section
         q-item-label
           q-icon.q-mr-sm(name='fa-solid fa-hammer')
-          span.font10px НАСТРОЙКИ КООПЕРАТИВА
+          span.font10px {{ $t('header.settingsDropdown.coopSettingsMenu') }}
 
     q-item(
       flat,
@@ -31,7 +31,7 @@ q-btn-dropdown(
       q-item-section
         q-item-label
           q-icon.q-mr-sm(name='fa-solid fa-plus')
-          span.font10px МАГАЗИН РАСШИРЕНИЙ
+          span.font10px {{ $t('header.settingsDropdown.extensionStoreMenu') }}
 </template>
 <script lang="ts" setup>
 import { useRouter } from 'vue-router';

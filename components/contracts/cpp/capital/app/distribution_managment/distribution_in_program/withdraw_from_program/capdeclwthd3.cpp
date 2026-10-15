@@ -32,7 +32,7 @@ void capital::capdeclwthd3(name coopname, checksum256 withdraw_hash, std::string
     auto wallet_itr = idx.find(withdraw->username.value);
     
     if (wallet_itr != idx.end()) {
-      idx.modify(wallet_itr, _capital, [&](auto &w) {
+      idx.modify(wallet_itr, RamPayer::of(idx, coopname), [&](auto &w) {
         w.capital_available += withdraw->amount;
       });
       

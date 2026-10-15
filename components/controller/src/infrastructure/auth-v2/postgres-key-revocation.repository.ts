@@ -1,6 +1,5 @@
-import { Injectable, OnModuleDestroy } from '@nestjs/common';
-import { DataSource } from 'typeorm';
-import config from '~/config/config';
+import { Inject, Injectable } from '@nestjs/common';
+import { COOP_DOMAIN_DATABASE, type ICoopDomainDatabase } from '~/domain/auth-v2/ports/coop-domain-database.port';
 import {
   type IKeyRevocationRepository,
   type KeyRevocation,
@@ -17,40 +16,15 @@ interface Row {
 }
 
 /**
- * Хранилище ручных отзывов ключей в coop_domain_db (таблица V2.4.10). Свой lazy
- * DataSource, как `PostgresPendingCriticalActionsRepository`.
+ * Хранилище ручных отзывов ключей в coop_domain_db (таблица V2.4.10). Общее
+ * соединение базы CoopID (`CoopDomainDatabase`).
  */
 @Injectable()
-export class PostgresKeyRevocationRepository implements IKeyRevocationRepository, OnModuleDestroy {
-  private ds: DataSource | null = null;
-  private initializing: Promise<DataSource> | null = null;
-
-  private getDataSource(): Promise<DataSource> {
-    if (this.ds?.isInitialized) return Promise.resolve(this.ds);
-    if (!this.initializing) {
-      this.initializing = new DataSource({
-        type: 'postgres',
-        host: config.coopDomainDb.host,
-        port: config.coopDomainDb.port,
-        username: config.coopDomainDb.username,
-        password: config.coopDomainDb.password,
-        database: config.coopDomainDb.database,
-      })
-        .initialize()
-        .then((ds) => {
-          this.ds = ds;
-          return ds;
-        })
-        .finally(() => {
-          this.initializing = null;
-        });
-    }
-    return this.initializing;
-  }
+export class PostgresKeyRevocationRepository implements IKeyRevocationRepository {
+  constructor(@Inject(COOP_DOMAIN_DATABASE) private readonly db: ICoopDomainDatabase) {}
 
   async record(input: NewKeyRevocation): Promise<KeyRevocation> {
-    const ds = await this.getDataSource();
-    const rows: Row[] = await ds.query(
+    const rows: Row[] = await this.db.query(
       `INSERT INTO revoked_keys (target_id, reason, revoked_by)
        VALUES ($1, $2, $3)
        RETURNING *`,
@@ -60,8 +34,7 @@ export class PostgresKeyRevocationRepository implements IKeyRevocationRepository
   }
 
   async findActive(targetId: string): Promise<KeyRevocation | null> {
-    const ds = await this.getDataSource();
-    const rows: Row[] = await ds.query(
+    const rows: Row[] = await this.db.query(
       `SELECT * FROM revoked_keys WHERE target_id = $1 AND recovered_at IS NULL ORDER BY revoked_at DESC LIMIT 1`,
       [targetId],
     );
@@ -69,15 +42,10 @@ export class PostgresKeyRevocationRepository implements IKeyRevocationRepository
   }
 
   async markRecovered(targetId: string): Promise<void> {
-    const ds = await this.getDataSource();
-    await ds.query(
+    await this.db.query(
       `UPDATE revoked_keys SET recovered_at = now() WHERE target_id = $1 AND recovered_at IS NULL`,
       [targetId],
     );
-  }
-
-  async onModuleDestroy(): Promise<void> {
-    if (this.ds?.isInitialized) await this.ds.destroy();
   }
 
   private toDomain(row: Row): KeyRevocation {

@@ -1,6 +1,8 @@
 // infrastructure/blockchain/blockchain-consumer.service.ts
 
-import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { Inject, Injectable, OnModuleInit, OnModuleDestroy, Optional } from '@nestjs/common';
+import { ChainDeltaWaiterService } from './chain-delta-waiter.service';
+import { ActionReleaseGate } from './action-release-gate.service';
 import { ParserClient, type ParserEvent } from '@coopenomics/parser2';
 import { IAction, IDelta } from '~/types/common';
 import { BillingContract } from 'cooptypes';
@@ -11,11 +13,17 @@ import { ForkRegistryService } from '~/shared/sync/fork';
 import { computeActionEventId, computeDeltaEventId, computeForkEventId } from './event-id.util';
 import { mapParserActionToIAction, mapParserDeltaToIDelta } from './parser2-event.mapper';
 import { isDeltaOwnedByCoop } from './delta-ownership';
+import { runInChainDispatch } from './chain-dispatch-context';
+import { ChainChangesService } from './chain-changes.service';
 import { config } from '~/config';
 
-// Выносим исключения в конфиг или отдельный файл
+// Действия, в данных которых нет кооператива: они общие для сети и нужны каждому узлу.
 const ACTION_EXCEPTIONS = {
   'eosio.token': ['transfer', 'issue'],
+  // Новая редакция шаблона документа выходит сразу для всей сети (область `draft`), а
+  // уведомить о ней председателя обязан каждый кооператив: без исключения действие
+  // отбрасывалось как «чужое», и уведомление не уходило вовсе (C28-85, находка 53).
+  draft: ['upversion'],
 };
 
 /**
@@ -52,7 +60,11 @@ export class BlockchainConsumerService implements OnModuleInit, OnModuleDestroy 
     private readonly logger: WinstonLoggerService,
     private readonly eventsService: EventsService,
     private readonly parserInteractor: ParserInteractor,
-    private readonly forkRegistry: ForkRegistryService
+    private readonly forkRegistry: ForkRegistryService,
+    private readonly deltaWaiter: ChainDeltaWaiterService,
+    private readonly actionGate: ActionReleaseGate,
+    // Необязательна: тесты потребителя собирают его без ленты.
+    @Optional() @Inject(ChainChangesService) private readonly chainChanges: ChainChangesService | null = null
   ) {
     this.logger.setContext(BlockchainConsumerService.name);
   }
@@ -60,6 +72,7 @@ export class BlockchainConsumerService implements OnModuleInit, OnModuleDestroy 
   async onModuleInit() {
     this.logger.log('Инициализация потребителя событий parser2');
     this.running = true;
+    this.actionGate.setActive(true);
     // Не await: цикл живёт всё время работы приложения.
     void this.runConsumeLoop();
   }
@@ -67,6 +80,7 @@ export class BlockchainConsumerService implements OnModuleInit, OnModuleDestroy 
   async onModuleDestroy() {
     this.logger.log('Остановка потребителя событий parser2');
     this.running = false;
+    this.actionGate.setActive(false);
     if (this.client) {
       await this.client.close().catch((e) => this.logger.error(`Ошибка close ParserClient: ${e?.message}`, e?.stack));
     }
@@ -88,6 +102,7 @@ export class BlockchainConsumerService implements OnModuleInit, OnModuleDestroy 
         this.client = undefined;
       }
       if (this.running) {
+        // timing: backoff — пауза перед переподключением упавшего потока parser2.
         await new Promise((r) => setTimeout(r, this.reconnectDelayMs));
         this.logger.warn('Переподключение к parser2…');
       }
@@ -131,7 +146,9 @@ export class BlockchainConsumerService implements OnModuleInit, OnModuleDestroy 
     let result = await iterator.next();
     while (!result.done && this.running) {
       try {
-        await this.handleEvent(result.value);
+        // Транзакции из обработчиков не ждут разбора блока — см. chain-dispatch-context.ts.
+        const event = result.value;
+        await runInChainDispatch(() => this.handleEvent(event));
         result = await iterator.next(); // успех → XACK внутри ParserClient
       } catch (err: any) {
         this.logger.error(`Ошибка обработки события parser2: ${err?.message}`, err?.stack);
@@ -152,6 +169,11 @@ export class BlockchainConsumerService implements OnModuleInit, OnModuleDestroy 
    * action/delta: save → mark, иначе сбой между save и mark = silent loss).
    */
   private async handleEvent(event: ParserEvent): Promise<void> {
+    // События идут строго по порядку блоков: взяли событие блока B — всё из
+    // более ранних блоков уже разобрано, их действия можно выпускать в шину.
+    const blockNum = (event as { block_num?: number }).block_num;
+    if (typeof blockNum === 'number') this.actionGate.onBlockSeen(blockNum);
+
     switch (event.kind) {
       case 'action':
         return this.processAction(mapParserActionToIAction(event));
@@ -184,7 +206,7 @@ export class BlockchainConsumerService implements OnModuleInit, OnModuleDestroy 
    * с задержкой публикует событие во внутреннюю шину.
    *
    * Порядок writes: сохранение → ACK (по возврату из handleEvent) →
-   * отложенный emit события через ACTION_EMIT_DELAY_MS. Задержка нужна
+   * отложенный emit — когда блок действия разобран целиком (ActionReleaseGate). Отложен он
    * чтобы дельты, попавшие в стрим из того же блока что и action, успели
    * пройти обработчики и прописаться в БД ДО того, как обработчики action
    * полезут читать состояние (например, ClearanceManagementInteractor по
@@ -248,18 +270,19 @@ export class BlockchainConsumerService implements OnModuleInit, OnModuleDestroy 
     // block_num пишем для последующего deleteAfterBlock на форке (Story 4.1).
     await this.parserInteractor.markEventApplied(eventId, action.block_num);
 
-    // Публикуем событие с задержкой — пусть сначала прокатятся дельты этого же блока
-    // (capital_appendixes, capital_projects, ...), чтобы обработчики action видели
-    // уже персистентное состояние. saveAction уже выполнен, так что данные не
-    // потеряем; задерживаем только emit. Задержка вынесена в конфиг (DEC-007).
+    // Публикуем, когда блок действия разобран целиком: обработчики action читают
+    // состояние, которое пишут дельты того же блока (capital_appendixes,
+    // capital_projects, …). Прежде вместо этого стояла пауза в 3 секунды
+    // (DEC-007); теперь — по факту следующего блока или простоя потока.
+    // saveAction уже выполнен, так что данные не потеряем; откладываем только emit.
     const eventName = `action::${action.account}::${action.name}`;
-    const delayMs = config.blockchain.action_emit_delay_ms;
-    setTimeout(() => {
+    const queuedAt = Date.now();
+    this.actionGate.enqueue(action.block_num, () => {
       this.eventsService.emit(eventName, action);
       this.logger.debug(
-        `Действие опубликовано в событийную шину: ${eventName} с sequence ${action.global_sequence} (delay ${delayMs}ms)`
+        `Действие опубликовано в событийную шину: ${eventName} с sequence ${action.global_sequence} (через ${Date.now() - queuedAt} мс)`
       );
-    }, delayMs);
+    });
   }
 
   private isActionException(account: string, actionName: string): boolean {
@@ -322,9 +345,23 @@ export class BlockchainConsumerService implements OnModuleInit, OnModuleDestroy 
     // block_num пишем для последующего deleteAfterBlock на форке (Story 4.1).
     await this.parserInteractor.markEventApplied(eventId, delta.block_num);
 
-    // Публикуем событие во внутреннюю шину с типизированным именем
+    // Публикуем событие во внутреннюю шину и ждём её слушателей (проекции в
+    // базе) — но не дольше барьера: медленный слушатель не должен вставать
+    // поперёк разбора цепи. Потом будим мутации, ждущие это изменение: к этому
+    // моменту проекции уже записаны, и ответ собирается из свежих данных
+    // (ADR-009, DEC-T10). Ошибка слушателя, как и раньше, событие не держит.
     const eventName = `delta::${delta.code}::${delta.table}`;
-    this.eventsService.emit(eventName, delta);
+    try {
+      const settled = await this.eventsService.emitAsyncWithTimeout(eventName, delta, config.blockchain.delta_listeners_barrier_ms);
+      if (!settled) {
+        this.logger.warn(`Слушатели ${eventName} не уложились в ${config.blockchain.delta_listeners_barrier_ms} мс — идём дальше`);
+      }
+    } catch (error: any) {
+      this.logger.error(`Слушатель ${eventName} упал: ${error?.message ?? error}`, error?.stack);
+    }
+    this.deltaWaiter.wake(delta);
+    // Сигнал столам — после слушателей: по нему читают уже записанное.
+    await this.chainChanges?.publish(delta);
 
     this.logger.debug(`Дельта опубликована в событийную шину: ${eventName} с primary_key ${delta.primary_key}`);
   }
@@ -345,6 +382,8 @@ export class BlockchainConsumerService implements OnModuleInit, OnModuleDestroy 
    */
   private async processFork(block_num: number, forkEventId?: string | null): Promise<void> {
     this.logger.log(`Обработка форка на блоке ${block_num} (eventId=${forkEventId ?? 'n/a'}): запуск ForkRegistry rollback`);
+    // Отменённые блоки больше не разобраны — транзакции в них ждут заново.
+    this.actionGate.onFork(block_num);
 
     // 1. Sequential rollback всех зарегистрированных syncer'ов.
     //    Story 4.4: forkEventId пробрасывается syncer'ам — они кладут его в архив

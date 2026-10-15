@@ -1,5 +1,5 @@
 import { Resolver, Query, Mutation, Args } from '@nestjs/graphql';
-import { GqlJwtAuthGuard, RolesGuard, AuthRoles } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, RequireRight, RightsGuard } from '@coopenomics/extension-kit';
 import { UseGuards } from '@nestjs/common';
 import { AgendaService } from '../services/agenda.service';
 import { AgendaWithDocumentsDTO } from '../dto/agenda-with-documents.dto';
@@ -13,8 +13,8 @@ export class AgendaResolver {
     name: 'getAgenda',
     description: 'Получить список вопросов совета кооператива для голосования',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Agenda', 'read')
   async getAgenda(): Promise<AgendaWithDocumentsDTO[]> {
     return this.agendaService.getAgenda();
   }

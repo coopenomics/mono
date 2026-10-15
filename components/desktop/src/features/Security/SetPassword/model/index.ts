@@ -1,3 +1,4 @@
+import { t } from 'src/shared/i18n';
 export * from './useNewPasswordForm';
 import { ref } from 'vue';
 import { migrate } from '@coopenomics/auth';
@@ -26,7 +27,7 @@ export const migrationOfferDismissed = ref(false);
  */
 export class PasswordSetReloginFailedError extends Error {
   constructor(readonly cause: unknown) {
-    super('Пароль установлен, войдите по нему заново');
+    super(t('security.setPasswordModel.success'));
     this.name = 'PasswordSetReloginFailedError';
   }
 }
@@ -60,7 +61,7 @@ export function useSetPassword() {
   async function setPassword(newPassword: string): Promise<void> {
     const email = session.providerAccount?.email;
     if (!email) {
-      throw new Error('Не удалось определить email для установки пароля.');
+      throw new Error(t('security.error.emailNotDetermined'));
     }
     const privateKey = await globalStore.ensureSigningKey();
     await migrate({ email, privateKey, newPassword });
@@ -91,11 +92,11 @@ export function useSetPassword() {
   async function setPasswordFromScreen(newPassword: string): Promise<boolean> {
     try {
       await setPassword(newPassword);
-      SuccessAlert('Пароль установлен — вы уже вошли по нему, работайте дальше.');
+      SuccessAlert(t('security.setPasswordModel.autoLoginSuccess'));
       return true;
     } catch (e) {
       if (e instanceof PasswordSetReloginFailedError) {
-        SuccessAlert('Пароль установлен. Войдите по нему — автоматический вход не удался.');
+        SuccessAlert(t('security.setPasswordModel.autoLoginFailed'));
         const coopname = route.params.coopname;
         await logout().catch(() => undefined);
         void router.push({ name: 'signin', params: { coopname } });

@@ -1,0 +1,32 @@
+import { Injectable } from '@nestjs/common';
+import { EduAccessCarrier } from '../../domain/enums';
+import type { AccessCarrierConnector, AccessRequest, ConnectorPingResult, ConnectorResult, CourseCheckResult } from '../../domain/connectors/access-carrier.connector';
+import { t } from '../../i18n';
+
+/**
+ * Очный формат: пропуск — запись в самом приложении (проверка на входе по коду
+ * обучающегося). Внешней площадки нет, поэтому выдача и отзыв всегда успешны,
+ * а состояние доступа в подписке и есть пропуск.
+ */
+@Injectable()
+export class OnsiteConnector implements AccessCarrierConnector {
+  readonly carrier = EduAccessCarrier.ONSITE;
+  /** Очное обучение: пропуск выдаёт кооператив сам, ключи площадки не нужны. */
+  readonly credentialFields = [];
+
+  async grant(_request: AccessRequest): Promise<ConnectorResult> {
+    return { code: 'ok' };
+  }
+
+  async revoke(_request: AccessRequest): Promise<ConnectorResult> {
+    return { code: 'ok' };
+  }
+
+  async ping(_coopname: string): Promise<ConnectorPingResult> {
+    return { ok: true, message: t('edubridge.onsiteConnector.pingOk') };
+  }
+
+  async check(_coopname: string, courseRef: string): Promise<CourseCheckResult> {
+    return { found: true, title: courseRef };
+  }
+}

@@ -1,12 +1,12 @@
 import { InvestDomainEntity } from '../../domain/entities/invest.entity';
-import { InvestTypeormEntity } from '../entities/invest.typeorm-entity';
+import { InvestRecord } from '../entities/invest.record';
 import type { IInvestDatabaseData } from '../../domain/interfaces/invest-database.interface';
 import type { IInvestBlockchainData } from '../../domain/interfaces/invest-blockchain.interface';
 import type { ISignedDocument } from '@coopenomics/innercoop';
 import type { RequireFields } from '@coopenomics/extension-kit';
 
-type toEntityDatabasePart = RequireFields<Partial<InvestTypeormEntity>, keyof IInvestDatabaseData>;
-type toEntityBlockchainPart = RequireFields<Partial<InvestTypeormEntity>, keyof IInvestBlockchainData>;
+type toEntityDatabasePart = RequireFields<Partial<InvestRecord>, keyof IInvestDatabaseData>;
+type toEntityBlockchainPart = RequireFields<Partial<InvestRecord>, keyof IInvestBlockchainData>;
 
 type toDomainDatabasePart = RequireFields<Partial<InvestDomainEntity>, keyof IInvestDatabaseData>;
 type toDomainBlockchainPart = RequireFields<Partial<InvestDomainEntity>, keyof IInvestBlockchainData>;
@@ -18,7 +18,7 @@ export class InvestMapper {
   /**
    * Преобразование TypeORM сущности в доменную сущность
    */
-  static toDomain(entity: InvestTypeormEntity): InvestDomainEntity {
+  static toDomain(entity: InvestRecord): InvestDomainEntity {
     const databaseData: toDomainDatabasePart = {
       _id: entity._id,
       block_num: entity.block_num,
@@ -40,7 +40,8 @@ export class InvestMapper {
         username: entity.username,
         invest_hash: entity.invest_hash,
         project_hash: entity.project_hash,
-        status: entity.status,
+        // Статус цепи как есть — из blockchain_status; доменный статус сущность выводит из него сама.
+        status: entity.blockchain_status as any,
         amount: entity.amount,
         invested_at: entity.invested_at.toISOString(),
         statement: entity.statement,
@@ -55,7 +56,7 @@ export class InvestMapper {
   /**
    * Преобразование доменной сущности в TypeORM сущность для создания
    */
-  static toEntity(domain: InvestDomainEntity): Partial<InvestTypeormEntity> {
+  static toEntity(domain: InvestDomainEntity): Partial<InvestRecord> {
     const dbPart: toEntityDatabasePart = {
       _id: domain._id,
       block_num: domain.block_num ?? 0,
@@ -76,7 +77,8 @@ export class InvestMapper {
         username: domain.username as string,
         invest_hash: domain.invest_hash,
         project_hash: domain.project_hash as string,
-        status: domain.blockchain_status as any,
+        // В колонку статуса идёт доменный статус; статус цепи как есть лежит в blockchain_status.
+        status: domain.status,
         amount: domain.amount as string,
         invested_at: new Date(domain.invested_at ?? new Date()),
         statement: domain.statement as ISignedDocument,
@@ -92,8 +94,8 @@ export class InvestMapper {
    * Преобразование доменной сущности в данные для обновления TypeORM сущности
    * Обновляет только локальные поля базы данных, поля из блокчейна обновляются через синхронизацию
    */
-  static toUpdateEntity(domain: Partial<InvestDomainEntity>): Partial<InvestTypeormEntity> {
-    const updateData: Partial<InvestTypeormEntity> = {};
+  static toUpdateEntity(domain: Partial<InvestDomainEntity>): Partial<InvestRecord> {
+    const updateData: Partial<InvestRecord> = {};
 
     // Поля из базы данных (локальные)
     if (domain._id !== undefined) updateData._id = domain._id;

@@ -17,7 +17,8 @@
     "useDefineForClassFields": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["src/*"],
+      "@factory-templator": ["../../factory/src/Services/Templator/index.ts"]
     },
     "types": ["vite/client"]
   },

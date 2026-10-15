@@ -1,0 +1,328 @@
+import { Injectable } from '@nestjs/common';
+import { PaginationInputDTO, type PaginationResult, DomainError } from '@coopenomics/extension-kit';
+import { CARRIERS_BY_DIRECTION, EduAccessCarrier, EduCourseStatus, EduLessonStatus, PLATFORM_CARRIERS } from '../../domain/enums';
+import { formatSlots, normalizeSlots, programMonthsOf, programOf } from '../../domain/lib/schedule';
+import type { EdubridgeCourseRecord } from '../../infrastructure/entities';
+import type { EduCourseImage } from '../../infrastructure/entities/edubridge-course.record';
+import { EdubridgeCourseKyselyRepository, type EduCourseFilter } from '../../infrastructure/repositories/edubridge-course.kysely-repository';
+import { EdubridgeTeacherKyselyRepository } from '../../infrastructure/repositories/edubridge-teacher.kysely-repository';
+import { GetCourseConnector } from '../../infrastructure/connectors/getcourse.connector';
+import { SkillspaceConnector, splitSkillspaceRef } from '../../infrastructure/connectors/skillspace.connector';
+import type {
+  EduCourseImageUploadInputDTO,
+  EduCourseInputDTO,
+  EduPlatformCourseDTO,
+  EduTeacherOptionDTO,
+  EduUpdateCourseInputDTO,
+} from '../dto/edu-course.dto';
+import type { EduCourseEconomyInputDTO } from '../dto/edu-economy.dto';
+import { EdubridgeCourseImagesService } from './edubridge-course-images.service';
+import { EdubridgeEconomyService } from './edubridge-economy.service';
+import { EdubridgeNamesService } from '../membership/edubridge-names.service';
+import { EdubridgeTeacherService, grantsTeaching, hasAssignedRate, withoutContractError, withoutRateError } from './edubridge-teacher.service';
+import { EdubridgeSectionsService } from './edubridge-sections.service';
+import { EdubridgeGroupService } from './edubridge-group.service';
+import { EdubridgeEnrollmentKyselyRepository } from '../../infrastructure/repositories/edubridge-enrollment.kysely-repository';
+import { EdubridgeLessonKyselyRepository } from '../../infrastructure/repositories/edubridge-lesson.kysely-repository';
+
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Гарантийный срок материалов занятия по умолчанию — две недели. */
+const DEFAULT_GUARANTEE_DAYS = 14;
+
+/** Параметры расчёта взноса из формы курса. */
+function economyParams(input: EduCourseInputDTO): EduCourseEconomyInputDTO {
+  return {
+    schedule_slots: input.schedule_slots ?? [],
+    program_months: input.program_months ?? 0,
+    course_payment_enabled: input.course_payment_enabled ?? false,
+    course_discount_percent: input.course_discount_percent ?? 0,
+  };
+}
+
+/**
+ * Привязка к площадке: у площадок с API идентификатор обязателен, у Skillspace
+ * это UUID курса из реестра школы (и UUID группы, если она есть) — числовой
+ * номер из адреса конструктора площадка не знает.
+ */
+function validatePlatformRef(carrier: EduAccessCarrier, ref: string): void {
+  if (!PLATFORM_CARRIERS.includes(carrier)) return;
+  if (!ref.trim()) throw DomainError.badRequest('EDUBRIDGE_COURSE_PLATFORM_REF_REQUIRED');
+  if (carrier !== EduAccessCarrier.SKILLSPACE) return;
+  const { course, group } = splitSkillspaceRef(ref);
+  if (!UUID_PATTERN.test(course) || (group && !UUID_PATTERN.test(group))) {
+    throw DomainError.badRequest('EDUBRIDGE_COURSE_SKILLSPACE_REF_INVALID');
+  }
+}
+
+@Injectable()
+export class EdubridgeCourseService {
+  constructor(
+    private readonly courses: EdubridgeCourseKyselyRepository,
+    private readonly teachers: EdubridgeTeacherKyselyRepository,
+    private readonly skillspace: SkillspaceConnector,
+    private readonly images: EdubridgeCourseImagesService,
+    private readonly names: EdubridgeNamesService,
+    private readonly economy: EdubridgeEconomyService,
+    private readonly teacherService: EdubridgeTeacherService,
+    private readonly sections: EdubridgeSectionsService,
+    private readonly enrollments: EdubridgeEnrollmentKyselyRepository,
+    private readonly lessons: EdubridgeLessonKyselyRepository,
+    private readonly groups: EdubridgeGroupService,
+    private readonly getcourse: GetCourseConnector
+  ) {}
+
+  /**
+   * Курсы школы с группами — конструктор курса выбирает привязку из них, а не
+   * вводит руками. У GetCourse это группы школы. У Skillspace — курсы и их группы: числовой номер из адреса конструктора в API не
+   * существует, а UUID из адреса чаще всего принадлежит модулю, не курсу.
+   */
+  async platformCourses(coopname: string, carrier: EduAccessCarrier): Promise<EduPlatformCourseDTO[]> {
+    // GetCourse: ученик зачисляется в группу школы, привязка курса — её название.
+    if (carrier === EduAccessCarrier.GETCOURSE) {
+      return (await this.getcourse.listGroups(coopname)).map((g) => ({ id: g.name, name: g.name, groups: [] }));
+    }
+    if (carrier !== EduAccessCarrier.SKILLSPACE) return [];
+    const [courses, groups] = await Promise.all([this.skillspace.listCourses(coopname), this.skillspace.listGroups(coopname)]);
+    return courses.map((c) => ({
+      id: c.id,
+      name: c.name,
+      groups: groups.filter((g) => g.courseId === c.id).map((g) => ({ id: g.id, name: g.name })),
+    }));
+  }
+
+  /** Кого можно назначить преподавателем курса: пайщики с подписанным договором УХД. */
+  async teacherOptions(coopname: string): Promise<EduTeacherOptionDTO[]> {
+    // В курс ставится преподаватель с договором и назначенной ставкой: остальных
+    // в списке выбора нет — форма курса не предлагает того, кого сервер не примет.
+    const contracts = (await this.teachers.listContracts(coopname)).filter((c) => grantsTeaching(c) && hasAssignedRate(c));
+    const names = await this.names.displayNames(contracts.map((c) => c.teacher_username));
+    return contracts.map((c) => ({
+      username: c.teacher_username,
+      display_name: names.get(c.teacher_username) ?? '',
+      contract_number: c.contract_number,
+      signed_at: c.signed_at,
+    }));
+  }
+
+  /** Витрина: только опубликованные. */
+  catalog(coopname: string, filter: EduCourseFilter, options?: PaginationInputDTO): Promise<PaginationResult<EdubridgeCourseRecord>> {
+    return this.courses.findPage(coopname, { ...filter, status: EduCourseStatus.PUBLISHED }, options);
+  }
+
+  async catalogCourse(coopname: string, id: string): Promise<EdubridgeCourseRecord> {
+    const course = await this.courses.findById(coopname, id);
+    if (!course || course.status !== EduCourseStatus.PUBLISHED) throw DomainError.notFound('EDUBRIDGE_COURSE_NOT_FOUND');
+    return course;
+  }
+
+
+
+  list(coopname: string, filter: EduCourseFilter, options?: PaginationInputDTO): Promise<PaginationResult<EdubridgeCourseRecord>> {
+    return this.courses.findPage(coopname, filter, options);
+  }
+
+  async get(coopname: string, id: string): Promise<EdubridgeCourseRecord> {
+    const course = await this.courses.findById(coopname, id);
+    if (!course) throw DomainError.notFound('EDUBRIDGE_COURSE_NOT_FOUND');
+    return course;
+  }
+
+  async create(coopname: string, actor: string, input: EduCourseInputDTO): Promise<EdubridgeCourseRecord> {
+    await this.validate(coopname, input);
+    const fee = await this.economy.feeForCourse(economyParams(input));
+    const image = await this.resolveImage(coopname, actor, input.image, null);
+    const entity = this.courses.create({
+      coopname,
+      ...this.fields(input, fee),
+      image,
+      status: EduCourseStatus.DRAFT,
+    });
+    let saved: EdubridgeCourseRecord;
+    try {
+      saved = await this.courses.save(entity);
+    } catch (e) {
+      if (image) await this.images.deleteImage(image.bucket_key);
+      throw e;
+    }
+    // Курс открывается с первой группой: её условия уходят в цепь, по ним
+    // контракт считает взносы, резерв и возвраты.
+    await this.groups.create(coopname, { course_id: saved.id, starts_in_minutes: input.starts_in_minutes });
+    // Преподаватели курса сразу получают допуск к нему.
+    await this.teacherService.syncCourseAssignments(coopname, saved);
+    // Перечитываем: save() не подгружает раздел и уровень, а ответ показывает их названия.
+    return (await this.courses.findById(coopname, saved.id)) ?? saved;
+  }
+
+  async update(coopname: string, actor: string, input: EduUpdateCourseInputDTO): Promise<EdubridgeCourseRecord> {
+    const course = await this.get(coopname, input.id);
+    await this.validate(coopname, input, course);
+    // Занятия начались — дату активации можно только сдвигать вперёд: от неё
+    // считается использованное при отказе от подписки.
+    if (course.starts_at && new Date(course.starts_at) <= new Date()) {
+      const next = input.starts_at ? new Date(input.starts_at) : null;
+      if (!next || next < new Date(course.starts_at)) {
+        throw DomainError.badRequest('EDUBRIDGE_COURSE_START_ONLY_FORWARD');
+      }
+    }
+    const fee = await this.economy.feeForCourse(economyParams(input));
+    const previous = course.image;
+    // Прежнюю привязку запоминаем до присваивания: после него сравнивать уже не с чем.
+    const previousRef = course.external_ref;
+    const image = await this.resolveImage(coopname, actor, input.image, previous);
+    Object.assign(course, this.fields(input, fee), { image, pay_per_learner: keptPayMode(course, input) });
+    // Подгруженные связи перебили бы новые section_id/level_id при сохранении.
+    course.section = undefined;
+    course.level = undefined;
+    // Привязка к площадке изменилась — прежняя сверка больше не действительна.
+    // Сравнивается уже нормализованное значение: пробелы по краям — не смена привязки.
+    if (course.external_ref !== previousRef) {
+      course.external_title_seen = null;
+      course.external_checked_at = null;
+    }
+    const saved = await this.courses.save(course);
+    // Условия курса — для новых групп. Группы, по которым взносов и занятий ещё
+    // не было, берут их сразу; у групп с участниками условия прежние.
+    await this.groups.applyCourseTerms(coopname, saved);
+    // Старая обложка больше никому не нужна — ключ content-addressed, у другого курса с тем же файлом ключ тот же.
+    if (previous && previous.bucket_key !== image?.bucket_key) await this.images.deleteImage(previous.bucket_key);
+    // Добавленные преподаватели получают допуск к курсу, у убранных он снимается.
+    await this.teacherService.syncCourseAssignments(coopname, saved);
+    return (await this.courses.findById(coopname, saved.id)) ?? saved;
+  }
+
+  /**
+   * Обложка в мутации: `undefined` — не трогать, `null` — убрать, `bucket_key` —
+   * оставить прежнюю (только свою), `base64` — загрузить новую.
+   */
+  private async resolveImage(
+    coopname: string,
+    actor: string,
+    input: EduCourseImageUploadInputDTO | null | undefined,
+    current: EduCourseImage | null
+  ): Promise<EduCourseImage | null> {
+    if (input === undefined) return current;
+    if (input === null) return null;
+    if (input.bucket_key) {
+      if (current?.bucket_key !== input.bucket_key) throw DomainError.badRequest('EDUBRIDGE_COURSE_IMAGE_KEY_FOREIGN');
+      return current;
+    }
+    if (!input.base64 || !input.mime_type) throw DomainError.badRequest('EDUBRIDGE_COURSE_IMAGE_EMPTY');
+    const bytes = Buffer.from(input.base64, 'base64');
+    if (!bytes.length) throw DomainError.badRequest('EDUBRIDGE_COURSE_IMAGE_DECODE_FAILED');
+    try {
+      return await this.images.putImage({ bytes, contentType: input.mime_type, coopname, ownerAccount: actor });
+    } catch (e) {
+      if (e instanceof DomainError) throw e;
+      throw DomainError.badRequest('EDUBRIDGE_COURSE_IMAGE_SAVE_FAILED');
+    }
+  }
+
+  /**
+   * Удаление курса. Стирается только курс, по которому ничего не происходило:
+   * ни одной подписки и ни одного занятия. У курса с историей остаются
+   * документы, взносы и расчёты с преподавателями — такой курс снимается с
+   * публикации, а не удаляется.
+   */
+  async remove(coopname: string, id: string): Promise<void> {
+    const course = await this.get(coopname, id);
+    if ((await this.enrollments.findByCourse(coopname, id)).length) throw DomainError.badRequest('EDUBRIDGE_COURSE_DELETE_HAS_SUBSCRIPTIONS');
+    if ((await this.lessons.findByCourse(coopname, id)).some((l) => l.status === EduLessonStatus.HELD)) throw DomainError.badRequest('EDUBRIDGE_COURSE_DELETE_HAS_LESSONS');
+    await this.teachers.deleteAssignmentsOfCourse(coopname, id);
+    await this.courses.remove(coopname, id);
+    if (course.image) await this.images.deleteImage(course.image.bucket_key).catch(() => undefined);
+  }
+
+  async setStatus(coopname: string, id: string, status: EduCourseStatus): Promise<EdubridgeCourseRecord> {
+    const course = await this.get(coopname, id);
+    course.status = status;
+    return this.courses.save(course);
+  }
+
+  /**
+   * Носитель обязан соответствовать направлению, идентификатор курса на площадке
+   * имеет смысл только у площадок с API, а преподавать могут лишь пайщики с
+   * подписанным договором — форма это подсказывает, сервер проверяет сам.
+   */
+  private async validate(coopname: string, input: EduCourseInputDTO, current?: EdubridgeCourseRecord): Promise<void> {
+    // Раздел и уровень — из справочника; архивное — только если уже стоит у курса.
+    await this.sections.assertForCourse(coopname, input.section_id, input.level_id, current && { section_id: current.section_id, level_id: current.level_id });
+    if (!CARRIERS_BY_DIRECTION[input.direction].includes(input.carrier)) {
+      throw DomainError.badRequest('EDUBRIDGE_COURSE_CARRIER_NOT_ALLOWED', { carrier: input.carrier, direction: input.direction });
+    }
+    validatePlatformRef(input.carrier, input.external_ref ?? '');
+    await this.validateTeachers(coopname, input.teacher_usernames ?? []);
+  }
+
+  /**
+   * Преподавать могут только пайщики с подписанным договором УХД: преподаватель
+   * курса сразу получает допуск к нему. Ставку на курсе задаёт допуск — из
+   * договора, но не выше плановой ставки курса; без назначенной ставки
+   * преподаватель в курс не ставится.
+   */
+  private async validateTeachers(coopname: string, teachers: string[]): Promise<void> {
+    if (!teachers.length) return;
+    // Отклонённый и прекращённый договор права преподавать не даёт.
+    const contracts = new Map(
+      (await this.teachers.listContracts(coopname)).filter((c) => grantsTeaching(c)).map((c) => [c.teacher_username, c])
+    );
+    const strangers = teachers.filter((t) => !contracts.has(t));
+    if (strangers.length) throw withoutContractError(strangers);
+    // Ставку часа назначает администратор при приёме преподавателя — до допуска к курсу.
+    const unrated = teachers.filter((t) => !hasAssignedRate(contracts.get(t)));
+    if (unrated.length) throw withoutRateError(unrated);
+  }
+
+  private fields(input: EduCourseInputDTO, fee: { fee_month: string }): Partial<EdubridgeCourseRecord> {
+    const slots = normalizeSlots(input.schedule_slots);
+    return {
+      title: input.title,
+      section_id: input.section_id,
+      level_id: input.level_id ?? null,
+      description: input.description ?? '',
+      syllabus: input.syllabus ?? '',
+      schedule: scheduleLine(slots, input.schedule),
+      schedule_slots: slots,
+      report_days: input.report_days ?? 7,
+      teacher_usernames: input.teacher_usernames ?? [],
+      ...economyFields(input, fee),
+      ...accessFields(input),
+      sort_order: input.sort_order ?? 0,
+    };
+  }
+}
+
+/** Расписание строкой для каталога — из окон; без окон — как введено. */
+function scheduleLine(slots: ReturnType<typeof normalizeSlots>, typed: string | null | undefined): string {
+  if (slots.length) return formatSlots(slots);
+  return typed ?? '';
+}
+
+/** Выдача доступа: идентификатор на площадке есть только у носителей с API. */
+function accessFields(input: EduCourseInputDTO): Pick<EdubridgeCourseRecord, 'direction' | 'carrier' | 'external_ref'> {
+  const platform = PLATFORM_CARRIERS.includes(input.carrier);
+  return { direction: input.direction, carrier: input.carrier, external_ref: platform ? (input.external_ref ?? '').trim() : '' };
+}
+
+/** Экономика курса: расписание, ставка, гарантия и посчитанные взносы. */
+function economyFields(input: EduCourseInputDTO, fee: { fee_month: string }): Partial<EdubridgeCourseRecord> {
+  const slots = normalizeSlots(input.schedule_slots);
+  // Расписание обязательно: из окон считаются минуты занятий, по ним — взнос.
+  if (!slots.length) throw DomainError.badRequest('EDUBRIDGE_SCHEDULE_REQUIRED');
+  return {
+    // Числа программы и плановая ставка как среднее — из окон; стоимость занятия живёт в окне.
+    ...programOf(slots, programMonthsOf(input.program_months)),
+    program_months: programMonthsOf(input.program_months),
+    pay_per_learner: input.pay_per_learner ?? true,
+    starts_at: input.starts_at || null,
+    guarantee_days: input.guarantee_days ?? DEFAULT_GUARANTEE_DAYS,
+    course_payment_enabled: input.course_payment_enabled ?? false,
+    course_discount_bp: input.course_payment_enabled ? Math.round((input.course_discount_percent ?? 0) * 100) : 0,
+    fee_month: fee.fee_month,
+  };
+}
+
+/** Способ расчёта с преподавателем при правке курса: не назван — остаётся прежним. */
+function keptPayMode(course: EdubridgeCourseRecord, input: EduUpdateCourseInputDTO): boolean {
+  return input.pay_per_learner ?? Boolean(course.pay_per_learner);
+}

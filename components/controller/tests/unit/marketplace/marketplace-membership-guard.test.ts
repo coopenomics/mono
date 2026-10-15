@@ -112,7 +112,6 @@ describe('MarketplaceMembershipGuard', () => {
       'offerer',
       'board_readonly',
       'admin',
-      'board',
     ]);
   });
 
@@ -124,6 +123,17 @@ describe('MarketplaceMembershipGuard', () => {
     await expect(guard.canActivate(ctx as any)).rejects.toThrow(
       'Доступ только для пайщиков кооператива'
     );
+  });
+
+  it('совет проходит по роли в любом статусе: член совета и председатель со статусом registered', async () => {
+    // Членов совета, заведённых при установке кооператива, цепь в active
+    // переводит не всегда — ядро пускает их по роли, стол обязан так же.
+    for (const role of ['member', 'chairman']) {
+      const guard = new MarketplaceMembershipGuard(makeSupplierRegistryService(false), makeKuChairmanService(false));
+      const req: any = { user: { username: 'bob', role, status: 'registered' }, headers: {} };
+      await expect(guard.canActivate(makeCtx(req) as any)).resolves.toBe(true);
+      expect(req.currentMember.marketplace_roles).toContain('board_readonly');
+    }
   });
 
   it('нет user (нет JWT) → 401 Unauthorized', async () => {

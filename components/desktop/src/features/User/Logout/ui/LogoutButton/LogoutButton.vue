@@ -6,7 +6,7 @@
     @click="logout"
   >
     <q-icon name="logout" class="logout-btn__ico" />
-    <span class="logout-btn__label">Выйти</span>
+    <span class="logout-btn__label">{{ $t('user.logoutButton.label') }}</span>
   </button>
 </template>
 
@@ -16,6 +16,7 @@ import { useRouter } from 'vue-router';
 import { useLogoutUser } from '../../model';
 import { FailAlert } from 'src/shared/api';
 import { useSessionStore } from 'src/entities/Session';
+import { t } from 'src/shared/i18n';
 
 const router = useRouter();
 const session = useSessionStore();
@@ -31,7 +32,7 @@ async function logout(): Promise<void> {
     void router.push({ name: 'signin' });
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
-    FailAlert('Ошибка при выходе: ' + msg);
+    FailAlert(t('user.logoutButton.errorPrefix') + msg);
   }
 }
 </script>

@@ -4,20 +4,20 @@
   section.doc-sig__block
     .doc-sig__chip(:class='`doc-sig__chip--${hashState}`')
       q-icon(:name='hashIcon' size='14px')
-      span Контрольная сумма
+      span {{ $t('ui.documentSignatures.checksumLabel') }}
     .doc-sig__hash {{ docHash }}
     .doc-sig__hash-hint(v-if='hashLoading')
       q-spinner(color='primary' size='14px')
-      span Проверяем контрольную сумму…
+      span {{ $t('ui.documentSignatures.checksumCheckingText') }}
     .doc-sig__hash-hint(v-else-if='regeneratedHash !== undefined && !hashMatches')
       q-icon(name='warning_amber' size='14px')
-      span Локально пересчитанный хеш не совпадает
+      span {{ $t('ui.documentSignatures.checksumMismatchText') }}
 
   //- ============ Подписи (N) ============
   section.doc-sig__block(v-if='signatures && signatures.length')
     .doc-sig__chip(:class='`doc-sig__chip--${signaturesState}`')
       q-icon(:name='signaturesIcon' size='14px')
-      span Подписи ({{ signatures.length }})
+      span {{ $t('ui.documentSignatures.signaturesCountTitle', { count: signatures.length }) }}
     ul.doc-sig__list
       li.doc-sig__item(v-for='(s, idx) in signatures' :key='idx')
         button.doc-sig__row(
@@ -31,30 +31,30 @@
               size='16px',
               :class='s.isValid === false ? "doc-sig__row-icon--neg" : "doc-sig__row-icon--pos"'
             )
-          .doc-sig__row-name Подпись {{ idx + 1 }}: {{ s.signerName || 'неизвестный подписант' }}
+          .doc-sig__row-name {{ $t('ui.documentSignatures.signatureItemTitle', { index: idx + 1, signerName: s.signerName || $t('ui.documentSignatures.unknownSigner') }) }}
           q-icon.doc-sig__row-caret(
             :name='isOpen(idx) ? "expand_less" : "expand_more"',
             size='18px'
           )
         .doc-sig__details(v-if='isOpen(idx)')
           .doc-sig__field
-            span.doc-sig__field-label Подписант
+            span.doc-sig__field-label {{ $t('ui.documentSignatures.signerLabel') }}
             span.doc-sig__field-value {{ s.signerName || '—' }}
           .doc-sig__field(v-if='s.publicKey')
-            span.doc-sig__field-label Публичный ключ
+            span.doc-sig__field-label {{ $t('ui.documentSignatures.publicKeyLabel') }}
             span.doc-sig__field-value.doc-sig__field-value--mono {{ s.publicKey }}
           .doc-sig__field(v-if='s.signature')
-            span.doc-sig__field-label Цифровая подпись
+            span.doc-sig__field-label {{ $t('ui.documentSignatures.signatureLabel') }}
             span.doc-sig__field-value.doc-sig__field-value--mono {{ s.signature }}
           .doc-sig__field
-            span.doc-sig__field-label Статус
+            span.doc-sig__field-label {{ $t('ui.documentSignatures.statusLabel') }}
             span.doc-sig__field-value
               q-icon(
                 :name='s.isValid === false ? "cancel" : "check_circle"',
                 size='14px',
                 :class='s.isValid === false ? "doc-sig__row-icon--neg" : "doc-sig__row-icon--pos"'
               )
-              |  {{ s.isValid === false ? 'Не верифицирована' : 'Верифицирована' }}
+              |  {{ s.isValid === false ? $t('ui.documentSignatures.notVerifiedText') : $t('ui.documentSignatures.verifiedText') }}
 
   //- ============ Действия ============
   .doc-sig__actions(v-if='!hideDownload || !hideVerify')
@@ -65,7 +65,7 @@
       @click='$emit("download")'
     )
       q-icon(name='download' size='16px')
-      span.q-ml-sm скачать
+      span.q-ml-sm {{ $t('ui.documentSignatures.downloadLabel') }}
     BaseButton(
       v-if='!hideVerify',
       variant='primary',
@@ -74,7 +74,7 @@
       @click='$emit("verify")'
     )
       q-icon(name='fact_check' size='16px')
-      span.q-ml-sm сверить
+      span.q-ml-sm {{ $t('ui.documentSignatures.verifyLabel') }}
 </template>
 
 <script setup lang="ts">

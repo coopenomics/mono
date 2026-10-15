@@ -11,18 +11,24 @@
  * Необязательные могут отсутствовать: без них часть возможностей выключена.
  */
 import {
+  ACCOUNTING_REGISTRY_PORT,
+  DESKTOP_GRANTS_REGISTRY_PORT,
+  PROGRAM_WALLET_PORT,
   ACCOUNT_PORT,
+  CHAIN_CHANGES_PORT,
   CHAIN_PORT,
   INDIVIDUAL_PORT,
   LEDGER2_HISTORY_PORT,
   LOGGER_PORT,
   ORGANIZATION_PORT,
   PAYMENT_DESK_PORT,
+  ROLE_ASSIGNMENTS_PORT,
   VAULT_PORT,
 } from '@coopenomics/innercoop';
 
 export const reportsPorts = {
   required: [
+    DESKTOP_GRANTS_REGISTRY_PORT,
     ACCOUNT_PORT,
     // Справка о доходах (приложение № 1 к 6-НДФЛ) заполняется паспортом и
     // датой рождения получателя выплаты — без карточки физлица её не собрать.
@@ -36,7 +42,16 @@ export const reportsPorts = {
     CHAIN_PORT,
     PAYMENT_DESK_PORT,
     VAULT_PORT,
+    // Реестры стола: счета, кошельки, операции, проводки и процессы ведёт
+    // ядро, стол отдаёт их своими операциями по своей таблице прав.
+    ACCOUNTING_REGISTRY_PORT,
+    // Кошельки пайщиков по программам — реестр кошельков, вкладка «Пайщики».
+    PROGRAM_WALLET_PORT,
+    // Роль бухгалтера: стол объявляет её кооперативу и узнаёт, кому она назначена.
+    ROLE_ASSIGNMENTS_PORT,
   ],
   optional: [
+    // Лента изменений: стол живёт по своим таблицам без перезагрузки.
+    CHAIN_CHANGES_PORT,
   ],
 };

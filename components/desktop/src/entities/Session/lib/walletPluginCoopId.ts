@@ -13,6 +13,7 @@ import type {
   WalletPluginSignResponse,
 } from '@wharfkit/session';
 import { signChainDigest } from '@coopenomics/auth';
+import { t } from 'src/shared/i18n';
 
 export interface WalletPluginCoopIdOptions {
   /** Публичный ключ пайщика для metadata (из keystore @coopenomics/auth). */
@@ -55,7 +56,7 @@ export class WalletPluginCoopId extends AbstractWalletPlugin {
     this.metadata = WalletPluginMetadata.from({
       name: 'CoopID',
       description:
-        'Подпись ключом пайщика из защищённого keystore CoopID; приватный ключ не покидает устройство.',
+        t('session.walletPluginCoopId.description'),
     });
     if (options.publicKey) this.metadata.publicKey = options.publicKey;
   }
@@ -71,6 +72,7 @@ export class WalletPluginCoopId extends AbstractWalletPlugin {
    */
   async login(context: LoginContext): Promise<WalletPluginLoginResponse> {
     if (!context.permissionLevel)
+      // i18n-ignore: техническое сообщение о нарушении контракта SDK-плагина (login без permissionLevel), не текст интерфейса
       throw new Error('WalletPluginCoopId.login требует permissionLevel');
     const chain = context.chain ? context.chain.id : context.chains[0].id;
     return { chain, permissionLevel: context.permissionLevel };

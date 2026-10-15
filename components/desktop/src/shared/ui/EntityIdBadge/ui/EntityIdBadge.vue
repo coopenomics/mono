@@ -9,7 +9,7 @@ span.entity-id-badge__pill(
   span.entity-id-badge__label {{ displayLabel }}
   //- Отдельной кнопки копирования нет: копирует клик по самому ID,
   //- иконка только занимала место в плотных строках списков
-  q-tooltip(v-if="copyOnClick") Скопировать
+  q-tooltip(v-if="copyOnClick") {{ $t('ui.entityIdBadge.copyLabel') }}
 </template>
 
 <script lang="ts" setup>
@@ -17,6 +17,7 @@ import { computed } from 'vue';
 import { copyToClipboard } from 'quasar';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useSessionStore } from 'src/entities/Session';
+import { t } from 'src/shared/i18n';
 
 const props = withDefaults(
   defineProps<{
@@ -65,9 +66,9 @@ const onActivate = async (e: MouseEvent) => {
     if (!text) return;
     try {
       await copyToClipboard(text);
-      SuccessAlert('Скопировано');
+      SuccessAlert(t('ui.entityIdBadge.copiedText'));
     } catch {
-      FailAlert('Не удалось скопировать');
+      FailAlert(t('ui.entityIdBadge.copyErrorText'));
     }
     return;
   }

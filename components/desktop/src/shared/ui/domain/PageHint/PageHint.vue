@@ -7,7 +7,7 @@
     variant='ghost',
     icon-only,
     size='sm',
-    aria-label='Скрыть подсказку',
+    :aria-label='$t("ui.pageHint.hideAriaLabel")',
     @click='dismiss'
   )
     template(#icon-left)

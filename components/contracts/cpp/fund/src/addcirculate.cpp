@@ -24,7 +24,7 @@
 
   eosio::check(wal != coopwallet.end(), "Кошелёк кооператива не найден");
 
-  coopwallet.modify(wal, _fund, [&](auto &w) {
+  coopwallet.modify(wal, RamPayer::of(coopwallet, coopname), [&](auto &w) {
     w.circulating_account.available += quantity;
   });
 };

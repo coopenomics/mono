@@ -5,7 +5,9 @@ import { NotificationPermissionDialog } from 'src/features/NotificationPermissio
 import { ExitOverlay } from 'src/features/Membership/ExitFromCoop';
 import { PinPrompt } from 'src/features/Security/PinPrompt';
 import { MigrationOfferDialog } from 'src/features/Security/SetPassword';
+import { VerifyEmailOfferDialog } from 'src/features/User/VerifyEmail';
 import { NodeSyncOverlay } from 'src/entities/System/ui/NodeSyncOverlay';
+import { ConfirmDialog } from 'src/shared/ui/domain';
 
 /**
  * Регистрация ПЛАТФОРМЕННЫХ глобальных оверлеев в универсальный реестр.
@@ -27,5 +29,10 @@ export function registerCoreOverlays(): void {
   registerGlobalOverlay('core:pin-prompt', PinPrompt);
   // CoopID: мягкое предложение перейти на вход по паролю пайщику без пароля.
   registerGlobalOverlay('core:migration-offer', MigrationOfferDialog);
+  // Призыв подтвердить почту пайщику, у которого адрес ещё не подтверждён.
+  registerGlobalOverlay('core:verify-email-offer', VerifyEmailOfferDialog);
   registerGlobalOverlay('core:node-sync-overlay', NodeSyncOverlay);
+  // Окно подтверждения платформы: одно на всё приложение, поднимается вызовом
+  // useConfirm().confirm(...) — отдельных диалогов «вы уверены?» больше не нужно.
+  registerGlobalOverlay('core:confirm-dialog', ConfirmDialog);
 }

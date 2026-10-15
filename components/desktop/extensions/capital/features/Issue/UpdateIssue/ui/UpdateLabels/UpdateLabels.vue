@@ -24,7 +24,7 @@ div.full-width
         color="grey-4"
         text-color="dark"
       ) {{ tag }}
-      span.text-caption.text-grey-7(v-if="!modelValue.length") Нет меток
+      span.text-caption.text-grey-7(v-if="!modelValue.length") {{ $t('capital.updateLabels.empty') }}
 </template>
 
 <script setup lang="ts">
@@ -33,6 +33,7 @@ import { useRoute } from 'vue-router'
 import { normalizeIssueLabels } from 'app/extensions/capital/shared/lib'
 import { useUpdateIssue } from '../../model'
 import { ISSUE_PAGE_KEY } from 'app/extensions/capital/pages/IssuePage/model/context'
+import { t } from '../../../../../i18n';
 
 function labelsEqual(a: string[], b: string[]): boolean {
   if (a.length !== b.length) return false
@@ -47,7 +48,7 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  label: 'Метки',
+  label: t('capital.updateLabels.label'),
   readonly: false,
 })
 

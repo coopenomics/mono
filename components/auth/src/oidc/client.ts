@@ -1,3 +1,4 @@
+import { lt } from '@coopenomics/i18n'
 /**
  * Первый этап входа CoopID (Story 11.2) — password через authentik:
  * (1) встроенная форма гонит email+password в flow-executor authentik и
@@ -47,7 +48,7 @@ export function configureCoopId(config: { apiUrl: string }): void {
 /** База controller'а или явная ошибка конфигурации. */
 export function coopIdApiUrl(): string {
   if (!coopApiUrl)
-    throw new AuthV2Error(AuthV2ErrorCode.NetworkError, 'CoopID не сконфигурирован: вызовите configureCoopId({ apiUrl }) на старте приложения')
+    throw new AuthV2Error(AuthV2ErrorCode.NetworkError, lt('authClient.client.coopIdNotConfigured'))
   return coopApiUrl
 }
 
@@ -63,7 +64,7 @@ const managers = new Map<string, UserManager>()
 
 function userManager(issuer: string): UserManager {
   if (!oidcConfig)
-    throw new AuthV2Error(AuthV2ErrorCode.InvalidCredentials, 'OIDC не сконфигурирован: вызовите configureOidc({ clientId, redirectUri }) на старте приложения')
+    throw new AuthV2Error(AuthV2ErrorCode.InvalidCredentials, lt('authClient.client.oidcNotConfigured'))
   const authority = issuer.replace(/\/$/, '')
   const cached = managers.get(authority)
   if (cached)
@@ -165,7 +166,7 @@ export async function authenticateWithAuthentik(params: { issuer: string, email:
   // типов, а не пайщиком, — страховать её в рантайме нечем и незачем.
   const user = await signinViaFetch(um)
   if (!user)
-    throw new AuthV2Error(AuthV2ErrorCode.InvalidCredentials, 'authentik не вернул сессию после ввода пароля')
+    throw new AuthV2Error(AuthV2ErrorCode.InvalidCredentials, lt('authClient.client.noSessionAfterPassword'))
   return user
 }
 
@@ -196,7 +197,7 @@ async function signinViaFetch(um: UserManager): Promise<User> {
   // адрес, на котором запрос закончился, и несёт code+state (или error).
   const finalUrl = response.url
   if (!finalUrl || !/[?#].*(?:code|error)=/.test(finalUrl))
-    throw new Error(`authentik не вернул код авторизации (ответ ${response.status} на ${finalUrl || url})`)
+    throw new Error(lt('authClient.error.authentikNoAuthCode', { status: response.status, url: finalUrl || url }))
 
   return internals._signinEnd(finalUrl)
 }

@@ -1,16 +1,15 @@
-import { ForbiddenException, Inject, Injectable, UseGuards } from '@nestjs/common';
+import { Inject, Injectable, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
-import { GqlJwtAuthGuard, platformSettings } from '@coopenomics/extension-kit';
-import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
-import { RequireMarketplaceAccess } from '../decorators/marketplace-access.decorator';
-import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
-import { MarketplaceRoleGuard } from '../guards/marketplace-role.guard';
-import { canAccess } from '../access/marketplace-access-matrix';
-import type { MarketplaceRole } from '../membership/marketplace-roles.mapper';
 import {
-  MARKETPLACE_KU_CHAIRMAN_SERVICE,
-  type MarketplaceKuChairmanService,
-} from '../services/marketplace-ku-chairman.service';
+  GqlJwtAuthGuard,
+  GrantedScope,
+  platformSettings,
+  RequireRight,
+  RightsGuard,
+  type IGrantedScope,
+} from '@coopenomics/extension-kit';
+import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
+import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
 import { MarketplaceOrderDisplayService } from '../services/marketplace-order-display.service';
 import type { IMarketplaceCurrentMember } from '../dto/marketplace-current-member.dto';
 import {
@@ -46,8 +45,6 @@ export class MarketplaceInventoryResolver {
     private readonly labelService: MarketplaceInventoryLabelService,
     @Inject(MARKETPLACE_INVENTORY_REPOSITORY)
     private readonly inventoryRepo: MarketplaceInventoryDomainRepository,
-    @Inject(MARKETPLACE_KU_CHAIRMAN_SERVICE)
-    private readonly kuChairmanService: MarketplaceKuChairmanService,
     private readonly orderDisplay: MarketplaceOrderDisplayService
   ) {}
 
@@ -56,8 +53,8 @@ export class MarketplaceInventoryResolver {
     description:
       'Оператор КУ кладёт позицию склада в бокс либо в ячейку напрямую, или снимает её с места.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('Inventory', 'label')
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
+  @RequireRight('Inventory', 'label', { of: 'Inventory', id: 'data.inventory_id' })
   async marketplaceAssignInventoryPlacement(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceAssignInventoryPlacementInputDTO
@@ -79,8 +76,8 @@ export class MarketplaceInventoryResolver {
     description:
       'Оператор КУ раскладывает одну принятую позицию склада по нескольким полкам, разбивая её на отдельные записи.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('Inventory', 'label')
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
+  @RequireRight('Inventory', 'label', { of: 'Inventory', id: 'data.inventory_id' })
   async marketplaceSplitInventory(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceSplitInventoryInputDTO
@@ -105,8 +102,8 @@ export class MarketplaceInventoryResolver {
     description:
       'Оператор КУ наклеивает на позицию склада внутренний штрих-код (Code128 или EAN-13) для быстрого поиска на полке.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('Inventory', 'label')
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
+  @RequireRight('Inventory', 'label', { of: 'Inventory', id: 'data.inventory_id' })
   async marketplaceGenerateInventoryLabel(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceGenerateInventoryLabelInputDTO
@@ -127,8 +124,8 @@ export class MarketplaceInventoryResolver {
     description:
       'Оператор КУ привязывает к позиции склада штрих-код с заранее напечатанной этикетки (считанный сканером).',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('Inventory', 'label')
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
+  @RequireRight('Inventory', 'label', { of: 'Inventory', id: 'data.inventory_id' })
   async marketplaceBindInventoryBarcode(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceBindInventoryBarcodeInputDTO
@@ -150,8 +147,8 @@ export class MarketplaceInventoryResolver {
     description:
       'Оператор КУ снимает штрих-код с позиции склада, чтобы переклеить этикетку (позиция возвращается в состояние «Принято»).',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('Inventory', 'label')
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
+  @RequireRight('Inventory', 'label', { of: 'Inventory', id: 'data.inventory_id' })
   async marketplaceClearInventoryLabel(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceClearInventoryLabelInputDTO
@@ -170,39 +167,17 @@ export class MarketplaceInventoryResolver {
     name: 'marketplaceListInventory',
     description: 'Список наклеек инвентаря КУ — для admin-стола склада и операторских разделов.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('Warehouse', 'read:own-KU')
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
+  @RequireRight('Warehouse', 'read:own-KU', { list: 'data.braname' })
   async marketplaceListInventory(
-    @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
+    @GrantedScope() scope: IGrantedScope,
     @Args('data', { nullable: true }) data?: MarketplaceListInventoryInputDTO
   ): Promise<MarketplaceInventoryItemDTO[]> {
     const coopname = platformSettings().coopname;
-    const roles = member.marketplace_roles as MarketplaceRole[];
-
-    // Ownership-фильтрация данных — ответственность резолвера, а не матрицы
-    // (matrix отвечает только за capability). Роль с `Warehouse:read:all`
-    // (admin/совет) видит склад всего кооператива; роль только с
-    // `read:own-KU` (оператор/председатель КУ) ограничивается своими КУ.
-    let branameFilter: string | string[] | undefined = data?.braname;
-    if (!canAccess(roles, 'Warehouse', 'read:all')) {
-      const ownBranames = await this.kuChairmanService.listBranamesForMember(
-        coopname,
-        member.username
-      );
-      if (ownBranames.length === 0) {
-        return [];
-      }
-      if (data?.braname) {
-        if (!ownBranames.includes(data.braname)) {
-          throw new ForbiddenException(
-            'Склад доступен только по участку, на котором вы являетесь председателем или доверенным лицом.'
-          );
-        }
-        branameFilter = data.braname;
-      } else {
-        branameFilter = ownBranames;
-      }
-    }
+    // Участки отбора отдаёт гард: свои у оператора, запрошенный либо все — у
+    // председателя и совета.
+    if (scope.kus && scope.kus.length === 0) return [];
+    const branameFilter = scope.kus ?? undefined;
 
     const filter: MarketplaceInventoryListFilter = {
       coopname,
@@ -231,6 +206,11 @@ export class MarketplaceInventoryResolver {
       dto.package_size = display?.package_size ?? null;
       dto.delivery_point_name = display?.delivery_point_name ?? null;
       dto.delivery_point_address = display?.delivery_point_address ?? null;
+      // Предложение и категория — из того же батча по заказам. Позиция,
+      // опубликованную кооперативом остатком, ссылается на своё предложение
+      // (published_offer_id), обычная — на предложение исходного заказа.
+      dto.offer_id = item.published_offer_id ?? display?.offer_id ?? null;
+      dto.category_id = display?.category_id ?? null;
       return dto;
     });
   }

@@ -12,18 +12,18 @@ q-dialog(
         q-icon(name='notifications', size='3rem', color='primary')
 
       .dialog-title.text-h5.q-mb-md
-        | Разрешить уведомления?
+        | {{ $t('notificationPermissionDialog.notificationPermissionDialog.title') }}
 
       .dialog-description.text-body2.q-mb-lg
-        p Мы хотели бы присылать вам важные уведомления о событиях в кооперативе:
+        p {{ $t('notificationPermissionDialog.notificationPermissionDialog.intro') }}
         ul.q-pl-md.q-mt-sm
-          li Статус ваших заявок и документов
-          li Важные объявления
-          li Уведомления о собраниях
-          li И прочее...
+          li {{ $t('notificationPermissionDialog.notificationPermissionDialog.statusUpdatesItem') }}
+          li {{ $t('notificationPermissionDialog.notificationPermissionDialog.announcementsItem') }}
+          li {{ $t('notificationPermissionDialog.notificationPermissionDialog.meetingsItem') }}
+          li {{ $t('notificationPermissionDialog.notificationPermissionDialog.etcItem') }}
 
         p.q-mt-md.disclaimer
-          | Вы сможете настроить типы уведомлений или отключить их в любое время.
+          | {{ $t('notificationPermissionDialog.notificationPermissionDialog.settingsHint') }}
 
     q-card-actions.justify-center.dialog-actions-container
       .dialog-actions
@@ -32,14 +32,14 @@ q-dialog(
           flat,
           color='grey-7',
           :disable='isProcessing'
-        ) Не сейчас
+        ) {{ $t('notificationPermissionDialog.notificationPermissionDialog.dismiss') }}
 
         q-btn.allow-btn(
           @click='handleAllow',
           color='primary',
           :loading='isProcessing',
           :disable='isProcessing'
-        ) Разрешить
+        ) {{ $t('notificationPermissionDialog.notificationPermissionDialog.allow') }}
 </template>
 
 <script setup lang="ts">

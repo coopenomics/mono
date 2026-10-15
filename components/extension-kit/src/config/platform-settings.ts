@@ -27,14 +27,6 @@ export interface PlatformBlockchainSettings {
   /** Точность системного токена — знаков после запятой. */
   rootPrecision: number;
   /**
-   * Пауза перед чтением таблиц цепи сразу после успешной мутации, мс.
-   *
-   * На узле-последователе строка появляется в состоянии с задержкой
-   * относительно ответа RPC, и величина этой задержки зависит от узла контура,
-   * а не от расширения.
-   */
-  postTransactChainReadDelayMs: number;
-  /**
    * Идентификатор цепи контура. Входит в подписываемую транзакцию, поэтому
    * подпись, собранная для одной цепи, в другой недействительна — расширение
    * обязано брать его отсюда, а не хранить у себя.
@@ -80,6 +72,7 @@ export function configurePlatformSettings(value: PlatformSettings): void {
 export function platformSettings(): PlatformSettings {
   if (!settings) {
     throw new Error(
+      // i18n-ignore: ошибка сборки приложения при старте, до пайщика не доходит
       'Настройки контура не заданы: composition root обязан вызвать configurePlatformSettings() при старте'
     );
   }

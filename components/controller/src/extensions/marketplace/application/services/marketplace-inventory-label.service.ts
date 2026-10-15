@@ -1,10 +1,4 @@
-import {
-  BadRequestException,
-  ConflictException,
-  Inject,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { randomBytes } from 'crypto';
 import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import {
@@ -26,6 +20,7 @@ import {
   type MarketplaceInventoryPlacement,
 } from '../../domain/entities/marketplace-inventory.types';
 import type { MarketplaceInventoryDomainEntity } from '../../domain/entities/marketplace-inventory.entity';
+import { DomainError } from '@coopenomics/extension-kit';
 
 export interface MarketplaceGenerateInventoryLabelInputDto {
   coopname: string;
@@ -135,9 +130,7 @@ export class MarketplaceInventoryLabelService {
     const cell_id = requested.cell_id ?? null;
 
     if (container_id && cell_id) {
-      throw new BadRequestException(
-        'Укажите одно место: либо бокс, либо ячейку. Ячейка бокса определяется по самому боксу.'
-      );
+      throw DomainError.badRequest('MARKETPLACE_LABEL_PLACEMENT_SINGLE_LOCATION_REQUIRED');
     }
     if (!container_id && !cell_id) {
       return { container_id: null, cell_id: null };
@@ -146,30 +139,26 @@ export class MarketplaceInventoryLabelService {
     if (container_id) {
       const container = await this.containerRepo.findById(container_id);
       if (!container || container.coopname !== coopname) {
-        throw new NotFoundException('Бокс не найден.');
+        throw DomainError.notFound('MARKETPLACE_CONTAINER_NOT_FOUND');
       }
       if (!container.is_active) {
-        throw new ConflictException(`Бокс «${container.code}» выведен из оборота.`);
+        throw DomainError.conflict('MARKETPLACE_CONTAINER_DECOMMISSIONED', { containerCode: container.code });
       }
       if (container.braname !== braname) {
-        throw new ConflictException(
-          `Бокс «${container.code}» числится за участком ${container.braname}, а имущество — за ${braname}.`
-        );
+        throw DomainError.conflict('MARKETPLACE_CONTAINER_BRANCH_MISMATCH_ITEM', { containerCode: container.code, containerBranch: container.braname, itemBranch: braname });
       }
       return { container_id, cell_id: null };
     }
 
     const cell = await this.cellRepo.findById(cell_id as string);
     if (!cell || cell.coopname !== coopname) {
-      throw new NotFoundException('Ячейка не найдена.');
+      throw DomainError.notFound('MARKETPLACE_CELL_NOT_FOUND');
     }
     if (!cell.is_active) {
-      throw new ConflictException(`Ячейка «${cell.code}» выведена из оборота.`);
+      throw DomainError.conflict('MARKETPLACE_CELL_DECOMMISSIONED', { cellCode: cell.code });
     }
     if (cell.braname !== braname) {
-      throw new ConflictException(
-        `Ячейка «${cell.code}» относится к участку ${cell.braname}, а имущество — к ${braname}.`
-      );
+      throw DomainError.conflict('MARKETPLACE_CELL_BRANCH_MISMATCH_ITEM', { cellCode: cell.code, cellBranch: cell.braname, itemBranch: braname });
     }
     return { container_id: null, cell_id };
   }
@@ -189,16 +178,14 @@ export class MarketplaceInventoryLabelService {
   ): Promise<MarketplaceInventoryMutationResult> {
     const target = await this.loadOwned(input.coopname, input.inventory_id);
     if (target.status !== MarketplaceInventoryStatuses.RECEIVED || target.barcode_value) {
-      throw new ConflictException(
-        'Перераскладывать можно только непромаркированную позицию (на складе, без штрих-кода).'
-      );
+      throw DomainError.conflict('MARKETPLACE_INVENTORY_RELOCATE_ONLY_UNLABELED');
     }
     if (!input.splits.length) {
-      throw new BadRequestException('Не указаны доли раскладки.');
+      throw DomainError.badRequest('MARKETPLACE_LABEL_SPLIT_SHARES_REQUIRED');
     }
     const quantities = input.splits.map((s) => Math.trunc(s.quantity));
     if (quantities.some((q) => q <= 0)) {
-      throw new BadRequestException('Количество в каждой доле должно быть положительным целым.');
+      throw DomainError.badRequest('MARKETPLACE_LABEL_SPLIT_SHARE_INVALID');
     }
 
     // Пул перераскладки — все непромаркированные RECEIVED-куски того же заказа.
@@ -213,9 +200,7 @@ export class MarketplaceInventoryLabelService {
 
     const sum = quantities.reduce((a, q) => a + q, 0);
     if (sum !== poolTotal) {
-      throw new BadRequestException(
-        `Сумма долей (${sum}) не равна количеству позиции (${poolTotal}).`
-      );
+      throw DomainError.badRequest('MARKETPLACE_LABEL_SPLIT_SUM_MISMATCH', { sharesSum: sum, poolTotal });
     }
 
     const result: MarketplaceInventoryDomainEntity[] = [];
@@ -270,15 +255,13 @@ export class MarketplaceInventoryLabelService {
   ): Promise<MarketplaceInventoryMutationResult> {
     const item = await this.loadOwned(input.coopname, input.inventory_id);
     if (item.barcode_value) {
-      throw new ConflictException('Позиция уже промаркирована штрих-кодом.');
+      throw DomainError.conflict('MARKETPLACE_ITEM_ALREADY_LABELED');
     }
     if (
       item.status !== MarketplaceInventoryStatuses.RECEIVED &&
       item.status !== MarketplaceInventoryStatuses.LABELED
     ) {
-      throw new ConflictException(
-        `Маркировка недоступна для позиции в статусе «${item.status}».`
-      );
+      throw DomainError.conflict('MARKETPLACE_LABELING_WRONG_STATUS', { status: item.status });
     }
     const format = input.format ?? MarketplaceBarcodeFormats.EAN13;
     const barcode_value = await this.generateUniqueBarcode(
@@ -310,23 +293,21 @@ export class MarketplaceInventoryLabelService {
   ): Promise<MarketplaceInventoryMutationResult> {
     const barcode_value = input.barcode_value?.trim();
     if (!barcode_value) {
-      throw new BadRequestException('Не указано значение штрих-кода.');
+      throw DomainError.badRequest('MARKETPLACE_BARCODE_VALUE_REQUIRED');
     }
     const item = await this.loadOwned(input.coopname, input.inventory_id);
     if (item.barcode_value) {
-      throw new ConflictException('Позиция уже промаркирована штрих-кодом.');
+      throw DomainError.conflict('MARKETPLACE_ITEM_ALREADY_LABELED');
     }
     if (
       item.status !== MarketplaceInventoryStatuses.RECEIVED &&
       item.status !== MarketplaceInventoryStatuses.LABELED
     ) {
-      throw new ConflictException(
-        `Маркировка недоступна для позиции в статусе «${item.status}».`
-      );
+      throw DomainError.conflict('MARKETPLACE_LABELING_WRONG_STATUS', { status: item.status });
     }
     const conflict = await this.inventoryRepo.findByBarcode(item.coopname, barcode_value);
     if (conflict) {
-      throw new ConflictException('Этот штрих-код уже привязан к другой позиции склада.');
+      throw DomainError.conflict('MARKETPLACE_BARCODE_ALREADY_BOUND');
     }
     const format = input.format ?? MarketplaceBarcodeFormats.EAN13;
     const updated = await this.inventoryRepo.applyLabel(item.id, {
@@ -347,12 +328,10 @@ export class MarketplaceInventoryLabelService {
   ): Promise<MarketplaceInventoryMutationResult> {
     const item = await this.loadOwned(input.coopname, input.inventory_id);
     if (!item.barcode_value) {
-      throw new ConflictException('У позиции нет штрих-кода — снимать нечего.');
+      throw DomainError.conflict('MARKETPLACE_ITEM_NO_BARCODE_TO_REMOVE');
     }
     if (item.status !== MarketplaceInventoryStatuses.LABELED) {
-      throw new ConflictException(
-        `Снять штрих-код можно только с промаркированной позиции (статус «${item.status}»).`
-      );
+      throw DomainError.conflict('MARKETPLACE_BARCODE_REMOVE_WRONG_STATUS', { status: item.status });
     }
     const updated = await this.inventoryRepo.clearLabel(item.id);
     this.logger.log(`Inventory: штрих-код снят с позиции ${item.id} (переклейка).`);
@@ -366,11 +345,11 @@ export class MarketplaceInventoryLabelService {
     inventory_id: string
   ): Promise<MarketplaceInventoryDomainEntity> {
     if (!inventory_id) {
-      throw new BadRequestException('Не указана позиция склада.');
+      throw DomainError.badRequest('MARKETPLACE_INVENTORY_ITEM_REQUIRED');
     }
     const item = await this.inventoryRepo.findById(inventory_id);
     if (!item || item.coopname !== coopname) {
-      throw new NotFoundException('Позиция склада не найдена.');
+      throw DomainError.notFound('MARKETPLACE_INVENTORY_ITEM_NOT_FOUND');
     }
     return item;
   }
@@ -394,7 +373,7 @@ export class MarketplaceInventoryLabelService {
       const conflict = await this.inventoryRepo.findByBarcode(coopname, candidate);
       if (!conflict) return candidate;
     }
-    throw new ConflictException('Не удалось сгенерировать уникальный штрих-код за 5 попыток.');
+    throw DomainError.conflict('MARKETPLACE_BARCODE_GENERATION_FAILED');
   }
 
   private makeCode128(

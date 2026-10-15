@@ -23,6 +23,9 @@
   }
   
   verify_document_or_fail(document);
+  // Подпись от имени пайщика — только его ключом: транзакцию подписывает
+  // кооператив, и подделанная подпись иначе прошла бы.
+  verify_signer_keys_or_fail(document, username);
   
   auto coagreement = get_coagreement_or_fail(coopname, agreement_type);
 
@@ -35,9 +38,10 @@
   uint64_t version = 0;
   
   if (coagreement.draft_id > 0) {
-    // Получаем шаблон документа, если draft_id > 0
-    auto draft = get_scoped_draft_by_registry_or_fail(_draft, coagreement.draft_id);
-    version = draft.version;
+    // Редакция подписи — та, что утвердил совет кооператива (draft::approvals),
+    // а не текущая редакция сети: иначе подпись под старым текстом получала бы
+    // новый номер, и после утверждения переподписание не запрашивалось бы.
+    version = get_effective_draft_version(coopname, coagreement.draft_id);
   }
 
   auto agreement_id = get_global_id_in_scope(_soviet, coopname, "agreements"_n);
@@ -54,7 +58,7 @@
   
     if (wallet == wallets_by_username_and_program.end()) {
       
-      progwallets.emplace(_soviet, [&](auto &b) {
+      progwallets.emplace(RamPayer::of(progwallets, coopname), [&](auto &b) {
         b.id = progwallets.available_primary_key();
         b.program_id = coagreement.program_id;
         b.coopname = coopname;
@@ -75,7 +79,7 @@
 
   if (agreement == agreements_by_username_and_draft.end()) {
     
-    agreements.emplace(_soviet, [&](auto &row){
+    agreements.emplace(RamPayer::of(agreements, coopname), [&](auto &row){
       row.id = agreement_id;
       row.coopname = coopname;
       row.status = ""_n;
@@ -91,7 +95,7 @@
     
     eosio::check(agreement->status != "confirmed"_n, "Соглашение уже принято");
     
-    agreements_by_username_and_draft.modify(agreement, _soviet, [&](auto &row){
+    agreements_by_username_and_draft.modify(agreement, RamPayer::of(agreements_by_username_and_draft, coopname), [&](auto &row){
       row.status = ""_n;
       row.program_id = coagreement.program_id;
       row.version = version;

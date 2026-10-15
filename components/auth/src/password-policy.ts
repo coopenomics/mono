@@ -1,3 +1,4 @@
+import { lt } from '@coopenomics/i18n'
 /**
  * Единая парольная политика CoopID: минимум 8 символов, хотя бы одна цифра и
  * хотя бы один спецсимвол (не буква и не цифра — Unicode-aware, кириллица не
@@ -19,16 +20,16 @@ export const PASSWORD_MIN_LENGTH = 8
 export function passwordPolicyErrors(password: string): string[] {
   const errors: string[] = []
   if (password.length < PASSWORD_MIN_LENGTH)
-    errors.push(`Минимум ${PASSWORD_MIN_LENGTH} символов`)
+    errors.push(lt('authClient.passwordPolicy.minLength', { minLength: PASSWORD_MIN_LENGTH }))
   if (!/\d/.test(password))
-    errors.push('Хотя бы одна цифра')
+    errors.push(lt('authClient.passwordPolicy.requireDigit'))
   if (!/[^\p{L}\p{N}]/u.test(password))
-    errors.push('Хотя бы один спецсимвол (например !, ?, - или _)')
+    errors.push(lt('authClient.passwordPolicy.requireSpecialChar'))
   return errors
 }
 
 /** Короткая подсказка под полем ввода — что требуется от пароля. */
-export const PASSWORD_POLICY_HINT = `Минимум ${PASSWORD_MIN_LENGTH} символов, хотя бы одна цифра и один спецсимвол`
+export const PASSWORD_POLICY_HINT = lt('authClient.passwordPolicy.hint', { minLength: PASSWORD_MIN_LENGTH })
 
 /** Пароль удовлетворяет политике целиком. */
 export function isPasswordPolicyOk(password: string): boolean {

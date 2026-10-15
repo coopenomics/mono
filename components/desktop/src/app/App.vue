@@ -21,6 +21,7 @@ import { useSystemStore } from 'src/entities/System/model';
 import { useDesktopHealthWatcherProcess } from 'src/processes/watch-desktop-health';
 import { useSessionStore } from 'src/entities/Session';
 import { initOpenReplayTracker } from 'src/shared/config';
+import { t } from 'src/shared/i18n';
 // Start tracker
 const session = useSessionStore();
 const system = useSystemStore();
@@ -38,7 +39,9 @@ const globalOverlays = getGlobalOverlays();
 // авторизации, дёргает catch-up на возврат активности. Подписки расширения
 // регистрируют сами в своих install.ts (фабрика, как и оверлеи).
 registerCoreRealtimeSubscriptions();
-startRealtimeChannel();
+// Признак авторизации — сессия, а не ключ в памяти: запертый PIN-кодом ключ
+// не должен закрывать подписки и глушить дочитку состояния.
+startRealtimeChannel({ isAuthed: () => session.isAuth });
 
 // [BOOTRACE] таймстемп первого холодного старта (грепается по слову BOOTRACE).
 const bootraceTs = (): string => {
@@ -57,6 +60,7 @@ onMounted(async () => {
   const SAFETY_REMOVE_LOADER_MS = 60_000;
   let safetyTimerId: ReturnType<typeof setTimeout> | undefined;
   if (typeof window !== 'undefined') {
+    // timing: timeout — страховка: снять заставку, если загрузка зависла
     safetyTimerId = setTimeout(() => {
       if (!isLoaded.value) {
         console.warn(
@@ -97,6 +101,7 @@ onMounted(async () => {
     clearSafetyTimer();
 
     // Показываем диалог разрешения уведомлений после загрузки
+    // timing: ui — диалог открываем, когда первый экран отрисован, а не поверх заставки
     setTimeout(() => {
       showDialog();
     }, 1000);
@@ -119,7 +124,7 @@ function removeLoader() {
   if (loaderContainer) {
     loaderContainer.remove();
   } else {
-    FailAlert('Возникла ошибка при загрузке сайта :(');
+    FailAlert(t('app.app.loadError'));
   }
 }
 </script>

@@ -1,0 +1,5 @@
+{
+  "errors": {
+    "FREE_DECISION_WRONG_REGISTRY": "Неверный registry_id в переданном документе, ожидается registry_id == {expected}"
+  }
+}

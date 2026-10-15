@@ -1,8 +1,8 @@
+import { TableStore, lessOrEqual, oneOf } from '@coopenomics/extension-kit';
+import { MARKETPLACE_INVENTORY_STORE } from '../../infrastructure/database/marketplace-stores';
 import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { InjectRepository } from '@nestjs/typeorm';
-import { In, LessThanOrEqual, Repository } from 'typeorm';
 import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { platformSettings } from '@coopenomics/extension-kit';
 import { MarketplaceExtensionConfigService } from './marketplace-extension-config.service';
@@ -15,6 +15,7 @@ import {
   type MarketplaceAssetConfig,
 } from './marketplace-asset.config';
 import { MARKETPLACE_WRITEOFF_DRAFT_BUILT_EVENT } from '../events/marketplace-notification.events';
+import { t } from '../../i18n';
 
 /**
  * Story 8.3 (Эпик 8): крон-сканер скоропорта.
@@ -32,11 +33,11 @@ import { MARKETPLACE_WRITEOFF_DRAFT_BUILT_EVENT } from '../events/marketplace-no
  */
 @Injectable()
 export class MarketplaceWriteoffCronService implements OnModuleInit {
-  private static readonly EXPIRED_REASON = 'Истёк срок годности';
+  private static readonly EXPIRED_REASON = t('marketplace.writeoffCron.expiredReason');
 
   constructor(
-    @InjectRepository(MarketplaceInventoryEntity, 'marketplace')
-    private readonly inventoryRepo: Repository<MarketplaceInventoryEntity>,
+    @Inject(MARKETPLACE_INVENTORY_STORE)
+private readonly inventoryRepo: TableStore<MarketplaceInventoryEntity>,
     private readonly writeoffService: MarketplaceWriteoffService,
     private readonly extensionConfig: MarketplaceExtensionConfigService,
     @Inject(MARKETPLACE_ASSET_CONFIG)
@@ -93,16 +94,12 @@ export class MarketplaceWriteoffCronService implements OnModuleInit {
     // расширение marketplace_inventory.status + поля returned_at / age_days.
     const cutoff = new Date(Date.now() - graceDays * 86_400_000);
     const rawCandidates = await this.inventoryRepo.find({
-      where: {
         coopname,
         // Скоропорт сканируем по всем позициям на складе — промаркированным и нет
         // (штрих-код опционален, срок годности задаётся на приёмке).
-        status: In([...MarketplaceInventoryOnWarehouseStatuses]),
-        expiry_date: LessThanOrEqual(cutoff),
-      },
-      take: 200,
-      order: { expiry_date: 'ASC' },
-    });
+        status: oneOf([...MarketplaceInventoryOnWarehouseStatuses]),
+        expiry_date: lessOrEqual(cutoff),
+      }, { order: { expiry_date: 'ASC' }, limit: 200 });
 
     // `expiry_date <= cutoff` в Postgres/TypeORM уже отсекает NULL (сравнение
     // NULL <= x недостоверно → строка не проходит WHERE), но эта защита

@@ -8,6 +8,7 @@ import { BillingPaymentLogService } from '~/infrastructure/billing/billing-payme
 import { BillingCronService } from '~/domain/billing/services/billing-cron.service';
 import { ProviderModule } from '~/application/provider/provider.module';
 import { DocumentDomainModule } from '~/domain/document/document.module';
+import { CoreRightsModule } from '~/application/rights/core-rights.module';
 
 /**
  * Модуль billing (Epic 12 / Single-Hub v5):
@@ -26,7 +27,7 @@ import { DocumentDomainModule } from '~/domain/document/document.module';
  * путь подтверждения time-оплат; первый — синхронный confirm в cron'е.
  */
 @Module({
-  imports: [ProviderModule, DocumentDomainModule],
+  imports: [CoreRightsModule, ProviderModule, DocumentDomainModule],
   providers: [
     BillingService,
     BillingResolver,

@@ -57,10 +57,16 @@ const KNOWN_SYNC = {
   'IRegistrationRegistryPort.unregisterAgreement': 'реестр оферт вступления',
   'IRegistrationRegistryPort.registerProgram': 'реестр программ вступления, передаются данные',
   'IRegistrationRegistryPort.unregisterProgram': 'реестр программ вступления',
+  'IRegistrationRegistryPort.registerIntakeForm': 'реестр анкет вступления, передаются данные (JSON Schema)',
+  'IRegistrationRegistryPort.unregisterIntakeForm': 'реестр анкет вступления',
   'IChainPort.initialize': 'передача ключа подписи; по сети ключ не отдаём — приём меняется целиком',
+  'IChainChangesPort.declareTables': 'реестр таблиц ленты изменений, передаются данные',
+  'IChainChangesPort.declareLocalTables': 'реестр таблиц ленты изменений, передаются данные',
+  'IChainChangesPort.setStaff': 'реестр персонала расширения в ленте изменений, передаётся список',
   'IDesktopGrantsRegistryPort.register': 'см. долг по объектам с методами',
   'IRegistrationDocumentParametersRegistryPort.registerProgramHook': 'см. долг по объектам с методами',
   'IRegistrationDocumentParametersRegistryPort.registerMarketplaceHook': 'см. долг по объектам с методами',
+  'IRegistrationDocumentParametersRegistryPort.registerProgramOfferHook': 'см. долг по объектам с методами',
   'IFileStoragePort.getBucket': 'см. долг по объектам с методами',
 };
 
@@ -69,6 +75,7 @@ const KNOWN_HANDLE_OBJECTS = {
   'IDesktopGrantsRegistryPort.register': 'кладёт в реестр ядра объект прав расширения',
   'IRegistrationDocumentParametersRegistryPort.registerProgramHook': 'кладёт в реестр ядра хук параметров оферт',
   'IRegistrationDocumentParametersRegistryPort.registerMarketplaceHook': 'кладёт в реестр ядра хук параметров оферт',
+  'IRegistrationDocumentParametersRegistryPort.registerProgramOfferHook': 'кладёт в реестр ядра хук параметров оферт программы по её ключу',
   'IFileStoragePort.getBucket': 'отдаёт расширению объект бакета с методами',
 };
 

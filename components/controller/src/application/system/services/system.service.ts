@@ -68,7 +68,8 @@ export class SystemService {
     });
   }
 
-  public async install(data: InstallDTO): Promise<SystemInfoDTO> {
+  public async install(data: InstallDTO, trusted = false): Promise<SystemInfoDTO> {
+    await this.systemInteractor.assertInstallCode(data.install_code, trusted);
     const info = await this.systemInteractor.install({
       ...data,
       vars: data.vars as any, // SetVarsInputDTO совместим с VarsDomainInterface по полям
@@ -86,8 +87,12 @@ export class SystemService {
     return new SystemInfoDTO(info, this.providerService.isProviderAvailable());
   }
 
-  public async init(data: InitDTO): Promise<SystemInfoDTO> {
-    const info = await this.systemInteractor.init(data);
+  public async init(data: InitDTO, trusted = false): Promise<SystemInfoDTO> {
+    await this.systemInteractor.assertInstallCode(data.install_code, trusted);
+    // Серверную инициализацию объявляет только провайдер с межсервисным
+    // секретом: иначе любой клиент пометил бы данные организации как
+    // «установленные администратором» и запер бы их от правки.
+    const info = await this.systemInteractor.init({ ...data, is_server_init: trusted && data.is_server_init === true });
     return new SystemInfoDTO(info, this.providerService.isProviderAvailable());
   }
 
@@ -118,6 +123,7 @@ export class SystemService {
     return new RegistrationConfigDTO({
       requires_selection: programs.length > 1,
       programs,
+      intake_forms: this.agreementConfigService.getIntakeFormsForAccountType(accountType),
     });
   }
 }

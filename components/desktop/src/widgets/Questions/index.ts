@@ -1,3 +1,6 @@
 export { QuestionsTable } from './ui/QuestionsTable'
 export { QuestionCard } from './ui/QuestionCard'
+export { QuestionDetails } from './ui/QuestionDetails'
+export { ChairmanDecisionButton } from './ui/ChairmanDecisionButton'
 export { VotingButtons } from './ui/VotingButtons'
+export { AGENDA_QUESTION_ROUTE, applicantNameOf, isQuestionRejected, questionTitleOf } from './model'

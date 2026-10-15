@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import config from '~/config/config';
 import { IAuthnSessionPort } from '~/domain/auth-v2/ports/authn-session.port';
+import { DomainError } from '@coopenomics/extension-kit';
 
 /**
  * Адаптер проверки сессии authentik: GET /api/v3/core/users/me/ с проброшенной
@@ -17,7 +18,7 @@ export class AuthentikSessionAdapter implements IAuthnSessionPort {
     });
 
     if (res.status === 401 || res.status === 403) return null;
-    if (!res.ok) throw new Error(`authentik me-endpoint вернул ${res.status}`);
+    if (!res.ok) throw DomainError.internal('AUTH_V2_AUTHENTIK_ME_FAILED', { status: res.status });
 
     const data = (await res.json()) as { user?: { username?: string } };
     return data?.user?.username ?? null;

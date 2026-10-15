@@ -91,11 +91,13 @@
       template(#no-data)
         .list-empty
           q-icon(name='inbox', size='20px')
-          span {{ hasFiltersApplied ? 'Нет результатов по фильтрам' : 'Нет проектов' }}
+          span {{ hasFiltersApplied ? $t('capital.projectsListWidget.noFilterResults') : $t('capital.projectsListWidget.emptyText') }}
 </template>
 
 <script lang="ts" setup>
 import { ref, onMounted, onBeforeUnmount, computed, watch, nextTick } from 'vue';
+import { useLiveReload, liveWindow, type LiveWindow } from 'src/shared/lib/realtime';
+import { CAPITAL_LIVE_TABLES } from 'app/extensions/capital/shared/lib/live';
 import { useSystemStore } from 'src/entities/System/model';
 import { FailAlert } from 'src/shared/api';
 import { EntityIdBadge } from 'src/shared/ui';
@@ -108,6 +110,7 @@ import { FavoriteStarButton } from 'app/extensions/capital/features/Favorite/Tog
 import { Zeus } from '@coopenomics/sdk';
 import { isProject } from 'app/extensions/capital/shared/lib/project-utils';
 import { PrivateShieldIcon } from 'app/extensions/capital/shared/ui';
+import { t } from '../../i18n';
 
 /**
  * Память списка между заходами (живёт на уровне модуля, переживает unmount).
@@ -204,8 +207,10 @@ const pagination = ref({
 });
 
 // Загрузка проектов
-const loadProjects = async (page = 1, append = false) => {
-  loading.value = true;
+// `window` — перечитывание по ленте изменений: все уже загруженные страницы
+// одним запросом, тихо, с сохранением позиции ленты.
+const loadProjects = async (page = 1, append = false, window?: LiveWindow) => {
+  if (!window) loading.value = true;
 
   try {
     const filter: any = {
@@ -236,18 +241,22 @@ const loadProjects = async (page = 1, append = false) => {
     await projectStore.loadProjects({
       filter,
       options: {
-        page,
-        limit: PAGE_SIZE, // Фиксированный размер страницы для бесконечного скролла
+        page: window ? 1 : page,
+        limit: window ? window.options.limit : PAGE_SIZE, // Фиксированный размер страницы для бесконечного скролла
         sortBy: props.sortBy || pagination.value.sortBy,
         sortOrder: props.sortOrder || (pagination.value.descending ? 'DESC' : 'ASC'),
       },
     }, append);
 
     // Обновляем состояние пагинации из store
-    lastPage.value = projectStore.projects.totalPages || 1;
+    lastPage.value = window
+      ? Math.max(1, Math.ceil(projectStore.projects.totalCount / PAGE_SIZE))
+      : projectStore.projects.totalPages || 1;
     pagination.value.rowsNumber = projectStore.projects.totalCount;
 
-    if (!append) {
+    if (window) {
+      nextPage.value = window.pages + 1;
+    } else if (!append) {
       nextPage.value = 2;
     }
 
@@ -267,7 +276,7 @@ const loadProjects = async (page = 1, append = false) => {
     emit('dataLoaded', projectHashes, totalComponents);
   } catch (error) {
     console.error('Ошибка при загрузке проектов:', error);
-    FailAlert('Не удалось загрузить список проектов');
+    if (!window) FailAlert(t('capital.projectsListWidget.loadError'));
   } finally {
     loading.value = false;
   }
@@ -291,6 +300,7 @@ const onScroll = ({ to, ref }) => {
     nextPage.value += 1;
     loading.value = true;
 
+    // timing: ui — подгрузка следующей страницы после остановки виртуальной прокрутки.
     setTimeout(() => {
       loadProjects(pageToLoad, true)
         .catch(() => {
@@ -331,6 +341,10 @@ const handleOpenProject = (projectHash: string) => {
 // PAGE_SIZE держим в одном месте: от него считается и загрузка, и
 // восстановление номера следующей страницы из длины ленты
 const PAGE_SIZE = 25;
+
+// Живая лента мастерской: проекты, их компоненты и задачи меняются по ленте
+// изменений Благороста — показанное перечитывается тихо, прокрутка на месте.
+useLiveReload(CAPITAL_LIVE_TABLES, () => loadProjects(1, false, liveWindow(nextPage.value - 1, PAGE_SIZE)));
 
 onMounted(async () => {
   const rawItems = projectStore.projects.items || [];

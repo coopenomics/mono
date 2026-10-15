@@ -5,11 +5,12 @@ import path from 'node:path'
 import { type ChildProcessWithoutNullStreams, execSync, spawn } from 'node:child_process'
 import readline from 'node:readline'
 import { PDFDocument } from 'pdf-lib'
-import moment from 'moment-timezone'
 import { v4 as uuidv4 } from 'uuid'
 import type { IGeneratedDocument, IMetaDocument, ITranslations } from '../../Interfaces'
-import { TemplateEngine } from '../Templator'
+import { BlankTemplateEngine, TemplateEngine } from '../Templator'
 import { calculateSha256 } from '../../Utils/calculateSHA'
+import { documentMetaKey } from '../../Utils/documentMetaKey'
+import { isLegacyCreatedAt, parseCreatedAt } from '../../Utils/documentCreatedAt'
 
 const weasyPrintVersion = '67' // ВАЖНО: держать в синхроне с controller/Dockerfile (pip install WeasyPrint==X) и мета-данными каждого документа
 
@@ -28,9 +29,23 @@ const weasyPrintVersion = '67' // ВАЖНО: держать в синхроне
 // Протокол: в stdin воркера пишем "<htmlPath>\t<pdfPath>\n", читаем из stdout
 // строку "OK" (успех) или "ERR <traceback>" (ошибка). Бинарь PDF не гоним
 // через пайп — обмениваемся путями к временным файлам (надёжно, без фрейминга).
+//
+// Наружу воркер не ходит вовсе (url_fetcher ниже). Документ собирается из
+// данных пайщика, а автоэкранирование в шаблонах выключено намеренно: имя или
+// адрес с угловыми скобками становятся разметкой. Штатный загрузчик
+// WeasyPrint по такой ссылке сходит куда скажут — `file://` вложит в PDF файл
+// контейнера, `http://` уйдёт во внутреннюю сеть от имени сервера. Терять
+// нечего: подпись приезжает внутри документа как `data:`-картинка, шрифт в
+// образе системный, других ресурсов в шаблонах реестра нет.
 const PY_WORKER_LOOP = `
 import sys, traceback
-from weasyprint import HTML
+from weasyprint import HTML, default_url_fetcher
+
+def inline_only_fetcher(url, *args, **kwargs):
+    if url.startswith("data:"):
+        return default_url_fetcher(url, *args, **kwargs)
+    raise ValueError("external resource is not allowed in documents: " + url[:200])
+
 sys.stdout.write("READY\\n"); sys.stdout.flush()
 for line in sys.stdin:
     line = line.rstrip("\\n")
@@ -38,7 +53,7 @@ for line in sys.stdin:
         continue
     try:
         in_path, out_path = line.split("\\t")
-        HTML(filename=in_path).write_pdf(out_path)
+        HTML(filename=in_path, url_fetcher=inline_only_fetcher).write_pdf(out_path)
         sys.stdout.write("OK\\n")
     except Exception:
         sys.stdout.write("ERR " + traceback.format_exc().replace("\\n", " | ") + "\\n")
@@ -255,6 +270,19 @@ export class PDFService implements IPDFService {
     return templateEngine.renderTemplate(template, combinedVars)
   }
 
+  /**
+   * Бланк: тот же шаблон и переводы, но поля без данных печатаются прочерком.
+   * `knownKeys` — верхний уровень модели шаблона.
+   */
+  public renderBlankHtml(
+    template: string,
+    combinedVars: Record<string, unknown>,
+    translation: ITranslations,
+    knownKeys: string[],
+  ): string {
+    return new BlankTemplateEngine(translation).renderBlank(template, combinedVars, knownKeys)
+  }
+
   public async generateDocument(
     template: string,
     combinedVars: any,
@@ -302,10 +330,33 @@ export class PDFService implements IPDFService {
     // поэтому НЕ встраиваем шрифт через data:base64 — иначе weasyprint парсил бы
     // ~270 КБ TTF на КАЖДЫЙ рендер (≈1.3 сек). Системный шрифт парсится один раз
     // и кешируется fontconfig'ом. Тот же файл шрифта — глифы/вёрстка идентичны.
+    //
+    // Типографика страницы — как у читателя документов на столе: интервал
+    // полторы строки, заголовкам — воздух, полям листа — 20 мм. Селекторы
+    // без класса: любое правило шаблона (отступы, выравнивание) их перекроет,
+    // а сами шаблоны интервалов и полей листа не задают — без этой основы
+    // WeasyPrint верстал текст «в плотную», хотя в интерфейсе он читался.
     const fontStyle = `
       <style>
+        @page {
+          size: A4;
+          margin: 20mm 18mm;
+        }
         * {
           font-family: 'Arial', sans-serif;
+        }
+        body {
+          font-size: 11pt;
+          line-height: 1.5;
+        }
+        p, li, td, th {
+          line-height: 1.5;
+        }
+        h1 {
+          line-height: 1.6;
+        }
+        h2, h3 {
+          line-height: 1.5;
         }
       </style>
       <meta charset="UTF-8">
@@ -343,7 +394,7 @@ export class PDFService implements IPDFService {
   }
 
   private static async updateMetadata(pdfBuffer: Uint8Array, meta: IMetaDocument): Promise<Uint8Array> {
-    const dateWithTimezone = moment.tz(meta.created_at, 'DD.MM.YYYY HH:mm', meta.timezone).toDate()
+    const dateWithTimezone = parseCreatedAt(meta.created_at, meta.timezone).toDate()
 
     const pdfDoc = await PDFDocument.load(pdfBuffer)
     pdfDoc.setTitle(meta.title)
@@ -353,6 +404,16 @@ export class PDFService implements IPDFService {
     pdfDoc.setCreationDate(dateWithTimezone)
     pdfDoc.setModificationDate(dateWithTimezone)
     pdfDoc.setProducer(`weasyprint-v${weasyPrintVersion}`)
+
+    // Отпечаток меты делает хэш документа (sha256 файла) уникальным для каждой
+    // генерации: тело двух генераций совпадает, а мета — нет (дата до
+    // миллисекунд, блок). Без него поиск черновика по хэшу находил чужую
+    // версию, и повторная подпись отбивалась как подмена (C28-84). Отпечаток
+    // выводится из самой меты, поэтому перегенерация из той же меты даёт тот
+    // же хэш. Документы со старой датой «ДД.ММ.ГГГГ ЧЧ:ММ» собираются без
+    // него — байт в байт как были подписаны.
+    if (!isLegacyCreatedAt(meta.created_at))
+      pdfDoc.setKeywords([`meta:${documentMetaKey(meta)}`])
 
     return pdfDoc.save({ useObjectStreams: false })
   }

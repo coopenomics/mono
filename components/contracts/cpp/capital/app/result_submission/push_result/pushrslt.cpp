@@ -31,6 +31,8 @@ void capital::pushrslt(name coopname, name username, checksum256 project_hash, c
 
   // Проверяем заявление
   verify_document_or_fail(statement, {username});
+  // Заявление о приёме результата подписывает сам пайщик. Транзакцию шлёт кооператив, поэтому ключ сверяется с аккаунтом.
+  verify_signer_keys_or_fail(statement, username);
 
   // Валидация входных параметров
   Wallet::validate_asset(contribution_amount);

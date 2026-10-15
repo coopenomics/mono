@@ -60,7 +60,7 @@ void soviet::createboard(eosio::name coopname, eosio::name username, eosio::name
     addresses_index addresses(_soviet, coopname.value);
     address_data data;
 
-    addresses.emplace(payer, [&](auto &a) {
+    addresses.emplace(RamPayer::of(addresses, coopname), [&](auto &a) {
       a.id = 0;
       a.coopname = coopname;
       a.data = data;
@@ -76,7 +76,7 @@ void soviet::createboard(eosio::name coopname, eosio::name username, eosio::name
 
   boards_index boards(_soviet, coopname.value);
 
-  boards.emplace(payer, [&](auto &b) {
+  boards.emplace(RamPayer::of(boards, coopname), [&](auto &b) {
     b.id = boards.available_primary_key();
     b.type = type;
     b.members = members;

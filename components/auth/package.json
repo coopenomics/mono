@@ -1,7 +1,7 @@
 {
   "name": "@coopenomics/auth",
   "type": "module",
-  "version": "2026.8.29",
+  "version": "2026.10.14-1",
   "private": false,
   "publishConfig": {
     "access": "public"
@@ -46,6 +46,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@coopenomics/i18n": "workspace:*",
     "@noble/hashes": "^1.8.0",
     "@wharfkit/antelope": "^1.1.1",
     "@wharfkit/session": "^1.4.0",

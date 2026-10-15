@@ -1,6 +1,7 @@
 import type { IDocumentAggregate, IDocumentPackageAggregate } from 'src/entities/Document/model/types';
 import { Cooperative } from 'cooptypes';
 import { getShortNameFromCertificate } from '../utils/getNameFromCertificate';
+import { t } from 'src/shared/i18n';
 
 /**
  * Восстанавливает ровно подписанный формат signed_at (SDK подписывает ISO UTC без дробных секунд и без Z).
@@ -425,7 +426,7 @@ export const prepareDocumentArchive = async (
   aggregate: IDocumentAggregate,
 ): Promise<{ blob: Blob; archiveName: string; pdfName: string }> => {
   if (!aggregate?.rawDocument?.binary) {
-    throw new Error('Бинарные данные документа не найдены');
+    throw new Error(t('document.error.binaryNotFound'));
   }
 
   const pdfBytes = decodeBase64(aggregate.rawDocument.binary);
@@ -496,6 +497,7 @@ export const prepareDocumentPackageArchive = async (
   const statementMeta = statementDoc ? parseJsonObject(statementDoc.rawDocument?.meta) : null;
   const statementTitle = statementDoc?.rawDocument?.full_title ||
                         (statementMeta?.title as string | undefined) ||
+                        // i18n-ignore: запасное имя документа для архива — данные, а не текст интерфейса
                         'Заявление';
 
   // Извлекаем фамилии подписантов из пакета
@@ -602,7 +604,7 @@ export const prepareDocumentPackageArchive = async (
   }
 
   if (files.length === 0) {
-    throw new Error('Не найдено ни одного документа для архивации');
+    throw new Error(t('document.error.archiveEmpty'));
   }
 
   // manifest.json — карта пакета для верификатора (тройки name/document/signature).

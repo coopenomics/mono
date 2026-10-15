@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { TableStore, lessThan, oneOf } from '@coopenomics/extension-kit';
+import { MARKETPLACE_CONSOLIDATED_REQUEST_STORE } from '../../infrastructure/database/marketplace-stores';
+import { Inject, Injectable } from '@nestjs/common';
 import { MarketplaceConsolidatedRequestDomainEntity } from '../../domain/entities/marketplace-consolidated-request.entity';
 import type {
   MarketplaceConsolidatedRequestCreateInput,
@@ -17,8 +17,8 @@ export class MarketplaceConsolidatedRequestRepositoryAdapter
   implements MarketplaceConsolidatedRequestDomainRepository
 {
   constructor(
-    @InjectRepository(MarketplaceConsolidatedRequestEntity, 'marketplace')
-    private readonly repo: Repository<MarketplaceConsolidatedRequestEntity>,
+    @Inject(MARKETPLACE_CONSOLIDATED_REQUEST_STORE)
+private readonly repo: TableStore<MarketplaceConsolidatedRequestEntity>,
     private readonly mapper: MarketplaceConsolidatedRequestMapper
   ) {}
 
@@ -45,18 +45,18 @@ export class MarketplaceConsolidatedRequestRepositoryAdapter
   }
 
   async findById(id: string): Promise<MarketplaceConsolidatedRequestDomainEntity | null> {
-    const row = await this.repo.findOne({ where: { id } });
+    const row = await this.repo.findOne({ id });
     return row ? this.mapper.toDomain(row) : null;
   }
 
   async findExpiredAwaitingResponse(
     now: Date
   ): Promise<MarketplaceConsolidatedRequestDomainEntity[]> {
-    const rows = await this.repo
-      .createQueryBuilder('r')
-      .where('r.status = :s', { s: 'PENDING_SUPPLIER_ACCEPT' as MarketplaceConsolidatedRequestStatus })
-      .andWhere('r.expires_at IS NOT NULL AND r.expires_at < :now', { now })
-      .getMany();
+    // Заявки без срока в отбор не попадают: сравнение с пустым значением ложно.
+    const rows = await this.repo.find({
+      status: 'PENDING_SUPPLIER_ACCEPT' as MarketplaceConsolidatedRequestStatus,
+      expires_at: lessThan(now),
+    });
     return rows.map((r) => this.mapper.toDomain(r));
   }
 
@@ -64,16 +64,15 @@ export class MarketplaceConsolidatedRequestRepositoryAdapter
     filter: MarketplaceConsolidatedRequestListFilter,
     pagination: PaginationInputDTO
   ): Promise<PaginationResult<MarketplaceConsolidatedRequestDomainEntity>> {
-    const qb = this.repo.createQueryBuilder('r').where('r.coopname = :coop', { coop: filter.coopname });
-    if (filter.offer_id) qb.andWhere('r.offer_id = :off', { off: filter.offer_id });
-    if (filter.supplier_account) qb.andWhere('r.supplier_account = :sup', { sup: filter.supplier_account });
-    if (filter.status) {
-      const statuses = Array.isArray(filter.status) ? filter.status : [filter.status];
-      qb.andWhere('r.status IN (:...statuses)', { statuses });
-    }
-    qb.orderBy('r.updated_at', pagination.sortOrder ?? 'DESC');
-    qb.skip((pagination.page - 1) * pagination.limit).take(pagination.limit);
-    const [rows, totalCount] = await qb.getManyAndCount();
+    const where: Record<string, unknown> = { coopname: filter.coopname };
+    if (filter.offer_id) where.offer_id = filter.offer_id;
+    if (filter.supplier_account) where.supplier_account = filter.supplier_account;
+    if (filter.status) where.status = oneOf(Array.isArray(filter.status) ? filter.status : [filter.status]);
+    const [rows, totalCount] = await this.repo.findAndCount(where, {
+      order: { updated_at: pagination.sortOrder === 'ASC' ? 'ASC' : 'DESC' },
+      offset: (pagination.page - 1) * pagination.limit,
+      limit: pagination.limit,
+    });
     return {
       items: rows.map((r) => this.mapper.toDomain(r)),
       totalCount,
@@ -94,7 +93,7 @@ export class MarketplaceConsolidatedRequestRepositoryAdapter
       patch.decline_reason = options.decline_reason ?? null;
     }
     await this.repo.update({ id }, patch as Record<string, unknown>);
-    const row = await this.repo.findOneOrFail({ where: { id } });
+    const row = await this.repo.findOneOrFail({ id });
     return this.mapper.toDomain(row);
   }
 }

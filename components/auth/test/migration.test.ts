@@ -87,41 +87,32 @@ describe('migrate (Story 11.4) — «ключ → пароль»', () => {
     const fetchMock = vi.fn()
       // 1-я попытка (с ротацией) — отказ кандидату
       .mockResolvedValueOnce({ ok: false, status: 409, json: async () => ({ error: 'rotation_unavailable', error_description: 'после регистрации' }) })
-      // 2-я попытка (без ротации) — успех
+      // 2-я попытка (без ротации) — успех, блоб сервер сохранил из тела
       .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ username: 'newbie', rotated: false }) })
-      // сохранение vault старым путём
-      .mockResolvedValueOnce({ ok: true, status: 201, json: async () => ({}) })
     vi.stubGlobal('fetch', fetchMock)
 
     const result = await migrate({ email: 'n@e.com', privateKey: WIF, newPassword: 'Strong#Pass1' })
 
     expect(result).toEqual({ username: 'newbie', rotated: false, privateKey: WIF })
-    expect(fetchMock).toHaveBeenCalledTimes(3)
+    expect(fetchMock).toHaveBeenCalledTimes(2)
     const second = JSON.parse(fetchMock.mock.calls[1][1].body)
     expect(second.new_public_key).toBeUndefined()
-    expect(second.vault).toBeUndefined()
-    expect(fetchMock.mock.calls[2][0]).toBe('https://coop.example/coop/vault')
+    expect(await decryptPrivateKey(second.vault, 'Strong#Pass1', { subject_type: 'participant', subject_id: '' })).toBe(WIF)
   }, 120000)
 
-  it('rotate: false (регистрация): POST /coop/migration без ротации → saveToVault с текущим ключом', async () => {
+  it('rotate: false (регистрация): один POST /coop/migration, в теле блоб ТЕКУЩЕГО ключа', async () => {
     const fetchMock = vi.fn()
-      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ username: 'ant', rotated: false }) }) // migration
-      .mockResolvedValueOnce({ ok: true, status: 201, json: async () => ({}) }) // vault store
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ username: 'ant', rotated: false }) })
     vi.stubGlobal('fetch', fetchMock)
 
     const result = await migrate({ email: 'a@e.com', privateKey: WIF, newPassword: 'Strong#Pass1', rotate: false })
 
     expect(result).toEqual({ username: 'ant', rotated: false, privateKey: WIF })
-    // 1) запрос миграции — без new_public_key/vault
+    // Единственный запрос — миграция: отдельной записи vault больше нет.
+    expect(fetchMock).toHaveBeenCalledTimes(1)
     expect(fetchMock.mock.calls[0][0]).toBe('https://coop.example/coop/migration')
     const body = JSON.parse(fetchMock.mock.calls[0][1].body)
     expect(body.new_public_key).toBeUndefined()
-    expect(body.vault).toBeUndefined()
-    // 2) сохранение vault новым паролём (subject = возвращённый username)
-    expect(fetchMock.mock.calls[1][0]).toBe('https://coop.example/coop/vault')
-    expect(JSON.parse(fetchMock.mock.calls[1][1].body)).toMatchObject({ subject_type: 'participant', subject_id: 'ant' })
-    const stored = JSON.parse(fetchMock.mock.calls[1][1].body)
-    const decrypted = await decryptPrivateKey(stored, 'Strong#Pass1', { subject_type: 'participant', subject_id: 'ant' })
-    expect(decrypted).toBe(WIF)
+    expect(await decryptPrivateKey(body.vault, 'Strong#Pass1', { subject_type: 'participant', subject_id: 'ant' })).toBe(WIF)
   }, 120000)
 })

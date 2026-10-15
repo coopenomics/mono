@@ -10,9 +10,10 @@ import { bucketProvidersFor } from '@coopenomics/extension-kit';
 import { FILE_STORAGE_PORT } from '@coopenomics/innercoop';
 // Импортируем для регистрации GraphQL enum
 import '~/domain/instance-status.enum';
+import { CoreRightsModule } from '../rights/core-rights.module';
 
 @Module({
-  imports: [ConfigModule, DocumentDomainModule, BlockchainModule],
+  imports: [CoreRightsModule, ConfigModule, DocumentDomainModule, BlockchainModule],
   providers: [
     // Устав кооператива (registrator:charters) — бакет по @UseBucket.
     ...bucketProvidersFor(FILE_STORAGE_PORT, [CooperativeCharterService]),
@@ -21,7 +22,7 @@ import '~/domain/instance-status.enum';
     // Журнал биллинг-платежей: сам он живёт в BillingModule, который
     // регистрируется только на хабе, а история оплат нужна в карточке
     // кооператива всегда. Сервис без состояния — второй экземпляр
-    // безопасен, репозиторий даёт глобальный TypeOrmModule.
+    // безопасен, базу даёт глобальный KyselyModule.
     BillingPaymentLogService,
     ProviderResolver,
   ],

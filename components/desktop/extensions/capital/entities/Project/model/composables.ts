@@ -3,6 +3,7 @@ import { useRoute } from 'vue-router';
 import { useProjectStore } from './store';
 import type { IProject } from './types';
 import { FailAlert } from 'src/shared/api';
+import { t } from '../../../i18n';
 
 /**
  * Composable для загрузки и управления состоянием проекта по hash из маршрута
@@ -41,7 +42,7 @@ export function useProjectLoader() {
       notFound.value = !project.value;
     } catch (error) {
       console.error('Ошибка при загрузке проекта:', error);
-      FailAlert('Не удалось загрузить проект');
+      FailAlert(t('capital.composables.loadProjectError'));
       project.value = null;
       notFound.value = true;
     }

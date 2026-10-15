@@ -1,5 +1,5 @@
-import { rethrowChainError } from '@coopenomics/extension-kit';
-import { BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { rethrowChainError, DomainError } from '@coopenomics/extension-kit';
+import { Inject, Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import {
@@ -25,11 +25,17 @@ import {
 import type { MarketplaceOrderDomainEntity } from '../../domain/entities/marketplace-order.entity';
 import { MarketplaceOrderStatuses } from '../../domain/entities/marketplace-order.types';
 import { normalizeChainTxHash } from '../shared/chain-tx.util';
+import { packageDeltaOfOrder } from '../shared/packaging.util';
 
 import {
   MARKETPLACE_ORDER_DECLINED_BY_SUPPLIER_EVENT,
   type MarketplaceOrderDeclinedBySupplierEvent,
 } from '../events/marketplace-notification.events';
+import { t } from '../../i18n';
+
+/** Причина отмены заказа, который поставщик принял и не привёз в срок. */
+export const MARKETPLACE_UNDELIVERED_ORDER_REASON =
+  t('marketplace.orderSupplierAction.expiredReturnNote');
 
 export interface MarketplaceSupplierAcceptBatchInput {
   coopname: string;
@@ -105,9 +111,7 @@ export class MarketplaceOrderSupplierActionService {
     for (const orderId of orderIds) {
       const order = await this.guardSupplierOrder(orderId, input.coopname, input.offerer_account);
       if (order.status !== MarketplaceOrderStatuses.ACTIVE || order.cycle_id != null) {
-        throw new BadRequestException(
-          `Заказ ${order.id} нельзя принять — он уже не активен или присоединён к партии. [E4SAS-ACC-WRONG-STATE]`
-        );
+        throw DomainError.badRequest('MARKETPLACE_ORDER_ACCEPT_WRONG_STATE', { orderId: order.id });
       }
       candidates.push(order);
     }
@@ -122,7 +126,7 @@ export class MarketplaceOrderSupplierActionService {
         });
         txHash = normalizeChainTxHash(
           tx,
-          'Действие поставщика: цепь не вернула tx_hash. Повторите попытку.'
+          t('marketplace.orderSupplierAction.chainNoTxHash')
         );
       } catch (error: any) {
         this.logger.error(
@@ -135,14 +139,14 @@ export class MarketplaceOrderSupplierActionService {
       const updated = await this.orderRepo.applyStatusTransition(
         order.id,
         MarketplaceOrderStatuses.ACCEPTED,
-        'Принят поставщиком к поставке'
+        t('marketplace.orderSupplierAction.acceptedLabel')
       );
       accepted.push(updated);
       txHashes.push(txHash!);
     }
 
     if (accepted.length === 0) {
-      throw new BadRequestException('Не удалось принять ни одного заказа — повторите попытку.');
+      throw DomainError.badRequest('MARKETPLACE_ORDER_ACCEPT_NONE_SUCCEEDED');
     }
 
     const cycle = await this.synthesizeBatchCycle(accepted, input.offerer_account);
@@ -209,7 +213,7 @@ export class MarketplaceOrderSupplierActionService {
    */
   async declineOrdersBatch(input: MarketplaceSupplierDeclineBatchInput): Promise<MarketplaceSupplierBatchResult> {
     const reason = (input.reason ?? '').trim();
-    if (!reason) throw new BadRequestException('Укажите причину отказа.');
+    if (!reason) throw DomainError.badRequest('MARKETPLACE_DECLINE_REASON_REQUIRED');
 
     const orderIds = this.dedupeOrderIds(input.order_ids);
     const declined: MarketplaceOrderDomainEntity[] = [];
@@ -222,9 +226,7 @@ export class MarketplaceOrderSupplierActionService {
     for (const orderId of orderIds) {
       const order = await this.guardSupplierOrder(orderId, input.coopname, input.offerer_account);
       if (order.status !== MarketplaceOrderStatuses.ACTIVE || order.cycle_id != null) {
-        throw new BadRequestException(
-          `Заказ ${order.id} нельзя отклонить — он уже не активен или присоединён к партии. [E4SAS-DEC-WRONG-STATE]`
-        );
+        throw DomainError.badRequest('MARKETPLACE_ORDER_DECLINE_WRONG_STATE', { orderId: order.id });
       }
       candidates.push(order);
     }
@@ -236,7 +238,7 @@ export class MarketplaceOrderSupplierActionService {
     }
 
     if (declined.length === 0) {
-      throw new BadRequestException('Не указано ни одного заказа для отказа.');
+      throw DomainError.badRequest('MARKETPLACE_ORDER_DECLINE_NONE_SELECTED');
     }
 
     // Уведомляем каждого заказчика отклонённого заказа (у каждого свой) с
@@ -270,7 +272,7 @@ export class MarketplaceOrderSupplierActionService {
     orders: MarketplaceOrderDomainEntity[];
     reason: string;
   }): Promise<MarketplaceOrderDomainEntity[]> {
-    const reason = (input.reason ?? '').trim() || 'Отказ в приёмке: некондиция';
+    const reason = (input.reason ?? '').trim() || t('marketplace.orderSupplierAction.rejectedDefectiveLabel');
     const declined: MarketplaceOrderDomainEntity[] = [];
     for (const order of input.orders) {
       if (order.supplier_account !== input.offerer_account) continue;
@@ -304,7 +306,7 @@ export class MarketplaceOrderSupplierActionService {
           order_id: order.id,
           orderer_account: order.orderer_account,
           delivery_braname: order.delivery_braname,
-          product_name: productNameByOfferId.get(order.offer_id) ?? 'Товар по предложению',
+          product_name: productNameByOfferId.get(order.offer_id) ?? t('marketplace.orderSupplierAction.itemFallbackName'),
           reason,
         };
         this.eventBus.emit(MARKETPLACE_ORDER_DECLINED_BY_SUPPLIER_EVENT, event);
@@ -319,7 +321,7 @@ export class MarketplaceOrderSupplierActionService {
 
   private dedupeOrderIds(order_ids: string[]): string[] {
     const ids = (order_ids ?? []).map((s) => (s ?? '').trim()).filter(Boolean);
-    if (ids.length === 0) throw new BadRequestException('Не выбрано ни одного заказа.');
+    if (ids.length === 0) throw DomainError.badRequest('MARKETPLACE_ORDER_NONE_SELECTED');
     return Array.from(new Set(ids));
   }
 
@@ -337,7 +339,7 @@ export class MarketplaceOrderSupplierActionService {
       });
       txHash = normalizeChainTxHash(
         tx,
-        'Действие поставщика: цепь не вернула tx_hash. Повторите попытку.'
+        t('marketplace.orderSupplierAction.chainNoTxHash')
       );
     } catch (error: any) {
       this.logger.error(
@@ -347,23 +349,61 @@ export class MarketplaceOrderSupplierActionService {
       rethrowChainError(error);
     }
 
+    const updated = await this.settleSupplierCancellation(order, reason);
+    this.logger.log(
+      `MarketplaceOrderSupplierActionService: Order ${order.id} (hash=${order.order_hash}) отклонён поставщиком ${offerer_account}; tx=${txHash!}; reason="${reason}"`
+    );
+    return { order: updated, tx_hash: txHash! };
+  }
+
+  /**
+   * Непоставка (задача 99D-16, срок утверждён владельцем): поставщик принял
+   * заказ и за 48 часов не привёз. Кооператив закрывает заказ по сроку
+   * (`expireorder`) — резерв и членский взнос возвращаются заказчику полностью,
+   * без удержания. Для заказчика это отказ поставщика: тот же статус и то же
+   * уведомление, причина — непоставка в срок.
+   */
+  async expireUndeliveredOrder(order: MarketplaceOrderDomainEntity): Promise<MarketplaceSupplierActionResult> {
+    let txHash: string;
     try {
-      await this.offerCounters.onOrderUnblocked(order.offer_id, order.quantity);
+      const tx = await this.chainPort.expireOrder({
+        coopname: order.coopname,
+        order_hash: order.order_hash,
+      });
+      txHash = normalizeChainTxHash(tx, t('marketplace.orderSupplierAction.expireChainNoTxHash'));
+    } catch (error: any) {
+      this.logger.error(
+        `MarketplaceOrderSupplierActionService: chain.expireOrder fail для Order ${order.id}: ${error.message}`,
+        error.stack
+      );
+      rethrowChainError(error);
+    }
+
+    const updated = await this.settleSupplierCancellation(order, MARKETPLACE_UNDELIVERED_ORDER_REASON);
+    this.logger.log(
+      `MarketplaceOrderSupplierActionService: Order ${order.id} (hash=${order.order_hash}) закрыт по сроку поставки; tx=${txHash!}`
+    );
+    await this.emitDeclinedNotifications([updated], MARKETPLACE_UNDELIVERED_ORDER_REASON);
+    return { order: updated, tx_hash: txHash! };
+  }
+
+  /**
+   * Общий хвост отмены заказа по вине поставщика после того, как цепь вернула
+   * резерв: заблокированное возвращается в предложение, заказ помечается
+   * отменённым поставщиком. Счётчик — best-effort, цепь уже приняла отмену.
+   */
+  private async settleSupplierCancellation(
+    order: MarketplaceOrderDomainEntity,
+    reason: string
+  ): Promise<MarketplaceOrderDomainEntity> {
+    try {
+      await this.offerCounters.onOrderUnblocked(order.offer_id, order.quantity, packageDeltaOfOrder(order));
     } catch (counterErr: any) {
       this.logger.warn(
         `MarketplaceOrderSupplierActionService: counter onOrderUnblocked упал (offer=${order.offer_id}, qty=${order.quantity}, order=${order.id}): ${counterErr.message} — продолжаю applyStatusTransition`
       );
     }
-
-    const updated = await this.orderRepo.applyStatusTransition(
-      order.id,
-      MarketplaceOrderStatuses.CANCELLED_BY_SUPPLIER,
-      reason
-    );
-    this.logger.log(
-      `MarketplaceOrderSupplierActionService: Order ${order.id} (hash=${order.order_hash}) отклонён поставщиком ${offerer_account}; tx=${txHash!}; reason="${reason}"`
-    );
-    return { order: updated, tx_hash: txHash! };
+    return this.orderRepo.applyStatusTransition(order.id, MarketplaceOrderStatuses.CANCELLED_BY_SUPPLIER, reason);
   }
 
   private async guardSupplierOrder(
@@ -371,14 +411,14 @@ export class MarketplaceOrderSupplierActionService {
     coopname: string,
     offerer_account: string
   ): Promise<MarketplaceOrderDomainEntity> {
-    if (!order_id) throw new BadRequestException('Не указан order_id.');
+    if (!order_id) throw DomainError.badRequest('MARKETPLACE_ORDER_ID_REQUIRED');
     const order = await this.orderRepo.findById(order_id);
-    if (!order) throw new NotFoundException('Заказ не найден.');
+    if (!order) throw DomainError.notFound('MARKETPLACE_ORDER_NOT_FOUND');
     if (order.coopname !== coopname) {
-      throw new ForbiddenException('Заказ принадлежит другому кооперативу.');
+      throw DomainError.forbidden('MARKETPLACE_ORDER_FOREIGN_COOP');
     }
     if (order.supplier_account !== offerer_account) {
-      throw new ForbiddenException('Действие доступно только поставщику-владельцу Offer\'а.');
+      throw DomainError.forbidden('MARKETPLACE_ACTION_FORBIDDEN_NOT_OFFER_OWNER');
     }
     return order;
   }

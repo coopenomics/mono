@@ -7,7 +7,7 @@ import { PermissionsService } from './permissions.service';
 import { PROJECT_REPOSITORY, ProjectRepository } from '../../domain/repositories/project.repository';
 import { ContentEntityType } from '../../domain/enums/content-entity-type.enum';
 import { ContentRevisionOrigin } from '../../domain/enums/content-revision-origin.enum';
-import type { ContentRevisionTypeormEntity } from '../../infrastructure/entities/content-revision.typeorm-entity';
+import type { ContentRevisionRecord } from '../../infrastructure/entities/content-revision.record';
 import { ContentRevisionDTO, ContentRevisionSummaryDTO } from '../dto/content_revisions/content-revision.dto';
 import type {
   GetContentRevisionInputDTO,
@@ -16,6 +16,7 @@ import type {
 } from '../dto/content_revisions/content-revision-inputs.dto';
 import { normalizeDescription } from '../../domain/utils/content-merge.util';
 import type { EditProjectInputDTO } from '../dto/project_management/edit-project-input.dto';
+import { DomainError } from '@coopenomics/extension-kit';
 
 /**
  * API истории редакций: чтение с проверкой прав просмотра сущности и откат,
@@ -60,7 +61,7 @@ export class ContentRevisionApiService {
     await this.assertCanView(data.entity_type, data.entity_hash, currentUser);
     const target = await this.contentRevisionService.getRevision(data.entity_type, data.entity_hash, data.rev);
     if (!target) {
-      throw new Error(`Редакция ${data.rev} для ${data.entity_type} ${data.entity_hash} не найдена`);
+      throw DomainError.notFound('CAPITAL_CONTENT_REVISION_NOT_FOUND', { rev: data.rev, entityType: data.entity_type, entityHash: data.entity_hash });
     }
     const content = { title: target.title, description: normalizeDescription(target.description) };
 
@@ -94,7 +95,7 @@ export class ContentRevisionApiService {
       case ContentEntityType.PROJECT: {
         const project = await this.projectRepository.findByHash(data.entity_hash.toLowerCase());
         if (!project) {
-          throw new Error(`Проект с хешем ${data.entity_hash} не найден`);
+          throw DomainError.notFound('CAPITAL_PROJECT_NOT_FOUND_BY_HASH', { hash: data.entity_hash });
         }
         // restored_from_rev — служебное поле доменного входа, в GraphQL-DTO его нет
         const input: EditProjectInputDTO & { restored_from_rev?: number } = {
@@ -135,11 +136,11 @@ export class ContentRevisionApiService {
       }
     }
     if (!allowed) {
-      throw new Error('Недостаточно прав для просмотра истории редакций');
+      throw DomainError.forbidden('CAPITAL_CONTENT_REVISION_HISTORY_FORBIDDEN');
     }
   }
 
-  private toSummary(row: ContentRevisionTypeormEntity, prevLength: number): ContentRevisionSummaryDTO {
+  private toSummary(row: ContentRevisionRecord, prevLength: number): ContentRevisionSummaryDTO {
     const length = normalizeDescription(row.description).length;
     return {
       entity_type: row.entity_type,

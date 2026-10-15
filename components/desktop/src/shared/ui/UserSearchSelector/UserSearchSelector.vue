@@ -55,13 +55,14 @@ q-select(
   template(v-slot:no-option)
     q-item
       q-item-section.text-grey
-        | {{ searchQuery ? 'Ничего не найдено' : 'Начните вводить для поиска' }}
+        | {{ searchQuery ? $t('ui.userSearchSelector.emptyText') : $t('ui.userSearchSelector.startTypingText') }}
 </template>
 
 <script lang="ts" setup>
 import { ref, watch, computed, onMounted } from 'vue';
 import { useUserSearch } from './composables/useUserSearch';
 import type { UserSearchResult } from './model/types';
+import { t, t as i18nT } from 'src/shared/i18n';
 
 // Пропсы компонента
 const props = defineProps<{
@@ -123,7 +124,7 @@ watch(selectedUser, (newVal, oldVal) => {
 });
 
 // Вычисляемые свойства
-const label = computed(() => props.label || 'Выберите пользователя');
+const label = computed(() => props.label || t('ui.userSearchSelector.placeholderText'));
 
 // Опции для select - всегда включаем выбранного пользователя
 const selectOptions = computed(() => {
@@ -230,11 +231,11 @@ const getAdditionalInfo = (
     switch (user.type) {
       case 'entrepreneur': {
         const data = user.data as any;
-        return `ИП • ИНН: ${data.details?.inn || 'н/д'}`;
+        return t('ui.userSearchSelector.entrepreneurInnText', { inn: data.details?.inn || i18nT('ui.userSearchSelector.notAvailable') });
       }
       case 'organization': {
         const data = user.data as any;
-        return `Организация • ИНН: ${data.details?.inn || 'н/д'}`;
+        return t('ui.userSearchSelector.organizationInnText', { inn: data.details?.inn || i18nT('ui.userSearchSelector.notAvailable') });
       }
       default:
         return '';

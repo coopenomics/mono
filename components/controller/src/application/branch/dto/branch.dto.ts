@@ -8,8 +8,7 @@ import { IndividualCertificateDTO } from '~/application/common/dto/individual-ce
 import { AccountType } from '~/application/account/enum/account-type.enum';
 import { IsArray, IsJSON, IsString } from 'class-validator';
 import { BankPaymentMethodDTO } from '~/application/payment-method/dto/bank-payment-method.dto';
-import { AuthRoles, GqlJwtAuthGuard, RolesGuard } from '@coopenomics/extension-kit';
-import { UseGuards } from '@nestjs/common';
+import { CouncilField } from '@coopenomics/extension-kit';
 
 /**
  * Пути внутри карточки участка, по которым пайщик считается «своим»:
@@ -36,7 +35,7 @@ export class BranchDTO implements BranchDomainInterface {
     nullable: true,
     description: 'Председатель кооперативного участка; пусто, если состав участка недоступен запрашивающему',
   })
-  @AuthRoles(['chairman', 'member'], { self: SELF_AT_BRANCH })
+  @CouncilField(SELF_AT_BRANCH)
   @IsString()
   public readonly trustee: IndividualDTO;
 
@@ -44,7 +43,7 @@ export class BranchDTO implements BranchDomainInterface {
     nullable: true,
     description: 'Доверенные аккаунты; пусто, если состав участка недоступен запрашивающему',
   })
-  @AuthRoles(['chairman', 'member'], { self: SELF_AT_BRANCH })
+  @CouncilField(SELF_AT_BRANCH)
   @IsArray()
   public readonly trusted: IndividualDTO[];
 
@@ -122,7 +121,7 @@ export class BranchDTO implements BranchDomainInterface {
     nullable: true,
     description: 'Пайщики в белом списке приватного участка (ФИО); пусто, если участок не свой',
   })
-  @AuthRoles(['chairman', 'member'], { self: SELF_AT_BRANCH })
+  @CouncilField(SELF_AT_BRANCH)
   public readonly whitelist_certificates: IndividualCertificateDTO[];
 
   constructor(entity: BranchDomainEntity) {

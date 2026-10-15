@@ -11,7 +11,9 @@
  *   - onOrderUnblocked happy;
  *   - onOrderConsumed happy;
  *   - onOrderAdjusted делегирует в unblock;
- *   - qty <= 0 → 400 BadRequest;
+ *   - qty <= 0 → 400 BadRequest; дробное базовое количество допустимо;
+ *   - остаток по упаковкам: упаковка и число упаковок уходят в репозиторий
+ *     и в событие, дробное число упаковок → 400;
  *   - insufficient_available → 400 BadRequest;
  *   - insufficient_blocked → 400;
  *   - offer_not_active → 400;
@@ -89,7 +91,7 @@ describe('MarketplaceOfferCountersService', () => {
     const service = new MarketplaceOfferCountersService(repo, bus);
 
     const result = await service.onOrderBlocked('offer-1', 5);
-    expect(repo.applyBlockDelta).toHaveBeenCalledWith('offer-1', 5);
+    expect(repo.applyBlockDelta).toHaveBeenCalledWith('offer-1', 5, undefined);
     expect(result.quantity_blocked).toBe(15);
     expect(bus.emit).toHaveBeenCalledWith(
       MarketplaceOfferCountersService.EVENT_CHANGED,
@@ -106,7 +108,7 @@ describe('MarketplaceOfferCountersService', () => {
     const service = new MarketplaceOfferCountersService(repo, makeBus());
 
     const result = await service.onOrderUnblocked('offer-1', 5);
-    expect(repo.applyUnblockDelta).toHaveBeenCalledWith('offer-1', 5);
+    expect(repo.applyUnblockDelta).toHaveBeenCalledWith('offer-1', 5, undefined);
     expect(result.quantity_available).toBe(95);
   });
 
@@ -119,7 +121,7 @@ describe('MarketplaceOfferCountersService', () => {
     const service = new MarketplaceOfferCountersService(repo, makeBus());
 
     const result = await service.onOrderConsumed('offer-1', 5);
-    expect(repo.applyConsumeDelta).toHaveBeenCalledWith('offer-1', 5);
+    expect(repo.applyConsumeDelta).toHaveBeenCalledWith('offer-1', 5, undefined);
     expect(result.quantity_consumed).toBe(5);
   });
 
@@ -133,7 +135,7 @@ describe('MarketplaceOfferCountersService', () => {
     const service = new MarketplaceOfferCountersService(repo, bus);
 
     const result = await service.onOrderRolledBack('offer-1', 5);
-    expect(repo.applyRollbackDelta).toHaveBeenCalledWith('offer-1', 5);
+    expect(repo.applyRollbackDelta).toHaveBeenCalledWith('offer-1', 5, undefined);
     expect(result.quantity_available).toBe(95);
     expect(bus.emit).toHaveBeenCalledWith(
       MarketplaceOfferCountersService.EVENT_CHANGED,
@@ -150,16 +152,64 @@ describe('MarketplaceOfferCountersService', () => {
     const service = new MarketplaceOfferCountersService(repo, makeBus());
 
     await service.onOrderAdjusted('offer-1', 2);
-    expect(repo.applyUnblockDelta).toHaveBeenCalledWith('offer-1', 2);
+    expect(repo.applyUnblockDelta).toHaveBeenCalledWith('offer-1', 2, undefined);
   });
 
-  it('qty <= 0 → 400 BadRequest', async () => {
+  it('qty <= 0 → 400 BadRequest; дробное базовое количество (0,5 кг по мере) проходит', async () => {
     const repo = makeRepo();
+    repo.applyBlockDelta.mockResolvedValue({ ok: true, offer: makeOffer({ quantity_available: 89.5 }) });
     const service = new MarketplaceOfferCountersService(repo, makeBus());
 
     await expect(service.onOrderBlocked('offer-1', 0)).rejects.toThrow(BadRequestException);
     await expect(service.onOrderBlocked('offer-1', -1)).rejects.toThrow(BadRequestException);
-    await expect(service.onOrderBlocked('offer-1', 1.5)).rejects.toThrow(BadRequestException);
+    expect(repo.applyBlockDelta).not.toHaveBeenCalled();
+
+    await service.onOrderBlocked('offer-1', 0.5);
+    expect(repo.applyBlockDelta).toHaveBeenCalledWith('offer-1', 0.5, undefined);
+  });
+
+  it('остаток по упаковкам: упаковка и число упаковок уходят в репозиторий и в событие', async () => {
+    const repo = makeRepo();
+    const bus = makeBus();
+    const bottle = {
+      id: 'pkg-0.5',
+      size: 0.5,
+      price: '70.0000',
+      label: null,
+      package_type: 'стекло',
+      sort_order: 0,
+      is_default: true,
+      quantity_available: 3,
+      quantity_blocked: 2,
+      quantity_consumed: 0,
+    };
+    repo.applyBlockDelta.mockResolvedValue({
+      ok: true,
+      offer: makeOffer({ sale_form: 'packaged', packages: [bottle], quantity_available: 1.5, quantity_blocked: 1 }),
+    });
+    const service = new MarketplaceOfferCountersService(repo, bus);
+
+    await service.onOrderBlocked('offer-1', 1, { id: 'pkg-0.5', count: 2 });
+    expect(repo.applyBlockDelta).toHaveBeenCalledWith('offer-1', 1, { id: 'pkg-0.5', count: 2 });
+    expect(bus.emit).toHaveBeenCalledWith(
+      MarketplaceOfferCountersService.EVENT_CHANGED,
+      expect.objectContaining({
+        package: { id: 'pkg-0.5', count: 2 },
+        packages: [{ id: 'pkg-0.5', quantity_available: 3, quantity_blocked: 2, quantity_consumed: 0 }],
+      })
+    );
+  });
+
+  it('дробное или нулевое число упаковок → 400, репозиторий не трогается', async () => {
+    const repo = makeRepo();
+    const service = new MarketplaceOfferCountersService(repo, makeBus());
+
+    await expect(service.onOrderBlocked('offer-1', 0.75, { id: 'pkg-0.5', count: 1.5 })).rejects.toThrow(
+      BadRequestException
+    );
+    await expect(service.onOrderBlocked('offer-1', 0.5, { id: 'pkg-0.5', count: 0 })).rejects.toThrow(
+      BadRequestException
+    );
     expect(repo.applyBlockDelta).not.toHaveBeenCalled();
   });
 

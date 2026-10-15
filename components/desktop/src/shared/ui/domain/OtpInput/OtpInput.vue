@@ -1,6 +1,6 @@
 <template lang="pug">
 .otp-input(:class='{ "otp-input--error": !!error, "otp-input--disabled": disabled }')
-  .otp-input__cells(role='group', :aria-label='`Код подтверждения, ${length} цифр`')
+  .otp-input__cells(role='group', :aria-label='$t(`ui.otpInput.ariaLabel`, { length })')
     //- Одноразовый код не живёт в менеджере паролей — data-атрибуты глушат
     //- автозаполнение Bitwarden / 1Password / LastPass соответственно.
     input.otp-input__cell(
@@ -16,7 +16,7 @@
       maxlength='1',
       :value='cells[idx]',
       :disabled='disabled',
-      :aria-label='`Цифра ${idx + 1}`',
+      :aria-label='$t(`ui.otpInput.digitAriaLabel`, { index: idx + 1 })',
       :name='name ? `${name}-${idx}` : undefined',
       @input='(e) => onInput(idx, e)',
       @keydown='(e) => onKeydown(idx, e)',
@@ -154,21 +154,32 @@ defineExpose({ focusCell });
   gap: var(--p-2, 8px);
 }
 
+/*
+ * Ячейки резиновые. Шесть штук по фиксированным 48px с зазорами дают 328px, и на узкой
+ * карточке (телефон, диалог) код вылезал за её край — владелец 03.09.2026. Теперь ряд
+ * занимает доступную ширину и сжимается вместе с ней, а на просторе ячейка не растёт
+ * выше своих 48px и ряд остаётся по центру — прежний вид там, где места хватало.
+ */
 .otp-input__cells {
-  display: inline-flex;
+  display: flex;
   align-items: center;
+  justify-content: center;
   gap: var(--p-2, 8px);
+  width: 100%;
+  max-width: 328px; /* 6×48 + 5×8 — «родная» ширина шестизначного кода */
 }
 
 .otp-input__cell {
-  width: 48px;
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 48px;
   height: 56px;
   border: 1px solid var(--p-line);
   border-radius: var(--p-r-md, 12px);
   background: var(--p-surface);
   color: var(--p-ink);
   font-family: var(--p-mono);
-  font-size: 22px;
+  font-size: clamp(16px, 4.5vw, 22px);
   font-weight: 600;
   text-align: center;
   outline: none;

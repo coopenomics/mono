@@ -1,0 +1,107 @@
+import { Injectable, UseGuards } from '@nestjs/common';
+import { Args, ID, Int, Mutation, Query, Resolver } from '@nestjs/graphql';
+import {
+  GqlJwtAuthGuard,
+  PaginationInputDTO,
+  platformSettings,
+  type PaginationResult,
+  RequireRight,
+  RightsGuard,
+} from '@coopenomics/extension-kit';
+import {
+  EduCourseDTO,
+  EduCourseInputDTO,
+  EduCoursesFilterInputDTO,
+  EduPlatformCourseDTO,
+  EduSetCourseStatusInputDTO,
+  EduTeacherOptionDTO,
+  EduUpdateCourseInputDTO,
+  PaginatedEduCoursesDTO,
+} from '../dto/edu-course.dto';
+import { CurrentEduMember } from '../decorators/current-edu-member.decorator';
+import type { IEdubridgeMembership } from '../membership/edubridge-membership.service';
+import { EdubridgeCourseService } from '../services/edubridge-course.service';
+import { EdubridgeEnrollmentService } from '../services/edubridge-enrollment.service';
+import { EduAccessCarrier } from '../../domain/enums';
+
+/** Управление курсами — владелец и администратор. */
+@Resolver()
+@Injectable()
+export class EdubridgeCourseAdminResolver {
+  constructor(
+    private readonly courses: EdubridgeCourseService,
+    private readonly enrollments: EdubridgeEnrollmentService
+  ) {}
+
+  @Query(() => PaginatedEduCoursesDTO, { name: 'edubridgeCourses', description: 'Курсы кооператива во всех состояниях' })
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('EduCourse', 'read')
+  async edubridgeCourses(
+    @Args('filter', { nullable: true }) filter?: EduCoursesFilterInputDTO,
+    @Args('options', { nullable: true }) options?: PaginationInputDTO
+  ): Promise<PaginationResult<EduCourseDTO>> {
+    const page = await this.courses.list(platformSettings().coopname, filter ?? {}, options);
+    return { ...page, items: page.items.map((c) => new EduCourseDTO(c)) };
+  }
+
+  @Query(() => EduCourseDTO, { name: 'edubridgeCourse', description: 'Курс со служебными полями' })
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('EduCourse', 'read')
+  async edubridgeCourse(@Args('id', { type: () => ID }) id: string): Promise<EduCourseDTO> {
+    return new EduCourseDTO(await this.courses.get(platformSettings().coopname, id));
+  }
+
+  @Query(() => [EduTeacherOptionDTO], { name: 'edubridgeTeacherOptions', description: 'Преподаватели, которых можно назначить на курс' })
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('EduCourse', 'read')
+  edubridgeTeacherOptions(): Promise<EduTeacherOptionDTO[]> {
+    return this.courses.teacherOptions(platformSettings().coopname);
+  }
+
+  @Query(() => [EduPlatformCourseDTO], { name: 'edubridgePlatformCourses', description: 'Курсы и группы на площадке кооператива — для привязки курса каталога' })
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('EduCourse', 'read')
+  edubridgePlatformCourses(@Args('carrier', { type: () => EduAccessCarrier }) carrier: EduAccessCarrier): Promise<EduPlatformCourseDTO[]> {
+    return this.courses.platformCourses(platformSettings().coopname, carrier);
+  }
+
+  @Mutation(() => EduCourseDTO, { name: 'edubridgeCreateCourse', description: 'Добавить курс (черновик)' })
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('EduCourse', 'manage')
+  async edubridgeCreateCourse(@CurrentEduMember() m: IEdubridgeMembership, @Args('data') data: EduCourseInputDTO): Promise<EduCourseDTO> {
+    return new EduCourseDTO(await this.courses.create(platformSettings().coopname, m.username as string, data));
+  }
+
+  @Mutation(() => EduCourseDTO, { name: 'edubridgeUpdateCourse', description: 'Изменить курс' })
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('EduCourse', 'manage')
+  async edubridgeUpdateCourse(@CurrentEduMember() m: IEdubridgeMembership, @Args('data') data: EduUpdateCourseInputDTO): Promise<EduCourseDTO> {
+    return new EduCourseDTO(await this.courses.update(platformSettings().coopname, m.username as string, data));
+  }
+
+  @Mutation(() => Int, {
+    name: 'edubridgeCancelGroupUnderfilled',
+    description: 'Отменить группу по недобору: подписки группы закрываются, взносы возвращаются участникам на паевой',
+  })
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('EduCourse', 'manage')
+  async edubridgeCancelGroupUnderfilled(@Args('group_id', { type: () => ID }) groupId: string): Promise<number> {
+    const cancelled = await this.enrollments.cancelGroup(platformSettings().coopname, groupId);
+    return cancelled.length;
+  }
+
+  @Mutation(() => Boolean, { name: 'edubridgeDeleteCourse', description: 'Удалить курс без подписок и занятий' })
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('EduCourse', 'manage')
+  async edubridgeDeleteCourse(@Args('id', { type: () => ID }) id: string): Promise<boolean> {
+    await this.courses.remove(platformSettings().coopname, id);
+    return true;
+  }
+
+  @Mutation(() => EduCourseDTO, { name: 'edubridgeSetCourseStatus', description: 'Опубликовать, снять с публикации или архивировать курс' })
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('EduCourse', 'manage')
+  async edubridgeSetCourseStatus(@Args('data') data: EduSetCourseStatusInputDTO): Promise<EduCourseDTO> {
+    return new EduCourseDTO(await this.courses.setStatus(platformSettings().coopname, data.id, data.status));
+  }
+}

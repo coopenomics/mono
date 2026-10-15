@@ -8,21 +8,21 @@ div
       color='purple',
       text-color='white',
       dense
-    ) Соавтор
+    ) {{ $t('capital.roleBadges.coauthor') }}
     q-chip(
       v-if='segment.is_creator',
       :size='size',
       color='blue',
       text-color='white',
       dense
-    ) Исполнитель
+    ) {{ $t('capital.roleBadges.performer') }}
     q-chip(
       v-if='segment.is_coordinator',
       :size='size',
       color='indigo',
       text-color='white',
       dense
-    ) Координатор
+    ) {{ $t('capital.roleBadges.coordinator') }}
     //- q-chip(
     //-   v-if='segment.is_investor || segment.is_propertor',
     //-   :size='size',
@@ -36,7 +36,7 @@ div
       color='teal',
       text-color='white',
       dense
-    ) Участник
+    ) {{ $t('capital.roleBadges.member') }}
 
   // Режим карточек с аватарами (для детального просмотра)
   template(v-else-if='mode === "cards"')
@@ -51,7 +51,7 @@ div
             q-avatar(:size='avatarSize', color='purple', text-color='white')
               q-icon(name='edit', size='sm')
             .col
-              .text-caption.text-weight-medium Соавтор
+              .text-caption.text-weight-medium {{ $t('capital.roleBadges.coauthor') }}
       q-card(
         v-if='segment.is_creator',
         flat,
@@ -62,7 +62,7 @@ div
             q-avatar(:size='avatarSize', color='blue', text-color='white')
               q-icon(name='engineering', size='sm')
             .col
-              .text-caption.text-weight-medium Исполнитель
+              .text-caption.text-weight-medium {{ $t('capital.roleBadges.performer') }}
       q-card(
         v-if='segment.is_coordinator',
         flat,
@@ -73,7 +73,7 @@ div
             q-avatar(:size='avatarSize', color='indigo', text-color='white')
               q-icon(name='groups', size='sm')
             .col
-              .text-caption.text-weight-medium Координатор
+              .text-caption.text-weight-medium {{ $t('capital.roleBadges.coordinator') }}
       q-card(
         v-if='segment.is_investor',
         flat,
@@ -84,7 +84,7 @@ div
             q-avatar(:size='avatarSize', color='green', text-color='white')
               q-icon(name='trending_up', size='sm')
             .col
-              .text-caption.text-weight-medium Инвестор
+              .text-caption.text-weight-medium {{ $t('capital.roleBadges.investor') }}
       q-card(
         v-if='segment.is_contributor',
         flat,
@@ -95,7 +95,7 @@ div
             q-avatar(:size='avatarSize', color='teal', text-color='white')
               q-icon(name='stars', size='sm')
             .col
-              .text-caption.text-weight-medium Участник
+              .text-caption.text-weight-medium {{ $t('capital.roleBadges.member') }}
 </template>
 
 <script lang="ts" setup>

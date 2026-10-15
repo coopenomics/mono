@@ -1,16 +1,16 @@
 import { AppendixDomainEntity } from '../../domain/entities/appendix.entity';
-import { AppendixTypeormEntity } from '../entities/appendix.typeorm-entity';
+import { AppendixRecord } from '../entities/appendix.record';
 import type { IAppendixDatabaseData } from '../../domain/interfaces/appendix-database.interface';
 import type { IAppendixBlockchainData } from '../../domain/interfaces/appendix-blockchain.interface';
 import type { ISignedDocument } from '@coopenomics/innercoop';
 import type { RequireFields } from '@coopenomics/extension-kit';
 
-type toEntityDatabasePart = RequireFields<Partial<AppendixTypeormEntity>, keyof IAppendixDatabaseData>;
+type toEntityDatabasePart = RequireFields<Partial<AppendixRecord>, keyof IAppendixDatabaseData>;
 /**
  * Мы выбрасываем статус из обновления так как он определяется действиями, а не дельтами
  */
 type toEntityBlockchainPart = Omit<
-  RequireFields<Partial<AppendixTypeormEntity>, keyof IAppendixBlockchainData>,
+  RequireFields<Partial<AppendixRecord>, keyof IAppendixBlockchainData>,
   'status'
 > & {
   blockchain_status: string;
@@ -25,7 +25,7 @@ export class AppendixMapper {
   /**
    * Преобразование TypeORM сущности в доменную сущность
    */
-  static toDomain(entity: AppendixTypeormEntity): AppendixDomainEntity {
+  static toDomain(entity: AppendixRecord): AppendixDomainEntity {
     const databaseData: toDomainDatabasePart = {
       _id: entity._id,
       block_num: entity.block_num,
@@ -53,13 +53,21 @@ export class AppendixMapper {
         appendix: entity.appendix,
       };
     }
-    return new AppendixDomainEntity(databaseData, blockchainData);
+    const domain = new AppendixDomainEntity(databaseData, blockchainData);
+    // Заявка, заведённая по действию цепи, ещё без номера строки из цепи
+    // (C28-80): пайщик и проект известны из самого действия.
+    if (!blockchainData) {
+      domain.coopname = entity.coopname ?? undefined;
+      domain.username = entity.username ?? undefined;
+      domain.project_hash = entity.project_hash ?? undefined;
+    }
+    return domain;
   }
 
   /**
    * Преобразование доменной сущности в TypeORM сущность для создания
    */
-  static toEntity(domain: AppendixDomainEntity): Partial<AppendixTypeormEntity> {
+  static toEntity(domain: AppendixDomainEntity): Partial<AppendixRecord> {
     const dbPart: toEntityDatabasePart = {
       _id: domain._id,
       block_num: domain.block_num ?? 0,
@@ -88,6 +96,15 @@ export class AppendixMapper {
       };
     }
 
-    return { ...dbPart, ...blockchainPart };
+    // Пайщик, проект и кооператив пишутся, как только известны: у заявки,
+    // заведённой по действию цепи, номера строки из цепи ещё нет, а без этих
+    // полей подтверждённый допуск не находился (C28-80).
+    const known = {
+      ...(domain.coopname ? { coopname: domain.coopname } : {}),
+      ...(domain.username ? { username: domain.username } : {}),
+      ...(domain.project_hash ? { project_hash: domain.project_hash } : {}),
+    };
+
+    return { ...dbPart, ...known, ...blockchainPart };
   }
 }

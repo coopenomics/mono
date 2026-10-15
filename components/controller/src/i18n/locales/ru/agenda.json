@@ -1,0 +1,7 @@
+{
+  "agenda": {
+    "decisionNotificationService": {
+      "decisionTitle": "Решение №{decisionId}"
+    }
+  }
+}

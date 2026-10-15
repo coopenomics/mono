@@ -1,5 +1,7 @@
 #pragma once
 
+
+#include "../../../lib/core/ram_payer.hpp"
 using namespace eosio;
 using std::string;
 
@@ -58,7 +60,7 @@ namespace Capital::Appendix {
     Capital::appendix_index appendixes(_capital, coopname.value);
     auto appendix_id = get_global_id_in_scope(_capital, coopname, "appendixes"_n);
     
-    appendixes.emplace(coopname, [&](auto &a) {
+    appendixes.emplace(RamPayer::of(appendixes, coopname), [&](auto &a) {
       a.id = appendix_id;
       a.coopname = coopname;
       a.username = username;
@@ -97,3 +99,6 @@ namespace Capital::Appendix {
     }
   
 }// namespace Capital::Appendix
+
+// Плательщик за оперативную память строк таблицы — правило в lib/core/ram_payer.hpp.
+RAM_PAYER_CLASS(Capital::appendix, cooperative);

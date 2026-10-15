@@ -1,4 +1,4 @@
-import { BadGatewayException, HttpStatus, Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { BlockchainService } from '../blockchain.service';
 import { GatewayContract, RegistratorContract, SovietContract, WalletContract } from 'cooptypes';
 import type { BlockchainAccountInterface } from '~/types/shared';
@@ -16,7 +16,7 @@ import { SOVIET_BLOCKCHAIN_PORT, type SovietBlockchainPort } from '~/domain/comm
 import type { ISignedDocument } from '@coopenomics/innercoop';
 import type { AccountType } from '~/application/account/enum/account-type.enum';
 import { getCandidateAgreementDocument } from '~/domain/registration/utils/candidate-agreement.utils';
-import { DomainToBlockchainUtils, HttpApiError } from '@coopenomics/extension-kit';
+import { DomainToBlockchainUtils, DomainError } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class AccountBlockchainAdapter implements AccountBlockchainPort {
@@ -34,7 +34,7 @@ export class AccountBlockchainAdapter implements AccountBlockchainPort {
   async registerBlockchainAccount(candidate: CandidateDomainInterface): Promise<void> {
     // Проверяем наличие заявления (обязательно для всех)
     if (!candidate.documents?.statement) {
-      throw new HttpApiError(HttpStatus.BAD_REQUEST, 'Не найдено заявление на вступление');
+      throw DomainError.badRequest('BLOCKCHAIN_MEMBERSHIP_APPLICATION_NOT_FOUND');
     }
 
     // Получаем конфигурацию соглашений для типа аккаунта кандидата и выбранной программы
@@ -45,12 +45,12 @@ export class AccountBlockchainAdapter implements AccountBlockchainPort {
     for (const agreementConfig of blockchainAgreements) {
       const document = getCandidateAgreementDocument(candidate, agreementConfig.id);
       if (!document) {
-        throw new HttpApiError(HttpStatus.BAD_REQUEST, `Не найден документ: ${agreementConfig.title}`);
+        throw DomainError.badRequest('BLOCKCHAIN_DOCUMENT_NOT_FOUND', { title: agreementConfig.title });
       }
     }
 
     const wif = await this.vaultDomainService.getWif(config.coopname);
-    if (!wif) throw new BadGatewayException('Не найден приватный ключ для совершения операции');
+    if (!wif) throw DomainError.badGateway('BLOCKCHAIN_PRIVATE_KEY_NOT_FOUND');
 
     await this.blockchainService.initialize(config.coopname, wif);
 
@@ -212,7 +212,7 @@ export class AccountBlockchainAdapter implements AccountBlockchainPort {
 
   async exitCoop(data: import('~/domain/account/interfaces/account-blockchain.port').ExitCoopDomainInterface): Promise<void> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
-    if (!wif) throw new BadGatewayException('Не найден приватный ключ для совершения операции');
+    if (!wif) throw DomainError.badGateway('BLOCKCHAIN_PRIVATE_KEY_NOT_FOUND');
 
     await this.blockchainService.initialize(data.coopname, wif);
 
@@ -223,12 +223,34 @@ export class AccountBlockchainAdapter implements AccountBlockchainPort {
       statement: Classes.Document.finalize(data.statement),
     };
 
-    await this.blockchainService.transact({
-      account: RegistratorContract.contractName.production,
-      name: RegistratorContract.Actions.ExitCoop.actionName,
-      authorization: [{ actor: data.coopname, permission: 'active' }],
-      data: exitData,
-    });
+    const authorization = [{ actor: data.coopname, permission: 'active' }];
+    const actions: Array<Record<string, unknown>> = [
+      {
+        account: RegistratorContract.contractName.production,
+        name: RegistratorContract.Actions.ExitCoop.actionName,
+        authorization,
+        data: exitData,
+      },
+    ];
+
+    // Заявление об аннулировании соглашений ЦПП идёт той же транзакцией: совет
+    // рассматривает оба документа разом, и выход без аннулирования не пройдёт.
+    if (data.annulment) {
+      const annulmentData: RegistratorContract.Actions.ExitAgree.IExitAgree = {
+        coopname: data.coopname,
+        username: data.username,
+        exit_hash: data.exit_hash,
+        annulment: Classes.Document.finalize(data.annulment),
+      };
+      actions.push({
+        account: RegistratorContract.contractName.production,
+        name: RegistratorContract.Actions.ExitAgree.actionName,
+        authorization,
+        data: annulmentData,
+      });
+    }
+
+    await this.blockchainService.transact(actions);
   }
 
   // Верификация личности пайщика на кооперативном участке: подписывает верификатор
@@ -238,7 +260,7 @@ export class AccountBlockchainAdapter implements AccountBlockchainPort {
     // сервер не попадает. Полномочия верификатора проверены вызывающим сервисом,
     // а для участка их дополнительно проверяет контракт по таблице участка.
     const wif = await this.vaultDomainService.getWif(data.coopname);
-    if (!wif) throw new BadGatewayException('Не найден приватный ключ для совершения операции');
+    if (!wif) throw DomainError.badGateway('BLOCKCHAIN_PRIVATE_KEY_NOT_FOUND');
 
     await this.blockchainService.initialize(data.coopname, wif);
 
@@ -253,7 +275,7 @@ export class AccountBlockchainAdapter implements AccountBlockchainPort {
   // Отзыв верификации личности: решение председателя, подпись — кооператива.
   async unverifyAccount(data: RegistratorContract.Actions.UnverifyAccount.IUnverifyAccount): Promise<void> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
-    if (!wif) throw new BadGatewayException('Не найден приватный ключ для совершения операции');
+    if (!wif) throw DomainError.badGateway('BLOCKCHAIN_PRIVATE_KEY_NOT_FOUND');
 
     await this.blockchainService.initialize(data.coopname, wif);
 
@@ -268,7 +290,7 @@ export class AccountBlockchainAdapter implements AccountBlockchainPort {
   async addParticipantAccount(data: RegistratorContract.Actions.AddUser.IAddUser): Promise<void> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
 
-    if (!wif) throw new BadGatewayException('Не найден приватный ключ для совершения операции');
+    if (!wif) throw DomainError.badGateway('BLOCKCHAIN_PRIVATE_KEY_NOT_FOUND');
 
     await this.blockchainService.initialize(data.coopname, wif);
 

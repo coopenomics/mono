@@ -16,6 +16,7 @@ import { BaseSelect } from 'src/shared/ui/base';
 import { ISSUE_PRIORITY_OPTIONS } from 'app/extensions/capital/shared/lib';
 import { useSetProjectPriority } from '../model';
 import type { IProject } from 'app/extensions/capital/entities/Project/model';
+import { t } from '../../../../i18n';
 
 const props = withDefaults(
   defineProps<{
@@ -23,7 +24,7 @@ const props = withDefaults(
     label?: string;
   }>(),
   {
-    label: 'Приоритет',
+    label: t('capital.projectPrioritySelect.label'),
   },
 );
 

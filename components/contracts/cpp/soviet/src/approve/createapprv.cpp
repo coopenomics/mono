@@ -34,6 +34,9 @@ void soviet::createapprv(eosio::name coopname,
 
     if (!is_empty_document(document)) {
       verify_document_or_fail(document);
+      // Заявление подаёт сам пайщик: транзакцию шлёт кооператив, и без сверки
+      // ключа с его аккаунтом заявку можно было бы подать за него чужим ключом.
+      verify_signer_keys_or_fail(document, username);
     }
     
     auto exist_approval = Approver::get_approval(coopname, approval_hash);
@@ -43,7 +46,7 @@ void soviet::createapprv(eosio::name coopname,
     
     Approver::approvals_index approvals(_soviet, coopname.value);
     
-    approvals.emplace(_soviet, [&](auto &a) {
+    approvals.emplace(RamPayer::of(approvals, coopname), [&](auto &a) {
       a.id                      = apprv_id;
       a.coopname                = coopname;
       a.username                = username;

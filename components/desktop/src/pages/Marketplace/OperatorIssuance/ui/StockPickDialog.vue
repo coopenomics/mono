@@ -5,8 +5,9 @@ import { client } from 'src/shared/api/client';
 import { BaseDialog, BaseButton, BaseBadge, BaseSelect } from 'src/shared/ui/base';
 import { FailAlert } from 'src/shared/api';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
-import { marketplaceOrderSaleUnit, marketplaceOrderUnitLabel } from 'src/shared/lib/consts/marketplace-units';
+import { marketplaceOrderSaleUnitLabel, marketplaceOrderUnitLabel } from 'src/shared/lib/consts/marketplace-units';
 import { MarketplaceSaleForm } from 'src/shared/lib/consts';
+import { t } from 'src/shared/i18n';
 
 /**
  * Выбор имущества со склада кооператива для докладки в выдачу («это не пришло —
@@ -36,6 +37,8 @@ interface CoopStockPackage {
   price: string;
   label: string | null;
   is_default: boolean;
+  /** Свободно упаковок этого вида — остаток ведётся на упаковке. */
+  quantity_available: number;
 }
 
 type CoopStockOffer = {
@@ -97,16 +100,15 @@ function unitPrice(offer: CoopStockOffer): string {
 /** Потолок набора в единицах отпуска — целых упаковок на складе. */
 function maxQty(offer: CoopStockOffer): number {
   if (!isPackaged(offer)) return offer.quantity_available;
-  const pkg = selectedPackage(offer);
-  if (!pkg || pkg.size <= 0) return 0;
-  return Math.floor(offer.quantity_available / pkg.size);
+  // Остаток по упаковкам: сколько свободно именно этой упаковки.
+  return selectedPackage(offer)?.quantity_available ?? 0;
 }
 
 function packageOptions(offer: CoopStockOffer): Array<{ value: string; label: string }> {
   const baseLabel = marketplaceOrderUnitLabel(offer.unit_of_measure);
   return offer.packages.map((p) => {
     const sizeLabel = `${String(p.size).replace('.', ',')} ${baseLabel}`;
-    return { value: p.id, label: p.label ? `${p.label} — ${sizeLabel}` : `Упаковка ${sizeLabel}` };
+    return { value: p.id, label: p.label ? `${p.label} — ${sizeLabel}` : t('marketplace.stockPickDialog.packageOptionLabel', { sizeLabel }) };
   });
 }
 
@@ -143,8 +145,7 @@ async function loadOffers(): Promise<void> {
 
 function availableLabel(o: CoopStockOffer): string {
   const size = selectedPackage(o)?.size ?? o.stock_package_size;
-  const saleUnit = marketplaceOrderSaleUnit(o.quantity_available, o.unit_of_measure, size);
-  return `свободно ${saleUnit.units}×${saleUnit.unitLabel}`;
+  return t('marketplace.stockPickDialog.availableLabel', { available: marketplaceOrderSaleUnitLabel(o.quantity_available, o.unit_of_measure, size) });
 }
 
 function bump(offer: CoopStockOffer, delta: number): void {
@@ -184,17 +185,17 @@ watch(
 <template lang="pug">
 BaseDialog(
   :model-value="modelValue"
-  title="Доложить со склада"
+  :title="$t('marketplace.stockPickDialog.dialogTitle')"
   size="md"
   @update:model-value="(v: boolean) => emit('update:modelValue', v)"
 )
   .stock-pick
     .stock-pick__intro
-      | Опубликованный остаток этого пункта выдачи. Наберите позиции — они
-      | добавятся в тот же акт и уйдут пайщику вместе с заказом.
+      | {{ $t('marketplace.stockPickDialog.introLine1') }}
+      | {{ $t('marketplace.stockPickDialog.introLine2') }}
 
     .stock-pick__empty(v-if="!loading && !offers.length")
-      BaseBadge(variant="neutral") Опубликованного остатка на этом пункте нет
+      BaseBadge(variant="neutral") {{ $t('marketplace.stockPickDialog.emptyLabel') }}
 
     .stock-pick__list(v-else)
       .stock-pick__row(v-for="o in offers", :key="o.id")
@@ -206,7 +207,7 @@ BaseDialog(
             v-if="o.packages.length > 1"
             :model-value="selectedPackageId[o.id] ?? null"
             :options="packageOptions(o)"
-            label="Упаковка"
+            :label="$t('marketplace.stockPickDialog.packageLabel')"
             dense
             @update:model-value="(v: string | number | null) => onPackageChange(o, v)"
           )
@@ -230,13 +231,13 @@ BaseDialog(
   template(#footer)
     .stock-pick__foot
       span.stock-pick__total(v-if="composed.length")
-        | Выбрано: {{ formatAsset2Digits(total) }} ₽
+        | {{ $t('marketplace.stockPickDialog.totalSelectedText', { amount: formatAsset2Digits(total) }) }}
       q-space
-      BaseButton(variant="ghost", @click="emit('update:modelValue', false)") Отмена
+      BaseButton(variant="ghost", @click="emit('update:modelValue', false)") {{ $t('common.action.cancel') }}
       BaseButton(variant="primary", :disabled="!composed.length", @click="confirmAdd")
         template(#icon-left)
           q-icon(name="add_shopping_cart", size="16px")
-        | Добавить в выдачу
+        | {{ $t('marketplace.stockPickDialog.addToIssueButton') }}
 </template>
 
 <style scoped lang="scss">

@@ -2,7 +2,7 @@
 .q-pa-md
   button.ku-back(type='button', @click='goBack')
     q-icon(name='arrow_back', size='16px')
-    span К списку участков
+    span {{ $t('ku.kuBranchDetailsPage.backAction') }}
   KuBranchDetailsWidget(:braname='braname')
 </template>
 

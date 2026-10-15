@@ -1,9 +1,20 @@
+import { t } from '../../../i18n';
+import { Cooperative } from 'cooptypes';
+
+/**
+ * Положения программ, параметры которых председатель заполняет в мастере.
+ * Номера берутся из реестра документов cooptypes по имени: переименование или
+ * вывод документа из реестра сразу ломает сборку, а не подключение ЦПП.
+ */
+export const GENERATOR_PROGRAM_REGISTRY_ID = Cooperative.Registry.GeneratorProgramTemplate.registry_id;
+export const BLAGOROST_PROGRAM_REGISTRY_ID = Cooperative.Registry.BlagorostProgramTemplate.registry_id;
+
 export const DOC_WIZARD_STEP_GENERATOR = 'doc_generator';
 export const DOC_WIZARD_STEP_BLAGOROST = 'doc_blagorost';
 
 export const DOC_WIZARD_REGISTRY: Record<string, number> = {
-  [DOC_WIZARD_STEP_GENERATOR]: 994,
-  [DOC_WIZARD_STEP_BLAGOROST]: 998,
+  [DOC_WIZARD_STEP_GENERATOR]: GENERATOR_PROGRAM_REGISTRY_ID,
+  [DOC_WIZARD_STEP_BLAGOROST]: BLAGOROST_PROGRAM_REGISTRY_ID,
 };
 
 export const DOC_WIZARD_STEP_ORDER = [DOC_WIZARD_STEP_GENERATOR, DOC_WIZARD_STEP_BLAGOROST] as const;
@@ -42,13 +53,13 @@ export const COUNCIL_STEP_IDS_BY_GROUP: Record<CouncilGroupStepKey, readonly str
 
 export const COUNCIL_WIZARD_STEP_META: Record<CouncilGroupStepKey, { label: string; description: string }> = {
   [COUNCIL_GROUP_FOUNDATION]: {
-    label: 'Утверждение положений и шаблонов ЦПП',
+    label: t('capital.capitalOnboardingWizard.approveRegulationsStepTitle'),
     description:
-      'Положение «ГЕНЕРАТОР», шаблон договора участия в хозяйственной деятельности и положение «БЛАГОРОСТ»',
+      t('capital.capitalOnboardingWizard.approveRegulationsStepDescription'),
   },
   [COUNCIL_GROUP_OFFERS]: {
-    label: 'Утверждение оферт ЦПП',
-    description: 'Оферты «ГЕНЕРАТОР» и «БЛАГОРОСТ» для пайщиков',
+    label: t('capital.capitalOnboardingWizard.approveOffersStepTitle'),
+    description: t('capital.capitalOnboardingWizard.approveOffersStepDescription'),
   },
 };
 

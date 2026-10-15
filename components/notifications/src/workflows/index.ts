@@ -26,6 +26,9 @@ import { workflow as emailVerificationWorkflow } from './email-verification';
 import { workflow as membershipExitConfirmationWorkflow } from './membership-exit-confirmation';
 import { workflow as serverProvisionedWorkflow } from './server-provisioned';
 import { workflow as decisionExpiredWorkflow } from './decision-expired';
+import { workflow as documentEditionAvailableWorkflow } from './document-edition-available';
+import { workflow as documentApprovalDeclinedWorkflow } from './document-approval-declined';
+import { workflow as documentEditionReminderWorkflow } from './document-edition-reminder';
 import { workflow as endorsementExpiringWorkflow } from './endorsement-expiring';
 import { workflow as chatcoopCalendarEventCreatedWorkflow } from './chatcoop-calendar-event-created';
 import { workflow as chatcoopCalendarEventUpdatedWorkflow } from './chatcoop-calendar-event-updated';
@@ -35,6 +38,8 @@ import { workflow as marketplaceCashierNewPaymentWorkflow } from './marketplace-
 import { workflow as marketplaceSupplierPaymentConfirmedWorkflow } from './marketplace-supplier-payment-confirmed';
 import { workflow as marketplaceSupplierPaymentDeclinedWorkflow } from './marketplace-supplier-payment-declined';
 import { workflow as marketplaceOrderReadyWorkflow } from './marketplace-order-ready';
+import { workflow as marketplaceIssuanceDecidedWorkflow } from './marketplace-issuance-decided';
+import { workflow as marketplaceReturnCouncilDecidedWorkflow } from './marketplace-return-council-decided';
 import { workflow as marketplaceReturnClaimSubmittedWorkflow } from './marketplace-return-claim-submitted';
 import { workflow as marketplaceReturnClaimDecidedWorkflow } from './marketplace-return-claim-decided';
 import { workflow as marketplaceReturnClaimFinalizedWorkflow } from './marketplace-return-claim-finalized';
@@ -44,7 +49,7 @@ import { workflow as marketplaceWriteoffAuthorizedWorkflow } from './marketplace
 import { workflow as marketplaceWriteoffExecutedWorkflow } from './marketplace-writeoff-executed';
 import { workflow as marketplaceWriteoffRejectedWorkflow } from './marketplace-writeoff-rejected';
 import { workflow as marketplaceNewOrderForSupplierWorkflow } from './marketplace-new-order-for-supplier';
-import { workflow as marketplaceReturnAcceptedSupplierWorkflow } from './marketplace-return-accepted-supplier';
+import { workflow as marketplaceSupplierClaimIssuedWorkflow } from './marketplace-supplier-claim-issued';
 import { workflow as marketplaceOrderDeclinedBySupplierWorkflow } from './marketplace-order-declined-by-supplier';
 import { workflow as marketplaceNewSupplierRequestWorkflow } from './marketplace-new-supplier-request';
 import { workflow as marketplaceOfferOnModerationWorkflow } from './marketplace-offer-on-moderation';
@@ -53,6 +58,10 @@ import { workflow as marketplaceOfferRejectedWorkflow } from './marketplace-offe
 import { workflow as marketplaceSupplierApprovedWorkflow } from './marketplace-supplier-approved';
 import { workflow as marketplaceAidPayoutConfirmedWorkflow } from './marketplace-aid-payout-confirmed';
 import { workflow as marketplaceAidCouncilDecidedWorkflow } from './marketplace-aid-council-decided';
+import { workflow as edubridgeAccessGrantedWorkflow } from './edubridge-access-granted';
+import { workflow as edubridgeAccessExpiringWorkflow } from './edubridge-access-expiring';
+import { workflow as edubridgeAccessNeedsAttentionWorkflow } from './edubridge-access-needs-attention';
+import { workflow as edubridgeRidCouncilApprovedWorkflow } from './edubridge-rid-council-approved';
 import { workflow as branchVotingStartedWorkflow } from './branch-voting-started';
 import { workflow as branchMeetingReminderWorkflow } from './branch-meeting-reminder';
 import { workflow as branchTrustedRequestedWorkflow } from './branch-trusted-requested';
@@ -65,6 +74,8 @@ import { workflow as subscriptionPastDueWorkflow } from './subscription-past-due
 import { workflow as subscriptionSuspendedWorkflow } from './subscription-suspended';
 // Epic 13 v5.1 — квота докупки пакетов документооборота исчерпана
 import { workflow as packageQuotaExceededWorkflow } from './package-quota-exceeded';
+import { workflow as accessRoleAssignedWorkflow } from './access-role-assigned';
+import { workflow as accessRoleRevokedWorkflow } from './access-role-revoked';
 
 // Импортируем все воркфлоу
 export * as Welcome from './welcome';
@@ -93,6 +104,9 @@ export * as EmailVerification from './email-verification';
 export * as MembershipExitConfirmation from './membership-exit-confirmation';
 export * as ServerProvisioned from './server-provisioned';
 export * as DecisionExpired from './decision-expired';
+export * as DocumentEditionAvailable from './document-edition-available';
+export * as DocumentApprovalDeclined from './document-approval-declined';
+export * as DocumentEditionReminder from './document-edition-reminder';
 export * as EndorsementExpiring from './endorsement-expiring';
 export * as ChatCoopCalendarEventCreated from './chatcoop-calendar-event-created';
 export * as ChatCoopCalendarEventUpdated from './chatcoop-calendar-event-updated';
@@ -102,6 +116,8 @@ export * as MarketplaceCashierNewPayment from './marketplace-cashier-new-payment
 export * as MarketplaceSupplierPaymentConfirmed from './marketplace-supplier-payment-confirmed';
 export * as MarketplaceSupplierPaymentDeclined from './marketplace-supplier-payment-declined';
 export * as MarketplaceOrderReady from './marketplace-order-ready';
+export * as MarketplaceIssuanceDecided from './marketplace-issuance-decided';
+export * as MarketplaceReturnCouncilDecided from './marketplace-return-council-decided';
 export * as MarketplaceReturnClaimSubmitted from './marketplace-return-claim-submitted';
 export * as MarketplaceReturnClaimDecided from './marketplace-return-claim-decided';
 export * as MarketplaceReturnClaimFinalized from './marketplace-return-claim-finalized';
@@ -111,7 +127,7 @@ export * as MarketplaceWriteoffAuthorized from './marketplace-writeoff-authorize
 export * as MarketplaceWriteoffExecuted from './marketplace-writeoff-executed';
 export * as MarketplaceWriteoffRejected from './marketplace-writeoff-rejected';
 export * as MarketplaceNewOrderForSupplier from './marketplace-new-order-for-supplier';
-export * as MarketplaceReturnAcceptedSupplier from './marketplace-return-accepted-supplier';
+export * as MarketplaceSupplierClaimIssued from './marketplace-supplier-claim-issued';
 export * as MarketplaceOrderDeclinedBySupplier from './marketplace-order-declined-by-supplier';
 export * as MarketplaceNewSupplierRequest from './marketplace-new-supplier-request';
 export * as MarketplaceOfferOnModeration from './marketplace-offer-on-moderation';
@@ -120,6 +136,10 @@ export * as MarketplaceOfferRejected from './marketplace-offer-rejected';
 export * as MarketplaceSupplierApproved from './marketplace-supplier-approved';
 export * as MarketplaceAidPayoutConfirmed from './marketplace-aid-payout-confirmed';
 export * as MarketplaceAidCouncilDecided from './marketplace-aid-council-decided';
+export * as EdubridgeAccessGranted from './edubridge-access-granted';
+export * as EdubridgeAccessExpiring from './edubridge-access-expiring';
+export * as EdubridgeAccessNeedsAttention from './edubridge-access-needs-attention';
+export * as EdubridgeRidCouncilApproved from './edubridge-rid-council-approved';
 export * as ExpenseAdvanceReportReminder from './expense-advance-report-reminder';
 // Epic 14 — биллинговые оповещения пайщикам
 export * as TrialEnding from './trial-ending';
@@ -127,6 +147,8 @@ export * as SubscriptionPaymentDue from './subscription-payment-due';
 export * as SubscriptionPastDue from './subscription-past-due';
 export * as SubscriptionSuspended from './subscription-suspended';
 export * as PackageQuotaExceeded from './package-quota-exceeded';
+export * as AccessRoleAssigned from './access-role-assigned';
+export * as AccessRoleRevoked from './access-role-revoked';
 
 // Массив всех воркфлоу для автоматической регистрации
 export const allWorkflows: WorkflowDefinition[] = [
@@ -156,6 +178,9 @@ export const allWorkflows: WorkflowDefinition[] = [
   membershipExitConfirmationWorkflow,
   serverProvisionedWorkflow,
   decisionExpiredWorkflow,
+  documentEditionAvailableWorkflow,
+  documentApprovalDeclinedWorkflow,
+  documentEditionReminderWorkflow,
   endorsementExpiringWorkflow,
   chatcoopCalendarEventCreatedWorkflow,
   chatcoopCalendarEventUpdatedWorkflow,
@@ -165,6 +190,8 @@ export const allWorkflows: WorkflowDefinition[] = [
   marketplaceSupplierPaymentConfirmedWorkflow,
   marketplaceSupplierPaymentDeclinedWorkflow,
   marketplaceOrderReadyWorkflow,
+  marketplaceIssuanceDecidedWorkflow,
+  marketplaceReturnCouncilDecidedWorkflow,
   marketplaceReturnClaimSubmittedWorkflow,
   marketplaceReturnClaimDecidedWorkflow,
   marketplaceReturnClaimFinalizedWorkflow,
@@ -174,7 +201,7 @@ export const allWorkflows: WorkflowDefinition[] = [
   marketplaceWriteoffExecutedWorkflow,
   marketplaceWriteoffRejectedWorkflow,
   marketplaceNewOrderForSupplierWorkflow,
-  marketplaceReturnAcceptedSupplierWorkflow,
+  marketplaceSupplierClaimIssuedWorkflow,
   marketplaceOrderDeclinedBySupplierWorkflow,
   marketplaceNewSupplierRequestWorkflow,
   marketplaceOfferOnModerationWorkflow,
@@ -182,6 +209,10 @@ export const allWorkflows: WorkflowDefinition[] = [
   marketplaceOfferRejectedWorkflow,
   marketplaceSupplierApprovedWorkflow,
   marketplaceAidPayoutConfirmedWorkflow,
+  edubridgeAccessGrantedWorkflow,
+  edubridgeAccessExpiringWorkflow,
+  edubridgeAccessNeedsAttentionWorkflow,
+  edubridgeRidCouncilApprovedWorkflow,
   marketplaceAidCouncilDecidedWorkflow,
   branchVotingStartedWorkflow,
   branchMeetingReminderWorkflow,
@@ -194,6 +225,8 @@ export const allWorkflows: WorkflowDefinition[] = [
   subscriptionPastDueWorkflow,
   subscriptionSuspendedWorkflow,
   packageQuotaExceededWorkflow,
+  accessRoleAssignedWorkflow,
+  accessRoleRevokedWorkflow,
 ];
 
 // Экспортируем воркфлоу по ID для удобного доступа

@@ -147,6 +147,46 @@ export const VarsSchema: JSONSchemaType<IVars> = {
       required: ['protocol_number', 'protocol_day_month_year'],
       additionalProperties: true,
     },
+    education_provision: {
+      type: 'object',
+      nullable: true,
+      properties: {
+        protocol_number: { type: 'string' },
+        protocol_day_month_year: { type: 'string' },
+      },
+      required: ['protocol_number', 'protocol_day_month_year'],
+      additionalProperties: true,
+    },
+    education_parent_offer_template: {
+      type: 'object',
+      nullable: true,
+      properties: {
+        protocol_number: { type: 'string' },
+        protocol_day_month_year: { type: 'string' },
+      },
+      required: ['protocol_number', 'protocol_day_month_year'],
+      additionalProperties: true,
+    },
+    education_teacher_offer_template: {
+      type: 'object',
+      nullable: true,
+      properties: {
+        protocol_number: { type: 'string' },
+        protocol_day_month_year: { type: 'string' },
+      },
+      required: ['protocol_number', 'protocol_day_month_year'],
+      additionalProperties: true,
+    },
+    education_contract_template: {
+      type: 'object',
+      nullable: true,
+      properties: {
+        protocol_number: { type: 'string' },
+        protocol_day_month_year: { type: 'string' },
+      },
+      required: ['protocol_number', 'protocol_day_month_year'],
+      additionalProperties: true,
+    },
   },
   required: [ // соблюдать порядок следования!
     // 'deleted', //not_required

@@ -1,5 +1,7 @@
 #pragma once
 
+
+#include "../../../lib/core/ram_payer.hpp"
 #include <eosio/eosio.hpp>
 #include <eosio/asset.hpp>
 
@@ -293,7 +295,7 @@ inline void update_segment_total_cost(eosio::name coopname, uint64_t segment_id,
     
     eosio::check(segment != segments.end(), "Сегмент участника не найден");
     
-    segments.modify(segment, coopname, [&](auto &s) {
+    segments.modify(segment, RamPayer::of(segments, coopname), [&](auto &s) {
         s.total_segment_base_cost = calculate_segment_base_cost(s);
         s.total_segment_bonus_cost = calculate_segment_bonus_cost(s, project);
         s.total_segment_cost = s.total_segment_base_cost + s.total_segment_bonus_cost;
@@ -333,7 +335,7 @@ inline void update_segment_total_cost(eosio::name coopname, uint64_t segment_id,
     
     eosio::check(segment_itr != idx.end(), "Сегмент участника не найден");
     
-    idx.modify(segment_itr, _capital, [&](auto &s) {
+    idx.modify(segment_itr, RamPayer::of(idx, coopname), [&](auto &s) {
         s.status = new_status;
     });
 }
@@ -352,7 +354,7 @@ inline void update_segment_after_result_contribution(eosio::name coopname, const
     
     eosio::check(segment_itr != idx.end(), "Сегмент участника не найден");
     
-    idx.modify(segment_itr, coopname, [&](auto &s) {
+    idx.modify(segment_itr, RamPayer::of(idx, coopname), [&](auto &s) {
         // Обновляем после принятия результата
         s.status = Capital::Segments::Status::STATEMENT;
         
@@ -382,7 +384,7 @@ inline void update_segment_voting_results(eosio::name coopname, const Capital::p
     
     eosio::check(segment_itr != segments.end(), "Сегмент участника не найден");
     
-    segments.modify(segment_itr, coopname, [&](auto &s) {
+    segments.modify(segment_itr, RamPayer::of(segments, coopname), [&](auto &s) {
         s.voting_bonus = voting_amount;
         s.equal_author_bonus = equal_author_amount;
         s.direct_creator_bonus = direct_creator_amount;
@@ -397,7 +399,7 @@ inline void set_investor_base_amount_on_return_unused(eosio::name coopname, uint
   Capital::Segments::segments_index segments(_capital, coopname.value);
   auto segment_itr = segments.find(segment_id);
 
-  segments.modify(segment_itr, coopname, [&](auto &s) {
+  segments.modify(segment_itr, RamPayer::of(segments, coopname), [&](auto &s) {
     // Обновляем общую сумму инвестора до фактически использованной
     s.investor_amount = used_amount;
     // Также обновляем фактически используемую сумму инвестора для корректного расчета total_segment_cost
@@ -410,7 +412,7 @@ inline void increase_debt_amount(eosio::name coopname, uint64_t segment_id, eosi
   Capital::Segments::segments_index segments(_capital, coopname.value);
   auto segment = segments.find(segment_id);
   
-  segments.modify(segment, coopname, [&](auto &s) {
+  segments.modify(segment, RamPayer::of(segments, coopname), [&](auto &s) {
       s.debt_amount += amount;
   });
 }
@@ -421,7 +423,7 @@ inline void decrease_debt_amount(eosio::name coopname, uint64_t segment_id, eosi
   
   eosio::check(segment->debt_amount >= amount, "Пайщик не может погасить долг больше, чем должен");
   
-  segments.modify(segment, coopname, [&](auto &s) {
+  segments.modify(segment, RamPayer::of(segments, coopname), [&](auto &s) {
     s.debt_amount -= amount;
   });
 }
@@ -471,7 +473,7 @@ inline void remove_all_project_segments(eosio::name coopname, const checksum256 
 inline void create_author_segment(eosio::name coopname, eosio::name username,  const Capital::project &project) {
   segments_index segments(_capital, coopname.value);
 
-  segments.emplace(_capital, [&](auto &g){
+  segments.emplace(RamPayer::of(segments, coopname), [&](auto &g){
     g.id            = get_global_id_in_scope(_capital, coopname, "segments"_n);
     g.coopname      = coopname;
     g.project_hash  = project.project_hash;
@@ -496,7 +498,7 @@ inline void update_segment_author_status(eosio::name coopname, uint64_t segment_
 
   eosio::check(segment != segments.end(), "Сегмент участника не найден");
 
-  segments.modify(segment, coopname, [&](auto &g) {
+  segments.modify(segment, RamPayer::of(segments, coopname), [&](auto &g) {
     if (!g.is_author) {
       g.is_author = true;
       // Инициализируем CRPS поля для нового автора
@@ -522,3 +524,5 @@ inline bool has_project_segments(eosio::name coopname, const checksum256 &projec
 
 } // namespace Capital::Segments
 
+// Плательщик за оперативную память строк таблицы — правило в lib/core/ram_payer.hpp.
+RAM_PAYER_CLASS(Capital::Segments::segment, contract);

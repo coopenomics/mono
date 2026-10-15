@@ -1,5 +1,7 @@
 #pragma once
 
+
+#include "../core/ram_payer.hpp"
 #include <algorithm>
 #include <eosio/eosio.hpp>
 #include <string>
@@ -136,3 +138,7 @@ inline void erase_coodecquests(eosio::name coopname, uint64_t decision_id) {
     itr = by_dec.erase(itr);
   }
 }
+
+// Плательщик за оперативную память строк таблицы — правило в lib/core/ram_payer.hpp.
+RAM_PAYER_CLASS(coodecision, cooperative);
+RAM_PAYER_CLASS(coodecquest, cooperative);

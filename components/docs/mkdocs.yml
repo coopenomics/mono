@@ -155,6 +155,7 @@ nav:
       - Реестр платежей: new/council/payments.md
       - Реестр собраний: new/council/meetings.md
       - Реестр кошельков: new/council/wallets.md
+      - Робот совета: new/council/robot.md
     
   - Стол председателя:
     - Запросы одобрений: new/chairman/approval-requests.md
@@ -197,6 +198,7 @@ nav:
       - Входящие заказы: new/marketplace/offerer/incoming-orders.md
       - Подготовка отгрузки: new/marketplace/offerer/shipment.md
       - Подпись акта приёма-передачи: new/marketplace/offerer/reception-sign.md
+      - Гарантийные возвраты: new/marketplace/offerer/claims.md
       - Выплаты: new/marketplace/offerer/payments.md
     - Стол оператора ПВЗ:
       - new/marketplace/operator/index.md
@@ -223,6 +225,7 @@ nav:
     - Заключение: new/marketplace/conclusion.md
 
   - Благорост:
+    - new/blagorost/index.md
     - Адаптация: new/blagorost/adaptation.md
     - Профиль: new/blagorost/profile.md
     - Кошельки: new/blagorost/wallets.md
@@ -239,3 +242,39 @@ nav:
     - Результат интеллектуальной деятельности: new/blagorost/intellectual-property.md
     - Инвестирование: new/blagorost/investments.md
   
+
+  - Образование:
+    - new/edubridge/index.md
+    - Подключение:
+      - Установка приложения: new/edubridge/admin/install.md
+      - Подключение ЦПП советом: new/edubridge/admin/configure.md
+    - Стол администратора:
+      - new/edubridge/admin/index.md
+      - Разделы и уровни: new/edubridge/admin/sections.md
+      - Курсы: new/edubridge/admin/courses.md
+      - Добавление курса: new/edubridge/admin/course-create.md
+      - Страница курса: new/edubridge/admin/course.md
+      - Группа курса: new/edubridge/admin/group.md
+      - Календарь школы: new/edubridge/admin/calendar.md
+      - Площадки: new/edubridge/admin/platforms.md
+      - Преподаватели: new/edubridge/admin/teachers.md
+      - Ученики: new/edubridge/admin/members.md
+      - Взносы преподавателей: new/edubridge/admin/contributions.md
+      - Экономика программы: new/edubridge/admin/economy.md
+      - Выплаты: new/edubridge/admin/payments.md
+    - Стол ученика:
+      - new/edubridge/member/index.md
+      - Каталог курсов: new/edubridge/member/catalog.md
+      - Карточка курса: new/edubridge/member/course.md
+      - Подключение ученика: new/edubridge/member/onboarding.md
+      - Обучающиеся: new/edubridge/member/learners.md
+      - Получение доступа к курсу: new/edubridge/member/subscribe.md
+      - Мои подписки: new/edubridge/member/subscriptions.md
+    - Стол преподавателя:
+      - new/edubridge/teacher/index.md
+      - Подключение преподавателя: new/edubridge/teacher/onboarding.md
+      - Профиль: new/edubridge/teacher/profile.md
+      - Назначения: new/edubridge/teacher/assignments.md
+      - Календарь: new/edubridge/teacher/lessons.md
+      - Отчёты: new/edubridge/teacher/reports.md
+      - Расчёты: new/edubridge/teacher/settlement.md

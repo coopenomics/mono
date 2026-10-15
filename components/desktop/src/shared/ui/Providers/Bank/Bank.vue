@@ -9,6 +9,7 @@ import { copyToClipboard } from 'quasar';
 import { SuccessAlert } from 'src/shared/api';
 import { BaseInput } from 'src/shared/ui/base/BaseInput';
 import { BaseButton } from 'src/shared/ui/base/BaseButton';
+import { t } from 'src/shared/i18n';
 
 interface IOrderData {
   sum?: string;
@@ -87,17 +88,7 @@ const generateQRCode = () => {
 };
 
 const copyAll = () => {
-  const data = `
-ИНН Получателя: ${orderData.value.payeeinn}
-Получатель: ${orderData.value.name}
-БИК: ${orderData.value.bic}
-Банк получателя: ${orderData.value.bankname}
-КПП: ${orderData.value.kpp}
-Корреспондентский счёт: ${orderData.value.correspacc}
-Номер счёта: ${orderData.value.personalacc}
-Сумма платежа: ${amount.value}
-Назначение платежа: ${orderData.value.purpose}
-  `.trim();
+  const data = t('ui.bank.detailsCopyText', { payeeInn: orderData.value.payeeinn, recipientName: orderData.value.name, bic: orderData.value.bic, bankName: orderData.value.bankname, kpp: orderData.value.kpp, corrAccount: orderData.value.correspacc, accountNumber: orderData.value.personalacc, amount: amount.value, purpose: orderData.value.purpose }).trim();
 
   copy(data);
 };
@@ -105,7 +96,7 @@ const copyAll = () => {
 const copy = (data: string | undefined) => {
   if (!data) return;
   copyToClipboard(data)
-    .then(() => SuccessAlert('Скопировано в буфер обмена'))
+    .then(() => SuccessAlert(t('ui.bank.copiedText')))
     .catch(console.log);
 };
 
@@ -127,13 +118,13 @@ const downloadQR = () => {
   //- Дальше — переключаемая зона: QR или реквизиты для ручного перевода.
   dl.bank-pay__summary
     .bank-pay__summary-row
-      dt.bank-pay__summary-label Получатель
+      dt.bank-pay__summary-label {{ $t('ui.bank.recipientLabel') }}
       dd.bank-pay__summary-value {{ orderData.name }}
     .bank-pay__summary-row
-      dt.bank-pay__summary-label Сумма
+      dt.bank-pay__summary-label {{ $t('ui.bank.amountLabel') }}
       dd.bank-pay__summary-value.bank-pay__summary-amount {{ amount }}
     .bank-pay__summary-row(v-if='orderData.purpose')
-      dt.bank-pay__summary-label Назначение
+      dt.bank-pay__summary-label {{ $t('ui.bank.purposeShortLabel') }}
       dd.bank-pay__summary-value {{ orderData.purpose }}
 
   //- QR-canvas. v-show, чтобы canvas сохранил состояние при toggle назад.
@@ -144,47 +135,47 @@ const downloadQR = () => {
   //- v-if чтобы не держать тяжёлые BaseInput в DOM пока не нужны.
   .bank-pay__details(v-if='showDetails')
     .bank-pay__field
-      BaseInput(label='ИНН получателя', :model-value='orderData.payeeinn', readonly, mono)
+      BaseInput(:label='$t("ui.bank.payeeInnLabel")', :model-value='orderData.payeeinn', readonly, mono)
         template(#append)
           q-btn(flat, dense, round, icon='content_copy', size='sm', @click='copy(orderData.payeeinn)')
 
     .bank-pay__field
-      BaseInput(label='Получатель', :model-value='orderData.name', readonly)
+      BaseInput(:label='$t("ui.bank.recipientLabel")', :model-value='orderData.name', readonly)
         template(#append)
           q-btn(flat, dense, round, icon='content_copy', size='sm', @click='copy(orderData.name)')
 
     .bank-pay__field
-      BaseInput(label='БИК', :model-value='orderData.bic', readonly, mono)
+      BaseInput(:label='$t("ui.bank.bikLabel")', :model-value='orderData.bic', readonly, mono)
         template(#append)
           q-btn(flat, dense, round, icon='content_copy', size='sm', @click='copy(orderData.bic)')
 
     .bank-pay__field
-      BaseInput(label='Банк получателя', :model-value='orderData.bankname', readonly)
+      BaseInput(:label='$t("ui.bank.bankNameLabel")', :model-value='orderData.bankname', readonly)
         template(#append)
           q-btn(flat, dense, round, icon='content_copy', size='sm', @click='copy(orderData.bankname)')
 
     .bank-pay__field
-      BaseInput(label='КПП', :model-value='orderData.kpp', readonly, mono)
+      BaseInput(:label='$t("ui.bank.kppLabel")', :model-value='orderData.kpp', readonly, mono)
         template(#append)
           q-btn(flat, dense, round, icon='content_copy', size='sm', @click='copy(orderData.kpp)')
 
     .bank-pay__field
-      BaseInput(label='Корреспондентский счёт', :model-value='orderData.correspacc', readonly, mono)
+      BaseInput(:label='$t("ui.bank.corrAccountLabel")', :model-value='orderData.correspacc', readonly, mono)
         template(#append)
           q-btn(flat, dense, round, icon='content_copy', size='sm', @click='copy(orderData.correspacc)')
 
     .bank-pay__field
-      BaseInput(label='Номер счёта', :model-value='orderData.personalacc', readonly, mono)
+      BaseInput(:label='$t("ui.bank.accountNumberLabel")', :model-value='orderData.personalacc', readonly, mono)
         template(#append)
           q-btn(flat, dense, round, icon='content_copy', size='sm', @click='copy(orderData.personalacc)')
 
     .bank-pay__field
-      BaseInput(label='Сумма платежа', :model-value='amount', readonly, mono)
+      BaseInput(:label='$t("ui.bank.paymentAmountLabel")', :model-value='amount', readonly, mono)
         template(#append)
           q-btn(flat, dense, round, icon='content_copy', size='sm', @click='copy(amount)')
 
     .bank-pay__field
-      BaseInput(label='Назначение платежа', :model-value='orderData.purpose', readonly)
+      BaseInput(:label='$t("ui.bank.paymentPurposeLabel")', :model-value='orderData.purpose', readonly)
         template(#append)
           q-btn(flat, dense, round, icon='content_copy', size='sm', @click='copy(orderData.purpose)')
 
@@ -193,17 +184,17 @@ const downloadQR = () => {
     template(v-if='!showDetails')
       BaseButton(variant='primary', @click='downloadQR')
         q-icon.q-mr-xs(name='download', size='16px')
-        | Скачать QR
+        | {{ $t('ui.bank.downloadQrLabel') }}
       BaseButton(variant='secondary', @click='toggleDetails')
         q-icon.q-mr-xs(name='receipt_long', size='16px')
-        | Показать реквизиты
+        | {{ $t('ui.bank.showDetailsLabel') }}
     template(v-else)
       BaseButton(variant='primary', @click='copyAll')
         q-icon.q-mr-xs(name='content_copy', size='16px')
-        | Скопировать всё
+        | {{ $t('ui.bank.copyAllLabel') }}
       BaseButton(variant='secondary', @click='toggleDetails')
         q-icon.q-mr-xs(name='qr_code', size='16px')
-        | Показать QR
+        | {{ $t('ui.bank.showQrLabel') }}
 </template>
 
 <style scoped>

@@ -8,7 +8,7 @@ import StepFrame from '../ui/StepFrame.vue'
 
 const connectionAgreement = useConnectionAgreementStore()
 const { loadCurrentInstance } = connectionAgreement
-const { SERVER_IP } = useProviderSubscriptions()
+const { CONNECTOR_HOST } = useProviderSubscriptions()
 
 const coop = computed(() => connectionAgreement.coop)
 const instance = computed(() => connectionAgreement.currentInstance)
@@ -56,13 +56,13 @@ StepFrame(
     li Откройте панель управления доменом у регистратора и найдите раздел DNS-записей.
     li Добавьте запись типа
       |  
-      span.t-mono A
-      |  для имени ниже со значением IP-адреса ниже. Если такая запись уже есть — замените значение.
+      span.t-mono CNAME
+      |  для имени ниже со значением ниже. Если такая запись уже есть — замените значение. Кабинет размещается на поддомене: для корня домена запись CNAME недоступна.
     li Сохраните. Обычно запись вступает в силу за несколько минут, но у некоторых регистраторов это занимает до суток — мы проверяем автоматически и продолжим сами.
 
   .dns-step__values
     DataRow(label="Имя записи" :value="coop?.announce" mono copyable)
-    DataRow(label="Значение (IP-адрес)" :value="SERVER_IP" mono copyable)
+    DataRow(label="Значение CNAME" :value="CONNECTOR_HOST" mono copyable)
 
   .dns-step__status
     BaseChip(:variant="isDelegated ? 'pos' : 'warn'")

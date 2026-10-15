@@ -3,7 +3,7 @@ import { WorkflowBuilder } from '../../base/workflow-builder';
 import { z } from 'zod';
 import { BaseWorkflowPayload } from '../../types';
 import { createEmailStep, createInAppStep, createPushStep } from '../../base/defaults';
-import { slugify } from '../../utils';
+import { nt } from '../../i18n';
 
 export const marketplaceAidPayoutConfirmedPayloadSchema = z.object({
   memberName: z.string(),
@@ -17,31 +17,34 @@ export type IPayload = z.infer<typeof marketplaceAidPayoutConfirmedPayloadSchema
 
 export interface IWorkflow extends BaseWorkflowPayload, IPayload {}
 
-export const name = 'Материальная помощь выплачена';
-export const id = slugify(name);
+export const name = nt('marketplaceAidPayoutConfirmed.name');
+// Идентификатор закреплён: раньше он вычислялся из названия, и правка
+// или перевод названия меняли бы его. Не менять — на него ссылаются подписки.
+export const id = 'materialnaya-pomosch-vyplachena';
 
 export const workflow: WorkflowDefinition<IWorkflow> = WorkflowBuilder
   .create<IWorkflow>()
   .name(name)
   .workflowId(id)
-  .description('Уведомление пайщику о том, что кассир подтвердил выплату материальной помощи — банковский перевод выполнен.')
+  .i18nKey('marketplaceAidPayoutConfirmed')
+  .description(nt('marketplaceAidPayoutConfirmed.description'))
   .payloadSchema(marketplaceAidPayoutConfirmedPayloadSchema)
   .tags(['marketplace', 'member'])
   .addSteps([
     createEmailStep(
       'marketplace-aid-payout-confirmed-email',
-      'Материальная помощь выплачена',
-      'Уважаемый {{payload.memberName}}!<br><br>Кассир подтвердил выплату материальной помощи на сумму <strong>{{payload.amount}}</strong>.<br><br>Реквизиты получения: {{payload.paymentDestination}}.<br><br>Мои средства: {{payload.deepLinkUrl}}'
+      nt('marketplaceAidPayoutConfirmed.email.subject'),
+      nt('marketplaceAidPayoutConfirmed.email.body')
     ),
     createInAppStep(
       'marketplace-aid-payout-confirmed-notification',
-      'Материальная помощь выплачена',
-      'Кассир подтвердил выплату {{payload.amount}} на реквизиты {{payload.paymentDestination}}.'
+      nt('marketplaceAidPayoutConfirmed.inApp.subject'),
+      nt('marketplaceAidPayoutConfirmed.inApp.body')
     ),
     createPushStep(
       'marketplace-aid-payout-confirmed-push',
-      'Материальная помощь выплачена',
-      '{{payload.amount}} перечислены на ваши реквизиты.'
+      nt('marketplaceAidPayoutConfirmed.push.subject'),
+      nt('marketplaceAidPayoutConfirmed.push.body')
     ),
   ])
   .build();

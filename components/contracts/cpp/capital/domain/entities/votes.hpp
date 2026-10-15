@@ -1,5 +1,7 @@
 #pragma once
 
+
+#include "../../../lib/core/ram_payer.hpp"
 #include <eosio/eosio.hpp>
 #include <eosio/asset.hpp>
 
@@ -113,6 +115,22 @@ namespace Votes {
     }
 
     /**
+     * @brief Удаляет голоса проекта.
+     *
+     * Голоса читает только расчёт премии (calcvotes), а он возможен лишь в
+     * статусе result. Финализированному и удалённому проекту голоса не нужны;
+     * хеш удалённого проекта может занять новый проект, и чужие голоса ложно
+     * отметили бы его участников как проголосовавших.
+     */
+    inline void erase_project_votes(name coopname, const checksum256 &project_hash) {
+        votes_index votes(_capital, coopname.value);
+        auto idx = votes.get_index<"byproject"_n>();
+        for (auto itr = idx.lower_bound(project_hash); itr != idx.end() && itr->project_hash == project_hash;) {
+            itr = idx.erase(itr);
+        }
+    }
+
+    /**
      * @brief Добавляет голос в проект
      */
     inline void add_vote(name coopname, checksum256 project_hash, 
@@ -120,7 +138,7 @@ namespace Votes {
         votes_index votes(_capital, coopname.value);
         auto vote_id = get_global_id_in_scope(_capital, coopname, "vote"_n);
         
-        votes.emplace(coopname, [&](auto &v) {
+        votes.emplace(RamPayer::of(votes, coopname), [&](auto &v) {
             v.id = vote_id;
             v.coopname = coopname;
             v.project_hash = project_hash;
@@ -134,3 +152,6 @@ namespace Votes {
 } // namespace Votes
 
 } // namespace Capital
+
+// Плательщик за оперативную память строк таблицы — правило в lib/core/ram_payer.hpp.
+RAM_PAYER_CLASS(Capital::vote, cooperative);

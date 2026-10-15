@@ -37,7 +37,7 @@ q-page.admin-order-detail
   BaseButton.admin-order-detail__back(variant="ghost", size="sm", @click="goBack")
     template(#icon-left)
       q-icon(name="arrow_back", size="16px")
-    | К реестру заказов
+    | {{ $t('marketplace.orderDetail.backToOrdersLink') }}
 
   OrderRegistryDetail(
     :coopname="info.coopname",

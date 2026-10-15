@@ -73,6 +73,16 @@ export type MatrixRoomMessageSessionContext = {
 export class MatrixRoomMessageHistoryIngestService {
   private readonly logger = new Logger(MatrixRoomMessageHistoryIngestService.name);
   private static readonly PAGE_LIMIT = 100;
+  /** Сколько живёт запомненное отображаемое имя: имена меняются редко. */
+  private static readonly DISPLAY_NAME_TTL_MS = 24 * 60 * 60 * 1000;
+
+  /**
+   * Отображаемые имена пользователей Matrix — общие для всех комнат и проходов.
+   * Кэш жил один проход по одной комнате, и на каждое сообщение имя заново
+   * спрашивалось у Synapse: 750 тыс. запросов в неделю с одного узла, две трети
+   * журнала сервера чата (73B-18, У1).
+   */
+  private readonly displayNames = new Map<string, { name: string; storedAt: number }>();
 
   constructor(
     private readonly matrixApi: MatrixApiService,
@@ -303,8 +313,19 @@ export class MatrixRoomMessageHistoryIngestService {
     if (hit) {
       return hit;
     }
+    const remembered = this.displayNames.get(sender);
+    if (remembered && Date.now() - remembered.storedAt < MatrixRoomMessageHistoryIngestService.DISPLAY_NAME_TTL_MS) {
+      displayCache.set(sender, remembered.name);
+      return remembered.name;
+    }
     const dn = await this.matrixApi.resolveMatrixUserDisplayName(sender);
     displayCache.set(sender, dn);
+    // Без ответа Synapse приходит запасной вариант — локальная часть адреса.
+    // Его на сутки не запоминаем: иначе сбой сервера чата заморозил бы имя.
+    const localPart = sender.startsWith('@') ? sender.slice(1).split(':')[0] : sender;
+    if (dn !== localPart && dn !== sender) {
+      this.displayNames.set(sender, { name: dn, storedAt: Date.now() });
+    }
     return dn;
   }
 

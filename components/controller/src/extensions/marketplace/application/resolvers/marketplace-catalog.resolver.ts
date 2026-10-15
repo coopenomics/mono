@@ -1,9 +1,8 @@
 import { Inject, Injectable, UseGuards } from '@nestjs/common';
 import { Args, Query, Resolver } from '@nestjs/graphql';
 
-import { GqlJwtAuthGuard, platformSettings } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, platformSettings, RequireRight, RightsGuard } from '@coopenomics/extension-kit';
 
-import { RequireMarketplaceAccess } from '../decorators/marketplace-access.decorator';
 import { MarketplaceOfferStatuses } from '../../domain/entities/marketplace-offer.types';
 import {
   MarketplaceCategoryOfferCountDTO,
@@ -15,7 +14,6 @@ import {
   toMarketplaceOfferDTO,
 } from '../dto/marketplace-offer.dto';
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
-import { MarketplaceRoleGuard } from '../guards/marketplace-role.guard';
 import {
   MARKETPLACE_OFFER_REPOSITORY,
   type MarketplaceOfferDomainRepository,
@@ -48,8 +46,8 @@ export class MarketplaceCatalogResolver {
     name: 'marketplaceListCatalog',
     description: 'Каталог активных Offer\'ов (ACTIVE + available, single vitrine MVP)',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('Offer', 'read')
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
+  @RequireRight('Offer', 'read')
   async marketplaceListCatalog(
     @Args('input', { nullable: true }) input?: MarketplaceListCatalogInputDTO
   ): Promise<MarketplaceOfferPaginationResultDTO> {
@@ -82,8 +80,8 @@ export class MarketplaceCatalogResolver {
     description: 'Одно предложение по идентификатору — для страницы с полным описанием.',
     nullable: true,
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('Offer', 'read')
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
+  @RequireRight('Offer', 'read')
   async marketplaceGetOffer(
     @Args('id', { type: () => String }) id: string
   ): Promise<MarketplaceOfferDTO | null> {
@@ -96,8 +94,8 @@ export class MarketplaceCatalogResolver {
     description:
       'Число доступных к заказу товаров в каждой категории — чтобы скрыть пустые категории в каталоге. Если задан пункт выдачи, считаются только товары, доставимые на него.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('Offer', 'read')
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
+  @RequireRight('Offer', 'read')
   async marketplaceCategoryOfferCounts(
     @Args('delivery_braname', {
       type: () => String,

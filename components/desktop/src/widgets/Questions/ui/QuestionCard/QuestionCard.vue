@@ -1,16 +1,16 @@
 <template lang="pug">
 .question-card
-  //- Верхняя строка кликабельна — раскрывает документ. Исключение — зона
-  //- кнопок голосования (@click.stop): по ним голосуют, документ не раскрывают.
-  .question-card__row(@click='toggleExpand')
+  //- Строка вопроса открывает подробности в правом дроуэре (канон вместо
+  //- раскрывающихся списков). Кнопки голосования и номер — свои действия.
+  .question-card__row(@click='openDetails')
     //- Номер вопроса на зелёной плашке — он же идентификатор: клик копирует.
     button.question-card__id-avatar(type='button', @click.stop='copyId')
       | {{ agenda.table.id }}
-      q-tooltip Скопировать № {{ agenda.table.id }}
+      q-tooltip {{ $t('questions.questionCard.copyIdTooltip', { id: agenda.table.id }) }}
 
     .question-card__main
-      .question-card__title {{ getDocumentTitle() }}
-      .question-card__applicant {{ getApplicantName() }}
+      .question-card__title {{ documentTitle }}
+      .question-card__applicant {{ applicantName }}
 
     //- Кнопки голосования — прижаты к правому краю строки.
     .question-card__voting(@click.stop)
@@ -24,58 +24,61 @@
         @vote-against='$emit("vote-against")'
       )
 
-    q-icon.question-card__chevron(
-      :name='expanded ? "expand_less" : "expand_more"',
-      size='20px'
-    )
-
-  //- Нижняя полоска: срок слева, действие председателя справа.
-  //- У обычного пайщика — только срок, узкая панелька.
+  //- Нижняя полоска: срок слева, действия справа — «Подробнее» у всех,
+  //- утверждение или отклонение у председателя.
   .question-card__footer(@click.stop)
-    span.question-card__expires Истекает {{ formatToFromNow(agenda.table.expired_at) }}
-    //- Отрицательный консенсус: председатель явно отклоняет решение (контракт
-    //- declinedec). Иначе — обычное утверждение (доступно после принятия советом).
-    .question-card__approve(v-if='isChairman && isRejected')
-      BaseButton(
-        variant='negative',
-        size='sm',
-        :loading='isProcessing',
-        @click='$emit("decline")'
-      ) Отклонить
-    .question-card__approve(v-else-if='isChairman')
-      BaseButton(
-        variant='primary',
-        size='sm',
-        :disabled='!agenda.table.approved',
-        :loading='isProcessing',
-        @click='$emit("authorize")'
-      ) Утвердить
-      q-tooltip(v-if='!agenda.table.approved') Для утверждения решение должно быть принято советом
+    span.question-card__expires {{ $t('questions.questionCard.expiresIn', { fromNow: formatToFromNow(agenda.table.expired_at) }) }}
+    .question-card__actions
+      BaseButton(variant='ghost', size='sm', @click='openDetails')
+        q-icon.q-mr-xs(name='open_in_new', size='16px')
+        | {{ $t('questions.questionCard.details') }}
+      ChairmanDecisionButton(:agenda='agenda', :is-processing='isProcessing', @authorize='$emit("authorize")', @decline='$emit("decline")')
 
-  q-slide-transition
-    .question-card__doc(v-show='expanded')
-      ComplexDocument(:documents='agenda.documents')
+  //- Подробности вопроса: сведения по нему — первыми, ниже документы пакета
+  //- строками. Содержимое панели рисуется только открытой: сведения грузятся по
+  //- первому открытию. Тот же вопрос открывается отдельной страницей кнопкой в шапке.
+  DetailsDrawer(
+    v-model='detailsOpen',
+    :title='$t(`questions.questionCard.detailsTitle`, { id: agenda.table.id })',
+    :width='720'
+  )
+    template(#actions)
+      BaseButton(variant='ghost', size='sm', :aria-label='$t("questions.questionCard.openFullPageAriaLabel")', @click='openFullPage')
+        template(#icon-left)
+          q-icon(name='open_in_full', size='16px')
+        | {{ $t('questions.questionCard.openFullPageButton') }}
+    .question-card__details
+      QuestionDetails(:agenda='agenda')
 
-      component(
-        v-if='infoComponent',
-        :is='infoComponent',
-        :agenda='agenda'
-      )
+    //- Голосовать и утверждать можно, не закрывая подробности.
+    template(#footer)
+      .question-card__drawer-footer
+        VotingButtons(
+          :decision='agenda.table',
+          :is-rejected='isRejected',
+          :is-voted-for='isVotedFor',
+          :is-voted-against='isVotedAgainst',
+          :is-voted-any='isVotedAny',
+          @vote-for='$emit("vote-for")',
+          @vote-against='$emit("vote-against")'
+        )
+        ChairmanDecisionButton(:agenda='agenda', :is-processing='isProcessing', @authorize='$emit("authorize")', @decline='$emit("decline")')
 </template>
 
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { ComplexDocument } from 'src/shared/ui/ComplexDocument';
-import { formatToFromNow } from 'src/shared/lib/utils/dates/formatToFromNow';
-import { getShortNameFromCertificate } from 'src/shared/lib/utils/getNameFromCertificate';
-import { VotingButtons } from '../VotingButtons';
-import { useSessionStore } from 'src/entities/Session';
-import type { IAgenda } from 'src/entities/Agenda/model';
-import { Cooperative } from 'cooptypes';
-import { BaseButton } from 'src/shared/ui/base/BaseButton';
+import { useRoute, useRouter } from 'vue-router';
 import { copyToClipboard } from 'quasar';
+import { formatToFromNow } from 'src/shared/lib/utils/dates/formatToFromNow';
+import type { IAgenda } from 'src/entities/Agenda/model';
+import { BaseButton } from 'src/shared/ui/base/BaseButton';
+import { DetailsDrawer } from 'src/shared/ui/domain';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
-import { decisionFactory } from 'src/shared/lib/decision-factory';
+import { t } from 'src/shared/i18n';
+import { VotingButtons } from '../VotingButtons';
+import { ChairmanDecisionButton } from '../ChairmanDecisionButton';
+import { QuestionDetails } from '../QuestionDetails';
+import { AGENDA_QUESTION_ROUTE, applicantNameOf, isQuestionRejected, questionTitleOf } from '../../model';
 
 const props = defineProps({
   agenda: {
@@ -102,80 +105,32 @@ const props = defineProps({
 
 defineEmits(['authorize', 'decline', 'vote-for', 'vote-against']);
 
-const session = useSessionStore();
-const isChairman = computed(() => session.isChairman);
+const route = useRoute();
+const router = useRouter();
 
-// Отрицательный консенсус: против проголосовало большинство состава совета.
-// Порог зеркален контракту (votefor/declinedec): против*100 > состав*50, строго.
-// council_members_count приходит обогащённым в DTO решения с бэкенда.
-const isRejected = computed(() => {
-  const table = props.agenda.table as { votes_against?: string[]; council_members_count?: number };
-  const against = table.votes_against?.length ?? 0;
-  const members = table.council_members_count ?? 0;
-  return members > 0 && against * 100 > members * 50;
-});
+const isRejected = computed(() => isQuestionRejected(props.agenda));
+const documentTitle = computed(() => questionTitleOf(props.agenda));
+const applicantName = computed(() => applicantNameOf(props.agenda));
 
 // Состояние раскрытия — локальное для каждой карточки.
-const expanded = ref(false);
-const toggleExpand = () => {
-  expanded.value = !expanded.value;
+const detailsOpen = ref(false);
+const openDetails = () => {
+  detailsOpen.value = true;
 };
+
+/** Тот же вопрос на отдельной странице: на всю ширину и со своим адресом. */
+function openFullPage(): void {
+  void router.push({ name: AGENDA_QUESTION_ROUTE, params: { coopname: route.params.coopname, id: String(props.agenda.table.id) } });
+}
 
 // Копирование идентификатора вопроса по клику на плашку с номером.
 const copyId = async () => {
   try {
     await copyToClipboard(String(props.agenda.table.id));
-    SuccessAlert('Скопировано');
+    SuccessAlert(t('questions.questionCard.copied'));
   } catch {
-    FailAlert('Не удалось скопировать');
+    FailAlert(t('questions.questionCard.copyFailed'));
   }
-};
-
-// Компонент дополнительной информации для конкретного типа решения.
-const infoComponent = computed(() => {
-  const type = props.agenda.table?.type;
-  if (!type) return null;
-  return decisionFactory.getInfoComponent(type);
-});
-
-// Получение заголовка документа с поддержкой агрегатов
-function getDocumentTitle() {
-  const agenda = props.agenda;
-  const statement = agenda.documents?.statement;
-  const rawDocument = statement?.documentAggregate?.rawDocument;
-  const meta = rawDocument?.meta as
-    | Cooperative.Document.IMetaDocument
-    | undefined;
-  if (meta?.title) {
-    return meta.title;
-  }
-
-  const tableMeta = agenda.table?.statement?.meta;
-  if (tableMeta && typeof tableMeta === 'object' && (tableMeta as any).title) {
-    return (tableMeta as any).title;
-  }
-
-  if (tableMeta && typeof tableMeta === 'string') {
-    try {
-      const parsed = JSON.parse(tableMeta);
-      if (parsed?.title) {
-        return parsed.title;
-      }
-    } catch {
-      // ignore parse errors
-    }
-  }
-
-  return 'Вопрос без заголовка';
-}
-
-// Получение имени заявителя
-const getApplicantName = () => {
-  const certificate = props.agenda.table.username_certificate;
-  if (certificate) {
-    return getShortNameFromCertificate(certificate);
-  }
-  return `Аккаунт: ${props.agenda.table.username}`;
 };
 </script>
 
@@ -255,13 +210,6 @@ const getApplicantName = () => {
   cursor: default;
 }
 
-.question-card__chevron {
-  flex: 0 0 auto;
-  align-self: flex-start;
-  margin-top: 2px;
-  color: var(--p-ink-3);
-}
-
 /* Нижняя полоска: срок слева, «Утвердить» справа */
 .question-card__footer {
   display: flex;
@@ -271,14 +219,22 @@ const getApplicantName = () => {
   padding: var(--p-3, 12px) var(--p-4, 16px);
   border-top: 1px solid var(--p-line);
 }
-.question-card__approve {
+.question-card__actions {
   display: inline-flex;
+  align-items: center;
+  gap: var(--p-2, 8px);
 }
 
-/* Раскрываемое содержимое документа */
-.question-card__doc {
+/* Подробности вопроса в дроуэре */
+.question-card__details {
   padding: var(--p-4, 16px);
-  border-top: 1px solid var(--p-line);
+}
+.question-card__drawer-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--p-3, 12px);
 }
 
 /* На узких экранах кнопки голосования переносятся под заголовок */
@@ -292,6 +248,14 @@ const getApplicantName = () => {
   .question-card__voting {
     order: 4;
     flex: 1 1 100%;
+  }
+  /* Срок — отдельной строкой, действия под ним во всю ширину */
+  .question-card__footer {
+    flex-wrap: wrap;
+  }
+  .question-card__actions {
+    flex: 1 1 100%;
+    justify-content: flex-end;
   }
 }
 </style>

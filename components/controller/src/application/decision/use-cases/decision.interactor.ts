@@ -19,6 +19,9 @@ export class DecisionInteractor {
       chairman: data.chairman,
       decision_id: data.decision_id,
       document: this.domainToBlockchainUtils.convertSignedDocumentToBlockchainFormat(data.document),
+      // Председатель подписал протокол сам, своим активным ключом. Подпись
+      // робота по разрешению автоматизации проводит расширение робота, не этот путь.
+      permission: 'active',
     };
 
     const execData: SovietContract.Actions.Decisions.Exec.IExec = {

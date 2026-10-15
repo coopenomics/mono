@@ -16,6 +16,7 @@ import { initUsersInPostgres, initVaultInPostgres } from '../postgres-init'
 import { CooperativeClass } from './cooperative'
 import { signProgramAgreement } from './sign-program-agreement'
 import { syncDrafts } from './drafts'
+import { seedDocumentApprovals } from './document-approvals'
 import { fakeDocument } from '../tests/shared/fakeDocument'
 import { walletDraftId, walletProgramId } from '../tests/capital/consts'
 
@@ -153,6 +154,20 @@ export async function startInfra() {
 
   await sleep(2000)
 
+  // Контракты платформы содержат свои служебные записи сами и просят память у
+  // сети, когда квота подходит к концу (C28-78). Список — прикладные контракты,
+  // которые разворачивает boot.
+  await blockchain.setRamGrant({
+    threshold_percent: 70,
+    grant_bytes: 512 * 1024,
+    check_interval_sec: 3600,
+    contracts: config.contracts
+      .map((c: { target: string }) => c.target)
+      .filter((target: string) => !target.startsWith('eosio')),
+  })
+
+  await sleep(2000)
+
   // Реестр документов раскатывается тем же синхронизатором, что и на
   // работающей сети: на пустой цепи он просто создаёт все шаблоны.
   await syncDrafts(blockchain)
@@ -191,7 +206,7 @@ export async function installInitialData(blockchain: Blockchain, isExtended = fa
       position: 'Председатель',
       based_on: 'Решение общего собрания №1',
     },
-    country: 'Российская Федерация',
+    country: 'Russia',
     city: 'Москва',
     fact_address: '117593 г. Москва, муниципальный округ Ясенево, проезд Соловьиный, дом 1, помещение 1/1',
     full_address:
@@ -226,7 +241,6 @@ export async function installInitialData(blockchain: Blockchain, isExtended = fa
       details: {
         bik: '044525225',
         corr: '30101810400000000225',
-        kpp: '773643001',
       },
     },
   })
@@ -332,6 +346,10 @@ export async function installInitialData(blockchain: Blockchain, isExtended = fa
       },
     )
   }
+
+  // Совет локального кооператива «утвердил» документы с реквизитами из vars —
+  // иначе фабрика утверждений не предъявит пайщикам ни одного соглашения.
+  await seedDocumentApprovals(blockchain, 'voskhod', vars)
 
   try {
     await mongoose.connection.collection('sync').deleteMany({})
@@ -508,7 +526,7 @@ export async function installInitialData(blockchain: Blockchain, isExtended = fa
   }
 
   console.log('Инициализируем пользователей в PostgreSQL')
-  await initUsersInPostgres(usersToInit)
+  await initUsersInPostgres(usersToInit, config.provider)
 
   console.log('Инициализируем vault в PostgreSQL')
   await initVaultInPostgres()
@@ -753,7 +771,7 @@ export async function installExtraData(
       position: 'Председатель',
       based_on: 'Решение общего собрания №1',
     },
-    country: 'Российская Федерация',
+    country: 'Russia',
     city: 'Москва',
     fact_address: '117593 г. Москва, ул. Тестовая, дом 1',
     full_address: '117593 г. Москва, ул. Тестовая, дом 1',
@@ -779,7 +797,6 @@ export async function installExtraData(
       details: {
         bik: '044525225',
         corr: '30101810400000000225',
-        kpp: '772801002',
       },
     },
   })
@@ -793,7 +810,7 @@ export async function installExtraData(
     role: 'user',
     status: 'joined',
     is_registered: true,
-  }])
+  }], config.provider)
 
   console.log(`=== partner1 (${account.username}) засеян в воскход-coopback (Mongo+Postgres) ===\n`)
 }

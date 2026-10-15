@@ -8,6 +8,7 @@ import { EXTENSION_REPOSITORY, type ExtensionDomainRepository, LOG_EXTENSION_REP
 import { SovietContract } from 'cooptypes';
 import type { ExtensionDomainEntity } from '@coopenomics/extension-kit';
 import { Workflows } from '@coopenomics/notifications';
+import { t } from '../../i18n';
 
 /**
  * Сервис для отправки уведомлений об отмене решений по истечению срока
@@ -211,6 +212,7 @@ export class DecisionExpiredNotificationService implements OnModuleInit, OnModul
           });
 
           // Безопасно обращаемся к результату транзакции
+          // i18n-ignore: используется только в структурированном логе (logger.info), не в интерфейсе
           const txId = result.resolved?.transaction?.id ? result.resolved.transaction.id : 'неизвестно';
           this.logger.info(`Решение ID: ${decision.id} успешно отменено`, { transactionId: txId });
 
@@ -243,7 +245,7 @@ export class DecisionExpiredNotificationService implements OnModuleInit, OnModul
             type: 'cancel',
             coopname,
             decision_id: decision.id.toString(),
-            result: `error: ${errorObj.message || 'Неизвестная ошибка'}`,
+            result: `error: ${errorObj.message || t('chairman.decisionExpiredNotification.unknownError')}`,
           });
         }
       }

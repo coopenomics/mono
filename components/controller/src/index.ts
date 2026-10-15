@@ -9,9 +9,12 @@ import expressApp from './app';
 import { WinstonLoggerService } from './application/logger/logger-app.service';
 import { GraphQLExceptionFilter } from './infrastructure/graphql/filters/graphql-exceptions.filter';
 import { migrateData } from './migrator/migrate';
+import { runDatabaseMigrations } from './migrator/database-migrations';
+import { formatSchemaReport, reportSchema } from './migrator/schema-report';
 import { ValidationPipe } from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';
 import { scrubSensitiveDataFromSentryEvent } from './shared/utils/sentry-scrub-event';
+import { appVersion } from './shared/utils/app-version';
 // Настройки контура и секрет межсервисного обхода передаются каркасу в
 // './config/platform-bootstrap' — он импортирован первой строкой app.module.ts,
 // то есть раньше любого расширения. См. комментарий в самом файле.
@@ -29,12 +32,54 @@ export function getTokenApplicationService() {
   return nestApp.get('TokenApplicationService');
 }
 
+/**
+ * Разовые команды схемы базы (C28-79): выполнить и выйти, сервер не поднимать.
+ *
+ * `--migrate-schema` — только миграции схемы, шаг blue-green выкатки до старта
+ * новой версии: таблицы меняются раньше, чем новая версия начнёт их читать.
+ * `--schema-report` — отчёт о схеме базы относительно этой версии;
+ * `--database <имя>` — другая база, `--apply` — сначала применить миграции
+ * (только к копии, боевую базу отчёт не трогает).
+ *
+ * Код выхода явный по той же причине, что у `--migrate`: Sentry перехватывает
+ * необработанный отказ и не роняет процесс.
+ */
+async function runSchemaCommand(args: string[]): Promise<void> {
+  if (args.includes('--migrate-schema')) {
+    try {
+      await runDatabaseMigrations();
+      process.exit(0);
+    } catch (error) {
+      logger.error('Миграции схемы не прошли, выходим с кодом 1', error);
+      process.exit(1);
+    }
+  }
+
+  if (args.includes('--schema-report')) {
+    try {
+      const databaseIndex = args.indexOf('--database');
+      const report = await reportSchema({
+        database: databaseIndex > -1 ? args[databaseIndex + 1] : undefined,
+        apply: args.includes('--apply'),
+      });
+      process.stdout.write(`${formatSchemaReport(report)}\n`);
+      process.exit(0);
+    } catch (error) {
+      logger.error('Отчёт о схеме не собран, выходим с кодом 1', error);
+      process.exit(1);
+    }
+  }
+}
+
 async function bootstrap() {
   // Инициализация Sentry для отслеживания ошибок
   if (config.sentry.dsn) {
     Sentry.init({
       dsn: config.sentry.dsn,
       environment: config.env,
+      // Сборка, давшая событие: без неё не понять, доехало ли исправление.
+      release: appVersion(),
+      initialScope: { tags: { app_version: appVersion(), coopname: config.coopname } },
       // Отправляем ошибки только в production
       beforeSend: (event) => {
         scrubSensitiveDataFromSentryEvent(event);
@@ -64,6 +109,9 @@ async function bootstrap() {
 
   // Проверяем, был ли запущен режим миграций
   const args = process.argv.slice(2);
+
+  await runSchemaCommand(args);
+
   if (args.includes('--migrate')) {
     try {
       await migrateData();
@@ -107,10 +155,13 @@ async function bootstrap() {
   // Доверять заголовку позволено ровно потому, что внешний край его ЗАТИРАЕТСЯ:
   // playbooks → mono/templates/nginx/l7-external.conf ставит `X-Forwarded-For
   // $remote_addr`, а не `$proxy_add_x_forwarded_for`, и присланное браузером
-  // отбрасывается. Левый адрес в списке написан нами. Вернут туда дописывание —
-  // и эта строка станет вредной: любой назовётся чужим адресом одной строкой в
-  // заголовке, обойдёт лимит и подпишет чужим IP свои следы в аудите.
-  expressApp.set('trust proxy', true);
+  // отбрасывается. Вернут туда дописывание — любой назовётся чужим адресом
+  // одной строкой в заголовке, обойдёт лимит и подпишет чужим IP свои следы.
+  //
+  // Кому верить — TRUST_PROXY; по умолчанию только прокси в частных сетях:
+  // все звенья до контроллера (receiver, внутренний nginx) живут в них, а
+  // прямой запрос на открытый порт заголовком ничего не подменит.
+  expressApp.set('trust proxy', config.trust_proxy);
 
   // Добавьте миддлвар для отключения CSP в локальной разработке
   expressApp.use((req, res, next) => {
@@ -178,7 +229,7 @@ async function bootstrap() {
 
   // Запуск сервера
   await nestApp.listen(config.port, () => {
-    logger.info(`NestJS app with Express routes running on port ${config.port}`);
+    logger.info(`NestJS app with Express routes running on port ${config.port}; версия ${appVersion()}`);
   });
 
   // Завершение работы приложения при неожиданных ошибках

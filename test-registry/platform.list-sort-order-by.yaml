@@ -1,0 +1,101 @@
+feature: platform.list-sort-order-by
+title: Поле сортировки списков — только колонка сущности
+
+# Поле сортировки приходит от клиента в общем вводе пагинации и уходит в
+# ORDER BY строкой: TypeORM вставляет его в SQL как есть, параметром его не
+# передать. До 23.09.2026 журнал расширений и решения председателя брали поле
+# без проверки, и член совета мог дописать в сортировку подзапрос и посимвольно
+# вычитать базу кооператива. Найдено седьмым заходом аудита прав, задача C28-42.
+#
+# Рубежей два. На входе имя поля отсекается по шаблону (латиница, цифры,
+# подчёркивание) — и декоратором ввода, и общей проверкой пагинации. В
+# репозитории пропускается только колонка своей сущности, остальное молча
+# заменяется умолчанием (тот же помощник, что в списках Благороста).
+#
+# Правка 23.09.2026 (7DD-22, ветка feat/edubridge-epic): в репозитории
+# одобрений председателя добавлен findByActions для порта одобрений (карточка
+# преподавателя образования) — фиксированный порядок created_at DESC, строка
+# клиента в ORDER BY не попадает. Правило сортировки и набор случаев прежние.
+# Правка 25.09.2026 (C28-80): неверное направление сортировки отклоняется на
+# входе (проверка PaginationInput) — списки Стола заказов падали на нём 500;
+# отказы проверки параметров списка (KIT_*) отвечают 400, а не 500; девять
+# списков Благороста, расходов и участков сверяют имя сортировки с колонками.
+
+sources:
+  backend:
+    - components/extension-kit/src/dto/pagination.dto.ts
+    - components/extension-kit/src/utils/sort-column.utils.ts
+    - components/controller/src/infrastructure/database/kysely/repositories/log-extension.kysely-repository.ts
+    - components/controller/src/infrastructure/database/kysely/repositories/agreement.kysely-repository.ts
+    - components/controller/src/extensions/chairman/infrastructure/repositories/approval.kysely-repository.ts
+
+cases:
+  - id: platform.sort.happy.01
+    level: backend
+    kind: happy
+    scenario: список запрашивается с сортировкой по колонке сущности
+    expect: сортировка применяется по этой колонке
+    test: components/controller/tests/unit/shared/list-sort-order-by.test.ts
+    api: components/api-tests/src/platform/list-sort-order-by.test.ts
+    status: passing
+
+  - id: platform.sort.break.01
+    level: backend
+    kind: break
+    scenario: в поле сортировки дописан подзапрос или посторонние символы
+    expect: ввод отклоняется проверкой (422) до построения запроса — во всех списках, включая Благорост
+    test: components/controller/tests/unit/shared/list-sort-order-by.test.ts
+    api: components/api-tests/src/platform/list-sort-order-by.test.ts
+    status: passing
+
+  - id: platform.sort.break.02
+    level: backend
+    kind: break
+    scenario: в поле сортировки допустимое по символам имя, которого нет среди колонок сущности
+    expect: сортировка по умолчанию; чужая колонка в запрос не попадает
+    test: components/controller/tests/unit/shared/list-sort-order-by.test.ts
+    api: components/api-tests/src/platform/list-sort-order-by.test.ts
+    status: passing
+
+  - id: platform.sort.break.03
+    level: backend
+    kind: break
+    scenario: направление сортировки не ASC и не DESC
+    expect: >
+      списки на общем входе пагинации отказывают при проверке ввода; ни в одном
+      списке строка клиента не попадает в запрос и не даёт ответа 500
+    test: components/controller/tests/unit/extension-kit/pagination-validation.test.ts
+    api: components/api-tests/src/platform/list-sort-order-by.test.ts
+    status: passing
+
+  - id: platform.sort.side.01
+    level: backend
+    kind: side
+    scenario: реестр пайщиков шлёт поле вместе с направлением — created_at:desc
+    expect: запрос принимается; после двоеточия допустимо только asc или desc
+    test: components/controller/tests/unit/shared/list-sort-order-by.test.ts
+    api: components/api-tests/src/platform/list-sort-order-by.test.ts
+    status: passing
+
+  - id: platform.sort.side.02
+    level: backend
+    kind: side
+    scenario: таблица со снятой сортировкой присылает пустое поле
+    expect: запрос принимается, порядок по умолчанию
+    test: components/controller/tests/unit/shared/list-sort-order-by.test.ts
+    api: components/api-tests/src/platform/list-sort-order-by.test.ts
+    status: passing
+
+  - id: platform.sort.side.04
+    level: backend
+    kind: side
+    scenario: >
+      список решений председателя после перевода хранилища на Kysely: сортировка
+      по неизвестной колонке, по колонке решения, с подзапросом в поле
+    expect: >
+      неизвестная колонка заменяется датой создания, колонка решения
+      применяется, подзапрос отклоняется до обращения к базе
+    test: components/controller/tests/unit/shared/list-sort-order-by.test.ts
+    external: unreachable
+    external_reason: "проверяется текст запроса к базе; видимый снаружи порядок списков покрыт случаями platform.sort.*"
+    status: written

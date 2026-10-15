@@ -1,7 +1,9 @@
 import path from 'path';
 import fs from 'fs';
-import { DataSource, Repository } from 'typeorm';
-import { MigrationEntity } from '../infrastructure/database/typeorm/entities/migration.entity';
+import type { Pool } from 'pg';
+import type { TableStore } from '@coopenomics/extension-kit';
+import { DataSource, createMainPool } from '../infrastructure/database/postgres/postgres-connection';
+import { migrationStore, type MigrationRecord as MigrationEntity } from '../infrastructure/database/kysely/records/migration.record';
 import config from '../config/config';
 import logger from '../config/logger';
 import { BlockchainService } from '../infrastructure/blockchain/blockchain.service';
@@ -9,8 +11,10 @@ import { RpcPool } from '../infrastructure/blockchain/rpc-pool.service';
 import { WinstonLoggerService } from '../application/logger/logger-app.service';
 import { MigrationLogger } from './migration-logger';
 import { VaultDomainService } from '../domain/vault/services/vault-domain.service';
-import { VaultTypeormRepository } from '../infrastructure/database/typeorm/repositories/vault.typeorm-repository';
-import { VaultEntity } from '../infrastructure/database/typeorm/entities/vault.entity';
+import { Kysely, PostgresDialect } from 'kysely';
+import type { DB } from '../infrastructure/database/kysely/database.types';
+import { VaultKyselyRepository } from '../infrastructure/database/kysely/repositories/vault.kysely-repository';
+import { compareMigrationFilenames, isMigrationFile, parseMigrationFilename } from './migration-filename';
 
 export interface Migration {
   name: string;
@@ -31,7 +35,8 @@ export interface Migration {
 
 export class MigrationManager {
   private dataSource!: DataSource;
-  private migrationRepository!: Repository<MigrationEntity>;
+  private migrationRepository!: TableStore<MigrationEntity>;
+  private pool!: Pool;
   private migrationDir!: string;
   private blockchainService: BlockchainService;
   private vaultDomainService!: VaultDomainService;
@@ -58,6 +63,7 @@ export class MigrationManager {
 
   async initialize(): Promise<void> {
     // Инициализируем подключение к PostgreSQL
+    // Подключение для миграций данных: готовые запросы и ручные транзакции.
     this.dataSource = new DataSource({
       type: 'postgres',
       host: config.postgres.host,
@@ -65,15 +71,15 @@ export class MigrationManager {
       username: config.postgres.username,
       password: config.postgres.password,
       database: config.postgres.database,
-      entities: [MigrationEntity, VaultEntity],
-      synchronize: true,
     });
-
     await this.dataSource.initialize();
-    this.migrationRepository = this.dataSource.getRepository(MigrationEntity);
 
-    // Создаем настоящий VaultDomainService теперь, когда dataSource готов
-    const vaultRepository = new VaultTypeormRepository(this.dataSource.getRepository(VaultEntity));
+    // Учёт миграций и хранилище ключей — на Kysely поверх своего пула.
+    // Таблицы создают миграции схемы — migrateData() прогоняет их до этого шага.
+    this.pool = createMainPool();
+    const db = new Kysely<DB>({ dialect: new PostgresDialect({ pool: this.pool }) });
+    this.migrationRepository = migrationStore(db);
+    const vaultRepository = new VaultKyselyRepository(db);
     this.vaultDomainService = new VaultDomainService(vaultRepository);
 
     // Пересоздаем BlockchainService с настоящим VaultDomainService
@@ -87,55 +93,32 @@ export class MigrationManager {
     if (this.dataSource && this.dataSource.isInitialized) {
       await this.dataSource.destroy();
     }
+    await this.pool?.end();
   }
 
-  // Извлекает версию из имени файла (например, из V1.0.0__initial.ts получаем 1.0.0)
+  // Ключ учёта из имени файла: `2.5.7` у прежних `V2.5.7__…`, `202609232115` у текущих.
   extractVersionFromFilename(filename: string): string {
-    const versionMatch = filename.match(/^V(\d+(\.\d+)*)/);
-    if (!versionMatch) {
-      throw new Error(`Неверный формат имени файла миграции: ${filename}. Ожидается формат V{версия}__{название}.ts`);
-    }
-    return versionMatch[1];
+    return parseMigrationFilename(filename).version;
   }
 
-  // Извлекает описательное название из имени файла (например, из V1.0.0__initial.ts получаем initial)
+  // Описание из имени файла: `V1.0.0__initial.ts` → `initial`.
   extractDescriptionFromFilename(filename: string): string {
-    const descMatch = filename.match(/^V\d+(\.\d+)*__(.+?)(\.[tj]s)?$/);
-    if (descMatch && descMatch[2]) {
-      return descMatch[2].replace(/_/g, ' ');
-    }
-    return filename; // Вернуть полное имя файла, если не удалось извлечь описание
+    return parseMigrationFilename(filename).description;
   }
 
   async getMigrationFiles(): Promise<{ filename: string; version: string; description: string }[]> {
     try {
-      const files = fs
+      const parsed = fs
         .readdirSync(this.migrationDir)
-        .filter((file) => (file.endsWith('.ts') || file.endsWith('.js')) && file.startsWith('V'));
+        .filter(isMigrationFile)
+        .map((filename) => ({ filename, name: parseMigrationFilename(filename) }))
+        .sort((a, b) => compareMigrationFilenames(a.name, b.name));
 
-      // Извлекаем версии и описания из имен файлов
-      const migrations = files.map((filename) => ({
+      const migrations = parsed.map(({ filename, name }) => ({
         filename,
-        version: this.extractVersionFromFilename(filename),
-        description: this.extractDescriptionFromFilename(filename),
+        version: name.version,
+        description: name.description,
       }));
-
-      // Сортируем по версии (используем semver сортировку)
-      migrations.sort((a, b) => {
-        const aParts = a.version.split('.').map(Number);
-        const bParts = b.version.split('.').map(Number);
-
-        for (let i = 0; i < Math.max(aParts.length, bParts.length); i++) {
-          const aVal = i < aParts.length ? aParts[i] : 0;
-          const bVal = i < bParts.length ? bParts[i] : 0;
-
-          if (aVal !== bVal) {
-            return aVal - bVal;
-          }
-        }
-
-        return 0;
-      });
 
       return migrations;
     } catch (error) {
@@ -159,12 +142,13 @@ export class MigrationManager {
       };
     } catch (error) {
       logger.error(`Ошибка при загрузке миграции ${filename}:`, error);
+      // i18n-ignore: сообщение лога выполнения миграции для разработчика/оператора, инвариант миграции, до пайщика не доходит
       throw new Error(`Не удалось загрузить миграцию ${filename} из-за ошибок компиляции TypeScript`);
     }
   }
 
   async getAppliedMigrations(): Promise<MigrationEntity[]> {
-    return this.migrationRepository.find({ order: { version: 'ASC' } });
+    return this.migrationRepository.find({}, { order: { version: 'ASC' } });
   }
 
   async markMigrationAsApplied(version: string, name: string, success: boolean, isTest: boolean): Promise<void> {
@@ -186,7 +170,7 @@ export class MigrationManager {
   async runMigration(migration: Migration, version: string, description: string, isTest: boolean): Promise<boolean> {
     // Создаем или обновляем запись в базе данных для сохранения логов
     if (!isTest) {
-      const existingMigration = await this.migrationRepository.findOne({ where: { version } });
+      const existingMigration = await this.migrationRepository.findOne({ version });
       if (!existingMigration) {
         // Создаем новую запись
         await this.migrationRepository.save({
@@ -214,8 +198,10 @@ export class MigrationManager {
 
     try {
       if (isTest) {
+        // i18n-ignore: сообщение лога выполнения миграции для разработчика/оператора, инвариант миграции, до пайщика не доходит
         migrationLogger.info(`[ТЕСТОВАЯ МИГРАЦИЯ] Запуск миграции ${version} (${description}): ${migration.name}`);
       } else {
+        // i18n-ignore: сообщение лога выполнения миграции для разработчика/оператора, инвариант миграции, до пайщика не доходит
         migrationLogger.info(`Запуск миграции ${version} (${description}): ${migration.name}`);
       }
 
@@ -234,9 +220,11 @@ export class MigrationManager {
 
       if (isTest) {
         migrationLogger.info(
+          // i18n-ignore: сообщение лога выполнения миграции для разработчика/оператора, инвариант миграции, до пайщика не доходит
           `[ТЕСТОВАЯ МИГРАЦИЯ] Миграция ${version} (${description}) выполнена ${result ? 'успешно' : 'с ошибками'}`
         );
       } else {
+        // i18n-ignore: сообщение лога выполнения миграции для разработчика/оператора, инвариант миграции, до пайщика не доходит
         migrationLogger.info(`Миграция ${version} (${description}) выполнена ${result ? 'успешно' : 'с ошибками'}`);
       }
 
@@ -245,11 +233,13 @@ export class MigrationManager {
 
       return result;
     } catch (error) {
+      // i18n-ignore: сообщение лога выполнения миграции для разработчика/оператора, инвариант миграции, до пайщика не доходит
       migrationLogger.error(`Ошибка при выполнении миграции ${version} (${description}): ${error}`);
 
       // Пытаемся откатить миграцию, если у нее есть метод down
       if (!isTest && migration.down) {
         try {
+          // i18n-ignore: сообщение лога выполнения миграции для разработчика/оператора, инвариант миграции, до пайщика не доходит
           migrationLogger.info(`Выполнение отката миграции ${version}...`);
           const rollbackResult = await migration.down({
             blockchain: this.blockchainService,
@@ -258,14 +248,18 @@ export class MigrationManager {
             dataSource: this.dataSource,
           });
           if (rollbackResult) {
+            // i18n-ignore: сообщение лога выполнения миграции для разработчика/оператора, инвариант миграции, до пайщика не доходит
             migrationLogger.info(`Откат миграции ${version} выполнен успешно`);
           } else {
+            // i18n-ignore: сообщение лога выполнения миграции для разработчика/оператора, инвариант миграции, до пайщика не доходит
             migrationLogger.error(`Откат миграции ${version} завершился с ошибкой`);
           }
         } catch (rollbackError) {
+          // i18n-ignore: сообщение лога выполнения миграции для разработчика/оператора, инвариант миграции, до пайщика не доходит
           migrationLogger.error(`Критическая ошибка при откате миграции ${version}: ${rollbackError}`);
         }
       } else if (!isTest && !migration.down) {
+        // i18n-ignore: сообщение лога выполнения миграции для разработчика/оператора, инвариант миграции, до пайщика не доходит
         migrationLogger.warn(`Миграция ${version} не имеет метода down для автоматического отката`);
       }
 
@@ -349,6 +343,7 @@ export class MigrationManager {
         // Останавливаем процесс только при ошибке в НЕ тестовых миграциях
         if (!success && !isTest) {
           logger.error(`Миграция ${version} (${description}) завершена с ошибкой, останавливаем процесс`);
+          // i18n-ignore: сообщение лога выполнения миграции для разработчика/оператора, инвариант миграции, до пайщика не доходит
           throw new Error(`Миграция ${version} (${description}) завершилась с ошибкой`);
         }
       }
@@ -367,7 +362,7 @@ export class MigrationManager {
       logger.info(`Откат миграции ${version}...`);
 
       // Проверяем, существует ли миграция
-      const migrationRecord = await this.migrationRepository.findOne({ where: { version: normalizedVersion } });
+      const migrationRecord = await this.migrationRepository.findOne({ version: normalizedVersion });
       if (!migrationRecord) {
         logger.warn(`Миграция ${version} не найдена в базе данных`);
         return false;
@@ -411,7 +406,7 @@ export class MigrationManager {
         await this.migrationRepository.delete({ version: normalizedVersion });
 
         // Проверяем, что миграция удалена из базы
-        const deletedMigration = await this.migrationRepository.findOne({ where: { version: normalizedVersion } });
+        const deletedMigration = await this.migrationRepository.findOne({ version: normalizedVersion });
 
         if (!deletedMigration) {
           logger.info(`✅ Запись о миграции ${version} удалена из базы данных`);
@@ -434,10 +429,7 @@ export class MigrationManager {
       logger.info('Поиск последней успешно выполненной миграции для отката...');
 
       // Получаем все успешно выполненные миграции, отсортированные по версии (новые сверху)
-      const successfulMigrations = await this.migrationRepository.find({
-        where: { success: true },
-        order: { version: 'DESC' },
-      });
+      const successfulMigrations = await this.migrationRepository.find({ success: true }, { order: { version: 'DESC' } });
 
       if (successfulMigrations.length === 0) {
         logger.warn('Нет успешно выполненных миграций для отката');

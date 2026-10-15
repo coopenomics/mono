@@ -3,6 +3,7 @@ import { useSystemStore } from 'src/entities/System/model';
 import { deleteBranch as apiDeleteBranch } from '../api';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { ref } from 'vue';
+import { t } from 'src/shared/i18n';
 
 export function useDeleteBranch() {
   const branchStore = useBranchStore();
@@ -18,7 +19,7 @@ export function useDeleteBranch() {
       });
 
       if (result) {
-        SuccessAlert(`Кооперативный участок "${data.short_name}" успешно удален`);
+        SuccessAlert(t('branch.deleteBranchModel.deleteSuccess', { shortName: data.short_name }));
 
         // После успешного удаления обновляем состояние системы и списка участков
         await systemStore.loadSystemInfo();

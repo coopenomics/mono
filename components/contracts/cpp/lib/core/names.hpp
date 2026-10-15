@@ -87,6 +87,19 @@ namespace Names {
     constexpr eosio::name SETTLE_DEBT = "settledebt"_n;
   }
   
+  namespace Edubridge {
+    // Расходы программы обслуживает шасси expense; edubridge видит
+    // инициирование (createexp) и этот коллбэк завершения — по нему
+    // неизрасходованный остаток возвращается в фонд программы.
+    constexpr eosio::name ON_EDU_EXPENSE_DONE = "onexpdone"_n;
+    // Коллбэки одобрений председателя: договор УХД преподавателя
+    constexpr eosio::name APPROVE_CONTRACT = "apprvcontr"_n;
+    constexpr eosio::name DECLINE_CONTRACT = "dclinecontr"_n;
+    // Коллбэки одобрений председателя: акт приёма-передачи РИД (p.edu.rid)
+    constexpr eosio::name APPROVE_RID_ACT = "apprvridact"_n;
+    constexpr eosio::name DECLINE_RID_ACT = "dclridact"_n;
+  }
+
   namespace External {
     // Внешние действия в других контрактах
     constexpr eosio::name CREATE_OUTPAY = "createoutpay"_n;
@@ -113,6 +126,7 @@ namespace Names {
 
   namespace WalletActions {
     constexpr eosio::name SIGN_AGREEMENT = "signagree"_n;
+    constexpr eosio::name IMPORT_AGREEMENT = "importagree"_n;
   }
 }
 
@@ -140,5 +154,10 @@ namespace Names {
     constexpr eosio::name CREATE_WITHDRAW_3 = "createwthd3"_n; // акцепт возврата из программы
     constexpr eosio::name CREATE_RESULT = "createresult"_n; // акцепт результата
     constexpr eosio::name CONVERT_SEGMENT = "convertsegm"_n; // финальная фаза p.cap.rid — трансляция паевого взноса
+  }
+
+  namespace Edubridge {
+    constexpr eosio::name SIGN_CONTRACT = "signcontract"_n; // акцепт договора УХД преподавателя
+    constexpr eosio::name SIGN_RID_ACT = "signridact"_n; // акт приёма-передачи РИД на вторую подпись председателя
   }
 }

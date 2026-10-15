@@ -24,7 +24,7 @@ void soviet::creaddress(eosio::name coopname, eosio::name chairman, eosio::name 
   addresses_index addresses(_soviet, coopname.value);
   auto id = get_global_id(_soviet, "addresses"_n);
   
-  addresses.emplace(chairman, [&](auto &a){
+  addresses.emplace(RamPayer::of(addresses, coopname), [&](auto &a){
     a.id = id;
     a.coopname = coopname;
     a.braname = braname;

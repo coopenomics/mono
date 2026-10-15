@@ -1,4 +1,4 @@
-import { Injectable, Inject, ConflictException } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { CapitalBlockchainPort, CAPITAL_BLOCKCHAIN_PORT } from '../../domain/interfaces/capital-blockchain.port';
 import type { CreateCommitDomainInput } from '../../domain/actions/create-commit-domain-input.interface';
@@ -17,7 +17,6 @@ import { LOGGER_PORT, type ILoggerPort,
 } from '@coopenomics/innercoop';
 import type { IMonoAccount } from '@coopenomics/innercoop';
 import { randomUUID } from 'crypto';
-import { CommitSyncService } from '../syncers/commit-sync.service';
 import { HOURS_FLOAT_EPSILON } from '../../domain/utils/hours-float';
 import {
   ISSUE_LINKED_GIT_COMMIT_REPOSITORY,
@@ -25,9 +24,8 @@ import {
 } from '../../domain/repositories/issue-linked-git-commit.repository';
 import { PROJECT_REPOSITORY, ProjectRepository } from '../../domain/repositories/project.repository';
 import { assertBlockchainProject } from '../../domain/utils/assert-blockchain-project';
-import { AssetUtils,
-  generateHashFromString,
-} from '@coopenomics/extension-kit';
+import { AssetUtils, generateHashFromString, DomainError } from '@coopenomics/extension-kit';
+import { t } from '../../i18n';
 
 /**
  * Интерактор домена для генерации в CAPITAL контракте
@@ -47,7 +45,6 @@ export class GenerationInteractor {
     @Inject(PROJECT_REPOSITORY)
     private readonly projectRepository: ProjectRepository,
     private readonly permissionsService: PermissionsService,
-    private readonly commitSyncService: CommitSyncService,
     @Inject(ISSUE_LINKED_GIT_COMMIT_REPOSITORY)
     private readonly issueLinkedGitCommitRepository: IssueLinkedGitCommitRepository,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
@@ -62,21 +59,19 @@ export class GenerationInteractor {
    */
   async createCommit(data: CreateCommitDomainInput, _currentUser: IMonoAccount): Promise<CommitDomainEntity> {
     const project = await this.projectRepository.findByHash(data.project_hash.toLowerCase());
-    assertBlockchainProject(project, 'фиксацию коммита');
+    assertBlockchainProject(project, t('capital.generation.actionLabel.commitFixation'));
 
     // Получаем участника по username
     const contributor = await this.contributorRepository.findByUsernameAndCoopname(data.username, data.coopname);
 
     if (!contributor) {
-      throw new Error(`Участник не найден: ${data.username} в кооперативе ${data.coopname}`);
+      throw DomainError.notFound('CAPITAL_CONTRIBUTOR_NOT_FOUND_IN_COOP_COLON', { username: data.username, coopname: data.coopname });
     }
 
     // Без положительной ставки себестоимость коммита = 0 — такой взнос потом не отработать.
     const { amount: ratePerHour } = AssetUtils.parseAsset(contributor.rate_per_hour);
     if (ratePerHour <= 0) {
-      throw new Error(
-        'Нельзя зафиксировать коммит: в профиле участника не задана стоимость часа. Укажите ставку и повторите.'
-      );
+      throw DomainError.internal('CAPITAL_CONTRIBUTOR_HOURLY_RATE_MISSING');
     }
 
     // Получаем доступное время для коммита (факт = uncommitted TimeEntry по DONE)
@@ -86,14 +81,14 @@ export class GenerationInteractor {
     );
 
     if (availableHours <= HOURS_FLOAT_EPSILON) {
-      throw new Error('Нет доступного времени для коммита. Пожалуйста, сначала поработайте над завершенными задачами.');
+      throw DomainError.badRequest('CAPITAL_NO_AVAILABLE_COMMIT_TIME');
     }
 
     // Проверяем что запрошенное количество часов не превышает доступное
     if (data.commit_hours > availableHours + HOURS_FLOAT_EPSILON) {
       throw new Error(
-        `Запрошенное количество часов коммита (${data.commit_hours}) превышает доступное время (${availableHours}). ` +
-          'Пожалуйста, уменьшите количество часов коммита или завершите больше задач.'
+        t('capital.generation.commitHoursExceeded.message', { commitHours: data.commit_hours, availableHours }) +
+          t('capital.generation.commitHoursExceeded.hint')
       );
     }
 
@@ -101,15 +96,15 @@ export class GenerationInteractor {
     const chainHours = Math.floor(data.commit_hours + HOURS_FLOAT_EPSILON);
     if (chainHours < 1) {
       throw new Error(
-        'Для коммита в блокчейн нужен минимум один полный час накопленного времени по завершённым задачам. ' +
-          `Сейчас при запросе ${data.commit_hours} ч в цепь уходит 0 ч — дождитесь накопления целого часа или укажите большее значение.`
+        t('capital.generation.commitBelowHour.message') +
+          t('capital.generation.commitBelowHour.detail', { commitHours: data.commit_hours })
       );
     }
     const maxChainFromAvailable = Math.floor(availableHours + HOURS_FLOAT_EPSILON);
     if (chainHours > maxChainFromAvailable) {
       throw new Error(
-        `Нельзя зафиксировать в блокчейне ${chainHours} ч: доступно не более ${maxChainFromAvailable} полных часов ` +
-          `(${availableHours} ч суммарно).`
+        t('capital.generation.chainHoursLimit.message', { chainHours, maxChainHours: maxChainFromAvailable }) +
+          t('capital.generation.chainHoursLimit.total', { availableHours })
       );
     }
 
@@ -177,7 +172,7 @@ export class GenerationInteractor {
             const msg = error instanceof Error ? error.message : String(error);
             const stack = error instanceof Error ? error.stack : undefined;
             this.logger.error(`Ошибка при обработке Git URL ${item.data.url}: ${msg}`, stack);
-            throw new Error(`Не удалось обработать Git URL ${item.data.url}: ${msg}`);
+            throw DomainError.internal('CAPITAL_GIT_URL_PROCESSING_FAILED', { url: item.data.url, message: msg });
           }
         } else if (item.type === 'contribution_feedback') {
           continue;
@@ -232,14 +227,14 @@ export class GenerationInteractor {
 
     // Проверяем, что commitHash был установлен
     if (!commitHash) {
-      throw new Error('commitHash не был установлен - это внутренняя ошибка');
+      throw DomainError.internal('CAPITAL_COMMIT_HASH_NOT_SET');
     }
 
     // Проверяем, существует ли уже коммит с таким хэшем
     const existingCommit = await this.commitRepository.findByCommitHash(commitHash);
     if (existingCommit) {
       this.logger.warn(`Коммит с хэшем ${commitHash} уже существует`);
-      throw new ConflictException(`Коммит с хэшем ${commitHash} уже существует`);
+      throw DomainError.conflict('CAPITAL_COMMIT_ALREADY_EXISTS', { hash: commitHash });
     }
 
     // Создаём доменную сущность для валидации
@@ -253,8 +248,11 @@ export class GenerationInteractor {
       data: enrichedData, // Обогащенные данные (будут сохранены только в БД)
     });
 
-    // Создаём и валидируем сущность (без сохранения) и получаем TypeORM сущность
-    const createdEntity = await this.commitRepository.create(commitEntity);
+    // Строка коммита сохраняется ДО транзакции: transact возвращается, когда
+    // блок уже разобран, и синхронизатор, не найдя строки по дельте своего
+    // блока, заводил её сам — после транзакции здесь вставлялась вторая с тем
+    // же хэшем (C28-80). Цепь отказала — строка удаляется.
+    const savedCommit = await this.commitRepository.saveCreated(await this.commitRepository.create(commitEntity));
 
     // Создаём данные для блокчейна с указанным временем
     // ВАЖНО: data НЕ отправляется в блокчейн, только в БД
@@ -268,13 +266,21 @@ export class GenerationInteractor {
       creator_hours: chainHours,
     };
 
-    // Вызываем блокчейн порт
-    const transactResult = await this.capitalBlockchainPort.createCommit(blockchainData);
-
-    this.logger.debug(`Транзакция выполнена успешно`);
+    try {
+      await this.capitalBlockchainPort.createCommit(blockchainData);
+    } catch (error) {
+      await this.commitRepository.delete(savedCommit._id);
+      throw error;
+    }
 
     // Фиксируем указанное количество времени в коммите
     await this.timeTrackingService.commitTime(contributor.contributor_hash, data.project_hash, chainHours, commitHash);
+
+    // Строка перечитывается: дельта своего блока уже записала в неё данные цепи.
+    const commit = await this.commitRepository.findByCommitHash(commitHash);
+    if (!commit) {
+      throw DomainError.internal('CAPITAL_CREATED_COMMIT_NOT_FOUND', { hash: commitHash });
+    }
 
     // Снимок задач, чьи часы вошли в коммит — для приёмки мастером и сборки результата
     const committedIssues = await this.timeTrackingService.getCommittedIssueSummaries(commitHash);
@@ -283,13 +289,9 @@ export class GenerationInteractor {
         type: 'committed_issues',
         data: { issues: committedIssues },
       };
-      if (!enrichedData) enrichedData = [];
-      enrichedData.push(issuesPayload);
-      createdEntity.data = enrichedData;
+      commit.data = [...(commit.data ?? []), issuesPayload];
+      await this.commitRepository.save(commit);
     }
-
-    // Сохраняем сущность в базу данных после успешной транзакции
-    await this.commitRepository.saveCreated(createdEntity);
 
     if (linkedRowIdsToConsume.length > 0) {
       await this.issueLinkedGitCommitRepository.markConsumed(linkedRowIdsToConsume, commitHash);
@@ -297,23 +299,7 @@ export class GenerationInteractor {
 
     this.logger.debug(`Коммит сохранен в БД с hash: ${commitHash}`);
 
-    // Синхронизируем коммит с блокчейном для получения полных данных (id, amounts и т.д.)
-    const syncedCommit = await this.commitSyncService.syncCommit(data.coopname, commitHash, transactResult);
-
-    if (!syncedCommit) {
-      // Если синхронизация не удалась, возвращаем данные из БД
-      this.logger.warn(`Не удалось синхронизировать коммит ${commitHash} с блокчейном, возвращаем данные из БД`);
-
-      const savedCommit = await this.commitRepository.findByCommitHash(commitHash);
-      if (!savedCommit) {
-        throw new Error(`Не удалось найти созданный коммит с hash: ${commitHash}`);
-      }
-      return savedCommit;
-    }
-
-    this.logger.debug(`Коммит ${commitHash} успешно синхронизирован с блокчейном`);
-
-    return syncedCommit;
+    return commit;
   }
 
   /**
@@ -323,17 +309,17 @@ export class GenerationInteractor {
     // Получаем коммит для проверки прав доступа
     const commit = await this.commitRepository.findByCommitHash(data.commit_hash);
     if (!commit) {
-      throw new Error(`Коммит с хешем ${data.commit_hash} не найден`);
+      throw DomainError.notFound('CAPITAL_COMMIT_NOT_FOUND', { hash: data.commit_hash });
     }
 
     if (!commit.project_hash) {
-      throw new Error('Коммит не связан с проектом');
+      throw DomainError.internal('CAPITAL_COMMIT_NOT_LINKED_TO_PROJECT');
     }
 
     // Проверяем, что текущий пользователь является мастером проекта или компонента
     const isMaster = await this.permissionsService.isProjectOrComponentMaster(data.master, commit.project_hash);
     if (!isMaster) {
-      throw new Error('У вас нет прав для одобрения этого коммита. Только мастер проекта может одобрять коммиты.');
+      throw DomainError.forbidden('CAPITAL_COMMIT_APPROVE_FORBIDDEN');
     }
 
     // Создаём данные для блокчейна
@@ -362,17 +348,17 @@ export class GenerationInteractor {
     // Получаем коммит для проверки прав доступа
     const commit = await this.commitRepository.findByCommitHash(data.commit_hash);
     if (!commit) {
-      throw new Error(`Коммит с хешем ${data.commit_hash} не найден`);
+      throw DomainError.notFound('CAPITAL_COMMIT_NOT_FOUND', { hash: data.commit_hash });
     }
 
     if (!commit.project_hash) {
-      throw new Error('Коммит не связан с проектом');
+      throw DomainError.internal('CAPITAL_COMMIT_NOT_LINKED_TO_PROJECT');
     }
 
     // Проверяем, что текущий пользователь является мастером проекта или компонента
     const isMaster = await this.permissionsService.isProjectOrComponentMaster(data.master, commit.project_hash);
     if (!isMaster) {
-      throw new Error('У вас нет прав для отклонения этого коммита. Только мастер проекта может отклонять коммиты.');
+      throw DomainError.forbidden('CAPITAL_COMMIT_REJECT_FORBIDDEN');
     }
 
     // Обновляем статус в базе данных

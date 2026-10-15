@@ -1,6 +1,6 @@
-import { Injectable, OnModuleDestroy } from '@nestjs/common';
-import { DataSource } from 'typeorm';
-import config from '~/config/config';
+import { Inject, Injectable, Optional } from '@nestjs/common';
+import { ChainChangesService } from '~/infrastructure/blockchain/chain-changes.service';
+import { COOP_DOMAIN_DATABASE, type ICoopDomainDatabase } from '~/domain/auth-v2/ports/coop-domain-database.port';
 import {
   type AssignCapabilitySetInput,
   type CapabilitySet,
@@ -26,51 +26,35 @@ interface AssignmentRow {
 
 /**
  * Хранилище назначаемых наборов возможностей в coop_domain_db (таблицы
- * `capability_sets` + `participant_capability_sets`, миграция V2.4.12). Свой
- * DataSource (как `PostgresAccessRulesRepository`). Сами правила наборов лежат в
+ * `capability_sets` + `participant_capability_sets`, миграция V2.4.12). Общее
+ * соединение базы CoopID (`CoopDomainDatabase`). Сами правила наборов лежат в
  * `access_rules` (subject_type='capability_set') — читаются access-rules-репо.
  */
-@Injectable()
-export class PostgresCapabilitySetsRepository implements ICapabilitySetsRepository, OnModuleDestroy {
-  private ds: DataSource | null = null;
-  private initializing: Promise<DataSource> | null = null;
+/** Назначения персонала в ленте изменений — объявлены в `chain-changes.service.ts`. */
+const PARTICIPANT_CAPABILITY_SETS_TABLE = 'participant_capability_sets';
 
-  private getDataSource(): Promise<DataSource> {
-    if (this.ds?.isInitialized) {
-      return Promise.resolve(this.ds);
-    }
-    if (!this.initializing) {
-      this.initializing = new DataSource({
-        type: 'postgres',
-        host: config.coopDomainDb.host,
-        port: config.coopDomainDb.port,
-        username: config.coopDomainDb.username,
-        password: config.coopDomainDb.password,
-        database: config.coopDomainDb.database,
-      })
-        .initialize()
-        .then((ds) => {
-          this.ds = ds;
-          return ds;
-        })
-        .finally(() => {
-          this.initializing = null;
-        });
-    }
-    return this.initializing;
+@Injectable()
+export class PostgresCapabilitySetsRepository implements ICapabilitySetsRepository {
+  constructor(
+    @Inject(COOP_DOMAIN_DATABASE) private readonly db: ICoopDomainDatabase,
+    // Назначения живут в отдельной базе на сыром SQL — подписчик базы узла их
+    // не видит, поэтому сигнал ленты изменений публикуется здесь, после записи.
+    @Optional() @Inject(ChainChangesService) private readonly feed: ChainChangesService | null = null,
+  ) {}
+
+  private signal(username: string, setKey: string): void {
+    void this.feed?.publishLocal(PARTICIPANT_CAPABILITY_SETS_TABLE, `${username}:${setKey}`, { username });
   }
 
   async listSets(): Promise<CapabilitySet[]> {
-    const ds = await this.getDataSource();
-    const rows: CapabilitySetRow[] = await ds.query(
+    const rows: CapabilitySetRow[] = await this.db.query(
       `SELECT set_key, title, description, builtin, coopname FROM capability_sets ORDER BY set_key`,
     );
     return rows.map(toSet);
   }
 
   async findSet(setKey: string): Promise<CapabilitySet | null> {
-    const ds = await this.getDataSource();
-    const rows: CapabilitySetRow[] = await ds.query(
+    const rows: CapabilitySetRow[] = await this.db.query(
       `SELECT set_key, title, description, builtin, coopname FROM capability_sets WHERE set_key = $1`,
       [setKey],
     );
@@ -78,8 +62,7 @@ export class PostgresCapabilitySetsRepository implements ICapabilitySetsReposito
   }
 
   async listActiveSetKeys(username: string): Promise<string[]> {
-    const ds = await this.getDataSource();
-    const rows: { set_key: string }[] = await ds.query(
+    const rows: { set_key: string }[] = await this.db.query(
       `SELECT set_key FROM participant_capability_sets
         WHERE username = $1 AND revoked_at IS NULL
           AND (expires_at IS NULL OR expires_at > now())`,
@@ -89,8 +72,7 @@ export class PostgresCapabilitySetsRepository implements ICapabilitySetsReposito
   }
 
   async listAssignments(username: string): Promise<CapabilitySetAssignment[]> {
-    const ds = await this.getDataSource();
-    const rows: AssignmentRow[] = await ds.query(
+    const rows: AssignmentRow[] = await this.db.query(
       `SELECT username, set_key, granted_by, granted_at, expires_at
          FROM participant_capability_sets
         WHERE username = $1 AND revoked_at IS NULL
@@ -108,10 +90,9 @@ export class PostgresCapabilitySetsRepository implements ICapabilitySetsReposito
   }
 
   async assign(input: AssignCapabilitySetInput): Promise<void> {
-    const ds = await this.getDataSource();
     // Идемпотентно: повторное назначение «оживляет» отозванную/обновляет грант
     // (revoked_at→NULL, новый grantedBy/expires_at). Уникальность — (username, set_key).
-    await ds.query(
+    await this.db.query(
       `INSERT INTO participant_capability_sets (username, set_key, granted_by, granted_at, expires_at, revoked_at)
        VALUES ($1, $2, $3, now(), $4, NULL)
        ON CONFLICT (username, set_key)
@@ -119,24 +100,20 @@ export class PostgresCapabilitySetsRepository implements ICapabilitySetsReposito
                      expires_at = EXCLUDED.expires_at, revoked_at = NULL`,
       [input.username, input.setKey, input.grantedBy, input.expiresAt ?? null],
     );
+    this.signal(input.username, input.setKey);
   }
 
   async revoke(username: string, setKey: string): Promise<boolean> {
-    const ds = await this.getDataSource();
-    // RETURNING → строки реально затронутых (детерминированно по всем драйверам).
-    const rows: { username: string }[] = await ds.query(
+    // Отозвано ли что-то — по числу строк, которые вернула правка.
+    const rows = await this.db.query(
       `UPDATE participant_capability_sets SET revoked_at = now()
         WHERE username = $1 AND set_key = $2 AND revoked_at IS NULL
        RETURNING username`,
       [username, setKey],
     );
-    return rows.length > 0;
-  }
-
-  async onModuleDestroy(): Promise<void> {
-    if (this.ds?.isInitialized) {
-      await this.ds.destroy();
-    }
+    const revoked = rows.length > 0;
+    if (revoked) this.signal(username, setKey);
+    return revoked;
   }
 }
 

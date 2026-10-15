@@ -3,8 +3,8 @@
   q-form(ref='formRef')
     EmptyState(
       v-if='isEmpty',
-      title='Нет настроек',
-      body='Расширение не предоставило настроек для изменения.'
+      :title='$t("extensionSettings.extensionSettings.emptyTitle")',
+      :body='$t("extensionSettings.extensionSettings.emptyBody")'
     )
       template(#icon)
         q-icon(name='settings', size='48px')

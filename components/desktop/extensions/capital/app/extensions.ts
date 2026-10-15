@@ -5,6 +5,7 @@ import { useSessionStore } from 'src/entities/Session';
 import { generateExpenseProposalDecisionDocument } from 'app/extensions/expenses/api';
 import { useGenerateResultContributionDecision } from '../features/Result/GenerateResultContributionDecision/model';
 import { CreateResultDecisionInfoWidget } from '../widgets/CreateResultDecisionInfoWidget';
+import { t } from '../i18n';
 
 /**
  * Регистрация обработчиков решений для расширения capital
@@ -17,7 +18,7 @@ export function registerCapitalDecisionHandlers() {
     generateHandler: async ({ decision_id, username, row }) => {
       if (!row.table?.statement?.meta) {
         throw new Error(
-          'Отсутствуют метаданные заявления для решения createresult',
+          t('capital.error.missingCreateresultMeta'),
         );
       }
 
@@ -48,7 +49,7 @@ export function registerCapitalDecisionHandlers() {
   decisionFactory.registerHandler('createexp', {
     generateHandler: async ({ decision_id, row }) => {
       if (!row.table?.statement?.meta) {
-        throw new Error('Отсутствуют метаданные заявления для решения createexp');
+        throw new Error(t('capital.error.missingCreateexpMeta'));
       }
 
       const parsedDocumentMeta = JSON.parse(
@@ -56,7 +57,7 @@ export function registerCapitalDecisionHandlers() {
       ) as Cooperative.Registry.ExpenseProposalStatement.Action;
 
       if (!parsedDocumentMeta.proposal_hash || !parsedDocumentMeta.items?.length) {
-        throw new Error('Некорректные метаданные заявления для решения createexp');
+        throw new Error(t('capital.error.invalidCreateexpMeta'));
       }
 
       const { info } = useSystemStore();

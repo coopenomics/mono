@@ -1,5 +1,6 @@
 import { Logger } from '@nestjs/common';
-import { Workflows } from '@coopenomics/notifications';
+import { Workflows, templateFor } from '@coopenomics/notifications';
+import { DEFAULT_LOCALE } from '@coopenomics/i18n';
 import { Liquid } from 'liquidjs';
 import type { ChannelMessage } from '~/domain/notification/interfaces/channel.ports';
 import { NotificationChannel } from '~/domain/notification/interfaces/notify-input.domain.interface';
@@ -14,15 +15,25 @@ export interface ResolvedTemplate {
 
 /**
  * Шаблоны типа уведомления берём из каталога `@coopenomics/notifications`:
- * у workflow есть `steps[]`, у шага канала — `controlValues.{subject,body}`.
- * i18n отложен — тексты используются как есть (русские).
+ * у workflow есть `steps[]`, у шага канала — `controlValues.{subject,body}` на
+ * языке по умолчанию. На другом языке получателя шаблон ищется в словаре
+ * пакета по `i18nKey` сценария; перевода нет — текст шага.
  */
-export function resolveTemplate(workflowId: string, channel: NotificationChannel): ResolvedTemplate | null {
+export function resolveTemplate(
+  workflowId: string,
+  channel: NotificationChannel,
+  locale: string = DEFAULT_LOCALE
+): ResolvedTemplate | null {
   const definition = Workflows.workflowsById[workflowId];
   if (!definition) return null;
   const step = definition.steps.find((s) => s.type === channel);
   if (!step) return null;
-  return { subject: step.controlValues.subject, body: step.controlValues.body };
+  const translated =
+    locale !== DEFAULT_LOCALE && definition.i18nKey ? templateFor(definition.i18nKey, channel, locale) : undefined;
+  return {
+    subject: translated?.subject ?? step.controlValues.subject,
+    body: translated?.body ?? step.controlValues.body,
+  };
 }
 
 /**

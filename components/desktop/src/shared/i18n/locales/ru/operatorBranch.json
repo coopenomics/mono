@@ -1,0 +1,11 @@
+{
+  "operatorBranch": {
+    "operatorBranchBar": {
+      "branchLabel": "Участок",
+      "defaultTitle": "Пункт выдачи заказов",
+      "statusActive": "ПВЗ активен",
+      "statusDeactivated": "ПВЗ деактивирован",
+      "statusNotConnected": "КУ не подключён как ПВЗ"
+    }
+  }
+}

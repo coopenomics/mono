@@ -99,6 +99,14 @@ export const useSystemStore = defineStore(namespace, (): ISystemStore => {
     try {
       syncState.value = await api.loadNodeSyncState();
     } catch (error) {
+      // Прерванный запрос — не ответ узла. Так рвётся таймер SDK, когда вкладка
+      // вернулась из фона: браузер отложил будильники и разом их спустил. Узел
+      // при этом здоров, и закрывать стол «Техническим обслуживанием» нельзя —
+      // оставляем прежнее состояние, следующий опрос ответит по существу.
+      if ((error as { name?: string } | null)?.name === 'AbortError') {
+        console.warn('Опрос состояния узла прерван (таймер), состояние не меняем');
+        return;
+      }
       console.warn('Не удалось получить состояние синхронизации узла:', error);
       syncState.value = {
         ...(syncState.value ?? {}),
@@ -118,6 +126,7 @@ export const useSystemStore = defineStore(namespace, (): ISystemStore => {
     // Гасим только свой таймер: цикл состояния узла идёт своим темпом.
     stopInfoMonitoring();
 
+    // timing: schedule — монитор доступности узла (backendAvailable) с отступом при сбоях; сами сведения о кооперативе живут по ленте
     monitoringTimeout = setTimeout(async () => {
       try {
         await loadSystemInfo();
@@ -144,6 +153,7 @@ export const useSystemStore = defineStore(namespace, (): ISystemStore => {
     stopSyncMonitoring();
 
     const blocked = syncState.value !== null && syncState.value.status !== Zeus.NodeSyncStatus.SYNCED;
+    // timing: schedule — состояние синхронизации узла: когда сокет оборван, другого способа заметить возврат узла нет
     syncTimeout = setTimeout(async () => {
       await loadNodeSyncState();
       scheduleNextSyncCheck();

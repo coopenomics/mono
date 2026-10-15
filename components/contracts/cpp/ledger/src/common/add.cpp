@@ -33,7 +33,7 @@ void ledger::add(eosio::name coopname, uint64_t account_id, eosio::asset quantit
     eosio::check(account_name != "Неизвестный счет", "Счет с таким ID не предусмотрен в плане счетов");
     
     // Создаем новый счет
-    accounts.emplace(payer, [&](auto& acc) {
+    accounts.emplace(RamPayer::of(accounts, coopname), [&](auto& acc) {
       acc.id = account_id;
       acc.name = account_name;
       acc.available = quantity;
@@ -42,7 +42,7 @@ void ledger::add(eosio::name coopname, uint64_t account_id, eosio::asset quantit
     });
   } else {
     // Счет существует - пополняем available
-    accounts.modify(account_iter, payer, [&](auto& acc) {
+    accounts.modify(account_iter, RamPayer::of(accounts, coopname), [&](auto& acc) {
       acc.available += quantity;
     });
   }

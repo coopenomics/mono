@@ -9,7 +9,7 @@ q-card.dynamic-padding(
 )
   .base-document__loader(v-if='loading')
     q-spinner(color='primary', size='32px')
-    span.base-document__loader-label Формируем документ{{ doc?.meta?.title ? ` «${doc.meta.title}»` : '' }}…
+    span.base-document__loader-label {{ $t('ui.baseDocument.generatingLabel', { titleSuffix: doc?.meta?.title ? ` «${doc.meta.title}»` : '' }) }}
   div(v-if='!loading')
     ShadowHtml(:html='safeHtml', :styles='shadowStyles')
     //- Блок контрольной суммы/подписей/скачивания показываем только у документов
@@ -34,15 +34,16 @@ q-card.dynamic-padding(
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
 import { useGlobalStore } from 'src/shared/store';
-import DOMPurify from 'dompurify';
 import { DigitalDocument, prepareDocumentArchive } from 'src/shared/lib/document';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useWindowSize } from 'src/shared/hooks';
 import type { IDocumentAggregate } from 'src/entities/Document/model';
 import { getNameFromCertificate } from 'src/shared/lib/utils/getNameFromCertificate';
 import { sameHash } from 'src/shared/lib/utils/sameHash';
+import { sanitizeDocumentHtml } from 'src/shared/lib/utils';
 import { ShadowHtml } from '../ShadowHtml';
 import { DocumentSignatures, type DocumentSignatureEntry } from 'src/shared/ui/domain/DocumentSignatures';
+import { t } from 'src/shared/i18n';
 
 const props = defineProps({
   documentAggregate: {
@@ -78,11 +79,11 @@ const regenerate = async () => {
 
     if (sameHash(regenerated.value.hash, regeneratedHash.value))
       SuccessAlert(
-        'Сверка прошла успешно: аналогичный документ восстановлен из исходных данных',
+        t('ui.baseDocument.compareSuccessText'),
       );
     else
       FailAlert(
-        'Сверка прошла безуспешно: аналогичный документ невозможно получить из исходных данных',
+        t('ui.baseDocument.compareFailText'),
       );
 
     onRegenerate.value = false;
@@ -91,34 +92,12 @@ const regenerate = async () => {
   }
 };
 
-// Функция для декодирования и очистки HTML.
-//
-// WHOLE_DOCUMENT: true — иначе DOMPurify вырезает содержимое <style> целиком
-// (сам тег остаётся в списке разрешённых через ADD_TAGS, но его текстовый
-// узел стирается), даже с ADD_TAGS: ['style']. Проверено эмпирически. В
-// WHOLE_DOCUMENT-режиме DOMPurify оборачивает результат в <html><head>...
-// <style>...</style></head><body>...</body></html> и содержимое style
-// выживает. Обёртка html/head/body безвредна: при вставке через
-// `shadowRoot.innerHTML` (см. ShadowHtml.vue) браузер разбирает её по
-// алгоритму fragment-парсинга и просто не создаёт сами теги html/head/body,
-// а их содержимое (включая <style>) остаётся в дереве shadow-root — CSS
-// оттуда действует на всё поддерево независимо от вложенности. Благодаря
-// этому шаблонам документов больше не нужно держать в уме, что этот
-// компонент форсит pre-wrap и стирает их <style> — можно писать вёрстку один
-// раз, единообразно для PDF (weasyprint) и предпросмотра.
-function sanitizeHtml(html: string) {
-  return DOMPurify.sanitize(html, {
-    ADD_TAGS: ['style'],
-    ADD_ATTR: ['class', 'id'],
-    WHOLE_DOCUMENT: true,
-  });
-}
-
-const safeHtml = computed(() => sanitizeHtml(doc.value?.html ?? ''));
+const safeHtml = computed(() => sanitizeDocumentHtml(doc.value?.html));
 
 // Стили для Shadow DOM
 const shadowStyles = computed(
   () =>
+    // i18n-ignore: CSS-стили таблиц, не текст интерфейса
     `
   /* Универсальные стили для всех таблиц */
   table {
@@ -250,8 +229,8 @@ watch(
 
 // Получение ФИО/названия подписанта по сертификату
 const getSignerName = (signer_certificate: any) => {
-  if (!signer_certificate) return 'Неизвестный подписант';
-  return getNameFromCertificate(signer_certificate) || 'Неизвестный подписант';
+  if (!signer_certificate) return t('ui.baseDocument.unknownSigner');
+  return getNameFromCertificate(signer_certificate) || t('ui.baseDocument.unknownSigner');
 };
 
 // Верификация всех подписей из агрегата
@@ -296,7 +275,7 @@ async function download() {
     document.body.removeChild(link);
   } catch (error) {
     console.error('Ошибка при скачивании файла:', error);
-    FailAlert('Не удалось подготовить архив документа');
+    FailAlert(t('ui.baseDocument.archiveError'));
   } finally {
     loading.value = false;
   }

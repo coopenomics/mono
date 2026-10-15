@@ -15,8 +15,12 @@ export interface IChainResourcesPort {
   /** Состояние аккаунта; `null`, если аккаунта в цепи нет. */
   getAccount(username: string): Promise<InnerChainAccountResources | null>;
 
-  /** Пополнить ресурсы аккаунта на указанную сумму. */
-  powerUp(username: string, quantity: string): Promise<void>;
+  /**
+   * Пополнить ресурсы аккаунта на указанную сумму. Возвращает идентификатор
+   * транзакции; отказ цепи (нет средств, ассерт) приходит исключением —
+   * расширение обязано его увидеть, а не считать пополнение выполненным.
+   */
+  powerUp(username: string, quantity: string): Promise<string>;
 }
 
 export const CHAIN_RESOURCES_PORT = Symbol.for('Innercoop.CorePort.ChainResources');

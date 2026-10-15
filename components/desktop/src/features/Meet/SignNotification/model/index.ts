@@ -3,8 +3,9 @@ import { SuccessAlert, FailAlert } from 'src/shared/api'
 import { ref, computed } from 'vue'
 import { client } from 'src/shared/api/client'
 import { Mutations } from '@coopenomics/sdk'
-import { useSignDocument } from 'src/shared/lib/document/model/entity'
+import { signDocument } from 'src/shared/lib/document'
 import { useSessionStore } from 'src/entities/Session'
+import { t } from 'src/shared/i18n';
 
 export type IGenerateNotificationInput = Mutations.Meet.GenerateAnnualGeneralMeetNotificationDocument.IInput['data']
 export type IGenerateNotificationResult = Mutations.Meet.GenerateAnnualGeneralMeetNotificationDocument.IOutput[typeof Mutations.Meet.GenerateAnnualGeneralMeetNotificationDocument.name]
@@ -18,7 +19,7 @@ export type INotifyOnAnnualGeneralMeetResult = Mutations.Meet.NotifyOnAnnualGene
  */
 async function generateNotification(data: IGenerateNotificationInput, options?: any): Promise<IGenerateNotificationResult> {
   if (!data.meet_hash) {
-    throw new Error('Параметр meet_hash обязателен для генерации документа уведомления')
+    throw new Error(t('meet.error.hashRequiredForNotification'))
   }
 
   const { [Mutations.Meet.GenerateAnnualGeneralMeetNotificationDocument.name]: generatedDocument } = await client.Mutation(
@@ -100,7 +101,6 @@ export function useSignNotification() {
       })
 
       // Подписываем документ
-      const { signDocument } = useSignDocument()
       const signedDocument = await signDocument(generatedDocument, params.username)
       console.log('signedDocument', signedDocument)
 
@@ -119,10 +119,10 @@ export function useSignNotification() {
         hash: params.meet_hash
       })
 
-      SuccessAlert('Уведомление успешно подписано и отправлено')
+      SuccessAlert(t('meet.signNotificationModel.success'))
       return true
     } catch (error: any) {
-      FailAlert(error || 'Не удалось подписать уведомление')
+      FailAlert(error || t('meet.signNotificationModel.error'))
       return false
     } finally {
       loading.value = false

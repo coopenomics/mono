@@ -4,6 +4,8 @@ import { Counter, Gauge, register as globalRegistry, type Registry } from 'prom-
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import { PLATFORM_METRICS_PORT, type PlatformMetricsPort } from '~/domain/metrics/ports/platform-metrics.port';
 import { USER_ACTIVITY_PORT, type UserActivityPort } from '~/domain/metrics/ports/user-activity.port';
+import { BLOCKCHAIN_PORT, type BlockchainPort } from '~/domain/common/ports/blockchain.port';
+import config from '~/config/config';
 
 /**
  * Как часто пересчитывать снимок. Полминуты недостаточно, а раз в минуту —
@@ -31,6 +33,15 @@ function ensureCounter(registry: Registry, config: { name: string; help: string;
   const existing = registry.getSingleMetric(config.name);
   if (existing) return existing as Counter<string>;
   return new Counter({ labelNames: [], ...config, registers: [registry] });
+}
+
+/**
+ * Число из ответа цепи. Величины ресурсов приходят строками, остаток токена —
+ * строкой вида `967.0000 AXON`; всё, что числом не стало, идёт в метрику нулём.
+ */
+function toNumber(value: unknown): number {
+  const parsed = parseFloat(String(value ?? '0'));
+  return Number.isFinite(parsed) ? parsed : 0;
 }
 
 /** Состояние синхронизации в виде, не завязанном на DTO модуля system. */
@@ -76,18 +87,28 @@ export class PlatformMetricsService {
   private readonly parserCursorAge: Gauge<string>;
   private readonly parserSynced: Gauge<string>;
 
+  private readonly accountRamUsed: Gauge<string>;
+  private readonly accountRamQuota: Gauge<string>;
+  private readonly accountCpuUsed: Gauge<string>;
+  private readonly accountCpuMax: Gauge<string>;
+  private readonly accountNetUsed: Gauge<string>;
+  private readonly accountNetMax: Gauge<string>;
+  private readonly accountBalance: Gauge<string>;
+
   private readonly collectErrors: Counter<string>;
   private readonly lastSuccess: Gauge<string>;
 
   constructor(
     private readonly logger: WinstonLoggerService,
     @Inject(PLATFORM_METRICS_PORT) private readonly snapshot: PlatformMetricsPort,
-    @Inject(USER_ACTIVITY_PORT) private readonly activity: UserActivityPort
+    @Inject(USER_ACTIVITY_PORT) private readonly activity: UserActivityPort,
+    @Inject(BLOCKCHAIN_PORT) private readonly blockchain: BlockchainPort
   ) {
     this.logger.setContext(PlatformMetricsService.name);
 
     this.usersByStatus = ensureGauge(globalRegistry, {
       name: 'coop_users_total',
+      // i18n-ignore: справка Prometheus-метрики, техническая строка для мониторинга, не для пайщика
       help: 'Число учётных записей пайщиков по статусу',
       labelNames: ['status'],
     });
@@ -98,59 +119,113 @@ export class PlatformMetricsService {
     // при непустом ключе и живой строке в реестре цепи.
     this.usersWithAccountFlag = ensureGauge(globalRegistry, {
       name: 'coop_users_with_account_flag',
+      // i18n-ignore: справка Prometheus-метрики, техническая строка для мониторинга, не для пайщика
       help: 'Число учётных записей с выставленным флагом has_account (флаг контроллера, может расходиться с цепью)',
     });
     this.usersWithChainKey = ensureGauge(globalRegistry, {
       name: 'coop_users_with_chain_key',
+      // i18n-ignore: справка Prometheus-метрики, техническая строка для мониторинга, не для пайщика
       help: 'Число учётных записей с сохранённым публичным ключом цепи',
     });
     this.chainParticipants = ensureGauge(globalRegistry, {
       name: 'coop_chain_participants_total',
+      // i18n-ignore: справка Prometheus-метрики, техническая строка для мониторинга, не для пайщика
       help: 'Число пайщиков в реестре кооператива в самой цепи (живые строки soviet::participants)',
     });
     this.candidatesByStatus = ensureGauge(globalRegistry, {
       name: 'coop_candidates_total',
+      // i18n-ignore: справка Prometheus-метрики, техническая строка для мониторинга, не для пайщика
       help: 'Число кандидатов по статусу заявления',
       labelNames: ['status'],
     });
     this.outboxDepth = ensureGauge(globalRegistry, {
       name: 'coop_notification_outbox_depth',
+      // i18n-ignore: справка Prometheus-метрики, техническая строка для мониторинга, не для пайщика
       help: 'Число строк в транзакционном outbox Центра уведомлений по статусу',
       labelNames: ['status'],
     });
     this.activeUsers = ensureGauge(globalRegistry, {
       name: 'coop_users_active',
+      // i18n-ignore: справка Prometheus-метрики, техническая строка для мониторинга, не для пайщика
       help: 'Число разных пайщиков, заходивших за окно (по факту авторизованных запросов, сутки по UTC)',
       labelNames: ['window'],
     });
 
     this.chainHeadBlock = ensureGauge(globalRegistry, {
       name: 'coop_chain_head_block',
+      // i18n-ignore: справка Prometheus-метрики, техническая строка для мониторинга, не для пайщика
       help: 'Номер блока в голове цепи',
     });
     this.parserCurrentBlock = ensureGauge(globalRegistry, {
       name: 'coop_parser_current_block',
+      // i18n-ignore: справка Prometheus-метрики, техническая строка для мониторинга, не для пайщика
       help: 'Номер блока, до которого дочитал парсер узла',
     });
     this.parserLagBlocks = ensureGauge(globalRegistry, {
       name: 'coop_parser_lag_blocks',
+      // i18n-ignore: справка Prometheus-метрики, техническая строка для мониторинга, не для пайщика
       help: 'Отставание парсера от головы цепи в блоках',
     });
     this.parserCursorAge = ensureGauge(globalRegistry, {
       name: 'coop_parser_cursor_age_seconds',
+      // i18n-ignore: справка Prometheus-метрики, техническая строка для мониторинга, не для пайщика
       help: 'Сколько секунд назад двигалась позиция чтения парсера',
     });
     this.parserSynced = ensureGauge(globalRegistry, {
       name: 'coop_parser_synced',
+      // i18n-ignore: справка Prometheus-метрики, техническая строка для мониторинга, не для пайщика
       help: 'Узел у головы цепи: 1 — да, 0 — отстаёт или связи нет',
+    });
+
+    // Ресурсы аккаунта кооператива. Цепь берёт плату ресурсами за каждое
+    // действие, и когда они кончаются, отказывают операции пайщиков — а увидеть
+    // это было нечем: 16–18.09.2026 аккаунт `voskhod` двое суток не мог
+    // пополнить ресурсы (нет системного токена), и единственным следом были
+    // строки в логе. Оба конца истории здесь: сколько занято и на что покупать.
+    this.accountRamUsed = ensureGauge(globalRegistry, {
+      name: 'coop_account_ram_used_bytes',
+      // i18n-ignore: справка Prometheus-метрики, техническая строка для мониторинга, не для пайщика
+      help: 'Занято оперативной памяти в цепи аккаунтом кооператива',
+    });
+    this.accountRamQuota = ensureGauge(globalRegistry, {
+      name: 'coop_account_ram_quota_bytes',
+      // i18n-ignore: справка Prometheus-метрики, техническая строка для мониторинга, не для пайщика
+      help: 'Квота оперативной памяти аккаунта кооператива в цепи',
+    });
+    this.accountCpuUsed = ensureGauge(globalRegistry, {
+      name: 'coop_account_cpu_used_microseconds',
+      // i18n-ignore: справка Prometheus-метрики, техническая строка для мониторинга, не для пайщика
+      help: 'Израсходовано процессорного времени аккаунтом кооператива за текущее окно',
+    });
+    this.accountCpuMax = ensureGauge(globalRegistry, {
+      name: 'coop_account_cpu_max_microseconds',
+      // i18n-ignore: справка Prometheus-метрики, техническая строка для мониторинга, не для пайщика
+      help: 'Доступное аккаунту кооператива процессорное время за окно',
+    });
+    this.accountNetUsed = ensureGauge(globalRegistry, {
+      name: 'coop_account_net_used_bytes',
+      // i18n-ignore: справка Prometheus-метрики, техническая строка для мониторинга, не для пайщика
+      help: 'Израсходовано полосы аккаунтом кооператива за текущее окно',
+    });
+    this.accountNetMax = ensureGauge(globalRegistry, {
+      name: 'coop_account_net_max_bytes',
+      // i18n-ignore: справка Prometheus-метрики, техническая строка для мониторинга, не для пайщика
+      help: 'Доступная аккаунту кооператива полоса за окно',
+    });
+    this.accountBalance = ensureGauge(globalRegistry, {
+      name: 'coop_account_system_token_balance',
+      // i18n-ignore: справка Prometheus-метрики, техническая строка для мониторинга, не для пайщика
+      help: 'Остаток системного токена на аккаунте кооператива — им оплачивается аренда ресурсов',
     });
 
     this.collectErrors = ensureCounter(globalRegistry, {
       name: 'coop_platform_metrics_collect_errors_total',
+      // i18n-ignore: справка Prometheus-метрики, техническая строка для мониторинга, не для пайщика
       help: 'Число неудачных пересчётов прикладных метрик',
     });
     this.lastSuccess = ensureGauge(globalRegistry, {
       name: 'coop_platform_metrics_last_success_timestamp_seconds',
+      // i18n-ignore: справка Prometheus-метрики, техническая строка для мониторинга, не для пайщика
       help: 'Момент последнего удачного пересчёта прикладных метрик (unix-время)',
     });
   }
@@ -159,6 +234,10 @@ export class PlatformMetricsService {
   async refresh(): Promise<void> {
     try {
       const [snapshot, active] = await Promise.all([this.snapshot.collect(), this.collectActivity()]);
+
+      // Ресурсы аккаунта читаются отдельно и своих ошибок наружу не выпускают:
+      // недоступный узел не должен обнулять остальные показатели тика.
+      await this.refreshAccountResources();
 
       // reset() перед записью обязателен для метрик С МЕТКАМИ. Статус, по
       // которому строк не осталось, из выборки просто пропадает, а prom-client
@@ -219,6 +298,31 @@ export class PlatformMetricsService {
       this.parserSynced.set(state.status === 'SYNCED' ? 1 : 0);
     } catch (error: any) {
       this.logger.warn(`Метрика состояния узла не записана: ${error?.message}`);
+    }
+  }
+
+  /**
+   * Ресурсы и остаток системного токена на аккаунте кооператива.
+   *
+   * Значения берутся из `get_account` — того же ответа цепи, по которому
+   * расширение `powerup` решает, пора ли пополнять. Остаток приходит строкой
+   * вида `967.0000 AXON`; в метрику идёт число, символ — свойство контура и в
+   * метке не нужен.
+   */
+  private async refreshAccountResources(): Promise<void> {
+    try {
+      const account = await this.blockchain.getAccount(config.coopname);
+      if (!account) return;
+
+      this.accountRamUsed.set(toNumber(account.ram_usage));
+      this.accountRamQuota.set(toNumber(account.ram_quota));
+      this.accountCpuUsed.set(toNumber(account.cpu_limit?.used));
+      this.accountCpuMax.set(toNumber(account.cpu_limit?.max));
+      this.accountNetUsed.set(toNumber(account.net_limit?.used));
+      this.accountNetMax.set(toNumber(account.net_limit?.max));
+      this.accountBalance.set(toNumber(account.core_liquid_balance));
+    } catch (error: any) {
+      this.logger.warn(`Ресурсы аккаунта кооператива не прочитаны: ${error?.message}`);
     }
   }
 

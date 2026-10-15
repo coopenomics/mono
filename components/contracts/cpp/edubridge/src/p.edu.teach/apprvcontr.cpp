@@ -1,0 +1,37 @@
+/**
+ * @brief Председатель совета подписал договор УХД преподавателя — вторая
+ * подпись. Вызывается контрактом совета (`soviet::confirmapprv`) после
+ * подтверждения одобрения; подпись председателя уже проверена советом.
+ *
+ * Договор становится действующим, двухподписный документ публикуется в
+ * реестре документов пакетом процесса (package = contract_hash).
+ *
+ * `username` — тот, кто подтвердил одобрение в совете (председатель), а не
+ * преподаватель: договор находится по hash, документ публикуется на имя
+ * преподавателя из записи договора.
+ *
+ * @ingroup public_edubridge_actions
+ */
+void edubridge::apprvcontr(eosio::name coopname,
+                           eosio::name username,
+                           checksum256 contract_hash,
+                           document2 approved_document) {
+  require_auth(_soviet);
+
+  edu_contracts_index contracts(_edubridge, coopname.value);
+  auto by_hash = contracts.get_index<"byhash"_n>();
+  auto it = by_hash.find(contract_hash);
+  eosio::check(it != by_hash.end(), "EDUBRIDGE_CONTRACT_NOT_FOUND: Договор с указанным hash не найден");
+  eosio::check(it->status == Edubridge::ContractStatus::PENDING, "EDUBRIDGE_CONTRACT_ALREADY_APPROVED: Договор уже подписан председателем");
+  const eosio::name teacher = it->username;
+
+  auto record = contracts.find(it->id);
+  contracts.modify(record, RamPayer::of(contracts, coopname), [&](auto& c) {
+    c.status      = Edubridge::ContractStatus::ACTIVE;
+    c.approved_at = eosio::time_point_sec(eosio::current_time_point());
+  });
+
+  Soviet::make_complete_document(_edubridge, coopname, teacher,
+                                 Names::Edubridge::APPROVE_CONTRACT,
+                                 contract_hash, approved_document);
+}

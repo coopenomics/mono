@@ -14,7 +14,7 @@ import type {
   StartKuDecisionInputDomainInterface,
   VoteOnKuDecisionInputDomainInterface,
 } from '../../../domain/interfaces/ku-action-inputs.interface';
-import { DomainToBlockchainUtils, HttpApiError } from '@coopenomics/extension-kit';
+import { DomainToBlockchainUtils, DomainError } from '@coopenomics/extension-kit';
 import { VAULT_PORT, type IVaultPort,
   CHAIN_PORT,
   type IChainPort,
@@ -35,7 +35,7 @@ export class KuBlockchainAdapter implements KuBlockchainPort {
 
   private async transactAs(coopname: string, name: string, data: Record<string, unknown>): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(coopname);
-    if (!wif) throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ для совершения операции');
+    if (!wif) throw new DomainError('KU_PRIVATE_KEY_NOT_FOUND', {}, httpStatus.BAD_GATEWAY);
 
     this.blockchainService.initialize(coopname, wif);
 

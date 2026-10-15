@@ -28,7 +28,7 @@ void decline_and_erase_decision(eosio::name coopname, uint64_t decision_id, cons
 #define AUTHORIZE_CALLBACK_SIGNATURE name coopname, checksum256 hash, document2 authorization
 using authorize_callback_interface = void(AUTHORIZE_CALLBACK_SIGNATURE);
 
-#define NEWSUBMITTED_SIGNATURE name coopname, name username, name action, checksum256 package, document2 document
+#define NEWSUBMITTED_SIGNATURE name coopname, name username, name action, checksum256 package, document2 document, uint64_t decision_id
 using newsubmitted_interface = void(NEWSUBMITTED_SIGNATURE);
 
 #define NEWRESOLVED_SIGNATURE name coopname, name username, name action, checksum256 package, document2 document
@@ -71,8 +71,9 @@ inline void create_approval(name calling_contract, CREATEAPPRV_SIGNATURE) {
 
 inline void make_complete_document(name calling_contract, name coopname, name username, name action,
                                    checksum256 package, document2 document) {
+  // Документ без решения совета: номер решения — ноль.
   Action::send<newsubmitted_interface>(_soviet, "newsubmitted"_n, calling_contract, coopname, username, action,
-                                       package, document);
+                                       package, document, uint64_t(0));
 
   Action::send<newresolved_interface>(_soviet, "newresolved"_n, calling_contract, coopname, username, action,
                                       package, document);

@@ -3,7 +3,7 @@ BaseButton(
   variant='primary',
   size='sm',
   @click='$emit("click", $event)'
-) Получить долю в ОАП
+) {{ $t('capital.convertSegmentButton.label') }}
 </template>
 
 <script setup lang="ts">

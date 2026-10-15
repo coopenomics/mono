@@ -5,12 +5,12 @@ div(v-if='hasEditableProjects')
   BaseButton(
     variant='primary',
     :size='isMobile ? "sm" : "md"',
-    aria-label='Создать компонент',
+    :aria-label='$t("capital.createComponentHeaderButton.ariaLabel")',
     @click='dialogRef?.openDialog()'
   )
     template(#icon-left)
       q-icon(name='add', size='18px')
-    | Компонент
+    | {{ $t('capital.createComponentHeaderButton.label') }}
 
   CreateComponentDialog(
     ref='dialogRef',
@@ -49,6 +49,7 @@ const handleSuccess = () => {
   emit('actionCompleted');
 };
 
+// realtime: нет источника — список для выбора в диалоге загружается при его открытии.
 onMounted(() => {
   void loadEditableProjects();
   props.exposeOpen?.(() => dialogRef.value?.openDialog());

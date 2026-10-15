@@ -10,6 +10,7 @@ import type { INewDeviceNotificationThrottle } from '~/domain/auth-v2/ports/new-
 import { NOT_ME_TOKEN_STORE } from '~/domain/auth-v2/ports/not-me-token-store.port';
 import type { INotMeTokenStore } from '~/domain/auth-v2/ports/not-me-token-store.port';
 import { describeUserAgent, resolveIpLocation } from './device-description.util';
+import { t } from '~/i18n';
 
 export interface NewDeviceNotificationInput {
   /** subject_id пайщика (user.id) — для резолва получателя и троттла. */
@@ -89,7 +90,7 @@ export class NewDeviceNotificationService {
           device,
           location: location ?? '',
           summary,
-          ip: input.ip ?? 'неизвестен',
+          ip: input.ip ?? t('authV2.newDeviceNotificationService.unknownIp'),
           time: new Date().toISOString(),
           // Канонический формат ссылок — путь БЕЗ `#` (прод = history-роутер;
           // hash-режим dev нормализует App.vue). Страница «Настройки» несёт

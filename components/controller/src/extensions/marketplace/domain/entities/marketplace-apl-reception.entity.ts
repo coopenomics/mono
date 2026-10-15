@@ -38,6 +38,7 @@ export class MarketplaceAplReceptionDomainEntity {
 
   constructor(props: MarketplaceAplReceptionProps) {
     if (!props.id || !props.coopname || !props.shipment_id || !props.braname) {
+      // i18n-ignore: внутренний инвариант сущности, до пайщика не доходит
       throw new Error('MarketplaceAplReceptionDomainEntity: обязательные поля отсутствуют.');
     }
     this.id = props.id;

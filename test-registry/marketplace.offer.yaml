@@ -19,6 +19,26 @@ title: Предложение поставщика — публикация, м�
 # для неверифицированного получателя (best-effort, поверх VERIFICATION_PORT).
 # Правила модерации предложений и набор случаев этого слайса не менялись.
 
+# Правка 2026-09-23 (C28-79): у jsonb-колонок предложения значение по умолчанию
+# записано как `() => "'[]'"` вместо `"'[]'::jsonb"` — прежняя запись не
+# сходилась со схемой базы, и `synchronize` переписывал умолчание на каждом
+# старте. Значение то же, поведение и случаи не менялись.
+
+# Правка 24.09.2026 (C28-83): экраны Стола заказов живут по общей ленте
+# изменений (chainChanges), отдельная подписка marketplaceEvents снята вместе с
+# серверным мостом и резолвером. Таблицы расширения объявлены в ленте через
+# CHAIN_CHANGES_PORT (MarketplaceLiveFeedSubscriber на базе marketplace), стол
+# перечитывает экран по сигналу их изменений (useLiveReload + marketLiveTables).
+# Серверные сценарии и их случаи не менялись.
+
+# Правка 24.09.2026 (C28-83, второй проход): на ленту переведены и экраны
+# Стола заказов, которые раньше не слушали marketplaceEvents, — реестры
+# председателя, экономика стола и участка, выплаты, претензии поставщику,
+# склад участка, онбординг кооператива и поставщика, пункты выдачи, карточки
+# реестров и виджеты процессов. Сбор с оборота (marketplace::config) объявлен в
+# ленте таблицей цепи. Онбординг пайщика ждёт подписи по ленте, а не циклом с
+# паузой. Серверные сценарии и набор случаев прежние.
+
 sources:
   backend:
     # Модель предложения: что поставщик заполняет и что кооператив потом читает.
@@ -79,6 +99,7 @@ cases:
     scenario: Пустое название товара
     expect: отказ «Укажите название товара», предложение не создаётся
     test: components/controller/tests/unit/marketplace/marketplace-offer-service.test.ts
+    api: components/api-tests/src/marketplace/offer.test.ts
     status: passing
 
   - id: mkt.offer.side.02
@@ -87,6 +108,7 @@ cases:
     scenario: Отрицательный срок годности
     expect: отказ «Срок годности не может быть отрицательным»
     test: components/controller/tests/unit/marketplace/marketplace-offer-service.test.ts
+    api: components/api-tests/src/marketplace/offer.test.ts
     status: passing
 
   - id: mkt.offer.side.03
@@ -95,6 +117,7 @@ cases:
     scenario: Цена с более чем четырьмя знаками после запятой
     expect: отказ с указанием допустимой точности
     test: components/controller/tests/unit/marketplace/marketplace-offer-service.test.ts
+    api: components/api-tests/src/marketplace/offer.test.ts
     status: passing
 
   - id: mkt.offer.side.04
@@ -104,6 +127,7 @@ cases:
       Не указано ни количество товара, ни признак «без ограничения»
     expect: отказ с требованием указать количество либо снять ограничение
     test: components/controller/tests/unit/marketplace/marketplace-offer-service.test.ts
+    api: components/api-tests/src/marketplace/offer.test.ts
     status: passing
 
   - id: mkt.offer.side.05
@@ -112,6 +136,7 @@ cases:
     scenario: Указан размер упаковки без стратегии маркировки «по упаковке»
     expect: отказ, объясняющий несовместимость размера упаковки и стратегии
     test: components/controller/tests/unit/marketplace/marketplace-offer-service.test.ts
+    api: components/api-tests/src/marketplace/offer.test.ts
     status: passing
 
   - id: mkt.offer.side.06
@@ -120,6 +145,7 @@ cases:
     scenario: Стратегия «по упаковке» без размера упаковки
     expect: отказ с требованием указать размер упаковки (целое от 1)
     test: components/controller/tests/unit/marketplace/marketplace-offer-service.test.ts
+    api: components/api-tests/src/marketplace/offer.test.ts
     status: passing
 
   - id: mkt.offer.side.07
@@ -128,6 +154,7 @@ cases:
     scenario: Размер упаковки равен нулю или отрицателен
     expect: отказ «Размер упаковки должен быть больше нуля»
     test: components/controller/tests/unit/marketplace/marketplace-offer-service.test.ts
+    api: components/api-tests/src/marketplace/offer.test.ts
     status: passing
 
   - id: mkt.offer.side.08
@@ -136,6 +163,7 @@ cases:
     scenario: Отпуск упаковкой выбран, но не добавлено ни одной упаковки
     expect: отказ с требованием добавить упаковку
     test: components/controller/tests/unit/marketplace/marketplace-offer-service.test.ts
+    api: components/api-tests/src/marketplace/offer.test.ts
     status: passing
 
   - id: mkt.offer.side.09
@@ -144,6 +172,7 @@ cases:
     scenario: Число упаковок превышает предел
     expect: отказ с указанием максимума
     test: components/controller/tests/unit/marketplace/marketplace-offer-service.test.ts
+    api: components/api-tests/src/marketplace/offer.test.ts
     status: passing
 
   - id: mkt.offer.side.10
@@ -152,6 +181,7 @@ cases:
     scenario: Недопустимая единица измерения
     expect: отказ «Выбрана недопустимая единица измерения»
     test: components/controller/tests/unit/marketplace/marketplace-offer-service.test.ts
+    api: components/api-tests/src/marketplace/offer.test.ts
     status: passing
 
   - id: mkt.offer.side.11
@@ -160,6 +190,7 @@ cases:
     scenario: Не указано ни одной точки поставки
     expect: отказ с требованием указать хотя бы один кооперативный участок
     test: components/controller/tests/unit/marketplace/marketplace-offer-service.test.ts
+    api: components/api-tests/src/marketplace/offer.test.ts
     status: passing
 
   - id: mkt.offer.side.12
@@ -168,6 +199,7 @@ cases:
     scenario: Один и тот же кооперативный участок указан в поставке дважды
     expect: отказ с именем повторённого участка
     test: components/controller/tests/unit/marketplace/marketplace-offer-service.test.ts
+    api: components/api-tests/src/marketplace/offer.test.ts
     status: passing
 
   - id: mkt.offer.side.13
@@ -176,6 +208,7 @@ cases:
     scenario: Загружено пустое изображение товара (нет содержимого файла)
     expect: отказ, предложение не создаётся и не правится
     test: components/controller/tests/unit/marketplace/marketplace-offer-images-service.test.ts
+    api: components/api-tests/src/marketplace/offer.test.ts
     status: passing
 
   # ── Права и статусы ─────────────────────────────────────────────────────
@@ -185,6 +218,7 @@ cases:
     scenario: Попытка вернуть на публикацию чужое предложение
     expect: отказ «Можно изменять только свои предложения»
     test: components/controller/tests/unit/marketplace/marketplace-offer-service.test.ts
+    api: components/api-tests/src/marketplace/offer.test.ts
     status: passing
 
   - id: mkt.offer.side.15
@@ -193,6 +227,7 @@ cases:
     scenario: Возврат на публикацию предложения, которое не было снято
     expect: отказ «Вернуть на публикацию можно только снятое предложение»
     test: components/controller/tests/unit/marketplace/marketplace-offer-service.test.ts
+    api: components/api-tests/src/marketplace/offer.test.ts
     status: passing
 
   - id: mkt.offer.side.16
@@ -201,6 +236,7 @@ cases:
     scenario: Повторное снятие уже снятого либо отклонённого предложения
     expect: отказ «Нельзя снять предложение, которое уже снято/отклонено»
     test: components/controller/tests/unit/marketplace/marketplace-offer-service.test.ts
+    api: components/api-tests/src/marketplace/offer.test.ts
     status: passing
 
   - id: mkt.offer.side.17
@@ -209,6 +245,7 @@ cases:
     scenario: Модерация предложения, которое уже одобрено или отклонено
     expect: конфликт «Это предложение уже одобрено/отклонено — модерация недоступна»
     test: components/controller/tests/unit/marketplace/marketplace-moderation-service.test.ts
+    api: components/api-tests/src/marketplace/offer.test.ts
     status: passing
 
   - id: mkt.offer.side.18
@@ -217,6 +254,7 @@ cases:
     scenario: Отклонение предложения без указания причины
     expect: отказ «Укажите причину отклонения предложения»
     test: components/controller/tests/unit/marketplace/marketplace-moderation-service.test.ts
+    api: components/api-tests/src/marketplace/offer.test.ts
     status: passing
 
   - id: mkt.offer.side.19
@@ -225,6 +263,7 @@ cases:
     scenario: Причина отклонения длиннее допустимого предела
     expect: отказ с указанием максимальной длины
     test: components/controller/tests/unit/marketplace/marketplace-moderation-service.test.ts
+    api: components/api-tests/src/marketplace/offer.test.ts
     status: passing
 
   - id: mkt.offer.side.20
@@ -233,6 +272,7 @@ cases:
     scenario: Модерация несуществующего предложения
     expect: «Предложение не найдено»
     test: components/controller/tests/unit/marketplace/marketplace-moderation-service.test.ts
+    api: components/api-tests/src/marketplace/offer.test.ts
     status: passing
 
   - id: mkt.offer.side.21
@@ -241,6 +281,7 @@ cases:
     scenario: Одобрение с отрицательным либо дробным гарантийным сроком возврата
     expect: отказ «Гарантийный срок возврата должен быть целым неотрицательным числом дней»
     test: components/controller/tests/unit/marketplace/marketplace-moderation-service.test.ts
+    api: components/api-tests/src/marketplace/offer.test.ts
     status: passing
 
   - id: mkt.offer.side.22
@@ -249,6 +290,7 @@ cases:
     scenario: Модерация выполняется пайщиком без прав председателя
     expect: отказ доступа, статус предложения не меняется
     test: components/controller/tests/unit/marketplace/marketplace-moderation-access.test.ts
+    api: components/api-tests/src/marketplace/offer.test.ts
     status: passing
 
   # Уровень backend, а не ui: после первого одобрения предложение уходит из
@@ -262,6 +304,7 @@ cases:
       Повторное одобрение уже одобренного предложения (двойная отправка)
     expect: одобрение применяется один раз, второе обращение отбивается конфликтом
     test: components/controller/tests/unit/marketplace/marketplace-moderation-service.test.ts
+    api: components/api-tests/src/marketplace/offer.test.ts
     status: passing
 
   - id: mkt.offer.side.24
@@ -284,6 +327,7 @@ cases:
     expect: >
       администратору уходит уведомление с названием имущества, именем поставщика и ссылкой на очередь модерации
     test: components/controller/tests/unit/marketplace/marketplace-offer-moderation-notifications.test.ts
+    api: components/api-tests/src/marketplace/offer-notifications.test.ts
     status: passing
 
   - id: mkt.offer.side.26
@@ -292,6 +336,7 @@ cases:
     scenario: Администратор одобрил предложение
     expect: поставщику уходит уведомление, что предложение опубликовано в каталоге
     test: components/controller/tests/unit/marketplace/marketplace-offer-moderation-notifications.test.ts
+    api: components/api-tests/src/marketplace/offer-notifications.test.ts
     status: passing
 
   - id: mkt.offer.side.27
@@ -301,6 +346,7 @@ cases:
     expect: >
       поставщику уходит уведомление с причиной отказа — по ней он правит карточку и отправляет её на повторную проверку
     test: components/controller/tests/unit/marketplace/marketplace-offer-moderation-notifications.test.ts
+    api: components/api-tests/src/marketplace/offer-notifications.test.ts
     status: passing
 
   - id: mkt.offer.side.28
@@ -311,6 +357,7 @@ cases:
     expect: >
       уведомление о модерации НЕ отправляется, поставщик получает только сигнал о публикации — иначе администратора дёргали бы на каждый возврат в каталог
     test: components/controller/tests/unit/marketplace/marketplace-offer-republish.test.ts
+    api: components/api-tests/src/marketplace/offer-notifications.test.ts
     status: passing
 
   - id: mkt.offer.break.03
@@ -320,6 +367,8 @@ cases:
     expect: >
       уведомление о модерации пропускается с записью в журнал, публикация предложения не срывается
     test: components/controller/tests/unit/marketplace/marketplace-offer-moderation-notifications.test.ts
+    external: unreachable
+    external_reason: "в кооперативе стенда администратор есть всегда; состояние без него через API не создать"
     status: passing
 
   - id: mkt.offer.break.04
@@ -330,6 +379,8 @@ cases:
     expect: >
       предложение читается, вид упаковки пуст и не выдумывается; каталог и стол поставщика не пустеют целиком из-за одной старой упаковки, а назвать тару поставщик обязан при первой же правке
     test: components/controller/tests/unit/marketplace/marketplace-offer-legacy-package-type.test.ts
+    external: unreachable
+    external_reason: "предложения прежней версии (без вида упаковки и счётчиков упаковок) через API не завести — новые всегда создаются полными"
     status: passing
 
   - id: mkt.offer.ui.01
@@ -364,3 +415,101 @@ cases:
       заново на том же фильтре
     status: missing
 
+  # ── Остаток по упаковкам (решение владельца 08.09.2026) ─────────────────
+  # Раньше остаток предложения при отпуске упаковкой вёлся одним котлом в
+  # базовых единицах, и десять литров продавались хоть двадцатью бутылками по
+  # 0,5. Теперь свободное, заблокированное и выданное ведутся на каждой
+  # упаковке в упаковках; счётчики предложения — их сумма в базовых единицах.
+  - id: mkt.offer.side.29
+    level: backend
+    kind: side
+    scenario: >
+      Поставщик создаёт предложение с отпуском упаковкой и указывает остаток на каждой
+      упаковке: 3 бутылки по 0,5 л и 8 по литру
+    expect: >
+      у упаковок остаток 3 и 8 упаковок, заблокировано и выдано — ноль; остаток предложения
+      равен сумме в базовых единицах — 9,5 л
+    test: components/controller/tests/unit/marketplace/marketplace-offer-service.test.ts
+    api: components/api-tests/src/marketplace/offer.test.ts
+    status: passing
+
+  - id: mkt.offer.side.30
+    level: backend
+    kind: side
+    scenario: Отпуск упаковкой с ограниченным остатком, но без остатка на упаковке
+    expect: отказ с просьбой указать, сколько упаковок каждого вида свободно; предложение не создаётся
+    test: components/controller/tests/unit/marketplace/marketplace-offer-service.test.ts
+    api: components/api-tests/src/marketplace/offer.test.ts
+    status: passing
+
+  - id: mkt.offer.side.31
+    level: backend
+    kind: side
+    scenario: Отпуск упаковкой без ограничения остатка
+    expect: остаток упаковок и остаток предложения — нули, ограничение не считается
+    test: components/controller/tests/unit/marketplace/marketplace-offer-service.test.ts
+    api: components/api-tests/src/marketplace/offer.test.ts
+    status: passing
+
+  - id: mkt.offer.side.32
+    level: backend
+    kind: side
+    scenario: >
+      Движение счётчиков при заказе упаковкой: сервис счётчиков получает базовое количество
+      для предложения и число упаковок для упаковки; дробное число упаковок отклоняется,
+      дробное базовое количество по мере (0,5 кг) проходит
+    expect: >
+      репозиторий вызван с упаковкой и числом упаковок, событие изменения остатка несёт
+      счётчики каждой упаковки; дробные упаковки — отказ до репозитория
+    test: components/controller/tests/unit/marketplace/marketplace-offer-counters-service.test.ts
+    api: components/api-tests/src/marketplace/offer.test.ts
+    status: passing
+    # До 25.09.2026 дробная мера по весу (1,5 кг) падала 500 на превью и
+    # оформлении корзины: тело строки считалось BigInt(количество).
+
+  - id: mkt.offer.side.33
+    level: backend
+    kind: side
+    scenario: Предложение, заведённое до учёта по упаковкам, читается из хранилища без счётчиков упаковок
+    expect: в ответе счётчики упаковки — нули, а не пустые значения, каталог не падает
+    test: components/controller/tests/unit/marketplace/marketplace-offer-legacy-package-type.test.ts
+    external: unreachable
+    external_reason: "предложения прежней версии (без вида упаковки и счётчиков упаковок) через API не завести — новые всегда создаются полными"
+    status: passing
+
+  - id: mkt.offer.ui.04
+    level: ui
+    kind: happy
+    scenario: >
+      Поставщик на шаге «Наличие» формы предложения с отпуском упаковкой указывает остаток
+      каждой упаковки в упаковках; при отпуске по мере — одно поле в базовых единицах
+    expect: >
+      у каждой упаковки своё поле «упак.», пустое поле подсвечивается при переходе дальше;
+      в проверке карточки остаток показан по упаковкам
+    status: missing
+
+# 2026-09-06: в сервисе уведомлений добавлены воркфлоу решений совета по выдаче и
+# возврату; уведомления модерации предложений не менялись.
+# 2026-09-08: остаток по упаковкам — источники те же (типы, сущность, DTO, сервис
+# предложения, сервис счётчиков), плюс миграция V2.5.7 и утилита упаковок:
+#   components/controller/src/extensions/marketplace/application/shared/packaging.util.ts
+
+  - id: mkt.offer.side.34
+    level: backend
+    kind: side
+    scenario: >
+      хранилище предложений: витрина пункта выдачи с отбором по доступности,
+      сортировка по чужому имени колонки, резерв счётчиков готовым запросом
+    expect: >
+      на витрину попадает только доступное и только то, что возят на этот пункт,
+      счёт идёт по тем же условиям; чужое имя колонки даёт порядок по дате
+      создания и в запрос не попадает; сигнал ленты уходит только после
+      состоявшегося резерва
+    test: components/controller/tests/unit/marketplace/marketplace-kysely-queries.test.ts
+    external: unreachable
+    external_reason: "проверяются условия запросов к базе — снаружи они не видны; витрина, резерв и публикация через API покрыты случаями mkt.offer.*"
+    status: written
+
+# 2026-09-23 (EEA-6…EEA-9): тексты интерфейса, отказов и уведомлений фичи вынесены из
+# кода в словари i18n, отказы бэкенда переведены на DomainError с кодом — текст
+# и HTTP-статус ответа прежние. Сценарии фичи и её проверки не менялись.

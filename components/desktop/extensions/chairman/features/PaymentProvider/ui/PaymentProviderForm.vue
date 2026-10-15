@@ -3,8 +3,8 @@ form.pp-form(@submit.prevent='submit')
   q-select.pp-form__select(
     v-model='formData.provider_name'
     :options='providerOptions'
-    label='Провайдер входящих платежей'
-    placeholder='Выберите провайдера'
+    :label='$t("chairman.paymentProviderForm.providerLabel")'
+    :placeholder='$t("chairman.paymentProviderForm.providerPlaceholder")'
     dense
     outlined
     color='primary'
@@ -21,7 +21,7 @@ form.pp-form(@submit.prevent='submit')
     q-btn(
       flat
       no-caps
-      label='Отменить'
+      :label='$t("chairman.paymentProviderForm.cancelLabel")'
       color='grey-7'
       @click='resetForm'
       :loading='loading'
@@ -31,7 +31,7 @@ form.pp-form(@submit.prevent='submit')
       type='submit'
       no-caps
       unelevated
-      label='Сохранить'
+      :label='$t("common.action.save")'
       color='primary'
       :loading='loading'
       :disable='!hasChanges'
@@ -43,6 +43,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useSystemStore } from 'src/entities/System/model'
 import { usePaymentProvider } from '../model'
 import { FailAlert, SuccessAlert } from 'src/shared/api'
+import { t } from '../../../i18n';
 
 interface Props {
   loading?: boolean
@@ -74,8 +75,8 @@ const originalData = ref({ ...formData.value })
 const providerOptions = [
   {
     value: 'qrpay',
-    label: 'Банковский платеж по QR-коду',
-    description: 'Пайщик получает реквизиты для оплаты по QR-коду, который можно отсканировать любым банковским приложением. Обработка платежей производится вручную в разделе "Реестр платежей" кассиром.'
+    label: t('chairman.paymentProviderForm.qrProviderName'),
+    description: t('chairman.paymentProviderForm.qrProviderHint')
   }
 ]
 
@@ -120,7 +121,7 @@ const submit = async () => {
     // Обновляем оригинальные данные
     originalData.value = { ...formData.value }
 
-    SuccessAlert('Провайдер платежей сохранен успешно')
+    SuccessAlert(t('chairman.paymentProviderForm.successMessage'))
     emit('success')
 
   } catch (error: any) {

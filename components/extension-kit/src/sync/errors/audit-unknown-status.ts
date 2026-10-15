@@ -1,3 +1,4 @@
+import { t } from '@coopenomics/i18n/server';
 /**
  * Story 6.5 (Epic 6): helper для эталонной точки `mapStatusToDomain`.
  * При попадании на default-ветку (unknown статус из цепи) пишет `logger.error`
@@ -24,7 +25,7 @@ export function auditUnknownStatus(
     return;
   }
 
-  const expected = allowedStatuses && allowedStatuses.length > 0 ? `[${allowedStatuses.join(', ')}]` : 'не указано';
+  const expected = allowedStatuses && allowedStatuses.length > 0 ? `[${allowedStatuses.join(', ')}]` : t('kit.syncAudit.notSpecified');
   logger.error(
     `UNKNOWN_ENTITY_STATUS ${entityName}: получен '${String(receivedStatus)}', ожидаются ${expected}`,
     { entityName, receivedStatus, allowedStatuses }

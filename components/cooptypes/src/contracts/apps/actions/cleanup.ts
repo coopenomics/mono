@@ -1,10 +1,12 @@
 import type * as Apps from '../../../interfaces/apps'
+import * as Permissions from '../../../common/permissions'
+import { Actors } from '../../../common'
 
 /**
- * Авторизация не требуется — операция доброкачественная (TTL-очистка просроченных
- * superseded-записей). Любой может вызвать.
+ * Очистка отработавших записей каталога по всем пакетам — общее действие всех
+ * контрактов, вызывается раскаткой на каждом деплое. Подписывает контракт.
  */
-export const authorizations = [] as const
+export const authorizations = [{ permissions: [Permissions.active], actor: Actors._contract }] as const
 
 /**
  * Имя действия

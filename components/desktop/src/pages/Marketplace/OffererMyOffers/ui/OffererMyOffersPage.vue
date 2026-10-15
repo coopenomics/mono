@@ -1,12 +1,19 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { useFirstLoad } from 'src/shared/lib/composables';
 import { debounce } from 'quasar';
 import { SuccessAlert, FailAlert } from 'src/shared/api';
-import { useMarketplaceRealtime, getMembershipFeePercent } from 'src/shared/lib/marketplace';
+import {
+  marketLiveTables,
+  getMembershipFeePercent,
+  marketplaceCardPackages,
+  offerCardUnitCost,
+  offerCardUnitLabel,
+} from 'src/shared/lib/marketplace';
 import { useRoute, useRouter } from 'vue-router';
 import { useSystemStore } from 'src/entities/System/model';
 import { useHeaderActions } from 'src/shared/hooks';
-import { marketplaceOrderUnitLabel } from 'src/shared/lib/consts';
 import { marketplaceOfferImageUrls } from 'src/shared/lib/utils';
 import { BaseButton, EmptyState } from 'src/shared/ui/base';
 import { FilterBar, PageHint } from 'src/shared/ui/domain';
@@ -22,6 +29,7 @@ import { Zeus } from '@coopenomics/sdk';
 import { republishOffer } from 'src/entities/MarketplaceOffer';
 import { fetchMyOffers } from '../api';
 import type { MarketplaceOfferStatusView, MarketplaceOfferView } from '../types';
+import { t } from 'src/shared/i18n';
 
 /**
  * Эпик 3 / Story 3.4: offerer-стол «Мои предложения».
@@ -71,7 +79,11 @@ const { registerAction } = useHeaderActions();
 const items = ref<MarketplaceOfferView[]>([]);
 const totalPages = ref(0);
 const currentPage = ref(1);
-const loading = ref(false);
+// true до первого запроса: иначе первый кадр до загрузки показывает пустое
+// состояние вместо скелетона, и первая загрузка неотличима от пустого списка.
+const loading = ref(true);
+/** Пустое состояние и каркас — по первой загрузке; дочитка обновляет молча. */
+const firstLoad = useFirstLoad(loading);
 const statusFilter = ref<MarketplaceOfferStatusView | null>(null);
 const search = ref('');
 // Поставщик видит крупно свою цену; ниже — сколько заплатит заказчик
@@ -80,7 +92,7 @@ const feePercent = ref(0);
 
 // Скелетон показываем только на первичной загрузке (список ещё пуст). При
 // polling'е данные обновляются молча — без дёргания спиннером.
-const showSkeleton = computed(() => loading.value && items.value.length === 0);
+const showSkeleton = computed(() => firstLoad.value);
 
 // Фильтр статусов = канон-меню `.tabbar`. `slug` — стабильный ключ в URL
 // (`?status=moderation`), чтобы на любой фильтр можно было перейти ссылкой.
@@ -89,11 +101,11 @@ const STATUS_FILTER_OPTIONS: Array<{
   value: MarketplaceOfferStatusView | null;
   slug: string;
 }> = [
-  { label: 'Все', value: null, slug: 'all' },
-  { label: 'На модерации', value: 'PENDING_MODERATION', slug: 'moderation' },
-  { label: 'Опубликовано', value: 'ACTIVE', slug: 'published' },
-  { label: 'Отклонено', value: 'REJECTED', slug: 'rejected' },
-  { label: 'Сняты', value: 'WITHDRAWN', slug: 'withdrawn' },
+  { label: t('marketplace.offererMyOffersPage.filterAll'), value: null, slug: 'all' },
+  { label: t('marketplace.offererMyOffersPage.filterModeration'), value: 'PENDING_MODERATION', slug: 'moderation' },
+  { label: t('marketplace.offererMyOffersPage.filterPublished'), value: 'ACTIVE', slug: 'published' },
+  { label: t('marketplace.offererMyOffersPage.filterRejected'), value: 'REJECTED', slug: 'rejected' },
+  { label: t('marketplace.offererMyOffersPage.filterWithdrawn'), value: 'WITHDRAWN', slug: 'withdrawn' },
 ];
 
 // Вкладки-фильтры: ключом служит slug статуса, он же уходит в адресную строку
@@ -154,8 +166,9 @@ const cards = computed<OfferCard[]>(() =>
     // сразу уменьшается). Повторно вычитать `quantity_blocked` нельзя —
     // это двойное списание (100 опубликовал, заказали 1 → показывало 98).
     remainUnits: o.unlimited_flag ? undefined : o.quantity_available,
-    unitCost: parseFloat(o.price_per_unit) || 0,
-    unitLabel: marketplaceOrderUnitLabel(o.unit_of_measure),
+    unitCost: offerCardUnitCost(o),
+    unitLabel: offerCardUnitLabel(o),
+    packages: marketplaceCardPackages(o.packages, o.unit_of_measure, o.unlimited_flag),
     status: STATUS_TO_CARD[o.status],
     domainStatus: o.status,
     rejectReason: o.reject_reason ?? null,
@@ -183,8 +196,8 @@ async function onRepublish(card: OfferCard): Promise<void> {
     const status = await republishOffer(String(card.id));
     SuccessAlert(
       status === Zeus.MarketplaceOfferStatus.ACTIVE
-        ? 'Предложение снова опубликовано.'
-        : 'Предложение отправлено на модерацию.',
+        ? t('marketplace.offererMyOffersPage.republishedMessage')
+        : t('marketplace.offererMyOffersPage.sentToModerationMessage'),
     );
     await load(1, false);
   } catch (e) {
@@ -243,30 +256,21 @@ const reloadLive = debounce(() => {
   void load(1, false);
 }, 400);
 
-useMarketplaceRealtime(
-  {
-    MarketplaceOfferPublishedEvent: () => reloadLive(),
-    MarketplaceOfferStockChangedEvent: () => reloadLive(),
-    // Вердикт модерации (одобрено/отклонено) приходит в персональный канал
-    // поставщика — статус-бейдж карточки обновляется сразу, без поллинга.
-    MarketplaceOfferModerationEvent: () => reloadLive(),
-  },
-  { onResync: () => reloadLive() }
-);
+useLiveReload(marketLiveTables('offer'), () => reloadLive());
 </script>
 
 <template lang="pug">
-q-page.my-offers(role="region", aria-label="Мои предложения")
+q-page.my-offers(role="region", :aria-label="$t('marketplace.offererMyOffersPage.ariaLabel')")
   .my-offers__col
     PageHint(storage-key="mp:my-offers:banner-dismissed")
-      | Все ваши предложения в кооперативе и их статус. Нажмите на карточку,
-      | чтобы открыть предложение — изменить цену и остаток, отредактировать
-      | описание или снять с публикации. Цена и количество меняются без
-      | повторной модерации.
+      | {{ $t('marketplace.offererMyOffersPage.bannerHintIntro') }}
+      | {{ $t('marketplace.offererMyOffersPage.bannerHintEdit') }}
+      | {{ $t('marketplace.offererMyOffersPage.bannerHintNoModeration') }}
+      | {{ $t('marketplace.offererMyOffersPage.bannerHintNoModerationTail') }}
 
     FilterBar(
       v-model:search="search",
-      search-placeholder="Поиск по названию",
+      :search-placeholder="$t('marketplace.offererMyOffersPage.searchPlaceholder')",
       hide-reset
     )
 
@@ -285,9 +289,9 @@ q-page.my-offers(role="region", aria-label="Мои предложения")
         CatalogOfferCardSkeleton
 
     EmptyState(
-      v-if="!loading && filtered.length === 0",
-      title="Нет предложений в этом фильтре",
-      body="Если у вас нет ни одного предложения — создайте первое на странице «Создать предложение»."
+      v-if="!firstLoad && filtered.length === 0",
+      :title="$t('marketplace.offererMyOffersPage.emptyTitle')",
+      :body="$t('marketplace.offererMyOffersPage.emptyBody')"
     )
 
     template(v-if="filtered.length > 0")
@@ -307,10 +311,10 @@ q-page.my-offers(role="region", aria-label="Мои предложения")
             )
               template(#icon-left)
                 q-icon(name="publish", size="16px")
-              | Опубликовать снова
+              | {{ $t('marketplace.offererMyOffersPage.republishAction') }}
 
       .my-offers__more(v-if="hasMore")
-        BaseButton(variant="ghost", :loading="loading", @click="loadMore") Показать ещё
+        BaseButton(variant="ghost", :loading="loading", @click="loadMore") {{ $t('marketplace.offererMyOffersPage.showMoreAction') }}
 </template>
 
 <style scoped lang="scss">

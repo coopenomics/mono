@@ -5,7 +5,7 @@ div.row.q-pa-md
     // Лоадер пока идет загрузка данных или технические работы у провайдера
     WindowLoader(
       v-if="isLoading || connectionAgreement.isBadGateway",
-      :text="connectionAgreement.isBadGateway ? 'технические работы...' : 'Загрузка данных подключения...'"
+      :text="connectionAgreement.isBadGateway ? $t('union.connectionAgreementPage.maintenanceText') : $t('union.connectionAgreementPage.loadingText')"
     )
 
     // Основной контент после загрузки (не показываем при технических работах у провайдера)
@@ -120,6 +120,7 @@ watch(() => !isInstallationCompleted.value && !isLoading.value && !isOnCompletio
 })
 
 const openProviderWebsite = () => {
+  // i18n-ignore: URL для перехода, не текст интерфейса
   window.open('https://цифровой-кооператив.рф', '_blank');
 };
 
@@ -242,6 +243,7 @@ watch(
 );
 
 // Lifecycle хуки
+// realtime: нет источника — подключение к союзу ведёт сервер провайдера (другой узел), в ленте кооператива его нет; статус установки обновляется опросом провайдера (startInstanceAutoRefresh).
 onMounted(() => {
   // Делаем инициализацию при монтировании компонента
   init();

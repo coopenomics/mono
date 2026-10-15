@@ -1,10 +1,4 @@
-import {
-  BadRequestException,
-  ConflictException,
-  Inject,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { createHash } from 'crypto';
 import { Cooperative, MarketContract } from 'cooptypes';
@@ -13,7 +7,7 @@ import http from 'http-status';
 import { LOGGER_PORT, type ILoggerPort, DOCUMENT_PORT, type IDocumentPort, type InnerDocumentAggregate } from '@coopenomics/innercoop';
 import type { PaginationInputDTO } from '@coopenomics/extension-kit';
 import type { ISignedDocument } from '@coopenomics/innercoop';
-import { SignedDigitalDocumentInputDTO } from '@coopenomics/extension-kit';
+import { SignedDigitalDocumentInputDTO, DomainError, AmountFormatterUtils } from '@coopenomics/extension-kit';
 import {
   MARKETPLACE_WRITEOFF_PROPOSAL_REPOSITORY,
   type MarketplaceWriteoffProposalDomainRepository,
@@ -22,15 +16,16 @@ import {
   MARKETPLACE_INVENTORY_REPOSITORY,
   type MarketplaceInventoryDomainRepository,
 } from '../../domain/repositories/marketplace-inventory.repository';
-import { MarketplaceInventoryOwnerships } from '../../domain/entities/marketplace-inventory.types';
+import { MarketplaceInventoryOnWarehouseStatuses, MarketplaceInventoryOwnerships } from '../../domain/entities/marketplace-inventory.types';
 import {
   MARKETPLACE_OFFER_REPOSITORY,
   type MarketplaceOfferDomainRepository,
 } from '../../domain/repositories/marketplace-offer.repository';
 import { marketplaceOrderUnitLabel } from '../shared/unit-label.util';
-import { presentSaleUnit } from '../shared/packaging.util';
+import { presentSaleUnit, releasePackagesForPositions } from '../shared/packaging.util';
 import { calcCostAmount } from '../shared/cost.util';
 import type { MarketplaceWriteoffCandidate } from '../../domain/repositories/marketplace-inventory.repository';
+import type { MarketplaceInventoryOrigin } from '../../domain/entities/marketplace-inventory.types';
 import type { MarketplaceUnitOfMeasure } from '../../domain/entities/marketplace-offer.types';
 import { MarketplaceOrderDisplayService } from './marketplace-order-display.service';
 import {
@@ -55,8 +50,7 @@ import {
   MARKETPLACE_WRITEOFF_EXECUTED_EVENT,
   MARKETPLACE_WRITEOFF_REJECTED_EVENT,
 } from '../events/marketplace-notification.events';
-import { AmountFormatterUtils } from '@coopenomics/extension-kit';
-import { HttpApiError } from '@coopenomics/extension-kit';
+import { t } from '../../i18n';
 
 export interface MarketplaceWriteoffItemInput {
   braname: string;
@@ -108,6 +102,8 @@ export interface MarketplaceWriteoffCandidateView {
   braname: string;
   branch_name: string;
   asset_title: string;
+  /** Происхождение партий строки: приёмка либо гарантийный возврат пайщика. */
+  origin: MarketplaceInventoryOrigin;
   unit_of_measure: MarketplaceUnitOfMeasure | null;
   package_size: number | null;
   /** Суммарное количество по всем партиям агрегата. */
@@ -193,7 +189,7 @@ export class MarketplaceWriteoffService {
 
   async getProposal(id: string): Promise<MarketplaceWriteoffProposalDomainEntity> {
     const p = await this.repo.findById(id);
-    if (!p) throw new NotFoundException('Проект списания не найден');
+    if (!p) throw DomainError.notFound('MARKETPLACE_WRITEOFF_PROJECT_NOT_FOUND');
     return p;
   }
 
@@ -236,7 +232,7 @@ export class MarketplaceWriteoffService {
     inventory_ids: string[];
     quantity: string;
   }): Promise<MarketplaceWriteoffItemPresentation> {
-    const FALLBACK = { quantity: item.quantity, unit: 'ед.' };
+    const FALLBACK = { quantity: item.quantity, unit: t('marketplace.writeoff.unitLabel') };
     const invId = item.inventory_ids[0];
     if (!invId) return FALLBACK;
     const inv = await this.inventoryRepo.findById(invId);
@@ -318,6 +314,7 @@ export class MarketplaceWriteoffService {
         inventory_ids: string[];
         braname: string;
         asset_title: string;
+        origin: MarketplaceInventoryOrigin;
         quantity: number;
         amount: number;
         // Размерность строки — из первой партии группы: ключ группировки
@@ -334,7 +331,8 @@ export class MarketplaceWriteoffService {
       if (lockedIds.has(c.inventory_id)) continue;
       // Состояние партии: просрочена / без срока (без гарантии) / ещё годна.
       const state = c.is_expired ? 'expired' : c.expiry_date === null ? 'nowarranty' : 'valid';
-      const key = `${c.braname}|${c.asset_title}|${state}`;
+      // Возвращённое по гарантии — отдельной строкой: председатель видит, что списывает.
+      const key = `${c.braname}|${c.asset_title}|${state}|${c.origin}`;
       const amount = this.candidateAmount(c);
       const expiryMs = c.expiry_date ? c.expiry_date.getTime() : null;
 
@@ -353,6 +351,7 @@ export class MarketplaceWriteoffService {
           inventory_ids: [c.inventory_id],
           braname: c.braname,
           asset_title: c.asset_title,
+          origin: c.origin,
           quantity: c.quantity,
           amount,
           unit_of_measure: c.unit_of_measure,
@@ -378,6 +377,7 @@ export class MarketplaceWriteoffService {
         braname: g.braname,
         branch_name: branchName,
         asset_title: g.asset_title,
+        origin: g.origin,
         unit_of_measure: g.unit_of_measure,
         package_size: g.package_size || null,
         quantity: String(g.quantity),
@@ -451,15 +451,11 @@ export class MarketplaceWriteoffService {
   async getServiceMemoData(id: string, braname: string): Promise<MarketplaceWriteoffServiceMemoData> {
     const proposal = await this.getProposal(id);
     if (!proposal.is_pending_confirmation) {
-      throw new BadRequestException(
-        'Подтвердить списание можно только по проекту, ожидающему подтверждения складов'
-      );
+      throw DomainError.badRequest('MARKETPLACE_WRITEOFF_NOT_AWAITING_CONFIRMATION');
     }
     const items = proposal.items.filter((it) => it.braname === braname && !it.executed);
     if (items.length === 0) {
-      throw new BadRequestException(
-        `В проекте нет неподтверждённых позиций кооперативного участка ${braname}`
-      );
+      throw DomainError.badRequest('MARKETPLACE_WRITEOFF_NO_UNCONFIRMED_ITEMS_FOR_KU', { braname });
     }
     const branch = await this.orderDisplay.resolveBranchDisplay(braname);
     const total = this.sumItems(items);
@@ -502,9 +498,7 @@ export class MarketplaceWriteoffService {
   ): Promise<MarketplaceWriteoffProposalDomainEntity> {
     const existingDraft = await this.repo.findOpenDraft(input.coopname);
     if (existingDraft) {
-      throw new ConflictException(
-        `У кооператива уже есть открытый черновик списания (id=${existingDraft.id}). Удалите его перед созданием нового.`
-      );
+      throw DomainError.conflict('MARKETPLACE_WRITEOFF_DRAFT_ALREADY_EXISTS', { draftId: existingDraft.id });
     }
     // Несколько проектов списания одновременно — допустимо: разные партии
     // скоропорта подаются в совет независимо. Защита от двойного списания
@@ -512,6 +506,7 @@ export class MarketplaceWriteoffService {
     // не запретом второго проекта.
 
     const normalizedItems = this.validateAndNormalizeItems(input.items);
+    await this.assertInventoryOnStock(input.coopname, normalizedItems);
     const total = this.sumItems(normalizedItems);
     const cycleStartedAt = input.cycle_started_at ?? new Date();
 
@@ -539,11 +534,12 @@ export class MarketplaceWriteoffService {
     input: MarketplaceUpdateWriteoffDraftInput
   ): Promise<MarketplaceWriteoffProposalDomainEntity> {
     const draft = await this.repo.findById(input.id);
-    if (!draft) throw new NotFoundException('Проект списания не найден');
+    if (!draft) throw DomainError.notFound('MARKETPLACE_WRITEOFF_PROJECT_NOT_FOUND');
     if (!draft.is_draft) {
-      throw new BadRequestException('Редактировать можно только проект в статусе DRAFT');
+      throw DomainError.badRequest('MARKETPLACE_WRITEOFF_NOT_DRAFT_FOR_EDIT');
     }
     const normalizedItems = this.validateAndNormalizeItems(input.items);
+    await this.assertInventoryOnStock(draft.coopname, normalizedItems);
     const total = this.sumItems(normalizedItems);
 
     return this.repo.updateDraftItems(input.id, normalizedItems, this.formatAsset(total), {
@@ -556,9 +552,9 @@ export class MarketplaceWriteoffService {
 
   async cancelDraft(id: string): Promise<void> {
     const draft = await this.repo.findById(id);
-    if (!draft) throw new NotFoundException('Проект списания не найден');
+    if (!draft) throw DomainError.notFound('MARKETPLACE_WRITEOFF_PROJECT_NOT_FOUND');
     if (!draft.is_draft) {
-      throw new BadRequestException('Удалить можно только проект в статусе DRAFT');
+      throw DomainError.badRequest('MARKETPLACE_WRITEOFF_NOT_DRAFT_FOR_DELETE');
     }
     await this.repo.cancelDraft(id);
   }
@@ -569,14 +565,12 @@ export class MarketplaceWriteoffService {
     input: MarketplaceSubmitWriteoffDraftInput
   ): Promise<MarketplaceWriteoffProposalDomainEntity> {
     const draft = await this.repo.findById(input.id);
-    if (!draft) throw new NotFoundException('Проект списания не найден');
+    if (!draft) throw DomainError.notFound('MARKETPLACE_WRITEOFF_PROJECT_NOT_FOUND');
     if (!draft.is_draft) {
-      throw new BadRequestException(
-        `Передать в совет можно только проект в статусе DRAFT (текущий: ${draft.status})`
-      );
+      throw DomainError.badRequest('MARKETPLACE_WRITEOFF_NOT_DRAFT_FOR_SUBMIT', { status: draft.status });
     }
     if (!Array.isArray(draft.items) || draft.items.length === 0) {
-      throw new BadRequestException('Черновик пуст — добавьте позиции перед отправкой в совет');
+      throw DomainError.badRequest('MARKETPLACE_WRITEOFF_DRAFT_EMPTY');
     }
 
     this.verifyDocumentSignature(input.signed_statement);
@@ -588,9 +582,7 @@ export class MarketplaceWriteoffService {
       !statementMeta ||
       statementMeta.registry_id !== Cooperative.Registry.MarketplaceWriteoffStatement.registry_id
     ) {
-      throw new BadRequestException(
-        `Заявление должно быть зарегистрировано с registry_id=${Cooperative.Registry.MarketplaceWriteoffStatement.registry_id}`
-      );
+      throw DomainError.badRequest('MARKETPLACE_WRITEOFF_STATEMENT_WRONG_REGISTRY_ID', { registryId: Cooperative.Registry.MarketplaceWriteoffStatement.registry_id });
     }
 
     const proposalHash = this.computeProposalHash({
@@ -600,18 +592,14 @@ export class MarketplaceWriteoffService {
       items: draft.items,
     });
     if (statementMeta.proposal_hash && statementMeta.proposal_hash !== proposalHash) {
-      throw new BadRequestException(
-        'Заявление подписано для другого расчёта позиций — пересоберите Заявление перед отправкой'
-      );
+      throw DomainError.badRequest('MARKETPLACE_WRITEOFF_STATEMENT_WRONG_CALCULATION');
     }
 
     // Pre-gate: защита от двойного клика — если другой проект с тем же hash уже
     // успешно отправлен в совет, повторный submit перезапишет on-chain состояние.
     const alreadySubmitted = await this.repo.findByHash(draft.coopname, proposalHash);
     if (alreadySubmitted && alreadySubmitted.id !== draft.id) {
-      throw new ConflictException(
-        `Проект с этим расчётом уже отправлен в совет (id=${alreadySubmitted.id}, статус=${alreadySubmitted.status}).`
-      );
+      throw DomainError.conflict('MARKETPLACE_WRITEOFF_ALREADY_SUBMITTED', { id: alreadySubmitted.id, status: alreadySubmitted.status });
     }
 
     // on-chain propwroff: фиксируем wroffprops::proposed И ставит повестку совета
@@ -643,9 +631,7 @@ export class MarketplaceWriteoffService {
 
     const propTxHash = this.extractTxHash(propTx);
     if (!propTxHash) {
-      throw new ConflictException(
-        'Подача проекта в совет: цепь не вернула tx_hash (propwroff). Повторите.'
-      );
+      throw DomainError.conflict('MARKETPLACE_WRITEOFF_SUBMIT_NO_TX_HASH');
     }
 
     // 3. PG: DRAFT → ON_AGENDA (decision_id заполнит реактор-наблюдатель за soviet.decisions)
@@ -765,12 +751,12 @@ export class MarketplaceWriteoffService {
 
   async executeAuthorizedProposal(id: string, signer: string): Promise<void> {
     const proposal = await this.repo.findById(id);
-    if (!proposal) throw new NotFoundException('Проект списания не найден');
+    if (!proposal) throw DomainError.notFound('MARKETPLACE_WRITEOFF_PROJECT_NOT_FOUND');
     if (!proposal.is_authorized && !proposal.is_executing) {
-      throw new BadRequestException(
-        `Запустить исполнение можно только из AUTHORIZED/EXECUTING (текущий: ${proposal.status})`
-      );
+      throw DomainError.badRequest('MARKETPLACE_WRITEOFF_NOT_AUTHORIZED_FOR_EXECUTE', { status: proposal.status });
     }
+    // Пока совет решал, имущество могли выдать — такое не списывается.
+    await this.assertInventoryOnStock(proposal.coopname, proposal.items.filter((it) => !it.executed));
     let working = proposal;
     if (working.is_authorized) {
       working = await this.repo.markExecuting(id, {
@@ -793,7 +779,7 @@ export class MarketplaceWriteoffService {
         });
         execTxHash = this.extractTxHash(execTx);
         if (!execTxHash) {
-          throw new Error('on-chain execwroff не вернул tx_hash');
+          throw DomainError.internal('MARKETPLACE_WRITEOFF_EXECUTE_NO_TX_HASH');
         }
       } catch (e) {
         this.logger.error(
@@ -849,20 +835,16 @@ export class MarketplaceWriteoffService {
     input: MarketplaceConfirmWriteoffInput
   ): Promise<MarketplaceWriteoffProposalDomainEntity> {
     const proposal = await this.repo.findById(input.id);
-    if (!proposal) throw new NotFoundException('Проект списания не найден');
+    if (!proposal) throw DomainError.notFound('MARKETPLACE_WRITEOFF_PROJECT_NOT_FOUND');
     if (!proposal.is_pending_confirmation) {
-      throw new BadRequestException(
-        `Подтвердить списание можно только по проекту, ожидающему подтверждения складов (текущий: ${proposal.status})`
-      );
+      throw DomainError.badRequest('MARKETPLACE_WRITEOFF_NOT_AWAITING_CONFIRMATION_WITH_STATUS', { status: proposal.status });
     }
     const pendingIndexes = proposal.items
       .map((it, idx) => ({ it, idx }))
       .filter(({ it }) => it.braname === input.braname && !it.executed)
       .map(({ idx }) => idx);
     if (pendingIndexes.length === 0) {
-      throw new BadRequestException(
-        `В проекте нет неподтверждённых позиций кооперативного участка ${input.braname}`
-      );
+      throw DomainError.badRequest('MARKETPLACE_WRITEOFF_NO_UNCONFIRMED_ITEMS_FOR_KU', { braname: input.braname });
     }
 
     this.verifyDocumentSignature(input.signed_memo);
@@ -874,15 +856,14 @@ export class MarketplaceWriteoffService {
       !memoMeta ||
       memoMeta.registry_id !== Cooperative.Registry.MarketplaceWriteoffServiceMemo.registry_id
     ) {
-      throw new BadRequestException(
-        `Служебная записка должна быть зарегистрирована с registry_id=${Cooperative.Registry.MarketplaceWriteoffServiceMemo.registry_id}`
-      );
+      throw DomainError.badRequest('MARKETPLACE_WRITEOFF_MEMO_WRONG_REGISTRY_ID', { registryId: Cooperative.Registry.MarketplaceWriteoffServiceMemo.registry_id });
     }
     if (memoMeta.proposal_hash && memoMeta.proposal_hash !== proposal.proposal_hash) {
-      throw new BadRequestException(
-        'Служебная записка подписана для другого проекта списания'
-      );
+      throw DomainError.badRequest('MARKETPLACE_WRITEOFF_MEMO_WRONG_PROJECT');
     }
+
+    // Пока совет решал, имущество могли выдать — такое не списывается: сверка до цепи.
+    await this.assertInventoryOnStock(proposal.coopname, pendingIndexes.map((idx) => proposal.items[idx]));
 
     // on-chain confirmwroff: закрывает все неисполненные позиции КУ за вызов,
     // проводит o.mkt.wroff и якорит записку в реестр документов.
@@ -895,9 +876,7 @@ export class MarketplaceWriteoffService {
     });
     const confirmTxHash = this.extractTxHash(confirmTx);
     if (!confirmTxHash) {
-      throw new ConflictException(
-        'Подтверждение списания: цепь не вернула tx_hash (confirmwroff). Повторите.'
-      );
+      throw DomainError.conflict('MARKETPLACE_WRITEOFF_CONFIRM_NO_TX_HASH');
     }
 
     let working = proposal;
@@ -957,6 +936,7 @@ export class MarketplaceWriteoffService {
     if (!offer) return;
     await this.offerRepo.applyUpdate(offer.id, {
       quantity_available: Math.max(0, offer.quantity_available - inv.quantity_per_label),
+      packages: releasePackagesForPositions(offer.packages, [inv]),
     });
   }
 
@@ -981,21 +961,42 @@ export class MarketplaceWriteoffService {
     return createHash('sha256').update(payload).digest('hex');
   }
 
+  /**
+   * Списать можно только то, что лежит на складе своего участка. Выданное
+   * пайщику, уже списанное и имущество чужого участка в проект не попадает и
+   * не проводится: до 03.10.2026 сервер состав со складом не сверял, а защитой
+   * был только список кандидатов на экране.
+   */
+  private async assertInventoryOnStock(
+    coopname: string,
+    items: ReadonlyArray<{ braname: string; asset_title: string; inventory_ids?: string[] }>
+  ): Promise<void> {
+    for (const item of items) {
+      for (const invId of item.inventory_ids ?? []) {
+        const inv = await this.inventoryRepo.findById(invId);
+        if (!inv || inv.coopname !== coopname || inv.braname !== item.braname) {
+          throw DomainError.badRequest('MARKETPLACE_WRITEOFF_INVENTORY_NOT_FOUND', { title: item.asset_title });
+        }
+        if (!MarketplaceInventoryOnWarehouseStatuses.includes(inv.status)) {
+          throw DomainError.conflict('MARKETPLACE_WRITEOFF_INVENTORY_NOT_ON_STOCK', { title: item.asset_title });
+        }
+      }
+    }
+  }
+
   validateAndNormalizeItems(items: MarketplaceWriteoffItemInput[]): MarketplaceWriteoffProposalItem[] {
     if (!Array.isArray(items) || items.length === 0) {
-      throw new BadRequestException('Список позиций к списанию пуст');
+      throw DomainError.badRequest('MARKETPLACE_WRITEOFF_ITEMS_EMPTY');
     }
     if (items.length > 200) {
-      throw new BadRequestException('Максимум 200 позиций в одном проекте списания');
+      throw DomainError.badRequest('MARKETPLACE_WRITEOFF_ITEMS_LIMIT');
     }
     return items.map((it) => {
-      if (!it.braname) throw new BadRequestException('Не указан КУ позиции');
-      if (!it.asset_title) throw new BadRequestException('Не указано наименование позиции');
+      if (!it.braname) throw DomainError.badRequest('MARKETPLACE_WRITEOFF_ITEM_BRANAME_REQUIRED');
+      if (!it.asset_title) throw DomainError.badRequest('MARKETPLACE_WRITEOFF_ITEM_TITLE_REQUIRED');
       const amount = Number(it.amount);
       if (!Number.isFinite(amount) || amount <= 0) {
-        throw new BadRequestException(
-          `Некорректная сумма позиции "${it.asset_title}": ${it.amount}`
-        );
+        throw DomainError.badRequest('MARKETPLACE_WRITEOFF_ITEM_AMOUNT_INVALID', { title: it.asset_title, amount: it.amount });
       }
       // Причина обязательна для любой позиции: автоматическое (крон) списание
       // само подставляет «Истёк срок годности»/«Срок годности не задан»
@@ -1005,7 +1006,7 @@ export class MarketplaceWriteoffService {
       // в документы 1108/1111 как будто реально заявленная причина.
       const reason = it.reason?.trim();
       if (!reason) {
-        throw new BadRequestException(`Не указана причина списания позиции "${it.asset_title}"`);
+        throw DomainError.badRequest('MARKETPLACE_WRITEOFF_ITEM_REASON_REQUIRED', { title: it.asset_title });
       }
       return {
         braname: it.braname,
@@ -1077,12 +1078,12 @@ export class MarketplaceWriteoffService {
 
   private verifyDocumentSignature(document: ISignedDocument): void {
     const sig = document.signatures?.[0];
-    if (!sig) throw new HttpApiError(http.BAD_REQUEST, 'Заявление не подписано');
+    if (!sig) throw DomainError.badRequest('MARKETPLACE_WRITEOFF_STATEMENT_NOT_SIGNED');
     const publicKey = PublicKey.from(sig.public_key);
     const signature = Signature.from(sig.signature);
     const verified = signature.verifyDigest(sig.signed_hash, publicKey);
     if (!verified) {
-      throw new HttpApiError(http.BAD_REQUEST, 'Недействительная подпись Заявления о списании');
+      throw DomainError.badRequest('MARKETPLACE_WRITEOFF_STATEMENT_INVALID_SIGNATURE');
     }
   }
 }

@@ -27,7 +27,7 @@ void soviet::addstaff(eosio::name coopname, eosio::name chairman, eosio::name us
 
   eosio::check(persona == staff.end(), "Сотрудник уже добавлен. Отредактируйте его права или переназначьте на другую должность");
 
-  staff.emplace(chairman, [&](auto &a){
+  staff.emplace(RamPayer::of(staff, coopname), [&](auto &a){
     a.username = username;
     a.position_title = position_title;
     a.rights = rights;

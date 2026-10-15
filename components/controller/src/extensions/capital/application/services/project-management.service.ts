@@ -1,32 +1,17 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ProjectManagementInteractor } from '../use-cases/project-management.interactor';
-import type { CreateProjectInputDTO } from '../dto/project_management';
-import type {
-  SetMasterInputDTO,
-  AddAuthorInputDTO,
-  SetPlanInputDTO,
-  StartProjectInputDTO,
-  OpenProjectInputDTO,
-  CloseProjectInputDTO,
-  StopProjectInputDTO,
-  DeleteProjectInputDTO,
-  EditProjectInputDTO,
-  FinalizeProjectInputDTO,
-} from '../dto/project_management';
+import { type AddAuthorInputDTO, type CloseProjectInputDTO, type CreateProjectInputDTO, type DeleteProjectInputDTO, type EditProjectInputDTO, type FinalizeProjectInputDTO, type OpenProjectInputDTO, type SetMasterInputDTO, type SetPlanInputDTO, type StartProjectInputDTO, type StopProjectInputDTO } from '../dto/project_management';
 import { ProjectOutputDTO } from '../dto/project_management/project.dto';
 import { ProjectFilterInputDTO } from '../dto/property_management/project-filter.input';
-import { PaginationInputDTO, PaginationResult,
-  platformSettings,
-} from '@coopenomics/extension-kit';
+import { PaginationInputDTO, PaginationResult, platformSettings, sanitizeUserText, DomainError } from '@coopenomics/extension-kit';
 import { ProjectMapperService } from './project-mapper.service';
-import type { IMonoAccount } from '@coopenomics/innercoop';
+import { type IMonoAccount, type InnerTransactResult } from '@coopenomics/innercoop';
 import { SetCapitalProjectDevelopmentRepositoryUrlInputDTO } from '../dto/project_management/set-development-repository-url.input.dto';
 import { SetCapitalProjectPriorityInputDTO } from '../dto/project_management/set-project-priority.input.dto';
 import { normalizeDevelopmentRepositoryUrl } from '../utils/parse-github-development-repository-url';
 import { CapitalDevelopmentRepositoryGitSyncService } from './capital-development-repository-git-sync.service';
 import type { ProjectDomainEntity } from '../../domain/entities/project.entity';
 import { canViewLocalProject } from '../../domain/utils/private-project-access';
-import type { InnerTransactResult } from '@coopenomics/innercoop';
 import { PermissionsService } from './permissions.service';
 import { ProjectAction } from '../../domain/services/access-policy.service';
 import type { ArtifactAccessScope } from '../../domain/repositories/artifact-access-scope';
@@ -49,8 +34,19 @@ export class ProjectManagementService {
   /**
    * Создание проекта в CAPITAL контракте
    */
+
+  /**
+   * Описание и приглашение пишет человек в редакторе, но принимает их мутация:
+   * очистка в браузере ничего не значит для запроса, отправленного прямо в API
+   * или из командной строки. Правило мягкое — разметка и таблицы в описании
+   * остаются нетронутыми, уходит только исполняемое.
+   */
+  private withCleanText<T extends { description?: string; invite?: string }>(data: T): T {
+    return { ...data, description: sanitizeUserText(data.description), invite: sanitizeUserText(data.invite) };
+  }
+
   async createProject(data: CreateProjectInputDTO, currentUser: IMonoAccount): Promise<InnerTransactResult> {
-    return await this.projectManagementInteractor.createProject(data, currentUser);
+    return await this.projectManagementInteractor.createProject(this.withCleanText(data), currentUser);
   }
 
   /**
@@ -60,7 +56,7 @@ export class ProjectManagementService {
     data: CreateProjectInputDTO,
     currentUser: IMonoAccount
   ): Promise<ProjectOutputDTO> {
-    const project = await this.projectManagementInteractor.createLocalProject(data, currentUser);
+    const project = await this.projectManagementInteractor.createLocalProject(this.withCleanText(data), currentUser);
     return await this.projectMapperService.mapToDTO(project, currentUser);
   }
 
@@ -71,21 +67,54 @@ export class ProjectManagementService {
     if (currentUser.role === 'user') {
       const project = await this.projectManagementInteractor.getProjectByHash(data.project_hash);
       if (!project) {
-        throw new Error(`Проект с хешем ${data.project_hash} не найден`);
+        throw DomainError.notFound('CAPITAL_PROJECT_NOT_FOUND_BY_HASH', { hash: data.project_hash });
       }
       const projectDTO = await this.projectMapperService.mapToDTO(project, currentUser);
       if (!projectDTO.permissions.can_edit_project) {
-        throw new Error('Недостаточно прав для редактирования проекта');
+        throw DomainError.forbidden('CAPITAL_PROJECT_EDIT_FORBIDDEN');
       }
     }
 
-    return await this.projectManagementInteractor.editProject(data, currentUser.username);
+    return await this.projectManagementInteractor.editProject(this.withCleanText(data), currentUser.username);
+  }
+
+  /**
+   * Право на действие над проектом — по таблице ролей проекта
+   * (`PROJECT_PERMISSION_MATRIX`), той же, по которой рабочий стол рисует
+   * кнопки. Гард резолвера пускает роль кооператива, а кто именно вправе на
+   * этом проекте, решает таблица: член совета, ведущий, владелец личного
+   * проекта. Председатель действует по своей роли, как и раньше.
+   *
+   * До 03.10.2026 гард пускал только председателя: член совета и ведущий
+   * видели кнопку и получали отказ (C28-87, решение владельца — «как в
+   * таблице ролей»).
+   */
+  private async assertProjectPermission(
+    projectHash: string,
+    currentUser: IMonoAccount | undefined,
+    permission: 'can_set_master' | 'can_manage_authors' | 'can_change_project_status' | 'can_delete_project',
+    code: string
+  ): Promise<void> {
+    if (currentUser?.role === 'chairman') return;
+    const project = await this.projectManagementInteractor.getProjectByHash(projectHash);
+    if (!project) {
+      throw DomainError.notFound('CAPITAL_PROJECT_NOT_FOUND_BY_HASH', { hash: projectHash });
+    }
+    const projectDTO = await this.projectMapperService.mapToDTO(project, currentUser);
+    if (!projectDTO.permissions[permission]) {
+      throw DomainError.forbidden(code);
+    }
+  }
+
+  private assertProjectStatusPermission(projectHash: string, currentUser?: IMonoAccount): Promise<void> {
+    return this.assertProjectPermission(projectHash, currentUser, 'can_change_project_status', 'CAPITAL_PROJECT_STATUS_FORBIDDEN');
   }
 
   /**
    * Установка мастера проекта CAPITAL контракта
    */
   async setMaster(data: SetMasterInputDTO, currentUser: IMonoAccount): Promise<InnerTransactResult> {
+    await this.assertProjectPermission(data.project_hash, currentUser, 'can_set_master', 'CAPITAL_PROJECT_MASTER_FORBIDDEN');
     return await this.projectManagementInteractor.setMaster(data, currentUser);
   }
 
@@ -93,6 +122,7 @@ export class ProjectManagementService {
    * Добавление автора проекта CAPITAL контракта
    */
   async addAuthor(data: AddAuthorInputDTO, currentUser: IMonoAccount): Promise<ProjectOutputDTO> {
+    await this.assertProjectPermission(data.project_hash, currentUser, 'can_manage_authors', 'CAPITAL_PROJECT_AUTHORS_FORBIDDEN');
     const project = await this.projectManagementInteractor.addAuthor(data, currentUser);
     return await this.projectMapperService.mapToDTO(project, currentUser);
   }
@@ -104,13 +134,13 @@ export class ProjectManagementService {
     // Находим проект для проверки прав
     const project = await this.projectManagementInteractor.getProjectByHash(data.project_hash);
     if (!project) {
-      throw new Error(`Проект с хешем ${data.project_hash} не найден`);
+      throw DomainError.notFound('CAPITAL_PROJECT_NOT_FOUND_BY_HASH', { hash: data.project_hash });
     }
 
     // Проверяем права доступа
     const projectDTO = await this.projectMapperService.mapToDTO(project, currentUser);
     if (!projectDTO.permissions.can_set_plan) {
-      throw new Error('Недостаточно прав для установки плана проекта');
+      throw DomainError.forbidden('CAPITAL_PROJECT_PLAN_FORBIDDEN');
     }
 
     // Выполняем операцию установки плана
@@ -119,7 +149,7 @@ export class ProjectManagementService {
     // Получаем обновленный проект после установки плана
     const updatedProject = await this.projectManagementInteractor.getProjectByHash(data.project_hash);
     if (!updatedProject) {
-      throw new Error(`Не удалось получить обновленный проект после установки плана`);
+      throw DomainError.internal('CAPITAL_PROJECT_REFRESH_AFTER_PLAN_FAILED');
     }
 
     return await this.projectMapperService.mapToDTO(updatedProject, currentUser);
@@ -129,6 +159,7 @@ export class ProjectManagementService {
    * Запуск проекта CAPITAL контракта
    */
   async startProject(data: StartProjectInputDTO, currentUser?: IMonoAccount): Promise<ProjectOutputDTO> {
+    await this.assertProjectStatusPermission(data.project_hash, currentUser);
     const project = await this.projectManagementInteractor.startProject(data);
     return await this.projectMapperService.mapToDTO(project, currentUser);
   }
@@ -137,6 +168,7 @@ export class ProjectManagementService {
    * Открытие проекта для инвестиций CAPITAL контракта
    */
   async openProject(data: OpenProjectInputDTO, currentUser?: IMonoAccount): Promise<ProjectOutputDTO> {
+    await this.assertProjectStatusPermission(data.project_hash, currentUser);
     const project = await this.projectManagementInteractor.openProject(data);
     return await this.projectMapperService.mapToDTO(project, currentUser);
   }
@@ -145,6 +177,7 @@ export class ProjectManagementService {
    * Закрытие проекта от инвестиций CAPITAL контракта
    */
   async closeProject(data: CloseProjectInputDTO, currentUser?: IMonoAccount): Promise<ProjectOutputDTO> {
+    await this.assertProjectStatusPermission(data.project_hash, currentUser);
     const project = await this.projectManagementInteractor.closeProject(data);
     return await this.projectMapperService.mapToDTO(project, currentUser);
   }
@@ -153,6 +186,7 @@ export class ProjectManagementService {
    * Остановка проекта CAPITAL контракта
    */
   async stopProject(data: StopProjectInputDTO, currentUser?: IMonoAccount): Promise<ProjectOutputDTO> {
+    await this.assertProjectStatusPermission(data.project_hash, currentUser);
     const project = await this.projectManagementInteractor.stopProject(data);
     return await this.projectMapperService.mapToDTO(project, currentUser);
   }
@@ -162,6 +196,7 @@ export class ProjectManagementService {
    * Финализация проекта после завершения всех конвертаций участников
    */
   async finalizeProject(data: FinalizeProjectInputDTO, currentUser: IMonoAccount): Promise<ProjectOutputDTO> {
+    await this.assertProjectStatusPermission(data.project_hash, currentUser);
     const project = await this.projectManagementInteractor.finalizeProject(data, currentUser);
     return await this.projectMapperService.mapToDTO(project, currentUser);
   }
@@ -169,7 +204,8 @@ export class ProjectManagementService {
   /**
    * Удаление проекта CAPITAL контракта
    */
-  async deleteProject(data: DeleteProjectInputDTO): Promise<InnerTransactResult> {
+  async deleteProject(data: DeleteProjectInputDTO, currentUser: IMonoAccount): Promise<InnerTransactResult> {
+    await this.assertProjectPermission(data.project_hash, currentUser, 'can_delete_project', 'CAPITAL_PROJECT_DELETE_FORBIDDEN');
     return await this.projectManagementInteractor.deleteProject(data);
   }
 
@@ -184,11 +220,11 @@ export class ProjectManagementService {
   ): Promise<ProjectOutputDTO> {
     const project = await this.projectManagementInteractor.getProjectByHash(data.project_hash.trim().toLowerCase());
     if (!project) {
-      throw new Error(`Проект с хэшем ${data.project_hash} не найден`);
+      throw DomainError.notFound('CAPITAL_PROJECT_BY_HASH_NOT_FOUND', { hash: data.project_hash });
     }
     const preview = await this.projectMapperService.mapToDTO(project, currentUser);
     if (!preview.permissions.can_set_priority) {
-      throw new Error('Недостаточно прав для изменения приоритета проекта или компонента');
+      throw DomainError.forbidden('CAPITAL_PROJECT_PRIORITY_FORBIDDEN');
     }
 
     const updated = await this.projectManagementInteractor.setPriority(project.project_hash, data.priority);
@@ -204,11 +240,11 @@ export class ProjectManagementService {
   ): Promise<ProjectOutputDTO> {
     const project = await this.projectManagementInteractor.getProjectByHash(data.project_hash.trim().toLowerCase());
     if (!project) {
-      throw new Error(`Проект с хэшем ${data.project_hash} не найден`);
+      throw DomainError.notFound('CAPITAL_PROJECT_BY_HASH_NOT_FOUND', { hash: data.project_hash });
     }
     const preview = await this.projectMapperService.mapToDTO(project, currentUser);
     if (!preview.permissions.can_edit_project) {
-      throw new Error('Недостаточно прав для изменения URL репозитория проекта');
+      throw DomainError.forbidden('CAPITAL_PROJECT_REPO_URL_FORBIDDEN');
     }
 
     const raw =
@@ -226,7 +262,7 @@ export class ProjectManagementService {
     } else {
       const normalized = normalizeDevelopmentRepositoryUrl(raw);
       if (!normalized) {
-        throw new Error('Укажите ссылку на репозиторий github.com (https://github.com/владелец/репозиторий) или формат owner/repo');
+        throw DomainError.badRequest('CAPITAL_PROJECT_REPO_URL_INVALID');
       }
       nextNormalizedKey = normalized;
       await this.projectManagementInteractor.setDevelopmentRepositoryUrl(project.project_hash, normalized);
@@ -248,7 +284,7 @@ export class ProjectManagementService {
 
     const updated = await this.projectManagementInteractor.getProjectByHash(project.project_hash);
     if (!updated) {
-      throw new Error('Не удалось перечитать проект после сохранения URL репозитория');
+      throw DomainError.internal('CAPITAL_PROJECT_REFRESH_AFTER_REPO_URL_FAILED');
     }
     return await this.projectMapperService.mapToDTO(updated, currentUser);
   }

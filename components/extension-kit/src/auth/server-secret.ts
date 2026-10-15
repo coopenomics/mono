@@ -9,6 +9,8 @@
  * Хост (контроллер или субграф расширения) обязан вызвать `configureExtensionAuth`
  * на старте, до обработки первого запроса.
  */
+import { timingSafeEqual } from 'node:crypto';
+
 let serverSecret: string | undefined;
 
 export interface ExtensionAuthOptions {
@@ -27,5 +29,11 @@ export function configureExtensionAuth(options: ExtensionAuthOptions): void {
  */
 export function hasServerSecret(headers: Record<string, any> | undefined): boolean {
   if (!serverSecret) return false;
-  return headers?.['server-secret'] === serverSecret;
+  const provided = headers?.['server-secret'];
+  if (typeof provided !== 'string') return false;
+  // Сравнение за постоянное время: обычное `===` выходит на первом несовпавшем
+  // байте, и по времени ответа секрет подбирается посимвольно.
+  const a = Buffer.from(provided);
+  const b = Buffer.from(serverSecret);
+  return a.length === b.length && timingSafeEqual(a, b);
 }

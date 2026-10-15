@@ -4,8 +4,7 @@ q-page.expense-wallets-page
     .banner__icon
       q-icon(name='info', size='20px')
     .banner__body
-      | Кошельки-пулы, из которых кооператив ведёт расходы. Каждый пул подключает
-      | своё расширение: нажмите на карточку, чтобы открыть реестр расходов пула.
+      | {{ $t('expenses.expenseWalletsPage.intro') }}
 
   .row.q-col-gutter-md(v-if='entries.length')
     .col-12.col-md-6.col-lg-4(v-for='entry in walletRows', :key='entry.wallet')
@@ -15,7 +14,7 @@ q-page.expense-wallets-page
           :neutral='!entry.program',
           :title='entry.title',
           :subtitle='entry.subtitle',
-          balance-label='Доступно',
+          :balance-label='$t("expenses.expenseWalletsPage.availableLabel")',
           :balance='entry.balance',
           :symbol='entry.symbol',
           :icon='entry.icon',
@@ -24,8 +23,8 @@ q-page.expense-wallets-page
 
   .empty(v-else)
     EmptyState(
-      title='Кошельков расходов пока нет',
-      body='Ни одно расширение не подключило пул расходов на этом кооперативе.'
+      :title='$t("expenses.expenseWalletsPage.emptyTitle")',
+      :body='$t("expenses.expenseWalletsPage.emptyHint")'
     )
       template(#icon)
         q-icon(name='account_balance_wallet', size='48px')
@@ -33,6 +32,8 @@ q-page.expense-wallets-page
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
+import { Ledger2Contract } from 'cooptypes';
+import { useLiveReload, liveTable } from 'src/shared/lib/realtime';
 import { useRouter } from 'vue-router';
 import { Queries } from '@coopenomics/sdk';
 import { client } from 'src/shared/api/client';
@@ -52,9 +53,9 @@ const entries = listExpenseWallets();
 const balances = ref<Record<string, string>>({});
 const loading = ref(false);
 
-onMounted(async () => {
+async function loadBalances(silent = false): Promise<void> {
   try {
-    loading.value = true;
+    if (!silent) loading.value = true;
     const { [Queries.Ledger2.GetLedger2Wallets.name]: wallets } = await client.Query(
       Queries.Ledger2.GetLedger2Wallets.query,
       { variables: { coopname: system.info.coopname } },
@@ -67,7 +68,13 @@ onMounted(async () => {
   } finally {
     loading.value = false;
   }
-});
+}
+
+onMounted(() => loadBalances());
+
+// Балансы пулов — кошельки кооператива в ledger2: движение по ним приходит
+// по ленте изменений, суммы обновляются сами.
+useLiveReload([liveTable(Ledger2Contract, Ledger2Contract.Tables.Wallets)], () => loadBalances(true));
 
 function splitAsset(asset?: string): { amount: string; symbol: string } {
   const fallbackSymbol = system.info?.symbols?.root_govern_symbol ?? 'RUB';

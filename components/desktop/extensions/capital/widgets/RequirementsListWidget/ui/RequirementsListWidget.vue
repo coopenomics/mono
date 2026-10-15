@@ -85,6 +85,8 @@ div
 
 <script lang="ts" setup>
 import { ref, onMounted, computed, watch } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { CAPITAL_LIVE_TABLES } from 'app/extensions/capital/shared/lib/live';
 import { useRouter, useRoute } from 'vue-router';
 import { useQueryOverlay } from 'src/shared/lib/navigation';
 import { Zeus } from '@coopenomics/sdk';
@@ -106,6 +108,7 @@ import { CapitalSectionEmpty } from 'app/extensions/capital/shared/ui/CapitalSec
 import { capitalRouteName } from 'app/extensions/capital/shared/lib/capitalWorkspaceRoutes';
 import { FavoriteStarButton } from 'app/extensions/capital/features/Favorite/ToggleFavorite';
 import { storyContentIcon } from 'app/extensions/capital/shared/lib/storyContentIcon';
+import { t } from '../../../i18n';
 
 const FavoriteTargetType = Zeus.CapitalFavoriteTargetType;
 
@@ -121,8 +124,8 @@ const props = withDefaults(
   }>(),
   {
     showComponentScopeBadge: false,
-    emptyTitle: 'Артефактов пока нет',
-    emptyBody: 'Добавьте первый артефакт, чтобы зафиксировать требования и решения.',
+    emptyTitle: t('capital.requirementsListWidget.emptyTitle'),
+    emptyBody: t('capital.requirementsListWidget.emptyBody'),
   },
 );
 
@@ -262,7 +265,7 @@ const loadSourceTitle = async (requirement: IStory) => {
       });
 
       if (projectData?.title) {
-        const prefix = projectData.parent_hash ? '[Компонент]' : '[Проект]';
+        const prefix = projectData.parent_hash ? t('capital.requirementsListWidget.componentFallback') : t('capital.requirementsListWidget.projectFallback');
         projectTitles.value[requirement.project_hash] = `${prefix}${projectData.title}`;
       }
     }
@@ -284,21 +287,21 @@ const columns = [
   },
   {
     name: 'status',
-    label: 'Статус',
+    label: t('capital.requirementsListWidget.columnStatus'),
     align: 'center' as const,
     field: 'status' as const,
     sortable: true,
   },
   {
     name: 'title',
-    label: 'Артефакт',
+    label: t('capital.requirementsListWidget.columnArtifact'),
     align: 'left' as const,
     field: 'title' as const,
     sortable: true,
   },
   {
     name: 'type',
-    label: 'Тип',
+    label: t('capital.requirementsListWidget.columnType'),
     align: 'right' as const,
     field: '' as const,
     sortable: false,
@@ -324,7 +327,7 @@ const loadRequirements = async () => {
     await storyStore.loadStories({ filter, options });
   } catch (error) {
     console.error('Ошибка при загрузке артефактов:', error);
-    FailAlert('Не удалось загрузить артефакты');
+    FailAlert(t('capital.requirementsListWidget.loadError'));
   } finally {
     loading.value = false;
   }
@@ -454,6 +457,12 @@ watch(requirements, async (newRequirements) => {
 }, { immediate: true });
 
 // Инициализация
+// Виджет живёт по ленте изменений Благороста.
+useLiveReload(CAPITAL_LIVE_TABLES, async () => {
+  await loadRequirements();
+  await loadVisibleTitles();
+});
+
 onMounted(async () => {
   await loadRequirements();
   await loadVisibleTitles();

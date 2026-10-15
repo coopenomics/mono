@@ -4,6 +4,7 @@ declare -A contract_params_test=(
   [gateway]="gateway"
   [draft]="draft"
   [marketplace]="marketplace"
+  [edubridge]="edubridge"
   [soviet]="soviet"
   [registrator]="registrator"
   [fund]="fund"

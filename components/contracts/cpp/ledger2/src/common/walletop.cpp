@@ -75,7 +75,7 @@ void ledger2::walletop(eosio::name coopname,
       eosio::check(!human_view.empty(),
                    std::string{"walletop: unknown wallet "} + wallet_id.to_string());
       const std::string human{human_view};
-      it = wallets.emplace(payer, [&](auto& w) {
+      it = wallets.emplace(RamPayer::of(wallets, coopname), [&](auto& w) {
         w.id        = wallet_id;
         w.name      = human;
         w.available = eosio::asset(0, amount.symbol);
@@ -109,7 +109,7 @@ void ledger2::walletop(eosio::name coopname,
     auto it  = idx.find(combine_ids(wallet_id.value, username.value));
     if (it == idx.end()) {
       const uint64_t new_id = user_wallets.available_primary_key();
-      user_wallets.emplace(payer, [&](auto& uw) {
+      user_wallets.emplace(RamPayer::of(user_wallets, coopname), [&](auto& uw) {
         uw.id          = new_id;
         uw.wallet_name = wallet_id;
         uw.username    = username;
@@ -189,11 +189,11 @@ void ledger2::walletop(eosio::name coopname,
       eosio::check(wallet_to.value != 0, "walletop ISSUE: требуется wallet_to");
 
       auto it = upsert_wallet(wallet_to);
-      wallets.modify(it, payer, [&](auto& w) { w.available += amount; });
+      wallets.modify(it, RamPayer::of(wallets, coopname), [&](auto& w) { w.available += amount; });
 
       if (is_user_shared_l3(wallet_to)) {
         auto uw_it = upsert_l3(wallet_to);
-        user_wallets.modify(uw_it, payer, [&](auto& uw) { uw.available += amount; });
+        user_wallets.modify(uw_it, RamPayer::of(user_wallets, coopname), [&](auto& uw) { uw.available += amount; });
       }
       break;
     }
@@ -207,9 +207,9 @@ void ledger2::walletop(eosio::name coopname,
       eosio::check(from_it != wallets.end() && from_it->available >= amount,
                    std::string{"walletop TRANSFER: недостаточно средств на кошельке "} +
                      wallet_from.to_string());
-      wallets.modify(from_it, payer, [&](auto& w) { w.available -= amount; });
+      wallets.modify(from_it, RamPayer::of(wallets, coopname), [&](auto& w) { w.available -= amount; });
       auto to_it = upsert_wallet(wallet_to);
-      wallets.modify(to_it, payer, [&](auto& w) { w.available += amount; });
+      wallets.modify(to_it, RamPayer::of(wallets, coopname), [&](auto& w) { w.available += amount; });
 
       if (is_user_shared_l3(wallet_from)) {
         auto from_uw = find_l3(wallet_from);
@@ -218,11 +218,11 @@ void ledger2::walletop(eosio::name coopname,
                      std::string{"walletop TRANSFER: недостаточно L3-средств у пайщика "} +
                        username.to_string() + " на " + wallet_from.to_string());
         auto from_uw_pri = user_wallets.find(from_uw->id);
-        user_wallets.modify(from_uw_pri, payer, [&](auto& uw) { uw.available -= amount; });
+        user_wallets.modify(from_uw_pri, RamPayer::of(user_wallets, coopname), [&](auto& uw) { uw.available -= amount; });
       }
       if (is_user_shared_l3(wallet_to)) {
         auto to_uw = upsert_l3(wallet_to);
-        user_wallets.modify(to_uw, payer, [&](auto& uw) { uw.available += amount; });
+        user_wallets.modify(to_uw, RamPayer::of(user_wallets, coopname), [&](auto& uw) { uw.available += amount; });
       }
 
       cleanup_l2_if_empty(wallet_from);
@@ -237,7 +237,7 @@ void ledger2::walletop(eosio::name coopname,
       eosio::check(it != wallets.end() && it->available >= amount,
                    std::string{"walletop BURN: недостаточно available на кошельке "} +
                      wallet_from.to_string());
-      wallets.modify(it, payer, [&](auto& w) { w.available -= amount; });
+      wallets.modify(it, RamPayer::of(wallets, coopname), [&](auto& w) { w.available -= amount; });
 
       if (is_user_shared_l3(wallet_from)) {
         auto uw = find_l3(wallet_from);
@@ -246,7 +246,7 @@ void ledger2::walletop(eosio::name coopname,
                      std::string{"walletop BURN: недостаточно L3-available у пайщика "} +
                        username.to_string() + " на " + wallet_from.to_string());
         auto uw_pri = user_wallets.find(uw->id);
-        user_wallets.modify(uw_pri, payer, [&](auto& r) { r.available -= amount; });
+        user_wallets.modify(uw_pri, RamPayer::of(user_wallets, coopname), [&](auto& r) { r.available -= amount; });
       }
 
       cleanup_l2_if_empty(wallet_from);

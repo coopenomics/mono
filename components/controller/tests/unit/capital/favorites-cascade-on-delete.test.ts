@@ -111,6 +111,11 @@ describe('capital: удаление задачи и артефакта сним�
     service.timeTrackingInteractor = {
       cleanupIssueTimeEntries: jest.fn(async () => undefined),
     };
+    service.permissionsService = {
+      calculateIssuePermissions: jest.fn(async (_issue: unknown, user: { username: string }) => ({
+        can_delete_issue: user.username === 'master',
+      })),
+    };
     service.assertCanDeleteStoryRequirement = jest.fn(async () => undefined);
     service.removeStoryMatrixAnnouncements = jest.fn(async () => undefined);
 
@@ -121,10 +126,23 @@ describe('capital: удаление задачи и артефакта сним�
   it('удалённая задача снимается с избранного у всех пайщиков', async () => {
     const service = makeGenerationService();
 
-    await service.deleteIssueByHash('ih');
+    await service.deleteIssueByHash('ih', { username: 'ant', role: 'chairman' } as any);
 
     expect(service.issueRepository.delete).toHaveBeenCalledWith('issue-id');
     expect(service.favoriteRepository.removeAllByTargetHash).toHaveBeenCalledWith('ih');
+  });
+
+  // cap.roles.side.02
+  it('задачу удаляет ведущий проекта; пайщику без этого права — отказ, задача на месте', async () => {
+    const service = makeGenerationService();
+
+    await expect(service.deleteIssueByHash('ih', { username: 'worker', role: 'user' } as any)).rejects.toMatchObject({
+      code: 'CAPITAL_ISSUE_DELETE_FORBIDDEN',
+    });
+    expect(service.issueRepository.delete).not.toHaveBeenCalled();
+
+    await service.deleteIssueByHash('ih', { username: 'master', role: 'user' } as any);
+    expect(service.issueRepository.delete).toHaveBeenCalledWith('issue-id');
   });
 
   // cap.fav.side.08

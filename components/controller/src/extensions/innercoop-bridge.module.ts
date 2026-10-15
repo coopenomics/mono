@@ -3,6 +3,9 @@ import {
   CANDIDATE_PORT,
   CHAIN_PORT,
   CHAIN_RESOURCES_PORT,
+  CHAIRMAN_APPROVALS_PORT,
+  CHAIN_DELTA_WAIT_PORT,
+  CHAIN_CHANGES_PORT,
   CHATCOOP_CALENDAR_PORT,
   ACCOUNT_PORT,
   AGREEMENT_CATALOG_PORT,
@@ -11,8 +14,14 @@ import {
   COUNCIL_PORT,
   DECISION_TRACKING_PORT,
   DESKTOP_GRANTS_REGISTRY_PORT,
+  DESKTOP_GRANTS_FILTER_REGISTRY_PORT,
+  REGISTRATION_OFFER_FILTER_REGISTRY_PORT,
+  ROLE_ASSIGNMENTS_PORT,
+  ACCOUNTING_REGISTRY_PORT,
+  GLOBAL_SEARCH_REGISTRY_PORT,
   DOCUMENT_PORT,
   EXPENSE_CHASSIS_PORT,
+  SOVIET_ROBOT_PORT,
   EXTENSION_CONFIG_PORT,
   FREE_DECISION_PORT,
   LEDGER2_HISTORY_PORT,
@@ -22,6 +31,8 @@ import {
   MESSAGE_CHANNEL_PORT,
   MUTATION_LOG_PORT,
   ONBOARDING_STEP_REGISTRY_PORT,
+  DOCUMENT_DECLARATION_PORT,
+  DOCUMENT_APPROVAL_PORT,
   NOTIFICATION_PORT,
   PAYMENT_PORT,
   INDIVIDUAL_PORT,
@@ -29,6 +40,7 @@ import {
   EXTENSION_DATABASE_PORT,
   ORGANIZATION_PORT,
   PAYMENT_DESK_PORT,
+  WALLET_WITHDRAW_PORT,
   PAYMENT_METHOD_PORT,
   PAYMENT_NOTICE_LOG_PORT,
   PAYMENT_POLLING_STATE_PORT,
@@ -37,15 +49,18 @@ import {
   PROGRAM_WALLET_PORT,
   PROJECT_CAPITAL_CLEARANCE_PORT,
   REALTIME_CHANNEL_PORT,
+  MEMBER_EXIT_REGISTRY_PORT,
   REGISTRATION_REGISTRY_PORT,
   REGISTRATION_DOCUMENT_PARAMETERS_REGISTRY_PORT,
   SECRET_CIPHER_PORT,
   USER_DATA_PORT,
+  USER_AVATAR_PORT,
   USER_CERTIFICATE_PORT,
   VERIFICATION_PORT,
   USER_DIRECTORY_PORT,
   USER_WALLET_PORT,
   VAULT_PORT,
+  COOP_CREDENTIAL_PORT,
   PROJECT_COMMUNICATION_ARTIFACTS_PORT,
 } from '@coopenomics/innercoop';
 import { RedisModule } from '~/infrastructure/redis/redis.module';
@@ -55,6 +70,8 @@ import { CooperativeVarsInnercoopAdapter } from '~/infrastructure/innercoop/coop
 import { DocumentInnercoopAdapter } from '~/infrastructure/innercoop/document-innercoop.adapter';
 import { AccountInnercoopAdapter } from '~/infrastructure/innercoop/account-innercoop.adapter';
 import { AccountInfrastructureModule } from '~/infrastructure/account/account-infrastructure.module';
+import { AccountModule } from '~/application/account/account.module';
+import { UserAvatarService } from '~/application/account/services/user-avatar.service';
 import { NotificationCenterModule } from '~/application/notification-center/notification-center.module';
 import { MeetInfrastructureModule } from '~/infrastructure/meet/meet-infrastructure.module';
 import { MeetDataAdapter } from '~/infrastructure/meet/meet-data.adapter';
@@ -70,6 +87,7 @@ import { PaymentNoticeLogInnercoopAdapter } from '~/infrastructure/innercoop/pay
 import { PaymentMethodInnercoopAdapter } from '~/infrastructure/innercoop/payment-method-innercoop.adapter';
 import { UserDataInnercoopAdapter } from '~/infrastructure/innercoop/user-data-innercoop.adapter';
 import { PaymentDeskInnercoopAdapter } from '~/infrastructure/innercoop/payment-desk-innercoop.adapter';
+import { WalletWithdrawInnercoopAdapter } from '~/infrastructure/innercoop/wallet-withdraw-innercoop.adapter';
 import {
   ProgramWalletInnercoopAdapter,
   UserWalletInnercoopAdapter,
@@ -78,6 +96,8 @@ import { WalletModule } from '~/application/wallet/wallet.module';
 import { VaultInnercoopAdapter } from '~/infrastructure/innercoop/vault-innercoop.adapter';
 import { VaultDomainModule } from '~/domain/vault/vault-domain.module';
 import { OnboardingStepsRegistryService } from '~/domain/onboarding/services/onboarding-steps-registry.service';
+import { DocumentDeclarationsRegistryService } from '~/domain/document-approval/services/document-declarations-registry.service';
+import { DocumentApprovalOnboardingAdapter } from '~/domain/document-approval/services/document-approval-onboarding.adapter';
 import { BranchInnercoopAdapter } from '~/infrastructure/innercoop/branch-innercoop.adapter';
 import { ChainInnercoopAdapter } from '~/infrastructure/innercoop/chain-innercoop.adapter';
 import { SecretCipherInnercoopAdapter } from '~/infrastructure/innercoop/secret-cipher-innercoop.adapter';
@@ -86,6 +106,7 @@ import { ExtensionDatabaseInnercoopAdapter } from '~/infrastructure/innercoop/ex
 import { RealtimeChannelInnercoopAdapter } from '~/infrastructure/innercoop/realtime-channel-innercoop.adapter';
 import { CouncilInnercoopAdapter } from '~/infrastructure/innercoop/council-innercoop.adapter';
 import { UserDirectoryInnercoopAdapter } from '~/infrastructure/innercoop/user-directory-innercoop.adapter';
+import { AuthentikAdminAdapter } from '~/infrastructure/auth-v2/authentik-admin.adapter';
 import { ProgramAgreementInnercoopAdapter } from '~/infrastructure/innercoop/program-agreement-innercoop.adapter';
 import { MutationLogInnercoopAdapter } from '~/infrastructure/innercoop/mutation-log-innercoop.adapter';
 import { CandidateInnercoopAdapter } from '~/infrastructure/innercoop/candidate-innercoop.adapter';
@@ -98,13 +119,19 @@ import { ChainResourcesInnercoopAdapter } from '~/infrastructure/innercoop/chain
 import { UserModule } from '~/application/user/user.module';
 import { RegistrationModule } from '~/application/registration/registration.module';
 import { ExtensionGrantsRegistry } from '~/application/desktop/extension-grants.registry';
+import { ExtensionGrantsFilterRegistry } from '~/application/desktop/extension-grants-filter.registry';
+import { ExtensionOfferFilterRegistry } from '~/domain/registration/services/extension-offer-filter.registry';
+import { GlobalSearchRegistry } from '~/application/search/global-search.registry';
+import { RoleAssignmentsRegistry } from '~/application/access-roles/role-assignments.registry';
 import { PubSubModule } from '~/infrastructure/pubsub/pubsub.module';
 import { AgreementRegistryService } from '~/domain/registration/services/agreement-registry.service';
+import { MemberExitRegistryService } from '~/domain/account/services/member-exit-registry.service';
 import { RegistrationDocumentParametersRegistry } from '~/domain/registration/services/registration-document-parameters.registry';
 import {
   OrganizationInnercoopAdapter,
   IndividualInnercoopAdapter,
 } from '~/infrastructure/innercoop/party-card-innercoop.adapter';
+import { CoopCredentialInnercoopAdapter } from '~/infrastructure/innercoop/coop-credential-innercoop.adapter';
 import { GatewayInfrastructureModule } from '~/infrastructure/gateway/gateway-infrastructure.module';
 import { GatewayModule } from '~/application/gateway/gateway.module';
 import { NotificationModule } from '~/application/notification/notification.module';
@@ -112,8 +139,14 @@ import { DocumentDomainModule } from '~/domain/document/document.module';
 import { DocumentModule } from '~/application/document/document.module';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import { ChatCoopExtensionModule } from './chatcoop/chatcoop-extension.module';
+import { ChairmanExtensionModule } from './chairman/chairman-extension.module';
+import { ChairmanInnercoopApprovalsAdapter } from './chairman/infrastructure/innercoop/chairman-innercoop-approvals.adapter';
+import { ChainDeltaWaiterService } from '~/infrastructure/blockchain/chain-delta-waiter.service';
+import { ChainChangesService } from '~/infrastructure/blockchain/chain-changes.service';
 import { CapitalExtensionModule } from './capital/capital-extension.module';
 import { ExpensesExtensionModule } from './expenses/expenses-extension.module';
+import { SovietRobotExtensionModule } from '~/extensions/soviet-robot/soviet-robot-extension.module';
+import { SovietRobotInnercoopAdapter } from '~/extensions/soviet-robot/application/adapters/soviet-robot-innercoop.adapter';
 import { Ledger2Module } from '~/application/ledger2/ledger2.module';
 import { ChatcoopInnercoopProjectCommunicationArtifactsAdapter } from './chatcoop/infrastructure/innercoop/chatcoop-innercoop-project-communication-artifacts.adapter';
 import { ChatcoopInnercoopMatrixRoomMessagingAdapter } from './chatcoop/infrastructure/innercoop/chatcoop-innercoop-matrix-room-messaging.adapter';
@@ -121,6 +154,8 @@ import { ChatcoopInnercoopChatCoopCalendarAdapter } from './chatcoop/infrastruct
 import { CapitalInnercoopProjectCapitalClearanceAdapter } from './capital/infrastructure/innercoop/capital-innercoop-project-capital-clearance.adapter';
 import { ExpensesInnercoopExpenseChassisAdapter } from './expenses/infrastructure/innercoop/expenses-innercoop-expense-chassis.adapter';
 import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastructure/innercoop/ledger2-innercoop-history.adapter';
+import { AccountingRegistryInnercoopAdapter } from '~/application/ledger2/infrastructure/innercoop/accounting-registry.adapter';
+import { ProcessRegistryDomainModule } from '~/domain/process-registry/process-registry-domain.module';
 
 /**
  * Глобальная привязка портов @coopenomics/innercoop к их реализациям-расширениям.
@@ -138,13 +173,19 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
   imports: [
     CapitalExtensionModule,
     ChatCoopExtensionModule,
+    // Одобрения председателя другим столам — через порт одобрений.
+    ChairmanExtensionModule,
     ExpensesExtensionModule,
+    SovietRobotExtensionModule,
     Ledger2Module,
+    ProcessRegistryDomainModule,
     RedisModule,
     SystemDomainModule,
     DocumentDomainModule,
     DocumentModule,
     AccountInfrastructureModule,
+    // Фотография пайщика: расширения берут её через порт, своей копии не держат.
+    AccountModule,
     NotificationCenterModule,
     NotificationModule,
     MeetInfrastructureModule,
@@ -177,6 +218,7 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     PaymentMethodInnercoopAdapter,
     UserDataInnercoopAdapter,
     PaymentDeskInnercoopAdapter,
+    WalletWithdrawInnercoopAdapter,
     ProgramWalletInnercoopAdapter,
     UserWalletInnercoopAdapter,
     VaultInnercoopAdapter,
@@ -188,6 +230,8 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     RealtimeChannelInnercoopAdapter,
     CouncilInnercoopAdapter,
     UserDirectoryInnercoopAdapter,
+    // Справочник ищет пайщика по uuid учётки CoopID через admin-API authentik.
+    AuthentikAdminAdapter,
     ProgramAgreementInnercoopAdapter,
     MutationLogInnercoopAdapter,
     CandidateInnercoopAdapter,
@@ -197,6 +241,7 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     ExtensionConfigInnercoopAdapter,
     ChainResourcesInnercoopAdapter,
     OrganizationInnercoopAdapter,
+    CoopCredentialInnercoopAdapter,
     IndividualInnercoopAdapter,
     {
       provide: PROJECT_COMMUNICATION_ARTIFACTS_PORT,
@@ -211,12 +256,36 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
       useExisting: ChatcoopInnercoopChatCoopCalendarAdapter,
     },
     {
+      // Ответ мутации после факта из цепи (ADR-009): ожидание живёт в ядре,
+      // будит его единый потребитель событий индексатора.
+      provide: CHAIN_DELTA_WAIT_PORT,
+      useExisting: ChainDeltaWaiterService,
+    },
+    {
+      // Лента изменений цепи для столов: расширения объявляют свои таблицы.
+      provide: CHAIN_CHANGES_PORT,
+      useExisting: ChainChangesService,
+    },
+    {
+      // Стол, чей процесс завёл одобрение (договор преподавателя и т. п.),
+      // показывает его у себя; одобрение одно — подпись закрывает его везде.
+      provide: CHAIRMAN_APPROVALS_PORT,
+      useExisting: ChairmanInnercoopApprovalsAdapter,
+    },
+    {
       provide: PROJECT_CAPITAL_CLEARANCE_PORT,
       useExisting: CapitalInnercoopProjectCapitalClearanceAdapter,
     },
     {
       provide: EXPENSE_CHASSIS_PORT,
       useExisting: ExpensesInnercoopExpenseChassisAdapter,
+    },
+    {
+      // Робот решений совета: Стол заказов зовёт его напрямую по номеру
+      // решения и ждёт ответ у стойки; без установленного расширения адаптер
+      // отвечает «вручную», и сага уходит в спокойное ожидание решения людей.
+      provide: SOVIET_ROBOT_PORT,
+      useExisting: SovietRobotInnercoopAdapter,
     },
     {
       provide: LEDGER2_HISTORY_PORT,
@@ -299,6 +368,10 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
       useExisting: PaymentDeskInnercoopAdapter,
     },
     {
+      provide: WALLET_WITHDRAW_PORT,
+      useExisting: WalletWithdrawInnercoopAdapter,
+    },
+    {
       provide: PROGRAM_WALLET_PORT,
       useExisting: ProgramWalletInnercoopAdapter,
     },
@@ -309,6 +382,10 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     {
       provide: VAULT_PORT,
       useExisting: VaultInnercoopAdapter,
+    },
+    {
+      provide: COOP_CREDENTIAL_PORT,
+      useExisting: CoopCredentialInnercoopAdapter,
     },
     {
       provide: BRANCH_PORT,
@@ -355,6 +432,10 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
       useExisting: CandidateInnercoopAdapter,
     },
     {
+      provide: USER_AVATAR_PORT,
+      useExisting: UserAvatarService,
+    },
+    {
       provide: USER_CERTIFICATE_PORT,
       useExisting: UserCertificateInnercoopAdapter,
     },
@@ -379,11 +460,46 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
       provide: DESKTOP_GRANTS_REGISTRY_PORT,
       useExisting: ExtensionGrantsRegistry,
     },
+    AccountingRegistryInnercoopAdapter,
+    {
+      // Реестры бухгалтерии и процессов для приложений, которые показывают
+      // их на своём столе по своей таблице прав.
+      provide: ACCOUNTING_REGISTRY_PORT,
+      useExisting: AccountingRegistryInnercoopAdapter,
+    },
+    {
+      // Назначаемые роли: приложение объявляет свои и спрашивает назначенные
+      // пайщику. `RoleAssignmentsRegistryModule` глобальный.
+      provide: ROLE_ASSIGNMENTS_PORT,
+      useExisting: RoleAssignmentsRegistry,
+    },
+    {
+      // Сужающие политики чужих столов: расширение кладёт фильтр, ядро пересекает.
+      provide: DESKTOP_GRANTS_FILTER_REGISTRY_PORT,
+      useExisting: ExtensionGrantsFilterRegistry,
+    },
+    {
+      // Сужающие политики витрины вступления — та же дисциплина.
+      provide: REGISTRATION_OFFER_FILTER_REGISTRY_PORT,
+      useExisting: ExtensionOfferFilterRegistry,
+    },
+    {
+      // Реестр единого поиска — так же: расширение кладёт своего поставщика,
+      // опрашивает ядро. `GlobalSearchRegistryModule` глобальный.
+      provide: GLOBAL_SEARCH_REGISTRY_PORT,
+      useExisting: GlobalSearchRegistry,
+    },
     {
       // Реестр оферт ядра совпадает с портом по форме, промежуточный адаптер
       // ничего бы не добавил; `RegistrationDomainModule` глобальный.
       provide: REGISTRATION_REGISTRY_PORT,
       useExisting: AgreementRegistryService,
+    },
+    {
+      // Расширение говорит, почему пайщику рано выходить; деньги и соглашения
+      // при выходе ведёт цепь.
+      provide: MEMBER_EXIT_REGISTRY_PORT,
+      useExisting: MemberExitRegistryService,
     },
     {
       // Реестр параметров оферт — там же и по той же причине: расширение
@@ -398,6 +514,17 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
       useExisting: OnboardingStepsRegistryService,
     },
     {
+      // Реестр шаблонов кооператива: расширения объявляют документы сюда,
+      // `DocumentApprovalDomainModule` глобальный — сервис виден отсюда.
+      provide: DOCUMENT_DECLARATION_PORT,
+      useExisting: DocumentDeclarationsRegistryService,
+    },
+    {
+      // Шаги подключения расширений поверх фабрики утверждений.
+      provide: DOCUMENT_APPROVAL_PORT,
+      useExisting: DocumentApprovalOnboardingAdapter,
+    },
+    {
       provide: ORGANIZATION_PORT,
       useExisting: OrganizationInnercoopAdapter,
     },
@@ -408,7 +535,11 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
   ],
   exports: [
     PROJECT_COMMUNICATION_ARTIFACTS_PORT,
+    SOVIET_ROBOT_PORT,
     MATRIX_ROOM_MESSAGING_PORT,
+    CHAIRMAN_APPROVALS_PORT,
+    CHAIN_DELTA_WAIT_PORT,
+    CHAIN_CHANGES_PORT,
     CHATCOOP_CALENDAR_PORT,
     PROJECT_CAPITAL_CLEARANCE_PORT,
     EXPENSE_CHASSIS_PORT,
@@ -429,9 +560,11 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     PAYMENT_METHOD_PORT,
     USER_DATA_PORT,
     PAYMENT_DESK_PORT,
+    WALLET_WITHDRAW_PORT,
     PROGRAM_WALLET_PORT,
     USER_WALLET_PORT,
     VAULT_PORT,
+    COOP_CREDENTIAL_PORT,
     BRANCH_PORT,
     CHAIN_PORT,
     SECRET_CIPHER_PORT,
@@ -443,15 +576,24 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     PROGRAM_AGREEMENT_PORT,
     MUTATION_LOG_PORT,
     CANDIDATE_PORT,
+    USER_AVATAR_PORT,
     USER_CERTIFICATE_PORT,
     VERIFICATION_PORT,
     AGREEMENT_CATALOG_PORT,
     EXTENSION_CONFIG_PORT,
     CHAIN_RESOURCES_PORT,
     DESKTOP_GRANTS_REGISTRY_PORT,
+    DESKTOP_GRANTS_FILTER_REGISTRY_PORT,
+    REGISTRATION_OFFER_FILTER_REGISTRY_PORT,
+    MEMBER_EXIT_REGISTRY_PORT,
+    ROLE_ASSIGNMENTS_PORT,
+    ACCOUNTING_REGISTRY_PORT,
+    GLOBAL_SEARCH_REGISTRY_PORT,
     REGISTRATION_REGISTRY_PORT,
     REGISTRATION_DOCUMENT_PARAMETERS_REGISTRY_PORT,
     ONBOARDING_STEP_REGISTRY_PORT,
+    DOCUMENT_DECLARATION_PORT,
+    DOCUMENT_APPROVAL_PORT,
     ORGANIZATION_PORT,
     INDIVIDUAL_PORT,
   ],

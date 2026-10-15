@@ -1,45 +1,48 @@
 <template lang="pug">
-.mp-ku-bar(role="region", aria-label="Текущий пункт выдачи")
+.mp-ku-bar(role="region", :aria-label="$t('marketplace.kuHeaderBar.ariaLabel')")
   .mp-ku-bar__info
     q-icon(name="location_on", size="20px", :color="cartStore.currentBraname ? 'primary' : 'warning'")
     template(v-if="cartStore.currentBraname")
-      span.mp-ku-bar__label Пункт выдачи:
+      span.mp-ku-bar__label {{ $t('marketplace.kuHeaderBar.label') }}
       span.mp-ku-bar__name {{ pointLabel }}
     template(v-else)
-      span.mp-ku-bar__label.text-warning Пункт выдачи не выбран
+      span.mp-ku-bar__label.text-warning {{ $t('marketplace.kuHeaderBar.notSelectedLabel') }}
   BaseButton(
     v-if="multipleAvailable || !cartStore.currentBraname",
     variant="secondary",
     size="sm",
     @click="openDialog"
-  ) {{ cartStore.currentBraname ? 'Сменить' : 'Выбрать пункт' }}
+  ) {{ cartStore.currentBraname ? $t('marketplace.kuHeaderBar.changeButton') : $t('marketplace.kuHeaderBar.selectButton') }}
 
   BaseDialog(
     v-model="dialogOpen",
-    title="Пункт выдачи (КУ)",
+    :title="$t('marketplace.kuHeaderBar.dialogTitle')",
     maximized,
     :close-on-backdrop="!saving"
   )
     template(#default)
-      .mp-ku-bar__hint Выберите кооперативный участок — каталог покажет товары, которые возят на него. При смене участка позиции корзины, которых нет на новом участке, станут недоступны для оформления.
+      .mp-ku-bar__hint {{ $t('marketplace.kuHeaderBar.dialogHint') }}
       KUSelector(v-model="picked", :coopname="coopname", map-min-height="calc(100vh - 240px)")
     template(#footer)
-      BaseButton(variant="ghost", :disabled="saving", @click="dialogOpen = false") Отмена
+      BaseButton(variant="ghost", :disabled="saving", @click="dialogOpen = false") {{ $t('common.action.cancel') }}
       BaseButton(
         variant="primary",
         :disabled="!picked || picked === cartStore.currentBraname",
         :loading="saving",
         @click="apply"
-      ) Применить
+      ) {{ $t('marketplace.kuHeaderBar.applyButton') }}
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import { useLiveReload } from 'src/shared/lib/realtime'
+import { marketLiveTables } from 'src/shared/lib/marketplace'
 import { FailAlert, SuccessAlert } from 'src/shared/api'
 import { BaseButton, BaseDialog } from 'src/shared/ui/base'
 import { KUSelector } from 'src/widgets/Marketplace/KUSelector'
 import { useMarketplaceKUDetailsStore } from 'src/entities/MarketplaceKUDetails'
 import { useMarketplaceCartStore } from 'src/entities/MarketplaceCart'
+import { t } from 'src/shared/i18n';
 
 /**
  * Эпик 16 / Story 16.4: шапка стола с текущим КУ заказчика + смена КУ.
@@ -72,7 +75,7 @@ const pointLabel = computed<string>(() => {
   const current = cartStore.currentBraname
   if (!current) return ''
   const detail = kuStore.details.find((d) => d.coreBraname === current)
-  return detail?.name || detail?.addressFull || cartStore.currentPointName || 'Пункт выдачи'
+  return detail?.name || detail?.addressFull || cartStore.currentPointName || t('marketplace.kuHeaderBar.branchWordLabel')
 })
 
 function openDialog(): void {
@@ -85,7 +88,7 @@ async function apply(): Promise<void> {
   saving.value = true
   try {
     await cartStore.changeDeliveryPoint(picked.value)
-    SuccessAlert('Пункт выдачи обновлён')
+    SuccessAlert(t('marketplace.kuHeaderBar.updatedMessage'))
     dialogOpen.value = false
     emit('changed', picked.value)
   } catch (e) {
@@ -105,6 +108,10 @@ onMounted(async () => {
     // Без деталей шапка покажет нейтральную подпись; смена откроется по запросу.
   }
 })
+
+// Пункты выдачи живут по ленте: новый, закрытый или переименованный участок
+// сразу меняет подпись и доступность «Сменить».
+useLiveReload(marketLiveTables('ku'), () => kuStore.load({ coopname: props.coopname, onlyActive: true }))
 </script>
 
 <style scoped lang="scss">

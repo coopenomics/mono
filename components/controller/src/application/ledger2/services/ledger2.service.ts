@@ -10,20 +10,22 @@ import {
   LEDGER2_BLOCKCHAIN_PORT,
   type Ledger2BlockchainPort,
 } from '~/domain/ledger2/ports/ledger2-blockchain.port';
-import type { Ledger2AccountDTO } from '../dto/ledger2-account.dto';
-import type { Ledger2WalletDTO } from '../dto/ledger2-wallet.dto';
+import type { Ledger2AccountDTO } from '@coopenomics/extension-kit';
+import type { Ledger2WalletDTO } from '@coopenomics/extension-kit';
 import type {
   Ledger2HistoryResponseDTO,
   Ledger2OperationDTO,
-} from '../dto/ledger2-operation.dto';
+} from '@coopenomics/extension-kit';
 import type {
   Ledger2PostingDTO,
   Ledger2PostingsResponseDTO,
-} from '../dto/ledger2-posting.dto';
-import type { GetLedger2HistoryInputDTO } from '../dto/get-ledger2-history-input.dto';
-import type { GetLedger2PostingsInputDTO } from '../dto/get-ledger2-postings-input.dto';
+} from '@coopenomics/extension-kit';
+import type { GetLedger2HistoryInputDTO } from '@coopenomics/extension-kit';
+import type { GetLedger2PostingsInputDTO } from '@coopenomics/extension-kit';
 import type { WalmoveInputDTO } from '../dto/walmove-input.dto';
 import type { Ledger2AdjustmentResultDTO } from '../dto/ledger2-adjustment-result.dto';
+import { t } from '~/i18n';
+import { DomainError } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class Ledger2Service {
@@ -107,19 +109,17 @@ export class Ledger2Service {
    */
   async walmove(input: WalmoveInputDTO): Promise<Ledger2AdjustmentResultDTO> {
     if (input.fromWallet === input.toWallet) {
-      throw new BadRequestException('walmove: from_wallet и to_wallet не должны совпадать');
+      throw DomainError.badRequest('LEDGER2_WALMOVE_SAME_WALLET');
     }
     const fromAccountId = this.resolveWalletAccountId(input.fromWallet);
     const toAccountId = this.resolveWalletAccountId(input.toWallet);
     if (fromAccountId === null || toAccountId === null) {
-      throw new BadRequestException(
-        `walmove: не удалось определить account_id для кошельков ${input.fromWallet} / ${input.toWallet}`,
-      );
+      throw DomainError.badRequest('LEDGER2_WALMOVE_ACCOUNT_UNRESOLVED', { fromWallet: input.fromWallet, toWallet: input.toWallet });
     }
     if (fromAccountId !== toAccountId) {
       throw new BadRequestException(
-        `walmove: from_wallet и to_wallet принадлежат разным бух.счетам (${fromAccountId} ≠ ${toAccountId}). ` +
-          `Перевод между разными счетами требует Manual-корректировки через решение совета (отложено).`,
+        t('ledger2.ledger2Service.walmoveDifferentAccountsMessage', { fromAccountId, toAccountId }) +
+          t('ledger2.ledger2Service.manualAdjustmentRequiredMessage'),
       );
     }
 

@@ -20,7 +20,7 @@
     @click="goToCurrentItem(project?.project_hash)"
   )
     q-icon(name="task", size="14px" :color="iconColorCurrent")
-    span {{ truncateText(project?.title || 'Загрузка...', 35) }}
+    span {{ truncateText(project?.title || $t('capital.projectPathWidget.loadingText'), 35) }}
     q-icon.breadcrumb-link(name="open_in_new", size="10px" :color="iconColorMuted")
 
 </template>

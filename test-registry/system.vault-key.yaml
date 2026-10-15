@@ -1,0 +1,52 @@
+feature: system.vault-key
+title: Серверное хранилище ключа — сохранение ключа кооператива
+
+# Узел подписывает транзакции ключом кооператива, который лежит у него
+# зашифрованным. Сохранить можно только ключ кооператива, и только действующий:
+# сервер сверяет его с ключом аккаунта в цепи. Личные ключи пайщиков хранилище
+# не принимает (решение владельца от 03.10.2026).
+#
+# Заведено 02.10.2026 (C28-85): запись в таблицу vaults не трогал ни один
+# сценарий внешнего слоя — ключи стенда кладёт установка кооператива до начала
+# сценариев (карта готовности к уходу с TypeORM, C28-81).
+sources:
+  backend:
+    - components/controller/src/application/system/interactors/wif.interactor.ts
+    - components/controller/src/application/system/interactors/system.interactor.ts
+    - components/controller/src/domain/vault/**
+    - components/controller/src/infrastructure/database/kysely/repositories/vault.kysely-repository.ts
+
+cases:
+  - id: sys.vault.happy.01
+    level: backend
+    kind: happy
+    scenario: сохраняют действующий ключ кооператива; сохраняют его повторно
+    expect: ключ принят оба раза; узел после сохранения работает как прежде
+    test: components/api-tests/src/system/vault-key.test.ts
+    status: written
+
+  - id: sys.vault.side.01
+    level: backend
+    kind: side
+    scenario: для аккаунта кооператива присылают ключ другого аккаунта
+    expect: отказ AUTH_INVALID_PRIVATE_KEY — ключ, которым узел подписывает, не подменяется
+    test: components/api-tests/src/system/vault-key.test.ts
+    status: written
+
+  - id: sys.vault.side.02
+    level: backend
+    kind: side
+    scenario: вместо ключа прислана строка, которая как ключ не разбирается
+    expect: отказ ввода AUTH_INVALID_PRIVATE_KEY, а не сбой сервера
+    test: components/api-tests/src/system/vault-key.test.ts
+    status: written
+
+  - id: sys.vault.side.04
+    level: backend
+    kind: side
+    scenario: свой верный ключ на сервере сохраняет пайщик или председатель
+    expect: отказ SYSTEM_VAULT_COOPERATIVE_KEY_ONLY — узел хранит только ключ кооператива
+    # До 03.10.2026 хранилище принимало верный ключ любого аккаунта цепи (C28-85).
+    # Прежний случай sys.vault.side.03 (чужой ключ для председателя) вошёл сюда.
+    test: components/api-tests/src/system/vault-key.test.ts
+    status: written

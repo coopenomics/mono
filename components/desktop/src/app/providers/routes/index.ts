@@ -4,6 +4,7 @@ import index from 'src/pages/index.vue';
 import { BlankPage } from 'src/pages/Blank';
 import { PermissionDenied } from 'src/pages/PermissionDenied';
 import { SignUpPage } from 'src/pages/Registrator/SignUp';
+import { CardcoopEntryPage } from 'src/pages/Registrator/CardcoopEntry';
 import { SignInPage } from 'src/pages/Registrator/SignIn';
 import { RouteRecordRaw } from 'vue-router';
 import { InstallCooperativePage } from 'src/pages/Union/InstallCooperative';
@@ -15,11 +16,12 @@ import { LoginRedirectPage } from 'src/features/User/LoginRedirect';
 import { NotMePage } from 'src/pages/Security/NotMe';
 import { PrivacyPage } from 'src/pages/Privacy';
 import { TermsPage } from 'src/pages/Terms';
-// Epic 13 v5.1 — пакетный монитор PowerupPlugin. Adversarial round 2: раньше
-// маршрут жил в desktops/Chairman/model/index.ts manifest, но реальный роутер
-// (этот файл) не консьюмит manifest — страница была недоступна по URL.
+import { CoopidFlowPage } from 'src/pages/Registrator/CoopidFlow';
+// Epic 13 v5.1 — пакетный монитор PowerupPlugin. Роутер столов манифесты
+// src/desktops не читает, поэтому маршрут объявлен здесь.
 import { ResourceMonitorPage } from 'src/pages/PowerUp/ResourceMonitorPage';
 import { defineComponent, h } from 'vue';
+import { t } from 'src/shared/i18n';
 
 // Dynamic layout wrapper, который определяет layout в runtime
 const DynamicLayoutWrapper = defineComponent({
@@ -60,15 +62,36 @@ const baseRoutes: RouteRecordRaw[] = [
         component: PermissionDenied,
       },
       {
+        // Экраны потоков CoopID (105-30): authentik ведёт, стол рисует. Адрес без coopname —
+        // сюда возвращает nginx стенда с родного /if/flow/<slug>/, где coopname нет.
+        path: 'flow/:slug',
+        name: 'coopid-flow',
+        component: CoopidFlowPage,
+        children: [],
+        meta: {
+          authSplit: true,
+          title: t('app.routes.login'),
+          icon: 'login',
+          requiresAuth: false,
+          widget: {
+            title: t('app.routes.login'),
+            hideHeader: true,
+            hideFooter: true,
+          },
+        },
+      },
+      {
         path: ':coopname/auth/signin',
         name: 'signin',
         component: SignInPage,
         children: [],
         meta: {
-          title: 'Вход',
+          // Экран живёт в оболочке AuthSplit: без общей шапки и футера, панель до верха.
+          authSplit: true,
+          title: t('app.routes.login'),
           icon: 'fa-solid fa-sign-in-alt',
           widget: {
-            title: 'Вход',
+            title: t('app.routes.login'),
             hideHeader: true,
             hideFooter: true,
           },
@@ -80,10 +103,12 @@ const baseRoutes: RouteRecordRaw[] = [
         component: LostKeyPage,
         children: [],
         meta: {
-          title: 'Восстановление ключа',
+          // Экран живёт в оболочке AuthSplit: без общей шапки и футера, панель до верха.
+          authSplit: true,
+          title: t('app.routes.keyRecovery'),
           icon: 'fa-solid fa-key',
           widget: {
-            title: 'Восстановление ключа',
+            title: t('app.routes.keyRecovery'),
             hideHeader: true,
           },
         },
@@ -94,10 +119,12 @@ const baseRoutes: RouteRecordRaw[] = [
         component: ResetKeyPage,
         children: [],
         meta: {
-          title: 'Сброс ключа',
+          // Экран живёт в оболочке AuthSplit: без общей шапки и футера, панель до верха.
+          authSplit: true,
+          title: t('app.routes.keyReset'),
           icon: 'fa-solid fa-key',
           widget: {
-            title: 'Сброс ключа',
+            title: t('app.routes.keyReset'),
             hideHeader: true,
           },
         },
@@ -109,10 +136,12 @@ const baseRoutes: RouteRecordRaw[] = [
         component: RecoverRequestPage,
         children: [],
         meta: {
-          title: 'Восстановление доступа',
+          // Экран живёт в оболочке AuthSplit: без общей шапки и футера, панель до верха.
+          authSplit: true,
+          title: t('app.routes.accessRecovery'),
           icon: 'key',
           widget: {
-            title: 'Восстановление доступа',
+            title: t('app.routes.accessRecovery'),
             hideHeader: true,
           },
         },
@@ -125,10 +154,11 @@ const baseRoutes: RouteRecordRaw[] = [
         component: NotMePage,
         children: [],
         meta: {
-          title: 'Защита аккаунта',
+          authSplit: true,
+          title: t('app.routes.permissionDenied'),
           icon: 'security',
           widget: {
-            title: 'Защита аккаунта',
+            title: t('app.routes.permissionDenied'),
             hideHeader: true,
           },
         },
@@ -140,10 +170,12 @@ const baseRoutes: RouteRecordRaw[] = [
         component: RecoverConfirmPage,
         children: [],
         meta: {
-          title: 'Восстановление доступа',
+          // Экран живёт в оболочке AuthSplit: без общей шапки и футера, панель до верха.
+          authSplit: true,
+          title: t('app.routes.accessRecovery'),
           icon: 'key',
           widget: {
-            title: 'Восстановление доступа',
+            title: t('app.routes.accessRecovery'),
             hideHeader: true,
           },
         },
@@ -154,11 +186,28 @@ const baseRoutes: RouteRecordRaw[] = [
         component: InvitePage,
         children: [],
         meta: {
-          title: 'Приглашение',
+          authSplit: true,
+          title: t('app.routes.invitation'),
           icon: 'fa-solid fa-envelope',
           widget: {
-            title: 'Приглашение',
+            title: t('app.routes.invitation'),
             hideHeader: true,
+          },
+        },
+      },
+      {
+        path: ':coopname/auth/cardcoop-entry',
+        name: 'cardcoop-entry',
+        component: CardcoopEntryPage,
+        children: [],
+        meta: {
+          authSplit: true,
+          title: t('app.routes.cardLogin'),
+          icon: 'fa-solid fa-id-card',
+          widget: {
+            title: t('app.routes.cardLogin'),
+            hideHeader: true,
+            hideFooter: true,
           },
         },
       },
@@ -168,10 +217,12 @@ const baseRoutes: RouteRecordRaw[] = [
         component: SignUpPage,
         children: [],
         meta: {
-          title: 'Регистрация',
+          // Экран живёт в оболочке AuthSplit: без общей шапки и футера, панель до верха.
+          authSplit: true,
+          title: t('app.routes.registration'),
           icon: 'fa-solid fa-user-plus',
           widget: {
-            title: 'Регистрация',
+            title: t('app.routes.registration'),
             hideHeader: true,
             hideFooter: true,
           },
@@ -182,12 +233,12 @@ const baseRoutes: RouteRecordRaw[] = [
         name: 'login-redirect',
         component: LoginRedirectPage,
         meta: {
+          authSplit: true,
           layout: 'default',
-          title: 'Вход для доступа к содержимому',
+          title: t('app.routes.contentAccessLogin'),
           icon: 'fa-solid fa-lock',
-          roles: [],
           widget: {
-            title: 'Авторизация',
+            title: t('app.routes.contentAccessAuthorization'),
             hideHeader: false,
           },
         },
@@ -197,7 +248,7 @@ const baseRoutes: RouteRecordRaw[] = [
         name: 'privacy',
         component: PrivacyPage,
         meta: {
-          title: 'Политика конфиденциальности',
+          title: t('app.routes.privacyPolicy'),
           icon: 'fa-solid fa-shield-alt',
         },
       },
@@ -206,7 +257,7 @@ const baseRoutes: RouteRecordRaw[] = [
         name: 'terms',
         component: TermsPage,
         meta: {
-          title: 'Пользовательское соглашение',
+          title: t('app.routes.termsOfUse'),
           icon: 'fa-solid fa-file-contract',
         },
       },
@@ -226,7 +277,6 @@ const baseRoutes: RouteRecordRaw[] = [
         meta: {
           title: 'Пакетные ресурсы',
           icon: 'fa-solid fa-bolt',
-          roles: [],
         },
       },
       {
@@ -247,7 +297,7 @@ if (process.env.DEV) {
     path: '/_dev/ui',
     name: 'dev-ui-showcase',
     component: () => import('src/pages/_dev/ui/index.vue'),
-    meta: { title: 'MONO v2 — базовые компоненты', icon: 'fa-solid fa-flask' },
+    meta: { title: t('app.routes.devUiShowcase'), icon: 'fa-solid fa-flask' },
   });
 }
 
@@ -258,7 +308,7 @@ baseRoutes.push({
   path: '/verify',
   name: 'verify-certificate',
   component: () => import('src/pages/Verify/VerifyCertificatePage.vue'),
-  meta: { title: 'Проверка удостоверения', icon: 'verified_user' },
+  meta: { title: t('app.routes.verifyCertificate'), icon: 'verified_user' },
 });
 
 const rs = baseRoutes;

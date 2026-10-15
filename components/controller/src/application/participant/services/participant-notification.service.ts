@@ -5,6 +5,7 @@ import { Workflows } from '@coopenomics/notifications';
 import config from '~/config/config';
 import { AmountFormatterUtils } from '@coopenomics/extension-kit';
 import { NOTIFICATION_PORT, INotificationPort } from '@coopenomics/innercoop';
+import { t } from '~/i18n';
 
 /**
  * Сервис для отправки уведомлений участникам
@@ -111,7 +112,7 @@ export class ParticipantNotificationService implements OnModuleInit {
         participantName,
         paymentAmount: AmountFormatterUtils.formatAmountSafe(paymentAmount),
         paymentCurrency,
-        paymentType: 'Вступительный и минимальный паевой взнос',
+        paymentType: t('participation.participantNotificationService.entryAndMinShareLabel'),
         coopname,
         paymentUrl: `${config.frontend_url}`,
       };

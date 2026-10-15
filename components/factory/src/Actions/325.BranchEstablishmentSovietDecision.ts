@@ -30,7 +30,7 @@ export class Factory extends DocFactory<BranchEstablishmentSovietDecision.Action
     // До авторизации решения — голоса в цепочке; после — запись решения удаляется, нужен authorize
     let decision: BranchEstablishmentSovietDecision.Model['decision']
     try {
-      decision = await super.getDecision(coop, data.coopname, data.decision_id, meta.created_at)
+      decision = await super.getDecision(coop, data.coopname, data.decision_id, meta.created_at, meta.timezone)
     }
     catch {
       decision = await super.getApprovedDecision(coop, data.coopname, data.decision_id)

@@ -18,7 +18,9 @@ import {
   MARKETPLACE_RETURN_CLAIM_DECIDED_EVENT,
   MARKETPLACE_RETURN_CLAIM_FINALIZED_EVENT,
   MARKETPLACE_RETURN_CLAIM_SUBMITTED_EVENT,
-  MARKETPLACE_RETURN_ACCEPTED_FOR_SUPPLIER_EVENT,
+  MARKETPLACE_SUPPLIER_CLAIM_ISSUED_EVENT,
+  MARKETPLACE_RETURN_COUNCIL_DECIDED_EVENT,
+  MARKETPLACE_ISSUANCE_DECIDED_OFFLINE_EVENT,
   MARKETPLACE_SUPPLIER_PAYMENT_CONFIRMED_EVENT,
   MARKETPLACE_SUPPLIER_PAYMENT_DECLINED_EVENT,
   MARKETPLACE_NEW_SUPPLIER_REQUEST_EVENT,
@@ -38,8 +40,10 @@ import {
   type MarketplaceOrderDeclinedBySupplierEvent,
   type MarketplaceReturnClaimDecidedEvent,
   type MarketplaceReturnClaimFinalizedEvent,
+  type MarketplaceReturnCouncilDecidedEvent,
+  type MarketplaceIssuanceDecidedOfflineEvent,
   type MarketplaceReturnClaimSubmittedEvent,
-  type MarketplaceReturnAcceptedForSupplierEvent,
+  type MarketplaceSupplierClaimIssuedEvent,
   type MarketplaceSupplierPaymentConfirmedEvent,
   type MarketplaceSupplierPaymentDeclinedEvent,
   type MarketplaceNewSupplierRequestEvent,
@@ -48,6 +52,7 @@ import {
   type MarketplaceOfferApprovedEvent,
   type MarketplaceOfferRejectedEvent,
 } from '../events/marketplace-notification.events';
+import { t } from '../../i18n';
 
 /**
  * Story 5.4 / 5.6 / 5.7 — push-уведомления marketplace flow.
@@ -303,7 +308,7 @@ export class MarketplaceNotificationService implements OnModuleInit {
         );
         if (!check.passed) {
           passportReminder =
-            ' Возьмите с собой паспорт: при первом получении оператор подтвердит вашу личность — это делается один раз.';
+            t('marketplace.notification.bringPassportHint');
         }
       } catch {
         /* напоминание — best-effort, уведомление важнее */
@@ -387,9 +392,9 @@ export class MarketplaceNotificationService implements OnModuleInit {
 
   @OnEvent(MARKETPLACE_RETURN_CLAIM_DECIDED_EVENT)
   async handleReturnClaimDecided(event: MarketplaceReturnClaimDecidedEvent): Promise<void> {
-    // approve_visit, reject_remote, accept_at_visit, reject_at_visit — для
-    // approve_visit отправляем приглашение на очный осмотр; финальные исходы
-    // ещё раз продублируются finalized-событием с восстановленной суммой.
+    // Для approve_visit отправляем приглашение на участок; решения совета идут
+    // своим воркфлоу (handleReturnCouncilDecided); финальные исходы
+    // продублируются finalized-событием с восстановленной суммой.
     if (event.decision !== 'approve_visit') {
       // Финал — пользуем finalized-листенер.
       return;
@@ -402,7 +407,7 @@ export class MarketplaceNotificationService implements OnModuleInit {
       } catch {
         /* оставляем braname */
       }
-      const decisionHuman = `Председатель пригласил вас на очный осмотр на КУ ${kuName}`;
+      const decisionHuman = t('marketplace.notification.inspectionInviteTitle', { kuName });
       const payload: Workflows.MarketplaceReturnClaimDecided.IPayload = {
         ordererName,
         decisionHuman,
@@ -435,20 +440,23 @@ export class MarketplaceNotificationService implements OnModuleInit {
       let outcomeHuman: string;
       let returnedAmount: string | undefined;
       switch (event.decision) {
-        case 'accept_at_visit':
-          outcomeHuman = 'Возврат принят — средства восстановлены на программе Стола Заказов';
+        case 'council_authorized':
+          outcomeHuman = t('marketplace.notification.councilAcceptedRestoredTitle');
           returnedAmount = event.ledger_snapshot?.amount
             ? AmountFormatterUtils.formatAmountSafe(event.ledger_snapshot.amount)
             : undefined;
           break;
+        case 'hand_back':
+          outcomeHuman = t('marketplace.notification.propertyReturnedTitle');
+          break;
         case 'reject_remote':
-          outcomeHuman = 'Возврат отклонён удалённо председателем';
+          outcomeHuman = t('marketplace.notification.returnRejectedRemoteTitle');
           break;
         case 'reject_at_visit':
-          outcomeHuman = 'Возврат отклонён по результатам очного осмотра';
+          outcomeHuman = t('marketplace.notification.returnRejectedInspectionTitle');
           break;
         default:
-          outcomeHuman = 'Возврат завершён';
+          outcomeHuman = t('marketplace.notification.returnCompletedTitle');
       }
       const payload: Workflows.MarketplaceReturnClaimFinalized.IPayload = {
         ordererName,
@@ -459,7 +467,7 @@ export class MarketplaceNotificationService implements OnModuleInit {
         returnedAmount,
         // Готовый суффикс для in-app/push — {% if %} в теле шага Центром
         // уведомлений не вычисляется (см. комментарий в схеме воркфлоу).
-        returnedAmountSuffix: returnedAmount ? ` — ${returnedAmount} ₽ восстановлены` : '',
+        returnedAmountSuffix: returnedAmount ? t('marketplace.notification.returnedAmountNote', { returnedAmount }) : '',
         deepLinkUrl: `${platformSettings().frontendUrl}/${event.coopname}/market/returns/${event.claim_id}`,
       };
       await this.notificationSenderService.notifyUser(
@@ -474,6 +482,85 @@ export class MarketplaceNotificationService implements OnModuleInit {
       this.logger.warn(
         `Заявление на возврат ${event.claim_id}: ошибка финального push заказчику (${err.message}) — flow не блокируется.`
       );
+    }
+  }
+
+  /**
+   * Совет решил по гарантийному возврату — решение могло прийти через часы
+   * или дни после визита. Push пайщику: при согласии — паевой взнос
+   * восстановлен, делать ничего не нужно; при отказе — зайти на участок за
+   * имуществом.
+   */
+  @OnEvent(MARKETPLACE_RETURN_COUNCIL_DECIDED_EVENT)
+  async handleReturnCouncilDecided(event: MarketplaceReturnCouncilDecidedEvent): Promise<void> {
+    try {
+      const ordererName = await this.accountPort.getDisplayName(event.orderer_account);
+      let kuName = event.delivery_braname;
+      try {
+        kuName = await this.accountPort.getDisplayName(event.delivery_braname);
+      } catch {
+        /* оставляем braname */
+      }
+      const payload: Workflows.MarketplaceReturnCouncilDecided.IPayload = {
+        ordererName,
+        kuName,
+        coopname: event.coopname,
+        order_id: event.order_id,
+        outcomeText: event.authorized
+          ? t('marketplace.notification.councilAcceptedBody')
+          : t('marketplace.notification.councilRejectedBody'),
+        nextStepText: event.authorized
+          ? t('marketplace.notification.noActionNeededAvailableNote')
+          : t('marketplace.notification.propertyAwaitingPickupBody', { kuName }),
+        deepLinkUrl: `${platformSettings().frontendUrl}/${event.coopname}/market/returns/${event.claim_id}`,
+      };
+      await this.notificationSenderService.notifyUser(
+        event.orderer_account,
+        Workflows.MarketplaceReturnCouncilDecided.id,
+        payload
+      );
+      this.logger.log(`Заявление на возврат ${event.claim_id}: push заказчику о решении совета (${event.authorized ? 'за' : 'против'}) отправлен.`);
+    } catch (err: any) {
+      this.logger.warn(`Заявление на возврат ${event.claim_id}: ошибка push о решении совета (${err.message}) — flow не блокируется.`);
+    }
+  }
+
+  /**
+   * Совет решил по выдаче имущества не у стойки (решение шло вручную):
+   * пайщик уже ушёл — push «подпишите акт в приложении, заберёте при
+   * следующем визите» либо «совет отказал, паевой взнос остался на месте».
+   */
+  @OnEvent(MARKETPLACE_ISSUANCE_DECIDED_OFFLINE_EVENT)
+  async handleIssuanceDecidedOffline(event: MarketplaceIssuanceDecidedOfflineEvent): Promise<void> {
+    try {
+      const ordererName = await this.accountPort.getDisplayName(event.orderer_account);
+      let kuName = event.braname;
+      try {
+        kuName = await this.accountPort.getDisplayName(event.braname);
+      } catch {
+        /* оставляем braname */
+      }
+      const payload: Workflows.MarketplaceIssuanceDecided.IPayload = {
+        ordererName,
+        kuName,
+        coopname: event.coopname,
+        order_id: event.order_id,
+        outcomeText: event.authorized
+          ? t('marketplace.notification.councilApprovedReturnBody')
+          : t('marketplace.notification.councilRejectedIssuanceBody'),
+        nextStepText: event.authorized
+          ? t('marketplace.notification.signActPromptBody', { kuName })
+          : t('marketplace.notification.noActionNeededAvailableNoteAlt'),
+        deepLinkUrl: `${platformSettings().frontendUrl}/${event.coopname}/market/my-orders`,
+      };
+      await this.notificationSenderService.notifyUser(
+        event.orderer_account,
+        Workflows.MarketplaceIssuanceDecided.id,
+        payload
+      );
+      this.logger.log(`Order ${event.order_id}: push заказчику о решении совета по выдаче (${event.authorized ? 'за' : 'против'}) отправлен.`);
+    } catch (err: any) {
+      this.logger.warn(`Order ${event.order_id}: ошибка push о решении совета по выдаче (${err.message}) — flow не блокируется.`);
     }
   }
 
@@ -510,14 +597,14 @@ export class MarketplaceNotificationService implements OnModuleInit {
     try {
       const memberName = await this.accountPort.getDisplayName(event.member_account);
       const outcomeHuman = event.approved
-        ? 'Совет одобрил выплату — заявка передана кассиру, ожидайте перевод на указанные реквизиты.'
-        : 'Совет отказал в выплате — средства остались на вашем кошельке, заявление можно подать заново.';
+        ? t('marketplace.notification.aidApprovedBody')
+        : t('marketplace.notification.aidRejectedBody');
       const payload: Workflows.MarketplaceAidCouncilDecided.IPayload = {
         memberName,
         amount: AmountFormatterUtils.formatAmountSafe(event.amount),
         outcomeHuman,
         // Готовый суффикс: ветвление в теле шага Центром уведомлений не вычисляется.
-        reasonSuffix: !event.approved && event.reason ? ` Причина: ${event.reason}.` : '',
+        reasonSuffix: !event.approved && event.reason ? t('marketplace.notification.reasonNote', { reason: event.reason }) : '',
         coopname: event.coopname,
         deepLinkUrl: `${platformSettings().frontendUrl}/${event.coopname}/market-pvz/economy`,
       };
@@ -629,36 +716,33 @@ export class MarketplaceNotificationService implements OnModuleInit {
     }
   }
 
-  @OnEvent(MARKETPLACE_RETURN_ACCEPTED_FOR_SUPPLIER_EVENT)
-  async handleReturnAcceptedForSupplier(
-    event: MarketplaceReturnAcceptedForSupplierEvent
-  ): Promise<void> {
+  @OnEvent(MARKETPLACE_SUPPLIER_CLAIM_ISSUED_EVENT)
+  async handleSupplierClaimIssued(event: MarketplaceSupplierClaimIssuedEvent): Promise<void> {
     try {
       const supplierName = await this.accountPort.getDisplayName(event.supplier_account);
-      const reasonExcerpt =
-        event.inspection_result.length > 240
-          ? event.inspection_result.slice(0, 240) + '…'
-          : event.inspection_result;
-      const payload: Workflows.MarketplaceReturnAcceptedSupplier.IPayload = {
+      const reason = event.inspection_result || event.reason_text;
+      const reasonExcerpt = reason.length > 240 ? reason.slice(0, 240) + '…' : reason;
+      const payload: Workflows.MarketplaceSupplierClaimIssued.IPayload = {
         supplierName,
         kuName: event.braname,
+        amount: event.amount,
         reasonExcerpt,
         coopname: event.coopname,
         claim_id: event.claim_id,
         order_id: event.order_id,
-        deepLinkUrl: `${platformSettings().frontendUrl}/${event.coopname}/market-supplier/incoming-orders`,
+        deepLinkUrl: `${platformSettings().frontendUrl}/${event.coopname}/market-supplier/claims/${event.claim_id}`,
       };
       await this.notificationSenderService.notifyUser(
         event.supplier_account,
-        Workflows.MarketplaceReturnAcceptedSupplier.id,
+        Workflows.MarketplaceSupplierClaimIssued.id,
         payload
       );
       this.logger.log(
-        `Заявление на возврат ${event.claim_id}: уведомление поставщику ${event.supplier_account} о приёме возврата в кооператив отправлено.`
+        `Претензия ${event.claim_id}: уведомление поставщику ${event.supplier_account} на ${event.amount} отправлено.`
       );
     } catch (err: any) {
       this.logger.warn(
-        `Заявление на возврат ${event.claim_id}: ошибка отправки уведомления поставщику о приёме возврата (${err.message}) — flow не блокируется.`
+        `Претензия ${event.claim_id}: ошибка отправки уведомления поставщику (${err.message}) — flow не блокируется.`
       );
     }
   }

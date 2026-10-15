@@ -31,7 +31,7 @@
   std::vector<eosio::name> storages;
   storages.push_back(coopname);
 
-  accounts.modify(new_user, coopname, [&](auto &c)
+  accounts.modify(new_user, RamPayer::of(accounts, coopname), [&](auto &c)
   {
     c.type = type;
     c.storages = storages;
@@ -53,12 +53,15 @@
   
   // Проверяем подпись документа
   verify_document_or_fail(statement);
+  // Заявление о вступлении подписывает сам кандидат: транзакцию шлёт кооператив,
+  // и без сверки ключа с аккаунтом чужой подписью можно было бы вступить за другого.
+  verify_signer_keys_or_fail(statement, username);
   
   Registrator::candidates_index candidates(_registrator, coopname.value);
   auto candidate = candidates.find(username.value);
   eosio::check(candidate == candidates.end(), "Кандидат уже существует");
   
-  candidates.emplace(coopname, [&](auto &c) {
+  candidates.emplace(RamPayer::of(candidates, coopname), [&](auto &c) {
     c.coopname = coopname;
     c.username = username;
     c.braname = braname;

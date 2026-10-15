@@ -2,27 +2,27 @@
 .row.q-col-gutter-md
   .col-md-4.col-sm-6.col-xs-12
     ColorCard(color='indigo', size='sm')
-      .card-label Исполнитель
+      .card-label {{ $t('capital.invitationDetailsWidget.performerRole') }}
       .card-value {{ formatAsset2Digits(`${candidate.contributed_as_creator || 0} ${info.symbols.root_govern_symbol}`) }}
 
   .col-md-4.col-sm-6.col-xs-12
     ColorCard(color='cyan', size='sm')
-      .card-label Соавтор
+      .card-label {{ $t('capital.invitationDetailsWidget.coauthorRole') }}
       .card-value {{ formatAsset2Digits(`${candidate.contributed_as_author || 0} ${info.symbols.root_govern_symbol}`) }}
 
   .col-md-4.col-sm-6.col-xs-12
     ColorCard(color='orange', size='sm')
-      .card-label Координатор
+      .card-label {{ $t('capital.invitationDetailsWidget.coordinatorRole') }}
       .card-value {{ formatAsset2Digits(`${candidate.contributed_as_coordinator || 0} ${info.symbols.root_govern_symbol}`) }}
 
   .col-md-4.col-sm-6.col-xs-12
     ColorCard(color='indigo', size='sm')
-      .card-label Взносы имуществом
+      .card-label {{ $t('capital.invitationDetailsWidget.propertyContributionsLabel') }}
       .card-value {{ formatAsset2Digits(`${candidate.contributed_as_propertor || 0} ${info.symbols.root_govern_symbol}`) }}
 
   .col-md-4.col-sm-6.col-xs-12
     ColorCard(color='green', size='sm')
-      .card-label Получено по Благоросту
+      .card-label {{ $t('capital.invitationDetailsWidget.blagorostReceivedLabel') }}
       .card-value {{ formatAsset2Digits(`${candidate.contributed_as_contributor || 0} ${info.symbols.root_govern_symbol}`) }}
 
 </template>

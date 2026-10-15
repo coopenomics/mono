@@ -1,6 +1,21 @@
 feature: capital.fund-allocation
 title: Направление средств программы в проект и их возврат в программу
 
+# Правка 2026-09-23 (C28-78): перевод старых текстов проектов в хеши в
+# capital::migrate отложен до второго релиза (TextDigest::PHASE2) — раскатка
+# ставит контракты раньше контроллера. Поведение этой фичи прежнее.
+
+# Правка 2026-09-23 (C28-78): проверка «хеш текста или пустая строка» вынесена
+# в общее — lib/core/text_digest.hpp в контрактах и extension-kit
+# (blockchain/chain-text-digest.ts) в контроллере: ею пользуются и проекты, и
+# вопросы общих собраний. Поведение действий этой фичи прежнее, набор случаев
+# не менялся.
+
+# Правка 2026-09-23 (C28-78): finalizeproj и delproject удаляют голоса
+# проекта — их читает только расчёт премии, а он возможен лишь в статусе
+# result. Движение средств при финализации и удалении прежнее, набор случаев
+# не менялся; очистка покрыта test-registry/contracts.cleanup.yaml.
+
 # Движение денег программы «Благорост» между свободным остатком и бюджетами
 # проектов: аллокация (allocate) и обратный возврат неизрасходованного при
 # выбытии проекта — завершение (finalizeproj) и удаление (delproject). Приём
@@ -29,6 +44,40 @@ title: Направление средств программы в проект 
 # `~/application/auth/*` в `@coopenomics/extension-kit`. В резолверах фичи
 # изменилась только строка импорта — состав guard'ов на операциях, правила
 # доступа и набор случаев прежние.
+
+# Правка 2026-09-21 (C28-78): плательщик за оперативную память строк
+# выбирается хелпером RamPayer::of по классу таблицы (lib/core/ram_payer.hpp),
+# а не именем, переданным вручную в emplace/modify. Меняется только то, с кого
+# цепь списывает память; содержимое строк, проверки и поведение действий
+# прежние, набор случаев этой фичи не менялся. Правило плательщика покрыто
+# отдельно — test-registry/contracts.ram-payer.yaml.
+
+
+# Правка 2026-09-22 (C28-78): описание и приглашение проекта уходят в цепь
+# хешем (sha256 текста), сам текст остаётся в базе контроллера. Контракт
+# принимает в этих полях только хеш или пустую строку, capital::migrate
+# переводит старые строки. Поведение действий этой фичи прежнее, набор случаев
+# не менялся; правило хранения текстов покрыто
+# test-registry/capital.project-chain-texts.yaml.
+#
+# Правка 2026-09-23 (7DD-22): у InvestsManagementService появился третий,
+# необязательный параметр — порт ожидания изменения из цепи (ADR-009); им
+# пользуется только взнос в программу. Направление средств и набор случаев
+# прежние.
+
+# Правка 24.09.2026 (C28-83): после распределения и снятия средств проекты и
+# состояние программы перечитываются сразу (reloadProgramFunds) — пауза 3,5 с
+# снята: мутация отвечает после разбора своего блока. Набор случаев прежний.
+
+# Правка 24.09.2026 (C28-83), экраны: страницы, виджеты и панели фичи живут по
+# ленте изменений Благороста (CAPITAL_LIVE_TABLES); формы, диалоги выбора и
+# редакторы помечены «realtime: нет источника» с причиной. Поведение и набор
+# случаев не менялись.
+
+# Правка 25.09.2026 (C28-80): деловые отказы (не найдено, нет прав, уже есть,
+# неверный ввод) отвечают своим статусом — 404, 403, 409, 400, — а не 500
+# «внутренняя ошибка»: коды и тексты прежние, меняется только статус ответа, и
+# такие отказы больше не попадают в журнал ошибок сервера как поломки.
 
 sources:
   contract:
@@ -278,6 +327,7 @@ cases:
     scenario: направление средств с суммой в валюте кооператива
     expect: запрос доходит до доменного слоя без изменений по существу
     test: components/controller/tests/unit/capital/fund-allocation.test.ts
+    api: components/api-tests/src/capital/fund-allocation.test.ts
     status: passing
 
   - id: cap.alloc.side.01
@@ -288,6 +338,7 @@ cases:
       проект ищется и уходит в цепь в нижнем регистре. Иначе проект не нашёлся
       бы в базе и председатель получил бы «проект не найден» на существующем
     test: components/controller/tests/unit/capital/fund-allocation.test.ts
+    api: components/api-tests/src/capital/fund-allocation.test.ts
     status: passing
 
   - id: cap.alloc.side.02
@@ -296,6 +347,7 @@ cases:
     scenario: направление средств в персональный проект пайщика
     expect: отказ до обращения к цепи — деньги кооператива идут только в его проекты
     test: components/controller/tests/unit/capital/fund-allocation.test.ts
+    api: components/api-tests/src/capital/fund-allocation.test.ts
     status: passing
 
   - id: cap.alloc.side.03
@@ -304,6 +356,7 @@ cases:
     scenario: направление средств в проект, которого нет в базе
     expect: отказ «Проект не найден» до обращения к цепи
     test: components/controller/tests/unit/capital/fund-allocation.test.ts
+    api: components/api-tests/src/capital/fund-allocation.test.ts
     status: passing
 
   - id: cap.alloc.side.04
@@ -312,6 +365,7 @@ cases:
     scenario: сумма указана в валюте, отличной от валюты кооператива
     expect: отказ до доменного слоя
     test: components/controller/tests/unit/capital/fund-allocation.test.ts
+    api: components/api-tests/src/capital/fund-allocation.test.ts
     status: passing
 
   - id: cap.alloc.side.12
@@ -321,16 +375,16 @@ cases:
     expect: >
       отказ по роли: мутация объявлена только для председателя. Проверяется
       мимо интерфейса — кнопка у члена совета и так не отображается
-    test: ~
-    status: missing
+    test: components/api-tests/src/capital/fund-allocation.test.ts
+    status: written
 
   - id: cap.alloc.side.13
     level: backend
     kind: side
     scenario: направление средств запрашивает пайщик без роли
     expect: отказ по роли
-    test: ~
-    status: missing
+    test: components/api-tests/src/capital/fund-allocation.test.ts
+    status: written
 
   # ── Уровень UI ────────────────────────────────────────────────────────────
 
@@ -461,6 +515,7 @@ cases:
       возвращается максимальная сумма и её составляющие — направлено в компонент,
       не израсходовано, удерживается под ссуды — в валюте кооператива
     test: components/controller/tests/unit/capital/fund-allocation.test.ts
+    api: components/api-tests/src/capital/fund-allocation.test.ts
     status: passing
 
   - id: cap.dealloc.side.09
@@ -471,6 +526,7 @@ cases:
       максимум равен нулю, признак разрешённости по статусу отрицательный —
       интерфейсу есть что показать вместо пустого поля
     test: components/controller/tests/unit/capital/fund-allocation.test.ts
+    api: components/api-tests/src/capital/result-submission.test.ts
     status: passing
 
   - id: cap.dealloc.side.10
@@ -479,6 +535,7 @@ cases:
     scenario: возврат средств из персонального проекта пайщика
     expect: отказ до обращения к цепи — операция только для кооперативных проектов
     test: components/controller/tests/unit/capital/fund-allocation.test.ts
+    api: components/api-tests/src/capital/fund-allocation.test.ts
     status: passing
 
   - id: cap.dealloc.side.11
@@ -487,6 +544,7 @@ cases:
     scenario: сумма возврата указана в валюте, отличной от валюты кооператива
     expect: отказ до доменного слоя
     test: components/controller/tests/unit/capital/fund-allocation.test.ts
+    api: components/api-tests/src/capital/fund-allocation.test.ts
     status: passing
 
   - id: cap.dealloc.side.12
@@ -494,8 +552,8 @@ cases:
     kind: side
     scenario: возврат средств запрашивает член совета, а не председатель
     expect: отказ по роли — мутация объявлена только для председателя
-    test: ~
-    status: missing
+    test: components/api-tests/src/capital/fund-allocation.test.ts
+    status: written
 
   - id: cap.dealloc.side.13
     level: backend
@@ -507,8 +565,19 @@ cases:
       предел считается по нему, а не по сумме долгов: иначе интерфейс предложил бы
       сумму, которую контракт отклонит
     test: components/controller/tests/unit/capital/fund-allocation.test.ts
+    api: components/api-tests/src/capital/dealloc-debt-limit.test.ts
     status: passing
 
+
+  - id: cap.debt.happy.01
+    level: backend
+    kind: happy
+    scenario: участникам компонента выданы ссуды; председатель читает список ссуд компонента
+    expect: в списке ссуды обоих заёмщиков с привязкой к компоненту
+    # До 02.10.2026 зеркало ссуд не писалось: сумма из цепи не ложилась в числовую колонку
+    # (C28-85, находка 59; та же причина была у зеркал вложений в проект и расходов).
+    test: components/api-tests/src/capital/dealloc-debt-limit.test.ts
+    status: written
   # ── Возврат средств: UI ───────────────────────────────────────────────────
 
   - id: cap.dealloc.happy.03
@@ -575,6 +644,21 @@ cases:
     test: ~
     status: missing
 
+  - id: cap.alloc.break.31
+    level: backend
+    kind: break
+    scenario: >
+      Учётная запись в статусе вступления или исключённый пайщик запрашивает
+      реестр вложений (`capitalInvests`, `capitalInvest`).
+    expect: >
+      отказ «Доступ только для пайщиков кооператива»: реестр видят принятые
+      пайщики и совет. До 17.09.2026 хватало любого токена — он выдаётся при
+      регистрации учётной записи, до приёма советом. Правило общее для роли
+      `user` в RolesGuard (extension-kit)
+    test: components/controller/tests/unit/capital/capital-rights.test.ts
+    api: components/api-tests/src/capital/fund-allocation.test.ts
+    status: passing
+
   - id: cap.alloc.ui.90
     level: ui
     kind: side
@@ -584,3 +668,38 @@ cases:
       возврат ровно на страницу распределений (откуда пришёл), а не на список
       проектов; при прямом заходе по ссылке «Назад» ведёт на канонический список
     status: missing
+
+  - id: cap.alloc.side.91
+    level: backend
+    kind: side
+    scenario: >
+      хранилища зеркал Благороста после перевода на Kysely: условия правки и
+      удаления записей времени, выборка коммитов и историй проекта, чтение
+      проекта и адресов репозиториев; создание записи из дельты и версии перед
+      изменением
+    expect: >
+      условия запросов прежние: правятся и удаляются только подходящие записи,
+      хэши ищутся в нижнем регистре, удалённые в цепи проекты не отдаются;
+      устаревшая дельта запись не затирает, прежнее состояние перед изменением
+      уходит в версии
+    test: components/controller/tests/unit/capital/capital-chain-mirrors.test.ts
+    external: unreachable
+    external_reason: "проверяются условия запросов к базе и порядок работы с версиями — снаружи они не видны; поведение фичи через API покрыто её случаями во внешнем слое"
+    status: written
+
+# 2026-09-23 (EEA-6…EEA-9): тексты интерфейса, отказов и уведомлений фичи вынесены из
+# кода в словари i18n, отказы бэкенда переведены на DomainError с кодом — текст
+# и HTTP-статус ответа прежние. Сценарии фичи и её проверки не менялись.
+
+  # Права по таблице прав Благороста (C28-87, кусок 4, 05.10.2026): операции
+  # стоят под общим гардом каркаса вместо `@AuthRoles`; прежние списки ролей и
+  # проход «на своё имя» перенесены один в один, роль в проекте по-прежнему
+  # ведёт таблица ролей проекта.
+  - id: cap.alloc.side.92
+    level: backend
+    kind: side
+    scenario: операции раздела зовут кандидат, пайщик, член совета и председатель с чужим именем в запросе и со своим
+    expect: "исход прежнего правила операции: по роли проходит названный в таблице прав, на своё имя — каждый вошедший, остальным отказ KIT_INSUFFICIENT_RIGHTS либо KIT_RIGHT_SCOPE_OWN"
+    test: components/controller/tests/unit/capital/capital-rights.test.ts
+    api: components/api-tests/src/rights/matrix.test.ts
+    status: written

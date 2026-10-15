@@ -1,7 +1,7 @@
 <template lang="pug">
 BaseDialog(
   v-model='open',
-  :title='session.hasCustomPin ? "Смена PIN-кода" : "Установка PIN-кода"',
+  :title='session.hasCustomPin ? $t("security.setPinDialog.changeTitle") : $t("security.setPinDialog.setTitle")',
   size='sm'
 )
   //- Два шага одной клавиатурой, а не два поля рядом: PIN набирают вслепую, и
@@ -9,8 +9,8 @@ BaseDialog(
   .set-pin__form
     p.set-pin__lead(v-if='lead') {{ lead }}
     p.set-pin__step
-      template(v-if='step === "first"') Придумайте PIN-код: от 4 до 6 цифр.
-      template(v-else) Повторите PIN-код, чтобы не ошибиться в наборе.
+      template(v-if='step === "first"') {{ $t('security.setPinDialog.enterHint') }}
+      template(v-else) {{ $t('security.setPinDialog.repeatHint') }}
     PinPad(
       ref='padRef',
       v-model='entry',
@@ -24,13 +24,13 @@ BaseDialog(
       variant='secondary',
       :disabled='saving',
       @click='onBack'
-    ) {{ step === 'first' ? 'Отмена' : 'Назад' }}
+    ) {{ step === 'first' ? $t('common.action.cancel') : $t('common.action.back') }}
     BaseButton(
       variant='primary',
       :loading='saving',
       :disabled='!canGoNext',
       @click='onNext'
-    ) {{ step === 'first' ? 'Далее' : 'Сохранить' }}
+    ) {{ step === 'first' ? $t('common.action.next') : $t('common.action.save') }}
 </template>
 
 <script lang="ts" setup>
@@ -39,6 +39,7 @@ import { BaseButton, BaseDialog } from 'src/shared/ui/base';
 import { PinPad } from 'src/shared/ui/domain';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useSessionStore } from 'src/entities/Session';
+import { t } from 'src/shared/i18n';
 
 const props = defineProps<{
   modelValue: boolean;
@@ -79,8 +80,8 @@ const isValidPin = computed(() => /^\d{4,6}$/.test(entry.value));
 const canGoNext = computed(() => isValidPin.value);
 
 const entryError = computed(() => {
-  if (mismatch.value) return 'PIN-коды не совпадают — наберите заново';
-  return entry.value && !isValidPin.value ? 'PIN — от 4 до 6 цифр' : '';
+  if (mismatch.value) return t('security.setPinDialog.mismatchError');
+  return entry.value && !isValidPin.value ? t('security.setPinDialog.lengthError') : '';
 });
 
 // Каждое открытие начинается с чистого листа: набранное в прошлый раз не должно
@@ -128,7 +129,7 @@ async function onNext(): Promise<void> {
   saving.value = true;
   try {
     await session.setCustomPin(pin.value);
-    SuccessAlert('PIN-код сохранён');
+    SuccessAlert(t('security.setPinDialog.saved'));
     open.value = false;
     emit('saved');
   } catch (e) {

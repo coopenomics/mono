@@ -1,0 +1,48 @@
+{
+  "errors": {
+    "SOVIET_ROBOT_CHAIRMAN_PERMISSION_MISMATCH": "Разрешение ключа председателя ({keyPermission}) не совпадает с реестром ({registryPermission})",
+    "SOVIET_ROBOT_CONFIG_NOT_FOUND": "Конфиг не найден",
+    "SOVIET_ROBOT_COUNCIL_NOT_FOUND": "Совет кооператива не найден",
+    "SOVIET_ROBOT_DECISION_TYPE_UNKNOWN": "Тип решения {decisionType} не описан в реестре решений совета — автоматизировать его нельзя",
+    "SOVIET_ROBOT_KEY_NOT_FROM_COUNCIL_MEMBER": "Ключ робота принимается только от члена совета кооператива",
+    "SOVIET_ROBOT_KEY_NOT_IN_PERMISSION": "Ключ не принадлежит разрешению {permission} аккаунта {account}",
+    "SOVIET_ROBOT_KEY_NOT_IN_VAULT": "В хранилище нет ключа кооператива {coopname} — роботу нечем подписать транзакцию",
+    "SOVIET_ROBOT_KEY_UNPARSABLE": "Приватный ключ не разобран: ожидается ключ в формате WIF",
+    "SOVIET_ROBOT_PERMISSION_MUST_NOT_BE_SYSTEM": "Роботу выдаётся отдельное разрешение аккаунта, а не active или owner",
+    "SOVIET_ROBOT_PERMISSION_NOT_ISSUED": "На аккаунте {account} нет разрешения {permission}: сначала выпустите его (в цепи видны: {seenPermissions})"
+  },
+  "sovietRobot": {
+    "decisionAdapter": {
+      "disabledDetail": "расширение «Робот совета» не установлено или выключено",
+      "waitingForVotesDetail": "ждёт голоса: {members}",
+      "wrongCoopDetail": "робот обслуживает кооператив {served}, запрошен {requested}"
+    },
+    "registryWarnings": {
+      "followCycle": "{members} повторяют друг за другом — никто не проголосует первым",
+      "followsNonVoter": "{member} повторяет за {followed}, у которого нет права голоса"
+    },
+    "robotKeyDto": {
+      "wifFormatHint": "Ожидается приватный ключ в формате WIF"
+    },
+    "settings": {
+      "maxAttemptsAppend": "попыток",
+      "maxAttemptsLabel": "Число попыток на одно решение",
+      "maxAttemptsNote": "После исчерпания решение помечается как застрявшее и ждёт ручного повтора",
+      "maxAttemptsPrepend": "Не больше",
+      "protocolRetriesAppend": "раз",
+      "protocolRetriesLabel": "Сборок протокола, пока голоса не видны в истории",
+      "protocolRetriesNote": "Голоса робота попадают в историю действий с небольшой задержкой; протокол собирается повторно в том же проходе",
+      "protocolRetriesPrepend": "Не больше",
+      "protocolRetryDelayAppend": "мс",
+      "protocolRetryDelayLabel": "Пауза между такими сборками (в миллисекундах)",
+      "protocolRetryDelayPrepend": "Через",
+      "retryDelayAppend": "секунд",
+      "retryDelayLabel": "Пауза между попытками (в секундах)",
+      "retryDelayNote": "Умножается на номер попытки",
+      "retryDelayPrepend": "Через"
+    },
+    "robotKey": {
+      "noPermissionsSeen": "ничего"
+    }
+  }
+}

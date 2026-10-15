@@ -37,7 +37,7 @@
 
   if (coop_itr == coops.end()) {
     // Создаем новый кооператив
-    coops.emplace(payer, [&](auto &org)
+    coops.emplace(RamPayer::of(coops, coopname), [&](auto &org)
       {
         org.username = coopname;
         org.is_cooperative = params.is_cooperative;
@@ -57,7 +57,7 @@
         
   } else {
     // Обновляем существующий кооператив, сохраняя текущий статус
-    coops.modify(coop_itr, payer, [&](auto &org)
+    coops.modify(coop_itr, RamPayer::of(coops, coopname), [&](auto &org)
       {
         org.is_cooperative = params.is_cooperative;
         org.coop_type = params.coop_type;

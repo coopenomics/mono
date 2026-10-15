@@ -2,7 +2,7 @@
 // Показываем лоадер пока данные загружаются
 WindowLoader(
   v-if="loadingState"
-  text="Загрузка данных онбординга..."
+  :text="$t('chairman.onboardingStepsCard.loadingText')"
 )
 
 // Показываем поздравление если онбординг завершен
@@ -13,19 +13,12 @@ OnboardingCompletionCelebration(
 // Показываем шаги если онбординг не завершен и данные загружены
 .onboarding(v-else)
   .onboarding__head
-    h2.onboarding__title Адаптируйте кооператив к работе на платформе
+    h2.onboarding__title {{ $t('chairman.onboardingStepsCard.title') }}
     p.onboarding__lead
-      | Чтобы кооператив начал работать в цифровом контуре платформы, совет
-      | принимает несколько решений в электронной форме — по одному на каждый
-      | шаг ниже. Сначала утверждаются положения о цифровых сервисах и формы
-      | документов кооператива, затем оформляется вступление в Потребительский
-      | кооператив «Восход». После этого вы импортируете пайщиков и объявляете
-      | общее собрание. Для каждого шага платформа сформирует проект повестки и
-      | зафиксирует принятое решение — пройдите все шаги до окончания срока
-      | адаптации.
+      | {{ $t('chairman.onboardingStepsCard.intro') }}
     .onboarding__deadline
       q-icon(name="fa-regular fa-clock" size="15px")
-      span {{ countdownLabel ? `Срок адаптации: ${countdownLabel}` : 'Отсчёт появится после получения данных' }}
+      span {{ countdownLabel ? $t(`chairman.onboardingStepsCard.deadlineLabel`, { countdown: countdownLabel }) : $t('chairman.onboardingStepsCard.deadlinePendingLabel') }}
 
   q-separator.onboarding__sep
 
@@ -57,7 +50,7 @@ OnboardingCompletionCelebration(
             )
               template(#icon-left)
                 q-icon(name="fa-solid fa-bullhorn" size="14px")
-              | Объявить собрание совета
+              | {{ $t('chairman.onboardingStepsCard.announceCouncilMeeting') }}
 
             BaseButton(
               v-else-if="step.type === 'import'"
@@ -68,12 +61,12 @@ OnboardingCompletionCelebration(
             )
               template(#icon-left)
                 q-icon(name="fa-solid fa-file-arrow-up" size="14px")
-              | Импорт пайщиков
+              | {{ $t('chairman.onboardingStepsCard.importMembersLabel') }}
               q-tooltip(
                 v-if="isActionDisabled(index)"
                 anchor="top middle"
                 self="bottom middle"
-              ) Для продолжения примите решения советом
+              ) {{ $t('chairman.onboardingStepsCard.pendingCouncilHint') }}
 
             BaseButton(
               v-else-if="step.type === 'meet'"
@@ -84,17 +77,17 @@ OnboardingCompletionCelebration(
             )
               template(#icon-left)
                 q-icon(name="fa-solid fa-users" size="14px")
-              | Объявить общее собрание
+              | {{ $t('chairman.onboardingStepsCard.announceGeneralMeeting') }}
               q-tooltip(
                 v-if="isActionDisabled(index)"
                 anchor="top middle"
                 self="bottom middle"
-              ) Для продолжения примите решения советом
+              ) {{ $t('chairman.onboardingStepsCard.pendingCouncilHint') }}
 
   BaseDialog(
     :model-value="agendaDialog.open"
     size="lg"
-    :title="agendaDialog.title || 'Предложение повестки'"
+    :title="agendaDialog.title || $t('chairman.onboardingStepsCard.agendaProposalTitle')"
     :close-on-backdrop="!loadingAction"
     :close-on-escape="!loadingAction"
     @update:model-value="onAgendaDialogToggle"
@@ -103,22 +96,22 @@ OnboardingCompletionCelebration(
       .agenda-dialog__section
         .agenda-dialog__label
           q-icon(name="fa-regular fa-circle-question" size="16px")
-          span Вопрос на повестке
+          span {{ $t('chairman.onboardingStepsCard.agendaQuestionLabel') }}
         .agenda-dialog__question {{ agendaDialog.question }}
 
       .agenda-dialog__section
         .agenda-dialog__label
           q-icon(name="fa-solid fa-gavel" size="16px")
-          span Проект решения
+          span {{ $t('chairman.onboardingStepsCard.decisionDraftLabel') }}
         .agenda-dialog__decision
-          DocumentHtmlReader(:html="agendaDialog.decision" :sanitize="false")
+          DocumentHtmlReader(:html="agendaDialog.decision" profile="document")
 
     template(#footer)
       BaseButton(
         variant="ghost"
         :disabled="loadingAction"
         @click="closeAgendaDialog"
-      ) Отмена
+      ) {{ $t('common.action.cancel') }}
       BaseButton(
         variant="primary"
         :loading="loadingAction"
@@ -126,7 +119,7 @@ OnboardingCompletionCelebration(
       )
         template(#icon-left)
           q-icon(name="fa-solid fa-bullhorn" size="15px")
-        | Объявить
+        | {{ $t('chairman.onboardingStepsCard.announceSubmitLabel') }}
 
   CreateMeetForm(
     v-model="meetDialog"
@@ -141,6 +134,9 @@ OnboardingCompletionCelebration(
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
+import { SovietContract } from 'cooptypes';
+import { liveTable, useLiveReload } from 'src/shared/lib/realtime';
+import { MEET_LIVE_TABLES } from 'src/entities/Meet';
 import { CreateMeetForm } from 'src/features/Meet/CreateMeet/ui';
 import { ParticipantsImportDialog } from 'src/features/User/ImportParticipants/ui';
 import { DocumentHtmlReader } from 'src/shared/ui/DocumentHtmlReader';
@@ -149,6 +145,7 @@ import { BaseButton } from 'src/shared/ui/base/BaseButton';
 import { BaseDialog } from 'src/shared/ui/base/BaseDialog';
 import OnboardingCompletionCelebration from './OnboardingCompletionCelebration.vue';
 import { useOnboardingFlow } from '../model';
+import { t } from '../../../i18n';
 
 const {
   steps,
@@ -160,6 +157,7 @@ const {
   meetPreset,
   agendaDialog,
   init,
+  loadState,
   openAgendaDialog,
   closeAgendaDialog,
   submitAgenda,
@@ -177,8 +175,8 @@ const onAgendaDialogToggle = (open: boolean) => {
 };
 
 const getPendingText = (step: { type: string }) => {
-  if (step.type === 'meet') return 'Ожидаем решение общего собрания пайщиков';
-  return 'Ожидаем решение совета';
+  if (step.type === 'meet') return t('chairman.onboardingStepsCard.awaitingGeneralMeetingText');
+  return t('chairman.onboardingStepsCard.awaitingCouncilText');
 };
 
 const isPrevStarted = (index: number) => {
@@ -227,6 +225,19 @@ const stepClass = (index: number) => {
 };
 
 onMounted(init);
+
+// Шаги запуска кооператива живут по ленте: решение совета по повестке,
+// созыв собрания, принятые пайщики и переменные кооператива закрывают шаг
+// без перезагрузки.
+useLiveReload(
+  [
+    liveTable(SovietContract, SovietContract.Tables.Decisions),
+    liveTable(SovietContract, SovietContract.Tables.Participants),
+    ...MEET_LIVE_TABLES,
+    { code: 'core', table: 'settings' },
+  ],
+  loadState,
+);
 </script>
 
 <style scoped lang="scss">

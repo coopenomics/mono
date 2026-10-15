@@ -1,11 +1,11 @@
 import { VoteDomainEntity } from '../../domain/entities/vote.entity';
-import { VoteTypeormEntity } from '../entities/vote.typeorm-entity';
+import { VoteRecord } from '../entities/vote.record';
 import type { IVoteDatabaseData } from '../../domain/interfaces/vote-database.interface';
 import type { IVoteBlockchainData } from '../../domain/interfaces/vote-blockchain.interface';
 import type { RequireFields } from '@coopenomics/extension-kit';
 
-type toEntityDatabasePart = RequireFields<Partial<VoteTypeormEntity>, keyof IVoteDatabaseData>;
-type toEntityBlockchainPart = RequireFields<Partial<VoteTypeormEntity>, keyof IVoteBlockchainData>;
+type toEntityDatabasePart = RequireFields<Partial<VoteRecord>, keyof IVoteDatabaseData>;
+type toEntityBlockchainPart = RequireFields<Partial<VoteRecord>, keyof IVoteBlockchainData>;
 
 type toDomainDatabasePart = RequireFields<Partial<VoteDomainEntity>, keyof IVoteDatabaseData>;
 type toDomainBlockchainPart = RequireFields<Partial<VoteDomainEntity>, keyof IVoteBlockchainData>;
@@ -17,7 +17,7 @@ export class VoteMapper {
   /**
    * Преобразование TypeORM сущности в доменную сущность
    */
-  static toDomain(entity: VoteTypeormEntity): VoteDomainEntity {
+  static toDomain(entity: VoteRecord): VoteDomainEntity {
     const databaseData: toDomainDatabasePart = {
       _id: entity._id,
       block_num: entity.block_num,
@@ -51,7 +51,7 @@ export class VoteMapper {
   /**
    * Преобразование доменной сущности в TypeORM сущность для создания
    */
-  static toEntity(domain: VoteDomainEntity): Partial<VoteTypeormEntity> {
+  static toEntity(domain: VoteDomainEntity): Partial<VoteRecord> {
     const dbPart: toEntityDatabasePart = {
       _id: domain._id,
       block_num: domain.block_num ?? 0,
@@ -82,8 +82,8 @@ export class VoteMapper {
    * Преобразование доменной сущности в данные для обновления TypeORM сущности
    * Обновляет только локальные поля базы данных, поля из блокчейна обновляются через синхронизацию
    */
-  static toUpdateEntity(domain: Partial<VoteDomainEntity>): Partial<VoteTypeormEntity> {
-    const updateData: Partial<VoteTypeormEntity> = {};
+  static toUpdateEntity(domain: Partial<VoteDomainEntity>): Partial<VoteRecord> {
+    const updateData: Partial<VoteRecord> = {};
 
     // Поля из базы данных (локальные)
     if (domain.block_num !== undefined) updateData.block_num = domain.block_num;

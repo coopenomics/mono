@@ -8,15 +8,15 @@ div
   )
     .upload-content
       q-icon(name='cloud_upload', size='48px', color='grey-6')
-      .upload-text Загрузите CSV файл с участниками
+      .upload-text {{ $t('capital.csvUploader.title') }}
       .upload-subtext
-        | Перетащите файл сюда или
+        | {{ $t('capital.csvUploader.dragHint') }}
         q-btn(
           glossy,
           dense,
           size='sm',
           color='primary',
-          label='выберите файл',
+          :label='$t("capital.csvUploader.chooseFileButton")',
           @click='fileInput?.click()'
         )
 
@@ -40,7 +40,7 @@ div
         color='negative',
         icon='delete',
         @click='clearFile',
-        label='Удалить'
+        :label='$t("common.action.delete")'
       )
 </template>
 
@@ -48,6 +48,7 @@ div
 import { ref } from 'vue';
 import { useCsvParser } from 'app/extensions/capital/shared/lib/composables/useCsvParser';
 import { SuccessAlert, FailAlert, NotifyAlert } from 'src/shared/api';
+import { t } from '../../i18n';
 
 interface Emits {
   (e: 'parsed', data: any[]): void;
@@ -86,13 +87,13 @@ const onFileSelected = (event: Event) => {
 
 const selectFile = async (file: File) => {
   if (file.type !== 'text/csv' && !file.name.endsWith('.csv')) {
-    NotifyAlert('Пожалуйста, выберите CSV файл');
+    NotifyAlert(t('capital.csvUploader.invalidTypeError'));
     return;
   }
 
   if (file.size > 10 * 1024 * 1024) {
     // 10MB
-    FailAlert('Файл слишком большой. Максимальный размер: 10MB');
+    FailAlert(t('capital.csvUploader.tooLargeError'));
 
     return;
   }
@@ -119,9 +120,9 @@ const parseFile = async () => {
     const data = await parseCsv(selectedFile.value);
     emit('parsed', data);
 
-    SuccessAlert(`Файл успешно разобран. Найдено ${data.length} записей.`);
+    SuccessAlert(t('capital.csvUploader.parsedSuccess', { count: data.length }));
   } catch (error: any) {
-    FailAlert(`Ошибка при разборе файла: ${error.message}`);
+    FailAlert(t('capital.csvUploader.parseError', { error: error.message }));
   }
 };
 

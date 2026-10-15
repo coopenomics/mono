@@ -1,0 +1,362 @@
+import { Field, ID, InputType, Int, ObjectType } from '@nestjs/graphql';
+import { IsArray, IsDateString, IsEnum, IsInt, IsOptional, IsString, IsUUID, Length, Matches, Max, Min, ValidateNested } from 'class-validator';
+import { Type } from 'class-transformer';
+import { DocumentAggregateDTO, SignedDigitalDocumentInputDTO, validationMessage } from '@coopenomics/extension-kit';
+import type { InnerDocumentAggregate } from '@coopenomics/innercoop';
+import { EduAssignmentStatus, EduContractStatus, EduContributionDocumentKind, EduContributionStatus, EduCouncilOutcome, EduLessonOrigin, EduLessonStatus, EduRidType, EduSettlementEntryKind, EduSettlementEntryStatus, EduShareReturnDocumentKind } from '../../domain/enums';
+import { lessonEndsAt, reportUntil } from '../../domain/lib/lesson-dates';
+import type {
+  EdubridgeContributionRecord,
+  EdubridgeLessonRecord,
+  EdubridgeTeacherAssignmentRecord,
+  EdubridgeTeacherContractRecord,
+} from '../../infrastructure/entities';
+import './edu-enums.registration';
+
+const ASSET_PATTERN = /^\d+\.\d{4} [A-Z]{1,7}$/;
+
+@ObjectType('EduTeacherContract')
+export class EduTeacherContractDTO {
+  @Field(() => String, { description: 'Хеш договора участия в хозяйственной деятельности' })
+  contract_hash!: string;
+
+  @Field(() => String, { description: 'Номер договора' })
+  contract_number!: string;
+
+  @Field(() => EduContractStatus, { description: 'Состояние: ждёт подписи председателя, действует, отклонён' })
+  status!: EduContractStatus;
+
+  @Field(() => String, { description: 'Причина отказа председателя (если отказал)' })
+  decline_reason!: string;
+
+  @Field(() => Date, { description: 'Подписан преподавателем' })
+  signed_at!: Date;
+
+  @Field(() => Date, { nullable: true, description: 'Подписан председателем совета' })
+  approved_at!: Date | null;
+
+  @Field(() => String, { description: 'Ставка часа: названа при подключении, дальше её правит администратор' })
+  hourly_rate!: string;
+
+  constructor(e: EdubridgeTeacherContractRecord) {
+    this.hourly_rate = e.hourly_rate;
+    this.contract_hash = e.contract_hash;
+    this.contract_number = e.contract_number;
+    this.status = e.status;
+    this.decline_reason = e.decline_reason ?? '';
+    this.signed_at = e.signed_at;
+    this.approved_at = e.approved_at ?? null;
+  }
+}
+
+/** Преподаватель кооператива: кто он, его договор и сколько за ним закреплено курсов. */
+@ObjectType('EduTeacher')
+export class EduTeacherDTO {
+  @Field(() => String, { description: 'Учётное имя' }) username!: string;
+  @Field(() => String, { description: 'Ставка часа преподавателя' }) hourly_rate!: string;
+  @Field(() => String, { description: 'Фамилия, имя и отчество' }) display_name!: string;
+  @Field(() => String, { description: 'Что преподаватель рассказал о себе' }) about!: string;
+  @Field(() => String, { nullable: true, description: 'Фотография пайщика' }) avatar_url!: string | null;
+  @Field(() => String, { description: 'Номер договора участия в хозяйственной деятельности' }) contract_number!: string;
+  @Field(() => EduContractStatus, { description: 'Состояние договора' }) contract_status!: EduContractStatus;
+  @Field(() => Date, { description: 'Договор подписан преподавателем' }) signed_at!: Date;
+  @Field(() => Date, { nullable: true, description: 'Договор подписан председателем совета' }) approved_at!: Date | null;
+  @Field(() => Number, { description: 'Назначений всего' }) assignments_total!: number;
+  @Field(() => Number, { description: 'Назначений действует' }) assignments_active!: number;
+  @Field(() => [String], { description: 'Документы преподавателя, которые ждут подписи председателя: названия' }) pending_approvals!: string[];
+}
+
+@ObjectType('EduAssignment')
+export class EduAssignmentDTO {
+  @Field(() => ID) id!: string;
+  @Field(() => String, { description: 'Преподаватель' }) teacher_username!: string;
+  @Field(() => ID, { description: 'Курс' }) course_id!: string;
+  @Field(() => String, { description: 'Название курса' }) course_title!: string;
+  @Field(() => String, { description: 'Описание курса' }) course_description!: string;
+  @Field(() => String, { description: 'Учебная программа курса' }) course_syllabus!: string;
+  @Field(() => String, { description: 'Расписание' }) schedule!: string;
+  @Field(() => String, { description: 'Ожидаемый результат' }) expected_result!: string;
+  @Field(() => String, { description: 'Период ведения курса — начало' }) period_from!: string;
+  @Field(() => String, { description: 'Период ведения курса — конец' }) period_to!: string;
+  @Field(() => Int, { description: 'Нагрузка преподавателя по курсу, минут в месяц' }) minutes_per_month!: number;
+  @Field(() => String, { description: 'Ставка часа преподавателя на этом курсе' }) hourly_rate!: string;
+  @Field(() => EduAssignmentStatus, { description: 'Состояние назначения' }) status!: EduAssignmentStatus;
+  @Field(() => Date) created_at!: Date;
+
+  /** Курс назначения: преподаватель читает его программу, не переходя на стол ученика. */
+  constructor(e: EdubridgeTeacherAssignmentRecord, course: { title?: string; description?: string; syllabus?: string } | null | undefined) {
+    this.id = e.id;
+    this.teacher_username = e.teacher_username;
+    this.course_id = e.course_id;
+    this.course_title = course?.title ?? '';
+    this.course_description = course?.description ?? '';
+    this.course_syllabus = course?.syllabus ?? '';
+    this.schedule = e.schedule;
+    this.expected_result = e.expected_result;
+    this.period_from = e.period_from;
+    this.period_to = e.period_to;
+    this.minutes_per_month = e.minutes_per_month;
+    this.hourly_rate = e.hourly_rate;
+    this.status = e.status;
+    this.created_at = e.created_at;
+  }
+}
+
+@InputType('EduAssignmentInput')
+export class EduAssignmentInputDTO {
+  @Field(() => String, { description: 'Преподаватель (учётное имя)' }) @IsString() teacher_username!: string;
+  @Field(() => ID, { description: 'Курс' }) @IsUUID() course_id!: string;
+  @Field(() => String, { nullable: true, description: 'Расписание' }) @IsOptional() @IsString() schedule?: string;
+  @Field(() => String, { nullable: true, description: 'Ожидаемый результат' }) @IsOptional() @IsString() expected_result?: string;
+  @Field(() => String, { description: 'Период сдачи — начало (YYYY-MM-DD)' }) @IsDateString() period_from!: string;
+  @Field(() => String, { description: 'Период сдачи — конец (YYYY-MM-DD)' }) @IsDateString() period_to!: string;
+  @Field(() => Int, { nullable: true, description: 'Нагрузка преподавателя по курсу, минут в месяц; без значения — вся нагрузка курса' })
+  @IsOptional() @IsInt() @Min(0) @Max(20_000) minutes_per_month?: number;
+  @Field(() => String, { nullable: true, description: 'Ставка часа преподавателя на этом курсе («1000.0000 RUB»); без значения — ставка из договора, но не выше плановой ставки курса' })
+  @IsOptional()
+  @Matches(ASSET_PATTERN, { message: validationMessage('edubridge.eduSignContractInput.hourlyRate.format') })
+  hourly_rate?: string | null;
+}
+
+@InputType('EduSetAssignmentRateInput')
+export class EduSetAssignmentRateInputDTO {
+  @Field(() => ID, { description: 'Допуск преподавателя к курсу' }) @IsUUID() assignment_id!: string;
+  @Field(() => String, { description: 'Ставка часа преподавателя на этом курсе («1000.0000 RUB»)' })
+  @Matches(ASSET_PATTERN, { message: validationMessage('edubridge.eduSignContractInput.hourlyRate.format') })
+  hourly_rate!: string;
+}
+
+@InputType('EduSignContractInput')
+export class EduSignContractInputDTO {
+  @Field(() => SignedDigitalDocumentInputDTO, { description: 'Подписанный договор участия в хозяйственной деятельности (3006)' })
+  @ValidateNested() @Type(() => SignedDigitalDocumentInputDTO) document!: SignedDigitalDocumentInputDTO;
+  @Field(() => String, { description: 'Номер договора из подписанного экземпляра' }) @IsString() @Length(1, 32) contract_number!: string;
+  @Field(() => String, { nullable: true, description: 'Ставка часа преподавателя («1000.0000 RUB»); без неё берётся названная в профиле' })
+  @IsOptional()
+  @Matches(ASSET_PATTERN, { message: validationMessage('edubridge.eduSignContractInput.hourlyRate.format') })
+  hourly_rate?: string | null;
+}
+
+/** Профиль преподавателя: рассказ о себе и ставка часа. */
+@ObjectType('EduTeacherProfile')
+export class EduTeacherProfileDTO {
+  @Field(() => String, { description: 'Что преподаватель рассказал о себе' }) about!: string;
+  @Field(() => String, { description: 'Ставка часа преподавателя («1000.0000 RUB»)' }) hourly_rate!: string;
+  @Field(() => Boolean, { description: 'Ставка закреплена договором — её меняет администратор' }) rate_locked!: boolean;
+}
+
+@InputType('EduTeacherProfileInput')
+export class EduTeacherProfileInputDTO {
+  @Field(() => String, { description: 'О себе: чему и как учит преподаватель, опыт, образование' })
+  @IsString()
+  @Length(1, 2000, { message: validationMessage('edubridge.eduTeacherProfileInput.about.length') })
+  about!: string;
+
+  @Field(() => String, { nullable: true, description: 'Ставка часа («1000.0000 RUB»); называется до подписи договора' })
+  @IsOptional()
+  @Matches(ASSET_PATTERN, { message: validationMessage('edubridge.eduSignContractInput.hourlyRate.format') })
+  hourly_rate?: string | null;
+}
+
+@ObjectType('EduContribution')
+export class EduContributionDTO {
+  @Field(() => Date, { nullable: true, description: 'До какой даты заявление держится гарантийным сроком' }) hold_until!: Date | null;
+  @Field(() => ID) id!: string;
+  @Field(() => String, { description: 'Преподаватель' }) teacher_username!: string;
+  @Field(() => ID, { description: 'Назначение' }) assignment_id!: string;
+  @Field(() => String, { description: 'Ключ взноса в цепи' }) rid_hash!: string;
+  @Field(() => EduRidType, { description: 'Тип результата интеллектуальной деятельности' }) rid_type!: EduRidType;
+  @Field(() => [String], { description: 'Ссылки на внешние хранилища' }) links!: string[];
+  @Field(() => String, { description: 'Описание результата' }) description!: string;
+  @Field(() => String, { description: 'Сумма паевого взноса' }) amount!: string;
+  @Field(() => EduContributionStatus, { description: 'Состояние' }) status!: EduContributionStatus;
+  @Field(() => String, { nullable: true }) statement_hash!: string | null;
+  @Field(() => String, { nullable: true }) decision_hash!: string | null;
+  @Field(() => String, { nullable: true, description: 'Акт передачи материалов на ответственное хранение' }) storage_act_hash!: string | null;
+  @Field(() => String, { nullable: true }) act_hash!: string | null;
+  @Field(() => String, { nullable: true, description: 'Причина отклонения' }) decline_reason!: string | null;
+  @Field(() => String, { nullable: true, description: 'Номер решения совета' }) council_decision_id!: string | null;
+  @Field(() => EduCouncilOutcome, { nullable: true, description: 'Совет решения о приёме не принял: отклонил вопрос либо не уложился в срок' }) council_outcome!: EduCouncilOutcome | null;
+  @Field(() => Date, { nullable: true, description: 'Дата решения' }) decided_at!: Date | null;
+  @Field(() => Date) created_at!: Date;
+  @Field(() => Int, { nullable: true, description: 'Участников с оплаченным доступом, по которым проведён расчёт за занятие' }) learners_count!: number | null;
+
+  constructor(e: EdubridgeContributionRecord, learnersCount: number | null = null) {
+    this.learners_count = learnersCount;
+    Object.assign(this, {
+      id: e.id, teacher_username: e.teacher_username, assignment_id: e.assignment_id, rid_hash: e.rid_hash, rid_type: e.rid_type,
+      links: e.links ?? [], description: e.description, amount: e.amount, status: e.status, statement_hash: e.statement_hash,
+      decision_hash: e.decision_hash, act_hash: e.act_hash, storage_act_hash: e.storage_act_hash, decline_reason: e.decline_reason, council_decision_id: e.council_decision_id, council_outcome: e.council_outcome ?? null,
+      decided_at: e.decided_at, created_at: e.created_at, hold_until: e.hold_until,
+    });
+  }
+}
+
+@ObjectType('EduContributionDocument')
+export class EduContributionDocumentDTO {
+  @Field(() => EduContributionDocumentKind, { description: 'Какой это документ на пути взноса' }) kind!: EduContributionDocumentKind;
+  @Field(() => DocumentAggregateDTO, { description: 'Подписанный документ с исходником' }) document!: DocumentAggregateDTO;
+
+  constructor(kind: EduContributionDocumentKind, aggregate: InnerDocumentAggregate) {
+    this.kind = kind;
+    this.document = new DocumentAggregateDTO(aggregate);
+  }
+}
+
+@InputType('EduHoldContributionInput')
+export class EduHoldContributionInputDTO {
+  @Field(() => ID, { description: 'Взнос (черновик по проведённому занятию)' }) @IsUUID() contribution_id!: string;
+  @Field(() => SignedDigitalDocumentInputDTO, { description: 'Подписанный акт передачи материалов на ответственное хранение (3012)' })
+  @ValidateNested() @Type(() => SignedDigitalDocumentInputDTO) document!: SignedDigitalDocumentInputDTO;
+}
+
+@InputType('EduSubmitContributionInput')
+export class EduSubmitContributionInputDTO {
+  @Field(() => ID, { description: 'Взнос (черновик)' }) @IsUUID() contribution_id!: string;
+  @Field(() => SignedDigitalDocumentInputDTO, { description: 'Подписанное заявление о паевом взносе РИД (3008)' })
+  @ValidateNested() @Type(() => SignedDigitalDocumentInputDTO) document!: SignedDigitalDocumentInputDTO;
+}
+
+@InputType('EduShareWithdrawStatementInput')
+export class EduShareWithdrawStatementInputDTO {
+  @Field(() => String, { description: 'Сумма перевода в Цифровой Кошелёк, с валютой' }) @IsString() @Length(1, 64) amount!: string;
+}
+
+@InputType('EduSignActInput')
+export class EduSignActInputDTO {
+  @Field(() => ID, { description: 'Взнос' }) @IsUUID() contribution_id!: string;
+  @Field(() => SignedDigitalDocumentInputDTO, { description: 'Подписанный преподавателем акт приёма-передачи (3010)' })
+  @ValidateNested() @Type(() => SignedDigitalDocumentInputDTO) document!: SignedDigitalDocumentInputDTO;
+}
+
+/** Расчёт преподавателя: что причитается и где получить. */
+@ObjectType('EduTeacherSettlement')
+export class EduTeacherSettlementDTO {
+  @Field(() => String, { description: 'Принято советом взносов РИД на сумму' }) accepted_total!: string;
+  @Field(() => String, { description: 'Паевой взнос по программе «Образование», доступный для перевода в Цифровой Кошелёк' }) program_share!: string;
+  @Field(() => String, { description: 'Доступно в главном паевом кошельке (право требования)' }) available!: string;
+  @Field(() => Date, { nullable: true, description: 'Дата последнего принятого взноса' }) last_accepted_at!: Date | null;
+}
+
+/** Отчёт преподавателя после занятия календаря: какими материалами подтверждается работа. */
+@InputType('EduLessonReportInput')
+export class EduLessonReportInputDTO {
+  @Field(() => ID, { description: 'Занятие из календаря группы' })
+  @IsUUID()
+  lesson_id!: string;
+
+  @Field(() => [String], { description: 'Материалы занятия — ссылки на записи, конспекты, задания' })
+  @IsArray()
+  @IsString({ each: true })
+  materials!: string[];
+
+  @Field(() => String, { nullable: true, description: 'Тема занятия' })
+  @IsOptional()
+  @IsString()
+  topic?: string;
+}
+
+/** Занятие группы: в календаре и в журнале. */
+@ObjectType('EduLesson')
+export class EduLessonDTO {
+  @Field(() => ID) id!: string;
+  @Field(() => ID, { description: 'Курс' }) course_id!: string;
+  @Field(() => String, { description: 'Название курса' }) course_title!: string;
+  @Field(() => Int, { description: 'Номер занятия в программе' }) lesson_number!: number;
+  @Field(() => ID, { nullable: true, description: 'Группа курса' }) group_id!: string | null;
+  @Field(() => String, { description: 'Название группы' }) group_title!: string;
+  @Field(() => String, { nullable: true, description: 'Преподаватель занятия; пусто — не назначен' }) teacher_username!: string | null;
+  @Field(() => ID, { nullable: true, description: 'Допуск преподавателя' }) assignment_id!: string | null;
+  @Field(() => EduLessonStatus, { description: 'Запланировано, проведено либо отменено' }) status!: EduLessonStatus;
+  @Field(() => EduLessonOrigin, { description: 'Из окон расписания либо назначено отдельно' }) origin!: EduLessonOrigin;
+  @Field(() => String, { description: 'Тема занятия' }) topic!: string;
+  @Field(() => Date, { description: 'Момент занятия' }) held_at!: Date;
+  @Field(() => Date, { description: 'Конец занятия' }) ends_at!: Date;
+  @Field(() => Date, { description: 'До какого момента принимается отчёт' }) report_until!: Date;
+  @Field(() => Boolean, { description: 'Срок на отчёт вышел, отчёта нет; у занятия без обучающихся с оплаченным доступом отчёт не ждут' }) overdue!: boolean;
+  @Field(() => Int, { description: 'Обучающихся с оплаченным доступом на дату занятия: ноль — расчёта по занятию не будет, отчёт не требуется' }) learners_paid!: number;
+  @Field(() => String, { nullable: true, description: 'Показ суммы взноса преподавателя за занятие по ставке допуска, окну расписания и обучающимся с оплаченным доступом; окончательную сумму считает контракт' }) expected_amount!: string | null;
+  @Field(() => Date, { nullable: true, description: 'Когда подан отчёт' }) reported_at!: Date | null;
+  @Field(() => Int, { description: 'Длительность, минут' }) duration_minutes!: number;
+  @Field(() => Int, { nullable: true, description: 'Участников с оплаченным доступом, по которым проведён расчёт за занятие' }) learners_count!: number | null;
+  @Field(() => [String], { description: 'Материалы занятия' }) materials!: string[];
+  @Field(() => ID, { nullable: true, description: 'Взнос, оформленный по занятию' }) contribution_id!: string | null;
+
+  constructor(e: EdubridgeLessonRecord, titles: { course: string; group?: string; reportDays?: number; learnersPaid?: number; expectedAmount?: string | null }) {
+    const reportDays = titles.reportDays ?? 7;
+    this.id = e.id;
+    this.course_id = e.course_id;
+    this.course_title = titles.course;
+    this.lesson_number = e.lesson_number;
+    this.group_id = e.group_id ?? null;
+    this.group_title = titles.group ?? '';
+    this.teacher_username = e.teacher_username ?? null;
+    this.assignment_id = e.assignment_id ?? null;
+    this.status = e.status;
+    this.origin = e.origin;
+    this.topic = e.topic;
+    this.held_at = e.held_at;
+    this.ends_at = lessonEndsAt(e);
+    this.report_until = reportUntil(e, reportDays);
+    this.applySettlement(e, titles);
+    this.reported_at = e.reported_at ?? null;
+    this.duration_minutes = e.duration_minutes;
+    this.learners_count = e.learners_count ?? null;
+    this.materials = e.materials ?? [];
+    this.contribution_id = e.contribution_id;
+  }
+
+  /** Обучающиеся с оплаченным доступом, показ суммы взноса и просрочка отчёта — то, что зависит от расчёта по занятию. */
+  private applySettlement(e: EdubridgeLessonRecord, titles: { learnersPaid?: number; expectedAmount?: string | null }): void {
+    this.learners_paid = titles.learnersPaid ?? 0;
+    this.expected_amount = titles.expectedAmount ?? null;
+    this.overdue = isOverdue(e, this.report_until, this.learners_paid);
+  }
+}
+
+/**
+ * Отчёт просрочен: занятие запланировано, срок на отчёт вышел, и отчёта ждут —
+ * на дату занятия есть обучающиеся с оплаченным доступом. Без них рассчитывать
+ * занятие не с кем, и просрочки нет.
+ */
+function isOverdue(lesson: EdubridgeLessonRecord, reportUntilAt: Date, learnersPaid: number): boolean {
+  if (lesson.status !== EduLessonStatus.PLANNED || learnersPaid <= 0) return false;
+  return reportUntilAt.getTime() < Date.now();
+}
+
+/** Возврат паевого взноса со стола расчёта: оба заявления подписаны разом. */
+@InputType('EduRequestShareReturnInput')
+export class EduRequestShareReturnInputDTO {
+  @Field(() => String, { description: 'Сумма возврата, с валютой' }) @IsString() @Length(1, 64) amount!: string;
+  @Field(() => String, { description: 'Реквизиты преподавателя, на которые уйдут деньги' }) @IsString() @Length(1, 128) method_id!: string;
+  @Field(() => String, { description: 'Хэш платежа: им помечено заявление о возврате, по нему платёж находят совет и кассир' }) @IsString() @Length(64, 64) payment_hash!: string;
+  @Field(() => SignedDigitalDocumentInputDTO, { description: 'Подписанное заявление о трансляции паевого взноса в Цифровой Кошелёк (3015)' })
+  @ValidateNested() @Type(() => SignedDigitalDocumentInputDTO) transfer_statement!: SignedDigitalDocumentInputDTO;
+  @Field(() => SignedDigitalDocumentInputDTO, { description: 'Подписанное заявление о возврате паевого взноса деньгами (900)' })
+  @ValidateNested() @Type(() => SignedDigitalDocumentInputDTO) return_statement!: SignedDigitalDocumentInputDTO;
+}
+
+/** Строка выписки преподавателя: зачисление по принятому результату или возврат с его состоянием. */
+@ObjectType('EduSettlementEntry')
+export class EduSettlementEntryDTO {
+  @Field(() => String, { description: 'Номер строки выписки' }) id!: string;
+  @Field(() => Date, { description: 'Когда' }) at!: Date;
+  @Field(() => EduSettlementEntryKind, { description: 'Зачисление или возврат' }) kind!: EduSettlementEntryKind;
+  @Field(() => String, { description: 'Что произошло' }) title!: string;
+  @Field(() => String, { description: 'Сумма' }) amount!: string;
+  @Field(() => EduSettlementEntryStatus, { description: 'Состояние строки' }) status!: EduSettlementEntryStatus;
+  @Field(() => ID, { nullable: true, description: 'Взнос, по которому зачислено' }) contribution_id!: string | null;
+  @Field(() => ID, { nullable: true, description: 'Возврат, если строка — возврат' }) return_id!: string | null;
+  @Field(() => String, { nullable: true, description: 'Хэш платежа возврата' }) payment_hash!: string | null;
+}
+
+@ObjectType('EduShareReturnDocument')
+export class EduShareReturnDocumentDTO {
+  @Field(() => EduShareReturnDocumentKind, { description: 'Какое это заявление' }) kind!: EduShareReturnDocumentKind;
+  @Field(() => DocumentAggregateDTO, { description: 'Подписанный документ с исходником' }) document!: DocumentAggregateDTO;
+
+  constructor(kind: EduShareReturnDocumentKind, aggregate: InnerDocumentAggregate) {
+    this.kind = kind;
+    this.document = new DocumentAggregateDTO(aggregate);
+  }
+}

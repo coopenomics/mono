@@ -1,0 +1,48 @@
+{
+  "app": {
+    "app": {
+      "loadError": "Возникла ошибка при загрузке сайта :("
+    },
+    "config": {
+      "pageAdminPartners": "Управление сетью",
+      "pageAdminWithdrawer": "Управление выводом",
+      "pageDrafter": "Шаблонизатор",
+      "pageExplorer": "Обозреватель",
+      "pageMarket": "Маркет",
+      "siteDescription": "Токенизация бизнеса"
+    },
+    "error": {
+      "authErrorRelogin": "Ошибка авторизации. Войдите повторно.",
+      "privateKeyNotSet": "Приватный ключ не установлен",
+      "signatureNotVerified": "Подпись не верифицирована",
+      "signingKeyNotFound": "ключ не найден"
+    },
+    "registerServiceWorker": {
+      "offlineBody": "Приложение работает в автономном режиме",
+      "offlineTitle": "Офлайн режим"
+    },
+    "routes": {
+      "accessRecovery": "Восстановление доступа",
+      "cardLogin": "Вход по карте",
+      "contentAccessAuthorization": "Авторизация",
+      "contentAccessLogin": "Вход для доступа к содержимому",
+      "devUiShowcase": "MONO v2 — базовые компоненты",
+      "invitation": "Приглашение",
+      "keyRecovery": "Восстановление ключа",
+      "keyReset": "Сброс ключа",
+      "login": "Вход",
+      "permissionDenied": "Защита аккаунта",
+      "privacyPolicy": "Политика конфиденциальности",
+      "registration": "Регистрация",
+      "termsOfUse": "Пользовательское соглашение",
+      "verifyCertificate": "Проверка удостоверения"
+    },
+    "useDefaultLayoutLogic": {
+      "contactsLine": "{fullName}, ИНН: {inn}, ОГРН: {ogrn}, телефон: {phone}, почта: {email}"
+    },
+    "widget": {
+      "defaultFooter": "Цифровой Кооператив",
+      "defaultTitle": "Виджет"
+    }
+  }
+}

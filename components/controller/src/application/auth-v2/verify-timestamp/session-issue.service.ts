@@ -7,6 +7,7 @@ import { TokenApplicationService } from '~/application/token/services/token-appl
 import { AuditService } from '../audit/audit.service';
 import { CertificateService } from '../certificate/certificate.service';
 import { DeviceTrackingService } from '../device-tracking/device-tracking.service';
+import { KeyRevocationService } from '../key-revocation/key-revocation.service';
 
 export interface SessionIssueInput {
   /** user.id пайщика — субъект выпуска токенов. */
@@ -52,9 +53,13 @@ export class SessionIssueService {
     private readonly certificate: CertificateService,
     private readonly deviceTracking: DeviceTrackingService,
     @Inject(SESSION_METADATA_PORT) private readonly sessionMetadata: ISessionMetadataStore,
+    private readonly keyRevocation: KeyRevocationService,
   ) {}
 
   async issue(input: SessionIssueInput): Promise<SessionIssueResult> {
+    // Ключ, отозванный председателем, вход не открывает: пайщик сначала восстанавливает доступ.
+    await this.keyRevocation.assertNotRevoked(input.sub);
+
     // выпуск токенов платформенным механизмом (id_token/certificate — Story 1.8).
     const pair = await this.tokens.generateAuthTokens(input.userId);
 

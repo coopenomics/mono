@@ -1,0 +1,175 @@
+import { Module } from '@nestjs/common';
+import { bucketProvidersFor, APP_RIGHTS, RightsGuard } from '@coopenomics/extension-kit';
+import { FILE_STORAGE_PORT } from '@coopenomics/innercoop';
+import { ScheduleModule } from '@nestjs/schedule';
+import { EdubridgeDatabaseModule } from '../infrastructure/database/edubridge-database.module';
+import { ACCESS_CARRIER_CONNECTORS } from '../domain/connectors/access-carrier.connector';
+import { EdubridgeChainAdapter } from '../infrastructure/adapters/edubridge-chain.adapter';
+import { AccessCarrierRegistry } from '../infrastructure/connectors/access-carrier.registry';
+import { GetCourseConnector } from '../infrastructure/connectors/getcourse.connector';
+import { OnsiteConnector } from '../infrastructure/connectors/onsite.connector';
+import { SkillspaceConnector } from '../infrastructure/connectors/skillspace.connector';
+import { EdubridgeConnectorCredentialsStore } from '../infrastructure/connectors/connector-credentials.store';
+import { CONNECTOR_CREDENTIALS_SOURCE } from '../domain/connectors/connector-credentials';
+import { EdubridgeAccessTaskKyselyRepository } from '../infrastructure/repositories/edubridge-access-task.kysely-repository';
+import { EdubridgeConnectorBindingKyselyRepository } from '../infrastructure/repositories/edubridge-connector-binding.kysely-repository';
+import { EdubridgeCourseKyselyRepository } from '../infrastructure/repositories/edubridge-course.kysely-repository';
+import { EdubridgeEnrollmentKyselyRepository } from '../infrastructure/repositories/edubridge-enrollment.kysely-repository';
+import { EdubridgeLearnerKyselyRepository } from '../infrastructure/repositories/edubridge-learner.kysely-repository';
+import { EdubridgeTeacherKyselyRepository } from '../infrastructure/repositories/edubridge-teacher.kysely-repository';
+import { EdubridgeLessonKyselyRepository } from '../infrastructure/repositories/edubridge-lesson.kysely-repository';
+import { EdubridgeGroupKyselyRepository } from '../infrastructure/repositories/edubridge-group.kysely-repository';
+import { EdubridgeAdminKyselyRepository } from '../infrastructure/repositories/edubridge-admin.kysely-repository';
+import { EdubridgeReturnService } from './services/edubridge-return.service';
+import { EdubridgeFundsService } from './services/edubridge-funds.service';
+import { EdubridgeSettlementService } from './services/edubridge-settlement.service';
+import { EdubridgeChainTermsService } from './services/edubridge-chain-terms.service';
+import { EdubridgeGroupService } from './services/edubridge-group.service';
+import { EdubridgeCalendarService } from './services/edubridge-calendar.service';
+import { EdubridgeCalendarResolver } from './resolvers/edubridge-calendar.resolver';
+import { EdubridgeReturnResolver } from './resolvers/edubridge-return.resolver';
+import { EdubridgeGuaranteeResolver } from './resolvers/edubridge-guarantee.resolver';
+import { EdubridgeGuaranteeService } from './services/edubridge-guarantee.service';
+import { EdubridgeGuaranteeClaimKyselyRepository } from '../infrastructure/repositories/edubridge-guarantee-claim.kysely-repository';
+import { EDUBRIDGE_CHAIN_PORT } from '../domain/ports/edubridge-chain.port';
+import { EdubridgeConfigHolder } from './config/edubridge-config.holder';
+import { EdubridgeRights } from './access/edubridge-rights';
+import { EdubridgeSearchProvider } from './search/edubridge-search.provider';
+import { EdubridgeMembershipService } from './membership/edubridge-membership.service';
+import { EdubridgeNamesService } from './membership/edubridge-names.service';
+import { EDUBRIDGE_ROLE_FACTS_PORT } from './membership/edubridge-role-facts.port';
+import { EdubridgeRoleFactsAdapter } from './membership/edubridge-role-facts.adapter';
+import { EdubridgeUdataParametersAdapter } from './registration/edubridge-udata-parameters.adapter';
+import { EdubridgeCapitalNarrowingPolicy } from './policies/edubridge-capital-narrowing.policy';
+import { EdubridgeCatalogResolver } from './resolvers/edubridge-catalog.resolver';
+import { EdubridgeCourseAdminResolver } from './resolvers/edubridge-course-admin.resolver';
+import { EdubridgeGroupResolver } from './resolvers/edubridge-group.resolver';
+import { EdubridgeSectionsResolver } from './resolvers/edubridge-sections.resolver';
+import { EdubridgeSectionsService } from './services/edubridge-sections.service';
+import { EdubridgeSectionKyselyRepository } from '../infrastructure/repositories/edubridge-section.kysely-repository';
+import { EdubridgeAccessListener } from './listeners/edubridge-access.listener';
+import { EdubridgeApprovalListener } from './listeners/edubridge-approval.listener';
+import { EdubridgeContractDeltaListener } from './listeners/edubridge-contract-delta.listener';
+import { EdubridgeMembershipExitListener } from './listeners/edubridge-membership-exit.listener';
+import { EdubridgeNotificationListener } from './listeners/edubridge-notification.listener';
+import { EdubridgeOwnerDirectory } from './membership/edubridge-owner.directory';
+import { EdubridgeMemberResolver } from './resolvers/edubridge-member.resolver';
+import { EdubridgeAccessOutboxService } from './services/edubridge-access-outbox.service';
+import { EdubridgeExpiryWorker } from './workers/edubridge-expiry.worker';
+import { EdubridgeExitBlockersService } from './services/edubridge-exit-blockers.service';
+import { EdubridgeOutboxWorker } from './workers/edubridge-outbox.worker';
+import { EdubridgeHoldWorker } from './workers/edubridge-hold.worker';
+import { EdubridgeOnboardingResolver } from './resolvers/edubridge-onboarding.resolver';
+import { EdubridgeAdminResolver } from './resolvers/edubridge-admin.resolver';
+import { EdubridgeEconomyResolver } from './resolvers/edubridge-economy.resolver';
+import { EdubridgeTeacherResolver } from './resolvers/edubridge-teacher.resolver';
+import { EdubridgeAdminService } from './services/edubridge-admin.service';
+import { EdubridgeTeacherService } from './services/edubridge-teacher.service';
+import { EdubridgeApprovalsService } from './services/edubridge-approvals.service';
+import { EdubridgeAttentionService } from './services/edubridge-attention.service';
+import { EdubridgeEnrollmentService } from './services/edubridge-enrollment.service';
+import { EdubridgeLearnerService } from './services/edubridge-learner.service';
+import { EdubridgeOnboardingService } from './services/edubridge-onboarding.service';
+import { EdubridgeCourseService } from './services/edubridge-course.service';
+import { EdubridgeEconomyService } from './services/edubridge-economy.service';
+import { EdubridgeExpenseService } from './services/edubridge-expense.service';
+import { EdubridgeCourseImagesService } from './services/edubridge-course-images.service';
+import { EdubridgeCatalogCourseFieldsResolver, EdubridgeCourseFieldsResolver } from './resolvers/edubridge-course-fields.resolver';
+import { EdubridgeLiveFeedService } from './services/edubridge-live-feed.service';
+
+/** Слой приложения: резолверы, сервисы, доступ, провайдер грантов, политики. */
+@Module({
+  // ScheduleModule.forRoot() идемпотентен: AppModule уже инициализировал планировщик.
+  imports: [EdubridgeDatabaseModule, ScheduleModule.forRoot()],
+  providers: [
+    EdubridgeConfigHolder,
+    EdubridgeLiveFeedService,
+    { provide: EDUBRIDGE_ROLE_FACTS_PORT, useClass: EdubridgeRoleFactsAdapter },
+    EdubridgeUdataParametersAdapter,
+    EdubridgeMembershipService,
+    EdubridgeNamesService,
+    // Права: описание для общего гарда операций и прав страниц стола
+    EdubridgeRights,
+    { provide: APP_RIGHTS, useExisting: EdubridgeRights },
+    // Ученики и преподаватели в едином поиске окна столов и страниц
+    EdubridgeSearchProvider,
+    RightsGuard,
+    EdubridgeCapitalNarrowingPolicy,
+    // Репозитории и адаптеры
+    EdubridgeCourseKyselyRepository,
+    EdubridgeLearnerKyselyRepository,
+    EdubridgeEnrollmentKyselyRepository,
+    EdubridgeGuaranteeClaimKyselyRepository,
+    EdubridgeAccessTaskKyselyRepository,
+    EdubridgeTeacherKyselyRepository,
+    EdubridgeLessonKyselyRepository,
+    EdubridgeGroupKyselyRepository,
+    EdubridgeAdminKyselyRepository,
+    EdubridgeConnectorBindingKyselyRepository,
+    { provide: EDUBRIDGE_CHAIN_PORT, useClass: EdubridgeChainAdapter },
+    // Коннекторы площадок — фабрика по носителю; новая площадка = новый класс в списке
+    EdubridgeConnectorCredentialsStore,
+    { provide: CONNECTOR_CREDENTIALS_SOURCE, useExisting: EdubridgeConnectorCredentialsStore },
+    SkillspaceConnector,
+    GetCourseConnector,
+    OnsiteConnector,
+    {
+      provide: ACCESS_CARRIER_CONNECTORS,
+      useFactory: (s: SkillspaceConnector, g: GetCourseConnector, o: OnsiteConnector) => [s, g, o],
+      inject: [SkillspaceConnector, GetCourseConnector, OnsiteConnector],
+    },
+    AccessCarrierRegistry,
+    EdubridgeOwnerDirectory,
+    // Сервисы
+    // Обложки курсов — bucket ядра (`FILE_STORAGE_PORT`), как изображения товара в «Столе заказов».
+    ...bucketProvidersFor(FILE_STORAGE_PORT, [EdubridgeCourseImagesService]),
+    EdubridgeCourseImagesService,
+    EdubridgeCourseService,
+    EdubridgeEconomyService,
+    EdubridgeExpenseService,
+    EdubridgeOnboardingService,
+    EdubridgeLearnerService,
+    EdubridgeFundsService,
+    EdubridgeSettlementService,
+    EdubridgeChainTermsService,
+    EdubridgeGroupService,
+    EdubridgeCalendarService,
+    EdubridgeEnrollmentService,
+    EdubridgeReturnService,
+    EdubridgeGuaranteeService,
+    EdubridgeAccessOutboxService,
+    EdubridgeTeacherService,
+    EdubridgeApprovalsService,
+    EdubridgeAttentionService,
+    EdubridgeAdminService,
+    EdubridgeExitBlockersService,
+    // Воркеры и слушатели
+    EdubridgeOutboxWorker,
+    EdubridgeExpiryWorker,
+    EdubridgeHoldWorker,
+    EdubridgeAccessListener,
+    EdubridgeApprovalListener,
+    EdubridgeContractDeltaListener,
+    EdubridgeMembershipExitListener,
+    EdubridgeNotificationListener,
+    // Резолверы
+    EdubridgeCatalogResolver,
+    EdubridgeCatalogCourseFieldsResolver,
+    EdubridgeCourseFieldsResolver,
+    EdubridgeCourseAdminResolver,
+    EdubridgeGroupResolver,
+    EdubridgeCalendarResolver,
+    EdubridgeSectionsResolver,
+    EdubridgeSectionsService,
+    EdubridgeSectionKyselyRepository,
+    EdubridgeEconomyResolver,
+    EdubridgeOnboardingResolver,
+    EdubridgeMemberResolver,
+    EdubridgeReturnResolver,
+    EdubridgeGuaranteeResolver,
+    EdubridgeTeacherResolver,
+    EdubridgeAdminResolver,
+  ],
+  exports: [EDUBRIDGE_ROLE_FACTS_PORT, EdubridgeConfigHolder, EdubridgeMembershipService, EdubridgeExitBlockersService, EdubridgeLiveFeedService, EdubridgeTeacherService, EdubridgeSectionsService, EdubridgeGroupService],
+})
+export class EdubridgeApplicationModule {}

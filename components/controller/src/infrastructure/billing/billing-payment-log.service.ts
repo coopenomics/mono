@@ -1,15 +1,29 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import {
-  BillingPaymentLogEntity,
-  BillingPaymentLogStatus,
-} from './entities/billing-payment-log.entity';
+import { Inject, Injectable, Logger } from '@nestjs/common';
+import { affectedCount } from '@coopenomics/extension-kit';
+import { sql, type Selectable } from 'kysely';
+import type { BillingPaymentLog } from '~/infrastructure/database/kysely/database.types';
+import { KYSELY, type Database } from '~/infrastructure/database/kysely/kysely.tokens';
+import { BillingPaymentLogStatus, type BillingPaymentLogRecord } from './billing-payment-log.record';
+
+function toRecord(row: Selectable<BillingPaymentLog>): BillingPaymentLogRecord {
+  return {
+    id: row.id,
+    payment_hash: row.payment_hash,
+    coopname: row.coopname,
+    quantity: row.quantity,
+    subject: row.subject,
+    status: row.status as BillingPaymentLogStatus,
+    tx_id: row.tx_id,
+    last_error: row.last_error,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+  };
+}
 
 /** Результат попытки начать платёж: либо начали, либо есть существующая запись. */
 export interface BeginPaymentResult {
   started: boolean;
-  existing?: BillingPaymentLogEntity;
+  existing?: BillingPaymentLogRecord;
 }
 
 /**
@@ -32,23 +46,44 @@ export interface BeginPaymentResult {
 export class BillingPaymentLogService {
   private readonly logger = new Logger(BillingPaymentLogService.name);
 
-  constructor(
-    @InjectRepository(BillingPaymentLogEntity)
-    private readonly repository: Repository<BillingPaymentLogEntity>,
-  ) {}
+  constructor(@Inject(KYSELY) private readonly db: Database) {}
 
   /**
    * История списаний одного кооператива — для карточки в реестре совета.
    * Отдаём и незавершённые попытки: «оплата зависла» и «оплаты не было» —
    * разные вещи, и совет должен их различать.
    */
-  async listByCoopname(coopname: string, limit = 50): Promise<BillingPaymentLogEntity[]> {
-    return this.repository.find({
-      where: { coopname },
-      order: { created_at: 'DESC' },
+  async listByCoopname(coopname: string, limit = 50): Promise<BillingPaymentLogRecord[]> {
+    const rows = await this.db
+      .selectFrom('billing_payment_log')
+      .selectAll()
+      .where('coopname', '=', coopname)
+      .orderBy('created_at', 'desc')
       // Потолок — чтобы карточка не тянула весь журнал за годы.
-      take: Math.min(Math.max(limit, 1), 200),
-    });
+      .limit(Math.min(Math.max(limit, 1), 200))
+      .execute();
+    return rows.map(toRecord);
+  }
+
+  private async findByHash(paymentHash: string): Promise<BillingPaymentLogRecord | undefined> {
+    const row = await this.db
+      .selectFrom('billing_payment_log')
+      .selectAll()
+      .where('payment_hash', '=', paymentHash)
+      .executeTakeFirst();
+    return row ? toRecord(row) : undefined;
+  }
+
+  /** Правка записи по payment_hash; updated_at ставится вместе с правкой. */
+  private async patch(
+    paymentHash: string,
+    values: Partial<Pick<BillingPaymentLogRecord, 'status' | 'tx_id' | 'last_error' | 'subject'>>,
+  ): Promise<void> {
+    await this.db
+      .updateTable('billing_payment_log')
+      .set({ ...values, updated_at: sql`now()` })
+      .where('payment_hash', '=', paymentHash)
+      .execute();
   }
 
   async begin(
@@ -57,74 +92,65 @@ export class BillingPaymentLogService {
     quantity: string,
     subject?: string,
   ): Promise<BeginPaymentResult> {
-    const existing = await this.repository.findOne({ where: { payment_hash: paymentHash } });
+    const existing = await this.findByHash(paymentHash);
     if (existing) {
       if (existing.status === BillingPaymentLogStatus.FAILED) {
         // Доменный отказ ноды: повтор безопасен. CAS-переход FAILED → SUBMITTING,
-        // чтобы наложившийся тик не начал второй платёж.
-        const updated = await this.repository.update(
-          { payment_hash: paymentHash, status: BillingPaymentLogStatus.FAILED },
-          { status: BillingPaymentLogStatus.SUBMITTING, last_error: null },
+        // чтобы наложившийся тик не начал второй платёж. Состав платежа мог
+        // уточниться (сменился тариф), поэтому обновляется вместе со снятием ошибки.
+        const updated = affectedCount(
+          await this.db
+            .updateTable('billing_payment_log')
+            .set({
+              status: BillingPaymentLogStatus.SUBMITTING,
+              last_error: null,
+              ...(subject ? { subject } : {}),
+              updated_at: sql`now()`,
+            })
+            .where('payment_hash', '=', paymentHash)
+            .where('status', '=', BillingPaymentLogStatus.FAILED)
+            .execute(),
         );
-        if (updated.affected === 1) {
-          // Повтор после отказа: состав платежа мог уточниться (сменился тариф),
-          // поэтому обновляем его вместе со снятием ошибки.
-          if (subject) {
-            await this.repository.update({ payment_hash: paymentHash }, { subject });
-          }
-          return { started: true };
-        }
+        if (updated === 1) return { started: true };
       }
       return { started: false, existing };
     }
 
     try {
-      await this.repository.insert(
-        new BillingPaymentLogEntity({
+      await this.db
+        .insertInto('billing_payment_log')
+        .values({
           payment_hash: paymentHash,
           coopname,
           quantity,
           subject: subject ?? null,
           status: BillingPaymentLogStatus.SUBMITTING,
-        }),
-      );
+        })
+        .execute();
       return { started: true };
     } catch (error: any) {
       // Гонка двух тиков: уникальный индекс по payment_hash отдал 23505.
       if (String(error?.code) === '23505') {
-        const raced = await this.repository.findOne({ where: { payment_hash: paymentHash } });
-        return { started: false, existing: raced ?? undefined };
+        return { started: false, existing: await this.findByHash(paymentHash) };
       }
       throw error;
     }
   }
 
   async markSubmitted(paymentHash: string, txId: string): Promise<void> {
-    await this.repository.update(
-      { payment_hash: paymentHash },
-      { status: BillingPaymentLogStatus.SUBMITTED, tx_id: txId || null },
-    );
+    await this.patch(paymentHash, { status: BillingPaymentLogStatus.SUBMITTED, tx_id: txId || null });
   }
 
   async markConfirmed(paymentHash: string, txId?: string): Promise<void> {
-    await this.repository.update(
-      { payment_hash: paymentHash },
-      {
-        status: BillingPaymentLogStatus.CONFIRMED,
-        ...(txId ? { tx_id: txId } : {}),
-      },
-    );
+    await this.patch(paymentHash, { status: BillingPaymentLogStatus.CONFIRMED, ...(txId ? { tx_id: txId } : {}) });
   }
 
   async markFailed(paymentHash: string, reason: string): Promise<void> {
-    await this.repository.update(
-      { payment_hash: paymentHash },
-      { status: BillingPaymentLogStatus.FAILED, last_error: reason.slice(0, 4000) },
-    );
+    await this.patch(paymentHash, { status: BillingPaymentLogStatus.FAILED, last_error: reason.slice(0, 4000) });
   }
 
   /** Записать ошибку, не меняя статус (зависшее SUBMITTING — для диагностики). */
   async recordError(paymentHash: string, reason: string): Promise<void> {
-    await this.repository.update({ payment_hash: paymentHash }, { last_error: reason.slice(0, 4000) });
+    await this.patch(paymentHash, { last_error: reason.slice(0, 4000) });
   }
 }

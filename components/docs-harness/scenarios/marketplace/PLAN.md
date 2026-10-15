@@ -415,7 +415,7 @@ Magistral II разблокирована тремя коммитами PR #24 (
 **Что осталось технического долга после 9 страниц:**
 
 1. **`board/payouts-readonly` backend**: расширить `marketplace-access-matrix.ts` `Payment / read:all` и добавить query `marketplaceListOutgoingPayments` (опц. `supplier_account`).
-2. **`chairman/category-whitelist` tree-выбор**: подключить `marketplaceGetCategoryTree` через диалог-tree.
+2. **`chairman/category-whitelist` tree-выбор**: подключить дерево категорий через диалог-tree. Чтение `marketplaceGetCategoryTree` убрано 03.10.2026 вместе с первой версией справочника (C28-87): при подключении завести чтение дерева заново поверх `CategoryTreeDomainService`.
 3. **~~Прогон harness'а~~ ✅ выполнен** — 9 PNG установлены, admonition сняты (коммит `ee06d405136`, 2026-05-22). MD-проза готова.
 
 ### 9.14. Backend-фоллоуап Эпика 1 реализован (вариант A) — magistral II разблокирована (2026-05-22 вечер)

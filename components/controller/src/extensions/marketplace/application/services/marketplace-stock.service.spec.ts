@@ -71,6 +71,10 @@ function buildOriginOffer(): MarketplaceOfferDomainEntity {
         package_type: 'картонная коробка',
         sort_order: 1,
         is_default: true,
+        // Остаток поставщика — на витрину кооператива не переносится.
+        quantity_available: 40,
+        quantity_blocked: 2,
+        quantity_consumed: 1,
       },
     ],
     quantity_available: 0,
@@ -152,6 +156,41 @@ describe('MarketplaceStockService.publishStock — размерность цен
     // 150 ₽ за десяток → 15 ₽ за штуку на витрине; цена упаковки не меняется.
     expect(created.price_per_unit).toBe('15.0000');
     expect(created.packages[0].price).toBe('150.0000');
+    // Остаток по упаковкам: 20 штук по десять — две коробки; счётчики
+    // поставщика (40/2/1) на остаток кооператива не переезжают.
+    expect(created.packages[0]).toMatchObject({ quantity_available: 2, quantity_blocked: 0, quantity_consumed: 0 });
+    expect(created.quantity_available).toBe(20);
+  });
+
+  it('повторная публикация того же товара прибавляет упаковки к уже выставленным', async () => {
+    mocks.offerRepo.list.mockResolvedValue({
+      items: [
+        {
+          ...mocks.origin,
+          id: 'offer-coop',
+          supplier_account: 'voskhod',
+          stock_braname: 'voskhod1',
+          stock_origin_offer_id: 'offer-origin',
+          price_per_unit: '15.0000',
+          quantity_available: 20,
+          packages: [{ ...mocks.origin.packages[0], quantity_available: 2, quantity_blocked: 1, quantity_consumed: 0 }],
+        },
+      ],
+      totalCount: 1,
+      totalPages: 1,
+      currentPage: 1,
+    });
+    mocks.offerRepo.applyUpdate.mockResolvedValue({ id: 'offer-coop', category_id: 1 });
+
+    await service.publishStock({
+      coopname: 'voskhod',
+      operator_account: 'operator1',
+      inventory_ids: ['inv-1'],
+    });
+
+    const patch = mocks.offerRepo.applyUpdate.mock.calls[0][1];
+    expect(patch.quantity_available).toBe(40);
+    expect(patch.packages[0]).toMatchObject({ quantity_available: 4, quantity_blocked: 1, quantity_consumed: 0 });
   });
 
   it('уценка ниже цены прибытия проходит и масштабирует цену упаковки', async () => {

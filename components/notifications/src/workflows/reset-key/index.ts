@@ -1,8 +1,8 @@
 import { WorkflowDefinition, type BaseWorkflowPayload } from '../../types';
 import { WorkflowBuilder } from '../../base/workflow-builder';
 import { createEmailStep } from '../../base/defaults';
+import { nt } from '../../i18n';
 import { z } from 'zod';
-import { slugify } from '../../utils';
 
 // Схема для reset-key воркфлоу
 export const resetKeyPayloadSchema = z.object({
@@ -13,24 +13,24 @@ export type IPayload = z.infer<typeof resetKeyPayloadSchema>;
 
 export interface IWorkflow extends BaseWorkflowPayload, IPayload {}
 
-export const name = 'Восстановление доступа';
-export const id = slugify(name);
+export const name = nt('resetKey.name');
+// Идентификатор закреплён: раньше он вычислялся из названия, и правка
+// или перевод названия меняли бы его. Не менять — на него ссылаются подписки.
+export const id = 'vosstanovlenie-dostupa';
 
 export const workflow: WorkflowDefinition<IWorkflow> = WorkflowBuilder
   .create<IWorkflow>()
   .name(name)
   .workflowId(id)
-  .description('Уведомление о восстановлении доступа к аккаунту')
+  .i18nKey('resetKey')
+  .description(nt('resetKey.description'))
   .payloadSchema(resetKeyPayloadSchema)
   .tags(['auth'])
   .addSteps([
     createEmailStep(
       'reset-key-email',
-      'Восстановление доступа',
-      'Мы получили запрос на перевыпуск приватного ключа,<br><br>' +
-      'Для перевыпуска нажмите на ссылку: <a href="{{payload.resetUrl}}">{{payload.resetUrl}}</a><br><br>' +
-      'Время действия ссылки - 10 минут.<br><br>' +
-      'Если вы не запрашивали перевыпуск ключа - проигнорируйте это сообщение.'
+      nt('resetKey.email.subject'),
+      nt('resetKey.email.body')
     ),
   ])
   .build();

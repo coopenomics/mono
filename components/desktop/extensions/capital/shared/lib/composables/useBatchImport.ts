@@ -2,6 +2,7 @@ import { ref, computed } from 'vue';
 import { useImportContributor } from 'app/extensions/capital/features/Contributor/ImportContributor/model';
 import { useSystemStore } from 'src/entities/System/model';
 import type { ICsvContributor } from './useCsvParser';
+import { t } from '../../../i18n';
 
 export function useBatchImport() {
   const { importContributor } = useImportContributor();
@@ -53,13 +54,13 @@ export function useBatchImport() {
         importedCount.value++;
       } catch (error: any) {
         importResults.value[i].status = 'error';
-        importResults.value[i].error = error.message || 'Неизвестная ошибка';
+        importResults.value[i].error = error.message || t('capital.useBatchImport.unknownError');
         failedCount.value++;
       }
 
       importProgress.value = i + 1;
 
-      // Небольшая задержка между запросами
+      // timing: throttle — пакетный импорт не всплеском запросов, а по одному
       await new Promise((resolve) => setTimeout(resolve, 100));
     }
 
@@ -91,7 +92,7 @@ export function useBatchImport() {
       if (failedCount.value > 0) failedCount.value--;
     } catch (error: any) {
       importResults.value[index].status = 'error';
-      importResults.value[index].error = error.message || 'Неизвестная ошибка';
+      importResults.value[index].error = error.message || t('capital.useBatchImport.unknownError');
     }
   };
 

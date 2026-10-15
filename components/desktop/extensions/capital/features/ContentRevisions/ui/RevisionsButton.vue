@@ -1,7 +1,7 @@
 <template lang="pug">
 //- Текстовая кнопка «Редакции» + всплывающее окно истории (для страниц с автосохранением)
 span
-  BaseButton(variant="ghost" size="sm" @click="open = true") Редакции
+  BaseButton(variant="ghost" size="sm" @click="open = true") {{ $t('capital.revisionsButton.label') }}
   RevisionsDialog(
     v-model="open"
     :entity-type="entityType"

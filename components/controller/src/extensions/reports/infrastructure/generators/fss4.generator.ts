@@ -6,6 +6,7 @@ import type {
   ReportOutput,
 } from '../../domain/interfaces/report-generator.interface';
 import type { ZeroReportEditsShape } from '../../domain/edits-shapes/zero-report-edits.shape';
+import { t } from '../../i18n';
 
 /**
  * ЕФС-1 (ex-4ФСС) — отчёт в СФР, нулевой вариант.
@@ -15,10 +16,15 @@ import type { ZeroReportEditsShape } from '../../domain/edits-shapes/zero-report
  *   Q1 → "03", Q2 → "06", Q3 → "09", Q4 → "12".
  */
 const EFS_NS = {
+  // i18n-ignore: официальная форма — URI XSD-схемы/namespace
   default: 'http://пф.рф/ЕФС-1/2026-01-01',
+  // i18n-ignore: официальная форма — URI XSD-схемы/namespace
   АФ8: 'http://пф.рф/АФ/2025-01-01',
+  // i18n-ignore: официальная форма — URI XSD-схемы/namespace
   УТ8: 'http://пф.рф/УТ/2025-01-01',
+  // i18n-ignore: официальная форма — URI XSD-схемы/namespace
   ВС8: 'http://пф.рф/ВС/типы/2025-01-01',
+  // i18n-ignore: официальная форма — URI XSD-схемы/namespace
   ЕФС8: 'http://пф.рф/ВС/ЕФС/2026-01-01',
   ns1: 'http://www.w3.org/2000/09/xmldsig#',
   sig: 'http://iis.ecp.ru/SignInfo/2023-01-10',
@@ -51,10 +57,15 @@ type XmlBuilder = ReturnType<ReturnType<typeof create>['ele']>;
 
 function addMonthlyZeroTuple(parent: XmlBuilder, name: string): void {
   const el = parent.ele(name);
+  // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
   el.ele('ЕФС8:ВсегоСНачала').txt(ZERO).up();
+  // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
   el.ele('ЕФС8:НаКонец').txt(ZERO).up();
+  // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
   el.ele('ЕФС8:ПервыйМесяц').txt(ZERO).up();
+  // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
   el.ele('ЕФС8:ВторойМесяц').txt(ZERO).up();
+  // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
   el.ele('ЕФС8:ТретийМесяц').txt(ZERO).up();
   el.up();
 }
@@ -72,10 +83,10 @@ export class Fss4Generator implements IReportGenerator {
       // проверяем его здесь, хотя в реквизитах кооператива оно и остаётся
       // обязательным полем (может понадобиться другим формам/интеграциям).
       errors.push(
-        'Для ЕФС-1 обязателен рег. номер страхователя в ПФР в формате XXX-XXX-XXXXXX ' +
-          '(поле signer.pfrRegNumber). Единый 10-значный номер СФР сюда не подходит — ' +
-          'оператор отклонит отчёт. Номер ПФР есть в выписке ЕГРЮЛ, в разделе о ' +
-          'регистрации страхователя в территориальном органе СФР.'
+        t('reports.fss4.pfrRegNumberRequiredPart1') +
+          t('reports.fss4.pfrRegNumberRequiredPart2') +
+          t('reports.fss4.pfrRegNumberRequiredPart3') +
+          t('reports.fss4.pfrRegNumberRequiredPart4')
       );
     }
     if (errors.length) {
@@ -85,7 +96,7 @@ export class Fss4Generator implements IReportGenerator {
       const xml = this.buildXml(edits);
       return { reportType: this.reportType, xml, fileName, errors, isValid: true };
     } catch (e) {
-      errors.push(`Ошибка генерации ЕФС-1: ${e instanceof Error ? e.message : String(e)}`);
+      errors.push(t('reports.fss4.generationErrorMessage', { message: e instanceof Error ? e.message : String(e) }));
       return { reportType: this.reportType, xml: '', fileName, errors, isValid: false };
     }
   }
@@ -98,18 +109,25 @@ export class Fss4Generator implements IReportGenerator {
     const corrNum = String(header.correctionNumber).padStart(3, '0');
 
     const doc = create({ version: '1.0', encoding: 'utf-8' });
+    // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
     const edsfr = doc.ele('ЭДСФР', {
       xmlns: EFS_NS.default,
+      // i18n-ignore: префикс пространства имён XML официальной формы ЕФС-1
       'xmlns:АФ8': EFS_NS.АФ8,
+      // i18n-ignore: префикс пространства имён XML официальной формы ЕФС-1
       'xmlns:УТ8': EFS_NS.УТ8,
+      // i18n-ignore: префикс пространства имён XML официальной формы ЕФС-1
       'xmlns:ВС8': EFS_NS.ВС8,
+      // i18n-ignore: префикс пространства имён XML официальной формы ЕФС-1
       'xmlns:ЕФС8': EFS_NS.ЕФС8,
       'xmlns:ns1': EFS_NS.ns1,
       'xmlns:sig': EFS_NS.sig,
     });
 
+    // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
     const efs1 = edsfr.ele('ЕФС-1');
 
+    // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
     const strah = efs1.ele('Страхователь');
     // Тег «Действующий регистрационный номер страхователя» (см. XSD
     // efs-types.xsd/ТипСтрахователь). Сейчас сюда идёт номер ПФР
@@ -127,52 +145,90 @@ export class Fss4Generator implements IReportGenerator {
     // файла (report-edits-builder.service.ts).
     //
     // pfrRegNumber гарантированно определён — guard в generate() выше.
+    // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
     strah.ele('ЕФС8:РегНомер').txt(signer.pfrRegNumber ?? '').up();
+    // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
     strah.ele('ЕФС8:Наименование').txt(organization.orgName).up();
+    // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
     strah.ele('УТ8:ИНН').txt(organization.inn).up();
+    // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
     strah.ele('УТ8:КПП').txt(organization.kpp).up();
+    // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
     if (organization.okved) strah.ele('УТ8:КодПоОКВЭД').txt(organization.okved).up();
+    // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
     if (organization.ogrn) strah.ele('ЕФС8:ОГРН').txt(organization.ogrn).up();
     strah.up();
 
+    // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
     const oss = efs1.ele('ОСС');
+    // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
     oss.ele('НомерКорректировки').txt(corrNum).up();
+    // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
     const per = oss.ele('Период');
+    // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
     per.ele('Код').txt(periodCode).up();
+    // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
     per.ele('Год').txt(String(header.reportYear)).up();
     per.up();
 
+    // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
     const chisl = oss.ele('Численность');
+    // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
     chisl.ele('Среднесписочная').txt(ZERO_INT).up();
+    // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
     chisl.ele('РабПоОбСоцСтрах').txt(ZERO_INT).up();
     chisl.up();
 
+    // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
     const rssv = oss.ele('РССВ');
+    // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
     addMonthlyZeroTuple(rssv, 'СуммаВыплИн');
+    // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
     addMonthlyZeroTuple(rssv, 'БазаИсч');
+    // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
     rssv.ele('СтраховойТариф').txt('0.20').up();
+    // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
     rssv.ele('СкидкаТариф').txt('0.00').up();
+    // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
     rssv.ele('НадбавкаТариф').txt('0.00').up();
+    // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
     rssv.ele('ТарифУчСкидНадб').txt('0.200').up();
+    // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
     addMonthlyZeroTuple(rssv, 'ИсчислСтрахВзн');
     rssv.up();
 
+    // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
     const rpo = oss.ele('РПО');
+    // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
     rpo.ele('ОбщЧисл').txt(ZERO_INT).up();
+    // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
     rpo.ele('ПрошЧисл').txt(ZERO_INT).up();
+    // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
     const rez = rpo.ele('Результат');
+    // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
     rez.ele('КоличРабМест').txt(ZERO_INT).up();
+    // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
     const ocenki = rez.ele('Оценки');
+    // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
     ocenki.ele('Всего').txt(ZERO_INT).up();
+    // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
     const klassy = ocenki.ele('Классы');
+    // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
     klassy.ele('Класс1').txt(ZERO_INT).up();
+    // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
     klassy.ele('Класс2').txt(ZERO_INT).up();
+    // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
     const klass3 = klassy.ele('Класс3');
+    // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
     klass3.ele('Подкласс3.1').txt(ZERO_INT).up();
+    // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
     klass3.ele('Подкласс3.2').txt(ZERO_INT).up();
+    // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
     klass3.ele('Подкласс3.3').txt(ZERO_INT).up();
+    // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
     klass3.ele('Подкласс3.4').txt(ZERO_INT).up();
     klass3.up();
+    // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
     klassy.ele('Класс4').txt(ZERO_INT).up();
     klassy.up();
     ocenki.up();
@@ -180,23 +236,35 @@ export class Fss4Generator implements IReportGenerator {
     rpo.up();
     oss.up();
 
+    // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
     const ruk = efs1.ele('Руководитель');
+    // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
     const fio = ruk.ele('УТ8:ФИО');
+    // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
     fio.ele('УТ8:Фамилия').txt(signer.lastName).up();
+    // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
     fio.ele('УТ8:Имя').txt(signer.firstName).up();
+    // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
     if (signer.middleName) fio.ele('УТ8:Отчество').txt(signer.middleName).up();
     fio.up();
+    // i18n-ignore: официальная форма — значение по умолчанию для поля Должность в XML-отчёте
+    // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
     ruk.ele('УТ8:Должность').txt(signer.chairmanPosition ?? 'Председатель Совета').up();
     ruk.up();
 
     const dPad = (n: number) => String(n).padStart(2, '0');
     const fillDate = `${now.getFullYear()}-${dPad(now.getMonth() + 1)}-${dPad(now.getDate())}`;
+    // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
     efs1.ele('ДатаЗаполнения').txt(fillDate).up();
     efs1.up();
 
+    // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
     const sluzh = edsfr.ele('СлужебнаяИнформация');
+    // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
     sluzh.ele('АФ8:GUID').txt(guid).up();
+    // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
     sluzh.ele('АФ8:ДатаВремя').txt(sfrDateTime(now)).up();
+    // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
     sluzh.ele('АФ8:ПрограммаПодготовки').txt(header.versProgram).up();
     sluzh.up();
 

@@ -16,6 +16,7 @@ import { CapitalContract } from 'cooptypes'
 import Blockchain from '../../../blockchain'
 import config from '../../../configs'
 import { PROJECTS, ROOT_HASH, projectHash } from '../data/projects'
+import { chainTextDigest } from '../../../utils/chainTextDigest'
 
 const log = (...a: unknown[]) => console.error('[seed-capital:06]', ...a)
 
@@ -67,7 +68,7 @@ export async function phase06(): Promise<void> {
       project_hash: hash,
       parent_hash,
       title: item.title,
-      description: `Кооперативный проект «${item.title}».`,
+      description: chainTextDigest(`Кооперативный проект «${item.title}».`),
       invite: '',
       data: JSON.stringify({ summary: item.title }),
       meta: JSON.stringify({ seed_source: 'seed-capital/phase-06', seed_id: item.id, title: item.title }),

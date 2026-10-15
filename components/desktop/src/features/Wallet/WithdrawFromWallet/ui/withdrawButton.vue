@@ -8,12 +8,12 @@ q-btn(
   :size='micro ? "sm" : undefined'
 )
   q-icon(:name='micro ? "fa-solid fa-arrow-down" : "fa-solid fa-chevron-down"')
-  span(v-if='!micro').q-ml-sm Получить возврат
-  q-tooltip(v-if='micro') Вернуть
+  span(v-if='!micro').q-ml-sm {{ $t('wallet.withdrawButton.buttonLabel') }}
+  q-tooltip(v-if='micro') {{ $t('wallet.withdrawButton.submitLabel') }}
 
   BaseDialog(
     v-model='showDialog',
-    title='Заявление на возврат паевого взноса',
+    :title='$t("wallet.withdrawButton.dialogTitle")',
     size='md',
     @update:model-value='(v) => !v && clear()'
   )
@@ -21,12 +21,12 @@ q-btn(
       :disabled='!isFormValid',
       :handler-submit='handlerSubmit',
       :is-submitting='isSubmitting',
-      :button-cancel-txt='"Отменить"',
-      :button-submit-txt='"Создать заявление"',
+      :button-cancel-txt='$t("wallet.withdrawButton.cancel")',
+      :button-submit-txt='$t("wallet.withdrawButton.confirm")',
       @cancel='clear'
     )
       InfoCard(
-        :text='"Заявление будет отправлено в совет кооператива на рассмотрение, после одобрения средства поступят на счёт указанным способом."'
+        :text='$t("wallet.withdrawButton.description")'
       )
 
       div
@@ -35,7 +35,8 @@ q-btn(
           standout='bg-teal text-white',
           type='number',
           :min='1',
-          label='Сумма возврата',
+          :label='$t("wallet.withdrawButton.amountLabel")',
+          :hint='availableHint',
           :rules='quantityRules'
         )
           template(#append)
@@ -46,17 +47,18 @@ q-btn(
           v-model='selectedMethod',
           :options='methodOptions',
           standout='bg-teal text-white',
-          label='Способ получения',
+          :label='$t("wallet.withdrawButton.methodLabel")',
           option-label='label',
           option-value='value',
-          :rules='[(val) => !!val || "Выберите способ получения"]',
+          :rules='[(val) => !!val || $t("wallet.withdrawButton.methodPlaceholder")]',
           :loading='loadingMethods'
         )
           template(v-slot:no-option)
             q-item
-              q-item-section.text-grey Методы получения не найдены
+              q-item-section.text-grey {{ $t('wallet.withdrawButton.methodsEmpty') }}
 </template>
-<script setup lang="ts">
+<script setup lang="ts">import { t } from 'src/shared/i18n';
+
 interface Props {
   micro?: boolean;
 }
@@ -68,11 +70,11 @@ import { ref, computed, watch } from 'vue';
 import { BaseDialog } from 'src/shared/ui/base/BaseDialog';
 import { Form } from 'src/shared/ui/Form';
 import { env } from 'src/shared/config';
-import { useWalletStore } from 'src/entities/Wallet';
+import { paymentMethodDescription, paymentMethodLabel, useWalletStore } from 'src/entities/Wallet';
 import { useSystemStore } from 'src/entities/System/model';
 import { useSessionStore } from 'src/entities/Session';
 import { useReturnByMoney, useWithdrawDialog } from '../model';
-import type { IPaymentMethodData, IBankTransferData, ISBPData } from 'src/entities/Wallet/model/types';
+import type { IPaymentMethodData } from 'src/entities/Wallet/model/types';
 import InfoCard from 'src/shared/ui/InfoCard.vue';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 
@@ -92,17 +94,38 @@ const { info } = useSystemStore();
 const session = useSessionStore();
 const { processReturnByMoney } = useReturnByMoney();
 
+// Вернуть можно не больше собственного остатка на паевом кошельке — ровно его
+// цепь и сверяет. Раньше форма принимала любую сумму: пайщик вводил больше,
+// чем у него есть, подписывал заявление и получал отказ с текстом контракта.
+// Остаток не загрузился — не блокируем: окончательно сумму проверит цепь.
+const availableToReturn = computed<number | null>(() => {
+  const share = walletStore.user_wallets.find((w) => w.wallet_name === 'w.wal.share');
+  if (!share?.available) return null;
+  const amount = Number.parseFloat(share.available);
+  return Number.isFinite(amount) ? amount : null;
+});
+
+const availableHint = computed(() =>
+  availableToReturn.value === null
+    ? undefined
+    : t('wallet.withdrawButton.availableAmountLabel', { amount: availableToReturn.value, currency: currency.value }),
+);
+
 // Правила валидации для суммы
 const quantityRules = [
-  (val: number) => val > 0 || 'Сумма должна быть положительной',
+  (val: number) => val > 0 || t('wallet.withdrawButton.amountPositiveError'),
+  (val: number) =>
+    availableToReturn.value === null ||
+    val <= availableToReturn.value ||
+    t('wallet.withdrawButton.amountExceedsBalanceError'),
 ];
 
 // Опции методов платежа
 const methodOptions = computed(() => {
   return walletStore.methods.map((method: IPaymentMethodData) => ({
-    label: getMethodLabel(method),
+    label: paymentMethodLabel(method),
     value: method.method_id.toString(),
-    description: getMethodDescription(method),
+    description: paymentMethodDescription(method),
   }));
 });
 
@@ -111,57 +134,11 @@ const isFormValid = computed(() => {
   return (
     quantity.value >= 0 &&
     quantity.value > 0 &&
+    (availableToReturn.value === null || quantity.value <= availableToReturn.value) &&
     selectedMethod.value !== null &&
     !isSubmitting.value
   );
 });
-
-// Функция для получения читаемого названия метода
-function getMethodLabel(method: IPaymentMethodData): string {
-  if (method.method_type === 'sbp' && isSBPData(method.data)) {
-    const phone = method.data.phone;
-    let formatted = phone;
-    if (phone.length >= 6) {
-      formatted = `${phone.slice(0, 2)}***${phone.slice(-2)}`;
-    } else if (phone.length > 2) {
-      formatted = `${phone.slice(0, 2)}***${phone.slice(-2)}`;
-    }
-    return `СБП (${formatted})`;
-  } else if (
-    method.method_type === 'bank_transfer' &&
-    isBankTransferData(method.data)
-  ) {
-    const acc = method.data.account_number;
-    const last4 = acc.slice(-4);
-    const bank = method.data.bank_name || '';
-    return `Банковский перевод — ${bank} (***${last4})`;
-  }
-  return method.method_type;
-}
-
-// Функция для получения описания метода
-function getMethodDescription(method: IPaymentMethodData): string {
-  if (method.method_type === 'sbp' && isSBPData(method.data)) {
-    return `Система Быстрых Платежей на номер ${method.data.phone}`;
-  } else if (
-    method.method_type === 'bank_transfer' &&
-    isBankTransferData(method.data)
-  ) {
-    return `Банковский счет ${method.data.account_number} в ${method.data.bank_name}`;
-  }
-  return '';
-}
-
-// Функции для проверки типов данных
-function isSBPData(data: ISBPData | IBankTransferData): data is ISBPData {
-  return (data as ISBPData).phone !== undefined;
-}
-
-function isBankTransferData(
-  data: ISBPData | IBankTransferData,
-): data is IBankTransferData {
-  return (data as IBankTransferData).account_number !== undefined;
-}
 
 // Загрузка методов платежа при открытии диалога
 watch(showDialog, async (newValue) => {
@@ -174,7 +151,7 @@ watch(showDialog, async (newValue) => {
       });
     } catch (error) {
       console.error('Ошибка загрузки методов платежа:', error);
-      FailAlert('Ошибка загрузки методов платежа');
+      FailAlert(t('wallet.withdrawButton.methodsLoadError'));
     } finally {
       loadingMethods.value = false;
     }
@@ -190,7 +167,7 @@ const clear = (): void => {
 
 const handlerSubmit = async (): Promise<void> => {
   if (!selectedMethod.value) {
-    FailAlert('Выберите способ получения средств');
+    FailAlert(t('wallet.withdrawButton.methodRequiredError'));
     return;
   }
 
@@ -201,7 +178,7 @@ const handlerSubmit = async (): Promise<void> => {
       symbol: env.CURRENCY as string,
       method_id: selectedMethod.value.value,
     });
-    SuccessAlert('Заявление на возврат паевого взноса успешно подано');
+    SuccessAlert(t('wallet.withdrawButton.submitSuccess'));
     clear();
   } catch (e: any) {
     FailAlert(e);

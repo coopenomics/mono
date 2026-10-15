@@ -6,3 +6,4 @@ export * from './SecondaryIndexesTypesList';
 export * from './ActionsList';
 export * from './Environment';
 export * from './OpenReplay';
+export * from './AppVersion';

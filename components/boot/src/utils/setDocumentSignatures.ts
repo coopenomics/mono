@@ -3,27 +3,32 @@ import { fakeDocument } from '../tests/shared/fakeDocument'
 /**
  * Устанавливает подписи документа на основе массива имен аккаунтов
  * @param usernames массив имен аккаунтов для подписи документа
- * @returns копия fakeDocument с установленными подписями
+ * @returns документ с подписями
+ *
+ * С 17.09.2026 контракты сверяют подпись с ключом аккаунта подписанта
+ * (`verify_signer_keys_or_fail`). Пайщиков стенда `addUser` заводит ключом
+ * `EOSIO_PRV_KEY`, поэтому каждая подпись берёт ключ и подпись из той же
+ * фикстуры `fakeDocument` — прежде здесь были вшиты посторонний ключ и готовая
+ * подпись, и контракт отклонял каждый документ («Public key does not belong
+ * to account»).
  */
 export function setDocumentSignatures(usernames: string[]) {
-  const document = JSON.parse(JSON.stringify(fakeDocument))
+  const [base] = fakeDocument.signatures
 
-  // Очищаем существующие подписи
-  document.signatures = []
-
-  // Создаем подписи для каждого пользователя
-  usernames.forEach((username, index) => {
-    const signature = {
+  return {
+    version: fakeDocument.version,
+    hash: fakeDocument.hash,
+    doc_hash: fakeDocument.doc_hash,
+    meta_hash: fakeDocument.meta_hash,
+    meta: fakeDocument.meta,
+    signatures: usernames.map((username, index) => ({
       id: index + 1,
-      signed_hash: '157192b276da23cc84ab078fc8755c051c5f0430bf4802e55718221e6b76c777',
+      signed_hash: base.signed_hash,
       signer: username,
-      public_key: 'EOS5JhMfxbsNebajHcTEK8yC9uNN9Dit9hEmzE8ri8yMhhzxrLg3J',
-      signature: 'SIG_K1_KmKWPBC8dZGGDGhbKEoZEzPr3h5crRrR2uLdGRF5DJbeibY1MY1bZ9sPwHsgmPfiGFv9psfoCVsXFh9TekcLuvaeuxRKA8',
-      signed_at: '2025-05-14T12:22:26',
+      public_key: base.public_key,
+      signature: base.signature,
+      signed_at: base.signed_at,
       meta: '{}',
-    }
-    document.signatures.push(signature)
-  })
-
-  return document
+    })),
+  }
 }

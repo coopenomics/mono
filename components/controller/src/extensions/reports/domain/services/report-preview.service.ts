@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ReportType } from '../enums/report-type.enum';
 import type { LedgerAccountData } from '../interfaces/report-generator.interface';
 import { toThousands } from '../../infrastructure/generators/buhotch.generator';
+import { t } from '../../i18n';
 
 export interface PreviewSection {
   title: string;
@@ -95,50 +96,50 @@ export class ReportPreviewService {
     const row = (label: string, current: number, corr: { prev: number; pre: number }) => ({
       key: label,
       label,
-      value: `Отч: ${round1000(current)} тыс.; Прдщ: ${round1000(corr.prev)} тыс.; Прдшв: ${round1000(corr.pre)} тыс.`,
-      unit: 'тыс. ₽',
+      value: t('reports.reportPreview.balanceRowValue', { current: round1000(current), prev: round1000(corr.prev), prePrev: round1000(corr.pre) }),
+      unit: t('reports.reportPreview.thousandRubUnit'),
     });
 
     return [
       {
-        title: 'Актив баланса (КНД 0710001)',
+        title: t('reports.reportPreview.balanceAssetsTitle'),
         fields: [
-          row('Нематериальные, финансовые и др. внеоборотные активы', nonMatFin, nonMatFinCorr),
-          row('Денежные средства', cash, cashCorr),
-          row('Финансовые и другие оборотные активы', shortFin, shortFinCorr),
+          row(t('reports.reportPreview.nonMaterialFinAssetsLabel'), nonMatFin, nonMatFinCorr),
+          row(t('reports.reportPreview.cashLabel'), cash, cashCorr),
+          row(t('reports.reportPreview.shortTermFinAssetsLabel'), shortFin, shortFinCorr),
           {
             key: 'totalAssets',
-            label: 'Итого активы',
+            label: t('reports.reportPreview.totalAssetsLabel'),
             value: String(round1000(assetsTotal)),
-            unit: 'тыс. ₽',
+            unit: t('reports.reportPreview.thousandRubUnit'),
           },
         ],
       },
       {
-        title: 'Пассив баланса',
+        title: t('reports.reportPreview.balancePassivesTitle'),
         fields: [
-          row('Целевые средства (паевой фонд + целевые поступления)', target, targetCorr),
+          row(t('reports.reportPreview.targetFundsLabel'), target, targetCorr),
           {
             key: 'totalPassives',
-            label: 'Итого пассивы',
+            label: t('reports.reportPreview.totalPassivesLabel'),
             value: String(round1000(target)),
-            unit: 'тыс. ₽',
+            unit: t('reports.reportPreview.thousandRubUnit'),
           },
         ],
       },
       {
-        title: 'Сверка',
+        title: t('reports.reportPreview.reconciliationTitle'),
         fields: [
           {
             key: 'balanceCheck',
             // ФНС регламент 0710096 допускает расхождение Актив=Пассив до 1 тыс. ₽
             // из-за независимого округления каждой строки. Строгое сравнение
             // `===` показывало ложное «Нет» при валидных отчётах.
-            label: 'Актив = Пассив',
+            label: t('reports.reportPreview.assetsEqualsPassivesLabel'),
             value: (() => {
               const delta = round1000(assetsTotal) - round1000(target);
-              if (Math.abs(delta) <= 1) return 'Да';
-              return `Нет (Δ = ${delta} тыс.)`;
+              if (Math.abs(delta) <= 1) return t('common.answer.yes');
+              return t('reports.reportPreview.assetsNotEqualLabel', { delta });
             })(),
           },
         ],
@@ -149,16 +150,16 @@ export class ReportPreviewService {
   private buildNdfl6(ctx: PreviewContext): PreviewSection[] {
     return [
       {
-        title: '6-НДФЛ (КНД 1151100, ВерсФорм 5.05)',
+        title: t('reports.reportPreview.ndfl6Title'),
         fields: [
-          { key: 'period', label: 'Период', value: this.quarterLabel(ctx.period) },
-          { key: 'year', label: 'Отчётный год', value: String(ctx.year) },
-          { key: 'kbk', label: 'КБК', value: '18210102010011000110' },
-          { key: 'rate', label: 'Ставка налога', value: '13 %' },
+          { key: 'period', label: t('reports.reportPreview.periodLabel'), value: this.quarterLabel(ctx.period) },
+          { key: 'year', label: t('reports.reportPreview.yearLabel'), value: String(ctx.year) },
+          { key: 'kbk', label: t('reports.reportPreview.kbkLabel'), value: '18210102010011000110' },
+          { key: 'rate', label: t('reports.reportPreview.taxRateLabel'), value: '13 %' },
           {
             key: 'source',
-            label: 'Источник сумм',
-            value: 'Налог, удержанный из материальной помощи',
+            label: t('reports.reportPreview.sourceLabel'),
+            value: t('reports.reportPreview.materialAidTaxSourceValue'),
           },
         ],
       },
@@ -168,11 +169,11 @@ export class ReportPreviewService {
   private buildRsv(ctx: PreviewContext): PreviewSection[] {
     return [
       {
-        title: 'РСВ (КНД 1151111, ВерсФорм 5.08)',
+        title: t('reports.reportPreview.rsvTitle'),
         fields: [
-          { key: 'period', label: 'Период', value: this.quarterLabel(ctx.period) },
-          { key: 'year', label: 'Отчётный год', value: String(ctx.year) },
-          { key: 'body', label: 'Раздел РасчетСВ', value: 'Пустой (нулевой отчёт)' },
+          { key: 'period', label: t('reports.reportPreview.periodLabel'), value: this.quarterLabel(ctx.period) },
+          { key: 'year', label: t('reports.reportPreview.yearLabel'), value: String(ctx.year) },
+          { key: 'body', label: t('reports.reportPreview.rsvSectionLabel'), value: t('reports.reportPreview.emptyZeroReportValue') },
         ],
       },
     ];
@@ -181,16 +182,16 @@ export class ReportPreviewService {
   private buildDusn(ctx: PreviewContext): PreviewSection[] {
     return [
       {
-        title: 'Декларация УСН (КНД 1152017, ВерсФорм 5.09)',
+        title: t('reports.reportPreview.usnDeclarationTitle'),
         fields: [
-          { key: 'period', label: 'Период', value: '34 (годовой)' },
+          { key: 'period', label: t('reports.reportPreview.periodLabel'), value: t('reports.reportPreview.usnPeriodAnnualValue') },
           // DN1 code review Chunk A: ctx.year = «год за который отчитываемся»,
           // единый контракт со всеми ФНС-генераторами. Раньше было ctx.year-1,
           // что рассинхронизировалось с генератором после унификации.
-          { key: 'year', label: 'Отчётный год', value: String(ctx.year) },
-          { key: 'obNal', label: 'Объект налогообложения', value: '1 (доходы)' },
-          { key: 'rate', label: 'Ставка', value: '0 % (нулевой отчёт)' },
-          { key: 'sum', label: 'Сумма налога', value: '0' },
+          { key: 'year', label: t('reports.reportPreview.yearLabel'), value: String(ctx.year) },
+          { key: 'obNal', label: t('reports.reportPreview.usnTaxObjectLabel'), value: t('reports.reportPreview.usnTaxObjectIncomeValue') },
+          { key: 'rate', label: t('reports.reportPreview.rateLabel'), value: t('reports.reportPreview.usnZeroRateValue') },
+          { key: 'sum', label: t('reports.reportPreview.taxAmountLabel'), value: '0' },
         ],
       },
     ];
@@ -199,25 +200,25 @@ export class ReportPreviewService {
   private buildFss4(ctx: PreviewContext): PreviewSection[] {
     return [
       {
-        title: 'ЕФС-1 (подраздел 2.1, в СФР)',
+        title: t('reports.reportPreview.efs1Title'),
         fields: [
-          { key: 'period', label: 'Период СФР', value: this.sfrPeriodLabel(ctx.period) },
-          { key: 'year', label: 'Отчётный год', value: String(ctx.year) },
-          { key: 'chisl', label: 'Среднесписочная численность', value: '0' },
-          { key: 'tariff', label: 'Страховой тариф', value: '0.20' },
-          { key: 'allSums', label: 'Все суммы', value: '0.00 (нулевой отчёт)' },
+          { key: 'period', label: t('reports.reportPreview.sfrPeriodLabel'), value: this.sfrPeriodLabel(ctx.period) },
+          { key: 'year', label: t('reports.reportPreview.yearLabel'), value: String(ctx.year) },
+          { key: 'chisl', label: t('reports.reportPreview.averageHeadcountLabel'), value: '0' },
+          { key: 'tariff', label: t('reports.reportPreview.insuranceTariffLabel'), value: '0.20' },
+          { key: 'allSums', label: t('reports.reportPreview.allSumsLabel'), value: t('reports.reportPreview.zeroAmountValue') },
         ],
       },
     ];
   }
 
   private quarterLabel(q?: number): string {
-    const map = { 1: 'I квартал (код 21)', 2: 'Полугодие (код 31)', 3: '9 месяцев (код 33)', 4: 'Год (код 34)' } as Record<number, string>;
-    return q ? map[q] ?? `Квартал ${q}` : 'не указан';
+    const map = { 1: t('reports.reportPreview.quarter1Label'), 2: t('reports.reportPreview.halfYearLabel'), 3: t('reports.reportPreview.nineMonthsLabel'), 4: t('reports.reportPreview.yearPeriodLabel') } as Record<number, string>;
+    return q ? map[q] ?? t('reports.reportPreview.quarterNLabel', { number: q }) : t('reports.reportPreview.periodNotSetValue');
   }
 
   private sfrPeriodLabel(q?: number): string {
-    const map = { 1: 'I кв (03)', 2: 'Полугодие (06)', 3: '9 мес (09)', 4: 'Год (0)' } as Record<number, string>;
-    return q ? map[q] ?? String(q) : 'не указан';
+    const map = { 1: t('reports.reportPreview.sfrQuarter1Label'), 2: t('reports.reportPreview.sfrHalfYearLabel'), 3: t('reports.reportPreview.sfrNineMonthsLabel'), 4: t('reports.reportPreview.sfrYearLabel') } as Record<number, string>;
+    return q ? map[q] ?? String(q) : t('reports.reportPreview.periodNotSetValue');
   }
 }

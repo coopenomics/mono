@@ -23,6 +23,8 @@ void capital::approvepgprp(eosio::name coopname, eosio::name username, checksum2
 
   // Проверяем документ
   verify_document_or_fail(approved_statement, { chairman });
+  // Согласие подписано ключом аккаунта председателя.
+  verify_signer_keys_or_fail(approved_statement, chairman);
 
   // Получаем предложение
   auto property = Capital::ProgramProperties::get_program_property_or_fail(coopname, property_hash);

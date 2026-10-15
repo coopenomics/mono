@@ -1,3 +1,4 @@
+import { t } from '../../i18n';
 /**
  * Story 3.2 / 3.5: справочник baseline-категорий Стола заказов.
  *
@@ -39,13 +40,13 @@ export const MARKETPLACE_FOOD_CATEGORIES: ReadonlyArray<{
   display_name: string;
   sort_order: number;
 }> = [
-  { id: 1, slug: 'vegetables_fruits', display_name: 'Овощи и фрукты', sort_order: 1 },
-  { id: 2, slug: 'dairy', display_name: 'Молочные продукты', sort_order: 2 },
-  { id: 3, slug: 'meat_poultry', display_name: 'Мясо и птица', sort_order: 3 },
-  { id: 4, slug: 'fish_seafood', display_name: 'Рыба и морепродукты', sort_order: 4 },
-  { id: 5, slug: 'bakery', display_name: 'Хлеб и выпечка', sort_order: 5 },
-  { id: 6, slug: 'grocery', display_name: 'Бакалея (крупы, мука, масло)', sort_order: 6 },
-  { id: 7, slug: 'beverages', display_name: 'Напитки', sort_order: 7 },
-  { id: 8, slug: 'ready_meals', display_name: 'Готовая еда', sort_order: 8 },
-  { id: 9, slug: 'other', display_name: 'Прочее', sort_order: 9 },
+  { id: 1, slug: 'vegetables_fruits', display_name: t('marketplace.category.vegetablesFruits'), sort_order: 1 },
+  { id: 2, slug: 'dairy', display_name: t('marketplace.category.dairy'), sort_order: 2 },
+  { id: 3, slug: 'meat_poultry', display_name: t('marketplace.category.meatPoultry'), sort_order: 3 },
+  { id: 4, slug: 'fish_seafood', display_name: t('marketplace.category.fishSeafood'), sort_order: 4 },
+  { id: 5, slug: 'bakery', display_name: t('marketplace.category.bakery'), sort_order: 5 },
+  { id: 6, slug: 'grocery', display_name: t('marketplace.category.grocery'), sort_order: 6 },
+  { id: 7, slug: 'beverages', display_name: t('marketplace.category.beverages'), sort_order: 7 },
+  { id: 8, slug: 'ready_meals', display_name: t('marketplace.category.readyMeals'), sort_order: 8 },
+  { id: 9, slug: 'other', display_name: t('marketplace.category.other'), sort_order: 9 },
 ];

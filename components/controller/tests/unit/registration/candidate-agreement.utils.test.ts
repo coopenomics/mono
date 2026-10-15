@@ -7,6 +7,7 @@ import {
 } from '~/domain/registration/utils/candidate-agreement.utils';
 import { AgreementId } from '~/domain/registration/enum/agreement-id.enum';
 import { DocumentType } from '~/domain/registration/enum/document-type.enum';
+import { Cooperative } from 'cooptypes';
 
 function makeDoc(hash: string): ISignedDocument {
   return {
@@ -14,7 +15,7 @@ function makeDoc(hash: string): ISignedDocument {
     hash,
     doc_hash: hash,
     meta_hash: hash,
-    meta: { title: 'test', registry_id: 1, lang: 'ru', generator: 'coopjs' } as ISignedDocument['meta'],
+    meta: { title: 'test', registry_id: Cooperative.Registry.WalletAgreement.registry_id, lang: 'ru', generator: 'coopjs' } as ISignedDocument['meta'],
     signatures: [],
   };
 }

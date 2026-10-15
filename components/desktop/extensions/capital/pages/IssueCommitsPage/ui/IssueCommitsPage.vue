@@ -7,8 +7,8 @@ div.q-px-md
   CapitalSectionEmpty.capital-section-empty--centered(
     v-else
     icon="code"
-    title="Коммитов пока нет"
-    body="Привязанные коммиты появятся здесь после связи задачи с репозиторием."
+    :title="$t('capital.issueCommitsPage.emptyTitle')"
+    :body="$t('capital.issueCommitsPage.emptyBody')"
   )
 </template>
 
@@ -23,6 +23,7 @@ type LinkedGitCommit = Zeus.ModelTypes['CapitalIssueLinkedGitCommit']
 
 const ctx = inject(ISSUE_PAGE_KEY)
 if (!ctx) {
+  // i18n-ignore: внутренняя проверка контекста компонента — видит только разработчик
   throw new Error('IssueCommitsPage: отсутствует контекст IssuePage')
 }
 

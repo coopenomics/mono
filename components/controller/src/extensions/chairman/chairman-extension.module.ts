@@ -1,5 +1,6 @@
-import { Inject, Module } from '@nestjs/common';
-import { BaseExtensionModule, EXTENSION_REPOSITORY, type ExtensionDomainRepository, LOG_EXTENSION_REPOSITORY, LogExtensionDomainRepository, DomainToBlockchainUtils } from '@coopenomics/extension-kit';
+import './i18n';
+import { Inject, Module, Optional } from '@nestjs/common';
+import { BaseExtensionModule, EXTENSION_REPOSITORY, type ExtensionDomainRepository, LOG_EXTENSION_REPOSITORY, LogExtensionDomainRepository, DomainToBlockchainUtils, DomainError } from '@coopenomics/extension-kit';
 import { LOGGER_PORT, type ILoggerPort,
   COUNCIL_PORT,
   type ICouncilPort,
@@ -12,7 +13,7 @@ import { merge } from 'lodash';
 import { ChairmanDatabaseModule } from './infrastructure/database/chairman-database.module';
 
 // Репозитории
-import { ApprovalTypeormRepository } from './infrastructure/repositories/approval.typeorm-repository';
+import { ApprovalKyselyRepository } from './infrastructure/repositories/approval.kysely-repository';
 
 // Blockchain синхронизация
 import { ApprovalDeltaMapper } from './infrastructure/blockchain/mappers/approval-delta.mapper';
@@ -33,14 +34,18 @@ import { ChairmanSyncInteractor } from './application/use-cases/chairman-sync.in
 // Resolvers
 import { ApprovalResolver } from './application/resolvers/approval.resolver';
 import { ChairmanOnboardingResolver } from './application/resolvers/onboarding.resolver';
+import { ChairmanRights } from './application/access/chairman-rights';
 
 // Символы для DI
 import { APPROVAL_REPOSITORY } from './domain/repositories/approval.repository';
 import { CHAIRMAN_BLOCKCHAIN_PORT } from './domain/interfaces/chairman-blockchain.port';
 import { registerChairmanOnboardingSteps } from './application/onboarding/register-chairman-onboarding-steps';
-import { ONBOARDING_STEP_REGISTRY_PORT, type IOnboardingStepRegistryPort } from '@coopenomics/innercoop';
-import { computeOnboardingExpiresAt } from '@coopenomics/extension-kit';
+import { ONBOARDING_STEP_REGISTRY_PORT, type IOnboardingStepRegistryPort, CHAIN_CHANGES_PORT, type IChainChangesPort } from '@coopenomics/innercoop';
+import { EntityName as ApprovalEntityName } from './infrastructure/entities/approval.record';
+import { APP_RIGHTS, RightsGuard, computeOnboardingExpiresAt } from '@coopenomics/extension-kit';
+import { ChairmanInnercoopApprovalsAdapter } from './infrastructure/innercoop/chairman-innercoop-approvals.adapter';
 import { type DeserializedDescriptionOfExtension } from '@coopenomics/extension-kit';
+import { t } from './i18n';
 
 // Функция для описания полей в схеме конфигурации
 function describeField(description: DeserializedDescriptionOfExtension): string {
@@ -76,80 +81,97 @@ export const Schema = z.object({
     .default(defaultConfig.checkInterval)
     .describe(
       describeField({
-        label: 'Интервал проверки истекших решений (в минутах)',
-        note: 'Минимум: 1 минута',
+        label: t('chairman.settings.expiredCheckIntervalLabel'),
+        note: t('chairman.settings.expiredCheckIntervalNote'),
         rules: ['val >= 1'],
-        prepend: 'Каждые',
-        append: 'минут',
+        prepend: t('chairman.settings.expiredCheckIntervalPrepend'),
+        append: t('chairman.settings.expiredCheckIntervalAppend'),
       })
     ),
   lastCheckDate: z
     .string()
     .default(defaultConfig.lastCheckDate)
+    // i18n-ignore: поле конфигурации visible:false — не отображается пайщику/админу
     .describe(describeField({ label: 'Дата последней проверки', visible: false })),
   onboarding_init_at: z
     .string()
     .default(defaultConfig.onboarding_init_at)
+    // i18n-ignore: поле конфигурации visible:false — не отображается пайщику/админу
     .describe(describeField({ label: 'Дата старта онбординга председателя', visible: false })),
   onboarding_expire_at: z
     .string()
     .default(defaultConfig.onboarding_expire_at)
+    // i18n-ignore: поле конфигурации visible:false — не отображается пайщику/админу
     .describe(describeField({ label: 'Дата истечения онбординга председателя', visible: false })),
   onboarding_wallet_agreement_done: z
     .boolean()
     .default(defaultConfig.onboarding_wallet_agreement_done)
+    // i18n-ignore: поле конфигурации visible:false — не отображается пайщику/админу
     .describe(describeField({ label: 'Шаг кошелькового соглашения выполнен', visible: false })),
   onboarding_wallet_agreement_hash: z
     .string()
     .default(defaultConfig.onboarding_wallet_agreement_hash)
+    // i18n-ignore: поле конфигурации visible:false — не отображается пайщику/админу
     .describe(describeField({ label: 'Hash документа кошелькового соглашения', visible: false })),
   onboarding_signature_agreement_done: z
     .boolean()
     .default(defaultConfig.onboarding_signature_agreement_done)
+    // i18n-ignore: поле конфигурации visible:false — не отображается пайщику/админу
     .describe(describeField({ label: 'Шаг простой ЭП выполнен', visible: false })),
   onboarding_signature_agreement_hash: z
     .string()
     .default(defaultConfig.onboarding_signature_agreement_hash)
+    // i18n-ignore: поле конфигурации visible:false — не отображается пайщику/админу
     .describe(describeField({ label: 'Hash документа простой ЭП', visible: false })),
   onboarding_privacy_agreement_done: z
     .boolean()
     .default(defaultConfig.onboarding_privacy_agreement_done)
+    // i18n-ignore: поле конфигурации visible:false — не отображается пайщику/админу
     .describe(describeField({ label: 'Шаг политики конфиденциальности выполнен', visible: false })),
   onboarding_privacy_agreement_hash: z
     .string()
     .default(defaultConfig.onboarding_privacy_agreement_hash)
+    // i18n-ignore: поле конфигурации visible:false — не отображается пайщику/админу
     .describe(describeField({ label: 'Hash документа политики конфиденциальности', visible: false })),
   onboarding_user_agreement_done: z
     .boolean()
     .default(defaultConfig.onboarding_user_agreement_done)
+    // i18n-ignore: поле конфигурации visible:false — не отображается пайщику/админу
     .describe(describeField({ label: 'Шаг пользовательского соглашения выполнен', visible: false })),
   onboarding_user_agreement_hash: z
     .string()
     .default(defaultConfig.onboarding_user_agreement_hash)
+    // i18n-ignore: поле конфигурации visible:false — не отображается пайщику/админу
     .describe(describeField({ label: 'Hash документа пользовательского соглашения', visible: false })),
   onboarding_participant_application_done: z
     .boolean()
     .default(defaultConfig.onboarding_participant_application_done)
+    // i18n-ignore: поле конфигурации visible:false — не отображается пайщику/админу
     .describe(describeField({ label: 'Шаг заявлений выполнен', visible: false })),
   onboarding_participant_application_hash: z
     .string()
     .default(defaultConfig.onboarding_participant_application_hash)
+    // i18n-ignore: поле конфигурации visible:false — не отображается пайщику/админу
     .describe(describeField({ label: 'Hash документа заявлений', visible: false })),
   onboarding_voskhod_membership_done: z
     .boolean()
     .default(defaultConfig.onboarding_voskhod_membership_done)
+    // i18n-ignore: поле конфигурации visible:false — не отображается пайщику/админу
     .describe(describeField({ label: 'Шаг вступления в ПК «ВОСХОД» выполнен', visible: false })),
   onboarding_voskhod_membership_hash: z
     .string()
     .default(defaultConfig.onboarding_voskhod_membership_hash)
+    // i18n-ignore: поле конфигурации visible:false — не отображается пайщику/админу
     .describe(describeField({ label: 'Hash решения о вступлении в ПК «ВОСХОД»', visible: false })),
   onboarding_general_meet_done: z
     .boolean()
     .default(defaultConfig.onboarding_general_meet_done)
+    // i18n-ignore: поле конфигурации visible:false — не отображается пайщику/админу
     .describe(describeField({ label: 'Шаг общего собрания выполнен', visible: false })),
   onboarding_general_meet_hash: z
     .string()
     .default(defaultConfig.onboarding_general_meet_hash)
+    // i18n-ignore: поле конфигурации visible:false — не отображается пайщику/админу
     .describe(describeField({ label: 'Hash повестки общего собрания', visible: false })),
 });
 
@@ -174,7 +196,9 @@ export class ChairmanExtension extends BaseExtensionModule {
     @Inject(ONBOARDING_STEP_REGISTRY_PORT)
     private readonly onboardingStepRegistration: IOnboardingStepRegistryPort,
     private readonly decisionExpiredNotificationService: DecisionExpiredNotificationService,
-    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
+    // Лента изменений: одобрения обновляются на столах сами.
+    @Optional() @Inject(CHAIN_CHANGES_PORT) private readonly chainChanges: IChainChangesPort | null = null
   ) {
     super();
     this.logger.setContext(ChairmanExtension.name);
@@ -188,7 +212,10 @@ export class ChairmanExtension extends BaseExtensionModule {
 
   async initialize() {
     const extensionData = await this.extensionRepository.findByName(this.name);
-    if (!extensionData) throw new Error('Конфиг не найден');
+    if (!extensionData) throw DomainError.internal('CHAIRMAN_CONFIG_NOT_FOUND');
+
+    // Одобрения — личная таблица: сигнал тому, кто просил одобрения, и совету.
+    this.chainChanges?.declareLocalTables([{ code: this.name, table: ApprovalEntityName, owner_field: 'username' }]);
 
     // Применяем глубокий мердж дефолтных параметров с существующими
     this.extension = {
@@ -233,9 +260,9 @@ export class ChairmanExtension extends BaseExtensionModule {
     // Репозитории
     {
       provide: APPROVAL_REPOSITORY,
-      useClass: ApprovalTypeormRepository,
+      useClass: ApprovalKyselyRepository,
     },
-    ApprovalTypeormRepository,
+    ApprovalKyselyRepository,
 
     // Blockchain синхронизация
     ApprovalDeltaMapper,
@@ -257,14 +284,22 @@ export class ChairmanExtension extends BaseExtensionModule {
     // Use Cases
     ChairmanSyncInteractor,
 
+    // Порт одобрений для других столов — связывается в InnercoopBridgeModule.
+    ChairmanInnercoopApprovalsAdapter,
+
     // Utils
     DomainToBlockchainUtils,
+
+    // Права стола: описание для общего гарда операций и прав страниц
+    ChairmanRights,
+    { provide: APP_RIGHTS, useExisting: ChairmanRights },
+    RightsGuard,
 
     // Resolvers
     ApprovalResolver,
     ChairmanOnboardingResolver,
   ],
-  exports: [ApprovalSyncService, ChairmanSyncInteractor],
+  exports: [ApprovalSyncService, ChairmanSyncInteractor, ChairmanInnercoopApprovalsAdapter],
 })
 export class ChairmanExtensionModule {
   constructor(private readonly chairmanExtension: ChairmanExtension) {}

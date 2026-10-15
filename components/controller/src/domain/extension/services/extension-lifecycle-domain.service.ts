@@ -2,6 +2,7 @@
 
 import { Injectable } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
+import * as Sentry from '@sentry/nestjs';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { ExtensionDomainService } from '~/domain/extension/services/extension-domain.service';
 import { ExtensionSchemaMigrationService } from './extension-schema-migration.service';
@@ -65,7 +66,9 @@ export class ExtensionLifecycleDomainService<TConfig = any> {
 
     if (missing.length > 0) {
       throw new Error(
+        // i18n-ignore: ошибка конфигурации расширения при запуске контура (не заявлены порты) — разработческая, до пайщика не доходит
         `Расширение ${appName} не запускается: контур не предоставляет заявленные порты — ${missing.join(', ')}. ` +
+          // i18n-ignore: продолжение технического сообщения о конфигурации портов расширения, до пайщика не доходит
           'Либо порт не привязан в InnercoopBridgeModule, либо расширение просит то, чего в этом кооперативе нет.'
       );
     }
@@ -105,8 +108,20 @@ export class ExtensionLifecycleDomainService<TConfig = any> {
   async runApps() {
     const apps = await this.extensionDomainService.getAppList({ enabled: true });
     for (const appData of apps) {
-      if (AppRegistry[appData.name]) {
+      if (!AppRegistry[appData.name]) continue;
+
+      // Одно расширение не должно лишать кооператив остальных и самого узла.
+      // Раньше запуск шёл одной цепочкой: чат не вошёл в Matrix — исключение
+      // прерывало цикл, расширения после него оставались без инициализации
+      // (карта кооператора падала на чтении конфига), а отказ onModuleInit мог
+      // не дать контроллеру открыть порт вовсе. Упавшее расширение остаётся
+      // незапущенным и видно в журнале ошибок; поднимается оно штатно —
+      // перезапуском расширения или узла.
+      try {
         await this.runApp(appData.name);
+      } catch (error) {
+        this.logger.error(`[RUN_APP] Расширение ${appData.name} не запустилось`, error as Error);
+        Sentry.captureException(error, { tags: { extension: appData.name } });
       }
     }
   }

@@ -24,7 +24,7 @@ void registrator::updateaccnt(eosio::name username, eosio::name account_to_chang
 
   eosio::check(account != accounts.end(), "Аккаунт не зарегистрирован");
 
-  accounts.modify(account, username, [&](auto &acc){ 
+  accounts.modify(account, RamPayer::of(accounts), [&](auto &acc){ 
     acc.meta = meta; 
   });
 }

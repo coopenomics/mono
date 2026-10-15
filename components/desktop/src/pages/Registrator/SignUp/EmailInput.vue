@@ -1,13 +1,19 @@
 <template lang='pug'>
-div
-  q-step(:name='store.steps.EmailInput', title='Введите электронную почту', :done="store.isStepDone('EmailInput')")
-    p Добро пожаловать в {{ coopTitle }}! Для начала регистрации, пожалуйста, введите вашу электронную почту:
+div(v-show='store.isStep("EmailInput")')
+    //- Шаг состоит из двух фаз: ввод адреса и подтверждение кодом из письма.
+    //- Отдельным шагом подтверждение делать нельзя — номера шагов лежат в
+    //- persist'е стора у всех, кто уже идёт по регистрации, и вставка сдвинула
+    //- бы их посреди пути.
+    //- Одна колонка постоянной ширины: поле, кнопка и вторая дорога выстроены по левому
+    //- краю и одинаковы по ширине. Раньше кнопки были разного размера и «или» висело
+    //- посередине пустоты (замечание владельца 03.09.2026).
+    .email-input(v-if='!confirming')
+      p.email-input__lead {{ $t('registrator.emailInput.welcomeLead', { coopTitle }) }}
 
-    .email-input__field
       BaseInput(
         :model-value='email',
         type='email',
-        label='Введите email',
+        :label='$t("registrator.emailInput.emailLabel")',
         :readonly='inLoading',
         :error='emailError',
         autocomplete='email',
@@ -15,22 +21,53 @@ div
         @keypress.enter='setEmail'
       )
 
-    BaseButton(
-      variant='primary',
-      :disabled='!isValidEmail || isEmailExist',
-      :loading='inLoading',
-      @click='setEmail'
-    ) Продолжить
+      BaseButton(
+        variant='primary',
+        block,
+        :disabled='!isValidEmail || isEmailExist',
+        :loading='inLoading',
+        @click='setEmail'
+      ) {{ $t('registrator.emailInput.submitAction') }}
+
+      //- Регистрация по карте кооператора — здесь, а не отдельным шагом в середине пути
+      //- (решение владельца 03.09.2026). Смысл карты в том, чтобы не заполнять анкету
+      //- заново: предлагать её после того, как человек ввёл всё руками, поздно.
+      template(v-if='cardcoopEntryAvailable')
+        .email-input__divider
+          span.email-input__divider-word {{ $t('registrator.emailInput.orDivider') }}
+
+        BaseButton(variant='secondary', block, :disabled='inLoading', @click='startCardcoopEntry')
+          template(#icon-left)
+            q-icon(name='badge', size='18px')
+          | {{ $t('registrator.emailInput.cardcoopSignUpAction') }}
+
+        p.email-input__note {{ $t('registrator.emailInput.cardcoopNote') }}
+
+    //- Вход по карте кооператора ведёт на card.coop и возвращается уже с анкетой —
+    //- почту там подтверждает сам эмитент карты, и эта фаза до него не доходит.
+    .email-input(v-else)
+      p.email-input__lead {{ $t('registrator.emailInput.codeSentLead') }}
+
+      EmailCodeForm(
+        :email='email',
+        changeable,
+        @verified='onVerified',
+        @change-email='confirming = false'
+      )
 </template>
 
 <script lang="ts" setup>
-import { ref, computed, watch } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useCreateUser } from 'src/features/User/CreateUser';
 import { debounce } from 'quasar';
 import { useRegistratorStore } from 'src/entities/Registrator';
 import { env } from 'src/shared/config';
+import { client } from 'src/shared/api/client';
+import { Queries } from '@coopenomics/sdk';
 import { BaseInput } from 'src/shared/ui/base/BaseInput';
 import { BaseButton } from 'src/shared/ui/base/BaseButton';
+import { EmailCodeForm } from 'src/features/User/VerifyEmail';
+import { t } from 'src/shared/i18n';
 
 const store = useRegistratorStore();
 const api = useCreateUser();
@@ -38,6 +75,9 @@ const api = useCreateUser();
 const coopTitle = computed(() => env.COOP_SHORT_NAME);
 const email = ref(store.state.email);
 const touched = ref<boolean>(Boolean(store.state.email));
+
+/** Вторая фаза шага: адрес принят, ждём код из письма. */
+const confirming = ref(false);
 
 watch(() => store.state.email, (val) => (email.value = val));
 
@@ -48,9 +88,9 @@ const isValidEmail = computed(() => api.emailIsValid(email.value));
 
 const emailError = computed<string | undefined>(() => {
   if (!touched.value || !email.value) return undefined;
-  if (!isValidEmail.value) return 'Введите корректный email';
+  if (!isValidEmail.value) return t('registrator.emailInput.invalidEmailError');
   if (isEmailExist.value)
-    return 'Пользователь с таким email уже существует. Войдите.';
+    return t('registrator.emailInput.emailExistsError');
   return undefined;
 });
 
@@ -63,26 +103,100 @@ const checkEmailExists = debounce(async () => {
 function onEmailUpdate(val: string): void {
   email.value = val.trim();
   touched.value = true;
+  // Адрес правят — прежнее подтверждение к нему уже не относится.
+  if (store.state.emailVerified) store.state.emailVerified = false;
 }
 
 watch(email, () => {
   checkEmailExists();
 });
 
-const setEmail = () => {
-  if (isValidEmail.value && !isEmailExist.value) {
-    store.state.email = email.value;
-    store.next();
+/**
+ * Доступен ли вход по карте кооператора. Спрашивается один раз при открытии шага: запрос
+ * публичный, а молчаливый отказ означает «кнопки нет» — регистрация не должна падать
+ * из-за расширения (NFR-3).
+ */
+const cardcoopEntryAvailable = ref(false);
+
+// realtime: нет источника — шаг ввода почты открыт гостю, лента доступна только вошедшему пайщику; доступность входа по карте читается один раз.
+onMounted(async () => {
+  try {
+    const { [Queries.Cardcoop.GetEntryAvailable.name]: available } = await client.Query(
+      Queries.Cardcoop.GetEntryAvailable.query,
+    );
+    cardcoopEntryAvailable.value = Boolean(available);
+  } catch {
+    cardcoopEntryAvailable.value = false;
   }
+});
+
+/** Уводит на card.coop: дальше человека ведут карта и сервер, секретов в браузере нет. */
+function startCardcoopEntry(): void {
+  window.location.href = `${env.BACKEND_URL.replace(/\/+$/, '')}/v1/extensions/cardcoop/entry/start`;
+}
+
+const setEmail = () => {
+  if (!isValidEmail.value || isEmailExist.value) return;
+  store.state.email = email.value;
+  // Подтверждённый адрес не переспрашиваем: пайщик мог вернуться на шаг назад
+  // или обновить страницу — код в письме не бесконечен, а его терпение тем более.
+  if (store.state.emailVerified) {
+    store.next();
+    return;
+  }
+  confirming.value = true;
 };
+
+function onVerified(): void {
+  store.state.emailVerified = true;
+  confirming.value = false;
+  store.next();
+}
 </script>
 
-<style scoped>
-.email-input__field {
-  margin-top: var(--p-4, 16px);
-  margin-bottom: var(--p-2, 8px);
-  /* Поле уже, чем тело stepper-step. На широких карточках читается лучше
-     если email-инпут не растягивается во всю ширину. */
+<style lang="scss" scoped>
+/* Форма шага — одна колонка: поле и обе кнопки одной ширины, зазоры одинаковые.
+   Ширина ограничена: на широкой карточке растянутое во всю ширину поле ввода почты
+   читается хуже. */
+.email-input {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-3);
   max-width: 360px;
+  margin-top: var(--p-4);
+}
+
+.email-input__lead {
+  margin: 0;
+  color: var(--p-ink-2);
+}
+
+/* Разделитель — линия с надписью по центру, а не текст в пустоте */
+.email-input__divider {
+  position: relative;
+  text-align: center;
+  color: var(--p-ink-3);
+  font-size: var(--p-fs-body-sm);
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    border-top: 1px solid var(--p-line);
+  }
+}
+
+.email-input__divider-word {
+  position: relative;
+  padding: 0 var(--p-3);
+  background: var(--p-canvas);
+}
+
+.email-input__note {
+  margin: 0;
+  color: var(--p-ink-3);
+  font-size: var(--p-fs-body-sm);
 }
 </style>

@@ -12,7 +12,7 @@
 |-----------|-----------|------|----------|
 | controller | coopback | 2998 | NestJS GraphQL API |
 | desktop | desktop | 2999 | Vue 3 + Quasar SPA |
-| parser | cooparser | 4000 | Индексация блокчейна через SHiP |
+| parser2 | parser2 | — | Индексация блокчейна через SHiP (`parser2.config.yaml`) |
 | blockchain | node | 8888, 8070 | EOSIO node + State History Plugin |
 | MongoDB | mongo | 27017 | Основная БД (replica set) |
 | Redis | monoredis | 6379 | Кэш и стримы |
@@ -62,7 +62,7 @@ pnpm run reboot
    - **CHAIN_ID**: берётся из `curl http://localhost:8888/v1/chain/get_info` после старта ноды
    - Controller требует `VAPID_PUBLIC_KEY` и `VAPID_PRIVATE_KEY`
 
-6. **Запуск**: `pnpm run reboot`, затем `docker compose up -d --force-recreate coopback cooparser` (если .env менялись)
+6. **Запуск**: `pnpm run reboot`, затем `docker compose up -d --force-recreate coopback parser2` (если .env менялись)
 
 ### Запуск тестов
 

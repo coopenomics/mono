@@ -10,9 +10,12 @@ import {
   GITHUB_BRANCH_COMMIT_SYNC_STATE_REPOSITORY,
   type GithubBranchCommitSyncStateRepository,
 } from '../../domain/repositories/github-branch-commit-sync-state.repository';
-import { platformSettings } from '@coopenomics/extension-kit';
+import { platformSettings, DomainError } from '@coopenomics/extension-kit';
 import { USER_DIRECTORY_PORT, type IUserDirectoryPort } from '@coopenomics/innercoop';
 import { computeGitPatchId } from '../utils/git-patch-id';
+
+/** Ответ GitHub на сравнение веток без общей истории: постоянное свойство ветки, не сбой. */
+const NO_COMMON_ANCESTOR = /no common ancestor/i;
 
 type CommitRow = {
   sha: string;
@@ -187,6 +190,21 @@ export class GitCommitMarkersSyncService {
       commits = await this.githubService.listCommitsBetweenBaseAndHead(ctx.owner, ctx.repo, ctx.defaultBranch, headSha);
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : String(error);
+      // У ветки нет общей истории с базовой (gh-pages, осиротевшие ветки) — это
+      // её постоянное свойство, повтор ничего не даст. Курсор ставим на вершину:
+      // следующий проход ветку пропустит, а новые коммиты в ней разберутся обычным
+      // сравнением от этого курсора. Без курсора сервис повторял запрос и
+      // предупреждение каждый проход — две строки в минуту на узел и ~86 тыс.
+      // пустых запросов к GitHub в месяц (C28-88).
+      // Прочие отказы (таймаут, 5xx, лимит) курсор не трогают: иначе ветка с
+      // настоящей историей навсегда пропустила бы свои коммиты.
+      if (NO_COMMON_ANCESTOR.test(msg)) {
+        this.logger.warn(
+          `Git маркеры: у ветки ${ctx.branch} нет общей истории с ${ctx.defaultBranch} — курсор поставлен на HEAD, прежние коммиты ветки не индексируются`
+        );
+        await this.syncStateRepository.setTipSha(ctx.coopname, ctx.githubRepositoryKey, ctx.branch, headSha);
+        return;
+      }
       this.logger.warn(`Git маркеры: bootstrap ветки ${ctx.branch} от ${ctx.defaultBranch} не удался (${msg}) — пропуск`);
       return;
     }
@@ -199,7 +217,7 @@ export class GitCommitMarkersSyncService {
     let processed = 0;
     for (const c of commits) {
       if (ctx.signal?.aborted) {
-        const err = new Error('Синхронизация Git прервана');
+        const err = DomainError.internal('CAPITAL_GIT_SYNC_ABORTED');
         err.name = 'AbortError';
         throw err;
       }

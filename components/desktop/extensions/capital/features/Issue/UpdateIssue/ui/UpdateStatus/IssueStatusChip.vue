@@ -25,7 +25,7 @@
       :offset='[0, 6]'
     )
       .status-menu
-        .status-menu-header Сменить статус
+        .status-menu-header {{ $t('capital.issueStatusChip.changeAction') }}
         q-list.status-menu-list
           q-item.status-menu-item(
             v-for='opt in statusOptions'

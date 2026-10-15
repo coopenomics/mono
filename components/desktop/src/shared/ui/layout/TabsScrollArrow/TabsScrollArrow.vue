@@ -4,7 +4,7 @@
     class="icon-btn tabbar__arrow"
     :class="{ 'tabbar__arrow--faded': disabled }"
     :disabled="disabled"
-    :aria-label="direction === 'left' ? 'Прокрутить вкладки влево' : 'Прокрутить вкладки вправо'"
+    :aria-label="direction === 'left' ? $t('ui.tabsScrollArrow.scrollLeftAriaLabel') : $t('ui.tabsScrollArrow.scrollRightAriaLabel')"
     @click="emit('scroll')"
   >
     <q-icon :name="direction === 'left' ? 'chevron_left' : 'chevron_right'" size="20px" />

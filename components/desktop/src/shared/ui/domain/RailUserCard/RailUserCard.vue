@@ -16,13 +16,13 @@
     :to='balanceRoute',
     @click='onBalanceClick'
   )
-    .rail__balance-label {{ balanceLabel ?? 'Доступно' }}
+    .rail__balance-label {{ balanceLabel ?? $t('ui.railUserCard.availableLabel') }}
     .rail__balance-val
       b {{ balance }}
       span.ccy(v-if='symbol') {{ symbol }}
     .rail__balance-locked(v-if='lockedBalance !== undefined')
       q-icon(name='lock')
-      | {{ lockedLabel ?? 'Заблокировано' }}:&nbsp;
+      | {{ lockedLabel ?? $t('ui.railUserCard.blockedLabel') }}:&nbsp;
       b {{ lockedBalance }}
       span.ccy(v-if='symbol') &nbsp;{{ symbol }}
 
@@ -33,7 +33,7 @@
         @click="emit('primary-action')"
       )
         q-icon(name='add')
-        | {{ primaryActionLabel ?? 'Пополнить' }}
+        | {{ primaryActionLabel ?? $t('ui.railUserCard.topUpLabel') }}
     //- Замок вместо стрелки — только когда свёртка и правда запирает кошелёк
     //- (`lockable`): тогда одно действие делает обе вещи сразу — убирает ключ из
     //- памяти и сжимает карточку. Без заданного PIN запирать нечего, и кнопка
@@ -55,12 +55,13 @@ button.rail__signout(
   @click="emit('signout')"
 )
   q-icon(name='logout')
-  | {{ signoutLabel ?? 'Выйти из кабинета' }}
+  | {{ signoutLabel ?? $t('ui.railUserCard.logoutLabel') }}
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue';
 import type { RailUserCardProps } from './RailUserCard.types';
+import { t } from 'src/shared/i18n';
 
 const props = withDefaults(defineProps<RailUserCardProps>(), {
   collapsed: false,
@@ -85,8 +86,8 @@ const hasBalance = computed(
 );
 
 const toggleLabel = computed(() => {
-  if (props.lockable) return props.collapsed ? 'Разблокировать кошелёк' : 'Заблокировать кошелёк';
-  return props.collapsed ? 'Развернуть кошелёк' : 'Свернуть кошелёк';
+  if (props.lockable) return props.collapsed ? t('ui.railUserCard.unblockWalletLabel') : t('ui.railUserCard.blockWalletLabel');
+  return props.collapsed ? t('ui.railUserCard.expandWalletLabel') : t('ui.railUserCard.collapseWalletLabel');
 });
 
 const isBalanceClickable = computed(() => !!props.balanceRoute);

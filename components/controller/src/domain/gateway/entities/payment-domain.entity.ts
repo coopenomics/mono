@@ -6,6 +6,7 @@ import { IndividualCertificateDTO } from '~/application/common/dto/individual-ce
 import { EntrepreneurCertificateDTO } from '~/application/common/dto/entrepreneur-certificate.dto';
 import { OrganizationCertificateDTO } from '~/application/common/dto/organization-certificate.dto';
 import { AccountType } from '~/application/account/enum/account-type.enum';
+import { t } from '~/i18n';
 
 /**
  * Универсальная доменная сущность платежа
@@ -91,15 +92,15 @@ export class PaymentDomainEntity implements PaymentDomainInterface {
    */
   getStatusLabel(): string {
     const statusLabels: Record<PaymentStatusEnum, string> = {
-      [PaymentStatusEnum.AWAITING_AUTHORIZATION]: 'Ожидает решения совета',
-      [PaymentStatusEnum.PENDING]: 'Ожидает обработки',
-      [PaymentStatusEnum.PROCESSING]: 'В процессе',
-      [PaymentStatusEnum.PAID]: 'Оплачен',
-      [PaymentStatusEnum.COMPLETED]: 'Завершен',
-      [PaymentStatusEnum.FAILED]: 'Ошибка',
-      [PaymentStatusEnum.EXPIRED]: 'Истек',
-      [PaymentStatusEnum.CANCELLED]: 'Отменен',
-      [PaymentStatusEnum.REFUNDED]: 'Отклонен',
+      [PaymentStatusEnum.AWAITING_AUTHORIZATION]: t('gateway.payment.status.pendingCouncil'),
+      [PaymentStatusEnum.PENDING]: t('gateway.payment.status.pendingProcessing'),
+      [PaymentStatusEnum.PROCESSING]: t('gateway.payment.status.inProgress'),
+      [PaymentStatusEnum.PAID]: t('gateway.payment.status.paid'),
+      [PaymentStatusEnum.COMPLETED]: t('gateway.payment.status.completed'),
+      [PaymentStatusEnum.FAILED]: t('gateway.payment.status.error'),
+      [PaymentStatusEnum.EXPIRED]: t('gateway.payment.status.expired'),
+      [PaymentStatusEnum.CANCELLED]: t('gateway.payment.status.cancelled'),
+      [PaymentStatusEnum.REFUNDED]: t('gateway.payment.status.rejected'),
     };
     return statusLabels[this.status] || this.status;
   }
@@ -109,17 +110,17 @@ export class PaymentDomainEntity implements PaymentDomainInterface {
    */
   getTypeLabel(): string {
     const typeLabels: Record<PaymentTypeEnum, string> = {
-      [PaymentTypeEnum.REGISTRATION]: 'Регистрационный взнос',
-      [PaymentTypeEnum.DEPOSIT]: 'Паевой взнос',
-      [PaymentTypeEnum.WITHDRAWAL]: 'Возврат взноса',
-      [PaymentTypeEnum.PAYMENT]: 'Оплата',
-      [PaymentTypeEnum.REGISTRATION_REFUND]: 'Возврат вступит. и мин.паевого взноса',
-      [PaymentTypeEnum.MEMBERSHIP_EXIT]: 'Возврат паевого взноса при выходе из кооператива',
-      [PaymentTypeEnum.EXPENSE]: 'Оплата расхода по служебной записке',
-      [PaymentTypeEnum.EXPENSE_RETURN]: 'Возврат неиспользованного аванса под отчёт',
-      [PaymentTypeEnum.EXPENSE_OVERSPEND]: 'Доплата по перерасходу аванса',
-      [PaymentTypeEnum.AID]: 'Материальная помощь',
-      [PaymentTypeEnum.TAX]: 'Перечисление удержанного НДФЛ',
+      [PaymentTypeEnum.REGISTRATION]: t('gateway.payment.type.registrationFee'),
+      [PaymentTypeEnum.DEPOSIT]: t('gateway.payment.type.shareContribution'),
+      [PaymentTypeEnum.WITHDRAWAL]: t('gateway.payment.type.contributionRefund'),
+      [PaymentTypeEnum.PAYMENT]: t('gateway.payment.type.payment'),
+      [PaymentTypeEnum.REGISTRATION_REFUND]: t('gateway.payment.type.entryAndMinShareRefund'),
+      [PaymentTypeEnum.MEMBERSHIP_EXIT]: t('gateway.payment.type.shareRefundOnExit'),
+      [PaymentTypeEnum.EXPENSE]: t('gateway.payment.type.expenseReportPayment'),
+      [PaymentTypeEnum.EXPENSE_RETURN]: t('gateway.payment.type.advanceUnusedRefund'),
+      [PaymentTypeEnum.EXPENSE_OVERSPEND]: t('gateway.payment.type.advanceOverspendSurcharge'),
+      [PaymentTypeEnum.AID]: t('gateway.payment.type.financialAid'),
+      [PaymentTypeEnum.TAX]: t('gateway.payment.type.ndflTransfer'),
     };
     return typeLabels[this.type] || this.type;
   }
@@ -129,8 +130,8 @@ export class PaymentDomainEntity implements PaymentDomainInterface {
    */
   getDirectionLabel(): string {
     const directionLabels: Record<PaymentDirectionEnum, string> = {
-      [PaymentDirectionEnum.INCOMING]: 'Входящий',
-      [PaymentDirectionEnum.OUTGOING]: 'Исходящий',
+      [PaymentDirectionEnum.INCOMING]: t('gateway.payment.direction.incoming'),
+      [PaymentDirectionEnum.OUTGOING]: t('gateway.payment.direction.outgoing'),
     };
     return directionLabels[this.direction] || this.direction;
   }

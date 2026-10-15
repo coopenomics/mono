@@ -1,21 +1,21 @@
 <template lang="pug">
 BaseDialog(
   :model-value='modelValue',
-  title='Вернуть средства в программу',
+  :title='$t("capital.deallocateFundsDialog.title")',
   size='sm',
   @update:model-value='$emit("update:modelValue", $event)'
 )
   .deallocate-form
-    DataRow(label='Компонент', :value='componentTitle')
+    DataRow(:label='$t("capital.deallocateFundsDialog.componentLabel")', :value='componentTitle')
 
     .deallocate-form__limit
-      DataRow(label='Доступно к возврату', :value='maxLabel')
+      DataRow(:label='$t("capital.deallocateFundsDialog.availableLabel")', :value='maxLabel')
       .deallocate-form__hint.t-sm.t-muted {{ limitHint }}
 
     .deallocate-form__field
       AmountInput(
         v-model='amount',
-        label='Сумма',
+        :label='$t("capital.deallocateFundsDialog.amountLabel")',
         :symbol='symbol',
         :precision='DISPLAY_PRECISION',
         :balance='maxAmount',
@@ -25,17 +25,17 @@ BaseDialog(
         show-max
       )
 
-    .deallocate-form__note.t-sm.t-muted Сумма вернётся в свободный остаток программы. Доли участников в компоненте пересчитаются: доступные им суммы уменьшатся пропорционально.
+    .deallocate-form__note.t-sm.t-muted {{ $t('capital.deallocateFundsDialog.description') }}
 
   template(#footer)
     .deallocate-form__actions
-      BaseButton(variant='ghost', @click='close') Отмена
+      BaseButton(variant='ghost', @click='close') {{ $t('common.action.cancel') }}
       BaseButton(
         variant='primary',
         :loading='submitting',
         :disabled='!canSubmit',
         @click='submit'
-      ) Вернуть
+      ) {{ $t('capital.deallocateFundsDialog.submit') }}
 </template>
 
 <script setup lang="ts">
@@ -49,6 +49,7 @@ import { AmountInput } from 'src/shared/ui/domain/AmountInput';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { useDeallocateFunds } from '../model';
 import type { IDeallocationLimit } from 'app/extensions/capital/entities/Invest/model/types';
+import { t } from '../../../../i18n';
 
 /** Суммы показываем в рублях с копейками — точность ассета цепи это деталь хранения. */
 const DISPLAY_PRECISION = 2;
@@ -84,7 +85,7 @@ function assetToNumber(asset?: string | null): number {
 const maxAmount = computed(() => assetToNumber(limit.value?.max_amount));
 
 const maxLabel = computed(() => {
-  if (loadingLimit.value) return 'Считаем…';
+  if (loadingLimit.value) return t('capital.deallocateFundsDialog.calculating');
   return formatAsset2Digits(limit.value?.max_amount ?? '0.0000');
 });
 
@@ -96,12 +97,12 @@ const limitHint = computed(() => {
   if (loadingLimit.value || !limit.value) return ' ';
 
   if (!limit.value.is_allowed_by_status)
-    return 'Возврат недоступен: компонент уже ушёл на голосование или завершён.';
+    return t('capital.deallocateFundsDialog.unavailableVotingError');
 
-  if (maxAmount.value <= 0) return 'Возвращать нечего: средства компонента израсходованы.';
+  if (maxAmount.value <= 0) return t('capital.deallocateFundsDialog.nothingToReturnError');
 
   if (assetToNumber(limit.value.outstanding_debt) > 0)
-    return `Часть средств удерживается под непогашенные ссуды участников — ${formatAsset2Digits(limit.value.outstanding_debt)}.`;
+    return t('capital.deallocateFundsDialog.debtHoldHint', { amount: formatAsset2Digits(limit.value.outstanding_debt) });
 
   return ' ';
 });
@@ -149,7 +150,7 @@ async function submit(): Promise<void> {
   try {
     submitting.value = true;
     await submitDeallocation(props.projectHash, String(amount.value));
-    SuccessAlert('Средства возвращены в программу');
+    SuccessAlert(t('capital.deallocateFundsDialog.success'));
     emit('deallocated');
     close();
   } catch (e) {

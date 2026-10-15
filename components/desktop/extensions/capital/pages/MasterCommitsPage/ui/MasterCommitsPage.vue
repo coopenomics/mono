@@ -14,30 +14,30 @@
         .col-12.col-md-4
           WalletCard(
             neutral,
-            title='Доступно',
+            :title='$t("capital.masterCommitsPage.availableTitle")',
             :balance='timeAggregates.available',
-            symbol='ч',
-            balance-label='к коммиту по компонентам',
+            :symbol='$t("capital.masterCommitsPage.hoursSymbol")',
+            :balance-label='$t("capital.masterCommitsPage.availableBalanceLabel")',
             icon='schedule',
             :loading='timeStatsLoading'
           )
         .col-12.col-md-4
           WalletCard(
             neutral,
-            title='В ожидании',
+            :title='$t("capital.masterCommitsPage.pendingTitle")',
             :balance='timeAggregates.pending',
-            symbol='ч',
-            balance-label='ожидают выполнения задачи',
+            :symbol='$t("capital.masterCommitsPage.hoursSymbol")',
+            :balance-label='$t("capital.masterCommitsPage.pendingBalanceLabel")',
             icon='hourglass_empty',
             :loading='timeStatsLoading'
           )
         .col-12.col-md-4
           WalletCard(
             neutral,
-            title='Подтверждено',
+            :title='$t("capital.masterCommitsPage.confirmedTitle")',
             :balance='timeAggregates.committed',
-            symbol='ч',
-            balance-label='зафиксировано в учёте',
+            :symbol='$t("capital.masterCommitsPage.hoursSymbol")',
+            :balance-label='$t("capital.masterCommitsPage.confirmedBalanceLabel")',
             icon='verified',
             :loading='timeStatsLoading'
           )
@@ -74,8 +74,8 @@
         :key='"mine-" + username',
         :filter='mineFilter',
         :expanded='expanded',
-        empty-title='Своих коммитов пока нет',
-        empty-body='Зафиксируйте время по выполненным кооперативным задачам — коммиты появятся здесь.',
+        :empty-title='$t("capital.masterCommitsPage.emptyTitle")',
+        :empty-body='$t("capital.masterCommitsPage.emptyBody")',
         @toggle-expand='handleCommitToggleExpand',
         @data-loaded='handleCommitsDataLoaded',
         @pagination-changed='handlePaginationChanged'
@@ -87,28 +87,28 @@
         .col-12.col-md-4
           WalletCard(
             neutral,
-            title='Ожидают',
+            :title='$t("capital.masterCommitsPage.reviewCountTitle")',
             :balance='reviewAggregates.pendingCount',
-            symbol='шт',
-            balance-label='коммитов на проверке',
+            :symbol='$t("capital.masterCommitsPage.itemsSymbol")',
+            :balance-label='$t("capital.masterCommitsPage.reviewCountBalanceLabel")',
             icon='hourglass_empty'
           )
         .col-12.col-md-4
           WalletCard(
             neutral,
-            title='Часов к проверке',
+            :title='$t("capital.masterCommitsPage.reviewHoursTitle")',
             :balance='reviewAggregates.pendingHours',
-            symbol='ч',
-            balance-label='по ожидающим коммитам',
+            :symbol='$t("capital.masterCommitsPage.hoursSymbol")',
+            :balance-label='$t("capital.masterCommitsPage.reviewHoursBalanceLabel")',
             icon='schedule'
           )
         .col-12.col-md-4
           WalletCard(
             neutral,
-            title='Сумма к проверке',
+            :title='$t("capital.masterCommitsPage.reviewAmountTitle")',
             :balance='reviewAggregates.pendingSum',
             :symbol='governSymbol',
-            balance-label='себестоимость ожидающих',
+            :balance-label='$t("capital.masterCommitsPage.reviewAmountBalanceLabel")',
             icon='payments'
           )
 
@@ -116,8 +116,8 @@
         :key='"review-" + username',
         :filter='reviewFilter',
         :expanded='expanded',
-        empty-title='Нет коммитов на проверке',
-        empty-body='Когда участники отправят время по вашим компонентам, коммиты появятся здесь.',
+        :empty-title='$t("capital.masterCommitsPage.reviewEmptyTitle")',
+        :empty-body='$t("capital.masterCommitsPage.reviewEmptyBody")',
         @toggle-expand='handleCommitToggleExpand',
         @data-loaded='handleCommitsDataLoaded',
         @pagination-changed='handlePaginationChanged'
@@ -125,10 +125,11 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, ref, onMounted, onBeforeUnmount, watch } from 'vue';
+import { computed, ref, onMounted, watch } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { CAPITAL_LIVE_TABLES } from 'app/extensions/capital/shared/lib/live';
 import { storeToRefs } from 'pinia';
-import { useExpandableState, useDataPoller } from 'src/shared/lib/composables';
-import { POLL_INTERVALS } from 'src/shared/lib/consts';
+import { useExpandableState } from 'src/shared/lib/composables';
 import { WalletCard } from 'src/shared/ui/domain/WalletCard';
 import { PageTabs } from 'src/shared/ui/layout';
 import type { PageTab } from 'src/shared/ui/layout/PageTabs';
@@ -140,6 +141,7 @@ import { useTimeStatsStore } from 'app/extensions/capital/entities/TimeStats/mod
 import { api as ProjectApi } from 'app/extensions/capital/entities/Project/api';
 import { Zeus } from '@coopenomics/sdk';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
+import { t } from '../../../i18n';
 
 const COMMITS_EXPANDED_KEY = 'capital_commits_expanded';
 const PROJECTS_EXPANDED_KEY = 'capital_commits_time_projects_expanded';
@@ -168,11 +170,11 @@ const governSymbol = computed(
 
 const tabs = computed<PageTab[]>(() => {
   const list: PageTab[] = [
-    { key: 'time', label: 'Моё время' },
-    { key: 'mine', label: 'Мои коммиты' },
+    { key: 'time', label: t('capital.masterCommitsPage.myTimeTabLabel') },
+    { key: 'mine', label: t('capital.masterCommitsPage.myCommitsTabLabel') },
   ];
   if (canReview.value) {
-    list.push({ key: 'review', label: 'На проверке' });
+    list.push({ key: 'review', label: t('capital.masterCommitsPage.underReviewTabLabel') });
   }
   return list;
 });
@@ -349,10 +351,9 @@ const reloadCommitsData = async () => {
   }
 };
 
-const { start: startCommitsPoll, stop: stopCommitsPoll } = useDataPoller(
-  reloadCommitsData,
-  { interval: POLL_INTERVALS.MEDIUM, immediate: false },
-);
+// Живой экран: перечитывается по ленте изменений Благороста вместо опроса по
+// таймеру (набор таблиц — shared/lib/live).
+useLiveReload(CAPITAL_LIVE_TABLES, reloadCommitsData);
 
 watch(activeTab, (tab) => {
   if (tab === 'review' && !canReview.value) {
@@ -365,11 +366,6 @@ onMounted(async () => {
   loadProjectsExpandedState();
   loadIssuesExpandedState();
   await resolveCanReview();
-  startCommitsPoll();
-});
-
-onBeforeUnmount(() => {
-  stopCommitsPoll();
 });
 </script>
 

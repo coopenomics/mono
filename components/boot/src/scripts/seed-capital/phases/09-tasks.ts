@@ -22,6 +22,7 @@
  * НЕ создаёт сами коммиты — это задача сценария blagorost/commits.mjs (UI-документация).
  */
 import { Client, Mutations, Queries } from '@coopenomics/sdk'
+import { loginChairman } from '../../lib/chairman-login'
 import { createHash } from 'node:crypto'
 import Blockchain from '../../../blockchain'
 import config from '../../../configs'
@@ -109,7 +110,7 @@ export async function phase09(): Promise<void> {
     username: CHAIRMAN,
   })
   log(`логин ${CHAIRMAN_EMAIL} (мастер компонента)...`)
-  await client.login(CHAIRMAN_EMAIL, wif)
+  await loginChairman(client, CHAIRMAN_EMAIL, wif)
 
   // Список существующих задач компонента — для идемпотентности
   let existing: IIssueRow[] = []

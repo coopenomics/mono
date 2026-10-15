@@ -81,4 +81,13 @@ describe('Рендер шаблонов уведомлений', () => {
       }
     });
   });
+
+  describe('язык получателя', () => {
+    it('язык без перевода — текст шага языка по умолчанию', () => {
+      const workflowId = Object.keys(Workflows.workflowsById)[0];
+      const ru = resolveTemplate(workflowId, NotificationChannel.IN_APP);
+      const other = resolveTemplate(workflowId, NotificationChannel.IN_APP, 'xx');
+      expect(other).toEqual(ru);
+    });
+  });
 });

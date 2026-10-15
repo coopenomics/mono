@@ -9,7 +9,7 @@ void wallet::authwthd(AUTHWTHD_SIGNATURE) {
   auto withdraw = withdraws.find(exist_withdraw -> id);
   eosio::check(withdraw != withdraws.end(), "Объект процессинга не найден");
   
-  withdraws.modify(withdraw, _soviet, [&](auto &d){
+  withdraws.modify(withdraw, RamPayer::of(withdraws, coopname), [&](auto &d){
     d.status = "authorized"_n;
   });
   

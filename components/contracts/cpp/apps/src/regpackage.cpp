@@ -32,7 +32,7 @@ void apps::regpackage(eosio::name coopname,
   eosio::check(it == packages.end(), "Пакет с таким package_id уже зарегистрирован");
 
   auto now = eosio::current_time_point().sec_since_epoch();
-  packages.emplace(coopname, [&](auto &p) {
+  packages.emplace(RamPayer::of(packages, coopname), [&](auto &p) {
     p.package_id          = package_id;
     p.package_name        = package_name;
     p.owner               = owner;

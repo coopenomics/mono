@@ -1,8 +1,17 @@
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
-import { ForbiddenException, UseGuards } from '@nestjs/common';
+import { UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
-import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser, GeneratedDocumentDTO, GenerateDocumentOptionsInputDTO } from '@coopenomics/extension-kit';
+import {
+  GqlJwtAuthGuard,
+  CurrentUser,
+  GeneratedDocumentDTO,
+  GenerateDocumentOptionsInputDTO,
+  DomainError,
+  RequireRight,
+  RightsGuard,
+} from '@coopenomics/extension-kit';
 import { IMonoAccount } from '@coopenomics/innercoop';
+import { ProgramAgreementsAnnulmentGenerateDocumentInputDTO } from '~/application/document/documents-dto/program-agreements-annulment-document.dto';
 import { MembershipExitApplicationGenerateDocumentInputDTO } from '~/application/document/documents-dto/membership-exit-application-document.dto';
 import { MembershipExitDecisionGenerateDocumentInputDTO } from '~/application/document/documents-dto/membership-exit-decision-document.dto';
 import { MembershipExitService } from '../services/membership-exit.service';
@@ -10,6 +19,8 @@ import { CreateMembershipExitInputDTO } from '../dto/create-membership-exit-inpu
 import { MembershipExitResultDTO } from '../dto/membership-exit-result.dto';
 import { MembershipExitReturnPreviewDTO } from '../dto/membership-exit-return-preview.dto';
 import { MembershipExitDTO } from '../dto/membership-exit.dto';
+import { AuthorizationGuard } from '~/application/auth-v2/authorization/authorization.guard';
+import { CheckAbility } from '~/application/auth-v2/authorization/check-ability.decorator';
 
 /**
  * GraphQL резолвер выхода пайщика из кооператива.
@@ -18,12 +29,15 @@ import { MembershipExitDTO } from '../dto/membership-exit.dto';
 export class MembershipExitResolver {
   constructor(private readonly membershipExitService: MembershipExitService) {}
 
+  // Заявление печатает адрес, дату рождения и телефон выходящего, поэтому
+  // пайщик собирает его только на своё имя.
   @Mutation(() => GeneratedDocumentDTO, {
     name: 'generateMembershipExitApplication',
     description: 'Сгенерировать документ заявления о выходе из кооператива.',
   })
   @Throttle({ default: { limit: 3, ttl: 60000 } })
-  @UseGuards(GqlJwtAuthGuard)
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('MembershipExit', 'generate:own', { owner: 'data.username' })
   async generateMembershipExitApplication(
     @Args('data', { type: () => MembershipExitApplicationGenerateDocumentInputDTO })
     data: MembershipExitApplicationGenerateDocumentInputDTO,
@@ -33,13 +47,33 @@ export class MembershipExitResolver {
     return this.membershipExitService.generateMembershipExitApplication(data, options);
   }
 
+  // Заявление об аннулировании соглашений ЦПП подписывается вместе с заявлением
+  // о выходе: суммы по программам собирает сервер, пайщик их только видит.
+  // Право — `MembershipExit:generate` из матрицы: за себя формирует сам пайщик,
+  // за другого — совет.
+  @Mutation(() => GeneratedDocumentDTO, {
+    name: 'generateProgramAgreementsAnnulment',
+    description: 'Сгенерировать заявление об аннулировании соглашений об участии в целевых потребительских программах.',
+  })
+  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @UseGuards(GqlJwtAuthGuard, AuthorizationGuard)
+  @CheckAbility('generate', 'MembershipExit')
+  async generateProgramAgreementsAnnulment(
+    @Args('data', { type: () => ProgramAgreementsAnnulmentGenerateDocumentInputDTO })
+    data: ProgramAgreementsAnnulmentGenerateDocumentInputDTO,
+    @Args('options', { type: () => GenerateDocumentOptionsInputDTO, nullable: true })
+    options: GenerateDocumentOptionsInputDTO
+  ): Promise<GeneratedDocumentDTO> {
+    return this.membershipExitService.generateProgramAgreementsAnnulment(data, options);
+  }
+
   @Mutation(() => GeneratedDocumentDTO, {
     name: 'generateMembershipExitDecision',
     description: 'Сгенерировать документ решения собрания совета о выходе пайщика.',
   })
   @Throttle({ default: { limit: 3, ttl: 60000 } })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('DecisionDocument', 'generate')
   async generateMembershipExitDecision(
     @Args('data', { type: () => MembershipExitDecisionGenerateDocumentInputDTO })
     data: MembershipExitDecisionGenerateDocumentInputDTO,
@@ -103,7 +137,7 @@ export class MembershipExitResolver {
   ): Promise<MembershipExitDTO | null> {
     const isOperator = currentUser.role === 'chairman' || currentUser.role === 'member';
     if (!isOperator && username !== currentUser.username) {
-      throw new ForbiddenException('Доступен только собственный статус выхода');
+      throw DomainError.forbidden('MEMBERSHIP_EXIT_STATUS_SELF_ONLY');
     }
     return this.membershipExitService.getMembershipExit(coopname, username);
   }
@@ -121,7 +155,7 @@ export class MembershipExitResolver {
   ): Promise<MembershipExitReturnPreviewDTO> {
     const isOperator = currentUser.role === 'chairman' || currentUser.role === 'member';
     if (!isOperator && username !== currentUser.username) {
-      throw new ForbiddenException('Доступен только собственный расчёт возврата');
+      throw DomainError.forbidden('MEMBERSHIP_EXIT_CALCULATION_SELF_ONLY');
     }
     return this.membershipExitService.getReturnPreview(coopname, username);
   }

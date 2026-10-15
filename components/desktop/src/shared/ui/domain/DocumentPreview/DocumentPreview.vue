@@ -2,12 +2,12 @@
 .document-preview(:style='containerStyle')
   template(v-if='error')
     BaseBanner.document-preview__banner(variant='neg')
-      strong Не удалось загрузить документ.
+      strong {{ $t('ui.documentPreview.loadErrorText') }}
       |  {{ error }}
   template(v-else-if='loading')
     .document-preview__loading
       q-spinner(color='primary' size='28px')
-      span.document-preview__loading-text Загрузка документа…
+      span.document-preview__loading-text {{ $t('ui.documentPreview.loadingText') }}
   template(v-else)
     template(v-if='document.type === "html" && safeHtml')
       // eslint-disable-next-line vue/no-v-html
@@ -15,25 +15,26 @@
     template(v-else-if='document.type === "pdf" && document.url')
       iframe.document-preview__pdf(
         :src='document.url',
-        :title='`PDF превью`'
+        :title='$t(`ui.documentPreview.pdfAltText`)'
       )
     template(v-else)
       .document-preview__slot
         slot
           .document-preview__empty
             q-icon(name='description' size='32px')
-            span Превью для типа «{{ document.type }}» недоступно
+            span {{ $t('ui.documentPreview.unsupportedTypeText', { docType: document.type }) }}
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue';
 import DOMPurify from 'dompurify';
 import { BaseBanner } from 'src/shared/ui/base/BaseBanner';
+import { sanitizeDocumentHtml } from 'src/shared/lib/utils';
 import type { DocumentPreviewProps } from './DocumentPreview.types';
 
 const props = withDefaults(defineProps<DocumentPreviewProps>(), {
   loading: false,
-  sanitize: true,
+  profile: 'strict',
   height: '480px',
 });
 
@@ -44,7 +45,7 @@ const containerStyle = computed(() => ({
 const safeHtml = computed((): string => {
   const raw = props.document.html;
   if (!raw) return '';
-  return props.sanitize ? DOMPurify.sanitize(raw) : raw;
+  return props.profile === 'document' ? sanitizeDocumentHtml(raw) : DOMPurify.sanitize(raw);
 });
 </script>
 

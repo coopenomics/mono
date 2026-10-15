@@ -53,7 +53,7 @@ void soviet::updateboard(eosio::name coopname, eosio::name username, uint64_t bo
     eosio::check(has_chairman, "Председатель кооператива должен быть указан в членах совета");
   };
 
-  boards.modify(board, username, [&](auto &b) {
+  boards.modify(board, RamPayer::of(boards, coopname), [&](auto &b) {
     b.members = members;
     b.name = name;
     b.description = description;

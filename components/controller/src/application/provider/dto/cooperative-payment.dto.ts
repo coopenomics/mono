@@ -1,5 +1,5 @@
 import { Field, ObjectType, registerEnumType } from '@nestjs/graphql';
-import { BillingPaymentLogStatus } from '~/infrastructure/billing/entities/billing-payment-log.entity';
+import { BillingPaymentLogStatus } from '~/infrastructure/billing/billing-payment-log.record';
 
 registerEnumType(BillingPaymentLogStatus, {
   name: 'CooperativePaymentStatus',

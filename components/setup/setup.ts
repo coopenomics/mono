@@ -109,7 +109,6 @@ async function setupDevelopment(): Promise<void> {
   await copyEnvExample('boot')
   await copyEnvExample('controller')
   await copyEnvExample('desktop')
-  await copyEnvExample('parser')
 
   // Обновляем COOPNAME во всех .env
   await updateEnvValue(comp('controller/.env'), 'COOPNAME', coopname)
@@ -252,7 +251,6 @@ async function setupProduction(): Promise<void> {
   const dbUser = ['coop', 'admin'].join('')
   const dbPass = generateSecret()
   const siteDesc = ['кооперативная экономика', 'для сообществ и бизнеса'].join(' ')
-  const finishBlock = '0x' + 'F'.repeat(8)
 
   const controllerEnv = `NODE_ENV=production
 BASE_URL=https://${answers.domain}
@@ -272,7 +270,6 @@ SMTP_PASSWORD=${answers.smtpPass}
 EMAIL_FROM="'${answers.coopShortName}' <mail@${answers.domain}>"
 BLOCKCHAIN_RPC=${MAINNET_CONFIG.API_URL}
 CHAIN_ID=${MAINNET_CONFIG.CHAIN_ID}
-SIMPLE_EXPLORER_API=http://cooparser:4000
 REDIS_HOST=monoredis
 REDIS_PORT=6379
 REDIS_PASSWORD=
@@ -298,23 +295,6 @@ TIMEZONE=Europe/Moscow
 `
   await fs.writeFile(comp('desktop/.env'), desktopEnv)
 
-  // Parser .env
-  const parserEnv = `NODE_ENV=production
-API=${MAINNET_CONFIG.API_URL}
-SHIP=ws://node:8070
-MONGO_EXPLORER_URI=mongodb://mongo:27017/cooperative-x
-START_BLOCK=1
-FINISH_BLOCK=${finishBlock}
-PORT=4000
-ACTIVATE_PARSER=1
-REDIS_PORT=6379
-REDIS_HOST=monoredis
-REDIS_PASSWORD=
-REDIS_STREAM_LIMIT=1000
-COOPNAME=${answers.coopname}
-`
-  await fs.writeFile(comp('parser/.env'), parserEnv)
-
   // Boot .env
   const bootEnv = `EOSIO_PUB_KEY=EOS6MRyAjQq8ud7hVNYcfnVPJqcVpscN5So8BhtHuGYqET5GDW5CV
 EOSIO_PRV_KEY=5KQwrPbwdL6PhXujxW37FSSQZ1JiwsST4cqQzDeyXtP79zkvFD3
@@ -324,7 +304,6 @@ PASSWORD=PW5JGe4WsTPGrjnMzkGd4wfVdzoHCEySgbyq2WBWGAxSfevbXqAG4
 SERVER_SECRET=${answers.serverSecret}
 SERVER_URL=http://coopback:2998
 MONGO_URI=mongodb://mongo:27017/cooperative-x
-SIMPLE_EXPLORER_API=http://cooparser:4000
 SKIP_BLOCK_FETCH=TRUE
 POSTGRES_HOST=pg
 POSTGRES_PORT=5432
@@ -335,7 +314,7 @@ POSTGRES_DATABASE=${answers.coopname}
   await fs.writeFile(comp('boot/.env'), bootEnv)
 
   ok('Конфигурация продакшен сгенерирована')
-  // note: dbUser, dbPass, siteDesc, finishBlock defined above in template literals
+  // note: dbUser, dbPass, siteDesc defined above in template literals
 
   // 2. Сборка
   step('Сборка shared-библиотек')
@@ -351,12 +330,11 @@ POSTGRES_DATABASE=${answers.coopname}
 Файлы конфигурации сгенерированы:
   • components/controller/.env
   • components/desktop/.env
-  • components/parser/.env
   • components/boot/.env
 
 Для запуска в продакшене:
   \x1b[36m1. docker compose up -d\x1b[0m                    — Инфраструктура
-  \x1b[36m2. docker compose up -d coopback cooparser\x1b[0m  — Бэкенд
+  \x1b[36m2. docker compose up -d coopback parser2\x1b[0m    — Бэкенд
   \x1b[36m3. docker compose up -d desktop\x1b[0m            — Фронтенд
 
 Подключение к основной сети:

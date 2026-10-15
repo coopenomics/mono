@@ -1,4 +1,4 @@
-import type { ISearchResult } from '@coopenomics/factory';
+import type { IGenerateBlank, IGeneratedBlank, ISearchResult } from '@coopenomics/factory';
 import type { Cooperative } from 'cooptypes';
 
 export interface GeneratorPort {
@@ -8,11 +8,19 @@ export interface GeneratorPort {
     data: Cooperative.Document.IGenerate,
     options?: Cooperative.Document.IGenerationOptions
   ): Promise<Cooperative.Document.IGeneratedDocument>;
+  /**
+   * Бланк документа: шаблон из цепи с реквизитами кооператива, поля без
+   * данных события — прочерком. Не сохраняется и не подписывается.
+   */
+  generateBlank(data: IGenerateBlank): Promise<IGeneratedBlank>;
   getDocument(query: {
     hash: string;
     /** Точная версия черновика по meta.block_num (черновики версионируются
      * по hash+block_num). Не передан — вернётся любая версия с этим hash. */
     block_num?: number;
+    /** Meta подписанного документа: точная версия, когда тело и блок у двух
+     * генераций совпали. */
+    meta?: unknown;
   }): Promise<Cooperative.Document.IGeneratedDocument | null>;
   constructCooperative(username: string, block_num?: number): Promise<Cooperative.Model.ICooperativeData | null>;
   get<T = any>(collection: string, query: Record<string, any>): Promise<T | null>;

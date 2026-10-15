@@ -93,6 +93,30 @@ describe('VerificationReviewService', () => {
     expect(() => service.prepareVerification('bra1', [broken])).toThrow(BadRequestException);
   });
 
+  it('не-изображение и снимок больше лимита бакета отвергаются до записи в цепь', () => {
+    // До 25.09.2026 их отвергал только bucket.put уже после выдачи уровня.
+    const text = { ...photo('снимок'), mime_type: 'text/plain' };
+    const codeOf = (fn: () => unknown): string | null => {
+      try {
+        fn();
+        return null;
+      } catch (e: any) {
+        return e.code ?? null;
+      }
+    };
+    expect(codeOf(() => service.prepareVerification('bra1', [text]))).toBe('AUTH_V2_VERIFICATION_PHOTO_MIME_NOT_ALLOWED');
+
+    const big = Buffer.alloc(10 * 1024 * 1024 + 1, 1);
+    const huge = {
+      content_base64: big.toString('base64'),
+      mime_type: 'image/png',
+      size_bytes: big.byteLength,
+      checksum_sha256: createHash('sha256').update(big).digest('hex'),
+      original_filename: 'huge.png',
+    };
+    expect(codeOf(() => service.prepareVerification('bra1', [huge]))).toBe('AUTH_V2_VERIFICATION_PHOTO_TOO_LARGE');
+  });
+
   it('больше пяти снимков за одну сверку не принимает', () => {
     const many = Array.from({ length: 6 }, (_, i) => photo(`снимок ${i}`));
     expect(() => service.prepareVerification('bra1', many)).toThrow(BadRequestException);

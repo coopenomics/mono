@@ -9,7 +9,7 @@ import type {
   Ledger2BlockchainPort,
   WalmoveBlockchainDomainInterface,
 } from '~/domain/ledger2/ports/ledger2-blockchain.port';
-import { DomainToBlockchainUtils, HttpApiError } from '@coopenomics/extension-kit';
+import { DomainToBlockchainUtils, DomainError } from '@coopenomics/extension-kit';
 
 /**
  * Блокчейн-адаптер ledger2 — пишет операции корректировок председателя.
@@ -31,7 +31,7 @@ export class Ledger2BlockchainAdapter implements Ledger2BlockchainPort {
   async walmove(data: WalmoveBlockchainDomainInterface): Promise<TransactionResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
     if (!wif) {
-      throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ председателя для подписания корректировки');
+      throw new DomainError('BLOCKCHAIN_CHAIRMAN_KEY_NOT_FOUND_FOR_ADJUSTMENT', {}, httpStatus.BAD_GATEWAY);
     }
     this.blockchainService.initialize(data.coopname, wif);
 

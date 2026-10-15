@@ -3,9 +3,8 @@
  *
  * Программы и кошельки — через GraphQL контроллера (ADR: фронт не ходит
  * в чейн напрямую). Контроллер читает `soviet::programs` для метаданных
- * программ и `ledger2::userwallets` через `getProgramWallets` для
- * пользовательских срезов (Эпик 3, ADR-008). Пайщиков (ФИО + username +
- * статус) грузит страница отдельно через `useAccountStore.getAccounts`.
+ * программ и `ledger2::userwallets` для пользовательских срезов — операцией стола
+ * бухгалтера. Пайщиков с именами страница грузит той же дорогой.
  *
  * Возвращаем собранный pivot-срез «program_id → username → cell» — страница
  * только рендерит.
@@ -13,6 +12,7 @@
 import { client } from 'src/shared/api/client'
 import { Queries } from '@coopenomics/sdk'
 import { Ledger2 } from 'cooptypes'
+import { loadDeskParticipantWallets } from 'app/extensions/reports/shared/lib/registries'
 
 export interface IProgramColumn {
   id: number
@@ -44,16 +44,12 @@ function parseAsset(s: unknown): number {
 export async function loadProgramsAndWallets(
   coopname: string,
 ): Promise<IProgramsAndWallets> {
-  const [programsResponse, walletsResponse] = await Promise.all([
+  const [programsResponse, wallets] = await Promise.all([
     client.Query(Queries.Agreements.CooperativePrograms.query, {
       variables: { coopname },
     }),
-    client.Query(Queries.Wallet.GetProgramWallets.query, {
-      variables: {
-        filter: { coopname },
-        options: { page: 1, limit: 100000 },
-      },
-    }),
+    // Кошельки пайщиков отдаёт операция стола бухгалтера под его правом.
+    loadDeskParticipantWallets(coopname),
   ])
 
   const programsRaw = programsResponse[Queries.Agreements.CooperativePrograms.name] ?? []
@@ -78,7 +74,6 @@ export async function loadProgramsAndWallets(
   const totals: Record<number, IWalletCell> = {}
   for (const p of programs) totals[p.id] = { available: 0 }
 
-  const wallets = walletsResponse[Queries.Wallet.GetProgramWallets.name]?.items ?? []
 
   for (const w of wallets) {
     const username = String(w.username)

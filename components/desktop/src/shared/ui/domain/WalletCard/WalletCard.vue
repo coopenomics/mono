@@ -12,7 +12,12 @@
 
     <div class="wallet__body">
       <div class="wallet__main">
-        <div class="wallet__title" :title="resolvedTitle">{{ resolvedTitle }}</div>
+        <div class="wallet__title" :title="hint ? undefined : resolvedTitle">
+          {{ resolvedTitle }}
+          <q-icon v-if="hint" name="help_outline" class="wallet__hint">
+            <q-tooltip max-width="320px">{{ hint }}</q-tooltip>
+          </q-icon>
+        </div>
         <div v-if="subtitle" class="wallet__sub" :title="subtitle">{{ subtitle }}</div>
       </div>
 
@@ -23,12 +28,12 @@
             <template v-else-if="empty">0,00<span class="ccy">{{ symbol }}</span></template>
             <template v-else>{{ balance }}<span class="ccy">{{ symbol }}</span></template>
           </div>
-          <div class="wallet__metric-label">{{ balanceLabel ?? 'Доступно' }}</div>
+          <div class="wallet__metric-label">{{ balanceLabel ?? $t('ui.walletCard.availableLabel') }}</div>
         </div>
 
         <div v-if="lockedBalance !== undefined" class="wallet__locked-line">
           <q-icon name="lock" />
-          {{ lockedLabel ?? 'Заблокировано' }}: <b>{{ lockedBalance }}</b>
+          {{ lockedLabel ?? $t('ui.walletCard.blockedLabel') }}: <b>{{ lockedBalance }}</b>
           <span class="ccy">&nbsp;{{ symbol }}</span>
         </div>
       </div>
@@ -47,6 +52,7 @@
 import { computed } from 'vue';
 import type { CSSProperties } from 'vue';
 import type { WalletCardProps, WalletProgram } from './WalletCard.types';
+import { t } from 'src/shared/i18n';
 
 const props = withDefaults(defineProps<WalletCardProps>(), {
   loading: false,
@@ -56,9 +62,9 @@ const props = withDefaults(defineProps<WalletCardProps>(), {
 });
 
 const DEFAULT_TITLES: Record<WalletProgram, string> = {
-  blagorost: 'Благорост',
-  wallet: 'Главный кошелёк',
-  generator: 'Генератор',
+  blagorost: t('ui.walletCard.blagorostName'),
+  wallet: t('ui.walletCard.mainWalletName'),
+  generator: t('ui.walletCard.generatorName'),
 };
 
 const DEFAULT_ICONS: Record<WalletProgram, string> = {

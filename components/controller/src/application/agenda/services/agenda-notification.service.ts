@@ -7,6 +7,7 @@ import { SovietContract } from 'cooptypes';
 import type { ActionDomainInterface } from '~/domain/parser/interfaces/action-domain.interface';
 import { Workflows } from '@coopenomics/notifications';
 import { NOTIFICATION_PORT, INotificationPort } from '@coopenomics/innercoop';
+import { SOVIET_BLOCKCHAIN_PORT, SovietBlockchainPort } from '~/domain/common/ports/soviet-blockchain.port';
 
 /**
  * Сервис для отправки уведомлений о новых вопросах на повестке совета
@@ -21,13 +22,69 @@ export class AgendaNotificationService implements OnModuleInit {
     private readonly notificationPort: INotificationPort,
     @Inject(ACCOUNT_DATA_PORT)
     private readonly accountPort: AccountDataPort,
+    @Inject(SOVIET_BLOCKCHAIN_PORT)
+    private readonly sovietPort: SovietBlockchainPort,
     private readonly logger: WinstonLoggerService
   ) {
     this.logger.setContext(AgendaNotificationService.name);
   }
 
+  /**
+   * Номер вопроса в повестке по хэшу действия: контракт пишет этот хэш в
+   * решение. Вопроса в таблице нет (цепь не ответила) — номера нет, и
+   * оповещение ведёт на повестку целиком.
+   */
+  private async questionIdOf(coopname: string, hash: string): Promise<string | null> {
+    try {
+      const target = String(hash).toUpperCase();
+      const decision = (await this.sovietPort.getDecisions(coopname)).find((d) => String(d.hash).toUpperCase() === target);
+      return decision ? String(decision.id) : null;
+    } catch (error: any) {
+      this.logger.warn(`Номер вопроса по хэшу ${hash} не найден: ${error.message}`);
+      return null;
+    }
+  }
+
   async onModuleInit() {
     this.logger.log('AgendaNotificationService инициализирован');
+  }
+
+  /** Оповещает членов совета по одному; возвращает число отправленных оповещений. */
+  private async notifyCouncil(
+    members: Awaited<ReturnType<AccountDataPort['getAccounts']>>['items'],
+    coopname: string,
+    payload: Workflows.NewAgenda.IPayload
+  ): Promise<number> {
+    let sentCount = 0;
+    for (const member of members) {
+      const memberEmail = member.provider_account?.email;
+      const memberSubscriberId = member.provider_account?.subscriber_id?.trim();
+      if (!memberSubscriberId) {
+        this.logger.warn(`subscriber_id члена совета ${member.username} не найден, пропускаем`);
+        continue;
+      }
+      if (!memberEmail) {
+        this.logger.warn(`Email члена совета ${member.username} не найден, пропускаем`);
+        continue;
+      }
+
+      try {
+        await this.notificationPort.notify({
+          coopname,
+          workflowId: Workflows.NewAgenda.id,
+          to: {
+            subscriberId: memberSubscriberId,
+            email: memberEmail,
+            username: member.username,
+          },
+          payload,
+        });
+        sentCount++;
+      } catch (error: any) {
+        this.logger.error(`Ошибка отправки уведомления члену совета ${member.username}: ${error.message}`);
+      }
+    }
+    return sentCount;
   }
 
   /**
@@ -38,12 +95,15 @@ export class AgendaNotificationService implements OnModuleInit {
   async handleCreateAgenda(actionData: ActionDomainInterface): Promise<void> {
     try {
       const action = actionData.data as SovietContract.Interfaces.ICreateagenda;
-      const agendaId = action.hash.substring(0, 4);
-
       // Проверяем что это наш кооператив
       if (action.coopname !== config.coopname) {
         return;
       }
+
+      // Номер вопроса — как на столе совета; по нему же строится прямая ссылка.
+      const questionId = await this.questionIdOf(action.coopname, action.hash);
+      const agendaId = questionId ?? action.hash.substring(0, 4);
+      const agendaUrl = `${config.frontend_url}/${action.coopname}/soviet/agenda`;
 
       this.logger.debug(`Обработка создания нового вопроса на повестке для решения ${agendaId}`);
 
@@ -72,39 +132,11 @@ export class AgendaNotificationService implements OnModuleInit {
         itemDescription: ``,
         authorName,
         decision_id: agendaId,
-        agendaUrl: `${config.frontend_url}/${action.coopname}/soviet/agenda`,
+        // Ссылка ведёт на страницу этого вопроса; без номера — на повестку.
+        agendaUrl: questionId ? `${agendaUrl}/${questionId}` : agendaUrl,
       };
 
-      // Отправляем уведомления каждому члену совета в цикле
-      let sentCount = 0;
-      for (const member of allCouncilMembers) {
-        const memberEmail = member.provider_account?.email;
-        const memberSubscriberId = member.provider_account?.subscriber_id?.trim();
-        if (!memberSubscriberId) {
-          this.logger.warn(`subscriber_id члена совета ${member.username} не найден, пропускаем`);
-          continue;
-        }
-        if (!memberEmail) {
-          this.logger.warn(`Email члена совета ${member.username} не найден, пропускаем`);
-          continue;
-        }
-
-        try {
-          await this.notificationPort.notify({
-            coopname: action.coopname,
-            workflowId: Workflows.NewAgenda.id,
-            to: {
-              subscriberId: memberSubscriberId,
-              email: memberEmail,
-              username: member.username,
-            },
-            payload,
-          });
-          sentCount++;
-        } catch (error: any) {
-          this.logger.error(`Ошибка отправки уведомления члену совета ${member.username}: ${error.message}`);
-        }
-      }
+      const sentCount = await this.notifyCouncil(allCouncilMembers, action.coopname, payload);
 
       if (sentCount === 0) {
         this.logger.warn('Не удалось отправить уведомления ни одному члену совета');

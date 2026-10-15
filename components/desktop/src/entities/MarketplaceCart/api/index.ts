@@ -79,34 +79,45 @@ async function setDeliveryPoint(delivery_braname: string): Promise<IMarketplaceC
   return cart as IMarketplaceCart
 }
 
-/** Заявления о конвертации паевого взноса к подписи — по одному на позицию корзины. */
-export type ICheckoutSignableLine =
-  Queries.Marketplace.CheckoutSignablePayloads.IOutput['marketplaceCheckoutSignablePayloads'][number]
+/** Превью оформления: строки по позициям и, если членского кошелька не хватает, заявление 1110. */
+export type ICheckoutPreview =
+  Queries.Marketplace.CheckoutSignablePayloads.IOutput['marketplaceCheckoutSignablePayloads']
+/** Строка превью оформления — по одной на позицию корзины (суммы по частям). */
+export type ICheckoutSignableLine = ICheckoutPreview['lines'][number]
+/** Подписанное заявление 1110 на оформление. */
+export type ICheckoutSignedConvert = NonNullable<
+  NonNullable<Mutations.Marketplace.CheckoutCart.IInput['input']>['signed_convert']
+>
 
-/** Подписанная строка оформления (offer_id + order_hash + подписанное заявление). */
+/** Строка оформления, уходящая в мутацию (offer_id + упаковка + order_hash). */
 export type ICheckoutSignedLine = NonNullable<
   NonNullable<Mutations.Marketplace.CheckoutCart.IInput['input']>['lines']
 >[number]
 
-async function getCheckoutSignablePayloads(): Promise<ICheckoutSignableLine[]> {
+async function getCheckoutSignablePayloads(): Promise<ICheckoutPreview> {
   const { [Queries.Marketplace.CheckoutSignablePayloads.name]: result } = await client.Query(
     Queries.Marketplace.CheckoutSignablePayloads.query,
     {},
   )
-  return result as ICheckoutSignableLine[]
+  return result as ICheckoutPreview
 }
 
 /**
  * Оформить корзину в заказ-агрегат. Без `checkout_id` — новый заказ; с ним —
  * повтор непрошедшего остатка прошлого оформления в тот же заказ.
- * Каждая позиция сопровождается подписанным заявлением о конвертации (lines).
- * Частичный сбой не откатывает прошедшее: возвращает failed_lines + остаток.
+ * Позиции передаются строками превью (lines), заявлений к подписи больше нет.
+ * Перевод по заявлению и заказы всех строк идут одной транзакцией: отказ
+ * цепи откатывает всё и приходит ошибкой мутации. Позиции, которые оформить
+ * нельзя (сняты, не возят, нет остатка), в транзакцию не входят и
+ * возвращаются в failed_lines; с подписанным заявлением такая позиция
+ * отклоняет оформление целиком.
  */
 async function checkout(
   checkout_id: string | undefined,
   lines: ICheckoutSignedLine[],
+  signed_convert: ICheckoutSignedConvert | null = null,
 ): Promise<IMarketplaceCheckoutResult> {
-  const input = { ...(checkout_id ? { checkout_id } : {}), lines }
+  const input = { ...(checkout_id ? { checkout_id } : {}), lines, signed_convert }
   const { [Mutations.Marketplace.CheckoutCart.name]: result } = await client.Mutation(
     Mutations.Marketplace.CheckoutCart.mutation,
     { variables: { input } },

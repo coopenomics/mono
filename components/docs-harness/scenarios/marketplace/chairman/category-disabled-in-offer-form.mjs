@@ -103,6 +103,8 @@ export default async ({ page, context, shot, expect }) => {
   const supplierContext = await context.browser().newContext({
     viewport: page.viewportSize(),
     locale: 'ru-RU',
+    // Время на кадрах — московское, как у кооператива: в CI браузер иначе живёт в UTC.
+    timezoneId: 'Europe/Moscow',
   });
   let categories = [];
   try {

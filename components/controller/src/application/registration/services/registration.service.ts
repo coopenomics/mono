@@ -1,8 +1,9 @@
-import { ForbiddenException, Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { CANDIDATE_REPOSITORY, CandidateRepository } from '~/domain/account/repository/candidate.repository';
-import { PaginationInputDTO, PaginationResult, GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO } from '@coopenomics/extension-kit';
+import { PaginationInputDTO, PaginationResult, GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO, DomainError } from '@coopenomics/extension-kit';
 import { CandidateOutputDTO } from '../dto/candidate.dto';
 import { CandidateFilterInputDTO } from '../dto/candidate-filter.dto';
+import { CandidateIntakeDTO } from '../dto/candidate-intake.dto';
 import {
   REGISTRATION_DOCUMENTS_SERVICE,
   RegistrationDocumentsService,
@@ -80,7 +81,7 @@ export class RegistrationService implements CandidateDataPort {
     // Проверка ролей: если не председатель и не член совета, проверяем доступ
     if (currentUser.role !== 'chairman' && currentUser.role !== 'member') {
       if (filter?.referer && filter.referer !== currentUser.username) {
-        throw new ForbiddenException('У вас нет доступа к просмотру кандидатов другого реферера');
+        throw DomainError.forbidden('REGISTRATION_REFERRER_ACCESS_DENIED');
       }
       referer = currentUser.username;
     }
@@ -113,6 +114,27 @@ export class RegistrationService implements CandidateDataPort {
       totalCount,
       totalPages: Math.ceil(totalCount / (options.limit || 10)),
       currentPage: options.page || 1,
+    };
+  }
+
+  /**
+   * Что заявитель сообщил о себе при вступлении: программа и ответы на анкеты.
+   * Нет заявки или ответов — пустой список, а не ошибка: у пайщиков, вступивших
+   * до появления анкет, их просто нет.
+   */
+  async getCandidateIntake(username: string): Promise<CandidateIntakeDTO> {
+    const candidate = await this.candidateRepository.findByUsername(username);
+
+    return {
+      username,
+      program_key: candidate?.program_key,
+      answers: Object.entries(candidate?.intake_answers ?? {}).map(([form_id, answer]) => ({
+        form_id,
+        title: answer.title,
+        json_schema: answer.json_schema,
+        values: answer.values,
+        submitted_at: new Date(answer.submitted_at),
+      })),
     };
   }
 

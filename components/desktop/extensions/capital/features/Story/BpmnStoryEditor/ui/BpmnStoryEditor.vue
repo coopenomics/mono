@@ -152,6 +152,7 @@ function scheduleLayoutRetries(): void {
   layoutRetryTimers = [];
   for (const ms of LAYOUT_RETRY_DELAYS_MS) {
     layoutRetryTimers.push(
+      // timing: ui — повторная подгонка высоты холста BPMN после отрисовки.
       window.setTimeout(() => {
         scheduleApplyHeights();
       }, ms),
@@ -308,6 +309,7 @@ function destroyToolkit(): void {
   }
 }
 
+// realtime: нет источника — редактор: живое перечитывание затёрло бы ввод; чужие правки ловит проверка версии при сохранении.
 onMounted(() => {
   void initToolkit();
 });

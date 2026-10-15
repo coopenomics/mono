@@ -90,6 +90,8 @@ export async function openBrowser({ storageState } = {}) {
     viewport: SHOT_VIEWPORT,
     deviceScaleFactor: SHOT_SCALE,
     locale: 'ru-RU',
+    // Время на кадрах — московское, как у кооператива: в CI браузер иначе живёт в UTC.
+    timezoneId: 'Europe/Moscow',
     storageState,
   });
   const page = await context.newPage();
@@ -136,49 +138,177 @@ export async function openBrowser({ storageState } = {}) {
   return { browser, context, page, consoleLog, failures };
 }
 
-// Логин председателя через форму. Кэширует storageState.
-// Учитывает что vue-router в текущем десктопе работает в hash-режиме
-// (URL вида http://host/#/voskhod/...), а не history.
-export async function loginAsChairman(page, context, { signAgreements = true } = {}) {
+// ── Вход ───────────────────────────────────────────────────────────────────
+//
+// Форма входа с 24.09.2026 не пускает по одному ключу: ключ доступа переводит
+// на шаг «Задать пароль и войти» (пароль ставится на CoopID, вход дальше идёт
+// по паролю через authentik). Поэтому вход пайщика в harness — в два пути:
+// пароль уже известен (state/passwords.json) → email + пароль; иначе → email +
+// ключ → новый пароль дважды → «Задать пароль и войти», пароль запоминается.
+// После перехода на пароль вход подписью для пайщика закрыт — засеву стенда
+// токены снимаются до этого (lib/suite.mjs, bin/shoot.mjs → state/tokens.json).
+//
+// Пароль у всех пайщиков стенда один: он живёт только на одноразовом стенде и
+// в кадры не попадает.
+export const HARNESS_PASSWORD = 'Harness-2026-pass!1';
+const PASSWORDS_FILE = path.join(HARNESS_ROOT, 'state/passwords.json');
+
+export function knownPassword(email) {
+  if (!fsSync.existsSync(PASSWORDS_FILE)) return null;
+  return JSON.parse(fsSync.readFileSync(PASSWORDS_FILE, 'utf8'))[email] ?? null;
+}
+
+export function rememberPassword(email, password) {
+  const all = fsSync.existsSync(PASSWORDS_FILE) ? JSON.parse(fsSync.readFileSync(PASSWORDS_FILE, 'utf8')) : {};
+  all[email] = password;
+  fsSync.mkdirSync(path.dirname(PASSWORDS_FILE), { recursive: true });
+  fsSync.writeFileSync(PASSWORDS_FILE, JSON.stringify(all, null, 2) + '\n');
+}
+
+/**
+ * Вход с одним повтором. Прогон 14.10.2026: сразу после поднятия стенда
+ * authentik отдавал 404 на OIDC-конфигурацию приложения coopid, хотя описания
+ * были применены, и форма показывала «Не удалось выполнить операцию». Через
+ * полминуты тот же вход проходит — повторяем один раз, потом падаем честно.
+ */
+async function loginFlow(page, creds) {
+  try {
+    await loginFlowOnce(page, creds);
+  } catch (e) {
+    if (!/не состоялся/.test(String(e?.message))) throw e;
+    console.log(`  ⚠ ${String(e.message).slice(0, 160)} — повторяю вход через 30 с`);
+    await page.waitForTimeout(30000);
+    await loginFlowOnce(page, creds);
+  }
+}
+
+async function loginFlowOnce(page, { email, wif, account }) {
   // timeout 150s: первый заход на роут signin компилирует его chunk в холодном
-  // Vite (optimizeDeps + on-demand transform модульного графа), что не укладывается
-  // в 60с; последующие сценарии переиспользуют скомпилированный chunk и быстры.
+  // Vite (dev-стенд); SSR-сборка отвечает сразу.
   await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/auth/signin`, { waitUntil: 'domcontentloaded', timeout: 150000 });
   await page.waitForSelector('button:has-text("Войти")', { timeout: 150000 });
   await cleanViteOverlays(page);
-  await page.locator('input[type="email"]').first().fill(env.CHAIRMAN_EMAIL);
-  await page.locator('input[type="password"]').first().fill(env.CHAIRMAN_WIF);
+  const password = knownPassword(email);
+  await page.locator('input[type="email"]').first().fill(email);
+  await page.locator('input[type="password"]').first().fill(password ?? wif);
   await cleanViteOverlays(page);
   await page.locator('button:has-text("Войти")').click();
-  // Ждём пока URL уйдёт от signin (либо в chairman/user/soviet/participant).
-  // Используем waitForFunction вместо waitForURL — он более forgiving по hash.
-  await page.waitForFunction(
+
+  if (!password) {
+    // Ключ доступа → шаг установки пароля.
+    const newPassword = page.locator('label:has-text("Новый пароль")').locator('input').first();
+    const migrate = await newPassword.waitFor({ state: 'visible', timeout: 20000 }).then(() => true).catch(() => false);
+    if (migrate) {
+      await newPassword.fill(HARNESS_PASSWORD);
+      await page.locator('label:has-text("Повторите пароль")').locator('input').first().fill(HARNESS_PASSWORD);
+      await page.waitForTimeout(300);
+      await page.locator('button:has-text("Задать пароль и войти")').click();
+    }
+  }
+
+  await passSecondFactorIfAsked(page, email);
+  await awaitLeftSignin(page, email);
+  if (!password) rememberPassword(email, HARNESS_PASSWORD);
+  if (account) await exportSessionTokens(page, account, email);
+}
+
+// Токены сессии из браузера — в файл засева (state/tokens.json).
+//
+// Переход на пароль отзывает все сессии пайщика, в том числе токены, снятые
+// подписью до входа. Фазам засева после сценариев подключения нужен живой
+// токен председателя — берём его из хранилища стола (IndexedDB кооператива,
+// ключ coopid.session.tokens, пишет @coopenomics/auth после рукопожатия).
+async function exportSessionTokens(page, account, email) {
+  const stored = await page.evaluate(async (coop) => {
+    const open = () => new Promise((resolve, reject) => {
+      const req = indexedDB.open(coop);
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+    try {
+      const db = await open();
+      if (!db.objectStoreNames.contains('store')) return null;
+      const raw = await new Promise((resolve, reject) => {
+        const req = db.transaction('store').objectStore('store').get('coopid.session.tokens');
+        req.onsuccess = () => resolve(req.result ?? null);
+        req.onerror = () => reject(req.error);
+      });
+      return typeof raw === 'string' ? JSON.parse(raw) : raw;
+    } catch (e) {
+      return { error: String(e) };
+    }
+  }, env.COOPNAME).catch((e) => ({ error: String(e) }));
+  const tokens = stored?.tokens;
+  if (!tokens?.accessToken) {
+    console.log(`  ⚠ токены сессии ${account} из браузера не прочитаны: ${stored?.error ?? 'в хранилище пусто'}`);
+    return;
+  }
+  const file = path.join(HARNESS_ROOT, 'state/tokens.json');
+  const all = fsSync.existsSync(file) ? JSON.parse(fsSync.readFileSync(file, 'utf8')) : {};
+  all[account] = { access: tokens.accessToken, refresh: tokens.refreshToken, email, at: Date.now() };
+  fsSync.mkdirSync(path.dirname(file), { recursive: true });
+  fsSync.writeFileSync(file, JSON.stringify(all, null, 2) + '\n');
+  process.env.API_TOKENS_FILE = file;
+}
+
+// Второй фактор по письму: код из почты стенда (Mailpit, MAILPIT_URL).
+// У свежего пайщика факторов нет — шаг не показывается.
+async function passSecondFactorIfAsked(page, email) {
+  const otpField = page.locator('text=Код из письма').first();
+  const asked = await otpField.waitFor({ state: 'visible', timeout: 8000 }).then(() => true).catch(() => false);
+  if (!asked) return;
+  const base = process.env.MAILPIT_URL || 'http://127.0.0.1:8025';
+  let code = null;
+  for (let i = 0; i < 20 && !code; i++) {
+    const list = await fetch(`${base}/api/v1/search?query=${encodeURIComponent(`to:${email}`)}&limit=1`).then((r) => r.json()).catch(() => null);
+    const id = list?.messages?.[0]?.ID;
+    if (id) {
+      const msg = await fetch(`${base}/api/v1/message/${id}`).then((r) => r.json()).catch(() => null);
+      code = ((msg?.Text || msg?.HTML || '').match(/\b\d{6}\b/) || [])[0] || null;
+    }
+    if (!code) await page.waitForTimeout(1500);
+  }
+  if (!code) throw new Error(`вход ${email}: сервер ждёт код из письма, а в почте стенда (${base}) кода нет`);
+  await page.keyboard.type(code, { delay: 40 });
+  await page.waitForTimeout(500);
+  await page.locator('button:has-text("Подтвердить")').first().click().catch(() => {});
+}
+
+// Вход председателя кооператива.
+export async function loginAsChairman(page, context, { signAgreements = true } = {}) {
+  await loginFlow(page, { email: env.CHAIRMAN_EMAIL, wif: env.CHAIRMAN_WIF, account: 'ant' });
+  if (signAgreements) await passFirstLoginAgreements(page);
+}
+
+// Вход пайщика по фикстуре (state/participants/<username>.json: { username, email, wif }).
+export async function loginAs(page, fixture, { signAgreements = true } = {}) {
+  await loginFlow(page, { email: fixture.email, wif: fixture.wif, account: fixture.username });
+  if (signAgreements) await passFirstLoginAgreements(page);
+}
+
+// Вход считается состоявшимся, когда адрес ушёл с формы входа. Прежде отказ
+// глотался молча, и падал первый же экран сценария с «нужен вход», а причина
+// (не отправилась форма, отказ сервера) терялась. Теперь — кадр и текст формы.
+async function awaitLeftSignin(page, email) {
+  const left = await page.waitForFunction(
     () => !/auth\/signin/.test(window.location.href),
     { timeout: 30000 },
-  ).catch(() => {});
+  ).then(() => true).catch(() => false);
   await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
-  if (signAgreements) await passFirstLoginAgreements(page);
+  if (left) return;
+  const notice = await page.evaluate(() => {
+    const notes = Array.from(document.querySelectorAll('.q-notification, .q-field__messages, [role="alert"]'))
+      .map((el) => el.textContent?.trim()).filter(Boolean);
+    const disabled = Array.from(document.querySelectorAll('button')).filter((b) => /Войти/.test(b.textContent || '')).map((b) => b.disabled);
+    return { notes, disabled, url: location.href };
+  });
+  const shotPath = path.join(HARNESS_ROOT, 'shots', 'LOGIN-FAIL.png');
+  await page.screenshot({ path: shotPath, fullPage: true }).catch(() => {});
+  throw new Error(`вход ${email} не состоялся: адрес остался ${notice.url}; кнопка «Войти» disabled=${JSON.stringify(notice.disabled)}; сообщения формы: ${notice.notes.join(' | ') || 'нет'} (кадр ${shotPath})`);
 }
 
 // Логин обычного пайщика по фикстуре (state/participants/<username>.json).
 // fixture: { username, email, wif, ... }
-export async function loginAs(page, fixture, { signAgreements = true } = {}) {
-  // timeout 150s: см. комментарий в loginAsChairman — холодная компиляция chunk'а
-  // роута signin в Vite не укладывается в 60с на первом заходе.
-  await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/auth/signin`, { waitUntil: 'domcontentloaded', timeout: 150000 });
-  await page.waitForSelector('button:has-text("Войти")', { timeout: 150000 });
-  await cleanViteOverlays(page);
-  await page.locator('input[type="email"]').first().fill(fixture.email);
-  await page.locator('input[type="password"]').first().fill(fixture.wif);
-  await cleanViteOverlays(page);
-  await page.locator('button:has-text("Войти")').click();
-  await page.waitForFunction(
-    () => !/auth\/signin/.test(window.location.href),
-    { timeout: 30000 },
-  ).catch(() => {});
-  await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
-  if (signAgreements) await passFirstLoginAgreements(page);
-}
 
 
 // Соглашения первого входа — свойство стенда, а не сценария.
@@ -300,6 +430,71 @@ export async function pickBranchIfAsked(page, { timeout = 12000 } = {}) {
 // страницу под разными именами — тест, который ничего не проверяет.
 // Поэтому: перебираем известные варианты разметки, а если пункта нет —
 // падаем, а не «continue».
+/**
+ * Сверка личности получателя на пункте выдачи. Перед первой выдачей пайщику
+ * стол поднимает окно «Проверка личности»: оператор сверяет паспорт и
+ * прикладывает снимок пайщика с паспортом — без снимка кнопка подтверждения
+ * закрыта. Сверка делается один раз на пайщика, поэтому окно видит только
+ * первый по порядку сценарий выдачи. Возвращает true, если окно было.
+ */
+export async function confirmIdentityIfAsked(page, { shot, timeout = 6000 } = {}) {
+  const dialog = page.locator('[id^="q-portal--dialog--"]').filter({ hasText: 'Проверка личности' }).first();
+  // Обёртка портала сама нулевого размера и для Playwright «скрыта» всегда —
+  // видимость проверяем по заголовку окна внутри неё.
+  const title = dialog.locator('text=Проверка личности').first();
+  const asked = await title.waitFor({ state: 'visible', timeout }).then(() => true).catch(() => false);
+  if (!asked) return false;
+  await page.waitForTimeout(1200);
+  if (shot) {
+    await shot(
+      page,
+      '02b-identity-check',
+      'Проверка личности перед первой выдачей пайщику: оператор сверяет с паспортом данные, которые сервер показывает только на время сверки, и прикладывает снимок пайщика с раскрытым паспортом. Сверка делается один раз; снимки хранятся до решения совета.',
+    );
+  }
+  await dialog.locator('input[type="file"]').first()
+    .setInputFiles(path.join(HARNESS_ROOT, 'fixtures/sok.jpg'));
+  await page.waitForTimeout(1500);
+  const confirm = dialog.locator('button:has-text("Личность подтверждена")').first();
+  await expect(confirm).toBeEnabled({ timeout: 15000 });
+  await confirm.click();
+  await page.locator('text=Проверка личности').first().waitFor({ state: 'hidden', timeout: 30000 });
+  await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
+  await page.waitForTimeout(2500);
+  return true;
+}
+
+/**
+ * Подпись заказчика за получение. После «Отправить пайщику на подпись» на
+ * столе ПВЗ у заказчика поднимается оверлей «Подпишите документ» с кнопкой
+ * «Подписать и получить»; пока акт не подписан, оверлей перекрывает ему все
+ * страницы. Оверлей поднимает лента изменений стола и на первой странице после
+ * входа может не успеть — тогда его ждут на столе заказчика. Возвращает true,
+ * если подпись поставлена.
+ */
+export async function signReceiptIfAsked(page, { timeout = 30000 } = {}) {
+  const receiveBtn = page.locator('button:has-text("Подписать и получить")').first();
+  let shown = await receiveBtn.waitFor({ state: 'visible', timeout }).then(() => true).catch(() => false);
+  if (!shown) {
+    await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/market/my-orders`, { waitUntil: 'domcontentloaded', timeout: 60000 });
+    shown = await receiveBtn.waitFor({ state: 'visible', timeout: 45000 }).then(() => true).catch(() => false);
+  }
+  if (!shown) return false;
+  await page.waitForTimeout(800);
+  await receiveBtn.click();
+  await page.waitForTimeout(1500);
+  for (let i = 0; i < 4; i++) {
+    const dlgSign = page.locator('.q-dialog button:has-text("Подписать")').last();
+    if (!(await dlgSign.count())) break;
+    await dlgSign.click({ force: true }).catch(() => {});
+    await page.waitForTimeout(2500);
+  }
+  await receiveBtn.waitFor({ state: 'hidden', timeout: 60000 }).catch(() => {});
+  await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
+  await page.waitForTimeout(2000);
+  return true;
+}
+
 export async function clickMenu(page, text, { timeout = 15000 } = {}) {
   const candidates = [
     `.rail__item:has(.rail__item-label:text-is("${text}"))`,

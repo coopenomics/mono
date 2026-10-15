@@ -2,19 +2,19 @@
 DetailsDrawer(
   :model-value='overlay.isOpen.value',
   :width='760',
-  title='Задача',
+  :title='$t("capital.issueOverlay.title")',
   @update:model-value='(v) => !v && overlay.close()'
 )
   template(#actions)
     BaseButton(
       variant='ghost',
       size='sm',
-      aria-label='Открыть задачу на отдельной странице',
+      :aria-label='$t("capital.issueOverlay.openAriaLabel")',
       @click='openFullPage'
     )
       template(#icon-left)
         q-icon(name='open_in_full', size='16px')
-      | Открыть задачу
+      | {{ $t('capital.issueOverlay.openLabel') }}
 
   .issue-overlay__body(v-if='issue')
     //- Заголовок правится тем же редактором, что на полной странице
@@ -33,7 +33,7 @@ DetailsDrawer(
       @update:status='patch("status", $event)',
       @update:priority='patch("priority", $event)',
       @update:estimate='patch("estimate", $event)',
-      @update:labels='patch("labels", $event)',
+      @update:labels='onLabelsUpdate',
       @issue-updated='reload',
       @issue-deleted='overlay.close()',
       @issue-moved='reload'
@@ -56,8 +56,8 @@ DetailsDrawer(
     //- с редакциями и слиянием), общая через useIssueContentSave
     Editor(
       v-model='issue.description',
-      label='Описание задачи',
-      placeholder='Опишите задачу подробно...',
+      :label='$t("capital.issueOverlay.descriptionLabel")',
+      :placeholder='$t("capital.issueOverlay.descriptionPlaceholder")',
       :readonly='!issue.permissions?.can_edit_issue',
       :padded='false',
       @change='handleDescriptionChange'
@@ -88,10 +88,11 @@ import {
 } from 'app/extensions/capital/features/ContentRevisions';
 import { useIssueContentSave } from 'app/extensions/capital/features/Issue/UpdateIssue';
 import { api as IssueApi } from 'app/extensions/capital/entities/Issue/api';
-import { useIssueStore } from 'app/extensions/capital/entities/Issue/model';
+import { useIssueStore, withLabels } from 'app/extensions/capital/entities/Issue/model';
 import type { IIssue } from 'app/extensions/capital/entities/Issue/model';
 import { IssueSidebarWidget, IssueTitleEditor } from 'app/extensions/capital/widgets';
 import { capitalRouteName } from 'app/extensions/capital/shared/lib/capitalWorkspaceRoutes';
+import { t } from '../../../../i18n';
 
 /**
  * Задача в оверлее поверх списка (`?issue=<hash>`, см. useQueryOverlay):
@@ -137,18 +138,19 @@ async function fetchIssue(hash: string): Promise<void> {
   try {
     const row = await IssueApi.loadIssue({ issue_hash: hash });
     if (!row) {
-      FailAlert('Задача не найдена или недоступна');
+      FailAlert(t('capital.issueOverlay.notFoundError'));
       overlay.close();
       return;
     }
     issue.value = row;
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
-    FailAlert('Не удалось загрузить задачу: ' + msg);
+    FailAlert(t('capital.issueOverlay.loadError') + msg);
     overlay.close();
   }
 }
 
+// realtime: нет источника — редактор: живое перечитывание затёрло бы ввод; чужие правки ловит проверка версии при сохранении.
 watch(
   overlay.value,
   async (hash) => {
@@ -165,6 +167,16 @@ watch(
 
 // Сайдбар пишет на сервер сам и эмитит применённое значение — здесь только
 // локальный патч и синхронизация ленты списка под оверлеем
+/**
+ * Метки — не поле задачи, а часть `metadata` (см. withLabels): `patch("labels", …)`
+ * не проходил проверку типов и валил сборку.
+ */
+function onLabelsUpdate(value: string[]): void {
+  if (!issue.value) return;
+  issue.value.metadata = withLabels(issue.value.metadata, value);
+  void issueStore.updateIssueByHash(issue.value.project_hash, issue.value.issue_hash);
+}
+
 function patch(field: keyof IIssue, value: unknown): void {
   if (!issue.value) return;
   (issue.value as Record<string, unknown>)[field] = value;

@@ -1,5 +1,6 @@
 import type { MakeAllFieldsRequired } from '../../utils/MakeAllFieldsRequired'
 import { Selector, type ValueTypes } from '../../zeus/index'
+import { rawRegistrationIntakeFormSelector } from './registrationIntakeFormSelector'
 
 export const rawRegistrationProgramSelector = {
   key: true,
@@ -9,6 +10,7 @@ export const rawRegistrationProgramSelector = {
   requirements: true,
   applicable_account_types: true,
   order: true,
+  intake_forms: rawRegistrationIntakeFormSelector,
 }
 
 // Проверка валидности

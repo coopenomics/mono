@@ -59,7 +59,6 @@ function buildService(offer: unknown) {
 
   const chainPort = {
     stockOrder: jest.fn().mockResolvedValue({ transaction: { id: 'tx-1' } }),
-    convert: jest.fn().mockResolvedValue({ transaction: { id: 'tx-0' } }),
   } as unknown as jest.Mocked<MarketplaceCanonicalBlockchainPort>;
 
   const assetConfig: MarketplaceAssetConfig = { symbol: 'RUB', decimals: 4 };

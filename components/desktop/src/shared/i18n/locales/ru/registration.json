@@ -1,0 +1,19 @@
+{
+  "registration": {
+    "candidateIntakeAnswers": {
+      "error": "Сведения заявителя недоступны",
+      "programLabel": "Программа при вступлении",
+      "title": "Сведения при вступлении"
+    },
+    "intakeAnswersView": {
+      "submittedAt": "Подано {date}"
+    },
+    "model": {
+      "programTitle": {
+        "capitalization": "Благорост",
+        "generation": "Генератор",
+        "marketplace": "Стол заказов"
+      }
+    }
+  }
+}

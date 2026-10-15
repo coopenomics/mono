@@ -1,23 +1,27 @@
-import {
-  BadRequestException,
-  ConflictException,
-  ForbiddenException,
-  Inject,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Inject, Injectable, Optional } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { createHash, randomUUID } from 'crypto';
-import { Cooperative, type MarketContract } from 'cooptypes';
+import { Cooperative, SovietContract, type MarketContract } from 'cooptypes';
 import { PublicKey, Signature } from '@wharfkit/antelope';
 import http from 'http-status';
-import { LOGGER_PORT, type ILoggerPort, DOCUMENT_PORT, type IDocumentPort, type InnerGeneratedDocument, type InnerDocumentAggregate } from '@coopenomics/innercoop';
+import {
+  LOGGER_PORT,
+  type ILoggerPort,
+  DOCUMENT_PORT,
+  type IDocumentPort,
+  type InnerGeneratedDocument,
+  type InnerDocumentAggregate,
+  SOVIET_ROBOT_PORT,
+  type ISovietRobotPort,
+} from '@coopenomics/innercoop';
 import { toQuantityAsset } from '../shared/quantity.util';
+import { findInlineActionData } from '../shared/chain-trace.util';
 import {
   calcCostAmount,
   minorToDecimalString,
   proRataByMoney,
   proRataByQuantity,
+  sumMoney,
 } from '../shared/cost.util';
 import type { ISignedDocument } from '@coopenomics/innercoop';
 import {
@@ -33,6 +37,7 @@ import {
   type MarketplaceInventoryDomainRepository,
 } from '../../domain/repositories/marketplace-inventory.repository';
 import {
+  MarketplaceInventoryOrigins,
   MarketplaceInventoryOwnerships,
   MarketplaceInventoryStatuses,
 } from '../../domain/entities/marketplace-inventory.types';
@@ -50,6 +55,7 @@ import {
 } from './marketplace-asset.config';
 import { marketplaceOrderUnitLabel } from '../shared/unit-label.util';
 import { MarketplaceReturnClaimImagesService } from './marketplace-return-claim-images.service';
+import { MarketplaceSupplierClaimService } from './marketplace-supplier-claim.service';
 import type { MarketplaceReturnClaimDomainEntity } from '../../domain/entities/marketplace-return-claim.entity';
 import {
   MarketplaceReturnClaimDefectCategories,
@@ -57,23 +63,25 @@ import {
   MarketplaceReturnClaimStatuses,
   type MarketplaceReturnClaimDecisionLogEntry,
   type MarketplaceReturnClaimDefectCategory,
-  type MarketplaceReturnClaimLedgerSnapshot,
   type MarketplaceReturnClaimOnSiteInspection,
   type MarketplaceReturnClaimPhoto,
+  type MarketplaceReturnClaimStatus,
 } from '../../domain/entities/marketplace-return-claim.types';
 import type { MarketplaceOrderDomainEntity } from '../../domain/entities/marketplace-order.entity';
 import type { MarketplaceReturnStatementSignedInputDTO } from '../documents-dto/marketplace-return-statement-document.dto';
-import { SignedDigitalDocumentInputDTO, HttpApiError } from '@coopenomics/extension-kit';
+import type { MarketplaceReturnCancelStatementSignedInputDTO } from '../documents-dto/marketplace-return-cancel-statement-document.dto';
+import { SignedDigitalDocumentInputDTO, waitForEvent, DomainError } from '@coopenomics/extension-kit';
 import {
   MARKETPLACE_RETURN_CLAIM_SUBMITTED_EVENT,
   MARKETPLACE_RETURN_CLAIM_DECIDED_EVENT,
   MARKETPLACE_RETURN_CLAIM_FINALIZED_EVENT,
-  MARKETPLACE_RETURN_ACCEPTED_FOR_SUPPLIER_EVENT,
+  MARKETPLACE_RETURN_COUNCIL_DECIDED_EVENT,
+  type MarketplaceReturnCouncilDecidedEvent,
   type MarketplaceReturnClaimSubmittedEvent,
   type MarketplaceReturnClaimDecidedEvent,
   type MarketplaceReturnClaimFinalizedEvent,
-  type MarketplaceReturnAcceptedForSupplierEvent,
 } from '../events/marketplace-notification.events';
+import { t } from '../../i18n';
 
 /**
  * Сырой файл фото, поступающий из mutation. UI кодирует содержимое в base64
@@ -81,6 +89,18 @@ import {
  * фронт уже работает через base64-payload в input'е). Backend сам хеширует и
  * кладёт в bucket `stol-zakazov:images`.
  */
+/** Деловые поля метаданных заявления оператора об отмене сделки (1116), которые сверяются при приёме. */
+type CancelStatementMeta = {
+  registry_id?: number;
+  order_hash?: string;
+  request_hash?: string;
+  operator?: string;
+  inspection_result?: string;
+};
+
+/** Сколько ждать робота решений совета у стойки, прежде чем отпустить мутацию в режим ожидания. */
+const ROBOT_WAIT_MS = 12_000;
+
 export interface MarketplaceReturnClaimImageUploadDTO {
   /** Содержимое файла в base64. */
   base64: string;
@@ -96,7 +116,7 @@ export interface MarketplaceCreateReturnClaimInput {
   defect_category: MarketplaceReturnClaimDefectCategory | null;
   /** Возвращаемое количество — по умолчанию = order.actual_quantity. */
   actual_quantity?: number;
-  /** Подписанное заказчиком on-chain заявление (registry_id=1104). */
+  /** Подписанная заказчиком рекламация — Заявление о гарантийном возврате имущества (registry_id=1106). */
   signed_statement: MarketplaceReturnStatementSignedInputDTO;
   /** Фотографии товара — обязательно мин. 1, макс. 10. */
   photos: MarketplaceReturnClaimImageUploadDTO[];
@@ -128,12 +148,24 @@ export interface MarketplaceAcceptReturnAtVisitInput {
   scanned_barcode: string | null;
   inspection_photos?: MarketplaceReturnClaimImageUploadDTO[];
   /**
-   * Заявление пайщика (registry_id=1104) со второй подписью председателя —
-   * принятие возврата оформляется со-подписью на том же документе (канон
-   * двухподписных актов), а не отдельным решением. Контракт требует обе
-   * подписи; передаётся клиентом председателя на шаге приёма.
+   * Заявление оператора участка в совет об отмене сделки (registry 1116) с
+   * подписью оператора, принявшего имущество. Контракт ставит его документом
+   * повестки совета; пайщик ничего не подписывает.
    */
-  signed_statement?: MarketplaceReturnStatementSignedInputDTO;
+  signed_statement?: MarketplaceReturnCancelStatementSignedInputDTO;
+  /**
+   * Рекламация пайщика (1106) со второй подписью оператора — тот же документ
+   * без регенерации (канон DocumentAggregate). С двумя подписями уходит
+   * поставщику как гарантийная претензия при исполнении решения совета.
+   */
+  signed_reclamation?: MarketplaceReturnStatementSignedInputDTO;
+}
+
+export interface MarketplaceHandBackReturnInput {
+  coopname: string;
+  operator_account: string;
+  braname: string;
+  claim_id: string;
 }
 
 export interface MarketplaceRejectReturnAtVisitInput {
@@ -151,26 +183,38 @@ export interface MarketplaceReturnClaimResult {
 }
 
 /**
- * Эпик 7 (Story 7.1-7.4 / FR29-FR33): state machine гарантийного возврата
+ * Эпик 7 + компонент 68 (паевая модель): state machine гарантийного возврата
  * имущества пайщиком. Backend оркеструет процесс p.mkt.return (стандарт
- * `p.mkt.return.standard.yaml`); все 5 переходов проходят через C++
- * actions контракта `marketplace`:
+ * `p.mkt.return.standard.yaml`); переходы проходят через действия контракта
+ * `marketplace` и обратные вызовы совета:
  *
- *  - submretrn  (Story 7.1) — пайщик подаёт заявление; PENDING_CHAIRMAN_REVIEW
- *  - aprretrem  (Story 7.2) — председатель одобряет очный визит; APPROVED_FOR_VISIT
- *  - rejretrem  (Story 7.2) — отказ удалённо; REJECTED_REMOTELY (final)
- *  - accretrn   (Story 7.4) — приём возврата на очном осмотре; ACCEPTED_AT_VISIT
- *                              (final, o.mkt.return — ISSUE w.wal.member, Дт 10 / Кт 86,
- *                              восстановление w.wal.member.available)
- *  - rejretrn   (Story 7.3) — отказ на очном осмотре; REJECTED_AT_VISIT (final)
+ *  - submretrn   — пайщик подаёт рекламацию 1106 (своя подпись); PENDING_CHAIRMAN_REVIEW
+ *  - aprretrem   — оператор приглашает на участок; APPROVED_FOR_VISIT
+ *  - rejretrem   — отказ удалённо; REJECTED_REMOTELY (final)
+ *  - rejretrn    — оператор не стал принимать имущество; REJECTED_AT_VISIT (final)
+ *  - accretrn    — оператор принял имущество и подписал заявление в совет об
+ *                  отмене сделки (1116), контракт инлайн ставит повестку совета
+ *                  `mktretrn`; PENDING_COUNCIL. Движений по средствам нет.
+ *  - onmktrtauth — совет «за»: контракт одной транзакцией откатывает все
+ *                  движения по заказу (паевой + членский взнос обратно
+ *                  пайщику); ACCEPTED_BY_COUNCIL (final), имущество — в остаток.
+ *  - onmktrtdecl — совет «против» / срок повестки истёк; DECLINED_BY_COUNCIL
+ *  - handback    — оператор выдал имущество обратно; HANDED_BACK (final)
+ *
+ * Робот решений совета зовётся напрямую через кросс-плагинный порт сразу
+ * после приёма имущества: если совет настроил робота, решение приходит за
+ * секунды и оператор видит его у стойки. Иначе (нет кворума, крупная сумма,
+ * робот не настроен) заявление остаётся в спокойном ожидании сколь угодно
+ * долго — пайщику ничего делать не нужно, о решении сообщит push. По
+ * истечении срока ожидания (контракт: 7 дней) оператор может выдать
+ * имущество обратно.
  *
  * Фотографии товара и очного осмотра лежат в bucket'е `stol-zakazov:images`
  * (через `MarketplaceReturnClaimImagesService`), on-chain публикуются их
  * sha256-хеши (`photos[]` параметра submretrn).
  *
  * Order остаётся в статусе RECEIVED — возврат фиксируется отдельной
- * сущностью; в UI orderer'а в карточке заказа появляется overlay по claim'у
- * (статус возврата, decision_log, ledger_snapshot).
+ * сущностью; в UI orderer'а в карточке заказа появляется overlay по claim'у.
  */
 @Injectable()
 export class MarketplaceReturnClaimService {
@@ -189,8 +233,14 @@ export class MarketplaceReturnClaimService {
     private readonly assetConfig: MarketplaceAssetConfig,
     @Inject(DOCUMENT_PORT) private readonly documentPort: IDocumentPort,
     private readonly imagesService: MarketplaceReturnClaimImagesService,
+    private readonly supplierClaims: MarketplaceSupplierClaimService,
     private readonly eventBus: EventEmitter2,
-    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
+    // Порт робота решений совета: до слияния ветки робота мост отдаёт null —
+    // тогда любое решение ждём от людей.
+    @Optional()
+    @Inject(SOVIET_ROBOT_PORT)
+    private readonly robotPort?: ISovietRobotPort | null
   ) {
     this.logger.setContext(MarketplaceReturnClaimService.name);
   }
@@ -200,7 +250,7 @@ export class MarketplaceReturnClaimService {
   async findById(coopname: string, id: string): Promise<MarketplaceReturnClaimDomainEntity> {
     const claim = await this.claimRepo.findById(id);
     if (!claim || claim.coopname !== coopname) {
-      throw new NotFoundException(`Заявление на возврат ${id} не найдено.`);
+      throw DomainError.notFound('MARKETPLACE_RETURN_CLAIM_NOT_FOUND', { id });
     }
     return claim;
   }
@@ -214,7 +264,7 @@ export class MarketplaceReturnClaimService {
   }
 
   /**
-   * Story 7.1: backend-генерируемый payload заявления (registry_id=1104,
+   * Story 7.1: backend-генерируемый payload рекламации (registry_id=1106,
    * `MarketplaceReturnStatement`). UI получает HTML preview + canonical hash
    * и подписывает приватным ключом пайщика, после чего отправляет в
    * `submitReturnClaim` вместе с фото.
@@ -232,7 +282,7 @@ export class MarketplaceReturnClaimService {
     reason_text?: string;
   }): Promise<InnerGeneratedDocument> {
     const order = await this.loadOrderForReturn(input.coopname, input.order_id, input.orderer_account);
-    const quantity = this.resolveActualQuantity(order, input.actual_quantity);
+    const quantity = await this.resolveActualQuantity(order, input.actual_quantity);
     return this.generateStatementDocument({
       order,
       orderer: input.orderer_account,
@@ -242,34 +292,37 @@ export class MarketplaceReturnClaimService {
   }
 
   /**
-   * Агрегат для со-подписи председателя на очном осмотре: исходное заявление
-   * пайщика (1104) с его подписью + тело документа для ознакомления. Фронт
-   * накладывает вторую подпись (`signDocument(rawDocument, chairman, 2,
-   * [document])`) и отправляет в `acceptReturnAtVisit`. Ownership-проверка КУ —
-   * на резолвере (как в АПП-приёмке).
+   * Заявление оператора участка в совет об отмене сделки (1116) — генерируется
+   * у стойки по рекламации, заказу и результату осмотра. Оператор подписывает
+   * его одной подписью (`signDocument(doc, operator, 1)`) и отправляет в
+   * `acceptReturnAtVisit`. Ownership-проверка КУ — на резолвере.
    */
-  async getChairmanReturnSignablePayload(
-    coopname: string,
-    claim_id: string
-  ): Promise<InnerDocumentAggregate> {
-    const claim = await this.findById(coopname, claim_id);
+  async getChairmanReturnSignablePayload(input: {
+    coopname: string;
+    claim_id: string;
+    operator_account: string;
+    inspection_result: string;
+  }): Promise<{ cancel_statement: InnerGeneratedDocument; reclamation: InnerDocumentAggregate }> {
+    this.requireInspectionResult(input.inspection_result);
+    const claim = await this.findById(input.coopname, input.claim_id);
     if (claim.status !== MarketplaceReturnClaimStatuses.APPROVED_FOR_VISIT) {
-      throw new ConflictException(
-        `Заявление в статусе «${claim.status}»: со-подпись председателя доступна только после одобрения очного визита.`
-      );
+      throw DomainError.conflict('MARKETPLACE_RETURN_CLAIM_CANCEL_STATEMENT_REQUIRES_VISIT_APPROVAL', { status: claim.status });
     }
     if (!claim.statement) {
-      throw new ConflictException(
-        `Заявление ${claim.id}: подписанное пайщиком заявление не сохранено — со-подпись невозможна.`
-      );
+      throw DomainError.conflict('MARKETPLACE_RETURN_CLAIM_STATEMENT_MISSING', { claimId: claim.id });
     }
-    const aggregate = await this.documentPort.buildAggregate(claim.statement);
-    if (!aggregate) {
-      throw new ConflictException(
-        `Заявление ${claim.id}: тело документа по doc_hash ${claim.statement.doc_hash} не найдено в сторе.`
-      );
+    // Вторая подпись оператора ставится на исходную рекламацию без регенерации:
+    // с двумя подписями она уйдёт поставщику как гарантийная претензия.
+    const reclamation = await this.documentPort.buildAggregate(claim.statement);
+    if (!reclamation) {
+      throw DomainError.conflict('MARKETPLACE_RETURN_CLAIM_STATEMENT_BODY_NOT_FOUND', { claimId: claim.id, docHash: claim.statement.doc_hash });
     }
-    return aggregate;
+    const cancel_statement = await this.generateCancelStatementDocument({
+      claim,
+      operator: input.operator_account,
+      inspection_result: input.inspection_result,
+    });
+    return { cancel_statement, reclamation };
   }
 
   // ── Story 7.1: пайщик подаёт заявление ───────────────────────────────
@@ -282,16 +335,16 @@ export class MarketplaceReturnClaimService {
    */
   private validateSubmitInput(input: MarketplaceCreateReturnClaimInput): void {
     if (!input.reason_text || input.reason_text.trim().length === 0) {
-      throw new BadRequestException('Опишите причину возврата.');
+      throw DomainError.badRequest('MARKETPLACE_RETURN_CLAIM_REASON_REQUIRED');
     }
     if (input.reason_text.length > 2000) {
-      throw new BadRequestException('Причина возврата не должна превышать 2000 символов.');
+      throw DomainError.badRequest('MARKETPLACE_RETURN_CLAIM_REASON_TOO_LONG');
     }
     if (!Array.isArray(input.photos) || input.photos.length === 0) {
-      throw new BadRequestException('Приложите хотя бы одну фотографию товара.');
+      throw DomainError.badRequest('MARKETPLACE_RETURN_CLAIM_PHOTO_REQUIRED');
     }
     if (input.photos.length > 10) {
-      throw new BadRequestException('Можно приложить не более 10 фотографий.');
+      throw DomainError.badRequest('MARKETPLACE_RETURN_CLAIM_PHOTO_LIMIT');
     }
     this.validatePhotoPayloads(input.photos);
   }
@@ -302,12 +355,10 @@ export class MarketplaceReturnClaimService {
     this.validateSubmitInput(input);
 
     const order = await this.loadOrderForReturn(input.coopname, input.order_id, input.orderer_account);
-    const actual_quantity = this.resolveActualQuantity(order, input.actual_quantity);
+    const actual_quantity = await this.resolveActualQuantity(order, input.actual_quantity);
     const existingActive = await this.claimRepo.findActiveByOrderId(input.coopname, order.id);
     if (existingActive) {
-      throw new ConflictException(
-        'По этому заказу уже открыто заявление на возврат.'
-      );
+      throw DomainError.conflict('MARKETPLACE_RETURN_CLAIM_ALREADY_OPEN');
     }
 
     this.verifySignatures(input.signed_statement);
@@ -352,17 +403,13 @@ export class MarketplaceReturnClaimService {
         `Подача заявления на возврат order ${order.id}: on-chain submretrn упал (${message}); заявление не зарегистрировано, фото удалены из bucket.`
       );
       await this.cleanupBucketPhotos(photos);
-      throw new ConflictException(
-        `Подача заявления на возврат не выполнена: ${message}. Повторите попытку.`
-      );
+      throw DomainError.conflict('MARKETPLACE_RETURN_CLAIM_SUBMIT_FAILED', { message });
     }
 
     const txHash = this.extractTxHash(tx);
     if (!txHash) {
       await this.cleanupBucketPhotos(photos);
-      throw new ConflictException(
-        'Подача заявления на возврат: цепь не вернула tx_hash — заявление не зарегистрировано, попробуйте ещё раз.'
-      );
+      throw DomainError.conflict('MARKETPLACE_RETURN_CLAIM_SUBMIT_NO_TX_HASH');
     }
     const claim = await this.claimRepo.create({
       id: claimId,
@@ -408,15 +455,13 @@ export class MarketplaceReturnClaimService {
     input: MarketplaceApproveReturnVisitInput
   ): Promise<MarketplaceReturnClaimResult> {
     if (input.comment && input.comment.length > 500) {
-      throw new BadRequestException('Комментарий не может быть длиннее 500 символов.');
+      throw DomainError.badRequest('MARKETPLACE_RETURN_CLAIM_COMMENT_TOO_LONG');
     }
     const claim = await this.findById(input.coopname, input.claim_id);
     if (claim.status !== MarketplaceReturnClaimStatuses.PENDING_CHAIRMAN_REVIEW) {
-      throw new ConflictException(
-        `Заявление в статусе «${claim.status}», удалённое одобрение недопустимо.`
-      );
+      throw DomainError.conflict('MARKETPLACE_RETURN_CLAIM_REMOTE_APPROVAL_INVALID_STATUS', { status: claim.status });
     }
-    this.assertBranameMatchesClaim(claim, input.braname, 'удалённое одобрение');
+    this.assertBranameMatchesClaim(claim, input.braname, t('marketplace.returnClaim.action.remoteApproval'));
 
     let tx;
     try {
@@ -431,16 +476,12 @@ export class MarketplaceReturnClaimService {
       this.logger.warn(
         `Одобрение возврата claim ${claim.id}: on-chain aprretrem упал (${message}); статус не меняется.`
       );
-      throw new ConflictException(
-        `Одобрение очного визита на цепи не выполнено: ${message}.`
-      );
+      throw DomainError.conflict('MARKETPLACE_RETURN_CLAIM_REMOTE_APPROVAL_CHAIN_FAILED', { message });
     }
 
     const txHash = this.extractTxHash(tx);
     if (!txHash) {
-      throw new ConflictException(
-        'Одобрение очного визита: цепь не вернула tx_hash — статус не меняем, попробуйте ещё раз.'
-      );
+      throw DomainError.conflict('MARKETPLACE_RETURN_CLAIM_REMOTE_APPROVAL_NO_TX_HASH');
     }
     const entry: MarketplaceReturnClaimDecisionLogEntry = {
       stage: 'remote',
@@ -470,11 +511,9 @@ export class MarketplaceReturnClaimService {
     this.requireComment(input.comment);
     const claim = await this.findById(input.coopname, input.claim_id);
     if (claim.status !== MarketplaceReturnClaimStatuses.PENDING_CHAIRMAN_REVIEW) {
-      throw new ConflictException(
-        `Заявление в статусе «${claim.status}», удалённый отказ недопустим.`
-      );
+      throw DomainError.conflict('MARKETPLACE_RETURN_CLAIM_REMOTE_REJECTION_INVALID_STATUS', { status: claim.status });
     }
-    this.assertBranameMatchesClaim(claim, input.braname, 'удалённый отказ');
+    this.assertBranameMatchesClaim(claim, input.braname, t('marketplace.returnClaim.action.remoteRejection'));
 
     let tx;
     try {
@@ -490,16 +529,12 @@ export class MarketplaceReturnClaimService {
       this.logger.warn(
         `Отказ удалённо claim ${claim.id}: on-chain rejretrem упал (${message}); статус не меняется.`
       );
-      throw new ConflictException(
-        `Отказ удалённо на цепи не выполнен: ${message}.`
-      );
+      throw DomainError.conflict('MARKETPLACE_RETURN_CLAIM_REMOTE_REJECTION_CHAIN_FAILED', { message });
     }
 
     const txHash = this.extractTxHash(tx);
     if (!txHash) {
-      throw new ConflictException(
-        'Отказ удалённо: цепь не вернула tx_hash — статус не меняем, попробуйте ещё раз.'
-      );
+      throw DomainError.conflict('MARKETPLACE_RETURN_CLAIM_REMOTE_REJECTION_NO_TX_HASH');
     }
     const entry: MarketplaceReturnClaimDecisionLogEntry = {
       stage: 'remote',
@@ -520,36 +555,32 @@ export class MarketplaceReturnClaimService {
     return { claim: updated, tx_hash: txHash };
   }
 
-  // ── Story 7.3 / 7.4: очный осмотр + compensating forward ─────────────
+  // ── У стойки: приём имущества → повестка совета ──────────────────────
 
+  /**
+   * Оператор принял имущество и подписал заявление в совет об отмене сделки
+   * (1116) → `accretrn` → контракт инлайн ставит повестку совета с этим
+   * заявлением. Денег не двигаем. Дальше —
+   * номер решения из цепи, прямой вызов робота и короткое ожидание у стойки;
+   * если решение не пришло, заявление остаётся в PENDING_COUNCIL.
+   */
   async acceptReturnAtVisit(
     input: MarketplaceAcceptReturnAtVisitInput
   ): Promise<MarketplaceReturnClaimResult> {
     this.requireInspectionResult(input.inspection_result);
-    const claim = await this.findById(input.coopname, input.claim_id);
+    let claim = await this.findById(input.coopname, input.claim_id);
+    // Идемпотентность: повтор после обрыва связи — доводим ожидание, не дублируем accretrn.
+    if (claim.status === MarketplaceReturnClaimStatuses.PENDING_COUNCIL) {
+      const settled = await this.settleAfterRobot(await this.attachCouncilDecision(claim));
+      return { claim: settled, tx_hash: this.lastTxHash(settled) };
+    }
     if (claim.status !== MarketplaceReturnClaimStatuses.APPROVED_FOR_VISIT) {
-      throw new ConflictException(
-        `Заявление в статусе «${claim.status}», приём возврата на месте недопустим.`
-      );
+      throw DomainError.conflict('MARKETPLACE_RETURN_CLAIM_RECEIVE_PROPERTY_INVALID_STATUS', { status: claim.status });
     }
-    this.assertBranameMatchesClaim(claim, input.braname, 'приём возврата на месте');
-    // Story 7.3/FR32: считанный штрих-код фиксируется в decision_log/inspection
-    // для аудита (сверка конкретной промаркированной единицы — вне MVP).
-    // Складской учёт возвращённого количества — см. restockReturnedItem ниже:
-    // отдельная позиция обезличенного остатка КУ, неопубликованная, доступная
-    // председателю к повторной публикации или списанию (review 2026-07-28).
+    this.assertBranameMatchesClaim(claim, input.braname, t('marketplace.returnClaim.action.receiveProperty'));
 
-    // Принятие возврата = вторая подпись председателя на заявлении пайщика
-    // (тот же документ registry 1104 с двумя подписями), контракт сверяет обе.
-    if (!input.signed_statement) {
-      throw new BadRequestException(
-        'Для приёма возврата требуется заявление пайщика со второй подписью председателя.'
-      );
-    }
-    this.verifySignatures(input.signed_statement);
-    const coSignedStatement = new SignedDigitalDocumentInputDTO(
-      input.signed_statement
-    ).toDocument() as MarketContract.Actions.AccRetrn.IAccRetrn['statement'];
+    const cancelStatement = this.requireOperatorCancelStatement(input, claim);
+    const reclamation = this.requireCoSignedReclamation(input, claim);
 
     const inspectionPhotos = await this.uploadOptionalPhotos({
       files: input.inspection_photos,
@@ -566,25 +597,24 @@ export class MarketplaceReturnClaimService {
         signer: input.chairman_account,
         braname: input.braname,
         request_hash: claim.request_hash,
-        statement: coSignedStatement,
+        statement: cancelStatement,
+        // Деловые поля протокола 1117 робот берёт из меты заявления повестки.
+        meta: '',
+        reclamation,
       });
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       this.logger.warn(
-        `Приём возврата claim ${claim.id}: on-chain accretrn упал (${message}); compensating forward не выполнен, фото осмотра удалены из bucket.`
+        `Приём имущества claim ${claim.id}: on-chain accretrn упал (${message}); фото осмотра удалены из bucket.`
       );
       await this.cleanupBucketPhotos(inspectionPhotos);
-      throw new ConflictException(
-        `Приём возврата на цепи не выполнен: ${message}. Compensating forward не применён.`
-      );
+      throw DomainError.conflict('MARKETPLACE_RETURN_CLAIM_RECEIVE_PROPERTY_CHAIN_FAILED', { message });
     }
 
     const txHash = this.extractTxHash(tx);
     if (!txHash) {
       await this.cleanupBucketPhotos(inspectionPhotos);
-      throw new ConflictException(
-        'Приём возврата: цепь не вернула tx_hash — compensating forward не подтверждён, статус не меняем.'
-      );
+      throw DomainError.conflict('MARKETPLACE_RETURN_CLAIM_RECEIVE_PROPERTY_NO_TX_HASH');
     }
     const at = new Date();
     const entry: MarketplaceReturnClaimDecisionLogEntry = {
@@ -603,37 +633,361 @@ export class MarketplaceReturnClaimService {
       by_chairman_account: input.chairman_account,
       at,
     };
-    const ledger: MarketplaceReturnClaimLedgerSnapshot = {
-      amount: claim.fact_cost,
-      returned_quantity: claim.actual_quantity,
-      tx_hash: txHash,
-      at,
-    };
-    const updated = await this.claimRepo.applyDecision(claim.id, {
-      status: MarketplaceReturnClaimStatuses.ACCEPTED_AT_VISIT,
+    const moved = await this.claimRepo.transition(claim.id, MarketplaceReturnClaimStatuses.APPROVED_FOR_VISIT, {
+      status: MarketplaceReturnClaimStatuses.PENDING_COUNCIL,
       decision_entry: entry,
       on_site_inspection: inspection,
-      ledger_snapshot: ledger,
+      cancel_statement: input.signed_statement as unknown as ISignedDocument,
+      statement: input.signed_reclamation as unknown as ISignedDocument,
+      accepted_at: at,
     });
+    claim = moved ?? (await this.findById(input.coopname, input.claim_id));
+    // Номер решения — из трассы транзакции (инлайн `soviet::newsubmitted`), без ожидания парсера.
+    const tracedDecisionId = this.decisionIdFromTrace(tx);
+    if (tracedDecisionId && !claim.council_decision_id) {
+      claim = await this.claimRepo.patchCouncil(claim.id, { council_decision_id: tracedDecisionId });
+    }
 
     this.logger.log(
-      `Заявление на возврат ${claim.id} принято: compensating forward выполнен на ${claim.fact_cost} (tx=${txHash}).`
+      `Заявление на возврат ${claim.id}: имущество принято на КУ ${input.braname}, заявление на повестке совета (tx=${txHash}).`
     );
+    this.emitDecided(claim, entry);
 
-    // Физическое имущество возвращается на склад КУ отдельной позицией
-    // обезличенного остатка кооператива — best-effort: сбой складского учёта
-    // не должен откатывать уже проведённый на цепи compensating forward
-    // (деньги пайщику важнее бухгалтерии остатка, которую можно поправить
-    // вручную).
-    await this.restockReturnedItem(claim, input.braname, input.chairman_account, at);
+    claim = await this.attachCouncilDecision(claim);
+    claim = await this.settleAfterRobot(claim);
+    return { claim, tx_hash: txHash };
+  }
 
+  /**
+   * Входной контроль заявления оператора об отмене сделки (1116): документ
+   * есть, тот самый (реестр, заказ, рекламация, результат осмотра совпадает с
+   * введённым), подпись оператора верна. Возвращает документ в виде, который
+   * принимает `accretrn`.
+   */
+  private requireOperatorCancelStatement(
+    input: MarketplaceAcceptReturnAtVisitInput,
+    claim: MarketplaceReturnClaimDomainEntity
+  ): MarketContract.Actions.AccRetrn.IAccRetrn['statement'] {
+    if (!input.signed_statement) {
+      throw DomainError.badRequest('MARKETPLACE_RETURN_CLAIM_RECEIVE_PROPERTY_REQUIRES_CANCEL_STATEMENT');
+    }
+    this.assertCancelStatementMeta(
+      (input.signed_statement.meta ?? {}) as CancelStatementMeta,
+      claim,
+      input.chairman_account,
+      input.inspection_result
+    );
+    this.verifySignatures(input.signed_statement);
+    return new SignedDigitalDocumentInputDTO(
+      input.signed_statement
+    ).toDocument() as MarketContract.Actions.AccRetrn.IAccRetrn['statement'];
+  }
+
+  /**
+   * Рекламация пайщика со второй подписью оператора: тот же документ, что
+   * подан пайщиком (совпадает hash), обе подписи верны. Контракт проверит
+   * ещё раз и подпись пайщика, и подпись оператора.
+   */
+  private requireCoSignedReclamation(
+    input: MarketplaceAcceptReturnAtVisitInput,
+    claim: MarketplaceReturnClaimDomainEntity
+  ): MarketContract.Actions.AccRetrn.IAccRetrn['reclamation'] {
+    if (!input.signed_reclamation) {
+      throw DomainError.badRequest('MARKETPLACE_RETURN_CLAIM_RECEIVE_PROPERTY_REQUIRES_OPERATOR_SIGNATURE');
+    }
+    if (!claim.statement || String(input.signed_reclamation.hash) !== String(claim.statement.hash)) {
+      throw DomainError.badRequest('MARKETPLACE_RETURN_CLAIM_WRONG_STATEMENT_SIGNED');
+    }
+    if ((input.signed_reclamation.signatures ?? []).length < 2) {
+      throw DomainError.badRequest('MARKETPLACE_RETURN_CLAIM_STATEMENT_MISSING_SIGNATURES');
+    }
+    this.verifySignatures(input.signed_reclamation);
+    return new SignedDigitalDocumentInputDTO(
+      input.signed_reclamation
+    ).toDocument() as MarketContract.Actions.AccRetrn.IAccRetrn['reclamation'];
+  }
+
+  /** Заявление составлено на эту заявку, этого оператора и с тем же результатом осмотра, что введён у стойки. */
+  private assertCancelStatementMeta(
+    meta: CancelStatementMeta,
+    claim: MarketplaceReturnClaimDomainEntity,
+    operator: string,
+    inspection_result: string
+  ): void {
+    const sameClaim =
+      meta.registry_id === Cooperative.Registry.MarketplaceReturnCancelStatement.registry_id &&
+      (!meta.order_hash || meta.order_hash === claim.order_hash) &&
+      (!meta.request_hash || meta.request_hash === claim.request_hash);
+    if (!sameClaim) {
+      throw DomainError.badRequest('MARKETPLACE_RETURN_CLAIM_WRONG_DOCUMENT_SIGNED');
+    }
+    if (meta.operator && meta.operator !== operator) {
+      throw DomainError.badRequest('MARKETPLACE_RETURN_CLAIM_CANCEL_STATEMENT_WRONG_SIGNER');
+    }
+    if ((meta.inspection_result ?? '').trim() !== inspection_result.trim()) {
+      throw DomainError.badRequest('MARKETPLACE_RETURN_CLAIM_INSPECTION_RESULT_MISMATCH');
+    }
+  }
+
+  // ── Совет: номер решения, робот, ожидание ────────────────────────────
+
+  /**
+   * Номер решения совета по хэшу повестки (= request_hash). Повестку ставит
+   * контракт в той же транзакции, а она вернулась после разбора своего блока —
+   * одно чтение. Без номера остаёмся как есть — дочитает сторож.
+   */
+  async attachCouncilDecision(claim: MarketplaceReturnClaimDomainEntity): Promise<MarketplaceReturnClaimDomainEntity> {
+    if (claim.status !== MarketplaceReturnClaimStatuses.PENDING_COUNCIL || claim.council_decision_id) return claim;
+    const decision = await this.chainPort.findCouncilDecisionByHash(claim.coopname, claim.request_hash).catch(() => null);
+    if (decision) {
+      return this.claimRepo.patchCouncil(claim.id, { council_decision_id: String(decision.id) });
+    }
+    this.logger.warn(`Заявление ${claim.id}: решение совета ещё не видно в цепи — дочитает сторож.`);
+    return claim;
+  }
+
+  /**
+   * Прямой рычаг робота: просим решить сейчас и ждём у стойки. Исход
+   * доводится обратным вызовом контракта через парсер — ждём, пока слушатель
+   * переведёт заявление из PENDING_COUNCIL. Иначе — спокойное ожидание.
+   */
+  private async settleAfterRobot(claim: MarketplaceReturnClaimDomainEntity): Promise<MarketplaceReturnClaimDomainEntity> {
+    if (claim.status !== MarketplaceReturnClaimStatuses.PENDING_COUNCIL || !claim.council_decision_id) return claim;
+    const mode = await this.requestRobot(claim);
+    if (mode !== 'ROBOT') return (await this.claimRepo.findById(claim.id)) ?? claim;
+    return this.waitForLeaving(claim.id, MarketplaceReturnClaimStatuses.PENDING_COUNCIL, ROBOT_WAIT_MS);
+  }
+
+  /** Вызов робота; возвращает режим принятия решения, записанный в заявление. */
+  async requestRobot(claim: MarketplaceReturnClaimDomainEntity): Promise<'ROBOT' | 'MANUAL'> {
+    if (!claim.council_decision_id) return claim.council_decision_mode ?? 'MANUAL';
+    let mode: 'ROBOT' | 'MANUAL' = 'MANUAL';
+    if (this.robotPort) {
+      try {
+        if (await this.robotPort.isEnabled()) {
+          const result = await this.robotPort.requestDecision({
+            coopname: claim.coopname,
+            decision_id: Number(claim.council_decision_id),
+            decision_type: 'mktretrn',
+            decision_hash: claim.request_hash,
+            username: claim.orderer_account,
+          });
+          // Ждём у стойки только когда робот сам довёл решение; остальное — ждём людей.
+          mode = result.outcome === 'authorized' || result.outcome === 'declined' ? 'ROBOT' : 'MANUAL';
+          this.logger.log(`Заявление ${claim.id}: робот решений совета ответил «${result.outcome}»${result.detail ? ` (${result.detail})` : ''}.`);
+        }
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        this.logger.warn(`Заявление ${claim.id}: вызов робота решений совета не удался (${message}); ждём решение людей.`);
+        mode = 'MANUAL';
+      }
+    }
+    await this.claimRepo.patchCouncil(claim.id, { council_decision_mode: mode });
+    return mode;
+  }
+
+  /**
+   * `onmktrtauth`: совет «за», контракт уже откатил все движения по заказу.
+   * Заявление → ACCEPTED_BY_COUNCIL, снапшот восстановленной суммы, имущество
+   * — в обезличенный остаток участка; пайщику, стойке и поставщику — сигналы.
+   */
+  async onCouncilAuthorized(input: {
+    coopname: string;
+    request_hash: string;
+    protocol: ISignedDocument | null;
+    tx_hash: string;
+  }): Promise<void> {
+    const claim = await this.claimRepo.findByRequestHash(input.coopname, input.request_hash);
+    if (!claim) {
+      this.logger.warn(`onmktrtauth: заявление по request_hash ${input.request_hash} не найдено.`);
+      return;
+    }
+    if (claim.status !== MarketplaceReturnClaimStatuses.PENDING_COUNCIL) return;
+    const at = new Date();
+    const total = sumMoney([claim.fact_cost, claim.fee_refund ?? '0'], this.assetConfig.decimals);
+    const entry: MarketplaceReturnClaimDecisionLogEntry = {
+      stage: 'council',
+      decision: 'council_authorized',
+      by_chairman_account: claim.coopname,
+      braname: claim.delivery_braname,
+      comment: t('marketplace.returnClaim.propertyAcceptedAsShare'),
+      at,
+      tx_hash: input.tx_hash,
+    };
+    const moved = await this.claimRepo.transition(claim.id, MarketplaceReturnClaimStatuses.PENDING_COUNCIL, {
+      status: MarketplaceReturnClaimStatuses.ACCEPTED_BY_COUNCIL,
+      decision_entry: entry,
+      ledger_snapshot: { amount: total, returned_quantity: claim.actual_quantity, tx_hash: input.tx_hash, at },
+      council_protocol: input.protocol,
+    });
+    if (!moved) return;
+    const decisionId = this.decisionIdFromProtocol(input.protocol);
+    if (decisionId && !moved.council_decision_id) {
+      await this.claimRepo.patchCouncil(moved.id, { council_decision_id: decisionId });
+    }
+    this.logger.log(`Заявление на возврат ${claim.id}: совет «за», восстановлено ${total} (tx=${input.tx_hash}).`);
+
+    const operator = claim.on_site_inspection?.by_chairman_account ?? claim.coopname;
+    await this.restockReturnedItem(moved, claim.delivery_braname, operator, at);
+
+    this.emitDecided(moved, entry);
+    this.emitFinalized(moved, entry);
+    this.emitCouncilDecided(moved, true);
+    // Претензия поставщику (99D-13): контракт завёл её в той же транзакции —
+    // зеркалим в PG и уведомляем поставщика. По заказу из остатка кооператива
+    // претензии нет. Сбой здесь не откатывает решение совета.
+    try {
+      await this.supplierClaims.issueFromReturnClaim(moved, input.tx_hash);
+    } catch (err) {
+      this.logger.warn(`Заявление на возврат ${claim.id}: претензия поставщику не заведена (${(err as Error).message}).`);
+    }
+  }
+
+  /**
+   * Совет «за», но общий кошелёк участка был уже распределён: имущество и
+   * паевой возвращены, членский взнос ждёт пополнения кошелька (заявка на
+   * цепи в `feepend`, задача 99D-15). Крон повторяет `payretfee`.
+   */
+  async markFeeRefundPending(input: { coopname: string; request_hash: string; tx_hash: string }): Promise<void> {
+    const claim = await this.claimRepo.findByRequestHash(input.coopname, input.request_hash);
+    if (!claim || claim.fee_refund_pending_at) return;
+    const at = new Date();
+    await this.claimRepo.patchCouncil(claim.id, {
+      fee_refund_pending_at: at,
+      decision_entry: {
+        stage: 'council',
+        decision: 'fee_pending',
+        by_chairman_account: claim.coopname,
+        braname: claim.delivery_braname,
+        comment: t('marketplace.returnClaim.propertyAndShareReturned', { feeRefund: claim.fee_refund }),
+        at,
+        tx_hash: input.tx_hash,
+      },
+    });
+    this.logger.warn(
+      `Заявление на возврат ${claim.id}: взнос ${claim.fee_refund} ждёт пополнения общего кошелька участка ${claim.delivery_braname} — повтор по расписанию.`
+    );
+  }
+
+  /** `payretfee`: взнос довнесён после пополнения кошелька участка — ожидание снято. */
+  async onFeeRefundSettled(input: { coopname: string; request_hash: string; tx_hash: string; comment?: string }): Promise<void> {
+    const claim = await this.claimRepo.findByRequestHash(input.coopname, input.request_hash);
+    if (!claim || !claim.fee_refund_pending_at) return;
+    await this.claimRepo.patchCouncil(claim.id, {
+      fee_refund_pending_at: null,
+      decision_entry: {
+        stage: 'council',
+        decision: 'fee_settled',
+        by_chairman_account: claim.coopname,
+        braname: claim.delivery_braname,
+        comment: input.comment ?? t('marketplace.returnClaim.membershipFeeReturned', { feeRefund: claim.fee_refund }),
+        at: new Date(),
+        tx_hash: input.tx_hash,
+      },
+    });
+    this.logger.log(`Заявление на возврат ${claim.id}: членский взнос ${claim.fee_refund} довнесён (tx=${input.tx_hash}).`);
+  }
+
+  /**
+   * `onmktrtdecl`: совет «против» либо срок повестки истёк. Имущество ждёт
+   * пайщика на участке; баланс не меняется. Заявление → DECLINED_BY_COUNCIL.
+   */
+  async onCouncilDeclined(input: { coopname: string; request_hash: string; reason: string; tx_hash: string }): Promise<void> {
+    const claim = await this.claimRepo.findByRequestHash(input.coopname, input.request_hash);
+    if (!claim) {
+      this.logger.warn(`onmktrtdecl: заявление по request_hash ${input.request_hash} не найдено.`);
+      return;
+    }
+    if (claim.status !== MarketplaceReturnClaimStatuses.PENDING_COUNCIL) return;
+    const entry: MarketplaceReturnClaimDecisionLogEntry = {
+      stage: 'council',
+      decision: 'council_declined',
+      by_chairman_account: claim.coopname,
+      braname: claim.delivery_braname,
+      comment: input.reason,
+      at: new Date(),
+      tx_hash: input.tx_hash,
+    };
+    const moved = await this.claimRepo.transition(claim.id, MarketplaceReturnClaimStatuses.PENDING_COUNCIL, {
+      status: MarketplaceReturnClaimStatuses.DECLINED_BY_COUNCIL,
+      decision_entry: entry,
+    });
+    if (!moved) return;
+    this.logger.log(`Заявление на возврат ${claim.id}: совет отказал (${input.reason}) — имущество ждёт пайщика на участке.`);
+    this.emitDecided(moved, entry);
+    this.emitCouncilDecided(moved, false);
+  }
+
+  /**
+   * Оператор выдал имущество обратно после отказа совета. Пока повестка
+   * открыта, выдача обратно недоступна — имущество ждёт решения (задача
+   * 99D-16). Записи в цепи не остаётся, заказ остаётся выданным.
+   * HANDED_BACK (final).
+   */
+  async handBackReturn(input: MarketplaceHandBackReturnInput): Promise<MarketplaceReturnClaimResult> {
+    const claim = await this.findById(input.coopname, input.claim_id);
+    if (claim.status === MarketplaceReturnClaimStatuses.PENDING_COUNCIL) {
+      throw DomainError.conflict('MARKETPLACE_RETURN_CLAIM_COUNCIL_STILL_REVIEWING');
+    }
+    if (claim.status !== MarketplaceReturnClaimStatuses.DECLINED_BY_COUNCIL) {
+      throw DomainError.conflict('MARKETPLACE_RETURN_CLAIM_ISSUE_BACK_INVALID_STATUS', { status: claim.status });
+    }
+    this.assertBranameMatchesClaim(claim, input.braname, t('marketplace.returnClaim.action.issueBack'));
+    let tx;
+    try {
+      tx = await this.chainPort.handBack({
+        coopname: claim.coopname,
+        signer: input.operator_account,
+        braname: input.braname,
+        request_hash: claim.request_hash,
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      throw DomainError.conflict('MARKETPLACE_RETURN_CLAIM_ISSUE_BACK_CHAIN_FAILED', { message });
+    }
+    const txHash = this.extractTxHash(tx);
+    const entry: MarketplaceReturnClaimDecisionLogEntry = {
+      stage: 'on_site',
+      decision: 'hand_back',
+      by_chairman_account: input.operator_account,
+      braname: input.braname,
+      comment: t('marketplace.returnClaim.propertyIssuedBack'),
+      at: new Date(),
+      tx_hash: txHash,
+    };
+    const updated = await this.claimRepo.applyDecision(claim.id, {
+      status: MarketplaceReturnClaimStatuses.HANDED_BACK,
+      decision_entry: entry,
+    });
+    this.logger.log(`Заявление на возврат ${claim.id}: имущество выдано обратно оператором ${input.operator_account} (tx=${txHash}).`);
     this.emitDecided(updated, entry);
     this.emitFinalized(updated, entry);
-    // Карта уведомлений (пробел B): поставщику отдельно — по его товару
-    // оформлена претензия, имущество принято в кооператив; дальше председатель
-    // КУ работает с ним за пределами системы.
-    this.emitReturnAcceptedForSupplier(updated, input.inspection_result);
     return { claim: updated, tx_hash: txHash };
+  }
+
+  /**
+   * Сторож: заявления на повестке совета без номера решения — дочитать
+   * номер и позвать робота; с номером, но без режима — позвать робота.
+   * Решение людей может идти сколь угодно долго: сторож ничего не торопит.
+   */
+  async watchdogTick(coopname: string, limit = 20): Promise<void> {
+    const pending = await this.claimRepo.listByStatus(coopname, MarketplaceReturnClaimStatuses.PENDING_COUNCIL, limit);
+    for (const claim of pending) {
+      try {
+        let current = claim;
+        if (!current.council_decision_id) {
+          const decision = await this.chainPort.findCouncilDecisionByHash(current.coopname, current.request_hash).catch(() => null);
+          if (!decision) continue;
+          current = await this.claimRepo.patchCouncil(current.id, { council_decision_id: String(decision.id) });
+        }
+        if (!current.council_decision_mode) {
+          await this.requestRobot(current);
+        }
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        this.logger.warn(`Сторож возврата: заявление ${claim.id} — ${message}`);
+      }
+    }
   }
 
   async rejectReturnAtVisit(
@@ -642,11 +996,9 @@ export class MarketplaceReturnClaimService {
     this.requireInspectionResult(input.inspection_result);
     const claim = await this.findById(input.coopname, input.claim_id);
     if (claim.status !== MarketplaceReturnClaimStatuses.APPROVED_FOR_VISIT) {
-      throw new ConflictException(
-        `Заявление в статусе «${claim.status}», отказ на месте недопустим.`
-      );
+      throw DomainError.conflict('MARKETPLACE_RETURN_CLAIM_ON_SITE_REJECTION_INVALID_STATUS', { status: claim.status });
     }
-    this.assertBranameMatchesClaim(claim, input.braname, 'отказ на месте');
+    this.assertBranameMatchesClaim(claim, input.braname, t('marketplace.returnClaim.action.onSiteRejection'));
 
     const inspectionPhotos = await this.uploadOptionalPhotos({
       files: input.inspection_photos,
@@ -671,17 +1023,13 @@ export class MarketplaceReturnClaimService {
         `Отказ на месте claim ${claim.id}: on-chain rejretrn упал (${message}); статус не меняется, фото осмотра удалены из bucket.`
       );
       await this.cleanupBucketPhotos(inspectionPhotos);
-      throw new ConflictException(
-        `Отказ на цепи не выполнен: ${message}.`
-      );
+      throw DomainError.conflict('MARKETPLACE_RETURN_CLAIM_ON_SITE_REJECTION_CHAIN_FAILED', { message });
     }
 
     const txHash = this.extractTxHash(tx);
     if (!txHash) {
       await this.cleanupBucketPhotos(inspectionPhotos);
-      throw new ConflictException(
-        'Отказ на месте: цепь не вернула tx_hash — статус не меняем, попробуйте ещё раз.'
-      );
+      throw DomainError.conflict('MARKETPLACE_RETURN_CLAIM_ON_SITE_REJECTION_NO_TX_HASH');
     }
     const at = new Date();
     const entry: MarketplaceReturnClaimDecisionLogEntry = {
@@ -726,25 +1074,19 @@ export class MarketplaceReturnClaimService {
   ): Promise<MarketplaceOrderDomainEntity> {
     const order = await this.orderRepo.findById(order_id);
     if (!order || order.coopname !== coopname) {
-      throw new NotFoundException(`Заказ ${order_id} не найден.`);
+      throw DomainError.notFound('MARKETPLACE_ORDER_NOT_FOUND_BY_ID', { orderId: order_id });
     }
     if (order.orderer_account !== orderer_account) {
-      throw new ForbiddenException('Подавать заявление на возврат может только заказчик-владелец заказа.');
+      throw DomainError.forbidden('MARKETPLACE_RETURN_CLAIM_NOT_ORDER_OWNER');
     }
     if (order.status !== 'RECEIVED') {
-      throw new ConflictException(
-        `Возврат возможен только по выданному заказу (текущий статус «${order.status}»).`
-      );
+      throw DomainError.conflict('MARKETPLACE_RETURN_CLAIM_ORDER_NOT_ISSUED', { orderStatus: order.status });
     }
     if (order.warranty_until === null) {
-      throw new ConflictException(
-        'По этому заказу гарантия не предусмотрена — возврат невозможен.'
-      );
+      throw DomainError.conflict('MARKETPLACE_RETURN_CLAIM_NO_WARRANTY');
     }
     if (order.warranty_until.getTime() <= Date.now()) {
-      throw new ConflictException(
-        `Гарантийный срок истёк ${order.warranty_until.toISOString().slice(0, 10)}.`
-      );
+      throw DomainError.conflict('MARKETPLACE_RETURN_CLAIM_WARRANTY_EXPIRED', { warrantyUntil: order.warranty_until.toISOString().slice(0, 10) });
     }
     return order;
   }
@@ -755,12 +1097,10 @@ export class MarketplaceReturnClaimService {
     actionLabel: string
   ): void {
     if (!braname || braname.trim().length === 0) {
-      throw new BadRequestException(`Не указан кооперативный участок для действия «${actionLabel}».`);
+      throw DomainError.badRequest('MARKETPLACE_RETURN_CLAIM_BRANAME_REQUIRED', { actionLabel });
     }
     if (claim.delivery_braname !== braname) {
-      throw new ForbiddenException(
-        `Заявление привязано к кооперативному участку «${claim.delivery_braname}»; действие «${actionLabel}» от участка «${braname}» недопустимо.`
-      );
+      throw DomainError.forbidden('MARKETPLACE_RETURN_CLAIM_BRANAME_MISMATCH', { deliveryBraname: claim.delivery_braname, actionLabel, braname });
     }
   }
 
@@ -783,29 +1123,36 @@ export class MarketplaceReturnClaimService {
     for (let i = 0; i < files.length; i++) {
       const f = files[i];
       if (!f || typeof f.base64 !== 'string' || f.base64.length === 0) {
-        throw new BadRequestException(`Фото #${i + 1}: пустое содержимое.`);
+        throw DomainError.badRequest('MARKETPLACE_RETURN_CLAIM_PHOTO_EMPTY', { photoIndex: i + 1 });
       }
       const approxBytes = Math.floor((f.base64.length * 3) / 4);
       if (approxBytes > MAX_BYTES) {
-        throw new BadRequestException(
-          `Фото #${i + 1}: размер ${(approxBytes / 1024 / 1024).toFixed(1)} МБ превышает лимит 10 МБ.`
-        );
+        throw DomainError.badRequest('MARKETPLACE_RETURN_CLAIM_PHOTO_TOO_LARGE', { photoIndex: i + 1, sizeMb: (approxBytes / 1024 / 1024).toFixed(1) });
       }
     }
   }
 
-  private resolveActualQuantity(order: MarketplaceOrderDomainEntity, requested?: number): number {
+  /**
+   * Количество к возврату. Вернуть можно не больше выданного за вычетом уже
+   * возвращённого по прежним заявлениям: без вычета серия заявлений возвращала
+   * больше, чем пайщик получил.
+   */
+  private async resolveActualQuantity(order: MarketplaceOrderDomainEntity, requested?: number): Promise<number> {
     const factQty = order.issuance_fact?.actual_quantity ?? order.quantity;
-    if (requested === undefined || requested === null) return factQty;
-    if (requested <= 0) {
-      throw new BadRequestException('Возвращаемое количество должно быть больше нуля.');
+    const returned = await this.claimRepo.sumReturnedQuantity(order.coopname, order.id);
+    // Доли килограмма складываются с погрешностью — сверяем с точностью до тысячной.
+    const remaining = Math.max(0, Math.round((factQty - returned) * 1000) / 1000);
+    if (requested !== undefined && requested !== null && requested <= 0) {
+      throw DomainError.badRequest('MARKETPLACE_RETURN_CLAIM_QUANTITY_MUST_BE_POSITIVE');
     }
-    if (requested > factQty) {
-      throw new BadRequestException(
-        `Нельзя вернуть больше единиц, чем было выдано (выдано ${factQty}).`
-      );
+    const quantity = requested ?? remaining;
+    if (quantity > factQty) {
+      throw DomainError.badRequest('MARKETPLACE_RETURN_CLAIM_QUANTITY_EXCEEDS_ISSUED', { factQty });
     }
-    return requested;
+    if (returned > 0 && (remaining <= 0 || quantity > remaining)) {
+      throw DomainError.badRequest('MARKETPLACE_RETURN_CLAIM_QUANTITY_EXCEEDS_REMAINING', { remaining, factQty });
+    }
+    return quantity;
   }
 
   /**
@@ -935,13 +1282,60 @@ export class MarketplaceReturnClaimService {
       actual_quantity: input.actual_quantity,
       fact_cost,
       sku: input.order.offer_id,
-      product_title: offer?.product_name ?? 'Товар по предложению',
+      product_title: offer?.product_name ?? t('marketplace.returnClaim.defaultProductTitle'),
       unit_of_measurement: marketplaceOrderUnitLabel(input.order.unit_of_measure),
       unit_cost: this.effectiveUnitCost(input.order).toFixed(4),
       currency: this.assetConfig.symbol,
-      // Тело документа сохраняется в стор: председателю при со-подписи на
-      // очном осмотре нужен ИСХОДНЫЙ документ (тот же порядок/состав ключей
-      // meta) по doc_hash через buildDocumentAggregate — как и в АПП-приёмке.
+      // Тело рекламации сохраняется в стор: оператор читает её у стойки, а
+      // после решения совета она публикуется в пакете документов заказа.
+      skip_save: false,
+    };
+    return this.documentPort.generate({ data: action });
+  }
+
+  /**
+   * Заявление оператора участка в совет об отмене сделки (1116): заказ и
+   * принятое имущество из рекламации, суммы паевого и членского взносов к
+   * восстановлению — те же, что контракт зафиксировал при подаче, номер
+   * протокола совета о выдаче — из заказа. Подписант — оператор.
+   */
+  private async generateCancelStatementDocument(input: {
+    claim: MarketplaceReturnClaimDomainEntity;
+    operator: string;
+    inspection_result: string;
+  }): Promise<InnerGeneratedDocument> {
+    const { claim } = input;
+    const order = await this.orderRepo.findById(claim.order_id);
+    if (!order || order.coopname !== claim.coopname) {
+      throw DomainError.notFound('MARKETPLACE_RETURN_CLAIM_ORDER_FOR_CLAIM_NOT_FOUND', { orderId: claim.order_id, claimId: claim.id });
+    }
+    const offer = await this.offerRepo.findById(order.offer_id);
+    const fee_refund = claim.fee_refund ?? '0';
+    const total_refund = sumMoney([claim.fact_cost, fee_refund], this.assetConfig.decimals);
+    const action: Cooperative.Registry.MarketplaceReturnCancelStatement.Action = {
+      registry_id: Cooperative.Registry.MarketplaceReturnCancelStatement.registry_id,
+      coopname: claim.coopname,
+      username: input.operator,
+      order_id: order.id,
+      order_hash: claim.order_hash,
+      request_hash: claim.request_hash,
+      braname: claim.delivery_braname,
+      orderer: claim.orderer_account,
+      operator: input.operator,
+      issue_decision_id: Number(order.issue_decision_id ?? 0) || 0,
+      sku: order.offer_id,
+      product_title: offer?.product_name ?? t('marketplace.returnClaim.defaultProductTitle'),
+      unit_of_measurement: marketplaceOrderUnitLabel(order.unit_of_measure),
+      actual_quantity: claim.actual_quantity,
+      unit_cost: this.effectiveUnitCost(order).toFixed(4),
+      fact_cost: claim.fact_cost,
+      fee_refund,
+      total_refund,
+      currency: this.assetConfig.symbol,
+      reason_text: claim.reason_text,
+      inspection_result: input.inspection_result.trim(),
+      // Заявление уходит в повестку совета и публикуется контрактом soviet;
+      // тело нужно в сторе, чтобы его читали стол совета и пакет документов.
       skip_save: false,
     };
     return this.documentPort.generate({ data: action });
@@ -981,7 +1375,7 @@ export class MarketplaceReturnClaimService {
   }): Promise<MarketplaceReturnClaimPhoto[]> {
     if (!input.files || input.files.length === 0) return [];
     if (input.files.length > 10) {
-      throw new BadRequestException('Можно приложить не более 10 фотографий очного осмотра.');
+      throw DomainError.badRequest('MARKETPLACE_RETURN_CLAIM_INSPECTION_PHOTO_LIMIT');
     }
     this.validatePhotoPayloads(input.files);
     return this.uploadPhotos({
@@ -995,14 +1389,14 @@ export class MarketplaceReturnClaimService {
 
   private verifySignatures(document: ISignedDocument): void {
     if (!document.signatures || document.signatures.length === 0) {
-      throw new HttpApiError(http.BAD_REQUEST, 'Документ не подписан: signatures пуст.');
+      throw DomainError.badRequest('MARKETPLACE_RETURN_CLAIM_DOCUMENT_NOT_SIGNED');
     }
     for (const sig of document.signatures) {
       const publicKey = PublicKey.from(sig.public_key);
       const signature = Signature.from(sig.signature);
       const verified = signature.verifyDigest(sig.signed_hash, publicKey);
       if (!verified) {
-        throw new HttpApiError(http.BAD_REQUEST, 'Недействительная подпись документа возврата.');
+        throw DomainError.badRequest('MARKETPLACE_RETURN_CLAIM_INVALID_SIGNATURE');
       }
     }
   }
@@ -1025,19 +1419,19 @@ export class MarketplaceReturnClaimService {
 
   private requireComment(comment: string): void {
     if (!comment || comment.trim().length === 0) {
-      throw new BadRequestException('Укажите комментарий к решению.');
+      throw DomainError.badRequest('MARKETPLACE_RETURN_CLAIM_DECISION_COMMENT_REQUIRED');
     }
     if (comment.length > 500) {
-      throw new BadRequestException('Комментарий не должен превышать 500 символов.');
+      throw DomainError.badRequest('MARKETPLACE_RETURN_CLAIM_DECISION_COMMENT_TOO_LONG');
     }
   }
 
   private requireInspectionResult(result: string): void {
     if (!result || result.trim().length === 0) {
-      throw new BadRequestException('Укажите результат очного осмотра.');
+      throw DomainError.badRequest('MARKETPLACE_RETURN_CLAIM_INSPECTION_RESULT_REQUIRED');
     }
     if (result.length > 2000) {
-      throw new BadRequestException('Результат осмотра не должен превышать 2000 символов.');
+      throw DomainError.badRequest('MARKETPLACE_RETURN_CLAIM_INSPECTION_RESULT_TOO_LONG');
     }
   }
 
@@ -1073,20 +1467,74 @@ export class MarketplaceReturnClaimService {
     this.eventBus.emit(MARKETPLACE_RETURN_CLAIM_FINALIZED_EVENT, event);
   }
 
-  private emitReturnAcceptedForSupplier(
-    claim: MarketplaceReturnClaimDomainEntity,
-    inspectionResult: string
-  ): void {
-    const event: MarketplaceReturnAcceptedForSupplierEvent = {
+  private emitCouncilDecided(claim: MarketplaceReturnClaimDomainEntity, authorized: boolean): void {
+    const event: MarketplaceReturnCouncilDecidedEvent = {
       coopname: claim.coopname,
       claim_id: claim.id,
       order_id: claim.order_id,
-      supplier_account: claim.supplier_account,
-      braname: claim.delivery_braname,
-      inspection_result: inspectionResult,
+      orderer_account: claim.orderer_account,
+      delivery_braname: claim.delivery_braname,
+      authorized,
     };
-    this.eventBus.emit(MARKETPLACE_RETURN_ACCEPTED_FOR_SUPPLIER_EVENT, event);
+    this.eventBus.emit(MARKETPLACE_RETURN_COUNCIL_DECIDED_EVENT, event);
   }
+
+  /**
+   * Ждём, пока обратный вызов решения совета уведёт заявление из `status`: он
+   * сообщает об этом событием. Подписка — до чтения, чтобы событие между
+   * чтением и подпиской не потерялось; по пределу — заявление как есть.
+   */
+  private async waitForLeaving(
+    claim_id: string,
+    status: MarketplaceReturnClaimStatus,
+    timeoutMs: number
+  ): Promise<MarketplaceReturnClaimDomainEntity> {
+    const decided = waitForEvent<MarketplaceReturnCouncilDecidedEvent>(
+      this.eventBus,
+      MARKETPLACE_RETURN_COUNCIL_DECIDED_EVENT,
+      (e) => e.claim_id === claim_id,
+      timeoutMs
+    );
+    const current = await this.claimRepo.findById(claim_id);
+    if (!current) {
+      decided.cancel();
+      throw DomainError.notFound('MARKETPLACE_RETURN_CLAIM_NOT_FOUND_GENERIC');
+    }
+    if (current.status !== status) {
+      decided.cancel();
+      return current;
+    }
+    await decided.promise;
+    return (await this.claimRepo.findById(claim_id)) ?? current;
+  }
+
+  /** Номер решения из инлайн-действия `soviet::newsubmitted` в трассе транзакции. */
+  private decisionIdFromTrace(tx: unknown): string | null {
+    try {
+      const data = findInlineActionData<{ decision_id?: unknown }>(tx, 'newsubmitted', SovietContract.contractName.production);
+      const id = data?.decision_id;
+      return id !== undefined && id !== null && Number(id) > 0 ? String(id) : null;
+    } catch {
+      return null;
+    }
+  }
+
+  private decisionIdFromProtocol(protocol: ISignedDocument | null): string | null {
+    try {
+      const raw = (protocol as any)?.meta;
+      const meta = typeof raw === 'string' ? JSON.parse(raw) : raw;
+      const id = meta?.decision_id;
+      return id !== undefined && id !== null ? String(id) : null;
+    } catch {
+      return null;
+    }
+  }
+
+  private lastTxHash(claim: MarketplaceReturnClaimDomainEntity): string {
+    return claim.decision_log[claim.decision_log.length - 1]?.tx_hash ?? claim.submretrn_tx_hash;
+  }
+
+
 
   /**
    * Возвращённое по гарантии имущество зачисляется отдельной позицией
@@ -1105,7 +1553,7 @@ export class MarketplaceReturnClaimService {
    * вернулась.
    *
    * Best-effort: сбой здесь не должен откатывать уже проведённый на цепи
-   * compensating forward — деньги пайщику важнее бухгалтерии остатка,
+   * откат движений по решению совета — деньги пайщику важнее бухгалтерии остатка,
    * которую при сбое видно в логе и можно поправить вручную.
    */
   /**
@@ -1123,6 +1571,14 @@ export class MarketplaceReturnClaimService {
    * Наружу это выглядело как принятый возврат без имущества на складе: деньги
    * пайщику вернулись, а остаток кооператива не появлялся, и списывать было
    * нечего. Поэтому нет партии → `null`, и вызывающий не пишет позицию вовсе.
+   *
+   * Цена, по которой возвращённое ложится в остаток, — цена выдачи, а не цена
+   * прибытия исходной партии: контракт возвращает имущество на счёт 10 по
+   * сумме выдачи (o.mkt.return от `fact_cost`), и если выдавали со снижением
+   * цены, разница уже выбыла уценкой. Положить в остаток по цене прибытия
+   * значило бы списать эту разницу второй раз при следующей выдаче из остатка
+   * (задача 99D-15). Без снапшота выдачи — цена прибытия партии, затем цена
+   * заказа.
    */
   private async resolveRestockOrigin(
     claim: MarketplaceReturnClaimDomainEntity,
@@ -1144,7 +1600,7 @@ export class MarketplaceReturnClaimService {
       : null;
 
     return {
-      arrival_price: origin?.arrival_price ?? order.price_per_unit,
+      arrival_price: order.issuance_fact?.fact_unit_price ?? origin?.arrival_price ?? order.price_per_unit,
       expiry_date: origin?.expiry_date ?? shelfLifeExpiry,
       shipment_id,
     };
@@ -1180,13 +1636,17 @@ export class MarketplaceReturnClaimService {
         shipment_id,
         braname,
         status: MarketplaceInventoryStatuses.RECEIVED,
-        product_name_snapshot: offer?.product_name ?? 'Возвращённый товар',
+        product_name_snapshot: offer?.product_name ?? t('marketplace.returnClaim.returnedProductTitle'),
         quantity_per_label: claim.actual_quantity,
         orderer_account_snapshot: claim.orderer_account,
         received_at: at,
         received_by_operator_account: chairman_account,
         expiry_date,
         ownership: MarketplaceInventoryOwnerships.COOP,
+        // Пометка «гарантийный возврат» со ссылкой на рекламацию: оператор видит
+        // её в остатке, корзине списания и при публикации.
+        origin: MarketplaceInventoryOrigins.WARRANTY_RETURN,
+        return_claim_id: claim.id,
         arrival_price,
       });
 

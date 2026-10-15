@@ -14,11 +14,11 @@ import { capitalProgramId, circulationAccountId, sourceProgramId } from './capit
 import { commitToResult } from './capital/commitToResult'
 import { refreshSegment } from './capital/refreshSegment'
 import { signWalletAgreement } from './wallet/signWalletAgreement'
-import { fakeDocument } from './shared/fakeDocument'
+import { fakeDocument, signedDocument } from './shared/fakeDocument'
 import { depositToWallet } from './wallet/depositToWallet'
 import { signCapitalAgreement } from './capital/signCapitalAgreement'
 import { addAuthor } from './capital/addAuthor'
-import { getSegment } from './capital/getSegment'
+import { getProjectSegments, getSegment } from './capital/getSegment'
 import { investInProject } from './capital/investInProject'
 import { processDebt } from './capital/processDebt'
 import { processCreateProjectProperty } from './capital/processCreateProjectProperty'
@@ -34,9 +34,8 @@ import { processDeleteProject } from './capital/processDeleteProject'
 import { getProject } from './capital/getProject'
 import { processFundProgram } from './capital/processFundProgram'
 import { processRefreshProg } from './capital/processRefreshProg'
-import { processFundProject } from './capital/processFundProject'
-import { processRefreshProj } from './capital/processRefreshProj'
 import { processRegShare } from './capital/processRegShare'
+import { chainTextDigest } from '../utils/chainTextDigest'
 // const CLI_PATH = 'src/index.ts'
 
 const blockchain = new Blockchain(config.network, config.private_keys)
@@ -312,7 +311,7 @@ describe('тест контракта CAPITAL', () => {
       project_hash: metaHash,
       parent_hash: parentHash,
       title: `Мета-проект ${metaHash.slice(0, 10)}`,
-      description: generateRandomDescription(),
+      description: chainTextDigest(generateRandomDescription()),
       invite: '',
       data: generateRandomProjectData(800, 1500),
       meta: generateRandomMeta(),
@@ -353,7 +352,7 @@ describe('тест контракта CAPITAL', () => {
       project_hash: componentHash,
       parent_hash: metaHash, // Родительский хэш указывает на мета-проект
       title: `Компонент-проект ${componentHash.slice(0, 10)}`,
-      description: generateRandomDescription(),
+      description: chainTextDigest(generateRandomDescription()),
       meta: generateRandomMeta(),
       data: generateRandomProjectData(1000, 2500),
       invite: '',
@@ -1064,7 +1063,7 @@ describe('тест контракта CAPITAL', () => {
     const programWalletBefore = await getCoopProgramWallet(blockchain, 'voskhod', capitalProgramId)
   })
 
-  it('внести программный имущественный взнос на 10000 RUB от tester5 и проверить точное приращение блокированных средств и паевого фонда', async () => {
+  it('внести программный имущественный взнос на 10000 RUB от tester5 и проверить точное приращение кошелька программы и паевого фонда', async () => {
     const programWalletBefore = await getCoopProgramWallet(blockchain, 'voskhod', capitalProgramId)
     const ledgerShareBefore = await getLedgerAccountById(blockchain, 'voskhod', circulationAccountId)
 
@@ -1091,10 +1090,12 @@ describe('тест контракта CAPITAL', () => {
     // console.log('Ledger share before:', res.ledgerShareBefore)
     // console.log('Ledger share after:', res.ledgerShareAfter)
 
-    // Проверяем точное приращение: блокированные средства программы +10000.0000 RUB
-    const prevBlocked = parseFloat(res.programWalletBefore.blocked.split(' ')[0])
-    const afterBlocked = parseFloat(res.programWalletAfter.blocked.split(' ')[0])
-    expect(afterBlocked).toBe(prevBlocked + 10000)
+    // Проверяем точное приращение: кошелёк программы +10000.0000 RUB.
+    // Имущественный взнос — o.cap.actprp (ISSUE на w.cap.blago), сумма ложится
+    // в available; субсчёт blocked упразднён 2026-05-24 (0969505).
+    const programBefore = parseFloat(res.programWalletBefore.available.split(' ')[0])
+    const programAfter = parseFloat(res.programWalletAfter.available.split(' ')[0])
+    expect(programAfter).toBeCloseTo(programBefore + 10000, 4)
 
     // Проверяем точное приращение: паевой фонд в бухгалтерии +10000.0000 RUB
     const prevAvailable = parseFloat(res.ledgerShareBefore.available.split(' ')[0])
@@ -1911,7 +1912,7 @@ describe('тест контракта CAPITAL', () => {
       project_hash: newComponentHash,
       parent_hash: metaProject.project_hash, // Родительский хэш указывает на мета-проект
       title: `Новый компонент-проект ${newComponentHash.slice(0, 10)}`,
-      description: generateRandomDescription(),
+      description: chainTextDigest(generateRandomDescription()),
       meta: generateRandomMeta(),
       invite: '',
       data: generateRandomProjectData(1200, 3000),
@@ -2060,12 +2061,65 @@ describe('тест контракта CAPITAL', () => {
     console.log(`✅ Повторный regshare идемпотентен: ${segmentAfter.capital_contributor_shares}`)
   }, 60_000)
 
-  it.skip('проверяем что повторная регистрация вкладчика невозможна', async () => {
-    await sleep(1000)
-    // NOTE: Тест пропущен - ручная регистрация через processAddContributor больше не используется
-    // Регистрация теперь происходит автоматически при одобрении допуска председателем
-    console.log('Тест пропущен: ручная регистрация через processAddContributor больше не используется')
-  })
+  // Договор УХД заключается через capital::regcontrib (registerContributor выше):
+  // пайщик с подписанным договором второй раз не регистрируется, а хэш
+  // вкладчика не может достаться другому пайщику. Восстановлено 24.09.2026 —
+  // прежде здесь стояла пустая заглушка it.skip.
+  it('проверяем что повторная регистрация вкладчика невозможна', async () => {
+    const tryRegister = (username: string, contributorHash: string) => {
+      // Документы подписаны ключом стенда от имени пайщика: контракт сверяет и
+      // подписанта, и ключ (verify_signer_keys_or_fail).
+      const signedBy = (doc: ReturnType<typeof signedDocument>) => {
+        doc.signatures[0].signer = username
+        return doc
+      }
+      const data: CapitalContract.Actions.RegisterContributor.IRegisterContributor = {
+        coopname: 'voskhod',
+        username,
+        contributor_hash: contributorHash,
+        rate_per_hour: '1000.0000 RUB',
+        hours_per_day: 8,
+        is_external_contract: false,
+        contract: signedBy(signedDocument(generateRandomSHA256())),
+        storage_agreement: signedBy(signedDocument(generateRandomSHA256())),
+        blagorost_agreement: signedBy(signedDocument(generateRandomSHA256())),
+        generator_agreement: signedBy(signedDocument(generateRandomSHA256())),
+      }
+      return blockchain.api.transact({
+        actions: [{
+          account: CapitalContract.contractName.production,
+          name: CapitalContract.Actions.RegisterContributor.actionName,
+          authorization: [{ actor: 'voskhod', permission: 'active' }],
+          data,
+        }],
+      }, { blocksBehind: 3, expireSeconds: 30 })
+    }
+    const contributorOf = async (username: string) => (await blockchain.getTableRows(
+      CapitalContract.contractName.production,
+      'voskhod',
+      'contributors',
+      1,
+      username,
+      username,
+      2,
+      'i64',
+    ))[0]
+
+    // 1. Действующий вкладчик с подписанным договором — повтор отклоняется,
+    // запись вкладчика остаётся прежней.
+    const before = await contributorOf(tester1)
+    expect(before.status).toBe('active')
+    await expect(tryRegister(tester1, generateRandomSHA256())).rejects.toThrow(/уже обладает подписанным договором УХД/)
+    const after = await contributorOf(tester1)
+    expect(after.contributor_hash).toBe(before.contributor_hash)
+    expect(after.status).toBe('active')
+
+    // 2. Хэш вкладчика уникален: другому пайщику он не достаётся.
+    const newcomer = generateRandomUsername()
+    await addUser(newcomer)
+    await expect(tryRegister(newcomer, before.contributor_hash)).rejects.toThrow(/с данным хэшем уже зарегистрирован/)
+    expect(await contributorOf(newcomer)).toBeUndefined()
+  }, 120_000)
 
   it('добавляем мастера к новому проекту', async () => {
     const data: CapitalContract.Actions.SetMaster.ISetMaster = {
@@ -2459,7 +2513,7 @@ describe('тест контракта CAPITAL', () => {
       project_hash: highPrecisionHash,
       parent_hash: metaProject.project_hash,
       title: `High Precision 50kM Test`,
-      description: 'Test for rounding and precision on large numbers',
+      description: chainTextDigest('Test for rounding and precision on large numbers'),
       invite: '',
       data: '{}',
       meta: '{}',
@@ -2667,12 +2721,21 @@ describe('тест контракта CAPITAL', () => {
     let totalSharePercent = 0
     const segmentsData = []
 
-    for (const p of participants) {
-      const seg = await getSegment(blockchain, 'voskhod', highPrecisionHash, p)
+    // Контроллер при старте проекта сам заводит в нём доли всех держателей
+    // Благороста (ProgramShareRegistrationOnProjectDeltaListener), поэтому
+    // сотня складывается по всем сегментам проекта, а не по четырём участникам
+    // теста. Чужие сегменты обновляются так же, как свои (C28-80).
+    const outsiders = (await getProjectSegments(blockchain, 'voskhod', highPrecisionHash))
+      .map(s => s.username)
+      .filter(u => !participants.includes(u))
+    for (const u of outsiders)
+      await refreshSegment(blockchain, 'voskhod', highPrecisionHash, u)
+
+    for (const seg of await getProjectSegments(blockchain, 'voskhod', highPrecisionHash)) {
       const share = Number(seg.share_percent)
       totalSharePercent += share
       segmentsData.push({
-        user: p,
+        user: seg.username,
         share,
         intellectual_cost: seg.intellectual_cost,
         bonus: seg.contributor_bonus,

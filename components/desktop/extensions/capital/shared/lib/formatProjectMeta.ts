@@ -1,3 +1,5 @@
+import { uiLocale } from 'src/shared/i18n';
+import { t } from '../../i18n';
 /**
  * Компактное форматирование метрик проекта/компонента для строк списка
  * Мастерской: часы «факт / план» и привлечённые инвестиции.
@@ -9,7 +11,7 @@ const parseAssetAmount = (value?: string | number | null): number => {
   return isNaN(numeric) ? 0 : numeric;
 };
 
-const compactFormatter = new Intl.NumberFormat('ru-RU', {
+const compactFormatter = new Intl.NumberFormat(uiLocale(), {
   notation: 'compact',
   maximumFractionDigits: 1,
 });
@@ -18,7 +20,7 @@ const compactFormatter = new Intl.NumberFormat('ru-RU', {
 export const formatCompactAmount = (value?: string | number | null): string =>
   compactFormatter.format(parseAssetAmount(value));
 
-const hoursFormatter = new Intl.NumberFormat('ru-RU', {
+const hoursFormatter = new Intl.NumberFormat(uiLocale(), {
   maximumFractionDigits: 1,
 });
 
@@ -28,7 +30,7 @@ export const formatHoursFactPlan = (
   fact?: string | number | null,
   plan?: string | number | null,
 ): string =>
-  `${hoursFormatter.format(parseAssetAmount(fact))}ч / ${hoursFormatter.format(parseAssetAmount(plan))}ч`;
+  t('capital.formatProjectMeta.hoursFactPlan', { factHours: hoursFormatter.format(parseAssetAmount(fact)), planHours: hoursFormatter.format(parseAssetAmount(plan)) });
 
 /** Инвестиции «факт / план» компактно */
 export const formatInvestFactPlan = (

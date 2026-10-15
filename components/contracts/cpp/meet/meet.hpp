@@ -40,9 +40,9 @@ using std::string;
  *  \ingroup public_contracts
  *  @brief  Контракт Meet управляет собраниями пайщиков.
  */
-class [[eosio::contract]] meet : public contract {
+class [[eosio::contract]] meet : public coop_contract {
 public:
-    using contract::contract;
+    using coop_contract::coop_contract;
 
     /**
      * @brief Минимальная задержка до открытия общего собрания.
@@ -91,6 +91,8 @@ public:
     void signbypresid(name coopname, name username, checksum256 hash, document2 presider_decision);
     
     [[eosio::action]] void migrate();
+    /// Очистка отработавших записей по правилам контракта (lib/core/cleanup.hpp); плейбук вызывает её на каждом деплое.
+    [[eosio::action]] void cleanup();
     
     [[eosio::action]] void delmeet(eosio::name coopname, uint64_t meet_id);
 

@@ -7,15 +7,15 @@
       program='blagorost',
       :balance='blagorostWallet.amount',
       :symbol='blagorostWallet.symbol',
-      balance-label='Всего'
+      :balance-label='$t("capital.capitalWalletsCardsWidget.totalLabel")'
     )
   .col
     WalletCard(
       program='blagorost',
-      title='Получено в Благорост',
+      :title='$t("capital.capitalWalletsCardsWidget.blagorostTitle")',
       :balance='receivedFromBlagorost.amount',
       :symbol='receivedFromBlagorost.symbol',
-      balance-label='Прирост',
+      :balance-label='$t("capital.capitalWalletsCardsWidget.growthLabel")',
       icon='trending_up',
       :empty='receivedFromBlagorost.isEmpty'
     )

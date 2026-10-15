@@ -1,6 +1,8 @@
 <template lang="pug">
 q-layout(view='lHh LpR fff')
-  Header(:showDrawer='showDrawer', @toggle-left-drawer='toggleLeftDrawer')
+  //- Экраны входа и вступления (AuthSplit) рисуют бренд, действия и реквизиты
+  //- сами: общая шапка дублировала название кооператива, а футер обрезал панель.
+  Header(v-if='!isAuthSplit', :showDrawer='showDrawer', @toggle-left-drawer='toggleLeftDrawer')
 
   //- Левый дровер: .rail внутри LeftDrawerMenu сам рисует canon-границу
   //- (border-right из var(--p-line)) — q-drawer bordered убран, чтобы
@@ -46,10 +48,17 @@ q-layout(view='lHh LpR fff')
     template(v-for='action in rightDrawerActions', :key='action.id')
       component(:is='action.component', v-bind='action.props')
 
-  q-footer(v-if='!loggedIn && system.info.system_status !== Zeus.SystemStatus.install && system.info.system_status !== Zeus.SystemStatus.initialized', :class='headerClass', bordered)
+  q-footer(v-if='!loggedIn && !isAuthSplit && system.info.system_status !== Zeus.SystemStatus.install && system.info.system_status !== Zeus.SystemStatus.initialized', :class='headerClass', bordered)
     ContactsFooter(:text='footerText')
 
   q-page-container
+    //- Полоса вкладок раздела живёт здесь, над содержимым страницы: страница
+    //- имеет свои боковые отступы, и растянуть полосу «во всю ширину» изнутри
+    //- можно было только отрицательными отступами — они вылезали за экран и
+    //- давали горизонтальную прокрутку. Страница телепортирует сюда свой
+    //- PageTabs (проп hoist). Хост рендерится всегда, иначе цель телепорта
+    //- отсутствует в момент монтирования страницы.
+    #page-tabs-host.page-tabs-host
     q-page
       WindowLoader(v-if='desktop?.isWorkspaceChanging')
       router-view(v-else)
@@ -59,9 +68,18 @@ q-layout(view='lHh LpR fff')
   CommandPalette(
     v-model='paletteOpen',
     :workspaces='paletteWorkspaces',
+    :search-groups='paletteSearchGroups',
+    :commands='paletteCommands',
+    :searching='globalSearch.loading.value',
     @select-workspace='onSelectWorkspace',
-    @select-page='onSelectPage'
+    @select-page='onSelectPage',
+    @update:query='globalSearch.setQuery',
+    @select-hit='onSelectHit',
+    @run-command='onRunCommand'
   )
+
+  //- Диалоги команд столов («Добавить задачу» и другие) — из окна и по сочетанию.
+  CommandHost(v-if='loggedIn', ref='commandHost')
 
   //- Универсальный сканер стола ПВЗ: невидимый держатель всплывающего сканера,
   //- регистрирует действие `marketplaceUniversalScan` (пункт меню «Сканировать
@@ -70,14 +88,19 @@ q-layout(view='lHh LpR fff')
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted } from 'vue';
-import { useRouter } from 'vue-router';
+import { computed, onMounted, onUnmounted, provide, ref } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import type { RouteRecordRaw } from 'vue-router';
 import { storeToRefs } from 'pinia';
 import { Header } from 'src/widgets/Header/CommonHeader';
 import { LeftDrawerMenu } from 'src/widgets/Desktop/LeftDrawerMenu';
 import { CommandPalette } from 'src/shared/ui/domain/CommandPalette';
-import type { CommandPaletteWorkspace } from 'src/shared/ui/domain/CommandPalette';
+import type { CommandPaletteSearchGroup, CommandPaletteWorkspace } from 'src/shared/ui/domain/CommandPalette';
+import { useGlobalSearch } from 'src/features/GlobalSearch';
+import type { CommandPaletteCommand } from 'src/shared/ui/domain/CommandPalette';
+import { useCommandStore, type IRegisteredCommand } from 'src/entities/Command';
+import { CommandHost } from 'src/widgets/Desktop/CommandHost';
+import { useCommandShortcuts } from 'src/shared/lib/shortcuts';
 import { ContactsFooter } from 'src/shared/ui/Footer';
 import { UniversalScannerHost } from 'src/widgets/Marketplace/UniversalScanner';
 
@@ -90,9 +113,17 @@ import { useDefaultLayoutLogic } from './useDefaultLayoutLogic';
 import { usePWAThemeColor } from 'src/shared/lib/composables/usePWAThemeColor';
 import { useRightDrawerReader } from 'src/shared/hooks/useRightDrawer';
 import { WindowLoader } from 'src/shared/ui/Loader';
+import { PAGE_TABS_HOST } from 'src/shared/ui/layout/PageTabs';
+import { AUTH_LEGAL_TEXT } from 'src/shared/ui/layout/AuthSplit';
 import { Zeus } from '@coopenomics/sdk';
 
+// Каркас объявляет, что место для поднятой полосы вкладок здесь есть. Страницы
+// узнают об этом до первого рендера — искать место в документе на монтировании
+// поздно, телепорт к тому времени уже запомнил пустую цель.
+provide(PAGE_TABS_HOST, true);
+
 const router = useRouter();
+const route = useRoute();
 const desktop = useDesktopStore();
 const system = useSystemStore();
 const session = useSessionStore();
@@ -115,6 +146,10 @@ const {
   toggleLeftDrawer,
   toggleRightDrawer,
 } = useDefaultLayoutLogic();
+
+const isAuthSplit = computed(() => route.meta.authSplit === true);
+// Реквизиты кооператива на экранах AuthSplit рисуются внутри рабочей области.
+provide(AUTH_LEGAL_TEXT, footerText);
 
 const buttonStyle = computed(() => ({
   width: isMobile.value ? '45px' : '56px',
@@ -173,9 +208,7 @@ function evalCondition(
 const paletteWorkspaces = computed<CommandPaletteWorkspace[]>(() => {
   const ctx = filterContext.value;
   return desktop.workspaceMenus
-    // Canon-grants: фильтр столов — для grant-стола виден если есть хотя бы одна
-    // доступная по грантам страница; для legacy — по meta.roles родительского
-    // маршрута.
+    // Стол виден, когда пайщику доступна по правам хотя бы одна его страница.
     .filter((ws) => desktop.isWorkspaceVisible(ws))
     .map((ws) => {
     const children = (ws.mainRoute?.children ?? []) as RouteRecordRaw[];
@@ -184,8 +217,7 @@ const paletteWorkspaces = computed<CommandPaletteWorkspace[]>(() => {
         const meta = (r.meta ?? {}) as RouteMetaShape;
         if (meta.hidden) return false;
         if (!evalCondition(meta.conditions, ctx)) return false;
-        // Canon-grants: для grant-стола сверка meta.requires с выданными
-        // бэкендом правами; для legacy — fallback на meta.roles.
+        // Требование страницы meta.requires сверяется с выданными бэкендом правами.
         return desktop.isPageVisible(r.meta, ws.workspaceName);
       })
       .map((r) => {
@@ -200,11 +232,103 @@ const paletteWorkspaces = computed<CommandPaletteWorkspace[]>(() => {
       name: ws.workspaceName,
       title: ws.title,
       icon: ws.icon,
+      appName: ws.extensionName,
+      appTitle: ws.extensionTitle,
       isActive: ws.workspaceName === desktop.activeWorkspaceName,
       pages,
     };
   });
 });
+
+// Находки единого поиска: пайщики, документы, записи приложений. Окно получает
+// их готовыми группами; стол при переходе переключит навигационный гард.
+const globalSearch = useGlobalSearch();
+
+const paletteSearchGroups = computed<CommandPaletteSearchGroup[]>(() =>
+  globalSearch.groups.value.map((group) => ({
+    key: group.key,
+    title: group.title,
+    icon: group.icon,
+    incomplete: group.status !== Zeus.GlobalSearchGroupStatus.OK,
+    hits: group.hits.map((hit) => ({
+      key: hit.key,
+      title: hit.title,
+      subtitle: hit.subtitle ?? undefined,
+      icon: hit.icon ?? undefined,
+    })),
+  })),
+);
+
+function onSelectHit(groupKey: string, hitKey: string): void {
+  const hit = globalSearch.groups.value
+    .find((group) => group.key === groupKey)
+    ?.hits.find((item) => item.key === hitKey);
+  palette.close();
+  globalSearch.reset();
+  if (!hit) return;
+  desktop.closeLeftDrawerOnMobile();
+  void router.push({
+    name: hit.route.name,
+    params: (hit.route.params ?? {}) as Record<string, string>,
+    query: (hit.route.query ?? {}) as Record<string, string>,
+  });
+}
+
+// Команды столов. Права — только серверные: право команды должно быть в
+// грантах стола (стол без грантов команд не показывает), а шлюз стола
+// (онбординг, допуск) — пройден. Тот же канон, что у страниц: фронт лишь
+// сверяет выданное сервером.
+const commandStore = useCommandStore();
+const commandHost = ref<InstanceType<typeof CommandHost> | null>(null);
+
+const availableCommands = computed<IRegisteredCommand[]>(() => {
+  if (!loggedIn.value) return [];
+  return commandStore.commands.filter((entry) => {
+    const ws = desktop.workspaceMenus.find((w) => w.workspaceName === entry.workspace);
+    if (!ws || !desktop.isWorkspaceVisible(ws)) return false;
+    if (!desktop.hasGrant(entry.workspace, entry.command.requires)) return false;
+    return desktop.gateRouteFor(entry.workspace) === null;
+  });
+});
+
+const paletteCommands = computed<CommandPaletteCommand[]>(() =>
+  availableCommands.value.map(({ command, workspace, keys }) => {
+    const ws = desktop.workspaceMenus.find((w) => w.workspaceName === workspace);
+    return {
+      id: command.id,
+      title: command.title,
+      icon: command.icon,
+      subtitle: ws?.extensionTitle || ws?.title,
+      keywords: command.keywords,
+      workspace,
+      shortcut: keys ?? undefined,
+    };
+  }),
+);
+
+function runCommand(entry: IRegisteredCommand): void {
+  const { command } = entry;
+  if (command.route) {
+    desktop.closeLeftDrawerOnMobile();
+    // Стол переключит навигационный гард — по маршруту.
+    void router.push({ name: command.route.name, params: { coopname: system.info.coopname } });
+    return;
+  }
+  if (command.action) {
+    actionsStore.executeAction(command.action);
+    return;
+  }
+  void commandHost.value?.open(command);
+}
+
+function onRunCommand(commandId: string): void {
+  const entry = availableCommands.value.find((c) => c.command.id === commandId);
+  if (entry) runCommand(entry);
+}
+
+useCommandShortcuts(() =>
+  availableCommands.value.flatMap((entry) => (entry.keys ? [{ keys: entry.keys, run: () => runCommand(entry) }] : [])),
+);
 
 function onSelectWorkspace(workspaceName: string): void {
   palette.close();

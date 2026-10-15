@@ -1,5 +1,8 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
+import { SovietContract, WalletContract } from 'cooptypes';
+import { liveTable, useLiveReload } from 'src/shared/lib/realtime';
+import { sanitizeDocumentHtml } from 'src/shared/lib/utils';
 import { FailAlert, NotifyAlert } from 'src/shared/api';
 import { useRouter } from 'vue-router';
 import { KUSelector } from 'src/widgets/Marketplace/KUSelector';
@@ -17,6 +20,7 @@ import {
   signOnboardingOffer,
   type MarketplaceOnboardingStateView,
 } from '../api';
+import { t } from 'src/shared/i18n';
 
 /**
  * Эпик 1 / Story 1.4 + 1.11: L3 онбординг пайщика — присоединение к Столу заказов.
@@ -127,25 +131,34 @@ async function load(): Promise<void> {
 }
 
 /**
- * После подписи `wallet::signagree` уже подтверждён цепочкой (мутация
- * вернулась), но состояние присоединения и гранты завязаны на PG-кеш
- * `wallet::users`, который parser синхронизирует со следующего блока. Коротко
- * поллим состояние, пока подпись не отразится в PG, — тогда и `getDesktop`
- * отдаст полные orderer-права. Так переключение происходит само, без ручного
- * refresh.
- *
- * Подтверждением считаем именно AGREEMENT_SIGNED: снятый `requires_gate` — не
- * доказательство подписи (см. комментарий к состояниям выше).
+ * Подключение ждёт факта из цепи, а не таймера. Мутация подписи отвечает, когда
+ * узел разобрал блок `wallet::signagree`, — состояние и гранты стола обычно уже
+ * свежие. Если узел не успел, форма остаётся в ожидании, и лента изменений по
+ * `wallet::users` / `soviet::agreements3` (личные строки пайщика) перечитывает
+ * состояние и продолжает переход сама.
  */
-async function waitForSignatureSynced(): Promise<boolean> {
-  const deadline = Date.now() + 15000;
-  while (Date.now() < deadline) {
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    state.value = await fetchOnboardingState();
-    if (alreadySigned.value) return true;
+const awaitingChain = ref(false);
+
+async function reloadLive(): Promise<void> {
+  if (loading.value) return;
+  state.value = await fetchOnboardingState();
+  if (!awaitingChain.value || !alreadySigned.value) return;
+  awaitingChain.value = false;
+  loading.value = true;
+  try {
+    await proceedToDesk();
+  } catch (e) {
+    redirecting.value = false;
+    FailAlert(e);
+  } finally {
+    loading.value = false;
   }
-  return false;
 }
+
+useLiveReload(
+  [liveTable(WalletContract, WalletContract.Tables.Users), liveTable(SovietContract, SovietContract.Tables.Agreements)],
+  reloadLive,
+);
 
 /**
  * Общий финал: пайщик подключён (подпись либо есть, либо только что прошла) —
@@ -176,36 +189,15 @@ async function proceedToDesk(): Promise<void> {
 
   await loadExtensionRoutes('market', router);
 
-  // Гейт оферты (requires_gate) и гранты стола (getDesktop → firstAccessibleRoute)
-  // синхронизируются НЕЗАВИСИМО друг от друга и с разной задержкой: гейт —
-  // быстрый читаемый признак (см. waitForSignatureSynced выше), гранты —
-  // отдельный медленный путь (parser → wallet::users.programs[]). Подтверждённый
-  // requires_gate=false НЕ гарантирует, что уже И loadDesktop() отдаст свежие
-  // orderer-права — инцидент 2026-07-26: однократный loadDesktop() сразу после
-  // подтверждения гейта уводил на маршрут, тут же заворачиваемый навигационным
-  // гвардом («Недостаточно прав доступа»), либо (для случая «оферта уже
-  // подписана при регистрации», где гейт не проверяется вовсе) на тот же
-  // онбординг. Поэтому здесь — свой короткий поллинг: перезапрашиваем
-  // loadDesktop(), пока firstAccessibleRoute не отдаст маршрут, отличный от
-  // самого онбординга, либо не истечёт окно ожидания.
-  const deadline = Date.now() + 15000;
-  let target: { name: string } | null = null;
-  while (Date.now() < deadline) {
-    await desktop.loadDesktop();
-    const candidate = desktop.firstAccessibleRoute('market');
-    if (candidate && candidate.name !== ONBOARDING_ROUTE_NAME) {
-      target = candidate;
-      break;
-    }
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-  }
-
-  if (!target) {
-    // Синк не успел за отведённое окно — крайне редко. Не гадаем с fallback-
-    // маршрутом (marketplace-catalog может требовать тот же ещё не выданный
-    // грант) — честно просим обновить страницу чуть позже.
+  // Гранты стола (getDesktop → firstAccessibleRoute) строятся из того же блока,
+  // что и подпись, поэтому к ответу мутации они уже на узле. Не успели — ждём
+  // сигнала ленты (reloadLive), а не повторяем запрос по таймеру.
+  await desktop.loadDesktop();
+  const target = desktop.firstAccessibleRoute('market');
+  if (!target || target.name === ONBOARDING_ROUTE_NAME) {
     redirecting.value = false;
-    NotifyAlert('Подключение завершено, но права ещё синхронизируются. Обновите страницу через несколько секунд.');
+    awaitingChain.value = true;
+    NotifyAlert(t('marketplace.onboardingMemberPickCppPage.syncPendingMessage'));
     return;
   }
 
@@ -218,7 +210,7 @@ async function proceedToDesk(): Promise<void> {
   // пользователя с вечным спиннером без объяснения.
   if (router.currentRoute.value.name === ONBOARDING_ROUTE_NAME) {
     redirecting.value = false;
-    NotifyAlert('Подключение завершено, но переход на стол не удался. Обновите страницу.');
+    NotifyAlert(t('marketplace.onboardingMemberPickCppPage.navigateFailedMessage'));
   }
 }
 
@@ -258,16 +250,13 @@ async function onSign(): Promise<void> {
     // Передаём уже прочитанный инстанс оферты (если был сгенерирован при
     // ознакомлении), иначе signOnboardingOffer сгенерирует свежий.
     state.value = await signOnboardingOffer(offerDoc.value ?? undefined);
-    // AGREEMENT_SIGNED сразу — редкий случай (PG уже синхронен); иначе ждём
-    // синк подписи в PG коротким поллингом.
-    const confirmed = alreadySigned.value || (await waitForSignatureSynced());
-    if (confirmed) {
+    // Мутация ответила после разбора блока — подпись обычно уже учтена.
+    // Не учтена — ждём сигнала ленты (reloadLive продолжит переход сам).
+    if (alreadySigned.value) {
       await proceedToDesk();
     } else {
-      // Синк не успел за отведённое окно — крайне редко; даём пользователю
-      // явный сигнал перезагрузить страницу.
-      redirecting.value = false;
-      NotifyAlert('Подпись принята блокчейном и синхронизируется. Обновите страницу через несколько секунд.');
+      awaitingChain.value = true;
+      NotifyAlert(t('marketplace.onboardingMemberPickCppPage.signSyncingMessage'));
     }
   } catch (e) {
     redirecting.value = false;
@@ -281,10 +270,10 @@ onMounted(load);
 </script>
 
 <template lang="pug">
-q-page.mp-role-orderer.mp-member-cpp(role="region", aria-label="Подключение к Столу заказов")
+q-page.mp-role-orderer.mp-member-cpp(role="region", :aria-label="$t('marketplace.onboardingMemberPickCppPage.ariaLabel')")
   //- Спиннер на весь экран — ТОЛЬКО на первичной загрузке состояния и на короткой
   //- фазе перехода (redirecting, после подтверждения подписи). На самой подписи
-  //- (поллинг синка ~15с) оверлея НЕТ — спиннер на кнопке + блокировка полей.
+  //- оверлея НЕТ — спиннер на кнопке + блокировка полей.
   q-inner-loading(:showing="(loading && !state) || redirecting")
     q-spinner(color="primary", size="2em")
 
@@ -299,8 +288,8 @@ q-page.mp-role-orderer.mp-member-cpp(role="region", aria-label="Подключе
         .mp-member-cpp__head-icon
           q-icon(name="location_on", size="22px")
         .mp-member-cpp__head-text
-          .text-subtitle1.text-weight-medium Выберите пункт выдачи заказов
-          .text-body2.text-grey-7 Выбирайте участок, где вам удобно забирать заказы, — сменить его можно в любой момент.
+          .text-subtitle1.text-weight-medium {{ $t('marketplace.onboardingMemberPickCppPage.pageTitle') }}
+          .text-body2.text-grey-7 {{ $t('marketplace.onboardingMemberPickCppPage.pageSubtitle') }}
         BaseChip.mp-member-cpp__picked(v-if="selectedName", variant="pos", size="sm")
           q-icon(name="check", size="14px")
           | {{ selectedName }}
@@ -317,44 +306,44 @@ q-page.mp-role-orderer.mp-member-cpp(role="region", aria-label="Подключе
         :disabled="loading",
         @update:model-value="(v) => (agreed = v)"
       )
-        | Я ознакомлен(а) с&nbsp;
-        span.mp-member-cpp__offer-link(@click.stop="openOffer") офертой на присоединение к ЦПП «Стол заказов» и Положением ЦПП
-        |  и согласен(на) с условиями участия.
+        | {{ $t('marketplace.onboardingMemberPickCppPage.consentPrefix') }}
+        span.mp-member-cpp__offer-link(@click.stop="openOffer") {{ $t('marketplace.onboardingMemberPickCppPage.consentLinkText') }}
+        |  {{ $t('marketplace.onboardingMemberPickCppPage.consentSuffix') }}
       //- Уже подписал при регистрации — подпись не нужна, лишь выбор КУ.
       .mp-member-cpp__consent.text-body2.text-grey-7(v-else-if="alreadySigned")
-        | Оферта ЦПП «Стол заказов» уже подписана при регистрации — выберите пункт выдачи, чтобы продолжить.
+        | {{ $t('marketplace.onboardingMemberPickCppPage.alreadySignedHint') }}
       //- Кооператив не довёл подключение ЦПП до конца: подписывать нечего, и
       //- выбор пункта выдачи ничего не откроет. Честно говорим об этом, а не
       //- выдаём отсутствие подписи за состоявшуюся.
       BaseBanner.mp-member-cpp__consent(v-else, variant="warn")
         template(#icon)
           q-icon(name="info")
-        | Кооператив ещё не завершил подключение ЦПП «Стол заказов» — подписать оферту сейчас нельзя. Обратитесь к председателю: присоединение станет доступно, как только программа будет открыта.
+        | {{ $t('marketplace.onboardingMemberPickCppPage.notReadyHint') }}
       .mp-member-cpp__action
         BaseButton.mp-member-cpp__sign(
           variant="primary",
           :loading="loading",
           :disabled="!canContinue",
           @click="onContinue"
-        ) Продолжить
+        ) {{ $t('marketplace.onboardingMemberPickCppPage.continueAction') }}
         //- Подсказка-зачем кнопка неактивна: согласие (если нужно) есть, но ПВЗ не выбран.
         .mp-member-cpp__why(v-if="!cppNotConfigured && (!requiresGate || agreed) && !selectedBraname")
           q-icon(name="info", size="14px")
-          span Чтобы продолжить, выберите пункт выдачи — щёлкните по его названию или адресу в списке либо отметьте точку на карте.
+          span {{ $t('marketplace.onboardingMemberPickCppPage.selectPvzHint') }}
 
   //- Диалог ознакомления: сгенерированный HTML оферты. «Подтвердить» = согласие.
   BaseDialog(
     v-model="offerDialogOpen",
-    title="Оферта на присоединение к ЦПП «Стол заказов»",
+    :title="$t('marketplace.onboardingMemberPickCppPage.offerDialogTitle')",
     :maximized="true"
   )
     .mp-member-cpp__offer-body
-      Loader(v-if="offerLoading", text="Генерируем оферту…")
+      Loader(v-if="offerLoading", :text="$t('marketplace.onboardingMemberPickCppPage.generatingOfferLoadingText')")
       //- eslint-disable-next-line vue/no-v-html
-      div(v-else, v-html="offerHtml").statement
+      div(v-else, v-html="sanitizeDocumentHtml(offerHtml)").statement
     template(#footer)
-      BaseButton(variant="ghost", @click="offerDialogOpen = false") Закрыть
-      BaseButton(variant="primary", :disabled="offerLoading", @click="confirmOfferRead") Прочитал(а), согласен(на)
+      BaseButton(variant="ghost", @click="offerDialogOpen = false") {{ $t('common.action.close') }}
+      BaseButton(variant="primary", :disabled="offerLoading", @click="confirmOfferRead") {{ $t('marketplace.onboardingMemberPickCppPage.agreeAction') }}
 </template>
 
 <style scoped lang="scss">
@@ -378,7 +367,7 @@ q-page.mp-role-orderer.mp-member-cpp(role="region", aria-label="Подключе
   // Шапка карточки: teal icon-tile + заголовок/подзаголовок + чип выбранного КУ.
   &__head {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: var(--p-3, 12px);
   }
 
@@ -529,6 +518,24 @@ q-page.mp-role-orderer.mp-member-cpp(role="region", aria-label="Подключе
   }
 
   @media (max-width: 768px) {
+    // На узком экране заголовок переносится на две строки, и значок,
+    // выровненный по центру этого блока, оказывался между строками. Ставим
+    // его сверху отдельной строкой, а текст — под ним во всю ширину.
+    &__head {
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    &__head-text {
+      flex: 1 1 100%;
+      order: 2;
+    }
+
+    &__picked {
+      order: 3;
+      align-self: flex-start;
+    }
+
     &__bar {
       flex-direction: column;
       align-items: stretch;

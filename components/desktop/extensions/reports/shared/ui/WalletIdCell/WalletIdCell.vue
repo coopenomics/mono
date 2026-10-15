@@ -12,6 +12,7 @@ span.wallet-id-cell(v-else)
 import { computed } from 'vue'
 import { EntityIdBadge } from 'src/shared/ui'
 import { getWalletHumanName } from 'src/shared/lib/ledger2'
+import { t } from '../../../i18n';
 
 const props = defineProps<{
   walletName: string | null | undefined
@@ -20,6 +21,6 @@ const props = defineProps<{
 const tooltipText = computed(() => {
   if (!props.walletName) return ''
   const human = getWalletHumanName(props.walletName)
-  return human ? `${human} (клик — копировать)` : 'Клик — копировать'
+  return human ? t('reports.walletIdCell.tooltipLabel', { name: human }) : t('reports.walletIdCell.copyHintLabel')
 })
 </script>

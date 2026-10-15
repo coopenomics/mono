@@ -8,6 +8,7 @@
  * Идемпотентна: одобряет только PENDING-предложения sidorov.
  */
 import { Client, Mutations, Queries } from '@coopenomics/sdk'
+import { loginChairman } from '../../lib/chairman-login'
 import Blockchain from '../../../blockchain'
 import config from '../../../configs'
 
@@ -33,7 +34,7 @@ export async function phase06b(): Promise<void> {
     wif,
     username: CHAIRMAN,
   })
-  await chairman.login(CHAIRMAN_EMAIL, wif)
+  await loginChairman(chairman, CHAIRMAN_EMAIL, wif)
 
   const listed = await chairman.Query(Queries.Marketplace.ListAllOffers.query, {
     variables: { input: {} },

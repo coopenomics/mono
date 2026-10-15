@@ -27,7 +27,7 @@
 
       .list-empty(v-else)
         q-icon(name='inbox', size='20px')
-        span Нет доступных артефактов
+        span {{ $t('capital.artifactsListPage.emptyText') }}
 
   //- Просмотр/правка — оверлей поверх списка (?story= в адресе), тот же,
   //- что на вкладках «Артефакты»: список не размонтируется, «назад»
@@ -37,6 +37,8 @@
 
 <script lang="ts" setup>
 import { onMounted, ref } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { CAPITAL_LIVE_TABLES } from 'app/extensions/capital/shared/lib/live';
 import { Zeus } from '@coopenomics/sdk';
 import { useSystemStore } from 'src/entities/System/model';
 import { FailAlert } from 'src/shared/api';
@@ -46,6 +48,7 @@ import type { IStory } from 'app/extensions/capital/entities/Story/model';
 import { FavoriteStarButton } from 'app/extensions/capital/features/Favorite/ToggleFavorite';
 import { RequirementOverlay } from 'app/extensions/capital/features/Story/EditRequirement';
 import { storyContentIcon } from 'app/extensions/capital/shared/lib/storyContentIcon';
+import { t } from '../../../i18n';
 
 const FavoriteTargetType = Zeus.CapitalFavoriteTargetType;
 
@@ -66,11 +69,14 @@ async function load(): Promise<void> {
     items.value = result.items;
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
-    FailAlert('Не удалось загрузить артефакты: ' + msg);
+    FailAlert(t('capital.artifactsListPage.loadError') + msg);
   } finally {
     loading.value = false;
   }
 }
+
+// Артефакты живут по ленте изменений Благороста.
+useLiveReload(CAPITAL_LIVE_TABLES, () => load());
 
 onMounted(load);
 

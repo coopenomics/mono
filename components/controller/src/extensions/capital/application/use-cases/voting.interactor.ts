@@ -13,6 +13,8 @@ import { PROJECT_REPOSITORY, ProjectRepository } from '../../domain/repositories
 import { assertBlockchainProject } from '../../domain/utils/assert-blockchain-project';
 import type { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
 import type { InnerTransactResult } from '@coopenomics/innercoop';
+import { t } from '../../i18n';
+import { DomainError } from '@coopenomics/extension-kit';
 
 /**
  * Интерактор домена для голосования в CAPITAL контракте
@@ -43,7 +45,7 @@ export class VotingInteractor {
    * Запуск голосования в CAPITAL контракте
    */
   async startVoting(data: StartVotingDomainInput): Promise<InnerTransactResult> {
-    await this.assertProjectBlockchain(data.project_hash, 'запуск голосования');
+    await this.assertProjectBlockchain(data.project_hash, t('capital.voting.actionLabel.start'));
     // Вызываем блокчейн порт
     return await this.capitalBlockchainPort.startVoting(data);
   }
@@ -52,7 +54,7 @@ export class VotingInteractor {
    * Голосование в CAPITAL контракте
    */
   async submitVote(data: SubmitVoteDomainInput): Promise<InnerTransactResult> {
-    await this.assertProjectBlockchain(data.project_hash, 'голосование');
+    await this.assertProjectBlockchain(data.project_hash, t('capital.voting.actionLabel.vote'));
     // Вызываем блокчейн порт
     return await this.capitalBlockchainPort.submitVote(data);
   }
@@ -61,7 +63,7 @@ export class VotingInteractor {
    * Завершение голосования в CAPITAL контракте
    */
   async completeVoting(data: CompleteVotingDomainInput): Promise<InnerTransactResult> {
-    await this.assertProjectBlockchain(data.project_hash, 'завершение голосования');
+    await this.assertProjectBlockchain(data.project_hash, t('capital.voting.actionLabel.complete'));
     // Вызываем блокчейн порт
     return await this.capitalBlockchainPort.completeVoting(data);
   }
@@ -70,7 +72,7 @@ export class VotingInteractor {
    * Расчет голосов в CAPITAL контракте
    */
   async calculateVotes(data: CalculateVotesDomainInput): Promise<SegmentDomainEntity> {
-    await this.assertProjectBlockchain(data.project_hash, 'расчёт голосов');
+    await this.assertProjectBlockchain(data.project_hash, t('capital.voting.actionLabel.calculate'));
     // Вызываем блокчейн порт
     const transactResult = await this.capitalBlockchainPort.calculateVotes(data);
 
@@ -83,7 +85,7 @@ export class VotingInteractor {
     );
 
     if (!segmentEntity) {
-      throw new Error(`Не удалось синхронизировать сегмент ${data.project_hash}:${data.username} после расчета голосов`);
+      throw DomainError.internal('CAPITAL_SEGMENT_SYNC_AFTER_VOTE_CALCULATION_FAILED', { projectHash: data.project_hash, username: data.username });
     }
 
     // Возвращаем обновленную сущность сегмента

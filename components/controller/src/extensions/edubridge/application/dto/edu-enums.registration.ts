@@ -1,0 +1,48 @@
+import { registerEnumType } from '@nestjs/graphql';
+import {
+  EduAccessCarrier,
+  EduAccessState,
+  EduAccessTaskKind,
+  EduAccessTaskStatus,
+  EduAssignmentStatus,
+  EduConnectorHealth,
+  EduContractStatus,
+  EduCouncilOutcome,
+  EduContributionStatus,
+  EduCourseDirection,
+  EduCourseStatus,
+  EduGroupStatus,
+  EduLessonOrigin,
+  EduLessonStatus,
+  EduEnrollmentPeriod,
+  EduEnrollmentStatus,
+  EduRecipientType,
+  EduRidType,
+  EduContributionDocumentKind,
+  EduSettlementEntryKind,
+  EduSettlementEntryStatus,
+  EduShareReturnDocumentKind,
+} from '../../domain/enums';
+
+registerEnumType(EduAccessCarrier, { name: 'EduAccessCarrier', description: 'Носитель доступа к курсу (площадка или очный формат)' });
+registerEnumType(EduCourseDirection, { name: 'EduCourseDirection', description: 'Тип направления курса (внутренний признак)' });
+registerEnumType(EduCourseStatus, { name: 'EduCourseStatus', description: 'Состояние курса в каталоге' });
+registerEnumType(EduGroupStatus, { name: 'EduGroupStatus', description: 'Состояние группы курса' });
+registerEnumType(EduLessonStatus, { name: 'EduLessonStatus', description: 'Состояние занятия в календаре группы' });
+registerEnumType(EduLessonOrigin, { name: 'EduLessonOrigin', description: 'Откуда занятие в календаре: из окон расписания, из резерва либо перенесено' });
+registerEnumType(EduRecipientType, { name: 'EduRecipientType', description: 'Как доставляется пропуск обучающемуся' });
+registerEnumType(EduEnrollmentPeriod, { name: 'EduEnrollmentPeriod', description: 'За какой срок вносится членский взнос: помесячно либо разом за весь курс' });
+registerEnumType(EduEnrollmentStatus, { name: 'EduEnrollmentStatus', description: 'Состояние подписки обучающегося на курс' });
+registerEnumType(EduAccessState, { name: 'EduAccessState', description: 'Состояние доступа на площадке' });
+registerEnumType(EduAccessTaskKind, { name: 'EduAccessTaskKind', description: 'Вид задачи выдачи доступа' });
+registerEnumType(EduAccessTaskStatus, { name: 'EduAccessTaskStatus', description: 'Состояние задачи очереди выдачи доступа' });
+registerEnumType(EduConnectorHealth, { name: 'EduConnectorHealth', description: 'Состояние подключения площадки' });
+registerEnumType(EduAssignmentStatus, { name: 'EduAssignmentStatus', description: 'Состояние назначения преподавателя' });
+registerEnumType(EduContractStatus, { name: 'EduContractStatus', description: 'Состояние договора участия преподавателя в хозяйственной деятельности' });
+registerEnumType(EduRidType, { name: 'EduRidType', description: 'Тип результата интеллектуальной деятельности' });
+registerEnumType(EduContributionStatus, { name: 'EduContributionStatus', description: 'Состояние взноса результатами работы' });
+registerEnumType(EduCouncilOutcome, { name: 'EduCouncilOutcome', description: 'Исход рассмотрения заявления советом, когда решение о приёме не принято' });
+registerEnumType(EduContributionDocumentKind, { name: 'EduContributionDocumentKind', description: 'Документ взноса результатом работы: заявление, акт хранения, акт приёма-передачи' });
+registerEnumType(EduSettlementEntryKind, { name: 'EduSettlementEntryKind', description: 'Строка выписки преподавателя: зачисление или возврат' });
+registerEnumType(EduSettlementEntryStatus, { name: 'EduSettlementEntryStatus', description: 'Состояние строки выписки: зачислено, на совете, ожидает выплаты, выплачено, отклонено' });
+registerEnumType(EduShareReturnDocumentKind, { name: 'EduShareReturnDocumentKind', description: 'Документ возврата паевого взноса преподавателя: заявление о трансляции, заявление о возврате' });

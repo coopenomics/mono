@@ -47,6 +47,18 @@ describe('SegmentsResolver.getSegments — доступ к сводному сп
     expect(segmentsService.getSegments).not.toHaveBeenCalled();
   });
 
+  it('свои доли по всем проектам рядовой пайщик читает — это не сводный список', async () => {
+    const { resolver, segmentsService } = makeResolver();
+
+    await expect(
+      resolver.getSegments(pajshchik, { username: 'alice', is_component: true } as never, undefined)
+    ).resolves.toBeDefined();
+    expect(segmentsService.getSegments).toHaveBeenCalledWith(
+      { username: 'alice', is_component: true },
+      undefined
+    );
+  });
+
   it('совет и председатель сводный список читают', async () => {
     for (const actor of [sovetnik, predsedatel]) {
       const { resolver, segmentsService } = makeResolver();

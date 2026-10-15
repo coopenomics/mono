@@ -9,7 +9,7 @@ import { ResultRepository, RESULT_REPOSITORY } from '../../domain/repositories/r
 import { ResultDeltaMapper } from '../../infrastructure/blockchain/mappers/result-delta.mapper';
 import type { IResultBlockchainData } from '../../domain/interfaces/result-blockchain.interface';
 import { CapitalBlockchainPort, CAPITAL_BLOCKCHAIN_PORT } from '../../domain/interfaces/capital-blockchain.port';
-import { DomainToBlockchainUtils, waitAfterTransactBeforeChainTableRead, getAppliedBlockNum } from '@coopenomics/extension-kit';
+import { DomainToBlockchainUtils, getAppliedBlockNum } from '@coopenomics/extension-kit';
 
 /**
  * Сервис синхронизации результатов с блокчейном
@@ -72,7 +72,6 @@ export class ResultSyncService
       return null;
     }
 
-    await waitAfterTransactBeforeChainTableRead();
     // Получаем данные из блокчейна по индексу by_hash (result_hash)
     const blockchainResult = await this.capitalBlockchainPort.getResultByHash(existingResult.coopname || '', resultHash);
 

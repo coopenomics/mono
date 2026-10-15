@@ -1,5 +1,7 @@
 #pragma once
 
+
+#include "../core/ram_payer.hpp"
 #include <eosio/asset.hpp>
 #include <eosio/eosio.hpp>
 #include <string>
@@ -69,3 +71,6 @@ struct [[eosio::table, eosio::contract(LEDGER2)]] account2 {
 };
 
 typedef eosio::multi_index<"accounts"_n, account2> accounts2_index;
+
+// Плательщик за оперативную память строк таблицы — правило в lib/core/ram_payer.hpp.
+RAM_PAYER_CLASS(account2, contract);

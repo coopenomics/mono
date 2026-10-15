@@ -26,6 +26,21 @@ title: Кто читает документы проекта и его пере�
 # `@coopenomics/extension-kit` и `@coopenomics/innercoop`. Поведение операций,
 # правила доступа и набор случаев прежние.
 
+# Правка 2026-09-23 (C28-42): в репозиториях фичи изменилась только строка
+# импорта — выбор колонки сортировки `resolveSortColumn` переехал в
+# `@coopenomics/extension-kit`. Поведение и набор случаев не менялись.
+
+# Правка 25.09.2026 (C28-80): деловые отказы (не найдено, нет прав, уже есть,
+# неверный ввод) отвечают своим статусом — 404, 403, 409, 400, — а не 500
+# «внутренняя ошибка»: коды и тексты прежние, меняется только статус ответа, и
+# такие отказы больше не попадают в журнал ошибок сервера как поломки.
+
+# Правка 2026-10-03 (C28-87): сервис сверяет право на действие над проектом и
+# удаление задачи с таблицей ролей проекта (assertProjectPermission,
+# can_delete_issue); гард резолвера открыт ролям, которым таблица это
+# разрешает. Чтение документов проекта и приоритеты не менялись; случаи — в
+# capital.project-roles.
+
 sources:
   backend:
     - components/controller/src/extensions/capital/domain/services/access-policy.service.ts
@@ -35,9 +50,9 @@ sources:
     - components/controller/src/extensions/capital/application/services/issue-permissions.service.ts
     - components/controller/src/extensions/capital/application/services/generation.service.ts
     - components/controller/src/extensions/capital/application/services/project-management.service.ts
-    - components/controller/src/extensions/capital/infrastructure/repositories/issue.typeorm-repository.ts
-    - components/controller/src/extensions/capital/infrastructure/repositories/story.typeorm-repository.ts
-    - components/controller/src/extensions/capital/infrastructure/repositories/project.typeorm-repository.ts
+    - components/controller/src/extensions/capital/infrastructure/repositories/issue.kysely-repository.ts
+    - components/controller/src/extensions/capital/infrastructure/repositories/story.kysely-repository.ts
+    - components/controller/src/extensions/capital/infrastructure/repositories/project.kysely-repository.ts
     - components/controller/src/extensions/capital/infrastructure/inter/capital-inter-project-capital-clearance.adapter.ts
     - components/controller/src/extensions/chatcoop/application/services/chatcoop-communication-access.service.ts
     - components/controller/src/extensions/chatcoop/application/resolvers/project-communication.resolver.ts
@@ -52,6 +67,7 @@ cases:
     scenario: ведущий проекта запрашивает документы и переписку своего проекта
     expect: доступно и то, и другое
     test: components/controller/tests/unit/capital/artifact-and-communication-access.test.ts
+    api: components/api-tests/src/capital/artifact-access.test.ts
     status: passing
 
   - id: cap.access.happy.02
@@ -60,6 +76,7 @@ cases:
     scenario: пайщик с подтверждённым допуском запрашивает документы проекта
     expect: документы доступны
     test: components/controller/tests/unit/capital/artifact-and-communication-access.test.ts
+    api: components/api-tests/src/capital/artifact-access.test.ts
     status: passing
 
   - id: cap.access.side.01
@@ -68,6 +85,7 @@ cases:
     scenario: пайщик с допуском запрашивает переписку проекта
     expect: отказ — допуск к работам переписку не открывает
     test: components/controller/tests/unit/capital/artifact-and-communication-access.test.ts
+    api: components/api-tests/src/capital/artifact-access.test.ts
     status: passing
 
   - id: cap.access.side.02
@@ -76,6 +94,7 @@ cases:
     scenario: соавтор проекта запрашивает документы и переписку
     expect: документы доступны, переписка — нет
     test: components/controller/tests/unit/capital/artifact-and-communication-access.test.ts
+    api: components/api-tests/src/capital/artifact-access.test.ts
     status: passing
 
   - id: cap.access.side.03
@@ -84,6 +103,7 @@ cases:
     scenario: член совета без допуска запрашивает переписку чужого проекта
     expect: доступно — совет видит всё
     test: components/controller/tests/unit/capital/artifact-and-communication-access.test.ts
+    api: components/api-tests/src/capital/artifact-access.test.ts
     status: passing
 
   - id: cap.access.break.01
@@ -92,6 +112,7 @@ cases:
     scenario: посторонний пайщик запрашивает документы и переписку проекта
     expect: отказ по обоим
     test: components/controller/tests/unit/capital/artifact-and-communication-access.test.ts
+    api: components/api-tests/src/capital/artifact-access.test.ts
     status: passing
 
   # ── Каскад по иерархии ────────────────────────────────────────────────────
@@ -102,6 +123,7 @@ cases:
     scenario: ведущий проекта запрашивает переписку компонента этого проекта
     expect: доступно — роль на проекте распространяется на компоненты
     test: components/controller/tests/unit/capital/artifact-and-communication-access.test.ts
+    api: components/api-tests/src/capital/artifact-access.test.ts
     status: passing
 
   - id: cap.access.side.05
@@ -110,6 +132,7 @@ cases:
     scenario: пайщик с допуском к проекту запрашивает документы и переписку компонента
     expect: документы доступны, переписка — нет
     test: components/controller/tests/unit/capital/artifact-and-communication-access.test.ts
+    api: components/api-tests/src/capital/artifact-access.test.ts
     status: passing
 
   - id: cap.access.break.02
@@ -118,6 +141,7 @@ cases:
     scenario: запрос переписки по несуществующему проекту от ведущего другого проекта
     expect: отказ, а не пустой ответ «как будто проект есть и пуст»
     test: components/controller/tests/unit/capital/artifact-and-communication-access.test.ts
+    api: components/api-tests/src/capital/artifact-access.test.ts
     status: passing
 
   # ── Общие списки без указания проекта (синхронизация рабочей копии) ───────
@@ -128,6 +152,7 @@ cases:
     scenario: председатель запрашивает общий список задач и требований кооператива
     expect: ограничения не ставится, виден весь кооператив
     test: components/controller/tests/unit/capital/artifact-and-communication-access.test.ts
+    api: components/api-tests/src/capital/artifact-access.test.ts
     status: passing
 
   - id: cap.access.side.06
@@ -136,6 +161,7 @@ cases:
     scenario: ведущий запрашивает общий список без указания проекта
     expect: область сужается до его проектов и их компонентов
     test: components/controller/tests/unit/capital/artifact-and-communication-access.test.ts
+    api: components/api-tests/src/capital/artifact-access.test.ts
     status: passing
 
   - id: cap.access.side.07
@@ -144,6 +170,7 @@ cases:
     scenario: область доступа к переписке для пайщика с допуском
     expect: пустая — по этой роли переписка не открывается
     test: components/controller/tests/unit/capital/artifact-and-communication-access.test.ts
+    api: components/api-tests/src/capital/artifact-access.test.ts
     status: passing
 
   - id: cap.access.break.03
@@ -152,6 +179,7 @@ cases:
     scenario: запрос общего списка без авторизации
     expect: пустая область, а не «ограничения нет»
     test: components/controller/tests/unit/capital/artifact-and-communication-access.test.ts
+    api: components/api-tests/src/capital/artifact-access.test.ts
     status: passing
 
   - id: cap.access.break.04
@@ -163,8 +191,8 @@ cases:
     expect: >
       пустой ответ с нулевым счётчиком — количество чужих задач тоже не
       раскрывается
-    test: ~
-    status: missing
+    test: components/api-tests/src/capital/artifact-access.test.ts
+    status: written
 
   - id: cap.access.side.08
     level: backend
@@ -175,8 +203,8 @@ cases:
     expect: >
       счётчик и число страниц считаются по доступным задачам; страницы не
       приходят рваными из-за отсева после выборки
-    test: ~
-    status: missing
+    test: components/api-tests/src/capital/artifact-access.test.ts
+    status: written
 
   # ── Переписка: доступ проверяется по самой комнате ─────────────────────────
 
@@ -190,6 +218,7 @@ cases:
       отказ — доступ проверяется по комнате и её проекту, а не по тому, что
       комната названа в запросе
     test: components/controller/tests/unit/chatcoop/chatcoop-room-access.test.ts
+    api: components/api-tests/src/capital/artifact-access.test.ts
     status: passing
 
   - id: cap.access.break.06
@@ -198,6 +227,7 @@ cases:
     scenario: пайщик запрашивает комнаты пайщиков, совета или секретаря
     expect: пустой список — эти комнаты к проектам не привязаны и читаются только советом
     test: components/controller/tests/unit/chatcoop/chatcoop-room-access.test.ts
+    api: components/api-tests/src/capital/artifact-access.test.ts
     status: passing
 
   - id: cap.access.break.07
@@ -206,6 +236,7 @@ cases:
     scenario: пайщик запрашивает список записей звонков без указания комнаты
     expect: возвращаются только записи комнат, которые ему доступны
     test: components/controller/tests/unit/chatcoop/transcription-room-access.test.ts
+    api: components/api-tests/src/capital/artifact-access.test.ts
     status: passing
 
   - id: cap.access.side.09
@@ -216,6 +247,7 @@ cases:
       разрешено — заметку правит тот же круг, что и читает запись; раньше это
       мог только совет
     test: components/controller/tests/unit/chatcoop/transcription-room-access.test.ts
+    api: components/api-tests/src/capital/artifact-access.test.ts
     status: passing
 
   - id: cap.access.happy.04
@@ -226,6 +258,7 @@ cases:
       расшифровкой по репликам
     expect: доступно обоим
     test: components/controller/tests/unit/chatcoop/transcription-room-access.test.ts
+    api: components/api-tests/src/capital/artifact-access.test.ts
     status: passing
 
   - id: cap.access.break.09
@@ -239,6 +272,7 @@ cases:
       идентификатору комнаты звонка комната не ищется — иначе отказ получает
       даже председатель
     test: components/controller/tests/unit/chatcoop/transcription-room-access.test.ts
+    api: components/api-tests/src/capital/artifact-access.test.ts
     status: passing
 
   - id: cap.access.break.10
@@ -247,6 +281,7 @@ cases:
     scenario: запись звонка комнаты, которой нет в реестре комнат кооператива
     expect: отказ всем, включая совет — читать нечего и права считать не от чего
     test: components/controller/tests/unit/chatcoop/transcription-room-access.test.ts
+    api: components/api-tests/src/capital/artifact-access.test.ts
     status: passing
 
   # ── Кэш справочных чтений ─────────────────────────────────────────────────
@@ -259,6 +294,8 @@ cases:
       проект, допуск и участие читаются по одному разу на весь список, а не
       заново на каждую задачу
     test: components/controller/tests/unit/capital/artifact-and-communication-access.test.ts
+    external: unreachable
+    external_reason: "число чтений и память расчёта прав — внутренние свойства, снаружи не наблюдаются"
     status: passing
 
   - id: cap.access.break.08
@@ -269,4 +306,53 @@ cases:
       ошибка не запоминается — следующий запрос в том же расчёте читает
       заново, а не получает залипший отказ
     test: components/controller/tests/unit/capital/artifact-and-communication-access.test.ts
+    external: unreachable
+    external_reason: "число чтений и память расчёта прав — внутренние свойства, снаружи не наблюдаются"
     status: passing
+
+  - id: cap.artacc.show.01
+    level: backend
+    kind: break
+    scenario: >
+      Описание проекта, задачи или заметка к звонку отправлены прямо в API со
+      скриптом, минуя редактор кабинета.
+    expect: >
+      исполняемое вырезано при записи: очистка стоит на сервере, а не только в
+      браузере. Разметка, таблицы и схемы BPMN остаются нетронутыми. Общее
+      описание — platform.user-input-markup, задача C28-74
+    test: components/cooptypes/test/sanitize-editor-text.test.ts
+    api: components/api-tests/src/capital/artifact-access.test.ts
+    status: passing
+
+  - id: cap.access.side.11
+    level: backend
+    kind: side
+    scenario: >
+      хранилища зеркал Благороста после перевода на Kysely: условия правки и
+      удаления записей времени, выборка коммитов и историй проекта, чтение
+      проекта и адресов репозиториев; создание записи из дельты и версии перед
+      изменением
+    expect: >
+      условия запросов прежние: правятся и удаляются только подходящие записи,
+      хэши ищутся в нижнем регистре, удалённые в цепи проекты не отдаются;
+      устаревшая дельта запись не затирает, прежнее состояние перед изменением
+      уходит в версии
+    test: components/controller/tests/unit/capital/capital-chain-mirrors.test.ts
+    external: unreachable
+    external_reason: "проверяются условия запросов к базе и порядок работы с версиями — снаружи они не видны; поведение фичи через API покрыто её случаями во внешнем слое"
+    status: written
+
+# 2026-09-23 (EEA-6…EEA-9): тексты интерфейса, отказов и уведомлений фичи вынесены из
+# кода в словари i18n, отказы бэкенда переведены на DomainError с кодом — текст
+# и HTTP-статус ответа прежние. Сценарии фичи и её проверки не менялись.
+
+  # Права по таблице прав расширения (C28-87, кусок 3, 05.10.2026): операции
+  # стоят под общим гардом каркаса вместо `@AuthRoles`, состав исполнителей прежний.
+  - id: cap.access.side.12
+    level: backend
+    kind: side
+    scenario: операции расширения зовут пайщик, член совета, председатель и кандидат
+    expect: право есть у названных в таблице прав расширения, остальным отказ KIT_INSUFFICIENT_RIGHTS; кандидат прав пайщика не имеет
+    test: components/controller/tests/unit/rights/extension-rights-tables.test.ts
+    api: components/api-tests/src/rights/matrix.test.ts
+    status: written

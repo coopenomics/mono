@@ -1,4 +1,5 @@
 import { register } from 'register-service-worker';
+import { t } from 'src/shared/i18n';
 
 // Логирование только в production или при явном включении PWA в dev
 const isVerbose =
@@ -105,6 +106,7 @@ if (!shouldRegisterSW) {
 
   // Тост «Обновить» всё равно должен делать hard reload (не soft location.reload)
   window.applyUpdate = () => {
+    // i18n-ignore: причина для внутреннего console.log, пользователю не видна
     reloadOnce('SW отключён');
   };
   window.checkForUpdate = () => {
@@ -137,17 +139,29 @@ if (!shouldRegisterSW) {
     if (registrationInstance && registrationInstance.waiting) {
       registrationInstance.waiting.postMessage({ type: 'SKIP_WAITING' });
       // На случай если controllerchange не придёт — fallback через короткое ожидание
+      // i18n-ignore: причина для внутреннего console.log, пользователю не видна
       window.setTimeout(() => reloadOnce('fallback после SKIP_WAITING'), 1500);
     } else {
+      // i18n-ignore: причина для внутреннего console.log, пользователю не видна
       reloadOnce('waiting-SW нет');
     }
+  };
+
+  // Проверка обновления, которая не роняет отказ наружу. Браузер отклоняет
+  // `update()`, если регистрацию успели снять или она в переходном состоянии
+  // (вкладка из фона, параллельный деплой, Firefox Mobile), — это не ошибка
+  // приложения: следующая проверка при возврате на вкладку пройдёт штатно.
+  const safeUpdate = (registration: ServiceWorkerRegistration): void => {
+    registration.update().catch((error: unknown) => {
+      if (isVerbose) console.warn('Проверка обновления Service Worker пропущена:', error);
+    });
   };
 
   // Функция для проверки доступности обновления
   const checkForUpdate = function () {
     if (registrationInstance) {
       if (isVerbose) console.log('Проверяем обновления...');
-      registrationInstance.update();
+      safeUpdate(registrationInstance);
     } else {
       if (isVerbose) console.log('Service Worker не зарегистрирован');
     }
@@ -187,14 +201,14 @@ if (!shouldRegisterSW) {
         console.log('Service Worker зарегистрирован:', registration);
 
       // Сразу после регистрации ищем новый SW (холодный заход после деплоя).
-      void registration.update();
+      safeUpdate(registration);
 
       // Проверяем обновления только при фокусе окна
       let updateInterval: ReturnType<typeof setTimeout> | null = null;
 
       const checkForUpdates = () => {
         if (document.visibilityState === 'visible') {
-          void registration.update();
+          safeUpdate(registration);
         }
       };
 
@@ -293,8 +307,8 @@ if (!shouldRegisterSW) {
 
       // Показываем уведомление об офлайн режиме
       if ('Notification' in window && Notification.permission === 'granted') {
-        new Notification('Офлайн режим', {
-          body: 'Приложение работает в автономном режиме',
+        new Notification(t('app.registerServiceWorker.offlineTitle'), {
+          body: t('app.registerServiceWorker.offlineBody'),
           icon: '/icons/icon-192x192.png',
         });
       }

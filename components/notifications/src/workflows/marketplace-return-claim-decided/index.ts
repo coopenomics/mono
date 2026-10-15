@@ -3,7 +3,7 @@ import { WorkflowBuilder } from '../../base/workflow-builder';
 import { z } from 'zod';
 import { BaseWorkflowPayload } from '../../types';
 import { createEmailStep, createInAppStep, createPushStep } from '../../base/defaults';
-import { slugify } from '../../utils';
+import { nt } from '../../i18n';
 
 export const marketplaceReturnClaimDecidedPayloadSchema = z.object({
   ordererName: z.string(),
@@ -20,31 +20,34 @@ export type IPayload = z.infer<typeof marketplaceReturnClaimDecidedPayloadSchema
 
 export interface IWorkflow extends BaseWorkflowPayload, IPayload {}
 
-export const name = 'Решение по заявлению на гарантийный возврат';
-export const id = slugify(name);
+export const name = nt('marketplaceReturnClaimDecided.name');
+// Идентификатор закреплён: раньше он вычислялся из названия, и правка
+// или перевод названия меняли бы его. Не менять — на него ссылаются подписки.
+export const id = 'reshenie-po-zayavleniyu-na-garantiyniy-vozvrat';
 
 export const workflow: WorkflowDefinition<IWorkflow> = WorkflowBuilder
   .create<IWorkflow>()
   .name(name)
   .workflowId(id)
-  .description('Уведомление пайщику-заказчику о решении, принятом на пункте выдачи по его заявлению на гарантийный возврат (одобрение очного визита / отказ удалённо). Решение принимает оператор пункта выдачи — председатель участка либо его доверенное лицо.')
+  .i18nKey('marketplaceReturnClaimDecided')
+  .description(nt('marketplaceReturnClaimDecided.description'))
   .payloadSchema(marketplaceReturnClaimDecidedPayloadSchema)
   .tags(['marketplace', 'orderer', 'return'])
   .addSteps([
     createEmailStep(
       'marketplace-return-claim-decided-email',
-      'Решение по вашему заявлению на возврат: {{payload.decisionHuman}}',
-      'Уважаемый {{payload.ordererName}}!<br><br>На пункте выдачи <strong>{{payload.brananame}}</strong> принято решение по вашему заявлению на гарантийный возврат по заказу <strong>{{payload.order_id}}</strong>: <strong>{{payload.decisionHuman}}</strong>.<br><br>Комментарий: {{payload.comment}}<br><br>Подробности заявления: {{payload.deepLinkUrl}}'
+      nt('marketplaceReturnClaimDecided.email.subject'),
+      nt('marketplaceReturnClaimDecided.email.body')
     ),
     createInAppStep(
       'marketplace-return-claim-decided-notification',
-      'Решение по заявлению на возврат',
-      'По вашему заявлению: {{payload.decisionHuman}} — {{payload.comment}}'
+      nt('marketplaceReturnClaimDecided.inApp.subject'),
+      nt('marketplaceReturnClaimDecided.inApp.body')
     ),
     createPushStep(
       'marketplace-return-claim-decided-push',
-      'Решение по заявлению на возврат',
-      '{{payload.decisionHuman}}: {{payload.comment}}'
+      nt('marketplaceReturnClaimDecided.push.subject'),
+      nt('marketplaceReturnClaimDecided.push.body')
     ),
   ])
   .build();

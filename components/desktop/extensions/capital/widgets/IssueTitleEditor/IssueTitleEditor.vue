@@ -2,12 +2,12 @@
 q-input(
   v-if="issue"
   v-model='title'
-  :label='label || "Задача"'
+  :label='label || $t("capital.issueTitleEditor.placeholder")'
   outline
   :readonly="!permissions?.can_edit_issue"
   @input="handleTitleChange"
   :hide-bottom-space="!$slots.hint"
-  :rules="[val => !!val || 'Название задачи обязательно']"
+  :rules="[val => !!val || $t('capital.issueTitleEditor.requiredError')]"
   type="textarea"
   autogrow
 ).full-width.capital-title-editor-input
@@ -23,7 +23,7 @@ q-input(
       size="sm"
       @click="resetChanges"
     )
-      q-tooltip Отменить изменения
+      q-tooltip {{ $t('capital.issueTitleEditor.cancelTooltip') }}
     .row.items-center.no-wrap.q-gutter-xs(v-else)
       PrivateShieldIcon(:show='isPrivateIssue')
       slot(name="prepend-icon")
@@ -41,7 +41,7 @@ q-input(
         :loading="isSaving"
         @click="saveChanges"
       )
-        q-tooltip Сохранить изменения
+        q-tooltip {{ $t('capital.issueTitleEditor.saveTooltip') }}
       .row.items-center.no-wrap(v-if="!(hasChanges && permissions?.can_edit_issue)")
         FavoriteStarButton(
           v-if='issue?.issue_hash',

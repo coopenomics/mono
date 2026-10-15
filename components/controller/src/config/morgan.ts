@@ -46,9 +46,10 @@ morgan.token('gql-operation', (req) => {
   return GQL_ROOT_FIELD.exec(query)?.[1]?.slice(0, 64) ?? '-';
 });
 
-// Новый токен для определения IP с проверкой нескольких заголовков
+// Адрес клиента — тот же, что видят лимиты и аудит (`req.ip` с учётом
+// TRUST_PROXY), а не сырой заголовок, который прислать может кто угодно.
 morgan.token('client-ip', (req) => {
-  return req.headers['cf-connecting-ip'] || req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+  return req.headers['cf-connecting-ip'] || (req as unknown as { ip?: string }).ip || req.connection.remoteAddress;
 });
 
 // Сквозной идентификатор запроса (C28-53). Его выдаёт L7-маршрутизатор и

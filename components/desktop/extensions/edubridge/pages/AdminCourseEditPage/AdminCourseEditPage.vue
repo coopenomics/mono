@@ -1,0 +1,186 @@
+<template lang="pug">
+q-page.edu-course-edit
+  .edu-course-edit__col
+    CardListSkeleton(v-if="isEdit && firstLoad" :count="1")
+
+    EmptyState(v-else-if="isEdit && !course" :title="$t('edubridge.adminCourseEditPage.notFoundTitle')" :body="$t('edubridge.adminCourseEditPage.notFoundBody')")
+      template(#icon)
+        q-icon(name="search_off" size="40px")
+
+    //- Курс заполняется по разделам сверху вниз, как заявка на поставку: у
+    //- каждого шага свой смысл, поля не теснятся. Состояние формы живёт у
+    //- страницы, поэтому переход между шагами введённое не теряет.
+    template(v-else)
+      VerticalStepper(
+        :steps="steps"
+        :active-key="activeKey"
+        :completed="completedKeys"
+        @change="goTo"
+      )
+        template(#active="{ step }")
+          .edu-course-edit__step
+            CourseForm(ref="formRef" :section="sectionOf(step.key)" hide-footer @saved="onSaved" @busy="(v) => (saving = v)")
+
+      footer.edu-course-edit__foot
+        BaseButton(v-if="index === 0" variant="ghost" :disabled="saving" @click="leave") {{ $t('edubridge.adminCourseEditPage.cancel') }}
+        BaseButton(v-else variant="ghost" :disabled="saving" @click="goTo(steps[index - 1].key)")
+          template(#icon-left)
+            q-icon(name="arrow_back" size="16px")
+          | {{ $t('common.action.back') }}
+        q-space
+        BaseButton(v-if="!isLast" :variant="isEdit ? 'secondary' : 'primary'" :disabled="saving" @click="next")
+          | {{ $t('common.action.next') }}
+          template(#icon-right)
+            q-icon(name="arrow_forward" size="16px")
+        BaseButton(v-if="isEdit || isLast" variant="primary" :loading="saving" @click="save") {{ isEdit ? $t('common.action.save') : $t('edubridge.adminCourseEditPage.addCourseSubmit') }}
+</template>
+
+<script setup lang="ts">
+// realtime: форма правки курса — живое перечитывание затёрло бы ввод администратора.
+import { computed, onMounted, ref } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+import { asText } from 'src/shared/lib/utils';
+import { useFirstLoad, useFormDraft } from 'src/shared/lib/composables';
+import { FailAlert } from 'src/shared/api';
+import { BaseButton, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
+import { VerticalStepper, type StepperStep } from 'src/shared/ui/domain';
+import { fetchCourse, type ICourse } from '../../entities/Course';
+import { CourseForm, provideCourseForm, type CourseFormSection } from '../../widgets/CourseForm';
+import { t } from '../../i18n';
+
+/**
+ * Полная страница курса: новый курс и правка существующего. Разделы идут шагами;
+ * при правке все шаги открыты сразу и сохранить можно с любого, при создании —
+ * по порядку, «Добавить курс» на последнем шаге.
+ */
+const route = useRoute();
+const router = useRouter();
+
+const courseId = computed(() => (route.params.id ? String(route.params.id) : ''));
+const isEdit = computed(() => Boolean(courseId.value));
+
+const course = ref<ICourse | null>(null);
+// У правки курса загрузка идёт с самого начала — до её конца каркас; у нового курса грузить нечего.
+const loading = ref(isEdit.value);
+const firstLoad = useFirstLoad(loading);
+const saving = ref(false);
+const formRef = ref<InstanceType<typeof CourseForm> | null>(null);
+
+const state = provideCourseForm(() => course.value);
+
+const allSteps: Array<StepperStep & { key: CourseFormSection }> = [
+  { key: 'course', label: t('edubridge.adminCourseEditPage.step.course.label'), description: t('edubridge.adminCourseEditPage.step.course.description') },
+  // Расписание, программа и взнос — одним шагом: всё, из чего складывается взнос, рядом.
+  { key: 'lessons', label: t('edubridge.adminCourseEditPage.step.lessons.label'), description: t('edubridge.adminCourseEditPage.step.lessons.description') },
+  { key: 'access', label: t('edubridge.adminCourseEditPage.step.access.label'), description: t('edubridge.adminCourseEditPage.step.access.description') },
+  { key: 'group', label: t('edubridge.adminCourseEditPage.step.group.label'), description: t('edubridge.adminCourseEditPage.step.group.description'), optional: true },
+  { key: 'teachers', label: t('edubridge.adminCourseEditPage.step.teachers.label'), description: t('edubridge.adminCourseEditPage.step.teachers.description'), optional: true },
+  // Обложка — последней: снимок для каталога не мешает расчёту.
+  { key: 'cover', label: t('edubridge.adminCourseEditPage.step.cover.label'), description: t('edubridge.adminCourseEditPage.step.cover.description'), optional: true },
+];
+// Первая группа заводится вместе с новым курсом; у существующего группы ведутся на странице курса.
+const steps = allSteps.filter((s) => s.key !== 'group' || !isEdit.value);
+
+const activeKey = ref<CourseFormSection>('course');
+const visited = ref<CourseFormSection[]>([]);
+const index = computed(() => steps.findIndex((s) => s.key === activeKey.value));
+const isLast = computed(() => index.value === steps.length - 1);
+// При правке курс уже заполнен — любой шаг открыт; при создании — пройденные.
+const completedKeys = computed(() =>
+  isEdit.value ? steps.map((s) => s.key).filter((k) => k !== activeKey.value) : visited.value,
+);
+
+/** Ключ шага из списка — он же раздел формы. */
+function sectionOf(key: string): CourseFormSection {
+  return steps.find((s) => s.key === key)?.key ?? 'course';
+}
+
+function goTo(key: string): void {
+  activeKey.value = sectionOf(key);
+}
+
+async function next(): Promise<void> {
+  if (!(await formRef.value?.validate())) return;
+  if (!visited.value.includes(activeKey.value)) visited.value.push(activeKey.value);
+  goTo(steps[index.value + 1]!.key);
+}
+
+async function save(): Promise<void> {
+  await formRef.value?.submit();
+}
+
+function leave(): void {
+  if (isEdit.value) void router.push({ name: 'edubridge-admin-course', params: { coopname: route.params.coopname, id: courseId.value } });
+  else void router.push({ name: 'edubridge-admin-courses', params: { coopname: route.params.coopname } });
+}
+
+function onSaved(saved: ICourse): void {
+  if (!isEdit.value) clearDraft();
+  void router.push({ name: 'edubridge-admin-course', params: { coopname: route.params.coopname, id: asText(saved.id) } });
+}
+
+// Черновик нового курса: ушли со страницы или перезагрузили — введённое на
+// месте, вместе с шагом и обложкой (если она влезает в хранилище браузера).
+// Стирается после добавления курса.
+const { clearDraft } = isEdit.value
+  ? { clearDraft: () => undefined }
+  : useFormDraft(
+      'edubridge:create-course-draft',
+      {
+        form: state.form,
+        cover: state.draftCover,
+        programMonths: state.programMonths,
+        payPerLearner: state.payPerLearner,
+        guaranteeDays: state.guaranteeDays,
+        coursePayment: state.coursePayment,
+        courseDiscount: state.courseDiscount,
+        skillspaceCourseId: state.skillspaceCourseId,
+        skillspaceGroupId: state.skillspaceGroupId,
+        activeKey,
+        visited,
+      },
+      { restoreOnMount: true },
+    );
+
+onMounted(async () => {
+  if (!isEdit.value) return;
+  loading.value = true;
+  try {
+    course.value = await fetchCourse(courseId.value);
+  } catch (e) {
+    FailAlert(e);
+  } finally {
+    loading.value = false;
+  }
+});
+</script>
+
+<style scoped>
+.edu-course-edit {
+  padding: var(--p-6) var(--p-4);
+}
+.edu-course-edit__col {
+  max-width: 720px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-4);
+}
+.edu-course-edit__step {
+  padding: var(--p-2) 0 var(--p-4);
+}
+/* Навигация прибита к низу экрана: «Назад» и «Сохранить» всегда на виду.
+   margin-bottom гасит нижний отступ страницы — бар не прыгает в конце прокрутки. */
+.edu-course-edit__foot {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: var(--p-2);
+  margin-bottom: calc(-1 * var(--p-6));
+  padding: var(--p-3) 0;
+  background: var(--p-canvas);
+  border-top: 1px solid var(--p-line);
+}
+</style>

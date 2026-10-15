@@ -1,10 +1,11 @@
-import { Injectable, Inject, UnauthorizedException } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import { wifPermissions } from '~/domain/vault/types/vault.types';
 import { PrivateKey } from '@wharfkit/antelope';
 import type { SetWifInputDomainInterface } from '~/domain/system/interfaces/set-wif-input-domain.interface';
 import { AccountDomainService } from '~/domain/account/services/account-domain.service';
 import { BLOCKCHAIN_PORT, BlockchainPort } from '~/domain/common/ports/blockchain.port';
 import { VaultDomainService, VAULT_DOMAIN_SERVICE } from '~/domain/vault/services/vault-domain.service';
+import { DomainError } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class WifInteractor {
@@ -18,15 +19,22 @@ export class WifInteractor {
     // Получаем аккаунт из блокчейна
     const blockchainAccount = await this.accountDomainService.getBlockchainAccount(data.username);
 
-    // Получаем публичный ключ из приватного в PUB_K1_ формате (основной формат)
-    const publicKeyObj = PrivateKey.fromString(data.wif).toPublic();
+    // Получаем публичный ключ из приватного в PUB_K1_ формате (основной формат).
+    // Строка, которая не разбирается как ключ, — неверный ввод, а не сбой
+    // сервера: до 25.09.2026 уходила ответом 500 (C28-80).
+    let publicKeyObj: ReturnType<PrivateKey['toPublic']>;
+    try {
+      publicKeyObj = PrivateKey.fromString(data.wif).toPublic();
+    } catch {
+      throw DomainError.badRequest('AUTH_INVALID_PRIVATE_KEY');
+    }
     const publicKeyK1 = publicKeyObj.toString(); // PUB_K1_... формат
 
     // Проверяем, что ключ есть в активных разрешениях
     const hasKey = this.blockchainPort.hasActiveKey(blockchainAccount, publicKeyK1);
 
     if (!hasKey) {
-      throw new UnauthorizedException('Неверный приватный ключ');
+      throw DomainError.unauthorized('AUTH_INVALID_PRIVATE_KEY');
     }
 
     // Сохраняем ключ в зашифрованном хранилище

@@ -31,6 +31,7 @@ function createWavBuffer(pcmBuffer: Buffer, sampleRate: number, channels: number
 }
 
 function delayMs(ms: number): Promise<void> {
+  // timing: backoff — повтор распознавания после временного отказа сервиса
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 

@@ -11,13 +11,13 @@ q-card.column.no-wrap.edit-req-panel(
   .edit-req-panel__head.q-px-md.q-pb-sm
     q-input.full-width.capital-title-editor-input(
       v-model='localTitle'
-      label='Артефакт'
+      :label='$t("capital.editRequirementPanel.titleFieldLabel")'
       :readonly='!canEdit'
       outline
       type='textarea'
       autogrow
       hide-bottom-space
-      :rules='[(val) => !!val?.trim() || "Заголовок обязателен"]'
+      :rules='[(val) => !!val?.trim() || $t("capital.editRequirementPanel.titleRequiredError")]'
     )
       template(#prepend)
         q-btn(
@@ -31,7 +31,7 @@ q-card.column.no-wrap.edit-req-panel(
           :disable='isSaving'
           @click='resetChanges'
         )
-          q-tooltip Отменить изменения
+          q-tooltip {{ $t('capital.editRequirementPanel.cancelChanges') }}
         q-icon(v-else :name='formatIcon' size='24px' color='primary')
       template(#append)
         BaseButton(
@@ -39,7 +39,7 @@ q-card.column.no-wrap.edit-req-panel(
           variant='ghost'
           size='sm'
           icon-only
-          aria-label='Закрыть'
+          :aria-label='$t("common.action.close")'
           @click='handleClose'
         )
           template(#icon-left)
@@ -97,7 +97,7 @@ q-card.column.no-wrap.edit-req-panel(
       Editor(
         v-model='localDescription'
         :readonly='!canEdit'
-        :placeholder='canEdit ? "Опишите артефакт подробно..." : "Описание отсутствует"'
+        :placeholder='canEdit ? $t("capital.editRequirementPanel.descriptionPlaceholder") : $t("capital.editRequirementPanel.descriptionEmpty")'
         :minHeight='markdownViewportMinHeight'
         :padded='false'
         :show-focus-ring="variant === 'dialog'"
@@ -129,6 +129,7 @@ import {
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import type { IStory } from 'app/extensions/capital/entities/Story/model';
 import { api as StoryApi } from 'app/extensions/capital/entities/Story/api';
+import { t } from '../../../../i18n';
 
 export type EditRequirementPanelVariant = 'dialog' | 'page';
 
@@ -226,7 +227,7 @@ watch(
 const handleClose = () => {
   if (hasChanges.value) {
     if (
-      confirm('У вас есть несохранённые изменения. Вы уверены, что хотите закрыть?')
+      confirm(t('capital.editRequirementPanel.unsavedCloseConfirm'))
     ) {
       if (props.variant === 'dialog') {
         emit('close');
@@ -266,8 +267,8 @@ const handleSave = async () => {
     originalDescription.value = localDescription.value;
     baseRevOverride.value = null;
 
-    saveNote.value = merged ? 'Сохранено и слито с параллельными правками' : 'Сохранено';
-    SuccessAlert(merged ? 'Артефакт сохранён и слит с параллельными правками' : 'Артефакт успешно обновлён');
+    saveNote.value = merged ? t('capital.editRequirementPanel.savedMergedSuccess') : t('capital.editRequirementPanel.savedSuccess');
+    SuccessAlert(merged ? t('capital.editRequirementPanel.savedMergedFullSuccess') : t('capital.editRequirementPanel.updatedSuccess'));
     emit('updated', updatedRequirement);
   } catch (error) {
     const c = extractContentConflict(error);
@@ -277,7 +278,7 @@ const handleSave = async () => {
       return;
     }
     console.error('Ошибка при обновлении артефакта:', error);
-    FailAlert('Не удалось обновить артефакт');
+    FailAlert(t('capital.editRequirementPanel.updateError'));
   } finally {
     isSaving.value = false;
   }
@@ -316,7 +317,7 @@ function tryNavigateAway(): boolean {
     return true;
   }
   return confirm(
-    'У вас есть несохранённые изменения. Уйти со страницы?',
+    t('capital.editRequirementPanel.unsavedLeaveConfirm'),
   );
 }
 

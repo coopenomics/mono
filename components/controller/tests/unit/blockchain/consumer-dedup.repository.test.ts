@@ -1,99 +1,64 @@
 /**
- * Unit-тесты TypeOrmConsumerDedupRepository (Story 2.1).
+ * Отметки применённых событий цепи: защита от повторной доставки.
  *
- * Фокус — контракт идемпотентности: isApplied отражает наличие метки,
- * markApplied вставляет с ON CONFLICT DO NOTHING (повтор не падает).
+ * Инварианты: наличие отметки читается по ключу события; повторная отметка не
+ * падает (ON CONFLICT DO NOTHING); номер блока пишется строкой (bigint), у
+ * старых вызовов без блока — пусто; форк снимает отметки после блока.
  */
+import { ConsumerDedupKyselyRepository } from '~/infrastructure/database/kysely/repositories/consumer-dedup.kysely-repository';
+import { recordingKysely } from '../helpers/kysely-recorder';
 
-import { TypeOrmConsumerDedupRepository } from '~/infrastructure/database/typeorm/repositories/typeorm-consumer-dedup.repository';
-
-function makeQueryBuilderStub() {
-  const execute = jest.fn(async () => ({ affected: 1 }));
-  const qb: any = {
-    insert: jest.fn(() => qb),
-    into: jest.fn(() => qb),
-    values: jest.fn(() => qb),
-    orIgnore: jest.fn(() => qb),
-    delete: jest.fn(() => qb),
-    from: jest.fn(() => qb),
-    where: jest.fn(() => qb),
-    execute,
-  };
-  return qb;
-}
-
-describe('TypeOrmConsumerDedupRepository (Story 2.1)', () => {
+describe('ConsumerDedupKyselyRepository', () => {
   it('isApplied → true, когда метка найдена', async () => {
-    const repoStub: any = { findOne: jest.fn(async () => ({ event_id: 'e1' })) };
-    const repo = new TypeOrmConsumerDedupRepository(repoStub);
-    expect(await repo.isApplied('e1')).toBe(true);
+    const { db, queries } = recordingKysely([{ rows: [{ event_id: 'e1' }] }]);
+    expect(await new ConsumerDedupKyselyRepository(db).isApplied('e1')).toBe(true);
+    expect(queries[0].sql).toBe('select "event_id" from "consumer_dedup" where "event_id" = $1');
+    expect(queries[0].parameters).toEqual(['e1']);
   });
 
   it('isApplied → false, когда метки нет', async () => {
-    const repoStub: any = { findOne: jest.fn(async () => null) };
-    const repo = new TypeOrmConsumerDedupRepository(repoStub);
-    expect(await repo.isApplied('e1')).toBe(false);
+    const { db } = recordingKysely();
+    expect(await new ConsumerDedupKyselyRepository(db).isApplied('e1')).toBe(false);
   });
 
-  it('markApplied без blockNum пишет block_num=null (legacy-вызов)', async () => {
-    const qb = makeQueryBuilderStub();
-    const repoStub: any = { createQueryBuilder: jest.fn(() => qb) };
-    const repo = new TypeOrmConsumerDedupRepository(repoStub);
+  it('markApplied без номера блока пишет пустой блок, повтор не падает', async () => {
+    const { db, queries } = recordingKysely();
 
-    await repo.markApplied('e1');
+    await new ConsumerDedupKyselyRepository(db).markApplied('e1');
 
-    expect(qb.values).toHaveBeenCalledWith({ event_id: 'e1', block_num: null });
-    expect(qb.orIgnore).toHaveBeenCalled();
-    expect(qb.execute).toHaveBeenCalled();
+    expect(queries[0].sql).toBe(
+      'insert into "consumer_dedup" ("event_id", "block_num") values ($1, $2) on conflict do nothing'
+    );
+    expect(queries[0].parameters).toEqual(['e1', null]);
   });
 
-  it('markApplied с blockNum пишет block_num как строку (Story 4.1, bigint serialization)', async () => {
-    const qb = makeQueryBuilderStub();
-    const repoStub: any = { createQueryBuilder: jest.fn(() => qb) };
-    const repo = new TypeOrmConsumerDedupRepository(repoStub);
+  it('markApplied с номером блока пишет его строкой', async () => {
+    const { db, queries } = recordingKysely();
 
-    await repo.markApplied('e1', 12345);
+    await new ConsumerDedupKyselyRepository(db).markApplied('e1', 12345);
 
-    expect(qb.values).toHaveBeenCalledWith({ event_id: 'e1', block_num: '12345' });
+    expect(queries[0].parameters).toEqual(['e1', '12345']);
   });
 
   it('deleteOlderThan возвращает число удалённых строк', async () => {
-    const qb = makeQueryBuilderStub();
-    qb.execute.mockResolvedValueOnce({ affected: 7 });
-    const repoStub: any = { createQueryBuilder: jest.fn(() => qb) };
-    const repo = new TypeOrmConsumerDedupRepository(repoStub);
+    const { db, queries } = recordingKysely([{ affected: 7 }]);
+    const cutoff = new Date('2026-10-01T00:00:00Z');
 
-    expect(await repo.deleteOlderThan(new Date())).toBe(7);
+    expect(await new ConsumerDedupKyselyRepository(db).deleteOlderThan(cutoff)).toBe(7);
+    expect(queries[0].sql).toBe('delete from "consumer_dedup" where "applied_at" < $1');
+    expect(queries[0].parameters).toEqual([cutoff]);
   });
 
-  it('deleteAfterBlock (Story 4.1) выполняет DELETE WHERE block_num > N и возвращает число удалённых', async () => {
-    const qb = makeQueryBuilderStub();
-    qb.execute.mockResolvedValueOnce({ affected: 3 });
-    const repoStub: any = { createQueryBuilder: jest.fn(() => qb) };
-    const repo = new TypeOrmConsumerDedupRepository(repoStub);
+  it('deleteAfterBlock снимает отметки после блока и возвращает их число', async () => {
+    const { db, queries } = recordingKysely([{ affected: 3 }]);
 
-    const purged = await repo.deleteAfterBlock(1000);
-
-    expect(qb.delete).toHaveBeenCalled();
-    expect(qb.where).toHaveBeenCalledWith('block_num > :blockNum', { blockNum: 1000 });
-    expect(purged).toBe(3);
+    expect(await new ConsumerDedupKyselyRepository(db).deleteAfterBlock(1000)).toBe(3);
+    expect(queries[0].sql).toBe('delete from "consumer_dedup" where "block_num" > $1');
+    expect(queries[0].parameters).toEqual(['1000']);
   });
 
-  it('deleteAfterBlock возвращает 0 при пустом результате', async () => {
-    const qb = makeQueryBuilderStub();
-    qb.execute.mockResolvedValueOnce({ affected: 0 });
-    const repoStub: any = { createQueryBuilder: jest.fn(() => qb) };
-    const repo = new TypeOrmConsumerDedupRepository(repoStub);
-
-    expect(await repo.deleteAfterBlock(999)).toBe(0);
-  });
-
-  it('deleteAfterBlock возвращает 0, если драйвер не вернул affected', async () => {
-    const qb = makeQueryBuilderStub();
-    qb.execute.mockResolvedValueOnce({});
-    const repoStub: any = { createQueryBuilder: jest.fn(() => qb) };
-    const repo = new TypeOrmConsumerDedupRepository(repoStub);
-
-    expect(await repo.deleteAfterBlock(999)).toBe(0);
+  it('deleteAfterBlock возвращает 0 при пустом результате и когда драйвер не сообщил число строк', async () => {
+    expect(await new ConsumerDedupKyselyRepository(recordingKysely([{ affected: 0 }]).db).deleteAfterBlock(999)).toBe(0);
+    expect(await new ConsumerDedupKyselyRepository(recordingKysely().db).deleteAfterBlock(999)).toBe(0);
   });
 });

@@ -28,9 +28,9 @@
 | Participant | — | read | update (роли, 6.6) |
 | VerificationRule | — | read | manage |
 | CoopSettings | — | — | manage |
-| CriticalAction | — | read + **confirm** (6.8) | + create (инициатор) |
 | Capability | — | — | create (6.7) |
 | AuditEvent | — | read | (наследует) |
+| MembershipExit | generate (свой выход) | generate (любого пайщика) | (наследует) |
 
 Критические действия (исключение, смена ролей совета, force-recovery) финализируются только
 двумя подписями (Story 6.8) — Chairman инициирует (`create`), Member подтверждает (`confirm`).

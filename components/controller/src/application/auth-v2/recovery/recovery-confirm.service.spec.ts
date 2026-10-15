@@ -76,11 +76,41 @@ describe('RecoveryConfirmService (Story 3.2 — двухканальное по�
     expect(finalization.finalize).not.toHaveBeenCalled();
   });
 
-  it('confirm: 2FA не подключён → TwoFactorNotEnrolled, токен НЕ потреблён', async () => {
+  it('confirm: 2FA не подключён → код не спрашивается, восстановление проходит', async () => {
+    // Решение владельца 03.09.2026: TOTP требуется только тем, кто его подключал.
+    // Раньше здесь летел TwoFactorNotEnrolled, и у большинства пайщиков восстановление
+    // было мертво — экран просил код, которого у них нет и быть не может.
+    const { service, tokenStore, twoFactor, finalization, audit } = setup();
+    tokenStore.peek.mockResolvedValueOnce(PAYLOAD);
+    tokenStore.consume.mockResolvedValueOnce(PAYLOAD);
+    twoFactor.isEnabled.mockResolvedValueOnce(false);
+
+    await expect(service.confirm({ ...INPUT, code: undefined }, null)).resolves.toEqual({
+      username: PAYLOAD.username,
+    });
+
+    // Код не проверяем вовсе — проверять нечего.
+    expect(twoFactor.verify).not.toHaveBeenCalled();
+    expect(finalization.finalize).toHaveBeenCalledTimes(1);
+    // В журнале видно, чем подтвердили: только ссылкой из почты.
+    expect(audit.record).toHaveBeenCalledWith(
+      expect.objectContaining({
+        event: 'coopid.recovery.confirmed',
+        result: 'success',
+        context: expect.objectContaining({ second_factor: 'none' }),
+      }),
+    );
+  });
+
+  it('confirm: 2FA подключён → код по-прежнему обязателен (контур двух каналов цел)', async () => {
     const { service, tokenStore, twoFactor, finalization } = setup();
     tokenStore.peek.mockResolvedValueOnce(PAYLOAD);
-    twoFactor.isEnabled.mockResolvedValueOnce(false);
-    await expect(service.confirm(INPUT, null)).rejects.toMatchObject({ code: AuthV2ErrorCode.TwoFactorNotEnrolled });
+    twoFactor.isEnabled.mockResolvedValueOnce(true);
+    twoFactor.verify.mockResolvedValueOnce(false);
+
+    await expect(service.confirm({ ...INPUT, code: undefined }, null)).rejects.toMatchObject({
+      code: AuthV2ErrorCode.InvalidTwoFactorCode,
+    });
     expect(tokenStore.consume).not.toHaveBeenCalled();
     expect(finalization.finalize).not.toHaveBeenCalled();
   });

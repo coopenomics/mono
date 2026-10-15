@@ -15,4 +15,6 @@ export interface UserFilterInputDomainInterface {
   subscriber_id?: string;
   created_from?: Date;
   created_to?: Date;
+  /** Только эти аккаунты (отбор, посчитанный вне базы, например по цепи). */
+  usernames?: string[];
 }

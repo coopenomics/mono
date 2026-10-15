@@ -1,5 +1,5 @@
 import { Resolver, Query, Mutation, Args, Int } from '@nestjs/graphql';
-import { Injectable, Inject, UseGuards, BadRequestException } from '@nestjs/common';
+import { Injectable, Inject, UseGuards } from '@nestjs/common';
 import {
   AvailableCategoryDomainService,
   AVAILABLE_CATEGORY_DOMAIN_SERVICE,
@@ -19,8 +19,9 @@ import { AddAvailableCategoryTypesInput } from '../dto/add-available-category-ty
 import { RemoveAvailableCategoriesInput } from '../dto/remove-available-categories-input.dto';
 import { RemoveAvailableCategoryTypesInput } from '../dto/remove-available-category-types-input.dto';
 import { ReplaceAvailableItemsInput } from '../dto/replace-available-items-input.dto';
-import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser, platformSettings } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, CurrentUser, platformSettings, DomainError, RequireRight, RightsGuard } from '@coopenomics/extension-kit';
 import type { IMonoAccount } from '@coopenomics/innercoop';
+import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
 
 /**
  * GraphQL резолвер для администрирования доступных категорий и типов товаров marketplace
@@ -46,8 +47,8 @@ export class AvailableCategoryAdminResolver {
     name: 'marketplaceListCoopCategories',
     description: 'Категории кооператива: общие и собственные',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
+  @RequireRight('Whitelist', 'manage')
   async listCoopCategories(): Promise<MarketplaceCategoryDTO[]> {
     const cats = await this.categoryService.listForCoop(platformSettings().coopname);
     return cats.map(
@@ -68,23 +69,21 @@ export class AvailableCategoryAdminResolver {
     name: 'marketplaceCreateCustomCategory',
     description: 'Добавить собственную категорию кооператива',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
+  @RequireRight('Whitelist', 'manage')
   async createCustomCategory(
     @Args('input', { type: () => CreateCustomCategoryInput })
     input: CreateCustomCategoryInput
   ): Promise<MarketplaceCategoryDTO> {
-    try {
-      const c = await this.categoryService.createCustom(platformSettings().coopname, input.displayName);
-      return new MarketplaceCategoryDTO({
-        id: c.id,
-        display_name: c.display_name,
-        sort_order: c.sort_order,
-        mvp_baseline: c.mvp_baseline,
-      });
-    } catch (e) {
-      throw new BadRequestException((e as Error).message);
-    }
+    // Отказы сервиса приходят с кодом (DomainError); прежняя обёртка в
+    // BadRequestException код теряла (C28-80).
+    const c = await this.categoryService.createCustom(platformSettings().coopname, input.displayName);
+    return new MarketplaceCategoryDTO({
+      id: c.id,
+      display_name: c.display_name,
+      sort_order: c.sort_order,
+      mvp_baseline: c.mvp_baseline,
+    });
   }
 
   /**
@@ -95,14 +94,14 @@ export class AvailableCategoryAdminResolver {
     name: 'marketplaceDeleteCustomCategory',
     description: 'Удалить собственную категорию кооператива',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
+  @RequireRight('Whitelist', 'manage')
   async deleteCustomCategory(
     @Args('categoryId', { type: () => Int }) categoryId: number
   ): Promise<boolean> {
     const deleted = await this.categoryService.deleteCustom(platformSettings().coopname, categoryId);
     if (!deleted) {
-      throw new BadRequestException('Базовую категорию удалить нельзя');
+      throw DomainError.badRequest('MARKETPLACE_CATEGORY_BASE_DELETE_FORBIDDEN');
     }
     // Снимаем категорию из whitelist (если была там), чтобы не осталась ссылка на удалённую.
     await this.availableCategoryService.removeAvailableCategory(platformSettings().coopname, categoryId);
@@ -116,8 +115,8 @@ export class AvailableCategoryAdminResolver {
     name: 'marketplaceGetAvailableCategories',
     description: 'Получить все доступные категории и типы для кооператива',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
+  @RequireRight('Whitelist', 'manage')
   async getAvailableCategories(): Promise<AvailableCategoryDTO[]> {
     const availableCategories = await this.availableCategoryService.getAvailableCategories(platformSettings().coopname);
 
@@ -142,8 +141,8 @@ export class AvailableCategoryAdminResolver {
     name: 'marketplaceGetAvailableCategoryTree',
     description: 'Получить дерево доступных категорий и типов для кооператива',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
+  @RequireRight('Whitelist', 'manage')
   async getAvailableCategoryTree(): Promise<CategoryDTO[]> {
     const availableTree = await this.categoryTreeService.buildAvailableCategoryTree(platformSettings().coopname);
     return availableTree.map((category) => CategoryDTO.fromDomain(category));
@@ -156,8 +155,8 @@ export class AvailableCategoryAdminResolver {
     name: 'marketplaceGetAvailabilityStats',
     description: 'Получить статистику по доступности категорий в кооперативе',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
+  @RequireRight('Whitelist', 'manage')
   async getAvailabilityStats(): Promise<AvailabilityStatsDTO> {
     const stats = await this.availableCategoryService.getAvailabilityStats(platformSettings().coopname);
     return {
@@ -175,8 +174,8 @@ export class AvailableCategoryAdminResolver {
     name: 'marketplaceAddAvailableCategories',
     description: 'Добавить категории в доступные для кооператива (целые категории)',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
+  @RequireRight('Whitelist', 'manage')
   async addAvailableCategories(
     @Args('input', { type: () => AddAvailableCategoriesInput })
     input: AddAvailableCategoriesInput,
@@ -198,8 +197,8 @@ export class AvailableCategoryAdminResolver {
     name: 'marketplaceAddAvailableCategoryTypes',
     description: 'Добавить конкретные типы товаров в доступные для кооператива',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
+  @RequireRight('Whitelist', 'manage')
   async addAvailableCategoryTypes(
     @Args('input', { type: () => AddAvailableCategoryTypesInput })
     input: AddAvailableCategoryTypesInput,
@@ -221,8 +220,8 @@ export class AvailableCategoryAdminResolver {
     name: 'marketplaceRemoveAvailableCategories',
     description: 'Удалить категории из доступных для кооператива (включая все их типы)',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
+  @RequireRight('Whitelist', 'manage')
   async removeAvailableCategories(
     @Args('input', { type: () => RemoveAvailableCategoriesInput })
     input: RemoveAvailableCategoriesInput
@@ -238,8 +237,8 @@ export class AvailableCategoryAdminResolver {
     name: 'marketplaceRemoveAvailableCategoryTypes',
     description: 'Удалить конкретные типы товаров из доступных для кооператива',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
+  @RequireRight('Whitelist', 'manage')
   async removeAvailableCategoryTypes(
     @Args('input', { type: () => RemoveAvailableCategoryTypesInput })
     input: RemoveAvailableCategoryTypesInput
@@ -255,8 +254,8 @@ export class AvailableCategoryAdminResolver {
     name: 'marketplaceReplaceAvailableItems',
     description: 'Заменить все доступные категории и типы новым списком',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
+  @RequireRight('Whitelist', 'manage')
   async replaceAvailableItems(
     @Args('input', { type: () => ReplaceAvailableItemsInput })
     input: ReplaceAvailableItemsInput,
@@ -279,8 +278,8 @@ export class AvailableCategoryAdminResolver {
     name: 'marketplaceClearAvailableCategories',
     description: 'Очистить все доступные категории (сделать доступными все)',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
+  @RequireRight('Whitelist', 'manage')
   async clearAvailableCategories(@CurrentUser() currentUser: IMonoAccount): Promise<boolean> {
     await this.availableCategoryService.replaceAvailableItems(platformSettings().coopname, [], [], currentUser?.username ?? 'system');
     return true;
@@ -293,8 +292,8 @@ export class AvailableCategoryAdminResolver {
     name: 'marketplaceGetCategoryRules',
     description: 'Получить все доступные правила для конкретной категории',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
+  @RequireRight('Whitelist', 'manage')
   async getCategoryRules(@Args('categoryId', { type: () => Int }) categoryId: number): Promise<AvailableCategoryDTO[]> {
     const rules = await this.availableCategoryService.getCategoryRules(platformSettings().coopname, categoryId);
     return this.mapToDTO(rules);

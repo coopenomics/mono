@@ -31,7 +31,7 @@ void ledger::block(eosio::name coopname, uint64_t account_id, eosio::asset quant
   eosio::check(account_iter->available >= quantity, "Недостаточно доступных средств для блокировки");
 
   // Переносим средства из available в blocked
-  accounts.modify(account_iter, payer, [&](auto& acc) {
+  accounts.modify(account_iter, RamPayer::of(accounts, coopname), [&](auto& acc) {
     acc.available -= quantity;
     acc.blocked += quantity;
   });

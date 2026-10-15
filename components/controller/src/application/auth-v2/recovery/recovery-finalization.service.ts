@@ -13,6 +13,7 @@ import type {
 import { AuditService } from '../audit/audit.service';
 import { SecurityEventNotificationService } from '../security-events/security-event-notification.service';
 import { LoginTwoFactorService } from '../login-2fa/login-two-factor.service';
+import { KeyRevocationService } from '../key-revocation/key-revocation.service';
 import { SessionsService } from '../sessions/sessions.service';
 import { VaultService } from '../vault/vault.service';
 
@@ -55,6 +56,7 @@ export class RecoveryFinalizationService implements IRecoveryFinalization {
     private readonly audit: AuditService,
     private readonly securityEvents: SecurityEventNotificationService,
     private readonly loginTwoFactor: LoginTwoFactorService,
+    private readonly keyRevocation: KeyRevocationService,
   ) {}
 
   async finalize(input: RecoveryFinalizationInput): Promise<void> {
@@ -95,6 +97,9 @@ export class RecoveryFinalizationService implements IRecoveryFinalization {
       username: input.username,
       public_key: input.newPublicKey,
     });
+
+    // Ключ сменён в цепи — отзыв прежнего ключа закрыт, вход новым открыт.
+    await this.keyRevocation.markRecovered(input.username);
 
     // 3.5. Зеркало ключа в users — как у легаси resetKey: по нему сверяются
     //      кандидаты и форензика. Best-effort: цепь и vault уже закоммичены,

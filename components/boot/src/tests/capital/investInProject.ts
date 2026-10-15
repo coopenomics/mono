@@ -31,9 +31,9 @@ export async function investInProject(
     'sha256',
   ))[0] || { invested: '0.0000 RUB', available: '0.0000 RUB' }
 
-  const prevWalletWallet = await getUserProgramWallet(blockchain, coopname, investor, walletProgramId) || { blocked: '0.0000 RUB' }
-  const prevUserWallet = await getUserProgramWallet(blockchain, coopname, investor, capitalProgramId) || { blocked: '0.0000 RUB' }
-  const prevProgramWallet = await getCoopProgramWallet(blockchain, coopname, capitalProgramId) || { blocked: '0.0000 RUB', share_contributions: '0.0000 RUB' }
+  const prevWalletWallet = await getUserProgramWallet(blockchain, coopname, investor, walletProgramId) || { available: '0.0000 RUB', blocked: '0.0000 RUB' }
+  const prevUserWallet = await getUserProgramWallet(blockchain, coopname, investor, capitalProgramId) || { available: '0.0000 RUB', blocked: '0.0000 RUB' }
+  const prevProgramWallet = await getCoopProgramWallet(blockchain, coopname, capitalProgramId) || { available: '0.0000 RUB', blocked: '0.0000 RUB', share_contributions: '0.0000 RUB' }
 
   console.log('📊 Балансы до инвестиции:')
   console.log('▶ Проект:', prevProject)
@@ -129,9 +129,16 @@ export async function investInProject(
   console.log('▶ Кошелек пользователя (благорост):', finalUserWallet)
   console.log('▶ Кошелек программы (благорост):', finalProgramWallet)
 
-  // Проверка изменения балансов
-  expect(parseFloat(finalUserWallet.blocked)).toBeCloseTo(parseFloat(prevUserWallet.blocked) + parseFloat(investAmount), 1)
-  expect(parseFloat(finalProgramWallet.blocked)).toBeCloseTo(parseFloat(prevProgramWallet.blocked) + parseFloat(investAmount), 1)
+  // Кошелёк пайщика обязан существовать после инвестиции: если его нет,
+  // средства никуда не легли и сравнивать балансы не с чем.
+  if (!finalUserWallet)
+    throw new Error(`Кошелёк пайщика ${investor} в программе ${capitalProgramId} не найден после инвестиции`)
+
+  // Проверка изменения балансов. Инвестиция — o.cap.invest: перевод с паевого
+  // кошелька пайщика на кошелёк Благороста (w.cap.blago), сумма ложится в
+  // available. Субсчёт blocked упразднён 2026-05-24 (0969505) и всегда нулевой.
+  expect(parseFloat(finalUserWallet.available)).toBeCloseTo(parseFloat(prevUserWallet.available) + parseFloat(investAmount), 1)
+  expect(parseFloat(finalProgramWallet.available)).toBeCloseTo(parseFloat(prevProgramWallet.available) + parseFloat(investAmount), 1)
 
   console.log(`\n✅ Инвестирование на ${investAmount} завершено успешно!`)
 

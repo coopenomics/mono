@@ -1,3 +1,4 @@
+import { lt } from '@coopenomics/i18n'
 /**
  * Второй этап входа CoopID — timestamp-signature handshake (Story 1.7), браузер-
  * агностичная часть фасада логина. Предполагает уже установленную сессию authentik
@@ -66,15 +67,15 @@ export async function performTimestampHandshake(apiUrl: string): Promise<Handsha
     bindRes = await fetch(`${base}/coop/session/bind`, { method: 'POST', credentials: 'include' })
   }
   catch (e) {
-    throw new AuthV2Error(AuthV2ErrorCode.NetworkError, `Сеть недоступна на этапе bind: ${e instanceof Error ? e.message : String(e)}`)
+    throw new AuthV2Error(AuthV2ErrorCode.NetworkError, lt('authClient.handshake.bindNetworkError', { error: e instanceof Error ? e.message : String(e) }))
   }
   if (bindRes.status === 401 || bindRes.status === 403)
-    throw new AuthV2Error(AuthV2ErrorCode.InvalidCredentials, 'Сессия authentik не подтверждена: пройдите первый этап входа (password)')
+    throw new AuthV2Error(AuthV2ErrorCode.InvalidCredentials, lt('authClient.handshake.sessionNotConfirmed'))
   if (!bindRes.ok)
-    throw await authErrorFromResponse(bindRes, AuthV2ErrorCode.NetworkError, `bind вернул HTTP ${bindRes.status}`)
+    throw await authErrorFromResponse(bindRes, AuthV2ErrorCode.NetworkError, lt('authClient.handshake.bindHttpError', { status: bindRes.status }))
   const bind = (await bindRes.json()) as BindResponse
   if (!bind?.binding_token)
-    throw new AuthV2Error(AuthV2ErrorCode.SessionBindingExpired, 'bind не вернул session_binding_token')
+    throw new AuthV2Error(AuthV2ErrorCode.SessionBindingExpired, lt('authClient.handshake.bindNoToken'))
 
   // 2. подпись канонической метки (jti/sub — из binding_token; ключ — из keystore,
   //    бросит WalletLocked, если кошелёк заперт).
@@ -91,10 +92,10 @@ export async function performTimestampHandshake(apiUrl: string): Promise<Handsha
     })
   }
   catch (e) {
-    throw new AuthV2Error(AuthV2ErrorCode.NetworkError, `Сеть недоступна на этапе verify: ${e instanceof Error ? e.message : String(e)}`)
+    throw new AuthV2Error(AuthV2ErrorCode.NetworkError, lt('authClient.handshake.verifyNetworkError', { error: e instanceof Error ? e.message : String(e) }))
   }
   if (!verifyRes.ok)
-    throw await authErrorFromResponse(verifyRes, AuthV2ErrorCode.ChainVerificationFailed, `verify вернул HTTP ${verifyRes.status}`)
+    throw await authErrorFromResponse(verifyRes, AuthV2ErrorCode.ChainVerificationFailed, lt('authClient.handshake.verifyHttpError', { status: verifyRes.status }))
 
   const v = (await verifyRes.json()) as VerifyResponse | SecondFactorChallenge
 
@@ -104,7 +105,7 @@ export async function performTimestampHandshake(apiUrl: string): Promise<Handsha
   if ('second_factor_required' in v) {
     throw new AuthV2Error(
       AuthV2ErrorCode.SecondFactorRequired,
-      'Требуется подтверждение входа вторым фактором',
+      lt('authClient.handshake.secondFactorRequired'),
       { challenge_token: v.challenge_token, factors: v.factors },
     )
   }

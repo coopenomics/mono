@@ -2,6 +2,7 @@
 
 #include "src/system/init.cpp"
 #include "src/system/migrate.cpp"
+#include "src/system/cleanup.cpp"
 
 #include "src/user/adduser.cpp"
 #include "src/user/confirmpay.cpp"
@@ -14,6 +15,7 @@
 
 #include "src/exit/exit_helpers.hpp"
 #include "src/exit/exitcoop.cpp"
+#include "src/exit/exitagree.cpp"
 #include "src/exit/confirmexit.cpp"
 #include "src/exit/completexit.cpp"
 #include "src/exit/declinexit.cpp"

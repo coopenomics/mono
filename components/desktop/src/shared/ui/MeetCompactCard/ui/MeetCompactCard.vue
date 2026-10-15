@@ -9,21 +9,21 @@
   .meet-card__head
     .meet-card__icon(aria-hidden='true')
       q-icon(name='event', size='20px')
-    .meet-card__title Общее собрание № {{ meet.processing?.meet?.id }}
+    .meet-card__title {{ $t('ui.meetCompactCard.titleWithNumber', { meetId: meet.processing?.meet?.id }) }}
 
   .meet-card__tiles
     .meet-card__tile
-      .meet-card__tile-label Открытие
+      .meet-card__tile-label {{ $t('ui.meetCompactCard.openingLabel') }}
       .meet-card__tile-value {{ meetStatus.formattedOpenDate }} {{ getTimezoneLabel() }}
     .meet-card__tile
-      .meet-card__tile-label Закрытие
+      .meet-card__tile-label {{ $t('ui.meetCompactCard.closingLabel') }}
       .meet-card__tile-value {{ meetStatus.formattedCloseDate }} {{ getTimezoneLabel() }}
 
   MeetStatusBanner(:meet='meet')
 
   .meet-card__foot
     span.meet-card__more
-      span Подробнее
+      span {{ $t('ui.meetCompactCard.detailsLabel') }}
       q-icon(name='arrow_forward', size='16px')
 </template>
 

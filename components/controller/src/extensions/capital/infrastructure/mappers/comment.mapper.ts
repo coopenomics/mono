@@ -1,5 +1,5 @@
 import { CommentDomainEntity } from '../../domain/entities/comment.entity';
-import { CommentTypeormEntity } from '../entities/comment.typeorm-entity';
+import { CommentRecord } from '../entities/comment.record';
 import type { ICommentDatabaseData } from '../../domain/interfaces/comment-database.interface';
 
 /**
@@ -9,7 +9,7 @@ export class CommentMapper {
   /**
    * Преобразование TypeORM сущности в доменную сущность
    */
-  static toDomain(entity: CommentTypeormEntity): CommentDomainEntity {
+  static toDomain(entity: CommentRecord): CommentDomainEntity {
     const databaseData: ICommentDatabaseData = {
       _id: entity._id,
       block_num: entity.block_num,
@@ -29,8 +29,8 @@ export class CommentMapper {
   /**
    * Преобразование доменной сущности в TypeORM сущность для создания
    */
-  static toEntity(domain: Partial<CommentDomainEntity>): Partial<CommentTypeormEntity> {
-    const entity: Partial<CommentTypeormEntity> = {};
+  static toEntity(domain: Partial<CommentDomainEntity>): Partial<CommentRecord> {
+    const entity: Partial<CommentRecord> = {};
 
     if (domain._id !== undefined) entity._id = domain._id;
     if (domain.content !== undefined) entity.content = domain.content;

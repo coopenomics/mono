@@ -1,0 +1,84 @@
+/** Добавить курс (черновик) */
+export * as CreateCourse from './createCourse'
+/** Изменить курс */
+export * as UpdateCourse from './updateCourse'
+/** Отчитаться о проведённом занятии */
+export * as ReportLesson from './reportLesson'
+/** Снять удерживаемое заявление по рекламации */
+/** Отменить подписку с возвратом членского взноса */
+export * as CancelEnrollment from './cancelEnrollment'
+/** Отменить курс по недобору */
+export * as CancelGroupUnderfilled from './cancelGroupUnderfilled'
+export * as CancelLesson from './cancelLesson'
+export * as MoveLesson from './moveLesson'
+export * as PlanLesson from './planLesson'
+export * as SetGroupSchedule from './setGroupSchedule'
+/** Подать расход программы из фонда */
+export * as CreateExpense from './createExpense'
+/** Задать наценку кооператива */
+export * as SetEconomySettings from './setEconomySettings'
+/** Задать ставку часа преподавателя */
+export * as SetTeacherRate from './setTeacherRate'
+/** Опубликовать, снять с публикации или архивировать курс */
+export * as SetCourseStatus from './setCourseStatus'
+/** Подписать оферту ЦПП «Образование» со стола */
+export * as SignOffer from './signOffer'
+/** Добавить обучающегося */
+export * as AddLearner from './addLearner'
+/** Исправить обучающегося */
+export * as UpdateLearner from './updateLearner'
+/** Удалить обучающегося */
+export * as RemoveLearner from './removeLearner'
+/** Заявление о конвертации для подписи */
+export * as ConvertStatement from './convertStatement'
+/** Получить доступ: конвертация и подписка */
+export * as Subscribe from './subscribe'
+/** Рассказать о себе и назвать ставку часа */
+export * as SaveTeacherProfile from './saveTeacherProfile'
+/** Подписать договор участия в хозяйственной деятельности */
+export * as SignContract from './signContract'
+/** Заявление о паевом взносе РИД для подписи */
+export * as RidStatement from './ridStatement'
+export * as GuaranteeStatement from './guaranteeStatement'
+export * as SubmitGuaranteeClaim from './submitGuaranteeClaim'
+export * as RidStorageAct from './ridStorageAct'
+/** Подать взнос РИД */
+export * as HoldContribution from './holdContribution'
+export * as TerminateContract from './terminateContract'
+export * as SubmitContribution from './submitContribution'
+/** Акт приёма-передачи для подписи */
+export * as RidAct from './ridAct'
+/** Подписать акт приёма-передачи */
+export * as SignAct from './signAct'
+/** Заявление о трансляции паевого взноса в Цифровой Кошелёк для подписи */
+export * as ShareWithdrawStatement from './shareWithdrawStatement'
+/** Перевести паевой взнос по программе в Цифровой Кошелёк */
+export * as RequestShareReturn from './requestShareReturn'
+/** Назначить преподавателю курс */
+export * as CreateAssignment from './createAssignment'
+/** Закрыть назначение */
+export * as CloseAssignment from './closeAssignment'
+export * as DeleteCourse from './deleteCourse'
+/** Группы курса: открыть, изменить, завершить */
+export * as FinishGroup from './finishGroup'
+export * as CreateGroup from './createGroup'
+export * as UpdateGroup from './updateGroup'
+export * as SetAssignmentRate from './setAssignmentRate'
+/** Отклонить взнос РИД */
+/** Повторить задачу выдачи */
+export * as MarkLearnerRemoved from './markLearnerRemoved'
+export * as RetryEnrollmentClose from './retryEnrollmentClose'
+export * as RetryTask from './retryTask'
+/** Проверить площадку */
+export * as CheckConnector from './checkConnector'
+/** Включить/выключить площадку */
+export * as SetConnectorEnabled from './setConnectorEnabled'
+export * as SetConnectorCredentials from './setConnectorCredentials'
+
+/** Возврат остатка кошелька программы в паевой взнос: заявление пайщика и согласование кооперативом. */
+export * as SaveSection from './saveSection'
+export * as SaveLevel from './saveLevel'
+export * as ReorderSections from './reorderSections'
+export * as ReorderLevels from './reorderLevels'
+export * as ArchiveSection from './archiveSection'
+export * as ArchiveLevel from './archiveLevel'

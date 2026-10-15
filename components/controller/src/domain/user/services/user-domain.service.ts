@@ -11,6 +11,7 @@ import type {
   PaginationInputDomainInterface,
   PaginationResultDomainInterface,
 } from '~/domain/common/interfaces/pagination.interface';
+import { DomainError } from '@coopenomics/extension-kit';
 
 /**
  * Токен для инъекции зависимости сервиса пользователей
@@ -18,7 +19,6 @@ import type {
 export const USER_DOMAIN_SERVICE = Symbol('UserDomainService');
 import { userStatus } from '~/types/user.types';
 import { normalizeUserEmail } from '~/utils/normalize-user-email';
-import { HttpApiError } from '@coopenomics/extension-kit';
 
 /**
  * Доменный сервис для работы с пользователями
@@ -43,13 +43,13 @@ export class UserDomainService {
     // Проверяем, существует ли пользователь с таким email
     const existingUser = await this.userRepository.findByEmail(normalizedEmail);
     if (existingUser) {
-      throw new HttpApiError(httpStatus.BAD_REQUEST, 'Пользователь с указанным EMAIL уже зарегистрирован');
+      throw DomainError.badRequest('USER_EMAIL_ALREADY_REGISTERED');
     }
 
     // Проверяем, существует ли пользователь с таким username
     const existingUsername = await this.userRepository.findByUsername(userData.username);
     if (existingUsername) {
-      throw new HttpApiError(httpStatus.BAD_REQUEST, 'Пользователь с указанным именем уже зарегистрирован');
+      throw DomainError.badRequest('USER_USERNAME_ALREADY_REGISTERED');
     }
 
     // Создаем пользователя
@@ -79,7 +79,7 @@ export class UserDomainService {
   async getUserByUsername(username: string): Promise<UserDomainEntity> {
     const user = await this.userRepository.findByUsername(username);
     if (!user) {
-      throw new HttpApiError(httpStatus.NOT_FOUND, 'Пользователь не найден');
+      throw DomainError.notFound('USER_NOT_FOUND');
     }
     return user;
   }
@@ -101,7 +101,7 @@ export class UserDomainService {
   async getUserById(id: string): Promise<UserDomainEntity> {
     const user = await this.userRepository.findById(id);
     if (!user) {
-      throw new HttpApiError(httpStatus.NOT_FOUND, 'Пользователь не найден');
+      throw DomainError.notFound('USER_NOT_FOUND');
     }
     return user;
   }
@@ -124,7 +124,7 @@ export class UserDomainService {
     const user = await this.userRepository.findByEmail(email);
 
     if (!user) {
-      throw new HttpApiError(httpStatus.NOT_FOUND, 'Пользователь не найден');
+      throw DomainError.notFound('USER_NOT_FOUND');
     }
     return user;
   }
@@ -146,7 +146,7 @@ export class UserDomainService {
   async getUserBySubscriberId(subscriberId: string): Promise<UserDomainEntity> {
     const user = await this.userRepository.findBySubscriberId(subscriberId);
     if (!user) {
-      throw new HttpApiError(httpStatus.NOT_FOUND, 'Пользователь не найден');
+      throw DomainError.notFound('USER_NOT_FOUND');
     }
     return user;
   }
@@ -170,7 +170,7 @@ export class UserDomainService {
       if (nextEmail !== currentEmailNorm) {
         const emailTaken = await this.userRepository.isEmailTaken(nextEmail, username);
         if (emailTaken) {
-          throw new HttpApiError(httpStatus.BAD_REQUEST, 'Email уже занят');
+          throw DomainError.badRequest('USER_EMAIL_TAKEN');
         }
       }
     }
@@ -178,7 +178,7 @@ export class UserDomainService {
     // Обновляем пользователя
     const updatedUser = await this.userRepository.updateByUsername(username, updates);
     if (!updatedUser) {
-      throw new HttpApiError(httpStatus.NOT_FOUND, 'Пользователь не найден');
+      throw DomainError.notFound('USER_NOT_FOUND');
     }
 
     this.logger.log(`Пользователь ${username} успешно обновлен`);
@@ -196,7 +196,7 @@ export class UserDomainService {
 
     const existingUser = await this.userRepository.findById(id);
     if (!existingUser) {
-      throw new HttpApiError(httpStatus.NOT_FOUND, 'Пользователь не найден');
+      throw DomainError.notFound('USER_NOT_FOUND');
     }
 
     if (updates.email !== undefined && updates.email !== null && updates.email !== '') {
@@ -205,7 +205,7 @@ export class UserDomainService {
       if (nextEmail !== currentEmailNorm) {
         const emailTaken = await this.userRepository.isEmailTaken(nextEmail, existingUser.username);
         if (emailTaken) {
-          throw new HttpApiError(httpStatus.BAD_REQUEST, 'Email уже занят');
+          throw DomainError.badRequest('USER_EMAIL_TAKEN');
         }
       }
     }
@@ -213,7 +213,7 @@ export class UserDomainService {
     // Обновляем пользователя
     const updatedUser = await this.userRepository.updateById(id, updates);
     if (!updatedUser) {
-      throw new HttpApiError(httpStatus.NOT_FOUND, 'Пользователь не найден');
+      throw DomainError.notFound('USER_NOT_FOUND');
     }
 
     this.logger.log(`Пользователь с ID ${id} успешно обновлен`);
@@ -289,7 +289,7 @@ export class UserDomainService {
   async getUserByLegacyMongoId(legacyMongoId: string): Promise<UserDomainEntity> {
     const user = await this.userRepository.findByLegacyMongoId(legacyMongoId);
     if (!user) {
-      throw new HttpApiError(httpStatus.NOT_FOUND, 'Пользователь не найден');
+      throw DomainError.notFound('USER_NOT_FOUND');
     }
     return user;
   }
@@ -338,6 +338,6 @@ export class UserDomainService {
       this.logger.warn(`Дублирование subscriber_id: ${subscriberId}, попытка ${attempt + 1}/${maxRetries}`);
     }
 
-    throw new Error(`Не удалось сгенерировать уникальный subscriber_id после ${maxRetries} попыток`);
+    throw DomainError.internal('USER_SUBSCRIBER_ID_GENERATION_FAILED', { maxRetries });
   }
 }

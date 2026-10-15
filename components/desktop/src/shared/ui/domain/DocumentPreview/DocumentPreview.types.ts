@@ -11,5 +11,10 @@ export interface DocumentPreviewProps {
   loading?: boolean;
   error?: string;
   height?: string | number;
-  sanitize?: boolean;
+  /**
+   * `strict` — обычный текст. `document` — документ со своей вёрсткой:
+   * сохраняются `<style>`, таблицы и выравнивание. Показа без очистки нет:
+   * html документа собран из данных пайщика.
+   */
+  profile?: 'strict' | 'document';
 }

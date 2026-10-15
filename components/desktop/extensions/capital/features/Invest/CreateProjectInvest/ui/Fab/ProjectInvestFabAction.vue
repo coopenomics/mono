@@ -21,17 +21,17 @@ div
 
   BaseDialog(
     v-model="showDialog",
-    title="Инвестирование в проект",
+    :title="$t('capital.projectInvestFabAction.title')",
     size="sm",
     @update:model-value="(v) => !v && (showDialog = false)"
   )
     q-card-section.row.items-center
-      span Инвестиции в проект деньгами или результатами доступны только через их компоненты. Пожалуйста, выберите компонент из списка и инвестируйте во все или в некоторые из них по отдельности.
+      span {{ $t('capital.projectInvestFabAction.hint') }}
       div.q-mt-md
-        q-btn(flat label="Понятно" @click="showDialog = false")
+        q-btn(flat :label="$t('capital.projectInvestFabAction.acknowledgeAction')" @click="showDialog = false")
         q-btn(
           color="primary"
-          label="Перейти к компонентам"
+          :label="$t('capital.projectInvestFabAction.goToComponentsAction')"
           @click="goToComponents"
         )
 </template>
@@ -42,6 +42,7 @@ import { useRouter } from 'vue-router';
 import { BaseDialog } from 'src/shared/ui/base/BaseDialog';
 import type { IProject } from '../../../../../entities/Project/model';
 import { formatCapitalFabLabel } from 'app/extensions/capital/shared/lib';
+import { t } from '../../../../../i18n';
 
 const props = defineProps<{
   project: IProject | null | undefined;
@@ -50,8 +51,8 @@ const props = defineProps<{
 const router = useRouter();
 const showDialog = ref(false);
 
-const fabMainLabel = formatCapitalFabLabel('Инвестировать', 'invest');
-const fabActionLabel = formatCapitalFabLabel('Инвестиция', 'invest');
+const fabMainLabel = formatCapitalFabLabel(t('capital.projectInvestFabAction.label'), 'invest');
+const fabActionLabel = formatCapitalFabLabel(t('capital.projectInvestFabAction.shortLabel'), 'invest');
 
 const openInvest = () => {
   showDialog.value = true;

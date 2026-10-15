@@ -4,6 +4,7 @@ import { api } from '../api';
 import { useBranchStore, type IBranch } from 'src/entities/Branch/model';
 import { generateUsername } from 'src/shared/lib/utils/generateUsername';
 import { useSystemStore } from 'src/entities/System/model';
+import { t } from 'src/shared/i18n';
 
 export type ICreateBranchInput = Mutations.Branches.CreateBranch.IInput['data']
 
@@ -35,7 +36,7 @@ export function useCreateBranch() {
   }
 
   async function createBranch(data: ICreateBranchInput): Promise<IBranch> {
-    data.full_name = `Кооперативный Участок "${data.short_name}"`
+    data.full_name = t('branch.createBranchModel.fullNameTemplate', { shortName: data.short_name })
     const branch = await api.createBranch(data);
 
     await store.loadBranches({ coopname: info.coopname });

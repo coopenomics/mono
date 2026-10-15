@@ -23,7 +23,7 @@ void soviet::setbranch(eosio::name coopname, eosio::name username, eosio::name b
         return;
     }
 
-    participants.modify(participant, get_self(), [&](auto& row) {
+    participants.modify(participant, RamPayer::of(participants, coopname), [&](auto& row) {
         if (braname == ""_n) {
             row.braname.reset();
         } else {

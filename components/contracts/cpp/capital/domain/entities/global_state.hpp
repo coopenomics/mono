@@ -1,5 +1,7 @@
 #pragma once
 
+
+#include "../../../lib/core/ram_payer.hpp"
 #include <eosio/binary_extension.hpp>
 
 using namespace eosio;
@@ -103,7 +105,7 @@ inline void update_global_state(const global_state& gs){
   check(itr != global_state_inst.end(), "Глобальное состояние не найдено");
   const asset pool     = ext_or_zero(gs.program_expense_pool, _root_govern_symbol);
   const asset reserved = ext_or_zero(gs.program_expense_reserved, _root_govern_symbol);
-  global_state_inst.modify(itr, _capital, [&](auto& s) {
+  global_state_inst.modify(itr, RamPayer::of(global_state_inst), [&](auto& s) {
       s = gs;
       s.program_expense_pool     = pool;
       s.program_expense_reserved = reserved;
@@ -146,7 +148,7 @@ inline void topup_program_expense_pool(eosio::name coopname, const asset &amount
   eosio::check(itr->global_available_invest_pool >= amount,
                "Недостаточно свободных инвестиций программы для пополнения пула расходов");
 
-  global_state_inst.modify(itr, _capital, [&](auto &s) {
+  global_state_inst.modify(itr, RamPayer::of(global_state_inst), [&](auto &s) {
     asset pool     = ext_or_zero(s.program_expense_pool, amount.symbol);
     asset reserved = ext_or_zero(s.program_expense_reserved, amount.symbol);
     s.global_available_invest_pool -= amount;
@@ -168,7 +170,7 @@ inline void reserve_program_expense(eosio::name coopname, const asset &amount) {
   eosio::check(ext_or_zero(itr->program_expense_pool, amount.symbol) >= amount,
                "Недостаточно средств в пуле программных расходов");
 
-  global_state_inst.modify(itr, _capital, [&](auto &s) {
+  global_state_inst.modify(itr, RamPayer::of(global_state_inst), [&](auto &s) {
     asset pool     = ext_or_zero(s.program_expense_pool, amount.symbol);
     asset reserved = ext_or_zero(s.program_expense_reserved, amount.symbol);
     pool     -= amount;
@@ -190,7 +192,7 @@ inline void release_program_expense(eosio::name coopname, const asset &amount) {
   eosio::check(ext_or_zero(itr->program_expense_reserved, amount.symbol) >= amount,
                "Зарезервированных программных расходов меньше указанной суммы");
 
-  global_state_inst.modify(itr, _capital, [&](auto &s) {
+  global_state_inst.modify(itr, RamPayer::of(global_state_inst), [&](auto &s) {
     asset pool     = ext_or_zero(s.program_expense_pool, amount.symbol);
     asset reserved = ext_or_zero(s.program_expense_reserved, amount.symbol);
     reserved -= amount;
@@ -213,7 +215,7 @@ inline void consume_program_expense(eosio::name coopname, const asset &amount) {
   eosio::check(ext_or_zero(itr->program_expense_reserved, amount.symbol) >= amount,
                "Зарезервированных программных расходов меньше указанной суммы");
 
-  global_state_inst.modify(itr, _capital, [&](auto &s) {
+  global_state_inst.modify(itr, RamPayer::of(global_state_inst), [&](auto &s) {
     asset pool     = ext_or_zero(s.program_expense_pool, amount.symbol);
     asset reserved = ext_or_zero(s.program_expense_reserved, amount.symbol);
     reserved -= amount;
@@ -235,7 +237,7 @@ inline void spend_program_expense_pool(eosio::name coopname, const asset &amount
   eosio::check(ext_or_zero(itr->program_expense_pool, amount.symbol) >= amount,
                "Недостаточно средств в пуле программных расходов для покрытия перерасхода — пополните пул (topupprogexp)");
 
-  global_state_inst.modify(itr, _capital, [&](auto &s) {
+  global_state_inst.modify(itr, RamPayer::of(global_state_inst), [&](auto &s) {
     asset pool     = ext_or_zero(s.program_expense_pool, amount.symbol);
     asset reserved = ext_or_zero(s.program_expense_reserved, amount.symbol);
     pool -= amount;
@@ -246,3 +248,6 @@ inline void spend_program_expense_pool(eosio::name coopname, const asset &amount
 }// namespace State
 
 }// namespace Capital
+
+// Плательщик за оперативную память строк таблицы — правило в lib/core/ram_payer.hpp.
+RAM_PAYER_CLASS(Capital::global_state, contract);

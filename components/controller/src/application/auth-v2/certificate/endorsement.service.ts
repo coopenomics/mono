@@ -276,6 +276,7 @@ export class EndorsementService implements OnApplicationBootstrap {
 
       const payload: Workflows.EndorsementExpiring.IPayload = {
         chairmanName: await this.accountPort.getDisplayName(chairman.username),
+        // i18n-ignore: аббревиатура организационно-правовой формы для данных workflow-уведомления, не текст интерфейса
         short_abbr: 'ПК',
         name: coopname,
         daysLeft: String(Math.max(0, Math.floor(left / 86400))),

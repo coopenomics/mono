@@ -1,6 +1,6 @@
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
-import { AuthRoles, CurrentUser, GqlJwtAuthGuard, RolesGuard } from '@coopenomics/extension-kit';
+import { CurrentUser, GqlJwtAuthGuard, DomainError, RequireRight, RightsGuard } from '@coopenomics/extension-kit';
 import type { IMonoAccount } from '@coopenomics/innercoop';
 import { FavoritesService } from '../services/favorites.service';
 import {
@@ -21,8 +21,8 @@ export class FavoritesResolver {
     name: 'capitalFavorites',
     description: 'Список избранного пользователя с актуальными наименованиями',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Favorite', ['manage:own', 'manage'], { owner: 'filter.username' })
   async getCapitalFavorites(
     @Args('filter') filter: CapitalFavoritesFilterInputDTO,
     @CurrentUser() currentUser: IMonoAccount
@@ -35,22 +35,22 @@ export class FavoritesResolver {
     name: 'capitalAddFavorite',
     description: 'Добавить сущность в личное избранное',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Favorite', ['manage:own', 'manage'], { owner: 'data.username' })
   async addFavorite(
     @Args('data') data: CapitalFavoriteInputDTO,
     @CurrentUser() currentUser: IMonoAccount
   ): Promise<CapitalFavoriteOutputDTO[]> {
     this.assertSelf(data.username, currentUser);
-    return this.favoritesService.addFavorite(data);
+    return this.favoritesService.addFavorite(data, currentUser);
   }
 
   @Mutation(() => [CapitalFavoriteOutputDTO], {
     name: 'capitalRemoveFavorite',
     description: 'Убрать сущность из личного избранного',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Favorite', ['manage:own', 'manage'], { owner: 'data.username' })
   async removeFavorite(
     @Args('data') data: CapitalFavoriteInputDTO,
     @CurrentUser() currentUser: IMonoAccount
@@ -62,7 +62,7 @@ export class FavoritesResolver {
   // Избранное строго личное: даже председатель не читает и не правит чужое
   private assertSelf(username: string, currentUser: IMonoAccount): void {
     if (username !== currentUser.username) {
-      throw new Error('Избранное доступно только своему владельцу');
+      throw DomainError.forbidden('CAPITAL_FAVORITES_ACCESS_FORBIDDEN');
     }
   }
 }

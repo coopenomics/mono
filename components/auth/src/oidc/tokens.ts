@@ -1,4 +1,5 @@
 import type { StorageAdapter } from '../wallet/storage-adapter'
+import { lt } from '@coopenomics/i18n'
 /**
  * Lifecycle платформенных токенов сессии CoopID (Эпик 7). Источник истины токена —
  * этот модуль `@coopenomics/auth`; `@coopenomics/sdk` копирует access в свои
@@ -118,12 +119,12 @@ export async function refreshSession(base: string, refreshToken: string): Promis
     })
   }
   catch (e) {
-    throw new AuthV2Error(AuthV2ErrorCode.NetworkError, `Сеть недоступна при обновлении токена: ${e instanceof Error ? e.message : String(e)}`)
+    throw new AuthV2Error(AuthV2ErrorCode.NetworkError, lt('authClient.tokens.refreshNetworkError', { error: e instanceof Error ? e.message : String(e) }))
   }
   if (res.status === 401 || res.status === 403)
-    throw new AuthV2Error(AuthV2ErrorCode.SessionBindingExpired, 'Сессия истекла: требуется повторный вход')
+    throw new AuthV2Error(AuthV2ErrorCode.SessionBindingExpired, lt('authClient.tokens.sessionExpired'))
   if (!res.ok)
-    throw new AuthV2Error(AuthV2ErrorCode.NetworkError, `Не удалось обновить токен (HTTP ${res.status})`)
+    throw new AuthV2Error(AuthV2ErrorCode.NetworkError, lt('authClient.tokens.refreshFailed', { status: res.status }))
 
   const body = (await res.json()) as { access_token: string, refresh_token: string }
   return { accessToken: body.access_token, refreshToken: body.refresh_token }
@@ -135,7 +136,7 @@ export async function refreshSession(base: string, refreshToken: string): Promis
  */
 export async function getAccessToken(): Promise<string> {
   if (!tokens || !apiBase)
-    throw new AuthV2Error(AuthV2ErrorCode.WalletLocked, 'Нет активной сессии: сначала выполните вход')
+    throw new AuthV2Error(AuthV2ErrorCode.WalletLocked, lt('authClient.tokens.noActiveSession'))
   if (!accessExpired(tokens.accessToken))
     return tokens.accessToken
 

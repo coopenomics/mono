@@ -11,6 +11,12 @@
  */
 export interface IExtensionConfigPort {
   get<T = Record<string, any>>(extensionName: string): Promise<T | null>;
+  /**
+   * Установлено ли расширение в кооперативе и включено ли оно. Политика,
+   * которая меняет чужие столы и витрины, обязана молчать, пока её расширение
+   * не работает: настройка по умолчанию — не решение кооператива.
+   */
+  isEnabled(extensionName: string): Promise<boolean>;
 }
 
 export const EXTENSION_CONFIG_PORT = Symbol.for('Innercoop.CorePort.ExtensionConfig');

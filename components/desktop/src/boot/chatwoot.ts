@@ -1,4 +1,5 @@
 import { boot } from 'quasar/wrappers';
+import { currentLocale } from 'src/shared/i18n';
 import { useActionsStore } from 'src/shared/lib/stores/actions.store';
 import { useSessionStore } from 'src/entities/Session';
 import { useSystemStore } from 'src/entities/System/model';
@@ -23,7 +24,8 @@ export default boot(async ({ app }) => {
         baseUrl: 'https://support.coopenomics.world'
       },
       settings: {
-        locale: 'ru',
+        // Языки платформы — подмножество языков виджета (ru, en, …).
+        locale: currentLocale() as 'ru',
         position: 'right',
         launcherTitle: '',
         hideMessageBubble: true
@@ -62,6 +64,7 @@ export default boot(async ({ app }) => {
           } else if (Date.now() - startedAt >= timeoutMs) {
             resolve(false);
           } else {
+            // timing: schedule — SDK поддержки грузится с внешнего хоста и событий готовности не шлёт; опрос с жёстким пределом
             setTimeout(checkReady, 100);
           }
         };

@@ -68,9 +68,23 @@ export default async ({ page, shot, expect }) => {
   // После «Подписать и отправить пайщику» на столе ПВЗ у заказчицы всплывает
   // persistent-оверлей: акт с фактом выдачи и кнопка «Подписать и получить».
   const receiveBtn = page.locator('button:has-text("Подписать и получить")').first();
-  const gateShown = await receiveBtn.waitFor({ state: 'visible', timeout: 30000 })
+  let gateShown = await receiveBtn.waitFor({ state: 'visible', timeout: 30000 })
     .then(() => true)
     .catch(() => false);
+  // Оверлей поднимает лента изменений стола: на первой странице после входа он
+  // может не успеть. Без подписи заказчицы выдача не закрывается, и оверлей
+  // перекрывает ей все следующие сценарии — открываем стол заказчика и ждём ещё.
+  if (!gateShown) {
+    await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/market/my-orders`, {
+      waitUntil: 'domcontentloaded',
+      timeout: 60000,
+    });
+    gateShown = await receiveBtn.waitFor({ state: 'visible', timeout: 45000 })
+      .then(() => true)
+      .catch(() => false);
+  }
+  // Выдача открыта сценарием issuance-open — акт обязан ждать подписи.
+  expect(gateShown, 'оверлей «Подписать и получить» не появился: акт выдачи не дошёл до заказчицы').toBe(true);
 
   if (gateShown) {
     await page.waitForTimeout(1000);
@@ -105,16 +119,16 @@ export default async ({ page, shot, expect }) => {
   await shot(
     page,
     '02-order-received',
-    'Заказ после выдачи: статус «Получен», указаны количество, сумма и пункт выдачи. Табы позволяют смотреть заказы по стадиям — от ожидания поставщика до полученных.',
+    'Заказ после подписи акта: состояние «Акт подписан — выдаётся», на карточке количество, сумма и пункт выдачи. Выдачу закрывает оператор на участке, после этого заказ переходит в «Получен». Табы показывают заказы по стадиям — от ожидания поставщика до полученных.',
     {
       expect: async (p) => {
-        await expect(p.locator('text=Получен').first()).toBeVisible({ timeout: 20000 });
+        await expect(p.locator('text=Акт подписан').first()).toBeVisible({ timeout: 20000 });
         // Сумму не сверяем числом: она зависит от количества в заказе и от
-        // размера членского взноса, и хардкод ломается при любой правке
-        // сценария оформления. Проверяем, что карточка заказа на месте и
+        // размера членского взноса. Проверяем, что карточка заказа на месте и
         // сумма вообще показана.
-        await expect(p.locator('text=Яблочный сок').first()).toBeVisible({ timeout: 20000 });
-        await expect(p.locator('text=СУММА').first()).toBeVisible({ timeout: 20000 });
+        const card = p.locator('text=Яблочный сок').first();
+        await expect(card).toBeVisible({ timeout: 20000 });
+        await expect(p.locator('text=₽').first()).toBeVisible({ timeout: 20000 });
       },
     },
   );

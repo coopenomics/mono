@@ -98,7 +98,7 @@ async function main() {
         position: 'председатель кооперативного участка',
         based_on: b.based_on,
       },
-      country: 'Российская Федерация',
+      country: 'Russia',
       city: b.city,
       fact_address: b.fact_address,
       full_address: b.fact_address,
@@ -128,7 +128,7 @@ async function main() {
             currency: 'RUB',
             card_number: '',
             bank_name: 'ПАО Сбербанк',
-            details: { bik: '044525225', corr: '30101810400000000225', kpp: '773643001' },
+            details: { bik: '044525225', corr: '30101810400000000225' },
           },
         })
         log(`mongo paymentMethod ${b.braname} создан`)
@@ -196,7 +196,7 @@ async function main() {
     }
   }
 
-  await generator.close?.()
+  await generator.disconnect()
   log('done')
 }
 

@@ -1,0 +1,25 @@
+{
+  "api": {
+    "alerts": {
+      "connectionLostCaptionAuto": "Страница не загрузилась. Пробуем открыть её ещё раз…",
+      "connectionLostCaptionRetry": "Страница не загрузилась. Проверьте подключение и попробуйте ещё раз.",
+      "connectionLostTitle": "Нет связи с сервером",
+      "updateApplyAction": "Обновить",
+      "updateAvailableCaption": "Вышла новая версия рабочего стола. Без обновления часть функций может работать некорректно.",
+      "updateAvailableTitle": "Доступно обновление",
+      "updateDismissAction": "Позже"
+    },
+    "authentikFlow": {
+      "errorStatus": "Сервер входа ответил ошибкой {status}. Попробуйте ещё раз.",
+      "unavailableError": "Сервер входа недоступен. Попробуйте ещё раз через минуту.",
+      "unexpectedResponseError": "Сервер входа ответил неожиданно. Попробуйте ещё раз."
+    },
+    "error": {
+      "chainLoad": "Не удалось загрузить {name} из блокчейна",
+      "matrixEmailExists": "Аккаунт с таким email уже существует в Matrix",
+      "matrixUsernameExists": "Пользователь с таким именем уже существует",
+      "unknown": "Неизвестная ошибка",
+      "unknownOccurred": "Произошла неизвестная ошибка"
+    }
+  }
+}

@@ -1,7 +1,7 @@
 import { StoryDomainEntity } from '../../domain/entities/story.entity';
 import { StoryContentFormat } from '../../domain/enums/story-content-format.enum';
 import { normalizeBpmnStoryDescription } from '../../domain/utils/bpmn-story-description.util';
-import { StoryTypeormEntity } from '../entities/story.typeorm-entity';
+import { StoryRecord } from '../entities/story.record';
 import type { IStoryDatabaseData } from '../../domain/interfaces/story-database.interface';
 
 /**
@@ -11,7 +11,7 @@ export class StoryMapper {
   /**
    * Преобразование TypeORM сущности в доменную сущность
    */
-  static toDomain(entity: StoryTypeormEntity): StoryDomainEntity {
+  static toDomain(entity: StoryRecord): StoryDomainEntity {
     const contentFormat = entity.content_format ?? StoryContentFormat.MARKDOWN;
     const databaseData: IStoryDatabaseData = {
       _id: entity._id,
@@ -40,8 +40,8 @@ export class StoryMapper {
   /**
    * Преобразование доменной сущности в TypeORM сущность
    */
-  static toEntity(domain: StoryDomainEntity): Partial<StoryTypeormEntity> {
-    const entity: Partial<StoryTypeormEntity> = {
+  static toEntity(domain: StoryDomainEntity): Partial<StoryRecord> {
+    const entity: Partial<StoryRecord> = {
       _id: domain._id,
       story_hash: domain.story_hash,
       coopname: domain.coopname,

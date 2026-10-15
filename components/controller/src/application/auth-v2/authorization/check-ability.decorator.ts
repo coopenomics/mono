@@ -19,7 +19,7 @@ export interface CheckAbilityRequirement {
 /**
  * Объявляет требование авторизации (Story 6.5 заменяет им `@AuthRoles` в auth-v2).
  *
- * @example `@CheckAbility('vote', 'CriticalAction', { policy: 'same-coop-voting' })`
+ * @example `@CheckAbility('vote', 'Participant', { policy: 'same-coop-voting' })`
  */
 export function CheckAbility(
   action: CoopAction,

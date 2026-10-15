@@ -1,5 +1,7 @@
 #pragma once
 
+
+#include "../../../lib/core/ram_payer.hpp"
 #include <eosio/eosio.hpp>
 #include <eosio/asset.hpp>
 
@@ -118,7 +120,7 @@ inline void create_property_with_approve(
   auto property_id = get_global_id_in_scope(_capital, coopname, "properties"_n);
   
   // Создаем предложение в таблице properties
-  properties.emplace(coopname, [&](auto &p) {
+  properties.emplace(RamPayer::of(properties, coopname), [&](auto &p) {
     p.id = property_id;
     p.status = Capital::ProjectProperties::Status::CREATED;
     p.coopname = coopname;
@@ -149,3 +151,6 @@ inline void create_property_with_approve(
 }
 
 } // namespace Capital::ProjectProperties
+
+// Плательщик за оперативную память строк таблицы — правило в lib/core/ram_payer.hpp.
+RAM_PAYER_CLASS(Capital::ProjectProperties::property, cooperative);

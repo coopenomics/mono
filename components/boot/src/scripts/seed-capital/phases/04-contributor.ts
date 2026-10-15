@@ -25,6 +25,7 @@
  * для ant. Если да — фаза no-op.
  */
 import { Client, Mutations } from '@coopenomics/sdk'
+import { loginChairman } from '../../lib/chairman-login'
 import Blockchain from '../../../blockchain'
 import config from '../../../configs'
 
@@ -70,7 +71,7 @@ export async function phase04(): Promise<void> {
     username: CHAIRMAN,
   })
   log(`логин ${CHAIRMAN_EMAIL} в controller (${apiUrl})...`)
-  await client.login(CHAIRMAN_EMAIL, wif)
+  await loginChairman(client, CHAIRMAN_EMAIL, wif)
 
   // 1. Idempotency через попытку сгенерировать пакет: если Contributor уже зарегистрирован,
   // controller вернёт пустой bundle (без обязательного storage_agreement) или бросит ошибку.

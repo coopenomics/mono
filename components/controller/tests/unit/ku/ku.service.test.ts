@@ -8,6 +8,9 @@
  */
 
 import { KuService } from '~/extensions/ku/application/services/ku.service';
+import { Cooperative } from 'cooptypes';
+
+const R = Cooperative.Registry;
 
 const COOP = 'voskhod';
 const HASH = 'abc123';
@@ -289,48 +292,80 @@ describe('KuService — маппинг DTO', () => {
 });
 
 describe('KuService — генерация документов', () => {
-  it('generateBranchMeetingProposal проставляет registry_id 320', async () => {
+  it(`generateBranchMeetingProposal проставляет registry_id ${R.BranchMeetingProposal.registry_id}`, async () => {
     const { service, documentPort } = makeService();
 
     await service.generateBranchMeetingProposal({ coopname: COOP, username: 'alice' } as any);
 
     const { data } = documentPort.generate.mock.calls[0][0];
-    expect(data.registry_id).toBe(320);
+    expect(data.registry_id).toBe(R.BranchMeetingProposal.registry_id);
   });
 
-  it('generateBranchTrustedLiabilityAgreement проставляет registry_id 327', async () => {
+  it(`generateBranchTrustedLiabilityAgreement проставляет registry_id ${R.BranchTrustedLiabilityAgreement.registry_id}`, async () => {
     const { service, documentPort } = makeService();
 
     await service.generateBranchTrustedLiabilityAgreement({ coopname: COOP, username: 'alice' } as any);
 
     const { data } = documentPort.generate.mock.calls[0][0];
-    expect(data.registry_id).toBe(327);
+    expect(data.registry_id).toBe(R.BranchTrustedLiabilityAgreement.registry_id);
   });
 
-  it('generateBranchTrusteeLiabilityAgreement проставляет registry_id 328', async () => {
+  it(`generateBranchTrusteeLiabilityAgreement проставляет registry_id ${R.BranchTrusteeLiabilityAgreement.registry_id}`, async () => {
     const { service, documentPort } = makeService();
 
     await service.generateBranchTrusteeLiabilityAgreement({ coopname: COOP, username: 'alice' } as any);
 
     const { data } = documentPort.generate.mock.calls[0][0];
-    expect(data.registry_id).toBe(328);
+    expect(data.registry_id).toBe(R.BranchTrusteeLiabilityAgreement.registry_id);
   });
 
-  it('generateBranchTrusteePowerOfAttorney проставляет registry_id 329', async () => {
+  it(`generateBranchTrusteePowerOfAttorney проставляет registry_id ${R.BranchTrusteePowerOfAttorney.registry_id}`, async () => {
     const { service, documentPort } = makeService();
 
     await service.generateBranchTrusteePowerOfAttorney({ coopname: COOP, username: 'alice' } as any);
 
     const { data } = documentPort.generate.mock.calls[0][0];
-    expect(data.registry_id).toBe(329);
+    expect(data.registry_id).toBe(R.BranchTrusteePowerOfAttorney.registry_id);
   });
 
-  it('generateBranchTrustedPowerOfAttorney проставляет registry_id 330', async () => {
+  it(`generateBranchTrustedPowerOfAttorney проставляет registry_id ${R.BranchTrustedPowerOfAttorney.registry_id}`, async () => {
     const { service, documentPort } = makeService();
 
     await service.generateBranchTrustedPowerOfAttorney({ coopname: COOP, username: 'alice' } as any);
 
     const { data } = documentPort.generate.mock.calls[0][0];
-    expect(data.registry_id).toBe(330);
+    expect(data.registry_id).toBe(R.BranchTrustedPowerOfAttorney.registry_id);
+  });
+});
+
+describe('KuService — кто видит заявки в доверенные лица', () => {
+  // Заявка несёт договор с паспортом, адресом и телефоном заявителя. До
+  // 25.09.2026 список отдавался любому пайщику целиком.
+  const filterOf = (repos: any) => repos.trustRequestRepository.findAllPaginated.mock.calls[0][0];
+
+  it('пайщик видит только свои заявки, даже если просит чужой участок', async () => {
+    const { service, repos } = makeService();
+    await service.getTrustRequests({ coopname: COOP, braname: 'romashka' }, undefined, makeUser('stranger'));
+    expect(filterOf(repos)).toMatchObject({ coopname: COOP, braname: 'romashka', username: 'stranger' });
+  });
+
+  it('пайщик без фильтра получает только свои', async () => {
+    const { service, repos } = makeService();
+    await service.getTrustRequests(undefined, undefined, makeUser('stranger'));
+    expect(filterOf(repos)).toMatchObject({ username: 'stranger' });
+  });
+
+  it('председатель участка видит все заявки своего участка', async () => {
+    const { service, repos } = makeService();
+    await service.getTrustRequests({ coopname: COOP, braname: 'romashka' }, undefined, makeUser('trustee1'));
+    expect(filterOf(repos).username).toBeUndefined();
+  });
+
+  it('совет и председатель кооператива видят все заявки', async () => {
+    for (const role of ['member', 'chairman']) {
+      const { service, repos } = makeService();
+      await service.getTrustRequests({ coopname: COOP }, undefined, { username: 'boss', role } as any);
+      expect(filterOf(repos).username).toBeUndefined();
+    }
   });
 });

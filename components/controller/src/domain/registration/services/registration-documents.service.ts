@@ -128,8 +128,15 @@ export class RegistrationDocumentsService {
         await marketplaceParameters.generateMarketplaceOfferParameters(coopname, username);
         break;
 
-      default:
-        this.logger.warn(`Неизвестный ключ программы: ${program_key}`);
+      default: {
+        // Общий путь: расширение зарегистрировало хук под ключом своей программы.
+        const offerParameters = this.parametersRegistry.programOfferParameters(program_key);
+        if (!offerParameters) {
+          this.logger.warn(`Хук параметров оферт программы ${program_key} не зарегистрирован — генерация параметров для ${username} пропущена`);
+          return;
+        }
+        await offerParameters.generateOfferParameters(coopname, username);
+      }
     }
   }
 

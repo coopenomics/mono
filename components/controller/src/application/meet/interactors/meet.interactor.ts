@@ -20,7 +20,7 @@ import { MeetProcessedDomainEntity } from '~/domain/meet/entities/meet-processed
 import { NotifyOnAnnualGeneralMeetInputDomainInterface } from '~/domain/meet/interfaces/notify-on-annual-general-meet-input-domain.interface';
 import { generateUniqueHash } from '~/utils/generate-hash.util';
 import httpStatus from 'http-status';
-import { HttpApiError } from '@coopenomics/extension-kit';
+import { DomainError } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class MeetInteractor {
@@ -59,14 +59,18 @@ export class MeetInteractor {
       details: detailsNormalized,
     });
 
-    // Сохраняем данные в репозиторий
+    // Строка заводится до транзакции: её читают обработчики блока созыва.
+    // Цепь отказала — строка удаляется, сирот в базе не остаётся (решение
+    // владельца 25.09.2026, C28-80; образец 7DD-22).
     await this.meetPreRepository.create(preProcessing);
+    try {
+      await this.meetBlockchainPort.createMeet({ ...data, hash });
+    } catch (error) {
+      await this.meetPreRepository.deleteByHash(hash);
+      throw error;
+    }
 
-    // Вызов блокчейн порта для создания собрания
-    await this.meetBlockchainPort.createMeet({ ...data, hash });
-
-    // Задержка синхронизации на 1 секунду, чтобы избежать ошибки "row not found"
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    // Транзакция вернулась после разбора своего блока — строка собрания уже в цепи.
     // Получаем обновленные данные из блокчейна
     const processingData = await this.meetBlockchainPort.getMeet({
       coopname: data.coopname,
@@ -190,7 +194,7 @@ export class MeetInteractor {
     });
 
     if (!processingData) {
-      throw new HttpApiError(httpStatus.NOT_FOUND, 'Собрание после перезапуска не найдено в блокчейне');
+      throw DomainError.notFound('MEET_NOT_FOUND_AFTER_RESTART');
     }
 
     const proposalAggregate = await this.documentAggregator.buildDocumentAggregate(data.newproposal);

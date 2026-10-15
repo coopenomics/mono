@@ -1,7 +1,9 @@
 // Сценарий: поставщик публикует предложение.
 //
-// Форма — пятишаговая карточка товара: «Товар» → «Цена и наличие» →
-// «Условия поставки» → «Изображения» → «Проверка и публикация». После
+// Форма — шестишаговая карточка товара: «Товар» (название, категория, срок
+// годности, описание) → «Цена» (единица, способ отпуска, цена) → «Наличие»
+// (ограниченное количество) → «Условия поставки» → «Изображения» →
+// «Проверка и публикация». После
 // публикации предложение уходит на модерацию председателю и до одобрения в
 // каталоге не появляется.
 //
@@ -41,11 +43,20 @@ export const meta = {
 async function setNumber(page, label, value) {
   const input = page.locator(`.q-field:has-text("${label}") input`).first();
   await input.click();
-  await input.fill('');
-  await input.type(String(value));
+  // Поле суммы (AmountInput) на фокусе выделяет содержимое в следующем кадре
+  // отрисовки: печать сразу после клика теряла первую цифру («250» → «50,00»).
+  // Ждём выделение, затем выделяем сами и печатаем поверх.
+  await page.waitForTimeout(250);
+  await input.press('ControlOrMeta+a');
+  await input.type(String(value), { delay: 40 });
   await input.blur();
   await page.waitForTimeout(300);
   return input;
+}
+
+/** Значение числового поля как число: поле суммы показывает «250,00». */
+async function numberOf(input) {
+  return Number((await input.inputValue()).replace(/\s/g, '').replace(',', '.'));
 }
 
 export default async ({ page, shot, expect }) => {
@@ -80,12 +91,16 @@ export default async ({ page, shot, expect }) => {
   await page.locator('.q-field:has-text("Описание") textarea, .q-field:has-text("Описание") input')
     .first()
     .fill('Яблочный сок прямого отжима из яблок кооперативного сада. Без сахара и консервантов, хранить в холодильнике.');
+  // Срок годности живёт на первом шаге: он определяет, до какого момента
+  // имущество можно выдать заказчику.
+  const shelf = await setNumber(page, 'Срок годности', 30);
+  expect(await numberOf(shelf)).toBe(30);
   await page.waitForTimeout(500);
 
   await shot(
     page,
     '02-step-product',
-    `Шаг «Товар» заполнен: название «${OFFER_TITLE}», выбрана категория из списка доступных кооперативу, добавлено описание для каталога.`,
+    `Шаг «Товар» заполнен: название «${OFFER_TITLE}», выбрана категория из списка доступных кооперативу, срок годности и описание для каталога.`,
   );
   await page.locator('button:has-text("Далее")').first().click();
   await page.waitForTimeout(1500);
@@ -99,23 +114,34 @@ export default async ({ page, shot, expect }) => {
   await litre.click();
   await page.waitForTimeout(500);
   const price = await setNumber(page, 'Цена за', 250);
-  const qty = await setNumber(page, 'Доступное количество', 100);
-  const shelf = await setNumber(page, 'Срок годности', 30);
-  // Проверяем, что значения дошли до модели: управляемые поля молча
+  // Проверяем, что значение дошло до модели: управляемые поля молча
   // возвращаются к значениям по умолчанию, если ввод не был зафиксирован.
-  expect(await price.inputValue()).toBe('250');
-  expect(await qty.inputValue()).toBe('100');
-  expect(await shelf.inputValue()).toBe('30');
+  expect(await numberOf(price)).toBe(250);
 
   await shot(
     page,
     '03-step-price',
-    'Шаг «Цена и наличие»: цена за единицу, способ отпуска (по мере или упаковкой), ограничение количества и срок годности. Срок годности определяет, до какого момента имущество можно выдать заказчику.',
+    'Шаг «Цена»: единица измерения, способ отпуска (по мере или упаковкой) и цена за единицу. Под ценой форма показывает цену для заказчика — с целевым членским взносом кооператива.',
   );
   await page.locator('button:has-text("Далее")').first().click();
   await page.waitForTimeout(1500);
 
-  // --- Шаг 3. Условия поставки --------------------------------------------
+  // --- Шаг 3. Наличие ------------------------------------------------------
+  // По умолчанию выбрано «Ограниченное количество»: заказы принимаются, пока
+  // не разберут остаток.
+  await page.waitForSelector('text=Сколько готовы отдать заказчикам', { timeout: 20000 });
+  const qty = await setNumber(page, 'Доступное количество', 100);
+  expect(await numberOf(qty)).toBe(100);
+
+  await shot(
+    page,
+    '03b-step-stock',
+    'Шаг «Наличие»: ограниченное количество с остатком либо «без ограничения». При ограниченном количестве заказы принимаются, пока не разберут указанный остаток.',
+  );
+  await page.locator('button:has-text("Далее")').first().click();
+  await page.waitForTimeout(1500);
+
+  // --- Шаг 4. Условия поставки --------------------------------------------
   await page.waitForSelector('text=Участки и объём поставки', { timeout: 20000 });
   // Отмечаем участок именно чекбоксом: клик по строке ничего не переключает,
   // а «Далее» без единого отмеченного участка молча остаётся на этом шаге.
@@ -127,10 +153,11 @@ export default async ({ page, shot, expect }) => {
   // Минимальный объём поставки > 1: при объёме 1 сводный заказ не копится и
   // прогресс-бар сбора партии нигде не показывается. 25 литров против заказа
   // в 10 литров дают наглядные 40% на «Входящих заказах» поставщика.
-  const minVol = page.locator('.q-field:has-text("Мин. объём") input').first();
+  const minVol = page.locator('.q-field:has-text("Минимальный объём поставки") input').first();
   await minVol.click();
-  await minVol.fill('');
-  await minVol.type('25');
+  await page.waitForTimeout(250);
+  await minVol.press('ControlOrMeta+a');
+  await minVol.type('25', { delay: 40 });
   await minVol.blur();
   await page.waitForTimeout(500);
 
@@ -142,7 +169,7 @@ export default async ({ page, shot, expect }) => {
   await page.locator('button:has-text("Далее")').first().click();
   await page.waitForTimeout(1500);
 
-  // --- Шаг 4. Изображения --------------------------------------------------
+  // --- Шаг 5. Изображения --------------------------------------------------
   // Карточка без фотографии выглядит в каталоге пустой заглушкой — грузим
   // фотографию так же, как это сделает живой поставщик.
   const fileInput = page.locator('.q-file input[type="file"]').first();
@@ -157,7 +184,7 @@ export default async ({ page, shot, expect }) => {
   await page.locator('button:has-text("Далее")').first().click();
   await page.waitForTimeout(1500);
 
-  // --- Шаг 5. Проверка и публикация ---------------------------------------
+  // --- Шаг 6. Проверка и публикация ---------------------------------------
   await page.waitForSelector('text=Сверьте карточку перед отправкой', { timeout: 20000 });
   await shot(
     page,

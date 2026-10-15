@@ -1,7 +1,8 @@
 import { ObjectType, Field, InputType, registerEnumType } from '@nestjs/graphql';
+import { validationMessage } from '@coopenomics/extension-kit';
 import { IsOptional, IsString, IsIn, Matches, MaxLength } from 'class-validator';
 import { ReportType } from '../../domain/enums/report-type.enum';
-import { SFR_REG_NUMBER_PATTERN, PFR_REG_NUMBER_PATTERN } from '../../domain/patterns';
+import { SFR_REG_NUMBER_PATTERN, PFR_REG_NUMBER_PATTERN, INN_FL_PATTERN } from '../../domain/patterns';
 
 export enum RequisiteSource {
   DATABASE = 'database',
@@ -47,6 +48,7 @@ export class ReportRequisitesViewDTO {
   @Field(() => RequisiteFieldViewDTO) pfrRegNumber!: RequisiteFieldViewDTO;
   @Field(() => RequisiteFieldViewDTO) chairmanPosition!: RequisiteFieldViewDTO;
   @Field(() => RequisiteFieldViewDTO) signerSnils!: RequisiteFieldViewDTO;
+  @Field(() => RequisiteFieldViewDTO) signerInn!: RequisiteFieldViewDTO;
   @Field(() => RequisiteFieldViewDTO) signerRepDoc!: RequisiteFieldViewDTO;
 
   // Выбор пользователя — не RequisiteField (не связан с БД-источником).
@@ -77,43 +79,43 @@ export class UpdateReportRequisitesInputDTO {
   @Field(() => String, { nullable: true, description: 'ОКВЭД — напр. 94.99, 46.73.7' })
   @IsOptional()
   @IsString()
-  @Matches(/^\d{2}(\.\d{1,2}){0,2}$/, { message: 'ОКВЭД — XX, XX.X, XX.XX, XX.XX.X или XX.XX.XX' })
+  @Matches(/^\d{2}(\.\d{1,2}){0,2}$/, { message: validationMessage('reports.requisites.status.okvedFormat') })
   okved?: string | null;
 
   @Field(() => String, { nullable: true, description: 'ОКФС — 1-3 цифры' })
   @IsOptional()
   @IsString()
-  @Matches(/^\d{1,3}$/, { message: 'ОКФС — 1-3 цифры' })
+  @Matches(/^\d{1,3}$/, { message: validationMessage('reports.requisites.status.okfsFormat') })
   okfs?: string | null;
 
   @Field(() => String, { nullable: true, description: 'ОКОПФ — 5 цифр' })
   @IsOptional()
   @IsString()
-  @Matches(/^\d{5}$/, { message: 'ОКОПФ — 5 цифр' })
+  @Matches(/^\d{5}$/, { message: validationMessage('reports.requisites.status.okopfFormat') })
   okopf?: string | null;
 
   @Field(() => String, { nullable: true, description: 'ОКТМО — 8 или 11 цифр' })
   @IsOptional()
   @IsString()
-  @Matches(/^\d{8}(\d{3})?$/, { message: 'ОКТМО — 8 или 11 цифр' })
+  @Matches(/^\d{8}(\d{3})?$/, { message: validationMessage('reports.requisites.status.oktmoFormat') })
   oktmo?: string | null;
 
   @Field(() => String, { nullable: true, description: 'ОКПО — 8 или 10 цифр' })
   @IsOptional()
   @IsString()
-  @Matches(/^\d{8}(\d{2})?$/, { message: 'ОКПО — 8 или 10 цифр' })
+  @Matches(/^\d{8}(\d{2})?$/, { message: validationMessage('reports.requisites.status.okpoFormat') })
   okpo?: string | null;
 
   @Field(() => String, { nullable: true, description: 'Рег. номер СФР — 10 цифр' })
   @IsOptional()
   @IsString()
-  @Matches(SFR_REG_NUMBER_PATTERN, { message: 'Рег. номер СФР — 10 цифр' })
+  @Matches(SFR_REG_NUMBER_PATTERN, { message: validationMessage('reports.requisites.sfrRegNumber10Format') })
   sfrRegNumber?: string | null;
 
   @Field(() => String, { nullable: true, description: 'Рег. номер ПФР — XXX-XXX-XXXXXX (для ЕФС-1, отдельно от рег. номера СФР)' })
   @IsOptional()
   @IsString()
-  @Matches(PFR_REG_NUMBER_PATTERN, { message: 'Рег. номер ПФР — XXX-XXX-XXXXXX' })
+  @Matches(PFR_REG_NUMBER_PATTERN, { message: validationMessage('reports.requisites.pfrRegNumberFormat') })
   pfrRegNumber?: string | null;
 
   @Field(() => String, { nullable: true })
@@ -125,8 +127,14 @@ export class UpdateReportRequisitesInputDTO {
   @Field(() => String, { nullable: true, description: 'СНИЛС — XXX-XXX-XXX YY или 11 цифр' })
   @IsOptional()
   @IsString()
-  @Matches(/^(\d{3}-\d{3}-\d{3} \d{2}|\d{11})$/, { message: 'СНИЛС — XXX-XXX-XXX YY или 11 цифр' })
+  @Matches(/^(\d{3}-\d{3}-\d{3} \d{2}|\d{11})$/, { message: validationMessage('reports.requisites.status.snilsFormat') })
   signerSnils?: string | null;
+
+  @Field(() => String, { nullable: true, description: 'ИНН подписанта-физлица — 12 цифр' })
+  @IsOptional()
+  @IsString()
+  @Matches(INN_FL_PATTERN, { message: validationMessage('reports.requisites.status.signerInn12Format') })
+  signerInn?: string | null;
 
   @Field(() => String, { nullable: true })
   @IsOptional()

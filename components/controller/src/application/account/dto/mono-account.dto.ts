@@ -71,6 +71,14 @@ export class MonoAccountDTO {
   @IsString()
   public readonly subscriber_hash: string;
 
+  @Field(() => String, {
+    description: 'Когда запись о человеке появилась на узле кооператива (заявка подана или её завёл председатель)',
+    nullable: true,
+  })
+  @IsOptional()
+  @IsString()
+  public readonly created_at?: string;
+
   constructor(user: IMonoAccount) {
     this.username = user.username;
     this.status = user.status;
@@ -86,5 +94,6 @@ export class MonoAccountDTO {
     this.initial_order = user.initial_order;
     this.subscriber_id = user.subscriber_id;
     this.subscriber_hash = user.subscriber_hash;
+    this.created_at = user.created_at;
   }
 }

@@ -23,23 +23,29 @@ name: Typecheck
 #    32501986352 упал на сборке controller'а, потому что до testnet типы
 #    никто не проверял, и красным стал уже релизный прогон. Ветка dev —
 #    место, где ошибка стоит правки, а не отката релиза.
+#  - 2026-09-08 dev снят по решению владельца: у прогона появилось своё место.
+#    Рабочая ветка проверяется в ci/tests ДО слияния, поэтому прогон на каждый
+#    коммит в dev — это второй прогон того же кода (тот же коммит шёл дважды,
+#    #243 после зелёного #108). Дыра 2026-08-21 закрыта не dev-триггером, а
+#    дисциплиной: без зелёного полигона ветка не сливается, а testnet остаётся
+#    последним рубежом перед main.
 #
 # pull_request не нужен: PR живут в Gitea, на GitHub-зеркале их нет —
 # триггер не срабатывал ни разу.
 on:
   push:
-    branches: [dev, testnet, main]
+    # ci/tests — ветка-полигон: рабочая ветка пушится сюда, чтобы получить
+    # вердикт по типам до слияния. Локальные прогоны tsc/vue-tsc запрещены —
+    # они вешают машину разработчика, — поэтому других точек контроля нет.
+    branches: [testnet, main, ci/tests, 'ci/tests-*']
   workflow_call:
   workflow_dispatch:
 
-# Новый push в ветку отменяет ещё бегущий typecheck по той же ветке — иначе
-# при частых коммитах в dev 30-минутные прогоны копятся очередью и результат
-# приходит к уже неактуальному коду. Группа по head_ref (для PR/вызовов из
-# других workflow), для push fallback на ref. Отмена только своих же прежних
-# прогонов: dev, testnet и main друг друга не трогают.
-concurrency:
-  group: typecheck-${{ github.head_ref || github.ref }}
-  cancel-in-progress: true
+# ci/tests-<имя> — личный полигон агента: параллельные починки не перетирают
+# чужую проверку в общем ci/tests.
+# Прогоны не отменяют друг друга: полигоны ci/tests и ci/blackbox общие для
+# нескольких агентов, и отмена прежнего прогона новым пушем обрывала чужую
+# проверку. Каждый пуш доводится до исхода.
 
 jobs:
   desktop:
@@ -111,3 +117,47 @@ jobs:
 
       - name: tsc --noEmit (controller)
         run: pnpm --filter @coopenomics/controller run typecheck
+
+      # Пакеты workspace проверяются здесь же, а не отдельной job: дорогая
+      # часть — `lerna run build` выше, сами прогоны стоят секунды. До
+      # 07.09.2026 их не проверял никто: сборка unbuild/esbuild типы срезает,
+      # а workflow знал только desktop и controller. Через эту дыру на стенд
+      # уехали две ошибки компилятора — в factory (документ собирался без
+      # обязательного поля модели) и в sdk (селектор спрашивал у схемы
+      # несуществующее поле).
+      - name: tsc --noEmit (cooptypes)
+        run: pnpm --filter cooptypes run typecheck
+
+      - name: tsc --noEmit (factory)
+        run: pnpm --filter @coopenomics/factory run typecheck
+
+      - name: tsc --noEmit (sdk)
+        run: pnpm --filter @coopenomics/sdk run typecheck
+
+      - name: tsc --noEmit (boot)
+        run: pnpm --filter @coopenomics/boot run typecheck
+
+      # Каркас и контракты расширений. До 23.09.2026 их не проверял никто:
+      # при переносе проверки валюты в extension-kit осталась ссылка на `config`
+      # контроллера, пакет собрался без единого предупреждения, и сверка суммы
+      # подписанного заявления падала на стенде «config is not defined».
+      - name: tsc --noEmit (extension-kit)
+        run: pnpm --filter @coopenomics/extension-kit run typecheck
+
+      - name: tsc --noEmit (innercoop)
+        run: pnpm --filter @coopenomics/innercoop run typecheck
+      - name: tsc --noEmit (api-tests)
+        run: pnpm --filter @coopenomics/api-tests run typecheck
+
+      - name: tsc --noEmit (i18n)
+        run: pnpm --filter @coopenomics/i18n run typecheck
+
+      # Каркас и контракты расширений. До 23.09.2026 их не проверял никто:
+      # при переносе проверки валюты в extension-kit осталась ссылка на `config`
+      # контроллера, пакет собрался без единого предупреждения, и сверка суммы
+      # подписанного заявления падала на стенде «config is not defined».
+      - name: tsc --noEmit (extension-kit)
+        run: pnpm --filter @coopenomics/extension-kit run typecheck
+
+      - name: tsc --noEmit (innercoop)
+        run: pnpm --filter @coopenomics/innercoop run typecheck

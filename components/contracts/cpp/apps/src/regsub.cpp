@@ -50,7 +50,7 @@ void apps::regsub(eosio::name coopname,
 
   if (sub_it == by_cooppkg.end()) {
     uint64_t new_id = get_global_id(_apps, "sub"_n);
-    subs.emplace(coopname, [&](auto &s) {
+    subs.emplace(RamPayer::of(subs, coopname), [&](auto &s) {
       s.id         = new_id;
       s.coopname   = subscriber;
       s.package_id = package_id;
@@ -63,7 +63,7 @@ void apps::regsub(eosio::name coopname,
       s.updated_at = now_tps;
     });
   } else {
-    by_cooppkg.modify(sub_it, coopname, [&](auto &s) {
+    by_cooppkg.modify(sub_it, RamPayer::of(by_cooppkg, coopname), [&](auto &s) {
       s.chain_id   = chain_id;
       s.plan       = plan;
       s.active     = true;

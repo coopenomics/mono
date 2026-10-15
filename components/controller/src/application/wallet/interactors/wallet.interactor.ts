@@ -21,7 +21,8 @@ import type { CreateDepositPaymentInputDomainInterface } from '~/domain/gateway/
 import { PaymentDomainEntity } from '~/domain/gateway/entities/payment-domain.entity';
 import type { ProgramWalletFilterInputDTO } from '../dto/program-wallet-filter-input.dto';
 import { UserWalletDTO } from '../dto/user-wallet.dto';
-import { PaginationResult, PaginationInputDTO } from '@coopenomics/extension-kit';
+import { PaginationResult, PaginationInputDTO, DomainError } from '@coopenomics/extension-kit';
+import httpStatus from 'http-status';
 import { getProgramId, getProgramType } from '~/domain/wallet/enums/program-type.enum';
 import { config } from '~/config';
 
@@ -140,6 +141,15 @@ export class WalletInteractor {
         statement: data.statement,
       });
     } catch (error: any) {
+      // Нехватка собственного остатка — не сбой, а ответ на введённую сумму:
+      // пайщик попросил вернуть больше, чем лежит на его паевом кошельке. Цепь
+      // здесь единственный судья (кэш остатков в базе может отставать), поэтому
+      // сумму заранее не сверяем, а переводим её отказ в понятный пайщику 400.
+      // Раньше он уходил наверх ошибкой сервера: пайщик видел текст ассерта
+      // контракта, а журнал ошибок — 500.
+      if (/недостаточно L3-средств/.test(String(error?.message))) {
+        throw DomainError.badRequest('WALLET_REFUND_AMOUNT_EXCEEDS_BALANCE');
+      }
       this.logger.error(`Ошибка при создании withdraw в блокчейне (платёж не зафиксирован): ${error.message}`, error);
       throw error;
     }

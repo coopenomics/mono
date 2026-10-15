@@ -10,14 +10,14 @@ q-card.main-wallet-card(flat)
 
   .wallet-balance
     ColorCard(color='blue').main-balance
-      .balance-label Доступно
+      .balance-label {{ $t('wallet.walletWidget.availableLabel') }}
       .balance-value {{ availableBalance }}
 
     ColorCard(
       color='orange'
       v-if='minimumAmount > 0'
     ).minimum-reserve
-      .balance-label Минимальный неснижаемый остаток
+      .balance-label {{ $t('wallet.walletWidget.minBalanceLabel') }}
       .balance-value {{ minimumBalance }}
 
 </template>

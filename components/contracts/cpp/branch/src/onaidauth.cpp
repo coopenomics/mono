@@ -36,7 +36,7 @@
   // с авторизацией `soviet`, аккаунт кооператива это действие не подписывал —
   // расширять его RAM отсюда нельзя. Тот же приём в marketplace
   // (`update_writeoff_proposal` платит `_marketplace`).
-  byhash.modify(it, _branch, [&](auto& a) {
+  byhash.modify(it, RamPayer::of(byhash, coopname), [&](auto& a) {
     a.status   = AidStatus::AUTHORIZED;
     a.protocol = authorization;
   });

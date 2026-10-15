@@ -55,19 +55,19 @@ extensions/expenses/
 │       └── expense-file.repository.ts         ← interface
 ├── infrastructure/
 │   ├── database/
-│   │   └── expenses-database.module.ts        ← TypeOrmModule.forFeature([...])
+│   │   └── expenses-database.module.ts        ← KyselyModule.forFeature([...])
 │   ├── entities/
-│   │   ├── expense-proposal.typeorm-entity.ts ← coopname, proposal_hash, username, status, total_amount, statement_doc, decision_doc, _created_at, _updated_at
-│   │   ├── expense-item.typeorm-entity.ts     ← proposal_hash, item_hash, recipient_type, mechanics, planned_amount, actual_amount, recipient_account, status
-│   │   └── expense-file.typeorm-entity.ts     ← file_id (uuid), proposal_hash, item_hash (nullable), kind, minio_key, checksum, mime, size_bytes, uploaded_by, uploaded_at
+│   │   ├── expense-proposal.record.ts ← coopname, proposal_hash, username, status, total_amount, statement_doc, decision_doc, _created_at, _updated_at
+│   │   ├── expense-item.record.ts     ← proposal_hash, item_hash, recipient_type, mechanics, planned_amount, actual_amount, recipient_account, status
+│   │   └── expense-file.record.ts     ← file_id (uuid), proposal_hash, item_hash (nullable), kind, minio_key, checksum, mime, size_bytes, uploaded_by, uploaded_at
 │   ├── mappers/
 │   │   ├── expense-proposal.mapper.ts         ← domain <-> typeorm
 │   │   ├── expense-item.mapper.ts
 │   │   └── expense-file.mapper.ts
 │   ├── repositories/
-│   │   ├── expense-proposal.typeorm-repository.ts  ← extends BaseBlockchainRepository
-│   │   ├── expense-item.typeorm-repository.ts      ← extends BaseBlockchainRepository
-│   │   └── expense-file.typeorm-repository.ts      ← plain TypeORM (нет блокчейн-якоря)
+│   │   ├── expense-proposal.kysely-repository.ts  ← extends BaseBlockchainRepository
+│   │   ├── expense-item.kysely-repository.ts      ← extends BaseBlockchainRepository
+│   │   └── expense-file.kysely-repository.ts      ← plain TypeORM (нет блокчейн-якоря)
 │   ├── blockchain/
 │   │   └── mappers/
 │   │       ├── expense-proposal-delta.mapper.ts    ← parser2 delta → IExpenseProposalBlockchainData

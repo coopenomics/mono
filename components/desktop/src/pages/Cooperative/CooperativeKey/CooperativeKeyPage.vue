@@ -3,24 +3,24 @@
   .banner
     q-icon.banner__icon(name='fa-solid fa-circle-info' size='18px')
     .banner__body
-      | Приватный ключ используется для подписи транзакций в блокчейне. Хранится
-      | зашифрованным на сервере. Обновляйте его при смене ключа у аккаунта
-      | кооператива или при восстановлении доступа.
+      | {{ $t('cooperative.cooperativeKeyPage.bannerLine1') }}
+      | {{ $t('cooperative.cooperativeKeyPage.bannerLine2') }}
+      | {{ $t('cooperative.cooperativeKeyPage.bannerLine3') }}
 
   q-card.surface-card(flat)
-    .section-title Приватный ключ
-    .section-note Введите новый приватный ключ, чтобы заменить текущий.
+    .section-title {{ $t('cooperative.cooperativeKeyPage.sectionTitle') }}
+    .section-note {{ $t('cooperative.cooperativeKeyPage.sectionNote') }}
 
     q-input(
       v-model='privateKey'
-      label='Приватный ключ'
+      :label='$t("cooperative.cooperativeKeyPage.keyLabel")'
       type='password'
       outlined
       color='primary'
       dense
       :loading='loading'
       :disable='loading'
-      hint='Ключ не отображается после сохранения'
+      :hint='$t("cooperative.cooperativeKeyPage.keyHint")'
     )
       template(#prepend)
         q-icon(name='key')
@@ -35,7 +35,7 @@
         size='md'
       )
         q-icon.q-mr-sm(name='update')
-        | Обновить ключ
+        | {{ $t('cooperative.cooperativeKeyPage.submitLabel') }}
 </template>
 
 <script setup lang="ts">
@@ -46,6 +46,7 @@ import {
   FailAlert,
   extractGraphQLErrorMessages,
 } from 'src/shared/api';
+import { t } from 'src/shared/i18n';
 
 const { setCooperativeKey } = useSetCooperativeKey();
 
@@ -58,7 +59,7 @@ onMounted(() => {
 
 const updateKey = async () => {
   if (!privateKey.value || privateKey.value === '5********************************') {
-    FailAlert('Пожалуйста, введите действительный приватный ключ');
+    FailAlert(t('cooperative.cooperativeKeyPage.invalidKeyError'));
     return;
   }
 
@@ -69,9 +70,9 @@ const updateKey = async () => {
 
     privateKey.value = '5********************************';
 
-    SuccessAlert('Ключ кооператива успешно обновлен');
+    SuccessAlert(t('cooperative.cooperativeKeyPage.updateSuccess'));
   } catch (error: any) {
-    FailAlert(`Ошибка обновления ключа: ${extractGraphQLErrorMessages(error)}`);
+    FailAlert(t('cooperative.cooperativeKeyPage.updateError', { message: extractGraphQLErrorMessages(error) }));
   } finally {
     loading.value = false;
   }

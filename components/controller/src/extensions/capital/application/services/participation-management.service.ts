@@ -7,7 +7,7 @@ import type { EditContributorInputDTO } from '../dto/participation_management/ed
 import type { MakeClearanceInputDTO } from '../dto/participation_management/make-clearance-input.dto';
 import { ContributorOutputDTO } from '../dto/participation_management/contributor.dto';
 import { ContributorFilterInputDTO } from '../dto/participation_management/contributor-filter.input';
-import { PaginationInputDTO, PaginationResult, GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO, GenerateDocumentInputDTO } from '@coopenomics/extension-kit';
+import { PaginationInputDTO, PaginationResult, GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO, GenerateDocumentInputDTO, DomainError } from '@coopenomics/extension-kit';
 import { ContributorMapperService } from './contributor-mapper.service';
 import { ContributorSyncService } from '../syncers/contributor-sync.service';
 import { Cooperative } from 'cooptypes';
@@ -114,7 +114,7 @@ export class ParticipationManagementService {
     );
 
     if (!syncedContributor) {
-      throw new Error('Не удалось синхронизировать данные участника после редактирования');
+      throw DomainError.internal('CAPITAL_CONTRIBUTOR_SYNC_AFTER_EDIT_FAILED');
     }
 
     // Возвращаем отмапленного участника

@@ -41,7 +41,7 @@ gen 0400 authentik_bootstrap_token rand_pass
 gen 0400 authentik_webhook_token rand_pass
 # Секрет подписи session_binding_token (HS256, Story 1.6).
 gen 0400 auth_v2_session_binding_secret rand_pass
-# Секрет confidential-клиента card.coop (карта пайщика, Story 7.0). Живёт в .env,
+# Секрет confidential-клиента card.coop (карта кооператора, Story 7.0). Живёт в .env,
 # потому что его читает blueprint authentik (CARDCOOP_CLIENT_SECRET), а blueprint'ы
 # видят только окружение — file:// они не понимают. Тот же секрет оператор сети
 # передаёт в реестр АНО при активации кооператива (FR-E6).

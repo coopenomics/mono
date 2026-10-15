@@ -1,4 +1,5 @@
 import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
+import { DomainError } from '@coopenomics/extension-kit';
 
 /**
  * TOTP (RFC 6238) для второго фактора CoopID — совместимо с Google Authenticator
@@ -29,7 +30,7 @@ function base32Decode(secret: string): Buffer {
   let bits = '';
   for (const ch of clean) {
     const idx = BASE32_ALPHABET.indexOf(ch);
-    if (idx === -1) throw new Error('Невалидный символ Base32 в TOTP-секрете');
+    if (idx === -1) throw DomainError.internal('AUTH_V2_TOTP_SECRET_INVALID_BASE32');
     bits += idx.toString(2).padStart(5, '0');
   }
   const bytes: number[] = [];
@@ -58,15 +59,24 @@ function hotp(key: Buffer, counter: number): string {
  * `nowSec` инъектируется для тестов; по умолчанию — системное время.
  */
 export function verifyTotp(secret: string, code: string, window = 1, nowSec = Math.floor(Date.now() / 1000)): boolean {
-  if (!/^\d{6}$/.test(code)) return false;
+  return matchTotpStep(secret, code, window, nowSec) !== null;
+}
+
+/**
+ * Шаг времени (номер 30-секундного окна), на котором код совпал, или null.
+ * Нужен защите от повтора: один и тот же код годится на весь шаг и соседние,
+ * поэтому сервис запоминает последний принятый шаг и не принимает его снова.
+ */
+export function matchTotpStep(secret: string, code: string, window = 1, nowSec = Math.floor(Date.now() / 1000)): number | null {
+  if (!/^\d{6}$/.test(code)) return null;
   const key = base32Decode(secret);
   const counter = Math.floor(nowSec / TOTP_STEP_SEC);
   const expected = Buffer.from(code);
   for (let i = -window; i <= window; i++) {
     const candidate = Buffer.from(hotp(key, counter + i));
-    if (candidate.length === expected.length && timingSafeEqual(candidate, expected)) return true;
+    if (candidate.length === expected.length && timingSafeEqual(candidate, expected)) return counter + i;
   }
-  return false;
+  return null;
 }
 
 /** otpauth://-URI для QR-кода в приложении-аутентификаторе. */

@@ -33,6 +33,11 @@ export const _marketplace = {
   testnet: 'marketplace',
 } as const
 
+export const _edubridge = {
+  production: 'edubridge',
+  testnet: 'edubridge',
+} as const
+
 export const _registrator = {
   production: 'registrator',
   testnet: 'registrator',

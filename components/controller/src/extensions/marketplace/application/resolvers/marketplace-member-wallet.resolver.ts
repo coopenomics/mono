@@ -2,7 +2,7 @@ import { Inject, Injectable, UseGuards } from '@nestjs/common';
 import { Query, Resolver } from '@nestjs/graphql';
 import { Ledger2 } from 'cooptypes';
 
-import { GqlJwtAuthGuard, platformSettings } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, platformSettings, RequireRight, SELF, RightsGuard } from '@coopenomics/extension-kit';
 
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
 import type { IMarketplaceCurrentMember } from '../dto/marketplace-current-member.dto';
@@ -12,12 +12,14 @@ import {
 } from '../dto/marketplace-member-wallet.dto';
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
 import { USER_WALLET_PORT, type IUserWalletPort } from '@coopenomics/innercoop';
+import { t } from '../../i18n';
 
 /**
  * Релевантные стол-заказам USER_SHARED-кошельки по стандарту marketplace
  * (`marketplace/p.mkt.supply.standard.yaml`, секция «wallets»). Порядок
- * соответствует pipeline средств в createorder: `w.wal.share` (деньги) →
- * `w.wal.member` (универсальный членский) → `w.mkt.order` (резерв под Order).
+ * соответствует пути паевого взноса: `w.wal.share` (Цифровой кошелёк) →
+ * `w.mkt.order` (паевой резерв под заказ) → `w.mkt.share` (свободный паевой
+ * Стола заказов: остатки, источник заказов из остатка и доплат, вывод обратно).
  *
  * `label` — UX-метка в формате `<тип взноса> | <программа>`. Не та же что
  * `human_name` из cooptypes (там длинное юр.описание); этот label короткий,
@@ -28,9 +30,10 @@ const MARKETPLACE_RELEVANT_WALLETS: ReadonlyArray<{
   program_id: number;
   label: string;
 }> = [
-  { name: 'w.wal.share', program_id: 1, label: 'Паевой | Цифровой Кошелёк' },
-  { name: 'w.wal.member', program_id: 1, label: 'Членский | Цифровой Кошелёк' },
-  { name: 'w.mkt.order', program_id: 2, label: 'Резерв | Стол Заказов' },
+  { name: 'w.wal.share', program_id: 1, label: t('marketplace.memberWallet.shareDigitalWalletLabel') },
+  { name: 'w.mkt.order', program_id: 2, label: t('marketplace.memberWallet.shareOrderReserveLabel') },
+  { name: 'w.mkt.share', program_id: 2, label: t('marketplace.memberWallet.shareFreeLabel') },
+  { name: 'w.mkt.member', program_id: 2, label: t('marketplace.memberWallet.membershipFeeLabel') },
 ];
 
 /**
@@ -60,9 +63,10 @@ export class MarketplaceMemberWalletResolver {
   @Query(() => MarketplaceMemberWalletDTO, {
     name: 'marketplaceMemberWallet',
     description:
-      'Кошельки пайщика, релевантные столу заказов: w.wal.share, w.wal.member, w.mkt.order',
+      'Кошельки пайщика в Столе заказов: паевой Цифрового кошелька, паевой резерв под заказы и свободный паевой Стола заказов.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
+  @RequireRight('MemberWallet', 'read:own', SELF)
   async marketplaceMemberWallet(
     @CurrentMarketplaceMember() currentMember: IMarketplaceCurrentMember
   ): Promise<MarketplaceMemberWalletDTO> {

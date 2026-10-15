@@ -5,11 +5,11 @@
 </template>
 
 <script lang="ts" setup>
-import { onMounted, onBeforeUnmount } from 'vue';
+import { onMounted } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { CAPITAL_LIVE_TABLES } from 'app/extensions/capital/shared/lib/live';
 import { useProjectLoader } from 'app/extensions/capital/entities/Project/model';
 import ProjectContributorsList from 'app/extensions/capital/widgets/ProjectInfoSelectorWidget/ProjectContributorsList.vue';
-import { useDataPoller } from 'src/shared/lib/composables';
-import { POLL_INTERVALS } from 'src/shared/lib/consts';
 
 // Используем composable для загрузки проекта
 const { project, loadProject } = useProjectLoader();
@@ -28,23 +28,17 @@ const reloadProjectData = async () => {
 };
 
 // Настраиваем poll обновление данных
-const { start: startProjectPoll, stop: stopProjectPoll } = useDataPoller(
-  reloadProjectData,
-  { interval: POLL_INTERVALS.MEDIUM, immediate: false }
-);
+// Живой экран: перечитывается по ленте изменений Благороста вместо опроса по
+// таймеру (набор таблиц — shared/lib/live).
+useLiveReload(CAPITAL_LIVE_TABLES, reloadProjectData);
 
 // Инициализация
 onMounted(async () => {
   await loadProject();
 
-  // Запускаем poll обновление данных
-  startProjectPoll();
 });
 
 // Останавливаем poll при уходе со страницы
-onBeforeUnmount(() => {
-  stopProjectPoll();
-});
 </script>
 
 <style lang="scss" scoped>

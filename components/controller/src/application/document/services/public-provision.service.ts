@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { BadRequestException } from '@nestjs/common';
 import { Cooperative } from 'cooptypes';
 import config from '~/config/config';
 import { DocumentInteractor } from '../interactors/document.interactor';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
+import { DomainError } from '@coopenomics/extension-kit';
 
 /**
  * Положения, которые кооператив показывает публично: их текст не зависит от
@@ -53,7 +53,7 @@ export class PublicProvisionService {
    */
   async getProvisionHtml(registry_id: number): Promise<{ html: string; title: string }> {
     if (!PUBLIC_REGISTRY_IDS.includes(registry_id)) {
-      throw new BadRequestException(`Документ ${registry_id} не публикуется без указания субъекта`);
+      throw DomainError.badRequest('DOCUMENT_PUBLIC_PROVISION_SUBJECT_REQUIRED', { registryId: registry_id });
     }
 
     const cached = this.cache.get(registry_id);

@@ -16,10 +16,11 @@
  * Если фоллоуап story введёт source-маркер `'registration_flow'`, кейс
  * расширится — сейчас он эквивалентен «подпись есть» (см. Story 1.4 DTO).
  */
-import { MARKETPLACE_OFFER_TEMPLATE_REGISTRY_ID } from '~/extensions/marketplace/constants/marketplace-agreement-ids';
+import { MARKETPLACE_OFFER_INSTANCE_REGISTRY_ID } from '~/extensions/marketplace/constants/marketplace-agreement-ids';
 import { MarketplaceOnboardingService } from '~/extensions/marketplace/application/onboarding/marketplace-onboarding.service';
 
 import { MarketplaceOnboardingSource } from '~/extensions/marketplace/application/dto/marketplace-onboarding-state.dto';
+import { Cooperative } from 'cooptypes';
 
 const PROGRAM_ID = 2;
 const SIGNED_AT = '2026-05-14T15:00:00Z';
@@ -43,7 +44,7 @@ const makeLogger = () =>
 
 // ЦПП заведена как программа: без program_id гейтить нечем и состояние
 // вырождается в `not_configured` независимо от подписи.
-const makeSovietPort = (coagreement: any = { program_id: PROGRAM_ID, draft_id: 1100 }) =>
+const makeSovietPort = (coagreement: any = { program_id: PROGRAM_ID, draft_id: Cooperative.Registry.MarketplaceProgramTemplate.registry_id }) =>
   ({
     getCoagreement: jest.fn().mockResolvedValue(coagreement),
   } as any);
@@ -63,7 +64,7 @@ describe('L2 онбординг (Story 1.11) — scenario: подпись чер
 
     expect(state.requires_gate).toBe(false);
     expect(state.source).toBe(MarketplaceOnboardingSource.AGREEMENT_SIGNED);
-    expect(state.template_registry_id).toBe(MARKETPLACE_OFFER_TEMPLATE_REGISTRY_ID);
+    expect(state.template_registry_id).toBe(MARKETPLACE_OFFER_INSTANCE_REGISTRY_ID);
     expect(state.completed_at).toBe(SIGNED_AT);
   });
 

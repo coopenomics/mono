@@ -1,0 +1,68 @@
+/**
+ * @brief Допуск преподавателя к курсу и его ставка на этом курсе.
+ *
+ * Ставка — за час на одного участника. Администратор задаёт её при допуске и
+ * меняет по ходу курса: новая ставка действует на занятия, открытые после
+ * правки. Ставка не выше плановой ставки курса — оплата занятия заложена во
+ * взнос участника по плановой.
+ *
+ * Движений средств нет.
+ *
+ * Guards:
+ *  - у преподавателя действующий договор участия в хозяйственной деятельности;
+ *  - условия курса заданы;
+ *  - ставка > 0 и не выше плановой ставки курса;
+ *  - допуск с этим номером принадлежит тому же преподавателю и курсу.
+ *
+ * @ingroup public_edubridge_actions
+ */
+void edubridge::setassign(eosio::name coopname,
+                          uint64_t assignment_id,
+                          eosio::name username,
+                          uint64_t course_id,
+                          eosio::asset rate) {
+  require_auth(coopname);
+
+  Edubridge::check_money(rate, "Ставка преподавателя");
+  Edubridge::get_active_contract_or_fail(coopname, username);
+  // Потолок ставки держит само занятие: взнос преподавателя не больше стоимости занятия по окну.
+  Edubridge::get_terms_or_fail(coopname, course_id);
+
+  edu_assignments_index assigns(_edubridge, coopname.value);
+  auto it = assigns.find(assignment_id);
+  if (it == assigns.end()) {
+    assigns.emplace(RamPayer::of(assigns, coopname), [&](auto& a) {
+      a.assignment_id = assignment_id;
+      a.username      = username;
+      a.course_id     = course_id;
+      a.rate          = rate;
+      a.deferred      = eosio::asset(0, _root_govern_symbol);
+      a.deferred_lessons = 0;
+    });
+  } else {
+    eosio::check(it->username == username && it->course_id == course_id,
+                 "EDUBRIDGE_ASSIGNMENT_MISMATCH: Допуск с этим номером выдан другому преподавателю либо на другой курс");
+    assigns.modify(it, RamPayer::of(assigns, coopname), [&](auto& a) { a.rate = rate; });
+  }
+}
+
+/**
+ * @brief Снятие допуска преподавателя к курсу.
+ *
+ * Запись стирается: новых занятий по этому допуску преподаватель не откроет.
+ * Занятие, по которому уже идёт расчёт, доводится до конца — его ставка
+ * зафиксирована в записи занятия. Движений средств нет.
+ *
+ * @ingroup public_edubridge_actions
+ */
+void edubridge::delassign(eosio::name coopname,
+                          uint64_t assignment_id) {
+  require_auth(coopname);
+
+  edu_assignments_index assigns(_edubridge, coopname.value);
+  auto it = assigns.find(assignment_id);
+  eosio::check(it != assigns.end(), "EDUBRIDGE_ASSIGNMENT_NOT_FOUND: Допуск с указанным номером не найден");
+  eosio::check(it->deferred_lessons == 0 && it->deferred.amount <= 0,
+               "EDUBRIDGE_ASSIGNMENT_HAS_DEFERRED_LESSONS: По допуску есть занятия гарантийного срока без принятых материалов");
+  assigns.erase(it);
+}

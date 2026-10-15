@@ -2,7 +2,7 @@
 q-input(
   v-if="project && project.permissions?.can_edit_project"
   v-model="videoIframe"
-  label="Встроить видео (iframe)"
+  :label="$t('capital.updateProjectVideo.label')"
   dense
   standout="bg-teal text-white"
   @change="updateVideo"
@@ -32,6 +32,7 @@ const getMeta = (project: any) => {
   }
 }
 
+// realtime: нет источника — данные приходят свойством от живого родителя и перечитываются здесь по watch.
 watch(() => props.project, (newProject) => {
   if (newProject) {
     const meta = getMeta(newProject)

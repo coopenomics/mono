@@ -1,17 +1,14 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
-import { LOGGER_PORT, type ILoggerPort, ACCOUNT_PORT, type IAccountPort, DecisionTrackedEvent,
-  ProgramKey,
-  type InnerParticipantRegisteredEvent,
-} from '@coopenomics/innercoop';
-import { EXTENSION_REPOSITORY, ExtensionDomainRepository, platformSettings } from '@coopenomics/extension-kit';
+import { ACCOUNT_PORT, DecisionTrackedEvent, type IAccountPort, type ILoggerPort, type InnerOnboardingCompletedPayload, type InnerParticipantRegisteredEvent, LOGGER_PORT, ONBOARDING_COMPLETED_EVENT, ProgramKey } from '@coopenomics/innercoop';
+import { EXTENSION_REPOSITORY, ExtensionDomainRepository, generateRandomHash, platformSettings } from '@coopenomics/extension-kit';
 import type { IConfig } from '../../capital-extension.module';
-import { CONTRIBUTOR_REPOSITORY } from '../../domain/repositories/contributor.repository';
-import { ContributorRepository } from '../../domain/repositories/contributor.repository';
+import { CONTRIBUTOR_REPOSITORY, ContributorRepository } from '../../domain/repositories/contributor.repository';
 import { ContributorDomainEntity } from '../../domain/entities/contributor.entity';
 import { ContributorStatus } from '../../domain/enums/contributor-status.enum';
-import { ONBOARDING_COMPLETED_EVENT, type InnerOnboardingCompletedPayload } from '@coopenomics/innercoop';
-import { generateRandomHash } from '@coopenomics/extension-kit';
+import { GENERATOR_INTAKE_FORM_ID } from '../../constants/capital-agreement-ids';
+import { isCapitalL1Complete } from '../onboarding/capital-l1';
+import type { GeneratorIntakeAnswer } from '../registration/generator-intake.schema';
 
 @Injectable()
 export class CapitalOnboardingEventsService {
@@ -25,17 +22,6 @@ export class CapitalOnboardingEventsService {
     this.logger.setContext(CapitalOnboardingEventsService.name);
   }
 
-  /**
-   * Все 5 шагов L1-онбординга capital, по чьим _done флагам определяется
-   * завершённость L1 в кооперативе.
-   */
-  private static readonly L1_DONE_FLAGS: ReadonlyArray<keyof IConfig> = [
-    'onboarding_generator_program_template_done',
-    'onboarding_generation_contract_template_done',
-    'onboarding_generator_offer_template_done',
-    'onboarding_blagorost_provision_done',
-    'onboarding_blagorost_offer_template_done',
-  ];
 
   @OnEvent(DecisionTrackedEvent.eventName)
   async handleDecisionTracked(event: DecisionTrackedEvent): Promise<void> {
@@ -98,6 +84,10 @@ export class CapitalOnboardingEventsService {
   async handleParticipantRegistered(event: InnerParticipantRegisteredEvent): Promise<void> {
     const { username, program_key, blagorost_offer_hash, generator_offer_hash } = event;
 
+    // Сопроводительное письмо из анкеты «Генератора» становится описанием
+    // участника — тем же полем, которое он потом правит на рабочем столе.
+    const coverLetter = program_key === ProgramKey.GENERATION ? this.extractCoverLetter(event) : undefined;
+
     this.logger.info(`Получено событие регистрации участника: ${username}, program_key: ${program_key}, coopname: ${platformSettings().coopname}`);
 
     // Создаем Contributor только если указана программа (для кооперативов, поддерживающих CAPITAL)
@@ -156,6 +146,13 @@ export class CapitalOnboardingEventsService {
           this.logger.info(`Обновлен generator_offer_hash для Contributor ${username}: ${actualGeneratorOfferHash}`);
         }
 
+        // Уже написанное участником описание письмом не затираем.
+        if (coverLetter && !existingContributor.about?.trim()) {
+          existingContributor.about = coverLetter;
+          needsUpdate = true;
+          this.logger.info(`Сопроводительное письмо перенесено в описание Contributor ${username}`);
+        }
+
         if (needsUpdate) {
           await this.contributorRepository.update(existingContributor);
         }
@@ -196,6 +193,7 @@ export class CapitalOnboardingEventsService {
         generation_contract_hash: undefined,
         storage_agreement_hash: undefined,
         blagorost_agreement_hash: undefined,
+        about: coverLetter ?? '',
       };
 
       this.logger.info(`Создаем Contributor с данными:`, contributorData);
@@ -212,18 +210,31 @@ export class CapitalOnboardingEventsService {
     }
   }
 
+  /** Текст письма из ответа на анкету «Генератора»; нет ответа — undefined. */
+  private extractCoverLetter(event: InnerParticipantRegisteredEvent): string | undefined {
+    const answer = event.intake_answers?.[GENERATOR_INTAKE_FORM_ID] as Partial<GeneratorIntakeAnswer> | undefined;
+    const letter = typeof answer?.cover_letter === 'string' ? answer.cover_letter.trim() : '';
+    return letter || undefined;
+  }
+
   /**
    * Проверка: все 5 шагов L1-онбординга capital завершены.
    */
   private isL1Complete(cfg: IConfig): boolean {
-    return CapitalOnboardingEventsService.L1_DONE_FLAGS.every((flag) => !!(cfg as any)[flag]);
+    return isCapitalL1Complete(cfg);
   }
 
   /**
    * Маппинг шага онбординга в ключ флага конфигурации
    */
   private mapStepToFlag(step: string): keyof IConfig | null {
+    // Ключ — имя поля vars, под которым шаг отслеживается (см. mapStepToVarsField
+    // в onboarding.service.ts), а не имя шага. У Положения «Генератора» они
+    // расходятся: поле vars — `generator_program`. Пока здесь стояло только имя
+    // шага, решение совета по этому положению не засчитывалось, L1 оставался
+    // незавершённым, и программы capital не попадали во вступление.
     const mapping: Record<string, keyof IConfig> = {
+      generator_program: 'onboarding_generator_program_template_done',
       generator_program_template: 'onboarding_generator_program_template_done',
       generation_contract_template: 'onboarding_generation_contract_template_done',
       generator_offer_template: 'onboarding_generator_offer_template_done',

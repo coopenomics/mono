@@ -3,7 +3,7 @@ import { WorkflowBuilder } from '../../base/workflow-builder';
 import { z } from 'zod';
 import { BaseWorkflowPayload } from '../../types';
 import { createEmailStep, createInAppStep, createPushStep } from '../../base/defaults';
-import { slugify } from '../../utils';
+import { nt } from '../../i18n';
 
 // Схема для branch-meeting-reminder воркфлоу
 export const branchMeetingReminderPayloadSchema = z.object({
@@ -17,31 +17,34 @@ export type IPayload = z.infer<typeof branchMeetingReminderPayloadSchema>;
 
 export interface IWorkflow extends BaseWorkflowPayload, IPayload {}
 
-export const name = 'Напоминание о собрании участка';
-export const id = slugify(name);
+export const name = nt('branchMeetingReminder.name');
+// Идентификатор закреплён: раньше он вычислялся из названия, и правка
+// или перевод названия меняли бы его. Не менять — на него ссылаются подписки.
+export const id = 'napominanie-o-sobranii-uchastka';
 
 export const workflow: WorkflowDefinition<IWorkflow> = WorkflowBuilder
   .create<IWorkflow>()
   .name(name)
   .workflowId(id)
-  .description('Напоминание участникам собрания пайщиков кооперативного участка за час до начала')
+  .i18nKey('branchMeetingReminder')
+  .description(nt('branchMeetingReminder.description'))
   .payloadSchema(branchMeetingReminderPayloadSchema)
   .tags(['user'])
   .addSteps([
     createEmailStep(
       'branch-meeting-reminder-email',
-      'Через час собрание пайщиков участка в {{payload.coopShortName}}',
-      'Уважаемый пайщик!<br><br>Напоминаем, что через час, в {{payload.meetAtTime}}, состоится собрание пайщиков кооперативного участка.<br>Место проведения: {{payload.meetPlace}}.<br><br>Страница собрания:<br><a href="{{payload.meetingUrl}}">{{payload.meetingUrl}}</a><br><br>С уважением, {{payload.coopShortName}}.'
+      nt('branchMeetingReminder.email.subject'),
+      nt('branchMeetingReminder.email.body')
     ),
     createInAppStep(
       'branch-meeting-reminder-notification',
-      'Через час собрание участка',
-      'Собрание начнётся в {{payload.meetAtTime}} ({{payload.meetPlace}})'
+      nt('branchMeetingReminder.inApp.subject'),
+      nt('branchMeetingReminder.inApp.body')
     ),
     createPushStep(
       'branch-meeting-reminder-push',
-      'Через час собрание участка',
-      'Собрание начнётся в {{payload.meetAtTime}}'
+      nt('branchMeetingReminder.push.subject'),
+      nt('branchMeetingReminder.push.body')
     ),
   ])
   .build();

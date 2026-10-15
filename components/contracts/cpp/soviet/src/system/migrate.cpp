@@ -24,7 +24,7 @@ void soviet::migrate() {
         programs_index programs(_soviet, coopname.value);
         auto program_it = programs.find(4);
         if (program_it != programs.end() && program_it->program_type != "capital"_n) {
-            programs.modify(program_it, _soviet, [&](auto &pr) {
+            programs.modify(program_it, RamPayer::of(programs, coopname), [&](auto &pr) {
                 pr.program_type = "capital"_n;
             });
         }

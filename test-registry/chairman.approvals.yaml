@@ -1,0 +1,186 @@
+feature: chairman.approvals
+title: Одобрения председателя — документы, которые контракт отправил на одобрение (chairman_approvals)
+
+# Одобрение заводит контракт (soviet::createapprv), таблицу узла заполняет
+# разбор дельт; председатель одобряет встречной подписью или отклоняет.
+# Внешний тест заводит одобрение регистрацией свежего пайщика в Благоросте
+# (договор УХД уходит председателю) и проходит оба исхода.
+
+sources:
+  backend:
+    - components/controller/src/extensions/chairman/application/resolvers/approval.resolver.ts
+    - components/controller/src/extensions/chairman/application/services/approval.service.ts
+    - components/controller/src/extensions/chairman/application/dto/*approv*.ts
+    - components/controller/src/extensions/chairman/domain/**
+    - components/controller/src/extensions/chairman/infrastructure/repositories/approval.kysely-repository.ts
+    - components/controller/src/extensions/chairman/infrastructure/entities/approval.record.ts
+    - components/controller/src/extensions/chairman/infrastructure/mappers/approval*.ts
+    - components/controller/src/extensions/chairman/infrastructure/blockchain/**
+
+# Правка 25.09.2026 (C28-80): одобренный документ читается из базы (конструктор
+# одобрения его терял, и стол всегда видел пустоту); после решения сохраняется
+# одобрение, перечитанное после транзакции, — признак «в цепи» больше не
+# возвращается устаревшим объектом.
+
+cases:
+  - id: chair.appr.happy.01
+    level: backend
+    kind: happy
+    scenario: Пайщик регистрируется в Благоросте — договор УХД уходит председателю на одобрение
+    expect: одобрение PENDING с подписанным пайщиком документом и исходником для встречной подписи; находится по id
+    test: components/api-tests/src/chairman/approvals.test.ts
+    api: components/api-tests/src/chairman/approvals.test.ts
+    status: passing
+
+  - id: chair.appr.happy.02
+    level: backend
+    kind: happy
+    scenario: Председатель одобряет встречной подписью
+    expect: статус APPROVED; среди PENDING его нет
+    test: components/api-tests/src/chairman/approvals.test.ts
+    api: components/api-tests/src/chairman/approvals.test.ts
+    status: passing
+
+  - id: chair.appr.happy.03
+    level: backend
+    kind: happy
+    scenario: Председатель отклоняет одобрение с причиной
+    expect: статус DECLINED
+    test: components/api-tests/src/chairman/approvals.test.ts
+    api: components/api-tests/src/chairman/approvals.test.ts
+    status: passing
+
+  - id: chair.appr.side.01
+    level: backend
+    kind: side
+    scenario: Список одобрений читают член совета, сам пайщик, чужой пайщик, гость
+    expect: совету открыт, пайщику — только свои (фильтр по себе), чужие и весь список — KIT_INSUFFICIENT_RIGHTS, гостю отказ входа
+    test: components/api-tests/src/chairman/approvals.test.ts
+    api: components/api-tests/src/chairman/approvals.test.ts
+    status: passing
+
+  - id: chair.appr.side.02
+    level: backend
+    kind: side
+    scenario: Решение по одобрению принимают член совета, пайщик, гость; одобрения нет
+    expect: KIT_INSUFFICIENT_RIGHTS, отказ входа гостю, CHAIRMAN_APPROVAL_NOT_FOUND; одобрение остаётся PENDING
+    test: components/api-tests/src/chairman/approvals.test.ts
+    api: components/api-tests/src/chairman/approvals.test.ts
+    status: passing
+
+  - id: chair.appr.side.03
+    level: backend
+    kind: side
+    scenario: Председатель повторно одобряет закрытое одобрение
+    expect: отказ цепи CHAIN_ASSERT, статус APPROVED не меняется
+    test: components/controller/tests/unit/blockchain/blockchain-service-block-wait.test.ts
+    api: components/api-tests/src/chairman/approvals.test.ts
+    status: passing
+
+  - id: chair.appr.side.04
+    level: backend
+    kind: side
+    scenario: Фильтр списка по статусам
+    expect: отдаются только одобрения с указанными статусами
+    test: components/api-tests/src/chairman/approvals.test.ts
+    api: components/api-tests/src/chairman/approvals.test.ts
+    status: passing
+
+  - id: chair.appr.side.05
+    level: backend
+    kind: side
+    scenario: Одобрение подтверждено встречной подписью, председатель открывает его снова
+    expect: одобренный документ (две подписи) отдаётся в approved_document
+    test: components/controller/tests/unit/chairman/approval-decision-wait.test.ts
+    api: components/api-tests/src/chairman/approvals.test.ts
+    status: passing
+
+  - id: chair.appr.side.06
+    level: backend
+    kind: side
+    scenario: Одобрение подтверждено или отклонено — контракт стирает строку одобрения
+    expect: одобрение отдаётся с present=false (строки в цепи больше нет)
+    test: components/controller/tests/unit/chairman/approval-decision-wait.test.ts
+    api: components/api-tests/src/chairman/approvals.test.ts
+    status: passing
+
+  - id: chair.appr.side.07
+    level: backend
+    kind: side
+    scenario: >
+      зеркало одобрений председателя на новом каркасе синхронизации: изменение
+      существующей записи, откат форка, архив отменённых записей
+    expect: >
+      перед изменением прежнее состояние уходит в версии с блоком изменения;
+      после форка запись возвращается к состоянию перед самым ранним отменённым
+      изменением, запись без таких изменений не трогается, появившаяся после
+      форка не воскрешается; отменённые записи переносятся в архив
+    test: components/controller/tests/unit/blockchain/chain-versioning.service.test.ts
+    external: unreachable
+    external_reason: "версии и архив форка — внутренние таблицы узла; поведение одобрений через API покрыто случаями фичи, откат форка — набором отказов стенда"
+    status: written
+
+  - id: chair.appr.side.08
+    level: backend
+    kind: side
+    scenario: >
+      Одобрение договора преподавателя (действие edubridge apprvcontr) уходит
+      председателю уведомлением; допуск преподавателя к курсу одобрения не
+      требует.
+    expect: >
+      у уведомления свой заголовок и описание — «Договор УХД преподавателя», а
+      не общий «Новый запрос на одобрение»; тип совпадает с действием
+      контракта образования; действий приложения к договору на курс в
+      контракте и карте типов нет
+    test: components/controller/tests/unit/chairman/approval-types.test.ts
+    api: components/api-tests/src/edubridge/links.test.ts
+    status: passing
+  # Права стола председателя по таблице прав (C28-87, кусок 2, 05.10.2026):
+  # операции одобрений и шагов подключения стоят под общим гардом над
+  # `ChairmanRights`, страницы стола получают права из той же таблицы и из
+  # таблицы ядра.
+
+  - id: chair.rights.happy.01
+    level: backend
+    kind: happy
+    scenario: член совета и председатель читают одобрения
+    expect: проход по праву Approval:read; рядовой пайщик получает KIT_INSUFFICIENT_RIGHTS
+    test: components/controller/tests/unit/chairman/chairman-rights.test.ts
+    api: components/api-tests/src/rights/matrix.test.ts
+    status: written
+
+  - id: chair.rights.happy.02
+    level: backend
+    kind: happy
+    scenario: председатель и член совета открывают рабочий стол
+    expect: председатель получает права одобрений и шагов подключения, член совета — чтение одобрений
+    test: components/controller/tests/unit/chairman/chairman-rights.test.ts
+    api: components/api-tests/src/membership/account-rights.test.ts
+    status: written
+
+  - id: chair.rights.side.01
+    level: backend
+    kind: side
+    scenario: член совета одобряет или отклоняет документ
+    expect: отказ KIT_INSUFFICIENT_RIGHTS — решение по одобрению принимает председатель
+    test: components/controller/tests/unit/chairman/chairman-rights.test.ts
+    api: components/api-tests/src/rights/matrix.test.ts
+    status: written
+
+  - id: chair.rights.side.02
+    level: backend
+    kind: side
+    scenario: член совета и пайщик зовут шаги подключения кооператива
+    expect: отказ KIT_INSUFFICIENT_RIGHTS — шаги ведёт председатель
+    test: components/controller/tests/unit/chairman/chairman-rights.test.ts
+    api: components/api-tests/src/rights/matrix.test.ts
+    status: written
+
+  - id: chair.rights.side.03
+    level: backend
+    kind: side
+    scenario: пайщик читает список одобрений со своим именем, с чужим именем и без имени, запрашивает одно одобрение по номеру
+    expect: "свои одобрения читает; чужое имя и запрос без имени — отказ KIT_RIGHT_SCOPE_OWN; одно одобрение по номеру — KIT_INSUFFICIENT_RIGHTS"
+    test: components/controller/tests/unit/chairman/chairman-rights.test.ts
+    api: components/api-tests/src/chairman/approvals.test.ts
+    status: written

@@ -2,7 +2,7 @@
 form.request-key(@submit.prevent='submit')
   BaseInput(
     v-model='privateKey',
-    label='Ключ установки',
+    :label='$t("installer.requestKeyForm.keyLabel")',
     type='password',
     mono,
     autocomplete='off'
@@ -13,7 +13,7 @@ form.request-key(@submit.prevent='submit')
     block,
     :loading='loading',
     :disabled='!privateKey'
-  ) Продолжить
+  ) {{ $t('installer.requestKeyForm.submit') }}
 </template>
 
 <script lang="ts" setup>
@@ -24,6 +24,7 @@ import { useInstallCooperative } from '../../model';
 import { useSystemStore } from 'src/entities/System/model';
 import { BaseInput } from 'src/shared/ui/base/BaseInput';
 import { BaseButton } from 'src/shared/ui/base/BaseButton';
+import { t } from 'src/shared/i18n';
 
 const privateKey = ref('');
 const loading = ref(false);
@@ -48,7 +49,7 @@ const submit = async () => {
     loading.value = false;
   } catch (e: any) {
     loading.value = false;
-    FailAlert(e.message || 'Ошибка установки ключа');
+    FailAlert(e.message || t('installer.requestKeyForm.installError'));
   }
 };
 </script>

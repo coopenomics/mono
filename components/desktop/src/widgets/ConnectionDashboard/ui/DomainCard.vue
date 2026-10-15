@@ -24,7 +24,7 @@
 
     template(v-if="isEditing")
       BaseBanner(variant="warn").q-mb-md
-        | Убедитесь, что домен делегирован на IP {{ SERVER_IP }}.
+        | Убедитесь, что домен указывает CNAME-записью на {{ CONNECTOR_HOST }}.
         | Обновление перезагрузит цифровой кооператив; данные сохранятся.
 
       BaseInput(
@@ -56,6 +56,8 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
+import { RegistratorContract } from 'cooptypes'
+import { liveTable, useLiveReload } from 'src/shared/lib/realtime'
 import { useConnectionAgreementStore } from 'src/entities/ConnectionAgreement'
 import { useCooperativeStore } from 'src/entities/Cooperative'
 import { useUpdateCoop } from 'src/features/Cooperative/UpdateCoop'
@@ -69,12 +71,14 @@ import {
   BaseInput,
 } from 'src/shared/ui/base'
 import { useProviderSubscriptions } from 'src/features/Provider/model'
+import { t } from 'src/shared/i18n';
 
 const connectionAgreement = useConnectionAgreementStore()
 const coop = useCooperativeStore()
 const { updateCoop } = useUpdateCoop()
 const session = useSessionStore()
-const { SERVER_IP } = useProviderSubscriptions()
+const { CONNECTOR_HOST } = useProviderSubscriptions()
+// Получаем instance напрямую из store
 const instance = computed(() => connectionAgreement.currentInstance)
 
 const isEditing = ref(false)
@@ -94,6 +98,10 @@ const delegationVariant = computed(() => {
 })
 
 coop.loadPublicCooperativeData(session.username)
+
+// Домен кооператива в реестре сети живёт по ленте; состояние сервера — у
+// провайдера, его карточка читает при действиях.
+useLiveReload([liveTable(RegistratorContract, RegistratorContract.Tables.Cooperatives)], () => coop.loadPublicCooperativeData(session.username))
 
 watch(
   () => coop?.publicCooperativeData?.announce,
@@ -115,11 +123,11 @@ const cancelEdit = () => {
 
 const saveDomain = async () => {
   if (!domainValue.value.trim()) {
-    FailAlert('Домен не может быть пустым')
+    FailAlert(t('connectionDashboard.domainCard.domainEmptyError'))
     return
   }
   if (!coop.publicCooperativeData) {
-    FailAlert('Не удалось получить данные кооператива')
+    FailAlert(t('connectionDashboard.domainCard.coopDataError'))
     return
   }
   try {
@@ -139,7 +147,7 @@ const saveDomain = async () => {
     isEditing.value = false
     SuccessAlert('Домен успешно обновлён')
   } catch (error: any) {
-    FailAlert(`Ошибка при обновлении домена: ${error.message}`)
+    FailAlert(t('connectionDashboard.domainCard.domainUpdateError', { errorMessage: error.message }))
   } finally {
     isDelegatingLoading.value = false
   }

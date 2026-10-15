@@ -1,10 +1,4 @@
-import {
-  BadRequestException,
-  ConflictException,
-  Inject,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { createHash } from 'crypto';
 import type { InnerFileStorageBucket } from '@coopenomics/innercoop';
 import { ExpenseFileKind } from '../../domain/enums/expense-file-kind.enum';
@@ -15,8 +9,13 @@ import {
 import type { IExpenseFileDatabaseData } from '../../domain/interfaces/expense-file-database.interface';
 import { EXPENSES_BUCKET } from '../../constants/expenses-bucket';
 import { UploadExpenseFileInputDTO } from '../dto/upload-expense-file.input';
-import { PAYMENT_PORT, type IPaymentPort } from '@coopenomics/innercoop';
-import { InjectBucket, UseBucket } from '@coopenomics/extension-kit';
+import { PAYMENT_PORT, type IPaymentPort, type IMonoAccount } from '@coopenomics/innercoop';
+import { InjectBucket, UseBucket, DomainError } from '@coopenomics/extension-kit';
+import {
+  EXPENSE_PROPOSAL_REPOSITORY,
+  type ExpenseProposalRepository,
+} from '../../domain/repositories/expense-proposal.repository';
+import { mayReadExpenseProposal } from '../../domain/utils/expense-proposal-access';
 
 const EXTENSION_BY_MIME: Record<string, string> = {
   'image/jpeg': 'jpg',
@@ -39,31 +38,35 @@ export class ExpenseFilesService {
   constructor(
     @InjectBucket() private readonly bucket: InnerFileStorageBucket,
     @Inject(EXPENSE_FILE_REPOSITORY) private readonly files: ExpenseFileRepository,
-    @Inject(PAYMENT_PORT) private readonly payments: IPaymentPort
+    @Inject(PAYMENT_PORT) private readonly payments: IPaymentPort,
+    @Inject(EXPENSE_PROPOSAL_REPOSITORY) private readonly proposals: ExpenseProposalRepository
   ) {}
+
+  /** Файлы открыты тем же, кому открыта записка (`mayReadExpenseProposal`). */
+  private async assertMayAccess(user: IMonoAccount, proposalHash: string, itemHash: string | null): Promise<void> {
+    if (user.role === 'chairman' || user.role === 'member') return;
+    const proposal = await this.proposals.findByProposalHash(proposalHash.toLowerCase());
+    if (!mayReadExpenseProposal(user, proposal, itemHash)) throw DomainError.forbidden('EXPENSES_FILE_ACCESS_DENIED');
+  }
 
   async uploadFile(
     input: UploadExpenseFileInputDTO,
-    uploadedByUsername: string
+    user: IMonoAccount
   ): Promise<{ data: IExpenseFileDatabaseData; readUrl: string }> {
+    await this.assertMayAccess(user, input.proposal_hash, input.item_hash ?? null);
+    const uploadedByUsername = user.username;
     const body = Buffer.from(input.content_base64, 'base64');
     if (body.byteLength !== input.size_bytes) {
-      throw new BadRequestException(
-        `size_bytes (${input.size_bytes}) не совпадает с фактическим размером base64-контента (${body.byteLength}).`
-      );
+      throw DomainError.badRequest('EXPENSES_FILE_SIZE_MISMATCH', { sizeBytes: input.size_bytes, actualBytes: body.byteLength });
     }
     const actualChecksum = createHash('sha256').update(body).digest('hex');
     if (actualChecksum !== input.checksum_sha256.toLowerCase()) {
-      throw new BadRequestException(
-        `checksum_sha256 не совпадает с реальным SHA-256 содержимого.`
-      );
+      throw DomainError.badRequest('EXPENSES_FILE_CHECKSUM_MISMATCH');
     }
 
     const existing = await this.files.findByChecksum(input.coopname, actualChecksum);
     if (existing) {
-      throw new ConflictException(
-        `Файл с таким SHA-256 уже зарегистрирован в этом кооперативе (id=${existing.id}).`
-      );
+      throw DomainError.conflict('EXPENSES_FILE_DUPLICATE', { id: existing.id });
     }
 
     const storageKey = this.buildKey({
@@ -117,28 +120,32 @@ export class ExpenseFilesService {
     });
   }
 
-  async getReadUrl(fileId: number): Promise<{ data: IExpenseFileDatabaseData; readUrl: string }> {
+  async getReadUrl(fileId: number, user: IMonoAccount): Promise<{ data: IExpenseFileDatabaseData; readUrl: string }> {
     const file = await this.files.findById(fileId);
-    if (!file) throw new NotFoundException(`Файл расхода #${fileId} не найден.`);
+    if (!file) throw DomainError.notFound('EXPENSES_FILE_NOT_FOUND', { fileId });
+    await this.assertMayAccess(user, file.proposal_hash, file.item_hash ?? null);
     const readUrl = await this.bucket.getReadUrl(file.storage_key);
     return { data: file, readUrl };
   }
 
-  async listByProposal(coopname: string, proposalHash: string): Promise<IExpenseFileDatabaseData[]> {
+  async listByProposal(coopname: string, proposalHash: string, user: IMonoAccount): Promise<IExpenseFileDatabaseData[]> {
+    await this.assertMayAccess(user, proposalHash, null);
     return this.files.findByProposal(coopname, proposalHash.toLowerCase());
   }
 
   async listByItem(
     coopname: string,
     proposalHash: string,
-    itemHash: string
+    itemHash: string,
+    user: IMonoAccount
   ): Promise<IExpenseFileDatabaseData[]> {
+    await this.assertMayAccess(user, proposalHash, itemHash);
     return this.files.findByItem(coopname, proposalHash.toLowerCase(), itemHash.toLowerCase());
   }
 
   async deleteFile(fileId: number): Promise<void> {
     const file = await this.files.findById(fileId);
-    if (!file) throw new NotFoundException(`Файл расхода #${fileId} не найден.`);
+    if (!file) throw DomainError.notFound('EXPENSES_FILE_NOT_FOUND', { fileId });
     await this.bucket.delete(file.storage_key);
     await this.files.delete(fileId);
     await this.syncPaymentProofMark(file);

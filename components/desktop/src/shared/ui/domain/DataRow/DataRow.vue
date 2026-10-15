@@ -1,6 +1,10 @@
 <template lang="pug">
 .data-row(:class='[`data-row--${align}`, { "data-row--mono": mono }]')
-  .data-row__label {{ label }}
+  .data-row__label
+    | {{ label }}
+    //- Значок пояснения рядом с подписью (FieldHelp) — когда смысл строки неочевиден.
+    span.data-row__label-append(v-if='$slots["label-append"]')
+      slot(name='label-append')
   .data-row__value
     template(v-if='$slots["value-override"]')
       slot(name='value-override')
@@ -9,7 +13,7 @@
     button.data-row__copy(
       v-if='copyable && canCopy',
       type='button',
-      aria-label='Скопировать значение',
+      :aria-label='$t("ui.dataRow.copyValueAriaLabel")',
       @click.stop.prevent='onCopy'
     )
       q-icon(name='content_copy' size='14px')
@@ -20,6 +24,7 @@
 import { computed } from 'vue';
 import { copyToClipboard, Notify } from 'quasar';
 import type { DataRowProps } from './DataRow.types';
+import { t } from 'src/shared/i18n';
 
 const props = withDefaults(defineProps<DataRowProps>(), {
   copyable: false,
@@ -48,9 +53,9 @@ async function onCopy(): Promise<void> {
   try {
     await copyToClipboard(text);
     emit('copy', text);
-    Notify.create({ type: 'positive', message: 'Скопировано', timeout: 1200, position: 'top' });
+    Notify.create({ type: 'positive', message: t('ui.dataRow.copiedText'), timeout: 1200, position: 'top' });
   } catch {
-    Notify.create({ type: 'negative', message: 'Не удалось скопировать', timeout: 2000, position: 'top' });
+    Notify.create({ type: 'negative', message: t('ui.dataRow.copyErrorText'), timeout: 2000, position: 'top' });
   }
 }
 </script>
@@ -85,6 +90,29 @@ async function onCopy(): Promise<void> {
     grid-template-columns: 1fr;
   }
 }
+/* Пара может стоять и в узкой колонке широкого экрана (боковая карточка условий):
+   там ширину задаёт контейнер, а не окно. Если предок объявил container-type,
+   стекаем так же — подпись сверху, значение под ней. */
+@container (max-width: 420px) {
+  .data-row--horizontal {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* spread не складывается ни на телефоне, ни в узкой карточке: значение короткое,
+   ему хватает места справа, а столбик из пар строк вдвое растягивает карточку. */
+.data-row--spread {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+.data-row--spread .data-row__value {
+  justify-content: flex-end;
+  text-align: right;
+  white-space: nowrap;
+  font-feature-settings: 'tnum' 1;
+}
+.data-row--spread .data-row__hint {
+  text-align: left;
+}
 
 .data-row__label {
   color: var(--p-ink-2);
@@ -93,9 +121,19 @@ async function onCopy(): Promise<void> {
   padding-right: var(--p-2, 8px);
 }
 
+/* Значок пояснения отстоит от подписи, а не прижат к последней букве. */
+.data-row__label-append {
+  display: inline-flex;
+  vertical-align: middle;
+  margin-left: var(--p-1, 4px);
+}
+
 .data-row__value {
   display: inline-flex;
   align-items: center;
+  /* Длинное значение (бейдж состояния, имя площадки) в узкой колонке иначе
+     выходит за край карточки — переносим на следующую строку целиком. */
+  flex-wrap: wrap;
   gap: var(--p-2, 8px);
   min-width: 0;
   color: var(--p-ink);
@@ -103,7 +141,9 @@ async function onCopy(): Promise<void> {
 
 .data-row__value-text {
   min-width: 0;
-  overflow-wrap: anywhere;
+  /* break-word, а не anywhere: длинный ключ всё равно переносится, но «1 000,00 RUB»
+     не рвётся посреди числа — сумма уезжает на следующую строку целиком. */
+  overflow-wrap: break-word;
 }
 
 .data-row--mono .data-row__value-text {

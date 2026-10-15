@@ -4,7 +4,7 @@
   .col.editor-save-bar__status
     .text-caption(:class="statusClass") {{ statusText }}
   .col-auto.row.items-center.no-wrap.q-gutter-xs
-    BaseButton(variant="ghost" size="sm" @click="revisionsOpen = true") Редакции
+    BaseButton(variant="ghost" size="sm" @click="revisionsOpen = true") {{ $t('capital.editorSaveBar.revisionsLabel') }}
     //- Дополнительные действия страницы (избранное и т. п.) — всегда видны, не зависят от правок
     slot(name="actions")
     BaseButton(
@@ -14,7 +14,7 @@
       :disabled="!hasChanges || saving"
       :loading="saving"
       @click="emit('save')"
-    ) Сохранить
+    ) {{ $t('common.action.save') }}
   RevisionsDialog(
     v-model="revisionsOpen"
     :entity-type="entityType"
@@ -32,6 +32,7 @@ import { computed, ref } from 'vue'
 import { BaseButton } from 'src/shared/ui/base'
 import RevisionsDialog from './RevisionsDialog.vue'
 import type { IContentEntityType, IContentRevisionSummary } from '../api'
+import { t } from '../../../i18n';
 
 const props = defineProps<{
   entityType: IContentEntityType
@@ -54,10 +55,10 @@ const emit = defineEmits<{
 const revisionsOpen = ref(false)
 
 const statusText = computed(() => {
-  if (props.saving) return 'Сохранение…'
-  if (props.hasChanges) return 'Есть несохранённые изменения'
+  if (props.saving) return t('capital.editorSaveBar.saving')
+  if (props.hasChanges) return t('capital.editorSaveBar.unsavedHint')
   if (props.note) return props.note
-  return props.currentRev > 0 ? `Редакция №${props.currentRev}` : ''
+  return props.currentRev > 0 ? t('capital.editorSaveBar.revisionLabel', { revision: props.currentRev }) : ''
 })
 const statusClass = computed(() => ({
   'text-warning': props.hasChanges && !props.saving,

@@ -38,6 +38,7 @@ export class UdataDocumentParametersService {
    * Генерирует дату в формате "DD месяца YYYY года"
    */
   private generateFormattedDate(): string {
+    // i18n-ignore: формат даты для moment().format(), маска, не текст интерфейса
     return moment().locale('ru').format('DD MMMM YYYY г.');
   }
 

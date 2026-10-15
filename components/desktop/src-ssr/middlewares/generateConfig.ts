@@ -46,6 +46,7 @@ export default ssrMiddleware(({ app }) => {
     const envForClient = getEnvForClient();
 
     // Создаем скрипт, который добавит переменные в window.__APP_CONFIG__
+    // i18n-ignore: SSR-сервер собирается без словарей приложения — значение по умолчанию, кооператив задаёт своё через окружение
     const script = `
     <script>
       window.__APP_CONFIG__ = ${JSON.stringify(envForClient)};
@@ -71,6 +72,7 @@ export default ssrMiddleware(({ app }) => {
         // а не из manifest. Build-time значение generic — подставляем имя коопа
         // из env в рантайме (idempotent: replace если тег есть, иначе insert).
         const appleTitle =
+          // i18n-ignore: SSR-сервер собирается без словарей приложения — значение по умолчанию, кооператив задаёт своё через окружение
           (process.env.COOP_SHORT_NAME as string) || 'Цифровой Кооператив';
         const appleMeta = `<meta name="apple-mobile-web-app-title" content="${appleTitle}">`;
         if (/<meta name="apple-mobile-web-app-title"[^>]*>/.test(html)) {
@@ -92,6 +94,7 @@ export default ssrMiddleware(({ app }) => {
     const envForClient = getEnvForClient();
 
     // Создаем JavaScript файл с конфигурацией
+    // i18n-ignore: SSR-сервер собирается без словарей приложения — значение по умолчанию, кооператив задаёт своё через окружение
     const configScript = `
 // Конфигурация переменных окружения для клиента (PWA fallback)
 // Автоматически сгенерировано SSR middleware

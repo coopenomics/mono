@@ -1,8 +1,8 @@
 <template lang="pug">
 CreateDialog(
   ref="dialogRef"
-  title="Создать задачу"
-  submit-text="Создать"
+  :title="$t('capital.createIssueDialog.title')"
+  :submit-text="$t('common.action.create')"
   dialog-style="width: 600px; max-width: 100% !important;"
   :is-submitting="isSubmitting"
   @submit="handleSubmit"
@@ -17,8 +17,8 @@ CreateDialog(
         v-if='!currentProjectHash'
         v-model='selectedComponentHash'
         :options='componentOptions'
-        label='Компонент'
-        placeholder='Без компонента'
+        :label='$t("capital.createIssueDialog.componentLabel")'
+        :placeholder='$t("capital.createIssueDialog.componentPlaceholder")'
         searchable
         clearable
       )
@@ -26,7 +26,7 @@ CreateDialog(
       BaseInput(
         ref='titleInput'
         v-model='formData.title'
-        label='Название задачи'
+        :label='$t("capital.createIssueDialog.titleLabel")'
         autofocus
         autocomplete='off'
         required
@@ -35,8 +35,8 @@ CreateDialog(
 
       BaseInput(
         v-model='formData.description'
-        label='Описание задачи'
-        placeholder='Опишите задачу подробно...'
+        :label='$t("capital.createIssueDialog.descriptionLabel")'
+        :placeholder='$t("capital.createIssueDialog.descriptionPlaceholder")'
         type='textarea'
         autogrow
         :rows='3'
@@ -45,18 +45,18 @@ CreateDialog(
       BaseSelect(
         v-model='formData.priority'
         :options='priorityOptions'
-        label='Приоритет'
+        :label='$t("capital.createIssueDialog.priorityLabel")'
       )
 
       BaseSelect(
         v-model='formData.status'
         :options='statusOptions'
-        label='Статус'
+        :label='$t("capital.createIssueDialog.statusLabel")'
       )
 
       BaseInput(
         v-model='formData.estimate'
-        label='Оценка (часы)'
+        :label='$t("capital.createIssueDialog.estimateLabel")'
         type='number'
         autocomplete='off'
         :error='estimateError'
@@ -64,7 +64,7 @@ CreateDialog(
 
       BaseCheckbox(
         v-model='createAnother'
-        label='Создать ещё одну задачу'
+        :label='$t("capital.createIssueDialog.createAnotherLabel")'
       )
 </template>
 
@@ -75,9 +75,11 @@ import { useRoute, useRouter } from 'vue-router';
 import { CreateDialog } from 'src/shared/ui/CreateDialog';
 import { BaseInput, BaseSelect, BaseCheckbox } from 'src/shared/ui/base';
 import { Zeus } from '@coopenomics/sdk';
-import { getIssueStatusLabel, capitalRouteName, useFormDraft, ISSUE_PRIORITY_OPTIONS } from 'app/extensions/capital/shared/lib';
+import { getIssueStatusLabel, capitalRouteName, ISSUE_PRIORITY_OPTIONS } from 'app/extensions/capital/shared/lib';
+import { useFormDraft } from 'src/shared/lib/composables';
 import { useCreateIssue, useIssueTargets, type ICreateIssueInput } from '../../model';
 import { FailAlert, SuccessAlert } from 'src/shared/api/alerts';
+import { t } from '../../../../../i18n';
 
 const props = defineProps<{
   projectHash?: string;
@@ -131,7 +133,7 @@ const estimateError = ref('');
 
 // Черновик переживает случайное закрытие диалога (клик мимо, Esc);
 // стирается только после успешного создания
-const { clearDraft } = useFormDraft('issue', {
+const { clearDraft } = useFormDraft('capital_form_draft_issue', {
   form: formData,
   component: selectedComponentHash,
 });
@@ -147,6 +149,7 @@ const targetProjectHash = computed(
   () => currentProjectHash.value || selectedComponentHash.value || '',
 );
 
+// realtime: нет источника — список для выбора в диалоге загружается при его открытии.
 onMounted(() => {
   if (!currentProjectHash.value) void loadIssueTargets();
 });
@@ -156,9 +159,9 @@ watch(() => formData.value.title, (value) => {
 });
 
 const validate = (): boolean => {
-  titleError.value = formData.value.title ? '' : 'Это поле обязательно для заполнения';
+  titleError.value = formData.value.title ? '' : t('capital.createIssueDialog.requiredError');
   estimateError.value =
-    Number(formData.value.estimate) >= 0 ? '' : 'Оценка не может быть отрицательной';
+    Number(formData.value.estimate) >= 0 ? '' : t('capital.createIssueDialog.negativeEstimateError');
   return !titleError.value && !estimateError.value;
 };
 
@@ -235,7 +238,7 @@ const handleSubmit = async () => {
     const resultProjectHash = result?.project_hash || targetProjectHash.value;
 
     SuccessAlert(
-      `Задача ${issueId} успешно создана`,
+      t('capital.createIssueDialog.success', { issueId }),
       issueHash ? {
         text: '', // Пустой текст, только иконка
         icon: 'launch',

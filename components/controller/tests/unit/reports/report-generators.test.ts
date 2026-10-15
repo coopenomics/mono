@@ -208,6 +208,7 @@ const zeroBaseEdits: ZeroReportEditsShape = {
     middleName: 'Петрович',
     repDoc: 'Доверенность №1 от 01.01.2024',
     snils: '123-456-789 00',
+    inn: '500100732259',
     sfrRegNumber: '7701234567',
     pfrRegNumber: '087-701-579643',
     chairmanPosition: 'Председатель Совета',
@@ -639,6 +640,20 @@ describe('ПСВ (PsvGenerator)', () => {
     expect(result.xml).toContain('<ПерсСвФЛ');
     expect(result.xml).toContain('СНИЛС="123-456-789 00"');
     expect(result.xml).toContain('СумВыпл="0"');
+  });
+
+  it('пишет ИНН подписанта в ПерсСвФЛ @ИННФЛ — без него СФР отклоняет отчёт', () => {
+    const result = gen.generate(withPeriod(1));
+    expect(result.xml).toMatch(/<ПерсСвФЛ ИННФЛ="500100732259" СНИЛС="123-456-789 00"/);
+  });
+
+  it('возвращает ошибку без ИНН подписанта', () => {
+    const result = gen.generate({
+      ...withPeriod(1),
+      signer: { ...zeroBaseEdits.signer, inn: null },
+    });
+    expect(result.isValid).toBe(false);
+    expect(result.errors.join('|')).toContain('signer.inn');
   });
 
   it('<СвНП> несёт Тлф (обязателен при приёме ФНС)', () => {

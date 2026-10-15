@@ -22,6 +22,7 @@ import { Zeus } from '@coopenomics/sdk'
 import { ISSUE_PRIORITY_OPTIONS } from 'app/extensions/capital/shared/lib'
 import { useUpdateIssue } from '../../model'
 import { ISSUE_PAGE_KEY } from 'app/extensions/capital/pages/IssuePage/model/context'
+import { t } from '../../../../../i18n';
 
 interface Props {
   modelValue: Zeus.IssuePriority
@@ -35,7 +36,7 @@ interface Emits {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  label: 'Приоритет',
+  label: t('capital.updatePriority.label'),
   readonly: false
 })
 

@@ -1,0 +1,40 @@
+{
+  "desktop": {
+    "chairmanMenu": {
+      "memberItem": "Пайщик",
+      "requisitesItem": "Реквизиты",
+      "settingsItem": "Настройки",
+      "programsItem": "Участие в программах"
+    },
+    "leftDrawerMenu": {
+      "defaultCoopName": "Кооператив",
+      "defaultOrgName": "Организация",
+      "defaultUserName": "Пайщик",
+      "depositAction": "Пополнить",
+      "roleChairman": "Председатель",
+      "roleMember": "Член совета",
+      "roleShareholder": "Пайщик",
+      "signOutError": "Ошибка при выходе: ",
+      "signOutLabel": "Выйти из кабинета",
+      "versionTitle": "Версия {version}",
+      "walletBalanceLabel": "Главный паевой кошелёк"
+    },
+    "memberMenu": {
+      "cardItem": "Карта кооператора",
+      "memberItem": "Пайщик",
+      "requisitesItem": "Реквизиты",
+      "settingsItem": "Настройки",
+      "programsItem": "Участие в программах"
+    },
+    "setupMenu": {
+      "memberItem": "Пайщик",
+      "requisitesItem": "Реквизиты"
+    },
+    "workspaceSwitcher": {
+      "defaultCoopName": "Кооператив",
+      "defaultDesktopTitle": "Рабочий стол",
+      "searchLabel": "Найти страницу",
+      "switchLabel": "Сменить стол"
+    }
+  }
+}

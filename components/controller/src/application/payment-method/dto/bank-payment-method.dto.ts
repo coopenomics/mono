@@ -1,4 +1,5 @@
 import { Field, ObjectType } from '@nestjs/graphql';
+import { validationMessage } from '@coopenomics/extension-kit';
 import { IsNotEmpty, IsString, IsBoolean, IsDefined } from 'class-validator';
 import { BankAccountDTO } from './bank-account.dto';
 import type { PaymentMethodDomainEntity } from '~/domain/payment-method/entities/method-domain.entity';
@@ -11,28 +12,28 @@ import type { BankPaymentMethodDomainInterface } from '~/domain/payment-method/i
 @ObjectType('BankPaymentMethod')
 export class BankPaymentMethodDTO implements BankPaymentMethodDomainInterface {
   @Field(() => String, { description: 'Имя пользователя, к которому привязан метод оплаты' })
-  @IsNotEmpty({ message: 'Имя пользователя обязательно' })
+  @IsNotEmpty({ message: validationMessage('paymentMethod.bankPaymentMethod.usernameRequired') })
   @IsString()
   username!: string;
 
   @Field(() => Boolean, {
     description: 'Флаг основного метода платежа, который отображается в документах',
   })
-  @IsNotEmpty({ message: 'Флаг основного метода платежа должен быть установлен' })
+  @IsNotEmpty({ message: validationMessage('paymentMethod.bankPaymentMethod.isMainFlagRequired') })
   @IsBoolean()
   is_default!: boolean;
 
   @Field(() => String, { description: 'Тип метода оплаты' })
-  @IsNotEmpty({ message: 'Тип метода оплаты обязателен' })
+  @IsNotEmpty({ message: validationMessage('paymentMethod.bankPaymentMethod.typeRequired') })
   @IsString()
   method_type!: 'bank_transfer';
 
   @Field(() => BankAccountDTO, { description: 'Данные метода оплаты' })
-  @IsDefined({ message: 'Данные метода оплаты обязательны' })
+  @IsDefined({ message: validationMessage('paymentMethod.bankPaymentMethod.detailsRequired') })
   data!: BankAccountDTO;
 
   @Field(() => String, { description: 'Идентификатор метода оплаты' })
-  @IsNotEmpty({ message: 'Идентификатор метода обязателен' })
+  @IsNotEmpty({ message: validationMessage('paymentMethod.bankPaymentMethod.idRequired') })
   @IsString()
   method_id!: string;
 

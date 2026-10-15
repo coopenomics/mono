@@ -1,0 +1,60 @@
+{
+  "cardcoop": {
+    "delivery": {
+      "status": {
+        "networkResponded": "сеть ответила {status}",
+        "networkUnavailable": "сеть недоступна"
+      }
+    },
+    "disclosureIntake": {
+      "deliveryFailedHint": "Сеть не приняла запрос раскрытия — попробуйте позже либо заполните анкету руками"
+    },
+    "membership": {
+      "revokeMissingAttestationId": "Сеть не назвала идентификатор подтверждения — отзыв нужно провести вручную"
+    },
+    "settings": {
+      "apiUrlFormatHint": "Адрес должен быть ссылкой вида https://id.card.coop",
+      "apiUrlLabel": "Адрес сети «Карта кооператора»",
+      "apiUrlNote": "Менять не требуется: значение по умолчанию рабочее. Поле оставлено для тестового контура.",
+      "cardLoginLabel": "Вход с помощью карты кооператора",
+      "cardLoginNote": "Кнопка на форме входа: пайщик входит в стол картой сети. Выключите, чтобы оставить только вход по паролю и ключу.",
+      "operatorLabel": "Я — оператор сети (ВОСХОД)",
+      "operatorNote": "Объявлять card.coop допуск кооперативов, активированных в цепи. Определяется именем кооператива."
+    }
+  },
+  "errors": {
+    "CARDCOOP_ATTESTATION_NOT_CANONICAL_JSON": "Документ подтверждения не сериализуется в строгий JSON",
+    "CARDCOOP_DISCLOSURE_GRANT_REJECTED": "Грант раскрытия не принят",
+    "CARDCOOP_ENTRY_NOT_CONFIGURED": "Вход по карте не подключён у этого кооператива",
+    "CARDCOOP_ENTRY_NOT_CONFIRMED": "Вход не подтверждён сетью — начните заново",
+    "CARDCOOP_ENTRY_NOT_STARTED": "Вход не начинался либо истёк — начните заново",
+    "CARDCOOP_ENTRY_PROFILE_UNAVAILABLE": "Анкета недоступна: её нет либо она уже забрана в форму",
+    "CARDCOOP_ENTRY_SESSION_EXPIRED": "Сессия входа истекла — начните заново",
+    "CARDCOOP_ENTRY_SESSION_NOT_FOUND": "Сессия входа не найдена — начните заново",
+    "CARDCOOP_ENTRY_TOKEN_EXPIRED": "Токен сети просрочен — начните заново",
+    "CARDCOOP_ENTRY_TOKEN_INVALID": "Токен сети не разбирается либо адресован не нам",
+    "CARDCOOP_EXTENSION_CONFIG_NOT_FOUND": "Конфигурация расширения {name} не найдена",
+    "CARDCOOP_NETWORK_KEY_NOT_PUBLISHED": "Ключ уведомлений сети не опубликован в цепи (разрешение {permission} аккаунта {account})",
+    "CARDCOOP_NOTIFICATION_FOREIGN_COOP": "Уведомление адресовано другому кооперативу",
+    "CARDCOOP_NOTIFICATION_LEGACY_SOURCE": "в уведомлении нет гранта либо адреса источника — источник на старой версии",
+    "CARDCOOP_NOTIFICATION_MISSING_FIELDS": "В уведомлении нет карты или учётной записи",
+    "CARDCOOP_NOTIFICATION_NOT_CANONICAL_JSON": "Уведомление не является строгим JSON",
+    "CARDCOOP_NOTIFICATION_SIGNATURE_MISMATCH": "Подпись уведомления не сходится с ключом сети",
+    "CARDCOOP_NOTIFICATION_SIGNATURE_UNPARSABLE": "Подпись уведомления не разбирается",
+    "CARDCOOP_NOTIFICATION_UNSIGNED": "Уведомление без подписи",
+    "CARDCOOP_PARTICIPANT_PROFILE_EMPTY": "Анкета пайщика {username} не заполнена",
+    "CARDCOOP_PARTICIPANT_SUBJECT_DATA_NOT_FOUND": "Данные пайщика {username} для вида субъекта «{kind}» не найдены",
+    "CARDCOOP_PROFILE_NOT_CANONICAL_JSON": "анкета не канонизируется",
+    "CARDCOOP_PROFILE_SIGNATURE_MISMATCH": "подпись анкеты не сходится с ключом заверения источника в цепи",
+    "CARDCOOP_PROFILE_WRONG_CARD": "анкета выдана по другой карте",
+    "CARDCOOP_PROFILE_WRONG_GRANT": "анкета выдана по другому согласию",
+    "CARDCOOP_PROFILE_WRONG_TARGET_COOP": "анкета адресована другому кооперативу",
+    "CARDCOOP_SOURCE_COOP_NOT_ENDORSED": "кооператив {coopname} не заверен в цепи",
+    "CARDCOOP_SOURCE_COOP_NOT_IN_MEMBERSHIPS": "Кооператив-источник не значится среди членств карты",
+    "CARDCOOP_SOURCE_ENDORSEMENT_EXPIRED": "заверение кооператива {coopname} истекло",
+    "CARDCOOP_SOURCE_RESPONDED_WITH_STATUS": "источник ответил {status}",
+    "CARDCOOP_SOURCE_RESPONSE_NOT_SIGNED_ENVELOPE": "ответ источника не является подписанным конвертом",
+    "CARDCOOP_SOURCE_SIGNER_MISMATCH": "анкету подписал не тот кооператив, у которого просили",
+    "CARDCOOP_SOURCE_WRONG_DOCUMENT_TYPE": "источник прислал документ другого вида"
+  }
+}

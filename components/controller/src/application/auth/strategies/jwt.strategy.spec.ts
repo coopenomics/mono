@@ -1,6 +1,13 @@
 import { UnauthorizedException } from '@nestjs/common';
 import { tokenTypes } from '~/types/token.types';
 import { JwtAuthStrategy } from './jwt.strategy';
+import { LEGACY_SESSION_CUTOFF, SessionAliveService } from '../services/session-alive.service';
+
+// Стратегия при создании отдаёт своё опознание веб-сокету через реестр —
+// здесь проверяется сам validate, реестр ему не нужен.
+jest.mock('~/infrastructure/graphql/ws-auth.registry', () => ({
+  registerWsUserResolver: jest.fn(),
+}));
 
 /**
  * Завершение сессии обязано отбирать доступ.
@@ -34,18 +41,29 @@ function setup(opts: { migrated?: boolean } = {}) {
   const userDomainService = { getUserByLegacyMongoId: jest.fn().mockResolvedValue(USER) };
   const tokenRepository = { findById: jest.fn() };
   const vault = { retrieve: jest.fn().mockResolvedValue(opts.migrated ? { ciphertext: 'x' } : null) };
+  // След активности пишется на каждом авторизованном запросе (fire-and-forget).
+  const activity = { markActive: jest.fn().mockResolvedValue(undefined) };
+  // Живость сессии стратегия спрашивает у общего сервиса — того же, что и
+  // веб-сокет. Собираем его настоящим из тех же моков: проверки ниже смотрят,
+  // как он ходит в хранилище сессий и vault, а не подменяют его ответ.
+  const sessionAlive = new SessionAliveService(tokenRepository as never, vault as never);
   const strategy = new JwtAuthStrategy(
     userRepository as never,
     userDomainService as never,
-    tokenRepository as never,
-    vault as never,
+    sessionAlive,
+    activity as never,
   );
-  return { strategy, tokenRepository, vault };
+  return { strategy, tokenRepository, vault, activity };
 }
 
 const ACCESS = { sub: SUB, type: tokenTypes.ACCESS };
 
 describe('JwtAuthStrategy — привязка токена к сессии', () => {
+  // Уступка токенам без sid действует до даты отключения — случаи про неё
+  // проверяются в том времени, когда она ещё в силе.
+  beforeEach(() => jest.spyOn(Date, 'now').mockReturnValue(LEGACY_SESSION_CUTOFF - 1));
+  afterEach(() => jest.restoreAllMocks());
+
   it('сессия жива → пускает', async () => {
     const { strategy, tokenRepository } = setup();
     tokenRepository.findById.mockResolvedValue({ id: 'sess-1', blacklisted: false });
@@ -110,6 +128,14 @@ describe('JwtAuthStrategy — привязка токена к сессии', ()
     await strategy.validate({ ...ACCESS });
 
     expect(vault.retrieve).toHaveBeenCalledTimes(1);
+  });
+
+  it('после даты отключения токен без sid отвергается и у пайщика на ключе', async () => {
+    jest.spyOn(Date, 'now').mockReturnValue(LEGACY_SESSION_CUTOFF);
+    const { strategy, vault } = setup({ migrated: false });
+
+    await expect(strategy.validate({ ...ACCESS })).rejects.toBeInstanceOf(UnauthorizedException);
+    expect(vault.retrieve).not.toHaveBeenCalled();
   });
 
   it('не-access токен отвергается до всех проверок', async () => {

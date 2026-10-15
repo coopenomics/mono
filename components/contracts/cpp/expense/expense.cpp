@@ -78,6 +78,9 @@ void expense::createexp(name coopname, name username,
   }
 
   verify_document_or_fail(statement, {username});
+  // Записку на расход подписывает тот, от чьего имени она подана: транзакцию
+  // шлёт кооператив, и подпись чужим ключом иначе прошла бы как своя.
+  verify_signer_keys_or_fail(statement, username);
   eosio::check(!items.empty(), "СЗ должен содержать хотя бы один item");
   eosio::check(ledger2_is_known_wallet(source_wallet),
                "source_wallet не найден в LEDGER2_WALLET_REGISTRY");
@@ -121,7 +124,7 @@ void expense::createexp(name coopname, name username,
 
   const auto total = sum_planned(items);
 
-  tbl.emplace(get_self(), [&](auto& row) {
+  tbl.emplace(RamPayer::of(tbl, coopname), [&](auto& row) {
     row.id              = tbl.available_primary_key();
     row.coopname        = coopname;
     row.proposal_hash   = proposal_hash;
@@ -167,7 +170,7 @@ void expense::authexp(name coopname, checksum256 proposal_hash, document2 decisi
 
   verify_document_or_fail(decision);
 
-  idx.modify(it, get_self(), [&](auto& row) {
+  idx.modify(it, RamPayer::of(idx, coopname), [&](auto& row) {
     row.decision_doc = decision;
     row.status       = static_cast<uint8_t>(D::ProposalStatus::AUTHORIZED);
     row.updated_at   = eosio::current_time_point();
@@ -189,7 +192,7 @@ void expense::declexp(name coopname, checksum256 proposal_hash, std::string reas
                it->status == static_cast<uint8_t>(D::ProposalStatus::AUTHORIZED),
                "Отклонить можно только СЗ без оплат (статусы CREATED / AUTHORIZED)");
 
-  idx.modify(it, get_self(), [&](auto& row) {
+  idx.modify(it, RamPayer::of(idx, coopname), [&](auto& row) {
     row.status     = static_cast<uint8_t>(D::ProposalStatus::DECLINED);
     row.updated_at = eosio::current_time_point();
   });
@@ -219,7 +222,7 @@ void expense::payexp(name coopname, checksum256 proposal_hash, checksum256 item_
   uint8_t paid_mechanics = 0;
   name paid_recipient{};
 
-  idx.modify(it, get_self(), [&](auto& row) {
+  idx.modify(it, RamPayer::of(idx, coopname), [&](auto& row) {
     bool all_reported = true;
     for (auto& i : row.items) {
       if (i.item_hash == item_hash) {
@@ -278,7 +281,7 @@ void expense::reportexp(name coopname, checksum256 proposal_hash, checksum256 it
   bool item_found = false;
   name item_recipient{};
 
-  idx.modify(it, get_self(), [&](auto& row) {
+  idx.modify(it, RamPayer::of(idx, coopname), [&](auto& row) {
     bool all_reported = true;
     for (auto& i : row.items) {
       if (i.item_hash == item_hash) {
@@ -323,7 +326,7 @@ void expense::closeexp(name coopname, checksum256 proposal_hash) {
   eosio::check(it->status == static_cast<uint8_t>(D::ProposalStatus::REPORT_SUBMITTED),
                "Закрыть можно только СЗ в статусе REPORT_SUBMITTED");
 
-  idx.modify(it, get_self(), [&](auto& row) {
+  idx.modify(it, RamPayer::of(idx, coopname), [&](auto& row) {
     row.status     = static_cast<uint8_t>(D::ProposalStatus::CLOSED);
     row.updated_at = eosio::current_time_point();
   });
@@ -348,7 +351,7 @@ void expense::returnexp(name coopname, checksum256 proposal_hash, checksum256 it
   bool item_found = false;
   name item_recipient{};
 
-  idx.modify(it, get_self(), [&](auto& row) {
+  idx.modify(it, RamPayer::of(idx, coopname), [&](auto& row) {
     for (auto& i : row.items) {
       if (i.item_hash == item_hash) {
         eosio::check(i.status == static_cast<uint8_t>(D::ItemStatus::PAID),
@@ -396,7 +399,7 @@ void expense::overspendexp(name coopname, checksum256 proposal_hash, checksum256
   bool item_found = false;
   name item_recipient{};
 
-  idx.modify(it, get_self(), [&](auto& row) {
+  idx.modify(it, RamPayer::of(idx, coopname), [&](auto& row) {
     for (auto& i : row.items) {
       if (i.item_hash == item_hash) {
         eosio::check(i.status == static_cast<uint8_t>(D::ItemStatus::PAID),
@@ -425,4 +428,17 @@ void expense::overspendexp(name coopname, checksum256 proposal_hash, checksum256
   Ledger2::apply(get_self(), coopname, expense_ops_for(it->source_wallet).overspend,
                  processes::expense::PROPOSAL, overspend_amount,
                  item_recipient, proposal_hash, "expense:overspend");
+}
+
+/**
+ * @brief Очистка отработавших записей (lib/core/cleanup.hpp).
+ *
+ * Правил нет: закрытые и отклонённые предложения расхода остаются. Удаление строки заново запускает обработчики контроллера и переписывает дату оплаты — сначала правка контроллера.
+ *
+ * @note Авторизация требуется от аккаунта контракта.
+ */
+void expense::cleanup() {
+  require_auth(get_self());
+  Cleanup::budget budget;
+  Cleanup::report(get_self(), budget);
 }

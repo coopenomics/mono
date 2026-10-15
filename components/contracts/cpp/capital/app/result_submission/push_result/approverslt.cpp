@@ -21,6 +21,8 @@ void capital::approverslt(eosio::name coopname, eosio::name username, checksum25
   
   // Проверяем заявление
   verify_document_or_fail(approved_statement);
+  // Согласие подписано ключом аккаунта одобряющего. Транзакцию шлёт кооператив, поэтому ключ сверяется с аккаунтом.
+  verify_signer_keys_or_fail(approved_statement, username);
   
   // Проверяем статус результата
   auto exist_result = Capital::Results::get_result(coopname, result_hash);

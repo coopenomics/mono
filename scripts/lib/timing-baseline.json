@@ -1,0 +1,7 @@
+{
+  "_комментарий": "Таймеры без пометки `// timing: <вид>` по файлам (scripts/check-timing.mjs). Тронул файл — пометь таймер или убери паузу; долг только снижается.",
+  "_commit": "e488178d35b796662e9f7723d42b5327d19bd2a8",
+  "files": {
+    "components/desktop/src/widgets/Desktop/LeftDrawerMenu/LeftDrawerMenu.vue": 1
+  }
+}

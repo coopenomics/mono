@@ -3,9 +3,10 @@ import { Cooperative } from 'cooptypes';
 import { useSystemStore } from 'src/entities/System/model';
 import { useSessionStore } from 'src/entities/Session';
 import type { IKuTrustRequest } from 'src/entities/Ku/model';
-import { DigitalDocument, useSignDocument, type IGeneratedDocument } from 'src/shared/lib/document';
+import { DigitalDocument, signDocument, type IGeneratedDocument } from 'src/shared/lib/document';
 import { generateUniqueHash } from 'src/shared/lib/utils/generateUniqueHash';
 import { api } from '../api';
+import { t } from 'src/shared/i18n';
 
 export * from './types';
 
@@ -19,7 +20,6 @@ export * from './types';
 export function useKuTrustedFlow() {
   const system = useSystemStore();
   const session = useSessionStore();
-  const { signDocument } = useSignDocument();
 
   const isSubmitting = ref(false);
 
@@ -116,10 +116,10 @@ export function useKuTrustedFlow() {
       const authority = (request as any).authority as RawSigned | null;
 
       if (!rawDocument || !application) {
-        throw new Error('Заявка не содержит договора для встречной подписи');
+        throw new Error(t('ku.error.trustedApplicationMissing'));
       }
       if (!rawAuthority || !authority) {
-        throw new Error('Заявка не содержит доверенности для встречной подписи');
+        throw new Error(t('ku.error.trustedAuthorityMissing'));
       }
 
       const meta = typeof application.meta === 'string' ? JSON.parse(application.meta) : application.meta;

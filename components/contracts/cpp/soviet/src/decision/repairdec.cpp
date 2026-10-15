@@ -56,7 +56,7 @@
   auto decision_it = decisions.find(decision_id);
 
   if (decision_it == decisions.end()) {
-    decisions.emplace(_soviet, [&](auto &d){
+    decisions.emplace(RamPayer::of(decisions, coopname), [&](auto &d){
       d.id = decision_id;
       d.coopname = coopname;
       d.username = username;

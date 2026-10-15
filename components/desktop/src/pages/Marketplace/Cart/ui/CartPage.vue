@@ -1,5 +1,8 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { uiLocale, t } from 'src/shared/i18n';
+import { useFirstLoad } from 'src/shared/lib/composables';
 import { debounce, Dialog } from 'quasar';
 import { useRoute, useRouter } from 'vue-router';
 import { FailAlert, NotifyAlert } from 'src/shared/api';
@@ -12,8 +15,9 @@ import { BaseCard, BaseButton, BaseChip, BaseDialog, EmptyState } from 'src/shar
 import { DepositButton } from 'src/features/Wallet/DepositToWallet';
 import { KUHeaderBar } from 'src/widgets/Marketplace/KUHeaderBar';
 import { marketplaceOrderUnitLabel } from 'src/shared/lib/consts';
+import { formatAssetsInText } from 'src/shared/lib/utils/formatAsset2Digits';
 import {
-  useMarketplaceRealtime,
+  marketLiveTables,
   getMembershipFeePercent,
   applyMembershipFee,
   saleQuantityStep,
@@ -25,9 +29,10 @@ import {
  *
  * Корзина — точка оформления: позиции (одна корзина — один КУ), правка
  * количества, удаление, агрегаты. «Оформить заказ» вызывает
- * `marketplaceCheckoutCart` → построчно создаёт заказы под общим checkout_id на
- * текущий КУ. Частичный сбой НЕ откатывает прошедшее: непрошедшие позиции
- * (failed_lines) остаются в корзине, их можно повторить тем же checkout_id.
+ * `marketplaceCheckoutCart` → создаёт заказы под общим checkout_id на текущий
+ * КУ одной транзакцией вместе с переводом по заявлению: отказ цепи откатывает
+ * всё и показывается ошибкой. Позиции, которые оформить нельзя, в транзакцию
+ * не входят и остаются в корзине (failed_lines) для повтора тем же checkout_id.
  *
  * Раскладка — две колонки: слева список позиций (миниатюра, имя, степпер
  * количества, сумма строки), справа липкая карточка-сводка «Ваш заказ» с итогом
@@ -37,6 +42,8 @@ const route = useRoute();
 const router = useRouter();
 const system = useSystemStore();
 const cartStore = useMarketplaceCartStore();
+/** Каркас — только на первой загрузке; дочитка обновляет молча. */
+const firstLoad = useFirstLoad(() => cartStore.loading);
 
 const coopname = computed(() => String(route.params.coopname ?? ''));
 
@@ -48,7 +55,7 @@ function unitShort(u: string | null | undefined): string {
 }
 
 function money(value: string | number | null | undefined): string {
-  return Number(value ?? 0).toLocaleString('ru-RU');
+  return Number(value ?? 0).toLocaleString(uiLocale());
 }
 
 // Позиции корзины приходят с бэка без взноса (price_per_unit/line_total —
@@ -75,12 +82,12 @@ function quantize(item: IMarketplaceCartItem, v: number): number {
 // Причина недоступности: у заказчика на каждую — своё действие. Изменившаяся
 // упаковка требует выбрать её заново, недоставка на КУ — сменить пункт выдачи.
 const BLOCKER_LABELS: Record<string, string> = {
-  OFFER_GONE: 'Предложение больше не доступно',
-  PACKAGE_GONE: 'Поставщик изменил упаковки — выберите заново',
-  NOT_DELIVERED_TO_POINT: 'Недоступно на текущем пункте выдачи',
+  OFFER_GONE: t('marketplace.cart.offerUnavailableError'),
+  PACKAGE_GONE: t('marketplace.cart.packageChangedError'),
+  NOT_DELIVERED_TO_POINT: t('marketplace.cart.notAvailableAtPointError'),
 };
 function blockerLabel(item: IMarketplaceCartItem): string {
-  return BLOCKER_LABELS[item.blocker ?? ''] ?? 'Недоступно на текущем пункте выдачи';
+  return BLOCKER_LABELS[item.blocker ?? ''] ?? t('marketplace.cart.notAvailableAtPointError');
 }
 
 // Низкоуровневый коммит количества (> 0). Кламп делает changeQty.
@@ -111,7 +118,7 @@ function changeQty(item: IMarketplaceCartItem, next: number): number {
   const max = maxOf(item);
   if (max != null && n > max) {
     n = max;
-    NotifyAlert(`Доступно не больше ${max} ${saleUnitLabel(item)}`);
+    NotifyAlert(t('marketplace.cart.maxAvailableError', { max, unit: saleUnitLabel(item) }));
   }
   if (n !== item.quantity) void setQty(item.offer_id, n, item.package_id ?? null);
   return n;
@@ -143,10 +150,10 @@ async function onRemove(offerId: string, packageId: string | null): Promise<void
 
 function onClear(): void {
   Dialog.create({
-    title: 'Очистить корзину?',
-    message: 'Все позиции корзины будут удалены. Отменить это действие нельзя.',
-    cancel: { label: 'Отмена', flat: true },
-    ok: { label: 'Очистить', color: 'negative', unelevated: true },
+    title: t('marketplace.cart.clearConfirmTitle'),
+    message: t('marketplace.cart.clearConfirmMessage'),
+    cancel: { label: t('common.action.cancel'), flat: true },
+    ok: { label: t('marketplace.cart.clearConfirm'), color: 'negative', unelevated: true },
     persistent: true,
   }).onOk(async () => {
     try {
@@ -183,7 +190,11 @@ async function onCheckout(): Promise<void> {
     });
   } catch (e) {
     if (isInsufficientFunds(e)) {
-      insufficientMessage.value = e instanceof Error ? e.message : String(e);
+      // Суммы в тексте ошибки приходят из цепи в сыром виде «1300.0000 RUB» —
+      // прогоняем через тот же форматтер, что и тосты ошибок.
+      insufficientMessage.value = formatAssetsInText(
+        e instanceof Error ? e.message : String(e),
+      );
       insufficientOpen.value = true;
       return;
     }
@@ -212,14 +223,7 @@ const reloadLive = debounce(() => {
   if (cartStore.loading) return;
   void cartStore.load();
 }, 400);
-useMarketplaceRealtime(
-  {
-    MarketplaceOfferStockChangedEvent: (event) => {
-      if (cartStore.items.some((it) => it.offer_id === event.offer_id)) reloadLive();
-    },
-  },
-  { onResync: () => reloadLive() },
-);
+useLiveReload(marketLiveTables('cart', 'offer'), () => reloadLive());
 
 // requirement b6: членский взнос входит в общую стоимость заказа. В каталоге и
 // в строках корзины — одной цифрой, с учётом взноса (непривычно и избыточно
@@ -245,11 +249,11 @@ onMounted(async () => {
 </script>
 
 <template lang="pug">
-q-page.mp-cart.mp-role-orderer(role="region", aria-label="Корзина Стола заказов")
+q-page.mp-cart.mp-role-orderer(role="region", :aria-label="$t('marketplace.cart.pageAriaLabel')")
   KUHeaderBar(:coopname="coopname")
 
   //- Канон: первичная загрузка — скелетон-строки позиций, не перекрывающий спиннер.
-  BaseCard.mp-cart__skel(v-if="cartStore.loading && !cartStore.cart")
+  BaseCard.mp-cart__skel(v-if="firstLoad && !cartStore.cart")
     .mp-cart__skel-line(v-for="n in 4", :key="`skel-${n}`")
       .skel.mp-cart__skel-thumb
       .mp-cart__skel-text
@@ -260,13 +264,13 @@ q-page.mp-cart.mp-role-orderer(role="region", aria-label="Корзина Сто�
   //- Пустая корзина — ведём в каталог.
   EmptyState(
     v-else-if="!cartStore.hasItems",
-    title="Корзина пуста",
-    body="Добавьте товары из каталога — они появятся здесь для оформления одним заказом."
+    :title="$t('marketplace.cart.emptyTitle')",
+    :body="$t('marketplace.cart.emptyBody')"
   )
     template(#icon)
       q-icon(name="shopping_cart", size="48px")
     template(#actions)
-      BaseButton(variant="primary", @click="goToCatalog") В каталог
+      BaseButton(variant="primary", @click="goToCatalog") {{ $t('marketplace.cart.toCatalogButton') }}
 
   .row.q-col-gutter-md(v-else-if="cartStore.hasItems")
     //- Левая колонка: позиции корзины.
@@ -290,30 +294,30 @@ q-page.mp-cart.mp-role-orderer(role="region", aria-label="Корзина Сто�
               variant="ghost",
               icon-only,
               size="sm",
-              aria-label="Уменьшить количество",
+              :aria-label="$t('marketplace.cart.decreaseQtyAriaLabel')",
               :disabled="it.quantity <= stepFor(it) || cartStore.mutating",
               @click="changeQty(it, it.quantity - stepFor(it))"
             )
               template(#icon-left)
                 q-icon(name="remove")
-            .mp-cart__qty-val
-              //- Inline-ввод: не стандартный outlined-input, а часть степпера —
-              //- правка цифр прямо в числе, кламп к остатку на предложении.
-              input.mp-cart__qty-input(
-                type="text",
-                inputmode="numeric",
-                :value="it.quantity",
-                :disabled="cartStore.mutating",
-                aria-label="Количество",
-                @change="onQtyInput(it, $event)",
-                @keyup.enter="blurOnEnter"
-              )
-              span.mp-cart__qty-unit × {{ saleUnitLabel(it) }}
+            //- Inline-ввод: не стандартный outlined-input, а часть степпера —
+            //- правка цифр прямо в числе, кламп к остатку на предложении. Что
+            //- считается штукой (упаковка, литр), написано строкой выше, у цены:
+            //- вторая такая же подпись под числом только загромождала строку.
+            input.mp-cart__qty-input(
+              type="text",
+              inputmode="numeric",
+              :value="it.quantity",
+              :disabled="cartStore.mutating",
+              :aria-label="$t('marketplace.cart.qtyAriaLabel')",
+              @change="onQtyInput(it, $event)",
+              @keyup.enter="blurOnEnter"
+            )
             BaseButton(
               variant="ghost",
               icon-only,
               size="sm",
-              aria-label="Увеличить количество",
+              :aria-label="$t('marketplace.cart.increaseQtyAriaLabel')",
               :disabled="cartStore.mutating || atMax(it)",
               @click="changeQty(it, it.quantity + stepFor(it))"
             )
@@ -324,7 +328,7 @@ q-page.mp-cart.mp-role-orderer(role="region", aria-label="Корзина Сто�
             variant="ghost",
             icon-only,
             size="sm",
-            aria-label="Удалить позицию",
+            :aria-label="$t('marketplace.cart.removeItemAriaLabel')",
             :disabled="cartStore.mutating",
             @click="onRemove(it.offer_id, it.package_id ?? null)"
           )
@@ -334,45 +338,44 @@ q-page.mp-cart.mp-role-orderer(role="region", aria-label="Корзина Сто�
     //- Правая колонка: липкая сводка заказа.
     .col-12.col-md-4
       BaseCard.mp-cart__summary
-        .mp-cart__summary-title Ваш заказ
+        .mp-cart__summary-title {{ $t('marketplace.cart.summaryTitle') }}
         .mp-cart__summary-line
-          span Позиций
+          span {{ $t('marketplace.cart.itemsCountLabel') }}
           span.mp-cart__summary-val {{ cartStore.positionsCount }}
         .mp-cart__summary-line
-          span Всего единиц
+          span {{ $t('marketplace.cart.totalUnitsLabel') }}
           span.mp-cart__summary-val {{ cartStore.totalQuantity }}
         .mp-cart__summary-line
-          span Себестоимость
+          span {{ $t('marketplace.cart.costLabel') }}
           span.mp-cart__summary-val {{ money(cartStore.totalCost) }} {{ symbol }}
         .mp-cart__summary-line(v-if="feePercent > 0")
-          span Наценка ({{ feePercent }}%)
+          span {{ $t('marketplace.cart.targetFeeLabel', { percent: feePercent }) }}
           span.mp-cart__summary-val {{ money(feeAmount) }} {{ symbol }}
         .mp-cart__summary-total
-          span Итого
+          span {{ $t('marketplace.cart.totalLabel') }}
           span {{ money(totalWithFee) }} {{ symbol }}
         BaseButton.mp-cart__checkout(
           variant="primary",
           :loading="cartStore.checkingOut",
           :disabled="cartStore.mutating",
           @click="onCheckout"
-        ) Оформить заказ
+        ) {{ $t('marketplace.cart.checkoutButton') }}
         BaseButton.mp-cart__clear(
           variant="ghost",
           size="sm",
           :disabled="cartStore.mutating || cartStore.checkingOut",
           @click="onClear"
-        ) Очистить корзину
+        ) {{ $t('marketplace.cart.clearCartButton') }}
 
   //- Не хватило средств — предлагаем внести взнос не отходя от корзины;
   //- позиции остаются на месте, оформление можно повторить сразу.
-  BaseDialog(v-model="insufficientOpen", title="Не хватает средств", size="sm")
+  BaseDialog(v-model="insufficientOpen", :title="$t('marketplace.cart.insufficientTitle')", size="sm")
     .mp-cart__insufficient
       p.mp-cart__insufficient-text {{ insufficientMessage }}
       p.mp-cart__insufficient-hint
-        | Внесите паевой взнос — деньги попадут в кошелёк, и заказ можно будет
-        | оформить тем же составом. Корзина сохранится.
+        | {{ $t('marketplace.cart.topUpHint') }}
     template(#footer)
-      BaseButton(variant="ghost", @click="insufficientOpen = false") Закрыть
+      BaseButton(variant="ghost", @click="insufficientOpen = false") {{ $t('common.action.close') }}
       DepositButton
 </template>
 
@@ -490,26 +493,21 @@ q-page.mp-cart.mp-role-orderer(role="region", aria-label="Корзина Сто�
     margin-top: var(--p-1, 4px);
   }
 
-  // Степпер количества: фиксированной ширины, не прыгает.
+  // Степпер количества — один собранный элемент в рамке: минус, число, плюс.
+  // Раньше это были три отдельные кнопки, разъезжавшиеся по ширине строки.
   &__qty {
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: var(--p-1, 4px);
     flex-shrink: 0;
-  }
-
-  &__qty-val {
-    min-width: 48px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    line-height: 1.1;
+    border: 1px solid var(--p-line);
+    border-radius: var(--p-r-pill, 999px);
+    padding: 2px;
   }
 
   // Поле прямого ввода — без рамок/фона, выглядит как число степпера, но
   // редактируемое. Так не «прыгает» и не ломает строку, как outlined-input.
   &__qty-input {
-    width: 48px;
+    width: 44px;
     border: none;
     background: transparent;
     text-align: center;
@@ -528,11 +526,6 @@ q-page.mp-cart.mp-role-orderer(role="region", aria-label="Корзина Сто�
     &:disabled {
       color: var(--p-ink-2);
     }
-  }
-
-  &__qty-unit {
-    font-size: var(--p-fs-meta);
-    color: var(--p-ink-3);
   }
 
   &__sum {
@@ -618,13 +611,53 @@ q-page.mp-cart.mp-role-orderer(role="region", aria-label="Корзина Сто�
   }
 
   @media (max-width: 768px) {
+    // Узкий экран: верхний ряд — снимок, название и цена во всю ширину;
+    // нижний — степпер слева, сумма и удаление справа. Одной строкой это не
+    // помещается: название с ценой сжимались в колонку шириной в слово.
     &__line {
-      flex-wrap: wrap;
+      display: grid;
+      grid-template-columns: 64px minmax(0, 1fr) auto;
+      grid-template-areas:
+        'thumb info info'
+        'qty   sum  del';
+      align-items: start;
+      gap: var(--p-3, 12px);
+      padding: var(--p-4, 16px) 0;
     }
 
+    &__thumb {
+      grid-area: thumb;
+      width: 64px;
+      height: 64px;
+    }
+
+    &__info {
+      grid-area: info;
+      align-self: center;
+    }
+
+    // Удаление уехало в нижний ряд, к сумме: в верхнем оно отнимало ширину у
+    // названия и цены, и «упак. 0,5 л, пластик» переносилось на вторую строку
+    // из-за кнопки, которая нужна раз в жизни позиции.
+    &__del {
+      grid-area: del;
+      align-self: center;
+      justify-self: end;
+    }
+
+    &__qty {
+      grid-area: qty;
+      justify-self: start;
+    }
+
+    // Сумма позиции — на одной линии со степпером и тем же кеглем, что итог
+    // заказа: это главное число строки.
     &__sum {
+      grid-area: sum;
       width: auto;
-      text-align: left;
+      align-self: center;
+      text-align: right;
+      font-size: var(--p-fs-h3, 18px);
     }
 
     &__summary {

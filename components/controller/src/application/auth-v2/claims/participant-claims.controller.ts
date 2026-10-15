@@ -8,10 +8,11 @@ import {
 } from '~/domain/auth-v2/verification/verification.types';
 import { VerificationTypesService } from '../verification/verification-types.service';
 import { tokenMatches } from '../internal-token.util';
+import { DomainError } from '@coopenomics/extension-kit';
 
 /**
  * Claims пайщика для OIDC-провайдеров, обслуживающих внешние сервисы сети
- * (первый потребитель — клиент card.coop, Story 7.0 карты пайщика, FR-E1).
+ * (первый потребитель — клиент card.coop, Story 7.0 карты кооператора, FR-E1).
  *
  * Состав отвечает на единственный вопрос внешней стороны: «этот человек —
  * действующий пайщик такого-то кооператива, и с какого момента». Персональных
@@ -111,7 +112,7 @@ export class ParticipantClaimsController {
     @Query('username') username: string | undefined,
   ): Promise<ParticipantClaims> {
     if (!tokenMatches(token, config.authV2.webhookToken)) throw new UnauthorizedException();
-    if (!username) throw new BadRequestException('username обязателен');
+    if (!username) throw DomainError.badRequest('AUTH_V2_USERNAME_REQUIRED');
 
     const coopname = config.coopname;
     const [types, account] = await Promise.all([

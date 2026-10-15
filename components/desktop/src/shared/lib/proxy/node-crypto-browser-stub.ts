@@ -4,5 +4,6 @@
  */
 export function createHash(algorithm: string): never {
   void algorithm
+  // i18n-ignore: техническая заглушка для сборщика, пользователь её не видит
   throw new Error('node:crypto недоступен в браузерной сборке')
 }

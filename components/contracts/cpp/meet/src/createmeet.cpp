@@ -19,15 +19,18 @@ void meet::createmeet(name coopname, checksum256 hash, eosio::name initiator, na
   require_auth(coopname);
   
   verify_document_or_fail(proposal);
+  // Предложение о созыве подписывает инициатор: транзакцию шлёт кооператив,
+  // и без сверки ключа собрание можно было бы созвать от чужого имени.
+  verify_signer_keys_or_fail(proposal, initiator);
   
   auto exist = get_meet(coopname, hash);
   eosio::check(!exist.has_value(), "Объект общего собрания с указанным идентификатором уже существует");
   
   auto coop = get_cooperative_or_fail(coopname);
   
-  get_participant_or_fail(coopname, initiator);
-  get_participant_or_fail(coopname, presider);
-  get_participant_or_fail(coopname, secretary);
+  get_active_participant_or_fail(coopname, initiator);
+  get_active_participant_or_fail(coopname, presider);
+  get_active_participant_or_fail(coopname, secretary);
   
   auto now = current_time_point();
   
@@ -40,7 +43,7 @@ void meet::createmeet(name coopname, checksum256 hash, eosio::name initiator, na
   
   uint64_t meet_id = get_global_id_in_scope(_meet, coopname, "genmeets"_n);
   
-  genmeets.emplace(coopname, [&](auto &g){
+  genmeets.emplace(RamPayer::of(genmeets, coopname), [&](auto &g){
     g.id = meet_id;
     g.hash = hash;
     g.coopname = coopname;
@@ -63,11 +66,15 @@ void meet::createmeet(name coopname, checksum256 hash, eosio::name initiator, na
   for (const auto& point : agenda) {
     check(!point.title.empty(), "Вопрос должен содержать заголовок (title)");
     check(!point.decision.empty(), "Вопрос должен содержать проект решения (decision)");
+    // Формулировки хранятся в базе контроллера, в цепи — их хеши (lib/core/text_digest.hpp).
+    TextDigest::check_digest(point.title, "title");
+    TextDigest::check_digest(point.decision, "decision");
+    TextDigest::check_digest(point.context, "context");
 
     number++;
     eosio::check(number <= 10, "Не больше 10 вопросов на повестке собрания");
     
-    questions.emplace(coopname, [&](auto& q) {
+    questions.emplace(RamPayer::of(questions, coopname), [&](auto& q) {
       q.id = get_global_id_in_scope(_meet, coopname, "questions"_n);
       q.number = number;
       q.coopname = coopname;

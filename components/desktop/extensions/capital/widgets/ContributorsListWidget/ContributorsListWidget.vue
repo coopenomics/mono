@@ -5,8 +5,8 @@
 
   EmptyState(
     v-else-if='!loading && !contributors.length',
-    title='Участников пока нет',
-    body='У кооператива ещё нет участников программы «Благорост».'
+    :title='$t("capital.contributorsListWidget.emptyTitle")',
+    :body='$t("capital.contributorsListWidget.emptyBody")'
   )
     template(#icon)
       q-icon(name='group')
@@ -19,16 +19,16 @@
             tr
               th.col-toggle
               th.col-sort(@click='onSort("username")')
-                | ФИО {{ sortMark('username') }}
+                | {{ $t('capital.contributorsListWidget.columnUsername', { sortMark: sortMark('username') }) }}
               th.col-sort(@click='onSort("status")')
-                | Статус {{ sortMark('status') }}
-              th.col-num Главный кошелёк
-              th.col-num Генерация
-              th.col-num Благорост
+                | {{ $t('capital.contributorsListWidget.columnStatus', { sortMark: sortMark('status') }) }}
+              th.col-num {{ $t('capital.contributorsListWidget.columnMainWallet') }}
+              th.col-num {{ $t('capital.contributorsListWidget.columnGeneration') }}
+              th.col-num {{ $t('capital.contributorsListWidget.columnBlagorost') }}
               th.col-sort.col-num(@click='onSort("rate_per_hour")')
-                | Ставка/час {{ sortMark('rate_per_hour') }}
+                | {{ $t('capital.contributorsListWidget.columnRatePerHour', { sortMark: sortMark('rate_per_hour') }) }}
               th.col-sort.col-num(@click='onSort("hours_per_day")')
-                | Часы/день {{ sortMark('hours_per_day') }}
+                | {{ $t('capital.contributorsListWidget.columnHoursPerDay', { sortMark: sortMark('hours_per_day') }) }}
           tbody
             template(
               v-for='row in contributors',
@@ -38,7 +38,7 @@
                 td.col-toggle
                   button.icon-btn(
                     type='button',
-                    :aria-label='isExpanded(row.contributor_hash) ? "Свернуть" : "Развернуть"',
+                    :aria-label='isExpanded(row.contributor_hash) ? $t("capital.contributorsListWidget.collapseAction") : $t("capital.contributorsListWidget.expandAction")',
                     @click.stop='handleToggleExpand(row.contributor_hash)'
                   )
                     q-icon(
@@ -58,39 +58,39 @@
                 td(colspan='8')
                   .contributors-table__details
                     .contributors-table__block
-                      .contributors-table__block-title.t-eyebrow О себе
-                      p.contributors-table__about.t-sm {{ row.about || 'Информация отсутствует' }}
+                      .contributors-table__block-title.t-eyebrow {{ $t('capital.contributorsListWidget.aboutLabel') }}
+                      p.contributors-table__about.t-sm {{ row.about || $t('capital.contributorsListWidget.noInfo') }}
 
                     .contributors-table__block
-                      .contributors-table__block-title.t-eyebrow Взносы по ролям
+                      .contributors-table__block-title.t-eyebrow {{ $t('capital.contributorsListWidget.contributionsByRoleTitle') }}
                       .contributors-table__rows
                         DataRow(
-                          label='Инвестор',
+                          :label='$t("capital.contributorsListWidget.investorRole")',
                           :value='formatAsset2Digits(calculateInvestorTotal(row))',
                           mono
                         )
                         DataRow(
-                          label='Исполнитель',
+                          :label='$t("capital.contributorsListWidget.performerRole")',
                           :value='formatAsset2Digits(row.contributed_as_creator)',
                           mono
                         )
                         DataRow(
-                          label='Соавтор',
+                          :label='$t("capital.contributorsListWidget.coauthorRole")',
                           :value='formatAsset2Digits(row.contributed_as_author)',
                           mono
                         )
                         DataRow(
-                          label='Координатор',
+                          :label='$t("capital.contributorsListWidget.coordinatorRole")',
                           :value='formatAsset2Digits(row.contributed_as_coordinator)',
                           mono
                         )
                         DataRow(
-                          label='Участник',
+                          :label='$t("capital.contributorsListWidget.memberRole")',
                           :value='formatAsset2Digits(row.contributed_as_contributor)',
                           mono
                         )
                         DataRow(
-                          label='Общий взнос',
+                          :label='$t("capital.contributorsListWidget.totalContributionLabel")',
                           :value='formatAsset2Digits(calculateTotalContribution(row))',
                           mono
                         )
@@ -98,32 +98,32 @@
                     .contributors-table__block(
                       v-if='row.document_parameters && hasDocumentParameters(row.document_parameters)'
                     )
-                      .contributors-table__block-title.t-eyebrow Параметры документов
+                      .contributors-table__block-title.t-eyebrow {{ $t('capital.contributorsListWidget.documentParamsTitle') }}
                       .contributors-table__rows.contributors-table__rows--docs
                         DataRow(
                           v-if='row.document_parameters.blagorost_contributor_contract_number',
-                          label='Договор УХД',
+                          :label='$t("capital.contributorsListWidget.uhdContractLabel")',
                           :value='docLabel(row.document_parameters.blagorost_contributor_contract_number, row.document_parameters.blagorost_contributor_contract_created_at)',
                           align='vertical',
                           mono
                         )
                         DataRow(
                           v-if='row.document_parameters.generator_agreement_number',
-                          label='Соглашение Генератор',
+                          :label='$t("capital.contributorsListWidget.generatorAgreementLabel")',
                           :value='docLabel(row.document_parameters.generator_agreement_number, row.document_parameters.generator_agreement_created_at)',
                           align='vertical',
                           mono
                         )
                         DataRow(
                           v-if='row.document_parameters.blagorost_agreement_number',
-                          label='Соглашение Благорост',
+                          :label='$t("capital.contributorsListWidget.blagorostAgreementLabel")',
                           :value='docLabel(row.document_parameters.blagorost_agreement_number, row.document_parameters.blagorost_agreement_created_at)',
                           align='vertical',
                           mono
                         )
                         DataRow(
                           v-if='row.document_parameters.blagorost_storage_agreement_number',
-                          label='Соглашение о хранении',
+                          :label='$t("capital.contributorsListWidget.storageAgreementLabel")',
                           :value='docLabel(row.document_parameters.blagorost_storage_agreement_number, row.document_parameters.blagorost_storage_agreement_created_at)',
                           align='vertical',
                           mono
@@ -137,13 +137,13 @@
           size='sm',
           :disabled='pagination.page <= 1',
           @click='goToPage(pagination.page - 1)'
-        ) Назад
+        ) {{ $t('common.action.back') }}
         BaseButton(
           variant='ghost',
           size='sm',
           :disabled='pagination.page * pagination.rowsPerPage >= totalCount',
           @click='goToPage(pagination.page + 1)'
-        ) Ещё
+        ) {{ $t('capital.contributorsListWidget.moreButton') }}
 </template>
 
 <script lang="ts" setup>
@@ -156,6 +156,7 @@ import type { BaseBadgeVariant } from 'src/shared/ui/base';
 import { DataRow } from 'src/shared/ui/domain/DataRow';
 import { useSystemStore } from 'src/entities/System/model';
 import { Zeus } from '@coopenomics/sdk';
+import { t } from '../../i18n';
 
 interface Props {
   contributors: IContributor[];
@@ -255,13 +256,13 @@ const goToPage = (page: number) => {
 
 const rangeLabel = computed(() => {
   const total = props.totalCount || props.contributors.length;
-  if (!total) return '0 из 0';
+  if (!total) return t('capital.contributorsListWidget.paginationEmpty');
   const from = (props.pagination.page - 1) * props.pagination.rowsPerPage + 1;
   const to = Math.min(
     props.pagination.page * props.pagination.rowsPerPage,
     total,
   );
-  return `${from}–${to} из ${total}`;
+  return t('capital.contributorsListWidget.paginationLabel', { from, to, total });
 });
 
 const assetAmount = (raw?: string | null) => {
@@ -325,7 +326,7 @@ const hasDocumentParameters = (params: Record<string, unknown> | null | undefine
 
 const docLabel = (number?: string | null, date?: string | null) => {
   if (!number) return '—';
-  return date ? `${number} от ${date}` : number;
+  return date ? t('capital.contributorsListWidget.documentNumberDate', { number, date }) : number;
 };
 </script>
 

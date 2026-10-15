@@ -12,7 +12,7 @@
 [[eosio::action]] void branch::joindec(eosio::name coopname, eosio::checksum256 hash, eosio::name username) {
   check_auth_or_fail(_branch, coopname, coopname, "joindec"_n);
 
-  get_participant_or_fail(coopname, username);
+  get_active_participant_or_fail(coopname, username);
 
   auto dec = get_decision_or_fail(coopname, hash);
   eosio::check(dec.status == "opened"_n, "Присоединиться можно только до начала голосования");
@@ -20,7 +20,7 @@
 
   decision_index decisions(_branch, coopname.value);
   auto itr = decisions.find(dec.id);
-  decisions.modify(itr, coopname, [&](auto &d) {
+  decisions.modify(itr, RamPayer::of(decisions, coopname), [&](auto &d) {
     d.participants.push_back(username);
   });
 }

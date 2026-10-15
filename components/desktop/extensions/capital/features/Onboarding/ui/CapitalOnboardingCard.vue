@@ -2,15 +2,15 @@
 div.capital-onboarding.q-pa-md
   WindowLoader(
     v-if='loading'
-    text='Загрузка данных онбординга...'
+    :text='$t("capital.capitalOnboardingCard.loadingText")'
   )
   template(v-else-if='!isOnboardingCompleted')
     .capital-onboarding__shell
       BaseBanner.capital-onboarding__banner(variant='info')
         template(#icon)
           q-icon(name='info' size='20px')
-        | Сначала заполните параметры положений «ГЕНЕРАТОР» и «БЛАГОРОСТ», затем объявите собрания
-        | совета для утверждения документов ЦПП.
+        | {{ $t('capital.capitalOnboardingCard.hintPre') }}
+        | {{ $t('capital.capitalOnboardingCard.hintPost') }}
 
       VerticalStepper.capital-onboarding__stepper(
         :steps='wizardSteps'
@@ -42,7 +42,7 @@ div.capital-onboarding.q-pa-md
           variant='ghost'
           :disable='footerBusy'
           @click='goBack'
-        ) Назад
+        ) {{ $t('common.action.back') }}
         q-space(v-if='showBackButton && showContinueButton')
         BaseButton(
           v-if='showContinueButton'
@@ -54,7 +54,7 @@ div.capital-onboarding.q-pa-md
 
   BaseDialog(
     v-model='dialogOpen'
-    title='Предложение повестки'
+    :title='$t("capital.capitalOnboardingCard.agendaProposalTitle")'
     size='lg'
     :close-on-backdrop='false'
     :close-on-escape='false'
@@ -62,29 +62,29 @@ div.capital-onboarding.q-pa-md
   )
     Loader(
       v-if='generatingDocument'
-      text='Генерация документа...'
+      :text='$t("capital.capitalOnboardingCard.generatingText")'
     )
     template(v-else-if='currentStep && currentGeneratedDoc && !generatingDocument')
       .capital-onboarding__dialog-section
         div.row.items-center.q-gutter-xs.text-subtitle1.text-weight-medium
           q-icon(name='help_outline' size='18px' color='primary')
-          span Вопрос на повестке
+          span {{ $t('capital.capitalOnboardingCard.agendaQuestionLabel') }}
         div.q-mt-sm.t-body {{ currentStep.question }}
 
         q-separator.q-my-md
 
         div.row.items-center.q-gutter-xs.text-subtitle1.text-weight-medium
           q-icon(name='gavel' size='18px' color='primary')
-          span Проект решения
+          span {{ $t('capital.capitalOnboardingCard.draftDecisionLabel') }}
         div.q-mt-sm
           div(v-if='currentStep.decisionPrefix') {{ currentStep.decisionPrefix }}
-          DocumentHtmlReader(:html='currentGeneratedDoc.html' :sanitize='false')
+          DocumentHtmlReader(:html='currentGeneratedDoc.html' profile='document')
         div.t-caption.text-grey-6.q-mt-sm
           strong {{ currentGeneratedDoc.full_title }}
 
     template(#footer v-if='currentGeneratedDoc && !generatingDocument')
-      BaseButton(variant='ghost' :disable='submitting' @click='closeDialog') Отмена
-      BaseButton(variant='primary' :loading='submitting' @click='submitStep') Объявить
+      BaseButton(variant='ghost' :disable='submitting' @click='closeDialog') {{ $t('common.action.cancel') }}
+      BaseButton(variant='primary' :loading='submitting' @click='submitStep') {{ $t('capital.capitalOnboardingCard.announceAction') }}
 </template>
 
 <script setup lang="ts">
@@ -97,13 +97,14 @@ import { WindowLoader, Loader } from 'src/shared/ui/Loader';
 import { VerticalStepper } from 'src/shared/ui/domain/VerticalStepper';
 import type { StepperStep } from 'src/shared/ui/domain/VerticalStepper';
 import type { ICouncilOnboardingStep } from 'src/shared/ui/CouncilOnboarding';
-import { useDataPoller } from 'src/shared/lib/composables';
-import { POLL_INTERVALS } from 'src/shared/lib/consts';
+import { SovietContract } from 'cooptypes';
+import { useLiveReload, liveTable } from 'src/shared/lib/realtime';
 import CapitalProgramDocumentStepPanel from './CapitalProgramDocumentStepPanel.vue';
 import CapitalCouncilStepGroup from './CapitalCouncilStepGroup.vue';
 import { useCapitalOnboarding } from '../model';
 import { useCapitalProgramDocParams, getRegistryIdForDocWizardStep } from '../model/useCapitalProgramDocParams';
 import {
+  BLAGOROST_PROGRAM_REGISTRY_ID,
   COUNCIL_GROUP_FOUNDATION,
   COUNCIL_GROUP_OFFERS,
   COUNCIL_STEP_GROUP_ORDER,
@@ -111,12 +112,14 @@ import {
   DOC_WIZARD_STEP_BLAGOROST,
   DOC_WIZARD_STEP_GENERATOR,
   DOC_WIZARD_STEP_ORDER,
+  GENERATOR_PROGRAM_REGISTRY_ID,
   getCouncilStepIdsForGroup,
   isCouncilGroupStep,
   isDocWizardStep,
   normalizeWizardStepKey,
   type CouncilGroupStepKey,
 } from '../model/capitalOnboardingWizard';
+import { t } from '../../../i18n';
 
 const $q = useQuasar();
 
@@ -163,13 +166,13 @@ const councilSteps = computed(() => config.value?.steps ?? []);
 const wizardSteps = computed<StepperStep[]>(() => [
   {
     key: DOC_WIZARD_STEP_GENERATOR,
-    label: 'Параметры «ГЕНЕРАТОР»',
-    description: 'Переменные положения о целевой программе «ГЕНЕРАТОР»',
+    label: t('capital.capitalOnboardingCard.generatorParamsTitle'),
+    description: t('capital.capitalOnboardingCard.generatorParamsSubtitle'),
   },
   {
     key: DOC_WIZARD_STEP_BLAGOROST,
-    label: 'Параметры «БЛАГОРОСТ»',
-    description: 'Переменные положения о целевой программе «БЛАГОРОСТ»',
+    label: t('capital.capitalOnboardingCard.blagorostParamsTitle'),
+    description: t('capital.capitalOnboardingCard.blagorostParamsSubtitle'),
   },
   ...COUNCIL_STEP_GROUP_ORDER.map((groupKey) => ({
     key: groupKey,
@@ -216,7 +219,7 @@ const showContinueButton = computed(() => isDocWizardStep(activeWizardStep.value
 const showFooter = computed(() => showBackButton.value || showContinueButton.value);
 
 const continueLabel = computed(() =>
-  activeWizardStep.value === DOC_WIZARD_STEP_BLAGOROST ? 'Сохранить и продолжить' : 'Продолжить',
+  activeWizardStep.value === DOC_WIZARD_STEP_BLAGOROST ? t('capital.capitalOnboardingCard.saveAndContinueAction') : t('capital.capitalOnboardingCard.continueAction'),
 );
 
 function getCouncilStep(stepId: string): ICouncilOnboardingStep | undefined {
@@ -311,7 +314,7 @@ function onStepperChange(key: string) {
 
 async function goNext() {
   if (activeWizardStep.value === DOC_WIZARD_STEP_GENERATOR) {
-    const validationError = validateSection(994);
+    const validationError = validateSection(GENERATOR_PROGRAM_REGISTRY_ID);
     if (validationError) {
       $q.notify({ type: 'warning', message: validationError });
       return;
@@ -319,7 +322,7 @@ async function goNext() {
 
     advancing.value = true;
     try {
-      await ensurePreview(994);
+      await ensurePreview(GENERATOR_PROGRAM_REGISTRY_ID);
       setWizardStepKey(DOC_WIZARD_STEP_BLAGOROST);
     } finally {
       advancing.value = false;
@@ -328,7 +331,7 @@ async function goNext() {
   }
 
   if (activeWizardStep.value === DOC_WIZARD_STEP_BLAGOROST) {
-    const validationError = validateSection(998);
+    const validationError = validateSection(BLAGOROST_PROGRAM_REGISTRY_ID);
     if (validationError) {
       $q.notify({ type: 'warning', message: validationError });
       return;
@@ -380,15 +383,15 @@ const shouldPollCouncilState = computed(
   () => hasPendingCouncilDecisions.value && !isOnboardingCompleted.value,
 );
 
-const { start: startCouncilPoll, stop: stopCouncilPoll } = useDataPoller(
+// Решения совета о подключении приходят по ленте изменений (повестка —
+// soviet::decisions, итог — конфигурация расширения в базе узла): состояние
+// перечитывается, только пока карточка ждёт совета, как прежде опрос.
+useLiveReload(
+  [liveTable(SovietContract, SovietContract.Tables.Decisions), { code: 'core', table: 'extensions' }],
   async () => {
+    if (!shouldPollCouncilState.value) return;
     await refreshState();
     syncWizardStepWithCouncilProgress();
-  },
-  {
-    interval: POLL_INTERVALS.FAST,
-    immediate: false,
-    enabled: shouldPollCouncilState,
   },
 );
 
@@ -396,14 +399,6 @@ function handleVisibilityChange() {
   if (document.hidden || !shouldPollCouncilState.value) return;
   void refreshState().then(() => syncWizardStepWithCouncilProgress());
 }
-
-watch(shouldPollCouncilState, (enabled) => {
-  if (enabled) {
-    startCouncilPoll();
-  } else {
-    stopCouncilPoll();
-  }
-});
 
 watch(
   () => councilSteps.value.map((step) => `${step.id}:${step.status}`).join('|'),
@@ -444,15 +439,10 @@ onMounted(async () => {
     }
   }
 
-  if (shouldPollCouncilState.value) {
-    startCouncilPoll();
-  }
-
   document.addEventListener('visibilitychange', handleVisibilityChange);
 });
 
 onBeforeUnmount(() => {
-  stopCouncilPoll();
   document.removeEventListener('visibilitychange', handleVisibilityChange);
 });
 </script>

@@ -31,7 +31,7 @@
   Gateway::incomes_index incomes(_gateway, coopname.value);
   
   //TODO: payer should be is coopname
-  incomes.emplace(_gateway, [&](auto &d) {
+  incomes.emplace(RamPayer::of(incomes, coopname), [&](auto &d) {
     d.id = income_id;
     d.income_hash = income_hash;
     d.username = username;

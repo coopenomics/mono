@@ -10,12 +10,12 @@ q-btn(
   no-wrap
 )
   q-icon(name='fa-solid fa-plus')
-  span.q-ml-sm(v-if='!isMobile') Добавить участок
-  q-tooltip(v-if='isMobile') Добавить участок
+  span.q-ml-sm(v-if='!isMobile') {{ $t('branch.createBranchButton.addLabel') }}
+  q-tooltip(v-if='isMobile') {{ $t('branch.createBranchButton.addLabel') }}
 
 BaseDialog(
   v-model='show',
-  title='Создать кооперативный участок',
+  :title='$t("branch.createBranchButton.dialogTitle")',
   size='lg',
   :close-on-backdrop='false',
   :close-on-escape='false'
@@ -25,12 +25,12 @@ BaseDialog(
     :is-submitting='isSubmitting',
     :showSubmit='!isLoading',
     :showCancel='true',
-    :button-submit-txt='"Создать"',
+    :button-submit-txt='$t("common.action.create")',
     @cancel='clear'
   )
     UserSearchSelector(
       v-model='createBranchInput.trustee',
-      label='Председатель участка',
+      :label='$t("branch.createBranchButton.trusteeLabel")',
       :rules='[(val) => notEmpty(val)]',
       dense,
       standout='bg-teal text-white'
@@ -40,8 +40,8 @@ BaseDialog(
       dense,
       v-model='createBranchInput.short_name',
       standout='bg-teal text-white',
-      placeholder='РОМАШКА',
-      label='Наименование участка',
+      :placeholder='$t("branch.createBranchButton.namePlaceholder")',
+      :label='$t("branch.createBranchButton.nameLabel")',
       :rules='[(val) => notEmpty(val)]',
       autocomplete='off'
     )
@@ -49,7 +49,7 @@ BaseDialog(
       dense,
       v-model='createBranchInput.phone',
       standout='bg-teal text-white',
-      label='Номер телефона участка',
+      :label='$t("branch.createBranchButton.phoneLabel")',
       mask='+7 (###) ###-##-##',
       fill-mask,
       placeholder='',
@@ -61,7 +61,7 @@ BaseDialog(
       v-model='createBranchInput.fact_address',
       standout='bg-teal text-white',
       placeholder='',
-      label='Фактический адрес участка',
+      :label='$t("branch.createBranchButton.addressLabel")',
       :rules='[(val) => notEmpty(val)]',
       autocomplete='off'
     )
@@ -70,7 +70,7 @@ BaseDialog(
       v-model='createBranchInput.email',
       standout='bg-teal text-white',
       type='email',
-      label='Email-адрес участка',
+      :label='$t("branch.createBranchButton.emailLabel")',
       color='primary',
       :rules='[validEmail, notEmpty]'
     )
@@ -79,8 +79,8 @@ BaseDialog(
       dense,
       v-model='createBranchInput.based_on',
       standout='bg-teal text-white',
-      label='Председатель действует на основании',
-      placeholder='решение собрания совета №СС-10-04-2025 от 10 апреля 2025 г',
+      :label='$t("branch.createBranchButton.basedOnLabel")',
+      :placeholder='$t("branch.createBranchButton.basedOnPlaceholder")',
       :rules='[(val) => notEmpty(val)]',
       autocomplete='off'
     )
@@ -101,6 +101,7 @@ import { notEmpty } from 'src/shared/lib/utils';
 import { validEmail } from 'src/shared/lib/utils/validEmailRule';
 import { notEmptyPhone } from 'src/shared/lib/utils';
 import { useWindowSize } from 'src/shared/hooks';
+import { t } from 'src/shared/i18n';
 
 const show = ref(false);
 const isSubmitting = ref(false);
@@ -114,10 +115,10 @@ const create = async () => {
     await createBranch(createBranchInput.value);
     isSubmitting.value = false;
     show.value = false;
-    SuccessAlert('Кооперативный участок добавлен');
+    SuccessAlert(t('branch.createBranchButton.addSuccess'));
   } catch (e) {
     isSubmitting.value = false;
-    FailAlert(`Ошибка при создании: ${extractGraphQLErrorMessages(e)}`);
+    FailAlert(t('branch.createBranchButton.addError', { message: extractGraphQLErrorMessages(e) }));
   }
 };
 

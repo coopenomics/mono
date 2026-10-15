@@ -21,8 +21,8 @@
 
     EmptyState(
       v-if='!logs.length && !loading',
-      title='Записей пока нет',
-      body='Здесь появится лента действий по проектам, инвестициям и результатам.'
+      :title='$t("capital.projectLogsTableWidget.emptyTitle")',
+      :body='$t("capital.projectLogsTableWidget.emptyBody")'
     )
       template(#icon)
         q-icon(name='history', size='48px')
@@ -35,6 +35,7 @@ import { ActivityTimeline } from 'src/shared/ui/domain/ActivityTimeline';
 import { EmptyState } from 'src/shared/ui/base/EmptyState';
 import { FailAlert } from 'src/shared/api';
 import { mapCapitalLogToActivity } from 'app/extensions/capital/shared/lib/mapCapitalLogToActivity';
+import { t } from '../../../i18n';
 
 interface Props {
   projectHash?: string;
@@ -84,9 +85,9 @@ async function loadLogs(page = 1, append = false) {
     FailAlert(
       props.projectHash
         ? props.showComponentsLogs
-          ? 'Не удалось загрузить историю проекта'
-          : 'Не удалось загрузить историю компонента'
-        : 'Не удалось загрузить ленту активности',
+          ? t('capital.projectLogsTableWidget.loadErrorProject')
+          : t('capital.projectLogsTableWidget.loadErrorComponent')
+        : t('capital.projectLogsTableWidget.loadErrorGeneric'),
     );
   } finally {
     loading.value = false;
@@ -121,6 +122,7 @@ watch(
   },
 );
 
+// realtime: нет источника — журнал мутаций пишется на каждое действие в системе, в ленту его не отдаём.
 onMounted(async () => {
   await loadLogs(1, false);
 });

@@ -1,0 +1,104 @@
+import { Injectable, UseGuards } from '@nestjs/common';
+import { Args, ID, Mutation, Query, Resolver } from '@nestjs/graphql';
+import {
+  GqlJwtAuthGuard,
+  PaginationInputDTO,
+  platformSettings,
+  type PaginationResult,
+  RequireRight,
+  RightsGuard,
+  SELF,
+} from '@coopenomics/extension-kit';
+import { CurrentEduMember } from '../decorators/current-edu-member.decorator';
+import type { IEdubridgeMembership } from '../membership/edubridge-membership.service';
+import { EduCreateExpenseInputDTO, EduExpenseDTO, PaginatedEduExpensesDTO } from '../dto/edu-expense.dto';
+import { EdubridgeExpenseService } from '../services/edubridge-expense.service';
+import {
+  EduCourseEconomyDTO,
+  EduCourseEconomyInputDTO,
+  EduCourseFeeDTO,
+  EduEconomySettingsDTO,
+  EduProgramFundDTO,
+  EduSetEconomySettingsInputDTO,
+  EduSetTeacherRateInputDTO,
+} from '../dto/edu-economy.dto';
+import { EduSettlementEntryDTO } from '../dto/edu-teacher.dto';
+import { EdubridgeEconomyService } from '../services/edubridge-economy.service';
+
+const coop = () => platformSettings().coopname;
+
+/** Экономика программы: целевой членский взнос кооператива, ставки часа, расчёт взносов. */
+@Resolver()
+@Injectable()
+export class EdubridgeEconomyResolver {
+  constructor(
+    private readonly economy: EdubridgeEconomyService,
+    private readonly expenses: EdubridgeExpenseService
+  ) {}
+
+  @Query(() => PaginatedEduExpensesDTO, { name: 'edubridgeExpenses', description: 'Расходы программы: что оплачивается из фонда' })
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('EduEconomy', 'read')
+  edubridgeExpenses(@Args('options', { nullable: true }) options?: PaginationInputDTO): Promise<PaginationResult<EduExpenseDTO>> {
+    return this.expenses.list(coop(), options);
+  }
+
+  @Mutation(() => String, { name: 'edubridgeCreateExpense', description: 'Подать расход программы: средства фонда выделяются под расход' })
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('EduEconomy', 'manage')
+  edubridgeCreateExpense(@CurrentEduMember() m: IEdubridgeMembership, @Args('data') data: EduCreateExpenseInputDTO): Promise<string> {
+    return this.expenses.create(coop(), m.username as string, data);
+  }
+
+  @Query(() => EduEconomySettingsDTO, { name: 'edubridgeEconomySettings', description: 'Целевой членский взнос кооператива и предельная скидка за взнос разом за весь курс' })
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('EduEconomy', 'read')
+  edubridgeEconomySettings(): Promise<EduEconomySettingsDTO> {
+    return this.economy.settings();
+  }
+
+  @Query(() => EduProgramFundDTO, { name: 'edubridgeProgramFund', description: 'Деньги программы: кошельки и движение средств' })
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('EduEconomy', 'read')
+  edubridgeProgramFund(): Promise<EduProgramFundDTO> {
+    return this.economy.fund(coop());
+  }
+
+  @Query(() => [EduSettlementEntryDTO], { name: 'edubridgeMySettlementJournal', description: 'Моя выписка: зачисления по принятым результатам и возвраты паевого взноса с их состоянием' })
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('EduTeacherWallet', 'read:own', SELF)
+  edubridgeMySettlementJournal(@CurrentEduMember() m: IEdubridgeMembership): Promise<EduSettlementEntryDTO[]> {
+    return this.economy.settlementJournal(coop(), m.username as string);
+  }
+
+  @Mutation(() => EduEconomySettingsDTO, { name: 'edubridgeSetEconomySettings', description: 'Задать целевой членский взнос кооператива' })
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('EduEconomy', 'manage')
+  edubridgeSetEconomySettings(@Args('data') data: EduSetEconomySettingsInputDTO): Promise<EduEconomySettingsDTO> {
+    return this.economy.setMarkup(data.markup_percent);
+  }
+
+  @Mutation(() => String, { name: 'edubridgeSetTeacherRate', description: 'Задать ставку часа преподавателя' })
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('EduEconomy', 'manage')
+  edubridgeSetTeacherRate(@Args('data') data: EduSetTeacherRateInputDTO): Promise<string> {
+    return this.economy.setTeacherRate(coop(), data.username, data.hourly_rate);
+  }
+
+  @Query(() => EduCourseFeeDTO, { name: 'edubridgeCourseFeePreview', description: 'Расчёт взноса по параметрам курса — до сохранения' })
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('EduCourse', 'read')
+  edubridgeCourseFeePreview(@Args('data') data: EduCourseEconomyInputDTO): Promise<EduCourseFeeDTO> {
+    return this.economy.preview(data);
+  }
+
+  @Query(() => EduCourseEconomyDTO, { name: 'edubridgeCourseEconomy', description: 'Экономика курса: план и факт по назначенным преподавателям' })
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('EduCourse', 'read')
+  edubridgeCourseEconomy(
+    @Args('course_id', { type: () => ID }) courseId: string,
+    @Args('group_id', { type: () => ID, nullable: true }) groupId?: string
+  ): Promise<EduCourseEconomyDTO> {
+    return this.economy.courseEconomy(coop(), courseId, groupId);
+  }
+}

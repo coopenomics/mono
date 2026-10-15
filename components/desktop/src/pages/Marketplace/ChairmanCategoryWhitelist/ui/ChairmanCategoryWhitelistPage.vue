@@ -1,11 +1,20 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { useFirstLoad } from 'src/shared/lib/composables';
 import { Dialog, Notify, debounce } from 'quasar';
 import { SuccessAlert, FailAlert } from 'src/shared/api';
-import { BaseBadge, BaseButton, BaseInput, BaseDialog, EmptyState, TableSkeleton } from 'src/shared/ui/base';
-import type { TableSkeletonColumn } from 'src/shared/ui/base';
+import {
+  BaseBadge,
+  BaseButton,
+  BaseInput,
+  BaseDialog,
+  BaseTable,
+  EmptyState,
+} from 'src/shared/ui/base';
+import type { BaseTableColumn } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
-import { useMarketplaceRealtime } from 'src/shared/lib/marketplace';
+import { marketLiveTables } from 'src/shared/lib/marketplace';
 import {
   clearAvailableCategories,
   createCustomCategory,
@@ -16,6 +25,7 @@ import {
   type MarketplaceAvailableCategoryView,
   type MarketplaceCoopCategoryView,
 } from '../api';
+import { t } from 'src/shared/i18n';
 
 /**
  * Эпик 16: «Категории кооператива».
@@ -30,7 +40,11 @@ import {
 
 const categories = ref<MarketplaceCoopCategoryView[]>([]);
 const available = ref<MarketplaceAvailableCategoryView[]>([]);
-const loading = ref(false);
+// true до первого запроса: иначе первый кадр до загрузки показывает пустое
+// состояние вместо скелетона, и первая загрузка неотличима от пустого списка.
+const loading = ref(true);
+/** Скелетон — только на первой загрузке; дочитка обновляет молча. */
+const firstLoad = useFirstLoad(loading);
 const savingId = ref<number | null>(null);
 
 const addDialogOpen = ref(false);
@@ -50,11 +64,11 @@ function isEnabled(cat: MarketplaceCoopCategoryView): boolean {
 
 const enabledCount = computed(() => categories.value.filter((c) => isEnabled(c)).length);
 
-const skeletonColumns: TableSkeletonColumn[] = [
-  { label: 'Категория', cell: 'text' },
-  { label: 'Вид', class: 'col-kind', cell: 'badge' },
-  { label: 'Доступна', class: 'col-toggle', cell: 'text', cellWidth: '64px' },
-  { label: '', class: 'col-actions', cell: 'text', cellWidth: '48px' },
+const columns: BaseTableColumn<MarketplaceCoopCategoryView>[] = [
+  { key: 'name', label: t('marketplace.categoryWhitelist.column.category'), width: '320px', sortable: true, field: 'display_name' },
+  { key: 'kind', label: t('marketplace.categoryWhitelist.column.kind'), width: '140px', sortable: true, field: 'mvp_baseline' },
+  { key: 'enabled', label: t('marketplace.categoryWhitelist.column.available'), width: '120px' },
+  { key: 'actions', label: '', width: '80px' },
 ];
 
 async function load(): Promise<void> {
@@ -64,7 +78,7 @@ async function load(): Promise<void> {
     categories.value = [...cats].sort((a, b) => a.sort_order - b.sort_order);
     available.value = avail;
   } catch (e) {
-    FailAlert(e, 'Не удалось загрузить категории');
+    FailAlert(e, t('marketplace.categoryWhitelist.loadFailedError'));
   } finally {
     loading.value = false;
   }
@@ -81,7 +95,7 @@ async function toggle(cat: MarketplaceCoopCategoryView, value: boolean): Promise
   if (enabledIds.size === 0) {
     Notify.create({
       type: 'warning',
-      message: 'Должна остаться хотя бы одна доступная категория',
+      message: t('marketplace.categoryWhitelist.mustKeepOneError'),
       timeout: 2200,
       position: 'top',
     });
@@ -96,9 +110,9 @@ async function toggle(cat: MarketplaceCoopCategoryView, value: boolean): Promise
       await replaceAvailableItems({ categoryIds: [...enabledIds], categoryTypes: [] });
     }
     available.value = await fetchAvailableCategories();
-    SuccessAlert(value ? 'Категория включена' : 'Категория выключена');
+    SuccessAlert(value ? t('marketplace.categoryWhitelist.enabledSuccess') : t('marketplace.categoryWhitelist.disabledSuccess'));
   } catch (e) {
-    FailAlert(e, 'Не удалось изменить доступность');
+    FailAlert(e, t('marketplace.categoryWhitelist.toggleFailedError'));
   } finally {
     savingId.value = null;
   }
@@ -115,11 +129,11 @@ async function confirmAdd(): Promise<void> {
   creating.value = true;
   try {
     await createCustomCategory({ displayName: name });
-    SuccessAlert('Категория добавлена');
+    SuccessAlert(t('marketplace.categoryWhitelist.addedSuccess'));
     addDialogOpen.value = false;
     await load();
   } catch (e) {
-    FailAlert(e, 'Не удалось добавить категорию');
+    FailAlert(e, t('marketplace.categoryWhitelist.addFailedError'));
   } finally {
     creating.value = false;
   }
@@ -127,18 +141,18 @@ async function confirmAdd(): Promise<void> {
 
 function onRemove(cat: MarketplaceCoopCategoryView): void {
   Dialog.create({
-    title: 'Удалить категорию?',
-    message: `Категория «${cat.display_name}» будет удалена. Опубликованные в ней предложения не пропадут, но публиковать новые станет нельзя.`,
-    cancel: { label: 'Отмена', flat: true },
-    ok: { label: 'Удалить', color: 'negative', unelevated: true },
+    title: t('marketplace.categoryWhitelist.deleteConfirmTitle'),
+    message: t('marketplace.categoryWhitelist.deleteConfirmMessage', { categoryName: cat.display_name }),
+    cancel: { label: t('common.action.cancel'), flat: true },
+    ok: { label: t('common.action.delete'), color: 'negative', unelevated: true },
     persistent: true,
   }).onOk(async () => {
     try {
       await deleteCustomCategory(cat.id);
-      SuccessAlert('Категория удалена');
+      SuccessAlert(t('marketplace.categoryWhitelist.deletedSuccess'));
       await load();
     } catch (e) {
-      FailAlert(e, 'Не удалось удалить категорию');
+      FailAlert(e, t('marketplace.categoryWhitelist.deleteFailedError'));
     }
   });
 }
@@ -150,95 +164,85 @@ const reloadLive = debounce(() => {
   if (loading.value) return;
   void load();
 }, 400);
-useMarketplaceRealtime({}, { onResync: () => reloadLive() });
+useLiveReload(marketLiveTables('catalog'), () => reloadLive());
 
 onMounted(load);
 </script>
 
 <template lang="pug">
-q-page.categories(role='region', aria-label='Категории кооператива')
+q-page.categories(role='region', :aria-label='$t("marketplace.categoryWhitelist.pageAriaLabel")')
   PageHint(storage-key='mp:category-whitelist:banner-dismissed')
-    | Категории, в которых пайщики могут публиковать предложения. По умолчанию
-    | доступны все. Выключите ненужные, чтобы ограничить список, — или добавьте
-    | собственную категорию кооператива. Базовые категории нельзя удалить, только
-    | выключить.
+    | {{ $t('marketplace.chairmanCategoryWhitelist.intro') }}
 
   //- Действие страницы — в шапке (канон): добавить свою категорию.
   Teleport(to='#header-actions-host', defer)
     BaseButton(variant='primary', size='sm', @click='onAdd')
       template(#icon-left)
         q-icon(name='add', size='18px')
-      | Добавить категорию
+      | {{ $t('marketplace.categoryWhitelist.addCategoryButton') }}
 
-  .categories__summary(v-if='!loading || categories.length')
-    span(v-if='isOpenCatalog') Открыт весь каталог — доступны все категории ({{ categories.length }})
-    span(v-else) Доступно категорий: {{ enabledCount }} из {{ categories.length }}
+  .categories__summary(v-if='!firstLoad || categories.length')
+    span(v-if='isOpenCatalog') {{ $t('marketplace.categoryWhitelist.allAvailableSummary', { count: categories.length }) }}
+    span(v-else) {{ $t('marketplace.categoryWhitelist.availableSummary', { enabled: enabledCount, total: categories.length }) }}
 
-  TableSkeleton(
-    v-if='loading && !categories.length',
-    :columns='skeletonColumns',
-    :rows='6',
-    min-width='560px'
+  BaseTable(
+    v-if='loading || categories.length',
+    :columns='columns',
+    :rows='categories',
+    row-key='id',
+    hover,
+    :loading='loading',
+    :skeleton-rows='6',
+    min-width='660px',
+    sort-by='name'
   )
-
-  .table-wrap(v-else-if='categories.length')
-    .table-scroll
-      table.table
-        thead
-          tr
-            th.col-name Категория
-            th.col-kind Вид
-            th.col-toggle Доступна
-            th.col-actions
-        tbody
-          tr(v-for='cat in categories', :key='cat.id')
-            td.col-name.categories__name {{ cat.display_name }}
-            td.col-kind
-              BaseBadge(:variant='cat.mvp_baseline ? "neutral" : "info"')
-                | {{ cat.mvp_baseline ? 'Базовая' : 'Своя' }}
-            td.col-toggle
-              q-toggle(
-                :model-value='isEnabled(cat)',
-                color='primary',
-                :disable='savingId === cat.id',
-                @update:model-value='(v) => toggle(cat, v)'
-              )
-            td.col-actions
-              //- Удалить можно только собственную категорию; базовая — без действия.
-              button.icon-btn(
-                v-if='!cat.mvp_baseline',
-                type='button',
-                aria-label='Удалить категорию',
-                @click='onRemove(cat)'
-              )
-                q-icon(name='delete', size='18px')
-
-    .table-foot
-      span Категорий: {{ categories.length }}
+    template(#cell-name='{ row }')
+      .categories__name {{ row.display_name }}
+    template(#cell-kind='{ row }')
+      BaseBadge(:variant='row.mvp_baseline ? "neutral" : "info"')
+        | {{ row.mvp_baseline ? $t('marketplace.categoryWhitelist.kindBase') : $t('marketplace.categoryWhitelist.kindCustom') }}
+    template(#cell-enabled='{ row }')
+      q-toggle(
+        :model-value='isEnabled(row)',
+        color='primary',
+        :disable='savingId === row.id',
+        @update:model-value='(v) => toggle(row, v)'
+      )
+    template(#cell-actions='{ row }')
+      //- Удалить можно только собственную категорию; базовая — без действия.
+      button.icon-btn(
+        v-if='!row.mvp_baseline',
+        type='button',
+        :aria-label='$t("marketplace.categoryWhitelist.deleteAriaLabel")',
+        @click='onRemove(row)'
+      )
+        q-icon(name='delete', size='18px')
+    template(#footer)
+      span {{ $t('marketplace.categoryWhitelist.countLabel', { count: categories.length }) }}
 
   EmptyState(
-    v-else-if='!loading',
-    title='Категорий нет',
-    body='Базовые категории не загрузились. Обновите страницу или добавьте собственную.'
+    v-else-if='!firstLoad',
+    :title='$t("marketplace.categoryWhitelist.emptyTitle")',
+    :body='$t("marketplace.categoryWhitelist.emptyBody")'
   )
     template(#icon)
       q-icon(name='category', size='48px')
 
-  BaseDialog(v-model='addDialogOpen', title='Новая категория', size='sm')
+  BaseDialog(v-model='addDialogOpen', :title='$t("marketplace.categoryWhitelist.createDialogTitle")', size='sm')
     BaseInput(
       v-model='newName',
-      label='Название категории',
-      placeholder='Например: Бытовая химия',
+      :label='$t("marketplace.categoryWhitelist.nameLabel")',
+      :placeholder='$t("marketplace.categoryWhitelist.namePlaceholder")',
       @keyup.enter='confirmAdd'
     )
     template(#footer)
-      BaseButton(variant='ghost', @click='addDialogOpen = false') Отмена
+      BaseButton(variant='ghost', @click='addDialogOpen = false') {{ $t('common.action.cancel') }}
       BaseButton(
         variant='primary',
         :loading='creating',
         :disabled='!newName.trim()',
         @click='confirmAdd'
-      ) Добавить
+      ) {{ $t('common.action.add') }}
 </template>
 
 <style scoped lang="scss">

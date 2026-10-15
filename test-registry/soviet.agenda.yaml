@@ -1,0 +1,70 @@
+feature: soviet.agenda
+title: "Совет — вопрос повестки, его сведения от приложения, отдельная страница и прямая ссылка в оповещении"
+
+# Вопрос повестки совета открывается в правой панели и отдельной страницей со
+# своим адресом (решение владельца 13.10.2026). Сведения по вопросу показывает
+# компонент, который приложение назвало обработчику типа решения: совет видит
+# их рядом с заявлением. Оповещение членам совета о новом вопросе ведёт на
+# страницу этого вопроса — номер вопроса узел находит по хэшу действия.
+sources:
+  backend:
+    - components/controller/src/application/agenda/services/agenda-notification.service.ts
+  ui:
+    - components/desktop/src/widgets/Questions/**
+    - components/desktop/src/pages/Cooperative/AgendaQuestion/**
+    - components/desktop/src/pages/Cooperative/ListOfAgenda/**
+    - components/desktop/src/processes/process-decisions/agenda-board.ts
+
+cases:
+  - id: sov.agenda.happy.01
+    level: backend
+    kind: happy
+    scenario: Контракт ставит вопрос в повестку совета, узел оповещает председателя и членов совета
+    expect: Оповещение несёт номер вопроса и адрес страницы этого вопроса; номер найден по хэшу действия без учёта регистра
+    test: components/controller/tests/unit/agenda/agenda-notification-link.test.ts
+    status: written   # прогон — CI на полигоне ci/tests
+
+  - id: sov.agenda.side.01
+    level: backend
+    kind: side
+    scenario: Вопроса с хэшем действия в таблице решений нет
+    expect: Оповещение уходит, ссылка ведёт на повестку целиком
+    test: components/controller/tests/unit/agenda/agenda-notification-link.test.ts
+    status: written   # прогон — CI на полигоне ci/tests
+
+  - id: sov.agenda.break.01
+    level: backend
+    kind: break
+    scenario: Цепь не ответила на чтение таблицы решений
+    expect: Оповещение уходит со ссылкой на повестку, отправка не срывается
+    test: components/controller/tests/unit/agenda/agenda-notification-link.test.ts
+    status: written   # прогон — CI на полигоне ci/tests
+
+  - id: sov.agenda.side.02
+    level: backend
+    kind: side
+    scenario: Вопрос поставлен в повестку чужого кооператива
+    expect: Узел никого не оповещает и цепь не читает
+    test: components/controller/tests/unit/agenda/agenda-notification-link.test.ts
+    status: written   # прогон — CI на полигоне ci/tests
+
+  - id: sov.agenda.ui.question-page
+    level: ui
+    kind: happy
+    scenario: >
+      член совета открывает вопрос в панели, нажимает «Открыть страницу» и
+      попадает на страницу вопроса со своим адресом; голосует и возвращается к
+      повестке
+    expect: >
+      на странице те же заголовок, заявитель, сведения приложения и документы,
+      что в панели; голос принимается; адрес страницы открывается напрямую
+    test: ~
+    status: missing   # проверяется владельцем на стенде; сценарий harness не заведён
+
+  - id: sov.agenda.ui.question-gone
+    level: ui
+    kind: side
+    scenario: член совета открывает по прямой ссылке вопрос, которого в повестке уже нет
+    expect: страница сообщает, что вопроса в повестке нет, и даёт вернуться к повестке
+    test: ~
+    status: missing   # сценарий harness не написан

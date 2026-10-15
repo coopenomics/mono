@@ -4,6 +4,7 @@ import { DigitalDocument } from 'src/shared/lib/document';
 import { useSessionStore } from 'src/entities/Session';
 import { useSystemStore } from 'src/entities/System/model';
 import { api } from '../api';
+import { t } from 'src/shared/i18n';
 
 export type IAuthorizeDecisionInput = Mutations.Decisions.AuthorizeDecision.IInput['data']
 
@@ -28,7 +29,7 @@ export function useAuthorizeAndExecDecision() {
     });
 
     if (!document) {
-      throw new Error('Ошибка при генерации документа решения');
+      throw new Error(t('decision.error.generateError'));
     }
 
     const rawDocument = new DigitalDocument(document)

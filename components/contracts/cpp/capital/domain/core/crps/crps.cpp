@@ -91,7 +91,7 @@ namespace Capital::Core {
     
     // Если нет себестоимости труда у пользователя, provisional_amount = 0
     if (user_base_amount == 0) {
-      segments.modify(segment, coopname, [&](auto &s) {
+      segments.modify(segment, RamPayer::of(segments, coopname), [&](auto &s) {
         s.provisional_amount = eosio::asset(0, _root_govern_symbol);
         s.last_known_invest_pool = project.fact.invest_pool; // Все равно синхронизируем инвестиции
         s.last_known_creators_base_pool = project.fact.creators_base_pool; // Синхронизируем с актуальной суммой базового пула создателей
@@ -110,7 +110,7 @@ namespace Capital::Core {
     eosio::check(provisional_amount <= project.fact.invest_pool.amount, "Cумма доступной ссуды не может превышать сумму инвестиций проекта");
     
     // Обновляем provisional_amount и синхронизируем известные пулы в сегменте
-    segments.modify(segment, coopname, [&](auto &s) {
+    segments.modify(segment, RamPayer::of(segments, coopname), [&](auto &s) {
       s.provisional_amount = eosio::asset(provisional_amount, _root_govern_symbol);
       s.last_known_invest_pool = project.fact.invest_pool; // Синхронизируем с актуальной суммой инвестиций
       s.last_known_creators_base_pool = project.fact.creators_base_pool; // Синхронизируем с актуальной суммой базового пула создателей
@@ -130,7 +130,7 @@ namespace Capital::Core {
     auto project = Capital::Projects::get_project_by_id_or_fail(coopname, project_id);
     
     if (segment == segments.end()) {
-        segments.emplace(_capital, [&](auto &g){
+        segments.emplace(RamPayer::of(segments, coopname), [&](auto &g){
             g.id            = segment_id;
             g.coopname      = coopname;
             g.project_hash  = project.project_hash;
@@ -165,7 +165,7 @@ namespace Capital::Core {
         bool became_contributor = !segment_updated->is_contributor;
 
         // 3. Модифицируем уже обновленный сегмент
-        segments_updated.modify(segment_updated, _capital, [&](auto &g) {
+        segments_updated.modify(segment_updated, RamPayer::of(segments_updated, coopname), [&](auto &g) {
             if (became_investor) {
                 g.is_investor = true;
                 Capital::Projects::increment_total_investors(coopname, project_id);
@@ -213,7 +213,7 @@ namespace Capital::Core {
       return; // Не инвестор
     }
     
-    segments.modify(segment, _capital, [&](auto &s) {
+    segments.modify(segment, RamPayer::of(segments, coopname), [&](auto &s) {
       // Рассчитываем фактически используемую сумму инвестора (используем коэффициент возврата инвестиций)
       s.investor_base = Capital::Core::Generation::calculate_investor_used_amount(
         s.investor_amount, 

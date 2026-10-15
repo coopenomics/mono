@@ -61,6 +61,7 @@ add_contract_build(apps)
 add_contract_build(ano)
 add_contract_build(expense)
 add_contract_build(billing)
+add_contract_build(edubridge)
 add_contract_build(system)
 
 # Опции для тестов

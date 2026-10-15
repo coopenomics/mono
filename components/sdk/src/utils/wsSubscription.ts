@@ -25,8 +25,13 @@ import {
  * Client'а (Thunder без scalars). Появятся скаляры в событиях — добавить
  * decodeScalarsInResponse по образцу сгенерированного SubscriptionThunder.
  *
- * Reconnect: ограниченный retry + backoff с потолком. Infinity/агрессивный
- * reconnect при мёртвом бэкенде вывешивал вкладку (self-DDoS).
+ * Reconnect: попытки не кончаются, но паузы растут до потолка в 30 секунд с
+ * джиттером — это две попытки в минуту на мёртвом бэкенде, вкладку такое не
+ * вывешивает. Прежний лимит в восемь попыток закрывал канал навсегда: серия
+ * перезапусков контроллера (или сон ноутбука) исчерпывала счётчик, и подписка
+ * молчала до перезагрузки страницы, а события уходили в пустоту — pub/sub их
+ * не хранит (инцидент 14.09.2026: поставщик не получил сигнал о приёмке,
+ * гейт всплыл только страховочной дочиткой).
  */
 
 /** Хэндл открытой подписки (честная сигнатура open/error — без кастов у потребителя). */
@@ -45,23 +50,37 @@ export interface WsSubscriptionHandle<Z, T> {
   open: (listener: () => void) => void
   /** Операция завершена сервером. */
   off: (fn: () => void) => void
+  /**
+   * Жива ли сама операция подписки. Гаснет навсегда, как только операция
+   * получила ошибку или завершилась: сокет при этом может снова открыться —
+   * его откроет чужая подписка, — но эту операцию на нём никто не
+   * возобновит. Признак «сокет открыт» один на всех и о судьбе конкретной
+   * подписки не говорит (инцидент 23.09.2026: токен истёк во вкладке в
+   * фоне, сервер отказал в переподключении, подписка кошелька умерла, но
+   * считала себя живой по чужому открытию сокета — пополнение пришло опросом).
+   */
+  isActive: () => boolean
 }
 
-export type WsHeadersProvider = HeadersInit | (() => HeadersInit)
+export type WsHeadersProvider = HeadersInit | (() => HeadersInit | Promise<HeadersInit>)
 
 export interface WsSubscriptionOptions {
   headers?: WsHeadersProvider
 }
 
 const KEEP_ALIVE_MS = 15_000
-/** Хватает на типичный рестарт controller; дальше — тишина до ручного reopen. */
-const RETRY_ATTEMPTS = 8
+/**
+ * Попытки не ограничиваем: канал должен переживать любой перерыв — перезапуск
+ * бэкенда, сон машины, смену сети. От самозагрузки защищает не лимит попыток,
+ * а потолок паузы (см. RETRY_MAX_MS) и джиттер.
+ */
+const RETRY_ATTEMPTS = Number.POSITIVE_INFINITY
 const RETRY_BASE_MS = 1_000
 const RETRY_MAX_MS = 30_000
 
-function resolveHeaders(headers?: WsHeadersProvider): HeadersInit {
+async function resolveHeaders(headers?: WsHeadersProvider): Promise<HeadersInit> {
   if (!headers) return {}
-  return typeof headers === 'function' ? headers() : headers
+  return typeof headers === 'function' ? await headers() : headers
 }
 
 function isBrowserOffline(): boolean {
@@ -84,9 +103,11 @@ export function wsSubscription(url: string, options: WsSubscriptionOptions = {})
       client = createClient({
         url,
         // Функция — чтобы Authorization подхватывался на каждом (ре)коннекте,
-        // а не замораживался снимком headers на момент создания.
-        connectionParams: () =>
-          Object.fromEntries(new Headers(resolveHeaders(options.headers)).entries()),
+        // а не замораживался снимком headers на момент создания. Асинхронная —
+        // чтобы перед подключением успеть взять свежий токен: сервер проверяет
+        // его один раз, при подключении, и протухший токен означал отказ.
+        connectionParams: async () =>
+          Object.fromEntries(new Headers(await resolveHeaders(options.headers)).entries()),
         keepAlive: KEEP_ALIVE_MS,
         retryAttempts: RETRY_ATTEMPTS,
         retryWait: async (retries) => {
@@ -103,6 +124,20 @@ export function wsSubscription(url: string, options: WsSubscriptionOptions = {})
             errOrCloseEvent !== null &&
             'code' in errOrCloseEvent
           )
+        },
+        // Постоянные слушатели транспорта. Без них отказ внутреннего промиса
+        // подключения (сокет закрылся, пока подписчиков уже нет) всплывал как
+        // необработанное отклонение промиса и уезжал в журнал ошибок кабинета
+        // событием `CloseEvent (type=close)` — без стека и без смысла
+        // (инцидент 17.09.2026). Канал от этого не страдает: реконнект ведёт
+        // graphql-ws, здесь только запись в консоль.
+        on: {
+          error: (err) => {
+            console.warn('[ws] ошибка транспорта подписок (реконнект сам)', err)
+          },
+          closed: (event) => {
+            console.warn('[ws] транспорт подписок закрыт (реконнект сам)', event)
+          },
         },
       })
     }
@@ -127,6 +162,7 @@ export function wsSubscription(url: string, options: WsSubscriptionOptions = {})
       let onError: ((e: unknown) => void) | undefined
       let onClose: (() => void) | undefined
       let removeOpened: (() => void) | undefined
+      let terminated = false
 
       const wsClient = getClient()
       const unsubscribe = wsClient.subscribe(
@@ -139,9 +175,11 @@ export function wsSubscription(url: string, options: WsSubscriptionOptions = {})
             onMessage?.(data)
           },
           error(error) {
+            terminated = true
             onError?.(error)
           },
           complete() {
+            terminated = true
             onClose?.()
           },
         },
@@ -163,11 +201,16 @@ export function wsSubscription(url: string, options: WsSubscriptionOptions = {})
         },
         open(listener) {
           removeOpened?.()
-          removeOpened = wsClient.on('opened', listener)
+          // Сокет общий: открыться он может ради чужой подписки. Мёртвой
+          // операции реконнект не касается — её слушатель молчит.
+          removeOpened = wsClient.on('opened', () => {
+            if (!terminated) listener()
+          })
         },
         off(listener) {
           onClose = listener
         },
+        isActive: () => !terminated,
       }
     }
 

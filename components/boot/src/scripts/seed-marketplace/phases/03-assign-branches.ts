@@ -98,17 +98,16 @@ export async function phase03(): Promise<void> {
       continue
     }
 
-    const genResp = await client.Mutation(Mutations.Branches.GenerateSelectBranchDocument.mutation, {
-      variables: {
-        data: { coopname: COOPNAME, username, braname: BRANAME },
-      } as Mutations.Branches.GenerateSelectBranchDocument.IInput,
-    }) as Record<string, Record<string, unknown>>
-    const doc = genResp[Mutations.Branches.GenerateSelectBranchDocument.name]
-
-    const signedRaw = await client.Document.signDocument(
-      doc as Parameters<typeof client.Document.signDocument>[0],
-      username,
+    const { [Mutations.Branches.GenerateSelectBranchDocument.name]: doc } = await client.Mutation(
+      Mutations.Branches.GenerateSelectBranchDocument.mutation,
+      {
+        variables: {
+          data: { coopname: COOPNAME, username, braname: BRANAME },
+        } as Mutations.Branches.GenerateSelectBranchDocument.IInput,
+      },
     )
+
+    const signedRaw = await client.Document.signDocument(doc, username)
 
     await client.Mutation(Mutations.Branches.SelectBranch.mutation, {
       variables: {

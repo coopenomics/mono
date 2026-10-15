@@ -1,5 +1,5 @@
 import { InputType, Field } from '@nestjs/graphql';
-import { IsNotEmpty, IsString, IsNumber } from 'class-validator';
+import { IsNotEmpty, IsString } from 'class-validator';
 
 @InputType('DeletePaymentMethodInput')
 export class DeletePaymentMethodDTO {
@@ -9,7 +9,9 @@ export class DeletePaymentMethodDTO {
   username!: string;
 
   @Field(() => String, { description: 'Идентификатор метода оплаты' })
+  // Идентификатор способа оплаты — строка (uuid, его выдаёт addPaymentMethod).
+  // До 25.09.2026 здесь стояло @IsNumber, и удалить реквизиты было нельзя вовсе.
   @IsNotEmpty()
-  @IsNumber()
+  @IsString()
   method_id!: string;
 }

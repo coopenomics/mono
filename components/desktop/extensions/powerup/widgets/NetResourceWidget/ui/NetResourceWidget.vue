@@ -3,7 +3,7 @@
   .resource-card__head
     .resource-card__icon
       i.fas.fa-network-wired
-    .resource-card__title Сетевой трафик (NET)
+    .resource-card__title {{ $t('powerup.netResourceWidget.title') }}
 
   .resource-card__gauge
     q-circular-progress(
@@ -17,33 +17,34 @@
     )
       .gauge-inner
         .gauge-value {{ usagePercent.toFixed(2) }}%
-        .gauge-label Использовано
+        .gauge-label {{ $t('powerup.netResourceWidget.usedLabel') }}
 
-  .resource-card__note NET используется для передачи данных документов между узлами блокчейна.
+  .resource-card__note {{ $t('powerup.netResourceWidget.note') }}
 
   button.resource-card__toggle(type="button", @click="showDetails = !showDetails")
-    span {{ showDetails ? 'Скрыть детали' : 'Подробнее' }}
+    span {{ showDetails ? $t('powerup.netResourceWidget.hideDetails') : $t('powerup.netResourceWidget.showDetails') }}
     q-icon(:name="showDetails ? 'expand_less' : 'expand_more'", size="18px")
 
   q-slide-transition
     .resource-card__details(v-show="showDetails")
       .detail-row
-        span.detail-label Используется
+        span.detail-label {{ $t('powerup.netResourceWidget.usedDetailLabel') }}
         span.detail-value {{ formatBytes(currentUsed) }}
       .detail-row
-        span.detail-label Доступно
+        span.detail-label {{ $t('powerup.netResourceWidget.availableLabel') }}
         span.detail-value {{ formatBytes(available) }} ({{ availablePercent.toFixed(1) }}%)
       .detail-row
-        span.detail-label Максимум
+        span.detail-label {{ $t('powerup.netResourceWidget.maxLabel') }}
         span.detail-value {{ formatBytes(max) }}
       .detail-row
-        span.detail-label Восстановление
+        span.detail-label {{ $t('powerup.netResourceWidget.recoveryLabel') }}
         span.detail-value ~{{ formatTime(estimatedRecovery) }}
 </template>
 
 <script lang="ts" setup>
 import { computed, ref } from 'vue'
 import { useSystemStore } from 'src/entities/System/model'
+import { t } from '../../../i18n';
 
 const showDetails = ref(false)
 
@@ -118,11 +119,11 @@ const formatTime = (seconds: number): string => {
 
   if (hours > 24) {
     const days = Math.floor(hours / 24)
-    return `${days}д ${hours % 24}ч`
+    return t('powerup.netResourceWidget.daysHours', { days, hours: hours % 24 })
   } else if (hours > 0) {
-    return `${hours}ч ${minutes}м`
+    return t('powerup.netResourceWidget.hoursMinutes', { hours, minutes })
   } else {
-    return `${minutes}м`
+    return t('powerup.netResourceWidget.minutes', { minutes })
   }
 }
 </script>

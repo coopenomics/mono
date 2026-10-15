@@ -18,3 +18,16 @@ using namespace eosio;
 void loan::migrate(){
   require_auth(_loan);
 };
+
+/**
+ * @brief Очистка отработавших записей (lib/core/cleanup.hpp).
+ *
+ * Правил нет: долг и сводка удаляются при полном погашении, в таблицах только открытые обязательства.
+ *
+ * @note Авторизация требуется от аккаунта контракта.
+ */
+void loan::cleanup() {
+  require_auth(get_self());
+  Cleanup::budget budget;
+  Cleanup::report(get_self(), budget);
+}

@@ -1,5 +1,7 @@
 #pragma once
 
+
+#include "../core/ram_payer.hpp"
 #include <eosio/asset.hpp>
 #include <eosio/binary_extension.hpp>
 #include <eosio/eosio.hpp>
@@ -52,3 +54,6 @@ typedef eosio::multi_index<
     eosio::indexed_by<"programtype"_n, eosio::const_mem_fun<program, uint64_t, &program::by_program_type>>,
     eosio::indexed_by<"bydraft"_n, eosio::const_mem_fun<program, uint64_t, &program::by_draft>>>
     programs_index;
+
+// Плательщик за оперативную память строк таблицы — правило в lib/core/ram_payer.hpp.
+RAM_PAYER_CLASS(program, contract);

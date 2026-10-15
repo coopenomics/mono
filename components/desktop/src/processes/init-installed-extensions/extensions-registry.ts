@@ -11,6 +11,8 @@ import sovietInstall from '../../../extensions/soviet/install';
 import kuInstall from '../../../extensions/ku/install';
 import reportsInstall from '../../../extensions/reports/install';
 import marketInstall from '../../../extensions/market/install';
+import edubridgeInstall from '../../../extensions/edubridge/install';
+import robotInstall from '../../../extensions/robot/install';
 
 /**
  * Единый регистр всех доступных расширений
@@ -27,6 +29,8 @@ export const extensionsRegistry: Record<string, () => Promise<IWorkspaceConfig[]
   trustee: kuInstall,
   reports: reportsInstall,
   market: marketInstall,
+  edubridge: edubridgeInstall,
+  robot: robotInstall,
 };
 
 /**

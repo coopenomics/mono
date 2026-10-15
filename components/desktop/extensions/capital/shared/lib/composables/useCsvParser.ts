@@ -1,4 +1,5 @@
 import { ref } from 'vue';
+import { t } from '../../../i18n';
 
 export interface ICsvContributor {
   username: string;
@@ -46,7 +47,7 @@ export function useCsvParser() {
 
           if (missingHeaders.length > 0) {
             throw new Error(
-              `Отсутствуют обязательные столбцы: ${missingHeaders.join(', ')}`,
+              t('capital.error.csvMissingColumns', { columns: missingHeaders.join(', ') }),
             );
           }
 
@@ -113,7 +114,7 @@ export function useCsvParser() {
       };
 
       reader.onerror = () => {
-        reject(new Error('Ошибка чтения файла'));
+        reject(new Error(t('capital.error.csvReadError')));
         isParsing.value = false;
       };
 

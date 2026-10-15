@@ -14,11 +14,10 @@ import {
 } from '~/extensions/marketplace/application/access/marketplace-access-matrix';
 
 describe('marketplaceAccessMatrix', () => {
-  it('содержит все 6 marketplace-ролей', () => {
+  it('содержит все 5 marketplace-ролей', () => {
     const roles = Object.keys(marketplaceAccessMatrix).sort();
     expect(roles).toEqual([
       'admin',
-      'board',
       'board_readonly',
       'offerer',
       'operator',
@@ -33,9 +32,18 @@ describe('marketplaceAccessMatrix', () => {
     expect(marketplaceAccessMatrix.orderer.Offer).toContain('read');
   });
 
-  it('admin имеет KU:manage и Vitrine:manage', () => {
+  it('operator читает предложения, но не модерирует их', () => {
+    // Карточка предложения открывается со склада участка: оператору нужно
+    // видеть, что именно он выдаёт. Правка и модерация остаются у председателя.
+    expect(marketplaceAccessMatrix.operator.Offer).toContain('read');
+    expect(marketplaceAccessMatrix.operator.Offer).not.toContain('moderate');
+    expect(canAccess(['operator'], 'Offer', 'read')).toBe(true);
+    expect(canAccess(['operator'], 'Offer', 'moderate')).toBe(false);
+  });
+
+  it('admin имеет KU:manage и Whitelist:manage', () => {
     expect(marketplaceAccessMatrix.admin.KU).toContain('manage');
-    expect(marketplaceAccessMatrix.admin.Vitrine).toContain('manage');
+    expect(marketplaceAccessMatrix.admin.Whitelist).toContain('manage');
   });
 });
 

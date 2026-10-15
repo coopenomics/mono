@@ -1,0 +1,45 @@
+{
+  "errors": {
+    "REGISTRATION_REFERRER_ACCESS_DENIED": "У вас нет доступа к просмотру кандидатов другого реферера"
+  },
+  "registration": {
+    "intakeAnswers": {
+      "formNotFilled": "{formTitle}: не заполнена",
+      "unknownForms": "Для этой заявки не предусмотрены анкеты: {formIds}"
+    },
+    "intakeSchema": {
+      "booleanRequiredHint": "нужно «да» или «нет»",
+      "fieldRequiredHint": "заполните поле",
+      "integerRequiredHint": "нужно целое число",
+      "linkFormatHint": "нужна ссылка вида https://…",
+      "maxLengthHint": "не длиннее {maxLength} символов",
+      "maximumHint": "не больше {maximum}",
+      "minLengthHint": "не короче {minLength} символов",
+      "minimumHint": "не меньше {minimum}",
+      "numberRequiredHint": "нужно число",
+      "selectFromListHint": "выберите значение из списка",
+      "textRequiredHint": "нужен текст"
+    },
+    "registerParticipantInput": {
+      "formIdRequired": "Поле \"form_id\" обязательно для заполнения.",
+      "privacyAgreementRequired": "Поле \"privacy_agreement\" обязательно для заполнения.",
+      "signatureAgreementRequired": "Поле \"signature_agreement\" обязательно для заполнения.",
+      "statementRequired": "Поле \"statement\" обязательно для заполнения.",
+      "userAgreementRequired": "Поле \"user_agreement\" обязательно для заполнения.",
+      "usernameRequired": "Поле \"username\" обязательно для заполнения.",
+      "valuesObjectRequired": "Поле \"values\" должно быть объектом.",
+      "walletAgreementRequired": "Поле \"wallet_agreement\" обязательно для заполнения."
+    },
+    "registrationAgreements": {
+      "checkboxAcceptText": "Я прочитал и принимаю",
+      "privacyPolicyLinkText": "политику конфиденциальности",
+      "privacyPolicyTitle": "Политика конфиденциальности",
+      "signatureAgreementLinkText": "положение о порядке и правилах использования простой электронной подписи",
+      "signatureAgreementTitle": "Соглашение о порядке и правилах использования простой электронной подписи",
+      "userAgreementLinkText": "пользовательское соглашение",
+      "userAgreementTitle": "Пользовательское соглашение",
+      "walletAgreementLinkText": "положение о целевой потребительской программе \"Цифровой Кошелёк\"",
+      "walletAgreementTitle": "Соглашение о целевой потребительской программе \"Цифровой Кошелёк\""
+    }
+  }
+}

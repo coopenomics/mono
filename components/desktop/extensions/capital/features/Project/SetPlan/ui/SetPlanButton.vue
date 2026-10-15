@@ -4,12 +4,12 @@ span
     v-if="canOpenPlan"
     variant='primary'
     size='sm'
-    aria-label='Установить план'
+    :aria-label='$t("capital.setPlanButton.ariaLabel")'
     @click.stop='dialogRef?.openDialog()'
   )
     template(#icon-left)
       q-icon(name='edit', size='18px')
-    | План
+    | {{ $t('capital.setPlanButton.label') }}
 
   SetPlanDialog(
     ref='dialogRef'

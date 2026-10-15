@@ -1,4 +1,5 @@
 import { type IOnboardingStepRegistryPort } from '@coopenomics/innercoop';
+import { t } from '../../i18n';
 
 /**
  * Регистрирует 7 шагов онбординга chairman в платформенном реестре.
@@ -26,7 +27,7 @@ export function registerChairmanOnboardingSteps(
     event_type: 'SOVIET_DECISION',
     vars_field: 'wallet_agreement',
     generator: 'free_decision',
-    default_title: 'Утверждение кошелькового соглашения',
+    default_title: t('chairman.onboardingSteps.walletAgreementTitle'),
     order: 10,
   });
   port.registerStep({
@@ -35,7 +36,7 @@ export function registerChairmanOnboardingSteps(
     event_type: 'SOVIET_DECISION',
     vars_field: 'signature_agreement',
     generator: 'free_decision',
-    default_title: 'Утверждение соглашения о простой электронной подписи',
+    default_title: t('chairman.onboardingSteps.signatureAgreementTitle'),
     order: 20,
   });
   port.registerStep({
@@ -44,7 +45,7 @@ export function registerChairmanOnboardingSteps(
     event_type: 'SOVIET_DECISION',
     vars_field: 'privacy_agreement',
     generator: 'free_decision',
-    default_title: 'Утверждение политики конфиденциальности',
+    default_title: t('chairman.onboardingSteps.privacyAgreementTitle'),
     order: 30,
   });
   port.registerStep({
@@ -53,7 +54,7 @@ export function registerChairmanOnboardingSteps(
     event_type: 'SOVIET_DECISION',
     vars_field: 'user_agreement',
     generator: 'free_decision',
-    default_title: 'Утверждение пользовательского соглашения',
+    default_title: t('chairman.onboardingSteps.userAgreementTitle'),
     order: 40,
   });
   port.registerStep({
@@ -62,7 +63,7 @@ export function registerChairmanOnboardingSteps(
     event_type: 'SOVIET_DECISION',
     vars_field: 'participant_application',
     generator: 'free_decision',
-    default_title: 'Утверждение шаблонов заявлений участника',
+    default_title: t('chairman.onboardingSteps.participantApplicationTitle'),
     order: 50,
   });
   port.registerStep({
@@ -71,7 +72,7 @@ export function registerChairmanOnboardingSteps(
     event_type: 'SOVIET_DECISION',
     vars_field: 'voskhod_membership',
     generator: 'free_decision',
-    default_title: 'Решение о вступлении в ПК «ВОСХОД»',
+    default_title: t('chairman.onboardingSteps.voskhodMembershipTitle'),
     order: 60,
   });
   port.registerStep({
@@ -80,7 +81,7 @@ export function registerChairmanOnboardingSteps(
     event_type: 'MEET_DECISION',
     vars_field: 'general_meet',
     generator: 'meet',
-    default_title: 'Утверждение общим собранием',
+    default_title: t('chairman.onboardingSteps.generalMeetTitle'),
     order: 70,
   });
 }

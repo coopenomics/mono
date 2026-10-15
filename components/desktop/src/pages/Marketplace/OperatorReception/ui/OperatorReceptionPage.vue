@@ -1,5 +1,7 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref, watch } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { useFirstLoad } from 'src/shared/lib/composables';
 import { debounce } from 'quasar';
 import { useRoute, useRouter } from 'vue-router';
 import { Zeus } from '@coopenomics/sdk';
@@ -10,10 +12,8 @@ import type { BaseBadgeVariant } from 'src/shared/ui/base';
 import { AccountBadge, PageHint } from 'src/shared/ui/domain';
 import { ActDialogLayout } from 'src/widgets/Marketplace/ActDialogLayout';
 import { ScannerDialog } from 'src/widgets/Marketplace/ScannerDialog';
-import {
-  marketplaceOrderSaleUnit,
-  marketplaceSaleUnitLabel,
-} from 'src/shared/lib/consts/marketplace-units';
+import { GoodsManifest, type GoodsManifestLine } from 'src/widgets/Marketplace/GoodsManifest';
+import { marketplaceOrderSaleUnitLabel, marketplaceSaleUnitLabel } from 'src/shared/lib/consts/marketplace-units';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { formatDateToLocalTimezone } from 'src/shared/lib/utils/dates';
 import {
@@ -22,7 +22,7 @@ import {
   groupAplReceptions,
   handoffStageRoute,
   useMarketplaceHandoffSignal,
-  useMarketplaceRealtime,
+  marketLiveTables,
   type ReceptionGroup,
 } from 'src/shared/lib/marketplace';
 import {
@@ -41,6 +41,7 @@ import {
   type MarketplaceSupplierPickupOrderView,
 } from '../api';
 import SignAplReceptionChairmanDialog from './SignAplReceptionChairmanDialog.vue';
+import { t } from 'src/shared/i18n';
 
 /**
  * Story 5.3 + 5.4 + Эпик 14: operator-стол приёмки партий.
@@ -75,6 +76,8 @@ const expressCandidates = ref<MarketplaceExpressPickupCandidateView[]>([]);
 // проваливания): грузим единицы поставщиков, чьи партии/самовывоз ждут приёмки.
 const ordersByOfferer = ref<Record<string, MarketplaceSupplierPickupOrderView[]>>({});
 const loading = ref(true);
+/** Скелетон — только на первой загрузке; дочитка обновляет молча. */
+const firstLoad = useFirstLoad(loading);
 
 // Партии, прибывшие на КУ и ожидающие создания акта приёмки: статус
 // SUPPLY_PREPARED (после создания акта партия уходит в RECEPTION_IN_PROGRESS).
@@ -85,22 +88,22 @@ const pendingShipments = computed(() =>
 );
 
 const SHIPMENT_VARIANT_LABEL: Record<string, string> = {
-  SELF: 'Поставщик лично',
-  EXPEDITOR: 'Экспедитор по ТТН',
-  A: 'Поставщик лично',
-  B: 'Экспедитор по ТТН',
+  SELF: t('marketplace.shipment.status.selfDelivery'),
+  EXPEDITOR: t('marketplace.shipment.status.viaExpeditor'),
+  A: t('marketplace.shipment.status.selfDelivery'),
+  B: t('marketplace.shipment.status.viaExpeditor'),
 };
 
 const RECEPTION_STATUS_LABEL: Record<string, string> = {
-  PENDING_SUPPLIER_SIGN: 'Ждёт подписи поставщика',
+  PENDING_SUPPLIER_SIGN: t('marketplace.reception.status.pendingSupplierSign'),
   // Ключ статуса пришёл из контракта (`signchair`) и говорит «председатель»,
   // но закрывающую подпись на участке накладывает ОПЕРАТОР — председатель
   // совета в Столе заказов не участвует вовсе (решение владельца 2026-08-13).
   // Меняем только то, что читает человек; имена статусов и действий на цепи
   // остаются прежними.
-  PENDING_CHAIRMAN_RECEPTION_SIGN: 'Ждёт подписи оператора',
-  ACCEPTED_TO_COOP: 'Принят кооперативом',
-  CANCELLED: 'Отменён',
+  PENDING_CHAIRMAN_RECEPTION_SIGN: t('marketplace.reception.status.pendingOperatorSign'),
+  ACCEPTED_TO_COOP: t('marketplace.reception.status.acceptedToCoop'),
+  CANCELLED: t('marketplace.reception.status.cancelled'),
 };
 
 const RECEPTION_STATUS_VARIANT: Record<string, BaseBadgeVariant> = {
@@ -111,10 +114,10 @@ const RECEPTION_STATUS_VARIANT: Record<string, BaseBadgeVariant> = {
 };
 
 const RECEPTION_VARIANT_LABEL: Record<string, string> = {
-  IN_PERSON: 'Очная приёмка',
-  EXPEDITOR: 'Через экспедитора',
-  A: 'Очная приёмка',
-  B: 'Через экспедитора',
+  IN_PERSON: t('marketplace.receptionVariant.status.inPerson'),
+  EXPEDITOR: t('marketplace.receptionVariant.status.viaExpeditor'),
+  A: t('marketplace.receptionVariant.status.inPerson'),
+  B: t('marketplace.receptionVariant.status.viaExpeditor'),
 };
 
 // Ждущие подписи приёмки — наверх: председатель приходит на стол, чтобы
@@ -181,7 +184,7 @@ async function load(): Promise<void> {
     expressCandidates.value = express;
     await loadOffererContents();
   } catch (e) {
-    FailAlert(e, 'Не удалось загрузить акты приёмки');
+    FailAlert(e, t('marketplace.operatorReception.loadActsError'));
   } finally {
     loading.value = false;
   }
@@ -255,14 +258,31 @@ const unitsPerBoxByOrder = computed(() => {
 });
 
 function lineQuantityLabel(l: { quantity: number; unit: string; packageSize: number | null }): string {
-  const saleUnit = marketplaceOrderSaleUnit(l.quantity, l.unit, l.packageSize);
-  return `${saleUnit.units}×${saleUnit.unitLabel}`;
+  return marketplaceOrderSaleUnitLabel(l.quantity, l.unit, l.packageSize);
+}
+
+/**
+ * Строки поставки → накладная виджета. Подходит и строкам акта (без коробок),
+ * и ожидаемым поставкам: коробки экспедитора — пометкой к количеству.
+ */
+function manifestLines(
+  lines: Array<{ key: string; productName: string; unit: string; packageSize: number | null; quantity: number; boxes?: number }>,
+): GoodsManifestLine[] {
+  return lines.map((l) => ({
+    key: l.key,
+    name: l.productName,
+    quantity: lineQuantityLabel(l),
+    quantityNote: l.boxes ? t('marketplace.operatorReception.boxesCountText', { count: l.boxes }) : undefined,
+  }));
 }
 
 function aggregateLines(orders: MarketplaceSupplierPickupOrderView[]): DeliveryLine[] {
   const map = new Map<string, DeliveryLine>();
   for (const o of orders) {
-    const key = `${o.product_name ?? ''}|${o.unit_of_measure ?? ''}`;
+    // Тара — часть ключа: оператор принимает и раскладывает упаковками, и «10
+    // упак. 0,5 л» рядом с «10 упак. 1 л» должны остаться разными строками.
+    // Слитые в одну, они превращались в безликое «15 л» (жалоба 2026-09-09).
+    const key = `${o.product_name ?? ''}|${o.unit_of_measure ?? ''}|${o.package_size ?? 0}`;
     const qty = Number(o.quantity) || 0;
     const per = unitsPerBoxByOrder.value.get(o.id);
     const boxes = per && per > 0 ? Math.ceil(qty / per) : 0;
@@ -270,18 +290,20 @@ function aggregateLines(orders: MarketplaceSupplierPickupOrderView[]): DeliveryL
     if (ex) {
       ex.quantity += qty;
       ex.boxes += boxes;
-      if (ex.packageSize !== (o.package_size ?? null)) ex.packageSize = null;
     } else
       map.set(key, {
         key,
-        productName: o.product_name || 'Товар по предложению',
+        productName: o.product_name || t('marketplace.operatorReception.productOfferFallback'),
         unit: o.unit_of_measure ?? '',
         packageSize: o.package_size ?? null,
         quantity: qty,
         boxes,
       });
   }
-  return [...map.values()];
+  // Крупная тара выше мелкой — строки одного товара читаются как накладная.
+  return [...map.values()].sort((a, b) =>
+    a.productName === b.productName ? (b.packageSize ?? 0) - (a.packageSize ?? 0) : 0,
+  );
 }
 
 // Единый список ожидаемых поставок, АГРЕГИРОВАННЫЙ ПО ПОСТАВЩИКУ: один поставщик
@@ -317,7 +339,7 @@ const expectedDeliveries = computed<ExpectedDelivery[]>(() => {
         const created = String(ship.created_at);
         if (!formedAt || created < formedAt) formedAt = created;
       } else {
-        labels.add('Самовывоз');
+        labels.add(t('marketplace.operatorReception.selfPickupLabel'));
       }
     }
     out.push({
@@ -409,7 +431,7 @@ const addonOrders = computed(() =>
 
 // Заголовок диалога приёмки: режим ТТН экспедитора vs приёмка по коду поставщика.
 const pickupDialogTitle = computed(() =>
-  pickupShipmentId.value ? 'Приёмка партии по ТТН экспедитора' : 'Приёмка имущества поставщика',
+  pickupShipmentId.value ? t('marketplace.operatorReception.byExpeditorReceptionTitle') : t('marketplace.operatorReception.supplierReceptionTitle'),
 );
 
 // Партия (shipment) задекларированной единицы — по прямой связи order.shipment_id
@@ -471,7 +493,7 @@ async function openPickupForSupplier(account: string): Promise<void> {
     });
     if (!orders.length) {
       FailAlert(
-        new Error(`У поставщика ${account} нет имущества, ожидающего приёмки на этом пункте.`),
+        new Error(t('marketplace.error.supplierNoPendingStock', { account })),
       );
       return;
     }
@@ -480,7 +502,7 @@ async function openPickupForSupplier(account: string): Promise<void> {
     if (!orders.some(isOrderAwaitingPickup)) {
       FailAlert(
         new Error(
-          `Имущество поставщика ${orders[0]?.supplier_name || account} уже передано на приёмку и ожидает подписи — повторная сдача не требуется.`,
+          t('marketplace.error.supplierStockAlreadySubmitted', { supplierName: orders[0]?.supplier_name || account }),
         ),
       );
       return;
@@ -506,7 +528,7 @@ async function openPickupForSupplier(account: string): Promise<void> {
     takeAddon.value = !hasDeclaredBatch;
     pickupDialogOpen.value = true;
   } catch (e) {
-    FailAlert(e, 'Не удалось загрузить имущество поставщика');
+    FailAlert(e, t('marketplace.operatorReception.loadSupplierStockError'));
   }
 }
 
@@ -518,8 +540,8 @@ async function openPickupForShipment(shipment_id: string): Promise<void> {
   if (!shipment) {
     FailAlert(
       new Error(
-        'Партия по этой ТТН не найдена среди ожидающих приёмки на вашем КУ ' +
-          '(возможно, уже принята или направлена на другой участок).',
+        t('marketplace.operatorReception.shipmentNotFoundError') +
+          t('marketplace.operatorReception.shipmentNotFoundNote'),
       ),
     );
     return;
@@ -531,7 +553,7 @@ async function openPickupForShipment(shipment_id: string): Promise<void> {
     });
     const orders = all.filter((o) => o.shipment_id === shipment_id);
     if (!orders.length) {
-      FailAlert(new Error('В партии нет позиций, ожидающих приёмки (возможно, уже принята).'));
+      FailAlert(new Error(t('marketplace.error.batchNoPendingPositions')));
       return;
     }
     pickupShipmentId.value = shipment_id;
@@ -546,7 +568,7 @@ async function openPickupForShipment(shipment_id: string): Promise<void> {
     takeAddon.value = false;
     pickupDialogOpen.value = true;
   } catch (e) {
-    FailAlert(e, 'Не удалось загрузить состав партии');
+    FailAlert(e, t('marketplace.operatorReception.loadBatchError'));
   }
 }
 
@@ -556,13 +578,13 @@ async function onQrScanned(code: string): Promise<void> {
   if (!token) {
     FailAlert(
       new Error(
-        'Нераспознанный код. Отсканируйте «Мой код для ПВЗ» поставщика, QR с ТТН экспедитора или введите логин пайщика.',
+        t('marketplace.error.receptionCodeUnrecognized'),
       ),
     );
     return;
   }
   if (token.coopname && token.coopname !== coopname.value) {
-    FailAlert(new Error('Код выписан для другого кооператива.'));
+    FailAlert(new Error(t('marketplace.error.codeWrongCoop')));
     return;
   }
   if (token.kind === HandoffTokenKind.Shipment && token.shipment_id) {
@@ -644,17 +666,17 @@ async function acceptPickup(): Promise<void> {
     }
     if (rejectAll) {
       SuccessAlert(
-        'Отказ в приёмке оформлен. Поставщик подтвердит отмену — заказчикам вернётся оплата.',
+        t('marketplace.operatorReception.declineDoneMessage'),
       );
     } else {
-      SuccessAlert(created > 1 ? `Создано актов приёмки: ${created}` : 'Акт приёмки создан');
+      SuccessAlert(created > 1 ? t('marketplace.operatorReception.actsCreatedMessage', { count: created }) : t('marketplace.operatorReception.actCreatedMessage'));
     }
   } catch (e) {
     FailAlert(
       e,
       rejectAll
-        ? 'Не удалось оформить отказ в приёмке'
-        : 'Не удалось сформировать часть актов — проверьте ленту и повторите',
+        ? t('marketplace.operatorReception.declineError')
+        : t('marketplace.operatorReception.partialActsError'),
     );
   } finally {
     acceptingPickup.value = false;
@@ -686,9 +708,9 @@ async function cancelReceptionGroup(group: ReceptionGroup<MarketplaceAplReceptio
     for (const r of group.receptions) {
       await cancelAplReception({ apl_reception_id: r.id });
     }
-    SuccessAlert('Приёмка отменена — партия снова доступна к приёмке, можно пересобрать.');
+    SuccessAlert(t('marketplace.operatorReception.receptionCancelledMessage'));
   } catch (e) {
-    FailAlert(e, 'Не удалось отменить приёмку');
+    FailAlert(e, t('marketplace.operatorReception.cancelReceptionError'));
   } finally {
     cancellingKey.value = null;
     await load();
@@ -711,15 +733,7 @@ const reloadLive = debounce(() => {
   if (loading.value || acceptingPickup.value) return;
   void load();
 }, 400);
-useMarketplaceRealtime(
-  {
-    MarketplaceAplReceptionStatusChangedEvent: (event) => {
-      if (event.braname === braname.value.trim()) reloadLive();
-    },
-    MarketplaceOrderStatusChangedEvent: () => reloadLive(),
-  },
-  { onResync: () => reloadLive() }
-);
+useLiveReload(marketLiveTables('reception', 'order'), () => reloadLive());
 
 onMounted(async () => {
   await store.ensureLoaded(coopname.value);
@@ -729,13 +743,13 @@ onMounted(async () => {
 </script>
 
 <template lang="pug">
-q-page.reception(role='region', aria-label='Ожидаемые поставки и приёмка')
+q-page.reception(role='region', :aria-label='$t("marketplace.operatorReception.ariaLabel")')
   OperatorBranchBar
 
   EmptyState(
     v-if='store.loaded && !store.isOperator',
-    title='Вы не оператор кооперативного участка',
-    body='Приёмка партий доступна оператору участка и его доверенным лицам.'
+    :title='$t("marketplace.operatorReception.notOperatorTitle")',
+    :body='$t("marketplace.operatorReception.notOperatorBody")'
   )
     template(#icon)
       q-icon(name='storefront', size='48px')
@@ -747,12 +761,12 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
       BaseButton(variant='primary', size='sm', @click='scanDialogOpen = true')
         template(#icon-left)
           q-icon(name='qr_code_scanner', size='16px')
-        | Сканировать QR
+        | {{ $t('marketplace.operatorReception.scanButton') }}
 
     PageHint(storage-key='mp:operator-reception:banner-dismissed')
-      | Чтобы принять поставку, отсканируйте QR-код поставщика — кнопка
-      | «Сканировать QR» в верхней панели. Код подтверждает личность поставщика
-      | и состав партии.
+      | {{ $t('marketplace.operatorReception.hintLine1') }}
+      | {{ $t('marketplace.operatorReception.hintLine2') }}
+      | {{ $t('marketplace.operatorReception.hintLine3') }}
 
     //- ЕДИНЫЙ список поставок стола ПВЗ. Ожидаемые (ждут приёмки по скану QR) и
     //- уже принятые акты (ждут подписи) — это одна сущность «поставка от
@@ -763,14 +777,14 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
     //- Канон загрузки: пока грузим и данных ещё нет — скелетон, НЕ мелькающая
     //- заглушка «Поставок пока нет» (она и появлялась на полсекунды раньше карточек).
     CardListSkeleton(
-      v-if='loading && !expectedDeliveries.length && !receptionGroups.length',
+      v-if='firstLoad',
       :count='2'
     )
 
     EmptyState(
       v-else-if='!expectedDeliveries.length && !receptionGroups.length',
-      title='Поставок пока нет',
-      body='Поставки появятся здесь, как только поставщики направят их на ваш пункт.'
+      :title='$t("marketplace.operatorReception.emptyTitle")',
+      :body='$t("marketplace.operatorReception.emptyBody")'
     )
       template(#icon)
         q-icon(name='local_shipping', size='48px')
@@ -788,26 +802,23 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
         .reception__card-badges
           BaseBadge(:variant='statusVariant(g.status)') {{ statusLabel(g.status) }}
           BaseBadge(variant='neutral') {{ variantLabel(g.variant) }}
-        ul.reception__card-items(v-if='g.lines.length')
-          li.reception__card-item(v-for='l in g.lines', :key='l.key')
-            span.reception__card-prod {{ l.productName }}
-            span.reception__card-qty {{ lineQuantityLabel(l) }}
+        GoodsManifest(v-if='g.lines.length', :title='$t("marketplace.operatorReception.inSupplyTitle")', :lines='manifestLines(g.lines)')
         .reception__card-stamps(v-if='g.createdAt || g.supplierSignedAt')
           .reception__card-stamp(v-if='g.createdAt')
             q-icon(name='inventory_2', size='14px')
-            span Принята {{ formatDate(g.createdAt) }}
+            span {{ $t('marketplace.operatorReception.acceptedAtText', { date: formatDate(g.createdAt) }) }}
           .reception__card-stamp(v-if='g.supplierSignedAt')
             q-icon(name='draw', size='14px')
-            span Поставщик подписал {{ formatDate(g.supplierSignedAt) }}
+            span {{ $t('marketplace.operatorReception.supplierSignedAtText', { date: formatDate(g.supplierSignedAt) }) }}
         .reception__card-summary
-          span.reception__card-summary-label Сумма поставки
+          span.reception__card-summary-label {{ $t('marketplace.operatorReception.supplyTotalLabel') }}
           span.reception__card-amount {{ formatAsset2Digits(g.totalAmount) }} ₽
 
         .reception__card-foot(v-if='g.status === "PENDING_CHAIRMAN_RECEPTION_SIGN"')
           BaseButton(variant='primary', @click='signChairman(g)')
             template(#icon-left)
               q-icon(name='draw', size='18px')
-            | Подписать оператором
+            | {{ $t('marketplace.operatorReception.signAsOperatorButton') }}
 
         //- Поставщик ещё не подписал — оператор может отменить акт и пересобрать
         //- (поставщик не согласен со снятыми позициями, повезёт замену позже).
@@ -819,7 +830,7 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
           )
             template(#icon-left)
               q-icon(name='undo', size='18px')
-            | Отменить и пересобрать
+            | {{ $t('marketplace.operatorReception.cancelAndReassembleButton') }}
 
       //- Ожидаемые поставки — примутся по скану QR поставщика (кнопка в шапке).
       BaseCard.reception__card(v-for='d in expectedDeliveries', :key='`exp-${d.offerer}`')
@@ -831,23 +842,18 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
               AccountBadge(:account-name='d.offerer', size='sm')
 
         .reception__card-badges
-          BaseBadge(variant='info') Ожидает приёмки
+          BaseBadge(variant='info') {{ $t('marketplace.operatorReception.waitingReceptionLabel') }}
           BaseBadge(v-for='m in d.deliveryLabels', :key='m', variant='neutral') {{ m }}
-        ul.reception__card-items(v-if='d.lines.length')
-          li.reception__card-item(v-for='l in d.lines', :key='l.key')
-            span.reception__card-prod {{ l.productName }}
-            span.reception__card-qty
-              | {{ lineQuantityLabel(l) }}
-              span.reception__card-boxes(v-if='l.boxes')  · {{ l.boxes }} кор.
+        GoodsManifest(v-if='d.lines.length', :title='$t("marketplace.operatorReception.willBringTitle")', :lines='manifestLines(d.lines)')
         .reception__card-stamps
           .reception__card-stamp(v-if='d.formedAt')
             q-icon(name='inventory_2', size='14px')
-            span Сформирована {{ d.formedAt }}
+            span {{ $t('marketplace.operatorReception.formedAtText', { date: d.formedAt }) }}
           .reception__card-stamp(v-else)
             q-icon(name='schedule', size='14px')
-            span Привезёт по факту
+            span {{ $t('marketplace.operatorReception.willBringByFactLabel') }}
         .reception__card-summary
-          span.reception__card-summary-label Сумма поставки
+          span.reception__card-summary-label {{ $t('marketplace.operatorReception.supplyTotalLabel') }}
           span.reception__card-amount {{ formatAsset2Digits(d.amount) }} ₽
 
   SignAplReceptionChairmanDialog(
@@ -856,7 +862,7 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
     @signed='onChairmanSigned'
   )
 
-  ScannerDialog(v-model='scanDialogOpen', title='Сканирование QR партии', @scanned='onQrScanned')
+  ScannerDialog(v-model='scanDialogOpen', :title='$t("marketplace.operatorReception.scanDialogTitle")', @scanned='onQrScanned')
 
   //- Эпик 14: агрегирующая приёмка. Каркас — ActDialogLayout (как выдача и
   //- подписи АПП): lead + карточка позиций + футер BaseDialog.
@@ -865,14 +871,14 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
       template(#head)
         .reception__pickup-account {{ pickupSupplierName || pickupAccount }}
       template(#lead)
-        | По каждой позиции сверьте заказанное с фактом: поправьте количество
-        | (не выше заказанного) и цену.
+        | {{ $t('marketplace.operatorReception.instructionLine1') }}
+        | {{ $t('marketplace.operatorReception.instructionLine2') }}
         template(v-if='declaredOrders.length')
-          |  Снимите галку, чтобы не принимать позицию; партия без выбранных
-          | позиций не создаётся и ждёт.
+          |  {{ $t('marketplace.operatorReception.instructionLine3') }}
+          | {{ $t('marketplace.operatorReception.instructionLine4') }}
 
       template(v-if='declaredOrders.length')
-        .reception__pickup-section Задекларировано в партии (по ТТН)
+        .reception__pickup-section {{ $t('marketplace.operatorReception.declaredInBatchLabel') }}
         .reception__unit(
           v-for='o in declaredOrders',
           :key='o.id',
@@ -883,21 +889,21 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
             @update:model-value='(v) => toggleOrder(o.id, v)'
           )
           .reception__unit-info
-            .reception__unit-title {{ o.product_name || 'Товар по предложению' }}
+            .reception__unit-title {{ o.product_name || $t('marketplace.operatorReception.productOfferFallback') }}
             .reception__unit-meta(v-if='shipmentForOrder(o)?.ttn_number')
-              | ТТН {{ shipmentForOrder(o)?.ttn_number }}
+              | {{ $t('marketplace.operatorReception.ttnText', { ttn: shipmentForOrder(o)?.ttn_number }) }}
           .reception__unit-fact
             BaseInput(
               :model-value='orderedSaleUnits(o)',
               type='number',
-              label='Заказано',
+              :label='$t("marketplace.operatorReception.orderedLabel")',
               readonly,
               :suffix='saleUnitSuffix(o)'
             )
             BaseInput(
               v-model.number='pickupFact[o.id]',
               type='number',
-              label='Принять',
+              :label='$t("marketplace.operatorReception.receiveQtyLabel")',
               :min='0',
               :max='orderedSaleUnits(o)',
               :step='1',
@@ -909,7 +915,7 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
             BaseInput(
               v-model='pickupPrice[o.id]',
               type='number',
-              :label='packageSizeOf(o) > 0 ? "Цена/упак." : "Цена/ед."',
+              :label='packageSizeOf(o) > 0 ? $t("marketplace.operatorReception.packagePriceLabel") : $t("marketplace.operatorReception.unitPriceLabel")',
               :disabled='!isSelected(o.id)'
             )
 
@@ -917,9 +923,9 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
         template(v-if='declaredOrders.length')
           .reception__pickup-divider
           .reception__pickup-section-row
-            .reception__pickup-section Добор по акцепту (вне партии)
-            BaseCheckbox(v-model='takeAddon', label='Принять добор')
-        .reception__pickup-section(v-else) Имущество поставщика
+            .reception__pickup-section {{ $t('marketplace.operatorReception.addonSectionLabel') }}
+            BaseCheckbox(v-model='takeAddon', :label='$t("marketplace.operatorReception.takeAddonLabel")')
+        .reception__pickup-section(v-else) {{ $t('marketplace.operatorReception.supplierPropertyLabel') }}
         .reception__unit.reception__unit--addon(
           v-for='o in addonOrders',
           :key='o.id',
@@ -927,19 +933,19 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
         )
           q-icon.reception__unit-addon-icon(name='add_circle_outline', size='18px')
           .reception__unit-info
-            .reception__unit-title {{ o.product_name || 'Товар по предложению' }}
+            .reception__unit-title {{ o.product_name || $t('marketplace.operatorReception.productOfferFallback') }}
           .reception__unit-fact
             BaseInput(
               :model-value='orderedSaleUnits(o)',
               type='number',
-              label='Акцепт',
+              :label='$t("marketplace.operatorReception.acceptedQtyLabel")',
               readonly,
               :suffix='saleUnitSuffix(o)'
             )
             BaseInput(
               v-model.number='pickupFact[o.id]',
               type='number',
-              label='Принять',
+              :label='$t("marketplace.operatorReception.receiveQtyLabel")',
               :min='0',
               :max='orderedSaleUnits(o)',
               :step='1',
@@ -951,12 +957,12 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
             BaseInput(
               v-model='pickupPrice[o.id]',
               type='number',
-              :label='packageSizeOf(o) > 0 ? "Цена/упак." : "Цена/ед."',
+              :label='packageSizeOf(o) > 0 ? $t("marketplace.operatorReception.packagePriceLabel") : $t("marketplace.operatorReception.unitPriceLabel")',
               :disabled='!takeAddon'
             )
 
     template(#footer)
-      BaseButton(variant='ghost', @click='pickupDialogOpen = false') Отмена
+      BaseButton(variant='ghost', @click='pickupDialogOpen = false') {{ $t('common.action.cancel') }}
       BaseButton(
         :variant='isRejectAllReception ? "negative" : "primary"',
         :loading='acceptingPickup',
@@ -965,8 +971,8 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
       )
         template(#icon-left)
           q-icon(:name='isRejectAllReception ? "block" : "how_to_reg"', size='18px')
-        span(v-if='isRejectAllReception') Отказать в приёмке
-        span(v-else) Сформировать акты ({{ plannedReceptionsCount }})
+        span(v-if='isRejectAllReception') {{ $t('marketplace.operatorReception.declineReceptionButton') }}
+        span(v-else) {{ $t('marketplace.operatorReception.createActsButton', { count: plannedReceptionsCount }) }}
 </template>
 
 <style scoped lang="scss">
@@ -1044,35 +1050,20 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
   }
 
   &__card-summary-label {
-    font-size: var(--p-fs-body-sm, 13px);
-    color: var(--p-ink-2);
+    font-size: var(--p-fs-meta, 12px);
+    letter-spacing: var(--p-ls-eyebrow, 0.08em);
+    text-transform: uppercase;
+    color: var(--p-ink-3);
   }
 
+  // Сумма — главная величина карточки, поэтому крупнее строк состава.
   &__card-amount {
     flex: 0 0 auto;
-    font-family: var(--p-mono);
-    font-weight: 600;
+    font-size: var(--p-fs-h2, 18px);
+    font-weight: 700;
+    letter-spacing: var(--p-ls-h2, -0.012em);
     color: var(--p-ink);
     font-variant-numeric: tabular-nums;
-  }
-
-  &__card-items {
-    margin: 0;
-    padding: var(--p-3, 12px);
-    list-style: none;
-    display: flex;
-    flex-direction: column;
-    gap: var(--p-2, 8px);
-    background: var(--p-surface-2);
-    border-radius: var(--p-r-sm, 8px);
-  }
-
-  &__card-item {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: var(--p-3, 12px);
-    font-size: var(--p-fs-body-sm, 13px);
   }
 
   // Бейджи статуса/способа доставки — отдельной строкой под именем (раньше
@@ -1083,23 +1074,6 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
     flex-wrap: wrap;
     align-items: center;
     gap: var(--p-2, 8px);
-  }
-
-  &__card-prod {
-    color: var(--p-ink);
-    overflow-wrap: anywhere;
-  }
-
-  &__card-qty {
-    flex: 0 0 auto;
-    color: var(--p-ink);
-    font-weight: 500;
-    font-variant-numeric: tabular-nums;
-  }
-
-  &__card-boxes {
-    color: var(--p-ink-3);
-    font-weight: 400;
   }
 
   &__card-foot {

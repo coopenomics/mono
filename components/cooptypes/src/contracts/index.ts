@@ -39,6 +39,12 @@ export * as SovietContract from './soviet'
 export * as MarketContract from './marketplace'
 
 /**
+ * Смарт-контракт «Образовательного моста»: подписки на курсы по членскому кошельку
+ * w.edu.member (p.edu.access) и приём РИД преподавателей в паевой фонд (p.edu.rid).
+ */
+export * as EdubridgeContract from './edubridge'
+
+/**
  * Смарт-контракт для мульти-подписей транзакций.
  */
 export * as MsigContract from './msig'

@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { ref, watch } from 'vue';
+import { sanitizeDocumentHtml } from 'src/shared/lib/utils';
 import { useSessionStore } from 'src/entities/Session';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { DigitalDocument } from 'src/shared/lib/document';
@@ -11,6 +12,7 @@ import {
   type MarketplaceWriteoffConfirmationGroupView,
   type MarketplaceWriteoffServiceMemoDocumentView,
 } from '../api';
+import { t } from 'src/shared/i18n';
 
 /**
  * Эпик 8: диалог подтверждения списания председателем кооперативного участка.
@@ -46,7 +48,7 @@ watch(
         braname: props.group.braname,
       });
     } catch (e) {
-      FailAlert(e, 'Не удалось сформировать Служебную записку о списании');
+      FailAlert(e, t('marketplace.confirmWriteoffDialog.memoBuildError'));
       emit('update:modelValue', false);
     } finally {
       loading.value = false;
@@ -65,11 +67,11 @@ async function signAndConfirm(): Promise<void> {
       braname: props.group.braname,
       signed_memo: signed,
     });
-    SuccessAlert('Списание подтверждено — имущество выбыло со склада');
+    SuccessAlert(t('marketplace.confirmWriteoffDialog.confirmSuccessMessage'));
     emit('confirmed');
     emit('update:modelValue', false);
   } catch (e) {
-    FailAlert(e, 'Не удалось подтвердить списание');
+    FailAlert(e, t('marketplace.confirmWriteoffDialog.confirmError'));
   } finally {
     submitting.value = false;
   }
@@ -79,28 +81,28 @@ async function signAndConfirm(): Promise<void> {
 <template lang="pug">
 BaseDialog(
   :model-value="modelValue",
-  title="Подтверждение списания со склада",
+  :title="$t('marketplace.confirmWriteoffDialog.dialogTitle')",
   maximized,
   :close-on-backdrop="false",
   @update:model-value="(v) => emit('update:modelValue', v)"
 )
-  Loader(v-if="loading", text="Формируем Служебную записку…")
+  Loader(v-if="loading", :text="$t('marketplace.confirmWriteoffDialog.memoBuildingText')")
 
   template(v-else-if="previewDoc")
     .t-muted.confirm-writeoff__intro
-      | Подписав эту Служебную записку, вы подтверждаете фактическое списание имущества со склада участка «{{ group?.branch_name }}». Имущество выбудет со склада и будет снято с учёта.
+      | {{ $t('marketplace.confirmWriteoffDialog.confirmText', { branchName: group?.branch_name }) }}
     //- Документ — листом фиксированной ширины (как остальные документы), высоту
     //- не режем: длинный документ прокручивается вместе с телом диалога.
     .confirm-writeoff__sheet
       //- eslint-disable-next-line vue/no-v-html
-      .confirm-writeoff__doc(v-html="previewDoc.html")
+      .confirm-writeoff__doc(v-html="sanitizeDocumentHtml(previewDoc.html)")
 
   template(#footer, v-if="previewDoc")
-    BaseButton(variant="secondary", @click="emit('update:modelValue', false)") Отмена
+    BaseButton(variant="secondary", @click="emit('update:modelValue', false)") {{ $t('common.action.cancel') }}
     BaseButton(variant="primary", :loading="submitting", @click="signAndConfirm")
       template(#icon-left)
         q-icon(name="task_alt", size="18px")
-      | Подписать и списать
+      | {{ $t('marketplace.confirmWriteoffDialog.confirmSubmit') }}
 </template>
 
 <style lang="scss" scoped>

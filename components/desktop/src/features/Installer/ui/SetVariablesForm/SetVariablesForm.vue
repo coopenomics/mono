@@ -2,10 +2,10 @@
 .set-vars(v-if='installStore.vars')
   //- ===== Наименование =====
   section.vars-section
-    h3.vars-section__title Наименование
+    h3.vars-section__title {{ $t('installer.setVariablesForm.nameSectionTitle') }}
     .vars-section__note
-      span.chip ОПФ+
-      |  — основа полного наименования. Например: «Потребительский Кооператив Социального Комплекса» или «Потребительский Кооператив». Ввод осуществляйте без кавычек.
+      span.chip {{ $t('installer.setVariablesForm.opfChip') }}
+      |  {{ $t('installer.setVariablesForm.opfNote') }}
     .vars-section__fields
       q-input(
         autofocus,
@@ -14,8 +14,8 @@
         reserve-hint-space,
         color='primary',
         v-model='installStore.vars.name',
-        label='Собственное наименование кооператива',
-        placeholder='Ромашка',
+        :label='$t("installer.setVariablesForm.nameLabel")',
+        :placeholder='$t("installer.setVariablesForm.namePlaceholder")',
         :rules='[val => notEmpty(val)]'
       )
       q-input(
@@ -24,8 +24,8 @@
         reserve-hint-space,
         color='primary',
         v-model='installStore.vars.full_abbr',
-        label='ОПФ+ в именительном падеже',
-        placeholder='Потребительский Кооператив Социального Комплекса',
+        :label='$t("installer.setVariablesForm.fullAbbrLabel")',
+        :placeholder='$t("installer.setVariablesForm.fullAbbrPlaceholder")',
         :rules='[val => notEmpty(val)]'
       )
       q-input(
@@ -34,8 +34,8 @@
         reserve-hint-space,
         color='primary',
         v-model='installStore.vars.full_abbr_genitive',
-        label='ОПФ+ в родительном падеже',
-        placeholder='Потребительского Кооператива Социального Комплекса',
+        :label='$t("installer.setVariablesForm.fullAbbrGenitiveLabel")',
+        :placeholder='$t("installer.setVariablesForm.fullAbbrGenitivePlaceholder")',
         :rules='[val => notEmpty(val)]'
       )
       q-input(
@@ -44,8 +44,8 @@
         reserve-hint-space,
         color='primary',
         v-model='installStore.vars.full_abbr_dative',
-        label='ОПФ+ в дательном падеже',
-        placeholder='Потребительскому Кооперативу Социального Комплекса',
+        :label='$t("installer.setVariablesForm.fullAbbrDativeLabel")',
+        :placeholder='$t("installer.setVariablesForm.fullAbbrDativePlaceholder")',
         :rules='[val => notEmpty(val)]'
       )
       q-input(
@@ -54,15 +54,15 @@
         reserve-hint-space,
         color='primary',
         v-model='installStore.vars.short_abbr',
-        label='Краткая аббревиатура ОПФ+',
-        placeholder='ПКСК',
+        :label='$t("installer.setVariablesForm.shortAbbrLabel")',
+        :placeholder='$t("installer.setVariablesForm.shortAbbrPlaceholder")',
         :rules='[val => notEmpty(val)]'
       )
 
   //- ===== Устав =====
   section.vars-section
-    h3.vars-section__title Устав
-    p.vars-section__note Укажите ссылку на устав вашего кооператива, ознакомиться с которым будет предложено пайщикам при регистрации.
+    h3.vars-section__title {{ $t('installer.setVariablesForm.statuteSectionTitle') }}
+    p.vars-section__note {{ $t('installer.setVariablesForm.statuteNote') }}
     .vars-section__fields
       q-input(
         outlined,
@@ -70,7 +70,7 @@
         reserve-hint-space,
         color='primary',
         v-model='installStore.vars.statute_link',
-        label='Ссылка на устав кооператива',
+        :label='$t("installer.setVariablesForm.statuteLinkLabel")',
         placeholder='https://example.com/statute.pdf',
         type='url',
         :rules='[val => notEmpty(val)]'
@@ -78,11 +78,11 @@
 
   //- ===== Паспортные данные =====
   section.vars-section
-    h3.vars-section__title Паспортные данные
-    p.vars-section__note Укажите, должны ли заявления на вступление в кооператив и система в целом запрашивать паспортные данные пайщиков при регистрации.
+    h3.vars-section__title {{ $t('installer.setVariablesForm.passportSectionTitle') }}
+    p.vars-section__note {{ $t('installer.setVariablesForm.passportNote') }}
     q-toggle(
       v-model='installStore.vars.passport_request',
-      label='Запрашивать паспортные данные',
+      :label='$t("installer.setVariablesForm.passportToggleLabel")',
       :true-value="'yes'",
       :false-value="'no'",
       color='primary'
@@ -90,8 +90,8 @@
 
   //- ===== Контактная информация =====
   section.vars-section
-    h3.vars-section__title Контактная информация
-    p.vars-section__note Заполните электронную почту, которая будет размещена в политике конфиденциальности как контактная.
+    h3.vars-section__title {{ $t('installer.setVariablesForm.contactSectionTitle') }}
+    p.vars-section__note {{ $t('installer.setVariablesForm.contactNote') }}
     .vars-section__fields
       q-input(
         outlined,
@@ -99,7 +99,7 @@
         reserve-hint-space,
         color='primary',
         v-model='installStore.vars.confidential_email',
-        label='Email по вопросам конфиденциальности',
+        :label='$t("installer.setVariablesForm.confidentialEmailLabel")',
         type='email',
         :rules='[val => notEmpty(val)]'
       )
@@ -107,10 +107,10 @@
   .set-vars__actions
     BaseButton(variant='ghost', @click='back')
       q-icon(name='arrow_back', size='16px')
-      span.q-ml-sm Назад
+      span.q-ml-sm {{ $t('common.action.back') }}
     BaseButton(variant='primary', :loading='loading', @click='next')
       q-icon(name='done', size='16px')
-      span.q-ml-sm Завершить установку
+      span.q-ml-sm {{ $t('installer.setVariablesForm.finishInstall') }}
 </template>
 
 <script lang="ts" setup>
@@ -121,6 +121,7 @@ import { useInstallCooperative } from '../../model';
 import { notEmpty } from 'src/shared/lib/utils';
 import { ref, onMounted } from 'vue';
 import { BaseButton } from 'src/shared/ui/base/BaseButton';
+import { t } from 'src/shared/i18n';
 
 const installStore = useInstallCooperativeStore();
 const { info } = useSystemStore();
@@ -184,7 +185,7 @@ const next = async () => {
     installStore.vars = undefined;
     installStore.current_step = 'key';
 
-    SuccessAlert('Установка произведена успешно');
+    SuccessAlert(t('installer.setVariablesForm.installSuccess'));
   } catch (e: any) {
     FailAlert(e);
     loading.value = false;

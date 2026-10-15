@@ -1,24 +1,18 @@
 import { Module } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
 import { DecisionTrackingAdapter } from './adapters/decision-tracking.adapter';
 import { TrackingRuleRepository } from './repositories/tracking-rule.repository';
-import { TrackingRuleTypeormRepository } from './repositories/tracking-rule.typeorm-repository';
-import { TrackingRuleEntity } from './entities/tracking-rule.entity';
+import { TrackingRuleKyselyRepository } from './repositories/tracking-rule.kysely-repository';
 import { SystemInfrastructureModule } from '~/infrastructure/system/system-infrastructure.module';
 
 /**
  * Модуль инфраструктуры для отслеживания решений
- *
- * Примечание: TrackingRuleEntity регистрируется в общем TypeOrmModule (дефолтное подключение)
- * и переиспользуется здесь через forFeature для работы репозитория
  */
 @Module({
-  imports: [SystemInfrastructureModule, TypeOrmModule.forFeature([TrackingRuleEntity])],
+  imports: [SystemInfrastructureModule],
   providers: [
-    TrackingRuleTypeormRepository,
     {
       provide: TrackingRuleRepository,
-      useClass: TrackingRuleTypeormRepository,
+      useClass: TrackingRuleKyselyRepository,
     },
     DecisionTrackingAdapter,
   ],

@@ -1,10 +1,10 @@
 <template lang="pug">
 q-dialog(:model-value="modelValue", @update:model-value="onUpdateVisible")
   q-card
-    q-card-section Удалить событие «{{ target?.title }}»?
+    q-card-section {{ $t('chatcoop.deleteCalendarEventDialog.confirmText', { title: target?.title }) }}
     q-card-actions(align="right")
-      q-btn(flat, label="Отмена", @click="close")
-      q-btn(color="negative", label="Удалить", :loading="deleting", @click="confirmDelete")
+      q-btn(flat, :label="$t('common.action.cancel')", @click="close")
+      q-btn(color="negative", :label="$t('common.action.delete')", :loading="deleting", @click="confirmDelete")
 </template>
 
 <script lang="ts" setup>

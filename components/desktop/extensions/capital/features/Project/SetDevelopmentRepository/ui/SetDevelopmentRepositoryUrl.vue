@@ -5,7 +5,7 @@ div(v-if="project && project.permissions?.can_edit_project").q-mb-sm.full-width
     dense
     standout="bg-teal text-white"
     type="url"
-    label="Репозиторий Git"
+    :label="$t('capital.setDevelopmentRepositoryUrl.label')"
     :loading="saving"
 
     @keydown.enter.prevent="persist"
@@ -29,6 +29,7 @@ import type { IProject } from 'app/extensions/capital/entities/Project/model'
 import { useProjectStore } from 'app/extensions/capital/entities/Project/model'
 import { FailAlert, SuccessAlert } from 'src/shared/api'
 import { setDevelopmentRepositoryUrl } from '../api'
+import { t as i18nT } from '../../../../i18n';
 
 interface Props {
   project: IProject | null | undefined
@@ -69,9 +70,9 @@ async function persist() {
       development_repository_url: normalizedDraft.value,
     })
     projectStore.addProjectToList(updated)
-    SuccessAlert('URL репозитория сохранён')
+    SuccessAlert(i18nT('capital.setDevelopmentRepositoryUrl.success'))
   } catch (e: unknown) {
-    const message = e instanceof Error ? e.message : 'Не удалось сохранить URL'
+    const message = e instanceof Error ? e.message : i18nT('capital.setDevelopmentRepositoryUrl.error')
     FailAlert(message)
   } finally {
     saving.value = false

@@ -1,6 +1,13 @@
 import { Resolver, Query, Mutation, Args } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
-import { GqlJwtAuthGuard, RolesGuard, AuthRoles, createPaginationResult, PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
+import {
+  GqlJwtAuthGuard,
+  createPaginationResult,
+  PaginationInputDTO,
+  PaginationResult,
+  RequireRight,
+  RightsGuard,
+} from '@coopenomics/extension-kit';
 import { NotificationJournalService } from './notification-journal.service';
 import { NotificationDTO, NotificationDetailDTO } from './graphql/notification.dto';
 import { NotificationsFilterInput } from './graphql/notifications-filter.input';
@@ -9,7 +16,7 @@ const paginatedNotifications = createPaginationResult(NotificationDTO, 'Notifica
 
 /**
  * Резолвер журнала уведомлений (стол председателя, эпик 6).
- * Видимость — председатель/совет (RolesGuard). Платформенный CASL — Phase 2.
+ * Видимость — председатель и совет по таблице прав ядра. Платформенный CASL — Phase 2.
  */
 @Resolver()
 export class NotificationJournalResolver {
@@ -19,8 +26,8 @@ export class NotificationJournalResolver {
     name: 'getNotifications',
     description: 'Журнал уведомлений кооператива с фильтрами и пагинацией',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('NotificationJournal', 'read')
   async getNotifications(
     @Args('filter') filter: NotificationsFilterInput,
     @Args('pagination') pagination: PaginationInputDTO
@@ -32,8 +39,8 @@ export class NotificationJournalResolver {
     name: 'getNotification',
     description: 'Детализация одного уведомления с историей попыток доставки',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('NotificationJournal', 'read')
   async getNotification(@Args('id') id: string): Promise<NotificationDetailDTO> {
     return this.journalService.getNotification(id);
   }
@@ -42,8 +49,8 @@ export class NotificationJournalResolver {
     name: 'resendNotification',
     description: 'Переотправить уведомление (force-постановка новой строки в очередь доставки)',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('NotificationJournal', 'resend')
   async resendNotification(@Args('id') id: string): Promise<NotificationDTO> {
     return this.journalService.resendNotification(id);
   }

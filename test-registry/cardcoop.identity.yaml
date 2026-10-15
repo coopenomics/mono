@@ -1,0 +1,196 @@
+feature: cardcoop.identity
+title: Реквизиты пайщика в подтверждении членства (карта кооператора, Story 7.7)
+
+# Кооператив свидетельствует членство пайщика в сети card.coop, но анкету наружу
+# не отдаёт. В подтверждение попадают ФИО (для организации — наименование)
+# открыто и пополевые отпечатки sha256 остальных полей анкеты.
+#
+# Ключевое решение: значения НЕ канонизируются — ни `ё`→`е`, ни регистр, ни
+# схлопывание пробелов. Пайщик заполняет анкету как в паспорте, и расхождение
+# написания между кооперативами означает ошибку ввода, которую card.coop обязан
+# заметить и назвать по имени поля. Свели бы написания к общему канону — ошибка
+# стала бы невидимой, и весь механизм потерял бы смысл.
+#
+# Пополевые отпечатки, а не один сводный: сводный сказал бы только «где-то
+# расходится», а кооперативу, который пойдёт исправлять, нужно знать, где именно.
+#
+# Перца на этой стороне нет: чистый sha256 считает кооператив, второй слой
+# card.coop накладывает у себя при хранении (PRD §10 п.8 проекта «Карта
+# пайщика»). Поэтому расширению не нужно принимать, хранить и ротировать
+# никаких секретов сети.
+#
+# Перечень полей задан явным списком и выровнен с
+# `~/utils/registration-profile-fingerprint.ts`: обход объекта означал бы, что
+# состав блока молча меняется вместе с `cooptypes`, и отпечатки переставали бы
+# сходиться с уже отправленными.
+#
+# Заявка портов (07.09.2026): в required добавлен VAULT_PORT — см. заметку в
+# cardcoop.attestations.yaml. Заявка приведена в соответствие с фактическим
+# использованием; поведение и набор случаев не менялись.
+
+# Правка 2026-09-08 (прод): в оператор добавлен догон допусков — на старте объявление
+# уходит и активным кооперативам цепи, а не только тем, чью активацию расширение застало
+# (случай в cardcoop.registry-connect). Подписание и доставка документов не менялись,
+# случаи ниже действительны как есть.
+#
+# Правка 17.09.2026: ограничитель частоты у ручек расширения теперь общий
+# (`GqlThrottlerGuard` стоит глобально и обслуживает в том числе REST) — локальный
+# `@UseGuards(ThrottlerGuard)` в контроллере раскрытия убран, объявленный предел
+# и набор случаев прежние.
+
+# Правка 2026-09-23 (C28-79): таблицы расширения создаёт стартовая миграция
+# (`migrations/database/*-baseline.ts`, объявлена в `cardcoop.database-
+# migrations.ts`) вместо `synchronize`. Поведение и случаи не менялись.
+
+# Правка 24.09.2026 (C28-83): расширение объявляет в ленте изменений таблицы
+# cardcoop_attestations и cardcoop_pending_links (по username) — страница карты
+# пайщика перечитывается сама, когда вебхук сети карт записал выпуск или
+# привязку. Поведение расширения и набор случаев не менялись.
+
+# Правка 24.09.2026 (C28-83): таймеры этой фичи помечены назначением
+# (// timing: backoff | schedule | timeout | debounce | throttle | ui) — это
+# законные повторы, расписания и пределы ожидания, а не паузы перед чтением.
+# Поведение и набор случаев прежние.
+
+# Правка 25.09.2026 (C28-80): деловые отказы (не найдено, нет прав, уже есть,
+# неверный ввод) отвечают своим статусом — 404, 403, 409, 400, — а не 500
+# «внутренняя ошибка»: коды и тексты прежние, меняется только статус ответа, и
+# такие отказы больше не попадают в журнал ошибок сервера как поломки.
+
+sources:
+  backend:
+    - components/controller/src/extensions/cardcoop/infrastructure/database/cardcoop-stores.ts
+    - components/controller/src/extensions/cardcoop/**
+
+cases:
+  - id: cc.identity.happy.01
+    level: backend
+    kind: happy
+    scenario: >
+      Пайщик-физлицо с заполненной анкетой, кооператив формирует подтверждение.
+    expect: >
+      ФИО уходит открыто; дата рождения, адрес, телефон, почта и паспорт —
+      отпечатками sha256; ни одного значения этих полей в блоке нет
+    test: components/controller/tests/unit/cardcoop/cardcoop-identity.test.ts
+    api: components/api-tests/src/cardcoop/network.test.ts
+    status: passing
+
+  - id: cc.identity.happy.02
+    level: backend
+    kind: happy
+    scenario: >
+      Паспорт пайщика разложен на серия, номер, кем выдан, когда выдан, код.
+    expect: >
+      каждое подполе даёт собственный отпечаток — card.coop может назвать
+      расходящееся поле по имени, не зная его значения
+    test: components/controller/tests/unit/cardcoop/cardcoop-identity.test.ts
+    api: components/api-tests/src/cardcoop/network.test.ts
+    status: passing
+
+  - id: cc.identity.happy.03
+    level: backend
+    kind: happy
+    scenario: >
+      Пайщик-организация: наименование, реквизиты и представитель.
+    expect: >
+      короткое и полное наименование открыто; ИНН, ОГРН, КПП и ФИО
+      представителя — отпечатками
+    test: components/controller/tests/unit/cardcoop/cardcoop-identity.test.ts
+    api: components/api-tests/src/cardcoop/network.test.ts
+    status: passing
+
+  - id: cc.identity.side.01
+    level: backend
+    kind: side
+    scenario: >
+      Одно и то же поле у двух кооперативов написано через «ё» и через «е»
+      («Королёв» / «Королев»).
+    expect: >
+      отпечатки РАЗНЫЕ. Это цель, а не дефект: расхождение означает, что
+      где-то введено не как в паспорте, и это исправляют повторной верификацией
+    test: components/controller/tests/unit/cardcoop/cardcoop-identity.test.ts
+    api: components/api-tests/src/cardcoop/network.test.ts
+    status: passing
+
+  - id: cc.identity.side.02
+    level: backend
+    kind: side
+    scenario: >
+      Значение отличается только регистром или ведущим пробелом.
+    expect: >
+      отпечатки разные — значения не приводятся к канону ни в каком виде
+    test: components/controller/tests/unit/cardcoop/cardcoop-identity.test.ts
+    api: components/api-tests/src/cardcoop/network.test.ts
+    status: passing
+
+  - id: cc.identity.side.03
+    level: backend
+    kind: side
+    scenario: >
+      В анкете нет паспорта либо поле пустое.
+    expect: >
+      поле в отпечатки не попадает вовсе; card.coop сверяет пересечение
+      имеющихся полей, а не считает пустое совпадением
+    test: components/controller/tests/unit/cardcoop/cardcoop-identity.test.ts
+    api: components/api-tests/src/cardcoop/network.test.ts
+    status: passing
+
+  - id: cc.identity.break.01
+    level: backend
+    kind: break
+    scenario: >
+      ФИО пытается попасть в отпечатки наравне с остальными полями.
+    expect: >
+      в отпечатках его нет: оно уходит открыто, и дублирование дало бы
+      card.coop лишний способ перебора при уже известном значении
+    test: components/controller/tests/unit/cardcoop/cardcoop-identity.test.ts
+    api: components/api-tests/src/cardcoop/network.test.ts
+    status: passing
+
+  - id: cc.identity.break.02
+    level: backend
+    kind: break
+    scenario: >
+      У пайщика нет заполненной анкеты, а подтверждение запрошено.
+    expect: >
+      отказ с внятной причиной: кооператив свидетельствует о человеке,
+      которого верифицировал, а не о пустой записи
+    test: components/controller/tests/unit/cardcoop/cardcoop-identity.test.ts
+    external: unreachable
+    external_reason: "пайщик без анкеты не имеет учётной записи стола, а уведомление сети о связи адресуется учётной записи"
+    status: passing
+
+# 2026-09-23 (EEA-6…EEA-9): тексты интерфейса, отказов и уведомлений фичи вынесены из
+# кода в словари i18n, отказы бэкенда переведены на DomainError с кодом — текст
+# и HTTP-статус ответа прежние. Сценарии фичи и её проверки не менялись.
+
+  - id: cc.identity.side.04
+    level: backend
+    kind: side
+    scenario: >
+      миграции таблиц расширения применяет собственный исполнитель узла: часть
+      миграций уже применена, миграция падает, всё применено
+    expect: >
+      непринятые миграции ядра и расширений идут одной лентой по метке времени,
+      каждая в своей транзакции вместе с записью об её применении; упавшая
+      откатывается целиком и останавливает ленту; повторный прогон ничего не
+      применяет
+    test: components/controller/tests/unit/database/schema-migrations.test.ts
+    external: unreachable
+    external_reason: "порядок и транзакции наката схемы снаружи не видны; сама схема проверяется накатом на пустую базу (pnpm schema:check) и сверкой типов запросов"
+    status: written
+
+# 2026-10-02: внешние случаи карты кооператора идут отдельным набором (`stack.sh cardcoop`,
+# ветка-полигон ci/blackbox-cardcoop) против подставной сети карт и в общий прогон не
+# входят — решение владельца; интеграции с настоящей сетью карт нужен свой стенд.
+
+  # Права по таблице прав расширения (C28-87, кусок 3, 05.10.2026): операции
+  # стоят под общим гардом каркаса вместо `@AuthRoles`, состав исполнителей прежний.
+  - id: cc.identity.side.05
+    level: backend
+    kind: side
+    scenario: операции расширения зовут пайщик, член совета, председатель и кандидат
+    expect: право есть у названных в таблице прав расширения, остальным отказ KIT_INSUFFICIENT_RIGHTS; кандидат прав пайщика не имеет
+    test: components/controller/tests/unit/rights/extension-rights-tables.test.ts
+    api: components/api-tests/src/rights/matrix.test.ts
+    status: written

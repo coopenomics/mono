@@ -13,6 +13,7 @@ export interface ReportRequisitesRecord {
   pfr_reg_number: string | null;
   chairman_position: string | null;
   signer_snils: string | null;
+  signer_inn: string | null;
   signer_rep_doc: string | null;
   signer_type: SignerTypeValue | null;
   phone_override: string | null;
@@ -32,6 +33,7 @@ export interface UpsertReportRequisitesInput {
   pfr_reg_number?: string | null;
   chairman_position?: string | null;
   signer_snils?: string | null;
+  signer_inn?: string | null;
   signer_rep_doc?: string | null;
   signer_type?: SignerTypeValue | null;
   phone_override?: string | null;

@@ -1,13 +1,9 @@
 import { Module } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { ApprovalTypeormEntity } from '../entities/approval-typeorm.entity';
+import { chairmanStoreProviders } from './chairman-stores';
 
-/**
- * Модуль базы данных для расширения Chairman
- * Использует дефолтное подключение из общего TypeOrmModule
- */
+/** База расширения: шлюз таблицы одобрений на Kysely. */
 @Module({
-  imports: [TypeOrmModule.forFeature([ApprovalTypeormEntity])],
-  exports: [TypeOrmModule],
+  providers: [...chairmanStoreProviders],
+  exports: [...chairmanStoreProviders],
 })
 export class ChairmanDatabaseModule {}

@@ -18,6 +18,17 @@ title: Имя нитки процесса ledger2
 # `@coopenomics/extension-kit` и `@coopenomics/innercoop`. Поведение операций,
 # правила доступа и набор случаев прежние.
 
+# 2026-08-21: добавлены процессы p.edu.access / p.edu.rid контракта edubridge
+# («Образовательный мост», 7DD-4) с операциями o.edu.conv / o.edu.rid и кошельком
+# w.edu.member; локатор — edusubs.sub_hash / edurids.rid_hash. Гейт check:ledger2 зелёный.
+
+# Правка 2026-09-21 (C28-78): плательщик за оперативную память строк
+# выбирается хелпером RamPayer::of по классу таблицы (lib/core/ram_payer.hpp),
+# а не именем, переданным вручную в emplace/modify. Меняется только то, с кого
+# цепь списывает память; содержимое строк, проверки и поведение действий
+# прежние, набор случаев этой фичи не менялся. Правило плательщика покрыто
+# отдельно — test-registry/contracts.ram-payer.yaml.
+
 sources:
   contract:
     - components/contracts/cpp/lib/core/ledger2/processes.hpp
@@ -31,6 +42,7 @@ sources:
     - scripts/check-ledger2-processes.mjs
   backend:
     - components/controller/src/domain/process-registry/**
+    - components/controller/src/infrastructure/database/kysely/repositories/process-journal.kysely-repository.ts
 
 cases:
   # ── Уровень контракта ─────────────────────────────────────────────────────
@@ -91,6 +103,7 @@ cases:
     expect: >
       имя читается дословно, историческая карта кодов операций не применяется
     test: components/controller/tests/unit/process-registry/process-registry.service.test.ts
+    api: components/api-tests/src/platform/ledger2.process-naming.test.ts
     status: passing
 
   - id: l2.pnam.side.03
@@ -102,6 +115,8 @@ cases:
     expect: >
       процесс называется поставкой, а субъектом показан заказчик, а не участок
     test: components/controller/tests/unit/process-registry/process-registry.service.test.ts
+    external: unreachable
+    external_reason: "нитки без эмитированного имени — наследие прежних версий контрактов; цепь стенда их не порождает"
     status: passing
 
   - id: l2.pnam.side.04
@@ -113,6 +128,8 @@ cases:
       имя процесса не меняется — от порядка операций и алфавита кодов оно не
       зависит
     test: components/controller/tests/unit/process-registry/process-registry.service.test.ts
+    external: unreachable
+    external_reason: "порядок прихода операций в разбор задаёт цепь; переставить блоки через API нельзя"
     status: passing
 
   - id: l2.pnam.side.05
@@ -124,6 +141,8 @@ cases:
     expect: >
       процесс называется гарантийным возвратом
     test: components/controller/tests/unit/process-registry/process-registry.service.test.ts
+    external: unreachable
+    external_reason: "нитки без эмитированного имени — наследие прежних версий контрактов; цепь стенда их не порождает"
     status: passing
 
   - id: l2.pnam.side.06
@@ -135,6 +154,7 @@ cases:
       в выборку попадают только нитки экономики участка; поставки, внутри
       которых взнос зачислялся в общий кошелёк, не попадают
     test: components/controller/tests/unit/process-registry/process-registry.service.test.ts
+    api: components/api-tests/src/marketplace/return.test.ts
     status: passing
 
   - id: l2.pnam.side.07
@@ -145,6 +165,7 @@ cases:
     expect: >
       название совпадает — список и деталь применяют одно правило
     test: components/controller/tests/unit/process-registry/process-registry.service.test.ts
+    api: components/api-tests/src/platform/ledger2.process-naming.test.ts
     status: passing
 
   - id: l2.pnam.break.02
@@ -157,6 +178,8 @@ cases:
       строка реестра остаётся видимой с пустым типом, а не исчезает из
       списка процессов
     test: components/controller/tests/unit/process-registry/process-registry.service.test.ts
+    external: unreachable
+    external_reason: "нитки без эмитированного имени — наследие прежних версий контрактов; цепь стенда их не порождает"
     status: passing
 
   - id: l2.pnam.break.03
@@ -169,6 +192,8 @@ cases:
       берётся первое имя по блоку и global_sequence, а не минимум по алфавиту
       кода операции; в лог пишется предупреждение — процесс не теряет название
     test: components/controller/tests/unit/process-registry/process-registry.service.test.ts
+    external: unreachable
+    external_reason: "разные имена под одним хэшем нитки — ошибка контракта-инициатора; действующие контракты так не эмитят"
     status: passing
 
   - id: l2.pnam.side.09
@@ -181,6 +206,7 @@ cases:
       процесс называется жизнью коммитов проекта, и сущность проекта находится
       по якорю — бэкенд-оверрайд сильнее имени из цепи
     test: components/controller/tests/unit/process-registry/process-registry.service.test.ts
+    api: components/api-tests/src/capital/result-submission.test.ts
     status: passing
 
   - id: l2.pnam.side.10
@@ -193,6 +219,7 @@ cases:
       коммиты попадают в выборку по коду операции, а фильтр «Приём РИД» их,
       наоборот, не втягивает
     test: components/controller/tests/unit/process-registry/process-registry.service.test.ts
+    api: components/api-tests/src/capital/result-submission.test.ts
     status: passing
 
   - id: l2.pnam.side.11
@@ -205,6 +232,7 @@ cases:
       нитки возврата в выборку не попадают — иначе процесс числится в списке
       поставкой, а при раскрытии называется возвратом
     test: components/controller/tests/unit/process-registry/process-registry.service.test.ts
+    api: components/api-tests/src/marketplace/return.test.ts
     status: passing
 
   - id: l2.pnam.side.12
@@ -243,6 +271,28 @@ cases:
     test: ~
     status: missing
 
+  # ── Документы процесса вне строки сущности (2026-09-11) ──────────────────
+  # Часть документов живёт только в параметрах действий: заявление 1110 о
+  # переводе паевого взноса в Стол заказов (convert), решения совета 501
+  # (confirmreg) и 901 (authwthd), протоколы 1117 (onmktrtauth) и 1111
+  # (confirmwroff), заявление 1030 (createpinv). Регистр ищет их по хэшу
+  # процесса в данных действий в окне блоков процесса.
+  - id: l2.pnam.side.14
+    level: backend
+    kind: side
+    scenario: >
+      Бухгалтер раскрывает процесс поставки, по которому заявление о переводе
+      паевого взноса подписано отдельным действием и в строку заказа не
+      записано; тот же акт приходит и из строки заказа, и из действия подписи.
+    expect: >
+      заявление есть среди документов процесса с источником «контракт/действие/
+      параметр»; дубль акта схлопывается в одну запись с максимумом подписей;
+      действие без документа записи не даёт; поиск ограничен окном блоков
+      процесса, кооперативом и хэшем, операции ledger2 не просматриваются
+    test: components/controller/tests/unit/process-registry/process-registry.service.test.ts
+    api: components/api-tests/src/marketplace/order.test.ts
+    status: passing
+
   # ── Длина memo проводки (мердж ветки UI-сюиты, 2026-08-11) ────────────────
   # `apply` больше не ограничивает memo 255 байтами. Обоснование проводки —
   # человеческий текст, и в кириллице символ занимает два байта: предел резал
@@ -268,13 +318,38 @@ cases:
 # поймал: имя было объявлено в processes.hpp, но не попало ни в
 # PROCESS_REGISTRY, ни в локатор бэкенда.
 
+# 2026-09-06 (паевая модель, компонент 68): имена процессов не менялись; в
+# `accretrn` нитка возврата теперь ставится повесткой совета, проводки идут в
+# `onmktrtauth` под тем же `p.mkt.return`; `exit_helpers` — свободный паевой
+# Стола заказов (`w.mkt.share`) отзывается при выходе как `o.mkt.recall`.
+# Набор случаев не менялся.
+
+  - id: l2.naming.sign.01
+    level: contract
+    kind: break
+    scenario: >
+      Документ подан с подписью, где рядом с именем пайщика стоит чужой ключ
+      (приём возврата).
+    expect: >
+      отказ «Public key does not belong to account»: подпись сверяется с ключом
+      аккаунта подписанта. Транзакции шлёт кооператив, поэтому до 17.09.2026
+      любой ключ рядом с чужим именем проходил как подпись этого человека.
+      Механизм общий для всех контрактов (`verify_signer_keys_or_fail`) и
+      проверен на самом коротком пути — заявлении о вступлении
+    test: components/boot/src/tests/document-signature.test.ts
+    status: passing
+
+# 2026-09-23 (EEA-6…EEA-9): тексты интерфейса, отказов и уведомлений фичи вынесены из
+# кода в словари i18n, отказы бэкенда переведены на DomainError с кодом — текст
+# и HTTP-статус ответа прежние. Сценарии фичи и её проверки не менялись.
+
 # 2026-08-22 (B2D-17, биллинг-стек провайдера): заведены нитки `p.bil.fund`
 # (пополнение биллинг-кошелька пайщика, o.bil.fund по подписанному заявлению)
 # и `p.bil.pay` (оплата инфраструктурной подписки, o.bil.pay / o.bil.axn по
 # payment_hash из журнала провайдера). Контракт billing on-chain таблиц не
 # ведёт, поэтому локатор бэкенда для обеих пустой — как у p.sov.axncnv.
 
-  - id: l2.pnam.side.14
+  - id: l2.pnam.side.15
     level: contract
     kind: side
     scenario: >
@@ -283,6 +358,5 @@ cases:
       обе нитки.
     expect: >
       ledger2::apply принимает операции; гейт check-ledger2-processes
-      согласован (25 процессов в контракте и cooptypes, локатор знает обе)
+      согласован (32 процесса в контракте и cooptypes после слияния с edubridge, локатор знает обе)
     status: missing
-

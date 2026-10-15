@@ -1,5 +1,7 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref, watch } from 'vue'
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { useFirstLoad } from 'src/shared/lib/composables'
 import { debounce } from 'quasar'
 import { useRoute } from 'vue-router'
 import { FailAlert, SuccessAlert } from 'src/shared/api'
@@ -21,7 +23,9 @@ import type {
 import { AccountBadge, PageHint } from 'src/shared/ui/domain'
 import { formatDateToLocalTimezone } from 'src/shared/lib/utils/dates'
 import { marketplaceOrderSaleUnit } from 'src/shared/lib/consts/marketplace-units'
-import { useMarketplaceRealtime } from 'src/shared/lib/marketplace'
+import { marketLiveTables } from 'src/shared/lib/marketplace';
+import { useQueryOverlay } from 'src/shared/lib/navigation'
+import { OfferRegistryOverlay } from 'src/widgets/Marketplace/OfferRegistryOverlay'
 import { CoopStockSection } from 'src/widgets/Marketplace/CoopStockSection'
 import {
   buildPlacementOptions,
@@ -32,11 +36,13 @@ import {
   useMarketplaceStorageStore,
 } from 'src/entities/MarketplaceStorage'
 import {
+  MARKETPLACE_ON_WAREHOUSE_STATUSES,
   assignInventoryPlacement,
   generateInventoryLabel,
   listInventory,
   type MarketplaceInventoryItemView,
 } from 'src/entities/MarketplaceInventory'
+import { t as i18nT } from 'src/shared/i18n';
 
 const props = defineProps<{
   /** Какой раздел показывать: имущество на складе или обезличенный остаток. */
@@ -52,6 +58,8 @@ const route = useRoute()
 const store = useOperatorBranchStore()
 const storage = useMarketplaceStorageStore()
 const coopname = computed(() => String(route.params.coopname ?? ''))
+/** Предложение открывается оверлеем поверх склада — адрес держит `?offer=`. */
+const offerOverlay = useQueryOverlay('offer')
 const braname = computed(() => store.activeBraname ?? '')
 
 const containersEnabled = computed(() => store.warehouseSettings.containers_enabled)
@@ -61,6 +69,8 @@ const placementEnabled = computed(() => store.addressedStorageEnabled)
 const search = ref<string>('')
 const items = ref<MarketplaceInventoryItemView[]>([])
 const loading = ref(true)
+/** Каркас и пустое состояние — по первой загрузке; дочитка обновляет молча. */
+const firstLoad = useFirstLoad(loading)
 
 // Склад/Остатки — два раздела в табах (канон — «Гарантийные возвраты»), не
 // карточка, которая появляется/исчезает в зависимости от наличия остатков
@@ -72,13 +82,9 @@ const coopStockCount = ref(0)
 
 // Склад — это «что сейчас физически лежит на складе», не история движений.
 // Выданное пайщику и списанное уже не на складе — им место в будущей истории
-// заказов, не здесь. Поэтому фильтр не выбирается оператором, а зашит: только
-// 3 состояния, которые вообще бывают «на складе».
-const ON_WAREHOUSE_STATUSES = [
-  Zeus.MarketplaceInventoryStatus.RECEIVED,
-  Zeus.MarketplaceInventoryStatus.LABELED,
-  Zeus.MarketplaceInventoryStatus.RETURNED,
-]
+// заказов, не здесь. Поэтому фильтр не выбирается оператором, а зашит общим
+// списком состояний склада (по нему же считается занятость боксов).
+const ON_WAREHOUSE_STATUSES = [...MARKETPLACE_ON_WAREHOUSE_STATUSES]
 
 // Имя заказчика для показа: ФИО (резолвится бэкендом), иначе — аккаунт.
 function ordererName(row: MarketplaceInventoryItemView): string {
@@ -89,7 +95,7 @@ function ordererName(row: MarketplaceInventoryItemView): string {
 // Тот же формат, что и в «Остатке кооператива» ниже на этой странице.
 function quantityLabel(row: MarketplaceInventoryItemView): string {
   const saleUnit = marketplaceOrderSaleUnit(row.quantity_per_label, row.unit_of_measure, row.package_size)
-  return `${saleUnit.units}×${saleUnit.unitLabel}`
+  return `${saleUnit.units} ${saleUnit.unitLabel}`
 }
 
 // Омни-поиск: одно поле ищет по нескольким способам сразу — заказчик (ФИО и
@@ -128,15 +134,27 @@ watch(
 )
 
 const columns = computed<BaseTableColumn<MarketplaceInventoryItemView>[]>(() => [
-  { key: 'place', label: 'Место', width: '240px', field: (row) => placeLabel(row) },
-  { key: 'product', label: 'Товар', width: '240px', sortable: true, field: 'product_name_snapshot' },
-  { key: 'orderer', label: 'Заказчик', width: '200px', sortable: true, field: (row) => ordererName(row) },
-  { key: 'qty', label: 'Кол-во', width: '130px', numeric: true, nowrap: true },
-  { key: 'barcode', label: 'Штрих-код', width: '150px' },
-  { key: 'status', label: 'Состояние', width: '140px', sortable: true, field: 'status' },
-  { key: 'expiry', label: 'Годен до', width: '120px', nowrap: true, sortable: true, field: (row) => timeOf(row.expiry_date) },
-  { key: 'received', label: 'Принято', width: '160px', nowrap: true, sortable: true, field: (row) => timeOf(row.received_at) },
+  { key: 'place', label: i18nT('marketplace.operatorOwnWarehouse.column.place'), width: '240px', field: (row) => placeLabel(row) },
+  { key: 'product', label: i18nT('marketplace.operatorOwnWarehouse.column.product'), width: '240px', sortable: true, field: 'product_name_snapshot' },
+  { key: 'orderer', label: i18nT('marketplace.operatorOwnWarehouse.column.orderer'), width: '200px', sortable: true, field: (row) => ordererName(row) },
+  { key: 'qty', label: i18nT('marketplace.operatorOwnWarehouse.column.qty'), width: '130px', numeric: true, nowrap: true },
+  { key: 'barcode', label: i18nT('marketplace.operatorOwnWarehouse.column.barcode'), width: '150px' },
+  { key: 'status', label: i18nT('marketplace.operatorOwnWarehouse.column.status'), width: '140px', sortable: true, field: 'status' },
+  { key: 'expiry', label: i18nT('marketplace.operatorOwnWarehouse.column.expiry'), width: '120px', nowrap: true, sortable: true, field: (row) => timeOf(row.expiry_date) },
+  { key: 'received', label: i18nT('marketplace.operatorOwnWarehouse.column.received'), width: '160px', nowrap: true, sortable: true, field: (row) => timeOf(row.received_at) },
 ])
+
+// Строка открывает предложение, по которому имущество попало на участок: с него
+// видно поставщика, цену, упаковку и условия — иначе по одному наименованию
+// непонятно, что именно выдаётся (жалоба 2026-09-14). Карточка та же, что в
+// реестре предложений стола администратора.
+function hasOffer(row: MarketplaceInventoryItemView): boolean {
+  return Boolean(row.offer_id)
+}
+
+function openOffer(row: MarketplaceInventoryItemView): void {
+  if (row.offer_id) offerOverlay.open(String(row.offer_id))
+}
 
 /** Дата в миллисекундах для сортировки; пусто — в конец списка. */
 function timeOf(value: unknown): number {
@@ -164,7 +182,7 @@ async function load(): Promise<void> {
     ])
     items.value = list
   } catch (e) {
-    FailAlert(e, 'Не удалось загрузить склад участка')
+    FailAlert(e, i18nT('marketplace.operatorOwnWarehouse.loadError'))
   } finally {
     loading.value = false
   }
@@ -191,17 +209,7 @@ const reloadLive = debounce(() => {
   if (loading.value) return
   void load()
 }, 400)
-useMarketplaceRealtime(
-  {
-    MarketplaceAplReceptionStatusChangedEvent: (event) => {
-      if (event.braname === braname.value.trim()) reloadLive()
-    },
-    MarketplaceOrderStatusChangedEvent: () => reloadLive(),
-    // Исполненное списание тоже опустошает полки склада.
-    MarketplaceWriteoffStatusChangedEvent: () => reloadLive(),
-  },
-  { onResync: () => reloadLive() },
-)
+useLiveReload(marketLiveTables('reception', 'order', 'writeoff'), () => reloadLive());
 
 onMounted(async () => {
   await store.ensureLoaded(coopname.value)
@@ -252,9 +260,9 @@ async function commitPlacement(
       cell_id,
     })
     applyUpdated(updated)
-    SuccessAlert('Место обновлено')
+    SuccessAlert(i18nT('marketplace.operatorOwnWarehouse.placeUpdatedMessage'))
   } catch (e) {
-    FailAlert(e, 'Не удалось сохранить место')
+    FailAlert(e, i18nT('marketplace.operatorOwnWarehouse.placeUpdateError'))
   } finally {
     savingPlaceId.value = null
   }
@@ -267,9 +275,9 @@ async function issueBarcode(row: MarketplaceInventoryItemView): Promise<void> {
   try {
     const updated = await generateInventoryLabel({ inventory_id: row.id })
     applyUpdated(updated)
-    SuccessAlert('Штрих-код выпущен')
+    SuccessAlert(i18nT('marketplace.operatorOwnWarehouse.barcodeIssuedMessage'))
   } catch (e) {
-    FailAlert(e, 'Не удалось выпустить штрих-код')
+    FailAlert(e, i18nT('marketplace.operatorOwnWarehouse.barcodeIssueError'))
   } finally {
     issuingBarcodeId.value = null
   }
@@ -278,15 +286,15 @@ async function issueBarcode(row: MarketplaceInventoryItemView): Promise<void> {
 function humanStatus(status: string): string {
   switch (status) {
     case Zeus.MarketplaceInventoryStatus.RECEIVED:
-      return 'Принято'
+      return i18nT('marketplace.inventory.status.received')
     case Zeus.MarketplaceInventoryStatus.LABELED:
-      return 'Промаркировано'
+      return i18nT('marketplace.inventory.status.labeled')
     case Zeus.MarketplaceInventoryStatus.ISSUED:
-      return 'Выдано пайщику'
+      return i18nT('marketplace.inventory.status.issued')
     case Zeus.MarketplaceInventoryStatus.RETURNED:
-      return 'Возврат на склад'
+      return i18nT('marketplace.inventory.status.returned')
     case Zeus.MarketplaceInventoryStatus.WRITTEN_OFF:
-      return 'Списано'
+      return i18nT('marketplace.inventory.status.writtenOff')
     default:
       return status
   }
@@ -332,11 +340,11 @@ function isExpired(value: unknown): boolean {
 <template lang="pug">
 //- Секция стола «Склад моего КУ»: шапка участка и полоса разделов — на
 //- странице-обёртке. Какой из двух разделов показывать, говорит проп.
-.warehouse(role='region', aria-label='Склад участка')
+.warehouse(role='region', :aria-label='$t("marketplace.operatorOwnWarehouse.ariaLabel")')
   EmptyState(
     v-if='store.loaded && !store.isOperator',
-    title='Вы не оператор кооперативного участка',
-    body='Склад участка доступен оператору участка и его доверенным лицам.'
+    :title='$t("marketplace.operatorOwnWarehouse.notOperatorTitle")',
+    :body='$t("marketplace.operatorOwnWarehouse.notOperatorBody")'
   )
     template(#icon)
       q-icon(name='storefront', size='48px')
@@ -348,14 +356,14 @@ function isExpired(value: unknown): boolean {
       v-if='activeTab === "warehouse"',
       storage-key='mp:operator-warehouse:banner-dismissed'
     )
-      | Имущество, принятое на ваш пункт выдачи: что лежит на складе, в каком
-      | месте, заказчик и состояние. Место можно переназначить, а штрих-код
-      | выпустить прямо в строке. Штрих-код есть не у всех позиций — он опционален.
+      | {{ $t('marketplace.operatorOwnWarehouse.hintLine1') }}
+      | {{ $t('marketplace.operatorOwnWarehouse.hintLine2') }}
+      | {{ $t('marketplace.operatorOwnWarehouse.hintLine3') }}
 
     PageHint(v-else, storage-key='mp:operator-coop-stock:banner-dismissed')
-      | Обезличенный остаток кооператива: имущество, которое заказчик не забрал
-      | или от которого отказался. Оно уже не закреплено ни за кем — его можно
-      | опубликовать в каталог предложением от кооператива.
+      | {{ $t('marketplace.operatorOwnWarehouse.unassignedHintLine1') }}
+      | {{ $t('marketplace.operatorOwnWarehouse.unassignedHintLine2') }}
+      | {{ $t('marketplace.operatorOwnWarehouse.unassignedHintLine3') }}
 
     template(v-if='activeTab === "warehouse"')
       //- Поиск — отдельной строкой (не в одном ряду с чипами: их высоты разные и
@@ -363,12 +371,12 @@ function isExpired(value: unknown): boolean {
       BaseInput.warehouse__search.field-flush(
         v-model='search',
         type='search',
-        placeholder='Поиск: заказчик, товар, бокс, адрес, штрих-код',
+        :placeholder='$t("marketplace.operatorOwnWarehouse.searchPlaceholder")',
         clearable
       )
 
       BaseTable(
-        v-if='loading || filteredRows.length',
+        v-if='firstLoad || filteredRows.length',
         :columns='columns',
         :rows='filteredRows',
         row-key='id',
@@ -377,7 +385,9 @@ function isExpired(value: unknown): boolean {
         :loading='loading',
         min-width='1380px',
         sort-by='received',
-        descending
+        descending,
+        :clickable-rows='hasOffer',
+        @row-click='openOffer'
       )
         //- Место — выбор из заведённых боксов и ячеек прямо в строке. Когда
         //- адресное хранение выключено, показываем прочерк: места просто нет.
@@ -386,7 +396,7 @@ function isExpired(value: unknown): boolean {
             v-if='placementEnabled',
             :model-value='placementValue(row)',
             :options='placementOptions',
-            placeholder='Указать место',
+            :placeholder='$t("marketplace.operatorOwnWarehouse.placeInputPlaceholder")',
             searchable,
             :disabled='savingPlaceId === row.id',
             @update:model-value='(v: string | number | null) => commitPlacement(row, v)'
@@ -413,7 +423,7 @@ function isExpired(value: unknown): boolean {
           )
             template(#icon-left)
               q-icon(name='label', size='16px')
-            | Выпустить
+            | {{ $t('marketplace.operatorOwnWarehouse.issueBarcodeButton') }}
 
         template(#cell-status='{ row }')
           BaseBadge(:variant='statusVariant(row.status)') {{ humanStatus(row.status) }}
@@ -425,12 +435,12 @@ function isExpired(value: unknown): boolean {
           | {{ formatDateTime(row.received_at) }}
 
         template(#footer)
-          span Позиций: {{ filteredRows.length }}
+          span {{ $t('marketplace.operatorOwnWarehouse.positionsCountFooter', { count: filteredRows.length }) }}
 
       EmptyState(
         v-else,
-        title='На складе пусто',
-        body='Здесь появятся принятые позиции участка. Проверьте поиск.'
+        :title='$t("marketplace.operatorOwnWarehouse.emptyTitle")',
+        :body='$t("marketplace.operatorOwnWarehouse.emptyBody")'
       )
         template(#icon)
           q-icon(name='inventory_2', size='48px')
@@ -438,6 +448,10 @@ function isExpired(value: unknown): boolean {
     //- Остаток кооператива (requirement 76): обезличенные позиции после
     //- недовыдач/отказов — публикация в каталог предложением от кооператива.
     CoopStockSection(v-else-if='activeTab === "stock"', @count='(n) => (coopStockCount = n)')
+
+  //- Карточка предложения — та же, что в реестре предложений стола
+  //- администратора: одна на все реестры стола.
+  OfferRegistryOverlay(:coopname='coopname', from='warehouse', :show-full-page='false')
 </template>
 
 <style scoped lang="scss">

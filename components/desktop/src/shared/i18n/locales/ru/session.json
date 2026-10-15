@@ -1,0 +1,14 @@
+{
+  "session": {
+    "error": {
+      "keystoreLocked": "CoopID keystore заперт: войдите заново (нет локального ключа)",
+      "pinRequired": "Для подписи нужен PIN-код"
+    },
+    "store": {
+      "invalidPinError": "Неверный PIN-код"
+    },
+    "walletPluginCoopId": {
+      "description": "Подпись ключом пайщика из защищённого keystore CoopID; приватный ключ не покидает устройство."
+    }
+  }
+}

@@ -1,11 +1,11 @@
 import { StateDomainEntity } from '../../domain/entities/state.entity';
-import { StateTypeormEntity } from '../entities/state.typeorm-entity';
+import { StateRecord } from '../entities/state.record';
 import type { IStateDatabaseData } from '../../domain/interfaces/state-database.interface';
 import type { IStateBlockchainData } from '../../domain/interfaces/state-blockchain.interface';
 import type { RequireFields } from '@coopenomics/extension-kit';
 
-type toEntityDatabasePart = RequireFields<Partial<StateTypeormEntity>, keyof IStateDatabaseData>;
-type toEntityBlockchainPart = RequireFields<Partial<StateTypeormEntity>, keyof IStateBlockchainData>;
+type toEntityDatabasePart = RequireFields<Partial<StateRecord>, keyof IStateDatabaseData>;
+type toEntityBlockchainPart = RequireFields<Partial<StateRecord>, keyof IStateBlockchainData>;
 
 type toDomainDatabasePart = RequireFields<Partial<StateDomainEntity>, keyof IStateDatabaseData>;
 type toDomainBlockchainPart = RequireFields<Partial<StateDomainEntity>, keyof IStateBlockchainData>;
@@ -17,7 +17,7 @@ export class StateMapper {
   /**
    * Преобразование TypeORM сущности в доменную сущность
    */
-  static toDomain(entity: StateTypeormEntity): StateDomainEntity {
+  static toDomain(entity: StateRecord): StateDomainEntity {
     const databaseData: toDomainDatabasePart = {
       _id: entity._id,
       block_num: entity.block_num,
@@ -49,7 +49,7 @@ export class StateMapper {
   /**
    * Преобразование доменной сущности в TypeORM сущность для создания
    */
-  static toEntity(domain: StateDomainEntity): Partial<StateTypeormEntity> {
+  static toEntity(domain: StateDomainEntity): Partial<StateRecord> {
     const dbPart: toEntityDatabasePart = {
       _id: domain._id,
       block_num: domain.block_num ?? 0,
@@ -81,8 +81,8 @@ export class StateMapper {
    * Преобразование доменной сущности в данные для обновления TypeORM сущности
    * Обновляет только локальные поля базы данных, поля из блокчейна обновляются через синхронизацию
    */
-  static toUpdateEntity(domain: Partial<StateDomainEntity>): Partial<StateTypeormEntity> {
-    const updateData: Partial<StateTypeormEntity> = {};
+  static toUpdateEntity(domain: Partial<StateDomainEntity>): Partial<StateRecord> {
+    const updateData: Partial<StateRecord> = {};
 
     // Поля из базы данных (локальные)
     if (domain.block_num !== undefined) updateData.block_num = domain.block_num;

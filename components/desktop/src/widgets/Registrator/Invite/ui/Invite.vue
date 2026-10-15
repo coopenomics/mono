@@ -1,58 +1,54 @@
 <template lang="pug">
-AuthCard.invite(
-  v-if='token',
-  :max-width='480',
-  title='Сохраните ключ',
-  subtitle='Новый приватный ключ доступа и цифровой подписи сгенерирован для вас'
+AuthSplit.invite(
+  :eyebrow='coopTitle',
+  :title='$t("registrator.invite.title")',
+  :lead='$t("registrator.invite.lead")',
+  :quote='$t("registrator.invite.quote")',
+  :step-eyebrow='$t("registrator.invite.title")',
+  :heading='token ? $t("registrator.invite.saveKeyHeading") : $t("registrator.invite.linkHeading")',
+  :text='token ? $t("registrator.invite.saveKeyText") : $t("registrator.invite.linkText")'
 )
-  p.invite__instruction
-    | Подтвердите, что надёжно сохранили ключ. Рекомендуем хранить его в
-    | бесплатном менеджере паролей, например
-    a.q-ml-xs.invite__link(href='https://bitwarden.com/download', target='_blank') Bitwarden
-    | .
+  template(#actions)
+    AuthActions
 
-  BaseBanner.invite__hint(variant='info')
-    | При первом входе по этому ключу мы предложим задать пароль — дальше будете
-    | входить им, а ключ останется запасным способом восстановления доступа.
+  template(v-if='token')
+    p.invite__instruction
+      | {{ $t('registrator.invite.instructionPart1') }}
+      | {{ $t('registrator.invite.instructionPart2') }}
+      a.q-ml-xs.invite__link(href='https://bitwarden.com/download', target='_blank') Bitwarden
+      | .
 
-  .invite__key(v-if='account && account.private_key')
-    .invite__key-head
-      span.invite__key-label Приватный ключ
-      q-btn(
-        flat,
-        dense,
-        round,
-        size='sm',
-        color='primary',
-        icon='content_copy',
-        aria-label='Скопировать ключ',
-        @click='copyMnemonic'
-      )
-        q-tooltip Скопировать
-    code.invite__key-value {{ account.private_key }}
+    BaseBanner(variant='info')
+      | {{ $t('registrator.invite.keyBannerPart1') }}
+      | {{ $t('registrator.invite.keyBannerPart2') }}
 
-  q-checkbox.invite__confirm(v-model='i_save', label='Я сохранил ключ', dense)
+    .invite__key(v-if='account && account.private_key')
+      .invite__key-head
+        span.invite__key-label {{ $t('registrator.invite.privateKeyLabel') }}
+        BaseButton(variant='ghost', size='sm', :aria-label='$t("registrator.invite.copyKeyAriaLabel")', @click='copyMnemonic')
+          template(#icon-left)
+            q-icon(name='content_copy')
+          | {{ $t('common.action.copy') }}
+      code.invite__key-value {{ account.private_key }}
 
-  BaseButton.invite__submit(
-    variant='primary',
-    block,
-    :disabled='!i_save',
-    :loading='loading',
-    @click='finish'
-  ) Установить ключ
+    BaseCheckbox(v-model='i_save', :label='$t("registrator.invite.saveKeyConfirmLabel")')
 
-AuthCard.invite(
-  v-else,
-  :max-width='480',
-  title='Приглашение',
-  subtitle='Вы получили приглашение на подключение к кооперативу'
-)
-  p.invite__instruction
-    | Чтобы продолжить, перейдите по персональной ссылке из письма-приглашения.
-    | В ней содержится одноразовый код, по которому для вас будет выпущен ключ
-    | доступа.
-  .invite__actions
-    BaseButton(variant='ghost', @click='goToSignin') Перейти ко входу
+    BaseButton(
+      variant='primary',
+      block,
+      :disabled='!i_save',
+      :loading='loading',
+      @click='finish'
+    ) {{ $t('registrator.invite.submit') }}
+
+  template(v-else)
+    p.invite__instruction
+      | {{ $t('registrator.invite.noTokenPart1') }}
+      | {{ $t('registrator.invite.noTokenPart2') }}
+      | {{ $t('registrator.invite.noTokenPart3') }}
+
+  template(#foot)
+    a.auth-link(href='#', @click.prevent='goToSignin') {{ $t('registrator.invite.goToSignIn') }}
 </template>
 
 <script lang="ts" setup>
@@ -61,14 +57,20 @@ import { useCreateUser } from 'src/features/User/CreateUser';
 import { useResetKey } from 'src/features/User/ResetKey/model';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { type IGeneratedAccount } from 'src/shared/lib/types/user';
-import { AuthCard } from 'src/shared/ui/domain/AuthCard';
+import { AuthSplit } from 'src/shared/ui/layout/AuthSplit';
+import { AuthActions } from 'src/widgets/Registrator/AuthActions';
 import { BaseBanner } from 'src/shared/ui/base/BaseBanner';
 import { BaseButton } from 'src/shared/ui/base/BaseButton';
-import { ref } from 'vue';
+import { BaseCheckbox } from 'src/shared/ui/base/BaseCheckbox';
+import { useSystemStore } from 'src/entities/System/model';
+import { computed, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { t } from 'src/shared/i18n';
 
 const route = useRoute();
 const router = useRouter();
+const systemStore = useSystemStore();
+const coopTitle = computed(() => systemStore.cooperativeDisplayName);
 
 const { generateAccount } = useCreateUser();
 const account = ref<IGeneratedAccount | undefined>();
@@ -86,7 +88,7 @@ const copyMnemonic = () => {
 
   copyToClipboard(toCopy)
     .then(() => {
-      SuccessAlert('Ключ был скопирован в буфер обмена');
+      SuccessAlert(t('registrator.invite.copiedToClipboard'));
     })
     .catch((e) => {
       console.log(e);
@@ -100,7 +102,7 @@ const goToSignin = () => {
 const finish = async () => {
   try {
     if (!account.value) {
-      FailAlert('Возникла ошибка при генерации приватного ключа');
+      FailAlert(t('registrator.invite.genError'));
       return;
     }
     loading.value = true;
@@ -109,7 +111,7 @@ const finish = async () => {
       public_key: account.value.public_key,
     });
 
-    SuccessAlert('Ключ доступа успешно установлен');
+    SuccessAlert(t('registrator.invite.keySetSuccess'));
     loading.value = false;
 
     router.push({ name: 'signin' });
@@ -125,7 +127,7 @@ const finish = async () => {
   color: var(--p-ink-2);
   font-size: var(--p-fs-body-sm, 13px);
   line-height: var(--p-lh-body, 1.55);
-  margin: 0 0 var(--p-4, 16px);
+  margin: 0;
 }
 .invite__link {
   color: var(--p-primary);
@@ -138,7 +140,6 @@ const finish = async () => {
 /* Ключ — выделенная панель, а не readonly-инпут (у того dashed-рамка
    и обрезка значения). Панель показывает ключ целиком и даёт ему вес. */
 .invite__key {
-  margin-bottom: var(--p-4, 16px);
   padding: var(--p-3, 12px) var(--p-4, 16px);
   background: var(--p-surface-2);
   border: 1px solid var(--p-line);
@@ -165,13 +166,5 @@ const finish = async () => {
   line-height: 1.5;
   color: var(--p-ink);
   word-break: break-all;
-}
-.invite__confirm {
-  display: flex;
-  margin-bottom: var(--p-4, 16px);
-}
-.invite__actions {
-  display: flex;
-  justify-content: center;
 }
 </style>

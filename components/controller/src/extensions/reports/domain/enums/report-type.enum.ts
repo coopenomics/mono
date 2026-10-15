@@ -1,3 +1,4 @@
+import { t } from '../../i18n';
 export enum ReportType {
   BUHOTCH = 'buhotch',       // Бухгалтерский баланс — ежегодно до 31 марта
   NDFL6 = 'ndfl6',           // 6-НДФЛ — ежеквартально до 25 числа следующего месяца
@@ -37,64 +38,64 @@ export const REPORT_CONFIG: Record<ReportType, {
   deadlineDescription: string;
 }> = {
   [ReportType.BUHOTCH]: {
-    name: 'Бухгалтерский баланс',
+    name: t('reports.reportType.buhotchName'),
     period: ReportPeriodType.YEARLY,
     // Форма НКО v5.04 (КНД 0710096). XSD от ФНС (формат ЕД-7-1/1041 от 26.12.2024).
     xsdFile: 'NO_BOUPR_1_159_00_05_04_01.xsd',
-    deadlineDescription: 'До 31 марта следующего года',
+    deadlineDescription: t('reports.reportType.buhotchDeadline'),
   },
   [ReportType.NDFL6]: {
-    name: '6-НДФЛ',
+    name: t('reports.reportType.ndfl6Name'),
     period: ReportPeriodType.QUARTERLY,
     xsdFile: 'NO_NDFL6.2_1_231_00_05_05_02.xsd',
-    deadlineDescription: 'До 25 числа следующего за кварталом месяца',
+    deadlineDescription: t('reports.reportType.ndfl6Deadline'),
   },
   [ReportType.RSV]: {
-    name: 'Расчёт по страховым взносам (РСВ)',
+    name: t('reports.reportType.rsvName'),
     period: ReportPeriodType.QUARTERLY,
     xsdFile: 'NO_RASCHSV_1_162_00_05_08_02.xsd',
-    deadlineDescription: 'До 25 числа следующего за кварталом месяца',
+    deadlineDescription: t('reports.reportType.rsvDeadline'),
   },
   [ReportType.PSV]: {
-    name: 'Персонифицированные сведения (ПСВ)',
+    name: t('reports.reportType.psvName'),
     period: ReportPeriodType.MONTHLY,
     xsdFile: 'NO_PERSSVFL_1_297_00_05_01_02.xsd',
     deadlineDescription:
-      'До 25 числа следующего месяца; за март/июнь/сент/дек не сдаём (закрывается РСВ)',
+      t('reports.reportType.psvDeadline'),
   },
   [ReportType.DUSN]: {
-    name: 'Декларация по УСН',
+    name: t('reports.reportType.dusnName'),
     period: ReportPeriodType.YEARLY,
     xsdFile: 'NO_USN_1_030_00_05_09_01.xsd',
-    deadlineDescription: 'До 25 марта следующего года',
+    deadlineDescription: t('reports.reportType.dusnDeadline'),
   },
   [ReportType.FSS4]: {
-    name: '4-ФСС (ЕФС-1)',
+    name: t('reports.reportType.fss4Name'),
     period: ReportPeriodType.QUARTERLY,
     // XSD 2024-01-01 со страницы СФР, пропатченная под формат 2026-01-01
     // (см. schemas/efs1/README.md).
     xsdFile: 'efs1/efs1.xsd',
-    deadlineDescription: 'До 25 числа следующего за кварталом месяца',
+    deadlineDescription: t('reports.reportType.fss4Deadline'),
   },
   [ReportType.UV_VZNOSY]: {
-    name: 'Уведомление об исчисленных страховых взносах',
+    name: t('reports.reportType.uvVznosyName'),
     period: ReportPeriodType.MONTHLY,
     xsdFile: 'UT_UVISCHSUMNAL_1_263_00_05_03_01.xsd',
-    deadlineDescription: 'До 25 числа текущего месяца',
+    deadlineDescription: t('reports.reportType.uvVznosyDeadline'),
   },
   [ReportType.UUSN]: {
-    name: 'Уведомление по УСН',
+    name: t('reports.reportType.uusnName'),
     period: ReportPeriodType.QUARTERLY,
     xsdFile: 'UT_UVISCHSUMNAL_1_263_00_05_03_01.xsd',
-    deadlineDescription: 'До 25 числа следующего за кварталом месяца',
+    deadlineDescription: t('reports.reportType.uusnDeadline'),
   },
   [ReportType.UV_NDFL]: {
-    name: 'Уведомление об исчисленном НДФЛ',
+    name: t('reports.reportType.uvNdflName'),
     period: ReportPeriodType.SEMI_MONTHLY,
     xsdFile: 'UT_UVISCHSUMNAL_1_263_00_05_03_01.xsd',
     deadlineDescription:
-      'За период с 1 по 22 число — до 25 числа того же месяца; ' +
-      'за период с 23 по последнее число — до 3 числа следующего месяца',
+      t('reports.reportType.uvNdflDeadline') +
+      t('reports.reportType.uvNdflDeadlineTail'),
   },
 };
 

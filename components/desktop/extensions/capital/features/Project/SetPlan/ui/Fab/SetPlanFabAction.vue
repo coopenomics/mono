@@ -17,8 +17,9 @@ q-fab-action.bg-fab-accent-radial(
 import { ref } from 'vue';
 import { SetPlanDialog } from '../Dialog';
 import { formatCapitalFabLabel } from 'app/extensions/capital/shared/lib';
+import { t } from '../../../../../i18n';
 
-const fabLabel = formatCapitalFabLabel('План', 'plan');
+const fabLabel = formatCapitalFabLabel(t('capital.setPlanFabAction.label'), 'plan');
 import type { IProject } from '../../../../../entities/Project/model';
 
 defineProps<{ project: IProject | null | undefined }>();

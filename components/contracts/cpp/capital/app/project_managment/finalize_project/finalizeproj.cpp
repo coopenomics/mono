@@ -53,6 +53,9 @@ void capital::finalizeproj(eosio::name coopname, checksum256 project_hash) {
 
   // Устанавливаем статус проекта на FINALIZED
   Capital::Projects::update_status(coopname, project.id, Capital::Projects::Status::FINALIZED);
+
+  // Голоса отработали на расчёте премий и больше никем не читаются.
+  Capital::Votes::erase_project_votes(coopname, project_hash);
   
 }
 

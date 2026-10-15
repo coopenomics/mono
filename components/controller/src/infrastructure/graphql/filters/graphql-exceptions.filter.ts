@@ -3,29 +3,46 @@ import { GqlExceptionFilter, GqlExecutionContext } from '@nestjs/graphql';
 import { GraphQLError } from 'graphql';
 import mongoose from 'mongoose';
 import { RpcError } from 'eosjs';
+import { postgresErrorCode, PG_INVALID_TEXT_REPRESENTATION } from '~/infrastructure/database/postgres-error';
+import { AuthV2Error, authV2HttpStatus } from '~/domain/auth-v2/errors/auth-v2.error';
 import * as Sentry from '@sentry/nestjs';
 import logger from '../../../config/logger';
 import { config } from '~/config';
-import { HttpApiError } from '@coopenomics/extension-kit';
+import { DomainError, HttpApiError, domainErrorMessage, parseChainAssert } from '@coopenomics/extension-kit';
+import { runWithLocale, t, type DomainErrorParamsLike } from '~/i18n';
+import { resolveRequestLocale } from '~/i18n/request-locale';
 
 @Catch()
 export class GraphQLExceptionFilter implements GqlExceptionFilter {
   catch(exception: any, host: ExecutionContext) {
     let statusCode = HttpStatus.INTERNAL_SERVER_ERROR;
     let message = 'Internal Server Error';
+    // Код отказа для клиента (`extensions.code`) и его параметры. Есть у
+    // DomainError и у отказа цепи; у прочих ошибок код — HTTP-статус, как раньше.
+    let errorCode: string | undefined;
+    let errorParams: DomainErrorParamsLike | undefined;
+    let request: any;
 
     const contextType = host.getType() as string;
     let user;
     let operationName;
     let fieldName;
     let path;
+    // Чьи данные спрашивали. В отказе по правам это главный вопрос: без имени
+    // нельзя отличить «стучались к чужому» от «клиент отправил запрос про себя,
+    // не подставив имя» — а выглядят эти случаи одинаково.
+    let requestedUsername: string | undefined;
     let locations: Array<{ line: number; column: number }> = [];
 
     // Получаем информацию в зависимости от типа контекста
     if (contextType === 'graphql') {
       const gqlContext = GqlExecutionContext.create(host);
       const context = gqlContext.getContext();
+      request = context?.req;
       user = context?.req?.user;
+
+      const args = gqlContext.getArgs<Record<string, any>>();
+      requestedUsername = args?.data?.username ?? args?.filter?.username ?? args?.username;
 
       const info = gqlContext.getInfo();
       operationName = info?.operation?.name?.value;
@@ -43,14 +60,26 @@ export class GraphQLExceptionFilter implements GqlExceptionFilter {
     } else if (contextType === 'http') {
       const ctx = host.switchToHttp();
       const req = ctx.getRequest();
+      request = req;
       user = req.user;
       operationName = `${req.method} ${req.url}`;
       path = req.path;
     }
 
+    // Текст ответа — на языке запроса. Язык берётся из самого запроса, а не
+    // только из контекста: фильтр может выполняться вне цепочки middleware.
+    const locale = resolveRequestLocale(request);
+    const tr = (key: string, params?: DomainErrorParamsLike) => runWithLocale(locale, () => t(key, params));
+
     // Обработка ValidationPipe ошибок
     let originalMessage = message; // Сохраняем оригинальное сообщение для логов
-    if (exception instanceof HttpException) {
+    if (exception instanceof DomainError) {
+      statusCode = exception.getStatus();
+      errorCode = exception.code;
+      errorParams = exception.params;
+      message = runWithLocale(locale, () => domainErrorMessage(exception.code, exception.params));
+      originalMessage = `${exception.code}: ${message}`;
+    } else if (exception instanceof HttpException) {
       const response = exception.getResponse();
 
       if (typeof response === 'object' && response['message']) {
@@ -65,25 +94,15 @@ export class GraphQLExceptionFilter implements GqlExceptionFilter {
       // Проверяем isOperational для HttpApiError
       if (exception instanceof HttpApiError && !exception.isOperational) {
         // Для неоперационных ошибок показываем стандартное сообщение
-        switch (statusCode) {
-          case HttpStatus.BAD_REQUEST:
-            message = 'Неверный запрос';
-            break;
-          case HttpStatus.UNAUTHORIZED:
-            message = 'Не авторизован';
-            break;
-          case HttpStatus.FORBIDDEN:
-            message = 'Доступ запрещен';
-            break;
-          case HttpStatus.NOT_FOUND:
-            message = 'Ресурс не найден';
-            break;
-          case HttpStatus.CONFLICT:
-            message = 'Конфликт данных';
-            break;
-          default:
-            message = 'Внутренняя ошибка сервера';
-        }
+        const generic: Partial<Record<number, string>> = {
+          [HttpStatus.BAD_REQUEST]: 'COMMON_BAD_REQUEST',
+          [HttpStatus.UNAUTHORIZED]: 'COMMON_UNAUTHORIZED',
+          [HttpStatus.FORBIDDEN]: 'COMMON_FORBIDDEN',
+          [HttpStatus.NOT_FOUND]: 'COMMON_NOT_FOUND',
+          [HttpStatus.CONFLICT]: 'COMMON_CONFLICT',
+        };
+        errorCode = generic[statusCode] ?? 'COMMON_INTERNAL';
+        message = tr(`errors.${errorCode}`);
       }
     }
 
@@ -98,6 +117,7 @@ export class GraphQLExceptionFilter implements GqlExceptionFilter {
         statusCode,
         stack: exception.stack,
         username: user?.username || null,
+        requested_username: requestedUsername ?? null,
         operation: operationName || null,
         field: fieldName || null,
         path: path || null,
@@ -117,6 +137,7 @@ export class GraphQLExceptionFilter implements GqlExceptionFilter {
         statusCode,
         stack: exception.stack,
         username: user?.username || null,
+        requested_username: requestedUsername ?? null,
         operation: operationName || null,
         field: fieldName || null,
         path: path || null,
@@ -127,8 +148,25 @@ export class GraphQLExceptionFilter implements GqlExceptionFilter {
     }
     // Обработка конкретных типов исключений
     else if (exception instanceof RpcError) {
-      message = exception.json.error.details[0].message.replace('assertion failure with message: ', '');
+      const parsed = parseChainAssert(exception.json.error.details[0].message);
       statusCode = exception.json.code;
+      errorCode = parsed.code ?? 'CHAIN_ASSERT';
+      errorParams = { message: parsed.text };
+      message = runWithLocale(locale, () => domainErrorMessage(errorCode as string, errorParams));
+    } else if (postgresErrorCode(exception) === PG_INVALID_TEXT_REPRESENTATION) {
+      // Значение не разобралось как тип колонки: не-UUID вместо идентификатора,
+      // текст вместо числа. Это неверный ввод, а не сбой сервера; до 25.09.2026
+      // уходило ответом 500 с внутренним текстом базы (C28-80).
+      statusCode = HttpStatus.BAD_REQUEST;
+      errorCode = 'COMMON_INVALID_VALUE_FORMAT';
+      message = tr(`errors.${errorCode}`);
+    } else if (exception instanceof AuthV2Error) {
+      // Отказ контура CoopID в GraphQL-мутации (двухфакторка, способ
+      // восстановления): статус и код — те же, что в REST-контуре. До
+      // 25.09.2026 уходил ответом 500 (C28-80).
+      statusCode = authV2HttpStatus(exception.code);
+      errorCode = exception.code;
+      message = exception.message;
     } else if (exception instanceof mongoose.Error) {
       statusCode = HttpStatus.BAD_REQUEST;
       message = exception.message;
@@ -136,64 +174,79 @@ export class GraphQLExceptionFilter implements GqlExceptionFilter {
       message = exception.message;
     }
 
+    // Отказ с кодом ниже 500 — штатный ответ сервера на действие клиента, а не
+    // его поломка: истёкшая сессия, нет прав, неверный код из письма, конфликт
+    // параллельной правки, сканер, перебирающий `/.env`. Раньше каждый такой
+    // отказ уходил в журнал ошибок, и за десять дней там набралось 11 тысяч
+    // событий против четырёх настоящих ошибок сервера — одна вкладка с
+    // отозванной сессией дала их почти все. Отказы остаются в логе контроллера
+    // предупреждением: всплеск 401 виден там, а журнал ошибок снова про ошибки.
+    const isExpectedRefusal = statusCode < HttpStatus.INTERNAL_SERVER_ERROR;
+
     // Отправка ошибки в Sentry для отслеживания
-    Sentry.withScope((scope) => {
-      // Добавляем дополнительную информацию в scope
-      scope.setTag('error_type', 'graphql');
-      scope.setTag('status_code', statusCode.toString());
-      scope.setTag('coopname', config.coopname);
+    if (!isExpectedRefusal) {
+      Sentry.withScope((scope) => {
+        // Добавляем дополнительную информацию в scope
+        scope.setTag('error_type', 'graphql');
+        scope.setTag('status_code', statusCode.toString());
+        scope.setTag('coopname', config.coopname);
 
-      if (user?.username) {
-        scope.setUser({ username: user.username });
-      }
+        if (user?.username) {
+          scope.setUser({ username: user.username });
+        }
 
-      if (operationName) {
-        scope.setTag('operation', operationName);
-      }
+        if (operationName) {
+          scope.setTag('operation', operationName);
+        }
 
-      if (fieldName) {
-        scope.setTag('field', fieldName);
-      }
+        if (fieldName) {
+          scope.setTag('field', fieldName);
+        }
 
-      if (path) {
-        scope.setTag('path', path);
-      }
+        if (path) {
+          scope.setTag('path', path);
+        }
 
-      // Добавляем контекст GraphQL запроса
-      scope.setContext('graphql', {
-        operation: operationName,
-        field: fieldName,
-        path: path,
-        locations: locations,
+        // Добавляем контекст GraphQL запроса
+        scope.setContext('graphql', {
+          operation: operationName,
+          field: fieldName,
+          path: path,
+          locations: locations,
+        });
+
+        // Добавляем контекст запроса
+        scope.setContext('request', {
+          username: user?.username || null,
+          requested_username: requestedUsername ?? null,
+          operationName: operationName || null,
+          fieldName: fieldName || null,
+          path: path || null,
+        });
+
+        // Отправляем ошибку в Sentry
+        Sentry.captureException(exception);
       });
-
-      // Добавляем контекст запроса
-      scope.setContext('request', {
-        username: user?.username || null,
-        operationName: operationName || null,
-        fieldName: fieldName || null,
-        path: path || null,
-      });
-
-      // Отправляем ошибку в Sentry
-      Sentry.captureException(exception);
-    });
+    }
 
     // Логирование ошибки - используем оригинальное сообщение для детального логирования
     const logMessage = exception instanceof HttpApiError && !exception.isOperational ? originalMessage : message;
+    // В журнал DomainError пишется с кодом: по нему отказ ищется в логах.
+    const journalMessage = exception instanceof DomainError ? originalMessage : logMessage;
 
     const logData = {
-      message: `${logMessage}`,
+      message: `${journalMessage}`,
       statusCode,
       stack: exception.stack,
       username: user?.username || null,
+      requested_username: requestedUsername ?? null,
       operation: operationName || null,
       field: fieldName || null,
       path: path || null,
       locations,
     };
 
-    if (statusCode === HttpStatus.UNAUTHORIZED) {
+    if (isExpectedRefusal) {
       logger.warn(logData);
     } else {
       logger.error(logData);
@@ -212,6 +265,7 @@ export class GraphQLExceptionFilter implements GqlExceptionFilter {
         statusCode,
         message: logMessage,
         error: exception instanceof Error ? exception.constructor.name : 'Error',
+        ...(errorCode && { code: errorCode, params: errorParams ?? {} }),
       });
     }
 
@@ -220,9 +274,14 @@ export class GraphQLExceptionFilter implements GqlExceptionFilter {
     // сохраняют их: клиент различает такие ошибки по code и читает payload.
     const domainExtensions =
       exception instanceof GraphQLError && exception.extensions ? exception.extensions : {};
+    // `code` — код отказа, если он есть (DomainError, отказ цепи), иначе
+    // HTTP-статус, как было; `status` — всегда HTTP-статус. Клиент различает
+    // отказы по коду, а текст `message` уже переведён на язык запроса.
     return new GraphQLError(message, {
       extensions: {
-        code: statusCode,
+        code: errorCode ?? statusCode,
+        status: statusCode,
+        ...(errorCode && { params: errorParams ?? {} }),
         isExecutionError: true, // Флаг для отличия execution ошибок от validation ошибок
         ...(process.env.NODE_ENV === 'development' && { stacktrace: exception.stack }),
         ...domainExtensions,

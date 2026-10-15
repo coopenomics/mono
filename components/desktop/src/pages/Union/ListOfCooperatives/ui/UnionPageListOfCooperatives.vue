@@ -112,6 +112,7 @@ const load = async () => {
   }
 }
 
+// realtime: нет источника — реестр собирает сервер из цепи и данных провайдера (другой узел), а узел хранит и сигналит только строку своего кооператива; список обновляется после своих действий.
 load()
 
 const hostingSubscription = (row: ICooperativeRegistryItem): ICooperativeSubscription | undefined =>

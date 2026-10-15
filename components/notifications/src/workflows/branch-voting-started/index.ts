@@ -3,7 +3,7 @@ import { WorkflowBuilder } from '../../base/workflow-builder';
 import { z } from 'zod';
 import { BaseWorkflowPayload } from '../../types';
 import { createEmailStep, createInAppStep, createPushStep } from '../../base/defaults';
-import { slugify } from '../../utils';
+import { nt } from '../../i18n';
 
 // Схема для branch-voting-started воркфлоу
 export const branchVotingStartedPayloadSchema = z.object({
@@ -17,31 +17,34 @@ export type IPayload = z.infer<typeof branchVotingStartedPayloadSchema>;
 
 export interface IWorkflow extends BaseWorkflowPayload, IPayload {}
 
-export const name = 'Голосование собрания участка началось';
-export const id = slugify(name);
+export const name = nt('branchVotingStarted.name');
+// Идентификатор закреплён: раньше он вычислялся из названия, и правка
+// или перевод названия меняли бы его. Не менять — на него ссылаются подписки.
+export const id = 'golosovanie-sobraniya-uchastka-nachalos';
 
 export const workflow: WorkflowDefinition<IWorkflow> = WorkflowBuilder
   .create<IWorkflow>()
   .name(name)
   .workflowId(id)
-  .description('Уведомление участникам собрания пайщиков кооперативного участка о начале голосования')
+  .i18nKey('branchVotingStarted')
+  .description(nt('branchVotingStarted.description'))
   .payloadSchema(branchVotingStartedPayloadSchema)
   .tags(['user'])
   .addSteps([
     createEmailStep(
       'branch-voting-started-email',
-      'Голосование собрания пайщиков участка в {{payload.coopShortName}} началось',
-      'Уважаемый пайщик!<br><br>На собрании пайщиков кооперативного участка ({{payload.meetPlace}}) открыто голосование по вопросам повестки дня.<br>Голосование завершится в {{payload.closeAtTime}}.<br><br>Для подачи бюллетеня перейдите по ссылке:<br><a href="{{payload.meetingUrl}}">{{payload.meetingUrl}}</a><br><br>С уважением, {{payload.coopShortName}}.'
+      nt('branchVotingStarted.email.subject'),
+      nt('branchVotingStarted.email.body')
     ),
     createInAppStep(
       'branch-voting-started-notification',
-      'Голосование собрания участка началось',
-      'Подайте бюллетень до {{payload.closeAtTime}}'
+      nt('branchVotingStarted.inApp.subject'),
+      nt('branchVotingStarted.inApp.body')
     ),
     createPushStep(
       'branch-voting-started-push',
-      'Голосование собрания участка началось',
-      'Подайте бюллетень до {{payload.closeAtTime}}'
+      nt('branchVotingStarted.push.subject'),
+      nt('branchVotingStarted.push.body')
     ),
   ])
   .build();

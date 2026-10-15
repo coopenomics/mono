@@ -1,0 +1,694 @@
+/**
+ * Помощники наборов «Образование» (расширение edubridge): подключение ЦПП
+ * кооперативом, оферты пайщика, курс, подписка, договор преподавателя.
+ *
+ * На стенде полигона расширение не установлено. Набор ставит его сам, проводит
+ * четыре решения совета подключения и утверждает формы документов — тем же
+ * путём, каким это делает председатель со стола. Это подготовка стенда; сами
+ * сценарии проверяются через API от лица свежих пайщиков.
+ *
+ * Расширение включено только на время наборов образования: после них оно
+ * выключается, чтобы программы «Обучение» и «Преподавание» не попадали в
+ * витрину вступления и в реестр шаблонов соседних наборов.
+ */
+import crypto from 'node:crypto'
+import { Cooperative } from 'cooptypes'
+// Импорт по модулям, а не из '../core': индекс ядра тянет expect.ts с vitest,
+// а помощники нужны и вне прогона тестов — засеву стенда документации
+// (src/seed/edubridge), который идёт обычным esno.
+import type { Who } from '../core/auth'
+import { tokenOf } from '../core/auth'
+import { ApiError, gql, gqlError, gqlRaw, type GqlError } from '../core/client'
+import { declineDecisionOnChain } from '../core/council'
+import { signDocument } from '../core/documents'
+import { COOP } from '../core/env'
+import { CHAIRMAN } from '../core/roles'
+import { waitFor } from '../core/wait'
+import { amount, deposit } from '../core/wallet'
+import type { AgendaRow, TemplateRow } from '../documents/docs-reports.helpers'
+import { agendaAll, agendaByHash, authorizeFreeDecision, blank, propose, templates, vote, waitTemplate } from '../documents/docs-reports.helpers'
+
+export const EXTENSION = 'edubridge'
+
+const R = Cooperative.Registry
+
+/** Отказ гварда прав расширения. */
+export const NO_RIGHTS = 'EDUBRIDGE_INSUFFICIENT_RIGHTS'
+
+/** Кошелёк членских взносов программы — на него ложится возврат по подписке. */
+export const PROGRAM_WALLET = 'w.edu.member'
+export const SHARE_WALLET = 'w.wal.share'
+
+// ── Подключение ЦПП кооперативом ───────────────────────────────────────────
+
+const CATALOG = 'query($d:GetExtensionsInput){ getExtensions(data:$d){ name is_installed enabled config } }'
+const INSTALL = 'mutation($d:ExtensionInput!){ installExtension(data:$d){ name is_installed } }'
+const UPDATE = 'mutation($d:ExtensionInput!){ updateExtension(data:$d){ name enabled } }'
+const L1_STATE = 'query($e:String!){ getExtensionOnboardingState(extension_name:$e){ all_done steps{ step_key done hash } } }'
+const L1_COMPLETE = `mutation($d:CompleteExtensionOnboardingStepInput!){
+  completeExtensionOnboardingStep(data:$d){ steps{ step_key done hash } }
+}`
+
+/** Документы шагов подключения: совет утверждает их редакции в бланке. */
+const STEP_DOCS: Record<string, { registry_id: number, title: string, question: string }> = {
+  education_provision: {
+    registry_id: R.EducationProgramTemplate.registry_id,
+    title: 'Положение о ЦПП «Образование»',
+    question: 'Об утверждении Положения о целевой потребительской программе «Образование»',
+  },
+  education_parent_offer_template: {
+    registry_id: R.EducationParentOffer.registry_id,
+    title: 'Оферта ученика ЦПП «Образование»',
+    question: 'Об утверждении оферты ученика целевой потребительской программы «Образование»',
+  },
+  education_teacher_offer_template: {
+    registry_id: R.EducationTeacherOffer.registry_id,
+    title: 'Оферта преподавателя ЦПП «Образование»',
+    question: 'Об утверждении оферты преподавателя целевой потребительской программы «Образование»',
+  },
+  education_contract_template: {
+    registry_id: R.EducationParticipationContract.registry_id,
+    title: 'Договор участия в хозяйственной деятельности',
+    question: 'Об утверждении договора участия в хозяйственной деятельности по программе «Образование»',
+  },
+}
+
+async function extensionRow(chairman: string): Promise<any | undefined> {
+  const d = await gql<any>(chairman, CATALOG, { d: {} })
+  return (d.getExtensions as any[]).find(e => e.name === EXTENSION)
+}
+
+async function l1State(chairman: string): Promise<{ all_done: boolean, steps: { step_key: string, done: boolean, hash: string | null }[] }> {
+  return (await gql<any>(chairman, L1_STATE, { e: EXTENSION })).getExtensionOnboardingState
+}
+
+/** Решение совета по хэшу проекта: голоса членов совета и утверждение председателем. */
+async function passDecision(chairman: string, hash: string, label: string): Promise<void> {
+  const agenda = await waitFor(() => agendaByHash(chairman, hash), { timeoutMs: 60_000, label })
+  await vote(agenda, 'for')
+  await authorizeFreeDecision(agenda)
+}
+
+/** Шаги подключения: совет утверждает положение, обе оферты и договор. */
+async function passOnboarding(chairman: string): Promise<void> {
+  const state = await waitFor(async () => {
+    const s = await l1State(chairman)
+    return s.steps.length >= Object.keys(STEP_DOCS).length ? s : null
+  }, { timeoutMs: 120_000, intervalMs: 1_000, label: 'расширение «Образование» объявило шаги подключения' })
+
+  for (const step of state.steps) {
+    if (step.done)
+      continue
+    const doc = STEP_DOCS[step.step_key]
+    if (!doc)
+      throw new Error(`шаг подключения ${step.step_key} не описан в наборе — состав шагов изменился`)
+    let hash = step.hash
+    if (!hash) {
+      const text = await blank(chairman, doc.registry_id, 'Current')
+      const d = await gql<any>(chairman, L1_COMPLETE, {
+        d: { extension_name: EXTENSION, step_key: step.step_key, title: doc.title, question: doc.question, decision: text.html },
+      })
+      hash = (d.completeExtensionOnboardingStep.steps as any[]).find(s => s.step_key === step.step_key)?.hash ?? null
+    }
+    if (!hash)
+      throw new Error(`шаг подключения ${step.step_key} опубликован без решения совета`)
+    await passDecision(chairman, hash, `проект решения совета по шагу ${step.step_key}`)
+  }
+
+  await waitFor(async () => ((await l1State(chairman)).all_done ? true : null),
+    { timeoutMs: 120_000, intervalMs: 1_500, label: 'все шаги подключения «Образования» приняты советом' })
+}
+
+/** Формы документов программы: без утверждённой редакции документ пайщику не выпустить. */
+async function approveForms(chairman: string): Promise<void> {
+  const pending = (await templates(chairman)).filter(t => t.extension_name === EXTENSION && t.approval === 'Required' && t.state !== 'Approved')
+  if (!pending.length)
+    return
+  // Пакет утверждается одним решением совета — выносим по пакетам.
+  const bundles = new Map<string, number[]>()
+  for (const t of pending.filter(x => x.state !== 'Pending'))
+    bundles.set(t.bundle ?? String(t.registry_id), [...(bundles.get(t.bundle ?? String(t.registry_id)) ?? []), t.registry_id])
+  const proposed: TemplateRow[] = []
+  for (const ids of bundles.values())
+    proposed.push(...await propose(ids))
+  const hashes = new Set([...pending, ...proposed].map(t => t.pending_hash).filter((h): h is string => Boolean(h)))
+  for (const hash of hashes)
+    await passDecision(chairman, hash, 'проект решения совета о формах документов «Образования»')
+  for (const t of pending)
+    await waitTemplate(chairman, t.registry_id, x => x.state === 'Approved', `форма ${t.registry_id} «Образования» утверждена`)
+}
+
+const OFFERS_STATE = 'query{ edubridgeOnboardingState{ parent{ kind requires_gate source registry_id signed_at } teacher{ kind requires_gate source registry_id signed_at } } }'
+
+/**
+ * Расширение установлено, включено, ЦПП принята советом, формы утверждены.
+ * Связка с Благоростом выключена: с ней столы Благороста остались бы только
+ * преподавателям, а это чужие сценарии.
+ */
+export async function educationOn(): Promise<void> {
+  const chairman = await tokenOf(CHAIRMAN)
+  const ext = await extensionRow(chairman)
+  if (!ext)
+    throw new Error('расширения edubridge нет в каталоге приложений стенда')
+  if (!ext.is_installed)
+    await gql(chairman, INSTALL, { d: { name: EXTENSION, enabled: true, config: { capital_integration: false } } })
+  else if (!ext.enabled)
+    await gql(chairman, UPDATE, { d: { name: EXTENSION, enabled: true, config: ext.config ?? {} } })
+
+  await passOnboarding(chairman)
+  // После последнего решения расширение перезапускается и открывает программы.
+  await waitFor(async () => {
+    const s = (await gql<any>(chairman, OFFERS_STATE)).edubridgeOnboardingState
+    return s.parent.source !== 'NOT_CONFIGURED' && s.teacher.source !== 'NOT_CONFIGURED' ? true : null
+  }, { timeoutMs: 180_000, intervalMs: 2_000, label: 'программы «Обучение» и «Преподавание» открыты в кооперативе' })
+  await approveForms(chairman)
+}
+
+/** Расширение выключено: его программы и шаблоны соседним наборам не видны. */
+export async function educationOff(config?: Record<string, unknown>): Promise<void> {
+  const chairman = await tokenOf(CHAIRMAN)
+  const ext = await extensionRow(chairman)
+  if (!ext?.is_installed || !ext.enabled)
+    return
+  // Настройки, которые набор менял на время своей работы, возвращаются тем же
+  // вызовом, что и выключение: отдельная правка настроек перезапустила бы
+  // расширение, и перезапуск мог бы обогнать выключение.
+  await gql(chairman, UPDATE, { d: { name: EXTENSION, enabled: false, config: config ?? ext.config ?? {} } })
+  await waitFor(async () => ((await templates(chairman)).some(t => t.extension_name === EXTENSION) ? null : true),
+    { timeoutMs: 60_000, intervalMs: 1_000, label: 'шаблоны выключенного «Образования» сняты с реестра' })
+}
+
+// ── Права стола ────────────────────────────────────────────────────────────
+
+/** Права пайщика на столах расширения — то, по чему рабочий стол показывает страницы. */
+export async function deskGrants(token: string | null): Promise<string[]> {
+  const d = await gql<any>(token, 'query{ getDesktop{ workspaces{ name extension_name grants } } }')
+  const own = (d.getDesktop.workspaces as any[]).filter(w => w.extension_name === EXTENSION)
+  return [...new Set(own.flatMap(w => (w.grants ?? []) as string[]))].sort()
+}
+
+// ── Оферты пайщика ─────────────────────────────────────────────────────────
+
+export type OfferKind = 'PARENT' | 'TEACHER'
+
+const OFFER_REGISTRY: Record<OfferKind, number> = {
+  PARENT: R.EducationParentOffer.registry_id,
+  TEACHER: R.EducationTeacherOffer.registry_id,
+}
+
+const GENERATE = 'mutation($i:GenerateAnyDocumentInput!){ generateDocument(input:$i){ full_title html hash meta binary } }'
+export const SIGN_OFFER = `mutation($i:EduSignOfferInput!){ edubridgeSignOffer(input:$i){
+  parent{ kind requires_gate source signed_at } teacher{ kind requires_gate source signed_at }
+} }`
+
+function number16(): string {
+  return crypto.randomBytes(8).toString('hex').toUpperCase()
+}
+
+function today(): string {
+  const d = new Date()
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()}`
+}
+
+export async function offersState(token: string): Promise<{ parent: any, teacher: any }> {
+  return (await gql<any>(token, OFFERS_STATE)).edubridgeOnboardingState
+}
+
+/** Экземпляр оферты так, как его собирает стол пайщика, с подписью пайщика. */
+export async function signedOffer(who: Who, token: string, kind: OfferKind): Promise<any> {
+  const d = await gql<any>(token, GENERATE, {
+    i: { data: { registry_id: OFFER_REGISTRY[kind], coopname: COOP, username: who.account, agreement_number: number16(), agreement_created_at: today() } },
+  })
+  return signDocument(who.wif, d.generateDocument, who.account, 1)
+}
+
+/** Пайщик подписывает оферту программы со стола. */
+export async function signOffer(who: Who, token: string, kind: OfferKind): Promise<{ parent: any, teacher: any }> {
+  const document = await signedOffer(who, token, kind)
+  return (await gql<any>(token, SIGN_OFFER, { i: { kind, document } })).edubridgeSignOffer
+}
+
+// ── Деньги пайщика ─────────────────────────────────────────────────────────
+
+const USER_WALLETS = 'query($u:String!){ getUserWallets(username:$u){ wallet_name available } }'
+
+/** Доступный остаток кошелька пайщика глазами узла. */
+export async function walletOf(token: string, username: string, wallet: string): Promise<number> {
+  const d = await gql<any>(token, USER_WALLETS, { u: username })
+  return amount((d.getUserWallets as any[]).find(w => w.wallet_name === wallet)?.available)
+}
+
+/** Паевой взнос деньгами и ожидание зеркала узла: пополнение идёт мимо контроллера. */
+export async function fundShare(who: Who, token: string, sum: number): Promise<void> {
+  const before = await walletOf(token, who.account, SHARE_WALLET)
+  await deposit(who.account, sum)
+  await waitFor(async () => ((await walletOf(token, who.account, SHARE_WALLET)) >= before + sum ? true : null),
+    { timeoutMs: 120_000, intervalMs: 1_000, label: `зеркало паевого кошелька ${who.account} после пополнения` })
+}
+
+// ── Курс ───────────────────────────────────────────────────────────────────
+
+export const COURSE_FIELDS = 'id title status fee_month starts_at guarantee_days lessons_per_month lessons_total lesson_minutes program_months minutes_per_month minutes_total teacher_usernames section_id'
+export const SAVE_SECTION = 'mutation($d:EduSaveSectionInput!){ edubridgeSaveSection(data:$d){ id title } }'
+export const CREATE_COURSE = `mutation($d:EduCourseInput!){ edubridgeCreateCourse(data:$d){ ${COURSE_FIELDS} } }`
+export const UPDATE_COURSE = `mutation($d:EduUpdateCourseInput!){ edubridgeUpdateCourse(data:$d){ ${COURSE_FIELDS} } }`
+export const SET_COURSE_STATUS = `mutation($d:EduSetCourseStatusInput!){ edubridgeSetCourseStatus(data:$d){ ${COURSE_FIELDS} } }`
+export const COURSE = `query($id:ID!){ edubridgeCourse(id:$id){ ${COURSE_FIELDS} } }`
+export const CATALOG_PAGE = 'query($f:EduCatalogFilterInput){ edubridgeCatalog(filter:$f){ totalCount items{ id title fee_month section_id } } }'
+export const CATALOG_COURSE = 'query($id:ID!){ edubridgeCatalogCourse(id:$id){ id title fee_month } }'
+
+/** Плановая ставка часа курсов набора. */
+export const PLANNED_RATE = '1000.0000 RUB'
+
+/** Длина суток гарантийного срока на стенде, секунд: полигон ставит короткие сутки, в работе — 86 400. */
+export const GUARANTEE_DAY_SECONDS = Number(process.env.BLACKBOX_GUARANTEE_DAY_SECONDS) || 86_400
+
+/**
+ * Условия курса, начавшегося сегодня, у которого гарантийный срок идёт ещё не
+ * меньше `seconds`: число дней подобрано под длину суток стенда. `ends_at` —
+ * когда срок кончится.
+ */
+export function guaranteeFor(seconds: number): { starts_at: string, guarantee_days: number, ends_at: number } {
+  const midnight = Math.floor(Date.now() / 86_400_000) * 86_400_000
+  const sinceMidnight = Math.floor((Date.now() - midnight) / 1000)
+  const guarantee_days = Math.max(1, Math.ceil((sinceMidnight + seconds) / GUARANTEE_DAY_SECONDS))
+  return { starts_at: dayFromNow(0), guarantee_days, ends_at: midnight + guarantee_days * GUARANTEE_DAY_SECONDS * 1000 }
+}
+
+/** День от сегодняшнего со сдвигом, YYYY-MM-DD. */
+export function dayFromNow(days: number): string {
+  return new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+}
+
+/** Параметры очного курса: доступ выдаётся пропуском, чужих площадок не нужно. */
+/** Окна расписания курса: вторник и четверг в 17:00, по столько минут; стоимость часа преподавателя — плановая ставка. */
+export function courseSlots(minutes: number, perWeek = 2, hourly = PLANNED_RATE): { weekday: number, time: string, minutes: number, hourly_rate: string }[] {
+  return [2, 4, 6, 1, 3, 5, 7].slice(0, perWeek).map(weekday => ({ weekday, time: '17:00', minutes, hourly_rate: hourly }))
+}
+
+/** Минут занятий в месяц по окнам — как считает сервер: минуты недели на четыре недели месяца. */
+export function monthMinutes(slots: { minutes: number }[]): number {
+  return slots.reduce((s, x) => s + x.minutes, 0) * 4
+}
+
+export function courseInput(sectionId: string, over: Record<string, unknown> = {}): Record<string, unknown> {
+  return {
+    title: `Курс внешнего слоя ${number16()}`,
+    section_id: sectionId,
+    description: 'Курс набора api-tests',
+    // Два часовых окна в неделю: 480 минут в месяц; программа четыре месяца.
+    schedule_slots: courseSlots(60),
+    program_months: 4,
+    guarantee_days: 14,
+    direction: 'ONSITE',
+    carrier: 'ONSITE',
+    ...over,
+  }
+}
+
+export async function createSection(token: string): Promise<string> {
+  const d = await gql<any>(token, SAVE_SECTION, { d: { title: `Раздел внешнего слоя ${number16()}` } })
+  return d.edubridgeSaveSection.id
+}
+
+const STARTED_GROUPS = 'query($id:ID!){ edubridgeCourseGroups(course_id:$id){ id status enrollment_open starts_at } }'
+const REOPEN_GROUP = 'mutation($d:EduUpdateGroupInput!){ edubridgeUpdateGroup(data:$d){ id enrollment_open } }'
+
+/**
+ * Набор в группу закрывается сам с дня начала занятий. Наборам нужен идущий
+ * курс с участниками — администратор открывает набор в начавшиеся группы
+ * курса снова, как делает это, принимая участника в идущую группу.
+ */
+export async function reopenEnrollment(token: string, courseId: string): Promise<void> {
+  const groups = (await gql<any>(token, STARTED_GROUPS, { id: courseId })).edubridgeCourseGroups as any[]
+  for (const group of groups) {
+    if (group.status !== 'ACTIVE' || group.enrollment_open) continue
+    await gql(token, REOPEN_GROUP, { d: { id: group.id, enrollment_open: true } })
+  }
+}
+
+/** День начала занятий курса наступил: набор в его группу закрыт и открывается администратором. */
+export function hasStarted(input: Record<string, unknown>): boolean {
+  return typeof input.starts_at === 'string' && input.starts_at <= dayFromNow(0)
+}
+
+/**
+ * Опубликованный курс; `startsInDays` — день начала занятий от сегодняшнего.
+ * У начавшегося курса набор открыт администратором снова: участники наборов записываются в идущую группу.
+ */
+export async function publishCourse(token: string, sectionId: string, startsInDays: number | null, over: Record<string, unknown> = {}): Promise<any> {
+  const input = courseInput(sectionId, { ...(startsInDays === null ? {} : { starts_at: dayFromNow(startsInDays) }), ...over })
+  const created = (await gql<any>(token, CREATE_COURSE, { d: input })).edubridgeCreateCourse
+  if (hasStarted(input)) await reopenEnrollment(token, created.id)
+  return (await gql<any>(token, SET_COURSE_STATUS, { d: { id: created.id, status: 'PUBLISHED' } })).edubridgeSetCourseStatus
+}
+
+// ── Обучающиеся и подписки ─────────────────────────────────────────────────
+
+export const LEARNER_FIELDS = 'id display_name recipient_type recipient_value is_self'
+export const ADD_LEARNER = `mutation($d:EduLearnerInput!){ edubridgeAddLearner(data:$d){ ${LEARNER_FIELDS} } }`
+export const UPDATE_LEARNER = `mutation($d:EduUpdateLearnerInput!){ edubridgeUpdateLearner(data:$d){ ${LEARNER_FIELDS} } }`
+export const REMOVE_LEARNER = 'mutation($id:ID!){ edubridgeRemoveLearner(id:$id) }'
+export const MY_LEARNERS = `query{ edubridgeMyLearners{ ${LEARNER_FIELDS} } }`
+
+export const ENROLLMENT_FIELDS = 'id learner_id course_id course_title period paid_until status access_state sub_hash paid_amount refunded_amount refund_reason cancelled_at close_pending'
+export const MY_ENROLLMENTS = `query{ edubridgeMyEnrollments{ ${ENROLLMENT_FIELDS} } }`
+export const QUOTE = `query($d:EduQuoteInput!){ edubridgeQuote(data:$d){
+  amount months base_amount discount_amount from_program to_convert available enough shortfall is_extension paid_until sub_hash group_id
+} }`
+export const CONVERT_STATEMENT = 'mutation($d:EduQuoteInput!){ edubridgeConvertStatement(data:$d){ full_title html hash meta binary } }'
+export const SUBSCRIBE = `mutation($d:EduSubscribeInput!){ edubridgeSubscribe(data:$d){ ${ENROLLMENT_FIELDS} } }`
+export const REFUND_PREVIEW = 'query($id:ID!){ edubridgeRefundPreview(enrollment_id:$id){ reason refund withheld minutes_paid minutes_used to_share } }'
+export const CANCEL_ENROLLMENT = `mutation($id:ID!){ edubridgeCancelEnrollment(enrollment_id:$id){ ${ENROLLMENT_FIELDS} } }`
+export const RETURN_BALANCE = 'query{ edubridgeReturnBalance{ available refunds total subscriptions } }'
+
+export async function addLearner(token: string, name: string, isSelf = false): Promise<any> {
+  const d = await gql<any>(token, ADD_LEARNER, {
+    d: { display_name: name, recipient_type: 'ONSITE', recipient_value: `пропуск-${number16()}`, is_self: isSelf },
+  })
+  return d.edubridgeAddLearner
+}
+
+export async function quoteOf(token: string, learnerId: string, courseId: string): Promise<any> {
+  return (await gql<any>(token, QUOTE, { d: { learner_id: learnerId, course_id: courseId, period: 'MONTH' } })).edubridgeQuote
+}
+
+/** Заявление о конвертации паевого взноса с подписью пайщика — по текущей раскладке оплаты. */
+export async function signedConvertStatement(who: Who, token: string, learnerId: string, courseId: string): Promise<any> {
+  const d = await gql<any>(token, CONVERT_STATEMENT, { d: { learner_id: learnerId, course_id: courseId, period: 'MONTH' } })
+  return signDocument(who.wif, d.edubridgeConvertStatement, who.account, 1)
+}
+
+/** Подписка на месяц: заявление о конвертации, подпись пайщика, оплата. */
+export async function subscribe(who: Who, token: string, learnerId: string, courseId: string): Promise<any> {
+  const document = await signedConvertStatement(who, token, learnerId, courseId)
+  const d = await gql<any>(token, SUBSCRIBE, { d: { learner_id: learnerId, course_id: courseId, period: 'MONTH', document } })
+  return d.edubridgeSubscribe
+}
+
+export async function enrollmentOf(token: string, id: string): Promise<any | undefined> {
+  const d = await gql<any>(token, MY_ENROLLMENTS)
+  return (d.edubridgeMyEnrollments as any[]).find(e => e.id === id)
+}
+
+// ── Преподаватель ──────────────────────────────────────────────────────────
+
+export const CONTRACT_FIELDS = 'contract_hash contract_number status decline_reason signed_at approved_at hourly_rate'
+export const SAVE_PROFILE = 'mutation($d:EduTeacherProfileInput!){ edubridgeSaveTeacherProfile(data:$d){ about hourly_rate rate_locked } }'
+export const MY_PROFILE = 'query{ edubridgeMyTeacherProfile{ about hourly_rate rate_locked } }'
+export const MY_CONTRACT = `query{ edubridgeMyContract{ ${CONTRACT_FIELDS} } }`
+export const SIGN_CONTRACT = `mutation($d:EduSignContractInput!){ edubridgeSignContract(data:$d){ ${CONTRACT_FIELDS} } }`
+export const ASSIGNMENT_FIELDS = 'id teacher_username course_id course_title period_from period_to minutes_per_month hourly_rate status'
+export const MY_ASSIGNMENTS = `query{ edubridgeMyAssignments{ ${ASSIGNMENT_FIELDS} } }`
+export const CREATE_ASSIGNMENT = `mutation($d:EduAssignmentInput!){ edubridgeCreateAssignment(data:$d){ ${ASSIGNMENT_FIELDS} } }`
+export const CLOSE_ASSIGNMENT = `mutation($id:ID!){ edubridgeCloseAssignment(id:$id){ ${ASSIGNMENT_FIELDS} } }`
+export const SET_ASSIGNMENT_RATE = `mutation($d:EduSetAssignmentRateInput!){ edubridgeSetAssignmentRate(data:$d){ ${ASSIGNMENT_FIELDS} } }`
+export const SET_TEACHER_RATE = 'mutation($d:EduSetTeacherRateInput!){ edubridgeSetTeacherRate(data:$d) }'
+export const TEACHERS = 'query{ edubridgeTeachers{ username about hourly_rate contract_number contract_status assignments_active assignments_total } }'
+
+/** Договор участия в хозяйственной деятельности с подписью преподавателя. */
+export async function signedContract(who: Who, token: string): Promise<{ document: any, contract_number: string }> {
+  const contract_number = number16()
+  const d = await gql<any>(token, GENERATE, {
+    i: {
+      data: {
+        registry_id: R.EducationParticipationContract.registry_id,
+        coopname: COOP,
+        username: who.account,
+        contract_number,
+        contract_created_at: today(),
+      },
+    },
+  })
+  return { document: await signDocument(who.wif, d.generateDocument, who.account, 1), contract_number }
+}
+
+const APPROVALS = `query($f:ApprovalFilter,$o:PaginationInput){ chairmanApprovals(filter:$f, options:$o){ items{
+  _id approval_hash status username callback_contract
+  document{ rawDocument{ full_title html hash meta binary } document{ version hash doc_hash meta_hash meta signatures{ id signer public_key signature signed_at signed_hash meta } } }
+} } }`
+const CONFIRM_APPROVAL = 'mutation($d:ConfirmApproveInput!){ chairmanConfirmApprove(data:$d){ _id status } }'
+
+/** Одобрение председателя по документу преподавателя (договор, акт приёма-передачи), которое ждёт решения. */
+export async function pendingContractApproval(username: string): Promise<any | undefined> {
+  const d = await gql<any>(await tokenOf(CHAIRMAN), APPROVALS, {
+    f: { coopname: COOP, username, statuses: ['PENDING'] },
+    o: { page: 1, limit: 50, sortOrder: 'DESC' },
+  })
+  return (d.chairmanApprovals.items as any[]).find(a => a.callback_contract === EXTENSION)
+}
+
+/** Председатель ставит вторую подпись на документе преподавателя со стола одобрений. */
+export async function approveContract(approval: any): Promise<void> {
+  const approved_document = await signDocument(CHAIRMAN.wif, approval.document.rawDocument, CHAIRMAN.account, 2, [approval.document.document])
+  await gql(await tokenOf(CHAIRMAN), CONFIRM_APPROVAL, {
+    d: { coopname: COOP, approval_hash: String(approval.approval_hash).toLowerCase(), approved_document },
+  })
+}
+
+/**
+ * Преподаватель подключён целиком: рассказ о себе, оферта, договор с подписью
+ * председателя. Ставку за час преподаватель себе не называет — её назначает
+ * администратор при приёме; по умолчанию она равна плановой ставке курсов набора.
+ */
+export async function onboardTeacher(who: Who, token: string, hourlyRate = PLANNED_RATE, opts: { approve?: boolean, about?: string } = {}): Promise<void> {
+  // Оферта первой: без неё сервер отказывает в сохранении профиля
+  // (EDUBRIDGE_TEACHER_OFFER_REQUIRED) — так показал засев стенда документации 12.10.2026.
+  await signOffer(who, token, 'TEACHER')
+  await gql(token, SAVE_PROFILE, { d: { about: opts.about ?? 'Веду занятия набора внешнего слоя' } })
+  // Подпись оферты уходит в цепь; право преподавателя сервер выводит из зеркала
+  // узла (PROGRAM_AGREEMENT_PORT), которое приходит позже ответа мутации —
+  // договор подписываем, когда сервер уже видит оферту.
+  await waitFor(async () => {
+    const r = await gqlRaw<any>(token, MY_CONTRACT)
+    if (!r.errors.length) return true
+    if (r.errors[0].code === 'EDUBRIDGE_TEACHER_OFFER_REQUIRED') return null
+    throw new ApiError(r.errors, r.status)
+  }, { timeoutMs: 60_000, intervalMs: 1_000, label: `оферта преподавателя ${who.account} в зеркале узла` })
+  const { document, contract_number } = await signedContract(who, token)
+  await gql(token, SIGN_CONTRACT, { d: { document, contract_number } })
+  await gql(await tokenOf(CHAIRMAN), SET_TEACHER_RATE, { d: { username: who.account, hourly_rate: hourlyRate } })
+  if (opts.approve === false)
+    return
+  const approval = await waitFor(() => pendingContractApproval(who.account),
+    { timeoutMs: 60_000, intervalMs: 1_000, label: `договор преподавателя ${who.account} на подписи у председателя` })
+  await approveContract(approval)
+  await waitFor(async () => ((await gql<any>(token, MY_CONTRACT)).edubridgeMyContract?.status === 'ACTIVE' ? true : null),
+    { timeoutMs: 60_000, intervalMs: 1_000, label: `договор преподавателя ${who.account} действует` })
+}
+
+// ── Гарантийные условия ────────────────────────────────────────────────────
+
+export const CLAIM_FIELDS = 'id number status reason links amount created_at decided_at'
+export const MY_GUARANTEES = `query{ edubridgeMyGuarantees{ enrollment_id available guarantee_until amount claim{ ${CLAIM_FIELDS} } } }`
+export const GUARANTEE_STATEMENT = 'mutation($d:EduGuaranteeStatementInput!){ edubridgeGuaranteeStatement(data:$d){ full_title html hash meta binary } }'
+export const SUBMIT_GUARANTEE = `mutation($d:EduSubmitGuaranteeClaimInput!){ edubridgeSubmitGuaranteeClaim(data:$d){ ${CLAIM_FIELDS} } }`
+
+export async function guaranteeOf(token: string, enrollmentId: string): Promise<any | undefined> {
+  const d = await gql<any>(token, MY_GUARANTEES)
+  return (d.edubridgeMyGuarantees as any[]).find(g => g.enrollment_id === enrollmentId)
+}
+
+/** Участник подаёт подписанное заявление об аннулировании подписки по гарантийным условиям. */
+export async function submitGuaranteeClaim(who: Who, token: string, enrollmentId: string, reason: string, links: string[] = []): Promise<any> {
+  const data = { enrollment_id: enrollmentId, reason, links }
+  const statement = (await gql<any>(token, GUARANTEE_STATEMENT, { d: data })).edubridgeGuaranteeStatement
+  const document = await signDocument(who.wif, statement, who.account, 1)
+  return (await gql<any>(token, SUBMIT_GUARANTEE, { d: { ...data, document } })).edubridgeSubmitGuaranteeClaim
+}
+
+/** Вопрос совету, проект которого несёт метку — идентификатор заявления либо ключ взноса. */
+export async function agendaWith(marker: string): Promise<AgendaRow> {
+  const chairman = await tokenOf(CHAIRMAN)
+  return waitFor(async () => {
+    // Вопрос свободного решения несёт метку в описании; вопрос, поставленный контрактом, — в хэше повестки.
+    const row = (await agendaAll(chairman)).find(a => a.meta.includes(marker) || a.hash.toLowerCase() === marker.toLowerCase())
+    return row ? agendaByHash(chairman, row.hash) : null
+  }, { timeoutMs: 90_000, intervalMs: 1_500, label: `вопрос совету с меткой ${marker.slice(0, 12)}` })
+}
+
+/**
+ * Вопрос совету по заявлению о гарантии ставит в повестку контракт: тип
+ * решения `eduguarantee`, документ вопроса — заявление участника с его номером.
+ */
+export async function guaranteeAgenda(claim: { number: string }): Promise<AgendaRow> {
+  const chairman = await tokenOf(CHAIRMAN)
+  const number = claim.number.toLowerCase()
+  return waitFor(async () => {
+    for (const row of (await agendaAll(chairman)).filter(a => a.type === 'eduguarantee')) {
+      const full = await agendaByHash(chairman, row.hash)
+      if (String(full?.statementMeta?.claim_hash ?? '').toLowerCase().startsWith(number)) return full
+    }
+    return null
+  }, { timeoutMs: 90_000, intervalMs: 1_500, label: `вопрос совету по заявлению № ЗАП-${claim.number}` })
+}
+
+/**
+ * Совет удовлетворяет заявление: голоса «за», председатель подписывает
+ * протокол (3014) и утверждает решение — контракт по обратному вызову сам
+ * аннулирует подписку и возвращает взнос.
+ */
+export async function councilGrants(agenda: AgendaRow): Promise<void> {
+  const chairman = await tokenOf(CHAIRMAN)
+  await vote(agenda, 'for')
+  const meta = agenda.statementMeta
+  const protocol = await waitFor(() => gql<any>(chairman, GENERATE, {
+    i: { data: { registry_id: R.EducationGuaranteeDecision.registry_id, coopname: COOP, username: agenda.username, decision_id: agenda.id, claim_hash: meta.claim_hash, course_title: meta.course_title, amount: meta.amount } },
+  }), { timeoutMs: 90_000, intervalMs: 2_000, label: `протокол решения ${agenda.id} об аннулировании подписки` })
+  const signed = await signDocument(CHAIRMAN.wif, protocol.generateDocument, CHAIRMAN.account, 1)
+  await gql(chairman, 'mutation($d:AuthorizeDecisionInput!){ authorizeDecision(data:$d){ __typename } }', {
+    d: { coopname: COOP, chairman: CHAIRMAN.account, decision_id: agenda.id, document: signed },
+  })
+}
+
+/** Совет отклоняет заявление: голоса «против» и отклонение вопроса. */
+export async function councilDeclines(agenda: AgendaRow): Promise<void> {
+  await vote(agenda, 'against')
+  await declineDecisionOnChain(agenda.id)
+}
+
+/**
+ * Вопрос о приёме взноса преподавателя ставит в повестку контракт: совет
+ * голосует, председатель утверждает решение в цепи — расширение узнаёт исход
+ * обратным вызовом и само выпускает протокол.
+ */
+export async function councilGrantsRid(agenda: AgendaRow, contribution: { rid_hash: string, amount: string, teacher_username: string }): Promise<void> {
+  const chairman = await tokenOf(CHAIRMAN)
+  await vote(agenda, 'for')
+  // Протокол совета (3009) несёт номер решения: расширение берёт его из
+  // подписанного председателем документа, как при утверждении со стола совета.
+  const protocol = await waitFor(() => gql<any>(chairman, GENERATE, {
+    i: { data: { registry_id: R.EducationRidDecision.registry_id, coopname: COOP, username: contribution.teacher_username, decision_id: agenda.id, rid_hash: contribution.rid_hash, amount: contribution.amount } },
+  }), { timeoutMs: 90_000, intervalMs: 2_000, label: `протокол решения ${agenda.id} о приёме взноса преподавателя` })
+  const signed = await signDocument(CHAIRMAN.wif, protocol.generateDocument, CHAIRMAN.account, 1)
+  await gql(chairman, 'mutation($d:AuthorizeDecisionInput!){ authorizeDecision(data:$d){ __typename } }', {
+    d: { coopname: COOP, chairman: CHAIRMAN.account, decision_id: agenda.id, document: signed },
+  })
+}
+
+/** Совет отклонил вопрос о приёме взноса преподавателя. */
+export async function councilDeclinesRid(agenda: AgendaRow): Promise<void> {
+  await vote(agenda, 'against')
+  await declineDecisionOnChain(agenda.id)
+}
+
+// ── Занятия и взносы результатами ──────────────────────────────────────────
+
+const DOC = 'full_title html hash meta binary'
+const SIGNED = 'version hash doc_hash meta_hash meta signatures{ id signer public_key signature signed_at signed_hash meta }'
+export const LESSON_FIELDS = 'id course_id course_title group_id group_title lesson_number teacher_username assignment_id status origin held_at ends_at report_until overdue reported_at duration_minutes materials topic contribution_id learners_count'
+export const CONTRIBUTION_FIELDS = 'id teacher_username assignment_id rid_hash rid_type amount status description links hold_until storage_act_hash statement_hash act_hash council_decision_id council_outcome decision_hash decline_reason decided_at'
+export const REPORT_LESSON = `mutation($d:EduLessonReportInput!){ edubridgeReportLesson(data:$d){ ${LESSON_FIELDS} } }`
+export const MY_LESSONS = `query{ edubridgeMyLessons{ ${LESSON_FIELDS} } }`
+export const GROUP_LESSONS = `query($id:ID!){ edubridgeGroupLessons(group_id:$id){ ${LESSON_FIELDS} } }`
+export const LESSON_CALENDAR = `query($f:EduLessonCalendarFilter){ edubridgeLessonCalendar(filter:$f){ ${LESSON_FIELDS} } }`
+export const PLAN_LESSON = `mutation($d:EduPlanLessonInput!){ edubridgePlanLesson(data:$d){ ${LESSON_FIELDS} } }`
+export const MOVE_LESSON = `mutation($d:EduMoveLessonInput!){ edubridgeMoveLesson(data:$d){ ${LESSON_FIELDS} } }`
+export const CANCEL_LESSON = `mutation($id:ID!){ edubridgeCancelLesson(lesson_id:$id){ ${LESSON_FIELDS} } }`
+export const SET_GROUP_SCHEDULE = `mutation($d:EduSetGroupScheduleInput!){ edubridgeSetGroupSchedule(data:$d){ id schedule report_days schedule_slots{ weekday time minutes assignment_id } } }`
+export const MY_CONTRIBUTIONS = `query{ edubridgeMyContributions{ ${CONTRIBUTION_FIELDS} } }`
+export const ALL_CONTRIBUTIONS = `query{ edubridgeContributions{ ${CONTRIBUTION_FIELDS} } }`
+export const RID_STORAGE_ACT = `mutation($id:ID!){ edubridgeRidStorageAct(contribution_id:$id){ ${DOC} } }`
+export const HOLD_CONTRIBUTION = `mutation($d:EduHoldContributionInput!){ edubridgeHoldContribution(data:$d){ ${CONTRIBUTION_FIELDS} } }`
+export const RID_STATEMENT = `mutation($id:ID!){ edubridgeRidStatement(contribution_id:$id){ ${DOC} } }`
+export const SUBMIT_CONTRIBUTION = `mutation($d:EduSubmitContributionInput!){ edubridgeSubmitContribution(data:$d){ ${CONTRIBUTION_FIELDS} } }`
+export const RID_ACT = `mutation($id:ID!){ edubridgeRidAct(contribution_id:$id){ ${DOC} } }`
+export const SIGN_ACT = `mutation($d:EduSignActInput!){ edubridgeSignAct(data:$d){ ${CONTRIBUTION_FIELDS} } }`
+export const SETTLEMENT = 'query{ edubridgeMySettlement{ accepted_total program_share available last_accepted_at } }'
+
+export async function contributionOf(token: string, id: string): Promise<any | undefined> {
+  const d = await gql<any>(token, MY_CONTRIBUTIONS)
+  return (d.edubridgeMyContributions as any[]).find(c => c.id === id)
+}
+
+/** Отчёт о занятии; возвращает строку журнала и черновик взноса по ней. */
+/** Группы, которым помощник уже поставил долгий срок на отчёт: занятия в тестах назначаются на прошедшее время. */
+const longReportWindow = new Set<string>()
+
+/** Занятие группы в календаре: администратор назначает его отдельно от расписания; по умолчанию — два часа назад. */
+export async function planLesson(groupId: string, over: Record<string, unknown> = {}): Promise<any> {
+  const chairman = await tokenOf(CHAIRMAN)
+  if (!longReportWindow.has(groupId)) {
+    // Внеочередные занятия тестов идут из резерва: окна по дням сняты, резерв большой; стоимость резерва — по плановой ставке.
+    await gql(chairman, SET_GROUP_SCHEDULE, { d: { group_id: groupId, slots: [{ weekday: 8, time: '', minutes: 600, hourly_rate: PLANNED_RATE }], report_days: 365 } })
+    longReportWindow.add(groupId)
+  }
+  const d = { group_id: groupId, held_at: new Date(Date.now() - 2 * 3600_000).toISOString(), ...over }
+  return (await gql<any>(chairman, PLAN_LESSON, { d })).edubridgePlanLesson
+}
+
+/** Идущая группа курса по допуску преподавателя: занятия календаря и отчёты живут в ней. */
+export async function groupOfAssignment(token: string, assignmentId: string, groupId?: string): Promise<{ assignment: any, group: any }> {
+  const assignment = ((await gql<any>(token, MY_ASSIGNMENTS)).edubridgeMyAssignments as any[]).find(a => a.id === assignmentId)
+  if (!assignment)
+    throw new Error(`допуск ${assignmentId} преподавателю не виден`)
+  const groups = (await gql<any>(await tokenOf(CHAIRMAN), STARTED_GROUPS, { id: assignment.course_id })).edubridgeCourseGroups as any[]
+  const group = groupId ? groups.find(g => g.id === groupId) : groups.find(g => g.status === 'ACTIVE') ?? groups[0]
+  if (!group)
+    throw new Error(`у курса ${assignment.course_id} нет группы`)
+  return { assignment, group }
+}
+
+/**
+ * Занятие календаря под отчёт: запланированное занятие группы с этим номером
+ * либо новое занятие сверх расписания на два часа назад (номер выдаёт сервер:
+ * наименьший свободный в программе).
+ */
+export async function calendarLesson(token: string, assignmentId: string, lessonNumber: number, over: Record<string, unknown> = {}): Promise<any> {
+  const { assignment, group } = await groupOfAssignment(token, assignmentId, over.group_id as string | undefined)
+  const planned = ((await gql<any>(token, GROUP_LESSONS, { id: group.id })).edubridgeGroupLessons as any[])
+    .find(l => l.lesson_number === lessonNumber && l.status !== 'CANCELLED')
+  if (planned)
+    return planned
+  const held_at = typeof over.held_at === 'string' ? new Date(over.held_at as string) : new Date(Date.now() - 2 * 3600_000)
+  // Занятие не раньше дня начала занятий группы: контракт сравнивает с началом дня.
+  const floor = group.starts_at ? new Date(group.starts_at).getTime() + 1000 : 0
+  return planLesson(group.id, { assignment_id: assignment.id, held_at: new Date(Math.max(held_at.getTime(), floor)).toISOString() })
+}
+
+/** Отчёт преподавателя по занятию календаря с этим номером; занятия в календаре нет — оно назначается. */
+export async function reportLesson(token: string, assignmentId: string, lessonNumber: number, over: Record<string, unknown> = {}): Promise<{ lesson: any, contribution: any }> {
+  const planned = await calendarLesson(token, assignmentId, lessonNumber, over)
+  const d = { lesson_id: planned.id, materials: [`https://example.org/lesson-${lessonNumber}`], topic: `Тема занятия ${lessonNumber}`, ...pick(over, ['materials', 'topic']) }
+  const lesson = (await gql<any>(token, REPORT_LESSON, { d })).edubridgeReportLesson
+  return { lesson, contribution: lesson.contribution_id ? await contributionOf(token, lesson.contribution_id) : null }
+}
+
+/** Тот же отчёт, но ожидается отказ: возвращает ошибку сервера. */
+export async function reportLessonError(token: string, assignmentId: string, lessonNumber: number, over: Record<string, unknown> = {}): Promise<GqlError | null> {
+  const planned = await calendarLesson(token, assignmentId, lessonNumber, over)
+  return gqlError(token, REPORT_LESSON, { d: { lesson_id: planned.id, materials: ['https://example.org/x'], ...pick(over, ['materials', 'topic']) } })
+}
+
+function pick(source: Record<string, unknown>, keys: string[]): Record<string, unknown> {
+  return Object.fromEntries(keys.filter(k => source[k] !== undefined).map(k => [k, source[k]]))
+}
+
+/** Преподаватель подписывает акт передачи материалов на ответственное хранение. */
+export async function holdMaterials(who: Who, token: string, contributionId: string): Promise<any> {
+  const act = (await gql<any>(token, RID_STORAGE_ACT, { id: contributionId })).edubridgeRidStorageAct
+  const document = await signDocument(who.wif, act, who.account, 1)
+  return (await gql<any>(token, HOLD_CONTRIBUTION, { d: { contribution_id: contributionId, document } })).edubridgeHoldContribution
+}
+
+/** Преподаватель подписывает заявление о паевом взносе результатом. */
+export async function submitStatement(who: Who, token: string, contributionId: string): Promise<any> {
+  const statement = (await gql<any>(token, RID_STATEMENT, { id: contributionId })).edubridgeRidStatement
+  const document = await signDocument(who.wif, statement, who.account, 1)
+  return (await gql<any>(token, SUBMIT_CONTRIBUTION, { d: { contribution_id: contributionId, document } })).edubridgeSubmitContribution
+}
+
+/** Преподаватель подписывает акт приёма-передачи после решения совета. */
+export async function signTransferAct(who: Who, token: string, contributionId: string): Promise<any> {
+  const act = (await gql<any>(token, RID_ACT, { id: contributionId })).edubridgeRidAct
+  const document = await signDocument(who.wif, act, who.account, 1)
+  return (await gql<any>(token, SIGN_ACT, { d: { contribution_id: contributionId, document } })).edubridgeSignAct
+}
+
+/**
+ * Акт приёма-передачи преподавателя в запросах одобрений председателя: первая
+ * подпись стоит, вторую ставит председатель тем же путём, что и на договоре.
+ */
+export const pendingActApproval = pendingContractApproval
+export const approveAct = approveContract

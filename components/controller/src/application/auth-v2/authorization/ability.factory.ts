@@ -52,25 +52,26 @@ export class AbilityFactory {
       can('read', 'Certificate', owner);
       can(['read', 'update'], 'Session', owner);
       can('manage', 'RecoveryStrategy', owner); // вкл. настройки 2FA
+      // Документы своего выхода из кооператива пайщик формирует сам: мутации
+      // генерации называют выходящего полем `username`.
+      can('generate', 'MembershipExit', { username: user.username });
     }
 
-    // Member — член совета: read-only надзор + роль второго подписанта critical-action.
+    // Member — член совета: read-only надзор.
     if (coreRoles.includes('Member')) {
       can('read', 'Participant');
       can('read', 'VerificationRule');
-      can('read', 'CriticalAction');
       can('read', 'AuditEvent');
-      can('confirm', 'CriticalAction'); // второй подписант (Story 6.8)
+      can('generate', 'MembershipExit'); // документы выхода любого пайщика
     }
 
-    // Chairman — председатель: write-модерация + инициация critical-action.
+    // Chairman — председатель: write-модерация.
     if (coreRoles.includes('Chairman')) {
       can('manage', 'VerificationRule');
       can('manage', 'CoopSettings');
       can('update', 'Participant'); // назначение ролей (Story 6.6)
       can('create', 'Capability'); // выдача точечных capabilities (Story 6.7)
       can('manage', 'CapabilitySet'); // назначение наборов возможностей (Story 6.11)
-      can('create', 'CriticalAction'); // инициатор; финал — только 2 подписи (Story 6.8)
     }
 
     // --- Layer 2: access_rules. allow — первыми, deny — последними, чтобы deny

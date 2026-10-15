@@ -37,6 +37,7 @@ import {
 } from '~/domain/payment-method/ports/payment-method-domain.port';
 import { LoadContactsInteractor } from './load-contacts.interactor';
 import { isRegistrationOpen } from '~/domain/system/utils/is-registration-open.util';
+import { DomainError } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class SystemInteractor {
@@ -66,7 +67,7 @@ export class SystemInteractor {
     // 3. Статус 'initialized' (предустановка через server_secret уже выполнена, теперь устанавливаем ключ)
     if (existingMono && existingMono.status) {
       if (existingMono.status !== SystemStatus.install && existingMono.status !== SystemStatus.initialized) {
-        throw new Error('Установка ключа невозможна. Система находится в статусе: ' + existingMono.status);
+        throw DomainError.conflict('SYSTEM_INSTALL_KEY_STATUS_INVALID', { status: existingMono.status });
       }
     }
 
@@ -104,11 +105,24 @@ export class SystemInteractor {
     };
   }
 
+  /**
+   * Установка совета и данных организации до активации кооператива открыта
+   * без входа — учётных записей ещё нет. Единственное, что отличает владельца
+   * от постороннего, — код установки: его выдаёт `startInstall` тому, кто
+   * показал ключ кооператива. Провайдер с межсервисным секретом кода не имеет.
+   */
+  async assertInstallCode(code: string | undefined, trusted: boolean): Promise<void> {
+    if (trusted) return;
+    if (!code || !(await this.monoStatusRepository.validateInstallCode(code))) {
+      throw DomainError.forbidden('SYSTEM_INSTALL_CODE_INVALID_RESTART');
+    }
+  }
+
   async getInstallationStatus(data: GetInstallationStatusInputDomainInterface): Promise<InstallationStatusDomainInterface> {
     // Проверяем валидность кода установки
     const isValidCode = await this.monoStatusRepository.validateInstallCode(data.install_code);
     if (!isValidCode) {
-      throw new Error('Неверный или истекший код установки');
+      throw DomainError.badRequest('SYSTEM_INSTALL_CODE_INVALID');
     }
 
     // Получаем mono документ для получения дополнительных данных
@@ -148,6 +162,11 @@ export class SystemInteractor {
   }
 
   async setWif(data: SetWifInputDomainInterface): Promise<void> {
+    // Узел подписывает только ключом кооператива: личные ключи пайщиков в его
+    // хранилище не принимаются, даже верные.
+    if (data.username !== config.coopname) {
+      throw DomainError.forbidden('SYSTEM_VAULT_COOPERATIVE_KEY_ONLY');
+    }
     await this.wifInteractor.setWif(data);
   }
 
@@ -165,7 +184,7 @@ export class SystemInteractor {
 
     // Проверяем, что статус действительно изменился на активный
     if (systemInfo.system_status !== SystemStatus.active) {
-      throw new Error('Система не была правильно установлена: статус не изменился на активный');
+      throw DomainError.badRequest('SYSTEM_INSTALL_NOT_ACTIVE');
     }
 
     return systemInfo;

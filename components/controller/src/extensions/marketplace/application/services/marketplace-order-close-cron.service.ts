@@ -1,7 +1,7 @@
+import { TableStore, isNull, lessOrEqual } from '@coopenomics/extension-kit';
+import { MARKETPLACE_ORDER_STORE } from '../../infrastructure/database/marketplace-stores';
 import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { InjectRepository } from '@nestjs/typeorm';
-import { IsNull, LessThanOrEqual, Repository } from 'typeorm';
 import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { platformSettings } from '@coopenomics/extension-kit';
 import type { MarketContract } from 'cooptypes';
@@ -15,6 +15,13 @@ import {
 /** Сколько кандидатов закрываем за один прогон — защита от лавины сабмитов. */
 const CLOSE_BATCH_LIMIT = 200;
 
+/** Уценка рассчитана бэкендом, а цепь её ещё не отзеркалила. */
+export function isMarkdownPending(order: { markdown_due: string | null; markdown_cost: string | null }): boolean {
+  const due = Number.parseFloat(order.markdown_due ?? '0');
+  const done = Number.parseFloat(order.markdown_cost ?? '0');
+  return due > 0 && !(done > 0);
+}
+
 /**
  * Крон-закрытие выданных заказов после выхода гарантийного срока (принцип
  * конечного жизненного цикла RAM-записей: ничего не висит на цепи навсегда).
@@ -27,12 +34,17 @@ const CLOSE_BATCH_LIMIT = 200;
  * остаётся кандидатом следующего прогона. После успешного закрытия дельта
  * парсера (present=false) снимает `on_chain_present`, и заказ выпадает из
  * выборки; история заказа остаётся в PG и журнале действий.
+ *
+ * Заказ с рассчитанной, но не проведённой на цепи уценкой (`markdown_due`
+ * без `markdown_cost`) не закрывается: после закрытия запись стёрта и
+ * уценку уже не провести — разница навсегда осталась бы на счёте 10
+ * (задача 99D-15). Такой заказ ждёт крон повтора уценки.
  */
 @Injectable()
 export class MarketplaceOrderCloseCronService implements OnModuleInit {
   constructor(
-    @InjectRepository(MarketplaceOrderEntity, 'marketplace')
-    private readonly orderRepo: Repository<MarketplaceOrderEntity>,
+    @Inject(MARKETPLACE_ORDER_STORE)
+private readonly orderRepo: TableStore<MarketplaceOrderEntity>,
     @Inject(MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT)
     private readonly chainPort: MarketplaceCanonicalBlockchainPort,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
@@ -57,20 +69,23 @@ export class MarketplaceOrderCloseCronService implements OnModuleInit {
       status: MarketplaceOrderStatuses.RECEIVED,
       on_chain_present: true,
     };
-    const candidates = await this.orderRepo.find({
-      where: [
-        { ...base, warranty_until: IsNull() },
-        { ...base, warranty_until: LessThanOrEqual(now) },
-      ],
-      take: CLOSE_BATCH_LIMIT,
-      order: { warranty_until: 'ASC' },
-    });
+    const candidates = await this.orderRepo.find([
+        { ...base, warranty_until: isNull() },
+        { ...base, warranty_until: lessOrEqual(now) },
+      ], { order: { warranty_until: 'ASC' }, limit: CLOSE_BATCH_LIMIT });
 
     if (candidates.length === 0) return;
 
     let closed = 0;
     let skipped = 0;
     for (const order of candidates) {
+      if (isMarkdownPending(order)) {
+        skipped++;
+        this.logger.warn(
+          `[ORDER_CLOSE_CRON] заказ ${order.order_hash} не закрыт: уценка ${order.markdown_due} ещё не проведена на цепи`
+        );
+        continue;
+      }
       try {
         await this.chainPort.closeOrder({
           coopname,

@@ -4,31 +4,31 @@
     //- Заголовок организации — внутри карточки (head), чтобы не выглядел
     //- оторванным от полей. Отделён линией от сетки реквизитов.
     header.contacts-card__head
-      span.contacts-card__eyebrow Контактные данные
-      h1.contacts-card__title {{ contacts?.full_name || 'Организация' }}
+      span.contacts-card__eyebrow {{ $t('contacts.contactsPage.eyebrow') }}
+      h1.contacts-card__title {{ contacts?.full_name || $t('contacts.contactsPage.defaultOrgName') }}
 
     //- Реквизиты и председатель — единая сетка полей.
     .contacts-grid
       .field
-        span.field__label ИНН
+        span.field__label {{ $t('contacts.contactsPage.innLabel') }}
         span.field__value {{ displayValue(contacts?.details?.inn) }}
       .field
-        span.field__label ОГРН
+        span.field__label {{ $t('contacts.contactsPage.ogrnLabel') }}
         span.field__value {{ displayValue(contacts?.details?.ogrn) }}
       .field(v-if='chairman')
-        span.field__label Председатель совета
+        span.field__label {{ $t('contacts.contactsPage.chairmanLabel') }}
         span.field__value {{ chairman }}
 
     //- Контакты — те же поля, значения-ссылки, без иконок и заголовка.
     .contacts-grid.contacts-grid--contacts
       .field(v-if='contacts?.phone')
-        span.field__label Телефон
+        span.field__label {{ $t('contacts.contactsPage.phoneLabel') }}
         a.field__value.field__value--link(:href='`tel:${phoneHref}`') {{ contacts.phone }}
       .field(v-if='contacts?.email')
         span.field__label Email
         a.field__value.field__value--link(:href='`mailto:${contacts.email}`') {{ contacts.email }}
       .field.field--wide(v-if='contacts?.full_address')
-        span.field__label Адрес
+        span.field__label {{ $t('contacts.contactsPage.addressLabel') }}
         span.field__value {{ contacts.full_address }}
 </template>
 

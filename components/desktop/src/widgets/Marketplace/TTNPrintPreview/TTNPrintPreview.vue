@@ -4,17 +4,13 @@
       <BaseButton variant="primary" @click="print">
         <template #icon-left>
           <q-icon name="print" size="16px" />
-        </template>
-        Печать
-      </BaseButton>
+        </template> {{ $t('marketplace.ttnPrintPreview.printButton') }} </BaseButton>
       <BaseButton variant="ghost" @click="download">
         <template #icon-left>
           <q-icon name="download" size="16px" />
-        </template>
-        Скачать
-      </BaseButton>
+        </template> {{ $t('common.action.download') }} </BaseButton>
       <q-space />
-      <span class="text-caption text-grey-7">Формат А4 (альбомная, 297×210 мм)</span>
+      <span class="text-caption text-grey-7">{{ $t('marketplace.ttnPrintPreview.formatCaption') }}</span>
     </div>
 
     <div ref="viewportRef" class="mp-ttn__viewport" :style="{ height: viewportHeight }">
@@ -22,51 +18,51 @@
         <div ref="sheetRef" class="mp-ttn__sheet">
           <div class="mp-ttn__topbar">
         <div v-if="qrDataUrl" class="mp-ttn__code">
-          <img :src="qrDataUrl" alt="QR-код приёмки партии" class="mp-ttn__code-img" />
+          <img :src="qrDataUrl" :alt="$t('marketplace.ttnPrintPreview.qrAltText')" class="mp-ttn__code-img" />
           <div v-if="data.qrCode" class="mp-ttn__code-text">{{ data.qrCode }}</div>
         </div>
       </div>
 
       <header class="mp-ttn__head">
-        <div class="mp-ttn__doctype">Товарно-транспортная накладная</div>
-        <div class="mp-ttn__meta">№ {{ data.number }} · Дата составления {{ formatDate(data.date) }}</div>
-        <div class="mp-ttn__sub-note">Приёмка партии оператором КУ — скан QR в правом верхнем углу либо ввод кода вручную</div>
+        <div class="mp-ttn__doctype">{{ $t('marketplace.ttnPrintPreview.documentTitle') }}</div>
+        <div class="mp-ttn__meta">№ {{ data.number }} {{ $t('marketplace.ttnPrintPreview.issueDateCaption') }} {{ formatDate(data.date) }}</div>
+        <div class="mp-ttn__sub-note">{{ $t('marketplace.ttnPrintPreview.qrHint') }}</div>
       </header>
 
       <div class="mp-ttn__parties">
         <div class="mp-ttn__party">
-          <span class="mp-ttn__party-lbl">Грузоотправитель</span>
+          <span class="mp-ttn__party-lbl">{{ $t('marketplace.ttnPrintPreview.shipperLabel') }}</span>
           <span class="mp-ttn__party-val">{{ data.supplier }}<template v-if="data.loadingAddress">, {{ data.loadingAddress }}</template></span>
         </div>
         <div class="mp-ttn__party">
-          <span class="mp-ttn__party-lbl">Грузополучатель</span>
+          <span class="mp-ttn__party-lbl">{{ $t('marketplace.ttnPrintPreview.consigneeLabel') }}</span>
           <span class="mp-ttn__party-val">{{ data.recipient }}<template v-if="data.recipientAddress">, {{ data.recipientAddress }}</template></span>
         </div>
         <div class="mp-ttn__party">
-          <span class="mp-ttn__party-lbl">Перевозчик (экспедитор)</span>
-          <span class="mp-ttn__party-val">{{ data.expeditorName || '—' }}<template v-if="data.expeditorPhone">, тел. {{ data.expeditorPhone }}</template><template v-if="data.vehicleNumber">, ТС {{ data.vehicleNumber }}</template></span>
+          <span class="mp-ttn__party-lbl">{{ $t('marketplace.ttnPrintPreview.carrierLabel') }}</span>
+          <span class="mp-ttn__party-val">{{ data.expeditorName || '—' }}<template v-if="data.expeditorPhone">{{ $t('marketplace.ttnPrintPreview.phonePrefix') }} {{ data.expeditorPhone }}</template><template v-if="data.vehicleNumber">{{ $t('marketplace.ttnPrintPreview.vehiclePrefix') }} {{ data.vehicleNumber }}</template></span>
         </div>
         <div v-if="datesParts.length" class="mp-ttn__party">
-          <span class="mp-ttn__party-lbl">Сроки перевозки</span>
+          <span class="mp-ttn__party-lbl">{{ $t('marketplace.ttnPrintPreview.transportDatesLabel') }}</span>
           <span class="mp-ttn__party-val">{{ datesParts.join(' · ') }}</span>
         </div>
       </div>
 
-      <div class="mp-ttn__section-title">1. Товарный раздел (заполняется грузоотправителем)</div>
+      <div class="mp-ttn__section-title">{{ $t('marketplace.ttnPrintPreview.goodsSectionTitle') }}</div>
 
-      <table class="mp-ttn__items">
+      <BaseMarkupTable class="mp-ttn__items" separator="cell" flat>
         <thead>
           <tr>
             <th>№</th>
-            <th>Артикул</th>
-            <th>Наименование товара (груза)</th>
-            <th>Ед. изм.</th>
-            <th>Вид упаковки</th>
-            <th>В коробке</th>
-            <th>Кол-во мест</th>
-            <th>Цена, руб.</th>
-            <th>Кол-во</th>
-            <th>Сумма, руб.</th>
+            <th>{{ $t('marketplace.ttnPrintPreview.column.sku') }}</th>
+            <th>{{ $t('marketplace.ttnPrintPreview.column.name') }}</th>
+            <th>{{ $t('marketplace.ttnPrintPreview.column.unit') }}</th>
+            <th>{{ $t('marketplace.ttnPrintPreview.column.packageType') }}</th>
+            <th>{{ $t('marketplace.ttnPrintPreview.column.perBox') }}</th>
+            <th>{{ $t('marketplace.ttnPrintPreview.column.boxCount') }}</th>
+            <th>{{ $t('marketplace.ttnPrintPreview.column.price') }}</th>
+            <th>{{ $t('marketplace.ttnPrintPreview.column.quantity') }}</th>
+            <th>{{ $t('marketplace.ttnPrintPreview.column.amount') }}</th>
           </tr>
         </thead>
         <tbody>
@@ -75,7 +71,7 @@
             <td>{{ i.sku }}</td>
             <td class="mp-ttn__cell-name">{{ i.title }}</td>
             <td>{{ i.unit }}</td>
-            <td>{{ i.boxes != null ? 'коробка' : '—' }}</td>
+            <td>{{ i.boxes != null ? $t('marketplace.ttnPrintPreview.boxUnitWord') : '—' }}</td>
             <td class="text-right">{{ i.unitsPerBox != null ? i.unitsPerBox : '—' }}</td>
             <td class="text-right">{{ i.boxes != null ? i.boxes : '—' }}</td>
             <td class="text-right">{{ formatPrice(i.price) }}</td>
@@ -85,33 +81,31 @@
         </tbody>
         <tfoot>
           <tr>
-            <td colspan="6" class="mp-ttn__foot-label">Всего наименований: {{ data.items.length }}</td>
+            <td colspan="6" class="mp-ttn__foot-label">{{ $t('marketplace.ttnPrintPreview.totalSkuLabel') }} {{ data.items.length }}</td>
             <td class="text-right">{{ totalBoxes != null ? totalBoxes : '' }}</td>
             <td></td>
             <td class="text-right">{{ totalQty }}</td>
             <td class="text-right"><strong>{{ formatPrice(total) }}</strong></td>
           </tr>
         </tfoot>
-      </table>
+      </BaseMarkupTable>
 
-      <div class="mp-ttn__total-line">
-        Всего мест (коробок): <strong>{{ totalBoxes != null ? totalBoxes : '—' }}</strong>
-        · Всего отпущено на сумму: <strong>{{ formatPrice(total) }}</strong>
+      <div class="mp-ttn__total-line"> {{ $t('marketplace.ttnPrintPreview.totalBoxesLabel') }} <strong>{{ totalBoxes != null ? totalBoxes : '—' }}</strong> {{ $t('marketplace.ttnPrintPreview.totalAmountLabel') }} <strong>{{ formatPrice(total) }}</strong>
       </div>
 
       <footer class="mp-ttn__signatures">
         <div class="mp-ttn__sign">
-          <div class="mp-ttn__sign-role">Отпуск груза произвёл — поставщик</div>
+          <div class="mp-ttn__sign-role">{{ $t('marketplace.ttnPrintPreview.signOffSupplierLabel') }}</div>
           <div class="mp-ttn__sign-line" />
           <div class="mp-ttn__sign-name">{{ data.supplier }}</div>
         </div>
         <div class="mp-ttn__sign">
-          <div class="mp-ttn__sign-role">Груз к перевозке принял — экспедитор</div>
+          <div class="mp-ttn__sign-role">{{ $t('marketplace.ttnPrintPreview.signOffCarrierLabel') }}</div>
           <div class="mp-ttn__sign-line" />
           <div class="mp-ttn__sign-name">{{ data.expeditorName || '____________________' }}</div>
         </div>
         <div class="mp-ttn__sign">
-          <div class="mp-ttn__sign-role">Груз получил — оператор участка</div>
+          <div class="mp-ttn__sign-role">{{ $t('marketplace.ttnPrintPreview.signOffOperatorLabel') }}</div>
           <div class="mp-ttn__sign-line" />
           <div class="mp-ttn__sign-name">{{ data.acceptedBy ?? '____________________' }}</div>
         </div>
@@ -124,55 +118,11 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch, type PropType } from 'vue'
+import { uiLocale, t } from 'src/shared/i18n';
 import QRCode from 'qrcode'
-import { BaseButton } from 'src/shared/ui/base'
+import { BaseButton, BaseMarkupTable } from 'src/shared/ui/base'
 import { SuccessAlert } from 'src/shared/api'
-
-export interface TTNItem {
-  sku: string
-  title: string
-  qty: number
-  unit: string
-  price: number
-  /** Штук имущества в одной коробке (экспедиторская упаковка партии). */
-  unitsPerBox?: number
-  /** Коробок в строке = ceil(qty / unitsPerBox). */
-  boxes?: number
-}
-
-export interface TTNData {
-  number: string
-  date: string | Date
-  /** Грузоотправитель — поставщик (орг-или-ФИО, не braname). */
-  supplier: string
-  /** Грузополучатель / ПВЗ — название КУ. */
-  recipient: string
-  /** Адрес КУ-получателя — «куда везти». */
-  recipientAddress?: string
-  /** Перевозчик: ФИО экспедитора (подписант ТТН). */
-  expeditorName?: string
-  /** Телефон экспедитора. */
-  expeditorPhone?: string
-  /** Госномер ТС. */
-  vehicleNumber?: string
-  /** Адрес погрузки (склад поставщика). */
-  loadingAddress?: string
-  /** Дата погрузки. */
-  loadingDatetime?: string
-  /** Расчётная дата доставки на КУ. */
-  deliveryEstimate?: string
-  items: TTNItem[]
-  /** Оператор/председатель КУ — подпись приёмки (заполняется на месте, от руки). */
-  acceptedBy?: string
-  /**
-   * Код приёмки партии (shipment-bound handoff-токен). Печатается на ТТН как QR:
-   * оператор КУ сканирует его и принимает СТРОГО состав этой партии (экспедитор
-   * не пайщик — приёмка по накладной, а не по аккаунту).
-   */
-  qrValue?: string
-  /** Тот же код текстом — для ручного ввода оператором без камеры. */
-  qrCode?: string
-}
+import type { TTNData } from './TTNPrintPreview.types'
 
 const props = defineProps({
   data: { type: Object as PropType<TTNData>, required: true },
@@ -250,19 +200,19 @@ const totalBoxes = computed(() => {
 // (грузоотправитель/грузополучатель). Только заполненное — пустое не печатается.
 const datesParts = computed(() => {
   const p: string[] = []
-  if (props.data.loadingDatetime) p.push(`Дата погрузки: ${formatDate(props.data.loadingDatetime)}`)
-  if (props.data.deliveryEstimate) p.push(`Ожидаемая доставка: ${formatDate(props.data.deliveryEstimate)}`)
+  if (props.data.loadingDatetime) p.push(t('marketplace.ttnPrintPreview.loadingDateLabel', { date: formatDate(props.data.loadingDatetime) }))
+  if (props.data.deliveryEstimate) p.push(t('marketplace.ttnPrintPreview.deliveryEtaLabel', { date: formatDate(props.data.deliveryEstimate) }))
   return p
 })
 
 function formatDate(v: string | Date) {
   const d = typeof v === 'string' ? new Date(v) : v
   if (isNaN(d.getTime())) return String(v)
-  return d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' })
+  return d.toLocaleDateString(uiLocale(), { day: '2-digit', month: '2-digit', year: 'numeric' })
 }
 
 function formatPrice(v: number) {
-  return new Intl.NumberFormat('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v) + ' ₽'
+  return new Intl.NumberFormat(uiLocale(), { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v) + ' ₽'
 }
 
 /**
@@ -272,6 +222,7 @@ function formatPrice(v: number) {
  * Это единственное дублирование (CSS), разметка остаётся одна — клонируем
  * отрендеренный `sheetRef`, не пересобираем HTML руками.
  */
+// i18n-ignore: CSS печатного листа ТТН, не текст интерфейса
 const PRINT_CSS = `
   @page { size: A4 landscape; margin: 0; }
   html, body { margin: 0; padding: 0; }
@@ -296,8 +247,12 @@ const PRINT_CSS = `
   .mp-ttn__party-lbl { flex: 0 0 42mm; color: #555; }
   .mp-ttn__party-val { flex: 1; font-weight: 600; }
   .mp-ttn__section-title { font-size: 9.5pt; font-weight: 700; margin-bottom: 1.5mm; }
-  .mp-ttn__items { width: 100%; border-collapse: collapse; font-size: 9pt; margin-bottom: 3mm; }
-  .mp-ttn__items th, .mp-ttn__items td { border: 1px solid #111; padding: 1.5mm 2mm; text-align: center; }
+  /* Товарный раздел рисует канон-обёртка (q-markup-table): в печатном
+     документе Quasar-стилей нет, поэтому вид листа полностью задаётся здесь,
+     а класс висит на обёртке — сама таблица её потомок. */
+  .mp-ttn__items { font-size: 9pt; margin-bottom: 3mm; background: transparent; box-shadow: none; overflow: visible; }
+  .mp-ttn__items table { width: 100%; border-collapse: collapse; }
+  .mp-ttn__items th, .mp-ttn__items td { border: 1px solid #111; padding: 1.5mm 2mm; text-align: center; height: auto; }
   .mp-ttn__items th { background: #f0f0f0; font-weight: 600; }
   .mp-ttn__items .mp-ttn__cell-name { text-align: left; }
   .mp-ttn__items .mp-ttn__foot-label { text-align: left; font-weight: 600; }
@@ -316,6 +271,7 @@ const PRINT_CSS = `
 function buildPrintableHtml(): string {
   const sheet = sheetRef.value?.outerHTML ?? ''
   return '<!doctype html><html lang="ru"><head><meta charset="utf-8">'
+    // i18n-ignore: служебная разметка окна печати ТТН, заголовок — номер документа
     + `<title>ТТН № ${props.data.number}</title><style>${PRINT_CSS}</style></head>`
     + `<body>${sheet}</body></html>`
 }
@@ -332,6 +288,7 @@ function print() {
       iframe.contentWindow?.focus()
       iframe.contentWindow?.print()
     } finally {
+      // timing: ui — фрейм печати убираем, когда браузер уже забрал документ
       setTimeout(() => iframe.remove(), 1000)
     }
   }
@@ -346,12 +303,13 @@ function download() {
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
+  // i18n-ignore: имя файла для скачивания HTML-копии ТТН, не текст интерфейса
   a.download = `ТТН-${props.data.number}.html`
   document.body.appendChild(a)
   a.click()
   a.remove()
   URL.revokeObjectURL(url)
-  SuccessAlert('ТТН сохранена')
+  SuccessAlert(t('marketplace.ttnPrintPreview.savedSuccess'))
 }
 </script>
 
@@ -481,22 +439,36 @@ function download() {
     margin-bottom: 1.5mm;
   }
 
+  // Товарный раздел — канон-обёртка над q-markup-table. Лист печатный, поэтому
+  // отступы и рамки ячеек задаёт сам документ: предпросмотр обязан выглядеть
+  // ровно так же, как бумага, а не как экранная таблица платформы.
   &__items {
-    width: 100%;
-    border-collapse: collapse;
     font-size: 9pt;
     margin-bottom: 3mm;
+    background: transparent;
 
-    th, td {
+    :deep(table) {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    :deep(th),
+    :deep(td) {
       border: 1px solid #111;
       padding: 1.5mm 2mm;
       text-align: center;
+      height: auto;
+      font-size: 9pt;
+      color: #111;
     }
-    th { background: #f0f0f0; font-weight: 600; }
+    :deep(th) {
+      background: #f0f0f0;
+      font-weight: 600;
+    }
 
-    .text-right { text-align: right; }
-    .mp-ttn__cell-name { text-align: left; }
-    .mp-ttn__foot-label { text-align: left; font-weight: 600; }
+    :deep(.text-right) { text-align: right; }
+    :deep(.mp-ttn__cell-name) { text-align: left; }
+    :deep(.mp-ttn__foot-label) { text-align: left; font-weight: 600; }
   }
 
   &__total-line {

@@ -10,17 +10,17 @@
         v-if="isRequirementsTab && canCreateRequirement"
         variant="primary"
         size="sm"
-        aria-label="Создать артефакт"
+        :aria-label="$t('capital.issuePage.createArtifactAriaLabel')"
         @click="openCreateRequirementDialog"
       )
         template(#icon-left)
           q-icon(name="add", size="18px")
-        | Артефакт
+        | {{ $t('capital.issuePage.artifactLabel') }}
 
   .issue-page-missing(v-if="issueNotFound")
     EmptyState(
-      title="Задача недоступна"
-      body="Она удалена или закрыта для вас. Ссылку из избранного можно снять звёздочкой в списке."
+      :title="$t('capital.issuePage.unavailableTitle')"
+      :body="$t('capital.issuePage.unavailableBody')"
     )
       template(#icon)
         q-icon(name="assignment_late" size="32px")
@@ -135,6 +135,7 @@ import { FailAlert } from 'src/shared/api'
 import { api as IssueApi } from 'app/extensions/capital/entities/Issue/api'
 import { api as ProjectApi } from 'app/extensions/capital/entities/Project/api'
 import type { IIssue } from 'app/extensions/capital/entities/Issue/model'
+import { withLabels } from 'app/extensions/capital/entities/Issue/model'
 import type { IProject } from 'app/extensions/capital/entities/Project/model'
 import { EMPTY_HASH } from 'src/shared/lib/consts'
 import { goBackOr, useBackButton } from 'src/shared/lib/navigation'
@@ -153,6 +154,7 @@ import {
   isMyProjectsWorkspace,
   capitalRouteName,
 } from 'app/extensions/capital/shared/lib/capitalWorkspaceRoutes'
+import { t, t as i18nT } from '../../../i18n';
 
 const route = useRoute()
 const router = useRouter()
@@ -259,10 +261,10 @@ const issueTabs = computed(() => {
       }
 
   return [
-    { key: `${prefix}-description`, label: 'Описание', route: { name: `${prefix}-description`, params } },
-    { key: `${prefix}-requirements`, label: 'Артефакты', route: { name: `${prefix}-requirements`, params } },
-    { key: `${prefix}-commits`, label: 'Коммиты', route: { name: `${prefix}-commits`, params } },
-    { key: `${prefix}-history`, label: 'История', route: { name: `${prefix}-history`, params } },
+    { key: `${prefix}-description`, label: t('capital.issuePage.descriptionTabLabel'), route: { name: `${prefix}-description`, params } },
+    { key: `${prefix}-requirements`, label: t('capital.issuePage.artifactsTabLabel'), route: { name: `${prefix}-requirements`, params } },
+    { key: `${prefix}-commits`, label: t('capital.issuePage.commitsTabLabel'), route: { name: `${prefix}-commits`, params } },
+    { key: `${prefix}-history`, label: t('capital.issuePage.historyTabLabel'), route: { name: `${prefix}-history`, params } },
   ]
 })
 
@@ -326,7 +328,7 @@ const handleDescriptionChange = async () => {
 // Назад — туда, откуда пришли (см. smartBack.ts); при прямом заходе по
 // ссылке — на список задач компонента-владельца или в свой контекст my-*
 useBackButton({
-  text: 'Назад',
+  text: i18nT('common.action.back'),
   componentId: 'issue-page-' + issueHash.value,
   onClick: () => {
     const fallback = isMyTaskContext.value
@@ -356,7 +358,7 @@ const loadIssue = async () => {
     issueNotFound.value = !issue.value
   } catch (error) {
     console.error('Ошибка при загрузке задачи:', error)
-    FailAlert('Не удалось загрузить задачу')
+    FailAlert(t('capital.issuePage.loadError'))
     issueNotFound.value = true
   }
 }
@@ -384,13 +386,7 @@ const handleEstimateUpdate = (value: number) => {
 
 const handleLabelsUpdate = (value: string[]) => {
   if (!issue.value) return
-  const prev = issue.value.metadata
-  const base: Record<string, unknown> =
-    prev && typeof prev === 'object' && prev !== null && !Array.isArray(prev)
-      ? { ...(prev as Record<string, unknown>) }
-      : {}
-  base.labels = value
-  issue.value.metadata = base as IIssue['metadata']
+  issue.value.metadata = withLabels(issue.value.metadata, value)
   logsRefreshTrigger.value++
 }
 
@@ -484,6 +480,7 @@ watch(
   { immediate: true },
 )
 
+// realtime: нет источника — карточка с редакторами и разрешением конфликтов правок (content_rev): живое перечитывание подменило бы редактируемый объект; чужие правки ловит проверка версии при сохранении.
 onMounted(async () => {
   loadSidebarWidth()
   await loadIssue()

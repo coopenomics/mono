@@ -1,4 +1,5 @@
-import { Injectable, Logger, BadRequestException, Inject } from '@nestjs/common';
+import { Injectable, Logger, Inject, BadRequestException } from '@nestjs/common';
+import { DomainError } from '@coopenomics/extension-kit';
 import axios from 'axios';
 import { RegistratorContract } from 'cooptypes';
 import { ProviderSubscriptionDTO } from '../dto/provider-subscription.dto';
@@ -155,7 +156,7 @@ export class ProviderService {
   async getUserSubscriptions(username: string): Promise<ProviderSubscriptionDTO[]> {
     // Проверяем доступность провайдера
     if (!this.isProviderAvailable()) {
-      throw new Error('Провайдер не настроен');
+      throw DomainError.internal('PROVIDER_NOT_CONFIGURED');
     }
 
     try {
@@ -219,7 +220,7 @@ export class ProviderService {
   async getSubscriptionById(id: number): Promise<ProviderSubscriptionDTO> {
     // Проверяем доступность провайдера
     if (!this.isProviderAvailable()) {
-      throw new Error('Провайдер не настроен');
+      throw DomainError.internal('PROVIDER_NOT_CONFIGURED');
     }
 
     try {
@@ -241,7 +242,7 @@ export class ProviderService {
   async getCurrentInstance(username: string): Promise<CurrentInstanceDTO | null> {
     // Проверяем доступность провайдера
     if (!this.isProviderAvailable()) {
-      throw new Error('Провайдер не настроен');
+      throw DomainError.internal('PROVIDER_NOT_CONFIGURED');
     }
 
     try {

@@ -265,7 +265,7 @@ namespace Capital::Core::Generation {
       
       eosio::asset delta_contributors_bonus_pool;
       
-      projects.modify(project, coopname, [&](auto &p) {
+      projects.modify(project, RamPayer::of(projects, coopname), [&](auto &p) {
           // 1. Накапливаем инвестиции, привлеченные координаторами  
           p.fact.coordinators_investment_pool += amount;
           

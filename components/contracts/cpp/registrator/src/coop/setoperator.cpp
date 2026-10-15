@@ -67,7 +67,7 @@
   if (current == operator_name)
     return;
 
-  coops.modify(coop, eosio::same_payer, [&](auto &row) {
+  coops.modify(coop, RamPayer::of(coops, coopname), [&](auto &row) {
     row.parent_username = operator_name;
   });
 }

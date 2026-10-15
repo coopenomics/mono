@@ -7,18 +7,13 @@ import * as ConvertToAxonStatement from './51.ConvertToAxonStatement'
 import * as BillingConversionStatement from './1095.BillingConversionStatement'
 import * as ParticipantApplication from './100.ParticipantApplication'
 import * as DecisionOfParticipantApplication from './501.DecisionOfParticipantApplication'
+import * as ProgramAgreementsAnnulmentStatement from './190.ProgramAgreementsAnnulmentStatement'
 import * as ParticipantExitApplication from './200.ParticipantExitApplication'
 import * as DecisionOfParticipantExit from './201.DecisionOfParticipantExit'
 import * as SelectBranchStatement from './101.SelectBranchStatement'
 import * as ProjectFreeDecision from './599.ProjectFreeDecision'
 import * as FreeDecision from './600.FreeDecision'
-import * as AssetContributionStatement from './700.assetContributionStatement'
-import * as ReturnByAssetStatement from './800.returnByAssetStatement'
-import * as AssetContributionDecision from './701.assetContributionDecision'
-import * as ReturnByAssetDecision from './801.returnByAssetDecision'
 
-import * as AssetContributionAct from './702.assetContributionAct'
-import * as ReturnByAssetAct from './802.returnByAssetAct'
 import * as ReturnByMoney from './900.returnByMoney'
 import * as ReturnByMoneyDecision from './901.ReturnByMoneyDecision'
 import * as GenerationContract from './1001.GenerationContract'
@@ -78,17 +73,12 @@ import * as BranchTrusteePowerOfAttorney from './329.BranchTrusteePowerOfAttorne
 import * as BranchTrustedPowerOfAttorney from './330.BranchTrustedPowerOfAttorney'
 
 import * as BlagorostProgramTemplate from './998.BlagorostProgramTemplate'
-import * as BlagorostOfferTemplate from './999.BlagorostOfferTemplate'
-import * as GenerationContractTemplate from './997.GenerationContractTemplate'
-import * as GeneratorOfferTemplate from './995.GeneratorOfferTemplate'
 import * as GeneratorOffer from './996.GeneratorOffer'
 import * as GeneratorProgramTemplate from './994.GeneratorProgramTemplate'
 import * as BlagorostOffer from './1000.BlagorostOffer'
-import * as MarketplaceOfferTemplate from './1101.MarketplaceOfferTemplate'
 import * as MarketplaceOffer from './1102.MarketplaceOffer'
 import * as MarketplaceTransportNote from './1103.MarketplaceTransportNote'
 import * as MarketplaceAplReception from './1104.MarketplaceAplReception'
-import * as MarketplaceAplIssuance from './1105.MarketplaceAplIssuance'
 import * as MarketplaceReturnStatement from './1106.MarketplaceReturnStatement'
 import * as MarketplaceWriteoffProtocol from './1107.MarketplaceWriteoffProtocol'
 import * as MarketplaceWriteoffStatement from './1108.MarketplaceWriteoffStatement'
@@ -96,7 +86,24 @@ import * as BranchFinancialAidStatement from './1109.BranchFinancialAidStatement
 import * as MarketplaceConvertStatement from './1110.MarketplaceConvertStatement'
 import * as MarketplaceWriteoffServiceMemo from './1111.MarketplaceWriteoffServiceMemo'
 import * as BranchFinancialAidProtocol from './1112.BranchFinancialAidProtocol'
+import * as MarketplaceShareReturnStatement from './1113.MarketplaceShareReturnStatement'
+import * as MarketplaceShareReturnDecision from './1114.MarketplaceShareReturnDecision'
+import * as MarketplaceShareReturnAct from './1115.MarketplaceShareReturnAct'
+import * as MarketplaceReturnCancelStatement from './1116.MarketplaceReturnCancelStatement'
+import * as MarketplaceReturnCancelDecision from './1117.MarketplaceReturnCancelDecision'
 import * as MarketplaceProgramTemplate from './1100.MarketplaceProgramTemplate'
+import * as EducationProgramTemplate from './3000.EducationProgramTemplate'
+import * as EducationParentOffer from './3002.EducationParentOffer'
+import * as EducationTeacherOffer from './3004.EducationTeacherOffer'
+import * as EducationParticipationContract from './3006.EducationParticipationContract'
+import * as EducationRidStatement from './3008.EducationRidStatement'
+import * as EducationRidDecision from './3009.EducationRidDecision'
+import * as EducationRidAct from './3010.EducationRidAct'
+import * as EducationRidStorageAct from './3012.EducationRidStorageAct'
+import * as EducationConvertStatement from './3011.EducationConvertStatement'
+import * as EducationGuaranteeStatement from './3013.EducationGuaranteeStatement'
+import * as EducationGuaranteeDecision from './3014.EducationGuaranteeDecision'
+import * as EducationShareWithdrawStatement from './3015.EducationShareWithdrawStatement'
 
 export const Registry = {
   1: WalletAgreement,
@@ -108,6 +115,7 @@ export const Registry = {
   1095: BillingConversionStatement,
   100: ParticipantApplication,
   101: SelectBranchStatement,
+  190: ProgramAgreementsAnnulmentStatement,
   200: ParticipantExitApplication,
   201: DecisionOfParticipantExit,
   300: AnnualGeneralMeetingAgenda,
@@ -129,20 +137,11 @@ export const Registry = {
   599: ProjectFreeDecision,
   600: FreeDecision,
   699: SosediAgreement,
-  700: AssetContributionStatement,
-  701: AssetContributionDecision,
-  702: AssetContributionAct,
-  800: ReturnByAssetStatement,
-  801: ReturnByAssetDecision,
-  802: ReturnByAssetAct,
   900: ReturnByMoney,
   901: ReturnByMoneyDecision,
   994: GeneratorProgramTemplate,
-  995: GeneratorOfferTemplate,
   996: GeneratorOffer,
-  997: GenerationContractTemplate,
   998: BlagorostProgramTemplate,
-  999: BlagorostOfferTemplate,
   1000: BlagorostOffer,
   1001: GenerationContract,
   1002: ProjectGenerationContract,
@@ -170,11 +169,9 @@ export const Registry = {
   1080: GenerationConvertStatement,
   1090: CapitalizationToMainWalletConvertStatement,
   1100: MarketplaceProgramTemplate,
-  1101: MarketplaceOfferTemplate,
   1102: MarketplaceOffer,
   1103: MarketplaceTransportNote,
   1104: MarketplaceAplReception,
-  1105: MarketplaceAplIssuance,
   1106: MarketplaceReturnStatement,
   1107: MarketplaceWriteoffProtocol,
   1108: MarketplaceWriteoffStatement,
@@ -182,6 +179,23 @@ export const Registry = {
   1110: MarketplaceConvertStatement,
   1111: MarketplaceWriteoffServiceMemo,
   1112: BranchFinancialAidProtocol,
+  1113: MarketplaceShareReturnStatement,
+  1114: MarketplaceShareReturnDecision,
+  1115: MarketplaceShareReturnAct,
+  1116: MarketplaceReturnCancelStatement,
+  1117: MarketplaceReturnCancelDecision,
   2010: ExpenseProposalStatement,
   2011: ExpenseProposalDecision,
+  3000: EducationProgramTemplate,
+  3002: EducationParentOffer,
+  3004: EducationTeacherOffer,
+  3006: EducationParticipationContract,
+  3008: EducationRidStatement,
+  3009: EducationRidDecision,
+  3010: EducationRidAct,
+  3012: EducationRidStorageAct,
+  3011: EducationConvertStatement,
+  3013: EducationGuaranteeStatement,
+  3014: EducationGuaranteeDecision,
+  3015: EducationShareWithdrawStatement,
 }

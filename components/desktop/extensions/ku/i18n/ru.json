@@ -1,0 +1,12 @@
+{
+  "ku": {
+    "install": {
+      "branchTitle": "Участок",
+      "branchesTitle": "Кооперативные участки",
+      "meetingTitle": "Собрание",
+      "meetingsTitle": "Собрания",
+      "myBranchTitle": "Мой участок",
+      "title": "Кооперативный участок"
+    }
+  }
+}

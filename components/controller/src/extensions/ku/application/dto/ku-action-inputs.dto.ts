@@ -1,6 +1,7 @@
 import { Field, InputType, Int } from '@nestjs/graphql';
 import { IsArray, IsNotEmpty, IsNumber, IsString, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
+import { SafeMarkup } from '@coopenomics/extension-kit';
 import { KuDecisionType } from '../../domain/enums/ku-decision-type.enum';
 import type {
   ApproveKuTrustedInputDomainInterface,
@@ -32,15 +33,18 @@ export class KuAgendaPointInputDTO implements KuAgendaPointInputDomainInterface 
   @Field(() => String, { description: 'Заголовок вопроса' })
   @IsString()
   @IsNotEmpty()
+  @SafeMarkup()
   title!: string;
 
   @Field(() => String, { description: 'Проект решения по вопросу' })
   @IsString()
   @IsNotEmpty()
+  @SafeMarkup()
   decision!: string;
 
   @Field(() => String, { description: 'Дополнительная информация по вопросу', defaultValue: '' })
   @IsString()
+  @SafeMarkup()
   context!: string;
 }
 

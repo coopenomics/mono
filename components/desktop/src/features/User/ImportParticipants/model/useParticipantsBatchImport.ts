@@ -2,6 +2,7 @@ import { computed, ref } from 'vue';
 import { api } from 'src/features/User/AddUser/api';
 import type { ParticipantCsvRow } from './types';
 import { extractGraphQLErrorMessages } from 'src/shared/api';
+import { t } from 'src/shared/i18n';
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -57,6 +58,7 @@ export function useParticipantsBatchImport() {
       }
 
       importProgress.value = i + 1;
+      // timing: throttle — пакетный импорт пайщиков не всплеском запросов, а по одному
       await delay(120);
     }
 
@@ -73,7 +75,7 @@ export function useParticipantsBatchImport() {
       row.error = undefined;
     } catch (e: any) {
       row.status = 'error';
-      row.error = e?.message ?? 'Неизвестная ошибка';
+      row.error = e?.message ?? t('user.batchImport.unknownError');
     }
   };
 

@@ -3,10 +3,19 @@ import { Inject } from '@nestjs/common';
 import { VAULT_REPOSITORY } from '~/domain/auth-v2/vault/vault-repository.port';
 import type { IVaultRepository } from '~/domain/auth-v2/vault/vault-repository.port';
 import { AccountService } from '../services/account.service';
+import { UserAvatarService } from '../services/user-avatar.service';
+import { UploadAvatarInputDTO } from '../dto/upload-avatar-input.dto';
 import { AccountDTO } from '../dto/account.dto';
 import { GetAccountInputDTO } from '../dto/get-account-input.dto';
 import { UseGuards } from '@nestjs/common';
-import { AuthRoles, GqlJwtAuthGuard, RolesGuard, createPaginationResult, PaginationInputDTO, CurrentUser } from '@coopenomics/extension-kit';
+import {
+  GqlJwtAuthGuard,
+  createPaginationResult,
+  PaginationInputDTO,
+  CurrentUser,
+  RequireRight,
+  RightsGuard,
+} from '@coopenomics/extension-kit';
 import { GetAccountsInputDTO } from '../dto/get-accounts-input.dto';
 import type { PaginationResultDomainInterface } from '~/domain/common/interfaces/pagination.interface';
 import { RegisterAccountInputDTO } from '../dto/register-account-input.dto';
@@ -17,6 +26,9 @@ import { DeleteAccountInputDTO } from '../dto/delete-account-input.dto';
 import { SearchPrivateAccountsInputDTO } from '../dto/search-private-accounts-input.dto';
 import { PrivateAccountSearchResultDTO } from '../dto/search-private-accounts-result.dto';
 import { IMonoAccount } from '@coopenomics/innercoop';
+import { AuthRateLimitGuard } from '~/application/auth-v2/rate-limit/auth-rate-limit.guard';
+import { AuthRateLimit } from '~/application/auth-v2/rate-limit/auth-rate-limit.decorator';
+import { REGISTER_ACCOUNT_IP_RULE } from '~/application/auth-v2/rate-limit/auth-rate-limit.types';
 
 export const AccountsPaginationResult = createPaginationResult(AccountDTO, 'Accounts');
 
@@ -24,8 +36,17 @@ export const AccountsPaginationResult = createPaginationResult(AccountDTO, 'Acco
 export class AccountResolver {
   constructor(
     private readonly accountService: AccountService,
+    private readonly avatars: UserAvatarService,
     @Inject(VAULT_REPOSITORY) private readonly vaultRepo: IVaultRepository
   ) {}
+
+  @ResolveField('avatar_url', () => String, {
+    nullable: true,
+    description: 'Ссылка на фотографию пайщика. Пусто — фотографии нет, показываются инициалы.',
+  })
+  async avatarUrl(@Parent() account: AccountDTO): Promise<string | null> {
+    return this.avatars.getAvatarUrl(account.username);
+  }
 
   @ResolveField('has_password', () => Boolean, {
     description:
@@ -44,8 +65,8 @@ export class AccountResolver {
     name: 'getAccount',
     description: 'Получить сводную информацию о аккаунте',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Account', ['read:own', 'read:all'], { owner: 'data.username' })
   async getAccount(@Args('data', { type: () => GetAccountInputDTO }) input: GetAccountInputDTO): Promise<AccountDTO> {
     return this.accountService.getAccount(input.username);
   }
@@ -54,7 +75,10 @@ export class AccountResolver {
     name: 'getAccounts',
     description: 'Получить сводную информацию о аккаунтах системы',
   })
-  @AuthRoles(['chairman', 'member'])
+  // Директива @auth корневые запросы не проверяет — без гардов реестр с
+  // паспортными данными отдавался любому анонимному запросу.
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Account', 'read:all')
   async getAccounts(
     @Args('data', { type: () => GetAccountsInputDTO, nullable: true }) data?: GetAccountsInputDTO,
     @Args('options', { type: () => PaginationInputDTO, nullable: true }) options?: PaginationInputDTO
@@ -67,20 +91,42 @@ export class AccountResolver {
     description:
       'Поиск приватных данных аккаунтов по запросу. Поиск осуществляется по полям ФИО, ИНН, ОГРН, наименованию организации и другим приватным данным.',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Account', 'read:all')
   async searchPrivateAccounts(
     @Args('data', { type: () => SearchPrivateAccountsInputDTO }) data: SearchPrivateAccountsInputDTO
   ): Promise<PrivateAccountSearchResultDTO[]> {
     return this.accountService.searchPrivateAccounts(data);
   }
 
+  // Регистрация открыта без входа и выдаёт токен, поэтому единственный порог
+  // здесь — частота с одного адреса. `@Throttle` из nest-throttler не ставится:
+  // глобального ThrottlerGuard в приложении нет, и декоратор ничего не делает.
+  @Mutation(() => String, {
+    description: 'Загрузить фотографию пайщика. Возвращает ссылку на неё; прежняя фотография заменяется.',
+  })
+  @UseGuards(GqlJwtAuthGuard)
+  async uploadAvatar(
+    @Args('data') data: UploadAvatarInputDTO,
+    @CurrentUser() user: IMonoAccount
+  ): Promise<string> {
+    // Свою фотографию пайщик меняет сам — чужую не трогает: имя берём из сессии.
+    return this.avatars.upload(user.username, data.content_base64, data.mime_type);
+  }
+
+  @Mutation(() => Boolean, { description: 'Снять фотографию пайщика — в удостоверении снова будут инициалы.' })
+  @UseGuards(GqlJwtAuthGuard)
+  async removeAvatar(@CurrentUser() user: IMonoAccount): Promise<boolean> {
+    await this.avatars.remove(user.username);
+    return true;
+  }
+
   @Mutation(() => RegisteredAccountDTO, {
     name: 'registerAccount',
     description: 'Зарегистрировать аккаунт пользователя в системе',
   })
-  //TODO:
-  // @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @UseGuards(AuthRateLimitGuard)
+  @AuthRateLimit({ ip: REGISTER_ACCOUNT_IP_RULE, scope: 'register-account' })
   async registerAccount(
     @Args('data', { type: () => RegisterAccountInputDTO })
     data: RegisterAccountInputDTO
@@ -93,8 +139,8 @@ export class AccountResolver {
     description:
       'Удалить аккаунт пайщика из системы учёта провайдера. Доступно только для незавершённых регистрационных статусов (черновик, неоплачен/отклонён). Активный, заблокированный и любой зарегистрированный в блокчейне аккаунт удалить нельзя. Используется для очистки реестра и освобождения e-mail под перерегистрацию.',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Account', 'delete')
   async deleteAccount(
     @Args('data', { type: () => DeleteAccountInputDTO })
     data: DeleteAccountInputDTO
@@ -119,13 +165,14 @@ export class AccountResolver {
     description:
       'Обновить аккаунт в системе провайдера. Обновление аккаунта пользователя производится по username. Мутация позволяет изменить приватные данные пользователя, а также, адрес электронной почты в MONO. Использовать мутацию может только председатель совета.',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Account', 'update')
   async updateAccount(
     @Args('data', { type: () => UpdateAccountInputDTO })
-    data: UpdateAccountInputDTO
+    data: UpdateAccountInputDTO,
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<AccountDTO> {
-    return await this.accountService.updateAccount(data);
+    return await this.accountService.updateAccount(data, currentUser.username);
   }
 
   @Mutation(() => AccountDTO, {

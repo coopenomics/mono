@@ -14,7 +14,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { cleanViteOverlays, env, loginAs, pickBranchIfAsked } from '../../../lib/harness.mjs';
+import { cleanViteOverlays, confirmIdentityIfAsked, env, loginAs, pickBranchIfAsked } from '../../../lib/harness.mjs';
 // Цена приёмки — оттуда, где её задаёт акт: две копии числа разъехались бы
 // молча, и проверка цены выдачи перестала бы что-либо значить.
 import { FACT_UNIT_PRICE as RECEPTION_UNIT_PRICE } from './apl-reception-create.mjs';
@@ -92,6 +92,7 @@ export default async ({ page, shot, expect }) => {
   await page.waitForTimeout(8000);
   await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
   await cleanViteOverlays(page);
+  await confirmIdentityIfAsked(page, { shot });
 
   await expect(page.locator('text=Нераспознанный код')).toHaveCount(0, { timeout: 15000 });
   const issueDialog = page.locator('[id^="q-portal--dialog--"]').filter({ hasText: 'Открытие выдачи пайщику' }).first();
@@ -99,7 +100,7 @@ export default async ({ page, shot, expect }) => {
 
   // Выдаём меньше принятого: поле факта управляемое, без blur модель остаётся
   // с прежним количеством и акт уйдёт на полном объёме.
-  const factQty = issueDialog.locator('.correction-table__fact input').first();
+  const factQty = issueDialog.locator('.correction-table__row input[type="number"]').first();
   const acceptedQty = Number.parseFloat(await factQty.inputValue());
 
   // Цена, с которой открылась выдача. Имущество приняли дешевле объявленного
@@ -109,7 +110,7 @@ export default async ({ page, shot, expect }) => {
   // прихода, и счёт материалов уйдёт в минус на всю разницу (так и было до
   // 14 августа: приход 1800 ₽, выбытие 2000 ₽).
   // В блоке правки два поля подряд: количество и цена за единицу отпуска.
-  const factPriceInput = issueDialog.locator('.correction-table__fact input').nth(1);
+  const factPriceInput = issueDialog.locator('.correction-table__row input[type="number"]').nth(1);
   const openedPrice = Number.parseFloat(await factPriceInput.inputValue());
   await factQty.click();
   await factQty.fill(String(ISSUE_QUANTITY));
@@ -138,7 +139,7 @@ export default async ({ page, shot, expect }) => {
     },
   );
 
-  await page.locator('button:has-text("Подписать и отправить пайщику")').first().click();
+  await page.locator('button:has-text("Отправить пайщику на подпись")').first().click();
   await page.waitForTimeout(10000);
   await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
   await cleanViteOverlays(page);

@@ -8,18 +8,13 @@ export * as BillingConversionStatement from './1095.BillingConversionStatement'
 export * as SelectBranchStatement from './101.SelectBranchStatement'
 export * as ParticipantApplication from './100.ParticipantApplication'
 export * as DecisionOfParticipantApplication from './501.DecisionOfParticipantApplication'
+export * as ProgramAgreementsAnnulmentStatement from './190.ProgramAgreementsAnnulmentStatement'
 export * as ParticipantExitApplication from './200.ParticipantExitApplication'
 export * as DecisionOfParticipantExit from './201.DecisionOfParticipantExit'
 export * as ProjectFreeDecision from './599.ProjectFreeDecision'
 export * as FreeDecision from './600.FreeDecision'
-export * as AssetContributionStatement from './700.AssetContributionStatement'
-export * as ReturnByAssetStatement from './800.ReturnByAssetStatement'
 
 export * as SosediAgreement from './699.SosediAgreement'
-export * as AssetContributionDecision from './701.AssetContributionDecision'
-export * as AssetContributionAct from './702.AssetContributionAct'
-export * as ReturnByAssetDecision from './801.ReturnByAssetDecision'
-export * as ReturnByAssetAct from './802.ReturnByAssetAct'
 export * as ReturnByMoney from './900.ReturnByMoney'
 export * as ReturnByMoneyDecision from './901.ReturnByMoneyDecision'
 
@@ -84,23 +79,16 @@ export * as BranchTrustedPowerOfAttorney from './330.BranchTrustedPowerOfAttorne
 
 // ЦПП БЛАГОРОСТ
 export * as GeneratorProgramTemplate from './994.GeneratorProgramTemplate'
-export * as GeneratorOfferTemplate from './995.GeneratorOfferTemplate'
 export * as GeneratorOffer from './996.GeneratorOffer'
 export * as BlagorostProgramTemplate from './998.BlagorostProgramTemplate'
-export * as GenerationContractTemplate from './997.GenerationContractTemplate'
-export * as BlagorostOfferTemplate from './999.BlagorostOfferTemplate'
 
 // Marketplace (Стол заказов) — Эпик 1 (онбординг ЦПП)
 export * as MarketplaceProgramTemplate from './1100.MarketplaceProgramTemplate'
-export * as MarketplaceOfferTemplate from './1101.MarketplaceOfferTemplate'
 export * as MarketplaceOffer from './1102.MarketplaceOffer'
 
 // Marketplace (Стол заказов) — Эпик 5
 export * as MarketplaceTransportNote from './1103.MarketplaceTransportNote'
 export * as MarketplaceAplReception from './1104.MarketplaceAplReception'
-export * as MarketplaceAplIssuance from './1105.MarketplaceAplIssuance'
-
-// Marketplace (Стол заказов) — Эпик 7: гарантийный возврат
 export * as MarketplaceReturnStatement from './1106.MarketplaceReturnStatement'
 
 // Marketplace (Стол заказов) — Эпик 8: списание скоропорта
@@ -110,3 +98,23 @@ export * as BranchFinancialAidStatement from './1109.BranchFinancialAidStatement
 export * as MarketplaceConvertStatement from './1110.MarketplaceConvertStatement'
 export * as MarketplaceWriteoffServiceMemo from './1111.MarketplaceWriteoffServiceMemo'
 export * as BranchFinancialAidProtocol from './1112.BranchFinancialAidProtocol'
+
+// Edubridge — ЦПП «Образование»
+export * as EducationProgramTemplate from './3000.EducationProgramTemplate'
+export * as EducationParentOffer from './3002.EducationParentOffer'
+export * as EducationTeacherOffer from './3004.EducationTeacherOffer'
+export * as EducationParticipationContract from './3006.EducationParticipationContract'
+export * as EducationRidStatement from './3008.EducationRidStatement'
+export * as EducationRidDecision from './3009.EducationRidDecision'
+export * as EducationRidAct from './3010.EducationRidAct'
+export * as EducationRidStorageAct from './3012.EducationRidStorageAct'
+export * as EducationConvertStatement from './3011.EducationConvertStatement'
+export * as EducationGuaranteeStatement from './3013.EducationGuaranteeStatement'
+export * as EducationGuaranteeDecision from './3014.EducationGuaranteeDecision'
+export * as EducationShareWithdrawStatement from './3015.EducationShareWithdrawStatement'
+// Marketplace (Стол заказов) — паевая модель (компонент 68): выдача и гарантийный возврат
+export * as MarketplaceShareReturnStatement from './1113.MarketplaceShareReturnStatement'
+export * as MarketplaceShareReturnDecision from './1114.MarketplaceShareReturnDecision'
+export * as MarketplaceShareReturnAct from './1115.MarketplaceShareReturnAct'
+export * as MarketplaceReturnCancelStatement from './1116.MarketplaceReturnCancelStatement'
+export * as MarketplaceReturnCancelDecision from './1117.MarketplaceReturnCancelDecision'

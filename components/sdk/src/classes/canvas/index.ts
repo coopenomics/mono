@@ -1,3 +1,4 @@
+import { lt } from '@coopenomics/i18n'
 /**
  * Класс `Canvas` предоставляет инструмент для создания и управления HTML5 `<canvas>` с целью извлечения
  * собственноручной подписи пользователя. Основное предназначение класса — упрощение работы с холстом
@@ -73,7 +74,7 @@ export class Canvas {
     // Инициализируем контекст рисования
     const ctx = this.canvas.getContext('2d')
     if (!ctx) {
-      throw new Error('Canvas не поддерживается')
+      throw new Error(lt('sdkClient.error.canvasNotSupported'))
     }
     this.ctx = ctx
 

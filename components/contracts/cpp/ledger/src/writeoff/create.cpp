@@ -44,7 +44,7 @@ void ledger::create(eosio::name coopname, eosio::name username, uint64_t account
   auto operation_id = get_global_id_in_scope(_ledger, _ledger, "writeoffs"_n);
 
   writeoffs_index writeoffs(_ledger, _ledger.value);
-  writeoffs.emplace(username, [&](auto& op) {
+  writeoffs.emplace(RamPayer::of(writeoffs, coopname), [&](auto& op) {
     op.id = operation_id;
     op.coopname = coopname;
     op.username = username;

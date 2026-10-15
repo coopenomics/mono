@@ -1,0 +1,22 @@
+{
+  "participant": {
+    "install": {
+      "cardTitle": "Карта кооператора",
+      "connectionTitle": "Подключение",
+      "contactsTitle": "Контакты",
+      "documentTitle": "Документ",
+      "documentsTitle": "Документы",
+      "exitConfirmTitle": "Подтверждение выхода",
+      "identityTitle": "Удостоверение",
+      "installationCompletedTitle": "Установка завершена",
+      "meetingDetailsTitle": "Детали собрания",
+      "meetingsTitle": "Собрания",
+      "paymentsTitle": "Платежи",
+      "requisitesTitle": "Реквизиты",
+      "settingsTitle": "Настройки",
+      "supportTitle": "Поддержка",
+      "title": "Стол пайщика",
+      "walletTitle": "Кошелёк"
+    }
+  }
+}

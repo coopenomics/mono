@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import { BlockchainService } from '~/infrastructure/blockchain/blockchain.service';
-import { InvalidatedEntityRepository, InvalidatedEntityVersionRepository } from '@coopenomics/extension-kit/sync';
+import { ChainVersioningService } from '@coopenomics/extension-kit/sync';
 import config from '~/config/config';
 
 /**
@@ -33,8 +33,7 @@ export class BlockchainArchiveRetentionService {
 
   constructor(
     private readonly blockchainService: BlockchainService,
-    private readonly invalidatedEntityRepository: InvalidatedEntityRepository,
-    private readonly invalidatedEntityVersionRepository: InvalidatedEntityVersionRepository,
+    private readonly versioning: ChainVersioningService,
     private readonly logger: WinstonLoggerService
   ) {
     this.logger.setContext(BlockchainArchiveRetentionService.name);
@@ -66,8 +65,7 @@ export class BlockchainArchiveRetentionService {
       return;
     }
 
-    const deletedEntities = await this.invalidatedEntityRepository.deleteOlderThan(threshold);
-    const deletedVersions = await this.invalidatedEntityVersionRepository.deleteOlderThan(threshold);
+    const { entities: deletedEntities, versions: deletedVersions } = await this.versioning.deleteArchiveOlderThan(threshold);
 
     this.logger.log(
       `Archive retention: LIB=${lib}, threshold=${threshold} (LIB-${horizon}); удалено ${deletedEntities} invalidated_entities + ${deletedVersions} invalidated_entity_versions`

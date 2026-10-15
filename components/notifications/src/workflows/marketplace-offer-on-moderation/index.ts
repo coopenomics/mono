@@ -3,7 +3,7 @@ import { WorkflowBuilder } from '../../base/workflow-builder';
 import { z } from 'zod';
 import { BaseWorkflowPayload } from '../../types';
 import { createEmailStep, createInAppStep, createPushStep } from '../../base/defaults';
-import { slugify } from '../../utils';
+import { nt } from '../../i18n';
 
 export const marketplaceOfferOnModerationPayloadSchema = z.object({
   // Имя получателя — администратора стола заказов: карточки имущества проверяет
@@ -19,8 +19,10 @@ export type IPayload = z.infer<typeof marketplaceOfferOnModerationPayloadSchema>
 
 export interface IWorkflow extends BaseWorkflowPayload, IPayload {}
 
-export const name = 'Новое предложение на модерации';
-export const id = slugify(name);
+export const name = nt('marketplaceOfferOnModeration.name');
+// Идентификатор закреплён: раньше он вычислялся из названия, и правка
+// или перевод названия меняли бы его. Не менять — на него ссылаются подписки.
+export const id = 'novoe-predlozhenie-na-moderatsii';
 
 /**
  * Предложение поставщика встало в очередь модерации.
@@ -33,24 +35,25 @@ export const workflow: WorkflowDefinition<IWorkflow> = WorkflowBuilder
   .create<IWorkflow>()
   .name(name)
   .workflowId(id)
-  .description('Уведомление администратору Стола заказов о предложении, поступившем на модерацию — нужно проверить карточку имущества и допустить её в каталог либо отклонить с причиной.')
+  .i18nKey('marketplaceOfferOnModeration')
+  .description(nt('marketplaceOfferOnModeration.description'))
   .payloadSchema(marketplaceOfferOnModerationPayloadSchema)
   .tags(['marketplace', 'admin', 'offer'])
   .addSteps([
     createEmailStep(
       'marketplace-offer-on-moderation-email',
-      'Новое предложение на модерации: {{payload.productName}}',
-      'Уважаемый {{payload.recipientName}}!<br><br>Поставщик <strong>{{payload.supplierName}}</strong> отправил на модерацию предложение <strong>{{payload.productName}}</strong>.<br><br>До вашего решения предложение не показывается в каталоге. Проверьте карточку имущества и допустите её в каталог либо отклоните с указанием причины: {{payload.deepLinkUrl}}'
+      nt('marketplaceOfferOnModeration.email.subject'),
+      nt('marketplaceOfferOnModeration.email.body')
     ),
     createInAppStep(
       'marketplace-offer-on-moderation-notification',
-      'Новое предложение на модерации',
-      '{{payload.supplierName}}: {{payload.productName}} — ждёт проверки.'
+      nt('marketplaceOfferOnModeration.inApp.subject'),
+      nt('marketplaceOfferOnModeration.inApp.body')
     ),
     createPushStep(
       'marketplace-offer-on-moderation-push',
-      'Новое предложение на модерации',
-      '{{payload.productName}} от {{payload.supplierName}} ждёт проверки.'
+      nt('marketplaceOfferOnModeration.push.subject'),
+      nt('marketplaceOfferOnModeration.push.body')
     ),
   ])
   .build();

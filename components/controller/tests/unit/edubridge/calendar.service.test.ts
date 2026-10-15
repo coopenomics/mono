@@ -1,0 +1,273 @@
+import { EdubridgeCalendarService } from '~/extensions/edubridge/application/services/edubridge-calendar.service';
+import { EduLessonOrigin, EduLessonStatus } from '~/extensions/edubridge/domain/enums';
+import { fillSlotTeachers, formatSlots, normalizeSlots, programMonthsOf, programOf, slotOccurrences, zonedParts } from '~/extensions/edubridge/domain/lib/schedule';
+import { lessonEndsAt, reportUntil } from '~/extensions/edubridge/domain/lib/lesson-dates';
+
+jest.mock('@coopenomics/extension-kit', () => ({
+  ...jest.requireActual('@coopenomics/extension-kit'),
+  platformSettings: () => ({ coopname: 'voskhod', timezone: 'Europe/Moscow', blockchain: { rootGovernSymbol: 'RUB', rootGovernPrecision: 4 } }),
+}));
+
+const logger = { setContext: jest.fn(), info: jest.fn(), warn: jest.fn(), error: jest.fn() } as any;
+const TUE_THU = [
+  { weekday: 2, time: '17:00', minutes: 60, assignment_id: 'A1', hourly_rate: '1000.0000 RUB' },
+  { weekday: 4, time: '17:00', minutes: 60, assignment_id: 'A1', hourly_rate: '1000.0000 RUB' },
+];
+/** Резерв: час в неделю на внеочередные занятия — 240 минут в месяц, 480 за два месяца программы. */
+const RESERVE = { weekday: 8, time: '', minutes: 60, assignment_id: null, hourly_rate: '1000.0000 RUB' };
+
+/** Группа курса: 12 занятий по 60 минут, 8 в месяц, начало в среду 14.10.2026. */
+function groupOf(over: Record<string, unknown> = {}) {
+  return {
+    id: 'G1',
+    coopname: 'voskhod',
+    course_id: 'C1',
+    title: 'Группа 1',
+    status: 'active',
+    starts_at: '2026-10-14',
+    starts_at_time: null,
+    lessons_per_month: 8,
+    lessons_total: 12,
+    lesson_minutes: 60,
+    program_months: 2,
+    minutes_per_month: 360,
+    minutes_total: 720,
+    schedule_slots: TUE_THU,
+    report_days: 7,
+    ...over,
+  } as any;
+}
+
+function make(opts: { group?: any; lessons?: any[]; assignments?: Record<string, any> } = {}) {
+  const group = opts.group ?? groupOf();
+  const store = new Map<string, any>((opts.lessons ?? []).map((l) => [l.id, l]));
+  let seq = 100;
+  const lessons = {
+    findByGroup: jest.fn(async () => [...store.values()]),
+    findById: jest.fn(async (_c: string, id: string) => store.get(id) ?? null),
+    findInRange: jest.fn(async () => [...store.values()]),
+    deleteMany: jest.fn(async (ids: string[]) => { for (const id of ids) store.delete(id); return ids.length; }),
+    create: jest.fn((d: any) => ({ id: `L${(seq += 1)}`, ...d })),
+    save: jest.fn(async (l: any) => { store.set(l.id, l); return l; }),
+  } as any;
+  const groups = { findById: jest.fn(async () => group), save: jest.fn(async (g: any) => g) } as any;
+  const courses = { findById: jest.fn(async () => ({ id: 'C1' })) } as any;
+  const assignments: Record<string, any> = {
+    A1: { id: 'A1', chain_ref: '1', course_id: 'C1', teacher_username: 'teach', status: 'active' },
+    A2: { id: 'A2', chain_ref: '2', course_id: 'C1', teacher_username: 'other', status: 'active' },
+    AX: { id: 'AX', chain_ref: '3', course_id: 'C9', teacher_username: 'alien', status: 'active' },
+    ...opts.assignments,
+  };
+  const teachers = {
+    findAssignment: jest.fn(async (_c: string, id: string) => assignments[id] ?? null),
+    listAssignments: jest.fn(async () => Object.values(assignments)),
+  } as any;
+  const service = new EdubridgeCalendarService(lessons, groups, courses, teachers, logger);
+  const live = () => [...store.values()].filter((l) => l.status !== EduLessonStatus.CANCELLED).sort((a, b) => a.held_at - b.held_at);
+  return { service, group, groups, store, lessons, live };
+}
+
+const moscow = (iso: string) => new Date(iso).toISOString();
+
+describe('Окна расписания и моменты занятий', () => {
+  it('окна проверяются и строятся в строку «Вт, Чт 17:00–18:00»; время — местное время кооператива', () => {
+    const slots = normalizeSlots([{ weekday: 4, time: '17:00', minutes: 60, assignment_id: null, hourly_rate: '1000.0000 RUB' }, { weekday: 2, time: '17:00', minutes: 60, assignment_id: 'A1', hourly_rate: '1000.0000 RUB' }]);
+    expect(slots.map((s) => s.weekday)).toEqual([2, 4]);
+    expect(formatSlots(slots)).toBe('Вт, Чт 17:00–18:00');
+    expect(formatSlots([...slots, { weekday: 6, time: '10:30', minutes: 90, assignment_id: null, hourly_rate: '1500.0000 RUB' }])).toBe('Вт, Чт 17:00–18:00; Сб 10:30–12:00');
+    expect(() => normalizeSlots([{ weekday: 9, time: '17:00', minutes: 60, hourly_rate: '1000.0000 RUB' }])).toThrow(expect.objectContaining({ code: 'EDUBRIDGE_SCHEDULE_WEEKDAY_INVALID' }));
+    expect(() => normalizeSlots([{ weekday: 1, time: '25:00', minutes: 60, hourly_rate: '1000.0000 RUB' }])).toThrow(expect.objectContaining({ code: 'EDUBRIDGE_SCHEDULE_TIME_INVALID' }));
+    expect(() => normalizeSlots([{ weekday: 1, time: '17:00', minutes: 1, hourly_rate: '1000.0000 RUB' }])).toThrow(expect.objectContaining({ code: 'EDUBRIDGE_SCHEDULE_MINUTES_INVALID' }));
+  });
+
+  it('преподаватели окон — по действующим допускам курса: пустое окно и окно снятого допуска заполняются по очереди, назначенные не трогаются', () => {
+    const slot = (assignment_id: string | null, weekday = 2) => ({ weekday, time: '17:00', minutes: 60, assignment_id, hourly_rate: '1000.0000 RUB' });
+    // Один допуск — он встаёт во все пустые окна.
+    expect(fillSlotTeachers([slot(null), slot(null, 4)], ['A1'])?.map((s) => s.assignment_id)).toEqual(['A1', 'A1']);
+    // Два допуска — первому окну первый, второму второй, третьему снова первый.
+    expect(fillSlotTeachers([slot(null), slot(null, 4), slot(null, 6)], ['A1', 'A2'])?.map((s) => s.assignment_id)).toEqual(['A1', 'A2', 'A1']);
+    // Назначенное администратором окно остаётся; окно снятого допуска переходит к действующему.
+    expect(fillSlotTeachers([slot('A2'), slot('GONE', 4), slot(null, 6)], ['A1', 'A2'])?.map((s) => s.assignment_id)).toEqual(['A2', 'A1', 'A2']);
+    // Менять нечего — `null`: группа не сохраняется, календарь не перестраивается.
+    expect(fillSlotTeachers([slot('A1'), slot('A2', 4)], ['A1', 'A2'])).toBeNull();
+    expect(fillSlotTeachers([slot(null)], [])).toBeNull();
+    // Допусков не осталось — окно снятого допуска освобождается.
+    expect(fillSlotTeachers([slot('GONE')], [])?.map((s) => s.assignment_id)).toEqual([null]);
+  });
+
+  it('от среды 14.10.2026 занятия по вторникам и четвергам идут с четверга 15.10, 17:00 по Москве', () => {
+    const out = slotOccurrences(TUE_THU, new Date('2026-10-14T00:00:00Z'), 3, 'Europe/Moscow');
+    expect(out.map((o) => o.at.toISOString())).toEqual([moscow('2026-10-15T14:00:00Z'), moscow('2026-10-20T14:00:00Z'), moscow('2026-10-22T14:00:00Z')]);
+    expect(zonedParts(out[0].at, 'Europe/Moscow')).toMatchObject({ weekday: 4, hour: 17, minute: 0 });
+  });
+
+  it('числа программы из окон: минуты недели на четыре недели месяца, занятия — для показа, длительность — по первому окну', () => {
+    expect(programOf(TUE_THU, 8)).toEqual({ minutes_per_month: 480, minutes_total: 3840, lessons_per_month: 8, lessons_per_month_exact: 8, lessons_total: 64, lesson_minutes: 60, reserve_per_month: 0, teach_month: '8000.0000 RUB', planned_hourly_rate: '1000.0000 RUB' });
+    // Окно 90 минут по 1500 в час: занятие 2250, за четыре недели 9000; средняя стоимость часа — те же 1500.
+    expect(programOf([{ weekday: 6, minutes: 90, hourly_rate: '1500.0000 RUB' }], 0)).toEqual({ minutes_per_month: 360, minutes_total: 0, lessons_per_month: 4, lessons_per_month_exact: 4, lessons_total: 0, lesson_minutes: 90, reserve_per_month: 0, teach_month: '9000.0000 RUB', planned_hourly_rate: '1500.0000 RUB' });
+    // Длительность с шагом в неделю: 3,5 месяца — три месяца и две недели, 14 недель по два занятия.
+    expect(programOf(TUE_THU, 3.5)).toMatchObject({ minutes_per_month: 480, minutes_total: 1680, lessons_per_month: 8, lessons_total: 28 });
+    expect(programMonthsOf(3.5)).toBe(3.5);
+    expect(programMonthsOf(0.25)).toBe(0.25);
+    expect(programMonthsOf(0)).toBe(0);
+    for (const bad of [3.3, -1, 121, Number.NaN]) expect(() => programMonthsOf(bad)).toThrow(expect.objectContaining({ code: 'EDUBRIDGE_PROGRAM_MONTHS_INVALID' }));
+    // Резерв входит в минуты программы, но не в занятия по расписанию.
+    expect(programOf([...TUE_THU, RESERVE], 2)).toEqual({ minutes_per_month: 720, minutes_total: 1440, lessons_per_month: 8, lessons_per_month_exact: 8, lessons_total: 16, lesson_minutes: 60, reserve_per_month: 240, teach_month: '12000.0000 RUB', planned_hourly_rate: '1000.0000 RUB' });
+    expect(formatSlots(normalizeSlots([...TUE_THU, RESERVE]))).toBe('Вт, Чт 17:00–18:00; резерв 60 мин в неделю');
+    expect(programOf([], 3).minutes_per_month).toBe(0);
+  });
+
+  it('конец занятия и срок на отчёт: настоящие сутки в работе, сжатые — на стенде', () => {
+    const lesson = { held_at: new Date('2026-10-15T14:00:00Z'), duration_minutes: 60 };
+    const previous = { mode: process.env.NODE_ENV, day: process.env.EDUBRIDGE_GUARANTEE_DAY_SECONDS };
+    process.env.NODE_ENV = 'production';
+    expect(lessonEndsAt(lesson).toISOString()).toBe('2026-10-15T15:00:00.000Z');
+    expect(reportUntil(lesson, 7).toISOString()).toBe('2026-10-22T15:00:00.000Z');
+    process.env.NODE_ENV = 'development';
+    process.env.EDUBRIDGE_GUARANTEE_DAY_SECONDS = '60';
+    // Сутки — минута: часовое занятие длится 2,5 секунды, семь дней на отчёт — семь минут.
+    expect(lessonEndsAt(lesson).getTime() - lesson.held_at.getTime()).toBe(2500);
+    expect(reportUntil(lesson, 7).getTime() - lesson.held_at.getTime()).toBe(2500 + 7 * 60_000);
+    process.env.NODE_ENV = previous.mode;
+    if (previous.day === undefined) delete process.env.EDUBRIDGE_GUARANTEE_DAY_SECONDS;
+    else process.env.EDUBRIDGE_GUARANTEE_DAY_SECONDS = previous.day;
+  });
+});
+
+describe('EdubridgeCalendarService — календарь группы', () => {
+  const previousMode = process.env.NODE_ENV;
+  beforeEach(() => { process.env.NODE_ENV = 'production'; });
+  afterEach(() => { process.env.NODE_ENV = previousMode; });
+
+  it('календарь строится на всю программу: 720 минут — 12 часовых занятий по вторникам и четвергам, номера по порядку дат, преподаватель из окна', async () => {
+    const { service, group, live } = make();
+    const built = await service.rebuild('voskhod', group);
+    expect(built).toHaveLength(12);
+    const rows = live();
+    expect(rows.map((l) => l.lesson_number)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+    expect(rows[0]).toMatchObject({ status: EduLessonStatus.PLANNED, origin: EduLessonOrigin.SCHEDULE, teacher_username: 'teach', assignment_id: 'A1', duration_minutes: 60 });
+    expect(rows[0].held_at.toISOString()).toBe('2026-10-15T14:00:00.000Z');
+    expect(rows[11].held_at.toISOString()).toBe('2026-11-24T14:00:00.000Z');
+  });
+
+  it('перестройка: проведённые и назначенные отдельно занятия остаются, по расписанию строится остаток программы', async () => {
+    const held = { id: 'H1', group_id: 'G1', lesson_number: 1, status: EduLessonStatus.HELD, origin: EduLessonOrigin.SCHEDULE, held_at: new Date('2026-10-15T14:00:00Z'), duration_minutes: 60 };
+    const extra = { id: 'X1', group_id: 'G1', lesson_number: 2, status: EduLessonStatus.PLANNED, origin: EduLessonOrigin.EXTRA, held_at: new Date('2026-10-17T10:00:00Z'), duration_minutes: 120 };
+    const stale = { id: 'S1', group_id: 'G1', lesson_number: 3, status: EduLessonStatus.PLANNED, origin: EduLessonOrigin.SCHEDULE, held_at: new Date('2026-10-20T14:00:00Z'), duration_minutes: 60 };
+    const { service, group, store, live } = make({ lessons: [held, extra, stale] });
+    await service.rebuild('voskhod', group);
+    expect(store.has('H1')).toBe(true);
+    expect(store.has('X1')).toBe(true);
+    expect(store.has('S1')).toBe(false);
+    // Проведённое — 60 минут, дополнительное — 120: из 720 минут по расписанию остаётся девять часовых.
+    const scheduled = live().filter((l) => l.origin === EduLessonOrigin.SCHEDULE && l.status === EduLessonStatus.PLANNED);
+    expect(scheduled).toHaveLength(9);
+    expect(scheduled.map((l) => l.lesson_number)).toEqual([3, 4, 5, 6, 7, 8, 9, 10, 11]);
+  });
+
+  it('группа с окнами без преподавателя: допуски курса встают в окна, занятия календаря получают преподавателей; чужой курс в расстановку не идёт', async () => {
+    const empty = TUE_THU.map((s) => ({ ...s, assignment_id: null }));
+    const { service, group, groups, live } = make({ group: groupOf({ schedule_slots: empty }) });
+    expect(await service.syncTeachers('voskhod', group)).toBe(true);
+    expect(group.schedule_slots.map((s: any) => s.assignment_id)).toEqual(['A1', 'A2']);
+    expect(groups.save).toHaveBeenCalledTimes(1);
+    await service.rebuild('voskhod', group);
+    expect(new Set(live().map((l: any) => l.teacher_username))).toEqual(new Set(['teach', 'other']));
+    expect(live().every((l: any) => l.assignment_id)).toBe(true);
+    // Повторная расстановка ничего не меняет.
+    expect(await service.syncTeachers('voskhod', group)).toBe(false);
+    expect(groups.save).toHaveBeenCalledTimes(1);
+  });
+
+  it('группа завершена либо отменена: запланированные занятия снимаются, проведённые остаются; повтор ничего не меняет', async () => {
+    const lesson = (id: string, status: EduLessonStatus) => ({ id, coopname: 'voskhod', course_id: 'C1', group_id: 'G1', lesson_number: Number(id.slice(1)), held_at: new Date('2026-10-20T14:00:00Z'), duration_minutes: 60, slot_index: 0, assignment_id: 'A1', teacher_username: 'teach', status, origin: EduLessonOrigin.SCHEDULE });
+    const { service, group, store } = make({ group: groupOf({ status: 'closed' }), lessons: [lesson('L1', EduLessonStatus.PLANNED), lesson('L2', EduLessonStatus.HELD), lesson('L3', EduLessonStatus.PLANNED)] });
+    expect(await service.cancelPlanned('voskhod', group)).toBe(2);
+    expect([...store.values()].map((l: any) => l.status)).toEqual([EduLessonStatus.CANCELLED, EduLessonStatus.HELD, EduLessonStatus.CANCELLED]);
+    expect(await service.cancelPlanned('voskhod', group)).toBe(0);
+  });
+
+  it('допуск снят: запланированное отдельно занятие переходит к преподавателю своего окна, проведённое остаётся за прежним', async () => {
+    const gone = { id: 'AG', chain_ref: '9', course_id: 'C1', teacher_username: 'gone', status: 'closed' };
+    const lesson = (id: string, over: Record<string, unknown>) => ({ id, coopname: 'voskhod', course_id: 'C1', group_id: 'G1', lesson_number: Number(id.slice(1)), held_at: new Date('2026-10-20T14:00:00Z'), duration_minutes: 60, slot_index: 0, assignment_id: 'AG', teacher_username: 'gone', ...over });
+    const { service, group, store } = make({
+      assignments: { AG: gone },
+      lessons: [lesson('L1', { status: EduLessonStatus.PLANNED, origin: EduLessonOrigin.EXTRA }), lesson('L2', { status: EduLessonStatus.HELD, origin: EduLessonOrigin.SCHEDULE })],
+    });
+    await service.rebuild('voskhod', group);
+    expect(store.get('L1')).toMatchObject({ assignment_id: 'A1', teacher_username: 'teach' });
+    expect(store.get('L2')).toMatchObject({ assignment_id: 'AG', teacher_username: 'gone' });
+  });
+
+  it('внеочередное занятие берётся только из резерва: занятия по расписанию остаются, резерв исчерпан — отказ', async () => {
+    // Программа 1200 минут: 720 по окнам и 480 резерва — в календарь по окнам идут ровно 12 занятий.
+    const { service, group, live } = make({ group: groupOf({ schedule_slots: [...TUE_THU, RESERVE], minutes_total: 1200 }) });
+    await service.rebuild('voskhod', group);
+    expect(live()).toHaveLength(12);
+    const extra = await service.plan('voskhod', { group_id: 'G1', held_at: '2026-10-24T10:00:00Z', minutes: 120, assignment_id: 'A2', topic: 'Контрольная' });
+    expect(extra).toMatchObject({ origin: EduLessonOrigin.EXTRA, status: EduLessonStatus.PLANNED, teacher_username: 'other', duration_minutes: 120, lesson_number: 13 });
+    expect(live()).toHaveLength(13);
+    // Резерва осталось 360 минут (480 − 120): ещё одно занятие на 360 проходит, следующее — нет.
+    await expect(service.plan('voskhod', { group_id: 'G1', held_at: '2026-10-25T10:00:00Z', minutes: 360 })).resolves.toMatchObject({ lesson_number: 14 });
+    await expect(service.plan('voskhod', { group_id: 'G1', held_at: '2026-10-26T10:00:00Z', minutes: 30 })).rejects.toMatchObject({ code: 'EDUBRIDGE_RESERVE_EMPTY' });
+  });
+
+  it('программа заполнена проведёнными и назначенными занятиями: дополнительное и удлинение отклоняются; чужой допуск в окне — отказ', async () => {
+    const full = Array.from({ length: 12 }, (_, i) => ({ id: `F${i + 1}`, group_id: 'G1', lesson_number: i + 1, status: i < 6 ? EduLessonStatus.HELD : EduLessonStatus.PLANNED, origin: EduLessonOrigin.EXTRA, held_at: new Date(Date.UTC(2026, 9, 15 + i)), duration_minutes: 60 }));
+    const { service } = make({ lessons: full });
+    // Резерва в окнах нет: внеочередное занятие и удлинение внеочередного отклоняются резервом.
+    await expect(service.plan('voskhod', { group_id: 'G1', held_at: '2026-12-01T10:00:00Z' })).rejects.toMatchObject({ code: 'EDUBRIDGE_RESERVE_EMPTY' });
+    await expect(service.move('voskhod', { lesson_id: 'F12', minutes: 120 })).rejects.toMatchObject({ code: 'EDUBRIDGE_RESERVE_EMPTY' });
+    await expect(service.move('voskhod', { lesson_id: 'F1', held_at: '2026-12-01T10:00:00Z' })).rejects.toMatchObject({ code: 'EDUBRIDGE_LESSON_NOT_PLANNED' });
+    await expect(service.cancel('voskhod', 'F1')).rejects.toMatchObject({ code: 'EDUBRIDGE_LESSON_NOT_PLANNED' });
+    await expect(service.setSchedule('voskhod', { group_id: 'G1', slots: [{ weekday: 1, time: '10:00', minutes: 60, assignment_id: 'AX', hourly_rate: '1000.0000 RUB' }] })).rejects.toMatchObject({ code: 'EDUBRIDGE_SCHEDULE_TEACHER_NOT_ASSIGNED' });
+  });
+
+  it('отмена освобождает номер: следующее внеочередное занятие получает его; перенос меняет дату и преподавателя', async () => {
+    const { service, group, live, store } = make({ group: groupOf({ schedule_slots: [...TUE_THU, RESERVE], minutes_total: 1200 }) });
+    await service.rebuild('voskhod', group);
+    const fifth = live()[4];
+    const cancelled = await service.cancel('voskhod', fifth.id);
+    expect(cancelled.status).toBe(EduLessonStatus.CANCELLED);
+    expect(store.get(fifth.id).lesson_number).toBe(5);
+    const replacement = await service.plan('voskhod', { group_id: 'G1', held_at: '2026-10-31T10:00:00Z', assignment_id: 'A1' });
+    expect(replacement.lesson_number).toBe(5);
+    const moved = await service.move('voskhod', { lesson_id: replacement.id, held_at: '2026-11-01T10:00:00Z', assignment_id: 'A2', topic: 'Перенос' });
+    expect(moved).toMatchObject({ lesson_number: 5, teacher_username: 'other', topic: 'Перенос', origin: EduLessonOrigin.EXTRA });
+    expect(moved.held_at.toISOString()).toBe('2026-11-01T10:00:00.000Z');
+    // Перенос занятия по расписанию: оно выходит из-под перестройки и резерв не тратит.
+    const scheduled = live().find((l) => l.origin === EduLessonOrigin.SCHEDULE) as any;
+    await expect(service.move('voskhod', { lesson_id: scheduled.id, held_at: '2026-11-02T10:00:00Z' })).resolves.toMatchObject({ origin: EduLessonOrigin.MOVED });
+  });
+
+  it('окна расписания группы: сохраняются, срок на отчёт проверяется, календарь перестраивается', async () => {
+    const { service, group, live } = make({ group: groupOf({ schedule_slots: [] }) });
+    await expect(service.setSchedule('voskhod', { group_id: 'G1', slots: TUE_THU, report_days: 400 })).rejects.toMatchObject({ code: 'EDUBRIDGE_REPORT_DAYS_INVALID' });
+    const saved = await service.setSchedule('voskhod', { group_id: 'G1', slots: [TUE_THU[1], TUE_THU[0]], report_days: 3 });
+    expect(saved.schedule_slots.map((s: any) => s.weekday)).toEqual([2, 4]);
+    expect(saved.report_days).toBe(3);
+    expect(live()).toHaveLength(12);
+    expect(group.schedule_slots).toHaveLength(2);
+    // Без окон занятия по расписанию снимаются.
+    await service.setSchedule('voskhod', { group_id: 'G1', slots: [] });
+    expect(live()).toHaveLength(0);
+  });
+
+  it('на стенде со сжатым временем занятия раскладываются равными шагами по сжатому месяцу', async () => {
+    const previous = { day: process.env.EDUBRIDGE_GUARANTEE_DAY_SECONDS, month: process.env.EDUBRIDGE_MONTH_SECONDS };
+    process.env.NODE_ENV = 'development';
+    process.env.EDUBRIDGE_GUARANTEE_DAY_SECONDS = '60';
+    process.env.EDUBRIDGE_MONTH_SECONDS = '600';
+    const { service, group, live } = make({ group: groupOf({ starts_at_time: new Date('2026-10-14T10:00:00Z') }) });
+    await service.rebuild('voskhod', group);
+    const rows = live();
+    expect(rows).toHaveLength(12);
+    // Восемь занятий в месяц из десяти минут — шаг 75 секунд.
+    expect(rows[1].held_at.getTime() - rows[0].held_at.getTime()).toBe(75_000);
+    expect(rows[0].held_at.toISOString()).toBe('2026-10-14T10:00:00.000Z');
+    if (previous.day === undefined) delete process.env.EDUBRIDGE_GUARANTEE_DAY_SECONDS;
+    else process.env.EDUBRIDGE_GUARANTEE_DAY_SECONDS = previous.day;
+    if (previous.month === undefined) delete process.env.EDUBRIDGE_MONTH_SECONDS;
+    else process.env.EDUBRIDGE_MONTH_SECONDS = previous.month;
+  });
+});

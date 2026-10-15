@@ -17,6 +17,20 @@ title: >-
 # `@coopenomics/extension-kit` и `@coopenomics/innercoop`. Поведение операций,
 # правила доступа и набор случаев прежние.
 
+# Правка 24.09.2026 (C28-83): экраны фичи перечитываются по ленте изменений
+# (таблицы Благороста объявлены расширением, набор на столе —
+# shared/lib/live.ts) вместо опроса useDataPoller раз в 10–30 с. Поведение
+# фичи и набор случаев не менялись.
+
+# Правка 24.09.2026 (C28-83), экраны: страницы, виджеты и панели фичи живут по
+# ленте изменений Благороста (CAPITAL_LIVE_TABLES); формы, диалоги выбора и
+# редакторы помечены «realtime: нет источника» с причиной. Поведение и набор
+# случаев не менялись.
+
+# Правка 25.09.2026 (C28-80): признак «доля завершена» читается из базы
+# (конструктор доли его терял). Поведение стола результатов прежнее, случай
+# покрыт в capital.result-submission (cap.rid.side.92).
+
 sources:
   backend:
     - components/controller/src/extensions/capital/application/dto/segments/segment.dto.ts
@@ -376,6 +390,7 @@ cases:
       проекта и признаком отданного голоса — строку списка можно построить
       одним запросом
     test: components/controller/tests/unit/capital/segment-mapper-context.test.ts
+    api: components/api-tests/src/capital/results-desk.test.ts
     status: passing
 
   - id: cap.resdesk.side.09
@@ -386,6 +401,7 @@ cases:
       название проекта заполнено, название и хэш родителя пустые — по ним
       и отличается компонент от проекта верхнего уровня
     test: components/controller/tests/unit/capital/segment-mapper-context.test.ts
+    api: components/api-tests/src/capital/results-desk.test.ts
     status: passing
 
   - id: cap.resdesk.side.10
@@ -396,8 +412,8 @@ cases:
     expect: >
       признак голоса выставлен только у доли того проекта, где голос отдан;
       чужие голоса на признак не влияют
-    test: ~
-    status: missing
+    test: components/api-tests/src/capital/result-submission.test.ts
+    status: written
 
   - id: cap.resdesk.side.11
     level: backend
@@ -407,6 +423,7 @@ cases:
       признак голоса приходит отрицательным, а не пустым: поле обязательное,
       и пустое значение уронило бы ответ целиком
     test: components/controller/tests/unit/capital/segment-mapper-context.test.ts
+    api: components/api-tests/src/capital/results-desk.test.ts
     status: passing
 
   - id: cap.resdesk.side.16
@@ -419,8 +436,8 @@ cases:
       в первом случае возвращаются доли проектов с непустым родителем, во
       втором — доли проектов, у которых родителя нет: и когда родитель пустой
       хэш, и когда он не заполнен вовсе
-    test: ~
-    status: missing
+    test: components/api-tests/src/capital/project-contributors.test.ts
+    status: written
 
   - id: cap.resdesk.break.03
     level: backend
@@ -435,6 +452,7 @@ cases:
       состав участников, подача результата) и они нужны любому участнику
       проекта. Решение владельца, зафиксировано 2026-08-20
     test: components/controller/tests/unit/capital/segments-role.test.ts
+    api: components/api-tests/src/capital/results-desk.test.ts
     status: passing
 
   - id: cap.res.ui.01
@@ -448,3 +466,11 @@ cases:
       прокрутки обратно
     status: missing
 
+
+# 2026-09-23 (EEA-6…EEA-9): тексты интерфейса, отказов и уведомлений фичи вынесены из
+# кода в словари i18n, отказы бэкенда переведены на DomainError с кодом — текст
+# и HTTP-статус ответа прежние. Сценарии фичи и её проверки не менялись.
+
+# 2026-10-05 (C28-81): файлы и классы хранилищ переименованы после ухода с TypeORM
+# (typeorm-repository → kysely-repository, typeorm-entity → record); частичная правка
+# полей собрана помощником pickDefined. Сценарии фичи и её проверки не менялись.

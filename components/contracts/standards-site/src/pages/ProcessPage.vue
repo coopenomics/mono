@@ -1,27 +1,35 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { getStandard } from '@/data/loader';
 import { START_ID } from '@/graph/layout';
 import ProcessGraph from '@/components/ProcessGraph.vue';
+import ProcessText from '@/components/ProcessText.vue';
+import { contractHuman } from '@/data/labels';
 
 const route = useRoute();
+const router = useRouter();
+
+/** Вид страницы: описание (по умолчанию), схема на всю ширину или прежний граф состояний. */
+type View = 'text' | 'scheme' | 'graph';
+// Граф при переходе по шагам пишет в адрес только фокус (?a=, ?s=, ?d=, ?o=)
+// и теряет ?view=graph — фокус в адресе сам по себе означает вкладку графа.
+const GRAPH_FOCUS_KEYS = ['a', 'd', 'o', 's'];
+const view = computed<View>(() => {
+  const q = route.query.view;
+  if (q === 'scheme') return 'scheme';
+  if (q === 'graph' || GRAPH_FOCUS_KEYS.some((k) => route.query[k])) return 'graph';
+  return 'text';
+});
+function setView(v: View): void {
+  router.replace({ query: v === 'text' ? {} : { view: v } });
+}
 
 const processType = computed(() =>
   typeof route.params.processType === 'string' ? route.params.processType : '',
 );
 
 const standard = computed(() => getStandard(processType.value));
-
-const LIFECYCLE_HUMAN: Record<string, string> = {
-  proposed: 'Предложен',
-  approved: 'Утверждён',
-  active: 'Действующий',
-  deprecated: 'Устаревший',
-};
-function lifecycleHuman(s: string): string {
-  return LIFECYCLE_HUMAN[s] ?? s;
-}
 
 /**
  * Единовременный фокус может быть только один:
@@ -71,7 +79,12 @@ const focusStatus = computed<string | null>(() => {
       <dl class="process-head__meta">
         <div class="meta-item">
           <dt>Контракт</dt>
-          <dd><code>{{ standard.contract }}</code></dd>
+          <dd>
+            <span v-if="contractHuman(standard.contract) !== standard.contract" class="meta-item__primary">
+              {{ contractHuman(standard.contract) }}
+            </span>
+            <code>{{ standard.contract }}</code>
+          </dd>
         </div>
         <div class="meta-item">
           <dt>Процесс</dt>
@@ -90,18 +103,35 @@ const focusStatus = computed<string | null>(() => {
           <dt>Зона</dt>
           <dd><code>{{ standard.area }}</code></dd>
         </div>
-        <div class="meta-item">
-          <dt>Статус</dt>
-          <dd>
-            <span class="status-badge" :class="`status-badge--${standard.status}`">
-              {{ lifecycleHuman(standard.status) }}
-            </span>
-          </dd>
-        </div>
       </dl>
+      <nav class="view-switch">
+        <button type="button" :class="{ 'view-switch--on': view === 'text' }" @click="setView('text')">
+          Описание
+        </button>
+        <button type="button" :class="{ 'view-switch--on': view === 'scheme' }" @click="setView('scheme')">
+          Схема
+        </button>
+        <button type="button" :class="{ 'view-switch--on': view === 'graph' }" @click="setView('graph')">
+          Граф состояний
+        </button>
+      </nav>
     </header>
 
-    <div class="process-page__workspace">
+    <div v-if="view !== 'graph'" class="process-page__workspace">
+      <ProcessText
+        :key="standard.process_type"
+        :standard="standard"
+        :mode="view === 'scheme' ? 'scheme' : 'text'"
+        @mode="setView"
+      />
+    </div>
+
+    <div v-else-if="!(standard.transitions ?? []).length" class="process-page__empty">
+      У процесса нет сущности со статусами — он состоит из отдельных действий,
+      поэтому граф состояний не строится. Ход процесса — на вкладке «Описание».
+    </div>
+
+    <div v-else class="process-page__workspace">
       <ProcessGraph
         :standard="standard"
         :focus-status="focusStatus"
@@ -130,18 +160,47 @@ const focusStatus = computed<string | null>(() => {
   overflow: hidden;
   display: flex;
 }
+.process-page__empty {
+  padding: 24px;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+.view-switch {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  margin-top: 4px;
+  align-self: flex-start;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.view-switch button {
+  border: none;
+  background: transparent;
+  padding: 3px 12px;
+  border-radius: 4px;
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+.view-switch button.view-switch--on {
+  background: var(--bg);
+  color: var(--text);
+  box-shadow: 0 0 0 1px var(--border);
+}
 .process-head {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding-bottom: 10px;
+  gap: 10px;
+  padding-bottom: 14px;
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
 }
 .process-head h1 {
-  margin: 0;
-  font-size: 20px;
+  margin: 0 0 4px;
+  font-size: 24px;
   line-height: 1.2;
+  letter-spacing: -0.01em;
 }
 .process-head__meta {
   margin: 0;
@@ -192,32 +251,5 @@ const focusStatus = computed<string | null>(() => {
   color: var(--text-muted) !important;
   background: transparent !important;
   border: none !important;
-}
-.status-badge {
-  display: inline-block;
-  padding: 2px 10px;
-  border-radius: 10px;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.03em;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--text-muted);
-}
-.status-badge--proposed {
-  background: var(--edge-focus-soft);
-  border-color: var(--edge-focus-border);
-  color: var(--edge-focus);
-}
-.status-badge--approved,
-.status-badge--active {
-  background: var(--accent-soft);
-  border-color: var(--accent-border);
-  color: var(--accent);
-}
-.status-badge--deprecated {
-  background: var(--reject-soft);
-  border-color: var(--reject);
-  color: var(--reject);
 }
 </style>

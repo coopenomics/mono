@@ -1,5 +1,6 @@
 import { GraphQLError } from 'graphql';
 import type { ContentEntityType } from '../enums/content-entity-type.enum';
+import { t } from '../../i18n';
 
 export const CONTENT_CONFLICT_CODE = 'CONTENT_CONFLICT';
 
@@ -26,7 +27,7 @@ export interface ContentConflictPayload {
  */
 export class ContentConflictError extends GraphQLError {
   constructor(public readonly payload: ContentConflictPayload) {
-    super('Документ изменён параллельно: автоматическое слияние невозможно, разрешите конфликт и сохраните снова', {
+    super(t('capital.contentConflict.message'), {
       extensions: { code: CONTENT_CONFLICT_CODE, conflict: payload },
     });
     this.name = 'ContentConflictError';

@@ -53,8 +53,9 @@ function build() {
     createForParticipantWithRules: jest.fn(async () => ability),
   } as unknown as AbilityFactory;
   const audit = { record: jest.fn(async (): Promise<void> => undefined) } as unknown as AuditService & { record: jest.Mock };
-  const service = new CapabilitySetService(repo, accessRules, invalidation, abilityFactory, audit);
-  return { service, repo, accessRules, invalidation, abilityFactory, audit };
+  const users = { findUserByUsername: jest.fn(async (username: string) => (username === 'ghost' ? null : { username })) };
+  const service = new CapabilitySetService(repo, accessRules, invalidation, abilityFactory, audit, users as never);
+  return { service, repo, accessRules, invalidation, abilityFactory, audit, users };
 }
 
 describe('CapabilitySetService — назначаемые наборы (Story 6.11)', () => {
@@ -73,6 +74,14 @@ describe('CapabilitySetService — назначаемые наборы (Story 6.
   it('assign: несуществующий набор → NotFound, без записи/инвалидации/аудита', async () => {
     const { service, repo, invalidation, audit } = build();
     await expect(service.assign({ username: 'kate', setKey: 'ghost', grantedBy: 'chief' })).rejects.toBeInstanceOf(NotFoundException);
+    expect(repo.assign).not.toHaveBeenCalled();
+    expect(invalidation.publish).not.toHaveBeenCalled();
+    expect(audit.record).not.toHaveBeenCalled();
+  });
+
+  it('assign: имени нет среди пайщиков → NotFound, без записи/инвалидации/аудита', async () => {
+    const { service, repo, invalidation, audit } = build();
+    await expect(service.assign({ username: 'ghost', setKey: 'accountant', grantedBy: 'chief' })).rejects.toBeInstanceOf(NotFoundException);
     expect(repo.assign).not.toHaveBeenCalled();
     expect(invalidation.publish).not.toHaveBeenCalled();
     expect(audit.record).not.toHaveBeenCalled();

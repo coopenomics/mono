@@ -1,5 +1,5 @@
 import { KuDecisionQuestionDomainEntity } from '../../domain/entities/ku-decision-question.entity';
-import type { KuDecisionQuestionTypeormEntity } from '../entities/ku-decision-question.typeorm-entity';
+import type { KuDecisionQuestionRecord } from '../entities/ku-decision-question.record';
 import type {
   IKuDecisionQuestionBlockchainData,
   IKuDecisionQuestionDatabaseData,
@@ -9,7 +9,7 @@ import type {
  * Маппер между доменной сущностью вопроса повестки и TypeORM-сущностью
  */
 export class KuDecisionQuestionMapper {
-  static toDomain(entity: KuDecisionQuestionTypeormEntity): KuDecisionQuestionDomainEntity {
+  static toDomain(entity: KuDecisionQuestionRecord): KuDecisionQuestionDomainEntity {
     const databaseData: IKuDecisionQuestionDatabaseData = {
       _id: entity._id,
       block_num: entity.block_num,
@@ -42,7 +42,7 @@ export class KuDecisionQuestionMapper {
     return new KuDecisionQuestionDomainEntity(databaseData, blockchainData);
   }
 
-  static toEntity(domain: KuDecisionQuestionDomainEntity): Partial<KuDecisionQuestionTypeormEntity> {
+  static toEntity(domain: KuDecisionQuestionDomainEntity): Partial<KuDecisionQuestionRecord> {
     return {
       _id: domain._id,
       block_num: domain.block_num ?? 0,
@@ -66,8 +66,8 @@ export class KuDecisionQuestionMapper {
     };
   }
 
-  static toUpdateEntity(domain: Partial<KuDecisionQuestionDomainEntity>): Partial<KuDecisionQuestionTypeormEntity> {
-    const updateData: Partial<KuDecisionQuestionTypeormEntity> = {};
+  static toUpdateEntity(domain: Partial<KuDecisionQuestionDomainEntity>): Partial<KuDecisionQuestionRecord> {
+    const updateData: Partial<KuDecisionQuestionRecord> = {};
 
     if (domain.block_num !== undefined) updateData.block_num = domain.block_num;
     if (domain.present !== undefined) updateData.present = domain.present;

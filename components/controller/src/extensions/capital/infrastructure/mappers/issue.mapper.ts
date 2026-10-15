@@ -1,5 +1,5 @@
 import { IssueDomainEntity } from '../../domain/entities/issue.entity';
-import { IssueTypeormEntity } from '../entities/issue.typeorm-entity';
+import { IssueRecord } from '../entities/issue.record';
 import type { IIssueDatabaseData } from '../../domain/interfaces/issue-database.interface';
 
 function normalizeEstimateFromDb(value: number | string): number {
@@ -17,7 +17,7 @@ export class IssueMapper {
   /**
    * Преобразование TypeORM сущности в доменную сущность
    */
-  static toDomain(entity: IssueTypeormEntity): IssueDomainEntity {
+  static toDomain(entity: IssueRecord): IssueDomainEntity {
     const databaseData: IIssueDatabaseData = {
       _id: entity._id,
       id: entity.id,
@@ -48,8 +48,8 @@ export class IssueMapper {
   /**
    * Преобразование доменной сущности в TypeORM сущность для создания
    */
-  static toEntity(domain: Partial<IssueDomainEntity>): Partial<IssueTypeormEntity> {
-    const entity: Partial<IssueTypeormEntity> = {};
+  static toEntity(domain: Partial<IssueDomainEntity>): Partial<IssueRecord> {
+    const entity: Partial<IssueRecord> = {};
     // Object.assign(entity, domain);
     if (domain._id !== undefined) entity._id = domain._id;
     if (domain.id !== undefined) entity.id = domain.id;

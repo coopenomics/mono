@@ -1,7 +1,7 @@
-# Карта пайщика, Story 7.0 (FR-E1): confidential-клиент card.coop в CoopID кооператива.
+# Карта кооператора, Story 7.0 (FR-E1): confidential-клиент card.coop в CoopID кооператива.
 #
 # Зачем. card.coop подключает кооператив как federated-источник входа: пайщик,
-# нажав «Выпустить карту пайщика», уходит на CoopID своего кооператива, входит
+# нажав «Выпустить карту кооператора», уходит на CoopID своего кооператива, входит
 # там и возвращается на card.coop уже опознанным. Чтобы этот переход был
 # возможен, у card.coop должен быть собственный OIDC-клиент на стороне
 # кооператива — он и заводится здесь.
@@ -49,7 +49,7 @@ entries:
     attrs:
       name: CoopID OIDC scope - coop:membership
       scope_name: "coop:membership"
-      description: Членство в кооперативе, дата приёма и уровни верификации (карта пайщика)
+      description: Членство в кооперативе, дата приёма и уровни верификации (карта кооператора)
       expression: !Format
         - |
           try:
@@ -81,6 +81,23 @@ entries:
   # решает, слать ли собственное письмо (FR-A2а). Поэтому у клиента card.coop
   # стандартный маппинг заменён этим — иначе кооператив как «доверенный
   # источник» сообщал бы неправду о собственной почте.
+  # Профиль — своя копия стандартного scope: у встроенного описание английское
+  # («General Profile Information»), а его пайщик читает на экране согласия.
+  - identifiers:
+      name: CoopID OIDC scope - profile (card.coop)
+    id: cardcoop-scope-profile
+    model: authentik_providers_oauth2.scopemapping
+    attrs:
+      name: CoopID OIDC scope - profile (card.coop)
+      scope_name: "profile"
+      description: Имя пайщика — как подписать карту
+      expression: |
+        return {
+            "name": request.user.name,
+            "given_name": request.user.name.split(" ")[0] if request.user.name else "",
+            "preferred_username": request.user.username,
+        }
+
   - identifiers:
       name: CoopID OIDC scope - email (card.coop)
     id: cardcoop-scope-email
@@ -137,7 +154,7 @@ entries:
             !Env [COOPNAME, "unset"],
           ]
       # sub = uuid учётной записи: стабилен при смене имени аккаунта и почты.
-      # На стороне card.coop он становится external_subject связки.
+      # На стороне card.coop он становится external_subject связи.
       sub_mode: user_uuid
       issuer_mode: per_provider
       include_claims_in_id_token: true
@@ -162,16 +179,27 @@ entries:
       property_mappings:
         - !Find [authentik_providers_oauth2.scopemapping, [scope_name, openid]]
         - !KeyOf cardcoop-scope-email
-        - !Find [authentik_providers_oauth2.scopemapping, [scope_name, profile]]
+        - !KeyOf cardcoop-scope-profile
         - !KeyOf cardcoop-scope-membership
 
+  # ── Экран согласия: заголовок потока по-русски ───────────────────────────
+  # Поток явного согласия встроенный, и заголовок у него английский («Redirecting
+  # to %(app)s»); пайщик видит его первым. Имя приложения подставляется как есть.
+  - identifiers:
+      slug: default-provider-authorization-explicit-consent
+    model: authentik_flows.flow
+    attrs:
+      title: "%(app)s запрашивает доступ"
+
   # ── Приложение (без него нет ни discovery, ни экрана согласия) ────────────
+  # Имя видит пайщик на экране согласия («Вы собираетесь войти в …»), поэтому оно
+  # человеческое, а не бренд латиницей.
   - identifiers:
       slug: cardcoop
     model: authentik_core.application
     attrs:
-      name: CardCOOP
+      name: Карта кооператора
       slug: cardcoop
       provider: !KeyOf cardcoop-provider
-      meta_description: Карта пайщика — единая карта кооперативной сети при АНО
+      meta_description: Карта кооператора — единая карта кооперативной сети при АНО
       meta_publisher: АНО «Кооперативная Экономика»

@@ -22,6 +22,7 @@
  *   SERVER_SECRET=SECRET APL_ID=<свежий-апп-после-skip_save:false> \
  *     pnpm --filter @coopenomics/boot exec esno src/scripts/diag-sign-apl-chairman.ts
  */
+import type { RpcInterfaces } from 'eosjs'
 import ecc from 'eosjs-ecc'
 import { Classes } from '@coopenomics/sdk'
 
@@ -47,7 +48,7 @@ async function main() {
   if (!APL_ID) throw new Error('APL_ID обязателен (свежий АПП, подписанный поставщиком после skip_save:false)')
 
   // 1. login as chairman
-  const info = await (await fetch(`${CHAIN_URL}/v1/chain/get_info`)).json()
+  const info = await (await fetch(`${CHAIN_URL}/v1/chain/get_info`)).json() as RpcInterfaces.GetInfoResult
   const now = info.head_block_time
   const digest = ecc.sha256(Buffer.from(now, 'utf8'), 'hex')
   const signature = ecc.signHash(digest, WIF)

@@ -48,9 +48,21 @@ export default async ({ page, shot, expect }) => {
   // Оверлей подписи на месте — persistent: пока акт не подписан (или приёмка
   // не отменена), увести окно нельзя.
   const signBtn = page.locator('button:has-text("Подписать поставку")').first();
-  const gateShown = await signBtn.waitFor({ state: 'visible', timeout: 30000 })
+  let gateShown = await signBtn.waitFor({ state: 'visible', timeout: 30000 })
     .then(() => true)
     .catch(() => false);
+  // Оверлей поднимает лента изменений стола: на столе пайщика (первая страница
+  // после входа) он может не успеть — открываем стол поставщика и ждём ещё.
+  // Без подписи оверлей закрывает собой любую страницу, и кадр партии не снять.
+  if (!gateShown) {
+    await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/market-supplier/supply-prep`, {
+      waitUntil: 'domcontentloaded',
+      timeout: 60000,
+    });
+    gateShown = await signBtn.waitFor({ state: 'visible', timeout: 45000 })
+      .then(() => true)
+      .catch(() => false);
+  }
 
   if (gateShown) {
     await page.waitForTimeout(1000);
@@ -84,7 +96,9 @@ export default async ({ page, shot, expect }) => {
     waitUntil: 'domcontentloaded',
     timeout: 60000,
   });
-  await page.waitForSelector('text=Сформированные партии', { timeout: 60000 });
+  // Страница — таблица партий: заголовка «Сформированные партии» больше нет,
+  // ждём строку партии на участок.
+  await page.locator('tbody tr').filter({ hasText: 'Красногорск' }).first().waitFor({ state: 'visible', timeout: 60000 });
   await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
   await page.waitForTimeout(2500);
   await cleanViteOverlays(page);

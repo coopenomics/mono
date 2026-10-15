@@ -25,9 +25,11 @@ export class MarketplaceStockProposalDomainEntity {
 
   constructor(props: MarketplaceStockProposalProps) {
     if (props.items.length === 0) {
+      // i18n-ignore: внутренний инвариант сущности, до пайщика не доходит
       throw new Error('MarketplaceStockProposalDomainEntity: предложение не может быть пустым.');
     }
     if (props.items.some((i) => i.quantity <= 0)) {
+      // i18n-ignore: внутренний инвариант сущности, до пайщика не доходит
       throw new Error('MarketplaceStockProposalDomainEntity: количество в строке должно быть положительным.');
     }
     this.id = props.id;

@@ -25,6 +25,7 @@
 import { computed } from 'vue';
 import { BaseBadge } from 'src/shared/ui/base/BaseBadge';
 import type { DocumentRowProps, DocumentStatus, DocumentType } from './DocumentRow.types';
+import { t as i18nT } from 'src/shared/i18n';
 
 const props = withDefaults(defineProps<DocumentRowProps>(), {
   clickable: true,
@@ -41,10 +42,10 @@ const STATUS_VARIANT: Record<DocumentStatus, 'pos' | 'neg' | 'warn' | 'neutral'>
   draft: 'neutral',
 };
 const STATUS_LABEL: Record<DocumentStatus, string> = {
-  signed: 'Подписано',
-  rejected: 'Отклонено',
-  pending: 'Ожидает',
-  draft: 'Черновик',
+  signed: i18nT('ui.documentRow.status.signed'),
+  rejected: i18nT('ui.documentRow.status.rejected'),
+  pending: i18nT('ui.documentRow.status.pending'),
+  draft: i18nT('ui.documentRow.status.draft'),
 };
 
 const statusVariant = computed(() => props.document.status ? STATUS_VARIANT[props.document.status] : 'neutral');

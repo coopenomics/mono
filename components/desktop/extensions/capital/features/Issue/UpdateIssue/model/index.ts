@@ -7,6 +7,7 @@ import {
 } from 'app/extensions/capital/entities/Issue/model';
 import { FailAlert } from 'src/shared/api/alerts';
 import { extractContentConflict } from 'app/extensions/capital/features/ContentRevisions';
+import { t } from '../../../../i18n';
 
 export type IUpdateIssueInput = Mutations.Capital.UpdateIssue.IInput['data'];
 
@@ -36,6 +37,7 @@ export function useUpdateIssue() {
     // Возвращаем Promise с результатом мутации (слитый текст и новый content_rev)
     return new Promise<IUpdateIssueOutput | undefined>((resolve, reject) => {
       // Устанавливаем новый таймер
+      // timing: debounce — автосохранение описания задачи после паузы в наборе
       autoSaveTimeout = setTimeout(async () => {
         try {
           resolve(await performAutoSave(data, projectHash));
@@ -59,7 +61,7 @@ export function useUpdateIssue() {
       // Конфликт редакций разруливает страница (диалог выбора версии), алерт не нужен
       if (!extractContentConflict(error)) {
         console.error('Auto-save failed:', error);
-        autoSaveError.value = 'Ошибка авто-сохранения';
+        autoSaveError.value = t('capital.updateIssue.autosaveError');
         FailAlert(error);
       }
       throw error; // Выбрасываем ошибку дальше для отката в UI

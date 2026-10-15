@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { In, Not, Repository } from 'typeorm';
+import { TableStore, notEqual, oneOf } from '@coopenomics/extension-kit';
+import { MARKETPLACE_APL_RECEPTION_STORE } from '../../infrastructure/database/marketplace-stores';
+import { Inject, Injectable } from '@nestjs/common';
 import { MarketplaceAplReceptionDomainEntity } from '../../domain/entities/marketplace-apl-reception.entity';
 import {
   MarketplaceAplReceptionStatuses,
@@ -19,8 +19,8 @@ export class MarketplaceAplReceptionRepositoryAdapter
   implements MarketplaceAplReceptionDomainRepository
 {
   constructor(
-    @InjectRepository(MarketplaceAplReceptionEntity, 'marketplace')
-    private readonly repo: Repository<MarketplaceAplReceptionEntity>,
+    @Inject(MARKETPLACE_APL_RECEPTION_STORE)
+private readonly repo: TableStore<MarketplaceAplReceptionEntity>,
     private readonly mapper: MarketplaceAplReceptionMapper
   ) {}
 
@@ -52,7 +52,7 @@ export class MarketplaceAplReceptionRepositoryAdapter
   }
 
   async findById(id: string): Promise<MarketplaceAplReceptionDomainEntity | null> {
-    const row = await this.repo.findOne({ where: { id } });
+    const row = await this.repo.findOne({ id });
     return row ? this.mapper.toDomain(row) : null;
   }
 
@@ -63,9 +63,7 @@ export class MarketplaceAplReceptionRepositoryAdapter
     // Отменённые приёмки (откат черновика оператором) не считаются активными —
     // иначе повторное открытие приёмки по этой партии заблокировалось бы гардом
     // «одна партия — одна активная АПП».
-    const row = await this.repo.findOne({
-      where: { coopname, shipment_id, status: Not(MarketplaceAplReceptionStatuses.CANCELLED) },
-    });
+    const row = await this.repo.findOne({ coopname, shipment_id, status: notEqual(MarketplaceAplReceptionStatuses.CANCELLED) });
     return row ? this.mapper.toDomain(row) : null;
   }
 
@@ -73,7 +71,7 @@ export class MarketplaceAplReceptionRepositoryAdapter
     coopname: string,
     ttn_number: string
   ): Promise<MarketplaceAplReceptionDomainEntity | null> {
-    const row = await this.repo.findOne({ where: { coopname, ttn_number } });
+    const row = await this.repo.findOne({ coopname, ttn_number });
     return row ? this.mapper.toDomain(row) : null;
   }
 
@@ -83,8 +81,8 @@ export class MarketplaceAplReceptionRepositoryAdapter
     status?: MarketplaceAplReceptionStatus | MarketplaceAplReceptionStatus[]
   ): Promise<MarketplaceAplReceptionDomainEntity[]> {
     const where: Record<string, unknown> = { coopname, braname };
-    if (status) where.status = Array.isArray(status) ? In(status) : status;
-    const rows = await this.repo.find({ where, order: { created_at: 'DESC' } });
+    if (status) where.status = Array.isArray(status) ? oneOf(status) : status;
+    const rows = await this.repo.find(where, { order: { created_at: 'DESC' } });
     return rows.map((r) => this.mapper.toDomain(r));
   }
 
@@ -94,8 +92,8 @@ export class MarketplaceAplReceptionRepositoryAdapter
     status?: MarketplaceAplReceptionStatus | MarketplaceAplReceptionStatus[]
   ): Promise<MarketplaceAplReceptionDomainEntity[]> {
     const where: Record<string, unknown> = { coopname, offerer_account };
-    if (status) where.status = Array.isArray(status) ? In(status) : status;
-    const rows = await this.repo.find({ where, order: { created_at: 'DESC' } });
+    if (status) where.status = Array.isArray(status) ? oneOf(status) : status;
+    const rows = await this.repo.find(where, { order: { created_at: 'DESC' } });
     return rows.map((r) => this.mapper.toDomain(r));
   }
 
@@ -118,7 +116,7 @@ export class MarketplaceAplReceptionRepositoryAdapter
     }
     if (patch.status !== undefined) data.status = patch.status;
     await this.repo.update({ id }, data);
-    const row = await this.repo.findOneOrFail({ where: { id } });
+    const row = await this.repo.findOneOrFail({ id });
     return this.mapper.toDomain(row);
   }
 }

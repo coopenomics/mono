@@ -11,7 +11,7 @@
 #      ставятся отдельно для удобного запуска `pnpm -F <pkg> run start`.
 #
 # Финальный размер: ~1-1.5GB (вместо 7.36GB в одностадийной сборке).
-# Все потребители mono-base (controller/desktop/parser/notifications/
+# Все потребители mono-base (controller/desktop/notifications/
 # notificator/boot) пользуются одним и тем же тонким runtime-образом
 # через `FROM dicoop/mono-base:<tag>` + `CMD`.
 
@@ -74,7 +74,6 @@ RUN lerna run build
 #    а quasar (devDep) уже снесён → ELIFECYCLE.
 #
 # Все production-сервисы переведены на runtime без devDeps:
-#   cooparser     → `node ./dist/index.cjs`
 #   notifications → `node ./dist/sync/sync-runner.cjs` (entry добавлен в unbuild)
 #   coopback      → `node dist/src/index.js` (сборка пакета в стадии builder;
 #                    `tsconfig-paths` в deps — только резолв алиасов `~/*`)
@@ -121,7 +120,21 @@ COPY --from=builder /app /app
 # делать `CMD ["pnpm","-F","<pkg>","run","start"]` в production.
 # pnpm активируется через corepack (версия из `packageManager` корневого
 # package.json — синхронно со builder-стадией).
-RUN corepack enable && npm install -g lerna --no-fund --no-audit
+#
+# Сам pnpm запекается в образ. Одного `corepack enable` мало: он ставит
+# только прокладку, и первый вызов `pnpm` в свежем контейнере качает pnpm
+# с registry.npmjs.org. Старт сервиса тогда зависит от доступности реестра,
+# а две одновременные загрузки (`run start` и `docker compose exec … run
+# migrate` из blue-green деплоя) 11.09.2026 на тестнете дали зависшую без
+# таймаута загрузку, и деплой простоял полтора часа. Кэш corepack лежит по
+# фиксированному пути, чтобы не зависеть от HOME пользователя контейнера;
+# проверка без сети падает сборкой, если запечь не удалось.
+ENV COREPACK_HOME=/usr/local/share/corepack \
+    COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+RUN corepack enable \
+ && corepack install --global "$(node -p "require('/app/package.json').packageManager")" \
+ && COREPACK_ENABLE_NETWORK=0 pnpm --version \
+ && npm install -g lerna --no-fund --no-audit
 
 # Sanity-check: WeasyPrint работает и виден через PATH.
 RUN weasyprint --version

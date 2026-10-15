@@ -63,7 +63,9 @@ export default async ({ page, context, shot, env, expect }) => {
   await page.waitForTimeout(1200);
   await dismissOnboardingDialogs(page);
 
-  const announceBtn = page.locator('button:has-text("Объявить собрание совета")').first();
+  // Карточка подключения советом (CouncilOnboardingCard): «Объявить все (N)»
+  // либо «Объявить вопрос», подтверждение «Объявить», метка «В совете».
+  const announceBtn = page.locator('button:has-text("Объявить все"), button:has-text("Объявить вопрос"), button:has-text("Объявить собрание совета")').first();
   const notAccepted = (await announceBtn.count()) > 0;
 
   await shot(
@@ -80,42 +82,45 @@ export default async ({ page, context, shot, env, expect }) => {
     await shot(
       page,
       '02-announce-dialog',
-      'Объявление собрания совета по первому документу: проект решения «Утвердить Положение о ЦПП «Стол заказов»». Кнопка «Объявить» подписывает проект и выносит вопрос на повестку совета.',
+      'Подтверждение объявления: вопросы уйдут в совет по порядку проектами решений — Положение о ЦПП «Стол заказов» и шаблон публичной оферты. Кнопка «Объявить» подписывает проекты и выносит их на повестку совета.',
     );
 
     await page.locator('.q-dialog button:has-text("Объявить")').last().click();
     await page.waitForTimeout(2000);
     await signAllAgreements(page);
-    await page.locator('text=Ожидаем решение совета').first()
-      .waitFor({ state: 'visible', timeout: 90000 });
+    await page.locator('text=В совете').or(page.locator('text=Ожидаем решение совета')).first()
+      .waitFor({ state: 'visible', timeout: 120000 });
     await page.waitForTimeout(800);
     await dismissOnboardingDialogs(page);
 
     await shot(
       page,
       '03-waiting-council',
-      'Вопрос ушёл в совет: шаг помечен «Ожидаем решение совета». Члены совета голосуют на своём столе, после протокола председателя документ считается утверждённым — и тем же порядком утверждается второй документ, шаблон оферты.',
+      'Вопросы ушли в совет: у шагов метка «В совете». Члены совета голосуют на своём столе, после протокола председателя документ считается утверждённым.',
     );
 
     // Голоса трёх членов совета, протокол, исполнение и второй документ —
     // фаза 01: она подхватывает опубликованное решение по hash шага и не
     // создаёт дубликата. В жизни это делает совет на своём столе.
     runSeedPhase('01-l1-accept', { log: (m) => console.log(`[coop-accept-cpp] ${m}`) });
-
-    await page.reload({ waitUntil: 'domcontentloaded' });
-    await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
-    await page.waitForTimeout(2000);
-    await dismissOnboardingDialogs(page);
   }
+
+  // После утверждения страница подключения закрывается (маршрут с gate), а у
+  // председателя открываются рабочие страницы стола администратора.
+  await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/market-admin/orders`, { waitUntil: 'domcontentloaded' });
+  await page.waitForSelector('text=Реестр заказов', { timeout: 60000 });
+  await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
+  await page.waitForTimeout(1500);
+  await dismissOnboardingDialogs(page);
 
   await shot(
     page,
     '04-connected',
-    'ЦПП «Стол заказов» подключена: совет утвердил Положение и шаблон оферты, оферта зарегистрирована, пайщики могут пользоваться столом. Ниже разблокированы оставшиеся шаги подключения — кооперативные участки и пункты выдачи.',
+    'ЦПП «Стол заказов» подключена: совет утвердил Положение и шаблон оферты, оферта зарегистрирована. Страница подключения закрылась, у председателя открылся стол администратора — первым делом реестр заказов.',
     {
       expect: async (p) => {
-        await expect(p.locator('text=«Стол заказов» подключена').first())
-          .toBeVisible({ timeout: 30000 });
+        await expect(p.locator('text=Реестр заказов').first()).toBeVisible({ timeout: 30000 });
+        await expect(p.locator('text=Недостаточно прав доступа')).toHaveCount(0);
       },
     },
   );

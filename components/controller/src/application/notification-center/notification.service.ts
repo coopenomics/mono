@@ -1,9 +1,11 @@
 import { createHash } from 'crypto';
-import { Injectable, Logger } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Workflows } from '@coopenomics/notifications';
-import type { EntityManager, Repository } from 'typeorm';
-import { NotificationOutboxTypeormEntity } from '~/infrastructure/database/typeorm/entities/notification-outbox.typeorm-entity';
+import {
+  NOTIFICATION_OUTBOX_REPOSITORY,
+  type NotificationOutboxCreate,
+  type NotificationOutboxRepository,
+} from '~/domain/notification/repositories/notification-store.repository';
 import { NotificationOutboxStatus } from '~/domain/notification/interfaces/notification-outbox.domain.interface';
 import type { InnerNotifyInput, InnerNotifyRecipient, InnerNotifyResult } from '@coopenomics/innercoop';
 import { NotificationChannel } from '~/domain/notification/interfaces/notify-input.domain.interface';
@@ -33,16 +35,12 @@ export class NotificationService {
   private readonly logger = new Logger(NotificationService.name);
 
   constructor(
-    @InjectRepository(NotificationOutboxTypeormEntity)
-    private readonly outboxRepository: Repository<NotificationOutboxTypeormEntity>
+    @Inject(NOTIFICATION_OUTBOX_REPOSITORY)
+    private readonly outboxRepository: NotificationOutboxRepository
   ) {}
 
-  /**
-   * @param manager TypeORM EntityManager вызывающей транзакции. Если передан —
-   * outbox пишется в той же транзакции (откат вызывающего ⇒ нет уведомления).
-   * Иначе пишется отдельным атомарным батчем (at-least-once).
-   */
-  async notify(input: InnerNotifyInput, manager?: EntityManager): Promise<InnerNotifyResult> {
+  /** Строки очереди пишутся одной пачкой (at-least-once). */
+  async notify(input: InnerNotifyInput): Promise<InnerNotifyResult> {
     const channels = this.resolveChannels(input.workflowId);
     if (channels.length === 0) {
       this.logger.warn(`Тип уведомления '${input.workflowId}' не имеет активных каналов — пропуск`);
@@ -50,7 +48,7 @@ export class NotificationService {
     }
 
     const recipients = Array.isArray(input.to) ? input.to : [input.to];
-    const rows: Partial<NotificationOutboxTypeormEntity>[] = [];
+    const rows: NotificationOutboxCreate[] = [];
 
     for (const recipient of recipients) {
       for (const channel of channels) {
@@ -62,20 +60,9 @@ export class NotificationService {
 
     if (rows.length === 0) return { acknowledged: false, outboxIds: [] };
 
-    const repository = manager ? manager.getRepository(NotificationOutboxTypeormEntity) : this.outboxRepository;
-
-    // ON CONFLICT DO NOTHING по unique(idempotencyKey): повторный notify() с тем же
-    // ключом не плодит строк. returning('id') отдаёт id только реально вставленных.
-    const result = await repository
-      .createQueryBuilder()
-      .insert()
-      .into(NotificationOutboxTypeormEntity)
-      .values(rows)
-      .orIgnore()
-      .returning('id')
-      .execute();
-
-    const outboxIds = (result.raw as Array<{ id: string }>).map((r) => r.id);
+    // Повторный notify() с тем же ключом идемпотентности строк не плодит:
+    // возвращаются ключи только реально вставленных.
+    const outboxIds = await this.outboxRepository.insertIgnoringDuplicates(rows);
     return { acknowledged: true, outboxIds };
   }
 
@@ -98,7 +85,7 @@ export class NotificationService {
     input: InnerNotifyInput,
     recipient: InnerNotifyRecipient,
     channel: NotificationChannel
-  ): Partial<NotificationOutboxTypeormEntity> {
+  ): NotificationOutboxCreate {
     return {
       coopname: input.coopname,
       workflowId: input.workflowId,

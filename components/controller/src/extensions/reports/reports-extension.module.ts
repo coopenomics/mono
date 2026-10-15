@@ -1,5 +1,5 @@
+import './i18n';
 import { Module } from '@nestjs/common';
-import { TypeOrmModule as NestTypeOrmModule } from '@nestjs/typeorm';
 import { ReportRegistryService } from './domain/services/report-registry.service';
 import { ReportPreviewService } from './domain/services/report-preview.service';
 import { ReportRequisitesService } from './domain/services/report-requisites.service';
@@ -12,39 +12,38 @@ import { ReportRequisitesResolver } from './application/resolvers/report-requisi
 import { ReportDraftResolver } from './application/resolvers/report-draft.resolver';
 import { ReportCalendarResolver } from './application/resolvers/report-calendar.resolver';
 import { WithheldTaxResolver } from './application/resolvers/withheld-tax.resolver';
+import { ReportsRegistriesResolver } from './application/resolvers/registries.resolver';
+import { ReportsRegistriesService } from './application/services/registries.service';
 import { WithheldTaxService } from './application/services/withheld-tax.service';
+import { ReportsLiveFeedService } from './application/services/reports-live-feed.service';
 import { WithheldTaxPayoutSyncService } from './application/services/withheld-tax-payout-sync.service';
 import { WithheldTaxBlockchainAdapter } from './infrastructure/adapters/withheld-tax-blockchain.adapter';
 import { WITHHELD_TAX_BLOCKCHAIN_PORT } from './domain/ports/withheld-tax-blockchain.port';
-import { GeneratedReportEntity } from './infrastructure/entities/generated-report.entity';
-import { BalanceCorrectionEntity } from './infrastructure/entities/balance-correction.entity';
-import { ReportRequisitesEntity } from './infrastructure/entities/report-requisites.entity';
-import { ReportDraftEntity } from './infrastructure/entities/report-draft.entity';
-import { ReportSubmissionMarkEntity } from './infrastructure/entities/report-submission-mark.entity';
-import { GeneratedReportTypeormRepository } from './infrastructure/repositories/generated-report.typeorm-repository';
-import { BalanceCorrectionTypeormRepository } from './infrastructure/repositories/balance-correction.typeorm-repository';
-import { ReportRequisitesTypeormRepository } from './infrastructure/repositories/report-requisites.typeorm-repository';
-import { ReportDraftTypeormRepository } from './infrastructure/repositories/report-draft.typeorm-repository';
-import { ReportSubmissionMarkTypeormRepository } from './infrastructure/repositories/report-submission-mark.typeorm-repository';
+import { GeneratedReportKyselyRepository } from './infrastructure/repositories/generated-report.kysely-repository';
+import { BalanceCorrectionKyselyRepository } from './infrastructure/repositories/balance-correction.kysely-repository';
+import { ReportRequisitesKyselyRepository } from './infrastructure/repositories/report-requisites.kysely-repository';
+import { ReportDraftKyselyRepository } from './infrastructure/repositories/report-draft.kysely-repository';
+import { ReportSubmissionMarkKyselyRepository } from './infrastructure/repositories/report-submission-mark.kysely-repository';
 import { GENERATED_REPORT_REPOSITORY } from './domain/repositories/generated-report.repository';
 import { BALANCE_CORRECTION_REPOSITORY } from './domain/repositories/balance-correction.repository';
 import { REPORT_REQUISITES_REPOSITORY } from './domain/repositories/report-requisites.repository';
 import { REPORT_DRAFT_REPOSITORY } from './domain/repositories/report-draft.repository';
 import { REPORT_SUBMISSION_MARK_REPOSITORY } from './domain/repositories/report-submission-mark.repository';
+import { APP_RIGHTS, RightsGuard } from '@coopenomics/extension-kit';
+import { ReportsRights } from './application/access/reports-rights';
 
 // ORGANIZATION_REPOSITORY и INDIVIDUAL_REPOSITORY приходят из @Global()
 // GeneratorRepositoriesModule, поэтому их явно импортировать в imports не надо.
 @Module({
   imports: [
-    NestTypeOrmModule.forFeature([
-      GeneratedReportEntity,
-      BalanceCorrectionEntity,
-      ReportRequisitesEntity,
-      ReportDraftEntity,
-      ReportSubmissionMarkEntity,
-    ]),
   ],
   providers: [
+    // Права стола: описание для общего гарда операций и прав страниц
+    ReportsRights,
+    { provide: APP_RIGHTS, useExisting: ReportsRights },
+    RightsGuard,
+
+    ReportsLiveFeedService,
     ReportRegistryService,
     ReportPreviewService,
     ReportRequisitesService,
@@ -57,29 +56,31 @@ import { REPORT_SUBMISSION_MARK_REPOSITORY } from './domain/repositories/report-
     ReportDraftResolver,
     ReportCalendarResolver,
     WithheldTaxResolver,
+    ReportsRegistriesService,
+    ReportsRegistriesResolver,
     WithheldTaxService,
     WithheldTaxPayoutSyncService,
     WithheldTaxBlockchainAdapter,
     { provide: WITHHELD_TAX_BLOCKCHAIN_PORT, useExisting: WithheldTaxBlockchainAdapter },
     {
       provide: GENERATED_REPORT_REPOSITORY,
-      useClass: GeneratedReportTypeormRepository,
+      useClass: GeneratedReportKyselyRepository,
     },
     {
       provide: BALANCE_CORRECTION_REPOSITORY,
-      useClass: BalanceCorrectionTypeormRepository,
+      useClass: BalanceCorrectionKyselyRepository,
     },
     {
       provide: REPORT_REQUISITES_REPOSITORY,
-      useClass: ReportRequisitesTypeormRepository,
+      useClass: ReportRequisitesKyselyRepository,
     },
     {
       provide: REPORT_DRAFT_REPOSITORY,
-      useClass: ReportDraftTypeormRepository,
+      useClass: ReportDraftKyselyRepository,
     },
     {
       provide: REPORT_SUBMISSION_MARK_REPOSITORY,
-      useClass: ReportSubmissionMarkTypeormRepository,
+      useClass: ReportSubmissionMarkKyselyRepository,
     },
   ],
   exports: [

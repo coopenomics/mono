@@ -1,5 +1,13 @@
-import { Injectable, Inject } from '@nestjs/common';
-import { LOGGER_PORT, type ILoggerPort, DOCUMENT_PORT, type IDocumentPort } from '@coopenomics/innercoop';
+import { Injectable, Inject, Optional } from '@nestjs/common';
+import { SovietContract } from 'cooptypes';
+import {
+  CHAIN_DELTA_WAIT_PORT,
+  DOCUMENT_PORT,
+  LOGGER_PORT,
+  type IChainDeltaWaitPort,
+  type IDocumentPort,
+  type ILoggerPort,
+} from '@coopenomics/innercoop';
 import { ApprovalDomainEntity } from '../../domain/entities/approval.entity';
 import { ApprovalRepository, APPROVAL_REPOSITORY } from '../../domain/repositories/approval.repository';
 import { ApprovalFilterInput } from '../dto/approval-filter.input';
@@ -8,7 +16,7 @@ import { DeclineApproveInputDTO } from '../dto/decline-approve-input.dto';
 import { ApprovalDTO } from '../dto/approval.dto';
 import { ChairmanBlockchainAdapter } from '../../infrastructure/blockchain/adapters/chairman-blockchain.adapter';
 import { CHAIRMAN_BLOCKCHAIN_PORT } from '../../domain/interfaces/chairman-blockchain.port';
-import { PaginationResult, PaginationInputDTO } from '@coopenomics/extension-kit';
+import { PaginationResult, PaginationInputDTO, DomainError } from '@coopenomics/extension-kit';
 import { ConfirmApproveDomainInput } from '../../domain/actions/confirm-approve-domain-input.interface';
 import { DeclineApproveDomainInput } from '../../domain/actions/decline-approve-domain-input.interface';
 
@@ -23,9 +31,47 @@ export class ApprovalService {
     @Inject(CHAIRMAN_BLOCKCHAIN_PORT)
     private readonly blockchainAdapter: ChairmanBlockchainAdapter,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
-    @Inject(DOCUMENT_PORT) private readonly documentPort: IDocumentPort
+    @Inject(DOCUMENT_PORT) private readonly documentPort: IDocumentPort,
+    @Optional() @Inject(CHAIN_DELTA_WAIT_PORT) private readonly chainWait: IChainDeltaWaitPort | null = null
   ) {
     this.logger.setContext(ApprovalService.name);
+  }
+
+  /**
+   * Решение по одобрению отвечает после факта из цепи (ADR-009): ждём, пока
+   * придут и лягут в базу изменение самого одобрения и изменение
+   * контракта-адресата (договор преподавателя, приложение к проекту…) — они
+   * в том же блоке. Тогда стол, где подписали, сразу видит новое состояние,
+   * без выдуманных пауз. Не дождались — отвечаем как раньше, интерфейс
+   * догонит при следующем чтении.
+   */
+  private async awaitDecisionApplied(tx: unknown, approval: ApprovalDomainEntity): Promise<void> {
+    if (!this.chainWait) return;
+    const hash = approval.approval_hash.toLowerCase();
+    const applied = await this.chainWait.afterTransact(tx, [
+      {
+        code: SovietContract.contractName.production,
+        table: SovietContract.Tables.Approvals.tableName,
+        scope: approval.coopname,
+        match: (d) => !d.value?.approval_hash || String(d.value.approval_hash).toLowerCase() === hash,
+      },
+      ...(approval.callback_contract ? [{ code: approval.callback_contract, scope: approval.coopname }] : []),
+    ]);
+    if (!applied) {
+      this.logger.warn('Решение по одобрению отправлено, но изменение из цепи не пришло в срок — ответ без ожидания', {
+        approval_hash: hash,
+      });
+    }
+  }
+
+
+  /**
+   * Одобрение, перечитанное после транзакции: дельта своего блока уже сняла
+   * его с цепи (present=false), и объект, прочитанный до транзакции, вернул бы
+   * признак «в цепи» обратно (C28-80).
+   */
+  private async reread(approval: ApprovalDomainEntity): Promise<ApprovalDomainEntity> {
+    return (await this.approvalRepository.findBySyncKey('approval_hash', approval.approval_hash)) ?? approval;
   }
 
   /**
@@ -70,7 +116,7 @@ export class ApprovalService {
     // Найти одобрение в базе данных
     const approval = await this.approvalRepository.findBySyncKey('approval_hash', input.approval_hash);
     if (!approval) {
-      throw new Error(`Одобрение с хешем ${input.approval_hash} не найдено`);
+      throw DomainError.notFound('CHAIRMAN_APPROVAL_NOT_FOUND', { hash: input.approval_hash });
     }
 
     // Создать доменный объект для блокчейн действия
@@ -80,13 +126,14 @@ export class ApprovalService {
       approval_hash: input.approval_hash,
       approved_document: input.approved_document,
     };
-    console.log('domainData', domainData)
     // Вызвать блокчейн действие
-    await this.blockchainAdapter.confirmApprove(domainData);
+    const tx = await this.blockchainAdapter.confirmApprove(domainData);
+    await this.awaitDecisionApplied(tx, approval);
 
     // Обновить статус одобрения и сохранить одобренный документ
-    approval.approve(input.approved_document);
-    const updatedApproval = await this.approvalRepository.save(approval);
+    const applied = await this.reread(approval);
+    applied.approve(input.approved_document);
+    const updatedApproval = await this.approvalRepository.save(applied);
 
     this.logger.info('Одобрение успешно подтверждено', { approval_hash: input.approval_hash });
     return await this.toDTO(updatedApproval);
@@ -101,7 +148,7 @@ export class ApprovalService {
     // Найти одобрение в базе данных
     const approval = await this.approvalRepository.findBySyncKey('approval_hash', input.approval_hash);
     if (!approval) {
-      throw new Error(`Одобрение с хешем ${input.approval_hash} не найдено`);
+      throw DomainError.notFound('CHAIRMAN_APPROVAL_NOT_FOUND', { hash: input.approval_hash });
     }
 
     // Создать доменный объект для блокчейн действия
@@ -113,11 +160,13 @@ export class ApprovalService {
     };
 
     // Вызвать блокчейн действие
-    await this.blockchainAdapter.declineApprove(domainData);
+    const tx = await this.blockchainAdapter.declineApprove(domainData);
+    await this.awaitDecisionApplied(tx, approval);
 
     // Обновить статус одобрения
-    approval.decline();
-    const updatedApproval = await this.approvalRepository.save(approval);
+    const applied = await this.reread(approval);
+    applied.decline();
+    const updatedApproval = await this.approvalRepository.save(applied);
 
     this.logger.info('Одобрение успешно отклонено', { approval_hash: input.approval_hash });
     return await this.toDTO(updatedApproval);

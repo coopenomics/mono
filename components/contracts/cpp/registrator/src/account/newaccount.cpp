@@ -41,7 +41,7 @@ void registrator::newaccount(
 
   eosio::check(card == accounts.end(), "Аккаунт уже зарегистририван");
 
-  accounts.emplace(coopname, [&](auto &n)
+  accounts.emplace(RamPayer::of(accounts, coopname), [&](auto &n)
     {
       n.username = username;
       n.status = "pending"_n;

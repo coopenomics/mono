@@ -26,6 +26,7 @@
  * Идемпотентна: шаг с done=true пропускается.
  */
 import { Client, Mutations, Queries } from '@coopenomics/sdk'
+import { loginChairman } from '../../lib/chairman-login'
 import { Cooperative, SovietContract } from 'cooptypes'
 import Blockchain from '../../../blockchain'
 import config from '../../../configs'
@@ -45,9 +46,7 @@ const FREE_DECISION_REGISTRY_ID = Cooperative.Registry.FreeDecision.registry_id
 
 // registry_id документов шагов. Источник — desktop
 // pages/Marketplace/OnboardingCoopAcceptCpp/model/composable.ts (STEP_REGISTRY):
-// именно эти документы рендерит интерфейс. В комментарии бэкендового
-// register-marketplace-onboarding-steps.ts указаны 1099/1100 — это устаревшая
-// подпись, фабрики для 1099 не существует вовсе.
+// именно эти документы показывает интерфейс как бланк фабрики утверждений.
 const STEP_DOCS: Record<string, { registry_id: number, title: string, question: string }> = {
   marketplace_provision: {
     registry_id: 1100,
@@ -55,8 +54,8 @@ const STEP_DOCS: Record<string, { registry_id: number, title: string, question: 
     question: 'Об утверждении Положения о целевой потребительской программе «Стол заказов»',
   },
   marketplace_offer_template: {
-    registry_id: 1101,
-    title: 'Шаблон публичной оферты ЦПП «Стол заказов»',
+    registry_id: 1102,
+    title: 'Публичная оферта ЦПП «Стол заказов»',
     question: 'Об утверждении шаблона публичной оферты по присоединению пайщиков к ЦПП «Стол заказов»',
   },
 }
@@ -105,7 +104,7 @@ export async function phase01(): Promise<void> {
 
   const client = Client.create({ api_url: apiUrl, chain_url: chainUrl, chain_id: chainId, wif, username: CHAIRMAN })
   log(`логин председателя ${CHAIRMAN_EMAIL} в controller (${apiUrl})`)
-  await client.login(CHAIRMAN_EMAIL, wif)
+  await loginChairman(client, CHAIRMAN_EMAIL, wif)
 
   const readState = async () => {
     const resp = await client.Query(Queries.Onboarding.GetExtensionOnboardingState.query, {
@@ -138,13 +137,17 @@ export async function phase01(): Promise<void> {
     else {
 
     // 1. Фабричный документ шага.
-    log(`[${step.step_key}] фабрика registry_id=${doc.registry_id}`)
-    const docResp = await client.Mutation(Mutations.Documents.GenerateDocument.mutation, {
+    // Бланк рабочего документа из фабрики утверждений — тот же текст, что уйдёт
+    // в решение совета (шаблон-двойник оферты 1101 выведен).
+    log(`[${step.step_key}] бланк registry_id=${doc.registry_id}`)
+    const blankResp = await client.Query(Queries.DocumentApprovals.DocumentTemplateBlank.query, {
       variables: {
-        input: { data: { coopname: COOPNAME, username: CHAIRMAN, registry_id: doc.registry_id } },
-      } as Mutations.Documents.GenerateDocument.IInput,
-    }) as Record<string, { hash: string, html: string, full_title: string }>
-    const generated = docResp[Mutations.Documents.GenerateDocument.name]
+        coopname: COOPNAME,
+        registry_id: doc.registry_id,
+        edition: 'Current',
+      } as unknown as Queries.DocumentApprovals.DocumentTemplateBlank.IInput,
+    }) as Record<string, { text_hash: string, html: string, title: string }>
+    const generated = blankResp[Queries.DocumentApprovals.DocumentTemplateBlank.name]
 
     // 2. Публикация проекта решения совета.
     log(`[${step.step_key}] completeExtensionOnboardingStep`)
@@ -197,26 +200,31 @@ export async function phase01(): Promise<void> {
 
     // 5. Протокол решения. Фабрика читает голоса через индекс парсера, который
     //    отстаёт на 1-2 блока после votefor — отсюда retry, а не одна попытка.
-    let protocol: Record<string, unknown> | null = null
+    // Тип протокола берём у самого signDocument — так документ проходит
+    // от генерации до подписи без потери формы.
+    let protocol: Parameters<typeof client.Document.signDocument>[0] | null = null
     let lastErr: unknown = null
     for (let attempt = 1; attempt <= 6; attempt++) {
       await new Promise(r => setTimeout(r, attempt === 1 ? 1500 : 2000))
       try {
-        const gen = await client.Mutation(Mutations.Documents.GenerateDocument.mutation, {
-          variables: {
-            input: {
-              data: {
-                coopname: COOPNAME,
-                username: CHAIRMAN,
-                registry_id: FREE_DECISION_REGISTRY_ID,
-                decision_id: decision.id,
-                project_id: decision.project_id,
-                lang: 'ru',
+        const { [Mutations.Documents.GenerateDocument.name]: generated } = await client.Mutation(
+          Mutations.Documents.GenerateDocument.mutation,
+          {
+            variables: {
+              input: {
+                data: {
+                  coopname: COOPNAME,
+                  username: CHAIRMAN,
+                  registry_id: FREE_DECISION_REGISTRY_ID,
+                  decision_id: decision.id,
+                  project_id: decision.project_id,
+                  lang: 'ru',
+                },
               },
-            },
-          } as Mutations.Documents.GenerateDocument.IInput,
-        }) as Record<string, Record<string, unknown>>
-        protocol = gen[Mutations.Documents.GenerateDocument.name]
+            } as Mutations.Documents.GenerateDocument.IInput,
+          },
+        )
+        protocol = generated
         break
       }
       catch (e) {
@@ -228,7 +236,7 @@ export async function phase01(): Promise<void> {
 
     // 6. Подпись протокола и исполнение решения.
     const signedRaw = await client.Document.signDocument(
-      protocol as Parameters<typeof client.Document.signDocument>[0],
+      protocol,
       CHAIRMAN, // без явного подписанта signatures[].signer=undefined и authorize падает
     )
     const signed = {
@@ -246,7 +254,9 @@ export async function phase01(): Promise<void> {
           // кооператива), см. soviet/src/decision/authorize.cpp: require_auth(coopname).
           // Согласие председателя подтверждается его подписью на протоколе.
           authorization: [{ actor: COOPNAME, permission: 'active' }],
-          data: { coopname: COOPNAME, chairman: CHAIRMAN, decision_id: decision.id, document: signed },
+          // permission — разрешение председателя, чьим ключом подписан протокол:
+          // soviet::authorize сверяет подпись с ключом именно этого разрешения.
+          data: { coopname: COOPNAME, chairman: CHAIRMAN, decision_id: decision.id, document: signed, permission: 'active' },
         },
         {
           account: SovietContract.contractName.production,

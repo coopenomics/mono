@@ -7,7 +7,7 @@ q-btn.full-width(
   :loading='isUninstalling'
 )
   q-icon.text-grey(name='delete')
-  span.q-ml-xs удалить
+  span.q-ml-xs {{ $t('extension.uninstallButton.action') }}
 </template>
 
 <script setup lang="ts">
@@ -20,6 +20,7 @@ import {
   FailAlert,
   SuccessAlert,
 } from 'src/shared/api';
+import { t } from 'src/shared/i18n';
 
 interface Props {
   extensionName: string;
@@ -40,9 +41,9 @@ const uninstall = async () => {
     await uninstallExtension(props.extensionName);
     router.push({ name: 'one-extension' });
     desktop.loadDesktop();
-    SuccessAlert('Расширение удалено');
+    SuccessAlert(t('extension.uninstallButton.uninstalledSuccess'));
   } catch (e: any) {
-    FailAlert(`Ошибка удаления расширения: ${extractGraphQLErrorMessages(e)}`);
+    FailAlert(t('extension.uninstallButton.uninstallError', { errorMessage: extractGraphQLErrorMessages(e) }));
   } finally {
     isUninstalling.value = false;
   }

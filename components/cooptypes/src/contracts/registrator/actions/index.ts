@@ -42,6 +42,7 @@ export * as RegisterUser from './registerUser'
 /**
  * Действие подачи заявления на выход пайщика из кооператива (возврат паевого взноса)
  */
+export * as ExitAgree from './exitAgree'
 export * as ExitCoop from './exitCoop'
 
 /**

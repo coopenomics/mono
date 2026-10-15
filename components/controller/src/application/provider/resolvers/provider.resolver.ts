@@ -3,7 +3,7 @@ import { UseGuards } from '@nestjs/common';
 import { ProviderService } from '../services/provider.service';
 import { ProviderSubscriptionDTO } from '../dto/provider-subscription.dto';
 import { CurrentInstanceDTO } from '../dto/current-instance.dto';
-import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, CurrentUser, RequireRight, RightsGuard, SELF } from '@coopenomics/extension-kit';
 import type { IMonoAccount } from '@coopenomics/innercoop';
 import { CooperativeRegistryItemDTO } from '../dto/cooperative-registry-item.dto';
 import { ProviderConnectionCatalogDTO } from '../dto/provider-catalog.dto';
@@ -28,8 +28,8 @@ export class ProviderResolver {
     description:
       'Каталог витрины подключения (Epic 28): услуги и конфигурации сервера с живыми ценами провайдера',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['member', 'chairman', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('ProviderCatalog', 'read')
   async getProviderConnectionCatalog(
     @Args('coopname', { nullable: true }) coopname?: string
   ): Promise<ProviderConnectionCatalogDTO> {
@@ -40,8 +40,8 @@ export class ProviderResolver {
     name: 'getCooperativesRegistry',
     description: 'Реестр кооперативов оператора: список кооперативов из блокчейна с данными провайдера (подписки, инстанс, биллинг)',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['member', 'chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Union', 'read')
   async getCooperativesRegistry(): Promise<CooperativeRegistryItemDTO[]> {
     return this.providerService.getCooperativesRegistry();
   }
@@ -52,8 +52,8 @@ export class ProviderResolver {
     description:
       'История оплат кооператива: списания подписок из журнала биллинга хаба, свежие сверху',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['member', 'chairman', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('ProviderPayment', ['read:own', 'read:all'], SELF)
   async getCooperativePayments(
     @CurrentUser() currentUser: IMonoAccount,
     @Args('coopname') coopname: string,
@@ -86,8 +86,8 @@ export class ProviderResolver {
     description:
       'Кооператив переходит на тариф сервера дороже: цена применяется немедленно с зачётом остатка, запускается перенос (~час технических работ)',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('ProviderHostingPlan', 'change:own', SELF)
   async changeProviderHostingPlan(
     @CurrentUser() currentUser: IMonoAccount,
     @Args('instanceTypeId', { type: () => Int }) instanceTypeId: number
@@ -101,8 +101,8 @@ export class ProviderResolver {
     name: 'getProviderSubscriptions',
     description: 'Получить подписки пользователя у провайдера',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['member', 'chairman', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('ProviderSubscription', 'read:own', SELF)
   async getProviderSubscriptions(
     @CurrentUser() currentUser: IMonoAccount
   ): Promise<ProviderSubscriptionDTO[]> {
@@ -113,8 +113,8 @@ export class ProviderResolver {
     name: 'getProviderSubscriptionById',
     description: 'Получить подписку провайдера по ID',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['member', 'chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('ProviderSubscription', 'read:all')
   async getProviderSubscriptionById(@Args('id') id: number): Promise<ProviderSubscriptionDTO> {
     return this.providerService.getSubscriptionById(id);
   }
@@ -123,10 +123,11 @@ export class ProviderResolver {
     name: 'uploadCooperativeCharter',
     description: 'Приложить устав кооператива к заявке на подключение (бакет registrator:charters).',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
   // Устав прикладывает председатель подключающегося кооператива — в контуре
-  // союза он обычный пайщик-организация, поэтому роль `user` обязательна.
-  @AuthRoles(['member', 'chairman', 'user'])
+  // союза он обычный пайщик-организация (кандидат до приёма), поэтому право
+  // выдано любому вошедшему на своё имя.
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('CooperativeCharter', 'upload:own', SELF)
   async uploadCooperativeCharter(
     @Args('data', { type: () => UploadCooperativeCharterInputDTO }) data: UploadCooperativeCharterInputDTO,
     @CurrentUser() currentUser: IMonoAccount
@@ -140,8 +141,9 @@ export class ProviderResolver {
     description: 'Последний устав кооператива со свежей ссылкой на скачивание.',
     nullable: true,
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['member', 'chairman', 'user'])
+  // Свой устав читает кооператив, чужой — совет (карточка реестра кооперативов).
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('CooperativeCharter', ['read:own', 'read:all'], { owner: 'username' })
   async getCooperativeCharter(
     @Args('coopname', { type: () => String }) coopname: string,
     @Args('username', { type: () => String }) username: string
@@ -155,8 +157,8 @@ export class ProviderResolver {
     description: 'Получить текущий инстанс пользователя',
     nullable: true,
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['member', 'chairman', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('ProviderSubscription', 'read:own', SELF)
   async getCurrentInstance(@CurrentUser() currentUser: IMonoAccount): Promise<CurrentInstanceDTO | null> {
     return this.providerService.getCurrentInstance(currentUser.username);
   }

@@ -1,6 +1,12 @@
 {
-  "watch": ["./src"],
+  "watch": [
+    "./src"
+  ],
   "ext": "ts",
   "delay": 2000,
-  "signal": "SIGTERM"
+  "signal": "SIGTERM",
+  "ignore": [
+    "**/__lintbase__*.ts",
+    "**/__lintbase__*.js"
+  ]
 }

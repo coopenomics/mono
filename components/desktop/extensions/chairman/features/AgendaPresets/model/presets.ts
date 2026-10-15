@@ -1,6 +1,8 @@
 import { useSessionStore } from 'src/entities/Session'
+import { Cooperative } from 'cooptypes'
 import type { IDocumentPreset } from './types'
 import { useSystemStore } from 'src/entities/System/model'
+import { t } from '../../../i18n';
 
 export const useBlagorostPresets = (): IDocumentPreset[] => {
   const systemStore = useSystemStore()
@@ -9,29 +11,21 @@ export const useBlagorostPresets = (): IDocumentPreset[] => {
   return [
     {
       id: 'blagorost_program',
-      registry_id: 998,
-      title: 'Положение о ЦПП «БЛАГОРОСТ»',
-      description: 'Утверждение Положения о целевой потребительской программе «БЛАГОРОСТ»',
+      registry_id: Cooperative.Registry.BlagorostProgramTemplate.registry_id,
+      title: t('chairman.blagorostPreset.title'),
+      description: t('chairman.blagorostPreset.description'),
+      // i18n-ignore: текст вопроса повестки — дословно уходит в протокол решения совета, юридический документ
       question: 'О утверждении Положения о целевой потребительской программе «БЛАГОРОСТ»',
+      // i18n-ignore: текст решения — дословно уходит в протокол решения совета, юридический документ
       decisionPrefix: 'Утвердить Положение о целевой потребительской программе «БЛАГОРОСТ»:',
       getData: () => ({
         coopname: systemStore.info?.coopname || '',
         username: sessionStore.username,
-        registry_id: 998,
+        registry_id: Cooperative.Registry.BlagorostProgramTemplate.registry_id,
       }),
     },
-    {
-      id: 'blagorost_offer',
-      registry_id: 999,
-      title: 'Пользовательское соглашение (оферта) по ЦПП «БЛАГОРОСТ»',
-      description: 'Утверждение пользовательского соглашения (оферты) по присоединению к ЦПП «БЛАГОРОСТ»',
-      question: 'О утверждении пользовательского соглашения (оферты) по присоединению к ЦПП «БЛАГОРОСТ»',
-      decisionPrefix: 'Утвердить пользовательское соглашение (оферту) по присоединению к ЦПП «БЛАГОРОСТ»:',
-      getData: () => ({
-        coopname: systemStore.info?.coopname || '',
-        username: sessionStore.username,
-        registry_id: 999,
-      }),
-    },
+    // Пресета оферты «Благорост» здесь больше нет: шаблон-двойник 999 выведен из
+    // реестра (16.09.2026). Совет утверждает саму оферту 1000 в виде бланка — через
+    // карточку подключения Капитала и реестр документов, а не свободным решением.
   ]
 }

@@ -1,13 +1,13 @@
 <template lang="pug">
 .set-soviet(v-if='installStore')
   p.set-soviet__requirement(v-if='minSovietMembers > 1')
-    | В составе совета — минимум {{ minSovietMembers }}&nbsp;человека: председатель и члены совета.
+    | {{ $t('installer.setSovietForm.requirementText', { minSovietMembers }) }}
 
   .soviet-member(v-for='(member, index) in installStore.soviet', :key='member.id')
     .soviet-member__head
       span.soviet-member__role
         | {{ index + 1 }}.&nbsp;
-        | {{ member.role === 'chairman' ? 'Председатель совета' : 'Член совета' }}
+        | {{ member.role === 'chairman' ? $t('installer.setSovietForm.chairmanRole') : $t('installer.setSovietForm.memberRole') }}
       q-btn(
         v-if='member.role === "member"',
         flat,
@@ -15,7 +15,7 @@
         round,
         size='sm',
         icon='close',
-        aria-label='Удалить члена совета',
+        :aria-label='$t("installer.setSovietForm.removeMemberAria")',
         @click='del(member.id)'
       )
 
@@ -27,7 +27,7 @@
           dense,
           color='primary',
           v-model='installStore.soviet[index].individual_data.email',
-          label='Электронная почта',
+          :label='$t("installer.setSovietForm.emailLabel")',
           type='email',
           :rules='[val => notEmpty(val), val => validEmail(val)]'
         )
@@ -37,11 +37,11 @@
   .set-soviet__actions
     BaseButton(variant='ghost', @click='back')
       q-icon(name='arrow_back', size='16px')
-      span.q-ml-sm Назад
+      span.q-ml-sm {{ $t('common.action.back') }}
     .set-soviet__actions-right
       BaseButton(variant='secondary', @click='add')
         q-icon(name='add', size='16px')
-        span.q-ml-sm Добавить члена совета
+        span.q-ml-sm {{ $t('installer.setSovietForm.addMember') }}
       span.set-soviet__continue-wrap
         q-tooltip(v-if='!canContinue') {{ continueBlockedTooltip }}
         BaseButton(
@@ -50,7 +50,7 @@
           :disabled='!canContinue',
           @click='next'
         )
-          span.q-mr-sm Продолжить
+          span.q-mr-sm {{ $t('installer.setSovietForm.continueSubmit') }}
           q-icon(name='arrow_forward', size='16px')
 </template>
 

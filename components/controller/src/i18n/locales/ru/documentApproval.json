@@ -1,0 +1,28 @@
+{
+  "documentApproval": {
+    "documentApprovalNotification": {
+      "documentRef": "документ {id}",
+      "rejectedBySoviet": "отклонено советом",
+      "withdrawnOverdue": "снято как не рассмотренное в срок"
+    },
+    "documentApprovalProposal": {
+      "questionItem": "«{title}» (редакция № {version})",
+      "questionMultiple": "Об утверждении редакций документов: {list}",
+      "questionSingle": "Об утверждении редакции № {version} документа «{title}»",
+      "titleMultiple": "Утверждение редакций документов ({count})",
+      "titleSingle": "Утверждение редакции № {version} документа «{title}»"
+    },
+    "documentApprovalState": {
+      "fallbackTitle": "Документ {registryId}"
+    }
+  },
+  "errors": {
+    "DOCUMENT_APPROVAL_ALREADY_APPROVED": "Редакция документа {registryId} уже утверждена советом",
+    "DOCUMENT_APPROVAL_COOPERATIVE_NOT_SERVED": "Указанное имя аккаунта кооператива не обслуживается здесь",
+    "DOCUMENT_APPROVAL_MIXED_EXTENSIONS": "Одним решением утверждаются документы одного приложения",
+    "DOCUMENT_APPROVAL_NOT_REQUIRED": "Документ {registryId} не требует утверждения советом",
+    "DOCUMENT_APPROVAL_NO_DOCUMENTS_SELECTED": "Не указаны документы для утверждения",
+    "DOCUMENT_APPROVAL_TEMPLATE_NOT_DECLARED": "Документ {registryId} не объявлен ни одним установленным приложением",
+    "DOCUMENT_APPROVAL_TEMPLATE_NOT_FOUND": "Шаблон документа {registryId} не найден в сети"
+  }
+}

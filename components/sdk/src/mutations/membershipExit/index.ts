@@ -1,5 +1,6 @@
 /** Сгенерировать документ заявления о выходе из кооператива. */
 export * as GenerateMembershipExitApplication from './generateMembershipExitApplication'
+export * as GenerateProgramAgreementsAnnulment from './generateProgramAgreementsAnnulment'
 
 /** Сгенерировать документ решения собрания совета о выходе пайщика. */
 export * as GenerateMembershipExitDecision from './generateMembershipExitDecision'

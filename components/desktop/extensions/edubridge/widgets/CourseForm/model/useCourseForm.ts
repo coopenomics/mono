@@ -1,0 +1,573 @@
+import type { IScheduleSlot } from '../../../entities/Lesson';
+import { computed, inject, onBeforeUnmount, onMounted, provide, reactive, ref, watch, type ComputedRef, type InjectionKey, type Ref } from 'vue';
+import { Zeus } from '@coopenomics/sdk';
+import { FailAlert, SuccessAlert } from 'src/shared/api';
+import { extractGraphQLErrorMessages } from 'src/shared/api/errors';
+import { useSystemStore } from 'src/entities/System/model';
+import { asText, fileToBase64, formatToAsset } from 'src/shared/lib/utils';
+import { courseMonthsLabel as courseMonthsText } from '../../../shared/lib/courseMonths';
+import { fetchCourseEconomy, fetchCourseFeePreview, type ICourseFee } from '../../../entities/Economy';
+import {
+  CARRIER_LABELS,
+  CARRIERS_BY_DIRECTION,
+  COURSE_IMAGE_MAX_BYTES,
+  DIRECTION_LABELS,
+  PLATFORM_CARRIERS,
+  createCourse,
+  fetchPlatformCourses,
+  fetchTeacherOptions,
+  updateCourse,
+  type ICourse,
+  type ICreateCourseInput,
+  type IPlatformCourse,
+  type ITeacherOption,
+} from '../../../entities/Course';
+import { COURSE_FORM_HELP } from './courseFormHelp';
+import { fetchSections, saveLevel, saveSection, type ISection } from '../../../entities/Section';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { EduLive } from '../../../shared/lib/live';
+import { t as i18nT } from '../../../i18n';
+
+/** Разделы формы курса: на полной странице каждый — отдельный шаг. */
+export type CourseFormSection = 'course' | 'cover' | 'lessons' | 'access' | 'group' | 'teachers';
+
+type CourseSource = () => ICourse | null | undefined;
+// Длительность программы форма держит отдельным полем ввода, окна — в виде редактора окон.
+type CourseFormFields = Omit<ICreateCourseInput, 'program_months' | 'schedule_slots'> & { teacher_usernames: string[]; schedule_slots: IScheduleSlot[] };
+
+function emptyForm(): CourseFormFields {
+  return reactive<CourseFormFields>({
+    title: '',
+    section_id: '',
+    level_id: null,
+    description: '',
+    syllabus: '',
+    schedule: '',
+    schedule_slots: [],
+    report_days: 7,
+    teacher_usernames: [],
+    pay_per_learner: true,
+    course_payment_enabled: false,
+    course_discount_percent: 0,
+    starts_at: null,
+    // Начало первой группы через столько минут — называется только на стенде со сжатым временем.
+    starts_in_minutes: null,
+    guarantee_days: 14,
+    direction: Zeus.EduCourseDirection.ONLINE_PLATFORM,
+    carrier: Zeus.EduAccessCarrier.SKILLSPACE,
+    external_ref: '',
+    sort_order: 0,
+  });
+}
+
+/** Выбранная обложка в виде данных — так её можно показать, отправить и сохранить в черновике. */
+interface PickedImage {
+  base64: string;
+  mime_type: string;
+}
+
+/**
+ * Бюджет обложки в черновике (длина base64). В localStorage около 5 МБ на
+ * сайт; обложка крупнее в черновик не идёт, чтобы не потерять из-за неё поля.
+ */
+const MAX_DRAFT_COVER_CHARS = 1_500_000;
+
+/**
+ * Обложка: новый файл, снятие, либо без изменений. Файл сразу читается в
+ * данные: превью строится из них, и они же переживают уход со страницы в
+ * черновике — объект File после перезагрузки не восстановить.
+ */
+function useCover(course: CourseSource) {
+  const picked = ref<PickedImage | null>(null);
+  const imageRemoved = ref(false);
+  const fileInput = ref<HTMLInputElement | null>(null);
+  const previewUrl = computed(() => {
+    if (picked.value) return `data:${picked.value.mime_type};base64,${picked.value.base64}`;
+    return imageRemoved.value ? null : (course()?.image_url ?? null);
+  });
+  // Для черновика: крупная обложка не сохраняется, остальное — как есть.
+  const draftCover = computed<PickedImage | null>({
+    get: () => (picked.value && picked.value.base64.length <= MAX_DRAFT_COVER_CHARS ? picked.value : null),
+    set: (v) => {
+      if (v?.base64 && v.mime_type) picked.value = v;
+    },
+  });
+
+  function pickImage(): void {
+    fileInput.value?.click();
+  }
+  async function onFilePicked(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0] ?? null;
+    input.value = '';
+    if (!file) return;
+    if (file.size > COURSE_IMAGE_MAX_BYTES) {
+      FailAlert(new Error(i18nT('edubridge.error.courseCoverTooLarge', { maxMegabytes: Math.round(COURSE_IMAGE_MAX_BYTES / (1024 * 1024)) })));
+      return;
+    }
+    try {
+      picked.value = { base64: await fileToBase64(file), mime_type: file.type };
+      imageRemoved.value = false;
+    } catch (e) {
+      FailAlert(e);
+    }
+  }
+  function removeImage(): void {
+    picked.value = null;
+    imageRemoved.value = true;
+  }
+  function resetImage(): void {
+    picked.value = null;
+    imageRemoved.value = false;
+  }
+  function imagePayload(): ICreateCourseInput['image'] {
+    if (picked.value) return { ...picked.value };
+    if (imageRemoved.value) return null;
+    return undefined;
+  }
+
+  return { previewUrl, fileInput, pickImage, onFilePicked, removeImage, resetImage, imagePayload, draftCover, imageRemoved };
+}
+
+/** Параметры занятий — числами в полях; стоимость часа уходит суммой «1000.0000 RUB». */
+function useEconomyFields(symbol: ComputedRef<string>, form: CourseFormFields) {
+  /** Длительность программы, месяцев; ноль — программа без конца. */
+  const programMonths = ref('1');
+  /** Способ расчёта с преподавателем: за каждого участника либо фиксированный за занятие. */
+  const payPerLearner = ref(true);
+  const guaranteeDays = ref('14');
+  const coursePayment = ref(false);
+  const courseDiscount = ref('0');
+
+  /** Длительность программы числом: в поле допустима запятая. */
+  const programMonthsNumber = computed(() => Number(String(programMonths.value ?? '').replace(',', '.') || 0));
+  /** Длительность — с шагом в неделю, это четверть месяца: 3,5 — три месяца и две недели. */
+  const programMonthsError = computed(() => {
+    const months = programMonthsNumber.value;
+    return Number.isInteger(months * 4) && months >= 0 ? '' : i18nT('edubridge.useCourseForm.programMonthsStepError');
+  });
+
+  const economyParams = computed(() => ({
+    // Минуты занятий считает сервер из окон расписания; длительность программы — месяцами.
+    // Стоимость часа приходит числом из поля — на сервер уходит суммой с символом кооператива.
+    schedule_slots: (form.schedule_slots ?? []).map((s) => ({ weekday: Number(s.weekday), time: s.time, minutes: Number(s.minutes), assignment_id: s.assignment_id || null, hourly_rate: formatToAsset(String(s.hourly_rate || '0').replace(',', '.'), symbol.value) })),
+    program_months: programMonthsNumber.value,
+    course_payment_enabled: coursePayment.value,
+    course_discount_percent: coursePayment.value ? Number(courseDiscount.value || 0) : 0,
+  }));
+
+  function fillEconomy(c: ICourse): void {
+    programMonths.value = String(c.program_months ?? 0);
+    payPerLearner.value = Boolean(c.pay_per_learner);
+    guaranteeDays.value = String(c.guarantee_days);
+    coursePayment.value = c.course_payment_enabled;
+    courseDiscount.value = String(c.course_discount_percent);
+  }
+
+  return { programMonths, programMonthsError, payPerLearner, guaranteeDays, coursePayment, courseDiscount, economyParams, fillEconomy };
+}
+
+/**
+ * Есть ли у курса группа с участниками. Условия такой группы закреплены на
+ * день её открытия, и правка условий курса действует для новых групп — форма
+ * говорит об этом заранее, поля при этом открыты.
+ */
+function useTermsLocks() {
+  const termsLocked = ref(false);
+  const startLocked = ref(false);
+  async function loadLocks(courseId: string): Promise<void> {
+    try {
+      const economy = await fetchCourseEconomy(courseId);
+      termsLocked.value = Boolean(economy.terms_locked);
+      startLocked.value = Boolean(economy.start_locked);
+    } catch {
+      // Признаки не прочитаны — поля остаются открытыми, правило проверит сервер при сохранении.
+      termsLocked.value = false;
+      startLocked.value = false;
+    }
+  }
+  return { termsLocked, startLocked, loadLocks };
+}
+
+/** Подписи и пределы расчёта взноса: скидка, взнос за курс и полная сумма за программу. */
+function useFeeLabels(fee: Ref<ICourseFee | null>, coursePayment: Ref<boolean>, courseDiscount: Ref<string>) {
+  const discountError = computed(() =>
+    coursePayment.value && fee.value && Number(courseDiscount.value || 0) > fee.value.max_course_discount_percent
+      ? i18nT('edubridge.useCourseForm.discountTooLargeError', { maxDiscountPercent: fee.value.max_course_discount_percent })
+      : '',
+  );
+  /** Предел скидки виден в самом поле: администратор знает его до ввода, а не из ошибки. */
+  const discountLimit = computed(() =>
+    fee.value ? i18nT('edubridge.useCourseForm.discountLimit', { maxDiscountPercent: fee.value.max_course_discount_percent }) : '',
+  );
+  const discountHint = computed(() =>
+    fee.value ? i18nT('edubridge.useCourseForm.discountHintWithLimit', { markupPercent: fee.value.markup_percent, maxDiscountPercent: fee.value.max_course_discount_percent }) : i18nT('edubridge.useCourseForm.discountHint'),
+  );
+  /** Длительность курса следует из программы: занятий в программе на занятий в месяц. */
+  const courseMonthsLabel = computed(() => courseMonthsText(fee.value?.course_months));
+  const coursePaymentHint = computed(() =>
+    courseMonthsLabel.value
+      ? i18nT('edubridge.useCourseForm.coursePaymentHintWithMonths', { coursePaymentHelp: COURSE_FORM_HELP.coursePayment, courseMonths: courseMonthsLabel.value })
+      : COURSE_FORM_HELP.coursePayment,
+  );
+  const courseFeeShown = computed(() => coursePayment.value && (fee.value?.course_months ?? 0) > 0);
+  /** У программы с концом полная сумма для обучающегося видна всегда: разом со скидкой либо помесячно за всю программу. */
+  const programFeeShown = computed(() => (fee.value?.course_months ?? 0) > 0);
+  const courseFeeLabel = computed(() => {
+    if (courseFeeShown.value) return i18nT('edubridge.useCourseForm.courseFeeLabelWithMonths', { courseMonths: courseMonthsLabel.value });
+    if (programFeeShown.value) return i18nT('edubridge.useCourseForm.programFeeLabel', { courseMonths: courseMonthsLabel.value });
+    return i18nT('edubridge.useCourseForm.courseFeeLabel');
+  });
+  const courseFeeValue = computed(() => {
+    if (!fee.value || !programFeeShown.value) return '';
+    return courseFeeShown.value ? fee.value.fee_course : fee.value.fee_course_base;
+  });
+
+  return { discountError, discountHint, discountLimit, coursePaymentHint, courseFeeShown, courseFeeLabel, courseFeeValue };
+}
+
+/** Расчёт взноса считает сервер: та же арифметика, что при сохранении курса. */
+function useFeePreview(economy: ReturnType<typeof useEconomyFields>) {
+  const { economyParams, coursePayment, courseDiscount, programMonthsError } = economy;
+  const fee = ref<ICourseFee | null>(null);
+  /** Почему расчёта нет: ошибка ввода либо отказ сервера. Пусто — параметры ещё не заполнены. */
+  const feeError = ref('');
+  const labels = useFeeLabels(fee, coursePayment, courseDiscount);
+
+  let previewTimer: ReturnType<typeof setTimeout> | null = null;
+  watch(
+    economyParams,
+    (params) => {
+      if (previewTimer) clearTimeout(previewTimer);
+      feeError.value = '';
+      // Пока параметры неполные, считать нечего: сервер такой набор отклонит.
+      if (!params.schedule_slots.length || params.schedule_slots.some((slot) => !(slot.minutes >= 5) || !(parseFloat(slot.hourly_rate) >= 0))) {
+        fee.value = null;
+        return;
+      }
+      // Ошибка ввода названа у поля и в блоке расчёта: расчёт не пропадает молча.
+      if (programMonthsError.value) {
+        fee.value = null;
+        feeError.value = programMonthsError.value;
+        return;
+      }
+      // timing: debounce — взнос пересчитывается, когда ввод утих, а не на каждую букву.
+      previewTimer = setTimeout(async () => {
+        try {
+          fee.value = await fetchCourseFeePreview(params);
+        } catch (e) {
+          // Расчёт — подсказка: отказ сервера не мешает заполнять форму дальше, но причина видна.
+          fee.value = null;
+          feeError.value = extractGraphQLErrorMessages(e) || i18nT('edubridge.useCourseForm.feePreviewFailed');
+        }
+      }, 400);
+    },
+    { immediate: true, deep: true },
+  );
+  onBeforeUnmount(() => {
+    if (previewTimer) clearTimeout(previewTimer);
+  });
+
+  return { fee, feeError, ...labels };
+}
+
+const directionOptions = Object.entries(DIRECTION_LABELS).map(([value, label]) => ({ value, label }));
+
+/** Реестр школы читается под выбранную площадку; смена площадки читает его заново. */
+function watchPlatformCatalog(form: CourseFormFields, hasCatalog: ComputedRef<boolean>, platformCourses: Ref<IPlatformCourse[]>): void {
+  watch(
+    () => (hasCatalog.value ? form.carrier : null),
+    async (carrier) => {
+      platformCourses.value = [];
+      if (!carrier) return;
+      try {
+        platformCourses.value = await fetchPlatformCourses(carrier);
+      } catch (e) {
+        FailAlert(e);
+      }
+    },
+    { immediate: true },
+  );
+}
+
+/**
+ * Выдача доступа. Носитель зависит от направления: онлайн-платформа —
+ * Skillspace/GetCourse, закрытое сообщество — Telegram/ВКонтакте, очное — очно.
+ * Skillspace: привязка выбирается из реестра школы, хранится «UUID курса» или
+ * «UUID курса:UUID группы».
+ */
+function useAccess(form: CourseFormFields) {
+  const platformCourses = ref<IPlatformCourse[]>([]);
+  const skillspaceCourseId = ref<string | null>(null);
+  const skillspaceGroupId = ref<string | null>(null);
+  const allowedCarriers = computed(() => CARRIERS_BY_DIRECTION[form.direction] ?? []);
+  const carrierOptions = computed(() => allowedCarriers.value.map((value) => ({ value, label: CARRIER_LABELS[value] ?? value })));
+  const isPlatform = computed(() => PLATFORM_CARRIERS.includes(form.carrier));
+  const isSkillspace = computed(() => form.carrier === Zeus.EduAccessCarrier.SKILLSPACE);
+  const isGetcourse = computed(() => form.carrier === Zeus.EduAccessCarrier.GETCOURSE);
+  /** Привязка выбирается из реестра школы: курсы Skillspace либо группы GetCourse. */
+  const hasCatalog = computed(() => isSkillspace.value || isGetcourse.value);
+  const platformCourseOptions = computed(() => platformCourses.value.map((c) => ({ value: c.id, label: c.name })));
+  const platformGroupOptions = computed(
+    () => platformCourses.value.find((c) => c.id === skillspaceCourseId.value)?.groups.map((g) => ({ value: g.id, label: g.name })) ?? [],
+  );
+
+  // Группа чужого курса сбрасывается, но только когда реестр школы уже пришёл:
+  // курс и группа из сохранённого курса или черновика ставятся раньше реестра.
+  watch(skillspaceCourseId, () => {
+    if (!platformCourses.value.length) return;
+    if (!platformGroupOptions.value.some((g) => g.value === skillspaceGroupId.value)) skillspaceGroupId.value = null;
+  });
+  watch([skillspaceCourseId, skillspaceGroupId], ([course, group]) => {
+    if (isSkillspace.value) form.external_ref = course ? (group ? `${course}:${group}` : course) : '';
+    // GetCourse: привязка — название группы школы целиком.
+    else if (isGetcourse.value && course) form.external_ref = course;
+  });
+  watchPlatformCatalog(form, hasCatalog, platformCourses);
+  // Сменили направление — носитель вне его списка теряет смысл: берём первый допустимый.
+  watch(
+    () => form.direction,
+    () => {
+      if (!allowedCarriers.value.includes(form.carrier)) form.carrier = allowedCarriers.value[0]!;
+    },
+  );
+  watch(isPlatform, (platform) => {
+    if (!platform) form.external_ref = '';
+  });
+
+  function fillAccess(c: ICourse): void {
+    if (c.carrier === Zeus.EduAccessCarrier.GETCOURSE) {
+      skillspaceCourseId.value = c.external_ref || null;
+      return;
+    }
+    if (c.carrier !== Zeus.EduAccessCarrier.SKILLSPACE) return;
+    const [course = '', group = ''] = c.external_ref.split(':');
+    skillspaceCourseId.value = course || null;
+    skillspaceGroupId.value = group || null;
+  }
+
+  return {
+    platformCourses,
+    skillspaceCourseId,
+    skillspaceGroupId,
+    directionOptions,
+    carrierOptions,
+    isPlatform,
+    isSkillspace,
+    isGetcourse,
+    hasCatalog,
+    platformCourseOptions,
+    platformGroupOptions,
+    fillAccess,
+  };
+}
+
+/**
+ * Раздел и уровень — из справочника «Разделы и уровни» (7DD-23). Выбирают из
+ * списка, а новое вводом: оно сразу становится записью справочника, так один
+ * предмет не расходится на два написания. Уровни — выбранного раздела, в их
+ * последовательности. Архивное предлагается только у курса, где оно уже стоит.
+ */
+function useTaxonomy(form: CourseFormFields) {
+  const sections = ref<ISection[]>([]);
+  const reload = async () => {
+    sections.value = await fetchSections({ include_archived: true });
+  };
+  const sectionOptions = computed(() =>
+    sections.value.filter((s) => !s.archived || s.id === form.section_id).map((s) => ({ value: String(s.id), label: s.title })),
+  );
+  const levelOptions = computed(() =>
+    (sections.value.find((s) => s.id === form.section_id)?.levels ?? [])
+      .filter((l) => !l.archived || l.id === form.level_id)
+      .map((l) => ({ value: String(l.id), label: l.title })),
+  );
+
+  /** Выбран раздел из списка либо введён новый — тогда он добавляется в справочник. */
+  async function pickSection(value: unknown): Promise<void> {
+    const v = value === null || value === undefined ? '' : String(value);
+    if (!v) {
+      form.section_id = '';
+      form.level_id = null;
+      return;
+    }
+    const known = sections.value.find((s) => s.id === v);
+    const id = known ? String(known.id) : await create(() => saveSection({ title: v }));
+    if (!id) return;
+    if (form.section_id !== id) form.level_id = null;
+    form.section_id = id;
+  }
+
+  /** Выбран уровень раздела либо введён новый — он добавляется в раздел. */
+  async function pickLevel(value: unknown): Promise<void> {
+    const v = value === null || value === undefined ? '' : String(value);
+    if (!v) {
+      form.level_id = null;
+      return;
+    }
+    const section = sections.value.find((s) => s.id === form.section_id);
+    if (!section) return;
+    const known = section.levels.find((l) => l.id === v);
+    const id = known ? String(known.id) : await create(() => saveLevel({ section_id: String(section.id), title: v }));
+    if (id) form.level_id = id;
+  }
+
+  async function create(save: () => Promise<{ id: unknown }>): Promise<string | null> {
+    try {
+      const created = await save();
+      await reload();
+      return String(created.id);
+    } catch (e) {
+      FailAlert(e);
+      return null;
+    }
+  }
+
+  onMounted(async () => {
+    try {
+      await reload();
+    } catch (e) {
+      FailAlert(e);
+    }
+  });
+  // Администратор правит справочник — форма видит новые названия и порядок сразу.
+  useLiveReload([EduLive.sections, EduLive.levels], reload);
+
+  return { sectionOptions, levelOptions, pickSection, pickLevel };
+}
+
+/** Преподаватели — пайщики с подписанным договором УХД, их может быть несколько. */
+function useTeachers(form: CourseFormFields) {
+  const teachers = ref<ITeacherOption[]>([]);
+  // В списке — имя человека и номер его договора: учётное имя администратору
+  // ничего не говорит, а договор отличает однофамильцев.
+  const teacherOptions = computed(() =>
+    teachers.value
+      .filter((t) => !form.teacher_usernames.includes(t.username))
+      .map((t) => ({ value: t.username, label: i18nT('edubridge.useCourseForm.teacherOption', { teacherName: t.display_name || t.username, contractNumber: t.contract_number }) })),
+  );
+  const teacherName = (username: string) => teachers.value.find((t) => t.username === username)?.display_name || null;
+  const teacherHint = computed(() =>
+    teachers.value.length
+      ? i18nT('edubridge.useCourseForm.teacherHint')
+      : i18nT('edubridge.useCourseForm.noTeachersHint'),
+  );
+
+  function addTeacher(value: string | number | null): void {
+    const username = String(value ?? '');
+    if (!username || form.teacher_usernames.includes(username)) return;
+    form.teacher_usernames.push(username);
+  }
+  function removeTeacher(username: string): void {
+    form.teacher_usernames = form.teacher_usernames.filter((t) => t !== username);
+  }
+
+  onMounted(async () => {
+    try {
+      teachers.value = await fetchTeacherOptions();
+    } catch (e) {
+      FailAlert(e);
+    }
+  });
+
+  return { teacherOptions, teacherName, teacherHint, addTeacher, removeTeacher };
+}
+
+function fillForm(form: CourseFormFields, c: ICourse): void {
+  Object.assign(form, {
+    title: c.title,
+    section_id: c.section_id ?? '',
+    level_id: c.level_id ?? null,
+    description: c.description,
+    syllabus: c.syllabus,
+    schedule: c.schedule,
+    schedule_slots: (c.schedule_slots ?? []).map((s) => ({ weekday: s.weekday, time: s.time, minutes: s.minutes, assignment_id: s.assignment_id ? String(s.assignment_id) : null, hourly_rate: s.hourly_rate ? String(parseFloat(s.hourly_rate)) : '' })),
+    report_days: c.report_days ?? 7,
+    teacher_usernames: [...c.teacher_usernames],
+    direction: c.direction,
+    carrier: c.carrier,
+    starts_at: c.starts_at,
+    external_ref: c.external_ref,
+    sort_order: c.sort_order,
+  });
+}
+
+/**
+ * Состояние конструктора курса. Живёт отдельно от разметки: страница правки
+ * показывает разделы по шагам, и раздел монтируется заново при каждом переходе —
+ * введённое не теряется, потому что хранится здесь, а не в разделе.
+ */
+export function createCourseFormState(course: CourseSource) {
+  const system = useSystemStore();
+  const symbol = computed(() => system.governSymbol);
+  const loading = ref(false);
+  const error = ref('');
+  const form = emptyForm();
+  const cover = useCover(course);
+  const economy = useEconomyFields(symbol, form);
+  const feePreview = useFeePreview(economy);
+  const access = useAccess(form);
+  const teachers = useTeachers(form);
+  const taxonomy = useTaxonomy(form);
+  const locks = useTermsLocks();
+
+  watch(
+    () => course(),
+    (c) => {
+      if (!c) return;
+      fillForm(form, c);
+      economy.fillEconomy(c);
+      void locks.loadLocks(asText(c.id));
+      cover.resetImage();
+      access.fillAccess(c);
+    },
+    { immediate: true },
+  );
+
+  async function submit(): Promise<ICourse | null> {
+    error.value = '';
+    // Ошибка ввода останавливает сохранение здесь: сервер ответил бы отказом схемы без понятного текста.
+    if (economy.programMonthsError.value) {
+      error.value = economy.programMonthsError.value;
+      return null;
+    }
+    loading.value = true;
+    try {
+      const data: ICreateCourseInput = {
+        ...form,
+        image: cover.imagePayload(),
+        external_ref: access.isPlatform.value ? form.external_ref : '',
+        guarantee_days: Number(economy.guaranteeDays.value || 0),
+        // Поля чисел приходят строками из полей ввода.
+        report_days: Number(form.report_days ?? 7),
+        ...economy.economyParams.value,
+        pay_per_learner: economy.payPerLearner.value,
+      };
+      const current = course();
+      const saved = current ? await updateCourse({ ...data, id: current.id }) : await createCourse(data);
+      SuccessAlert(current ? i18nT('edubridge.useCourseForm.savedSuccess') : i18nT('edubridge.useCourseForm.createdSuccess'));
+      return saved;
+    } catch (e) {
+      FailAlert(e);
+      return null;
+    } finally {
+      loading.value = false;
+    }
+  }
+
+  return { symbol, loading, error, form, ...cover, ...economy, ...feePreview, ...access, ...teachers, ...taxonomy, ...locks, submit };
+}
+
+export type CourseFormState = ReturnType<typeof createCourseFormState>;
+
+const COURSE_FORM_KEY: InjectionKey<CourseFormState> = Symbol('edubridge-course-form');
+
+/** Страница заводит состояние один раз — все шаги формы работают с ним. */
+export function provideCourseForm(course: CourseSource): CourseFormState {
+  const state = createCourseFormState(course);
+  provide(COURSE_FORM_KEY, state);
+  return state;
+}
+
+export function injectCourseForm(): CourseFormState | null {
+  return inject(COURSE_FORM_KEY, null);
+}

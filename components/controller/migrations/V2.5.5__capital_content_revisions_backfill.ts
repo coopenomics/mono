@@ -1,4 +1,4 @@
-import type { DataSource } from 'typeorm';
+import type { DataSource } from '../src/infrastructure/database/postgres/postgres-connection';
 
 type MigrationLogger = {
   info: (message: string) => void;

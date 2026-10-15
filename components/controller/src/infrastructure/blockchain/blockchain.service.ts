@@ -8,13 +8,20 @@ import { AnoContract, RegistratorContract, SovietContract, SystemContract } from
 import config from '~/config/config';
 import { BlockchainPort } from '~/domain/common/ports/blockchain.port';
 import type { ActiveKeysQuorum, EndorsementRecord, ServedCooperative } from '~/domain/common/ports/blockchain.port';
-import { RpcPool } from './rpc-pool.service';
+import { RpcPool, chainUnavailable, isChainUnreachable } from './rpc-pool.service';
+import { CHAIN_EXHAUSTION_CODES, retryOnChainExhaustion } from './chain-retry';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import type { GetInfoResult } from '~/types/shared/blockchain.types';
 import type { BlockchainAccountInterface } from '~/types/shared';
 import { VaultDomainService, VAULT_DOMAIN_SERVICE } from '~/domain/vault/services/vault-domain.service';
-import { Inject } from '@nestjs/common';
+import { Inject, Optional } from '@nestjs/common';
+import { ActionReleaseGate } from './action-release-gate.service';
+import { isInChainDispatch } from './chain-dispatch-context';
+import { getAppliedBlockNum } from '@coopenomics/extension-kit';
 import { normalizeAbiFloats } from './abi-float.normalizer';
+import { type ChainFailure, createChainFetch, describeChainFailure } from '@coopenomics/sdk';
+import * as Sentry from '@sentry/nestjs';
+import { DomainError, chainRefusalOf } from '@coopenomics/extension-kit';
 
 /**
  * Индекс реестра кооперативов «по оператору». Третий по счёту после первичного:
@@ -45,9 +52,8 @@ function isMissingAccount(e: unknown): boolean {
   const err = e as { error?: { name?: string; code?: number }; message?: string };
   if (err?.error?.name === 'account_query_exception' || err?.error?.code === 3060002) return true;
   const message = String(err?.message ?? '');
-  return message.includes('account_query_exception')
-    || message.includes('Account Query Exception')
-    || message.includes('ABI контракта');
+  if (e instanceof DomainError && e.code === 'BLOCKCHAIN_ABI_NOT_FOUND') return true;
+  return message.includes('account_query_exception') || message.includes('Account Query Exception');
 }
 
 export type IndexPosition =
@@ -69,20 +75,76 @@ export class BlockchainService implements BlockchainPort {
   constructor(
     private readonly logger: WinstonLoggerService,
     private readonly rpcPool: RpcPool,
-    @Inject(VAULT_DOMAIN_SERVICE) private readonly vaultDomainService: VaultDomainService
-  ) {}
+    @Inject(VAULT_DOMAIN_SERVICE) private readonly vaultDomainService: VaultDomainService,
+    // Необязателен: мигратор собирает сервис руками, без потребителя цепи.
+    // Токен явно: тип-объединение с null метаданные внедрения стирают до
+    // Object, и Nest молча отдавал бы null — ожидание выключалось незаметно.
+    @Optional() @Inject(ActionReleaseGate) private readonly blockProgress: ActionReleaseGate | null = null
+  ) {
+    this.logger.setContext(BlockchainService.name);
+    // Видно при старте, включён ли ответ после разбора блока: без гейта
+    // мутации отвечают сразу после отправки, и заметить это иначе нечем.
+    if (blockProgress) this.logger.info('Транзакции отвечают после разбора своего блока');
+  }
 
   public initialize(username: string, wif: string): void {
-    this.session = new Session({
-      actor: username,
-      permission: 'active',
-      chain: {
-        id: config.blockchain.id,
-        // write-путь идёт на текущий здоровый узел пула (Story 9.4); TaPoS-ссылка и
-        // broadcast попадают на один узел (sticky), не размазываются round-robin.
-        url: this.rpcPool.activeUrl(),
+    this.session = new Session(
+      {
+        actor: username,
+        permission: 'active',
+        chain: {
+          id: config.blockchain.id,
+          // write-путь идёт на текущий здоровый узел пула (Story 9.4); TaPoS-ссылка и
+          // broadcast попадают на один узел (sticky), не размазываются round-robin.
+          url: this.rpcPool.activeUrl(),
+        },
+        walletPlugin: new WalletPluginPrivateKey(PrivateKey.fromString(wif)),
       },
-      walletPlugin: new WalletPluginPrivateKey(PrivateKey.fromString(wif)),
+      {
+        // Ответ узла разбирается здесь и только здесь: дальше по стеку
+        // `session.transact` подменяет ошибку цепи на первую строку подробностей,
+        // и ни кода, ни имени исключения уже не остаётся.
+        fetch: createChainFetch((failure) => this.recordChainFailure(failure, username)),
+      }
+    );
+  }
+
+  /**
+   * Единая запись отказа цепи: журнал контура и журнал ошибок (GlitchTip).
+   *
+   * Сюда попадает любой неуспешный ответ узла на любой запрос сессии — отправку
+   * транзакции, чтение ABI, TaPoS. До этого перехвата отказ доезжал до вызывающего
+   * строкой без кода, а тело ответа не сохранялось нигде: 17.09.2026 отказ 500 на
+   * подписи решения совета восстановить по логам не удалось.
+   */
+  private recordChainFailure(failure: ChainFailure, actor: string): void {
+    // Транзакция, срезанная лимитом CPU/NET, в блок не попадает и повторяется
+    // сама (`retryOnChainExhaustion`). Это не отказ операции, а пик нагрузки:
+    // в журнале он нужен, в журнале ошибок — нет, иначе каждая попытка повтора
+    // станет там отдельным событием.
+    const isExhaustion = failure.code !== undefined && CHAIN_EXHAUSTION_CODES.has(failure.code);
+    if (isExhaustion) {
+      this.logger.warn(`Узел цепи не принял транзакцию по лимиту: ${describeChainFailure(failure)}`, { actor });
+      return;
+    }
+
+    this.logger.error(`Узел цепи отказал: ${describeChainFailure(failure)}`, {
+      actor,
+      chain_path: failure.path,
+      chain_http_status: failure.httpStatus,
+      chain_error_code: failure.code,
+      chain_error_name: failure.name,
+      chain_details: failure.details,
+      chain_response: failure.raw,
+    });
+
+    Sentry.captureException(DomainError.internal('BLOCKCHAIN_NODE_FAILURE', { reason: describeChainFailure(failure) }), {
+      tags: {
+        chain_path: failure.path,
+        chain_error_code: failure.code ? String(failure.code) : 'unknown',
+        chain_error_name: failure.name ?? 'unknown',
+      },
+      extra: { actor, http_status: failure.httpStatus, details: failure.details, response: failure.raw },
     });
   }
 
@@ -145,10 +207,71 @@ export class BlockchainService implements BlockchainPort {
   }
 
   public async transact(actionOrActions: any | any[], broadcast = true): Promise<TransactResult> {
-    if (Array.isArray(actionOrActions)) {
-      return this.sendActions(actionOrActions, broadcast);
+    // Сессия фиксируется в момент вызова, до первого await. Сервис — одиночка,
+    // и вызывающие делают `initialize(); transact()` подряд; пока здесь
+    // ждётся ABI, параллельный запрос с другим подписантом успевал вызвать
+    // `initialize()` и подменить ключ, которым уйдёт эта транзакция.
+    const session = this.session;
+
+    // Единственная на весь бэкенд отправка в цепь — здесь же и повтор для
+    // транзакций, срезанных лимитами CPU/NET на пике нагрузки (chain-retry.ts).
+    // Такая транзакция в блок не попадает, поэтому повтор дублей не даёт, а
+    // пайщик вместо красной ошибки получает обычный ответ со второй попытки.
+    let result: TransactResult;
+    try {
+      result = await retryOnChainExhaustion(
+        () =>
+          Array.isArray(actionOrActions)
+            ? this.sendActions(session, actionOrActions, broadcast)
+            : this.sendAction(session, actionOrActions, broadcast),
+        {
+          attempts: config.blockchain.txRetryAttempts,
+          delayMs: config.blockchain.txRetryDelayMs,
+          onRetry: ({ attempt, attempts, delayMs, reason }) =>
+            this.logger.warn(
+              `Транзакция не уложилась в лимит цепи (${reason}) — повтор ${attempt}/${attempts} через ${delayMs}мс`
+            ),
+        }
+      );
+    } catch (error) {
+      // Отказ контракта уходит пайщику с кодом (CHAIN_ASSERT или код
+      // контракта), а не ошибкой сервера 500. Недостижимая цепь — тоже с кодом.
+      throw chainRefusalOf(error) ?? (isChainUnreachable(error) ? chainUnavailable(error) : error);
+    }
+    if (broadcast) await this.awaitBlockProcessed(result);
+    return result;
+  }
+
+  /**
+   * Ответ после факта из цепи (ADR-009). Транзакция возвращается, когда узел
+   * разобрал её блок целиком: дельты сохранены, их слушатели отработали,
+   * проекции в базе свежие. Поэтому любая мутация отвечает уже изменёнными
+   * данными, и стол перечитывает их сразу — без пауз и без перечня таблиц у
+   * каждой мутации. Прежде так ждали две мутации из ста шестидесяти, остальные
+   * отвечали раньше базы, а столы прятали это паузами.
+   *
+   * Не дождались за BLOCKCHAIN_WRITE_WAIT_DELTA_MS — ответ уходит как есть,
+   * стол догонит по ленте изменений. Из разбора цепи не ждём вовсе — см.
+   * chain-dispatch-context.ts.
+   */
+  private async awaitBlockProcessed(result: TransactResult): Promise<void> {
+    if (!this.blockProgress) return;
+    if (isInChainDispatch()) {
+      this.logger.debug('Транзакция из разбора цепи — разбора блока не ждём');
+      return;
+    }
+    const block = getAppliedBlockNum(result as never);
+    if (!block) {
+      this.logger.warn('Узел не сообщил блок транзакции — ответ без ожидания разбора');
+      return;
+    }
+    const started = Date.now();
+    const processed = await this.blockProgress.waitProcessed(block, config.blockchain.write_wait_delta_ms);
+    const waited = Date.now() - started;
+    if (processed) {
+      this.logger.debug(`Блок ${block} транзакции разобран через ${waited} мс`);
     } else {
-      return this.sendAction(actionOrActions, broadcast);
+      this.logger.warn(`Блок ${block} транзакции не разобран за ${waited} мс — ответ без ожидания`);
     }
   }
 
@@ -157,25 +280,25 @@ export class BlockchainService implements BlockchainPort {
     return Action.from(action, abi);
   }
 
-  private async sendAction(action: any, broadcast = true): Promise<TransactResult> {
+  private async sendAction(session: Session, action: any, broadcast = true): Promise<TransactResult> {
     const formedAction = await this.formActionFromAbi(action);
-    return await this.session.transact({ action: formedAction }, { broadcast });
+    return await session.transact({ action: formedAction }, { broadcast });
   }
 
-  private async sendActions(actions: any[], broadcast = true): Promise<TransactResult> {
+  private async sendActions(session: Session, actions: any[], broadcast = true): Promise<TransactResult> {
     const data: Action[] = [];
     for (const action of actions) {
       const formedAction = await this.formActionFromAbi(action);
       data.push(formedAction);
     }
 
-    return await this.session.transact({ actions: data }, { broadcast });
+    return await session.transact({ actions: data }, { broadcast });
   }
 
   public async getAllRows<T = any>(code: string, scope: string, tableName: string): Promise<any[]> {
     return this.rpcPool.read(async (client) => {
       const { abi } = await client.v1.chain.get_abi(code);
-      if (!abi) throw new Error(`ABI контракта ${code} не найден`);
+      if (!abi) throw DomainError.internal('BLOCKCHAIN_ABI_NOT_FOUND', { code });
 
       const table = new Table({
         abi,
@@ -205,7 +328,7 @@ export class BlockchainService implements BlockchainPort {
 
     return this.rpcPool.read(async (client) => {
       const { abi } = await client.v1.chain.get_abi(code);
-      if (!abi) throw new Error(`ABI контракта ${code} не найден`);
+      if (!abi) throw DomainError.internal('BLOCKCHAIN_ABI_NOT_FOUND', { code });
 
       const table = new Table({
         abi,
@@ -235,7 +358,7 @@ export class BlockchainService implements BlockchainPort {
   ): Promise<T | null> {
     return this.rpcPool.read(async (client) => {
       const { abi } = await client.v1.chain.get_abi(code);
-      if (!abi) throw new Error(`ABI контракта ${code} не найден`);
+      if (!abi) throw DomainError.internal('BLOCKCHAIN_ABI_NOT_FOUND', { code });
 
       const table = new Table({
         abi,
@@ -256,10 +379,18 @@ export class BlockchainService implements BlockchainPort {
 
   // Authentication related methods
   public async getCertPublicKey(accountName: string): Promise<string | null> {
+    return this.getPermissionPublicKey(accountName, 'cert');
+  }
+
+  /**
+   * Единственный ключ именованного разрешения аккаунта. Правило то же, что у права
+   * заверения: один ключ, без делегирования — иначе проверить подпись нечем.
+   */
+  public async getPermissionPublicKey(accountName: string, permission: string): Promise<string | null> {
     const account = await this.getAccount(accountName);
     if (!account) return null;
     const accountJson = JSON.parse(JSON.stringify(account));
-    const certPerm = accountJson.permissions?.find((p: any) => p.perm_name === 'cert');
+    const certPerm = accountJson.permissions?.find((p: any) => p.perm_name === permission);
     const auth = certPerm?.required_auth;
     // строго single-key cert-permission: один ключ, без делегирования (accounts/waits)
     if (!auth || auth.threshold !== 1 || auth.keys?.length !== 1 || auth.accounts?.length || auth.waits?.length)
@@ -286,7 +417,7 @@ export class BlockchainService implements BlockchainPort {
     const signerAccount = signer ?? account;
     const signerWif = await this.vaultDomainService.getWif(signerAccount);
     if (!signerWif)
-      throw new Error(`Нет ключа кооператива ${signerAccount} — опубликовать право заверения нечем`);
+      throw DomainError.internal('BLOCKCHAIN_COOPERATIVE_KEY_MISSING_FOR_CERTIFICATION', { signerAccount });
 
     this.initialize(signerAccount, signerWif);
     await this.transact({
@@ -376,7 +507,7 @@ export class BlockchainService implements BlockchainPort {
   public async publishEndorsement(endorsement: EndorsementRecord, signer?: string): Promise<void> {
     const signerAccount = signer ?? endorsement.issuer;
     const signerWif = await this.vaultDomainService.getWif(signerAccount);
-    if (!signerWif) throw new Error(`Нет ключа ${signerAccount} — подписать заверение нечем`);
+    if (!signerWif) throw DomainError.internal('BLOCKCHAIN_KEY_MISSING_FOR_CERTIFICATION_SIGNING', { signerAccount });
 
     this.initialize(signerAccount, signerWif);
     await this.transact({
@@ -462,7 +593,7 @@ export class BlockchainService implements BlockchainPort {
   public async changeKey(data: RegistratorContract.Actions.ChangeKey.IChangeKey): Promise<void> {
     // Инициализируем сессию перед транзакцией
     const wif = await this.vaultDomainService.getWif(config.coopname);
-    if (!wif) throw new Error(`Не найден приватный ключ для кооператива ${config.coopname}`);
+    if (!wif) throw DomainError.internal('BLOCKCHAIN_PRIVATE_KEY_NOT_FOUND_FOR_COOPERATIVE', { coopname: config.coopname });
 
     this.initialize(config.coopname, wif);
 
@@ -483,10 +614,20 @@ export class BlockchainService implements BlockchainPort {
     await this.transact(actions);
   }
 
+  /**
+   * Пополнение вычислительных ресурсов аккаунта. Возвращает идентификатор
+   * транзакции — по нему пополнение можно найти в цепи.
+   *
+   * Отказ не глушится: раньше он писался уровнем `info` и наружу не уходил,
+   * из-за чего расширение `powerup` считало выполненным пополнение, которого
+   * не было, и писало запись в журнал аренды на каждую неудачную попытку
+   * (инцидент 16–18.09.2026: 3 235 отказов «overdrawn balance» подряд, журнал
+   * при этом рапортовал об успехе).
+   */
   public async powerUp(username: string, quantity: string): Promise<string> {
     // Инициализируем сессию перед транзакцией
     const wif = await this.vaultDomainService.getWif(username);
-    if (!wif) throw new Error(`Не найден приватный ключ для аккаунта ${username}`);
+    if (!wif) throw DomainError.internal('BLOCKCHAIN_PRIVATE_KEY_NOT_FOUND_FOR_ACCOUNT', { username });
 
     this.initialize(username, wif);
 
@@ -512,27 +653,24 @@ export class BlockchainService implements BlockchainPort {
       },
     ];
 
-    // Epic 13 v5.1 (проект «Облачный провайдер»): пропускаем исключения наружу — PowerupPlugin полагается на
-    // факт, что отказ on-chain powerup долетает до executePackageTopup и НЕ
-    // приводит к recordTopup. Раньше try/catch + logger.info глушил отказ →
-    // counters росли, cooldown «использовался», а реальной докупки не было
-    // (см. adversarial review 2026-05-30, BLOCKER #1).
+    // Отказ не глушится (инцидент 16–18.09.2026) и пустой id транзакции тоже:
+    // Epic 13 v5.1 — PowerupPlugin полагается на то, что отказ on-chain powerup
+    // долетает до executePackageTopup и НЕ приводит к recordTopup; пустой
+    // tx_id означает, что транзакция не дошла до цепи или SDK сменил формат
+    // ответа, и тогда fallback paymentHash ушёл бы в tx_id и реконсиляция с
+    // историей цепи никогда не сматчила бы платёж.
     const result = await this.transact(actions);
-    const txId = (result as any)?.response?.transaction_id ?? (result as any)?.transaction_id;
-    // Round 2: пустой tx_id означает, что транзакция не дошла до chain'а ИЛИ
-    // SDK сменил формат ответа. Безопаснее упасть — иначе caller (PowerupPlugin)
-    // запишет fallback paymentHash как tx_id, и реконсиляция against on-chain
-    // history никогда не сматчит этот платёж (HIGH #4 round 2).
+    const txId = String(result.response?.transaction_id ?? result.resolved?.transaction.id ?? '');
     if (!txId) {
       throw new Error(`powerUp(${username}, ${quantity}): tx_id отсутствует в ответе chain'а`);
     }
-    return txId as string;
+    return txId;
   }
 
   public async addUser(data: RegistratorContract.Actions.AddUser.IAddUser): Promise<void> {
     // Инициализируем сессию перед транзакцией
     const wif = await this.vaultDomainService.getWif(config.coopname);
-    if (!wif) throw new Error(`Не найден приватный ключ для кооператива ${config.coopname}`);
+    if (!wif) throw DomainError.internal('BLOCKCHAIN_PRIVATE_KEY_NOT_FOUND_FOR_COOPERATIVE', { coopname: config.coopname });
 
     this.initialize(config.coopname, wif);
 
@@ -556,7 +694,7 @@ export class BlockchainService implements BlockchainPort {
   public async createBoard(data: SovietContract.Actions.Boards.CreateBoard.ICreateboard): Promise<void> {
     // Инициализируем сессию перед транзакцией
     const wif = await this.vaultDomainService.getWif(config.coopname);
-    if (!wif) throw new Error(`Не найден приватный ключ для кооператива ${config.coopname}`);
+    if (!wif) throw DomainError.internal('BLOCKCHAIN_PRIVATE_KEY_NOT_FOUND_FOR_COOPERATIVE', { coopname: config.coopname });
 
     this.initialize(config.coopname, wif);
 

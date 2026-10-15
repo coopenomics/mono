@@ -5,6 +5,7 @@ import { useWindowSize } from 'vue-window-size';
 import { useSystemStore } from 'src/entities/System/model';
 import { useSessionStore } from 'src/entities/Session';
 import { useDesktopStore } from 'src/entities/Desktop/model';
+import { t } from 'src/shared/i18n';
 
 export function useDefaultLayoutLogic() {
   const $q = useQuasar();
@@ -45,7 +46,7 @@ export function useDefaultLayoutLogic() {
     if (!info.contacts || !info.contacts.full_name)
       return ''
 
-    return `${info.contacts?.full_name}, ИНН: ${info.contacts?.details.inn}, ОГРН: ${info.contacts?.details.ogrn}, телефон: ${info.contacts?.phone}, почта: ${info.contacts?.email}`;
+    return t('app.useDefaultLayoutLogic.contactsLine', { fullName: info.contacts?.full_name, inn: info.contacts?.details.inn, ogrn: info.contacts?.details.ogrn, phone: info.contacts?.phone, email: info.contacts?.email });
   });
 
   onMounted(() => {

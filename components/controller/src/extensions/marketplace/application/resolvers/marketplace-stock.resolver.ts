@@ -1,12 +1,17 @@
-import { ForbiddenException, Inject, Injectable, UseGuards } from '@nestjs/common';
+import { Inject, Injectable, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
-import { GqlJwtAuthGuard, platformSettings, GeneratedDocumentDTO, DocumentAggregateDTO } from '@coopenomics/extension-kit';
+import {
+  GqlJwtAuthGuard,
+  GrantedScope,
+  platformSettings,
+  GeneratedDocumentDTO,
+  RequireRight,
+  RightsGuard,
+  type IGrantedScope,
+} from '@coopenomics/extension-kit';
+import { MarketplaceConvertPayloadDTO } from '../dto/marketplace-checkout.dto';
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
-import { RequireMarketplaceAccess } from '../decorators/marketplace-access.decorator';
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
-import { MarketplaceRoleGuard } from '../guards/marketplace-role.guard';
-import { canAccess } from '../access/marketplace-access-matrix';
-import type { MarketplaceRole } from '../membership/marketplace-roles.mapper';
 import type { IMarketplaceCurrentMember } from '../dto/marketplace-current-member.dto';
 import {
   MARKETPLACE_KU_CHAIRMAN_SERVICE,
@@ -44,7 +49,9 @@ import {
 } from '../dto/marketplace-stock.dto';
 import { MarketplaceOrderDTO, toMarketplaceOrderDTO } from '../dto/marketplace-order.dto';
 import type { MarketplaceStockProposalStatus } from '../../domain/entities/marketplace-stock-proposal.types';
-import type { ISignedDocument } from '@coopenomics/innercoop';
+import type { MarketplaceStockProposalDomainEntity } from '../../domain/entities/marketplace-stock-proposal.entity';
+import { toMarketplaceIssuanceSagaDTO } from '../dto/marketplace-issuance-saga.dto';
+import { t } from '../../i18n';
 
 /**
  * requirement 76 «Склад кооператива на КУ»: обезличенный остаток, его
@@ -70,13 +77,14 @@ export class MarketplaceStockResolver {
     description:
       'Обезличенный остаток склада кооператива: позиции, оставшиеся после недовыдач и отказов, доступные к публикации в каталог.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('Stock', 'read:own-KU')
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
+  @RequireRight('Stock', 'read:own-KU', { list: 'braname' })
   async marketplaceListStock(
-    @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
-    @Args('braname', { nullable: true }) braname?: string
+    @GrantedScope() scope: IGrantedScope,
+    // Участок запроса сверяет и подставляет в отбор гард.
+    @Args('braname', { nullable: true }) _braname?: string
   ): Promise<MarketplaceInventoryItemDTO[]> {
-    const branames = await this.resolveBranames(member, braname, 'Stock');
+    const branames = await this.branamesOf(scope);
     if (branames.length === 0) return [];
     const list = await this.stockService.listStock(platformSettings().coopname, branames);
     // Единица измерения + package_size (Эпик 18) — «витрина на месте»:
@@ -98,8 +106,8 @@ export class MarketplaceStockResolver {
     description:
       'Оператор публикует позиции остатка склада в каталог предложением от кооператива — по цене прибытия или с уценкой.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('Stock', 'publish:own-KU')
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
+  @RequireRight('Stock', 'publish:own-KU', { of: 'Inventory', id: 'data.inventory_ids' })
   async marketplacePublishStock(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplacePublishStockInputDTO
@@ -118,8 +126,8 @@ export class MarketplaceStockResolver {
     name: 'marketplaceUnpublishStock',
     description: 'Оператор снимает свободные позиции остатка с витрины каталога.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('Stock', 'publish:own-KU')
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
+  @RequireRight('Stock', 'publish:own-KU', { of: 'Inventory', id: 'data.inventory_ids' })
   async marketplaceUnpublishStock(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceUnpublishStockInputDTO
@@ -139,15 +147,14 @@ export class MarketplaceStockResolver {
   @Query(() => [MarketplaceStockIssuanceOperatorLineDTO], {
     name: 'marketplaceStockIssuancePayloads',
     description:
-      'Акты приёма-передачи к подписи оператором КУ для докладки со склада: по строке корзины — order_hash будущего заказа и документ для подписи передающей стороны.',
+      'Подготовка докладки со склада: по строке корзины — детерминированный order_hash будущего заказа и снапшоты цены/упаковки. Оператор ничего не подписывает: его подпись закрывающая.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('StockProposal', 'create:own-KU')
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
+  @RequireRight('StockProposal', 'create:own-KU', { ku: 'data.braname' })
   async marketplaceStockIssuancePayloads(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceStockIssuancePrepareInputDTO
   ): Promise<MarketplaceStockIssuanceOperatorLineDTO[]> {
-    await this.assertBranameAllowed(member, data.braname, 'StockProposal', 'create');
     const lines = await this.proposalService.getOperatorIssuancePayloads({
       coopname: platformSettings().coopname,
       braname: data.braname,
@@ -164,7 +171,6 @@ export class MarketplaceStockResolver {
       dto.product_name = l.product_name;
       dto.package_id = l.package_id;
       dto.package_size = l.package_size;
-      dto.signiss1_document = new GeneratedDocumentDTO(l.signiss1_document);
       return dto;
     });
   }
@@ -174,13 +180,12 @@ export class MarketplaceStockResolver {
     description:
       'Оператор у стойки формирует бандл выдачи пайщику (существующие заказы и/или докладка со склада), с уже подписанными им актами передачи — пайщику немедленно приходит акт на подпись получения. До его подписи ничего в блокчейне не происходит.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('StockProposal', 'create:own-KU')
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
+  @RequireRight('StockProposal', 'create:own-KU', { ku: 'data.braname' })
   async marketplaceCreateStockProposal(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceCreateStockProposalInputDTO
   ): Promise<MarketplaceStockProposalDTO> {
-    await this.assertBranameAllowed(member, data.braname, 'StockProposal', 'create');
     const proposal = await this.proposalService.createProposal({
       coopname: platformSettings().coopname,
       operator_account: member.username,
@@ -191,24 +196,22 @@ export class MarketplaceStockResolver {
         quantity: i.quantity,
         package_id: i.package_id ?? null,
         order_hash: i.order_hash,
-        signiss1_act: i.signiss1_act as unknown as ISignedDocument,
       })),
       order_items: (data.order_items ?? []).map((i) => ({
         order_id: i.order_id,
         actual_quantity: i.actual_quantity,
         actual_unit_price: i.actual_unit_price,
-        signiss1_act: i.signiss1_act as unknown as ISignedDocument,
       })),
     });
-    return toMarketplaceStockProposalDTO(proposal);
+    return this.toProposalDTO(proposal);
   }
 
   @Mutation(() => MarketplaceStockProposalDTO, {
     name: 'marketplaceCancelStockProposal',
     description: 'Оператор отзывает неотвеченное предложение (например, чтобы переформировать его).',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('StockProposal', 'cancel:own-KU')
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
+  @RequireRight('StockProposal', 'cancel:own-KU', { of: 'StockProposal', id: 'data.proposal_id' })
   async marketplaceCancelStockProposal(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceResolveStockProposalInputDTO
@@ -218,17 +221,17 @@ export class MarketplaceStockResolver {
       data.proposal_id,
       member.username
     );
-    return toMarketplaceStockProposalDTO(proposal);
+    return this.toProposalDTO(proposal);
   }
 
   @Query(() => MarketplaceStockAcceptPayloadDTO, {
     name: 'marketplaceStockProposalSignablePayloads',
     description:
-      'Нагрузка к принятию предложения со склада: строки-заказы и ОДНО Заявление о конвертации ' +
-      'на всю сумму доплаты. Если членских средств хватает (замена из высвобожденных) — заявления нет.',
+      'Нагрузка к подписи бандла пайщиком: по каждой строке — заявление о возврате паевого взноса имуществом; если ' +
+      'кошельков программы не хватает на бандл — одно заявление 1110 о переводе недостающего с Цифрового кошелька.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('StockProposal', 'resolve:own')
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
+  @RequireRight('StockProposal', 'resolve:own', { of: 'StockProposal', id: 'data.proposal_id' })
   async marketplaceStockProposalSignablePayloads(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceResolveStockProposalInputDTO
@@ -238,39 +241,33 @@ export class MarketplaceStockResolver {
       data.proposal_id,
       member.username
     );
-
-    let convert_document: GeneratedDocumentDTO | null = null;
-    if (payload.convert) {
-      convert_document = new GeneratedDocumentDTO();
-      convert_document.full_title = payload.convert.document.full_title;
-      convert_document.html = payload.convert.document.html;
-      convert_document.hash = payload.convert.document.hash;
-      convert_document.meta = payload.convert.document.meta;
-      convert_document.binary = payload.convert.document.binary;
-    }
-
     return {
       order_lines: payload.order_lines.map((l) => ({
         offer_id: l.offer_id,
+        order_id: l.order_id,
         order_hash: l.order_hash,
-        signiss1_aggregate: new DocumentAggregateDTO(l.signiss1_aggregate),
+        statement: new GeneratedDocumentDTO(l.statement),
       })),
-      member_amount: payload.member_amount,
-      convert_amount: payload.convert?.amount ?? null,
-      convert_hash: payload.convert?.convert_hash ?? null,
-      convert_document,
+      convert: payload.convert
+        ? new MarketplaceConvertPayloadDTO({
+            amount: payload.convert.amount,
+            membership_fee: payload.convert.membership_fee,
+            document: new GeneratedDocumentDTO(payload.convert.document),
+          })
+        : null,
     };
   }
 
   @Mutation(() => MarketplaceStockProposalAcceptResultDTO, {
     name: 'marketplaceFinalizeStockIssuance',
     description:
-      'Пайщик одной подписью утверждает докладку как акт: при дефиците членских средств — конвертация с паевого по подписанному Заявлению, ' +
-      'затем по каждой строке создаётся заказ из остатка и проводится выдача (подпись передачи оператора + подпись получения пайщика). ' +
-      'Имущество выдаётся сразу. Заявление (signed_convert) не передаётся, когда членских средств хватает.',
+      'Пайщик одним нажатием подписывает заявления по всем строкам бандла (и заявление 1110 на бандл, если членского кошелька не хватает — ' +
+      'перевод идёт отдельной транзакцией до заказов): по докладке создаётся заказ из остатка, ' +
+      'по каждому заказу заявление уходит в цепь и на повестку совета; робот решений совета зовётся напрямую и ждётся у стойки. ' +
+      'Ответ несёт саги выдачи: решение принято — пайщик подписывает акт, иначе — режим ожидания без действий с его стороны.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('StockProposal', 'resolve:own')
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
+  @RequireRight('StockProposal', 'resolve:own', { of: 'StockProposal', id: 'data.proposal_id' })
   async marketplaceFinalizeStockIssuance(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceFinalizeStockIssuanceInputDTO
@@ -282,8 +279,9 @@ export class MarketplaceStockResolver {
       { order_lines: data.order_lines, signed_convert: data.signed_convert ?? null }
     );
     const dto = new MarketplaceStockProposalAcceptResultDTO();
-    dto.proposal = toMarketplaceStockProposalDTO(result.proposal);
+    dto.proposal = await this.toProposalDTO(result.proposal);
     dto.order_ids = result.order_ids;
+    dto.sagas = result.sagas.map(toMarketplaceIssuanceSagaDTO);
     return dto;
   }
 
@@ -291,8 +289,8 @@ export class MarketplaceStockResolver {
     name: 'marketplaceDeclineStockProposal',
     description: 'Пайщик отказывается от предложения со склада кооператива.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('StockProposal', 'resolve:own')
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
+  @RequireRight('StockProposal', 'resolve:own', { of: 'StockProposal', id: 'data.proposal_id' })
   async marketplaceDeclineStockProposal(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceResolveStockProposalInputDTO
@@ -302,7 +300,7 @@ export class MarketplaceStockResolver {
       data.proposal_id,
       member.username
     );
-    return toMarketplaceStockProposalDTO(proposal);
+    return this.toProposalDTO(proposal);
   }
 
   @Mutation(() => MarketplaceOrderDTO, {
@@ -310,8 +308,8 @@ export class MarketplaceStockResolver {
     description:
       'Оператор отменяет заказ со склада кооператива до открытия выдачи (например, при переформировании докладки). Средства возвращаются пайщику, позиции — в остаток.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('StockProposal', 'cancel:own-KU')
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
+  @RequireRight('StockProposal', 'cancel:own-KU', { of: 'Order', id: 'data.order_id' })
   async marketplaceCancelStockOrder(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceCancelStockOrderInputDTO
@@ -320,7 +318,7 @@ export class MarketplaceStockResolver {
       platformSettings().coopname,
       data.order_id,
       member.username,
-      data.reason ?? 'Докладка переформирована оператором'
+      data.reason ?? t('marketplace.stockResolver.replenishmentReformedNote')
     );
     return toMarketplaceOrderDTO(order);
   }
@@ -330,83 +328,61 @@ export class MarketplaceStockResolver {
     description:
       'Предложения со склада кооператива: входящие пайщика либо активные предложения стойки оператора.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('StockProposal', 'read:own')
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
+  @RequireRight('StockProposal', ['read:own', 'read:own-KU'], { list: 'data.braname' })
   async marketplaceListStockProposals(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
+    @GrantedScope() scope: IGrantedScope,
     @Args('data', { nullable: true }) data?: MarketplaceListStockProposalsInputDTO
   ): Promise<MarketplaceStockProposalDTO[]> {
-    const roles = member.marketplace_roles as MarketplaceRole[];
     const statuses = data?.statuses?.length
       ? (data.statuses as unknown as MarketplaceStockProposalStatus[])
       : undefined;
 
-    // Оператор/админ видят предложения своих КУ (стойка); пайщик — только свои.
-    if (canAccess(roles, 'StockProposal', 'read:own-KU')) {
-      const branames = await this.resolveBranames(member, data?.braname, 'StockProposal');
+    // Оператор и администратор видят предложения участков (стойка) — отбор по
+    // участкам отдал гард; пайщик — только свои.
+    if (scope.kus !== undefined) {
+      const branames = await this.branamesOf(scope);
       if (branames.length === 0) return [];
       const list = await this.proposalService.listProposals({
         coopname: platformSettings().coopname,
         braname: branames,
         status: statuses,
       });
-      return list.map(toMarketplaceStockProposalDTO);
+      return this.toProposalDTOs(list);
     }
     const list = await this.proposalService.listProposals({
       coopname: platformSettings().coopname,
       member_account: member.username,
       status: statuses,
     });
-    return list.map(toMarketplaceStockProposalDTO);
+    return this.toProposalDTOs(list);
   }
 
   // ── private ──────────────────────────────────────────────────────────
 
   /**
-   * Ownership-скоупинг по КУ (ответственность резолвера, не матрицы): роль с
-   * `<resource>:*:all` видит весь кооператив, остальные — только участки, где
-   * они председатель/доверенное лицо.
+   * Бандл в ответе клиенту: позиции дополняются заказанным — количеством и
+   * суммой резерва по заказу. Пайщику у стойки этого не хватало: он видел
+   * только факт к выдаче и не понимал, что вернётся в кошелёк при недопоставке.
    */
-  private async resolveBranames(
-    member: IMarketplaceCurrentMember,
-    requested: string | undefined,
-    resource: 'Stock' | 'StockProposal'
-  ): Promise<string[]> {
-    const roles = member.marketplace_roles as MarketplaceRole[];
-    if (canAccess(roles, resource, 'read:all')) {
-      return requested ? [requested] : await this.kuChairmanService.listAllBranames(platformSettings().coopname);
-    }
-    const ownBranames = await this.kuChairmanService.listBranamesForMember(
-      platformSettings().coopname,
-      member.username
-    );
-    if (requested) {
-      if (!ownBranames.includes(requested)) {
-        throw new ForbiddenException(
-          'Остаток доступен только по участку, на котором вы являетесь председателем или доверенным лицом.'
-        );
-      }
-      return [requested];
-    }
-    return ownBranames;
+  private async toProposalDTO(
+    proposal: MarketplaceStockProposalDomainEntity
+  ): Promise<MarketplaceStockProposalDTO> {
+    const [dto] = await this.toProposalDTOs([proposal]);
+    return dto;
   }
 
-  private async assertBranameAllowed(
-    member: IMarketplaceCurrentMember,
-    braname: string,
-    resource: 'Stock' | 'StockProposal',
-    action: string
-  ): Promise<void> {
-    const roles = member.marketplace_roles as MarketplaceRole[];
-    if (canAccess(roles, resource, `${action}:all`)) return;
-    const ownBranames = await this.kuChairmanService.listBranamesForMember(
-      platformSettings().coopname,
-      member.username
-    );
-    if (!ownBranames.includes(braname)) {
-      throw new ForbiddenException(
-        'Действие доступно только на участке, где вы являетесь председателем или доверенным лицом.'
-      );
-    }
+  /** Тот же ответ для списка бандлов — заказы читаются одним батчем. */
+  private async toProposalDTOs(
+    list: MarketplaceStockProposalDomainEntity[]
+  ): Promise<MarketplaceStockProposalDTO[]> {
+    const ordered = await this.proposalService.loadOrderedTotals(list);
+    return list.map((proposal) => toMarketplaceStockProposalDTO(proposal, ordered));
+  }
+
+  /** Участки отбора от гарда; охват «весь кооператив» разворачивается в список участков. */
+  private async branamesOf(scope: IGrantedScope): Promise<string[]> {
+    return scope.kus ?? (await this.kuChairmanService.listAllBranames(platformSettings().coopname));
   }
 }

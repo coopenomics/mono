@@ -52,6 +52,7 @@ export class Factory extends DocFactory<FreeDecision.Action> {
       data.coopname,
       data.decision_id,
       meta.created_at,
+      meta.timezone,
     )
 
     const combinedData: FreeDecision.Model = {

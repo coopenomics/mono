@@ -1,3 +1,4 @@
+import { t } from 'src/shared/i18n';
 export * from './useLoginStepHeading';
 import { useSessionStore } from 'src/entities/Session';
 import { useGlobalStore } from 'src/shared/store';
@@ -135,7 +136,7 @@ export function useLoginUser() {
   async function loginWithPassword(email: string, password: string): Promise<void> {
     if (!env.COOPID_ISSUER) {
       throw new Error(
-        'Вход по паролю станет доступен после подключения авторизации кооператива. Пока войдите по ключу доступа.',
+        t('user.error.passwordLoginUnavailable'),
       );
     }
     const storage = createCoopIdStorage(systemStore.info.coopname);
@@ -152,8 +153,21 @@ export function useLoginUser() {
   async function establishSessionAfterCoopIdLogin(): Promise<void> {
     const ok = await session.establishCoopIdSession({ persistPin: true });
     if (!ok) {
-      throw new Error('Не удалось установить сессию входа. Попробуйте ещё раз или войдите по ключу доступа.');
+      throw new Error(t('user.error.sessionEstablishFailed'));
     }
+
+    // Легаси-артефакты в IndexedDB (ключ/токены под пустым паролем) — мусор с
+    // прежнего контура, и вход по паролю его подметает.
+    //
+    // Раньше чистка стояла только в переходе «ключ → пароль» из кабинета
+    // (`SetPassword`), а миграция с формы входа и обычный вход по паролю записи
+    // не трогали. Поэтому у давно мигрировавшего пайщика приватный ключ так и
+    // лежал в браузере зашифрованным пустой строкой, а `session.init()` после F5
+    // предпочитал его живому vault'у — со всеми последствиями отозванных токенов.
+    //
+    // Ключ в ПАМЯТИ не трогаем: `clearLegacyCredentials` стирает только
+    // персистентные записи, подпись работает ключом из vault'а.
+    await globalStore.clearLegacyCredentials();
 
     // Карточку пайщика и кошелёк грузим тем же процессом, что и обычный вход.
     // Отдельно запрашивать карточку не нужно — `run()` сам её берёт и кладёт в

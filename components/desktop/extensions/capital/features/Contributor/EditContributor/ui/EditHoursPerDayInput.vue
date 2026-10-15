@@ -6,35 +6,35 @@
     .edit-field__main
       template(v-if='!isEditing')
         .edit-field__head
-          span.t-sm.t-muted Часов в день
+          span.t-sm.t-muted {{ $t('capital.editHoursPerDayInput.label') }}
           BaseButton(
             v-if='isOwnProfile',
             variant='ghost',
             size='sm',
             icon-only,
-            aria-label='Редактировать количество часов в день',
+            :aria-label='$t("capital.editHoursPerDayInput.editAriaLabel")',
             @click='startEditing'
           )
             template(#icon-left)
               q-icon(name='edit', size='16px')
-        .edit-field__value(:class='{ "t-muted": !hasHours }') {{ hasHours ? contributorStore.self?.hours_per_day : 'Не указано' }}
+        .edit-field__value(:class='{ "t-muted": !hasHours }') {{ hasHours ? contributorStore.self?.hours_per_day : $t('capital.editHoursPerDayInput.notSpecified') }}
       template(v-else)
         BaseForm(:loading='isSaving', @submit='saveHours')
           BaseInput(
             v-model.number='localHours',
             type='number',
-            label='Часов в день',
+            :label='$t("capital.editHoursPerDayInput.label")',
             :error='hoursError'
           )
           template(#footer)
-            BaseButton(variant='ghost', size='sm', @click='cancelEditing') Отмена
+            BaseButton(variant='ghost', size='sm', @click='cancelEditing') {{ $t('common.action.cancel') }}
             BaseButton(
               variant='primary',
               size='sm',
               type='submit',
               :loading='isSaving',
               :disabled='!hasChanges || !!hoursError'
-            ) Сохранить
+            ) {{ $t('common.action.save') }}
 </template>
 
 <script setup lang="ts">
@@ -44,6 +44,7 @@ import { useEditContributor } from '../model';
 import { useContributorStore } from 'app/extensions/capital/entities/Contributor/model';
 import { useSessionStore } from 'src/entities/Session/model';
 import { BaseButton, BaseForm, BaseInput } from 'src/shared/ui/base';
+import { t } from '../../../../i18n';
 
 const emit = defineEmits<{
   'hours-updated': [];
@@ -72,7 +73,7 @@ const hoursError = computed(() => {
   if (localHours.value === undefined || localHours.value === null) return undefined;
   return localHours.value >= 1 && localHours.value <= 8
     ? undefined
-    : 'От 1 до 8 часов';
+    : t('capital.editHoursPerDayInput.rangeHint');
 });
 
 // Проверяем, есть ли изменения
@@ -104,14 +105,14 @@ const saveHours = async () => {
       rate_per_hour: contributorStore.self?.rate_per_hour,
     });
 
-    SuccessAlert('Количество часов успешно обновлено');
+    SuccessAlert(t('capital.editHoursPerDayInput.updateSuccess'));
     isEditing.value = false;
 
     // Уведомляем родительский компонент
     emit('hours-updated');
   } catch (error) {
     console.error('Ошибка при обновлении количества часов:', error);
-    FailAlert(error, 'Не удалось обновить количество часов');
+    FailAlert(error, t('capital.editHoursPerDayInput.updateError'));
   }
 };
 

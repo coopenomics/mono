@@ -16,7 +16,7 @@
     auto branch = branches.find(braname.value);
     eosio::check(branch != branches.end(), "Кооперативный участок не найден");
 
-    branches.modify(branch, coopname, [&](auto &b) {
+    branches.modify(branch, RamPayer::of(branches, coopname), [&](auto &b) {
         b.remove_account_from_whitelist(account);
     });
 }

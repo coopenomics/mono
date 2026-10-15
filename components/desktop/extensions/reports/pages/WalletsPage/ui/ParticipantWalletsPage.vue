@@ -1,5 +1,5 @@
 <template lang="pug">
-div.page-shell
+div.participant-wallets-page
   q-card(flat)
     q-table.full-height.pw-table(
       flat
@@ -9,7 +9,7 @@ div.page-shell
       row-key='username'
       :pagination='pagination'
       :loading='loading'
-      :no-data-label='"Нет пайщиков (status=accepted)"'
+      :no-data-label='$t("reports.participantWalletsPage.emptyLabel")'
     )
       template(#header='props')
         q-tr(:props='props')
@@ -23,7 +23,7 @@ div.page-shell
       template(#body='props')
         q-tr(:key='`pw_${props.row.username}`' :props='props')
           q-td.col-user(auto-width)
-            .name {{ getName(props.row) || '—' }}
+            .name {{ props.row.name || '—' }}
             .username.caption-muted {{ props.row.username }}
 
           q-td.text-right(
@@ -42,11 +42,11 @@ div.page-shell
               icon='fa-solid fa-arrow-right'
               :to='{ name: "reports-operations", query: { username: props.row.username } }'
             )
-              q-tooltip К операциям пайщика
+              q-tooltip {{ $t('reports.participantWalletsPage.toOperationsLabel') }}
 
       template(#bottom-row)
         q-tr.row-totals
-          q-td.text-weight-bold Σ по программе
+          q-td.text-weight-bold {{ $t('reports.participantWalletsPage.sumByProgramLabel') }}
           q-td.text-right(
             v-for='prog in data.programs'
             :key='`total_${prog.id}`'
@@ -61,13 +61,13 @@ div.page-shell
           q-card.q-pa-md.q-mb-sm
             .row.items-center.q-gutter-x-md
               .col
-                .text-body1 {{ getName(props.row) || '—' }}
+                .text-body1 {{ props.row.name || '—' }}
                 .text-caption.caption-muted {{ props.row.username }}
               .col-auto
                 q-btn(
                   flat dense size='sm' color='primary'
                   icon='fa-solid fa-arrow-right'
-                  label='Операции'
+                  :label='$t("reports.participantWalletsPage.operationsLabel")'
                   :to='{ name: "reports-operations", query: { username: props.row.username } }'
                 )
             .row.q-mt-sm(v-for='prog in data.programs' :key='`m_${props.row.username}_${prog.id}`')
@@ -75,28 +75,30 @@ div.page-shell
               .col-6.text-right
                 WalletCell(:cell='data.matrix[props.row.username]?.[prog.id]')
             .row.q-mt-sm
-              .col-6.text-weight-bold Итого
+              .col-6.text-weight-bold {{ $t('reports.participantWalletsPage.totalLabel') }}
               .col-6.text-right
                 WalletCell(:cell='totalFor(props.row.username)' bold)
 </template>
 
 <script setup lang="ts">
 import { computed, h, onMounted, ref } from 'vue'
+import { useLiveReload } from 'src/shared/lib/realtime'
+import { PARTICIPANT_WALLETS_LIVE_TABLES } from 'app/extensions/reports/shared/lib/live'
+import { uiLocale } from 'src/shared/i18n';
 import { QIcon, QTooltip } from 'quasar'
 import { FailAlert } from 'src/shared/api'
 import { useSystemStore } from 'src/entities/System/model'
-import { useAccountStore } from 'src/entities/Account/model'
 import { useWindowSize } from 'src/shared/hooks'
-import { formatAsset2Digits, getName } from 'src/shared/lib/utils'
-import type { IAccount } from 'src/entities/Account/types'
+import { formatAsset2Digits } from 'src/shared/lib/utils'
+import { loadDeskParticipants, type IDeskParticipant } from 'app/extensions/reports/shared/lib/registries'
 import {
   loadProgramsAndWallets,
   type IProgramsAndWallets,
   type IWalletCell,
 } from './participant-wallets-api'
+import { t as i18nT } from '../../../i18n';
 
 const { info } = useSystemStore()
-const accountStore = useAccountStore()
 const { isMobile } = useWindowSize()
 
 const loading = ref(false)
@@ -106,7 +108,7 @@ const data = ref<IProgramsAndWallets>({
   matrix: {},
   totals: {},
 })
-const rows = ref<IAccount[]>([])
+const rows = ref<IDeskParticipant[]>([])
 
 function programTypeFor(colName: string): string {
   const id = Number(colName.replace('prog_', ''))
@@ -145,7 +147,7 @@ const columns = computed(() => {
     name: `prog_${prog.id}`,
     align: 'right' as const,
     label: prog.title,
-    field: (row: IAccount) => {
+    field: (row: IDeskParticipant) => {
       const c = data.value.matrix[row.username]?.[prog.id]
       return c ? c.available : 0
     },
@@ -155,16 +157,16 @@ const columns = computed(() => {
     {
       name: 'name',
       align: 'left' as const,
-      label: 'ФИО / Наименование',
-      field: (row: IAccount) => getName(row) || row.username,
+      label: i18nT('reports.participantWalletsPage.column.name'),
+      field: (row: IDeskParticipant) => row.name || row.username,
       sortable: true,
     },
     ...progCols,
     {
       name: 'total',
       align: 'right' as const,
-      label: 'Итого',
-      field: (row: IAccount) => {
+      label: i18nT('reports.participantWalletsPage.totalLabel'),
+      field: (row: IDeskParticipant) => {
         const t = totalFor(row.username)
         return t.available
       },
@@ -202,7 +204,7 @@ const WalletCell = {
           [
             h(QIcon, { name: 'fa-solid fa-lock-open', size: '12px', class: 'cell-icon' }),
             h('span', { class: 'cell-value' }, formatAsset2Digits(`${c.available} RUB`)),
-            h(QTooltip, { anchor: 'top middle', self: 'bottom middle', delay: 200 }, () => 'Доступно'),
+            h(QTooltip, { anchor: 'top middle', self: 'bottom middle', delay: 200 }, () => i18nT('reports.participantWalletsPage.column.available')),
           ],
         ),
       ])
@@ -213,21 +215,17 @@ const WalletCell = {
 async function reload(): Promise<void> {
   loading.value = true
   try {
-    await Promise.all([
-      loadProgramsAndWallets(info.coopname).then((d) => { data.value = d }),
-      accountStore.getAccounts({ options: { page: 1, limit: 1000, sortOrder: 'DESC' } }),
+    const [walletsData, participants] = await Promise.all([
+      loadProgramsAndWallets(info.coopname),
+      loadDeskParticipants(true),
     ])
-    // accounts: только accepted-пайщики, сортировка по ФИО/username для читаемости.
-    rows.value = accountStore.accounts.items
-      .filter((a) => a.participant_account?.status === 'accepted')
+    data.value = walletsData
+    // Принятые пайщики приходят с именем для показа; сортировка по имени для читаемости.
+    rows.value = participants
       .slice()
-      .sort((a, b) => {
-        const an = (getName(a) || a.username).toLowerCase()
-        const bn = (getName(b) || b.username).toLowerCase()
-        return an.localeCompare(bn, 'ru')
-      })
+      .sort((a, b) => (a.name || a.username).toLowerCase().localeCompare((b.name || b.username).toLowerCase(), uiLocale()))
   } catch (e) {
-    FailAlert(e, 'Не удалось загрузить кошельки пайщиков')
+    FailAlert(e, i18nT('reports.participantWalletsPage.loadError'))
   } finally {
     loading.value = false
   }
@@ -236,6 +234,10 @@ async function reload(): Promise<void> {
 defineExpose({ reload })
 
 onMounted(() => void reload())
+
+// Кошельки пайщиков живут по ленте: участие в программах, остатки и
+// статус пайщика.
+useLiveReload(PARTICIPANT_WALLETS_LIVE_TABLES, reload)
 </script>
 
 <style scoped lang="scss">

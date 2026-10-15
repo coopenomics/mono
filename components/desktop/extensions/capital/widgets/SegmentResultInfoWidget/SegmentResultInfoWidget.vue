@@ -4,15 +4,15 @@
     .result-detail__role(v-if='segment.is_author')
       .result-detail__role-head
         q-icon(name='edit', size='18px')
-        span Соавтор
+        span {{ $t('capital.segmentResultInfoWidget.coauthorRole') }}
       .result-detail__rows
         DataRow(
-          label='Стоимость профессионального времени',
+          :label='$t("capital.segmentResultInfoWidget.professionalCostLabel")',
           :value='formatAmount(segment.author_base)',
           mono
         )
         DataRow(
-          label='Стоимость общественно-полезного времени',
+          :label='$t("capital.segmentResultInfoWidget.publicCostLabel")',
           :value='formatAmount(segment.equal_author_bonus)',
           mono
         )
@@ -20,15 +20,15 @@
     .result-detail__role(v-if='segment.is_creator')
       .result-detail__role-head
         q-icon(name='engineering', size='18px')
-        span Исполнитель
+        span {{ $t('capital.segmentResultInfoWidget.performerRole') }}
       .result-detail__rows
         DataRow(
-          label='Стоимость профессионального времени',
+          :label='$t("capital.segmentResultInfoWidget.professionalCostLabel")',
           :value='formatAmount(segment.creator_base)',
           mono
         )
         DataRow(
-          label='Стоимость общественно-полезного времени',
+          :label='$t("capital.segmentResultInfoWidget.publicCostLabel")',
           :value='formatAmount(parseFloat(segment.direct_creator_bonus || "0"))',
           mono
         )
@@ -36,10 +36,10 @@
     .result-detail__role(v-if='segment.is_coordinator')
       .result-detail__role-head
         q-icon(name='groups', size='18px')
-        span Координатор
+        span {{ $t('capital.segmentResultInfoWidget.coordinatorRole') }}
       .result-detail__rows
         DataRow(
-          label='Стоимость профессионального времени',
+          :label='$t("capital.segmentResultInfoWidget.professionalCostLabel")',
           :value='formatAmount(segment.coordinator_base)',
           mono
         )
@@ -47,10 +47,10 @@
     .result-detail__role(v-if='hasVotingData(segment)')
       .result-detail__role-head
         q-icon(name='how_to_vote', size='18px')
-        span Голосование
+        span {{ $t('capital.segmentResultInfoWidget.votingTitle') }}
       .result-detail__rows
         DataRow(
-          label='Результат голосования по системе «Компас»',
+          :label='$t("capital.segmentResultInfoWidget.compassResultLabel")',
           :value='formatAmount(segment.voting_bonus)',
           mono
         )
@@ -58,15 +58,15 @@
     .result-detail__role(v-if='hasLoansData(segment)')
       .result-detail__role-head
         q-icon(name='account_balance', size='18px')
-        span Займы
+        span {{ $t('capital.segmentResultInfoWidget.loansTitle') }}
       .result-detail__rows
         DataRow(
-          label='Займ получен',
+          :label='$t("capital.segmentResultInfoWidget.loanReceivedLabel")',
           :value='formatAmount(segment.debt_amount)',
           mono
         )
         DataRow(
-          label='Займ возвращён',
+          :label='$t("capital.segmentResultInfoWidget.loanRepaidLabel")',
           :value='formatAmount(segment.debt_settled)',
           mono
         )

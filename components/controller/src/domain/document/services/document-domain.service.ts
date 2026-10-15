@@ -10,6 +10,7 @@ import { DocumentPackageAggregator } from '../aggregators/document-package.aggre
 import { BlockchainActionHistoryService } from '~/domain/parser/services/blockchain-action-history.service';
 import { toDotNotation } from '~/utils/toDotNotation';
 import type { ISignedDocument } from '@coopenomics/innercoop';
+import type { IGenerateBlank, IGeneratedBlank } from '@coopenomics/factory';
 import type { GenerateDocumentWithPrivateDataDomainInterface } from '../interfaces/generate-document-with-private-data.interface';
 
 @Injectable()
@@ -43,6 +44,11 @@ export class DocumentDomainService {
     }
 
     return await this.generatorInfrastructureService.generateDocument(data);
+  }
+
+  /** Бланк документа без данных события — форма, которую утверждает совет. */
+  public async generateBlank(data: IGenerateBlank): Promise<IGeneratedBlank> {
+    return await this.generatorInfrastructureService.generateBlank(data);
   }
 
   public async saveDocData<P extends Record<string, unknown>>(payload: P, registry_id: number): Promise<{ hash: string }> {

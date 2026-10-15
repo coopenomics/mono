@@ -11,6 +11,7 @@
 import { useExtensionStore } from 'src/entities/Extension/model';
 import { useSystemStore } from 'src/entities/System/model';
 import { onMounted, computed } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
 import { ExtensionCard } from 'src/widgets/ExtensionCard';
 
 const extStore = useExtensionStore();
@@ -23,6 +24,10 @@ const filteredExtensions = computed(() => {
     (extension) => extension.name !== 'capital' || systemStore.info.coopname === 'voskhod',
   );
 });
+
+// Каталог живёт по ленте изменений: установка, удаление и включение
+// расширений (таблица узла extensions) приходят сигналом.
+useLiveReload([{ code: 'core', table: 'extensions' }], () => extStore.loadExtensions());
 
 onMounted(async () => {
   extStore.loadExtensions();

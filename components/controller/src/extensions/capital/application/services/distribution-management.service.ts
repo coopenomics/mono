@@ -5,10 +5,7 @@ import type { RefreshProgramInputDTO } from '../dto/distribution_management/refr
 import { GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO, GenerateDocumentInputDTO } from '@coopenomics/extension-kit';
 import { GenerationConvertStatementGenerateDocumentInputDTO } from '../documents-dto/generation-convert-statement-document.dto';
 import { Cooperative } from 'cooptypes';
-import type { IMonoAccount } from '@coopenomics/innercoop';
-import { DOCUMENT_PORT, type IDocumentPort,
-  type InnerTransactResult,
-} from '@coopenomics/innercoop';
+import { DOCUMENT_PORT, type IDocumentPort, type IMonoAccount, type InnerTransactResult } from '@coopenomics/innercoop';
 
 /**
  * Сервис уровня приложения для управления распределением в CAPITAL

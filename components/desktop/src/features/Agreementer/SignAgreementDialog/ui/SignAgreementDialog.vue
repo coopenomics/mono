@@ -1,4 +1,7 @@
 <template lang="pug">
+//- Заголовок — в шапке окна, а не в колонке документа: иначе он читается как
+//- первая строка самого документа. Шапка и подвал — серая рамка окна, между
+//- ними белый лист; заголовок, текст и кнопка стоят по одной колонке.
 BaseDialog(
   v-model='show',
   :title='title',
@@ -7,18 +10,21 @@ BaseDialog(
   :close-on-backdrop='false',
   :close-on-escape='false'
 )
-  div.row.justify-center
-    q-card(flat).col-md-8.col-xs-12.q-pa-lg
-      Loader(v-if="isLoading" :text='`Формируем документ...`')
+  .sign-agreement
+    .sign-agreement__ghost(v-if='isLoading', aria-busy='true', :aria-label='$t(`agreementer.signAgreementDialog.loadingText`)')
+      q-skeleton(v-for='(w, i) in ghostLines', :key='i', type='text', :width='w')
+    //- Слот монтируется сразу и только прячется: документ формирует читатель в
+    //- слоте, и под v-else он не появился бы никогда — скелетон висел вечно.
+    div(v-show='!isLoading')
       slot
   template(#footer)
     .sign-agreement__actions
       BaseButton(
-        v-if='!isLoading',
         variant='primary',
+        :disabled='isLoading',
         :loading='isSubmitting',
         @click='sign'
-      ) Подписать
+      ) {{ $t('common.action.sign') }}
 </template>
 
 <script lang="ts" setup>
@@ -31,13 +37,13 @@ import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useSignAgreement } from '../model';
 import { useWalletStore } from 'src/entities/Wallet';
 import { useSystemStore } from 'src/entities/System/model';
+import { t } from 'src/shared/i18n';
 const { info } = useSystemStore()
 
 import { useSessionStore } from 'src/entities/Session';
-import { Loader } from 'src/shared/ui/Loader';
 
 const session = useSessionStore()
-const title = computed(() => props.is_modify ? 'Прочитайте и подпишите обновлённый документ' : 'Прочитайте и подпишите документ')
+const title = computed(() => props.is_modify ? t('agreementer.signAgreementDialog.titleModify') : t('agreementer.signAgreementDialog.title'))
 
 const props = defineProps({
   agreement: {
@@ -54,6 +60,9 @@ const show = ref(true)
 const isSubmitting = ref(false)
 const isLoading = computed(() => agreementOnSign.value ? false : true)
 
+// Пока документ формируется, в колонке — строки абзацев разной длины.
+const ghostLines = ['100%', '96%', '98%', '64%', '100%', '94%', '88%', '100%', '52%']
+
 const {signAgreement} = useSignAgreement()
 
 const agreementStore = useAgreementStore()
@@ -62,7 +71,7 @@ const agreementOnSign = computed(() => agreementStore.generatedAgreements.find(e
 const sign = async () => {
 
   if (!agreementOnSign.value){
-    FailAlert('Возникла ошибка подписи документа');
+    FailAlert(t('agreementer.signAgreementDialog.signMissingError'));
     return
   }
 
@@ -70,31 +79,77 @@ const sign = async () => {
     isSubmitting.value = true
     await signAgreement(props.agreement.type, agreementOnSign.value)
     const walletStore = useWalletStore()
-    // Отмечаем подпись до перечитывания списка: подпись уже в блокчейне, но в
-    // базу узла попадёт лишь после разбора блока индексатором, и ответ сервера
-    // прямо сейчас её ещё не содержит.
-    walletStore.markAgreementSigned(props.agreement.type)
+    // Подпись отвечает, когда узел разобрал её блок и записал её в базу, —
+    // перечитанный кошелёк уже её содержит.
     await walletStore.loadUserWallet({coopname: info.coopname, username: session.username})
     isSubmitting.value = false
     show.value = false
-    SuccessAlert('Документ принят')
+    SuccessAlert(t('agreementer.signAgreementDialog.acceptedSuccess'))
   } catch(e: any){
     isSubmitting.value = false
     console.error(e)
-    FailAlert(`Ошибка подписи документа: ${e.message}`)
+    FailAlert(t('agreementer.signAgreementDialog.signError', { message: e.message }))
   }
 
 }
 
 </script>
 
-<style scoped>
-/* Кнопка живёт в слоте footer BaseDialog — он вне скроллящегося body,
-   поэтому «Подписать» всегда прижата к низу и доступна без прокрутки
-   длинного документа. */
-.sign-agreement__actions {
+<style>
+/* Шапка и панель с кнопкой — серым холстом вокруг белой страницы документа,
+   чтобы заголовок и кнопка читались рамкой окна, а не частью текста. Без
+   scoped: шапку и подвал рисует BaseDialog в портале; :has ограничивает
+   правило этим окном. */
+.base-dialog__foot:has(.sign-agreement__actions) {
+  padding: var(--p-4);
+  background: var(--p-canvas);
+  border-top-color: var(--p-line-2);
+}
+
+.base-dialog:has(.sign-agreement) .base-dialog__head {
+  padding: var(--p-4);
+  background: var(--p-canvas);
+  border-bottom: 1px solid var(--p-line-2);
+}
+
+.base-dialog:has(.sign-agreement) .base-dialog__title {
   width: 100%;
+  max-width: 760px;
+  margin: 0 auto;
+}
+</style>
+
+<style scoped>
+/* Одна белая страница: колонка текста по центру, поля вокруг — воздух. */
+.sign-agreement {
+  width: 100%;
+  max-width: 760px;
+  margin: 0 auto;
+  padding: var(--p-8) 0 var(--p-9);
+}
+
+.sign-agreement__ghost {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  gap: var(--p-2);
+}
+
+/* Кнопка живёт в слоте footer BaseDialog — он вне прокрутки, поэтому
+   «Подписать» всегда под рукой. Край кнопки совпадает с краем колонки. */
+.sign-agreement__actions {
+  display: flex;
+  justify-content: flex-end;
+  width: 100%;
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+@media (max-width: 700px) {
+  .sign-agreement {
+    padding: var(--p-5) 0 var(--p-7);
+  }
+  .sign-agreement__actions :deep(.base-btn) {
+    width: 100%;
+  }
 }
 </style>

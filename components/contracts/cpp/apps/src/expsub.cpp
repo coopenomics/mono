@@ -24,7 +24,7 @@ void apps::expsub(eosio::name coopname,
   eosio::check(sub_it != by_cooppkg.end(), "Подписка не найдена");
 
   auto now_tps = eosio::time_point_sec(eosio::current_time_point().sec_since_epoch());
-  by_cooppkg.modify(sub_it, coopname, [&](auto &s) {
+  by_cooppkg.modify(sub_it, RamPayer::of(by_cooppkg, coopname), [&](auto &s) {
     s.active     = false;
     s.updated_at = now_tps;
   });

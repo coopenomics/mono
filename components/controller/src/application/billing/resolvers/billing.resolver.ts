@@ -1,7 +1,13 @@
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
-import { GqlJwtAuthGuard, RolesGuard, AuthRoles, GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO } from '@coopenomics/extension-kit';
+import {
+  GqlJwtAuthGuard,
+  RequireRight,
+  RightsGuard,
+  GenerateDocumentOptionsInputDTO,
+  GeneratedDocumentDTO,
+} from '@coopenomics/extension-kit';
 import { BillingService } from '../services/billing.service';
 import { BillingConvertInputDTO } from '../dto/billing-convert-input.dto';
 import { BillingPayInputDTO } from '../dto/billing-pay-input.dto';
@@ -30,8 +36,8 @@ export class BillingResolver {
       'дата следующего платежа, payment_hash). Источник — provider backend оператора. ' +
       'Для реестра кооперативов Восхода.',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Billing', 'read')
   getBillingSummary(
     @Args('coopname', { type: () => String }) coopname: string,
     @Args('period', { type: () => Number, nullable: true }) period?: number,
@@ -46,8 +52,8 @@ export class BillingResolver {
       'аналог generateConvertToAxonStatement, канон documents-dto.',
   })
   @Throttle({ default: { limit: 3, ttl: 60000 } })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['member', 'chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Billing', 'generate')
   generateBillingConversionStatement(
     @Args('data', { type: () => BillingConversionStatementGenerateDocumentInputDTO })
     data: BillingConversionStatementGenerateDocumentInputDTO,
@@ -63,8 +69,8 @@ export class BillingResolver {
       'Конвертация паевого взноса пайщика в членский на биллинг-кошелёк (operation o.bil.fund). ' +
       'Принимает подписанное пайщиком заявление 1095.BillingConversionStatement.',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['user', 'member', 'chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Billing', 'convert')
   billingConvert(
     @Args('input', { type: () => BillingConvertInputDTO }) input: BillingConvertInputDTO,
   ): Promise<BillingResultDTO> {
@@ -77,8 +83,8 @@ export class BillingResolver {
       'Списание стоимости подписок с биллинг-кошелька пайщика в инфраструктурный ' +
       'кошелёк кооператива (operation o.bil.pay). Идемпотентно по payment_hash.',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Billing', 'pay')
   billingPay(
     @Args('input', { type: () => BillingPayInputDTO }) input: BillingPayInputDTO,
   ): Promise<BillingResultDTO> {

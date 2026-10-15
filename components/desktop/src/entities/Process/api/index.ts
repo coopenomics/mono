@@ -1,5 +1,6 @@
 import { Queries } from '@coopenomics/sdk'
 import { client } from 'src/shared/api/client'
+import { RegistrySource } from 'src/shared/lib/registry-source'
 import type {
   IProcessGetInput,
   IProcessListInput,
@@ -8,7 +9,17 @@ import type {
   IProcessView,
 } from '../types'
 
-async function getProcess(input: IProcessGetInput): Promise<IProcessView | undefined> {
+async function getProcess(
+  input: IProcessGetInput,
+  source: RegistrySource = RegistrySource.CORE,
+): Promise<IProcessView | undefined> {
+  if (source === RegistrySource.ACCOUNTANT) {
+    const { [Queries.Reports.ReportsProcess.name]: view } = await client.Query(
+      Queries.Reports.ReportsProcess.query,
+      { variables: input },
+    )
+    return view
+  }
   const { [Queries.Processes.GetProcess.name]: output } = await client.Query(
     Queries.Processes.GetProcess.query,
     { variables: input },
@@ -16,7 +27,17 @@ async function getProcess(input: IProcessGetInput): Promise<IProcessView | undef
   return output
 }
 
-async function listProcesses(input: IProcessListInput): Promise<IProcessListResult | undefined> {
+async function listProcesses(
+  input: IProcessListInput,
+  source: RegistrySource = RegistrySource.CORE,
+): Promise<IProcessListResult | undefined> {
+  if (source === RegistrySource.ACCOUNTANT) {
+    const { [Queries.Reports.ReportsProcesses.name]: page } = await client.Query(
+      Queries.Reports.ReportsProcesses.query,
+      { variables: input },
+    )
+    return page
+  }
   const { [Queries.Processes.ListProcesses.name]: output } = await client.Query(
     Queries.Processes.ListProcesses.query,
     { variables: input },

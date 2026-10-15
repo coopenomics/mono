@@ -64,8 +64,12 @@ export interface ServerContentConflict {
 }
 
 export function extractServerContentConflict(error: unknown): ServerContentConflict | null {
+  // SDK бросает GraphQLResponseError: список ошибок сервера лежит в `errors`,
+  // весь ответ — в `response`. Для HTTP-ответа не 2xx `response` — тело без
+  // `errors`, поэтому сначала смотрим на сам список.
+  const own = (error as { errors?: unknown[] } | null)?.errors
   const response = (error as { response?: { errors?: unknown[] } } | null)?.response
-  const errors = Array.isArray(response?.errors) ? response.errors : []
+  const errors = Array.isArray(own) ? own : Array.isArray(response?.errors) ? response.errors : []
   for (const e of errors as Array<{ extensions?: { code?: string, conflict?: ServerContentConflict } }>) {
     if (e?.extensions?.code === 'CONTENT_CONFLICT' && e.extensions.conflict) {
       return e.extensions.conflict

@@ -25,6 +25,8 @@ void capital::createdebt(name coopname, name username, checksum256 project_hash,
   require_auth(coopname);
   
   verify_document_or_fail(statement, {username});
+  // Заявление на заём подписывает сам пайщик. Транзакцию шлёт кооператив, поэтому ключ сверяется с аккаунтом.
+  verify_signer_keys_or_fail(statement, username);
   Wallet::validate_asset(amount);
   
   // Проверяем что участник существует в проекте

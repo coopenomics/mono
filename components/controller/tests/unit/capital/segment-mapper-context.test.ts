@@ -94,4 +94,9 @@ describe('SegmentMapper.toDTO — обязательные поля ответа
     expect(dto.has_voted).toBe(true);
     expect(dto.voting_completed).toBe(true);
   });
+
+  it('cap.rid.side.92: доля, отмеченная завершённой, читается из базы завершённой (до 25.09.2026 признак терялся)', () => {
+    expect(SegmentMapper.toDomain(makeEntity({ is_completed: true })).is_completed).toBe(true);
+    expect(SegmentMapper.toDomain(makeEntity({ is_completed: false })).is_completed).toBe(false);
+  });
 });

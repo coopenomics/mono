@@ -1,6 +1,6 @@
 <template lang="pug">
-div.page-shell
-  q-card.q-mt-md(flat)
+div.processes-page
+  q-card(flat)
     q-card-section
       .row.q-gutter-sm.items-center.q-mb-sm(v-if='filters.processType || filters.username || filters.processHash')
         q-chip(
@@ -8,7 +8,7 @@ div.page-shell
           removable
           color='primary'
           text-color='white'
-          icon='fa-solid fa-gears'
+          icon='account_tree'
           @remove='clearProcessTypeFilter'
         ) {{ processTypeLabel(filters.processType) }}
         q-chip(
@@ -16,18 +16,18 @@ div.page-shell
           removable
           color='primary'
           text-color='white'
-          icon='fa-solid fa-user'
+          icon='person'
           @remove='clearUsernameFilter'
-        ) Пайщик {{ fioCache.get(filters.username) || filters.username }}
+        ) {{ $t('reports.processesPage.chip.participant', { name: fioCache.get(filters.username) || filters.username }) }}
         q-chip(
           v-if='filters.processHash'
           removable
           color='primary'
           text-color='white'
-          icon='fa-solid fa-fingerprint'
+          icon='fingerprint'
           class='font-monospace'
           @remove='clearProcessHashFilter'
-        ) Процесс {{ filters.processHash.slice(0, 8) }}
+        ) {{ $t('reports.processesPage.chip.process', { hash: filters.processHash.slice(0, 8) }) }}
       .row.q-gutter-sm.items-end
         q-select.col-md-4.col-12(
           v-model='filters.processType'
@@ -39,12 +39,12 @@ div.page-shell
           dense
           outlined
           clearable
-          label='Тип процесса'
+          :label='$t("reports.processesPage.processTypeFilterLabel")'
           @update:model-value='reload'
         )
         q-input.col-md-3.col-12(
           v-model='usernameInput'
-          label='Поиск (пайщик)'
+          :label='$t("reports.processesPage.searchLabel")'
           dense
           outlined
           clearable
@@ -52,12 +52,12 @@ div.page-shell
           @keyup.enter='applyUsernameFilter'
         )
           template(#append)
-            q-icon.cursor-pointer(name='fa-solid fa-magnifying-glass' @click='applyUsernameFilter')
+            q-icon.cursor-pointer(name='search' @click='applyUsernameFilter')
         q-btn.col-md-auto(
           v-if='hasAnyFilter'
           flat
-          icon='fa-solid fa-rotate'
-          label='Сбросить'
+          icon='refresh'
+          :label='$t("reports.processesPage.resetLabel")'
           @click='resetFilters'
         )
 
@@ -69,9 +69,9 @@ div.page-shell
       :columns='columns'
       row-key='processHash'
       :loading='loading'
-      :pagination='pagination'
+      v-model:pagination='pagination'
       :rows-per-page-options='[25, 50, 100, 200]'
-      :no-data-label='"Процессы не найдены"'
+      :no-data-label='$t("reports.processesPage.emptyLabel")'
       @request='onRequest'
     )
       template(#body='props')
@@ -93,7 +93,7 @@ div.page-shell
               :rawId='shortHash(props.row.processHash)'
               @click='copyText(props.row.processHash)'
             )
-              q-tooltip Клик — копировать полный хэш
+              q-tooltip {{ $t('reports.processesPage.copyFullHashHintLabel') }}
           q-td
             span {{ subjectName(props.row.username) }}
             q-chip.q-ml-xs(
@@ -103,9 +103,10 @@ div.page-shell
               size='sm'
               color='orange-1'
               text-color='orange-9'
-              label='КУ'
+              :label='$t("reports.processesPage.kuLabel")'
             )
-              q-tooltip Кооперативный участок
+              q-tooltip {{ $t('reports.processesPage.kuTooltip') }}
+          q-td.text-right.font-monospace {{ formatProcessAmount(props.row.amount) }}
           q-td {{ formatDate(props.row.firstSeenAt) }}
           q-td {{ formatDate(props.row.lastSeenAt) }}
 
@@ -125,6 +126,7 @@ div.page-shell
                 :process-type='props.row.processType'
                 operation-route-name='reports-operations'
                 posting-route-name='reports-postings'
+                :source='DESK_SOURCE'
               )
 
       template(#item='props')
@@ -134,10 +136,11 @@ div.page-shell
               .col
                 .text-caption.text-grey-6 {{ formatDate(props.row.lastSeenAt) }}
                 .text-body2.text-weight-medium {{ processTypeLabel(props.row.processType) }}
+              .col-auto.text-body2.font-monospace(v-if='props.row.amount') {{ formatProcessAmount(props.row.amount) }}
               .col-12.text-caption.text-grey-7
-                | {{ isBranch(props.row.username) ? 'Участок' : 'Пайщик' }}: {{ subjectName(props.row.username) }}
+                | {{ isBranch(props.row.username) ? $t('reports.processesPage.subjectType.branch') : $t('reports.processesPage.subjectType.participant') }}: {{ subjectName(props.row.username) }}
               .col-12.row.q-gutter-xs.q-mt-xs.items-center
-                .text-caption.text-grey-7 ID процесса
+                .text-caption.text-grey-7 {{ $t('reports.processesPage.processIdLabel') }}
                 EntityIdBadge(
                   :rawId='shortHash(props.row.processHash)'
                   @click='copyText(props.row.processHash)'
@@ -146,6 +149,9 @@ div.page-shell
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
+import { useLiveReload } from 'src/shared/lib/realtime'
+import { PROCESSES_LIVE_TABLES } from 'app/extensions/reports/shared/lib/live'
+import { uiLocale } from 'src/shared/i18n';
 import { useRoute, useRouter } from 'vue-router'
 import { useWindowSize } from 'src/shared/hooks'
 import { useSystemStore } from 'src/entities/System/model'
@@ -153,23 +159,26 @@ import { FailAlert, SuccessAlert } from 'src/shared/api'
 import { ExpandToggleButton } from 'src/shared/ui/ExpandToggleButton'
 import { EntityIdBadge } from 'src/shared/ui'
 import { copyToClipboard } from 'quasar'
-import { useProcessStore, type IProcessSummary } from 'src/entities/Process'
-import { useFioCache } from 'src/shared/lib/account/useFioCache'
+import type { IProcessSummary } from 'src/entities/Process'
+import { DESK_SOURCE, useDeskFioCache, useDeskRegistries } from 'app/extensions/reports/shared/lib/registries'
 import { ProcessDetailCard } from 'src/widgets/Process/ProcessDetailCard'
 import {
+  formatProcessAmount,
   processChipBg,
   processChipText,
   processTypeLabel,
 } from 'src/shared/lib/ledger2'
 import { Ledger2 } from 'cooptypes'
 import { Zeus } from '@coopenomics/sdk'
+import { t } from '../../../i18n';
 
 const { info } = useSystemStore()
 const { isMobile } = useWindowSize()
 const route = useRoute()
 const router = useRouter()
-const processStore = useProcessStore()
-const { fioCache, kindCache, enrichFio } = useFioCache()
+// Реестр и имена субъектов отдают операции стола бухгалтера.
+const registries = useDeskRegistries()
+const { fioCache, kindCache, enrichFio } = useDeskFioCache()
 
 // Человекочитаемое имя субъекта процесса (пайщик/КУ/кооператив) — резолв с бэка.
 function subjectName(username: string | null | undefined): string {
@@ -216,15 +225,15 @@ async function copyText(text: string | null | undefined) {
   if (!text) return
   try {
     await copyToClipboard(text)
-    SuccessAlert('Скопировано')
+    SuccessAlert(t('reports.processesPage.copySuccess'))
   } catch {
-    FailAlert('Не удалось скопировать')
+    FailAlert(t('reports.processesPage.copyError'))
   }
 }
 
 function formatDate(d: string | Date | null | undefined): string {
   if (!d) return '—'
-  return new Date(d).toLocaleString('ru-RU', {
+  return new Date(d).toLocaleString(uiLocale(), {
     day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
   })
 }
@@ -235,11 +244,12 @@ const hasAnyFilter = computed(
 
 const columns = [
   { name: 'expand', align: 'left' as const, label: '', field: 'expand', sortable: false },
-  { name: 'processType', align: 'left' as const, label: 'Тип процесса', field: 'processType' },
-  { name: 'processHash', align: 'left' as const, label: 'ID процесса', field: 'processHash' },
-  { name: 'username', align: 'left' as const, label: 'Пайщик', field: 'username' },
-  { name: 'firstSeenAt', align: 'left' as const, label: 'Создан', field: 'firstSeenAt' },
-  { name: 'lastSeenAt', align: 'left' as const, label: 'Последнее событие', field: 'lastSeenAt' },
+  { name: 'processType', align: 'left' as const, label: t('reports.processesPage.column.processType'), field: 'processType' },
+  { name: 'processHash', align: 'left' as const, label: t('reports.processesPage.processIdLabel'), field: 'processHash' },
+  { name: 'username', align: 'left' as const, label: t('reports.processesPage.column.participant'), field: 'username' },
+  { name: 'amount', align: 'right' as const, label: t('reports.processesPage.column.amount'), field: 'amount' },
+  { name: 'firstSeenAt', align: 'left' as const, label: t('reports.processesPage.column.createdAt'), field: 'firstSeenAt' },
+  { name: 'lastSeenAt', align: 'left' as const, label: t('reports.processesPage.column.lastEvent'), field: 'lastSeenAt' },
 ]
 
 // =====================================================================
@@ -305,7 +315,7 @@ async function load() {
   const myId = ++lastRequestId
   loading.value = true
   try {
-    const resp = await processStore.loadProcesses({
+    const resp = await registries.loadProcesses({
       filter: {
         coopname: info.coopname,
         ...(filters.processType ? { processType: filters.processType } : {}),
@@ -371,9 +381,20 @@ onMounted(async () => {
     FailAlert(e)
   }
 })
+
+// Процессы живут по ленте: операции учёта, решения совета и платежи
+// перечитывают показанную страницу.
+useLiveReload(PROCESSES_LIVE_TABLES, load)
 </script>
 
 <style scoped>
+/* Поле страницы — как в соседних реестрах операций и проводок. */
+.processes-page {
+  padding: var(--p-6, 24px);
+}
+@media (max-width: 768px) {
+  .processes-page { padding: var(--p-4, 16px); }
+}
 .font-monospace {
   font-family: 'JetBrains Mono', 'Courier New', monospace;
   letter-spacing: 0.03em;
@@ -381,7 +402,7 @@ onMounted(async () => {
 /* Реестр — обзорный список: гасим подсветку строки при наведении (canon-правило
    .q-table tbody tr:hover) и в основной таблице, и во вложенных таблицах
    детализации (операции/проводки) — мигание при наведении мешает. */
-.page-shell :deep(.q-table tbody tr:hover) {
+.processes-page :deep(.q-table tbody tr:hover) {
   background: transparent;
 }
 </style>

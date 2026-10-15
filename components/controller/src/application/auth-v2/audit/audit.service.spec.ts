@@ -1,15 +1,14 @@
 import { AuditService, assertContextHasNoSecrets } from './audit.service';
 
 /**
- * Story 8.2: структурированные audit-поля. DataSource замокан через spy на приватный
- * getDataSource — проверяем форму INSERT (включая первоклассную колонку user_agent) и
- * инвариант secret-blacklist, без реального coop_domain_db.
+ * Story 8.2: структурированные audit-поля. База CoopID подменена — проверяем форму
+ * INSERT (включая первоклассную колонку user_agent) и инвариант secret-blacklist,
+ * без реального coop_domain_db.
  */
 describe('AuditService — структурированные поля (Story 8.2)', () => {
   function setup() {
-    const query = jest.fn((_sql: string, _params: unknown[]) => Promise.resolve(undefined));
-    const service = new AuditService();
-    jest.spyOn(service as unknown as { getDataSource: () => Promise<unknown> }, 'getDataSource').mockResolvedValue({ query });
+    const query = jest.fn((_sql: string, _params: unknown[]) => Promise.resolve([]));
+    const service = new AuditService({ query } as never);
     return { service, query };
   }
 

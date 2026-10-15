@@ -139,6 +139,58 @@ stack_up_infra() {
   stack_check_coopid_databases || true
 }
 
+# Схема базы — миграциями контроллера, до boot (C28-79): boot засевает
+# пользователей, ключи и расширения в уже созданные таблицы, а сам их больше не
+# заводит. С хоста база видна по адресу из окружения стенда (корневой .env у
+# mono-ai-2..5) либо из components/boot/.env; в .env контроллера — имя сервиса
+# внутри docker-сети, с хоста оно не резолвится.
+# Запустить команду со спиннером и секундомером, пока она молчит. Вывод команды
+# печатается по мере появления строк; код возврата — её собственный. Вне
+# терминала (CI, лог в файл) спиннера нет — только вывод команды.
+stack_spin() {
+  local label="$1"; shift
+  local log; log="$(mktemp)"
+  "$@" >"$log" 2>&1 &
+  local pid=$! start=$SECONDS shown=0 frame=0 lines rc
+  local frames='|/-\' tty=0
+  [ -t 1 ] && tty=1
+  while kill -0 "$pid" 2>/dev/null; do
+    lines=$(wc -l <"$log")
+    if [ "$lines" -gt "$shown" ]; then
+      [ "$tty" = 1 ] && printf '\r\033[K'
+      sed -n "$((shown + 1)),${lines}p" "$log"
+      shown=$lines
+    elif [ "$tty" = 1 ]; then
+      printf '\r  %s %s — %d с' "${frames:frame++ % 4:1}" "$label" $((SECONDS - start))
+    fi
+    sleep 0.2
+  done
+  wait "$pid"; rc=$?
+  [ "$tty" = 1 ] && printf '\r\033[K'
+  sed -n "$((shown + 1)),\$p" "$log"
+  rm -f "$log"
+  return "$rc"
+}
+
+stack_migrate_schema() {
+  echo "▸ Накатываем миграции схемы базы..."
+  local boot_env="$STACK_ROOT/components/boot/.env" host="" port=""
+  if [ -f "$boot_env" ]; then
+    host="$(grep -E '^POSTGRES_HOST=' "$boot_env" | tail -1 | cut -d= -f2-)"
+    port="$(grep -E '^POSTGRES_PORT=' "$boot_env" | tail -1 | cut -d= -f2-)"
+  fi
+  # ts-node сначала компилирует граф контроллера с проверкой типов — это
+  # минута-две без единой строки вывода; спиннер показывает, что шаг живой.
+  if ! (cd "$STACK_ROOT" && \
+    POSTGRES_HOST="${POSTGRES_HOST:-${host:-127.0.0.1}}" \
+    POSTGRES_PORT="${POSTGRES_PORT:-${port:-5432}}" \
+    stack_spin "компиляция контроллера и накат схемы" \
+      pnpm -F @coopenomics/controller run schema:migrate); then
+    echo "✗ Миграции схемы не прошли — boot не запускаем"
+    return 1
+  fi
+}
+
 stack_up_authentik() {
   # Bootstrap-значения authentik читаются им НАПРЯМУЮ из окружения и префикс file://
   # не понимают — их надо положить в .env реальными значениями. Иначе админ-токеном

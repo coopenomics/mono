@@ -8,11 +8,17 @@ import type { IDocument, ISignatureInfo } from 'src/shared/lib/types/document';
 import { Zeus, Queries } from '@coopenomics/sdk';
 import { client } from 'src/shared/api/client';
 import type { IInitialPaymentOrder } from 'src/shared/lib/types/payments';
+import { intakeFormProblems } from 'src/shared/lib/intake-schema';
 
 // Программа участия в регистрации — тип берётся напрямую из SDK-выдачи
 // getRegistrationConfig, не переописывается.
 type IRegistrationProgram =
   Queries.System.GetRegistrationConfig.IOutput['getRegistrationConfig']['programs'][number];
+
+// Анкета вступления, которую объявило расширение (или ядро) для программы
+// либо типа аккаунта. Поля описаны JSON Schema — их рисует общая форма ZodForm.
+export type IRegistrationIntakeForm =
+  Queries.System.GetRegistrationConfig.IOutput['getRegistrationConfig']['intake_forms'][number];
 
 const namespace = 'registrator';
 
@@ -23,8 +29,18 @@ const initialAccountState: IGeneratedAccount = {
   public_key: '',
 };
 
+/**
+ * Форма ведёт все три анкеты сразу: переключение типа субъекта не должно
+ * стирать уже введённое, поэтому в состоянии блоки заданы всегда. В самом
+ * `IUserData` они опциональны — там это вход мутаций, где приезжает ровно
+ * один блок. Отсюда отдельный тип состояния: без него присвоение полей
+ * анкеты не проходит проверку типов, ведь блок формально может отсутствовать.
+ */
+type IUserDataState = IUserData &
+  Required<Pick<IUserData, 'entrepreneur_data' | 'individual_data' | 'organization_data'>>;
+
 // Начальное состояние для userData
-const initialUserDataState: IUserData = {
+const initialUserDataState: IUserDataState = {
   type: null,
   individual_data: {
     first_name: '',
@@ -114,6 +130,81 @@ const initialAgreementsState = {
   user: false,
   self_paid: false,
 };
+/** Строка из значения профиля карты кооператора: не строка — пустая строка. */
+const cardcoopText = (value: unknown): string => (typeof value === 'string' ? value : '');
+
+/** Вложенный блок профиля (`details`, `represented_by`): блока может не быть — тогда пустой. */
+const cardcoopBlock = (value: unknown): Record<string, unknown> =>
+  value !== null && typeof value === 'object' ? (value as Record<string, unknown>) : {};
+
+/**
+ * Ветка переноса для физлица. Вынесена из applyCardcoopProfile: три ветки
+ * анкеты независимы и читаются каждая отдельно.
+ */
+const fillIndividualFromCardcoop = (
+  individual: NonNullable<IUserData['individual_data']>,
+  profile: Record<string, unknown>,
+): void => {
+  Object.assign(individual, {
+    first_name: cardcoopText(profile.first_name),
+    last_name: cardcoopText(profile.last_name),
+    middle_name: cardcoopText(profile.middle_name),
+    birthdate: cardcoopText(profile.birthdate),
+    full_address: cardcoopText(profile.full_address),
+    phone: cardcoopText(profile.phone),
+  });
+};
+
+/** Ветка переноса для ИП: анкета плюс реквизиты (ИНН, ОГРНИП). */
+const fillEntrepreneurFromCardcoop = (
+  entrepreneur: NonNullable<IUserData['entrepreneur_data']>,
+  profile: Record<string, unknown>,
+): void => {
+  Object.assign(entrepreneur, {
+    first_name: cardcoopText(profile.first_name),
+    last_name: cardcoopText(profile.last_name),
+    middle_name: cardcoopText(profile.middle_name),
+    birthdate: cardcoopText(profile.birthdate),
+    phone: cardcoopText(profile.phone),
+    city: cardcoopText(profile.city),
+    full_address: cardcoopText(profile.full_address),
+  });
+  const details = cardcoopBlock(profile.details);
+  Object.assign(entrepreneur.details, {
+    inn: cardcoopText(details.inn),
+    ogrn: cardcoopText(details.ogrn),
+  });
+};
+
+/** Ветка переноса для организации: анкета, представитель и реквизиты. */
+const fillOrganizationFromCardcoop = (
+  organization: NonNullable<IUserData['organization_data']>,
+  profile: Record<string, unknown>,
+): void => {
+  Object.assign(organization, {
+    short_name: cardcoopText(profile.short_name),
+    full_name: cardcoopText(profile.full_name),
+    city: cardcoopText(profile.city),
+    full_address: cardcoopText(profile.full_address),
+    fact_address: cardcoopText(profile.fact_address),
+    phone: cardcoopText(profile.phone),
+  });
+  const representative = cardcoopBlock(profile.represented_by);
+  Object.assign(organization.represented_by, {
+    first_name: cardcoopText(representative.first_name),
+    last_name: cardcoopText(representative.last_name),
+    middle_name: cardcoopText(representative.middle_name),
+    position: cardcoopText(representative.position),
+    based_on: cardcoopText(representative.based_on),
+  });
+  const details = cardcoopBlock(profile.details);
+  Object.assign(organization.details, {
+    inn: cardcoopText(details.inn),
+    ogrn: cardcoopText(details.ogrn),
+    kpp: cardcoopText(details.kpp),
+  });
+};
+
 export const useRegistratorStore = defineStore(
   namespace,
   () => {
@@ -123,6 +214,12 @@ export const useRegistratorStore = defineStore(
       email: '',
       selectedBranch: '',
       selectedProgramKey: '',
+      // Программу выбрал не человек, а система — она была единственной. Если
+      // позже программ станет больше (совет подключил ещё одно приложение), такой
+      // выбор сбрасывается: человек должен выбрать сам, а не унаследовать.
+      programAutoSelected: false,
+      // Ответы на анкеты вступления: идентификатор анкеты → значения полей.
+      intakeAnswers: {} as Record<string, Record<string, unknown>>,
       account: structuredClone(initialAccountState),
       userData: structuredClone(initialUserDataState),
       signature: '',
@@ -135,6 +232,12 @@ export const useRegistratorStore = defineStore(
       userAgreement: structuredClone(initialDocumentState),
       payment: initialPaymentState as IInitialPaymentOrder | null,
       is_paid: false,
+      // Почта подтверждена кодом на шаге EmailInput. Флаг живёт в persist'е стора,
+      // чтобы обновление страницы посреди регистрации не заставляло подтверждать
+      // адрес заново. У регистраций, начатых до появления подтверждения, поля
+      // просто нет (undefined = не подтверждена), но их шаг EmailInput уже
+      // пройден — назад мы никого не возвращаем.
+      emailVerified: false,
       // Учётка уже создана на сервере (createUser прошёл). Шаг пароля состоит из
       // двух сетевых операций (createUser → установка пароля): если вторая упала,
       // повтор без маркера снова звал бы createUser и упирался в «email занят».
@@ -145,6 +248,7 @@ export const useRegistratorStore = defineStore(
       'EmailInput',
       'SetUserData',
       'SelectProgram',
+      'IntakeStep',
       'GenerateAccount',
       'SelectBranch',
       'ReadStatement',
@@ -156,13 +260,20 @@ export const useRegistratorStore = defineStore(
 
     type StepName = (typeof stepNames)[number];
 
-    const steps = stepNames.reduce(
-      (acc, step, index) => {
-        acc[step] = index + 1; // Индексы начинаются с 1
-        return acc;
-      },
-      {} as Record<StepName, number>,
-    );
+    // Номер шага хранится в persist'е, поэтому у прежних шагов он меняться не
+    // должен: иначе человек, начавший вступление до обновления, окажется на
+    // другом шаге. Шаг анкеты добавлен позже и встаёт между соседями дробным
+    // номером — сравнения и сортировка по номерам работают как прежде.
+    const LATE_STEPS: Partial<Record<StepName, number>> = { IntakeStep: 3.5 };
+    const steps = stepNames
+      .filter((step) => LATE_STEPS[step] === undefined)
+      .reduce(
+        (acc, step, index) => {
+          acc[step] = index + 1; // Индексы начинаются с 1
+          return acc;
+        },
+        { ...LATE_STEPS } as Record<StepName, number>,
+      );
 
     const system = useSystemStore();
     const isBranched = computed(
@@ -176,6 +287,10 @@ export const useRegistratorStore = defineStore(
     // установлены и активированы в кооперативе.
     const availablePrograms = ref<IRegistrationProgram[]>([]);
 
+    // Анкеты, общие для типа аккаунта (не зависят от программы). Анкеты
+    // программы приходят внутри неё самой.
+    const commonIntakeForms = ref<IRegistrationIntakeForm[]>([]);
+
     // Подтягиваем программы под выбранный тип аккаунта. Вызывается из шага
     // SetUserData при переходе дальше — чтобы шаг SelectProgram уже знал,
     // показываться ему или нет (см. requiresProgramSelection / filteredSteps).
@@ -183,6 +298,7 @@ export const useRegistratorStore = defineStore(
       const accountType = state.userData.type;
       if (!accountType || !system.info?.coopname) {
         availablePrograms.value = [];
+        commonIntakeForms.value = [];
         state.selectedProgramKey = '';
         return;
       }
@@ -195,9 +311,11 @@ export const useRegistratorStore = defineStore(
             },
           });
         availablePrograms.value = config.programs ?? [];
+        commonIntakeForms.value = config.intake_forms ?? [];
       } catch (e) {
         console.error('Ошибка загрузки программ участия:', e);
         availablePrograms.value = [];
+        commonIntakeForms.value = [];
       }
       // Единственная программа — выбор не требуется, шаг скрыт, но программу
       // всё равно привязываем к пайщику (преселект). Иначе сохраняем уже
@@ -205,10 +323,13 @@ export const useRegistratorStore = defineStore(
       // больше не доступна (сменили тип аккаунта) или программ нет вовсе.
       if (availablePrograms.value.length === 1) {
         state.selectedProgramKey = availablePrograms.value[0].key;
+        state.programAutoSelected = true;
       } else if (
+        state.programAutoSelected ||
         !availablePrograms.value.some((p) => p.key === state.selectedProgramKey)
       ) {
         state.selectedProgramKey = '';
+        state.programAutoSelected = false;
       }
     };
 
@@ -217,10 +338,46 @@ export const useRegistratorStore = defineStore(
       () => availablePrograms.value.length > 1,
     );
 
+    // Анкеты, которые заполняет этот заявитель: общие для типа аккаунта плюс
+    // анкеты выбранной программы. Что именно требовать, решает бэкенд — тот же
+    // набор он сверит при приёме заявления.
+    const intakeForms = computed<IRegistrationIntakeForm[]>(() => {
+      const program = availablePrograms.value.find((p) => p.key === state.selectedProgramKey);
+      const byId = new Map<string, IRegistrationIntakeForm>();
+      for (const form of [...commonIntakeForms.value, ...(program?.intake_forms ?? [])]) {
+        byId.set(form.id, form);
+      }
+      return Array.from(byId.values()).sort((a, b) => a.order - b.order);
+    });
+
+    const requiresIntake = computed(() => intakeForms.value.length > 0);
+
+    // Все анкеты заполнены так, что сервер их примет (обязательность и длина).
+    const isIntakeComplete = computed(() =>
+      intakeForms.value.every(
+        (form) => intakeFormProblems(form.schema, state.intakeAnswers[form.id]).length === 0,
+      ),
+    );
+
+    // Ответы для отправки: только по анкетам текущего набора. Ответы на анкеты
+    // другой программы (человек вернулся и передумал) на сервер не уходят.
+    // Незаполненные необязательные поля (null) отбрасываются.
+    const intakeAnswersForSubmit = computed(() =>
+      intakeForms.value.map((form) => ({
+        form_id: form.id,
+        values: Object.fromEntries(
+          Object.entries(state.intakeAnswers[form.id] ?? {}).filter(
+            ([, value]) => value !== null && value !== undefined && value !== '',
+          ),
+        ),
+      })),
+    );
+
     const filteredSteps = computed(() =>
       stepNames.filter((step) => {
         if (step === 'SelectBranch' && !isBranched.value) return false;
         if (step === 'SelectProgram' && !requiresProgramSelection.value) return false;
+        if (step === 'IntakeStep' && !requiresIntake.value) return false;
         return true;
       }),
     );
@@ -243,7 +400,11 @@ export const useRegistratorStore = defineStore(
     };
 
     const next = () => {
-      const target = visibleStepIndices.value.find((i) => i > state.step);
+      // Учётка уже создана — шаг пароля вперёд не проходим повторно: сюда
+      // попадают те, кого вернули к выбору программы или к анкете.
+      const target = visibleStepIndices.value.find(
+        (i) => i > state.step && !(i === steps.GenerateAccount && state.accountCreated),
+      );
       if (target !== undefined) state.step = target;
     };
 
@@ -294,8 +455,12 @@ export const useRegistratorStore = defineStore(
       state.step = 1;
       state.selectedBranch = '';
       state.selectedProgramKey = '';
+      state.programAutoSelected = false;
+      state.intakeAnswers = {};
       availablePrograms.value = [];
+      commonIntakeForms.value = [];
       state.email = '';
+      state.emailVerified = false;
       state.account = structuredClone(initialAccountState);
       state.agreements = structuredClone(initialAgreementsState);
       state.userData = structuredClone(initialUserDataState);
@@ -309,12 +474,53 @@ export const useRegistratorStore = defineStore(
       state.userAgreement = structuredClone(initialDocumentState);
     };
 
+    /**
+     * Предзаполняет анкету вступления данными, перенесёнными по карте кооператора (story 9.3).
+     *
+     * Данные пришли от кооператива, где человека уже верифицировали, и проверены подписью
+     * его заверенного ключа. Человек всё равно проходит форму и видит каждое поле:
+     * перенос избавляет от перепечатывания, а не от проверки.
+     *
+     * Поля кладутся только совпадающие по смыслу: чего в нашей форме нет (паспорт, почта в
+     * анкете), то не кладётся; чего не было в анкете — остаётся пустым и вводится руками.
+     */
+    const applyCardcoopProfile = (subjectType: string, profile: Record<string, any>): void => {
+      if (typeof profile.email === 'string' && profile.email) state.email = profile.email;
+
+      // Блоки анкеты в IUserData необязательны, поэтому перед записью берём блок
+      // в локальную переменную и проверяем его наличие.
+      if (subjectType === 'individual') {
+        state.userData.type = 'individual';
+        const individual = state.userData.individual_data;
+        if (individual) fillIndividualFromCardcoop(individual, profile);
+        return;
+      }
+
+      if (subjectType === 'entrepreneur') {
+        state.userData.type = 'entrepreneur';
+        const entrepreneur = state.userData.entrepreneur_data;
+        if (entrepreneur) fillEntrepreneurFromCardcoop(entrepreneur, profile);
+        return;
+      }
+
+      if (subjectType === 'organization') {
+        state.userData.type = 'organization';
+        const organization = state.userData.organization_data;
+        if (organization) fillOrganizationFromCardcoop(organization, profile);
+      }
+    };
+
     return {
       state,
       steps,
       filteredSteps,
       availablePrograms,
       requiresProgramSelection,
+      commonIntakeForms,
+      intakeForms,
+      requiresIntake,
+      isIntakeComplete,
+      intakeAnswersForSubmit,
       loadAvailablePrograms,
       next,
       prev,
@@ -323,6 +529,7 @@ export const useRegistratorStore = defineStore(
       isStep,
       clearUserData,
       resetConsents,
+      applyCardcoopProfile,
       addUserState,
       isBranched,
     };

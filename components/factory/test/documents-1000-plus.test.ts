@@ -84,15 +84,6 @@ describe('тест генератора документов с registry_id >= 1
     })
   })
 
-  it('генерируем шаблон пользовательского соглашения (оферты) по участию в целевой потребительской программе "ГЕНЕРАТОР"', async () => {
-    await testDocumentGeneration({
-      registry_id: 995,
-      coopname: 'voskhod',
-      username: 'ant',
-      lang: 'ru',
-      doc_data_hash: capitalProgramDocDataHash,
-    })
-  })
 
   it('генерируем пользовательское соглашение (оферту) по участию в целевой потребительской программе "ГЕНЕРАТОР"', async () => {
     await testDocumentGeneration({
@@ -104,29 +95,11 @@ describe('тест генератора документов с registry_id >= 1
     })
   })
 
-  // Шаблоны документов
-  it('генерируем шаблон договора участия в хозяйственной деятельности', async () => {
-    await testDocumentGeneration({
-      registry_id: 997,
-      coopname: 'voskhod',
-      username: 'ant',
-      lang: 'ru',
-    })
-  })
 
   // Шаблоны документов
   it('генерируем шаблон программы Благорост', async () => {
     await testDocumentGeneration({
       registry_id: 998,
-      coopname: 'voskhod',
-      username: 'ant',
-      lang: 'ru',
-      doc_data_hash: capitalProgramDocDataHash,
-    })
-  })
-  it('генерируем шаблон оферты Благорост', async () => {
-    await testDocumentGeneration({
-      registry_id: 999,
       coopname: 'voskhod',
       username: 'ant',
       lang: 'ru',

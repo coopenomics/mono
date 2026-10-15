@@ -23,7 +23,7 @@ jest.mock('~/config/config', () => ({
 jest.mock('~/application/provider/services/provider.service', () => ({ ProviderService: class {} }));
 
 import { BillingCronService } from '~/domain/billing/services/billing-cron.service';
-import { BillingPaymentLogStatus } from '~/infrastructure/billing/entities/billing-payment-log.entity';
+import { BillingPaymentLogStatus } from '~/infrastructure/billing/billing-payment-log.record';
 
 const HASH = 'a'.repeat(64);
 

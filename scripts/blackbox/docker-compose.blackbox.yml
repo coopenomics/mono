@@ -1,0 +1,63 @@
+# Надстройка стенда для раннера CI (внешний слой тестов, C28-80).
+# Подключается через COMPOSE_FILE в .github/workflows/blackbox.yaml.
+#
+# Код монтируется с хоста, а на раннере его владелец — пользователь раннера,
+# не uid 1000 dev-машины: под чужим uid контейнер не прочитал бы секреты и не
+# смог бы писать логи. Контроллер стартует из собранного dist — ts-node
+# типизировал бы проект заново при каждом подъёме.
+services:
+  coopback:
+    user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
+    command: pnpm --filter @coopenomics/controller run start
+    # Боевой узел сети карт стенду недоступен: расширение «Карта кооператора»
+    # ставится с адресом id.card.coop по умолчанию и на старте шло бы туда с
+    # документами одноразовой цепи (допуск оператора, подключение). Сеть на
+    # стенде играет подставной узел — наборы переводят адрес на него сами.
+    extra_hosts:
+      - "id.card.coop:127.0.0.1"
+  parser2:
+    user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
+  # Рабочий стол для визуальных сценариев (workflow ui-docs): собранный SSR
+  # сервер из dist/ssr (сборка — общий шаг `pnpm lerna run build` на хосте),
+  # а не dev-сервер Vite. За nginx стенда, как у кооперативов: сессия живёт в
+  # cookie бэкенда, и с другого порта браузер её не отдаёт — поэтому стол и
+  # бэкенд обязаны быть за одним адресом. Порт сервера — тот, что ждёт nginx.
+  desktop:
+    user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
+    command: pnpm --filter @coopenomics/desktop run start
+    environment:
+      PORT: "2999"
+      SSR_BACKEND_URL: http://nginx/backend
+      SSR_CHAIN_URL: http://nginx/api
+      HOME: /tmp
+  # Журнал запросов к базе: после прогона по нему видно, какие таблицы внешний
+  # слой читал и писал (scripts/blackbox/db-coverage.mjs) — карта готовности
+  # к уходу с TypeORM (C28-81). На dev-стендах не включается.
+  postgres:
+    command:
+      - postgres
+      - -c
+      - shared_preload_libraries=pg_stat_statements
+      - -c
+      - pg_stat_statements.track=all
+      - -c
+      - pg_stat_statements.max=20000
+  # Перехватчик почты: письма контроллера (коды подтверждения, ссылки
+  # восстановления) внешний слой читает через API Mailpit, как пайщик читает
+  # свою почту, а не из журнала контроллера. На dev-стендах Mailpit свой.
+  mailpit:
+    image: axllent/mailpit:v1.31.0
+    ports:
+      - "127.0.0.1:8025:8025"
+
+  # Подставной внешний узел: играет сеть карт кооператора и другие чужие узлы,
+  # с которыми платформа разговаривает по HTTP. Контроллер ходит на stub:8090,
+  # тест управляет им с хоста через 127.0.0.1:8091 (scripts/blackbox/http-stub.mjs).
+  # Образ — уже собранный образ контроллера: в нём есть node, отдельный не нужен.
+  stub:
+    image: coopback
+    entrypoint: ["node", "/stub/http-stub.mjs"]
+    volumes:
+      - ./scripts/blackbox/http-stub.mjs:/stub/http-stub.mjs:ro
+    ports:
+      - "127.0.0.1:8091:8091"

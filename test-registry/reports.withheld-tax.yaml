@@ -31,6 +31,18 @@ title: Перечисление удержанного налога — разд
 # кооперативу, а не Столу заказов. Переезд бесплатный — на проде и тестнете
 # кошельков `w.brn.*` не существует, миграции не потребовалось.
 
+# Правка 2026-09-21 (C28-78): плательщик за оперативную память строк
+# выбирается хелпером RamPayer::of по классу таблицы (lib/core/ram_payer.hpp),
+# а не именем, переданным вручную в emplace/modify. Меняется только то, с кого
+# цепь списывает память; содержимое строк, проверки и поведение действий
+# прежние, набор случаев этой фичи не менялся. Правило плательщика покрыто
+# отдельно — test-registry/contracts.ram-payer.yaml.
+
+# Правка 24.09.2026 (C28-83): стол удержанного НДФЛ живёт по ленте изменений —
+# заявки на перечисление (soviet::taxes), общекооперативный кошелёк
+# (ledger2::wallets) и оплата кассиром (payments) перечитывают остаток и список
+# без перезагрузки. Серверные сценарии и набор случаев прежние.
+
 sources:
   backend:
     - components/controller/src/extensions/reports/application/services/withheld-tax.service.ts
@@ -56,6 +68,7 @@ cases:
       платёж до 22-го числа включительно попадает в первую половину месяца,
       с 23-го — во вторую; подпись периода совпадает с календарём отчётности
     test: components/controller/tests/unit/reports/withheld-tax.service.test.ts
+    api: components/api-tests/src/reports/withheld-tax.test.ts
     status: passing
 
   - id: rep.tax.happy.02
@@ -67,6 +80,7 @@ cases:
       подтверждение кассира и найдёт платёж; кассир получает назначение
       платежа и реквизиты бюджета готовыми
     test: components/controller/tests/unit/reports/withheld-tax.service.test.ts
+    api: components/api-tests/src/reports/withheld-tax.test.ts
     status: passing
 
   - id: rep.tax.side.01
@@ -77,6 +91,8 @@ cases:
       налоговому поясу уже 23-е
     expect: платёж относится ко второй половине месяца
     test: components/controller/tests/unit/reports/withheld-tax.service.test.ts
+    external: unreachable
+    external_reason: "расчётный период берётся от текущего времени сервера; время стенда через API не перемотать"
     status: passing
 
   - id: rep.tax.side.02
@@ -85,6 +101,8 @@ cases:
     scenario: Платёж отправлен поздним вечером 31 декабря по UTC
     expect: расчётный период — первая половина января следующего года
     test: components/controller/tests/unit/reports/withheld-tax.service.test.ts
+    external: unreachable
+    external_reason: "расчётный период берётся от текущего времени сервера; время стенда через API не перемотать"
     status: passing
 
   - id: rep.tax.side.03
@@ -93,6 +111,7 @@ cases:
     scenario: Кассир не смог заплатить и указал причину
     expect: состояние платежа и причина отказа доходят до стола бухгалтера как есть
     test: components/controller/tests/unit/reports/withheld-tax.service.test.ts
+    api: components/api-tests/src/reports/withheld-tax.test.ts
     status: passing
 
   - id: rep.tax.side.04
@@ -101,6 +120,8 @@ cases:
     scenario: Кошелька удержанного налога ещё нет — удержаний не было
     expect: остаток нулевой, отправлять в бюджет нечего
     test: components/controller/tests/unit/reports/withheld-tax.service.test.ts
+    external: unreachable
+    external_reason: "состояние до первого удержания на стенде не воспроизводится: кошелёк удержанного налога заводят наборы выплат, порядок наборов не задан"
     status: passing
 
   - id: rep.tax.side.06
@@ -113,6 +134,7 @@ cases:
       отказ — платить больше удержанного налоговый агент не вправе; доступная
       сумма уменьшена на то, что уже у кассира; на цепь ничего не уходит
     test: components/controller/tests/unit/reports/withheld-tax.service.test.ts
+    api: components/api-tests/src/reports/withheld-tax.test.ts
     status: passing
 
   - id: rep.tax.break.01
@@ -123,6 +145,8 @@ cases:
       платёж кассира гасится, долг перед бюджетом остаётся целиком, а причина
       отказа цепи доходит до бухгалтера читаемым текстом
     test: components/controller/tests/unit/reports/withheld-tax.service.test.ts
+    external: unreachable
+    external_reason: "отказ цепи по заявке не вызвать: сумму сервер сверяет с доступным раньше цепи (rep.tax.side.06)"
     status: passing
 
   - id: rep.tax.side.05
@@ -131,6 +155,7 @@ cases:
     scenario: История запрашивается постранично
     expect: страницы идут от новых платежей к старым
     test: components/controller/tests/unit/reports/withheld-tax.service.test.ts
+    api: components/api-tests/src/reports/withheld-tax.test.ts
     status: passing
 
   - id: rep.tax.ui.01
@@ -163,3 +188,27 @@ cases:
 # 2026-08-18: в NdflPage расширена сигнатура локального форматтера дат —
 # скаляр DateTime приходит из SDK как unknown. Отображение прежнее,
 # случаи не менялись.
+
+# 2026-09-23 (EEA-6…EEA-9): тексты интерфейса, отказов и уведомлений фичи вынесены из
+# кода в словари i18n, отказы бэкенда переведены на DomainError с кодом — текст
+# и HTTP-статус ответа прежние. Сценарии фичи и её проверки не менялись.
+
+  # Права по таблице прав расширения (C28-87, кусок 3, 05.10.2026): операции
+  # стоят под общим гардом каркаса вместо `@AuthRoles`, состав исполнителей прежний.
+  - id: rep.tax.side.08
+    level: backend
+    kind: side
+    scenario: член совета открывает страницу удержанного налога
+    expect: остаток и заявки на перечисление читает; перечислить налог не может — кнопки перечисления у него нет, операция отвечает KIT_INSUFFICIENT_RIGHTS; ведут налог председатель и бухгалтер (C28-90)
+    test: components/controller/tests/unit/rights/extension-rights-tables.test.ts
+    api: components/api-tests/src/reports/withheld-tax.test.ts
+    status: written   # прогон — CI на полигоне ci/tests
+
+  - id: rep.tax.side.07
+    level: backend
+    kind: side
+    scenario: операции расширения зовут пайщик, член совета, председатель и кандидат
+    expect: право есть у названных в таблице прав расширения, остальным отказ KIT_INSUFFICIENT_RIGHTS; кандидат прав пайщика не имеет
+    test: components/controller/tests/unit/rights/extension-rights-tables.test.ts
+    api: components/api-tests/src/rights/matrix.test.ts
+    status: written

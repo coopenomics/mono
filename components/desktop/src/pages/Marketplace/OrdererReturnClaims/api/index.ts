@@ -1,13 +1,14 @@
 import { Mutations, Queries, Zeus, type Types } from '@coopenomics/sdk';
 import { client } from 'src/shared/api/client';
 import type { BaseBadgeVariant } from 'src/shared/ui/base';
+import { t } from 'src/shared/i18n';
 
 const DEFECT_CATEGORY_LABELS: Record<string, string> = {
-  [Zeus.MarketplaceReturnClaimDefectCategory.BROKEN]: 'Повреждено / сломано',
-  [Zeus.MarketplaceReturnClaimDefectCategory.EXPIRED]: 'Истёк срок годности',
-  [Zeus.MarketplaceReturnClaimDefectCategory.NOT_AS_DESCRIBED]: 'Не соответствует описанию',
-  [Zeus.MarketplaceReturnClaimDefectCategory.WRONG_ITEM]: 'Не тот товар',
-  [Zeus.MarketplaceReturnClaimDefectCategory.OTHER]: 'Другое',
+  [Zeus.MarketplaceReturnClaimDefectCategory.BROKEN]: t('marketplace.returnClaimStatus.defectBroken'),
+  [Zeus.MarketplaceReturnClaimDefectCategory.EXPIRED]: t('marketplace.returnClaimStatus.defectExpired'),
+  [Zeus.MarketplaceReturnClaimDefectCategory.NOT_AS_DESCRIBED]: t('marketplace.returnClaimStatus.defectNotAsDescribed'),
+  [Zeus.MarketplaceReturnClaimDefectCategory.WRONG_ITEM]: t('marketplace.returnClaimStatus.defectWrongItem'),
+  [Zeus.MarketplaceReturnClaimDefectCategory.OTHER]: t('marketplace.returnClaimStatus.defectOther'),
 };
 
 // Человекочитаемая метка категории дефекта; для незнакомых значений возвращаем
@@ -24,14 +25,18 @@ export type MarketplaceReturnClaimView =
 // и в блоке гарантийного возврата на странице конкретного заказа (DRY:
 // один источник статус→текст/цвет вместо дублирования в двух местах).
 const RETURN_CLAIM_STATUS_LABELS: Record<Zeus.MarketplaceReturnClaimStatus, string> = {
-  // Заказчику не важно, кто именно решает (председатель КУ, не совет) —
-  // достаточно факта «на рассмотрении»; уточнение роли только путает
-  // (см. review 2026-07-27: «со вето путать не надо»).
-  [Zeus.MarketplaceReturnClaimStatus.PENDING_CHAIRMAN_REVIEW]: 'На рассмотрении',
-  [Zeus.MarketplaceReturnClaimStatus.APPROVED_FOR_VISIT]: 'Очный визит одобрен',
-  [Zeus.MarketplaceReturnClaimStatus.ACCEPTED_AT_VISIT]: 'Возврат принят',
-  [Zeus.MarketplaceReturnClaimStatus.REJECTED_REMOTELY]: 'Отказано удалённо',
-  [Zeus.MarketplaceReturnClaimStatus.REJECTED_AT_VISIT]: 'Отказано на месте',
+  // Заказчику не важно, кто именно решает на первом шаге — достаточно факта
+  // «на рассмотрении». Дальше (паевая модель) решает совет: имущество принято
+  // у стойки и ждёт решения; принято советом — паевой взнос восстановлен;
+  // совет отказал — имущество ждёт пайщика на участке; выдано обратно.
+  [Zeus.MarketplaceReturnClaimStatus.PENDING_CHAIRMAN_REVIEW]: t('marketplace.returnClaimStatus.pending'),
+  [Zeus.MarketplaceReturnClaimStatus.APPROVED_FOR_VISIT]: t('marketplace.returnClaimStatus.invitedOnSite'),
+  [Zeus.MarketplaceReturnClaimStatus.REJECTED_REMOTELY]: t('marketplace.returnClaimStatus.declinedRemote'),
+  [Zeus.MarketplaceReturnClaimStatus.REJECTED_AT_VISIT]: t('marketplace.returnClaimStatus.declinedOnSite'),
+  [Zeus.MarketplaceReturnClaimStatus.PENDING_COUNCIL]: t('marketplace.returnClaimStatus.acceptedPendingBoard'),
+  [Zeus.MarketplaceReturnClaimStatus.ACCEPTED_BY_COUNCIL]: t('marketplace.returnClaimStatus.boardCancelled'),
+  [Zeus.MarketplaceReturnClaimStatus.DECLINED_BY_COUNCIL]: t('marketplace.returnClaimStatus.boardDeclined'),
+  [Zeus.MarketplaceReturnClaimStatus.HANDED_BACK]: t('marketplace.returnClaimStatus.returnedToOrderer'),
 };
 
 export function returnClaimStatusLabel(status: MarketplaceReturnClaimView['status']): string {
@@ -43,12 +48,17 @@ export function returnClaimStatusVariant(status: MarketplaceReturnClaimView['sta
     case Zeus.MarketplaceReturnClaimStatus.PENDING_CHAIRMAN_REVIEW:
       return 'info';
     case Zeus.MarketplaceReturnClaimStatus.APPROVED_FOR_VISIT:
+    case Zeus.MarketplaceReturnClaimStatus.DECLINED_BY_COUNCIL:
       return 'warn';
-    case Zeus.MarketplaceReturnClaimStatus.ACCEPTED_AT_VISIT:
+    case Zeus.MarketplaceReturnClaimStatus.PENDING_COUNCIL:
+      return 'info';
+    case Zeus.MarketplaceReturnClaimStatus.ACCEPTED_BY_COUNCIL:
       return 'pos';
     case Zeus.MarketplaceReturnClaimStatus.REJECTED_REMOTELY:
     case Zeus.MarketplaceReturnClaimStatus.REJECTED_AT_VISIT:
       return 'neg';
+    case Zeus.MarketplaceReturnClaimStatus.HANDED_BACK:
+      return 'neutral';
     default:
       return 'neutral';
   }
@@ -58,16 +68,28 @@ export function returnClaimStatusVariant(status: MarketplaceReturnClaimView['sta
 export const OPEN_RETURN_CLAIM_STATUSES = new Set<MarketplaceReturnClaimView['status']>([
   Zeus.MarketplaceReturnClaimStatus.PENDING_CHAIRMAN_REVIEW,
   Zeus.MarketplaceReturnClaimStatus.APPROVED_FOR_VISIT,
+  Zeus.MarketplaceReturnClaimStatus.PENDING_COUNCIL,
+  Zeus.MarketplaceReturnClaimStatus.DECLINED_BY_COUNCIL,
 ]);
 
 // Гуманизация решений из decision_log — используется и в деталях заявления,
 // и в хронологии заказа (DRY: один источник вместо двух локальных карт).
 const RETURN_CLAIM_DECISION_LABELS: Record<string, string> = {
-  approve_visit: 'Приглашение на очный осмотр',
-  reject_remote: 'Отказано удалённо',
-  accept_at_visit: 'Возврат принят на очном осмотре',
-  reject_at_visit: 'Отказано на очном осмотре',
+  approve_visit: t('marketplace.returnClaimStatus.invitedOnSite'),
+  reject_remote: t('marketplace.returnClaimStatus.declinedRemote'),
+  accept_at_visit: t('marketplace.returnClaimStatus.acceptedAtCounterPendingBoard'),
+  reject_at_visit: t('marketplace.returnClaimStatus.declinedOnSite'),
+  council_authorized: t('marketplace.returnClaimStatus.boardCancelled'),
+  council_declined: t('marketplace.returnClaimStatus.boardDeclinedShort'),
+  hand_back: t('marketplace.returnClaimStatus.returnedToOrderer'),
+  fee_pending: t('marketplace.returnClaimStatus.refundPendingMemberFee'),
+  fee_settled: t('marketplace.returnClaimStatus.memberFeeReturned'),
 };
+
+/** Решения, которые читаются как отказ (для цвета в хронологии). */
+export const RETURN_CLAIM_NEGATIVE_DECISIONS = new Set(['reject_remote', 'reject_at_visit', 'council_declined']);
+/** Решения, которые читаются как успех. */
+export const RETURN_CLAIM_POSITIVE_DECISIONS = new Set(['council_authorized', 'fee_settled']);
 
 export function returnClaimDecisionLabel(decision: string): string {
   return RETURN_CLAIM_DECISION_LABELS[decision] ?? decision;

@@ -1,0 +1,231 @@
+import { Injectable } from '@nestjs/common';
+import { EduAccessCarrier, EduRecipientType } from '../../domain/enums';
+import type {
+  AccessCarrierConnector,
+  AccessRequest,
+  ConnectorResult,
+  ConnectorPingResult,
+  CourseCheckResult,
+} from '../../domain/connectors/access-carrier.connector';
+import { Inject } from '@nestjs/common';
+import { CONNECTOR_CREDENTIALS_SOURCE, type ConnectorCredentialField, type IConnectorCredentialsSource } from '../../domain/connectors/connector-credentials';
+import { classifyHttpFailure, classifyStatus, httpCall } from './http-carrier.base';
+import { t } from '../../i18n';
+
+/**
+ * Skillspace — открытый API школы (документация в настройках школы, раздел API;
+ * хост `skillspace.ru`, ключ — `token`):
+ *  - GET|POST /api/open/v1/course/student-invite
+ *      token, email, courses[<ID_КУРСА>]=<ID_ГРУППЫ>, name, comment, fields —
+ *      пригласить ученика (группа пуста — подбирается по настройкам курса);
+ *  - GET|POST /api/open/v1/course/:id/student-remove  token, email —
+ *      снять ученика с курса (`all` — со всех курсов; мы его не используем);
+ *  - GET /api/open/v1/school/course/list?token=…  — курсы {id, name, slug, …};
+ *  - GET /api/open/v1/school/group/list?token=…   — группы {id, courseId, name, studentsCount};
+ *  - GET /api/open/v1/course/structure?token=…&courseId=… — структура курса.
+ * Ответы по документации: 200 `{}`/пусто — успех; 400 — неверные данные;
+ * 401 — неверный ключ; 403 — доступ запрещён; 405 — метод не поддерживается.
+ * Проверено на живой школе 2026-08-21: приглашение работает и на
+ * НЕопубликованный курс и без группы; первый invite нового ученика отвечает
+ * 200 `{"passwordSetupLink": …}`, повторный — 200 `{}` (идемпотентно);
+ * remove идемпотентен (200 `{}`); ошибки приходят как 404 с кодом в теле —
+ * `{"COURSE_NOT_FOUND": …}`, `{"SCHOOL_PUBLIC_TOKEN_NOT_FOUND": …}`, а на
+ * приглашение сотрудника школы — как 400 `{"INVITE_ONLY_EMPLOYEE": …}`
+ * (проверено 2026-09-03: тот же курс на посторонний адрес — 200).
+ *
+ * `course_ref` курса — `<ID_КУРСА>` или `<ID_КУРСА>:<ID_ГРУППЫ>` (UUID).
+ * Площадке передаётся только почта обучающегося; имя не передаём.
+ */
+const SKILLSPACE_API_BASE = 'https://skillspace.ru/api/open/v1';
+
+export function splitSkillspaceRef(ref: string): { course: string; group: string } {
+  const [course, group = ''] = ref.split(':');
+  return { course: course?.trim() ?? '', group: group.trim() };
+}
+
+/**
+ * Курс школы в реестре `school/course/list`. Идентификатор — UUID; числовой
+ * номер из адреса конструктора (`/course/131851/...`) в API не существует,
+ * поэтому в курсе кооператива хранится именно `id`.
+ */
+export interface SkillspaceCourse {
+  id: string;
+  name: string;
+  slug?: string;
+}
+export interface SkillspaceGroup {
+  id: string;
+  courseId: string;
+  name: string;
+  studentsCount?: number;
+}
+
+@Injectable()
+export class SkillspaceConnector implements AccessCarrierConnector {
+  readonly carrier = EduAccessCarrier.SKILLSPACE;
+
+  readonly credentialFields: ConnectorCredentialField[] = [
+    { key: 'api_key', label: t('edubridge.skillspaceConnector.field.apiKey.label'), secret: true, note: t('edubridge.skillspaceConnector.field.apiKey.note') },
+  ];
+
+  constructor(@Inject(CONNECTOR_CREDENTIALS_SOURCE) private readonly credentials: IConnectorCredentialsSource) {}
+
+  /** Адрес API: из настроек расширения, по умолчанию — площадка Skillspace. */
+  private async apiBase(): Promise<string> {
+    return ((await this.credentials.apiBase?.(this.carrier)) || SKILLSPACE_API_BASE).replace(/\/+$/, '');
+  }
+
+  private async token(coopname: string): Promise<string> {
+    return (await this.credentials.get(coopname, this.carrier)).api_key ?? '';
+  }
+
+  private async post(path: string, body: URLSearchParams): Promise<ConnectorResult> {
+    try {
+      const res = await httpCall(`${await this.apiBase()}${path}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json' },
+        body,
+      });
+      if (res.ok) return { code: 'ok' };
+      return this.classifyError(res.status, res.text, this.apiErrorCode(res.body));
+    } catch (e) {
+      return classifyHttpFailure(e);
+    }
+  }
+
+  /** Ошибки Skillspace приходят 404 с кодом в теле, а не 401/400 — код важнее статуса. */
+  private classifyError(status: number, text: string, apiCode: string | null | undefined): ConnectorResult {
+    if (status === 401 || apiCode === 'SCHOOL_PUBLIC_TOKEN_NOT_FOUND') {
+      return { code: 'fatal', message: t('edubridge.skillspaceConnector.invalidApiKey'), error_code: 'UNAUTHORIZED' };
+    }
+    if (apiCode === 'COURSE_NOT_FOUND') return { code: 'fatal', message: t('edubridge.skillspaceConnector.courseNotFound'), error_code: 'COURSE_NOT_FOUND' };
+    // Проверено на живой школе 2026-09-03: приглашение на адрес, за которым в
+    // школе числится сотрудник (владелец, куратор, преподаватель), отвечает
+    // 400 INVITE_ONLY_EMPLOYEE — сотрудника нельзя записать учеником. Тот же
+    // курс на любой другой адрес приглашается штатно (200 + passwordSetupLink).
+    if (apiCode === 'INVITE_ONLY_EMPLOYEE') {
+      return {
+        code: 'fatal',
+        message: t('edubridge.skillspaceConnector.employeeEmail'),
+        error_code: 'INVITE_ONLY_EMPLOYEE',
+      };
+    }
+    if (status === 403) return { code: 'fatal', message: t('edubridge.skillspaceConnector.forbidden'), error_code: 'FORBIDDEN' };
+    if (status === 400 || status === 404) {
+      return { code: 'fatal', message: `Skillspace: ${apiCode ?? text.slice(0, 200)}`, error_code: apiCode ?? 'BAD_REQUEST' };
+    }
+    return classifyStatus(status, text);
+  }
+
+  private async getJson<T>(path: string): Promise<{ ok: true; data: T } | { ok: false; status: number; message: string }> {
+    try {
+      const res = await httpCall(`${await this.apiBase()}${path}`, { method: 'GET', headers: { Accept: 'application/json' } });
+      if (!res.ok) {
+        const apiCode = this.apiErrorCode(res.body);
+        const unauthorized = res.status === 401 || apiCode === 'SCHOOL_PUBLIC_TOKEN_NOT_FOUND';
+        return { ok: false, status: res.status, message: unauthorized ? t('edubridge.skillspaceConnector.invalidApiKey') : `HTTP ${res.status}${apiCode ? ` ${apiCode}` : ''}` };
+      }
+      return { ok: true, data: res.body as T };
+    } catch (e) {
+      return { ok: false, status: 0, message: e instanceof Error ? e.message : String(e) };
+    }
+  }
+
+  /** Ошибки площадки: `{"COURSE_NOT_FOUND": "api.error.COURSE_NOT_FOUND"}` — код в ключе объекта. */
+  private apiErrorCode(body: unknown): string | null {
+    if (!body || typeof body !== 'object') return null;
+    const key = Object.keys(body as Record<string, unknown>)[0];
+    return key && /^[A-Z_]+$/.test(key) ? key : null;
+  }
+
+  private guard(request: AccessRequest, token: string): ConnectorResult | null {
+    if (!token) return { code: 'fatal', message: t('edubridge.skillspaceConnector.notConfiguredFull'), error_code: 'NOT_CONFIGURED' };
+    if (request.recipient.type !== EduRecipientType.EMAIL) {
+      return { code: 'fatal', message: t('edubridge.skillspaceConnector.emailOnly'), error_code: 'UNSUPPORTED_RECIPIENT' };
+    }
+    if (!splitSkillspaceRef(request.course_ref).course) {
+      return { code: 'fatal', message: t('edubridge.skillspaceConnector.courseRefMissing'), error_code: 'NO_COURSE_REF' };
+    }
+    return null;
+  }
+
+  async grant(request: AccessRequest): Promise<ConnectorResult> {
+    const token = await this.token(request.coopname);
+    const blocked = this.guard(request, token);
+    if (blocked) return blocked;
+    const { course, group } = splitSkillspaceRef(request.course_ref);
+    const body = new URLSearchParams({ token, email: request.recipient.value });
+    body.append(`courses[${course}]`, group);
+    return this.post('/course/student-invite', body);
+  }
+
+  /** Отзыв снимает ученика с курса школы целиком — группа курса не различается. */
+  revokeScope(courseRef: string): string {
+    return splitSkillspaceRef(courseRef).course;
+  }
+
+  async revoke(request: AccessRequest): Promise<ConnectorResult> {
+    const token = await this.token(request.coopname);
+    const blocked = this.guard(request, token);
+    if (blocked) return blocked;
+    const { course } = splitSkillspaceRef(request.course_ref);
+    const result = await this.post(`/course/${encodeURIComponent(course)}/student-remove`, new URLSearchParams({ token, email: request.recipient.value }));
+    // Удаление идемпотентно (проверено: повторный remove — 200), но если курс
+    // уже удалён в школе — отзывать нечего, цель достигнута.
+    if (result.code === 'fatal' && result.error_code === 'COURSE_NOT_FOUND') return { code: 'exists', message: t('edubridge.skillspaceConnector.courseGone') };
+    return result;
+  }
+
+  /** Подключение: ключ школы принимается — список курсов читается. */
+  async ping(coopname: string): Promise<ConnectorPingResult> {
+    const token = await this.token(coopname);
+    if (!token) return { ok: false, message: t('edubridge.skillspaceConnector.notConfigured') };
+    const courses = await this.getJson<SkillspaceCourse[]>(`/school/course/list?token=${encodeURIComponent(token)}`);
+    if (!courses.ok) return { ok: false, message: courses.message };
+    const count = Array.isArray(courses.data) ? courses.data.length : 0;
+    return { ok: true, message: t('edubridge.skillspaceConnector.pingOk', { count }) };
+  }
+
+  /** Сверка по реестрам школы: курс существует (и как называется), группа принадлежит курсу. */
+  async check(coopname: string, courseRef: string): Promise<CourseCheckResult> {
+    const token = await this.token(coopname);
+    if (!token) return { found: false, unavailable: true, message: t('edubridge.skillspaceConnector.notConfigured') };
+    const { course, group } = splitSkillspaceRef(courseRef);
+    if (!course) return { found: false, message: t('edubridge.skillspaceConnector.courseRefMissing') };
+
+    const courses = await this.getJson<SkillspaceCourse[]>(`/school/course/list?token=${encodeURIComponent(token)}`);
+    if (!courses.ok) return { found: false, unavailable: true, message: courses.message };
+    const found = (Array.isArray(courses.data) ? courses.data : []).find((c) => c.id === course);
+    if (!found) {
+      return { found: false, message: t('edubridge.skillspaceConnector.courseIdNotInSchool', { courseId: course }) };
+    }
+
+    if (group) {
+      const groupCheck = await this.checkGroup(token, course, group);
+      if (groupCheck) return groupCheck;
+    }
+    return { found: true, title: found.name };
+  }
+
+  /** Группа должна существовать и принадлежать курсу; `null` — всё сходится. */
+  private async checkGroup(token: string, course: string, group: string): Promise<CourseCheckResult | null> {
+    const groups = await this.getJson<SkillspaceGroup[]>(`/school/group/list?token=${encodeURIComponent(token)}`);
+    if (!groups.ok) return { found: false, unavailable: true, message: groups.message };
+    const g = (Array.isArray(groups.data) ? groups.data : []).find((x) => x.id === group);
+    if (!g) return { found: false, message: t('edubridge.skillspaceConnector.groupNotFound', { groupId: group }) };
+    if (g.courseId !== course) return { found: false, message: t('edubridge.skillspaceConnector.groupOfOtherCourse', { groupName: g.name }) };
+    return null;
+  }
+
+  /** Реестр курсов школы — из него конструктор курса выбирает привязку. Только чтение. */
+  async listCourses(coopname: string): Promise<SkillspaceCourse[]> {
+    const res = await this.getJson<SkillspaceCourse[]>(`/school/course/list?token=${encodeURIComponent(await this.token(coopname))}`);
+    return res.ok && Array.isArray(res.data) ? res.data : [];
+  }
+
+  /** Реестр групп школы (с принадлежностью курсу). Только чтение. */
+  async listGroups(coopname: string): Promise<SkillspaceGroup[]> {
+    const res = await this.getJson<SkillspaceGroup[]>(`/school/group/list?token=${encodeURIComponent(await this.token(coopname))}`);
+    return res.ok && Array.isArray(res.data) ? res.data : [];
+  }
+}

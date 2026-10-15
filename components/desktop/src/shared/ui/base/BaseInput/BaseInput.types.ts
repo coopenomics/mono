@@ -13,7 +13,7 @@ export interface BaseInputProps {
    * блоком, а `placeholder` показывает пример ввода — как в эталоне `_dev/ui`.
    */
   stackLabel?: boolean;
-  type?: 'text' | 'email' | 'password' | 'number' | 'tel' | 'url' | 'search' | 'date' | 'datetime-local' | 'textarea';
+  type?: 'text' | 'email' | 'password' | 'number' | 'tel' | 'url' | 'search' | 'date' | 'time' | 'datetime-local' | 'textarea';
   /** Авторост высоты для type="textarea" */
   autogrow?: boolean;
   /**

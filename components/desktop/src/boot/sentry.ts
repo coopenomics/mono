@@ -1,6 +1,6 @@
 import { boot } from 'quasar/wrappers';
 import * as Sentry from '@sentry/vue';
-import { env } from 'src/shared/config';
+import { APP_VERSION, env } from 'src/shared/config';
 
 export default boot(({ app, router }) => {
   // Sentry (@sentry/vue + browserTracing) — браузерный SDK, работает только на клиенте.
@@ -26,6 +26,48 @@ export default boot(({ app, router }) => {
       ],
       tracesSampleRate: 0.01,
       environment: env.NODE_ENV || 'development',
+      // Сборка кабинета, давшая событие (версия запекается в бандл при сборке):
+      // без неё не понять, доехало ли исправление до браузера пайщика.
+      release: APP_VERSION,
+      initialScope: { tags: { app_version: APP_VERSION } },
+      // Обрыв связи и таймаут запроса — не ошибка кабинета, а состояние сети:
+      // во время обновления узла бэкенд недоступен минуту-другую, и пайщик в это
+      // время видит заглушку «Техническое обслуживание» или «Синхронизация».
+      // Такие события составляли почти весь журнал браузера и прятали настоящие
+      // ошибки. Шаблоны закреплены целиком, а не подстрокой: «Failed to fetch
+      // dynamically imported module» — это рассинхрон кусков сборки после
+      // выкатки, и его видеть нужно.
+      ignoreErrors: [
+        /^(TypeError: )?Failed to fetch$/,
+        /^(TypeError: )?Load failed$/,
+        /^(TypeError: )?NetworkError when attempting to fetch resource\.?$/,
+        /^(Error: )?(AbortError: )?(Fetch is aborted|signal is aborted without reason|The user aborted a request\.)$/,
+        // Тот же обрыв, но узел за прокси уже отвечает страницей nginx: SDK
+        // отдаёт её текстом ошибки GraphQLResponseError со статусом 502/503/504.
+        /^(GraphQLResponseError: )?(HTTP 50[234]$|50[234] (Bad Gateway|Service (Temporarily )?Unavailable|Gateway Time-?out)\b)/i,
+        // Отложенные обработчики Milkdown (debounce в его плагинах) срабатывают
+        // после уничтожения редактора и не отменяются самой библиотекой —
+        // пайщик при этом ничего не теряет: редактор уже закрыт.
+        /Context "editorView" not found/,
+        // Виджет поддержки не загрузился за 30 секунд (обычно его режет
+        // блокировщик рекламы), и библиотека виджета отклоняет свой же промис
+        // без перехвата. Кабинет от этого не страдает.
+        /^(Error: )?Chatwoot not loaded$/,
+      ],
+      // Кошельковое расширение браузера (MetaMask и подобные, EIP-1193)
+      // отклоняет свой промис объектом { code: -32603, message: 'Internal
+      // JSON-RPC error.' } без перехвата. Кабинет JSON-RPC не использует — цепь
+      // читается по HTTP, — так что это чужая ошибка на нашей странице (группа
+      // #7 GlitchTip). Фильтр по самому объекту, а не через ignoreErrors: текст
+      // события там общий («Object captured as promise rejection with keys:
+      // code, message») и спрятал бы и наши отклонения с такими же полями.
+      beforeSend(event, hint) {
+        const rejected = hint?.originalException as { code?: unknown; message?: unknown } | undefined;
+        if (rejected?.code === -32603 && rejected?.message === 'Internal JSON-RPC error.') {
+          return null;
+        }
+        return event;
+      },
     });
   } catch (error) {
     console.error('Failed to initialize Sentry:', error);

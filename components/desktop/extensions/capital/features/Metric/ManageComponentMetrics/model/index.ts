@@ -3,6 +3,7 @@ import { useComponentMetricStore } from 'app/extensions/capital/entities/Compone
 import { api } from 'app/extensions/capital/entities/ComponentMetric/api';
 import type { IArchiveComponentMetricInput } from 'app/extensions/capital/entities/ComponentMetric/model';
 import { SuccessAlert, FailAlert } from 'src/shared/api';
+import { t } from '../../../../i18n';
 
 /**
  * Чтение целей по мерам на компоненте.
@@ -35,7 +36,7 @@ export function useManageComponentMetrics(projectHash: string) {
       };
       const result = await api.archiveComponentMetric(data);
       store.updateMetric(result);
-      SuccessAlert('Метрика архивирована');
+      SuccessAlert(t('capital.manageComponentMetrics.archiveSuccess'));
     } catch (error) {
       FailAlert(error);
     }

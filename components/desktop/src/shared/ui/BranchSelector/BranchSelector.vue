@@ -1,7 +1,7 @@
 <template lang="pug">
 div
   q-select(
-    label="Кооперативный участок"
+    :label="$t('ui.branchSelector.label')"
     v-model="selectedBranch"
     :options="branches"
     option-value="braname"

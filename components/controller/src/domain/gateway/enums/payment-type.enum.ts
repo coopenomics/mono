@@ -1,4 +1,5 @@
 import { PaymentType, PaymentDirection, VAT_EXEMPT_NOTE } from '@coopenomics/innercoop';
+import { t } from '~/i18n';
 
 /**
  * Типы и направления платежей — перечни живут в контракте
@@ -13,17 +14,17 @@ export { PaymentType as PaymentTypeEnum, PaymentDirection as PaymentDirectionEnu
  * Человекочитаемые названия типов платежей
  */
 export const PAYMENT_TYPE_LABELS: Record<PaymentType, string> = {
-  [PaymentType.REGISTRATION]: 'Вступительный и мин. паевой взносы',
-  [PaymentType.DEPOSIT]: 'Паевой взнос',
-  [PaymentType.WITHDRAWAL]: 'Возврат паевого взноса',
-  [PaymentType.PAYMENT]: 'Оплата',
-  [PaymentType.REGISTRATION_REFUND]: 'Возврат вступит. и мин.паевого взноса',
-  [PaymentType.MEMBERSHIP_EXIT]: 'Возврат паевого взноса при выходе из кооператива',
-  [PaymentType.EXPENSE]: 'Оплата расхода по служебной записке',
-  [PaymentType.EXPENSE_RETURN]: 'Возврат неиспользованного аванса под отчёт',
-  [PaymentType.EXPENSE_OVERSPEND]: 'Доплата по перерасходу аванса',
-  [PaymentType.AID]: 'Материальная помощь',
-  [PaymentType.TAX]: 'Перечисление удержанного НДФЛ',
+  [PaymentType.REGISTRATION]: t('gateway.paymentType.type.entryAndMinShare'),
+  [PaymentType.DEPOSIT]: t('gateway.paymentType.type.shareContribution'),
+  [PaymentType.WITHDRAWAL]: t('gateway.paymentType.type.shareContributionRefund'),
+  [PaymentType.PAYMENT]: t('gateway.paymentType.type.payment'),
+  [PaymentType.REGISTRATION_REFUND]: t('gateway.paymentType.type.entryAndMinShareRefund'),
+  [PaymentType.MEMBERSHIP_EXIT]: t('gateway.paymentType.type.shareRefundOnExit'),
+  [PaymentType.EXPENSE]: t('gateway.paymentType.type.expenseReportPayment'),
+  [PaymentType.EXPENSE_RETURN]: t('gateway.paymentType.type.advanceUnusedRefund'),
+  [PaymentType.EXPENSE_OVERSPEND]: t('gateway.paymentType.type.advanceOverspendSurcharge'),
+  [PaymentType.AID]: t('gateway.paymentType.type.financialAid'),
+  [PaymentType.TAX]: t('gateway.paymentType.type.ndflTransfer'),
 };
 
 // Оговорка живёт в контракте `@coopenomics/innercoop`: назначение платежа
@@ -34,8 +35,8 @@ export { VAT_EXEMPT_NOTE };
  * Человекочитаемые названия направлений платежей
  */
 export const PAYMENT_DIRECTION_LABELS: Record<PaymentDirection, string> = {
-  [PaymentDirection.INCOMING]: 'Входящий',
-  [PaymentDirection.OUTGOING]: 'Исходящий',
+  [PaymentDirection.INCOMING]: t('gateway.paymentType.direction.incoming'),
+  [PaymentDirection.OUTGOING]: t('gateway.paymentType.direction.outgoing'),
 };
 
 /**

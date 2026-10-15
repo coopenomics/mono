@@ -1,6 +1,6 @@
 import { Resolver, Query, Mutation, Args } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
-import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, CurrentUser, RequireRight, RightsGuard } from '@coopenomics/extension-kit';
 import type { IMonoAccount } from '@coopenomics/innercoop';
 import { ContentRevisionApiService } from '../services/content-revision-api.service';
 import { ContentRevisionDTO, ContentRevisionSummaryDTO } from '../dto/content_revisions/content-revision.dto';
@@ -21,8 +21,8 @@ export class ContentRevisionResolver {
     name: 'capitalGetContentRevisions',
     description: 'Список редакций содержимого сущности (новые сверху), без тел',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Revision', 'read')
   async getContentRevisions(
     @Args('data', { type: () => GetContentRevisionsInputDTO }) data: GetContentRevisionsInputDTO,
     @CurrentUser() currentUser: IMonoAccount
@@ -35,8 +35,8 @@ export class ContentRevisionResolver {
     nullable: true,
     description: 'Одна редакция содержимого с телом',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Revision', 'read')
   async getContentRevision(
     @Args('data', { type: () => GetContentRevisionInputDTO }) data: GetContentRevisionInputDTO,
     @CurrentUser() currentUser: IMonoAccount
@@ -48,8 +48,8 @@ export class ContentRevisionResolver {
     name: 'capitalRestoreContentRevision',
     description: 'Откат к редакции: её содержимое записывается как новая редакция (origin=RESTORE)',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Revision', 'update')
   async restoreContentRevision(
     @Args('data', { type: () => RestoreContentRevisionInputDTO }) data: RestoreContentRevisionInputDTO,
     @CurrentUser() currentUser: IMonoAccount

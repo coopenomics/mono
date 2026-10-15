@@ -20,15 +20,15 @@ div.q-px-md
   Editor(
     v-if="issue"
     v-model="issue.description"
-    label="Описание задачи"
-    placeholder="Опишите задачу подробно..."
+    :label="$t('capital.issueDescriptionPage.label')"
+    :placeholder="$t('capital.issueDescriptionPage.placeholder')"
     :readonly="!issue.permissions?.can_edit_issue"
     :padded="false"
     @change="handleDescriptionChange"
   )
 
   .issue-worklog.q-mt-md(v-if="issue")
-    .issue-worklog__title История рабочего времени
+    .issue-worklog__title {{ $t('capital.issueDescriptionPage.timeHistoryTitle') }}
     TimeEntriesWidget(
       :issue-hash="issue.issue_hash"
       :creators="issue.creators || []"
@@ -45,6 +45,7 @@ import { ISSUE_PAGE_KEY } from '../../IssuePage/model/context'
 
 const ctx = inject(ISSUE_PAGE_KEY)
 if (!ctx) {
+  // i18n-ignore: внутренняя проверка контекста компонента — видит только разработчик
   throw new Error('IssueDescriptionPage: отсутствует контекст IssuePage')
 }
 

@@ -1,4 +1,5 @@
 import { ReportType } from '../enums/report-type.enum';
+import { t } from '../../i18n';
 
 /**
  * Реестр дат сдачи отчётов ФНС/СФР на 2026 год.
@@ -58,7 +59,7 @@ function quarterEntries(dueMonth: (q: 1 | 2 | 3 | 4) => number, dueDay = 25, yea
     const quarter = q as 1 | 2 | 3 | 4;
     return {
       periodCode: q,
-      label: quarter === 1 ? 'I кв.' : quarter === 2 ? 'Полугодие' : quarter === 3 ? '9 мес.' : 'Год',
+      label: quarter === 1 ? t('reports.reportsCalendarRegistry.quarter1Label') : quarter === 2 ? t('reports.reportsCalendarRegistry.halfYearLabel') : quarter === 3 ? t('reports.reportsCalendarRegistry.nineMonthsLabel') : t('reports.reportsCalendarRegistry.yearLabel'),
       dueMonth: dueMonth(quarter),
       dueDay,
       dueYearOffset: yearOffset(quarter),
@@ -67,8 +68,8 @@ function quarterEntries(dueMonth: (q: 1 | 2 | 3 | 4) => number, dueDay = 25, yea
 }
 
 const RUSSIAN_MONTHS = [
-  'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
-  'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь',
+  t('reports.reportsCalendarRegistry.month.january'), t('reports.reportsCalendarRegistry.month.february'), t('reports.reportsCalendarRegistry.month.march'), t('reports.reportsCalendarRegistry.month.april'), t('reports.reportsCalendarRegistry.month.may'), t('reports.reportsCalendarRegistry.month.june'),
+  t('reports.reportsCalendarRegistry.month.july'), t('reports.reportsCalendarRegistry.month.august'), t('reports.reportsCalendarRegistry.month.september'), t('reports.reportsCalendarRegistry.month.october'), t('reports.reportsCalendarRegistry.month.november'), t('reports.reportsCalendarRegistry.month.december'),
 ];
 
 /**
@@ -122,7 +123,7 @@ function uvNdflEntries(): CalendarPeriodEntry[] {
     const isDecember = month === 12;
     entries.push({
       periodCode: (month - 1) * 2 + 2,
-      label: `${monthLabel} · 23–конец`,
+      label: t('reports.reportsCalendarRegistry.semiMonthlyTailLabel', { monthLabel }),
       dueMonth: isDecember ? 12 : month + 1,
       dueDay: isDecember ? 31 : 3,
       dueYearOffset: 0,
@@ -135,12 +136,12 @@ function uvNdflEntries(): CalendarPeriodEntry[] {
 export const REPORTS_CALENDAR_REGISTRY: CalendarFormEntry[] = [
   {
     reportType: ReportType.BUHOTCH,
-    shortName: 'Бухотчётность',
+    shortName: t('reports.reportsCalendarRegistry.reportShortName.buhotch'),
     periodKind: 'yearly',
     periods: [
       {
         periodCode: null,
-        label: 'Год',
+        label: t('reports.reportsCalendarRegistry.yearLabel'),
         dueMonth: 3,
         dueDay: 31,
         dueYearOffset: 1, // за 2026 год → сдача 31.03.2027
@@ -149,7 +150,7 @@ export const REPORTS_CALENDAR_REGISTRY: CalendarFormEntry[] = [
   },
   {
     reportType: ReportType.NDFL6,
-    shortName: '6-НДФЛ',
+    shortName: t('reports.reportsCalendarRegistry.reportShortName.ndfl6'),
     periodKind: 'quarterly',
     periods: quarterEntries(
       (q) => (q === 1 ? 4 : q === 2 ? 7 : q === 3 ? 10 : 2),
@@ -159,7 +160,7 @@ export const REPORTS_CALENDAR_REGISTRY: CalendarFormEntry[] = [
   },
   {
     reportType: ReportType.RSV,
-    shortName: 'РСВ',
+    shortName: t('reports.reportsCalendarRegistry.reportShortName.rsv'),
     periodKind: 'quarterly',
     periods: quarterEntries(
       (q) => (q === 1 ? 4 : q === 2 ? 7 : q === 3 ? 10 : 1),
@@ -169,19 +170,19 @@ export const REPORTS_CALENDAR_REGISTRY: CalendarFormEntry[] = [
   },
   {
     reportType: ReportType.PSV,
-    shortName: 'ПСВ',
+    shortName: t('reports.reportsCalendarRegistry.reportShortName.psv'),
     periodKind: 'monthly',
     periods: psvEntries(),
   },
   {
     reportType: ReportType.UV_NDFL,
-    shortName: 'Уведомление НДФЛ',
+    shortName: t('reports.reportsCalendarRegistry.reportShortName.uvNdfl'),
     periodKind: 'semi-monthly',
     periods: uvNdflEntries(),
   },
   {
     reportType: ReportType.FSS4,
-    shortName: 'ЕФС-1',
+    shortName: t('reports.reportsCalendarRegistry.reportShortName.fss4'),
     periodKind: 'quarterly',
     periods: quarterEntries(
       (q) => (q === 1 ? 4 : q === 2 ? 7 : q === 3 ? 10 : 1),

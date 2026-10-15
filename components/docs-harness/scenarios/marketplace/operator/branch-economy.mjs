@@ -66,7 +66,7 @@ async function walletBalance(page, title) {
 
 /** Значение колонки «На кошельке» строки участника распределения. */
 async function personalInRow(page, username) {
-  const row = page.locator('table.table tbody tr').filter({ hasText: username }).first();
+  const row = page.locator('tbody tr').filter({ hasText: username }).first();
   if ((await row.count()) === 0) return null;
   return parseMoney(await row.locator('td').nth(3).innerText());
 }
@@ -79,6 +79,10 @@ export default async ({ page, shot, expect }) => {
     waitUntil: 'domcontentloaded',
     timeout: 60000,
   });
+  // Страница открывается не на кошельке: карточка «Общий кошелёк участка»
+  // живёт во вкладке «Кошелёк участка».
+  await page.locator('text=Кошелёк участка').first().waitFor({ state: 'visible', timeout: 60000 });
+  await page.locator('text=Кошелёк участка').first().click();
   await page.waitForSelector('text=Общий кошелёк участка', { timeout: 60000 });
   await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
   await page.waitForTimeout(2000);
@@ -131,10 +135,10 @@ export default async ({ page, shot, expect }) => {
     await cleanViteOverlays(page);
   }
 
-  const shares = await page.locator('table.table tbody tr').count();
+  const shares = await page.locator('tbody tr').count();
   // Доли по строкам — колонка «Доля» третья.
   const sharePercents = await page
-    .locator('table.table tbody tr td:nth-child(3)')
+    .locator('tbody tr td:nth-child(3)')
     .allInnerTexts()
     .then((cells) => cells.map(parseMoney).filter((n) => Number.isFinite(n)));
 
@@ -194,7 +198,7 @@ export default async ({ page, shot, expect }) => {
   );
 
   // ── Распределение ────────────────────────────────────────────────────────
-  const firstUser = (await page.locator('table.table tbody tr td').first().innerText()).trim();
+  const firstUser = (await page.locator('tbody tr td').first().innerText()).trim();
   const personalBefore = (await personalInRow(page, firstUser)) ?? 0;
 
   await page.locator('button:has-text("Распределить")').first().click();

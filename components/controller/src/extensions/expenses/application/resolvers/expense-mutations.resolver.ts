@@ -1,8 +1,15 @@
 import { Args, Mutation, Resolver } from '@nestjs/graphql';
 import { ForbiddenException, UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
-import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser, GeneratedDocumentDTO, GenerateDocumentOptionsInputDTO, TransactionDTO,
+import {
+  GqlJwtAuthGuard,
+  CurrentUser,
+  GeneratedDocumentDTO,
+  GenerateDocumentOptionsInputDTO,
+  TransactionDTO,
   ExpenseProposalStatementGenerateDocumentInputDTO,
+  RequireRight,
+  RightsGuard,
 } from '@coopenomics/extension-kit';
 import type { IMonoAccount } from '@coopenomics/innercoop';
 import { ExpenseProposalDecisionGenerateDocumentInputDTO } from '../documents-dto/expense-proposal-decision-document.dto';
@@ -15,6 +22,7 @@ import { ExpenseReportResultDTO } from '../dto/report-expense-item.output';
 import { ReturnExpenseItemInputDTO } from '../dto/return-expense-item.input';
 import { OverspendExpenseItemInputDTO } from '../dto/overspend-expense-item.input';
 import { SubmitExpenseReportInputDTO } from '../dto/submit-expense-report.input';
+import { t } from '../../i18n';
 
 /**
  * GraphQL Mutation-резолвер контракта `expense`.
@@ -33,13 +41,16 @@ export class ExpenseMutationsResolver {
 
   /**
    * Контракт проверяет только статус/механику строки, но не личность
-   * отчитывающегося — поэтому отчёт по чужому авансу отсекается здесь:
-   * пайщик может отчитаться только по своей строке, совет — по любой.
+   * отчитывающегося — транзакцию подписывает кооператив. Поэтому отчёт и
+   * возврат по чужому авансу отсекаются здесь: пайщик распоряжается только
+   * своей строкой, совет — любой. Без этой проверки любой вошедший списывал
+   * бы подотчёт с чужого аванса «возвратом», не возвращая денег.
    */
-  private async assertCanReportItem(
+  private async assertOwnsItem(
     user: IMonoAccount,
     proposalHash: string,
-    itemHash: string
+    itemHash: string,
+    denied: string
   ): Promise<void> {
     if (user.role === 'chairman' || user.role === 'member') return;
     const proposal = await this.expensesManagement.getProposalByHash(proposalHash);
@@ -47,21 +58,22 @@ export class ExpenseMutationsResolver {
       (i) => i.item_hash?.toLowerCase() === itemHash.toLowerCase()
     );
     if (!item || item.recipient !== user.username) {
-      throw new ForbiddenException('Отчитаться по авансу может только его получатель');
+      throw new ForbiddenException(denied);
     }
   }
 
   // Записку на расход оформляет не только совет: расход кооперативного
-  // участка подаёт его председатель — обычный пайщик. Сама по себе генерация
-  // прав не даёт (это рендер документа для подписи), а право подать расход
-  // проверяет расширение-инициатор при отправке на цепь.
+  // участка подаёт его председатель — обычный пайщик, и он собирает документ
+  // на своё имя. Документ печатает паспортные данные заявителя, поэтому чужое
+  // имя пайщику закрыто, а совету открыто. Право подать расход проверяет
+  // расширение-инициатор при отправке на цепь.
   @Mutation(() => GeneratedDocumentDTO, {
     name: 'generateExpenseProposalStatementDocument',
     description: 'Сгенерировать документ СЗ-заявления (registry 2010) для последующей подписи.',
   })
   @Throttle({ default: { limit: 3, ttl: 60000 } })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('ExpenseProposal', ['generate:own', 'generate:all'], { owner: 'data.username' })
   async generateExpenseProposalStatementDocument(
     @Args('data', { type: () => ExpenseProposalStatementGenerateDocumentInputDTO })
     data: ExpenseProposalStatementGenerateDocumentInputDTO,
@@ -76,8 +88,8 @@ export class ExpenseMutationsResolver {
     description: 'Сгенерировать документ-решение по СЗ (registry 2011) для последующей подписи.',
   })
   @Throttle({ default: { limit: 3, ttl: 60000 } })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('ExpenseProposal', 'decide')
   async generateExpenseProposalDecisionDocument(
     @Args('data', { type: () => ExpenseProposalDecisionGenerateDocumentInputDTO })
     data: ExpenseProposalDecisionGenerateDocumentInputDTO,
@@ -91,18 +103,11 @@ export class ExpenseMutationsResolver {
     name: 'createExpenseProposal',
     description: 'Подать СЗ-расход (создать смету с подписью пайщика/председателя).',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('ExpenseProposal', 'create')
   async createExpenseProposal(
-    @Args('data', { type: () => CreateExpenseProposalInputDTO }) data: CreateExpenseProposalInputDTO,
-    @CurrentUser() user: IMonoAccount
+    @Args('data', { type: () => CreateExpenseProposalInputDTO }) data: CreateExpenseProposalInputDTO
   ): Promise<TransactionDTO> {
-    // RolesGuard пропускает запрос при data.username === user.username независимо
-    // от роли — здесь это сломало бы ограничение «СЗ подаёт совет», поэтому роль
-    // проверяется явно.
-    if (user.role !== 'chairman' && user.role !== 'member') {
-      throw new ForbiddenException('Создавать служебные записки на расход могут только председатель и члены совета');
-    }
     return this.expensesMutations.createExpenseProposal(data);
   }
 
@@ -110,8 +115,8 @@ export class ExpenseMutationsResolver {
     name: 'payExpenseItem',
     description: 'Оплатить строку расхода (выдача аванса ADVANCE или прямая оплата DIRECT).',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('ExpenseProposal', 'pay')
   async payExpenseItem(
     @Args('data', { type: () => PayExpenseItemInputDTO }) data: PayExpenseItemInputDTO
   ): Promise<TransactionDTO> {
@@ -122,13 +127,13 @@ export class ExpenseMutationsResolver {
     name: 'reportExpenseItem',
     description: 'Отчитаться по строке-авансу: при совпадении факта с авансом — закрыть позицию; при недо-/перерасходе — завести платёжку расчёта разницы.',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('ExpenseItem', 'report')
   async reportExpenseItem(
     @Args('data', { type: () => ReportExpenseItemInputDTO }) data: ReportExpenseItemInputDTO,
     @CurrentUser() user: IMonoAccount
   ): Promise<ExpenseReportResultDTO> {
-    await this.assertCanReportItem(user, data.proposal_hash, data.item_hash);
+    await this.assertOwnsItem(user, data.proposal_hash, data.item_hash, t('expenses.expenseMutations.reportOwnerOnlyMessage'));
     return this.expensesMutations.reportExpenseItem(data);
   }
 
@@ -136,11 +141,13 @@ export class ExpenseMutationsResolver {
     name: 'returnExpenseItem',
     description: 'Вернуть неиспользованный аванс по строке расхода (ADVANCE-остаток).',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('ExpenseItem', 'return')
   async returnExpenseItem(
-    @Args('data', { type: () => ReturnExpenseItemInputDTO }) data: ReturnExpenseItemInputDTO
+    @Args('data', { type: () => ReturnExpenseItemInputDTO }) data: ReturnExpenseItemInputDTO,
+    @CurrentUser() user: IMonoAccount
   ): Promise<TransactionDTO> {
+    await this.assertOwnsItem(user, data.proposal_hash, data.item_hash, t('expenses.expenseMutations.returnOwnerOnlyMessage'));
     return this.expensesMutations.returnExpenseItem(data);
   }
 
@@ -148,8 +155,8 @@ export class ExpenseMutationsResolver {
     name: 'overspendExpenseItem',
     description: 'Доплатить сумму перерасхода по строке расхода (ADVANCE-механика).',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('ExpenseProposal', 'overspend')
   async overspendExpenseItem(
     @Args('data', { type: () => OverspendExpenseItemInputDTO }) data: OverspendExpenseItemInputDTO
   ): Promise<TransactionDTO> {
@@ -160,9 +167,8 @@ export class ExpenseMutationsResolver {
     name: 'submitExpenseReport',
     description: 'Финализировать СЗ-отчёт по смете расхода (все items закрыты — оплата/чек/возврат).',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  // Закрытие расхода — финализация СЗ-отчёта советом: председатель / член совета.
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('ExpenseProposal', 'submit-report')
   async submitExpenseReport(
     @Args('data', { type: () => SubmitExpenseReportInputDTO }) data: SubmitExpenseReportInputDTO
   ): Promise<TransactionDTO> {

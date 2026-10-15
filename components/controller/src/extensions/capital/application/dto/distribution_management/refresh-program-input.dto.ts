@@ -1,4 +1,5 @@
 import { Field, InputType } from '@nestjs/graphql';
+import { validationMessage } from '@coopenomics/extension-kit';
 import { IsNotEmpty, IsString } from 'class-validator';
 import type { RefreshProgramDomainInput } from '../../../domain/actions/refresh-program-domain-input.interface';
 
@@ -8,12 +9,12 @@ import type { RefreshProgramDomainInput } from '../../../domain/actions/refresh-
 @InputType('RefreshProgramInput')
 export class RefreshProgramInputDTO implements RefreshProgramDomainInput {
   @Field(() => String, { description: 'Имя аккаунта кооператива' })
-  @IsNotEmpty({ message: 'Имя аккаунта кооператива не должно быть пустым' })
-  @IsString({ message: 'Имя аккаунта кооператива должно быть строкой' })
+  @IsNotEmpty({ message: validationMessage('capital.refreshProgramInput.coopname.required') })
+  @IsString({ message: validationMessage('capital.refreshProgramInput.coopname.string') })
   coopname!: string;
 
   @Field(() => String, { description: 'Имя пользователя' })
-  @IsNotEmpty({ message: 'Имя пользователя не должно быть пустым' })
-  @IsString({ message: 'Имя пользователя должно быть строкой' })
+  @IsNotEmpty({ message: validationMessage('capital.refreshProgramInput.username.required') })
+  @IsString({ message: validationMessage('capital.refreshProgramInput.username.string') })
   username!: string;
 }

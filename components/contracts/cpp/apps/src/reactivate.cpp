@@ -55,7 +55,7 @@ void apps::reactivate(eosio::name coopname,
     if (act_it->scope.kind == target_scope.kind && act_it->scope.targets == target_scope.targets) {
       auto stash = act_it;
       ++act_it;
-      releases.modify(*stash, coopname, [&](auto &r) {
+      releases.modify(*stash, RamPayer::of(releases, coopname), [&](auto &r) {
         r.status        = "superseded"_n;
         r.superseded_at = now_tps;
       });
@@ -65,13 +65,13 @@ void apps::reactivate(eosio::name coopname,
   }
 
   // Поднять target в active.
-  by_pkg.modify(target, coopname, [&](auto &r) {
+  by_pkg.modify(target, RamPayer::of(by_pkg, coopname), [&](auto &r) {
     r.status        = "active"_n;
     r.superseded_at = eosio::time_point_sec(0);
   });
 
   if (target_scope.kind == "all"_n) {
-    packages.modify(pkg_it, coopname, [&](auto &p) {
+    packages.modify(pkg_it, RamPayer::of(packages, coopname), [&](auto &p) {
       p.last_active_version = version;
       p.updated_at          = now_tps;
     });

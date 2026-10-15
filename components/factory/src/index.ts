@@ -2,11 +2,13 @@ export * from './Interfaces'
 export * from './DataSource'
 export * from './Templates'
 export * from './Schema'
+export { documentMetaKey } from './Utils/documentMetaKey'
+export { formatCreatedAt, isIsoCreatedAt, isLegacyCreatedAt, nowCreatedAt, parseCreatedAt, splitCreatedAt } from './Utils/documentCreatedAt'
 
 import type { Filter, InsertOneResult, UpdateResult } from 'mongodb'
 import type { Cooperative as CooperativeModel } from 'cooptypes'
 import type { IFilterDocuments, IGeneratedDocument, Numbers, externalDataTypes, externalDataTypesArrays, internalFilterTypes } from './Interfaces'
-import type { IGenerate, IGenerationOptions } from './Interfaces/Documents'
+import type { IGenerate, IGenerateBlank, IGeneratedBlank, IGenerationOptions } from './Interfaces/Documents'
 import * as Actions from './Actions'
 
 import { DocDataService, type ISearchResult, MongoDBConnector, SearchService } from './Services/Databazor'
@@ -41,6 +43,8 @@ export interface IGenerator {
   connect: (mongoUri: string) => Promise<void>
   disconnect: () => Promise<void>
   generate: (data: IGenerate, options?: IGenerationOptions) => Promise<IGeneratedDocument>
+  /** Бланк документа без данных события: поля, для которых нет данных, — прочерком. */
+  generateBlank: (data: IGenerateBlank) => Promise<IGeneratedBlank>
   getDocument: (filter: Filter<IFilterDocuments>) => Promise<IGeneratedDocument>
 
   /**
@@ -64,6 +68,14 @@ export interface IGenerator {
 
   // Новый метод поиска
   search: (query: string) => Promise<ISearchResult[]>
+}
+
+/** Для номера реестра нет фабрики документа — такой документ генератор не собирает. */
+export class UnknownDocumentFactoryError extends Error {
+  constructor(public readonly registry_id: number) {
+    super(`Фабрика для документа #${registry_id} не найдена.`)
+    this.name = 'UnknownDocumentFactoryError'
+  }
 }
 
 export class Generator implements IGenerator {
@@ -139,6 +151,7 @@ export class Generator implements IGenerator {
       [Actions.ConvertToAxonStatement.Template.registry_id]: new Actions.ConvertToAxonStatement.Factory(this.storage), // 51
       [Actions.BillingConversionStatement.Template.registry_id]: new Actions.BillingConversionStatement.Factory(this.storage), // 1095
       [Actions.ParticipantApplication.Template.registry_id]: new Actions.ParticipantApplication.Factory(this.storage), // 100
+      [Actions.ProgramAgreementsAnnulmentStatement.Template.registry_id]: new Actions.ProgramAgreementsAnnulmentStatement.Factory(this.storage), // 190
       [Actions.ParticipantExitApplication.Template.registry_id]: new Actions.ParticipantExitApplication.Factory(this.storage), // 200
       [Actions.DecisionOfParticipantExit.Template.registry_id]: new Actions.DecisionOfParticipantExit.Factory(this.storage), // 201
       [Actions.SelectBranchStatement.Template.registry_id]: new Actions.SelectBranchStatement.Factory(this.storage), // 101
@@ -167,27 +180,17 @@ export class Generator implements IGenerator {
       [Actions.FreeDecision.Template.registry_id]: new Actions.FreeDecision.Factory(this.storage), // 600
 
       [Actions.SosediAgreement.Template.registry_id]: new Actions.SosediAgreement.Factory(this.storage), // 699
-
-      [Actions.AssetContributionStatement.Template.registry_id]: new Actions.AssetContributionStatement.Factory(this.storage), // 700
-      [Actions.ReturnByAssetStatement.Template.registry_id]: new Actions.ReturnByAssetStatement.Factory(this.storage), // 800
-      [Actions.ReturnByAssetDecision.Template.registry_id]: new Actions.ReturnByAssetDecision.Factory(this.storage), // 801
-      [Actions.ReturnByAssetAct.Template.registry_id]: new Actions.ReturnByAssetAct.Factory(this.storage), // 802
       [Actions.ReturnByMoney.Template.registry_id]: new Actions.ReturnByMoney.Factory(this.storage), // 900
       [Actions.ReturnByMoneyDecision.Template.registry_id]: new Actions.ReturnByMoneyDecision.Factory(this.storage), // 901
 
       // ЦПП ГЕНЕРАТОР
       [Actions.GeneratorProgramTemplate.Template.registry_id]: new Actions.GeneratorProgramTemplate.Factory(this.storage), // 994
-      [Actions.GeneratorOfferTemplate.Template.registry_id]: new Actions.GeneratorOfferTemplate.Factory(this.storage), // 995
       [Actions.GeneratorOffer.Template.registry_id]: new Actions.GeneratorOffer.Factory(this.storage), // 996
 
       // ЦПП БЛАГОРОСТ
-      [Actions.GenerationContractTemplate.Template.registry_id]: new Actions.GenerationContractTemplate.Factory(this.storage), // 997
       [Actions.BlagorostProgramTemplate.Template.registry_id]: new Actions.BlagorostProgramTemplate.Factory(this.storage), // 998
-      [Actions.BlagorostOfferTemplate.Template.registry_id]: new Actions.BlagorostOfferTemplate.Factory(this.storage), // 999
       [Actions.BlagorostOffer.Template.registry_id]: new Actions.BlagorostOffer.Factory(this.storage), // 1000
 
-      [Actions.AssetContributionDecision.Template.registry_id]: new Actions.AssetContributionDecision.Factory(this.storage), // 701
-      [Actions.AssetContributionAct.Template.registry_id]: new Actions.AssetContributionAct.Factory(this.storage), // 702
       [Actions.GenerationContract.Template.registry_id]: new Actions.GenerationContract.Factory(this.storage), // 1001
       [Actions.ProjectGenerationContract.Template.registry_id]: new Actions.ProjectGenerationContract.Factory(this.storage), // 1002
       [Actions.ComponentGenerationContract.Template.registry_id]: new Actions.ComponentGenerationContract.Factory(this.storage), // 1003
@@ -229,16 +232,12 @@ export class Generator implements IGenerator {
 
       // Marketplace (Стол заказов) — Эпик 1: онбординг ЦПП
       [Actions.MarketplaceProgramTemplate.Template.registry_id]: new Actions.MarketplaceProgramTemplate.Factory(this.storage), // 1100 — Положение ЦПП
-      [Actions.MarketplaceOfferTemplate.Template.registry_id]: new Actions.MarketplaceOfferTemplate.Factory(this.storage), // 1101
       [Actions.MarketplaceOffer.Template.registry_id]: new Actions.MarketplaceOffer.Factory(this.storage), // 1102
 
       // Marketplace (Стол заказов) — Эпик 5
       [Actions.MarketplaceTransportNote.Template.registry_id]: new Actions.MarketplaceTransportNote.Factory(this.storage), // 1103
       [Actions.MarketplaceAplReception.Template.registry_id]: new Actions.MarketplaceAplReception.Factory(this.storage), // 1104 — приёмка (поставщик → кооператив)
-      [Actions.MarketplaceAplIssuance.Template.registry_id]: new Actions.MarketplaceAplIssuance.Factory(this.storage), // 1105 — выдача (кооператив → заказчик)
-
-      // Marketplace (Стол заказов) — Эпик 7: гарантийный возврат
-      [Actions.MarketplaceReturnStatement.Template.registry_id]: new Actions.MarketplaceReturnStatement.Factory(this.storage), // 1106
+      [Actions.MarketplaceReturnStatement.Template.registry_id]: new Actions.MarketplaceReturnStatement.Factory(this.storage), // 1106 — рекламация пайщика (гарантийный возврат)
 
       // Marketplace (Стол заказов) — Эпик 8: списание скоропорта
       [Actions.MarketplaceWriteoffProtocol.Template.registry_id]: new Actions.MarketplaceWriteoffProtocol.Factory(this.storage), // 1107
@@ -247,6 +246,26 @@ export class Generator implements IGenerator {
       [Actions.MarketplaceConvertStatement.Template.registry_id]: new Actions.MarketplaceConvertStatement.Factory(this.storage), // 1110
       [Actions.MarketplaceWriteoffServiceMemo.Template.registry_id]: new Actions.MarketplaceWriteoffServiceMemo.Factory(this.storage), // 1111
       [Actions.BranchFinancialAidProtocol.Template.registry_id]: new Actions.BranchFinancialAidProtocol.Factory(this.storage), // 1112
+
+      // Edubridge — ЦПП «Образование»
+      [Actions.EducationProgramTemplate.Template.registry_id]: new Actions.EducationProgramTemplate.Factory(this.storage), // 3000 — Положение ЦПП
+      [Actions.EducationParentOffer.Template.registry_id]: new Actions.EducationParentOffer.Factory(this.storage), // 3002
+      [Actions.EducationTeacherOffer.Template.registry_id]: new Actions.EducationTeacherOffer.Factory(this.storage), // 3004
+      [Actions.EducationParticipationContract.Template.registry_id]: new Actions.EducationParticipationContract.Factory(this.storage), // 3006
+      [Actions.EducationRidStatement.Template.registry_id]: new Actions.EducationRidStatement.Factory(this.storage), // 3008
+      [Actions.EducationRidDecision.Template.registry_id]: new Actions.EducationRidDecision.Factory(this.storage), // 3009
+      [Actions.EducationRidAct.Template.registry_id]: new Actions.EducationRidAct.Factory(this.storage), // 3010 — двухподписный акт
+      [Actions.EducationRidStorageAct.Template.registry_id]: new Actions.EducationRidStorageAct.Factory(this.storage), // 3012 — акт ответственного хранения материалов занятия
+      [Actions.EducationConvertStatement.Template.registry_id]: new Actions.EducationConvertStatement.Factory(this.storage), // 3011
+      [Actions.EducationGuaranteeStatement.Template.registry_id]: new Actions.EducationGuaranteeStatement.Factory(this.storage), // 3013 — заявление об аннулировании Подписки по Гарантийным условиям
+      [Actions.EducationGuaranteeDecision.Template.registry_id]: new Actions.EducationGuaranteeDecision.Factory(this.storage), // 3014 — протокол совета по заявлению 3013
+      [Actions.EducationShareWithdrawStatement.Template.registry_id]: new Actions.EducationShareWithdrawStatement.Factory(this.storage), // 3015 — заявление о трансляции паевого взноса в Цифровой Кошелёк
+      // Marketplace (Стол заказов) — паевая модель (компонент 68): выдача и гарантийный возврат
+      [Actions.MarketplaceShareReturnStatement.Template.registry_id]: new Actions.MarketplaceShareReturnStatement.Factory(this.storage), // 1113
+      [Actions.MarketplaceShareReturnDecision.Template.registry_id]: new Actions.MarketplaceShareReturnDecision.Factory(this.storage), // 1114
+      [Actions.MarketplaceShareReturnAct.Template.registry_id]: new Actions.MarketplaceShareReturnAct.Factory(this.storage), // 1115
+      [Actions.MarketplaceReturnCancelStatement.Template.registry_id]: new Actions.MarketplaceReturnCancelStatement.Factory(this.storage), // 1116
+      [Actions.MarketplaceReturnCancelDecision.Template.registry_id]: new Actions.MarketplaceReturnCancelDecision.Factory(this.storage), // 1117
     }
 
     // Источник данных раздаётся фабрикам одним местом — иначе его пришлось бы
@@ -267,10 +286,19 @@ export class Generator implements IGenerator {
     const factory = this.factories[data.registry_id as Numbers] // Get the factory
 
     if (!factory)
-      throw new Error(`Фабрика для документа #${data.registry_id} не найдена.`)
+      throw new UnknownDocumentFactoryError(data.registry_id)
 
     // синтезируем документ
     return await factory.generateDocument(data, options)
+  }
+
+  async generateBlank(data: IGenerateBlank): Promise<IGeneratedBlank> {
+    const factory = this.factories[data.registry_id as Numbers]
+
+    if (!factory)
+      throw new UnknownDocumentFactoryError(data.registry_id)
+
+    return await factory.generateBlank(data)
   }
 
   async getDocument(filter: Filter<IFilterDocuments>): Promise<IGeneratedDocument> {

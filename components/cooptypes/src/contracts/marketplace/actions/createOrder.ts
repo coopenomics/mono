@@ -3,8 +3,10 @@ import type * as Marketplace from '../../../interfaces/marketplace'
 import { Actors } from '../../../common'
 
 /**
- * Заказчик размещает заказ на товар из каталога (Story 4.1, p.mkt.supply шаг 1).
- * Серия: o.wal.conv (conditional) → o.mkt.assign (conditional) → o.mkt.block.
+ * Заказчик размещает заказ на товар из каталога (p.mkt.supply шаг 1, паевая модель).
+ * Взнос участка — с внутреннего членского кошелька (o.mkt.fee), тело — сначала со
+ * свободного паевого программы (o.mkt.lockp), остаток с Цифрового кошелька (o.mkt.lock).
+ * Заявления нет: недостающее пайщик перевёл заранее действием convert по заявлению 1110.
  */
 export const authorizations = [{ permissions: [Permissions.active], actor: Actors._username }] as const
 

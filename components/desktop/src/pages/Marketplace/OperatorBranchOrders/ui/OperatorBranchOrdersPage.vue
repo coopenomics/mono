@@ -7,18 +7,28 @@
  * участка; на неё же ведёт ссылка из движения в «Экономике участка».
  */
 import { computed, onMounted, ref, watch } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { marketLiveTables } from 'src/shared/lib/marketplace';
 import { useRoute } from 'vue-router';
 import { FailAlert } from 'src/shared/api';
 import { OperatorBranchBar, useOperatorBranchStore } from 'src/entities/OperatorBranch';
 import { EmptyState } from 'src/shared/ui/base';
-import { PageHint } from 'src/shared/ui/domain';
-import { OrdersRegistryTable, type OrderRegistryStatusView, type OrderRegistryView } from 'src/widgets/Marketplace/OrdersRegistryTable';
+import { PageHint, StatusFilterButton } from 'src/shared/ui/domain';
+import {
+  ORDER_REGISTRY_FILTERS,
+  OrdersRegistryTable,
+  type OrderRegistryStatusView,
+  type OrderRegistryView,
+} from 'src/widgets/Marketplace/OrdersRegistryTable';
+import { useHeaderActions } from 'src/shared/hooks';
 import { OrderRegistryOverlay } from 'src/widgets/Marketplace/OrderRegistryOverlay';
 import { useQueryOverlay } from 'src/shared/lib/navigation';
 import { fetchBranchOrders } from '../api';
+import { t } from 'src/shared/i18n';
 
 const route = useRoute();
 const store = useOperatorBranchStore();
+const { registerAction } = useHeaderActions();
 const orderOverlay = useQueryOverlay('order');
 
 const coopname = computed(() => String(route.params.coopname ?? ''));
@@ -51,7 +61,7 @@ async function load(): Promise<void> {
     items.value = resp.items ?? [];
     pagination.value.rowsNumber = resp.totalCount ?? 0;
   } catch (e) {
-    if (myId === lastRequestId) FailAlert(e, 'Не удалось загрузить реестр заказов участка');
+    if (myId === lastRequestId) FailAlert(e, t('marketplace.operatorBranchOrders.loadError'));
   } finally {
     if (myId === lastRequestId) loading.value = false;
   }
@@ -78,11 +88,26 @@ function onRequest(props: { pagination: { page: number; rowsPerPage: number; row
 }
 
 onMounted(async () => {
+  // Фильтр по состоянию — кнопкой в шапке (канон: действия страницы в топбаре).
+  registerAction({
+    id: 'mp-branch-orders-filter',
+    component: StatusFilterButton,
+    props: {
+      options: ORDER_REGISTRY_FILTERS,
+      selected: statusFilter,
+      onChange: onStatusFilterUpdate,
+    },
+    order: 1,
+  });
   await store.ensureLoaded(coopname.value);
   void load();
 });
 
 watch(braname, () => void load());
+
+// Заказы участка живут по ленте: смена состояния заказа перечитывает
+// показанную страницу.
+useLiveReload(marketLiveTables('order'), load);
 </script>
 
 <template lang="pug">
@@ -91,23 +116,21 @@ q-page.operator-orders
 
   EmptyState(
     v-if='store.loaded && !store.isOperator',
-    title='Вы не оператор кооперативного участка',
-    body='Реестр заказов участка доступен оператору участка и его доверенным.'
+    :title='$t("marketplace.operatorBranchOrders.notOperatorTitle")',
+    :body='$t("marketplace.operatorBranchOrders.notOperatorBody")'
   )
     template(#icon)
       q-icon(name='receipt_long', size='48px')
 
   template(v-else)
     PageHint(storage-key="mp:operator-orders:banner-dismissed")
-      | Заказы, идущие на ваш пункт выдачи, с текущими статусами. Откройте заказ, чтобы увидеть его состояние, документы и операции — например, по ссылке из движения в «Экономике участка».
+      | {{ $t('marketplace.operatorBranchOrders.hintText') }}
 
     OrdersRegistryTable(
       :items="items",
       :loading="loading",
       :pagination="pagination",
-      :status-filter="statusFilter",
       :show-offer-link="false",
-      @update:status-filter="onStatusFilterUpdate",
       @order-click="goToOrder",
       @request="onRequest"
     )

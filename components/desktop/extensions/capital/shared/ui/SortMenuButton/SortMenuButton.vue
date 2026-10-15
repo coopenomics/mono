@@ -8,17 +8,17 @@
     variant='ghost',
     :size='isMobile ? "sm" : "md"',
     icon-only,
-    aria-label='Сортировка',
+    :aria-label='$t("capital.sortMenuButton.ariaLabel")',
     :style='style'
   )
     template(#icon-left)
       q-icon(name='sort', size='20px')
 
-  q-tooltip Сортировка
+  q-tooltip {{ $t('capital.sortMenuButton.title') }}
 
   q-menu(anchor='bottom right', self='top right')
     q-list(dense, style='min-width: 220px')
-      q-item-label.sort-menu__caption(header) Поле
+      q-item-label.sort-menu__caption(header) {{ $t('capital.sortMenuButton.fieldLabel') }}
       q-item(
         v-for='field in fields',
         :key='field.value',
@@ -33,14 +33,14 @@
 
       q-separator
 
-      q-item-label.sort-menu__caption(header) Порядок
+      q-item-label.sort-menu__caption(header) {{ $t('capital.sortMenuButton.orderLabel') }}
       q-item(
         clickable,
         v-close-popup,
         :active='sort.sortOrder === "DESC"',
         @click='selectOrder("DESC")'
       )
-        q-item-section По убыванию
+        q-item-section {{ $t('capital.sortMenuButton.descending') }}
         q-item-section(side, v-if='sort.sortOrder === "DESC"')
           q-icon(name='check', size='18px', color='primary')
       q-item(
@@ -49,7 +49,7 @@
         :active='sort.sortOrder === "ASC"',
         @click='selectOrder("ASC")'
       )
-        q-item-section По возрастанию
+        q-item-section {{ $t('capital.sortMenuButton.ascending') }}
         q-item-section(side, v-if='sort.sortOrder === "ASC"')
           q-icon(name='check', size='18px', color='primary')
 </template>

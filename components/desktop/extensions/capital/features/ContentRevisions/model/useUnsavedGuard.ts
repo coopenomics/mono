@@ -1,7 +1,8 @@
 import { onBeforeUnmount, onMounted, type Ref } from 'vue'
 import { onBeforeRouteLeave } from 'vue-router'
+import { t } from '../../../i18n';
 
-const LEAVE_MESSAGE = 'Есть несохранённые изменения. Уйти без сохранения?'
+const LEAVE_MESSAGE = t('capital.useUnsavedGuard.confirmText')
 
 /**
  * Предупреждает об уходе со страницы с несохранёнными правками:

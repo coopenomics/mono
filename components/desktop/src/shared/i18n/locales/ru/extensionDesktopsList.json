@@ -1,0 +1,8 @@
+{
+  "extensionDesktopsList": {
+    "desktopsList": {
+      "title": "Рабочие столы",
+      "untitledFallback": "Без названия"
+    }
+  }
+}

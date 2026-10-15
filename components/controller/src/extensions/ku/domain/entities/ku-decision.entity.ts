@@ -97,7 +97,11 @@ export class KuDecisionDomainEntity
     this.petition = blockchainData.petition;
     this.liability = blockchainData.liability;
     this.authority = blockchainData.authority;
-    this.authorization = blockchainData.authorization;
+    // Документ решения совета контракт в запись собрания не пишет: его сохраняет
+    // обработчик действия совета. Пустое значение из цепи сохранённый документ не затирает.
+    if (blockchainData.authorization?.signatures?.length) {
+      this.authorization = blockchainData.authorization;
+    }
     this.open_at = blockchainData.open_at;
     this.close_at = blockchainData.close_at;
     this.signed_ballots = Number(blockchainData.signed_ballots);
