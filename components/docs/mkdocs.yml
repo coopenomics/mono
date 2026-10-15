@@ -279,3 +279,27 @@ nav:
       - Календарь: new/edubridge/teacher/lessons.md
       - Отчёты: new/edubridge/teacher/reports.md
       - Расчёты: new/edubridge/teacher/settlement.md
+
+  - Кооперативный участок:
+    - new/ku/index.md
+    - Подключение:
+      - Установка приложения: new/ku/admin/install.md
+    - Стол председателя кооператива:
+      - Участки: new/ku/admin/branches.md
+    - Учреждение участка:
+      - Собрания: new/ku/member/meetings.md
+      - Участие в собрании: new/ku/member/meeting-join.md
+      - Открытие голосования: new/ku/member/meeting-vote.md
+      - Бюллетень участника: new/ku/member/meeting-ballot.md
+      - Протокол и заявление в совет: new/ku/member/meeting-protocol.md
+      - Решение совета: new/ku/member/meeting-council.md
+    - Доверенные лица:
+      - Заявка пайщика: new/ku/member/trusted.md
+      - Одобрение председателем участка: new/ku/branch-chairman/trusted.md
+
+  - Робот совета:
+    - new/robot/index.md
+    - Установка приложения: new/robot/admin/install.md
+    - Действия автоматизации: new/robot/admin/registry.md
+    - Журнал робота: new/robot/admin/journal.md
+    - Состояние робота: new/robot/admin/state.md

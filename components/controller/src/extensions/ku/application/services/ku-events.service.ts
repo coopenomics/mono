@@ -238,11 +238,16 @@ export class KuEventsService {
       const trustee = await this.individualRepository.findByUsername(decision.chairman);
       const branchName = decision.branch_name || decision.braname;
 
+      // Карточка участка наследует реквизиты кооператива, а имя, адрес и контакты
+      // берёт из решения собрания: почту и телефон участка задал учредитель при
+      // открытии голосования, и именно их показывает страница участка.
       const combinedData = {
         ...cooperative,
         short_name: t('ku.branch.shortNameTemplate', { branchName }),
         full_name: t('ku.branch.fullNameTemplate', { branchName }),
         fact_address: decision.address || '',
+        email: decision.branch_email || cooperative.email,
+        phone: decision.branch_phone || cooperative.phone,
         represented_by: {
           first_name: trustee.first_name,
           last_name: trustee.last_name,
