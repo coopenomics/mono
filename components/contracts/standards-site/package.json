@@ -17,6 +17,8 @@
     "@vue-flow/minimap": "^1.5.4",
     "cooptypes": "workspace:*",
     "lucide-vue-next": "^0.460.0",
+    "mermaid": "11.13.0",
+    "nunjucks": "^3.2.4",
     "vue": "^3.5.31",
     "vue-router": "^4.6.4",
     "yaml": "^2.8.3"

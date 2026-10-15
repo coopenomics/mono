@@ -338,6 +338,12 @@ importers:
       lucide-vue-next:
         specifier: ^0.460.0
         version: 0.460.0(vue@3.5.31(typescript@5.9.3))
+      mermaid:
+        specifier: 11.13.0
+        version: 11.13.0
+      nunjucks:
+        specifier: ^3.2.4
+        version: 3.2.4(chokidar@3.6.0)
       vue:
         specifier: ^3.5.31
         version: 3.5.31(typescript@5.9.3)

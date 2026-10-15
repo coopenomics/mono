@@ -505,6 +505,8 @@ curl -s "http://127.0.0.1:<DESKTOP_PORT>/config.js?t=$(date +%s)" | grep -i <К�
 
 ## Стандарты процессов (.standard.yaml) — бизнес-языком
 
+**Писать и править стандарты — только по скиллу `/coop-standards`** (схема, правила графа и связей между процессами, проверка перед сдачей). Короткая памятка — `components/contracts/CLAUDE.md`.
+
 `components/contracts/cpp/**/*.standard.yaml` — документация для методолога/бухгалтера, не для разработчиков контракта. В `purpose`, `description`, `note`, `human` запрещены технические термины:
 
 - никаких «callback», «soviet::exec», «soviet::createagenda», «AUTHORIZE_CALLBACK_SIGNATURE», «type-string», «registry N», «proposed расширение enum'а»;

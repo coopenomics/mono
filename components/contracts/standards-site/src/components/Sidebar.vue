@@ -2,10 +2,15 @@
 import { computed } from 'vue';
 import { useRoute, RouterLink } from 'vue-router';
 import { standardsIndex } from '@/data/loader';
-import { CONTRACT_HUMAN } from '@/data/labels';
+import { contractHuman } from '@/data/labels';
 import ThemeToggle from '@/components/ThemeToggle.vue';
 
+/** Версия платформы из lerna.json — меняется с каждым выпуском. */
+const version = __MONO_VERSION__;
+
 const route = useRoute();
+
+const emit = defineEmits<{ (e: 'collapse'): void }>();
 
 const contracts = computed(() => standardsIndex.contracts);
 const byContract = computed(() => standardsIndex.byContract);
@@ -15,18 +20,22 @@ const activeProcessType = computed(() => {
   return typeof route.params.processType === 'string' ? route.params.processType : null;
 });
 
-function contractHuman(c: string): string {
-  return CONTRACT_HUMAN[c] ?? '';
-}
 </script>
 
 <template>
   <nav class="sidebar">
     <div class="sidebar-brand">
-      <RouterLink to="/">
-        <div class="sidebar-brand__title">Кооперативные стандарты</div>
-        <div class="sidebar-brand__subtitle">Реестр v1</div>
+      <RouterLink to="/" class="sidebar-brand__link">
+        <span class="sidebar-brand__title">Кооперативные стандарты</span>
+        <span class="sidebar-brand__subtitle">v{{ version }}</span>
       </RouterLink>
+      <button
+        type="button"
+        class="sidebar-collapse"
+        title="Скрыть список стандартов"
+        aria-label="Скрыть список стандартов"
+        @click="emit('collapse')"
+      >‹</button>
     </div>
 
     <div class="sidebar-body">
@@ -35,9 +44,8 @@ function contractHuman(c: string): string {
       </p>
 
       <div v-for="contract in contracts" :key="contract" class="sidebar-group">
-        <div class="sidebar-group__head">
-          <span class="sidebar-group__name">{{ contractHuman(contract) || contract }}</span>
-          <code v-if="contractHuman(contract)" class="sidebar-group__code">{{ contract }}</code>
+        <div class="sidebar-group__head" :title="`Контракт ${contract}`">
+          <span class="sidebar-group__name">{{ contractHuman(contract) }}</span>
         </div>
         <ul class="sidebar-group__list">
           <li v-for="entry in byContract[contract]" :key="entry.process_type">
@@ -60,6 +68,28 @@ function contractHuman(c: string): string {
 </template>
 
 <style scoped>
+.sidebar-brand {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+.sidebar-brand__link { min-width: 0; }
+.sidebar-collapse {
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--text-muted);
+  font-size: 15px;
+  line-height: 1;
+}
+.sidebar-collapse:hover { color: var(--accent); border-color: var(--accent-border); }
+.sidebar-brand__title,
+.sidebar-brand__subtitle { display: block; }
 .sidebar {
   display: flex;
   flex-direction: column;
@@ -76,29 +106,5 @@ function contractHuman(c: string): string {
   padding: 16px 24px 0;
   border-top: 1px solid var(--border);
   margin-top: 16px;
-}
-.sidebar-group__head {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  padding: 0 20px 6px;
-}
-.sidebar-group__name {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text);
-  line-height: 1.2;
-}
-.sidebar-group__code {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  font-weight: 500;
-  text-transform: lowercase;
-  letter-spacing: 0;
-  color: var(--text-subtle);
-  padding: 1px 5px;
-  border: 1px solid var(--border);
-  border-radius: 3px;
-  background: var(--surface);
 }
 </style>

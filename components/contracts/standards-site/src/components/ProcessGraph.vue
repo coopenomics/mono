@@ -163,7 +163,17 @@ watch(canvasRef, (el) => {
   resizeObserver?.disconnect();
   resizeObserver = null;
   if (!el || typeof ResizeObserver === 'undefined') return;
-  resizeObserver = new ResizeObserver(() => doFit());
+  // При смене размера холста держим выбранный узел в кадре. Сбрасывать вид
+  // на начало процесса можно только когда фокуса нет — иначе переход по
+  // стрелкам откатывал бы граф к старту.
+  resizeObserver = new ResizeObserver(() => {
+    const focused = focusedNodeId();
+    if (focused && focused !== START_ID) {
+      requestAnimationFrame(() => ensureInView(focused));
+    } else {
+      doFit();
+    }
+  });
   resizeObserver.observe(el);
 });
 onBeforeUnmount(() => {
@@ -282,7 +292,7 @@ function labelForNav(n: Nav): string {
     </button>
 
     <div ref="containerRef" class="process-graph">
-      <!-- Левая колонка: панель деталей фокуса. Соседняя с канвой,
+      <!-- Нижняя полоса: панель деталей фокуса. Соседняя с канвой,
            не перекрывает её — центрирование на канве честное. -->
       <aside class="focus-panel">
         <FocusBar
@@ -294,7 +304,7 @@ function labelForNav(n: Nav): string {
         />
       </aside>
 
-      <!-- Правая колонка: канва VueFlow. -->
+      <!-- Канва VueFlow над панелью, во всю ширину. -->
       <div ref="canvasRef" class="process-graph__canvas">
         <VueFlow
           :nodes="layout.nodes"
@@ -406,7 +416,7 @@ function labelForNav(n: Nav): string {
   min-height: 0;
   height: 100%;
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   background: var(--bg);
@@ -414,40 +424,35 @@ function labelForNav(n: Nav): string {
   position: relative;
 }
 
-/* Левая колонка — панель деталей фокуса. Соседняя с канвой, не наложение. */
+/* Нижняя полоса — панель деталей фокуса. Граф над ней занимает всю ширину,
+   колонки FocusBar (описание · операции · документы) идут в строку. */
 .focus-panel {
-  flex: 0 0 360px;
-  max-width: 38%;
-  min-width: 260px;
-  border-right: 1px solid var(--border);
+  order: 1;
+  /* Высота постоянная: панель с разным содержимым не должна менять размер
+     холста — иначе граф пересчитывает кадр на каждом шаге. */
+  flex: 0 0 36%;
+  border-top: 1px solid var(--border);
   background: var(--bg);
   overflow-y: auto;
-  padding: 12px;
+  padding: 10px 12px;
   box-sizing: border-box;
 }
 .focus-panel :deep(.focus-bar) {
   margin-bottom: 0;
-  background: transparent;
   box-shadow: none;
   height: auto;
-  flex-direction: column;
-  flex-wrap: nowrap;
-  gap: 14px;
-}
-.focus-panel :deep(.focus-bar__col) {
-  flex: 0 0 auto;
-  width: 100%;
 }
 .focus-panel :deep(.focus-bar--edge) {
   background: var(--edge-focus-soft);
 }
 
-/* Правая колонка — канва VueFlow. */
+/* Канва VueFlow — над панелью, во всю ширину. */
 .process-graph__canvas {
+  order: 0;
   flex: 1 1 0;
   min-width: 0;
   min-height: 0;
-  height: 100%;
+  width: 100%;
   position: relative;
 }
 

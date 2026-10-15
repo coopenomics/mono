@@ -81,9 +81,10 @@ const BLANK_PRIMITIVE_KEYS = new Set<string | symbol>(['toString', 'valueOf', 't
 
 /**
  * Значение-заглушка бланка: в тексте печатается прочерком, вложенное поле
- * даёт такую же заглушку, перебор по нему пуст. Так один и тот же шаблон
- * собирается и с данными события, и без них — совет утверждает форму, а не
- * заполненный экземпляр.
+ * даёт такую же заглушку, перебор по нему даёт одну строку-образец из
+ * заглушек — так в бланке видно, как выглядит позиция списка. Так один и тот
+ * же шаблон собирается и с данными события, и без них — совет утверждает
+ * форму, а не заполненный экземпляр.
  */
 function blankValue(): unknown {
   const target: Record<string | symbol, unknown> = {}
@@ -93,13 +94,17 @@ function blankValue(): unknown {
         return () => BLANK_PLACEHOLDER
       if (key === 'length')
         return 0
-      // Не обещание, не итератор, не «объект с прототипом»: движок и Node
-      // проверяют эти ключи и не должны принять заглушку за них.
-      if (key === 'then' || key === Symbol.iterator || key === 'constructor' || key === 'prototype' || key === '__proto__')
+      // Перебор `{% for %}` — одна строка-образец (nunjucks читает итератор
+      // через Array.from).
+      if (key === Symbol.iterator)
+        return function* sample() { yield blankValue() }
+      // Не обещание и не «объект с прототипом»: движок и Node проверяют эти
+      // ключи и не должны принять заглушку за них.
+      if (key === 'then' || key === 'constructor' || key === 'prototype' || key === '__proto__')
         return undefined
       return proxy
     },
-    has: () => false,
+    has: (_t, key) => key === Symbol.iterator,
     ownKeys: () => [],
     getOwnPropertyDescriptor: () => undefined,
   })
@@ -133,6 +138,20 @@ function blankify(value: unknown): unknown {
  * которых нет во входе, объявляются здесь заглушками.
  */
 export class BlankTemplateEngine extends TemplateEngine {
+  constructor(translation: ITranslations) {
+    super(translation)
+    // Имя, которого нет в данных, nunjucks ищет в глобальных переменных
+    // окружения. Шаблон может обращаться к полям вне модели документа — в
+    // бланке они тоже прочерк, а не пустая строка и не «undefined» в
+    // аргументах перевода. Встроенные глобальные (range, cycler, joiner)
+    // остаются как есть.
+    const builtins = (this.env as unknown as { globals: Record<string, unknown> }).globals
+    ;(this.env as unknown as { globals: Record<string, unknown> }).globals = new Proxy(builtins, {
+      has: () => true,
+      get: (target, key) => (typeof key === 'symbol' || key in target ? Reflect.get(target, key) : blankValue()),
+    })
+  }
+
   renderBlank(template: string, vars: Record<string, unknown>, knownKeys: string[]): string {
     // Подготовка (раскодирование HTML) идёт до заглушек: она копирует объекты
     // по ключам и стёрла бы прокси. Контекст движку отдаём уже обёрнутым.
