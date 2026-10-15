@@ -15,6 +15,7 @@ const instance = computed(() => connectionAgreement.currentInstance)
 const isDelegated = computed(() => !!instance.value?.is_delegated)
 const isChecking = ref(false)
 
+// realtime: нет источника — проверку домена и состояние сервера ведёт провайдер (другой узел), в ленте кооператива их нет.
 onMounted(async () => {
   if (!coop.value) {
     try {

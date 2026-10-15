@@ -31,6 +31,7 @@ const {
   formatPrice,
   load: loadCatalog,
 } = useConnectionCatalog()
+// realtime: нет источника — каталог услуг отдаёт провайдер (другой узел), в ленте кооператива его нет.
 onMounted(() => { void loadCatalog() })
 const system = useSystemStore()
 

@@ -33,6 +33,8 @@ import { useBillingWallet } from 'src/entities/Wallet/model'
 import { useSessionStore } from 'src/entities/Session'
 import { useSystemStore } from 'src/entities/System/model'
 import { splitAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits'
+import { Ledger2Contract } from 'cooptypes'
+import { liveTable, useLiveReload } from 'src/shared/lib/realtime'
 import {
   ConvertToBillingDialog,
   useConvertToBillingVisibility,
@@ -62,26 +64,13 @@ const openConvert = () => {
   isVisible.value = true
 }
 
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
-
-/**
- * После пополнения баланс в цепи меняется не мгновенно для интерфейса: между
- * транзакцией и появлением дельты в кеше бэкенда проходит около трёх секунд.
- * Поэтому обновляемся не один раз, а несколькими попытками с паузами и
- * останавливаемся, как только сумма изменилась. Тихо, без лоадера поверх
- * экрана: карточка просто дорисует новое число.
- */
-const refreshAfterConvert = async (): Promise<void> => {
-  const before = available.value
-  for (const delay of [1500, 3000, 5000]) {
-    await sleep(delay)
-    await refresh()
-    if (available.value !== before) return
-  }
-}
+// Остаток биллинг-кошелька живёт по ленте цепи: пополнение возвращается после
+// разбора своего блока, а строка ledger2::userwallets пайщика приходит сигналом.
+// После закрытия диалога перечитываем один раз — через тот же одиночный полёт.
+const live = useLiveReload([liveTable(Ledger2Contract, Ledger2Contract.Tables.UserWallets)], refresh)
 
 watch(isVisible, (open, wasOpen) => {
-  if (wasOpen && !open) void refreshAfterConvert()
+  if (wasOpen && !open) void live.refresh()
 })
 </script>
 

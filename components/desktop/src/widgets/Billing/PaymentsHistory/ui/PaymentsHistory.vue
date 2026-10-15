@@ -46,6 +46,7 @@ import { BaseBanner, BaseCard, BaseChip, BaseTable, EmptyState } from 'src/share
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits'
 import { paymentStatusLabel, paymentStatusVariant } from 'src/entities/Union'
 import { useLoadCooperativePayments } from 'src/features/Union/LoadCooperativePayments'
+import { useLiveReload } from 'src/shared/lib/realtime'
 
 /**
  * Журнал списаний за подписки: одна и та же таблица нужна и совету в карточке
@@ -87,6 +88,8 @@ const load = () => {
 
 onMounted(load)
 watch(() => props.coopname, load)
+// Журнал пишет хаб (крон оплаты, слушатель billing::pay) — карточка живёт по его сигналам.
+useLiveReload([{ code: 'core', table: 'billing_payment_log' }], async () => load())
 </script>
 
 <style scoped>

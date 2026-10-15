@@ -124,6 +124,11 @@ const CORE_LOCAL_TABLES: InnerChainChangesTable[] = [
   { code: 'core', table: 'payments', owner_field: 'username' },
   // Подтверждения к платежу — загрузившему и совету.
   { code: 'core', table: 'payment_files', owner_field: 'uploaded_by_username' },
+  // Журнал списаний за подписки облачного провайдера (хаб): кооперативу-пайщику —
+  // его списания, совету — все. Пишет крон оплаты и слушатель billing::pay.
+  { code: 'core', table: 'billing_payment_log', owner_field: 'coopname' },
+  // Устав в заявке на подключение — приложившему кооперативу и совету.
+  { code: 'core', table: 'cooperative_charters', owner_field: 'username' },
   // Реестр пайщиков стола совета: учётные записи, кандидаты и сверки личности.
   { code: 'core', table: 'users', owner_field: 'username' },
   { code: 'core', table: 'candidates', owner_field: 'username' },

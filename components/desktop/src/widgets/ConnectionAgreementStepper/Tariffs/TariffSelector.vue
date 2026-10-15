@@ -41,6 +41,7 @@ const autoselect = () => {
   }
 }
 watch(serverTariffs, autoselect)
+// realtime: нет источника — каталог тарифов отдаёт провайдер (другой узел), в ленте кооператива его нет.
 onMounted(async () => {
   await load()
   autoselect()

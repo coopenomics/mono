@@ -9,6 +9,7 @@ import {
 } from 'src/entities/ConnectionAgreement'
 import { useSystemStore } from 'src/entities/System/model'
 import { useCooperativeCharter } from 'src/features/Union/UploadCooperativeCharter'
+import { useLiveReload } from 'src/shared/lib/realtime'
 import StepFrame from '../ui/StepFrame.vue'
 
 const connectionAgreement = useConnectionAgreementStore()
@@ -29,6 +30,7 @@ watch(
 
 // Устав мог быть приложен в прошлый заход — заявку заполняют не за один присест.
 onMounted(load)
+useLiveReload([{ code: 'core', table: 'cooperative_charters' }], async () => load())
 
 const hasCharter = computed(() => !!charter.value)
 

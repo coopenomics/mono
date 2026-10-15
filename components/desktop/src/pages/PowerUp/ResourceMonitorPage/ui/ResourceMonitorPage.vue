@@ -30,6 +30,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useLiveReload } from 'src/shared/lib/realtime'
 import { Notify } from 'quasar'
 import { BaseCard } from 'src/shared/ui/base'
 import { ResourceMonitor } from 'src/widgets/PowerUp/ResourceMonitor'
@@ -117,6 +118,9 @@ async function onSubmit(value: any): Promise<void> {
     isSaving.value = false
   }
 }
+
+// Настройки и счётчики PowerUp живут в записи расширения — экран перечитывает её по сигналу.
+useLiveReload([{ code: 'core', table: 'extensions' }], () => extensionStore.loadExtensions())
 
 onMounted(async () => {
   isLoadingUsage.value = true
