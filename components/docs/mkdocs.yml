@@ -190,6 +190,10 @@ nav:
       - Мои заказы: new/marketplace/orderer/my-orders.md
       - Получение на пункте выдачи: new/marketplace/orderer/receive.md
       - Гарантийный возврат: new/marketplace/orderer/returns.md
+      - Заказ до получения: new/marketplace/orderer/order-no-return-yet.md
+      - Пустой каталог: new/marketplace/orderer/catalog-empty.md
+      - Нет заказов: new/marketplace/orderer/orders-empty.md
+      - Стол заказчика целиком: new/marketplace/orderer/marketplace-tour.md
     - Стол поставщика:
       - new/marketplace/offerer/index.md
       - Подключение поставщика: new/marketplace/offerer/connect.md
@@ -212,6 +216,7 @@ nav:
       - Списание на участке: new/marketplace/operator/writeoffs.md
       - Экономика участка: new/marketplace/operator/economy.md
       - История заказов: new/marketplace/operator/orders-history.md
+      - Поставки на чужом пункте: new/marketplace/operator/incoming-shipments-foreign.md
     - Стол администратора:
       - new/marketplace/admin/index.md
       - Реестр заказов: new/marketplace/admin/orders-registry.md
@@ -222,6 +227,12 @@ nav:
       - Доступные категории: new/marketplace/admin/categories.md
       - Пункты выдачи заказов: new/marketplace/admin/issuance-points.md
       - Списания скоропорта: new/marketplace/admin/writeoffs.md
+      - Экосистема: new/marketplace/chairman/ecosystem.md
+      - Стол администратора целиком: new/marketplace/chairman/market-tour.md
+    - Стол совета:
+      - Выплаты поставщикам: new/marketplace/board/payouts-readonly.md
+      - Склад кооператива: new/marketplace/board/warehouse-readonly.md
+    - Стол председателя кооператива: new/marketplace/chairman/dashboard.md
     - Заключение: new/marketplace/conclusion.md
 
   - Благорост:
@@ -279,3 +290,27 @@ nav:
       - Календарь: new/edubridge/teacher/lessons.md
       - Отчёты: new/edubridge/teacher/reports.md
       - Расчёты: new/edubridge/teacher/settlement.md
+
+  - Кооперативный участок:
+    - new/ku/index.md
+    - Подключение:
+      - Установка приложения: new/ku/admin/install.md
+    - Стол председателя кооператива:
+      - Участки: new/ku/admin/branches.md
+    - Учреждение участка:
+      - Собрания: new/ku/member/meetings.md
+      - Участие в собрании: new/ku/member/meeting-join.md
+      - Открытие голосования: new/ku/member/meeting-vote.md
+      - Бюллетень участника: new/ku/member/meeting-ballot.md
+      - Протокол и заявление в совет: new/ku/member/meeting-protocol.md
+      - Решение совета: new/ku/member/meeting-council.md
+    - Доверенные лица:
+      - Заявка пайщика: new/ku/member/trusted.md
+      - Одобрение председателем участка: new/ku/branch-chairman/trusted.md
+
+  - Робот совета:
+    - new/robot/index.md
+    - Установка приложения: new/robot/admin/install.md
+    - Действия автоматизации: new/robot/admin/registry.md
+    - Журнал робота: new/robot/admin/journal.md
+    - Состояние робота: new/robot/admin/state.md
