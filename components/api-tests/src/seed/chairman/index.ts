@@ -1,4 +1,3 @@
-/* eslint-disable node/prefer-global/process */
 /**
  * Засев стенда для документации стола председателя (docs-harness, сюита
  * run-chairman-all).
@@ -9,6 +8,7 @@
  *
  *   esno src/seed/chairman/index.ts 01-approval
  */
+import process from 'node:process'
 import { tokenOf } from '../../core/auth'
 import { gql } from '../../core/client'
 import { COOP } from '../../core/env'

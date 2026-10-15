@@ -59,7 +59,7 @@ export function seedCommand(group, phase) {
  * Группы, чьи фазы живут во внешнем слое тестов (components/api-tests/src/seed/<группа>):
  * они собраны из его помощников — подписи документов, голоса совета, вход пайщика.
  */
-const API_TESTS_GROUPS = ['edubridge', 'ku', 'robot', 'soviet', 'chairman'];
+const API_TESTS_GROUPS = ['edubridge', 'ku', 'robot', 'soviet', 'chairman', 'expenses'];
 
 /** Файл засева группы — есть ли у группы сценарий подготовки. */
 export function seedEntry(group) {

@@ -1,4 +1,3 @@
-/* eslint-disable node/prefer-global/process */
 /**
  * Засев стенда для документации стола совета (docs-harness, сюита
  * run-soviet-all). На свежем стенде повестка и реестры почти пусты: приём
@@ -15,8 +14,10 @@
  *
  *   esno src/seed/soviet/index.ts 01-agenda
  */
+import process from 'node:process'
 import { tokenOf } from '../../core/auth'
 import { gql } from '../../core/client'
+import { COOP } from '../../core/env'
 import { CHAIRMAN, COUNCIL, COUNCIL_2, fixture } from '../../core/roles'
 import { voteOnDecision } from '../../core/council'
 import { freshMember } from '../../core/participants'
@@ -75,7 +76,7 @@ async function phase03(): Promise<void> {
 /** 04 — член совета подал служебную записку на расход программы. */
 async function phase04(): Promise<void> {
   const chairman = await tokenOf(CHAIRMAN)
-  const items = (await gql<any>(chairman, BY_COOP, { c: 'voskhod', o: { page: 1, limit: 20, sortOrder: 'DESC' } })).expenseProposalsByCooperative.items as any[]
+  const items = (await gql<any>(chairman, BY_COOP, { c: COOP, o: { page: 1, limit: 20, sortOrder: 'DESC' } })).expenseProposalsByCooperative.items as any[]
   if (items.length) {
     log(`служебная записка уже есть: ${items[0].proposal_hash.slice(0, 8)} ${items[0].status}`)
     return
