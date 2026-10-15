@@ -16,9 +16,8 @@ export default async ({ page, shot }) => {
     await deposit.click();
     await page.waitForSelector('text=Паевой взнос', { timeout: 15000 });
     await page.waitForTimeout(600);
-    const amount = page.locator('.q-dialog input:visible').first();
-    await amount.click();
-    await amount.pressSequentially('3000', { delay: 40 });
+    // Подпись поля лежит поверх ввода и перехватывает клик — значение ставится напрямую.
+    await page.locator('.q-dialog input[type="number"]').first().fill('3000');
     await page.waitForTimeout(500);
     await shot(page, '02-deposit', 'Паевой взнос: сумма взноса. Кнопка «Продолжить» заводит платёж и показывает реквизиты.');
     await page.locator('.q-dialog button:has-text("Продолжить")').last().click();
