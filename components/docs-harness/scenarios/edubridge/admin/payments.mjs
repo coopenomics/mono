@@ -22,7 +22,7 @@ const PROOF = path.join(HARNESS_ROOT, 'fixtures', 'sok.jpg');
 
 /** Первая исходящая строка реестра, которая ждёт кассира. */
 function pendingRow(page) {
-  return page.locator('tr.data-row').filter({ hasText: 'Исходящий' }).filter({ hasText: 'Ожидает' }).first();
+  return page.locator('tr.data-row').filter({ hasText: 'Исходящий' }).filter({ has: page.locator('button:has-text("Подтвердить")') }).first();
 }
 
 /** Кассир подтверждает платёж строки: кнопка в строке, подтверждение в окне. */
