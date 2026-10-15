@@ -1,3 +1,4 @@
+import { validationMessage } from '@coopenomics/extension-kit';
 import { Field, InputType } from '@nestjs/graphql';
 import { IsString, Matches, MaxLength, Length } from 'class-validator';
 
@@ -20,7 +21,7 @@ export class BillingPayInputDTO {
 
   @Field(() => String, { description: 'Сумма с символом, например "1500.0000 RUB"' })
   @IsString()
-  @Matches(/^\d+(\.\d+)?\s+[A-Z]{1,7}$/, { message: 'Формат "<amount> <SYMBOL>", например "1500.0000 RUB"' })
+  @Matches(/^\d+(\.\d+)?\s+[A-Z]{1,7}$/, { message: validationMessage('billing.paymentInput.amountFormat') })
   amount!: string;
 
   @Field(() => String, {

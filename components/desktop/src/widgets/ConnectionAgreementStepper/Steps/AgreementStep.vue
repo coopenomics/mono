@@ -7,6 +7,7 @@ import { useAddCooperative } from 'src/features/Union/AddCooperative/model'
 import { useSessionStore } from 'src/entities/Session'
 import { FailAlert } from 'src/shared/api'
 import StepFrame from '../ui/StepFrame.vue'
+import { t } from 'src/shared/i18n';
 
 defineProps<{
   html?: string
@@ -55,7 +56,7 @@ const handleSign = async () => {
     connectionAgreement.setCurrentStep(CONNECTION_STEP.dns)
   } catch (error: any) {
     console.error('Ошибка при подписании или отправке в блокчейн:', error)
-    FailAlert(`Не удалось подписать соглашение: ${error?.message ?? error}`)
+    FailAlert(t('connectionAgreementStepper.agreementStep.signError', { reason: error?.message ?? error }))
   } finally {
     isSigning.value = false
   }
@@ -70,9 +71,9 @@ const handleBack = () => {
 
 <template lang="pug">
 StepFrame(
-  title="Соглашение о подключении"
-  lead="Это договор между кооперативом и платформой: в нём зафиксированы адрес, взносы с предыдущих шагов и условия обслуживания. Прочитайте и подпишите его своим ключом — после подписи кооператив будет зарегистрирован в блокчейне, и провайдер начнёт готовить установку."
-  next-label="Подписать"
+  :title="$t('connectionAgreementStepper.agreementStep.stepTitle')"
+  :lead="$t('connectionAgreementStepper.agreementStep.lead')"
+  :next-label="$t('common.action.sign')"
   :next-disabled="!isDocumentReady"
   :loading="isSigning"
   @back="handleBack"
@@ -80,7 +81,7 @@ StepFrame(
 )
   .agreement-step__doc(v-if="html")
     DocumentHtmlReader(:html="html")
-  Loader(v-else :text="'Готовим соглашение…'")
+  Loader(v-else :text="$t('connectionAgreementStepper.agreementStep.preparing')")
 </template>
 
 <style scoped>

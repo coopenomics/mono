@@ -32,8 +32,8 @@ const handleContinue = () => {
 
 <template lang="pug">
 StepFrame(
-  title="Выберите конфигурацию сервера"
-  lead="Конфигурация определяет ежемесячную плату за хостинг вашей копии платформы — по действующему каталогу провайдера. Списывается членскими взносами с кошелька кооператива."
+  :title="$t('connectionAgreementStepper.introStep.stepTitle')"
+  :lead="$t('connectionAgreementStepper.introStep.lead')"
   :can-back="system.info.is_unioned"
   :next-disabled="!canContinue"
   @back="handleBack"

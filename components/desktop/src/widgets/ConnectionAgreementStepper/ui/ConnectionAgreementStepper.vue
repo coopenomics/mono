@@ -19,6 +19,7 @@ import {
 import { useSystemStore } from 'src/entities/System/model'
 import { useConnectionCatalog } from 'src/features/Provider/model'
 import { DOCUMENT_PACKAGE_PRICE_RUB, MEMBER_PRICE_RUB } from 'src/shared/lib/axon'
+import { t } from 'src/shared/i18n';
 
 const connectionAgreement = useConnectionAgreementStore()
 // Живой каталог провайдера (Epic 28): цена, состав платы и триал в сводке условий.
@@ -47,15 +48,15 @@ const html = computed(() => document.value?.data?.html)
 // Подпись под шагом — в одну строку, о чём шаг: подробное объяснение живёт
 // в самой карточке шага.
 const ALL_STEPS: Array<StepperStep & { index: number }> = [
-  { key: 'union', index: CONNECTION_STEP.union, label: 'Членство в союзе', description: 'Аккаунт для связи с союзом' },
-  { key: 'intro', index: CONNECTION_STEP.intro, label: 'Тариф', description: 'Ежемесячная плата за обслуживание' },
-  { key: 'profile', index: CONNECTION_STEP.profile, label: 'О кооперативе', description: 'Рассказ о деятельности и устав' },
-  { key: 'domain', index: CONNECTION_STEP.domain, label: 'Адрес кооператива', description: 'Домен, на котором будет работать платформа' },
-  { key: 'financial', index: CONNECTION_STEP.financial, label: 'Взносы при вступлении', description: 'Вступительный и минимальный паевой' },
-  { key: 'agreement', index: CONNECTION_STEP.agreement, label: 'Соглашение', description: 'Прочитать и подписать ключом' },
-  { key: 'dns', index: CONNECTION_STEP.dns, label: 'Настройка домена', description: 'Одна DNS-запись у регистратора' },
-  { key: 'approval', index: CONNECTION_STEP.approval, label: 'Подтверждение совета', description: 'Ничего делать не нужно' },
-  { key: 'installation', index: CONNECTION_STEP.installation, label: 'Установка', description: 'Провайдер разворачивает платформу' },
+  { key: 'union', index: CONNECTION_STEP.union, label: t('connectionAgreementStepper.stepper.steps.union.title'), description: t('connectionAgreementStepper.stepper.steps.union.hint') },
+  { key: 'intro', index: CONNECTION_STEP.intro, label: t('connectionAgreementStepper.stepper.steps.tariff.title'), description: t('connectionAgreementStepper.stepper.steps.tariff.hint') },
+  { key: 'profile', index: CONNECTION_STEP.profile, label: t('connectionAgreementStepper.stepper.steps.profile.title'), description: t('connectionAgreementStepper.stepper.steps.profile.hint') },
+  { key: 'domain', index: CONNECTION_STEP.domain, label: t('connectionAgreementStepper.stepper.steps.domain.title'), description: t('connectionAgreementStepper.stepper.steps.domain.hint') },
+  { key: 'financial', index: CONNECTION_STEP.financial, label: t('connectionAgreementStepper.stepper.steps.financial.title'), description: t('connectionAgreementStepper.stepper.steps.financial.hint') },
+  { key: 'agreement', index: CONNECTION_STEP.agreement, label: t('connectionAgreementStepper.stepper.steps.agreement.title'), description: t('connectionAgreementStepper.stepper.steps.agreement.hint') },
+  { key: 'dns', index: CONNECTION_STEP.dns, label: t('connectionAgreementStepper.stepper.steps.dns.title'), description: t('connectionAgreementStepper.stepper.steps.dns.hint') },
+  { key: 'approval', index: CONNECTION_STEP.approval, label: t('connectionAgreementStepper.stepper.steps.approval.title'), description: t('connectionAgreementStepper.stepper.steps.approval.hint') },
+  { key: 'installation', index: CONNECTION_STEP.installation, label: t('connectionAgreementStepper.stepper.steps.installation.title'), description: t('connectionAgreementStepper.stepper.steps.installation.hint') },
 ]
 
 // Шаг союза нужен только его членам, шаг тарифа — только когда есть из чего
@@ -90,7 +91,7 @@ const stepNumber = computed(() => visibleSteps.value.findIndex((s) => s.key === 
 const chosenInstanceTypeId = computed(() => selectedTariff.value?.instanceTypeId ?? null)
 const monthlyServerPrice = computed(() => serverPrice(chosenInstanceTypeId.value) ?? minServerPrice.value)
 const monthlyTotalPrice = computed(() => monthlyTotal(chosenInstanceTypeId.value))
-const serverLabel = computed(() => selectedTariff.value?.name ?? 'Сервер')
+const serverLabel = computed(() => selectedTariff.value?.name ?? t('connectionAgreementStepper.stepper.serverLabel'))
 
 function onStepperChange(key: string) {
   const found = ALL_STEPS.find((s) => s.key === key)
@@ -123,17 +124,17 @@ watch(
   aside.col-12.col-md-4.col-lg-3
     .connection-stepper__rail
       p.t-sm.connection-stepper__intro
-        | После подключения у кооператива появится собственная копия платформы —
-        | такая же, в какой вы работаете сейчас, — на вашем домене.
+        | {{ $t('connectionAgreementStepper.stepper.summary.copyLine1') }}
+        | {{ $t('connectionAgreementStepper.stepper.summary.copyLine2') }}
 
       //- Условия — коротко и на виду, чтобы их не приходилось искать по шагам.
       dl.connection-stepper__terms
         .connection-stepper__term
-          dt Стоимость
+          dt {{ $t('connectionAgreementStepper.stepper.summary.priceLabel') }}
           dd
-            template(v-if="!selectedTariff") от&nbsp;
+            template(v-if="!selectedTariff") {{ $t('connectionAgreementStepper.stepper.summary.priceFrom') }}
             span.t-mono.t-num {{ monthlyTotalPrice != null ? formatPrice(monthlyTotalPrice) : '…' }} ₽
-            |  в месяц
+            |  {{ $t('connectionAgreementStepper.stepper.summary.perMonth') }}
           //- Из чего складывается плата: сервер и обязательные услуги.
           ul.connection-stepper__breakdown
             li
@@ -145,16 +146,16 @@ watch(
           //- Документооборот тратится по факту работы, а не по календарю:
           //- пакет докупается, когда исчерпан.
           p.t-sm.t-muted.connection-stepper__note
-            | Документооборот расходуется по мере работы: {{ MEMBER_PRICE_RUB }} ₽ — регистрация
-            | пайщика, {{ DOCUMENT_PACKAGE_PRICE_RUB }} ₽ — пакет документов. Когда пакет
-            | заканчивается, кооператив докупает следующий.
+            | {{ $t('connectionAgreementStepper.stepper.summary.docflowLine1', { memberPrice: MEMBER_PRICE_RUB }) }}
+            | {{ $t('connectionAgreementStepper.stepper.summary.docflowLine2', { packagePrice: DOCUMENT_PACKAGE_PRICE_RUB }) }}
+            | {{ $t('connectionAgreementStepper.stepper.summary.docflowLine3') }}
         .connection-stepper__term(v-if="trialDays")
-          dt Первые {{ trialDays }} дней
-          dd бесплатно
+          dt {{ $t('connectionAgreementStepper.stepper.summary.trialPrefix', { days: trialDays }) }}
+          dd {{ $t('connectionAgreementStepper.stepper.summary.trialFree') }}
         .connection-stepper__term
-          dt Оплата
-          dd членским взносом с кошелька кооператива — этого аккаунта
-      .t-eyebrow.t-muted.connection-stepper__counter Шаг {{ stepNumber }} из {{ visibleSteps.length }}
+          dt {{ $t('connectionAgreementStepper.stepper.summary.paymentLabel') }}
+          dd {{ $t('connectionAgreementStepper.stepper.summary.paymentText') }}
+      .t-eyebrow.t-muted.connection-stepper__counter {{ $t('connectionAgreementStepper.stepper.stepCounter', { step: stepNumber, total: visibleSteps.length }) }}
       VerticalStepper(
         :steps="stepperSteps"
         :active-key="activeKey"

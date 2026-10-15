@@ -662,6 +662,7 @@ export class BlockchainService implements BlockchainPort {
     const result = await this.transact(actions);
     const txId = String(result.response?.transaction_id ?? result.resolved?.transaction.id ?? '');
     if (!txId) {
+      // i18n-ignore: внутренняя ошибка отправки в цепь — для журнала, пайщику не показывается
       throw new Error(`powerUp(${username}, ${quantity}): tx_id отсутствует в ответе chain'а`);
     }
     return txId;

@@ -2,6 +2,7 @@ import { ref, computed } from 'vue';
 import { client } from 'src/shared/api/client';
 import { Queries } from '@coopenomics/sdk';
 import type { ITariff } from 'src/entities/ConnectionAgreement';
+import { t as i18nT } from 'src/shared/i18n';
 
 /**
  * Каталог витрины подключения (Epic 28, форм-фактор §7): живые услуги и
@@ -24,7 +25,7 @@ const formatPrice = (value: number | string): string => {
 const specsLabel = (specs: Record<string, unknown> | null | undefined): string => {
   if (!specs) return '';
   const cpu = specs.cpu != null ? `${specs.cpu} CPU` : null;
-  const ram = specs.ram_gb != null ? `${specs.ram_gb} ГБ RAM` : null;
+  const ram = specs.ram_gb != null ? i18nT('provider.catalog.ramGb', { ram: specs.ram_gb }) : null;
   const disk = specs.disk ? String(specs.disk) : null;
   return [cpu, ram, disk].filter(Boolean).join(' · ') || String(specs.label ?? '');
 };
@@ -45,7 +46,7 @@ const load = async (force = false): Promise<void> => {
     );
     catalog.value = data;
   } catch (e: unknown) {
-    error.value = e instanceof Error ? e.message : 'Каталог тарифов временно недоступен';
+    error.value = e instanceof Error ? e.message : i18nT('provider.catalog.unavailable');
   } finally {
     isLoading.value = false;
   }

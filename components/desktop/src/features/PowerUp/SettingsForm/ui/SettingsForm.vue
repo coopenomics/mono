@@ -1,59 +1,59 @@
 <template lang="pug">
 .powerup-settings
-  BaseCard(title="Аренда вычислительных ресурсов" subtitle="Размер квоты, пороги CPU/NET/RAM, лимиты аренды")
+  BaseCard(:title="$t('powerUp.settingsForm.title')" :subtitle="$t('powerUp.settingsForm.subtitle')")
     BaseForm(@submit="onSubmit")
       .powerup-settings__grid
         BaseInput(
           v-model.number="form.dailyPackageSize"
-          label="Размер минимальной квоты"
+          :label="$t('powerUp.settingsForm.quotaLabel')"
           type="number"
-          :hint="`Минимум 5 ${symbol}. Каждое срабатывание триггера арендует столько вычислительных ресурсов (${symbol})`"
-          :rules="[(v) => v >= 5 || `Минимум 5 ${symbol}`]"
+          :hint="$t(`powerUp.settingsForm.quotaHint`, { symbol, resourceSymbol: symbol })"
+          :rules="[(v) => v >= 5 || $t(`powerUp.settingsForm.quotaRule`, { symbol })]"
         )
         BaseInput(
           v-model.number="form.thresholds.cpu"
-          label="Порог CPU (%)"
+          :label="$t('powerUp.settingsForm.cpuLabel')"
           type="number"
-          :rules="[(v) => v >= 0 && v <= 100 || 'От 0 до 100']"
+          :rules="[(v) => v >= 0 && v <= 100 || $t('powerUp.settingsForm.percentRule')]"
         )
         BaseInput(
           v-model.number="form.thresholds.net"
-          label="Порог NET (%)"
+          :label="$t('powerUp.settingsForm.netLabel')"
           type="number"
-          :rules="[(v) => v >= 0 && v <= 100 || 'От 0 до 100']"
+          :rules="[(v) => v >= 0 && v <= 100 || $t('powerUp.settingsForm.percentRule')]"
         )
         BaseInput(
           v-model.number="form.thresholds.ram"
-          label="Порог RAM (%)"
+          :label="$t('powerUp.settingsForm.ramLabel')"
           type="number"
-          :rules="[(v) => v >= 0 && v <= 100 || 'От 0 до 100']"
+          :rules="[(v) => v >= 0 && v <= 100 || $t('powerUp.settingsForm.percentRule')]"
         )
         BaseInput(
           v-model.number="form.cooldownMinutes"
-          label="Cooldown между арендой ресурсов (мин)"
+          :label="$t('powerUp.settingsForm.cooldownLabel')"
           type="number"
-          :rules="[(v) => v >= 0 || 'Не отрицательное']"
+          :rules="[(v) => v >= 0 || $t('powerUp.settingsForm.nonNegativeRule')]"
         )
         BaseInput(
           v-model.number="form.dailyAxonCap"
-          :label="`Суточный потолок ${symbol}`"
+          :label="$t(`powerUp.settingsForm.dailyAxonCapLabel`, { symbol })"
           type="number"
-          :rules="[(v) => v >= 0 || 'Не отрицательное']"
+          :rules="[(v) => v >= 0 || $t('powerUp.settingsForm.nonNegativeRule')]"
         )
         BaseInput(
           v-model.number="form.dailyPackageCap"
-          label="Суточный лимит аренд (шт.)"
+          :label="$t('powerUp.settingsForm.dailyPackageCapLabel')"
           type="number"
-          :rules="[(v) => v >= 0 || 'Не отрицательное']"
+          :rules="[(v) => v >= 0 || $t('powerUp.settingsForm.nonNegativeRule')]"
         )
         BaseInput(
           v-model.number="form.monthlyRubCap"
-          :label="`Месячный потолок взносов (${governSymbol})`"
+          :label="$t(`powerUp.settingsForm.monthlyCapLabel`, { symbol: governSymbol })"
           type="number"
-          :rules="[(v) => v >= 0 || 'Не отрицательное']"
+          :rules="[(v) => v >= 0 || $t('powerUp.settingsForm.nonNegativeRule')]"
         )
       .powerup-settings__actions
-        BaseButton(type="submit" label="Сохранить" :loading="isSaving" color="primary")
+        BaseButton(type="submit" :label="$t('common.action.save')" :loading="isSaving" color="primary")
 </template>
 
 <script setup lang="ts">

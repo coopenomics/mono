@@ -3,7 +3,7 @@ import { WorkflowBuilder } from '../../base/workflow-builder';
 import { z } from 'zod';
 import { BaseWorkflowPayload } from '../../types';
 import { createEmailStep, createInAppStep, createPushStep } from '../../base/defaults';
-import { slugify } from '../../utils';
+import { nt } from '../../i18n';
 
 // Epic 14 — оповещение пайщику о просроченной оплате (подписка → past_due).
 // Триггерит провайдер (через coopback) в момент перехода фазы 1: срок прошёл,
@@ -20,31 +20,22 @@ export type IPayload = z.infer<typeof subscriptionPastDuePayloadSchema>;
 
 export interface IWorkflow extends BaseWorkflowPayload, IPayload {}
 
-export const name = 'Оплата подписки просрочена';
-export const id = slugify(name);
+export const name = nt('subscriptionPastDue.name');
+// Идентификатор закреплён: на него ссылаются подписки и провайдер
+// (billing-workflows.ts). Не менять.
+export const id = 'oplata-podpiski-prosrochena';
 
 export const workflow: WorkflowDefinition<IWorkflow> = WorkflowBuilder
   .create<IWorkflow>()
   .name(name)
   .workflowId(id)
-  .description('Оплата подписки просрочена; сервис работает в течение grace-периода')
+  .i18nKey('subscriptionPastDue')
+  .description(nt('subscriptionPastDue.description'))
   .payloadSchema(subscriptionPastDuePayloadSchema)
   .tags(['billing'])
   .addSteps([
-    createEmailStep(
-      'subscription-past-due-email',
-      'Оплата подписки просрочена',
-      'Кооператив «{{payload.coopName}}», оплата вашей подписки просрочена.<br><br>Сумма к оплате: <strong>{{payload.amount}} ₽</strong>.<br><br>Сервис продолжит работать ещё {{payload.graceDays}} дн. — до {{payload.suspendDate}}. Если оплата не поступит, инстанс будет приостановлен.<br><br>Подробнее: {{payload.paymentUrl}}'
-    ),
-    createInAppStep(
-      'subscription-past-due-in-app',
-      'Оплата просрочена',
-      'Оплата просрочена. Сервис работает ещё {{payload.graceDays}} дн. (до {{payload.suspendDate}}). Сумма: {{payload.amount}} ₽.'
-    ),
-    createPushStep(
-      'subscription-past-due-push',
-      'Оплата просрочена',
-      'Сервис работает ещё {{payload.graceDays}} дн. Оплатите {{payload.amount}} ₽'
-    ),
+    createEmailStep('subscription-past-due-email', nt('subscriptionPastDue.email.subject'), nt('subscriptionPastDue.email.body')),
+    createInAppStep('subscription-past-due-in-app', nt('subscriptionPastDue.inApp.subject'), nt('subscriptionPastDue.inApp.body')),
+    createPushStep('subscription-past-due-push', nt('subscriptionPastDue.push.subject'), nt('subscriptionPastDue.push.body')),
   ])
   .build();

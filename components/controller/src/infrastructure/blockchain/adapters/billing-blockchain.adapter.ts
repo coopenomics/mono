@@ -5,7 +5,7 @@ import config from '~/config/config';
 import { TransactResult } from '@wharfkit/session';
 import { BlockchainService } from '../blockchain.service';
 import { VAULT_DOMAIN_SERVICE, VaultDomainService } from '~/domain/vault/services/vault-domain.service';
-import { HttpApiError, DomainToBlockchainUtils } from '@coopenomics/extension-kit';
+import { DomainToBlockchainUtils, DomainError } from '@coopenomics/extension-kit';
 import type { TransactionResult } from '~/domain/blockchain/types/transaction-result.type';
 import type {
   BillingBlockchainPort,
@@ -41,7 +41,7 @@ export class BillingBlockchainAdapter implements BillingBlockchainPort {
   private async initForCoop(coopname: string): Promise<void> {
     const wif = await this.vaultDomainService.getWif(coopname);
     if (!wif) {
-      throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ кооператива для подписания биллинг-операции');
+      throw new DomainError('BILLING_COOPERATIVE_KEY_NOT_FOUND', {}, httpStatus.BAD_GATEWAY);
     }
     this.blockchainService.initialize(coopname, wif);
   }
@@ -51,7 +51,7 @@ export class BillingBlockchainAdapter implements BillingBlockchainPort {
     const operator = config.coopname;
     const wif = await this.vaultDomainService.getWif(operator);
     if (!wif) {
-      throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ оператора для подписания биллинг-операции');
+      throw new DomainError('BILLING_OPERATOR_KEY_NOT_FOUND', {}, httpStatus.BAD_GATEWAY);
     }
     this.blockchainService.initialize(operator, wif);
     return operator;

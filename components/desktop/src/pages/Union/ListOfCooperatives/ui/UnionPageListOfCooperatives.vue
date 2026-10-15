@@ -3,15 +3,15 @@
   .banner
     q-icon.banner__icon(name="info" size="18px")
     .banner__body
-      | Заявки кооперативов на подключение к платформе. Совет читает рассказ о деятельности и устав,
-      | подтверждает подключение — после этого провайдер начинает поставку.
+      | {{ $t('union.cooperativesRegistry.bannerLine1') }}
+      | {{ $t('union.cooperativesRegistry.bannerLine2') }}
 
-  Loader(v-if="onLoading" :text="'Загрузка реестра...'")
+  Loader(v-if="onLoading" :text="$t('union.cooperativesRegistry.loading')")
 
   EmptyState(
     v-else-if="!coops || !coops.length"
-    title="Заявок нет"
-    body="Кооперативы, подавшие заявку на подключение, появятся здесь"
+    :title="$t('union.cooperativesRegistry.emptyTitle')"
+    :body="$t('union.cooperativesRegistry.emptyBody')"
   )
     template(#icon)
       q-icon(name="handshake" size="28px")
@@ -46,31 +46,31 @@
       //- Первое, что нужно совету на строке заявки: чем кооператив занимается
       //- и приложен ли устав. Полный текст и сам файл — в карточке кооператива.
       p.coop-registry__about(v-if="row.description") {{ row.description }}
-      p.coop-registry__about.t-muted(v-else) Описание не заполнено.
+      p.coop-registry__about.t-muted(v-else) {{ $t('union.cooperativesRegistry.noDescription') }}
 
       .coop-registry__summary
         .coop-registry__metric
-          .coop-registry__metric-label Устав
+          .coop-registry__metric-label {{ $t('union.cooperativesRegistry.charterLabel') }}
           .coop-registry__metric-value
             BaseChip(:variant="row.charter ? 'pos' : 'warn'" size="sm")
               q-icon(v-if="row.charter" name="check" size="12px").q-mr-xs
-              span {{ row.charter ? 'приложен' : 'не приложен' }}
+              span {{ row.charter ? $t('union.cooperativesRegistry.charterAttached') : $t('union.cooperativesRegistry.charterMissing') }}
         .coop-registry__metric
-          .coop-registry__metric-label Подписок
+          .coop-registry__metric-label {{ $t('union.cooperativesRegistry.subscriptionsLabel') }}
           .coop-registry__metric-value.t-mono {{ row.subscriptions?.length || 0 }}
         .coop-registry__metric
-          .coop-registry__metric-label Сумма в месяц
+          .coop-registry__metric-label {{ $t('union.cooperativesRegistry.monthlyTotalLabel') }}
           .coop-registry__metric-value.t-mono
             | {{ formatMoney(monthlyTotal(row)) }} RUB
         .coop-registry__metric
-          .coop-registry__metric-label Следующая оплата
+          .coop-registry__metric-label {{ $t('union.cooperativesRegistry.nextPaymentLabel') }}
           .coop-registry__metric-value.t-mono {{ nextPaymentLabel(row) }}
         .coop-registry__metric
-          .coop-registry__metric-label Хостинг
+          .coop-registry__metric-label {{ $t('union.cooperativesRegistry.hostingLabel') }}
           .coop-registry__metric-value
             BaseChip(v-if="hostingStatus(row)" :variant="instanceStatusVariant(hostingStatus(row))" size="sm")
               span {{ instanceStatusLabel(hostingStatus(row)) }}
-            span.t-muted(v-else) не разворачивался
+            span.t-muted(v-else) {{ $t('union.cooperativesRegistry.notDeployed') }}
 </template>
 
 <script setup lang="ts">
@@ -89,6 +89,7 @@ import {
   registryStatusVariant,
 } from 'src/entities/Union'
 import { FailAlert } from 'src/shared/api/alerts'
+import { t } from 'src/shared/i18n';
 
 type ICooperativeSubscription = ICooperativeRegistryItem['subscriptions'][number]
 
@@ -147,7 +148,7 @@ const formatMoney = (value: number | string): string =>
 
 const cardSubtitle = (row: ICooperativeRegistryItem): string => {
   const parts: string[] = [row.coopname]
-  if (row.created_at) parts.push(`заявка от ${formatDateTime(row.created_at)}`)
+  if (row.created_at) parts.push(t('union.cooperativesRegistry.applicationFrom', { date: formatDateTime(row.created_at) }))
   return parts.join(' · ')
 }
 

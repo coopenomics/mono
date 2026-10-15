@@ -1,3 +1,4 @@
+import { t } from 'src/shared/i18n';
 /**
  * Словарь статусов реестра кооперативов — общий для списка и карточки.
  *
@@ -24,11 +25,11 @@ export const isRegistryStatus = (
 export const registryStatusLabel = (status: string | null | undefined): string => {
   switch (normalize(status)) {
     case 'active':
-      return 'подключение подтверждено'
+      return t('union.registry.status.active')
     case 'pending':
-      return 'ждёт решения совета'
+      return t('union.registry.status.pending')
     case 'blocked':
-      return 'заблокирован'
+      return t('union.registry.status.blocked')
     default:
       return status ?? '—'
   }
@@ -52,19 +53,19 @@ export const registryStatusVariant = (status: string | null | undefined): UnionC
 export const instanceStatusLabel = (status: string | null | undefined): string => {
   switch (normalize(status)) {
     case 'active':
-      return 'работает'
+      return t('union.instance.status.active')
     case 'install':
-      return 'устанавливается'
+      return t('union.instance.status.install')
     case 'rent':
-      return 'арендуем сервер'
+      return t('union.instance.status.rent')
     case 'pending':
-      return 'в очереди'
+      return t('union.instance.status.pending')
     case 'error':
-      return 'ошибка'
+      return t('union.instance.status.error')
     case 'blocked':
-      return 'заблокирован'
+      return t('union.instance.status.blocked')
     case 'requires_manual_review':
-      return 'нужна проверка'
+      return t('union.instance.status.requiresManualReview')
     default:
       return status ?? '—'
   }
@@ -91,18 +92,18 @@ export const instanceStatusVariant = (status: string | null | undefined): UnionC
 export const subscriptionStatusLabel = (status: string | null | undefined): string => {
   switch (normalize(status)) {
     case 'active':
-      return 'активна'
+      return t('union.subscription.status.active')
     // Пробный период провайдер отдаёт отдельным статусом (SubscriptionStatus.TRIAL),
     // и без своей ветки он доезжал до совета сырым «TRIAL».
     case 'trial':
-      return 'пробный период'
+      return t('union.subscription.status.trial')
     case 'pending':
-      return 'ожидает оплаты'
+      return t('union.subscription.status.pending')
     case 'cancelled':
     case 'canceled':
-      return 'отменена'
+      return t('union.subscription.status.cancelled')
     case 'expired':
-      return 'истекла'
+      return t('union.subscription.status.expired')
     default:
       return status ?? '—'
   }
@@ -142,16 +143,16 @@ const isStalledAttempt = (status: string | null | undefined, hasError: boolean):
   hasError && normalize(status) === 'submitting'
 
 export const paymentStatusLabel = (status: string | null | undefined, hasError = false): string => {
-  if (isStalledAttempt(status, hasError)) return 'не подтверждено'
+  if (isStalledAttempt(status, hasError)) return t('union.payment.status.stalled')
   switch (normalize(status)) {
     case 'confirmed':
-      return 'оплачено'
+      return t('union.payment.status.confirmed')
     case 'submitted':
-      return 'отправлено в цепь'
+      return t('union.payment.status.submitted')
     case 'submitting':
-      return 'отправляется'
+      return t('union.payment.status.submitting')
     case 'failed':
-      return 'отклонено'
+      return t('union.payment.status.failed')
     default:
       return status ?? '—'
   }

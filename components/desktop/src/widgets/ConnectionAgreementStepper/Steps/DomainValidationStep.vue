@@ -47,28 +47,28 @@ const handleReload = async () => {
 
 <template lang="pug">
 StepFrame(
-  title="Направьте домен на сервер платформы"
-  lead="Чтобы адрес кооператива открывал вашу копию платформы, домен нужно направить на сервер, где она будет установлена. Это делается в панели управления доменом у регистратора — там, где вы его покупали."
+  :title="$t('connectionAgreementStepper.domainValidationStep.stepTitle')"
+  :lead="$t('connectionAgreementStepper.domainValidationStep.lead')"
   :next-disabled="!isDelegated"
   @back="handleBack"
   @next="handleContinue"
 )
   ol.dns-step__how
-    li Откройте панель управления доменом у регистратора и найдите раздел DNS-записей.
-    li Добавьте запись типа
+    li {{ $t('connectionAgreementStepper.domainValidationStep.howOpenPanel') }}
+    li {{ $t('connectionAgreementStepper.domainValidationStep.howAddRecordPrefix') }}
       |  
       span.t-mono CNAME
-      |  для имени ниже со значением ниже. Если такая запись уже есть — замените значение. Кабинет размещается на поддомене: для корня домена запись CNAME недоступна.
-    li Сохраните. Обычно запись вступает в силу за несколько минут, но у некоторых регистраторов это занимает до суток — мы проверяем автоматически и продолжим сами.
+      |  {{ $t('connectionAgreementStepper.domainValidationStep.howAddRecordSuffix') }}
+    li {{ $t('connectionAgreementStepper.domainValidationStep.howSave') }}
 
   .dns-step__values
-    DataRow(label="Имя записи" :value="coop?.announce" mono copyable)
-    DataRow(label="Значение CNAME" :value="CONNECTOR_HOST" mono copyable)
+    DataRow(:label="$t('connectionAgreementStepper.domainValidationStep.recordName')" :value="coop?.announce" mono copyable)
+    DataRow(:label="$t('connectionAgreementStepper.domainValidationStep.recordValue')" :value="CONNECTOR_HOST" mono copyable)
 
   .dns-step__status
     BaseChip(:variant="isDelegated ? 'pos' : 'warn'")
       q-icon(:name="isDelegated ? 'check' : 'schedule'" size="12px").q-mr-xs
-      span {{ isDelegated ? 'Домен направлен на сервер' : 'Ждём, когда запись вступит в силу' }}
+      span {{ isDelegated ? $t('connectionAgreementStepper.domainValidationStep.statusDelegated') : $t('connectionAgreementStepper.domainValidationStep.statusWaiting') }}
     BaseButton(
       v-if="!isDelegated"
       variant="secondary"
@@ -76,7 +76,7 @@ StepFrame(
       type="button"
       :loading="isChecking"
       @click="handleReload"
-    ) Проверить сейчас
+    ) {{ $t('connectionAgreementStepper.domainValidationStep.checkNow') }}
 </template>
 
 <style scoped>

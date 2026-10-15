@@ -1,4 +1,4 @@
-import { Injectable, Logger, Inject, BadRequestException } from '@nestjs/common';
+import { Injectable, Logger, Inject } from '@nestjs/common';
 import { DomainError } from '@coopenomics/extension-kit';
 import axios from 'axios';
 import { RegistratorContract } from 'cooptypes';
@@ -14,6 +14,7 @@ import { BLOCKCHAIN_PORT, type BlockchainPort } from '~/domain/common/ports/bloc
 import { ORGANIZATION_REPOSITORY, type OrganizationRepository } from '~/domain/common/repositories/organization.repository';
 import { CooperativeCharterService } from './cooperative-charter.service';
 import { CooperativeCharterOutputDTO } from '../dto/cooperative-charter.output';
+import { t } from '~/i18n';
 
 @Injectable()
 export class ProviderService {
@@ -54,11 +55,11 @@ export class ProviderService {
    */
   async getConnectionCatalog(coopname?: string): Promise<ProviderConnectionCatalogDTO> {
     if (!this.isProviderAvailable()) {
-      throw new BadRequestException('Провайдер не настроен (PROVIDER_BASE_URL)');
+      throw DomainError.badRequest('PROVIDER_BASE_URL_MISSING');
     }
     const token = config.provider_bearer_token;
     if (!token) {
-      throw new BadRequestException('Витрина провайдера не настроена (PROVIDER_BEARER_TOKEN)');
+      throw DomainError.badRequest('PROVIDER_CATALOG_TOKEN_MISSING');
     }
     try {
       const response = await axios.get(`${config.provider_base_url}/v1/subscription-types`, {
@@ -73,7 +74,7 @@ export class ProviderService {
       };
     } catch (error: any) {
       this.logger.error(`Каталог витрины провайдера недоступен: ${error?.message || error}`);
-      throw new BadRequestException('Каталог тарифов провайдера временно недоступен, попробуйте позже');
+      throw DomainError.badRequest('PROVIDER_CATALOG_UNAVAILABLE');
     }
   }
 
@@ -198,7 +199,7 @@ export class ProviderService {
     instanceTypeId: number,
   ): Promise<{ migration_state: string; new_price: number }> {
     if (!this.isProviderAvailable()) {
-      throw new BadRequestException('Провайдер не настроен (PROVIDER_BASE_URL)');
+      throw DomainError.badRequest('PROVIDER_BASE_URL_MISSING');
     }
     try {
       const response = await axios.post(
@@ -208,9 +209,9 @@ export class ProviderService {
       );
       return response.data;
     } catch (error: any) {
-      const message = error?.response?.data?.message || error?.message || 'неизвестная ошибка';
+      const message = error?.response?.data?.message || error?.message || t('provider.hostingPlan.unknownError');
       this.logger.error(`Смена тарифа для ${username} не прошла: ${message}`);
-      throw new BadRequestException(`Не удалось сменить тариф: ${message}`);
+      throw DomainError.badRequest('PROVIDER_HOSTING_PLAN_CHANGE_FAILED', { reason: message });
     }
   }
 

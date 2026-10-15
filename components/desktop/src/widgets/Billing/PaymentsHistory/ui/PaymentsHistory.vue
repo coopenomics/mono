@@ -5,8 +5,8 @@
   BaseCard(:variant="title ? 'default' : 'flat'" :title="title" :subtitle="subtitle")
     EmptyState(
       v-if="!loading && !payments.length"
-      title="Списаний ещё не было"
-      body="Здесь появятся списания за подписки: хаб списывает их с кошелька кооператива по расписанию"
+      :title="$t('billing.paymentsHistory.emptyTitle')"
+      :body="$t('billing.paymentsHistory.emptyBody')"
     )
       template(#icon)
         q-icon(name="history" size="28px")
@@ -47,6 +47,7 @@ import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits'
 import { paymentStatusLabel, paymentStatusVariant } from 'src/entities/Union'
 import { useLoadCooperativePayments } from 'src/features/Union/LoadCooperativePayments'
 import { useLiveReload } from 'src/shared/lib/realtime'
+import { t } from 'src/shared/i18n';
 
 /**
  * Журнал списаний за подписки: одна и та же таблица нужна и совету в карточке
@@ -74,10 +75,10 @@ const { payments, loading, error, loadPayments } = useLoadCooperativePayments()
 // цепи в интерфейсе нет, ссылкой хэш не станет, а пайщику он ничего не говорит —
 // колонка только съедала ширину у причины отказа. Значение остаётся в журнале.
 const columns = [
-  { key: 'date', label: 'Когда', align: 'left' as const },
-  { key: 'subject', label: 'За что', align: 'left' as const },
-  { key: 'amount', label: 'Сумма', align: 'right' as const, numeric: true },
-  { key: 'status', label: 'Состояние', align: 'left' as const, width: '38%' },
+  { key: 'date', label: t('billing.paymentsHistory.column.date'), align: 'left' as const },
+  { key: 'subject', label: t('billing.paymentsHistory.column.subject'), align: 'left' as const },
+  { key: 'amount', label: t('billing.paymentsHistory.column.amount'), align: 'right' as const, numeric: true },
+  { key: 'status', label: t('billing.paymentsHistory.column.status'), align: 'left' as const, width: '38%' },
 ]
 
 const formatDateTime = (d: string) => moment(d).format('DD.MM.YY HH:mm')

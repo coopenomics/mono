@@ -23,15 +23,15 @@ const refreshStatus = async () => {
 
 <template lang="pug">
 StepFrame(
-  title="Совет проверяет заявку"
-  lead="Домен готов, соглашение подписано — с вашей стороны всё сделано. Заявку на подключение рассматривает совет. Как только подтверждение появится, установка начнётся сама — страницу можно закрыть и вернуться позже."
+  :title="$t('connectionAgreementStepper.approvalWaitingStep.stepTitle')"
+  :lead="$t('connectionAgreementStepper.approvalWaitingStep.lead')"
   :can-back="false"
   :has-next="false"
 )
   .approval-step__status
     BaseChip(:variant="isApproved ? 'pos' : 'warn'")
       q-icon(:name="isApproved ? 'check' : 'schedule'" size="12px").q-mr-xs
-      span {{ isApproved ? 'Подключение подтверждено' : 'Ждём подтверждения совета' }}
+      span {{ isApproved ? $t('connectionAgreementStepper.approvalWaitingStep.statusConfirmed') : $t('connectionAgreementStepper.approvalWaitingStep.statusWaiting') }}
     BaseButton(
       v-if="!isApproved"
       variant="secondary"
@@ -39,7 +39,7 @@ StepFrame(
       type="button"
       :loading="isChecking"
       @click="refreshStatus"
-    ) Проверить сейчас
+    ) {{ $t('connectionAgreementStepper.approvalWaitingStep.checkNow') }}
 </template>
 
 <style scoped>

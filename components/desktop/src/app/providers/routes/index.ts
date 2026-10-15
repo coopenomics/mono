@@ -21,7 +21,7 @@ import { CoopidFlowPage } from 'src/pages/Registrator/CoopidFlow';
 // src/desktops не читает, поэтому маршрут объявлен здесь.
 import { ResourceMonitorPage } from 'src/pages/PowerUp/ResourceMonitorPage';
 import { defineComponent, h } from 'vue';
-import { t } from 'src/shared/i18n';
+import { t, t as i18nT } from 'src/shared/i18n';
 
 // Dynamic layout wrapper, который определяет layout в runtime
 const DynamicLayoutWrapper = defineComponent({
@@ -275,7 +275,7 @@ const baseRoutes: RouteRecordRaw[] = [
         component: ResourceMonitorPage,
         children: [],
         meta: {
-          title: 'Пакетные ресурсы',
+          title: i18nT('app.routes.powerupResources'),
           icon: 'fa-solid fa-bolt',
         },
       },

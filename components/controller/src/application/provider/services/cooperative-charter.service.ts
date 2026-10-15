@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { createHash } from 'crypto';
 import type { InnerFileStorageBucket } from '@coopenomics/innercoop';
 import { InjectBucket, UseBucket } from '~/infrastructure/file-storage';
@@ -12,6 +12,7 @@ import {
   CHARTER_EXTENSION_BY_MIME,
 } from '~/domain/cooperative-charter/constants/charter-bucket';
 import { UploadCooperativeCharterInputDTO } from '../dto/upload-cooperative-charter.input';
+import { DomainError } from '@coopenomics/extension-kit';
 
 /**
  * Уставы кооперативов, приложенные к заявке на подключение.
@@ -39,20 +40,18 @@ export class CooperativeCharterService {
   ): Promise<{ data: ICooperativeCharterDatabaseData; readUrl: string }> {
     const body = Buffer.from(input.content_base64, 'base64');
     if (body.byteLength !== input.size_bytes) {
-      throw new BadRequestException(
-        `size_bytes (${input.size_bytes}) не совпадает с фактическим размером base64-содержимого (${body.byteLength}).`
-      );
+      throw DomainError.badRequest('PROVIDER_CHARTER_SIZE_MISMATCH', { declared: input.size_bytes, actual: body.byteLength });
     }
     const actualChecksum = createHash('sha256').update(body).digest('hex');
     if (actualChecksum !== input.checksum_sha256.toLowerCase()) {
-      throw new BadRequestException('checksum_sha256 не совпадает с реальным SHA-256 содержимого.');
+      throw DomainError.badRequest('PROVIDER_CHARTER_CHECKSUM_MISMATCH');
     }
 
     const existing = await this.charters.findLatestByUsername(input.coopname, input.username);
     if (existing && existing.checksum_sha256 === actualChecksum) {
       // Тот же файл уже приложен: повторная отправка — это, как правило, второй
       // клик по кнопке, а не новая редакция устава.
-      throw new ConflictException('Этот же файл устава уже приложен к заявке.');
+      throw DomainError.conflict('PROVIDER_CHARTER_DUPLICATE');
     }
 
     const storageKey = this.buildKey({
@@ -91,7 +90,7 @@ export class CooperativeCharterService {
 
   async getReadUrl(id: number): Promise<{ data: ICooperativeCharterDatabaseData; readUrl: string }> {
     const charter = await this.charters.findById(id);
-    if (!charter) throw new NotFoundException(`Устав #${id} не найден.`);
+    if (!charter) throw DomainError.notFound('PROVIDER_CHARTER_NOT_FOUND', { id });
     return { data: charter, readUrl: await this.bucket.getReadUrl(charter.storage_key) };
   }
 

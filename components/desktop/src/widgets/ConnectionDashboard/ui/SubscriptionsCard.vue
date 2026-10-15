@@ -1,12 +1,12 @@
 <template lang="pug">
 .subs-card
-  BaseCard(title="Подписки" subtitle="Услуги провайдера, оплачиваемые членскими взносами")
-    BaseBanner(v-if="error" variant="neg") Ошибка загрузки подписок: {{ error }}
+  BaseCard(:title="$t('connectionDashboard.subscriptionsCard.title')" :subtitle="$t('connectionDashboard.subscriptionsCard.subtitle')")
+    BaseBanner(v-if="error" variant="neg") {{ $t('connectionDashboard.subscriptionsCard.loadErrorWithReason', { error }) }}
 
     EmptyState(
       v-else-if="!isLoading && !subscriptions.length"
-      title="Нет активных подписок"
-      body="Подписки появятся после подключения услуг платформы"
+      :title="$t('connectionDashboard.subscriptionsCard.emptyTitle')"
+      :body="$t('connectionDashboard.subscriptionsCard.emptyBody')"
     )
       template(#icon)
         q-icon(name="receipt_long" size="28px")
@@ -40,7 +40,7 @@
             size="sm"
             type="button"
             @click="openUpgrade(row)"
-          ) Сменить тариф
+          ) {{ $t('connectionDashboard.subscriptionsCard.changePlan') }}
 
       template(#cell-status="{ row }")
         BaseBadge(:variant="subscriptionStatusVariant(row.status)") {{ subscriptionStatusLabel(row.status) }}
@@ -51,38 +51,38 @@
       template(#cell-price="{ row }")
         template(v-if="isFree(row)")
           .subs-card__price.t-mono.t-num {{ formatPrice(0) }}
-          .subs-card__period включено оператором
+          .subs-card__period {{ $t('connectionDashboard.subscriptionsCard.includedByOperator') }}
         template(v-else-if="isPackage(row)")
           .subs-card__price.t-mono.t-num {{ formatPrice(row.packages_current_period_amount || 0) }}
           .subs-card__period {{ packageBreakdown(row) }}
         template(v-else)
           .subs-card__price.t-mono.t-num {{ formatPrice(row.price) }}
-          .subs-card__period в месяц
+          .subs-card__period {{ $t('connectionDashboard.subscriptionsCard.perMonth') }}
 
       //- Итог: сколько кооператив платит за платформу в месяц. По строкам это
       //- не складывалось в голове, а именно эта сумма нужна, чтобы держать
       //- кошелёк наполненным.
       template(#footer)
         .subs-card__total
-          .subs-card__total-label Итого в месяц
+          .subs-card__total-label {{ $t('connectionDashboard.subscriptionsCard.totalPerMonth') }}
           .subs-card__total-value
             .t-mono.t-num {{ formatPrice(summary.monthlyTotal) }}
-            .subs-card__period(v-if="hasPackage") документооборот — по мере расхода
+            .subs-card__period(v-if="hasPackage") {{ $t('connectionDashboard.subscriptionsCard.docflowByUsage') }}
 
   //- Апгрейд сервера: конфигурация выбирается здесь, дальше провайдер сам
   //- переносит систему. Даунгрейд намеренно не предлагается — диск нового
   //- сервера должен вмещать данные текущего.
   BaseDialog(
     v-model="upgradeOpen"
-    title="Сменить тариф сервера"
+    :title="$t('connectionDashboard.subscriptionsCard.changePlanDialogTitle')"
     size="md"
   )
     p.subs-card__dlg-text
-      | Новая цена начнёт действовать сразу: неиспользованный остаток текущего
-      | тарифа будет зачтён днями нового.
+      | {{ $t('connectionDashboard.subscriptionsCard.changePlanLine1') }}
+      | {{ $t('connectionDashboard.subscriptionsCard.changePlanLine2') }}
     BaseBanner(variant="warn")
-      | Во время переезда система кооператива будет недоступна примерно час —
-      | идут технические работы. После этого она откроется уже на новом сервере.
+      | {{ $t('connectionDashboard.subscriptionsCard.downtimeLine1') }}
+      | {{ $t('connectionDashboard.subscriptionsCard.downtimeLine2') }}
     .subs-card__dlg-options(v-if="upgradeOptions.length")
       BaseRadioCard(
         v-for="opt in upgradeOptions"
@@ -96,8 +96,8 @@
       )
     EmptyState(
       v-else
-      title="Тарифов мощнее нет"
-      body="Сейчас вы на самой мощной конфигурации из каталога"
+      :title="$t('connectionDashboard.subscriptionsCard.noUpgradeTitle')"
+      :body="$t('connectionDashboard.subscriptionsCard.noUpgradeBody')"
     )
     template(#footer)
       BaseButton(
@@ -105,14 +105,14 @@
         type="button"
         :disabled="upgrading"
         @click="upgradeOpen = false"
-      ) Отменить
+      ) {{ $t('connectionDashboard.subscriptionsCard.cancel') }}
       BaseButton(
         variant="primary"
         type="button"
         :loading="upgrading"
         :disabled="!selectedTypeId"
         @click="confirmUpgrade"
-      ) Перейти на новый тариф
+      ) {{ $t('connectionDashboard.subscriptionsCard.confirmUpgrade') }}
 </template>
 
 <script setup lang="ts">
@@ -140,6 +140,7 @@ import type { BaseTableColumn } from 'src/shared/ui/base'
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits'
 import { client } from 'src/shared/api/client'
 import { FailAlert, SuccessAlert } from 'src/shared/api/alerts'
+import { t } from 'src/shared/i18n';
 
 const { subscriptions, isLoading, error, loadSubscriptions } = useProviderSubscriptions()
 const { catalog, load: loadCatalog } = useConnectionCatalog()
@@ -157,13 +158,13 @@ onMounted(async () => {
 // услуги забирает остаток — на узком экране включается прокрутка таблицы,
 // а не наезд ячеек друг на друга.
 const columns: BaseTableColumn<ProviderSubscription>[] = [
-  { key: 'name', label: 'Услуга' },
-  { key: 'status', label: 'Состояние', width: '130px' },
+  { key: 'name', label: t('connectionDashboard.subscriptionsCard.column.service') },
+  { key: 'status', label: t('connectionDashboard.subscriptionsCard.column.status'), width: '130px' },
   // nowrap здесь стоять не может: он держит в одну строку не только сумму, но и
   // подпись под ней («1 × 1 500,00 RUB в этом месяце»), а она длиннее колонки —
   // таблица разъезжалась шире карточки и уходила в горизонтальную прокрутку.
   // Сумму от переноса бережёт свой стиль, подпись переносится по словам.
-  { key: 'price', label: 'Стоимость', numeric: true, width: '190px' },
+  { key: 'price', label: t('connectionDashboard.subscriptionsCard.column.price'), numeric: true, width: '190px' },
 ]
 
 // Порядок услуг в реестре: документооборот — основа участия и платится
@@ -197,7 +198,7 @@ const planOption = (sub: any): any =>
  */
 const planName = (sub: any): string => {
   const option = planOption(sub)
-  return option?.name ? `Тариф «${option.name}»` : 'Тариф не определён'
+  return option?.name ? t('connectionDashboard.subscriptionsCard.planName', { name: option.name }) : t('connectionDashboard.subscriptionsCard.planUnknown')
 }
 
 /** Характеристики текущей конфигурации — «4 CPU · 8 ГБ RAM · 120 GB». */
@@ -218,6 +219,7 @@ const diskGb = (opt: any): number => {
   const value = Number(match[1])
   if (!Number.isFinite(value)) return 0
   const unit = (match[2] ?? '').toUpperCase()
+  // i18n-ignore: сравнение единицы объёма диска — логика, а не текст интерфейса
   return unit === 'TB' || unit === 'ТБ' ? value * 1024 : value
 }
 
@@ -253,7 +255,7 @@ const packageRule = (sub: any): string => {
   if (!isPackage(sub)) return ''
   const threshold = Number(sub?.package_low_water_axon ?? 0)
   if (!Number.isFinite(threshold) || threshold <= 0) return ''
-  return `Следующий пакет за ${formatPrice(Number(sub?.price ?? 0))} докупается автоматически, когда остаток AXON опускается ниже ${threshold}`
+  return t('connectionDashboard.subscriptionsCard.nextPackageHint', { price: formatPrice(Number(sub?.price ?? 0)), threshold })
 }
 
 const packageBreakdown = (sub: any): string => {
@@ -261,9 +263,9 @@ const packageBreakdown = (sub: any): string => {
   const spent = Number(sub?.packages_current_period_amount ?? 0)
   const packages = packagePrice > 0 ? Math.round(spent / packagePrice) : 0
   if (packages > 0) {
-    return `${packages} × ${formatPrice(packagePrice)} в этом месяце`
+    return t('connectionDashboard.subscriptionsCard.packagesThisMonth', { packages, price: formatPrice(packagePrice) })
   }
-  return `${formatPrice(packagePrice)} за пакет`
+  return t('connectionDashboard.subscriptionsCard.perPackage', { price: formatPrice(packagePrice) })
 }
 
 // Предлагаем только конфигурации с бо́льшим накопителем: перенос копирует диск
@@ -283,12 +285,12 @@ const optionSpecs = (opt: any): string => {
   const specs = opt.specs as Record<string, unknown> | null
   const parts: string[] = []
   if (specs?.cpu) parts.push(`${specs.cpu} CPU`)
-  if (specs?.ram_gb) parts.push(`${specs.ram_gb} ГБ RAM`)
+  if (specs?.ram_gb) parts.push(t('connectionDashboard.subscriptionsCard.ramGb', { ram: specs.ram_gb }))
   if (specs?.disk) parts.push(String(specs.disk))
   return parts.join(' · ')
 }
 
-const optionPrice = (opt: any): string => `${formatPrice(opt.price)} в месяц`
+const optionPrice = (opt: any): string => t('connectionDashboard.subscriptionsCard.pricePerMonth', { price: formatPrice(opt.price) })
 
 const openUpgrade = async (sub: any) => {
   currentPrice.value = Number(sub.price) || 0
@@ -308,8 +310,8 @@ const confirmUpgrade = async () => {
     )
     upgradeOpen.value = false
     SuccessAlert(
-      `Переход оформлен: новая цена ${formatPrice(result.new_price)} в месяц уже действует, ` +
-        'система переедет на новый сервер в течение часа',
+      t('connectionDashboard.subscriptionsCard.upgradeDoneLine1', { price: formatPrice(result.new_price) }) +
+        t('connectionDashboard.subscriptionsCard.upgradeDoneLine2'),
     )
     await loadSubscriptions()
   } catch (e: any) {

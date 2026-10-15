@@ -9,6 +9,7 @@ import {
 } from 'src/entities/ConnectionAgreement'
 import { useSystemStore } from 'src/entities/System/model'
 import StepFrame from '../ui/StepFrame.vue'
+import { t } from 'src/shared/i18n';
 
 const connectionAgreement = useConnectionAgreementStore()
 const system = useSystemStore()
@@ -26,11 +27,11 @@ watch(
 const validate = (): boolean => {
   const v = (announce.value || '').trim()
   if (notEmpty(v) !== true) {
-    errorMsg.value = 'Укажите домен или поддомен'
+    errorMsg.value = t('connectionAgreementStepper.domainStep.domainRequired')
     return false
   }
   if (isDomain(v) !== true) {
-    errorMsg.value = 'Введите корректное имя домена'
+    errorMsg.value = t('connectionAgreementStepper.domainStep.domainInvalid')
     return false
   }
   errorMsg.value = ''
@@ -61,8 +62,8 @@ const handleBack = () => {
 
 <template lang="pug">
 StepFrame(
-  title="На каком адресе будет работать кооператив"
-  lead="Ваша копия платформы откроется по этому адресу — пайщики будут заходить на него, чтобы вступать, подписывать документы и участвовать в собраниях. Домен должен принадлежать вам: на одном из следующих шагов потребуется изменить его DNS-записи."
+  :title="$t('connectionAgreementStepper.domainStep.title')"
+  :lead="$t('connectionAgreementStepper.domainStep.lead')"
   :can-back="canGoBack"
   @back="handleBack"
   @next="handleContinue"
@@ -71,20 +72,20 @@ StepFrame(
     .col-12.col-md-6
       BaseInput(
         v-model="announce"
-        label="Домен или поддомен"
-        placeholder="coop.ru или app.coop.ru"
-        hint="Без https:// и без слэша в конце"
+        :label="$t('connectionAgreementStepper.domainStep.domainLabel')"
+        :placeholder="$t('connectionAgreementStepper.domainStep.domainPlaceholder')"
+        :hint="$t('connectionAgreementStepper.domainStep.domainHint')"
         :error="errorMsg || undefined"
         mono
       )
     .col-12.col-md-6
       ul.domain-step__tips
         li
-          strong Подойдёт и поддомен.
-          |  Если сайт кооператива уже живёт на coop.ru, платформу удобно разместить на app.coop.ru — сайт останется на месте.
+          strong {{ $t('connectionAgreementStepper.domainStep.subdomainTitle') }}
+          |  {{ $t('connectionAgreementStepper.domainStep.subdomainText') }}
         li
-          strong Адрес можно сменить позже
-          |  в настройках подключения, но пайщикам придётся сообщить новый.
+          strong {{ $t('connectionAgreementStepper.domainStep.changeLaterTitle') }}
+          |  {{ $t('connectionAgreementStepper.domainStep.changeLaterText') }}
 </template>
 
 <style scoped>

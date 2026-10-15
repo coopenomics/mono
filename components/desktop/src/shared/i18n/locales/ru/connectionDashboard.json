@@ -1,28 +1,95 @@
 {
   "connectionDashboard": {
+    "axonWallet": {
+      "subtitle": "Ресурс документооборота"
+    },
+    "billingDueCard": {
+      "backupNote": "данные сохранены в резервной копии",
+      "dueLabel": "К оплате",
+      "overdue": "Просрочка",
+      "suspended": "Обслуживание приостановлено",
+      "topUp": "Пополнить кошелёк",
+      "topUpNeeded": "Необходимо пополнить",
+      "walletLabel": "На кошельке"
+    },
+    "dashboard": {
+      "paymentNoteLine1": "Подписки оплачиваются членскими взносами: пайщик переводит в них свой",
+      "paymentNoteLine2": "паевой взнос. AXON для документооборота оператор докупает сам — по факту",
+      "paymentNoteLine3": "работы, но не меньше 5 AXON в день; напрямую паевым взносом он не",
+      "paymentNoteLine4": "пополняется.",
+      "paymentsSubtitle": "Оплаты подписок членскими взносами кооператива",
+      "paymentsTitle": "История списаний"
+    },
     "domainCard": {
+      "addressEyebrow": "Адрес кооператива",
+      "cancel": "Отменить",
       "cancelTooltip": "Отменить",
+      "cnameWarning": "Убедитесь, что домен указывает CNAME-записью на {host}.",
       "coopDataError": "Не удалось получить данные кооператива",
       "delegateWarningLine1": "⚠️ Убедитесь, что домен указывает CNAME-записью на {serverIp}.",
       "delegateWarningLine2": "Обновление домена перезагрузит цифровой кооператив.",
       "delegateWarningLine3": "Все данные будут сохранены.",
       "delegatedLabel": "Домен делегирован",
+      "delegationDone": "домен делегирован",
+      "delegationUpdating": "обновляем",
+      "delegationWaiting": "ожидание делегирования",
       "domainEmptyError": "Домен не может быть пустым",
+      "domainLabel": "Доменное имя",
       "domainPlaceholder": "Введите домен",
       "domainRequired": "Домен обязателен",
       "domainUpdateError": "Ошибка при обновлении домена: {errorMessage}",
       "domainUpdateSuccess": "Домен успешно обновлен",
+      "domainUpdated": "Домен успешно обновлён",
+      "edit": "Изменить",
+      "editAria": "Изменить домен",
       "editTooltip": "Редактировать домен",
+      "reloadWarning": "Обновление перезагрузит цифровой кооператив; данные сохранятся.",
       "title": "Подключение",
       "updatingStatus": "Обновляем"
     },
+    "membershipWallet": {
+      "subtitle": "Оплата подписок кооператива",
+      "title": "Членские взносы",
+      "topUp": "Пополнить"
+    },
     "subscriptionsCard": {
+      "cancel": "Отменить",
+      "changePlan": "Сменить тариф",
+      "changePlanDialogTitle": "Сменить тариф сервера",
+      "changePlanLine1": "Новая цена начнёт действовать сразу: неиспользованный остаток текущего",
+      "changePlanLine2": "тарифа будет зачтён днями нового.",
+      "column": {
+        "price": "Стоимость",
+        "service": "Услуга",
+        "status": "Состояние"
+      },
+      "confirmUpgrade": "Перейти на новый тариф",
+      "docflowByUsage": "документооборот — по мере расхода",
+      "downtimeLine1": "Во время переезда система кооператива будет недоступна примерно час —",
+      "downtimeLine2": "идут технические работы. После этого она откроется уже на новом сервере.",
+      "emptyBody": "Подписки появятся после подключения услуг платформы",
       "emptyHint": "Подписки появятся после подключения услуг платформы",
       "emptyTitle": "Нет активных подписок",
+      "includedByOperator": "включено оператором",
       "loadError": "Ошибка загрузки подписок",
+      "loadErrorWithReason": "Ошибка загрузки подписок: {error}",
       "loadingText": "Загрузка подписок...",
+      "nextPackageHint": "Следующий пакет за {price} докупается автоматически, когда остаток AXON опускается ниже {threshold}",
+      "noUpgradeBody": "Сейчас вы на самой мощной конфигурации из каталога",
+      "noUpgradeTitle": "Тарифов мощнее нет",
+      "packagesThisMonth": "{packages} × {price} в этом месяце",
+      "perMonth": "в месяц",
       "perMonthPrice": "{currencySymbol}/месяц",
-      "title": "Подписки"
+      "perPackage": "{price} за пакет",
+      "planName": "Тариф «{name}»",
+      "planUnknown": "Тариф не определён",
+      "pricePerMonth": "{price} в месяц",
+      "ramGb": "{ram} ГБ RAM",
+      "subtitle": "Услуги провайдера, оплачиваемые членскими взносами",
+      "title": "Подписки",
+      "totalPerMonth": "Итого в месяц",
+      "upgradeDoneLine1": "Переход оформлен: новая цена {price} в месяц уже действует, ",
+      "upgradeDoneLine2": "система переедет на новый сервер в течение часа"
     }
   }
 }

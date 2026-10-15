@@ -3,7 +3,7 @@ WalletCard(
   neutral
   icon="bolt"
   title="AXON"
-  subtitle="Ресурс документооборота"
+  :subtitle="$t('connectionDashboard.axonWallet.subtitle')"
   :balance="axon.amount"
   :symbol="axon.symbol || 'AXON'"
 )

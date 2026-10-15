@@ -4,10 +4,10 @@
   //- механика подключения, поэтому внутри карточек пояснительных баннеров
   //- больше нет.
   PageHint(storage-key="connection:dashboard:banner-dismissed")
-    | Подписки оплачиваются членскими взносами: пайщик переводит в них свой
-    | паевой взнос. AXON для документооборота оператор докупает сам — по факту
-    | работы, но не меньше 5 AXON в день; напрямую паевым взносом он не
-    | пополняется.
+    | {{ $t('connectionDashboard.dashboard.paymentNoteLine1') }}
+    | {{ $t('connectionDashboard.dashboard.paymentNoteLine2') }}
+    | {{ $t('connectionDashboard.dashboard.paymentNoteLine3') }}
+    | {{ $t('connectionDashboard.dashboard.paymentNoteLine4') }}
 
   //- Просрочка и приостановка — первым экраном: пока долг не закрыт, всё
   //- остальное на этой странице вторично.
@@ -28,8 +28,8 @@
   PaymentsHistory(
     v-if="coopname"
     :coopname="coopname"
-    title="История списаний"
-    subtitle="Оплаты подписок членскими взносами кооператива"
+    :title="$t('connectionDashboard.dashboard.paymentsTitle')"
+    :subtitle="$t('connectionDashboard.dashboard.paymentsSubtitle')"
     :limit="20"
   )
 </template>

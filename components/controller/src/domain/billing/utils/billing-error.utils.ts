@@ -1,3 +1,4 @@
+import { t } from '~/i18n';
 /**
  * Перевод отказов на человеческий язык для истории списаний.
  *
@@ -25,33 +26,33 @@
 const RULES: Array<{ match: RegExp; text: string }> = [
   {
     match: /недостаточно (средств|available)/i,
-    text: 'Недостаточно средств на кошельке кооператива',
+    text: t('billing.paymentError.insufficientFunds'),
   },
   {
     match: /нет программных соглашений|program_id/i,
-    text: 'Кооператив не подписал соглашение о списании взносов',
+    text: t('billing.paymentError.agreementMissing'),
   },
   {
     match: /не найден|not found/i,
-    text: 'Кооператив или кошелёк не найдены в реестре',
+    text: t('billing.paymentError.walletNotFound'),
   },
   {
     // Нода отвергла транзакцию по своим лимитам (CPU/NET) или по сроку —
     // списание не состоялось, следующий тик повторит его сам.
     match: /executing for too long|max_transaction_cpu_usage|tx_cpu_usage_exceeded|tx_net_usage_exceeded/i,
-    text: 'Сеть не успела провести списание — повторим на следующем круге',
+    text: t('billing.paymentError.networkLag'),
   },
   {
     match: /expired transaction|transaction expired/i,
-    text: 'Списание не успело попасть в блок — повторим на следующем круге',
+    text: t('billing.paymentError.blockMissed'),
   },
   {
     match: /ECONNREFUSED|ETIMEDOUT|ENOTFOUND|socket hang up|network/i,
-    text: 'Сервис оплаты временно недоступен',
+    text: t('billing.paymentError.serviceUnavailable'),
   },
   {
     match: /timeout|таймаут/i,
-    text: 'Узел не ответил вовремя — списание могло не дойти',
+    text: t('billing.paymentError.nodeTimeout'),
   },
 ];
 
@@ -73,7 +74,7 @@ export function humanizeBillingError(raw?: string | null): string | undefined {
   const assertion = text.match(/assertion failure with message:\s*(.+)$/i);
   if (assertion) {
     const detail = assertion[1].trim();
-    return detail ? `Блокчейн отклонил списание: ${detail}` : 'Блокчейн отклонил списание';
+    return detail ? t('billing.paymentError.chainRejectedDetail', { detail }) : t('billing.paymentError.chainRejected');
   }
 
   return text;

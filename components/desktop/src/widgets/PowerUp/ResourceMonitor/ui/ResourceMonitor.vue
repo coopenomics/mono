@@ -1,10 +1,10 @@
 <template lang="pug">
 .resource-monitor
-  BaseCard(title="Использование ресурсов" subtitle="CPU / NET / RAM текущего кооператива (последний срез PowerupPlugin)")
-    Loader(v-if="isLoading" :text="'Загрузка данных...'")
+  BaseCard(:title="$t('powerUp.resourceMonitor.title')" :subtitle="$t('powerUp.resourceMonitor.subtitle')")
+    Loader(v-if="isLoading" :text="$t('powerUp.resourceMonitor.loading')")
 
     template(v-else-if="error")
-      BaseBanner(variant="neg") Ошибка загрузки ресурсов: {{ error }}
+      BaseBanner(variant="neg") {{ $t('powerUp.resourceMonitor.loadError', { error }) }}
 
     template(v-else)
       .resource-monitor__grid

@@ -1,5 +1,6 @@
 import { ref } from 'vue';
 import { api, type ICooperativePayment } from '../api';
+import { t } from 'src/shared/i18n';
 
 export function useLoadCooperativePayments() {
   const payments = ref<ICooperativePayment[]>([]);
@@ -14,7 +15,7 @@ export function useLoadCooperativePayments() {
     } catch (e: unknown) {
       // Историю показываем рядом с остальной карточкой: её недоступность
       // не должна ронять страницу целиком, поэтому ошибка живёт в баннере.
-      error.value = e instanceof Error ? e.message : 'История оплат временно недоступна';
+      error.value = e instanceof Error ? e.message : t('union.cooperativePayments.loadError');
     } finally {
       loading.value = false;
     }

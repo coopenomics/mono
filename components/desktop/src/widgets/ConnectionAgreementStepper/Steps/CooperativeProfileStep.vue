@@ -11,6 +11,7 @@ import { useSystemStore } from 'src/entities/System/model'
 import { useCooperativeCharter } from 'src/features/Union/UploadCooperativeCharter'
 import { useLiveReload } from 'src/shared/lib/realtime'
 import StepFrame from '../ui/StepFrame.vue'
+import { t } from 'src/shared/i18n';
 
 const connectionAgreement = useConnectionAgreementStore()
 const system = useSystemStore()
@@ -38,7 +39,7 @@ const charterSize = computed(() => {
   const bytes = charter.value?.size_bytes ?? 0
   if (!bytes) return ''
   const mb = bytes / (1024 * 1024)
-  return mb >= 1 ? `${mb.toFixed(1)} МБ` : `${Math.max(1, Math.round(bytes / 1024))} КБ`
+  return mb >= 1 ? t('connectionAgreementStepper.cooperativeProfileStep.sizeMb', { size: mb.toFixed(1) }) : t('connectionAgreementStepper.cooperativeProfileStep.sizeKb', { size: Math.max(1, Math.round(bytes / 1024)) })
 })
 
 // Файл уходит на сервер сразу при выборе: так пайщик видит, что устав дошёл,
@@ -54,8 +55,8 @@ const handleFilePicked = async (value: File | File[] | null) => {
 }
 
 const validate = (): boolean => {
-  descriptionError.value = description.value.trim() ? '' : 'Расскажите, чем занимается кооператив'
-  charterError.value = hasCharter.value ? '' : 'Приложите устав кооператива'
+  descriptionError.value = description.value.trim() ? '' : t('connectionAgreementStepper.cooperativeProfileStep.descriptionRequired')
+  charterError.value = hasCharter.value ? '' : t('connectionAgreementStepper.cooperativeProfileStep.charterRequired')
   return !descriptionError.value && !charterError.value
 }
 
@@ -82,8 +83,8 @@ const handleBack = () => {
 
 <template lang="pug">
 StepFrame(
-  title="Расскажите о кооперативе"
-  lead="С этого начинается заявка: совет читает рассказ и устав, когда решает, подключать ли кооператив к платформе. Напишите своими словами, чем кооператив занимается и что планирует, и приложите действующий устав."
+  :title="$t('connectionAgreementStepper.cooperativeProfileStep.title')"
+  :lead="$t('connectionAgreementStepper.cooperativeProfileStep.lead')"
   :can-back="canGoBack"
   :loading="uploading"
   @back="handleBack"
@@ -96,24 +97,24 @@ StepFrame(
         type="textarea"
         :rows="8"
         autogrow
-        label="Чем занимается кооператив"
-        placeholder="Чем занимается кооператив, кто пайщики, какие товары или услуги производит, есть ли сайт и где вас найти, что планируете делать на платформе."
-        hint="Этот текст увидит совет и он же станет описанием кооператива в реестре"
+        :label="$t('connectionAgreementStepper.cooperativeProfileStep.descriptionLabel')"
+        :placeholder="$t('connectionAgreementStepper.cooperativeProfileStep.descriptionPlaceholder')"
+        :hint="$t('connectionAgreementStepper.cooperativeProfileStep.descriptionHint')"
         :error="descriptionError || undefined"
       )
 
     .col-12.col-md-5
       .profile-step__charter
-        .t-eyebrow.t-muted Устав кооператива
+        .t-eyebrow.t-muted {{ $t('connectionAgreementStepper.cooperativeProfileStep.charterTitle') }}
 
         .profile-step__attached(v-if="hasCharter")
           q-icon.profile-step__file-icon(name="description" size="24px")
           .profile-step__file
-            .profile-step__file-name {{ charter?.original_filename || 'Устав' }}
+            .profile-step__file-name {{ charter?.original_filename || $t('connectionAgreementStepper.cooperativeProfileStep.charterChip') }}
             .t-meta.t-muted {{ charterSize }}
           BaseChip(variant="pos" size="sm")
             q-icon(name="check" size="12px").q-mr-xs
-            span приложен
+            span {{ $t('connectionAgreementStepper.cooperativeProfileStep.charterAttached') }}
         .profile-step__replace(v-if="hasCharter")
           BaseButton(
             variant="ghost"
@@ -121,15 +122,15 @@ StepFrame(
             type="button"
             :loading="uploading"
             @click="charter = null"
-          ) Заменить файл
+          ) {{ $t('connectionAgreementStepper.cooperativeProfileStep.replaceFile') }}
 
         FileUploader(
           v-else
           :model-value="pendingFile"
           accept="application/pdf,image/jpeg,image/png"
           :max-size="20 * 1024 * 1024"
-          title="Перетащите устав или нажмите для выбора"
-          hint="PDF или скан, до 20 МБ"
+          :title="$t('connectionAgreementStepper.cooperativeProfileStep.dropzoneTitle')"
+          :hint="$t('connectionAgreementStepper.cooperativeProfileStep.dropzoneHint')"
           :disabled="uploading"
           @update:model-value="handleFilePicked"
         )

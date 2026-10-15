@@ -28,31 +28,31 @@ const goToQuickClient = () => {
 
 <template lang="pug">
 StepFrame(
-  title="Членство в союзе"
-  lead="Работа на платформе возможна только для кооперативов — членов Союза Потребительских Обществ. Союз приводит документооборот кооператива к единому стандарту и следит, чтобы он соответствовал закону. Для связи с представителем союза нужен аккаунт в кооперативном мессенджере — создайте его здесь."
+  :title="$t('connectionAgreementStepper.unionMembershipStep.title')"
+  :lead="$t('connectionAgreementStepper.unionMembershipStep.lead')"
   :can-back="false"
   :next-disabled="!hasMatrixAccount"
   @next="handleContinue"
 )
   ul.union-step__list
     li
-      strong Подключение к платформе.
-      |  Полный доступ ко всем сервисам Цифрового Кооператива.
+      strong {{ $t('connectionAgreementStepper.unionMembershipStep.benefitConnect.title') }}
+      |  {{ $t('connectionAgreementStepper.unionMembershipStep.benefitConnect.text') }}
     li
-      strong Импорт пайщиков.
-      |  Пригласите участников и выпустите им электронные подписи.
+      strong {{ $t('connectionAgreementStepper.unionMembershipStep.benefitImport.title') }}
+      |  {{ $t('connectionAgreementStepper.unionMembershipStep.benefitImport.text') }}
     li
-      strong 30 дней на организацию.
-      |  Время на решения совета и общего собрания после подключения.
+      strong {{ $t('connectionAgreementStepper.unionMembershipStep.benefitDeadline.title') }}
+      |  {{ $t('connectionAgreementStepper.unionMembershipStep.benefitDeadline.text') }}
 
   .union-step__matrix(v-if="hasMatrixAccount")
     BaseChip(variant="pos")
       q-icon(name="check" size="12px").q-mr-xs
-      span Аккаунт в мессенджере создан
+      span {{ $t('connectionAgreementStepper.unionMembershipStep.accountCreated') }}
     p.t-sm.t-muted.union-step__matrix-body
-      | Написать представителю союза можно в
+      | {{ $t('connectionAgreementStepper.unionMembershipStep.contactPrefix') }}
       |
-      a.union-step__link(href="#" @click.prevent="goToQuickClient") Быстром клиенте
+      a.union-step__link(href="#" @click.prevent="goToQuickClient") {{ $t('connectionAgreementStepper.unionMembershipStep.quickClient') }}
       | .
 
   .union-step__matrix(v-else)

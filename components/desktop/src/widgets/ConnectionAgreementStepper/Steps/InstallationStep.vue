@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { useConnectionAgreementStore } from 'src/entities/ConnectionAgreement'
 import StepFrame from '../ui/StepFrame.vue'
+import { t } from 'src/shared/i18n';
 
 const connectionAgreement = useConnectionAgreementStore()
 const instance = computed(() => connectionAgreement.currentInstance)
@@ -18,38 +19,38 @@ const progress = computed(() => Math.max(0, Math.min(100, instance.value?.progre
 const isRestoring = computed(() => instance.value?.is_restoring === true)
 
 const INSTALL_STAGES = [
-  { from: 0, title: 'Готовим сервер', body: 'Настраиваем окружение и разворачиваем серверные компоненты.' },
-  { from: 20, title: 'Устанавливаем платформу', body: 'Загружаем программное обеспечение Цифрового Кооператива.' },
-  { from: 40, title: 'Настраиваем хранилища', body: 'Разворачиваем базы данных и резервное копирование.' },
-  { from: 60, title: 'Запускаем блокчейн-узел', body: 'Синхронизируем узел с сетью Кооперативной Экономики.' },
-  { from: 80, title: 'Завершаем установку', body: 'Выполняем финальные настройки и проверяем, что всё работает.' },
+  { from: 0, title: t('connectionAgreementStepper.installationStep.install.server.title'), body: t('connectionAgreementStepper.installationStep.install.server.body') },
+  { from: 20, title: t('connectionAgreementStepper.installationStep.install.platform.title'), body: t('connectionAgreementStepper.installationStep.install.platform.body') },
+  { from: 40, title: t('connectionAgreementStepper.installationStep.install.storage.title'), body: t('connectionAgreementStepper.installationStep.install.storage.body') },
+  { from: 60, title: t('connectionAgreementStepper.installationStep.install.chain.title'), body: t('connectionAgreementStepper.installationStep.install.chain.body') },
+  { from: 80, title: t('connectionAgreementStepper.installationStep.install.finish.title'), body: t('connectionAgreementStepper.installationStep.install.finish.body') },
 ]
 
 const RESTORE_STAGES = [
-  { from: 0, title: 'Арендуем новый сервер', body: 'Конфигурация та же, что была у кооператива до отключения.' },
-  { from: 20, title: 'Устанавливаем платформу', body: 'Загружаем программное обеспечение Цифрового Кооператива.' },
-  { from: 40, title: 'Настраиваем хранилища', body: 'Готовим базы данных и файловое хранилище под ваши данные.' },
-  { from: 60, title: 'Запускаем блокчейн-узел', body: 'Синхронизируем узел с сетью Кооперативной Экономики.' },
+  { from: 0, title: t('connectionAgreementStepper.installationStep.restore.server.title'), body: t('connectionAgreementStepper.installationStep.restore.server.body') },
+  { from: 20, title: t('connectionAgreementStepper.installationStep.restore.platform.title'), body: t('connectionAgreementStepper.installationStep.restore.platform.body') },
+  { from: 40, title: t('connectionAgreementStepper.installationStep.restore.storage.title'), body: t('connectionAgreementStepper.installationStep.restore.storage.body') },
+  { from: 60, title: t('connectionAgreementStepper.installationStep.restore.chain.title'), body: t('connectionAgreementStepper.installationStep.restore.chain.body') },
   {
     from: 80,
-    title: 'Возвращаем данные из копии',
-    body: 'Восстанавливаем базы и файлы из последней резервной копии и открываем доступ к платформе.',
+    title: t('connectionAgreementStepper.installationStep.restore.data.title'),
+    body: t('connectionAgreementStepper.installationStep.restore.data.body'),
   },
 ]
 
 const stages = computed(() => (isRestoring.value ? RESTORE_STAGES : INSTALL_STAGES))
 
 const title = computed(() =>
-  isRestoring.value ? 'Возвращаем кооператив в строй' : 'Устанавливаем вашу копию платформы',
+  isRestoring.value ? t('connectionAgreementStepper.installationStep.restoreTitle') : t('connectionAgreementStepper.installationStep.installTitle'),
 )
 
 const lead = computed(() =>
   isRestoring.value
-    ? 'Оплата получена. Провайдер разворачивает платформу на новом сервере той же конфигурации ' +
-      'и вернёт данные кооператива из последней резервной копии: документы, базы и файлы на месте, ' +
-      'ничего заново заводить не нужно. Ждать на этой странице не обязательно.'
-    : 'Провайдер разворачивает Цифровой Кооператив на вашем домене. Ждать на этой странице ' +
-      'не обязательно: когда установка завершится, здесь появится панель подключения.',
+    ? t('connectionAgreementStepper.installationStep.restoreLeadLine1') +
+      t('connectionAgreementStepper.installationStep.restoreLeadLine2') +
+      t('connectionAgreementStepper.installationStep.restoreLeadLine3')
+    : t('connectionAgreementStepper.installationStep.installLeadLine1') +
+      t('connectionAgreementStepper.installationStep.installLeadLine2'),
 )
 
 const stageIndex = computed(() => {
@@ -70,7 +71,7 @@ StepFrame(
 )
   .installation-step__progress
     .installation-step__progress-head
-      span.t-sm.t-muted Осталось примерно {{ remainingMinutes }} мин
+      span.t-sm.t-muted {{ $t('connectionAgreementStepper.installationStep.remainingMinutes', { minutes: remainingMinutes }) }}
       span.t-mono.t-num.installation-step__pct {{ progress }}%
     .installation-step__bar
       .installation-step__bar-fill(:style="{ width: progress + '%' }")

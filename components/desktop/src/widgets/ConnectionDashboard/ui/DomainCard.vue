@@ -7,7 +7,7 @@
     //- вне режима правки тело карточки было бы пустым и давало лишний отступ.
     .domain-card__top
       .domain-card__head
-        .t-eyebrow.t-muted Адрес кооператива
+        .t-eyebrow.t-muted {{ $t('connectionDashboard.domainCard.addressEyebrow') }}
         .domain-card__host.t-mono(:class="{ 't-muted': isEditing }") {{ announce || '—' }}
       .domain-card__actions
         BaseBadge(:variant="delegationVariant") {{ delegationLabel }}
@@ -16,20 +16,20 @@
           variant="secondary"
           size="sm"
           type="button"
-          aria-label="Изменить домен"
+          :aria-label="$t('connectionDashboard.domainCard.editAria')"
           @click="startEdit"
         )
           q-icon(name="edit" size="14px").q-mr-xs
-          | Изменить
+          | {{ $t('connectionDashboard.domainCard.edit') }}
 
     template(v-if="isEditing")
       BaseBanner(variant="warn").q-mb-md
-        | Убедитесь, что домен указывает CNAME-записью на {{ CONNECTOR_HOST }}.
-        | Обновление перезагрузит цифровой кооператив; данные сохранятся.
+        | {{ $t('connectionDashboard.domainCard.cnameWarning', { host: CONNECTOR_HOST }) }}
+        | {{ $t('connectionDashboard.domainCard.reloadWarning') }}
 
       BaseInput(
         v-model="domainValue"
-        label="Доменное имя"
+        :label="$t('connectionDashboard.domainCard.domainLabel')"
         placeholder="example.coopenomics.world"
         mono
       )
@@ -43,7 +43,7 @@
           @click="saveDomain"
         )
           q-icon(name="check" size="14px").q-mr-xs
-          | Сохранить
+          | {{ $t('common.action.save') }}
         BaseButton(
           variant="ghost"
           size="sm"
@@ -51,7 +51,7 @@
           @click="cancelEdit"
         )
           q-icon(name="close" size="14px").q-mr-xs
-          | Отменить
+          | {{ $t('connectionDashboard.domainCard.cancel') }}
 </template>
 
 <script setup lang="ts">
@@ -71,7 +71,7 @@ import {
   BaseInput,
 } from 'src/shared/ui/base'
 import { useProviderSubscriptions } from 'src/features/Provider/model'
-import { t } from 'src/shared/i18n';
+import { t, t as i18nT } from 'src/shared/i18n';
 
 const connectionAgreement = useConnectionAgreementStore()
 const coop = useCooperativeStore()
@@ -88,8 +88,8 @@ const isDelegatingLoading = ref(false)
 const announce = computed(() => coop.publicCooperativeData?.announce || '')
 
 const delegationLabel = computed(() => {
-  if (isDelegatingLoading.value) return 'обновляем'
-  return instance.value?.is_delegated ? 'домен делегирован' : 'ожидание делегирования'
+  if (isDelegatingLoading.value) return i18nT('connectionDashboard.domainCard.delegationUpdating')
+  return instance.value?.is_delegated ? i18nT('connectionDashboard.domainCard.delegationDone') : i18nT('connectionDashboard.domainCard.delegationWaiting')
 })
 
 const delegationVariant = computed(() => {
@@ -145,7 +145,7 @@ const saveDomain = async () => {
     await coop.loadPublicCooperativeData(session.username)
     await connectionAgreement.loadCurrentInstance()
     isEditing.value = false
-    SuccessAlert('Домен успешно обновлён')
+    SuccessAlert(i18nT('connectionDashboard.domainCard.domainUpdated'))
   } catch (error: any) {
     FailAlert(t('connectionDashboard.domainCard.domainUpdateError', { errorMessage: error.message }))
   } finally {

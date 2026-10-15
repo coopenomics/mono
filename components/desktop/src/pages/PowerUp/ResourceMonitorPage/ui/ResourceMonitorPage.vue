@@ -4,16 +4,16 @@
     .col-12.col-md-8
       ResourceMonitor(:usage="usage" :is-loading="isLoadingUsage" :error="usageError")
     .col-12.col-md-4
-      BaseCard(title="Сводка пакета" subtitle="Текущий период")
+      BaseCard(:title="$t('powerUp.resourceMonitorPage.summaryTitle')" :subtitle="$t('powerUp.resourceMonitorPage.currentPeriod')")
         .powerup-page__summary
           .powerup-page__row
-            .powerup-page__label Докуплено в этом месяце
+            .powerup-page__label {{ $t('powerUp.resourceMonitorPage.boughtThisMonth') }}
             .powerup-page__value.t-mono {{ formatRub(monthSpentRub) }}
           .powerup-page__row
-            .powerup-page__label Потолок месяца
+            .powerup-page__label {{ $t('powerUp.resourceMonitorPage.monthlyCap') }}
             .powerup-page__value.t-mono {{ formatRub(monthQuotaRub) }}
           .powerup-page__row
-            .powerup-page__label Сделано пакетов сегодня
+            .powerup-page__label {{ $t('powerUp.resourceMonitorPage.packagesToday') }}
             .powerup-page__value.t-mono {{ todayPackagesIssued }}
           .powerup-page__row(v-if="pendingPaymentHash")
             .powerup-page__label.text-warning Pending recovery
@@ -38,6 +38,7 @@ import { PowerupSettingsForm } from 'src/features/PowerUp/SettingsForm'
 import { useExtensionStore } from 'src/entities/Extension/model'
 import { client } from 'src/shared/api/client'
 import { Mutations } from '@coopenomics/sdk'
+import { t } from 'src/shared/i18n';
 
 // Epic 13 v5.1 adversarial round 2: страница больше не «декорация» —
 // читает текущий config powerup-extension через useExtensionStore и
@@ -108,11 +109,11 @@ async function onSubmit(value: any): Promise<void> {
       variables: { data },
     })
     await extensionStore.loadExtensions()
-    Notify.create({ type: 'positive', message: 'Настройки PowerUp сохранены' })
+    Notify.create({ type: 'positive', message: t('powerUp.resourceMonitorPage.saved') })
   } catch (err: any) {
     Notify.create({
       type: 'negative',
-      message: err?.message ?? 'Не удалось сохранить настройки',
+      message: err?.message ?? t('powerUp.resourceMonitorPage.saveError'),
     })
   } finally {
     isSaving.value = false
@@ -127,7 +128,7 @@ onMounted(async () => {
   try {
     await extensionStore.loadExtensions()
   } catch (err: any) {
-    usageError.value = err?.message ?? 'Не удалось загрузить config расширения'
+    usageError.value = err?.message ?? t('powerUp.resourceMonitorPage.configLoadError')
   } finally {
     isLoadingUsage.value = false
   }

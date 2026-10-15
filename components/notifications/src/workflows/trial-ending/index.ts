@@ -3,7 +3,7 @@ import { WorkflowBuilder } from '../../base/workflow-builder';
 import { z } from 'zod';
 import { BaseWorkflowPayload } from '../../types';
 import { createEmailStep, createInAppStep, createPushStep } from '../../base/defaults';
-import { slugify } from '../../utils';
+import { nt } from '../../i18n';
 
 // Epic 14 — напоминание пайщику о скором окончании пробного периода подписки.
 // Триггерит провайдер (через coopback) за T-7/T-3/T-1 до конца TRIAL.
@@ -19,31 +19,22 @@ export type IPayload = z.infer<typeof trialEndingPayloadSchema>;
 
 export interface IWorkflow extends BaseWorkflowPayload, IPayload {}
 
-export const name = 'Пробный период заканчивается';
-export const id = slugify(name);
+export const name = nt('trialEnding.name');
+// Идентификатор закреплён: на него ссылаются подписки и провайдер
+// (billing-workflows.ts). Не менять.
+export const id = 'probniy-period-zakanchivaetsya';
 
 export const workflow: WorkflowDefinition<IWorkflow> = WorkflowBuilder
   .create<IWorkflow>()
   .name(name)
   .workflowId(id)
-  .description('Напоминание о скором окончании пробного периода и предстоящей первой оплате')
+  .i18nKey('trialEnding')
+  .description(nt('trialEnding.description'))
   .payloadSchema(trialEndingPayloadSchema)
   .tags(['billing'])
   .addSteps([
-    createEmailStep(
-      'trial-ending-email',
-      'Пробный период скоро закончится',
-      'Кооператив «{{payload.coopName}}», пробный период вашего инстанса заканчивается через {{payload.daysLeft}} дн. ({{payload.trialEndDate}}).<br><br>Чтобы сервис продолжил работу, потребуется первая оплата на сумму <strong>{{payload.amount}} ₽</strong>.<br><br>Подробнее: {{payload.paymentUrl}}'
-    ),
-    createInAppStep(
-      'trial-ending-in-app',
-      'Пробный период заканчивается',
-      'Через {{payload.daysLeft}} дн. закончится пробный период. Первая оплата — {{payload.amount}} ₽.'
-    ),
-    createPushStep(
-      'trial-ending-push',
-      'Пробный период заканчивается',
-      'Через {{payload.daysLeft}} дн. — первая оплата {{payload.amount}} ₽'
-    ),
+    createEmailStep('trial-ending-email', nt('trialEnding.email.subject'), nt('trialEnding.email.body')),
+    createInAppStep('trial-ending-in-app', nt('trialEnding.inApp.subject'), nt('trialEnding.inApp.body')),
+    createPushStep('trial-ending-push', nt('trialEnding.push.subject'), nt('trialEnding.push.body')),
   ])
   .build();

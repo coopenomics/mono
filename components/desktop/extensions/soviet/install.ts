@@ -26,7 +26,7 @@ import { UnionPageListOfCooperatives } from 'src/pages/Union/ListOfCooperatives'
 import { ExpensesRegistryPage } from 'app/extensions/expenses/pages';
 import { UnionPageCooperativeDetail } from 'src/pages/Union/CooperativeDetail';
 import type { IWorkspaceConfig } from 'src/shared/lib/types/workspace';
-import { t } from './i18n';
+import { t, t as i18nT } from './i18n';
 
 export default async function (): Promise<IWorkspaceConfig[]> {
   // Число на пункте «Повестка»: вопросы, по которым член совета ещё не голосовал.
@@ -213,7 +213,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             name: 'union-cooperative-detail',
             component: markRaw(UnionPageCooperativeDetail),
             meta: {
-              title: 'Кооператив',
+              title: i18nT('soviet.install.cooperativeDetailTitle'),
               icon: 'fa-solid fa-handshake',
               requires: 'Union:read',
               conditions: 'coopname === "voskhod"',

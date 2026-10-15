@@ -32,8 +32,8 @@ div.row.q-pa-md
       div(v-else)
         BaseCard
           EmptyState(
-            title="Подключение к кооперативной экономике"
-            body="Чтобы запустить цифровой кооператив и подключить его к платформе, обратитесь в ПК ВОСХОД."
+            :title="$t('union.connectionAgreementPage.emptyTitle')"
+            :body="$t('union.connectionAgreementPage.emptyBody')"
           )
             template(#icon)
               q-icon(name="hub" size="28px")
@@ -42,7 +42,7 @@ div.row.q-pa-md
                 variant="primary"
                 type="button"
                 @click="openProviderWebsite"
-              ) Перейти на сайт
+              ) {{ $t('union.connectionAgreementPage.goToSiteLabel') }}
 
 </template>
 <script setup lang="ts">

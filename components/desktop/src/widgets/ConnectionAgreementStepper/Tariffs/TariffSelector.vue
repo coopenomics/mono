@@ -60,7 +60,7 @@ defineExpose({
     q-skeleton(v-for="i in 2" :key="i" type="rect" height="96px")
   .tariff-selector__error(v-else-if="error")
     p.t-sm {{ error }}
-    BaseButton(flat color="primary" label="Повторить" @click="load(true)")
+    BaseButton(flat color="primary" :label="$t('common.action.retry')" @click="load(true)")
   template(v-else)
     .tariff-selector__list
       BaseRadioCard(
@@ -75,17 +75,17 @@ defineExpose({
       )
         template(#meta)
           span.t-mono.t-num {{ tariff.price }}
-          span.tariff-selector__period  / мес
+          span.tariff-selector__period  {{ $t('connectionAgreementStepper.tariffSelector.perMonth') }}
           template(v-if="tariff.trialDays")
-            span.tariff-selector__period  · первые {{ tariff.trialDays }} дн. — 0 ₽
+            span.tariff-selector__period  {{ $t('connectionAgreementStepper.tariffSelector.trialSuffix', { days: tariff.trialDays }) }}
     //- Обязательные услуги (например, членские за ЭДО) — отдельными взносами.
     .tariff-selector__includes(v-if="mandatoryServices.length")
-      p.t-sm.t-muted В подключение также входит:
+      p.t-sm.t-muted {{ $t('connectionAgreementStepper.tariffSelector.includesTitle') }}
       ul.tariff-selector__includes-list
         li.t-sm(v-for="svc in mandatoryServices" :key="svc.id")
           | {{ svc.name }} — 
           span.t-mono.t-num {{ formatPrice(svc.price) }} ₽
-          |  / {{ svc.period_days }} дн.
+          |  {{ $t('connectionAgreementStepper.tariffSelector.perPeriod', { days: svc.period_days }) }}
 </template>
 
 <style scoped>

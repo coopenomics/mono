@@ -117,6 +117,7 @@ const envVarsSchema = z.object({
   PROVIDER_BEARER_TOKEN: z
     .string()
     .default('')
+    // i18n-ignore: описание переменной окружения — документация конфигурации
     .describe('Bearer-токен read-only витрины провайдера (GET /v1/subscription-types)'),
 
   // Billing Single-Hub v5: BillingModule подключается только на Восходе-хабе.
@@ -127,10 +128,12 @@ const envVarsSchema = z.object({
     .string()
     .default('false')
     .transform((v) => v === 'true' || v === '1')
+    // i18n-ignore: описание переменной окружения — документация конфигурации
     .describe('узел работает как биллинг-хаб (только Восход): включает BillingModule, крон и GraphQL Billing.*'),
   BILLING_CRON_EXPRESSION: z
     .string()
     .default('0 * * * *')
+    // i18n-ignore: описание переменной окружения — документация конфигурации
     .describe('cron-выражение тика биллинга (по умолчанию ежечасно)'),
   BILLING_PACKAGE_LOW_WATER_AXON: z
     .string()
@@ -138,6 +141,7 @@ const envVarsSchema = z.object({
     .transform((v) => Number(v))
     .pipe(z.number().min(0))
     .describe(
+      // i18n-ignore: описание переменной окружения — документация конфигурации
       'порог ликвидного AXON-баланса спицы, ниже которого хаб докупает пакет документооборота (≈3 дня минимальной квоты по 5 AXON/день)',
     ),
   // Параметры союза кооперативов

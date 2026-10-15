@@ -8,12 +8,12 @@
       @click="goBack"
     )
       q-icon(name="arrow_back" size="16px").q-mr-xs
-      | К реестру
+      | {{ $t('union.cooperativeDetail.backToRegistry') }}
 
-  Loader(v-if="loading" :text="'Загрузка кооператива...'")
+  Loader(v-if="loading" :text="$t('union.cooperativeDetail.loading')")
 
   BaseBanner(v-else-if="!row" variant="warn")
-    | Кооператив не найден в реестре.
+    | {{ $t('union.cooperativeDetail.notFound') }}
 
   template(v-else)
     //- Шапка: кто подал, в каком состоянии и что с этим делать. Всё
@@ -55,7 +55,7 @@
     .coop-detail__section(v-if="activeTab === 'about'")
       BaseCard(variant="flat")
         p.coop-detail__about(v-if="row.description") {{ row.description }}
-        p.coop-detail__about.t-muted(v-else) Описание не заполнено.
+        p.coop-detail__about.t-muted(v-else) {{ $t('union.cooperativeDetail.noDescription') }}
 
         //- Устав — то, по чему совет решает, подтверждать ли подключение.
         DocumentRow(v-if="charterDocument" :document="charterDocument")
@@ -68,18 +68,18 @@
               @click="openCharter"
             )
               q-icon(name="open_in_new" size="14px").q-mr-xs
-              | Открыть устав
+              | {{ $t('union.cooperativeDetail.openCharter') }}
         .coop-detail__charter-missing(v-else)
           q-icon(name="warning" size="20px")
-          span.t-sm.t-muted Устав не приложен.
+          span.t-sm.t-muted {{ $t('union.cooperativeDetail.noCharter') }}
 
     //- ─────────────── Подписки ───────────────
     .coop-detail__section(v-else-if="activeTab === 'subscriptions'")
       BaseCard(variant="flat")
         EmptyState(
           v-if="!subscriptionsCount"
-          title="Подписок нет"
-          body="Появятся, когда провайдер начнёт поставку инфраструктуры"
+          :title="$t('union.cooperativeDetail.noSubscriptionsTitle')"
+          :body="$t('union.cooperativeDetail.noSubscriptionsBody')"
         )
           template(#icon)
             q-icon(name="receipt_long" size="48px")
@@ -96,7 +96,7 @@
             BaseChip(:variant="subscriptionStatusVariant(sub.status)" size="sm")
               span {{ subscriptionStatusLabel(sub.status) }}
           template(#cell-period="{ row: sub }")
-            span.t-mono {{ sub.period_days }} дн.
+            span.t-mono {{ $t('union.cooperativeDetail.periodDays', { days: sub.period_days }) }}
           template(#cell-price="{ row: sub }")
             span.t-mono {{ formatMoney(sub.price) }} RUB
           template(#cell-next="{ row: sub }")
@@ -108,19 +108,19 @@
       BaseBanner(v-if="walletError" variant="neg") {{ walletError }}
 
       .coop-detail__wallets
-        BaseCard(variant="flat" title="Паевой взнос")
+        BaseCard(variant="flat" :title="$t('union.cooperativeDetail.shareWalletTitle')")
           .coop-detail__wallet-body
             .coop-detail__wallet-amount.t-mono(v-if="walletLoading") …
             .coop-detail__wallet-amount.t-mono(v-else)
               | {{ formatAmount(walletAvailable) }} {{ walletDisplaySymbol }}
-            .coop-detail__wallet-hint Возвратный взнос на счёте пайщика в Восходе.
+            .coop-detail__wallet-hint {{ $t('union.cooperativeDetail.shareWalletHint') }}
 
-        BaseCard(variant="flat" title="Кошелёк членских взносов")
+        BaseCard(variant="flat" :title="$t('union.cooperativeDetail.billingWalletTitle')")
           .coop-detail__wallet-body
             .coop-detail__wallet-amount.t-mono(v-if="walletLoading") …
             .coop-detail__wallet-amount.t-mono(v-else)
               | {{ formatAmount(walletMembership) }} {{ walletDisplaySymbol }}
-            .coop-detail__wallet-hint Списывается за инфраструктурные подписки.
+            .coop-detail__wallet-hint {{ $t('union.cooperativeDetail.billingWalletHint') }}
 
     //- ─────────────── История оплат ───────────────
     //- Та же таблица журнала списаний, что и у кооператива на дашборде
@@ -160,6 +160,7 @@ import type { ICooperativeRegistryItem } from 'src/entities/Union/model'
 import { useCooperativeMainWallet } from 'src/entities/Wallet/model'
 import { useSystemStore } from 'src/entities/System/model'
 import { FailAlert } from 'src/shared/api/alerts'
+import { t } from 'src/shared/i18n';
 
 const route = useRoute()
 const router = useRouter()
@@ -211,18 +212,18 @@ const load = async () => {
 load()
 
 const subscriptionColumns = [
-  { key: 'name', label: 'Подписка', align: 'left' as const },
-  { key: 'status', label: 'Статус', align: 'left' as const },
-  { key: 'period', label: 'Период', align: 'right' as const, numeric: true },
-  { key: 'price', label: 'Стоимость', align: 'right' as const, numeric: true },
-  { key: 'next', label: 'След. оплата', align: 'right' as const },
+  { key: 'name', label: t('union.cooperativeDetail.column.subscription'), align: 'left' as const },
+  { key: 'status', label: t('union.cooperativeDetail.column.status'), align: 'left' as const },
+  { key: 'period', label: t('union.cooperativeDetail.column.period'), align: 'right' as const, numeric: true },
+  { key: 'price', label: t('union.cooperativeDetail.column.price'), align: 'right' as const, numeric: true },
+  { key: 'next', label: t('union.cooperativeDetail.column.nextPayment'), align: 'right' as const },
 ]
 
 const headerSubtitle = computed(() => {
   const r = row.value
   if (!r) return undefined
   const parts: string[] = [r.coopname]
-  if (r.created_at) parts.push(`заявка от ${formatDateTime(r.created_at)}`)
+  if (r.created_at) parts.push(t('union.cooperativeDetail.applicationFrom', { date: formatDateTime(r.created_at) }))
   return parts.join(' · ')
 })
 
@@ -241,7 +242,7 @@ const openCharter = async () => {
       row.value.coopname,
     )
     if (fresh?.read_url) window.open(fresh.read_url, '_blank', 'noopener')
-    else FailAlert('Ссылка на устав недоступна')
+    else FailAlert(t('union.cooperativeDetail.charterLinkUnavailable'))
   } catch (e: any) {
     FailAlert(e)
   } finally {
@@ -251,7 +252,7 @@ const openCharter = async () => {
 
 const formatFileSize = (bytes: number): string => {
   const mb = bytes / (1024 * 1024)
-  return mb >= 1 ? `${mb.toFixed(1)} МБ` : `${Math.max(1, Math.round(bytes / 1024))} КБ`
+  return mb >= 1 ? t('union.cooperativeDetail.sizeMb', { size: mb.toFixed(1) }) : t('union.cooperativeDetail.sizeKb', { size: Math.max(1, Math.round(bytes / 1024)) })
 }
 
 const formatDate = (d: string) => moment(d).format('DD.MM.YYYY')
@@ -276,23 +277,23 @@ const activeTab = ref('about')
 const subscriptionsCount = computed(() => row.value?.subscriptions?.length || 0)
 
 const tabs = computed<PageTab[]>(() => [
-  { key: 'about', label: 'Описание' },
-  { key: 'subscriptions', label: 'Подписки', count: subscriptionsCount.value || undefined },
-  { key: 'wallets', label: 'Кошельки' },
-  { key: 'payments', label: 'История оплат' },
+  { key: 'about', label: t('union.cooperativeDetail.tab.description') },
+  { key: 'subscriptions', label: t('union.cooperativeDetail.tab.subscriptions'), count: subscriptionsCount.value || undefined },
+  { key: 'wallets', label: t('union.cooperativeDetail.tab.wallets') },
+  { key: 'payments', label: t('union.cooperativeDetail.tab.payments') },
 ])
 
 /** Тип документа берём из расширения файла — иконку рисует канон-компонент. */
 const charterDocument = computed(() => {
   const charter = row.value?.charter
   if (!charter) return undefined
-  const name = charter.original_filename || 'Устав кооператива'
+  const name = charter.original_filename || t('union.cooperativeDetail.charterTitle')
   const ext = name.split('.').pop()?.toLowerCase()
   const type = ext === 'docx' || ext === 'doc' ? 'docx' : ext === 'html' ? 'html' : ext === 'txt' ? 'txt' : 'pdf'
   return {
     type: type as 'docx' | 'pdf' | 'html' | 'txt',
     title: name,
-    description: `Приложен ${formatDateTime(String(charter.uploaded_at))} · ${formatFileSize(charter.size_bytes)}`,
+    description: t('union.cooperativeDetail.charterAttached', { date: formatDateTime(String(charter.uploaded_at)), size: formatFileSize(charter.size_bytes) }),
   }
 })
 

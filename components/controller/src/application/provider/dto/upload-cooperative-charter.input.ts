@@ -1,3 +1,4 @@
+import { validationMessage } from '@coopenomics/extension-kit';
 import { Field, InputType } from '@nestjs/graphql';
 import { IsBase64, IsIn, IsInt, IsNotEmpty, IsOptional, IsString, Matches, Max, Min } from 'class-validator';
 import { CHARTER_BUCKET } from '~/domain/cooperative-charter/constants/charter-bucket';
@@ -22,7 +23,7 @@ export class UploadCooperativeCharterInputDTO {
   username!: string;
 
   @Field(() => String, { description: 'MIME-тип содержимого (PDF или скан-изображение).' })
-  @IsIn([...CHARTER_BUCKET.allowedMime], { message: 'Устав принимается в PDF, JPEG или PNG.' })
+  @IsIn([...CHARTER_BUCKET.allowedMime], { message: validationMessage('provider.charterInput.mimeType') })
   mime_type!: string;
 
   @Field(() => String, { nullable: true, description: 'Оригинальное имя файла — для отображения совету.' })
@@ -37,7 +38,7 @@ export class UploadCooperativeCharterInputDTO {
   size_bytes!: number;
 
   @Field(() => String, { description: 'SHA-256 содержимого, hex-lowercase (64 hex-символа).' })
-  @Matches(/^[a-f0-9]{64}$/, { message: 'checksum_sha256 должен быть 64-символьным lowercase hex.' })
+  @Matches(/^[a-f0-9]{64}$/, { message: validationMessage('provider.charterInput.checksumFormat') })
   checksum_sha256!: string;
 
   @Field(() => String, { description: 'Содержимое файла, base64 без префикса data:.' })

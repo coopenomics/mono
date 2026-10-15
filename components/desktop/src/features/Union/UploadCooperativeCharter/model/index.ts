@@ -3,6 +3,7 @@ import { readFileForUpload } from 'src/shared/lib/utils/readFileForUpload';
 import { useSessionStore } from 'src/entities/Session';
 import { useSystemStore } from 'src/entities/System/model';
 import { api, type ICooperativeCharter } from '../api';
+import { t } from 'src/shared/i18n';
 
 /**
  * Устав кооператива в заявке на подключение: загрузка и чтение уже приложенного.
@@ -45,7 +46,7 @@ export function useCooperativeCharter() {
       charter.value = await api.uploadCooperativeCharter({ coopname, username, ...payload });
       return true;
     } catch (e: any) {
-      error.value = e?.message ?? 'Не удалось загрузить устав';
+      error.value = e?.message ?? t('union.cooperativeCharter.uploadError');
       return false;
     } finally {
       uploading.value = false;

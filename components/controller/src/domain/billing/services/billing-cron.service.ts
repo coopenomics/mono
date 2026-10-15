@@ -10,6 +10,7 @@ import { CooperativeChainStatus, ProviderBillingInvoiceStatus, ProviderPackageIn
 import { BillingPaymentLogService } from '~/infrastructure/billing/billing-payment-log.service';
 import { BillingPaymentLogStatus } from '~/infrastructure/billing/billing-payment-log.record';
 import { ProviderService } from '~/application/provider/services/provider.service';
+import { t } from '~/i18n';
 
 /**
  * Периодическое списание подписок (Epic 12, Single-Hub v5) — oracle-паттерн.
@@ -162,7 +163,7 @@ export class BillingCronService implements OnModuleInit, OnModuleDestroy {
           username: coopname,
           quantity,
           paymentHash: invoice.payment_hash,
-          memo: `Оплата подписок за ${summary.period_days} дн.`,
+          memo: t('billing.payment.subjectPeriod', { days: summary.period_days }),
         }),
       );
 
@@ -213,7 +214,7 @@ export class BillingCronService implements OnModuleInit, OnModuleDestroy {
         paymentHash,
         coopname,
         quantity,
-        invoice.subscription_type_name || 'Пакет документооборота',
+        invoice.subscription_type_name || t('billing.payment.packageSubject'),
       );
       if (!begin.started) {
         await this.handleExistingPackageTopup(coopname, paymentHash, amountRub, begin.existing?.status, begin.existing?.tx_id);
@@ -403,6 +404,7 @@ export class BillingCronService implements OnModuleInit, OnModuleDestroy {
     return (
       message.includes('assertion failure') ||
       message.includes('eosio_assert') ||
+      // i18n-ignore: сверка с текстом отказа контракта
       message.includes('недостаточно') ||
       /executing for too long|max_transaction_cpu_usage|tx_cpu_usage_exceeded/i.test(message) ||
       /tx_net_usage_exceeded|transaction (was )?too large/i.test(message) ||

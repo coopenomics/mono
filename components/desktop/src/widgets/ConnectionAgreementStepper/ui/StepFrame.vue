@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { BaseButton, BaseCard, BaseForm } from 'src/shared/ui/base'
+import { t } from 'src/shared/i18n';
 
 /**
  * Единая рамка шага мастера подключения: заголовок, человеческое пояснение,
@@ -19,7 +20,7 @@ withDefaults(
     nextDisabled?: boolean
     loading?: boolean
   }>(),
-  { canBack: true, hasNext: true, nextLabel: 'Дальше', nextDisabled: false, loading: false },
+  { canBack: true, hasNext: true, nextLabel: t('connectionAgreementStepper.stepFrame.next'), nextDisabled: false, loading: false },
 )
 
 const emit = defineEmits<{ back: []; next: [] }>()
@@ -41,7 +42,7 @@ BaseForm.step-frame(:loading="loading" @submit="emit('next')")
         @click="emit('back')"
       )
         q-icon(name="arrow_back" size="16px").q-mr-xs
-        | Назад
+        | {{ $t('common.action.back') }}
       q-space
       BaseButton(
         v-if="hasNext"

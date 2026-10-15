@@ -1,4 +1,5 @@
 import { pluralize, pluralizeDays } from 'src/shared/lib/utils';
+import { t } from 'src/shared/i18n';
 
 /**
  * На что и насколько хватает баланса AXON.
@@ -71,19 +72,19 @@ export function axonCapacityMetrics(balance: number): AxonCapacityMetric[] {
   if (days === 0 && members === 0 && documents === 0) return [];
 
   return [
-    { key: 'days', value: days, label: `${pluralizeDays(days)} работы` },
-    { key: 'members', value: members, label: pluralize(members, ['пайщик', 'пайщика', 'пайщиков']) },
+    { key: 'days', value: days, label: t('axon.capacity.daysOfWork', { days: pluralizeDays(days) }) },
+    { key: 'members', value: members, label: pluralize(members, [t('axon.capacity.memberOne'), t('axon.capacity.memberFew'), t('axon.capacity.memberMany')]) },
     {
       key: 'documents',
       value: documents,
-      label: `${pluralize(documents, ['пакет', 'пакета', 'пакетов'])} документов`,
+      label: t('axon.capacity.documentPackages', { packages: pluralize(documents, [t('axon.capacity.packageOne'), t('axon.capacity.packageFew'), t('axon.capacity.packageMany')]) }),
     },
   ];
 }
 
 /** Пояснение к показателям — раскрывается подсказкой, в строку не помещается. */
 export const AXON_CAPACITY_HINT =
-  'Показатели независимы: ресурсы делят один баланс. ' +
-  `Аренда узла — ${AXON_MIN_DAILY_QUOTA} AXON в сутки, ` +
-  `регистрация пайщика — ${AXON_PER_MEMBER} AXON (аккаунт и пакет его документов), ` +
-  `пакет документов — ${AXON_PER_DOCUMENT_PACKAGE} AXON.`;
+  t('axon.capacity.hintIndependent') +
+  t('axon.capacity.hintNodeRent', { quota: AXON_MIN_DAILY_QUOTA }) +
+  t('axon.capacity.hintMemberRegistration', { price: AXON_PER_MEMBER }) +
+  t('axon.capacity.hintDocumentPackage', { price: AXON_PER_DOCUMENT_PACKAGE });

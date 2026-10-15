@@ -7,7 +7,7 @@
     type="button"
     :loading="pending === 'activate'"
     @click.stop="askActivate"
-  ) Подтвердить подключение
+  ) {{ $t('cooperativeDecision.actions.confirm') }}
   BaseButton(
     v-if="!isBlocked"
     variant="danger"
@@ -15,61 +15,61 @@
     type="button"
     :loading="pending === 'block'"
     @click.stop="askBlock"
-  ) Заблокировать
+  ) {{ $t('cooperativeDecision.actions.block') }}
 
   //- Оба решения совета необратимы одним кликом и видны пайщикам сразу:
   //- подключение запускает поставку, блокировка гасит сайт кооператива.
   //- Поэтому каждое подтверждается отдельно, а не выполняется по нажатию.
   BaseDialog(
     v-model="confirmActivate"
-    :title="isBlocked ? 'Разблокировать кооператив' : 'Подтвердить подключение'"
+    :title="isBlocked ? $t('cooperativeDecision.actions.unblockTitle') : $t('cooperativeDecision.actions.confirm')"
     size="md"
   )
     p.coop-decision__text(v-if="isBlocked")
-      | Кооператив {{ title }} сейчас заблокирован. Подтверждение вернёт его
-      | в строй, и провайдер снимет заглушку с домена кооператива.
+      | {{ $t('cooperativeDecision.actions.unblockLine1', { title }) }}
+      | {{ $t('cooperativeDecision.actions.unblockLine2') }}
     p.coop-decision__text(v-else)
-      | Совет подтверждает подключение кооператива {{ title }} к платформе.
-      | После этого провайдер начнёт поставку.
+      | {{ $t('cooperativeDecision.actions.confirmLine1', { title }) }}
+      | {{ $t('cooperativeDecision.actions.confirmLine2') }}
     template(#footer)
       BaseButton(
         variant="ghost"
         type="button"
         :disabled="pending === 'activate'"
         @click="confirmActivate = false"
-      ) Отменить
+      ) {{ $t('cooperativeDecision.actions.cancel') }}
       BaseButton(
         variant="primary"
         type="button"
         :loading="pending === 'activate'"
         @click="activate"
-      ) Подтвердить подключение
+      ) {{ $t('cooperativeDecision.actions.confirm') }}
 
   BaseDialog(
     v-model="confirmBlock"
-    title="Заблокировать кооператив"
+    :title="$t('cooperativeDecision.actions.blockDialogTitle')"
     size="md"
   )
     p.coop-decision__text
-      | Кооператив {{ title }} будет заблокирован в сети. Провайдер повесит
-      | на его домен заглушку — сайт кооператива перестанет открываться.
+      | {{ $t('cooperativeDecision.actions.blockLine1', { title }) }}
+      | {{ $t('cooperativeDecision.actions.blockLine2') }}
     p.coop-decision__text.t-muted
-      | Сервер кооператива при этом сохраняется: освобождают его отдельным
-      | решением оператора. Блокировку можно снять — тогда заглушка
-      | снимется сама.
+      | {{ $t('cooperativeDecision.actions.blockLine3') }}
+      | {{ $t('cooperativeDecision.actions.blockLine4') }}
+      | {{ $t('cooperativeDecision.actions.blockLine5') }}
     template(#footer)
       BaseButton(
         variant="ghost"
         type="button"
         :disabled="pending === 'block'"
         @click="confirmBlock = false"
-      ) Отменить
+      ) {{ $t('cooperativeDecision.actions.cancel') }}
       BaseButton(
         variant="negative"
         type="button"
         :loading="pending === 'block'"
         @click="block"
-      ) Заблокировать
+      ) {{ $t('cooperativeDecision.actions.block') }}
 </template>
 
 <script setup lang="ts">
@@ -79,6 +79,7 @@ import { useActivateCooperative } from 'src/features/Union/ActivateCooperative'
 import { useBlockCooperative } from 'src/features/Union/BlockCooperative'
 import { isRegistryStatus } from 'src/entities/Union'
 import { FailAlert, SuccessAlert } from 'src/shared/api/alerts'
+import { t } from 'src/shared/i18n';
 
 const props = defineProps<{
   coopname: string
@@ -114,7 +115,7 @@ const activate = async () => {
     await activateCooperative(props.coopname)
     confirmActivate.value = false
     emit('decided')
-    SuccessAlert(isBlocked.value ? 'Кооператив разблокирован' : 'Подключение кооператива подтверждено')
+    SuccessAlert(isBlocked.value ? t('cooperativeDecision.actions.unblocked') : t('cooperativeDecision.actions.confirmed'))
   } catch (e: any) {
     FailAlert(e)
   } finally {
@@ -129,7 +130,7 @@ const block = async () => {
     await blockCooperative(props.coopname)
     confirmBlock.value = false
     emit('decided')
-    SuccessAlert('Кооператив заблокирован')
+    SuccessAlert(t('cooperativeDecision.actions.blocked'))
   } catch (e: any) {
     FailAlert(e)
   } finally {

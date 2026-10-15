@@ -2,8 +2,8 @@
 .membership-wallet
   WalletCard(
     program="wallet"
-    title="Членские взносы"
-    subtitle="Оплата подписок кооператива"
+    :title="$t('connectionDashboard.membershipWallet.title')"
+    :subtitle="$t('connectionDashboard.membershipWallet.subtitle')"
     :balance="balance.amount"
     :symbol="balance.symbol || fallbackSymbol"
     :loading="initialLoading"
@@ -20,7 +20,7 @@
         @click="openConvert"
       )
         q-icon(name="add" size="16px").q-mr-xs
-        | Пополнить
+        | {{ $t('connectionDashboard.membershipWallet.topUp') }}
 
   ConvertToBillingDialog
 </template>

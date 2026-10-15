@@ -17,11 +17,11 @@
       span.detail-label {{ $t('powerup.axonWalletCard.newMembersLabel') }}
       span.detail-value {{ maxNewMembers }} {{ maxNewMembersText }}
     .detail-row
-      span.detail-label Пакетов документов
+      span.detail-label {{ $t('powerup.axonWalletCard.packagesLabel') }}
       span.detail-value {{ maxDocumentPackages }} {{ maxDocumentPackagesText }}
 
   .axon-wallet-card__note
-    | AXON используется для аренды вычислительных ресурсов (минимум 5 AXON/день), регистрации пайщиков (2 AXON — аккаунт и пакет его документов) и пакетов документов (1 AXON). Курс: 1 AXON = 10 RUB.
+    | {{ $t('powerup.axonWalletCard.note') }}
 
   BaseButton.axon-wallet-card__action(variant="primary", size="sm", block, @click="goToReplenishment")
     template(#icon-left)
@@ -40,6 +40,7 @@ import {
   axonMembersAffordable,
 } from 'src/shared/lib/axon';
 import { BaseButton } from 'src/shared/ui/base/BaseButton';
+import { t } from '../../../i18n';
 
 const systemStore = useSystemStore();
 
@@ -78,7 +79,7 @@ const maxNewMembersText = computed(() => {
 });
 
 const maxDocumentPackagesText = computed(() =>
-  pluralize(maxDocumentPackages.value, ['пакет', 'пакета', 'пакетов']),
+  pluralize(maxDocumentPackages.value, [t('powerup.axonWalletCard.packageOne'), t('powerup.axonWalletCard.packageFew'), t('powerup.axonWalletCard.packageMany')]),
 );
 
 // Переход на сайт пополнения

@@ -14,10 +14,15 @@
     },
     "connectionAgreementPage": {
       "description": "Для запуска вашего Цифрового Кооператива и подключения к платформе Кооперативной Экономики обратитесь в ПК ВОСХОД.",
+      "emptyBody": "Чтобы запустить цифровой кооператив и подключить его к платформе, обратитесь в ПК ВОСХОД.",
+      "emptyTitle": "Подключение к кооперативной экономике",
       "goToSiteLabel": "Перейти на сайт",
       "loadingText": "Загрузка данных подключения...",
       "maintenanceText": "технические работы...",
       "title": "Подключение к Кооперативной Экономике"
+    },
+    "cooperativeCharter": {
+      "uploadError": "Не удалось загрузить устав"
     },
     "cooperativeDataForm": {
       "continueLabel": "Продолжить",
@@ -33,6 +38,60 @@
       "minimumIndividualLabel": "Минимальный паевый взнос",
       "minimumOrgLabel": "Минимальный паевый взнос",
       "orgSectionTitle": "Для организаций"
+    },
+    "cooperativeDetail": {
+      "applicationFrom": "заявка от {date}",
+      "backToRegistry": "К реестру",
+      "billingWalletHint": "Списывается за инфраструктурные подписки.",
+      "billingWalletTitle": "Кошелёк членских взносов",
+      "charterAttached": "Приложен {date} · {size}",
+      "charterLinkUnavailable": "Ссылка на устав недоступна",
+      "charterTitle": "Устав кооператива",
+      "column": {
+        "nextPayment": "След. оплата",
+        "period": "Период",
+        "price": "Стоимость",
+        "status": "Статус",
+        "subscription": "Подписка"
+      },
+      "loading": "Загрузка кооператива...",
+      "noCharter": "Устав не приложен.",
+      "noDescription": "Описание не заполнено.",
+      "noSubscriptionsBody": "Появятся, когда провайдер начнёт поставку инфраструктуры",
+      "noSubscriptionsTitle": "Подписок нет",
+      "notFound": "Кооператив не найден в реестре.",
+      "openCharter": "Открыть устав",
+      "periodDays": "{days} дн.",
+      "shareWalletHint": "Возвратный взнос на счёте пайщика в Восходе.",
+      "shareWalletTitle": "Паевой взнос",
+      "sizeKb": "{size} КБ",
+      "sizeMb": "{size} МБ",
+      "tab": {
+        "description": "Описание",
+        "payments": "История оплат",
+        "subscriptions": "Подписки",
+        "wallets": "Кошельки"
+      }
+    },
+    "cooperativePayments": {
+      "loadError": "История оплат временно недоступна"
+    },
+    "cooperativesRegistry": {
+      "applicationFrom": "заявка от {date}",
+      "bannerLine1": "Заявки кооперативов на подключение к платформе. Совет читает рассказ о деятельности и устав,",
+      "bannerLine2": "подтверждает подключение — после этого провайдер начинает поставку.",
+      "charterAttached": "приложен",
+      "charterLabel": "Устав",
+      "charterMissing": "не приложен",
+      "emptyBody": "Кооперативы, подавшие заявку на подключение, появятся здесь",
+      "emptyTitle": "Заявок нет",
+      "hostingLabel": "Хостинг",
+      "loading": "Загрузка реестра...",
+      "monthlyTotalLabel": "Сумма в месяц",
+      "nextPaymentLabel": "Следующая оплата",
+      "noDescription": "Описание не заполнено.",
+      "notDeployed": "не разворачивался",
+      "subscriptionsLabel": "Подписок"
     },
     "installCooperativePage": {
       "doneHintLine1": "Всем членам совета отправлены приглашения на электронные почты со",
@@ -73,6 +132,42 @@
       "setupStepText": "Завершите начальную настройку вашего Цифрового Кооператива на сайте.",
       "subtitle": "Ваш Цифровой Кооператив успешно развернут и подключен к платформе",
       "title": "Поставка завершена!"
+    },
+    "instance": {
+      "status": {
+        "active": "работает",
+        "blocked": "заблокирован",
+        "error": "ошибка",
+        "install": "устанавливается",
+        "pending": "в очереди",
+        "rent": "арендуем сервер",
+        "requiresManualReview": "нужна проверка"
+      }
+    },
+    "payment": {
+      "status": {
+        "confirmed": "оплачено",
+        "failed": "отклонено",
+        "stalled": "не подтверждено",
+        "submitted": "отправлено в цепь",
+        "submitting": "отправляется"
+      }
+    },
+    "registry": {
+      "status": {
+        "active": "подключение подтверждено",
+        "blocked": "заблокирован",
+        "pending": "ждёт решения совета"
+      }
+    },
+    "subscription": {
+      "status": {
+        "active": "активна",
+        "cancelled": "отменена",
+        "expired": "истекла",
+        "pending": "ожидает оплаты",
+        "trial": "пробный период"
+      }
     },
     "unionPageListOfCooperatives": {
       "actionsLabel": "действия",

@@ -1,0 +1,18 @@
+{
+  "axon": {
+    "capacity": {
+      "daysOfWork": "{days} работы",
+      "documentPackages": "{packages} документов",
+      "hintDocumentPackage": "пакет документов — {price} AXON.",
+      "hintIndependent": "Показатели независимы: ресурсы делят один баланс. ",
+      "hintMemberRegistration": "регистрация пайщика — {price} AXON (аккаунт и пакет его документов), ",
+      "hintNodeRent": "Аренда узла — {quota} AXON в сутки, ",
+      "memberFew": "пайщика",
+      "memberMany": "пайщиков",
+      "memberOne": "пайщик",
+      "packageOne": "пакет",
+      "packageFew": "пакета",
+      "packageMany": "пакетов"
+    }
+  }
+}

@@ -4,6 +4,7 @@ import { BaseInput } from 'src/shared/ui/base'
 import { notEmpty } from 'src/shared/lib/utils'
 import { useConnectionAgreementStore, CONNECTION_STEP } from 'src/entities/ConnectionAgreement'
 import StepFrame from '../ui/StepFrame.vue'
+import { t } from 'src/shared/i18n';
 
 const connectionAgreement = useConnectionAgreementStore()
 
@@ -26,10 +27,10 @@ watch(
 
 const validate = (): boolean => {
   const e: Record<string, string> = {}
-  if (notEmpty(initial.value) !== true) e.initial = 'Укажите сумму'
-  if (notEmpty(minimum.value) !== true) e.minimum = 'Укажите сумму'
-  if (notEmpty(orgInitial.value) !== true) e.orgInitial = 'Укажите сумму'
-  if (notEmpty(orgMinimum.value) !== true) e.orgMinimum = 'Укажите сумму'
+  if (notEmpty(initial.value) !== true) e.initial = t('connectionAgreementStepper.financialParamsStep.amountRequired')
+  if (notEmpty(minimum.value) !== true) e.minimum = t('connectionAgreementStepper.financialParamsStep.amountRequired')
+  if (notEmpty(orgInitial.value) !== true) e.orgInitial = t('connectionAgreementStepper.financialParamsStep.amountRequired')
+  if (notEmpty(orgMinimum.value) !== true) e.orgMinimum = t('connectionAgreementStepper.financialParamsStep.amountRequired')
   errors.value = e
   return Object.keys(e).length === 0
 }
@@ -51,60 +52,60 @@ const handleBack = () => connectionAgreement.setCurrentStep(CONNECTION_STEP.doma
 
 <template lang="pug">
 StepFrame(
-  title="Сколько платят при вступлении"
-  lead="Каждый новый пайщик при вступлении вносит вступительный взнос и первый паевой. Эти суммы платформа подставит в заявление о вступлении и проверит при оплате. Для граждан и для организаций они обычно разные — задайте обе пары."
+  :title="$t('connectionAgreementStepper.financialParamsStep.title')"
+  :lead="$t('connectionAgreementStepper.financialParamsStep.lead')"
   @back="handleBack"
   @next="handleContinue"
 )
   .financial-step__group
     .financial-step__group-head
-      .t-h3 Граждане и ИП
-      p.t-sm.t-muted.financial-step__group-note Физические лица и индивидуальные предприниматели.
+      .t-h3 {{ $t('connectionAgreementStepper.financialParamsStep.individualsTitle') }}
+      p.t-sm.t-muted.financial-step__group-note {{ $t('connectionAgreementStepper.financialParamsStep.individualsHint') }}
     .row.q-col-gutter-md
       .col-12.col-md-6
         BaseInput(
           v-model="initial"
-          label="Вступительный взнос"
+          :label="$t('connectionAgreementStepper.financialParamsStep.entranceFeeLabel')"
           type="number"
           placeholder="100"
           suffix="RUB"
-          hint="Разовый, при вступлении"
+          :hint="$t('connectionAgreementStepper.financialParamsStep.entranceFeeHint')"
           :error="errors.initial || undefined"
         )
       .col-12.col-md-6
         BaseInput(
           v-model="minimum"
-          label="Минимальный паевой взнос"
+          :label="$t('connectionAgreementStepper.financialParamsStep.minShareLabel')"
           type="number"
           placeholder="300"
           suffix="RUB"
-          hint="Меньше этой суммы внести нельзя"
+          :hint="$t('connectionAgreementStepper.financialParamsStep.minShareHint')"
           :error="errors.minimum || undefined"
         )
 
   .financial-step__group
     .financial-step__group-head
-      .t-h3 Организации
-      p.t-sm.t-muted.financial-step__group-note Юридические лица, вступающие в кооператив.
+      .t-h3 {{ $t('connectionAgreementStepper.financialParamsStep.organizationsTitle') }}
+      p.t-sm.t-muted.financial-step__group-note {{ $t('connectionAgreementStepper.financialParamsStep.organizationsHint') }}
     .row.q-col-gutter-md
       .col-12.col-md-6
         BaseInput(
           v-model="orgInitial"
-          label="Вступительный взнос"
+          :label="$t('connectionAgreementStepper.financialParamsStep.entranceFeeLabel')"
           type="number"
           placeholder="1000"
           suffix="RUB"
-          hint="Разовый, при вступлении"
+          :hint="$t('connectionAgreementStepper.financialParamsStep.entranceFeeHint')"
           :error="errors.orgInitial || undefined"
         )
       .col-12.col-md-6
         BaseInput(
           v-model="orgMinimum"
-          label="Минимальный паевой взнос"
+          :label="$t('connectionAgreementStepper.financialParamsStep.minShareLabel')"
           type="number"
           placeholder="3000"
           suffix="RUB"
-          hint="Меньше этой суммы внести нельзя"
+          :hint="$t('connectionAgreementStepper.financialParamsStep.minShareHint')"
           :error="errors.orgMinimum || undefined"
         )
 </template>

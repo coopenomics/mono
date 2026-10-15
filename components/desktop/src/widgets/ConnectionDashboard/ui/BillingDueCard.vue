@@ -7,17 +7,17 @@ BaseCard(v-if="visible")
   .due-card
     .due-card__head
       BaseBadge(variant="neg") {{ badgeLabel }}
-      span.due-card__head-note(v-if="isReleased") данные сохранены в резервной копии
+      span.due-card__head-note(v-if="isReleased") {{ $t('connectionDashboard.billingDueCard.backupNote') }}
 
     .due-card__rows
       .due-card__row
-        span К оплате
+        span {{ $t('connectionDashboard.billingDueCard.dueLabel') }}
         span.t-mono.t-num {{ formatPrice(summary.dueTotal) }}
       .due-card__row
-        span На кошельке
+        span {{ $t('connectionDashboard.billingDueCard.walletLabel') }}
         span.t-mono.t-num {{ formatPrice(walletAvailable) }}
       .due-card__row.due-card__row--accent(v-if="shortfall > 0")
-        span Необходимо пополнить
+        span {{ $t('connectionDashboard.billingDueCard.topUpNeeded') }}
         span.t-mono.t-num {{ formatPrice(shortfall) }}
 
   template(#footer)
@@ -28,7 +28,7 @@ BaseCard(v-if="visible")
       @click="openConvert"
     )
       q-icon(name="add" size="16px").q-mr-xs
-      | Пополнить кошелёк
+      | {{ $t('connectionDashboard.billingDueCard.topUp') }}
 </template>
 
 <script setup lang="ts">
@@ -41,6 +41,7 @@ import { useSessionStore } from 'src/entities/Session'
 import { useSystemStore } from 'src/entities/System/model'
 import { useConvertToBillingVisibility } from 'src/features/Billing/ConvertToBilling'
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits'
+import { t } from 'src/shared/i18n';
 
 const session = useSessionStore()
 const system = useSystemStore()
@@ -61,7 +62,7 @@ const isSuspended = computed(() => instance.value?.maintenance_mode === true)
 const visible = computed(() => summary.value.hasDue || isSuspended.value || isReleased.value)
 
 const badgeLabel = computed(() =>
-  isSuspended.value || isReleased.value ? 'Обслуживание приостановлено' : 'Просрочка',
+  isSuspended.value || isReleased.value ? t('connectionDashboard.billingDueCard.suspended') : t('connectionDashboard.billingDueCard.overdue'),
 )
 
 const { available, symbol } = useBillingWallet(
