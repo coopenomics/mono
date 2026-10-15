@@ -83,8 +83,7 @@ export default async ({ page, context, shot, expect }) => {
     await page.waitForTimeout(1200);
     const onBehalf = page.locator('button:has-text("Отчитаться за пайщика")').first();
     if (await page.locator('text=Фактически потрачено по чекам').first().isVisible().catch(() => false)) {
-      const amount = page.locator('tr.expand-row input').first();
-      await amount.fill('1500');
+      // Сумма отчёта стоит равной авансу; чек — во второй загрузчик строки.
       const file = page.locator('tr.expand-row input[type="file"]').last();
       await file.setInputFiles(PROOF);
       await page.waitForTimeout(2500);

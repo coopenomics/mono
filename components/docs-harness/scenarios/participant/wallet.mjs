@@ -16,10 +16,12 @@ export default async ({ page, shot }) => {
     await deposit.click();
     await page.waitForSelector('text=Паевой взнос', { timeout: 15000 });
     await page.waitForTimeout(600);
-    await page.locator('.q-dialog input').first().fill('3000');
+    const amount = page.locator('.q-dialog input:visible').first();
+    await amount.click();
+    await amount.pressSequentially('3000', { delay: 40 });
     await page.waitForTimeout(500);
-    await shot(page, '02-deposit', 'Паевой взнос: сумма взноса. Кнопка «Внести» заводит платёж и показывает реквизиты.');
-    await page.locator('.q-dialog button:has-text("Внести")').last().click();
+    await shot(page, '02-deposit', 'Паевой взнос: сумма взноса. Кнопка «Продолжить» заводит платёж и показывает реквизиты.');
+    await page.locator('.q-dialog button:has-text("Продолжить")').last().click();
     await page.waitForSelector('text=Совершите взнос', { timeout: 60000 }).catch(() => {});
     await page.waitForTimeout(2000);
     await shot(page, '03-deposit-payment', 'Реквизиты взноса: код для оплаты из банковского приложения и назначение платежа. После оплаты кассир подтверждает платёж, взнос поступает в кошелёк.');
