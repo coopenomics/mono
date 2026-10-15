@@ -8197,6 +8197,12 @@ export type ValueTypes = {
 	/** Почта / Telegram / код пропуска */
 	recipient_value: string | Variable<any, string>
 };
+	["EmailRegistrationCheckInputDTO"]: {
+	/** Адрес электронной почты, который проверяется */
+	email: string | Variable<any, string>
+};
+	/** Зачем запрашивается код подтверждения почты */
+["EmailVerificationPurpose"]:EmailVerificationPurpose;
 	["EmailVerificationRequestDTO"]: AliasType<{
 	/** Через сколько секунд можно запросить письмо повторно */
 	cooldown_seconds?:boolean | `@${string}`,
@@ -15800,6 +15806,7 @@ getWithheldTaxPayments?: [{	limit?: number | undefined | null | Variable<any, st
 	/** Удержанный налог: сколько должны бюджету и что уже отправлено кассиру */
 	getWithheldTaxState?:ValueTypes["WithheldTaxState"],
 globalSearch?: [{	data: ValueTypes["GlobalSearchInput"] | Variable<any, string>},ValueTypes["GlobalSearchGroup"]],
+isEmailRegistered?: [{	data: ValueTypes["EmailRegistrationCheckInputDTO"] | Variable<any, string>},boolean | `@${string}`],
 kuDecision?: [{	hash: string | Variable<any, string>},ValueTypes["KuDecision"]],
 kuDecisions?: [{	filter?: ValueTypes["KuDecisionFilterInput"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedKuDecisionsPaginationResult"]],
 kuTrustRequests?: [{	filter?: ValueTypes["KuTrustRequestFilterInput"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedKuTrustRequestsPaginationResult"]],
@@ -16384,7 +16391,9 @@ verificationReviews?: [{	data?: ValueTypes["VerificationReviewsInput"] | undefin
 };
 	["RequestEmailVerificationInputDTO"]: {
 	/** Адрес электронной почты, который подтверждается */
-	email: string | Variable<any, string>
+	email: string | Variable<any, string>,
+	/** Зачем нужен код: при регистрации на уже зарегистрированный адрес код не отправляется. По умолчанию — подтверждение из кабинета */
+	purpose?: ValueTypes["EmailVerificationPurpose"] | undefined | null | Variable<any, string>
 };
 	["RequestForceRecoveryConsentInput"]: {
 	/** Пайщик, для которого запрашивается согласие */
@@ -25149,6 +25158,12 @@ export type ResolverInputTypes = {
 	/** Почта / Telegram / код пропуска */
 	recipient_value: string
 };
+	["EmailRegistrationCheckInputDTO"]: {
+	/** Адрес электронной почты, который проверяется */
+	email: string
+};
+	/** Зачем запрашивается код подтверждения почты */
+["EmailVerificationPurpose"]:EmailVerificationPurpose;
 	["EmailVerificationRequestDTO"]: AliasType<{
 	/** Через сколько секунд можно запросить письмо повторно */
 	cooldown_seconds?:boolean | `@${string}`,
@@ -32522,6 +32537,7 @@ getWithheldTaxPayments?: [{	limit?: number | undefined | null,	page?: number | u
 	/** Удержанный налог: сколько должны бюджету и что уже отправлено кассиру */
 	getWithheldTaxState?:ResolverInputTypes["WithheldTaxState"],
 globalSearch?: [{	data: ResolverInputTypes["GlobalSearchInput"]},ResolverInputTypes["GlobalSearchGroup"]],
+isEmailRegistered?: [{	data: ResolverInputTypes["EmailRegistrationCheckInputDTO"]},boolean | `@${string}`],
 kuDecision?: [{	hash: string},ResolverInputTypes["KuDecision"]],
 kuDecisions?: [{	filter?: ResolverInputTypes["KuDecisionFilterInput"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedKuDecisionsPaginationResult"]],
 kuTrustRequests?: [{	filter?: ResolverInputTypes["KuTrustRequestFilterInput"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedKuTrustRequestsPaginationResult"]],
@@ -33083,7 +33099,9 @@ verificationReviews?: [{	data?: ResolverInputTypes["VerificationReviewsInput"] |
 };
 	["RequestEmailVerificationInputDTO"]: {
 	/** Адрес электронной почты, который подтверждается */
-	email: string
+	email: string,
+	/** Зачем нужен код: при регистрации на уже зарегистрированный адрес код не отправляется. По умолчанию — подтверждение из кабинета */
+	purpose?: ResolverInputTypes["EmailVerificationPurpose"] | undefined | null
 };
 	["RequestForceRecoveryConsentInput"]: {
 	/** Пайщик, для которого запрашивается согласие */
@@ -41569,6 +41587,11 @@ export type ModelTypes = {
 	/** Почта / Telegram / код пропуска */
 	recipient_value: string
 };
+	["EmailRegistrationCheckInputDTO"]: {
+	/** Адрес электронной почты, который проверяется */
+	email: string
+};
+	["EmailVerificationPurpose"]:EmailVerificationPurpose;
 	["EmailVerificationRequestDTO"]: {
 		/** Через сколько секунд можно запросить письмо повторно */
 	cooldown_seconds: number,
@@ -49159,6 +49182,8 @@ export type ModelTypes = {
 	getWithheldTaxState: ModelTypes["WithheldTaxState"],
 	/** Единый поиск: пайщики, документы и записи приложений, сгруппированные по источнику */
 	globalSearch: Array<ModelTypes["GlobalSearchGroup"]>,
+	/** Зарегистрирован ли в кооперативе пайщик с этой электронной почтой */
+	isEmailRegistered: boolean,
 	/** Получить решение собрания участка по хэшу (с вопросами повестки) */
 	kuDecision: ModelTypes["KuDecision"],
 	/** Получить список решений собраний кооперативных участков */
@@ -49776,7 +49801,9 @@ export type ModelTypes = {
 };
 	["RequestEmailVerificationInputDTO"]: {
 	/** Адрес электронной почты, который подтверждается */
-	email: string
+	email: string,
+	/** Зачем нужен код: при регистрации на уже зарегистрированный адрес код не отправляется. По умолчанию — подтверждение из кабинета */
+	purpose?: ModelTypes["EmailVerificationPurpose"] | undefined | null
 };
 	["RequestForceRecoveryConsentInput"]: {
 	/** Пайщик, для которого запрашивается согласие */
@@ -58605,6 +58632,12 @@ export type GraphQLTypes = {
 	/** Почта / Telegram / код пропуска */
 	recipient_value: string
 };
+	["EmailRegistrationCheckInputDTO"]: {
+		/** Адрес электронной почты, который проверяется */
+	email: string
+};
+	/** Зачем запрашивается код подтверждения почты */
+["EmailVerificationPurpose"]: EmailVerificationPurpose;
 	["EmailVerificationRequestDTO"]: {
 	__typename: "EmailVerificationRequestDTO",
 	/** Через сколько секунд можно запросить письмо повторно */
@@ -66746,6 +66779,8 @@ export type GraphQLTypes = {
 	getWithheldTaxState: GraphQLTypes["WithheldTaxState"],
 	/** Единый поиск: пайщики, документы и записи приложений, сгруппированные по источнику */
 	globalSearch: Array<GraphQLTypes["GlobalSearchGroup"]>,
+	/** Зарегистрирован ли в кооперативе пайщик с этой электронной почтой */
+	isEmailRegistered: boolean,
 	/** Получить решение собрания участка по хэшу (с вопросами повестки) */
 	kuDecision: GraphQLTypes["KuDecision"],
 	/** Получить список решений собраний кооперативных участков */
@@ -67410,7 +67445,9 @@ export type GraphQLTypes = {
 };
 	["RequestEmailVerificationInputDTO"]: {
 		/** Адрес электронной почты, который подтверждается */
-	email: string
+	email: string,
+	/** Зачем нужен код: при регистрации на уже зарегистрированный адрес код не отправляется. По умолчанию — подтверждение из кабинета */
+	purpose?: GraphQLTypes["EmailVerificationPurpose"] | undefined | null
 };
 	["RequestForceRecoveryConsentInput"]: {
 		/** Пайщик, для которого запрашивается согласие */
@@ -69614,6 +69651,11 @@ export enum EduShareReturnDocumentKind {
 	RETURN_STATEMENT = "RETURN_STATEMENT",
 	TRANSFER_STATEMENT = "TRANSFER_STATEMENT"
 }
+/** Зачем запрашивается код подтверждения почты */
+export enum EmailVerificationPurpose {
+	Account = "Account",
+	Registration = "Registration"
+}
 /** Тип первичного файла расхода. */
 export enum ExpenseFileKind {
 	CLOSING_DOC = "CLOSING_DOC",
@@ -70622,6 +70664,8 @@ type ZEUS_VARIABLES = {
 	["EduUpdateCourseInput"]: ValueTypes["EduUpdateCourseInput"];
 	["EduUpdateGroupInput"]: ValueTypes["EduUpdateGroupInput"];
 	["EduUpdateLearnerInput"]: ValueTypes["EduUpdateLearnerInput"];
+	["EmailRegistrationCheckInputDTO"]: ValueTypes["EmailRegistrationCheckInputDTO"];
+	["EmailVerificationPurpose"]: ValueTypes["EmailVerificationPurpose"];
 	["EntrepreneurDetailsInput"]: ValueTypes["EntrepreneurDetailsInput"];
 	["ExecKuDecisionInput"]: ValueTypes["ExecKuDecisionInput"];
 	["ExpenseCallbackInput"]: ValueTypes["ExpenseCallbackInput"];

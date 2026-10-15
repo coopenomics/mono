@@ -9,11 +9,12 @@
  * (coopid-b.helpers.ts, mailboxCode).
  */
 import { describe, expect, it } from 'vitest'
-import { caseName } from '../core'
+import { CHAIRMAN, caseName } from '../core'
 import {
   WF_EMAIL_VERIFICATION,
   confirmEmailCode,
   emailSubscriber,
+  isEmailRegisteredFrom,
   isEmailVerified,
   outbox,
   registerCandidate,
@@ -148,5 +149,43 @@ describe('coopid.email-verification: код подтверждения почт�
     // AUTH_EMAIL_INVALID — оба ответа означают «до почты не дошли».
     expect(['AUTH_EMAIL_INVALID', 422]).toContain(r.errors[0]?.code)
     expect((await lettersTo(raw)).totalCount).toBe(0)
+  })
+
+  it(caseName('cid.ev.side.06', 'регистрация на зарегистрированный адрес: отказ сразу, письмо не уходит'), async () => {
+    const before = (await lettersTo(CHAIRMAN.email)).totalCount
+    const r = await requestEmailCode(uniqueIp(), CHAIRMAN.email.toUpperCase(), 'Registration')
+    expect(r.errors[0]?.code).toBe('AUTH_EMAIL_ALREADY_REGISTERED')
+    expect((await lettersTo(CHAIRMAN.email)).totalCount).toBe(before)
+  })
+
+  it(caseName('cid.ev.side.07', 'из кабинета код на адрес владельца учётной записи уходит как раньше'), async () => {
+    const before = (await lettersTo(CHAIRMAN.email)).totalCount
+    const r = await requestEmailCode(uniqueIp(), CHAIRMAN.email, 'Account')
+    expect(r.errors).toEqual([])
+    // Окно троттла могло остаться от соседнего теста — тогда второго письма нет по праву.
+    if (r.data.requestEmailVerification.cooldown_seconds === 60)
+      expect((await lettersTo(CHAIRMAN.email)).totalCount).toBe(before + 1)
+  })
+
+  it(caseName('cid.ev.side.08', 'проверка адреса: зарегистрированный — да, незнакомый — нет'), async () => {
+    const taken = await isEmailRegisteredFrom(uniqueIp(), CHAIRMAN.email.toUpperCase())
+    expect(taken.errors).toEqual([])
+    expect(taken.data.isEmailRegistered).toBe(true)
+
+    const free = await isEmailRegisteredFrom(uniqueIp(), uniqueEmail('evq'))
+    expect(free.errors).toEqual([])
+    expect(free.data.isEmailRegistered).toBe(false)
+  })
+
+  it(caseName('cid.ev.side.09', 'незавершённая регистрация не держит адрес: проверка «свободен», код уходит'), async () => {
+    const email = uniqueEmail('evc')
+    await registerCandidate(uniqueIp(), email)
+
+    const check = await isEmailRegisteredFrom(uniqueIp(), email)
+    expect(check.data.isEmailRegistered).toBe(false)
+
+    const r = await requestEmailCode(uniqueIp(), email, 'Registration')
+    expect(r.errors).toEqual([])
+    expect((await lettersTo(email)).totalCount).toBe(1)
   })
 })

@@ -52,6 +52,7 @@
 import { onMounted, toRef } from 'vue';
 import { BaseButton } from 'src/shared/ui/base';
 import { OtpInput } from 'src/shared/ui/domain/OtpInput';
+import type { Zeus } from '@coopenomics/sdk';
 import { EMAIL_CODE_LENGTH, useEmailVerification } from '../model';
 
 /**
@@ -65,8 +66,10 @@ const props = withDefaults(
     email: string;
     /** Показывать «Изменить адрес» — там, где адрес ещё можно поправить. */
     changeable?: boolean;
+    /** Зачем код; без значения — подтверждение из кабинета. */
+    purpose?: Zeus.EmailVerificationPurpose;
   }>(),
-  { changeable: false },
+  { changeable: false, purpose: undefined },
 );
 
 const emit = defineEmits<{
@@ -77,7 +80,7 @@ const emit = defineEmits<{
 }>();
 
 const { code, error, sent, sending, confirming, cooldown, canResend, send, confirm, reset } =
-  useEmailVerification(toRef(props, 'email'));
+  useEmailVerification(toRef(props, 'email'), props.purpose);
 
 // Письмо уходит сразу при открытии формы: пайщик уже нажал «Продолжить» или
 // «Подтвердить» — отдельная кнопка «выслать код» была бы лишним щелчком.

@@ -6983,6 +6983,8 @@ export type MessageKey =
   | 'registrator.emailInput.emailLabel'
   | 'registrator.emailInput.invalidEmailError'
   | 'registrator.emailInput.orDivider'
+  | 'registrator.emailInput.recoverAction'
+  | 'registrator.emailInput.signInAction'
   | 'registrator.emailInput.submitAction'
   | 'registrator.emailInput.welcomeLead'
   | 'registrator.generateAccount.backAction'

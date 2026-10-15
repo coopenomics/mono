@@ -14,18 +14,24 @@ div(v-show='store.isStep("EmailInput")')
         :model-value='email',
         type='email',
         :label='$t("registrator.emailInput.emailLabel")',
-        :readonly='inLoading',
         :error='emailError',
         autocomplete='email',
         @update:model-value='onEmailUpdate',
         @keypress.enter='setEmail'
       )
 
+      //- Адрес уже зарегистрирован: регистрация дальше не ведёт, человеку нужен
+      //- вход или восстановление доступа. Код на такой адрес не отправляется.
+      template(v-if='isEmailExist')
+        BaseButton(variant='primary', block, @click='goToSignIn') {{ $t('registrator.emailInput.signInAction') }}
+        BaseButton(variant='secondary', block, @click='goToRecover') {{ $t('registrator.emailInput.recoverAction') }}
+
       BaseButton(
+        v-else,
         variant='primary',
         block,
-        :disabled='!isValidEmail || isEmailExist',
-        :loading='inLoading',
+        :disabled='!isValidEmail',
+        :loading='checking',
         @click='setEmail'
       ) {{ $t('registrator.emailInput.submitAction') }}
 
@@ -36,7 +42,7 @@ div(v-show='store.isStep("EmailInput")')
         .email-input__divider
           span.email-input__divider-word {{ $t('registrator.emailInput.orDivider') }}
 
-        BaseButton(variant='secondary', block, :disabled='inLoading', @click='startCardcoopEntry')
+        BaseButton(variant='secondary', block, @click='startCardcoopEntry')
           template(#icon-left)
             q-icon(name='badge', size='18px')
           | {{ $t('registrator.emailInput.cardcoopSignUpAction') }}
@@ -51,6 +57,7 @@ div(v-show='store.isStep("EmailInput")')
       EmailCodeForm(
         :email='email',
         changeable,
+        :purpose='Zeus.EmailVerificationPurpose.Registration',
         @verified='onVerified',
         @change-email='confirming = false'
       )
@@ -58,12 +65,13 @@ div(v-show='store.isStep("EmailInput")')
 
 <script lang="ts" setup>
 import { ref, computed, onMounted, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { useCreateUser } from 'src/features/User/CreateUser';
 import { debounce } from 'quasar';
 import { useRegistratorStore } from 'src/entities/Registrator';
 import { env } from 'src/shared/config';
 import { client } from 'src/shared/api/client';
-import { Queries } from '@coopenomics/sdk';
+import { Queries, Zeus } from '@coopenomics/sdk';
 import { BaseInput } from 'src/shared/ui/base/BaseInput';
 import { BaseButton } from 'src/shared/ui/base/BaseButton';
 import { EmailCodeForm } from 'src/features/User/VerifyEmail';
@@ -71,6 +79,8 @@ import { t } from 'src/shared/i18n';
 
 const store = useRegistratorStore();
 const api = useCreateUser();
+const router = useRouter();
+const route = useRoute();
 
 const coopTitle = computed(() => env.COOP_SHORT_NAME);
 const email = ref(store.state.email);
@@ -81,8 +91,13 @@ const confirming = ref(false);
 
 watch(() => store.state.email, (val) => (email.value = val));
 
-const inLoading = ref(false);
 const isEmailExist = ref(false);
+/** Сервер отвечает, занят ли адрес. */
+const checking = ref(false);
+/** Адрес, к которому относится ответ `isEmailExist`. */
+const checkedEmail = ref('');
+/** Номер последней проверки: ответ на прежний адрес приходить может, применяться — нет. */
+let checkSeq = 0;
 
 const isValidEmail = computed(() => api.emailIsValid(email.value));
 
@@ -94,15 +109,41 @@ const emailError = computed<string | undefined>(() => {
   return undefined;
 });
 
-const checkEmailExists = debounce(async () => {
-  inLoading.value = true;
-  isEmailExist.value = await api.emailIsExist(email.value);
-  inLoading.value = false;
-}, 500);
+/**
+ * Спросить сервер, зарегистрирован ли адрес. О занятом адресе человек узнаёт
+ * здесь, пока вводит почту, — до письма с кодом и анкеты.
+ */
+async function runEmailCheck(): Promise<void> {
+  const value = email.value;
+  if (!api.emailIsValid(value)) return;
+  const seq = ++checkSeq;
+  checking.value = true;
+  try {
+    const exists = await api.emailIsExist(value);
+    if (seq !== checkSeq) return;
+    isEmailExist.value = exists;
+    checkedEmail.value = value;
+  } catch {
+    // Проверка подсказывает, а не запирает: если она не удалась, сервер всё
+    // равно откажет в коде на занятый адрес, и человек увидит ту же причину.
+    if (seq !== checkSeq) return;
+    isEmailExist.value = false;
+    checkedEmail.value = value;
+  } finally {
+    if (seq === checkSeq) checking.value = false;
+  }
+}
+
+// timing: debounce — проверка адреса на паузе в наборе, а не на каждой букве
+const checkEmailExists = debounce(runEmailCheck, 500);
 
 function onEmailUpdate(val: string): void {
   email.value = val.trim();
   touched.value = true;
+  // Ответ о прежнем адресе к новому не относится, а запоздавший ответ не применяется.
+  isEmailExist.value = false;
+  checking.value = false;
+  checkSeq += 1;
   // Адрес правят — прежнее подтверждение к нему уже не относится.
   if (store.state.emailVerified) store.state.emailVerified = false;
 }
@@ -120,6 +161,8 @@ const cardcoopEntryAvailable = ref(false);
 
 // realtime: нет источника — шаг ввода почты открыт гостю, лента доступна только вошедшему пайщику; доступность входа по карте читается один раз.
 onMounted(async () => {
+  // Адрес мог остаться с прошлого визита — о его занятости говорим сразу.
+  if (email.value && !store.state.emailVerified) void runEmailCheck();
   try {
     const { [Queries.Cardcoop.GetEntryAvailable.name]: available } = await client.Query(
       Queries.Cardcoop.GetEntryAvailable.query,
@@ -135,8 +178,22 @@ function startCardcoopEntry(): void {
   window.location.href = `${env.BACKEND_URL.replace(/\/+$/, '')}/v1/extensions/cardcoop/entry/start`;
 }
 
-const setEmail = () => {
-  if (!isValidEmail.value || isEmailExist.value) return;
+function goToSignIn(): void {
+  void router.push({ name: 'signin', params: { coopname: route.params.coopname } });
+}
+
+function goToRecover(): void {
+  void router.push({ name: 'recover', params: { coopname: route.params.coopname } });
+}
+
+const setEmail = async () => {
+  if (!isValidEmail.value) return;
+  // «Продолжить» могли нажать раньше, чем сработала проверка на паузе набора.
+  if (checkedEmail.value !== email.value) {
+    checkEmailExists.cancel();
+    await runEmailCheck();
+  }
+  if (isEmailExist.value) return;
   store.state.email = email.value;
   // Подтверждённый адрес не переспрашиваем: пайщик мог вернуться на шаг назад
   // или обновить страницу — код в письме не бесконечен, а его терпение тем более.

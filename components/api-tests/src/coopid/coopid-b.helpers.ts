@@ -109,8 +109,16 @@ export const WF_EMAIL_VERIFICATION = 'verifikatsiya-email'
 /** Тип уведомления «ссылка восстановления доступа». */
 export const WF_RECOVERY = 'vosstanovlenie-dostupa'
 
-export async function requestEmailCode(ip: string, email: string): Promise<GqlResponse<any>> {
-  return gqlFrom(ip, null, REQUEST_EMAIL_CODE, { d: { email } })
+/** Назначение кода: `Registration` — шаг регистрации, без назначения — кабинет. */
+export async function requestEmailCode(ip: string, email: string, purpose?: 'Registration' | 'Account'): Promise<GqlResponse<any>> {
+  return gqlFrom(ip, null, REQUEST_EMAIL_CODE, { d: purpose ? { email, purpose } : { email } })
+}
+
+export const IS_EMAIL_REGISTERED = `query($d:EmailRegistrationCheckInputDTO!){ isEmailRegistered(data:$d) }`
+
+/** Зарегистрирован ли адрес — тем же открытым запросом, что задаёт шаг ввода почты. */
+export async function isEmailRegisteredFrom(ip: string, email: string): Promise<GqlResponse<any>> {
+  return gqlFrom(ip, null, IS_EMAIL_REGISTERED, { d: { email } })
 }
 
 export async function confirmEmailCode(ip: string, email: string, code: string): Promise<GqlResponse<any>> {

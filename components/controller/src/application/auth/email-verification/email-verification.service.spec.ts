@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import { EmailVerificationService } from './email-verification.service';
+import { EmailVerificationPurpose } from './email-verification-purpose.enum';
 
 const EMAIL = 'Ivanov@Example.com';
 const NORMALIZED = 'ivanov@example.com';
@@ -16,6 +17,8 @@ function setup(
     attempts?: number;
     requests?: number;
     notifyFails?: boolean;
+    /** Адрес закреплён за учётной записью, прошедшей дальше начального статуса. */
+    registered?: boolean;
   } = {},
 ) {
   const store = {
@@ -32,6 +35,7 @@ function setup(
   const users = {
     findUserByEmail: jest.fn().mockResolvedValue(overrides.user ?? null),
     updateUserById: jest.fn().mockResolvedValue(undefined),
+    isEmailRegistered: jest.fn().mockResolvedValue(overrides.registered ?? false),
   };
   const notifications = {
     notify: overrides.notifyFails
@@ -104,6 +108,65 @@ describe('EmailVerificationService (подтверждение почты код
     const { service, notifications } = setup();
     await expect(service.request('не-почта', null)).rejects.toThrow(/корректный адрес/);
     expect(notifications.notify).not.toHaveBeenCalled();
+  });
+
+  it('request: регистрация на зарегистрированный адрес — отказ, письмо не уходит', async () => {
+    const { service, notifications, store, users } = setup({ registered: true });
+    await expect(
+      service.request(EMAIL, '10.0.0.1', EmailVerificationPurpose.Registration),
+    ).rejects.toThrow(/уже зарегистрирован/);
+    expect(users.isEmailRegistered).toHaveBeenCalledWith(NORMALIZED);
+    expect(notifications.notify).not.toHaveBeenCalled();
+    expect(store.put).not.toHaveBeenCalled();
+  });
+
+  it('request: регистрация на свободный адрес — письмо уходит', async () => {
+    const { service, notifications } = setup({ registered: false });
+    await service.request(EMAIL, null, EmailVerificationPurpose.Registration);
+    expect(notifications.notify).toHaveBeenCalledTimes(1);
+  });
+
+  it('request: из кабинета код идёт на адрес владельца учётной записи', async () => {
+    const { service, notifications, users } = setup({ registered: true });
+    await service.request(EMAIL, null, EmailVerificationPurpose.Account);
+    expect(notifications.notify).toHaveBeenCalledTimes(1);
+    // Назначение «кабинет» занятость адреса не спрашивает вовсе.
+    expect(users.isEmailRegistered).not.toHaveBeenCalled();
+  });
+
+  it('request: без назначения работает как подтверждение из кабинета', async () => {
+    const { service, notifications } = setup({ registered: true });
+    await service.request(EMAIL, null);
+    expect(notifications.notify).toHaveBeenCalledTimes(1);
+  });
+
+  it('isRegistered: отвечает по нормализованному адресу', async () => {
+    const { service, users } = setup({ registered: true });
+    await expect(service.isRegistered(EMAIL, '10.0.0.1')).resolves.toBe(true);
+    expect(users.isEmailRegistered).toHaveBeenCalledWith(NORMALIZED);
+  });
+
+  it('isRegistered: свободный адрес', async () => {
+    const { service } = setup({ registered: false });
+    await expect(service.isRegistered(EMAIL, null)).resolves.toBe(false);
+  });
+
+  it('isRegistered: проверки считаются отдельно от писем и с запасом на набор адреса', async () => {
+    const { service, store } = setup({ requests: 120 });
+    await expect(service.isRegistered(EMAIL, '10.0.0.1')).resolves.toBe(false);
+    expect(store.bumpRequests).toHaveBeenCalledWith('email-check', '10.0.0.1', 3600);
+  });
+
+  it('isRegistered: перебор адресов с одного IP — отказ до обращения к базе', async () => {
+    const { service, users } = setup({ requests: 121 });
+    await expect(service.isRegistered(EMAIL, '10.0.0.1')).rejects.toThrow(/Слишком много запросов/);
+    expect(users.isEmailRegistered).not.toHaveBeenCalled();
+  });
+
+  it('isRegistered: строка без @ отвергается без обращения к базе', async () => {
+    const { service, users } = setup();
+    await expect(service.isRegistered('не-почта', null)).rejects.toThrow(/корректный адрес/);
+    expect(users.isEmailRegistered).not.toHaveBeenCalled();
   });
 
   it('confirm: верный код подтверждает адрес и ставит флаг существующему пайщику', async () => {

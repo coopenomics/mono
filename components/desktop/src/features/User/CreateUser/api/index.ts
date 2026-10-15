@@ -1,12 +1,12 @@
 import { PrivateKey } from '@wharfkit/antelope';
 import { IKeyPair } from 'src/shared/lib/types/user';
-import { Mutations } from '@coopenomics/sdk';
+import { Mutations, Queries } from '@coopenomics/sdk';
 import { client } from 'src/shared/api/client';
 import type {
   IRegisterAccount,
   IRegisteredAccountResult,
 } from 'src/shared/lib/types/user/IUserData';
-import type { ISendStatement, ISendStatementResult } from '../model';
+import type { IEmailRegistrationCheckInput, ISendStatement, ISendStatementResult } from '../model';
 import { useSessionStore } from 'src/entities/Session';
 import type { IInitialPaymentOrder } from 'src/shared/lib/types/payments';
 
@@ -36,10 +36,16 @@ async function sendStatement(
   return result;
 }
 
-async function emailIsExist(email: string): Promise<boolean> {
-  //TODO verify email exists on backend
-  console.log('check email before: ', email);
-  return false;
+/**
+ * Зарегистрирован ли адрес. Спрашивается на шаге ввода почты, чтобы о занятом
+ * адресе человек узнал сразу, а не после письма с кодом и анкеты.
+ */
+async function emailIsExist(data: IEmailRegistrationCheckInput): Promise<boolean> {
+  const { [Queries.Auth.IsEmailRegistered.name]: result } = await client.Query(
+    Queries.Auth.IsEmailRegistered.query,
+    { variables: { data } },
+  );
+  return result;
 }
 
 function generateKeys(): IKeyPair {

@@ -792,6 +792,10 @@ export const AllTypesProps: Record<string,any> = {
 	EduUpdateLearnerInput:{
 		recipient_type:"EduRecipientType"
 	},
+	EmailRegistrationCheckInputDTO:{
+
+	},
+	EmailVerificationPurpose: "enum" as const,
 	EntrepreneurDetailsInput:{
 
 	},
@@ -3433,6 +3437,9 @@ export const AllTypesProps: Record<string,any> = {
 		globalSearch:{
 			data:"GlobalSearchInput"
 		},
+		isEmailRegistered:{
+			data:"EmailRegistrationCheckInputDTO"
+		},
 		kuDecision:{
 
 		},
@@ -3757,7 +3764,7 @@ export const AllTypesProps: Record<string,any> = {
 
 	},
 	RequestEmailVerificationInputDTO:{
-
+		purpose:"EmailVerificationPurpose"
 	},
 	RequestForceRecoveryConsentInput:{
 
@@ -8912,6 +8919,7 @@ export const ReturnTypes: Record<string,any> = {
 		getWithheldTaxPayments:"WithheldTaxPaymentPage",
 		getWithheldTaxState:"WithheldTaxState",
 		globalSearch:"GlobalSearchGroup",
+		isEmailRegistered:"Boolean",
 		kuDecision:"KuDecision",
 		kuDecisions:"PaginatedKuDecisionsPaginationResult",
 		kuTrustRequests:"PaginatedKuTrustRequestsPaginationResult",

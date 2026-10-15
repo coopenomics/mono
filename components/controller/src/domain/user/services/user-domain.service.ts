@@ -314,6 +314,17 @@ export class UserDomainService {
   }
 
   /**
+   * Зарегистрирован ли в кооперативе пайщик с этим адресом — правило
+   * {@link UserDomainEntity.holdsEmail}. Им же пользуются создание аккаунта
+   * и шаг ввода почты в регистрации, иначе первый шаг пропустил бы адрес,
+   * на котором споткнётся последний.
+   */
+  async isEmailRegistered(email: string): Promise<boolean> {
+    const user = await this.userRepository.findByEmail(email);
+    return user?.holdsEmail() === true;
+  }
+
+  /**
    * Генерирует уникальный subscriber_id с проверкой на дублирование
    * @param coopname Название кооператива
    * @param maxRetries Максимальное количество попыток (по умолчанию 5)
