@@ -46,9 +46,7 @@ export default async ({ page, context, shot, expect }) => {
 
   await openPage(page, PAYMENTS(), 'Платеж');
   await page.waitForTimeout(1500);
-  const org = pendingRow(page, 'Зал на Садовой');
-  const orgVisible = await org.isVisible().catch(() => false);
-  const first = orgVisible ? org : pendingRow(page, 'Исходящий');
+  const first = pendingRow(page, '6 000,00');
   await expect(first, 'в реестре платежей нет платежа по записке: фаза expenses:02-council').toBeVisible({ timeout: 30000 });
   await shot(page, '02-payments', 'Реестр платежей: по каждой строке записки заведён исходящий платёж. Оплата счёта идёт организации по реквизитам, аванс — пайщику на его способ получения.');
   await first.click();
@@ -63,7 +61,7 @@ export default async ({ page, context, shot, expect }) => {
     await shot(page, '04-org-proof', 'Счёт оплачен: кассир прикладывает платёжное поручение и закрывающие документы организации — акт, накладную или чек. Отчёт по такой строке сдаёт сам кассир.');
   }
 
-  const advance = pendingRow(page, 'Исходящий');
+  const advance = pendingRow(page, '1 500,00');
   if (await advance.isVisible().catch(() => false)) {
     await advance.click();
     await page.waitForTimeout(1000);
@@ -79,7 +77,7 @@ export default async ({ page, context, shot, expect }) => {
   // Кассир принимает чеки от пайщика лично и отчитывается за него.
   await openPage(page, PAYMENTS(), 'Платеж');
   await page.waitForTimeout(1500);
-  const reportRow = page.locator('tr.data-row').filter({ hasText: 'Петров' }).first();
+  const reportRow = page.locator('tr.data-row').filter({ hasText: '1 500,00' }).first();
   if (await reportRow.isVisible().catch(() => false)) {
     await reportRow.click();
     await page.waitForTimeout(1200);

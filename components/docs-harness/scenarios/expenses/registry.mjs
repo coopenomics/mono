@@ -22,7 +22,7 @@ export default async ({ page, context, shot, expect }) => {
   await settleAfterLogin(page);
   await openPage(page, EXP(), null);
   await page.waitForTimeout(1500);
-  const item = page.locator('text=Подготовка помещения').first();
+  const item = page.locator('text=Аренда зала').first();
   await expect(item, 'в реестре нет служебной записки: фаза expenses:01-proposal').toBeVisible({ timeout: 30000 });
   await shot(page, '01-registry', 'Реестр расходов: служебные записки с автором, кошельком-источником, суммой и состоянием.');
   await item.click();

@@ -2,7 +2,10 @@
 // заявление на возврат паевого взноса.
 import { loginMember, openMember, participantMeta, USER } from '../../lib/participant.mjs';
 import { fill } from '../../lib/edu.mjs';
-export const meta = participantMeta('wallet', 'Кошелёк');
+export const meta = {
+  ...participantMeta('wallet', 'Кошелёк'),
+  fixtures: ['ivanpetrov'],
+};
 export default async ({ page, shot }) => {
   await loginMember(page);
   await openMember(page, { url: USER('wallet') });

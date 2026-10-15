@@ -21,7 +21,7 @@ export default async ({ page, shot }) => {
   await openPage(page, `${env.APP_PREFIX}/${env.COOPNAME}/expenses/my/advances`, null);
   await page.waitForTimeout(2000);
   await shot(page, '01-my-advances', 'Мои авансы: служебные записки, по которым пайщик получил аванс под отчёт, с суммой и состоянием.');
-  const row = page.locator('tbody tr, .q-item').filter({ hasText: 'Подготовка помещения' }).first();
+  const row = page.locator('tbody tr, .q-item').filter({ hasText: /Аренда зала|Закупка воды|Подготовка/ }).first();
   if (await row.isVisible().catch(() => false)) {
     await row.click();
     await page.waitForTimeout(2000);

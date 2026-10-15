@@ -15,7 +15,7 @@ import path from 'node:path'
 import process from 'node:process'
 import { tokenOf } from '../../core/auth'
 import { gql } from '../../core/client'
-import { REPO_ROOT } from '../../core/env'
+import { COOP, REPO_ROOT } from '../../core/env'
 import { CHAIRMAN, COUNCIL, fixture } from '../../core/roles'
 import { freshMember } from '../../core/participants'
 import { ensureCapitalInitialized, fundProgramPool } from '../../capital/cap-metrics.helpers'
@@ -27,6 +27,7 @@ const log = (...a: unknown[]) => console.error('[seed-expenses]', ...a)
 /** Получатель аванса — фикстура docs-harness. */
 const HOLDER = 'ivanpetrov'
 const STATE = path.join(REPO_ROOT, 'components/docs-harness/state/seed-expenses.json')
+const TOPUP = 'mutation($d:CapitalTopupProgramExpenseInput!){ capitalTopupProgramExpensePool(data:$d){ __typename } }'
 const GET = `query($h:String!){ expenseProposal(proposal_hash:$h){ proposal_hash status } }`
 
 function remembered(): string | undefined {
@@ -43,6 +44,8 @@ async function phase01(): Promise<void> {
   await ensureCapitalInitialized()
   const investor = freshMember({ prefix: 'expi', firstName: 'Олег', lastName: 'Кравцов', middleName: 'Петрович' })
   await fundProgramPool(investor, 30_000)
+  // Пул расходов программы пополняется из средств программы «Благорост».
+  await gql(await tokenOf(CHAIRMAN), TOPUP, { d: { coopname: COOP, amount: '10000.0000 RUB' } })
   const holder = fixture(HOLDER)
   const methodId = await addSbpMethod(holder, '+79161234567')
   const draft: Draft = {

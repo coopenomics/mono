@@ -4,5 +4,8 @@ import { memberPage, USER, COOP_PAGE } from '../../lib/participant.mjs';
 const s = memberPage({ doc: 'payments', title: 'Платежи', url: USER('payments'),
   description: 'Платежи пайщика: взносы, возвраты и выплаты с суммой, направлением и состоянием.',
   rowDescription: 'Платёж целиком: назначение, сумма и реквизиты.' });
-export const meta = s.meta;
+export const meta = {
+  ...s.meta,
+  fixtures: ['ivanpetrov'],
+};
 export default s.run;
