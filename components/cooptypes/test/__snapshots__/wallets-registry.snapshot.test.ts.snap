@@ -18,6 +18,11 @@ exports[`ledger2 wallets registry (generated from C++) > LEDGER2_USER_SHARED_PRO
     "wallet_name": "w.wal.member",
   },
   {
+    "program_label": "ЦК — биллинг (USER_SHARED в леджере оператора, решение @ant 2026-06-11)",
+    "required_program_id": 1,
+    "wallet_name": "w.wal.bill",
+  },
+  {
     "program_label": "Благорост",
     "required_program_id": 4,
     "wallet_name": "w.cap.blago",
@@ -116,6 +121,11 @@ exports[`ledger2 wallets registry (generated from C++) > LEDGER2_WALLET_REGISTRY
     "human_name": "ЦК — членская часть пайщика",
     "kind": "USER_SHARED",
     "name": "w.wal.member",
+  },
+  {
+    "human_name": "ЦК — биллинг пайщика (в леджере оператора)",
+    "kind": "USER_SHARED",
+    "name": "w.wal.bill",
   },
   {
     "human_name": "ЦПП «Благорост» — единый кошелёк программы у пайщика",

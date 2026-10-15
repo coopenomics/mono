@@ -127,6 +127,7 @@ export const LEDGER2_EXIT_WALLET_POLICY: readonly ExitWalletRule[] = [
   { wallet_name: "w.exp.adv", policy: "BLOCKER", transfer_op: null, note: "не закрыт подотчёт по служебной записке — отчитайтесь или верните аванс" },
   { wallet_name: "w.edu.hold", policy: "BLOCKER", transfer_op: null, note: "идёт гарантийный срок по переданным материалам занятий — дождитесь его окончания" },
   { wallet_name: "w.wal.member", policy: "UNTOUCHED", transfer_op: null, note: "Членская часть Цифрового кошелька — политика выхода не определена" },
+  { wallet_name: "w.wal.bill", policy: "UNTOUCHED", transfer_op: null, note: "Биллинг-кошелёк облачного провайдера — политика выхода не определена" },
   { wallet_name: "w.cap.preimp", policy: "UNTOUCHED", transfer_op: null, note: "Пред-импорт РИД — учётный кошелёк, не средства пайщика" },
   { wallet_name: "w.mkt.claim", policy: "UNTOUCHED", transfer_op: null, note: "Требование к контрагенту по договору поставки, а не участие пайщика" },
   { wallet_name: "w.mkt.debt", policy: "UNTOUCHED", transfer_op: null, note: "Задолженность поставщика по договору поставки" },
