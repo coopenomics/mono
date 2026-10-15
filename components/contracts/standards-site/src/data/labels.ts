@@ -17,6 +17,7 @@ export const CONTRACT_HUMAN: Record<string, string> = {
   gateway: 'Платёжный шлюз',
   fund: 'Фонды',
   loan: 'Займы',
+  debt: 'Займы пайщикам',
   expense: 'Расходы кооператива',
 };
 
