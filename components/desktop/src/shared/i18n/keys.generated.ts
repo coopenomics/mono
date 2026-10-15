@@ -3741,6 +3741,7 @@ export type MessageKey =
   | 'extensionLogsList.extensionLogsList.zeroRangeLabel'
   | 'extensionSettings.extensionSettings.emptyBody'
   | 'extensionSettings.extensionSettings.emptyTitle'
+  | 'extensionSettings.extensionSettings.subtitle'
   | 'extensionStore.extensionsManagement.installedTab'
   | 'extensionStore.extensionsManagement.showcaseTab'
   | 'freeDecision.createProjectFreeDecisionButton.decisionLabel'

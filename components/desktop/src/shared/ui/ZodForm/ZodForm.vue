@@ -4,28 +4,40 @@ div.settings-form
     v-for="item in visibleProperties"
     :key="item.propertyName"
   )
-    .setting-header
-      .setting-title.text-subtitle1 {{ getLabel(item.property, item.propertyName) }}
-      .setting-hint.text-body2(v-if="getHint(item.property)")
-        | {{ getHint(item.property) }}
-
-    .setting-input
+    //- Галочка стоит слева от названия параметра, пояснение — под названием.
+    .setting-boolean(v-if="item.property.type === 'boolean' && !item.property.enum")
       component(
         :is="getComponentType(item.property)"
         v-bind="getComponentProps(item.property, item.propertyName)"
       )
-        // Слот для prepend, если указано
-        template(v-slot:prepend v-if="item.property.description?.prepend")
-          span {{ item.property.description.prepend }}
+      .setting-header
+        .setting-title.text-subtitle1 {{ getLabel(item.property, item.propertyName) }}
+        .setting-hint.text-body2(v-if="getHint(item.property)")
+          | {{ getHint(item.property) }}
 
-        // Слот для append, если указано или нужна иконка видимости пароля/копирования
-        template(v-slot:append)
-          span(v-if="item.property.description?.append") {{ item.property.description.append }}
-          q-icon.cursor-pointer(
-            v-if="shouldShowCopyIcon(item.property) || item.property.description?.password"
-            :name="getIconName(item.propertyName)"
-            @click="handleIconClick(item.propertyName)"
-          )
+    template(v-else)
+      .setting-header
+        .setting-title.text-subtitle1 {{ getLabel(item.property, item.propertyName) }}
+        .setting-hint.text-body2(v-if="getHint(item.property)")
+          | {{ getHint(item.property) }}
+
+      .setting-input
+        component(
+          :is="getComponentType(item.property)"
+          v-bind="getComponentProps(item.property, item.propertyName)"
+        )
+          // Слот для prepend, если указано
+          template(v-slot:prepend v-if="item.property.description?.prepend")
+            span {{ item.property.description.prepend }}
+
+          // Слот для append, если указано или нужна иконка видимости пароля/копирования
+          template(v-slot:append)
+            span(v-if="item.property.description?.append") {{ item.property.description.append }}
+            q-icon.cursor-pointer(
+              v-if="shouldShowCopyIcon(item.property) || item.property.description?.password"
+              :name="getIconName(item.propertyName)"
+              @click="handleIconClick(item.propertyName)"
+            )
 
 </template>
 <script lang="ts" setup>
@@ -374,6 +386,23 @@ import { t } from 'src/shared/i18n';
       line-height: 1.5;
       font-size: var(--p-fs-body-sm, 13px);
       color: var(--p-ink-2);
+    }
+  }
+
+  // Параметр-галочка: галочка и название на одной строке.
+  .setting-boolean {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--p-2, 8px);
+
+    :deep(.q-checkbox) {
+      flex: 0 0 auto;
+      margin-top: -8px;
+      margin-left: -8px;
+    }
+
+    .setting-header {
+      margin-bottom: 0;
     }
   }
 
