@@ -17,7 +17,7 @@ import { tokenOf } from '../../core/auth'
 import { gql } from '../../core/client'
 import { REPO_ROOT } from '../../core/env'
 import { CHAIRMAN, COUNCIL } from '../../core/roles'
-import { seedRoom, seedSql, seedTranscription } from '../../capital/cap-access.helpers'
+import { seedRoom, seedSql } from '../../capital/cap-access.helpers'
 
 const log = (...a: unknown[]) => console.error('[seed-chatcoop]', ...a)
 
@@ -107,17 +107,25 @@ async function phase04(): Promise<void> {
     log('запись звонка уже есть')
     return
   }
-  const id = seedTranscription(s.council, 'Коллеги, на повестке две служебные записки на расход.')
+  const out = seedSql(`INSERT INTO chatcoop_call_transcriptions (room_id, matrix_room_id, room_name, started_at, ended_at, status, participants)
+    VALUES ('council-call-1', ${lit(s.council)}, 'Заседание совета', now() - interval '1 hour', now() - interval '35 minutes', 'completed',
+      '["@ant:blackbox.test","@petr:blackbox.test","@anna:blackbox.test"]'::jsonb)
+    RETURNING id`)
+  const id = out.split('\n').map(x => x.trim()).find(x => /^[0-9a-f-]{36}$/.test(x))
+  if (!id)
+    throw new Error(`запись звонка не вернула id: ${out}`)
+  // Имя докладчика стол берёт из профиля мессенджера по адресу; на стенде профиль
+  // подставной и отдаёт часть адреса — поэтому адреса по учётным именам совета.
   const lines: [string, string][] = [
-    ['Пётр Сидоров', 'Первая — аренда зала к общему собранию, шесть тысяч рублей по счёту.'],
-    ['Анна Петрова', 'Счёт проверила, реквизиты верные. Предлагаю голосовать «за».'],
-    ['Председатель', 'Принято. Вторую записку переносим на следующее заседание.'],
+    ['ant', 'Коллеги, на повестке две служебные записки на расход.'],
+    ['petr', 'Первая — аренда зала к общему собранию, шесть тысяч рублей по счёту.'],
+    ['anna', 'Счёт проверила, реквизиты верные. Предлагаю голосовать «за».'],
+    ['ant', 'Принято. Вторую записку переносим на следующее заседание.'],
   ]
-  lines.forEach(([name, text], i) => {
+  lines.forEach(([who, text], i) => {
     seedSql(`INSERT INTO chatcoop_transcription_segments (transcription_id, speaker_identity, speaker_name, text, start_offset, end_offset)
-      VALUES (${lit(id)}, ${lit(`@speaker${i}:blackbox.test`)}, ${lit(name)}, ${lit(text)}, ${2 + i * 6}, ${7 + i * 6})`)
+      VALUES (${lit(id)}, ${lit(`@${who}:blackbox.test`)}, ${lit(who)}, ${lit(text)}, ${i * 6}, ${5 + i * 6})`)
   })
-  seedSql(`UPDATE chatcoop_call_transcriptions SET room_name = 'Заседание совета' WHERE id = ${lit(id)}`)
   s.transcript = id
   writeState(s)
   log('запись звонка совета с репликами')
