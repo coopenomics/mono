@@ -172,3 +172,16 @@ cases:
     test: components/controller/tests/unit/rights/extension-rights-tables.test.ts
     api: components/api-tests/src/rights/matrix.test.ts
     status: written
+
+  # 15.10.2026 (B2D-17): слияние с биллингом провайдера — пакетная докупка AXON
+  # (PowerupPlugin, Epic 13) пишет id транзакции в журнал оплат.
+  - id: coop.res.side.11
+    level: backend
+    kind: side
+    scenario: >
+      powerup принят узлом, но в ответе нет идентификатора транзакции (ни
+      response.transaction_id, ни resolved.transaction.id).
+    expect: >
+      powerUp бросает ошибку, а не возвращает пустую строку: пустой id ушёл бы
+      в журнал вместо настоящего, и сверка с историей цепи не нашла бы платёж
+    status: missing
