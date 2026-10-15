@@ -44,6 +44,7 @@ import {
   educationOn,
   fundShare,
   holdMaterials,
+  submitStatement,
   offersState,
   onboardTeacher,
   publishCourse,
@@ -262,9 +263,13 @@ async function phase05(): Promise<void> {
     },
   })).edubridgeReportLesson
   const contribution = lesson.contribution_id ? await contributionOf(token, lesson.contribution_id) : null
-  if (contribution)
+  if (contribution) {
+    // Как со стола преподавателя: акт хранения и заявление о взносе подписываются
+    // разом. Без заявления очередь не отправит взнос в совет по истечении срока.
     await holdMaterials(who, token, contribution.id)
-  log(`${TEACHER}: внеочередное занятие № ${lesson.lesson_number} отчитано, материалы переданы на хранение`)
+    await submitStatement(who, token, contribution.id)
+  }
+  log(`${TEACHER}: внеочередное занятие № ${lesson.lesson_number} отчитано, материалы переданы на хранение, заявление подписано`)
 }
 
 /** Взносы преподавателя его глазами. */

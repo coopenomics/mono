@@ -14,7 +14,7 @@
       row-key="id"
       :loading="firstLoad"
       :clickable-rows="true"
-      min-width="1100px"
+      min-width="960px"
       @row-click="openDetails"
     )
       template(#cell-lesson_number="{ row }") {{ lessonNumbersOf(row) }}
@@ -117,13 +117,13 @@ type RowAction = 'report' | LessonAction;
 // Фиксированные ширины в сумме меньше min-width таблицы: колонке «Занятие» остаётся
 // место под название курса, а не узкий столбик по букве.
 const columns: BaseTableColumn<ILessonRow>[] = [
-  { key: 'lesson_number', label: t('edubridge.teacherLessonsPage.column.number'), width: '64px', nowrap: true },
+  { key: 'lesson_number', label: t('edubridge.teacherLessonsPage.column.number'), width: '52px', nowrap: true },
   { key: 'lesson', label: t('edubridge.teacherLessonsPage.column.lesson') },
-  { key: 'held_at', label: t('edubridge.teacherLessonsPage.column.heldAt'), width: '130px', nowrap: true },
-  { key: 'learners', label: t('edubridge.teacherReportsPage.column.learners'), numeric: true, width: '120px', nowrap: true },
-  { key: 'amount', label: t('edubridge.teacherLessonsPage.column.amount'), numeric: true, width: '140px', nowrap: true },
-  { key: 'status', label: t('edubridge.teacherLessonsPage.column.status'), width: '230px', nowrap: true },
-  { key: 'actions', label: '', align: 'right', width: '170px', nowrap: true },
+  { key: 'held_at', label: t('edubridge.teacherLessonsPage.column.heldAt'), width: '110px', nowrap: true },
+  { key: 'learners', label: t('edubridge.teacherReportsPage.column.learners'), numeric: true, width: '100px', nowrap: true },
+  { key: 'amount', label: t('edubridge.teacherLessonsPage.column.amount'), numeric: true, width: '120px', nowrap: true },
+  { key: 'status', label: t('edubridge.teacherLessonsPage.column.status'), width: '190px', nowrap: true },
+  { key: 'actions', label: '', align: 'right', width: '150px', nowrap: true },
 ];
 
 const statusOf = (s: string) => CONTRIBUTION_STATUS_LABELS[s] ?? { label: s, variant: 'neutral' as const };

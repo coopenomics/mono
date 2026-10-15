@@ -16,11 +16,12 @@ export const meta = {
 
 /** Сумма плитки «Кошелёк программы»: расход не может превышать свободные средства. */
 async function fundBalance(page) {
-  const caption = page.locator('text=Кошелёк программы').first();
-  for (const up of ['..', '../..']) {
+  const caption = page.locator('text=/^Кошелёк программы$/i').first();
+  for (const up of ['..', '../..', '../../..']) {
     const text = await caption.locator(`xpath=${up}`).innerText().catch(() => '');
-    const m = text.replace(/ /g, ' ').match(/(\d[\d ]*)[,.](\d{2})/);
-    if (m) return Number(m[1].replace(/ /g, ''));
+    // Форматтер сумм ставит узкие пробелы между разрядами — убираем любые.
+    const m = text.replace(/[\s\u00a0\u202f\u2009]/g, '').match(/(\d+)[,.](\d{2})/);
+    if (m) return Number(m[1]);
   }
   return 0;
 }
