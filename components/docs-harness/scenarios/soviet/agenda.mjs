@@ -33,10 +33,8 @@ export default async ({ page, context, shot, expect }) => {
   await expect(card, 'повестка пуста: фаза soviet:02-propose').toBeVisible({ timeout: 30000 });
   await card.locator('.question-card__row').click();
   await page.waitForTimeout(1800);
-  await shot(page, '02-drawer', 'Строка вопроса открывает его сведения в правой панели: заявитель, проект решения, документы.');
-  await page.keyboard.press('Escape');
-  await page.waitForTimeout(800);
-  await card.locator('text=Подробнее').first().click();
+  await shot(page, '02-drawer', 'Строка вопроса открывает его сведения в правой панели: заявитель, проект решения, документы, голосование и утверждение. Ссылка «Открыть страницу» открывает вопрос целиком.');
+  await page.locator('text=Открыть страницу').first().click();
   await page.waitForSelector('text=К повестке совета', { timeout: 30000 });
   await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
   await page.waitForTimeout(1500);
