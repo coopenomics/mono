@@ -18,8 +18,12 @@ export default async ({ page, shot }) => {
     await page.waitForTimeout(600);
     // Подпись поля лежит поверх ввода и перехватывает клик; fill не будит
     // обработчик суммы — фокус и ввод с клавиатуры.
-    await page.locator('.q-dialog input[type="number"]').first().focus();
-    await page.keyboard.type('3000', { delay: 60 });
+    // На странице две кнопки взноса (шапка и боковая панель), у каждой своё окно;
+    // поле открытого окна — последнее с этой подсказкой.
+    const amount = page.getByPlaceholder('Введите сумму').last();
+    await amount.fill('3000', { force: true });
+    await amount.dispatchEvent('input');
+    await amount.dispatchEvent('change');
     await page.waitForTimeout(500);
     await shot(page, '02-deposit', 'Паевой взнос: сумма взноса. Кнопка «Продолжить» заводит платёж и показывает реквизиты.');
     await page.locator('.q-dialog button:has-text("Продолжить")').last().click();
