@@ -7,7 +7,8 @@
  *
  * Главный путь — учреждение участка собранием: учредитель (sokolov) объявляет
  * собрание в интерфейсе, popova присоединяется в интерфейсе, egorov — фазой 02;
- * учредитель открывает голосование и голосует в интерфейсе, остальные — фазой 03;
+ * учредитель открывает голосование и голосует в интерфейсе, popova голосует в
+ * интерфейсе, egorov — фазой 03;
  * после протокола и заявления учредителя совет решает фазой 04.
  *
  *   esno src/seed/ku/index.ts 01-install
@@ -24,7 +25,6 @@ import { waitFor } from '../../core/wait'
 const log = (...a: unknown[]) => console.error('[seed-ku]', ...a)
 
 export const FOUNDER = 'sokolov'
-export const JOINER_UI = 'popova'
 export const JOINER_SEED = 'egorov'
 
 const EXTENSION = 'trustee'
@@ -116,12 +116,16 @@ async function voteFor(who: Who, hash: string): Promise<void> {
   log(`${who.account}: бюллетень «за» подан`)
 }
 
-/** 03 — участники popova и egorov голосуют «за» в собрании учредителя. */
+/**
+ * 03 — участник egorov голосует «за» в собрании учредителя. Его ключ из фикстуры
+ * действует: в интерфейс он не входит. Пайщики, которые входили со стола
+ * (sokolov, popova), голосуют там же: вход паролем выпускает новый ключ, и
+ * ключ фикстуры цепь больше не принимает.
+ */
 async function phase03(): Promise<void> {
   const token = await tokenOf(fixture(FOUNDER))
   const m = await waitFor(() => founderMeeting(token, ['VOTING']), { timeoutMs: 60_000, intervalMs: 2_000, label: `собрание ${FOUNDER} в голосовании` })
-  for (const name of [JOINER_UI, JOINER_SEED])
-    await voteFor(fixture(name), m.hash)
+  await voteFor(fixture(JOINER_SEED), m.hash)
 }
 
 /**

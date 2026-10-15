@@ -1,21 +1,19 @@
-// Сценарий: учредитель ведёт собрание — открывает голосование с данными
-// нового участка и председателем, голосует бюллетенем, утверждает протокол
-// и направляет заявление об учреждении в совет. Бюллетени двух других
-// участников подаёт фаза ku:03-ballots.
+// Сценарий: учредитель открывает голосование с данными нового участка и его
+// председателем и голосует бюллетенем. Второй участник голосует в сценарии
+// meeting-ballot, третий — фазой ku:03-ballots.
 
 import { loginAs } from '../../../lib/harness.mjs';
-import { runPrepare } from '../../../lib/prepare.mjs';
 import { loadFixture, openPage, settleAfterLogin, fill, pick } from '../../../lib/edu.mjs';
-import { KU, fillPassportIfAsked } from '../../../lib/ku.mjs';
+import { KU } from '../../../lib/ku.mjs';
 
 export const meta = {
   mode: 'docs',
   feature: 'ku.meetings',
-  title: 'Голосование и протокол',
+  title: 'Открытие голосования',
   docPath: 'new/ku/member/meeting-vote.md',
   assetsDir: 'assets/new/ku/member/meeting-vote',
   role: 'user',
-  fixtures: ['sokolov', 'popova', 'egorov'],
+  fixtures: ['sokolov'],
   prepare: ['ku:01-install', 'marketplace:02-branches'],
 };
 
@@ -55,32 +53,4 @@ export default async ({ page, shot, expect }) => {
   await expect(page.locator('button:has-text("Подписать бюллетень")'), 'бюллетень не принят').toHaveCount(0, { timeout: 90000 });
   await page.waitForTimeout(1500);
 
-  runPrepare(['ku:03-ballots'], { log: (m) => console.log(`    ${m}`) });
-  await page.reload({ waitUntil: 'domcontentloaded' });
-  await page.waitForSelector('text=Итоги голосования', { timeout: 60000 });
-  await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
-  await page.waitForTimeout(1500);
-  await shot(page, '03-results', 'Все участники проголосовали: у каждого вопроса итоги «За», «Против», «Воздержались» и число поданных бюллетеней.');
-
-  // ── Протокол ─────────────────────────────────────────────────────────────
-  await page.locator('button:has-text("Завершить и утвердить протокол")').click();
-  await page.waitForSelector('text=Протокол утверждён', { timeout: 90000 });
-  await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
-  await page.waitForTimeout(1500);
-  await shot(page, '04-protocol', 'Протокол собрания подписан председателем собрания. Протокол виден на странице собрания, кнопка «Направить в совет» отправляет заявление об учреждении участка.');
-
-  // ── Заявление в совет ────────────────────────────────────────────────────
-  await page.locator('button:has-text("Направить в совет")').click();
-  await fillPassportIfAsked(page, {
-    shot,
-    name: '05-passport',
-    description: 'Паспортные данные председателя участка: они нужны для договора о полной материальной ответственности и сохраняются в профиле.',
-  });
-  await page.waitForSelector('text=Проверьте документы перед подписанием', { timeout: 60000 });
-  await page.waitForTimeout(1500);
-  await shot(page, '06-exec-preview', 'Пакет в совет: заявление об учреждении участка, договор о полной материальной ответственности и доверенность председателю участка. Данные председателя уже подставлены.');
-  await page.locator('.q-dialog button:has-text("Подписать и направить в совет")').click();
-  await page.waitForSelector('text=На утверждении советом', { timeout: 90000 });
-  await page.waitForTimeout(1500);
-  await shot(page, '07-on-approval', 'Заявление направлено: собрание на утверждении советом. Совет голосует, председатель кооператива подписывает протокол решения.');
 };

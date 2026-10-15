@@ -28,6 +28,8 @@ const GROUPS = [
       'ku/member/meeting-create',
       'ku/member/meeting-join',
       'ku/member/meeting-vote',
+      'ku/member/meeting-ballot',
+      'ku/member/meeting-protocol',
       'ku/member/meeting-council',
     ],
   },
