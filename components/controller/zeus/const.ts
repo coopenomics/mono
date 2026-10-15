@@ -132,6 +132,22 @@ export const AllTypesProps: Record<string,any> = {
 	BankAccountInput:{
 		details:"BankAccountDetailsInput"
 	},
+	BillingConversionStatementGenerateDocumentInput:{
+
+	},
+	BillingConversionStatementSignedDocumentInput:{
+		meta:"BillingConversionStatementSignedMetaDocumentInput",
+		signatures:"SignatureInfoInput"
+	},
+	BillingConversionStatementSignedMetaDocumentInput:{
+
+	},
+	BillingConvertInput:{
+		document:"BillingConversionStatementSignedDocumentInput"
+	},
+	BillingPayInput:{
+
+	},
 	BranchEstablishmentDecisionGenerateDocumentInput:{
 
 	},
@@ -411,16 +427,8 @@ export const AllTypesProps: Record<string,any> = {
 	ConvertSegmentInput:{
 		convert_statement:"SignedDigitalDocumentInput"
 	},
-	ConvertToAxonStatementGenerateDocumentInput:{
-
-	},
-	ConvertToAxonStatementSignedDocumentInput:{
-		meta:"ConvertToAxonStatementSignedMetaDocumentInput",
-		signatures:"SignatureInfoInput"
-	},
-	ConvertToAxonStatementSignedMetaDocumentInput:{
-
-	},
+	CooperativeChainStatus: "enum" as const,
+	CooperativePaymentStatus: "enum" as const,
 	Country: "enum" as const,
 	CreateAnnualGeneralMeetInput:{
 		agenda:"AgendaGeneralMeetPointInput",
@@ -1629,6 +1637,12 @@ export const AllTypesProps: Record<string,any> = {
 		authorizeForceRecovery:{
 			data:"AuthorizeForceRecoveryInput"
 		},
+		billingConvert:{
+			input:"BillingConvertInput"
+		},
+		billingPay:{
+			input:"BillingPayInput"
+		},
 		cancelMembershipExit:{
 
 		},
@@ -1948,6 +1962,9 @@ export const AllTypesProps: Record<string,any> = {
 		chairmanDeclineApprove:{
 			data:"DeclineApproveInput"
 		},
+		changeProviderHostingPlan:{
+
+		},
 		chatcoopCreateAccount:{
 			data:"CreateMatrixAccountInputDTO"
 		},
@@ -2225,8 +2242,8 @@ export const AllTypesProps: Record<string,any> = {
 			data:"AnnualGeneralMeetingVotingBallotGenerateDocumentInput",
 			options:"GenerateDocumentOptionsInput"
 		},
-		generateConvertToAxonStatement:{
-			data:"ConvertToAxonStatementGenerateDocumentInput",
+		generateBillingConversionStatement:{
+			data:"BillingConversionStatementGenerateDocumentInput",
 			options:"GenerateDocumentOptionsInput"
 		},
 		generateDocument:{
@@ -2664,9 +2681,6 @@ export const AllTypesProps: Record<string,any> = {
 		payWithheldTax:{
 			data:"PayWithheldTaxInput"
 		},
-		processConvertToAxonStatement:{
-			data:"ProcessConvertToAxonStatementInput"
-		},
 		proposeDocumentApproval:{
 			data:"ProposeDocumentApprovalInput"
 		},
@@ -2805,6 +2819,9 @@ export const AllTypesProps: Record<string,any> = {
 		uploadAvatar:{
 			data:"UploadAvatarInput"
 		},
+		uploadCooperativeCharter:{
+			data:"UploadCooperativeCharterInput"
+		},
 		uploadExpenseFile:{
 			data:"UploadExpenseFileInput"
 		},
@@ -2890,9 +2907,6 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	PaymentStatus: "enum" as const,
 	PaymentType: "enum" as const,
-	ProcessConvertToAxonStatementInput:{
-		signedDocument:"ConvertToAxonStatementSignedDocumentInput"
-	},
 	ProcessEdgeInput:{
 
 	},
@@ -2957,6 +2971,7 @@ export const AllTypesProps: Record<string,any> = {
 	ProposeDocumentApprovalInput:{
 
 	},
+	ProviderSubscriptionStatus: "enum" as const,
 	PublishProjectFreeDecisionInput:{
 		document:"ProjectFreeDecisionSignedDocumentInput"
 	},
@@ -3300,6 +3315,9 @@ export const AllTypesProps: Record<string,any> = {
 			filters:"ActionFiltersInput",
 			pagination:"PaginationInput"
 		},
+		getBillingSummary:{
+
+		},
 		getBranches:{
 			data:"GetBranchesInput"
 		},
@@ -3312,6 +3330,12 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		getCapitalProjectLogs:{
 			data:"GetCapitalLogsInput"
+		},
+		getCooperativeCharter:{
+
+		},
+		getCooperativePayments:{
+
 		},
 		getCurrentTableStates:{
 			filters:"CurrentTableStatesFiltersInput",
@@ -3390,6 +3414,9 @@ export const AllTypesProps: Record<string,any> = {
 		getProgramWallets:{
 			filter:"ProgramWalletFilterInput",
 			options:"PaginationInput"
+		},
+		getProviderConnectionCatalog:{
+
 		},
 		getProviderSubscriptionById:{
 
@@ -4037,6 +4064,9 @@ export const AllTypesProps: Record<string,any> = {
 	UploadAvatarInput:{
 
 	},
+	UploadCooperativeCharterInput:{
+
+	},
 	UploadExpenseFileInput:{
 		kind:"ExpenseFileKind"
 	},
@@ -4119,6 +4149,10 @@ export const AllTypesProps: Record<string,any> = {
 }
 
 export const ReturnTypes: Record<string,any> = {
+	auth:{
+		roles:"String",
+		self:"String"
+	},
 	AccessGrant:{
 		action:"String",
 		resource:"String"
@@ -4326,6 +4360,27 @@ export const ReturnTypes: Record<string,any> = {
 		status:"ProjectStatus",
 		title:"String",
 		voting:"CapitalProjectVotingData"
+	},
+	BillingResult:{
+		paymentHash:"String",
+		transactionId:"String"
+	},
+	BillingSummary:{
+		coopname:"String",
+		currency:"String",
+		items:"BillingSummaryItem",
+		nextPaymentDue:"String",
+		paymentHash:"String",
+		periodDays:"Int",
+		totalAmount:"Float"
+	},
+	BillingSummaryItem:{
+		amount:"Float",
+		isFree:"Boolean",
+		status:"ProviderSubscriptionStatus",
+		subscriptionId:"Int",
+		subscriptionTypeId:"Int",
+		subscriptionTypeName:"String"
 	},
 	BlockchainAccount:{
 		account_name:"String",
@@ -5486,6 +5541,10 @@ export const ReturnTypes: Record<string,any> = {
 		voskhod_membership_done:"Boolean",
 		wallet_agreement_done:"Boolean"
 	},
+	ChangeHostingPlanResult:{
+		migration_state:"String",
+		new_price:"Float"
+	},
 	ChartOfAccountsItem:{
 		available:"String",
 		blocked:"String",
@@ -5561,6 +5620,18 @@ export const ReturnTypes: Record<string,any> = {
 		program_id:"Int",
 		type:"String"
 	},
+	CooperativeCharter:{
+		checksum_sha256:"String",
+		coopname:"String",
+		id:"Int",
+		mime_type:"String",
+		original_filename:"String",
+		read_url:"String",
+		size_bytes:"Int",
+		uploaded_at:"DateTime",
+		uploaded_by_username:"String",
+		username:"String"
+	},
 	CooperativeOperatorAccount:{
 		active_participants_count:"Float",
 		announce:"String",
@@ -5588,12 +5659,34 @@ export const ReturnTypes: Record<string,any> = {
 		username:"String",
 		verifications:"Verification"
 	},
+	CooperativePayment:{
+		created_at:"String",
+		last_error:"String",
+		payment_hash:"String",
+		quantity:"String",
+		reason:"String",
+		status:"CooperativePaymentStatus",
+		subject:"String",
+		tx_id:"String",
+		updated_at:"String"
+	},
 	CooperativeProgram:{
 		coopname:"String",
 		draft_id:"Int",
 		id:"Int",
 		is_active:"Boolean",
 		program_type:"String"
+	},
+	CooperativeRegistryItem:{
+		announce:"String",
+		charter:"CooperativeCharter",
+		coopname:"String",
+		created_at:"String",
+		description:"String",
+		has_provider_data:"Boolean",
+		name:"String",
+		status:"CooperativeChainStatus",
+		subscriptions:"ProviderSubscription"
 	},
 	CreateSubscriptionResponse:{
 		message:"String",
@@ -5615,7 +5708,10 @@ export const ReturnTypes: Record<string,any> = {
 		domain:"String",
 		image:"String",
 		is_delegated:"Boolean",
+		is_released:"Boolean",
+		is_restoring:"Boolean",
 		is_valid:"Boolean",
+		maintenance_mode:"Boolean",
 		progress:"Float",
 		status:"InstanceStatus",
 		title:"String"
@@ -7752,6 +7848,8 @@ export const ReturnTypes: Record<string,any> = {
 		assignRole:"AssignableRole",
 		authorizeDecision:"Transaction",
 		authorizeForceRecovery:"ForceRecoveryAuthorization",
+		billingConvert:"BillingResult",
+		billingPay:"BillingResult",
 		cancelMembershipExit:"Boolean",
 		capitalAddAuthor:"CapitalProject",
 		capitalAddFavorite:"CapitalFavorite",
@@ -7851,6 +7949,7 @@ export const ReturnTypes: Record<string,any> = {
 		cardcoopTakeEntryProfile:"CardcoopEntryProfile",
 		chairmanConfirmApprove:"Approval",
 		chairmanDeclineApprove:"Approval",
+		changeProviderHostingPlan:"ChangeHostingPlanResult",
 		chatcoopCreateAccount:"Boolean",
 		chatcoopCreateCalendarEvent:"ChatCoopCalendarEvent",
 		chatcoopCreateCalendarIcsSubscription:"ChatCoopCalendarIcsUrlResponse",
@@ -7944,7 +8043,7 @@ export const ReturnTypes: Record<string,any> = {
 		generateAnnualGeneralMeetDecisionDocument:"GeneratedDocument",
 		generateAnnualGeneralMeetNotificationDocument:"GeneratedDocument",
 		generateBallotForAnnualGeneralMeetDocument:"GeneratedDocument",
-		generateConvertToAxonStatement:"GeneratedDocument",
+		generateBillingConversionStatement:"GeneratedDocument",
 		generateDocument:"GeneratedDocument",
 		generateExpenseProposalDecisionDocument:"GeneratedDocument",
 		generateExpenseProposalStatementDocument:"GeneratedDocument",
@@ -8083,7 +8182,6 @@ export const ReturnTypes: Record<string,any> = {
 		overspendExpenseItem:"Transaction",
 		payExpenseItem:"Transaction",
 		payWithheldTax:"String",
-		processConvertToAxonStatement:"Boolean",
 		proposeDocumentApproval:"DocumentTemplate",
 		publishProjectOfFreeDecision:"AgendaWithDocuments",
 		refresh:"RegisteredAccount",
@@ -8134,6 +8232,7 @@ export const ReturnTypes: Record<string,any> = {
 		updateSettings:"Settings",
 		updateSystem:"SystemInfo",
 		uploadAvatar:"String",
+		uploadCooperativeCharter:"CooperativeCharter",
 		uploadExpenseFile:"ExpenseFile",
 		uploadPaymentProof:"PaymentFile",
 		verifyEmail:"Boolean",
@@ -8686,6 +8785,32 @@ export const ReturnTypes: Record<string,any> = {
 		totalCount:"Int",
 		totalPages:"Int"
 	},
+	ProviderCatalogServerOption:{
+		description:"String",
+		instance_type_id:"Int",
+		name:"String",
+		price:"Float",
+		specs:"JSON",
+		subscription_type_id:"Int",
+		trial_days:"Int"
+	},
+	ProviderCatalogSubscriptionType:{
+		code:"String",
+		depends_on:"Int",
+		description:"String",
+		id:"Int",
+		is_mandatory:"Boolean",
+		is_one_time:"Boolean",
+		kind:"String",
+		name:"String",
+		period_days:"Int",
+		price:"Float",
+		trial_days:"Int"
+	},
+	ProviderConnectionCatalog:{
+		server_options:"ProviderCatalogServerOption",
+		types:"ProviderCatalogSubscriptionType"
+	},
 	ProviderSubscription:{
 		created_at:"String",
 		domain_valid:"Boolean",
@@ -8693,9 +8818,13 @@ export const ReturnTypes: Record<string,any> = {
 		id:"Float",
 		installation_progress:"Float",
 		instance_status:"String",
+		instance_type_id:"Float",
 		instance_username:"String",
 		is_trial:"Boolean",
+		kind:"String",
 		next_payment_due:"String",
+		package_low_water_axon:"Float",
+		packages_current_period_amount:"Float",
 		period_days:"Float",
 		price:"Float",
 		specific_data:"JSON",
@@ -8854,6 +8983,7 @@ export const ReturnTypes: Record<string,any> = {
 		getAgenda:"AgendaWithDocuments",
 		getAssignableRoles:"AssignableRole",
 		getAvailableReports:"AvailableReport",
+		getBillingSummary:"BillingSummary",
 		getBranches:"Branch",
 		getCandidateIntake:"CandidateIntake",
 		getCapabilitySets:"CapabilitySet",
@@ -8861,6 +8991,9 @@ export const ReturnTypes: Record<string,any> = {
 		getCapitalOnboardingState:"CapitalOnboardingState",
 		getCapitalProjectLogs:"PaginatedCapitalLogsPaginationResult",
 		getChairmanOnboardingState:"ChairmanOnboardingState",
+		getCooperativeCharter:"CooperativeCharter",
+		getCooperativePayments:"CooperativePayment",
+		getCooperativesRegistry:"CooperativeRegistryItem",
 		getCurrentInstance:"CurrentInstanceDTO",
 		getCurrentTableStates:"PaginatedCurrentTableStatesPaginationResult",
 		getDeltas:"PaginatedDeltasPaginationResult",
@@ -8891,6 +9024,7 @@ export const ReturnTypes: Record<string,any> = {
 		getPayments:"PaginatedGatewayPaymentsPaginationResult",
 		getProgramWallet:"ProgramWallet",
 		getProgramWallets:"ProgramWalletsPaginationResult",
+		getProviderConnectionCatalog:"ProviderConnectionCatalog",
 		getProviderSubscriptionById:"ProviderSubscription",
 		getProviderSubscriptions:"ProviderSubscription",
 		getPublicProvision:"PublicProvision",
