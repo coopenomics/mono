@@ -62,6 +62,7 @@ import { useConnectionAgreementStore } from 'src/entities/ConnectionAgreement'
 import { useCooperativeStore } from 'src/entities/Cooperative'
 import { useUpdateCoop } from 'src/features/Cooperative/UpdateCoop'
 import { FailAlert, SuccessAlert } from 'src/shared/api'
+import { isSubdomain } from 'src/shared/lib/utils'
 import { useSessionStore } from 'src/entities/Session'
 import {
   BaseBadge,
@@ -124,6 +125,11 @@ const cancelEdit = () => {
 const saveDomain = async () => {
   if (!domainValue.value.trim()) {
     FailAlert(t('connectionDashboard.domainCard.domainEmptyError'))
+    return
+  }
+  const subdomain = isSubdomain(domainValue.value)
+  if (subdomain !== true) {
+    FailAlert(subdomain)
     return
   }
   if (!coop.publicCooperativeData) {

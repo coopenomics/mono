@@ -7,6 +7,7 @@ export * from './addAssets';
 export * from './notEmptyPhoneRule';
 export * from './notEmptyRule';
 export * from './isDomainRule';
+export * from './isSubdomainRule';
 export * from './validatePersonalNameRule';
 export * from './account';
 export * from './theme';

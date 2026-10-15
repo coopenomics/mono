@@ -34,7 +34,7 @@
       "delegationUpdating": "обновляем",
       "delegationWaiting": "ожидание делегирования",
       "domainEmptyError": "Домен не может быть пустым",
-      "domainLabel": "Доменное имя",
+      "domainLabel": "Поддомен",
       "domainPlaceholder": "Введите домен",
       "domainRequired": "Домен обязателен",
       "domainUpdateError": "Ошибка при обновлении домена: {errorMessage}",

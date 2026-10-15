@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { BaseInput } from 'src/shared/ui/base'
-import { isDomain, notEmpty } from 'src/shared/lib/utils'
+import { isDomain, isSubdomain, notEmpty } from 'src/shared/lib/utils'
 import {
   useConnectionAgreementStore,
   CONNECTION_STEP,
@@ -32,6 +32,11 @@ const validate = (): boolean => {
   }
   if (isDomain(v) !== true) {
     errorMsg.value = t('connectionAgreementStepper.domainStep.domainInvalid')
+    return false
+  }
+  const subdomain = isSubdomain(v)
+  if (subdomain !== true) {
+    errorMsg.value = subdomain
     return false
   }
   errorMsg.value = ''
