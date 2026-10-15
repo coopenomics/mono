@@ -518,6 +518,7 @@ cmd_ui() {
     ku) node bin/run-ku-all.mjs ;;
     robot) node bin/run-robot-all.mjs ;;
     soviet) node bin/run-soviet-all.mjs ;;
+    chairman) node bin/run-chairman-all.mjs ;;
     blagorost)
       echo "✗ сюита «$app» на стенде CI ещё не заведена: её раннер зовёт reboot:extra между группами" >&2
       exit 2 ;;
