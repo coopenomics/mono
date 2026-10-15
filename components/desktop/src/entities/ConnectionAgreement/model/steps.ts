@@ -39,7 +39,7 @@ export function previousVisibleStep(
   currentStep: number,
   options: { isUnioned: boolean },
 ): number | null {
-  const visible = [
+  const visible: number[] = [
     ...(options.isUnioned ? [CONNECTION_STEP.union] : []),
     ...(isTariffChoiceAvailable ? [CONNECTION_STEP.intro] : []),
     CONNECTION_STEP.profile,

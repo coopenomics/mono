@@ -38,8 +38,10 @@ describe('ledger2 wallets registry (generated from C++)', () => {
     }
   })
 
-  it('ЦК split: program_id=1 → share + member', () => {
-    expect(walletNamesForProgram(1).sort()).toEqual(['w.wal.member', 'w.wal.share'])
+  // Биллинг-кошелёк пайщика в леджере оператора относится к той же программе
+  // ЦК (решение @ant 2026-06-11, облачный провайдер).
+  it('ЦК split: program_id=1 → share + member + bill', () => {
+    expect(walletNamesForProgram(1).sort()).toEqual(['w.wal.bill', 'w.wal.member', 'w.wal.share'])
   })
 
   // Что выход делает с кошельком, задаёт таблица политики (exit_policy.hpp), а

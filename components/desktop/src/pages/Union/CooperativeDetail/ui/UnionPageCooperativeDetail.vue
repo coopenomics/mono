@@ -292,7 +292,7 @@ const charterDocument = computed(() => {
   return {
     type: type as 'docx' | 'pdf' | 'html' | 'txt',
     title: name,
-    description: `Приложен ${formatDateTime(charter.uploaded_at)} · ${formatFileSize(charter.size_bytes)}`,
+    description: `Приложен ${formatDateTime(String(charter.uploaded_at))} · ${formatFileSize(charter.size_bytes)}`,
   }
 })
 
