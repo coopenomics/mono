@@ -19,11 +19,11 @@ const HASH = 'f00d';
 
 function makeService(decision: Record<string, unknown>) {
   const organizationRepository = {
-    findByUsername: jest.fn(async (username: string) => {
+    findByUsername: jest.fn(async (username: string): Promise<Record<string, unknown> | null> => {
       if (username === COOP) return { username: COOP, email: 'coop@example.com', phone: '+70000000000', short_name: 'ПК «Восход»', inn: '7700000000' };
       return null;
     }),
-    create: jest.fn(async () => undefined),
+    create: jest.fn(async (_card: Record<string, unknown>): Promise<void> => undefined),
   };
   const paymentMethodPort = {
     get: jest.fn(async () => ({ data: { bank_name: 'Банк' } })),
@@ -58,7 +58,7 @@ describe('KuEventsService: карточка участка по решению �
     await service.handleBranchEstablished({ data: { coopname: COOP, hash: HASH } } as any);
 
     expect(organizationRepository.create).toHaveBeenCalledTimes(1);
-    const card = organizationRepository.create.mock.calls[0][0] as Record<string, unknown>;
+    const card = organizationRepository.create.mock.calls[0][0];
     expect(card).toMatchObject({
       username: 'zvenigorod',
       email: 'zvenigorod@voskhod.coop',
@@ -72,7 +72,7 @@ describe('KuEventsService: карточка участка по решению �
     const { service, organizationRepository } = makeService({ ...DECISION, branch_email: '', branch_phone: undefined });
     await service.handleBranchEstablished({ data: { coopname: COOP, hash: HASH } } as any);
 
-    const card = organizationRepository.create.mock.calls[0][0] as Record<string, unknown>;
+    const card = organizationRepository.create.mock.calls[0][0];
     expect(card).toMatchObject({ email: 'coop@example.com', phone: '+70000000000' });
   });
 

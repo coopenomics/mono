@@ -204,6 +204,7 @@ cases:
       Председатель ограничивает каталог набором из нескольких категорий (replace)
     expect: >
       доступными остаются все переданные категории, а не одна последняя; очистка возвращает открытый каталог
+    test: components/api-tests/src/marketplace/categories.test.ts
     api: components/api-tests/src/marketplace/categories.test.ts
     status: written
     # До 12.10.2026 новая запись доступной категории приходила в хранилище с
