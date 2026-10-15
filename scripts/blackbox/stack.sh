@@ -509,12 +509,14 @@ ui_env() {
 # стенду документации не нужна: группа L0 Стола заказов снимает подключение
 # ЦПП на девственном стенде, а засев сделал бы его «уже подключённым».
 cmd_ui() {
-  local app="${1:?приложение: marketplace | blagorost | edubridge}"
+  local app="${1:?приложение: marketplace | blagorost | edubridge | ku | robot}"
   ui_env
   cd "$HARNESS_DIR"
   case "$app" in
     marketplace) node bin/run-marketplace-all.mjs ;;
     edubridge) node bin/run-edubridge-all.mjs ;;
+    ku) node bin/run-ku-all.mjs ;;
+    robot) node bin/run-robot-all.mjs ;;
     blagorost)
       echo "✗ сюита «$app» на стенде CI ещё не заведена: её раннер зовёт reboot:extra между группами" >&2
       exit 2 ;;

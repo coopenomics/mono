@@ -49,17 +49,22 @@ function readRootEnv() {
  * подписки и занятия. Запускается тем же esno из boot — у api-tests своего нет.
  */
 export function seedCommand(group, phase) {
-  if (group === 'edubridge') {
-    return ['--filter', '@coopenomics/boot', 'exec', 'esno',
-      path.join(REPO_ROOT, 'components/api-tests/src/seed/edubridge/index.ts'), phase];
+  if (API_TESTS_GROUPS.includes(group)) {
+    return ['--filter', '@coopenomics/boot', 'exec', 'esno', seedEntry(group), phase];
   }
   return ['--filter', '@coopenomics/boot', 'exec', 'esno', `src/scripts/seed-${group}/index.ts`, phase];
 }
 
+/**
+ * Группы, чьи фазы живут во внешнем слое тестов (components/api-tests/src/seed/<группа>):
+ * они собраны из его помощников — подписи документов, голоса совета, вход пайщика.
+ */
+const API_TESTS_GROUPS = ['edubridge', 'ku', 'robot'];
+
 /** Файл засева группы — есть ли у группы сценарий подготовки. */
 export function seedEntry(group) {
-  return group === 'edubridge'
-    ? path.join(REPO_ROOT, 'components/api-tests/src/seed/edubridge/index.ts')
+  return API_TESTS_GROUPS.includes(group)
+    ? path.join(REPO_ROOT, `components/api-tests/src/seed/${group}/index.ts`)
     : path.join(REPO_ROOT, 'components/boot', `src/scripts/seed-${group}/index.ts`);
 }
 
