@@ -11,7 +11,7 @@ export const meta = {
   docPath: 'new/council/documents.md',
   assetsDir: 'assets/new/council/documents',
   role: 'chairman',
-  prepare: ['soviet:01-agenda'],
+  prepare: ['soviet:01-template'],
 };
 
 const SOVIET = (p) => `${env.APP_PREFIX}/${env.COOPNAME}/soviet/${p}`;
@@ -45,6 +45,11 @@ export default async ({ page, context, shot, expect }) => {
   }
   const propose = page.locator('button:has-text("Вынести на совет")').first();
   if (await propose.isVisible().catch(() => false)) {
-    await shot(page, '05-new-edition', 'Строка с новой редакцией: кнопка «Вынести на совет» ставит её утверждение в повестку.');
+    await propose.scrollIntoViewIfNeeded();
+    await shot(page, '05-new-edition', 'Оператор выпустил новую редакцию шаблона: строка показывает обе редакции, кнопка «Вынести на совет» ставит утверждение в повестку.');
+    await propose.click();
+    await page.waitForSelector('text=Документ вынесен на совет', { timeout: 90000 });
+    await page.waitForTimeout(2500);
+    await shot(page, '06-proposed', 'Новая редакция вынесена на совет: состояние «На рассмотрении», ссылка «К повестке» ведёт к вопросу.');
   }
 };

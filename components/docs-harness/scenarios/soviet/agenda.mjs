@@ -1,6 +1,7 @@
-// Сценарий: повестка совета — вопрос о выходе пайщика от голосования до
-// утверждения председателем. Вопрос ставит фаза soviet:01-agenda, голоса
-// членов совета Петра и Анны — фаза soviet:02-votes.
+// Сценарий: повестка совета — вопрос о новой редакции шаблона документа от
+// голосования до утверждения председателем. Вопрос ставит фаза
+// soviet:02-propose (либо председатель в сценарии документов), голоса членов
+// совета Петра и Анны — фаза soviet:02-votes.
 
 import { env, loginAsChairman } from '../../lib/harness.mjs';
 import { runPrepare } from '../../lib/prepare.mjs';
@@ -13,7 +14,7 @@ export const meta = {
   docPath: 'new/council/agenda.md',
   assetsDir: 'assets/new/council/agenda',
   role: 'chairman',
-  prepare: ['soviet:01-agenda', 'soviet:04-expense'],
+  prepare: ['soviet:02-propose', 'soviet:04-expense'],
 };
 
 const SOVIET = (p) => `${env.APP_PREFIX}/${env.COOPNAME}/soviet/${p}`;
@@ -26,13 +27,15 @@ export default async ({ page, context, shot, expect }) => {
   await page.waitForTimeout(1500);
   await shot(page, '01-agenda', 'Повестка совета: вопросы с номером, типом решения, заявителем, голосами и сроком. Строка открывает вопрос целиком.');
 
-  const row = page.locator('tbody tr, .question-row, .q-table tbody tr').filter({ hasText: /Выход/ }).first();
-  await expect(row, 'в повестке нет вопроса о выходе пайщика: фаза soviet:01-agenda').toBeVisible({ timeout: 30000 });
+  const rows = page.locator('tbody tr');
+  const byText = rows.filter({ hasText: /редакц/i }).first();
+  const row = (await byText.isVisible().catch(() => false)) ? byText : rows.first();
+  await expect(row, 'повестка пуста: фаза soviet:02-propose').toBeVisible({ timeout: 30000 });
   await row.click();
   await page.waitForSelector('text=К повестке совета', { timeout: 30000 });
   await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
   await page.waitForTimeout(1500);
-  await shot(page, '02-question', 'Вопрос целиком: тип решения, заявитель, проект решения и документы вопроса. Внизу голосование «за» и «против» и кнопка утверждения председателем.');
+  await shot(page, '02-question', 'Вопрос целиком: тип решения, заявитель, проект решения с текстом новой редакции и её хэшем. Внизу голосование «за» и «против» и кнопка утверждения председателем.');
 
   await page.locator('.vote-btn--for').first().click();
   await page.waitForSelector('text=Голос принят', { timeout: 60000 });
@@ -49,5 +52,5 @@ export default async ({ page, context, shot, expect }) => {
   await page.locator('button:has-text("Утвердить")').first().click();
   await page.waitForSelector('text=Решение принято и исполнено', { timeout: 120000 });
   await page.waitForTimeout(2500);
-  await shot(page, '05-authorized', 'Председатель утвердил решение: протокол подписан, решение исполнено. Вопрос уходит из повестки, документы решения — в реестре документов.');
+  await shot(page, '05-authorized', 'Председатель утвердил решение: протокол подписан, решение исполнено. Новая редакция шаблона вступает в силу, вопрос уходит из повестки, протокол — в реестре документов.');
 };

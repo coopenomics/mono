@@ -4,15 +4,16 @@
  * пайщика и решения Стола заказов проводит робот совета, а других вопросов нет.
  * Фазы дают столу работу, которую совет делает руками.
  *
- *   01-agenda   — пайщик подаёт заявление на выход: вопрос «Выход пайщика»
- *                 стоит в повестке (робот его не ведёт на этом стенде).
+ *   01-template — у формы заявления на возврат взноса (900) вышла новая
+ *                 редакция: в шаблонах документов её можно вынести на совет.
+ *   02-propose  — новая редакция вынесена на совет: вопрос стоит в повестке.
  *   02-votes    — члены совета Пётр и Анна голосуют «за» по этому вопросу:
  *                 председатель голосует и утверждает решение в интерфейсе.
  *   03-payment  — пайщик заявил паевой взнос: входящий платёж ждёт кассира.
  *   04-expense  — член совета подал служебную записку на расход программы:
  *                 записка в реестре расходов и вопрос в повестке.
  *
- *   esno src/seed/soviet/index.ts 01-agenda
+ *   esno src/seed/soviet/index.ts 01-template
  */
 import process from 'node:process'
 import { tokenOf } from '../../core/auth'
@@ -21,9 +22,8 @@ import { COOP } from '../../core/env'
 import { CHAIRMAN, COUNCIL, COUNCIL_2, fixture } from '../../core/roles'
 import { voteOnDecision } from '../../core/council'
 import { freshMember } from '../../core/participants'
-import { requestExit } from '../../core/membership-exit'
 import { waitFor } from '../../core/wait'
-import { agendaAll } from '../../documents/docs-reports.helpers'
+import { agendaAll, ensureProposable, propose, templateOf } from '../../documents/docs-reports.helpers'
 import { createDeposit, listPayments } from '../../payments/payments.helpers'
 import { ensureCapitalInitialized, fundProgramPool } from '../../capital/cap-metrics.helpers'
 import { CREATE_PROPOSAL, PROGRAM_EXPENSE_POOL, createInput, hash64, signedStatement } from '../../expenses/expenses.helpers'
@@ -33,29 +33,46 @@ const log = (...a: unknown[]) => console.error('[seed-soviet]', ...a)
 
 /** Пайщик с входящим платежом — фикстура docs-harness. */
 const PAYER = 'ivanpetrov'
-const EXIT_TYPE = 'leavecoop'
+/** Форма заявления на возврат паевого взноса деньгами: её новая редакция идёт на совет. */
+const TEMPLATE = 900
+const FREE_TYPE = 'freedecision'
 const BY_COOP = `query($c:String!,$o:PaginationInput){ expenseProposalsByCooperative(coopname:$c, options:$o){ items{ proposal_hash status } } }`
 
-async function exitQuestion(): Promise<{ id: number } | undefined> {
+async function templateQuestion(): Promise<{ id: number } | undefined> {
   const chairman = await tokenOf(CHAIRMAN)
-  return (await agendaAll(chairman)).find(a => a.type === EXIT_TYPE)
+  const t = await templateOf(chairman, TEMPLATE)
+  if (!t.pending_hash)
+    return undefined
+  return (await agendaAll(chairman)).find(a => a.type === FREE_TYPE && a.hash.toLowerCase() === String(t.pending_hash).toLowerCase())
 }
 
-/** 01 — заявление на выход стоит в повестке совета. */
+/** 01 — у формы заявления на возврат взноса вышла новая редакция: её можно вынести на совет. */
 async function phase01(): Promise<void> {
-  if (await exitQuestion()) {
-    log('вопрос о выходе пайщика уже в повестке')
+  const chairman = await tokenOf(CHAIRMAN)
+  const t = await templateOf(chairman, TEMPLATE)
+  if (t.state === 'Pending' || t.state === 'Outdated') {
+    log(`шаблон ${TEMPLATE} уже в состоянии ${t.state}`)
     return
   }
-  const member = freshMember({ prefix: 'sov', firstName: 'Глеб', lastName: 'Тихонов', middleName: 'Сергеевич' })
-  await requestExit(member, false)
-  await waitFor(() => exitQuestion(), { timeoutMs: 90_000, intervalMs: 2_000, label: 'вопрос о выходе пайщика в повестке' })
-  log('Тихонов Глеб подал заявление на выход, вопрос в повестке')
+  await ensureProposable(chairman, [TEMPLATE])
+  log(`у шаблона ${TEMPLATE} новая редакция, её можно вынести на совет`)
 }
 
-/** 02 — Пётр и Анна голосуют «за»: с голосом председателя набирается большинство. */
+/** 02 — новая редакция вынесена на совет (обычно её выносит председатель в интерфейсе). */
 async function phase02(): Promise<void> {
-  const q = await waitFor(() => exitQuestion(), { timeoutMs: 60_000, intervalMs: 2_000, label: 'вопрос о выходе пайщика в повестке' })
+  if (await templateQuestion()) {
+    log('вопрос о новой редакции уже в повестке')
+    return
+  }
+  await phase01()
+  await propose([TEMPLATE])
+  await waitFor(() => templateQuestion(), { timeoutMs: 90_000, intervalMs: 2_000, label: 'вопрос о новой редакции в повестке' })
+  log(`новая редакция шаблона ${TEMPLATE} вынесена на совет`)
+}
+
+/** 02-votes — Пётр и Анна голосуют «за»: с голосом председателя набирается большинство. */
+async function phaseVotes(): Promise<void> {
+  const q = await waitFor(() => templateQuestion(), { timeoutMs: 60_000, intervalMs: 2_000, label: 'вопрос о новой редакции в повестке' })
   await voteOnDecision(q.id, 'for', [COUNCIL.account, COUNCIL_2.account])
   log(`Пётр и Анна проголосовали «за» по вопросу № ${q.id}`)
 }
@@ -107,8 +124,9 @@ async function phase04(): Promise<void> {
 }
 
 const PHASES: Record<string, () => Promise<void>> = {
-  '01-agenda': phase01,
-  '02-votes': phase02,
+  '01-template': phase01,
+  '02-propose': phase02,
+  '02-votes': phaseVotes,
   '03-payment': phase03,
   '04-expense': phase04,
 }
