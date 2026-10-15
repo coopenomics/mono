@@ -45,6 +45,10 @@ jobs:
       BLACKBOX_OUT: ${{ github.workspace }}/.blackbox
       CONTRACTS_MODE: test
       APP: ${{ github.event.inputs.app || '' }}
+      # «Образование»: гарантийные сутки 30 с (14 дней = 7 мин), очередь взносов раз в минуту —
+      # путь взноса преподавателя от отчёта до выплаты укладывается в прогон.
+      GUARANTEE_DAY_SECONDS: 30
+      EDUBRIDGE_WORKER_PACE_SECONDS: 60
 
     steps:
       - uses: actions/checkout@v4

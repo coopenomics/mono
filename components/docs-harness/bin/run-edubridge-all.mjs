@@ -59,10 +59,16 @@ const GROUPS = [
     ],
   },
   {
-    name: 'Занятия и расчёты',
+    // Путь взноса преподавателя идёт сквозь сценарии: отчёт в календаре →
+    // документы и акт на странице отчётов (совет принимает взнос внутри
+    // сценария, фаза 06) → подпись председателя на столе администратора →
+    // возврат со стола преподавателя → решения совета и кассир (фаза 07, 08)
+    // → выплата в выписке. Порядок менять нельзя.
+    name: 'Занятия, отчёты и взносы преподавателя',
     scenarios: [
       'edubridge/teacher/lessons',
       'edubridge/teacher/reports',
+      'edubridge/admin/contributions',
       'edubridge/teacher/settlement',
       'edubridge/admin/course',
       'edubridge/admin/group',
@@ -70,11 +76,12 @@ const GROUPS = [
     ],
   },
   {
-    name: 'Обзорные экраны администратора',
+    name: 'Деньги программы: экономика, расход, выплаты',
     scenarios: [
       'edubridge/admin/members',
-      'edubridge/admin/contributions',
       'edubridge/admin/economy',
+      'edubridge/admin/payments',
+      'edubridge/teacher/payout',
     ],
   },
 ];

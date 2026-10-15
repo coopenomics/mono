@@ -54,6 +54,12 @@ export function isTimeCompressed(): boolean {
 
 /** Как часто очереди образования обходят свои записи, секунд. */
 export function workerPaceSeconds(): number {
+  // Стенд документации проходит путь взноса преподавателя за минуты: ход очереди
+  // задаётся окружением, как и длина суток. В работе — раз в десять минут.
+  if (!inProduction()) {
+    const custom = Number(process.env.EDUBRIDGE_WORKER_PACE_SECONDS);
+    if (Number.isFinite(custom) && custom > 0) return Math.floor(custom);
+  }
   return isTimeCompressed() ? COMPRESSED_WORKER_PACE_SECONDS : WORKER_PACE_SECONDS;
 }
 

@@ -127,6 +127,10 @@ EOF
   # Короткие сутки гарантийного срока «Образования»: сценарии «срок вышел»
   # проходят за минуты. То же значение читают наборы (api_tests_env).
   set_env "$ctl_env" EDUBRIDGE_GUARANTEE_DAY_SECONDS "$GUARANTEE_DAY_SECONDS"
+  # Ход очереди отложенных заявлений, секунд; пусто — раз в десять минут.
+  if [ -n "${EDUBRIDGE_WORKER_PACE_SECONDS:-}" ]; then
+    set_env "$ctl_env" EDUBRIDGE_WORKER_PACE_SECONDS "$EDUBRIDGE_WORKER_PACE_SECONDS"
+  fi
   # Месяцы на полигоне календарные: наборы сверяют оплаченный период с календарём.
   set_env "$ctl_env" EDUBRIDGE_MONTH_SECONDS 0
   set_env "$ctl_env" GEOCODER_PROVIDER yandex
@@ -234,7 +238,8 @@ cmd_tests() {
 # Матрица прав (src/rights) идёт отдельной фазой после всех сценариев — она
 # зовёт мутации от лица каждой роли с чужими аргументами.
 # Длина суток гарантийного срока «Образования» на стенде, секунд (в работе — 86400).
-GUARANTEE_DAY_SECONDS=300
+# Сюита документации (ui-docs.yaml) задаёт короче: путь взноса преподавателя до выплаты за один прогон.
+GUARANTEE_DAY_SECONDS="${GUARANTEE_DAY_SECONDS:-300}"
 
 api_tests_env() {
   load_stack

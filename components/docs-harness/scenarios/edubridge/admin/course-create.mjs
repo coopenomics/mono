@@ -3,7 +3,8 @@
 // преподаватели, обложка. Курс сохраняется черновиком — публикация показана
 // на странице курса.
 
-import { loginAsChairman } from '../../../lib/harness.mjs';
+import path from 'node:path';
+import { HARNESS_ROOT, loginAsChairman } from '../../../lib/harness.mjs';
 import { EDU, openPage, settleAfterLogin, field, fill, pick, next, scrollDown } from '../../../lib/edu.mjs';
 
 export const meta = {
@@ -72,10 +73,13 @@ export default async ({ page, context, shot, expect }) => {
 
   // ── Обложка и сохранение ────────────────────────────────────────────────
   await next(page);
+  await page.locator('input.edu-course-form__file').setInputFiles(path.join(HARNESS_ROOT, 'fixtures', 'cover-oge-math.jpg'));
+  await page.waitForTimeout(1500);
+  await shot(page, '07-cover', 'Обложка курса для каталога: JPEG, PNG или WEBP, лучше 1600 × 900. Без обложки плитка курса в каталоге пустая.');
   await page.locator('button:has-text("Добавить курс")').last().click();
   // Курс сохранён — открылась его страница с хлебной крошкой к реестру.
   await page.waitForSelector('text=К реестру курсов', { timeout: 30000 });
   await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
   await page.waitForTimeout(1200);
-  await shot(page, '07-course-saved', 'Курс сохранён черновиком и открыт на своей странице. В каталог он попадёт после публикации.');
+  await shot(page, '08-course-saved', 'Курс сохранён черновиком и открыт на своей странице. В каталог он попадёт после публикации.');
 };

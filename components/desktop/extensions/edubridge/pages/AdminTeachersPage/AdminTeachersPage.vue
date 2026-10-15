@@ -10,7 +10,7 @@
     row-key="username"
     :loading="firstLoad"
     :clickable-rows="true"
-    min-width="840px"
+    min-width="1040px"
     @row-click="openCard"
   )
     template(#cell-teacher="{ row }")
@@ -89,11 +89,11 @@ const current = ref<ITeacher | null>(null);
 // его читают внутри карточки, когда нужен именно он.
 const columns: BaseTableColumn<ITeacher>[] = [
   { key: 'teacher', label: i18nT('edubridge.adminTeachersPage.column.teacher') },
-  { key: 'contract_status', label: i18nT('edubridge.adminTeachersPage.column.contractStatus'), width: '210px' },
-  { key: 'hourly_rate', label: i18nT('edubridge.adminTeachersPage.column.hourlyRate'), numeric: true, width: '150px', nowrap: true },
-  { key: 'assignments', label: i18nT('edubridge.adminTeachersPage.column.assignments'), width: '130px', nowrap: true },
-  { key: 'signed_at', label: i18nT('edubridge.adminTeachersPage.column.signedAt'), width: '130px', nowrap: true },
-  { key: 'pending', label: i18nT('edubridge.adminTeachersPage.column.pending'), width: '240px', nowrap: true },
+  { key: 'contract_status', label: i18nT('edubridge.adminTeachersPage.column.contractStatus'), width: '200px' },
+  { key: 'hourly_rate', label: i18nT('edubridge.adminTeachersPage.column.hourlyRate'), numeric: true, width: '130px', nowrap: true },
+  { key: 'assignments', label: i18nT('edubridge.adminTeachersPage.column.assignments'), width: '100px', nowrap: true },
+  { key: 'signed_at', label: i18nT('edubridge.adminTeachersPage.column.signedAt'), width: '120px', nowrap: true },
+  { key: 'pending', label: i18nT('edubridge.adminTeachersPage.column.pending'), width: '220px', nowrap: true },
 ];
 
 const contractStatusOf = (s: string) => CONTRACT_STATUS_LABELS[s] ?? { label: s, variant: 'neutral' as const };

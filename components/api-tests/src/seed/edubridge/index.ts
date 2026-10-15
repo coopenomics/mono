@@ -25,6 +25,9 @@ import { gql, gqlRaw } from '../../core/client'
 import { REPO_ROOT } from '../../core/env'
 import { CHAIRMAN } from '../../core/roles'
 import { waitFor } from '../../core/wait'
+import { authorizeDecisionOnChain, voteOnDecision } from '../../core/council'
+import { agendaAll, agendaByHash } from '../../documents/docs-reports.helpers'
+import { addSbpMethod, listPayments, methodsOf } from '../../payments/payments.helpers'
 import {
   ADD_LEARNER,
   CATALOG_PAGE,
@@ -52,6 +55,9 @@ import {
   groupOfAssignment,
   PLAN_LESSON,
   REPORT_LESSON,
+  MY_CONTRIBUTIONS,
+  agendaWith,
+  councilGrantsRid,
 } from '../../edubridge/edubridge.helpers'
 
 const log = (...a: unknown[]) => console.error('[seed-edubridge]', ...a)
@@ -71,6 +77,10 @@ export const LEARNER_NAME = 'Громов Артём Николаевич'
 export const LEARNER_PASS = 'ПР-2041'
 /** Паевой взнос ученика на стенде: подписка фазы и вторая подписка сценарием, с запасом на продление. */
 export const PARENT_FUNDS = 60_000
+/** Обложка курса — абстракция по теме, лежит в наборе кадров документации. */
+const COURSE_COVER = path.join(REPO_ROOT, 'components/docs-harness/fixtures/cover-oge-math.jpg')
+/** Телефон СБП преподавателя для возврата паевого взноса. */
+const TEACHER_SBP_PHONE = '+79990002041'
 
 const SECTIONS = 'query($f:EduSectionsFilterInput){ edubridgeSections(filter:$f){ id title levels{ id title } } }'
 const SAVE_LEVEL = 'mutation($d:EduSaveLevelInput!){ edubridgeSaveLevel(data:$d){ id title } }'
@@ -140,6 +150,8 @@ async function phase02(): Promise<void> {
     course_payment_enabled: true,
     course_discount_percent: 10,
     ...(level ? { level_id: level.id } : {}),
+    // Обложка в каталоге: без неё плитка курса пустая.
+    ...(fs.existsSync(COURSE_COVER) ? { image: { base64: fs.readFileSync(COURSE_COVER).toString('base64'), mime_type: 'image/jpeg' } } : {}),
   })
   log(`курс «${course.title}» опубликован, взнос в месяц ${course.fee_month}`)
 }
@@ -231,14 +243,17 @@ async function phase05(): Promise<void> {
     throw new Error(`${TEACHER}: нет действующего назначения — сначала фаза 03-teacher`)
 
   // Занятия по окнам расписания идут с завтрашнего дня — отчитаться пока не
-  // по чему. Администратор ставит внеочередное занятие на два часа назад из
-  // резерва курса (фаза 02).
+  // по чему. Администратор ставит два внеочередных занятия из резерва курса
+  // (фаза 02): четыре часа назад — его отчитывает засев и ведёт до выплаты,
+  // два часа назад — его отчитывает преподаватель на кадрах календаря.
   const chairman = await tokenOf(CHAIRMAN)
   const { group } = await groupOfAssignment(token, assignment.id)
   const floor = group.starts_at ? new Date(group.starts_at).getTime() + 1000 : 0
-  const planned = (await gql<any>(chairman, PLAN_LESSON, {
-    d: { group_id: group.id, assignment_id: assignment.id, minutes: 90, held_at: new Date(Math.max(Date.now() - 2 * 3600_000, floor)).toISOString() },
+  const plan = async (hoursAgo: number) => (await gql<any>(chairman, PLAN_LESSON, {
+    d: { group_id: group.id, assignment_id: assignment.id, minutes: 90, held_at: new Date(Math.max(Date.now() - hoursAgo * 3600_000, floor + (4 - hoursAgo) * 1000)).toISOString() },
   })).edubridgePlanLesson
+  const planned = await plan(4)
+  await plan(2)
   const lesson = (await gql<any>(token, REPORT_LESSON, {
     d: {
       lesson_id: planned.id,
@@ -252,12 +267,109 @@ async function phase05(): Promise<void> {
   log(`${TEACHER}: внеочередное занятие № ${lesson.lesson_number} отчитано, материалы переданы на хранение`)
 }
 
+/** Взносы преподавателя его глазами. */
+async function myContributions(token: string): Promise<any[]> {
+  return (await gql<any>(token, MY_CONTRIBUTIONS)).edubridgeMyContributions as any[]
+}
+
+/**
+ * 06 — совет принял взнос за занятие, отчитанное фазой 05: заявление ушло в
+ * совет по истечении срока хранения (очередь расширения), голоса «за» и
+ * протокол председателя. Заодно у преподавателя появляются реквизиты СБП —
+ * без них возврат паевого взноса не оформить. Фаза ждёт очередь: на стенде
+ * сутки короткие (EDUBRIDGE_GUARANTEE_DAY_SECONDS), ход очереди — минута.
+ */
+async function phase06(): Promise<void> {
+  const who = fixture(TEACHER)
+  const token = await tokenOf(who)
+  const methods = await methodsOf(token, who.account)
+  if (!methods.length) {
+    await addSbpMethod(token, who.account, TEACHER_SBP_PHONE)
+    log(`${TEACHER}: реквизиты СБП добавлены`)
+  }
+  const beyond = new Set(['COUNCIL_APPROVED', 'ACT_SIGNED', 'ACCEPTED'])
+  const first = (await myContributions(token)).find(c => beyond.has(c.status))
+  if (first) {
+    log(`${TEACHER}: взнос ${first.rid_hash.slice(0, 8)} уже ${first.status}`)
+    return
+  }
+  const submitted = await waitFor(async () => (await myContributions(token)).find(c => c.status === 'SUBMITTED') ?? null,
+    { timeoutMs: 20 * 60_000, intervalMs: 10_000, label: `${TEACHER}: заявление о взносе ушло в совет по истечении срока хранения` })
+  const agenda = await agendaWith(submitted.rid_hash)
+  await councilGrantsRid(agenda, { rid_hash: submitted.rid_hash, amount: submitted.amount, teacher_username: who.account })
+  await waitFor(async () => (await myContributions(token)).find(c => c.id === submitted.id && beyond.has(c.status)) ?? null,
+    { timeoutMs: 120_000, intervalMs: 2_000, label: 'решение совета о приёме взноса исполнено' })
+  log(`${TEACHER}: совет принял взнос ${submitted.amount}, акт ждёт подписи преподавателя`)
+}
+
+/**
+ * Исходящий платёж преподавателю либо получателю расхода в реестре платежей
+ * кооператива глазами председателя.
+ */
+async function outgoingPayment(chairman: string, username: string): Promise<any | undefined> {
+  const rows = await listPayments(chairman, { username, direction: 'OUTGOING' })
+  return rows.find(p => ['PENDING', 'PAID', 'COMPLETED', 'PROCESSING'].includes(String(p.status)))
+}
+
+/**
+ * 07 — совет удовлетворил заявление преподавателя о возврате паевого взноса
+ * (подано со стола преподавателя): голоса «за», утверждение и исполнение
+ * решения — платёж появляется в реестре платежей у кассира.
+ */
+async function phase07(): Promise<void> {
+  const who = fixture(TEACHER)
+  const chairman = await tokenOf(CHAIRMAN)
+  if (await outgoingPayment(chairman, who.account)) {
+    log(`${TEACHER}: платёж возврата уже в реестре`)
+    return
+  }
+  const agenda = await waitFor(async () => {
+    for (const row of (await agendaAll(chairman)).filter(a => a.type === 'withdraw')) {
+      const full = await agendaByHash(chairman, row.hash)
+      if (full?.username === who.account) return full
+    }
+    return null
+  }, { timeoutMs: 120_000, intervalMs: 3_000, label: `вопрос совету о возврате взноса ${TEACHER}` })
+  await voteOnDecision(agenda.id, 'for')
+  await authorizeDecisionOnChain(agenda.id)
+  await waitFor(() => outgoingPayment(chairman, who.account), { timeoutMs: 120_000, intervalMs: 2_000, label: 'платёж возврата в реестре платежей' })
+  log(`${TEACHER}: совет утвердил возврат, платёж ждёт кассира`)
+}
+
+const EXPENSES = 'query($o:PaginationInput){ edubridgeExpenses(options:$o){ items{ expense_hash status items{ recipient recipient_name status } } } }'
+
+/**
+ * 08 — совет утвердил расход программы, поданный со стола администратора:
+ * голоса «за», утверждение и исполнение — платёж получателю в реестре у кассира.
+ */
+async function phase08(): Promise<void> {
+  const chairman = await tokenOf(CHAIRMAN)
+  const expenses = (await gql<any>(chairman, EXPENSES, { o: { page: 1, limit: 50, sortOrder: 'DESC' } })).edubridgeExpenses.items as any[]
+  const pending = expenses.find(e => e.status === 'CREATED')
+  if (!pending) {
+    log(expenses.length ? `расход ${expenses[0].expense_hash.slice(0, 8)} уже ${expenses[0].status}` : 'расходов нет — подаются со стола администратора (сценарий admin/economy)')
+    return
+  }
+  const agenda = await agendaWith(pending.expense_hash)
+  await voteOnDecision(agenda.id, 'for')
+  await authorizeDecisionOnChain(agenda.id)
+  await waitFor(async () => {
+    const rows = (await gql<any>(chairman, EXPENSES, { o: { page: 1, limit: 50, sortOrder: 'DESC' } })).edubridgeExpenses.items as any[]
+    const row = rows.find(e => e.expense_hash === pending.expense_hash)
+    return row && row.status !== 'CREATED' ? row : null
+  }, { timeoutMs: 120_000, intervalMs: 2_000, label: 'решение совета о расходе исполнено' })
+  log(`расход ${pending.expense_hash.slice(0, 8)} утверждён советом, платёж ждёт кассира`)
+}
+
 const PHASES: Record<string, () => Promise<void>> = {
   '01-install': phase01,
   '02-course': phase02,
   '03-teacher': phase03,
   '04-member': phase04,
   '05-lessons': phase05,
+  '06-council-rid': phase06,
+  '07-council-return': phase07,
+  '08-council-expense': phase08,
 }
 const ORDER = Object.keys(PHASES)
 
