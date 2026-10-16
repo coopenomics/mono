@@ -44,6 +44,8 @@ BaseForm.step-frame(:loading="loading" @submit="emit('next')")
         q-icon(name="arrow_back" size="16px").q-mr-xs
         | {{ $t('common.action.back') }}
       q-space
+      //- Итог шага у главной кнопки: то, на что человек соглашается, нажимая «Дальше».
+      slot(name="aside")
       BaseButton(
         v-if="hasNext"
         variant="primary"
@@ -62,7 +64,7 @@ BaseForm.step-frame(:loading="loading" @submit="emit('next')")
   bottom: 0;
   display: flex;
   align-items: center;
-  gap: var(--p-2);
+  gap: var(--p-5);
   padding: var(--p-3) 0;
   background: var(--p-canvas);
   border-top: 1px solid var(--p-line);

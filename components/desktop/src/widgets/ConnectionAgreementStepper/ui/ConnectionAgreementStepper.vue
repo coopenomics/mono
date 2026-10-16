@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, computed, watch } from 'vue'
+import { computed, watch } from 'vue'
 import { VerticalStepper } from 'src/shared/ui/domain/VerticalStepper'
 import type { StepperStep } from 'src/shared/ui/domain/VerticalStepper'
 import UnionMembershipStep from '../Steps/UnionMembershipStep.vue'
@@ -17,23 +17,9 @@ import {
   isTariffChoiceAvailable,
 } from 'src/entities/ConnectionAgreement'
 import { useSystemStore } from 'src/entities/System/model'
-import { useConnectionCatalog } from 'src/features/Provider/model'
-import { DOCUMENT_PACKAGE_PRICE_RUB, MEMBER_PRICE_RUB } from 'src/shared/lib/axon'
 import { t } from 'src/shared/i18n';
 
 const connectionAgreement = useConnectionAgreementStore()
-// Живой каталог провайдера (Epic 28): цена, состав платы и триал в сводке условий.
-const {
-  mandatoryServices,
-  minServerPrice,
-  serverPrice,
-  monthlyTotal,
-  trialDays,
-  formatPrice,
-  load: loadCatalog,
-} = useConnectionCatalog()
-// realtime: нет источника — каталог услуг отдаёт провайдер (другой узел), в ленте кооператива его нет.
-onMounted(() => { void loadCatalog() })
 const system = useSystemStore()
 
 const currentStep = computed(() => connectionAgreement.currentStep)
@@ -85,14 +71,6 @@ const completedKeys = computed(() =>
 
 const stepNumber = computed(() => visibleSteps.value.findIndex((s) => s.key === activeKey.value) + 1)
 
-// Плата за месяц — сервер плюс обязательные услуги: документооборот заводится
-// каждому кооперативу, и цена одной аренды сервера вводила в заблуждение.
-// Пока конфигурация не выбрана, считаем по самой дешёвой — это «от N ₽».
-const chosenInstanceTypeId = computed(() => selectedTariff.value?.instanceTypeId ?? null)
-const monthlyServerPrice = computed(() => serverPrice(chosenInstanceTypeId.value) ?? minServerPrice.value)
-const monthlyTotalPrice = computed(() => monthlyTotal(chosenInstanceTypeId.value))
-const serverLabel = computed(() => selectedTariff.value?.name ?? t('connectionAgreementStepper.stepper.serverLabel'))
-
 function onStepperChange(key: string) {
   const found = ALL_STEPS.find((s) => s.key === key)
   if (!found) return
@@ -119,42 +97,10 @@ watch(
 
 <template lang="pug">
 .connection-stepper.row.q-col-gutter-lg
-  //- Слева — карта пути: что уже пройдено, где мы, что впереди. Здесь же
-  //- вводное слово, чтобы новый пользователь понял, зачем всё это.
+  //- Слева — карта пути: что уже пройдено, где мы, что впереди. Условия и
+  //- цена живут в самом шаге тарифа, рядом с выбором, — здесь их не дублируем.
   aside.col-12.col-md-4.col-lg-3
     .connection-stepper__rail
-      p.t-sm.connection-stepper__intro
-        | {{ $t('connectionAgreementStepper.stepper.summary.copyLine1') }}
-        | {{ $t('connectionAgreementStepper.stepper.summary.copyLine2') }}
-
-      //- Условия — коротко и на виду, чтобы их не приходилось искать по шагам.
-      dl.connection-stepper__terms
-        .connection-stepper__term
-          dt {{ $t('connectionAgreementStepper.stepper.summary.priceLabel') }}
-          dd
-            template(v-if="!selectedTariff") {{ $t('connectionAgreementStepper.stepper.summary.priceFrom') }}
-            span.t-mono.t-num {{ monthlyTotalPrice != null ? formatPrice(monthlyTotalPrice) : '…' }} ₽
-            |  {{ $t('connectionAgreementStepper.stepper.summary.perMonth') }}
-          //- Из чего складывается плата: сервер и обязательные услуги.
-          ul.connection-stepper__breakdown
-            li
-              | {{ serverLabel }} —&nbsp;
-              span.t-mono.t-num {{ monthlyServerPrice != null ? formatPrice(monthlyServerPrice) : '…' }} ₽
-            li(v-for="svc in mandatoryServices" :key="svc.id")
-              | {{ svc.name }} —&nbsp;
-              span.t-mono.t-num {{ formatPrice(svc.price) }} ₽
-          //- Документооборот тратится по факту работы, а не по календарю:
-          //- пакет докупается, когда исчерпан.
-          p.t-sm.t-muted.connection-stepper__note
-            | {{ $t('connectionAgreementStepper.stepper.summary.docflowLine1', { memberPrice: MEMBER_PRICE_RUB }) }}
-            | {{ $t('connectionAgreementStepper.stepper.summary.docflowLine2', { packagePrice: DOCUMENT_PACKAGE_PRICE_RUB }) }}
-            | {{ $t('connectionAgreementStepper.stepper.summary.docflowLine3') }}
-        .connection-stepper__term(v-if="trialDays")
-          dt {{ $t('connectionAgreementStepper.stepper.summary.trialPrefix', { days: trialDays }) }}
-          dd {{ $t('connectionAgreementStepper.stepper.summary.trialFree') }}
-        .connection-stepper__term
-          dt {{ $t('connectionAgreementStepper.stepper.summary.paymentLabel') }}
-          dd {{ $t('connectionAgreementStepper.stepper.summary.paymentText') }}
       .t-eyebrow.t-muted.connection-stepper__counter {{ $t('connectionAgreementStepper.stepper.stepCounter', { step: stepNumber, total: visibleSteps.length }) }}
       VerticalStepper(
         :steps="stepperSteps"
@@ -195,45 +141,6 @@ watch(
   display: flex;
   flex-direction: column;
   gap: var(--p-4);
-}
-.connection-stepper__intro {
-  margin: 0;
-  color: var(--p-ink-1);
-}
-.connection-stepper__terms {
-  margin: 0;
-  padding: var(--p-3) var(--p-4);
-  border: 1px solid var(--p-line-1);
-  border-radius: var(--p-r-md);
-  background: var(--p-surface);
-  display: flex;
-  flex-direction: column;
-  gap: var(--p-2);
-}
-.connection-stepper__term dt {
-  font-size: var(--p-fs-meta);
-  color: var(--p-ink-2);
-}
-.connection-stepper__breakdown {
-  margin: var(--p-1) 0 0;
-  padding: 0;
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  font-size: var(--p-fs-meta);
-  line-height: var(--p-lh-meta);
-  color: var(--p-ink-2);
-}
-.connection-stepper__term dd {
-  margin: 0;
-  font-size: var(--p-fs-body-sm);
-  line-height: var(--p-lh-body-sm);
-  color: var(--p-ink);
-  font-weight: 500;
-}
-.connection-stepper__note {
-  margin: var(--p-2) 0 0;
 }
 .connection-stepper__counter {
   margin: 0;

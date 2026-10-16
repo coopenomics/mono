@@ -3,11 +3,16 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { BaseRadioCard, BaseButton } from 'src/shared/ui/base'
 import type { ITariff } from 'src/entities/ConnectionAgreement'
 import { useConnectionCatalog } from 'src/features/Provider/model'
+import { DOCUMENT_PACKAGE_PRICE_RUB, MEMBER_PRICE_RUB } from 'src/shared/lib/axon'
 
 /**
- * Epic 28 (форм-фактор §7): выбор конфигурации сервера из живого каталога
- * провайдера — цена, характеристики и триал приходят из
- * getProviderConnectionCatalog, хардкода тарифов больше нет.
+ * Epic 28 (форм-фактор §7): выбор тарифа из живого каталога провайдера — цена,
+ * характеристики и триал приходят из getProviderConnectionCatalog.
+ *
+ * Карточка тарифа отвечает на два вопроса: как называется и сколько стоит.
+ * Характеристики сервера — мелкой строкой для тех, кому они нужны.
+ * Обязательные услуги идут одной строкой под тарифами, правила их расхода —
+ * в подсказке. Итог за месяц показывает шаг рядом с кнопкой «Дальше».
  */
 const props = defineProps<{
   disabled?: boolean
@@ -56,47 +61,65 @@ defineExpose({
 <template lang="pug">
 .tariff-selector
   //- Каталог грузится с бэкенда провайдера — показываем скелетон, не пустоту.
-  .tariff-selector__list(v-if="isLoading")
-    q-skeleton(v-for="i in 2" :key="i" type="rect" height="96px")
+  .tariff-selector__grid(v-if="isLoading")
+    q-skeleton(v-for="i in 4" :key="i" type="rect" height="128px")
   .tariff-selector__error(v-else-if="error")
     p.t-sm {{ error }}
     BaseButton(flat color="primary" :label="$t('common.action.retry')" @click="load(true)")
   template(v-else)
-    .tariff-selector__list
+    .tariff-selector__grid
       BaseRadioCard(
         v-for="tariff in serverTariffs"
         :key="tariff.id"
         :model-value="selectedTariffId || null"
         :value="tariff.id"
         :title="tariff.name"
-        :description="tariff.specs"
         :disabled="disabled"
         @update:model-value="handleTariffSelect(tariff.id)"
       )
+        .tariff-card__price
+          span.tariff-card__amount {{ tariff.price }}
+          span.tariff-card__period {{ $t('connectionAgreementStepper.tariffSelector.perMonth') }}
         template(#meta)
-          span.t-mono.t-num {{ tariff.price }}
-          span.tariff-selector__period  {{ $t('connectionAgreementStepper.tariffSelector.perMonth') }}
-          template(v-if="tariff.trialDays")
-            span.tariff-selector__period  {{ $t('connectionAgreementStepper.tariffSelector.trialSuffix', { days: tariff.trialDays }) }}
-    //- Обязательные услуги (например, членские за ЭДО) — отдельными взносами.
-    .tariff-selector__includes(v-if="mandatoryServices.length")
-      p.t-sm.t-muted {{ $t('connectionAgreementStepper.tariffSelector.includesTitle') }}
-      ul.tariff-selector__includes-list
-        li.t-sm(v-for="svc in mandatoryServices" :key="svc.id")
-          | {{ svc.name }} — 
-          span.t-mono.t-num {{ formatPrice(svc.price) }} ₽
-          |  {{ $t('connectionAgreementStepper.tariffSelector.perPeriod', { days: svc.period_days }) }}
+          span.tariff-card__specs {{ tariff.specs }}
+    //- Обязательные услуги входят в каждое подключение — одной строкой.
+    .tariff-selector__extra(v-for="svc in mandatoryServices" :key="svc.id")
+      q-icon(name="add" size="16px")
+      span {{ svc.name }}
+      span.tariff-selector__extra-price {{ formatPrice(svc.price) }} ₽ {{ $t('connectionAgreementStepper.tariffSelector.perMonth') }}
+      q-icon.tariff-selector__hint(name="info_outline" size="16px" tabindex="0")
+        q-tooltip(max-width="320px") {{ $t('connectionAgreementStepper.tariffSelector.docflowHint', { memberPrice: MEMBER_PRICE_RUB, packagePrice: DOCUMENT_PACKAGE_PRICE_RUB }) }}
 </template>
 
 <style scoped>
-.tariff-selector__list {
+.tariff-selector__grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 320px));
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
   gap: var(--p-3);
   align-items: stretch;
 }
-.tariff-selector__period {
+/* Цена — самое крупное в карточке: тариф выбирают по ней. */
+.tariff-card__price {
+  display: flex;
+  align-items: baseline;
+  gap: var(--p-1);
+  margin-top: var(--p-2);
+}
+.tariff-card__amount {
+  font-size: var(--p-fs-h2);
+  line-height: var(--p-lh-h2);
+  font-weight: 600;
+  color: var(--p-ink);
+  font-feature-settings: 'tnum' 1;
+}
+.tariff-card__period {
+  font-size: var(--p-fs-body-sm);
   color: var(--p-ink-2);
+}
+.tariff-card__specs {
+  font-size: var(--p-fs-meta);
+  font-weight: 400;
+  color: var(--p-ink-3);
 }
 .tariff-selector__error {
   display: flex;
@@ -104,12 +127,21 @@ defineExpose({
   gap: var(--p-3);
   color: var(--p-ink-2);
 }
-.tariff-selector__includes {
+.tariff-selector__extra {
+  display: flex;
+  align-items: center;
+  gap: var(--p-2);
   margin-top: var(--p-4);
-}
-.tariff-selector__includes-list {
-  margin: var(--p-1) 0 0;
-  padding-left: var(--p-4);
+  font-size: var(--p-fs-body-sm);
   color: var(--p-ink-2);
+}
+.tariff-selector__extra-price {
+  color: var(--p-ink);
+  font-weight: 500;
+  font-feature-settings: 'tnum' 1;
+}
+.tariff-selector__hint {
+  color: var(--p-ink-3);
+  cursor: help;
 }
 </style>
