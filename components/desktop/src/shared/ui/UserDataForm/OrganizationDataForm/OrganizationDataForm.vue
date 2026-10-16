@@ -230,6 +230,10 @@ import { t } from 'src/shared/i18n';
 import { useOrganizationLookup, type IOrganizationLookupResult } from './useOrganizationLookup';
 
 const props = defineProps<{ userData: IUserData }>();
+const emit = defineEmits<{
+  /** Раскрыта ли анкета: пока ИНН не введён в режиме поиска по реестру, видно только его поле. */
+  detailsShown: [shown: boolean];
+}>();
 
 const userData = ref<IUserData>(props.userData);
 const firstInput = ref<any>();
@@ -271,12 +275,13 @@ const showRest = computed(
   () => countriesLoaded.value && (!lookupAvailable.value || lookupState.value !== 'idle'),
 );
 
-const innHint = computed(() => {
-  if (!lookupAvailable.value) return undefined;
-  if (lookupState.value === 'idle') return t('ui.organizationDataForm.lookupHint');
-  if (lookupState.value === 'notFound') return t('ui.organizationDataForm.lookupNotFound');
-  return undefined;
-});
+watch(showRest, (shown) => emit('detailsShown', shown), { immediate: true });
+
+const innHint = computed(() =>
+  lookupAvailable.value && lookupState.value === 'notFound'
+    ? t('ui.organizationDataForm.lookupNotFound')
+    : undefined,
+);
 
 const isLocked = (field: LookupField) => lockedFields.value.includes(field);
 

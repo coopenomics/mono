@@ -8717,7 +8717,6 @@ export type MessageKey =
   | 'ui.organizationDataForm.kppLabel'
   | 'ui.organizationDataForm.legalAddressLabel'
   | 'ui.organizationDataForm.lookupChangeInn'
-  | 'ui.organizationDataForm.lookupHint'
   | 'ui.organizationDataForm.lookupNotFound'
   | 'ui.organizationDataForm.ogrnError'
   | 'ui.organizationDataForm.ogrnLabel'
