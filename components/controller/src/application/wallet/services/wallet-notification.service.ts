@@ -47,7 +47,7 @@ export class WalletNotificationService implements OnModuleInit {
           coopname,
           workflowId: Workflows.NewDepositPaymentRequest.id,
           payloadFor: (recipientName): Workflows.NewDepositPaymentRequest.IPayload => ({
-            chairmanName: recipientName,
+            recipientName: recipientName,
             participantName,
             paymentAmount: AmountFormatterUtils.formatAmountSafe(paymentAmount),
             paymentCurrency,

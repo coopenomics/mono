@@ -92,7 +92,7 @@ export class ParticipantNotificationService implements OnModuleInit {
           coopname,
           workflowId: Workflows.NewInitialPaymentRequest.id,
           payloadFor: (recipientName): Workflows.NewInitialPaymentRequest.IPayload => ({
-            chairmanName: recipientName,
+            recipientName: recipientName,
             participantName,
             paymentAmount: AmountFormatterUtils.formatAmountSafe(paymentAmount),
             paymentCurrency,

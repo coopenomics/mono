@@ -3681,7 +3681,6 @@ export type MessageKey =
   | 'expenses.expensesRegistryPage.column.member'
   | 'expenses.expensesRegistryPage.column.purpose'
   | 'expenses.expensesRegistryPage.column.status'
-  | 'expenses.expensesRegistryPage.column.wallet'
   | 'expenses.expensesRegistryPage.copiedMessage'
   | 'expenses.expensesRegistryPage.copyAccountTitle'
   | 'expenses.expensesRegistryPage.emptyHint'

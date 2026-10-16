@@ -428,19 +428,19 @@
     }
   },
   "marketplaceCashierNewPayment": {
-    "description": "Уведомление кассиру о новой задаче на исходящий платёж поставщику — после закрывающей подписи председателя по акту приёмки.",
+    "description": "Задача кассы о выплате поставщику Стола заказов после закрывающей подписи по акту приёмки: председателю и кассирам.",
     "email": {
-      "body": "Уважаемый {{payload.cashierName}}!<br><br>По акту приёмки {{payload.apl_reception_id}} требуется выплата поставщику <strong>{{payload.supplierName}}</strong> на сумму <strong>{{payload.amount}}</strong>.<br><br>Откройте стол кассира, чтобы подтвердить факт банковского перевода: {{payload.deepLinkUrl}}",
-      "subject": "Новая задача: выплата {{payload.amount}} поставщику {{payload.supplierName}}"
+      "body": "{{payload.cashierName}}, по акту приёмки {{payload.apl_reception_id}} поставщику <strong>{{payload.supplierName}}</strong> причитается выплата <strong>{{payload.amount}}</strong>.<br><br>Подтвердите банковский перевод в реестре платежей стола кассира: {{payload.deepLinkUrl}}",
+      "subject": "Выплата {{payload.amount}} поставщику {{payload.supplierName}}"
     },
     "inApp": {
-      "body": "Поставщик {{payload.supplierName}} ожидает выплату {{payload.amount}}.",
-      "subject": "Новая выплата на подтверждение"
+      "body": "Поставщик {{payload.supplierName}} ждёт выплату {{payload.amount}}. Подтвердите перевод в реестре платежей.",
+      "subject": "Выплата поставщику на подтверждение"
     },
-    "name": "Новая задача кассиру — выплата поставщику",
+    "name": "Задача кассы — выплата поставщику",
     "push": {
       "body": "{{payload.supplierName}}: {{payload.amount}}.",
-      "subject": "Новая выплата на подтверждение"
+      "subject": "Выплата поставщику на подтверждение"
     }
   },
   "marketplaceIssuanceDecided": {
@@ -896,19 +896,19 @@
     }
   },
   "newDepositPaymentRequest": {
-    "description": "Уведомление председателю о создании новой заявки на паевой взнос",
+    "description": "Задача кассы о новой заявке на паевой взнос: платёж ждёт подтверждения оплаты в реестре платежей.",
     "email": {
-      "body": "Уважаемый {{payload.chairmanName}}!<br><br>Сформирована новая заявка на оплату. Проверяйте поступления.<br><br>Пайщик: <strong>{{payload.participantName}}</strong><br><br>Сумма: <strong>{{payload.paymentAmount}} {{payload.paymentCurrency}}</strong><br><br>Тип платежа: {{payload.paymentType}}<br><br>Подробности: {{payload.paymentUrl}}",
-      "subject": "Новая заявка на паевой взнос: {{payload.participantName}}"
+      "body": "{{payload.recipientName}}, в реестре платежей новая заявка на подтверждение оплаты.<br><br>Пайщик: <strong>{{payload.participantName}}</strong><br><br>Сумма: <strong>{{payload.paymentAmount}} {{payload.paymentCurrency}}</strong><br><br>Платёж: {{payload.paymentType}}<br><br>Реестр платежей: {{payload.paymentUrl}}",
+      "subject": "Заявка на паевой взнос: {{payload.participantName}}"
     },
     "inApp": {
-      "body": "Пайщик {{payload.participantName}} создал заявку на {{payload.paymentAmount}} {{payload.paymentCurrency}}. Проверяйте поступления.",
-      "subject": "Новая заявка на паевой взнос"
+      "body": "Пайщик {{payload.participantName}} подал заявку на {{payload.paymentAmount}} {{payload.paymentCurrency}}. Платёж ждёт подтверждения оплаты в реестре платежей.",
+      "subject": "Заявка на паевой взнос"
     },
-    "name": "Новая новая заявка на паевой взнос",
+    "name": "Новая заявка на паевой взнос",
     "push": {
-      "body": "Заявка от пайщика {{payload.participantName}} на {{payload.paymentAmount}} {{payload.paymentCurrency}}",
-      "subject": "Новая заявка на паевой взнос"
+      "body": "Пайщик {{payload.participantName}}: {{payload.paymentAmount}} {{payload.paymentCurrency}}. Подтвердите оплату в реестре платежей.",
+      "subject": "Заявка на паевой взнос"
     }
   },
   "newDeviceLogin": {
@@ -924,19 +924,19 @@
     "name": "Вход с нового устройства"
   },
   "newInitialPaymentRequest": {
-    "description": "Уведомление председателю о создании новой заявки на вступительный/минимальный паевой взнос",
+    "description": "Задача кассы о новой заявке на вступительный и минимальный паевой взносы: платёж ждёт подтверждения оплаты в реестре платежей.",
     "email": {
-      "body": "Уважаемый {{payload.chairmanName}}!<br><br>Сформирована новая заявка на оплату. Проверяйте поступления.<br><br>Пайщик: <strong>{{payload.participantName}}</strong><br><br>Сумма: <strong>{{payload.paymentAmount}} {{payload.paymentCurrency}}</strong><br><br>Тип платежа: {{payload.paymentType}}<br><br>Подробности: {{payload.paymentUrl}}",
-      "subject": "Новая заявка на вступительный/мин.паевой взнос: {{payload.participantName}}"
+      "body": "{{payload.recipientName}}, в реестре платежей новая заявка на подтверждение оплаты.<br><br>Пайщик: <strong>{{payload.participantName}}</strong><br><br>Сумма: <strong>{{payload.paymentAmount}} {{payload.paymentCurrency}}</strong><br><br>Платёж: {{payload.paymentType}}<br><br>Реестр платежей: {{payload.paymentUrl}}",
+      "subject": "Заявка на вступительный взнос: {{payload.participantName}}"
     },
     "inApp": {
-      "body": "Пайщик {{payload.participantName}} создал заявку на {{payload.paymentAmount}} {{payload.paymentCurrency}}. Проверяйте поступления.",
-      "subject": "Новая заявка на вступительный/мин.паевой взнос"
+      "body": "Пайщик {{payload.participantName}} подал заявку на {{payload.paymentAmount}} {{payload.paymentCurrency}}. Платёж ждёт подтверждения оплаты в реестре платежей.",
+      "subject": "Заявка на вступительный взнос"
     },
     "name": "Новая заявка на вступительный взнос",
     "push": {
-      "body": "Заявка от пайщика {{payload.participantName}} на {{payload.paymentAmount}} {{payload.paymentCurrency}}",
-      "subject": "Новая заявка на вступительный/мин.паевой взнос"
+      "body": "Пайщик {{payload.participantName}}: {{payload.paymentAmount}} {{payload.paymentCurrency}}. Подтвердите оплату в реестре платежей.",
+      "subject": "Заявка на вступительный взнос"
     }
   },
   "paymentCancelled": {

@@ -7,12 +7,15 @@ q-page.expenses-registry
     row-key='proposal_hash',
     :loading='firstLoad',
     :skeleton-rows='6',
-    min-width='1080px',
+    min-width='800px',
     clickable-rows,
     @row-click='(row) => openDetail(row.proposal_hash)'
   )
     template(#cell-purpose='{ row }')
-      | {{ proposalPurpose(row) || $t('expenses.expensesRegistryPage.noDescriptionLabel') }}
+      .cell-purpose__text {{ proposalPurpose(row) || $t('expenses.expensesRegistryPage.noDescriptionLabel') }}
+      //- Кошелёк-источник — мета-строкой под назначением: отдельная колонка
+      //- не помещается в окно 1120px с меню.
+      .cell-purpose__meta {{ walletLabel(row.source_wallet) }}
     template(#cell-member='{ row }')
       .cell-payer__fio {{ proposalAuthorName(row) }}
       button.cell-payer__acc(
@@ -22,8 +25,6 @@ q-page.expenses-registry
       )
         span.t-mono-sm {{ row.username }}
         q-icon(name='content_copy', size='12px')
-    template(#cell-wallet='{ row }')
-      | {{ walletLabel(row.source_wallet) }}
     template(#cell-created_at='{ row }')
       | {{ formatProposalDate(row.created_at) }}
     template(#cell-total_planned='{ row }')
@@ -83,14 +84,16 @@ const { items, loading, firstLoad, totalCount, hasMore, loadMore } = useLiveProp
   PAGE_LIMIT,
 );
 
+// Ширины колонок вместе с колонкой назначения укладываются в min-width
+// таблицы (800px), а он — в ширину страницы на окне 1120px с меню.
+// Дата переносится в две строки, кошелёк идёт мета-строкой под назначением.
 const columns = computed<BaseTableColumn<IExpenseProposalRow>[]>(() => [
   { key: 'purpose', label: t('expenses.expensesRegistryPage.column.purpose') },
-  { key: 'member', label: t('expenses.expensesRegistryPage.column.member'), width: '200px' },
-  { key: 'wallet', label: t('expenses.expensesRegistryPage.column.wallet'), width: '200px' },
-  { key: 'created_at', label: t('expenses.expensesRegistryPage.column.createdAt'), width: '150px', nowrap: true },
-  { key: 'total_planned', label: t('expenses.expensesRegistryPage.column.amountPlan'), width: '130px', numeric: true, nowrap: true },
-  { key: 'total_actual', label: t('expenses.expensesRegistryPage.column.amountFact'), width: '130px', numeric: true, nowrap: true },
-  { key: 'status', label: t('expenses.expensesRegistryPage.column.status'), width: '200px', nowrap: true },
+  { key: 'member', label: t('expenses.expensesRegistryPage.column.member'), width: '170px' },
+  { key: 'created_at', label: t('expenses.expensesRegistryPage.column.createdAt'), width: '100px' },
+  { key: 'total_planned', label: t('expenses.expensesRegistryPage.column.amountPlan'), width: '110px', numeric: true, nowrap: true },
+  { key: 'total_actual', label: t('expenses.expensesRegistryPage.column.amountFact'), width: '110px', numeric: true, nowrap: true },
+  { key: 'status', label: t('expenses.expensesRegistryPage.column.status'), width: '170px', nowrap: true },
 ]);
 
 // Код кошелька-пула (`w.cap.pgexp`) → человеческое имя из реестра пулов; если
@@ -143,6 +146,16 @@ function openDetail(hash: string): void {
   justify-content: space-between;
   gap: var(--p-3);
   color: var(--p-ink-2);
+}
+
+.cell-purpose__text {
+  overflow-wrap: break-word;
+}
+
+.cell-purpose__meta {
+  margin-top: var(--p-1);
+  font-size: var(--p-fs-body-sm);
+  color: var(--p-ink-3);
 }
 
 /* Пайщик: ФИО первой строкой, имя аккаунта ниже — кликом копируется. */

@@ -46,8 +46,9 @@ describe('задачи кассы: уведомление о платеже на
     const payer = freshMember({ prefix: 'cdpay' })
     await createDeposit(await login(payer), payer.account, 150)
     const task = await waitTask(cashierToken, payer.account, `задача кассы кассиру по взносу ${payer.account}`)
-    // Обращение — к самому кассиру, не к председателю.
-    expect(task.payload.chairmanName).toBeTruthy()
+    // Обращение — к самому кассиру по имени, слова «председатель» в задаче нет.
+    expect(task.payload.recipientName).toBeTruthy()
+    expect(task.payload.recipientName).not.toBe(CHAIRMAN.account)
     expect(task.payload.participantName).toBeTruthy()
     expect(await waitTask(chairToken, payer.account, `задача кассы председателю по взносу ${payer.account}`)).toBeDefined()
   }, 240_000)

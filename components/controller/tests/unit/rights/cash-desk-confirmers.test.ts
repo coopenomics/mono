@@ -54,12 +54,12 @@ describe('рассылка задачи кассы (заявки на взнос
     const notifications = { notify: jest.fn().mockResolvedValue(undefined) };
     const sent = await notifyCashDesk(
       { accounts: accounts(['ant'], profiles), roles: holders(['kassa']), notifications, logger: logger() },
-      { coopname: 'voskhod', workflowId: 'wf', payloadFor: (name) => ({ chairmanName: name }) }
+      { coopname: 'voskhod', workflowId: 'wf', payloadFor: (name) => ({ recipientName: name }) }
     );
     expect(sent).toBe(2);
     expect(notifications.notify.mock.calls.map(([input]) => input)).toEqual([
-      { coopname: 'voskhod', workflowId: 'wf', to: { subscriberId: 'sub-ant', email: 'ant@coop', username: 'ant' }, payload: { chairmanName: 'ФИО ant' } },
-      { coopname: 'voskhod', workflowId: 'wf', to: { subscriberId: 'sub-kassa', email: 'kassa@coop', username: 'kassa' }, payload: { chairmanName: 'ФИО kassa' } },
+      { coopname: 'voskhod', workflowId: 'wf', to: { subscriberId: 'sub-ant', email: 'ant@coop', username: 'ant' }, payload: { recipientName: 'ФИО ant' } },
+      { coopname: 'voskhod', workflowId: 'wf', to: { subscriberId: 'sub-kassa', email: 'kassa@coop', username: 'kassa' }, payload: { recipientName: 'ФИО kassa' } },
     ]);
   });
 
