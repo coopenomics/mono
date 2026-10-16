@@ -1,5 +1,5 @@
 // Сценарий: кассир выплачивает строки служебной записки после решения совета
-// (фаза expenses:02-council) в реестре платежей стола совета: оплачивает счёт
+// (фаза expenses:02-council) в реестре платежей стола кассира: оплачивает счёт
 // организации и прикладывает чек, выдаёт аванс пайщику. Отчёт по авансу
 // пайщик сдаёт сам (сценарий advances), кассир может отчитаться за него.
 
@@ -19,7 +19,7 @@ export const meta = {
   prepare: ['expenses:01-proposal'],
 };
 
-const PAYMENTS = () => `${env.APP_PREFIX}/${env.COOPNAME}/soviet/payments`;
+const PAYMENTS = () => `${env.APP_PREFIX}/${env.COOPNAME}/cashier/payments`;
 const PROOF = path.join(HARNESS_ROOT, 'fixtures', 'sok.jpg');
 
 function pendingRow(page, text) {
