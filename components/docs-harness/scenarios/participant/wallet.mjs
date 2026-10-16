@@ -43,15 +43,4 @@ export default async ({ page, shot }) => {
     await page.keyboard.press('Escape');
     await page.waitForTimeout(800);
   }
-
-  const exit = page.locator('button:has-text("Выйти из кооператива")').first();
-  if (await exit.isVisible().catch(() => false)) {
-    await exit.scrollIntoViewIfNeeded();
-    await page.waitForTimeout(500);
-    await shot(page, '05-exit-card', 'Выход из кооператива: заявление на выход. Совет принимает решение, кооператив возвращает паевой взнос.');
-    await exit.click();
-    await page.waitForTimeout(1500);
-    await shot(page, '06-exit-dialog', 'Заявление на выход из кооператива перед подписью.');
-    await page.keyboard.press('Escape');
-  }
 };

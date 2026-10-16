@@ -1,7 +1,7 @@
-// Сценарий: касса — путь служебной записки после решения совета (фаза
-// expenses:02-council). Кассир оплачивает счёт организации и прикладывает
-// платёжку и закрывающие документы, выдаёт аванс пайщику, отчитывается за
-// пайщика чеком; записка закрывается.
+// Сценарий: кассир выплачивает строки служебной записки после решения совета
+// (фаза expenses:02-council) в реестре платежей стола совета: оплачивает счёт
+// организации и прикладывает чек, выдаёт аванс пайщику. Отчёт по авансу
+// пайщик сдаёт сам (сценарий advances), кассир может отчитаться за него.
 
 import path from 'node:path';
 import { env, loginAsChairman, HARNESS_ROOT } from '../../lib/harness.mjs';
@@ -11,7 +11,7 @@ import { openPage, settleAfterLogin } from '../../lib/edu.mjs';
 export const meta = {
   mode: 'docs',
   feature: 'expenses.cashier',
-  title: 'Касса',
+  title: 'Выплаты по записке',
   docPath: 'new/expenses/cashier.md',
   assetsDir: 'assets/new/expenses/cashier',
   role: 'chairman',
@@ -19,7 +19,6 @@ export const meta = {
   prepare: ['expenses:01-proposal'],
 };
 
-const EXP = (p = '') => `${env.APP_PREFIX}/${env.COOPNAME}/expenses${p ? `/${p}` : ''}`;
 const PAYMENTS = () => `${env.APP_PREFIX}/${env.COOPNAME}/soviet/payments`;
 const PROOF = path.join(HARNESS_ROOT, 'fixtures', 'sok.jpg');
 
@@ -40,19 +39,15 @@ export default async ({ page, context, shot, expect }) => {
 
   await loginAsChairman(page, context);
   await settleAfterLogin(page);
-  await openPage(page, EXP('cashier'), 'К оплате');
-  await page.waitForTimeout(1500);
-  await shot(page, '01-to-pay', 'Касса, вкладка «К оплате»: служебные записки, которые совет утвердил. Кассир открывает записку и выплачивает её строки.');
-
   await openPage(page, PAYMENTS(), 'Платеж');
   await page.waitForTimeout(1500);
-  const first = pendingRow(page, '6 000,00');
-  await expect(first, 'в реестре платежей нет платежа по записке: фаза expenses:02-council').toBeVisible({ timeout: 30000 });
-  await shot(page, '02-payments', 'Реестр платежей: по каждой строке записки заведён исходящий платёж. Оплата счёта идёт организации по реквизитам, аванс — пайщику на его способ получения.');
-  await first.click();
+  const org = pendingRow(page, '6 000,00');
+  await expect(org, 'в реестре платежей нет платежа по записке: фаза expenses:02-council').toBeVisible({ timeout: 30000 });
+  await shot(page, '02-payments', 'Реестр платежей: по каждой строке утверждённой записки заведён исходящий платёж. Оплата счёта идёт организации по реквизитам, аванс — пайщику на его способ получения.');
+  await org.click();
   await page.waitForTimeout(1200);
   await shot(page, '03-org-payment', 'Платёж организации: получатель, реквизиты, назначение и сумма из служебной записки.');
-  await confirmPayment(page, first);
+  await confirmPayment(page, org);
 
   const proofInput = page.locator('tr.expand-row input[type="file"]');
   if (await proofInput.count()) {
@@ -62,42 +57,11 @@ export default async ({ page, context, shot, expect }) => {
   }
 
   const advance = pendingRow(page, '1 500,00');
-  if (await advance.isVisible().catch(() => false)) {
-    await advance.click();
-    await page.waitForTimeout(1000);
-    await shot(page, '05-advance-payment', 'Платёж аванса под отчёт: деньги уходят пайщику, он отвечает за них отчётом.');
-    await confirmPayment(page, advance);
-  }
-
-  await openPage(page, EXP('cashier'), 'Ждут отчёта');
-  await page.locator('text=Ждут отчёта').first().click();
+  await expect(advance, 'нет платежа аванса пайщику').toBeVisible({ timeout: 30000 });
+  await advance.click();
+  await page.waitForTimeout(1000);
+  await shot(page, '05-advance-payment', 'Платёж аванса под отчёт: деньги уходят пайщику, он отвечает за них отчётом.');
+  await confirmPayment(page, advance);
   await page.waitForTimeout(1500);
-  await shot(page, '06-awaiting-report', 'Вкладка «Ждут отчёта»: аванс выдан, пайщик ещё не отчитался чеками.');
-
-  // Кассир принимает чеки от пайщика лично и отчитывается за него.
-  await openPage(page, PAYMENTS(), 'Платеж');
-  await page.waitForTimeout(1500);
-  const reportRow = page.locator('tr.data-row').filter({ hasText: '1 500,00' }).first();
-  if (await reportRow.isVisible().catch(() => false)) {
-    await reportRow.click();
-    await page.waitForTimeout(1200);
-    const onBehalf = page.locator('button:has-text("Отчитаться за пайщика")').first();
-    if (await page.locator('text=Фактически потрачено по чекам').first().isVisible().catch(() => false)) {
-      // Сумма отчёта стоит равной авансу; чек — во второй загрузчик строки.
-      const file = page.locator('tr.expand-row input[type="file"]').last();
-      await file.setInputFiles(PROOF);
-      await page.waitForTimeout(2500);
-      await shot(page, '07-report', 'Отчёт по авансу: фактически потраченная сумма и чек. Если потрачено меньше, заводится платёж возврата, если больше — платёж доплаты.');
-      if (await onBehalf.isVisible().catch(() => false)) {
-        await onBehalf.click();
-        await page.waitForTimeout(4000);
-        await shot(page, '08-reported', 'Отчёт подан: позиция ждёт подтверждения расчёта, затем записка закрывается.');
-      }
-    }
-  }
-
-  await openPage(page, EXP('cashier'), 'Закрытые');
-  await page.locator('text=Закрытые').first().click();
-  await page.waitForTimeout(1500);
-  await shot(page, '09-closed', 'Вкладка «Закрытые»: служебные записки, по которым выплаты сделаны и отчёты приняты.');
+  await shot(page, '07-report', 'Аванс выплачен. В раскрытой строке шаг «Отчёт пайщика»: если пайщик принёс чеки лично, кассир указывает потраченную сумму, прикладывает чек и отчитывается за него. Обычно пайщик отчитывается сам в своих платежах.');
 };

@@ -15,6 +15,7 @@ const GROUPS = [
       'expenses/registry',
       'expenses/cashier',
       'expenses/advances',
+      'expenses/close',
     ],
   },
 ];
