@@ -16,11 +16,11 @@
 
 <div class="grid cards blago-cards" markdown>
 
--   :material-map-marker-radius-outline:{ .lg .middle } &nbsp; **Участки**
+-   :material-power-plug-outline:{ .lg .middle } &nbsp; **Подключение**
 
     ---
 
-    Установка приложения, реестр участков и карточка участка.
+    Установка приложения председателем из каталога приложений.
 
     [:octicons-arrow-right-24: Открыть](admin/install.md)
 

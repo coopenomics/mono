@@ -9,7 +9,6 @@
  * (components/api-tests/src/seed/ku) и marketplace:02-branches (участки krg/odn/myt).
  *
  *   node bin/run-ku-all.mjs
- *   node bin/run-ku-all.mjs --only=ku/admin/branches
  */
 import { runSuite } from '../lib/suite.mjs';
 
@@ -17,10 +16,6 @@ const GROUPS = [
   {
     name: 'L0 — председатель включает «Кооперативный участок»',
     scenarios: ['ku/admin/install'],
-  },
-  {
-    name: 'Участки кооператива',
-    scenarios: ['ku/admin/branches'],
   },
   {
     name: 'Учреждение участка собранием пайщиков',

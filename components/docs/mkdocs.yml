@@ -341,8 +341,6 @@ nav:
     - new/ku/index.md
     - Подключение:
       - Установка приложения: new/ku/admin/install.md
-    - Стол председателя кооператива:
-      - Участки: new/ku/admin/branches.md
     - Учреждение участка:
       - Собрания: new/ku/member/meetings.md
       - Участие в собрании: new/ku/member/meeting-join.md
