@@ -1,7 +1,7 @@
 <template lang="pug">
-q-page.cashier-page
-  PageHint(storage-key='cashier:cashier-page:banner-dismissed')
-    | {{ $t('cashier.cashierPage.hint') }}
+q-page.expenses-page
+  PageHint(storage-key='cashier:expenses-page:banner-dismissed')
+    | {{ $t('cashier.expensesPage.hint') }}
 
   PageTabs(
     :tabs='tabs',
@@ -21,7 +21,7 @@ q-page.cashier-page
     @row-click='(row) => openDetail(row.proposal_hash)'
   )
     template(#cell-purpose='{ row }')
-      | {{ proposalPurpose(row) || $t('cashier.cashierPage.noPurpose') }}
+      | {{ proposalPurpose(row) || $t('cashier.expensesPage.noPurpose') }}
     template(#cell-member='{ row }')
       | {{ proposalAuthorName(row) }}
     template(#cell-created_at='{ row }')
@@ -31,7 +31,7 @@ q-page.cashier-page
     template(#cell-total_actual='{ row }')
       | {{ formatProposalAmount(row.total_actual) }}
     template(#footer)
-      .cashier-page__foot
+      .expenses-page__foot
         span {{ rangeLabel }}
         BaseButton(
           v-if='hasMore',
@@ -39,7 +39,7 @@ q-page.cashier-page
           size='sm',
           :loading='loading',
           @click='loadMore'
-        ) {{ $t('cashier.cashierPage.loadMore') }}
+        ) {{ $t('cashier.expensesPage.loadMore') }}
 
   EmptyState(
     v-else,
@@ -72,7 +72,7 @@ import { t } from '../i18n';
 // таблица прокручивается в своей обёртке.
 
 /**
- * Касса: служебные записки кооператива по этапам выплаты. Строка открывает
+ * Расходы стола кассира: служебные записки кооператива по этапам выплаты. Строка открывает
  * страницу записки; платежи по ней кассир проводит в реестре платежей.
  */
 type TabKey = 'to_pay' | 'awaiting_report' | 'awaiting_authorize' | 'closed';
@@ -101,33 +101,33 @@ const tabStatus: Record<TabKey, Zeus.ExpenseProposalStatus> = {
 };
 
 const tabEmpty: Record<TabKey, { title: string; body: string }> = {
-  to_pay: { title: t('cashier.cashierPage.empty.toPayTitle'), body: t('cashier.cashierPage.empty.toPayBody') },
-  awaiting_report: { title: t('cashier.cashierPage.empty.awaitingReportTitle'), body: t('cashier.cashierPage.empty.awaitingReportBody') },
-  awaiting_authorize: { title: t('cashier.cashierPage.empty.awaitingAuthorizeTitle'), body: t('cashier.cashierPage.empty.awaitingAuthorizeBody') },
-  closed: { title: t('cashier.cashierPage.empty.closedTitle'), body: t('cashier.cashierPage.empty.closedBody') },
+  to_pay: { title: t('cashier.expensesPage.empty.toPayTitle'), body: t('cashier.expensesPage.empty.toPayBody') },
+  awaiting_report: { title: t('cashier.expensesPage.empty.awaitingReportTitle'), body: t('cashier.expensesPage.empty.awaitingReportBody') },
+  awaiting_authorize: { title: t('cashier.expensesPage.empty.awaitingAuthorizeTitle'), body: t('cashier.expensesPage.empty.awaitingAuthorizeBody') },
+  closed: { title: t('cashier.expensesPage.empty.closedTitle'), body: t('cashier.expensesPage.empty.closedBody') },
 };
 
 const countByTab = (key: TabKey): number => items.value.filter((p) => p.status === tabStatus[key]).length;
 
 const tabs = computed(() => [
-  { key: 'to_pay', label: t('cashier.cashierPage.tab.toPay'), count: countByTab('to_pay') },
-  { key: 'awaiting_report', label: t('cashier.cashierPage.tab.awaitingReport'), count: countByTab('awaiting_report') },
-  { key: 'awaiting_authorize', label: t('cashier.cashierPage.tab.awaitingAuthorize'), count: countByTab('awaiting_authorize') },
-  { key: 'closed', label: t('cashier.cashierPage.tab.closed'), count: countByTab('closed') },
+  { key: 'to_pay', label: t('cashier.expensesPage.tab.toPay'), count: countByTab('to_pay') },
+  { key: 'awaiting_report', label: t('cashier.expensesPage.tab.awaitingReport'), count: countByTab('awaiting_report') },
+  { key: 'awaiting_authorize', label: t('cashier.expensesPage.tab.awaitingAuthorize'), count: countByTab('awaiting_authorize') },
+  { key: 'closed', label: t('cashier.expensesPage.tab.closed'), count: countByTab('closed') },
 ]);
 
 const visible = computed(() => items.value.filter((p) => p.status === tabStatus[activeTab.value]));
 
 const columns = computed<BaseTableColumn<IExpenseProposalRow>[]>(() => [
-  { key: 'purpose', label: t('cashier.cashierPage.column.purpose') },
-  { key: 'member', label: t('cashier.cashierPage.column.member'), width: '180px' },
-  { key: 'created_at', label: t('cashier.cashierPage.column.date'), width: '130px', nowrap: true },
-  { key: 'total_planned', label: t('cashier.cashierPage.column.plan'), width: '120px', numeric: true, nowrap: true },
-  { key: 'total_actual', label: t('cashier.cashierPage.column.fact'), width: '120px', numeric: true, nowrap: true },
+  { key: 'purpose', label: t('cashier.expensesPage.column.purpose') },
+  { key: 'member', label: t('cashier.expensesPage.column.member'), width: '180px' },
+  { key: 'created_at', label: t('cashier.expensesPage.column.date'), width: '130px', nowrap: true },
+  { key: 'total_planned', label: t('cashier.expensesPage.column.plan'), width: '120px', numeric: true, nowrap: true },
+  { key: 'total_actual', label: t('cashier.expensesPage.column.fact'), width: '120px', numeric: true, nowrap: true },
 ]);
 
 const rangeLabel = computed(() =>
-  t('cashier.cashierPage.rangeSummary', { shown: visible.value.length, loaded: items.value.length, total: totalCount.value }),
+  t('cashier.expensesPage.rangeSummary', { shown: visible.value.length, loaded: items.value.length, total: totalCount.value }),
 );
 
 function onTabChange(key: string): void {
@@ -140,7 +140,7 @@ function openDetail(hash: string): void {
 </script>
 
 <style lang="scss" scoped>
-.cashier-page {
+.expenses-page {
   padding: var(--p-6);
   display: flex;
   flex-direction: column;
@@ -148,12 +148,12 @@ function openDetail(hash: string): void {
 }
 
 @media (max-width: 768px) {
-  .cashier-page {
+  .expenses-page {
     padding: var(--p-4);
   }
 }
 
-.cashier-page__foot {
+.expenses-page__foot {
   display: flex;
   align-items: center;
   justify-content: space-between;

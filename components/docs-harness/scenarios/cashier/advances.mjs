@@ -29,10 +29,10 @@ export default async ({ page, context, shot, expect }) => {
   await expect(page.locator('tr').filter({ hasText: 'Аренда зала' }), 'строка организации попала в авансы').toHaveCount(0);
   await shot(page, '01-advances', 'Авансы стола кассира: кому выдан аванс, по какой записке, сумма, сколько потрачено, состояние и дата выдачи.');
 
-  await page.locator('button.tab').filter({ hasText: 'Отчитан' }).first().click();
+  await page.locator('button.tab').filter({ hasText: 'Отчёт принят' }).first().click();
   await page.waitForTimeout(1500);
-  await expect(page.locator('tr').filter({ hasText: 'Закупка воды и бумаги' }), 'неотчитанный аванс попал в «Отчитан»').toHaveCount(0, { timeout: 15000 });
-  await shot(page, '02-reported', 'Отбор по состоянию: во вкладке «Отчитан» — авансы с принятым отчётом.');
+  await expect(page.locator('tr').filter({ hasText: 'Закупка воды и бумаги' }), 'аванс без отчёта попал в «Отчёт принят»').toHaveCount(0, { timeout: 15000 });
+  await shot(page, '02-reported', 'Отбор по состоянию: во вкладке «Отчёт принят» — авансы с принятым отчётом.');
 
   await page.locator('button.tab').filter({ hasText: 'Ждёт отчёта' }).first().click();
   await page.waitForTimeout(1500);

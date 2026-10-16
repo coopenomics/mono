@@ -1,5 +1,5 @@
 // Сценарий: член совета Пётр открывает стол кассира. Совет кассу читает,
-// правят её председатель и кассир: касса, авансы и реестр платежей видны,
+// правят её председатель и кассир: реестр платежей, расходы и авансы видны,
 // кнопок подтверждения оплаты, загрузки документов и отчёта за пайщика нет.
 
 import { env, loginAs } from '../../lib/harness.mjs';
@@ -23,9 +23,9 @@ export default async ({ page, shot, expect }) => {
   await loginAs(page, COUNCIL());
   await settleAfterLogin(page);
 
-  await openPage(page, `${env.APP_PREFIX}/${env.COOPNAME}/cashier/desk`, 'К оплате');
+  await openPage(page, `${env.APP_PREFIX}/${env.COOPNAME}/cashier/expenses`, 'К оплате');
   await page.waitForTimeout(1500);
-  await shot(page, '01-desk', 'Член совета читает кассу стола кассира.');
+  await shot(page, '01-expenses', 'Член совета читает расходы стола кассира.');
 
   await openPage(page, `${env.APP_PREFIX}/${env.COOPNAME}/cashier/advances`, 'Ждёт отчёта');
   await page.waitForTimeout(1500);
