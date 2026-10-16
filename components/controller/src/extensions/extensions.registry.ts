@@ -378,9 +378,10 @@ export const AppRegistry: INamedExtension = {
     defaults: { enabled: false, config: dadataDefaultConfig },
     ports: dadataPorts,
     schema: DadataSchema,
-    // Ключ DaData — платный доступ кооператива; наружу уходит только «задано».
+    // Ключи DaData — платный доступ кооператива; наружу уходит только «задано».
     configPolicy: {
       api_key: { secret: true, suppliedBy: ExtensionConfigSuppliedBy.COOPERATIVE },
+      secret_key: { secret: true, suppliedBy: ExtensionConfigSuppliedBy.COOPERATIVE },
     },
     tags: [t('app.extensionsRegistry.dadata.tagRegistration')],
     readme: getReadmeContent('./dadata'),

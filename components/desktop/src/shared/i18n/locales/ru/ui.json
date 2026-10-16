@@ -661,6 +661,7 @@
       "minLengthError": "Минимальная длина: {minLength}",
       "requiredError": "Заполните поле",
       "ruleError": "Значение должно удовлетворять правилу: {rule}",
+      "secretSetPlaceholder": "Задано — введите новое значение, чтобы заменить",
       "urlError": "Нужна ссылка вида https://…"
     },
     "expenseProposalDetails": {

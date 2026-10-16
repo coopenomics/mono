@@ -4,6 +4,7 @@ import { Inject, Module } from '@nestjs/common';
 import { z } from 'zod';
 import {
   BaseExtensionModule,
+  describeConfigField,
   DomainError,
   EXTENSION_REPOSITORY,
   type ExtensionDomainEntity,
@@ -18,13 +19,30 @@ import {
   type InnerOrganizationLookupRecord,
 } from '@coopenomics/innercoop';
 import { partyToOrganization, type DadataParty } from './domain/party-to-organization';
+import { t } from './i18n';
 
+// Значения ключей наружу не уходят: форма получает метку «задано» и прячет её
+// под точками пароля; неизменённая метка при сохранении оставляет ключ на месте.
 export const Schema = z.object({
-  api_key: z.string(),
+  api_key: z.string().describe(
+    describeConfigField({
+      label: t('dadata.config.apiKeyLabel'),
+      note: t('dadata.config.apiKeyNote'),
+      password: true,
+    }),
+  ),
+  secret_key: z.string().describe(
+    describeConfigField({
+      label: t('dadata.config.secretKeyLabel'),
+      note: t('dadata.config.secretKeyNote'),
+      password: true,
+    }),
+  ),
 });
 
 export const defaultConfig = {
   api_key: '',
+  secret_key: '',
 };
 
 export type IConfig = z.infer<typeof Schema>;

@@ -128,3 +128,11 @@ export interface DeserializedDescriptionOfExtension {
    */
   copyable?: boolean;
 }
+
+/**
+ * Описание поля конфигурации для `.describe()` zod-схемы: форма настроек
+ * расширения берёт отсюда подпись, подсказку и вид поля.
+ */
+export function describeConfigField(description: DeserializedDescriptionOfExtension): string {
+  return JSON.stringify(description);
+}

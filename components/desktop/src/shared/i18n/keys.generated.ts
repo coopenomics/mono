@@ -8821,6 +8821,7 @@ export type MessageKey =
   | 'ui.zodForm.minLengthError'
   | 'ui.zodForm.requiredError'
   | 'ui.zodForm.ruleError'
+  | 'ui.zodForm.secretSetPlaceholder'
   | 'ui.zodForm.urlError'
   | 'union.addCooperativeForm.cancel'
   | 'union.addCooperativeForm.domainHint'
