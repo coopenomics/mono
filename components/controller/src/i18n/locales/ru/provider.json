@@ -11,6 +11,7 @@
     "PROVIDER_DOCUMENT_NOT_FOUND": "Документ не найден в реестре",
     "PROVIDER_HOSTING_PLAN_CHANGE_FAILED": "Не удалось сменить тариф: {reason}",
     "PROVIDER_NOT_CONFIGURED": "Провайдер не настроен",
+    "PROVIDER_TARIFF_CHANGE_FAILED": "Не удалось сменить тариф: {reason}",
     "PROVIDER_TARIFF_SELECT_FAILED": "Провайдер не принял выбор тарифа: {reason}"
   },
   "provider": {

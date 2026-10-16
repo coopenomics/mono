@@ -32,7 +32,11 @@ const handleSign = async () => {
     const tariffCode = connectionAgreement.selectedTariff?.code
     if (tariffCode) {
       try {
-        await selectProviderTariff({ tariff_code: tariffCode, billing_period: Zeus.ProviderBillingPeriod.month })
+        const billingPeriod =
+          connectionAgreement.selectedTariff?.billingPeriod === 'year'
+            ? Zeus.ProviderBillingPeriod.year
+            : Zeus.ProviderBillingPeriod.month
+        await selectProviderTariff({ tariff_code: tariffCode, billing_period: billingPeriod })
       } catch (error: any) {
         FailAlert(t('connectionAgreementStepper.agreementStep.tariffError', { reason: error?.message ?? error }))
         return

@@ -256,6 +256,36 @@ describe('BillingCronService — состав платежа в журнале',
   });
 });
 
+describe('BillingCronService — годовая оплата тарифа (16.10.2026)', () => {
+  it('позиция с поздним сроком (годовая подписка) в месячный батч не входит; позиция платится за свой период', async () => {
+    const h = build({
+      summary: summary({
+        next_payment_due: new Date(Date.now() - 60_000).toISOString(),
+        items: [
+          { subscription_id: 1, subscription_type_id: 1, subscription_type_name: 'Хостинг', status: 'ACTIVE', amount: 1500, is_free: false, period_days: 30, is_due: true },
+          { subscription_id: 2, subscription_type_id: 4, subscription_type_name: 'Приложение', status: 'ACTIVE', amount: 33600, is_free: false, period_days: 365, is_due: false },
+        ],
+      }),
+    });
+
+    await h.svc.tick();
+
+    expect(h.providerClient.createInvoice).toHaveBeenCalledWith('partner1', [{ subscription_id: 1, period_days: 30 }]);
+  });
+
+  it('годовая подписка со сроком → батч за 365 дней', async () => {
+    const h = build({
+      summary: summary({
+        items: [{ subscription_id: 2, subscription_type_id: 4, subscription_type_name: 'Приложение', status: 'ACTIVE', amount: 33600, is_free: false, period_days: 365, is_due: true }],
+      }),
+    });
+
+    await h.svc.tick();
+
+    expect(h.providerClient.createInvoice).toHaveBeenCalledWith('partner1', [{ subscription_id: 2, period_days: 365 }]);
+  });
+});
+
 describe('BillingCronService — докупка пакета (Epic 13)', () => {
   it('happy: AXON ниже порога, провайдер дал PENDING → журнал → billing::converttoaxn → confirmTopupAxon с суммой', async () => {
     const h = build({ summary: summary({ total_amount: 0 }), axon: 3, packageInvoice: { status: 'PENDING', payment_hash: HASH, coopname: 'partner1', total_amount: 1500, expires_at: '' } });

@@ -1,6 +1,9 @@
 /** Перейти на тариф сервера дороже: зачёт остатка + перенос (~час работ) */
 export * as ChangeProviderHostingPlan from './changeProviderHostingPlan'
 
+/** Перейти на тариф подключения дороже: цены тарифа с зачётом остатка, при другом сервере — перенос */
+export * as ChangeProviderTariff from './changeProviderTariff'
+
 /** Выбрать тариф подключения: провайдер заказывает сервер и заводит подписки тарифа */
 export * as SelectProviderTariff from './selectProviderTariff'
 

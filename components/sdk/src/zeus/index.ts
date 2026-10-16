@@ -5467,6 +5467,17 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on ChangeHostingPlanResult']?: Omit<ValueTypes["ChangeHostingPlanResult"], "...on ChangeHostingPlanResult">
 }>;
+	/** Смена тарифа подключения принята провайдером */
+["ChangeProviderTariffResult"]: AliasType<{
+	/** Цена нового тарифа за год, ₽; пусто — годовая оплата недоступна */
+	annual_total?:boolean | `@${string}`,
+	/** Состояние переноса на сервер тарифа; none — переноса нет, сменились только цены */
+	migration_state?:boolean | `@${string}`,
+	/** Цена нового тарифа в месяц, ₽ */
+	monthly_total?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on ChangeProviderTariffResult']?: Omit<ValueTypes["ChangeProviderTariffResult"], "...on ChangeProviderTariffResult">
+}>;
 	["ChartOfAccountsItem"]: AliasType<{
 	/** Доступные средства */
 	available?:boolean | `@${string}`,
@@ -13786,6 +13797,7 @@ cardcoopTakeEntryProfile?: [{	data: ValueTypes["CardcoopEntryInput"] | Variable<
 chairmanConfirmApprove?: [{	data: ValueTypes["ConfirmApproveInput"] | Variable<any, string>},ValueTypes["Approval"]],
 chairmanDeclineApprove?: [{	data: ValueTypes["DeclineApproveInput"] | Variable<any, string>},ValueTypes["Approval"]],
 changeProviderHostingPlan?: [{	instanceTypeId: number | Variable<any, string>},ValueTypes["ChangeHostingPlanResult"]],
+changeProviderTariff?: [{	tariffCode: string | Variable<any, string>},ValueTypes["ChangeProviderTariffResult"]],
 chatcoopCreateAccount?: [{	data: ValueTypes["CreateMatrixAccountInputDTO"] | Variable<any, string>},boolean | `@${string}`],
 chatcoopCreateCalendarEvent?: [{	data: ValueTypes["CreateChatCoopCalendarEventInput"] | Variable<any, string>},ValueTypes["ChatCoopCalendarEvent"]],
 	/** Выдать или обновить персональный URL подписки ICS (секрет в query) */
@@ -15726,6 +15738,8 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 ["ProviderConnectionCatalog"]: AliasType<{
 	/** Годовая оплата тарифа */
 	annual_billing?:ValueTypes["ProviderAnnualBilling"],
+	/** Тариф кооператива из запроса; пусто — тариф не выбран или кооператив чужой */
+	current_tariff?:ValueTypes["ProviderCurrentTariff"],
 	/** Конфигурации сервера на выбор */
 	server_options?:ValueTypes["ProviderCatalogServerOption"],
 	/** Тарифная сетка подключения */
@@ -15734,6 +15748,15 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 	types?:ValueTypes["ProviderCatalogSubscriptionType"],
 		__typename?: boolean | `@${string}`,
 	['...on ProviderConnectionCatalog']?: Omit<ValueTypes["ProviderConnectionCatalog"], "...on ProviderConnectionCatalog">
+}>;
+	/** Тариф, который действует у кооператива */
+["ProviderCurrentTariff"]: AliasType<{
+	/** Период оплаты */
+	billing_period?:boolean | `@${string}`,
+	/** Код тарифа */
+	code?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on ProviderCurrentTariff']?: Omit<ValueTypes["ProviderCurrentTariff"], "...on ProviderCurrentTariff">
 }>;
 	["ProviderSubscription"]: AliasType<{
 	/** Дата создания */
@@ -22839,6 +22862,16 @@ export type ResolverInputTypes = {
 	migration_state?:boolean | `@${string}`,
 	/** Новая цена за период, применена немедленно */
 	new_price?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Смена тарифа подключения принята провайдером */
+["ChangeProviderTariffResult"]: AliasType<{
+	/** Цена нового тарифа за год, ₽; пусто — годовая оплата недоступна */
+	annual_total?:boolean | `@${string}`,
+	/** Состояние переноса на сервер тарифа; none — переноса нет, сменились только цены */
+	migration_state?:boolean | `@${string}`,
+	/** Цена нового тарифа в месяц, ₽ */
+	monthly_total?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
 	["ChartOfAccountsItem"]: AliasType<{
@@ -30924,6 +30957,7 @@ cardcoopTakeEntryProfile?: [{	data: ResolverInputTypes["CardcoopEntryInput"]},Re
 chairmanConfirmApprove?: [{	data: ResolverInputTypes["ConfirmApproveInput"]},ResolverInputTypes["Approval"]],
 chairmanDeclineApprove?: [{	data: ResolverInputTypes["DeclineApproveInput"]},ResolverInputTypes["Approval"]],
 changeProviderHostingPlan?: [{	instanceTypeId: number},ResolverInputTypes["ChangeHostingPlanResult"]],
+changeProviderTariff?: [{	tariffCode: string},ResolverInputTypes["ChangeProviderTariffResult"]],
 chatcoopCreateAccount?: [{	data: ResolverInputTypes["CreateMatrixAccountInputDTO"]},boolean | `@${string}`],
 chatcoopCreateCalendarEvent?: [{	data: ResolverInputTypes["CreateChatCoopCalendarEventInput"]},ResolverInputTypes["ChatCoopCalendarEvent"]],
 	/** Выдать или обновить персональный URL подписки ICS (секрет в query) */
@@ -32786,12 +32820,22 @@ walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputType
 ["ProviderConnectionCatalog"]: AliasType<{
 	/** Годовая оплата тарифа */
 	annual_billing?:ResolverInputTypes["ProviderAnnualBilling"],
+	/** Тариф кооператива из запроса; пусто — тариф не выбран или кооператив чужой */
+	current_tariff?:ResolverInputTypes["ProviderCurrentTariff"],
 	/** Конфигурации сервера на выбор */
 	server_options?:ResolverInputTypes["ProviderCatalogServerOption"],
 	/** Тарифная сетка подключения */
 	tariffs?:ResolverInputTypes["ProviderTariff"],
 	/** Доступные кооперативу услуги (лист зависимостей учтён провайдером) */
 	types?:ResolverInputTypes["ProviderCatalogSubscriptionType"],
+		__typename?: boolean | `@${string}`
+}>;
+	/** Тариф, который действует у кооператива */
+["ProviderCurrentTariff"]: AliasType<{
+	/** Период оплаты */
+	billing_period?:boolean | `@${string}`,
+	/** Код тарифа */
+	code?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
 	["ProviderSubscription"]: AliasType<{
@@ -39697,6 +39741,15 @@ export type ModelTypes = {
 	migration_state: string,
 	/** Новая цена за период, применена немедленно */
 	new_price: number
+};
+	/** Смена тарифа подключения принята провайдером */
+["ChangeProviderTariffResult"]: {
+		/** Цена нового тарифа за год, ₽; пусто — годовая оплата недоступна */
+	annual_total?: number | undefined | null,
+	/** Состояние переноса на сервер тарифа; none — переноса нет, сменились только цены */
+	migration_state: string,
+	/** Цена нового тарифа в месяц, ₽ */
+	monthly_total: number
 };
 	["ChartOfAccountsItem"]: {
 		/** Доступные средства */
@@ -47562,6 +47615,8 @@ export type ModelTypes = {
 	chairmanDeclineApprove: ModelTypes["Approval"],
 	/** Кооператив переходит на тариф сервера дороже: цена применяется немедленно с зачётом остатка, запускается перенос (~час технических работ) */
 	changeProviderHostingPlan: ModelTypes["ChangeHostingPlanResult"],
+	/** Кооператив переходит на тариф подключения дороже: цены тарифа с зачётом остатка, при другом сервере — перенос (~час технических работ) */
+	changeProviderTariff: ModelTypes["ChangeProviderTariffResult"],
 	/** Создать Matrix аккаунт с именем пользователя и паролем */
 	chatcoopCreateAccount: boolean,
 	/** Создать событие календаря */
@@ -49598,12 +49653,21 @@ export type ModelTypes = {
 ["ProviderConnectionCatalog"]: {
 		/** Годовая оплата тарифа */
 	annual_billing: ModelTypes["ProviderAnnualBilling"],
+	/** Тариф кооператива из запроса; пусто — тариф не выбран или кооператив чужой */
+	current_tariff?: ModelTypes["ProviderCurrentTariff"] | undefined | null,
 	/** Конфигурации сервера на выбор */
 	server_options: Array<ModelTypes["ProviderCatalogServerOption"]>,
 	/** Тарифная сетка подключения */
 	tariffs: Array<ModelTypes["ProviderTariff"]>,
 	/** Доступные кооперативу услуги (лист зависимостей учтён провайдером) */
 	types: Array<ModelTypes["ProviderCatalogSubscriptionType"]>
+};
+	/** Тариф, который действует у кооператива */
+["ProviderCurrentTariff"]: {
+		/** Период оплаты */
+	billing_period: ModelTypes["ProviderBillingPeriod"],
+	/** Код тарифа */
+	code: string
 };
 	["ProviderSubscription"]: {
 		/** Дата создания */
@@ -56870,6 +56934,17 @@ export type GraphQLTypes = {
 	/** Новая цена за период, применена немедленно */
 	new_price: number,
 	['...on ChangeHostingPlanResult']: Omit<GraphQLTypes["ChangeHostingPlanResult"], "...on ChangeHostingPlanResult">
+};
+	/** Смена тарифа подключения принята провайдером */
+["ChangeProviderTariffResult"]: {
+	__typename: "ChangeProviderTariffResult",
+	/** Цена нового тарифа за год, ₽; пусто — годовая оплата недоступна */
+	annual_total?: number | undefined | null,
+	/** Состояние переноса на сервер тарифа; none — переноса нет, сменились только цены */
+	migration_state: string,
+	/** Цена нового тарифа в месяц, ₽ */
+	monthly_total: number,
+	['...on ChangeProviderTariffResult']: Omit<GraphQLTypes["ChangeProviderTariffResult"], "...on ChangeProviderTariffResult">
 };
 	["ChartOfAccountsItem"]: {
 	__typename: "ChartOfAccountsItem",
@@ -65304,6 +65379,8 @@ export type GraphQLTypes = {
 	chairmanDeclineApprove: GraphQLTypes["Approval"],
 	/** Кооператив переходит на тариф сервера дороже: цена применяется немедленно с зачётом остатка, запускается перенос (~час технических работ) */
 	changeProviderHostingPlan: GraphQLTypes["ChangeHostingPlanResult"],
+	/** Кооператив переходит на тариф подключения дороже: цены тарифа с зачётом остатка, при другом сервере — перенос (~час технических работ) */
+	changeProviderTariff: GraphQLTypes["ChangeProviderTariffResult"],
 	/** Создать Matrix аккаунт с именем пользователя и паролем */
 	chatcoopCreateAccount: boolean,
 	/** Создать событие календаря */
@@ -67528,6 +67605,8 @@ export type GraphQLTypes = {
 	__typename: "ProviderConnectionCatalog",
 	/** Годовая оплата тарифа */
 	annual_billing: GraphQLTypes["ProviderAnnualBilling"],
+	/** Тариф кооператива из запроса; пусто — тариф не выбран или кооператив чужой */
+	current_tariff?: GraphQLTypes["ProviderCurrentTariff"] | undefined | null,
 	/** Конфигурации сервера на выбор */
 	server_options: Array<GraphQLTypes["ProviderCatalogServerOption"]>,
 	/** Тарифная сетка подключения */
@@ -67535,6 +67614,15 @@ export type GraphQLTypes = {
 	/** Доступные кооперативу услуги (лист зависимостей учтён провайдером) */
 	types: Array<GraphQLTypes["ProviderCatalogSubscriptionType"]>,
 	['...on ProviderConnectionCatalog']: Omit<GraphQLTypes["ProviderConnectionCatalog"], "...on ProviderConnectionCatalog">
+};
+	/** Тариф, который действует у кооператива */
+["ProviderCurrentTariff"]: {
+	__typename: "ProviderCurrentTariff",
+	/** Период оплаты */
+	billing_period: GraphQLTypes["ProviderBillingPeriod"],
+	/** Код тарифа */
+	code: string,
+	['...on ProviderCurrentTariff']: Omit<GraphQLTypes["ProviderCurrentTariff"], "...on ProviderCurrentTariff">
 };
 	["ProviderSubscription"]: {
 	__typename: "ProviderSubscription",

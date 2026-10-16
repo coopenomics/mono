@@ -4,6 +4,7 @@ import { BaseRadioCard, BaseButton } from 'src/shared/ui/base'
 import type { ITariff } from 'src/entities/ConnectionAgreement'
 import { useConnectionCatalog } from 'src/features/Provider/model'
 import { DOCUMENT_PACKAGE_PRICE_RUB, MEMBER_PRICE_RUB } from 'src/shared/lib/axon'
+import { t } from 'src/shared/i18n'
 
 /**
  * Epic 28 (форм-фактор §7): выбор тарифа из живого каталога провайдера — цена,
@@ -23,8 +24,21 @@ const emits = defineEmits<{
   tariffSelected: [tariff: ITariff]
 }>()
 
-const { isLoading, error, load, serverTariffs, connectionTariffs, mandatoryServices, formatPrice } =
+const { isLoading, error, load, serverTariffs, connectionTariffs, annualBilling, mandatoryServices, formatPrice } =
   useConnectionCatalog()
+
+// Период оплаты: годовая доступна, когда её включил провайдер. Выбор периода
+// едет вместе с тарифом — его же получит провайдер при подписании.
+const billingPeriod = ref<'month' | 'year'>(props.selectedTariff?.billingPeriod ?? 'month')
+const yearly = computed(() => annualBilling.value.enabled && billingPeriod.value === 'year')
+const periodOptions = computed(() => [
+  { label: t('connectionAgreementStepper.tariffSelector.periodMonth'), value: 'month' },
+  { label: t('connectionAgreementStepper.tariffSelector.periodYear'), value: 'year' },
+])
+
+/** Цена карточки за выбранный период. */
+const cardPrice = (tariff: ITariff): string =>
+  yearly.value && tariff.annualTotal != null ? `${formatPrice(tariff.annualTotal)} ₽` : tariff.price
 
 // Тарифная сетка провайдера; пока провайдер её не отдаёт — конфигурации сервера.
 const hasTariffGrid = computed(() => connectionTariffs.value.length > 0)
@@ -39,8 +53,13 @@ const currentSelectedTariff = computed(() =>
 const handleTariffSelect = (tariffId: string) => {
   selectedTariffId.value = tariffId
   const tariff = tariffs.value.find((t) => t.id === tariffId)
-  if (tariff) emits('tariffSelected', tariff)
+  if (tariff) emits('tariffSelected', { ...tariff, billingPeriod: yearly.value ? 'year' : 'month' })
 }
+
+// Смена периода переизбирает тот же тариф: период — часть выбора.
+watch(billingPeriod, () => {
+  if (selectedTariffId.value) handleTariffSelect(selectedTariffId.value)
+})
 
 // Если конфигурация одна и ничего ещё не выбрано — отмечаем сразу: экран с
 // единственной опцией не должен требовать лишнего клика.
@@ -71,6 +90,16 @@ defineExpose({
     p.t-sm {{ error }}
     BaseButton(flat color="primary" :label="$t('common.action.retry')" @click="load(true)")
   template(v-else)
+    //- Годовая оплата — только когда её включил провайдер.
+    q-btn-toggle.tariff-selector__period(
+      v-if="hasTariffGrid && annualBilling.enabled"
+      v-model="billingPeriod"
+      :options="periodOptions"
+      no-caps
+      unelevated
+      toggle-color="primary"
+      size="sm"
+    )
     .tariff-selector__grid
       BaseRadioCard(
         v-for="tariff in tariffs"
@@ -83,8 +112,8 @@ defineExpose({
       )
         //- Цена — самое крупное в карточке: тариф выбирают по ней.
         .tariff-card__price
-          span.tariff-card__amount {{ tariff.price }}
-          span.tariff-card__period {{ $t('connectionAgreementStepper.tariffSelector.perMonth') }}
+          span.tariff-card__amount {{ cardPrice(tariff) }}
+          span.tariff-card__period {{ yearly ? $t('connectionAgreementStepper.tariffSelector.perYear') : $t('connectionAgreementStepper.tariffSelector.perMonth') }}
         template(#meta)
           //- Тариф сетки: что получает кооператив, без цифр сервера.
           ul.tariff-card__includes(v-if="tariff.code")
@@ -92,6 +121,9 @@ defineExpose({
             li(v-if="tariff.supportResponse") {{ $t('connectionAgreementStepper.tariffSelector.supportLine', { response: tariff.supportResponse }) }}
             li {{ $t('connectionAgreementStepper.tariffSelector.appLine') }}
           span.tariff-card__specs(v-else) {{ tariff.specs }}
+    //- Годовая оплата: на что действует скидка — одной строкой.
+    .tariff-selector__extra(v-if="hasTariffGrid && yearly")
+      span {{ $t('connectionAgreementStepper.tariffSelector.annualNote', { discount: annualBilling.discount_percent }) }}
     //- Тариф сетки уже включает документооборот — одна строка о составе цены.
     .tariff-selector__extra(v-if="hasTariffGrid")
       span {{ $t('connectionAgreementStepper.tariffSelector.includesNote') }}
@@ -149,6 +181,9 @@ defineExpose({
   font-size: var(--p-fs-meta);
   font-weight: 400;
   color: var(--p-ink-3);
+}
+.tariff-selector__period {
+  margin-bottom: var(--p-4);
 }
 .tariff-selector__error {
   display: flex;

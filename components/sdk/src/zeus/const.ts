@@ -1968,6 +1968,9 @@ export const AllTypesProps: Record<string,any> = {
 		changeProviderHostingPlan:{
 
 		},
+		changeProviderTariff:{
+
+		},
 		chatcoopCreateAccount:{
 			data:"CreateMatrixAccountInputDTO"
 		},
@@ -5561,6 +5564,11 @@ export const ReturnTypes: Record<string,any> = {
 		migration_state:"String",
 		new_price:"Float"
 	},
+	ChangeProviderTariffResult:{
+		annual_total:"Float",
+		migration_state:"String",
+		monthly_total:"Float"
+	},
 	ChartOfAccountsItem:{
 		available:"String",
 		blocked:"String",
@@ -7977,6 +7985,7 @@ export const ReturnTypes: Record<string,any> = {
 		chairmanConfirmApprove:"Approval",
 		chairmanDeclineApprove:"Approval",
 		changeProviderHostingPlan:"ChangeHostingPlanResult",
+		changeProviderTariff:"ChangeProviderTariffResult",
 		chatcoopCreateAccount:"Boolean",
 		chatcoopCreateCalendarEvent:"ChatCoopCalendarEvent",
 		chatcoopCreateCalendarIcsSubscription:"ChatCoopCalendarIcsUrlResponse",
@@ -8861,9 +8870,14 @@ export const ReturnTypes: Record<string,any> = {
 	},
 	ProviderConnectionCatalog:{
 		annual_billing:"ProviderAnnualBilling",
+		current_tariff:"ProviderCurrentTariff",
 		server_options:"ProviderCatalogServerOption",
 		tariffs:"ProviderTariff",
 		types:"ProviderCatalogSubscriptionType"
+	},
+	ProviderCurrentTariff:{
+		billing_period:"ProviderBillingPeriod",
+		code:"String"
 	},
 	ProviderSubscription:{
 		created_at:"String",

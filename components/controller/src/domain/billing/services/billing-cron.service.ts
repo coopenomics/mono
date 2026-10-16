@@ -376,11 +376,16 @@ export class BillingCronService implements OnModuleInit, OnModuleDestroy {
     return [...new Set(names)].join(', ');
   }
 
-  /** Позиции invoice: только платные (не free, сумма > 0). */
+  /**
+   * Позиции invoice: платные (не free, сумма > 0) с наступившим сроком, каждая
+   * за свой период. Годовая подписка тарифа идёт за 365 дней и в месячный
+   * батч не попадает, пока её срок не наступил; старый провайдер без этих
+   * полей — как раньше, весь батч за период сводки.
+   */
   private payableItems(summary: ProviderBillingSummary): Array<{ subscription_id: number; period_days: number }> {
     return (summary.items ?? [])
-      .filter((item) => !item.is_free && item.amount > 0)
-      .map((item) => ({ subscription_id: item.subscription_id, period_days: summary.period_days }));
+      .filter((item) => !item.is_free && item.amount > 0 && item.is_due !== false)
+      .map((item) => ({ subscription_id: item.subscription_id, period_days: item.period_days ?? summary.period_days }));
   }
 
   /**

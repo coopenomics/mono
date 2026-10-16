@@ -1,4 +1,4 @@
-import { Field, InputType, ObjectType, registerEnumType } from '@nestjs/graphql';
+import { Field, Float, InputType, ObjectType, registerEnumType } from '@nestjs/graphql';
 import { IsEnum, IsString, Matches } from 'class-validator';
 
 /** Период оплаты тарифа подключения. */
@@ -22,6 +22,18 @@ export class SelectProviderTariffInputDTO {
   @Field(() => ProviderBillingPeriod, { description: 'Период оплаты', defaultValue: ProviderBillingPeriod.month })
   @IsEnum(ProviderBillingPeriod)
   billing_period!: ProviderBillingPeriod;
+}
+
+@ObjectType('ChangeProviderTariffResult', { description: 'Смена тарифа подключения принята провайдером' })
+export class ChangeProviderTariffResultDTO {
+  @Field(() => String, { description: 'Состояние переноса на сервер тарифа; none — переноса нет, сменились только цены' })
+  migration_state!: string;
+
+  @Field(() => Float, { description: 'Цена нового тарифа в месяц, ₽' })
+  monthly_total!: number;
+
+  @Field(() => Float, { nullable: true, description: 'Цена нового тарифа за год, ₽; пусто — годовая оплата недоступна' })
+  annual_total!: number | null;
 }
 
 @ObjectType('SelectProviderTariffResult', { description: 'Выбор тарифа подключения принят провайдером' })

@@ -1,5 +1,6 @@
 import { Field, Float, Int, ObjectType } from '@nestjs/graphql';
 import { GraphQLJSON } from 'graphql-type-json';
+import { ProviderBillingPeriod } from './select-provider-tariff.dto';
 
 /**
  * Epic 28 (форм-фактор §7): каталог витрины подключения — прокси живого
@@ -135,6 +136,15 @@ export class ProviderAnnualBillingDTO {
   discount_percent!: number;
 }
 
+@ObjectType('ProviderCurrentTariff', { description: 'Тариф, который действует у кооператива' })
+export class ProviderCurrentTariffDTO {
+  @Field(() => String, { description: 'Код тарифа' })
+  code!: string;
+
+  @Field(() => ProviderBillingPeriod, { description: 'Период оплаты' })
+  billing_period!: ProviderBillingPeriod;
+}
+
 @ObjectType('ProviderConnectionCatalog', {
   description: 'Каталог витрины подключения: услуги и конфигурации сервера',
 })
@@ -154,4 +164,10 @@ export class ProviderConnectionCatalogDTO {
 
   @Field(() => ProviderAnnualBillingDTO, { description: 'Годовая оплата тарифа' })
   annual_billing!: ProviderAnnualBillingDTO;
+
+  @Field(() => ProviderCurrentTariffDTO, {
+    nullable: true,
+    description: 'Тариф кооператива из запроса; пусто — тариф не выбран или кооператив чужой',
+  })
+  current_tariff!: ProviderCurrentTariffDTO | null;
 }

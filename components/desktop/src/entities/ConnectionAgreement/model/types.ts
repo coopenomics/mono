@@ -8,6 +8,10 @@ export interface ITariff {
   membersLimit?: number
   /** Цена тарифа в месяц, ₽ (сервер, поддержка, приложение, документооборот). */
   monthlyTotal?: number
+  /** Цена тарифа за год, ₽; пусто — годовая оплата недоступна. */
+  annualTotal?: number | null
+  /** Выбранный период оплаты: month | year. */
+  billingPeriod?: 'month' | 'year'
   /** Срок ответа поддержки платформы. */
   supportResponse?: string
   /** Отпускная цена с символом валюты: «1 660 ₽». */

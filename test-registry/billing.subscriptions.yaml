@@ -287,3 +287,28 @@ cases:
     expect: BadRequest с причиной провайдера; без настройки провайдера запрос не уходит
     test: components/controller/src/application/provider/services/provider-catalog.spec.ts
     status: passing
+
+  # Смена тарифа и годовая оплата (16.10.2026, кросс-реф provider.tariffs).
+  - id: bill.happy.15
+    level: backend
+    kind: happy
+    scenario: Кооператив меняет тариф подключения (changeProviderTariff)
+    expect: POST /instances/:username/change-tariff провайдера с server-secret под именем из сессии; отказ провайдера — BadRequest с причиной
+    test: components/controller/src/application/provider/services/provider-catalog.spec.ts
+    status: passing
+
+  - id: bill.side.16
+    level: backend
+    kind: side
+    scenario: Хаб строит батч оплаты, в сводке есть годовая подписка тарифа
+    expect: в батч идут только позиции с наступившим сроком (is_due), каждая за свой период; старый провайдер без полей — весь батч за период сводки
+    test: components/controller/tests/unit/billing/billing-cron.service.test.ts
+    status: passing
+
+  - id: bill.side.17
+    level: backend
+    kind: side
+    scenario: Каталог витрины с текущим тарифом кооператива
+    expect: current_tariff провайдера проходит; чужой кооператив его не видит — только сам кооператив и совет
+    test: components/controller/src/application/provider/services/provider-catalog.spec.ts
+    status: passing

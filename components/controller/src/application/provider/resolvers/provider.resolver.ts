@@ -3,7 +3,7 @@ import { UseGuards } from '@nestjs/common';
 import { ProviderService } from '../services/provider.service';
 import { ProviderSubscriptionDTO } from '../dto/provider-subscription.dto';
 import { CurrentInstanceDTO } from '../dto/current-instance.dto';
-import { GqlJwtAuthGuard, CurrentUser, RequireRight, RightsGuard, SELF } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, CurrentUser, OptionalCurrentUser, RequireRight, RightsGuard, SELF } from '@coopenomics/extension-kit';
 import type { IMonoAccount } from '@coopenomics/innercoop';
 import { CooperativeRegistryItemDTO } from '../dto/cooperative-registry-item.dto';
 import { ProviderConnectionCatalogDTO } from '../dto/provider-catalog.dto';
@@ -12,7 +12,11 @@ import { CooperativeCharterOutputDTO } from '../dto/cooperative-charter.output';
 import { UploadCooperativeCharterInputDTO } from '../dto/upload-cooperative-charter.input';
 import { CooperativePaymentDTO } from '../dto/cooperative-payment.dto';
 import { ChangeHostingPlanResultDTO } from '../dto/change-hosting-plan.dto';
-import { SelectProviderTariffInputDTO, SelectProviderTariffResultDTO } from '../dto/select-provider-tariff.dto';
+import {
+  ChangeProviderTariffResultDTO,
+  SelectProviderTariffInputDTO,
+  SelectProviderTariffResultDTO,
+} from '../dto/select-provider-tariff.dto';
 import { BillingPaymentLogService } from '~/infrastructure/billing/billing-payment-log.service';
 import { humanizeBillingError } from '~/domain/billing/utils/billing-error.utils';
 
@@ -32,9 +36,16 @@ export class ProviderResolver {
   @UseGuards(GqlJwtAuthGuard, RightsGuard)
   @RequireRight('ProviderCatalog', 'read')
   async getProviderConnectionCatalog(
+    // Необязательный: межсервисный вызов (server-secret) приходит без пользователя.
+    @OptionalCurrentUser() currentUser: IMonoAccount | null,
     @Args('coopname', { nullable: true }) coopname?: string
   ): Promise<ProviderConnectionCatalogDTO> {
-    return this.providerService.getConnectionCatalog(coopname ?? undefined);
+    const catalog = await this.providerService.getConnectionCatalog(coopname ?? undefined);
+    // Выбор тарифа — дело самого кооператива: чужой видит только совет.
+    // Межсервисный вызов (без пользователя) видит каталог целиком.
+    const isBoard = !currentUser || currentUser.role === 'member' || currentUser.role === 'chairman';
+    if (!isBoard && coopname !== currentUser?.username) catalog.current_tariff = null;
+    return catalog;
   }
 
   @Query(() => [CooperativeRegistryItemDTO], {
@@ -80,6 +91,21 @@ export class ProviderResolver {
       created_at: row.created_at.toISOString(),
       updated_at: row.updated_at.toISOString(),
     }));
+  }
+
+  @Mutation(() => ChangeProviderTariffResultDTO, {
+    name: 'changeProviderTariff',
+    description:
+      'Кооператив переходит на тариф подключения дороже: цены тарифа с зачётом остатка, при другом сервере — перенос (~час технических работ)',
+  })
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('ProviderHostingPlan', 'change:own', SELF)
+  async changeProviderTariff(
+    @CurrentUser() currentUser: IMonoAccount,
+    @Args('tariffCode', { type: () => String }) tariffCode: string
+  ): Promise<ChangeProviderTariffResultDTO> {
+    // Только свой кооператив: имя из сессии, соседу тариф не сменить.
+    return this.providerService.changeTariff(currentUser.username, tariffCode);
   }
 
   @Mutation(() => SelectProviderTariffResultDTO, {

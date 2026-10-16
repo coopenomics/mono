@@ -25,9 +25,11 @@ const canContinue = computed(() => selectedTariff.value !== null)
 const { monthlyTotal, trialDays, formatPrice } = useConnectionCatalog()
 // Тариф сетки несёт цену целиком; конфигурация сервера старого провайдера —
 // сервер плюс обязательные услуги.
+const yearly = computed(() => selectedTariff.value?.billingPeriod === 'year' && selectedTariff.value?.annualTotal != null)
 const total = computed(() => {
   const tariff = selectedTariff.value
   if (!tariff) return null
+  if (yearly.value) return tariff.annualTotal ?? null
   if (tariff.monthlyTotal != null) return tariff.monthlyTotal
   return monthlyTotal(tariff.instanceTypeId ?? null)
 })
@@ -62,7 +64,7 @@ StepFrame(
       .intro-total__sum
         span.intro-total__label {{ $t('connectionAgreementStepper.introStep.totalLabel') }}
         span.intro-total__amount {{ formatPrice(total) }} ₽
-        span.intro-total__period {{ $t('connectionAgreementStepper.tariffSelector.perMonth') }}
+        span.intro-total__period {{ yearly ? $t('connectionAgreementStepper.tariffSelector.perYear') : $t('connectionAgreementStepper.tariffSelector.perMonth') }}
       .intro-total__note
         template(v-if="trialDays") {{ $t('connectionAgreementStepper.introStep.trialNote', { days: trialDays }) }} ·&nbsp;
         | {{ $t('connectionAgreementStepper.introStep.paymentNote') }}

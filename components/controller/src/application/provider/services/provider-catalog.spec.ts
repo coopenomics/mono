@@ -121,4 +121,28 @@ describe('ProviderService — тарифная сетка', () => {
     await expect(build().selectTariff('coop1', 'start', 'month' as any)).rejects.toBeInstanceOf(BadRequestException);
     expect(mockedAxios.put).not.toHaveBeenCalled();
   });
+
+  it('каталог отдаёт current_tariff провайдера; без поля — null', async () => {
+    mockedAxios.get.mockResolvedValue({ data: { current_tariff: { code: 'start', billing_period: 'year' } } });
+    expect((await build().getConnectionCatalog('coop1')).current_tariff).toEqual({ code: 'start', billing_period: 'year' });
+
+    mockedAxios.get.mockResolvedValue({ data: {} });
+    expect((await build().getConnectionCatalog('coop1')).current_tariff).toBeNull();
+  });
+
+  it('смена тарифа уходит POST /instances/:username/change-tariff с server-secret; отказ провайдера — BadRequest', async () => {
+    mockedAxios.post.mockResolvedValue({ data: { migration_state: 'renting', monthly_total: 17300, annual_total: null } });
+
+    const res = await build().changeTariff('coop1', 'standard');
+
+    expect(mockedAxios.post).toHaveBeenCalledWith(
+      'http://provider:3000/instances/coop1/change-tariff',
+      { tariff_code: 'standard' },
+      expect.objectContaining({ headers: { 'server-secret': 'srv-secret' } })
+    );
+    expect(res).toEqual({ migration_state: 'renting', monthly_total: 17300, annual_total: null });
+
+    mockedAxios.post.mockRejectedValue({ response: { data: { message: 'Переход доступен только на тариф дороже' } } });
+    await expect(build().changeTariff('coop1', 'start')).rejects.toBeInstanceOf(BadRequestException);
+  });
 });

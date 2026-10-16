@@ -17,6 +17,10 @@ export interface ProviderBillingSummaryItem {
   status: ProviderSubscriptionStatus;
   amount: number;
   is_free: boolean;
+  /** Период позиции: собственный период подписки (годовая оплата тарифа — 365). Нет у старого провайдера. */
+  period_days?: number;
+  /** Срок оплаты позиции наступил. Нет у старого провайдера — считается наступившим. */
+  is_due?: boolean;
 }
 
 /**

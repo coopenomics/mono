@@ -35,14 +35,15 @@ const specsLabel = (specs: Record<string, unknown> | null | undefined): string =
  * сводка условий, и реестр подписок читают один стейт, поэтому производные
  * величины живут рядом с ним, а не пересобираются на каждый вызов composable.
  */
-const load = async (force = false): Promise<void> => {
+const load = async (force = false, coopname?: string): Promise<void> => {
   if (catalog.value && !force) return;
   isLoading.value = true;
   error.value = null;
   try {
+    // С coopname провайдер добавляет тариф кооператива (current_tariff).
     const { [Queries.System.GetProviderConnectionCatalog.name]: data } = await client.Query(
       Queries.System.GetProviderConnectionCatalog.query,
-      { variables: {} },
+      { variables: coopname ? { coopname } : {} },
     );
     catalog.value = data;
   } catch (e: unknown) {
@@ -78,9 +79,18 @@ const connectionTariffs = computed<ITariff[]>(() =>
     price: `${formatPrice(tariff.monthly_total)} ₽`,
     membersLimit: tariff.members_limit,
     monthlyTotal: Number(tariff.monthly_total),
+    annualTotal: tariff.annual_total != null ? Number(tariff.annual_total) : null,
     supportResponse: tariff.support.response,
   })),
 );
+
+/** Тариф кооператива (каталог загружен с его именем); null — тариф не выбран. */
+const currentTariff = computed<ITariff | null>(() => {
+  const code = catalog.value?.current_tariff?.code;
+  const tariff = code ? connectionTariffs.value.find((t) => t.code === code) : undefined;
+  if (!tariff) return null;
+  return { ...tariff, billingPeriod: catalog.value?.current_tariff?.billing_period === 'year' ? 'year' : 'month' };
+});
 
 /** Годовая оплата тарифа: переключатель провайдера и скидка. */
 const annualBilling = computed(() => catalog.value?.annual_billing ?? { enabled: false, discount_percent: 0 });
@@ -145,6 +155,7 @@ export function useConnectionCatalog() {
     load,
     serverTariffs,
     connectionTariffs,
+    currentTariff,
     annualBilling,
     mandatoryServices,
     mandatoryMonthlyTotal,

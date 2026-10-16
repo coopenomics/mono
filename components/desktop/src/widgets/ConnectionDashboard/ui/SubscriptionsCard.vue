@@ -57,7 +57,7 @@
           .subs-card__period {{ packageBreakdown(row) }}
         template(v-else)
           .subs-card__price.t-mono.t-num {{ formatPrice(row.price) }}
-          .subs-card__period {{ $t('connectionDashboard.subscriptionsCard.perMonth') }}
+          .subs-card__period {{ isYearlySubscription(row) ? $t('connectionDashboard.subscriptionsCard.perYear') : $t('connectionDashboard.subscriptionsCard.perMonth') }}
 
       //- Итог: сколько кооператив платит за платформу в месяц. По строкам это
       //- не складывалось в голове, а именно эта сумма нужна, чтобы держать
@@ -74,16 +74,29 @@
   //- сервера должен вмещать данные текущего.
   BaseDialog(
     v-model="upgradeOpen"
-    :title="$t('connectionDashboard.subscriptionsCard.changePlanDialogTitle')"
+    :title="hasTariffGrid ? $t('connectionDashboard.subscriptionsCard.changeTariffDialogTitle') : $t('connectionDashboard.subscriptionsCard.changePlanDialogTitle')"
     size="md"
   )
     p.subs-card__dlg-text
       | {{ $t('connectionDashboard.subscriptionsCard.changePlanLine1') }}
       | {{ $t('connectionDashboard.subscriptionsCard.changePlanLine2') }}
-    BaseBanner(variant="warn")
+    //- Тарифная сетка: переезд нужен не каждому тарифу — предупреждаем условно.
+    BaseBanner(v-if="hasTariffGrid" variant="warn") {{ $t('connectionDashboard.subscriptionsCard.downtimeIfServerChanges') }}
+    BaseBanner(v-else variant="warn")
       | {{ $t('connectionDashboard.subscriptionsCard.downtimeLine1') }}
       | {{ $t('connectionDashboard.subscriptionsCard.downtimeLine2') }}
-    .subs-card__dlg-options(v-if="upgradeOptions.length")
+    .subs-card__dlg-options(v-if="hasTariffGrid && tariffUpgradeOptions.length")
+      BaseRadioCard(
+        v-for="opt in tariffUpgradeOptions"
+        :key="opt.code"
+        :model-value="selectedTariffCode"
+        :value="opt.code"
+        :title="opt.name"
+        :description="tariffOptionLine(opt)"
+        :meta="tariffOptionPrice(opt)"
+        @update:model-value="selectedTariffCode = String($event)"
+      )
+    .subs-card__dlg-options(v-else-if="!hasTariffGrid && upgradeOptions.length")
       BaseRadioCard(
         v-for="opt in upgradeOptions"
         :key="opt.instance_type_id"
@@ -97,7 +110,7 @@
     EmptyState(
       v-else
       :title="$t('connectionDashboard.subscriptionsCard.noUpgradeTitle')"
-      :body="$t('connectionDashboard.subscriptionsCard.noUpgradeBody')"
+      :body="hasTariffGrid ? $t('connectionDashboard.subscriptionsCard.noTariffUpgradeBody') : $t('connectionDashboard.subscriptionsCard.noUpgradeBody')"
     )
     template(#footer)
       BaseButton(
@@ -110,8 +123,8 @@
         variant="primary"
         type="button"
         :loading="upgrading"
-        :disabled="!selectedTypeId"
-        @click="confirmUpgrade"
+        :disabled="hasTariffGrid ? !selectedTariffCode : !selectedTypeId"
+        @click="hasTariffGrid ? confirmTariffChange() : confirmUpgrade()"
       ) {{ $t('connectionDashboard.subscriptionsCard.confirmUpgrade') }}
 </template>
 
@@ -122,8 +135,11 @@ import {
   useProviderSubscriptions,
   useConnectionCatalog,
   summarizeSubscriptions,
+  isYearlySubscription,
   type ProviderSubscription,
 } from 'src/features/Provider/model'
+import { useSessionStore } from 'src/entities/Session'
+import type { ITariff } from 'src/entities/ConnectionAgreement'
 import { useSystemStore } from 'src/entities/System/model'
 import { subscriptionStatusLabel, subscriptionStatusVariant } from 'src/entities/Union'
 import {
@@ -143,7 +159,8 @@ import { FailAlert, SuccessAlert } from 'src/shared/api/alerts'
 import { t } from 'src/shared/i18n';
 
 const { subscriptions, isLoading, error, loadSubscriptions } = useProviderSubscriptions()
-const { catalog, load: loadCatalog } = useConnectionCatalog()
+const { catalog, load: loadCatalog, connectionTariffs, currentTariff } = useConnectionCatalog()
+const session = useSessionStore()
 const { info } = useSystemStore()
 
 // Загружаем подписки при монтировании
@@ -151,7 +168,8 @@ const { info } = useSystemStore()
 onMounted(async () => {
   await loadSubscriptions()
   // Каталог нужен не только диалогу: по нему подписывается текущий тариф.
-  await loadCatalog()
+  // С именем кооператива провайдер отдаёт и его тариф сетки.
+  await loadCatalog(true, session.username)
 })
 
 // Ширины колонок фиксированы: цена и действие держат правый край, а название
@@ -197,6 +215,7 @@ const planOption = (sub: any): any =>
  * называет, а кооперативу важно видеть, на чём он работает, прежде чем менять.
  */
 const planName = (sub: any): string => {
+  if (currentTariff.value) return t('connectionDashboard.subscriptionsCard.planName', { name: currentTariff.value.name })
   const option = planOption(sub)
   return option?.name ? t('connectionDashboard.subscriptionsCard.planName', { name: option.name }) : t('connectionDashboard.subscriptionsCard.planUnknown')
 }
@@ -295,9 +314,59 @@ const optionPrice = (opt: any): string => t('connectionDashboard.subscriptionsCa
 const openUpgrade = async (sub: any) => {
   currentPrice.value = Number(sub.price) || 0
   selectedTypeId.value = null
+  selectedTariffCode.value = null
   upgradeOpen.value = true
   if (!catalog.value) await loadCatalog()
   currentDiskGb.value = diskGb(planOption(sub))
+}
+
+// ── Смена тарифа сетки (16.10.2026) ─────────────────────────────────────────
+// Сетка есть — меняется тариф целиком: сервер, поддержка, приложение и пакет.
+// Предлагаются только тарифы дороже текущего: сервер переносится слепком
+// диска и на меньший не встанет. Кооператив без тарифа видит всю сетку.
+const hasTariffGrid = computed(() => connectionTariffs.value.length > 0)
+const selectedTariffCode = ref<string | null>(null)
+
+const tariffUpgradeOptions = computed<ITariff[]>(() => {
+  const current = currentTariff.value
+  if (!current) return connectionTariffs.value
+  return connectionTariffs.value.filter((opt) => (opt.monthlyTotal ?? 0) > (current.monthlyTotal ?? 0))
+})
+
+const tariffOptionLine = (opt: ITariff): string =>
+  t('connectionDashboard.subscriptionsCard.tariffOptionLine', {
+    count: (opt.membersLimit ?? 0).toLocaleString('ru-RU'),
+    response: opt.supportResponse ?? '',
+  })
+
+// Цена — за тот же период, которым кооператив платит сейчас.
+const tariffOptionPrice = (opt: ITariff): string =>
+  currentTariff.value?.billingPeriod === 'year' && opt.annualTotal != null
+    ? t('connectionDashboard.subscriptionsCard.pricePerYear', { price: formatPrice(opt.annualTotal) })
+    : t('connectionDashboard.subscriptionsCard.pricePerMonth', { price: formatPrice(opt.monthlyTotal ?? 0) })
+
+const confirmTariffChange = async () => {
+  const code = selectedTariffCode.value
+  if (!code) return
+  upgrading.value = true
+  try {
+    const { [Mutations.System.ChangeProviderTariff.name]: result } = await client.Mutation(
+      Mutations.System.ChangeProviderTariff.mutation,
+      { variables: { tariffCode: code } },
+    )
+    upgradeOpen.value = false
+    const name = connectionTariffs.value.find((opt) => opt.code === code)?.name ?? code
+    SuccessAlert(
+      t('connectionDashboard.subscriptionsCard.tariffChangeDone', { name }) +
+        (result.migration_state !== 'none' ? t('connectionDashboard.subscriptionsCard.tariffChangeMigration') : ''),
+    )
+    await loadSubscriptions()
+    await loadCatalog(true, session.username)
+  } catch (e: any) {
+    FailAlert(e)
+  } finally {
+    upgrading.value = false
+  }
 }
 
 const confirmUpgrade = async () => {

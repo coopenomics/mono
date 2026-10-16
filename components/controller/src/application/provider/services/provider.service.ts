@@ -6,7 +6,11 @@ import { ProviderSubscriptionDTO } from '../dto/provider-subscription.dto';
 import { CurrentInstanceDTO } from '../dto/current-instance.dto';
 import { CooperativeRegistryItemDTO } from '../dto/cooperative-registry-item.dto';
 import { ProviderConnectionCatalogDTO } from '../dto/provider-catalog.dto';
-import { ProviderBillingPeriod, SelectProviderTariffResultDTO } from '../dto/select-provider-tariff.dto';
+import {
+  ChangeProviderTariffResultDTO,
+  ProviderBillingPeriod,
+  SelectProviderTariffResultDTO,
+} from '../dto/select-provider-tariff.dto';
 import { CooperativeChainStatus } from '~/domain/billing/enums/billing-statuses.enum';
 import { InstanceStatus } from '~/domain/instance-status.enum';
 import { Client, configureClient } from '@coopenomics/provider-client';
@@ -29,6 +33,7 @@ function toConnectionCatalog(data: any): ProviderConnectionCatalogDTO {
     types: listOf(data.types),
     server_options: listOf(data.server_options),
     tariffs: listOf(data.tariffs),
+    current_tariff: data.current_tariff ?? null,
     annual_billing: {
       enabled: data.annual_billing?.enabled === true,
       discount_percent: Number(data.annual_billing?.discount_percent ?? 0),
@@ -259,6 +264,33 @@ export class ProviderService {
       const message = error?.response?.data?.message || error?.message || t('provider.hostingPlan.unknownError');
       this.logger.error(`Выбор тарифа ${tariffCode} для ${username} не принят: ${message}`);
       throw DomainError.badRequest('PROVIDER_TARIFF_SELECT_FAILED', { reason: message });
+    }
+  }
+
+  /**
+   * Смена тарифа сетки по решению кооператива: провайдер переоценивает
+   * подписки с зачётом остатка и, если тарифу нужен другой сервер, запускает
+   * перенос. Тот же server-secret канал, что и смена конфигурации сервера.
+   */
+  async changeTariff(username: string, tariffCode: string): Promise<ChangeProviderTariffResultDTO> {
+    if (!this.isProviderAvailable()) {
+      throw DomainError.badRequest('PROVIDER_BASE_URL_MISSING');
+    }
+    try {
+      const response = await axios.post(
+        `${config.provider_base_url}/instances/${username}/change-tariff`,
+        { tariff_code: tariffCode },
+        { headers: { 'server-secret': config.server_secret }, timeout: 30_000 },
+      );
+      return {
+        migration_state: String(response.data?.migration_state ?? 'none'),
+        monthly_total: Number(response.data?.monthly_total ?? 0),
+        annual_total: response.data?.annual_total ?? null,
+      };
+    } catch (error: any) {
+      const message = error?.response?.data?.message || error?.message || t('provider.hostingPlan.unknownError');
+      this.logger.error(`Смена тарифа ${tariffCode} для ${username} не прошла: ${message}`);
+      throw DomainError.badRequest('PROVIDER_TARIFF_CHANGE_FAILED', { reason: message });
     }
   }
 

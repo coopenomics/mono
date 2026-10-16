@@ -17,10 +17,28 @@ export const isFreeSubscription = (sub: ProviderSubscription): boolean =>
 const isCancelled = (sub: ProviderSubscription): boolean =>
   String((sub as { status?: string }).status ?? '').toLowerCase().startsWith('cancel');
 
-/** Плата за услугу в месяц: для пакетной — цена одного пакета. */
-export const subscriptionMonthlyPrice = (sub: ProviderSubscription): number => {
+/** Цена услуги за её период: для пакетной — цена одного пакета, для годовой — за год. */
+export const subscriptionPeriodPrice = (sub: ProviderSubscription): number => {
   const price = Number((sub as { price?: number | string }).price ?? 0);
   return Number.isFinite(price) ? price : 0;
+};
+
+/** Период оплаты услуги в днях; годовая оплата тарифа — 365. */
+const subscriptionPeriodDays = (sub: ProviderSubscription): number => {
+  const days = Number((sub as { period_days?: number }).period_days ?? 30);
+  return Number.isFinite(days) && days > 0 ? days : 30;
+};
+
+/** Годовая оплата: период услуги длиннее месяца. */
+export const isYearlySubscription = (sub: ProviderSubscription): boolean => subscriptionPeriodDays(sub) > 31;
+
+/**
+ * Плата за услугу в пересчёте на месяц: годовая цена делится на двенадцать,
+ * иначе итог «в месяц» складывал бы годовую цену с месячными.
+ */
+export const subscriptionMonthlyPrice = (sub: ProviderSubscription): number => {
+  const price = subscriptionPeriodPrice(sub);
+  return isYearlySubscription(sub) ? Math.round(price / 12) : price;
 };
 
 /**
@@ -59,12 +77,14 @@ export function summarizeSubscriptions(
 ): SubscriptionsBillingSummary {
   const payable = subscriptions.filter((s) => !isFreeSubscription(s) && !isCancelled(s));
   const overdue = payable.filter(isOverdueSubscription);
-  const sum = (list: ProviderSubscription[]) =>
-    list.reduce((acc, s) => acc + subscriptionMonthlyPrice(s), 0);
+  const sum = (list: ProviderSubscription[], price: (s: ProviderSubscription) => number) =>
+    list.reduce((acc, s) => acc + price(s), 0);
 
-  const dueTotal = sum(overdue);
+  // К оплате при просрочке — полная цена периода (годовая — за год);
+  // плата в месяц — с годовой ценой, пересчитанной на месяц.
+  const dueTotal = sum(overdue, subscriptionPeriodPrice);
   return {
-    monthlyTotal: sum(payable),
+    monthlyTotal: sum(payable, subscriptionMonthlyPrice),
     dueTotal,
     overdue,
     hasDue: dueTotal > 0,

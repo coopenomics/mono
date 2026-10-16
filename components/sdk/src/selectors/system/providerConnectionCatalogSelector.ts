@@ -44,6 +44,10 @@ export const rawProviderConnectionCatalogSelector = {
     enabled: true,
     discount_percent: true,
   },
+  current_tariff: {
+    code: true,
+    billing_period: true,
+  },
 }
 
 // Проверка валидности
