@@ -32,8 +32,17 @@ const PACKAGES = [
     title: 'sdk',
     filter: '@coopenomics/sdk',
     runner: 'vitest',
-    files: ['test/access-token-provider.test.ts', 'test/graphql-response-error.test.ts'],
+    files: ['test/access-token-provider.test.ts', 'test/graphql-response-error.test.ts', 'test/auth-loss.test.ts'],
   },
+  // У auth часть наборов ходит в живой узел и в браузер — здесь только юниты, поимённо.
+  {
+    title: 'auth',
+    filter: '@coopenomics/auth',
+    runner: 'vitest',
+    files: ['test/oidc-tokens.test.ts'],
+  },
+  // Логика рабочего стола без DOM и сети; набор задаёт vitest.config.ts (test/unit).
+  { title: 'desktop', filter: '@coopenomics/desktop', runner: 'vitest' },
   { title: 'controller', filter: '@coopenomics/controller', runner: 'jest' },
 ];
 

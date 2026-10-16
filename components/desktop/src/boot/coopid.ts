@@ -4,6 +4,7 @@ import { client } from 'src/shared/api/client';
 import { startCoopidKeepalive } from 'src/shared/api/coopid-keepalive';
 import { env } from 'src/shared/config';
 import { useSessionStore } from 'src/entities/Session';
+import { authLossAction } from 'src/entities/Session/lib/auth-loss';
 
 /**
  * Boot контура CoopID (Эпик 11, Story 11.7) — конфигурация SDK `@coopenomics/auth`
@@ -49,12 +50,12 @@ export default boot(() => {
   // же отказ придёт уже по нему и заберёт устройство целиком.
   let leaving = false;
   client.setAuthLostHandler(({ source }) => {
-    if (leaving) return;
     const session = useSessionStore();
-    if (!session.isAuth) return;
+    const action = authLossAction(source, session.isAuth, leaving);
+    if (action === 'ignore') return;
     leaving = true;
     console.warn('Сервер не признаёт сессию — возвращаемся на вход');
-    const forget = source === 'session' ? session.dropCoopIdSession() : session.close();
+    const forget = action === 'forget-coopid' ? session.dropCoopIdSession() : session.close();
     void forget.finally(() => window.location.reload());
   });
 

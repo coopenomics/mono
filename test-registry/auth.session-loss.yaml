@@ -20,6 +20,8 @@ sources:
     - components/desktop/src/boot/coopid.ts
     - components/desktop/src/entities/Session/model/store.ts
     - components/desktop/src/entities/Registrator/model/store.ts
+    - components/desktop/src/entities/Registrator/lib/registration-resume.ts
+    - components/desktop/src/entities/Session/lib/auth-loss.ts
     - components/desktop/src/features/User/CreateUser/model/index.ts
     - components/desktop/src/features/User/LoginUser/model/index.ts
     - components/desktop/src/pages/Registrator/SignUp/**
@@ -88,8 +90,8 @@ cases:
     expect: >
       стол забывает только контур CoopID и перезагружается; после перезагрузки
       поднимается легаси-сессия нового пайщика, его ключ не стёрт
-    test: ''
-    status: missing   # проверяется владельцем на стенде; сценарий harness не заведён
+    test: components/desktop/test/unit/auth-loss.test.ts
+    status: written   # прогон — CI на полигоне ci/tests
 
   - id: auth.loss.happy.01
     level: ui
@@ -100,8 +102,8 @@ cases:
     expect: >
       шаг пароля с ключом созданной учётки, без повторного createUser; после
       пароля — заявление
-    test: ''
-    status: missing   # проверяется владельцем на стенде; сценарий harness не заведён
+    test: components/desktop/test/unit/create-user.test.ts
+    status: written   # прогон — CI на полигоне ci/tests
 
   - id: auth.loss.happy.02
     level: ui
@@ -112,8 +114,8 @@ cases:
     expect: >
       регистрация открывается на заявлении (или выборе участка), документы
       подписываются ключом сессии
-    test: ''
-    status: missing   # проверяется владельцем на стенде; сценарий harness не заведён
+    test: components/desktop/test/unit/registration-resume.test.ts
+    status: written   # прогон — CI на полигоне ci/tests
 
   - id: auth.loss.break.04
     level: ui
@@ -125,5 +127,5 @@ cases:
       регистрация открывается на шаге пароля; «Далее» с анкеты не перепрыгивает
       шаг пароля; после установки пароля аккаунт перечитан и шаг больше не
       возвращается
-    test: ''
-    status: missing   # проверяется владельцем на стенде; сценарий harness не заведён
+    test: components/desktop/test/unit/registration-resume.test.ts
+    status: written   # прогон — CI на полигоне ci/tests

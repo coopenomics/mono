@@ -11,6 +11,7 @@ import type { IInitialPaymentOrder } from 'src/shared/lib/types/payments';
 import { intakeFormProblems } from 'src/shared/lib/intake-schema';
 import { useSessionStore } from 'src/entities/Session';
 import { useGlobalStore } from 'src/shared/store';
+import { decideResume, isPasswordStepDone, nextVisibleStep } from '../lib/registration-resume';
 
 // Программа участия в регистрации — тип берётся напрямую из SDK-выдачи
 // getRegistrationConfig, не переописывается.
@@ -406,22 +407,20 @@ export const useRegistratorStore = defineStore(
       return stepIndex === state.step;
     };
 
-    /**
-     * Шаг пароля пройден: учётка создана и пароль стоит. Признак пароля — с сервера
-     * (`Account.has_password`). Одной отметки «учётка создана» мало: сбой после
-     * создания учётки оставлял её без пароля, и шаг пропускался — пайщик вступал,
-     * не имея чем войти (16.10.2026, стенд 5). Пока аккаунт не загружен, верим
-     * отметке учётки.
-     */
-    const passwordStepDone = computed(
-      () => state.accountCreated && useSessionStore().currentUserAccount?.has_password !== false,
+    // Шаг пароля пройден: учётка создана и сервер подтверждает пароль
+    // (см. isPasswordStepDone — одной отметки «учётка создана» мало).
+    const passwordStepDone = computed(() =>
+      isPasswordStepDone(state.accountCreated, useSessionStore().currentUserAccount?.has_password),
     );
 
     const next = () => {
-      // Учётка уже создана — шаг пароля вперёд не проходим повторно: сюда
-      // попадают те, кого вернули к выбору программы или к анкете.
-      const target = visibleStepIndices.value.find(
-        (i) => i > state.step && !(i === steps.GenerateAccount && passwordStepDone.value),
+      // Пройденный шаг пароля вперёд не повторяем: сюда попадают те, кого
+      // вернули к выбору программы или к анкете.
+      const target = nextVisibleStep(
+        visibleStepIndices.value,
+        state.step,
+        steps.GenerateAccount,
+        passwordStepDone.value,
       );
       if (target !== undefined) state.step = target;
     };
@@ -476,8 +475,8 @@ export const useRegistratorStore = defineStore(
       publicKey: string;
       // Пусто, когда ключ живёт в сессии входа по паролю, а не в этом браузере.
       privateKey: string;
-      hasPassword: boolean;
       privateAccount?: IResumedPrivateAccount | null;
+      step: number;
     }): void => {
       resetConsents();
       state.account = {
@@ -489,38 +488,41 @@ export const useRegistratorStore = defineStore(
       state.emailVerified = true;
       state.accountCreated = true;
       applyPrivateAccount(input.privateAccount);
-
-      if (!input.hasPassword) state.step = steps.GenerateAccount;
-      else state.step = isBranched.value ? steps.SelectBranch : steps.ReadStatement;
+      state.step = input.step;
     };
 
     /**
      * Продолжить вступление вошедшего пайщика, если его учётка создана, а этот
-     * браузер о ней не знает. Одна точка для всех путей: страница регистрации,
-     * вход по ключу, вход по паролю.
+     * браузер о ней не знает либо пароль у неё не стоит. Одна точка для всех
+     * путей: страница регистрации, вход по ключу, вход по паролю. Решение — в
+     * decideResume; признак пароля — только серверный: `isCoopIdSession`
+     * выставляет и серверный рендер по cookie, в том числе при входе по ключу.
      */
     const resumeFromSession = (): void => {
       const session = useSessionStore();
       const provider = session.providerAccount;
-      const username = session.username;
-      if (!session.isAuth || !username || provider?.status !== Zeus.UserStatus.Created) return;
-      if (state.accountCreated && state.account.username === username) {
-        // Учётку браузер знает, а пароля у неё нет — шаг пароля не пройден.
-        if (session.currentUserAccount?.has_password === false && state.step > steps.GenerateAccount) {
-          state.step = steps.GenerateAccount;
-        }
-        return;
-      }
+      const decision = decideResume({
+        isAuth: session.isAuth,
+        username: session.username,
+        isCreated: provider?.status === Zeus.UserStatus.Created,
+        hasPassword: session.currentUserAccount?.has_password,
+        known: {
+          accountCreated: state.accountCreated,
+          username: state.account.username,
+          step: state.step,
+        },
+        steps,
+        isBranched: isBranched.value,
+      });
+      if (decision.kind === 'step') state.step = decision.step;
+      if (decision.kind !== 'adopt' || !provider) return;
       resumeCreatedAccount({
-        username,
+        username: session.username,
         email: provider.email,
         publicKey: provider.public_key,
         privateKey: useGlobalStore().wif?.toString() ?? '',
-        // Только серверный признак: `isCoopIdSession` выставляет и серверный
-        // рендер по cookie сессии, в том числе при входе по ключу, — так шаг
-        // пароля пропускался у пайщика без пароля.
-        hasPassword: session.currentUserAccount?.has_password === true,
         privateAccount: session.privateAccount,
+        step: decision.step,
       });
     };
 
