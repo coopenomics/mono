@@ -89,8 +89,8 @@ const { items, loading, firstLoad, totalCount, hasMore, loadMore } = useLiveProp
 // Дата переносится в две строки, кошелёк идёт мета-строкой под назначением.
 const columns = computed<BaseTableColumn<IExpenseProposalRow>[]>(() => [
   { key: 'purpose', label: t('expenses.expensesRegistryPage.column.purpose') },
-  { key: 'member', label: t('expenses.expensesRegistryPage.column.member'), width: '170px' },
-  { key: 'created_at', label: t('expenses.expensesRegistryPage.column.createdAt'), width: '100px' },
+  { key: 'member', label: t('expenses.expensesRegistryPage.column.member'), width: '150px' },
+  { key: 'created_at', label: t('expenses.expensesRegistryPage.column.createdAt'), width: '120px' },
   { key: 'total_planned', label: t('expenses.expensesRegistryPage.column.amountPlan'), width: '110px', numeric: true, nowrap: true },
   { key: 'total_actual', label: t('expenses.expensesRegistryPage.column.amountFact'), width: '110px', numeric: true, nowrap: true },
   { key: 'status', label: t('expenses.expensesRegistryPage.column.status'), width: '170px', nowrap: true },
