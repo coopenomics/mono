@@ -1,4 +1,5 @@
-// Сценарий: член совета закрывает расход — отчёты по всем строкам поданы.
+// Сценарий: председатель закрывает расход — отчёты по всем строкам поданы;
+// закрывают председатель и кассир.
 
 import { env, loginAsChairman } from '../../lib/harness.mjs';
 import { openPage, settleAfterLogin } from '../../lib/edu.mjs';
@@ -24,7 +25,7 @@ export default async ({ page, context, shot, expect }) => {
   await page.waitForTimeout(2000);
   const close = page.locator('button:has-text("Закрыть расход")').first();
   await expect(close, 'нет кнопки «Закрыть расход»: отчёты по строкам не поданы').toBeVisible({ timeout: 60000 });
-  await shot(page, '01-report-submitted', 'Отчёты по всем строкам поданы: состояние записки сменилось, у члена совета появилась кнопка «Закрыть расход».');
+  await shot(page, '01-report-submitted', 'Отчёты по всем строкам поданы: состояние записки «Отчёт подан», у председателя и кассира появилась кнопка «Закрыть расход».');
   await close.click();
   await page.waitForSelector('text=Расход закрыт', { timeout: 60000 }).catch(() => {});
   await page.waitForTimeout(2500);
