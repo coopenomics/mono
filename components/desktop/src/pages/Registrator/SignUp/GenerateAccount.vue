@@ -48,6 +48,8 @@ import { Classes } from '@coopenomics/sdk';
 import { migrate, PASSWORD_POLICY_HINT, passwordPolicyErrors } from '@coopenomics/auth';
 import { updateOpenReplayUser } from 'src/shared/config';
 import { useSystemStore } from 'src/entities/System/model';
+import { useAccountStore } from 'src/entities/Account/model';
+import { useSessionStore } from 'src/entities/Session';
 import { BaseButton } from 'src/shared/ui/base/BaseButton';
 import { BaseInput } from 'src/shared/ui/base/BaseInput';
 import { FailAlert } from 'src/shared/api';
@@ -55,6 +57,8 @@ import { t } from 'src/shared/i18n';
 
 const store = useRegistratorStore();
 const system = useSystemStore();
+const accountStore = useAccountStore();
+const session = useSessionStore();
 
 const api = useCreateUser();
 const account = ref(store.state.account);
@@ -126,6 +130,12 @@ const setAccount = async () => {
         newPassword: password.value,
         rotate: false,
       });
+      // Признак пароля стол берёт с сервера (has_password): без перечитки шаг
+      // пароля считался бы непройденным до перезагрузки страницы.
+      const updated = await accountStore
+        .getAccount(store.state.account.username)
+        .catch(() => undefined);
+      if (updated) session.setCurrentUserAccount(updated);
     }
 
     // Обновляем username в OpenReplay tracker после создания пользователя

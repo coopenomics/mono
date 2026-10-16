@@ -406,11 +406,22 @@ export const useRegistratorStore = defineStore(
       return stepIndex === state.step;
     };
 
+    /**
+     * Шаг пароля пройден: учётка создана и пароль стоит. Признак пароля — с сервера
+     * (`Account.has_password`). Одной отметки «учётка создана» мало: сбой после
+     * создания учётки оставлял её без пароля, и шаг пропускался — пайщик вступал,
+     * не имея чем войти (16.10.2026, стенд 5). Пока аккаунт не загружен, верим
+     * отметке учётки.
+     */
+    const passwordStepDone = computed(
+      () => state.accountCreated && useSessionStore().currentUserAccount?.has_password !== false,
+    );
+
     const next = () => {
       // Учётка уже создана — шаг пароля вперёд не проходим повторно: сюда
       // попадают те, кого вернули к выбору программы или к анкете.
       const target = visibleStepIndices.value.find(
-        (i) => i > state.step && !(i === steps.GenerateAccount && state.accountCreated),
+        (i) => i > state.step && !(i === steps.GenerateAccount && passwordStepDone.value),
       );
       if (target !== undefined) state.step = target;
     };
@@ -493,13 +504,22 @@ export const useRegistratorStore = defineStore(
       const provider = session.providerAccount;
       const username = session.username;
       if (!session.isAuth || !username || provider?.status !== Zeus.UserStatus.Created) return;
-      if (state.accountCreated && state.account.username === username) return;
+      if (state.accountCreated && state.account.username === username) {
+        // Учётку браузер знает, а пароля у неё нет — шаг пароля не пройден.
+        if (session.currentUserAccount?.has_password === false && state.step > steps.GenerateAccount) {
+          state.step = steps.GenerateAccount;
+        }
+        return;
+      }
       resumeCreatedAccount({
         username,
         email: provider.email,
         publicKey: provider.public_key,
         privateKey: useGlobalStore().wif?.toString() ?? '',
-        hasPassword: session.isCoopIdSession,
+        // Только серверный признак: `isCoopIdSession` выставляет и серверный
+        // рендер по cookie сессии, в том числе при входе по ключу, — так шаг
+        // пароля пропускался у пайщика без пароля.
+        hasPassword: session.currentUserAccount?.has_password === true,
         privateAccount: session.privateAccount,
       });
     };
@@ -610,6 +630,7 @@ export const useRegistratorStore = defineStore(
       clearUserData,
       resetConsents,
       resumeFromSession,
+      passwordStepDone,
       applyCardcoopProfile,
       addUserState,
       isBranched,
