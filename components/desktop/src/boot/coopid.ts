@@ -5,6 +5,7 @@ import { startCoopidKeepalive } from 'src/shared/api/coopid-keepalive';
 import { env } from 'src/shared/config';
 import { useSessionStore } from 'src/entities/Session';
 import { authLossAction } from 'src/entities/Session/lib/auth-loss';
+import { resetDevice } from 'src/features/User/Logout/model';
 
 /**
  * Boot контура CoopID (Эпик 11, Story 11.7) — конфигурация SDK `@coopenomics/auth`
@@ -43,20 +44,16 @@ export default boot(() => {
   // перезагрузку — SDK отсеивает такие отказы сам, но и здесь страховка не лишняя:
   // перезагрузка страницы гостю не нужна ни при каком ответе сервера.
   //
-  // Забываем только тот контур, чей токен умер. Умер токен CoopID — легаси-ключ и
-  // токены незаконченной регистрации остаются, и после перезагрузки вступление
-  // продолжается с них (16.10.2026: сессия пайщика прежней базы стенда стирала бы
-  // ключ только что зарегистрированного). Если легаси-токен тоже мёртв, следующий
-  // же отказ придёт уже по нему и заберёт устройство целиком.
+  // Забываем устройство целиком — серверную cookie, оба входа, PIN-кэш, аккаунт и
+  // состояние вступления (решение владельца 16.10.2026, см. resetDevice), и только
+  // потом перезагружаемся: иначе остатки переживут перезагрузку.
   let leaving = false;
-  client.setAuthLostHandler(({ source }) => {
+  client.setAuthLostHandler(() => {
     const session = useSessionStore();
-    const action = authLossAction(source, session.isAuth, leaving);
-    if (action === 'ignore') return;
+    if (authLossAction(session.isAuth, leaving) === 'ignore') return;
     leaving = true;
     console.warn('Сервер не признаёт сессию — возвращаемся на вход');
-    const forget = action === 'forget-coopid' ? session.dropCoopIdSession() : session.close();
-    void forget.finally(() => window.location.reload());
+    void resetDevice().finally(() => window.location.reload());
   });
 
   // Источник access-токена контура CoopID. Ставим безусловно: при легаси-сессии

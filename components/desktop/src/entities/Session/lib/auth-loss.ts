@@ -1,18 +1,19 @@
-import type { AuthorizationSource } from '@coopenomics/sdk';
-
 /**
  * Что делать столу, когда сервер перестал признавать токен
  * (тесты — test/unit/auth-loss.test.ts).
  *
  * - `ignore` — уже уходим (отказов прилетает столько, сколько запросов было в
  *   полёте) либо сессии нет: гостю перезагрузка не нужна ни при каком ответе;
- * - `forget-coopid` — умер токен CoopID: забыть только этот контур, ключ и
- *   токены незаконченной регистрации в браузере остаются;
- * - `forget-device` — умер токен, выставленный вручную: забыть устройство целиком.
+ * - `reset` — забыть устройство целиком и перезагрузить страницу.
+ *
+ * Чей токен умер — CoopID или выставленный вручную, — значения не имеет (решение
+ * владельца 16.10.2026): раз нужен вход или регистрация заново, от прежней сессии
+ * не остаётся ничего. Попытка сохранить ключ незаконченной регистрации оставляла
+ * в браузере мешанину из двух пайщиков.
  */
-export type AuthLossAction = 'ignore' | 'forget-coopid' | 'forget-device';
+export type AuthLossAction = 'ignore' | 'reset';
 
-export function authLossAction(source: AuthorizationSource, isAuth: boolean, leaving: boolean): AuthLossAction {
+export function authLossAction(isAuth: boolean, leaving: boolean): AuthLossAction {
   if (leaving || !isAuth) return 'ignore';
-  return source === 'session' ? 'forget-coopid' : 'forget-device';
+  return 'reset';
 }

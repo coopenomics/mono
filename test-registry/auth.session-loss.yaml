@@ -8,9 +8,10 @@ title: Потеря доступа в столе и продолжение вс�
 # поверх него: первое же чтение аккаунта падало, шаг пароля обрывался до
 # установки пароля, и войти было нечем ни здесь, ни на другом устройстве.
 #
-# Правило после правки: потеря доступа опознаётся по коду отказа; забывается тот
-# контур входа, чей токен умер; вошедший пайщик с созданной учёткой продолжает
-# вступление с шага пароля (без пароля) либо с заявления (вошёл паролем).
+# Правило после правки: потеря доступа опознаётся по коду отказа; при потере доступа
+# и при «Выйти» стол забывает устройство целиком, включая серверную cookie (решение
+# владельца 16.10.2026); вошедший пайщик с созданной учёткой продолжает вступление с
+# шага пароля (без пароля) либо с заявления (вошёл паролем).
 
 sources:
   backend:
@@ -22,6 +23,8 @@ sources:
     - components/desktop/src/entities/Registrator/model/store.ts
     - components/desktop/src/entities/Registrator/lib/registration-resume.ts
     - components/desktop/src/entities/Session/lib/auth-loss.ts
+    - components/desktop/src/entities/Session/lib/serverLogout.ts
+    - components/desktop/src/features/User/Logout/model/index.ts
     - components/desktop/src/features/User/CreateUser/model/index.ts
     - components/desktop/src/features/User/LoginUser/model/index.ts
     - components/desktop/src/pages/Registrator/SignUp/**
@@ -85,13 +88,38 @@ cases:
     level: ui
     kind: side
     scenario: >
-      Умер токен CoopID, а в браузере лежат ключ и токены незаконченной
-      регистрации другого пайщика.
+      Сервер перестал признавать токен вошедшего (узел пересоздан, сессия отозвана).
     expect: >
-      стол забывает только контур CoopID и перезагружается; после перезагрузки
-      поднимается легаси-сессия нового пайщика, его ключ не стёрт
+      стол забывает устройство целиком — серверную cookie, оба входа, PIN-кэш,
+      аккаунт и состояние вступления — и перезагружается; гостя не трогает;
+      повторные отказы запросов в полёте второй сброс не запускают
     test: components/desktop/test/unit/auth-loss.test.ts
     status: written   # прогон — CI на полигоне ci/tests
+
+  - id: auth.loss.side.04
+    level: ui
+    kind: side
+    scenario: >
+      Пайщик нажимает «Выйти».
+    expect: >
+      токены отозваны на сервере до очистки браузера (это снимает cookie сессии),
+      пары CoopID и входа по ключу — обе; сервер не ответил — браузер очищается всё
+      равно; состояние вступления стёрто
+    test: components/desktop/test/unit/reset-device.test.ts
+    status: written   # прогон — CI на полигоне ci/tests
+
+  - id: auth.loss.break.05
+    level: ui
+    kind: break
+    scenario: >
+      Серверный рендер узнал по cookie принятого пайщика, а ключей его в браузере
+      нет; в этом браузере регистрируется новый пайщик.
+    expect: >
+      стол забывает аккаунт сервера и снимает cookie; после создания учётки меню
+      кабинета не появляется
+    test: ''
+    status: missing   # проверяется владельцем на стенде; сценарий harness не заведён
+
 
   - id: auth.loss.happy.01
     level: ui

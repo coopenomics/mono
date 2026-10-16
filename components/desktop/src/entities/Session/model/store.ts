@@ -25,6 +25,7 @@ import { useDisplayName } from 'src/shared/lib/composables/useDisplayName';
 import { useSystemStore } from 'src/entities/System/model';
 import { WalletPluginCoopId } from '../lib/walletPluginCoopId';
 import { createCoopIdStorage } from '../lib/coopidStorage';
+import { serverLogout } from '../lib/serverLogout';
 import { t } from 'src/shared/i18n';
 
 /** Состояние серверной сессии по cookie: гость, действующая, истёкшая, неизвестно. */
@@ -478,7 +479,7 @@ export const useSessionStore = defineStore('session', (): ISessionStore => {
     //
     // Токены затираем тоже: с ними одними гейт поднимется снова, даже без ключа.
     await dropCoopIdSession();
-    globalStore.logout();
+    await globalStore.logout();
   };
 
   /** Серверный рендер опознал пайщика по cookie: кладём личность и аккаунт в стор до рендера. */
@@ -500,11 +501,25 @@ export const useSessionStore = defineStore('session', (): ISessionStore => {
     serverSessionStatus.value = status;
   };
 
+  /**
+   * Сервер узнал пайщика по cookie, а в браузере его ключей нет: войти этой
+   * сессией нельзя. Оставленный аккаунт сервера чужой для того, кто дальше работает
+   * в браузере, — 16.10.2026 так в регистрацию нового пайщика подмешивался
+   * принятый, и на секунду появлялось меню кабинета. Забываем и аккаунт, и cookie,
+   * чтобы следующий заход не подставил его снова.
+   */
+  const forgetOrphanedServerSession = (): void => {
+    traceSession('server-session-orphaned');
+    currentUserAccount.value = undefined;
+    void serverLogout();
+  };
+
   const init = async () => {
     // На клиенте после гидрации личность известна, но ключей и токенов в памяти
     // нет — они живут только в браузере. Снимаем серверную отметку и
     // восстанавливаем сессию обычным путём; аккаунт при этом остаётся.
-    if (hydratedFromServer.value && typeof window !== 'undefined') {
+    const hydrated = hydratedFromServer.value && typeof window !== 'undefined';
+    if (hydrated) {
       hydratedFromServer.value = false;
       isAuth.value = false;
       coopIdAccount.value = '';
@@ -562,6 +577,8 @@ export const useSessionStore = defineStore('session', (): ISessionStore => {
       // и остаток регистрации (заявление, оплата, ожидание совета) держится на них.
       await globalStore.init();
       isAuth.value = globalStore.hasCreditials;
+
+      if (hydrated && !isAuth.value) forgetOrphanedServerSession();
 
       try {
         if (globalStore.hasCreditials) {
