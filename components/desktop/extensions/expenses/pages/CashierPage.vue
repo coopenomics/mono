@@ -9,7 +9,7 @@
   PageTabs.q-mb-md(
     :tabs='tabs',
     :active-key='activeTab',
-    @update:active-key='onTabChange'
+    @select='(tab) => onTabChange(tab.key)'
   )
 
   .cashier
@@ -37,10 +37,10 @@
               :key='row.proposal_hash',
               @click='openDetail(row.proposal_hash)'
             )
-              td.cell-name {{ row.username || '—' }}
+              td.cell-name {{ proposalAuthorName(row) }}
               td {{ formatCreatedAt(row.created_at) }}
-              td.col-num {{ row.total_planned || '—' }}
-              td.col-num {{ row.total_actual || '—' }}
+              td.col-num {{ formatProposalAmount(row.total_planned) }}
+              td.col-num {{ formatProposalAmount(row.total_actual) }}
               td.col-hash.t-mono-sm {{ truncateHash(row.proposal_hash) }}
               td.col-actions
                 BaseButton(
@@ -71,7 +71,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
-import { useLiveProposalList } from '../model';
+import { formatProposalAmount, proposalAuthorName, useLiveProposalList } from '../model';
 import { uiLocale } from 'src/shared/i18n';
 import { useRoute, useRouter } from 'vue-router';
 import { Zeus } from '@coopenomics/sdk';

@@ -34,6 +34,9 @@
       "amountFactLabel": "Сумма (факт)",
       "amountPlanLabel": "Сумма (план)",
       "backLabel": "К реестру расходов",
+      "closeExpenseHint": "Отчёты по всем строкам приняты — расход закрывается, фактическая сумма учитывается в кошельке-источнике.",
+      "closeExpenseLabel": "Закрыть расход",
+      "closedMessage": "Расход закрыт",
       "column": {
         "fact": "Факт",
         "method": "Способ",

@@ -29,7 +29,7 @@
             )
               td.cell-name {{ purposeOf(row) }}
               td.cell-payer
-                .cell-payer__fio {{ payerName(row) }}
+                .cell-payer__fio {{ proposalAuthorName(row) }}
                 button.cell-payer__acc(
                   type='button',
                   :title='$t("expenses.expensesRegistryPage.copyAccountTitle")',
@@ -39,8 +39,8 @@
                   q-icon(name='content_copy', size='12px')
               td.col-wallet {{ walletLabel(row.source_wallet) }}
               td {{ formatCreatedAt(row.created_at) }}
-              td.col-num {{ formatAmount(row.total_planned) }}
-              td.col-num {{ formatAmount(row.total_actual) }}
+              td.col-num {{ formatProposalAmount(row.total_planned) }}
+              td.col-num {{ formatProposalAmount(row.total_actual) }}
               td
                 BaseBadge(:variant='statusVariant(row.status)') {{ statusLabel(row.status) }}
               td.col-chevron
@@ -77,8 +77,6 @@ import { EmptyState } from 'src/shared/ui/base/EmptyState';
 import { TableSkeleton } from 'src/shared/ui/base/TableSkeleton';
 import type { TableSkeletonColumn } from 'src/shared/ui/base/TableSkeleton';
 import { FailAlert } from 'src/shared/api';
-import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
-import { getNameFromCertificate } from 'src/shared/lib/utils/getNameFromCertificate';
 import { listExpenseWallets } from 'src/shared/lib/expense-wallets';
 import {
   getExpenseProposalsByCooperative,
@@ -87,6 +85,8 @@ import {
 import {
   getExpenseProposalStatusLabel,
   getExpenseProposalStatusVariant,
+  formatProposalAmount,
+  proposalAuthorName,
   useLiveProposalList,
 } from '../model';
 import { t } from '../i18n';
@@ -123,13 +123,6 @@ function walletLabel(code?: string | null): string {
   return walletTitles.get(code) ?? code;
 }
 
-// ФИО пайщика берём из сертификата подписанта служебной записки (СЗ подписывает
-// её создатель) — так не нужен отдельный запрос аккаунта. Если СЗ ещё не
-// подписана — показываем имя аккаунта.
-function payerName(row: IProposalRow): string {
-  const cert = row.statement_doc?.document?.signatures?.[0]?.signer_certificate;
-  return (cert ? getNameFromCertificate(cert) : '') || row.username || '—';
-}
 
 async function copyAccount(username?: string | null): Promise<void> {
   if (!username) return;
@@ -141,10 +134,6 @@ async function copyAccount(username?: string | null): Promise<void> {
   }
 }
 
-function formatAmount(asset?: string | null): string {
-  if (!asset) return '—';
-  return formatAsset2Digits(asset);
-}
 
 function purposeOf(row: IProposalRow): string {
   return row.items?.[0]?.description || t('expenses.expensesRegistryPage.noDescriptionLabel');

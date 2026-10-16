@@ -31,8 +31,8 @@
               @click='openDetail(row.proposal_hash)'
             )
               td {{ formatCreatedAt(row.created_at) }}
-              td.col-num {{ row.total_planned || '—' }}
-              td.col-num {{ row.total_actual || '—' }}
+              td.col-num {{ formatProposalAmount(row.total_planned) }}
+              td.col-num {{ formatProposalAmount(row.total_actual) }}
               td
                 BaseBadge(:variant='statusVariant(row.status)') {{ statusLabel(row.status) }}
               td.col-hash.t-mono-sm {{ truncateHash(row.proposal_hash) }}
@@ -74,6 +74,7 @@ import {
   type IExpenseProposalsByMemberResult,
 } from '../api';
 import {
+  formatProposalAmount,
   getExpenseProposalStatusLabel,
   getExpenseProposalStatusVariant,
   useLiveProposalList,
