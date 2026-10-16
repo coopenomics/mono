@@ -2331,7 +2331,6 @@ export type MessageKey =
   | 'cooperative.listOfPaymentsWidget.column.username'
   | 'cooperative.listOfPaymentsWidget.confirmPaymentStep'
   | 'cooperative.listOfPaymentsWidget.createdAtHeader'
-  | 'cooperative.listOfPaymentsWidget.directionHeader'
   | 'cooperative.listOfPaymentsWidget.directionIncoming'
   | 'cooperative.listOfPaymentsWidget.directionOutgoing'
   | 'cooperative.listOfPaymentsWidget.emptyBody'

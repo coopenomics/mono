@@ -4,7 +4,7 @@
     v-if='onLoading && !items.length',
     :columns='skeletonColumns',
     :rows='6',
-    :min-width='hideActions ? "940px" : "1000px"'
+    :min-width='hideActions ? "660px" : "790px"'
   )
   template(v-else-if='items.length')
     //- Десктоп: канон-таблица. На мобиле скрыта — таблица из 7–8 колонок
@@ -19,11 +19,8 @@
               th.col-sort(@click='onSort("username")') {{ $t('cooperative.listOfPaymentsWidget.usernameHeader', { sortMark: sortMark('username') }) }}
               th.col-sort.col-date(@click='onSort("created_at")') {{ $t('cooperative.listOfPaymentsWidget.createdAtHeader', { sortMark: sortMark('created_at') }) }}
               th.col-sort.col-num(@click='onSort("quantity")') {{ $t('cooperative.listOfPaymentsWidget.amountHeader', { sortMark: sortMark('quantity') }) }}
-              th {{ $t('cooperative.listOfPaymentsWidget.typeHeader') }}
-              //- «Направление» — всегда относительно кооператива: взнос пайщика
-              //- входящий, выплата пайщику исходящая (см. displayDirection).
-              th {{ $t('cooperative.listOfPaymentsWidget.directionHeader') }}
-              th.col-sort(@click='onSort("status")') {{ $t('cooperative.listOfPaymentsWidget.statusHeader', { sortMark: sortMark('status') }) }}
+              th.col-type {{ $t('cooperative.listOfPaymentsWidget.typeHeader') }}
+              th.col-sort.col-status(@click='onSort("status")') {{ $t('cooperative.listOfPaymentsWidget.statusHeader', { sortMark: sortMark('status') }) }}
               th.col-action(v-if='!hideActions') {{ $t('cooperative.listOfPaymentsWidget.actionsHeader') }}
           tbody
             template(v-for='row in items', :key='row.id')
@@ -36,14 +33,16 @@
                   )
                     q-icon(:name='expanded.get(row.id) ? "expand_more" : "chevron_right"')
                 td.cell-name {{ getShortNameFromCertificate(row.username_certificate) || row.username }}
-                td {{ formatDateToHumanDateTime(row.created_at) }}
-                td.col-num {{ amountLabel(row) }}
-                td {{ row.type_label }}
-                td
+                td.col-date {{ formatDateToHumanDateTime(row.created_at) }}
+                //- Направление — стрелкой у суммы, всегда относительно
+                //- кооператива: взнос пайщика входящий, выплата пайщику
+                //- исходящая (см. displayDirection); словами — в подсказке.
+                td.col-num
                   span.dir(:class='isIncoming(displayDirection(row)) ? "dir--in" : "dir--out"')
                     q-icon.q-mr-xs(:name='getDirectionIcon(displayDirection(row))', size='16px')
-                    span {{ directionLabel(row) }}
-                    q-tooltip {{ directionHint(row) }}
+                    span.dir__amount {{ amountLabel(row) }}
+                    q-tooltip {{ directionLabel(row) }} · {{ directionHint(row) }}
+                td {{ row.type_label }}
                 td
                   .cell-status
                     BaseBadge(:variant='getStatusVariant(row.status)') {{ row.status_label }}
@@ -66,7 +65,7 @@
                   span.no-actions(v-else) —
 
               tr.expand-row(v-if='expanded.get(row.id)')
-                td(:colspan='hideActions ? 7 : 8')
+                td(:colspan='hideActions ? 6 : 7')
                   PaymentDetails(:payment='row')
                   //- Чек об оплате — ядро, для любого исходящего платежа (стол кассира).
                   .q-mt-sm(v-if='!hideActions && paymentProofHash(row)')
@@ -428,9 +427,8 @@ const skeletonColumns = computed<TableSkeletonColumn[]>(() => {
     { label: t('cooperative.listOfPaymentsWidget.column.username'), cell: 'text' },
     { label: t('cooperative.listOfPaymentsWidget.column.createdAt'), cell: 'text', cellWidth: '120px' },
     { label: t('cooperative.listOfPaymentsWidget.column.amount'), class: 'col-num', cell: 'text', cellWidth: '64px' },
-    { label: t('cooperative.listOfPaymentsWidget.typeHeader'), cell: 'text' },
-    { label: t('cooperative.listOfPaymentsWidget.directionHeader'), cell: 'text', cellWidth: '90px' },
-    { label: t('cooperative.listOfPaymentsWidget.statusColumnLabel'), cell: 'badge' },
+    { label: t('cooperative.listOfPaymentsWidget.typeHeader'), class: 'col-type', cell: 'text' },
+    { label: t('cooperative.listOfPaymentsWidget.statusColumnLabel'), class: 'col-status', cell: 'badge' },
   ];
   // «Действия» — только на столе совета (не на личном столе пайщика).
   if (!props.hideActions) {
@@ -684,27 +682,46 @@ onMounted(async () => {
 /* Глобальный канон снимает min-width (.table{min-width:0!important}) — без
    него колонки сжимаются уже контента и кнопки действий наезжают на статус.
    Перебиваем !important: при нехватке ширины таблица скроллится в
-   .table-scroll, а не схлопывает колонки (как журнал уведомлений). */
+   .table-scroll, а не схлопывает колонки (как журнал уведомлений).
+   Ширины колонок вместе с колонкой пайщика укладываются в min-width (790px с
+   действиями, 660px без), а она — в страницу на окне 1120px с меню (1120 −
+   248 − поля): таблица помещается целиком, раскрытая строка не шире её.
+   Поля ячеек поджаты до --p-3, иначе восемь колонок по 40px полей не влезают. */
 .table {
   table-layout: fixed !important;
-  min-width: 860px !important;
+  min-width: 660px !important;
 }
 .table--actions {
-  min-width: 980px !important;
+  min-width: 790px !important;
+}
+
+.table thead th,
+.table tbody td {
+  padding-left: var(--p-3);
+  padding-right: var(--p-3);
 }
 
 .col-toggle {
-  width: 44px;
+  width: 40px;
   text-align: center;
 }
 .col-date {
+  width: 100px;
+}
+.col-num {
   width: 132px;
-  white-space: nowrap;
+}
+.col-type {
+  width: 112px;
+}
+.col-status {
+  width: 168px;
 }
 .col-action {
-  width: 168px;
+  width: 136px;
   text-align: right;
 }
+
 
 .col-sort {
   cursor: pointer;
@@ -728,10 +745,16 @@ onMounted(async () => {
 .dir {
   display: inline-flex;
   align-items: center;
+  white-space: nowrap;
+}
+
+.dir__amount {
+  color: var(--p-ink-1);
 }
 
 .cell-status {
   display: inline-flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--p-2, 8px);
 }
@@ -757,9 +780,14 @@ onMounted(async () => {
   cursor: pointer;
 }
 
-.expand-row td {
-  padding: 0 20px 16px;
+/* Раскрытая строка живёт в ширине таблицы (max-width: 0 у ячейки во всю
+   ширину при fixed-раскладке): длинные реквизиты переносятся, а не распирают
+   таблицу вбок. */
+.table tbody .expand-row td {
+  padding: 0 var(--p-4) var(--p-4);
   background: var(--p-surface-2);
+  max-width: 0;
+  overflow-wrap: anywhere;
 }
 
 /* Последовательные этапы кассира (подтверждение оплаты → отчёт пайщика):

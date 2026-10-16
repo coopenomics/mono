@@ -49,5 +49,11 @@ export default async ({ page, context, shot, expect }) => {
     await confirmPayment(page, advance);
   }
   await expect(page.locator('tr.data-row').filter({ hasText: '1 500,00' }).locator('button:has-text("Подтвердить")'), 'аванс не подтвердился').toHaveCount(0, { timeout: 30000 });
+  // Шаг «Отчёт пайщика» после выдачи: потраченная сумма заполнена выданным
+  // авансом, а не нулём (раскрытая до подтверждения строка держала 0,00).
+  const spent = page.locator('tr.expand-row .report-advance__amount input').first();
+  if (await spent.count()) {
+    await expect(spent, 'потраченная сумма не заполнена авансом').toHaveValue(/1[\s\u00a0]?500/, { timeout: 30000 });
+  }
   await shot(page, '03-advance-paid', 'Аванс выдан: платёж подтверждён, пайщик отчитывается по нему в своих платежах.');
 };

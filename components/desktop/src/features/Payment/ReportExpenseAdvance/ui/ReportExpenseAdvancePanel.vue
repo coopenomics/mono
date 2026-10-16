@@ -118,6 +118,8 @@ const uploading = ref(false);
 const reporting = ref(false);
 // Фактически потраченная сумма по чекам; null до инициализации выданным авансом.
 const factualAmount = ref<number | null>(null);
+// Поле заполнено выданным авансом один раз; дальше сумму ведёт пайщик или кассир.
+const prefilled = ref(false);
 
 // Выданный аванс — это item.actual_amount (проставлен payexp при выдаче), не план:
 // расчёт разницы ведём от реально полученной пайщиком суммы.
@@ -156,8 +158,12 @@ async function refresh(): Promise<void> {
     if (!item.value) return;
 
     // Префилл фактической суммы выданным авансом — типовой случай «потратил ровно».
-    if (factualAmount.value == null) {
+    // Только после выдачи: до неё сумма строки в цепи нулевая, а панель могла
+    // открыться ещё до подтверждения оплаты (кассир раскрыл строку, затем
+    // подтвердил) — тогда поле осталось бы с нулём и предупреждением о возврате.
+    if (!prefilled.value && item.value.status === Zeus.ExpenseItemStatus.PAID) {
       factualAmount.value = parseAsset(item.value.actual_amount).num;
+      prefilled.value = true;
     }
 
     const all = await attachExpenseProofApi.loadExpenseFilesByItem(
