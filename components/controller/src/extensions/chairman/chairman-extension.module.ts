@@ -44,13 +44,8 @@ import { ONBOARDING_STEP_REGISTRY_PORT, type IOnboardingStepRegistryPort, CHAIN_
 import { EntityName as ApprovalEntityName } from './infrastructure/entities/approval.record';
 import { APP_RIGHTS, RightsGuard, computeOnboardingExpiresAt } from '@coopenomics/extension-kit';
 import { ChairmanInnercoopApprovalsAdapter } from './infrastructure/innercoop/chairman-innercoop-approvals.adapter';
-import { type DeserializedDescriptionOfExtension } from '@coopenomics/extension-kit';
+import { describeConfigField } from '@coopenomics/extension-kit';
 import { t } from './i18n';
-
-// Функция для описания полей в схеме конфигурации
-function describeField(description: DeserializedDescriptionOfExtension): string {
-  return JSON.stringify(description);
-}
 
 // Дефолтные параметры конфигурации
 export const defaultConfig = {
@@ -80,7 +75,7 @@ export const Schema = z.object({
     .number()
     .default(defaultConfig.checkInterval)
     .describe(
-      describeField({
+      describeConfigField({
         label: t('chairman.settings.expiredCheckIntervalLabel'),
         note: t('chairman.settings.expiredCheckIntervalNote'),
         rules: ['val >= 1'],
@@ -92,87 +87,87 @@ export const Schema = z.object({
     .string()
     .default(defaultConfig.lastCheckDate)
     // i18n-ignore: поле конфигурации visible:false — не отображается пайщику/админу
-    .describe(describeField({ label: 'Дата последней проверки', visible: false })),
+    .describe(describeConfigField({ label: 'Дата последней проверки', visible: false })),
   onboarding_init_at: z
     .string()
     .default(defaultConfig.onboarding_init_at)
     // i18n-ignore: поле конфигурации visible:false — не отображается пайщику/админу
-    .describe(describeField({ label: 'Дата старта онбординга председателя', visible: false })),
+    .describe(describeConfigField({ label: 'Дата старта онбординга председателя', visible: false })),
   onboarding_expire_at: z
     .string()
     .default(defaultConfig.onboarding_expire_at)
     // i18n-ignore: поле конфигурации visible:false — не отображается пайщику/админу
-    .describe(describeField({ label: 'Дата истечения онбординга председателя', visible: false })),
+    .describe(describeConfigField({ label: 'Дата истечения онбординга председателя', visible: false })),
   onboarding_wallet_agreement_done: z
     .boolean()
     .default(defaultConfig.onboarding_wallet_agreement_done)
     // i18n-ignore: поле конфигурации visible:false — не отображается пайщику/админу
-    .describe(describeField({ label: 'Шаг кошелькового соглашения выполнен', visible: false })),
+    .describe(describeConfigField({ label: 'Шаг кошелькового соглашения выполнен', visible: false })),
   onboarding_wallet_agreement_hash: z
     .string()
     .default(defaultConfig.onboarding_wallet_agreement_hash)
     // i18n-ignore: поле конфигурации visible:false — не отображается пайщику/админу
-    .describe(describeField({ label: 'Hash документа кошелькового соглашения', visible: false })),
+    .describe(describeConfigField({ label: 'Hash документа кошелькового соглашения', visible: false })),
   onboarding_signature_agreement_done: z
     .boolean()
     .default(defaultConfig.onboarding_signature_agreement_done)
     // i18n-ignore: поле конфигурации visible:false — не отображается пайщику/админу
-    .describe(describeField({ label: 'Шаг простой ЭП выполнен', visible: false })),
+    .describe(describeConfigField({ label: 'Шаг простой ЭП выполнен', visible: false })),
   onboarding_signature_agreement_hash: z
     .string()
     .default(defaultConfig.onboarding_signature_agreement_hash)
     // i18n-ignore: поле конфигурации visible:false — не отображается пайщику/админу
-    .describe(describeField({ label: 'Hash документа простой ЭП', visible: false })),
+    .describe(describeConfigField({ label: 'Hash документа простой ЭП', visible: false })),
   onboarding_privacy_agreement_done: z
     .boolean()
     .default(defaultConfig.onboarding_privacy_agreement_done)
     // i18n-ignore: поле конфигурации visible:false — не отображается пайщику/админу
-    .describe(describeField({ label: 'Шаг политики конфиденциальности выполнен', visible: false })),
+    .describe(describeConfigField({ label: 'Шаг политики конфиденциальности выполнен', visible: false })),
   onboarding_privacy_agreement_hash: z
     .string()
     .default(defaultConfig.onboarding_privacy_agreement_hash)
     // i18n-ignore: поле конфигурации visible:false — не отображается пайщику/админу
-    .describe(describeField({ label: 'Hash документа политики конфиденциальности', visible: false })),
+    .describe(describeConfigField({ label: 'Hash документа политики конфиденциальности', visible: false })),
   onboarding_user_agreement_done: z
     .boolean()
     .default(defaultConfig.onboarding_user_agreement_done)
     // i18n-ignore: поле конфигурации visible:false — не отображается пайщику/админу
-    .describe(describeField({ label: 'Шаг пользовательского соглашения выполнен', visible: false })),
+    .describe(describeConfigField({ label: 'Шаг пользовательского соглашения выполнен', visible: false })),
   onboarding_user_agreement_hash: z
     .string()
     .default(defaultConfig.onboarding_user_agreement_hash)
     // i18n-ignore: поле конфигурации visible:false — не отображается пайщику/админу
-    .describe(describeField({ label: 'Hash документа пользовательского соглашения', visible: false })),
+    .describe(describeConfigField({ label: 'Hash документа пользовательского соглашения', visible: false })),
   onboarding_participant_application_done: z
     .boolean()
     .default(defaultConfig.onboarding_participant_application_done)
     // i18n-ignore: поле конфигурации visible:false — не отображается пайщику/админу
-    .describe(describeField({ label: 'Шаг заявлений выполнен', visible: false })),
+    .describe(describeConfigField({ label: 'Шаг заявлений выполнен', visible: false })),
   onboarding_participant_application_hash: z
     .string()
     .default(defaultConfig.onboarding_participant_application_hash)
     // i18n-ignore: поле конфигурации visible:false — не отображается пайщику/админу
-    .describe(describeField({ label: 'Hash документа заявлений', visible: false })),
+    .describe(describeConfigField({ label: 'Hash документа заявлений', visible: false })),
   onboarding_voskhod_membership_done: z
     .boolean()
     .default(defaultConfig.onboarding_voskhod_membership_done)
     // i18n-ignore: поле конфигурации visible:false — не отображается пайщику/админу
-    .describe(describeField({ label: 'Шаг вступления в ПК «ВОСХОД» выполнен', visible: false })),
+    .describe(describeConfigField({ label: 'Шаг вступления в ПК «ВОСХОД» выполнен', visible: false })),
   onboarding_voskhod_membership_hash: z
     .string()
     .default(defaultConfig.onboarding_voskhod_membership_hash)
     // i18n-ignore: поле конфигурации visible:false — не отображается пайщику/админу
-    .describe(describeField({ label: 'Hash решения о вступлении в ПК «ВОСХОД»', visible: false })),
+    .describe(describeConfigField({ label: 'Hash решения о вступлении в ПК «ВОСХОД»', visible: false })),
   onboarding_general_meet_done: z
     .boolean()
     .default(defaultConfig.onboarding_general_meet_done)
     // i18n-ignore: поле конфигурации visible:false — не отображается пайщику/админу
-    .describe(describeField({ label: 'Шаг общего собрания выполнен', visible: false })),
+    .describe(describeConfigField({ label: 'Шаг общего собрания выполнен', visible: false })),
   onboarding_general_meet_hash: z
     .string()
     .default(defaultConfig.onboarding_general_meet_hash)
     // i18n-ignore: поле конфигурации visible:false — не отображается пайщику/админу
-    .describe(describeField({ label: 'Hash повестки общего собрания', visible: false })),
+    .describe(describeConfigField({ label: 'Hash повестки общего собрания', visible: false })),
 });
 
 // Тип конфигурации

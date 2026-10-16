@@ -8,14 +8,9 @@ import { LOGGER_PORT, type ILoggerPort,
 } from '@coopenomics/innercoop';
 import type { ExtensionDomainEntity } from '@coopenomics/extension-kit';
 import { z } from 'zod';
-import { type DeserializedDescriptionOfExtension } from '@coopenomics/extension-kit';
+import { describeConfigField } from '@coopenomics/extension-kit';
 import { t } from './i18n';
 import { PowerupRights } from './powerup-rights';
-
-// Функция для проверки и сериализации FieldDescription
-function describeField(description: DeserializedDescriptionOfExtension): string {
-  return JSON.stringify(description);
-}
 
 // Символ и точность системного токена — свойство контура, а не расширения:
 // расширение обязано подставлять их в суммы пополнения ровно такими, какими их
@@ -41,7 +36,7 @@ export const Schema = z.object({
     .number()
     .default(defaultConfig.dailyPackageSize)
     .describe(
-      describeField({
+      describeConfigField({
         label: t('powerup.settings.minQuotaCostLabel'),
         note: t('powerup.settings.minQuotaCostNote', { symbol: defaultConfig.systemSymbol }),
         rules: ['val >= 5'],
@@ -56,7 +51,7 @@ export const Schema = z.object({
         .max(100)
         .default(defaultConfig.thresholds.cpu)
         .describe(
-          describeField({
+          describeConfigField({
             label: t('powerup.settings.cpuThresholdLabel'),
             note: t('powerup.settings.cpuThresholdNote'),
             append: '%',
@@ -69,7 +64,7 @@ export const Schema = z.object({
         .max(100)
         .default(defaultConfig.thresholds.net)
         .describe(
-          describeField({
+          describeConfigField({
             label: t('powerup.settings.netThresholdLabel'),
             note: t('powerup.settings.netThresholdNote'),
             append: '%',
@@ -82,7 +77,7 @@ export const Schema = z.object({
         .max(100)
         .default(defaultConfig.thresholds.ram)
         .describe(
-          describeField({
+          describeConfigField({
             label: t('powerup.settings.ramThresholdLabel'),
             note: t('powerup.settings.ramThresholdNote'),
             append: '%',
@@ -92,7 +87,7 @@ export const Schema = z.object({
     })
     .default(defaultConfig.thresholds)
     .describe(
-      describeField({
+      describeConfigField({
         label: t('powerup.settings.thresholdsGroupLabel'),
         note: t('powerup.settings.thresholdsGroupNote'),
       })
@@ -102,19 +97,19 @@ export const Schema = z.object({
     .default(defaultConfig.lastDailyReplenishmentDate)
     .describe(
       // i18n-ignore: поле конфигурации visible:false — не отображается пайщику/админу
-      describeField({ label: 'Дата последнего ежедневного пополнения', visible: false, minLength: 10, maxLength: 10 })
+      describeConfigField({ label: 'Дата последнего ежедневного пополнения', visible: false, minLength: 10, maxLength: 10 })
     ),
   systemPrecision: z
     .number()
     .default(defaultConfig.systemPrecision)
     // i18n-ignore: поле конфигурации visible:false — не отображается пайщику/админу
-    .describe(describeField({ label: 'Точность системного утилити-токена', visible: false })),
+    .describe(describeConfigField({ label: 'Точность системного утилити-токена', visible: false })),
   systemSymbol: z
     .string()
     .default(defaultConfig.systemSymbol)
     .describe(
       // i18n-ignore: поле конфигурации visible:false — не отображается пайщику/админу
-      describeField({ label: 'Символ системного утилити-токена', visible: false, minLength: 3, maxLength: 5, maxRows: 4 })
+      describeConfigField({ label: 'Символ системного утилити-токена', visible: false, minLength: 3, maxLength: 5, maxRows: 4 })
     ),
 });
 

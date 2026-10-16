@@ -15,13 +15,9 @@ import { LOGGER_PORT, type ILoggerPort,
 } from '@coopenomics/innercoop';
 import { z } from 'zod';
 import { ONBOARDING_STEP_REGISTRY_PORT, type IOnboardingStepRegistryPort, DOCUMENT_DECLARATION_PORT, type IDocumentDeclarationPort, CHAIN_CHANGES_PORT, type IChainChangesPort } from '@coopenomics/innercoop';
-import { type DeserializedDescriptionOfExtension } from '@coopenomics/extension-kit';
+import { describeConfigField } from '@coopenomics/extension-kit';
 import { t } from './i18n';
 
-// Функция для проверки и сериализации FieldDescription
-function describeField(description: DeserializedDescriptionOfExtension): string {
-  return JSON.stringify(description);
-}
 
 // Дефолтные параметры конфигурации
 export const defaultConfig = {
@@ -63,7 +59,7 @@ export const Schema = z.object({
     .min(1, t('capital.capitalExtension.field.githubSyncBranch.validationRequired'))
     .default(defaultConfig.github_sync_branch)
     .describe(
-      describeField({
+      describeConfigField({
         label: t('capital.capitalExtension.field.githubSyncBranch.label'),
         note: t('capital.capitalExtension.field.githubSyncBranch.hint'),
         rules: ['val.length >= 1'],
@@ -84,7 +80,7 @@ export const Schema = z.object({
     },
     z.number().int().min(0).max(60).default(0),
   ).describe(
-    describeField({
+    describeConfigField({
       label: t('capital.capitalExtension.field.githubPollInterval.label'),
       note: t('capital.capitalExtension.field.githubPollInterval.hint'),
       rules: ['val >= 0', 'val <= 60'],
@@ -95,7 +91,7 @@ export const Schema = z.object({
     .string()
     .default(defaultConfig.github_api_token_encrypted)
     .describe(
-      describeField({
+      describeConfigField({
         label: t('capital.capitalExtension.field.githubToken.label'),
         note: t('capital.capitalExtension.field.githubToken.hint'),
         password: true,
@@ -105,7 +101,7 @@ export const Schema = z.object({
     .boolean()
     .default(defaultConfig.github_sync_all_branches)
     .describe(
-      describeField({
+      describeConfigField({
         label: t('capital.capitalExtension.field.githubSyncAllBranches.label'),
         note: t('capital.capitalExtension.field.githubSyncAllBranches.hint'),
       })
@@ -115,7 +111,7 @@ export const Schema = z.object({
     .min(1, t('capital.capitalExtension.field.githubBranchFilter.validationRequired'))
     .default(defaultConfig.github_sync_branch_filter)
     .describe(
-      describeField({
+      describeConfigField({
         label: t('capital.capitalExtension.field.githubBranchFilter.label'),
         note: t('capital.capitalExtension.field.githubBranchFilter.hint'),
         rules: ['val.length >= 1'],
@@ -138,7 +134,7 @@ export const Schema = z.object({
       z.number().int().min(0).max(525600).default(defaultConfig.program_share_registration_interval_minutes)
     )
     .describe(
-      describeField({
+      describeConfigField({
         label: t('capital.capitalExtension.field.blagorostSyncInterval.label'),
         note: t('capital.capitalExtension.field.blagorostSyncInterval.hint'),
         rules: ['val >= 0', 'val <= 525600'],
@@ -150,7 +146,7 @@ export const Schema = z.object({
     .number()
     .default(defaultConfig.creators_voting_percent)
     .describe(
-      describeField({
+      describeConfigField({
         label: t('capital.capitalExtension.field.creatorsVotingPercent.label'),
         note: t('capital.capitalExtension.field.creatorsVotingPercent.hint'),
         rules: ['val >= 0', 'val <= 100'],
@@ -161,7 +157,7 @@ export const Schema = z.object({
     .number()
     .default(defaultConfig.authors_voting_percent)
     .describe(
-      describeField({
+      describeConfigField({
         label: t('capital.capitalExtension.field.authorsVotingPercent.label'),
         note: t('capital.capitalExtension.field.authorsVotingPercent.hint'),
         rules: ['val >= 0', 'val <= 100'],
@@ -172,7 +168,7 @@ export const Schema = z.object({
     .number()
     .default(defaultConfig.coordinator_bonus_percent)
     .describe(
-      describeField({
+      describeConfigField({
         label: t('capital.capitalExtension.field.coordinatorBonusPercent.label'),
         note: t('capital.capitalExtension.field.coordinatorBonusPercent.hint'),
         rules: ['val >= 0', 'val <= 100'],
@@ -183,7 +179,7 @@ export const Schema = z.object({
     .number()
     .default(defaultConfig.coordinator_invite_validity_days)
     .describe(
-      describeField({
+      describeConfigField({
         label: t('capital.capitalExtension.field.coordinatorInviteValidityDays.label'),
         note: t('capital.capitalExtension.field.coordinatorInviteValidityDays.hint'),
         rules: ['val >= 1'],
@@ -194,7 +190,7 @@ export const Schema = z.object({
     .number()
     .default(defaultConfig.expense_pool_percent)
     .describe(
-      describeField({
+      describeConfigField({
         label: t('capital.capitalExtension.field.expensePoolPercent.label'),
         note: t('capital.capitalExtension.field.expensePoolPercent.hint'),
         rules: ['val >= 0', 'val <= 100'],
@@ -205,7 +201,7 @@ export const Schema = z.object({
     .number()
     .default(defaultConfig.voting_period_in_days)
     .describe(
-      describeField({
+      describeConfigField({
         label: t('capital.capitalExtension.field.votingPeriodInDays.label'),
         note: t('capital.capitalExtension.field.votingPeriodInDays.hint'),
         rules: ['val >= 1'],
@@ -216,7 +212,7 @@ export const Schema = z.object({
     .number()
     .default(defaultConfig.energy_decay_rate_per_day)
     .describe(
-      describeField({
+      describeConfigField({
         label: t('capital.capitalExtension.field.energyDecayRate.label'),
         note: t('capital.capitalExtension.field.energyDecayRate.hint'),
         rules: ['val >= 0', 'val <= 1'],
@@ -229,7 +225,7 @@ export const Schema = z.object({
     .number()
     .default(defaultConfig.level_depth_base)
     .describe(
-      describeField({
+      describeConfigField({
         label: t('capital.capitalExtension.field.levelDepthBase.label'),
         note: t('capital.capitalExtension.field.levelDepthBase.hint'),
         rules: ['val >= 1'],
@@ -240,7 +236,7 @@ export const Schema = z.object({
     .number()
     .default(defaultConfig.level_growth_coefficient)
     .describe(
-      describeField({
+      describeConfigField({
         label: t('capital.capitalExtension.field.levelGrowthCoefficient.label'),
         note: t('capital.capitalExtension.field.levelGrowthCoefficient.hint'),
         rules: ['val >= 1'],
@@ -251,7 +247,7 @@ export const Schema = z.object({
     .number()
     .default(defaultConfig.energy_gain_coefficient)
     .describe(
-      describeField({
+      describeConfigField({
         label: t('capital.capitalExtension.field.energyGainCoefficient.label'),
         note: t('capital.capitalExtension.field.energyGainCoefficient.hint'),
         rules: ['val >= 0'],
@@ -263,32 +259,32 @@ export const Schema = z.object({
     .boolean()
     .default(defaultConfig.onboarding_generator_program_template_done)
     // i18n-ignore: скрытое служебное поле конфигурации (visible: false), пайщику не показывается
-    .describe(describeField({ label: 'Шаг положения о программе ГЕНЕРАТОР выполнен', visible: false })),
+    .describe(describeConfigField({ label: 'Шаг положения о программе ГЕНЕРАТОР выполнен', visible: false })),
   onboarding_generation_contract_template_done: z
     .boolean()
     .default(defaultConfig.onboarding_generation_contract_template_done)
     // i18n-ignore: скрытое служебное поле конфигурации (visible: false), пайщику не показывается
-    .describe(describeField({ label: 'Шаг соглашения о генерации выполнен', visible: false })),
+    .describe(describeConfigField({ label: 'Шаг соглашения о генерации выполнен', visible: false })),
   onboarding_generator_offer_template_done: z
     .boolean()
     .default(defaultConfig.onboarding_generator_offer_template_done)
     // i18n-ignore: скрытое служебное поле конфигурации (visible: false), пайщику не показывается
-    .describe(describeField({ label: 'Шаг шаблона оферты генератора выполнен', visible: false })),
+    .describe(describeConfigField({ label: 'Шаг шаблона оферты генератора выполнен', visible: false })),
   onboarding_blagorost_provision_done: z
     .boolean()
     .default(defaultConfig.onboarding_blagorost_provision_done)
     // i18n-ignore: скрытое служебное поле конфигурации (visible: false), пайщику не показывается
-    .describe(describeField({ label: 'Шаг положения Благорост выполнен', visible: false })),
+    .describe(describeConfigField({ label: 'Шаг положения Благорост выполнен', visible: false })),
   onboarding_blagorost_offer_template_done: z
     .boolean()
     .default(defaultConfig.onboarding_blagorost_offer_template_done)
     // i18n-ignore: скрытое служебное поле конфигурации (visible: false), пайщику не показывается
-    .describe(describeField({ label: 'Шаг предложения Благорост выполнен', visible: false })),
+    .describe(describeConfigField({ label: 'Шаг предложения Благорост выполнен', visible: false })),
   capital_program_doc_data_hash: z
     .string()
     .default(defaultConfig.capital_program_doc_data_hash)
     // i18n-ignore: скрытое служебное поле конфигурации (visible: false), пайщику не показывается
-    .describe(describeField({ label: 'PrivateData документов ЦПП', visible: false })),
+    .describe(describeConfigField({ label: 'PrivateData документов ЦПП', visible: false })),
 
 });
 

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { type DeserializedDescriptionOfExtension } from '@coopenomics/extension-kit';
+import { describeConfigField } from '@coopenomics/extension-kit';
 import { t } from './i18n';
 
 // Определение интерфейса для хранения данных об обрабатываемых собраниях
@@ -50,18 +50,13 @@ export const defaultConfig = {
   closedMeetIds: [] as number[], // Добавлено для хранения id закрытых собраний
 };
 
-// Функция для проверки и сериализации FieldDescription
-export function describeField(description: DeserializedDescriptionOfExtension): string {
-  return JSON.stringify(description);
-}
-
 // Определение Zod-схемы
 export const Schema = z.object({
   checkIntervalMinutes: z
     .number()
     .default(defaultConfig.checkIntervalMinutes)
     .describe(
-      describeField({
+      describeConfigField({
         label: t('participant.settings.meetCheckIntervalLabel'),
         note: t('participant.settings.meetCheckIntervalNote'),
         rules: ['val >= 1'],
@@ -71,7 +66,7 @@ export const Schema = z.object({
     .string()
     .default(defaultConfig.lastCheckTimestamp)
     // i18n-ignore: поле конфигурации visible:false — не отображается пайщику/админу
-    .describe(describeField({ label: 'Временная метка последней проверки', visible: false })),
+    .describe(describeConfigField({ label: 'Временная метка последней проверки', visible: false })),
   trackedMeets: z
     .array(
       z.object({
@@ -94,12 +89,12 @@ export const Schema = z.object({
     )
     .default(defaultConfig.trackedMeets)
     // i18n-ignore: поле конфигурации visible:false — не отображается пайщику/админу
-    .describe(describeField({ label: 'Отслеживаемые собрания', visible: false })),
+    .describe(describeConfigField({ label: 'Отслеживаемые собрания', visible: false })),
   minutesBeforeStartNotification: z
     .number()
     .default(defaultConfig.minutesBeforeStartNotification)
     .describe(
-      describeField({
+      describeConfigField({
         label: t('participant.settings.beforeStartMinutesLabel'),
         note: t('participant.settings.beforeStartMinutesNote'),
         rules: ['val >= 1'],
@@ -109,7 +104,7 @@ export const Schema = z.object({
     .number()
     .default(defaultConfig.minutesBeforeEndNotification)
     .describe(
-      describeField({
+      describeConfigField({
         label: t('participant.settings.beforeEndMinutesLabel'),
         note: t('participant.settings.beforeEndMinutesNote'),
         rules: ['val >= 1'],
@@ -119,7 +114,7 @@ export const Schema = z.object({
     .array(z.number())
     .default(defaultConfig.closedMeetIds)
     // i18n-ignore: поле конфигурации visible:false — не отображается пайщику/админу
-    .describe(describeField({ label: 'ID закрытых собраний', visible: false })),
+    .describe(describeConfigField({ label: 'ID закрытых собраний', visible: false })),
 });
 
 // Автоматическое создание типа IConfig на основе Zod-схемы

@@ -58,11 +58,7 @@ import { CHATCOOP_STATE_REPOSITORY } from './domain/repositories/chatcoop-state.
 import type { ChatcoopStateRepository } from './domain/repositories/chatcoop-state.repository';
 import { ChatcoopStateKyselyRepository } from './infrastructure/repositories/chatcoop-state.kysely-repository';
 import { t } from './i18n';
-
-// Функция для проверки и сериализации FieldDescription
-function describeField(description: DeserializedDescriptionOfExtension): string {
-  return JSON.stringify(description);
-}
+import { describeConfigField } from '@coopenomics/extension-kit';
 
 // Схема конфигурации для чаткооп (только то, что безопасно терять при переустановке расширения; space/секретарь — в PG `chatcoop_state`)
 export const Schema = z.object({
@@ -73,7 +69,7 @@ export const Schema = z.object({
     .max(60)
     .default(2)
     .describe(
-      describeField({
+      describeConfigField({
         label: t('chatcoop.settings.historySyncIntervalLabel'),
         note: t('chatcoop.settings.historySyncIntervalNote'),
         visible: true,
@@ -95,7 +91,6 @@ import { MatrixUserKyselyRepository } from './infrastructure/repositories/matrix
 // Символы для DI
 import { MATRIX_USER_REPOSITORY } from './domain/repositories/matrix-user.repository';
 import { ChatcoopLiveFeedService } from './infrastructure/realtime/chatcoop-live-feed.service';
-import { type DeserializedDescriptionOfExtension } from '@coopenomics/extension-kit';
 import { APP_RIGHTS, RightsGuard } from '@coopenomics/extension-kit';
 import { ChatcoopRights } from './application/access/chatcoop-rights';
 @Injectable()

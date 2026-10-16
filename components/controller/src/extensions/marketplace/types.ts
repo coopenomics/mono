@@ -1,12 +1,6 @@
 import { z } from 'zod';
-import { type DeserializedDescriptionOfExtension } from '@coopenomics/extension-kit';
+import { describeConfigField } from '@coopenomics/extension-kit';
 import { t } from './i18n';
-
-// Сериализация человекочитаемого описания поля для формы установки расширения
-// (тот же механизм, что в capital-extension.module.ts).
-function describeField(description: DeserializedDescriptionOfExtension): string {
-  return JSON.stringify(description);
-}
 
 /**
  * Story 1.9: L1-онбординг кооператива — решение совета о принятии положения ЦПП.
@@ -132,7 +126,7 @@ export const Schema = z.object({
         .max(16)
         .default(4)
         .describe(
-          describeField({
+          describeConfigField({
             label: t('marketplace.types.batchSizeLabel'),
             note: t('marketplace.types.batchSizeHint'),
             rules: ['val >= 1', 'val <= 16'],
@@ -141,7 +135,7 @@ export const Schema = z.object({
     })
     .default({ parallel_statements: 4 })
     .describe(
-      describeField({
+      describeConfigField({
         label: t('marketplace.types.issueSectionTitle'),
         note: t('marketplace.types.issueSectionHint'),
       })
@@ -160,7 +154,7 @@ export const Schema = z.object({
       accepted_by_board_decision_id: '',
     })
     .describe(
-      describeField({
+      describeConfigField({
         label: t('marketplace.types.agreementAcceptedLabel'),
         note: t('marketplace.types.agreementAcceptedHint'),
         visible: false,
@@ -172,7 +166,7 @@ export const Schema = z.object({
         .boolean()
         .default(true)
         .describe(
-          describeField({
+          describeConfigField({
             label: t('marketplace.types.autoWriteoffLabel'),
             note: t('marketplace.types.autoWriteoffHint'),
           })
@@ -183,7 +177,7 @@ export const Schema = z.object({
         .min(0)
         .default(7)
         .describe(
-          describeField({
+          describeConfigField({
             label: t('marketplace.types.writeoffDelayLabel'),
             note: t('marketplace.types.writeoffDelayHint'),
             rules: ['val >= 0'],
@@ -193,7 +187,7 @@ export const Schema = z.object({
     })
     .default({ auto_proposal_enabled: true, post_expiry_grace_days: 7 })
     .describe(
-      describeField({
+      describeConfigField({
         label: t('marketplace.types.writeoffSectionTitle'),
         note: t('marketplace.types.writeoffSectionHint'),
       })
@@ -204,7 +198,7 @@ export const Schema = z.object({
         .boolean()
         .default(false)
         .describe(
-          describeField({
+          describeConfigField({
             label: t('marketplace.types.useContainersLabel'),
             note: t('marketplace.types.useContainersHint'),
           })
@@ -213,7 +207,7 @@ export const Schema = z.object({
         .boolean()
         .default(false)
         .describe(
-          describeField({
+          describeConfigField({
             label: t('marketplace.types.useCellsLabel'),
             note: t('marketplace.types.useCellsHint'),
           })
@@ -222,7 +216,7 @@ export const Schema = z.object({
         .boolean()
         .default(false)
         .describe(
-          describeField({
+          describeConfigField({
             label: t('marketplace.types.requireLocationOnReceiptLabel'),
             note: t('marketplace.types.requireLocationOnReceiptHint'),
           })
@@ -234,7 +228,7 @@ export const Schema = z.object({
       posting_on_reception_required: false,
     })
     .describe(
-      describeField({
+      describeConfigField({
         label: t('marketplace.types.addressedStorageSectionTitle'),
         note: t('marketplace.types.addressedStorageSectionHint'),
       })

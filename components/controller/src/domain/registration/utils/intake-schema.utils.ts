@@ -26,7 +26,7 @@ const labelOf = (property: IntakeJsonSchemaProperty | undefined): string | undef
   return typeof label === 'string' && label.trim() !== '' ? label : undefined;
 };
 
-/** Описание поля приходит из `describeField` строкой JSON — разбираем её. */
+/** Описание поля приходит из `describeConfigField` строкой JSON — разбираем её. */
 function parseDescription(description: unknown): unknown {
   if (typeof description !== 'string') return description;
   try {
@@ -40,8 +40,8 @@ function normalizeProperty(formId: string, name: string, source: IntakeJsonSchem
   const property: IntakeJsonSchemaProperty = { ...source, description: parseDescription(source.description) };
 
   if (!labelOf(property)) {
-    // i18n-ignore: ошибка объявления схемы анкеты расширением (нет describeField.label) — разработческая, до пайщика не доходит
-    throw new BadRequestException(`Анкета "${formId}": у поля "${name}" нет подписи (describeField.label)`);
+    // i18n-ignore: ошибка объявления схемы анкеты расширением (нет describeConfigField.label) — разработческая, до пайщика не доходит
+    throw new BadRequestException(`Анкета "${formId}": у поля "${name}" нет подписи (describeConfigField.label)`);
   }
 
   if (property.type === 'object') {
