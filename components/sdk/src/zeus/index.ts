@@ -2315,17 +2315,23 @@ export type ValueTypes = {
 	represented_by?:ValueTypes["RepresentedBy"],
 	/** Краткое название организации */
 	short_name?:boolean | `@${string}`,
-	/** Доверенные аккаунты; пусто, если состав участка недоступен запрашивающему */
+	/** Доверенные аккаунты; пусто, если состав участка недоступен запрашивающему
+
+Требуемые роли: chairman, member.  */
 	trusted?:ValueTypes["Individual"],
 	/** Сертификаты доверенных лиц участка (ФИО) */
 	trusted_certificates?:ValueTypes["IndividualCertificate"],
-	/** Председатель кооперативного участка; пусто, если состав участка недоступен запрашивающему */
+	/** Председатель кооперативного участка; пусто, если состав участка недоступен запрашивающему
+
+Требуемые роли: chairman, member.  */
 	trustee?:ValueTypes["Individual"],
 	/** Сертификат председателя кооперативного участка (ФИО) */
 	trustee_certificate?:ValueTypes["IndividualCertificate"],
 	/** Тип организации */
 	type?:boolean | `@${string}`,
-	/** Пайщики в белом списке приватного участка (ФИО); пусто, если участок не свой */
+	/** Пайщики в белом списке приватного участка (ФИО); пусто, если участок не свой
+
+Требуемые роли: chairman, member.  */
 	whitelist_certificates?:ValueTypes["IndividualCertificate"],
 		__typename?: boolean | `@${string}`,
 	['...on Branch']?: Omit<ValueTypes["Branch"], "...on Branch">
@@ -3470,7 +3476,9 @@ export type ValueTypes = {
 	block_num?:boolean | `@${string}`,
 	/** Статус из блокчейна */
 	blockchain_status?:boolean | `@${string}`,
-	/** Контракт участника */
+	/** Контракт участника
+
+Требуемые роли: chairman, member.  */
 	contract?:ValueTypes["DocumentAggregate"],
 	/** Вклад как автор */
 	contributed_as_author?:boolean | `@${string}`,
@@ -3641,9 +3649,13 @@ export type ValueTypes = {
 	_updated_at?:boolean | `@${string}`,
 	/** Сумма долга */
 	amount?:boolean | `@${string}`,
-	/** Одобренное заявление */
+	/** Одобренное заявление
+
+Требуемые роли: chairman, member.  */
 	approved_statement?:ValueTypes["DocumentAggregate"],
-	/** Протокол решения совета */
+	/** Протокол решения совета
+
+Требуемые роли: chairman, member.  */
 	authorization?:ValueTypes["DocumentAggregate"],
 	/** Номер блока последнего обновления */
 	block_num?:boolean | `@${string}`,
@@ -3663,7 +3675,9 @@ export type ValueTypes = {
 	project_hash?:boolean | `@${string}`,
 	/** Дата погашения */
 	repaid_at?:boolean | `@${string}`,
-	/** Заявление на получение ссуды */
+	/** Заявление на получение ссуды
+
+Требуемые роли: chairman, member.  */
 	statement?:ValueTypes["DocumentAggregate"],
 	/** Статус долга */
 	status?:boolean | `@${string}`,
@@ -3682,9 +3696,13 @@ export type ValueTypes = {
 	_updated_at?:boolean | `@${string}`,
 	/** Сумма расхода */
 	amount?:boolean | `@${string}`,
-	/** Одобренная записка */
+	/** Одобренная записка
+
+Требуемые роли: chairman, member.  */
 	approved_statement?:ValueTypes["DocumentAggregate"],
-	/** Авторизация расхода */
+	/** Авторизация расхода
+
+Требуемые роли: chairman, member.  */
 	authorization?:ValueTypes["DocumentAggregate"],
 	/** Номер блока последнего обновления */
 	block_num?:boolean | `@${string}`,
@@ -3696,7 +3714,9 @@ export type ValueTypes = {
 	description?:boolean | `@${string}`,
 	/** Хеш расхода */
 	expense_hash?:boolean | `@${string}`,
-	/** Служебная записка о расходе */
+	/** Служебная записка о расходе
+
+Требуемые роли: chairman, member.  */
 	expense_statement?:ValueTypes["DocumentAggregate"],
 	/** ID фонда */
 	fund_id?:boolean | `@${string}`,
@@ -10240,6 +10260,12 @@ export type ValueTypes = {
 	/** Токен доступа */
 	refresh_token: string | Variable<any, string>
 };
+	["LookupOrganizationInput"]: {
+	/** Страна регистрации организации */
+	country: string | Variable<any, string>,
+	/** ИНН организации */
+	inn: string | Variable<any, string>
+};
 	["MakeClearanceInput"]: {
 	/** Вклад участника (текстовое описание) */
 	contribution?: string | undefined | null | Variable<any, string>,
@@ -14257,6 +14283,49 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 	kpp: string | Variable<any, string>,
 	ogrn: string | Variable<any, string>
 };
+	/** Регистрационные номера организации */
+["OrganizationLookupDetails"]: AliasType<{
+	/** ИНН */
+	inn?:boolean | `@${string}`,
+	/** КПП */
+	kpp?:boolean | `@${string}`,
+	/** ОГРН */
+	ogrn?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on OrganizationLookupDetails']?: Omit<ValueTypes["OrganizationLookupDetails"], "...on OrganizationLookupDetails">
+}>;
+	/** Руководитель организации по сведениям реестра */
+["OrganizationLookupRepresentative"]: AliasType<{
+	/** Имя */
+	first_name?:boolean | `@${string}`,
+	/** Фамилия */
+	last_name?:boolean | `@${string}`,
+	/** Отчество */
+	middle_name?:boolean | `@${string}`,
+	/** Должность */
+	position?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on OrganizationLookupRepresentative']?: Omit<ValueTypes["OrganizationLookupRepresentative"], "...on OrganizationLookupRepresentative">
+}>;
+	/** Сведения об организации из государственного реестра. Пустое поле реестр не знает — его заполняет пайщик */
+["OrganizationLookupResult"]: AliasType<{
+	/** Город */
+	city?:boolean | `@${string}`,
+	/** Регистрационные номера */
+	details?:ValueTypes["OrganizationLookupDetails"],
+	/** Юридический адрес */
+	full_address?:boolean | `@${string}`,
+	/** Полное наименование */
+	full_name?:boolean | `@${string}`,
+	/** Руководитель */
+	represented_by?:ValueTypes["OrganizationLookupRepresentative"],
+	/** Краткое наименование */
+	short_name?:boolean | `@${string}`,
+	/** Тип организации */
+	type?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on OrganizationLookupResult']?: Omit<ValueTypes["OrganizationLookupResult"], "...on OrganizationLookupResult">
+}>;
 	/** Тип юридического лица */
 ["OrganizationType"]:OrganizationType;
 	["OrganizationWithBankAccount"]: AliasType<{
@@ -15947,6 +16016,8 @@ getMeets?: [{	data: ValueTypes["GetMeetsInput"] | Variable<any, string>},ValueTy
 	getNodeSyncState?:ValueTypes["NodeSyncState"],
 getNotification?: [{	id: string | Variable<any, string>},ValueTypes["NotificationDetail"]],
 getNotifications?: [{	filter: ValueTypes["NotificationsFilterInput"] | Variable<any, string>,	pagination: ValueTypes["PaginationInput"] | Variable<any, string>},ValueTypes["NotificationPaginationResult"]],
+	/** Страны, для которых анкета организации заполняется сведениями из реестра по ИНН */
+	getOrganizationLookupCountries?:boolean | `@${string}`,
 getParticipantCapabilitySets?: [{	username: string | Variable<any, string>},ValueTypes["CapabilitySetAssignment"]],
 getParticipantLoginSecurity?: [{	data: ValueTypes["ResetParticipantTwoFactorInput"] | Variable<any, string>},ValueTypes["ParticipantLoginSecurity"]],
 getPaymentMethods?: [{	data?: ValueTypes["GetPaymentMethodsInput"] | undefined | null | Variable<any, string>},ValueTypes["PaymentMethodPaginationResult"]],
@@ -15987,6 +16058,7 @@ kuDecisions?: [{	filter?: ValueTypes["KuDecisionFilterInput"] | undefined | null
 kuTrustRequests?: [{	filter?: ValueTypes["KuTrustRequestFilterInput"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedKuTrustRequestsPaginationResult"]],
 listExpensePlans?: [{	data?: ValueTypes["ListExpensePlansInput"] | undefined | null | Variable<any, string>},ValueTypes["ExpensePlan"]],
 listReportDrafts?: [{	filter?: ValueTypes["ListReportDraftsFilterInput"] | undefined | null | Variable<any, string>},ValueTypes["ReportDraft"]],
+lookupOrganization?: [{	data: ValueTypes["LookupOrganizationInput"] | Variable<any, string>},ValueTypes["OrganizationLookupResult"]],
 marketplaceAidStatementSignablePayload?: [{	data: ValueTypes["MarketplaceAidStatementSignablePayloadInput"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 marketplaceAplReceptionChairmanSignablePayloads?: [{	data: ValueTypes["MarketplaceAplReceptionByIdInput"] | Variable<any, string>},ValueTypes["DocumentAggregate"]],
 marketplaceAplReceptionSupplierSignablePayloads?: [{	data: ValueTypes["MarketplaceAplReceptionByIdInput"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
@@ -19615,17 +19687,23 @@ export type ResolverInputTypes = {
 	represented_by?:ResolverInputTypes["RepresentedBy"],
 	/** Краткое название организации */
 	short_name?:boolean | `@${string}`,
-	/** Доверенные аккаунты; пусто, если состав участка недоступен запрашивающему */
+	/** Доверенные аккаунты; пусто, если состав участка недоступен запрашивающему
+
+Требуемые роли: chairman, member.  */
 	trusted?:ResolverInputTypes["Individual"],
 	/** Сертификаты доверенных лиц участка (ФИО) */
 	trusted_certificates?:ResolverInputTypes["IndividualCertificate"],
-	/** Председатель кооперативного участка; пусто, если состав участка недоступен запрашивающему */
+	/** Председатель кооперативного участка; пусто, если состав участка недоступен запрашивающему
+
+Требуемые роли: chairman, member.  */
 	trustee?:ResolverInputTypes["Individual"],
 	/** Сертификат председателя кооперативного участка (ФИО) */
 	trustee_certificate?:ResolverInputTypes["IndividualCertificate"],
 	/** Тип организации */
 	type?:boolean | `@${string}`,
-	/** Пайщики в белом списке приватного участка (ФИО); пусто, если участок не свой */
+	/** Пайщики в белом списке приватного участка (ФИО); пусто, если участок не свой
+
+Требуемые роли: chairman, member.  */
 	whitelist_certificates?:ResolverInputTypes["IndividualCertificate"],
 		__typename?: boolean | `@${string}`
 }>;
@@ -20749,7 +20827,9 @@ export type ResolverInputTypes = {
 	block_num?:boolean | `@${string}`,
 	/** Статус из блокчейна */
 	blockchain_status?:boolean | `@${string}`,
-	/** Контракт участника */
+	/** Контракт участника
+
+Требуемые роли: chairman, member.  */
 	contract?:ResolverInputTypes["DocumentAggregate"],
 	/** Вклад как автор */
 	contributed_as_author?:boolean | `@${string}`,
@@ -20917,9 +20997,13 @@ export type ResolverInputTypes = {
 	_updated_at?:boolean | `@${string}`,
 	/** Сумма долга */
 	amount?:boolean | `@${string}`,
-	/** Одобренное заявление */
+	/** Одобренное заявление
+
+Требуемые роли: chairman, member.  */
 	approved_statement?:ResolverInputTypes["DocumentAggregate"],
-	/** Протокол решения совета */
+	/** Протокол решения совета
+
+Требуемые роли: chairman, member.  */
 	authorization?:ResolverInputTypes["DocumentAggregate"],
 	/** Номер блока последнего обновления */
 	block_num?:boolean | `@${string}`,
@@ -20939,7 +21023,9 @@ export type ResolverInputTypes = {
 	project_hash?:boolean | `@${string}`,
 	/** Дата погашения */
 	repaid_at?:boolean | `@${string}`,
-	/** Заявление на получение ссуды */
+	/** Заявление на получение ссуды
+
+Требуемые роли: chairman, member.  */
 	statement?:ResolverInputTypes["DocumentAggregate"],
 	/** Статус долга */
 	status?:boolean | `@${string}`,
@@ -20957,9 +21043,13 @@ export type ResolverInputTypes = {
 	_updated_at?:boolean | `@${string}`,
 	/** Сумма расхода */
 	amount?:boolean | `@${string}`,
-	/** Одобренная записка */
+	/** Одобренная записка
+
+Требуемые роли: chairman, member.  */
 	approved_statement?:ResolverInputTypes["DocumentAggregate"],
-	/** Авторизация расхода */
+	/** Авторизация расхода
+
+Требуемые роли: chairman, member.  */
 	authorization?:ResolverInputTypes["DocumentAggregate"],
 	/** Номер блока последнего обновления */
 	block_num?:boolean | `@${string}`,
@@ -20971,7 +21061,9 @@ export type ResolverInputTypes = {
 	description?:boolean | `@${string}`,
 	/** Хеш расхода */
 	expense_hash?:boolean | `@${string}`,
-	/** Служебная записка о расходе */
+	/** Служебная записка о расходе
+
+Требуемые роли: chairman, member.  */
 	expense_statement?:ResolverInputTypes["DocumentAggregate"],
 	/** ID фонда */
 	fund_id?:boolean | `@${string}`,
@@ -27334,6 +27426,12 @@ export type ResolverInputTypes = {
 	/** Токен доступа */
 	refresh_token: string
 };
+	["LookupOrganizationInput"]: {
+	/** Страна регистрации организации */
+	country: string,
+	/** ИНН организации */
+	inn: string
+};
 	["MakeClearanceInput"]: {
 	/** Вклад участника (текстовое описание) */
 	contribution?: string | undefined | null,
@@ -31236,6 +31334,46 @@ walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputType
 	kpp: string,
 	ogrn: string
 };
+	/** Регистрационные номера организации */
+["OrganizationLookupDetails"]: AliasType<{
+	/** ИНН */
+	inn?:boolean | `@${string}`,
+	/** КПП */
+	kpp?:boolean | `@${string}`,
+	/** ОГРН */
+	ogrn?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Руководитель организации по сведениям реестра */
+["OrganizationLookupRepresentative"]: AliasType<{
+	/** Имя */
+	first_name?:boolean | `@${string}`,
+	/** Фамилия */
+	last_name?:boolean | `@${string}`,
+	/** Отчество */
+	middle_name?:boolean | `@${string}`,
+	/** Должность */
+	position?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Сведения об организации из государственного реестра. Пустое поле реестр не знает — его заполняет пайщик */
+["OrganizationLookupResult"]: AliasType<{
+	/** Город */
+	city?:boolean | `@${string}`,
+	/** Регистрационные номера */
+	details?:ResolverInputTypes["OrganizationLookupDetails"],
+	/** Юридический адрес */
+	full_address?:boolean | `@${string}`,
+	/** Полное наименование */
+	full_name?:boolean | `@${string}`,
+	/** Руководитель */
+	represented_by?:ResolverInputTypes["OrganizationLookupRepresentative"],
+	/** Краткое наименование */
+	short_name?:boolean | `@${string}`,
+	/** Тип организации */
+	type?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	/** Тип юридического лица */
 ["OrganizationType"]:OrganizationType;
 	["OrganizationWithBankAccount"]: AliasType<{
@@ -32857,6 +32995,8 @@ getMeets?: [{	data: ResolverInputTypes["GetMeetsInput"]},ResolverInputTypes["Mee
 	getNodeSyncState?:ResolverInputTypes["NodeSyncState"],
 getNotification?: [{	id: string},ResolverInputTypes["NotificationDetail"]],
 getNotifications?: [{	filter: ResolverInputTypes["NotificationsFilterInput"],	pagination: ResolverInputTypes["PaginationInput"]},ResolverInputTypes["NotificationPaginationResult"]],
+	/** Страны, для которых анкета организации заполняется сведениями из реестра по ИНН */
+	getOrganizationLookupCountries?:boolean | `@${string}`,
 getParticipantCapabilitySets?: [{	username: string},ResolverInputTypes["CapabilitySetAssignment"]],
 getParticipantLoginSecurity?: [{	data: ResolverInputTypes["ResetParticipantTwoFactorInput"]},ResolverInputTypes["ParticipantLoginSecurity"]],
 getPaymentMethods?: [{	data?: ResolverInputTypes["GetPaymentMethodsInput"] | undefined | null},ResolverInputTypes["PaymentMethodPaginationResult"]],
@@ -32897,6 +33037,7 @@ kuDecisions?: [{	filter?: ResolverInputTypes["KuDecisionFilterInput"] | undefine
 kuTrustRequests?: [{	filter?: ResolverInputTypes["KuTrustRequestFilterInput"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedKuTrustRequestsPaginationResult"]],
 listExpensePlans?: [{	data?: ResolverInputTypes["ListExpensePlansInput"] | undefined | null},ResolverInputTypes["ExpensePlan"]],
 listReportDrafts?: [{	filter?: ResolverInputTypes["ListReportDraftsFilterInput"] | undefined | null},ResolverInputTypes["ReportDraft"]],
+lookupOrganization?: [{	data: ResolverInputTypes["LookupOrganizationInput"]},ResolverInputTypes["OrganizationLookupResult"]],
 marketplaceAidStatementSignablePayload?: [{	data: ResolverInputTypes["MarketplaceAidStatementSignablePayloadInput"]},ResolverInputTypes["GeneratedDocument"]],
 marketplaceAplReceptionChairmanSignablePayloads?: [{	data: ResolverInputTypes["MarketplaceAplReceptionByIdInput"]},ResolverInputTypes["DocumentAggregate"]],
 marketplaceAplReceptionSupplierSignablePayloads?: [{	data: ResolverInputTypes["MarketplaceAplReceptionByIdInput"]},ResolverInputTypes["GeneratedDocument"]],
@@ -36417,17 +36558,23 @@ export type ModelTypes = {
 	represented_by: ModelTypes["RepresentedBy"],
 	/** Краткое название организации */
 	short_name: string,
-	/** Доверенные аккаунты; пусто, если состав участка недоступен запрашивающему */
+	/** Доверенные аккаунты; пусто, если состав участка недоступен запрашивающему
+
+Требуемые роли: chairman, member.  */
 	trusted?: Array<ModelTypes["Individual"]> | undefined | null,
 	/** Сертификаты доверенных лиц участка (ФИО) */
 	trusted_certificates: Array<ModelTypes["IndividualCertificate"]>,
-	/** Председатель кооперативного участка; пусто, если состав участка недоступен запрашивающему */
+	/** Председатель кооперативного участка; пусто, если состав участка недоступен запрашивающему
+
+Требуемые роли: chairman, member.  */
 	trustee?: ModelTypes["Individual"] | undefined | null,
 	/** Сертификат председателя кооперативного участка (ФИО) */
 	trustee_certificate: ModelTypes["IndividualCertificate"],
 	/** Тип организации */
 	type: string,
-	/** Пайщики в белом списке приватного участка (ФИО); пусто, если участок не свой */
+	/** Пайщики в белом списке приватного участка (ФИО); пусто, если участок не свой
+
+Требуемые роли: chairman, member.  */
 	whitelist_certificates?: Array<ModelTypes["IndividualCertificate"]> | undefined | null
 };
 	["BranchEstablishmentDecisionGenerateDocumentInput"]: {
@@ -37526,7 +37673,9 @@ export type ModelTypes = {
 	block_num?: number | undefined | null,
 	/** Статус из блокчейна */
 	blockchain_status?: string | undefined | null,
-	/** Контракт участника */
+	/** Контракт участника
+
+Требуемые роли: chairman, member.  */
 	contract?: ModelTypes["DocumentAggregate"] | undefined | null,
 	/** Вклад как автор */
 	contributed_as_author?: string | undefined | null,
@@ -37691,9 +37840,13 @@ export type ModelTypes = {
 	_updated_at: ModelTypes["DateTime"],
 	/** Сумма долга */
 	amount?: string | undefined | null,
-	/** Одобренное заявление */
+	/** Одобренное заявление
+
+Требуемые роли: chairman, member.  */
 	approved_statement?: ModelTypes["DocumentAggregate"] | undefined | null,
-	/** Протокол решения совета */
+	/** Протокол решения совета
+
+Требуемые роли: chairman, member.  */
 	authorization?: ModelTypes["DocumentAggregate"] | undefined | null,
 	/** Номер блока последнего обновления */
 	block_num?: number | undefined | null,
@@ -37713,7 +37866,9 @@ export type ModelTypes = {
 	project_hash?: string | undefined | null,
 	/** Дата погашения */
 	repaid_at?: string | undefined | null,
-	/** Заявление на получение ссуды */
+	/** Заявление на получение ссуды
+
+Требуемые роли: chairman, member.  */
 	statement?: ModelTypes["DocumentAggregate"] | undefined | null,
 	/** Статус долга */
 	status: ModelTypes["DebtStatus"],
@@ -37730,9 +37885,13 @@ export type ModelTypes = {
 	_updated_at: ModelTypes["DateTime"],
 	/** Сумма расхода */
 	amount?: string | undefined | null,
-	/** Одобренная записка */
+	/** Одобренная записка
+
+Требуемые роли: chairman, member.  */
 	approved_statement?: ModelTypes["DocumentAggregate"] | undefined | null,
-	/** Авторизация расхода */
+	/** Авторизация расхода
+
+Требуемые роли: chairman, member.  */
 	authorization?: ModelTypes["DocumentAggregate"] | undefined | null,
 	/** Номер блока последнего обновления */
 	block_num?: number | undefined | null,
@@ -37744,7 +37903,9 @@ export type ModelTypes = {
 	description?: string | undefined | null,
 	/** Хеш расхода */
 	expense_hash: string,
-	/** Служебная записка о расходе */
+	/** Служебная записка о расходе
+
+Требуемые роли: chairman, member.  */
 	expense_statement?: ModelTypes["DocumentAggregate"] | undefined | null,
 	/** ID фонда */
 	fund_id?: number | undefined | null,
@@ -43864,6 +44025,12 @@ export type ModelTypes = {
 	/** Токен доступа */
 	refresh_token: string
 };
+	["LookupOrganizationInput"]: {
+	/** Страна регистрации организации */
+	country: string,
+	/** ИНН организации */
+	inn: string
+};
 	["MakeClearanceInput"]: {
 	/** Вклад участника (текстовое описание) */
 	contribution?: string | undefined | null,
@@ -48000,6 +48167,43 @@ export type ModelTypes = {
 	kpp: string,
 	ogrn: string
 };
+	/** Регистрационные номера организации */
+["OrganizationLookupDetails"]: {
+		/** ИНН */
+	inn: string,
+	/** КПП */
+	kpp?: string | undefined | null,
+	/** ОГРН */
+	ogrn?: string | undefined | null
+};
+	/** Руководитель организации по сведениям реестра */
+["OrganizationLookupRepresentative"]: {
+		/** Имя */
+	first_name?: string | undefined | null,
+	/** Фамилия */
+	last_name?: string | undefined | null,
+	/** Отчество */
+	middle_name?: string | undefined | null,
+	/** Должность */
+	position?: string | undefined | null
+};
+	/** Сведения об организации из государственного реестра. Пустое поле реестр не знает — его заполняет пайщик */
+["OrganizationLookupResult"]: {
+		/** Город */
+	city?: string | undefined | null,
+	/** Регистрационные номера */
+	details: ModelTypes["OrganizationLookupDetails"],
+	/** Юридический адрес */
+	full_address?: string | undefined | null,
+	/** Полное наименование */
+	full_name?: string | undefined | null,
+	/** Руководитель */
+	represented_by?: ModelTypes["OrganizationLookupRepresentative"] | undefined | null,
+	/** Краткое наименование */
+	short_name?: string | undefined | null,
+	/** Тип организации */
+	type?: ModelTypes["OrganizationType"] | undefined | null
+};
 	["OrganizationType"]:OrganizationType;
 	["OrganizationWithBankAccount"]: {
 		/** Банковские реквизиты */
@@ -49655,6 +49859,8 @@ export type ModelTypes = {
 	getNotification: ModelTypes["NotificationDetail"],
 	/** Журнал уведомлений кооператива с фильтрами и пагинацией */
 	getNotifications: ModelTypes["NotificationPaginationResult"],
+	/** Страны, для которых анкета организации заполняется сведениями из реестра по ИНН */
+	getOrganizationLookupCountries: Array<string>,
 	/** Активные наборы возможностей, назначенные пайщику */
 	getParticipantCapabilitySets: Array<ModelTypes["CapabilitySetAssignment"]>,
 	/** Подтверждение входа у пайщика: подключено ли приложение-аутентификатор (председателю) */
@@ -49721,6 +49927,8 @@ export type ModelTypes = {
 	listExpensePlans: Array<ModelTypes["ExpensePlan"]>,
 	/** Список черновиков форм отчётов текущего пользователя (с опциональной фильтрацией) */
 	listReportDrafts: Array<ModelTypes["ReportDraft"]>,
+	/** Сведения об организации из государственного реестра по ИНН; пусто — сведений нет, анкета заполняется вручную */
+	lookupOrganization?: ModelTypes["OrganizationLookupResult"] | undefined | null,
 	/** Сформировать Заявление на выплату материальной помощи для подписания получателем: идентификатор заявки фиксируется в документе и возвращается в его данных. */
 	marketplaceAidStatementSignablePayload: ModelTypes["GeneratedDocument"],
 	/** Акты приёмки, уже подписанные поставщиком, для закрывающей подписи председателя КУ. Каждый элемент содержит исходный документ для ознакомления и подпись поставщика; председатель накладывает свою подпись поверх. */
@@ -53292,17 +53500,23 @@ export type GraphQLTypes = {
 	represented_by: GraphQLTypes["RepresentedBy"],
 	/** Краткое название организации */
 	short_name: string,
-	/** Доверенные аккаунты; пусто, если состав участка недоступен запрашивающему */
+	/** Доверенные аккаунты; пусто, если состав участка недоступен запрашивающему
+
+Требуемые роли: chairman, member.  */
 	trusted?: Array<GraphQLTypes["Individual"]> | undefined | null,
 	/** Сертификаты доверенных лиц участка (ФИО) */
 	trusted_certificates: Array<GraphQLTypes["IndividualCertificate"]>,
-	/** Председатель кооперативного участка; пусто, если состав участка недоступен запрашивающему */
+	/** Председатель кооперативного участка; пусто, если состав участка недоступен запрашивающему
+
+Требуемые роли: chairman, member.  */
 	trustee?: GraphQLTypes["Individual"] | undefined | null,
 	/** Сертификат председателя кооперативного участка (ФИО) */
 	trustee_certificate: GraphQLTypes["IndividualCertificate"],
 	/** Тип организации */
 	type: string,
-	/** Пайщики в белом списке приватного участка (ФИО); пусто, если участок не свой */
+	/** Пайщики в белом списке приватного участка (ФИО); пусто, если участок не свой
+
+Требуемые роли: chairman, member.  */
 	whitelist_certificates?: Array<GraphQLTypes["IndividualCertificate"]> | undefined | null,
 	['...on Branch']: Omit<GraphQLTypes["Branch"], "...on Branch">
 };
@@ -54447,7 +54661,9 @@ export type GraphQLTypes = {
 	block_num?: number | undefined | null,
 	/** Статус из блокчейна */
 	blockchain_status?: string | undefined | null,
-	/** Контракт участника */
+	/** Контракт участника
+
+Требуемые роли: chairman, member.  */
 	contract?: GraphQLTypes["DocumentAggregate"] | undefined | null,
 	/** Вклад как автор */
 	contributed_as_author?: string | undefined | null,
@@ -54618,9 +54834,13 @@ export type GraphQLTypes = {
 	_updated_at: GraphQLTypes["DateTime"],
 	/** Сумма долга */
 	amount?: string | undefined | null,
-	/** Одобренное заявление */
+	/** Одобренное заявление
+
+Требуемые роли: chairman, member.  */
 	approved_statement?: GraphQLTypes["DocumentAggregate"] | undefined | null,
-	/** Протокол решения совета */
+	/** Протокол решения совета
+
+Требуемые роли: chairman, member.  */
 	authorization?: GraphQLTypes["DocumentAggregate"] | undefined | null,
 	/** Номер блока последнего обновления */
 	block_num?: number | undefined | null,
@@ -54640,7 +54860,9 @@ export type GraphQLTypes = {
 	project_hash?: string | undefined | null,
 	/** Дата погашения */
 	repaid_at?: string | undefined | null,
-	/** Заявление на получение ссуды */
+	/** Заявление на получение ссуды
+
+Требуемые роли: chairman, member.  */
 	statement?: GraphQLTypes["DocumentAggregate"] | undefined | null,
 	/** Статус долга */
 	status: GraphQLTypes["DebtStatus"],
@@ -54659,9 +54881,13 @@ export type GraphQLTypes = {
 	_updated_at: GraphQLTypes["DateTime"],
 	/** Сумма расхода */
 	amount?: string | undefined | null,
-	/** Одобренная записка */
+	/** Одобренная записка
+
+Требуемые роли: chairman, member.  */
 	approved_statement?: GraphQLTypes["DocumentAggregate"] | undefined | null,
-	/** Авторизация расхода */
+	/** Авторизация расхода
+
+Требуемые роли: chairman, member.  */
 	authorization?: GraphQLTypes["DocumentAggregate"] | undefined | null,
 	/** Номер блока последнего обновления */
 	block_num?: number | undefined | null,
@@ -54673,7 +54899,9 @@ export type GraphQLTypes = {
 	description?: string | undefined | null,
 	/** Хеш расхода */
 	expense_hash: string,
-	/** Служебная записка о расходе */
+	/** Служебная записка о расходе
+
+Требуемые роли: chairman, member.  */
 	expense_statement?: GraphQLTypes["DocumentAggregate"] | undefined | null,
 	/** ID фонда */
 	fund_id?: number | undefined | null,
@@ -61216,6 +61444,12 @@ export type GraphQLTypes = {
 	/** Токен доступа */
 	refresh_token: string
 };
+	["LookupOrganizationInput"]: {
+		/** Страна регистрации организации */
+	country: string,
+	/** ИНН организации */
+	inn: string
+};
 	["MakeClearanceInput"]: {
 		/** Вклад участника (текстовое описание) */
 	contribution?: string | undefined | null,
@@ -65627,6 +65861,49 @@ export type GraphQLTypes = {
 	kpp: string,
 	ogrn: string
 };
+	/** Регистрационные номера организации */
+["OrganizationLookupDetails"]: {
+	__typename: "OrganizationLookupDetails",
+	/** ИНН */
+	inn: string,
+	/** КПП */
+	kpp?: string | undefined | null,
+	/** ОГРН */
+	ogrn?: string | undefined | null,
+	['...on OrganizationLookupDetails']: Omit<GraphQLTypes["OrganizationLookupDetails"], "...on OrganizationLookupDetails">
+};
+	/** Руководитель организации по сведениям реестра */
+["OrganizationLookupRepresentative"]: {
+	__typename: "OrganizationLookupRepresentative",
+	/** Имя */
+	first_name?: string | undefined | null,
+	/** Фамилия */
+	last_name?: string | undefined | null,
+	/** Отчество */
+	middle_name?: string | undefined | null,
+	/** Должность */
+	position?: string | undefined | null,
+	['...on OrganizationLookupRepresentative']: Omit<GraphQLTypes["OrganizationLookupRepresentative"], "...on OrganizationLookupRepresentative">
+};
+	/** Сведения об организации из государственного реестра. Пустое поле реестр не знает — его заполняет пайщик */
+["OrganizationLookupResult"]: {
+	__typename: "OrganizationLookupResult",
+	/** Город */
+	city?: string | undefined | null,
+	/** Регистрационные номера */
+	details: GraphQLTypes["OrganizationLookupDetails"],
+	/** Юридический адрес */
+	full_address?: string | undefined | null,
+	/** Полное наименование */
+	full_name?: string | undefined | null,
+	/** Руководитель */
+	represented_by?: GraphQLTypes["OrganizationLookupRepresentative"] | undefined | null,
+	/** Краткое наименование */
+	short_name?: string | undefined | null,
+	/** Тип организации */
+	type?: GraphQLTypes["OrganizationType"] | undefined | null,
+	['...on OrganizationLookupResult']: Omit<GraphQLTypes["OrganizationLookupResult"], "...on OrganizationLookupResult">
+};
 	/** Тип юридического лица */
 ["OrganizationType"]: OrganizationType;
 	["OrganizationWithBankAccount"]: {
@@ -67447,6 +67724,8 @@ export type GraphQLTypes = {
 	getNotification: GraphQLTypes["NotificationDetail"],
 	/** Журнал уведомлений кооператива с фильтрами и пагинацией */
 	getNotifications: GraphQLTypes["NotificationPaginationResult"],
+	/** Страны, для которых анкета организации заполняется сведениями из реестра по ИНН */
+	getOrganizationLookupCountries: Array<string>,
 	/** Активные наборы возможностей, назначенные пайщику */
 	getParticipantCapabilitySets: Array<GraphQLTypes["CapabilitySetAssignment"]>,
 	/** Подтверждение входа у пайщика: подключено ли приложение-аутентификатор (председателю) */
@@ -67513,6 +67792,8 @@ export type GraphQLTypes = {
 	listExpensePlans: Array<GraphQLTypes["ExpensePlan"]>,
 	/** Список черновиков форм отчётов текущего пользователя (с опциональной фильтрацией) */
 	listReportDrafts: Array<GraphQLTypes["ReportDraft"]>,
+	/** Сведения об организации из государственного реестра по ИНН; пусто — сведений нет, анкета заполняется вручную */
+	lookupOrganization?: GraphQLTypes["OrganizationLookupResult"] | undefined | null,
 	/** Сформировать Заявление на выплату материальной помощи для подписания получателем: идентификатор заявки фиксируется в документе и возвращается в его данных. */
 	marketplaceAidStatementSignablePayload: GraphQLTypes["GeneratedDocument"],
 	/** Акты приёмки, уже подписанные поставщиком, для закрывающей подписи председателя КУ. Каждый элемент содержит исходный документ для ознакомления и подпись поставщика; председатель накладывает свою подпись поверх. */
@@ -71537,6 +71818,7 @@ type ZEUS_VARIABLES = {
 	["LogMetricContributionInput"]: ValueTypes["LogMetricContributionInput"];
 	["LoginInput"]: ValueTypes["LoginInput"];
 	["LogoutInput"]: ValueTypes["LogoutInput"];
+	["LookupOrganizationInput"]: ValueTypes["LookupOrganizationInput"];
 	["MakeClearanceInput"]: ValueTypes["MakeClearanceInput"];
 	["ManagedRoomKind"]: ValueTypes["ManagedRoomKind"];
 	["MarkReportPeriodInput"]: ValueTypes["MarkReportPeriodInput"];

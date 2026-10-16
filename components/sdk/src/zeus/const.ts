@@ -1131,6 +1131,9 @@ export const AllTypesProps: Record<string,any> = {
 	LogoutInput:{
 
 	},
+	LookupOrganizationInput:{
+
+	},
 	MakeClearanceInput:{
 		document:"SignedDigitalDocumentInput"
 	},
@@ -3477,6 +3480,9 @@ export const AllTypesProps: Record<string,any> = {
 		listReportDrafts:{
 			filter:"ListReportDraftsFilterInput"
 		},
+		lookupOrganization:{
+			data:"LookupOrganizationInput"
+		},
 		marketplaceAidStatementSignablePayload:{
 			data:"MarketplaceAidStatementSignablePayloadInput"
 		},
@@ -4149,10 +4155,6 @@ export const AllTypesProps: Record<string,any> = {
 }
 
 export const ReturnTypes: Record<string,any> = {
-	auth:{
-		roles:"String",
-		self:"String"
-	},
 	AccessGrant:{
 		action:"String",
 		resource:"String"
@@ -8318,6 +8320,26 @@ export const ReturnTypes: Record<string,any> = {
 		kpp:"String",
 		ogrn:"String"
 	},
+	OrganizationLookupDetails:{
+		inn:"String",
+		kpp:"String",
+		ogrn:"String"
+	},
+	OrganizationLookupRepresentative:{
+		first_name:"String",
+		last_name:"String",
+		middle_name:"String",
+		position:"String"
+	},
+	OrganizationLookupResult:{
+		city:"String",
+		details:"OrganizationLookupDetails",
+		full_address:"String",
+		full_name:"String",
+		represented_by:"OrganizationLookupRepresentative",
+		short_name:"String",
+		type:"OrganizationType"
+	},
 	OrganizationWithBankAccount:{
 		bank_account:"BankAccount",
 		city:"String",
@@ -9018,6 +9040,7 @@ export const ReturnTypes: Record<string,any> = {
 		getNodeSyncState:"NodeSyncState",
 		getNotification:"NotificationDetail",
 		getNotifications:"NotificationPaginationResult",
+		getOrganizationLookupCountries:"String",
 		getParticipantCapabilitySets:"CapabilitySetAssignment",
 		getParticipantLoginSecurity:"ParticipantLoginSecurity",
 		getPaymentMethods:"PaymentMethodPaginationResult",
@@ -9051,6 +9074,7 @@ export const ReturnTypes: Record<string,any> = {
 		kuTrustRequests:"PaginatedKuTrustRequestsPaginationResult",
 		listExpensePlans:"ExpensePlan",
 		listReportDrafts:"ReportDraft",
+		lookupOrganization:"OrganizationLookupResult",
 		marketplaceAidStatementSignablePayload:"GeneratedDocument",
 		marketplaceAplReceptionChairmanSignablePayloads:"DocumentAggregate",
 		marketplaceAplReceptionSupplierSignablePayloads:"GeneratedDocument",
