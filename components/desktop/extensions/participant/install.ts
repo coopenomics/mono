@@ -12,7 +12,6 @@ import { MeetDetailsPage } from 'src/pages/Cooperative/MeetDetails';
 import { UserDocumentsPage } from 'src/pages/User/DocumentsPage';
 import { DocumentDetailsPage } from 'src/pages/Cooperative/DocumentDetails';
 import { UserPaymentsPage } from 'src/pages/User/PaymentsPage';
-import { UserAdvancesPage } from 'src/pages/User/AdvancesPage';
 import { SupportTrigger } from 'src/pages/Support';
 import { agreementsBase } from 'src/shared/lib/consts/workspaces';
 import type { IWorkspaceConfig } from 'src/shared/lib/types/workspace';
@@ -168,19 +167,6 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             path: 'payments',
             name: 'user-payments',
             component: markRaw(UserPaymentsPage),
-          },
-          {
-            // Авансы под отчёт: служебные записки, где пайщик — получатель
-            // аванса. Право выдаёт таблица прав расходов (стол пайщика).
-            meta: {
-              title: t('participant.install.advancesTitle'),
-              icon: 'savings',
-              requires: 'ExpenseProposal:read',
-              requiresAuth: true,
-            },
-            path: 'advances',
-            name: 'user-advances',
-            component: markRaw(UserAdvancesPage),
           },
           {
             meta: {

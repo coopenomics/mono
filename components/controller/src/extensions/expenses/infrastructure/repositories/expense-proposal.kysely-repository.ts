@@ -6,7 +6,11 @@ import type { IBlockchainSyncRepository } from '@coopenomics/extension-kit/sync'
 import { ExpenseProposalDomainEntity } from '../../domain/entities/expense-proposal.entity';
 import { ExpenseProposalRecord } from '../entities/expense-proposal.record';
 import { ExpenseProposalMapper } from '../mappers/expense-proposal.mapper';
-import type { ExpenseProposalRepository } from '../../domain/repositories/expense-proposal.repository';
+import type {
+  ExpenseProposalRepository,
+  IExpenseAdvanceQuery,
+  IExpenseAdvanceRow,
+} from '../../domain/repositories/expense-proposal.repository';
 import type { IExpenseProposalDatabaseData } from '../../domain/interfaces/expense-proposal-database.interface';
 import type { IExpenseProposalBlockchainData } from '../../domain/interfaces/expense-proposal-blockchain.interface';
 import { ExpenseChainMechanics } from '../../domain/enums/expense-mechanics.enum';
@@ -78,29 +82,41 @@ export class ExpenseProposalKyselyRepository
   }
 
   /**
-   * Строки записки лежат одним json-массивом `items`: записка подходит, если
-   * в нём есть строка-аванс на этого получателя. Строки оплаты по счёту на то
-   * же имя авансом не считаются.
+   * Строки записки лежат одним json-массивом `items`: массив разворачивается в
+   * строки, и одна строка ответа — один аванс. Строки оплаты по счёту авансом
+   * не считаются. Порядок — новые записки сверху, внутри записки — по хешу строки.
    */
-  async findAdvancesByRecipientPaginated(
+  async findAdvances(
     coopname: string,
-    recipient: string,
+    query: IExpenseAdvanceQuery,
     options?: PaginationInputDTO
-  ): Promise<{ items: ExpenseProposalDomainEntity[]; totalCount: number }> {
-    const { limit, offset, sortBy, sortOrder } = this.pageOf(options);
-    const advance = JSON.stringify([{ recipient, mechanics: ExpenseChainMechanics.ADVANCE }]);
-    const [entities, totalCount] = await this.repository
-      .sqlBuilder('p')
-      .where('p.coopname = :coopname', { coopname })
-      .andWhere('p.items @> CAST(:advance AS jsonb)', { advance })
-      .orderBy(`p."${sortBy}"`, sortOrder)
+  ): Promise<{ items: IExpenseAdvanceRow[]; totalCount: number }> {
+    const { limit, offset } = this.pageOf(options);
+    const rows = await this.advancesOf(coopname, query)
+      .select('p.proposal_hash', 'proposal_hash')
+      .addSelect('i.value', 'item')
+      .orderBy('p.created_at', 'DESC')
+      .addOrderBy("i.value->>'item_hash'", 'ASC')
       .limit(limit)
       .offset(offset)
-      .getManyAndCount();
-    return {
-      items: entities.map((e) => ExpenseProposalMapper.toDomain(e)),
-      totalCount,
-    };
+      .getRawMany<IExpenseAdvanceRow>();
+    const total = await this.advancesOf(coopname, query).select('COUNT(*)', 'count').getRawOne<{ count: string }>();
+    return { items: rows, totalCount: Number(total?.count ?? 0) };
+  }
+
+  private advancesOf(coopname: string, query: IExpenseAdvanceQuery) {
+    const builder = this.repository
+      .sqlBuilder('p')
+      .innerJoin('jsonb_array_elements(p.items)', 'i', 'true')
+      .where('p.coopname = :coopname', { coopname })
+      .andWhere("CAST(i.value->>'mechanics' AS integer) = :advance", { advance: ExpenseChainMechanics.ADVANCE })
+      .andWhere("CAST(i.value->>'status' AS integer) IN (:...statuses)", { statuses: query.statuses });
+    if (query.onlyItems) builder.andWhere("LOWER(i.value->>'item_hash') IN (:...onlyItems)", { onlyItems: query.onlyItems });
+    // Пустой перечень исключений не пишется: NOT IN (NULL) отсёк бы все строки.
+    if (query.exceptItems?.length) {
+      builder.andWhere("LOWER(i.value->>'item_hash') NOT IN (:...exceptItems)", { exceptItems: query.exceptItems });
+    }
+    return builder;
   }
 
   private async paginate(

@@ -31,6 +31,7 @@ import { ExpensePlansResolver } from './application/resolvers/expense-plans.reso
 import { ExpensesLiveFeedService } from './application/services/expenses-live-feed.service';
 import { APP_RIGHTS, RightsGuard } from '@coopenomics/extension-kit';
 import { ExpensesRights } from './application/access/expenses-rights';
+import { ExpenseAdvancesService } from './application/services/expense-advances.service';
 
 /**
  * Расширение «Расходы» цифрового кооператива.
@@ -86,6 +87,7 @@ import { ExpensesRights } from './application/access/expenses-rights';
     ExpensePaymentsListener,
     ExpenseAdvanceReminderService,
     ExpenseFilesService,
+    ExpenseAdvancesService,
     ExpenseProposalResolver,
     ExpenseMutationsResolver,
     ExpenseFilesResolver,

@@ -804,6 +804,10 @@ export const AllTypesProps: Record<string,any> = {
 		liability:"BranchTrusteeLiabilityAgreementSignedDocumentInput",
 		petition:"BranchEstablishmentPetitionSignedDocumentInput"
 	},
+	ExpenseAdvanceState: "enum" as const,
+	ExpenseAdvancesFilterInput:{
+		state:"ExpenseAdvanceState"
+	},
 	ExpenseCallbackInput:{
 
 	},
@@ -3272,7 +3276,8 @@ export const AllTypesProps: Record<string,any> = {
 		edubridgeTeacherContractDocument:{
 
 		},
-		expenseAdvancesByMember:{
+		expenseAdvancesByCooperative:{
+			filter:"ExpenseAdvancesFilterInput",
 			options:"PaginationInput"
 		},
 		expenseFile:{
@@ -6264,6 +6269,17 @@ export const ReturnTypes: Record<string,any> = {
 		inn:"String",
 		ogrn:"String"
 	},
+	ExpenseAdvance:{
+		advance_amount:"String",
+		description:"String",
+		issued_at:"DateTime",
+		item_hash:"String",
+		proposal_hash:"String",
+		recipient:"String",
+		recipient_name:"String",
+		spent_amount:"String",
+		state:"ExpenseAdvanceState"
+	},
 	ExpenseFile:{
 		checksum_sha256:"String",
 		coopname:"String",
@@ -8406,6 +8422,12 @@ export const ReturnTypes: Record<string,any> = {
 		totalCount:"Int",
 		totalPages:"Int"
 	},
+	PaginatedExpenseAdvancesPaginationResult:{
+		currentPage:"Int",
+		items:"ExpenseAdvance",
+		totalCount:"Int",
+		totalPages:"Int"
+	},
 	PaginatedExpenseProposalsPaginationResult:{
 		currentPage:"Int",
 		items:"ExpenseProposal",
@@ -8851,7 +8873,7 @@ export const ReturnTypes: Record<string,any> = {
 		edubridgeTeacherContractDocument:"DocumentAggregate",
 		edubridgeTeacherOptions:"EduTeacherOption",
 		edubridgeTeachers:"EduTeacher",
-		expenseAdvancesByMember:"PaginatedExpenseProposalsPaginationResult",
+		expenseAdvancesByCooperative:"PaginatedExpenseAdvancesPaginationResult",
 		expenseFile:"ExpenseFile",
 		expenseFilesByItem:"ExpenseFile",
 		expenseFilesByProposal:"ExpenseFile",

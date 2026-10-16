@@ -101,6 +101,7 @@ const SUITES: Suite[] = [
       submitExpenseReport: COUNCIL,
       expenseRequisitesByProposal: COUNCIL,
       expenseProposalsByCooperative: COUNCIL,
+      expenseAdvancesByCooperative: COUNCIL,
       generateExpenseProposalDecisionDocument: CHAIR,
       payExpenseItem: CHAIR,
       overspendExpenseItem: CHAIR,

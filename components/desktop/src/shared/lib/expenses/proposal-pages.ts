@@ -1,7 +1,7 @@
 /**
  * Постраничный список служебных записок, живущий по ленте изменений.
  *
- * Реестр расходов, касса и авансы пайщика грузят записки одинаково: первая
+ * Реестр расходов, касса и авансы стола кассира грузят списки одинаково: первая
  * страница при открытии, «Показать ещё» дочитывает следующую, а создание,
  * утверждение, оплата и файлы приходят сигналом ленты — показанные страницы
  * перечитываются одним запросом тихо, без каркаса и всплывающей ошибки.
@@ -41,15 +41,19 @@ export interface ILiveProposalPages<T> {
   totalCount: Ref<number>;
   hasMore: ComputedRef<boolean>;
   loadMore: () => void;
+  /** Перечитать с первой страницы — после смены отбора. */
+  reload: () => Promise<void>;
 }
 
 /**
  * `fetch` возвращает `null`, когда спрашивать ещё не о чем (нет кооператива
- * или пайщика в сессии).
+ * или пайщика в сессии). `extraTables` — таблицы ленты сверх таблиц расходов,
+ * от которых зависит список (авансы на кассе живут и по реестру платежей).
  */
 export function useLiveProposalPages<T>(
   fetch: (query: IProposalPageQuery) => Promise<IProposalPage<T> | null>,
   pageLimit: number,
+  extraTables: ChainTableRef[] = [],
 ): ILiveProposalPages<T> {
   const items = ref<T[]>([]) as Ref<T[]>;
   // true до первого ответа: первый кадр показывает каркас, а не «пусто».
@@ -88,7 +92,7 @@ export function useLiveProposalPages<T>(
     void loadPage(1);
   });
 
-  useLiveReload(EXPENSE_LIVE_TABLES, async () => {
+  useLiveReload([...EXPENSE_LIVE_TABLES, ...extraTables], async () => {
     const window = liveWindow(currentPage.value, pageLimit);
     try {
       const result = await fetch(query(window.options.page, window.options.limit));
@@ -102,5 +106,5 @@ export function useLiveProposalPages<T>(
     }
   });
 
-  return { items, loading, firstLoad, totalCount, hasMore, loadMore };
+  return { items, loading, firstLoad, totalCount, hasMore, loadMore, reload: () => loadPage(1) };
 }

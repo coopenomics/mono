@@ -35,7 +35,7 @@ const PROPOSAL_FIELDS = `proposal_hash coopname username source_wallet status to
 const GET = `query($h:String!){ expenseProposal(proposal_hash:$h){ ${PROPOSAL_FIELDS} } }`
 const BY_COOP = `query($c:String!,$o:PaginationInput){ expenseProposalsByCooperative(coopname:$c, options:$o){ items{ proposal_hash status } totalPages currentPage } }`
 const BY_MEMBER = `query($c:String!,$u:String!,$o:PaginationInput){ expenseProposalsByMember(coopname:$c, username:$u, options:$o){ items{ proposal_hash username } totalPages } }`
-const ADVANCES = `query($c:String!,$u:String!,$o:PaginationInput){ expenseAdvancesByMember(coopname:$c, username:$u, options:$o){ items{ proposal_hash username } totalPages } }`
+const ADVANCES = `query($c:String!,$f:ExpenseAdvancesFilterInput,$o:PaginationInput){ expenseAdvancesByCooperative(coopname:$c, filter:$f, options:$o){ items{ proposal_hash item_hash recipient recipient_name description advance_amount spent_amount state issued_at } totalPages } }`
 const REQUISITES = `query($c:String!,$h:String!){ expenseRequisitesByProposal(coopname:$c, proposal_hash:$h){ proposal_hash item_hash recipient method_type data requisites payment_purpose } }`
 const PAY = `mutation($d:PayExpenseItemInput!){ payExpenseItem(data:$d){ __typename } }`
 const RETURN = `mutation($d:ReturnExpenseItemInput!){ returnExpenseItem(data:$d){ __typename } }`
@@ -64,15 +64,26 @@ async function findInCoopList(token: string, proposalHash: string): Promise<any 
   return undefined
 }
 
-/** Ищет записку в постраничном списке пайщика: поданных им (по умолчанию) или его авансов. */
-async function findInMemberList(token: string, username: string, proposalHash: string, list: 'expenseProposalsByMember' | 'expenseAdvancesByMember' = 'expenseProposalsByMember'): Promise<any | undefined> {
-  const query = list === 'expenseAdvancesByMember' ? ADVANCES : BY_MEMBER
+async function findInMemberList(token: string, username: string, proposalHash: string): Promise<any | undefined> {
   for (let page = 1; page <= 50; page++) {
-    const d = await gql<any>(token, query, { c: COOP, u: username, o: { page, limit: 50, sortOrder: 'DESC' } })
-    const hit = d[list].items.find((p: any) => p.proposal_hash === proposalHash)
+    const d = await gql<any>(token, BY_MEMBER, { c: COOP, u: username, o: { page, limit: 50, sortOrder: 'DESC' } })
+    const hit = d.expenseProposalsByMember.items.find((p: any) => p.proposal_hash === proposalHash)
     if (hit)
       return hit
-    if (page >= d[list].totalPages)
+    if (page >= d.expenseProposalsByMember.totalPages)
+      return undefined
+  }
+  return undefined
+}
+
+/** Ищет аванс по хешу строки среди выданных авансов кооператива (с отбором по состоянию). */
+async function findAdvance(token: string, itemHash: string, state?: string): Promise<any | undefined> {
+  for (let page = 1; page <= 50; page++) {
+    const d = await gql<any>(token, ADVANCES, { c: COOP, f: state ? { state } : null, o: { page, limit: 50 } })
+    const hit = d.expenseAdvancesByCooperative.items.find((a: any) => a.item_hash === itemHash)
+    if (hit)
+      return hit
+    if (page >= d.expenseAdvancesByCooperative.totalPages)
       return undefined
   }
   return undefined
@@ -269,27 +280,25 @@ describe('expenses: служебная записка на расход', () => 
     expect(await findInMemberList(chairman, COUNCIL.account, draft.proposal_hash)).toBeDefined()
   })
 
-  // ── Авансы пайщика (стол пайщика, «Авансы») ─────────────────────────────
+  // ── Авансы кооператива (стол кассира, «Авансы») ────────────────────────
 
-  // exp.adv.happy.02: в отбор попадает только строка-аванс на этого получателя.
-  it(caseName('exp.adv.happy.01', 'записка видна в авансах получателя аванса, но не в авансах её автора'), async () => {
-    expect(await findInMemberList(recipientToken, recipient.account, draft.proposal_hash, 'expenseAdvancesByMember')).toMatchObject({ username: COUNCIL.account })
-    expect(await findInMemberList(chairman, recipient.account, draft.proposal_hash, 'expenseAdvancesByMember')).toBeDefined()
-    // У автора в записке строка оплаты по счёту организации, аванса ему нет.
-    expect(await findInMemberList(council, COUNCIL.account, draft.proposal_hash, 'expenseAdvancesByMember')).toBeUndefined()
+  it(caseName('exp.adv.happy.03', 'до выдачи аванс на кассе не стоит'), async () => {
+    expect(await findAdvance(chairman, memberItem)).toBeUndefined()
   })
 
-  it(caseName('exp.adv.side.01', 'чужие авансы пайщику закрыты, гостю — вход'), async () => {
-    const err = await gqlError(other, ADVANCES, { c: COOP, u: recipient.account, o: { page: 1, limit: 10, sortOrder: 'DESC' } })
-    expect(err?.code).toBe('EXPENSES_PROPOSAL_ACCESS_DENIED')
-    const guest = await gqlError(null, ADVANCES, { c: COOP, u: recipient.account, o: { page: 1, limit: 10, sortOrder: 'DESC' } })
+  it(caseName('exp.adv.side.01', 'авансы кооператива — совету, кассиру и ревизору; пайщику и получателю отказ, гостю — вход'), async () => {
+    for (const token of [member, recipientToken]) {
+      const err = await gqlError(token, ADVANCES, { c: COOP, o: { page: 1, limit: 10 } })
+      expect(err?.code).toBe('KIT_INSUFFICIENT_RIGHTS')
+    }
+    const guest = await gqlError(null, ADVANCES, { c: COOP, o: { page: 1, limit: 10 } })
     expect(String(guest?.code)).toBe('401')
+    expect(await gqlError(council, ADVANCES, { c: COOP, o: { page: 1, limit: 10 } })).toBeNull()
   })
 
-  it(caseName('exp.adv.side.02', 'неизвестная колонка сортировки и лимит сверх предела список авансов не роняют'), async () => {
-    const d = await gql<any>(recipientToken, ADVANCES, { c: COOP, u: recipient.account, o: { page: 1, limit: 500, sortBy: 'drop table', sortOrder: 'ASC' } })
-    expect(d.expenseAdvancesByMember.items.length).toBeLessThanOrEqual(200)
-    expect(d.expenseAdvancesByMember.items.map((p: any) => p.proposal_hash)).toContain(draft.proposal_hash)
+  it(caseName('exp.adv.side.04', 'лимит сверх предела и неизвестная колонка сортировки список авансов не роняют'), async () => {
+    const d = await gql<any>(chairman, ADVANCES, { c: COOP, o: { page: 1, limit: 500, sortBy: 'drop table', sortOrder: 'ASC' } })
+    expect(d.expenseAdvancesByCooperative.items.length).toBeLessThanOrEqual(200)
   })
 
   // ── Права на операции со строками ────────────────────────────────────────
@@ -480,6 +489,14 @@ describe('expenses: служебная записка на расход', () => 
     expect(p.status).toBe('PARTIALLY_PAID')
     expect(itemStatus(p, memberItem)).toBe('PAID')
 
+    // exp.adv.happy.01: выданный аванс стоит на кассе — получатель по ФИО, сумма, «ждёт отчёта».
+    const issued = await findAdvance(chairman, memberItem, 'AWAITING_REPORT')
+    expect(issued).toMatchObject({ proposal_hash: draft.proposal_hash, recipient: recipient.account, advance_amount: '700.0000 RUB', spent_amount: null, state: 'AWAITING_REPORT' })
+    expect(issued.recipient_name).not.toBe(recipient.account)
+    // exp.adv.happy.02: отбор по состоянию — среди отчитанных его ещё нет; строка организации авансом не числится.
+    expect(await findAdvance(chairman, memberItem, 'REPORTED')).toBeUndefined()
+    expect(await findAdvance(chairman, orgItem)).toBeUndefined()
+
     // Повторная оплата уже оплаченной строки отвергается.
     expect(await gqlError(chairman, PAY, { d: { coopname: COOP, proposal_hash: draft.proposal_hash, item_hash: orgItem, actual_amount: '1500.0000 RUB' } })).not.toBeNull()
 
@@ -489,6 +506,9 @@ describe('expenses: служебная записка на расход', () => 
     p = await state()
     expect(itemStatus(p, memberItem)).toBe('REPORTED')
     expect(p.status).toBe('REPORT_SUBMITTED')
+    // exp.adv.happy.02: после отчёта аванс среди отчитанных, потрачено — по итогу строки.
+    expect(await findAdvance(chairman, memberItem, 'REPORTED')).toMatchObject({ state: 'REPORTED', spent_amount: '700.0000 RUB' })
+    expect(await findAdvance(chairman, memberItem, 'AWAITING_REPORT')).toBeUndefined()
     expect(await gqlError(recipientToken, REPORT, { d: { coopname: COOP, proposal_hash: draft.proposal_hash, item_hash: memberItem } }),
       'повторный отчёт отклонён').not.toBeNull()
 

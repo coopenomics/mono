@@ -1,9 +1,9 @@
 import { client } from 'src/shared/api/client';
 import { Queries } from '@coopenomics/sdk';
 import type {
-  IExpenseAdvancesByMemberResult,
+  IExpenseAdvancesByCooperativeResult,
   IExpenseProposalsByCooperativeResult,
-  IGetExpenseAdvancesByMemberInput,
+  IGetExpenseAdvancesByCooperativeInput,
   IGetExpenseProposalsByCooperativeInput,
 } from '../model/types';
 
@@ -18,15 +18,15 @@ async function loadProposalsByCooperative(
   return result;
 }
 
-/** Служебные записки, по строкам которых пайщик получает аванс под отчёт. */
-async function loadAdvancesByMember(
-  data: IGetExpenseAdvancesByMemberInput,
-): Promise<IExpenseAdvancesByMemberResult> {
-  const { [Queries.Expense.ExpenseAdvancesByMember.name]: result } = await client.Query(
-    Queries.Expense.ExpenseAdvancesByMember.query,
+/** Выданные авансы под отчёт по кооперативу с отбором по состоянию. */
+async function loadAdvancesByCooperative(
+  data: IGetExpenseAdvancesByCooperativeInput,
+): Promise<IExpenseAdvancesByCooperativeResult> {
+  const { [Queries.Expense.ExpenseAdvancesByCooperative.name]: result } = await client.Query(
+    Queries.Expense.ExpenseAdvancesByCooperative.query,
     { variables: data },
   );
   return result;
 }
 
-export const api = { loadProposalsByCooperative, loadAdvancesByMember };
+export const api = { loadProposalsByCooperative, loadAdvancesByCooperative };

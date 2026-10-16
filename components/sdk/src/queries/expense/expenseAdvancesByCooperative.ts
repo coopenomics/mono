@@ -1,16 +1,16 @@
-import { expenseProposalsPaginationSelector } from '../../selectors/expense'
+import { expenseAdvancesPaginationSelector } from '../../selectors/expense'
 import { $, type GraphQLTypes, type InputType, type ModelTypes, Selector } from '../../zeus/index'
 
-export const name = 'expenseAdvancesByMember'
+export const name = 'expenseAdvancesByCooperative'
 
 export const query = Selector('Query')({
   [name]: [
     {
       coopname: $('coopname', 'String!'),
-      username: $('username', 'String!'),
+      filter: $('filter', 'ExpenseAdvancesFilterInput'),
       options: $('options', 'PaginationInput'),
     },
-    expenseProposalsPaginationSelector,
+    expenseAdvancesPaginationSelector,
   ],
 })
 
@@ -21,7 +21,7 @@ export interface IInput {
   [key: string]: unknown
 
   coopname: string
-  username: string
+  filter?: ModelTypes['ExpenseAdvancesFilterInput']
   options?: ModelTypes['PaginationInput']
 }
 

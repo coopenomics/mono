@@ -17,8 +17,11 @@ title: Стол кассира — касса, реестр платежей к�
 # чтением служебных записок и их файлов (касса), загрузка в чужую записку
 # кассиру закрыта.
 #
-# «Авансы» стола пайщика читают записки, где пайщик — получатель аванса под
-# отчёт (`expenseAdvancesByMember`, случаи exp.adv.* в expenses.proposals.yaml).
+# «Авансы» стола кассира — выданные авансы под отчёт по кооперативу с отбором
+# по состоянию (`expenseAdvancesByCooperative`, случаи exp.adv.* в
+# expenses.proposals.yaml). Задачи кассы — уведомления «подтвердите платёж» о
+# заявках на взносы и выплатах Стола заказов — получают председатель и кассиры,
+# ссылка ведёт в реестр платежей стола кассира (случаи cashier.notify.*).
 #
 # Заведено 16.10.2026 (7DD-25).
 
@@ -26,9 +29,12 @@ sources:
   backend:
     - components/controller/src/extensions/cashier/**
     - components/controller/src/infrastructure/database/migrations/1792132849961-cashier-role-to-cashier-desk.ts
+    - components/controller/src/application/rights/cash-desk-confirmers.ts
+    - components/controller/src/infrastructure/innercoop/payment-desk-innercoop.adapter.ts
+    - components/controller/src/application/wallet/services/wallet-notification.service.ts
+    - components/controller/src/application/participant/services/participant-notification.service.ts
   ui:
     - components/desktop/extensions/cashier/**
-    - components/desktop/src/pages/User/AdvancesPage/**
     - components/desktop/src/entities/ExpenseProposal/**
     - components/desktop/src/shared/lib/expenses/proposal-*.ts
     - components/desktop/src/pages/Cooperative/Payments/**
@@ -186,15 +192,82 @@ cases:
   - id: cashier.desk.ui.02
     level: ui
     kind: happy
-    scenario: председатель открывает реестр платежей стола кассира
-    expect: платёж по утверждённой записке виден, кнопка подтверждения оплаты есть
+    scenario: председатель открывает реестр платежей стола кассира и выдаёт аванс
+    expect: платежи по утверждённой записке видны, подтверждение оплаты есть на этом столе; аванс подтверждён, повторный прогон его не выдаёт второй раз
     test: components/docs-harness/scenarios/cashier/payments.mjs
     status: written   # прогон — стенд CI, сюита cashier
 
   - id: cashier.desk.ui.03
     level: ui
     kind: happy
-    scenario: получатель аванса открывает «Авансы» на столе пайщика
-    expect: записка с его строкой-авансом и суммой аванса; строка организации той же записки в авансах не стоит; строка открывает записку
+    scenario: председатель открывает «Авансы» стола кассира после выдачи аванса в реестре платежей стола кассира
+    expect: аванс Ивана Петрова — ФИО, назначение, 1 500,00, «ждёт отчёта»; строки организации нет; во вкладке «Отчитан» его нет; строка открывает записку
     test: components/docs-harness/scenarios/cashier/advances.mjs
     status: written   # прогон — стенд CI, сюита cashier
+
+  - id: cashier.notify.happy.01
+    level: backend
+    kind: happy
+    scenario: пайщик заводит заявку на паевой взнос в кооперативе с кассиром
+    expect: задачу кассы получают кассир и председатель, каждый со своим обращением; ссылка — реестр платежей стола кассира по пайщику
+    test: components/controller/tests/unit/rights/cash-desk-confirmers.test.ts
+    api: components/api-tests/src/payments/cash-desk-notifications.test.ts
+    status: written   # прогон — CI на полигоне ci/tests
+
+  - id: cashier.notify.happy.02
+    level: backend
+    kind: happy
+    scenario: кто подтверждает платежи
+    expect: председатель и держатели роли «Кассир» стола кассира; председатель с ролью — один раз; без кассиров — председатель
+    test: components/controller/tests/unit/rights/cash-desk-confirmers.test.ts
+    api: components/api-tests/src/payments/cash-desk-notifications.test.ts
+    status: written   # прогон — CI на полигоне ci/tests
+
+  - id: cashier.notify.happy.03
+    level: backend
+    kind: happy
+    scenario: заявка на вступительный или паевой взнос — задача кассы из ядра
+    expect: каждому подтверждающему уходит уведомление на его почту и подписку с его ФИО в обращении
+    test: components/controller/tests/unit/rights/cash-desk-confirmers.test.ts
+    api: components/api-tests/src/payments/cash-desk-notifications.test.ts
+    status: written   # прогон — CI на полигоне ci/tests
+
+  - id: cashier.notify.happy.04
+    level: backend
+    kind: happy
+    scenario: Стол заказов заводит выплату поставщику по акту приёмки
+    expect: задачу получают председатель и каждый кассир; ссылка — реестр платежей стола кассира по поставщику
+    test: components/controller/tests/unit/rights/cash-desk-confirmers.test.ts
+    external: unreachable
+    external_reason: выплату поставщику Стол заказов заводит только после полного цикла приёмки с подписями председателя; путь уведомления общий с cashier.notify.happy.01 (кассирский порт)
+    status: written   # прогон — CI на полигоне ci/tests
+
+  - id: cashier.notify.side.01
+    level: backend
+    kind: side
+    scenario: председатель снимает роль «Кассир», затем пайщик заводит заявку на взнос
+    expect: задачу получает председатель, бывшему кассиру её нет
+    test: components/api-tests/src/payments/cash-desk-notifications.test.ts
+    api: components/api-tests/src/payments/cash-desk-notifications.test.ts
+    status: written   # прогон — ночной внешний слой
+
+  - id: cashier.notify.side.02
+    level: backend
+    kind: side
+    scenario: у подтверждающего нет почты или подписки на уведомления; некому слать
+    expect: он пропускается с предупреждением, остальные получают задачу; без получателей — предупреждение, ни одной отправки
+    test: components/controller/tests/unit/rights/cash-desk-confirmers.test.ts
+    external: unreachable
+    external_reason: пайщик стенда всегда заводится с почтой и подпиской, снаружи их не убрать
+    status: written   # прогон — CI на полигоне ci/tests
+
+  - id: cashier.notify.side.03
+    level: backend
+    kind: side
+    scenario: доставка задачи о выплате поставщику одному из получателей не удалась
+    expect: остальные получатели задачу получают, процесс Стола заказов не прерывается
+    test: components/controller/tests/unit/rights/cash-desk-confirmers.test.ts
+    external: unreachable
+    external_reason: отказ доставки одному адресату снаружи не вызвать — Центр уведомлений общий для всех
+    status: written   # прогон — CI на полигоне ci/tests
+

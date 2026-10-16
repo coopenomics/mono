@@ -5,10 +5,13 @@ export type IGetExpenseProposalsByCooperativeInput = Queries.Expense.ExpenseProp
 export type IExpenseProposalsByCooperativeResult =
   Queries.Expense.ExpenseProposalsByCooperative.IOutput[typeof Queries.Expense.ExpenseProposalsByCooperative.name];
 
-export type IGetExpenseAdvancesByMemberInput = Queries.Expense.ExpenseAdvancesByMember.IInput;
+export type IGetExpenseAdvancesByCooperativeInput = Queries.Expense.ExpenseAdvancesByCooperative.IInput;
 
-export type IExpenseAdvancesByMemberResult =
-  Queries.Expense.ExpenseAdvancesByMember.IOutput[typeof Queries.Expense.ExpenseAdvancesByMember.name];
+export type IExpenseAdvancesByCooperativeResult =
+  Queries.Expense.ExpenseAdvancesByCooperative.IOutput[typeof Queries.Expense.ExpenseAdvancesByCooperative.name];
+
+/** Выданный аванс под отчёт — строка страницы «Авансы» стола кассира. */
+export type IExpenseAdvanceRow = NonNullable<IExpenseAdvancesByCooperativeResult['items']>[number];
 
 /** Строка списка служебных записок (реестр, касса, авансы — одна выборка). */
 export type IExpenseProposalRow = NonNullable<IExpenseProposalsByCooperativeResult['items']>[number];

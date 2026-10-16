@@ -2234,6 +2234,7 @@
 - `getPayments(filters: InnerPaymentFilters, page: InnerPageRequest): Promise<InnerPage<InnerPayment>>`
 - `setPaymentStatus(input: InnerSetPaymentStatusInput): Promise<InnerPayment>`
 - `createSystemOutgoingPayment(input: InnerSystemOutgoingPaymentInput): Promise<InnerPayment>`
+- `confirmers(): Promise<string[]>`
 
 ## IPaymentMethodPort
 

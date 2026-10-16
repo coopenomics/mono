@@ -1,9 +1,9 @@
 import './i18n';
-import { markRaw } from 'vue';
+import { markRaw, type Component } from 'vue';
 import { agreementsBase } from 'src/shared/lib/consts/workspaces';
-import type { IWorkspaceConfig } from 'src/shared/lib/types/workspace';
+import type { IWorkspaceConfig, IWorkspaceRoute } from 'src/shared/lib/types/workspace';
 import { PaymentsPage } from 'src/pages/Cooperative/Payments';
-import { CashierPage } from './pages';
+import { AdvancesPage, CashierPage } from './pages';
 import { t } from './i18n';
 
 /**
@@ -12,6 +12,17 @@ import { t } from './i18n';
  * платежей на столе совета.
  */
 const CASHIER_RIGHT = 'Payment:confirm';
+
+/** Страница стола кассира под общим правом стола. */
+function page(path: string, name: string, component: Component, title: string, icon: string): IWorkspaceRoute {
+  return {
+    path,
+    name,
+    component: markRaw(component),
+    meta: { title, icon, requires: CASHIER_RIGHT, agreements: agreementsBase, requiresAuth: true },
+    children: [],
+  };
+}
 
 export default async function (): Promise<IWorkspaceConfig[]> {
   return [{
@@ -30,34 +41,12 @@ export default async function (): Promise<IWorkspaceConfig[]> {
         path: '/:coopname/cashier',
         name: 'cashier',
         children: [
-          {
-            path: 'desk',
-            name: 'cashier-desk',
-            component: markRaw(CashierPage),
-            meta: {
-              title: t('cashier.install.cashierTitle'),
-              icon: 'point_of_sale',
-              requires: CASHIER_RIGHT,
-              agreements: agreementsBase,
-              requiresAuth: true,
-            },
-            children: [],
-          },
-          {
-            // Тот же реестр, что на столе совета; здесь кассир подтверждает
-            // оплату и прикладывает документы. `:username` фильтрует по пайщику.
-            path: 'payments/:username?',
-            name: 'cashier-payments',
-            component: markRaw(PaymentsPage),
-            meta: {
-              title: t('cashier.install.paymentsTitle'),
-              icon: 'receipt_long',
-              requires: CASHIER_RIGHT,
-              agreements: agreementsBase,
-              requiresAuth: true,
-            },
-            children: [],
-          },
+          page('desk', 'cashier-desk', CashierPage, t('cashier.install.cashierTitle'), 'point_of_sale'),
+          // Выданные авансы под отчёт по кооперативу с отбором по состоянию.
+          page('advances', 'cashier-advances', AdvancesPage, t('cashier.install.advancesTitle'), 'savings'),
+          // Тот же реестр, что на столе совета; здесь кассир подтверждает
+          // оплату и прикладывает документы. `:username` фильтрует по пайщику.
+          page('payments/:username?', 'cashier-payments', PaymentsPage, t('cashier.install.paymentsTitle'), 'receipt_long'),
         ],
       },
     ],

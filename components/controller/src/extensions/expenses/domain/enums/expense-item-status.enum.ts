@@ -12,3 +12,14 @@ registerEnumType(InnerExpenseItemState, {
   name: 'ExpenseItemStatus',
   description: 'Статус строки расхода.',
 });
+
+/**
+ * Статус строки так, как его хранит цепь в строках записки
+ * (`ExpenseDomain::ItemStatus`): числом. Возврат и доплата статус строки не
+ * меняют — она остаётся оплаченной до отчёта.
+ */
+export enum ExpenseChainItemStatus {
+  APPROVED = 0,
+  PAID = 1,
+  REPORTED = 2,
+}

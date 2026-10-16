@@ -8280,6 +8280,35 @@ export type ValueTypes = {
 	/** Подписанное заявление председателя в совет */
 	petition: ValueTypes["BranchEstablishmentPetitionSignedDocumentInput"] | Variable<any, string>
 };
+	/** Выданный аванс под отчёт. */
+["ExpenseAdvance"]: AliasType<{
+	/** Сумма аванса. */
+	advance_amount?:boolean | `@${string}`,
+	/** Назначение аванса — описание строки служебной записки. */
+	description?:boolean | `@${string}`,
+	/** Дата выдачи аванса. */
+	issued_at?:boolean | `@${string}`,
+	/** Хеш строки-аванса. */
+	item_hash?:boolean | `@${string}`,
+	/** Хеш служебной записки. */
+	proposal_hash?:boolean | `@${string}`,
+	/** Получатель аванса (учётное имя пайщика). */
+	recipient?:boolean | `@${string}`,
+	/** ФИО получателя аванса. */
+	recipient_name?:boolean | `@${string}`,
+	/** Фактически потрачено по отчёту получателя; пусто, пока отчёта нет. */
+	spent_amount?:boolean | `@${string}`,
+	/** Состояние аванса. */
+	state?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on ExpenseAdvance']?: Omit<ValueTypes["ExpenseAdvance"], "...on ExpenseAdvance">
+}>;
+	/** Состояние выданного аванса под отчёт. */
+["ExpenseAdvanceState"]:ExpenseAdvanceState;
+	["ExpenseAdvancesFilterInput"]: {
+	/** Состояние аванса; пусто — все выданные. */
+	state?: ValueTypes["ExpenseAdvanceState"] | undefined | null | Variable<any, string>
+};
 	["ExpenseCallbackInput"]: {
 	/** Action-метод */
 	action?: string | undefined | null | Variable<any, string>,
@@ -14510,6 +14539,18 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 		__typename?: boolean | `@${string}`,
 	['...on PaginatedEduExpensesPaginationResult']?: Omit<ValueTypes["PaginatedEduExpensesPaginationResult"], "...on PaginatedEduExpensesPaginationResult">
 }>;
+	["PaginatedExpenseAdvancesPaginationResult"]: AliasType<{
+	/** Текущая страница */
+	currentPage?:boolean | `@${string}`,
+	/** Элементы текущей страницы */
+	items?:ValueTypes["ExpenseAdvance"],
+	/** Общее количество элементов */
+	totalCount?:boolean | `@${string}`,
+	/** Общее количество страниц */
+	totalPages?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on PaginatedExpenseAdvancesPaginationResult']?: Omit<ValueTypes["PaginatedExpenseAdvancesPaginationResult"], "...on PaginatedExpenseAdvancesPaginationResult">
+}>;
 	["PaginatedExpenseProposalsPaginationResult"]: AliasType<{
 	/** Текущая страница */
 	currentPage?:boolean | `@${string}`,
@@ -15716,7 +15757,7 @@ edubridgeTeacherContractDocument?: [{	username: string | Variable<any, string>},
 	edubridgeTeacherOptions?:ValueTypes["EduTeacherOption"],
 	/** Преподаватели кооператива с договором и числом назначений */
 	edubridgeTeachers?:ValueTypes["EduTeacher"],
-expenseAdvancesByMember?: [{	coopname: string | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>,	username: string | Variable<any, string>},ValueTypes["PaginatedExpenseProposalsPaginationResult"]],
+expenseAdvancesByCooperative?: [{	coopname: string | Variable<any, string>,	filter?: ValueTypes["ExpenseAdvancesFilterInput"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedExpenseAdvancesPaginationResult"]],
 expenseFile?: [{	id: number | Variable<any, string>},ValueTypes["ExpenseFile"]],
 expenseFilesByItem?: [{	coopname: string | Variable<any, string>,	item_hash: string | Variable<any, string>,	proposal_hash: string | Variable<any, string>},ValueTypes["ExpenseFile"]],
 expenseFilesByProposal?: [{	coopname: string | Variable<any, string>,	proposal_hash: string | Variable<any, string>},ValueTypes["ExpenseFile"]],
@@ -25240,6 +25281,34 @@ export type ResolverInputTypes = {
 	/** Подписанное заявление председателя в совет */
 	petition: ResolverInputTypes["BranchEstablishmentPetitionSignedDocumentInput"]
 };
+	/** Выданный аванс под отчёт. */
+["ExpenseAdvance"]: AliasType<{
+	/** Сумма аванса. */
+	advance_amount?:boolean | `@${string}`,
+	/** Назначение аванса — описание строки служебной записки. */
+	description?:boolean | `@${string}`,
+	/** Дата выдачи аванса. */
+	issued_at?:boolean | `@${string}`,
+	/** Хеш строки-аванса. */
+	item_hash?:boolean | `@${string}`,
+	/** Хеш служебной записки. */
+	proposal_hash?:boolean | `@${string}`,
+	/** Получатель аванса (учётное имя пайщика). */
+	recipient?:boolean | `@${string}`,
+	/** ФИО получателя аванса. */
+	recipient_name?:boolean | `@${string}`,
+	/** Фактически потрачено по отчёту получателя; пусто, пока отчёта нет. */
+	spent_amount?:boolean | `@${string}`,
+	/** Состояние аванса. */
+	state?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Состояние выданного аванса под отчёт. */
+["ExpenseAdvanceState"]:ExpenseAdvanceState;
+	["ExpenseAdvancesFilterInput"]: {
+	/** Состояние аванса; пусто — все выданные. */
+	state?: ResolverInputTypes["ExpenseAdvanceState"] | undefined | null
+};
 	["ExpenseCallbackInput"]: {
 	/** Action-метод */
 	action?: string | undefined | null,
@@ -31282,6 +31351,17 @@ walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputType
 	totalPages?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	["PaginatedExpenseAdvancesPaginationResult"]: AliasType<{
+	/** Текущая страница */
+	currentPage?:boolean | `@${string}`,
+	/** Элементы текущей страницы */
+	items?:ResolverInputTypes["ExpenseAdvance"],
+	/** Общее количество элементов */
+	totalCount?:boolean | `@${string}`,
+	/** Общее количество страниц */
+	totalPages?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	["PaginatedExpenseProposalsPaginationResult"]: AliasType<{
 	/** Текущая страница */
 	currentPage?:boolean | `@${string}`,
@@ -32450,7 +32530,7 @@ edubridgeTeacherContractDocument?: [{	username: string},ResolverInputTypes["Docu
 	edubridgeTeacherOptions?:ResolverInputTypes["EduTeacherOption"],
 	/** Преподаватели кооператива с договором и числом назначений */
 	edubridgeTeachers?:ResolverInputTypes["EduTeacher"],
-expenseAdvancesByMember?: [{	coopname: string,	options?: ResolverInputTypes["PaginationInput"] | undefined | null,	username: string},ResolverInputTypes["PaginatedExpenseProposalsPaginationResult"]],
+expenseAdvancesByCooperative?: [{	coopname: string,	filter?: ResolverInputTypes["ExpenseAdvancesFilterInput"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedExpenseAdvancesPaginationResult"]],
 expenseFile?: [{	id: number},ResolverInputTypes["ExpenseFile"]],
 expenseFilesByItem?: [{	coopname: string,	item_hash: string,	proposal_hash: string},ResolverInputTypes["ExpenseFile"]],
 expenseFilesByProposal?: [{	coopname: string,	proposal_hash: string},ResolverInputTypes["ExpenseFile"]],
@@ -41667,6 +41747,32 @@ export type ModelTypes = {
 	/** Подписанное заявление председателя в совет */
 	petition: ModelTypes["BranchEstablishmentPetitionSignedDocumentInput"]
 };
+	/** Выданный аванс под отчёт. */
+["ExpenseAdvance"]: {
+		/** Сумма аванса. */
+	advance_amount: string,
+	/** Назначение аванса — описание строки служебной записки. */
+	description: string,
+	/** Дата выдачи аванса. */
+	issued_at?: ModelTypes["DateTime"] | undefined | null,
+	/** Хеш строки-аванса. */
+	item_hash: string,
+	/** Хеш служебной записки. */
+	proposal_hash: string,
+	/** Получатель аванса (учётное имя пайщика). */
+	recipient: string,
+	/** ФИО получателя аванса. */
+	recipient_name: string,
+	/** Фактически потрачено по отчёту получателя; пусто, пока отчёта нет. */
+	spent_amount?: string | undefined | null,
+	/** Состояние аванса. */
+	state: ModelTypes["ExpenseAdvanceState"]
+};
+	["ExpenseAdvanceState"]:ExpenseAdvanceState;
+	["ExpenseAdvancesFilterInput"]: {
+	/** Состояние аванса; пусто — все выданные. */
+	state?: ModelTypes["ExpenseAdvanceState"] | undefined | null
+};
 	["ExpenseCallbackInput"]: {
 	/** Action-метод */
 	action?: string | undefined | null,
@@ -47846,6 +47952,16 @@ export type ModelTypes = {
 	/** Общее количество страниц */
 	totalPages: number
 };
+	["PaginatedExpenseAdvancesPaginationResult"]: {
+		/** Текущая страница */
+	currentPage: number,
+	/** Элементы текущей страницы */
+	items: Array<ModelTypes["ExpenseAdvance"]>,
+	/** Общее количество элементов */
+	totalCount: number,
+	/** Общее количество страниц */
+	totalPages: number
+};
 	["PaginatedExpenseProposalsPaginationResult"]: {
 		/** Текущая страница */
 	currentPage: number,
@@ -49047,8 +49163,8 @@ export type ModelTypes = {
 	edubridgeTeacherOptions: Array<ModelTypes["EduTeacherOption"]>,
 	/** Преподаватели кооператива с договором и числом назначений */
 	edubridgeTeachers: Array<ModelTypes["EduTeacher"]>,
-	/** Служебные записки, по строкам которых пайщик получает аванс под отчёт (paginated). Видят сам пайщик и совет. */
-	expenseAdvancesByMember: ModelTypes["PaginatedExpenseProposalsPaginationResult"],
+	/** Выданные авансы под отчёт по кооперативу (paginated) с отбором по состоянию. Видят совет, кассир и ревизор. */
+	expenseAdvancesByCooperative: ModelTypes["PaginatedExpenseAdvancesPaginationResult"],
 	/** Получить запись о файле + свежий короткоживущий read-URL. */
 	expenseFile: ModelTypes["ExpenseFile"],
 	/** Список файлов строки расхода (без read-URL — запрос отдельно по id). */
@@ -58725,6 +58841,35 @@ export type GraphQLTypes = {
 	/** Подписанное заявление председателя в совет */
 	petition: GraphQLTypes["BranchEstablishmentPetitionSignedDocumentInput"]
 };
+	/** Выданный аванс под отчёт. */
+["ExpenseAdvance"]: {
+	__typename: "ExpenseAdvance",
+	/** Сумма аванса. */
+	advance_amount: string,
+	/** Назначение аванса — описание строки служебной записки. */
+	description: string,
+	/** Дата выдачи аванса. */
+	issued_at?: GraphQLTypes["DateTime"] | undefined | null,
+	/** Хеш строки-аванса. */
+	item_hash: string,
+	/** Хеш служебной записки. */
+	proposal_hash: string,
+	/** Получатель аванса (учётное имя пайщика). */
+	recipient: string,
+	/** ФИО получателя аванса. */
+	recipient_name: string,
+	/** Фактически потрачено по отчёту получателя; пусто, пока отчёта нет. */
+	spent_amount?: string | undefined | null,
+	/** Состояние аванса. */
+	state: GraphQLTypes["ExpenseAdvanceState"],
+	['...on ExpenseAdvance']: Omit<GraphQLTypes["ExpenseAdvance"], "...on ExpenseAdvance">
+};
+	/** Состояние выданного аванса под отчёт. */
+["ExpenseAdvanceState"]: ExpenseAdvanceState;
+	["ExpenseAdvancesFilterInput"]: {
+		/** Состояние аванса; пусто — все выданные. */
+	state?: GraphQLTypes["ExpenseAdvanceState"] | undefined | null
+};
 	["ExpenseCallbackInput"]: {
 		/** Action-метод */
 	action?: string | undefined | null,
@@ -65346,6 +65491,18 @@ export type GraphQLTypes = {
 	totalPages: number,
 	['...on PaginatedEduExpensesPaginationResult']: Omit<GraphQLTypes["PaginatedEduExpensesPaginationResult"], "...on PaginatedEduExpensesPaginationResult">
 };
+	["PaginatedExpenseAdvancesPaginationResult"]: {
+	__typename: "PaginatedExpenseAdvancesPaginationResult",
+	/** Текущая страница */
+	currentPage: number,
+	/** Элементы текущей страницы */
+	items: Array<GraphQLTypes["ExpenseAdvance"]>,
+	/** Общее количество элементов */
+	totalCount: number,
+	/** Общее количество страниц */
+	totalPages: number,
+	['...on PaginatedExpenseAdvancesPaginationResult']: Omit<GraphQLTypes["PaginatedExpenseAdvancesPaginationResult"], "...on PaginatedExpenseAdvancesPaginationResult">
+};
 	["PaginatedExpenseProposalsPaginationResult"]: {
 	__typename: "PaginatedExpenseProposalsPaginationResult",
 	/** Текущая страница */
@@ -66648,8 +66805,8 @@ export type GraphQLTypes = {
 	edubridgeTeacherOptions: Array<GraphQLTypes["EduTeacherOption"]>,
 	/** Преподаватели кооператива с договором и числом назначений */
 	edubridgeTeachers: Array<GraphQLTypes["EduTeacher"]>,
-	/** Служебные записки, по строкам которых пайщик получает аванс под отчёт (paginated). Видят сам пайщик и совет. */
-	expenseAdvancesByMember: GraphQLTypes["PaginatedExpenseProposalsPaginationResult"],
+	/** Выданные авансы под отчёт по кооперативу (paginated) с отбором по состоянию. Видят совет, кассир и ревизор. */
+	expenseAdvancesByCooperative: GraphQLTypes["PaginatedExpenseAdvancesPaginationResult"],
 	/** Получить запись о файле + свежий короткоживущий read-URL. */
 	expenseFile: GraphQLTypes["ExpenseFile"],
 	/** Список файлов строки расхода (без read-URL — запрос отдельно по id). */
@@ -69670,6 +69827,12 @@ export enum EmailVerificationPurpose {
 	Account = "Account",
 	Registration = "Registration"
 }
+/** Состояние выданного аванса под отчёт. */
+export enum ExpenseAdvanceState {
+	AWAITING_REPORT = "AWAITING_REPORT",
+	REPORTED = "REPORTED",
+	SETTLEMENT = "SETTLEMENT"
+}
 /** Тип первичного файла расхода. */
 export enum ExpenseFileKind {
 	CLOSING_DOC = "CLOSING_DOC",
@@ -70682,6 +70845,8 @@ type ZEUS_VARIABLES = {
 	["EmailVerificationPurpose"]: ValueTypes["EmailVerificationPurpose"];
 	["EntrepreneurDetailsInput"]: ValueTypes["EntrepreneurDetailsInput"];
 	["ExecKuDecisionInput"]: ValueTypes["ExecKuDecisionInput"];
+	["ExpenseAdvanceState"]: ValueTypes["ExpenseAdvanceState"];
+	["ExpenseAdvancesFilterInput"]: ValueTypes["ExpenseAdvancesFilterInput"];
 	["ExpenseCallbackInput"]: ValueTypes["ExpenseCallbackInput"];
 	["ExpenseFileKind"]: ValueTypes["ExpenseFileKind"];
 	["ExpenseFilter"]: ValueTypes["ExpenseFilter"];

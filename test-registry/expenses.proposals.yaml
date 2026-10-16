@@ -385,9 +385,10 @@ cases:
     level: backend
     kind: happy
     scenario: >
-      Получатель аванса открывает свои авансы, совет — авансы любого пайщика
+      Аванс пайщику выдан — кассир открывает «Авансы» стола кассира
     expect: >
-      записка с его строкой-авансом есть в списке expenseAdvancesByMember; совет читает тот же список
+      строка аванса: получатель по ФИО, записка, сумма аванса, «ждёт отчёта», потрачено пусто,
+      дата выдачи из платежа выдачи аванса
     test: components/controller/tests/unit/expenses/expense-cashier-access.test.ts
     api: components/api-tests/src/expenses/proposals.test.ts
     status: written   # прогон — CI на полигоне ci/tests
@@ -396,10 +397,33 @@ cases:
     level: backend
     kind: happy
     scenario: >
-      Отбор авансов: записки кооператива, где у пайщика строка-аванс под отчёт
+      Состояние аванса и отбор по нему: ждёт отчёта, возврат или доплата, отчитан
     expect: >
-      строка оплаты по счёту на то же имя авансом не считается; у автора записки без
-      аванса на него записки в авансах нет; порядок — новые сверху, общая пагинация
+      оплаченная строка — «ждёт отчёта», с открытой платёжкой расчёта — «возврат или доплата»,
+      отчитанная в цепи — «отчитан» с итогом строки в «потрачено»; отбор по состоянию даёт только свои строки
+    test: components/controller/tests/unit/expenses/expense-cashier-access.test.ts
+    api: components/api-tests/src/expenses/proposals.test.ts
+    status: written   # прогон — CI на полигоне ci/tests
+
+  - id: exp.adv.happy.03
+    level: backend
+    kind: happy
+    scenario: >
+      Аванс ещё не выдан (строка утверждена, не оплачена); строка оплаты по счёту организации
+    expect: >
+      на кассе их нет: «Авансы» — только выданные строки-авансы
+    test: components/controller/tests/unit/expenses/expense-cashier-access.test.ts
+    api: components/api-tests/src/expenses/proposals.test.ts
+    status: written   # прогон — CI на полигоне ci/tests
+
+  - id: exp.adv.happy.04
+    level: backend
+    kind: happy
+    scenario: >
+      Хранилище отбирает строки-авансы записок кооператива
+    expect: >
+      строки json-массива развёрнуты, отбор по кооперативу, механике «аванс» и статусам строки,
+      новые записки сверху, общая пагинация; счёт — без страницы и порядка
     test: components/controller/tests/unit/expenses/expense-cashier-access.test.ts
     api: components/api-tests/src/expenses/proposals.test.ts
     status: written   # прогон — CI на полигоне ci/tests
@@ -408,9 +432,10 @@ cases:
     level: backend
     kind: side
     scenario: >
-      Другой пайщик и кассир запрашивают чужие авансы; гость — без входа
+      Кто читает авансы кооператива; какая платёжка расчёта держит аванс в «возврат или доплата»
     expect: >
-      отказ EXPENSES_PROPOSAL_ACCESS_DENIED до чтения базы; гостю — отказ входа
+      совет, кассир и ревизор читают, пайщику и получателю аванса отказ KIT_INSUFFICIENT_RIGHTS,
+      гостю — отказ входа; открытой считается только непроведённая платёжка возврата или доплаты
     test: components/controller/tests/unit/expenses/expense-cashier-access.test.ts
     api: components/api-tests/src/expenses/proposals.test.ts
     status: written   # прогон — CI на полигоне ci/tests
@@ -419,9 +444,32 @@ cases:
     level: backend
     kind: side
     scenario: >
-      Список авансов с неизвестной колонкой сортировки и лимитом сверх предела
+      Получатель без ФИО, сбой справочника имён, аванс без платежа выдачи
     expect: >
-      сортировка по умолчанию (новые сверху), не больше 200 записей на странице, без ошибки
+      показывается учётное имя, строка не падает; дата выдачи пуста
+    test: components/controller/tests/unit/expenses/expense-cashier-access.test.ts
+    external: unreachable
+    external_reason: сбой справочника имён и аванс без платежа выдачи снаружи не создать — платёж выдачи узел заводит сам при утверждении записки
+    status: written   # прогон — CI на полигоне ci/tests
+
+  - id: exp.adv.side.03
+    level: backend
+    kind: side
+    scenario: >
+      Отбор «ждёт отчёта» без открытых платёжек расчёта и «возврат или доплата» без них
+    expect: >
+      пустой перечень исключений в запрос не пишется (все оплаченные строки на месте), пустой «только» не даёт строк
+    test: components/controller/tests/unit/expenses/expense-cashier-access.test.ts
+    api: components/api-tests/src/expenses/proposals.test.ts
+    status: written   # прогон — CI на полигоне ci/tests
+
+  - id: exp.adv.side.04
+    level: backend
+    kind: side
+    scenario: >
+      Список авансов с лимитом сверх предела и неизвестной колонкой сортировки
+    expect: >
+      не больше 200 строк на странице, без ошибки
     test: components/controller/tests/unit/expenses/expense-cashier-access.test.ts
     api: components/api-tests/src/expenses/proposals.test.ts
     status: written   # прогон — CI на полигоне ci/tests
@@ -430,7 +478,9 @@ cases:
 # (typeorm-repository → kysely-repository, typeorm-entity → record); частичная правка
 # полей собрана помощником pickDefined. Сценарии фичи и её проверки не менялись.
 
-# 2026-10-16 (7DD-25): запрос авансов пайщика expenseAdvancesByMember — записки, где
-# он получатель строки-аванса (случаи exp.adv.*; страница «Авансы» стола пайщика).
+# 2026-10-16 (7DD-25): выданные авансы под отчёт по кооперативу
+# expenseAdvancesByCooperative с отбором по состоянию (случаи exp.adv.*; страница
+# «Авансы» стола кассира). Запрос авансов пайщика expenseAdvancesByMember снят
+# вместе со страницей «Авансы» стола пайщика — свой аванс пайщик видит в «Платежах».
 # Записку и её файлы читают и читатели реестра расходов — кассир и ревизор
 # (случаи cashier.desk.* в cashier.desk.yaml); загрузка в чужую записку им закрыта.

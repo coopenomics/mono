@@ -157,6 +157,7 @@ export {
   proposalAuthorName,
   formatProposalAmount,
   formatProposalDate,
+  formatProposalDay,
   proposalPurpose,
 } from './proposal-rows';
 export {

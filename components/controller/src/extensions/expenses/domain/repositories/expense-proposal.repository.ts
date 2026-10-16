@@ -1,6 +1,23 @@
 import type { IBlockchainSyncRepository } from '@coopenomics/extension-kit/sync';
 import type { PaginationInputDTO } from '@coopenomics/extension-kit';
 import type { ExpenseProposalDomainEntity } from '../entities/expense-proposal.entity';
+import type { IExpenseItemBlockchainData } from '../interfaces/expense-proposal-blockchain.interface';
+
+/**
+ * Отбор строк-авансов: статусы строки в цепи и, при необходимости, только
+ * перечисленные строки либо все, кроме перечисленных (по хешу строки).
+ */
+export interface IExpenseAdvanceQuery {
+  statuses: number[];
+  onlyItems?: string[];
+  exceptItems?: string[];
+}
+
+/** Строка-аванс вместе с запиской, в которой она стоит. */
+export interface IExpenseAdvanceRow {
+  proposal_hash: string;
+  item: IExpenseItemBlockchainData;
+}
 
 /**
  * Репозиторий зеркала СЗ-расходов. Чтение строго из Postgres
@@ -24,12 +41,12 @@ export interface ExpenseProposalRepository extends IBlockchainSyncRepository<Exp
     username: string,
     options?: PaginationInputDTO
   ): Promise<{ items: ExpenseProposalDomainEntity[]; totalCount: number }>;
-  /** Записки, в строках которых пайщик — получатель аванса под отчёт. */
-  findAdvancesByRecipientPaginated(
+  /** Строки-авансы записок кооператива по отбору; одна строка ответа — один аванс. */
+  findAdvances(
     coopname: string,
-    recipient: string,
+    query: IExpenseAdvanceQuery,
     options?: PaginationInputDTO
-  ): Promise<{ items: ExpenseProposalDomainEntity[]; totalCount: number }>;
+  ): Promise<{ items: IExpenseAdvanceRow[]; totalCount: number }>;
 }
 
 export const EXPENSE_PROPOSAL_REPOSITORY = Symbol('ExpenseProposalRepository');

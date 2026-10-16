@@ -30,12 +30,24 @@ export function formatProposalAmount(asset?: string | null): string {
   return formatAsset2Digits(asset);
 }
 
-/** Дата записки для таблиц: короткие дата и время, пусто — прочерк. */
-export function formatProposalDate(createdAt?: string | null): string {
-  if (!createdAt) return '—';
-  const date = new Date(createdAt);
-  if (Number.isNaN(date.getTime())) return createdAt;
-  return date.toLocaleString(uiLocale(), { dateStyle: 'short', timeStyle: 'short' });
+/**
+ * Дата для таблиц расходов: короткие дата и время, пусто — прочерк. Принимает
+ * и строку, и скаляр DateTime схемы (в SDK он без типа).
+ */
+export function formatProposalDate(value?: unknown): string {
+  return formatWith(value, { dateStyle: 'short', timeStyle: 'short' });
+}
+
+/** То же без времени — для мета-строки под названием («Выдан 16.10.2026»). */
+export function formatProposalDay(value?: unknown): string {
+  return formatWith(value, { dateStyle: 'short' });
+}
+
+function formatWith(value: unknown, style: Intl.DateTimeFormatOptions): string {
+  if (!value) return '—';
+  const date = value instanceof Date ? value : new Date(String(value));
+  if (Number.isNaN(date.getTime())) return String(value);
+  return date.toLocaleString(uiLocale(), style);
 }
 
 /** Назначение записки — описание первой строки расхода; без описания — `null`. */

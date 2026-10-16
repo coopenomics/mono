@@ -15,6 +15,9 @@ import { mayReadExpenseProposal } from '../../domain/utils/expense-proposal-acce
 import { ExpensesManagementService } from '../services/expenses-management.service';
 import { ExpenseRequisiteSnapshotsService } from '../services/expense-requisite-snapshots.service';
 import { ExpensesRights } from '../access/expenses-rights';
+import { ExpenseAdvancesService } from '../services/expense-advances.service';
+import { ExpenseAdvanceOutputDTO } from '../dto/expense-advance.output';
+import { ExpenseAdvancesFilterInputDTO } from '../dto/expense-advances-filter.input';
 import { ExpenseProposalOutputDTO } from '../dto/expense-proposal.output';
 import { ExpenseRequisiteOutputDTO } from '../dto/expense-requisite.output';
 import type { ExpenseProposalDomainEntity } from '../../domain/entities/expense-proposal.entity';
@@ -24,11 +27,7 @@ const paginatedExpenseProposalsResult = createPaginationResult(
   'PaginatedExpenseProposals'
 );
 
-/** Списки записок пайщика видят он сам и совет. */
-function assertOwnListOrCouncil(user: IMonoAccount, username: string): void {
-  const council = user.role === 'chairman' || user.role === 'member';
-  if (!council && user.username !== username) throw DomainError.forbidden('EXPENSES_PROPOSAL_ACCESS_DENIED');
-}
+const paginatedExpenseAdvancesResult = createPaginationResult(ExpenseAdvanceOutputDTO, 'PaginatedExpenseAdvances');
 
 /**
  * GraphQL-резолвер чтения смет расходов (контракт `expense`).
@@ -47,7 +46,8 @@ export class ExpenseProposalResolver {
   constructor(
     private readonly expenses: ExpensesManagementService,
     private readonly requisiteSnapshots: ExpenseRequisiteSnapshotsService,
-    private readonly rights: ExpensesRights
+    private readonly rights: ExpensesRights,
+    private readonly advances: ExpenseAdvancesService
   ) {}
 
   @Query(() => [ExpenseRequisiteOutputDTO], {
@@ -115,27 +115,26 @@ export class ExpenseProposalResolver {
     @CurrentUser() user: IMonoAccount,
     @Args('options', { type: () => PaginationInputDTO, nullable: true }) options?: PaginationInputDTO
   ): Promise<PaginationResult<ExpenseProposalOutputDTO>> {
-    assertOwnListOrCouncil(user, username);
+    // Записки пайщика видят он сам и совет.
+    const council = user.role === 'chairman' || user.role === 'member';
+    if (!council && user.username !== username) throw DomainError.forbidden('EXPENSES_PROPOSAL_ACCESS_DENIED');
     const result = await this.expenses.listProposalsByMemberPaginated(coopname, username, options);
     return { ...result, items: await this.mapItemsWithDocuments(result.items) };
   }
 
-  @Query(() => paginatedExpenseProposalsResult, {
-    name: 'expenseAdvancesByMember',
+  @Query(() => paginatedExpenseAdvancesResult, {
+    name: 'expenseAdvancesByCooperative',
     description:
-      'Служебные записки, по строкам которых пайщик получает аванс под отчёт (paginated). Видят сам пайщик и совет.',
+      'Выданные авансы под отчёт по кооперативу (paginated) с отбором по состоянию. Видят совет, кассир и ревизор.',
   })
   @UseGuards(GqlJwtAuthGuard, RightsGuard)
-  @RequireRight('ExpenseProposal', 'read')
-  async listAdvancesByMember(
+  @RequireRight('ExpenseRegistry', 'read')
+  async listAdvancesByCooperative(
     @Args('coopname', { type: () => String }) coopname: string,
-    @Args('username', { type: () => String }) username: string,
-    @CurrentUser() user: IMonoAccount,
+    @Args('filter', { type: () => ExpenseAdvancesFilterInputDTO, nullable: true }) filter?: ExpenseAdvancesFilterInputDTO,
     @Args('options', { type: () => PaginationInputDTO, nullable: true }) options?: PaginationInputDTO
-  ): Promise<PaginationResult<ExpenseProposalOutputDTO>> {
-    assertOwnListOrCouncil(user, username);
-    const result = await this.expenses.listAdvancesByMemberPaginated(coopname, username, options);
-    return { ...result, items: await this.mapItemsWithDocuments(result.items) };
+  ): Promise<PaginationResult<ExpenseAdvanceOutputDTO>> {
+    return this.advances.list(coopname, filter, options);
   }
 
   private async mapItemsWithDocuments(

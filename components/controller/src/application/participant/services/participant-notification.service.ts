@@ -3,6 +3,8 @@ import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import { ACCOUNT_DATA_PORT, AccountDataPort } from '~/domain/account/ports/account-data.port';
 import { Workflows } from '@coopenomics/notifications';
 import config from '~/config/config';
+import { RoleAssignmentsRegistry } from '~/application/access-roles/role-assignments.registry';
+import { cashierPaymentsUrl, notifyCashDesk } from '~/application/rights/cash-desk-confirmers';
 import { AmountFormatterUtils } from '@coopenomics/extension-kit';
 import { NOTIFICATION_PORT, INotificationPort } from '@coopenomics/innercoop';
 import { t } from '~/i18n';
@@ -17,7 +19,8 @@ export class ParticipantNotificationService implements OnModuleInit {
     private readonly notificationPort: INotificationPort,
     @Inject(ACCOUNT_DATA_PORT)
     private readonly accountPort: AccountDataPort,
-    private readonly logger: WinstonLoggerService
+    private readonly logger: WinstonLoggerService,
+    private readonly roleAssignments: RoleAssignmentsRegistry
   ) {
     this.logger.setContext(ParticipantNotificationService.name);
   }
@@ -72,7 +75,7 @@ export class ParticipantNotificationService implements OnModuleInit {
   }
 
   /**
-   * Отправить уведомление председателю о новом заявке на вступительный взнос
+   * Задача кассы о новой заявке на вступительный взнос: председателю и кассирам
    */
   async sendNewInitialPaymentNotification(
     participantUsername: string,
@@ -81,55 +84,23 @@ export class ParticipantNotificationService implements OnModuleInit {
     coopname: string
   ): Promise<void> {
     try {
-      this.logger.debug(`Отправка уведомления председателю о новой заявке на вступительный взнос от ${participantUsername}`);
-
-      // Получаем председателя через порт
-      const chairmen = await this.accountPort.getAccounts({ role: 'chairman' }, { page: 1, limit: 1, sortOrder: 'ASC' });
-      if (!chairmen.items || chairmen.items.length === 0) {
-        this.logger.warn('Председатель не найден, пропускаем отправку уведомления');
-        return;
-      }
-
-      const chairman = chairmen.items[0];
-      const chairmanEmail = chairman.provider_account?.email;
-      const chairmanSubscriberId = chairman.provider_account?.subscriber_id?.trim();
-      if (!chairmanSubscriberId) {
-        this.logger.warn(`subscriber_id председателя ${chairman.username} не найден`);
-        return;
-      }
-      if (!chairmanEmail) {
-        this.logger.warn(`Email председателя ${chairman.username} не найден`);
-        return;
-      }
-
-      // Получаем отображаемые имена
-      const chairmanName = await this.accountPort.getDisplayName(chairman.username);
       const participantName = await this.accountPort.getDisplayName(participantUsername);
-
-      // Формируем данные для workflow
-      const payload: Workflows.NewInitialPaymentRequest.IPayload = {
-        chairmanName,
-        participantName,
-        paymentAmount: AmountFormatterUtils.formatAmountSafe(paymentAmount),
-        paymentCurrency,
-        paymentType: t('participation.participantNotificationService.entryAndMinShareLabel'),
-        coopname,
-        paymentUrl: `${config.frontend_url}`,
-      };
-
-      // Отправляем уведомление через Центр уведомлений
-      await this.notificationPort.notify({
-        coopname,
-        workflowId: Workflows.NewInitialPaymentRequest.id,
-        to: {
-          subscriberId: chairmanSubscriberId,
-          email: chairmanEmail,
-          username: chairman.username,
-        },
-        payload,
-      });
-      this.logger.log(
-        `Уведомление отправлено председателю ${chairman.username} о новой заявке на вступительный взнос от ${participantUsername}`
+      // Задачу кассы получают председатель и пайщики с ролью «Кассир»; ссылка — реестр платежей стола кассира.
+      await notifyCashDesk(
+        { accounts: this.accountPort, roles: this.roleAssignments, notifications: this.notificationPort, logger: this.logger },
+        {
+          coopname,
+          workflowId: Workflows.NewInitialPaymentRequest.id,
+          payloadFor: (recipientName): Workflows.NewInitialPaymentRequest.IPayload => ({
+            chairmanName: recipientName,
+            participantName,
+            paymentAmount: AmountFormatterUtils.formatAmountSafe(paymentAmount),
+            paymentCurrency,
+            paymentType: t('participation.participantNotificationService.entryAndMinShareLabel'),
+            coopname,
+            paymentUrl: cashierPaymentsUrl(config.frontend_url, coopname, participantUsername),
+          }),
+        }
       );
     } catch (error: any) {
       this.logger.error(`Ошибка при отправке уведомления о новом вступительном взносе: ${error.message}`, error.stack);

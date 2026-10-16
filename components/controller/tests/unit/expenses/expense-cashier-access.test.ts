@@ -1,19 +1,27 @@
 /**
  * Авансы пайщика и доступ кассира к расходам (test-registry/cashier.desk.yaml).
  *
- * «Авансы» стола пайщика читают записки, в строках которых пайщик —
- * получатель аванса под отчёт (`expenseAdvancesByMember`); список видят сам
- * пайщик и совет. Кассир и ревизор читают реестр расходов целиком: кассе
- * нужна любая записка с её файлами, загрузка в чужую записку им закрыта.
+ * «Авансы» стола кассира читают выданные авансы под отчёт по кооперативу
+ * (`expenseAdvancesByCooperative`) с отбором по состоянию. Кассир и ревизор
+ * читают реестр расходов целиком: кассе нужна любая записка с её файлами,
+ * загрузка в чужую записку им закрыта.
  */
 import { ForbiddenException } from '@nestjs/common';
-import { MonoAccountStatus } from '@coopenomics/innercoop';
+import { MonoAccountStatus, PaymentStatus, PaymentType } from '@coopenomics/innercoop';
 import { ExpensesRights, expensesRightsTable } from '~/extensions/expenses/application/access/expenses-rights';
 import { ExpenseProposalResolver } from '~/extensions/expenses/application/resolvers/expense-proposal.resolver';
 import { ExpenseFilesService } from '~/extensions/expenses/application/services/expense-files.service';
 import { ExpenseProposalKyselyRepository } from '~/extensions/expenses/infrastructure/repositories/expense-proposal.kysely-repository';
 import { EXPENSES_PROPOSAL_STORE, expensesStoreProviders } from '~/extensions/expenses/infrastructure/database/expenses-stores';
 import { ExpenseChainMechanics } from '~/extensions/expenses/domain/enums/expense-mechanics.enum';
+import { ExpenseChainItemStatus } from '~/extensions/expenses/domain/enums/expense-item-status.enum';
+import { ExpenseAdvanceState } from '~/extensions/expenses/domain/enums/expense-advance-state.enum';
+import {
+  ExpenseAdvancesService,
+  queryFor,
+  spentOf,
+  stateOf,
+} from '~/extensions/expenses/application/services/expense-advances.service';
 import { recordingKysely, type ScriptedResult } from '../helpers/kysely-recorder';
 import { storeFrom } from '../helpers/table-store';
 
@@ -72,7 +80,7 @@ describe('записка по хешу: читатели реестра', () => 
       buildProposalDocumentAggregates: jest.fn().mockResolvedValue({}),
     };
     const rights = { readsRegistry: jest.fn().mockResolvedValue(readsRegistry) };
-    const resolver = new ExpenseProposalResolver(expenses as any, {} as any, rights as any);
+    const resolver = new ExpenseProposalResolver(expenses as any, {} as any, rights as any, {} as any);
     return { resolver, rights };
   }
 
@@ -142,34 +150,114 @@ describe('файлы записки: читатели реестра', () => {
   });
 });
 
-describe('авансы пайщика (expenseAdvancesByMember)', () => {
-  function resolverWith() {
-    const page = { items: [], totalCount: 0, totalPages: 0, currentPage: 1 };
-    const expenses = {
-      listAdvancesByMemberPaginated: jest.fn().mockResolvedValue(page),
-      buildProposalDocumentAggregates: jest.fn().mockResolvedValue({}),
+describe('авансы кооператива на кассе (expenseAdvancesByCooperative)', () => {
+  const advanceItem = (status: number, over: Record<string, unknown> = {}) => ({
+    item_hash: ITEM.toUpperCase(),
+    mechanics: ExpenseChainMechanics.ADVANCE,
+    recipient_type: 1,
+    recipient: 'ivan',
+    description: 'Закупка воды и бумаги',
+    planned_amount: '1500.0000 RUB',
+    actual_amount: '1500.0000 RUB',
+    status,
+    ...over,
+  });
+
+  function paymentsStand(settlements: Record<string, unknown>[] = [], advance: Record<string, unknown> | null = null) {
+    return {
+      list: jest.fn(async (filters: { type: PaymentType }) => {
+        const items = settlements.filter((p) => p.type === filters.type);
+        return { items, totalCount: items.length, totalPages: items.length ? 1 : 0, currentPage: 1 };
+      }),
+      findByHash: jest.fn(async () => advance),
     };
-    const resolver = new ExpenseProposalResolver(expenses as any, {} as any, {} as any);
-    return { resolver, expenses };
+  }
+
+  function service(rows: unknown[], payments = paymentsStand()) {
+    const proposals = { findAdvances: jest.fn(async () => ({ items: rows, totalCount: rows.length })) };
+    const accounts = { getDisplayName: jest.fn(async (u: string) => (u === 'ivan' ? 'Петров Иван Сергеевич' : '')) };
+    return { svc: new ExpenseAdvancesService(proposals as any, payments as any, accounts as any), proposals, accounts, payments };
   }
 
   // exp.adv.happy.01
-  it('пайщик читает свои авансы, совет — авансы любого пайщика', async () => {
-    const { resolver, expenses } = resolverWith();
-    const options = { page: 2, limit: 10, sortOrder: 'DESC' } as any;
-    await resolver.listAdvancesByMember(COOP, 'ivan', ivan, options);
-    await resolver.listAdvancesByMember(COOP, 'ivan', council, undefined);
-    expect(expenses.listAdvancesByMemberPaginated).toHaveBeenNthCalledWith(1, COOP, 'ivan', options);
-    expect(expenses.listAdvancesByMemberPaginated).toHaveBeenNthCalledWith(2, COOP, 'ivan', undefined);
+  it('выданный аванс отдаётся строкой: получатель по ФИО, записка, сумма, состояние и дата выдачи', async () => {
+    const issued = new Date('2026-10-16T10:00:00Z');
+    const { svc } = service([{ proposal_hash: PROPOSAL.toUpperCase(), item: advanceItem(ExpenseChainItemStatus.PAID) }], paymentsStand([], { completed_at: issued }));
+    const page = await svc.list(COOP, undefined, { page: 1, limit: 10 } as any);
+    expect(page).toMatchObject({ totalCount: 1, totalPages: 1, currentPage: 1 });
+    expect(page.items[0]).toEqual({
+      proposal_hash: PROPOSAL,
+      item_hash: ITEM,
+      recipient: 'ivan',
+      recipient_name: 'Петров Иван Сергеевич',
+      description: 'Закупка воды и бумаги',
+      advance_amount: '1500.0000 RUB',
+      spent_amount: null,
+      state: ExpenseAdvanceState.AWAITING_REPORT,
+      issued_at: issued,
+    });
+  });
+
+  // exp.adv.happy.02
+  it('состояние строки: оплачен — ждёт отчёта; с открытой платёжкой расчёта — возврат или доплата; отчитан — по цепи', () => {
+    expect(stateOf(ExpenseChainItemStatus.PAID, false)).toBe(ExpenseAdvanceState.AWAITING_REPORT);
+    expect(stateOf(ExpenseChainItemStatus.PAID, true)).toBe(ExpenseAdvanceState.SETTLEMENT);
+    expect(stateOf(ExpenseChainItemStatus.REPORTED, true)).toBe(ExpenseAdvanceState.REPORTED);
+    expect(spentOf(ExpenseAdvanceState.REPORTED, '1200.0000 RUB', null)).toBe('1200.0000 RUB');
+    expect(spentOf(ExpenseAdvanceState.SETTLEMENT, '1500.0000 RUB', { blockchain_data: { reported_amount: '1300.0000 RUB' } } as any)).toBe('1300.0000 RUB');
+    expect(spentOf(ExpenseAdvanceState.AWAITING_REPORT, '1500.0000 RUB', null)).toBeNull();
+  });
+
+  // exp.adv.happy.03
+  it('отбор по состоянию переводится в отбор строк: статус в цепи и строки с открытой платёжкой расчёта', () => {
+    const settling = new Set(['x']);
+    expect(queryFor(ExpenseAdvanceState.AWAITING_REPORT, settling)).toEqual({ statuses: [ExpenseChainItemStatus.PAID], exceptItems: ['x'] });
+    expect(queryFor(ExpenseAdvanceState.SETTLEMENT, settling)).toEqual({ statuses: [ExpenseChainItemStatus.PAID], onlyItems: ['x'] });
+    expect(queryFor(ExpenseAdvanceState.REPORTED, settling)).toEqual({ statuses: [ExpenseChainItemStatus.REPORTED] });
+    // Без отбора — все выданные: не выданные авансы (APPROVED) на кассе не стоят.
+    expect(queryFor(undefined, settling)).toEqual({ statuses: [ExpenseChainItemStatus.PAID, ExpenseChainItemStatus.REPORTED] });
   });
 
   // exp.adv.side.01
-  it('чужие авансы пайщику и кассиру закрыты', async () => {
-    const { resolver, expenses } = resolverWith();
-    for (const user of [mallory, cashier]) {
-      await expect(resolver.listAdvancesByMember(COOP, 'ivan', user, undefined)).rejects.toMatchObject({ code: 'EXPENSES_PROPOSAL_ACCESS_DENIED' });
-    }
-    expect(expenses.listAdvancesByMemberPaginated).not.toHaveBeenCalled();
+  it('открытой считается только непроведённая платёжка расчёта: проведённая и отменённая строку не держат', async () => {
+    const payments = paymentsStand([
+      { type: PaymentType.EXPENSE_RETURN, status: PaymentStatus.PENDING, blockchain_data: { item_hash: 'AA' } },
+      { type: PaymentType.EXPENSE_OVERSPEND, status: PaymentStatus.PAID, blockchain_data: { item_hash: 'bb' } },
+      { type: PaymentType.EXPENSE_RETURN, status: PaymentStatus.COMPLETED, blockchain_data: { item_hash: 'cc' } },
+      { type: PaymentType.EXPENSE_RETURN, status: PaymentStatus.CANCELLED, blockchain_data: { item_hash: 'dd' } },
+    ]);
+    const { svc } = service([], payments);
+    expect([...(await svc.settlingItems(COOP))].sort()).toEqual(['aa', 'bb']);
+    expect(payments.list.mock.calls.map(([filters]) => filters)).toEqual([
+      { coopname: COOP, type: PaymentType.EXPENSE_RETURN },
+      { coopname: COOP, type: PaymentType.EXPENSE_OVERSPEND },
+    ]);
+  });
+
+  // exp.adv.side.02
+  it('пайщик без ФИО показывается учётным именем, сбой справочника строку не роняет; без платежа выдачи даты нет', async () => {
+    const rows = [
+      { proposal_hash: PROPOSAL, item: advanceItem(ExpenseChainItemStatus.REPORTED, { recipient: 'nofio', actual_amount: '900.0000 RUB' }) },
+      { proposal_hash: PROPOSAL, item: advanceItem(ExpenseChainItemStatus.PAID, { recipient: 'broken', item_hash: 'c'.repeat(64) }) },
+    ];
+    const { svc, accounts } = service(rows);
+    accounts.getDisplayName.mockImplementation(async (u: string) => {
+      if (u === 'broken') throw new Error('нет связи');
+      return '';
+    });
+    const page = await svc.list(COOP, { state: undefined } as any, undefined);
+    expect(page.items.map((r) => [r.recipient_name, r.state, r.spent_amount, r.issued_at])).toEqual([
+      ['nofio', ExpenseAdvanceState.REPORTED, '900.0000 RUB', null],
+      ['broken', ExpenseAdvanceState.AWAITING_REPORT, null, null],
+    ]);
+  });
+
+  it('резолвер передаёт отбор и страницу сервису', async () => {
+    const advances = { list: jest.fn().mockResolvedValue({ items: [], totalCount: 0, totalPages: 0, currentPage: 1 }) };
+    const resolver = new ExpenseProposalResolver({} as any, {} as any, {} as any, advances as any);
+    const filter = { state: ExpenseAdvanceState.SETTLEMENT } as any;
+    await resolver.listAdvancesByCooperative(COOP, filter, { page: 2, limit: 10 } as any);
+    expect(advances.list).toHaveBeenCalledWith(COOP, filter, { page: 2, limit: 10 });
   });
 
   function repository(results: ScriptedResult[]) {
@@ -178,30 +266,41 @@ describe('авансы пайщика (expenseAdvancesByMember)', () => {
     return { repo: new ExpenseProposalKyselyRepository(store, {} as never), queries };
   }
 
-  // exp.adv.happy.02
-  it('отбор — записки кооператива со строкой-авансом на этого получателя', async () => {
-    const { repo, queries } = repository([{ rows: [] }, { rows: [{ count: '0' }] }]);
-    await expect(repo.findAdvancesByRecipientPaginated(COOP, 'ivan', { page: 2, limit: 10, sortOrder: 'DESC' } as any)).resolves.toEqual({
-      items: [],
-      totalCount: 0,
-    });
+  // exp.adv.happy.04
+  it('хранилище разворачивает строки записок кооператива и берёт только авансы нужных статусов', async () => {
+    const item = advanceItem(ExpenseChainItemStatus.PAID);
+    const { repo, queries } = repository([{ rows: [{ proposal_hash: PROPOSAL, item }] }, { rows: [{ count: '1' }] }]);
+    const result = await repo.findAdvances(COOP, { statuses: [1, 2], exceptItems: ['x'] }, { page: 2, limit: 10 } as any);
+    expect(result).toEqual({ items: [{ proposal_hash: PROPOSAL, item }], totalCount: 1 });
     const [select, count] = queries;
+    expect(select.sql).toContain('INNER JOIN jsonb_array_elements(p.items) i ON true');
     expect(select.sql).toContain('p.coopname = $1');
-    expect(select.sql).toContain('p.items @> CAST($2 AS jsonb)');
-    expect(select.sql).toContain('ORDER BY p."_created_at" DESC');
+    expect(select.sql).toContain("CAST(i.value->>'mechanics' AS integer) = $2");
+    expect(select.sql).toContain("CAST(i.value->>'status' AS integer) IN ($3, $4)");
+    expect(select.sql).toContain("LOWER(i.value->>'item_hash') NOT IN ($5)");
+    expect(select.sql).toContain('ORDER BY p.created_at DESC');
     expect(select.sql).toContain('LIMIT 10');
     expect(select.sql).toContain('OFFSET 10');
-    expect(select.parameters).toEqual([COOP, JSON.stringify([{ recipient: 'ivan', mechanics: ExpenseChainMechanics.ADVANCE }])]);
-    expect(count.sql).toContain('COUNT(DISTINCT');
+    expect(select.parameters).toEqual([COOP, ExpenseChainMechanics.ADVANCE, 1, 2, 'x']);
+    expect(count.sql).toContain('COUNT(*)');
     expect(count.sql).not.toContain('LIMIT');
+    expect(count.sql).not.toContain('ORDER BY');
     expect(count.parameters).toEqual(select.parameters);
   });
 
-  // exp.adv.side.02
-  it('неизвестная колонка сортировки и восходящий порядок по ней уходят в сортировку по умолчанию', async () => {
+  // exp.adv.side.03
+  it('пустой перечень исключений не пишется (иначе NOT IN (NULL) отсёк бы все строки), пустой «только» не даёт строк', async () => {
+    const { repo, queries } = repository([{ rows: [] }, { rows: [{ count: '0' }] }, { rows: [] }, { rows: [{ count: '0' }] }]);
+    await repo.findAdvances(COOP, { statuses: [1], exceptItems: [] }, undefined);
+    expect(queries[0].sql).not.toContain('NOT IN');
+    await repo.findAdvances(COOP, { statuses: [1], onlyItems: [] }, undefined);
+    expect(queries[2].sql).toContain("LOWER(i.value->>'item_hash') IN (NULL)");
+  });
+
+  // exp.adv.side.04
+  it('лимит страницы ограничен 200', async () => {
     const { repo, queries } = repository([{ rows: [] }, { rows: [{ count: '0' }] }]);
-    await repo.findAdvancesByRecipientPaginated(COOP, 'ivan', { page: 1, limit: 500, sortBy: 'drop table', sortOrder: 'ASC' } as any);
-    expect(queries[0].sql).toContain('ORDER BY p."_created_at" DESC');
+    await repo.findAdvances(COOP, { statuses: [1] }, { page: 1, limit: 500 } as any);
     expect(queries[0].sql).toContain('LIMIT 200');
     expect(queries[0].sql).not.toContain('OFFSET');
   });

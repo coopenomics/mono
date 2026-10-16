@@ -16,7 +16,7 @@ q-page.cashier-page
     row-key='proposal_hash',
     :loading='firstLoad',
     :skeleton-rows='6',
-    min-width='880px',
+    min-width='760px',
     clickable-rows,
     @row-click='(row) => openDetail(row.proposal_hash)'
   )
@@ -67,6 +67,10 @@ import { PageHint } from 'src/shared/ui/domain';
 import { PageTabs } from 'src/shared/ui/layout';
 import { t } from '../i18n';
 
+// Ширины колонок вместе с колонкой назначения укладываются в min-width
+// таблицы (760px), а он — в ширину страницы на окне 1120px с меню; уже —
+// таблица прокручивается в своей обёртке.
+
 /**
  * Касса: служебные записки кооператива по этапам выплаты. Строка открывает
  * страницу записки; платежи по ней кассир проводит в реестре платежей.
@@ -116,10 +120,10 @@ const visible = computed(() => items.value.filter((p) => p.status === tabStatus[
 
 const columns = computed<BaseTableColumn<IExpenseProposalRow>[]>(() => [
   { key: 'purpose', label: t('cashier.cashierPage.column.purpose') },
-  { key: 'member', label: t('cashier.cashierPage.column.member'), width: '220px' },
-  { key: 'created_at', label: t('cashier.cashierPage.column.date'), width: '150px', nowrap: true },
-  { key: 'total_planned', label: t('cashier.cashierPage.column.plan'), width: '130px', numeric: true, nowrap: true },
-  { key: 'total_actual', label: t('cashier.cashierPage.column.fact'), width: '130px', numeric: true, nowrap: true },
+  { key: 'member', label: t('cashier.cashierPage.column.member'), width: '180px' },
+  { key: 'created_at', label: t('cashier.cashierPage.column.date'), width: '130px', nowrap: true },
+  { key: 'total_planned', label: t('cashier.cashierPage.column.plan'), width: '120px', numeric: true, nowrap: true },
+  { key: 'total_actual', label: t('cashier.cashierPage.column.fact'), width: '120px', numeric: true, nowrap: true },
 ]);
 
 const rangeLabel = computed(() =>

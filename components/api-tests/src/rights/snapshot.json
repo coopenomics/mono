@@ -2141,7 +2141,7 @@
     "accountant": "deny",
     "auditor": "deny"
   },
-  "expenseAdvancesByMember": {
+  "expenseAdvancesByCooperative": {
     "guest": "deny",
     "member": "deny",
     "supplier": "deny",
@@ -2155,9 +2155,9 @@
     "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny",
-    "cashier": "deny",
+    "cashier": "pass",
     "accountant": "deny",
-    "auditor": "deny"
+    "auditor": "pass"
   },
   "expenseRequisitesByProposal": {
     "guest": "deny",

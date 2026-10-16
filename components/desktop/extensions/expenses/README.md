@@ -34,7 +34,7 @@ Desktop UI для **шасси системы расходов** (MVP-SINGLE) Ц
 | `/:coopname/expenses` | `ExpensesRegistryPage` | Глобальный реестр расходов с фильтрами | все |
 | `/:coopname/expenses/:hash` | `ExpenseDetailPage` | Экран доказательств: document2 + expense_files + ledger2 timeline | все |
 | `/:coopname/cashier/desk` | `extensions/cashier` → `CashierPage` | Касса стола кассира: 4 вкладки по этапам выплаты | председатель, кассир |
-| `/:coopname/user/advances` | `src/pages/User/AdvancesPage` | «Авансы» стола пайщика — записки, где он получатель аванса (`expenseAdvancesByMember`) | пайщик |
+| `/:coopname/cashier/advances` | `extensions/cashier` → `AdvancesPage` | «Авансы» стола кассира — выданные авансы по кооперативу с отбором по состоянию (`expenseAdvancesByCooperative`) | председатель, кассир |
 | dialog (без маршрута) | `ExpenseProposalCreateDialog` | Форма-конструктор СЗ с массивом items | все |
 
 ## Зависимости (порядок сборки)
@@ -49,7 +49,7 @@ Desktop UI для **шасси системы расходов** (MVP-SINGLE) Ц
 
 ## Регистрация в `extensions-registry`
 
-Зарегистрировано в `src/processes/init-installed-extensions/extensions-registry.ts` (ключ `expenses`). Помимо собственного воркспейса, расширение отдаёт страницу `ExpensesRegistryPage` (реестр всех расходов кооператива) — её монтирует стол совета как «Реестр расходов» (`extensions/soviet/install.ts`, маршрут `soviet-expenses-registry`). Каркас «стола кассира» (касса, очередь «На одобрение председателя», «Мои авансы», страница пулов) 16.10.2026 разобран: касса переехала на стол кассира (`extensions/cashier`), авансы — на стол пайщика (`src/pages/User/AdvancesPage`), очередь одобрения и страница пулов удалены. Записку до решения совета ведёт повестка совета, остатки пулов показывают кошельки программ. Общие для списков записок помощники и живой постраничный список — `src/shared/lib/expenses` (`useLiveProposalPages`), запросы списков — `src/entities/ExpenseProposal`.
+Зарегистрировано в `src/processes/init-installed-extensions/extensions-registry.ts` (ключ `expenses`). Помимо собственного воркспейса, расширение отдаёт страницу `ExpensesRegistryPage` (реестр всех расходов кооператива) — её монтирует стол совета как «Реестр расходов» (`extensions/soviet/install.ts`, маршрут `soviet-expenses-registry`). Каркас «стола кассира» (касса, очередь «На одобрение председателя», «Мои авансы», страница пулов) 16.10.2026 разобран: касса переехала на стол кассира (`extensions/cashier`), там же — авансы кооператива; очередь одобрения, страница пулов и «Мои авансы» удалены (свой аванс пайщик видит в «Платежах»). Записку до решения совета ведёт повестка совета, остатки пулов показывают кошельки программ. Общие для списков записок помощники и живой постраничный список — `src/shared/lib/expenses` (`useLiveProposalPages`), запросы списков — `src/entities/ExpenseProposal`.
 
 ## Канон вёрстки (`/home/admin/.claude/skills/mono-desktop-canon/`)
 
@@ -108,7 +108,7 @@ Mutations.Capital.CreateProgramExpenseProposal.mutation
 
 1. **`ExpensesRegistryPage`** — `BaseTable` с фильтр-баром `<FilterBar>`, живое обновление по ленте изменений (`useLiveReload`), статусы через `<BaseBadge variant>`, низ — `.table-foot` с «Загрузить ещё».
 2. **`ExpenseDetailPage`** — `<PageHead>` + статус-чип, секции: проект-карточка → item-table → цепочка артефактов (`<DocumentRow>` 2010/2011 + `<FileUploader>`-показ файлов) → `<VerticalStepper>` lifecycle.
-3. **Касса** живёт на столе кассира (`extensions/cashier`), оплату кассир подтверждает в реестре платежей того же стола. **Авансы** пайщика — на столе пайщика; отчёт по авансу подаётся в личных «Платежах» (`/:coopname/user/payments`, `ReportExpenseAdvancePanel`), туда же ведут ссылки напоминателя об авансах.
+3. **Касса** живёт на столе кассира (`extensions/cashier`), оплату кассир подтверждает в реестре платежей того же стола. **Авансы** кооператива — на столе кассира; пайщик отчитывается по своему авансу в личных «Платежах» (`/:coopname/user/payments`, `ReportExpenseAdvancePanel`), туда же ведут ссылки напоминателя об авансах.
 4. **`ExpenseProposalCreateDialog`** — `<BaseDialog>` + `<BaseForm>` с массивом items, добавление/удаление item'ов через `<BaseButton>`. Per-item — `<BaseRadioCard>` для recipient_type {SELF/MEMBER/ORG}, `<BaseSelect>` для mechanics {ADVANCE/DIRECT}, `<AmountInput>` для сумм, `<RequisitesPicker>` (новый компонент в `shared/ui/domain/`) для ADVANCE-получателя.
 
 ## Ссылки

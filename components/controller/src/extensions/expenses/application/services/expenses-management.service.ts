@@ -87,16 +87,6 @@ export class ExpensesManagementService {
     return this.toPaginationResult(items, totalCount, options);
   }
 
-  /** Записки, по строкам которых пайщик получает аванс под отчёт. */
-  async listAdvancesByMemberPaginated(
-    coopname: string,
-    username: string,
-    options?: PaginationInputDTO
-  ): Promise<PaginationResult<ExpenseProposalDomainEntity>> {
-    const { items, totalCount } = await this.proposals.findAdvancesByRecipientPaginated(coopname, username, options);
-    return this.toPaginationResult(items, totalCount, options);
-  }
-
   private toPaginationResult<T>(
     items: T[],
     totalCount: number,

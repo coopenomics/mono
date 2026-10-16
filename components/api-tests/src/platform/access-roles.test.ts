@@ -141,8 +141,8 @@ describe('платформа: назначаемые роли и управле�
 
   it(caseName('access.roles.happy.06', 'кассир проходит операции реестра платежей'), async () => {
     // access.roles.happy.02: права роли действуют сразу, без нового входа.
-    // cashier.desk.happy.03: касса читает служебные записки кооператива и реквизиты получателей.
-    for (const name of ['getPayments', 'setPaymentStatus', 'uploadPaymentProof', 'expenseProposalsByCooperative', 'expenseRequisitesByProposal'])
+    // cashier.desk.happy.03: касса читает служебные записки кооператива, реквизиты получателей и авансы.
+    for (const name of ['getPayments', 'setPaymentStatus', 'uploadPaymentProof', 'expenseProposalsByCooperative', 'expenseRequisitesByProposal', 'expenseAdvancesByCooperative'])
       expect(await probe.denial(tokens[member.account], name), name).toBeNull()
     // Решения и оплата записок кассиру не даны.
     for (const name of ['createExpenseProposal', 'payExpenseItem', 'submitExpenseReport'])
