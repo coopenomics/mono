@@ -142,39 +142,77 @@ nav:
           - Паевой взнос: new/participant/wallet-topup.md
           - Возврат взноса: new/participant/wallet-refund.md
       - Удостоверение: new/participant/profile.md
+      - Карта кооператора: new/participant/cardcoop.md
       - Реквизиты: new/participant/requisites.md
       - Документы: new/participant/documents.md
       - Платежи: new/participant/payments.md
       - Собрания: new/participant/meetings.md
       - Контакты: new/participant/contacts.md
+      - Настройки: new/participant/settings.md
 
   - Стол совета:
       - Повестка совета: new/council/agenda.md
       - Реестр пайщиков: new/council/participants.md
       - Реестр документов: new/council/documents.md
       - Реестр платежей: new/council/payments.md
+      - Реестр расходов: new/council/expenses.md
       - Реестр собраний: new/council/meetings.md
-      - Реестр кошельков: new/council/wallets.md
+      - Реестр кооперативов: new/council/cooperatives.md
       - Робот совета: new/council/robot.md
-    
+
   - Стол председателя:
+    - Онбординг: new/chairman/onboarding.md
     - Запросы одобрений: new/chairman/approval-requests.md
-    - Магазин приложений: new/chairman/app-store.md
+    - Управление доступом: new/chairman/access-roles.md
+    - Пресеты предложений: new/chairman/agenda-presets.md
+    - Журнал уведомлений: new/chairman/notifications-journal.md
+    - Каталог приложений: new/chairman/app-store.md
     - Стартовые страницы: new/chairman/start-pages.md
     - Члены совета: new/chairman/board-members.md
     - Кооперативные участки: new/chairman/cooperative-branches.md
     - Регистрационные взносы: new/chairman/registration-fees.md
     - Ключ кооператива: new/chairman/cooperative-key.md
+    - Провайдер платежей: new/chairman/payment-provider.md
     - Контакты кооператива: new/chairman/cooperative-contacts.md
-  
+
+  - Стол бухгалтера:
+    - new/buh/index.md
+    - Реестр процессов: new/buh/processes.md
+    - Реестр операций: new/buh/operations.md
+    - Реестр проводок: new/buh/postings.md
+    - Реестр кошельков:
+      - Кошельки кооператива: new/buh/wallets-coop.md
+      - Кошельки пайщиков: new/buh/wallets-participants.md
+    - Реестр счетов: new/buh/accounts.md
+    - Отчётность:
+      - Календарь: new/buh/calendar.md
+      - Список форм: new/buh/forms.md
+      - Архив: new/buh/archive.md
+    - НДФЛ: new/buh/ndfl.md
+    - Реквизиты: new/buh/settings.md
+
+  - Расходы:
+    - new/expenses/index.md
+    - Реестр расходов: new/expenses/registry.md
+    - Касса: new/expenses/cashier.md
+    - Мои авансы: new/expenses/advances.md
+
+  - Стол связи:
+    - new/chatcoop/index.md
+    - Установка: new/chatcoop/install.md
+    - Быстрый клиент: new/chatcoop/chat.md
+    - Мобильный клиент: new/chatcoop/mobile.md
+    - Календарь событий: new/chatcoop/calendar.md
+    - Транскрипции звонков: new/chatcoop/transcriptions.md
+    - Комнаты секретаря: new/chatcoop/secretary-rooms.md
+
   - Стол вычислительных ресурсов:
     - Аренда квот ресурсов: new/resources/quotas.md
     - Монитор ресурсов: new/resources/monitor.md
     - Настройки аренды ресурсов: new/resources/settings.md
     - Лог ресурсов: new/resources/log.md
-    
+
   - Общие собрания: new/meet/index.md
-  - Бухгалтерия: new/buh/index.md
 
   - Стол заказов:
     - Введение: new/marketplace/index.md
