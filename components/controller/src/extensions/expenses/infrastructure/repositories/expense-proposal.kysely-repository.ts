@@ -9,6 +9,7 @@ import { ExpenseProposalMapper } from '../mappers/expense-proposal.mapper';
 import type { ExpenseProposalRepository } from '../../domain/repositories/expense-proposal.repository';
 import type { IExpenseProposalDatabaseData } from '../../domain/interfaces/expense-proposal-database.interface';
 import type { IExpenseProposalBlockchainData } from '../../domain/interfaces/expense-proposal-blockchain.interface';
+import { ExpenseChainMechanics } from '../../domain/enums/expense-mechanics.enum';
 
 @Injectable()
 export class ExpenseProposalKyselyRepository
@@ -76,21 +77,56 @@ export class ExpenseProposalKyselyRepository
     return this.paginate({ coopname, username }, options);
   }
 
+  /**
+   * Строки записки лежат одним json-массивом `items`: записка подходит, если
+   * в нём есть строка-аванс на этого получателя. Строки оплаты по счёту на то
+   * же имя авансом не считаются.
+   */
+  async findAdvancesByRecipientPaginated(
+    coopname: string,
+    recipient: string,
+    options?: PaginationInputDTO
+  ): Promise<{ items: ExpenseProposalDomainEntity[]; totalCount: number }> {
+    const { limit, offset, sortBy, sortOrder } = this.pageOf(options);
+    const advance = JSON.stringify([{ recipient, mechanics: ExpenseChainMechanics.ADVANCE }]);
+    const [entities, totalCount] = await this.repository
+      .sqlBuilder('p')
+      .where('p.coopname = :coopname', { coopname })
+      .andWhere('p.items @> CAST(:advance AS jsonb)', { advance })
+      .orderBy(`p."${sortBy}"`, sortOrder)
+      .limit(limit)
+      .offset(offset)
+      .getManyAndCount();
+    return {
+      items: entities.map((e) => ExpenseProposalMapper.toDomain(e)),
+      totalCount,
+    };
+  }
+
   private async paginate(
     where: Record<string, unknown>,
     options?: PaginationInputDTO
   ): Promise<{ items: ExpenseProposalDomainEntity[]; totalCount: number }> {
+    const { limit, offset, sortBy, sortOrder } = this.pageOf(options);
+    const [entities, totalCount] = await this.repository.findAndCount(where, { order: { [sortBy]: sortOrder }, limit, offset });
+    return {
+      items: entities.map((e) => ExpenseProposalMapper.toDomain(e)),
+      totalCount,
+    };
+  }
+
+  private pageOf(options?: PaginationInputDTO): {
+    limit: number;
+    offset: number;
+    sortBy: keyof ExpenseProposalRecord & string;
+    sortOrder: 'ASC' | 'DESC';
+  } {
     const page = Math.max(1, options?.page ?? 1);
     const limit = Math.max(1, Math.min(200, options?.limit ?? 10));
     // Имя вне колонок и пустое имя — сортировка по умолчанию: до 25.09.2026 они
     // уходили в ORDER BY и роняли список ошибкой 500 (C28-80).
     const sortBy = this.repository.sortField(options?.sortBy, '_created_at');
     const sortOrder = sortBy === options?.sortBy && options?.sortOrder === 'ASC' ? 'ASC' : 'DESC';
-
-    const [entities, totalCount] = await this.repository.findAndCount(where, { order: { [sortBy]: sortOrder }, limit: limit, offset: (page - 1) * limit });
-    return {
-      items: entities.map((e) => ExpenseProposalMapper.toDomain(e)),
-      totalCount,
-    };
+    return { limit, offset: (page - 1) * limit, sortBy, sortOrder };
   }
 }

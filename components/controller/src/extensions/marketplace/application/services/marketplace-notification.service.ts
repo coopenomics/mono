@@ -179,11 +179,11 @@ export class MarketplaceNotificationService implements OnModuleInit {
         apl_reception_id: event.apl_reception_id,
         payment_request_id: event.payment_request_id,
         coopname: event.coopname,
-        // Кассирского стола пока нет — MVP использует стол совета (роль
-        // председателя, см. комментарий выше). Реестр платежей фильтруется по
-        // владельцу платежа (routeUsername в PaymentsPage.vue) — ведём сразу
-        // на платежи конкретного поставщика, а не на общий список.
-        deepLinkUrl: `${platformSettings().frontendUrl}/${event.coopname}/soviet/payments/${event.supplier_account}`,
+        // Реестр платежей на столе кассира (его видит и председатель).
+        // Реестр фильтруется по владельцу платежа (routeUsername в
+        // PaymentsPage.vue) — ведём сразу на платежи конкретного поставщика,
+        // а не на общий список.
+        deepLinkUrl: `${platformSettings().frontendUrl}/${event.coopname}/cashier/payments/${event.supplier_account}`,
       };
       await this.notificationSenderService.notifyUser(
         cashier.username,

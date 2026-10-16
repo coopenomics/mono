@@ -1,6 +1,7 @@
 import { CoreBaseline1790197276751 } from './1790197276751-baseline';
 import { PaymentsQuantityNumeric1790316882052 } from './1790316882052-payments-quantity-numeric';
 import { RoleAssignments1791538523720 } from './1791538523720-role-assignments';
+import { CashierRoleToCashierDesk1792132849961 } from './1792132849961-cashier-role-to-cashier-desk';
 import type { SchemaMigrationClass } from '@coopenomics/extension-kit';
 import { CoreUserAvatarExitAnnulment1790236885855 } from './1790236885855-user-avatar-exit-annulment';
 
@@ -19,4 +20,5 @@ export const coreDatabaseMigrations: ReadonlyArray<SchemaMigrationClass> = [
   CoreUserAvatarExitAnnulment1790236885855,
   PaymentsQuantityNumeric1790316882052,
   RoleAssignments1791538523720,
+  CashierRoleToCashierDesk1792132849961,
 ];

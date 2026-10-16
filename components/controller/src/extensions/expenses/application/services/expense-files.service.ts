@@ -16,6 +16,7 @@ import {
   type ExpenseProposalRepository,
 } from '../../domain/repositories/expense-proposal.repository';
 import { mayReadExpenseProposal } from '../../domain/utils/expense-proposal-access';
+import { ExpensesRights } from '../access/expenses-rights';
 
 const EXTENSION_BY_MIME: Record<string, string> = {
   'image/jpeg': 'jpg',
@@ -39,7 +40,8 @@ export class ExpenseFilesService {
     @InjectBucket() private readonly bucket: InnerFileStorageBucket,
     @Inject(EXPENSE_FILE_REPOSITORY) private readonly files: ExpenseFileRepository,
     @Inject(PAYMENT_PORT) private readonly payments: IPaymentPort,
-    @Inject(EXPENSE_PROPOSAL_REPOSITORY) private readonly proposals: ExpenseProposalRepository
+    @Inject(EXPENSE_PROPOSAL_REPOSITORY) private readonly proposals: ExpenseProposalRepository,
+    @Inject(ExpensesRights) private readonly rights: ExpensesRights
   ) {}
 
   /** Файлы открыты тем же, кому открыта записка (`mayReadExpenseProposal`). */
@@ -47,6 +49,18 @@ export class ExpenseFilesService {
     if (user.role === 'chairman' || user.role === 'member') return;
     const proposal = await this.proposals.findByProposalHash(proposalHash.toLowerCase());
     if (!mayReadExpenseProposal(user, proposal, itemHash)) throw DomainError.forbidden('EXPENSES_FILE_ACCESS_DENIED');
+  }
+
+  /**
+   * Читают файлы ещё и читатели реестра (ревизор, кассир): записку они видят
+   * целиком. Загружать в чужую записку им по-прежнему нельзя.
+   */
+  private async assertMayRead(user: IMonoAccount, proposalHash: string, itemHash: string | null): Promise<void> {
+    try {
+      await this.assertMayAccess(user, proposalHash, itemHash);
+    } catch (error) {
+      if (!(await this.rights.readsRegistry(user))) throw error;
+    }
   }
 
   async uploadFile(
@@ -123,13 +137,13 @@ export class ExpenseFilesService {
   async getReadUrl(fileId: number, user: IMonoAccount): Promise<{ data: IExpenseFileDatabaseData; readUrl: string }> {
     const file = await this.files.findById(fileId);
     if (!file) throw DomainError.notFound('EXPENSES_FILE_NOT_FOUND', { fileId });
-    await this.assertMayAccess(user, file.proposal_hash, file.item_hash ?? null);
+    await this.assertMayRead(user, file.proposal_hash, file.item_hash ?? null);
     const readUrl = await this.bucket.getReadUrl(file.storage_key);
     return { data: file, readUrl };
   }
 
   async listByProposal(coopname: string, proposalHash: string, user: IMonoAccount): Promise<IExpenseFileDatabaseData[]> {
-    await this.assertMayAccess(user, proposalHash, null);
+    await this.assertMayRead(user, proposalHash, null);
     return this.files.findByProposal(coopname, proposalHash.toLowerCase());
   }
 
@@ -139,7 +153,7 @@ export class ExpenseFilesService {
     itemHash: string,
     user: IMonoAccount
   ): Promise<IExpenseFileDatabaseData[]> {
-    await this.assertMayAccess(user, proposalHash, itemHash);
+    await this.assertMayRead(user, proposalHash, itemHash);
     return this.files.findByItem(coopname, proposalHash.toLowerCase(), itemHash.toLowerCase());
   }
 

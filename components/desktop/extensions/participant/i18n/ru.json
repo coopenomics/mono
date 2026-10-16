@@ -1,6 +1,7 @@
 {
   "participant": {
     "install": {
+      "advancesTitle": "Авансы",
       "cardTitle": "Карта кооператора",
       "connectionTitle": "Подключение",
       "contactsTitle": "Контакты",

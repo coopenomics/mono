@@ -35,6 +35,7 @@ const PROPOSAL_FIELDS = `proposal_hash coopname username source_wallet status to
 const GET = `query($h:String!){ expenseProposal(proposal_hash:$h){ ${PROPOSAL_FIELDS} } }`
 const BY_COOP = `query($c:String!,$o:PaginationInput){ expenseProposalsByCooperative(coopname:$c, options:$o){ items{ proposal_hash status } totalPages currentPage } }`
 const BY_MEMBER = `query($c:String!,$u:String!,$o:PaginationInput){ expenseProposalsByMember(coopname:$c, username:$u, options:$o){ items{ proposal_hash username } totalPages } }`
+const ADVANCES = `query($c:String!,$u:String!,$o:PaginationInput){ expenseAdvancesByMember(coopname:$c, username:$u, options:$o){ items{ proposal_hash username } totalPages } }`
 const REQUISITES = `query($c:String!,$h:String!){ expenseRequisitesByProposal(coopname:$c, proposal_hash:$h){ proposal_hash item_hash recipient method_type data requisites payment_purpose } }`
 const PAY = `mutation($d:PayExpenseItemInput!){ payExpenseItem(data:$d){ __typename } }`
 const RETURN = `mutation($d:ReturnExpenseItemInput!){ returnExpenseItem(data:$d){ __typename } }`
@@ -63,13 +64,15 @@ async function findInCoopList(token: string, proposalHash: string): Promise<any 
   return undefined
 }
 
-async function findInMemberList(token: string, username: string, proposalHash: string): Promise<any | undefined> {
+/** Ищет записку в постраничном списке пайщика: поданных им (по умолчанию) или его авансов. */
+async function findInMemberList(token: string, username: string, proposalHash: string, list: 'expenseProposalsByMember' | 'expenseAdvancesByMember' = 'expenseProposalsByMember'): Promise<any | undefined> {
+  const query = list === 'expenseAdvancesByMember' ? ADVANCES : BY_MEMBER
   for (let page = 1; page <= 50; page++) {
-    const d = await gql<any>(token, BY_MEMBER, { c: COOP, u: username, o: { page, limit: 50, sortOrder: 'DESC' } })
-    const hit = d.expenseProposalsByMember.items.find((p: any) => p.proposal_hash === proposalHash)
+    const d = await gql<any>(token, query, { c: COOP, u: username, o: { page, limit: 50, sortOrder: 'DESC' } })
+    const hit = d[list].items.find((p: any) => p.proposal_hash === proposalHash)
     if (hit)
       return hit
-    if (page >= d.expenseProposalsByMember.totalPages)
+    if (page >= d[list].totalPages)
       return undefined
   }
   return undefined
@@ -264,6 +267,29 @@ describe('expenses: служебная записка на расход', () => 
     expect(foreignList?.code).toBe('EXPENSES_PROPOSAL_ACCESS_DENIED')
     expect(await findInMemberList(council, COUNCIL.account, draft.proposal_hash)).toBeDefined()
     expect(await findInMemberList(chairman, COUNCIL.account, draft.proposal_hash)).toBeDefined()
+  })
+
+  // ── Авансы пайщика (стол пайщика, «Авансы») ─────────────────────────────
+
+  // exp.adv.happy.02: в отбор попадает только строка-аванс на этого получателя.
+  it(caseName('exp.adv.happy.01', 'записка видна в авансах получателя аванса, но не в авансах её автора'), async () => {
+    expect(await findInMemberList(recipientToken, recipient.account, draft.proposal_hash, 'expenseAdvancesByMember')).toMatchObject({ username: COUNCIL.account })
+    expect(await findInMemberList(chairman, recipient.account, draft.proposal_hash, 'expenseAdvancesByMember')).toBeDefined()
+    // У автора в записке строка оплаты по счёту организации, аванса ему нет.
+    expect(await findInMemberList(council, COUNCIL.account, draft.proposal_hash, 'expenseAdvancesByMember')).toBeUndefined()
+  })
+
+  it(caseName('exp.adv.side.01', 'чужие авансы пайщику закрыты, гостю — вход'), async () => {
+    const err = await gqlError(other, ADVANCES, { c: COOP, u: recipient.account, o: { page: 1, limit: 10, sortOrder: 'DESC' } })
+    expect(err?.code).toBe('EXPENSES_PROPOSAL_ACCESS_DENIED')
+    const guest = await gqlError(null, ADVANCES, { c: COOP, u: recipient.account, o: { page: 1, limit: 10, sortOrder: 'DESC' } })
+    expect(String(guest?.code)).toBe('401')
+  })
+
+  it(caseName('exp.adv.side.02', 'неизвестная колонка сортировки и лимит сверх предела список авансов не роняют'), async () => {
+    const d = await gql<any>(recipientToken, ADVANCES, { c: COOP, u: recipient.account, o: { page: 1, limit: 500, sortBy: 'drop table', sortOrder: 'ASC' } })
+    expect(d.expenseAdvancesByMember.items.length).toBeLessThanOrEqual(200)
+    expect(d.expenseAdvancesByMember.items.map((p: any) => p.proposal_hash)).toContain(draft.proposal_hash)
   })
 
   // ── Права на операции со строками ────────────────────────────────────────

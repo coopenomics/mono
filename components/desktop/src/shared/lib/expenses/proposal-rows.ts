@@ -1,3 +1,8 @@
+/**
+ * Подписи строки служебной записки в списках: автор, сумма, дата, назначение.
+ * Одни и те же на реестре расходов, кассе и в авансах пайщика.
+ */
+import { uiLocale } from 'src/shared/i18n';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { getNameFromCertificate } from 'src/shared/lib/utils/getNameFromCertificate';
 
@@ -23,4 +28,17 @@ export function proposalAuthorName(row: IProposalAuthorRow): string {
 export function formatProposalAmount(asset?: string | null): string {
   if (!asset) return '—';
   return formatAsset2Digits(asset);
+}
+
+/** Дата записки для таблиц: короткие дата и время, пусто — прочерк. */
+export function formatProposalDate(createdAt?: string | null): string {
+  if (!createdAt) return '—';
+  const date = new Date(createdAt);
+  if (Number.isNaN(date.getTime())) return createdAt;
+  return date.toLocaleString(uiLocale(), { dateStyle: 'short', timeStyle: 'short' });
+}
+
+/** Назначение записки — описание первой строки расхода; без описания — `null`. */
+export function proposalPurpose(row: { items?: { description?: string | null }[] | null }): string | null {
+  return row.items?.[0]?.description || null;
 }

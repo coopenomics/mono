@@ -185,8 +185,8 @@ import {
   getExpenseItemStatusLabel,
   getExpenseItemStatusVariant,
   getExpenseMechanicsLabel,
-  EXPENSE_LIVE_TABLES,
 } from '../model';
+import { EXPENSE_LIVE_TABLES } from 'src/shared/lib/expenses';
 import { t } from '../i18n';
 
 type IProposal = NonNullable<IExpenseProposalResult>;
@@ -343,11 +343,12 @@ function goBack(): void {
   });
 }
 
-// Клик по платежу → реестр платежей кассира, отфильтрованный по владельцу
-// платежа, с фокусом на конкретный платёж (виджет раскроет его по hash).
+// Клик по платежу → реестр платежей, отфильтрованный по владельцу платежа,
+// с фокусом на конкретный платёж (виджет раскроет его по hash). Кассир и
+// председатель попадают в реестр стола кассира, член совета — стола совета.
 function openInRegistry(pay: IPayment): void {
   void router.push({
-    name: 'payments',
+    name: desktop.hasGrant('cashier', 'Payment:confirm') ? 'cashier-payments' : 'payments',
     params: { coopname: route.params.coopname, username: pay.username },
     query: { focus: pay.hash },
   });

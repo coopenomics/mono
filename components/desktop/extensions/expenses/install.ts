@@ -2,13 +2,7 @@ import './i18n';
 import { markRaw } from 'vue';
 import { agreementsBase } from 'src/shared/lib/consts/workspaces';
 import type { IWorkspaceConfig } from 'src/shared/lib/types/workspace';
-import {
-  ExpensesRegistryPage,
-  ExpenseDetailPage,
-  ExpensesAdminApprovePage,
-  CashierPage,
-  MyAdvancesPage,
-} from './pages';
+import { ExpensesRegistryPage, ExpenseDetailPage } from './pages';
 import { t } from './i18n';
 
 // Шасси расходов — UI scaffold (C28-32). Зарегистрировано в
@@ -30,17 +24,10 @@ export default async function (): Promise<IWorkspaceConfig[]> {
         },
         path: '/:coopname/expenses',
         name: 'expenses',
-        // ВНИМАНИЕ: воркспейс `expenses` пока НЕ привязан ни к одному столу
-        // (меню столов приходит с бэкенда; setRoutes вешает пункт лишь если
-        // воркспейс есть в desktop-конфиге). Поэтому страницы ниже — рабочий
-        // КАРКАС будущего «стола кассира» (касса/одобрение/мои авансы):
-        // открываются только по прямому URL, в навигации их нет, и НИЧЕГО на
-        // них не ведёт намеренно. НЕ удалять как «мёртвый код» — соберём стол
-        // кассира из них позже. Реально используются сейчас только
-        // expenses-registry (монтируется на столе совета как «Реестр расходов»)
-        // и expenses-detail (деталь, куда проваливается реестр). Рабочие ссылки
-        // (напоминатель об авансах и т.п.) ведут на личные «Платежи»
-        // /:coopname/user/payments, НЕ на эти каркасные страницы.
+        // Воркспейс `expenses` не привязан ни к одному столу (меню столов
+        // приходит с сервера). Реестр монтируется на столе совета как «Реестр
+        // расходов», сюда проваливаются из реестра, кассы (стол кассира) и
+        // авансов пайщика: страница записки `expenses-detail` общая для всех.
         children: [
           {
             path: '',
@@ -49,45 +36,6 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: t('expenses.install.registryNavTitle'),
               icon: 'receipt_long',
-              requires: 'ExpenseProposal:read',
-              agreements: agreementsBase,
-              requiresAuth: true,
-            },
-            children: [],
-          },
-          {
-            path: 'admin/approve',
-            name: 'expenses-admin-approve',
-            component: markRaw(ExpensesAdminApprovePage),
-            meta: {
-              title: t('expenses.install.adminApproveNavTitle'),
-              icon: 'gavel',
-              requires: 'ExpenseProposal:pay',
-              agreements: agreementsBase,
-              requiresAuth: true,
-            },
-            children: [],
-          },
-          {
-            path: 'cashier',
-            name: 'expenses-cashier',
-            component: markRaw(CashierPage),
-            meta: {
-              title: t('expenses.install.cashierNavTitle'),
-              icon: 'payments',
-              requires: 'ExpenseProposal:pay',
-              agreements: agreementsBase,
-              requiresAuth: true,
-            },
-            children: [],
-          },
-          {
-            path: 'my/advances',
-            name: 'expenses-my-advances',
-            component: markRaw(MyAdvancesPage),
-            meta: {
-              title: t('expenses.install.myAdvancesNavTitle'),
-              icon: 'account_balance_wallet',
               requires: 'ExpenseProposal:read',
               agreements: agreementsBase,
               requiresAuth: true,

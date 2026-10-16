@@ -17,5 +17,3 @@ export type {
   ICreateProposalDraft,
   ICreateProposalDraftItem,
 } from './useExpenseProposalActions';
-export * from './useLiveProposalList';
-export { proposalAuthorName, formatProposalAmount } from './proposalRow';

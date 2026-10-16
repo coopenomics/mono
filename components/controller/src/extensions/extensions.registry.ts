@@ -145,6 +145,36 @@ export const AppRegistry: INamedExtension = {
       return !!this.desktops && this.desktops.length > 0;
     },
   },
+  // Стол кассира — встроенный стол без своей логики на сервере: страницы
+  // открываются по правам ядра (реестр платежей) и расходов (касса), роль
+  // «Кассир» числится за ним. `defaults` ставит его каждому кооперативу, в том
+  // числе действующему: недостающие встроенные приложения узел доустанавливает
+  // при запуске (`installDefaultApps`).
+  cashier: {
+    is_internal: true,
+    availability: ExtensionAvailability.EVERYWHERE,
+    desktops: [
+      {
+        name: 'cashier',
+        title: t('app.extensionsRegistry.cashier.windowTitle'),
+        icon: 'point_of_sale',
+      },
+    ],
+    title: t('app.extensionsRegistry.cashier.title'),
+    description: t('app.extensionsRegistry.cashier.description'),
+    image: 'https://i.ibb.co/6C5F3kD/Chat-GPT-Image-10-2025-20-42-42.png',
+    class: BuiltinExtensionModule,
+    extensionClass: BuiltinExtension,
+    defaults: { enabled: true, config: builtinDefaultConfig },
+    schema: BuiltinSchema,
+    ports: builtinPorts,
+    tags: [t('app.extensionsRegistry.cashier.tagDesk'), t('app.extensionsRegistry.cashier.tagPayments')],
+    readme: getReadmeContent('./cashier'),
+    instructions: getInstructionsContent('./cashier'),
+    get is_desktop() {
+      return !!this.desktops && this.desktops.length > 0;
+    },
+  },
   capital: {
     is_internal: true,
     availability: ExtensionAvailability.EVERYWHERE,

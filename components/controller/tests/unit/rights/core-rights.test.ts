@@ -278,14 +278,19 @@ describe('назначаемая роль «кассир» (C28-90)', () => {
     expect(await grantsFor(candidate)).not.toContain('Payment:read:all');
   });
 
-  // access.roles.happy.08
-  it('ядро объявляет роль кассира под приложением стола совета', () => {
+  // access.roles.happy.08 — правка 16.10.2026: роль кассира числится за столом кассира.
+  it('ядро объявляет роль кассира под столом кассира, ревизора — под столом совета', () => {
     const { rights, roleAssignments } = makeGuard();
     rights.onModuleInit();
-    expect(roleAssignments.declare).toHaveBeenCalledWith(
-      'soviet',
-      expect.arrayContaining([expect.objectContaining({ key: 'cashier' }), expect.objectContaining({ key: 'auditor' })])
-    );
+    expect(roleAssignments.declare).toHaveBeenCalledTimes(2);
+    expect(roleAssignments.declare).toHaveBeenCalledWith('cashier', [expect.objectContaining({ key: 'cashier' })]);
+    expect(roleAssignments.declare).toHaveBeenCalledWith('soviet', [expect.objectContaining({ key: 'auditor' })]);
+  });
+
+  it('назначенные роли ядра читаются с обоих столов, повтор ключа роль не удваивает', async () => {
+    const { rights, roleAssignments } = makeGuard(CASHIER);
+    expect(await rights.roles(participant)).toEqual(['account', 'participant', 'cashier']);
+    expect(roleAssignments.rolesOf.mock.calls.map(([app]) => app).sort()).toEqual(['cashier', 'soviet']);
   });
 
   // access.roles.happy.10
@@ -347,5 +352,62 @@ describe('назначаемая роль «кассир» (C28-90)', () => {
     for (const grant of ['Document:read:all', 'DocumentTemplate:read', 'Participant:read:all', 'Account:read:all', 'Expense:read:all']) expect(grants).toContain(grant);
     expect(grants).not.toContain('DocumentTemplate:propose');
     for (const grant of ['Participant:create', 'Account:update', 'Agenda:read', 'Meet:create']) expect(grants).not.toContain(grant);
+  });
+});
+
+describe('стол кассира (cashier.desk.*)', () => {
+  const STAND = { assigned: { ivan: ['cashier'], olga: ['auditor'] } };
+  const cashier = participant;
+  const auditor: Caller = { username: 'olga', role: 'user', status: 'active' };
+
+  /** Права страниц стола `desk` — через провайдер, который ядро положило в реестр прав столов. */
+  async function deskGrants(desk: string, caller: Caller): Promise<string[]> {
+    const { rights, registry } = makeGuard(STAND);
+    rights.onModuleInit();
+    const provider = registry.register.mock.calls.map(([p]) => p).find((p) => p.extensionName === desk);
+    if (!provider) throw new Error(`права стола ${desk} не зарегистрированы`);
+    return provider.resolveGrants({ username: caller.username, userRole: caller.role, userStatus: caller.status });
+  }
+
+  // cashier.desk.happy.01
+  it('права ядра регистрируются и для стола кассира', () => {
+    const { rights, registry } = makeGuard();
+    rights.onModuleInit();
+    expect(registry.register).toHaveBeenCalledWith(expect.objectContaining({ extensionName: 'cashier' }));
+  });
+
+  // cashier.desk.happy.02
+  it('кассир и председатель получают на столе кассира право подтверждать оплату', async () => {
+    for (const caller of [cashier, chairman]) {
+      const grants = await deskGrants('cashier', caller);
+      expect(grants).toContain('Payment:confirm');
+      expect(grants).toContain('Payment:read:all');
+    }
+  });
+
+  // cashier.desk.side.01
+  it('член совета, ревизор и пайщик без роли стола кассира не видят: права подтверждать оплату нет', async () => {
+    for (const caller of [councilMember, auditor, { ...participant, username: 'nobody' }]) {
+      expect(await deskGrants('cashier', caller)).not.toContain('Payment:confirm');
+    }
+  });
+
+  // cashier.desk.side.02
+  it('кассиру стол совета не выводится: реестр платежей он ведёт на своём столе', async () => {
+    const grants = await deskGrants('soviet', cashier);
+    expect(grants).not.toContain('Payment:read:all');
+    expect(grants).not.toContain('Payment:confirm');
+  });
+
+  // cashier.desk.side.03
+  it('ревизор читает реестр платежей на столе совета, член совета — тоже', async () => {
+    expect(await deskGrants('soviet', auditor)).toContain('Payment:read:all');
+    expect(await deskGrants('soviet', councilMember)).toContain('Payment:read:all');
+  });
+
+  // cashier.desk.side.04
+  it('операции реестра платежей кассиру открыты по полному набору ролей', async () => {
+    const { pass } = makeGuard(STAND);
+    await expect(pass(requirementOf(FILES.gateway, 'setPaymentStatus'), cashier, { data: { id: '1' } })).resolves.toBe(true);
   });
 });

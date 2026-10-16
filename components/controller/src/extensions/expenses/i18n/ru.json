@@ -60,6 +60,11 @@
         "permissions": {
           "registry": "Расходы кооператива и реквизиты получателей"
         }
+      },
+      "cashier": {
+        "permissions": {
+          "registry": "Служебные записки на расход и реквизиты получателей"
+        }
       }
     },
     "uploadExpenseFile": {

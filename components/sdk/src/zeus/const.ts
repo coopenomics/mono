@@ -3272,6 +3272,9 @@ export const AllTypesProps: Record<string,any> = {
 		edubridgeTeacherContractDocument:{
 
 		},
+		expenseAdvancesByMember:{
+			options:"PaginationInput"
+		},
 		expenseFile:{
 
 		},
@@ -8848,6 +8851,7 @@ export const ReturnTypes: Record<string,any> = {
 		edubridgeTeacherContractDocument:"DocumentAggregate",
 		edubridgeTeacherOptions:"EduTeacherOption",
 		edubridgeTeachers:"EduTeacher",
+		expenseAdvancesByMember:"PaginatedExpenseProposalsPaginationResult",
 		expenseFile:"ExpenseFile",
 		expenseFilesByItem:"ExpenseFile",
 		expenseFilesByProposal:"ExpenseFile",

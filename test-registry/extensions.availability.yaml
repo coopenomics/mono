@@ -197,3 +197,6 @@ cases:
     test: components/controller/tests/unit/extension/extension-availability.test.ts
     status: written   # прогон — CI на полигоне ci/tests
 
+# 2026-10-16 (7DD-25): в реестр приложений добавлен встроенный стол кассира
+# (`cashier`, доступен везде, ставится по умолчанию). Правила доступности и их
+# проверки не менялись; сам стол — test-registry/cashier.desk.yaml.

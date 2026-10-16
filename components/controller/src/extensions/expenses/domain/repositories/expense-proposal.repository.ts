@@ -24,6 +24,12 @@ export interface ExpenseProposalRepository extends IBlockchainSyncRepository<Exp
     username: string,
     options?: PaginationInputDTO
   ): Promise<{ items: ExpenseProposalDomainEntity[]; totalCount: number }>;
+  /** Записки, в строках которых пайщик — получатель аванса под отчёт. */
+  findAdvancesByRecipientPaginated(
+    coopname: string,
+    recipient: string,
+    options?: PaginationInputDTO
+  ): Promise<{ items: ExpenseProposalDomainEntity[]; totalCount: number }>;
 }
 
 export const EXPENSE_PROPOSAL_REPOSITORY = Symbol('ExpenseProposalRepository');

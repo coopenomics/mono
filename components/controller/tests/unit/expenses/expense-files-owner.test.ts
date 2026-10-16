@@ -37,7 +37,9 @@ function build() {
         : null
     ),
   };
-  const service = new ExpenseFilesService(bucket as any, files as any, payments as any, proposals as any);
+  // Читателей реестра (кассир, ревизор) в этом наборе нет — их случаи в expense-cashier-access.test.ts.
+  const rights = { readsRegistry: jest.fn().mockResolvedValue(false) };
+  const service = new ExpenseFilesService(bucket as any, files as any, payments as any, proposals as any, rights as any);
   return { service, bucket };
 }
 

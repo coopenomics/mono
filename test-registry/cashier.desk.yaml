@@ -1,0 +1,200 @@
+feature: cashier.desk
+title: Стол кассира — касса, реестр платежей кассира и авансы пайщика
+
+# Стол кассира — встроенное приложение, оно ставится каждому кооперативу само
+# (запись `cashier` в реестре приложений с `defaults`; действующему кооперативу
+# узел доустанавливает его при запуске). Страницы стола требуют права
+# подтверждать оплату, поэтому стол видят председатель и пайщик с ролью
+# «Кассир»; член совета читает реестр платежей на столе совета.
+#
+# Касса показывает служебные записки кооператива по этапам выплаты (к оплате,
+# ждут отчёта, на утверждении, закрытые); строка открывает записку. Реестр
+# платежей — тот же, что на столе совета: на столе кассира подтверждение
+# оплаты берётся из прав этого стола.
+#
+# Роль «Кассир» числится за столом кассира (до 16.10.2026 — за столом совета):
+# её страницы ядро выводит только на этом столе, расходы дополняют роль
+# чтением служебных записок и их файлов (касса), загрузка в чужую записку
+# кассиру закрыта.
+#
+# «Авансы» стола пайщика читают записки, где пайщик — получатель аванса под
+# отчёт (`expenseAdvancesByMember`, случаи exp.adv.* в expenses.proposals.yaml).
+#
+# Заведено 16.10.2026 (7DD-25).
+
+sources:
+  backend:
+    - components/controller/src/extensions/cashier/**
+    - components/controller/src/infrastructure/database/migrations/1792132849961-cashier-role-to-cashier-desk.ts
+  ui:
+    - components/desktop/extensions/cashier/**
+    - components/desktop/src/pages/User/AdvancesPage/**
+    - components/desktop/src/entities/ExpenseProposal/**
+    - components/desktop/src/shared/lib/expenses/proposal-*.ts
+    - components/desktop/src/pages/Cooperative/Payments/**
+
+cases:
+
+  - id: cashier.desk.happy.01
+    level: backend
+    kind: happy
+    scenario: ядро выдаёт права страниц столу кассира
+    expect: провайдер прав ядра зарегистрирован для стола кассира рядом со столами совета, председателя и пайщика
+    test: components/controller/tests/unit/rights/core-rights.test.ts
+    external: unreachable
+    external_reason: регистрация провайдера прав — внутреннее устройство узла; снаружи видны права стола, их проверяют happy.02 и happy.08
+    status: written   # прогон — CI на полигоне ci/tests
+
+  - id: cashier.desk.happy.02
+    level: backend
+    kind: happy
+    scenario: кассир и председатель открывают рабочий стол
+    expect: на столе кассира у обоих есть права читать реестр платежей и подтверждать оплату
+    test: components/controller/tests/unit/rights/core-rights.test.ts
+    api: components/api-tests/src/platform/access-roles.test.ts
+    status: written   # прогон — CI на полигоне ci/tests
+
+  - id: cashier.desk.happy.03
+    level: backend
+    kind: happy
+    scenario: кассир открывает кассу
+    expect: читает служебные записки кооператива и реквизиты получателей; подать, решить и оплатить записку ему нельзя
+    test: components/controller/tests/unit/expenses/expense-cashier-access.test.ts
+    api: components/api-tests/src/platform/access-roles.test.ts
+    status: written   # прогон — CI на полигоне ci/tests
+
+  - id: cashier.desk.happy.04
+    level: backend
+    kind: happy
+    scenario: расходы при запуске объявляют свои права столам
+    expect: права страниц расходов выданы столу пайщика и столу кассира, роль кассира дополнена чтением записок
+    test: components/controller/tests/unit/expenses/expense-cashier-access.test.ts
+    api: components/api-tests/src/platform/access-roles.test.ts
+    status: written   # прогон — CI на полигоне ci/tests
+
+  - id: cashier.desk.happy.05
+    level: backend
+    kind: happy
+    scenario: кто читает реестр расходов целиком
+    expect: совет, кассир и ревизор — да; пайщик без роли и кандидат с назначенной ролью — нет
+    test: components/controller/tests/unit/expenses/expense-cashier-access.test.ts
+    api: components/api-tests/src/platform/access-roles.test.ts
+    status: written   # прогон — CI на полигоне ci/tests
+
+  - id: cashier.desk.happy.06
+    level: backend
+    kind: happy
+    scenario: кассир открывает чужую служебную записку со строки кассы
+    expect: записка отдаётся целиком
+    test: components/controller/tests/unit/expenses/expense-cashier-access.test.ts
+    external: unreachable
+    external_reason: держателя роли кассира с запиской на стенде готовит только сюита стола кассира (UI, cashier.desk.ui.01); в API-наборе назначение роли и записка живут в разных файлах и стенд общий
+    status: written   # прогон — CI на полигоне ci/tests
+
+  - id: cashier.desk.happy.07
+    level: backend
+    kind: happy
+    scenario: кассир открывает файлы чужой записки — платёжки и чеки
+    expect: список файлов и ссылка на файл выдаются
+    test: components/controller/tests/unit/expenses/expense-cashier-access.test.ts
+    external: unreachable
+    external_reason: та же причина, что у happy.06 — держатель роли и записка с файлами в одном наборе не сводятся
+    status: written   # прогон — CI на полигоне ci/tests
+
+  - id: cashier.desk.happy.08
+    level: backend
+    kind: happy
+    scenario: председатель и член совета открывают рабочий стол
+    expect: у председателя на столе кассира есть подтверждение оплаты; у члена совета его нет, реестр платежей он читает на столе совета
+    test: components/api-tests/src/platform/access-roles.test.ts
+    api: components/api-tests/src/platform/access-roles.test.ts
+    status: written   # прогон — ночной внешний слой
+
+  - id: cashier.desk.side.01
+    level: backend
+    kind: side
+    scenario: член совета, ревизор и пайщик без роли открывают рабочий стол
+    expect: права подтверждать оплату на столе кассира нет ни у кого — стол им не виден
+    test: components/controller/tests/unit/rights/core-rights.test.ts
+    api: components/api-tests/src/platform/access-roles.test.ts
+    status: written   # прогон — CI на полигоне ci/tests
+
+  - id: cashier.desk.side.02
+    level: backend
+    kind: side
+    scenario: пайщик с ролью кассира открывает стол совета
+    expect: страниц стола совета у него нет, включая реестр платежей — он ведёт его на своём столе
+    test: components/controller/tests/unit/rights/core-rights.test.ts
+    api: components/api-tests/src/platform/access-roles.test.ts
+    status: written   # прогон — CI на полигоне ci/tests
+
+  - id: cashier.desk.side.03
+    level: backend
+    kind: side
+    scenario: ревизор и член совета открывают стол совета после переезда роли кассира
+    expect: реестр платежей стола совета им по-прежнему открыт
+    test: components/controller/tests/unit/rights/core-rights.test.ts
+    api: components/api-tests/src/platform/access-roles.test.ts
+    status: written   # прогон — CI на полигоне ci/tests
+
+  - id: cashier.desk.side.04
+    level: backend
+    kind: side
+    scenario: кассир подтверждает оплату — операция ядра проверяется по полному набору ролей
+    expect: подтверждение проходит, хотя стол совета кассиру не выводится
+    test: components/controller/tests/unit/rights/core-rights.test.ts
+    api: components/api-tests/src/platform/access-roles.test.ts
+    status: written   # прогон — CI на полигоне ci/tests
+
+  - id: cashier.desk.side.05
+    level: backend
+    kind: side
+    scenario: пайщик без роли открывает чужую служебную записку по хешу
+    expect: отказ EXPENSES_PROPOSAL_ACCESS_DENIED
+    test: components/controller/tests/unit/expenses/expense-cashier-access.test.ts
+    api: components/api-tests/src/expenses/proposals.test.ts
+    status: written   # прогон — CI на полигоне ci/tests
+
+  - id: cashier.desk.side.06
+    level: backend
+    kind: side
+    scenario: кассир загружает файл в чужую служебную записку
+    expect: отказ до записи в хранилище — читать записку кассиру можно, вести её нельзя
+    test: components/controller/tests/unit/expenses/expense-cashier-access.test.ts
+    external: unreachable
+    external_reason: та же причина, что у happy.06 — держатель роли и чужая записка в одном наборе не сводятся
+    status: written   # прогон — CI на полигоне ci/tests
+
+  - id: cashier.desk.side.07
+    level: backend
+    kind: side
+    scenario: действующий кооператив, где роль кассира назначена до переезда на стол кассира
+    expect: права кассира не прерываются — назначенные роли читаются по ключу с обоих столов; запись назначения миграция переносит на стол кассира
+    test: components/controller/tests/unit/rights/core-rights.test.ts
+    external: unreachable
+    external_reason: назначение «до переезда» на свежем стенде не создать — миграция идёт при подключении к базе раньше любого теста
+    status: written   # прогон — CI на полигоне ci/tests
+
+  - id: cashier.desk.ui.01
+    level: ui
+    kind: happy
+    scenario: председатель открывает кассу после решения совета по записке
+    expect: записка стоит во вкладке «К оплате», вкладки переключаются, строка открывает записку со строками расходов
+    test: components/docs-harness/scenarios/cashier/desk.mjs
+    status: written   # прогон — стенд CI, сюита cashier
+
+  - id: cashier.desk.ui.02
+    level: ui
+    kind: happy
+    scenario: председатель открывает реестр платежей стола кассира
+    expect: платёж по утверждённой записке виден, кнопка подтверждения оплаты есть
+    test: components/docs-harness/scenarios/cashier/payments.mjs
+    status: written   # прогон — стенд CI, сюита cashier
+
+  - id: cashier.desk.ui.03
+    level: ui
+    kind: happy
+    scenario: получатель аванса открывает «Авансы» на столе пайщика
+    expect: записка с его строкой-авансом и суммой аванса; строка организации той же записки в авансах не стоит; строка открывает записку
+    test: components/docs-harness/scenarios/cashier/advances.mjs
+    status: written   # прогон — стенд CI, сюита cashier

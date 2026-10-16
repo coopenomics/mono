@@ -91,7 +91,7 @@ cases:
     level: backend
     kind: happy
     scenario: пайщик с ролью кассира открывает рабочий стол
-    expect: из страниц стола совета получает только реестр платежей
+    expect: получает стол кассира (касса и реестр платежей); страниц стола совета у него нет
     test: components/controller/tests/unit/rights/core-rights.test.ts
     api: components/api-tests/src/platform/access-roles.test.ts
     status: written   # прогон — CI на полигоне ci/tests
@@ -100,7 +100,7 @@ cases:
     level: backend
     kind: happy
     scenario: ядро объявляет роль кассира
-    expect: роль объявлена под приложением стола совета
+    expect: роль объявлена под приложением стола кассира, ревизор — под столом совета
     test: components/controller/tests/unit/rights/core-rights.test.ts
     api: components/api-tests/src/platform/access-roles.test.ts
     status: written   # прогон — CI на полигоне ci/tests
@@ -328,3 +328,8 @@ cases:
     scenario: председатель на странице «Управление доступом» назначает пайщику роль кассира; пайщик открывает стол совета
     expect: у пайщика на столе совета одна страница — реестр платежей; после снятия роли стол совета пропадает
     status: missing   # проверяется владельцем на стенде; сценарий harness не заведён
+
+# Правка 16.10.2026 (7DD-25): роль «Кассир» переехала со стола совета на стол
+# кассира (test-registry/cashier.desk.yaml); expect случаев happy.07 и
+# happy.08 переписаны под это, расходы дополняют роль кассира чтением
+# служебных записок.

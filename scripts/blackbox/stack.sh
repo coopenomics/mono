@@ -509,7 +509,7 @@ ui_env() {
 # стенду документации не нужна: группа L0 Стола заказов снимает подключение
 # ЦПП на девственном стенде, а засев сделал бы его «уже подключённым».
 cmd_ui() {
-  local app="${1:?приложение: marketplace | blagorost | edubridge | ku | robot}"
+  local app="${1:?приложение: marketplace | blagorost | edubridge | ku | robot | cashier}"
   ui_env
   cd "$HARNESS_DIR"
   case "$app" in
@@ -520,6 +520,7 @@ cmd_ui() {
     soviet) node bin/run-soviet-all.mjs ;;
     chairman) node bin/run-chairman-all.mjs ;;
     expenses) node bin/run-expenses-all.mjs ;;
+    cashier) node bin/run-cashier-all.mjs ;;
     reports) node bin/run-reports-all.mjs ;;
     participant) node bin/run-participant-all.mjs ;;
     chatcoop) node bin/run-chatcoop-all.mjs ;;
