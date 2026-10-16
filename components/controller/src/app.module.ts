@@ -99,6 +99,8 @@ import { OnboardingApplicationModule } from './application/onboarding/onboarding
 import { DocumentApprovalApplicationModule } from './application/document-approval/document-approval-application.module';
 import { SearchModule } from './application/search/search.module';
 import { GlobalSearchRegistryModule } from './application/search/global-search.registry';
+import { OrganizationLookupRegistryModule } from './application/organization-lookup/organization-lookup.registry';
+import { OrganizationLookupModule } from './application/organization-lookup/organization-lookup.module';
 import { SignedDocumentsModule } from './application/signed-documents/signed-documents.module';
 import { MutationLoggingInterceptor } from './application/common/interceptors/mutation-logging.interceptor';
 import { MarketplaceExtensionModule } from './extensions/marketplace/marketplace-extension.module';
@@ -190,6 +192,7 @@ import { MarketplaceExtensionModule } from './extensions/marketplace/marketplace
     RoleAssignmentsRegistryModule,
     AccessRolesModule,
     GlobalSearchRegistryModule,
+    OrganizationLookupRegistryModule,
     DesktopModule,
     SsrContextModule,
     BranchModule,
@@ -224,6 +227,7 @@ import { MarketplaceExtensionModule } from './extensions/marketplace/marketplace
     OnboardingApplicationModule,
     DocumentApprovalApplicationModule,
     SearchModule,
+    OrganizationLookupModule,
     SignedDocumentsModule,
     // Marketplace extensions
     MarketplaceExtensionModule,

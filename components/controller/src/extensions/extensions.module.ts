@@ -6,6 +6,7 @@ import { PowerupExtensionModule } from './powerup/powerup-extension.module';
 import { YookassaExtensionModule } from './yookassa/yookassa-extension.module';
 import { SberpollExtensionModule } from './sberpoll/sberpoll-extension.module';
 import { QrPayExtensionModule } from './qrpay/qrpay-extension.module';
+import { DadataExtensionModule } from './dadata/dadata-extension.module';
 import { BuiltinExtensionModule } from './builtin/builtin-extension.module';
 import { ParticipantExtensionModule } from './participant/participant-extension.module';
 import { ChatCoopExtensionModule } from './chatcoop/chatcoop-extension.module';
@@ -32,6 +33,7 @@ export class ExtensionsModule {
         YookassaExtensionModule,
         SberpollExtensionModule,
         QrPayExtensionModule,
+        DadataExtensionModule,
         ParticipantExtensionModule,
         ChatCoopExtensionModule,
         InnercoopBridgeModule,
@@ -54,6 +56,7 @@ export class ExtensionsModule {
         YookassaExtensionModule,
         SberpollExtensionModule,
         QrPayExtensionModule,
+        DadataExtensionModule,
         ParticipantExtensionModule,
         ChatCoopExtensionModule,
         InnercoopBridgeModule,

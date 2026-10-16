@@ -19,6 +19,7 @@ import {
   ROLE_ASSIGNMENTS_PORT,
   ACCOUNTING_REGISTRY_PORT,
   GLOBAL_SEARCH_REGISTRY_PORT,
+  ORGANIZATION_LOOKUP_REGISTRY_PORT,
   DOCUMENT_PORT,
   EXPENSE_CHASSIS_PORT,
   SOVIET_ROBOT_PORT,
@@ -122,6 +123,7 @@ import { ExtensionGrantsRegistry } from '~/application/desktop/extension-grants.
 import { ExtensionGrantsFilterRegistry } from '~/application/desktop/extension-grants-filter.registry';
 import { ExtensionOfferFilterRegistry } from '~/domain/registration/services/extension-offer-filter.registry';
 import { GlobalSearchRegistry } from '~/application/search/global-search.registry';
+import { OrganizationLookupRegistry } from '~/application/organization-lookup/organization-lookup.registry';
 import { RoleAssignmentsRegistry } from '~/application/access-roles/role-assignments.registry';
 import { PubSubModule } from '~/infrastructure/pubsub/pubsub.module';
 import { AgreementRegistryService } from '~/domain/registration/services/agreement-registry.service';
@@ -490,6 +492,12 @@ import { ProcessRegistryDomainModule } from '~/domain/process-registry/process-r
       useExisting: GlobalSearchRegistry,
     },
     {
+      // Коннекторы реестра организаций по странам — тот же приём: расширение
+      // кладёт себя, анкета вступления спрашивает. Модуль реестра глобальный.
+      provide: ORGANIZATION_LOOKUP_REGISTRY_PORT,
+      useExisting: OrganizationLookupRegistry,
+    },
+    {
       // Реестр оферт ядра совпадает с портом по форме, промежуточный адаптер
       // ничего бы не добавил; `RegistrationDomainModule` глобальный.
       provide: REGISTRATION_REGISTRY_PORT,
@@ -589,6 +597,7 @@ import { ProcessRegistryDomainModule } from '~/domain/process-registry/process-r
     ROLE_ASSIGNMENTS_PORT,
     ACCOUNTING_REGISTRY_PORT,
     GLOBAL_SEARCH_REGISTRY_PORT,
+    ORGANIZATION_LOOKUP_REGISTRY_PORT,
     REGISTRATION_REGISTRY_PORT,
     REGISTRATION_DOCUMENT_PARAMETERS_REGISTRY_PORT,
     ONBOARDING_STEP_REGISTRY_PORT,
