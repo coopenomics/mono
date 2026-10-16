@@ -191,11 +191,19 @@ nav:
     - НДФЛ: new/buh/ndfl.md
     - Реквизиты: new/buh/settings.md
 
+  - Стол кассира:
+    - new/cashier/index.md
+    - Реестр платежей: new/cashier/payments.md
+    - Расходы: new/cashier/expenses.md
+    - Авансы: new/cashier/advances.md
+    - Стол глазами совета: new/cashier/council-view.md
+
   - Расходы:
     - new/expenses/index.md
     - Реестр расходов: new/expenses/registry.md
-    - Касса: new/expenses/cashier.md
-    - Мои авансы: new/expenses/advances.md
+    - Выплаты по записке: new/expenses/cashier.md
+    - Отчёт по авансу: new/expenses/advances.md
+    - Закрытие расхода: new/expenses/close.md
 
   - Стол связи:
     - new/chatcoop/index.md
