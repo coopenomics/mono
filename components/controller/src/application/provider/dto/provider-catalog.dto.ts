@@ -73,6 +73,68 @@ export class ProviderCatalogServerOptionDTO {
   trial_days!: number;
 }
 
+@ObjectType('ProviderTariffServer', { description: 'Сервер тарифа: конфигурация и цена строки' })
+export class ProviderTariffServerDTO {
+  @Field(() => Int, { description: 'Ядер процессора' })
+  cpu!: number;
+
+  @Field(() => Int, { description: 'Оперативная память, ГБ' })
+  ram_gb!: number;
+
+  @Field(() => Float, { description: 'Цена строки «Сервер», ₽ в месяц' })
+  price!: number;
+}
+
+@ObjectType('ProviderTariffSupport', { description: 'Поддержка платформы в тарифе' })
+export class ProviderTariffSupportDTO {
+  @Field(() => Float, { description: 'Цена строки «Поддержка платформы», ₽ в месяц' })
+  price!: number;
+
+  @Field(() => String, { description: 'Срок ответа поддержки' })
+  response!: string;
+}
+
+@ObjectType('ProviderTariff', {
+  description: 'Тариф подключения: сервер, поддержка, приложение на выбор и документооборот по фиксированной цене',
+})
+export class ProviderTariffDTO {
+  @Field(() => String, { description: 'Код тарифа' })
+  code!: string;
+
+  @Field(() => String, { description: 'Название тарифа' })
+  name!: string;
+
+  @Field(() => Int, { description: 'Предел числа пайщиков' })
+  members_limit!: number;
+
+  @Field(() => ProviderTariffServerDTO, { description: 'Сервер' })
+  server!: ProviderTariffServerDTO;
+
+  @Field(() => ProviderTariffSupportDTO, { description: 'Поддержка платформы' })
+  support!: ProviderTariffSupportDTO;
+
+  @Field(() => Float, { description: 'Цена приложения на выбор с его поддержкой, ₽ в месяц' })
+  app_price!: number;
+
+  @Field(() => Float, { description: 'Цена пакета документооборота, ₽' })
+  docflow_price!: number;
+
+  @Field(() => Float, { description: 'Цена тарифа в месяц, ₽' })
+  monthly_total!: number;
+
+  @Field(() => Float, { nullable: true, description: 'Цена тарифа за год со скидкой, ₽; пусто — годовая оплата недоступна' })
+  annual_total!: number | null;
+}
+
+@ObjectType('ProviderAnnualBilling', { description: 'Годовая оплата тарифа' })
+export class ProviderAnnualBillingDTO {
+  @Field(() => Boolean, { description: 'Годовая оплата доступна' })
+  enabled!: boolean;
+
+  @Field(() => Float, { description: 'Скидка за год, %' })
+  discount_percent!: number;
+}
+
 @ObjectType('ProviderConnectionCatalog', {
   description: 'Каталог витрины подключения: услуги и конфигурации сервера',
 })
@@ -86,4 +148,10 @@ export class ProviderConnectionCatalogDTO {
     description: 'Конфигурации сервера на выбор',
   })
   server_options!: ProviderCatalogServerOptionDTO[];
+
+  @Field(() => [ProviderTariffDTO], { description: 'Тарифная сетка подключения' })
+  tariffs!: ProviderTariffDTO[];
+
+  @Field(() => ProviderAnnualBillingDTO, { description: 'Годовая оплата тарифа' })
+  annual_billing!: ProviderAnnualBillingDTO;
 }

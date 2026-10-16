@@ -50,7 +50,12 @@ describe('ProviderService.getConnectionCatalog (Epic 28)', () => {
     const catalog = await build().getConnectionCatalog();
 
     expect(mockedAxios.get.mock.calls[0][1]).toMatchObject({ params: undefined });
-    expect(catalog).toEqual({ types: [], server_options: [] });
+    expect(catalog).toEqual({
+      types: [],
+      server_options: [],
+      tariffs: [],
+      annual_billing: { enabled: false, discount_percent: 0 },
+    });
   });
 
   it('break: провайдер не настроен / токен пуст / провайдер недоступен → BadRequest с понятным текстом, наружу не летит стектрейс транспорта', async () => {
@@ -63,5 +68,57 @@ describe('ProviderService.getConnectionCatalog (Epic 28)', () => {
     withConfig('http://provider:3000', 'tok');
     mockedAxios.get.mockRejectedValue(new Error('ECONNREFUSED'));
     await expect(build().getConnectionCatalog()).rejects.toThrow('временно недоступен');
+  });
+});
+
+/**
+ * Тарифная сетка (16.10.2026): каталог несёт тарифы, кооператив-кандидат
+ * передаёт выбор провайдеру. Реестр: test-registry/billing.subscriptions.yaml.
+ */
+describe('ProviderService — тарифная сетка', () => {
+  const build = () =>
+    new ProviderService({} as any, {} as any, { listLatestFor: jest.fn() } as any);
+
+  beforeEach(() => {
+    (config as any).provider_base_url = 'http://provider:3000';
+    (config as any).provider_bearer_token = 'tok-123';
+    (config as any).server_secret = 'srv-secret';
+  });
+  afterEach(() => jest.clearAllMocks());
+
+  it('каталог отдаёт тарифы и годовую оплату как их прислал провайдер', async () => {
+    const tariff = { code: 'start', name: 'Старт', members_limit: 100, monthly_total: 7500, annual_total: null };
+    mockedAxios.get.mockResolvedValue({
+      data: { types: [], server_options: [], tariffs: [tariff], annual_billing: { enabled: true, discount_percent: 30 } },
+    });
+
+    const catalog = await build().getConnectionCatalog('partner1');
+
+    expect(catalog.tariffs).toEqual([tariff]);
+    expect(catalog.annual_billing).toEqual({ enabled: true, discount_percent: 30 });
+  });
+
+  it('выбор тарифа уходит PUT /instances/:username/tariff с server-secret и возвращает принятый выбор', async () => {
+    mockedAxios.put.mockResolvedValue({ data: { coopname: 'coop1', tariff_code: 'standard', billing_period: 'month' } });
+
+    const res = await build().selectTariff('coop1', 'standard', 'month' as any);
+
+    expect(mockedAxios.put).toHaveBeenCalledWith(
+      'http://provider:3000/instances/coop1/tariff',
+      { tariff_code: 'standard', billing_period: 'month' },
+      expect.objectContaining({ headers: { 'server-secret': 'srv-secret' } })
+    );
+    expect(res).toEqual({ tariff_code: 'standard', billing_period: 'month' });
+  });
+
+  // break: отказ провайдера (тариф вне сетки) не теряется молча
+  it('провайдер отклонил выбор → BadRequest с причиной; провайдер не настроен → BadRequest без запроса', async () => {
+    mockedAxios.put.mockRejectedValue({ response: { data: { message: "Тариф 'federation' отсутствует в сетке" } } });
+    await expect(build().selectTariff('coop1', 'federation', 'month' as any)).rejects.toBeInstanceOf(BadRequestException);
+
+    (config as any).provider_base_url = '';
+    mockedAxios.put.mockClear();
+    await expect(build().selectTariff('coop1', 'start', 'month' as any)).rejects.toBeInstanceOf(BadRequestException);
+    expect(mockedAxios.put).not.toHaveBeenCalled();
   });
 });

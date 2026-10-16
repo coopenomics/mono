@@ -4,6 +4,8 @@ import { DocumentHtmlReader } from 'src/shared/ui/DocumentHtmlReader'
 import { Loader } from 'src/shared/ui/Loader'
 import { useConnectionAgreementStore, CONNECTION_STEP } from 'src/entities/ConnectionAgreement'
 import { useAddCooperative } from 'src/features/Union/AddCooperative/model'
+import { selectProviderTariff } from 'src/features/Provider/api'
+import { Zeus } from '@coopenomics/sdk'
 import { useSessionStore } from 'src/entities/Session'
 import { FailAlert } from 'src/shared/api'
 import StepFrame from '../ui/StepFrame.vue'
@@ -24,6 +26,18 @@ const handleSign = async () => {
   if (isSigning.value || !isDocumentReady.value) return
   isSigning.value = true
   try {
+    // Тариф уходит провайдеру до заявки в цепь: по нему провайдер закажет
+    // сервер и заведёт подписки. Отказ провайдера останавливает подписание —
+    // иначе кооператив подключится не на том тарифе, который выбрал.
+    const tariffCode = connectionAgreement.selectedTariff?.code
+    if (tariffCode) {
+      try {
+        await selectProviderTariff({ tariff_code: tariffCode, billing_period: Zeus.ProviderBillingPeriod.month })
+      } catch (error: any) {
+        FailAlert(t('connectionAgreementStepper.agreementStep.tariffError', { reason: error?.message ?? error }))
+        return
+      }
+    }
     await connectionAgreement.signDocument()
     const { addCooperative } = useAddCooperative()
     const session = useSessionStore()

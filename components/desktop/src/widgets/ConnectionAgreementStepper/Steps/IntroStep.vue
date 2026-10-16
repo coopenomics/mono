@@ -23,9 +23,14 @@ const canContinue = computed(() => selectedTariff.value !== null)
 // Итог за месяц — тариф плюс обязательные услуги. Каталог общий с выбором
 // тарифа: TariffSelector его загружает, здесь только читаем.
 const { monthlyTotal, trialDays, formatPrice } = useConnectionCatalog()
-const total = computed(() =>
-  selectedTariff.value ? monthlyTotal(selectedTariff.value.instanceTypeId ?? null) : null,
-)
+// Тариф сетки несёт цену целиком; конфигурация сервера старого провайдера —
+// сервер плюс обязательные услуги.
+const total = computed(() => {
+  const tariff = selectedTariff.value
+  if (!tariff) return null
+  if (tariff.monthlyTotal != null) return tariff.monthlyTotal
+  return monthlyTotal(tariff.instanceTypeId ?? null)
+})
 
 const handleTariffSelected = (tariff: ITariff) => {
   selectedTariff.value = tariff

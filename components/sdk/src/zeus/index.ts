@@ -2315,23 +2315,17 @@ export type ValueTypes = {
 	represented_by?:ValueTypes["RepresentedBy"],
 	/** Краткое название организации */
 	short_name?:boolean | `@${string}`,
-	/** Доверенные аккаунты; пусто, если состав участка недоступен запрашивающему
-
-Требуемые роли: chairman, member.  */
+	/** Доверенные аккаунты; пусто, если состав участка недоступен запрашивающему */
 	trusted?:ValueTypes["Individual"],
 	/** Сертификаты доверенных лиц участка (ФИО) */
 	trusted_certificates?:ValueTypes["IndividualCertificate"],
-	/** Председатель кооперативного участка; пусто, если состав участка недоступен запрашивающему
-
-Требуемые роли: chairman, member.  */
+	/** Председатель кооперативного участка; пусто, если состав участка недоступен запрашивающему */
 	trustee?:ValueTypes["Individual"],
 	/** Сертификат председателя кооперативного участка (ФИО) */
 	trustee_certificate?:ValueTypes["IndividualCertificate"],
 	/** Тип организации */
 	type?:boolean | `@${string}`,
-	/** Пайщики в белом списке приватного участка (ФИО); пусто, если участок не свой
-
-Требуемые роли: chairman, member.  */
+	/** Пайщики в белом списке приватного участка (ФИО); пусто, если участок не свой */
 	whitelist_certificates?:ValueTypes["IndividualCertificate"],
 		__typename?: boolean | `@${string}`,
 	['...on Branch']?: Omit<ValueTypes["Branch"], "...on Branch">
@@ -3476,9 +3470,7 @@ export type ValueTypes = {
 	block_num?:boolean | `@${string}`,
 	/** Статус из блокчейна */
 	blockchain_status?:boolean | `@${string}`,
-	/** Контракт участника
-
-Требуемые роли: chairman, member.  */
+	/** Контракт участника */
 	contract?:ValueTypes["DocumentAggregate"],
 	/** Вклад как автор */
 	contributed_as_author?:boolean | `@${string}`,
@@ -3649,13 +3641,9 @@ export type ValueTypes = {
 	_updated_at?:boolean | `@${string}`,
 	/** Сумма долга */
 	amount?:boolean | `@${string}`,
-	/** Одобренное заявление
-
-Требуемые роли: chairman, member.  */
+	/** Одобренное заявление */
 	approved_statement?:ValueTypes["DocumentAggregate"],
-	/** Протокол решения совета
-
-Требуемые роли: chairman, member.  */
+	/** Протокол решения совета */
 	authorization?:ValueTypes["DocumentAggregate"],
 	/** Номер блока последнего обновления */
 	block_num?:boolean | `@${string}`,
@@ -3675,9 +3663,7 @@ export type ValueTypes = {
 	project_hash?:boolean | `@${string}`,
 	/** Дата погашения */
 	repaid_at?:boolean | `@${string}`,
-	/** Заявление на получение ссуды
-
-Требуемые роли: chairman, member.  */
+	/** Заявление на получение ссуды */
 	statement?:ValueTypes["DocumentAggregate"],
 	/** Статус долга */
 	status?:boolean | `@${string}`,
@@ -3696,13 +3682,9 @@ export type ValueTypes = {
 	_updated_at?:boolean | `@${string}`,
 	/** Сумма расхода */
 	amount?:boolean | `@${string}`,
-	/** Одобренная записка
-
-Требуемые роли: chairman, member.  */
+	/** Одобренная записка */
 	approved_statement?:ValueTypes["DocumentAggregate"],
-	/** Авторизация расхода
-
-Требуемые роли: chairman, member.  */
+	/** Авторизация расхода */
 	authorization?:ValueTypes["DocumentAggregate"],
 	/** Номер блока последнего обновления */
 	block_num?:boolean | `@${string}`,
@@ -3714,9 +3696,7 @@ export type ValueTypes = {
 	description?:boolean | `@${string}`,
 	/** Хеш расхода */
 	expense_hash?:boolean | `@${string}`,
-	/** Служебная записка о расходе
-
-Требуемые роли: chairman, member.  */
+	/** Служебная записка о расходе */
 	expense_statement?:ValueTypes["DocumentAggregate"],
 	/** ID фонда */
 	fund_id?:boolean | `@${string}`,
@@ -14071,6 +14051,7 @@ saveCapitalProgramDocDataHash?: [{	data: ValueTypes["SaveCapitalProgramDocDataIn
 saveMyPassport?: [{	passport: ValueTypes["PassportInput"] | Variable<any, string>},ValueTypes["Account"]],
 saveReportDraft?: [{	input: ValueTypes["SaveReportDraftInput"] | Variable<any, string>},ValueTypes["ReportDraft"]],
 selectBranch?: [{	data: ValueTypes["SelectBranchInput"] | Variable<any, string>},boolean | `@${string}`],
+selectProviderTariff?: [{	data: ValueTypes["SelectProviderTariffInput"] | Variable<any, string>},ValueTypes["SelectProviderTariffResult"]],
 sendAgreement?: [{	data: ValueTypes["SendAgreementInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 setBranchPrivate?: [{	data: ValueTypes["SetBranchPrivateInput"] | Variable<any, string>},ValueTypes["Branch"]],
 setLoginFactors?: [{	data: ValueTypes["SetLoginFactorsInput"] | Variable<any, string>},ValueTypes["LoginFactors"]],
@@ -15684,6 +15665,17 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 	/** Заголовок вопроса повестки; по умолчанию собирается из названий документов */
 	title?: string | undefined | null | Variable<any, string>
 };
+	/** Годовая оплата тарифа */
+["ProviderAnnualBilling"]: AliasType<{
+	/** Скидка за год, % */
+	discount_percent?:boolean | `@${string}`,
+	/** Годовая оплата доступна */
+	enabled?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on ProviderAnnualBilling']?: Omit<ValueTypes["ProviderAnnualBilling"], "...on ProviderAnnualBilling">
+}>;
+	/** Период оплаты тарифа подключения */
+["ProviderBillingPeriod"]:ProviderBillingPeriod;
 	/** Конфигурация сервера на выбор (блок «Сервер» витрины подключения) */
 ["ProviderCatalogServerOption"]: AliasType<{
 	/** Описание */
@@ -15732,8 +15724,12 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 }>;
 	/** Каталог витрины подключения: услуги и конфигурации сервера */
 ["ProviderConnectionCatalog"]: AliasType<{
+	/** Годовая оплата тарифа */
+	annual_billing?:ValueTypes["ProviderAnnualBilling"],
 	/** Конфигурации сервера на выбор */
 	server_options?:ValueTypes["ProviderCatalogServerOption"],
+	/** Тарифная сетка подключения */
+	tariffs?:ValueTypes["ProviderTariff"],
 	/** Доступные кооперативу услуги (лист зависимостей учтён провайдером) */
 	types?:ValueTypes["ProviderCatalogSubscriptionType"],
 		__typename?: boolean | `@${string}`,
@@ -15793,6 +15789,49 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 }>;
 	/** Статус подписки у провайдера: ACTIVE | TRIAL | EXPIRED (past_due/suspended) | CANCELLED */
 ["ProviderSubscriptionStatus"]:ProviderSubscriptionStatus;
+	/** Тариф подключения: сервер, поддержка, приложение на выбор и документооборот по фиксированной цене */
+["ProviderTariff"]: AliasType<{
+	/** Цена тарифа за год со скидкой, ₽; пусто — годовая оплата недоступна */
+	annual_total?:boolean | `@${string}`,
+	/** Цена приложения на выбор с его поддержкой, ₽ в месяц */
+	app_price?:boolean | `@${string}`,
+	/** Код тарифа */
+	code?:boolean | `@${string}`,
+	/** Цена пакета документооборота, ₽ */
+	docflow_price?:boolean | `@${string}`,
+	/** Предел числа пайщиков */
+	members_limit?:boolean | `@${string}`,
+	/** Цена тарифа в месяц, ₽ */
+	monthly_total?:boolean | `@${string}`,
+	/** Название тарифа */
+	name?:boolean | `@${string}`,
+	/** Сервер */
+	server?:ValueTypes["ProviderTariffServer"],
+	/** Поддержка платформы */
+	support?:ValueTypes["ProviderTariffSupport"],
+		__typename?: boolean | `@${string}`,
+	['...on ProviderTariff']?: Omit<ValueTypes["ProviderTariff"], "...on ProviderTariff">
+}>;
+	/** Сервер тарифа: конфигурация и цена строки */
+["ProviderTariffServer"]: AliasType<{
+	/** Ядер процессора */
+	cpu?:boolean | `@${string}`,
+	/** Цена строки «Сервер», ₽ в месяц */
+	price?:boolean | `@${string}`,
+	/** Оперативная память, ГБ */
+	ram_gb?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on ProviderTariffServer']?: Omit<ValueTypes["ProviderTariffServer"], "...on ProviderTariffServer">
+}>;
+	/** Поддержка платформы в тарифе */
+["ProviderTariffSupport"]: AliasType<{
+	/** Цена строки «Поддержка платформы», ₽ в месяц */
+	price?:boolean | `@${string}`,
+	/** Срок ответа поддержки */
+	response?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on ProviderTariffSupport']?: Omit<ValueTypes["ProviderTariffSupport"], "...on ProviderTariffSupport">
+}>;
 	["PublicChairman"]: AliasType<{
 	first_name?:boolean | `@${string}`,
 	last_name?:boolean | `@${string}`,
@@ -17277,6 +17316,21 @@ verificationReviews?: [{	data?: ValueTypes["VerificationReviewsInput"] | undefin
 	/** Версия генератора, использованного для создания документа */
 	version: string | Variable<any, string>
 };
+	["SelectProviderTariffInput"]: {
+	/** Период оплаты */
+	billing_period: ValueTypes["ProviderBillingPeriod"] | Variable<any, string>,
+	/** Код тарифа из тарифной сетки провайдера */
+	tariff_code: string | Variable<any, string>
+};
+	/** Выбор тарифа подключения принят провайдером */
+["SelectProviderTariffResult"]: AliasType<{
+	/** Период оплаты */
+	billing_period?:boolean | `@${string}`,
+	/** Код выбранного тарифа */
+	tariff_code?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on SelectProviderTariffResult']?: Omit<ValueTypes["SelectProviderTariffResult"], "...on SelectProviderTariffResult">
+}>;
 	["SendAgreementInput"]: {
 	/** Имя аккаунта администратора */
 	administrator: string | Variable<any, string>,
@@ -19713,23 +19767,17 @@ export type ResolverInputTypes = {
 	represented_by?:ResolverInputTypes["RepresentedBy"],
 	/** Краткое название организации */
 	short_name?:boolean | `@${string}`,
-	/** Доверенные аккаунты; пусто, если состав участка недоступен запрашивающему
-
-Требуемые роли: chairman, member.  */
+	/** Доверенные аккаунты; пусто, если состав участка недоступен запрашивающему */
 	trusted?:ResolverInputTypes["Individual"],
 	/** Сертификаты доверенных лиц участка (ФИО) */
 	trusted_certificates?:ResolverInputTypes["IndividualCertificate"],
-	/** Председатель кооперативного участка; пусто, если состав участка недоступен запрашивающему
-
-Требуемые роли: chairman, member.  */
+	/** Председатель кооперативного участка; пусто, если состав участка недоступен запрашивающему */
 	trustee?:ResolverInputTypes["Individual"],
 	/** Сертификат председателя кооперативного участка (ФИО) */
 	trustee_certificate?:ResolverInputTypes["IndividualCertificate"],
 	/** Тип организации */
 	type?:boolean | `@${string}`,
-	/** Пайщики в белом списке приватного участка (ФИО); пусто, если участок не свой
-
-Требуемые роли: chairman, member.  */
+	/** Пайщики в белом списке приватного участка (ФИО); пусто, если участок не свой */
 	whitelist_certificates?:ResolverInputTypes["IndividualCertificate"],
 		__typename?: boolean | `@${string}`
 }>;
@@ -20853,9 +20901,7 @@ export type ResolverInputTypes = {
 	block_num?:boolean | `@${string}`,
 	/** Статус из блокчейна */
 	blockchain_status?:boolean | `@${string}`,
-	/** Контракт участника
-
-Требуемые роли: chairman, member.  */
+	/** Контракт участника */
 	contract?:ResolverInputTypes["DocumentAggregate"],
 	/** Вклад как автор */
 	contributed_as_author?:boolean | `@${string}`,
@@ -21023,13 +21069,9 @@ export type ResolverInputTypes = {
 	_updated_at?:boolean | `@${string}`,
 	/** Сумма долга */
 	amount?:boolean | `@${string}`,
-	/** Одобренное заявление
-
-Требуемые роли: chairman, member.  */
+	/** Одобренное заявление */
 	approved_statement?:ResolverInputTypes["DocumentAggregate"],
-	/** Протокол решения совета
-
-Требуемые роли: chairman, member.  */
+	/** Протокол решения совета */
 	authorization?:ResolverInputTypes["DocumentAggregate"],
 	/** Номер блока последнего обновления */
 	block_num?:boolean | `@${string}`,
@@ -21049,9 +21091,7 @@ export type ResolverInputTypes = {
 	project_hash?:boolean | `@${string}`,
 	/** Дата погашения */
 	repaid_at?:boolean | `@${string}`,
-	/** Заявление на получение ссуды
-
-Требуемые роли: chairman, member.  */
+	/** Заявление на получение ссуды */
 	statement?:ResolverInputTypes["DocumentAggregate"],
 	/** Статус долга */
 	status?:boolean | `@${string}`,
@@ -21069,13 +21109,9 @@ export type ResolverInputTypes = {
 	_updated_at?:boolean | `@${string}`,
 	/** Сумма расхода */
 	amount?:boolean | `@${string}`,
-	/** Одобренная записка
-
-Требуемые роли: chairman, member.  */
+	/** Одобренная записка */
 	approved_statement?:ResolverInputTypes["DocumentAggregate"],
-	/** Авторизация расхода
-
-Требуемые роли: chairman, member.  */
+	/** Авторизация расхода */
 	authorization?:ResolverInputTypes["DocumentAggregate"],
 	/** Номер блока последнего обновления */
 	block_num?:boolean | `@${string}`,
@@ -21087,9 +21123,7 @@ export type ResolverInputTypes = {
 	description?:boolean | `@${string}`,
 	/** Хеш расхода */
 	expense_hash?:boolean | `@${string}`,
-	/** Служебная записка о расходе
-
-Требуемые роли: chairman, member.  */
+	/** Служебная записка о расходе */
 	expense_statement?:ResolverInputTypes["DocumentAggregate"],
 	/** ID фонда */
 	fund_id?:boolean | `@${string}`,
@@ -31155,6 +31189,7 @@ saveCapitalProgramDocDataHash?: [{	data: ResolverInputTypes["SaveCapitalProgramD
 saveMyPassport?: [{	passport: ResolverInputTypes["PassportInput"]},ResolverInputTypes["Account"]],
 saveReportDraft?: [{	input: ResolverInputTypes["SaveReportDraftInput"]},ResolverInputTypes["ReportDraft"]],
 selectBranch?: [{	data: ResolverInputTypes["SelectBranchInput"]},boolean | `@${string}`],
+selectProviderTariff?: [{	data: ResolverInputTypes["SelectProviderTariffInput"]},ResolverInputTypes["SelectProviderTariffResult"]],
 sendAgreement?: [{	data: ResolverInputTypes["SendAgreementInput"]},ResolverInputTypes["Transaction"]],
 setBranchPrivate?: [{	data: ResolverInputTypes["SetBranchPrivateInput"]},ResolverInputTypes["Branch"]],
 setLoginFactors?: [{	data: ResolverInputTypes["SetLoginFactorsInput"]},ResolverInputTypes["LoginFactors"]],
@@ -32693,6 +32728,16 @@ walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputType
 	/** Заголовок вопроса повестки; по умолчанию собирается из названий документов */
 	title?: string | undefined | null
 };
+	/** Годовая оплата тарифа */
+["ProviderAnnualBilling"]: AliasType<{
+	/** Скидка за год, % */
+	discount_percent?:boolean | `@${string}`,
+	/** Годовая оплата доступна */
+	enabled?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Период оплаты тарифа подключения */
+["ProviderBillingPeriod"]:ProviderBillingPeriod;
 	/** Конфигурация сервера на выбор (блок «Сервер» витрины подключения) */
 ["ProviderCatalogServerOption"]: AliasType<{
 	/** Описание */
@@ -32739,8 +32784,12 @@ walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputType
 }>;
 	/** Каталог витрины подключения: услуги и конфигурации сервера */
 ["ProviderConnectionCatalog"]: AliasType<{
+	/** Годовая оплата тарифа */
+	annual_billing?:ResolverInputTypes["ProviderAnnualBilling"],
 	/** Конфигурации сервера на выбор */
 	server_options?:ResolverInputTypes["ProviderCatalogServerOption"],
+	/** Тарифная сетка подключения */
+	tariffs?:ResolverInputTypes["ProviderTariff"],
 	/** Доступные кооперативу услуги (лист зависимостей учтён провайдером) */
 	types?:ResolverInputTypes["ProviderCatalogSubscriptionType"],
 		__typename?: boolean | `@${string}`
@@ -32798,6 +32847,46 @@ walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputType
 }>;
 	/** Статус подписки у провайдера: ACTIVE | TRIAL | EXPIRED (past_due/suspended) | CANCELLED */
 ["ProviderSubscriptionStatus"]:ProviderSubscriptionStatus;
+	/** Тариф подключения: сервер, поддержка, приложение на выбор и документооборот по фиксированной цене */
+["ProviderTariff"]: AliasType<{
+	/** Цена тарифа за год со скидкой, ₽; пусто — годовая оплата недоступна */
+	annual_total?:boolean | `@${string}`,
+	/** Цена приложения на выбор с его поддержкой, ₽ в месяц */
+	app_price?:boolean | `@${string}`,
+	/** Код тарифа */
+	code?:boolean | `@${string}`,
+	/** Цена пакета документооборота, ₽ */
+	docflow_price?:boolean | `@${string}`,
+	/** Предел числа пайщиков */
+	members_limit?:boolean | `@${string}`,
+	/** Цена тарифа в месяц, ₽ */
+	monthly_total?:boolean | `@${string}`,
+	/** Название тарифа */
+	name?:boolean | `@${string}`,
+	/** Сервер */
+	server?:ResolverInputTypes["ProviderTariffServer"],
+	/** Поддержка платформы */
+	support?:ResolverInputTypes["ProviderTariffSupport"],
+		__typename?: boolean | `@${string}`
+}>;
+	/** Сервер тарифа: конфигурация и цена строки */
+["ProviderTariffServer"]: AliasType<{
+	/** Ядер процессора */
+	cpu?:boolean | `@${string}`,
+	/** Цена строки «Сервер», ₽ в месяц */
+	price?:boolean | `@${string}`,
+	/** Оперативная память, ГБ */
+	ram_gb?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Поддержка платформы в тарифе */
+["ProviderTariffSupport"]: AliasType<{
+	/** Цена строки «Поддержка платформы», ₽ в месяц */
+	price?:boolean | `@${string}`,
+	/** Срок ответа поддержки */
+	response?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	["PublicChairman"]: AliasType<{
 	first_name?:boolean | `@${string}`,
 	last_name?:boolean | `@${string}`,
@@ -34238,6 +34327,20 @@ verificationReviews?: [{	data?: ResolverInputTypes["VerificationReviewsInput"] |
 	/** Версия генератора, использованного для создания документа */
 	version: string
 };
+	["SelectProviderTariffInput"]: {
+	/** Период оплаты */
+	billing_period: ResolverInputTypes["ProviderBillingPeriod"],
+	/** Код тарифа из тарифной сетки провайдера */
+	tariff_code: string
+};
+	/** Выбор тарифа подключения принят провайдером */
+["SelectProviderTariffResult"]: AliasType<{
+	/** Период оплаты */
+	billing_period?:boolean | `@${string}`,
+	/** Код выбранного тарифа */
+	tariff_code?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	["SendAgreementInput"]: {
 	/** Имя аккаунта администратора */
 	administrator: string,
@@ -36608,23 +36711,17 @@ export type ModelTypes = {
 	represented_by: ModelTypes["RepresentedBy"],
 	/** Краткое название организации */
 	short_name: string,
-	/** Доверенные аккаунты; пусто, если состав участка недоступен запрашивающему
-
-Требуемые роли: chairman, member.  */
+	/** Доверенные аккаунты; пусто, если состав участка недоступен запрашивающему */
 	trusted?: Array<ModelTypes["Individual"]> | undefined | null,
 	/** Сертификаты доверенных лиц участка (ФИО) */
 	trusted_certificates: Array<ModelTypes["IndividualCertificate"]>,
-	/** Председатель кооперативного участка; пусто, если состав участка недоступен запрашивающему
-
-Требуемые роли: chairman, member.  */
+	/** Председатель кооперативного участка; пусто, если состав участка недоступен запрашивающему */
 	trustee?: ModelTypes["Individual"] | undefined | null,
 	/** Сертификат председателя кооперативного участка (ФИО) */
 	trustee_certificate: ModelTypes["IndividualCertificate"],
 	/** Тип организации */
 	type: string,
-	/** Пайщики в белом списке приватного участка (ФИО); пусто, если участок не свой
-
-Требуемые роли: chairman, member.  */
+	/** Пайщики в белом списке приватного участка (ФИО); пусто, если участок не свой */
 	whitelist_certificates?: Array<ModelTypes["IndividualCertificate"]> | undefined | null
 };
 	["BranchEstablishmentDecisionGenerateDocumentInput"]: {
@@ -37723,9 +37820,7 @@ export type ModelTypes = {
 	block_num?: number | undefined | null,
 	/** Статус из блокчейна */
 	blockchain_status?: string | undefined | null,
-	/** Контракт участника
-
-Требуемые роли: chairman, member.  */
+	/** Контракт участника */
 	contract?: ModelTypes["DocumentAggregate"] | undefined | null,
 	/** Вклад как автор */
 	contributed_as_author?: string | undefined | null,
@@ -37890,13 +37985,9 @@ export type ModelTypes = {
 	_updated_at: ModelTypes["DateTime"],
 	/** Сумма долга */
 	amount?: string | undefined | null,
-	/** Одобренное заявление
-
-Требуемые роли: chairman, member.  */
+	/** Одобренное заявление */
 	approved_statement?: ModelTypes["DocumentAggregate"] | undefined | null,
-	/** Протокол решения совета
-
-Требуемые роли: chairman, member.  */
+	/** Протокол решения совета */
 	authorization?: ModelTypes["DocumentAggregate"] | undefined | null,
 	/** Номер блока последнего обновления */
 	block_num?: number | undefined | null,
@@ -37916,9 +38007,7 @@ export type ModelTypes = {
 	project_hash?: string | undefined | null,
 	/** Дата погашения */
 	repaid_at?: string | undefined | null,
-	/** Заявление на получение ссуды
-
-Требуемые роли: chairman, member.  */
+	/** Заявление на получение ссуды */
 	statement?: ModelTypes["DocumentAggregate"] | undefined | null,
 	/** Статус долга */
 	status: ModelTypes["DebtStatus"],
@@ -37935,13 +38024,9 @@ export type ModelTypes = {
 	_updated_at: ModelTypes["DateTime"],
 	/** Сумма расхода */
 	amount?: string | undefined | null,
-	/** Одобренная записка
-
-Требуемые роли: chairman, member.  */
+	/** Одобренная записка */
 	approved_statement?: ModelTypes["DocumentAggregate"] | undefined | null,
-	/** Авторизация расхода
-
-Требуемые роли: chairman, member.  */
+	/** Авторизация расхода */
 	authorization?: ModelTypes["DocumentAggregate"] | undefined | null,
 	/** Номер блока последнего обновления */
 	block_num?: number | undefined | null,
@@ -37953,9 +38038,7 @@ export type ModelTypes = {
 	description?: string | undefined | null,
 	/** Хеш расхода */
 	expense_hash: string,
-	/** Служебная записка о расходе
-
-Требуемые роли: chairman, member.  */
+	/** Служебная записка о расходе */
 	expense_statement?: ModelTypes["DocumentAggregate"] | undefined | null,
 	/** ID фонда */
 	fund_id?: number | undefined | null,
@@ -47995,6 +48078,8 @@ export type ModelTypes = {
 	saveReportDraft: ModelTypes["ReportDraft"],
 	/** Выбрать кооперативный участок */
 	selectBranch: boolean,
+	/** Кооператив выбирает тариф подключения: провайдер по нему заказывает сервер и заводит подписки */
+	selectProviderTariff: ModelTypes["SelectProviderTariffResult"],
 	/** Отправить соглашение */
 	sendAgreement: ModelTypes["Transaction"],
 	/** Установить приватность кооперативного участка (выбор только из белого списка) */
@@ -49459,6 +49544,14 @@ export type ModelTypes = {
 	/** Заголовок вопроса повестки; по умолчанию собирается из названий документов */
 	title?: string | undefined | null
 };
+	/** Годовая оплата тарифа */
+["ProviderAnnualBilling"]: {
+		/** Скидка за год, % */
+	discount_percent: number,
+	/** Годовая оплата доступна */
+	enabled: boolean
+};
+	["ProviderBillingPeriod"]:ProviderBillingPeriod;
 	/** Конфигурация сервера на выбор (блок «Сервер» витрины подключения) */
 ["ProviderCatalogServerOption"]: {
 		/** Описание */
@@ -49503,8 +49596,12 @@ export type ModelTypes = {
 };
 	/** Каталог витрины подключения: услуги и конфигурации сервера */
 ["ProviderConnectionCatalog"]: {
-		/** Конфигурации сервера на выбор */
+		/** Годовая оплата тарифа */
+	annual_billing: ModelTypes["ProviderAnnualBilling"],
+	/** Конфигурации сервера на выбор */
 	server_options: Array<ModelTypes["ProviderCatalogServerOption"]>,
+	/** Тарифная сетка подключения */
+	tariffs: Array<ModelTypes["ProviderTariff"]>,
 	/** Доступные кооперативу услуги (лист зависимостей учтён провайдером) */
 	types: Array<ModelTypes["ProviderCatalogSubscriptionType"]>
 };
@@ -49559,6 +49656,43 @@ export type ModelTypes = {
 	updated_at: string
 };
 	["ProviderSubscriptionStatus"]:ProviderSubscriptionStatus;
+	/** Тариф подключения: сервер, поддержка, приложение на выбор и документооборот по фиксированной цене */
+["ProviderTariff"]: {
+		/** Цена тарифа за год со скидкой, ₽; пусто — годовая оплата недоступна */
+	annual_total?: number | undefined | null,
+	/** Цена приложения на выбор с его поддержкой, ₽ в месяц */
+	app_price: number,
+	/** Код тарифа */
+	code: string,
+	/** Цена пакета документооборота, ₽ */
+	docflow_price: number,
+	/** Предел числа пайщиков */
+	members_limit: number,
+	/** Цена тарифа в месяц, ₽ */
+	monthly_total: number,
+	/** Название тарифа */
+	name: string,
+	/** Сервер */
+	server: ModelTypes["ProviderTariffServer"],
+	/** Поддержка платформы */
+	support: ModelTypes["ProviderTariffSupport"]
+};
+	/** Сервер тарифа: конфигурация и цена строки */
+["ProviderTariffServer"]: {
+		/** Ядер процессора */
+	cpu: number,
+	/** Цена строки «Сервер», ₽ в месяц */
+	price: number,
+	/** Оперативная память, ГБ */
+	ram_gb: number
+};
+	/** Поддержка платформы в тарифе */
+["ProviderTariffSupport"]: {
+		/** Цена строки «Поддержка платформы», ₽ в месяц */
+	price: number,
+	/** Срок ответа поддержки */
+	response: string
+};
 	["PublicChairman"]: {
 		first_name: string,
 	last_name: string,
@@ -51177,6 +51311,19 @@ export type ModelTypes = {
 	username: string,
 	/** Версия генератора, использованного для создания документа */
 	version: string
+};
+	["SelectProviderTariffInput"]: {
+	/** Период оплаты */
+	billing_period: ModelTypes["ProviderBillingPeriod"],
+	/** Код тарифа из тарифной сетки провайдера */
+	tariff_code: string
+};
+	/** Выбор тарифа подключения принят провайдером */
+["SelectProviderTariffResult"]: {
+		/** Период оплаты */
+	billing_period: ModelTypes["ProviderBillingPeriod"],
+	/** Код выбранного тарифа */
+	tariff_code: string
 };
 	["SendAgreementInput"]: {
 	/** Имя аккаунта администратора */
@@ -53573,23 +53720,17 @@ export type GraphQLTypes = {
 	represented_by: GraphQLTypes["RepresentedBy"],
 	/** Краткое название организации */
 	short_name: string,
-	/** Доверенные аккаунты; пусто, если состав участка недоступен запрашивающему
-
-Требуемые роли: chairman, member.  */
+	/** Доверенные аккаунты; пусто, если состав участка недоступен запрашивающему */
 	trusted?: Array<GraphQLTypes["Individual"]> | undefined | null,
 	/** Сертификаты доверенных лиц участка (ФИО) */
 	trusted_certificates: Array<GraphQLTypes["IndividualCertificate"]>,
-	/** Председатель кооперативного участка; пусто, если состав участка недоступен запрашивающему
-
-Требуемые роли: chairman, member.  */
+	/** Председатель кооперативного участка; пусто, если состав участка недоступен запрашивающему */
 	trustee?: GraphQLTypes["Individual"] | undefined | null,
 	/** Сертификат председателя кооперативного участка (ФИО) */
 	trustee_certificate: GraphQLTypes["IndividualCertificate"],
 	/** Тип организации */
 	type: string,
-	/** Пайщики в белом списке приватного участка (ФИО); пусто, если участок не свой
-
-Требуемые роли: chairman, member.  */
+	/** Пайщики в белом списке приватного участка (ФИО); пусто, если участок не свой */
 	whitelist_certificates?: Array<GraphQLTypes["IndividualCertificate"]> | undefined | null,
 	['...on Branch']: Omit<GraphQLTypes["Branch"], "...on Branch">
 };
@@ -54734,9 +54875,7 @@ export type GraphQLTypes = {
 	block_num?: number | undefined | null,
 	/** Статус из блокчейна */
 	blockchain_status?: string | undefined | null,
-	/** Контракт участника
-
-Требуемые роли: chairman, member.  */
+	/** Контракт участника */
 	contract?: GraphQLTypes["DocumentAggregate"] | undefined | null,
 	/** Вклад как автор */
 	contributed_as_author?: string | undefined | null,
@@ -54907,13 +55046,9 @@ export type GraphQLTypes = {
 	_updated_at: GraphQLTypes["DateTime"],
 	/** Сумма долга */
 	amount?: string | undefined | null,
-	/** Одобренное заявление
-
-Требуемые роли: chairman, member.  */
+	/** Одобренное заявление */
 	approved_statement?: GraphQLTypes["DocumentAggregate"] | undefined | null,
-	/** Протокол решения совета
-
-Требуемые роли: chairman, member.  */
+	/** Протокол решения совета */
 	authorization?: GraphQLTypes["DocumentAggregate"] | undefined | null,
 	/** Номер блока последнего обновления */
 	block_num?: number | undefined | null,
@@ -54933,9 +55068,7 @@ export type GraphQLTypes = {
 	project_hash?: string | undefined | null,
 	/** Дата погашения */
 	repaid_at?: string | undefined | null,
-	/** Заявление на получение ссуды
-
-Требуемые роли: chairman, member.  */
+	/** Заявление на получение ссуды */
 	statement?: GraphQLTypes["DocumentAggregate"] | undefined | null,
 	/** Статус долга */
 	status: GraphQLTypes["DebtStatus"],
@@ -54954,13 +55087,9 @@ export type GraphQLTypes = {
 	_updated_at: GraphQLTypes["DateTime"],
 	/** Сумма расхода */
 	amount?: string | undefined | null,
-	/** Одобренная записка
-
-Требуемые роли: chairman, member.  */
+	/** Одобренная записка */
 	approved_statement?: GraphQLTypes["DocumentAggregate"] | undefined | null,
-	/** Авторизация расхода
-
-Требуемые роли: chairman, member.  */
+	/** Авторизация расхода */
 	authorization?: GraphQLTypes["DocumentAggregate"] | undefined | null,
 	/** Номер блока последнего обновления */
 	block_num?: number | undefined | null,
@@ -54972,9 +55101,7 @@ export type GraphQLTypes = {
 	description?: string | undefined | null,
 	/** Хеш расхода */
 	expense_hash: string,
-	/** Служебная записка о расходе
-
-Требуемые роли: chairman, member.  */
+	/** Служебная записка о расходе */
 	expense_statement?: GraphQLTypes["DocumentAggregate"] | undefined | null,
 	/** ID фонда */
 	fund_id?: number | undefined | null,
@@ -65693,6 +65820,8 @@ export type GraphQLTypes = {
 	saveReportDraft: GraphQLTypes["ReportDraft"],
 	/** Выбрать кооперативный участок */
 	selectBranch: boolean,
+	/** Кооператив выбирает тариф подключения: провайдер по нему заказывает сервер и заводит подписки */
+	selectProviderTariff: GraphQLTypes["SelectProviderTariffResult"],
 	/** Отправить соглашение */
 	sendAgreement: GraphQLTypes["Transaction"],
 	/** Установить приватность кооперативного участка (выбор только из белого списка) */
@@ -67337,6 +67466,17 @@ export type GraphQLTypes = {
 	/** Заголовок вопроса повестки; по умолчанию собирается из названий документов */
 	title?: string | undefined | null
 };
+	/** Годовая оплата тарифа */
+["ProviderAnnualBilling"]: {
+	__typename: "ProviderAnnualBilling",
+	/** Скидка за год, % */
+	discount_percent: number,
+	/** Годовая оплата доступна */
+	enabled: boolean,
+	['...on ProviderAnnualBilling']: Omit<GraphQLTypes["ProviderAnnualBilling"], "...on ProviderAnnualBilling">
+};
+	/** Период оплаты тарифа подключения */
+["ProviderBillingPeriod"]: ProviderBillingPeriod;
 	/** Конфигурация сервера на выбор (блок «Сервер» витрины подключения) */
 ["ProviderCatalogServerOption"]: {
 	__typename: "ProviderCatalogServerOption",
@@ -67386,8 +67526,12 @@ export type GraphQLTypes = {
 	/** Каталог витрины подключения: услуги и конфигурации сервера */
 ["ProviderConnectionCatalog"]: {
 	__typename: "ProviderConnectionCatalog",
+	/** Годовая оплата тарифа */
+	annual_billing: GraphQLTypes["ProviderAnnualBilling"],
 	/** Конфигурации сервера на выбор */
 	server_options: Array<GraphQLTypes["ProviderCatalogServerOption"]>,
+	/** Тарифная сетка подключения */
+	tariffs: Array<GraphQLTypes["ProviderTariff"]>,
 	/** Доступные кооперативу услуги (лист зависимостей учтён провайдером) */
 	types: Array<GraphQLTypes["ProviderCatalogSubscriptionType"]>,
 	['...on ProviderConnectionCatalog']: Omit<GraphQLTypes["ProviderConnectionCatalog"], "...on ProviderConnectionCatalog">
@@ -67446,6 +67590,49 @@ export type GraphQLTypes = {
 };
 	/** Статус подписки у провайдера: ACTIVE | TRIAL | EXPIRED (past_due/suspended) | CANCELLED */
 ["ProviderSubscriptionStatus"]: ProviderSubscriptionStatus;
+	/** Тариф подключения: сервер, поддержка, приложение на выбор и документооборот по фиксированной цене */
+["ProviderTariff"]: {
+	__typename: "ProviderTariff",
+	/** Цена тарифа за год со скидкой, ₽; пусто — годовая оплата недоступна */
+	annual_total?: number | undefined | null,
+	/** Цена приложения на выбор с его поддержкой, ₽ в месяц */
+	app_price: number,
+	/** Код тарифа */
+	code: string,
+	/** Цена пакета документооборота, ₽ */
+	docflow_price: number,
+	/** Предел числа пайщиков */
+	members_limit: number,
+	/** Цена тарифа в месяц, ₽ */
+	monthly_total: number,
+	/** Название тарифа */
+	name: string,
+	/** Сервер */
+	server: GraphQLTypes["ProviderTariffServer"],
+	/** Поддержка платформы */
+	support: GraphQLTypes["ProviderTariffSupport"],
+	['...on ProviderTariff']: Omit<GraphQLTypes["ProviderTariff"], "...on ProviderTariff">
+};
+	/** Сервер тарифа: конфигурация и цена строки */
+["ProviderTariffServer"]: {
+	__typename: "ProviderTariffServer",
+	/** Ядер процессора */
+	cpu: number,
+	/** Цена строки «Сервер», ₽ в месяц */
+	price: number,
+	/** Оперативная память, ГБ */
+	ram_gb: number,
+	['...on ProviderTariffServer']: Omit<GraphQLTypes["ProviderTariffServer"], "...on ProviderTariffServer">
+};
+	/** Поддержка платформы в тарифе */
+["ProviderTariffSupport"]: {
+	__typename: "ProviderTariffSupport",
+	/** Цена строки «Поддержка платформы», ₽ в месяц */
+	price: number,
+	/** Срок ответа поддержки */
+	response: string,
+	['...on ProviderTariffSupport']: Omit<GraphQLTypes["ProviderTariffSupport"], "...on ProviderTariffSupport">
+};
 	["PublicChairman"]: {
 	__typename: "PublicChairman",
 	first_name: string,
@@ -69160,6 +69347,21 @@ export type GraphQLTypes = {
 	username: string,
 	/** Версия генератора, использованного для создания документа */
 	version: string
+};
+	["SelectProviderTariffInput"]: {
+		/** Период оплаты */
+	billing_period: GraphQLTypes["ProviderBillingPeriod"],
+	/** Код тарифа из тарифной сетки провайдера */
+	tariff_code: string
+};
+	/** Выбор тарифа подключения принят провайдером */
+["SelectProviderTariffResult"]: {
+	__typename: "SelectProviderTariffResult",
+	/** Период оплаты */
+	billing_period: GraphQLTypes["ProviderBillingPeriod"],
+	/** Код выбранного тарифа */
+	tariff_code: string,
+	['...on SelectProviderTariffResult']: Omit<GraphQLTypes["SelectProviderTariffResult"], "...on SelectProviderTariffResult">
 };
 	["SendAgreementInput"]: {
 		/** Имя аккаунта администратора */
@@ -71375,6 +71577,11 @@ export enum ProjectStatus {
 	UNDEFINED = "UNDEFINED",
 	VOTING = "VOTING"
 }
+/** Период оплаты тарифа подключения */
+export enum ProviderBillingPeriod {
+	month = "month",
+	year = "year"
+}
 /** Статус подписки у провайдера: ACTIVE | TRIAL | EXPIRED (past_due/suspended) | CANCELLED */
 export enum ProviderSubscriptionStatus {
 	ACTIVE = "ACTIVE",
@@ -72148,6 +72355,7 @@ type ZEUS_VARIABLES = {
 	["ProjectPriority"]: ValueTypes["ProjectPriority"];
 	["ProjectStatus"]: ValueTypes["ProjectStatus"];
 	["ProposeDocumentApprovalInput"]: ValueTypes["ProposeDocumentApprovalInput"];
+	["ProviderBillingPeriod"]: ValueTypes["ProviderBillingPeriod"];
 	["ProviderSubscriptionStatus"]: ValueTypes["ProviderSubscriptionStatus"];
 	["PublishProjectFreeDecisionInput"]: ValueTypes["PublishProjectFreeDecisionInput"];
 	["PushResultInput"]: ValueTypes["PushResultInput"];
@@ -72207,6 +72415,7 @@ type ZEUS_VARIABLES = {
 	["SelectBranchInput"]: ValueTypes["SelectBranchInput"];
 	["SelectBranchSignedDocumentInput"]: ValueTypes["SelectBranchSignedDocumentInput"];
 	["SelectBranchSignedMetaDocumentInput"]: ValueTypes["SelectBranchSignedMetaDocumentInput"];
+	["SelectProviderTariffInput"]: ValueTypes["SelectProviderTariffInput"];
 	["SendAgreementInput"]: ValueTypes["SendAgreementInput"];
 	["SetBranchPrivateInput"]: ValueTypes["SetBranchPrivateInput"];
 	["SetCapitalProjectDevelopmentRepositoryUrlInput"]: ValueTypes["SetCapitalProjectDevelopmentRepositoryUrlInput"];

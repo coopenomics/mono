@@ -2753,6 +2753,9 @@ export const AllTypesProps: Record<string,any> = {
 		selectBranch:{
 			data:"SelectBranchInput"
 		},
+		selectProviderTariff:{
+			data:"SelectProviderTariffInput"
+		},
 		sendAgreement:{
 			data:"SendAgreementInput"
 		},
@@ -2974,6 +2977,7 @@ export const AllTypesProps: Record<string,any> = {
 	ProposeDocumentApprovalInput:{
 
 	},
+	ProviderBillingPeriod: "enum" as const,
 	ProviderSubscriptionStatus: "enum" as const,
 	PublishProjectFreeDecisionInput:{
 		document:"ProjectFreeDecisionSignedDocumentInput"
@@ -3894,6 +3898,9 @@ export const AllTypesProps: Record<string,any> = {
 	SelectBranchSignedMetaDocumentInput:{
 
 	},
+	SelectProviderTariffInput:{
+		billing_period:"ProviderBillingPeriod"
+	},
 	SendAgreementInput:{
 		document:"SignedDigitalDocumentInput"
 	},
@@ -4158,6 +4165,10 @@ export const AllTypesProps: Record<string,any> = {
 }
 
 export const ReturnTypes: Record<string,any> = {
+	auth:{
+		roles:"String",
+		self:"String"
+	},
 	AccessGrant:{
 		action:"String",
 		resource:"String"
@@ -8224,6 +8235,7 @@ export const ReturnTypes: Record<string,any> = {
 		saveMyPassport:"Account",
 		saveReportDraft:"ReportDraft",
 		selectBranch:"Boolean",
+		selectProviderTariff:"SelectProviderTariffResult",
 		sendAgreement:"Transaction",
 		setBranchPrivate:"Branch",
 		setLoginFactors:"LoginFactors",
@@ -8821,6 +8833,10 @@ export const ReturnTypes: Record<string,any> = {
 		totalCount:"Int",
 		totalPages:"Int"
 	},
+	ProviderAnnualBilling:{
+		discount_percent:"Float",
+		enabled:"Boolean"
+	},
 	ProviderCatalogServerOption:{
 		description:"String",
 		instance_type_id:"Int",
@@ -8844,7 +8860,9 @@ export const ReturnTypes: Record<string,any> = {
 		trial_days:"Int"
 	},
 	ProviderConnectionCatalog:{
+		annual_billing:"ProviderAnnualBilling",
 		server_options:"ProviderCatalogServerOption",
+		tariffs:"ProviderTariff",
 		types:"ProviderCatalogSubscriptionType"
 	},
 	ProviderSubscription:{
@@ -8872,6 +8890,26 @@ export const ReturnTypes: Record<string,any> = {
 		subscription_type_id:"Float",
 		subscription_type_name:"String",
 		updated_at:"String"
+	},
+	ProviderTariff:{
+		annual_total:"Float",
+		app_price:"Float",
+		code:"String",
+		docflow_price:"Float",
+		members_limit:"Int",
+		monthly_total:"Float",
+		name:"String",
+		server:"ProviderTariffServer",
+		support:"ProviderTariffSupport"
+	},
+	ProviderTariffServer:{
+		cpu:"Int",
+		price:"Float",
+		ram_gb:"Int"
+	},
+	ProviderTariffSupport:{
+		price:"Float",
+		response:"String"
 	},
 	PublicChairman:{
 		first_name:"String",
@@ -9502,6 +9540,10 @@ export const ReturnTypes: Record<string,any> = {
 		registry_id:"Int",
 		signer:"String",
 		username:"String"
+	},
+	SelectProviderTariffResult:{
+		billing_period:"ProviderBillingPeriod",
+		tariff_code:"String"
 	},
 	Settings:{
 		authorized_default_route:"String",

@@ -65,6 +65,26 @@ const serverTariffs = computed<ITariff[]>(() =>
   })),
 );
 
+/**
+ * Тарифная сетка подключения (16.10.2026): тариф — связка сервера, поддержки,
+ * приложения на выбор и документооборота по фиксированной цене. Пустой список —
+ * провайдер сетку не отдаёт, и селектор показывает конфигурации сервера.
+ */
+const connectionTariffs = computed<ITariff[]>(() =>
+  (catalog.value?.tariffs ?? []).map((tariff) => ({
+    id: tariff.code,
+    code: tariff.code,
+    name: tariff.name,
+    price: `${formatPrice(tariff.monthly_total)} ₽`,
+    membersLimit: tariff.members_limit,
+    monthlyTotal: Number(tariff.monthly_total),
+    supportResponse: tariff.support.response,
+  })),
+);
+
+/** Годовая оплата тарифа: переключатель провайдера и скидка. */
+const annualBilling = computed(() => catalog.value?.annual_billing ?? { enabled: false, discount_percent: 0 });
+
 /** Обязательные платные услуги — показываются как «также входит». */
 const mandatoryServices = computed(() =>
   (catalog.value?.types ?? []).filter((t) => t.is_mandatory && Number(t.price) > 0),
@@ -124,6 +144,8 @@ export function useConnectionCatalog() {
     error,
     load,
     serverTariffs,
+    connectionTariffs,
+    annualBilling,
     mandatoryServices,
     mandatoryMonthlyTotal,
     minServerPrice,

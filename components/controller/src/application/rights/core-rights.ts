@@ -63,6 +63,8 @@ export const coreRightsTable: RightsTable<CoreRightsRole, never> = {
         // Витрина подключения к оператору и устав в заявке: кооператив-кандидат
         // на узле оператора — обычный вошедший пайщик-организация.
         ProviderCatalog: ['read'],
+        // Выбор тарифа подключения — за себя, до заявки в цепь.
+        ProviderTariff: ['select:own'],
         CooperativeCharter: ['upload:own', 'read:own'],
       },
     },

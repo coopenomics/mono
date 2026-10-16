@@ -6,6 +6,7 @@ import { ProviderSubscriptionDTO } from '../dto/provider-subscription.dto';
 import { CurrentInstanceDTO } from '../dto/current-instance.dto';
 import { CooperativeRegistryItemDTO } from '../dto/cooperative-registry-item.dto';
 import { ProviderConnectionCatalogDTO } from '../dto/provider-catalog.dto';
+import { ProviderBillingPeriod, SelectProviderTariffResultDTO } from '../dto/select-provider-tariff.dto';
 import { CooperativeChainStatus } from '~/domain/billing/enums/billing-statuses.enum';
 import { InstanceStatus } from '~/domain/instance-status.enum';
 import { Client, configureClient } from '@coopenomics/provider-client';
@@ -15,6 +16,25 @@ import { ORGANIZATION_REPOSITORY, type OrganizationRepository } from '~/domain/c
 import { CooperativeCharterService } from './cooperative-charter.service';
 import { CooperativeCharterOutputDTO } from '../dto/cooperative-charter.output';
 import { t } from '~/i18n';
+
+const listOf = <T>(value: unknown): T[] => (Array.isArray(value) ? (value as T[]) : []);
+
+/**
+ * Ответ провайдера → каталог витрины. Кривой ответ даёт пустые списки, а не
+ * падение витрины. Провайдер до тарифной сетки (16.10.2026) не отдаёт tariffs
+ * и annual_billing: пустая сетка и выключенная годовая оплата.
+ */
+function toConnectionCatalog(data: any): ProviderConnectionCatalogDTO {
+  return {
+    types: listOf(data.types),
+    server_options: listOf(data.server_options),
+    tariffs: listOf(data.tariffs),
+    annual_billing: {
+      enabled: data.annual_billing?.enabled === true,
+      discount_percent: Number(data.annual_billing?.discount_percent ?? 0),
+    },
+  };
+}
 
 @Injectable()
 export class ProviderService {
@@ -67,11 +87,7 @@ export class ProviderService {
         params: coopname ? { coopname } : undefined,
         timeout: 10_000,
       });
-      const data = response.data ?? {};
-      return {
-        types: Array.isArray(data.types) ? data.types : [],
-        server_options: Array.isArray(data.server_options) ? data.server_options : [],
-      };
+      return toConnectionCatalog(response.data ?? {});
     } catch (error: any) {
       this.logger.error(`Каталог витрины провайдера недоступен: ${error?.message || error}`);
       throw DomainError.badRequest('PROVIDER_CATALOG_UNAVAILABLE');
@@ -212,6 +228,37 @@ export class ProviderService {
       const message = error?.response?.data?.message || error?.message || t('provider.hostingPlan.unknownError');
       this.logger.error(`Смена тарифа для ${username} не прошла: ${message}`);
       throw DomainError.badRequest('PROVIDER_HOSTING_PLAN_CHANGE_FAILED', { reason: message });
+    }
+  }
+
+  /**
+   * Тариф, выбранный кооперативом в мастере подключения (тарифная сетка,
+   * 16.10.2026). Уходит провайдеру тем же server-secret каналом, что и смена
+   * тарифа, до заявки в цепь: провайдер по нему заказывает сервер и заводит
+   * подписки. Имя кооператива берётся из сессии вызывающего.
+   */
+  async selectTariff(
+    username: string,
+    tariffCode: string,
+    billingPeriod: ProviderBillingPeriod,
+  ): Promise<SelectProviderTariffResultDTO> {
+    if (!this.isProviderAvailable()) {
+      throw DomainError.badRequest('PROVIDER_BASE_URL_MISSING');
+    }
+    try {
+      const response = await axios.put(
+        `${config.provider_base_url}/instances/${username}/tariff`,
+        { tariff_code: tariffCode, billing_period: billingPeriod },
+        { headers: { 'server-secret': config.server_secret }, timeout: 10_000 },
+      );
+      return {
+        tariff_code: response.data?.tariff_code ?? tariffCode,
+        billing_period: (response.data?.billing_period as ProviderBillingPeriod) ?? billingPeriod,
+      };
+    } catch (error: any) {
+      const message = error?.response?.data?.message || error?.message || t('provider.hostingPlan.unknownError');
+      this.logger.error(`Выбор тарифа ${tariffCode} для ${username} не принят: ${message}`);
+      throw DomainError.badRequest('PROVIDER_TARIFF_SELECT_FAILED', { reason: message });
     }
   }
 

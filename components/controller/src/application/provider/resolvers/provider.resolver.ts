@@ -12,6 +12,7 @@ import { CooperativeCharterOutputDTO } from '../dto/cooperative-charter.output';
 import { UploadCooperativeCharterInputDTO } from '../dto/upload-cooperative-charter.input';
 import { CooperativePaymentDTO } from '../dto/cooperative-payment.dto';
 import { ChangeHostingPlanResultDTO } from '../dto/change-hosting-plan.dto';
+import { SelectProviderTariffInputDTO, SelectProviderTariffResultDTO } from '../dto/select-provider-tariff.dto';
 import { BillingPaymentLogService } from '~/infrastructure/billing/billing-payment-log.service';
 import { humanizeBillingError } from '~/domain/billing/utils/billing-error.utils';
 
@@ -79,6 +80,22 @@ export class ProviderResolver {
       created_at: row.created_at.toISOString(),
       updated_at: row.updated_at.toISOString(),
     }));
+  }
+
+  @Mutation(() => SelectProviderTariffResultDTO, {
+    name: 'selectProviderTariff',
+    description:
+      'Кооператив выбирает тариф подключения: провайдер по нему заказывает сервер и заводит подписки',
+  })
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('ProviderTariff', 'select:own', SELF)
+  async selectProviderTariff(
+    @CurrentUser() currentUser: IMonoAccount,
+    @Args('data', { type: () => SelectProviderTariffInputDTO }) data: SelectProviderTariffInputDTO
+  ): Promise<SelectProviderTariffResultDTO> {
+    // Только за себя: кооператив-кандидат подключается под своим именем,
+    // и выбрать тариф соседу нельзя — имя берётся из сессии.
+    return this.providerService.selectTariff(currentUser.username, data.tariff_code, data.billing_period);
   }
 
   @Mutation(() => ChangeHostingPlanResultDTO, {

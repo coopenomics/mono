@@ -1,6 +1,9 @@
 /** Перейти на тариф сервера дороже: зачёт остатка + перенос (~час работ) */
 export * as ChangeProviderHostingPlan from './changeProviderHostingPlan'
 
+/** Выбрать тариф подключения: провайдер заказывает сервер и заводит подписки тарифа */
+export * as SelectProviderTariff from './selectProviderTariff'
+
 /** Произвести инициализацию программного обеспечения перед установкой совета методом install */
 export * as InitSystem from './initSystem'
 

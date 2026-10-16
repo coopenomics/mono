@@ -262,3 +262,28 @@ cases:
     test: components/controller/tests/unit/wallet/user-wallets-erased.test.ts
     status: passing
 
+  # Тарифная сетка (16.10.2026, кросс-реф provider.tariffs в ~/provider):
+  # витрина подключения показывает тарифы, выбор уходит провайдеру.
+  - id: bill.happy.12
+    level: backend
+    kind: happy
+    scenario: Каталог витрины подключения несёт тарифную сетку и годовую оплату
+    expect: tariffs и annual_billing провайдера проходят как есть; провайдер без сетки — пустой список и выключенная годовая оплата, не падение
+    test: components/controller/src/application/provider/services/provider-catalog.spec.ts
+    status: passing
+
+  - id: bill.happy.13
+    level: backend
+    kind: happy
+    scenario: Кооператив-кандидат выбирает тариф подключения (selectProviderTariff)
+    expect: PUT /instances/:username/tariff провайдера с server-secret под именем из сессии; ответ — принятый выбор
+    test: components/controller/src/application/provider/services/provider-catalog.spec.ts
+    status: passing
+
+  - id: bill.break.14
+    level: backend
+    kind: break
+    scenario: Провайдер отклонил выбор тарифа (тарифа нет в сетке) или провайдер не настроен
+    expect: BadRequest с причиной провайдера; без настройки провайдера запрос не уходит
+    test: components/controller/src/application/provider/services/provider-catalog.spec.ts
+    status: passing

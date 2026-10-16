@@ -3,8 +3,8 @@ import { Selector, type ValueTypes } from '../../zeus/index'
 
 /**
  * Каталог витрины подключения (Epic 28): услуги провайдера и конфигурации
- * сервера с живыми отпускными ценами и триалом. Закупка/наценка провайдера
- * в схеме отсутствуют by design.
+ * сервера с живыми отпускными ценами и триалом, тарифная сетка и годовая
+ * оплата (16.10.2026). Закупка/наценка провайдера в схеме отсутствуют by design.
  */
 export const rawProviderConnectionCatalogSelector = {
   types: {
@@ -28,6 +28,21 @@ export const rawProviderConnectionCatalogSelector = {
     specs: true,
     price: true,
     trial_days: true,
+  },
+  tariffs: {
+    code: true,
+    name: true,
+    members_limit: true,
+    server: { cpu: true, ram_gb: true, price: true },
+    support: { price: true, response: true },
+    app_price: true,
+    docflow_price: true,
+    monthly_total: true,
+    annual_total: true,
+  },
+  annual_billing: {
+    enabled: true,
+    discount_percent: true,
   },
 }
 
