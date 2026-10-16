@@ -41,7 +41,7 @@ const handleTariffSelected = (tariff: ITariff) => {
 const handleBack = () => connectionAgreement.setCurrentStep(CONNECTION_STEP.union)
 
 const handleContinue = () => {
-  if (canContinue.value) connectionAgreement.setCurrentStep(CONNECTION_STEP.domain)
+  if (canContinue.value) connectionAgreement.setCurrentStep(CONNECTION_STEP.profile)
 }
 </script>
 

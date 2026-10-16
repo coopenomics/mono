@@ -90,22 +90,27 @@ StepFrame(
   @back="handleBack"
   @next="handleContinue"
 )
-  .row.q-col-gutter-lg
-    .col-12.col-md-7
+  //- Два блока одного строения: заголовок, пояснение, поле. Заголовки стоят
+  //- на одной высоте — так рассказ и устав читаются как две части заявки.
+  .profile-step
+    section.profile-step__block
+      .profile-step__head
+        .profile-step__title {{ $t('connectionAgreementStepper.cooperativeProfileStep.descriptionLabel') }}
+        .profile-step__note {{ $t('connectionAgreementStepper.cooperativeProfileStep.descriptionHint') }}
       BaseInput(
         v-model="description"
         type="textarea"
-        :rows="8"
+        :rows="7"
         autogrow
-        :label="$t('connectionAgreementStepper.cooperativeProfileStep.descriptionLabel')"
         :placeholder="$t('connectionAgreementStepper.cooperativeProfileStep.descriptionPlaceholder')"
-        :hint="$t('connectionAgreementStepper.cooperativeProfileStep.descriptionHint')"
         :error="descriptionError || undefined"
       )
 
-    .col-12.col-md-5
+    section.profile-step__block
+      .profile-step__head
+        .profile-step__title {{ $t('connectionAgreementStepper.cooperativeProfileStep.charterTitle') }}
+        .profile-step__note {{ $t('connectionAgreementStepper.cooperativeProfileStep.charterNote') }}
       .profile-step__charter
-        .t-eyebrow.t-muted {{ $t('connectionAgreementStepper.cooperativeProfileStep.charterTitle') }}
 
         .profile-step__attached(v-if="hasCharter")
           q-icon.profile-step__file-icon(name="description" size="24px")
@@ -139,6 +144,31 @@ StepFrame(
 </template>
 
 <style scoped>
+.profile-step {
+  display: grid;
+  grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+  gap: var(--p-6);
+  align-items: start;
+}
+@media (max-width: 1023px) {
+  .profile-step {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.profile-step__head {
+  margin-bottom: var(--p-3);
+}
+.profile-step__title {
+  font-size: var(--p-fs-body);
+  font-weight: 600;
+  color: var(--p-ink);
+}
+.profile-step__note {
+  margin-top: var(--p-1);
+  font-size: var(--p-fs-body-sm);
+  line-height: var(--p-lh-body-sm);
+  color: var(--p-ink-2);
+}
 .profile-step__charter {
   display: flex;
   flex-direction: column;

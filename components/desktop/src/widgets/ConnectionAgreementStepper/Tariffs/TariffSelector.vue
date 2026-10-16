@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
-import { BaseRadioCard, BaseButton } from 'src/shared/ui/base'
+import { BaseRadioCard, BaseButton, BaseChip } from 'src/shared/ui/base'
 import type { ITariff } from 'src/entities/ConnectionAgreement'
 import { useConnectionCatalog } from 'src/features/Provider/model'
 import { DOCUMENT_PACKAGE_PRICE_RUB, MEMBER_PRICE_RUB } from 'src/shared/lib/axon'
@@ -33,7 +33,7 @@ const billingPeriod = ref<'month' | 'year'>(props.selectedTariff?.billingPeriod 
 const yearly = computed(() => annualBilling.value.enabled && billingPeriod.value === 'year')
 const periodOptions = computed(() => [
   { label: t('connectionAgreementStepper.tariffSelector.periodMonth'), value: 'month' },
-  { label: t('connectionAgreementStepper.tariffSelector.periodYear'), value: 'year' },
+  { label: t('connectionAgreementStepper.tariffSelector.periodYear'), value: 'year', slot: 'year' },
 ])
 
 /** Цена карточки за выбранный период. */
@@ -100,6 +100,9 @@ defineExpose({
       toggle-color="primary"
       size="sm"
     )
+      //- Скидка — значком прямо на «За год»: выгода видна там, где её выбирают.
+      template(#year)
+        BaseChip.tariff-selector__save(variant="pos" size="sm") −{{ annualBilling.discount_percent }} %
     .tariff-selector__grid
       BaseRadioCard(
         v-for="tariff in tariffs"
@@ -121,9 +124,6 @@ defineExpose({
             li(v-if="tariff.supportResponse") {{ $t('connectionAgreementStepper.tariffSelector.supportLine', { response: tariff.supportResponse }) }}
             li {{ $t('connectionAgreementStepper.tariffSelector.appLine') }}
           span.tariff-card__specs(v-else) {{ tariff.specs }}
-    //- Годовая оплата: на что действует скидка — одной строкой.
-    .tariff-selector__extra(v-if="hasTariffGrid && yearly")
-      span {{ $t('connectionAgreementStepper.tariffSelector.annualNote', { discount: annualBilling.discount_percent }) }}
     //- Тариф сетки уже включает документооборот — одна строка о составе цены.
     .tariff-selector__extra(v-if="hasTariffGrid")
       span {{ $t('connectionAgreementStepper.tariffSelector.includesNote') }}
@@ -184,6 +184,9 @@ defineExpose({
 }
 .tariff-selector__period {
   margin-bottom: var(--p-4);
+}
+.tariff-selector__save {
+  margin-left: var(--p-2);
 }
 .tariff-selector__error {
   display: flex;

@@ -73,40 +73,40 @@ StepFrame(
   @back="handleBack"
   @next="handleContinue"
 )
-  .row.q-col-gutter-md
-    .col-12.col-md-6
-      BaseInput(
-        v-model="announce"
-        :label="$t('connectionAgreementStepper.domainStep.domainLabel')"
-        :placeholder="$t('connectionAgreementStepper.domainStep.domainPlaceholder')"
-        :hint="$t('connectionAgreementStepper.domainStep.domainHint')"
-        :error="errorMsg || undefined"
-        mono
-      )
-    .col-12.col-md-6
-      ul.domain-step__tips
-        li
-          strong {{ $t('connectionAgreementStepper.domainStep.subdomainTitle') }}
-          |  {{ $t('connectionAgreementStepper.domainStep.subdomainText') }}
-        li
-          strong {{ $t('connectionAgreementStepper.domainStep.changeLaterTitle') }}
-          |  {{ $t('connectionAgreementStepper.domainStep.changeLaterText') }}
+  //- Одно поле и одна подсказка под ним: что вписать — в подписи и примере,
+  //- что будет потом — строкой со значком.
+  .domain-step
+    BaseInput(
+      v-model="announce"
+      :label="$t('connectionAgreementStepper.domainStep.domainLabel')"
+      stack-label
+      prefix="https://"
+      :placeholder="$t('connectionAgreementStepper.domainStep.domainPlaceholder')"
+      :hint="$t('connectionAgreementStepper.domainStep.domainHint')"
+      :error="errorMsg || undefined"
+      mono
+    )
+    .domain-step__note
+      q-icon(name="info_outline" size="18px")
+      span {{ $t('connectionAgreementStepper.domainStep.changeLaterText') }}
 </template>
 
 <style scoped>
-.domain-step__tips {
-  margin: 0;
-  padding: 0;
-  list-style: none;
+.domain-step {
+  max-width: 560px;
+}
+.domain-step__note {
   display: flex;
-  flex-direction: column;
+  align-items: flex-start;
   gap: var(--p-2);
+  margin-top: var(--p-3);
   font-size: var(--p-fs-body-sm);
   line-height: var(--p-lh-body-sm);
   color: var(--p-ink-2);
 }
-.domain-step__tips strong {
-  color: var(--p-ink);
-  font-weight: 600;
+.domain-step__note .q-icon {
+  flex: none;
+  margin-top: 1px;
+  color: var(--p-ink-3);
 }
 </style>
