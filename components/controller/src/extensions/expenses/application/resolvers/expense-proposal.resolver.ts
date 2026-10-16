@@ -105,7 +105,7 @@ export class ExpenseProposalResolver {
 
   @Query(() => paginatedExpenseProposalsResult, {
     name: 'expenseProposalsByMember',
-    description: 'Список смет расходов пайщика (свои/созданные им, paginated). Видят сам пайщик и совет.',
+    description: 'Список смет расходов пайщика (свои/созданные им, paginated). Видят сам пайщик, совет, кассир и ревизор.',
   })
   @UseGuards(GqlJwtAuthGuard, RightsGuard)
   @RequireRight('ExpenseProposal', 'read')
@@ -115,9 +115,10 @@ export class ExpenseProposalResolver {
     @CurrentUser() user: IMonoAccount,
     @Args('options', { type: () => PaginationInputDTO, nullable: true }) options?: PaginationInputDTO
   ): Promise<PaginationResult<ExpenseProposalOutputDTO>> {
-    // Записки пайщика видят он сам и совет.
-    const council = user.role === 'chairman' || user.role === 'member';
-    if (!council && user.username !== username) throw DomainError.forbidden('EXPENSES_PROPOSAL_ACCESS_DENIED');
+    // Записки пайщика видят он сам и читатели реестра расходов — совет, кассир, ревизор.
+    if (user.username !== username && !(await this.rights.readsRegistry(user))) {
+      throw DomainError.forbidden('EXPENSES_PROPOSAL_ACCESS_DENIED');
+    }
     const result = await this.expenses.listProposalsByMemberPaginated(coopname, username, options);
     return { ...result, items: await this.mapItemsWithDocuments(result.items) };
   }

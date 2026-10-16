@@ -15,6 +15,7 @@ const GROUPS = [
       'cashier/desk',
       'cashier/payments',
       'cashier/advances',
+      'cashier/council-view',
     ],
   },
 ];

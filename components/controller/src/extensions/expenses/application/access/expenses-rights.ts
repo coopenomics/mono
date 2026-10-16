@@ -44,13 +44,16 @@ const MEMBER_RIGHTS = {
 };
 
 /**
- * Таблица прав расходов (C28-87): роль → право `Ресурс:действие`.
- *
- * Служебную записку подаёт совет, решение по ней, оплату и перерасход ведёт
- * председатель; подотчётное лицо отчитывается и возвращает остаток по своей
- * строке. Совет проходит по роли в любом статусе учётной записи, поэтому права
- * пайщика названы в его строке повторно.
+ * Правка по кассе — у председателя и кассира: оплата строки и доплата
+ * перерасхода, отчёт и возврат по авансу за получателя, закрывающие документы
+ * к любой записке, закрытие расхода. Совет кассу и расходы читает.
  */
+const CASH_DESK_RIGHTS = {
+  ExpenseProposal: ['pay', 'overspend', 'submit-report'],
+  ExpenseItem: ['report:all', 'return:all'],
+  ExpenseFile: ['upload:all'],
+};
+
 /** Имя, под которым расходы объявляют ядру свои дополнения ролей. */
 const EXPENSES_APP = 'expenses';
 
@@ -60,6 +63,15 @@ const EXPENSES_APP = 'expenses';
  */
 export type ExpensesRole = MemberRole | 'auditor' | 'cashier';
 
+/**
+ * Таблица прав расходов (C28-87): роль → право `Ресурс:действие`.
+ *
+ * Служебную записку подаёт совет, решение по ней принимает председатель;
+ * подотчётное лицо отчитывается и возвращает остаток по своей строке. Совет
+ * читает расходы и кассу, правят их председатель и кассир (решение владельца
+ * 16.10.2026). Совет проходит по роли в любом статусе учётной записи, поэтому
+ * права пайщика названы в его строке повторно.
+ */
 export const expensesRightsTable: RightsTable<ExpensesRole, never> = {
   participant: [{ when: [], rights: MEMBER_RIGHTS }],
   council: [
@@ -67,7 +79,7 @@ export const expensesRightsTable: RightsTable<ExpensesRole, never> = {
       when: [],
       rights: {
         ...MEMBER_RIGHTS,
-        ExpenseProposal: ['read', 'generate:own', 'generate:all', 'create', 'submit-report'],
+        ExpenseProposal: ['read', 'generate:own', 'generate:all', 'create'],
         ExpenseRegistry: ['read'],
       },
     },
@@ -76,15 +88,16 @@ export const expensesRightsTable: RightsTable<ExpensesRole, never> = {
     {
       when: [],
       rights: {
-        ExpenseProposal: ['decide', 'pay', 'overspend'],
+        ...CASH_DESK_RIGHTS,
+        ExpenseProposal: ['decide', ...CASH_DESK_RIGHTS.ExpenseProposal],
       },
     },
   ],
   // Ревизор читает реестр расходов кооператива и реквизиты получателей.
   auditor: [{ when: [], rights: { ExpenseRegistry: ['read'] } }],
-  // Кассир выплачивает по утверждённым запискам: видит их очередь на кассе,
-  // записку и реквизиты получателей.
-  cashier: [{ when: [], rights: { ExpenseRegistry: ['read'] } }],
+  // Кассир выплачивает по утверждённым запискам и ведёт их до закрытия: видит
+  // очередь на кассе, записку и реквизиты получателей.
+  cashier: [{ when: [], rights: { ExpenseRegistry: ['read'], ...CASH_DESK_RIGHTS } }],
 };
 
 /** Роли других приложений, которым расходы дают права. */
@@ -95,7 +108,13 @@ export const expensesAttachedRoles: readonly AttachedRole<'auditor' | 'cashier'>
   },
   {
     key: 'cashier',
-    permissions: [{ title: t('expenses.roles.cashier.permissions.registry'), access: 'read', rights: [REGISTRY_READ] }],
+    permissions: [
+      { title: t('expenses.roles.cashier.permissions.registry'), access: 'read', rights: [REGISTRY_READ] },
+      { title: t('expenses.roles.cashier.permissions.pay'), access: 'write', rights: ['ExpenseProposal:pay', 'ExpenseProposal:overspend'] },
+      { title: t('expenses.roles.cashier.permissions.report'), access: 'write', rights: ['ExpenseItem:report:all', 'ExpenseItem:return:all'] },
+      { title: t('expenses.roles.cashier.permissions.files'), access: 'write', rights: ['ExpenseFile:upload:all'] },
+      { title: t('expenses.roles.cashier.permissions.close'), access: 'write', rights: ['ExpenseProposal:submit-report'] },
+    ],
   },
 ];
 
@@ -135,7 +154,12 @@ export class ExpensesRights implements AppRights<ExpensesRole, never>, OnModuleI
    * открыта любая записка и её файлы, а не только свои.
    */
   async readsRegistry(caller: RightsCaller): Promise<boolean> {
+    return this.holds(caller, REGISTRY_READ);
+  }
+
+  /** Есть ли у пайщика право `Ресурс:действие` по таблице расходов. */
+  async holds(caller: RightsCaller, right: string): Promise<boolean> {
     const roles = await this.roles(caller);
-    return rightsHeld(this.table, roles, new Set<never>()).includes(REGISTRY_READ);
+    return rightsHeld(this.table, roles, new Set<never>()).includes(right);
   }
 }

@@ -81,12 +81,14 @@
                   .expense-flow.q-mt-sm(v-if='!hideActions && expenseProofRef(row)')
                     AttachExpenseProofPanel(
                       :proposal-hash='expenseProofRef(row)?.proposal_hash ?? ""',
-                      :item-hash='expenseProofRef(row)?.item_hash ?? ""'
+                      :item-hash='expenseProofRef(row)?.item_hash ?? ""',
+                      :readonly='readOnly'
                     )
                     ReportExpenseAdvancePanel(
                       :proposal-hash='expenseProofRef(row)?.proposal_hash ?? ""',
                       :item-hash='expenseProofRef(row)?.item_hash ?? ""',
                       :on-behalf='true',
+                      :readonly='readOnly',
                       :report-state='advanceReportState(row)',
                       :reported-amount='advanceReportedAmount(row)',
                       :step='{ number: 2, title: $t("cooperative.listOfPaymentsWidget.reportStep") }',
@@ -167,12 +169,14 @@
           .expense-flow.q-mt-sm(v-if='!hideActions && expenseProofRef(row)')
             AttachExpenseProofPanel(
               :proposal-hash='expenseProofRef(row)?.proposal_hash ?? ""',
-              :item-hash='expenseProofRef(row)?.item_hash ?? ""'
+              :item-hash='expenseProofRef(row)?.item_hash ?? ""',
+              :readonly='readOnly'
             )
             ReportExpenseAdvancePanel(
               :proposal-hash='expenseProofRef(row)?.proposal_hash ?? ""',
               :item-hash='expenseProofRef(row)?.item_hash ?? ""',
               :on-behalf='true',
+              :readonly='readOnly',
               :report-state='advanceReportState(row)',
               :reported-amount='advanceReportedAmount(row)',
               :step='{ number: 2, title: $t("cooperative.listOfPaymentsWidget.reportStep") }',

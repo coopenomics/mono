@@ -132,20 +132,26 @@ describe('платформа: назначаемые роли и управле�
       expect(soviet, page).not.toContain(page)
   }, 60_000)
 
-  it(caseName('cashier.desk.happy.08', 'стол кассира есть у председателя и закрыт члену совета'), async () => {
+  it(caseName('cashier.desk.happy.08', 'стол кассира председатель ведёт, член совета читает'), async () => {
     expect(await cashierGrants(tokens[CHAIRMAN.account])).toContain('Payment:confirm')
-    // cashier.desk.side.01: член совета читает реестр платежей на столе совета.
-    expect(await cashierGrants(tokens[COUNCIL.account])).not.toContain('Payment:confirm')
-    expect(await sovietGrants(tokens[COUNCIL.account])).toContain('Payment:read:all')
-  }, 60_000)
+    // cashier.desk.side.01: член совета читает кассу, авансы и реестр платежей, подтверждать оплату не может.
+    const council = await cashierGrants(tokens[COUNCIL.account])
+    expect(council).toEqual(expect.arrayContaining(['Payment:read:all', 'ExpenseRegistry:read']))
+    expect(council).not.toContain('Payment:confirm')
+    expect(council).not.toContain('ExpenseProposal:submit-report')
+    // cashier.edit.side.03: правящие операции кассы члену совета закрыты.
+    for (const name of ['setPaymentStatus', 'uploadPaymentProof', 'payExpenseItem', 'submitExpenseReport'])
+      expect(await probe.denial(tokens[COUNCIL.account], name), name).toBe(NO_RIGHT)
+  }, 120_000)
 
   it(caseName('access.roles.happy.06', 'кассир проходит операции реестра платежей'), async () => {
     // access.roles.happy.02: права роли действуют сразу, без нового входа.
     // cashier.desk.happy.03: касса читает служебные записки кооператива, реквизиты получателей и авансы.
-    for (const name of ['getPayments', 'setPaymentStatus', 'uploadPaymentProof', 'expenseProposalsByCooperative', 'expenseRequisitesByProposal', 'expenseAdvancesByCooperative'])
+    // cashier.edit.happy.04: правка кассы — оплата строк, доплата, закрытие расхода.
+    for (const name of ['getPayments', 'setPaymentStatus', 'uploadPaymentProof', 'expenseProposalsByCooperative', 'expenseRequisitesByProposal', 'expenseAdvancesByCooperative', 'payExpenseItem', 'overspendExpenseItem', 'submitExpenseReport'])
       expect(await probe.denial(tokens[member.account], name), name).toBeNull()
-    // Решения и оплата записок кассиру не даны.
-    for (const name of ['createExpenseProposal', 'payExpenseItem', 'submitExpenseReport'])
+    // Подача записки и решение по ней — дело совета и председателя, кассиру не даны.
+    for (const name of ['createExpenseProposal', 'generateExpenseProposalDecisionDocument'])
       expect(await probe.denial(tokens[member.account], name), name).toBe(NO_RIGHT)
   }, 120_000)
 

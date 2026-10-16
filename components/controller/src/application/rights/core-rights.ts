@@ -187,6 +187,15 @@ export const CORE_ROLES_APPS: Readonly<Record<CoreAssignableRole, string>> = {
   auditor: 'soviet',
 };
 
+/**
+ * Столы, страницы которых открывает назначенная роль ядра. Кассир работает на
+ * столе кассира; ревизор читает реестры стола совета и кассу.
+ */
+export const CORE_ROLE_DESKS: Readonly<Record<CoreAssignableRole, readonly string[]>> = {
+  cashier: ['cashier'],
+  auditor: ['soviet', 'cashier'],
+};
+
 /** Приложения, за которыми числятся роли ядра, без повторов. */
 function coreRolesApps(): string[] {
   return [...new Set(Object.values(CORE_ROLES_APPS))];
@@ -278,8 +287,8 @@ export class CoreRights implements AppRights<CoreRightsRole, never>, OnModuleIni
 
   /**
    * Права ядра для страниц одного стола. Назначенная роль открывает страницы
-   * только своего стола: кассир работает на столе кассира, и его право читать
-   * реестр платежей не выводит ему стол совета, где этот реестр читает совет.
+   * только своих столов (`CORE_ROLE_DESKS`): кассир работает на столе кассира,
+   * и его право читать реестр платежей не выводит ему стол совета.
    * Операции проверяются по полному набору ролей — это только видимость страниц.
    */
   private onDesk(desk: string): AppRights<CoreRightsRole, never> {
@@ -289,7 +298,7 @@ export class CoreRights implements AppRights<CoreRightsRole, never>, OnModuleIni
       table: this.table,
       publicGrants: this.publicGrants,
       roles: async (caller) =>
-        (await this.roles(caller)).filter((role) => !assignable.has(role) || CORE_ROLES_APPS[role as CoreAssignableRole] === desk),
+        (await this.roles(caller)).filter((role) => !assignable.has(role) || CORE_ROLE_DESKS[role as CoreAssignableRole].includes(desk)),
     };
   }
 

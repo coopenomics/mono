@@ -385,11 +385,16 @@ describe('стол кассира (cashier.desk.*)', () => {
     }
   });
 
-  // cashier.desk.side.01
-  it('член совета, ревизор и пайщик без роли стола кассира не видят: права подтверждать оплату нет', async () => {
-    for (const caller of [councilMember, auditor, { ...participant, username: 'nobody' }]) {
-      expect(await deskGrants('cashier', caller)).not.toContain('Payment:confirm');
+  // cashier.desk.side.01 — правка 16.10.2026: совет и ревизор стол кассира читают.
+  it('член совета и ревизор читают стол кассира без права подтверждать оплату; пайщик без роли стола не видит', async () => {
+    for (const caller of [councilMember, auditor]) {
+      const grants = await deskGrants('cashier', caller);
+      expect(grants).toContain('Payment:read:all');
+      expect(grants).not.toContain('Payment:confirm');
     }
+    const nobody = await deskGrants('cashier', { ...participant, username: 'nobody' });
+    expect(nobody).not.toContain('Payment:read:all');
+    expect(nobody).not.toContain('Payment:confirm');
   });
 
   // cashier.desk.side.02

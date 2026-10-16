@@ -208,9 +208,9 @@ cases:
     level: backend
     kind: side
     scenario: >
-      Возврат и отчёт по авансу: чужой пайщик, держатель аванса, член совета; получатель аванса — по строке организации
+      Возврат и отчёт по авансу: чужой пайщик, член совета, держатель аванса, председатель; получатель аванса — по строке организации
     expect: >
-      чужому и по чужой строке — 403; держатель аванса и совет проходят проверку прав и получают отказ контракта по статусу
+      чужому, члену совета и по чужой строке — 403; держатель аванса и председатель (и кассир) проходят проверку прав и получают отказ контракта по статусу
     test: components/controller/tests/unit/expenses/expense-item-owner.test.ts
     api: components/api-tests/src/expenses/proposals.test.ts
     status: passing
@@ -219,9 +219,9 @@ cases:
     level: backend
     kind: side
     scenario: >
-      Пайщик закрывает отчёт по записке
+      Пайщик и член совета закрывают отчёт по записке
     expect: >
-      отказ KIT_INSUFFICIENT_RIGHTS — закрытие советом
+      отказ KIT_INSUFFICIENT_RIGHTS — закрывают председатель и кассир
     test: components/api-tests/src/expenses/proposals.test.ts
     api: components/api-tests/src/expenses/proposals.test.ts
     status: passing
@@ -241,7 +241,7 @@ cases:
     level: backend
     kind: side
     scenario: >
-      Член совета закрывает отчёт по утверждённой, но не оплаченной записке
+      Председатель закрывает отчёт по утверждённой, но не оплаченной записке
     expect: >
       отказ контракта «закрыть можно только из REPORT_SUBMITTED», записка AUTHORIZED
     test: components/api-tests/src/expenses/proposals.test.ts
@@ -252,12 +252,23 @@ cases:
     level: backend
     kind: happy
     scenario: >
-      Член совета прикладывает платёжку (PDF) к строке организации
+      Председатель прикладывает платёжку (PDF) к строке организации
     expect: >
       запись с видом, типом, размером, контрольной суммой, именем файла и автором; читается по id с адресом скачивания и находится в списках по записке и по строке
     test: components/api-tests/src/expenses/proposals.test.ts
     api: components/api-tests/src/expenses/proposals.test.ts
     status: passing
+
+  - id: exp.file.side.06
+    level: backend
+    kind: side
+    scenario: >
+      Член совета прикладывает документ к чужой служебной записке
+    expect: >
+      отказ EXPENSES_FILE_ACCESS_DENIED — документы к любой записке прикладывают председатель и кассир, совет их читает
+    test: components/controller/tests/unit/expenses/expense-cashier-access.test.ts
+    api: components/api-tests/src/expenses/proposals.test.ts
+    status: written   # прогон — CI на полигоне ci/tests
 
   - id: exp.file.happy.02
     level: backend
@@ -484,3 +495,9 @@ cases:
 # вместе со страницей «Авансы» стола пайщика — свой аванс пайщик видит в «Платежах».
 # Записку и её файлы читают и читатели реестра расходов — кассир и ревизор
 # (случаи cashier.desk.* в cashier.desk.yaml); загрузка в чужую записку им закрыта.
+
+# 2026-10-16 (7DD-25, третья волна): совет расходы и кассу читает, правят председатель и
+# кассир — закрытие расхода, отчёт и возврат по авансу за получателя, документы к любой
+# записке, оплата строки и доплата (случаи exp.prop.side.09/10/12, exp.file.happy.01,
+# exp.file.side.06 переписаны; правила — cashier.edit.* в cashier.desk.yaml).
+

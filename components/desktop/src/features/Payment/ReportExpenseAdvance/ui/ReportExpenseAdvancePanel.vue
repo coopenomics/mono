@@ -10,7 +10,7 @@
       .t-sm.t-muted(v-if='pendingSettlement') {{ $t('payment.reportExpenseAdvancePanel.submittedHint', { reportedAmountLabel }) }}
       .t-sm.t-muted(v-else) {{ $t('payment.reportExpenseAdvancePanel.acceptedHint') }}
     template(v-else)
-      .t-sm.report-advance__lead(v-if='onBehalf')
+      .t-sm.report-advance__lead(v-if='onBehalf && !readonly')
         q-icon(name='assignment_ind', size='16px')
         span {{ $t('payment.reportExpenseAdvancePanel.onBehalfHint') }}
       .t-sm.t-muted(v-else) {{ $t('payment.reportExpenseAdvancePanel.advanceIssuedHint', { advanceLabel }) }}
@@ -29,7 +29,9 @@
       .t-sm.t-warning(v-if='deltaHint') {{ deltaHint }}
 
     //- Загрузчик доступен и после приёма отчёта — доп. документы дополняют его.
+    //- Без права правки (совет, ревизор) — только просмотр.
     FileUploader(
+      v-if='!readonly',
       v-model='pending',
       accept='image/jpeg,image/png,image/webp,image/heic,application/pdf',
       :max-size='20 * 1024 * 1024',
@@ -82,8 +84,10 @@ const props = withDefaults(
     proposalHash: string;
     itemHash: string;
     // Кассир отчитывается за пайщика (чеки переданы лично) — меняет только подписи,
-    // мутация та же (бэкенд авторизует совет по любой строке).
+    // мутация та же (за другого бэкенд пускает председателя и кассира).
     onBehalf?: boolean;
+    // Только просмотр (совет, ревизор): состояние отчёта и документы без формы.
+    readonly?: boolean;
     // Опциональный заголовок-этап (номер + название) — показывается только когда
     // у панели есть контент, поэтому пустых «Этапов» у строк без отчёта не будет.
     step?: { number: number | string; title: string };
@@ -96,7 +100,7 @@ const props = withDefaults(
     // выданного аванса.
     reportedAmount?: string;
   }>(),
-  { onBehalf: false, step: undefined, reportState: '', reportedAmount: '' },
+  { onBehalf: false, readonly: false, step: undefined, reportState: '', reportedAmount: '' },
 );
 
 const emit = defineEmits<{
@@ -185,7 +189,7 @@ const closedByState = computed(
 // Форма отчёта доступна, только пока отчёт не подан: позиция PAID и report_state
 // ещё не SETTLEMENT_PENDING/CLOSED. Иначе — повторный отчёт (запрещён и на бэке).
 const canReport = computed(
-  () => isAwaitingReport.value && !pendingSettlement.value && !closedByState.value,
+  () => !props.readonly && isAwaitingReport.value && !pendingSettlement.value && !closedByState.value,
 );
 const reportSubmitted = computed(
   () => isReported.value || pendingSettlement.value || closedByState.value,

@@ -15,7 +15,7 @@ import {
   EXPENSE_PROPOSAL_REPOSITORY,
   type ExpenseProposalRepository,
 } from '../../domain/repositories/expense-proposal.repository';
-import { mayReadExpenseProposal } from '../../domain/utils/expense-proposal-access';
+import { isItemRecipient, mayReadExpenseProposal } from '../../domain/utils/expense-proposal-access';
 import { ExpensesRights } from '../access/expenses-rights';
 
 const EXTENSION_BY_MIME: Record<string, string> = {
@@ -44,30 +44,31 @@ export class ExpenseFilesService {
     @Inject(ExpensesRights) private readonly rights: ExpensesRights
   ) {}
 
-  /** Файлы открыты тем же, кому открыта записка (`mayReadExpenseProposal`). */
-  private async assertMayAccess(user: IMonoAccount, proposalHash: string, itemHash: string | null): Promise<void> {
-    if (user.role === 'chairman' || user.role === 'member') return;
+  /**
+   * Файлы читают те, кому открыта записка: подавший и получатели строк лично,
+   * совет, кассир и ревизор — по праву реестра расходов.
+   */
+  private async assertMayRead(user: IMonoAccount, proposalHash: string, itemHash: string | null): Promise<void> {
     const proposal = await this.proposals.findByProposalHash(proposalHash.toLowerCase());
-    if (!mayReadExpenseProposal(user, proposal, itemHash)) throw DomainError.forbidden('EXPENSES_FILE_ACCESS_DENIED');
+    if (mayReadExpenseProposal(user, proposal, itemHash)) return;
+    if (!(await this.rights.readsRegistry(user))) throw DomainError.forbidden('EXPENSES_FILE_ACCESS_DENIED');
   }
 
   /**
-   * Читают файлы ещё и читатели реестра (ревизор, кассир): записку они видят
-   * целиком. Загружать в чужую записку им по-прежнему нельзя.
+   * Загружать в любую записку — председатель и кассир (`ExpenseFile:upload:all`);
+   * получатель аванса прикладывает чек к своей строке. Совет файлы читает.
    */
-  private async assertMayRead(user: IMonoAccount, proposalHash: string, itemHash: string | null): Promise<void> {
-    try {
-      await this.assertMayAccess(user, proposalHash, itemHash);
-    } catch (error) {
-      if (!(await this.rights.readsRegistry(user))) throw error;
-    }
+  private async assertMayUpload(user: IMonoAccount, proposalHash: string, itemHash: string | null): Promise<void> {
+    if (await this.rights.holds(user, 'ExpenseFile:upload:all')) return;
+    const proposal = await this.proposals.findByProposalHash(proposalHash.toLowerCase());
+    if (!isItemRecipient(user, proposal, itemHash)) throw DomainError.forbidden('EXPENSES_FILE_ACCESS_DENIED');
   }
 
   async uploadFile(
     input: UploadExpenseFileInputDTO,
     user: IMonoAccount
   ): Promise<{ data: IExpenseFileDatabaseData; readUrl: string }> {
-    await this.assertMayAccess(user, input.proposal_hash, input.item_hash ?? null);
+    await this.assertMayUpload(user, input.proposal_hash, input.item_hash ?? null);
     const uploadedByUsername = user.username;
     const body = Buffer.from(input.content_base64, 'base64');
     if (body.byteLength !== input.size_bytes) {

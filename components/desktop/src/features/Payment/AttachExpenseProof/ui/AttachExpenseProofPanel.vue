@@ -16,7 +16,9 @@
         q-icon(name='attach_file', size='16px')
         span {{ fileLabel(file) }}
         q-spinner(v-if='openingId === file.id', size='14px')
+    //- Без права правки (совет, ревизор) — только просмотр приложенного.
     FileUploader(
+      v-if='!readonly',
       v-model='pendingClosing',
       accept='image/jpeg,image/png,image/webp,image/heic,application/pdf',
       :max-size='20 * 1024 * 1024',
@@ -40,6 +42,8 @@ import { api, type IExpenseFile } from '../api';
 const props = defineProps<{
   proposalHash: string;
   itemHash: string;
+  /** Только просмотр: загрузка документов скрыта. */
+  readonly?: boolean;
 }>();
 
 const system = useSystemStore();

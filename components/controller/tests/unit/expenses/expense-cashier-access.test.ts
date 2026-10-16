@@ -49,10 +49,39 @@ function rightsStand() {
 }
 
 describe('права расходов: кассир', () => {
-  // cashier.desk.happy.03
-  it('кассир читает реестр расходов, оплаты и решения ему не даны', () => {
-    const rights = expensesRightsTable.cashier.flatMap((group) => Object.entries(group.rights));
-    expect(rights).toEqual([['ExpenseRegistry', ['read']]]);
+  // cashier.desk.happy.03 — правка 16.10.2026: правят кассу председатель и кассир.
+  it('кассир читает реестр расходов и ведёт кассу: оплата, отчёт и возврат за получателя, документы, закрытие', () => {
+    const rights = Object.fromEntries(expensesRightsTable.cashier.flatMap((group) => Object.entries(group.rights)));
+    expect(rights).toEqual({
+      ExpenseRegistry: ['read'],
+      ExpenseProposal: ['pay', 'overspend', 'submit-report'],
+      ExpenseItem: ['report:all', 'return:all'],
+      ExpenseFile: ['upload:all'],
+    });
+  });
+
+  // cashier.edit.happy.01
+  it('совет кассу читает и не правит: закрытия, отчёта за получателя и документов к чужой записке у него нет', () => {
+    const council = expensesRightsTable.council.flatMap((group) => Object.entries(group.rights));
+    const flat = council.flatMap(([resource, actions]) => (actions as string[]).map((a) => `${resource}:${a}`));
+    for (const right of ['ExpenseProposal:submit-report', 'ExpenseProposal:pay', 'ExpenseItem:report:all', 'ExpenseItem:return:all', 'ExpenseFile:upload:all']) {
+      expect(flat).not.toContain(right);
+    }
+    expect(flat).toContain('ExpenseRegistry:read');
+    const chairman = expensesRightsTable.chairman.flatMap((group) => Object.entries(group.rights));
+    expect(Object.fromEntries(chairman)).toMatchObject({
+      ExpenseProposal: ['decide', 'pay', 'overspend', 'submit-report'],
+      ExpenseItem: ['report:all', 'return:all'],
+      ExpenseFile: ['upload:all'],
+    });
+  });
+
+  // cashier.edit.happy.03
+  it('право правки по таблице: председатель и кассир — да, член совета и пайщик — нет', async () => {
+    const { rights } = rightsStand();
+    const chairman = { username: 'ant', role: 'chairman', status: MonoAccountStatus.Active } as any;
+    for (const caller of [chairman, cashier]) expect(await rights.holds(caller, 'ExpenseFile:upload:all')).toBe(true);
+    for (const caller of [council, ivan, auditor]) expect(await rights.holds(caller, 'ExpenseFile:upload:all')).toBe(false);
   });
 
   // cashier.desk.happy.04
@@ -113,7 +142,10 @@ describe('файлы записки: читатели реестра', () => {
       findByChecksum: jest.fn().mockResolvedValue(null),
     };
     const proposals = { findByProposalHash: jest.fn().mockResolvedValue({ username: 'petr', items: [{ item_hash: ITEM, recipient: 'ivan' }] }) };
-    const rights = { readsRegistry: jest.fn(async (user: { username: string }) => user.username === 'kassa') };
+    const rights = {
+      readsRegistry: jest.fn(async (user: { username: string }) => ['kassa', 'petr'].includes(user.username)),
+      holds: jest.fn(async (user: { username: string }, right: string) => right === 'ExpenseFile:upload:all' && user.username === 'kassa'),
+    };
     const service = new ExpenseFilesService(bucket as any, files as any, {} as any, proposals as any, rights as any);
     return { service, bucket };
   }
@@ -126,21 +158,37 @@ describe('файлы записки: читатели реестра', () => {
     await expect(service.listByItem(COOP, PROPOSAL, ITEM, cashier)).resolves.toEqual([]);
   });
 
-  // cashier.desk.side.06
-  it('кассир не загружает файл в чужую записку', async () => {
-    const { service, bucket } = build();
-    const input = {
+  const upload = (itemHash: string | null) =>
+    ({
       coopname: COOP,
       proposal_hash: PROPOSAL,
-      item_hash: ITEM,
+      item_hash: itemHash ?? undefined,
       kind: 'PAYMENT_PROOF',
       mime_type: 'image/png',
       size_bytes: 1,
       checksum_sha256: 'd'.repeat(64),
       content_base64: 'AA==',
-    } as any;
-    await expect(service.uploadFile(input, cashier)).rejects.toBeInstanceOf(ForbiddenException);
+    }) as any;
+
+  // cashier.desk.side.06 — правка 16.10.2026: кассир прикладывает документы к любой записке.
+  it('кассир прикладывает документ к чужой записке: проверка доступа пройдена, дальше сверка содержимого', async () => {
+    const { service } = build();
+    await expect(service.uploadFile(upload(ITEM), cashier)).rejects.toMatchObject({ code: 'EXPENSES_FILE_CHECKSUM_MISMATCH' });
+    await expect(service.uploadFile(upload(null), cashier)).rejects.toMatchObject({ code: 'EXPENSES_FILE_CHECKSUM_MISMATCH' });
+  });
+
+  // cashier.edit.side.01
+  it('член совета документы к чужой записке не прикладывает, читать может', async () => {
+    const { service, bucket } = build();
+    await expect(service.uploadFile(upload(ITEM), council)).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(service.listByProposal(COOP, PROPOSAL, council)).resolves.toEqual([]);
     expect(bucket.put).not.toHaveBeenCalled();
+  });
+
+  it('получатель аванса прикладывает чек к своей строке, к записке без строки — нет', async () => {
+    const { service } = build();
+    await expect(service.uploadFile(upload(ITEM), ivan)).rejects.toMatchObject({ code: 'EXPENSES_FILE_CHECKSUM_MISMATCH' });
+    await expect(service.uploadFile(upload(null), ivan)).rejects.toBeInstanceOf(ForbiddenException);
   });
 
   it('посторонний пайщик файлы не читает', async () => {
