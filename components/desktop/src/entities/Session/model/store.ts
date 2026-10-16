@@ -83,6 +83,8 @@ interface ISessionStore {
   /** Верен ли PIN-код. Нужно там, где PIN подтверждает право менять сам PIN. */
   verifyPin: (pin: string) => Promise<boolean>;
   close: () => Promise<void>;
+  /** Забыть контур CoopID, сохранив ключ и токены незаконченной регистрации. */
+  dropCoopIdSession: () => Promise<void>;
   loadComplete: Ref<boolean>;
   // Добавляю данные текущего пользователя
   currentUserAccount: Ref<IAccount | undefined>;
@@ -429,12 +431,42 @@ export const useSessionStore = defineStore('session', (): ISessionStore => {
     setCurrentUserAccount(undefined);
   };
 
+  /**
+   * Забыть контур CoopID — токены, PIN-кэш, маркер и ключ в памяти, — не трогая
+   * легаси-записи в IndexedDB.
+   *
+   * Легаси-записи — это ключ и токены незаконченной регистрации (`createUser`).
+   * Они принадлежат другому человеку, чем сессия CoopID, когда в браузере осталась
+   * сессия пайщика прежней базы узла: стирать их вместе с ней значит потерять ключ
+   * нового пайщика, и продолжить вступление станет нечем.
+   */
+  const dropCoopIdSession = async (): Promise<void> => {
+    traceSession('drop-coopid', { account: coopIdAccount.value });
+    const hadCoopId = Boolean(coopIdAccount.value);
+    if (hadCoopId) {
+      isAuth.value = false;
+      session.value = undefined;
+      currentUserAccount.value = undefined;
+    }
+    if (autoLockTimer) clearTimeout(autoLockTimer);
+    lockWallet();
+    const storage = coopStorage();
+    await clearPinCache(storage).catch(() => undefined);
+    await storage.remove(PIN_MARKER_KEY).catch(() => undefined);
+    await clearSession();
+    coopIdAccount.value = '';
+    walletLocked.value = true;
+    hasCustomPin.value = false;
+    pinUnlockPending.value = false;
+    pinPrompt.value = false;
+    pinError.value = '';
+  };
+
   const close = async (): Promise<void> => {
     traceSession('close', { wasAuth: isAuth.value });
     isAuth.value = false;
     session.value = undefined;
     currentUserAccount.value = undefined;
-    if (autoLockTimer) clearTimeout(autoLockTimer);
 
     // «Забыть устройство» целиком: ключ из памяти, PIN-кэш, маркер и токены.
     //
@@ -445,17 +477,7 @@ export const useSessionStore = defineStore('session', (): ISessionStore => {
     // добраться. Выйти из кабинета становилось нельзя вовсе.
     //
     // Токены затираем тоже: с ними одними гейт поднимется снова, даже без ключа.
-    lockWallet();
-    const storage = coopStorage();
-    await clearPinCache(storage).catch(() => undefined);
-    await storage.remove(PIN_MARKER_KEY).catch(() => undefined);
-    clearSession();
-    coopIdAccount.value = '';
-    walletLocked.value = true;
-    hasCustomPin.value = false;
-    pinUnlockPending.value = false;
-    pinPrompt.value = false;
-    pinError.value = '';
+    await dropCoopIdSession();
     globalStore.logout();
   };
 
@@ -650,6 +672,7 @@ export const useSessionStore = defineStore('session', (): ISessionStore => {
     username,
     displayName,
     close,
+    dropCoopIdSession,
     loadComplete,
     currentUserAccount,
     setCurrentUserAccount,

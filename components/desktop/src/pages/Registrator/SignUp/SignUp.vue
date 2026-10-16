@@ -117,6 +117,7 @@ onMounted(() => {
     agreementer.loadCooperativeAgreements(info.coopname);
   }
   if (!session.isRegistrationComplete) {
+    registratorStore.resumeFromSession();
     const userStatus = session.providerAccount?.status;
     if (
       userStatus === Zeus.UserStatus.Registered ||
@@ -173,6 +174,14 @@ const returnToUnansweredIntake = async (): Promise<void> => {
     store.step = steps.IntakeStep;
   }
 };
+
+// Аккаунт сессии приходит позже монтирования (вход только что состоялся, F5):
+// продолжение вступления проверяется и на его появлении.
+// realtime: нет источника — реакция на аккаунт сессии, данных с сервера не читает.
+watch(
+  () => [session.providerAccount?.status, session.username],
+  () => registratorStore.resumeFromSession(),
+);
 
 // Догружаем cooperativeAgreements, когда system_info прорастёт.
 // До этого onMounted мог отработать на пустом info.coopname.

@@ -79,12 +79,19 @@ export async function restoreSession(): Promise<boolean> {
   }
 }
 
-/** Затирает токены сессии (logout). Идемпотентно. Стирает и персистентную копию. */
-export function clearSession(): void {
+/**
+ * Затирает токены сессии (logout). Идемпотентно. Стирает и персистентную копию.
+ *
+ * Промис завершается, когда копия стёрта. Ждать его обязан тот, кто следом
+ * перезагружает страницу: иначе запись переживёт перезагрузку и сессия, которую
+ * сервер уже не признаёт, поднимется снова — по кругу.
+ */
+export function clearSession(): Promise<void> {
   tokens = null
   apiBase = null
-  if (storage)
-    void storage.remove(TOKEN_STORAGE_KEY).catch(() => undefined)
+  if (!storage)
+    return Promise.resolve()
+  return storage.remove(TOKEN_STORAGE_KEY).catch(() => undefined)
 }
 
 /** Снимок текущих токенов (или null, если сессии нет). */

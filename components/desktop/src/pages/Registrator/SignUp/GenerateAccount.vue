@@ -105,26 +105,32 @@ const canContinue = computed(
 const setAccount = async () => {
   isLoading.value = true;
   try {
+    // Ключ и отметку «учётка создана» ставит createUser сам.
     if (!store.state.accountCreated) {
       await api.createUser(email.value, userData.value, account.value);
-      store.state.account = account.value;
-      store.state.accountCreated = true;
     }
 
     // Пароль — сразу в контур CoopID: учётка входа + ключ, зашифрованный этим
     // паролем, в защищённом хранилище. Владение доказывается подписью только что
     // созданного ключа; `rotate: false` — ключ никому не показывался, ротировать
     // нечего (да и нельзя до принятия в пайщики). Дальше пайщик входит паролем.
-    await migrate({
-      email: email.value,
-      privateKey: account.value.private_key,
-      newPassword: password.value,
-      rotate: false,
-    });
+    //
+    // Ключ берётся из состояния вступления, а не из поля шага: после продолжения
+    // вступления (сбой, другое устройство) там ключ учётки, а поле шага при
+    // монтировании сгенерировало новый. Ключа нет — вошли паролем, он уже стоит.
+    const privateKey = store.state.account.private_key;
+    if (privateKey) {
+      await migrate({
+        email: email.value,
+        privateKey,
+        newPassword: password.value,
+        rotate: false,
+      });
+    }
 
     // Обновляем username в OpenReplay tracker после создания пользователя
     updateOpenReplayUser({
-      username: account.value.username,
+      username: store.state.account.username,
       coopname: system.info.coopname,
       cooperativeDisplayName: system.cooperativeDisplayName,
     });

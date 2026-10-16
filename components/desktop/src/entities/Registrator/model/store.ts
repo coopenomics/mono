@@ -9,6 +9,8 @@ import { Zeus, Queries } from '@coopenomics/sdk';
 import { client } from 'src/shared/api/client';
 import type { IInitialPaymentOrder } from 'src/shared/lib/types/payments';
 import { intakeFormProblems } from 'src/shared/lib/intake-schema';
+import { useSessionStore } from 'src/entities/Session';
+import { useGlobalStore } from 'src/shared/store';
 
 // Программа участия в регистрации — тип берётся напрямую из SDK-выдачи
 // getRegistrationConfig, не переописывается.
@@ -19,6 +21,11 @@ type IRegistrationProgram =
 // либо типа аккаунта. Поля описаны JSON Schema — их рисует общая форма ZodForm.
 export type IRegistrationIntakeForm =
   Queries.System.GetRegistrationConfig.IOutput['getRegistrationConfig']['intake_forms'][number];
+
+// Сведения о пайщике, которые хранит узел, — из выдачи getAccount.
+type IResumedPrivateAccount = NonNullable<
+  Queries.Accounts.GetAccount.IOutput[typeof Queries.Accounts.GetAccount.name]['private_account']
+>;
 
 const namespace = 'registrator';
 
@@ -439,6 +446,79 @@ export const useRegistratorStore = defineStore(
       state.userAgreement = structuredClone(initialDocumentState);
     };
 
+    /**
+     * Продолжить вступление, учётка которого уже есть на узле (статус «создан»),
+     * а этот браузер о ней не знает.
+     *
+     * Так бывает в двух случаях. Вступление начали на другом устройстве: пароль
+     * поставлен, человек вошёл им здесь, а шаги и анкета остались в браузере
+     * первого устройства. Либо сбой оборвал шаг пароля сразу после создания
+     * учётки: ключ записан, отметка «учётка создана» — нет, и повтор упирался в
+     * занятую почту (16.10.2026, стенд 5).
+     *
+     * Анкету сервер уже принял, повторять её незачем. Без пароля ведём на шаг
+     * пароля: без него не войти ни с какого устройства. С паролем — к заявлению.
+     */
+    const resumeCreatedAccount = (input: {
+      username: string;
+      email: string;
+      publicKey: string;
+      // Пусто, когда ключ живёт в сессии входа по паролю, а не в этом браузере.
+      privateKey: string;
+      hasPassword: boolean;
+      privateAccount?: IResumedPrivateAccount | null;
+    }): void => {
+      resetConsents();
+      state.account = {
+        username: input.username,
+        private_key: input.privateKey,
+        public_key: input.publicKey,
+      };
+      state.email = input.email;
+      state.emailVerified = true;
+      state.accountCreated = true;
+      applyPrivateAccount(input.privateAccount);
+
+      if (!input.hasPassword) state.step = steps.GenerateAccount;
+      else state.step = isBranched.value ? steps.SelectBranch : steps.ReadStatement;
+    };
+
+    /**
+     * Продолжить вступление вошедшего пайщика, если его учётка создана, а этот
+     * браузер о ней не знает. Одна точка для всех путей: страница регистрации,
+     * вход по ключу, вход по паролю.
+     */
+    const resumeFromSession = (): void => {
+      const session = useSessionStore();
+      const provider = session.providerAccount;
+      const username = session.username;
+      if (!session.isAuth || !username || provider?.status !== Zeus.UserStatus.Created) return;
+      if (state.accountCreated && state.account.username === username) return;
+      resumeCreatedAccount({
+        username,
+        email: provider.email,
+        publicKey: provider.public_key,
+        privateKey: useGlobalStore().wif?.toString() ?? '',
+        hasPassword: session.isCoopIdSession,
+        privateAccount: session.privateAccount,
+      });
+    };
+
+    /** Тип субъекта и его анкета — из сведений, которые узел хранит о пайщике. */
+    const applyPrivateAccount = (privateAccount?: IResumedPrivateAccount | null): void => {
+      const type = privateAccount?.type;
+      if (type === 'individual' && privateAccount?.individual_data) {
+        Object.assign(state.userData.individual_data, privateAccount.individual_data);
+      } else if (type === 'organization' && privateAccount?.organization_data) {
+        Object.assign(state.userData.organization_data, privateAccount.organization_data);
+      } else if (type === 'entrepreneur' && privateAccount?.entrepreneur_data) {
+        Object.assign(state.userData.entrepreneur_data, privateAccount.entrepreneur_data);
+      }
+      if (type === 'individual' || type === 'organization' || type === 'entrepreneur') {
+        state.userData.type = type;
+      }
+    };
+
     const clearAddUserState = () =>
       reactive({
         spread_initial: false,
@@ -529,6 +609,7 @@ export const useRegistratorStore = defineStore(
       isStep,
       clearUserData,
       resetConsents,
+      resumeFromSession,
       applyCardcoopProfile,
       addUserState,
       isBranched,

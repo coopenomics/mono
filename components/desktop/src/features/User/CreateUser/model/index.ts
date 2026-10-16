@@ -352,23 +352,41 @@ export function useCreateUser() {
       public_key: generatedAccount.public_key,
     };
 
-    const { account, tokens } = await api.createUser(data);
-
     const globalStore = useGlobalStore();
     const sessionStore = useSessionStore();
 
+    // Сессия CoopID, оставшаяся в браузере, к новому пайщику отношения не имеет.
+    // Её токен SDK ставит поверх токена регистрации, и первое же чтение аккаунта
+    // уходило от имени прежнего пайщика: на пересозданном стенде — с отказом
+    // «Пользователь с указанным JWT не найден», и вступление обрывалось.
+    await sessionStore.dropCoopIdSession();
+
+    // Ключ — в сохранённое состояние вступления ДО запроса: иначе сбой после
+    // создания учётки оставлял её без ключа, а повтор на шаге генерировал новый.
+    store.account = generatedAccount;
+    const { account, tokens } = await api.createUser(data);
+    // С этого момента шаг пароля createUser не повторяет (почта уже занята).
+    store.account.username = account.username;
+    store.accountCreated = true;
+
     await globalStore.setTokens(tokens);
     await globalStore.setWif(account.username, generatedAccount.private_key);
+    // Токен регистрации — сразу в SDK: `setTokens` пишет только в браузерное
+    // хранилище, а `session.init()` при уже открытой легаси-сессии его не перечитает.
+    client.setToken(tokens.access.token);
+    client.setWif(account.username, generatedAccount.private_key);
 
-    await sessionStore.init();
+    // Пайщик уже создан на узле. Сбой чтения ниже не делает регистрацию
+    // несостоявшейся: шаг пароля и дальнейшие шаги перечитают аккаунт сами, а
+    // повторный createUser упёрся бы в занятую почту.
+    try {
+      await sessionStore.init();
 
-    const accountStore = useAccountStore();
-    // После создания пользователя обновляем данные в сессии
-    const updatedAccount = await accountStore.getAccount(account.username);
-    if (updatedAccount) {
-      console.log('updatedAccount: ', updatedAccount);
-
-      sessionStore.setCurrentUserAccount(updatedAccount);
+      const accountStore = useAccountStore();
+      const updatedAccount = await accountStore.getAccount(account.username);
+      if (updatedAccount) sessionStore.setCurrentUserAccount(updatedAccount);
+    } catch (e) {
+      console.warn('Аккаунт создан, но не перечитан после регистрации', e);
     }
   }
 

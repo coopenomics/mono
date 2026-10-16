@@ -41,15 +41,21 @@ export default boot(() => {
   // Иначе гость, чей стол сходил за закрытыми данными, ушёл бы в вечную
   // перезагрузку — SDK отсеивает такие отказы сам, но и здесь страховка не лишняя:
   // перезагрузка страницы гостю не нужна ни при каком ответе сервера.
+  //
+  // Забываем только тот контур, чей токен умер. Умер токен CoopID — легаси-ключ и
+  // токены незаконченной регистрации остаются, и после перезагрузки вступление
+  // продолжается с них (16.10.2026: сессия пайщика прежней базы стенда стирала бы
+  // ключ только что зарегистрированного). Если легаси-токен тоже мёртв, следующий
+  // же отказ придёт уже по нему и заберёт устройство целиком.
   let leaving = false;
-  client.setAuthLostHandler(() => {
+  client.setAuthLostHandler(({ source }) => {
     if (leaving) return;
     const session = useSessionStore();
     if (!session.isAuth) return;
     leaving = true;
     console.warn('Сервер не признаёт сессию — возвращаемся на вход');
-    session.close();
-    window.location.reload();
+    const forget = source === 'session' ? session.dropCoopIdSession() : session.close();
+    void forget.finally(() => window.location.reload());
   });
 
   // Источник access-токена контура CoopID. Ставим безусловно: при легаси-сессии
