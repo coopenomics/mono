@@ -40,6 +40,23 @@ export interface InnerOrganizationLookupRecord {
   };
 }
 
+/**
+ * Сведения об индивидуальном предпринимателе из реестра. Адреса здесь нет:
+ * реестр ИП публикует только город, а анкете нужен полный адрес — его пайщик
+ * вводит сам.
+ */
+export interface InnerEntrepreneurLookupRecord {
+  last_name?: string;
+  first_name?: string;
+  middle_name?: string;
+  city?: string;
+  details: {
+    inn: string;
+    /** ОГРНИП. */
+    ogrn?: string;
+  };
+}
+
 export interface IOrganizationLookupHook {
   /** Имя расширения в реестре платформы. */
   readonly extensionName: string;
@@ -48,6 +65,12 @@ export interface IOrganizationLookupHook {
 
   /** Организация по ИНН; `null` — реестр такой организации не знает. */
   findByInn(inn: string): Promise<InnerOrganizationLookupRecord | null>;
+
+  /**
+   * Индивидуальный предприниматель по ИНН. Не у каждой страны реестр ИП
+   * доступен: без метода анкета ИП заполняется вручную.
+   */
+  findEntrepreneurByInn?(inn: string): Promise<InnerEntrepreneurLookupRecord | null>;
 }
 
 /**

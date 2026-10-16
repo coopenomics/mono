@@ -4,6 +4,7 @@ import { EXTENSION_APP_TERMINATE_EVENT, type ExtensionAppTerminatePayload } from
 import type {
   IOrganizationLookupHook,
   IOrganizationLookupRegistryPort,
+  InnerEntrepreneurLookupRecord,
   InnerOrganizationLookupRecord,
 } from '@coopenomics/innercoop';
 
@@ -36,16 +37,27 @@ export class OrganizationLookupRegistry implements IOrganizationLookupRegistryPo
   }
 
   /**
-   * Сведения по ИНН. Сбой или молчание сервиса анкету не останавливают: ответ
-   * пустой, и пайщик заполняет поля сам, как без поставщика.
+   * Сведения об организации по ИНН. Сбой или молчание сервиса анкету не
+   * останавливают: ответ пустой, и пайщик заполняет поля сам, как без
+   * поставщика.
    */
   async findByInn(country: string, inn: string): Promise<InnerOrganizationLookupRecord | null> {
+    return this.ask(country, (provider) => provider.findByInn(inn));
+  }
+
+  /** Сведения об ИП по ИНН; коннектор без реестра ИП отвечает пусто. */
+  async findEntrepreneurByInn(country: string, inn: string): Promise<InnerEntrepreneurLookupRecord | null> {
+    return this.ask(country, (provider) => provider.findEntrepreneurByInn?.(inn) ?? Promise.resolve(null));
+  }
+
+  private async ask<T>(country: string, lookup: (provider: IOrganizationLookupHook) => Promise<T | null>): Promise<T | null> {
     const provider = this.providers.get(country);
     if (!provider) return null;
 
     try {
-      return await withTimeout(provider.findByInn(inn), ORGANIZATION_LOOKUP_TIMEOUT_MS);
+      return await withTimeout(lookup(provider), ORGANIZATION_LOOKUP_TIMEOUT_MS);
     } catch (error) {
+      // i18n-ignore: запись в журнал узла о сбое поставщика, пайщику анкета отвечает «сведения не найдены»
       const reason = error instanceof LookupTimeoutError ? 'не ответил вовремя' : (error as Error)?.message ?? error;
       this.logger.warn(`Поставщик сведений об организации «${provider.extensionName}»: ${reason}`);
       return null;

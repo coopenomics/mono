@@ -1,10 +1,14 @@
 import { Args, Query, Resolver } from '@nestjs/graphql';
 import { Throttle } from '@nestjs/throttler';
 import { OrganizationLookupRegistry } from '../organization-lookup.registry';
-import { LookupOrganizationInputDTO, OrganizationLookupResultDTO } from '../dto/organization-lookup.dto';
+import {
+  EntrepreneurLookupResultDTO,
+  LookupOrganizationInputDTO,
+  OrganizationLookupResultDTO,
+} from '../dto/organization-lookup.dto';
 
 /**
- * Сведения об организации по ИНН для анкеты вступления.
+ * Сведения об организации и ИП по ИНН для анкеты вступления.
  *
  * Анкету заполняет человек без учётной записи, поэтому запросы открыты, а
  * поиск ограничен по частоте: иначе узел стал бы бесплатным посредником к
@@ -32,5 +36,17 @@ export class OrganizationLookupResolver {
     @Args('data', { type: () => LookupOrganizationInputDTO }) data: LookupOrganizationInputDTO
   ): Promise<OrganizationLookupResultDTO | null> {
     return this.registry.findByInn(data.country, data.inn);
+  }
+
+  @Query(() => EntrepreneurLookupResultDTO, {
+    name: 'lookupEntrepreneur',
+    nullable: true,
+    description: 'Сведения об ИП из государственного реестра по ИНН; пусто — сведений нет, анкета заполняется вручную',
+  })
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
+  async lookupEntrepreneur(
+    @Args('data', { type: () => LookupOrganizationInputDTO }) data: LookupOrganizationInputDTO
+  ): Promise<EntrepreneurLookupResultDTO | null> {
+    return this.registry.findEntrepreneurByInn(data.country, data.inn);
   }
 }

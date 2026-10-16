@@ -8397,6 +8397,30 @@ export type ValueTypes = {
 	/** ОГРН */
 	ogrn: string | Variable<any, string>
 };
+	/** Регистрационные номера ИП */
+["EntrepreneurLookupDetails"]: AliasType<{
+	/** ИНН */
+	inn?:boolean | `@${string}`,
+	/** ОГРНИП */
+	ogrn?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on EntrepreneurLookupDetails']?: Omit<ValueTypes["EntrepreneurLookupDetails"], "...on EntrepreneurLookupDetails">
+}>;
+	/** Сведения об ИП из государственного реестра. Адреса нет: реестр публикует только город, полный адрес вводит пайщик */
+["EntrepreneurLookupResult"]: AliasType<{
+	/** Город */
+	city?:boolean | `@${string}`,
+	/** Регистрационные номера */
+	details?:ValueTypes["EntrepreneurLookupDetails"],
+	/** Имя */
+	first_name?:boolean | `@${string}`,
+	/** Фамилия */
+	last_name?:boolean | `@${string}`,
+	/** Отчество */
+	middle_name?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on EntrepreneurLookupResult']?: Omit<ValueTypes["EntrepreneurLookupResult"], "...on EntrepreneurLookupResult">
+}>;
 	/** Направление заявления председателя собрания в совет */
 ["ExecKuDecisionInput"]: {
 	/** Подписанная председателем участка доверенность председателю участка (идёт в пакете в совет) */
@@ -10260,10 +10284,11 @@ export type ValueTypes = {
 	/** Токен доступа */
 	refresh_token: string | Variable<any, string>
 };
-	["LookupOrganizationInput"]: {
-	/** Страна регистрации организации */
+	/** Поиск в государственном реестре страны по ИНН */
+["LookupOrganizationInput"]: {
+	/** Страна регистрации организации или ИП */
 	country: string | Variable<any, string>,
-	/** ИНН организации */
+	/** ИНН организации или ИП */
 	inn: string | Variable<any, string>
 };
 	["MakeClearanceInput"]: {
@@ -16058,6 +16083,7 @@ kuDecisions?: [{	filter?: ValueTypes["KuDecisionFilterInput"] | undefined | null
 kuTrustRequests?: [{	filter?: ValueTypes["KuTrustRequestFilterInput"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedKuTrustRequestsPaginationResult"]],
 listExpensePlans?: [{	data?: ValueTypes["ListExpensePlansInput"] | undefined | null | Variable<any, string>},ValueTypes["ExpensePlan"]],
 listReportDrafts?: [{	filter?: ValueTypes["ListReportDraftsFilterInput"] | undefined | null | Variable<any, string>},ValueTypes["ReportDraft"]],
+lookupEntrepreneur?: [{	data: ValueTypes["LookupOrganizationInput"] | Variable<any, string>},ValueTypes["EntrepreneurLookupResult"]],
 lookupOrganization?: [{	data: ValueTypes["LookupOrganizationInput"] | Variable<any, string>},ValueTypes["OrganizationLookupResult"]],
 marketplaceAidStatementSignablePayload?: [{	data: ValueTypes["MarketplaceAidStatementSignablePayloadInput"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 marketplaceAplReceptionChairmanSignablePayloads?: [{	data: ValueTypes["MarketplaceAplReceptionByIdInput"] | Variable<any, string>},ValueTypes["DocumentAggregate"]],
@@ -25608,6 +25634,28 @@ export type ResolverInputTypes = {
 	/** ОГРН */
 	ogrn: string
 };
+	/** Регистрационные номера ИП */
+["EntrepreneurLookupDetails"]: AliasType<{
+	/** ИНН */
+	inn?:boolean | `@${string}`,
+	/** ОГРНИП */
+	ogrn?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Сведения об ИП из государственного реестра. Адреса нет: реестр публикует только город, полный адрес вводит пайщик */
+["EntrepreneurLookupResult"]: AliasType<{
+	/** Город */
+	city?:boolean | `@${string}`,
+	/** Регистрационные номера */
+	details?:ResolverInputTypes["EntrepreneurLookupDetails"],
+	/** Имя */
+	first_name?:boolean | `@${string}`,
+	/** Фамилия */
+	last_name?:boolean | `@${string}`,
+	/** Отчество */
+	middle_name?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	/** Направление заявления председателя собрания в совет */
 ["ExecKuDecisionInput"]: {
 	/** Подписанная председателем участка доверенность председателю участка (идёт в пакете в совет) */
@@ -27426,10 +27474,11 @@ export type ResolverInputTypes = {
 	/** Токен доступа */
 	refresh_token: string
 };
-	["LookupOrganizationInput"]: {
-	/** Страна регистрации организации */
+	/** Поиск в государственном реестре страны по ИНН */
+["LookupOrganizationInput"]: {
+	/** Страна регистрации организации или ИП */
 	country: string,
-	/** ИНН организации */
+	/** ИНН организации или ИП */
 	inn: string
 };
 	["MakeClearanceInput"]: {
@@ -33037,6 +33086,7 @@ kuDecisions?: [{	filter?: ResolverInputTypes["KuDecisionFilterInput"] | undefine
 kuTrustRequests?: [{	filter?: ResolverInputTypes["KuTrustRequestFilterInput"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedKuTrustRequestsPaginationResult"]],
 listExpensePlans?: [{	data?: ResolverInputTypes["ListExpensePlansInput"] | undefined | null},ResolverInputTypes["ExpensePlan"]],
 listReportDrafts?: [{	filter?: ResolverInputTypes["ListReportDraftsFilterInput"] | undefined | null},ResolverInputTypes["ReportDraft"]],
+lookupEntrepreneur?: [{	data: ResolverInputTypes["LookupOrganizationInput"]},ResolverInputTypes["EntrepreneurLookupResult"]],
 lookupOrganization?: [{	data: ResolverInputTypes["LookupOrganizationInput"]},ResolverInputTypes["OrganizationLookupResult"]],
 marketplaceAidStatementSignablePayload?: [{	data: ResolverInputTypes["MarketplaceAidStatementSignablePayloadInput"]},ResolverInputTypes["GeneratedDocument"]],
 marketplaceAplReceptionChairmanSignablePayloads?: [{	data: ResolverInputTypes["MarketplaceAplReceptionByIdInput"]},ResolverInputTypes["DocumentAggregate"]],
@@ -42272,6 +42322,26 @@ export type ModelTypes = {
 	/** ОГРН */
 	ogrn: string
 };
+	/** Регистрационные номера ИП */
+["EntrepreneurLookupDetails"]: {
+		/** ИНН */
+	inn: string,
+	/** ОГРНИП */
+	ogrn?: string | undefined | null
+};
+	/** Сведения об ИП из государственного реестра. Адреса нет: реестр публикует только город, полный адрес вводит пайщик */
+["EntrepreneurLookupResult"]: {
+		/** Город */
+	city?: string | undefined | null,
+	/** Регистрационные номера */
+	details: ModelTypes["EntrepreneurLookupDetails"],
+	/** Имя */
+	first_name?: string | undefined | null,
+	/** Фамилия */
+	last_name?: string | undefined | null,
+	/** Отчество */
+	middle_name?: string | undefined | null
+};
 	/** Направление заявления председателя собрания в совет */
 ["ExecKuDecisionInput"]: {
 	/** Подписанная председателем участка доверенность председателю участка (идёт в пакете в совет) */
@@ -44025,10 +44095,11 @@ export type ModelTypes = {
 	/** Токен доступа */
 	refresh_token: string
 };
-	["LookupOrganizationInput"]: {
-	/** Страна регистрации организации */
+	/** Поиск в государственном реестре страны по ИНН */
+["LookupOrganizationInput"]: {
+	/** Страна регистрации организации или ИП */
 	country: string,
-	/** ИНН организации */
+	/** ИНН организации или ИП */
 	inn: string
 };
 	["MakeClearanceInput"]: {
@@ -49927,6 +49998,8 @@ export type ModelTypes = {
 	listExpensePlans: Array<ModelTypes["ExpensePlan"]>,
 	/** Список черновиков форм отчётов текущего пользователя (с опциональной фильтрацией) */
 	listReportDrafts: Array<ModelTypes["ReportDraft"]>,
+	/** Сведения об ИП из государственного реестра по ИНН; пусто — сведений нет, анкета заполняется вручную */
+	lookupEntrepreneur?: ModelTypes["EntrepreneurLookupResult"] | undefined | null,
 	/** Сведения об организации из государственного реестра по ИНН; пусто — сведений нет, анкета заполняется вручную */
 	lookupOrganization?: ModelTypes["OrganizationLookupResult"] | undefined | null,
 	/** Сформировать Заявление на выплату материальной помощи для подписания получателем: идентификатор заявки фиксируется в документе и возвращается в его данных. */
@@ -59581,6 +59654,30 @@ export type GraphQLTypes = {
 	/** ОГРН */
 	ogrn: string
 };
+	/** Регистрационные номера ИП */
+["EntrepreneurLookupDetails"]: {
+	__typename: "EntrepreneurLookupDetails",
+	/** ИНН */
+	inn: string,
+	/** ОГРНИП */
+	ogrn?: string | undefined | null,
+	['...on EntrepreneurLookupDetails']: Omit<GraphQLTypes["EntrepreneurLookupDetails"], "...on EntrepreneurLookupDetails">
+};
+	/** Сведения об ИП из государственного реестра. Адреса нет: реестр публикует только город, полный адрес вводит пайщик */
+["EntrepreneurLookupResult"]: {
+	__typename: "EntrepreneurLookupResult",
+	/** Город */
+	city?: string | undefined | null,
+	/** Регистрационные номера */
+	details: GraphQLTypes["EntrepreneurLookupDetails"],
+	/** Имя */
+	first_name?: string | undefined | null,
+	/** Фамилия */
+	last_name?: string | undefined | null,
+	/** Отчество */
+	middle_name?: string | undefined | null,
+	['...on EntrepreneurLookupResult']: Omit<GraphQLTypes["EntrepreneurLookupResult"], "...on EntrepreneurLookupResult">
+};
 	/** Направление заявления председателя собрания в совет */
 ["ExecKuDecisionInput"]: {
 		/** Подписанная председателем участка доверенность председателю участка (идёт в пакете в совет) */
@@ -61444,10 +61541,11 @@ export type GraphQLTypes = {
 	/** Токен доступа */
 	refresh_token: string
 };
-	["LookupOrganizationInput"]: {
-		/** Страна регистрации организации */
+	/** Поиск в государственном реестре страны по ИНН */
+["LookupOrganizationInput"]: {
+		/** Страна регистрации организации или ИП */
 	country: string,
-	/** ИНН организации */
+	/** ИНН организации или ИП */
 	inn: string
 };
 	["MakeClearanceInput"]: {
@@ -67792,6 +67890,8 @@ export type GraphQLTypes = {
 	listExpensePlans: Array<GraphQLTypes["ExpensePlan"]>,
 	/** Список черновиков форм отчётов текущего пользователя (с опциональной фильтрацией) */
 	listReportDrafts: Array<GraphQLTypes["ReportDraft"]>,
+	/** Сведения об ИП из государственного реестра по ИНН; пусто — сведений нет, анкета заполняется вручную */
+	lookupEntrepreneur?: GraphQLTypes["EntrepreneurLookupResult"] | undefined | null,
 	/** Сведения об организации из государственного реестра по ИНН; пусто — сведений нет, анкета заполняется вручную */
 	lookupOrganization?: GraphQLTypes["OrganizationLookupResult"] | undefined | null,
 	/** Сформировать Заявление на выплату материальной помощи для подписания получателем: идентификатор заявки фиксируется в документе и возвращается в его данных. */

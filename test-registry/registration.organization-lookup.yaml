@@ -1,5 +1,5 @@
 feature: registration.organization-lookup
-title: Анкета организации при вступлении заполняется по ИНН из реестра страны
+title: Анкеты организации и ИП при вступлении заполняются по ИНН из реестра страны
 
 # Организация вводит ИНН первым полем анкеты. Если для страны анкеты встал
 # коннектор реестра организаций (для России — расширение DaData с ключом
@@ -8,6 +8,10 @@ title: Анкета организации при вступлении запо�
 # должность. Эти поля закрыты для правки, остальное пайщик заполняет сам.
 # Без коннектора, при сбое сервиса или если организация не найдена, анкета
 # заполняется вручную. Задача C28-92.
+#
+# Анкета ИП устроена так же: ФИО, город и ОГРНИП из реестра закрыты для
+# правки. Адрес реестр ИП публикует только городом, поэтому его пайщик
+# вводит сам. Анкета организации ищет только юрлица, анкета ИП — только ИП.
 
 sources:
   backend:
@@ -16,6 +20,8 @@ sources:
     - components/controller/src/extensions/dadata/**
   ui:
     - components/desktop/src/shared/ui/UserDataForm/OrganizationDataForm/**
+    - components/desktop/src/shared/ui/UserDataForm/EntrepreneurDataForm/**
+    - components/desktop/src/shared/ui/UserDataForm/useRegistryLookup.ts
 
 cases:
   - id: reg.orglookup.happy.01
@@ -111,5 +117,45 @@ cases:
     kind: side
     scenario: организация по ИНН не найдена
     expect: анкета открывает все поля для ручного ввода
+    test:
+    status: missing
+
+  - id: reg.orglookup.happy.04
+    level: backend
+    kind: happy
+    scenario: DaData вернула карточку ИП
+    expect: фамилия, имя, отчество, город, ИНН и ОГРНИП; адреса в ответе нет
+    test: components/controller/tests/unit/extension/dadata-party-to-organization.test.ts
+    status: written
+
+  - id: reg.orglookup.side.08
+    level: backend
+    kind: side
+    scenario: у ИП в реестре нет отчества или адрес назван только регионом
+    expect: отчество и город пусты, анкета оставляет их пайщику
+    test: components/controller/tests/unit/extension/dadata-party-to-organization.test.ts
+    status: written
+
+  - id: reg.orglookup.side.09
+    level: backend
+    kind: side
+    scenario: коннектор страны не умеет искать ИП
+    expect: ответ пустой, анкета ИП заполняется вручную
+    test: components/controller/tests/unit/registration/organization-lookup.registry.test.ts
+    status: written
+
+  - id: reg.orglookup.side.10
+    level: backend
+    kind: side
+    scenario: в анкету организации ввели ИНН ИП, в анкету ИП — ИНН организации
+    expect: сведения не находятся, анкета заполняется вручную
+    test:
+    status: missing
+
+  - id: reg.orglookup.happy.05
+    level: ui
+    kind: happy
+    scenario: ИП вводит ИНН на стенде с ключом DaData
+    expect: ФИО, город и ОГРНИП заполнены и закрыты для правки, адрес, дата рождения, телефон и банк открыты, согласие появляется после ввода ИНН
     test:
     status: missing

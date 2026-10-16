@@ -16,9 +16,10 @@ import {
   ORGANIZATION_LOOKUP_REGISTRY_PORT,
   type IOrganizationLookupHook,
   type IOrganizationLookupRegistryPort,
+  type InnerEntrepreneurLookupRecord,
   type InnerOrganizationLookupRecord,
 } from '@coopenomics/innercoop';
-import { partyToOrganization, type DadataParty } from './domain/party-to-organization';
+import { partyToEntrepreneur, partyToOrganization, type DadataParty } from './domain/party-to-organization';
 import { t } from './i18n';
 
 // Значения ключей наружу не уходят: форма получает метку «задано» и прячет её
@@ -50,8 +51,14 @@ export type IConfig = z.infer<typeof Schema>;
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface ILog {}
 
-/** Карточка организации по ИНН или ОГРН. */
+/** Карточка организации или ИП по ИНН или ОГРН. */
 const FIND_PARTY_URL = 'https://suggestions.dadata.ru/suggestions/api/4_1/rs/findById/party';
+
+/** Вид субъекта в запросе DaData: анкета организации не должна найти ИП, и наоборот. */
+enum DadataPartyType {
+  LEGAL = 'LEGAL',
+  INDIVIDUAL = 'INDIVIDUAL',
+}
 
 /**
  * Коннектор реестра организаций России через DaData.
@@ -94,6 +101,16 @@ export class DadataExtension extends BaseExtensionModule implements IOrganizatio
   }
 
   async findByInn(inn: string): Promise<InnerOrganizationLookupRecord | null> {
+    const party = await this.findParty(inn, DadataPartyType.LEGAL);
+    return party ? partyToOrganization(party, inn) : null;
+  }
+
+  async findEntrepreneurByInn(inn: string): Promise<InnerEntrepreneurLookupRecord | null> {
+    const party = await this.findParty(inn, DadataPartyType.INDIVIDUAL);
+    return party ? partyToEntrepreneur(party, inn) : null;
+  }
+
+  private async findParty(inn: string, type: DadataPartyType): Promise<DadataParty | null> {
     const response = await fetch(FIND_PARTY_URL, {
       method: 'POST',
       headers: {
@@ -102,16 +119,16 @@ export class DadataExtension extends BaseExtensionModule implements IOrganizatio
         Authorization: `Token ${this.apiKey()}`,
       },
       // Филиалы делят ИНН с головной организацией; анкета нужна головной.
-      body: JSON.stringify({ query: inn, branch_type: 'MAIN', count: 1 }),
+      body: JSON.stringify({ query: inn, type, branch_type: 'MAIN', count: 1 }),
     });
 
     if (!response.ok) {
+      // i18n-ignore: причина сбоя сервиса уходит в журнал узла, пайщику анкета отвечает «сведения не найдены»
       throw new Error(`DaData ответила ${response.status}`);
     }
 
     const body = (await response.json()) as { suggestions?: { data?: DadataParty }[] };
-    const party = body.suggestions?.[0]?.data;
-    return party ? partyToOrganization(party, inn) : null;
+    return body.suggestions?.[0]?.data ?? null;
   }
 
   private apiKey(): string {

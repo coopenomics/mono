@@ -9,7 +9,7 @@
 экспорта, исчезнувший метод, новый обязательный параметр требуют major, а
 снятое старое — периода устаревания не меньше одного minor (INV-009).
 
-Всего экспортов: 327.
+Всего экспортов: 333.
 
 ## ACCOUNT_PORT
 
@@ -1087,6 +1087,19 @@
 - `created: boolean`
 - `program_id: number`
 
+## InnerEntrepreneurLookupRecord
+
+`interface` · hooks
+
+- `last_name?: string`
+- `first_name?: string`
+- `middle_name?: string`
+- `city?: string`
+- `details: {`
+- `inn: string`
+- `ogrn?: string`
+- `}`
+
 ## InnerExitBlockersProvider
 
 `interface` · core-ports
@@ -1743,6 +1756,31 @@
 - `ogrn: string`
 - `kpp: string`
 
+## InnerOrganizationLookupRecord
+
+`interface` · hooks
+
+- `short_name?: string`
+- `full_name?: string`
+- `type?: InnerOrganizationType`
+- `represented_by?: InnerOrganizationLookupRepresentative`
+- `city?: string`
+- `full_address?: string`
+- `details: {`
+- `inn: string`
+- `ogrn?: string`
+- `kpp?: string`
+- `}`
+
+## InnerOrganizationLookupRepresentative
+
+`interface` · hooks
+
+- `last_name?: string`
+- `first_name?: string`
+- `middle_name?: string`
+- `position?: string`
+
 ## InnerOrganizationType
 
 `enum` · core-ports
@@ -2220,6 +2258,21 @@
 - `registerStep(step: InnerOnboardingStep): void`
 - `unregisterStepsByExtension(extensionName: string): void`
 
+## IOrganizationLookupHook
+
+`interface` · hooks
+
+- `readonly extensionName: string`
+- `readonly country: string`
+- `findByInn(inn: string): Promise<InnerOrganizationLookupRecord | null>`
+- `findEntrepreneurByInn?(inn: string): Promise<InnerEntrepreneurLookupRecord | null>`
+
+## IOrganizationLookupRegistryPort
+
+`interface` · hooks
+
+- `register(provider: IOrganizationLookupHook): void`
+
 ## IOrganizationPort
 
 `interface` · core-ports
@@ -2561,6 +2614,12 @@
 `const` · core-ports
 
 - `Symbol.for('Innercoop.CorePort.OnboardingStepRegistry')`
+
+## ORGANIZATION_LOOKUP_REGISTRY_PORT
+
+`const` · hooks
+
+- `Symbol.for('Innercoop.CorePort.OrganizationLookupRegistry')`
 
 ## ORGANIZATION_PORT
 

@@ -40,7 +40,7 @@ div
       OrganizationDataForm(v-model:userData='userData', @details-shown='organizationDetailsShown = $event')
 
     div(v-if='userData.type === "entrepreneur"')
-      EntrepreneurDataForm(v-model:userData='userData')
+      EntrepreneurDataForm(v-model:userData='userData', @details-shown='entrepreneurDetailsShown = $event')
 
     slot(name='bottom', :userDataForm='localUserDataForm', :detailsShown='detailsShown')
 </template>
@@ -93,12 +93,15 @@ const getSelectedTypeLabel = () => {
 
 const localUserDataForm = ref(null);
 
-// Анкета организации в режиме поиска по ИНН раскрывается после ввода ИНН;
-// до этого шаг не показывает то, что идёт после анкеты (согласие).
+// Анкеты организации и ИП в режиме поиска по ИНН раскрываются после ввода
+// ИНН; до этого шаг не показывает то, что идёт после анкеты (согласие).
 const organizationDetailsShown = ref(true);
-const detailsShown = computed(
-  () => userData.value.type !== 'organization' || organizationDetailsShown.value,
-);
+const entrepreneurDetailsShown = ref(true);
+const detailsShown = computed(() => {
+  if (userData.value.type === 'organization') return organizationDetailsShown.value;
+  if (userData.value.type === 'entrepreneur') return entrepreneurDetailsShown.value;
+  return true;
+});
 </script>
 
 <style scoped>

@@ -3480,6 +3480,9 @@ export const AllTypesProps: Record<string,any> = {
 		listReportDrafts:{
 			filter:"ListReportDraftsFilterInput"
 		},
+		lookupEntrepreneur:{
+			data:"LookupOrganizationInput"
+		},
 		lookupOrganization:{
 			data:"LookupOrganizationInput"
 		},
@@ -6352,6 +6355,17 @@ export const ReturnTypes: Record<string,any> = {
 		inn:"String",
 		ogrn:"String"
 	},
+	EntrepreneurLookupDetails:{
+		inn:"String",
+		ogrn:"String"
+	},
+	EntrepreneurLookupResult:{
+		city:"String",
+		details:"EntrepreneurLookupDetails",
+		first_name:"String",
+		last_name:"String",
+		middle_name:"String"
+	},
 	ExpenseFile:{
 		checksum_sha256:"String",
 		coopname:"String",
@@ -9074,6 +9088,7 @@ export const ReturnTypes: Record<string,any> = {
 		kuTrustRequests:"PaginatedKuTrustRequestsPaginationResult",
 		listExpensePlans:"ExpensePlan",
 		listReportDrafts:"ReportDraft",
+		lookupEntrepreneur:"EntrepreneurLookupResult",
 		lookupOrganization:"OrganizationLookupResult",
 		marketplaceAidStatementSignablePayload:"GeneratedDocument",
 		marketplaceAplReceptionChairmanSignablePayloads:"DocumentAggregate",

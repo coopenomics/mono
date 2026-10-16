@@ -13,6 +13,7 @@
 import { InnerOrganizationType } from '@coopenomics/innercoop';
 import {
   organizationTypeByOkopf,
+  partyToEntrepreneur,
   partyToOrganization,
   sentenceCase,
   splitFullName,
@@ -104,5 +105,41 @@ describe('sentenceCase и splitFullName', () => {
       middle_name: 'Ахмед Оглы',
     });
     expect(splitFullName('Иванов Иван')).toEqual({ last_name: 'Иванов', first_name: 'Иван', middle_name: undefined });
+  });
+});
+
+describe('partyToEntrepreneur', () => {
+  const IP: DadataParty = {
+    inn: '770000000001',
+    ogrn: '324770000000001',
+    fio: { surname: 'Петров', name: 'Сергей', patronymic: 'Николаевич' },
+    address: { value: 'г Москва', unrestricted_value: '101000, г Москва', data: { city: 'Москва', region: 'Москва' } },
+  };
+
+  it('раскладывает карточку ИП: ФИО по частям, ИНН, ОГРНИП, город', () => {
+    expect(partyToEntrepreneur(IP, '770000000001')).toEqual({
+      last_name: 'Петров',
+      first_name: 'Сергей',
+      middle_name: 'Николаевич',
+      city: 'Москва',
+      details: { inn: '770000000001', ogrn: '324770000000001' },
+    });
+  });
+
+  it('адрес не переносится: реестр ИП публикует только индекс и город', () => {
+    expect(partyToEntrepreneur(IP, '770000000001')).not.toHaveProperty('full_address');
+  });
+
+  it('без отчества в реестре поле отчества пусто', () => {
+    const result = partyToEntrepreneur({ ...IP, fio: { surname: 'Петров', name: 'Сергей', patronymic: null } }, '770000000001');
+    expect(result.middle_name).toBeUndefined();
+  });
+
+  it('регион городом не считается', () => {
+    const result = partyToEntrepreneur(
+      { ...IP, address: { value: 'Московская обл', data: { city: null, settlement: null, region: 'Московская' } } },
+      '770000000001'
+    );
+    expect(result.city).toBeUndefined();
   });
 });

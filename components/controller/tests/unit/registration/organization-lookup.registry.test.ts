@@ -9,13 +9,18 @@
  * Реестр случаев: test-registry/registration.organization-lookup.yaml
  */
 
-import type { IOrganizationLookupHook, InnerOrganizationLookupRecord } from '@coopenomics/innercoop';
+import type {
+  IOrganizationLookupHook,
+  InnerEntrepreneurLookupRecord,
+  InnerOrganizationLookupRecord,
+} from '@coopenomics/innercoop';
 import {
   ORGANIZATION_LOOKUP_TIMEOUT_MS,
   OrganizationLookupRegistry,
 } from '~/application/organization-lookup/organization-lookup.registry';
 
 const RECORD: InnerOrganizationLookupRecord = { short_name: 'ПК "РОМАШКА"', details: { inn: '7700000000' } };
+const IP_RECORD: InnerEntrepreneurLookupRecord = { last_name: 'Петров', details: { inn: '770000000001' } };
 
 function provider(
   country: string,
@@ -76,6 +81,35 @@ describe('OrganizationLookupRegistry', () => {
 
     await expect(registry.findByInn('Russia', '7700000000')).resolves.toEqual(RECORD);
     expect(first.findByInn).not.toHaveBeenCalled();
+  });
+
+  it('сведения ИП отдаёт поставщик страны анкеты', async () => {
+    const registry = new OrganizationLookupRegistry();
+    const russia = provider('Russia', async () => RECORD);
+    russia.findEntrepreneurByInn = jest.fn(async () => IP_RECORD);
+    registry.register(russia);
+
+    await expect(registry.findEntrepreneurByInn('Russia', '770000000001')).resolves.toEqual(IP_RECORD);
+    expect(russia.findEntrepreneurByInn).toHaveBeenCalledWith('770000000001');
+    expect(russia.findByInn).not.toHaveBeenCalled();
+  });
+
+  it('поставщик без реестра ИП отвечает пусто — анкета ИП заполняется вручную', async () => {
+    const registry = new OrganizationLookupRegistry();
+    registry.register(provider('Russia', async () => RECORD));
+
+    await expect(registry.findEntrepreneurByInn('Russia', '770000000001')).resolves.toBeNull();
+  });
+
+  it('упавший поиск ИП не роняет анкету: ответ пустой', async () => {
+    const registry = new OrganizationLookupRegistry();
+    const russia = provider('Russia', async () => RECORD);
+    russia.findEntrepreneurByInn = jest.fn(async () => {
+      throw new Error('DaData ответила 500');
+    });
+    registry.register(russia);
+
+    await expect(registry.findEntrepreneurByInn('Russia', '770000000001')).resolves.toBeNull();
   });
 
   it('остановка расширения снимает его поставщика и только его', () => {

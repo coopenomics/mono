@@ -3,13 +3,13 @@ import { IsNotEmpty, Matches } from 'class-validator';
 import { validationMessage } from '@coopenomics/extension-kit';
 import { OrganizationType } from '~/application/account/enum/organization-type.enum';
 
-@InputType('LookupOrganizationInput')
+@InputType('LookupOrganizationInput', { description: 'Поиск в государственном реестре страны по ИНН' })
 export class LookupOrganizationInputDTO {
-  @Field(() => String, { description: 'Страна регистрации организации' })
+  @Field(() => String, { description: 'Страна регистрации организации или ИП' })
   @IsNotEmpty({ message: validationMessage('registration.organizationLookup.countryRequired') })
   country!: string;
 
-  @Field(() => String, { description: 'ИНН организации' })
+  @Field(() => String, { description: 'ИНН организации или ИП' })
   @Matches(/^(\d{10}|\d{12})$/, { message: validationMessage('registration.organizationLookup.innFormat') })
   inn!: string;
 }
@@ -65,4 +65,33 @@ export class OrganizationLookupResultDTO {
 
   @Field(() => OrganizationLookupDetailsDTO, { description: 'Регистрационные номера' })
   details!: OrganizationLookupDetailsDTO;
+}
+
+@ObjectType('EntrepreneurLookupDetails', { description: 'Регистрационные номера ИП' })
+export class EntrepreneurLookupDetailsDTO {
+  @Field(() => String, { description: 'ИНН' })
+  inn!: string;
+
+  @Field(() => String, { nullable: true, description: 'ОГРНИП' })
+  ogrn?: string;
+}
+
+@ObjectType('EntrepreneurLookupResult', {
+  description: 'Сведения об ИП из государственного реестра. Адреса нет: реестр публикует только город, полный адрес вводит пайщик',
+})
+export class EntrepreneurLookupResultDTO {
+  @Field(() => String, { nullable: true, description: 'Фамилия' })
+  last_name?: string;
+
+  @Field(() => String, { nullable: true, description: 'Имя' })
+  first_name?: string;
+
+  @Field(() => String, { nullable: true, description: 'Отчество' })
+  middle_name?: string;
+
+  @Field(() => String, { nullable: true, description: 'Город' })
+  city?: string;
+
+  @Field(() => EntrepreneurLookupDetailsDTO, { description: 'Регистрационные номера' })
+  details!: EntrepreneurLookupDetailsDTO;
 }

@@ -1,4 +1,8 @@
-import { InnerOrganizationType, type InnerOrganizationLookupRecord } from '@coopenomics/innercoop';
+import {
+  InnerOrganizationType,
+  type InnerEntrepreneurLookupRecord,
+  type InnerOrganizationLookupRecord,
+} from '@coopenomics/innercoop';
 
 /**
  * Перевод карточки организации DaData (`findById/party`) в поля анкеты
@@ -14,6 +18,8 @@ export interface DadataParty {
   name?: { full_with_opf?: string | null; short_with_opf?: string | null } | null;
   opf?: { code?: string | null } | null;
   management?: { name?: string | null; post?: string | null } | null;
+  /** ФИО предпринимателя: у ИП приходит вместо руководителя. */
+  fio?: { surname?: string | null; name?: string | null; patronymic?: string | null } | null;
   address?: {
     value?: string | null;
     unrestricted_value?: string | null;
@@ -78,6 +84,26 @@ export function partyToOrganization(party: DadataParty, inn: string): InnerOrgan
       inn: present(party.inn) ?? inn,
       ogrn: present(party.ogrn),
       kpp: present(party.kpp),
+    },
+  };
+}
+
+/**
+ * Карточка ИП в поля анкеты ИП. Адрес не переносится: реестр ИП публикует
+ * только индекс и город, а анкете нужен полный адрес — неполный пайщик принял
+ * бы за готовый. Город берётся, только если он назван городом или населённым
+ * пунктом, регион городом не считается.
+ */
+export function partyToEntrepreneur(party: DadataParty, inn: string): InnerEntrepreneurLookupRecord {
+  const addressData = party.address?.data;
+  return {
+    last_name: present(party.fio?.surname),
+    first_name: present(party.fio?.name),
+    middle_name: present(party.fio?.patronymic),
+    city: present(addressData?.city) ?? present(addressData?.settlement),
+    details: {
+      inn: present(party.inn) ?? inn,
+      ogrn: present(party.ogrn),
     },
   };
 }

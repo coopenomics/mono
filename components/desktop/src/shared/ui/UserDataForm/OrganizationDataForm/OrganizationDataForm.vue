@@ -20,7 +20,7 @@
         size='sm',
         color='primary',
         @click='resetLookup'
-      ) {{ $t('ui.organizationDataForm.lookupChangeInn') }}
+      ) {{ $t('ui.registryLookup.changeInn') }}
 
   template(v-if='showRest')
     q-input(
@@ -224,10 +224,9 @@ import {
 } from 'src/shared/lib/utils';
 
 import type { IUserData } from 'src/shared/lib/types/user/IUserData';
-import { ref, computed, watch, onMounted, nextTick } from 'vue';
+import { ref, onMounted, nextTick } from 'vue';
 import { Zeus } from '@coopenomics/sdk';
-import { t } from 'src/shared/i18n';
-import { useOrganizationLookup, type IOrganizationLookupResult } from './useOrganizationLookup';
+import { useRegistryLookup, lookupOrganization, type IOrganizationLookupResult } from '../useRegistryLookup';
 
 const props = defineProps<{ userData: IUserData }>();
 const emit = defineEmits<{
@@ -240,7 +239,6 @@ const firstInput = ref<any>();
 
 /** Поля анкеты, которые заполняет реестр страны. */
 type LookupField =
-  | 'inn'
   | 'short_name'
   | 'full_name'
   | 'type'
@@ -253,121 +251,66 @@ type LookupField =
   | 'ogrn'
   | 'kpp';
 
-/**
- * Анкета по ИНН: если для страны анкеты есть коннектор реестра, пайщик
- * вводит ИНН, а найденные сведения ложатся в поля и закрываются для правки.
- * Пока поиска не было, прочие поля скрыты. Нет коннектора или сведений —
- * анкета заполняется вручную.
- */
-const { countries, loading, loadCountries, lookup } = useOrganizationLookup();
-const countriesLoaded = ref(false);
-// manual — анкета вернулась с введённым ИНН: поиска в этот раз не было.
-const lookupState = ref<'idle' | 'found' | 'notFound' | 'manual'>('idle');
-const lockedFields = ref<LookupField[]>([]);
+const { loading, lookupState, showRest, innHint, isLocked, resetLookup } = useRegistryLookup<
+  IOrganizationLookupResult,
+  LookupField
+>({
+  country: () => userData.value.organization_data?.country,
+  inn: () => userData.value.organization_data?.details.inn,
+  find: lookupOrganization,
+  onDetailsShown: (shown) => emit('detailsShown', shown),
+  apply: (found) => {
+    const org = userData.value.organization_data;
+    const filled: LookupField[] = [];
+    if (!org) return filled;
+    const fill = (field: LookupField, value: string | null | undefined, set: (v: string) => void) => {
+      if (!value) return;
+      set(value);
+      filled.push(field);
+    };
 
-const lookupAvailable = computed(() =>
-  countries.value.includes(userData.value.organization_data?.country ?? ''),
-);
-
-// До ответа о странах видно только поле ИНН: иначе ручная анкета мелькнула бы
-// и спряталась. Анкета, вернувшаяся с уже введённым ИНН, открыта целиком.
-const showRest = computed(
-  () => countriesLoaded.value && (!lookupAvailable.value || lookupState.value !== 'idle'),
-);
-
-watch(showRest, (shown) => emit('detailsShown', shown), { immediate: true });
-
-const innHint = computed(() =>
-  lookupAvailable.value && lookupState.value === 'notFound'
-    ? t('ui.organizationDataForm.lookupNotFound')
-    : undefined,
-);
-
-const isLocked = (field: LookupField) => lockedFields.value.includes(field);
-
-const applyLookup = (found: IOrganizationLookupResult) => {
-  const org = userData.value.organization_data;
-  if (!org) return;
-  const locked: LookupField[] = ['inn'];
-  const fill = (field: LookupField, value: string | null | undefined, set: (v: string) => void) => {
-    if (!value) return;
-    set(value);
-    locked.push(field);
-  };
-
-  fill('short_name', found.short_name, (v) => (org.short_name = v));
-  fill('full_name', found.full_name, (v) => (org.full_name = v));
-  fill('type', found.type, (v) => (org.type = v as Zeus.OrganizationType));
-  fill('last_name', found.represented_by?.last_name, (v) => (org.represented_by.last_name = v));
-  fill('first_name', found.represented_by?.first_name, (v) => (org.represented_by.first_name = v));
-  fill('middle_name', found.represented_by?.middle_name, (v) => (org.represented_by.middle_name = v));
-  fill('position', found.represented_by?.position, (v) => (org.represented_by.position = v));
-  fill('city', found.city, (v) => (org.city = v));
-  fill('full_address', found.full_address, (v) => (org.full_address = v));
-  fill('ogrn', found.details.ogrn, (v) => (org.details.ogrn = v));
-  fill('kpp', found.details.kpp, (v) => (org.details.kpp = v));
-
-  lockedFields.value = locked;
-};
-
-const runLookup = async (inn: string) => {
-  const org = userData.value.organization_data;
-  if (!org) return;
-  const found = await lookup({ country: org.country, inn });
-  // Пока шёл запрос, ИНН могли поменять — ответ уже не про эту организацию.
-  if (org.details.inn !== inn) return;
-  if (found) {
-    applyLookup(found);
-    lookupState.value = 'found';
-  } else {
-    lookupState.value = 'notFound';
-  }
-};
-
-/** «Другой ИНН»: снять сведения прежней организации и вернуться к вводу ИНН. */
-const resetLookup = () => {
-  const org = userData.value.organization_data;
-  if (!org) return;
-  for (const field of lockedFields.value) {
-    switch (field) {
-      case 'inn':
-        org.details.inn = '';
-        break;
-      case 'ogrn':
-        org.details.ogrn = '';
-        break;
-      case 'kpp':
-        org.details.kpp = '';
-        break;
-      case 'type':
-        org.type = Zeus.OrganizationType.COOP;
-        break;
-      case 'last_name':
-      case 'first_name':
-      case 'middle_name':
-      case 'position':
-        org.represented_by[field] = '';
-        break;
-      default:
-        org[field] = '';
-    }
-  }
-  lockedFields.value = [];
-  lookupState.value = 'idle';
-};
-
-watch(
-  () => userData.value.organization_data?.details.inn,
-  (inn) => {
-    if (!lookupAvailable.value || lookupState.value === 'found' || !inn) return;
-    if (inn.length === 10 || inn.length === 12) runLookup(inn);
+    fill('short_name', found.short_name, (v) => (org.short_name = v));
+    fill('full_name', found.full_name, (v) => (org.full_name = v));
+    fill('type', found.type, (v) => (org.type = v as Zeus.OrganizationType));
+    fill('last_name', found.represented_by?.last_name, (v) => (org.represented_by.last_name = v));
+    fill('first_name', found.represented_by?.first_name, (v) => (org.represented_by.first_name = v));
+    fill('middle_name', found.represented_by?.middle_name, (v) => (org.represented_by.middle_name = v));
+    fill('position', found.represented_by?.position, (v) => (org.represented_by.position = v));
+    fill('city', found.city, (v) => (org.city = v));
+    fill('full_address', found.full_address, (v) => (org.full_address = v));
+    fill('ogrn', found.details.ogrn, (v) => (org.details.ogrn = v));
+    fill('kpp', found.details.kpp, (v) => (org.details.kpp = v));
+    return filled;
   },
-);
+  clear: (fields) => {
+    const org = userData.value.organization_data;
+    if (!org) return;
+    org.details.inn = '';
+    for (const field of fields) {
+      switch (field) {
+        case 'ogrn':
+          org.details.ogrn = '';
+          break;
+        case 'kpp':
+          org.details.kpp = '';
+          break;
+        case 'type':
+          org.type = Zeus.OrganizationType.COOP;
+          break;
+        case 'last_name':
+        case 'first_name':
+        case 'middle_name':
+        case 'position':
+          org.represented_by[field] = '';
+          break;
+        default:
+          org[field] = '';
+      }
+    }
+  },
+});
 
 onMounted(async () => {
-  await loadCountries();
-  if (userData.value.organization_data?.details.inn) lookupState.value = 'manual';
-  countriesLoaded.value = true;
   await nextTick();
   firstInput.value?.$el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
 });

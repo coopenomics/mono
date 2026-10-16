@@ -197,3 +197,5 @@ cases:
     test: components/controller/tests/unit/extension/extension-availability.test.ts
     status: written   # прогон — CI на полигоне ci/tests
 
+
+# 16.10.2026, C28-92: в реестр расширений добавлено расширение dadata (доступно везде, по умолчанию выключено); правила доступности не менялись, случаи покрывают его так же.

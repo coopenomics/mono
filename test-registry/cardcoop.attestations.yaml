@@ -319,3 +319,5 @@ cases:
     test: components/controller/tests/unit/rights/extension-rights-tables.test.ts
     api: components/api-tests/src/rights/matrix.test.ts
     status: written
+
+# 16.10.2026, C28-92: описание полей настроек карты кооператора берётся из каркаса (describeConfigField) вместо копии в расширении; поведение не менялось.

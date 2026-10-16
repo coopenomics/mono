@@ -8,6 +8,10 @@
 import { LOGGER_PORT, ORGANIZATION_LOOKUP_REGISTRY_PORT } from '@coopenomics/innercoop';
 
 export const dadataPorts = {
-  required: [LOGGER_PORT, ORGANIZATION_LOOKUP_REGISTRY_PORT],
-  optional: [],
+  required: [
+    LOGGER_PORT,
+    ORGANIZATION_LOOKUP_REGISTRY_PORT,
+  ],
+  optional: [
+  ],
 };
