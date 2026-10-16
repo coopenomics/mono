@@ -35,20 +35,36 @@ export const useAgendaStore = defineStore(namespace, (): IAgendaStore => {
     return [...pending, ...loadedAgenda.value]
   })
 
+  // Запросы повестки идут внахлёст (первая загрузка экрана, живое обновление,
+  // кнопка «Обновить»). Ответ более раннего запроса, пришедший позже, затёр бы
+  // свежий список старым — применяем только ответ новее последнего применённого.
+  let requestSeq = 0
+  let appliedSeq = 0
+
   const loadAgenda = async (data: IGetAgendaInput, hidden = false): Promise<IAgenda[]> => {
+    const seq = ++requestSeq
+    // Скрытое обновление (живая повестка, кнопка «Обновить») флаг загрузки не
+    // трогает. Прежде оно сбрасывало его в начале и в конце — и гасило каркас
+    // идущей первой загрузки: страница вопроса, открытая из оповещения о новом
+    // решении, на миг показывала «вопроса нет», пока список ещё грузился (16.10.2026).
     try {
-      loading.value = hidden ? false : true
+      if (!hidden) loading.value = true
       const loadedData = await api.loadAgenda(data);
+      if (seq < appliedSeq) {
+        if (!hidden) loading.value = false
+        return loadedAgenda.value;
+      }
+      appliedSeq = seq
       loadedAgenda.value = loadedData;
       // Подтверждённые вопросы убираем из буфера: authoritative-данные пришли.
       if (createdBuffer.value.length) {
         const loadedIds = new Set(loadedData.map(idOf))
         createdBuffer.value = createdBuffer.value.filter((item) => !loadedIds.has(idOf(item)))
       }
-      loading.value = false
+      if (!hidden) loading.value = false
       return loadedData;
     } catch (error) {
-      loading.value = false
+      if (!hidden) loading.value = false
       throw error;
     }
   };

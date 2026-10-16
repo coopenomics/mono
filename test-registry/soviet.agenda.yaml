@@ -14,6 +14,7 @@ sources:
     - components/desktop/src/pages/Cooperative/AgendaQuestion/**
     - components/desktop/src/pages/Cooperative/ListOfAgenda/**
     - components/desktop/src/processes/process-decisions/agenda-board.ts
+    - components/desktop/src/entities/Agenda/model/store.ts
 
 cases:
   - id: sov.agenda.happy.01
@@ -68,3 +69,16 @@ cases:
     expect: страница сообщает, что вопроса в повестке нет, и даёт вернуться к повестке
     test: ~
     status: missing   # сценарий harness не написан
+
+  - id: sov.agenda.ui.question-loading
+    level: ui
+    kind: break
+    scenario: >
+      член совета открывает вопрос из оповещения о новом решении; в это же время
+      живая повестка обновляет список по сигналу цепи
+    expect: >
+      до конца первой загрузки на странице каркас, а не «вопроса нет»; скрытое
+      обновление флаг загрузки не сбрасывает; ответ более раннего запроса не
+      затирает свежий список
+    test: components/desktop/test/unit/agenda-store.test.ts
+    status: written   # прогон — CI на полигоне ci/tests
