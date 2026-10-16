@@ -16854,6 +16854,8 @@ verificationReviews?: [{	data?: ValueTypes["VerificationReviewsInput"] | undefin
 	assigned_at?:boolean | `@${string}`,
 	/** Учётное имя назначившего роль */
 	assigned_by?:boolean | `@${string}`,
+	/** ФИО назначившего роль */
+	assigned_by_name?:boolean | `@${string}`,
 	/** ФИО пайщика или название организации */
 	display_name?:boolean | `@${string}`,
 	/** Учётное имя пайщика */
@@ -33547,6 +33549,8 @@ verificationReviews?: [{	data?: ResolverInputTypes["VerificationReviewsInput"] |
 	assigned_at?:boolean | `@${string}`,
 	/** Учётное имя назначившего роль */
 	assigned_by?:boolean | `@${string}`,
+	/** ФИО назначившего роль */
+	assigned_by_name?:boolean | `@${string}`,
 	/** ФИО пайщика или название организации */
 	display_name?:boolean | `@${string}`,
 	/** Учётное имя пайщика */
@@ -50231,6 +50235,8 @@ export type ModelTypes = {
 	assigned_at: ModelTypes["DateTime"],
 	/** Учётное имя назначившего роль */
 	assigned_by: string,
+	/** ФИО назначившего роль */
+	assigned_by_name: string,
 	/** ФИО пайщика или название организации */
 	display_name: string,
 	/** Учётное имя пайщика */
@@ -67909,6 +67915,8 @@ export type GraphQLTypes = {
 	assigned_at: GraphQLTypes["DateTime"],
 	/** Учётное имя назначившего роль */
 	assigned_by: string,
+	/** ФИО назначившего роль */
+	assigned_by_name: string,
 	/** ФИО пайщика или название организации */
 	display_name: string,
 	/** Учётное имя пайщика */

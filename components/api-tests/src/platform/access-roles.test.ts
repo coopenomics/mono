@@ -14,7 +14,7 @@ import { NO_RIGHT, loadRightsProbe } from '../rights/probe'
 
 const ROLE = 'cashier'
 const ROLES_QUERY = 'query{ getAssignableRoles{ key title extension_name permissions{ title access } assignments{ username assigned_by } } }'
-const ASSIGN = 'mutation($d:RoleAssignmentInput!){ assignRole(data:$d){ key assignments{ username assigned_by } } }'
+const ASSIGN = 'mutation($d:RoleAssignmentInput!){ assignRole(data:$d){ key assignments{ username assigned_by assigned_by_name } } }'
 const REVOKE = 'mutation($d:RoleAssignmentInput!){ revokeRole(data:$d){ key assignments{ username } } }'
 const DESKTOP = 'query{ getDesktop{ workspaces{ name extension_name grants } } }'
 /** Страницы стола совета, которые роль кассира не открывает. */
@@ -108,7 +108,11 @@ describe('платформа: назначаемые роли и управле�
 
   it(caseName('access.roles.happy.03', 'председатель назначает роль, повтор ничего не меняет'), async () => {
     const assigned = (await gql<any>(tokens[CHAIRMAN.account], ASSIGN, input(member.account))).assignRole
-    expect(assigned.assignments).toContainEqual({ username: member.account, assigned_by: CHAIRMAN.account })
+    expect(assigned.assignments).toContainEqual(expect.objectContaining({ username: member.account, assigned_by: CHAIRMAN.account }))
+    // Карточка роли подписывает назначившего ФИО, а не учётным именем.
+    const mine = assigned.assignments.find((a: any) => a.username === member.account)
+    expect(mine.assigned_by_name).toBeTruthy()
+    expect(mine.assigned_by_name).not.toBe(CHAIRMAN.account)
     // access.roles.side.03: повторное назначение второго держателя не создаёт.
     await gql(tokens[CHAIRMAN.account], ASSIGN, input(member.account))
     expect((await holders()).filter(name => name === member.account)).toHaveLength(1)

@@ -31,6 +31,9 @@ export class RoleAssignmentDTO {
   @Field(() => String, { description: 'Учётное имя назначившего роль' })
   assigned_by!: string;
 
+  @Field(() => String, { description: 'ФИО назначившего роль' })
+  assigned_by_name!: string;
+
   @Field(() => Date, { description: 'Дата назначения' })
   assigned_at!: Date;
 }

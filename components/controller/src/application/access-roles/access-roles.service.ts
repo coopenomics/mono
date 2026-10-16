@@ -125,6 +125,7 @@ export class AccessRolesService {
         username: row.username,
         display_name: await this.displayName(row.username),
         assigned_by: row.assigned_by,
+        assigned_by_name: await this.displayName(row.assigned_by),
         assigned_at: row.assigned_at,
       }))
     );

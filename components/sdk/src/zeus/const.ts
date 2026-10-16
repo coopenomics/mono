@@ -9318,6 +9318,7 @@ export const ReturnTypes: Record<string,any> = {
 	RoleAssignment:{
 		assigned_at:"DateTime",
 		assigned_by:"String",
+		assigned_by_name:"String",
 		display_name:"String",
 		username:"String"
 	},

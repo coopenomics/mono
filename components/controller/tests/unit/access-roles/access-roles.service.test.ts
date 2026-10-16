@@ -71,7 +71,7 @@ describe('назначение роли', () => {
       expect.objectContaining({ username: 'ivan', role: 'cashier', extension_name: 'soviet', assigned_by: 'ant' })
     );
     expect(role.assignments).toEqual([
-      expect.objectContaining({ username: 'ivan', display_name: 'Пайщик ivan', assigned_by: 'ant' }),
+      expect.objectContaining({ username: 'ivan', display_name: 'Пайщик ivan', assigned_by: 'ant', assigned_by_name: 'Пайщик ant' }),
     ]);
     expect(notifications.notify).toHaveBeenCalledWith(
       expect.objectContaining({
