@@ -6,7 +6,12 @@ import {
   type BillingBlockchainPort,
 } from '~/domain/billing/ports/billing-blockchain.port';
 import { BillingProviderClient, type ProviderBillingSummary, type ProviderPackageInvoice } from '~/infrastructure/billing/billing-provider.client';
-import { CooperativeChainStatus, ProviderBillingInvoiceStatus, ProviderPackageInvoiceStatus } from '~/domain/billing/enums/billing-statuses.enum';
+import {
+  CooperativeChainStatus,
+  ProviderBillingInvoiceStatus,
+  ProviderPackageInvoiceStatus,
+  ProviderPackageInvoiceKind,
+} from '~/domain/billing/enums/billing-statuses.enum';
 import { BillingPaymentLogService } from '~/infrastructure/billing/billing-payment-log.service';
 import { BillingPaymentLogStatus } from '~/infrastructure/billing/billing-payment-log.record';
 import { ProviderService } from '~/application/provider/services/provider.service';
@@ -40,21 +45,25 @@ import { t } from '~/i18n';
  * - падение `pay` не зацикливает узел: ошибка логируется, тик продолжает
  *   следующий кооператив (grace/уведомления — на стороне провайдера).
  *
- * Package-нога (Epic 13 v5.1, решение @ant 2026-06-11): докупку пакета
- * документооборота тоже инициирует и подписывает ОПЕРАТОР — членские взносы
- * лежат в его леджере, спицы своими ключами управляют только полученным AXON.
- * На каждом тике хаб читает ликвидный AXON-баланс спицы; если он ниже порога
- * (`billing.package_low_water_axon`) — просит у провайдера package-invoice
- * (тарифные guard'ы: месячная квота, cooldown — на стороне провайдера) и
- * проводит `billing::converttoaxn` через тот же PG-журнал идемпотентности.
- * Скорость расхода ограничена самой спицей (powerup её минимальной квоты),
- * потолок — месячной квотой тарифа у провайдера.
+ * Бак AXON (решение @ant 17.10.2026, «Оплата документооборота: бак AXON,
+ * объём тарифа и кванты»): пополнение бака спицы тоже инициирует и подписывает
+ * ОПЕРАТОР — членские взносы лежат в его леджере, спицы своими ключами
+ * управляют только полученным AXON. Отдельный частый такт
+ * (`billing.package_cron_expression`, по умолчанию каждые 5 минут) читает
+ * баланс бака спицы и передаёт его провайдеру; тот решает: по дате оплаты
+ * строки «Документооборот» — объём месяца (`monthly`, продлевает подписку),
+ * при баке ниже кванта — квант 5 AXON за 50 ₽ (`quant`, cooldown у
+ * провайдера), иначе NOT_DUE. Хаб проводит `billing::converttoaxn` через тот
+ * же PG-журнал идемпотентности. Скорость расхода ограничена самой спицей:
+ * узел жжёт бак на D в день и ещё 5 AXON при загрузке 70 %.
  */
 @Injectable()
 export class BillingCronService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(BillingCronService.name);
   private cronJob: cron.ScheduledTask | null = null;
+  private packageCronJob: cron.ScheduledTask | null = null;
   private running = false;
+  private packagesRunning = false;
 
   constructor(
     @Inject(BILLING_BLOCKCHAIN_PORT) private readonly blockchainPort: BillingBlockchainPort,
@@ -72,16 +81,33 @@ export class BillingCronService implements OnModuleInit, OnModuleDestroy {
       this.logger.error(`BillingCronService: некорректное cron-выражение "${config.billing.cron_expression}"`);
       return;
     }
+    if (!cron.validate(config.billing.package_cron_expression)) {
+      this.logger.error(
+        `BillingCronService: некорректное cron-выражение бака "${config.billing.package_cron_expression}"`,
+      );
+      return;
+    }
     this.cronJob = cron.schedule(config.billing.cron_expression, () => {
       void this.tick();
     });
-    this.logger.log(`BillingCronService запущен (cron="${config.billing.cron_expression}")`);
+    // Бак проверяется чаще оплат: квант должен прийти раньше, чем узел сожжёт
+    // запас, иначе пайщик упрётся в отказ цепи по ресурсам.
+    this.packageCronJob = cron.schedule(config.billing.package_cron_expression, () => {
+      void this.tickPackages();
+    });
+    this.logger.log(
+      `BillingCronService запущен (cron="${config.billing.cron_expression}", бак="${config.billing.package_cron_expression}")`,
+    );
   }
 
   onModuleDestroy() {
     if (this.cronJob) {
       this.cronJob.stop();
       this.cronJob = null;
+    }
+    if (this.packageCronJob) {
+      this.packageCronJob.stop();
+      this.packageCronJob = null;
     }
   }
 
@@ -96,9 +122,9 @@ export class BillingCronService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
-   * Один тик: обходит активные коопы из on-chain реестра, списывает подошедшие
-   * к оплате. Защита от наложения тиков (`running`) — если предыдущий ещё идёт,
-   * пропускаем.
+   * Один тик оплат: обходит активные коопы из on-chain реестра, списывает
+   * подошедшие к оплате календарные подписки. Защита от наложения тиков
+   * (`running`) — если предыдущий ещё идёт, пропускаем.
    */
   async tick(): Promise<void> {
     if (this.running) {
@@ -110,10 +136,30 @@ export class BillingCronService implements OnModuleInit, OnModuleDestroy {
       const coopnames = await this.activeCoopnames();
       for (const coopname of coopnames) {
         await this.processCoop(coopname);
-        await this.processPackageTopup(coopname);
       }
     } finally {
       this.running = false;
+    }
+  }
+
+  /**
+   * Один тик бака: для каждого активного коопа читает баланс AXON и спрашивает
+   * провайдера, чем пополнить бак. Свой флаг наложения — такты оплат и бака
+   * идут независимо.
+   */
+  async tickPackages(): Promise<void> {
+    if (this.packagesRunning) {
+      this.logger.warn('BillingCronService: предыдущий тик бака ещё выполняется — пропуск');
+      return;
+    }
+    this.packagesRunning = true;
+    try {
+      const coopnames = await this.activeCoopnames();
+      for (const coopname of coopnames) {
+        await this.processPackageTopup(coopname);
+      }
+    } finally {
+      this.packagesRunning = false;
     }
   }
 
@@ -185,23 +231,18 @@ export class BillingCronService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
-   * Package-нога тика (Epic 13 v5.1): докупка пакета документооборота за
-   * кооператив-спицу. Порядок повторяет time-поток: provider-invoice →
-   * PG-журнал ДО transact → on-chain `converttoaxn` (подпись оператора) →
-   * подтверждение провайдеру (реактивный BillingConversionListener дублирует).
+   * Пополнение бака AXON спицы (@ant 17.10.2026). Порядок повторяет time-поток:
+   * баланс бака → provider-invoice (объём месяца по дате, квант при баке ниже
+   * кванта или NOT_DUE) → PG-журнал ДО transact → on-chain `converttoaxn`
+   * (подпись оператора) → подтверждение провайдеру (реактивный
+   * BillingConversionListener дублирует).
    */
   private async processPackageTopup(coopname: string): Promise<void> {
     try {
-      // Триггер — исчерпание ликвидного AXON у спицы. Расход AXON контролирует
-      // сама спица (powerup минимальной квоты), поэтому баланс — честный сигнал.
+      // Решает провайдер — у него тариф, дата оплаты и размер кванта. Хаб
+      // передаёт ему честный сигнал: баланс бака, который узел жжёт сам.
       const balance = await this.blockchainPort.getAxonBalance(coopname);
-      if (balance >= config.billing.package_low_water_axon) {
-        return;
-      }
-
-      // Тарифные guard'ы (квота месяца, cooldown, наличие package-подписки) —
-      // у провайдера; при BLOCKED он сам уведомляет кооператив.
-      const invoice = await this.providerClient.createPackageInvoice(coopname);
+      const invoice = await this.providerClient.createPackageInvoice(coopname, balance);
       if (!this.isPendingPackageInvoice(invoice, coopname, balance)) {
         return;
       }
@@ -233,12 +274,14 @@ export class BillingCronService implements OnModuleInit, OnModuleDestroy {
       });
       await this.paymentLog.markConfirmed(paymentHash);
 
+      // i18n-ignore: запись журнала узла, не текст интерфейса
+      const what = invoice.kind === ProviderPackageInvoiceKind.MONTHLY ? 'объём месяца документооборота' : 'квант сверх тарифа';
       this.logger.log(
-        `Докуплен пакет документооборота для ${coopname}: ${quantity} (payment_hash=${paymentHash}, AXON был ${balance})`,
+        `Бак ${coopname} пополнен: ${what}, ${quantity} (payment_hash=${paymentHash}, AXON был ${balance})`,
       );
     } catch (error: any) {
       this.logger.error(
-        `BillingCronService: докупка пакета для ${coopname} не выполнена: ${error?.message ?? error}`,
+        `BillingCronService: пополнение бака ${coopname} не выполнено: ${error?.message ?? error}`,
       );
     }
   }
@@ -257,9 +300,10 @@ export class BillingCronService implements OnModuleInit, OnModuleDestroy {
     }
     if (invoice.status === ProviderPackageInvoiceStatus.BLOCKED) {
       this.logger.warn(
-        `Пакет для ${coopname} не докуплен: провайдер заблокировал (${invoice.reason ?? 'без причины'}), AXON=${balance}`,
+        `Бак ${coopname} не пополнен: провайдер заблокировал (${invoice.reason ?? 'без причины'}), AXON=${balance}`,
       );
     }
+    // NOT_DUE и NO_PACKAGE — молча: пополнять нечего.
     return false;
   }
 

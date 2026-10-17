@@ -56,7 +56,7 @@ export const tariffLines = (item: ICooperativeRegistryItem): ITariffLine[] => {
     {
       code: 'docflow',
       label: t('union.tariff.docflow'),
-      detail: t('union.tariff.docflowDetail'),
+      detail: t('union.tariff.docflowDetail', { axon: formatRub(tariff.docflow_axon ?? 0).replace(' ₽', '') }),
       monthlyPrice: tariff.docflow_price,
     },
   ]

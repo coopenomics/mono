@@ -81,6 +81,9 @@ const connectionTariffs = computed<ITariff[]>(() =>
     monthlyTotal: Number(tariff.monthly_total),
     annualTotal: tariff.annual_total != null ? Number(tariff.annual_total) : null,
     supportResponse: tariff.support.response,
+    docflowAxon: Number(tariff.docflow_axon ?? 0),
+    dailyAxon: Number(tariff.daily_axon ?? 0),
+    trialDays: Number(tariff.trial_days ?? 0),
   })),
 );
 

@@ -131,10 +131,7 @@ const hostingPendingLabel = (row: ICooperativeRegistryItem): string =>
     : t('union.cooperativesRegistry.awaitingDelivery')
 
 const nextPaymentDate = (row: ICooperativeRegistryItem): string | null => {
-  // Пакетная подписка (документооборот) платится по расходу AXON, а не по
-  // календарю: её формальный срок в «следующую оплату» не входит.
   const dates = (row.subscriptions ?? [])
-    .filter((s) => s.kind !== 'package')
     .map((s) => s.next_payment_due)
     .filter(Boolean) as string[]
   if (!dates.length) return null

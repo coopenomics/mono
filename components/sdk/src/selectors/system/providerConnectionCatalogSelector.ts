@@ -37,6 +37,9 @@ export const rawProviderConnectionCatalogSelector = {
     support: { price: true, response: true },
     app_price: true,
     docflow_price: true,
+    docflow_axon: true,
+    daily_axon: true,
+    trial_days: true,
     monthly_total: true,
     annual_total: true,
   },
@@ -47,6 +50,9 @@ export const rawProviderConnectionCatalogSelector = {
   current_tariff: {
     code: true,
     billing_period: true,
+    docflow_axon: true,
+    daily_axon: true,
+    trial_days: true,
   },
 }
 

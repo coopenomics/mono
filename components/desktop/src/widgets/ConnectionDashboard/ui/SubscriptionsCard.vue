@@ -30,8 +30,8 @@
         //- само по себе ничего не говорит, а сравнивать её с предложением о
         //- смене нужно здесь же.
         .subs-card__specs(v-if="isHosting(row) && planSpecs(row)") {{ planSpecs(row) }}
-        //- Пакет платится не по календарю, а по расходу ресурса: без порога
-        //- списание «когда-то раз в столько-то» выглядит необъяснимым.
+        //- Документооборот: объём месяца приходит в бак по дате оплаты, сверх
+        //- объёма — кванты. Без правила списание «ещё 50 ₽» выглядит необъяснимым.
         .subs-card__specs(v-if="packageRule(row)") {{ packageRule(row) }}
         .subs-card__plan(v-if="isHosting(row)")
           BaseChip(variant="neutral" size="sm") {{ planName(row) }}
@@ -45,15 +45,15 @@
       template(#cell-status="{ row }")
         BaseBadge(:variant="subscriptionStatusVariant(row.status)") {{ subscriptionStatusLabel(row.status) }}
 
-      //- Три случая: услуга включена оператором (цена 0), пакетная услуга
-      //- (документооборот — платится кратно пакету по мере расхода) и обычная
-      //- повременная. Валюту печатает formatPrice, рядом её не дописываем.
+      //- Три случая: услуга включена оператором (цена 0), документооборот
+      //- (цена месяца плюс кванты сверх объёма) и обычная повременная.
+      //- Валюту печатает formatPrice, рядом её не дописываем.
       template(#cell-price="{ row }")
         template(v-if="isFree(row)")
           .subs-card__price.t-mono.t-num {{ formatPrice(0) }}
           .subs-card__period {{ $t('connectionDashboard.subscriptionsCard.includedByOperator') }}
         template(v-else-if="isPackage(row)")
-          .subs-card__price.t-mono.t-num {{ formatPrice(row.packages_current_period_amount || 0) }}
+          .subs-card__price.t-mono.t-num {{ formatPrice(row.price) }}
           .subs-card__period {{ packageBreakdown(row) }}
         template(v-else)
           .subs-card__price.t-mono.t-num {{ formatPrice(row.price) }}
@@ -67,7 +67,7 @@
           .subs-card__total-label {{ $t('connectionDashboard.subscriptionsCard.totalPerMonth') }}
           .subs-card__total-value
             .t-mono.t-num {{ formatPrice(summary.monthlyTotal) }}
-            .subs-card__period(v-if="hasPackage") {{ $t('connectionDashboard.subscriptionsCard.docflowByUsage') }}
+            .subs-card__period(v-if="hasPackage") {{ $t('connectionDashboard.subscriptionsCard.docflowQuantNote', { price: formatPrice(QUANT_PRICE_RUB), quant: AXON_QUANT }) }}
 
   //- Апгрейд сервера: конфигурация выбирается здесь, дальше провайдер сам
   //- переносит систему. Даунгрейд намеренно не предлагается — диск нового
@@ -156,6 +156,7 @@ import type { BaseTableColumn } from 'src/shared/ui/base'
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits'
 import { client } from 'src/shared/api/client'
 import { FailAlert, SuccessAlert } from 'src/shared/api/alerts'
+import { AXON_PRICE_RUB, AXON_QUANT, QUANT_PRICE_RUB } from 'src/shared/lib/axon'
 import { t } from 'src/shared/i18n';
 
 const { subscriptions, isLoading, error, loadSubscriptions } = useProviderSubscriptions()
@@ -261,30 +262,32 @@ const isPackage = (sub: any): boolean => sub?.kind === 'package'
 const isFree = (sub: any): boolean => Number(sub?.price ?? 0) === 0
 
 /**
- * Пакетная услуга платится кратно: цена одного пакета фиксирована, а сумма
- * месяца растёт по мере расхода — кончился ресурс, куплен ещё пакет. Поэтому
- * под суммой объясняем, из чего она сложилась. Потолка расхода нет: докупку
- * ограничивает баланс кошелька членских взносов.
- */
-/**
- * Правило докупки пакета словами. Порог приходит с хаба (он же им и управляет);
- * без него правило не пишем — выдумывать число нельзя.
+ * Документооборот (@ant 17.10.2026): цена строки платится раз в месяц по дате,
+ * и в бак кооператива приходит объём месяца в AXON. Сверх объёма идут кванты
+ * по 5 AXON за 50 ₽, когда бак ниже кванта. Правило словами — иначе списание
+ * «ещё 50 ₽» выглядит необъяснимым. Порог приходит с хаба; без него правило
+ * не пишем — выдумывать число нельзя.
  */
 const packageRule = (sub: any): string => {
   if (!isPackage(sub)) return ''
   const threshold = Number(sub?.package_low_water_axon ?? 0)
   if (!Number.isFinite(threshold) || threshold <= 0) return ''
-  return t('connectionDashboard.subscriptionsCard.nextPackageHint', { price: formatPrice(Number(sub?.price ?? 0)), threshold })
+  return t('connectionDashboard.subscriptionsCard.nextPackageHint', {
+    axon: formatPrice(Number(sub?.price ?? 0) / AXON_PRICE_RUB),
+    price: formatPrice(QUANT_PRICE_RUB),
+    quant: AXON_QUANT,
+    threshold,
+  })
 }
 
+/** Под ценой месяца — сколько квантов сверх тарифа ушло в этом месяце. */
 const packageBreakdown = (sub: any): string => {
-  const packagePrice = Number(sub?.price ?? 0)
   const spent = Number(sub?.packages_current_period_amount ?? 0)
-  const packages = packagePrice > 0 ? Math.round(spent / packagePrice) : 0
-  if (packages > 0) {
-    return t('connectionDashboard.subscriptionsCard.packagesThisMonth', { packages, price: formatPrice(packagePrice) })
+  const quants = QUANT_PRICE_RUB > 0 ? Math.round(spent / QUANT_PRICE_RUB) : 0
+  if (quants > 0) {
+    return t('connectionDashboard.subscriptionsCard.quantsThisMonth', { quants, price: formatPrice(spent) })
   }
-  return t('connectionDashboard.subscriptionsCard.perPackage', { price: formatPrice(packagePrice) })
+  return t('connectionDashboard.subscriptionsCard.perMonth')
 }
 
 // Предлагаем только конфигурации с бо́льшим накопителем: перенос копирует диск

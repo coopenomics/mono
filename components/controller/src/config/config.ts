@@ -135,14 +135,19 @@ const envVarsSchema = z.object({
     .default('0 * * * *')
     // i18n-ignore: описание переменной окружения — документация конфигурации
     .describe('cron-выражение тика биллинга (по умолчанию ежечасно)'),
+  BILLING_PACKAGE_CRON_EXPRESSION: z
+    .string()
+    .default('*/5 * * * *')
+    // i18n-ignore: описание переменной окружения — документация конфигурации
+    .describe('cron-выражение проверки бака AXON спиц (по умолчанию каждые 5 минут): объём месяца по дате и кванты сверх тарифа'),
   BILLING_PACKAGE_LOW_WATER_AXON: z
     .string()
-    .default('15')
+    .default('5')
     .transform((v) => Number(v))
     .pipe(z.number().min(0))
     .describe(
       // i18n-ignore: описание переменной окружения — документация конфигурации
-      'порог ликвидного AXON-баланса спицы, ниже которого хаб докупает пакет документооборота (≈3 дня минимальной квоты по 5 AXON/день)',
+      'квант бака AXON для подсказки кооперативу в кабинете: ниже него провайдер выписывает квант 5 AXON за 50 ₽; само решение о пополнении принимает провайдер по переданному балансу',
     ),
   // Параметры союза кооперативов
   UNION_LINK: z
@@ -693,8 +698,11 @@ export default {
   billing: {
     hub_mode: envVars.data.BILLING_HUB_MODE,
     cron_expression: envVars.data.BILLING_CRON_EXPRESSION,
-    // Порог докупки пакета: hub-cron конвертирует членский → AXON, когда
-    // ликвидный AXON-баланс спицы опускается ниже (Epic 13 v5.1).
+    // Проверка бака AXON спиц — отдельный, частый такт: хаб передаёт баланс
+    // провайдеру, тот решает — объём месяца по дате, квант или NOT_DUE
+    // (@ant 17.10.2026).
+    package_cron_expression: envVars.data.BILLING_PACKAGE_CRON_EXPRESSION,
+    // Квант бака для подсказки в кабинете кооператива (решение — у провайдера).
     package_low_water_axon: envVars.data.BILLING_PACKAGE_LOW_WATER_AXON,
     // Список коопов — из on-chain `registrator.coops` через ProviderService
     // (см. BillingCronService.activeCoopnames). Env-override отсутствует.

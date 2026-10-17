@@ -117,8 +117,17 @@ export class ProviderTariffDTO {
   @Field(() => Float, { description: 'Цена приложения на выбор с его поддержкой, ₽ в месяц' })
   app_price!: number;
 
-  @Field(() => Float, { description: 'Цена пакета документооборота, ₽' })
+  @Field(() => Float, { description: 'Цена строки «Документооборот» в месяц, ₽' })
   docflow_price!: number;
+
+  @Field(() => Float, { description: 'Объём документооборота на месяц, AXON' })
+  docflow_axon!: number;
+
+  @Field(() => Float, { description: 'Суточный расход AXON при 30 днях в месяце: объём / 30' })
+  daily_axon!: number;
+
+  @Field(() => Int, { description: 'Пробный период, дней: подарок AXON при запуске / суточный расход' })
+  trial_days!: number;
 
   @Field(() => Float, { description: 'Цена тарифа в месяц, ₽' })
   monthly_total!: number;
@@ -143,6 +152,15 @@ export class ProviderCurrentTariffDTO {
 
   @Field(() => ProviderBillingPeriod, { description: 'Период оплаты' })
   billing_period!: ProviderBillingPeriod;
+
+  @Field(() => Float, { description: 'Объём документооборота на месяц, AXON' })
+  docflow_axon!: number;
+
+  @Field(() => Float, { description: 'Суточный расход AXON на текущий календарный месяц: объём / число дней месяца' })
+  daily_axon!: number;
+
+  @Field(() => Int, { description: 'Пробный период тарифа, дней' })
+  trial_days!: number;
 }
 
 @ObjectType('ProviderConnectionCatalog', {

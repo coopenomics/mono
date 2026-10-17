@@ -14,6 +14,10 @@ export interface ITariff {
   billingPeriod?: 'month' | 'year'
   /** Срок ответа поддержки платформы. */
   supportResponse?: string
+  /** Объём документооборота на месяц, AXON. */
+  docflowAxon?: number
+  /** Суточный расход AXON при 30 днях: объём / 30. */
+  dailyAxon?: number
   /** Отпускная цена с символом валюты: «1 660 ₽». */
   price: string
   /** Конфигурация сервера: «2 CPU · 4 ГБ RAM · 60 GB NVMe». */

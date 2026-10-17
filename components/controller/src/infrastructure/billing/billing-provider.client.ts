@@ -5,6 +5,7 @@ import {
   ProviderBillingInvoiceStatus,
   ProviderPackageInvoiceStatus,
   ProviderSubscriptionStatus,
+  ProviderPackageInvoiceKind,
 } from '~/domain/billing/enums/billing-statuses.enum';
 
 /**
@@ -59,6 +60,8 @@ export interface ProviderBillingInvoice {
  */
 export interface ProviderPackageInvoice {
   status: ProviderPackageInvoiceStatus;
+  /** monthly — объём месяца по дате оплаты; quant — квант сверх тарифа. */
+  kind?: ProviderPackageInvoiceKind;
   reason?: string | null;
   payment_hash?: string;
   coopname?: string;
@@ -142,15 +145,18 @@ export class BillingProviderClient {
    * и сам уведомляет кооператив («квота исчерпана — поднимите лимит»).
    * Идемпотентно: повтор при неоплаченном PENDING возвращает тот же invoice.
    */
-  async createPackageInvoice(coopname: string): Promise<ProviderPackageInvoice> {
+  async createPackageInvoice(coopname: string, balanceAxon: number): Promise<ProviderPackageInvoice> {
     const url = `${this.baseUrl}/billing/package-invoice`;
+    // Баланс бака передаётся провайдеру: решает он — объём месяца по дате,
+    // квант при баке ниже кванта или NOT_DUE (@ant 17.10.2026).
     const { data } = await axios.post<ProviderPackageInvoice>(
       url,
-      { coopname },
+      { coopname, balance_axon: balanceAxon },
       { headers: this.headers(), timeout: 10_000 },
     );
     this.logger.log(
       `createPackageInvoice ${coopname} status=${data.status}` +
+        (data.kind ? ` kind=${data.kind}` : '') +
         (data.payment_hash ? ` payment_hash=${data.payment_hash}` : '') +
         (data.reason ? ` reason=${data.reason}` : ''),
     );

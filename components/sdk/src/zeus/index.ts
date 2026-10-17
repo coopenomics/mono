@@ -15759,6 +15759,12 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 	billing_period?:boolean | `@${string}`,
 	/** Код тарифа */
 	code?:boolean | `@${string}`,
+	/** Суточный расход AXON на текущий календарный месяц: объём / число дней месяца */
+	daily_axon?:boolean | `@${string}`,
+	/** Объём документооборота на месяц, AXON */
+	docflow_axon?:boolean | `@${string}`,
+	/** Пробный период тарифа, дней */
+	trial_days?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on ProviderCurrentTariff']?: Omit<ValueTypes["ProviderCurrentTariff"], "...on ProviderCurrentTariff">
 }>;
@@ -15826,7 +15832,11 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 	app_price?:boolean | `@${string}`,
 	/** Код тарифа */
 	code?:boolean | `@${string}`,
-	/** Цена пакета документооборота, ₽ */
+	/** Суточный расход AXON при 30 днях в месяце: объём / 30 */
+	daily_axon?:boolean | `@${string}`,
+	/** Объём документооборота на месяц, AXON */
+	docflow_axon?:boolean | `@${string}`,
+	/** Цена строки «Документооборот» в месяц, ₽ */
 	docflow_price?:boolean | `@${string}`,
 	/** Предел числа пайщиков */
 	members_limit?:boolean | `@${string}`,
@@ -15838,6 +15848,8 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 	server?:ValueTypes["ProviderTariffServer"],
 	/** Поддержка платформы */
 	support?:ValueTypes["ProviderTariffSupport"],
+	/** Пробный период, дней: подарок AXON при запуске / суточный расход */
+	trial_days?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on ProviderTariff']?: Omit<ValueTypes["ProviderTariff"], "...on ProviderTariff">
 }>;
@@ -32846,6 +32858,12 @@ walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputType
 	billing_period?:boolean | `@${string}`,
 	/** Код тарифа */
 	code?:boolean | `@${string}`,
+	/** Суточный расход AXON на текущий календарный месяц: объём / число дней месяца */
+	daily_axon?:boolean | `@${string}`,
+	/** Объём документооборота на месяц, AXON */
+	docflow_axon?:boolean | `@${string}`,
+	/** Пробный период тарифа, дней */
+	trial_days?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
 	["ProviderSubscription"]: AliasType<{
@@ -32911,7 +32929,11 @@ walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputType
 	app_price?:boolean | `@${string}`,
 	/** Код тарифа */
 	code?:boolean | `@${string}`,
-	/** Цена пакета документооборота, ₽ */
+	/** Суточный расход AXON при 30 днях в месяце: объём / 30 */
+	daily_axon?:boolean | `@${string}`,
+	/** Объём документооборота на месяц, AXON */
+	docflow_axon?:boolean | `@${string}`,
+	/** Цена строки «Документооборот» в месяц, ₽ */
 	docflow_price?:boolean | `@${string}`,
 	/** Предел числа пайщиков */
 	members_limit?:boolean | `@${string}`,
@@ -32923,6 +32945,8 @@ walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputType
 	server?:ResolverInputTypes["ProviderTariffServer"],
 	/** Поддержка платформы */
 	support?:ResolverInputTypes["ProviderTariffSupport"],
+	/** Пробный период, дней: подарок AXON при запуске / суточный расход */
+	trial_days?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
 	/** Сервер тарифа: конфигурация и цена строки */
@@ -49683,7 +49707,13 @@ export type ModelTypes = {
 		/** Период оплаты */
 	billing_period: ModelTypes["ProviderBillingPeriod"],
 	/** Код тарифа */
-	code: string
+	code: string,
+	/** Суточный расход AXON на текущий календарный месяц: объём / число дней месяца */
+	daily_axon: number,
+	/** Объём документооборота на месяц, AXON */
+	docflow_axon: number,
+	/** Пробный период тарифа, дней */
+	trial_days: number
 };
 	["ProviderSubscription"]: {
 		/** Дата создания */
@@ -49746,7 +49776,11 @@ export type ModelTypes = {
 	app_price: number,
 	/** Код тарифа */
 	code: string,
-	/** Цена пакета документооборота, ₽ */
+	/** Суточный расход AXON при 30 днях в месяце: объём / 30 */
+	daily_axon: number,
+	/** Объём документооборота на месяц, AXON */
+	docflow_axon: number,
+	/** Цена строки «Документооборот» в месяц, ₽ */
 	docflow_price: number,
 	/** Предел числа пайщиков */
 	members_limit: number,
@@ -49757,7 +49791,9 @@ export type ModelTypes = {
 	/** Сервер */
 	server: ModelTypes["ProviderTariffServer"],
 	/** Поддержка платформы */
-	support: ModelTypes["ProviderTariffSupport"]
+	support: ModelTypes["ProviderTariffSupport"],
+	/** Пробный период, дней: подарок AXON при запуске / суточный расход */
+	trial_days: number
 };
 	/** Сервер тарифа: конфигурация и цена строки */
 ["ProviderTariffServer"]: {
@@ -67644,6 +67680,12 @@ export type GraphQLTypes = {
 	billing_period: GraphQLTypes["ProviderBillingPeriod"],
 	/** Код тарифа */
 	code: string,
+	/** Суточный расход AXON на текущий календарный месяц: объём / число дней месяца */
+	daily_axon: number,
+	/** Объём документооборота на месяц, AXON */
+	docflow_axon: number,
+	/** Пробный период тарифа, дней */
+	trial_days: number,
 	['...on ProviderCurrentTariff']: Omit<GraphQLTypes["ProviderCurrentTariff"], "...on ProviderCurrentTariff">
 };
 	["ProviderSubscription"]: {
@@ -67711,7 +67753,11 @@ export type GraphQLTypes = {
 	app_price: number,
 	/** Код тарифа */
 	code: string,
-	/** Цена пакета документооборота, ₽ */
+	/** Суточный расход AXON при 30 днях в месяце: объём / 30 */
+	daily_axon: number,
+	/** Объём документооборота на месяц, AXON */
+	docflow_axon: number,
+	/** Цена строки «Документооборот» в месяц, ₽ */
 	docflow_price: number,
 	/** Предел числа пайщиков */
 	members_limit: number,
@@ -67723,6 +67769,8 @@ export type GraphQLTypes = {
 	server: GraphQLTypes["ProviderTariffServer"],
 	/** Поддержка платформы */
 	support: GraphQLTypes["ProviderTariffSupport"],
+	/** Пробный период, дней: подарок AXON при запуске / суточный расход */
+	trial_days: number,
 	['...on ProviderTariff']: Omit<GraphQLTypes["ProviderTariff"], "...on ProviderTariff">
 };
 	/** Сервер тарифа: конфигурация и цена строки */

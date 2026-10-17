@@ -98,11 +98,8 @@
             span {{ subscriptionStatusLabel(line.subscription.status) }}
           BaseChip(v-else variant="neutral" size="sm")
             span {{ $t('union.tariff.onDelivery') }}
-        //- Документооборот платится не по календарю, а когда кончаются AXON:
-        //- даты оплаты у него нет.
         template(#cell-next="{ row: line }")
-          span.t-muted(v-if="line.code === 'docflow'") {{ $t('union.tariff.byUsage') }}
-          span.t-mono(v-else-if="line.subscription?.next_payment_due") {{ formatDate(line.subscription.next_payment_due) }}
+          span.t-mono(v-if="line.subscription?.next_payment_due") {{ formatDate(line.subscription.next_payment_due) }}
           span.t-muted(v-else) —
       p.t-meta.t-muted.coop-detail__tariff-note(v-if="row.tariff") {{ $t('union.tariff.note', { price: tariffPriceLabel(row) }) }}
 

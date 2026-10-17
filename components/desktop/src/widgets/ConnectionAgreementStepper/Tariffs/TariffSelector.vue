@@ -3,7 +3,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { BaseRadioCard, BaseButton } from 'src/shared/ui/base'
 import type { ITariff } from 'src/entities/ConnectionAgreement'
 import { useConnectionCatalog } from 'src/features/Provider/model'
-import { DOCUMENT_PACKAGE_PRICE_RUB, MEMBER_PRICE_RUB } from 'src/shared/lib/axon'
+import { AXON_QUANT, QUANT_PRICE_RUB } from 'src/shared/lib/axon'
 import { t } from 'src/shared/i18n'
 
 /**
@@ -139,12 +139,18 @@ defineExpose({
             li
               q-icon(name="apps" size="16px")
               span {{ $t('connectionAgreementStepper.tariffSelector.appLine') }}
+            li(v-if="tariff.docflowAxon")
+              q-icon(name="description" size="16px")
+              span {{ $t('connectionAgreementStepper.tariffSelector.docflowLine', { axon: formatPrice(tariff.docflowAxon) }) }}
+            li(v-if="tariff.trialDays")
+              q-icon(name="hourglass_empty" size="16px")
+              span {{ $t('connectionAgreementStepper.tariffSelector.trialLine', { days: tariff.trialDays }) }}
           span.tariff-card__specs(v-else) {{ tariff.specs }}
     //- Тариф сетки уже включает документооборот — одна строка о составе цены.
     .tariff-selector__extra(v-if="hasTariffGrid")
       span {{ $t('connectionAgreementStepper.tariffSelector.includesNote') }}
       q-icon.tariff-selector__hint(name="info_outline" size="16px" tabindex="0")
-        q-tooltip(max-width="320px") {{ $t('connectionAgreementStepper.tariffSelector.docflowHint', { memberPrice: MEMBER_PRICE_RUB, packagePrice: DOCUMENT_PACKAGE_PRICE_RUB }) }}
+        q-tooltip(max-width="320px") {{ $t('connectionAgreementStepper.tariffSelector.docflowHint', { quant: AXON_QUANT, quantPrice: QUANT_PRICE_RUB }) }}
     //- Старый провайдер без сетки: обязательные услуги отдельной строкой.
     template(v-else)
       .tariff-selector__extra(v-for="svc in mandatoryServices" :key="svc.id")
@@ -152,7 +158,7 @@ defineExpose({
         span {{ svc.name }}
         span.tariff-selector__extra-price {{ formatPrice(svc.price) }} ₽ {{ $t('connectionAgreementStepper.tariffSelector.perMonth') }}
         q-icon.tariff-selector__hint(name="info_outline" size="16px" tabindex="0")
-          q-tooltip(max-width="320px") {{ $t('connectionAgreementStepper.tariffSelector.docflowHint', { memberPrice: MEMBER_PRICE_RUB, packagePrice: DOCUMENT_PACKAGE_PRICE_RUB }) }}
+          q-tooltip(max-width="320px") {{ $t('connectionAgreementStepper.tariffSelector.docflowHint', { quant: AXON_QUANT, quantPrice: QUANT_PRICE_RUB }) }}
 </template>
 
 <style scoped>

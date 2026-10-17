@@ -8879,7 +8879,10 @@ export const ReturnTypes: Record<string,any> = {
 	},
 	ProviderCurrentTariff:{
 		billing_period:"ProviderBillingPeriod",
-		code:"String"
+		code:"String",
+		daily_axon:"Float",
+		docflow_axon:"Float",
+		trial_days:"Int"
 	},
 	ProviderSubscription:{
 		created_at:"String",
@@ -8912,12 +8915,15 @@ export const ReturnTypes: Record<string,any> = {
 		annual_total:"Float",
 		app_price:"Float",
 		code:"String",
+		daily_axon:"Float",
+		docflow_axon:"Float",
 		docflow_price:"Float",
 		members_limit:"Int",
 		monthly_total:"Float",
 		name:"String",
 		server:"ProviderTariffServer",
-		support:"ProviderTariffSupport"
+		support:"ProviderTariffSupport",
+		trial_days:"Int"
 	},
 	ProviderTariffServer:{
 		cpu:"Int",

@@ -28,6 +28,14 @@ export enum ProviderPackageInvoiceStatus {
   PENDING = 'PENDING',
   BLOCKED = 'BLOCKED',
   NO_PACKAGE = 'NO_PACKAGE',
+  /** Дата оплаты не наступила, бак не ниже кванта — пополнять нечего. */
+  NOT_DUE = 'NOT_DUE',
+}
+
+/** Вид счёта на пополнение бака AXON: объём месяца по дате или квант сверх тарифа. */
+export enum ProviderPackageInvoiceKind {
+  MONTHLY = 'monthly',
+  QUANT = 'quant',
 }
 
 /** Статус кооператива в цепи (registrator.coops). */

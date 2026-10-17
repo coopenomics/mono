@@ -10,14 +10,15 @@
  *     запись блокирует повтор (SUBMITTED → только донести подтверждение);
  *   - доменный отказ ноды → FAILED (повтор безопасен), сетевая ошибка →
  *     запись остаётся SUBMITTING (tx могла пройти — автоповтора нет);
- *   - пакет докупается только при PENDING от провайдера и AXON ниже порога.
+ *   - бак пополняется только при PENDING от провайдера; баланс бака уходит
+ *     провайдеру на каждом такте бака, решение о пополнении — за ним.
  */
 jest.mock('~/config/config', () => ({
   __esModule: true,
   default: {
     coopname: 'voskhod',
     blockchain: { root_govern_precision: 4, root_govern_symbol: 'RUB' },
-    billing: { hub_mode: true, cron_expression: '0 * * * *', package_low_water_axon: 15 },
+    billing: { hub_mode: true, cron_expression: '0 * * * *', package_cron_expression: '*/5 * * * *', package_low_water_axon: 5 },
   },
 }));
 jest.mock('~/application/provider/services/provider.service', () => ({ ProviderService: class {} }));
@@ -286,26 +287,38 @@ describe('BillingCronService — годовая оплата тарифа (16.10
   });
 });
 
-describe('BillingCronService — докупка пакета (Epic 13)', () => {
-  it('happy: AXON ниже порога, провайдер дал PENDING → журнал → billing::converttoaxn → confirmTopupAxon с суммой', async () => {
-    const h = build({ summary: summary({ total_amount: 0 }), axon: 3, packageInvoice: { status: 'PENDING', payment_hash: HASH, coopname: 'partner1', total_amount: 1500, expires_at: '' } });
-    await h.svc.tick();
+describe('BillingCronService — бак AXON: объём месяца и кванты (@ant 17.10.2026)', () => {
+  it('happy: такт бака передаёт баланс провайдеру; PENDING monthly → журнал → billing::converttoaxn на объём месяца → confirmTopupAxon', async () => {
+    const h = build({ summary: summary({ total_amount: 0 }), axon: 3, packageInvoice: { status: 'PENDING', kind: 'monthly', payment_hash: HASH, coopname: 'partner1', total_amount: 1500, expires_at: '' } });
+    await h.svc.tickPackages();
+    expect(h.providerClient.createPackageInvoice).toHaveBeenCalledWith('partner1', 3);
     expect(h.blockchainPort.convertToAxn).toHaveBeenCalledWith({ username: 'partner1', quantity: '1500.0000 RUB', paymentHash: HASH });
     expect(h.providerClient.confirmTopupAxon).toHaveBeenCalledWith({ paymentHash: HASH, blockchainTransactionId: 'tx-axn', coopname: 'partner1', amountRub: 1500 });
     expect(h.paymentLog.markConfirmed).toHaveBeenCalledWith(HASH);
   });
 
-  it('side: AXON выше порога → провайдер не опрашивается, конвертации нет', async () => {
-    const h = build({ summary: summary({ total_amount: 0 }), axon: 50 });
-    await h.svc.tick();
-    expect(h.providerClient.createPackageInvoice).not.toHaveBeenCalled();
-    expect(h.blockchainPort.convertToAxn).not.toHaveBeenCalled();
+  it('side: квант — PENDING quant на 50 ₽ при баке ниже кванта; провайдер опрашивается и при полном баке, NOT_DUE → конвертации нет', async () => {
+    const quant = build({ summary: summary({ total_amount: 0 }), axon: 2, packageInvoice: { status: 'PENDING', kind: 'quant', payment_hash: HASH, coopname: 'partner1', total_amount: 50, expires_at: '' } });
+    await quant.svc.tickPackages();
+    expect(quant.blockchainPort.convertToAxn).toHaveBeenCalledWith({ username: 'partner1', quantity: '50.0000 RUB', paymentHash: HASH });
+
+    const full = build({ summary: summary({ total_amount: 0 }), axon: 140, packageInvoice: { status: 'NOT_DUE' } });
+    await full.svc.tickPackages();
+    expect(full.providerClient.createPackageInvoice).toHaveBeenCalledWith('partner1', 140);
+    expect(full.blockchainPort.convertToAxn).not.toHaveBeenCalled();
+    expect(full.paymentLog.begin).not.toHaveBeenCalled();
   });
 
-  it('break: провайдер ответил BLOCKED (квота/cooldown) или NO_PACKAGE → конвертации нет; уведомление кооперативу — зона провайдера', async () => {
-    for (const inv of [{ status: 'BLOCKED', reason: 'quota_exceeded' }, { status: 'NO_PACKAGE' }]) {
+  it('side: такт оплат бак не трогает — у бака свой такт', async () => {
+    const h = build({ summary: summary({ total_amount: 0 }), axon: 3, packageInvoice: { status: 'PENDING', kind: 'quant', payment_hash: HASH, coopname: 'partner1', total_amount: 50, expires_at: '' } });
+    await h.svc.tick();
+    expect(h.providerClient.createPackageInvoice).not.toHaveBeenCalled();
+  });
+
+  it('break: провайдер ответил BLOCKED (cooldown) или NO_PACKAGE → конвертации нет; уведомление кооперативу — зона провайдера', async () => {
+    for (const inv of [{ status: 'BLOCKED', reason: 'cooldown' }, { status: 'NO_PACKAGE' }]) {
       const h = build({ summary: summary({ total_amount: 0 }), axon: 3, packageInvoice: inv });
-      await h.svc.tick();
+      await h.svc.tickPackages();
       expect(h.blockchainPort.convertToAxn).not.toHaveBeenCalled();
       expect(h.paymentLog.begin).not.toHaveBeenCalled();
     }

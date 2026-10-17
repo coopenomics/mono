@@ -1,10 +1,12 @@
 import './i18n';
 import cron from 'node-cron';
-import { Inject, Module, OnModuleDestroy } from '@nestjs/common';
+import { Inject, Module, OnModuleDestroy, Optional } from '@nestjs/common';
 import { BaseExtensionModule, EXTENSION_REPOSITORY, type ExtensionDomainRepository, LOG_EXTENSION_REPOSITORY, LogExtensionDomainRepository, platformSettings, DomainError } from '@coopenomics/extension-kit';
 import { LOGGER_PORT, type ILoggerPort,
   CHAIN_RESOURCES_PORT,
   type IChainResourcesPort,
+  PROVIDER_TARIFF_PORT,
+  type IProviderTariffPort,
 } from '@coopenomics/innercoop';
 import type { ExtensionDomainEntity } from '@coopenomics/extension-kit';
 import { z } from 'zod';
@@ -39,7 +41,7 @@ export const Schema = z.object({
       describeConfigField({
         label: t('powerup.settings.minQuotaCostLabel'),
         note: t('powerup.settings.minQuotaCostNote', { symbol: defaultConfig.systemSymbol }),
-        rules: ['val >= 5'],
+        rules: ['val > 0'],
         prepend: defaultConfig.systemSymbol,
       })
     ),
@@ -157,7 +159,8 @@ export class PowerupExtension extends BaseExtensionModule implements OnModuleDes
     @Inject(EXTENSION_REPOSITORY) private readonly extensionRepository: ExtensionDomainRepository<IConfig>,
     @Inject(LOG_EXTENSION_REPOSITORY) private readonly logExtensionRepository: LogExtensionDomainRepository<ILog>,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
-    @Inject(CHAIN_RESOURCES_PORT) private readonly blockchainPort: IChainResourcesPort
+    @Inject(CHAIN_RESOURCES_PORT) private readonly blockchainPort: IChainResourcesPort,
+    @Optional() @Inject(PROVIDER_TARIFF_PORT) private readonly tariffPort?: IProviderTariffPort
   ) {
     super();
     this.logger.setContext(PowerupExtension.name);
@@ -234,13 +237,27 @@ export class PowerupExtension extends BaseExtensionModule implements OnModuleDes
     return `${amount.toFixed(this.extension.config.systemPrecision)} ${this.extension.config.systemSymbol}`;
   }
 
+  /**
+   * Суточная аренда: D тарифа у провайдера (объём месяца / число дней месяца,
+   * @ant 17.10.2026), чтобы бак AXON опустел ровно к дате оплаты. Без тарифа
+   * или без ответа провайдера — настройка расширения, как раньше.
+   */
+  private async dailyAmount(username: string): Promise<number> {
+    const fallback = this.extension.config.dailyPackageSize;
+    if (!this.tariffPort) return fallback;
+    const tariff = await this.tariffPort.currentTariff(username);
+    if (!tariff || !Number.isFinite(tariff.daily_axon) || tariff.daily_axon <= 0) return fallback;
+    return tariff.daily_axon;
+  }
+
   // Ежедневная задача пополнения
   private async runDailyTask() {
-    const quantity = this.getQuantity(this.extension.config.dailyPackageSize);
+    let quantity = this.getQuantity(this.extension.config.dailyPackageSize);
 
     try {
       // Получаем имя пользователя из окружения или другой конфигурации
       const username = platformSettings().coopname;
+      quantity = this.getQuantity(await this.dailyAmount(username));
       const account = await this.blockchainPort.getAccount(username);
 
       if (!account) {

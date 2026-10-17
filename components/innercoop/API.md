@@ -9,7 +9,7 @@
 экспорта, исчезнувший метод, новый обязательный параметр требуют major, а
 снятое старое — периода устаревания не меньше одного minor (INV-009).
 
-Всего экспортов: 333.
+Всего экспортов: 336.
 
 ## ACCOUNT_PORT
 
@@ -2037,6 +2037,15 @@
 - `title?: string`
 - `doc_data_hash?: string`
 
+## InnerProviderTariff
+
+`interface` · core-ports
+
+- `code: string`
+- `docflow_axon: number`
+- `daily_axon: number`
+- `trial_days: number`
+
 ## InnerPublishProjectFreeDecisionInput
 
 `interface` · core-ports
@@ -2393,6 +2402,12 @@
 - `): Promise<InnerCompletedCallTranscriptionHead[]>`
 - `getMaxCompletedEndedAtForRooms(matrixRoomIds: string[]): Promise<Date | null>`
 - `renderCompletedCallTranscriptionMarkdown(transcriptionId: string): Promise<string | null>`
+
+## IProviderTariffPort
+
+`interface` · core-ports
+
+- `currentTariff(coopname: string): Promise<InnerProviderTariff | null>`
 
 ## IRealtimeChannelPort
 
@@ -2758,6 +2773,12 @@
 `const` · cross-plugin-ports
 
 - `Symbol.for('Innercoop.CrossPlugin.ProjectCommunicationArtifacts')`
+
+## PROVIDER_TARIFF_PORT
+
+`const` · core-ports
+
+- `Symbol.for('Innercoop.CorePort.ProviderTariff')`
 
 ## REALTIME_CHANNEL_PORT
 

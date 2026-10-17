@@ -34,6 +34,16 @@ export const MEMBER_PRICE_RUB = AXON_PER_MEMBER * AXON_PRICE_RUB;
 /** Пакет документов в рублях. */
 export const DOCUMENT_PACKAGE_PRICE_RUB = AXON_PER_DOCUMENT_PACKAGE * AXON_PRICE_RUB;
 
+/**
+ * Квант сверх тарифа (@ant 17.10.2026): когда бак AXON кооператива ниже
+ * кванта, провайдер пополняет его на столько же — 5 AXON за 50 ₽. Столько узел
+ * берёт из бака за одну аренду ресурсов.
+ */
+export const AXON_QUANT = 5;
+
+/** Квант в рублях по курсу платформы. */
+export const QUANT_PRICE_RUB = AXON_QUANT * AXON_PRICE_RUB;
+
 /** Показатель ёмкости баланса: сколько чего и в чём измеряется. */
 export interface AxonCapacityMetric {
   key: 'days' | 'members' | 'documents';

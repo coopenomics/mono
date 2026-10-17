@@ -90,15 +90,28 @@ cases:
     test: components/controller/tests/unit/billing/billing-cron.service.test.ts
     status: passing
 
-  # ── Хаб-крон: пакеты документооборота (Epic 13) ─────────────────────────
+  # ── Хаб-крон: бак AXON документооборота (B2D-32, @ant 17.10.2026) ────────
+  # Отдельный частый такт бака: хаб передаёт баланс провайдеру, тот решает —
+  # объём месяца по дате (monthly), квант 5 AXON за 50 ₽ (quant) или NOT_DUE.
   - id: bill.happy.02
     level: backend
     kind: happy
     scenario: >
-      Ликвидный AXON спицы ниже порога, провайдер выписал package-invoice PENDING.
+      Такт бака: провайдер по дате оплаты выписал счёт на объём месяца (PENDING monthly).
     expect: >
-      журнал → billing::converttoaxn (username=спица, payment_hash) →
-      confirmTopupAxon с суммой в рублях → CONFIRMED
+      баланс бака передан провайдеру; журнал → billing::converttoaxn (username=спица,
+      payment_hash, сумма строки тарифа) → confirmTopupAxon с суммой в рублях → CONFIRMED
+    test: components/controller/tests/unit/billing/billing-cron.service.test.ts
+    status: passing
+
+  - id: bill.side.19
+    level: backend
+    kind: side
+    scenario: >
+      Бак ниже кванта между датами; бак полный; такт оплат.
+    expect: >
+      квант — converttoaxn на 50 ₽; при полном баке провайдер всё равно опрошен с балансом,
+      NOT_DUE → конвертации нет; такт оплат бак не трогает — у бака свой такт
     test: components/controller/tests/unit/billing/billing-cron.service.test.ts
     status: passing
 
@@ -106,9 +119,9 @@ cases:
     level: backend
     kind: break
     scenario: >
-      AXON выше порога; провайдер ответил BLOCKED (квота/cooldown) или NO_PACKAGE.
+      Провайдер ответил BLOCKED (cooldown) или NO_PACKAGE.
     expect: >
-      конвертации нет; уведомление кооперативу о квоте шлёт провайдер
+      конвертации нет; уведомление кооперативу шлёт провайдер
     test: components/controller/tests/unit/billing/billing-cron.service.test.ts
     status: passing
 
