@@ -90,8 +90,9 @@ StepFrame(
   @back="handleBack"
   @next="handleContinue"
 )
-  //- Два блока одного строения: заголовок, пояснение, поле. Заголовки стоят
-  //- на одной высоте — так рассказ и устав читаются как две части заявки.
+  //- Два блока одного строения друг под другом, во всю ширину: заголовок,
+  //- пояснение, поле. Между ними линия — описание и устав читаются двумя
+  //- частями заявки, а длинным строкам (имя файла устава) хватает места.
   .profile-step
     section.profile-step__block
       .profile-step__head
@@ -112,17 +113,17 @@ StepFrame(
         .profile-step__note {{ $t('connectionAgreementStepper.cooperativeProfileStep.charterNote') }}
       .profile-step__charter
 
+        //- Приложенный устав — одной строкой: файл, отметка, замена.
         .profile-step__attached(v-if="hasCharter")
           q-icon.profile-step__file-icon(name="description" size="24px")
           .profile-step__file
             .profile-step__file-name {{ charter?.original_filename || $t('connectionAgreementStepper.cooperativeProfileStep.charterChip') }}
-            .t-meta.t-muted {{ charterSize }}
+            .profile-step__file-size {{ charterSize }}
           BaseChip(variant="pos" size="sm")
             q-icon(name="check" size="12px").q-mr-xs
             span {{ $t('connectionAgreementStepper.cooperativeProfileStep.charterAttached') }}
-        .profile-step__replace(v-if="hasCharter")
           BaseButton(
-            variant="ghost"
+            variant="secondary"
             size="sm"
             type="button"
             :loading="uploading"
@@ -144,37 +145,17 @@ StepFrame(
 </template>
 
 <style scoped>
-/* Содержимое шага отделено от вступления линией, блоки — друг от друга
-   вертикальной линией: рассказ и устав читаются двумя частями заявки. */
+/* Содержимое шага отделено от вступления линией, блоки идут друг под
+   другом и тоже разделены линией. */
 .profile-step {
-  display: grid;
-  grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
-  align-items: stretch;
   margin-top: var(--p-2);
   padding-top: var(--p-5);
   border-top: 1px solid var(--p-line);
 }
-.profile-step__block:first-child {
-  padding-right: var(--p-6);
-}
 .profile-step__block + .profile-step__block {
-  padding-left: var(--p-6);
-  border-left: 1px solid var(--p-line);
-}
-@media (max-width: 1023px) {
-  .profile-step {
-    grid-template-columns: minmax(0, 1fr);
-  }
-  .profile-step__block:first-child {
-    padding-right: 0;
-    padding-bottom: var(--p-5);
-  }
-  .profile-step__block + .profile-step__block {
-    padding-left: 0;
-    padding-top: var(--p-5);
-    border-left: 0;
-    border-top: 1px solid var(--p-line);
-  }
+  margin-top: var(--p-5);
+  padding-top: var(--p-5);
+  border-top: 1px solid var(--p-line);
 }
 .profile-step__head {
   margin-bottom: var(--p-3);
@@ -215,10 +196,13 @@ StepFrame(
   font-size: var(--p-fs-body-sm);
   font-weight: 600;
   color: var(--p-ink);
-  overflow-wrap: anywhere;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-.profile-step__replace {
-  display: flex;
+.profile-step__file-size {
+  font-size: var(--p-fs-meta);
+  color: var(--p-ink-2);
 }
 .profile-step__error {
   margin: 0;
