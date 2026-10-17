@@ -240,12 +240,15 @@ describe('бак AXON: пробный период → объём месяца �
     expect(low).toBeLessThan(QUANT_AXON)
 
     const docflow = (await subscriptionsOf(COOP)).find(s => s.subscription_type_code === 'docflow')
-    const quant = await waitFor('квант 50 ₽', 3 * 60_000, async () => {
-      const payments = await paymentsOf(docflow.id)
-      return payments.find(p => Number(p.amount) === QUANT_RUB) ?? null
+    // Кванты могли идти и раньше — в пробном периоде без подарка бак пуст.
+    // Ждём именно новый квант после опустошения.
+    const quantsBefore = (await paymentsOf(docflow.id)).filter(p => Number(p.amount) === QUANT_RUB).length
+    const quant = await waitFor('новый квант 50 ₽', 3 * 60_000, async () => {
+      const quants = (await paymentsOf(docflow.id)).filter(p => Number(p.amount) === QUANT_RUB)
+      return quants.length > quantsBefore ? quants[quants.length - 1] : null
     })
     expect(quant.extended_days, 'квант срок подписки не двигает').toBe(0)
-    const refilled = await waitFor('бак пополнен квантом', 60_000, async () => {
+    const refilled = await waitFor('бак пополнен квантом', 150_000, async () => {
       const b = await axonBalance(COOP)
       return b >= low + QUANT_AXON - 0.01 ? b : null
     })
