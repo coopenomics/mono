@@ -224,7 +224,7 @@
       "periodMonth": "Помесячно",
       "periodYear": "За год",
       "subtitle": "Выберите подходящий тариф для вашего кооператива",
-      "supportLine": "Поддержка — ответ {response}",
+      "supportLine": "Ответ {response}",
       "testTariffDescription": "Единственный тариф на период бета-тестирования платформы",
       "testTariffName": "Тестовый"
     },

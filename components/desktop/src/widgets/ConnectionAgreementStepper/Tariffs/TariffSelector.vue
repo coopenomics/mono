@@ -109,7 +109,7 @@ defineExpose({
         @click="billingPeriod = opt.value"
       )
         | {{ opt.label }}
-        span.period-switch__save(v-if="opt.value === 'year'") −{{ annualBilling.discount_percent }} %
+      span.period-switch__save(aria-hidden="true") −{{ annualBilling.discount_percent }} %
     .tariff-selector__grid
       BaseRadioCard(
         v-for="tariff in tariffs"
@@ -126,10 +126,18 @@ defineExpose({
           span.tariff-card__period {{ yearly ? $t('connectionAgreementStepper.tariffSelector.perYear') : $t('connectionAgreementStepper.tariffSelector.perMonth') }}
         template(#meta)
           //- Тариф сетки: что получает кооператив, без цифр сервера.
+          //- Значок называет строку, текст — только величину: строки короче
+          //- и при переносе остаются ровным столбиком.
           ul.tariff-card__includes(v-if="tariff.code")
-            li {{ $t('connectionAgreementStepper.tariffSelector.membersLimit', { count: formatPrice(tariff.membersLimit ?? 0) }) }}
-            li(v-if="tariff.supportResponse") {{ $t('connectionAgreementStepper.tariffSelector.supportLine', { response: tariff.supportResponse }) }}
-            li {{ $t('connectionAgreementStepper.tariffSelector.appLine') }}
+            li
+              q-icon(name="group" size="16px")
+              span {{ $t('connectionAgreementStepper.tariffSelector.membersLimit', { count: formatPrice(tariff.membersLimit ?? 0) }) }}
+            li(v-if="tariff.supportResponse")
+              q-icon(name="support_agent" size="16px")
+              span {{ $t('connectionAgreementStepper.tariffSelector.supportLine', { response: tariff.supportResponse }) }}
+            li
+              q-icon(name="apps" size="16px")
+              span {{ $t('connectionAgreementStepper.tariffSelector.appLine') }}
           span.tariff-card__specs(v-else) {{ tariff.specs }}
     //- Тариф сетки уже включает документооборот — одна строка о составе цены.
     .tariff-selector__extra(v-if="hasTariffGrid")
@@ -174,15 +182,25 @@ defineExpose({
   color: var(--p-ink-2);
 }
 .tariff-card__includes {
-  margin: 0;
+  margin: var(--p-1) 0 0;
   padding: 0;
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: var(--p-1);
+  gap: var(--p-2);
   font-size: var(--p-fs-meta);
+  line-height: var(--p-lh-meta);
   font-weight: 400;
   color: var(--p-ink-2);
+}
+.tariff-card__includes li {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr);
+  column-gap: var(--p-2);
+  align-items: start;
+}
+.tariff-card__includes .q-icon {
+  color: var(--p-ink-3);
 }
 .tariff-card__specs {
   font-size: var(--p-fs-meta);
@@ -190,26 +208,26 @@ defineExpose({
   color: var(--p-ink-3);
 }
 .period-switch {
+  position: relative;
   display: grid;
   grid-template-columns: 1fr 1fr;
   width: max-content;
-  min-width: 260px;
-  margin: 0 auto var(--p-5);
+  min-width: 240px;
+  margin: var(--p-2) auto var(--p-5);
   padding: var(--p-1);
-  gap: var(--p-1);
   border: 1px solid var(--p-line);
   border-radius: var(--p-r-pill);
   background: var(--p-surface-2);
 }
 .period-switch__option {
-  position: relative;
-  padding: var(--p-2) var(--p-5);
+  padding: var(--p-1) var(--p-4);
   border: 0;
   border-radius: var(--p-r-pill);
   background: transparent;
   font: inherit;
   font-size: var(--p-fs-body-sm);
   font-weight: 500;
+  line-height: var(--p-lh-body-sm);
   color: var(--p-ink-2);
   cursor: pointer;
   transition: background-color 0.15s ease, color 0.15s ease;
@@ -225,18 +243,20 @@ defineExpose({
   background: var(--p-primary);
   color: var(--p-canvas);
 }
-/* Значок скидки — над правым верхним углом кнопки, размер кнопки не меняет. */
+/* Скидка — маленькая метка по центру половины «За год», ровно на верхней
+   границе рамки: как вырез, кнопки не трогает и видна при любом выборе. */
 .period-switch__save {
   position: absolute;
-  top: calc(-1 * var(--p-3));
-  right: calc(-1 * var(--p-2));
-  padding: var(--p-1) var(--p-2);
+  top: 0;
+  left: 75%;
+  transform: translate(-50%, -55%);
+  padding: calc(var(--p-1) / 2) var(--p-2);
   border-radius: var(--p-r-pill);
   background: var(--p-pos);
   color: var(--p-canvas);
   font-size: var(--p-fs-eyebrow);
   font-weight: 600;
-  line-height: 1;
+  line-height: var(--p-lh-eyebrow);
   white-space: nowrap;
   pointer-events: none;
 }
