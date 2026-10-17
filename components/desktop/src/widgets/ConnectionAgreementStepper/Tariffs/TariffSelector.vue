@@ -213,7 +213,7 @@ defineExpose({
   grid-template-columns: 1fr 1fr;
   width: max-content;
   min-width: 240px;
-  margin: var(--p-6) auto var(--p-5);
+  margin: var(--p-3) auto var(--p-5);
   padding: var(--p-1);
   border: 1px solid var(--p-line);
   border-radius: var(--p-r-pill);
@@ -243,17 +243,17 @@ defineExpose({
   background: var(--p-primary);
   color: var(--p-canvas);
 }
-/* Скидка — метка над половиной «За год», с зазором: не касается ни рамки,
-   ни кнопки, мягкий зелёный не спорит с заливкой выбранной кнопки. */
+/* Скидка — значок на правом верхнем углу переключателя, снаружи рамки:
+   кнопки не трогает и виден при любом выборе. */
 .period-switch__save {
   position: absolute;
-  bottom: calc(100% + var(--p-1));
-  left: 75%;
-  transform: translateX(-50%);
+  top: 0;
+  right: 0;
+  transform: translate(55%, -60%);
   padding: calc(var(--p-1) / 2) var(--p-2);
   border-radius: var(--p-r-pill);
-  background: var(--p-pos-soft);
-  color: var(--p-pos);
+  background: var(--p-pos);
+  color: var(--p-canvas);
   font-size: var(--p-fs-eyebrow);
   font-weight: 600;
   line-height: var(--p-lh-eyebrow);
