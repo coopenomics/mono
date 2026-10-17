@@ -13,12 +13,12 @@ import Blockchain from '../blockchain'
 import { sleep } from '../utils'
 import { generateRandomSHA256 } from '../utils/randomHash'
 import { initUsersInPostgres, initVaultInPostgres } from '../postgres-init'
+import { fakeDocument } from '../tests/shared/fakeDocument'
+import { walletDraftId, walletProgramId } from '../tests/capital/consts'
 import { CooperativeClass } from './cooperative'
 import { signProgramAgreement } from './sign-program-agreement'
 import { syncDrafts } from './drafts'
 import { seedDocumentApprovals } from './document-approvals'
-import { fakeDocument } from '../tests/shared/fakeDocument'
-import { walletDraftId, walletProgramId } from '../tests/capital/consts'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
@@ -628,14 +628,15 @@ export async function installExtraData(
   // дефолт удобнее env-override'ов и фикстур — каждый reboot:extra даёт тот
   // же signin, без записи в .env.
   const DEFAULT_PARTNER1_WIF = '5KQwrPbwdL6PhXujxW37FSSQZ1JiwsST4cqQzDeyXtP79zkvFD3'
-  let seededKeys: { privateKey: string; publicKey: string } | undefined
+  let seededKeys: { privateKey: string, publicKey: string } | undefined
   const envWif = process.env.PARTNER1_WIF?.trim()
   if (envWif) {
     try {
       const pub = await ecc.privateToPublic(envWif)
       seededKeys = { privateKey: envWif, publicKey: pub }
       console.log(`✓ partner1: используем PARTNER1_WIF из env (pub=${pub.slice(0, 12)}…)`)
-    } catch (e: any) {
+    }
+    catch (e: any) {
       console.warn(`⚠ PARTNER1_WIF недопустим (${e.message}) — пробуем фикстуру`)
     }
   }
@@ -654,7 +655,8 @@ export async function installExtraData(
           console.log(`✓ partner1: используем seeded WIF из фикстуры (pub=${pub.slice(0, 12)}…)`)
         }
       }
-    } catch (e: any) {
+    }
+    catch (e: any) {
       console.warn(`⚠ partner1 fixture read failed (${e.message}) — пробуем дефолт`)
     }
   }
@@ -666,30 +668,58 @@ export async function installExtraData(
 
   const account = await blockchain.generateKeypair(username, seededKeys, 'Аккаунт partner1')
 
-  await blockchain.createAccount({
-    coopname: config.provider,
-    referer: '',
-    username: account.username,
-    public_key: account.publicKey,
-    meta: '',
-  })
-
   const registration_hash = generateRandomSHA256()
-  await blockchain.registerUser({
-    coopname: config.provider,
-    braname: '',
-    username: account.username,
-    type: 'organization',
-    statement: {
-      hash: registration_hash,
-      signatures: [],
-      meta: '{}',
-      version: '1.0.0',
-      doc_hash: registration_hash,
-      meta_hash: registration_hash,
-    } as any,
-    registration_hash,
-  })
+  if (mode === 'full') {
+    // Кооператив, который подключается через ВОСХОД, — его пайщик-организация:
+    // с паевого кошелька он пополняет биллинг-кошелёк заявлением, и с него хаб
+    // списывает подписки. reguser даёт только карточку пользователя — без строки
+    // пайщика кошелёк пополнить нельзя («Пайщик не найден в кооперативе»),
+    // поэтому в режиме аренды partner1 принимается сразу (B2D-32, 17.10.2026).
+    // adduser сам создаёт аккаунт в цепи на стандартном ключе — ключ фикстуры
+    // ставим следом, как сид делает для совета.
+    await blockchain.addUser({
+      coopname: config.provider,
+      referer: '',
+      username: account.username,
+      type: 'organization',
+      created_at: '2025-01-15T10:00:00',
+      initial: '100.0000 RUB',
+      minimum: '300.0000 RUB',
+      spread_initial: true,
+      meta: 'Кооператив partner1 — пайщик-организация ВОСХОДа (стенд)',
+      registration_hash,
+    })
+    await blockchain.changeKey({
+      coopname: config.provider,
+      changer: config.provider,
+      username: account.username,
+      public_key: account.publicKey,
+    })
+  }
+  else {
+    await blockchain.createAccount({
+      coopname: config.provider,
+      referer: '',
+      username: account.username,
+      public_key: account.publicKey,
+      meta: '',
+    })
+    await blockchain.registerUser({
+      coopname: config.provider,
+      braname: '',
+      username: account.username,
+      type: 'organization',
+      statement: {
+        hash: registration_hash,
+        signatures: [],
+        meta: '{}',
+        version: '1.0.0',
+        doc_hash: registration_hash,
+        meta_hash: registration_hash,
+      } as any,
+      registration_hash,
+    })
+  }
 
   if (mode === 'full') {
     await blockchain.registerCooperative({

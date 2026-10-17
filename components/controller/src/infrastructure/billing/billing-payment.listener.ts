@@ -53,8 +53,10 @@ export class BillingPaymentListener {
 
     try {
       const data: any = action.data ?? {};
-      const paymentHash = String(data.payment_hash ?? '');
-      const txId = String(action.transaction_id ?? '');
+      // Цепь отдаёт checksum256 прописными, хаб считал хэш строчными: провайдер
+      // ищет счёт по строке, поэтому приводим к строчным здесь же.
+      const paymentHash = String(data.payment_hash ?? '').toLowerCase();
+      const txId = String(action.transaction_id ?? '').toLowerCase();
 
       if (!paymentHash) {
         this.logger.warn('billing::pay: пустой payment_hash в событии — пропуск');

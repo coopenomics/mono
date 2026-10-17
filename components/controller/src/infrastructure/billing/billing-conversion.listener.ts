@@ -84,7 +84,8 @@ export class BillingConversionListener {
   ): { coopname: string; paymentHash: string; amountRub: number; txId: string } | null {
     const data: any = action.data ?? {};
     const coopname = String(data.coopname ?? '');
-    const paymentHash = String(data.payment_hash ?? '');
+    // Хэш из цепи прописными → строчными, как считал хаб (провайдер ищет по строке).
+    const paymentHash = String(data.payment_hash ?? '').toLowerCase();
     const amountRub = this.parseAssetAmount(data.amount);
     if (!coopname || !paymentHash || amountRub == null) {
       this.logger.warn(
@@ -92,7 +93,7 @@ export class BillingConversionListener {
       );
       return null;
     }
-    return { coopname, paymentHash, amountRub, txId: String(action.transaction_id ?? '') };
+    return { coopname, paymentHash, amountRub, txId: String(action.transaction_id ?? '').toLowerCase() };
   }
 
   /**
