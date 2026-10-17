@@ -29,6 +29,12 @@ export class ProviderSubscriptionDTO {
   @Field(() => String, { description: 'Название типа подписки' })
   subscription_type_name: string;
 
+  @Field(() => String, {
+    nullable: true,
+    description: 'Машинный код типа подписки (hosting, support, app, docflow…): по нему строка тарифа связывается с подпиской',
+  })
+  subscription_type_code?: string | null;
+
   @Field(() => String, { nullable: true, description: 'Описание типа подписки' })
   subscription_type_description?: string;
 
@@ -109,6 +115,7 @@ export class ProviderSubscriptionDTO {
     this.subscriber_username = subscription.subscriber_username;
     this.subscription_type_id = subscription.subscription_type_id;
     this.subscription_type_name = subscription.subscription_type_name;
+    this.subscription_type_code = (subscription as { subscription_type_code?: string | null }).subscription_type_code ?? null;
     this.subscription_type_description = subscription.subscription_type_description;
     this.price = subscription.price;
     this.period_days = subscription.period_days;

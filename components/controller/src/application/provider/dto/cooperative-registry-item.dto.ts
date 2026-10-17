@@ -2,6 +2,8 @@ import { Field, ObjectType } from '@nestjs/graphql';
 import { CooperativeChainStatus } from '~/domain/billing/enums/billing-statuses.enum';
 import { ProviderSubscriptionDTO } from './provider-subscription.dto';
 import { CooperativeCharterOutputDTO } from './cooperative-charter.output';
+import { ProviderTariffDTO } from './provider-catalog.dto';
+import { ProviderBillingPeriod } from './select-provider-tariff.dto';
 
 /**
  * Элемент реестра кооперативов для оператора (Восход).
@@ -47,4 +49,13 @@ export class CooperativeRegistryItemDTO {
 
   @Field(() => [ProviderSubscriptionDTO], { description: 'Подписки кооператива у провайдера (с инстансом и биллингом)' })
   subscriptions!: ProviderSubscriptionDTO[];
+
+  @Field(() => ProviderTariffDTO, {
+    nullable: true,
+    description: 'Тариф подключения, выбранный кооперативом; пусто — тариф не выбран',
+  })
+  tariff?: ProviderTariffDTO;
+
+  @Field(() => ProviderBillingPeriod, { nullable: true, description: 'Период оплаты выбранного тарифа' })
+  tariff_billing_period?: ProviderBillingPeriod;
 }

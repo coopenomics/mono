@@ -123,6 +123,10 @@ export class ProviderService {
       coops.map((coop) => coop.username)
     );
 
+    // Тариф каждой заявки — двумя запросами на весь реестр: сетка тарифов и
+    // список выборов. Провайдер без сетки или недоступный — реестр без тарифов.
+    const tariffs = providerAvailable ? await this.loadRegistryTariffs() : new Map();
+
     return Promise.all(
       coops.map(async (coop) => {
         const item = new CooperativeRegistryItemDTO();
@@ -145,10 +149,47 @@ export class ProviderService {
           }
         }
 
+        const selected = tariffs.get(coop.username);
+        if (selected) {
+          item.tariff = selected.tariff;
+          item.tariff_billing_period = selected.billing_period;
+        }
+
         item.has_provider_data = item.subscriptions.length > 0;
         return item;
       })
     );
+  }
+
+  /** Выбранные кооперативами тарифы: coopname → тариф сетки и период оплаты. */
+  private async loadRegistryTariffs(): Promise<
+    Map<string, { tariff: ProviderConnectionCatalogDTO['tariffs'][number]; billing_period: ProviderBillingPeriod }>
+  > {
+    const result = new Map<string, { tariff: ProviderConnectionCatalogDTO['tariffs'][number]; billing_period: ProviderBillingPeriod }>();
+    const token = config.provider_bearer_token;
+    if (!token) return result;
+    try {
+      const [catalog, selections] = await Promise.all([
+        this.getConnectionCatalog(),
+        axios.get(`${config.provider_base_url}/v1/subscription-types/selections`, {
+          headers: { Authorization: `Bearer ${token}` },
+          timeout: 10_000,
+        }),
+      ]);
+      const byCode = new Map(catalog.tariffs.map((tariff) => [tariff.code, tariff]));
+      for (const row of listOf<{ coopname: string; tariff_code: string; billing_period: string }>(selections.data)) {
+        const tariff = byCode.get(row.tariff_code);
+        if (!tariff) continue;
+        result.set(row.coopname, {
+          tariff,
+          billing_period: row.billing_period === 'year' ? ProviderBillingPeriod.year : ProviderBillingPeriod.month,
+        });
+      }
+    } catch (error: any) {
+      // Тарифы — подсказка совету, а не основа реестра: без них реестр работает.
+      this.logger.warn(`Тарифы кооперативов для реестра не получены: ${error?.message || error}`);
+    }
+    return result;
   }
 
   /**

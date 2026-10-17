@@ -55,13 +55,14 @@
             BaseChip(:variant="row.charter ? 'pos' : 'warn'" size="sm")
               q-icon(v-if="row.charter" name="check" size="12px").q-mr-xs
               span {{ row.charter ? $t('union.cooperativesRegistry.charterAttached') : $t('union.cooperativesRegistry.charterMissing') }}
+        //- Тариф заявки — вместо числа подписок: до решения совета заведён
+        //- только документооборот, и «1 подписка, 1 500 ₽» сбивала с толку.
         .coop-registry__metric
-          .coop-registry__metric-label {{ $t('union.cooperativesRegistry.subscriptionsLabel') }}
-          .coop-registry__metric-value.t-mono {{ row.subscriptions?.length || 0 }}
-        .coop-registry__metric
-          .coop-registry__metric-label {{ $t('union.cooperativesRegistry.monthlyTotalLabel') }}
-          .coop-registry__metric-value.t-mono
-            | {{ formatMoney(monthlyTotal(row)) }} RUB
+          .coop-registry__metric-label {{ $t('union.cooperativesRegistry.tariffLabel') }}
+          template(v-if="row.tariff")
+            .coop-registry__metric-value {{ row.tariff.name }}
+            .coop-registry__metric-sub {{ tariffPriceLabel(row) }}
+          .coop-registry__metric-value.t-muted(v-else) {{ $t('union.cooperativesRegistry.tariffNotChosen') }}
         .coop-registry__metric
           .coop-registry__metric-label {{ $t('union.cooperativesRegistry.nextPaymentLabel') }}
           .coop-registry__metric-value.t-mono {{ nextPaymentLabel(row) }}
@@ -70,7 +71,7 @@
           .coop-registry__metric-value
             BaseChip(v-if="hostingStatus(row)" :variant="instanceStatusVariant(hostingStatus(row))" size="sm")
               span {{ instanceStatusLabel(hostingStatus(row)) }}
-            span.t-muted(v-else) {{ $t('union.cooperativesRegistry.notDeployed') }}
+            span.t-muted(v-else) {{ hostingPendingLabel(row) }}
 </template>
 
 <script setup lang="ts">
@@ -82,6 +83,7 @@ import Loader from 'src/shared/ui/Loader/Loader.vue'
 import { useLoadCooperatives } from 'src/features/Union/LoadCooperatives'
 import { useUnionStore } from 'src/entities/Union/model'
 import type { ICooperativeRegistryItem } from 'src/entities/Union/model'
+import { tariffPriceLabel } from 'src/entities/Union'
 import {
   instanceStatusLabel,
   instanceStatusVariant,
@@ -122,8 +124,11 @@ const hostingSubscription = (row: ICooperativeRegistryItem): ICooperativeSubscri
 const hostingStatus = (row: ICooperativeRegistryItem): string | null =>
   hostingSubscription(row)?.instance_status ?? null
 
-const monthlyTotal = (row: ICooperativeRegistryItem): number =>
-  (row.subscriptions ?? []).reduce((sum, s) => sum + (Number(s.price) || 0), 0)
+// Сервера ещё нет: до решения совета поставка не начиналась, после — ждёт аренды.
+const hostingPendingLabel = (row: ICooperativeRegistryItem): string =>
+  String(row.status).toLowerCase() === 'pending'
+    ? t('union.cooperativesRegistry.awaitingDecision')
+    : t('union.cooperativesRegistry.awaitingDelivery')
 
 const nextPaymentDate = (row: ICooperativeRegistryItem): string | null => {
   const dates = (row.subscriptions ?? [])
@@ -140,11 +145,6 @@ const nextPaymentLabel = (row: ICooperativeRegistryItem): string => {
 
 const formatDateTime = (value: string): string => moment(value).format('DD.MM.YY HH:mm')
 
-const formatMoney = (value: number | string): string =>
-  new Intl.NumberFormat('ru-RU', {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
-  }).format(Number(value))
 
 const cardSubtitle = (row: ICooperativeRegistryItem): string => {
   const parts: string[] = [row.coopname]
@@ -220,6 +220,11 @@ const openDetail = (coopname: string) => {
   margin-top: var(--p-4);
   padding-top: var(--p-4);
   border-top: 1px solid var(--p-line);
+}
+.coop-registry__metric-sub {
+  margin-top: var(--p-1);
+  font-size: var(--p-fs-meta);
+  color: var(--p-ink-2);
 }
 .coop-registry__metric-label {
   font-size: var(--p-fs-meta);

@@ -7,6 +7,7 @@ export const rawProviderSubscriptionSelector = {
   subscriber_username: true,
   subscription_type_id: true,
   subscription_type_name: true,
+  subscription_type_code: true,
   subscription_type_description: true,
   price: true,
   period_days: true,

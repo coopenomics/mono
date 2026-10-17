@@ -34,6 +34,11 @@
           )
             q-icon(name="language" size="14px")
             span.t-mono {{ row.announce }}
+          //- Тариф заявки — в шапке: совет решает о подключении, зная, на
+          //- каких условиях кооператив подключается.
+          .coop-detail__tariff(v-if="row.tariff")
+            q-icon(name="sell" size="14px")
+            span {{ $t('union.tariff.headline', { name: row.tariff.name, price: tariffPriceLabel(row), count: row.tariff.members_limit.toLocaleString('ru-RU') }) }}
         BaseChip(:variant="registryStatusVariant(row.status)" size="sm")
           span {{ registryStatusLabel(row.status) }}
 
@@ -75,7 +80,30 @@
 
     //- ─────────────── Подписки ───────────────
     .coop-detail__section(v-else-if="activeTab === 'subscriptions'")
-      BaseCard(variant="flat")
+      //- Состав тарифа: каждая строка с ценой и состоянием. До решения совета
+      //- заведён только документооборот, остальное — «при поставке».
+      BaseTable(
+        v-if="row.tariff"
+        :columns="tariffColumns"
+        :rows="tariffLines(row)"
+        row-key="code"
+      )
+        template(#cell-name="{ row: line }")
+          .coop-detail__sub-name {{ line.label }}
+          .t-meta.t-muted(v-if="line.detail") {{ line.detail }}
+        template(#cell-price="{ row: line }")
+          span.t-mono {{ formatRub(line.monthlyPrice) }}
+        template(#cell-status="{ row: line }")
+          BaseChip(v-if="line.subscription" :variant="subscriptionStatusVariant(line.subscription.status)" size="sm")
+            span {{ subscriptionStatusLabel(line.subscription.status) }}
+          BaseChip(v-else variant="neutral" size="sm")
+            span {{ $t('union.tariff.onDelivery') }}
+        template(#cell-next="{ row: line }")
+          span.t-mono(v-if="line.subscription?.next_payment_due") {{ formatDate(line.subscription.next_payment_due) }}
+          span.t-muted(v-else) —
+      p.t-meta.t-muted.coop-detail__tariff-note(v-if="row.tariff") {{ $t('union.tariff.note', { price: tariffPriceLabel(row) }) }}
+
+      BaseCard(v-if="!row.tariff || extraSubscriptions(row).length" variant="flat" :title="row.tariff ? $t('union.tariff.otherSubscriptions') : undefined")
         EmptyState(
           v-if="!subscriptionsCount"
           :title="$t('union.cooperativeDetail.noSubscriptionsTitle')"
@@ -86,7 +114,7 @@
         BaseTable(
           v-else
           :columns="subscriptionColumns"
-          :rows="row.subscriptions"
+          :rows="row.tariff ? extraSubscriptions(row) : row.subscriptions"
           row-key="id"
         )
           template(#cell-name="{ row: sub }")
@@ -157,6 +185,7 @@ import {
   subscriptionStatusVariant,
 } from 'src/entities/Union'
 import type { ICooperativeRegistryItem } from 'src/entities/Union/model'
+import { extraSubscriptions, formatRub, tariffLines, tariffPriceLabel } from 'src/entities/Union'
 import { useCooperativeMainWallet } from 'src/entities/Wallet/model'
 import { useSystemStore } from 'src/entities/System/model'
 import { FailAlert } from 'src/shared/api/alerts'
@@ -219,6 +248,13 @@ const subscriptionColumns = [
   { key: 'next', label: t('union.cooperativeDetail.column.nextPayment'), align: 'right' as const },
 ]
 
+const tariffColumns = [
+  { key: 'name', label: t('union.tariff.column.line'), align: 'left' as const },
+  { key: 'price', label: t('union.tariff.column.monthlyPrice'), align: 'right' as const, numeric: true },
+  { key: 'status', label: t('union.cooperativeDetail.column.status'), align: 'left' as const },
+  { key: 'next', label: t('union.cooperativeDetail.column.nextPayment'), align: 'right' as const },
+]
+
 const headerSubtitle = computed(() => {
   const r = row.value
   if (!r) return undefined
@@ -278,7 +314,7 @@ const subscriptionsCount = computed(() => row.value?.subscriptions?.length || 0)
 
 const tabs = computed<PageTab[]>(() => [
   { key: 'about', label: t('union.cooperativeDetail.tab.description') },
-  { key: 'subscriptions', label: t('union.cooperativeDetail.tab.subscriptions'), count: subscriptionsCount.value || undefined },
+  { key: 'subscriptions', label: t('union.cooperativeDetail.tab.subscriptions'), count: row.value?.tariff ? undefined : subscriptionsCount.value || undefined },
   { key: 'wallets', label: t('union.cooperativeDetail.tab.wallets') },
   { key: 'payments', label: t('union.cooperativeDetail.tab.payments') },
 ])
@@ -336,6 +372,20 @@ const goBack = () => {
 }
 .coop-detail__domain:hover {
   text-decoration: underline;
+}
+.coop-detail__tariff {
+  display: flex;
+  align-items: center;
+  gap: var(--p-1);
+  margin-top: var(--p-2);
+  font-size: var(--p-fs-body-sm);
+  color: var(--p-ink);
+}
+.coop-detail__tariff .q-icon {
+  color: var(--p-ink-3);
+}
+.coop-detail__tariff-note {
+  margin: var(--p-2) 0 var(--p-4);
 }
 .coop-detail__decision {
   display: flex;

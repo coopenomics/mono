@@ -5710,7 +5710,9 @@ export const ReturnTypes: Record<string,any> = {
 		has_provider_data:"Boolean",
 		name:"String",
 		status:"CooperativeChainStatus",
-		subscriptions:"ProviderSubscription"
+		subscriptions:"ProviderSubscription",
+		tariff:"ProviderTariff",
+		tariff_billing_period:"ProviderBillingPeriod"
 	},
 	CreateSubscriptionResponse:{
 		message:"String",
@@ -8900,6 +8902,7 @@ export const ReturnTypes: Record<string,any> = {
 		status:"String",
 		subscriber_id:"Float",
 		subscriber_username:"String",
+		subscription_type_code:"String",
 		subscription_type_description:"String",
 		subscription_type_id:"Float",
 		subscription_type_name:"String",

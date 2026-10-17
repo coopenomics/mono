@@ -5917,6 +5917,10 @@ export type ValueTypes = {
 	status?:boolean | `@${string}`,
 	/** Подписки кооператива у провайдера (с инстансом и биллингом) */
 	subscriptions?:ValueTypes["ProviderSubscription"],
+	/** Тариф подключения, выбранный кооперативом; пусто — тариф не выбран */
+	tariff?:ValueTypes["ProviderTariff"],
+	/** Период оплаты выбранного тарифа */
+	tariff_billing_period?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on CooperativeRegistryItem']?: Omit<ValueTypes["CooperativeRegistryItem"], "...on CooperativeRegistryItem">
 }>;
@@ -15799,6 +15803,8 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 	subscriber_id?:boolean | `@${string}`,
 	/** Имя пользователя подписчика */
 	subscriber_username?:boolean | `@${string}`,
+	/** Машинный код типа подписки (hosting, support, app, docflow…): по нему строка тарифа связывается с подпиской */
+	subscription_type_code?:boolean | `@${string}`,
 	/** Описание типа подписки */
 	subscription_type_description?:boolean | `@${string}`,
 	/** ID типа подписки */
@@ -23298,6 +23304,10 @@ export type ResolverInputTypes = {
 	status?:boolean | `@${string}`,
 	/** Подписки кооператива у провайдера (с инстансом и биллингом) */
 	subscriptions?:ResolverInputTypes["ProviderSubscription"],
+	/** Тариф подключения, выбранный кооперативом; пусто — тариф не выбран */
+	tariff?:ResolverInputTypes["ProviderTariff"],
+	/** Период оплаты выбранного тарифа */
+	tariff_billing_period?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
 	/** Страна регистрации пользователя */
@@ -32879,6 +32889,8 @@ walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputType
 	subscriber_id?:boolean | `@${string}`,
 	/** Имя пользователя подписчика */
 	subscriber_username?:boolean | `@${string}`,
+	/** Машинный код типа подписки (hosting, support, app, docflow…): по нему строка тарифа связывается с подпиской */
+	subscription_type_code?:boolean | `@${string}`,
 	/** Описание типа подписки */
 	subscription_type_description?:boolean | `@${string}`,
 	/** ID типа подписки */
@@ -40155,7 +40167,11 @@ export type ModelTypes = {
 	/** Статус кооператива в блокчейне */
 	status: ModelTypes["CooperativeChainStatus"],
 	/** Подписки кооператива у провайдера (с инстансом и биллингом) */
-	subscriptions: Array<ModelTypes["ProviderSubscription"]>
+	subscriptions: Array<ModelTypes["ProviderSubscription"]>,
+	/** Тариф подключения, выбранный кооперативом; пусто — тариф не выбран */
+	tariff?: ModelTypes["ProviderTariff"] | undefined | null,
+	/** Период оплаты выбранного тарифа */
+	tariff_billing_period?: ModelTypes["ProviderBillingPeriod"] | undefined | null
 };
 	["Country"]:Country;
 	["CreateAnnualGeneralMeetInput"]: {
@@ -49710,6 +49726,8 @@ export type ModelTypes = {
 	subscriber_id: number,
 	/** Имя пользователя подписчика */
 	subscriber_username: string,
+	/** Машинный код типа подписки (hosting, support, app, docflow…): по нему строка тарифа связывается с подпиской */
+	subscription_type_code?: string | undefined | null,
 	/** Описание типа подписки */
 	subscription_type_description?: string | undefined | null,
 	/** ID типа подписки */
@@ -57386,6 +57404,10 @@ export type GraphQLTypes = {
 	status: GraphQLTypes["CooperativeChainStatus"],
 	/** Подписки кооператива у провайдера (с инстансом и биллингом) */
 	subscriptions: Array<GraphQLTypes["ProviderSubscription"]>,
+	/** Тариф подключения, выбранный кооперативом; пусто — тариф не выбран */
+	tariff?: GraphQLTypes["ProviderTariff"] | undefined | null,
+	/** Период оплаты выбранного тарифа */
+	tariff_billing_period?: GraphQLTypes["ProviderBillingPeriod"] | undefined | null,
 	['...on CooperativeRegistryItem']: Omit<GraphQLTypes["CooperativeRegistryItem"], "...on CooperativeRegistryItem">
 };
 	/** Страна регистрации пользователя */
@@ -67666,6 +67688,8 @@ export type GraphQLTypes = {
 	subscriber_id: number,
 	/** Имя пользователя подписчика */
 	subscriber_username: string,
+	/** Машинный код типа подписки (hosting, support, app, docflow…): по нему строка тарифа связывается с подпиской */
+	subscription_type_code?: string | undefined | null,
 	/** Описание типа подписки */
 	subscription_type_description?: string | undefined | null,
 	/** ID типа подписки */

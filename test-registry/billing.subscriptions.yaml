@@ -312,3 +312,11 @@ cases:
     expect: current_tariff провайдера проходит; чужой кооператив его не видит — только сам кооператив и совет
     test: components/controller/src/application/provider/services/provider-catalog.spec.ts
     status: passing
+
+  - id: bill.side.18
+    level: backend
+    kind: side
+    scenario: Реестр кооперативов оператора показывает тариф заявки
+    expect: тариф сетки и период оплаты подставляются по выбору кооператива (два запроса на весь реестр); сбой провайдера — реестр без тарифов, но целиком
+    test: components/controller/src/application/provider/services/provider-catalog.spec.ts
+    status: passing

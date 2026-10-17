@@ -146,3 +146,54 @@ describe('ProviderService — тарифная сетка', () => {
     await expect(build().changeTariff('coop1', 'start')).rejects.toBeInstanceOf(BadRequestException);
   });
 });
+
+/**
+ * Реестр кооперативов показывает тариф заявки (16.10.2026): сетка и выборы —
+ * двумя запросами на весь реестр. Реестр: test-registry/billing.subscriptions.yaml.
+ */
+describe('ProviderService.getCooperativesRegistry — тариф заявки', () => {
+  const TARIFF = { code: 'start', name: 'Старт', members_limit: 100, monthly_total: 7500, annual_total: 68400 };
+  const build = () => {
+    const service = new ProviderService(
+      { getAllRows: jest.fn(async () => [
+        { username: 'coop1', status: 'pending', announce: 'a.coop.ru', description: '', created_at: '' },
+        { username: 'coop2', status: 'pending', announce: 'b.coop.ru', description: '', created_at: '' },
+      ]) } as any,
+      { findByUsername: jest.fn(async () => null) } as any,
+      { listLatestFor: jest.fn(async () => new Map()) } as any,
+    );
+    jest.spyOn(service, 'getUserSubscriptions').mockResolvedValue([]);
+    return service;
+  };
+
+  beforeEach(() => {
+    (config as any).provider_base_url = 'http://provider:3000';
+    (config as any).provider_bearer_token = 'tok-123';
+  });
+  afterEach(() => jest.clearAllMocks());
+
+  it('тариф и период оплаты подставляются по выбору кооператива; кооператив без выбора — без тарифа', async () => {
+    mockedAxios.get.mockImplementation(async (url: string) =>
+      url.endsWith('/selections')
+        ? { data: [{ coopname: 'coop1', tariff_code: 'start', billing_period: 'year' }] }
+        : { data: { tariffs: [TARIFF] } }
+    );
+
+    const [coop1, coop2] = await build().getCooperativesRegistry();
+
+    expect(coop1.tariff).toMatchObject({ code: 'start', name: 'Старт' });
+    expect(coop1.tariff_billing_period).toBe('year');
+    expect(coop2.tariff).toBeUndefined();
+  });
+
+  // break: тарифы — подсказка совету; сбой провайдера реестр не роняет
+  it('провайдер не отдал выборы → реестр без тарифов, но целиком', async () => {
+    mockedAxios.get.mockRejectedValue(new Error('down'));
+
+    const rows = await build().getCooperativesRegistry();
+
+    expect(rows).toHaveLength(2);
+    expect(rows.every((row) => row.tariff === undefined)).toBe(true);
+  });
+});
+

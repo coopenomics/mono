@@ -69,7 +69,7 @@
       "tab": {
         "description": "Описание",
         "payments": "История оплат",
-        "subscriptions": "Подписки",
+        "subscriptions": "Тариф и подписки",
         "wallets": "Кошельки"
       }
     },
@@ -78,7 +78,9 @@
     },
     "cooperativesRegistry": {
       "applicationFrom": "заявка от {date}",
-      "bannerLine1": "Заявки кооперативов на подключение к платформе. Совет читает рассказ о деятельности и устав,",
+      "awaitingDecision": "после решения совета",
+      "awaitingDelivery": "ждёт поставки",
+      "bannerLine1": "Заявки кооперативов на подключение к платформе. Совет рассматривает описание деятельности, устав и тариф,",
       "bannerLine2": "подтверждает подключение — после этого провайдер начинает поставку.",
       "charterAttached": "приложен",
       "charterLabel": "Устав",
@@ -87,11 +89,10 @@
       "emptyTitle": "Заявок нет",
       "hostingLabel": "Хостинг",
       "loading": "Загрузка реестра...",
-      "monthlyTotalLabel": "Сумма в месяц",
       "nextPaymentLabel": "Следующая оплата",
       "noDescription": "Описание не заполнено.",
-      "notDeployed": "не разворачивался",
-      "subscriptionsLabel": "Подписок"
+      "tariffLabel": "Тариф",
+      "tariffNotChosen": "не выбран"
     },
     "installCooperativePage": {
       "doneHintLine1": "Всем членам совета отправлены приглашения на электронные почты со",
@@ -185,6 +186,25 @@
       "statusActive": "активен",
       "statusBlocked": "заблокирован",
       "statusPending": "на рассмотрении"
+    },
+    "tariff": {
+      "app": "Приложение на выбор",
+      "column": {
+        "line": "Строка тарифа",
+        "monthlyPrice": "В месяц"
+      },
+      "docflow": "Документооборот",
+      "docflowDetail": "Пакет, докупается по мере работы",
+      "headline": "Тариф «{name}» · {price} · до {count} пайщиков",
+      "note": "Цены строк указаны за месяц, тариф целиком — {price}. Сервер, поддержка и приложение заводятся при поставке после решения совета.",
+      "onDelivery": "при поставке",
+      "otherSubscriptions": "Другие подписки",
+      "pricePerMonth": "{price} в месяц",
+      "pricePerYear": "{price} в год",
+      "server": "Сервер",
+      "serverDetail": "{cpu} CPU · {ram} ГБ",
+      "support": "Поддержка платформы",
+      "supportDetail": "Ответ {response}"
     }
   }
 }
