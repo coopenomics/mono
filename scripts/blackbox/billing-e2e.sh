@@ -94,6 +94,8 @@ cmd_provider() {
 EXTERNAL_TESTNET_NETWORK=${net}
 CHAIN_URL=http://node:8888
 CHAIN_ID=$(chain_id)
+# Компоуз передаёт пустую строку, а проверка окружения ждёт адрес — та же цепь стенда.
+DEV_BLOCKCHAIN_API=http://node:8888
 SERVER_SECRET=$(server_secret)
 PROVIDER_BEARER_TOKEN=${BEARER}
 PROVIDER_URL=http://coopback:${API_PORT}
