@@ -8959,6 +8959,7 @@ export type MessageKey =
   | 'union.subscription.status.pending'
   | 'union.subscription.status.trial'
   | 'union.tariff.app'
+  | 'union.tariff.byUsage'
   | 'union.tariff.column.line'
   | 'union.tariff.column.monthlyPrice'
   | 'union.tariff.docflow'
