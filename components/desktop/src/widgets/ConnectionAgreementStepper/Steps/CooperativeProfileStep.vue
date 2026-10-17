@@ -144,15 +144,36 @@ StepFrame(
 </template>
 
 <style scoped>
+/* Содержимое шага отделено от вступления линией, блоки — друг от друга
+   вертикальной линией: рассказ и устав читаются двумя частями заявки. */
 .profile-step {
   display: grid;
   grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
-  gap: var(--p-6);
-  align-items: start;
+  align-items: stretch;
+  margin-top: var(--p-2);
+  padding-top: var(--p-5);
+  border-top: 1px solid var(--p-line);
+}
+.profile-step__block:first-child {
+  padding-right: var(--p-6);
+}
+.profile-step__block + .profile-step__block {
+  padding-left: var(--p-6);
+  border-left: 1px solid var(--p-line);
 }
 @media (max-width: 1023px) {
   .profile-step {
     grid-template-columns: minmax(0, 1fr);
+  }
+  .profile-step__block:first-child {
+    padding-right: 0;
+    padding-bottom: var(--p-5);
+  }
+  .profile-step__block + .profile-step__block {
+    padding-left: 0;
+    padding-top: var(--p-5);
+    border-left: 0;
+    border-top: 1px solid var(--p-line);
   }
 }
 .profile-step__head {
