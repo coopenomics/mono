@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
-import { BaseRadioCard, BaseButton, BaseChip } from 'src/shared/ui/base'
+import { BaseRadioCard, BaseButton } from 'src/shared/ui/base'
 import type { ITariff } from 'src/entities/ConnectionAgreement'
 import { useConnectionCatalog } from 'src/features/Provider/model'
 import { DOCUMENT_PACKAGE_PRICE_RUB, MEMBER_PRICE_RUB } from 'src/shared/lib/axon'
@@ -31,10 +31,10 @@ const { isLoading, error, load, serverTariffs, connectionTariffs, annualBilling,
 // едет вместе с тарифом — его же получит провайдер при подписании.
 const billingPeriod = ref<'month' | 'year'>(props.selectedTariff?.billingPeriod ?? 'month')
 const yearly = computed(() => annualBilling.value.enabled && billingPeriod.value === 'year')
-const periodOptions = computed(() => [
+const periodOptions: Array<{ label: string; value: 'month' | 'year' }> = [
   { label: t('connectionAgreementStepper.tariffSelector.periodMonth'), value: 'month' },
-  { label: t('connectionAgreementStepper.tariffSelector.periodYear'), value: 'year', slot: 'year' },
-])
+  { label: t('connectionAgreementStepper.tariffSelector.periodYear'), value: 'year' },
+]
 
 /** Цена карточки за выбранный период. */
 const cardPrice = (tariff: ITariff): string =>
@@ -91,18 +91,25 @@ defineExpose({
     BaseButton(flat color="primary" :label="$t('common.action.retry')" @click="load(true)")
   template(v-else)
     //- Годовая оплата — только когда её включил провайдер.
-    q-btn-toggle.tariff-selector__period(
+    //- Период — переключатель из двух равных кнопок по центру. Скидка висит
+    //- значком над углом «За год»: кнопки одной ширины, значок виден в обоих
+    //- состояниях.
+    .period-switch(
       v-if="hasTariffGrid && annualBilling.enabled"
-      v-model="billingPeriod"
-      :options="periodOptions"
-      no-caps
-      unelevated
-      toggle-color="primary"
-      size="sm"
+      role="radiogroup"
+      :aria-label="$t('connectionAgreementStepper.tariffSelector.periodLabel')"
     )
-      //- Скидка — значком прямо на «За год»: выгода видна там, где её выбирают.
-      template(#year)
-        BaseChip.tariff-selector__save(variant="pos" size="sm") −{{ annualBilling.discount_percent }} %
+      button.period-switch__option(
+        v-for="opt in periodOptions"
+        :key="opt.value"
+        type="button"
+        role="radio"
+        :aria-checked="billingPeriod === opt.value"
+        :class="{ 'period-switch__option--active': billingPeriod === opt.value }"
+        @click="billingPeriod = opt.value"
+      )
+        | {{ opt.label }}
+        span.period-switch__save(v-if="opt.value === 'year'") −{{ annualBilling.discount_percent }} %
     .tariff-selector__grid
       BaseRadioCard(
         v-for="tariff in tariffs"
@@ -144,7 +151,7 @@ defineExpose({
   display: grid;
   /* auto-fit растягивает карточки на всю строку: три тарифа — три колонки,
      без переноса последней на второй ряд. */
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
   gap: var(--p-3);
   align-items: stretch;
 }
@@ -182,11 +189,56 @@ defineExpose({
   font-weight: 400;
   color: var(--p-ink-3);
 }
-.tariff-selector__period {
-  margin-bottom: var(--p-4);
+.period-switch {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  width: max-content;
+  min-width: 260px;
+  margin: 0 auto var(--p-5);
+  padding: var(--p-1);
+  gap: var(--p-1);
+  border: 1px solid var(--p-line);
+  border-radius: var(--p-r-pill);
+  background: var(--p-surface-2);
 }
-.tariff-selector__save {
-  margin-left: var(--p-2);
+.period-switch__option {
+  position: relative;
+  padding: var(--p-2) var(--p-5);
+  border: 0;
+  border-radius: var(--p-r-pill);
+  background: transparent;
+  font: inherit;
+  font-size: var(--p-fs-body-sm);
+  font-weight: 500;
+  color: var(--p-ink-2);
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+.period-switch__option:hover:not(.period-switch__option--active) {
+  color: var(--p-ink);
+}
+.period-switch__option:focus-visible {
+  outline: 2px solid var(--p-primary);
+  outline-offset: 2px;
+}
+.period-switch__option--active {
+  background: var(--p-primary);
+  color: var(--p-canvas);
+}
+/* Значок скидки — над правым верхним углом кнопки, размер кнопки не меняет. */
+.period-switch__save {
+  position: absolute;
+  top: calc(-1 * var(--p-3));
+  right: calc(-1 * var(--p-2));
+  padding: var(--p-1) var(--p-2);
+  border-radius: var(--p-r-pill);
+  background: var(--p-pos);
+  color: var(--p-canvas);
+  font-size: var(--p-fs-eyebrow);
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  pointer-events: none;
 }
 .tariff-selector__error {
   display: flex;

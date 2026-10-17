@@ -220,6 +220,7 @@
       "membersLimit": "До {count} пайщиков",
       "perMonth": "в месяц",
       "perYear": "в год",
+      "periodLabel": "Период оплаты",
       "periodMonth": "Помесячно",
       "periodYear": "За год",
       "subtitle": "Выберите подходящий тариф для вашего кооператива",

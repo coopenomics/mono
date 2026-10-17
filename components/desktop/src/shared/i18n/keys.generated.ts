@@ -2228,6 +2228,7 @@ export type MessageKey =
   | 'connectionAgreementStepper.tariffSelector.membersLimit'
   | 'connectionAgreementStepper.tariffSelector.perMonth'
   | 'connectionAgreementStepper.tariffSelector.perYear'
+  | 'connectionAgreementStepper.tariffSelector.periodLabel'
   | 'connectionAgreementStepper.tariffSelector.periodMonth'
   | 'connectionAgreementStepper.tariffSelector.periodYear'
   | 'connectionAgreementStepper.tariffSelector.subtitle'
