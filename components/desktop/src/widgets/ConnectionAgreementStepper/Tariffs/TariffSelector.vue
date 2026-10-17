@@ -109,7 +109,8 @@ defineExpose({
         @click="billingPeriod = opt.value"
       )
         | {{ opt.label }}
-      span.period-switch__save(aria-hidden="true") −{{ annualBilling.discount_percent }} %
+        //- Скидка — значком прямо на надписи «За год».
+        span.period-switch__save(v-if="opt.value === 'year'") −{{ annualBilling.discount_percent }} %
     .tariff-selector__grid
       BaseRadioCard(
         v-for="tariff in tariffs"
@@ -213,7 +214,7 @@ defineExpose({
   grid-template-columns: 1fr 1fr;
   width: max-content;
   min-width: 240px;
-  margin: var(--p-3) auto var(--p-5);
+  margin: var(--p-2) auto var(--p-5);
   padding: var(--p-1);
   border: 1px solid var(--p-line);
   border-radius: var(--p-r-pill);
@@ -243,22 +244,28 @@ defineExpose({
   background: var(--p-primary);
   color: var(--p-canvas);
 }
-/* Скидка — значок на правом верхнем углу переключателя, снаружи рамки:
-   кнопки не трогает и виден при любом выборе. */
+/* Скидка — значок внутри «За год», сразу после надписи. Кнопки делят
+   переключатель пополам, поэтому значок их ширину не меняет. Цвет следует за
+   состоянием кнопки: на залитой — светлый, чтобы не сливаться с заливкой. */
+.period-switch__option {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--p-2);
+}
 .period-switch__save {
-  position: absolute;
-  top: 0;
-  right: 0;
-  transform: translate(55%, -60%);
   padding: calc(var(--p-1) / 2) var(--p-2);
   border-radius: var(--p-r-pill);
-  background: var(--p-pos);
-  color: var(--p-canvas);
+  background: var(--p-pos-soft);
+  color: var(--p-pos);
   font-size: var(--p-fs-eyebrow);
   font-weight: 600;
   line-height: var(--p-lh-eyebrow);
   white-space: nowrap;
-  pointer-events: none;
+}
+.period-switch__option--active .period-switch__save {
+  background: var(--p-canvas);
+  color: var(--p-primary);
 }
 .tariff-selector__error {
   display: flex;
