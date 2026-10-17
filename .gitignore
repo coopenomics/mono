@@ -36,3 +36,5 @@ infra/coopid/secrets/
 
 # Внешний слой тестов (scripts/blackbox/stack.sh): логи и отчёты прогона
 .blackbox/
+# Код провайдера, который кладёт прогон Billing E2E (scripts/blackbox/billing-e2e.sh)
+_provider/
