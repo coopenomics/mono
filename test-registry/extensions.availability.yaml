@@ -195,6 +195,8 @@ cases:
       расширение «Образовательный мост» отдаётся как доступное и в основной сети,
       и на тестовом контуре; Стол заказов остаётся только вне основной сети
     test: components/controller/tests/unit/extension/extension-availability.test.ts
+    external: unreachable
+    external_reason: "стенд работает в тестовой сети; доступность расширения в основной сети снаружи не проверить"
     status: written   # прогон — CI на полигоне ci/tests
 
 

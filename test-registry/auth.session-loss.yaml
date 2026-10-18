@@ -40,6 +40,8 @@ cases:
       SDK зовёт обработчик потери доступа и называет источник токена: token для
       выставленного вручную, session для токена CoopID
     test: components/sdk/test/auth-loss.test.ts
+    external: unreachable
+    external_reason: "случай описывает поведение клиентского SDK и стола при отказе сервера (обработчик потери доступа, хранение токенов); API стенда это поведение не наблюдает"
     status: written   # прогон — CI на полигоне ci/tests
 
   - id: auth.loss.side.01
@@ -49,6 +51,8 @@ cases:
       Отказ AUTH_SESSION_TERMINATED без русского текста (другая локаль ответа).
     expect: потеря доступа опознана по коду
     test: components/sdk/test/auth-loss.test.ts
+    external: unreachable
+    external_reason: "случай описывает поведение клиентского SDK и стола при отказе сервера (обработчик потери доступа, хранение токенов); API стенда это поведение не наблюдает"
     status: written   # прогон — CI на полигоне ci/tests
 
   - id: auth.loss.side.02
@@ -59,6 +63,8 @@ cases:
       недостаточно прав.
     expect: обработчик потери доступа не вызывается
     test: components/sdk/test/auth-loss.test.ts
+    external: unreachable
+    external_reason: "случай описывает поведение клиентского SDK и стола при отказе сервера (обработчик потери доступа, хранение токенов); API стенда это поведение не наблюдает"
     status: written   # прогон — CI на полигоне ci/tests
 
   - id: auth.loss.break.02
@@ -71,6 +77,8 @@ cases:
       запрос уходит с токеном регистрации; без выставленного токена — без
       заголовка; отвязка провайдера тоже возвращает выставленный токен
     test: components/sdk/test/auth-loss.test.ts
+    external: unreachable
+    external_reason: "случай описывает поведение клиентского SDK и стола при отказе сервера (обработчик потери доступа, хранение токенов); API стенда это поведение не наблюдает"
     status: written   # прогон — CI на полигоне ci/tests
 
   - id: auth.loss.break.03
@@ -82,6 +90,8 @@ cases:
       clearSession завершается только после удаления сохранённой копии токенов —
       перезагрузка не поднимает непризнанную сессию снова
     test: components/auth/test/oidc-tokens.test.ts
+    external: unreachable
+    external_reason: "случай описывает поведение клиентского SDK и стола при отказе сервера (обработчик потери доступа, хранение токенов); API стенда это поведение не наблюдает"
     status: written   # прогон — CI на полигоне ci/tests
 
   - id: auth.loss.side.03

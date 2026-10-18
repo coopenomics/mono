@@ -253,6 +253,18 @@ describe('выход пайщика: подтверждение по письм�
     expect(await gqlError(leaverToken, EXIT_STATUS, { c: COOP, u: leaver.account }), 'ход своего выхода читается без отказа').toBeNull()
     expect(await gqlError(leaverToken, USER_WALLETS, { u: leaver.account }), 'свои кошельки видны').toBeNull()
   }, 180_000)
+
+  // После выплаты паевые кошельки вышедшего обнулены, и контракт стирает их
+  // записи из цепи; проекция хранит последнее значение как след истории.
+  // Наружу уходит ноль, а не сумма из истории (bill.break.11).
+  it(caseName('bill.break.11', 'стёртые после выхода кошельки пайщика отдаются с нулём, а не с последней суммой'), async () => {
+    const wallets = await waitFor(async () => {
+      const w = await refundWallets(leaverToken, leaver.account)
+      return EXIT_REFUND_WALLETS.every(name => w[name] === 0) ? w : null
+    }, { timeoutMs: 60_000, intervalMs: 2_000, label: `паевые кошельки ${leaver.account} обнулены после выплаты` })
+    for (const name of EXIT_REFUND_WALLETS)
+      expect(wallets[name], name).toBe(0)
+  }, 120_000)
 })
 
 describe('выход пайщика: заявление в цепи без аннулирования соглашений', () => {

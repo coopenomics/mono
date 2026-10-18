@@ -202,4 +202,6 @@ cases:
       без тарифа или без ответа — на сумму настройки расширения; аренда при 70 % —
       по-прежнему на сумму настройки
     test: components/controller/tests/unit/extension/powerup-extension.test.ts
+    external: unreachable
+    external_reason: "суточная аренда идёт по расписанию раз в сутки и берёт D у провайдера; внешний слой стенда провайдера не поднимает и сутки не ждёт"
     status: passing

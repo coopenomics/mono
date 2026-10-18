@@ -23,6 +23,7 @@ cases:
     scenario: Контракт ставит вопрос в повестку совета, узел оповещает председателя и членов совета
     expect: Оповещение несёт номер вопроса и адрес страницы этого вопроса; номер найден по хэшу действия без учёта регистра
     test: components/controller/tests/unit/agenda/agenda-notification-link.test.ts
+    api: components/api-tests/src/soviet/agenda-notification.test.ts
     status: written   # прогон — CI на полигоне ci/tests
 
   - id: sov.agenda.side.01
@@ -31,6 +32,8 @@ cases:
     scenario: Вопроса с хэшем действия в таблице решений нет
     expect: Оповещение уходит, ссылка ведёт на повестку целиком
     test: components/controller/tests/unit/agenda/agenda-notification-link.test.ts
+    external: unreachable
+    external_reason: "вопрос в повестке без строки в таблице решений цепь стенда не создаёт: контракт ставит вопрос и строку одним действием"
     status: written   # прогон — CI на полигоне ci/tests
 
   - id: sov.agenda.break.01
@@ -39,6 +42,8 @@ cases:
     scenario: Цепь не ответила на чтение таблицы решений
     expect: Оповещение уходит со ссылкой на повестку, отправка не срывается
     test: components/controller/tests/unit/agenda/agenda-notification-link.test.ts
+    external: unreachable
+    external_reason: "отказ цепи на чтении таблицы решений посреди отправки оповещения снаружи не вызвать"
     status: written   # прогон — CI на полигоне ci/tests
 
   - id: sov.agenda.side.02
@@ -47,6 +52,8 @@ cases:
     scenario: Вопрос поставлен в повестку чужого кооператива
     expect: Узел никого не оповещает и цепь не читает
     test: components/controller/tests/unit/agenda/agenda-notification-link.test.ts
+    external: unreachable
+    external_reason: "на стенде один кооператив: вопроса в повестке чужого кооператива узел не получает"
     status: written   # прогон — CI на полигоне ci/tests
 
   - id: sov.agenda.ui.question-page
