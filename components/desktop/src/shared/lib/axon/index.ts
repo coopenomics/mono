@@ -12,5 +12,6 @@ export {
   axonDaysOfWork,
   axonDocumentPackagesAffordable,
   axonMembersAffordable,
+  tariffVolumeBreakdown,
 } from './axonCapacity';
 export type { AxonCapacityMetric } from './axonCapacity';

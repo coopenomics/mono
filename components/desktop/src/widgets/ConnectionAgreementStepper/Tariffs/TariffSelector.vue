@@ -3,7 +3,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { BaseRadioCard, BaseButton } from 'src/shared/ui/base'
 import type { ITariff } from 'src/entities/ConnectionAgreement'
 import { useConnectionCatalog } from 'src/features/Provider/model'
-import { AXON_QUANT, QUANT_PRICE_RUB } from 'src/shared/lib/axon'
+import { AXON_QUANT, QUANT_PRICE_RUB, tariffVolumeBreakdown } from 'src/shared/lib/axon'
 import { t } from 'src/shared/i18n'
 
 /**
@@ -139,9 +139,11 @@ defineExpose({
             li
               q-icon(name="apps" size="16px")
               span {{ $t('connectionAgreementStepper.tariffSelector.appLine') }}
+            //- Объём документооборота — в пайщиках и операциях, как на сайте:
+            //- AXON сами по себе кооперативу ничего не говорят.
             li(v-if="tariff.docflowAxon")
               q-icon(name="description" size="16px")
-              span {{ $t('connectionAgreementStepper.tariffSelector.docflowLine', { axon: formatPrice(tariff.docflowAxon) }) }}
+              span {{ $t('connectionAgreementStepper.tariffSelector.docflowLine', { members: tariffVolumeBreakdown(tariff.docflowAxon).members, operations: tariffVolumeBreakdown(tariff.docflowAxon).operations }) }}
             li(v-if="tariff.trialDays")
               q-icon(name="hourglass_empty" size="16px")
               span {{ $t('connectionAgreementStepper.tariffSelector.trialLine', { days: tariff.trialDays }) }}

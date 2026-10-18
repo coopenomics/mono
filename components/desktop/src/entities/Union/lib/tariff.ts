@@ -1,4 +1,5 @@
 import { t } from 'src/shared/i18n'
+import { tariffVolumeBreakdown } from 'src/shared/lib/axon'
 import type { ICooperativeRegistryItem } from '../model'
 
 /**
@@ -56,7 +57,10 @@ export const tariffLines = (item: ICooperativeRegistryItem): ITariffLine[] => {
     {
       code: 'docflow',
       label: t('union.tariff.docflow'),
-      detail: t('union.tariff.docflowDetail', { axon: formatRub(tariff.docflow_axon ?? 0).replace(' ₽', '') }),
+      detail: t('union.tariff.docflowDetail', {
+        ...tariffVolumeBreakdown(tariff.docflow_axon ?? 0),
+        axon: formatRub(tariff.docflow_axon ?? 0).replace(' ₽', ''),
+      }),
       monthlyPrice: tariff.docflow_price,
     },
   ]
