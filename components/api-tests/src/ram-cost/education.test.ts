@@ -109,7 +109,11 @@ describe.runIf(RAM_COST_ON)('оперативная память: «Образо
     await subscribe(learner, learnerToken, self.id, course.id)
     await pm.mark('subscribed')
 
-    const { contribution } = await reportLesson(teacherToken, assignment.id, 1)
+    // Доступ по подписке оплачен с момента оформления, а помощник по умолчанию
+    // ставит занятие на два часа назад — до оплаты. Занятие ставим на «только
+    // что»: длина занятия на стенде идёт в масштабе суток (30 с), и оно уже
+    // закончилось к отчёту.
+    const { contribution } = await reportLesson(teacherToken, assignment.id, 1, { held_at: new Date(Date.now() - 3_000).toISOString() })
     await pm.mark('reported')
 
     await holdMaterials(teacher, teacherToken, contribution.id)
