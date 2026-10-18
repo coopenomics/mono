@@ -2226,6 +2226,7 @@ export type MessageKey =
   | 'connectionAgreementStepper.tariffSelector.featureRegistrations'
   | 'connectionAgreementStepper.tariffSelector.featureSupport'
   | 'connectionAgreementStepper.tariffSelector.includesNote'
+  | 'connectionAgreementStepper.tariffSelector.overVolumeLine'
   | 'connectionAgreementStepper.tariffSelector.perMonth'
   | 'connectionAgreementStepper.tariffSelector.perYear'
   | 'connectionAgreementStepper.tariffSelector.periodLabel'
