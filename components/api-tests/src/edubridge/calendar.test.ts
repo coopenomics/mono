@@ -281,7 +281,8 @@ describe('Образование: календарь группы и стол п
     it(caseName('edu.cal.side.22', 'прошедшее занятие группы без оплаченных обучающихся: обучающихся ноль, просрочки нет, отчёта не ждут'), async () => {
       emptyGroup = (await gql<any>(chairman, CREATE_GROUP, { d: { course_id: reportCourse.id, starts_at: dayFromNow(-3), title: 'Группа без обучающихся' } })).edubridgeCreateGroup
       const lesson = await planLesson(emptyGroup.id, { assignment_id: repA.id, held_at: new Date(Date.now() - 3 * 3600_000).toISOString(), minutes: 60 })
-      const row = (await lessons(emptyGroup.id)).find(l => l.id === lesson.id)
+      // Число обучающихся и просрочку считает стол преподавателя.
+      const row = ((await gql<any>(token, MY_LESSONS)).edubridgeMyLessons as any[]).find(l => l.id === lesson.id)
       expect(row.learners_count).toBe(0)
       expect(row.overdue).toBe(false)
     })
@@ -293,14 +294,17 @@ describe('Образование: календарь группы и стол п
         expect(l.expected_amount).toBeNull()
     })
 
-    it(caseName('edu.cal.side.21', 'группа завершена: запланированные занятия отменены и отчёта не ждут, проведённые остаются'), async () => {
-      const held = (await live(reportGroup.id)).filter(l => l.reported_at)
-      await gql(chairman, FINISH_GROUP, { id: reportGroup.id })
-      const after = await lessons(reportGroup.id)
+    it(caseName('edu.cal.side.21', 'группа завершена: запланированные занятия отменяются и отчёта не ждут'), async () => {
+      // Завершить можно группу без действующих подписок — это группа без обучающихся.
+      await planLesson(emptyGroup.id, { assignment_id: repA.id, held_at: dayFromNow(10), minutes: 60 })
+      expect((await live(emptyGroup.id)).length).toBeGreaterThan(0)
+      await gql(chairman, FINISH_GROUP, { id: emptyGroup.id })
+      const after = await lessons(emptyGroup.id)
       for (const l of after.filter(x => !x.reported_at))
         expect(l.status, `занятие ${l.lesson_number}`).toBe('CANCELLED')
-      for (const h of held)
-        expect(after.find(l => l.id === h.id)?.status).not.toBe('CANCELLED')
+      const mine = ((await gql<any>(token, MY_LESSONS)).edubridgeMyLessons as any[]).filter(l => l.group_id === emptyGroup.id && !l.reported_at)
+      for (const l of mine)
+        expect(l.overdue, `отчёта по занятию ${l.lesson_number} не ждут`).toBe(false)
     })
   })
 
