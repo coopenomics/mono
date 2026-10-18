@@ -59,7 +59,9 @@ const stageIndex = computed(() => {
   return i
 })
 
-const remainingMinutes = computed(() => Math.max(0, 100 - progress.value))
+// Заливка — верхний слой той же ширины, что и полоса, обрезанный по проценту:
+// число в центре полосы читается и на заливке, и на пустой части.
+const fillClip = computed(() => `inset(0 ${100 - progress.value}% 0 0)`)
 </script>
 
 <template lang="pug">
@@ -69,12 +71,16 @@ StepFrame(
   :can-back="false"
   :has-next="false"
 )
-  .installation-step__progress
-    .installation-step__progress-head
-      span.t-sm.t-muted {{ $t('connectionAgreementStepper.installationStep.remainingMinutes', { minutes: remainingMinutes }) }}
-      span.t-mono.t-num.installation-step__pct {{ progress }}%
-    .installation-step__bar
-      .installation-step__bar-fill(:style="{ width: progress + '%' }")
+  .installation-step__bar(
+    role="progressbar"
+    :aria-label="$t('connectionAgreementStepper.installationStep.progressAria')"
+    aria-valuemin="0"
+    aria-valuemax="100"
+    :aria-valuenow="progress"
+  )
+    span.installation-step__pct.t-num {{ progress }}%
+    .installation-step__bar-fill(:style="{ clipPath: fillClip }")
+      span.installation-step__pct.t-num {{ progress }}%
 
   ol.installation-step__stages
     li.installation-step__stage(
@@ -92,32 +98,32 @@ StepFrame(
 </template>
 
 <style scoped>
-.installation-step__progress {
-  display: flex;
-  flex-direction: column;
-  gap: var(--p-2);
-}
-.installation-step__progress-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-}
-.installation-step__pct {
-  font-size: var(--p-fs-body);
-  font-weight: 600;
-  color: var(--p-ink);
-}
 .installation-step__bar {
-  height: 4px;
+  position: relative;
+  height: var(--p-7);
   border-radius: var(--p-r-pill);
   background: var(--p-surface-3);
   overflow: hidden;
 }
 .installation-step__bar-fill {
-  height: 100%;
+  position: absolute;
+  inset: 0;
   background: var(--p-primary);
-  border-radius: var(--p-r-pill);
-  transition: width var(--p-dur-slow) var(--p-ease-standard);
+  color: var(--p-ink-on-primary);
+  transition: clip-path var(--p-dur-slow) var(--p-ease-standard);
+}
+.installation-step__pct {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--p-fs-body);
+  font-weight: 600;
+  color: var(--p-ink);
+}
+.installation-step__bar-fill .installation-step__pct {
+  color: var(--p-ink-on-primary);
 }
 .installation-step__stages {
   list-style: none;
