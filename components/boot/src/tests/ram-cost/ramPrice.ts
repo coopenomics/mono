@@ -14,21 +14,7 @@ import { SystemContract } from 'cooptypes'
 import type Blockchain from '../../blockchain'
 import config from '../../configs'
 import { CHAIN_URL } from '../marketplace/chainHelpers'
-
-export interface RamPrice {
-  /** Сколько заплачено за аренду, AXON. */
-  payment_axon: number
-  /** Прирост квоты памяти от платежа, байт. */
-  bytes_per_payment: number
-  /** Срок аренды, сутки. */
-  powerup_days: number
-  /** Цена одного байта на сутки, AXON. */
-  axon_per_byte_day: number
-  /** Ожидание по формуле контракта: половина платежа в минимальных единицах токена = байты. */
-  expected_bytes_by_formula: number
-  /** Долг кооператива по памяти до аренды, байт (гасится из RAM-части платежа). */
-  ram_debt_before: number
-}
+import type { RamPrice } from './ramMeter'
 
 async function chainPost<T = any>(endpoint: string, body: unknown): Promise<T> {
   const res = await fetch(`${CHAIN_URL}/v1/chain/${endpoint}`, {

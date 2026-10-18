@@ -401,6 +401,13 @@ export const MY_CONTRACT = `query{ edubridgeMyContract{ ${CONTRACT_FIELDS} } }`
 export const SIGN_CONTRACT = `mutation($d:EduSignContractInput!){ edubridgeSignContract(data:$d){ ${CONTRACT_FIELDS} } }`
 export const ASSIGNMENT_FIELDS = 'id teacher_username course_id course_title period_from period_to minutes_per_month hourly_rate status'
 export const MY_ASSIGNMENTS = `query{ edubridgeMyAssignments{ ${ASSIGNMENT_FIELDS} } }`
+// ── Возврат паевого взноса преподавателя ─────────────────────────────────
+// Заявление о трансляции взноса (3015) и заявление о возврате деньгами (900)
+// подписываются на одну сумму и подаются разом.
+export const WITHDRAW_STATEMENT = 'mutation($d:EduShareWithdrawStatementInput!){ edubridgeShareWithdrawStatement(data:$d){ full_title html hash meta binary } }'
+export const REQUEST_RETURN = 'mutation($d:EduRequestShareReturnInput!){ edubridgeRequestShareReturn(data:$d){ accepted_total program_share available last_accepted_at } }'
+export const RETURN_STATEMENT = 'mutation($d:ReturnByMoneyGenerateDocumentInput!){ generateReturnByMoneyStatementDocument(data:$d){ full_title html hash meta binary } }'
+
 export const CREATE_ASSIGNMENT = `mutation($d:EduAssignmentInput!){ edubridgeCreateAssignment(data:$d){ ${ASSIGNMENT_FIELDS} } }`
 export const CLOSE_ASSIGNMENT = `mutation($id:ID!){ edubridgeCloseAssignment(id:$id){ ${ASSIGNMENT_FIELDS} } }`
 export const SET_ASSIGNMENT_RATE = `mutation($d:EduSetAssignmentRateInput!){ edubridgeSetAssignmentRate(data:$d){ ${ASSIGNMENT_FIELDS} } }`

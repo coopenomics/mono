@@ -8,43 +8,29 @@
  * стол и фабрика документов читают его дальше из журнала изменений цепи.
  */
 import crypto from 'node:crypto'
-import ecc from 'eosjs-ecc'
 import { beforeAll, describe, expect, it } from 'vitest'
 import type { Who } from '../core'
 import {
   CHAIRMAN,
   COOP,
-  COOP_SIGNER,
   COUNCIL,
   ROLES,
   authorizeDecisionOnChain,
   awaitDecision,
   caseName,
-  chainDoc,
-  fixture,
-  grantMemberKey,
   gql,
   signDocument,
   tableRows,
   toChainDoc,
   tokenOf,
-  transact,
   voteOnDecision,
   waitFor,
 } from '../core'
+import { GENERATED, castBallots, meetAs as meetOf, meetVoters } from './meet.helpers'
 
 const digest = (text: string): string => crypto.createHash('sha256').update(text, 'utf8').digest('hex')
 
-const AGGREGATE = `rawDocument{ full_title html hash meta binary }
-  document{ version hash doc_hash meta_hash meta signatures{ id signer public_key signature signed_at signed_hash meta } }`
-const MEET = `hash
-  processing{ hash isVoted extendedStatus
-    meet{ id hash status quorum_passed current_quorum_percent decision1{ ${AGGREGATE} } }
-    questions{ id number title context decision counter_votes_for counter_votes_against } }
-  processed{ hash quorum_passed results{ number title context decision votes_for votes_against accepted } }`
-const GET = `query($d:GetMeetInput!){ getMeet(data:$d){ ${MEET} } }`
 const LIST = `query($d:GetMeetsInput!){ getMeets(data:$d){ hash processing{ hash extendedStatus } } }`
-const GENERATED = 'full_title html hash meta binary'
 
 const tag = crypto.randomBytes(4).toString('hex')
 const agenda = [
@@ -71,26 +57,17 @@ describe('общее собрание: созыв, голосование упо
   let closedList: any[] = []
 
   async function meetAs(who: Who): Promise<any> {
-    return (await gql<any>(await tokenOf(who), GET, { d: { coopname: COOP, hash: meetHash } })).getMeet
+    return meetOf(who, meetHash)
   }
 
   beforeAll(async () => {
     chairToken = await tokenOf(CHAIRMAN)
-    trustees = [fixture('chairkrg'), fixture('chairodn'), fixture('chairmyt')]
     // Участки, заведённые другими наборами (boot-тесты цепи): их уполномоченных
     // у узла нет, ключей у набора тоже. Кооператив выдаёт такому уполномоченному
     // ключ, и его бюллетень подаётся прямо в цепь.
-    const branches = await tableRows<any>('branch', COOP, 'branches')
-    const known = new Set(trustees.map(t => t.account))
-    const strangers: Who[] = []
-    for (const branch of branches) {
-      const account = String(branch.trustee)
-      if (known.has(account))
-        continue
-      const wif = await ecc.randomKey()
-      await grantMemberKey(account, ecc.privateToPublic(wif))
-      strangers.push({ account, email: '', wif })
-    }
+    const voterSet = await meetVoters()
+    trustees = voterSet.trustees
+    const strangers = voterSet.strangers
 
     // Созыв.
     const opens = new Date(Date.now() + OPENS_IN_MS)
@@ -135,31 +112,7 @@ describe('общее собрание: созыв, голосование упо
 
     // Голосование открылось — уполномоченные подают бюллетени.
     await waitFor(async () => (Date.now() > opens.getTime() + 1_500 ? true : null), { timeoutMs: OPENS_IN_MS + 30_000, intervalMs: 500, label: 'открытие голосования' })
-    for (const trustee of trustees) {
-      const token = await tokenOf(trustee)
-      const questions = (await meetAs(trustee)).processing.questions as any[]
-      const ballot = (await gql<any>(token, `mutation($d:AnnualGeneralMeetingVotingBallotGenerateDocumentInput!){
-        generateBallotForAnnualGeneralMeetDocument(data:$d){ ${GENERATED} } }`, {
-        d: { coopname: COOP, username: trustee.account, meet_hash: meetHash, answers: questions.map(q => ({ id: String(q.id), number: String(q.number), vote: 'for' })) },
-      })).generateBallotForAnnualGeneralMeetDocument
-      await gql(token, 'mutation($d:VoteOnAnnualGeneralMeetInput!){ voteOnAnnualGeneralMeet(data:$d){ hash } }', {
-        d: {
-          coopname: COOP,
-          hash: meetHash,
-          username: trustee.account,
-          ballot: await signDocument(trustee.wif, ballot, trustee.account, 1),
-          votes: questions.map(q => ({ question_id: Number(q.id), vote: 'for' })),
-        },
-      })
-    }
-    const questionIds = ((await meetAs(trustees[0])).processing.questions as any[]).map(q => Number(q.id))
-    for (const stranger of strangers) {
-      await transact(COOP_SIGNER, [{
-        account: 'meet',
-        name: 'vote',
-        data: { coopname: COOP, hash: meetHash, username: stranger.account, ballot: chainDoc([stranger]), votes: questionIds.map(id => ({ question_id: id, vote: 'for' })) },
-      }])
-    }
+    await castBallots(meetHash, trustees, strangers)
     voters = trustees.length + strangers.length
     const voted = await waitFor(async () => {
       const m = await meetAs(trustees[0])

@@ -3,9 +3,12 @@ name: RAM cost
 # Стоимость типовых процессов в оперативной памяти цепи. Поднимает тот же
 # стенд, что внешний слой (blackbox.yaml, scripts/blackbox/stack.sh): цепь,
 # индексер, контроллер, базы, засев Стола заказов. Затем гоняет только наборы
-# components/boot/src/tests/ram-cost: каждый ведёт один типовой процесс через
-# API платформы и после каждого шага снимает память цепи — сколько байт
-# процесс удерживает на каждом этапе, пик и остаток после закрытия.
+# ram-cost — сначала components/boot/src/tests/ram-cost (цена памяти арендой
+# и поставка Стола заказов), потом components/api-tests/src/ram-cost
+# (остальные типовые процессы). Каждый набор ведёт процесс через API
+# платформы и после каждого шага снимает память цепи — сколько байт процесс
+# удерживает на каждом этапе, пик и остаток после завершения. Сводку по всем
+# процессам собирает scripts/ram-cost/summary.mjs.
 #
 # Выход прогона — отчёт в сводке и артефакт ram-cost-<run_id>
 # (.blackbox/ram-cost/*.json и *.md). Байты переводятся в рубли отдельно,
@@ -28,12 +31,18 @@ jobs:
     # Та же машина, что у blackbox: node_modules с нативными модулями ставятся
     # на хосте и монтируются в контейнер node:22-slim (bookworm, glibc 2.36).
     runs-on: ubuntu-22.04
-    timeout-minutes: 120
+    timeout-minutes: 210
 
     env:
       COMPOSE_FILE: ${{ github.workspace }}/docker-compose.yaml:${{ github.workspace }}/scripts/blackbox/docker-compose.blackbox.yml
       BLACKBOX_OUT: ${{ github.workspace }}/.blackbox
       CONTRACTS_MODE: test
+      # Сутки гарантийного срока «Образования» — 30 с (14 дней = 7 мин), очередь
+      # взносов раз в минуту: путь ученика до выплаты преподавателю укладывается
+      # в прогон (как в ui-docs.yaml). Байты от длины суток не зависят.
+      GUARANTEE_DAY_SECONDS: 30
+      EDUBRIDGE_WORKER_PACE_SECONDS: 60
+      RAM_COST_OUT: ${{ github.workspace }}/.blackbox/ram-cost
 
     steps:
       - uses: actions/checkout@v4
@@ -115,23 +124,29 @@ jobs:
         timeout-minutes: 20
         run: bash scripts/blackbox/stack.sh seed
 
-      - name: Замер памяти типовых процессов
+      - name: Замер памяти — цена и поставка Стола заказов (boot)
         timeout-minutes: 45
         env:
           BLACKBOX_TESTS: src/tests/ram-cost
-          RAM_COST_OUT: ${{ github.workspace }}/.blackbox/ram-cost
         run: bash scripts/blackbox/stack.sh tests
+
+      # Процессы платформы — после boot: им нужна цена памяти (price.json),
+      # замеренная арендой. Идут и после красного boot — падение одного
+      # процесса не должно прятать остальные.
+      - name: Замер памяти — процессы платформы (api-tests)
+        if: ${{ !cancelled() }}
+        timeout-minutes: 90
+        env:
+          BLACKBOX_API_TESTS: src/ram-cost
+        run: bash scripts/blackbox/stack.sh apitests
 
       - name: Отчёт в сводку
         if: always()
         run: |
+          node scripts/ram-cost/summary.mjs .blackbox/ram-cost > .blackbox/ram-cost-summary.md || true
+          cat .blackbox/ram-cost-summary.md >> "$GITHUB_STEP_SUMMARY"
           shopt -s nullglob
-          files=(.blackbox/ram-cost/*.md)
-          if [ ${#files[@]} -eq 0 ]; then
-            echo "_Отчётов нет — замер не дошёл до первого этапа._" >> "$GITHUB_STEP_SUMMARY"
-          else
-            for f in "${files[@]}"; do cat "$f" >> "$GITHUB_STEP_SUMMARY"; echo >> "$GITHUB_STEP_SUMMARY"; done
-          fi
+          for f in .blackbox/ram-cost/*.md; do cat "$f" >> "$GITHUB_STEP_SUMMARY"; echo >> "$GITHUB_STEP_SUMMARY"; done
 
       - name: Логи стенда
         if: always()

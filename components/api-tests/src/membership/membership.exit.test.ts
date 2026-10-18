@@ -15,12 +15,9 @@ import { CHAIRMAN, COOP, COUNCIL, ROLES, amount, authorizeDecisionOnChain, await
 import { chainChangesOf, quietWindow, settleSubscriptions, signalsOf, waitSignal, wsAs } from '../platform/platform-a.helpers'
 import { addSbpMethod } from '../payments/payments.helpers'
 import type { ExitDocuments } from './exit-documents.helpers'
-import { exitDocuments } from './exit-documents.helpers'
+import { CONFIRM_EXIT, CREATE_EXIT, EXIT_STATUS, exitDocuments, exitStatus } from './exit-documents.helpers'
 
-const CREATE_EXIT = 'mutation($d:CreateMembershipExitInput!){ createMembershipExit(data:$d){ exit_hash status } }'
 const CANCEL_EXIT = 'mutation($c:String!,$u:String!){ cancelMembershipExit(coopname:$c, username:$u) }'
-const CONFIRM_EXIT = 'mutation($t:String!){ confirmMembershipExit(token:$t){ exit_hash status } }'
-const EXIT_STATUS = 'query($c:String!,$u:String!){ membershipExit(coopname:$c, username:$u){ exit_hash status quantity payment_status created_at } }'
 const RETURN_PREVIEW = 'query($c:String!,$u:String!){ membershipExitReturnPreview(coopname:$c, username:$u){ total share_contribution minimum_contribution } }'
 const USER_WALLETS = 'query($u:String!){ getUserWallets(username:$u){ wallet_name available } }'
 
@@ -28,11 +25,6 @@ const EXIT_REFUND_WALLETS = ['w.reg.minshr', 'w.wal.share', 'w.cap.blago']
 
 function exitHash(): string {
   return crypto.randomBytes(32).toString('hex')
-}
-
-async function exitStatus(token: string, username: string): Promise<any | null> {
-  const d = await gql<any>(token, EXIT_STATUS, { c: COOP, u: username })
-  return d.membershipExit
 }
 
 async function refundWallets(token: string, username: string): Promise<Record<string, number>> {

@@ -7,6 +7,16 @@
 import type { Who } from '../core'
 import { COOP, docMeta, gql, signDocument, waitFor } from '../core'
 
+export const CREATE_EXIT = 'mutation($d:CreateMembershipExitInput!){ createMembershipExit(data:$d){ exit_hash status } }'
+export const CONFIRM_EXIT = 'mutation($t:String!){ confirmMembershipExit(token:$t){ exit_hash status } }'
+export const EXIT_STATUS = 'query($c:String!,$u:String!){ membershipExit(coopname:$c, username:$u){ exit_hash status quantity payment_status created_at } }'
+
+/** Ход выхода пайщика глазами самого пайщика. */
+export async function exitStatus(token: string, username: string): Promise<any | null> {
+  const d = await gql<any>(token, EXIT_STATUS, { c: COOP, u: username })
+  return d.membershipExit
+}
+
 const GENERATE_APPLICATION = `mutation($d:MembershipExitApplicationGenerateDocumentInput!){
   generateMembershipExitApplication(data:$d){ full_title html hash meta binary }
 }`

@@ -39,8 +39,8 @@ import Blockchain from '../../blockchain'
 import config from '../../configs'
 import { acceptToCoop, issueOrder, pickOffer, placeOrder } from '../marketplace/orderFlow'
 import { CHAIRMAN, COOP, amount, ensureIdentityVerified, ensureShareFunds, fromState, gqlAs, loginAs } from '../marketplace/chainHelpers'
-import { RamMeter, type StageDays, axon, buildReport, fmt, writeReport } from './ramMeter'
-import { type RamPrice, measureRamPrice } from './ramPrice'
+import { RamMeter, type RamPrice, type StageDays, axon, buildReport, fmt, writePrice, writeReport } from './ramMeter'
+import { measureRamPrice } from './ramPrice'
 
 const bc = new Blockchain(config.network, config.private_keys)
 
@@ -216,6 +216,7 @@ describe.runIf(process.env.RAM_COST_OUT)('оперативная память: �
 
   it('цена памяти: аренда кооперативу на 1 AXON', async () => {
     price = await measureRamPrice(bc, COOP)
+    writePrice(price)
     console.log(`[ram-cost] 1 AXON → ${price.bytes_per_payment} Б на ${price.powerup_days} сут (по формуле ${price.expected_bytes_by_formula} Б); 1 Б·сут = ${price.axon_per_byte_day} AXON`)
     expect(price.bytes_per_payment).toBeGreaterThan(0)
   }, 300_000)

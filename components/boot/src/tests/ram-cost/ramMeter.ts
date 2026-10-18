@@ -30,9 +30,30 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import process from 'node:process'
-import config from '../../configs'
-import { CHAIN_URL } from '../marketplace/chainHelpers'
-import type { RamPrice } from './ramPrice'
+import { _Common } from 'cooptypes'
+
+/**
+ * Измеритель общий для наборов boot и api-tests (подключается относительным
+ * путём), поэтому от кода boot не зависит: адрес цепи — из окружения, имена
+ * контрактов — из cooptypes.
+ */
+const CHAIN_URL = process.env.CHAIN_URL || 'http://127.0.0.1:8888'
+
+/** Цена памяти, замеренная арендой (ramPrice.ts, набор boot); api-tests читают её из `price.json`. */
+export interface RamPrice {
+  /** Сколько заплачено за аренду, AXON. */
+  payment_axon: number
+  /** Прирост квоты памяти от платежа, байт. */
+  bytes_per_payment: number
+  /** Срок аренды, сутки. */
+  powerup_days: number
+  /** Цена одного байта на сутки, AXON. */
+  axon_per_byte_day: number
+  /** Ожидание по формуле контракта: половина платежа в минимальных единицах токена = байты. */
+  expected_bytes_by_formula: number
+  /** Долг кооператива по памяти до аренды, байт (гасится из RAM-части платежа). */
+  ram_debt_before: number
+}
 
 const EPOCH = '1970-01-01T00:00:00.000'
 
@@ -95,8 +116,19 @@ async function allRows(code: string, scope: string, table: string): Promise<any[
   return out
 }
 
-/** Системные аккаунты цепи, которые boot заводит сам. */
-const SYSTEM_ACCOUNTS = ['eosio', 'eosio.ram', 'eosio.ramfee', 'eosio.stake', 'eosio.names', ...config.accounts.map(a => a.name)]
+/** Системные аккаунты цепи и все контракты платформы. */
+const SYSTEM_ACCOUNTS = [
+  'eosio',
+  'eosio.ram',
+  'eosio.ramfee',
+  'eosio.stake',
+  'eosio.names',
+  'eosio.bpay',
+  'eosio.vpay',
+  'eosio.power',
+  'eosio.saving',
+  ...Object.values(_Common.ContractNames).map(n => n.production as string),
+]
 
 /** Число строк таблицы, за которые платит `payer` (`show_payer`). */
 async function rowsPaidBy(key: string, payer: string): Promise<number> {
@@ -328,6 +360,11 @@ export interface RamTotals {
   axon: number | null
   /** Аренда в сутки на пике, AXON. */
   peak_axon_per_day: number | null
+  /**
+   * Аренда пика на одно окно `powerup` (срок аренды из цепи), AXON: столько
+   * стоит операция, если окно аренды накрывает её целиком.
+   */
+  peak_window_axon: number | null
 }
 
 export interface RamReport {
@@ -375,6 +412,7 @@ function totalsOf(stages: { key: string, days: number }[], held: (k: number) => 
     avg_bytes_per_day: daysTotal ? Math.round(byteDays / daysTotal) : 0,
     axon: price ? byteDays * price.axon_per_byte_day : null,
     peak_axon_per_day: price ? peak.bytes * price.axon_per_byte_day : null,
+    peak_window_axon: price ? peak.bytes * price.axon_per_byte_day * price.powerup_days : null,
   }
 }
 
@@ -443,7 +481,9 @@ function totalsLines(r: RamReport, t: RamTotals): string[] {
     `- **Байт·сутки за процесс:** ${t.byte_days} при длительности ${r.days_total} сут; в среднем ${fmt(t.avg_bytes_per_day)} в сутки.`,
   ]
   if (t.axon !== null)
-    lines.push(`- **Аренда памяти за процесс:** ${axon(t.axon)}.`)
+    lines.push(`- **Аренда памяти за процесс посуточно:** ${axon(t.axon)}.`)
+  if (t.peak_window_axon !== null && r.price)
+    lines.push(`- **Аренда пика на одно окно ${r.price.powerup_days} сут:** ${axon(t.peak_window_axon)}.`)
   lines.push('')
   return lines
 }
@@ -496,6 +536,21 @@ export function renderMarkdown(r: RamReport): string {
     out.push(`| ${s.title} | ${listDiff(s.accounts_step)} | ${listDiff(s.rows_step)} |`)
   out.push('')
   return out.join('\n')
+}
+
+/** Цена памяти из `price.json` каталога отчётов — её пишет набор boot до наборов api-tests. */
+export function readPrice(): RamPrice | null {
+  const dir = process.env.RAM_COST_OUT
+  const file = dir ? path.join(dir, 'price.json') : ''
+  return file && fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, 'utf8')) as RamPrice : null
+}
+
+export function writePrice(p: RamPrice): void {
+  const dir = process.env.RAM_COST_OUT
+  if (!dir)
+    return
+  fs.mkdirSync(dir, { recursive: true })
+  fs.writeFileSync(path.join(dir, 'price.json'), JSON.stringify(p, null, 2))
 }
 
 /** Пишет отчёт в каталог `RAM_COST_OUT` (JSON и Markdown). */

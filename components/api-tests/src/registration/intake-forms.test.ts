@@ -15,30 +15,16 @@
  * подключения — на стенде он завершён засевом (boot, postgres-init).
  */
 import { beforeAll, describe, expect, it } from 'vitest'
-import { CHAIRMAN, COOP, COUNCIL, ROLES, caseName, expectAuthDenied, expectCode, gql, gqlError, gqlRaw, randomAccount, signDocument, tokenOf } from '../core'
-import { REGISTER_ACCOUNT, freshKeyPair, individualData, registerInput } from '../platform/platform-b.helpers'
+import { CHAIRMAN, COOP, COUNCIL, ROLES, caseName, expectAuthDenied, expectCode, gql, gqlError, gqlRaw, tokenOf } from '../core'
+import { type Applicant, REGISTER_PARTICIPANT, applicant, fullApplication } from './registration.helpers'
 
 const CONFIG = `query($t:AccountType!,$c:String!){ getRegistrationConfig(account_type:$t, coopname:$c){
   intake_forms{ id title description order schema }
   programs{ key title intake_forms{ id title description order schema } }
 } }`
 
-const REGISTER_PARTICIPANT = `mutation($d:RegisterParticipantInput!){ registerParticipant(data:$d){ username } }`
-
 const GENERATOR_FORM = 'generator_cover_letter'
 const DOCS_REFUSAL = 'PARTICIPATION_DOCUMENT_VALIDATION_FAILED'
-
-interface Applicant { username: string, token: string, publicKey: string, wif: string }
-
-/** Гость заводит аккаунт — дальше он подаёт заявление своим токеном. */
-async function applicant(): Promise<Applicant> {
-  const username = randomAccount('in')
-  const { publicKey, wif } = await freshKeyPair()
-  const d = await gql<any>(null, `mutation($d:RegisterAccountInput!){ registerAccount(data:$d){ tokens{ access{ token } } } }`, {
-    d: registerInput(username, publicKey, 'individual', individualData()),
-  })
-  return { username, publicKey, wif, token: d.registerAccount.tokens.access.token }
-}
 
 /** Подписанный документ-заглушка: форма верная, подпись ничего не значит. */
 function dummyDoc(a: Applicant, meta: Record<string, unknown> = {}) {
@@ -72,33 +58,6 @@ async function submit(a: Applicant, programKey: string, intakeAnswers?: unknown[
       blagorost_offer: doc,
       ...(intakeAnswers !== undefined && { intake_answers: intakeAnswers }),
     },
-  })
-}
-
-/** Собственноручная подпись заявления — картинка 1×1, как её присылает рабочий стол. */
-const HAND_SIGNATURE = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII='
-
-/**
- * Заявление целиком, как его подаёт рабочий стол: документы вступления
- * программы, подписанные ключом заявителя, и заявление со ссылками на них.
- */
-async function fullApplication(a: Applicant, programKey: string, intakeAnswers: unknown[]) {
-  const gen = await gql<any>(a.token, `mutation($d:GenerateRegistrationDocumentsInput!){
-    generateRegistrationDocuments(data:$d){ documents{ id link_to_statement document{ full_title html hash meta binary } } }
-  }`, { d: { coopname: COOP, username: a.username, account_type: 'individual', program_key: programKey } })
-  const signed: Record<string, any> = {}
-  const links: string[] = []
-  for (const doc of gen.generateRegistrationDocuments.documents as any[]) {
-    signed[doc.id] = await signDocument(a.wif, doc.document, a.username)
-    if (doc.link_to_statement)
-      links.push(signed[doc.id].doc_hash)
-  }
-  const app = await gql<any>(a.token, `mutation($d:ParticipantApplicationGenerateDocumentInput!){
-    generateParticipantApplication(data:$d){ full_title html hash meta binary }
-  }`, { d: { coopname: COOP, username: a.username, braname: 'krg', links, signature: HAND_SIGNATURE, skip_save: false } })
-  const statement = await signDocument(a.wif, app.generateParticipantApplication, a.username)
-  return gqlRaw<any>(a.token, REGISTER_PARTICIPANT, {
-    d: { username: a.username, braname: 'krg', program_key: programKey, statement, ...signed, intake_answers: intakeAnswers },
   })
 }
 

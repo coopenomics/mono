@@ -30,6 +30,9 @@ import {
   MY_LESSONS,
   NO_RIGHTS,
   REPORT_LESSON,
+  REQUEST_RETURN,
+  RETURN_STATEMENT,
+  WITHDRAW_STATEMENT,
   RID_ACT,
   RID_STATEMENT,
   RID_STORAGE_ACT,
@@ -64,9 +67,6 @@ import {
   subscribe,
 } from './edubridge.helpers'
 
-const WITHDRAW_STATEMENT = 'mutation($d:EduShareWithdrawStatementInput!){ edubridgeShareWithdrawStatement(data:$d){ full_title html hash meta binary } }'
-const REQUEST_RETURN = 'mutation($d:EduRequestShareReturnInput!){ edubridgeRequestShareReturn(data:$d){ accepted_total program_share available last_accepted_at } }'
-const RETURN_STATEMENT = 'mutation($d:ReturnByMoneyGenerateDocumentInput!){ generateReturnByMoneyStatementDocument(data:$d){ full_title html hash meta binary } }'
 
 /** Ставка преподавателя: час занятия одного обучающегося стоит столько. */
 const RATE = '900.0000 RUB'
