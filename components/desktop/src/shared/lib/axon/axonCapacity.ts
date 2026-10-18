@@ -47,16 +47,16 @@ export const AXON_QUANT = 5;
 export const QUANT_PRICE_RUB = AXON_QUANT * AXON_PRICE_RUB;
 
 /**
- * Объём тарифа на месяц в понятных величинах, как в прайсе сайта: объём делится
- * поровну между новыми пайщиками и пакетами документов. 150 AXON — 25 пайщиков
- * и 37 пакетов, 480 — 80 и 120, 1 440 — 240 и 360. Внутри объёма AXON
- * взаимозаменяемы, это ориентир, а не два раздельных лимита.
+ * Объём тарифа на месяц в понятных величинах, как в прайсе сайта: весь объём
+ * расходуется либо на новых пайщиков, либо на пакеты документов. 150 AXON — 50 новых
+ * пайщиков или 75 пакетов документов, 480 — 160 или 240, 1 440 — 480 или 720.
+ * Внутри объёма AXON взаимозаменяемы: реальный месяц — смесь того и другого.
  */
 export function tariffVolumeBreakdown(volumeAxon: number): { members: number; operations: number } {
-  const half = Number.isFinite(volumeAxon) && volumeAxon > 0 ? volumeAxon / 2 : 0;
+  const volume = Number.isFinite(volumeAxon) && volumeAxon > 0 ? volumeAxon : 0;
   return {
-    members: Math.floor(half / AXON_PER_MEMBER),
-    operations: Math.floor(half / AXON_PER_DOCUMENT_PACKAGE),
+    members: Math.floor(volume / AXON_PER_MEMBER),
+    operations: Math.floor(volume / AXON_PER_DOCUMENT_PACKAGE),
   };
 }
 

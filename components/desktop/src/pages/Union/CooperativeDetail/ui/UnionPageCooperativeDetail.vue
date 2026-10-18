@@ -38,7 +38,7 @@
           //- каких условиях кооператив подключается.
           .coop-detail__tariff(v-if="row.tariff")
             q-icon(name="sell" size="14px")
-            span {{ $t('union.tariff.headline', { name: row.tariff.name, price: tariffPriceLabel(row), count: row.tariff.members_limit.toLocaleString('ru-RU') }) }}
+            span {{ $t('union.tariff.headline', { name: row.tariff.name, price: tariffPriceLabel(row), ...tariffVolumeBreakdown(row.tariff.docflow_axon ?? 0) }) }}
         BaseChip(:variant="registryStatusVariant(row.status)" size="sm")
           span {{ registryStatusLabel(row.status) }}
 
@@ -186,6 +186,7 @@ import {
 } from 'src/entities/Union'
 import type { ICooperativeRegistryItem } from 'src/entities/Union/model'
 import { extraSubscriptions, formatRub, tariffLines, tariffPriceLabel } from 'src/entities/Union'
+import { tariffVolumeBreakdown } from 'src/shared/lib/axon'
 import { useCooperativeMainWallet } from 'src/entities/Wallet/model'
 import { useSystemStore } from 'src/entities/System/model'
 import { FailAlert } from 'src/shared/api/alerts'

@@ -140,6 +140,7 @@ import {
 } from 'src/features/Provider/model'
 import { useSessionStore } from 'src/entities/Session'
 import type { ITariff } from 'src/entities/ConnectionAgreement'
+import { tariffVolumeBreakdown } from 'src/shared/lib/axon'
 import { useSystemStore } from 'src/entities/System/model'
 import { subscriptionStatusLabel, subscriptionStatusVariant } from 'src/entities/Union'
 import {
@@ -338,7 +339,7 @@ const tariffUpgradeOptions = computed<ITariff[]>(() => {
 
 const tariffOptionLine = (opt: ITariff): string =>
   t('connectionDashboard.subscriptionsCard.tariffOptionLine', {
-    count: (opt.membersLimit ?? 0).toLocaleString('ru-RU'),
+    ...tariffVolumeBreakdown(opt.docflowAxon ?? 0),
     response: opt.supportResponse ?? '',
   })
 

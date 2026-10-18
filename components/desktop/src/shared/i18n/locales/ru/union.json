@@ -194,8 +194,8 @@
         "monthlyPrice": "В месяц"
       },
       "docflow": "Документооборот",
-      "docflowDetail": "{members} новых пайщиков и {operations} пакетов документов в месяц ({axon} AXON); сверх объёма 50 ₽ за 5 AXON",
-      "headline": "Тариф «{name}» · {price} · до {count} пайщиков",
+      "docflowDetail": "{members} новых пайщиков или {operations} пакетов документов в месяц ({axon} AXON); сверх объёма 50 ₽ за 5 AXON",
+      "headline": "Тариф «{name}» · {price} · {members} новых пайщиков или {operations} пакетов документов в месяц",
       "note": "Цены строк указаны за месяц, тариф целиком — {price}. Сервер, поддержка и приложение заводятся при поставке после решения совета.",
       "onDelivery": "при поставке",
       "otherSubscriptions": "Другие подписки",
