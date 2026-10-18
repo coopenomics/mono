@@ -1,0 +1,147 @@
+name: RAM cost
+
+# Стоимость типовых процессов в оперативной памяти цепи. Поднимает тот же
+# стенд, что внешний слой (blackbox.yaml, scripts/blackbox/stack.sh): цепь,
+# индексер, контроллер, базы, засев Стола заказов. Затем гоняет только наборы
+# components/boot/src/tests/ram-cost: каждый ведёт один типовой процесс через
+# API платформы и после каждого шага снимает память цепи — сколько байт
+# процесс удерживает на каждом этапе, пик и остаток после закрытия.
+#
+# Выход прогона — отчёт в сводке и артефакт ram-cost-<run_id>
+# (.blackbox/ram-cost/*.json и *.md). Байты переводятся в рубли отдельно,
+# в экономической модели.
+#
+# Расписания и релизного гейта нет: запуск — пушем в ветку-полигон
+# ci/ram-cost (ci/ram-cost-<имя> — личный полигон) либо кнопкой
+# workflow_dispatch.
+on:
+  push:
+    branches: [ci/ram-cost, 'ci/ram-cost-*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  ram-cost:
+    # Та же машина, что у blackbox: node_modules с нативными модулями ставятся
+    # на хосте и монтируются в контейнер node:22-slim (bookworm, glibc 2.36).
+    runs-on: ubuntu-22.04
+    timeout-minutes: 120
+
+    env:
+      COMPOSE_FILE: ${{ github.workspace }}/docker-compose.yaml:${{ github.workspace }}/scripts/blackbox/docker-compose.blackbox.yml
+      BLACKBOX_OUT: ${{ github.workspace }}/.blackbox
+      CONTRACTS_MODE: test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install workspace
+        run: pnpm install --frozen-lockfile
+
+      # Кеш контрактов общий с blackbox.yaml: тот же ключ, тот же режим сборки.
+      - name: Контракты — кеш
+        id: contracts
+        uses: actions/cache/restore@v4
+        with:
+          path: components/contracts/build
+          key: blackbox-contracts-build-${{ env.CONTRACTS_MODE }}-${{ hashFiles('components/contracts/**', '!components/contracts/build/**', '!components/contracts/docs/**') }}
+          restore-keys: blackbox-contracts-build-${{ env.CONTRACTS_MODE }}-
+
+      - name: Контракты — CDT
+        if: steps.contracts.outputs.cache-hit != 'true'
+        timeout-minutes: 10
+        run: |
+          sudo apt-get -o Acquire::Retries=3 update
+          sudo apt-get -o Acquire::Retries=3 install -y --no-install-recommends \
+            curl ca-certificates cmake make build-essential \
+            libz3-4 libtinfo6 libxml2 zlib1g
+          curl -fsSL -o /tmp/cdt.deb \
+            https://git.coopenomics.world/C9S/cdt/releases/download/v4.2.0/cdt_4.2.0-1_amd64.deb
+          sudo apt-get install -y /tmp/cdt.deb
+          sudo mkdir -p /cdt
+          sudo ln -sfn /usr/opt/cdt/4.2.0 /cdt/build
+
+      - name: Контракты — компиляция
+        if: steps.contracts.outputs.cache-hit != 'true'
+        working-directory: components/contracts
+        env:
+          MAKEFLAGS: -j4
+        run: |
+          if [ -d build ]; then find build -type f -exec touch {} +; fi
+          ./build_contracts_cdt.sh "$CONTRACTS_MODE"
+
+      - name: Контракты — сохранить в кеш
+        if: steps.contracts.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: components/contracts/build
+          key: ${{ steps.contracts.outputs.cache-primary-key }}
+
+      - name: Build all workspace packages
+        run: pnpm lerna run build
+
+      - name: Стенд — окружение и секреты
+        run: bash scripts/blackbox/stack.sh env
+
+      - name: Стенд — образ контроллера
+        run: bash scripts/blackbox/stack.sh image
+
+      - name: Стенд — базы, хранилище, CoopID, миграции
+        run: bash scripts/blackbox/stack.sh infra
+
+      - name: Стенд — цепь, контракты, совет и пайщики (boot:extra)
+        timeout-minutes: 30
+        run: bash scripts/blackbox/stack.sh boot
+
+      - name: Стенд — индексер и контроллер
+        timeout-minutes: 20
+        run: bash scripts/blackbox/stack.sh app
+
+      # Здесь засев обязателен: без участников и витрины Стола заказов процесс
+      # мерить не на чем.
+      - name: Стенд — засев Стола заказов
+        timeout-minutes: 20
+        run: bash scripts/blackbox/stack.sh seed
+
+      - name: Замер памяти типовых процессов
+        timeout-minutes: 45
+        env:
+          BLACKBOX_TESTS: src/tests/ram-cost
+          RAM_COST_OUT: ${{ github.workspace }}/.blackbox/ram-cost
+        run: bash scripts/blackbox/stack.sh tests
+
+      - name: Отчёт в сводку
+        if: always()
+        run: |
+          shopt -s nullglob
+          files=(.blackbox/ram-cost/*.md)
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "_Отчётов нет — замер не дошёл до первого этапа._" >> "$GITHUB_STEP_SUMMARY"
+          else
+            for f in "${files[@]}"; do cat "$f" >> "$GITHUB_STEP_SUMMARY"; echo >> "$GITHUB_STEP_SUMMARY"; done
+          fi
+
+      - name: Логи стенда
+        if: always()
+        run: bash scripts/blackbox/stack.sh collect
+
+      - name: Артефакты
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ram-cost-${{ github.run_id }}
+          path: .blackbox
+          include-hidden-files: true
+          retention-days: 30

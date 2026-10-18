@@ -20,6 +20,9 @@ import type Blockchain from '../../blockchain'
 import { processDecision } from '../soviet/processDecision'
 import { type Who, ensureIdentityVerified, gqlAs, signAs } from './chainHelpers'
 
+/** Точка между шагами цепочки: ключ только что завершённого шага. */
+export type StepHook = (step: string) => Promise<void> | void
+
 export interface OfferLike {
   id: string
   product_name: string
@@ -53,7 +56,8 @@ export async function pickOffer(
         && o.delivery_points.some((p: any) => p.braname === braname),
     )
     offer = (preferName && candidates.find(o => o.product_name === preferName)) || candidates[0]
-    if (offer) break
+    if (offer)
+      break
     if (Date.now() > deadline)
       throw new Error(`на стенде нет активного предложения ${supplierAccount} с поставкой на КУ «${braname}»`)
     // timing: backoff — опрос зеркала контроллера, пока индексер не донёс одобрение
@@ -73,13 +77,16 @@ export async function placeOrder(args: {
   offerId: string
   quantity: number
   braname: string
+  /** Вызывается после каждого промежуточного шага — замеры между шагами (ram-cost). */
+  onStep?: StepHook
 }): Promise<{ orderId: string, orderHash: string }> {
-  const { token, who, offerId, quantity, braname } = args
+  const { token, who, offerId, quantity, braname, onStep } = args
 
   await gqlAs(token, 'mutation{ marketplaceClearCart{ __typename } }').catch(() => {})
   await gqlAs(token, 'mutation($i:MarketplaceAddToCartInput!){ marketplaceAddToCart(input:$i){ __typename } }', {
     i: { offer_id: offerId, quantity, delivery_braname: braname },
   })
+  await onStep?.('cart')
 
   const sp: any = await gqlAs(token, `query{
     marketplaceCheckoutSignablePayloads{
@@ -124,12 +131,15 @@ export async function acceptToCoop(args: {
   braname: string
   factQuantity: number
   factUnitPrice: number
+  /** Вызывается после каждого промежуточного шага — замеры между шагами (ram-cost). */
+  onStep?: StepHook
 }): Promise<{ aplId: string, txHash: string }> {
-  const { supplierToken, supplier, operatorToken, operator, orderId, braname, factQuantity, factUnitPrice } = args
+  const { supplierToken, supplier, operatorToken, operator, orderId, braname, factQuantity, factUnitPrice, onStep } = args
 
   await gqlAs(supplierToken, 'mutation($i:MarketplaceAcceptOrdersBatchInput!){ marketplaceAcceptOrdersBatch(input:$i){ __typename } }', {
     i: { order_ids: [orderId] },
   })
+  await onStep?.('accepted')
 
   const ex: any = await gqlAs(operatorToken, `mutation($d:MarketplaceCreateExpressReceptionInput!){
     marketplaceCreateExpressReception(data:$d){ apl_receptions{ id status fact_quantity_per_order{ order_id fact_quantity fact_unit_price } } }
@@ -146,6 +156,7 @@ export async function acceptToCoop(args: {
   const apl = receptions.find(r => r.fact_quantity_per_order.some((f: any) => f.order_id === orderId))
   if (!apl)
     throw new Error('экспресс-приёмка не включила заказ')
+  await onStep?.('reception')
 
   const sp: any = await gqlAs(supplierToken, `query($d:MarketplaceAplReceptionByIdInput!){
     marketplaceAplReceptionSupplierSignablePayloads(data:$d){ full_title html hash meta binary }
@@ -157,6 +168,7 @@ export async function acceptToCoop(args: {
   await gqlAs(supplierToken, `mutation($d:MarketplaceSignAplReceptionInput!){
     marketplaceSignAplReceptionAsSupplier(data:$d){ apl_reception{ id status } }
   }`, { d: { apl_reception_id: apl.id, signed_documents: supplierSigned } })
+  await onStep?.('supplier-signed')
 
   const cp: any = await gqlAs(operatorToken, `query($d:MarketplaceAplReceptionByIdInput!){
     marketplaceAplReceptionChairmanSignablePayloads(data:$d){
@@ -226,8 +238,10 @@ export async function issueOrder(args: {
   braname: string
   actualQuantity: number
   actualUnitPrice: number
+  /** Вызывается после каждого промежуточного шага — замеры между шагами (ram-cost). */
+  onStep?: StepHook
 }): Promise<{ proposalId: string, decisionId: number, orderIds: string[] }> {
-  const { blockchain, operatorToken, operator, memberToken, member, orderId, braname, actualQuantity, actualUnitPrice } = args
+  const { blockchain, operatorToken, operator, memberToken, member, orderId, braname, actualQuantity, actualUnitPrice, onStep } = args
 
   // Выдача требует подтверждённой личности получателя (105-28).
   await ensureIdentityVerified(member.account)
@@ -244,6 +258,7 @@ export async function issueOrder(args: {
     },
   })
   const proposalId = prop.marketplaceCreateStockProposal.id as string
+  await onStep?.('proposal')
 
   // 2) Пайщик подписывает заявления по строкам — одно нажатие.
   const pay: any = await gqlAs(memberToken, `query($d:MarketplaceResolveStockProposalInput!){
@@ -267,6 +282,7 @@ export async function issueOrder(args: {
   // 3) Совет: робота на стенде нет — сага в ожидании; голосуем членами совета.
   const pending = await waitForSaga(memberToken, orderId, s => Boolean(s.decision_id) || s.awaits_member_signature)
   const decisionId = Number(pending.decision_id)
+  await onStep?.('statement')
   if (!pending.awaits_member_signature) {
     // Если на стенде включён робот с делегированным `mktissue`, он может
     // успеть утвердить решение между чтением саги и голосованием — тогда
@@ -276,6 +292,7 @@ export async function issueOrder(args: {
     })
   }
   await waitForSaga(memberToken, orderId, s => s.awaits_member_signature)
+  await onStep?.('decision')
 
   // 4) Акт пайщика — первая подпись.
   const actPl: any = await gqlAs(memberToken, `query($d:MarketplaceIssuanceOrderInput!){
@@ -284,6 +301,7 @@ export async function issueOrder(args: {
   await gqlAs(memberToken, `mutation($d:MarketplaceSignIssuanceActInput!){
     marketplaceSignIssuanceAct(data:$d){ ${SAGA_FIELDS} }
   }`, { d: { order_id: orderId, signed_act: await signAs(member.wif, actPl.marketplaceIssuanceActPayload, member.account, 1) } })
+  await onStep?.('member-act')
 
   // 5) Закрывающая подпись оператора поверх подписи пайщика.
   const closePl: any = await gqlAs(operatorToken, `query($d:MarketplaceIssuanceOrderInput!){
