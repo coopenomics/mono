@@ -24,6 +24,7 @@
 #include "src/account/newaccount.cpp"
 #include "src/account/updateaccnt.cpp"
 #include "src/account/changekey.cpp"
+#include "src/account/setplatform.cpp"
 
 #include "src/coop/delcoop.cpp"
 #include "src/coop/regcoop.cpp"

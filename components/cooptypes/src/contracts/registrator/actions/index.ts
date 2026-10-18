@@ -101,3 +101,8 @@ export * as EnableBranches from './enableBranches'
  * @private
  */
 export * as DisableBranches from './disableBranches'
+
+/**
+ * Действие выпуска разрешения `platform` — ключа узла кооператива
+ */
+export * as SetPlatform from './setPlatform'

@@ -15,6 +15,8 @@
 
   DomainCard
 
+  PlatformKeyCard
+
   .conn-dash__wallets.row.q-col-gutter-md
     .col-12.col-md-6
       MembershipWallet
@@ -39,7 +41,7 @@ import { computed } from 'vue'
 import { PageHint } from 'src/shared/ui/domain'
 import { PaymentsHistory } from 'src/widgets/Billing/PaymentsHistory'
 import { useSystemStore } from 'src/entities/System/model'
-import { AxonWallet, MembershipWallet, DomainCard, SubscriptionsCard, BillingDueCard } from './index'
+import { AxonWallet, MembershipWallet, DomainCard, SubscriptionsCard, BillingDueCard, PlatformKeyCard } from './index'
 
 const { info } = useSystemStore()
 const coopname = computed(() => info.coopname || '')

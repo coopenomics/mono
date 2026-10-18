@@ -79,6 +79,13 @@ const CORE_TABLES: InnerChainChangesTable[] = [
     table: RegistratorContract.Tables.Exits.tableName,
     owner_field: 'username',
   },
+  // Ключ установки (разрешение platform) — только владельцу аккаунта и совету:
+  // публичная часть, но знать, когда ключ узла перевыпускали, больше некому.
+  {
+    code: RegistratorContract.contractName.production,
+    table: RegistratorContract.Tables.Platforms.tableName,
+    owner_field: 'username',
+  },
   // Кооперативные участки: создание, правка, смена председателя участка.
   { code: BranchContract.contractName.production, table: BranchContract.Tables.Branches.tableName },
   // Собрания и хозяйство кооперативного участка — всем пайщикам кооператива:

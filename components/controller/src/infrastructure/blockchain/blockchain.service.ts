@@ -7,7 +7,7 @@ import { WalletPluginPrivateKey } from '@wharfkit/wallet-plugin-privatekey';
 import { AnoContract, RegistratorContract, SovietContract, SystemContract } from 'cooptypes';
 import config from '~/config/config';
 import { BlockchainPort } from '~/domain/common/ports/blockchain.port';
-import type { ActiveKeysQuorum, EndorsementRecord, ServedCooperative } from '~/domain/common/ports/blockchain.port';
+import type { ActiveKeysQuorum, EndorsementRecord, OwnPlatformKeyResult, ServedCooperative } from '~/domain/common/ports/blockchain.port';
 import { RpcPool, chainUnavailable, isChainUnreachable } from './rpc-pool.service';
 import { CHAIN_EXHAUSTION_CODES, retryOnChainExhaustion } from './chain-retry';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
@@ -580,6 +580,80 @@ export class BlockchainService implements BlockchainPort {
     return hasKey;
   }
 
+  public canSignAsActive(account: BlockchainAccountInterface, publicKey: string): boolean {
+    if (this.hasActiveKey(account, publicKey)) return true;
+    // Ключ узла кооператива: `active` = {ключ пайщика, <аккаунт>@platform},
+    // сам ключ лежит в разрешении `platform`. Другие делегирования (чужие
+    // аккаунты, иные разрешения) ключом узла не считаются.
+    const accountJson = JSON.parse(JSON.stringify(account));
+    const name = String(accountJson.account_name ?? '');
+    const permissions: any[] = accountJson.permissions ?? [];
+    const active = permissions.find((p) => p.perm_name === 'active');
+    const platform = permissions.find((p) => p.perm_name === RegistratorContract.Actions.SetPlatform.permissionName);
+    if (!active || !platform) return false;
+    const delegated = (active.required_auth.accounts ?? []).some(
+      (a: any) =>
+        a.permission?.actor === name &&
+        a.permission?.permission === RegistratorContract.Actions.SetPlatform.permissionName &&
+        Number(a.weight) >= Number(active.required_auth.threshold),
+    );
+    if (!delegated) return false;
+    return this.hasActiveKey({ permissions: [{ ...platform, perm_name: 'active' }] } as any, publicKey);
+  }
+
+  public async ensureOwnPlatformKey(): Promise<OwnPlatformKeyResult> {
+    const wif = await this.vaultDomainService.getWif(config.coopname);
+    if (!wif) return 'no-key';
+    const account = JSON.parse(JSON.stringify(await this.getAccount(config.coopname)));
+    const permissions: any[] = account?.permissions ?? [];
+    const platformName = RegistratorContract.Actions.SetPlatform.permissionName;
+    if (permissions.some((p) => p.perm_name === platformName)) return 'exists';
+
+    const nodeKey = PrivateKey.from(wif).toPublic().toLegacyString();
+    if (!this.hasActiveKey(account, nodeKey)) return 'key-not-active';
+    // setplatform ставит active = {ключ, @platform}: другие ключи active
+    // пропали бы. Такой аккаунт закрепляется только с участием пайщика.
+    const activeKeys = permissions.find((p) => p.perm_name === 'active')?.required_auth?.keys ?? [];
+    if (activeKeys.length !== 1) return 'shared-active';
+
+    this.initialize(config.coopname, wif);
+    await this.transact([
+      {
+        account: RegistratorContract.contractName.production,
+        name: RegistratorContract.Actions.SetPlatform.actionName,
+        authorization: [{ actor: config.coopname, permission: 'active' }],
+        data: { coopname: config.coopname, username: config.coopname, platform_key: nodeKey, active_key: nodeKey },
+      },
+    ]);
+    return 'issued';
+  }
+
+  /**
+   * Действие setplatform, закрепляющее нынешний активный ключ кооператива
+   * ключом его узла, — или null, если закреплять нечего: аккаунт не кооператив,
+   * platform уже выпущен, в active не ровно один ключ.
+   */
+  private async platformGuardAction(username: string): Promise<any | null> {
+    const cooperative = await this.getCooperative(username);
+    if (!cooperative) return null;
+    const account = JSON.parse(JSON.stringify(await this.getAccount(username)));
+    const permissions: any[] = account?.permissions ?? [];
+    if (permissions.some((p) => p.perm_name === RegistratorContract.Actions.SetPlatform.permissionName)) return null;
+    const keys = permissions.find((p) => p.perm_name === 'active')?.required_auth?.keys ?? [];
+    if (keys.length !== 1) {
+      this.logger.warn(`Ключ узла ${username} не закреплён перед сменой ключа: в active ${keys.length} ключей`);
+      return null;
+    }
+    const nodeKey = String(keys[0].key);
+    this.logger.info(`Перед сменой ключа ${username} нынешний активный ключ закрепляется ключом узла (platform)`);
+    return {
+      account: RegistratorContract.contractName.production,
+      name: RegistratorContract.Actions.SetPlatform.actionName,
+      authorization: [{ actor: config.coopname, permission: 'active' }],
+      data: { coopname: config.coopname, username, platform_key: nodeKey, active_key: nodeKey },
+    };
+  }
+
   public async getCooperative(coopname: string): Promise<any> {
     const cooperative = await this.getSingleRow(
       RegistratorContract.contractName.production,
@@ -597,7 +671,16 @@ export class BlockchainService implements BlockchainPort {
 
     this.initialize(config.coopname, wif);
 
+    // Ключ меняют кооперативу, у которого есть свой узел: узел подписывает его
+    // нынешним активным ключом. Без разрешения platform смена ключа остановила
+    // бы узел — поэтому той же транзакцией нынешний ключ закрепляется ключом
+    // узла (setplatform), и changekey сохраняет делегирование. Узлу обновляться
+    // для этого не нужно: он подписывает тем же ключом, цепь принимает его через
+    // platform.
+    const keepNodeKey = await this.platformGuardAction(String(data.username));
+
     const actions = [
+      ...(keepNodeKey ? [keepNodeKey] : []),
       {
         account: RegistratorContract.contractName.production,
         name: RegistratorContract.Actions.ChangeKey.actionName,

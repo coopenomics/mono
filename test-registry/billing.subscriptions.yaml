@@ -350,7 +350,6 @@ cases:
       докупает квант 5 AXON за 50 ₽ (срок не двигается, счётчик докупок растёт),
       при полном баке квантов нет; каталог отдаёт D = объём / число дней месяца
     test: components/boot/src/tests/billing-tank.test.ts
-    external: unreachable
-    external_reason: нужен стенд провайдера и хаба вместе со сжатым временем — гоняется отдельным прогоном Billing E2E (.github/workflows/billing-e2e.yaml), внешний слой api-tests провайдера не поднимает
+
     status: passing
 

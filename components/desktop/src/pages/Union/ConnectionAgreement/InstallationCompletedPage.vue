@@ -41,6 +41,10 @@ div.row.q-pa-md
         .next-steps.q-mt-xl
           .text-subtitle2.text-weight-medium.q-mb-md {{ $t('union.installationCompletedPage.nextStepsTitle') }}
 
+          //- Ключ установки — до перехода на сайт: мастер установки спросит его
+          //- первым шагом, а выпустить его можно только здесь.
+          PlatformKeyCard.q-mb-lg
+
           .next-step-item.q-mb-lg
             .text-body2.text-grey-8.q-mb-md
               | {{ $t('union.installationCompletedPage.setupStepText') }}
@@ -70,6 +74,7 @@ div.row.q-pa-md
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { PlatformKeyCard } from 'src/widgets/ConnectionDashboard';
 import { RegistratorContract } from 'cooptypes'
 import { liveTable, useLiveReload } from 'src/shared/lib/realtime'
 import { useRouter } from 'vue-router'

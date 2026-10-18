@@ -1,2 +1,2 @@
-export { ConnectionDashboard } from './ui'
+export { ConnectionDashboard, PlatformKeyCard } from './ui'
 

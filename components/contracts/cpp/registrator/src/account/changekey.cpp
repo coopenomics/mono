@@ -34,6 +34,15 @@ void registrator::changekey(eosio::name coopname, eosio::name changer, eosio::na
   key_weight keypermission{public_key, 1};
   active_auth.keys.emplace_back(keypermission);
 
+  // Выпущен ключ узла (`setplatform`) — делегирование `username@platform`
+  // остаётся в `active`: восстановление доступа пайщика не должно останавливать
+  // узел кооператива.
+  Registrator::platforms_index platforms(_registrator, _registrator.value);
+  if (platforms.find(username.value) != platforms.end()) {
+    active_auth.accounts.emplace_back(
+        permission_level_weight{eosio::permission_level(username, "platform"_n), 1});
+  }
+
   // Change active authority of card to a new key
   eosio::action(eosio::permission_level(_registrator, eosio::name("active")),
                 eosio::name("eosio"), eosio::name("changekey"),
