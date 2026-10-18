@@ -394,6 +394,11 @@ export class ProviderService {
       currentInstance.maintenance_mode = raw.maintenance_mode === true;
       currentInstance.is_restoring = raw.redeploy_restore === true;
       currentInstance.is_released = raw.release_state === 'done';
+      // Ход установки: по доле выполненных задач стол показывает процент в
+      // диапазоне плейбука, пока веха провайдера стоит на месте.
+      currentInstance.playbook_step = typeof raw.playbook_step === 'number' ? raw.playbook_step : null;
+      currentInstance.playbook_total_steps =
+        typeof raw.playbook_total_steps === 'number' ? raw.playbook_total_steps : null;
 
       return currentInstance;
     } catch (error: any) {

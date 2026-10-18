@@ -7,7 +7,23 @@ import { t } from 'src/shared/i18n';
 const connectionAgreement = useConnectionAgreementStore()
 const instance = computed(() => connectionAgreement.currentInstance)
 
-const progress = computed(() => Math.max(0, Math.min(100, instance.value?.progress || 0)))
+// Вехи провайдера: 30% — плейбук отправлен, 85% — плейбук отработал. Между
+// ними идёт почти вся установка, а веха стоит на месте, поэтому внутри
+// диапазона процент считается по доле выполненных задач Ansible. Общее число
+// задач провайдер берёт из прошлой успешной установки; до вехи 85% полоса не
+// доходит, даже если прогон длиннее эталона.
+const PLAYBOOK_FROM = 30
+const PLAYBOOK_TO = 85
+
+const progress = computed(() => {
+  const milestone = Math.max(0, Math.min(100, instance.value?.progress || 0))
+  const step = instance.value?.playbook_step ?? 0
+  const total = instance.value?.playbook_total_steps ?? 0
+  if (milestone < PLAYBOOK_FROM || milestone >= PLAYBOOK_TO || step <= 0 || total <= 0) return milestone
+  const share = Math.min(step / total, 1)
+  const withinPlaybook = Math.floor(PLAYBOOK_FROM + (PLAYBOOK_TO - PLAYBOOK_FROM) * share)
+  return Math.max(milestone, Math.min(withinPlaybook, PLAYBOOK_TO - 1))
+})
 
 /**
  * Возврат в строй отличается от первой установки: платформа разворачивается

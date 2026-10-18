@@ -5738,6 +5738,8 @@ export const ReturnTypes: Record<string,any> = {
 		is_restoring:"Boolean",
 		is_valid:"Boolean",
 		maintenance_mode:"Boolean",
+		playbook_step:"Int",
+		playbook_total_steps:"Int",
 		progress:"Float",
 		status:"InstanceStatus",
 		title:"String"
