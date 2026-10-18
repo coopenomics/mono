@@ -24,6 +24,7 @@ import { cashierPaid } from '../documents/docs-reports.helpers'
 import {
   CREATE_ASSIGNMENT,
   CREATE_COURSE,
+  REPORT_LESSON,
   REQUEST_RETURN,
   RETURN_STATEMENT,
   SET_COURSE_STATUS,
@@ -39,10 +40,11 @@ import {
   educationOn,
   fundShare,
   holdMaterials,
+  groupOfAssignment,
   onboardTeacher,
   pendingActApproval,
+  planLesson,
   reopenEnrollment,
-  reportLesson,
   signOffer,
   signTransferAct,
   submitStatement,
@@ -109,11 +111,16 @@ describe.runIf(RAM_COST_ON)('оперативная память: «Образо
     await subscribe(learner, learnerToken, self.id, course.id)
     await pm.mark('subscribed')
 
-    // Доступ по подписке оплачен с момента оформления, а помощник по умолчанию
-    // ставит занятие на два часа назад — до оплаты. Занятие ставим на «только
-    // что»: длина занятия на стенде идёт в масштабе суток (30 с), и оно уже
-    // закончилось к отчёту.
-    const { contribution } = await reportLesson(teacherToken, assignment.id, 1, { held_at: new Date(Date.now() - 3_000).toISOString() })
+    // Доступ по подписке оплачен с дня оформления, а занятия по расписанию
+    // курса (он начался три дня назад) стоят раньше. Поэтому занятие —
+    // внеочередное, на «только что»: длина занятия на стенде идёт в масштабе
+    // суток (30 с), и к отчёту оно уже закончилось.
+    const { group } = await groupOfAssignment(teacherToken, assignment.id)
+    const lessonPlanned = await planLesson(group.id, { assignment_id: assignment.id, held_at: new Date(Date.now() - 3_000).toISOString() })
+    const reported = (await gql<any>(teacherToken, REPORT_LESSON, {
+      d: { lesson_id: lessonPlanned.id, materials: ['https://example.org/ram-cost-lesson'], topic: 'Занятие замера памяти' },
+    })).edubridgeReportLesson
+    const contribution = await contributionOf(teacherToken, reported.contribution_id)
     await pm.mark('reported')
 
     await holdMaterials(teacher, teacherToken, contribution.id)
