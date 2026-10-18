@@ -238,6 +238,17 @@ describe('ключ установки: registrator::setplatform', () => {
       expect((await setWif(COOP, stranger.wif)).code).toBe('AUTH_INVALID_PRIVATE_KEY')
     }
     finally {
+      // Ключ узла стенда возвращается целиком: и в хранилище, и в platform.
+      // Иначе на стенде остаётся разрешение с ключом, приватной части которого
+      // ни у кого нет.
+      const ecc = (await import('eosjs-ecc')).default ?? (await import('eosjs-ecc'))
+      const coopPub: string = ecc.privateToPublic(coopKey)
+      await transact([{
+        account: RegistratorContract.contractName.production,
+        name: RegistratorContract.Actions.SetPlatform.actionName,
+        authorization: [{ actor: COOP, permission: 'active' }],
+        data: { coopname: COOP, username: COOP, platform_key: coopPub, active_key: userKey },
+      }])
       expect(await setWif(COOP, coopKey)).toEqual({ ok: true })
     }
   })
