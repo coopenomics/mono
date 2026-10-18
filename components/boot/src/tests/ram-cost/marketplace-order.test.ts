@@ -10,7 +10,9 @@
  * подтверждение выплаты поставщику кассиром → закрытие заказа
  * (`marketplace::closeorder`, его в работе зовёт ежедневный крон контроллера).
  * После каждого шага снимается память цепи (ramMeter.ts): сколько байт процесс
- * удерживает, пока ждёт следующего шага, у кого и в каких таблицах.
+ * удерживает, пока ждёт следующего шага, у кого и в каких таблицах. Главное —
+ * память, которую оплачивает кооператив; память контрактов и людей — полная
+ * картина второй частью отчёта.
  *
  * Гарантийный срок. Крон закрывает заказ, когда срок вышел, а срок задаётся в
  * сутках (`warranty_days × 86400`). На время замера предложению ставится срок
@@ -75,7 +77,7 @@ const DEFAULT_DAYS: StageDays = {
   paid: 2,
 }
 
-const meter = new RamMeter()
+const meter = new RamMeter(COOP)
 let chairmanToken = ''
 let ekaterinaToken = ''
 let sidorovToken = ''
@@ -126,7 +128,8 @@ describe.runIf(process.env.RAM_COST_OUT)('оперативная память: �
     const days: StageDays = { ...DEFAULT_DAYS, ...(process.env.RAM_COST_DAYS ? JSON.parse(process.env.RAM_COST_DAYS) : {}) }
     const report = buildReport('поставка по заказу Стола заказов (от оформления до закрытия после гарантии)', meter, days)
     const file = writeReport(report, 'marketplace-order')
-    console.log(`[ram-cost] пик ${fmt(report.peak.bytes)} (${report.peak.stage}), остаток ${fmt(report.residual.bytes)}, отчёт ${file}`)
+    const c = report.payer_totals
+    console.log(`[ram-cost] кооператив: пик ${fmt(c.peak.bytes)} (${c.peak.stage}), остаток ${fmt(c.residual_bytes)}; вся цепь: пик ${fmt(report.totals.peak.bytes)}; отчёт ${file}`)
   }, 120_000)
 
   it('заказ проходит путь до закрытия, память снимается на каждом этапе', async () => {

@@ -18,6 +18,11 @@
  * Байты этапа — нарастающий итог от снимка «до процесса»: столько памяти
  * процесс удерживает, пока ждёт следующего шага. Пик — максимум этого итога,
  * остаток после закрытия — память, которую процесс оставляет навсегда.
+ *
+ * Главное в отчёте — память, которую оплачивает кооператив: `ram_usage` его
+ * аккаунта (точные байты) и строки таблиц, где плательщик — кооператив
+ * (`show_payer`). Память контрактов и людей идёт второй частью — полная
+ * картина процесса.
  */
 import fs from 'node:fs'
 import path from 'node:path'
@@ -42,6 +47,8 @@ export interface RamStage {
   title: string
   awaits: string
   snapshot: RamSnapshot
+  /** Строки, оплаченные кооперативом, по ключу `контракт/таблица/скоуп`. */
+  payerRows: Record<string, number>
 }
 
 async function chainPost<T = any>(endpoint: string, body: unknown): Promise<T> {
@@ -69,6 +76,32 @@ async function tablesByScope(code: string, table?: string): Promise<{ code: stri
   return out
 }
 
+/** Число строк таблицы, за которые платит `payer` (`show_payer`). */
+async function rowsPaidBy(key: string, payer: string): Promise<number> {
+  const [code, table, scope] = key.split('/')
+  let count = 0
+  let lower = ''
+  for (;;) {
+    let d: any
+    try {
+      d = await chainPost('get_table_rows', { json: false, code, table, scope, lower_bound: lower, limit: 1000, show_payer: true })
+    }
+    catch (e: any) {
+      // Таблица без описания в ABI узлом не читается — её строки кооператива не видны.
+      console.warn(`[ram-cost] ${key}: плательщиков не прочитать — ${e?.message ?? e}`)
+      return count
+    }
+    for (const r of d.rows ?? []) {
+      if (r.payer === payer)
+        count++
+    }
+    if (!d.more || !d.next_key)
+      break
+    lower = d.next_key
+  }
+  return count
+}
+
 /** Параллельный обход с ограничением числа одновременных запросов к узлу. */
 async function mapLimit<T, R>(items: T[], limit: number, fn: (x: T) => Promise<R>): Promise<R[]> {
   const out: R[] = Array.from({ length: items.length })
@@ -84,7 +117,12 @@ async function mapLimit<T, R>(items: T[], limit: number, fn: (x: T) => Promise<R
 
 export class RamMeter {
   private contracts: string[] = []
+  /** Таблицы, где число строк менялось по ходу процесса: их плательщиков пересчитываем на каждом этапе. */
+  private tracked = new Set<string>()
   readonly stages: RamStage[] = []
+
+  /** @param payer аккаунт, чью память считаем главной, — кооператив. */
+  constructor(readonly payer: string) {}
   /** Изменения памяти без действий процесса — шум стенда (кроны контроллера). */
   idleDrift: Record<string, number> = {}
 
@@ -148,13 +186,36 @@ export class RamMeter {
     this.idleDrift = diffMap(a.accounts, b.accounts)
   }
 
+  /**
+   * Строки кооператива: на снимке «до процесса» — по всем таблицам, дальше —
+   * по таблицам, где число строк менялось хоть раз. Строки, сменившие
+   * плательщика без смены числа строк, так не видны; байты кооператива
+   * (`ram_usage`) их всё равно учитывают.
+   */
+  private async scanPayerRows(snapshot: RamSnapshot): Promise<Record<string, number>> {
+    const base = this.stages[0]?.snapshot
+    if (base) {
+      for (const k of Object.keys(diffMap(base.rows, snapshot.rows)))
+        this.tracked.add(k)
+    }
+    const keys = base ? [...this.tracked].filter(k => k in snapshot.rows) : Object.keys(snapshot.rows)
+    const counts = await mapLimit(keys, 8, k => rowsPaidBy(k, this.payer))
+    const out: Record<string, number> = {}
+    keys.forEach((k, i) => {
+      out[k] = counts[i]
+    })
+    return out
+  }
+
   async stage(key: string, title: string, awaits: string): Promise<RamStage> {
     const snapshot = await this.settle()
-    const s = { key, title, awaits, snapshot }
+    const payerRows = await this.scanPayerRows(snapshot)
+    const s = { key, title, awaits, snapshot, payerRows }
     this.stages.push(s)
-    const base = this.stages[0].snapshot.total
-    const prev = this.stages.length > 1 ? this.stages[this.stages.length - 2].snapshot.total : base
-    console.log(`[ram-cost] ${key}: удерживается ${fmt(snapshot.total - base)} (шаг ${fmt(snapshot.total - prev)}) — ${title}`)
+    const b = this.stages[0].snapshot
+    const p = this.stages.length > 1 ? this.stages[this.stages.length - 2].snapshot : b
+    const coop = (x: RamSnapshot) => x.accounts[this.payer] ?? 0
+    console.log(`[ram-cost] ${key}: кооператив ${fmt(coop(snapshot) - coop(b))} (шаг ${fmt(coop(snapshot) - coop(p))}), всего ${fmt(snapshot.total - b.total)} — ${title}`)
     return s
   }
 }
@@ -197,94 +258,144 @@ function listDiff(d: Record<string, number>): string {
 /** Длительности этапов для расчёта байт·суток: ключ этапа → сутки. */
 export type StageDays = Record<string, number>
 
+/** Итог по одному кругу плательщиков: кооператив или все аккаунты цепи. */
+export interface RamTotals {
+  peak: { stage: string, bytes: number }
+  residual_bytes: number
+  byte_days: number
+  avg_bytes_per_day: number
+}
+
 export interface RamReport {
   process: string
+  payer: string
   generated_at: string
   idle_drift: Record<string, number>
+  days_total: number
   stages: {
     key: string
     title: string
     awaits: string
+    days: number
+    /** Память кооператива: байты от начала и за шаг, строки с плательщиком-кооперативом от начала. */
+    payer_held_bytes: number
+    payer_step_bytes: number
+    payer_rows_held: Record<string, number>
+    payer_byte_days: number
+    /** Полная картина: все аккаунты цепи. */
     held_bytes: number
     step_bytes: number
     accounts_held: Record<string, number>
     accounts_step: Record<string, number>
     rows_held: Record<string, number>
     rows_step: Record<string, number>
-    days: number
     byte_days: number
   }[]
-  peak: { stage: string, bytes: number, accounts: Record<string, number> }
-  residual: { bytes: number, accounts: Record<string, number>, rows: Record<string, number> }
-  byte_days_total: number
-  days_total: number
-  avg_bytes_per_day: number
+  payer_totals: RamTotals
+  totals: RamTotals
+}
+
+function totalsOf(stages: { key: string, days: number }[], held: (k: number) => number, daysTotal: number): RamTotals {
+  let peak = { stage: stages[0].key, bytes: held(0) }
+  let byteDays = 0
+  stages.forEach((s, k) => {
+    if (held(k) > peak.bytes)
+      peak = { stage: s.key, bytes: held(k) }
+    byteDays += held(k) * s.days
+  })
+  return {
+    peak,
+    residual_bytes: held(stages.length - 1),
+    byte_days: byteDays,
+    avg_bytes_per_day: daysTotal ? Math.round(byteDays / daysTotal) : 0,
+  }
 }
 
 /**
- * Отчёт: удерживаемая память по этапам, пик, остаток навсегда, байт·сутки
- * при заданных длительностях этапов.
+ * Отчёт: память кооператива и полная картина по этапам, пик, остаток
+ * навсегда, байт·сутки при заданных длительностях этапов.
  */
 export function buildReport(processName: string, meter: RamMeter, days: StageDays): RamReport {
   const [base, ...rest] = meter.stages
   const b = base.snapshot
+  const coop = (x: RamSnapshot) => x.accounts[meter.payer] ?? 0
   const stages = rest.map((s, k) => {
     const prev = k === 0 ? b : rest[k - 1].snapshot
     const held = s.snapshot.total - b.total
+    const payerHeld = coop(s.snapshot) - coop(b)
     const d = days[s.key] ?? 0
     return {
       key: s.key,
       title: s.title,
       awaits: s.awaits,
+      days: d,
+      payer_held_bytes: payerHeld,
+      payer_step_bytes: coop(s.snapshot) - coop(prev),
+      payer_rows_held: diffMap(pick(base.payerRows, Object.keys(s.payerRows)), s.payerRows),
+      payer_byte_days: payerHeld * d,
       held_bytes: held,
       step_bytes: s.snapshot.total - prev.total,
       accounts_held: diffMap(b.accounts, s.snapshot.accounts),
       accounts_step: diffMap(prev.accounts, s.snapshot.accounts),
       rows_held: diffMap(b.rows, s.snapshot.rows),
       rows_step: diffMap(prev.rows, s.snapshot.rows),
-      days: d,
       byte_days: held * d,
     }
   })
-  const peakStage = stages.reduce((m, s) => (s.held_bytes > m.held_bytes ? s : m), stages[0])
-  const last = stages[stages.length - 1]
-  const byteDays = stages.reduce((sum, s) => sum + s.byte_days, 0)
   const daysTotal = stages.reduce((sum, s) => sum + s.days, 0)
   return {
     process: processName,
+    payer: meter.payer,
     generated_at: new Date().toISOString(),
     idle_drift: meter.idleDrift,
-    stages,
-    peak: { stage: peakStage.key, bytes: peakStage.held_bytes, accounts: peakStage.accounts_held },
-    residual: { bytes: last.held_bytes, accounts: last.accounts_held, rows: last.rows_held },
-    byte_days_total: byteDays,
     days_total: daysTotal,
-    avg_bytes_per_day: daysTotal ? Math.round(byteDays / daysTotal) : 0,
+    stages,
+    payer_totals: totalsOf(stages, k => stages[k].payer_held_bytes, daysTotal),
+    totals: totalsOf(stages, k => stages[k].held_bytes, daysTotal),
   }
+}
+
+function pick(m: Record<string, number>, keys: string[]): Record<string, number> {
+  const out: Record<string, number> = {}
+  for (const k of keys)
+    out[k] = m[k] ?? 0
+  return out
+}
+
+function totalsLines(r: RamReport, t: RamTotals): string[] {
+  const title = r.stages.find(s => s.key === t.peak.stage)?.title
+  return [
+    `- **Пик:** ${fmt(t.peak.bytes)} — этап «${title}».`,
+    `- **Остаётся навсегда после закрытия:** ${fmt(t.residual_bytes)}.`,
+    `- **Байт·сутки за процесс:** ${t.byte_days} при длительности ${r.days_total} сут; в среднем ${fmt(t.avg_bytes_per_day)} в сутки.`,
+    '',
+  ]
 }
 
 export function renderMarkdown(r: RamReport): string {
   const out: string[] = []
   out.push(`# Оперативная память цепи: ${r.process}`, '')
-  out.push(`Снято ${r.generated_at}. Байты — \`ram_usage\` аккаунтов цепи, нарастающим итогом от снимка «до процесса».`, '')
-  out.push(`**Пик:** ${fmt(r.peak.bytes)} на этапе «${r.stages.find(s => s.key === r.peak.stage)?.title}».`, '')
-  out.push(`**Остаётся навсегда после закрытия:** ${fmt(r.residual.bytes)}.`, '')
-  out.push(`**Байт·сутки за процесс:** ${r.byte_days_total} при длительности ${r.days_total} сут; в среднем ${fmt(r.avg_bytes_per_day)} в сутки.`, '')
+  out.push(`Снято ${r.generated_at}. Байты — \`ram_usage\` аккаунтов цепи, нарастающим итогом от снимка «до процесса». Сутки этапов — допущения теста, не замер.`, '')
   const drift = Object.keys(r.idle_drift).length
   out.push(drift
     ? `> ⚠️ Шум стенда: за 30 с без действий процесса память изменилась у ${drift} аккаунтов: ${listDiff(r.idle_drift).replaceAll('<br>', ', ')}.`
     : '> Шум стенда: за 30 с без действий процесса память не изменилась.', '')
-  out.push('## Этапы', '')
-  out.push('| # | этап | процесс ждёт | удерживается | шаг | сутки | байт·сутки |')
-  out.push('|---|---|---|---|---|---|---|')
+
+  out.push(`## Платит кооператив (${r.payer})`, '')
+  out.push(...totalsLines(r, r.payer_totals))
+  out.push('| # | этап | процесс ждёт | держит кооператив | шаг | сутки | байт·сутки | строки кооператива (от начала) |')
+  out.push('|---|---|---|---|---|---|---|---|')
   r.stages.forEach((s, k) => {
-    out.push(`| ${k + 1} | ${s.title} | ${s.awaits} | ${fmt(s.held_bytes)} | ${fmt(s.step_bytes)} | ${s.days} | ${s.byte_days} |`)
+    out.push(`| ${k + 1} | ${s.title} | ${s.awaits} | ${fmt(s.payer_held_bytes)} | ${fmt(s.payer_step_bytes)} | ${s.days} | ${s.payer_byte_days} | ${listDiff(s.payer_rows_held)} |`)
   })
-  out.push('', '## Кто держит память на каждом этапе', '')
-  out.push('| этап | аккаунты (байт от начала) | строки таблиц (от начала) |')
-  out.push('|---|---|---|')
-  for (const s of r.stages)
-    out.push(`| ${s.title} | ${listDiff(s.accounts_held)} | ${listDiff(s.rows_held)} |`)
+
+  out.push('', '## Полная картина: все плательщики', '')
+  out.push(...totalsLines(r, r.totals))
+  out.push('| # | этап | держит цепь | шаг | сутки | байт·сутки | аккаунты (байт от начала) | строки таблиц (от начала) |')
+  out.push('|---|---|---|---|---|---|---|---|')
+  r.stages.forEach((s, k) => {
+    out.push(`| ${k + 1} | ${s.title} | ${fmt(s.held_bytes)} | ${fmt(s.step_bytes)} | ${s.days} | ${s.byte_days} | ${listDiff(s.accounts_held)} | ${listDiff(s.rows_held)} |`)
+  })
   out.push('', '## Что меняет каждый шаг', '')
   out.push('| шаг | аккаунты (байт) | строки таблиц |')
   out.push('|---|---|---|')
