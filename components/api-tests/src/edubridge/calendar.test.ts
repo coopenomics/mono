@@ -54,6 +54,7 @@ const CREATE_GROUP = 'mutation($d:EduCreateGroupInput!){ edubridgeCreateGroup(da
 const FINISH_GROUP = 'mutation($id:ID!){ edubridgeFinishGroup(group_id:$id){ id status } }'
 const MY_CONTRIBUTIONS = 'query{ edubridgeMyContributions{ id rid_hash } }'
 const MY_LESSONS_CHARGE = 'query{ edubridgeMyLessons{ id group_id expected_amount contribution_id } }'
+const MY_LESSONS_PAID = 'query{ edubridgeMyLessons{ id learners_paid overdue } }'
 const TEACHERS_APPROVALS = 'query{ edubridgeTeachers{ username pending_approvals } }'
 
 /** День недели (1 — понедельник … 7 — воскресенье), час и минуты по Москве. */
@@ -281,9 +282,9 @@ describe('Образование: календарь группы и стол п
     it(caseName('edu.cal.side.22', 'прошедшее занятие группы без оплаченных обучающихся: обучающихся ноль, просрочки нет, отчёта не ждут'), async () => {
       emptyGroup = (await gql<any>(chairman, CREATE_GROUP, { d: { course_id: reportCourse.id, starts_at: dayFromNow(-3), title: 'Группа без обучающихся' } })).edubridgeCreateGroup
       const lesson = await planLesson(emptyGroup.id, { assignment_id: repA.id, held_at: new Date(Date.now() - 3 * 3600_000).toISOString(), minutes: 60 })
-      // Число обучающихся и просрочку считает стол преподавателя.
-      const row = ((await gql<any>(token, MY_LESSONS)).edubridgeMyLessons as any[]).find(l => l.id === lesson.id)
-      expect(row.learners_count).toBe(0)
+      // Обучающихся с оплаченным на дату занятия доступом и просрочку считает стол преподавателя.
+      const row = ((await gql<any>(token, MY_LESSONS_PAID)).edubridgeMyLessons as any[]).find(l => l.id === lesson.id)
+      expect(row.learners_paid).toBe(0)
       expect(row.overdue).toBe(false)
     })
 

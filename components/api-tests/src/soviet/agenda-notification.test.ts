@@ -10,7 +10,7 @@
  * отклоняет, пайщик остаётся в кооперативе.
  */
 import { describe, expect, it } from 'vitest'
-import { CHAIRMAN, awaitDecision, caseName, declineDecisionOnChain, freshMember, latestMail, login, requestExit } from '../core'
+import { CHAIRMAN, awaitDecision, caseName, declineDecisionOnChain, freshMember, latestMail, login, requestExit, voteOnDecision } from '../core'
 
 describe('оповещение о новом вопросе повестки', () => {
   it(caseName('sov.agenda.happy.01', 'письмо председателю ведёт на страницу этого вопроса'), async () => {
@@ -23,6 +23,8 @@ describe('оповещение о новом вопросе повестки', (
       expect(mail.html + mail.text).toContain(`/soviet/agenda/${decision.id}`)
     }
     finally {
+      // Совет отклоняет вопрос большинством голосов «против».
+      await voteOnDecision(Number(decision.id), 'against')
       await declineDecisionOnChain(Number(decision.id))
     }
   }, 300_000)
