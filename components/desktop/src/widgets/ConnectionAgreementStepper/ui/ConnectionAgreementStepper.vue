@@ -75,6 +75,11 @@ function onStepperChange(key: string) {
   const found = ALL_STEPS.find((s) => s.key === key)
   if (!found) return
   if (found.index >= currentStep.value) return
+  // Подписанное соглашение уже в цепи (запись кооператива): к нему и к шагам,
+  // данные которых в него вошли, вернуться нельзя. Иначе мастер снова
+  // показывает документ с кнопкой «Подписать», и подписанное выглядит
+  // неподписанным (стенд 18.10.2026).
+  if (connectionAgreement.coop && found.index <= CONNECTION_STEP.agreement) return
   connectionAgreement.setCurrentStep(found.index)
 }
 

@@ -26,7 +26,6 @@ onMounted(async () => {
   }
 })
 
-const handleBack = () => connectionAgreement.setCurrentStep(CONNECTION_STEP.agreement)
 
 const handleContinue = () => {
   if (!isDelegated.value) return
@@ -50,7 +49,7 @@ StepFrame(
   :title="$t('connectionAgreementStepper.domainValidationStep.stepTitle')"
   :lead="$t('connectionAgreementStepper.domainValidationStep.lead')"
   :next-disabled="!isDelegated"
-  @back="handleBack"
+  :can-back="false"
   @next="handleContinue"
 )
   ol.dns-step__how
