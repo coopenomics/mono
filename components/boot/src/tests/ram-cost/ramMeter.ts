@@ -32,6 +32,7 @@ import path from 'node:path'
 import process from 'node:process'
 import config from '../../configs'
 import { CHAIN_URL } from '../marketplace/chainHelpers'
+import type { RamPrice } from './ramPrice'
 
 const EPOCH = '1970-01-01T00:00:00.000'
 
@@ -185,6 +186,7 @@ export class RamMeter {
         this.known.add(r.payer)
       }
     }
+    normalizeIndexRows(rows)
     const total = Object.values(accounts).reduce((s, v) => s + v, 0)
     return { at: new Date().toISOString(), accounts, rows, total }
   }
@@ -255,6 +257,29 @@ export class RamMeter {
   }
 }
 
+/**
+ * Строки вторичных индексов — служебные копии ключей, а не записи: имя такой
+ * таблицы — имя основной, дополненное точками до 12 знаков, плюс номер
+ * индекса (`orders......1`, `agreements3.1`). Их убираем. Счётчик основной
+ * таблицы с индексами узел отдаёт удвоенным (проверено 18.10.2026:
+ * `soviet/agreements3` — 3 строки при счётчике 6, `ledger2/userwallets` —
+ * 3 при 6, у `ledger2/accounts` без индексов 6 при 6) — делим пополам.
+ */
+function normalizeIndexRows(rows: Record<string, number>): void {
+  const withIndex = new Set<string>()
+  for (const key of Object.keys(rows)) {
+    const [code, table, scope] = key.split('/')
+    if (table.length !== 13)
+      continue
+    withIndex.add(`${code}/${table.slice(0, 12).replace(/\.+$/, '')}/${scope}`)
+    delete rows[key]
+  }
+  for (const key of withIndex) {
+    if (key in rows)
+      rows[key] = Math.round(rows[key] / 2)
+  }
+}
+
 function sameRows(a: Record<string, number>, b: Record<string, number>): boolean {
   const keys = new Set([...Object.keys(a), ...Object.keys(b)])
   for (const k of keys) {
@@ -299,6 +324,10 @@ export interface RamTotals {
   residual_bytes: number
   byte_days: number
   avg_bytes_per_day: number
+  /** Аренда памяти за процесс по замеренной цене, AXON (нет цены — null). */
+  axon: number | null
+  /** Аренда в сутки на пике, AXON. */
+  peak_axon_per_day: number | null
 }
 
 export interface RamReport {
@@ -306,6 +335,7 @@ export interface RamReport {
   payer: string
   generated_at: string
   idle_drift: Record<string, number>
+  price: RamPrice | null
   days_total: number
   stages: {
     key: string
@@ -330,7 +360,7 @@ export interface RamReport {
   totals: RamTotals
 }
 
-function totalsOf(stages: { key: string, days: number }[], held: (k: number) => number, daysTotal: number): RamTotals {
+function totalsOf(stages: { key: string, days: number }[], held: (k: number) => number, daysTotal: number, price: RamPrice | null): RamTotals {
   let peak = { stage: stages[0].key, bytes: held(0) }
   let byteDays = 0
   stages.forEach((s, k) => {
@@ -343,6 +373,8 @@ function totalsOf(stages: { key: string, days: number }[], held: (k: number) => 
     residual_bytes: held(stages.length - 1),
     byte_days: byteDays,
     avg_bytes_per_day: daysTotal ? Math.round(byteDays / daysTotal) : 0,
+    axon: price ? byteDays * price.axon_per_byte_day : null,
+    peak_axon_per_day: price ? peak.bytes * price.axon_per_byte_day : null,
   }
 }
 
@@ -350,7 +382,7 @@ function totalsOf(stages: { key: string, days: number }[], held: (k: number) => 
  * Отчёт: память кооператива и полная картина по этапам, пик, остаток
  * навсегда, байт·сутки при заданных длительностях этапов.
  */
-export function buildReport(processName: string, meter: RamMeter, days: StageDays): RamReport {
+export function buildReport(processName: string, meter: RamMeter, days: StageDays, price: RamPrice | null = null): RamReport {
   const [base, ...rest] = meter.stages
   const b = base.snapshot
   const coop = (x: RamSnapshot) => x.accounts[meter.payer] ?? 0
@@ -383,10 +415,11 @@ export function buildReport(processName: string, meter: RamMeter, days: StageDay
     payer: meter.payer,
     generated_at: new Date().toISOString(),
     idle_drift: meter.idleDrift,
+    price,
     days_total: daysTotal,
     stages,
-    payer_totals: totalsOf(stages, k => stages[k].payer_held_bytes, daysTotal),
-    totals: totalsOf(stages, k => stages[k].held_bytes, daysTotal),
+    payer_totals: totalsOf(stages, k => stages[k].payer_held_bytes, daysTotal, price),
+    totals: totalsOf(stages, k => stages[k].held_bytes, daysTotal, price),
   }
 }
 
@@ -397,12 +430,35 @@ function pick(m: Record<string, number>, keys: string[]): Record<string, number>
   return out
 }
 
+/** AXON с четырьмя знаками токена и ещё двумя — доли копейки видны на малых этапах. */
+export function axon(v: number | null): string {
+  return v === null ? '—' : `${v.toFixed(6)} AXON`
+}
+
 function totalsLines(r: RamReport, t: RamTotals): string[] {
   const title = r.stages.find(s => s.key === t.peak.stage)?.title
-  return [
-    `- **Пик:** ${fmt(t.peak.bytes)} — этап «${title}».`,
-    `- **Остаётся навсегда после закрытия:** ${fmt(t.residual_bytes)}.`,
+  const lines = [
+    `- **Пик:** ${fmt(t.peak.bytes)} — этап «${title}»${t.peak_axon_per_day === null ? '' : `; аренда на пике ${axon(t.peak_axon_per_day)} в сутки`}.`,
+    `- **Остаётся после закрытия:** ${fmt(t.residual_bytes)}.`,
     `- **Байт·сутки за процесс:** ${t.byte_days} при длительности ${r.days_total} сут; в среднем ${fmt(t.avg_bytes_per_day)} в сутки.`,
+  ]
+  if (t.axon !== null)
+    lines.push(`- **Аренда памяти за процесс:** ${axon(t.axon)}.`)
+  lines.push('')
+  return lines
+}
+
+function priceLines(p: RamPrice | null): string[] {
+  if (!p)
+    return ['> Цена памяти не замерена — колонки AXON пусты.', '']
+  return [
+    '## Цена памяти (замер арендой)',
+    '',
+    `Кооператив арендовал память действием \`eosio::powerup\` на ${p.payment_axon} AXON: квота выросла на **${p.bytes_per_payment} Б** на ${p.powerup_days} сут. `
+    + `По формуле контракта (половина платежа в минимальных единицах токена) ожидалось ${p.expected_bytes_by_formula} Б`
+    + `${p.ram_debt_before ? `; долг по памяти до аренды ${p.ram_debt_before} Б` : ''}.`,
+    '',
+    `**1 байт·сутки = ${p.axon_per_byte_day.toPrecision(6)} AXON; 1 КБ·сутки = ${axon(p.axon_per_byte_day * 1024)}.**`,
     '',
   ]
 }
@@ -416,20 +472,22 @@ export function renderMarkdown(r: RamReport): string {
     ? `> ⚠️ Шум стенда: за 30 с без действий процесса память изменилась у ${drift} аккаунтов: ${listDiff(r.idle_drift).replaceAll('<br>', ', ')}.`
     : '> Шум стенда: за 30 с без действий процесса память не изменилась.', '')
 
+  out.push(...priceLines(r.price))
+  const perDay = (b: number) => (r.price ? axon(b * r.price.axon_per_byte_day) : '—')
   out.push(`## Платит кооператив (${r.payer})`, '')
   out.push(...totalsLines(r, r.payer_totals))
-  out.push('| # | этап | процесс ждёт | держит кооператив | шаг | сутки | байт·сутки | строки кооператива (от начала) |')
-  out.push('|---|---|---|---|---|---|---|---|')
+  out.push('| # | этап | процесс ждёт | держит кооператив | шаг | AXON в сутки | сутки | AXON за этап | строки кооператива (от начала) |')
+  out.push('|---|---|---|---|---|---|---|---|---|')
   r.stages.forEach((s, k) => {
-    out.push(`| ${k + 1} | ${s.title} | ${s.awaits} | ${fmt(s.payer_held_bytes)} | ${fmt(s.payer_step_bytes)} | ${s.days} | ${s.payer_byte_days} | ${listDiff(s.payer_rows_held)} |`)
+    out.push(`| ${k + 1} | ${s.title} | ${s.awaits} | ${fmt(s.payer_held_bytes)} | ${fmt(s.payer_step_bytes)} | ${perDay(s.payer_held_bytes)} | ${s.days} | ${perDay(s.payer_byte_days)} | ${listDiff(s.payer_rows_held)} |`)
   })
 
   out.push('', '## Полная картина: все плательщики', '')
   out.push(...totalsLines(r, r.totals))
-  out.push('| # | этап | держит цепь | шаг | сутки | байт·сутки | аккаунты (байт от начала) | строки таблиц (от начала) |')
-  out.push('|---|---|---|---|---|---|---|---|')
+  out.push('| # | этап | держит цепь | шаг | AXON в сутки | сутки | AXON за этап | аккаунты (байт от начала) | строки таблиц (от начала) |')
+  out.push('|---|---|---|---|---|---|---|---|---|')
   r.stages.forEach((s, k) => {
-    out.push(`| ${k + 1} | ${s.title} | ${fmt(s.held_bytes)} | ${fmt(s.step_bytes)} | ${s.days} | ${s.byte_days} | ${listDiff(s.accounts_held)} | ${listDiff(s.rows_held)} |`)
+    out.push(`| ${k + 1} | ${s.title} | ${fmt(s.held_bytes)} | ${fmt(s.step_bytes)} | ${perDay(s.held_bytes)} | ${s.days} | ${perDay(s.byte_days)} | ${listDiff(s.accounts_held)} | ${listDiff(s.rows_held)} |`)
   })
   out.push('', '## Что меняет каждый шаг', '')
   out.push('| шаг | аккаунты (байт) | строки таблиц |')

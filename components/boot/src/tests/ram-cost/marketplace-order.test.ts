@@ -21,6 +21,14 @@
  * срок» — это состояние «выдан, выплата проведена, ждёт закрытия»; сколько он
  * длится, задаёт таблица длительностей ниже, а не стенд.
  *
+ * Цена памяти в AXON замеряется арендой (ramPrice.ts): кооператив платит
+ * `powerup` на 1 AXON, прирост его квоты — байты за 1 AXON на срок аренды.
+ *
+ * Заказов два подряд, у каждого свой отчёт. Первый идёт на свежем стенде и
+ * несёт записи «первого раза» — строку проверки памяти контракта, счётчики
+ * шлюза, первые кошельки и счета пайщика. Второй — типовой: по нему видно, что
+ * процесс оставляет после закрытия, когда эти записи уже есть.
+ *
  * Набор измерительный, а не проверочный: в общий прогон boot он не входит и
  * запускается только с `RAM_COST_OUT` (workflow ram-cost.yaml).
  */
@@ -31,7 +39,8 @@ import Blockchain from '../../blockchain'
 import config from '../../configs'
 import { acceptToCoop, issueOrder, pickOffer, placeOrder } from '../marketplace/orderFlow'
 import { CHAIRMAN, COOP, amount, ensureIdentityVerified, ensureShareFunds, fromState, gqlAs, loginAs } from '../marketplace/chainHelpers'
-import { RamMeter, type StageDays, buildReport, fmt, writeReport } from './ramMeter'
+import { RamMeter, type StageDays, axon, buildReport, fmt, writeReport } from './ramMeter'
+import { type RamPrice, measureRamPrice } from './ramPrice'
 
 const bc = new Blockchain(config.network, config.private_keys)
 
@@ -77,13 +86,17 @@ const DEFAULT_DAYS: StageDays = {
   paid: 2,
 }
 
-const meter = new RamMeter(COOP)
+const PROCESS = 'поставка по заказу Стола заказов (от оформления до закрытия после гарантии)'
+
 let chairmanToken = ''
 let ekaterinaToken = ''
 let sidorovToken = ''
 let chairkrgToken = ''
 let offer: any
 let originalWarrantyDays: number | null = null
+let price: RamPrice | null = null
+/** Измерители заказов по порядку: первый — на свежем стенде, второй — типовой. */
+const meters: { slug: string, title: string, meter: RamMeter }[] = []
 
 async function setWarranty(days: number): Promise<void> {
   await gqlAs(chairmanToken, 'mutation($i:MarketplaceSetOfferWarrantyInput!){ marketplaceSetOfferWarranty(input:$i){ id warranty_days } }', {
@@ -91,11 +104,88 @@ async function setWarranty(days: number): Promise<void> {
   })
 }
 
-async function mark(key: string): Promise<void> {
-  const s = STAGES[key]
-  if (!s)
-    throw new Error(`этап ${key} не описан в STAGES`)
-  await meter.stage(key, s.title, s.awaits)
+function stageDays(): StageDays {
+  return { ...DEFAULT_DAYS, ...(process.env.RAM_COST_DAYS ? JSON.parse(process.env.RAM_COST_DAYS) : {}) }
+}
+
+/** Один заказ от корзины до закрытия; память снимается после каждого шага. */
+async function runOrder(meter: RamMeter): Promise<void> {
+  const mark = async (key: string) => {
+    const s = STAGES[key]
+    if (!s)
+      throw new Error(`этап ${key} не описан в STAGES`)
+    await meter.stage(key, s.title, s.awaits)
+  }
+
+  // Всё, что пишет в цепь вне процесса, — до снимка «до процесса»:
+  // пополнение паевого и подтверждение личности получателя.
+  await ensureShareFunds(ekaterina.account, ORDER_QTY * amount(offer.price_per_unit) * 2, ekaterinaToken)
+  await ensureIdentityVerified(ekaterina.account)
+  await gqlAs(ekaterinaToken, 'mutation{ marketplaceClearCart{ __typename } }').catch(() => {})
+  await meter.measureIdle()
+  await meter.stage('before', 'До процесса', 'заказа пайщика')
+
+  const { orderId, orderHash } = await placeOrder({
+    token: ekaterinaToken,
+    who: ekaterina,
+    offerId: offer.id,
+    quantity: ORDER_QTY,
+    braname: BRANAME,
+    onStep: mark,
+  })
+  await mark('ordered')
+
+  const unitPrice = amount(offer.price_per_unit)
+  await acceptToCoop({
+    supplierToken: sidorovToken,
+    supplier: sidorov,
+    operatorToken: chairkrgToken,
+    operator: chairkrg,
+    orderId,
+    braname: BRANAME,
+    factQuantity: ORDER_QTY,
+    factUnitPrice: unitPrice,
+    onStep: mark,
+  })
+  await mark('received')
+
+  await issueOrder({
+    blockchain: bc,
+    operatorToken: chairkrgToken,
+    operator: chairkrg,
+    memberToken: ekaterinaToken,
+    member: ekaterina,
+    orderId,
+    braname: BRANAME,
+    actualQuantity: ORDER_QTY,
+    actualUnitPrice: unitPrice,
+    onStep: mark,
+  })
+  await mark('issued')
+
+  // Кассир подтверждает выплату, которую бэкенд выставил на приёмке.
+  await bc.api.transact({
+    actions: [{
+      account: GatewayContract.contractName.production,
+      name: GatewayContract.Actions.CompleteOutcome.actionName,
+      authorization: [{ actor: COOP, permission: 'active' }],
+      data: { coopname: COOP, outcome_hash: orderHash },
+    }],
+  }, { blocksBehind: 3, expireSeconds: 30 })
+  await mark('paid')
+
+  // То же действие зовёт крон закрытия контроллера после гарантийного срока.
+  await bc.api.transact({
+    actions: [{
+      account: MarketContract.contractName.production,
+      name: MarketContract.Actions.CloseOrder.actionName,
+      authorization: [{ actor: COOP, permission: 'active' }],
+      data: { coopname: COOP, order_hash: orderHash },
+    }],
+  }, { blocksBehind: 3, expireSeconds: 30 })
+  await mark('closed')
+
+  expect(meter.stages.map(s => s.key)).toEqual(['before', ...Object.keys(STAGES)])
 }
 
 describe.runIf(process.env.RAM_COST_OUT)('оперативная память: поставка по заказу Стола заказов', () => {
@@ -109,92 +199,36 @@ describe.runIf(process.env.RAM_COST_OUT)('оперативная память: �
     offer = await pickOffer(chairmanToken, sidorov.account, BRANAME, 'Мёд цветочный')
     originalWarrantyDays = Number(offer.warranty_days ?? 0)
     await setWarranty(0)
-
-    // Всё, что пишет в цепь вне процесса, — до снимка «до процесса»:
-    // пополнение паевого и подтверждение личности получателя.
-    await ensureShareFunds(ekaterina.account, ORDER_QTY * amount(offer.price_per_unit) * 2, ekaterinaToken)
-    await ensureIdentityVerified(ekaterina.account)
-    await gqlAs(ekaterinaToken, 'mutation{ marketplaceClearCart{ __typename } }').catch(() => {})
-
-    await meter.measureIdle()
-    await meter.stage('before', 'До процесса', 'заказа пайщика')
   }, 600_000)
 
   afterAll(async () => {
     if (offer && originalWarrantyDays !== null)
       await setWarranty(originalWarrantyDays).catch(e => console.warn(`гарантию предложения не вернуть: ${e?.message ?? e}`))
-    if (meter.stages.length < 2)
-      return
-    const days: StageDays = { ...DEFAULT_DAYS, ...(process.env.RAM_COST_DAYS ? JSON.parse(process.env.RAM_COST_DAYS) : {}) }
-    const report = buildReport('поставка по заказу Стола заказов (от оформления до закрытия после гарантии)', meter, days)
-    const file = writeReport(report, 'marketplace-order')
-    const c = report.payer_totals
-    console.log(`[ram-cost] кооператив: пик ${fmt(c.peak.bytes)} (${c.peak.stage}), остаток ${fmt(c.residual_bytes)}; вся цепь: пик ${fmt(report.totals.peak.bytes)}; отчёт ${file}`)
+    for (const { slug, title, meter } of meters) {
+      if (meter.stages.length < 2)
+        continue
+      const report = buildReport(title, meter, stageDays(), price)
+      const file = writeReport(report, slug)
+      const c = report.payer_totals
+      console.log(`[ram-cost] ${slug}: кооператив пик ${fmt(c.peak.bytes)} (${c.peak.stage}), за процесс ${axon(c.axon)}, остаток ${fmt(c.residual_bytes)}; вся цепь пик ${fmt(report.totals.peak.bytes)}; отчёт ${file}`)
+    }
   }, 120_000)
 
-  it('заказ проходит путь до закрытия, память снимается на каждом этапе', async () => {
-    const onStep = (key: string) => mark(key)
+  it('цена памяти: аренда кооперативу на 1 AXON', async () => {
+    price = await measureRamPrice(bc, COOP)
+    console.log(`[ram-cost] 1 AXON → ${price.bytes_per_payment} Б на ${price.powerup_days} сут (по формуле ${price.expected_bytes_by_formula} Б); 1 Б·сут = ${price.axon_per_byte_day} AXON`)
+    expect(price.bytes_per_payment).toBeGreaterThan(0)
+  }, 300_000)
 
-    const { orderId, orderHash } = await placeOrder({
-      token: ekaterinaToken,
-      who: ekaterina,
-      offerId: offer.id,
-      quantity: ORDER_QTY,
-      braname: BRANAME,
-      onStep,
-    })
-    await mark('ordered')
+  it('типовой заказ на свежем стенде проходит путь до закрытия', async () => {
+    const meter = new RamMeter(COOP)
+    meters.push({ slug: 'marketplace-order-first', title: `${PROCESS}, первый заказ на свежем стенде`, meter })
+    await runOrder(meter)
+  }, 1_800_000)
 
-    const unitPrice = amount(offer.price_per_unit)
-    await acceptToCoop({
-      supplierToken: sidorovToken,
-      supplier: sidorov,
-      operatorToken: chairkrgToken,
-      operator: chairkrg,
-      orderId,
-      braname: BRANAME,
-      factQuantity: ORDER_QTY,
-      factUnitPrice: unitPrice,
-      onStep,
-    })
-    await mark('received')
-
-    await issueOrder({
-      blockchain: bc,
-      operatorToken: chairkrgToken,
-      operator: chairkrg,
-      memberToken: ekaterinaToken,
-      member: ekaterina,
-      orderId,
-      braname: BRANAME,
-      actualQuantity: ORDER_QTY,
-      actualUnitPrice: unitPrice,
-      onStep,
-    })
-    await mark('issued')
-
-    // Кассир подтверждает выплату, которую бэкенд выставил на приёмке.
-    await bc.api.transact({
-      actions: [{
-        account: GatewayContract.contractName.production,
-        name: GatewayContract.Actions.CompleteOutcome.actionName,
-        authorization: [{ actor: COOP, permission: 'active' }],
-        data: { coopname: COOP, outcome_hash: orderHash },
-      }],
-    }, { blocksBehind: 3, expireSeconds: 30 })
-    await mark('paid')
-
-    // То же действие зовёт крон закрытия контроллера после гарантийного срока.
-    await bc.api.transact({
-      actions: [{
-        account: MarketContract.contractName.production,
-        name: MarketContract.Actions.CloseOrder.actionName,
-        authorization: [{ actor: COOP, permission: 'active' }],
-        data: { coopname: COOP, order_hash: orderHash },
-      }],
-    }, { blocksBehind: 3, expireSeconds: 30 })
-    await mark('closed')
-
-    expect(meter.stages.map(s => s.key)).toEqual(['before', ...Object.keys(STAGES)])
+  it('второй такой же заказ: память без записей «первого раза»', async () => {
+    const meter = new RamMeter(COOP)
+    meters.push({ slug: 'marketplace-order', title: `${PROCESS}, второй заказ — типовой`, meter })
+    await runOrder(meter)
   }, 1_800_000)
 })
