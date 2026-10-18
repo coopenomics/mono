@@ -23,6 +23,10 @@ export const useConnectionAgreementStore = defineStore(namespace, () => {
   const currentInstanceLoading = ref<boolean>(false)
   const currentInstanceError = ref<string | null>(null)
   const isBadGateway = ref<boolean>(false)
+  // Чьё это состояние. Стор живёт в браузере (persist), и без владельца
+  // кооператив, вошедший после другого, получал чужой инстанс — вплоть до
+  // панели завершённой установки сразу после регистрации (18.10.2026).
+  const owner = ref<string | null>(null)
   const coop = ref<any>(null)
   const hasMatrixAccount = ref<boolean>(false)
   // Адрес направлен на платформу: провайдер видит тот же домен, что записан у
@@ -153,7 +157,15 @@ export const useConnectionAgreementStore = defineStore(namespace, () => {
     }
   }
 
+  /** Состояние принадлежит вошедшему: вошёл другой — прежнее сбрасывается целиком. */
+  const bindToUser = (username: string) => {
+    if (!username || owner.value === username) return
+    reset()
+    owner.value = username
+  }
+
   const loadCurrentInstance = async () => {
+    bindToUser(useSessionStore().username)
     try {
       currentInstanceLoading.value = true
       currentInstanceError.value = null
@@ -161,11 +173,9 @@ export const useConnectionAgreementStore = defineStore(namespace, () => {
       isBadGateway.value = false
       const freshInstance = await getCurrentInstance()
 
-      // Обновляем данные только если получили свежие данные
-      // При ошибке оставляем старые данные в currentInstance (они могут быть из localStorage)
-      if (freshInstance !== null) {
-        currentInstance.value = freshInstance
-      }
+      // Пусто — у кооператива нет инстанса у провайдера: это ответ, его и показываем.
+      // Прежнее значение остаётся только при сбое связи с провайдером (ниже).
+      currentInstance.value = freshInstance
 
       console.log('Текущий инстанс загружен:', currentInstance.value)
     } catch (error: any) {
@@ -174,7 +184,9 @@ export const useConnectionAgreementStore = defineStore(namespace, () => {
 
       // Не устанавливаем Bad Gateway для ошибки "Инстанс не найден"
       // i18n-ignore: сверка с текстом ответа внешнего сервиса провайдера, кода у него нет
-      if (!currentInstanceError.value?.includes('Инстанс не найден')) {
+      if (currentInstanceError.value?.includes('Инстанс не найден')) {
+        currentInstance.value = null
+      } else {
         isBadGateway.value = true
       }
 
@@ -260,6 +272,7 @@ export const useConnectionAgreementStore = defineStore(namespace, () => {
     currentInstanceLoading,
     currentInstanceError,
     isBadGateway,
+    owner,
     coop,
     formData,
     hasMatrixAccount,

@@ -402,6 +402,9 @@ export class ProviderService {
 
       return currentInstance;
     } catch (error: any) {
+      // Провайдер не знает этого кооператива: инстанса у него нет. Это ответ,
+      // а не сбой — стол показывает подключение с начала, а не ошибку провайдера.
+      if (error?.status === 404) return null;
       this.logger.error(`Ошибка при получении инстанса для ${username}: ${error.message}`);
       throw error;
     }
