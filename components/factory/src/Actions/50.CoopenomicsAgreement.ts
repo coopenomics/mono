@@ -4,6 +4,7 @@ import { CoopenomicsAgreement } from '../Templates'
 import { DocFactory } from '../Factory'
 import type { IGeneratedDocument, IGenerationOptions, IMetaDocument, ITemplate } from '../Interfaces'
 import type { MongoDBConnector } from '../Services/Databazor'
+import { DocumentNotApprovedError } from '../errors'
 
 export { CoopenomicsAgreement as Template } from '../Templates'
 
@@ -31,7 +32,7 @@ export class Factory extends DocFactory<CoopenomicsAgreement.Action> {
     // редакции. Без них соглашение уходило на подпись с пустой шапкой
     // (стенд 18.10.2026) — неутверждённый документ подписывать нельзя.
     if (!vars?.coopenomics_agreement || isEmpty(vars.coopenomics_agreement.protocol_number) || isEmpty(vars.coopenomics_agreement.protocol_day_month_year))
-      throw new Error('Соглашение о подключении не утверждено советом: в настройках кооператива нет номера и даты протокола. Вынесите соглашение на совет в реестре шаблонов документов и повторите генерацию.')
+      throw new DocumentNotApprovedError('Соглашение о подключении не утверждено советом: в настройках кооператива нет номера и даты протокола. Вынесите соглашение на совет в реестре шаблонов документов и повторите генерацию.')
 
     const combinedData: CoopenomicsAgreement.Model = {
       meta,

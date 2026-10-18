@@ -2080,6 +2080,7 @@ export type MessageKey =
   | 'connectionAgreementStepper.agreementStep.lead'
   | 'connectionAgreementStepper.agreementStep.preparing'
   | 'connectionAgreementStepper.agreementStep.preparingText'
+  | 'connectionAgreementStepper.agreementStep.retry'
   | 'connectionAgreementStepper.agreementStep.signError'
   | 'connectionAgreementStepper.agreementStep.stepTitle'
   | 'connectionAgreementStepper.agreementStep.tariffError'

@@ -1,4 +1,4 @@
-import { initExtensionsInPostgres, initSystemStatus } from '../postgres-init'
+import { initDadataInPostgres, initExtensionsInPostgres, initSystemStatus } from '../postgres-init'
 import { installExtraData, installInitialData, startInfra } from './infra'
 import { startCoop } from './cooperative'
 import { installRobotPreset } from './robot-preset'
@@ -9,6 +9,7 @@ export async function boot() {
 
   console.log('Инициализируем статус системы в PostgreSQL')
   await initSystemStatus()
+  await initDadataInPostgres()
 
   await startCoop()
 }

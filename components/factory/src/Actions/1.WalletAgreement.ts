@@ -4,6 +4,7 @@ import { DocFactory } from '../Factory'
 import type { IGeneratedDocument, IGenerationOptions, IMetaDocument, ITemplate } from '../Interfaces'
 import type { MongoDBConnector } from '../Services/Databazor'
 import { isEmpty } from '../Utils'
+import { DocumentNotApprovedError } from '../errors'
 
 export { WalletAgreement as Template } from '../Templates'
 
@@ -26,7 +27,7 @@ export class Factory extends DocFactory<WalletAgreement.Action> {
     const meta: IMetaDocument = await super.getMeta({ title: template.title, ...data })
 
     if (!vars?.wallet_agreement || isEmpty(vars.wallet_agreement.protocol_number) || isEmpty(vars.wallet_agreement.protocol_day_month_year))
-      throw new Error('Реквизиты протокола для соглашения о ЦПП не заполнены. Укажите их в настройках кооператива и повторите генерацию.')
+      throw new DocumentNotApprovedError('Реквизиты протокола для соглашения о ЦПП не заполнены. Укажите их в настройках кооператива и повторите генерацию.')
 
     const combinedData: WalletAgreement.Model = {
       meta,

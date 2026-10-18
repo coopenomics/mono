@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue'
 import { DocumentHtmlReader } from 'src/shared/ui/DocumentHtmlReader'
 import { Loader } from 'src/shared/ui/Loader'
+import { BaseBanner, BaseButton } from 'src/shared/ui/base'
 import { useConnectionAgreementStore, CONNECTION_STEP } from 'src/entities/ConnectionAgreement'
 import { useAddCooperative } from 'src/features/Union/AddCooperative/model'
 import { selectProviderTariff } from 'src/features/Provider/api'
@@ -17,6 +18,19 @@ defineProps<{
 
 const connectionAgreement = useConnectionAgreementStore()
 const isSigning = ref(false)
+
+const isRetrying = ref(false)
+
+const retryDocument = async () => {
+  isRetrying.value = true
+  try {
+    await connectionAgreement.generateDocument()
+  } catch {
+    // Причина уже в connectionAgreement.documentError — шаг её показывает.
+  } finally {
+    isRetrying.value = false
+  }
+}
 
 const isDocumentReady = computed(
   () => !!(connectionAgreement.document && connectionAgreement.document.sign),
@@ -99,10 +113,21 @@ StepFrame(
 )
   .agreement-step__doc(v-if="html")
     DocumentHtmlReader(:html="html")
+  //- Соглашение не собралось — причина и повтор вместо вечной загрузки.
+  .agreement-step__error(v-else-if="connectionAgreement.documentError")
+    BaseBanner(variant="neg") {{ connectionAgreement.documentError }}
+    BaseButton(variant="secondary" size="sm" type="button" :loading="isRetrying" @click="retryDocument")
+      | {{ $t('connectionAgreementStepper.agreementStep.retry') }}
   Loader(v-else :text="$t('connectionAgreementStepper.agreementStep.preparing')")
 </template>
 
 <style scoped>
+.agreement-step__error {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--p-3);
+}
 .agreement-step__doc {
   border: 1px solid var(--p-line-1);
   border-radius: var(--p-r-md);

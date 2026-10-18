@@ -19,6 +19,8 @@ export const useConnectionAgreementStore = defineStore(namespace, () => {
   const isInitialized = ref<boolean>(false)
   const document = ref<any>(null)
   const signedDocument = ref<any>(null)
+  // Причина, по которой соглашение не собралось: шаг показывает её вместо вечной загрузки.
+  const documentError = ref<string | null>(null)
   const currentInstance = ref<CurrentInstance | null>(null)
   const currentInstanceLoading = ref<boolean>(false)
   const currentInstanceError = ref<string | null>(null)
@@ -89,6 +91,7 @@ export const useConnectionAgreementStore = defineStore(namespace, () => {
     const formDataValue = formData.value
     console.log('📋 Данные формы:', formDataValue)
 
+    documentError.value = null
     try {
       console.log('📄 Создаем новый DigitalDocument')
       const newDoc = new DigitalDocument()
@@ -118,6 +121,7 @@ export const useConnectionAgreementStore = defineStore(namespace, () => {
       return newDoc
     } catch (error) {
       console.error('❌ Ошибка при генерации документа:', error)
+      documentError.value = extractGraphQLErrorMessages(error)
       throw error
     }
   }
@@ -267,6 +271,7 @@ export const useConnectionAgreementStore = defineStore(namespace, () => {
     selectedTariff,
     isInitialized,
     document,
+    documentError,
     signedDocument,
     currentInstance,
     currentInstanceLoading,

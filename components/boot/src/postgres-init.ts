@@ -255,6 +255,52 @@ export async function initVaultInPostgres() {
   }
 }
 
+/**
+ * dadata — анкета организации по ИНН (C28-92). Ключи платного доступа DaData в
+ * репозиторий не кладутся: сид ставит расширение включённым только на
+ * dev-стенде, где ключи лежат в .env сида (DADATA_API_KEY, DADATA_SECRET_KEY).
+ * Без ключей запись не трогается — расширение остаётся в каталоге, и
+ * председатель ставит его сам, вписав ключ. В боевых кооперативах сид не
+ * запускается. Зовётся и при обычном перезапуске стенда, и при `reboot:extra`:
+ * до 18.10.2026 он шёл только с `extra`, и после обычного `reboot` анкета по
+ * ИНН не работала.
+ */
+async function seedDadata(client: Client): Promise<void> {
+  const dadataApiKey = (process.env.DADATA_API_KEY ?? '').trim()
+  if (!dadataApiKey)
+    return
+  await client.query(`
+    INSERT INTO "extensions" (name, enabled, config, schema_version)
+    VALUES ($1, $2, $3, $4)
+    ON CONFLICT (name) DO UPDATE SET
+      enabled = EXCLUDED.enabled,
+      config = EXCLUDED.config,
+      updated_at = CURRENT_TIMESTAMP
+  `, ['dadata', true, JSON.stringify({
+    api_key: dadataApiKey,
+    secret_key: (process.env.DADATA_SECRET_KEY ?? '').trim(),
+  }), 1])
+  console.log('dadata: расширение включено с ключами из окружения сида')
+}
+
+/** Сид DaData отдельным подключением — для обычного перезапуска стенда без `extra`. */
+export async function initDadataInPostgres(): Promise<void> {
+  const client = new Client({
+    host: process.env.POSTGRES_HOST,
+    port: Number.parseInt(process.env.POSTGRES_PORT || '5432'),
+    user: process.env.POSTGRES_USERNAME,
+    password: process.env.POSTGRES_PASSWORD,
+    database: process.env.POSTGRES_DATABASE,
+  })
+  try {
+    await client.connect()
+    await seedDadata(client)
+  }
+  finally {
+    await client.end()
+  }
+}
+
 export async function initExtensionsInPostgres() {
   const client = new Client({
     host: process.env.POSTGRES_HOST,
@@ -353,27 +399,7 @@ export async function initExtensionsInPostgres() {
       ON CONFLICT (name) DO NOTHING
     `, ['market', true, JSON.stringify(marketConfig), 0])
 
-    // dadata — анкета организации по ИНН (C28-92). Ключи платного доступа
-    // DaData в репозиторий не кладутся: сид ставит расширение включённым только
-    // на dev-стенде, где ключи лежат в .env сида (DADATA_API_KEY,
-    // DADATA_SECRET_KEY). Без ключей запись не создаётся — расширение остаётся в
-    // каталоге, и председатель ставит его сам, вписав ключ. В боевых кооперативах
-    // сид не запускается.
-    const dadataApiKey = (process.env.DADATA_API_KEY ?? '').trim()
-    if (dadataApiKey) {
-      await client.query(`
-        INSERT INTO "extensions" (name, enabled, config, schema_version)
-        VALUES ($1, $2, $3, $4)
-        ON CONFLICT (name) DO UPDATE SET
-          enabled = EXCLUDED.enabled,
-          config = EXCLUDED.config,
-          updated_at = CURRENT_TIMESTAMP
-      `, ['dadata', true, JSON.stringify({
-        api_key: dadataApiKey,
-        secret_key: (process.env.DADATA_SECRET_KEY ?? '').trim(),
-      }), 1])
-      console.log('dadata: расширение включено с ключами из окружения сида')
-    }
+    await seedDadata(client)
 
     console.log('Extensions инициализированы в PostgreSQL')
   }

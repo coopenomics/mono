@@ -70,6 +70,8 @@ export interface IGenerator {
   search: (query: string) => Promise<ISearchResult[]>
 }
 
+export { DocumentNotApprovedError } from './errors'
+
 /** Для номера реестра нет фабрики документа — такой документ генератор не собирает. */
 export class UnknownDocumentFactoryError extends Error {
   constructor(public readonly registry_id: number) {
