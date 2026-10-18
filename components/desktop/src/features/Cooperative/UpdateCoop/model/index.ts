@@ -23,5 +23,24 @@ export function useUpdateCoop() {
 
     return result;
   }
-  return { updateCoop };
+
+  // Смена адреса кабинета: updatecoop переписывает и взносы с описанием,
+  // поэтому они уходят из текущей записи кооператива без изменений.
+  async function changeCoopDomain(
+    coop: RegistratorContract.Tables.Cooperatives.ICooperative,
+    announce: string,
+  ): Promise<TransactResult | undefined> {
+    return updateCoop({
+      coopname: coop.username,
+      username: coop.username,
+      initial: coop.initial,
+      minimum: coop.minimum,
+      org_initial: coop.org_initial,
+      org_minimum: coop.org_minimum,
+      announce: announce.trim().replace(/\.$/, '').toLowerCase(),
+      description: coop.description,
+    });
+  }
+
+  return { updateCoop, changeCoopDomain };
 }

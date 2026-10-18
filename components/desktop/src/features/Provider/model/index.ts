@@ -3,6 +3,7 @@ import { loadProviderSubscriptions } from '../api';
 import { useSystemStore } from 'src/entities/System/model';
 import { Queries } from '@coopenomics/sdk';
 import { t } from 'src/shared/i18n';
+import { CONNECTOR_ZONE } from 'src/shared/lib/utils';
 
 /**
  * Специфичные данные для подписки на хостинг
@@ -44,7 +45,7 @@ export function useProviderSubscriptions() {
   // *.connector.coopenomics.world отвечает адресами всех L7-прокси, поэтому имя
   // существует для любого кооператива заранее — выдавать записи не нужно, а
   // куда ведёт кабинет, решается на стороне сети без участия кооператива.
-  const CONNECTOR_HOST = computed(() => `${system.info.coopname}.connector.coopenomics.world`);
+  const CONNECTOR_HOST = computed(() => `${system.info.coopname}.${CONNECTOR_ZONE}`);
 
   // Получить подписку на хостинг (id=1)
   const hostingSubscription = computed(() =>

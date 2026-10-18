@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { BaseInput } from 'src/shared/ui/base'
-import { isDomain, isSubdomain, notEmpty } from 'src/shared/lib/utils'
+import { isCoopDomain } from 'src/shared/lib/utils'
 import {
   useConnectionAgreementStore,
   CONNECTION_STEP,
@@ -9,7 +9,6 @@ import {
 } from 'src/entities/ConnectionAgreement'
 import { useSystemStore } from 'src/entities/System/model'
 import StepFrame from '../ui/StepFrame.vue'
-import { t } from 'src/shared/i18n';
 
 const connectionAgreement = useConnectionAgreementStore()
 const system = useSystemStore()
@@ -25,22 +24,9 @@ watch(
 )
 
 const validate = (): boolean => {
-  const v = (announce.value || '').trim()
-  if (notEmpty(v) !== true) {
-    errorMsg.value = t('connectionAgreementStepper.domainStep.domainRequired')
-    return false
-  }
-  if (isDomain(v) !== true) {
-    errorMsg.value = t('connectionAgreementStepper.domainStep.domainInvalid')
-    return false
-  }
-  const subdomain = isSubdomain(v)
-  if (subdomain !== true) {
-    errorMsg.value = subdomain
-    return false
-  }
-  errorMsg.value = ''
-  return true
+  const valid = isCoopDomain(announce.value)
+  errorMsg.value = valid === true ? '' : valid
+  return valid === true
 }
 
 const handleContinue = () => {

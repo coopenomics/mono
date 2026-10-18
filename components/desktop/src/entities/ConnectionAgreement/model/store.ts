@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { Cooperative } from 'cooptypes'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { DigitalDocument } from 'src/shared/lib/document'
 import { useSessionStore } from 'src/entities/Session'
 import { useLoadCooperatives } from 'src/features/Union/LoadCooperatives'
@@ -25,6 +25,17 @@ export const useConnectionAgreementStore = defineStore(namespace, () => {
   const isBadGateway = ref<boolean>(false)
   const coop = ref<any>(null)
   const hasMatrixAccount = ref<boolean>(false)
+  // Адрес направлен на платформу: провайдер видит тот же домен, что записан у
+  // кооператива в цепи, и проверка делегирования по нему прошла. После смены
+  // адреса провайдер ещё какое-то время помнит старый домен с прежним признаком.
+  const isDomainDelegated = computed(() => {
+    const instance = currentInstance.value
+    if (!instance?.is_delegated) return false
+    const announce = coop.value?.announce
+    if (!announce) return true
+    const normalize = (domain: string) => String(domain ?? '').trim().replace(/\.$/, '').toLowerCase()
+    return normalize(instance.domain) === normalize(announce)
+  })
   const formData = ref<ICooperativeFormData>({
     description: '',
     announce: '',
@@ -252,6 +263,7 @@ export const useConnectionAgreementStore = defineStore(namespace, () => {
     coop,
     formData,
     hasMatrixAccount,
+    isDomainDelegated,
 
     // Methods
     setCurrentStep,

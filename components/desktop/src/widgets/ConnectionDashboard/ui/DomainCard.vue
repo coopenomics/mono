@@ -62,7 +62,7 @@ import { useConnectionAgreementStore } from 'src/entities/ConnectionAgreement'
 import { useCooperativeStore } from 'src/entities/Cooperative'
 import { useUpdateCoop } from 'src/features/Cooperative/UpdateCoop'
 import { FailAlert, SuccessAlert } from 'src/shared/api'
-import { isSubdomain } from 'src/shared/lib/utils'
+import { isCoopDomain } from 'src/shared/lib/utils'
 import { useSessionStore } from 'src/entities/Session'
 import {
   BaseBadge,
@@ -76,7 +76,7 @@ import { t, t as i18nT } from 'src/shared/i18n';
 
 const connectionAgreement = useConnectionAgreementStore()
 const coop = useCooperativeStore()
-const { updateCoop } = useUpdateCoop()
+const { changeCoopDomain } = useUpdateCoop()
 const session = useSessionStore()
 const { CONNECTOR_HOST } = useProviderSubscriptions()
 // Получаем instance напрямую из store
@@ -123,13 +123,9 @@ const cancelEdit = () => {
 }
 
 const saveDomain = async () => {
-  if (!domainValue.value.trim()) {
-    FailAlert(t('connectionDashboard.domainCard.domainEmptyError'))
-    return
-  }
-  const subdomain = isSubdomain(domainValue.value)
-  if (subdomain !== true) {
-    FailAlert(subdomain)
+  const valid = isCoopDomain(domainValue.value)
+  if (valid !== true) {
+    FailAlert(valid)
     return
   }
   if (!coop.publicCooperativeData) {
@@ -138,16 +134,7 @@ const saveDomain = async () => {
   }
   try {
     isDelegatingLoading.value = true
-    await updateCoop({
-      coopname: session.username,
-      username: session.username,
-      initial: coop.publicCooperativeData.initial,
-      minimum: coop.publicCooperativeData.minimum,
-      org_initial: coop.publicCooperativeData.org_initial,
-      org_minimum: coop.publicCooperativeData.org_minimum,
-      announce: domainValue.value.trim(),
-      description: coop.publicCooperativeData.description,
-    })
+    await changeCoopDomain(coop.publicCooperativeData, domainValue.value)
     await coop.loadPublicCooperativeData(session.username)
     await connectionAgreement.loadCurrentInstance()
     isEditing.value = false

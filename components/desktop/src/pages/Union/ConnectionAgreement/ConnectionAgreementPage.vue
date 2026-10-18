@@ -179,7 +179,7 @@ const init = async () => {
       targetStep = CONNECTION_STEP.installation; // установка идёт
     } else if (instance?.blockchain_status === 'active') {
       targetStep = CONNECTION_STEP.installation; // совет подтвердил, провайдер вот-вот стартует
-    } else if (instance?.is_delegated) {
+    } else if (connectionAgreement.isDomainDelegated) {
       targetStep = CONNECTION_STEP.approval; // домен делегирован, ждём подтверждения совета
     } else {
       targetStep = CONNECTION_STEP.dns; // DNS-шаг: ждём делегирования или провайдер ещё не подхватил coop
@@ -217,20 +217,10 @@ watch(
       status: instance.status,
     });
 
-    // Автопереходы только для шагов dns/approval/installation — остальные
+    // Автопереход по опросу — только с шага approval; шаг dns уходит дальше
+    // по смене признака делегирования (наблюдатель ниже), остальные шаги
     // (union/intro/profile/domain/financial/agreement) ждут ввода пользователя.
-    if (currentStep === CONNECTION_STEP.dns) {
-      // Шаг 5: Проверка делегирования домена.
-      if (instance.is_valid && instance.is_delegated) {
-        if (instance.blockchain_status === 'active') {
-          console.log('✅ Домен готов и blockchain_status активен → переход к шагу 7 (installation)');
-          connectionAgreement.setCurrentStep(CONNECTION_STEP.installation);
-        } else {
-          console.log('⏳ Домен готов, ждём подтверждения союза → переход к шагу 6 (approval)');
-          connectionAgreement.setCurrentStep(CONNECTION_STEP.approval);
-        }
-      }
-    } else if (currentStep === CONNECTION_STEP.approval) {
+    if (currentStep === CONNECTION_STEP.approval) {
       // Шаг 6: Ожидание подтверждения от союза.
       if (instance.blockchain_status === 'active') {
         console.log('✅ Подтверждение получено → переход к шагу 7 (installation)');
@@ -240,6 +230,19 @@ watch(
     // Редирект на страницу завершения теперь делает только InstallationStep.vue
   },
   { deep: true }
+);
+
+// Шаг домена закрывается сам только в момент, когда адрес стал направленным.
+// Открытый вручную шаг (сверить или исправить адрес) опрос провайдера не
+// закрывает: иначе каждые 30 секунд он уводил на «Совет проверяет заявку».
+watch(
+  () => connectionAgreement.isDomainDelegated,
+  (isDelegated, wasDelegated) => {
+    if (!isDelegated || wasDelegated) return;
+    if (connectionAgreement.currentStep !== CONNECTION_STEP.dns) return;
+    const isApproved = connectionAgreement.currentInstance?.blockchain_status === 'active';
+    connectionAgreement.setCurrentStep(isApproved ? CONNECTION_STEP.installation : CONNECTION_STEP.approval);
+  },
 );
 
 // Lifecycle хуки
