@@ -88,9 +88,9 @@
     .subs-card__dlg-options(v-if="hasTariffGrid && tariffUpgradeOptions.length")
       BaseRadioCard(
         v-for="opt in tariffUpgradeOptions"
-        :key="opt.code"
+        :key="opt.id"
         :model-value="selectedTariffCode"
-        :value="opt.code"
+        :value="opt.id"
         :title="opt.name"
         :description="tariffOptionLine(opt)"
         :meta="tariffOptionPrice(opt)"

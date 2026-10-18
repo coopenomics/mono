@@ -55,6 +55,7 @@ describe('ProviderService.getConnectionCatalog (Epic 28)', () => {
       server_options: [],
       tariffs: [],
       annual_billing: { enabled: false, discount_percent: 0 },
+      current_tariff: null,
     });
   });
 
