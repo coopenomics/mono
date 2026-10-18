@@ -39,6 +39,12 @@ export const Schema = z.object({
       password: true,
     }),
   ),
+  // Адрес сервиса скрыт из формы: его подменяет только внешний слой тестов,
+  // направляя запросы на подставной узел стенда. Пусто — настоящий DaData.
+  api_url: z
+    .string()
+    .optional()
+    .describe(describeConfigField({ label: t('dadata.config.apiUrlLabel'), visible: false })),
 });
 
 export const defaultConfig = {
@@ -51,8 +57,8 @@ export type IConfig = z.infer<typeof Schema>;
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface ILog {}
 
-/** Карточка организации или ИП по ИНН или ОГРН. */
-const FIND_PARTY_URL = 'https://suggestions.dadata.ru/suggestions/api/4_1/rs/findById/party';
+/** Адрес API подсказок DaData; карточка организации или ИП по ИНН — `/findById/party`. */
+const DADATA_API_URL = 'https://suggestions.dadata.ru/suggestions/api/4_1/rs';
 
 /** Вид субъекта в запросе DaData: анкета организации не должна найти ИП, и наоборот. */
 enum DadataPartyType {
@@ -111,7 +117,7 @@ export class DadataExtension extends BaseExtensionModule implements IOrganizatio
   }
 
   private async findParty(inn: string, type: DadataPartyType): Promise<DadataParty | null> {
-    const response = await fetch(FIND_PARTY_URL, {
+    const response = await fetch(this.findPartyUrl(), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -129,6 +135,11 @@ export class DadataExtension extends BaseExtensionModule implements IOrganizatio
 
     const body = (await response.json()) as { suggestions?: { data?: DadataParty }[] };
     return body.suggestions?.[0]?.data ?? null;
+  }
+
+  private findPartyUrl(): string {
+    const base = this.extension?.config?.api_url?.trim() || DADATA_API_URL;
+    return `${base.replace(/\/$/, '')}/findById/party`;
   }
 
   private apiKey(): string {

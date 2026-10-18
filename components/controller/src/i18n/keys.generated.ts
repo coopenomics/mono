@@ -1088,6 +1088,7 @@ export type MessageKey =
   | 'common.state.loading'
   | 'dadata.config.apiKeyLabel'
   | 'dadata.config.apiKeyNote'
+  | 'dadata.config.apiUrlLabel'
   | 'dadata.config.secretKeyLabel'
   | 'dadata.config.secretKeyNote'
   | 'document.documentValidation.hashMismatch'

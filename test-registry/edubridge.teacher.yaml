@@ -389,6 +389,7 @@ cases:
     scenario: "Занятия группы отчитываются в любой очерёдности: третье по номеру раньше первого; номер и длительность уходят в цепь из календаря, окно расчёта закрывается тем же проходом."
     expect: "Оба отчёта приняты, порядок не проверяется; openlesson получает number и minutes, после расчёта по подпискам вызван closecharge."
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    api: components/api-tests/src/edubridge/calendar.test.ts
     status: written
   - id: edu.teach.side.31
     level: backend
@@ -396,6 +397,7 @@ cases:
     scenario: "Двухчасовое занятие календаря: длительность в отчёте не называется, уходит в цепь из календаря."
     expect: "openlesson получает minutes 120; занятие занимает два занятия программы — считает контракт."
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    api: components/api-tests/src/edubridge/calendar.test.ts
     status: written
   - id: edu.teach.side.14
     level: backend
@@ -653,6 +655,7 @@ cases:
     scenario: "Совет открывает вопрос о приёме паевого взноса результатом работы: стол запрашивает сведения о взносе по ключу из заявления (решение владельца 13.10.2026)."
     expect: "Узел отдаёт курс, группу, занятие с темой и длительностью, преподавателя, число обучающихся с оплаченным доступом, материалы и сумму взноса."
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    api: components/api-tests/src/edubridge/calendar.test.ts
     status: written   # прогон — CI на полигоне ci/tests
 
   - id: edu.teach.side.32
@@ -661,6 +664,7 @@ cases:
     scenario: "Сведения о взносе запрошены по неизвестному ключу, по ключу взноса другого кооператива либо по взносу вне журнала занятий."
     expect: "Неизвестный ключ и чужой кооператив дают пустой ответ; у взноса без занятия курс берётся по допуску, занятие и группа пусты."
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    api: components/api-tests/src/edubridge/calendar.test.ts
     status: written   # прогон — CI на полигоне ci/tests
 
   - id: edu.teach.ui.reports-page
@@ -684,6 +688,7 @@ cases:
     scenario: "Преподаватель открывает «Отчёты»: у занятия без отчёта видна сумма взноса до отчёта (решение владельца 14.10.2026)."
     expect: "Показ суммы повторяет арифметику контракта: ставка допуска за минуты с отсечением, не больше стоимости занятия по окну; за каждого обучающегося с оплаченным доступом либо одна сумма на занятие, не больше оплаты всех обучающихся."
     test: components/controller/tests/unit/edubridge/lesson-charge.test.ts
+    api: components/api-tests/src/edubridge/calendar.test.ts
     status: written   # прогон — CI на полигоне ci/tests
 
   - id: edu.teach.side.34
@@ -692,6 +697,7 @@ cases:
     scenario: "Показ суммы за занятие без обучающихся, без ставки допуска либо без стоимости окна."
     expect: "Сумма не показывается: посчитать нечем."
     test: components/controller/tests/unit/edubridge/lesson-charge.test.ts
+    api: components/api-tests/src/edubridge/calendar.test.ts
     status: written   # прогон — CI на полигоне ci/tests
 
   - id: edu.teach.happy.35
@@ -700,5 +706,6 @@ cases:
     scenario: "Администратор открывает реестр преподавателей: у каждого видно, какие его документы ждут подписи председателя (решение владельца 14.10.2026)."
     expect: "Узел раскладывает документы на подписи председателя по преподавателям и отдаёт их названия; без расширения председателя список пуст, отказа нет."
     test: components/controller/tests/unit/edubridge/approvals.service.test.ts
+    api: components/api-tests/src/edubridge/calendar.test.ts
     status: written   # прогон — CI на полигоне ci/tests
 
