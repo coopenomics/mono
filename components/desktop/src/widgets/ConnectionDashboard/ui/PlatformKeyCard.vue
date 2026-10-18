@@ -5,18 +5,27 @@ BaseCard(:title="$t('connectionDashboard.platformKeyCard.title')" :subtitle="$t(
   template(v-if="issued")
     BaseBanner(variant="warn").q-mb-md {{ $t('connectionDashboard.platformKeyCard.saveWarning') }}
     DataRow(:label="$t('connectionDashboard.platformKeyCard.keyLabel')" :value="issued.privateKey" mono copyable)
-  template(v-else)
-    p.t-sm.t-muted.q-mb-md(v-if="record")
-      | {{ $t('connectionDashboard.platformKeyCard.issuedAt', { date: issuedAt }) }}
-      |
-      | {{ $t('connectionDashboard.platformKeyCard.reissueNote') }}
-    BaseButton(
-      :variant="record ? 'secondary' : 'primary'"
-      size="sm"
-      type="button"
-      :loading="isIssuing"
-      @click="issue"
-    ) {{ record ? $t('connectionDashboard.platformKeyCard.reissue') : $t('connectionDashboard.platformKeyCard.issue') }}
+  template(v-else-if="record")
+    p.t-sm.t-muted.q-mb-md {{ $t('connectionDashboard.platformKeyCard.issuedAt', { date: issuedAt }) }}
+    //- Перевыпуск останавливает платформу кооператива до ввода нового ключа —
+    //- поэтому сначала предупреждение и отдельное подтверждение.
+    template(v-if="confirming")
+      BaseBanner(variant="warn").q-mb-md {{ $t('connectionDashboard.platformKeyCard.reissueNote') }}
+      .platform-key__actions
+        BaseButton(variant="primary" size="sm" type="button" :loading="isIssuing" @click="issue")
+          | {{ $t('connectionDashboard.platformKeyCard.confirmReissue') }}
+        BaseButton(variant="ghost" size="sm" type="button" :disabled="isIssuing" @click="confirming = false")
+          | {{ $t('connectionDashboard.platformKeyCard.cancel') }}
+    BaseButton(v-else variant="secondary" size="sm" type="button" @click="confirming = true")
+      | {{ $t('connectionDashboard.platformKeyCard.reissue') }}
+  BaseButton(
+    v-else
+    variant="primary"
+    size="sm"
+    type="button"
+    :loading="isIssuing"
+    @click="issue"
+  ) {{ $t('connectionDashboard.platformKeyCard.issue') }}
 </template>
 
 <script setup lang="ts">
@@ -41,6 +50,7 @@ const { loadPlatformKey, issuePlatformKey } = useIssuePlatformKey()
 const record = ref<IPlatformKeyRecord | null>(null)
 const issued = ref<IIssuedPlatformKey | null>(null)
 const isIssuing = ref(false)
+const confirming = ref(false)
 
 const issuedAt = computed(() => (record.value ? moment.utc(record.value.issued_at).local().format('DD.MM.YYYY HH:mm') : ''))
 
@@ -55,6 +65,7 @@ const issue = async () => {
   isIssuing.value = true
   try {
     issued.value = await issuePlatformKey()
+    confirming.value = false
     await load()
   } catch (error: any) {
     FailAlert(t('connectionDashboard.platformKeyCard.issueError', { errorMessage: error?.message ?? '' }))
@@ -63,3 +74,10 @@ const issue = async () => {
   }
 }
 </script>
+
+<style scoped>
+.platform-key__actions {
+  display: flex;
+  gap: var(--p-2);
+}
+</style>

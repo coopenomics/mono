@@ -22,7 +22,7 @@ export function useIssuePlatformKey() {
   async function loadPlatformKey(username: string): Promise<IPlatformKeyRecord | null> {
     const rows = (await fetchTable(
       RegistratorContract.contractName.production,
-      RegistratorContract.Tables.Platforms.scope,
+      RegistratorContract.contractName.production,
       RegistratorContract.Tables.Platforms.tableName,
       username,
       username,

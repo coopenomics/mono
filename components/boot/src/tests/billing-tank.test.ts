@@ -48,7 +48,7 @@ const PROVIDER_BEARER_TOKEN = process.env.PROVIDER_BEARER_TOKEN || ''
 
 /** Каталог витрины провайдер отдаёт по Bearer-токену Восхода, остальное — по server-secret. */
 async function provider<T = any>(method: string, path: string, body?: unknown): Promise<T> {
-  const auth = path.startsWith('/v1/')
+  const auth: Record<string, string> = path.startsWith('/v1/')
     ? { Authorization: `Bearer ${PROVIDER_BEARER_TOKEN}` }
     : { 'server-secret': SERVER_SECRET }
   const res = await fetch(`${PROVIDER_URL}${path}`, {
@@ -71,7 +71,7 @@ async function axonBalance(account: string): Promise<number> {
     method: 'POST',
     body: JSON.stringify({ code: 'eosio.token', account, symbol: 'AXON' }),
   })
-  const rows: string[] = await res.json()
+  const rows = (await res.json()) as string[]
   return rows.length ? amount(rows[0]) : 0
 }
 

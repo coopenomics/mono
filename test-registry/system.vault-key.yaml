@@ -57,5 +57,6 @@ cases:
     scenario: в мастер установки вводят ключ platform, выпущенный на странице подключения
     expect: ключ принят — он подписывает как active через platform (подробно — system.platform-key)
     test: components/controller/tests/unit/blockchain/platform-key.test.ts
+    api: components/boot/src/tests/platform-key.test.ts
     status: written
 

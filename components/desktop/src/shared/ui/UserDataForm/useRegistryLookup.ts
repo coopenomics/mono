@@ -1,4 +1,4 @@
-import { ref, computed, watch, onMounted } from 'vue';
+import { ref, shallowRef, computed, watch, onMounted } from 'vue';
 import { Queries } from '@coopenomics/sdk';
 import { client } from 'src/shared/api/client';
 import { t } from 'src/shared/i18n';
@@ -78,7 +78,10 @@ export function useRegistryLookup<TResult, TField extends string>(options: IRegi
   const loading = ref(false);
   // manual — анкета вернулась с введённым ИНН: поиска в этот раз не было.
   const lookupState = ref<'idle' | 'found' | 'notFound' | 'manual'>('idle');
-  const lockedFields = ref<(TField | 'inn')[]>([]);
+  // shallowRef: глубокий ref разворачивает обобщённый TField в UnwrapRefSimple, и
+  // сравнения с полями формы перестают сходиться по типам. Массив и так
+  // заменяется целиком.
+  const lockedFields = shallowRef<(TField | 'inn')[]>([]);
 
   const lookupAvailable = computed(() => countries.value.includes(options.country() ?? ''));
 

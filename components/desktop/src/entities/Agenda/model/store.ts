@@ -5,6 +5,14 @@ import type { IAgenda, IGetAgendaInput } from './types';
 
 const namespace = 'agendaStore';
 
+const idOf = (item: IAgenda): string => String(item?.table?.id ?? '')
+
+/** Вопросы из `items`, которых ещё нет в `loaded`. */
+const notLoaded = (items: IAgenda[], loaded: IAgenda[]): IAgenda[] => {
+  const loadedIds = new Set(loaded.map(idOf))
+  return items.filter((item) => !loadedIds.has(idOf(item)))
+}
+
 interface IAgendaStore {
   agenda: ComputedRef<IAgenda[]>
   loading: Ref<boolean>
@@ -25,14 +33,10 @@ export const useAgendaStore = defineStore(namespace, (): IAgendaStore => {
   // publish → исчез на ближайшем поллинге → снова появился).
   const createdBuffer = ref<IAgenda[]>([])
 
-  const idOf = (item: IAgenda): string => String(item?.table?.id ?? '')
-
   // Итоговая повестка: ещё не подтверждённые из буфера (сверху) + authoritative.
   const agenda = computed<IAgenda[]>(() => {
     if (!createdBuffer.value.length) return loadedAgenda.value
-    const loadedIds = new Set(loadedAgenda.value.map(idOf))
-    const pending = createdBuffer.value.filter((item) => !loadedIds.has(idOf(item)))
-    return [...pending, ...loadedAgenda.value]
+    return [...notLoaded(createdBuffer.value, loadedAgenda.value), ...loadedAgenda.value]
   })
 
   // Запросы повестки идут внахлёст (первая загрузка экрана, живое обновление,
@@ -57,10 +61,7 @@ export const useAgendaStore = defineStore(namespace, (): IAgendaStore => {
       appliedSeq = seq
       loadedAgenda.value = loadedData;
       // Подтверждённые вопросы убираем из буфера: authoritative-данные пришли.
-      if (createdBuffer.value.length) {
-        const loadedIds = new Set(loadedData.map(idOf))
-        createdBuffer.value = createdBuffer.value.filter((item) => !loadedIds.has(idOf(item)))
-      }
+      if (createdBuffer.value.length) createdBuffer.value = notLoaded(createdBuffer.value, loadedData)
       if (!hidden) loading.value = false
       return loadedData;
     } catch (error) {
