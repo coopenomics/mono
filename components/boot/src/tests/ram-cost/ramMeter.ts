@@ -6,8 +6,11 @@
  * у теста нет. Поэтому память меряется снимками состояния цепи:
  *
  *   • `ram_usage` каждого аккаунта цепи — точные байты, которые цепь списала
- *     с аккаунта. Список аккаунтов — скоупы таблицы `eosio::userres`: запись
- *     о ресурсах есть у каждого аккаунта;
+ *     с аккаунта. Общего списка аккаунтов у узла нет; он собирается из
+ *     системных аккаунтов boot, реестра пайщиков и кооперативов
+ *     (`registrator::accounts`, `registrator::coops`), скоупов `eosio::userres`
+ *     и плательщиков, найденных в таблицах контрактов. Таблица `userres` одна
+ *     не годится: она есть только у аккаунтов, купивших ресурсы напрямую;
  *   • число строк каждой таблицы каждого контракта (`get_table_by_scope`) —
  *     что именно лежит в памяти: какая таблица в каком скоупе выросла.
  *
@@ -27,6 +30,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import process from 'node:process'
+import config from '../../configs'
 import { CHAIN_URL } from '../marketplace/chainHelpers'
 
 const EPOCH = '1970-01-01T00:00:00.000'
@@ -63,8 +67,8 @@ async function chainPost<T = any>(endpoint: string, body: unknown): Promise<T> {
 }
 
 /** Все строки `get_table_by_scope` по контракту (и таблице, если задана). */
-async function tablesByScope(code: string, table?: string): Promise<{ code: string, scope: string, table: string, count: number }[]> {
-  const out: { code: string, scope: string, table: string, count: number }[] = []
+async function tablesByScope(code: string, table?: string): Promise<{ code: string, scope: string, table: string, payer: string, count: number }[]> {
+  const out: { code: string, scope: string, table: string, payer: string, count: number }[] = []
   let lower = ''
   for (;;) {
     const d: any = await chainPost('get_table_by_scope', { code, table, lower_bound: lower, limit: 1000 })
@@ -75,6 +79,23 @@ async function tablesByScope(code: string, table?: string): Promise<{ code: stri
   }
   return out
 }
+
+/** Все строки таблицы в JSON (постранично по `next_key`). */
+async function allRows(code: string, scope: string, table: string): Promise<any[]> {
+  const out: any[] = []
+  let lower = ''
+  for (;;) {
+    const d: any = await chainPost('get_table_rows', { json: true, code, scope, table, lower_bound: lower, limit: 1000 })
+    out.push(...(d.rows ?? []))
+    if (!d.more || !d.next_key)
+      break
+    lower = d.next_key
+  }
+  return out
+}
+
+/** Системные аккаунты цепи, которые boot заводит сам. */
+const SYSTEM_ACCOUNTS = ['eosio', 'eosio.ram', 'eosio.ramfee', 'eosio.stake', 'eosio.names', ...config.accounts.map(a => a.name)]
 
 /** Число строк таблицы, за которые платит `payer` (`show_payer`). */
 async function rowsPaidBy(key: string, payer: string): Promise<number> {
@@ -117,6 +138,8 @@ async function mapLimit<T, R>(items: T[], limit: number, fn: (x: T) => Promise<R
 
 export class RamMeter {
   private contracts: string[] = []
+  /** Аккаунты, найденные прошлыми снимками (плательщики строк и др.). */
+  private known = new Set<string>(SYSTEM_ACCOUNTS)
   /** Таблицы, где число строк менялось по ходу процесса: их плательщиков пересчитываем на каждом этапе. */
   private tracked = new Set<string>()
   readonly stages: RamStage[] = []
@@ -126,17 +149,26 @@ export class RamMeter {
   /** Изменения памяти без действий процесса — шум стенда (кроны контроллера). */
   idleDrift: Record<string, number> = {}
 
-  /** Аккаунты цепи — скоупы `eosio::userres`. */
+  /** Аккаунты цепи: известные, реестр пайщиков и кооперативов, скоупы `eosio::userres`. */
   private async listAccounts(): Promise<string[]> {
-    return (await tablesByScope('eosio', 'userres')).map(r => r.scope)
+    for (const r of await tablesByScope('eosio', 'userres'))
+      this.known.add(r.scope)
+    for (const table of ['accounts', 'coops']) {
+      for (const row of await allRows('registrator', 'registrator', table))
+        this.known.add(row.username)
+    }
+    return [...this.known].sort()
   }
 
   async snapshot(): Promise<RamSnapshot> {
     const names = await this.listAccounts()
-    const infos = await mapLimit(names, 16, n => chainPost('get_account', { account_name: n }))
+    // Имя из конфига boot может не существовать в этой сети — такой аккаунт пропускаем.
+    const infos = await mapLimit(names, 16, n => chainPost('get_account', { account_name: n }).catch(() => null))
     const accounts: Record<string, number> = {}
     const withCode: string[] = []
     infos.forEach((a: any, k) => {
+      if (!a)
+        return
       accounts[names[k]] = Number(a.ram_usage)
       if (a.last_code_update && a.last_code_update !== EPOCH)
         withCode.push(names[k])
@@ -147,8 +179,11 @@ export class RamMeter {
     const rows: Record<string, number> = {}
     const lists = await mapLimit(this.contracts, 8, c => tablesByScope(c))
     for (const list of lists) {
-      for (const r of list)
+      for (const r of list) {
         rows[`${r.code}/${r.table}/${r.scope}`] = Number(r.count)
+        // Плательщик таблицы — тоже аккаунт с памятью; со следующего снимка он в списке.
+        this.known.add(r.payer)
+      }
     }
     const total = Object.values(accounts).reduce((s, v) => s + v, 0)
     return { at: new Date().toISOString(), accounts, rows, total }
