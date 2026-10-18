@@ -1,13 +1,19 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { BaseButton, BaseChip } from 'src/shared/ui/base'
-import { useConnectionAgreementStore } from 'src/entities/ConnectionAgreement'
+import { useConnectionAgreementStore, CONNECTION_STEP } from 'src/entities/ConnectionAgreement'
 import StepFrame from '../ui/StepFrame.vue'
 
 const connectionAgreement = useConnectionAgreementStore()
 const instance = computed(() => connectionAgreement.currentInstance)
 const isApproved = computed(() => instance.value?.blockchain_status === 'active')
 const isChecking = ref(false)
+
+// До решения совета можно вернуться к домену — сверить или исправить адрес.
+// К соглашению и шагам до него назад не пускает: соглашение подписано.
+const handleBack = () => {
+  connectionAgreement.setCurrentStep(CONNECTION_STEP.dns)
+}
 
 const refreshStatus = async () => {
   isChecking.value = true
@@ -25,8 +31,9 @@ const refreshStatus = async () => {
 StepFrame(
   :title="$t('connectionAgreementStepper.approvalWaitingStep.stepTitle')"
   :lead="$t('connectionAgreementStepper.approvalWaitingStep.lead')"
-  :can-back="false"
+  :can-back="!isApproved"
   :has-next="false"
+  @back="handleBack"
 )
   .approval-step__status
     BaseChip(:variant="isApproved ? 'pos' : 'warn'")

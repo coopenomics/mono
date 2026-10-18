@@ -75,6 +75,11 @@ onMounted(async () => {
 
 
 const handleContinue = () => {
+  // Enter в поле адреса отправляет форму шага: в режиме правки это сохранение.
+  if (isEditing.value) {
+    saveDomain()
+    return
+  }
   if (!isDelegated.value) return
   connectionAgreement.setCurrentStep(CONNECTION_STEP.approval)
 }
@@ -93,25 +98,15 @@ const handleReload = async () => {
 
 <template lang="pug">
 StepFrame(
-  :title="$t('connectionAgreementStepper.domainValidationStep.stepTitle')"
-  :lead="$t('connectionAgreementStepper.domainValidationStep.lead')"
+  :title="isEditing ? $t('connectionAgreementStepper.domainValidationStep.editTitle') : $t('connectionAgreementStepper.domainValidationStep.stepTitle')"
+  :lead="isEditing ? $t('connectionAgreementStepper.domainValidationStep.editLead') : $t('connectionAgreementStepper.domainValidationStep.lead')"
   :next-disabled="!isDelegated"
+  :has-next="!isEditing"
   :can-back="false"
   @next="handleContinue"
 )
-  ol.dns-step__how
-    li {{ $t('connectionAgreementStepper.domainValidationStep.howOpenPanel') }}
-    li {{ $t('connectionAgreementStepper.domainValidationStep.howAddRecordPrefix') }}
-      |  
-      span.t-mono CNAME
-      |  {{ $t('connectionAgreementStepper.domainValidationStep.howAddRecordSuffix') }}
-    li {{ $t('connectionAgreementStepper.domainValidationStep.howSave') }}
-
-  .dns-step__values
-    DataRow(:label="$t('connectionAgreementStepper.domainValidationStep.recordName')" :value="coop?.announce" mono copyable)
-    DataRow(:label="$t('connectionAgreementStepper.domainValidationStep.recordValue')" :value="CONNECTOR_HOST" mono copyable)
-
-  //- Ошибся в адресе — исправляется здесь же, без возврата к подписанному соглашению.
+  //- Ошибся в адресе — форма правки заменяет инструкцию, запись и статус:
+  //- до сохранения они описывают прежний адрес.
   .dns-step__edit(v-if="isEditing")
     BaseInput(
       v-model="domainValue"
@@ -129,27 +124,39 @@ StepFrame(
       BaseButton(variant="ghost" size="sm" type="button" :disabled="isSaving" @click="cancelEdit")
         | {{ $t('connectionDashboard.domainCard.cancel') }}
 
-  .dns-step__status
-    BaseChip(:variant="isDelegated ? 'pos' : 'warn'")
-      q-icon(:name="isDelegated ? 'check' : 'schedule'" size="12px").q-mr-xs
-      span {{ isDelegated ? $t('connectionAgreementStepper.domainValidationStep.statusDelegated') : $t('connectionAgreementStepper.domainValidationStep.statusWaiting') }}
-    BaseButton(
-      v-if="!isDelegated"
-      variant="secondary"
-      size="sm"
-      type="button"
-      :loading="isChecking"
-      @click="handleReload"
-    ) {{ $t('connectionAgreementStepper.domainValidationStep.checkNow') }}
-    BaseButton(
-      v-if="!isEditing"
-      variant="ghost"
-      size="sm"
-      type="button"
-      @click="startEdit"
-    )
-      q-icon(name="edit" size="14px").q-mr-xs
-      | {{ $t('connectionAgreementStepper.domainValidationStep.editAddress') }}
+  template(v-else)
+    ol.dns-step__how
+      li {{ $t('connectionAgreementStepper.domainValidationStep.howOpenPanel') }}
+      li {{ $t('connectionAgreementStepper.domainValidationStep.howAddRecordPrefix') }}
+        |  
+        span.t-mono CNAME
+        |  {{ $t('connectionAgreementStepper.domainValidationStep.howAddRecordSuffix') }}
+      li {{ $t('connectionAgreementStepper.domainValidationStep.howSave') }}
+
+    .dns-step__values
+      DataRow(:label="$t('connectionAgreementStepper.domainValidationStep.recordName')" :value="coop?.announce" mono copyable)
+      DataRow(:label="$t('connectionAgreementStepper.domainValidationStep.recordValue')" :value="CONNECTOR_HOST" mono copyable)
+
+    .dns-step__status
+      BaseChip(:variant="isDelegated ? 'pos' : 'warn'")
+        q-icon(:name="isDelegated ? 'check' : 'schedule'" size="12px").q-mr-xs
+        span {{ isDelegated ? $t('connectionAgreementStepper.domainValidationStep.statusDelegated') : $t('connectionAgreementStepper.domainValidationStep.statusWaiting') }}
+      BaseButton(
+        v-if="!isDelegated"
+        variant="secondary"
+        size="sm"
+        type="button"
+        :loading="isChecking"
+        @click="handleReload"
+      ) {{ $t('connectionAgreementStepper.domainValidationStep.checkNow') }}
+      BaseButton(
+        variant="ghost"
+        size="sm"
+        type="button"
+        @click="startEdit"
+      )
+        q-icon(name="edit" size="14px").q-mr-xs
+        | {{ $t('connectionAgreementStepper.domainValidationStep.editAddress') }}
 </template>
 
 <style scoped>
@@ -169,9 +176,6 @@ StepFrame(
   border-radius: var(--p-r-md);
   padding: 0 var(--p-4);
   background: var(--p-surface-2);
-}
-.dns-step__edit {
-  margin-top: var(--p-4);
 }
 .dns-step__edit-actions {
   display: flex;
