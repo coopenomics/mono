@@ -130,20 +130,18 @@ defineExpose({
           //- Значок называет строку, текст — только величину: строки короче
           //- и при переносе остаются ровным столбиком.
           ul.tariff-card__includes(v-if="tariff.code")
-            li
+            //- Первой строкой — объём месяца в новых пайщиках и операциях, как на
+            //- сайте: тариф выбирают по нему. Предел «до N пайщиков» в карточке
+            //- не нужен (решение @ant 18.10.2026), AXON кооперативу ничего не говорят.
+            li(v-if="tariff.docflowAxon")
               q-icon(name="group" size="16px")
-              span {{ $t('connectionAgreementStepper.tariffSelector.membersLimit', { count: formatPrice(tariff.membersLimit ?? 0) }) }}
+              span {{ $t('connectionAgreementStepper.tariffSelector.docflowLine', { members: tariffVolumeBreakdown(tariff.docflowAxon).members, operations: tariffVolumeBreakdown(tariff.docflowAxon).operations }) }}
             li(v-if="tariff.supportResponse")
               q-icon(name="support_agent" size="16px")
               span {{ $t('connectionAgreementStepper.tariffSelector.supportLine', { response: tariff.supportResponse }) }}
             li
               q-icon(name="apps" size="16px")
               span {{ $t('connectionAgreementStepper.tariffSelector.appLine') }}
-            //- Объём документооборота — в пайщиках и операциях, как на сайте:
-            //- AXON сами по себе кооперативу ничего не говорят.
-            li(v-if="tariff.docflowAxon")
-              q-icon(name="description" size="16px")
-              span {{ $t('connectionAgreementStepper.tariffSelector.docflowLine', { members: tariffVolumeBreakdown(tariff.docflowAxon).members, operations: tariffVolumeBreakdown(tariff.docflowAxon).operations }) }}
             li(v-if="tariff.trialDays")
               q-icon(name="hourglass_empty" size="16px")
               span {{ $t('connectionAgreementStepper.tariffSelector.trialLine', { days: tariff.trialDays }) }}
