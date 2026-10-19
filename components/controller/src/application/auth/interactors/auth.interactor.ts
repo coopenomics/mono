@@ -97,6 +97,20 @@ export class AuthInteractor {
     await this.notificationSenderService.sendNotificationToUser(user.username, Workflows.ResetKey.id, { resetUrl });
   }
 
+  /** Почта приглашённого по токену приглашения; токен не расходуется. */
+  async inviteRecipient(token: string): Promise<{ email: string }> {
+    try {
+      const tokenDoc = await this.tokenApplicationService.verifyToken({ token, types: [tokenTypes.INVITE] });
+      const user =
+        (await this.userDomainService.findUserById(tokenDoc.userId)) ??
+        (await this.userDomainService.findUserByLegacyMongoId(tokenDoc.userId));
+      if (!user?.email) throw new Error('user not found');
+      return { email: user.email };
+    } catch {
+      throw DomainError.unauthorized('AUTH_INVITE_TOKEN_INVALID');
+    }
+  }
+
   async resetKey(data: ResetKeyInputDomainInterface): Promise<void> {
     try {
       const resetKeyTokenDoc = await this.tokenApplicationService.verifyToken({
@@ -128,7 +142,11 @@ export class AuthInteractor {
       // Ключ сменён — отзыв прежнего ключа закрыт, вход новым открыт.
       await this.keyRevocation.markRecovered(user.username);
 
-      await this.tokenApplicationService.deleteTokens({ userId: user.id, type: tokenTypes.RESET_KEY });
+      // Гасится токен того вида, по которому пришли. До 19.10.2026 удалялись
+      // только токены сброса, и ссылка из письма-приглашения оставалась живой
+      // до истечения срока: по ней можно было ещё раз сменить ключ — после
+      // установки пароля это рассогласовывало ключ с его хранилищем.
+      await this.tokenApplicationService.deleteTokens({ userId: user.id, type: resetKeyTokenDoc.type });
     } catch (error: any) {
       this.logger.error(`Ошибка сброса ключа: ${error.message}`, error.stack);
       throw DomainError.unauthorized('AUTH_KEY_RESET_ERROR');

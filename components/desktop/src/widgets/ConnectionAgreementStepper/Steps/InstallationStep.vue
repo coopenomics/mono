@@ -27,6 +27,8 @@ const milestone = computed(() => Math.max(0, Math.min(100, instance.value?.progr
 const now = ref(Date.now())
 const milestoneSince = ref(Date.now())
 watch(milestone, () => { milestoneSince.value = Date.now() })
+// realtime: нет источника — состояние инстанса ведёт провайдер (другой узел), его опрашивает страница подключения; здесь только часы для плавного роста полосы.
+// timing: animation — полоса ползёт к следующей вехе, пока провайдер молчит; данных таймер не читает.
 const ticker = setInterval(() => { now.value = Date.now() }, 2_000)
 onBeforeUnmount(() => clearInterval(ticker))
 

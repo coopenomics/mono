@@ -1070,6 +1070,9 @@ export const AllTypesProps: Record<string,any> = {
 		values:"JSON"
 	},
 	InvestStatus: "enum" as const,
+	InviteRecipientInput:{
+
+	},
 	IssueMetricBindingItemInput:{
 
 	},
@@ -3470,6 +3473,9 @@ export const AllTypesProps: Record<string,any> = {
 		globalSearch:{
 			data:"GlobalSearchInput"
 		},
+		inviteRecipient:{
+			data:"InviteRecipientInput"
+		},
 		kuDecision:{
 
 		},
@@ -4168,10 +4174,6 @@ export const AllTypesProps: Record<string,any> = {
 }
 
 export const ReturnTypes: Record<string,any> = {
-	auth:{
-		roles:"String",
-		self:"String"
-	},
 	AccessGrant:{
 		action:"String",
 		resource:"String"
@@ -6680,6 +6682,9 @@ export const ReturnTypes: Record<string,any> = {
 		init_by_server:"Boolean",
 		organization_data:"OrganizationWithBankAccount"
 	},
+	InviteRecipient:{
+		email:"String"
+	},
 	JSON: `scalar.JSON` as const,
 	JSONObject: `scalar.JSONObject` as const,
 	KeyWeight:{
@@ -9146,6 +9151,7 @@ export const ReturnTypes: Record<string,any> = {
 		getWithheldTaxPayments:"WithheldTaxPaymentPage",
 		getWithheldTaxState:"WithheldTaxState",
 		globalSearch:"GlobalSearchGroup",
+		inviteRecipient:"InviteRecipient",
 		kuDecision:"KuDecision",
 		kuDecisions:"PaginatedKuDecisionsPaginationResult",
 		kuTrustRequests:"PaginatedKuTrustRequestsPaginationResult",

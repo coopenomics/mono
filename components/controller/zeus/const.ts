@@ -1070,6 +1070,9 @@ export const AllTypesProps: Record<string,any> = {
 		values:"JSON"
 	},
 	InvestStatus: "enum" as const,
+	InviteRecipientInput:{
+
+	},
 	IssueMetricBindingItemInput:{
 
 	},
@@ -3470,6 +3473,9 @@ export const AllTypesProps: Record<string,any> = {
 		globalSearch:{
 			data:"GlobalSearchInput"
 		},
+		inviteRecipient:{
+			data:"InviteRecipientInput"
+		},
 		kuDecision:{
 
 		},
@@ -4168,10 +4174,6 @@ export const AllTypesProps: Record<string,any> = {
 }
 
 export const ReturnTypes: Record<string,any> = {
-	auth:{
-		roles:"String",
-		self:"String"
-	},
 	AccessGrant:{
 		action:"String",
 		resource:"String"
@@ -5738,6 +5740,8 @@ export const ReturnTypes: Record<string,any> = {
 		is_restoring:"Boolean",
 		is_valid:"Boolean",
 		maintenance_mode:"Boolean",
+		playbook_step:"Int",
+		playbook_total_steps:"Int",
 		progress:"Float",
 		status:"InstanceStatus",
 		title:"String"
@@ -6677,6 +6681,9 @@ export const ReturnTypes: Record<string,any> = {
 		has_private_account:"Boolean",
 		init_by_server:"Boolean",
 		organization_data:"OrganizationWithBankAccount"
+	},
+	InviteRecipient:{
+		email:"String"
 	},
 	JSON: `scalar.JSON` as const,
 	JSONObject: `scalar.JSONObject` as const,
@@ -8879,7 +8886,10 @@ export const ReturnTypes: Record<string,any> = {
 	},
 	ProviderCurrentTariff:{
 		billing_period:"ProviderBillingPeriod",
-		code:"String"
+		code:"String",
+		daily_axon:"Float",
+		docflow_axon:"Float",
+		trial_days:"Int"
 	},
 	ProviderSubscription:{
 		created_at:"String",
@@ -8912,12 +8922,15 @@ export const ReturnTypes: Record<string,any> = {
 		annual_total:"Float",
 		app_price:"Float",
 		code:"String",
+		daily_axon:"Float",
+		docflow_axon:"Float",
 		docflow_price:"Float",
 		members_limit:"Int",
 		monthly_total:"Float",
 		name:"String",
 		server:"ProviderTariffServer",
-		support:"ProviderTariffSupport"
+		support:"ProviderTariffSupport",
+		trial_days:"Int"
 	},
 	ProviderTariffServer:{
 		cpu:"Int",
@@ -9138,6 +9151,7 @@ export const ReturnTypes: Record<string,any> = {
 		getWithheldTaxPayments:"WithheldTaxPaymentPage",
 		getWithheldTaxState:"WithheldTaxState",
 		globalSearch:"GlobalSearchGroup",
+		inviteRecipient:"InviteRecipient",
 		kuDecision:"KuDecision",
 		kuDecisions:"PaginatedKuDecisionsPaginationResult",
 		kuTrustRequests:"PaginatedKuTrustRequestsPaginationResult",

@@ -1,5 +1,6 @@
 import { t } from 'src/shared/i18n';
 export * from './useLoginStepHeading';
+export * from './useEnterDesktop';
 import { useSessionStore } from 'src/entities/Session';
 import { useGlobalStore } from 'src/shared/store';
 import { api } from '../api';
@@ -88,11 +89,17 @@ export function useLoginUser() {
     email: string;
     privateKey: string;
     newPassword: string;
+    /**
+     * false — ключ только что создан в браузере и никому не показан (страница
+     * приглашения): ротировать нечего, лишняя транзакция в цепь не нужна.
+     */
+    rotate?: boolean;
   }): Promise<{ username: string }> {
     const result = await migrate({
       email: params.email,
       privateKey: params.privateKey,
       newPassword: params.newPassword,
+      rotate: params.rotate,
     });
     await loginWithPassword(params.email, params.newPassword);
     return result;

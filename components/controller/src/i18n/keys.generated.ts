@@ -1276,6 +1276,7 @@ export type MessageKey =
   | 'errors.AUTH_EMAIL_RATE_LIMIT_GENERAL'
   | 'errors.AUTH_EMAIL_SEND_FAILED'
   | 'errors.AUTH_INVALID_PRIVATE_KEY'
+  | 'errors.AUTH_INVITE_TOKEN_INVALID'
   | 'errors.AUTH_JWT_INVALID_USER_ID_FORMAT'
   | 'errors.AUTH_JWT_USER_NOT_FOUND'
   | 'errors.AUTH_KEY_RESET_ERROR'
