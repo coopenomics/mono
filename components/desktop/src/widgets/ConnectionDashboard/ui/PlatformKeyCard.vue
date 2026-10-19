@@ -1,11 +1,16 @@
 <template lang="pug">
-BaseCard(:title="title || $t('connectionDashboard.platformKeyCard.title')" :subtitle="subtitle || $t('connectionDashboard.platformKeyCard.subtitle')")
+//- bare — без своей рамки и заголовка: экран завершения встраивает ключ шагом
+//- в общую карточку и сам подписывает его.
+component(
+  :is="bare ? 'div' : BaseCard"
+  v-bind="bare ? {} : { title: title || $t('connectionDashboard.platformKeyCard.title'), subtitle: subtitle || $t('connectionDashboard.platformKeyCard.subtitle') }"
+)
   //- Ключ показывается один раз: на сервер уходит только публичная часть,
   //- приватная живёт до ухода со страницы.
   template(v-if="issued")
     BaseBanner(variant="warn").q-mb-md {{ $t('connectionDashboard.platformKeyCard.saveWarning') }}
     DataRow(:label="$t('connectionDashboard.platformKeyCard.keyLabel')" :value="issued.privateKey" mono copyable)
-    BaseButton.q-mt-md(v-if="siteUrl" variant="primary" size="sm" type="button" @click="openSite")
+    BaseButton.q-mt-md(v-if="siteUrl" variant="primary" :size="buttonSize" type="button" @click="openSite")
       | {{ $t('connectionDashboard.platformKeyCard.goToSite') }}
       q-icon(name="open_in_new" size="14px").q-ml-xs
   template(v-else-if="record")
@@ -15,20 +20,20 @@ BaseCard(:title="title || $t('connectionDashboard.platformKeyCard.title')" :subt
     template(v-if="confirming")
       BaseBanner(variant="warn").q-mb-md {{ $t('connectionDashboard.platformKeyCard.reissueNote') }}
       .platform-key__actions
-        BaseButton(variant="primary" size="sm" type="button" :loading="isIssuing" @click="issue")
+        BaseButton(variant="primary" :size="buttonSize" type="button" :loading="isIssuing" @click="issue")
           | {{ $t('connectionDashboard.platformKeyCard.confirmReissue') }}
-        BaseButton(variant="ghost" size="sm" type="button" :disabled="isIssuing" @click="confirming = false")
+        BaseButton(variant="ghost" :size="buttonSize" type="button" :disabled="isIssuing" @click="confirming = false")
           | {{ $t('connectionDashboard.platformKeyCard.cancel') }}
     .platform-key__actions(v-else)
-      BaseButton(v-if="siteUrl" variant="primary" size="sm" type="button" @click="openSite")
+      BaseButton(v-if="siteUrl" variant="primary" :size="buttonSize" type="button" @click="openSite")
         | {{ $t('connectionDashboard.platformKeyCard.goToSite') }}
         q-icon(name="open_in_new" size="14px").q-ml-xs
-      BaseButton(variant="secondary" size="sm" type="button" @click="confirming = true")
+      BaseButton(variant="secondary" :size="buttonSize" type="button" @click="confirming = true")
         | {{ $t('connectionDashboard.platformKeyCard.reissue') }}
   BaseButton(
     v-else
     variant="primary"
-    size="sm"
+    :size="buttonSize"
     type="button"
     :loading="isIssuing"
     @click="issue"
@@ -53,8 +58,10 @@ import { t } from 'src/shared/i18n'
 
 // Адрес сайта кооператива: на панели управления карточка ведёт туда, где
 // мастер установки спросит ключ. На экране завершения переход — отдельным шагом.
-// Заголовок и пояснение экран завершения задаёт своими: там карточка — шаг.
-const props = defineProps<{ siteUrl?: string; title?: string; subtitle?: string }>()
+const props = withDefaults(
+  defineProps<{ siteUrl?: string; title?: string; subtitle?: string; bare?: boolean; buttonSize?: 'sm' | 'md' }>(),
+  { buttonSize: 'sm' },
+)
 // Есть ли действующий ключ — экран завершения открывает по нему следующие шаги.
 const emit = defineEmits<{ state: [hasKey: boolean] }>()
 
