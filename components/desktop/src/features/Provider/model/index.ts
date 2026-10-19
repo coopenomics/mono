@@ -1,9 +1,10 @@
 import { ref, computed } from 'vue';
 import { loadProviderSubscriptions } from '../api';
 import { useSystemStore } from 'src/entities/System/model';
+import { useSessionStore } from 'src/entities/Session';
 import { Queries } from '@coopenomics/sdk';
 import { t } from 'src/shared/i18n';
-import { CONNECTOR_ZONE } from 'src/shared/lib/utils';
+import { connectorZone } from 'src/shared/lib/utils';
 
 /**
  * Специфичные данные для подписки на хостинг
@@ -40,12 +41,16 @@ const error = ref<string | null>(null);
  */
 export function useProviderSubscriptions() {
   const system = useSystemStore();
+  const session = useSessionStore();
 
-  // Имя точки входа кооператива для CNAME-записи домена кабинета. Запись-шаблон
-  // *.connector.coopenomics.world отвечает адресами всех L7-прокси, поэтому имя
-  // существует для любого кооператива заранее — выдавать записи не нужно, а
-  // куда ведёт кабинет, решается на стороне сети без участия кооператива.
-  const CONNECTOR_HOST = computed(() => `${system.info.coopname}.${CONNECTOR_ZONE}`);
+  // Имя точки входа кооператива для CNAME-записи домена кабинета:
+  // `<учётное имя подключаемого кооператива>.<зона контура>`. Запись-шаблон
+  // зоны отвечает адресами L7-прокси контура, поэтому имя существует для
+  // любого кооператива заранее, а куда ведёт кабинет, решается на стороне
+  // сети без участия кооператива. Имя — подключаемого кооператива (он вошёл
+  // на стол союза своим аккаунтом), а не союза: до 19.10.2026 здесь стояло
+  // имя союза, и всем кооперативам подсказывался один `voskhod.connector`.
+  const CONNECTOR_HOST = computed(() => `${session.username}.${connectorZone()}`);
 
   // Получить подписку на хостинг (id=1)
   const hostingSubscription = computed(() =>

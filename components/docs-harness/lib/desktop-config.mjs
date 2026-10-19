@@ -39,6 +39,9 @@ const KEYS = [
   // не доезжали. Добавляя переменную клиента, правь ЧЕТЫРЕ места:
   // createEnvObject.ts, injectEnv.ts, generateConfig.ts и этот список.
   'COOPID_ISSUER', 'COOPID_CLIENT_ID', 'COOPID_TRUST_ANCHOR_KEY',
+  // Зона точек входа контура: без неё мастер подключения на стенде подсказал
+  // бы боевую зону, а кабинет стенда стоит на прокси тестнета.
+  'CONNECTOR_ZONE',
 ];
 
 function parseEnv(file) {

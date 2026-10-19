@@ -1,12 +1,18 @@
 import { t } from 'src/shared/i18n';
+import { env } from 'src/shared/config';
 import { isDomain } from './isDomainRule';
 import { isSubdomain } from './isSubdomainRule';
 
 /**
- * Зона точек входа платформы: `<учётное имя>.connector.coopenomics.world`.
- * Имя из неё — значение CNAME-записи, а не адрес кабинета.
+ * Зона точек входа контура: `<учётное имя>.<зона>`. Имя из неё — значение
+ * CNAME-записи, а не адрес кабинета. У каждого контура своя зона, потому что
+ * кабинеты контуров стоят на разных L7-прокси: боевая — по умолчанию,
+ * тестнет и контур разработки задают `CONNECTOR_ZONE`.
  */
-export const CONNECTOR_ZONE = 'connector.coopenomics.world';
+export const DEFAULT_CONNECTOR_ZONE = 'connector.coopenomics.world';
+
+export const connectorZone = (): string =>
+  (env.CONNECTOR_ZONE || DEFAULT_CONNECTOR_ZONE).trim().replace(/\.$/, '').toLowerCase();
 
 /**
  * Адрес кабинета кооператива: поддомен собственного домена кооператива.
@@ -20,7 +26,8 @@ export const isCoopDomain = (val: any) => {
   if (domain !== true) return domain;
   const subdomain = isSubdomain(value);
   if (subdomain !== true) return subdomain;
-  if (value === CONNECTOR_ZONE || value.endsWith(`.${CONNECTOR_ZONE}`)) {
+  const zone = connectorZone();
+  if (value === zone || value.endsWith(`.${zone}`)) {
     return t('domain.connectorHost');
   }
   return true;

@@ -34,6 +34,13 @@ export interface EnvVars {
    */
   COOPID_TRUST_ANCHOR_KEY?: string;
   YANDEX_MAPS_API_KEY: string;
+  /**
+   * Зона точек входа контура: CNAME кабинета кооператива ведёт на
+   * `<учётное имя>.<зона>`. Не задана — боевая `connector.coopenomics.world`;
+   * тестнет и контур разработки задают свою, потому что их кабинеты
+   * ставятся на другие L7-прокси.
+   */
+  CONNECTOR_ZONE?: string;
 }
 
 // Расширяем глобальный Window чтобы TypeScript понимал window.__APP_CONFIG__
@@ -156,6 +163,7 @@ function envFromProcess(): EnvVars {
     COOPID_ISSUER: process.env.COOPID_ISSUER as string,
     COOPID_CLIENT_ID: process.env.COOPID_CLIENT_ID as string,
     YANDEX_MAPS_API_KEY: process.env.YANDEX_MAPS_API_KEY as string,
+    CONNECTOR_ZONE: process.env.CONNECTOR_ZONE as string,
   };
 }
 

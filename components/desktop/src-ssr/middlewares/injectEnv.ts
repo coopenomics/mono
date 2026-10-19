@@ -39,6 +39,9 @@ export default ssrMiddleware(({ app }) => {
     COOPID_ISSUER: process.env.COOPID_ISSUER as string,
     COOPID_CLIENT_ID: process.env.COOPID_CLIENT_ID as string,
     COOPID_TRUST_ANCHOR_KEY: process.env.COOPID_TRUST_ANCHOR_KEY as string,
+    // Зона точек входа контура: CNAME кабинета кооператива ведёт на
+    // `<учётное имя>.<зона>`. У боевого, тестового и дев-контура свои зоны.
+    CONNECTOR_ZONE: process.env.CONNECTOR_ZONE as string,
     };
 
     // Создаем скрипт, который добавит переменные в window.__ENV__
