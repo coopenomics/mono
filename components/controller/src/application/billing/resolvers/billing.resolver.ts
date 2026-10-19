@@ -7,6 +7,7 @@ import {
   RightsGuard,
   GenerateDocumentOptionsInputDTO,
   GeneratedDocumentDTO,
+  DOCUMENT_GENERATION_THROTTLE,
 } from '@coopenomics/extension-kit';
 import { BillingService } from '../services/billing.service';
 import { BillingConvertInputDTO } from '../dto/billing-convert-input.dto';
@@ -51,7 +52,7 @@ export class BillingResolver {
       'Генерирует заявление 1095.BillingConversionStatement (перед подписью пайщиком) — ' +
       'аналог generateConvertToAxonStatement, канон documents-dto.',
   })
-  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @Throttle(DOCUMENT_GENERATION_THROTTLE)
   @UseGuards(GqlJwtAuthGuard, RightsGuard)
   @RequireRight('Billing', 'generate')
   generateBillingConversionStatement(

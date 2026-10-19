@@ -13,6 +13,7 @@ import {
   DomainError,
   RequireRight,
   RightsGuard,
+  DOCUMENT_GENERATION_THROTTLE,
 } from '@coopenomics/extension-kit';
 import { WalletService } from '../services/wallet.service';
 import { ReturnByMoneyGenerateDocumentInputDTO } from '~/application/document/documents-dto/return-by-money-statement.dto';
@@ -77,7 +78,7 @@ export class WalletResolver {
     name: 'generateReturnByMoneyStatementDocument',
     description: 'Сгенерировать документ заявления на возврат паевого взноса',
   })
-  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @Throttle(DOCUMENT_GENERATION_THROTTLE)
   @UseGuards(GqlJwtAuthGuard, RightsGuard)
   @RequireRight('Withdraw', 'generate:own', { owner: 'data.username' })
   async generateReturnByMoneyStatementDocument(
@@ -96,7 +97,7 @@ export class WalletResolver {
     name: 'generateReturnByMoneyDecisionDocument',
     description: 'Сгенерировать документ решения совета о возврате паевого взноса',
   })
-  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @Throttle(DOCUMENT_GENERATION_THROTTLE)
   @UseGuards(GqlJwtAuthGuard, RightsGuard)
   @RequireRight('DecisionDocument', 'generate')
   async generateReturnByMoneyDecisionDocument(

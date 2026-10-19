@@ -10,6 +10,7 @@ import {
   ExpenseProposalStatementGenerateDocumentInputDTO,
   RequireRight,
   RightsGuard,
+  DOCUMENT_GENERATION_THROTTLE,
 } from '@coopenomics/extension-kit';
 import type { IMonoAccount } from '@coopenomics/innercoop';
 import { ExpenseProposalDecisionGenerateDocumentInputDTO } from '../documents-dto/expense-proposal-decision-document.dto';
@@ -71,7 +72,7 @@ export class ExpenseMutationsResolver {
     name: 'generateExpenseProposalStatementDocument',
     description: 'Сгенерировать документ СЗ-заявления (registry 2010) для последующей подписи.',
   })
-  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @Throttle(DOCUMENT_GENERATION_THROTTLE)
   @UseGuards(GqlJwtAuthGuard, RightsGuard)
   @RequireRight('ExpenseProposal', ['generate:own', 'generate:all'], { owner: 'data.username' })
   async generateExpenseProposalStatementDocument(
@@ -87,7 +88,7 @@ export class ExpenseMutationsResolver {
     name: 'generateExpenseProposalDecisionDocument',
     description: 'Сгенерировать документ-решение по СЗ (registry 2011) для последующей подписи.',
   })
-  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @Throttle(DOCUMENT_GENERATION_THROTTLE)
   @UseGuards(GqlJwtAuthGuard, RightsGuard)
   @RequireRight('ExpenseProposal', 'decide')
   async generateExpenseProposalDecisionDocument(

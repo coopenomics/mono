@@ -19,6 +19,7 @@ export * from './payment/payment-provider';
 export * from './file-storage/bucket';
 export * from './file-storage/bucket-providers';
 export * from './expense/expense-proposal-statement-document.dto';
+export * from './document/document-generation-throttle';
 export * from './registration/candidate.dto';
 export * from './registration/candidate-filter.dto';
 export * from './onboarding/onboarding-ttl';

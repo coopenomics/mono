@@ -10,6 +10,7 @@ import {
   GenerateDocumentInputDTO,
   RequireRight,
   RightsGuard,
+  DOCUMENT_GENERATION_THROTTLE,
 } from '@coopenomics/extension-kit';
 import { UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
@@ -61,7 +62,7 @@ export class PropertyManagementResolver {
     name: 'capitalGenerateGenerationPropertyInvestStatement',
     description: 'Сгенерировать заявление об инвестировании имуществом в генерацию',
   })
-  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @Throttle(DOCUMENT_GENERATION_THROTTLE)
   @UseGuards(GqlJwtAuthGuard, RightsGuard)
   @RequireRight('Property', ['generate:own', 'generate'], { owner: 'data.username' })
   async generateGenerationPropertyInvestStatement(
@@ -80,7 +81,7 @@ export class PropertyManagementResolver {
     name: 'capitalGenerateGenerationPropertyInvestDecision',
     description: 'Сгенерировать решение об инвестировании имуществом в генерацию',
   })
-  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @Throttle(DOCUMENT_GENERATION_THROTTLE)
   @UseGuards(GqlJwtAuthGuard, RightsGuard)
   @RequireRight('Property', ['generate:own', 'generate'], { owner: 'data.username' })
   async generateGenerationPropertyInvestDecision(
@@ -99,7 +100,7 @@ export class PropertyManagementResolver {
     name: 'capitalGenerateGenerationPropertyInvestAct',
     description: 'Сгенерировать акт об инвестировании имуществом в генерацию',
   })
-  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @Throttle(DOCUMENT_GENERATION_THROTTLE)
   @UseGuards(GqlJwtAuthGuard, RightsGuard)
   @RequireRight('Property', ['generate:own', 'generate'], { owner: 'data.username' })
   async generateGenerationPropertyInvestAct(
@@ -118,7 +119,7 @@ export class PropertyManagementResolver {
     name: 'capitalGenerateCapitalizationPropertyInvestStatement',
     description: 'Сгенерировать заявление об инвестировании имуществом в благорост',
   })
-  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @Throttle(DOCUMENT_GENERATION_THROTTLE)
   @UseGuards(GqlJwtAuthGuard, RightsGuard)
   @RequireRight('Property', ['generate:own', 'generate'], { owner: 'data.username' })
   async generateCapitalizationPropertyInvestStatement(
@@ -137,7 +138,7 @@ export class PropertyManagementResolver {
     name: 'capitalGenerateCapitalizationPropertyInvestDecision',
     description: 'Сгенерировать решение об инвестировании имуществом в благорост',
   })
-  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @Throttle(DOCUMENT_GENERATION_THROTTLE)
   @UseGuards(GqlJwtAuthGuard, RightsGuard)
   @RequireRight('Property', ['generate:own', 'generate'], { owner: 'data.username' })
   async generateCapitalizationPropertyInvestDecision(
@@ -156,7 +157,7 @@ export class PropertyManagementResolver {
     name: 'capitalGenerateCapitalizationPropertyInvestAct',
     description: 'Сгенерировать акт об инвестировании имуществом в благорост',
   })
-  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @Throttle(DOCUMENT_GENERATION_THROTTLE)
   @UseGuards(GqlJwtAuthGuard, RightsGuard)
   @RequireRight('Property', ['generate:own', 'generate'], { owner: 'data.username' })
   async generateCapitalizationPropertyInvestAct(

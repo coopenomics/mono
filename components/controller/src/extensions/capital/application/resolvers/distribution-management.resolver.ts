@@ -11,6 +11,7 @@ import {
   GenerateDocumentInputDTO,
   RequireRight,
   RightsGuard,
+  DOCUMENT_GENERATION_THROTTLE,
 } from '@coopenomics/extension-kit';
 import { UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
@@ -68,7 +69,7 @@ export class DistributionManagementResolver {
     name: 'capitalGenerateGenerationConvertStatement',
     description: 'Сгенерировать заявление о конвертации целевого паевого взноса (в Цифровой Кошелёк и/или в программу «Благорост»)',
   })
-  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @Throttle(DOCUMENT_GENERATION_THROTTLE)
   @UseGuards(GqlJwtAuthGuard, RightsGuard)
   @RequireRight('CapitalProgram', ['generate:own', 'generate'], { owner: 'data.username' })
   async generateGenerationConvertStatement(
@@ -88,7 +89,7 @@ export class DistributionManagementResolver {
     name: 'capitalGenerateCapitalizationToMainWalletConvertStatement',
     description: 'Сгенерировать заявление о конвертации из благороста в основной кошелек',
   })
-  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @Throttle(DOCUMENT_GENERATION_THROTTLE)
   @UseGuards(GqlJwtAuthGuard, RightsGuard)
   @RequireRight('CapitalProgram', ['generate:own', 'generate'], { owner: 'data.username' })
   async generateCapitalizationToMainWalletConvertStatement(

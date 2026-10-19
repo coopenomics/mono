@@ -28,6 +28,7 @@ import {
   GenerateDocumentOptionsInputDTO,
   RequireRight,
   RightsGuard,
+  DOCUMENT_GENERATION_THROTTLE,
 } from '@coopenomics/extension-kit';
 import { UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
@@ -381,7 +382,7 @@ export class GenerationResolver {
     name: 'capitalGenerateGenerationMoneyInvestStatement',
     description: 'Сгенерировать заявление об инвестировании в генерацию',
   })
-  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @Throttle(DOCUMENT_GENERATION_THROTTLE)
   @UseGuards(GqlJwtAuthGuard, RightsGuard)
   @RequireRight('Invest', ['generate:own', 'generate'], { owner: 'data.username' })
   async generateGenerationMoneyInvestStatement(
@@ -401,7 +402,7 @@ export class GenerationResolver {
     name: 'capitalGenerateProgramMoneyInvestStatement',
     description: 'Сгенерировать заявление об инвестировании в программу благороста (без привязки к проекту)',
   })
-  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @Throttle(DOCUMENT_GENERATION_THROTTLE)
   @UseGuards(GqlJwtAuthGuard, RightsGuard)
   @RequireRight('Invest', ['generate:own', 'generate'], { owner: 'data.username' })
   async generateProgramMoneyInvestStatement(
