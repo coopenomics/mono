@@ -166,11 +166,3 @@ documents:
     note: Та же доверенность со встречной подписью председателя участка.
 
 operations: []
-
-related:
-  - process_type: p.brn.aid
-    relation: provides
-    note: Доверенное лицо может получать материальную помощь участка по решению совета.
-  - process_type: p.brn.fees
-    relation: provides
-    note: Доверенные лица участвуют в распределении членских взносов участка.

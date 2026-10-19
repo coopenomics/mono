@@ -58,10 +58,10 @@ export default async ({ page, context, shot }) => {
   await fill(page, 'Цель расходов', 'Учебные пособия для курса подготовки к ОГЭ');
   const due = new Date(Date.now() + 14 * 86400_000).toISOString().slice(0, 10);
   await fill(page, 'Срок исполнения', due);
-  await page.locator('button:has-text("Добавить позицию")').first().click();
-  await page.waitForTimeout(500);
+  // Первую позицию форма заводит сама; лишняя пустая позиция блокирует подачу.
+  await page.waitForSelector('text=Позиция №1', { timeout: 15000 });
+  // Для организации форма сама ставит «Оплата по счету» и блокирует поле.
   await pick(page, 'Тип получателя', 'Организация/ИП');
-  await pick(page, 'Способ оплаты', 'Оплата по счету');
   await fill(page, 'Название организации', 'ООО «Учебные пособия»');
   await fill(page, 'Сумма (план)', String(amount));
   await fill(page, 'Что оплачиваем', 'Сборники заданий ОГЭ по математике, 20 экземпляров');

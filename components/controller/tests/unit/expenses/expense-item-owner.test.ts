@@ -20,7 +20,9 @@ function build() {
       items: [{ item_hash: ITEM.toUpperCase(), recipient: 'bob' }],
     }),
   };
-  const resolver = new ExpenseMutationsResolver(mutations as any, management as any);
+  // Распоряжаться чужой строкой вправе председатель и кассир (`ExpenseItem:<действие>:all`).
+  const rights = { holds: jest.fn(async (user: { username: string }) => user.username === 'ant' || user.username === 'kassa') };
+  const resolver = new ExpenseMutationsResolver(mutations as any, management as any, rights as any);
   return { resolver, mutations };
 }
 
@@ -55,10 +57,22 @@ describe('строка-аванс: кто распоряжается', () => {
     ).rejects.toBeInstanceOf(ForbiddenException);
   });
 
-  it('совет распоряжается любой строкой', async () => {
+  it('председатель и кассир распоряжаются любой строкой (cashier.edit.happy.02)', async () => {
     const { resolver, mutations } = build();
     await resolver.returnExpenseItem(returnInput, { username: 'ant', role: 'chairman' } as any);
-    await resolver.returnExpenseItem(returnInput, { username: 'kim', role: 'member' } as any);
+    await resolver.returnExpenseItem(returnInput, { username: 'kassa', role: 'user' } as any);
+    await resolver.reportExpenseItem(reportInput, { username: 'kassa', role: 'user' } as any);
     expect(mutations.returnExpenseItem).toHaveBeenCalledTimes(2);
+    expect(mutations.reportExpenseItem).toHaveBeenCalledTimes(1);
+  });
+
+  // cashier.edit.side.02 — с 16.10.2026 совет кассу читает, правят председатель и кассир.
+  it('член совета чужой строкой не распоряжается: отчёт и возврат за пайщика — отказ', async () => {
+    const { resolver, mutations } = build();
+    const council = { username: 'kim', role: 'member' } as any;
+    await expect(resolver.returnExpenseItem(returnInput, council)).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(resolver.reportExpenseItem(reportInput, council)).rejects.toBeInstanceOf(ForbiddenException);
+    expect(mutations.returnExpenseItem).not.toHaveBeenCalled();
+    expect(mutations.reportExpenseItem).not.toHaveBeenCalled();
   });
 });

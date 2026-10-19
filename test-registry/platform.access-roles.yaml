@@ -91,7 +91,7 @@ cases:
     level: backend
     kind: happy
     scenario: пайщик с ролью кассира открывает рабочий стол
-    expect: из страниц стола совета получает только реестр платежей
+    expect: получает стол кассира (касса и реестр платежей); страниц стола совета у него нет
     test: components/controller/tests/unit/rights/core-rights.test.ts
     api: components/api-tests/src/platform/access-roles.test.ts
     status: written   # прогон — CI на полигоне ci/tests
@@ -100,7 +100,7 @@ cases:
     level: backend
     kind: happy
     scenario: ядро объявляет роль кассира
-    expect: роль объявлена под приложением стола совета
+    expect: роль объявлена под приложением стола кассира, ревизор — под столом совета
     test: components/controller/tests/unit/rights/core-rights.test.ts
     api: components/api-tests/src/platform/access-roles.test.ts
     status: written   # прогон — CI на полигоне ci/tests
@@ -330,3 +330,13 @@ cases:
     status: missing   # проверяется владельцем на стенде; сценарий harness не заведён
 
 # 16.10.2026, C28-92: в мост портов добавлена привязка реестра поставщиков сведений по ИНН (ORGANIZATION_LOOKUP_REGISTRY_PORT); права и роли не менялись.
+
+# Правка 16.10.2026 (7DD-25): роль «Кассир» переехала со стола совета на стол
+# кассира (test-registry/cashier.desk.yaml); expect случаев happy.07 и
+# happy.08 переписаны под это, расходы дополняют роль кассира чтением
+# служебных записок.
+
+# Правка 16.10.2026 (7DD-25, третья волна): расходы дополняют роль кассира правкой
+# кассы — оплата и доплата, отчёт и возврат за получателя, документы к любой записке,
+# закрытие расхода; совет кассу читает (cashier.edit.* в cashier.desk.yaml). Ревизор
+# читает и стол кассира.

@@ -300,22 +300,67 @@ documents:
 # Все операции возникают в callback'ах исходных контрактов.
 operations: []
 
-# ── Секция 7. Связи ─────────────────────────────────────────────────────────
+# ── Связи с другими процессами ──────────────────────────────────────────
+# Только по межконтрактным вызовам: consumes — процесс вызывает другой,
+# provides — другой процесс вызывает этот.
 related:
-  - process_type: p.reg.accept
+  - process_type: brn.decide
     relation: provides
-    note: Через этот путь утверждается приём пайщика в кооператив.
-
+    note: >
+      Ставит вопрос в повестку совета и получает решение.
   - process_type: meet.hold
     relation: provides
-    note: Через этот путь авторизуется созыв общего собрания.
-
-  - process_type: reg.coop
-    relation: provides
-    note: Через этот путь утверждается присоединение кооператива к платформе.
-
-  - process_type: sov.decision
-    relation: affects
     note: >
-      Альтернативный путь — sov.decision — для свободных решений по
-      произвольной повестке, поданной пайщиком вручную.
+      Ставит вопрос в повестку совета и получает решение.
+  - process_type: p.brn.aid
+    relation: provides
+    note: >
+      Ставит вопрос в повестку совета и получает решение.
+  - process_type: p.cap.debt
+    relation: provides
+    note: >
+      Ставит вопрос в повестку совета и получает решение.
+  - process_type: p.cap.prop
+    relation: provides
+    note: >
+      Ставит вопрос в повестку совета и получает решение.
+  - process_type: p.cap.rid
+    relation: provides
+    note: >
+      Ставит вопрос в повестку совета и получает решение.
+  - process_type: p.edu.access
+    relation: provides
+    note: >
+      Ставит вопрос в повестку совета и получает решение.
+  - process_type: p.edu.rid
+    relation: provides
+    note: >
+      Ставит вопрос в повестку совета и получает решение.
+  - process_type: p.exp.expns
+    relation: provides
+    note: >
+      Ставит вопрос в повестку совета и получает решение.
+  - process_type: p.mkt.return
+    relation: provides
+    note: >
+      Ставит вопрос в повестку совета и получает решение.
+  - process_type: p.mkt.supply
+    relation: provides
+    note: >
+      Ставит вопрос в повестку совета и получает решение.
+  - process_type: p.mkt.wroff
+    relation: provides
+    note: >
+      Ставит вопрос в повестку совета и получает решение.
+  - process_type: p.reg.accept
+    relation: provides
+    note: >
+      Ставит вопрос в повестку совета и получает решение.
+  - process_type: p.reg.exit
+    relation: provides
+    note: >
+      Ставит вопрос в повестку совета и получает решение.
+  - process_type: p.wal.wthdrw
+    relation: provides
+    note: >
+      Ставит вопрос в повестку совета и получает решение.

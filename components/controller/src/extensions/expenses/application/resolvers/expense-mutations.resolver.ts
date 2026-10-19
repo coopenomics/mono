@@ -23,6 +23,7 @@ import { ExpenseReportResultDTO } from '../dto/report-expense-item.output';
 import { ReturnExpenseItemInputDTO } from '../dto/return-expense-item.input';
 import { OverspendExpenseItemInputDTO } from '../dto/overspend-expense-item.input';
 import { SubmitExpenseReportInputDTO } from '../dto/submit-expense-report.input';
+import { ExpensesRights } from '../access/expenses-rights';
 import { t } from '../../i18n';
 
 /**
@@ -37,23 +38,26 @@ import { t } from '../../i18n';
 export class ExpenseMutationsResolver {
   constructor(
     private readonly expensesMutations: ExpensesMutationsService,
-    private readonly expensesManagement: ExpensesManagementService
+    private readonly expensesManagement: ExpensesManagementService,
+    private readonly rights: ExpensesRights
   ) {}
 
   /**
    * Контракт проверяет только статус/механику строки, но не личность
    * отчитывающегося — транзакцию подписывает кооператив. Поэтому отчёт и
    * возврат по чужому авансу отсекаются здесь: пайщик распоряжается только
-   * своей строкой, совет — любой. Без этой проверки любой вошедший списывал
-   * бы подотчёт с чужого аванса «возвратом», не возвращая денег.
+   * своей строкой, за другого — председатель и кассир (`ExpenseItem:<действие>:all`).
+   * Без этой проверки любой вошедший списывал бы подотчёт с чужого аванса
+   * «возвратом», не возвращая денег.
    */
   private async assertOwnsItem(
     user: IMonoAccount,
     proposalHash: string,
     itemHash: string,
+    onBehalfRight: string,
     denied: string
   ): Promise<void> {
-    if (user.role === 'chairman' || user.role === 'member') return;
+    if (await this.rights.holds(user, onBehalfRight)) return;
     const proposal = await this.expensesManagement.getProposalByHash(proposalHash);
     const item = proposal?.items?.find(
       (i) => i.item_hash?.toLowerCase() === itemHash.toLowerCase()
@@ -134,7 +138,7 @@ export class ExpenseMutationsResolver {
     @Args('data', { type: () => ReportExpenseItemInputDTO }) data: ReportExpenseItemInputDTO,
     @CurrentUser() user: IMonoAccount
   ): Promise<ExpenseReportResultDTO> {
-    await this.assertOwnsItem(user, data.proposal_hash, data.item_hash, t('expenses.expenseMutations.reportOwnerOnlyMessage'));
+    await this.assertOwnsItem(user, data.proposal_hash, data.item_hash, 'ExpenseItem:report:all', t('expenses.expenseMutations.reportOwnerOnlyMessage'));
     return this.expensesMutations.reportExpenseItem(data);
   }
 
@@ -148,7 +152,7 @@ export class ExpenseMutationsResolver {
     @Args('data', { type: () => ReturnExpenseItemInputDTO }) data: ReturnExpenseItemInputDTO,
     @CurrentUser() user: IMonoAccount
   ): Promise<TransactionDTO> {
-    await this.assertOwnsItem(user, data.proposal_hash, data.item_hash, t('expenses.expenseMutations.returnOwnerOnlyMessage'));
+    await this.assertOwnsItem(user, data.proposal_hash, data.item_hash, 'ExpenseItem:return:all', t('expenses.expenseMutations.returnOwnerOnlyMessage'));
     return this.expensesMutations.returnExpenseItem(data);
   }
 

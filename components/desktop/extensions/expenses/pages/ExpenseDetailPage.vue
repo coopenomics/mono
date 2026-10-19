@@ -11,6 +11,16 @@
   .expense-detail(v-if='proposal')
     //- Статус расхода — вверху страницы, справа (канон detail-страниц).
     .head-row
+      //- Отчёт подан по всем строкам — член совета закрывает расход.
+      BaseButton(
+        v-if='canClose',
+        variant='primary',
+        size='sm',
+        icon='task_alt',
+        :loading='closing',
+        @click='closeExpense'
+      ) {{ $t('expenses.expenseDetailPage.closeExpenseLabel') }}
+        q-tooltip {{ $t('expenses.expenseDetailPage.closeExpenseHint') }}
       BaseChip(
         v-if='proposal.status',
         :variant='proposalStatusVariant(proposal.status)'
@@ -146,6 +156,7 @@ import { Zeus } from '@coopenomics/sdk';
 import { BaseBadge } from 'src/shared/ui/base/BaseBadge';
 import type { BaseBadgeVariant } from 'src/shared/ui/base/BaseBadge';
 import { BaseCard } from 'src/shared/ui/base/BaseCard';
+import { BaseButton } from 'src/shared/ui/base/BaseButton';
 import { BaseChip } from 'src/shared/ui/base/BaseChip';
 import { EmptyState } from 'src/shared/ui/base/EmptyState';
 import { DataRow } from 'src/shared/ui/domain';
@@ -153,7 +164,9 @@ import { ExpenseProposalDocuments } from 'src/shared/ui/domain/ExpenseProposalDo
 import { ActivityTimeline } from 'src/shared/ui/domain/ActivityTimeline';
 import type { ActivityEvent, ActivityEventType } from 'src/shared/ui/domain/ActivityTimeline';
 import { PaymentDetails } from 'src/shared/ui';
-import { FailAlert } from 'src/shared/api';
+import { FailAlert, SuccessAlert } from 'src/shared/api';
+import { useDesktopStore } from 'src/entities/Desktop/model';
+import { useMayCloseExpense } from 'src/entities/ExpenseProposal';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { getNameFromCertificate } from 'src/shared/lib/utils/getNameFromCertificate';
 import { listExpenseWallets } from 'src/shared/lib/expense-wallets';
@@ -161,6 +174,7 @@ import { api as paymentApi } from 'src/entities/Payment/api';
 import type { IPayment } from 'src/entities/Payment';
 import {
   getExpenseProposal,
+  submitExpenseReport,
   getExpenseFilesByProposal,
   getExpenseFileReadUrl,
   type IExpenseProposalResult,
@@ -172,8 +186,8 @@ import {
   getExpenseItemStatusLabel,
   getExpenseItemStatusVariant,
   getExpenseMechanicsLabel,
-  EXPENSE_LIVE_TABLES,
 } from '../model';
+import { EXPENSE_LIVE_TABLES } from 'src/shared/lib/expenses';
 import { t } from '../i18n';
 
 type IProposal = NonNullable<IExpenseProposalResult>;
@@ -182,9 +196,32 @@ type IFileRow = IExpenseFilesByProposalResult[number];
 const route = useRoute();
 const router = useRouter();
 
+const desktop = useDesktopStore();
+
 const loading = ref(false);
 const loaded = ref(false);
 const proposal = ref<IProposal | null>(null);
+const closing = ref(false);
+
+// Закрыть расход можно, когда отчёт подан по всем строкам и у пайщика есть
+// право закрытия — его дают председателю и кассиру; совет записку читает.
+const mayClose = useMayCloseExpense();
+const canClose = computed(() => mayClose(proposal.value?.status));
+
+async function closeExpense(): Promise<void> {
+  const current = proposal.value;
+  if (!current?.proposal_hash) return;
+  try {
+    closing.value = true;
+    await submitExpenseReport({ coopname: route.params.coopname as string, proposal_hash: current.proposal_hash });
+    SuccessAlert(t('expenses.expenseDetailPage.closedMessage'));
+    await load(true);
+  } catch (e) {
+    FailAlert(e);
+  } finally {
+    closing.value = false;
+  }
+}
 const files = ref<IFileRow[]>([]);
 const linkedPayments = ref<IPayment[]>([]);
 const loadingPayments = ref(false);
@@ -301,11 +338,12 @@ function goBack(): void {
   });
 }
 
-// Клик по платежу → реестр платежей кассира, отфильтрованный по владельцу
-// платежа, с фокусом на конкретный платёж (виджет раскроет его по hash).
+// Клик по платежу → реестр платежей, отфильтрованный по владельцу платежа,
+// с фокусом на конкретный платёж (виджет раскроет его по hash). Кассир и
+// председатель попадают в реестр стола кассира, член совета — стола совета.
 function openInRegistry(pay: IPayment): void {
   void router.push({
-    name: 'payments',
+    name: desktop.hasGrant('cashier', 'Payment:confirm') ? 'cashier-payments' : 'payments',
     params: { coopname: route.params.coopname, username: pay.username },
     query: { focus: pay.hash },
   });

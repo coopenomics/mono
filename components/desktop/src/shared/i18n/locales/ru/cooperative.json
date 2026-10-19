@@ -184,7 +184,6 @@
       },
       "confirmPaymentStep": "Подтвердите оплату",
       "createdAtHeader": "Дата создания {sortMark}",
-      "directionHeader": "Направление",
       "directionIncoming": "Входящий",
       "directionOutgoing": "Исходящий",
       "emptyBody": "Здесь появятся ваши платежи и взносы.",

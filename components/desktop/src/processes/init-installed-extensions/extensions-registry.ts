@@ -2,6 +2,7 @@ import type { IWorkspaceConfig } from 'src/shared/lib/types/workspace';
 
 // Импортируем все функции установки расширений
 import capitalInstall from '../../../extensions/capital/install';
+import cashierInstall from '../../../extensions/cashier/install';
 import chairmanInstall from '../../../extensions/chairman/install';
 import chatcoopInstall from '../../../extensions/chatcoop/install';
 import expensesInstall from '../../../extensions/expenses/install';
@@ -20,6 +21,7 @@ import robotInstall from '../../../extensions/robot/install';
  */
 export const extensionsRegistry: Record<string, () => Promise<IWorkspaceConfig[]>> = {
   capital: capitalInstall,
+  cashier: cashierInstall,
   chairman: chairmanInstall,
   chatcoop: chatcoopInstall,
   expenses: expensesInstall,

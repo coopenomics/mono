@@ -20,7 +20,7 @@ import {
   type IRegisterAccount,
 } from 'src/shared/lib/types/user/IUserData';
 import { client } from 'src/shared/api/client';
-import { Mutations, Zeus } from '@coopenomics/sdk';
+import { Mutations, Queries, Zeus } from '@coopenomics/sdk';
 import { DigitalDocument } from 'src/shared/lib/document';
 import { IDocument } from 'src/shared/lib/types/document';
 import { useAccountStore } from 'src/entities/Account/model';
@@ -43,6 +43,7 @@ export type ISendStatement =
   Mutations.Participants.RegisterParticipant.IInput['data'];
 export type ISendStatementResult =
   Mutations.Participants.RegisterParticipant.IOutput[typeof Mutations.Participants.RegisterParticipant.name];
+export type IEmailRegistrationCheckInput = Queries.Auth.IsEmailRegistered.IInput['data'];
 
 export function useCreateUser() {
   const registratorStore = useRegistratorStore();
@@ -395,7 +396,7 @@ export function useCreateUser() {
   }
 
   async function emailIsExist(email: string): Promise<boolean> {
-    return await api.emailIsExist(email);
+    return await api.emailIsExist({ email });
   }
 
   function generateAccount(): IGeneratedAccount {

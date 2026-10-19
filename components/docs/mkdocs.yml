@@ -142,39 +142,85 @@ nav:
           - Паевой взнос: new/participant/wallet-topup.md
           - Возврат взноса: new/participant/wallet-refund.md
       - Удостоверение: new/participant/profile.md
+      - Карта кооператора: new/participant/cardcoop.md
       - Реквизиты: new/participant/requisites.md
       - Документы: new/participant/documents.md
       - Платежи: new/participant/payments.md
       - Собрания: new/participant/meetings.md
       - Контакты: new/participant/contacts.md
+      - Настройки: new/participant/settings.md
 
   - Стол совета:
       - Повестка совета: new/council/agenda.md
       - Реестр пайщиков: new/council/participants.md
       - Реестр документов: new/council/documents.md
       - Реестр платежей: new/council/payments.md
+      - Реестр расходов: new/council/expenses.md
       - Реестр собраний: new/council/meetings.md
-      - Реестр кошельков: new/council/wallets.md
+      - Реестр кооперативов: new/council/cooperatives.md
       - Робот совета: new/council/robot.md
-    
+
   - Стол председателя:
+    - Онбординг: new/chairman/onboarding.md
     - Запросы одобрений: new/chairman/approval-requests.md
-    - Магазин приложений: new/chairman/app-store.md
+    - Управление доступом: new/chairman/access-roles.md
+    - Пресеты предложений: new/chairman/agenda-presets.md
+    - Журнал уведомлений: new/chairman/notifications-journal.md
+    - Каталог приложений: new/chairman/app-store.md
     - Стартовые страницы: new/chairman/start-pages.md
     - Члены совета: new/chairman/board-members.md
     - Кооперативные участки: new/chairman/cooperative-branches.md
     - Регистрационные взносы: new/chairman/registration-fees.md
     - Ключ кооператива: new/chairman/cooperative-key.md
+    - Провайдер платежей: new/chairman/payment-provider.md
     - Контакты кооператива: new/chairman/cooperative-contacts.md
-  
+
+  - Стол бухгалтера:
+    - new/buh/index.md
+    - Реестр процессов: new/buh/processes.md
+    - Реестр операций: new/buh/operations.md
+    - Реестр проводок: new/buh/postings.md
+    - Реестр кошельков:
+      - Кошельки кооператива: new/buh/wallets-coop.md
+      - Кошельки пайщиков: new/buh/wallets-participants.md
+    - Реестр счетов: new/buh/accounts.md
+    - Отчётность:
+      - Календарь: new/buh/calendar.md
+      - Список форм: new/buh/forms.md
+      - Архив: new/buh/archive.md
+    - НДФЛ: new/buh/ndfl.md
+    - Реквизиты: new/buh/settings.md
+
+  - Стол кассира:
+    - new/cashier/index.md
+    - Реестр платежей: new/cashier/payments.md
+    - Расходы: new/cashier/expenses.md
+    - Авансы: new/cashier/advances.md
+    - Стол глазами совета: new/cashier/council-view.md
+
+  - Расходы:
+    - new/expenses/index.md
+    - Реестр расходов: new/expenses/registry.md
+    - Выплаты по записке: new/expenses/cashier.md
+    - Отчёт по авансу: new/expenses/advances.md
+    - Закрытие расхода: new/expenses/close.md
+
+  - Стол связи:
+    - new/chatcoop/index.md
+    - Установка: new/chatcoop/install.md
+    - Быстрый клиент: new/chatcoop/chat.md
+    - Мобильный клиент: new/chatcoop/mobile.md
+    - Календарь событий: new/chatcoop/calendar.md
+    - Транскрипции звонков: new/chatcoop/transcriptions.md
+    - Комнаты секретаря: new/chatcoop/secretary-rooms.md
+
   - Стол вычислительных ресурсов:
     - Аренда квот ресурсов: new/resources/quotas.md
     - Монитор ресурсов: new/resources/monitor.md
     - Настройки аренды ресурсов: new/resources/settings.md
     - Лог ресурсов: new/resources/log.md
-    
+
   - Общие собрания: new/meet/index.md
-  - Бухгалтерия: new/buh/index.md
 
   - Стол заказов:
     - Введение: new/marketplace/index.md
@@ -190,6 +236,10 @@ nav:
       - Мои заказы: new/marketplace/orderer/my-orders.md
       - Получение на пункте выдачи: new/marketplace/orderer/receive.md
       - Гарантийный возврат: new/marketplace/orderer/returns.md
+      - Заказ до получения: new/marketplace/orderer/order-no-return-yet.md
+      - Пустой каталог: new/marketplace/orderer/catalog-empty.md
+      - Нет заказов: new/marketplace/orderer/orders-empty.md
+      - Стол заказчика целиком: new/marketplace/orderer/marketplace-tour.md
     - Стол поставщика:
       - new/marketplace/offerer/index.md
       - Подключение поставщика: new/marketplace/offerer/connect.md
@@ -212,6 +262,7 @@ nav:
       - Списание на участке: new/marketplace/operator/writeoffs.md
       - Экономика участка: new/marketplace/operator/economy.md
       - История заказов: new/marketplace/operator/orders-history.md
+      - Поставки на чужом пункте: new/marketplace/operator/incoming-shipments-foreign.md
     - Стол администратора:
       - new/marketplace/admin/index.md
       - Реестр заказов: new/marketplace/admin/orders-registry.md
@@ -222,6 +273,12 @@ nav:
       - Доступные категории: new/marketplace/admin/categories.md
       - Пункты выдачи заказов: new/marketplace/admin/issuance-points.md
       - Списания скоропорта: new/marketplace/admin/writeoffs.md
+      - Экосистема: new/marketplace/chairman/ecosystem.md
+      - Стол администратора целиком: new/marketplace/chairman/market-tour.md
+    - Стол совета:
+      - Выплаты поставщикам: new/marketplace/board/payouts-readonly.md
+      - Склад кооператива: new/marketplace/board/warehouse-readonly.md
+    - Стол председателя кооператива: new/marketplace/chairman/dashboard.md
     - Заключение: new/marketplace/conclusion.md
 
   - Благорост:
@@ -248,6 +305,7 @@ nav:
     - Подключение:
       - Установка приложения: new/edubridge/admin/install.md
       - Подключение ЦПП советом: new/edubridge/admin/configure.md
+      - Подключение площадки: new/edubridge/admin/platform-setup.md
     - Стол администратора:
       - new/edubridge/admin/index.md
       - Разделы и уровни: new/edubridge/admin/sections.md
@@ -278,3 +336,25 @@ nav:
       - Календарь: new/edubridge/teacher/lessons.md
       - Отчёты: new/edubridge/teacher/reports.md
       - Расчёты: new/edubridge/teacher/settlement.md
+
+  - Кооперативный участок:
+    - new/ku/index.md
+    - Подключение:
+      - Установка приложения: new/ku/admin/install.md
+    - Учреждение участка:
+      - Собрания: new/ku/member/meetings.md
+      - Участие в собрании: new/ku/member/meeting-join.md
+      - Открытие голосования: new/ku/member/meeting-vote.md
+      - Бюллетень участника: new/ku/member/meeting-ballot.md
+      - Протокол и заявление в совет: new/ku/member/meeting-protocol.md
+      - Решение совета: new/ku/member/meeting-council.md
+    - Доверенные лица:
+      - Заявка пайщика: new/ku/member/trusted.md
+      - Одобрение председателем участка: new/ku/branch-chairman/trusted.md
+
+  - Робот совета:
+    - new/robot/index.md
+    - Установка приложения: new/robot/admin/install.md
+    - Действия автоматизации: new/robot/admin/registry.md
+    - Журнал робота: new/robot/admin/journal.md
+    - Состояние робота: new/robot/admin/state.md

@@ -1,31 +1,5 @@
 {
   "expenses": {
-    "cashierPage": {
-      "column": {
-        "date": "Дата",
-        "fact": "Факт",
-        "member": "Пайщик",
-        "plan": "План"
-      },
-      "emptyAuthorizationHint": "Здесь будут отчёты, ожидающие утверждения председателем.",
-      "emptyAuthorizationTitle": "Нет отчётов на авторизацию",
-      "emptyAwaitingReportHint": "Здесь будут оплаченные авансы, по которым пайщик ещё не подал отчёт.",
-      "emptyAwaitingReportTitle": "Все оплаченные имеют отчёт",
-      "emptyClosedHint": "Здесь будут полностью закрытые служебные записки.",
-      "emptyClosedTitle": "Закрытых ещё нет",
-      "emptyToPayHint": "Здесь появятся служебные записки, утверждённые советом и ожидающие выплаты.",
-      "emptyToPayTitle": "Готовых к оплате нет",
-      "eyebrow": "Шасси расходов · Касса",
-      "loadMoreLabel": "Загрузить ещё",
-      "openLabel": "Открыть",
-      "pageSubtitle": "Очереди оплаты, ожидания отчётов и закрытых служебных записок",
-      "pageTitle": "Касса",
-      "tabAuthorization": "На авторизации",
-      "tabAwaitingReport": "Ждут отчёта",
-      "tabClosed": "Закрытые",
-      "tabCountSummary": "{shown} на вкладке · загружено {loaded} из {total}",
-      "tabToPay": "К оплате"
-    },
     "error": {
       "fileLinkFailed": "Не удалось получить ссылку на файл"
     },
@@ -34,6 +8,9 @@
       "amountFactLabel": "Сумма (факт)",
       "amountPlanLabel": "Сумма (план)",
       "backLabel": "К реестру расходов",
+      "closeExpenseHint": "Отчёты по всем строкам приняты — расход закрывается, фактическая сумма учитывается в кошельке-источнике.",
+      "closeExpenseLabel": "Закрыть расход",
+      "closedMessage": "Расход закрыт",
       "column": {
         "fact": "Факт",
         "method": "Способ",
@@ -133,28 +110,6 @@
       "submittedMessage": "Служебная записка подана — заявление подписано и передано в совет",
       "walletLabel": "Источник средств (кошелёк)"
     },
-    "expenseWalletsPage": {
-      "availableLabel": "Доступно",
-      "emptyHint": "Ни одно расширение не подключило пул расходов на этом кооперативе.",
-      "emptyTitle": "Кошельков расходов пока нет",
-      "intro": "Кошельки-пулы, из которых кооператив ведёт расходы. Каждый пул подключает своё расширение: нажмите на карточку, чтобы открыть реестр расходов пула."
-    },
-    "expensesAdminApprovePage": {
-      "column": {
-        "amountPlan": "Сумма (план)",
-        "createdAt": "Дата создания",
-        "hash": "Хеш",
-        "member": "Пайщик"
-      },
-      "emptyHint": "Все поданные служебные записки уже рассмотрены.",
-      "emptyTitle": "Очередь пуста",
-      "eyebrow": "Шасси расходов · Председатель",
-      "loadMoreLabel": "Загрузить ещё",
-      "openLabel": "Открыть",
-      "pageSubtitle": "Очередь служебных записок в статусе «Подан» — ждут подписи председателя",
-      "pageTitle": "На одобрение председателя",
-      "queueCountSummary": "{shown} в очереди · загружено {loaded} из {total}"
-    },
     "expensesRegistryPage": {
       "column": {
         "amountFact": "Сумма (факт)",
@@ -162,8 +117,7 @@
         "createdAt": "Дата создания",
         "member": "Пайщик",
         "purpose": "Назначение",
-        "status": "Статус",
-        "wallet": "Кошелёк (пул)"
+        "status": "Статус"
       },
       "copiedMessage": "Имя аккаунта скопировано",
       "copyAccountTitle": "Скопировать имя аккаунта",
@@ -175,29 +129,9 @@
       "zeroRangeSummary": "0 из {total}"
     },
     "install": {
-      "adminApproveNavTitle": "На одобрение председателя",
-      "cashierNavTitle": "Касса",
       "extensionName": "Расходы",
-      "myAdvancesNavTitle": "Мои авансы",
       "registryNavTitle": "Реестр расходов",
       "singleExpenseNavTitle": "Расход"
-    },
-    "myAdvancesPage": {
-      "column": {
-        "amountFact": "Сумма (факт)",
-        "amountPlan": "Сумма (план)",
-        "createdAt": "Дата создания",
-        "hash": "Хеш",
-        "status": "Статус"
-      },
-      "emptyHint": "Здесь появятся ваши служебные записки на аванс. Создать новую можно из реестра расходов.",
-      "emptyTitle": "Авансов пока нет",
-      "eyebrow": "Шасси расходов · Личный кабинет",
-      "loadMoreLabel": "Загрузить ещё",
-      "pageSubtitle": "Служебные записки, где получатель аванса — я",
-      "pageTitle": "Мои авансы",
-      "rangeSummary": "1–{shown} из {total}",
-      "zeroRangeSummary": "0 из {total}"
     }
   }
 }

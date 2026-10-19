@@ -98,9 +98,11 @@ const SUITES: Suite[] = [
     dir: 'expenses/application/resolvers',
     ops: {
       createExpenseProposal: COUNCIL,
-      submitExpenseReport: COUNCIL,
+      // Закрывают расход председатель и кассир; совет читает (16.10.2026).
+      submitExpenseReport: CHAIR,
       expenseRequisitesByProposal: COUNCIL,
       expenseProposalsByCooperative: COUNCIL,
+      expenseAdvancesByCooperative: COUNCIL,
       generateExpenseProposalDecisionDocument: CHAIR,
       payExpenseItem: CHAIR,
       overspendExpenseItem: CHAIR,

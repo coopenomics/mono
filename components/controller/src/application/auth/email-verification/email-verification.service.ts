@@ -11,6 +11,7 @@ import type { UserDomainService } from '~/domain/user/services/user-domain.servi
 import { NotificationService } from '~/application/notification-center/notification.service';
 import { normalizeUserEmail } from '~/utils/normalize-user-email';
 import { t } from '~/i18n';
+import { EmailVerificationPurpose } from './email-verification-purpose.enum';
 
 /** Окно жизни кода. Столько же живёт письмо в почте, прежде чем станет бесполезным. */
 const CODE_TTL_SEC = 15 * 60;
@@ -22,6 +23,12 @@ const MAX_ATTEMPTS = 5;
 const MAX_SENDS_PER_WINDOW = 5;
 /** Сколько адресов может обслужить один IP за час — защита от рассылки по чужим ящикам. */
 const MAX_REQUESTS_PER_IP_HOUR = 20;
+/**
+ * Сколько проверок «занят ли адрес» один IP делает за час. Шаг ввода почты
+ * спрашивает на каждой паузе в наборе, поэтому запас шире, чем у писем; предел
+ * нужен, чтобы перебором адресов нельзя было выгрузить список пайщиков.
+ */
+const MAX_CHECKS_PER_IP_HOUR = 120;
 /**
  * Отметка «адрес подтверждён» живёт сутки: между вводом кода на первом шаге
  * регистрации и созданием учётной записи пайщик проходит анкету, выбор
@@ -66,19 +73,37 @@ export class EmailVerificationService {
   ) {}
 
   /**
+   * Зарегистрирован ли адрес. Спрашивает шаг ввода почты в регистрации, пока
+   * человек печатает: о занятом адресе он должен узнать сразу, а не после
+   * поиска письма и анкеты (решение владельца 15.10.2026 — пайщик пытался
+   * зарегистрироваться повторно на свой же адрес и ждал код).
+   */
+  async isRegistered(rawEmail: string, ip: string | null): Promise<boolean> {
+    const email = this.normalizeOrReject(rawEmail);
+    await this.assertIpWithinLimit(ip, 'email-check', MAX_CHECKS_PER_IP_HOUR);
+    return this.users.isEmailRegistered(email);
+  }
+
+  /**
    * Выслать код на адрес.
    *
-   * Возвращает одно и то же независимо от того, знаком нам адрес или нет:
-   * мутация открыта (на шаге регистрации сессии ещё нет), и разный ответ
-   * превратил бы её в проверялку «кто состоит в кооперативе».
+   * Для регистрации на зарегистрированный адрес код не отправляется: человеку
+   * нужен вход или восстановление доступа, а письмо увело бы его искать код,
+   * который всё равно упрётся в отказ при создании аккаунта. Из кабинета код
+   * идёт на адрес владельца учётной записи, как и раньше.
    */
-  async request(rawEmail: string, ip: string | null): Promise<EmailVerificationRequestResult> {
-    const email = normalizeUserEmail(rawEmail);
-    if (!email || !email.includes('@')) {
-      throw DomainError.badRequest('AUTH_EMAIL_INVALID');
-    }
+  async request(
+    rawEmail: string,
+    ip: string | null,
+    purpose: EmailVerificationPurpose = EmailVerificationPurpose.Account,
+  ): Promise<EmailVerificationRequestResult> {
+    const email = this.normalizeOrReject(rawEmail);
 
-    await this.assertIpWithinLimit(ip);
+    await this.assertIpWithinLimit(ip, 'ip', MAX_REQUESTS_PER_IP_HOUR);
+
+    if (purpose === EmailVerificationPurpose.Registration && (await this.users.isEmailRegistered(email))) {
+      throw DomainError.badRequest('AUTH_EMAIL_ALREADY_REGISTERED');
+    }
 
     const cooldown = await this.store.resendCooldown(email);
     if (cooldown > 0) {
@@ -106,12 +131,23 @@ export class EmailVerificationService {
     return { cooldown_seconds: RESEND_THROTTLE_SEC, expires_seconds: CODE_TTL_SEC };
   }
 
-  /** Один IP не должен рассылать коды по чужим ящикам. */
-  private async assertIpWithinLimit(ip: string | null): Promise<void> {
+  private normalizeOrReject(rawEmail: string): string {
+    const email = normalizeUserEmail(rawEmail);
+    if (!email || !email.includes('@')) {
+      throw DomainError.badRequest('AUTH_EMAIL_INVALID');
+    }
+    return email;
+  }
+
+  /**
+   * Один IP не должен ни рассылать коды по чужим ящикам, ни перебирать адреса.
+   * Счётчики писем и проверок раздельные: проверка частая и письма не шлёт.
+   */
+  private async assertIpWithinLimit(ip: string | null, scope: string, limit: number): Promise<void> {
     if (!ip) return;
-    const perIp = await this.store.bumpRequests('ip', ip, 60 * 60);
-    if (perIp > MAX_REQUESTS_PER_IP_HOUR) {
-      this.logger.warn(`email-verify: IP ${ip} превысил лимит запросов кода за час`);
+    const perIp = await this.store.bumpRequests(scope, ip, 60 * 60);
+    if (perIp > limit) {
+      this.logger.warn(`email-verify: IP ${ip} превысил часовой лимит (${scope})`);
       throw DomainError.tooManyRequests('AUTH_EMAIL_RATE_LIMIT_GENERAL');
     }
   }

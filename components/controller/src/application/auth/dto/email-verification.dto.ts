@@ -1,10 +1,32 @@
-import { Field, InputType, Int, ObjectType } from '@nestjs/graphql';
+import { Field, InputType, Int, ObjectType, registerEnumType } from '@nestjs/graphql';
 import { validationMessage } from '@coopenomics/extension-kit';
-import { IsEmail, IsNotEmpty, IsString, Length } from 'class-validator';
+import { IsEmail, IsEnum, IsNotEmpty, IsOptional, IsString, Length } from 'class-validator';
+import { EmailVerificationPurpose } from '../email-verification/email-verification-purpose.enum';
+
+registerEnumType(EmailVerificationPurpose, {
+  name: 'EmailVerificationPurpose',
+  description: 'Зачем запрашивается код подтверждения почты',
+});
 
 @InputType()
 export class RequestEmailVerificationInputDTO {
   @Field(() => String, { description: 'Адрес электронной почты, который подтверждается' })
+  @IsEmail({}, { message: validationMessage('auth.emailVerificationDto.invalidEmailMessage') })
+  email!: string;
+
+  @Field(() => EmailVerificationPurpose, {
+    nullable: true,
+    description:
+      'Зачем нужен код: при регистрации на уже зарегистрированный адрес код не отправляется. По умолчанию — подтверждение из кабинета',
+  })
+  @IsOptional()
+  @IsEnum(EmailVerificationPurpose)
+  purpose?: EmailVerificationPurpose;
+}
+
+@InputType()
+export class EmailRegistrationCheckInputDTO {
+  @Field(() => String, { description: 'Адрес электронной почты, который проверяется' })
   @IsEmail({}, { message: validationMessage('auth.emailVerificationDto.invalidEmailMessage') })
   email!: string;
 }

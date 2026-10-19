@@ -84,14 +84,12 @@ export class AccountInteractor {
    */
   private async createUser(userBody: any) {
     userBody.email = normalizeUserEmail(userBody.email);
-    // Проверяем на существование пользователя
-    // допускаем обновление личных данных, если пользователь находится в статусе 'created'
+    // Незавершённую регистрацию на тот же адрес можно начать заново — её данные
+    // перезаписываются ниже. Закреплённый адрес второго аккаунта не получает.
     const exist = await this.userRepository.findByEmail(userBody.email);
 
-    if (exist && exist.status !== 'created') {
-      if (await this.userRepository.isEmailTaken(userBody.email)) {
-        throw DomainError.badRequest('ACCOUNT_EMAIL_ALREADY_REGISTERED');
-      }
+    if (exist?.holdsEmail()) {
+      throw DomainError.badRequest('ACCOUNT_EMAIL_ALREADY_REGISTERED');
     }
 
     // Валидация входных данных

@@ -7,7 +7,7 @@ import { nt } from '../../i18n';
 
 // Схема для new-deposit-payment-request воркфлоу
 export const newDepositPaymentRequestPayloadSchema = z.object({
-  chairmanName: z.string(),
+  recipientName: z.string(),
   participantName: z.string(),
   paymentAmount: z.string(),
   paymentCurrency: z.string(),
@@ -32,7 +32,7 @@ export const workflow: WorkflowDefinition<IWorkflow> = WorkflowBuilder
   .i18nKey('newDepositPaymentRequest')
   .description(nt('newDepositPaymentRequest.description'))
   .payloadSchema(newDepositPaymentRequestPayloadSchema)
-  .tags(['chairman']) // Только для председателя
+  .tags(['chairman', 'cashier']) // Подтверждают оплату председатель и кассиры
   .addSteps([
     createEmailStep(
       'new-deposit-payment-request-email',

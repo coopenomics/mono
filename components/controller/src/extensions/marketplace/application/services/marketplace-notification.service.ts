@@ -2,6 +2,7 @@ import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { Workflows } from '@coopenomics/notifications';
 import { platformSettings, AmountFormatterUtils } from '@coopenomics/extension-kit';
+import { PAYMENT_DESK_PORT, type IPaymentDeskPort } from '@coopenomics/innercoop';
 import { LOGGER_PORT, type ILoggerPort, ACCOUNT_PORT, type IAccountPort, NOTIFICATION_PORT, type INotificationPort, VERIFICATION_PORT, type IVerificationPort } from '@coopenomics/innercoop';
 import { MARKETPLACE_ISSUE_ACTION_CODE } from '../shared/verification-action.const';
 import {
@@ -60,8 +61,8 @@ import { t } from '../../i18n';
  * Слушает event-bus EventEmitter2 (per-contract канал marketplace) и шлёт
  * уведомление через Центр уведомлений трём ролям:
  *  - поставщику при создании АПП варианта Б (требуется первая подпись);
- *  - кассиру (в MVP — председателю; extension-роль cashier появится позже)
- *    при формировании запроса исходящего платежа;
+ *  - председателю и кассирам (роль «Кассир») при формировании запроса
+ *    исходящего платежа — ссылка ведёт на стол кассира;
  *  - поставщику при подтверждении выплаты кассиром.
  *
  * Provider не блокирующий: ошибки отправки / отсутствие subscriber_id
@@ -78,7 +79,8 @@ export class MarketplaceNotificationService implements OnModuleInit {
     @Inject(MARKETPLACE_KU_CHAIRMAN_SERVICE)
     private readonly kuChairmanService: MarketplaceKuChairmanService,
     @Inject(VERIFICATION_PORT) private readonly verificationPort: IVerificationPort,
-    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
+    @Inject(PAYMENT_DESK_PORT) private readonly paymentDesk: IPaymentDeskPort
   ) {
     this.logger.setContext(MarketplaceNotificationService.name);
   }
@@ -156,47 +158,39 @@ export class MarketplaceNotificationService implements OnModuleInit {
   @OnEvent(MARKETPLACE_CASHIER_NEW_PAYMENT_EVENT)
   async handleCashierNewPayment(event: MarketplaceCashierNewPaymentEvent): Promise<void> {
     try {
-      // MVP: кассиром выступает председатель кооператива. Когда появится
-      // extension-роль cashier — поменять фильтр на role: 'cashier'.
-      const chairmen = await this.accountPort.getAccounts(
-        { role: 'chairman' },
-        { page: 1, limit: 1, sortOrder: 'ASC' }
-      );
-      if (!chairmen.items || chairmen.items.length === 0) {
-        this.logger.warn(
-          `Payment ${event.payment_request_id}: председатель/кассир не найден — push пропущен.`
-        );
+      // Платёж подтверждают председатель и пайщики с ролью «Кассир».
+      const confirmers = await this.paymentDesk.confirmers();
+      if (confirmers.length === 0) {
+        this.logger.warn(`Payment ${event.payment_request_id}: председатель/кассир не найден — push пропущен.`);
         return;
       }
-      const cashier = chairmen.items[0];
-
-      const cashierName = await this.accountPort.getDisplayName(cashier.username);
       const supplierName = await this.accountPort.getDisplayName(event.supplier_account);
+      for (const username of confirmers) await this.notifyCashierOfPayment(event, username, supplierName);
+    } catch (err: any) {
+      this.logger.warn(
+        `Payment ${event.payment_request_id}: ошибка отправки push кассиру (${err.message}) — flow не блокируется.`
+      );
+    }
+  }
+
+  /** Задача одному подтверждающему; сбой доставки одному не мешает остальным. */
+  private async notifyCashierOfPayment(event: MarketplaceCashierNewPaymentEvent, username: string, supplierName: string): Promise<void> {
+    try {
       const payload: Workflows.MarketplaceCashierNewPayment.IPayload = {
-        cashierName,
+        cashierName: await this.accountPort.getDisplayName(username),
         supplierName,
         amount: AmountFormatterUtils.formatAmountSafe(event.amount),
         apl_reception_id: event.apl_reception_id,
         payment_request_id: event.payment_request_id,
         coopname: event.coopname,
-        // Кассирского стола пока нет — MVP использует стол совета (роль
-        // председателя, см. комментарий выше). Реестр платежей фильтруется по
-        // владельцу платежа (routeUsername в PaymentsPage.vue) — ведём сразу
-        // на платежи конкретного поставщика, а не на общий список.
-        deepLinkUrl: `${platformSettings().frontendUrl}/${event.coopname}/soviet/payments/${event.supplier_account}`,
+        // Реестр платежей стола кассира, отфильтрованный по поставщику
+        // (routeUsername в PaymentsPage.vue).
+        deepLinkUrl: `${platformSettings().frontendUrl}/${event.coopname}/cashier/payments/${event.supplier_account}`,
       };
-      await this.notificationSenderService.notifyUser(
-        cashier.username,
-        Workflows.MarketplaceCashierNewPayment.id,
-        payload
-      );
-      this.logger.log(
-        `Payment ${event.payment_request_id}: push кассиру ${cashier.username} отправлен.`
-      );
+      await this.notificationSenderService.notifyUser(username, Workflows.MarketplaceCashierNewPayment.id, payload);
+      this.logger.log(`Payment ${event.payment_request_id}: push кассиру ${username} отправлен.`);
     } catch (err: any) {
-      this.logger.warn(
-        `Payment ${event.payment_request_id}: ошибка отправки push кассиру (${err.message}) — flow не блокируется.`
-      );
+      this.logger.warn(`Payment ${event.payment_request_id}: push кассиру ${username} не доставлен (${err.message}).`);
     }
   }
 

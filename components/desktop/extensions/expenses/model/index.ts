@@ -17,4 +17,3 @@ export type {
   ICreateProposalDraft,
   ICreateProposalDraftItem,
 } from './useExpenseProposalActions';
-export * from './useLiveProposalList';

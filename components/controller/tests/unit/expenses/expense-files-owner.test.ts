@@ -37,7 +37,13 @@ function build() {
         : null
     ),
   };
-  const service = new ExpenseFilesService(bucket as any, files as any, payments as any, proposals as any);
+  // Реестр целиком читает совет (здесь — председатель ant); загружать в любую
+  // записку в этом наборе некому — случаи кассира в expense-cashier-access.test.ts.
+  const rights = {
+    readsRegistry: jest.fn(async (user: { username: string }) => user.username === 'ant'),
+    holds: jest.fn(async () => false),
+  };
+  const service = new ExpenseFilesService(bucket as any, files as any, payments as any, proposals as any, rights as any);
   return { service, bucket };
 }
 

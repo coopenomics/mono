@@ -800,6 +800,10 @@ export const AllTypesProps: Record<string,any> = {
 	EduUpdateLearnerInput:{
 		recipient_type:"EduRecipientType"
 	},
+	EmailRegistrationCheckInputDTO:{
+
+	},
+	EmailVerificationPurpose: "enum" as const,
 	EntrepreneurDetailsInput:{
 
 	},
@@ -807,6 +811,10 @@ export const AllTypesProps: Record<string,any> = {
 		authority:"BranchTrusteePowerOfAttorneySignedDocumentInput",
 		liability:"BranchTrusteeLiabilityAgreementSignedDocumentInput",
 		petition:"BranchEstablishmentPetitionSignedDocumentInput"
+	},
+	ExpenseAdvanceState: "enum" as const,
+	ExpenseAdvancesFilterInput:{
+		state:"ExpenseAdvanceState"
 	},
 	ExpenseCallbackInput:{
 
@@ -3296,6 +3304,10 @@ export const AllTypesProps: Record<string,any> = {
 		edubridgeTeacherContractDocument:{
 
 		},
+		expenseAdvancesByCooperative:{
+			filter:"ExpenseAdvancesFilterInput",
+			options:"PaginationInput"
+		},
 		expenseFile:{
 
 		},
@@ -3475,6 +3487,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		inviteRecipient:{
 			data:"InviteRecipientInput"
+		},
+		isEmailRegistered:{
+			data:"EmailRegistrationCheckInputDTO"
 		},
 		kuDecision:{
 
@@ -3806,7 +3821,7 @@ export const AllTypesProps: Record<string,any> = {
 
 	},
 	RequestEmailVerificationInputDTO:{
-
+		purpose:"EmailVerificationPurpose"
 	},
 	RequestForceRecoveryConsentInput:{
 
@@ -6391,6 +6406,17 @@ export const ReturnTypes: Record<string,any> = {
 		last_name:"String",
 		middle_name:"String"
 	},
+	ExpenseAdvance:{
+		advance_amount:"String",
+		description:"String",
+		issued_at:"DateTime",
+		item_hash:"String",
+		proposal_hash:"String",
+		recipient:"String",
+		recipient_name:"String",
+		spent_amount:"String",
+		state:"ExpenseAdvanceState"
+	},
 	ExpenseFile:{
 		checksum_sha256:"String",
 		coopname:"String",
@@ -8562,6 +8588,12 @@ export const ReturnTypes: Record<string,any> = {
 		totalCount:"Int",
 		totalPages:"Int"
 	},
+	PaginatedExpenseAdvancesPaginationResult:{
+		currentPage:"Int",
+		items:"ExpenseAdvance",
+		totalCount:"Int",
+		totalPages:"Int"
+	},
 	PaginatedExpenseProposalsPaginationResult:{
 		currentPage:"Int",
 		items:"ExpenseProposal",
@@ -9075,6 +9107,7 @@ export const ReturnTypes: Record<string,any> = {
 		edubridgeTeacherContractDocument:"DocumentAggregate",
 		edubridgeTeacherOptions:"EduTeacherOption",
 		edubridgeTeachers:"EduTeacher",
+		expenseAdvancesByCooperative:"PaginatedExpenseAdvancesPaginationResult",
 		expenseFile:"ExpenseFile",
 		expenseFilesByItem:"ExpenseFile",
 		expenseFilesByProposal:"ExpenseFile",
@@ -9153,6 +9186,7 @@ export const ReturnTypes: Record<string,any> = {
 		getWithheldTaxState:"WithheldTaxState",
 		globalSearch:"GlobalSearchGroup",
 		inviteRecipient:"InviteRecipient",
+		isEmailRegistered:"Boolean",
 		kuDecision:"KuDecision",
 		kuDecisions:"PaginatedKuDecisionsPaginationResult",
 		kuTrustRequests:"PaginatedKuTrustRequestsPaginationResult",
@@ -9553,6 +9587,7 @@ export const ReturnTypes: Record<string,any> = {
 	RoleAssignment:{
 		assigned_at:"DateTime",
 		assigned_by:"String",
+		assigned_by_name:"String",
 		display_name:"String",
 		username:"String"
 	},

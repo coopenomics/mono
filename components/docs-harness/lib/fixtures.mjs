@@ -65,6 +65,15 @@ export const KNOWN_FIXTURES = {
   volkova: { email: 'volkova@voskhod.coop', firstName: 'Ирина', lastName: 'Волкова', middleName: 'Сергеевна' },
   kuznetsova: { email: 'kuznetsova@voskhod.coop', firstName: 'Елена', lastName: 'Кузнецова', middleName: 'Олеговна' },
   belov: { email: 'belov@voskhod.coop', firstName: 'Георгий', lastName: 'Белов', middleName: 'Ильич' },
+
+  // === Приложение «Кооперативный участок» ===
+  // Учредитель созывает собрание об учреждении участка и избирается его
+  // председателем; двое участников присоединяются и голосуют; заявитель
+  // подаёт заявку в доверенные лица нового участка.
+  sokolov: { email: 'sokolov@voskhod.coop', firstName: 'Николай', lastName: 'Соколов', middleName: 'Андреевич' },
+  popova: { email: 'popova@voskhod.coop', firstName: 'Анастасия', lastName: 'Попова', middleName: 'Игоревна' },
+  egorov: { email: 'egorov@voskhod.coop', firstName: 'Виктор', lastName: 'Егоров', middleName: 'Павлович' },
+  zakharova: { email: 'zakharova@voskhod.coop', firstName: 'Дарья', lastName: 'Захарова', middleName: 'Олеговна' },
 };
 
 /** Пулы подключения к столам «Образования»: ученик и преподаватель. */

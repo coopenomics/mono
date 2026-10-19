@@ -26,7 +26,7 @@ import { REPO_ROOT } from '../../core/env'
 import { CHAIRMAN } from '../../core/roles'
 import { waitFor } from '../../core/wait'
 import { authorizeDecisionOnChain, voteOnDecision } from '../../core/council'
-import { agendaAll, agendaByHash } from '../../documents/docs-reports.helpers'
+import { approveByCouncil } from '../../expenses/expenses.helpers'
 import { addSbpMethod, listPayments, methodsOf } from '../../payments/payments.helpers'
 import {
   ADD_LEARNER,
@@ -307,62 +307,54 @@ async function phase06(): Promise<void> {
   log(`${TEACHER}: совет принял взнос ${submitted.amount}, акт ждёт подписи преподавателя`)
 }
 
-/**
- * Исходящий платёж преподавателю либо получателю расхода в реестре платежей
- * кооператива глазами председателя.
- */
-async function outgoingPayment(chairman: string, username: string): Promise<any | undefined> {
-  const rows = await listPayments(chairman, { username, direction: 'OUTGOING' })
-  return rows.find(p => ['PENDING', 'PAID', 'COMPLETED', 'PROCESSING'].includes(String(p.status)))
+/** Исходящие платежи пайщика в реестре платежей кооператива глазами председателя. */
+async function outgoingPayments(chairman: string, username: string): Promise<any[]> {
+  return listPayments(chairman, { username, direction: 'OUTGOING' })
 }
 
 /**
  * 07 — совет удовлетворил заявление преподавателя о возврате паевого взноса
- * (подано со стола преподавателя): голоса «за», утверждение и исполнение
- * решения — платёж появляется в реестре платежей у кассира.
+ * (подано со стола преподавателя). Платёж возврата создаётся вместе с заявлением
+ * в состоянии AWAITING_AUTHORIZATION, вопрос в повестке несёт тот же хэш.
+ * Голоса «за», утверждение и исполнение решения — wallet::authwthd переводит
+ * платёж в PENDING, кассир видит его в реестре.
  */
 async function phase07(): Promise<void> {
   const who = fixture(TEACHER)
   const chairman = await tokenOf(CHAIRMAN)
-  if (await outgoingPayment(chairman, who.account)) {
-    log(`${TEACHER}: платёж возврата уже в реестре`)
+  const payment = await waitFor(async () => (await outgoingPayments(chairman, who.account))[0] ?? null,
+    { timeoutMs: 60_000, intervalMs: 2_000, label: `платёж возврата ${TEACHER} в реестре` })
+  if (payment.status !== 'AWAITING_AUTHORIZATION') {
+    log(`${TEACHER}: платёж возврата уже ${payment.status}`)
     return
   }
-  const agenda = await waitFor(async () => {
-    for (const row of (await agendaAll(chairman)).filter(a => a.type === 'withdraw')) {
-      const full = await agendaByHash(chairman, row.hash)
-      if (full?.username === who.account) return full
-    }
-    return null
-  }, { timeoutMs: 120_000, intervalMs: 3_000, label: `вопрос совету о возврате взноса ${TEACHER}` })
+  const agenda = await agendaWith(String(payment.hash))
   await voteOnDecision(agenda.id, 'for')
   await authorizeDecisionOnChain(agenda.id)
-  await waitFor(() => outgoingPayment(chairman, who.account), { timeoutMs: 120_000, intervalMs: 2_000, label: 'платёж возврата в реестре платежей' })
-  log(`${TEACHER}: совет утвердил возврат, платёж ждёт кассира`)
+  await waitFor(async () => (await outgoingPayments(chairman, who.account)).find(p => p.hash === payment.hash && p.status === 'PENDING') ?? null,
+    { timeoutMs: 120_000, intervalMs: 2_000, label: 'платёж возврата ждёт кассира' })
+  log(`${TEACHER}: совет утвердил возврат ${payment.quantity} ${payment.symbol}, платёж ждёт кассира`)
 }
 
-const EXPENSES = 'query($o:PaginationInput){ edubridgeExpenses(options:$o){ items{ expense_hash status items{ recipient recipient_name status } } } }'
+const EXPENSES = 'query($o:PaginationInput){ edubridgeExpenses(options:$o){ items{ expense_hash status } } }'
 
 /**
- * 08 — совет утвердил расход программы, поданный со стола администратора:
- * голоса «за», утверждение и исполнение — платёж получателю в реестре у кассира.
+ * 08 — совет утвердил расход программы, поданный со стола администратора
+ * (сценарий admin/economy): голоса «за» и протокол председателя общим
+ * помощником шасси расходов — платёж получателю появляется у кассира.
  */
 async function phase08(): Promise<void> {
   const chairman = await tokenOf(CHAIRMAN)
-  const expenses = (await gql<any>(chairman, EXPENSES, { o: { page: 1, limit: 50, sortOrder: 'DESC' } })).edubridgeExpenses.items as any[]
+  const list = async () => (await gql<any>(chairman, EXPENSES, { o: { page: 1, limit: 50, sortOrder: 'DESC' } })).edubridgeExpenses.items as any[]
+  const expenses = await list()
   const pending = expenses.find(e => e.status === 'CREATED')
   if (!pending) {
     log(expenses.length ? `расход ${expenses[0].expense_hash.slice(0, 8)} уже ${expenses[0].status}` : 'расходов нет — подаются со стола администратора (сценарий admin/economy)')
     return
   }
-  const agenda = await agendaWith(pending.expense_hash)
-  await voteOnDecision(agenda.id, 'for')
-  await authorizeDecisionOnChain(agenda.id)
-  await waitFor(async () => {
-    const rows = (await gql<any>(chairman, EXPENSES, { o: { page: 1, limit: 50, sortOrder: 'DESC' } })).edubridgeExpenses.items as any[]
-    const row = rows.find(e => e.expense_hash === pending.expense_hash)
-    return row && row.status !== 'CREATED' ? row : null
-  }, { timeoutMs: 120_000, intervalMs: 2_000, label: 'решение совета о расходе исполнено' })
+  await approveByCouncil(pending.expense_hash)
+  await waitFor(async () => (await list()).find(e => e.expense_hash === pending.expense_hash && e.status !== 'CREATED') ?? null,
+    { timeoutMs: 120_000, intervalMs: 2_000, label: 'решение совета о расходе исполнено' })
   log(`расход ${pending.expense_hash.slice(0, 8)} утверждён советом, платёж ждёт кассира`)
 }
 

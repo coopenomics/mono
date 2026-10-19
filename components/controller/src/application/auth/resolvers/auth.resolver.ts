@@ -10,6 +10,7 @@ import { InviteRecipientDTO, InviteRecipientInputDTO } from '../dto/invite-recip
 import { VerifyEmailInputDTO } from '../dto/verify-email-input.dto';
 import {
   ConfirmEmailVerificationInputDTO,
+  EmailRegistrationCheckInputDTO,
   EmailVerificationRequestDTO,
   RequestEmailVerificationInputDTO,
 } from '../dto/email-verification.dto';
@@ -119,9 +120,22 @@ export class AuthResolver {
     @ClientIp() ip: string | null
   ): Promise<EmailVerificationRequestDTO> {
     // Без авторизации: код спрашивается на первом шаге регистрации, когда
-    // учётной записи ещё нет. Ответ одинаков для знакомых и незнакомых адресов —
-    // иначе мутация стала бы проверялкой «кто состоит в кооперативе».
-    return this.emailVerification.request(data.email, ip);
+    // учётной записи ещё нет.
+    return this.emailVerification.request(data.email, ip, data.purpose ?? undefined);
+  }
+
+  @Query(() => Boolean, {
+    name: 'isEmailRegistered',
+    description: 'Зарегистрирован ли в кооперативе пайщик с этой электронной почтой',
+  })
+  async isEmailRegistered(
+    @Args('data', { type: () => EmailRegistrationCheckInputDTO })
+    data: EmailRegistrationCheckInputDTO,
+    @ClientIp() ip: string | null
+  ): Promise<boolean> {
+    // Без авторизации: спрашивает шаг ввода почты в регистрации. Перебор адресов
+    // сдерживает часовой предел на IP внутри сервиса.
+    return this.emailVerification.isRegistered(data.email, ip);
   }
 
   @Mutation(() => Boolean, {

@@ -54,7 +54,7 @@ function makeService(admins: Array<{ username: string }> = [{ username: ADMIN }]
     getVerificationTypes: jest.fn(async () => []),
   } as never;
 
-  const service = new MarketplaceNotificationService(sender, accountPort, kuChairmanService, verificationPort, logger);
+  const service = new MarketplaceNotificationService(sender, accountPort, kuChairmanService, verificationPort, logger, { confirmers: jest.fn(async () => []) } as any);
   return { service, notifyUser, logger: logger as unknown as { warn: jest.Mock } };
 }
 

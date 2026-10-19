@@ -14,6 +14,10 @@ import type { IMonoAccount } from '@coopenomics/innercoop';
 import { mayReadExpenseProposal } from '../../domain/utils/expense-proposal-access';
 import { ExpensesManagementService } from '../services/expenses-management.service';
 import { ExpenseRequisiteSnapshotsService } from '../services/expense-requisite-snapshots.service';
+import { ExpensesRights } from '../access/expenses-rights';
+import { ExpenseAdvancesService } from '../services/expense-advances.service';
+import { ExpenseAdvanceOutputDTO } from '../dto/expense-advance.output';
+import { ExpenseAdvancesFilterInputDTO } from '../dto/expense-advances-filter.input';
 import { ExpenseProposalOutputDTO } from '../dto/expense-proposal.output';
 import { ExpenseRequisiteOutputDTO } from '../dto/expense-requisite.output';
 import type { ExpenseProposalDomainEntity } from '../../domain/entities/expense-proposal.entity';
@@ -22,6 +26,8 @@ const paginatedExpenseProposalsResult = createPaginationResult(
   ExpenseProposalOutputDTO,
   'PaginatedExpenseProposals'
 );
+
+const paginatedExpenseAdvancesResult = createPaginationResult(ExpenseAdvanceOutputDTO, 'PaginatedExpenseAdvances');
 
 /**
  * GraphQL-резолвер чтения смет расходов (контракт `expense`).
@@ -39,7 +45,9 @@ const paginatedExpenseProposalsResult = createPaginationResult(
 export class ExpenseProposalResolver {
   constructor(
     private readonly expenses: ExpensesManagementService,
-    private readonly requisiteSnapshots: ExpenseRequisiteSnapshotsService
+    private readonly requisiteSnapshots: ExpenseRequisiteSnapshotsService,
+    private readonly rights: ExpensesRights,
+    private readonly advances: ExpenseAdvancesService
   ) {}
 
   @Query(() => [ExpenseRequisiteOutputDTO], {
@@ -59,7 +67,8 @@ export class ExpenseProposalResolver {
 
   @Query(() => ExpenseProposalOutputDTO, {
     name: 'expenseProposal',
-    description: 'Получить смету расхода по хешу. Видят совет, подавший смету и получатели её строк.',
+    description:
+      'Получить смету расхода по хешу. Видят совет, ревизор, кассир, подавший смету и получатели её строк.',
     nullable: true,
   })
   @UseGuards(GqlJwtAuthGuard, RightsGuard)
@@ -71,8 +80,11 @@ export class ExpenseProposalResolver {
     const entity = await this.expenses.getProposalByHash(proposalHash);
     if (!entity) return null;
     // Чужая записка несёт реквизиты получателей; до 25.09.2026 её читал
-    // любой пайщик (C28-80).
-    if (!mayReadExpenseProposal(user, entity)) throw DomainError.forbidden('EXPENSES_PROPOSAL_ACCESS_DENIED');
+    // любой пайщик (C28-80). Читатели реестра (ревизор, кассир) открывают
+    // любую записку: в реестр и на кассу она приходит к ним целиком.
+    if (!mayReadExpenseProposal(user, entity) && !(await this.rights.readsRegistry(user))) {
+      throw DomainError.forbidden('EXPENSES_PROPOSAL_ACCESS_DENIED');
+    }
     const aggregates = await this.expenses.buildProposalDocumentAggregates(entity);
     return ExpenseProposalOutputDTO.fromDomain(entity, aggregates);
   }
@@ -93,7 +105,7 @@ export class ExpenseProposalResolver {
 
   @Query(() => paginatedExpenseProposalsResult, {
     name: 'expenseProposalsByMember',
-    description: 'Список смет расходов пайщика (свои/созданные им, paginated). Видят сам пайщик и совет.',
+    description: 'Список смет расходов пайщика (свои/созданные им, paginated). Видят сам пайщик, совет, кассир и ревизор.',
   })
   @UseGuards(GqlJwtAuthGuard, RightsGuard)
   @RequireRight('ExpenseProposal', 'read')
@@ -103,11 +115,27 @@ export class ExpenseProposalResolver {
     @CurrentUser() user: IMonoAccount,
     @Args('options', { type: () => PaginationInputDTO, nullable: true }) options?: PaginationInputDTO
   ): Promise<PaginationResult<ExpenseProposalOutputDTO>> {
-    // Записки пайщика видят он сам и совет.
-    const council = user.role === 'chairman' || user.role === 'member';
-    if (!council && user.username !== username) throw DomainError.forbidden('EXPENSES_PROPOSAL_ACCESS_DENIED');
+    // Записки пайщика видят он сам и читатели реестра расходов — совет, кассир, ревизор.
+    if (user.username !== username && !(await this.rights.readsRegistry(user))) {
+      throw DomainError.forbidden('EXPENSES_PROPOSAL_ACCESS_DENIED');
+    }
     const result = await this.expenses.listProposalsByMemberPaginated(coopname, username, options);
     return { ...result, items: await this.mapItemsWithDocuments(result.items) };
+  }
+
+  @Query(() => paginatedExpenseAdvancesResult, {
+    name: 'expenseAdvancesByCooperative',
+    description:
+      'Выданные авансы под отчёт по кооперативу (paginated) с отбором по состоянию. Видят совет, кассир и ревизор.',
+  })
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('ExpenseRegistry', 'read')
+  async listAdvancesByCooperative(
+    @Args('coopname', { type: () => String }) coopname: string,
+    @Args('filter', { type: () => ExpenseAdvancesFilterInputDTO, nullable: true }) filter?: ExpenseAdvancesFilterInputDTO,
+    @Args('options', { type: () => PaginationInputDTO, nullable: true }) options?: PaginationInputDTO
+  ): Promise<PaginationResult<ExpenseAdvanceOutputDTO>> {
+    return this.advances.list(coopname, filter, options);
   }
 
   private async mapItemsWithDocuments(

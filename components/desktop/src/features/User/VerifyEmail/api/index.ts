@@ -1,5 +1,6 @@
 import { Mutations } from '@coopenomics/sdk';
 import { client } from 'src/shared/api/client';
+import type { IRequestEmailVerificationInput } from '../model';
 
 /**
  * Подтверждение электронной почты кодом из письма. Обе операции — GraphQL через
@@ -17,10 +18,10 @@ export interface IVerificationWindow {
   expires_seconds: number;
 }
 
-async function requestCode(email: string): Promise<IVerificationWindow> {
+async function requestCode(data: IRequestEmailVerificationInput): Promise<IVerificationWindow> {
   const { [Mutations.Auth.RequestEmailVerification.name]: result } = await client.Mutation(
     Mutations.Auth.RequestEmailVerification.mutation,
-    { variables: { data: { email } } },
+    { variables: { data } },
   );
   return result;
 }

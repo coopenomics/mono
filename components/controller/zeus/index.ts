@@ -8352,6 +8352,12 @@ export type ValueTypes = {
 	/** Почта / Telegram / код пропуска */
 	recipient_value: string | Variable<any, string>
 };
+	["EmailRegistrationCheckInputDTO"]: {
+	/** Адрес электронной почты, который проверяется */
+	email: string | Variable<any, string>
+};
+	/** Зачем запрашивается код подтверждения почты */
+["EmailVerificationPurpose"]:EmailVerificationPurpose;
 	["EmailVerificationRequestDTO"]: AliasType<{
 	/** Через сколько секунд можно запросить письмо повторно */
 	cooldown_seconds?:boolean | `@${string}`,
@@ -8452,6 +8458,35 @@ export type ValueTypes = {
 	liability: ValueTypes["BranchTrusteeLiabilityAgreementSignedDocumentInput"] | Variable<any, string>,
 	/** Подписанное заявление председателя в совет */
 	petition: ValueTypes["BranchEstablishmentPetitionSignedDocumentInput"] | Variable<any, string>
+};
+	/** Выданный аванс под отчёт. */
+["ExpenseAdvance"]: AliasType<{
+	/** Сумма аванса. */
+	advance_amount?:boolean | `@${string}`,
+	/** Назначение аванса — описание строки служебной записки. */
+	description?:boolean | `@${string}`,
+	/** Дата выдачи аванса. */
+	issued_at?:boolean | `@${string}`,
+	/** Хеш строки-аванса. */
+	item_hash?:boolean | `@${string}`,
+	/** Хеш служебной записки. */
+	proposal_hash?:boolean | `@${string}`,
+	/** Получатель аванса (учётное имя пайщика). */
+	recipient?:boolean | `@${string}`,
+	/** ФИО получателя аванса. */
+	recipient_name?:boolean | `@${string}`,
+	/** Фактически потрачено по отчёту получателя; пусто, пока отчёта нет. */
+	spent_amount?:boolean | `@${string}`,
+	/** Состояние аванса. */
+	state?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on ExpenseAdvance']?: Omit<ValueTypes["ExpenseAdvance"], "...on ExpenseAdvance">
+}>;
+	/** Состояние выданного аванса под отчёт. */
+["ExpenseAdvanceState"]:ExpenseAdvanceState;
+	["ExpenseAdvancesFilterInput"]: {
+	/** Состояние аванса; пусто — все выданные. */
+	state?: ValueTypes["ExpenseAdvanceState"] | undefined | null | Variable<any, string>
 };
 	["ExpenseCallbackInput"]: {
 	/** Action-метод */
@@ -14750,6 +14785,18 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 		__typename?: boolean | `@${string}`,
 	['...on PaginatedEduExpensesPaginationResult']?: Omit<ValueTypes["PaginatedEduExpensesPaginationResult"], "...on PaginatedEduExpensesPaginationResult">
 }>;
+	["PaginatedExpenseAdvancesPaginationResult"]: AliasType<{
+	/** Текущая страница */
+	currentPage?:boolean | `@${string}`,
+	/** Элементы текущей страницы */
+	items?:ValueTypes["ExpenseAdvance"],
+	/** Общее количество элементов */
+	totalCount?:boolean | `@${string}`,
+	/** Общее количество страниц */
+	totalPages?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on PaginatedExpenseAdvancesPaginationResult']?: Omit<ValueTypes["PaginatedExpenseAdvancesPaginationResult"], "...on PaginatedExpenseAdvancesPaginationResult">
+}>;
 	["PaginatedExpenseProposalsPaginationResult"]: AliasType<{
 	/** Текущая страница */
 	currentPage?:boolean | `@${string}`,
@@ -16096,6 +16143,7 @@ edubridgeTeacherContractDocument?: [{	username: string | Variable<any, string>},
 	edubridgeTeacherOptions?:ValueTypes["EduTeacherOption"],
 	/** Преподаватели кооператива с договором и числом назначений */
 	edubridgeTeachers?:ValueTypes["EduTeacher"],
+expenseAdvancesByCooperative?: [{	coopname: string | Variable<any, string>,	filter?: ValueTypes["ExpenseAdvancesFilterInput"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedExpenseAdvancesPaginationResult"]],
 expenseFile?: [{	id: number | Variable<any, string>},ValueTypes["ExpenseFile"]],
 expenseFilesByItem?: [{	coopname: string | Variable<any, string>,	item_hash: string | Variable<any, string>,	proposal_hash: string | Variable<any, string>},ValueTypes["ExpenseFile"]],
 expenseFilesByProposal?: [{	coopname: string | Variable<any, string>,	proposal_hash: string | Variable<any, string>},ValueTypes["ExpenseFile"]],
@@ -16195,6 +16243,7 @@ getWithheldTaxPayments?: [{	limit?: number | undefined | null | Variable<any, st
 	getWithheldTaxState?:ValueTypes["WithheldTaxState"],
 globalSearch?: [{	data: ValueTypes["GlobalSearchInput"] | Variable<any, string>},ValueTypes["GlobalSearchGroup"]],
 inviteRecipient?: [{	data: ValueTypes["InviteRecipientInput"] | Variable<any, string>},ValueTypes["InviteRecipient"]],
+isEmailRegistered?: [{	data: ValueTypes["EmailRegistrationCheckInputDTO"] | Variable<any, string>},boolean | `@${string}`],
 kuDecision?: [{	hash: string | Variable<any, string>},ValueTypes["KuDecision"]],
 kuDecisions?: [{	filter?: ValueTypes["KuDecisionFilterInput"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedKuDecisionsPaginationResult"]],
 kuTrustRequests?: [{	filter?: ValueTypes["KuTrustRequestFilterInput"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedKuTrustRequestsPaginationResult"]],
@@ -16781,7 +16830,9 @@ verificationReviews?: [{	data?: ValueTypes["VerificationReviewsInput"] | undefin
 };
 	["RequestEmailVerificationInputDTO"]: {
 	/** Адрес электронной почты, который подтверждается */
-	email: string | Variable<any, string>
+	email: string | Variable<any, string>,
+	/** Зачем нужен код: при регистрации на уже зарегистрированный адрес код не отправляется. По умолчанию — подтверждение из кабинета */
+	purpose?: ValueTypes["EmailVerificationPurpose"] | undefined | null | Variable<any, string>
 };
 	["RequestForceRecoveryConsentInput"]: {
 	/** Пайщик, для которого запрашивается согласие */
@@ -17242,6 +17293,8 @@ verificationReviews?: [{	data?: ValueTypes["VerificationReviewsInput"] | undefin
 	assigned_at?:boolean | `@${string}`,
 	/** Учётное имя назначившего роль */
 	assigned_by?:boolean | `@${string}`,
+	/** ФИО назначившего роль */
+	assigned_by_name?:boolean | `@${string}`,
 	/** ФИО пайщика или название организации */
 	display_name?:boolean | `@${string}`,
 	/** Учётное имя пайщика */
@@ -25726,6 +25779,12 @@ export type ResolverInputTypes = {
 	/** Почта / Telegram / код пропуска */
 	recipient_value: string
 };
+	["EmailRegistrationCheckInputDTO"]: {
+	/** Адрес электронной почты, который проверяется */
+	email: string
+};
+	/** Зачем запрашивается код подтверждения почты */
+["EmailVerificationPurpose"]:EmailVerificationPurpose;
 	["EmailVerificationRequestDTO"]: AliasType<{
 	/** Через сколько секунд можно запросить письмо повторно */
 	cooldown_seconds?:boolean | `@${string}`,
@@ -25820,6 +25879,34 @@ export type ResolverInputTypes = {
 	liability: ResolverInputTypes["BranchTrusteeLiabilityAgreementSignedDocumentInput"],
 	/** Подписанное заявление председателя в совет */
 	petition: ResolverInputTypes["BranchEstablishmentPetitionSignedDocumentInput"]
+};
+	/** Выданный аванс под отчёт. */
+["ExpenseAdvance"]: AliasType<{
+	/** Сумма аванса. */
+	advance_amount?:boolean | `@${string}`,
+	/** Назначение аванса — описание строки служебной записки. */
+	description?:boolean | `@${string}`,
+	/** Дата выдачи аванса. */
+	issued_at?:boolean | `@${string}`,
+	/** Хеш строки-аванса. */
+	item_hash?:boolean | `@${string}`,
+	/** Хеш служебной записки. */
+	proposal_hash?:boolean | `@${string}`,
+	/** Получатель аванса (учётное имя пайщика). */
+	recipient?:boolean | `@${string}`,
+	/** ФИО получателя аванса. */
+	recipient_name?:boolean | `@${string}`,
+	/** Фактически потрачено по отчёту получателя; пусто, пока отчёта нет. */
+	spent_amount?:boolean | `@${string}`,
+	/** Состояние аванса. */
+	state?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Состояние выданного аванса под отчёт. */
+["ExpenseAdvanceState"]:ExpenseAdvanceState;
+	["ExpenseAdvancesFilterInput"]: {
+	/** Состояние аванса; пусто — все выданные. */
+	state?: ResolverInputTypes["ExpenseAdvanceState"] | undefined | null
 };
 	["ExpenseCallbackInput"]: {
 	/** Action-метод */
@@ -31926,6 +32013,17 @@ walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputType
 	totalPages?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	["PaginatedExpenseAdvancesPaginationResult"]: AliasType<{
+	/** Текущая страница */
+	currentPage?:boolean | `@${string}`,
+	/** Элементы текущей страницы */
+	items?:ResolverInputTypes["ExpenseAdvance"],
+	/** Общее количество элементов */
+	totalCount?:boolean | `@${string}`,
+	/** Общее количество страниц */
+	totalPages?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	["PaginatedExpenseProposalsPaginationResult"]: AliasType<{
 	/** Текущая страница */
 	currentPage?:boolean | `@${string}`,
@@ -33226,6 +33324,7 @@ edubridgeTeacherContractDocument?: [{	username: string},ResolverInputTypes["Docu
 	edubridgeTeacherOptions?:ResolverInputTypes["EduTeacherOption"],
 	/** Преподаватели кооператива с договором и числом назначений */
 	edubridgeTeachers?:ResolverInputTypes["EduTeacher"],
+expenseAdvancesByCooperative?: [{	coopname: string,	filter?: ResolverInputTypes["ExpenseAdvancesFilterInput"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedExpenseAdvancesPaginationResult"]],
 expenseFile?: [{	id: number},ResolverInputTypes["ExpenseFile"]],
 expenseFilesByItem?: [{	coopname: string,	item_hash: string,	proposal_hash: string},ResolverInputTypes["ExpenseFile"]],
 expenseFilesByProposal?: [{	coopname: string,	proposal_hash: string},ResolverInputTypes["ExpenseFile"]],
@@ -33325,6 +33424,7 @@ getWithheldTaxPayments?: [{	limit?: number | undefined | null,	page?: number | u
 	getWithheldTaxState?:ResolverInputTypes["WithheldTaxState"],
 globalSearch?: [{	data: ResolverInputTypes["GlobalSearchInput"]},ResolverInputTypes["GlobalSearchGroup"]],
 inviteRecipient?: [{	data: ResolverInputTypes["InviteRecipientInput"]},ResolverInputTypes["InviteRecipient"]],
+isEmailRegistered?: [{	data: ResolverInputTypes["EmailRegistrationCheckInputDTO"]},boolean | `@${string}`],
 kuDecision?: [{	hash: string},ResolverInputTypes["KuDecision"]],
 kuDecisions?: [{	filter?: ResolverInputTypes["KuDecisionFilterInput"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedKuDecisionsPaginationResult"]],
 kuTrustRequests?: [{	filter?: ResolverInputTypes["KuTrustRequestFilterInput"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedKuTrustRequestsPaginationResult"]],
@@ -33888,7 +33988,9 @@ verificationReviews?: [{	data?: ResolverInputTypes["VerificationReviewsInput"] |
 };
 	["RequestEmailVerificationInputDTO"]: {
 	/** Адрес электронной почты, который подтверждается */
-	email: string
+	email: string,
+	/** Зачем нужен код: при регистрации на уже зарегистрированный адрес код не отправляется. По умолчанию — подтверждение из кабинета */
+	purpose?: ResolverInputTypes["EmailVerificationPurpose"] | undefined | null
 };
 	["RequestForceRecoveryConsentInput"]: {
 	/** Пайщик, для которого запрашивается согласие */
@@ -34334,6 +34436,8 @@ verificationReviews?: [{	data?: ResolverInputTypes["VerificationReviewsInput"] |
 	assigned_at?:boolean | `@${string}`,
 	/** Учётное имя назначившего роль */
 	assigned_by?:boolean | `@${string}`,
+	/** ФИО назначившего роль */
+	assigned_by_name?:boolean | `@${string}`,
 	/** ФИО пайщика или название организации */
 	display_name?:boolean | `@${string}`,
 	/** Учётное имя пайщика */
@@ -42543,6 +42647,11 @@ export type ModelTypes = {
 	/** Почта / Telegram / код пропуска */
 	recipient_value: string
 };
+	["EmailRegistrationCheckInputDTO"]: {
+	/** Адрес электронной почты, который проверяется */
+	email: string
+};
+	["EmailVerificationPurpose"]:EmailVerificationPurpose;
 	["EmailVerificationRequestDTO"]: {
 		/** Через сколько секунд можно запросить письмо повторно */
 	cooldown_seconds: number,
@@ -42631,6 +42740,32 @@ export type ModelTypes = {
 	liability: ModelTypes["BranchTrusteeLiabilityAgreementSignedDocumentInput"],
 	/** Подписанное заявление председателя в совет */
 	petition: ModelTypes["BranchEstablishmentPetitionSignedDocumentInput"]
+};
+	/** Выданный аванс под отчёт. */
+["ExpenseAdvance"]: {
+		/** Сумма аванса. */
+	advance_amount: string,
+	/** Назначение аванса — описание строки служебной записки. */
+	description: string,
+	/** Дата выдачи аванса. */
+	issued_at?: ModelTypes["DateTime"] | undefined | null,
+	/** Хеш строки-аванса. */
+	item_hash: string,
+	/** Хеш служебной записки. */
+	proposal_hash: string,
+	/** Получатель аванса (учётное имя пайщика). */
+	recipient: string,
+	/** ФИО получателя аванса. */
+	recipient_name: string,
+	/** Фактически потрачено по отчёту получателя; пусто, пока отчёта нет. */
+	spent_amount?: string | undefined | null,
+	/** Состояние аванса. */
+	state: ModelTypes["ExpenseAdvanceState"]
+};
+	["ExpenseAdvanceState"]:ExpenseAdvanceState;
+	["ExpenseAdvancesFilterInput"]: {
+	/** Состояние аванса; пусто — все выданные. */
+	state?: ModelTypes["ExpenseAdvanceState"] | undefined | null
 };
 	["ExpenseCallbackInput"]: {
 	/** Action-метод */
@@ -48875,6 +49010,16 @@ export type ModelTypes = {
 	/** Общее количество страниц */
 	totalPages: number
 };
+	["PaginatedExpenseAdvancesPaginationResult"]: {
+		/** Текущая страница */
+	currentPage: number,
+	/** Элементы текущей страницы */
+	items: Array<ModelTypes["ExpenseAdvance"]>,
+	/** Общее количество элементов */
+	totalCount: number,
+	/** Общее количество страниц */
+	totalPages: number
+};
 	["PaginatedExpenseProposalsPaginationResult"]: {
 		/** Текущая страница */
 	currentPage: number,
@@ -50198,17 +50343,19 @@ export type ModelTypes = {
 	edubridgeTeacherOptions: Array<ModelTypes["EduTeacherOption"]>,
 	/** Преподаватели кооператива с договором и числом назначений */
 	edubridgeTeachers: Array<ModelTypes["EduTeacher"]>,
+	/** Выданные авансы под отчёт по кооперативу (paginated) с отбором по состоянию. Видят совет, кассир и ревизор. */
+	expenseAdvancesByCooperative: ModelTypes["PaginatedExpenseAdvancesPaginationResult"],
 	/** Получить запись о файле + свежий короткоживущий read-URL. */
 	expenseFile: ModelTypes["ExpenseFile"],
 	/** Список файлов строки расхода (без read-URL — запрос отдельно по id). */
 	expenseFilesByItem: Array<ModelTypes["ExpenseFile"]>,
 	/** Список файлов сметы расхода (без read-URL — запрос отдельно по id). */
 	expenseFilesByProposal: Array<ModelTypes["ExpenseFile"]>,
-	/** Получить смету расхода по хешу. Видят совет, подавший смету и получатели её строк. */
+	/** Получить смету расхода по хешу. Видят совет, ревизор, кассир, подавший смету и получатели её строк. */
 	expenseProposal?: ModelTypes["ExpenseProposal"] | undefined | null,
 	/** Список смет расходов кооператива (paginated). */
 	expenseProposalsByCooperative: ModelTypes["PaginatedExpenseProposalsPaginationResult"],
-	/** Список смет расходов пайщика (свои/созданные им, paginated). Видят сам пайщик и совет. */
+	/** Список смет расходов пайщика (свои/созданные им, paginated). Видят сам пайщик, совет, кассир и ревизор. */
 	expenseProposalsByMember: ModelTypes["PaginatedExpenseProposalsPaginationResult"],
 	/** Снимки реквизитов получателей по строкам СЗ (персональные данные — только совету; в блокчейн не пишутся). */
 	expenseRequisitesByProposal: Array<ModelTypes["ExpenseRequisite"]>,
@@ -50353,6 +50500,8 @@ export type ModelTypes = {
 	globalSearch: Array<ModelTypes["GlobalSearchGroup"]>,
 	/** Получатель приглашения по токену из письма */
 	inviteRecipient: ModelTypes["InviteRecipient"],
+	/** Зарегистрирован ли в кооперативе пайщик с этой электронной почтой */
+	isEmailRegistered: boolean,
 	/** Получить решение собрания участка по хэшу (с вопросами повестки) */
 	kuDecision: ModelTypes["KuDecision"],
 	/** Получить список решений собраний кооперативных участков */
@@ -50974,7 +51123,9 @@ export type ModelTypes = {
 };
 	["RequestEmailVerificationInputDTO"]: {
 	/** Адрес электронной почты, который подтверждается */
-	email: string
+	email: string,
+	/** Зачем нужен код: при регистрации на уже зарегистрированный адрес код не отправляется. По умолчанию — подтверждение из кабинета */
+	purpose?: ModelTypes["EmailVerificationPurpose"] | undefined | null
 };
 	["RequestForceRecoveryConsentInput"]: {
 	/** Пайщик, для которого запрашивается согласие */
@@ -51402,6 +51553,8 @@ export type ModelTypes = {
 	assigned_at: ModelTypes["DateTime"],
 	/** Учётное имя назначившего роль */
 	assigned_by: string,
+	/** ФИО назначившего роль */
+	assigned_by_name: string,
 	/** ФИО пайщика или название организации */
 	display_name: string,
 	/** Учётное имя пайщика */
@@ -59989,6 +60142,12 @@ export type GraphQLTypes = {
 	/** Почта / Telegram / код пропуска */
 	recipient_value: string
 };
+	["EmailRegistrationCheckInputDTO"]: {
+		/** Адрес электронной почты, который проверяется */
+	email: string
+};
+	/** Зачем запрашивается код подтверждения почты */
+["EmailVerificationPurpose"]: EmailVerificationPurpose;
 	["EmailVerificationRequestDTO"]: {
 	__typename: "EmailVerificationRequestDTO",
 	/** Через сколько секунд можно запросить письмо повторно */
@@ -60089,6 +60248,35 @@ export type GraphQLTypes = {
 	liability: GraphQLTypes["BranchTrusteeLiabilityAgreementSignedDocumentInput"],
 	/** Подписанное заявление председателя в совет */
 	petition: GraphQLTypes["BranchEstablishmentPetitionSignedDocumentInput"]
+};
+	/** Выданный аванс под отчёт. */
+["ExpenseAdvance"]: {
+	__typename: "ExpenseAdvance",
+	/** Сумма аванса. */
+	advance_amount: string,
+	/** Назначение аванса — описание строки служебной записки. */
+	description: string,
+	/** Дата выдачи аванса. */
+	issued_at?: GraphQLTypes["DateTime"] | undefined | null,
+	/** Хеш строки-аванса. */
+	item_hash: string,
+	/** Хеш служебной записки. */
+	proposal_hash: string,
+	/** Получатель аванса (учётное имя пайщика). */
+	recipient: string,
+	/** ФИО получателя аванса. */
+	recipient_name: string,
+	/** Фактически потрачено по отчёту получателя; пусто, пока отчёта нет. */
+	spent_amount?: string | undefined | null,
+	/** Состояние аванса. */
+	state: GraphQLTypes["ExpenseAdvanceState"],
+	['...on ExpenseAdvance']: Omit<GraphQLTypes["ExpenseAdvance"], "...on ExpenseAdvance">
+};
+	/** Состояние выданного аванса под отчёт. */
+["ExpenseAdvanceState"]: ExpenseAdvanceState;
+	["ExpenseAdvancesFilterInput"]: {
+		/** Состояние аванса; пусто — все выданные. */
+	state?: GraphQLTypes["ExpenseAdvanceState"] | undefined | null
 };
 	["ExpenseCallbackInput"]: {
 		/** Action-метод */
@@ -66783,6 +66971,18 @@ export type GraphQLTypes = {
 	totalPages: number,
 	['...on PaginatedEduExpensesPaginationResult']: Omit<GraphQLTypes["PaginatedEduExpensesPaginationResult"], "...on PaginatedEduExpensesPaginationResult">
 };
+	["PaginatedExpenseAdvancesPaginationResult"]: {
+	__typename: "PaginatedExpenseAdvancesPaginationResult",
+	/** Текущая страница */
+	currentPage: number,
+	/** Элементы текущей страницы */
+	items: Array<GraphQLTypes["ExpenseAdvance"]>,
+	/** Общее количество элементов */
+	totalCount: number,
+	/** Общее количество страниц */
+	totalPages: number,
+	['...on PaginatedExpenseAdvancesPaginationResult']: Omit<GraphQLTypes["PaginatedExpenseAdvancesPaginationResult"], "...on PaginatedExpenseAdvancesPaginationResult">
+};
 	["PaginatedExpenseProposalsPaginationResult"]: {
 	__typename: "PaginatedExpenseProposalsPaginationResult",
 	/** Текущая страница */
@@ -68225,17 +68425,19 @@ export type GraphQLTypes = {
 	edubridgeTeacherOptions: Array<GraphQLTypes["EduTeacherOption"]>,
 	/** Преподаватели кооператива с договором и числом назначений */
 	edubridgeTeachers: Array<GraphQLTypes["EduTeacher"]>,
+	/** Выданные авансы под отчёт по кооперативу (paginated) с отбором по состоянию. Видят совет, кассир и ревизор. */
+	expenseAdvancesByCooperative: GraphQLTypes["PaginatedExpenseAdvancesPaginationResult"],
 	/** Получить запись о файле + свежий короткоживущий read-URL. */
 	expenseFile: GraphQLTypes["ExpenseFile"],
 	/** Список файлов строки расхода (без read-URL — запрос отдельно по id). */
 	expenseFilesByItem: Array<GraphQLTypes["ExpenseFile"]>,
 	/** Список файлов сметы расхода (без read-URL — запрос отдельно по id). */
 	expenseFilesByProposal: Array<GraphQLTypes["ExpenseFile"]>,
-	/** Получить смету расхода по хешу. Видят совет, подавший смету и получатели её строк. */
+	/** Получить смету расхода по хешу. Видят совет, ревизор, кассир, подавший смету и получатели её строк. */
 	expenseProposal?: GraphQLTypes["ExpenseProposal"] | undefined | null,
 	/** Список смет расходов кооператива (paginated). */
 	expenseProposalsByCooperative: GraphQLTypes["PaginatedExpenseProposalsPaginationResult"],
-	/** Список смет расходов пайщика (свои/созданные им, paginated). Видят сам пайщик и совет. */
+	/** Список смет расходов пайщика (свои/созданные им, paginated). Видят сам пайщик, совет, кассир и ревизор. */
 	expenseProposalsByMember: GraphQLTypes["PaginatedExpenseProposalsPaginationResult"],
 	/** Снимки реквизитов получателей по строкам СЗ (персональные данные — только совету; в блокчейн не пишутся). */
 	expenseRequisitesByProposal: Array<GraphQLTypes["ExpenseRequisite"]>,
@@ -68380,6 +68582,8 @@ export type GraphQLTypes = {
 	globalSearch: Array<GraphQLTypes["GlobalSearchGroup"]>,
 	/** Получатель приглашения по токену из письма */
 	inviteRecipient: GraphQLTypes["InviteRecipient"],
+	/** Зарегистрирован ли в кооперативе пайщик с этой электронной почтой */
+	isEmailRegistered: boolean,
 	/** Получить решение собрания участка по хэшу (с вопросами повестки) */
 	kuDecision: GraphQLTypes["KuDecision"],
 	/** Получить список решений собраний кооперативных участков */
@@ -69048,7 +69252,9 @@ export type GraphQLTypes = {
 };
 	["RequestEmailVerificationInputDTO"]: {
 		/** Адрес электронной почты, который подтверждается */
-	email: string
+	email: string,
+	/** Зачем нужен код: при регистрации на уже зарегистрированный адрес код не отправляется. По умолчанию — подтверждение из кабинета */
+	purpose?: GraphQLTypes["EmailVerificationPurpose"] | undefined | null
 };
 	["RequestForceRecoveryConsentInput"]: {
 		/** Пайщик, для которого запрашивается согласие */
@@ -69510,6 +69716,8 @@ export type GraphQLTypes = {
 	assigned_at: GraphQLTypes["DateTime"],
 	/** Учётное имя назначившего роль */
 	assigned_by: string,
+	/** ФИО назначившего роль */
+	assigned_by_name: string,
 	/** ФИО пайщика или название организации */
 	display_name: string,
 	/** Учётное имя пайщика */
@@ -71298,6 +71506,17 @@ export enum EduShareReturnDocumentKind {
 	RETURN_STATEMENT = "RETURN_STATEMENT",
 	TRANSFER_STATEMENT = "TRANSFER_STATEMENT"
 }
+/** Зачем запрашивается код подтверждения почты */
+export enum EmailVerificationPurpose {
+	Account = "Account",
+	Registration = "Registration"
+}
+/** Состояние выданного аванса под отчёт. */
+export enum ExpenseAdvanceState {
+	AWAITING_REPORT = "AWAITING_REPORT",
+	REPORTED = "REPORTED",
+	SETTLEMENT = "SETTLEMENT"
+}
 /** Тип первичного файла расхода. */
 export enum ExpenseFileKind {
 	CLOSING_DOC = "CLOSING_DOC",
@@ -72322,8 +72541,12 @@ type ZEUS_VARIABLES = {
 	["EduUpdateCourseInput"]: ValueTypes["EduUpdateCourseInput"];
 	["EduUpdateGroupInput"]: ValueTypes["EduUpdateGroupInput"];
 	["EduUpdateLearnerInput"]: ValueTypes["EduUpdateLearnerInput"];
+	["EmailRegistrationCheckInputDTO"]: ValueTypes["EmailRegistrationCheckInputDTO"];
+	["EmailVerificationPurpose"]: ValueTypes["EmailVerificationPurpose"];
 	["EntrepreneurDetailsInput"]: ValueTypes["EntrepreneurDetailsInput"];
 	["ExecKuDecisionInput"]: ValueTypes["ExecKuDecisionInput"];
+	["ExpenseAdvanceState"]: ValueTypes["ExpenseAdvanceState"];
+	["ExpenseAdvancesFilterInput"]: ValueTypes["ExpenseAdvancesFilterInput"];
 	["ExpenseCallbackInput"]: ValueTypes["ExpenseCallbackInput"];
 	["ExpenseFileKind"]: ValueTypes["ExpenseFileKind"];
 	["ExpenseFilter"]: ValueTypes["ExpenseFilter"];

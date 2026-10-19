@@ -15,6 +15,7 @@ const rawAssignableRoleSelector = {
     username: true,
     display_name: true,
     assigned_by: true,
+    assigned_by_name: true,
     assigned_at: true,
   },
 }

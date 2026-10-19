@@ -152,3 +152,18 @@ export function reportStateVariant(state: ExpenseReportState): ExpenseBadgeVaria
 export function shortExpenseId(hash: string): string {
   return hash.slice(0, 16).toUpperCase();
 }
+
+export {
+  proposalAuthorName,
+  formatProposalAmount,
+  formatProposalDate,
+  formatProposalDay,
+  proposalPurpose,
+} from './proposal-rows';
+export {
+  EXPENSE_LIVE_TABLES,
+  useLiveProposalPages,
+  type ILiveProposalPages,
+  type IProposalPage,
+  type IProposalPageQuery,
+} from './proposal-pages';

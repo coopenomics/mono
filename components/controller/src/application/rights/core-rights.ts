@@ -26,7 +26,7 @@ import { PAYMENT_FILE_REPOSITORY, type PaymentFileRepository } from '~/domain/ga
  *
  * Назначаемые роли председатель выдаёт принятому пайщику на странице
  * управления доступом:
- *  - `cashier` — кассир: реестр платежей стола совета.
+ *  - `cashier` — кассир: стол кассира — касса и реестр платежей.
  *  - `auditor` — ревизор: читает то же, что кассир, без записи; чтение стола
  *    бухгалтера ему даёт приложение отчётности.
  */
@@ -166,8 +166,8 @@ export const coreRightsTable: RightsTable<CoreRightsRole, never> = {
     {
       when: [],
       rights: {
-        // Реестр платежей стола совета: список, подтверждение оплаты и
-        // документы об оплате.
+        // Стол кассира: реестр платежей, подтверждение оплаты и документы
+        // об оплате. Очередь записок на кассе даёт приложение расходов.
         Payment: ['read:all', 'confirm'],
         PaymentFile: ['read:all', 'upload'],
       },
@@ -193,10 +193,28 @@ export const coreRightsTable: RightsTable<CoreRightsRole, never> = {
 };
 
 /**
- * Приложение, под именем которого ядро объявляет назначаемые роли: страницы
- * ролей стоят на столе совета.
+ * Приложения, под именами которых ядро объявляет назначаемые роли: роль
+ * числится за столом, где стоят её страницы. Ревизор читает реестры стола
+ * совета, кассир работает на своём столе.
  */
-export const CORE_ROLES_APP = 'soviet';
+export const CORE_ROLES_APPS: Readonly<Record<CoreAssignableRole, string>> = {
+  cashier: 'cashier',
+  auditor: 'soviet',
+};
+
+/**
+ * Столы, страницы которых открывает назначенная роль ядра. Кассир работает на
+ * столе кассира; ревизор читает реестры стола совета и кассу.
+ */
+export const CORE_ROLE_DESKS: Readonly<Record<CoreAssignableRole, readonly string[]>> = {
+  cashier: ['cashier'],
+  auditor: ['soviet', 'cashier'],
+};
+
+/** Приложения, за которыми числятся роли ядра, без повторов. */
+function coreRolesApps(): string[] {
+  return [...new Set(Object.values(CORE_ROLES_APPS))];
+}
 
 /** Роли ядра, которые председатель назначает пайщикам. */
 export const coreAssignableRoles: readonly AssignableRole<CoreAssignableRole>[] = [
@@ -237,7 +255,7 @@ export function coreRolesOf(caller: Pick<RightsCaller, 'role' | 'status'>): Core
 }
 
 /** Столы ядра, права страниц которых выдаются из этой таблицы. */
-const CORE_DESKTOPS = ['soviet', 'chairman', 'participant'];
+const CORE_DESKTOPS = ['soviet', 'chairman', 'participant', 'cashier'];
 
 /**
  * Описание прав ядра: по нему работают общий гард операций ядра (`RightsGuard`)
@@ -273,11 +291,30 @@ export class CoreRights implements AppRights<CoreRightsRole, never>, OnModuleIni
   ) {}
 
   onModuleInit(): void {
-    this.roleAssignments.declare(CORE_ROLES_APP, this.assignableRoles);
-    const hook = desktopGrantsOf(this);
+    for (const app of coreRolesApps()) {
+      this.roleAssignments.declare(app, this.assignableRoles.filter((role) => CORE_ROLES_APPS[role.key] === app));
+    }
     for (const extensionName of CORE_DESKTOPS) {
+      const hook = desktopGrantsOf(this.onDesk(extensionName));
       this.grantsRegistry.register({ extensionName, resolveGrants: (ctx) => hook.resolveGrants(ctx) });
     }
+  }
+
+  /**
+   * Права ядра для страниц одного стола. Назначенная роль открывает страницы
+   * только своих столов (`CORE_ROLE_DESKS`): кассир работает на столе кассира,
+   * и его право читать реестр платежей не выводит ему стол совета.
+   * Операции проверяются по полному набору ролей — это только видимость страниц.
+   */
+  private onDesk(desk: string): AppRights<CoreRightsRole, never> {
+    const assignable = new Set<string>(Object.keys(CORE_ROLES_APPS));
+    return {
+      extensionName: desk,
+      table: this.table,
+      publicGrants: this.publicGrants,
+      roles: async (caller) =>
+        (await this.roles(caller)).filter((role) => !assignable.has(role) || CORE_ROLE_DESKS[role as CoreAssignableRole].includes(desk)),
+    };
   }
 
   /**
@@ -287,7 +324,8 @@ export class CoreRights implements AppRights<CoreRightsRole, never>, OnModuleIni
   async roles(caller: RightsCaller): Promise<CoreRightsRole[]> {
     const node = coreRolesOf(caller);
     if (!node.includes('participant')) return node;
-    const assigned = await this.roleAssignments.rolesOf(CORE_ROLES_APP, caller.username);
+    const byApp = await Promise.all(coreRolesApps().map((app) => this.roleAssignments.rolesOf(app, caller.username)));
+    const assigned = [...new Set(byApp.flat())];
     // Роль узла назначением не получить: её даёт состав совета.
     return [...node, ...(assigned.filter((role) => !NODE_ROLE_KEYS.has(role)) as CoreAssignableRole[])];
   }

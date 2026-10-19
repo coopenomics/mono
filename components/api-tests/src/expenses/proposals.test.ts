@@ -35,6 +35,7 @@ const PROPOSAL_FIELDS = `proposal_hash coopname username source_wallet status to
 const GET = `query($h:String!){ expenseProposal(proposal_hash:$h){ ${PROPOSAL_FIELDS} } }`
 const BY_COOP = `query($c:String!,$o:PaginationInput){ expenseProposalsByCooperative(coopname:$c, options:$o){ items{ proposal_hash status } totalPages currentPage } }`
 const BY_MEMBER = `query($c:String!,$u:String!,$o:PaginationInput){ expenseProposalsByMember(coopname:$c, username:$u, options:$o){ items{ proposal_hash username } totalPages } }`
+const ADVANCES = `query($c:String!,$f:ExpenseAdvancesFilterInput,$o:PaginationInput){ expenseAdvancesByCooperative(coopname:$c, filter:$f, options:$o){ items{ proposal_hash item_hash recipient recipient_name description advance_amount spent_amount state issued_at } totalPages } }`
 const REQUISITES = `query($c:String!,$h:String!){ expenseRequisitesByProposal(coopname:$c, proposal_hash:$h){ proposal_hash item_hash recipient method_type data requisites payment_purpose } }`
 const PAY = `mutation($d:PayExpenseItemInput!){ payExpenseItem(data:$d){ __typename } }`
 const RETURN = `mutation($d:ReturnExpenseItemInput!){ returnExpenseItem(data:$d){ __typename } }`
@@ -70,6 +71,19 @@ async function findInMemberList(token: string, username: string, proposalHash: s
     if (hit)
       return hit
     if (page >= d.expenseProposalsByMember.totalPages)
+      return undefined
+  }
+  return undefined
+}
+
+/** Ищет аванс по хешу строки среди выданных авансов кооператива (с отбором по состоянию). */
+async function findAdvance(token: string, itemHash: string, state?: string): Promise<any | undefined> {
+  for (let page = 1; page <= 50; page++) {
+    const d = await gql<any>(token, ADVANCES, { c: COOP, f: state ? { state } : null, o: { page, limit: 50 } })
+    const hit = d.expenseAdvancesByCooperative.items.find((a: any) => a.item_hash === itemHash)
+    if (hit)
+      return hit
+    if (page >= d.expenseAdvancesByCooperative.totalPages)
       return undefined
   }
   return undefined
@@ -266,6 +280,27 @@ describe('expenses: служебная записка на расход', () => 
     expect(await findInMemberList(chairman, COUNCIL.account, draft.proposal_hash)).toBeDefined()
   })
 
+  // ── Авансы кооператива (стол кассира, «Авансы») ────────────────────────
+
+  it(caseName('exp.adv.happy.03', 'до выдачи аванс на кассе не стоит'), async () => {
+    expect(await findAdvance(chairman, memberItem)).toBeUndefined()
+  })
+
+  it(caseName('exp.adv.side.01', 'авансы кооператива — совету, кассиру и ревизору; пайщику и получателю отказ, гостю — вход'), async () => {
+    for (const token of [member, recipientToken]) {
+      const err = await gqlError(token, ADVANCES, { c: COOP, o: { page: 1, limit: 10 } })
+      expect(err?.code).toBe('KIT_INSUFFICIENT_RIGHTS')
+    }
+    const guest = await gqlError(null, ADVANCES, { c: COOP, o: { page: 1, limit: 10 } })
+    expect(String(guest?.code)).toBe('401')
+    expect(await gqlError(council, ADVANCES, { c: COOP, o: { page: 1, limit: 10 } })).toBeNull()
+  })
+
+  it(caseName('exp.adv.side.04', 'лимит сверх предела и неизвестная колонка сортировки список авансов не роняют'), async () => {
+    const d = await gql<any>(chairman, ADVANCES, { c: COOP, o: { page: 1, limit: 500, sortBy: 'drop table', sortOrder: 'ASC' } })
+    expect(d.expenseAdvancesByCooperative.items.length).toBeLessThanOrEqual(200)
+  })
+
   // ── Права на операции со строками ────────────────────────────────────────
 
   it(caseName('exp.prop.side.07', 'оплата строки — только председателю: пайщик и член совета получают отказ по роли'), async () => {
@@ -282,18 +317,21 @@ describe('expenses: служебная записка на расход', () => 
     expect((await gql<any>(chairman, GET, { h: draft.proposal_hash })).expenseProposal.status).toBe('CREATED')
   })
 
-  it(caseName('exp.prop.side.09', 'возврат и отчёт по авансу: чужой пайщик — 403, держатель аванса и совет проходят проверку прав'), async () => {
+  it(caseName('exp.prop.side.09', 'возврат и отчёт по авансу: чужой пайщик и член совета — 403, держатель аванса и председатель проходят проверку прав'), async () => {
     const ret = { coopname: COOP, proposal_hash: draft.proposal_hash, item_hash: memberItem, return_amount: '100.0000 RUB' }
     const rep = { coopname: COOP, proposal_hash: draft.proposal_hash, item_hash: memberItem }
 
     expect(String((await gqlError(other, RETURN, { d: ret }))?.code)).toBe('403')
     expect(String((await gqlError(other, REPORT, { d: rep }))?.code)).toBe('403')
+    // cashier.edit.side.02: с 16.10.2026 совет кассу читает — за пайщика отчитываются председатель и кассир.
+    expect(String((await gqlError(council, RETURN, { d: ret }))?.code)).toBe('403')
+    expect(String((await gqlError(council, REPORT, { d: rep }))?.code)).toBe('403')
     // Строка без получателя-пайщика (организация) тоже не «своя» ни для кого из пайщиков.
     expect(String((await gqlError(recipientToken, RETURN, { d: { ...ret, item_hash: orgItem } }))?.code)).toBe('403')
 
-    // Держатель аванса и член совета доходят до цепи: аванс ещё не выдан, и
+    // Держатель аванса и председатель доходят до цепи: аванс ещё не выдан, и
     // отказ приходит от контракта, а не от проверки прав.
-    for (const token of [recipientToken, council]) {
+    for (const token of [recipientToken, chairman]) {
       for (const [q, d] of [[RETURN, ret], [REPORT, rep]] as const) {
         const e = await gqlError(token, q, { d })
         expect(e).not.toBeNull()
@@ -306,18 +344,25 @@ describe('expenses: служебная записка на расход', () => 
     expect(items.find((i: any) => i.item_hash === memberItem).status).toBe('APPROVED')
   })
 
-  it(caseName('exp.prop.side.10', 'закрытие отчёта — совету; пайщик получает отказ по роли'), async () => {
-    const err = await gqlError(member, SUBMIT, { d: { coopname: COOP, proposal_hash: draft.proposal_hash } })
-    expect(err?.code).toBe('KIT_INSUFFICIENT_RIGHTS')
+  it(caseName('exp.prop.side.10', 'закрытие отчёта — председателю и кассиру; пайщик и член совета получают отказ по роли'), async () => {
+    for (const token of [member, council]) {
+      const err = await gqlError(token, SUBMIT, { d: { coopname: COOP, proposal_hash: draft.proposal_hash } })
+      expect(err?.code).toBe('KIT_INSUFFICIENT_RIGHTS')
+    }
   })
 
   // ── Файлы ────────────────────────────────────────────────────────────────
 
   let proofId: number
 
-  it(caseName('exp.file.happy.01', 'член совета прикладывает платёжку к строке организации — запись читается по id и в списках'), async () => {
+  it(caseName('exp.file.side.06', 'член совета документы к чужой записке не прикладывает — правят кассу председатель и кассир'), async () => {
+    const err = await gqlError(council, UPLOAD, { d: fileInput(draft.proposal_hash, orgItem, 'PAYMENT_PROOF', 'application/pdf') })
+    expect(err?.code).toBe('EXPENSES_FILE_ACCESS_DENIED')
+  })
+
+  it(caseName('exp.file.happy.01', 'председатель прикладывает платёжку к строке организации — запись читается по id и в списках'), async () => {
     const input = fileInput(draft.proposal_hash, orgItem, 'PAYMENT_PROOF', 'application/pdf')
-    const d = await gql<any>(council, UPLOAD, { d: input })
+    const d = await gql<any>(chairman, UPLOAD, { d: input })
     const f = d.uploadExpenseFile
     proofId = f.id
     expect(f.id).toBeGreaterThan(0)
@@ -330,7 +375,7 @@ describe('expenses: служебная записка на расход', () => 
       size_bytes: input.size_bytes,
       checksum_sha256: input.checksum_sha256,
       original_filename: 'schet-17.pdf',
-      uploaded_by_username: COUNCIL.account,
+      uploaded_by_username: CHAIRMAN.account,
     })
     expect(f.storage_key).toContain(draft.proposal_hash)
     expect(f.read_url).toBeTruthy()
@@ -377,8 +422,8 @@ describe('expenses: служебная записка на расход', () => 
 
   it(caseName('exp.file.side.03', 'повтор того же содержимого — конфликт, вторая запись не создаётся'), async () => {
     const input = fileInput(draft.proposal_hash, orgItem, 'CLOSING_DOC', 'application/pdf')
-    const first = await gql<any>(council, UPLOAD, { d: input })
-    const err = await gqlError(council, UPLOAD, { d: input })
+    const first = await gql<any>(chairman, UPLOAD, { d: input })
+    const err = await gqlError(chairman, UPLOAD, { d: input })
     expect(err?.code).toBe('EXPENSES_FILE_DUPLICATE')
     const list = await gql<any>(chairman, FILES_BY_ITEM, { c: COOP, h: draft.proposal_hash, i: orgItem })
     const same = list.expenseFilesByItem.filter((x: any) => x.id === first.uploadExpenseFile.id)
@@ -387,11 +432,11 @@ describe('expenses: служебная записка на расход', () => 
 
   it(caseName('exp.file.side.04', 'содержимое не сходится с заявленными размером и контрольной суммой; чужой MIME отвергается'), async () => {
     const base = fileInput(draft.proposal_hash, orgItem, 'CLOSING_DOC', 'application/pdf')
-    const size = await gqlError(council, UPLOAD, { d: { ...base, size_bytes: (base.size_bytes as number) + 1 } })
+    const size = await gqlError(chairman, UPLOAD, { d: { ...base, size_bytes: (base.size_bytes as number) + 1 } })
     expect(size?.code).toBe('EXPENSES_FILE_SIZE_MISMATCH')
-    const sum = await gqlError(council, UPLOAD, { d: { ...base, checksum_sha256: 'a'.repeat(64) } })
+    const sum = await gqlError(chairman, UPLOAD, { d: { ...base, checksum_sha256: 'a'.repeat(64) } })
     expect(sum?.code).toBe('EXPENSES_FILE_CHECKSUM_MISMATCH')
-    const mime = await gqlError(council, UPLOAD, { d: { ...base, mime_type: 'text/html' } })
+    const mime = await gqlError(chairman, UPLOAD, { d: { ...base, mime_type: 'text/html' } })
     expect(String(mime?.code)).toBe('422')
   })
 
@@ -423,7 +468,7 @@ describe('expenses: служебная записка на расход', () => 
   })
 
   it(caseName('exp.prop.side.12', 'закрыть отчёт по утверждённой, но не оплаченной записке нельзя'), async () => {
-    const err = await gqlError(council, SUBMIT, { d: { coopname: COOP, proposal_hash: draft.proposal_hash } })
+    const err = await gqlError(chairman, SUBMIT, { d: { coopname: COOP, proposal_hash: draft.proposal_hash } })
     expect(err).not.toBeNull()
     expect(err?.message).toContain('REPORT_SUBMITTED')
     expect((await gql<any>(chairman, GET, { h: draft.proposal_hash })).expenseProposal.status).toBe('AUTHORIZED')
@@ -454,6 +499,14 @@ describe('expenses: служебная записка на расход', () => 
     expect(p.status).toBe('PARTIALLY_PAID')
     expect(itemStatus(p, memberItem)).toBe('PAID')
 
+    // exp.adv.happy.01: выданный аванс стоит на кассе — получатель по ФИО, сумма, «ждёт отчёта».
+    const issued = await findAdvance(chairman, memberItem, 'AWAITING_REPORT')
+    expect(issued).toMatchObject({ proposal_hash: draft.proposal_hash, recipient: recipient.account, advance_amount: '700.0000 RUB', spent_amount: null, state: 'AWAITING_REPORT' })
+    expect(issued.recipient_name).not.toBe(recipient.account)
+    // exp.adv.happy.02: отбор по состоянию — среди отчитанных его ещё нет; строка организации авансом не числится.
+    expect(await findAdvance(chairman, memberItem, 'REPORTED')).toBeUndefined()
+    expect(await findAdvance(chairman, orgItem)).toBeUndefined()
+
     // Повторная оплата уже оплаченной строки отвергается.
     expect(await gqlError(chairman, PAY, { d: { coopname: COOP, proposal_hash: draft.proposal_hash, item_hash: orgItem, actual_amount: '1500.0000 RUB' } })).not.toBeNull()
 
@@ -463,11 +516,14 @@ describe('expenses: служебная записка на расход', () => 
     p = await state()
     expect(itemStatus(p, memberItem)).toBe('REPORTED')
     expect(p.status).toBe('REPORT_SUBMITTED')
+    // exp.adv.happy.02: после отчёта аванс среди отчитанных, потрачено — по итогу строки.
+    expect(await findAdvance(chairman, memberItem, 'REPORTED')).toMatchObject({ state: 'REPORTED', spent_amount: '700.0000 RUB' })
+    expect(await findAdvance(chairman, memberItem, 'AWAITING_REPORT')).toBeUndefined()
     expect(await gqlError(recipientToken, REPORT, { d: { coopname: COOP, proposal_hash: draft.proposal_hash, item_hash: memberItem } }),
       'повторный отчёт отклонён').not.toBeNull()
 
-    // Совет закрывает отчёт.
-    await gql(council, SUBMIT, { d: { coopname: COOP, proposal_hash: draft.proposal_hash } })
+    // Председатель закрывает отчёт (с 16.10.2026 закрывают председатель и кассир, совет читает).
+    await gql(chairman, SUBMIT, { d: { coopname: COOP, proposal_hash: draft.proposal_hash } })
     expect((await state()).status).toBe('CLOSED')
     expect((await findInCoopList(chairman, draft.proposal_hash))?.status).toBe('CLOSED')
   }, 600_000)

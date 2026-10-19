@@ -66,6 +66,12 @@ export interface IPaymentDeskPort {
   setPaymentStatus(input: InnerSetPaymentStatusInput): Promise<InnerPayment>;
 
   createSystemOutgoingPayment(input: InnerSystemOutgoingPaymentInput): Promise<InnerPayment>;
+
+  /**
+   * Учётные имена тех, кто подтверждает платежи в реестре: председатель и
+   * пайщики с ролью «Кассир». Им расширение шлёт задачу «подтвердите платёж».
+   */
+  confirmers(): Promise<string[]>;
 }
 
 export const PAYMENT_DESK_PORT = Symbol.for('Innercoop.CorePort.PaymentDesk');

@@ -43,7 +43,7 @@
         Avatar(:name='holder.display_name', size='sm')
         .holder-row__identity
           .holder-row__name {{ holder.display_name }}
-          .holder-row__meta {{ $t('chairman.accessRolesPage.assignedMeta', { date: formatDocumentDate(String(holder.assigned_at)), by: holder.assigned_by }) }}
+          .holder-row__meta {{ $t('chairman.accessRolesPage.assignedMeta', { date: formatDateToLocalTimezone(holder.assigned_at, 'DD.MM.YYYY'), by: holder.assigned_by_name || holder.assigned_by }) }}
         BaseButton(variant='danger', size='sm', @click='openRevoke(role, holder)')
           template(#icon-left)
             q-icon(name='person_remove', size='16px')
@@ -87,7 +87,7 @@ import { Avatar, BaseButton, BaseCard, BaseDialog, CardListSkeleton, EmptyState 
 import { PageHint } from 'src/shared/ui/domain';
 import { UserSearchSelector } from 'src/shared/ui';
 import { useFirstLoad } from 'src/shared/lib/composables';
-import { formatDocumentDate } from 'src/shared/lib/utils/dates/formatDocumentDate';
+import { formatDateToLocalTimezone } from 'src/shared/lib/utils/dates/timezone';
 import { accessRoleApi, type IAssignableRole, type IRoleAssignment } from 'app/extensions/chairman/entities/AccessRole';
 import { t } from '../../../i18n';
 

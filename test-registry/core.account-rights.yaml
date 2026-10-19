@@ -223,3 +223,7 @@ cases:
     test: components/controller/tests/unit/rights/core-rights.test.ts
     api: components/api-tests/src/platform/access-roles.test.ts
     status: written   # прогон — CI на полигоне ci/tests
+
+# 2026-10-16 (7DD-25): страница «Авансы» на столе пайщика появилась и в тот же
+# день снята по решению владельца — авансы ведёт стол кассира. Права страниц
+# ядра стола пайщика и их проверки не менялись.

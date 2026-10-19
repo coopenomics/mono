@@ -15,7 +15,8 @@ import {
   EXPENSE_PROPOSAL_REPOSITORY,
   type ExpenseProposalRepository,
 } from '../../domain/repositories/expense-proposal.repository';
-import { mayReadExpenseProposal } from '../../domain/utils/expense-proposal-access';
+import { isItemRecipient, mayReadExpenseProposal } from '../../domain/utils/expense-proposal-access';
+import { ExpensesRights } from '../access/expenses-rights';
 
 const EXTENSION_BY_MIME: Record<string, string> = {
   'image/jpeg': 'jpg',
@@ -39,21 +40,35 @@ export class ExpenseFilesService {
     @InjectBucket() private readonly bucket: InnerFileStorageBucket,
     @Inject(EXPENSE_FILE_REPOSITORY) private readonly files: ExpenseFileRepository,
     @Inject(PAYMENT_PORT) private readonly payments: IPaymentPort,
-    @Inject(EXPENSE_PROPOSAL_REPOSITORY) private readonly proposals: ExpenseProposalRepository
+    @Inject(EXPENSE_PROPOSAL_REPOSITORY) private readonly proposals: ExpenseProposalRepository,
+    @Inject(ExpensesRights) private readonly rights: ExpensesRights
   ) {}
 
-  /** Файлы открыты тем же, кому открыта записка (`mayReadExpenseProposal`). */
-  private async assertMayAccess(user: IMonoAccount, proposalHash: string, itemHash: string | null): Promise<void> {
-    if (user.role === 'chairman' || user.role === 'member') return;
+  /**
+   * Файлы читают те, кому открыта записка: подавший и получатели строк лично,
+   * совет, кассир и ревизор — по праву реестра расходов.
+   */
+  private async assertMayRead(user: IMonoAccount, proposalHash: string, itemHash: string | null): Promise<void> {
     const proposal = await this.proposals.findByProposalHash(proposalHash.toLowerCase());
-    if (!mayReadExpenseProposal(user, proposal, itemHash)) throw DomainError.forbidden('EXPENSES_FILE_ACCESS_DENIED');
+    if (mayReadExpenseProposal(user, proposal, itemHash)) return;
+    if (!(await this.rights.readsRegistry(user))) throw DomainError.forbidden('EXPENSES_FILE_ACCESS_DENIED');
+  }
+
+  /**
+   * Загружать в любую записку — председатель и кассир (`ExpenseFile:upload:all`);
+   * получатель аванса прикладывает чек к своей строке. Совет файлы читает.
+   */
+  private async assertMayUpload(user: IMonoAccount, proposalHash: string, itemHash: string | null): Promise<void> {
+    if (await this.rights.holds(user, 'ExpenseFile:upload:all')) return;
+    const proposal = await this.proposals.findByProposalHash(proposalHash.toLowerCase());
+    if (!isItemRecipient(user, proposal, itemHash)) throw DomainError.forbidden('EXPENSES_FILE_ACCESS_DENIED');
   }
 
   async uploadFile(
     input: UploadExpenseFileInputDTO,
     user: IMonoAccount
   ): Promise<{ data: IExpenseFileDatabaseData; readUrl: string }> {
-    await this.assertMayAccess(user, input.proposal_hash, input.item_hash ?? null);
+    await this.assertMayUpload(user, input.proposal_hash, input.item_hash ?? null);
     const uploadedByUsername = user.username;
     const body = Buffer.from(input.content_base64, 'base64');
     if (body.byteLength !== input.size_bytes) {
@@ -123,13 +138,13 @@ export class ExpenseFilesService {
   async getReadUrl(fileId: number, user: IMonoAccount): Promise<{ data: IExpenseFileDatabaseData; readUrl: string }> {
     const file = await this.files.findById(fileId);
     if (!file) throw DomainError.notFound('EXPENSES_FILE_NOT_FOUND', { fileId });
-    await this.assertMayAccess(user, file.proposal_hash, file.item_hash ?? null);
+    await this.assertMayRead(user, file.proposal_hash, file.item_hash ?? null);
     const readUrl = await this.bucket.getReadUrl(file.storage_key);
     return { data: file, readUrl };
   }
 
   async listByProposal(coopname: string, proposalHash: string, user: IMonoAccount): Promise<IExpenseFileDatabaseData[]> {
-    await this.assertMayAccess(user, proposalHash, null);
+    await this.assertMayRead(user, proposalHash, null);
     return this.files.findByProposal(coopname, proposalHash.toLowerCase());
   }
 
@@ -139,7 +154,7 @@ export class ExpenseFilesService {
     itemHash: string,
     user: IMonoAccount
   ): Promise<IExpenseFileDatabaseData[]> {
-    await this.assertMayAccess(user, proposalHash, itemHash);
+    await this.assertMayRead(user, proposalHash, itemHash);
     return this.files.findByItem(coopname, proposalHash.toLowerCase(), itemHash.toLowerCase());
   }
 

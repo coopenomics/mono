@@ -33,10 +33,8 @@ Desktop UI для **шасси системы расходов** (MVP-SINGLE) Ц
 |---|---|---|---|
 | `/:coopname/expenses` | `ExpensesRegistryPage` | Глобальный реестр расходов с фильтрами | все |
 | `/:coopname/expenses/:hash` | `ExpenseDetailPage` | Экран доказательств: document2 + expense_files + ledger2 timeline | все |
-| `/:coopname/expenses/admin/approve` | `ExpensesAdminApprovePage` | Очередь «Ждут одобрения председателя» | председатель |
-| `/:coopname/expenses/admin/authorize` | `ExpensesAdminAuthorizePage` | Очередь «На авторизацию совета» | председатель |
-| `/:coopname/expenses/cashier` | `CashierPage` | 4 таба кассира (готово к оплате / ждут отчёта / ждут утверждения / закрыто) | председатель |
-| `/:coopname/expenses/my/advances` | `MyAdvancesPage` | Мои авансы — приложить чек (каркас, пока не выведен) | пайщик |
+| `/:coopname/cashier/expenses` | `extensions/cashier` → `ExpensesPage` | «Расходы» стола кассира: 4 вкладки по этапам выплаты | читают совет, ревизор; правят читают совет, ревизор; правят председатель, кассир |
+| `/:coopname/cashier/advances` | `extensions/cashier` → `AdvancesPage` | «Авансы» стола кассира — выданные авансы по кооперативу с отбором по состоянию (`expenseAdvancesByCooperative`) | читают совет, ревизор; правят председатель, кассир |
 | dialog (без маршрута) | `ExpenseProposalCreateDialog` | Форма-конструктор СЗ с массивом items | все |
 
 ## Зависимости (порядок сборки)
@@ -51,7 +49,7 @@ Desktop UI для **шасси системы расходов** (MVP-SINGLE) Ц
 
 ## Регистрация в `extensions-registry`
 
-Зарегистрировано в `src/processes/init-installed-extensions/extensions-registry.ts` (ключ `expenses`). Помимо собственного воркспейса, расширение отдаёт страницу `ExpensesRegistryPage` (реестр всех расходов кооператива) — её монтирует стол совета как «Реестр расходов» (`extensions/soviet/install.ts`, маршрут `soviet-expenses-registry`). Страница пулов `ExpenseWalletsPage` остаётся в barrel'е, но на столах больше не монтируется (источник пулов — реестр `expense-wallets` для резолва имени кошелька).
+Зарегистрировано в `src/processes/init-installed-extensions/extensions-registry.ts` (ключ `expenses`). Помимо собственного воркспейса, расширение отдаёт страницу `ExpensesRegistryPage` (реестр всех расходов кооператива) — её монтирует стол совета как «Реестр расходов» (`extensions/soviet/install.ts`, маршрут `soviet-expenses-registry`). Каркас «стола кассира» (касса, очередь «На одобрение председателя», «Мои авансы», страница пулов) 16.10.2026 разобран: касса переехала на стол кассира (`extensions/cashier`, страница «Расходы»), там же — авансы кооператива; очередь одобрения, страница пулов и «Мои авансы» удалены (свой аванс пайщик видит в «Платежах»). Записку до решения совета ведёт повестка совета, остатки пулов показывают кошельки программ. Общие для списков записок помощники и живой постраничный список — `src/shared/lib/expenses` (`useLiveProposalPages`), запросы списков — `src/entities/ExpenseProposal`.
 
 ## Канон вёрстки (`/home/admin/.claude/skills/mono-desktop-canon/`)
 
@@ -76,10 +74,6 @@ extensions/expenses/
     ├── index.ts
     ├── ExpensesRegistryPage.vue                 ← /expenses
     ├── ExpenseDetailPage.vue                    ← /expenses/:hash
-    ├── ExpensesAdminApprovePage.vue             ← /expenses/admin/approve
-    ├── ExpensesAdminAuthorizePage.vue           ← /expenses/admin/authorize
-    ├── CashierPage.vue                          ← /expenses/cashier
-    ├── MyAdvancesPage.vue                       ← /expenses/my/advances (каркас)
     └── ExpenseProposalCreateDialog.vue          ← dialog (вызывается из ExpensesRegistryPage)
 ```
 
@@ -114,10 +108,8 @@ Mutations.Capital.CreateProgramExpenseProposal.mutation
 
 1. **`ExpensesRegistryPage`** — `BaseTable` с фильтр-баром `<FilterBar>`, живое обновление по ленте изменений (`useLiveReload`), статусы через `<BaseBadge variant>`, низ — `.table-foot` с «Загрузить ещё».
 2. **`ExpenseDetailPage`** — `<PageHead>` + статус-чип, секции: проект-карточка → item-table → цепочка артефактов (`<DocumentRow>` 2010/2011 + `<FileUploader>`-показ файлов) → `<VerticalStepper>` lifecycle.
-3. **`ExpensesAdminApprovePage`** / **`ExpensesAdminAuthorizePage`** — canon-таблицы со столбцом действий (одобрить/отклонить/авторизовать/декланировать). Decline-модалка: `<BaseDialog>` с `<BaseInput textarea>` для reason.
-4. **`CashierPage`** — `<PageTabs>` с 4 вкладками; каждая = `BaseTable`. Действие «Оплатил, приложить чек» = `<BaseDialog>` с `<FileUploader>` (multipart → MinIO через `Mutations.Expenses.UploadExpenseFile` → следом `Mutations.Expenses.PayExpenseItem`).
-5. **`MyAdvancesPage`** — КАРКАС будущего стола кассира (роут `expenses-my-advances`), пока НЕ выведен в меню и ничего на него не ведёт. До сборки стола кассира авансы пайщика-получателя видны на его личной странице «Платежи» (`/:coopname/user/payments`, `ListOfPaymentsWidget`): строки авансов с панелью `ReportExpenseAdvancePanel` (приложить чек / отчитаться). Рабочие ссылки (напоминатель об авансах) ведут туда, а не на эту страницу.
-6. **`ExpenseProposalCreateDialog`** — `<BaseDialog>` + `<BaseForm>` с массивом items, добавление/удаление item'ов через `<BaseButton>`. Per-item — `<BaseRadioCard>` для recipient_type {SELF/MEMBER/ORG}, `<BaseSelect>` для mechanics {ADVANCE/DIRECT}, `<AmountInput>` для сумм, `<RequisitesPicker>` (новый компонент в `shared/ui/domain/`) для ADVANCE-получателя.
+3. **Расходы** по этапам выплаты живут на столе кассира (`extensions/cashier`), оплату кассир подтверждает в реестре платежей того же стола. **Авансы** кооператива — на столе кассира; пайщик отчитывается по своему авансу в личных «Платежах» (`/:coopname/user/payments`, `ReportExpenseAdvancePanel`), туда же ведут ссылки напоминателя об авансах.
+4. **`ExpenseProposalCreateDialog`** — `<BaseDialog>` + `<BaseForm>` с массивом items, добавление/удаление item'ов через `<BaseButton>`. Per-item — `<BaseRadioCard>` для recipient_type {SELF/MEMBER/ORG}, `<BaseSelect>` для mechanics {ADVANCE/DIRECT}, `<AmountInput>` для сумм, `<RequisitesPicker>` (новый компонент в `shared/ui/domain/`) для ADVANCE-получателя.
 
 ## Ссылки
 

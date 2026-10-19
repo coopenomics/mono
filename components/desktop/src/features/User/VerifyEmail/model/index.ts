@@ -1,4 +1,5 @@
 import { computed, onScopeDispose, ref, type Ref } from 'vue';
+import type { Mutations, Zeus } from '@coopenomics/sdk';
 import { FailAlert } from 'src/shared/api';
 import { useSessionStore } from 'src/entities/Session';
 import { api } from '../api';
@@ -13,6 +14,8 @@ import { t } from 'src/shared/i18n';
  * а не забыть о нём навсегда.
  */
 export const verifyEmailOfferDismissed = ref(false);
+
+export type IRequestEmailVerificationInput = Mutations.Auth.RequestEmailVerification.IInput['data'];
 
 /** Длина кода подтверждения — как в письме. */
 export const EMAIL_CODE_LENGTH = 6;
@@ -66,7 +69,11 @@ function useResendCooldown() {
   return { cooldown, start, clear };
 }
 
-export function useEmailVerification(email: Ref<string>) {
+/**
+ * `purpose` говорит серверу, зачем код: в регистрации на зарегистрированный
+ * адрес письмо не уходит, и человек сразу получает отказ со ссылкой на вход.
+ */
+export function useEmailVerification(email: Ref<string>, purpose?: Zeus.EmailVerificationPurpose) {
   const sending = ref(false);
   const confirming = ref(false);
   const code = ref('');
@@ -81,7 +88,7 @@ export function useEmailVerification(email: Ref<string>) {
     sending.value = true;
     error.value = '';
     try {
-      const window = await api.requestCode(email.value);
+      const window = await api.requestCode({ email: email.value, purpose });
       sent.value = true;
       code.value = '';
       startCooldown(window.cooldown_seconds);

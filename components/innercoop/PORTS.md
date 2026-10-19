@@ -17,7 +17,7 @@
 
 | Порт | Контракт | Реализует | Потребители | Назначение |
 |---|---|---|---|---|
-| `ACCOUNT_PORT` | `IAccountPort` (4)<br><sub>core-ports/account.port.ts</sub> | `AccountInnercoopAdapter` | capital, cardcoop, chairman, chatcoop, ku, marketplace, participant, reports, soviet-robot | Учётные записи пайщиков кооператива: найти по имени, перечислить с пагинацией, получить человеческое имя для показа. |
+| `ACCOUNT_PORT` | `IAccountPort` (4)<br><sub>core-ports/account.port.ts</sub> | `AccountInnercoopAdapter` | capital, cardcoop, chairman, chatcoop, expenses, ku, marketplace, participant, reports, soviet-robot | Учётные записи пайщиков кооператива: найти по имени, перечислить с пагинацией, получить человеческое имя для показа. |
 | `ACCOUNTING_REGISTRY_PORT` | `IAccountingRegistryPort` (6)<br><sub>core-ports/accounting-registry.port.ts</sub> | `AccountingRegistryInnercoopAdapter` | reports | Реестры бухгалтерии и процессов для приложения, которое показывает их на своём столе. |
 | `AGREEMENT_CATALOG_PORT` | `IAgreementCatalogPort` (1)<br><sub>core-ports/agreement-catalog.port.ts</sub> | `AgreementCatalogInnercoopAdapter` | marketplace | Справочник оферт кооператива — что вообще предлагается подписать. |
 | `BRANCH_PORT` | `IBranchPort` (2)<br><sub>core-ports/branch.port.ts</sub> | `BranchInnercoopAdapter` | ku, marketplace | Кооперативные участки — территориальные подразделения кооператива. |
@@ -48,7 +48,7 @@
 | `ONBOARDING_STEP_REGISTRY_PORT` | `IOnboardingStepRegistryPort` (2)<br><sub>core-ports/onboarding.port.ts</sub> | `OnboardingStepsRegistryService` | capital, chairman, edubridge, marketplace | Подключение расширения к кооперативу — шаги, которые совет проходит один раз, прежде чем расширением можно пользоваться. |
 | `ORGANIZATION_PORT` | `IOrganizationPort` (2)<br><sub>core-ports/party-card.port.ts</sub> | `OrganizationInnercoopAdapter` | cardcoop, ku, marketplace, qrpay, reports, sberpoll | Карточки сторон — реквизиты организации и данные физического лица. |
 | `INDIVIDUAL_PORT` | `IOrganizationPort` (2)<br><sub>core-ports/party-card.port.ts</sub> | `IndividualInnercoopAdapter` | cardcoop, ku, reports | Карточки сторон — реквизиты организации и данные физического лица. |
-| `PAYMENT_DESK_PORT` | `IPaymentDeskPort` (3)<br><sub>core-ports/payment-desk.port.ts</sub> | `PaymentDeskInnercoopAdapter` | marketplace, reports | Кассирский стол — операции над платежом, а не записи о нём. |
+| `PAYMENT_DESK_PORT` | `IPaymentDeskPort` (4)<br><sub>core-ports/payment-desk.port.ts</sub> | `PaymentDeskInnercoopAdapter` | marketplace, reports | Кассирский стол — операции над платежом, а не записи о нём. |
 | `PAYMENT_METHOD_PORT` | `IPaymentMethodPort` (4)<br><sub>core-ports/payment-method.port.ts</sub> | `PaymentMethodInnercoopAdapter` | expenses, ku, marketplace, qrpay, sberpoll | Платёжные методы пайщика — куда кооперативу отправлять деньги. |
 | `PAYMENT_PROVIDER_REGISTRY_PORT` | `IPaymentProviderRegistryPort` (2)<br><sub>core-ports/payment-provider.port.ts</sub> | `PaymentProviderRegistryInnercoopAdapter` | qrpay, yookassa | Реестр способов оплаты. |
 | `PAYMENT_POLLING_STATE_PORT` | `IPaymentProviderRegistryPort` (2)<br><sub>core-ports/payment-provider.port.ts</sub> | `PaymentPollingStateInnercoopAdapter` | sberpoll | Реестр способов оплаты. |

@@ -19,15 +19,26 @@ title: Подтверждение электронной почты кодом �
 # новым шагом — номера шагов лежат в persist'е стора у всех, кто сейчас в пути.
 # И создание учётной записи при отсутствии отметки НЕ блокируется: иначе пайщик
 # со старой вкладкой упёрся бы в отказ на последнем шаге.
+#
+# 15.10.2026 (C28-91): пайщик пытался зарегистрироваться повторно на свой же
+# адрес. Проверка «адрес занят» на шаге ввода почты была заглушкой, код уходил,
+# а отказ ждал его только на шаге пароля, после анкеты. Решение владельца:
+# занятость адреса проверяется при вводе, и код регистрации на занятый адрес
+# сервер не отправляет. Занятым считается адрес учётной записи дальше
+# начального статуса — так же решает создание аккаунта.
 
 sources:
   backend:
     - components/controller/src/application/auth/email-verification/**
     - components/controller/src/infrastructure/auth-v2/redis-email-verification.store.ts
     - components/controller/src/domain/auth-v2/ports/email-verification-store.port.ts
+    - components/controller/src/application/auth/dto/email-verification.dto.ts
+    - components/controller/src/domain/user/entities/user-domain.entity*.ts
+    - components/controller/src/domain/user/services/user-domain.service.ts
   ui:
     - components/desktop/src/features/User/VerifyEmail/**
     - components/desktop/src/pages/Registrator/SignUp/EmailInput.vue
+    - components/desktop/src/features/User/CreateUser/api/index.ts
 
 cases:
   - id: cid.ev.happy.01
@@ -159,3 +170,90 @@ cases:
       аккаунт остаётся с неподтверждённой почтой и подтверждает её из кабинета
     test: null
     status: missing
+
+  - id: cid.ev.side.06
+    level: backend
+    kind: side
+    scenario: код для регистрации просят на адрес, за которым уже есть учётная запись
+    expect: >
+      отказ «адрес уже зарегистрирован — войдите или восстановите доступ»,
+      письмо не уходит, состояние кода не создаётся
+    test: components/controller/src/application/auth/email-verification/email-verification.service.spec.ts
+    api: components/api-tests/src/coopid/email-verification.test.ts
+    status: passing
+
+  - id: cid.ev.side.07
+    level: backend
+    kind: side
+    scenario: пайщик подтверждает свой адрес из кабинета
+    expect: код уходит владельцу учётной записи, занятость адреса не спрашивается
+    test: components/controller/src/application/auth/email-verification/email-verification.service.spec.ts
+    api: components/api-tests/src/coopid/email-verification.test.ts
+    status: passing
+
+  - id: cid.ev.side.08
+    level: backend
+    kind: side
+    scenario: шаг ввода почты спрашивает, зарегистрирован ли адрес
+    expect: >
+      зарегистрированный адрес — «да» (регистр букв не важен), незнакомый — «нет»;
+      проверки с одного IP считаются отдельно от писем, запас 120 в час
+    test: components/controller/src/application/auth/email-verification/email-verification.service.spec.ts
+    api: components/api-tests/src/coopid/email-verification.test.ts
+    status: passing
+
+  - id: cid.ev.side.09
+    level: backend
+    kind: side
+    scenario: адрес незавершённой регистрации (учётная запись в начальном статусе)
+    expect: >
+      адрес считается свободным, код регистрации уходит — регистрацию можно
+      начать заново, как и раньше при создании аккаунта
+    test: components/controller/src/domain/user/entities/user-domain.entity.spec.ts
+    api: components/api-tests/src/coopid/email-verification.test.ts
+    status: passing
+
+  - id: cid.ev.break.06
+    level: backend
+    kind: break
+    scenario: перебор адресов с одного IP через проверку занятости
+    expect: после 120 проверок за час отказ до обращения к базе
+    test: components/controller/src/application/auth/email-verification/email-verification.service.spec.ts
+    status: passing
+
+  - id: cid.ev.side.10
+    level: ui
+    kind: side
+    scenario: человек вводит на шаге регистрации адрес, который уже зарегистрирован
+    expect: >
+      под полем сразу «адрес уже зарегистрирован»; «Продолжить» остаётся на месте
+      неактивной, ниже — «Войти» и «Восстановить доступ» (кнопка не подменяется под
+      курсором); письмо с кодом не запрашивается
+    test: null
+    status: missing
+
+  - id: cid.ev.break.07
+    level: ui
+    kind: break
+    scenario: >
+      человек нажимает «Продолжить» или Enter до ответа проверки адреса; во время
+      проверки приходит ещё одно событие ввода (автозаполнение шлёт их по два)
+    expect: >
+      «Продолжить» неактивна, пока сервер не ответил «свободен» именно для адреса в
+      поле; на шаг кода занятый адрес не проходит; спиннер на кнопке — только если
+      проверка дольше 400 мс
+    test: null
+    status: missing   # продакшен 17.10.2026; сценарий harness не заведён
+
+  - id: cid.ev.side.11
+    level: ui
+    kind: side
+    scenario: >
+      поле почты заполнено при открытии шага — сохранённым адресом или
+      автозаполнением браузера, в том числе когда адрес когда-то был подтверждён
+    expect: >
+      проверка занятости идёт сразу при открытии и по автозаполнению (change,
+      уход фокуса, анимация :-webkit-autofill); собственная созданная учётка
+      занятой не считается
+    test: null
+    status: missing   # продакшен 17.10.2026; сценарий harness не заведён

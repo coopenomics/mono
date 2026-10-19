@@ -358,11 +358,11 @@ describe('права страниц столов ядра', () => {
     }
   });
 
-  it('права ядра регистрируются для столов совета, председателя и пайщика', () => {
+  it('права ядра регистрируются для столов совета, председателя, пайщика и кассира', () => {
     const { rights, registry } = makeGuard();
     rights.onModuleInit();
     const desks = registry.register.mock.calls.map(([provider]) => provider.extensionName).sort();
-    expect(desks).toEqual(['chairman', 'participant', 'soviet']);
+    expect(desks).toEqual(['cashier', 'chairman', 'participant', 'soviet']);
   });
 
   // core.acc.happy.07

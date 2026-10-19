@@ -14,9 +14,12 @@ import { useDesktopStore } from 'src/entities/Desktop';
 const route = useRoute();
 const routeUsername = computed(() => (route.params.username as string) || undefined);
 
-// Подтверждают оплату председатель и кассир; совет реестр читает.
+// Подтверждают оплату председатель и кассир; совет реестр читает. Реестр
+// стоит на столе совета и на столе кассира — право берётся у того стола,
+// на котором открыта страница.
 const desktop = useDesktopStore();
-const canConfirm = computed(() => desktop.hasGrant('soviet', 'Payment:confirm'));
+const workspace = computed(() => desktop.workspaceNameFromRoute(route.matched.map((record) => record.name)) ?? 'soviet');
+const canConfirm = computed(() => desktop.hasGrant(workspace.value, 'Payment:confirm'));
 </script>
 
 <style lang="scss" scoped>

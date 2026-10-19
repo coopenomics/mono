@@ -30,11 +30,10 @@ import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useLiveReload } from 'src/shared/lib/realtime';
 import { CAPITAL_LIVE_TABLES } from 'app/extensions/capital/shared/lib/live';
 import { useRoute, useRouter } from 'vue-router';
-import { Zeus } from '@coopenomics/sdk';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useSystemStore } from 'src/entities/System/model';
-import { useSessionStore } from 'src/entities/Session';
 import { useDesktopStore } from 'src/entities/Desktop';
+import { useMayCloseExpense } from 'src/entities/ExpenseProposal';
 import { BaseButton } from 'src/shared/ui/base/BaseButton';
 import { ExpenseProposalDetails } from 'src/shared/ui/domain/ExpenseProposalDetails';
 import { api } from 'app/extensions/capital/entities/ProgramExpense/api';
@@ -44,7 +43,6 @@ import { t } from '../../i18n';
 const route = useRoute();
 const router = useRouter();
 const system = useSystemStore();
-const session = useSessionStore();
 const desktopStore = useDesktopStore();
 const store = useProgramExpenseStore();
 
@@ -84,8 +82,9 @@ watch(
 );
 onUnmounted(() => desktopStore.clearPageTitleOverride());
 
-// Закрытие расхода — финальное действие совета по поданному СЗ-отчёту.
-const canClose = (status: Zeus.ExpenseProposalStatus) => status === Zeus.ExpenseProposalStatus.REPORT_SUBMITTED && (session.isChairman || session.isMember);
+// Закрытие расхода по поданному отчёту — у председателя и кассира (право
+// таблицы прав расходов); совет расход читает.
+const canClose = useMayCloseExpense();
 
 const closing = ref(false);
 async function closeExpense(): Promise<void> {
