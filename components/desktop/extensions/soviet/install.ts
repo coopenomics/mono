@@ -209,15 +209,18 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             },
           },
           {
+            // Карточка кооператива: сюда ведёт строка реестра. В меню её нет,
+            // подсветку раздела «Реестр кооперативов» держит menuKey.
             path: 'union/cooperatives/:detailCoopname',
             name: 'union-cooperative-detail',
             component: markRaw(UnionPageCooperativeDetail),
             meta: {
               title: i18nT('soviet.install.cooperativeDetailTitle'),
-              icon: 'fa-solid fa-handshake',
               requires: 'Union:read',
               conditions: 'coopname === "voskhod"',
               requiresAuth: true,
+              hidden: true,
+              menuKey: 'union-cooperatives',
             },
           },
         ],
