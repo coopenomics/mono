@@ -13,9 +13,11 @@
   //- остальное на этой странице вторично.
   BillingDueCard
 
-  DomainCard
+  //- Ключ установки — выше домена: без него платформа кооператива не
+  //- пройдёт мастер установки, а экран завершения человек видит один раз.
+  PlatformKeyCard(:site-url="siteUrl")
 
-  PlatformKeyCard
+  DomainCard
 
   .conn-dash__wallets.row.q-col-gutter-md
     .col-12.col-md-6
@@ -41,10 +43,18 @@ import { computed } from 'vue'
 import { PageHint } from 'src/shared/ui/domain'
 import { PaymentsHistory } from 'src/widgets/Billing/PaymentsHistory'
 import { useSystemStore } from 'src/entities/System/model'
+import { useCooperativeStore } from 'src/entities/Cooperative'
 import { AxonWallet, MembershipWallet, DomainCard, SubscriptionsCard, BillingDueCard, PlatformKeyCard } from './index'
 
 const { info } = useSystemStore()
 const coopname = computed(() => info.coopname || '')
+
+// Адрес кооператива грузит DomainCard из реестра сети; карточка ключа ведёт туда.
+const coop = useCooperativeStore()
+const siteUrl = computed(() => {
+  const announce = coop.publicCooperativeData?.announce
+  return announce ? `https://${announce}` : undefined
+})
 </script>
 
 <style scoped>

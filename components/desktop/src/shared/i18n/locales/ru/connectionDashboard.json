@@ -55,6 +55,7 @@
     "platformKeyCard": {
       "cancel": "Отменить",
       "confirmReissue": "Выпустить и заменить",
+      "goToSite": "Перейти на сайт кооператива",
       "issue": "Выпустить ключ установки",
       "issueError": "Не удалось выпустить ключ: {errorMessage}",
       "issuedAt": "Ключ выпущен {date}.",

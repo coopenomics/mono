@@ -5,6 +5,9 @@ BaseCard(:title="$t('connectionDashboard.platformKeyCard.title')" :subtitle="$t(
   template(v-if="issued")
     BaseBanner(variant="warn").q-mb-md {{ $t('connectionDashboard.platformKeyCard.saveWarning') }}
     DataRow(:label="$t('connectionDashboard.platformKeyCard.keyLabel')" :value="issued.privateKey" mono copyable)
+    BaseButton.q-mt-md(v-if="siteUrl" variant="primary" size="sm" type="button" @click="openSite")
+      | {{ $t('connectionDashboard.platformKeyCard.goToSite') }}
+      q-icon(name="open_in_new" size="14px").q-ml-xs
   template(v-else-if="record")
     p.t-sm.t-muted.q-mb-md {{ $t('connectionDashboard.platformKeyCard.issuedAt', { date: issuedAt }) }}
     //- Перевыпуск останавливает платформу кооператива до ввода нового ключа —
@@ -16,8 +19,12 @@ BaseCard(:title="$t('connectionDashboard.platformKeyCard.title')" :subtitle="$t(
           | {{ $t('connectionDashboard.platformKeyCard.confirmReissue') }}
         BaseButton(variant="ghost" size="sm" type="button" :disabled="isIssuing" @click="confirming = false")
           | {{ $t('connectionDashboard.platformKeyCard.cancel') }}
-    BaseButton(v-else variant="secondary" size="sm" type="button" @click="confirming = true")
-      | {{ $t('connectionDashboard.platformKeyCard.reissue') }}
+    .platform-key__actions(v-else)
+      BaseButton(v-if="siteUrl" variant="primary" size="sm" type="button" @click="openSite")
+        | {{ $t('connectionDashboard.platformKeyCard.goToSite') }}
+        q-icon(name="open_in_new" size="14px").q-ml-xs
+      BaseButton(variant="secondary" size="sm" type="button" @click="confirming = true")
+        | {{ $t('connectionDashboard.platformKeyCard.reissue') }}
   BaseButton(
     v-else
     variant="primary"
@@ -44,6 +51,12 @@ import {
 } from 'src/features/Cooperative/IssuePlatformKey'
 import { t } from 'src/shared/i18n'
 
+// Адрес сайта кооператива: на панели управления карточка ведёт туда, где
+// мастер установки спросит ключ. На экране завершения переход — отдельным шагом.
+const props = defineProps<{ siteUrl?: string }>()
+// Есть ли действующий ключ — экран завершения открывает по нему следующие шаги.
+const emit = defineEmits<{ state: [hasKey: boolean] }>()
+
 const session = useSessionStore()
 const { loadPlatformKey, issuePlatformKey } = useIssuePlatformKey()
 
@@ -56,6 +69,11 @@ const issuedAt = computed(() => (record.value ? moment.utc(record.value.issued_a
 
 const load = async () => {
   record.value = await loadPlatformKey(session.username)
+  emit('state', !!record.value || !!issued.value)
+}
+
+const openSite = () => {
+  if (props.siteUrl) window.open(props.siteUrl, '_blank')
 }
 
 onMounted(load)
