@@ -131,9 +131,9 @@ const init = async () => {
     return;
   }
 
-  // Запускаем автообновление инстанса каждые 30 секунд (включает начальную загрузку)
+  // Автообновление инстанса каждые 10 секунд (включает начальную загрузку): на шаге установки проценты не должны отставать от провайдера
   // Ждем завершения первой загрузки, чтобы корректно определить состояние isBadGateway
-  await connectionAgreement.startInstanceAutoRefresh(30000).then((stop) => {
+  await connectionAgreement.startInstanceAutoRefresh(10000).then((stop) => {
     stopInstanceRefresh = stop;
   });
 

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useConnectionAgreementStore } from 'src/entities/ConnectionAgreement'
 import StepFrame from '../ui/StepFrame.vue'
 import { t } from 'src/shared/i18n';
@@ -15,14 +15,37 @@ const instance = computed(() => connectionAgreement.currentInstance)
 const PLAYBOOK_FROM = 30
 const PLAYBOOK_TO = 85
 
+// Вехи провайдера по порядку. Между соседними вехами, кроме плейбука, провайдер
+// молчит минутами (аренда сервера, загрузка ОС), и полоса стояла бы на месте.
+// Поэтому там она медленно ползёт к следующей вехе и замирает за процент до
+// неё: следующую веху всё равно показывает только провайдер.
+const MILESTONES = [0, 10, 20, 30, 85, 90, 95, 100]
+const CREEP_TAU_MS = 90_000
+
+const milestone = computed(() => Math.max(0, Math.min(100, instance.value?.progress || 0)))
+
+const now = ref(Date.now())
+const milestoneSince = ref(Date.now())
+watch(milestone, () => { milestoneSince.value = Date.now() })
+const ticker = setInterval(() => { now.value = Date.now() }, 2_000)
+onBeforeUnmount(() => clearInterval(ticker))
+
+const creep = (from: number) => {
+  const next = MILESTONES.find((m) => m > from)
+  if (next === undefined || next - from <= 1) return from
+  const share = 1 - Math.exp(-(now.value - milestoneSince.value) / CREEP_TAU_MS)
+  return Math.min(next - 1, from + Math.floor((next - 1 - from) * share))
+}
+
 const progress = computed(() => {
-  const milestone = Math.max(0, Math.min(100, instance.value?.progress || 0))
   const step = instance.value?.playbook_step ?? 0
   const total = instance.value?.playbook_total_steps ?? 0
-  if (milestone < PLAYBOOK_FROM || milestone >= PLAYBOOK_TO || step <= 0 || total <= 0) return milestone
+  const inPlaybook = milestone.value >= PLAYBOOK_FROM && milestone.value < PLAYBOOK_TO
+  if (!inPlaybook) return creep(milestone.value)
+  if (step <= 0 || total <= 0) return milestone.value
   const share = Math.min(step / total, 1)
   const withinPlaybook = Math.floor(PLAYBOOK_FROM + (PLAYBOOK_TO - PLAYBOOK_FROM) * share)
-  return Math.max(milestone, Math.min(withinPlaybook, PLAYBOOK_TO - 1))
+  return Math.max(milestone.value, Math.min(withinPlaybook, PLAYBOOK_TO - 1))
 })
 
 /**
