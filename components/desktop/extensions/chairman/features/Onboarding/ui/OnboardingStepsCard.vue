@@ -38,7 +38,7 @@ OnboardingCompletionCelebration(
           .step__sublabel {{ step.description }}
           .step__meta(v-if="!step.done && step.pending")
             q-icon(name="fa-solid fa-hourglass-half" size="12px")
-            span {{ getPendingText(step) }}
+            span {{ getPendingText() }}
 
           .step__action(v-if="showAction(index)")
             BaseButton(
@@ -52,32 +52,28 @@ OnboardingCompletionCelebration(
                 q-icon(name="fa-solid fa-bullhorn" size="14px")
               | {{ $t('chairman.onboardingStepsCard.announceCouncilMeeting') }}
 
-            BaseButton(
-              v-else-if="step.type === 'import'"
-              variant="primary"
-              size="sm"
-              :disabled="loadingAction || isActionDisabled(index)"
-              @click="importDialog = true"
-            )
-              template(#icon-left)
-                q-icon(name="fa-solid fa-file-arrow-up" size="14px")
-              | {{ $t('chairman.onboardingStepsCard.importMembersLabel') }}
-              q-tooltip(
-                v-if="isActionDisabled(index)"
-                anchor="top middle"
-                self="bottom middle"
-              ) {{ $t('chairman.onboardingStepsCard.pendingCouncilHint') }}
-
-            BaseButton(
-              v-else-if="step.type === 'meet'"
-              variant="primary"
-              size="sm"
-              :disabled="loadingAction || isActionDisabled(index)"
-              @click="openMeetDialog"
-            )
-              template(#icon-left)
-                q-icon(name="fa-solid fa-users" size="14px")
-              | {{ $t('chairman.onboardingStepsCard.announceGeneralMeeting') }}
+            //- Последний шаг: импорт пайщиков по желанию и завершение онбординга.
+            //- Завершает председатель сам — пункт «Онбординг» уходит из меню.
+            .step__actions(v-else-if="step.type === 'import'")
+              BaseButton(
+                variant="secondary"
+                size="sm"
+                :disabled="loadingAction || isActionDisabled(index)"
+                @click="importDialog = true"
+              )
+                template(#icon-left)
+                  q-icon(name="fa-solid fa-file-arrow-up" size="14px")
+                | {{ $t('chairman.onboardingStepsCard.importMembersLabel') }}
+              BaseButton(
+                variant="primary"
+                size="sm"
+                :loading="loadingAction"
+                :disabled="isActionDisabled(index)"
+                @click="completeOnboarding"
+              )
+                template(#icon-left)
+                  q-icon(name="fa-solid fa-flag-checkered" size="14px")
+                | {{ $t('chairman.onboardingStepsCard.completeOnboardingLabel') }}
               q-tooltip(
                 v-if="isActionDisabled(index)"
                 anchor="top middle"
@@ -121,14 +117,6 @@ OnboardingCompletionCelebration(
           q-icon(name="fa-solid fa-bullhorn" size="15px")
         | {{ $t('chairman.onboardingStepsCard.announceSubmitLabel') }}
 
-  CreateMeetForm(
-    v-model="meetDialog"
-    :loading="loadingAction"
-    :is-chairman="true"
-    :preset="meetPreset"
-    @create="handleCreateMeet"
-  )
-
   ParticipantsImportDialog(v-model="importDialog")
 </template>
 
@@ -136,8 +124,6 @@ OnboardingCompletionCelebration(
 import { onMounted, ref } from 'vue';
 import { SovietContract } from 'cooptypes';
 import { liveTable, useLiveReload } from 'src/shared/lib/realtime';
-import { MEET_LIVE_TABLES } from 'src/entities/Meet';
-import { CreateMeetForm } from 'src/features/Meet/CreateMeet/ui';
 import { ParticipantsImportDialog } from 'src/features/User/ImportParticipants/ui';
 import { DocumentHtmlReader } from 'src/shared/ui/DocumentHtmlReader';
 import { WindowLoader } from 'src/shared/ui/Loader';
@@ -153,16 +139,13 @@ const {
   isOnboardingCompleted,
   loadingAction,
   loadingState,
-  meetDialog,
-  meetPreset,
   agendaDialog,
   init,
   loadState,
   openAgendaDialog,
   closeAgendaDialog,
   submitAgenda,
-  openMeetDialog,
-  handleCreateMeet,
+  completeOnboarding,
 } = useOnboardingFlow();
 
 const importDialog = ref(false);
@@ -174,18 +157,15 @@ const onAgendaDialogToggle = (open: boolean) => {
   if (!open) closeAgendaDialog();
 };
 
-const getPendingText = (step: { type: string }) => {
-  if (step.type === 'meet') return t('chairman.onboardingStepsCard.awaitingGeneralMeetingText');
-  return t('chairman.onboardingStepsCard.awaitingCouncilText');
-};
+const getPendingText = () => t('chairman.onboardingStepsCard.awaitingCouncilText');
 
 const isPrevStarted = (index: number) => {
   if (index === 0) return true;
   const prev = steps.value[index - 1];
   if (!prev) return true;
 
-  // Для шагов импорта и общего собрания проверяем завершение 6-го шага (voskhod_membership)
-  if (steps.value[index]?.type === 'import' || steps.value[index]?.type === 'meet') {
+  // Шаг импорта открывается, когда 6-й шаг (вступление в ПК «Восход») начат.
+  if (steps.value[index]?.type === 'import') {
     const voskhodStep = steps.value[5]; // 6-й шаг (индекс 5)
     return voskhodStep?.done || voskhodStep?.pending;
   }
@@ -204,8 +184,8 @@ const isActionDisabled = (index: number) => {
   const step = steps.value[index];
   if (!step || step.done || step.pending) return false;
 
-  // Для шагов импорта и общего собрания проверяем, что все agenda шаги выполнены
-  if (step.type === 'import' || step.type === 'meet') {
+  // Импорт и завершение — когда все решения совета приняты.
+  if (step.type === 'import') {
     const agendaSteps = steps.value.slice(0, 6); // Первые 6 шагов - agenda шаги
     return !agendaSteps.every(step => step.done);
   }
@@ -227,13 +207,12 @@ const stepClass = (index: number) => {
 onMounted(init);
 
 // Шаги запуска кооператива живут по ленте: решение совета по повестке,
-// созыв собрания, принятые пайщики и переменные кооператива закрывают шаг
+// принятые пайщики и переменные кооператива закрывают шаг
 // без перезагрузки.
 useLiveReload(
   [
     liveTable(SovietContract, SovietContract.Tables.Decisions),
     liveTable(SovietContract, SovietContract.Tables.Participants),
-    ...MEET_LIVE_TABLES,
     { code: 'core', table: 'settings' },
   ],
   loadState,
@@ -270,6 +249,11 @@ useLiveReload(
 // Действие шага — без обрамляющей рамки, просто отступ сверху.
 .step__action {
   margin-top: var(--p-3, 12px);
+}
+.step__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--p-2);
 }
 // Срок адаптации — спокойная плашка-предупреждение, отсчёт виден сразу.
 .onboarding__deadline {

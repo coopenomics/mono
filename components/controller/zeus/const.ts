@@ -8006,6 +8006,7 @@ export const ReturnTypes: Record<string,any> = {
 		completeCapitalOnboardingStep:"CapitalOnboardingState",
 		completeChairmanAgendaStep:"ChairmanOnboardingState",
 		completeChairmanGeneralMeetStep:"ChairmanOnboardingState",
+		completeCooperativeOnboarding:"Settings",
 		completeExtensionOnboardingStep:"ExtensionOnboardingState",
 		confirmAgreement:"Transaction",
 		confirmEmailVerification:"Boolean",
@@ -9584,6 +9585,7 @@ export const ReturnTypes: Record<string,any> = {
 		is_registration_open:"Boolean",
 		non_authorized_default_route:"String",
 		non_authorized_default_workspace:"String",
+		onboarding_completed_at:"DateTime",
 		provider_name:"String",
 		updated_at:"DateTime"
 	},

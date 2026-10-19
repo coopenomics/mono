@@ -13848,6 +13848,8 @@ chatcoopUpdateTranscriptionMemo?: [{	data: ValueTypes["UpdateCallTranscriptionMe
 completeCapitalOnboardingStep?: [{	data: ValueTypes["CapitalOnboardingStepInput"] | Variable<any, string>},ValueTypes["CapitalOnboardingState"]],
 completeChairmanAgendaStep?: [{	data: ValueTypes["ChairmanOnboardingAgendaInput"] | Variable<any, string>},ValueTypes["ChairmanOnboardingState"]],
 completeChairmanGeneralMeetStep?: [{	data: ValueTypes["ChairmanOnboardingGeneralMeetInput"] | Variable<any, string>},ValueTypes["ChairmanOnboardingState"]],
+	/** Завершить онбординг кооператива: пункт «Онбординг» уходит из меню председателя */
+	completeCooperativeOnboarding?:ValueTypes["Settings"],
 completeExtensionOnboardingStep?: [{	data: ValueTypes["CompleteExtensionOnboardingStepInput"] | Variable<any, string>},ValueTypes["ExtensionOnboardingState"]],
 confirmAgreement?: [{	data: ValueTypes["ConfirmAgreementInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 confirmEmailVerification?: [{	data: ValueTypes["ConfirmEmailVerificationInputDTO"] | Variable<any, string>},boolean | `@${string}`],
@@ -17538,6 +17540,8 @@ verificationReviews?: [{	data?: ValueTypes["VerificationReviewsInput"] | undefin
 	non_authorized_default_route?:boolean | `@${string}`,
 	/** Рабочий стол по умолчанию для неавторизованных пользователей */
 	non_authorized_default_workspace?:boolean | `@${string}`,
+	/** Когда председатель завершил онбординг кооператива */
+	onboarding_completed_at?:boolean | `@${string}`,
 	/** Имя провайдера платежей по умолчанию */
 	provider_name?:boolean | `@${string}`,
 	/** Дата последнего обновления */
@@ -31060,6 +31064,8 @@ chatcoopUpdateTranscriptionMemo?: [{	data: ResolverInputTypes["UpdateCallTranscr
 completeCapitalOnboardingStep?: [{	data: ResolverInputTypes["CapitalOnboardingStepInput"]},ResolverInputTypes["CapitalOnboardingState"]],
 completeChairmanAgendaStep?: [{	data: ResolverInputTypes["ChairmanOnboardingAgendaInput"]},ResolverInputTypes["ChairmanOnboardingState"]],
 completeChairmanGeneralMeetStep?: [{	data: ResolverInputTypes["ChairmanOnboardingGeneralMeetInput"]},ResolverInputTypes["ChairmanOnboardingState"]],
+	/** Завершить онбординг кооператива: пункт «Онбординг» уходит из меню председателя */
+	completeCooperativeOnboarding?:ResolverInputTypes["Settings"],
 completeExtensionOnboardingStep?: [{	data: ResolverInputTypes["CompleteExtensionOnboardingStepInput"]},ResolverInputTypes["ExtensionOnboardingState"]],
 confirmAgreement?: [{	data: ResolverInputTypes["ConfirmAgreementInput"]},ResolverInputTypes["Transaction"]],
 confirmEmailVerification?: [{	data: ResolverInputTypes["ConfirmEmailVerificationInputDTO"]},boolean | `@${string}`],
@@ -34621,6 +34627,8 @@ verificationReviews?: [{	data?: ResolverInputTypes["VerificationReviewsInput"] |
 	non_authorized_default_route?:boolean | `@${string}`,
 	/** Рабочий стол по умолчанию для неавторизованных пользователей */
 	non_authorized_default_workspace?:boolean | `@${string}`,
+	/** Когда председатель завершил онбординг кооператива */
+	onboarding_completed_at?:boolean | `@${string}`,
 	/** Имя провайдера платежей по умолчанию */
 	provider_name?:boolean | `@${string}`,
 	/** Дата последнего обновления */
@@ -47780,6 +47788,8 @@ export type ModelTypes = {
 	completeChairmanAgendaStep: ModelTypes["ChairmanOnboardingState"],
 	/** Выполнить шаг онбординга по созданию общего собрания (сохранить hash повестки) */
 	completeChairmanGeneralMeetStep: ModelTypes["ChairmanOnboardingState"],
+	/** Завершить онбординг кооператива: пункт «Онбординг» уходит из меню председателя */
+	completeCooperativeOnboarding: ModelTypes["Settings"],
 	/** Выполнить шаг онбординга кооператива на расширение (решение совета или общее собрание) */
 	completeExtensionOnboardingStep: ModelTypes["ExtensionOnboardingState"],
 	/** Подтвердить соглашение пайщика администратором */
@@ -51677,6 +51687,8 @@ export type ModelTypes = {
 	non_authorized_default_route: string,
 	/** Рабочий стол по умолчанию для неавторизованных пользователей */
 	non_authorized_default_workspace: string,
+	/** Когда председатель завершил онбординг кооператива */
+	onboarding_completed_at?: ModelTypes["DateTime"] | undefined | null,
 	/** Имя провайдера платежей по умолчанию */
 	provider_name: string,
 	/** Дата последнего обновления */
@@ -65598,6 +65610,8 @@ export type GraphQLTypes = {
 	completeChairmanAgendaStep: GraphQLTypes["ChairmanOnboardingState"],
 	/** Выполнить шаг онбординга по созданию общего собрания (сохранить hash повестки) */
 	completeChairmanGeneralMeetStep: GraphQLTypes["ChairmanOnboardingState"],
+	/** Завершить онбординг кооператива: пункт «Онбординг» уходит из меню председателя */
+	completeCooperativeOnboarding: GraphQLTypes["Settings"],
 	/** Выполнить шаг онбординга кооператива на расширение (решение совета или общее собрание) */
 	completeExtensionOnboardingStep: GraphQLTypes["ExtensionOnboardingState"],
 	/** Подтвердить соглашение пайщика администратором */
@@ -69794,6 +69808,8 @@ export type GraphQLTypes = {
 	non_authorized_default_route: string,
 	/** Рабочий стол по умолчанию для неавторизованных пользователей */
 	non_authorized_default_workspace: string,
+	/** Когда председатель завершил онбординг кооператива */
+	onboarding_completed_at?: GraphQLTypes["DateTime"] | undefined | null,
 	/** Имя провайдера платежей по умолчанию */
 	provider_name: string,
 	/** Дата последнего обновления */

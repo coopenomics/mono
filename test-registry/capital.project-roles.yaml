@@ -79,3 +79,12 @@ cases:
     test: components/controller/tests/unit/capital/capital-rights.test.ts
     api: components/api-tests/src/rights/matrix.test.ts
     status: written
+
+  # 19.10.2026: предел сборки документов — 60 в минуту на пайщика (общая
+  # константа DOCUMENT_GENERATION_THROTTLE), было 3: совет упирался в «Слишком часто».
+  - id: cap.roles.side.05
+    level: backend
+    kind: side
+    scenario: пайщик или совет подряд собирают документы этого процесса
+    expect: до 60 сборок в минуту на пайщика проходят, сверх — отказ GRAPHQL_RATE_LIMITED
+    status: missing

@@ -188,9 +188,9 @@ const filterContext = computed(() => {
     isCoop: Boolean(isCoop),
     userRole: userRole.value,
     coopname: system.info.coopname,
-    isOnboardingHidden:
-      typeof localStorage !== 'undefined' &&
-      localStorage.getItem('chairman-onboarding-hidden') === 'true',
+    // Онбординг завершает председатель — отметка в настройках кооператива,
+    // одна на все устройства (до 19.10.2026 жила в localStorage браузера).
+    isOnboardingHidden: !!system.info.settings?.onboarding_completed_at,
   };
 });
 

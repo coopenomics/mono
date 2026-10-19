@@ -26,6 +26,11 @@ export class SettingsKyselyRepository implements SettingsRepository {
       authorized_default_route: settings.authorized_default_route,
       non_authorized_default_workspace: settings.non_authorized_default_workspace,
       non_authorized_default_route: settings.non_authorized_default_route,
+      // Отметку пишем, только если она передана: настройки создаются и
+      // переписываются и без неё, и молча обнулять завершённый онбординг нельзя.
+      ...(settings.onboarding_completed_at !== undefined
+        ? { onboarding_completed_at: settings.onboarding_completed_at }
+        : {}),
     };
     const row = await this.db
       .insertInto('settings')
@@ -53,6 +58,7 @@ export class SettingsKyselyRepository implements SettingsRepository {
       authorized_default_route: row.authorized_default_route,
       non_authorized_default_workspace: row.non_authorized_default_workspace,
       non_authorized_default_route: row.non_authorized_default_route,
+      onboarding_completed_at: row.onboarding_completed_at,
       created_at: row.created_at,
       updated_at: row.updated_at,
     });

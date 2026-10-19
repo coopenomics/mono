@@ -22,19 +22,16 @@ const completeAgendaStep = async (
   return state;
 };
 
-const completeGeneralMeetStep = async (
-  data: Mutations.Chairman.CompleteOnboardingGeneralMeetStep.IInput['data'],
-) => {
-  const {
-    [Mutations.Chairman.CompleteOnboardingGeneralMeetStep.name]: state,
-  } = await client.Mutation(Mutations.Chairman.CompleteOnboardingGeneralMeetStep.mutation, {
-    variables: { data },
-  });
-  return state;
+/** Председатель завершает онбординг: отметка в настройках кооператива. */
+const completeOnboarding = async () => {
+  const { [Mutations.System.CompleteCooperativeOnboarding.name]: settings } = await client.Mutation(
+    Mutations.System.CompleteCooperativeOnboarding.mutation,
+  );
+  return settings;
 };
 
 export const api = {
   loadOnboardingState,
   completeAgendaStep,
-  completeGeneralMeetStep,
+  completeOnboarding,
 };

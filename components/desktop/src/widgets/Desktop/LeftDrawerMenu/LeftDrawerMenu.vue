@@ -101,8 +101,8 @@ const filterContext = computed(() => {
     userRole: userRole.value,
     userAccount: acc,
     coopname: info.coopname,
-    isOnboardingHidden:
-      localStorage.getItem('chairman-onboarding-hidden') === 'true',
+    // Онбординг завершает председатель — отметка в настройках кооператива.
+    isOnboardingHidden: !!info.settings?.onboarding_completed_at,
   };
 });
 

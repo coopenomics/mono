@@ -1,6 +1,5 @@
 import { Mutations } from '@coopenomics/sdk';
 import { Cooperative } from 'cooptypes';
-import type { AgendaPointPreset, CreateMeetPreset } from 'src/features/Meet/CreateMeet/ui/types';
 import { renderTemplate } from './onboarding-templates';
 import { t } from '../../i18n';
 
@@ -281,28 +280,3 @@ export const buildAgendaStepPresets = (info: SystemInfoLite): Record<AgendaStepK
     },
   };
 };
-
-export const generalMeetStepPreset = {
-  title: t('chairman.onboardingPresets.generalMeet.title'),
-  description: t('chairman.onboardingPresets.generalMeet.description'),
-};
-
-const defaultGeneralMeetAgendaPoints: AgendaPointPreset[] = [
-  {
-    title:
-      // i18n-ignore: текст решения/вопроса повестки — дословно уходит в протокол решения совета на цепь, юридический документ
-      'О вступлении в члены Союза Потребительских Обществ «Русь» с оплатой вступительного взноса в размере 1500.00 RUB и годового членского взноса в размере 12000.00 RUB',
-    decision:
-      // i18n-ignore: текст решения/вопроса повестки — дословно уходит в протокол решения совета на цепь, юридический документ
-      'Утвердить предложение о вступлении в члены Союза Потребительских Обществ «Русь» с оплатой вступительного взноса в размере 1500.00 RUB и годового членского взноса в размере 12000.00 RUB. Поручить председателю совета осуществить соответствующие мероприятия.',
-    context: '',
-  },
-];
-
-export const buildGeneralMeetPreset = (username: string): CreateMeetPreset => ({
-  type: 'extra',
-  presider: username,
-  secretary: username,
-  initiator: username,
-  agenda_points: defaultGeneralMeetAgendaPoints.map((point) => ({ ...point })),
-});

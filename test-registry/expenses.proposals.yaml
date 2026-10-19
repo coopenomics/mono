@@ -384,3 +384,12 @@ cases:
 # 2026-10-05 (C28-81): файлы и классы хранилищ переименованы после ухода с TypeORM
 # (typeorm-repository → kysely-repository, typeorm-entity → record); частичная правка
 # полей собрана помощником pickDefined. Сценарии фичи и её проверки не менялись.
+
+  # 19.10.2026: предел сборки документов — 60 в минуту на пайщика (общая
+  # константа DOCUMENT_GENERATION_THROTTLE), было 3: совет упирался в «Слишком часто».
+  - id: exp.prop.side.16
+    level: backend
+    kind: side
+    scenario: пайщик или совет подряд собирают документы этого процесса
+    expect: до 60 сборок в минуту на пайщика проходят, сверх — отказ GRAPHQL_RATE_LIMITED
+    status: missing

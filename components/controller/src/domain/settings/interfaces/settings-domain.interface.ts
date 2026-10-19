@@ -39,6 +39,12 @@ export interface SettingsDomainInterface {
   non_authorized_default_route: string;
 
   /**
+   * Когда председатель завершил онбординг кооператива; пусто — не завершал.
+   * По отметке пункт «Онбординг» уходит из меню председателя.
+   */
+  onboarding_completed_at?: Date | null;
+
+  /**
    * Дата создания настроек
    */
   created_at: Date;

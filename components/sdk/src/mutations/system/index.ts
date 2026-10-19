@@ -1,3 +1,6 @@
+/** Завершить онбординг кооператива: пункт «Онбординг» уходит из меню председателя */
+export * as CompleteCooperativeOnboarding from './completeCooperativeOnboarding'
+
 /** Перейти на тариф сервера дороже: зачёт остатка + перенос (~час работ) */
 export * as ChangeProviderHostingPlan from './changeProviderHostingPlan'
 
