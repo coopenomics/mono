@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 import { BaseButton, BaseChip } from 'src/shared/ui/base'
 import { useConnectionAgreementStore, CONNECTION_STEP } from 'src/entities/ConnectionAgreement'
 import StepFrame from '../ui/StepFrame.vue'
+import WaitingIcon from '../ui/WaitingIcon.vue'
 
 const connectionAgreement = useConnectionAgreementStore()
 const instance = computed(() => connectionAgreement.currentInstance)
@@ -37,8 +38,7 @@ StepFrame(
 )
   template(#icon)
     //- Пульсирует, пока заявка ждёт совет: страница следит за статусом сама.
-    .approval-step__icon(:class="{ 'approval-step__icon--done': isApproved }")
-      q-icon(:name="isApproved ? 'check' : 'schedule'" size="24px")
+    WaitingIcon(:done="isApproved")
 
   .approval-step__status
     BaseChip(:variant="isApproved ? 'pos' : 'warn'")
@@ -55,33 +55,6 @@ StepFrame(
 </template>
 
 <style scoped>
-.approval-step__icon {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  background: var(--p-warn-soft);
-  color: var(--p-warn);
-}
-.approval-step__icon--done {
-  background: var(--p-pos-soft);
-  color: var(--p-pos);
-}
-.approval-step__icon:not(.approval-step__icon--done)::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  border: 2px solid var(--p-warn);
-  animation: approval-step-pulse 2.4s ease-out infinite;
-}
-@keyframes approval-step-pulse {
-  from { transform: scale(1); opacity: 0.6; }
-  to { transform: scale(1.4); opacity: 0; }
-}
 .approval-step__status {
   display: flex;
   align-items: center;

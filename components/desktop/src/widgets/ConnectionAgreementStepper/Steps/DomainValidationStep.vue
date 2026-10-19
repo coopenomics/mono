@@ -9,6 +9,7 @@ import { isCoopDomain } from 'src/shared/lib/utils'
 import { FailAlert, SuccessAlert } from 'src/shared/api'
 import { t } from 'src/shared/i18n'
 import StepFrame from '../ui/StepFrame.vue'
+import WaitingIcon from '../ui/WaitingIcon.vue'
 
 const connectionAgreement = useConnectionAgreementStore()
 const { loadCurrentInstance } = connectionAgreement
@@ -105,6 +106,10 @@ StepFrame(
   :can-back="false"
   @next="handleContinue"
 )
+  //- Пока адрес правится, проверять нечего — значка нет.
+  template(v-if="!isEditing" #icon)
+    WaitingIcon(:done="isDelegated")
+
   //- Ошибся в адресе — форма правки заменяет инструкцию, запись и статус:
   //- до сохранения они описывают прежний адрес.
   .dns-step__edit(v-if="isEditing")
