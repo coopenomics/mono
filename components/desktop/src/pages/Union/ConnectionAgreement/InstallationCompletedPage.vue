@@ -22,8 +22,8 @@
         .done-page__body
           .done-page__step-title
             | {{ hasKey ? $t('union.installationCompletedPage.keyStepDoneTitle') : $t('union.installationCompletedPage.keyStepTitle') }}
-          .done-page__step-text {{ $t('union.installationCompletedPage.keyStepText') }}
-          PlatformKeyCard.done-page__action(bare button-size="md" @state="hasKey = $event")
+          .done-page__step-text {{ keyStepText }}
+          PlatformKeyCard.done-page__action(bare button-size="md" @state="keyState = $event")
 
       li.done-page__step(:class="hasKey ? 'done-page__step--current' : 'done-page__step--locked'")
         .done-page__mark 2
@@ -54,7 +54,8 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { PlatformKeyCard } from 'src/widgets/ConnectionDashboard';
+import { PlatformKeyCard, type PlatformKeyState } from 'src/widgets/ConnectionDashboard';
+import { t } from 'src/shared/i18n'
 import { RegistratorContract } from 'cooptypes'
 import { liveTable, useLiveReload } from 'src/shared/lib/realtime'
 import { useRouter } from 'vue-router'
@@ -67,8 +68,14 @@ const coop = useCooperativeStore()
 const session = useSessionStore()
 
 // Ключ выпущен — сейчас или раньше (запись в цепи): тогда открываются
-// следующие действия.
-const hasKey = ref(false)
+// следующие действия. Подпись шага зависит от того, показан ли ключ сейчас.
+const keyState = ref<PlatformKeyState>('none')
+const hasKey = computed(() => keyState.value !== 'none')
+const keyStepText = computed(() => {
+  if (keyState.value === 'shown') return t('union.installationCompletedPage.keyStepShownText')
+  if (keyState.value === 'exists') return t('union.installationCompletedPage.keyStepExistsText')
+  return t('union.installationCompletedPage.keyStepText')
+})
 
 coop.loadPublicCooperativeData(session.username)
 
@@ -94,7 +101,7 @@ const goToCooperativeSite = () => {
 }
 .done-page__card {
   width: 100%;
-  max-width: 720px;
+  max-width: 880px;
 }
 .done-page__head {
   display: grid;

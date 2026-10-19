@@ -1,20 +1,24 @@
 <template lang="pug">
-//- bare — без своей рамки и заголовка: экран завершения встраивает ключ шагом
-//- в общую карточку и сам подписывает его.
+//- bare — без своей рамки и подписей: экран завершения встраивает ключ шагом
+//- в общую карточку и сам подписывает каждое состояние (см. state).
 component(
   :is="bare ? 'div' : BaseCard"
   v-bind="bare ? {} : { title: title || $t('connectionDashboard.platformKeyCard.title'), subtitle: subtitle || $t('connectionDashboard.platformKeyCard.subtitle') }"
 )
   //- Ключ показывается один раз: на сервер уходит только публичная часть,
-  //- приватная живёт до ухода со страницы.
+  //- приватная живёт до ухода со страницы. Об этом говорится только здесь,
+  //- в момент показа, — после перезагрузки ключа уже нет на экране.
   template(v-if="issued")
-    BaseBanner(variant="warn").q-mb-md {{ $t('connectionDashboard.platformKeyCard.saveWarning') }}
-    DataRow(:label="$t('connectionDashboard.platformKeyCard.keyLabel')" :value="issued.privateKey" mono copyable)
+    p.platform-key__note(v-if="!bare") {{ $t('connectionDashboard.platformKeyCard.shownNote') }}
+    .platform-key__value
+      span.platform-key__wif {{ issued.privateKey }}
+      BaseButton(variant="secondary" :size="buttonSize" type="button" @click="copyKey")
+        q-icon(name="content_copy" size="16px").q-mr-xs
+        | {{ $t('connectionDashboard.platformKeyCard.copy') }}
     BaseButton.q-mt-md(v-if="siteUrl" variant="primary" :size="buttonSize" type="button" @click="openSite")
       | {{ $t('connectionDashboard.platformKeyCard.goToSite') }}
-      q-icon(name="open_in_new" size="14px").q-ml-xs
+      q-icon(name="open_in_new" size="16px").q-ml-xs
   template(v-else-if="record")
-    p.t-sm.t-muted.q-mb-md {{ $t('connectionDashboard.platformKeyCard.issuedAt', { date: issuedAt }) }}
     //- Перевыпуск останавливает платформу кооператива до ввода нового ключа —
     //- поэтому сначала предупреждение и отдельное подтверждение.
     template(v-if="confirming")
@@ -24,12 +28,14 @@ component(
           | {{ $t('connectionDashboard.platformKeyCard.confirmReissue') }}
         BaseButton(variant="ghost" :size="buttonSize" type="button" :disabled="isIssuing" @click="confirming = false")
           | {{ $t('connectionDashboard.platformKeyCard.cancel') }}
-    .platform-key__actions(v-else)
-      BaseButton(v-if="siteUrl" variant="primary" :size="buttonSize" type="button" @click="openSite")
-        | {{ $t('connectionDashboard.platformKeyCard.goToSite') }}
-        q-icon(name="open_in_new" size="14px").q-ml-xs
-      BaseButton(variant="secondary" :size="buttonSize" type="button" @click="confirming = true")
-        | {{ $t('connectionDashboard.platformKeyCard.reissue') }}
+    template(v-else)
+      p.platform-key__note(v-if="!bare") {{ $t('connectionDashboard.platformKeyCard.lostHint') }}
+      .platform-key__actions
+        BaseButton(v-if="siteUrl" variant="primary" :size="buttonSize" type="button" @click="openSite")
+          | {{ $t('connectionDashboard.platformKeyCard.goToSite') }}
+          q-icon(name="open_in_new" size="16px").q-ml-xs
+        BaseButton(variant="secondary" :size="buttonSize" type="button" @click="confirming = true")
+          | {{ $t('connectionDashboard.platformKeyCard.reissue') }}
   BaseButton(
     v-else
     variant="primary"
@@ -41,13 +47,12 @@ component(
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { onMounted, ref } from 'vue'
+import { copyToClipboard } from 'quasar'
 import { RegistratorContract } from 'cooptypes'
 import { BaseBanner, BaseButton, BaseCard } from 'src/shared/ui/base'
-import { DataRow } from 'src/shared/ui/domain'
-import { FailAlert } from 'src/shared/api'
+import { FailAlert, SuccessAlert } from 'src/shared/api'
 import { liveTable, useLiveReload } from 'src/shared/lib/realtime'
-import moment from 'src/shared/lib/utils/dates/moment'
 import { useSessionStore } from 'src/entities/Session'
 import {
   useIssuePlatformKey,
@@ -55,6 +60,7 @@ import {
   type IPlatformKeyRecord,
 } from 'src/features/Cooperative/IssuePlatformKey'
 import { t } from 'src/shared/i18n'
+import type { PlatformKeyState } from '../model/platformKey'
 
 // Адрес сайта кооператива: на панели управления карточка ведёт туда, где
 // мастер установки спросит ключ. На экране завершения переход — отдельным шагом.
@@ -62,8 +68,7 @@ const props = withDefaults(
   defineProps<{ siteUrl?: string; title?: string; subtitle?: string; bare?: boolean; buttonSize?: 'sm' | 'md' }>(),
   { buttonSize: 'sm' },
 )
-// Есть ли действующий ключ — экран завершения открывает по нему следующие шаги.
-const emit = defineEmits<{ state: [hasKey: boolean] }>()
+const emit = defineEmits<{ state: [state: PlatformKeyState] }>()
 
 const session = useSessionStore()
 const { loadPlatformKey, issuePlatformKey } = useIssuePlatformKey()
@@ -73,11 +78,19 @@ const issued = ref<IIssuedPlatformKey | null>(null)
 const isIssuing = ref(false)
 const confirming = ref(false)
 
-const issuedAt = computed(() => (record.value ? moment.utc(record.value.issued_at).local().format('DD.MM.YYYY HH:mm') : ''))
-
 const load = async () => {
   record.value = await loadPlatformKey(session.username)
-  emit('state', !!record.value || !!issued.value)
+  emit('state', issued.value ? 'shown' : record.value ? 'exists' : 'none')
+}
+
+const copyKey = async () => {
+  if (!issued.value) return
+  try {
+    await copyToClipboard(issued.value.privateKey)
+    SuccessAlert(t('ui.copyableInput.copiedText'))
+  } catch (error: any) {
+    FailAlert(error?.message ?? '')
+  }
 }
 
 const openSite = () => {
@@ -104,6 +117,31 @@ const issue = async () => {
 <style scoped>
 .platform-key__actions {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--p-2);
+}
+.platform-key__note {
+  margin: 0 0 var(--p-3);
+  font-size: var(--p-fs-body-sm);
+  color: var(--p-ink-2);
+}
+/* Ключ — одной строкой в поле с кнопкой копирования рядом; длинный ключ
+   переносится внутри поля, кнопка остаётся справа. */
+.platform-key__value {
+  display: flex;
+  align-items: center;
+  gap: var(--p-3);
+  padding: var(--p-2) var(--p-2) var(--p-2) var(--p-4);
+  border: 1px solid var(--p-line);
+  border-radius: var(--p-r-md);
+  background: var(--p-surface-2);
+}
+.platform-key__wif {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--p-mono);
+  font-size: var(--p-fs-body-sm);
+  color: var(--p-ink);
+  word-break: break-all;
 }
 </style>
