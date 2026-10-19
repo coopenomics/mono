@@ -29,6 +29,14 @@ const emit = defineEmits<{ back: []; next: [] }>()
 <template lang="pug">
 BaseForm.step-frame(:loading="loading" @submit="emit('next')")
   BaseCard(:title="title" :subtitle="lead")
+    //- Значок слева от заголовка — у шагов ожидания; без него шапка карточки обычная.
+    template(v-if="$slots.icon" #head)
+      .step-frame__head
+        .step-frame__icon
+          slot(name="icon")
+        div
+          .step-frame__title {{ title }}
+          .step-frame__lead {{ lead }}
     slot
 
   template(#footer)
@@ -57,6 +65,26 @@ BaseForm.step-frame(:loading="loading" @submit="emit('next')")
 </template>
 
 <style scoped>
+.step-frame__head {
+  display: flex;
+  align-items: center;
+  gap: var(--p-4);
+}
+.step-frame__icon {
+  flex: none;
+}
+/* Те же размеры, что у заголовка и подзаголовка BaseCard. */
+.step-frame__title {
+  font-size: var(--p-fs-h3);
+  font-weight: 600;
+  letter-spacing: var(--p-ls-h3);
+  color: var(--p-ink);
+}
+.step-frame__lead {
+  font-size: var(--p-fs-body-sm);
+  color: var(--p-ink-2);
+  margin-top: 2px;
+}
 /* Бар с навигацией прибит к низу экрана — пользователь всегда видит, как
    продолжить, даже если содержимое шага длинное (соглашение). */
 .step-frame__bar {
