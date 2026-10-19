@@ -28,7 +28,7 @@ function make(tokenDoc: { userId: string, type: string } | null, user: Record<st
     tokenApplicationService, blockchainPort, userDomainService,
     {} as any, {} as any, keyRevocation,
   );
-  return { interactor, tokenApplicationService, blockchainPort };
+  return { interactor, tokenApplicationService, blockchainPort, userDomainService };
 }
 
 const USER = { id: 'u1', username: 'ivanovivan12', email: 'ivan@example.com' };
@@ -51,9 +51,11 @@ describe('AuthInteractor — приглашение с паролем', () => {
     await expect(interactor.inviteRecipient('t')).rejects.toMatchObject({ code: 'AUTH_INVITE_TOKEN_INVALID' });
   });
 
-  it('смена ключа по приглашению гасит токен приглашения', async () => {
-    const { interactor, tokenApplicationService, blockchainPort } = make({ userId: 'u1', type: tokenTypes.INVITE }, USER);
+  it('смена ключа по приглашению гасит токен приглашения и подтверждает почту', async () => {
+    const { interactor, tokenApplicationService, blockchainPort, userDomainService } = make({ userId: 'u1', type: tokenTypes.INVITE }, USER);
     await interactor.resetKey({ token: 't', public_key: 'PUB_K1_x' });
+    // Ссылка пришла письмом — владение ящиком доказано, отдельный код не нужен.
+    expect(userDomainService.updateUserById).toHaveBeenCalledWith('u1', { public_key: 'PUB_K1_x', is_email_verified: true });
     expect(blockchainPort.changeKey).toHaveBeenCalledWith(expect.objectContaining({ username: 'ivanovivan12', public_key: 'PUB_K1_x' }));
     expect(tokenApplicationService.deleteTokens).toHaveBeenCalledWith({ userId: 'u1', type: tokenTypes.INVITE });
   });

@@ -137,7 +137,9 @@ export class AuthInteractor {
         public_key: data.public_key,
       });
 
-      await this.userDomainService.updateUserById(user.id, { public_key: data.public_key });
+      // Ссылка приглашения и сброса ключа приходит письмом: переход по ней
+      // доказывает владение ящиком, и просить подтвердить почту ещё раз незачем.
+      await this.userDomainService.updateUserById(user.id, { public_key: data.public_key, is_email_verified: true });
 
       // Ключ сменён — отзыв прежнего ключа закрыт, вход новым открыт.
       await this.keyRevocation.markRecovered(user.username);
