@@ -21,8 +21,10 @@
 
     IndividualDataForm(v-model:userData='installStore.soviet[index]')
       template(#top)
+        //- Без autofocus: карточек несколько, каждая забирала фокус у прежней —
+        //- страница уезжала к последней, а брошенные пустые поля краснели
+        //- «обязательно для заполнения». Первое поле человек выбирает сам.
         q-input(
-          autofocus,
           outlined,
           dense,
           color='primary',
