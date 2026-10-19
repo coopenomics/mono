@@ -57,25 +57,29 @@ const progress = computed(() => {
  */
 const isRestoring = computed(() => instance.value?.is_restoring === true)
 
-const INSTALL_STAGES = [
-  { from: 0, title: t('connectionAgreementStepper.installationStep.install.server.title'), body: t('connectionAgreementStepper.installationStep.install.server.body') },
-  { from: 20, title: t('connectionAgreementStepper.installationStep.install.platform.title'), body: t('connectionAgreementStepper.installationStep.install.platform.body') },
-  { from: 40, title: t('connectionAgreementStepper.installationStep.install.storage.title'), body: t('connectionAgreementStepper.installationStep.install.storage.body') },
-  { from: 60, title: t('connectionAgreementStepper.installationStep.install.chain.title'), body: t('connectionAgreementStepper.installationStep.install.chain.body') },
-  { from: 80, title: t('connectionAgreementStepper.installationStep.install.finish.title'), body: t('connectionAgreementStepper.installationStep.install.finish.body') },
+// Этапы повторяют ход плейбука установки (HOSTKEY-INITIAL-SETUP): порог
+// этапа — номер его первой задачи в эталонном прогоне из 362 задач,
+// переведённый в проценты шага 30–85%. До 30% — аренда сервера, после 85% —
+// провайдер проверяет, что платформа отвечает. Резервного копирования в
+// установке нет: копии снимаются по расписанию уже работающего узла.
+const stage = (key: string, from: number, scope = 'install') => ({
+  from,
+  title: t(`connectionAgreementStepper.installationStep.${scope}.${key}.title`),
+  body: t(`connectionAgreementStepper.installationStep.${scope}.${key}.body`),
+})
+
+const PLATFORM_STAGES = [
+  stage('system', 30),
+  stage('chain', 44),
+  stage('data', 54),
+  stage('apps', 63),
+  stage('domain', 67),
+  stage('monitoring', 73),
 ]
 
-const RESTORE_STAGES = [
-  { from: 0, title: t('connectionAgreementStepper.installationStep.restore.server.title'), body: t('connectionAgreementStepper.installationStep.restore.server.body') },
-  { from: 20, title: t('connectionAgreementStepper.installationStep.restore.platform.title'), body: t('connectionAgreementStepper.installationStep.restore.platform.body') },
-  { from: 40, title: t('connectionAgreementStepper.installationStep.restore.storage.title'), body: t('connectionAgreementStepper.installationStep.restore.storage.body') },
-  { from: 60, title: t('connectionAgreementStepper.installationStep.restore.chain.title'), body: t('connectionAgreementStepper.installationStep.restore.chain.body') },
-  {
-    from: 80,
-    title: t('connectionAgreementStepper.installationStep.restore.data.title'),
-    body: t('connectionAgreementStepper.installationStep.restore.data.body'),
-  },
-]
+const INSTALL_STAGES = [stage('server', 0), ...PLATFORM_STAGES, stage('check', 85)]
+
+const RESTORE_STAGES = [stage('server', 0, 'restore'), ...PLATFORM_STAGES, stage('data', 85, 'restore')]
 
 const stages = computed(() => (isRestoring.value ? RESTORE_STAGES : INSTALL_STAGES))
 
