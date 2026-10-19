@@ -107,6 +107,14 @@ export const PROCESS_HASH_LOCATOR: Readonly<Record<string, HashLocation[]>> = Ob
   // Одним process_hash (= registration_hash) связаны: reguser/confirmpay/confirmreg +
   // inline ledger2::apply приёма и признания взноса (o.reg.inpay на confirmpay,
   // o.reg.setmin + o.reg.setent на confirmreg).
+  // p.bil.fund / p.bil.pay — биллинг инфраструктурных подписок (контракт billing,
+  // Epic 12). Одноактовые процессы без сущностной таблицы в цепи: якорь
+  // (convert_hash = хэш заявления; payment_hash из журнала провайдера) живёт
+  // в ledger2-записи и в реестре документов совета, у billing таблиц нет —
+  // как у p.sov.axncnv, локатор пустой.
+  'p.bil.fund': [],
+  'p.bil.pay': [],
+
   'p.reg.accept': [{ code: 'registrator', table: 'candidates2', field: 'registration_hash' }],
 
   // p.reg.refund — возврат регистрационного взноса при отказе совета.

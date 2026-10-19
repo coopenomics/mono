@@ -1,0 +1,391 @@
+feature: billing.subscriptions
+title: Биллинг инфраструктурных подписок (Epic 12/13/14, проект «Облачный провайдер»)
+
+# Хаб-спицевая модель: Восход (BILLING_HUB_MODE=true) — единственный узел с
+# BillingModule. Пайщик-кооператив переводит паевой → членский на свой
+# биллинг-кошелёк w.wal.bill (billing::convert по подписанному заявлению);
+# хаб-крон списывает оплату подписок (billing::pay) и докупает AXON при
+# исчерпании (billing::converttoaxn) подписью оператора. Состав/цены подписок
+# и квоты — у провайдера (REST /billing/*, server-secret); в цепи только суммы
+# и payment_hash. Журнал платежей PG хаба — единственный барьер от двойного
+# списания (on-chain таблиц контракт не ведёт).
+#
+# Решение @ant 2026-06-11: w.wal.bill — USER_SHARED в леджере оператора;
+# прямой путь soviet::converttoaxn упразднён (кнопка «Пополнить AXON» убрана).
+# На спицах (hub_mode=false) ни крон, ни GraphQL Billing.* не регистрируются.
+
+sources:
+  contract:
+    - components/contracts/cpp/billing/**
+    - components/contracts/cpp/lib/core/ledger2/operations.hpp
+    - components/contracts/cpp/lib/core/ledger2/wallets.hpp
+  backend:
+    - components/controller/src/application/billing/**
+    - components/controller/src/domain/billing/**
+    - components/controller/src/infrastructure/billing/**
+    - components/controller/src/infrastructure/blockchain/adapters/billing-blockchain.adapter.ts
+    - components/controller/src/application/provider/**
+  ui:
+    - components/desktop/src/features/Billing/**
+    - components/desktop/src/widgets/Billing/**
+    - components/desktop/src/entities/Billing/**
+    - components/desktop/src/entities/Wallet/model/useCooperativeMainWallet.ts
+    - components/desktop/src/widgets/ConnectionDashboard/ui/AxonWallet.vue
+    - components/desktop/src/widgets/ConnectionDashboard/ui/MembershipWallet.vue
+
+cases:
+  # ── Хаб-крон: оплата подписок ───────────────────────────────────────────
+  - id: bill.happy.01
+    level: backend
+    kind: happy
+    scenario: >
+      Активный кооператив в registrator.coops, у провайдера есть сумма к оплате
+      и срок подошёл.
+    expect: >
+      invoice у провайдера → запись SUBMITTING в журнале → billing::pay
+      подписью оператора за пайщика (coopname=оператор, username=спица) →
+      confirmPayment с tx → CONFIRMED; pending-кооперативы не трогаются
+    test: components/controller/tests/unit/billing/billing-cron.service.test.ts
+    api: components/boot/src/tests/billing-tank.test.ts
+    status: passing
+
+  - id: bill.side.01
+    level: backend
+    kind: side
+    scenario: >
+      Срок оплаты в будущем, сумма 0 или все позиции free.
+    expect: >
+      invoice не выписывается, транзакций нет
+    test: components/controller/tests/unit/billing/billing-cron.service.test.ts
+    api: components/boot/src/tests/billing-tank.test.ts
+    status: passing
+
+  - id: bill.break.01
+    level: backend
+    kind: break
+    scenario: >
+      Провайдер вернул invoice PAID; в журнале запись SUBMITTED; запись SUBMITTING.
+    expect: >
+      PAID → списания нет; SUBMITTED → повтора нет, подтверждение доносится;
+      SUBMITTING → ни повтора, ни подтверждения (сверка с чейном вручную)
+    test: components/controller/tests/unit/billing/billing-cron.service.test.ts
+    external: unreachable
+    external_reason: "состояние журнала оплаты посреди тика (SUBMITTING, SUBMITTED при оплаченном счёте) снаружи не создать — оно живёт внутри одного тика хаба"
+    status: passing
+
+  - id: bill.break.02
+    level: backend
+    kind: break
+    scenario: >
+      Нода отклонила pay доменно (нет средств на w.wal.bill) / сетевая ошибка.
+    expect: >
+      доменный отказ → FAILED и повтор в следующий тик; сетевая → last_error,
+      статус остаётся SUBMITTING; тик не падает, следующий кооп обрабатывается
+    test: components/controller/tests/unit/billing/billing-cron.service.test.ts
+    external: unreachable
+    external_reason: "условие требует провайдера рядом с хабом и заданного ответа провайдера; внешний слой стенда провайдера не поднимает, сквозной Billing E2E ведёт только основной путь оплаты"
+    status: passing
+
+  - id: bill.side.02
+    level: backend
+    kind: side
+    scenario: >
+      Второй тик пришёл поверх незавершённого.
+    expect: >
+      пропуск (running-guard)
+    test: components/controller/tests/unit/billing/billing-cron.service.test.ts
+    external: unreachable
+    external_reason: "наложение двух тиков хаба друг на друга снаружи не вызвать: расписание и защита от наложения внутри узла"
+    status: passing
+
+  # ── Хаб-крон: бак AXON документооборота (B2D-32, @ant 17.10.2026) ────────
+  # Отдельный частый такт бака: хаб передаёт баланс провайдеру, тот решает —
+  # объём месяца по дате (monthly), квант 5 AXON за 50 ₽ (quant) или NOT_DUE.
+  - id: bill.happy.02
+    level: backend
+    kind: happy
+    scenario: >
+      Такт бака: провайдер по дате оплаты выписал счёт на объём месяца (PENDING monthly).
+    expect: >
+      баланс бака передан провайдеру; журнал → billing::converttoaxn (username=спица,
+      payment_hash, сумма строки тарифа) → confirmTopupAxon с суммой в рублях → CONFIRMED
+    test: components/controller/tests/unit/billing/billing-cron.service.test.ts
+    api: components/boot/src/tests/billing-tank.test.ts
+    status: passing
+
+  - id: bill.side.19
+    level: backend
+    kind: side
+    scenario: >
+      Бак ниже кванта между датами; бак полный; такт оплат.
+    expect: >
+      квант — converttoaxn на 50 ₽; при полном баке провайдер всё равно опрошен с балансом,
+      NOT_DUE → конвертации нет; такт оплат бак не трогает — у бака свой такт
+    test: components/controller/tests/unit/billing/billing-cron.service.test.ts
+    api: components/boot/src/tests/billing-tank.test.ts
+    status: passing
+
+  - id: bill.break.03
+    level: backend
+    kind: break
+    scenario: >
+      Провайдер ответил BLOCKED (cooldown) или NO_PACKAGE.
+    expect: >
+      конвертации нет; уведомление кооперативу шлёт провайдер
+    test: components/controller/tests/unit/billing/billing-cron.service.test.ts
+    external: unreachable
+    external_reason: "условие требует провайдера рядом с хабом и заданного ответа провайдера; внешний слой стенда провайдера не поднимает, сквозной Billing E2E ведёт только основной путь оплаты"
+    status: passing
+
+  # ── Реактивные листенеры парсера ────────────────────────────────────────
+  - id: bill.side.03
+    level: backend
+    kind: side
+    scenario: >
+      Парсер поймал billing::converttoaxn в блоке (hub-cron мог упасть между
+      transact и confirm).
+    expect: >
+      confirmTopupAxon провайдеру + CONFIRMED в журнале; вне hub-режима / без
+      PROVIDER_BASE_URL / с неполным action — пропуск; ошибка провайдера не
+      роняет парсер
+    test: components/controller/tests/unit/billing/billing-conversion.listener.test.ts
+    external: unreachable
+    external_reason: "падение хаба между отправкой converttoaxn и подтверждением провайдеру снаружи не воспроизвести"
+    status: passing
+
+  - id: bill.side.04
+    level: backend
+    kind: side
+    scenario: >
+      Парсер поймал billing::pay.
+    expect: >
+      confirmPayment провайдеру по payment_hash, журнал CONFIRMED
+    status: missing
+
+  # ── Журнал платежей ─────────────────────────────────────────────────────
+  - id: bill.break.04
+    level: backend
+    kind: break
+    scenario: >
+      Запись по payment_hash уже есть; FAILED; гонка двух тиков на insert (23505).
+    expect: >
+      есть → started=false; FAILED → CAS в SUBMITTING, проигранный CAS →
+      started=false; 23505 → started=false с перечитанной записью; прочие
+      ошибки БД пробрасываются; причины отказа режутся до 4000 символов
+    test: components/controller/tests/unit/billing/billing-payment-log.service.test.ts
+    external: unreachable
+    external_reason: "повтор записи журнала и гонка двух тиков на вставке (23505) — внутреннее состояние узла, через API стенда не создаётся"
+    status: passing
+
+  # ── Пайщик: паевой → членский на w.wal.bill ─────────────────────────────
+  - id: bill.happy.03
+    level: contract
+    kind: happy
+    scenario: >
+      Пайщик подписал заявление BillingConversionStatement на сумму N.
+    expect: >
+      billing::convert (convert_hash = хэш заявления) → o.bil.fund: TRANSFER
+      w.wal.share[username] → w.wal.bill[username], Dr 80 / Cr 86; документ в
+      реестре совета по convert_hash; повтор того же convert_hash отклоняется
+    status: missing
+
+  - id: bill.break.05
+    level: contract
+    kind: break
+    scenario: >
+      billing::pay повторно с тем же payment_hash; pay подписан не оператором;
+      на w.wal.bill меньше суммы.
+    expect: >
+      отказы контракта с доменным сообщением; средства не списаны
+    status: missing
+
+  - id: bill.side.05
+    level: contract
+    kind: side
+    scenario: >
+      billing::converttoaxn оператором за спицу.
+    expect: >
+      o.bil.axn: BURN w.wal.bill[username]; inline eosio::injection выпускает
+      AXON кооперативу; ledger2 нитка p.bil.pay
+    status: missing
+
+  # ── GraphQL / desktop ───────────────────────────────────────────────────
+  - id: bill.side.06
+    level: backend
+    kind: side
+    scenario: >
+      Мутации Billing.convert / Billing.pay и generateBillingConversionStatement
+      на хабе и на спице.
+    expect: >
+      на хабе доступны member/chairman (JWT); на спице (hub_mode=false)
+      BillingModule не зарегистрирован — мутаций нет в схеме
+    status: missing
+
+  - id: bill.side.07
+    level: ui
+    kind: side
+    scenario: >
+      Кошелёк членских взносов пайщика и диалог конвертации; кошелёк AXON.
+    expect: >
+      ConvertToBillingDialog: сумма > 0 обязательна, шаг «сформировать» →
+      «подписать»; AxonWallet показывает баланс без кнопки пополнения
+    status: missing
+
+  # Epic 28 (форм-фактор §7, 2026-08-24): витрина подключения живёт на живом
+  # каталоге провайдера, а не на хардкоде «Тестовый, 1500 RUB» в степпере.
+  - id: bill.side.08
+    level: backend
+    kind: side
+    scenario: >
+      Desktop запрашивает getProviderConnectionCatalog (шаг тарифа степпера
+      подключения): coopback проксирует GET /v1/subscription-types провайдера
+      (Bearer PROVIDER_BEARER_TOKEN, read-only) и отдаёт услуги + конфигурации
+      сервера с отпускной ценой и триалом.
+    expect: >
+      запрос уходит с Bearer и coopname; кривой ответ провайдера → пустые
+      списки без падения; провайдер/токен не настроены или транспортная ошибка
+      → BadRequest с человекочитаемым текстом (стектрейс наружу не летит);
+      закупка и наценка в схеме отсутствуют by design
+    test: components/controller/src/application/provider/services/provider-catalog.spec.ts
+    external: unreachable
+    external_reason: "каталог и выбор тарифа coopback проксирует к провайдеру; внешний слой стенда провайдера не поднимает, а Billing E2E выбирает тариф прямо у провайдера"
+    status: passing
+
+  # История списаний глазами пайщика (@ant 2026-08-27): в журнале была одна
+  # сумма и отладочный ответ узла — «за что» и «почему отклонено» не читалось.
+  - id: bill.happy.09
+    level: backend
+    kind: happy
+    scenario: >
+      Хаб списывает подписки кооператива и докупает пакет документооборота.
+    expect: >
+      в журнал вместе с суммой уходит состав платежа человеческим текстом
+      («Хостинг на сервере, Поддержка»); бесплатные позиции в состав не входят,
+      пустое имя услуги списание не срывает; у пакетной ноги состав берётся из
+      ответа провайдера
+    test: components/controller/tests/unit/billing/billing-cron.service.test.ts
+    api: components/boot/src/tests/billing-tank.test.ts
+    status: passing
+
+  - id: bill.side.10
+    level: backend
+    kind: side
+    scenario: >
+      Узел отклонил списание: нет средств, нет программного соглашения, сетевой
+      сбой, незнакомый assert контракта, пустое сообщение.
+    expect: >
+      история показывает одну понятную фразу («Недостаточно средств на кошельке
+      кооператива»), у незнакомого отказа — его суть без обёртки «assertion
+      failure with message»; сырой ответ узла не теряется и уходит в подсказку;
+      пустому сообщению причина не выдумывается
+    test: components/controller/src/domain/billing/utils/billing-error.utils.spec.ts
+    external: unreachable
+    external_reason: "разбор текстов отказа узла при списании; отказы с этими текстами возникают только при оплате провайдеру, а внешний слой стенда провайдера не поднимает"
+    status: passing
+
+  - id: bill.break.11
+    level: backend
+    kind: break
+    scenario: >
+      Кошелёк пайщика обнулён и стёрт из цепи (контракт удаляет запись из chain-RAM), а в
+      проекции осталось последнее известное значение с пометкой present=false.
+    expect: >
+      наружу уходит ноль в том же символе, а не сумма из истории: иначе кооператив видит на
+      членском кошельке деньги, которых в цепи нет, и не понимает, почему списание отклоняется;
+      живые строки и легаси-записи без флага отдаются как есть
+    test: components/controller/tests/unit/wallet/user-wallets-erased.test.ts
+    api: components/api-tests/src/membership/membership.exit.test.ts
+    status: passing
+
+  # Тарифная сетка (16.10.2026, кросс-реф provider.tariffs в ~/provider):
+  # витрина подключения показывает тарифы, выбор уходит провайдеру.
+  - id: bill.happy.12
+    level: backend
+    kind: happy
+    scenario: Каталог витрины подключения несёт тарифную сетку и годовую оплату
+    expect: tariffs и annual_billing провайдера проходят как есть; провайдер без сетки — пустой список и выключенная годовая оплата, не падение
+    test: components/controller/src/application/provider/services/provider-catalog.spec.ts
+    external: unreachable
+    external_reason: "каталог и выбор тарифа coopback проксирует к провайдеру; внешний слой стенда провайдера не поднимает, а Billing E2E выбирает тариф прямо у провайдера"
+    status: passing
+
+  - id: bill.happy.13
+    level: backend
+    kind: happy
+    scenario: Кооператив-кандидат выбирает тариф подключения (selectProviderTariff)
+    expect: PUT /instances/:username/tariff провайдера с server-secret под именем из сессии; ответ — принятый выбор
+    test: components/controller/src/application/provider/services/provider-catalog.spec.ts
+    external: unreachable
+    external_reason: "каталог и выбор тарифа coopback проксирует к провайдеру; внешний слой стенда провайдера не поднимает, а Billing E2E выбирает тариф прямо у провайдера"
+    status: passing
+
+  - id: bill.break.14
+    level: backend
+    kind: break
+    scenario: Провайдер отклонил выбор тарифа (тарифа нет в сетке) или провайдер не настроен
+    expect: BadRequest с причиной провайдера; без настройки провайдера запрос не уходит
+    test: components/controller/src/application/provider/services/provider-catalog.spec.ts
+    external: unreachable
+    external_reason: "каталог и выбор тарифа coopback проксирует к провайдеру; внешний слой стенда провайдера не поднимает, а Billing E2E выбирает тариф прямо у провайдера"
+    status: passing
+
+  # Смена тарифа и годовая оплата (16.10.2026, кросс-реф provider.tariffs).
+  - id: bill.happy.15
+    level: backend
+    kind: happy
+    scenario: Кооператив меняет тариф подключения (changeProviderTariff)
+    expect: POST /instances/:username/change-tariff провайдера с server-secret под именем из сессии; отказ провайдера — BadRequest с причиной
+    test: components/controller/src/application/provider/services/provider-catalog.spec.ts
+    external: unreachable
+    external_reason: "каталог и выбор тарифа coopback проксирует к провайдеру; внешний слой стенда провайдера не поднимает, а Billing E2E выбирает тариф прямо у провайдера"
+    status: passing
+
+  - id: bill.side.16
+    level: backend
+    kind: side
+    scenario: Хаб строит батч оплаты, в сводке есть годовая подписка тарифа
+    expect: в батч идут только позиции с наступившим сроком (is_due), каждая за свой период; старый провайдер без полей — весь батч за период сводки
+    test: components/controller/tests/unit/billing/billing-cron.service.test.ts
+    external: unreachable
+    external_reason: "годовая подписка тарифа в батче оплаты хаба требует провайдера; Billing E2E ведёт месячный тариф"
+    status: passing
+
+  - id: bill.side.17
+    level: backend
+    kind: side
+    scenario: Каталог витрины с текущим тарифом кооператива
+    expect: current_tariff провайдера проходит; чужой кооператив его не видит — только сам кооператив и совет
+    test: components/controller/src/application/provider/services/provider-catalog.spec.ts
+    external: unreachable
+    external_reason: "каталог и выбор тарифа coopback проксирует к провайдеру; внешний слой стенда провайдера не поднимает, а Billing E2E выбирает тариф прямо у провайдера"
+    status: passing
+
+  - id: bill.side.18
+    level: backend
+    kind: side
+    scenario: Реестр кооперативов оператора показывает тариф заявки
+    expect: тариф сетки и период оплаты подставляются по выбору кооператива (два запроса на весь реестр); сбой провайдера — реестр без тарифов, но целиком
+    test: components/controller/src/application/provider/services/provider-catalog.spec.ts
+    external: unreachable
+    external_reason: "каталог и выбор тарифа coopback проксирует к провайдеру; внешний слой стенда провайдера не поднимает, а Billing E2E выбирает тариф прямо у провайдера"
+    status: passing
+
+  # Сквозной прогон бака на стенде (B2D-32): хаб и провайдер вместе, сжатое время.
+  - id: bill.happy.20
+    level: backend
+    kind: happy
+    scenario: >
+      Кооператив с тарифом Стандарт проходит пробный период, первую оплату и
+      опустошение бака на стенде со сжатым временем (месяц = 30 минут).
+    expect: >
+      четыре строки пробные 9 дней с одной датой окончания и ценами тарифа под замком;
+      пополнение биллинг-кошелька заявлением проходит; в конце пробного периода хаб
+      платит календарные строки через pay, документооборот — объёмом месяца через
+      converttoaxn (+480 AXON в баке, платёж 4 800 ₽ на 30 дней), все строки продлены
+      на месяц от конца пробного периода; после аренды ресурсов ниже кванта хаб
+      докупает квант 5 AXON за 50 ₽ (срок не двигается, счётчик докупок растёт),
+      при полном баке квантов нет; каталог отдаёт D = объём / число дней месяца
+    test: components/boot/src/tests/billing-tank.test.ts
+
+    status: passing
+

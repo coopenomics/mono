@@ -7,8 +7,11 @@ q-layout(view='lHh LpR fff')
   //- Левый дровер: .rail внутри LeftDrawerMenu сам рисует canon-границу
   //- (border-right из var(--p-line)) — q-drawer bordered убран, чтобы
   //- не было двойной линии.
+  //- На экранах входа и вступления (AuthSplit) меню нет: после приёма советом
+  //- пайщик уже «вошёл», но страница вступления ещё догружает кабинет, и меню
+  //- появлялось рядом с ней на несколько секунд. Меню приходит вместе с кабинетом.
   q-drawer.app-left-drawer(
-    v-if='showDrawer && loggedIn',
+    v-if='showDrawer && loggedIn && !isAuthSplit',
     v-model='leftDrawerOpen',
     side='left',
     persistent,
@@ -185,9 +188,9 @@ const filterContext = computed(() => {
     isCoop: Boolean(isCoop),
     userRole: userRole.value,
     coopname: system.info.coopname,
-    isOnboardingHidden:
-      typeof localStorage !== 'undefined' &&
-      localStorage.getItem('chairman-onboarding-hidden') === 'true',
+    // Онбординг завершает председатель — отметка в настройках кооператива,
+    // одна на все устройства (до 19.10.2026 жила в localStorage браузера).
+    isOnboardingHidden: !!system.info.settings?.onboarding_completed_at,
   };
 });
 

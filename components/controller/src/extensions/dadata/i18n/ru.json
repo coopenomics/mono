@@ -1,0 +1,14 @@
+{
+  "errors": {
+    "DADATA_CONFIG_NOT_FOUND": "Настройки расширения DaData не найдены"
+  },
+  "dadata": {
+    "config": {
+      "apiKeyLabel": "API-ключ",
+      "apiKeyNote": "«API-ключ» из личного кабинета DaData. По нему анкета организации заполняется по ИНН.",
+      "apiUrlLabel": "Адрес сервиса DaData",
+      "secretKeyLabel": "Секретный ключ",
+      "secretKeyNote": "«Секретный ключ» из личного кабинета DaData. Анкете по ИНН он не нужен, его используют сервисы стандартизации DaData."
+    }
+  }
+}

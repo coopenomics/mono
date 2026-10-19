@@ -12,6 +12,7 @@ import {
   GenerateDocumentInputDTO,
   RequireRight,
   RightsGuard,
+  DOCUMENT_GENERATION_THROTTLE,
 } from '@coopenomics/extension-kit';
 import { UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
@@ -150,7 +151,7 @@ export class ParticipationManagementResolver {
     name: 'capitalGenerateCapitalizationAgreement',
     description: 'Сгенерировать соглашение о благороста',
   })
-  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @Throttle(DOCUMENT_GENERATION_THROTTLE)
   @UseGuards(GqlJwtAuthGuard, RightsGuard)
   @RequireRight('Contributor', ['generate:own', 'generate'], { owner: 'data.username' })
   async generateCapitalizationAgreement(
@@ -169,7 +170,7 @@ export class ParticipationManagementResolver {
     name: 'capitalGenerateGenerationContract',
     description: 'Сгенерировать генерационное соглашение',
   })
-  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @Throttle(DOCUMENT_GENERATION_THROTTLE)
   @UseGuards(GqlJwtAuthGuard, RightsGuard)
   @RequireRight('Contributor', ['generate:own', 'generate'], { owner: 'data.username' })
   async generateGenerationContract(
@@ -188,7 +189,7 @@ export class ParticipationManagementResolver {
     name: 'capitalGenerateProjectGenerationContract',
     description: 'Сгенерировать документ приложения к договору участия для проекта',
   })
-  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @Throttle(DOCUMENT_GENERATION_THROTTLE)
   @UseGuards(GqlJwtAuthGuard, RightsGuard)
   @RequireRight('Clearance', ['generate:own', 'generate'], { owner: 'data.username' })
   async generateProjectGenerationContract(
@@ -207,7 +208,7 @@ export class ParticipationManagementResolver {
     name: 'capitalGenerateComponentGenerationContract',
     description: 'Сгенерировать документ дополнения к приложению для компонента',
   })
-  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @Throttle(DOCUMENT_GENERATION_THROTTLE)
   @UseGuards(GqlJwtAuthGuard, RightsGuard)
   @RequireRight('Clearance', ['generate:own', 'generate'], { owner: 'data.username' })
   async generateComponentGenerationContract(
@@ -226,7 +227,7 @@ export class ParticipationManagementResolver {
     name: 'capitalGenerateRegistrationDocuments',
     description: 'Генерация пачки документов для завершения регистрации в Capital (GenerationContract, StorageAgreement, BlagorostAgreement)',
   })
-  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @Throttle(DOCUMENT_GENERATION_THROTTLE)
   @UseGuards(GqlJwtAuthGuard, RightsGuard)
   @RequireRight('Contributor', ['generate:own', 'generate'], { owner: 'data.username' })
   async generateCapitalRegistrationDocuments(

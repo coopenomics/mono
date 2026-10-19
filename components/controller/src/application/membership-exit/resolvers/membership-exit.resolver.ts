@@ -9,6 +9,7 @@ import {
   DomainError,
   RequireRight,
   RightsGuard,
+  DOCUMENT_GENERATION_THROTTLE,
 } from '@coopenomics/extension-kit';
 import { IMonoAccount } from '@coopenomics/innercoop';
 import { ProgramAgreementsAnnulmentGenerateDocumentInputDTO } from '~/application/document/documents-dto/program-agreements-annulment-document.dto';
@@ -35,7 +36,7 @@ export class MembershipExitResolver {
     name: 'generateMembershipExitApplication',
     description: 'Сгенерировать документ заявления о выходе из кооператива.',
   })
-  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @Throttle(DOCUMENT_GENERATION_THROTTLE)
   @UseGuards(GqlJwtAuthGuard, RightsGuard)
   @RequireRight('MembershipExit', 'generate:own', { owner: 'data.username' })
   async generateMembershipExitApplication(
@@ -55,7 +56,7 @@ export class MembershipExitResolver {
     name: 'generateProgramAgreementsAnnulment',
     description: 'Сгенерировать заявление об аннулировании соглашений об участии в целевых потребительских программах.',
   })
-  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @Throttle(DOCUMENT_GENERATION_THROTTLE)
   @UseGuards(GqlJwtAuthGuard, AuthorizationGuard)
   @CheckAbility('generate', 'MembershipExit')
   async generateProgramAgreementsAnnulment(
@@ -71,7 +72,7 @@ export class MembershipExitResolver {
     name: 'generateMembershipExitDecision',
     description: 'Сгенерировать документ решения собрания совета о выходе пайщика.',
   })
-  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @Throttle(DOCUMENT_GENERATION_THROTTLE)
   @UseGuards(GqlJwtAuthGuard, RightsGuard)
   @RequireRight('DecisionDocument', 'generate')
   async generateMembershipExitDecision(

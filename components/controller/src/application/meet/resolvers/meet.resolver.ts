@@ -1,5 +1,5 @@
 import { Resolver, Mutation, Args, Query } from '@nestjs/graphql';
-import { GqlJwtAuthGuard, CurrentUser, GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO, RequireRight, RightsGuard } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, CurrentUser, GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO, RequireRight, RightsGuard, DOCUMENT_GENERATION_THROTTLE } from '@coopenomics/extension-kit';
 import { UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { CreateAnnualGeneralMeetInputDTO } from '../dto/create-meet-agenda-input.dto';
@@ -119,7 +119,7 @@ export class MeetResolver {
     name: 'generateAnnualGeneralMeetDecisionDocument',
     description: 'Сгенерировать документ решения общего собрания пайщиков',
   })
-  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @Throttle(DOCUMENT_GENERATION_THROTTLE)
   @UseGuards(GqlJwtAuthGuard, RightsGuard)
   @RequireRight('Meet', 'sign:own', [{ owner: 'data.username' }, { of: 'MeetOfficer', id: 'data.meet_hash', match: 'any' }])
   async generateAnnualGeneralMeetDecisionDocument(
@@ -135,7 +135,7 @@ export class MeetResolver {
     name: 'generateAnnualGeneralMeetNotificationDocument',
     description: 'Сгенерировать документ уведомления о проведении общего собрания пайщиков',
   })
-  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @Throttle(DOCUMENT_GENERATION_THROTTLE)
   @UseGuards(GqlJwtAuthGuard, RightsGuard)
   @RequireRight('Meet', 'acknowledge:own', { owner: 'data.username' })
   async generateAnnualGeneralMeetNotificationDocument(
@@ -151,7 +151,7 @@ export class MeetResolver {
     name: 'generateSovietDecisionOnAnnualMeetDocument',
     description: 'Сгенерировать документ решения Совета по проведению общего собрания пайщиков',
   })
-  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @Throttle(DOCUMENT_GENERATION_THROTTLE)
   @UseGuards(GqlJwtAuthGuard, RightsGuard)
   @RequireRight('Meet', 'create')
   async generateSovietDecisionOnAnnualMeetDocument(
@@ -167,7 +167,7 @@ export class MeetResolver {
     name: 'generateBallotForAnnualGeneralMeetDocument',
     description: 'Сгенерировать бюллетень для голосования на общем собрании пайщиков',
   })
-  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @Throttle(DOCUMENT_GENERATION_THROTTLE)
   @UseGuards(GqlJwtAuthGuard, RightsGuard)
   @RequireRight('Meet', 'vote:own', { owner: 'data.username' })
   async generateBallotForAnnualGeneralMeetDocument(
@@ -183,7 +183,7 @@ export class MeetResolver {
     name: 'generateAnnualGeneralMeetAgendaDocument',
     description: 'Сгенерировать предложение повестки общего собрания пайщиков',
   })
-  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @Throttle(DOCUMENT_GENERATION_THROTTLE)
   @UseGuards(GqlJwtAuthGuard, RightsGuard)
   @RequireRight('Meet', 'create')
   async generateAnnualGeneralMeetAgendaDocument(

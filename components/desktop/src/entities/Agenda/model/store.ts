@@ -5,6 +5,14 @@ import type { IAgenda, IGetAgendaInput } from './types';
 
 const namespace = 'agendaStore';
 
+const idOf = (item: IAgenda): string => String(item?.table?.id ?? '')
+
+/** Вопросы из `items`, которых ещё нет в `loaded`. */
+const notLoaded = (items: IAgenda[], loaded: IAgenda[]): IAgenda[] => {
+  const loadedIds = new Set(loaded.map(idOf))
+  return items.filter((item) => !loadedIds.has(idOf(item)))
+}
+
 interface IAgendaStore {
   agenda: ComputedRef<IAgenda[]>
   loading: Ref<boolean>
@@ -25,30 +33,39 @@ export const useAgendaStore = defineStore(namespace, (): IAgendaStore => {
   // publish → исчез на ближайшем поллинге → снова появился).
   const createdBuffer = ref<IAgenda[]>([])
 
-  const idOf = (item: IAgenda): string => String(item?.table?.id ?? '')
-
   // Итоговая повестка: ещё не подтверждённые из буфера (сверху) + authoritative.
   const agenda = computed<IAgenda[]>(() => {
     if (!createdBuffer.value.length) return loadedAgenda.value
-    const loadedIds = new Set(loadedAgenda.value.map(idOf))
-    const pending = createdBuffer.value.filter((item) => !loadedIds.has(idOf(item)))
-    return [...pending, ...loadedAgenda.value]
+    return [...notLoaded(createdBuffer.value, loadedAgenda.value), ...loadedAgenda.value]
   })
 
+  // Запросы повестки идут внахлёст (первая загрузка экрана, живое обновление,
+  // кнопка «Обновить»). Ответ более раннего запроса, пришедший позже, затёр бы
+  // свежий список старым — применяем только ответ новее последнего применённого.
+  let requestSeq = 0
+  let appliedSeq = 0
+
   const loadAgenda = async (data: IGetAgendaInput, hidden = false): Promise<IAgenda[]> => {
+    const seq = ++requestSeq
+    // Скрытое обновление (живая повестка, кнопка «Обновить») флаг загрузки не
+    // трогает. Прежде оно сбрасывало его в начале и в конце — и гасило каркас
+    // идущей первой загрузки: страница вопроса, открытая из оповещения о новом
+    // решении, на миг показывала «вопроса нет», пока список ещё грузился (16.10.2026).
     try {
-      loading.value = hidden ? false : true
+      if (!hidden) loading.value = true
       const loadedData = await api.loadAgenda(data);
+      if (seq < appliedSeq) {
+        if (!hidden) loading.value = false
+        return loadedAgenda.value;
+      }
+      appliedSeq = seq
       loadedAgenda.value = loadedData;
       // Подтверждённые вопросы убираем из буфера: authoritative-данные пришли.
-      if (createdBuffer.value.length) {
-        const loadedIds = new Set(loadedData.map(idOf))
-        createdBuffer.value = createdBuffer.value.filter((item) => !loadedIds.has(idOf(item)))
-      }
-      loading.value = false
+      if (createdBuffer.value.length) createdBuffer.value = notLoaded(createdBuffer.value, loadedData)
+      if (!hidden) loading.value = false
       return loadedData;
     } catch (error) {
-      loading.value = false
+      if (!hidden) loading.value = false
       throw error;
     }
   };

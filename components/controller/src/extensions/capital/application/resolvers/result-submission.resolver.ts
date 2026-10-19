@@ -12,6 +12,7 @@ import {
   GenerateDocumentOptionsInputDTO,
   RequireRight,
   RightsGuard,
+  DOCUMENT_GENERATION_THROTTLE,
 } from '@coopenomics/extension-kit';
 import { UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
@@ -111,7 +112,7 @@ export class ResultSubmissionResolver {
     name: 'capitalGenerateResultContributionStatement',
     description: 'Сгенерировать заявление о вкладе результатов',
   })
-  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @Throttle(DOCUMENT_GENERATION_THROTTLE)
   @UseGuards(GqlJwtAuthGuard, RightsGuard)
   @RequireRight('Result', ['generate:own', 'generate'], { owner: 'data.username' })
   async generateResultContributionStatement(
@@ -131,7 +132,7 @@ export class ResultSubmissionResolver {
     name: 'capitalGenerateResultContributionDecision',
     description: 'Сгенерировать решение о вкладе результатов',
   })
-  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @Throttle(DOCUMENT_GENERATION_THROTTLE)
   @UseGuards(GqlJwtAuthGuard, RightsGuard)
   @RequireRight('Result', ['generate:own', 'generate'], { owner: 'data.username' })
   async generateResultContributionDecision(
@@ -151,7 +152,7 @@ export class ResultSubmissionResolver {
     name: 'capitalGenerateResultContributionAct',
     description: 'Сгенерировать акт о вкладе результатов',
   })
-  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @Throttle(DOCUMENT_GENERATION_THROTTLE)
   @UseGuards(GqlJwtAuthGuard, RightsGuard)
   @RequireRight('Result', ['generate:own', 'generate'], { owner: 'data.username' })
   async generateResultContributionAct(

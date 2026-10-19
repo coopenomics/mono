@@ -32,6 +32,8 @@ import { LedgerBlockchainAdapter } from './adapters/ledger-blockchain.adapter';
 import { LEDGER_BLOCKCHAIN_PORT } from '~/domain/ledger/ports/ledger.port';
 import { Ledger2BlockchainAdapter } from './adapters/ledger2-blockchain.adapter';
 import { LEDGER2_BLOCKCHAIN_PORT } from '~/domain/ledger2/ports/ledger2-blockchain.port';
+import { BillingBlockchainAdapter } from './adapters/billing-blockchain.adapter';
+import { BILLING_BLOCKCHAIN_PORT } from '~/domain/billing/ports/billing-blockchain.port';
 import { SovietContractInfoService } from './services/soviet-contract-info.service';
 import { WalletContractInfoService } from './services/wallet-contract-info.service';
 import { Ledger2ContractInfoService } from './services/ledger2-contract-info.service';
@@ -103,6 +105,11 @@ import { BlockchainArchiveRetentionService } from '~/shared/sync/services/blockc
       provide: LEDGER2_BLOCKCHAIN_PORT,
       useClass: Ledger2BlockchainAdapter,
     },
+    // Провайдеры для billing (оплата подписок — convert/pay, Epic 12)
+    {
+      provide: BILLING_BLOCKCHAIN_PORT,
+      useClass: BillingBlockchainAdapter,
+    },
     DomainToBlockchainUtils,
     SovietContractInfoService,
     WalletContractInfoService,
@@ -127,6 +134,7 @@ import { BlockchainArchiveRetentionService } from '~/shared/sync/services/blockc
     WALLET_BLOCKCHAIN_PORT,
     LEDGER_BLOCKCHAIN_PORT,
     LEDGER2_BLOCKCHAIN_PORT,
+    BILLING_BLOCKCHAIN_PORT,
     DomainToBlockchainUtils,
     SovietContractInfoService,
     WalletContractInfoService,

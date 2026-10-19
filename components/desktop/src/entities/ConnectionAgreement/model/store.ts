@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { Cooperative } from 'cooptypes'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { DigitalDocument } from 'src/shared/lib/document'
 import { useSessionStore } from 'src/entities/Session'
 import { useLoadCooperatives } from 'src/features/Union/LoadCooperatives'
@@ -19,13 +19,31 @@ export const useConnectionAgreementStore = defineStore(namespace, () => {
   const isInitialized = ref<boolean>(false)
   const document = ref<any>(null)
   const signedDocument = ref<any>(null)
+  // Причина, по которой соглашение не собралось: шаг показывает её вместо вечной загрузки.
+  const documentError = ref<string | null>(null)
   const currentInstance = ref<CurrentInstance | null>(null)
   const currentInstanceLoading = ref<boolean>(false)
   const currentInstanceError = ref<string | null>(null)
   const isBadGateway = ref<boolean>(false)
+  // Чьё это состояние. Стор живёт в браузере (persist), и без владельца
+  // кооператив, вошедший после другого, получал чужой инстанс — вплоть до
+  // панели завершённой установки сразу после регистрации (18.10.2026).
+  const owner = ref<string | null>(null)
   const coop = ref<any>(null)
   const hasMatrixAccount = ref<boolean>(false)
+  // Адрес направлен на платформу: провайдер видит тот же домен, что записан у
+  // кооператива в цепи, и проверка делегирования по нему прошла. После смены
+  // адреса провайдер ещё какое-то время помнит старый домен с прежним признаком.
+  const isDomainDelegated = computed(() => {
+    const instance = currentInstance.value
+    if (!instance?.is_delegated) return false
+    const announce = coop.value?.announce
+    if (!announce) return true
+    const normalize = (domain: string) => String(domain ?? '').trim().replace(/\.$/, '').toLowerCase()
+    return normalize(instance.domain) === normalize(announce)
+  })
   const formData = ref<ICooperativeFormData>({
+    description: '',
     announce: '',
     initial: '',
     minimum: '',
@@ -73,6 +91,7 @@ export const useConnectionAgreementStore = defineStore(namespace, () => {
     const formDataValue = formData.value
     console.log('📋 Данные формы:', formDataValue)
 
+    documentError.value = null
     try {
       console.log('📄 Создаем новый DigitalDocument')
       const newDoc = new DigitalDocument()
@@ -85,6 +104,7 @@ export const useConnectionAgreementStore = defineStore(namespace, () => {
 
       // Передаем данные из формы в документ, если они есть
       if (formDataValue) {
+        params.description = formDataValue.description
         params.announce = formDataValue.announce
         params.initial = formDataValue.initial
         params.minimum = formDataValue.minimum
@@ -101,6 +121,7 @@ export const useConnectionAgreementStore = defineStore(namespace, () => {
       return newDoc
     } catch (error) {
       console.error('❌ Ошибка при генерации документа:', error)
+      documentError.value = extractGraphQLErrorMessages(error)
       throw error
     }
   }
@@ -140,7 +161,15 @@ export const useConnectionAgreementStore = defineStore(namespace, () => {
     }
   }
 
+  /** Состояние принадлежит вошедшему: вошёл другой — прежнее сбрасывается целиком. */
+  const bindToUser = (username: string) => {
+    if (!username || owner.value === username) return
+    reset()
+    owner.value = username
+  }
+
   const loadCurrentInstance = async () => {
+    bindToUser(useSessionStore().username)
     try {
       currentInstanceLoading.value = true
       currentInstanceError.value = null
@@ -148,11 +177,9 @@ export const useConnectionAgreementStore = defineStore(namespace, () => {
       isBadGateway.value = false
       const freshInstance = await getCurrentInstance()
 
-      // Обновляем данные только если получили свежие данные
-      // При ошибке оставляем старые данные в currentInstance (они могут быть из localStorage)
-      if (freshInstance !== null) {
-        currentInstance.value = freshInstance
-      }
+      // Пусто — у кооператива нет инстанса у провайдера: это ответ, его и показываем.
+      // Прежнее значение остаётся только при сбое связи с провайдером (ниже).
+      currentInstance.value = freshInstance
 
       console.log('Текущий инстанс загружен:', currentInstance.value)
     } catch (error: any) {
@@ -161,7 +188,9 @@ export const useConnectionAgreementStore = defineStore(namespace, () => {
 
       // Не устанавливаем Bad Gateway для ошибки "Инстанс не найден"
       // i18n-ignore: сверка с текстом ответа внешнего сервиса провайдера, кода у него нет
-      if (!currentInstanceError.value?.includes('Инстанс не найден')) {
+      if (currentInstanceError.value?.includes('Инстанс не найден')) {
+        currentInstance.value = null
+      } else {
         isBadGateway.value = true
       }
 
@@ -200,6 +229,7 @@ export const useConnectionAgreementStore = defineStore(namespace, () => {
     coop.value = null
     hasMatrixAccount.value = false
     formData.value = {
+      description: '',
       announce: '',
       initial: '',
       minimum: '',
@@ -241,14 +271,17 @@ export const useConnectionAgreementStore = defineStore(namespace, () => {
     selectedTariff,
     isInitialized,
     document,
+    documentError,
     signedDocument,
     currentInstance,
     currentInstanceLoading,
     currentInstanceError,
     isBadGateway,
+    owner,
     coop,
     formData,
     hasMatrixAccount,
+    isDomainDelegated,
 
     // Methods
     setCurrentStep,

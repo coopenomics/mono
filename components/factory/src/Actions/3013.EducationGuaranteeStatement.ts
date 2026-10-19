@@ -3,6 +3,7 @@ import { EducationGuaranteeStatement } from '../Templates'
 import { DocFactory } from '../Factory'
 import type { IGeneratedDocument, IGenerationOptions, IMetaDocument, ITemplate } from '../Interfaces'
 import type { MongoDBConnector } from '../Services/Databazor'
+import { DocumentNotApprovedError } from '../errors'
 
 export { EducationGuaranteeStatement as Template } from '../Templates'
 
@@ -40,7 +41,7 @@ export class Factory extends DocFactory<EducationGuaranteeStatement.Action> {
 
     // Заявление ссылается на протокол утверждения Положения — без него текст неполон.
     if (!vars.education_provision?.protocol_number || !vars.education_provision?.protocol_day_month_year)
-      throw new Error('Реквизиты протокола об утверждении Положения о ЦПП «Образование» не заполнены (vars.education_provision)')
+      throw new DocumentNotApprovedError('Реквизиты протокола об утверждении Положения о ЦПП «Образование» не заполнены (vars.education_provision)')
 
     const userData = await this.getUser(data.username, data.block_num)
     const user = this.getCommonUser(userData)

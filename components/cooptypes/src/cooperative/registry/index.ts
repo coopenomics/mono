@@ -79,6 +79,7 @@ export * as BranchFinancialAidStatement from './1109.BranchFinancialAidStatement
 export * as MarketplaceConvertStatement from './1110.MarketplaceConvertStatement'
 export * as MarketplaceWriteoffServiceMemo from './1111.MarketplaceWriteoffServiceMemo'
 export * as BranchFinancialAidProtocol from './1112.BranchFinancialAidProtocol'
+export * as BillingConversionStatement from './1095.BillingConversionStatement'
 // Стол заказов — паевая модель (компонент 68): выдача и гарантийный возврат
 export * as MarketplaceShareReturnStatement from './1113.MarketplaceShareReturnStatement'
 export * as MarketplaceShareReturnDecision from './1114.MarketplaceShareReturnDecision'

@@ -219,6 +219,7 @@ cases:
     scenario: перебор адресов с одного IP через проверку занятости
     expect: после 120 проверок за час отказ до обращения к базе
     test: components/controller/src/application/auth/email-verification/email-verification.service.spec.ts
+    api: components/api-tests/src/coopid/email-verification.test.ts
     status: passing
 
   - id: cid.ev.side.10

@@ -30,6 +30,11 @@ sources:
     - components/controller/src/extensions/capital/domain/errors/content-conflict.error.ts
     - components/controller/src/extensions/capital/infrastructure/entities/content-revision.record.ts
     - components/controller/migrations/V2.5.5__capital_content_revisions_backfill.ts
+    # blago-cli ходит тем же API синхронизации; отдельного уровня «cli» в
+    # реестре нет, маски живут в backend.
+    - components/blago-cli/src/sync/push.ts
+    - components/blago-cli/src/sync/merge3.ts
+    - components/blago-cli/src/sync/sync-entity-file.ts
   ui:
     - components/desktop/extensions/capital/features/ContentRevisions/**
     - components/desktop/extensions/capital/pages/ProjectDescriptionPage/**

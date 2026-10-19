@@ -29,6 +29,34 @@ import { config } from '~/config';
 /**
  * Интерактор приложения wallet для управления паевыми взносами, их возвратами, генерацией документов и работой с программными кошельками
  */
+/**
+ * Нулевой остаток в том же символе, что и последнее известное значение
+ * («3660.0000 RUB» → «0.0000 RUB»). Символ берём из строки, чтобы не тянуть
+ * сюда конфиг токена: у разных контуров он разный.
+ */
+function zeroLike(asset?: string | null): string {
+  const [amount, symbol] = String(asset ?? '').trim().split(' ');
+  const precision = amount?.includes('.') ? amount.split('.')[1].length : 4;
+  return `${(0).toFixed(precision)}${symbol ? ` ${symbol}` : ''}`;
+}
+
+/**
+ * Остатки строки проекции так, как их должен видеть пайщик. Стёртая строка
+ * (present=false) — обнулённый кошелёк: контракт удаляет запись из chain-RAM,
+ * когда баланс дошёл до нуля, а проекция хранит последнее значение следом
+ * истории. Отдавать его остатком нельзя — кооператив видел на членском
+ * кошельке 3 660 ₽, которых в цепи давно не было (@ant 2026-08-27).
+ */
+function visibleBalances(row: { present?: boolean; available?: string | null; blocked?: string | null }): {
+  available: string;
+  blocked: string;
+} {
+  if (row.present === false) {
+    return { available: zeroLike(row.available), blocked: zeroLike(row.blocked) };
+  }
+  return { available: row.available ?? '0', blocked: row.blocked ?? '0' };
+}
+
 @Injectable()
 export class WalletInteractor {
   private readonly logger = new Logger(WalletInteractor.name);
@@ -222,8 +250,9 @@ export class WalletInteractor {
       dto.human_name = Ledger2.getWalletHumanName(named) ?? wallet_name;
       dto.program_id = pid !== undefined ? String(pid) : null;
       dto.username = row.username ?? username;
-      dto.available = row.available ?? '0';
-      dto.blocked = row.blocked ?? '0';
+      const balances = visibleBalances(row);
+      dto.available = balances.available;
+      dto.blocked = balances.blocked;
       return dto;
     });
   }
@@ -293,7 +322,11 @@ export class WalletInteractor {
     }
 
     // 3. Buckets из L3-rows.
-    type Bucket = { share?: UserWalletDomainEntity; member?: UserWalletDomainEntity; single?: UserWalletDomainEntity };
+    type Bucket = {
+      share?: UserWalletDomainEntity;
+      member?: UserWalletDomainEntity;
+      single?: UserWalletDomainEntity;
+    };
     const buckets = new Map<string, Bucket>();
     for (const row of rows) {
       if (row.present === false) continue;
@@ -305,7 +338,12 @@ export class WalletInteractor {
       const key = `${row.coopname}::${row.username}::${pid}`;
       const bucket = buckets.get(key) ?? {};
       if (pid === 1) {
+        // К программе ЦК относятся ТРИ кошелька: паевой, членский и биллинг.
+        // Биллинг (`w.wal.bill`) живёт в леджере оператора и в MAIN-кошелёк не
+        // сворачивается — до 26.08.2026 он попадал в ветку `else` и подменял
+        // собой паевой баланс, если приходил в выборке последним.
         if (wn === Ledger2.MEMBERSHIP_WALLET_NAME) bucket.member = row;
+        else if (wn === Ledger2.BILLING_WALLET_NAME) continue;
         else bucket.share = row;
       } else {
         bucket.single = row;

@@ -29,6 +29,9 @@ title: Аренда вычислительных ресурсов коопера
 sources:
   backend:
     - components/controller/src/extensions/powerup/powerup-extension.module.ts
+    - components/controller/src/extensions/powerup/powerup.ports.ts
+    - components/controller/src/infrastructure/innercoop/provider-tariff-innercoop.adapter.ts
+    - components/innercoop/src/core-ports/provider-tariff.port.ts
     - components/controller/src/infrastructure/blockchain/blockchain.service.ts
     - components/controller/src/application/metrics/platform-metrics.service.ts
     - components/sdk/src/utils/chainFetch.ts
@@ -172,3 +175,33 @@ cases:
     test: components/controller/tests/unit/rights/extension-rights-tables.test.ts
     api: components/api-tests/src/rights/matrix.test.ts
     status: written
+
+  # 15.10.2026 (B2D-17): слияние с биллингом провайдера — пакетная докупка AXON
+  # (PowerupPlugin, Epic 13) пишет id транзакции в журнал оплат.
+  - id: coop.res.side.11
+    level: backend
+    kind: side
+    scenario: >
+      powerup принят узлом, но в ответе нет идентификатора транзакции (ни
+      response.transaction_id, ни resolved.transaction.id).
+    expect: >
+      powerUp бросает ошибку, а не возвращает пустую строку: пустой id ушёл бы
+      в журнал вместо настоящего, и сверка с историей цепи не нашла бы платёж
+    status: missing
+
+  # Суточная аренда на D тарифа (B2D-32, @ant 17.10.2026): объём месяца сгорает к дате оплаты.
+  - id: coop.res.side.12
+    level: backend
+    kind: side
+    scenario: >
+      Ежедневная аренда у кооператива с тарифом провайдера; у кооператива без
+      тарифа; аренда при загрузке 70 %.
+    expect: >
+      суточная аренда идёт на D тарифа из порта PROVIDER_TARIFF_PORT (объём месяца /
+      число дней месяца, дробное и меньше 5 допустимо, контракт принимает от 0,0001);
+      без тарифа или без ответа — на сумму настройки расширения; аренда при 70 % —
+      по-прежнему на сумму настройки
+    test: components/controller/tests/unit/extension/powerup-extension.test.ts
+    external: unreachable
+    external_reason: "суточная аренда идёт по расписанию раз в сутки и берёт D у провайдера; внешний слой стенда провайдера не поднимает и сутки не ждёт"
+    status: passing

@@ -9,7 +9,7 @@
 экспорта, исчезнувший метод, новый обязательный параметр требуют major, а
 снятое старое — периода устаревания не меньше одного minor (INV-009).
 
-Всего экспортов: 327.
+Всего экспортов: 336.
 
 ## ACCOUNT_PORT
 
@@ -1087,6 +1087,19 @@
 - `created: boolean`
 - `program_id: number`
 
+## InnerEntrepreneurLookupRecord
+
+`interface` · hooks
+
+- `last_name?: string`
+- `first_name?: string`
+- `middle_name?: string`
+- `city?: string`
+- `details: {`
+- `inn: string`
+- `ogrn?: string`
+- `}`
+
 ## InnerExitBlockersProvider
 
 `interface` · core-ports
@@ -1743,6 +1756,31 @@
 - `ogrn: string`
 - `kpp: string`
 
+## InnerOrganizationLookupRecord
+
+`interface` · hooks
+
+- `short_name?: string`
+- `full_name?: string`
+- `type?: InnerOrganizationType`
+- `represented_by?: InnerOrganizationLookupRepresentative`
+- `city?: string`
+- `full_address?: string`
+- `details: {`
+- `inn: string`
+- `ogrn?: string`
+- `kpp?: string`
+- `}`
+
+## InnerOrganizationLookupRepresentative
+
+`interface` · hooks
+
+- `last_name?: string`
+- `first_name?: string`
+- `middle_name?: string`
+- `position?: string`
+
 ## InnerOrganizationType
 
 `enum` · core-ports
@@ -1999,6 +2037,15 @@
 - `title?: string`
 - `doc_data_hash?: string`
 
+## InnerProviderTariff
+
+`interface` · core-ports
+
+- `code: string`
+- `docflow_axon: number`
+- `daily_axon: number`
+- `trial_days: number`
+
 ## InnerPublishProjectFreeDecisionInput
 
 `interface` · core-ports
@@ -2220,6 +2267,21 @@
 - `registerStep(step: InnerOnboardingStep): void`
 - `unregisterStepsByExtension(extensionName: string): void`
 
+## IOrganizationLookupHook
+
+`interface` · hooks
+
+- `readonly extensionName: string`
+- `readonly country: string`
+- `findByInn(inn: string): Promise<InnerOrganizationLookupRecord | null>`
+- `findEntrepreneurByInn?(inn: string): Promise<InnerEntrepreneurLookupRecord | null>`
+
+## IOrganizationLookupRegistryPort
+
+`interface` · hooks
+
+- `register(provider: IOrganizationLookupHook): void`
+
 ## IOrganizationPort
 
 `interface` · core-ports
@@ -2341,6 +2403,12 @@
 - `): Promise<InnerCompletedCallTranscriptionHead[]>`
 - `getMaxCompletedEndedAtForRooms(matrixRoomIds: string[]): Promise<Date | null>`
 - `renderCompletedCallTranscriptionMarkdown(transcriptionId: string): Promise<string | null>`
+
+## IProviderTariffPort
+
+`interface` · core-ports
+
+- `currentTariff(coopname: string): Promise<InnerProviderTariff | null>`
 
 ## IRealtimeChannelPort
 
@@ -2563,6 +2631,12 @@
 
 - `Symbol.for('Innercoop.CorePort.OnboardingStepRegistry')`
 
+## ORGANIZATION_LOOKUP_REGISTRY_PORT
+
+`const` · hooks
+
+- `Symbol.for('Innercoop.CorePort.OrganizationLookupRegistry')`
+
 ## ORGANIZATION_PORT
 
 `const` · core-ports
@@ -2700,6 +2774,12 @@
 `const` · cross-plugin-ports
 
 - `Symbol.for('Innercoop.CrossPlugin.ProjectCommunicationArtifacts')`
+
+## PROVIDER_TARIFF_PORT
+
+`const` · core-ports
+
+- `Symbol.for('Innercoop.CorePort.ProviderTariff')`
 
 ## REALTIME_CHANNEL_PORT
 

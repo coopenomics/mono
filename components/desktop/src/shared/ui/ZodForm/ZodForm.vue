@@ -185,6 +185,15 @@ import { t } from 'src/shared/i18n';
     setDefaults(props.schema, data);
   }
 
+  // Значения секретных параметров сервер не отдаёт: вместо них приходит метка
+  // «задано» (EXTENSION_SECRET_SET в extension-kit). Показать её текстом
+  // нельзя — набранное припишется к метке и сохранится как новый ключ. Поле
+  // остаётся пустым с пометкой «задано»; пустое при сохранении возвращает
+  // метку, и сервер оставляет сохранённое значение.
+  const SECRET_SET_MARKER = '__secret_set__';
+  const secretSetFields = new Set(Object.keys(data).filter((key) => data[key] === SECRET_SET_MARKER));
+  const isSecretKept = (propertyName: string) => data[propertyName] === SECRET_SET_MARKER;
+
   // Эмитим начальные данные (важно для сгенерированных значений)
   emit('update:modelValue', { ...data });
 
@@ -223,8 +232,12 @@ import { t } from 'src/shared/i18n';
 
   function getComponentProps(property: ISchemaProperty, propertyName: string) {
     const componentProps: Record<string, any> = {
-      modelValue: data[propertyName],
+      modelValue: isSecretKept(propertyName) ? '' : data[propertyName],
       'onUpdate:modelValue': (value: any) => {
+        if (secretSetFields.has(propertyName) && (value === '' || value === null)) {
+          data[propertyName] = SECRET_SET_MARKER;
+          return;
+        }
         data[propertyName] = property.type === 'number' ? parseFloat(value) : value;
       },
     };
@@ -237,7 +250,7 @@ import { t } from 'src/shared/i18n';
     if (props.schema.required?.includes(propertyName)) {
       rules.unshift((val: unknown) => {
         const filled = typeof val === 'string' ? val.trim() !== '' : val !== null && val !== undefined;
-        return filled || t('ui.zodForm.requiredError');
+        return filled || isSecretKept(propertyName) || t('ui.zodForm.requiredError');
       });
     }
 
@@ -285,6 +298,9 @@ import { t } from 'src/shared/i18n';
     // Заполнитель пустого поля: пример ответа или формата.
     if (property.description?.placeholder) {
       componentProps.placeholder = property.description.placeholder;
+    }
+    if (secretSetFields.has(propertyName)) {
+      componentProps.placeholder = t('ui.zodForm.secretSetPlaceholder');
     }
 
     // Поддержка readonly

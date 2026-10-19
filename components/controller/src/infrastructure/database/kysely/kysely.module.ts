@@ -23,6 +23,8 @@ import { PAYMENT_REPOSITORY } from '~/domain/gateway/repositories/payment.reposi
 import { PaymentKyselyRepository } from './repositories/payment.kysely-repository';
 import { PAYMENT_FILE_REPOSITORY } from '~/domain/gateway/repositories/payment-file.repository';
 import { PaymentFileKyselyRepository } from './repositories/payment-file.kysely-repository';
+import { COOPERATIVE_CHARTER_REPOSITORY } from '~/domain/cooperative-charter/repositories/cooperative-charter.repository';
+import { CooperativeCharterKyselyRepository } from './repositories/cooperative-charter.kysely-repository';
 import { ROLE_ASSIGNMENT_REPOSITORY } from '~/domain/access-roles/role-assignment.repository';
 import { RoleAssignmentKyselyRepository } from './repositories/role-assignment.kysely-repository';
 import { NOTIFICATION_SUBSCRIPTION_PORT } from '~/domain/notification/interfaces/web-push-subscription.port';
@@ -129,6 +131,10 @@ import { SignedDocumentKyselyRepository } from './repositories/signed-document.k
     {
       provide: PAYMENT_FILE_REPOSITORY,
       useClass: PaymentFileKyselyRepository,
+    },
+    {
+      provide: COOPERATIVE_CHARTER_REPOSITORY,
+      useClass: CooperativeCharterKyselyRepository,
     },
     {
       provide: ROLE_ASSIGNMENT_REPOSITORY,
@@ -253,6 +259,7 @@ import { SignedDocumentKyselyRepository } from './repositories/signed-document.k
     CANDIDATE_REPOSITORY,
     PAYMENT_REPOSITORY,
     PAYMENT_FILE_REPOSITORY,
+    COOPERATIVE_CHARTER_REPOSITORY,
     ROLE_ASSIGNMENT_REPOSITORY,
     NOTIFICATION_SUBSCRIPTION_PORT,
     LEDGER_OPERATION_REPOSITORY,

@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import zodToJsonSchema from 'zod-to-json-schema';
 import type { InnerIntakeJsonSchema } from '@coopenomics/innercoop';
-import type { DeserializedDescriptionOfExtension } from '@coopenomics/extension-kit';
+import { describeConfigField } from '@coopenomics/extension-kit';
 import { t } from '../../i18n';
 
 /**
@@ -18,10 +18,6 @@ import { t } from '../../i18n';
  * что JSON Schema выражает (`min`/`max`, обязательность, перечисления), а не
  * произвольными `refine`.
  */
-
-function describeField(description: DeserializedDescriptionOfExtension): string {
-  return JSON.stringify(description);
-}
 
 // Заголовок анкеты виден, только когда анкет у заявителя несколько, — он
 // различает их между собой и не должен повторять подпись поля.
@@ -58,7 +54,7 @@ export const GeneratorIntakeSchema = z.object({
     .min(COVER_LETTER_MIN_LENGTH)
     .max(COVER_LETTER_MAX_LENGTH)
     .describe(
-      describeField({
+      describeConfigField({
         label: COVER_LETTER_LABEL,
         note: COVER_LETTER_NOTE,
         minLength: COVER_LETTER_MIN_LENGTH,
@@ -75,7 +71,7 @@ export const GeneratorIntakeSchema = z.object({
     .max(RESUME_URL_MAX_LENGTH)
     .optional()
     .describe(
-      describeField({
+      describeConfigField({
         label: RESUME_URL_LABEL,
         note: RESUME_URL_NOTE,
         maxLength: RESUME_URL_MAX_LENGTH,

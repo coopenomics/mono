@@ -1,5 +1,5 @@
 import { Resolver, Mutation, Args } from '@nestjs/graphql';
-import { GqlJwtAuthGuard, GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO, RequireRight, RightsGuard } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO, RequireRight, RightsGuard, DOCUMENT_GENERATION_THROTTLE } from '@coopenomics/extension-kit';
 import { UseGuards } from '@nestjs/common';
 import { ProjectFreeDecisionGenerateDocumentInputDTO } from '../../document/documents-dto/project-free-decision-document.dto';
 import { Throttle } from '@nestjs/throttler';
@@ -22,7 +22,7 @@ export class FreeDecisionResolver {
     name: 'generateProjectOfFreeDecision',
     description: 'Сгенерировать документ проекта свободного решения',
   })
-  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @Throttle(DOCUMENT_GENERATION_THROTTLE)
   @UseGuards(GqlJwtAuthGuard, RightsGuard)
   @RequireRight('FreeDecision', 'propose')
   async generateProjectOfFreeDecision(
@@ -38,7 +38,7 @@ export class FreeDecisionResolver {
     name: 'generateFreeDecision',
     description: 'Сгенерировать протокол решения по предложенной повестке',
   })
-  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @Throttle(DOCUMENT_GENERATION_THROTTLE)
   @UseGuards(GqlJwtAuthGuard, RightsGuard)
   @RequireRight('FreeDecision', 'generate')
   async generateFreeDecision(

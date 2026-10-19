@@ -14,6 +14,7 @@ import {
   DESKTOP_GRANTS_REGISTRY_PORT,
   CHAIN_RESOURCES_PORT,
   LOGGER_PORT,
+  PROVIDER_TARIFF_PORT,
 } from '@coopenomics/innercoop';
 
 export const powerupPorts = {
@@ -23,5 +24,8 @@ export const powerupPorts = {
     LOGGER_PORT,
   ],
   optional: [
+    // Тариф у провайдера: суточная аренда на D тарифа. Без порта — на
+    // настройку расширения.
+    PROVIDER_TARIFF_PORT,
   ],
 };

@@ -92,6 +92,12 @@ static constexpr ExitWalletRule EXIT_WALLET_POLICY[] = {
   // владельца отложено), поэтому остаток пайщика выход не трогает.
   { ledger2_wallets::CK_MEMBER, ExitWalletPolicy::UNTOUCHED, eosio::name{},
     "Членская часть Цифрового кошелька — политика выхода не определена" },
+  // Биллинг-кошелёк пайщика в леджере оператора (облачный провайдер, B2D-17):
+  // членские взносы под оплату подписок. Решение @ant 15.10.2026: при выходе
+  // средства с этого кошелька не извлекаются — остаток не возвращается на
+  // паевой, не уходит кооперативу и выход не держит.
+  { ledger2_wallets::BILLING_FUND_PAY, ExitWalletPolicy::UNTOUCHED, eosio::name{},
+    "Биллинг-кошелёк облачного провайдера — при выходе средства не извлекаются" },
   { ledger2_wallets::PREIMP_FUND, ExitWalletPolicy::UNTOUCHED, eosio::name{},
     "Пред-импорт РИД — учётный кошелёк, не средства пайщика" },
   { ledger2_wallets::MARKETPLACE_CLAIM_PENDING, ExitWalletPolicy::UNTOUCHED, eosio::name{},

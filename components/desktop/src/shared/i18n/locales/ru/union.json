@@ -14,10 +14,15 @@
     },
     "connectionAgreementPage": {
       "description": "Для запуска вашего Цифрового Кооператива и подключения к платформе Кооперативной Экономики обратитесь в ПК ВОСХОД.",
+      "emptyBody": "Чтобы запустить цифровой кооператив и подключить его к платформе, обратитесь в ПК ВОСХОД.",
+      "emptyTitle": "Подключение к кооперативной экономике",
       "goToSiteLabel": "Перейти на сайт",
       "loadingText": "Загрузка данных подключения...",
       "maintenanceText": "технические работы...",
       "title": "Подключение к Кооперативной Экономике"
+    },
+    "cooperativeCharter": {
+      "uploadError": "Не удалось загрузить устав"
     },
     "cooperativeDataForm": {
       "continueLabel": "Продолжить",
@@ -34,19 +39,74 @@
       "minimumOrgLabel": "Минимальный паевый взнос",
       "orgSectionTitle": "Для организаций"
     },
+    "cooperativeDetail": {
+      "applicationFrom": "заявка от {date}",
+      "backToRegistry": "К реестру",
+      "billingWalletHint": "Списывается за инфраструктурные подписки.",
+      "billingWalletTitle": "Кошелёк членских взносов",
+      "charterAttached": "Приложен {date} · {size}",
+      "charterLinkUnavailable": "Ссылка на устав недоступна",
+      "charterTitle": "Устав кооператива",
+      "column": {
+        "nextPayment": "След. оплата",
+        "period": "Период",
+        "price": "Стоимость",
+        "status": "Статус",
+        "subscription": "Подписка"
+      },
+      "loading": "Загрузка кооператива...",
+      "noCharter": "Устав не приложен.",
+      "noDescription": "Описание не заполнено.",
+      "noSubscriptionsBody": "Появятся, когда провайдер начнёт поставку инфраструктуры",
+      "noSubscriptionsTitle": "Подписок нет",
+      "notFound": "Кооператив не найден в реестре.",
+      "openCharter": "Открыть устав",
+      "periodDays": "{days} дн.",
+      "shareWalletHint": "Возвратный взнос на счёте пайщика в Восходе.",
+      "shareWalletTitle": "Паевой взнос",
+      "sizeKb": "{size} КБ",
+      "sizeMb": "{size} МБ",
+      "tab": {
+        "description": "Описание",
+        "payments": "История оплат",
+        "subscriptions": "Тариф и подписки",
+        "wallets": "Кошельки"
+      }
+    },
+    "cooperativePayments": {
+      "loadError": "История оплат временно недоступна"
+    },
+    "cooperativesRegistry": {
+      "applicationFrom": "заявка от {date}",
+      "awaitingDecision": "после решения совета",
+      "awaitingDelivery": "ждёт поставки",
+      "bannerLine1": "Заявки кооперативов на подключение к платформе. Совет рассматривает описание деятельности, устав и тариф,",
+      "bannerLine2": "подтверждает подключение — после этого провайдер начинает поставку.",
+      "charterAttached": "приложен",
+      "charterLabel": "Устав",
+      "charterMissing": "не приложен",
+      "emptyBody": "Кооперативы, подавшие заявку на подключение, появятся здесь",
+      "emptyTitle": "Заявок нет",
+      "hostingLabel": "Хостинг",
+      "loading": "Загрузка реестра...",
+      "nextPaymentLabel": "Следующая оплата",
+      "noDescription": "Описание не заполнено.",
+      "tariffLabel": "Тариф",
+      "tariffNotChosen": "не выбран"
+    },
     "installCooperativePage": {
       "doneHintLine1": "Всем членам совета отправлены приглашения на электронные почты со",
       "doneHintLine2": "ссылками для получения цифровых подписей. Перейдите по своей ссылке из",
       "doneHintLine3": "письма, получите ключ председателя и используйте его для входа в систему.",
       "doneSubtitle": "Ваш Цифровой Кооператив готов к работе",
       "doneTitle": "Установка завершена",
-      "keyStepIntro": "Введите ключ, который был выдан вам при регистрации в качестве пайщика.",
+      "keyStepIntro": "Введите ключ установки. Его выпускают на странице «Подключение» после завершения установки.",
       "signInLabel": "Войти в систему",
       "sovietStepIntroLine1": "Укажите председателя и членов совета. Каждому будет создан аккаунт пайщика",
       "sovietStepIntroLine2": "и отправлено приглашение на электронную почту.",
       "stepInitDescription": "Реквизиты для документооборота с пайщиками",
       "stepInitLabel": "Данные организации",
-      "stepKeyDescription": "Ключ, выданный при регистрации пайщиком",
+      "stepKeyDescription": "Ключ со страницы подключения",
       "stepKeyLabel": "Ключ установки",
       "stepSovietDescription": "Председатель и члены совета — им создадутся аккаунты",
       "stepSovietLabel": "Члены совета",
@@ -58,21 +118,55 @@
       "varsStepIntroLine2": "документы кооператива."
     },
     "installationCompletedPage": {
-      "blockchainNodeLabel": "Блокчейн-узел",
-      "blockchainNodeStatus": "Развернут, синхронизирован и подключен к сети",
-      "dashboardStepText": "Перейдите к управлению подключением, где сможете просматривать статус подключения, управлять подписками и настраивать параметры платформы.",
-      "databaseLabel": "База данных",
-      "databaseStatus": "Инициализирована и готова к работе",
+      "dashboardStepText": "Там статус подключения, подписки и ключ установки.",
+      "dashboardStepTitle": "Вернитесь к управлению подключением",
       "goToDashboardLabel": "Перейти к управлению подключением",
       "goToSiteLabel": "Перейти на сайт кооператива",
-      "monitoringLabel": "Мониторинг кооператива",
-      "monitoringStatus": "Запущен и функционирует",
-      "nextStepsTitle": "Что дальше?",
-      "serverInfraLabel": "Серверная инфраструктура",
-      "serverInfraStatus": "Полностью настроена",
-      "setupStepText": "Завершите начальную настройку вашего Цифрового Кооператива на сайте.",
-      "subtitle": "Ваш Цифровой Кооператив успешно развернут и подключен к платформе",
-      "title": "Поставка завершена!"
+      "keyStepDoneTitle": "Ключ установки выпущен",
+      "keyStepExistsText": "Если ключ утерян, перевыпустите его.",
+      "keyStepShownText": "Скопируйте ключ и сохраните его. Ключ показывается один раз.",
+      "keyStepText": "Этим ключом платформа кооператива подписывает операции. Мастер установки на сайте запросит его первым шагом.",
+      "keyStepTitle": "Выпустите ключ установки",
+      "setupStepText": "Откройте сайт и введите ключ установки на первом шаге мастера установки.",
+      "siteStepTitle": "Завершите настройку на сайте кооператива",
+      "subtitle": "Цифровой Кооператив работает по адресу {domain}. Чтобы начать работу, выполните три действия по порядку.",
+      "title": "Платформа установлена"
+    },
+    "instance": {
+      "status": {
+        "active": "работает",
+        "blocked": "заблокирован",
+        "error": "ошибка",
+        "install": "устанавливается",
+        "pending": "в очереди",
+        "rent": "арендуем сервер",
+        "requiresManualReview": "нужна проверка"
+      }
+    },
+    "payment": {
+      "status": {
+        "confirmed": "оплачено",
+        "failed": "отклонено",
+        "stalled": "не подтверждено",
+        "submitted": "отправлено в цепь",
+        "submitting": "отправляется"
+      }
+    },
+    "registry": {
+      "status": {
+        "active": "подключение подтверждено",
+        "blocked": "заблокирован",
+        "pending": "ждёт решения совета"
+      }
+    },
+    "subscription": {
+      "status": {
+        "active": "активна",
+        "cancelled": "отменена",
+        "expired": "истекла",
+        "pending": "ожидает оплаты",
+        "trial": "пробный период"
+      }
     },
     "unionPageListOfCooperatives": {
       "actionsLabel": "действия",
@@ -90,6 +184,25 @@
       "statusActive": "активен",
       "statusBlocked": "заблокирован",
       "statusPending": "на рассмотрении"
+    },
+    "tariff": {
+      "app": "Приложение на выбор",
+      "column": {
+        "line": "Строка тарифа",
+        "monthlyPrice": "В месяц"
+      },
+      "docflow": "Документооборот",
+      "docflowDetail": "{members} новых пайщиков или {operations} пакетов документов в месяц ({axon} AXON); сверх объёма 50 ₽ за 5 AXON",
+      "headline": "Тариф «{name}» · {price} · {members} новых пайщиков или {operations} пакетов документов в месяц",
+      "note": "Цены строк указаны за месяц, тариф целиком — {price}. Сервер, поддержка и приложение заводятся при поставке после решения совета.",
+      "onDelivery": "при поставке",
+      "otherSubscriptions": "Другие подписки",
+      "pricePerMonth": "{price} в месяц",
+      "pricePerYear": "{price} в год",
+      "server": "Сервер",
+      "serverDetail": "{cpu} CPU · {ram} ГБ",
+      "support": "Поддержка платформы",
+      "supportDetail": "Ответ {response}"
     }
   }
 }

@@ -4,7 +4,7 @@ import httpStatus from 'http-status';
 import { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
 import type { GenerateDocumentDomainInterfaceWithOptions } from '~/domain/document/interfaces/generate-document-domain-with-options.interface';
 import { GeneratorPort } from '~/domain/document/ports/generator.port';
-import { Generator, UnknownDocumentFactoryError, documentMetaKey, type IGenerateBlank, type IGeneratedBlank, type ISearchResult } from '@coopenomics/factory';
+import { DocumentNotApprovedError, Generator, UnknownDocumentFactoryError, documentMetaKey, type IGenerateBlank, type IGeneratedBlank, type ISearchResult } from '@coopenomics/factory';
 import type { Cooperative } from 'cooptypes';
 import config from '~/config/config';
 import { DomainError } from '@coopenomics/extension-kit';
@@ -145,6 +145,11 @@ export class GeneratorInfrastructureService implements GeneratorPort, OnModuleIn
       // до 25.09.2026 причина оставалась только в журнале (C28-80).
       if (error instanceof UnknownDocumentFactoryError) {
         throw DomainError.badRequest('GENERATOR_DOCUMENT_TYPE_UNKNOWN', { registryId: error.registry_id });
+      }
+      // Документ ждёт утверждения советом: причину и что сделать фабрика
+      // называет сама — она и уходит пользователю, а не общая «ошибка генерации».
+      if (error instanceof DocumentNotApprovedError) {
+        throw DomainError.badRequest('GENERATOR_DOCUMENT_NOT_APPROVED', { reason: (error as Error).message });
       }
       console.error('Ошибка при генерации документа:', error);
       // Исходная ошибка фабрики остаётся причиной: по ней вызывающий различает

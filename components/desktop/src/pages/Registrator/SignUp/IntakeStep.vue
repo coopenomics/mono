@@ -44,8 +44,8 @@ const setAnswers = (formId: string, values: Record<string, unknown>) => {
 const proceed = () => {
   if (!store.isIntakeComplete) return;
   // Сюда возвращают и тех, кто начал вступление до появления анкет: учётка у
-  // них уже создана, шаг пароля им повторять нельзя.
-  if (store.state.accountCreated) {
+  // них уже создана, шаг пароля им повторять нельзя — если пароль уже стоит.
+  if (store.passwordStepDone) {
     store.goTo(store.isBranched && !store.state.selectedBranch ? 'SelectBranch' : 'ReadStatement');
     return;
   }

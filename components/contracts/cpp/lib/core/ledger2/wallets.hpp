@@ -47,6 +47,7 @@ struct ledger2_wallets {
   // wallet — паевой фонд + возвраты + ЦК
   static constexpr eosio::name SHARE_FUND_PAY       = "w.wal.share"_n;   ///< Паевой взнос пайщика (USER_SHARED)
   static constexpr eosio::name CK_MEMBER            = "w.wal.member"_n;  ///< ЦК — членская часть пайщика (USER_SHARED)
+  static constexpr eosio::name BILLING_FUND_PAY     = "w.wal.bill"_n;    ///< ЦК — биллинг пайщика (USER_SHARED). Решение @ant 2026-06-11: биллинг живёт в леджере оператора (_provider), где каждый кооператив-пайщик — обычный username, поэтому L3-разрез по пайщику. o.bil.fund зачисляет share[username]→bill[username], o.bil.pay списывает bill[username]→sov.infra оператора, o.bil.axn — BURN bill[username] + инъекция AXON кооперативу.
   static constexpr eosio::name WITHDRAWALS_SINK     = "w.wal.wthdrw"_n;  ///< DEPRECATED 2026-05-21: исторический sink возвратов. Оставлен в реестре для исторических L2-балансов (накопленные возвраты до перехода). Не использовать в новых операциях.
   static constexpr eosio::name WITHDRAW_PENDING     = "w.wal.wpend"_n;   ///< Резерв паевого под заявку на возврат (COOPERATIVE-пул). o.wal.wthreq переводит сюда с w.wal.share, o.wal.wthdec возвращает обратно, o.wal.wthcpl сжигает отсюда. Заменил механику blocked/BLOCK/UNBLOCK 2026-05-24.
 
@@ -128,11 +129,12 @@ struct Ledger2WalletMeta {
   WalletKind       kind;
 };
 
-inline constexpr std::array<Ledger2WalletMeta, 37> LEDGER2_WALLET_REGISTRY = {{
-  // USER_SHARED (16) — L3-разрез по пайщику (у w.brn.common — по braname КУ)
+inline constexpr std::array<Ledger2WalletMeta, 38> LEDGER2_WALLET_REGISTRY = {{
+  // USER_SHARED (19) — L3-разрез по пайщику (у w.brn.common — по braname КУ)
   { ledger2_wallets::MIN_SHARE_FUND,        "Минимальный паевой взнос",                                 WalletKind::USER_SHARED },
   { ledger2_wallets::SHARE_FUND_PAY,        "Паевой взнос пайщика",                                     WalletKind::USER_SHARED },
   { ledger2_wallets::CK_MEMBER,             "ЦК — членская часть пайщика",                              WalletKind::USER_SHARED },
+  { ledger2_wallets::BILLING_FUND_PAY,      "ЦК — биллинг пайщика (в леджере оператора)",               WalletKind::USER_SHARED },
   { ledger2_wallets::BLAGOROST_FUND,        "ЦПП «Благорост» — единый кошелёк программы у пайщика",     WalletKind::USER_SHARED },
   { ledger2_wallets::PREIMP_FUND,           "Первичный учёт РИД-взносов до перехода на электронный учёт", WalletKind::USER_SHARED },
   { ledger2_wallets::MARKETPLACE_ORDER_LOCK,"ЦПП «Стол Заказов» — паевой резерв под заказ у пайщика",  WalletKind::USER_SHARED },
@@ -158,6 +160,10 @@ inline constexpr std::array<Ledger2WalletMeta, 37> LEDGER2_WALLET_REGISTRY = {{
   // CRPS-распределение между сегментами проекта не поддерживает per-user
   // компенсирующие TRANSFER на approvecmmt, поэтому L3-проверка walletop
   // ломала convertsegm у пайщиков, чья доля выросла через CRPS.
+  // BILLING_FUND_PAY возвращён в USER_SHARED (решение @ant 2026-06-11):
+  // COOPERATIVE-вариант Epic 13 не смыкал поток — конвертация на хабе
+  // пополняла bill@voskhod, а расход смотрел bill@спица. В леджере оператора
+  // каждый кооператив-пайщик — обычный username, разрез L3 по нему.
   { ledger2_wallets::GENERATOR_FUND,    "ЦПП «Генератор» — единый кошелёк программы",               WalletKind::COOPERATIVE },
   { ledger2_wallets::ENTRANCE_FEES,     "Вступительные взносы",                                     WalletKind::COOPERATIVE },
   { ledger2_wallets::WITHDRAWALS_SINK,  "Возвраты паевых взносов пайщикам (deprecated, не используется в новых операциях)", WalletKind::COOPERATIVE },
@@ -285,10 +291,11 @@ struct Ledger2WalletProgramMapping {
   uint64_t    required_program_id; // 0 = исключение (без проверки)
 };
 
-inline constexpr std::array<Ledger2WalletProgramMapping, 19> LEDGER2_USER_SHARED_PROGRAM_MAPPING = {{
+inline constexpr std::array<Ledger2WalletProgramMapping, 20> LEDGER2_USER_SHARED_PROGRAM_MAPPING = {{
   { ledger2_wallets::MIN_SHARE_FUND,         0 /* w.reg.minshr — без проверки */    },
   { ledger2_wallets::SHARE_FUND_PAY,         1 /* ЦК */                              },
   { ledger2_wallets::CK_MEMBER,              1 /* ЦК */                              },
+  { ledger2_wallets::BILLING_FUND_PAY,       1 /* ЦК — биллинг (USER_SHARED в леджере оператора, решение @ant 2026-06-11) */ },
   { ledger2_wallets::BLAGOROST_FUND,         4 /* Благорост */                       },
   { ledger2_wallets::GENERATOR_FUND,         3 /* Генератор */                       },
   { ledger2_wallets::PREIMP_FUND,            0 /* w.cap.preimp — РИД-учёт до перехода на электронный учёт, без проверки */ },

@@ -114,7 +114,41 @@ const envVarsSchema = z.object({
     .describe('адрес сервиса GRAPHQL'),
   // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
   PROVIDER_BASE_URL: z.string().default('').describe('базовый URL сервиса провайдера'),
+  PROVIDER_BEARER_TOKEN: z
+    .string()
+    .default('')
+    // i18n-ignore: описание переменной окружения — документация конфигурации
+    .describe('Bearer-токен read-only витрины провайдера (GET /v1/subscription-types)'),
 
+  // Billing Single-Hub v5: BillingModule подключается только на Восходе-хабе.
+  // На спицах флаг false → модуль вообще не регистрируется, endpoints/cron
+  // не появляются. Antelope не поддерживает deferred_trx — тик крона
+  // инициирует backend.
+  BILLING_HUB_MODE: z
+    .string()
+    .default('false')
+    .transform((v) => v === 'true' || v === '1')
+    // i18n-ignore: описание переменной окружения — документация конфигурации
+    .describe('узел работает как биллинг-хаб (только Восход): включает BillingModule, крон и GraphQL Billing.*'),
+  BILLING_CRON_EXPRESSION: z
+    .string()
+    .default('0 * * * *')
+    // i18n-ignore: описание переменной окружения — документация конфигурации
+    .describe('cron-выражение тика биллинга (по умолчанию ежечасно)'),
+  BILLING_PACKAGE_CRON_EXPRESSION: z
+    .string()
+    .default('*/5 * * * *')
+    // i18n-ignore: описание переменной окружения — документация конфигурации
+    .describe('cron-выражение проверки бака AXON спиц (по умолчанию каждые 5 минут): объём месяца по дате и кванты сверх тарифа'),
+  BILLING_PACKAGE_LOW_WATER_AXON: z
+    .string()
+    .default('5')
+    .transform((v) => Number(v))
+    .pipe(z.number().min(0))
+    .describe(
+      // i18n-ignore: описание переменной окружения — документация конфигурации
+      'квант бака AXON для подсказки кооперативу в кабинете: ниже него провайдер выписывает квант 5 AXON за 50 ₽; само решение о пополнении принимает провайдер по переданному балансу',
+    ),
   // Параметры союза кооперативов
   UNION_LINK: z
     .string()
@@ -660,6 +694,22 @@ export default {
       : 1,
   graphql_service: envVars.data.GRAPHQL_SERVICE,
   provider_base_url: envVars.data.PROVIDER_BASE_URL,
+  provider_bearer_token: envVars.data.PROVIDER_BEARER_TOKEN,
+  billing: {
+    hub_mode: envVars.data.BILLING_HUB_MODE,
+    cron_expression: envVars.data.BILLING_CRON_EXPRESSION,
+    // Проверка бака AXON спиц — отдельный, частый такт: хаб передаёт баланс
+    // провайдеру, тот решает — объём месяца по дате, квант или NOT_DUE
+    // (@ant 17.10.2026).
+    package_cron_expression: envVars.data.BILLING_PACKAGE_CRON_EXPRESSION,
+    // Квант бака для подсказки в кабинете кооператива (решение — у провайдера).
+    package_low_water_axon: envVars.data.BILLING_PACKAGE_LOW_WATER_AXON,
+    // Список коопов — из on-chain `registrator.coops` через ProviderService
+    // (см. BillingCronService.activeCoopnames). Env-override отсутствует.
+    // Подписант списаний — оператор платформы (аккаунт узла, config.coopname);
+    // отдельного BILLING_CRON_PAYER больше нет: пайщик-плательщик = сам
+    // кооператив, владелец w.wal.bill.
+  },
   union: {
     link: envVars.data.UNION_LINK,
     is_unioned: envVars.data.IS_UNIONED,

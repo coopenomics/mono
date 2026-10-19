@@ -140,8 +140,9 @@ const setSignature = async () => {
     onSign.value = true;
     store.state.signature = sign;
 
-    // устанавливаем ключ для подписи документов
-    client.Document.setWif(store.state.account.private_key);
+    // Ключа в состоянии вступления нет, когда его продолжают на другом устройстве
+    // после входа по паролю: подпись тогда берёт ключ сессии (signDocument).
+    if (store.state.account.private_key) client.Document.setWif(store.state.account.private_key);
 
     // Подписываем все документы регистрации динамически
     await createUser.signAllRegistrationDocuments((msg) => {

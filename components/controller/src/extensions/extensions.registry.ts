@@ -6,6 +6,7 @@ import fs from 'node:fs/promises';
 import { YookassaExtensionModule, YookassaExtension, Schema as YookassaSchema } from './yookassa/yookassa-extension.module';
 import { SberpollExtensionModule, SberpollExtension, Schema as SberpollSchema } from './sberpoll/sberpoll-extension.module';
 import { QrPayExtensionModule, QrPayExtension, Schema as QRPaySchema } from './qrpay/qrpay-extension.module';
+import { DadataExtensionModule, DadataExtension, Schema as DadataSchema } from './dadata/dadata-extension.module';
 import path from 'path';
 import { BuiltinExtensionModule, BuiltinExtension, Schema as BuiltinSchema } from './builtin/builtin-extension.module';
 import { ChairmanExtensionModule, ChairmanExtension, Schema as ChairmanSchema } from './chairman/chairman-extension.module';
@@ -48,6 +49,7 @@ import { sovietRobotPorts } from './soviet-robot/soviet-robot.ports';
 import { participantPorts } from './participant/participant.ports';
 import { powerupPorts } from './powerup/powerup.ports';
 import { qrpayPorts } from './qrpay/qrpay.ports';
+import { dadataPorts } from './dadata/dadata.ports';
 import { reportsPorts } from './reports/reports.ports';
 import { sberpollPorts } from './sberpoll/sberpoll.ports';
 import { yookassaPorts } from './yookassa/yookassa.ports';
@@ -57,6 +59,7 @@ import { defaultConfig as cardcoopDefaultConfig } from './cardcoop/cardcoop-exte
 import { defaultConfig as chairmanDefaultConfig } from './chairman/chairman-extension.module';
 import { defaultConfig as powerupDefaultConfig } from './powerup/powerup-extension.module';
 import { defaultConfig as qrpayDefaultConfig } from './qrpay/qrpay-extension.module';
+import { defaultConfig as dadataDefaultConfig } from './dadata/dadata-extension.module';
 import { defaultConfig as sberpollDefaultConfig } from './sberpoll/sberpoll-extension.module';
 import { defaultConfig as yookassaDefaultConfig } from './yookassa/yookassa-extension.module';
 
@@ -388,6 +391,31 @@ export const AppRegistry: INamedExtension = {
     tags: [t('app.extensionsRegistry.qrpay.tagPayments')],
     readme: getReadmeContent('./qrpay'),
     instructions: getInstructionsContent('./qrpay'),
+    get is_desktop() {
+      return !!this.desktops && this.desktops.length > 0;
+    },
+  },
+  dadata: {
+    is_internal: true,
+    availability: ExtensionAvailability.EVERYWHERE,
+    desktops: undefined, // Это не desktop расширение
+    title: t('app.extensionsRegistry.dadata.title'),
+    description: t('app.extensionsRegistry.dadata.description'),
+    image: 'https://dadata.ru/favicon.ico',
+    class: DadataExtensionModule,
+    extensionClass: DadataExtension,
+    // Без ключа расширению нечего делать: председатель включает его, вписав ключ.
+    defaults: { enabled: false, config: dadataDefaultConfig },
+    ports: dadataPorts,
+    schema: DadataSchema,
+    // Ключи DaData — платный доступ кооператива; наружу уходит только «задано».
+    configPolicy: {
+      api_key: { secret: true, suppliedBy: ExtensionConfigSuppliedBy.COOPERATIVE },
+      secret_key: { secret: true, suppliedBy: ExtensionConfigSuppliedBy.COOPERATIVE },
+    },
+    tags: [t('app.extensionsRegistry.dadata.tagRegistration')],
+    readme: getReadmeContent('./dadata'),
+    instructions: getInstructionsContent('./dadata'),
     get is_desktop() {
       return !!this.desktops && this.desktops.length > 0;
     },

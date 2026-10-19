@@ -34,16 +34,8 @@ CHAIN_PORT=8888
 CARDCOOP_CLIENT_ID=blackbox-cardcoop-client
 CARDCOOP_OIDC_ISSUER="http://127.0.0.1:${API_PORT}/coopid/application/o/cardcoop/"
 
-# Заменяет значение ключа в .env-файле или дописывает ключ, если его нет.
-set_env() {
-  local file="$1" key="$2" value="$3"
-  KEY="$key" VALUE="$value" awk -v k="$key" '
-    BEGIN { FS = OFS = "=" ; done = 0 }
-    $1 == k { print k "=" ENVIRON["VALUE"]; done = 1; next }
-    { print }
-    END { if (!done) print k "=" ENVIRON["VALUE"] }
-  ' "$file" > "$file.tmp" && mv "$file.tmp" "$file"
-}
+# shellcheck source=lib-env.sh
+source "$ROOT/scripts/blackbox/lib-env.sh"
 
 load_stack() {
   # shellcheck source=../../components/boot/scripts/lib/stack.sh

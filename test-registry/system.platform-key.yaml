@@ -1,0 +1,158 @@
+feature: system.platform-key
+title: Ключ установки — разрешение platform узла кооператива
+
+# Узел кооператива подписывает транзакции от имени аккаунта кооператива. Раньше
+# в мастер установки вводился активный ключ аккаунта — ключ пайщика. При входе
+# по паролю пайщик его не видит (ключ зашифрован в хранилище CoopID), а смена
+# ключа при восстановлении доступа или переходе на пароль (registrator::changekey)
+# останавливала бы узел.
+#
+# Решение @ant 18.10.2026: отдельное разрешение platform (родитель owner, им
+# управляет registrator) и второй вход в active: active = {ключ пайщика,
+# <аккаунт>@platform}. Узел подписывает как active ключом platform — контракты,
+# 132 места подписи в контроллере, cert и робот не меняются. Запись в
+# registrator::platforms велит changekey сохранять делегирование. Проверено на
+# цепи стенда 5 тестовыми аккаунтами (pltftest1111…4444): подпись ключом
+# platform как active, внутреннее действие от @active, changekey с сохранением,
+# отказ постороннему ключу, пайщик не может удалить platform с родителем owner.
+#
+# Миграция действующих кооперативов — двумя путями, оба без участия пайщика:
+#   1) узел при старте закрепляет свой ключ сам (ensureOwnPlatformKey);
+#   2) ВОСХОД перед любой сменой ключа кооператива той же транзакцией
+#      закрепляет нынешний ключ (platformGuardAction в changeKey) — так узел,
+#      ещё не обновлённый или отключённый, переживает смену ключа без правок.
+sources:
+  contract:
+    - components/contracts/cpp/registrator/src/account/setplatform.cpp
+    - components/contracts/cpp/registrator/src/account/changekey.cpp
+    - components/contracts/cpp/lib/domain/table_registrator_platforms.hpp
+  backend:
+    - components/controller/src/application/system/services/platform-key-migration.service.ts
+  ui:
+    - components/desktop/src/features/Cooperative/IssuePlatformKey/**
+    - components/desktop/src/widgets/ConnectionDashboard/ui/PlatformKeyCard.vue
+    - components/desktop/src/pages/Cooperative/CooperativeKey/CooperativeKeyPage.vue
+
+cases:
+  - id: sys.plat.happy.01
+    level: contract
+    kind: happy
+    scenario: кооператив выпускает platform действующему пайщику (setplatform от coopname)
+    expect: >
+      platform создан с родителем owner и ключом узла; active = {ключ пайщика,
+      пайщик@platform}; строка в registrator::platforms; транзакция от
+      пайщик@active, подписанная только ключом platform, проходит
+    test: components/boot/src/tests/platform-key.test.ts
+    status: passing
+
+  - id: sys.plat.happy.02
+    level: contract
+    kind: happy
+    scenario: после выпуска platform кооператив меняет ключ пайщика (changekey)
+    expect: active = {новый ключ, пайщик@platform}; ключ platform продолжает подписывать как active
+    test: components/boot/src/tests/platform-key.test.ts
+    status: passing
+
+  - id: sys.plat.happy.03
+    level: contract
+    kind: happy
+    scenario: аккаунт выпускает platform себе сам, своим активным ключом
+    expect: platform выпущен без проверки членства
+    test: components/boot/src/tests/platform-key.test.ts
+    status: passing
+
+  - id: sys.plat.break.01
+    level: contract
+    kind: break
+    scenario: аккаунт пытается выпустить platform другому аккаунту
+    expect: отказ — ни разрешение, ни active чужого аккаунта не меняются
+    test: components/boot/src/tests/platform-key.test.ts
+    status: passing
+
+  - id: sys.plat.break.02
+    level: contract
+    kind: break
+    scenario: пайщик своим активным ключом пытается сменить или удалить platform
+    expect: отказ цепи — platform с родителем owner меняет только registrator
+    test: components/boot/src/tests/platform-key.test.ts
+    status: passing
+
+  - id: sys.plat.happy.04
+    level: backend
+    kind: happy
+    scenario: мастер установки получает ключ platform (setWif → canSignAsActive)
+    expect: ключ принят, если он в active напрямую или в platform своего аккаунта, который входит в active
+    test: components/controller/tests/unit/blockchain/platform-key.test.ts
+    api: components/boot/src/tests/platform-key.test.ts
+    status: written
+
+  - id: sys.plat.break.03
+    level: backend
+    kind: break
+    scenario: ключ platform предъявляют для входа пайщика (hasActiveKey) либо делегирование ведёт на чужой аккаунт
+    expect: ключ не принят — ключ узла не становится ключом входа
+    test: components/controller/tests/unit/blockchain/platform-key.test.ts
+    external: unreachable
+    external_reason: "вход по подписи ключом снаружи проверяется только у пайщика без пароля CoopID; кооператив с выпущенным platform заходит по паролю, и вход по ключу отклоняется раньше сверки ключа (AUTH_PASSWORD_SET_KEY_LOGIN_DISABLED)"
+    status: written
+
+  - id: sys.plat.happy.05
+    level: backend
+    kind: happy
+    scenario: ВОСХОД меняет ключ кооперативу без platform
+    expect: одна транзакция setplatform (нынешний ключ = ключ узла) + changekey
+    test: components/controller/tests/unit/blockchain/platform-key.test.ts
+    external: unreachable
+    external_reason: "ключ кооперативу меняется только восстановлением доступа и переходом на пароль; внешний слой проводит их для пайщиков-физлиц, подключённого кооператива с паролем CoopID на стенде нет"
+    status: written
+
+  - id: sys.plat.side.01
+    level: backend
+    kind: side
+    scenario: ключ меняют некооперативу, кооперативу с выпущенным platform либо при нескольких ключах в active
+    expect: только changekey — закреплять нечего или неизвестно, чей ключ узла
+    test: components/controller/tests/unit/blockchain/platform-key.test.ts
+    external: unreachable
+    external_reason: "ключ кооперативу меняется только восстановлением доступа и переходом на пароль; внешний слой проводит их для пайщиков-физлиц, подключённого кооператива с паролем CoopID на стенде нет"
+    status: written
+
+  - id: sys.plat.happy.06
+    level: backend
+    kind: happy
+    scenario: установленный узел стартует, его ключ — единственный в active, platform нет
+    expect: setplatform своей подписью с тем же ключом
+    test: components/controller/tests/unit/blockchain/platform-key.test.ts
+    api: components/boot/src/tests/platform-key.test.ts
+    status: written
+
+  - id: sys.plat.side.02
+    level: backend
+    kind: side
+    scenario: при старте ключа нет, platform уже есть, ключ сменён без закрепления, в active несколько ключей, цепь не отвечает
+    expect: транзакций нет; при сменённом ключе предупреждение о новом ключе установки; старт не падает
+    test: components/controller/tests/unit/blockchain/platform-key.test.ts
+    external: unreachable
+    external_reason: "узел без ключа, со сменённым без закрепления ключом, с несколькими ключами в active или без цепи на старте стенд не воспроизводит: кооператив стенда стартует с действующим ключом"
+    status: written
+
+  - id: sys.plat.happy.07
+    level: ui
+    kind: happy
+    scenario: пайщик-кооператив после установки выпускает ключ установки на странице подключения
+    expect: ключ показан один раз с копированием; карточка показывает дату выпуска; повторный выпуск заменяет ключ
+    status: missing
+
+  - id: sys.plat.happy.08
+    level: ui
+    kind: happy
+    scenario: после перевыпуска на ВОСХОДе председатель вводит новый ключ на странице «Ключ кооператива» своей платформы
+    expect: ключ принят (setWif → canSignAsActive), узел снова подписывает операции
+    status: missing
+
+  - id: sys.plat.side.03
+    level: ui
+    kind: side
+    scenario: на ВОСХОДе нажимают «Выпустить новый ключ», когда ключ уже выпущен
+    expect: сначала предупреждение, что платформа кооператива остановится до ввода нового ключа; выпуск — только после подтверждения
+    status: missing
+

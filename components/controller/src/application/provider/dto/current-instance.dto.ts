@@ -1,4 +1,4 @@
-import { Field, ObjectType } from '@nestjs/graphql';
+import { Field, Int, ObjectType } from '@nestjs/graphql';
 import { InstanceStatus } from '../../../domain/instance-status.enum';
 
 @ObjectType()
@@ -29,4 +29,33 @@ export class CurrentInstanceDTO {
 
   @Field({ description: 'URL изображения инстанса' })
   image!: string;
+
+  @Field({
+    description:
+      'Обслуживание приостановлено: на домене кооператива стоит заглушка «временно недоступен»',
+  })
+  maintenance_mode!: boolean;
+
+  @Field({
+    description:
+      'Идёт не первичная установка, а возврат в строй: после развёртывания провайдер вернёт данные из резервной копии',
+  })
+  is_restoring!: boolean;
+
+  @Field({
+    description: 'Сервер кооператива освобождён: аренда отменена, данные лежат в резервной копии',
+  })
+  is_released!: boolean;
+
+  @Field(() => Int, {
+    nullable: true,
+    description: 'Сколько задач установки уже выполнено; пусто, когда установка не идёт',
+  })
+  playbook_step!: number | null;
+
+  @Field(() => Int, {
+    nullable: true,
+    description: 'Сколько задач в установке всего — по прошлой успешной установке; пусто, пока сравнить не с чем',
+  })
+  playbook_total_steps!: number | null;
 }

@@ -23,12 +23,6 @@ div.row.q-pa-md
           .detail-item.q-mt-md
             q-icon(name="check_circle" color="positive" size="24px").q-mr-md
             .detail-text
-              .text-body2.text-weight-medium {{ $t('chairman.onboardingCelebration.meetingTitle') }}
-              .text-caption.text-grey-6 {{ $t('chairman.onboardingCelebration.meetingSubtitle') }}
-
-          .detail-item.q-mt-md
-            q-icon(name="check_circle" color="positive" size="24px").q-mr-md
-            .detail-text
               .text-body2.text-weight-medium {{ $t('chairman.onboardingCelebration.readyTitle') }}
               .text-caption.text-grey-6 {{ $t('chairman.onboardingCelebration.readySubtitle') }}
 
@@ -50,10 +44,8 @@ import { useDesktopStore } from 'src/entities/Desktop/model';
 const router = useRouter();
 const desktop = useDesktopStore();
 
+// Онбординг уже завершён (отметка в настройках кооператива) — экран ведёт к работе.
 const hideOnboarding = () => {
-  // Сохраняем в localStorage что онбординг скрыт
-  localStorage.setItem('chairman-onboarding-hidden', 'true');
-
   // Меняем рабочий стол на стол пайщика и переходим на его дефолтный маршрут
   desktop.selectWorkspace('participant');
 

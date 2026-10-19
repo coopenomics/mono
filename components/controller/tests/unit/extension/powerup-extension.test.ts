@@ -39,7 +39,7 @@ function accountBelowThreshold() {
   return accountOverThreshold({ ram_usage: 10_000, ram_quota: 1_000_000 });
 }
 
-function buildExtension(account: Record<string, any> | null) {
+function buildExtension(account: Record<string, any> | null, tariffPort?: { currentTariff: jest.Mock }) {
   const logs: ILog[] = [];
   const config: IConfig = { ...defaultConfig, lastDailyReplenishmentDate: '' } as IConfig;
 
@@ -69,7 +69,8 @@ function buildExtension(account: Record<string, any> | null) {
     extensionRepository as never,
     logExtensionRepository as never,
     logger as never,
-    blockchainPort as never
+    blockchainPort as never,
+    tariffPort as never
   );
   (extension as unknown as { extension: unknown }).extension = { name: 'powerup', config };
 
@@ -143,5 +144,26 @@ describe('PowerupExtension', () => {
     expect(extensionRepository.update).toHaveBeenCalledTimes(1);
     expect(logs).toHaveLength(1);
     expect(logs[0]).toMatchObject({ type: 'daily', trx_id: 'trx-1' });
+  });
+
+  // Суточная аренда на D тарифа (@ant 17.10.2026): объём месяца сгорает к дате оплаты.
+  it('суточная аренда берёт D тарифа у провайдера, дробное и меньше 5 тоже; без тарифа — настройка расширения', async () => {
+    const withTariff = buildExtension(accountOverThreshold(), {
+      currentTariff: jest.fn().mockResolvedValue({ code: 'start', docflow_axon: 150, daily_axon: 150 / 31, trial_days: 30 }),
+    });
+    await runDailyTask(withTariff.extension);
+    expect(withTariff.blockchainPort.powerUp).toHaveBeenCalledWith('voskhod', '4.8387 AXON');
+
+    const noTariff = buildExtension(accountOverThreshold(), { currentTariff: jest.fn().mockResolvedValue(null) });
+    await runDailyTask(noTariff.extension);
+    expect(noTariff.blockchainPort.powerUp).toHaveBeenCalledWith('voskhod', '5.0000 AXON');
+  });
+
+  it('аренда при загрузке 70 % остаётся на сумму настройки, не на D тарифа', async () => {
+    const { extension, blockchainPort } = buildExtension(accountOverThreshold(), {
+      currentTariff: jest.fn().mockResolvedValue({ code: 'standard', docflow_axon: 480, daily_axon: 16, trial_days: 9 }),
+    });
+    await runTask(extension);
+    expect(blockchainPort.powerUp).toHaveBeenCalledWith('voskhod', '5.0000 AXON');
   });
 });

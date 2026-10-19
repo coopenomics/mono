@@ -161,3 +161,21 @@ cases:
       читать повестку числа нет и ошибки нет
     test: ~
     status: missing   # сценарий harness не написан
+
+  # 15.10.2026 (B2D-17): операции облачного провайдера и биллинга переведены с
+  # @AuthRoles на таблицу прав ядра при слиянии ветки с dev.
+  - id: core.rights.side.09
+    level: backend
+    kind: side
+    scenario: >
+      Операции провайдера и биллинга: витрина подключения, реестр кооперативов,
+      журнал оплат, устав в заявке, смена тарифа сервера, сводка, заявление,
+      пополнение и оплата биллинг-кошелька.
+    expect: >
+      ProviderCatalog:read, ProviderTariff:select:own (выбор тарифа подключения,
+      16.10.2026) и CooperativeCharter:upload:own/read:own — любому вошедшему; Union:read, ProviderPayment:read:all, CooperativeCharter:read:all,
+      Billing:read/generate — совету; Billing:convert — пайщику и совету;
+      ProviderHostingPlan:change:own и Billing:pay — председателю. Чужой устав
+      читает только совет; свой журнал оплат пайщик-кооператив видит по имени
+      из сессии
+    status: missing

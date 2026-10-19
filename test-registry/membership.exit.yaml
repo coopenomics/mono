@@ -316,3 +316,18 @@ cases:
     test: components/api-tests/src/membership/membership.exit.test.ts
     api: components/api-tests/src/membership/membership.exit.test.ts
     status: passing
+
+  # 15.10.2026 (B2D-17, биллинг облачного провайдера): биллинг-кошелёк пайщика
+  # w.wal.bill в леджере оператора получил строку в EXIT_WALLET_POLICY — без неё
+  # сборка контракта падает на static_assert.
+  - id: mem.exit.side.10
+    level: contract
+    kind: side
+    scenario: >
+      Кооператив-пайщик оператора выходит, на его биллинг-кошельке w.wal.bill
+      есть остаток членских взносов под подписки.
+    expect: >
+      политика UNTOUCHED (решение @ant 15.10.2026): при выходе средства с
+      кошелька не извлекаются — остаток не возвращается на паевой, не уходит
+      кооперативу и выход не блокирует
+    status: missing

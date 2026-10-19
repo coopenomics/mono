@@ -50,3 +50,13 @@ cases:
     # Прежний случай sys.vault.side.03 (чужой ключ для председателя) вошёл сюда.
     test: components/api-tests/src/system/vault-key.test.ts
     status: written
+
+  - id: sys.vault.happy.02
+    level: backend
+    kind: happy
+    scenario: в мастер установки вводят ключ platform, выпущенный на странице подключения
+    expect: ключ принят — он подписывает как active через platform (подробно — system.platform-key)
+    test: components/controller/tests/unit/blockchain/platform-key.test.ts
+    api: components/boot/src/tests/platform-key.test.ts
+    status: written
+

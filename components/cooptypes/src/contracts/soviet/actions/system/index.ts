@@ -1,4 +1,4 @@
-/**
- * Действие конвертирует RUB в AXON токены с курсом 10:1.
- */
-export * as ConvertToAxn from './converttoaxn'
+// Epic 13 v5.1: действие конвертации в AXON перенесено из soviet в billing
+// (см. billing/actions/converttoaxn.ts). Системных soviet-действий для
+// клиента сейчас нет — пустой неймспейс.
+export {}

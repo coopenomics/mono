@@ -187,6 +187,15 @@ namespace operations {
     inline constexpr eosio::name OVERSPEND        = "o.exp.over"_n;     ///< Доплата сверх подотчёта (TRANSFER PROGRAM_EXPENSE_POOL → ADVANCE_HOLD, Dr 08 / Cr 51); сразу за ней expense вызывает ADVANCE_REPORT.
   }
 
+  // billing (Epic 12 — контракт billing)
+  // ВНИМАНИЕ: имя константы НЕ `FUND` — `FUND` занят макросом `#define FUND "fund"`
+  // в consts.hpp (имя контракта fund). Используем `CONVERT` (бэкенд-имя действия).
+  namespace billing {
+    inline constexpr eosio::name CONVERT    = "o.bil.fund"_n;  ///< Трансляция паевого взноса в членский на биллинг-кошелёк пайщика (Dr 80 / Cr 86, TRANSFER SHARE_FUND_PAY[username] → BILLING_FUND_PAY[username], оба USER_SHARED в леджере оператора).
+    inline constexpr eosio::name PAY        = "o.bil.pay"_n;   ///< Оплата time-подписки членскими взносами (TRANSFER BILLING_FUND_PAY → INFRA_FEES, без Dr/Cr — реклассификация внутри 86).
+    inline constexpr eosio::name CONVERT_TO_AXON = "o.bil.axn"_n;   ///< Epic 13 v5.1: конвертация членского взноса в AXON (BURN BILLING_FUND_PAY[username], без Dr/Cr — реклассификация внутри 86). Бездокументарно; реальный AXON эмитируется eosio::injection; повтор payment_hash отклоняется on-chain (anti-replay контракта billing).
+  }
+
   // migration (только из migrate.cpp)
   //
   // В OPERATION_REGISTRY включены **только** те транзиты, которые проводятся
@@ -979,6 +988,40 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
     ledger2_wallets::PROGRAM_EXPENSE_POOL, ledger2_wallets::ADVANCE_HOLD,
     ledger2_accounts::NON_CURRENT_INVESTMENTS, ledger2_accounts::BANK_ACCOUNT,
     "Доплата сверх подотчёта (перерасход)" },
+
+  // 25. Биллинг — пополнение биллинг-кошелька: Dr 80 / Cr 86, TRANSFER SHARE_FUND_PAY → BILLING_FUND_PAY.
+  // Зеркало o.sov.axncnv (трансляция паевого в членский), но назначение —
+  // персональный USER_SHARED биллинг-кошелёк пайщика, а не кооперативный пул
+  // делегатских взносов. После конвертации средства невозвратны (членские),
+  // лежат на личном разрезе пайщика до списания за подписки (o.bil.pay). (Epic 12)
+  { operations::billing::CONVERT, processes::billing::CONVERT, WalletOp::TRANSFER,
+    ledger2_wallets::SHARE_FUND_PAY, ledger2_wallets::BILLING_FUND_PAY,
+    ledger2_accounts::SHARE_FUND, ledger2_accounts::TARGET_RECEIPTS,
+    "Трансляция паевого взноса в членский на биллинг-кошелёк пайщика" },
+
+  // 26. Биллинг — оплата подписки: TRANSFER BILLING_FUND_PAY → INFRA_FEES, без Dr/Cr.
+  // Оба кошелька — аналитические разрезы счёта 86 (целевое финансирование):
+  // перенос «членский взнос пайщика, зарезервированный под подписки» →
+  // «членские взносы за инфраструктуру платформы». Бухпроводка не требуется
+  // (реклассификация внутри 86), по аналогии с o.cap.invest/o.wal.wthreq. (Epic 12)
+  { operations::billing::PAY, processes::billing::PAY, WalletOp::TRANSFER,
+    ledger2_wallets::BILLING_FUND_PAY, ledger2_wallets::INFRA_FEES,
+    0, 0,
+    "Оплата подписки за инфраструктуру членскими взносами пайщика" },
+
+  // 27. Биллинг — конвертация членского взноса в AXON (Epic 13 v5.1).
+  // BURN с BILLING_FUND_PAY (USER_SHARED, разрез по кооперативу-пайщику) — фиксация
+  // расхода членских взносов на инфраструктуру/ресурсы. Без destination —
+  // реальный токен AXON эмитируется eosio::injection из фонда eosio.saving
+  // отдельным inline-action'ом billing::converttoaxn (L1 eosio.token-уровень).
+  // Без бухпроводки — реклассификация внутри 86 (членский взнос потрачен на
+  // инфраструктуру); по аналогии с o.bil.pay, но списание уже не на разрез 86,
+  // а на расходную статью (трансформируется в Dr 91 при финальной сверке).
+  { operations::billing::CONVERT_TO_AXON, processes::billing::PAY, WalletOp::BURN,
+    ledger2_wallets::BILLING_FUND_PAY, eosio::name{},
+    0, 0,
+    "Конвертация членского взноса в AXON для оплаты инфраструктуры" },
+
 
   // ----- Миграционные (o.mig.*) — вызываются только из migrate.cpp -----
 

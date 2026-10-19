@@ -60,6 +60,12 @@ export const coreRightsTable: RightsTable<CoreRightsRole, never> = {
         Wallet: ['read:own'],
         Inbox: ['read:own'],
         Process: ['read:own'],
+        // Витрина подключения к оператору и устав в заявке: кооператив-кандидат
+        // на узле оператора — обычный вошедший пайщик-организация.
+        ProviderCatalog: ['read'],
+        // Выбор тарифа подключения — за себя, до заявки в цепь.
+        ProviderTariff: ['select:own'],
+        CooperativeCharter: ['upload:own', 'read:own'],
       },
     },
   ],
@@ -73,8 +79,10 @@ export const coreRightsTable: RightsTable<CoreRightsRole, never> = {
         Withdraw: ['generate:own', 'create:own'],
         Deposit: ['create:own'],
         MembershipExit: ['generate:own'],
-        ProviderPayment: ['generate:own', 'update:own'],
+        // Журнал списаний за свои подписки и пополнение биллинг-кошелька.
+        ProviderPayment: ['read:own'],
         ProviderSubscription: ['read:own'],
+        Billing: ['convert'],
         PushSubscription: ['manage:own'],
         ExtensionOnboarding: ['read'],
         // Страница карты кооператора на столе пайщика; операцию карты ведёт её расширение.
@@ -112,7 +120,11 @@ export const coreRightsTable: RightsTable<CoreRightsRole, never> = {
         // Совет проходит по роли в любом статусе учётной записи, поэтому права
         // пайщика, нужные столу совета, названы здесь повторно.
         ProviderSubscription: ['read:own', 'read:all'],
-        ProviderPayment: ['generate:own', 'update:own'],
+        // Реестр кооперативов оператора: журнал оплат, устав и сумма к оплате
+        // любого кооператива; заявление на пополнение биллинг-кошелька.
+        ProviderPayment: ['read:own', 'read:all'],
+        CooperativeCharter: ['read:all'],
+        Billing: ['read', 'generate', 'convert'],
         PushSubscription: ['manage:own'],
         ExtensionOnboarding: ['read'],
         Card: ['read:own'],
@@ -144,6 +156,9 @@ export const coreRightsTable: RightsTable<CoreRightsRole, never> = {
         PushSubscription: ['read'],
         // Страница управления доступом: назначение ролей приложений пайщикам.
         AccessRole: ['manage'],
+        // Тариф сервера своего кооператива и оплата подписок с биллинг-кошелька.
+        ProviderHostingPlan: ['change:own'],
+        Billing: ['pay'],
       },
     },
   ],

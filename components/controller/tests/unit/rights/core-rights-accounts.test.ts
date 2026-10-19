@@ -90,8 +90,6 @@ const PARTICIPANT_ACTS: [string, string][] = [
   [F.wallet, 'createWithdraw'],
   [F.wallet, 'createDepositPayment'],
   [F.exit, 'generateMembershipExitApplication'],
-  [F.provider, 'generateConvertToAxonStatement'],
-  [F.provider, 'processConvertToAxonStatement'],
   [F.push, 'createWebPushSubscription'],
   [F.push, 'getUserWebPushSubscriptions'],
 ];
@@ -122,6 +120,8 @@ const COUNCIL_READS: [string, string][] = [
   [F.participant, 'addParticipant'],
   [F.process, 'process'],
   [F.provider, 'getProviderSubscriptionById'],
+  // Реестр кооперативов оператора с данными провайдера (B2D-17).
+  [F.provider, 'getCooperativesRegistry'],
 ];
 
 const CHAIRMAN_ONLY: [string, string][] = [

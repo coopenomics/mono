@@ -30,8 +30,10 @@ export class WifInteractor {
     }
     const publicKeyK1 = publicKeyObj.toString(); // PUB_K1_... формат
 
-    // Проверяем, что ключ есть в активных разрешениях
-    const hasKey = this.blockchainPort.hasActiveKey(blockchainAccount, publicKeyK1);
+    // Ключ подписывает как active: стоит в active сам или в разрешении platform —
+    // ключ узла кооператива, выпущенный на странице подключения (setplatform).
+    // Узел хранит его как active и подписывает им всё как прежде.
+    const hasKey = this.blockchainPort.canSignAsActive(blockchainAccount, publicKeyK1);
 
     if (!hasKey) {
       throw DomainError.unauthorized('AUTH_INVALID_PRIVATE_KEY');

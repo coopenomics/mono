@@ -110,6 +110,16 @@ export class SystemResolver {
     return this.systemService.updateSettings(data);
   }
 
+  @Mutation(() => SettingsDTO, {
+    name: 'completeCooperativeOnboarding',
+    description: 'Завершить онбординг кооператива: пункт «Онбординг» уходит из меню председателя',
+  })
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('System', 'manage')
+  async completeCooperativeOnboarding(): Promise<SettingsDTO> {
+    return this.systemService.completeOnboarding();
+  }
+
   @Query(() => RegistrationConfigDTO, {
     name: 'getRegistrationConfig',
     description: 'Получить конфигурацию программ регистрации для кооператива',

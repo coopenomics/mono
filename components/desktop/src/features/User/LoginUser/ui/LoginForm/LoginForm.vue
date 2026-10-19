@@ -109,20 +109,16 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
-import { useRouter } from 'vue-router';
-import { goToReturnAfterAuth } from 'src/shared/lib/navigation';
+import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue';
 import { Queries } from '@coopenomics/sdk';
 import { client } from 'src/shared/api/client';
-import { useSessionStore } from 'src/entities/Session';
-import { useLoginUser } from 'src/features/User/LoginUser';
+import { useEnterDesktop, useLoginUser } from 'src/features/User/LoginUser';
 import { useNotificationPermissionDialog } from 'src/features/NotificationPermissionDialog';
 import { FailAlert } from 'src/shared/api';
 import { BaseButton, BaseForm, BaseInput } from 'src/shared/ui/base';
 import { MigrationExplainer } from 'src/features/Security/SetPassword';
 import { useDesktopStore } from 'src/entities/Desktop/model';
-import { env, updateOpenReplayUser } from 'src/shared/config';
-import { useSystemStore } from 'src/entities/System/model';
+import { env } from 'src/shared/config';
 import { looksLikeWif } from 'src/shared/lib/utils/looksLikeWif';
 import { OtpInput } from 'src/shared/ui/domain/OtpInput';
 import {
@@ -143,11 +139,9 @@ const emit = defineEmits<{
   'step-change': [step: 'login' | 'migrate' | 'twofactor'];
 }>();
 
-const router = useRouter();
-const system = useSystemStore();
-const session = useSessionStore();
 const { showDialog } = useNotificationPermissionDialog();
 const { migrateAndLogin, loginWithPassword, confirmLoginSecondFactor } = useLoginUser();
+const { enterDesktop } = useEnterDesktop();
 
 const email = ref('');
 const secret = ref('');
@@ -240,50 +234,9 @@ const canMigrate = computed(
     repeatPassword.value === newPassword.value,
 );
 
-function untilLoadComplete(): Promise<void> {
-  if (session.loadComplete) return Promise.resolve();
-  return new Promise((resolve) => {
-    const stop = watch(
-      () => session.loadComplete,
-      (done) => {
-        if (!done) return;
-        stop();
-        resolve();
-      },
-    );
-  });
-}
-
-/** Общий пост-логин: трекер, переход к регистрации/дашборду, диалог уведомлений. */
+/** Общий пост-логин: стол (регистрация или кабинет), затем диалог уведомлений. */
 async function finishLogin(): Promise<void> {
-  const desktops = useDesktopStore();
-  updateOpenReplayUser({
-    username: session.username,
-    coopname: system.info.coopname,
-    cooperativeDisplayName: system.cooperativeDisplayName,
-  });
-
-  if (!session.isRegistrationComplete) {
-    desktops.setWorkspaceChanging(false);
-    void router.push({ name: 'signup' });
-  } else {
-    // Стол читаем, когда контекст пайщика поднят: init-wallet ставит
-    // loadComplete в любом исходе (успех, сбой, свой таймаут) — ждём факта,
-    // а не опрашиваем флаг по таймеру.
-    await untilLoadComplete();
-    try {
-      await desktops.loadDesktop();
-    } catch (e) {
-      console.warn('[BOOTRACE] не удалось перезагрузить стол после входа:', e);
-    }
-    if (!goToReturnAfterAuth(router)) {
-      desktops.selectDefaultWorkspace(true);
-      desktops.goToDefaultPage(router);
-    }
-    if (session.loadComplete) {
-      desktops.setWorkspaceChanging(false);
-    }
-  }
+  await enterDesktop();
 
   loading.value = false;
   // timing: ui — диалог разрешения уведомлений открываем, когда переход на стол отрисован, а не поверх него

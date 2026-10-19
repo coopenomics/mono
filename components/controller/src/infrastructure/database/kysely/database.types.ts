@@ -5,6 +5,8 @@
 
 import type { ColumnType } from "kysely";
 
+export type BillingPaymentLogStatusEnum = "CONFIRMED" | "FAILED" | "SUBMITTED" | "SUBMITTING";
+
 export type CapitalFavoritesTargetTypeEnum = "ARTIFACT" | "COMPONENT" | "ISSUE" | "PROJECT";
 
 export type CapitalIssuesPriorityEnum = "high" | "low" | "medium" | "urgent";
@@ -138,6 +140,19 @@ export interface BalanceCorrections {
   updated_at: Generated<Timestamp>;
   updated_by: string;
   year: number;
+}
+
+export interface BillingPaymentLog {
+  coopname: string;
+  created_at: Generated<Timestamp>;
+  id: Generated<string>;
+  last_error: string | null;
+  payment_hash: string;
+  quantity: string;
+  status: Generated<BillingPaymentLogStatusEnum>;
+  subject: string | null;
+  tx_id: string | null;
+  updated_at: Generated<Timestamp>;
 }
 
 export interface BlockchainActions {
@@ -1075,6 +1090,28 @@ export interface ConsumerDedup {
   applied_at: Generated<Timestamp>;
   block_num: Int8 | null;
   event_id: string;
+}
+
+export interface CooperativeCharters {
+  checksum_sha256: string;
+  /**
+   * Контур союза, в котором хранится устав
+   */
+  coopname: string;
+  id: Generated<number>;
+  mime_type: string;
+  /**
+   * Оригинальное имя загруженного файла
+   */
+  original_filename: string | null;
+  size_bytes: number;
+  storage_key: string;
+  uploaded_at: Generated<Timestamp>;
+  uploaded_by_username: string;
+  /**
+   * Аккаунт кооператива, чей это устав
+   */
+  username: string;
 }
 
 export interface DraftTemplates {
@@ -2424,6 +2461,10 @@ export interface Settings {
   extra_settings: Generated<Json>;
   non_authorized_default_route: string;
   non_authorized_default_workspace: string;
+  /**
+   * Когда председатель завершил онбординг кооператива
+   */
+  onboarding_completed_at: Timestamp | null;
   provider_name: Generated<string>;
   updated_at: Generated<Timestamp>;
 }
@@ -2604,6 +2645,7 @@ export interface DB {
   agreements: Agreements;
   available_categories: AvailableCategories;
   balance_corrections: BalanceCorrections;
+  billing_payment_log: BillingPaymentLog;
   blockchain_actions: BlockchainActions;
   blockchain_deltas: BlockchainDeltas;
   blockchain_forks: BlockchainForks;
@@ -2660,6 +2702,7 @@ export interface DB {
   chatcoop_state: ChatcoopState;
   chatcoop_transcription_segments: ChatcoopTranscriptionSegments;
   consumer_dedup: ConsumerDedup;
+  cooperative_charters: CooperativeCharters;
   draft_templates: DraftTemplates;
   draft_translations: DraftTranslations;
   edubridge_access_tasks: EdubridgeAccessTasks;

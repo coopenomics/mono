@@ -342,3 +342,21 @@ cases:
 # 2026-09-23 (EEA-6…EEA-9): тексты интерфейса, отказов и уведомлений фичи вынесены из
 # кода в словари i18n, отказы бэкенда переведены на DomainError с кодом — текст
 # и HTTP-статус ответа прежние. Сценарии фичи и её проверки не менялись.
+
+# 2026-08-22 (B2D-17, биллинг-стек провайдера): заведены нитки `p.bil.fund`
+# (пополнение биллинг-кошелька пайщика, o.bil.fund по подписанному заявлению)
+# и `p.bil.pay` (оплата инфраструктурной подписки, o.bil.pay / o.bil.axn по
+# payment_hash из журнала провайдера). Контракт billing on-chain таблиц не
+# ведёт, поэтому локатор бэкенда для обеих пустой — как у p.sov.axncnv.
+
+  - id: l2.pnam.side.15
+    level: contract
+    kind: side
+    scenario: >
+      Контракт billing эмитит имя нитки p.bil.fund на convert и p.bil.pay на
+      pay / converttoaxn; реестры (PROCESS_REGISTRY, cooptypes, локатор) знают
+      обе нитки.
+    expect: >
+      ledger2::apply принимает операции; гейт check-ledger2-processes
+      согласован (32 процесса в контракте и cooptypes после слияния с edubridge, локатор знает обе)
+    status: missing

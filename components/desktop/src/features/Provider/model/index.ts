@@ -1,12 +1,10 @@
 import { ref, computed } from 'vue';
-import { loadProviderSubscriptions, generateConvertToAxonStatement, processConvertToAxonStatement } from '../api';
+import { loadProviderSubscriptions } from '../api';
 import { useSystemStore } from 'src/entities/System/model';
 import { useSessionStore } from 'src/entities/Session';
-import { useAccountStore } from 'src/entities/Account/model';
-import { Queries, Mutations } from '@coopenomics/sdk';
-import { signDocument } from 'src/shared/lib/document';
-import { SuccessAlert, FailAlert } from 'src/shared/api';
+import { Queries } from '@coopenomics/sdk';
 import { t } from 'src/shared/i18n';
+import { connectorZone } from 'src/shared/lib/utils';
 
 /**
  * Специфичные данные для подписки на хостинг
@@ -31,20 +29,28 @@ export type ProviderSubscription = Queries.System.GetProviderSubscriptions.IOutp
 // Курс конвертации AXON в валюту системы (RUB)
 export const AXON_GOVERN_RATE = 10; // 1 AXON = 10 RUB
 
+// Один стейт на процесс подключения: реестр подписок и карточка просрочки
+// показывают одни и те же услуги, и вторая загрузка тех же данных приводила бы
+// к расхождению сумм на одном экране.
+const subscriptions = ref<ProviderSubscription[]>([]);
+const isLoading = ref(false);
+const error = ref<string | null>(null);
+
 /**
  * Composable для работы с подписками провайдера
  */
 export function useProviderSubscriptions() {
   const system = useSystemStore();
-  const subscriptions = ref<ProviderSubscription[]>([]);
-  const isLoading = ref(false);
-  const error = ref<string | null>(null);
+  const session = useSessionStore();
 
-  // Имя точки входа кооператива для CNAME-записи домена кабинета. Запись-шаблон
-  // *.connector.coopenomics.world отвечает адресами всех L7-прокси, поэтому имя
-  // существует для любого кооператива заранее — выдавать записи не нужно, а
-  // куда ведёт кабинет, решается на стороне сети без участия кооператива.
-  const CONNECTOR_HOST = computed(() => `${system.info.coopname}.connector.coopenomics.world`);
+  // Имя точки входа кооператива для CNAME-записи домена кабинета:
+  // `<учётное имя подключаемого кооператива>.<зона контура>`. Запись-шаблон
+  // зоны отвечает адресами L7-прокси контура, поэтому имя существует для
+  // любого кооператива заранее, а куда ведёт кабинет, решается на стороне
+  // сети без участия кооператива. Имя — подключаемого кооператива (он вошёл
+  // на стол союза своим аккаунтом), а не союза: до 19.10.2026 здесь стояло
+  // имя союза, и всем кооперативам подсказывался один `voskhod.connector`.
+  const CONNECTOR_HOST = computed(() => `${session.username}.${connectorZone()}`);
 
   // Получить подписку на хостинг (id=1)
   const hostingSubscription = computed(() =>
@@ -123,67 +129,5 @@ export function useProviderSubscriptions() {
   };
 }
 
-export type IGenerateConvertToAxonStatementInput = Mutations.Provider.GenerateConvertToAxonStatement.IInput['data'];
-export type IGenerateConvertToAxonStatementResult = Mutations.Provider.GenerateConvertToAxonStatement.IOutput[typeof Mutations.Provider.GenerateConvertToAxonStatement.name];
-
-export type IProcessConvertToAxonStatementInput = Mutations.Provider.ProcessConvertToAxonStatement.IInput;
-export type IProcessConvertToAxonStatementResult = Mutations.Provider.ProcessConvertToAxonStatement.IOutput[typeof Mutations.Provider.ProcessConvertToAxonStatement.name];
-
-/**
- * Composable для конвертации валюты в AXON
- */
-export function useProviderAxonConvert() {
-  const loading = ref(false);
-
-  /**
-   * Конвертирует указанную сумму в AXON
-   */
-  const convertToAxon = async (params: {
-    convertAmount: string;
-    username: string;
-    coopname: string;
-  }) => {
-    try {
-      loading.value = true;
-
-      // Генерируем документ конвертации
-      const generatedDocument = await generateConvertToAxonStatement({
-        convert_amount: params.convertAmount,
-        username: params.username,
-        coopname: params.coopname
-      });
-
-      // Подписываем документ
-      const signedDocument = await signDocument(generatedDocument, params.username);
-
-
-      // Обрабатываем подписанный документ
-      await processConvertToAxonStatement({
-        signedDocument,
-        convertAmount: params.convertAmount,
-        username: params.username
-      });
-
-      // Обновляем баланс AXON после успешной конвертации
-      const session = useSessionStore();
-      const accountStore = useAccountStore();
-      const updatedAccount = await accountStore.getAccount(params.username);
-      if (updatedAccount) {
-        session.setCurrentUserAccount(updatedAccount);
-      }
-
-      SuccessAlert(t('provider.providerModel.convertSuccess'));
-      return true;
-    } catch (error: any) {
-      FailAlert(error || t('provider.providerModel.convertError'));
-      return false;
-    } finally {
-      loading.value = false;
-    }
-  };
-
-  return {
-    loading,
-    convertToAxon
-  };
-}
+export * from './catalog';
+export * from './billing-summary';

@@ -2,7 +2,11 @@ import { type IOnboardingStepRegistryPort } from '@coopenomics/innercoop';
 import { t } from '../../i18n';
 
 /**
- * Регистрирует 7 шагов онбординга chairman в платформенном реестре.
+ * Регистрирует 6 шагов онбординга chairman в платформенном реестре.
+ *
+ * Общее собрание о вступлении в союз из онбординга снято 19.10.2026: вступление
+ * в союз необязательно. Поля состояния `onboarding_general_meet_*` остаются в
+ * конфиге ради старых кооперативов, шагом они больше не являются.
  *
  * Step_key'и совпадают с именами enum'а ChairmanOnboardingAgendaStepEnum и
  * с подстрокой существующих config-полей `onboarding_<step_key>_done/hash`,
@@ -74,14 +78,5 @@ export function registerChairmanOnboardingSteps(
     generator: 'free_decision',
     default_title: t('chairman.onboardingSteps.voskhodMembershipTitle'),
     order: 60,
-  });
-  port.registerStep({
-    extension_name: 'chairman',
-    step_key: 'general_meet',
-    event_type: 'MEET_DECISION',
-    vars_field: 'general_meet',
-    generator: 'meet',
-    default_title: t('chairman.onboardingSteps.generalMeetTitle'),
-    order: 70,
   });
 }

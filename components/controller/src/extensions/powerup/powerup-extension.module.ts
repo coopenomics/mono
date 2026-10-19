@@ -1,21 +1,18 @@
 import './i18n';
 import cron from 'node-cron';
-import { Inject, Module, OnModuleDestroy } from '@nestjs/common';
+import { Inject, Module, OnModuleDestroy, Optional } from '@nestjs/common';
 import { BaseExtensionModule, EXTENSION_REPOSITORY, type ExtensionDomainRepository, LOG_EXTENSION_REPOSITORY, LogExtensionDomainRepository, platformSettings, DomainError } from '@coopenomics/extension-kit';
 import { LOGGER_PORT, type ILoggerPort,
   CHAIN_RESOURCES_PORT,
   type IChainResourcesPort,
+  PROVIDER_TARIFF_PORT,
+  type IProviderTariffPort,
 } from '@coopenomics/innercoop';
 import type { ExtensionDomainEntity } from '@coopenomics/extension-kit';
 import { z } from 'zod';
-import { type DeserializedDescriptionOfExtension } from '@coopenomics/extension-kit';
+import { describeConfigField } from '@coopenomics/extension-kit';
 import { t } from './i18n';
 import { PowerupRights } from './powerup-rights';
-
-// Функция для проверки и сериализации FieldDescription
-function describeField(description: DeserializedDescriptionOfExtension): string {
-  return JSON.stringify(description);
-}
 
 // Символ и точность системного токена — свойство контура, а не расширения:
 // расширение обязано подставлять их в суммы пополнения ровно такими, какими их
@@ -41,10 +38,10 @@ export const Schema = z.object({
     .number()
     .default(defaultConfig.dailyPackageSize)
     .describe(
-      describeField({
+      describeConfigField({
         label: t('powerup.settings.minQuotaCostLabel'),
         note: t('powerup.settings.minQuotaCostNote', { symbol: defaultConfig.systemSymbol }),
-        rules: ['val >= 5'],
+        rules: ['val > 0'],
         prepend: defaultConfig.systemSymbol,
       })
     ),
@@ -56,7 +53,7 @@ export const Schema = z.object({
         .max(100)
         .default(defaultConfig.thresholds.cpu)
         .describe(
-          describeField({
+          describeConfigField({
             label: t('powerup.settings.cpuThresholdLabel'),
             note: t('powerup.settings.cpuThresholdNote'),
             append: '%',
@@ -69,7 +66,7 @@ export const Schema = z.object({
         .max(100)
         .default(defaultConfig.thresholds.net)
         .describe(
-          describeField({
+          describeConfigField({
             label: t('powerup.settings.netThresholdLabel'),
             note: t('powerup.settings.netThresholdNote'),
             append: '%',
@@ -82,7 +79,7 @@ export const Schema = z.object({
         .max(100)
         .default(defaultConfig.thresholds.ram)
         .describe(
-          describeField({
+          describeConfigField({
             label: t('powerup.settings.ramThresholdLabel'),
             note: t('powerup.settings.ramThresholdNote'),
             append: '%',
@@ -92,7 +89,7 @@ export const Schema = z.object({
     })
     .default(defaultConfig.thresholds)
     .describe(
-      describeField({
+      describeConfigField({
         label: t('powerup.settings.thresholdsGroupLabel'),
         note: t('powerup.settings.thresholdsGroupNote'),
       })
@@ -102,19 +99,19 @@ export const Schema = z.object({
     .default(defaultConfig.lastDailyReplenishmentDate)
     .describe(
       // i18n-ignore: поле конфигурации visible:false — не отображается пайщику/админу
-      describeField({ label: 'Дата последнего ежедневного пополнения', visible: false, minLength: 10, maxLength: 10 })
+      describeConfigField({ label: 'Дата последнего ежедневного пополнения', visible: false, minLength: 10, maxLength: 10 })
     ),
   systemPrecision: z
     .number()
     .default(defaultConfig.systemPrecision)
     // i18n-ignore: поле конфигурации visible:false — не отображается пайщику/админу
-    .describe(describeField({ label: 'Точность системного утилити-токена', visible: false })),
+    .describe(describeConfigField({ label: 'Точность системного утилити-токена', visible: false })),
   systemSymbol: z
     .string()
     .default(defaultConfig.systemSymbol)
     .describe(
       // i18n-ignore: поле конфигурации visible:false — не отображается пайщику/админу
-      describeField({ label: 'Символ системного утилити-токена', visible: false, minLength: 3, maxLength: 5, maxRows: 4 })
+      describeConfigField({ label: 'Символ системного утилити-токена', visible: false, minLength: 3, maxLength: 5, maxRows: 4 })
     ),
 });
 
@@ -162,7 +159,8 @@ export class PowerupExtension extends BaseExtensionModule implements OnModuleDes
     @Inject(EXTENSION_REPOSITORY) private readonly extensionRepository: ExtensionDomainRepository<IConfig>,
     @Inject(LOG_EXTENSION_REPOSITORY) private readonly logExtensionRepository: LogExtensionDomainRepository<ILog>,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
-    @Inject(CHAIN_RESOURCES_PORT) private readonly blockchainPort: IChainResourcesPort
+    @Inject(CHAIN_RESOURCES_PORT) private readonly blockchainPort: IChainResourcesPort,
+    @Optional() @Inject(PROVIDER_TARIFF_PORT) private readonly tariffPort?: IProviderTariffPort
   ) {
     super();
     this.logger.setContext(PowerupExtension.name);
@@ -197,14 +195,28 @@ export class PowerupExtension extends BaseExtensionModule implements OnModuleDes
     }
 
     // Регистрация cron-задачи для ежедневного пополнения
-    this.dailyCronJob = cron.schedule('0 0 * * *', () => {
-      this.runDailyTask();
-    });
+    // Кроны на UTC, чтобы суточная отсечка не зависела от локального времени сервера;
+    // отклонённый промис ловится, иначе node-cron молча теряет ошибку.
+    this.dailyCronJob = cron.schedule(
+      '0 0 * * *',
+      () => {
+        void this.runDailyTask().catch((err) =>
+          this.logger.error('PowerupExtension: daily-cron fail', err as Error),
+        );
+      },
+      { timezone: 'UTC' },
+    );
 
     // Регистрация cron-задачи для проверки ресурсов каждую минуту
-    this.resourceCronJob = cron.schedule('* * * * *', () => {
-      this.runTask();
-    });
+    this.resourceCronJob = cron.schedule(
+      '* * * * *',
+      () => {
+        void this.runTask().catch((err) =>
+          this.logger.error('PowerupExtension: resource-cron fail', err as Error),
+        );
+      },
+      { timezone: 'UTC' },
+    );
   }
 
   onModuleDestroy() {
@@ -225,13 +237,27 @@ export class PowerupExtension extends BaseExtensionModule implements OnModuleDes
     return `${amount.toFixed(this.extension.config.systemPrecision)} ${this.extension.config.systemSymbol}`;
   }
 
+  /**
+   * Суточная аренда: D тарифа у провайдера (объём месяца / число дней месяца,
+   * @ant 17.10.2026), чтобы бак AXON опустел ровно к дате оплаты. Без тарифа
+   * или без ответа провайдера — настройка расширения, как раньше.
+   */
+  private async dailyAmount(username: string): Promise<number> {
+    const fallback = this.extension.config.dailyPackageSize;
+    if (!this.tariffPort) return fallback;
+    const tariff = await this.tariffPort.currentTariff(username);
+    if (!tariff || !Number.isFinite(tariff.daily_axon) || tariff.daily_axon <= 0) return fallback;
+    return tariff.daily_axon;
+  }
+
   // Ежедневная задача пополнения
   private async runDailyTask() {
-    const quantity = this.getQuantity(this.extension.config.dailyPackageSize);
+    let quantity = this.getQuantity(this.extension.config.dailyPackageSize);
 
     try {
       // Получаем имя пользователя из окружения или другой конфигурации
       const username = platformSettings().coopname;
+      quantity = this.getQuantity(await this.dailyAmount(username));
       const account = await this.blockchainPort.getAccount(username);
 
       if (!account) {

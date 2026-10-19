@@ -37,16 +37,16 @@ div
       IndividualDataForm(v-model:userData='userData')
 
     div(v-if='userData.type === "organization"')
-      OrganizationDataForm(v-model:userData='userData')
+      OrganizationDataForm(v-model:userData='userData', @details-shown='organizationDetailsShown = $event')
 
     div(v-if='userData.type === "entrepreneur"')
-      EntrepreneurDataForm(v-model:userData='userData')
+      EntrepreneurDataForm(v-model:userData='userData', @details-shown='entrepreneurDetailsShown = $event')
 
-    slot(name='bottom', :userDataForm='localUserDataForm')
+    slot(name='bottom', :userDataForm='localUserDataForm', :detailsShown='detailsShown')
 </template>
 
 <script lang="ts" setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import type { IUserData } from 'src/shared/lib/types/user/IUserData';
 import { IndividualDataForm } from '../IndividualDataForm';
 import { OrganizationDataForm } from '../OrganizationDataForm';
@@ -92,6 +92,16 @@ const getSelectedTypeLabel = () => {
 };
 
 const localUserDataForm = ref(null);
+
+// Анкеты организации и ИП в режиме поиска по ИНН раскрываются после ввода
+// ИНН; до этого шаг не показывает то, что идёт после анкеты (согласие).
+const organizationDetailsShown = ref(true);
+const entrepreneurDetailsShown = ref(true);
+const detailsShown = computed(() => {
+  if (userData.value.type === 'organization') return organizationDetailsShown.value;
+  if (userData.value.type === 'entrepreneur') return entrepreneurDetailsShown.value;
+  return true;
+});
 </script>
 
 <style scoped>

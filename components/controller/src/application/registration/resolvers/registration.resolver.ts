@@ -10,6 +10,7 @@ import {
   GenerateDocumentOptionsInputDTO,
   RequireRight,
   RightsGuard,
+  DOCUMENT_GENERATION_THROTTLE,
 } from '@coopenomics/extension-kit';
 import { Throttle } from '@nestjs/throttler';
 import { CandidateOutputDTO } from '../dto/candidate.dto';
@@ -108,7 +109,7 @@ export class RegistrationResolver {
     name: 'generateParticipantApplication',
     description: 'Сгенерировать документ заявления о вступлении в кооператив.',
   })
-  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @Throttle(DOCUMENT_GENERATION_THROTTLE)
   @UseGuards(GqlJwtAuthGuard, RightsGuard)
   @RequireRight('Registration', 'generate:own', { owner: 'data.username' })
   async generateParticipantApplication(
@@ -124,7 +125,7 @@ export class RegistrationResolver {
     name: 'generateParticipantApplicationDecision',
     description: 'Сгенерировать документ протокол решения собрания совета',
   })
-  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @Throttle(DOCUMENT_GENERATION_THROTTLE)
   @UseGuards(GqlJwtAuthGuard, RightsGuard)
   @RequireRight('DecisionDocument', 'generate')
   async generateParticipantApplicationDecision(

@@ -27,4 +27,10 @@ export interface UpdateSettingsInputDomainInterface {
    * Маршрут по умолчанию для неавторизованных пользователей
    */
   non_authorized_default_route?: string;
+
+  /**
+   * Отметка завершения онбординга. Ставит её отдельная операция председателя,
+   * через общую форму настроек она не меняется.
+   */
+  onboarding_completed_at?: Date;
 }

@@ -11,6 +11,7 @@ import {
   GenerateDocumentInputDTO,
   RequireRight,
   RightsGuard,
+  DOCUMENT_GENERATION_THROTTLE,
 } from '@coopenomics/extension-kit';
 import { UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
@@ -105,7 +106,7 @@ export class AgreementResolver {
     name: 'generateWalletAgreement',
     description: 'Сгенерировать документ соглашения о целевой потребительской программе "Цифровой Кошелёк"',
   })
-  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @Throttle(DOCUMENT_GENERATION_THROTTLE)
   @UseGuards(GqlJwtAuthGuard, RightsGuard)
   @RequireRight('Agreement', 'generate:own', { owner: 'data.username' })
   async generateWalletAgreement(
@@ -121,7 +122,7 @@ export class AgreementResolver {
     name: 'generatePrivacyAgreement',
     description: 'Сгенерировать документ согласия с политикой конфиденциальности.',
   })
-  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @Throttle(DOCUMENT_GENERATION_THROTTLE)
   @UseGuards(GqlJwtAuthGuard, RightsGuard)
   @RequireRight('Agreement', 'generate:own', { owner: 'data.username' })
   async generatePrivacyAgreement(
@@ -137,7 +138,7 @@ export class AgreementResolver {
     name: 'generateSignatureAgreement',
     description: 'Сгенерировать документ соглашения о порядка и правилах использования простой электронной подписи.',
   })
-  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @Throttle(DOCUMENT_GENERATION_THROTTLE)
   @UseGuards(GqlJwtAuthGuard, RightsGuard)
   @RequireRight('Agreement', 'generate:own', { owner: 'data.username' })
   async generateSignatureAgreement(
@@ -153,7 +154,7 @@ export class AgreementResolver {
     name: 'generateUserAgreement',
     description: 'Сгенерировать документ пользовательского соглашения.',
   })
-  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @Throttle(DOCUMENT_GENERATION_THROTTLE)
   @UseGuards(GqlJwtAuthGuard, RightsGuard)
   @RequireRight('Agreement', 'generate:own', { owner: 'data.username' })
   async generateUserAgreement(

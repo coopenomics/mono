@@ -54,6 +54,10 @@ publish:
     - marketplace
     - expense
     - edubridge
+    # Оплата подписок облачного провайдера: billing::pay и billing::converttoaxn
+    # подтверждают списания журнала оплат хаба (BillingPaymentListener,
+    # BillingConversionListener).
+    - billing
     # Приходы и выплаты шлюза (incomes/outcomes) — личные таблицы ленты
     # изменений (кошелёк пайщика живёт по ним). До 25.09.2026 контракта здесь
     # не было, и лента по ним молчала.

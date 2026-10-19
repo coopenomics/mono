@@ -24,8 +24,9 @@ import { ListOfMeetsPage } from 'src/pages/Cooperative/ListOfMeets';
 import { MeetDetailsPage } from 'src/pages/Cooperative/MeetDetails';
 import { UnionPageListOfCooperatives } from 'src/pages/Union/ListOfCooperatives';
 import { ExpensesRegistryPage } from 'app/extensions/expenses/pages';
+import { UnionPageCooperativeDetail } from 'src/pages/Union/CooperativeDetail';
 import type { IWorkspaceConfig } from 'src/shared/lib/types/workspace';
-import { t } from './i18n';
+import { t, t as i18nT } from './i18n';
 
 export default async function (): Promise<IWorkspaceConfig[]> {
   // Число на пункте «Повестка»: вопросы, по которым член совета ещё не голосовал.
@@ -205,6 +206,21 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               requires: 'Union:read',
               conditions: 'coopname === "voskhod"',
               requiresAuth: true,
+            },
+          },
+          {
+            // Карточка кооператива: сюда ведёт строка реестра. В меню её нет,
+            // подсветку раздела «Реестр кооперативов» держит menuKey.
+            path: 'union/cooperatives/:detailCoopname',
+            name: 'union-cooperative-detail',
+            component: markRaw(UnionPageCooperativeDetail),
+            meta: {
+              title: i18nT('soviet.install.cooperativeDetailTitle'),
+              requires: 'Union:read',
+              conditions: 'coopname === "voskhod"',
+              requiresAuth: true,
+              hidden: true,
+              menuKey: 'union-cooperatives',
             },
           },
         ],

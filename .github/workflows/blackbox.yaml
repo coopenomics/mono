@@ -42,7 +42,7 @@ jobs:
     # хосте и монтируются в контейнер node:22-slim (bookworm, glibc 2.36).
     # Собранное под glibc 2.39 (24.04) в нём могло бы не загрузиться.
     runs-on: ubuntu-22.04
-    timeout-minutes: 150
+    timeout-minutes: 180
 
     env:
       COMPOSE_FILE: ${{ github.workspace }}/docker-compose.yaml:${{ github.workspace }}/scripts/blackbox/docker-compose.blackbox.yml
@@ -167,7 +167,8 @@ jobs:
         id: apitests
         if: ${{ !cancelled() && steps.app.outcome == 'success' && github.ref_name != 'ci/blackbox-cardcoop' }}
         # Наборы «Образования» ждут конца короткого гарантийного срока и прохода очереди раз в десять минут.
-        timeout-minutes: 90
+        # 18.10.2026 набор вырос до предела 90 минут (14.10 шёл 85) — поднято до 120, задание целиком до 180.
+        timeout-minutes: 120
         run: bash scripts/blackbox/stack.sh apitests
 
       - name: Карта кооператора (отдельный набор, подставная сеть карт)

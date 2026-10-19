@@ -103,6 +103,15 @@ export class SystemService {
   /**
    * Обновляет настройки системы
    */
+  /** Председатель завершает онбординг: пункт меню уходит на всех устройствах. */
+  public async completeOnboarding(): Promise<SettingsDTO> {
+    const [settings, isRegistrationOpenStatus] = await Promise.all([
+      this.systemInteractor.updateSettings({ onboarding_completed_at: new Date() }),
+      this.systemInteractor.getRegistrationOpenStatus(),
+    ]);
+    return new SettingsDTO(settings, isRegistrationOpenStatus);
+  }
+
   public async updateSettings(data: UpdateSettingsInputDTO): Promise<SettingsDTO> {
     const [settings, isRegistrationOpenStatus] = await Promise.all([
       this.systemInteractor.updateSettings(data),

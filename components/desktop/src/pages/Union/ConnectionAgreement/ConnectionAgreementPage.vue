@@ -26,30 +26,37 @@ div.row.q-pa-md
         //- Router view для дочерних страниц (завершение установки) только на дочерних маршрутах
         router-view(v-if="isOnCompletionRoute")
 
-      div(v-else).row
-        //- Заглушка для недоступного провайдера
-        div.col-md-12.col-xs-12
-          ColorCard(color="blue")
-            .text-center.q-pa-md
-              q-icon(name="fas fa-info-circle" size="2rem").q-mb-sm
-              .text-h6.q-mb-md {{ $t('union.connectionAgreementPage.title') }}
-              p {{ $t('union.connectionAgreementPage.description') }}
-              q-btn(
-                color="primary"
-                :label="$t('union.connectionAgreementPage.goToSiteLabel')"
+      //- Провайдер к этому кооперативу не подключён: подключение начинается
+      //- не здесь, а обращением в ПК ВОСХОД — поэтому пустое состояние, а не
+      //- форма.
+      div(v-else)
+        BaseCard
+          EmptyState(
+            :title="$t('union.connectionAgreementPage.emptyTitle')"
+            :body="$t('union.connectionAgreementPage.emptyBody')"
+          )
+            template(#icon)
+              q-icon(name="hub" size="28px")
+            template(#action)
+              BaseButton(
+                variant="primary"
+                type="button"
                 @click="openProviderWebsite"
-                size="md"
-              ).q-mt-md
+              ) {{ $t('union.connectionAgreementPage.goToSiteLabel') }}
 
 </template>
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useSystemStore } from 'src/entities/System/model';
-import { useConnectionAgreementStore } from 'src/entities/ConnectionAgreement';
+import {
+  useConnectionAgreementStore,
+  CONNECTION_STEP,
+  FIRST_ONBOARDING_STEP,
+} from 'src/entities/ConnectionAgreement';
 import { ConnectionAgreementStepper } from 'src/widgets/ConnectionAgreementStepper';
 import { ConnectionDashboard } from 'src/widgets/ConnectionDashboard';
-import { ColorCard } from 'src/shared/ui';
+import { BaseButton, BaseCard, EmptyState } from 'src/shared/ui/base';
 import { WindowLoader } from 'src/shared/ui/Loader';
 import { Zeus } from '@coopenomics/sdk';
 import { MatrixRegistration } from '../../../../extensions/chatcoop/widgets/MatrixRegistration';
@@ -124,9 +131,9 @@ const init = async () => {
     return;
   }
 
-  // Запускаем автообновление инстанса каждые 30 секунд (включает начальную загрузку)
+  // Автообновление инстанса каждые 10 секунд (включает начальную загрузку): на шаге установки проценты не должны отставать от провайдера
   // Ждем завершения первой загрузки, чтобы корректно определить состояние isBadGateway
-  await connectionAgreement.startInstanceAutoRefresh(30000).then((stop) => {
+  await connectionAgreement.startInstanceAutoRefresh(10000).then((stop) => {
     stopInstanceRefresh = stop;
   });
 
@@ -141,44 +148,50 @@ const init = async () => {
     connectionAgreement.setHasMatrixAccount(accountStatus.hasAccount);
   }
 
+  // Подтягиваем on-chain запись кооператива — её наличие означает, что
+  // соглашение о подключении уже подписано (regcoop проходит только после
+  // signagree). Используем как маркёр прохождения шагов 0–4.
+  try {
+    await connectionAgreement.reloadCooperative();
+  } catch {
+    // coop ещё не зарегистрирован — это валидное состояние, не падаем
+  }
+
   const instance = connectionAgreement.currentInstance;
-  const hasInstanceError = connectionAgreement.currentInstanceError;
+  const coop = connectionAgreement.coop;
 
-  // Определяем шаг на основе текущего прогресса установки (при каждом заходе)
-
-  // Сначала проверяем, была ли установка уже завершена (даже при ошибке загрузки)
+  // Сначала проверяем, была ли установка уже завершена
   const isAlreadyCompleted = instance?.progress === 100 && instance?.status === Zeus.InstanceStatus.ACTIVE;
   if (isAlreadyCompleted) {
     console.log('✅ Установка уже завершена ранее, показываем дашборд');
-    // Не меняем шаг, оставляем текущий (или устанавливаем специальный шаг для завершенной установки)
     isLoading.value = false;
     return;
   }
 
-  // Определяем шаг на основе текущего состояния
+  // Восстанавливаем фактический шаг по состоянию on-chain + provider.
+  // Идея: каждый шаг имеет хорошо различимый внешний маркёр; при перезагрузке
+  // не должно требоваться localStorage.
   let targetStep: number;
 
-  if (hasInstanceError) {
-    // Если есть ошибка загрузки инстанса, определяем шаг на основе членства в союзе
-    targetStep = system.info.is_unioned ? 0 : 1;
-  } else if (instance && typeof instance.progress === 'number' && instance.progress > 0) {
-    // Если установка уже идет (прогресс > 0), переходим к шагу установки
-    targetStep = 6;
-  } else {
-    // Если инстанса нет ИЛИ его прогресс = 0, определяем шаг на основе членства в союзе
-    if (system.info.is_unioned) {
-      // Если кооператив не является членом союза, начинаем с нулевого шага
-      targetStep = 0;
+  if (coop) {
+    // Соглашение точно подписано (coop появился в registrator.coops).
+    if (instance && typeof instance.progress === 'number' && instance.progress > 0) {
+      targetStep = CONNECTION_STEP.installation; // установка идёт
+    } else if (instance?.blockchain_status === 'active') {
+      targetStep = CONNECTION_STEP.installation; // совет подтвердил, провайдер вот-вот стартует
+    } else if (connectionAgreement.isDomainDelegated) {
+      targetStep = CONNECTION_STEP.approval; // домен делегирован, ждём подтверждения совета
     } else {
-      // Если кооператив уже член союза, начинаем с первого шага
-      targetStep = 1;
+      targetStep = CONNECTION_STEP.dns; // DNS-шаг: ждём делегирования или провайдер ещё не подхватил coop
     }
+  } else if (system.info.is_unioned) {
+    targetStep = CONNECTION_STEP.union; // нужна регистрация в мессенджере союза
+  } else {
+    targetStep = FIRST_ONBOARDING_STEP; // онбординг с первого показанного шага
   }
 
-  // Устанавливаем определенный шаг
   connectionAgreement.setCurrentStep(targetStep);
 
-  // Скрываем лоадер после загрузки данных
   isLoading.value = false;
 };
 
@@ -204,32 +217,32 @@ watch(
       status: instance.status,
     });
 
-    // Логика автоматических переходов (только для шагов 4, 5, 6)
-    // Шаги 0, 1, 2, 3 не имеют автоматических переходов
-    if (currentStep === 4) {
-      // Шаг 4: Проверка домена
-      if (instance.is_valid && instance.is_delegated) {
-        // Домен валиден и делегирован
-        if (instance.blockchain_status === 'active') {
-          // Можно переходить сразу к установке
-          console.log('✅ Домен готов и blockchain_status активен → переход к шагу 6');
-          connectionAgreement.setCurrentStep(6);
-        } else {
-          // Ожидаем подтверждения от союза
-          console.log('⏳ Домен готов, но ожидаем подтверждения → переход к шагу 5');
-          connectionAgreement.setCurrentStep(5);
-        }
-      }
-    } else if (currentStep === 5) {
-      // Шаг 5: Ожидание подтверждения от союза
+    // Автопереход по опросу — только с шага approval; шаг dns уходит дальше
+    // по смене признака делегирования (наблюдатель ниже), остальные шаги
+    // (union/intro/profile/domain/financial/agreement) ждут ввода пользователя.
+    if (currentStep === CONNECTION_STEP.approval) {
+      // Шаг 6: Ожидание подтверждения от союза.
       if (instance.blockchain_status === 'active') {
-        console.log('✅ Подтверждение получено → переход к шагу 6');
-        connectionAgreement.setCurrentStep(6);
+        console.log('✅ Подтверждение получено → переход к шагу 7 (installation)');
+        connectionAgreement.setCurrentStep(CONNECTION_STEP.installation);
       }
     }
     // Редирект на страницу завершения теперь делает только InstallationStep.vue
   },
   { deep: true }
+);
+
+// Шаг домена закрывается сам только в момент, когда адрес стал направленным.
+// Открытый вручную шаг (сверить или исправить адрес) опрос провайдера не
+// закрывает: иначе каждые 30 секунд он уводил на «Совет проверяет заявку».
+watch(
+  () => connectionAgreement.isDomainDelegated,
+  (isDelegated, wasDelegated) => {
+    if (!isDelegated || wasDelegated) return;
+    if (connectionAgreement.currentStep !== CONNECTION_STEP.dns) return;
+    const isApproved = connectionAgreement.currentInstance?.blockchain_status === 'active';
+    connectionAgreement.setCurrentStep(isApproved ? CONNECTION_STEP.installation : CONNECTION_STEP.approval);
+  },
 );
 
 // Lifecycle хуки

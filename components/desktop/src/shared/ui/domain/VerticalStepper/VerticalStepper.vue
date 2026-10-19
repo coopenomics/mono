@@ -192,7 +192,7 @@ function labelClass(step: StepperStep): Record<string, boolean> {
   color: var(--p-ink-1);
 }
 .vertical-stepper__label--clickable:hover {
-  color: var(--p-primary);
+  color: var(--p-accent);
 }
 .vertical-stepper__label--active {
   color: var(--p-ink);

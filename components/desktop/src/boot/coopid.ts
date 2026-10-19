@@ -4,6 +4,8 @@ import { client } from 'src/shared/api/client';
 import { startCoopidKeepalive } from 'src/shared/api/coopid-keepalive';
 import { env } from 'src/shared/config';
 import { useSessionStore } from 'src/entities/Session';
+import { authLossAction } from 'src/entities/Session/lib/auth-loss';
+import { resetDevice } from 'src/features/User/Logout/model';
 
 /**
  * Boot контура CoopID (Эпик 11, Story 11.7) — конфигурация SDK `@coopenomics/auth`
@@ -41,15 +43,17 @@ export default boot(() => {
   // Иначе гость, чей стол сходил за закрытыми данными, ушёл бы в вечную
   // перезагрузку — SDK отсеивает такие отказы сам, но и здесь страховка не лишняя:
   // перезагрузка страницы гостю не нужна ни при каком ответе сервера.
+  //
+  // Забываем устройство целиком — серверную cookie, оба входа, PIN-кэш, аккаунт и
+  // состояние вступления (решение владельца 16.10.2026, см. resetDevice), и только
+  // потом перезагружаемся: иначе остатки переживут перезагрузку.
   let leaving = false;
   client.setAuthLostHandler(() => {
-    if (leaving) return;
     const session = useSessionStore();
-    if (!session.isAuth) return;
+    if (authLossAction(session.isAuth, leaving) === 'ignore') return;
     leaving = true;
     console.warn('Сервер не признаёт сессию — возвращаемся на вход');
-    session.close();
-    window.location.reload();
+    void resetDevice().finally(() => window.location.reload());
   });
 
   // Источник access-токена контура CoopID. Ставим безусловно: при легаси-сессии

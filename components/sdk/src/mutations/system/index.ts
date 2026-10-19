@@ -1,3 +1,15 @@
+/** Завершить онбординг кооператива: пункт «Онбординг» уходит из меню председателя */
+export * as CompleteCooperativeOnboarding from './completeCooperativeOnboarding'
+
+/** Перейти на тариф сервера дороже: зачёт остатка + перенос (~час работ) */
+export * as ChangeProviderHostingPlan from './changeProviderHostingPlan'
+
+/** Перейти на тариф подключения дороже: цены тарифа с зачётом остатка, при другом сервере — перенос */
+export * as ChangeProviderTariff from './changeProviderTariff'
+
+/** Выбрать тариф подключения: провайдер заказывает сервер и заводит подписки тарифа */
+export * as SelectProviderTariff from './selectProviderTariff'
+
 /** Произвести инициализацию программного обеспечения перед установкой совета методом install */
 export * as InitSystem from './initSystem'
 
@@ -18,3 +30,6 @@ export * as UpdateSettings from './updateSettings'
 
 /** Обновить параметры системы */
 export * as UpdateSystem from './updateSystem'
+
+/** Приложить устав кооператива к заявке на подключение */
+export * as UploadCooperativeCharter from './uploadCooperativeCharter'

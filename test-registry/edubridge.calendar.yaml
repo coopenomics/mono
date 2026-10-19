@@ -31,6 +31,7 @@ cases:
     scenario: "Окна расписания «Вт, Чт 17:00, 60 минут» и дата начала группы в среду: календарь строится на всю программу."
     expect: "Первое занятие — ближайший четверг от даты начала, далее по вторникам и четвергам; номера по порядку дат; строка расписания собрана из окон."
     test: components/controller/tests/unit/edubridge/calendar.service.test.ts
+    api: components/api-tests/src/edubridge/calendar.test.ts
     status: written
   - id: edu.cal.side.01
     level: backend
@@ -38,6 +39,7 @@ cases:
     scenario: "Перестройка календаря после смены окон: проведённые и назначенные отдельно занятия остаются, запланированные по расписанию строятся заново в пределах программы."
     expect: "Проведённое занятие на месте, дополнительное на месте, по расписанию занятий столько, сколько осталось в программе."
     test: components/controller/tests/unit/edubridge/calendar.service.test.ts
+    api: components/api-tests/src/edubridge/calendar.test.ts
     status: written
   - id: edu.cal.side.02
     level: backend
@@ -45,6 +47,7 @@ cases:
     scenario: "Внеочередное занятие берётся только из резерва расписания: занятия по расписанию остаются, резерв исчерпан — отказ."
     expect: "Занятие получило наименьший свободный номер; после исчерпания резерва — EDUBRIDGE_RESERVE_EMPTY."
     test: components/controller/tests/unit/edubridge/calendar.service.test.ts
+    api: components/api-tests/src/edubridge/calendar.test.ts
     status: written
   - id: edu.cal.break.01
     level: backend
@@ -52,6 +55,7 @@ cases:
     scenario: "Программа заполнена проведёнными и назначенными занятиями: дополнительное занятие, перенос с удлинением и окно с чужим преподавателем."
     expect: "Отказ EDUBRIDGE_RESERVE_EMPTY; окно с допуском другого курса — EDUBRIDGE_SCHEDULE_TEACHER_NOT_ASSIGNED; перенос и отмена проведённого — EDUBRIDGE_LESSON_NOT_PLANNED."
     test: components/controller/tests/unit/edubridge/calendar.service.test.ts
+    api: components/api-tests/src/edubridge/calendar.test.ts
     status: written
   - id: edu.cal.side.03
     level: backend
@@ -59,6 +63,7 @@ cases:
     scenario: "Отмена запланированного занятия освобождает номер: следующее дополнительное занятие получает его."
     expect: "Отменённое остаётся в календаре со статусом «отменено», новое занятие — с тем же номером."
     test: components/controller/tests/unit/edubridge/calendar.service.test.ts
+    api: components/api-tests/src/edubridge/calendar.test.ts
     status: written
   - id: edu.cal.side.04
     level: backend
@@ -66,6 +71,7 @@ cases:
     scenario: "Стенд со сжатым временем: окна раскладываются равными шагами по сжатому месяцу, конец занятия и срок на отчёт сжаты так же, как сутки."
     expect: "Занятий в месяц столько, сколько по условиям группы; окно отчёта у занятия — по длине суток стенда."
     test: components/controller/tests/unit/edubridge/calendar.service.test.ts
+    api: components/api-tests/src/edubridge/calendar.test.ts
     status: written
   - id: edu.cal.side.05
     level: backend
@@ -81,6 +87,7 @@ cases:
     scenario: "Допуск к курсу есть, а окна расписания группы без преподавателя (замечание владельца 13.10.2026: занятия строились без преподавателя, его календарь был пуст)."
     expect: "Окно без преподавателя и окно снятого допуска получают действующие допуски курса по очереди; назначенные окна не трогаются; занятия календаря строятся с преподавателем; запланированное отдельно занятие переходит к преподавателю своего окна."
     test: components/controller/tests/unit/edubridge/calendar.service.test.ts
+    api: components/api-tests/src/edubridge/calendar.test.ts
     status: written
   - id: edu.cal.side.21
     level: backend
@@ -88,6 +95,7 @@ cases:
     scenario: "Группа завершена либо отменена, а у неё остались запланированные занятия (замечание владельца 13.10.2026: преподавателю показывались отчёты, кнопка отвечала отказом)."
     expect: "Запланированные занятия отмечаются отменёнными и отчёта не ждут; проведённые остаются; повтор ничего не меняет."
     test: components/controller/tests/unit/edubridge/calendar.service.test.ts
+    api: components/api-tests/src/edubridge/calendar.test.ts
     status: written
   - id: edu.cal.side.22
     level: backend
@@ -95,4 +103,5 @@ cases:
     scenario: "Занятие идущей группы прошло, а на его дату в группе нет обучающихся с оплаченным доступом (решение владельца 13.10.2026)."
     expect: "У занятия число обучающихся с оплаченным доступом — ноль, просрочки нет; отчёта от преподавателя не ждут. С оплаченной на дату занятия подпиской занятие ждёт отчёта."
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    api: components/api-tests/src/edubridge/calendar.test.ts
     status: written

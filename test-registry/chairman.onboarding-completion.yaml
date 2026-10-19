@@ -1,0 +1,49 @@
+feature: chairman.onboarding-completion
+title: Председатель сам завершает онбординг кооператива, и пункт «Онбординг» уходит из меню
+
+# Онбординг кооператива — шесть решений совета (положения, формы документов,
+# вступление в ПК «Восход») и импорт пайщиков. Общее собрание о вступлении в
+# союз из онбординга снято 19.10.2026: вступление в союз необязательно. На
+# последнем шаге председатель нажимает «Завершить онбординг»; отметка
+# сохраняется в настройках кооператива, и пункт меню скрывается на всех
+# устройствах. Раньше отметка жила в localStorage браузера.
+
+sources:
+  backend:
+    - components/controller/src/application/system/resolvers/system.resolver.ts
+    - components/controller/src/application/system/services/system.service.ts
+    - components/controller/src/domain/settings/**
+    - components/controller/src/infrastructure/database/kysely/repositories/settings.kysely-repository.ts
+    - components/controller/src/extensions/chairman/application/onboarding/register-chairman-onboarding-steps.ts
+  ui:
+    - components/desktop/extensions/chairman/features/Onboarding/**
+    - components/desktop/src/widgets/Desktop/LeftDrawerMenu/LeftDrawerMenu.vue
+    - components/desktop/src/app/layouts/default.vue
+
+cases:
+  - id: chair.onbfinish.happy.01
+    level: backend
+    kind: happy
+    scenario: председатель завершает онбординг
+    expect: отметка времени в настройках кооператива, сведения о системе отдают её всем
+    test: components/controller/tests/unit/settings/onboarding-completed.test.ts
+    api: components/api-tests/src/chairman/onboarding-completion.test.ts
+    status: written
+
+  - id: chair.onbfinish.side.01
+    level: backend
+    kind: side
+    scenario: настройки переписываются другими путями (общая форма, создание по умолчанию)
+    expect: колонка отметки не трогается, завершённый онбординг не обнуляется
+    test: components/controller/tests/unit/settings/onboarding-completed.test.ts
+    api: components/api-tests/src/chairman/onboarding-completion.test.ts
+    status: written
+
+  - id: chair.onbfinish.break.01
+    level: backend
+    kind: break
+    scenario: завершить онбординг пытается не председатель
+    expect: отказ по праву System:manage (снимок матрицы прав)
+    test: components/api-tests/src/chairman/onboarding-completion.test.ts
+    api: components/api-tests/src/chairman/onboarding-completion.test.ts
+    status: written

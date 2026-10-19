@@ -118,6 +118,15 @@ public:
     checksum256 registration_hash);
   
   [[eosio::action]] void changekey(eosio::name coopname, eosio::name changer, eosio::name username, eosio::public_key public_key);
+
+  /**
+   * \brief Выпуск разрешения `platform` — ключа узла кооператива, который
+   * переживает смену ключа пайщика при восстановлении доступа.
+   *
+   * \note Авторизация: сам аккаунт @p username либо кооператив @p coopname,
+   * в котором аккаунт — действующий пайщик.
+   */
+  [[eosio::action]] void setplatform(eosio::name coopname, eosio::name username, eosio::public_key platform_key, eosio::public_key active_key);
   
   [[eosio::action]] void confirmreg(eosio::name coopname, checksum256 registration_hash, document2 authorization);
 

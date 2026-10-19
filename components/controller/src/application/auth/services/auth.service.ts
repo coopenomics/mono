@@ -25,6 +25,10 @@ export class AuthService {
   }
 
 
+  async inviteRecipient(token: string): Promise<{ email: string }> {
+    return this.authInteractor.inviteRecipient(token);
+  }
+
   async resetKey(data: ResetKeyInputDTO): Promise<void> {
     await this.authInteractor.resetKey(data);
   }

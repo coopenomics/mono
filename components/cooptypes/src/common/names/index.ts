@@ -97,3 +97,8 @@ export const _ano = {
   production: 'ano',
   testnet: 'ano',
 } as const
+
+export const _billing = {
+  production: 'billing',
+  testnet: 'billing',
+} as const

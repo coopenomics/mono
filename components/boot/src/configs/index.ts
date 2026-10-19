@@ -170,6 +170,10 @@ export default {
       name: 'ano',
       delegate_active_to: provider,
     },
+    {
+      name: 'billing',
+      code_permissions_to: ['billing'],
+    },
     // {
     //   name: provider_chairman,
     // },

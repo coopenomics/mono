@@ -473,6 +473,22 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
     debit: 86, credit: 68,
     human_name: 'Удержание налога на доходы физических лиц из материальной помощи' },
 
+  // billing (Epic 12/13) — подписки облачного провайдера, леджер оператора
+  { code: 'o.bil.fund',    process_type: 'p.bil.fund',    contract: 'billing',
+    name: 'CONVERT',        wallet_op: 'TRANSFER', wallet_from: 'w.wal.share', wallet_to: 'w.wal.bill',
+    debit: 80, credit: 86,
+    human_name: 'Трансляция паевого взноса в членский на биллинг-кошелёк пайщика' },
+
+  { code: 'o.bil.pay',     process_type: 'p.bil.pay',     contract: 'billing',
+    name: 'PAY',            wallet_op: 'TRANSFER', wallet_from: 'w.wal.bill', wallet_to: 'w.sov.infra',
+    debit: null, credit: null,
+    human_name: 'Оплата подписки за инфраструктуру членскими взносами пайщика' },
+
+  { code: 'o.bil.axn',     process_type: 'p.bil.pay',     contract: 'billing',
+    name: 'CONVERT_TO_AXON', wallet_op: 'BURN', wallet_from: 'w.wal.bill', wallet_to: null,
+    debit: null, credit: null,
+    human_name: 'Конвертация членского взноса в AXON для оплаты инфраструктуры' },
+
   // soviet
   { code: 'o.sov.axncnv', process_type: 'p.sov.axncnv', contract: 'soviet', name: 'CONVERT_AXN', wallet_op: 'TRANSFER', wallet_from: 'w.wal.share', wallet_to: 'w.sov.delgte', debit: 80, credit: 86, human_name: 'Трансляция паевого в членский взнос инфраструктуры' },
 

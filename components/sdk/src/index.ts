@@ -27,6 +27,30 @@ function isAbortRequestError(error: unknown): error is AccessTokenUnavailableErr
     && (error as { abortRequest?: unknown }).abortRequest === true
 }
 
+/**
+ * Откуда взят bearer запроса: `session` — провайдер токена контура CoopID,
+ * `token` — токен, выставленный вручную (`setToken`, `login`, заголовки клиента).
+ */
+export type AuthorizationSource = 'session' | 'token'
+
+/** Что SDK сообщает приложению о потере доступа. */
+export interface AuthLoss {
+  /** Чей токен сервер перестал признавать. */
+  source: AuthorizationSource
+}
+
+/**
+ * Коды отказа, после которых токен не откроет уже ничего: сессия отозвана либо
+ * пользователя, на которого выписан токен, на узле нет (узел пересоздан, а
+ * браузер хранит токен прежней базы — подпись у него верная, срок длинный).
+ */
+const AUTH_LOSS_CODES = new Set(['AUTH_SESSION_TERMINATED', 'AUTH_JWT_USER_NOT_FOUND', 'AUTH_JWT_INVALID_USER_ID_FORMAT'])
+
+function isAuthLossError(error: unknown): boolean {
+  const code = (error as { extensions?: { code?: unknown } } | null)?.extensions?.code
+  return typeof code === 'string' && AUTH_LOSS_CODES.has(code)
+}
+
 export * as Classes from './classes'
 export { type GraphQLErrorItem, GraphQLResponseError } from './errors'
 export * as Mutations from './mutations'
@@ -66,6 +90,13 @@ function toWebSocketUrl(apiUrl: string): string {
 
 export class Client {
   private currentHeaders: Record<string, string> = {}
+  /**
+   * Заголовок, выставленный вручную. Провайдер CoopID пишет свой токен поверх него
+   * в `currentHeaders`, и без отдельной копии при отказе провайдера запрос уходил
+   * с последним токеном CoopID вместо выставленного — например, с токеном прежнего
+   * пайщика сразу после регистрации нового.
+   */
+  private staticAuthorization?: string
   private accessTokenProvider?: () => Promise<string>
   private account: Classes.Account
   private blockchain: Classes.Blockchain
@@ -76,7 +107,7 @@ export class Client {
   /** Shared graphql-ws транспорт — не создавать на каждый доступ к getter. */
   private subscriptionApi: WsSubscriptionApi | null = null
   /** Извещение приложения о том, что сервер больше не признаёт наш доступ. */
-  private authLostHandler?: () => void
+  private authLostHandler?: (loss: AuthLoss) => void
   private static scalars = ZeusScalars({
     DateTime: {
       decode: (e: unknown) => new Date(e as string), // Преобразует строку в объект Date
@@ -86,6 +117,7 @@ export class Client {
 
   public constructor(private readonly options: ClientConnectionOptions) {
     this.currentHeaders = options.headers || {}
+    this.staticAuthorization = this.currentHeaders.Authorization
     this.thunder = this.createThunder(options.api_url)
     this.account = new Classes.Account()
     this.blockchain = new Classes.Blockchain(options)
@@ -154,7 +186,7 @@ export class Client {
     this.blockchain.setWif(username, wif)
     this.document.setWif(wif)
     this.vote.setWif(wif)
-    this.currentHeaders.Authorization = `Bearer ${result.tokens.access.token}`
+    this.setToken(result.tokens.access.token)
 
     return result
   }
@@ -167,29 +199,34 @@ export class Client {
    * падают по кругу. Пайщик `pgrzosdeyuwg` 08.09.2026 просидел так несколько
    * часов: раз в минуту два отказа в логах сервера, а в кабинете ни ошибки, ни
    * возврата на вход — только исчезнувший кошелёк и предложение вступить в
-   * пайщики. Обработчик ставит приложение, SDK лишь сообщает факт.
+   * пайщики. Обработчик ставит приложение, SDK лишь сообщает факт и чей токен
+   * перестал действовать: приложение решает, какой контур входа забыть.
    */
-  public setAuthLostHandler(handler?: () => void): void {
+  public setAuthLostHandler(handler?: (loss: AuthLoss) => void): void {
     this.authLostHandler = handler
   }
 
   /**
-   * Опознать в ответе потерю доступа. Отдельного кода у платформы нет, признак —
-   * текст: «Сессия завершена, требуется повторная авторизация» сервер отдаёт
-   * ровно в одном месте, когда сессия токена отозвана.
+   * Опознать в ответе потерю доступа — по коду отказа (`extensions.code`).
+   *
+   * Прежде признаком был текст «Сессия завершена», и отказ «Пользователь с
+   * указанным JWT не найден» проходил мимо. Так 16.10.2026 на пересозданном стенде
+   * браузер держал токен пайщика прежней базы: кабинет падал по кругу ~30 раз в
+   * минуту, а регистрация нового пайщика обрывалась на первом же чтении аккаунта.
+   * Текст оставлен запасным признаком для узлов, которые код ещё не отдают.
    *
    * Голое «Unauthorized» потерей доступа НЕ считается: так отвечает страж любому
    * запросу без токена — а их шлют и гость на странице регистрации, и стол, чьи
    * запросы ушли раньше, чем приложение узнало о входе. Реагировать на них
    * перезагрузкой значило бы гонять гостя по кругу. Поэтому два условия сразу:
-   * запрос ушёл с bearer (доступ БЫЛ), и сервер сказал, что сессии больше нет.
+   * запрос ушёл с bearer (доступ БЫЛ), и сервер сказал, что токен не действует.
    */
-  private reportAuthLoss(errors: unknown, hadToken: boolean): void {
-    if (!this.authLostHandler || !hadToken)
+  private reportAuthLoss(errors: unknown, source: AuthorizationSource | null): void {
+    if (!this.authLostHandler || !source)
       return
-    const text = JSON.stringify(errors ?? '')
-    if (/Сессия завершена/i.test(text))
-      this.authLostHandler()
+    const list = Array.isArray(errors) ? errors : [errors]
+    if (list.some(isAuthLossError) || /Сессия завершена/i.test(JSON.stringify(errors ?? '')))
+      this.authLostHandler({ source })
   }
 
   /**
@@ -197,7 +234,8 @@ export class Client {
    * @param token Токен для заголовков Authorization.
    */
   public setToken(token: string): void {
-    this.currentHeaders.Authorization = `Bearer ${token}`
+    this.staticAuthorization = `Bearer ${token}`
+    this.currentHeaders.Authorization = this.staticAuthorization
   }
 
   /**
@@ -211,6 +249,16 @@ export class Client {
    */
   public setAccessTokenProvider(provider?: () => Promise<string>): void {
     this.accessTokenProvider = provider
+    if (!provider)
+      this.restoreStaticAuthorization()
+  }
+
+  /** Вернуть заголовок к выставленному вручную — токен провайдера больше не наш. */
+  private restoreStaticAuthorization(): void {
+    if (this.staticAuthorization)
+      this.currentHeaders.Authorization = this.staticAuthorization
+    else
+      delete this.currentHeaders.Authorization
   }
 
   /**
@@ -223,20 +271,24 @@ export class Client {
    *   `abortRequest`, и запрос не отправляется вовсе. Со старым заголовком он бы
    *   не упал, а получил бы ответ как для гостя: бэкенд на негодный токен молча
    *   понижает права, и клиент принимал бы гостевой ответ за свой.
-   * @returns true — запрос уйдёт от имени пользователя, false — гостем.
+   *
+   * В первом случае заголовок возвращается к выставленному вручную: токен, который
+   * провайдер отдал раньше, больше не его и уйти с запросом не должен.
+   * @returns источник bearer запроса; `null` — запрос уйдёт гостем.
    */
-  private async prepareAuthorization(): Promise<boolean> {
+  private async prepareAuthorization(): Promise<AuthorizationSource | null> {
     if (this.accessTokenProvider) {
       try {
         this.currentHeaders.Authorization = `Bearer ${await this.accessTokenProvider()}`
-        return true
+        return 'session'
       }
       catch (error) {
         if (isAbortRequestError(error))
           throw error
+        this.restoreStaticAuthorization()
       }
     }
-    return Boolean(this.currentHeaders.Authorization)
+    return this.currentHeaders.Authorization ? 'token' : null
   }
 
   /**
@@ -246,7 +298,7 @@ export class Client {
    * @throws как перед запросом — ошибка провайдера с `abortRequest`.
    */
   public async ensureAccessToken(): Promise<boolean> {
-    return this.prepareAuthorization()
+    return (await this.prepareAuthorization()) !== null
   }
 
   /**
@@ -356,7 +408,7 @@ export class Client {
    */
   private createThunder(baseUrl: string) {
     return Thunder(async (query, variables) => {
-      const hadToken = await this.prepareAuthorization()
+      const source = await this.prepareAuthorization()
       const controller = typeof AbortController !== 'undefined' ? new AbortController() : null
       const timeoutId = controller
         ? setTimeout(() => controller.abort(), HTTP_TIMEOUT_MS)
@@ -386,14 +438,14 @@ export class Client {
             // тело не JSON — прокси или сервер ответили текстом, он и станет сообщением
           }
           const errors = graphQLErrorsFromBody(body, response.status)
-          this.reportAuthLoss(errors, hadToken)
+          this.reportAuthLoss(errors, source)
           throw new GraphQLResponseError(errors, { response: body, status: response.status })
         }
 
         const json = (await response.json()) as GraphQLResponse
 
         if (json.errors) {
-          this.reportAuthLoss(json.errors, hadToken)
+          this.reportAuthLoss(json.errors, source)
           throw new GraphQLResponseError(json.errors as GraphQLErrorItem[], {
             response: json,
             status: response.status,

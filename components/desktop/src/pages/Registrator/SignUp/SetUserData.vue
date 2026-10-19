@@ -5,9 +5,9 @@ div(v-show='store.isStep("SetUserData")')
       @type-selected='onTypeSelected',
       @type-cleared='onTypeCleared'
     )
-      template(#bottom='{ userDataForm }')
+      template(#bottom='{ userDataForm, detailsShown }')
         q-checkbox.q-mt-lg(
-          v-if='isAccountTypeSelected',
+          v-if='isAccountTypeSelected && detailsShown',
           v-model='store.state.agreements.condidential',
           full-width,
           standout='bg-teal text-white'

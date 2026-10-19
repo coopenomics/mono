@@ -396,6 +396,13 @@ describe('тест генератора документов', async () => {
     }
 
     await testDocumentGeneration(act)
+
+    // Соглашение без утверждения советом (нет реквизитов протокола) фабрика не
+    // собирает: иначе оно уходило на подпись с пустой шапкой «УТВЕРЖДЕНО».
+    const { coopenomics_agreement: _approved, ...unapproved } = vars
+    await generator.save('vars', unapproved as IVars)
+    await expect(generator.generate(act)).rejects.toThrow(/не утверждено советом/)
+    await generator.save('vars', vars)
   })
 
   it('генерируем заявление о конвертации паевого взноса в членский взнос', async () => {

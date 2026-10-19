@@ -67,6 +67,13 @@ import { workflow as branchMeetingReminderWorkflow } from './branch-meeting-remi
 import { workflow as branchTrustedRequestedWorkflow } from './branch-trusted-requested';
 import { workflow as branchTrustedResolvedWorkflow } from './branch-trusted-resolved';
 import { workflow as expenseAdvanceReportReminderWorkflow } from './expense-advance-report-reminder';
+// Epic 14 — биллинговые оповещения пайщикам
+import { workflow as trialEndingWorkflow } from './trial-ending';
+import { workflow as subscriptionPaymentDueWorkflow } from './subscription-payment-due';
+import { workflow as subscriptionPastDueWorkflow } from './subscription-past-due';
+import { workflow as subscriptionSuspendedWorkflow } from './subscription-suspended';
+// Epic 13 v5.1 — квота докупки пакетов документооборота исчерпана
+import { workflow as packageQuotaExceededWorkflow } from './package-quota-exceeded';
 import { workflow as accessRoleAssignedWorkflow } from './access-role-assigned';
 import { workflow as accessRoleRevokedWorkflow } from './access-role-revoked';
 
@@ -134,6 +141,12 @@ export * as EdubridgeAccessExpiring from './edubridge-access-expiring';
 export * as EdubridgeAccessNeedsAttention from './edubridge-access-needs-attention';
 export * as EdubridgeRidCouncilApproved from './edubridge-rid-council-approved';
 export * as ExpenseAdvanceReportReminder from './expense-advance-report-reminder';
+// Epic 14 — биллинговые оповещения пайщикам
+export * as TrialEnding from './trial-ending';
+export * as SubscriptionPaymentDue from './subscription-payment-due';
+export * as SubscriptionPastDue from './subscription-past-due';
+export * as SubscriptionSuspended from './subscription-suspended';
+export * as PackageQuotaExceeded from './package-quota-exceeded';
 export * as AccessRoleAssigned from './access-role-assigned';
 export * as AccessRoleRevoked from './access-role-revoked';
 
@@ -206,6 +219,12 @@ export const allWorkflows: WorkflowDefinition[] = [
   branchTrustedRequestedWorkflow,
   branchTrustedResolvedWorkflow,
   expenseAdvanceReportReminderWorkflow,
+  // Epic 14 — биллинговые оповещения пайщикам
+  trialEndingWorkflow,
+  subscriptionPaymentDueWorkflow,
+  subscriptionPastDueWorkflow,
+  subscriptionSuspendedWorkflow,
+  packageQuotaExceededWorkflow,
   accessRoleAssignedWorkflow,
   accessRoleRevokedWorkflow,
 ];

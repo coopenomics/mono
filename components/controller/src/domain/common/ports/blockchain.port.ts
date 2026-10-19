@@ -47,6 +47,14 @@ export interface ServedCooperative {
   status: string;
 }
 
+/** Итог самомиграции ключа узла. */
+export type OwnPlatformKeyResult =
+  | 'issued' // platform выпущен своим ключом
+  | 'exists' // platform уже есть
+  | 'no-key' // в хранилище узла нет активного ключа (установка не завершена)
+  | 'key-not-active' // ключ хранилища больше не подписывает как active — нужен новый ключ установки
+  | 'shared-active'; // в active не только ключ узла — закреплять без участия пайщика нельзя
+
 export interface BlockchainPort {
   initialize(username: string, wif: string): void;
   transact(actionOrActions: any | any[], broadcast?: boolean): Promise<any>;
@@ -80,6 +88,19 @@ export interface BlockchainPort {
 
   // Authentication related methods
   hasActiveKey(account: any, publicKey: string): boolean;
+  /**
+   * Подписывает ли ключ как `active` аккаунта: ключ стоит в `active` напрямую
+   * либо в разрешении `platform`, которое входит в `active` вторым входом
+   * (ключ узла кооператива, registrator::setplatform). Только для приёма ключа
+   * узлом; вход пайщика сверяет ключ через hasActiveKey.
+   */
+  canSignAsActive(account: any, publicKey: string): boolean;
+  /**
+   * Самомиграция узла: закрепить свой активный ключ разрешением platform
+   * (registrator::setplatform своей подписью), чтобы смена ключа пайщика при
+   * восстановлении доступа не остановила узел. Идемпотентно.
+   */
+  ensureOwnPlatformKey(): Promise<OwnPlatformKeyResult>;
   /**
    * Восстановить публичный ключ из COOPOS-native recoverable подписи (`SIG_K1_…`)
    * над utf8-сообщением. Зеркало клиентского `signMessage` (SDK signTimestamp,
@@ -133,6 +154,13 @@ export interface BlockchainPort {
   changeKey(data: RegistratorContract.Actions.ChangeKey.IChangeKey): Promise<void>;
 
   // Powerup related methods
+  /**
+   * Аренда вычислительных ресурсов из ликвидного AXON-баланса кооператива
+   * (подпись coopname@active). Возвращает on-chain transaction_id; бросает
+   * исключение при отказе — в т.ч. при нехватке AXON: тогда пакет докупит
+   * hub-cron Восхода через billing::converttoaxn подписью _provider
+   * (Epic 13 v5.1, решение @ant 2026-06-11).
+   */
   powerUp(username: string, quantity: string): Promise<string>;
 
   // System installation methods

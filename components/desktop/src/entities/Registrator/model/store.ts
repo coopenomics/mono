@@ -9,6 +9,9 @@ import { Zeus, Queries } from '@coopenomics/sdk';
 import { client } from 'src/shared/api/client';
 import type { IInitialPaymentOrder } from 'src/shared/lib/types/payments';
 import { intakeFormProblems } from 'src/shared/lib/intake-schema';
+import { useSessionStore } from 'src/entities/Session';
+import { useGlobalStore } from 'src/shared/store';
+import { decideResume, isPasswordStepDone, nextVisibleStep } from '../lib/registration-resume';
 
 // Программа участия в регистрации — тип берётся напрямую из SDK-выдачи
 // getRegistrationConfig, не переописывается.
@@ -19,6 +22,11 @@ type IRegistrationProgram =
 // либо типа аккаунта. Поля описаны JSON Schema — их рисует общая форма ZodForm.
 export type IRegistrationIntakeForm =
   Queries.System.GetRegistrationConfig.IOutput['getRegistrationConfig']['intake_forms'][number];
+
+// Сведения о пайщике, которые хранит узел, — из выдачи getAccount.
+type IResumedPrivateAccount = NonNullable<
+  Queries.Accounts.GetAccount.IOutput[typeof Queries.Accounts.GetAccount.name]['private_account']
+>;
 
 const namespace = 'registrator';
 
@@ -399,11 +407,20 @@ export const useRegistratorStore = defineStore(
       return stepIndex === state.step;
     };
 
+    // Шаг пароля пройден: учётка создана и сервер подтверждает пароль
+    // (см. isPasswordStepDone — одной отметки «учётка создана» мало).
+    const passwordStepDone = computed(() =>
+      isPasswordStepDone(state.accountCreated, useSessionStore().currentUserAccount?.has_password),
+    );
+
     const next = () => {
-      // Учётка уже создана — шаг пароля вперёд не проходим повторно: сюда
-      // попадают те, кого вернули к выбору программы или к анкете.
-      const target = visibleStepIndices.value.find(
-        (i) => i > state.step && !(i === steps.GenerateAccount && state.accountCreated),
+      // Пройденный шаг пароля вперёд не повторяем: сюда попадают те, кого
+      // вернули к выбору программы или к анкете.
+      const target = nextVisibleStep(
+        visibleStepIndices.value,
+        state.step,
+        steps.GenerateAccount,
+        passwordStepDone.value,
       );
       if (target !== undefined) state.step = target;
     };
@@ -437,6 +454,91 @@ export const useRegistratorStore = defineStore(
       state.privacyAgreement = structuredClone(initialDocumentState);
       state.signatureAgreement = structuredClone(initialDocumentState);
       state.userAgreement = structuredClone(initialDocumentState);
+    };
+
+    /**
+     * Продолжить вступление, учётка которого уже есть на узле (статус «создан»),
+     * а этот браузер о ней не знает.
+     *
+     * Так бывает в двух случаях. Вступление начали на другом устройстве: пароль
+     * поставлен, человек вошёл им здесь, а шаги и анкета остались в браузере
+     * первого устройства. Либо сбой оборвал шаг пароля сразу после создания
+     * учётки: ключ записан, отметка «учётка создана» — нет, и повтор упирался в
+     * занятую почту (16.10.2026, стенд 5).
+     *
+     * Анкету сервер уже принял, повторять её незачем. Без пароля ведём на шаг
+     * пароля: без него не войти ни с какого устройства. С паролем — к заявлению.
+     */
+    const resumeCreatedAccount = (input: {
+      username: string;
+      email: string;
+      publicKey: string;
+      // Пусто, когда ключ живёт в сессии входа по паролю, а не в этом браузере.
+      privateKey: string;
+      privateAccount?: IResumedPrivateAccount | null;
+      step: number;
+    }): void => {
+      resetConsents();
+      state.account = {
+        username: input.username,
+        private_key: input.privateKey,
+        public_key: input.publicKey,
+      };
+      state.email = input.email;
+      state.emailVerified = true;
+      state.accountCreated = true;
+      applyPrivateAccount(input.privateAccount);
+      state.step = input.step;
+    };
+
+    /**
+     * Продолжить вступление вошедшего пайщика, если его учётка создана, а этот
+     * браузер о ней не знает либо пароль у неё не стоит. Одна точка для всех
+     * путей: страница регистрации, вход по ключу, вход по паролю. Решение — в
+     * decideResume; признак пароля — только серверный: `isCoopIdSession`
+     * выставляет и серверный рендер по cookie, в том числе при входе по ключу.
+     */
+    const resumeFromSession = (): void => {
+      const session = useSessionStore();
+      const provider = session.providerAccount;
+      const decision = decideResume({
+        isAuth: session.isAuth,
+        username: session.username,
+        isCreated: provider?.status === Zeus.UserStatus.Created,
+        hasPassword: session.currentUserAccount?.has_password,
+        known: {
+          accountCreated: state.accountCreated,
+          username: state.account.username,
+          step: state.step,
+        },
+        steps,
+        isBranched: isBranched.value,
+      });
+      if (decision.kind === 'step') state.step = decision.step;
+      if (decision.kind !== 'adopt' || !provider) return;
+      resumeCreatedAccount({
+        username: session.username,
+        email: provider.email,
+        publicKey: provider.public_key,
+        privateKey: useGlobalStore().wif?.toString() ?? '',
+        privateAccount: session.privateAccount,
+        step: decision.step,
+      });
+    };
+
+    /** Тип субъекта и его анкета — из сведений, которые узел хранит о пайщике. */
+    const applyPrivateAccount = (privateAccount?: IResumedPrivateAccount | null): void => {
+      const type = privateAccount?.type;
+      if (type === 'individual' && privateAccount?.individual_data) {
+        Object.assign(state.userData.individual_data, privateAccount.individual_data);
+      } else if (type === 'organization' && privateAccount?.organization_data) {
+        Object.assign(state.userData.organization_data, privateAccount.organization_data);
+      } else if (type === 'entrepreneur' && privateAccount?.entrepreneur_data) {
+        Object.assign(state.userData.entrepreneur_data, privateAccount.entrepreneur_data);
+      }
+      if (type === 'individual' || type === 'organization' || type === 'entrepreneur') {
+        state.userData.type = type;
+      }
     };
 
     const clearAddUserState = () =>
@@ -529,6 +631,8 @@ export const useRegistratorStore = defineStore(
       isStep,
       clearUserData,
       resetConsents,
+      resumeFromSession,
+      passwordStepDone,
       applyCardcoopProfile,
       addUserState,
       isBranched,

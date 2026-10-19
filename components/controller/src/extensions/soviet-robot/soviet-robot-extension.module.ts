@@ -8,7 +8,7 @@ import {
   DomainToBlockchainUtils,
   EXTENSION_REPOSITORY,
   RightsGuard,
-  type DeserializedDescriptionOfExtension,
+  describeConfigField,
   type ExtensionDomainEntity,
   type ExtensionDomainRepository,
   DomainError,
@@ -30,10 +30,6 @@ import { SovietRobotResolver } from './application/resolvers/soviet-robot.resolv
 import { ROBOT_EXTENSION_NAME } from './domain/constants';
 import { t } from './i18n';
 
-function describeField(description: DeserializedDescriptionOfExtension): string {
-  return JSON.stringify(description);
-}
-
 export const defaultConfig = {
   max_attempts: 5,
   retry_backoff_sec: 5,
@@ -46,7 +42,7 @@ export const Schema = z.object({
     .number()
     .default(defaultConfig.max_attempts)
     .describe(
-      describeField({
+      describeConfigField({
         label: t('sovietRobot.settings.maxAttemptsLabel'),
         note: t('sovietRobot.settings.maxAttemptsNote'),
         rules: ['val >= 1'],
@@ -58,7 +54,7 @@ export const Schema = z.object({
     .number()
     .default(defaultConfig.retry_backoff_sec)
     .describe(
-      describeField({
+      describeConfigField({
         label: t('sovietRobot.settings.retryDelayLabel'),
         note: t('sovietRobot.settings.retryDelayNote'),
         rules: ['val >= 1'],
@@ -70,7 +66,7 @@ export const Schema = z.object({
     .number()
     .default(defaultConfig.index_lag_attempts)
     .describe(
-      describeField({
+      describeConfigField({
         label: t('sovietRobot.settings.protocolRetriesLabel'),
         note: t('sovietRobot.settings.protocolRetriesNote'),
         rules: ['val >= 1'],
@@ -82,7 +78,7 @@ export const Schema = z.object({
     .number()
     .default(defaultConfig.index_lag_pause_ms)
     .describe(
-      describeField({
+      describeConfigField({
         label: t('sovietRobot.settings.protocolRetryDelayLabel'),
         rules: ['val >= 0'],
         prepend: t('sovietRobot.settings.protocolRetryDelayPrepend'),

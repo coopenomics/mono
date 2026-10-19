@@ -317,6 +317,6 @@ export async function logout(params: LogoutParams): Promise<void> {
   }
   finally {
     lockWallet()
-    clearSession()
+    void clearSession()
   }
 }

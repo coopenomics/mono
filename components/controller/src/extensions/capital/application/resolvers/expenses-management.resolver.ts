@@ -14,6 +14,7 @@ import {
   GenerateDocumentInputDTO,
   RequireRight,
   RightsGuard,
+  DOCUMENT_GENERATION_THROTTLE,
 } from '@coopenomics/extension-kit';
 import { UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
@@ -85,7 +86,7 @@ export class ExpensesManagementResolver {
     name: 'capitalGenerateExpenseStatement',
     description: 'Сгенерировать заявление о расходе',
   })
-  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @Throttle(DOCUMENT_GENERATION_THROTTLE)
   @UseGuards(GqlJwtAuthGuard, RightsGuard)
   @RequireRight('CapitalExpense', ['generate:own', 'generate'], { owner: 'data.username' })
   async generateExpenseStatement(
@@ -104,7 +105,7 @@ export class ExpensesManagementResolver {
     name: 'capitalGenerateExpenseDecision',
     description: 'Сгенерировать решение о расходе',
   })
-  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @Throttle(DOCUMENT_GENERATION_THROTTLE)
   @UseGuards(GqlJwtAuthGuard, RightsGuard)
   @RequireRight('CapitalExpense', ['generate:own', 'generate'], { owner: 'data.username' })
   async generateExpenseDecision(

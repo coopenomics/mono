@@ -39,7 +39,7 @@
 | `FREE_DECISION_PORT` | `IFreeDecisionPort` (3)<br><sub>core-ports/free-decision.port.ts</sub> | `FreeDecisionAdapter` | capital, chairman | Свободные решения совета: расширение заводит проект решения, получает его документ и публикует в цепь. |
 | `INTEGRATION_SETTINGS_PORT` | `IIntegrationSettingsPort` (1)<br><sub>core-ports/integration-settings.port.ts</sub> | `IntegrationSettingsInnercoopAdapter` | capital, cardcoop, chatcoop, marketplace | Доступы к внешним службам: мессенджер, распознавание речи, видеосвязь, геокодер, хостинг репозиториев. |
 | `LEDGER2_HISTORY_PORT` | `ILedger2HistoryPort` (3)<br><sub>core-ports/ledger2-history.port.ts</sub> | `Ledger2InnercoopHistoryAdapter` | edubridge, marketplace, reports | Ledger2 (ядро): read-only контракт истории операций/движений по кошельку из журнала `blockchain_actions`. |
-| `LOGGER_PORT` | `ILoggerPort` (6)<br><sub>core-ports/logger.port.ts</sub> | `WinstonLoggerService` | builtin, capital, cardcoop, chairman, chatcoop, edubridge, expenses, ku, marketplace, participant, powerup, qrpay, reports, sberpoll, soviet-robot, yookassa | Журналирование контура кооператива. |
+| `LOGGER_PORT` | `ILoggerPort` (6)<br><sub>core-ports/logger.port.ts</sub> | `WinstonLoggerService` | builtin, capital, cardcoop, chairman, chatcoop, dadata, edubridge, expenses, ku, marketplace, participant, powerup, qrpay, reports, sberpoll, soviet-robot, yookassa | Журналирование контура кооператива. |
 | `MEET_PORT` | `IMeetPort` (3)<br><sub>core-ports/meet.port.ts</sub> | `MeetDataAdapter` | chairman, participant | Собрания пайщиков: перечислить и получить по идентификатору. |
 | `MEMBER_EXIT_REGISTRY_PORT` | `IMemberExitRegistryPort` (2)<br><sub>core-ports/member-exit.port.ts</sub> | `MemberExitRegistryService` | edubridge | Выход пайщика из кооператива глазами расширения. |
 | `MESSAGE_CHANNEL_PORT` | `IMessageChannelPort` (2)<br><sub>core-ports/message-channel.port.ts</sub> | `RedisService` | sberpoll, yookassa | Именованный канал сообщений контура кооператива: публикация и подписка. |
@@ -55,6 +55,7 @@
 | `PAYMENT_NOTICE_LOG_PORT` | `IPaymentProviderRegistryPort` (2)<br><sub>core-ports/payment-provider.port.ts</sub> | `PaymentNoticeLogInnercoopAdapter` | yookassa | Реестр способов оплаты. |
 | `PAYMENT_PORT` | `IPaymentPort` (4)<br><sub>core-ports/payment.port.ts</sub> | `PaymentInnercoopAdapter` | edubridge, expenses, qrpay, sberpoll, yookassa | Платежи кооператива: найти по хэшу, завести новый, обновить состояние. |
 | `PROGRAM_AGREEMENT_PORT` | `IProgramAgreementPort` (2)<br><sub>core-ports/program-agreement.port.ts</sub> | `ProgramAgreementInnercoopAdapter` | edubridge, marketplace | Подписание пайщиком соглашения об участии в целевой программе. |
+| `PROVIDER_TARIFF_PORT` | `IProviderTariffPort` (1)<br><sub>core-ports/provider-tariff.port.ts</sub> | `ProviderTariffInnercoopAdapter` | powerup* | Тариф кооператива у провайдера подключения: объём документооборота и суточный расход D (@ant 17.10.2026, «Оплата документооборота: бак AXON, объём тарифа и кванты»). |
 | `REALTIME_CHANNEL_PORT` | `IRealtimeChannelPort` (2)<br><sub>core-ports/realtime.port.ts</sub> | `RealtimeChannelInnercoopAdapter` | — | Шина событий реального времени — то, из чего кормятся подписки клиента. |
 | `REGISTRATION_REGISTRY_PORT` | `IRegistrationRegistryPort` (6)<br><sub>core-ports/registration.port.ts</sub> | `AgreementRegistryService` | capital, edubridge*, marketplace* | Оферты и программы участия, которые расширение предлагает вступающему пайщику. |
 | `ROLE_ASSIGNMENTS_PORT` | `IRoleAssignmentsPort` (4)<br><sub>core-ports/role-assignments.port.ts</sub> | `RoleAssignmentsRegistry` | edubridge, expenses, reports | Назначаемые роли приложений. |
@@ -93,7 +94,8 @@
 | `DESKTOP_GRANTS_FILTER_REGISTRY_PORT` | `IDesktopGrantsFilterRegistryPort` (2)<br><sub>hooks/desktop-grants-filter.hook.ts</sub> | `ExtensionGrantsFilterRegistry` | edubridge | Сужение прав пайщика на столах ЧУЖОГО расширения. |
 | `DESKTOP_GRANTS_REGISTRY_PORT` | `IDesktopGrantsRegistryPort` (1)<br><sub>hooks/desktop-grants.hook.ts</sub> | `ExtensionGrantsRegistry` | capital, chairman, chatcoop, edubridge, expenses, ku, marketplace, powerup, reports, soviet-robot | Права пайщика на рабочем столе расширения. |
 | `GLOBAL_SEARCH_REGISTRY_PORT` | `IGlobalSearchRegistryPort` (1)<br><sub>hooks/global-search.hook.ts</sub> | `GlobalSearchRegistry` | edubridge | Поставщик единого поиска. |
+| `ORGANIZATION_LOOKUP_REGISTRY_PORT` | `IOrganizationLookupRegistryPort` (1)<br><sub>hooks/organization-lookup.hook.ts</sub> | `OrganizationLookupRegistry` | dadata | Поставщик сведений об организации из государственного реестра страны. |
 | `REGISTRATION_DOCUMENT_PARAMETERS_REGISTRY_PORT` | `IRegistrationDocumentParametersRegistryPort` (3)<br><sub>hooks/registration-document-parameters.hook.ts</sub> | `RegistrationDocumentParametersRegistry` | capital, edubridge, marketplace | Параметры оферты, которые расширение выдаёт вступающему пайщику. |
 | `REGISTRATION_OFFER_FILTER_REGISTRY_PORT` | `IRegistrationOfferFilterRegistryPort` (2)<br><sub>hooks/registration-offer-filter.hook.ts</sub> | `ExtensionOfferFilterRegistry` | edubridge | Сужение витрины вступления: какие программы и оферты ЧУЖИХ расширений предлагать вступающему пайщику. |
 
-Всего портов: 64.
+Всего портов: 66.

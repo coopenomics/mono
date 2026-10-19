@@ -3,6 +3,7 @@ import {
   CANDIDATE_PORT,
   CHAIN_PORT,
   CHAIN_RESOURCES_PORT,
+  PROVIDER_TARIFF_PORT,
   CHAIRMAN_APPROVALS_PORT,
   CHAIN_DELTA_WAIT_PORT,
   CHAIN_CHANGES_PORT,
@@ -19,6 +20,7 @@ import {
   ROLE_ASSIGNMENTS_PORT,
   ACCOUNTING_REGISTRY_PORT,
   GLOBAL_SEARCH_REGISTRY_PORT,
+  ORGANIZATION_LOOKUP_REGISTRY_PORT,
   DOCUMENT_PORT,
   EXPENSE_CHASSIS_PORT,
   SOVIET_ROBOT_PORT,
@@ -116,12 +118,15 @@ import { AuthV2Module } from '~/application/auth-v2/auth-v2.module';
 import { AgreementCatalogInnercoopAdapter } from '~/infrastructure/innercoop/agreement-catalog-innercoop.adapter';
 import { ExtensionConfigInnercoopAdapter } from '~/infrastructure/innercoop/extension-config-innercoop.adapter';
 import { ChainResourcesInnercoopAdapter } from '~/infrastructure/innercoop/chain-resources-innercoop.adapter';
+import { ProviderTariffInnercoopAdapter } from '~/infrastructure/innercoop/provider-tariff-innercoop.adapter';
+import { ProviderModule } from '~/application/provider/provider.module';
 import { UserModule } from '~/application/user/user.module';
 import { RegistrationModule } from '~/application/registration/registration.module';
 import { ExtensionGrantsRegistry } from '~/application/desktop/extension-grants.registry';
 import { ExtensionGrantsFilterRegistry } from '~/application/desktop/extension-grants-filter.registry';
 import { ExtensionOfferFilterRegistry } from '~/domain/registration/services/extension-offer-filter.registry';
 import { GlobalSearchRegistry } from '~/application/search/global-search.registry';
+import { OrganizationLookupRegistry } from '~/application/organization-lookup/organization-lookup.registry';
 import { RoleAssignmentsRegistry } from '~/application/access-roles/role-assignments.registry';
 import { PubSubModule } from '~/infrastructure/pubsub/pubsub.module';
 import { AgreementRegistryService } from '~/domain/registration/services/agreement-registry.service';
@@ -171,6 +176,8 @@ import { ProcessRegistryDomainModule } from '~/domain/process-registry/process-r
 @Global()
 @Module({
   imports: [
+    // Каталог провайдера подключения — для порта тарифа (D расширению powerup).
+    ProviderModule,
     CapitalExtensionModule,
     ChatCoopExtensionModule,
     // Одобрения председателя другим столам — через порт одобрений.
@@ -240,6 +247,7 @@ import { ProcessRegistryDomainModule } from '~/domain/process-registry/process-r
     AgreementCatalogInnercoopAdapter,
     ExtensionConfigInnercoopAdapter,
     ChainResourcesInnercoopAdapter,
+    ProviderTariffInnercoopAdapter,
     OrganizationInnercoopAdapter,
     CoopCredentialInnercoopAdapter,
     IndividualInnercoopAdapter,
@@ -456,6 +464,11 @@ import { ProcessRegistryDomainModule } from '~/domain/process-registry/process-r
       useExisting: ChainResourcesInnercoopAdapter,
     },
     {
+      // Тариф кооператива у провайдера: суточный расход D для аренды ресурсов.
+      provide: PROVIDER_TARIFF_PORT,
+      useExisting: ProviderTariffInnercoopAdapter,
+    },
+    {
       // Реестр ядра совпадает с портом по форме: расширение только кладёт себя.
       provide: DESKTOP_GRANTS_REGISTRY_PORT,
       useExisting: ExtensionGrantsRegistry,
@@ -488,6 +501,12 @@ import { ProcessRegistryDomainModule } from '~/domain/process-registry/process-r
       // опрашивает ядро. `GlobalSearchRegistryModule` глобальный.
       provide: GLOBAL_SEARCH_REGISTRY_PORT,
       useExisting: GlobalSearchRegistry,
+    },
+    {
+      // Коннекторы реестра организаций по странам — тот же приём: расширение
+      // кладёт себя, анкета вступления спрашивает. Модуль реестра глобальный.
+      provide: ORGANIZATION_LOOKUP_REGISTRY_PORT,
+      useExisting: OrganizationLookupRegistry,
     },
     {
       // Реестр оферт ядра совпадает с портом по форме, промежуточный адаптер
@@ -582,6 +601,7 @@ import { ProcessRegistryDomainModule } from '~/domain/process-registry/process-r
     AGREEMENT_CATALOG_PORT,
     EXTENSION_CONFIG_PORT,
     CHAIN_RESOURCES_PORT,
+    PROVIDER_TARIFF_PORT,
     DESKTOP_GRANTS_REGISTRY_PORT,
     DESKTOP_GRANTS_FILTER_REGISTRY_PORT,
     REGISTRATION_OFFER_FILTER_REGISTRY_PORT,
@@ -589,6 +609,7 @@ import { ProcessRegistryDomainModule } from '~/domain/process-registry/process-r
     ROLE_ASSIGNMENTS_PORT,
     ACCOUNTING_REGISTRY_PORT,
     GLOBAL_SEARCH_REGISTRY_PORT,
+    ORGANIZATION_LOOKUP_REGISTRY_PORT,
     REGISTRATION_REGISTRY_PORT,
     REGISTRATION_DOCUMENT_PARAMETERS_REGISTRY_PORT,
     ONBOARDING_STEP_REGISTRY_PORT,

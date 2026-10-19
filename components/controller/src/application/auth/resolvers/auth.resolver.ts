@@ -6,6 +6,7 @@ import { RefreshInputDTO } from '../dto/refresh-input.dto';
 import { LogoutInputDTO } from '../dto/logout-input.dto';
 import { StartResetKeyInputDTO } from '../dto/start-reset-key-input.dto';
 import { ResetKeyInputDTO } from '../dto/reset-key-input.dto';
+import { InviteRecipientDTO, InviteRecipientInputDTO } from '../dto/invite-recipient.dto';
 import { VerifyEmailInputDTO } from '../dto/verify-email-input.dto';
 import {
   ConfirmEmailVerificationInputDTO,
@@ -81,6 +82,20 @@ export class AuthResolver {
   ): Promise<boolean> {
     await this.authService.startResetKey(data);
     return true;
+  }
+
+  // Страница приглашения ставит пароль, а не показывает ключ: для этого ей
+  // нужна почта приглашённого. Токен не расходуется — его погасит resetKey.
+  // Без действующего токена ответа нет, поэтому перебрать почты нельзя.
+  @Query(() => InviteRecipientDTO, {
+    name: 'inviteRecipient',
+    description: 'Получатель приглашения по токену из письма',
+  })
+  async inviteRecipient(
+    @Args('data', { type: () => InviteRecipientInputDTO })
+    data: InviteRecipientInputDTO
+  ): Promise<InviteRecipientDTO> {
+    return this.authService.inviteRecipient(data.token);
   }
 
   @Mutation(() => Boolean, {

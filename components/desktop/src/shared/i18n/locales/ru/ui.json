@@ -658,6 +658,7 @@
       "minLengthError": "Минимальная длина: {minLength}",
       "requiredError": "Заполните поле",
       "ruleError": "Значение должно удовлетворять правилу: {rule}",
+      "secretSetPlaceholder": "Задано — введите новое значение, чтобы заменить",
       "urlError": "Нужна ссылка вида https://…"
     },
     "expenseProposalDetails": {
@@ -691,6 +692,10 @@
       "historyClosed": "Расход закрыт",
       "notFoundTitle": "Расход не найден",
       "notFoundBody": "Служебная записка с таким номером отсутствует или ещё не синхронизирована."
+    },
+    "registryLookup": {
+      "changeInn": "Другой ИНН",
+      "notFound": "Сведения не найдены, заполните анкету вручную"
     }
   }
 }

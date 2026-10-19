@@ -14,20 +14,17 @@
  * @packageDocumentation
  */
 import { Inject, Injectable } from '@nestjs/common';
-import { BaseExtensionModule, EXTENSION_REPOSITORY, type DeserializedDescriptionOfExtension, type ExtensionDomainEntity, type ExtensionDomainRepository, DomainError } from '@coopenomics/extension-kit';
+import { BaseExtensionModule, EXTENSION_REPOSITORY, describeConfigField, type ExtensionDomainEntity, type ExtensionDomainRepository, DomainError } from '@coopenomics/extension-kit';
 import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { z } from 'zod';
 import { t } from './i18n';
-
-/** Подпись поля в форме настроек: председатель видит человеческий текст, а не имя параметра. */
-const describeField = (description: DeserializedDescriptionOfExtension): string => JSON.stringify(description);
 
 export const Schema = z.object({
   api_url: z
     .string()
     .url(t('cardcoop.settings.apiUrlFormatHint'))
     .describe(
-      describeField({
+      describeConfigField({
         label: t('cardcoop.settings.apiUrlLabel'),
         note: t('cardcoop.settings.apiUrlNote'),
       })
@@ -39,7 +36,7 @@ export const Schema = z.object({
     // default: поле появилось после первых установок, и конфиг без него обязан читаться.
     .default(true)
     .describe(
-      describeField({
+      describeConfigField({
         label: t('cardcoop.settings.cardLoginLabel'),
         note: t('cardcoop.settings.cardLoginNote'),
       })
@@ -54,7 +51,7 @@ export const Schema = z.object({
     // default: поле появилось после первых установок, и конфиг без него обязан читаться.
     .default(false)
     .describe(
-      describeField({
+      describeConfigField({
         label: t('cardcoop.settings.operatorLabel'),
         note: t('cardcoop.settings.operatorNote'),
         visible: false,
