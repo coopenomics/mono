@@ -18,7 +18,11 @@
       .done-page__mark
         q-icon(v-if="hasKey" name="check" size="14px")
         template(v-else) 1
-      PlatformKeyCard.done-page__body(@state="hasKey = $event")
+      PlatformKeyCard.done-page__body(
+        :title="hasKey ? $t('union.installationCompletedPage.keyStepDoneTitle') : $t('union.installationCompletedPage.keyStepTitle')"
+        :subtitle="$t('union.installationCompletedPage.keyStepText')"
+        @state="hasKey = $event"
+      )
 
     li.done-page__step(:class="{ 'done-page__step--locked': !hasKey }")
       .done-page__mark 2
@@ -26,15 +30,15 @@
         :title="$t('union.installationCompletedPage.siteStepTitle')"
         :subtitle="$t('union.installationCompletedPage.setupStepText')"
       )
+        //- Без ключа кнопка видна, но заблокирована: порядок шагов читается сам.
         BaseButton(
-          v-if="hasKey"
           variant="primary"
           type="button"
+          :disabled="!hasKey"
           @click="goToCooperativeSite"
         )
           | {{ $t('union.installationCompletedPage.goToSiteLabel') }}
           q-icon(name="open_in_new" size="16px").q-ml-xs
-        .t-sm.t-muted(v-else) {{ $t('union.installationCompletedPage.lockedHint') }}
 
     li.done-page__step(:class="{ 'done-page__step--locked': !hasKey }")
       .done-page__mark 3
@@ -43,12 +47,11 @@
         :subtitle="$t('union.installationCompletedPage.dashboardStepText')"
       )
         BaseButton(
-          v-if="hasKey"
           variant="secondary"
           type="button"
+          :disabled="!hasKey"
           @click="goToDashboard"
         ) {{ $t('union.installationCompletedPage.goToDashboardLabel') }}
-        .t-sm.t-muted(v-else) {{ $t('union.installationCompletedPage.lockedHint') }}
 </template>
 
 <script setup lang="ts">
@@ -88,8 +91,7 @@ const goToCooperativeSite = () => {
 <style scoped>
 .done-page {
   max-width: 760px;
-  margin: 0 auto;
-  padding: var(--p-6) var(--p-4);
+  padding: var(--p-6);
   display: flex;
   flex-direction: column;
   gap: var(--p-5);

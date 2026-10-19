@@ -1,5 +1,5 @@
 <template lang="pug">
-BaseCard(:title="$t('connectionDashboard.platformKeyCard.title')" :subtitle="$t('connectionDashboard.platformKeyCard.subtitle')")
+BaseCard(:title="title || $t('connectionDashboard.platformKeyCard.title')" :subtitle="subtitle || $t('connectionDashboard.platformKeyCard.subtitle')")
   //- Ключ показывается один раз: на сервер уходит только публичная часть,
   //- приватная живёт до ухода со страницы.
   template(v-if="issued")
@@ -53,7 +53,8 @@ import { t } from 'src/shared/i18n'
 
 // Адрес сайта кооператива: на панели управления карточка ведёт туда, где
 // мастер установки спросит ключ. На экране завершения переход — отдельным шагом.
-const props = defineProps<{ siteUrl?: string }>()
+// Заголовок и пояснение экран завершения задаёт своими: там карточка — шаг.
+const props = defineProps<{ siteUrl?: string; title?: string; subtitle?: string }>()
 // Есть ли действующий ключ — экран завершения открывает по нему следующие шаги.
 const emit = defineEmits<{ state: [hasKey: boolean] }>()
 
