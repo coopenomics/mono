@@ -177,6 +177,18 @@ describe('coopid.email-verification: код подтверждения почт�
     expect(free.data.isEmailRegistered).toBe(false)
   })
 
+  it(caseName('cid.ev.break.06', 'перебор адресов с одного IP: после 120 проверок за час — отказ'), async () => {
+    const ip = uniqueIp()
+    for (let i = 0; i < 120; i++) {
+      const ok = await isEmailRegisteredFrom(ip, uniqueEmail('evr'))
+      expect(ok.errors, `проверка ${i + 1} проходит`).toEqual([])
+    }
+    const over = await isEmailRegisteredFrom(ip, uniqueEmail('evr'))
+    expect(over.errors[0]?.code).toBe('AUTH_EMAIL_RATE_LIMIT_GENERAL')
+    // Предел — на адрес клиента: с другого адреса проверка проходит.
+    expect((await isEmailRegisteredFrom(uniqueIp(), uniqueEmail('evr'))).errors).toEqual([])
+  }, 120_000)
+
   it(caseName('cid.ev.side.09', 'незавершённая регистрация не держит адрес: проверка «свободен», код уходит'), async () => {
     const email = uniqueEmail('evc')
     await registerCandidate(uniqueIp(), email)
