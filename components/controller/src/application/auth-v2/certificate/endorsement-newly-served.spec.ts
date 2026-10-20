@@ -111,7 +111,8 @@ describe('EndorsementService — заверение по запросу кооп
 // Тестнет, 20.10.2026: оператора проставлял только migrate при выкатке контрактов,
 // и кооператив, подключённый между выкатками, не попадал в обход заверений.
 describe('EndorsementService — активация кооператива на узле провайдера', () => {
-  const activated = (coopname: string) => ({ data: { coopname, administrator: 'voskhod', status: 'active' } });
+  // Статус в событии — строка цепи; обработчик типизирует его своим enum.
+  const activated = (coopname: string) => ({ data: { coopname, administrator: 'voskhod', status: 'active' } }) as never;
   let original: string;
   beforeEach(() => {
     original = config.coopname;
@@ -153,7 +154,7 @@ describe('EndorsementService — активация кооператива на 
   it('блокировка кооператива оператора не назначает', async () => {
     const { service, blockchainPort } = makeService({ operatorEndorsed: true, coopKey: null });
 
-    await service.onCoopActivated({ data: { coopname: 'fresh', status: 'blocked' } });
+    await service.onCoopActivated({ data: { coopname: 'fresh', status: 'blocked' } } as never);
 
     expect(blockchainPort.assignOperator).not.toHaveBeenCalled();
   });
