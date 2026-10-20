@@ -9,6 +9,7 @@ import expressApp from './app';
 import { WinstonLoggerService } from './application/logger/logger-app.service';
 import { GraphQLExceptionFilter } from './infrastructure/graphql/filters/graphql-exceptions.filter';
 import { migrateData } from './migrator/migrate';
+import { runStartupMigrations } from './migrator/fresh-node-migrations';
 import { runDatabaseMigrations } from './migrator/database-migrations';
 import { formatSchemaReport, reportSchema } from './migrator/schema-report';
 import { ValidationPipe } from '@nestjs/common';
@@ -217,15 +218,11 @@ async function bootstrap() {
   //
   // Падение фатально: поднявшись на неполной схеме, контроллер ломается не
   // сразу и по частям, и причину потом ищут долго.
-  if (config.auto_migrate) {
-    logger.info('AUTO_MIGRATE включён — прогоняем непринятые миграции перед приёмом запросов');
-    try {
-      await migrateData();
-    } catch (error) {
-      logger.error('Миграции не прошли — не поднимаемся на неполной схеме', error);
-      process.exit(1);
-    }
-  }
+  //
+  // Новый узел — исключение из «на проде миграции раскатывает релиз»: выпуска,
+  // который их провёл бы, у него ещё не было. Решение и отметка первого старта —
+  // в runStartupMigrations.
+  await runStartupMigrations();
 
   // Запуск сервера
   await nestApp.listen(config.port, () => {

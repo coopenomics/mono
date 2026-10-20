@@ -27,6 +27,7 @@ sources:
     - components/controller/src/infrastructure/database/kysely/data-source.options.ts
     - components/controller/src/infrastructure/database/migrations/*.ts
     - components/controller/src/migrator/database-migrations.ts
+    - components/controller/src/migrator/fresh-node-migrations.ts
     - components/controller/src/migrator/migration-filename.ts
     - components/controller/src/migrator/migrationManager.ts
     - components/controller/scripts/schema-*.ts
@@ -173,3 +174,26 @@ cases:
     external: unreachable
     external_reason: "сторож над исходниками, а не поведение узла"
     status: passing
+
+  # Тестнет, 20.10.2026: новый узел вставал без миграций данных — реестр
+  # шаблонов документов пуст, бланк не собирался («Шаблон 1 не найден»).
+  - id: platform.schema.happy.03
+    level: backend
+    kind: happy
+    scenario: первый старт контроллера на новом узле — учёта миграций данных нет либо он пуст
+    expect: контроллер проводит все миграции (схема, CoopID, данные) до приёма запросов, как AUTO_MIGRATE на стенде
+    test: components/controller/tests/unit/database/fresh-node-migrations.test.ts
+    external: unreachable
+    external_reason: "первый старт узла; через API поднятого стенда не наблюдается"
+    status: passing
+
+  - id: platform.schema.break.09
+    level: backend
+    kind: break
+    scenario: рестарт живого узла — в учёте миграций данных есть записи
+    expect: миграции данных при старте НЕ проводятся — их раскатывает выпуск
+    test: components/controller/tests/unit/database/fresh-node-migrations.test.ts
+    external: unreachable
+    external_reason: "старт узла; через API поднятого стенда не наблюдается"
+    status: passing
+
