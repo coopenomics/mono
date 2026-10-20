@@ -92,7 +92,7 @@ let keyInChain = false;
 
 const headingText = computed(() => {
   if (!token.value) return t('registrator.invite.linkText');
-  return email.value ? t('registrator.invite.passwordText', { email: email.value }) : '';
+  return email.value ? t('registrator.invite.passwordText', { email: email.value, coop: coopTitle.value }) : '';
 });
 
 onMounted(async () => {
