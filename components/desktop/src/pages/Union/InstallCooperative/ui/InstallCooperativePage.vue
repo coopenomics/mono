@@ -54,7 +54,7 @@
 <script setup lang="ts">
 import { useInstallCooperativeStore } from 'src/entities/Installer/model';
 import { RequestKeyForm, SetInitForm, SetSovietForm, SetVariablesForm } from 'src/features/Installer';
-import { computed } from 'vue';
+import { computed, nextTick, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useSystemStore } from 'src/entities/System/model';
 import { VerticalStepper } from 'src/shared/ui/domain/VerticalStepper';
@@ -88,6 +88,20 @@ const goToStep = (key: string) => {
   }
 };
 
+// Шаги стоят друг под другом, а «Продолжить» — внизу длинной формы. Браузер
+// сохранял прокрутку, и следующий шаг открывался с конца: после данных
+// организации человек попадал к последнему члену совета (тестнет, 20.10.2026).
+// При смене шага показываем его начало — заголовок и первые поля.
+watch(
+  () => installStore.current_step,
+  async () => {
+    await nextTick();
+    document
+      .querySelector('.install-card .vertical-stepper__step--active')
+      ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  },
+);
+
 const goToSignin = () => {
   router.push({
     name: 'signin',
@@ -97,6 +111,11 @@ const goToSignin = () => {
 </script>
 
 <style scoped lang="scss">
+// Отступ при прокрутке к активному шагу: шапка страницы не должна закрывать его заголовок.
+.install-card :deep(.vertical-stepper__step--active) {
+  scroll-margin-top: var(--p-10);
+}
+
 .install-page {
   display: flex;
   justify-content: center;
