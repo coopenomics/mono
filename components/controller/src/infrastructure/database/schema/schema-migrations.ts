@@ -5,6 +5,9 @@ import { coreDatabaseMigrations } from '../migrations';
 /** Таблица учёта применённых миграций схемы. `migrations` занята мигратором данных. */
 export const DATABASE_MIGRATIONS_TABLE = 'schema_migrations';
 
+/** Ключ advisory-блокировки Postgres, под которой применяется схема (число произвольное, но постоянное). */
+export const SCHEMA_MIGRATIONS_LOCK = 7_301_202_610;
+
 interface NamedMigration {
   name: string;
   timestamp: number;
@@ -56,22 +59,35 @@ export async function pendingSchemaMigrations(pool: Pool): Promise<string[]> {
  * @returns Имена применённых миграций (пусто, если нечего применять).
  */
 export async function runSchemaMigrations(pool: Pool, onApplied?: (name: string, index: number, total: number) => void): Promise<string[]> {
-  const applied = await appliedNames(pool);
-  const pending = schemaMigrations().filter((item) => !applied.has(item.name));
-  for (const [index, item] of pending.entries()) {
-    const client = await pool.connect();
-    try {
-      await client.query('BEGIN');
-      await item.migration.up({ query: async (sql, parameters) => (await client.query(sql, parameters)).rows });
-      await client.query(`INSERT INTO "${DATABASE_MIGRATIONS_TABLE}" ("timestamp", "name") VALUES ($1, $2)`, [item.timestamp, item.name]);
-      await client.query('COMMIT');
-      onApplied?.(item.name, index + 1, pending.length);
-    } catch (error) {
-      await client.query('ROLLBACK');
-      throw error;
-    } finally {
-      client.release();
+  // Схему применяют несколько процессов: контроллер при старте (пул основной
+  // базы) и мигратор (`--migrate`, `--migrate-schema`). Без блокировки они шли
+  // одновременно: на первой установке узла оба создавали тип capital_cycles, и
+  // второй падал «already exists» (тестнет, 20.10.2026, установка 11743).
+  // Блокировка сессионная, на отдельном соединении; список применённых
+  // читается уже под ней — второй процесс видит работу первого и не повторяет её.
+  const lock = await pool.connect();
+  try {
+    await lock.query('SELECT pg_advisory_lock($1)', [SCHEMA_MIGRATIONS_LOCK]);
+    const applied = await appliedNames(pool);
+    const pending = schemaMigrations().filter((item) => !applied.has(item.name));
+    for (const [index, item] of pending.entries()) {
+      const client = await pool.connect();
+      try {
+        await client.query('BEGIN');
+        await item.migration.up({ query: async (sql, parameters) => (await client.query(sql, parameters)).rows });
+        await client.query(`INSERT INTO "${DATABASE_MIGRATIONS_TABLE}" ("timestamp", "name") VALUES ($1, $2)`, [item.timestamp, item.name]);
+        await client.query('COMMIT');
+        onApplied?.(item.name, index + 1, pending.length);
+      } catch (error) {
+        await client.query('ROLLBACK');
+        throw error;
+      } finally {
+        client.release();
+      }
     }
+    return pending.map((item) => item.name);
+  } finally {
+    await lock.query('SELECT pg_advisory_unlock($1)', [SCHEMA_MIGRATIONS_LOCK]).catch(() => undefined);
+    lock.release();
   }
-  return pending.map((item) => item.name);
 }

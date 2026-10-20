@@ -20,6 +20,7 @@ title: Схема базы контроллера — только миграц�
 sources:
   backend:
     - components/controller/src/infrastructure/database/schema/idempotent-ddl.ts
+    - components/controller/src/infrastructure/database/schema/schema-migrations.ts
     - components/controller/src/infrastructure/database/kysely/data-source.options.ts
     - components/controller/src/infrastructure/database/migrations/*.ts
     - components/controller/src/migrator/database-migrations.ts
@@ -118,4 +119,20 @@ cases:
     test: scripts/check-schema-migrations.mjs
     external: unreachable
     external_reason: "гейт сборки (pnpm check) над исходниками ветки, а не поведение узла: у поднятого стенда проверять нечего"
+    status: passing
+
+  # Тестнет, 20.10.2026, установка 11743: контроллер при старте (пул основной
+  # базы) и мигратор применяли схему одновременно, второй падал на
+  # «type capital_cycles already exists».
+  - id: platform.schema.break.06
+    level: backend
+    kind: break
+    scenario: два процесса применяют схему одной базы одновременно (старт контроллера и мигратор)
+    expect: >
+      схема применяется под advisory-блокировкой Postgres, список применённых
+      читается уже под ней; второй процесс ждёт и не повторяет миграции первого;
+      блокировка снимается и при упавшей миграции
+    test: components/controller/tests/unit/database/schema-migrations.test.ts
+    external: unreachable
+    external_reason: "гонка двух процессов над одной базой при старте узла; через API поднятого стенда не воспроизводится"
     status: passing
