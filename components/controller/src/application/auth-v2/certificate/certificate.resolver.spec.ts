@@ -6,7 +6,7 @@ describe('CertificateResolver', () => {
     const certificateService = {
       issueForUsername: jest.fn(async () => 'jws.payload.sig'),
     };
-    const resolver = new CertificateResolver(certificateService as unknown as CertificateService);
+    const resolver = new CertificateResolver(certificateService as unknown as CertificateService, {} as never);
     const out = await resolver.getMyCertificate({ id: 'u1', username: 'payer1', role: 'user' });
     expect(certificateService.issueForUsername).toHaveBeenCalledWith('payer1');
     expect(out).toEqual({ participant_certificate: 'jws.payload.sig' });

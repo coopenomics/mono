@@ -1,5 +1,7 @@
 import { Inject, Injectable, type OnApplicationBootstrap } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
+import { OnEvent } from '@nestjs/event-emitter';
+import { COOP_KEY_INSTALLED_EVENT } from '~/domain/system/interfaces/coop-key-installed.event';
 import { SignJWT } from 'jose';
 import { Workflows } from '@coopenomics/notifications';
 import config from '~/config/config';
@@ -178,6 +180,90 @@ export class EndorsementService implements OnApplicationBootstrap {
    * Сам кооператив продлить своё заверение не может и не должен: тогда признание
    * выдавал бы себе тот, кого признают.
    */
+  /**
+   * Узел кооператива: ключ установки введён — публикуем право заверения и сразу
+   * просим оператора заверить. Ждать ночного или десятиминутного прохода
+   * оператора незачем: председатель видел «Удостоверение не утверждено» сразу
+   * после установки (тестнет, 20.10.2026). Резервом остаётся проход оператора.
+   */
+  @OnEvent(COOP_KEY_INSTALLED_EVENT, { async: true })
+  async onCoopKeyInstalled(): Promise<void> {
+    await this.certKeyService.publishSafely();
+    await this.requestOperatorEndorsement();
+  }
+
+  /**
+   * Узел кооператива: попросить обслуживающего оператора заверить нас.
+   *
+   * Оператор — `parent_username` строки кооператива в реестре, его адрес —
+   * `announce` его строки. Запрос ничего не решает сам: оператор проверяет всё по
+   * цепи (endorseOnRequest). Не дозвались — не беда, заверит проход оператора.
+   */
+  async requestOperatorEndorsement(): Promise<boolean> {
+    try {
+      const self = await this.blockchainPort.getCooperative(config.coopname);
+      const operator = String(self?.parent_username ?? '');
+      if (!operator || operator === config.coopname) return false;
+      const operatorRow = await this.blockchainPort.getCooperative(operator);
+      const domain = String(operatorRow?.announce ?? '')
+        .trim()
+        .replace(/^https?:\/\//, '')
+        .replace(/\/+$/, '');
+      if (!domain) return false;
+      const response = await fetch(`https://${domain}/backend/v1/graphql`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          query: 'mutation($d: RequestCooperativeEndorsementInput!){ requestCooperativeEndorsement(data: $d) }',
+          variables: { d: { coopname: config.coopname } },
+        }),
+        signal: AbortSignal.timeout(15_000),
+      });
+      const body = (await response.json().catch(() => null)) as { data?: { requestCooperativeEndorsement?: boolean } } | null;
+      const endorsed = body?.data?.requestCooperativeEndorsement === true;
+      this.logger.log(
+        endorsed
+          ? `Оператор ${operator} заверил ${config.coopname} по запросу узла`
+          : `Оператор ${operator} не заверил ${config.coopname} по запросу (ответ ${response.status}) — заверит его проход`,
+        'EndorsementService',
+      );
+      return endorsed;
+    } catch (e) {
+      this.logger.warn(
+        `Запрос заверения у оператора не прошёл: ${e instanceof Error ? e.message : String(e)} — заверит его проход`,
+        'EndorsementService',
+      );
+      return false;
+    }
+  }
+
+  /**
+   * Оператор: заверить обслуживаемый кооператив по его запросу — сразу после того,
+   * как кооператив опубликовал право заверения.
+   *
+   * Запрос открытый, поэтому решает только цепь: кооператив обязан числиться за
+   * этим оператором, быть действующим и иметь опубликованный ключ; сам оператор —
+   * быть заверенным. Уже заверенный с запасом срока — без записи в цепь.
+   */
+  async endorseOnRequest(coopname: string): Promise<{ endorsed: boolean }> {
+    const operator = config.coopname;
+    if (!coopname || coopname === operator) return { endorsed: false };
+    const operatorKey = await this.readyOperatorKey(operator);
+    if (!operatorKey) return { endorsed: false };
+    const coop = await this.blockchainPort.getCooperative(coopname);
+    if (!coop || String(coop.parent_username ?? '') !== operator) return { endorsed: false };
+    const endorsed = await this.renewOne({ username: coopname, status: String(coop.status ?? '') }, operator, operatorKey);
+    if (endorsed) this.logger.log(`Заверен по запросу кооператива: ${coopname}`, 'EndorsementService');
+    return { endorsed };
+  }
+
+  /** Ключ заверения оператора, если оператор вправе заверять (своё заверение действует); иначе null. */
+  private async readyOperatorKey(operator: string): Promise<string | null> {
+    const own = await this.blockchainPort.getEndorsement(operator);
+    if (!own || this.secondsLeft(own) <= 0) return null;
+    return this.blockchainPort.getCertPublicKey(operator);
+  }
+
   @Cron(CronExpression.EVERY_DAY_AT_1AM)
   async renewServedEndorsements(): Promise<{ renewed: string[] }> {
     return this.endorseServed({ warnIfUnendorsed: true });

@@ -14119,6 +14119,7 @@ rejectVerification?: [{	data: ValueTypes["RejectVerificationInput"] | Variable<a
 	removeAvatar?:boolean | `@${string}`,
 reportExpenseItem?: [{	data: ValueTypes["ReportExpenseItemInput"] | Variable<any, string>},ValueTypes["ExpenseReportResult"]],
 reportNotMe?: [{	data: ValueTypes["ReportNotMeInput"] | Variable<any, string>},ValueTypes["RevokedSessionsResult"]],
+requestCooperativeEndorsement?: [{	data: ValueTypes["RequestCooperativeEndorsementInput"] | Variable<any, string>},boolean | `@${string}`],
 requestEmailVerification?: [{	data: ValueTypes["RequestEmailVerificationInputDTO"] | Variable<any, string>},ValueTypes["EmailVerificationRequestDTO"]],
 requestForceRecoveryConsent?: [{	data: ValueTypes["RequestForceRecoveryConsentInput"] | Variable<any, string>},boolean | `@${string}`],
 resendNotification?: [{	id: string | Variable<any, string>},ValueTypes["Notification"]],
@@ -16827,6 +16828,10 @@ verificationReviews?: [{	data?: ValueTypes["VerificationReviewsInput"] | undefin
 	last_name: string | Variable<any, string>,
 	middle_name: string | Variable<any, string>,
 	position: string | Variable<any, string>
+};
+	["RequestCooperativeEndorsementInput"]: {
+	/** Учётное имя кооператива, опубликовавшего право заверения */
+	coopname: string | Variable<any, string>
 };
 	["RequestEmailVerificationInputDTO"]: {
 	/** Адрес электронной почты, который подтверждается */
@@ -31387,6 +31392,7 @@ rejectVerification?: [{	data: ResolverInputTypes["RejectVerificationInput"]},Res
 	removeAvatar?:boolean | `@${string}`,
 reportExpenseItem?: [{	data: ResolverInputTypes["ReportExpenseItemInput"]},ResolverInputTypes["ExpenseReportResult"]],
 reportNotMe?: [{	data: ResolverInputTypes["ReportNotMeInput"]},ResolverInputTypes["RevokedSessionsResult"]],
+requestCooperativeEndorsement?: [{	data: ResolverInputTypes["RequestCooperativeEndorsementInput"]},boolean | `@${string}`],
 requestEmailVerification?: [{	data: ResolverInputTypes["RequestEmailVerificationInputDTO"]},ResolverInputTypes["EmailVerificationRequestDTO"]],
 requestForceRecoveryConsent?: [{	data: ResolverInputTypes["RequestForceRecoveryConsentInput"]},boolean | `@${string}`],
 resendNotification?: [{	id: string},ResolverInputTypes["Notification"]],
@@ -33985,6 +33991,10 @@ verificationReviews?: [{	data?: ResolverInputTypes["VerificationReviewsInput"] |
 	last_name: string,
 	middle_name: string,
 	position: string
+};
+	["RequestCooperativeEndorsementInput"]: {
+	/** Учётное имя кооператива, опубликовавшего право заверения */
+	coopname: string
 };
 	["RequestEmailVerificationInputDTO"]: {
 	/** Адрес электронной почты, который подтверждается */
@@ -48385,6 +48395,8 @@ export type ModelTypes = {
 	reportExpenseItem: ModelTypes["ExpenseReportResult"],
 	/** Сигнал «Это не я»: немедленно завершить все сессии пайщика */
 	reportNotMe: ModelTypes["RevokedSessionsResult"],
+	/** Заверить ключ заверения обслуживаемого кооператива сразу после его публикации */
+	requestCooperativeEndorsement: boolean,
 	/** Выслать код подтверждения на электронную почту */
 	requestEmailVerification: ModelTypes["EmailVerificationRequestDTO"],
 	/** Запросить согласие пайщика на принудительное восстановление (председатель) */
@@ -51120,6 +51132,10 @@ export type ModelTypes = {
 	last_name: string,
 	middle_name: string,
 	position: string
+};
+	["RequestCooperativeEndorsementInput"]: {
+	/** Учётное имя кооператива, опубликовавшего право заверения */
+	coopname: string
 };
 	["RequestEmailVerificationInputDTO"]: {
 	/** Адрес электронной почты, который подтверждается */
@@ -66260,6 +66276,8 @@ export type GraphQLTypes = {
 	reportExpenseItem: GraphQLTypes["ExpenseReportResult"],
 	/** Сигнал «Это не я»: немедленно завершить все сессии пайщика */
 	reportNotMe: GraphQLTypes["RevokedSessionsResult"],
+	/** Заверить ключ заверения обслуживаемого кооператива сразу после его публикации */
+	requestCooperativeEndorsement: boolean,
 	/** Выслать код подтверждения на электронную почту */
 	requestEmailVerification: GraphQLTypes["EmailVerificationRequestDTO"],
 	/** Запросить согласие пайщика на принудительное восстановление (председатель) */
@@ -69249,6 +69267,10 @@ export type GraphQLTypes = {
 	last_name: string,
 	middle_name: string,
 	position: string
+};
+	["RequestCooperativeEndorsementInput"]: {
+		/** Учётное имя кооператива, опубликовавшего право заверения */
+	coopname: string
 };
 	["RequestEmailVerificationInputDTO"]: {
 		/** Адрес электронной почты, который подтверждается */
@@ -72917,6 +72939,7 @@ type ZEUS_VARIABLES = {
 	["ReportSubmissionMark"]: ValueTypes["ReportSubmissionMark"];
 	["ReportType"]: ValueTypes["ReportType"];
 	["RepresentedByInput"]: ValueTypes["RepresentedByInput"];
+	["RequestCooperativeEndorsementInput"]: ValueTypes["RequestCooperativeEndorsementInput"];
 	["RequestEmailVerificationInputDTO"]: ValueTypes["RequestEmailVerificationInputDTO"];
 	["RequestForceRecoveryConsentInput"]: ValueTypes["RequestForceRecoveryConsentInput"];
 	["RequestKuTrustedInput"]: ValueTypes["RequestKuTrustedInput"];

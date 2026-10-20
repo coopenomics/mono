@@ -11,7 +11,12 @@ import { EndorsementService } from './endorsement.service';
 function makeService(opts: { operatorEndorsed: boolean; coopKey: string | null }) {
   const future = new Date(Date.now() + 365 * 86400 * 1000).toISOString().slice(0, 19);
   const { privateKey } = generateKeyPairSync('ec', { namedCurve: 'secp256k1' });
+  const cooperatives: Record<string, any> = {
+    newcoop: { username: 'newcoop', parent_username: config.coopname, status: 'active', announce: '' },
+    stranger: { username: 'stranger', parent_username: 'otherop', status: 'active', announce: '' },
+  };
   const blockchainPort = {
+    getCooperative: jest.fn(async (who: string) => cooperatives[who] ?? null),
     getEndorsement: jest.fn(async (who: string) =>
       who === config.coopname && opts.operatorEndorsed ? { cert_key: 'OPKEY', expires_at: future } : null,
     ),
@@ -20,7 +25,7 @@ function makeService(opts: { operatorEndorsed: boolean; coopKey: string | null }
     getInfo: jest.fn(async () => ({ chain_id: 'CHAIN' })),
     publishEndorsement: jest.fn(async () => undefined),
   };
-  const certKeyService = { getSigningKeyFor: jest.fn(async () => privateKey) };
+  const certKeyService = { getSigningKeyFor: jest.fn(async () => privateKey), publishSafely: jest.fn(async () => undefined) };
   const crypto = { normalizePublicKey: jest.fn((k: string) => k) };
   const logger = { log: jest.fn(), warn: jest.fn() };
   const service = new EndorsementService(
@@ -31,7 +36,7 @@ function makeService(opts: { operatorEndorsed: boolean; coopKey: string | null }
     {} as any,
     logger as any,
   );
-  return { service, blockchainPort, logger };
+  return { service, blockchainPort, logger, certKeyService, cooperatives };
 }
 
 describe('EndorsementService — заверение новых кооперативов', () => {
@@ -63,5 +68,40 @@ describe('EndorsementService — заверение новых кооперат�
     const nightly = makeService({ operatorEndorsed: false, coopKey: 'COOPKEY' });
     await nightly.service.renewServedEndorsements();
     expect(nightly.logger.warn).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('EndorsementService — заверение по запросу кооператива', () => {
+  it('оператор заверяет свой действующий кооператив с опубликованным ключом сразу по запросу', async () => {
+    const { service, blockchainPort } = makeService({ operatorEndorsed: true, coopKey: 'COOPKEY' });
+
+    await expect(service.endorseOnRequest('newcoop')).resolves.toEqual({ endorsed: true });
+    expect(blockchainPort.publishEndorsement).toHaveBeenCalledTimes(1);
+  });
+
+  it('кооператив другого оператора по запросу не заверяется', async () => {
+    const { service, blockchainPort } = makeService({ operatorEndorsed: true, coopKey: 'COOPKEY' });
+
+    await expect(service.endorseOnRequest('stranger')).resolves.toEqual({ endorsed: false });
+    expect(blockchainPort.publishEndorsement).not.toHaveBeenCalled();
+  });
+
+  it('узел после ввода ключа публикует право заверения и спрашивает своего оператора по адресу из реестра', async () => {
+    const { service, certKeyService, cooperatives } = makeService({ operatorEndorsed: true, coopKey: 'COOPKEY' });
+    cooperatives[config.coopname] = { username: config.coopname, parent_username: 'operatorx', announce: '' };
+    cooperatives.operatorx = { username: 'operatorx', parent_username: '', announce: 'https://hub.example.org/' };
+    const fetchMock = jest.fn(async () => ({ status: 200, json: async () => ({ data: { requestCooperativeEndorsement: true } }) }));
+    const original = global.fetch;
+    global.fetch = fetchMock as any;
+    try {
+      await service.onCoopKeyInstalled();
+    } finally {
+      global.fetch = original;
+    }
+    expect(certKeyService.publishSafely).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [url, init] = fetchMock.mock.calls[0] as unknown as [string, { body: string }];
+    expect(url).toBe('https://hub.example.org/backend/v1/graphql');
+    expect(JSON.parse(init.body).variables).toEqual({ d: { coopname: config.coopname } });
   });
 });

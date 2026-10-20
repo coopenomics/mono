@@ -2722,6 +2722,9 @@ export const AllTypesProps: Record<string,any> = {
 		reportNotMe:{
 			data:"ReportNotMeInput"
 		},
+		requestCooperativeEndorsement:{
+			data:"RequestCooperativeEndorsementInput"
+		},
 		requestEmailVerification:{
 			data:"RequestEmailVerificationInputDTO"
 		},
@@ -3818,6 +3821,9 @@ export const AllTypesProps: Record<string,any> = {
 	ReportSubmissionMark: "enum" as const,
 	ReportType: "enum" as const,
 	RepresentedByInput:{
+
+	},
+	RequestCooperativeEndorsementInput:{
 
 	},
 	RequestEmailVerificationInputDTO:{
@@ -8263,6 +8269,7 @@ export const ReturnTypes: Record<string,any> = {
 		removeAvatar:"Boolean",
 		reportExpenseItem:"ExpenseReportResult",
 		reportNotMe:"RevokedSessionsResult",
+		requestCooperativeEndorsement:"Boolean",
 		requestEmailVerification:"EmailVerificationRequestDTO",
 		requestForceRecoveryConsent:"Boolean",
 		resendNotification:"Notification",

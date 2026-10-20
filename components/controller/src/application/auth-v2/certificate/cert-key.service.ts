@@ -1,7 +1,5 @@
 import type { KeyObject } from 'node:crypto';
 import { Inject, Injectable, type OnApplicationBootstrap } from '@nestjs/common';
-import { OnEvent } from '@nestjs/event-emitter';
-import { COOP_KEY_INSTALLED_EVENT } from '~/domain/system/interfaces/coop-key-installed.event';
 import config from '~/config/config';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import { BLOCKCHAIN_PORT } from '~/domain/common/ports/blockchain.port';
@@ -80,16 +78,12 @@ export class CertKeyService implements OnApplicationBootstrap {
   }
 
   /**
-   * Ключ кооператива появился на узле при установке — публикуем право заверения
-   * сразу, не дожидаясь перезапуска. Узел, поднятый провайдером до ввода ключа
-   * установки, при старте публиковать было нечем (тестнет, 20.10.2026).
+   * Опубликовать право заверения (и ключ якоря, если узел его ведёт), не роняя
+   * вызывающего. Зовётся при старте и сразу после ввода ключа установки
+   * (EndorsementService.onCoopKeyInstalled): узел, поднятый провайдером до ввода
+   * ключа, при старте публиковать было нечем (тестнет, 20.10.2026).
    */
-  @OnEvent(COOP_KEY_INSTALLED_EVENT, { async: true })
-  async onCoopKeyInstalled(): Promise<void> {
-    await this.publishSafely();
-  }
-
-  private async publishSafely(): Promise<void> {
+  async publishSafely(): Promise<void> {
     try {
       await this.ensurePublished();
       await this.ensureAnchorPublished();
