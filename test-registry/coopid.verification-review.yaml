@@ -23,7 +23,7 @@ sources:
     - components/controller/src/domain/auth-v2/verification/constants/verification-bucket.ts
     - components/controller/src/domain/auth-v2/ports/verification-review.port.ts
     - components/controller/src/infrastructure/auth-v2/postgres-verification-review.repository.ts
-    - components/controller/migrations/V2.5.4__coopid_verification_reviews.ts
+    - components/controller/src/infrastructure/auth-v2/coop-domain-migrations/1781000000016-coopid-verification-reviews.ts
     - components/controller/src/application/auth-v2/verification/verification-onsite.service.ts
   ui:
     - components/desktop/src/widgets/Verifications/**

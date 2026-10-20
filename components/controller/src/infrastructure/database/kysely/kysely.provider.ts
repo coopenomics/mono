@@ -6,6 +6,7 @@ import logger from '~/config/logger';
 import { ChainChangesService } from '~/infrastructure/blockchain/chain-changes.service';
 import { createMainPool } from '../postgres/postgres-connection';
 import { runSchemaMigrations } from '../schema/schema-migrations';
+import { createCoopDomainPool, runCoopDomainSchemaMigrations } from '~/infrastructure/auth-v2/coop-domain-schema';
 import type { DB } from './database.types';
 import { KYSELY, type Database } from './kysely.tokens';
 import { LocalChangesPlugin, type LocalChange } from './local-changes.plugin';
@@ -60,11 +61,33 @@ async function loadPrimaryKeys(pool: Pool): Promise<Map<string, string[]>> {
  * Пул основной базы. Схема — только миграциями: новые применяются при
  * подключении, до того как поднимутся модули, читающие таблицы.
  */
+/**
+ * Схема базы CoopID при старте — как основная: новый узел получает таблицы
+ * CoopID сам, без миграций данных (до 20.10.2026 узел после первой установки
+ * стоял без них, и пароль по приглашению не задавался).
+ *
+ * Отказ старт не роняет: базу CoopID узел открывает лениво, и её недоступность
+ * бьёт только по входу и подписи (`CoopDomainDatabase`). Ошибка — в журнал.
+ */
+async function applyCoopDomainSchemaOnStart(mainPool: Pool): Promise<void> {
+  const coopPool = createCoopDomainPool();
+  try {
+    await runCoopDomainSchemaMigrations(coopPool, mainPool, (name, index, total) =>
+      logger.info(`Миграция схемы CoopID [${index}/${total}]: ${name}`)
+    );
+  } catch (error) {
+    logger.error(`Схема базы CoopID не применена: ${error instanceof Error ? error.message : String(error)}`);
+  } finally {
+    await coopPool.end();
+  }
+}
+
 export const pgPoolProvider: Provider = {
   provide: PG_POOL,
   useFactory: async (): Promise<Pool> => {
     const pool = createMainPool();
     await runSchemaMigrations(pool, (name, index, total) => logger.info(`Миграция схемы [${index}/${total}]: ${name}`));
+    await applyCoopDomainSchemaOnStart(pool);
     return pool;
   },
 };

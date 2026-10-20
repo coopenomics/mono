@@ -8,14 +8,14 @@ export const DATABASE_MIGRATIONS_TABLE = 'schema_migrations';
 /** Ключ advisory-блокировки Postgres, под которой применяется схема (число произвольное, но постоянное). */
 export const SCHEMA_MIGRATIONS_LOCK = 7_301_202_610;
 
-interface NamedMigration {
+export interface NamedMigration {
   name: string;
   timestamp: number;
   migration: SchemaMigration;
 }
 
 /** Имя миграции оканчивается меткой времени — по ней миграции идут в ленте. */
-function named(migrationClass: SchemaMigrationClass): NamedMigration {
+export function named(migrationClass: SchemaMigrationClass): NamedMigration {
   const migration = new migrationClass();
   const name = migration.name ?? migrationClass.name;
   const timestamp = Number.parseInt(name.slice(-13), 10);
@@ -49,6 +49,19 @@ export async function pendingSchemaMigrations(pool: Pool): Promise<string[]> {
     .map((item) => item.name);
 }
 
+export interface SchemaMigrationsOptions {
+  /** Лента миграций; по умолчанию — основная база (ядро и расширения). */
+  migrations?: NamedMigration[];
+  /** Ключ блокировки; у каждой базы свой, иначе две базы ждали бы друг друга. */
+  lockKey?: number;
+  /**
+   * Какие из непринятых миграций уже выполнены прежним способом: они получают
+   * отметку в учёте без повторного выполнения. Нужен при переносе миграций из
+   * другого учёта (миграции данных coop_domain_db, 20.10.2026).
+   */
+  adopt?: (pending: string[]) => Promise<Set<string>>;
+}
+
 /**
  * Применяет непринятые миграции схемы (таблицы, колонки, индексы).
  *
@@ -58,7 +71,12 @@ export async function pendingSchemaMigrations(pool: Pool): Promise<string[]> {
  *
  * @returns Имена применённых миграций (пусто, если нечего применять).
  */
-export async function runSchemaMigrations(pool: Pool, onApplied?: (name: string, index: number, total: number) => void): Promise<string[]> {
+export async function runSchemaMigrations(
+  pool: Pool,
+  onApplied?: (name: string, index: number, total: number) => void,
+  options: SchemaMigrationsOptions = {}
+): Promise<string[]> {
+  const lockKey = options.lockKey ?? SCHEMA_MIGRATIONS_LOCK;
   // Схему применяют несколько процессов: контроллер при старте (пул основной
   // базы) и мигратор (`--migrate`, `--migrate-schema`). Без блокировки они шли
   // одновременно: на первой установке узла оба создавали тип capital_cycles, и
@@ -67,9 +85,16 @@ export async function runSchemaMigrations(pool: Pool, onApplied?: (name: string,
   // читается уже под ней — второй процесс видит работу первого и не повторяет её.
   const lock = await pool.connect();
   try {
-    await lock.query('SELECT pg_advisory_lock($1)', [SCHEMA_MIGRATIONS_LOCK]);
+    await lock.query('SELECT pg_advisory_lock($1)', [lockKey]);
     const applied = await appliedNames(pool);
-    const pending = schemaMigrations().filter((item) => !applied.has(item.name));
+    let pending = (options.migrations ?? schemaMigrations()).filter((item) => !applied.has(item.name));
+    if (pending.length && options.adopt) {
+      const adopted = await options.adopt(pending.map((item) => item.name));
+      for (const item of pending.filter((candidate) => adopted.has(candidate.name))) {
+        await pool.query(`INSERT INTO "${DATABASE_MIGRATIONS_TABLE}" ("timestamp", "name") VALUES ($1, $2)`, [item.timestamp, item.name]);
+      }
+      pending = pending.filter((item) => !adopted.has(item.name));
+    }
     for (const [index, item] of pending.entries()) {
       const client = await pool.connect();
       try {
@@ -87,7 +112,7 @@ export async function runSchemaMigrations(pool: Pool, onApplied?: (name: string,
     }
     return pending.map((item) => item.name);
   } finally {
-    await lock.query('SELECT pg_advisory_unlock($1)', [SCHEMA_MIGRATIONS_LOCK]).catch(() => undefined);
+    await lock.query('SELECT pg_advisory_unlock($1)', [lockKey]).catch(() => undefined);
     lock.release();
   }
 }
