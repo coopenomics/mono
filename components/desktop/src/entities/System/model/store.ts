@@ -46,20 +46,32 @@ export const useSystemStore = defineStore(namespace, (): ISystemStore => {
 
   let monitoringTimeout: ReturnType<typeof setTimeout> | null = null;
   let syncTimeout: ReturnType<typeof setTimeout> | null = null;
-  let isLoading = false; // Защита от конкурентных запросов
   let currentInterval = BASE_INTERVAL_MS; // Текущий интервал (для backoff)
   let consecutiveErrors = 0; // Счетчик последовательных ошибок
 
-  const loadSystemInfo = async () => {
-    // Защита от конкурентных запросов
-    if (isLoading) {
-      console.debug('loadSystemInfo: запрос уже выполняется, пропускаем');
-      return;
+  // Свежие сведения кладутся в ТОТ ЖЕ объект, а не подменяют его. Сто с лишним
+  // потребителей берут `const { info } = useSystemStore()` один раз и держат ссылку;
+  // при подмене они навсегда оставались со старыми сведениями. Так после установки
+  // кооператива без перезагрузки соглашения на подпись не появлялись (статус
+  // «install» в старом объекте), а пункт «Онбординг» не пропадал (тестнет, 20.10.2026).
+  const applyInfo = (fresh: ISystemInfo) => {
+    const target = info.value as unknown as Record<string, unknown>;
+    for (const key of Object.keys(target)) {
+      if (!(key in (fresh as object))) delete target[key];
     }
+    Object.assign(target, fresh);
+  };
 
-    isLoading = true;
+  // Вызов во время идущего запроса не пропускается: он ждёт его и запрашивает
+  // ещё раз — вызвавший после мутации должен получить сведения ПОСЛЕ неё.
+  // Раньше такой вызов сразу возвращался, и «Завершить онбординг» мог получить
+  // ответ планового опроса, начатого до завершения.
+  let inFlight: Promise<void> | null = null;
+  let rerunRequested = false;
+
+  const fetchSystemInfoOnce = async () => {
     try {
-      info.value = await api.loadSystemInfo();
+      applyInfo(await api.loadSystemInfo());
       backendAvailable.value = true;
       triggerRef(info); // Принудительно триггерим реактивность
 
@@ -84,9 +96,25 @@ export const useSystemStore = defineStore(namespace, (): ISystemStore => {
       console.debug(`Backoff: следующая попытка через ${currentInterval / 1000} секунд`);
 
       throw error; // Перебрасываем ошибку для обработки выше
-    } finally {
-      isLoading = false;
     }
+  };
+
+  const loadSystemInfo = async (): Promise<void> => {
+    if (inFlight) {
+      rerunRequested = true;
+      return inFlight;
+    }
+    inFlight = (async () => {
+      try {
+        do {
+          rerunRequested = false;
+          await fetchSystemInfoOnce();
+        } while (rerunRequested);
+      } finally {
+        inFlight = null;
+      }
+    })();
+    return inFlight;
   };
 
   /**
