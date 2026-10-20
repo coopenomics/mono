@@ -156,14 +156,18 @@ const init = async () => {
 
   if (coop) {
     // Соглашение точно подписано (coop появился в registrator.coops).
+    // Домен проверяется раньше решения совета: совет может утвердить заявку до
+    // того, как адрес направлен, а установка без направленного адреса не
+    // стартует. Прежний порядок уводил перезагрузку с шага домена на
+    // «Установку» с 0% (тестнет, 20.10.2026).
     if (instance && typeof instance.progress === 'number' && instance.progress > 0) {
       targetStep = CONNECTION_STEP.installation; // установка идёт
-    } else if (instance?.blockchain_status === 'active') {
-      targetStep = CONNECTION_STEP.installation; // совет подтвердил, провайдер вот-вот стартует
-    } else if (connectionAgreement.isDomainDelegated) {
-      targetStep = CONNECTION_STEP.approval; // домен делегирован, ждём подтверждения совета
-    } else {
+    } else if (!connectionAgreement.isDomainDelegated) {
       targetStep = CONNECTION_STEP.dns; // DNS-шаг: ждём делегирования или провайдер ещё не подхватил coop
+    } else if (instance?.blockchain_status === 'active') {
+      targetStep = CONNECTION_STEP.installation; // адрес направлен, совет подтвердил — провайдер стартует
+    } else {
+      targetStep = CONNECTION_STEP.approval; // адрес направлен, ждём подтверждения совета
     }
   } else {
     targetStep = FIRST_ONBOARDING_STEP; // онбординг с первого показанного шага
