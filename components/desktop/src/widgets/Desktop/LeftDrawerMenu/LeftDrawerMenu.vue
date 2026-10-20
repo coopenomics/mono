@@ -31,6 +31,17 @@
         @primary-action='onDeposit',
         @signout='onLogout'
       )
+      //- Карточка пайщика появляется вместе с кошельками программ, а их нет,
+      //- пока председатель не подписал положения (тестнет, 20.10.2026). Выход из
+      //- кабинета нужен всегда: без него оставалось только удалять сессию в
+      //- браузере. Та же кнопка, что в карточке.
+      button.rail__signout.left-drawer-menu__signout(
+        v-else,
+        type='button',
+        @click='onLogout'
+      )
+        q-icon(name='logout')
+        | {{ $t('desktop.leftDrawerMenu.signOutLabel') }}
       .left-drawer-menu__version(:title='$t(`desktop.leftDrawerMenu.versionTitle`, { version: updateWatch.currentVersion })')
         NodeSyncIndicator
         span v{{ updateWatch.currentVersion }}
@@ -404,6 +415,17 @@ async function onLogout(): Promise<void> {
    шла сразу под ней без лишнего вертикального зазора. */
 :deep(.rail__signout) {
   padding-bottom: var(--p-1, 4px);
+}
+/* Выход без карточки пайщика: canon `.rail__signout` рассчитан на <div>, у
+   <button> сбрасываем браузерные дефолты — как в RailUserCard. */
+.left-drawer-menu__signout {
+  font-family: inherit;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border-right: 0;
+  border-bottom: 0;
+  border-left: 0;
 }
 /* Версия приложения — приглушённая подпись под карточкой пользователя.
    Рядом с ней кружок состояния узла: место видно с любого стола. */
