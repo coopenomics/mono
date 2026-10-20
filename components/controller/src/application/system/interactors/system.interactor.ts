@@ -1,5 +1,6 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { prepareVarsUpdate } from '~/domain/system/utils/merge-vars.util';
 import { COOP_KEY_INSTALLED_EVENT, type CoopKeyInstalledEvent } from '~/domain/system/interfaces/coop-key-installed.event';
 import { SYSTEM_BLOCKCHAIN_PORT, SystemBlockchainPort } from '~/domain/system/interfaces/system-blockchain.port';
 import { SystemInfoDomainEntity } from '~/domain/system/entities/systeminfo-domain.entity';
@@ -197,7 +198,10 @@ export class SystemInteractor {
   }
 
   async update(data: UpdateInputDomainInterface): Promise<SystemInfoDomainEntity> {
-    if (data.vars) await this.varsRepository.create(data.vars);
+    if (data.vars) {
+      // Имя сверяется с узлом, новые значения ложатся поверх текущих (поля расширений).
+      await this.varsRepository.create(prepareVarsUpdate(await this.varsRepository.get(), data.vars, config.coopname));
+    }
     if (data.organization_data) await this.organizationRepository.create(data.organization_data);
 
     return this.getInfo();

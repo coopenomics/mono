@@ -1,0 +1,48 @@
+feature: system.cooperative-vars
+title: Председатель правит параметры кооператива, которые фабрика подставляет в документы
+
+# 20.10.2026: параметры кооператива (vars) задавал только мастер установки, после
+# него поправить их было нечем. На столе председателя появилась страница
+# «Параметры кооператива» со всеми полями: наименование, устав, паспортные данные,
+# контакты и ссылки, реквизиты протоколов утверждения документов. Сервер кладёт
+# новые значения поверх текущих — в vars пишут и расширения (например,
+# education_provision), форма их не знает и стирать не должна. Имя кооператива в
+# параметрах обязано быть именем узла: пустое или чужое отвергается с кодом.
+
+sources:
+  backend:
+    - components/controller/src/domain/system/utils/merge-vars.util.ts
+  ui:
+    - components/desktop/src/features/Cooperative/EditVars/**
+    - components/desktop/extensions/chairman/pages/CooperativeVarsPage/**
+
+cases:
+  - id: sys.vars.side.01
+    level: backend
+    kind: side
+    scenario: председатель сохраняет параметры, а в текущих есть поля расширений, которых форма не знает
+    expect: поля из формы заменяют текущие, поля расширений сохраняются, служебные поля хранилища в новую версию не попадают
+    test: components/controller/tests/unit/system/merge-vars.test.ts
+    external: unreachable
+    external_reason: "поля расширений в vars наружу не отдаются; снаружи видно только поля ядра"
+    status: written   # прогон — CI на полигоне ci/tests
+
+  - id: sys.vars.break.01
+    level: backend
+    kind: break
+    scenario: в параметрах пустое или чужое имя кооператива
+    expect: отказ SYSTEM_VARS_COOPNAME_MISMATCH, параметры не сохраняются
+    test: components/controller/tests/unit/system/merge-vars.test.ts
+    api: components/api-tests/src/system/cooperative-vars.test.ts
+    status: written   # прогон — CI на полигоне ci/tests
+
+  - id: sys.vars.happy.01
+    level: ui
+    kind: happy
+    scenario: председатель открывает «Параметры кооператива», меняет наименование и реквизиты протокола, сохраняет
+    expect: >
+      форма заполнена текущими параметрами, учётное имя только для чтения; пустые
+      обязательные поля подсвечиваются и сохранение не идёт; после сохранения стол
+      показывает новое наименование без перезагрузки
+    test:
+    status: missing

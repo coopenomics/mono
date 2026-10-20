@@ -139,7 +139,8 @@
       "notificationsLogNavTitle": "Журнал уведомлений",
       "onboardingNavTitle": "Онбординг",
       "paymentProviderNavTitle": "Провайдер платежей",
-      "registrationFeesNavTitle": "Регистрационные взносы"
+      "registrationFeesNavTitle": "Регистрационные взносы",
+      "cooperativeVarsNavTitle": "Параметры кооператива"
     },
     "onboarding": {
       "completedMessage": "Онбординг завершён",

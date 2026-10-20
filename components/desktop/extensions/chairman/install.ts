@@ -16,6 +16,7 @@ import { MembersPage } from 'src/pages/Cooperative/MembersPage';
 import { CooperativeKeyPage } from 'src/pages/Cooperative/CooperativeKey';
 import { ApprovalsPage } from 'app/extensions/chairman/pages/ApprovalsPage';
 import { SystemSettingsPage } from 'app/extensions/chairman/pages/SystemSettingsPage';
+import { CooperativeVarsPage } from 'app/extensions/chairman/pages/CooperativeVarsPage';
 import { PaymentProviderPage } from 'app/extensions/chairman/pages/PaymentProviderPage';
 import { ConnectPage } from 'app/extensions/chairman/pages/ConnectPage';
 import { AgendaPresetsPage } from 'app/extensions/chairman/pages/AgendaPresetsPage';
@@ -203,6 +204,18 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: t('chairman.install.defaultPagesNavTitle'),
               icon: 'fa-solid fa-house',
+              requires: 'System:manage',
+              agreements: agreementsBase,
+              requiresAuth: true,
+            },
+          },
+          {
+            path: 'settings/vars',
+            name: 'cooperative-vars',
+            component: markRaw(CooperativeVarsPage),
+            meta: {
+              title: t('chairman.install.cooperativeVarsNavTitle'),
+              icon: 'tune',
               requires: 'System:manage',
               agreements: agreementsBase,
               requiresAuth: true,
