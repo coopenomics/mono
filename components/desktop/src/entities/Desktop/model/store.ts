@@ -495,12 +495,13 @@ export const useDesktopStore = defineStore(namespace, () => {
     // (условие видимости '!isOnboardingHidden') открывается на ней — раньше
     // настроенной стартовой страницы и defaultRoute. Иначе первый вход
     // председателя после установки вёл на «Запросы одобрений» (тестнет, 20.10.2026).
+    const workspaceName = activeWorkspaceName.value;
     if (!info?.settings?.onboarding_completed_at) {
-      const wsMenu = workspaceMenus.value.find((menu) => menu.workspaceName === activeWorkspaceName.value);
+      const wsMenu = workspaceMenus.value.find((menu) => menu.workspaceName === workspaceName);
       const onboardingPage = ((wsMenu?.mainRoute?.children ?? []) as RouteRecordRaw[]).find(
         (child) =>
           (child.meta as RouteMeta | undefined)?.conditions === '!isOnboardingHidden' &&
-          isPageVisible(child.meta as RouteMeta, activeWorkspaceName.value),
+          isPageVisible(child.meta as RouteMeta, workspaceName),
       );
       if (onboardingPage?.name) {
         return { name: onboardingPage.name as string, params: { coopname: info.coopname } };
