@@ -654,6 +654,18 @@ export class BlockchainService implements BlockchainPort {
     };
   }
 
+  public async assignOperator(coopname: string, operator: string): Promise<void> {
+    const wif = await this.vaultDomainService.getWif(operator);
+    if (!wif) throw DomainError.internal('BLOCKCHAIN_PRIVATE_KEY_NOT_FOUND_FOR_COOPERATIVE', { coopname: operator });
+    this.initialize(operator, wif);
+    await this.transact({
+      account: RegistratorContract.contractName.production,
+      name: RegistratorContract.Actions.SetOperator.actionName,
+      authorization: [{ actor: operator, permission: 'active' }],
+      data: { coopname, operator_name: operator } satisfies RegistratorContract.Actions.SetOperator.ISetOperator,
+    });
+  }
+
   public async getCooperative(coopname: string): Promise<any> {
     const cooperative = await this.getSingleRow(
       RegistratorContract.contractName.production,

@@ -144,6 +144,14 @@ export interface BlockchainPort {
    * АНО, не владея её ключами).
    */
   publishEndorsement(endorsement: EndorsementRecord, signer?: string): Promise<void>;
+
+  /**
+   * Назначить кооперативу обслуживающего оператора (`registrator::setoperator`).
+   * Подписывает оператор — провайдер платформы, которому контракт разрешает это
+   * одному. Без оператора кооператив не попадает в обход заверений и остаётся с
+   * «Удостоверение не утверждено».
+   */
+  assignOperator(coopname: string, operator: string): Promise<void>;
   /**
    * Вправе ли `steward` распоряжаться аккаунтом `account` — то есть указан ли он в
    * его распорядительных правах как аккаунт (делегирование по имени, не по ключу).

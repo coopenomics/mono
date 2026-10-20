@@ -17,6 +17,7 @@ function makeService(opts: { operatorEndorsed: boolean; coopKey: string | null }
   };
   const blockchainPort = {
     getCooperative: jest.fn(async (who: string) => cooperatives[who] ?? null),
+    assignOperator: jest.fn(async () => undefined),
     getEndorsement: jest.fn(async (who: string) =>
       who === config.coopname && opts.operatorEndorsed ? { cert_key: 'OPKEY', expires_at: future } : null,
     ),
@@ -103,5 +104,56 @@ describe('EndorsementService — заверение по запросу кооп
     const [url, init] = fetchMock.mock.calls[0] as unknown as [string, { body: string }];
     expect(url).toBe('https://hub.example.org/backend/v1/graphql');
     expect(JSON.parse(init.body).variables).toEqual({ d: { coopname: config.coopname } });
+  });
+});
+
+// Тестнет, 20.10.2026: оператора проставлял только migrate при выкатке контрактов,
+// и кооператив, подключённый между выкатками, не попадал в обход заверений.
+describe('EndorsementService — активация кооператива на узле провайдера', () => {
+  const activated = (coopname: string) => ({ data: { coopname, administrator: 'voskhod', status: 'active' } });
+  let original: string;
+  beforeEach(() => {
+    original = config.coopname;
+    (config as any).coopname = 'voskhod';
+  });
+  afterEach(() => {
+    (config as any).coopname = original;
+  });
+
+  it('у кооператива нет оператора — провайдер назначает себя и пробует заверить', async () => {
+    const { service, blockchainPort, cooperatives } = makeService({ operatorEndorsed: true, coopKey: null });
+    cooperatives.fresh = { username: 'fresh', parent_username: '', status: 'active' };
+
+    await service.onCoopActivated(activated('fresh'));
+
+    expect(blockchainPort.assignOperator).toHaveBeenCalledWith('fresh', 'voskhod');
+    expect(blockchainPort.getCooperative).toHaveBeenCalledWith('fresh');
+  });
+
+  it('оператор уже назначен — не переназначаем', async () => {
+    const { service, blockchainPort, cooperatives } = makeService({ operatorEndorsed: true, coopKey: null });
+    cooperatives.fresh = { username: 'fresh', parent_username: 'otherop', status: 'active' };
+
+    await service.onCoopActivated(activated('fresh'));
+
+    expect(blockchainPort.assignOperator).not.toHaveBeenCalled();
+  });
+
+  it('узел не провайдер платформы — событие пропускается', async () => {
+    (config as any).coopname = 'partnercoop';
+    const { service, blockchainPort } = makeService({ operatorEndorsed: true, coopKey: null });
+
+    await service.onCoopActivated(activated('fresh'));
+
+    expect(blockchainPort.getCooperative).not.toHaveBeenCalled();
+    expect(blockchainPort.assignOperator).not.toHaveBeenCalled();
+  });
+
+  it('блокировка кооператива оператора не назначает', async () => {
+    const { service, blockchainPort } = makeService({ operatorEndorsed: true, coopKey: null });
+
+    await service.onCoopActivated({ data: { coopname: 'fresh', status: 'blocked' } });
+
+    expect(blockchainPort.assignOperator).not.toHaveBeenCalled();
   });
 });

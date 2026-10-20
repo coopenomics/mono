@@ -5,6 +5,7 @@ import { COOP_KEY_INSTALLED_EVENT } from '~/domain/system/interfaces/coop-key-in
 import { SignJWT } from 'jose';
 import { Workflows } from '@coopenomics/notifications';
 import config from '~/config/config';
+import { RegistratorContract } from 'cooptypes';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import { BLOCKCHAIN_PORT } from '~/domain/common/ports/blockchain.port';
 import type { BlockchainPort, EndorsementRecord, ServedCooperative } from '~/domain/common/ports/blockchain.port';
@@ -255,6 +256,36 @@ export class EndorsementService implements OnApplicationBootstrap {
     const endorsed = await this.renewOne({ username: coopname, status: String(coop.status ?? '') }, operator, operatorKey);
     if (endorsed) this.logger.log(`Заверен по запросу кооператива: ${coopname}`, 'EndorsementService');
     return { endorsed };
+  }
+
+  /**
+   * Провайдер платформы: кооператив активирован (`registrator::stcoopstatus → active`)
+   * — назначаем себя его оператором, если оператора нет, и сразу пробуем заверить.
+   *
+   * Оператора раньше проставлял только `migrate` реестра при выкатке контрактов:
+   * кооператив, подключённый между выкатками, оставался без оператора, не попадал
+   * в обход заверений, и председатель видел «Удостоверение не утверждено»
+   * (тестнет, 20.10.2026). Заверение пройдёт, если ключ кооператива уже в цепи
+   * (повторная активация); иначе его запросит узел после ввода ключа установки.
+   */
+  @OnEvent(`action::${RegistratorContract.contractName.production}::${RegistratorContract.Actions.SetCoopStatus.actionName}`)
+  async onCoopActivated(actionData: { data?: { coopname?: string; status?: CooperativeStatus } }): Promise<void> {
+    const coopname = actionData?.data?.coopname;
+    if (config.coopname !== TRUST_ANCHOR_STEWARD || !coopname || actionData.data?.status !== CooperativeStatus.Active) return;
+    if (coopname === config.coopname) return;
+    try {
+      const coop = await this.blockchainPort.getCooperative(coopname);
+      if (coop && !String(coop.parent_username ?? '')) {
+        await this.blockchainPort.assignOperator(coopname, config.coopname);
+        this.logger.log(`Кооператив ${coopname} взят на обслуживание: оператор ${config.coopname}`, 'EndorsementService');
+      }
+      await this.endorseOnRequest(coopname);
+    } catch (e) {
+      this.logger.warn(
+        `Оператор для ${coopname} не назначен: ${e instanceof Error ? e.message : String(e)}`,
+        'EndorsementService',
+      );
+    }
   }
 
   /** Ключ заверения оператора, если оператор вправе заверять (своё заверение действует); иначе null. */
