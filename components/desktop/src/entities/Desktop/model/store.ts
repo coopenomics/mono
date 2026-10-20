@@ -491,6 +491,22 @@ export const useDesktopStore = defineStore(namespace, () => {
       return null;
     }
 
+    // Пока онбординг кооператива не завершён, стол со страницей онбординга
+    // (условие видимости '!isOnboardingHidden') открывается на ней — раньше
+    // настроенной стартовой страницы и defaultRoute. Иначе первый вход
+    // председателя после установки вёл на «Запросы одобрений» (тестнет, 20.10.2026).
+    if (!info?.settings?.onboarding_completed_at) {
+      const wsMenu = workspaceMenus.value.find((menu) => menu.workspaceName === activeWorkspaceName.value);
+      const onboardingPage = ((wsMenu?.mainRoute?.children ?? []) as RouteRecordRaw[]).find(
+        (child) =>
+          (child.meta as RouteMeta | undefined)?.conditions === '!isOnboardingHidden' &&
+          isPageVisible(child.meta as RouteMeta, activeWorkspaceName.value),
+      );
+      if (onboardingPage?.name) {
+        return { name: onboardingPage.name as string, params: { coopname: info.coopname } };
+      }
+    }
+
     // Проверяем, есть ли настроенный маршрут для текущего рабочего стола
     let configuredRoute: string | undefined;
 
