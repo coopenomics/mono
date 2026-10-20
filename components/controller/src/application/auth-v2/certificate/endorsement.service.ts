@@ -180,6 +180,25 @@ export class EndorsementService implements OnApplicationBootstrap {
    */
   @Cron(CronExpression.EVERY_DAY_AT_1AM)
   async renewServedEndorsements(): Promise<{ renewed: string[] }> {
+    return this.endorseServed({ warnIfUnendorsed: true });
+  }
+
+  /**
+   * Заверяет только что подключённые кооперативы, не дожидаясь ночного прохода.
+   *
+   * Новый кооператив публикует право заверения, как только на его узел введён
+   * ключ установки, — и до 01:00 следующих суток оставался с «Удостоверение не
+   * утверждено» у председателя (тестнет, 20.10.2026). Обход тот же: уже
+   * заверенные со сроком в запасе пропускаются без записи в цепь. Предупреждение
+   * об отсутствии своего заверения пишет только ночной проход, иначе узлы без
+   * него сыпали бы им каждые десять минут.
+   */
+  @Cron(CronExpression.EVERY_10_MINUTES)
+  async endorseNewlyServed(): Promise<{ renewed: string[] }> {
+    return this.endorseServed({ warnIfUnendorsed: false });
+  }
+
+  private async endorseServed(options: { warnIfUnendorsed: boolean }): Promise<{ renewed: string[] }> {
     const operator = config.coopname;
     const renewed: string[] = [];
 
@@ -188,10 +207,12 @@ export class EndorsementService implements OnApplicationBootstrap {
     // проваленной транзакции.
     const own = await this.blockchainPort.getEndorsement(operator);
     if (!own || this.secondsLeft(own) <= 0) {
-      this.logger.warn(
-        `Заверение оператора ${operator} отсутствует или истекло — обслуживаемым кооперативам заверения не продлеваются`,
-        'EndorsementService',
-      );
+      if (options.warnIfUnendorsed) {
+        this.logger.warn(
+          `Заверение оператора ${operator} отсутствует или истекло — обслуживаемым кооперативам заверения не продлеваются`,
+          'EndorsementService',
+        );
+      }
       return { renewed };
     }
 

@@ -1,4 +1,6 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { COOP_KEY_INSTALLED_EVENT, type CoopKeyInstalledEvent } from '~/domain/system/interfaces/coop-key-installed.event';
 import { SYSTEM_BLOCKCHAIN_PORT, SystemBlockchainPort } from '~/domain/system/interfaces/system-blockchain.port';
 import { SystemInfoDomainEntity } from '~/domain/system/entities/systeminfo-domain.entity';
 import config from '~/config/config';
@@ -55,7 +57,8 @@ export class SystemInteractor {
     private readonly wifInteractor: WifInteractor,
     @Inject(MONO_STATUS_REPOSITORY) private readonly monoStatusRepository: MonoStatusRepository,
     @Inject(USER_REPOSITORY) private readonly userRepository: UserRepository,
-    @Inject(PAYMENT_METHOD_DOMAIN_PORT) private readonly paymentMethodDomainPort: PaymentMethodDomainPort
+    @Inject(PAYMENT_METHOD_DOMAIN_PORT) private readonly paymentMethodDomainPort: PaymentMethodDomainPort,
+    private readonly events: EventEmitter2
   ) {}
 
   async startInstall(data: StartInstallInputDomainInterface): Promise<StartInstallResultDomainInterface> {
@@ -77,6 +80,9 @@ export class SystemInteractor {
       wif: data.wif,
       permission: 'active',
     });
+    // Ключ есть — подписывать от имени кооператива теперь можно (право заверения
+    // удостоверений публикует CertKeyService по этому событию).
+    this.events.emit(COOP_KEY_INSTALLED_EVENT, { coopname: config.coopname } satisfies CoopKeyInstalledEvent);
 
     // Если есть валидный код установки - возвращаем его
     if (existingMono?.install_code && existingMono.install_code_expires_at > new Date()) {

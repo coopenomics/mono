@@ -75,3 +75,24 @@ describe('CertKeyService.ensurePublished', () => {
     await expect(service.ensurePublished()).rejects.toThrow('duplicate transaction');
   });
 });
+
+// Тестнет, 20.10.2026: узел, поднятый провайдером до ввода ключа установки, при
+// старте публиковать право заверения было нечем, а после ввода ключа никто не звал.
+describe('CertKeyService.onCoopKeyInstalled', () => {
+  it('ключ кооператива сохранён при установке — право заверения публикуется сразу', async () => {
+    const { service, blockchainPort } = makeService({ onChain: null });
+    jest.spyOn(service, 'ensureAnchorPublished').mockResolvedValue({ published: false });
+
+    await service.onCoopKeyInstalled();
+
+    expect(blockchainPort.publishCertPermission).toHaveBeenCalledTimes(1);
+  });
+
+  it('публикация не удалась — установка не падает, причина в журнале', async () => {
+    const { service, logger, vault } = makeService({ onChain: null });
+    vault.getWif.mockRejectedValue(new Error('vault недоступен') as never);
+
+    await expect(service.onCoopKeyInstalled()).resolves.toBeUndefined();
+    expect(logger.warn).toHaveBeenCalled();
+  });
+});
