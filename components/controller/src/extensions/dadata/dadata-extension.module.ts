@@ -41,9 +41,11 @@ export const Schema = z.object({
   ),
   // Адрес сервиса скрыт из формы: его подменяет только внешний слой тестов,
   // направляя запросы на подставной узел стенда. Пусто — настоящий DaData.
+  // nullish, а не optional: форма настроек шлёт незаполненное поле как null, в том
+  // числе скрытое, и `optional` отвергал установку с ключом (тестнет, 20.10.2026).
   api_url: z
     .string()
-    .optional()
+    .nullish()
     .describe(describeConfigField({ label: t('dadata.config.apiUrlLabel'), visible: false })),
 });
 

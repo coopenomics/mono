@@ -59,7 +59,6 @@ import { defaultConfig as cardcoopDefaultConfig } from './cardcoop/cardcoop-exte
 import { defaultConfig as chairmanDefaultConfig } from './chairman/chairman-extension.module';
 import { defaultConfig as powerupDefaultConfig } from './powerup/powerup-extension.module';
 import { defaultConfig as qrpayDefaultConfig } from './qrpay/qrpay-extension.module';
-import { defaultConfig as dadataDefaultConfig } from './dadata/dadata-extension.module';
 import { defaultConfig as sberpollDefaultConfig } from './sberpoll/sberpoll-extension.module';
 import { defaultConfig as yookassaDefaultConfig } from './yookassa/yookassa-extension.module';
 
@@ -404,8 +403,9 @@ export const AppRegistry: INamedExtension = {
     image: 'https://dadata.ru/favicon.ico',
     class: DadataExtensionModule,
     extensionClass: DadataExtension,
-    // Без ключа расширению нечего делать: председатель включает его, вписав ключ.
-    defaults: { enabled: false, config: dadataDefaultConfig },
+    // Без ключа расширению нечего делать, поэтому `defaults` нет: председатель
+    // ставит его из каталога, вписав ключ. С `defaults` оно приезжало в каждый
+    // кооператив установленным и выключенным (тестнет, 20.10.2026).
     ports: dadataPorts,
     schema: DadataSchema,
     // Ключи DaData — платный доступ кооператива; наружу уходит только «задано».

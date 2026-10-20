@@ -44,5 +44,10 @@ describe('Доступность расширений по сети', () => {
       expect(isExtensionAvailable(AppRegistry.market.availability, true)).toBe(false);
       expect(isExtensionAvailable(AppRegistry.market.availability, false)).toBe(true);
     });
+
+    // 20.10.2026: DaData приезжала в каждый кооператив установленной и выключенной.
+    it('DaData не ставится по умолчанию — её ставит председатель из каталога с ключом', () => {
+      expect(AppRegistry.dadata.defaults).toBeUndefined();
+    });
   });
 });

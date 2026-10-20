@@ -70,6 +70,18 @@ const lookupOrg = async (inn: string, country = RUSSIA) =>
 const lookupIp = async (inn: string) =>
   (await gqlOkFrom<any>(uniqueIp(), null, LOOKUP_IP, { d: { country: RUSSIA, inn } })).lookupEntrepreneur
 
+// Форма настроек стола шлёт незаполненное скрытое поле как null (тестнет, 20.10.2026):
+// установка с ключом не должна падать на проверке настроек. Расширение здесь выключено,
+// поэтому коннектор не встаёт и стенду не мешает; общий набор ниже его включит сам.
+describe('настройки DaData из формы стола', () => {
+  it(caseName('reg.orglookup.side.11', 'скрытый адрес сервиса пришёл null — настройки принимаются'), async () => {
+    const saved = await gql<any>(await tokenOf(CHAIRMAN), UPDATE, {
+      d: { name: 'dadata', enabled: false, config: { api_key: STUB_KEY, secret_key: '', api_url: null } },
+    })
+    expect(saved.updateExtension).toMatchObject({ name: 'dadata', enabled: false })
+  })
+})
+
 describe('анкета организации и ИП по ИНН через DaData', () => {
   beforeAll(async () => {
     await stubReset()

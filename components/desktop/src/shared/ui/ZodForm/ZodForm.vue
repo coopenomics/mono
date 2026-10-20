@@ -314,8 +314,12 @@ import { t } from 'src/shared/i18n';
     } else if (property.type === 'string') {
       // Проверка на пароль
       if (property.description?.password) {
-        // В режиме установки показываем пароль как обычный текст для копирования
-        if (props.installMode) {
+        // Открытым текстом — только значение, которое форма сгенерировала сама и
+        // которое нужно скопировать (у него иконка копирования вместо глазика).
+        // Ключ, который человек вводит сам, скрыт точками с первого символа и
+        // раскрывается глазиком: раньше при установке он шёл открытым (ключи
+        // DaData на тестнете, 20.10.2026).
+        if (props.installMode && shouldShowCopyIcon(property)) {
           componentProps.type = 'text';
         } else {
           componentProps.type = passwordVisibility[propertyName] ? 'text' : 'password';
