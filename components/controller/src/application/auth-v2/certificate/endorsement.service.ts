@@ -312,7 +312,35 @@ export class EndorsementService implements OnApplicationBootstrap {
    */
   @Cron(CronExpression.EVERY_10_MINUTES)
   async endorseNewlyServed(): Promise<{ renewed: string[] }> {
+    await this.adoptUnserved();
     return this.endorseServed({ warnIfUnendorsed: false });
+  }
+
+  /**
+   * Провайдер платформы: берёт на обслуживание активные кооперативы без оператора.
+   *
+   * Резерв к {@link onCoopActivated}: событие активации могло прийти, пока узел
+   * лежал или выкатывался, или до выпуска, где назначение появилось (тестнет,
+   * 20.10.2026: кооператив активирован на выпуске без него). Повторно событие не
+   * придёт, и без прохода кооператив навсегда остался бы без заверения.
+   */
+  private async adoptUnserved(): Promise<void> {
+    if (config.coopname !== TRUST_ANCHOR_STEWARD) return;
+    let unserved: string[];
+    try {
+      unserved = await this.blockchainPort.getUnservedActiveCooperatives(config.coopname);
+    } catch (e) {
+      this.logger.warn(`Реестр кооперативов не прочитан: ${e instanceof Error ? e.message : String(e)}`, 'EndorsementService');
+      return;
+    }
+    for (const coopname of unserved) {
+      try {
+        await this.blockchainPort.assignOperator(coopname, config.coopname);
+        this.logger.log(`Кооператив ${coopname} взят на обслуживание: оператор ${config.coopname}`, 'EndorsementService');
+      } catch (e) {
+        this.logger.warn(`Оператор для ${coopname} не назначен: ${e instanceof Error ? e.message : String(e)}`, 'EndorsementService');
+      }
+    }
   }
 
   private async endorseServed(options: { warnIfUnendorsed: boolean }): Promise<{ renewed: string[] }> {

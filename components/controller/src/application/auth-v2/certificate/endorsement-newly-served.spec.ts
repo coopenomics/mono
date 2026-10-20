@@ -18,6 +18,7 @@ function makeService(opts: { operatorEndorsed: boolean; coopKey: string | null }
   const blockchainPort = {
     getCooperative: jest.fn(async (who: string) => cooperatives[who] ?? null),
     assignOperator: jest.fn(async () => undefined),
+    getUnservedActiveCooperatives: jest.fn(async () => [] as string[]),
     getEndorsement: jest.fn(async (who: string) =>
       who === config.coopname && opts.operatorEndorsed ? { cert_key: 'OPKEY', expires_at: future } : null,
     ),
@@ -155,5 +156,34 @@ describe('EndorsementService — активация кооператива на 
     await service.onCoopActivated({ data: { coopname: 'fresh', status: 'blocked' } });
 
     expect(blockchainPort.assignOperator).not.toHaveBeenCalled();
+  });
+});
+
+describe('EndorsementService — резервный проход берёт ничьих на обслуживание', () => {
+  let original: string;
+  beforeEach(() => {
+    original = config.coopname;
+  });
+  afterEach(() => {
+    (config as any).coopname = original;
+  });
+
+  it('провайдер назначает себя оператором активных кооперативов без оператора', async () => {
+    (config as any).coopname = 'voskhod';
+    const { service, blockchainPort } = makeService({ operatorEndorsed: true, coopKey: null });
+    blockchainPort.getUnservedActiveCooperatives.mockResolvedValue(['missed']);
+
+    await service.endorseNewlyServed();
+
+    expect(blockchainPort.assignOperator).toHaveBeenCalledWith('missed', 'voskhod');
+  });
+
+  it('узел не провайдер — реестр не обходит', async () => {
+    (config as any).coopname = 'partnercoop';
+    const { service, blockchainPort } = makeService({ operatorEndorsed: true, coopKey: null });
+
+    await service.endorseNewlyServed();
+
+    expect(blockchainPort.getUnservedActiveCooperatives).not.toHaveBeenCalled();
   });
 });

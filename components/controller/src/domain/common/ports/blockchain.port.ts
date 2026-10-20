@@ -152,6 +152,13 @@ export interface BlockchainPort {
    * «Удостоверение не утверждено».
    */
   assignOperator(coopname: string, operator: string): Promise<void>;
+
+  /**
+   * Активные кооперативы реестра без оператора (пустой `parent_username`), кроме
+   * самого провайдера. Из них провайдер добирает тех, чьё событие активации
+   * прошло мимо назначения оператора.
+   */
+  getUnservedActiveCooperatives(provider: string): Promise<string[]>;
   /**
    * Вправе ли `steward` распоряжаться аккаунтом `account` — то есть указан ли он в
    * его распорядительных правах как аккаунт (делегирование по имени, не по ключу).

@@ -666,6 +666,22 @@ export class BlockchainService implements BlockchainPort {
     });
   }
 
+  public async getUnservedActiveCooperatives(provider: string): Promise<string[]> {
+    const contract = RegistratorContract.contractName.production;
+    // Реестр кооперативов невелик — полный обход по первичному ключу проще и
+    // надёжнее, чем запрос индекса «по оператору» с пустым именем.
+    const rows = await this.query(contract, contract, RegistratorContract.Tables.Cooperatives.tableName);
+    return rows
+      .filter(
+        (row: any) =>
+          Number(row.is_cooperative) === 1 &&
+          String(row.status) === 'active' &&
+          !String(row.parent_username ?? '') &&
+          String(row.username) !== provider
+      )
+      .map((row: any) => String(row.username));
+  }
+
   public async getCooperative(coopname: string): Promise<any> {
     const cooperative = await this.getSingleRow(
       RegistratorContract.contractName.production,
