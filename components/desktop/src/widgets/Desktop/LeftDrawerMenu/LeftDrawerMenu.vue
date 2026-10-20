@@ -24,7 +24,7 @@
         :symbol='walletSymbol',
         :locked-balance='walletLocked',
         :balance-label='$t("desktop.leftDrawerMenu.walletBalanceLabel")',
-        :balance-route='{ name: "wallet", params: { coopname: info.coopname } }',
+        :balance-route='{ name: "wallet", params: { coopname: systemStore.info.coopname } }',
         :primary-action-label='$t("desktop.leftDrawerMenu.depositAction")',
         show-signout,
         :signout-label='$t("desktop.leftDrawerMenu.signOutLabel")',
@@ -77,7 +77,9 @@ const updateWatch = useUpdateWatch();
 const desktop = useDesktopStore();
 const session = useSessionStore();
 const systemStore = useSystemStore();
-const { info } = systemStore;
+// info читается из хранилища на месте, а не разовым деструктурированием: после
+// loadSystemInfo в хранилище новый объект, и меню видело старый — пункт
+// «Онбординг» не пропадал после завершения до перезагрузки (тестнет, 20.10.2026).
 const walletStore = useWalletStore();
 const actionsStore = useActionsStore();
 const { subItemsFor } = useMenuSubItemsReader();
@@ -100,9 +102,9 @@ const filterContext = computed(() => {
     isCoop,
     userRole: userRole.value,
     userAccount: acc,
-    coopname: info.coopname,
+    coopname: systemStore.info.coopname,
     // Онбординг завершает председатель — отметка в настройках кооператива.
-    isOnboardingHidden: !!info.settings?.onboarding_completed_at,
+    isOnboardingHidden: !!systemStore.info.settings?.onboarding_completed_at,
   };
 });
 
@@ -260,7 +262,7 @@ function onSelect(item: RailItem): void {
   }
   void router.push({
     name: route.name,
-    params: { coopname: info.coopname },
+    params: { coopname: systemStore.info.coopname },
   });
   desktop.closeLeftDrawerOnMobile();
 }
@@ -268,11 +270,11 @@ function onSelect(item: RailItem): void {
 // --- Шапка рейла (бренд) ---------------------------------------------------
 
 const coopShortName = computed<string>(
-  () => info.vars?.short_abbr || info.coopname || t('desktop.leftDrawerMenu.defaultCoopName'),
+  () => systemStore.info.vars?.short_abbr || systemStore.info.coopname || t('desktop.leftDrawerMenu.defaultCoopName'),
 );
 const coopMeta = computed<string | undefined>(() =>
-  info.vars?.name && info.vars.name !== coopShortName.value
-    ? info.vars.name
+  systemStore.info.vars?.name && systemStore.info.vars.name !== coopShortName.value
+    ? systemStore.info.vars.name
     : undefined,
 );
 
@@ -290,7 +292,7 @@ const walletReady = computed<boolean>(() => walletStore.program_wallets.length >
 const walletAvail = computed(() => splitAsset2Digits(shareWallet.value?.available));
 const walletBalance = computed<string>(() => walletAvail.value.amount);
 const walletSymbol = computed<string>(
-  () => walletAvail.value.symbol || info.symbols?.root_govern_symbol || 'RUB',
+  () => walletAvail.value.symbol || systemStore.info.symbols?.root_govern_symbol || 'RUB',
 );
 const walletLocked = computed<string | undefined>(() => {
   const split = splitAsset2Digits(shareWallet.value?.blocked);

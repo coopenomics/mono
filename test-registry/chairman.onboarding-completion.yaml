@@ -19,6 +19,7 @@ sources:
     - components/desktop/extensions/chairman/features/Onboarding/**
     - components/desktop/src/widgets/Desktop/LeftDrawerMenu/LeftDrawerMenu.vue
     - components/desktop/src/app/layouts/default.vue
+    - components/desktop/src/entities/Desktop/model/store.ts
 
 cases:
   - id: chair.onbfinish.happy.01
@@ -47,3 +48,25 @@ cases:
     test: components/api-tests/src/chairman/onboarding-completion.test.ts
     api: components/api-tests/src/chairman/onboarding-completion.test.ts
     status: written
+
+  # 20.10.2026, тестнет: после «Завершить онбординг» пункт меню оставался до
+  # перезагрузки (меню держало разово взятый info), а по пункту открывался второй
+  # экран «Онбординг завершён» с кнопкой «Скрыть онбординг».
+  - id: chair.onbfinish.side.02
+    level: ui
+    kind: side
+    scenario: председатель нажимает «Завершить онбординг» на последнем шаге
+    expect: >
+      пункт «Онбординг» сразу пропадает из меню без перезагрузки; стол уходит на
+      стартовую страницу. Страница онбординга после завершения не показывает
+      второго экрана — по прямой ссылке сразу уводит на стартовую страницу стола
+    test:
+    status: missing
+
+  - id: chair.onbfinish.happy.02
+    level: ui
+    kind: happy
+    scenario: председатель впервые входит на стол, онбординг не завершён
+    expect: стол открывается на странице онбординга, а не на «Запросах одобрений»
+    test:
+    status: missing

@@ -5,9 +5,11 @@ WindowLoader(
   :text="$t('chairman.onboardingStepsCard.loadingText')"
 )
 
-// Показываем поздравление если онбординг завершен
-OnboardingCompletionCelebration(
+// Онбординг завершён — страницу не показываем: уводим на стартовую страницу
+// стола (watch ниже). Второго экрана «завершён» с кнопкой «Скрыть» больше нет.
+WindowLoader(
   v-else-if="isOnboardingCompleted"
+  :text="$t('chairman.onboardingStepsCard.loadingText')"
 )
 
 // Показываем шаги если онбординг не завершен и данные загружены
@@ -121,7 +123,7 @@ OnboardingCompletionCelebration(
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { onMounted, ref, watch } from 'vue';
 import { SovietContract } from 'cooptypes';
 import { liveTable, useLiveReload } from 'src/shared/lib/realtime';
 import { ParticipantsImportDialog } from 'src/features/User/ImportParticipants/ui';
@@ -129,7 +131,8 @@ import { DocumentHtmlReader } from 'src/shared/ui/DocumentHtmlReader';
 import { WindowLoader } from 'src/shared/ui/Loader';
 import { BaseButton } from 'src/shared/ui/base/BaseButton';
 import { BaseDialog } from 'src/shared/ui/base/BaseDialog';
-import OnboardingCompletionCelebration from './OnboardingCompletionCelebration.vue';
+import { useRouter } from 'vue-router';
+import { useDesktopStore } from 'src/entities/Desktop/model';
 import { useOnboardingFlow } from '../model';
 import { t } from '../../../i18n';
 
@@ -149,6 +152,19 @@ const {
 } = useOnboardingFlow();
 
 const importDialog = ref(false);
+
+// Завершённый онбординг не открывается вовсе: кнопка «Завершить» уже ведёт на
+// стартовую страницу, а сюда можно попасть только прямой ссылкой. Раньше тут
+// стоял второй экран «Онбординг завершён» с кнопкой «Скрыть онбординг» (20.10.2026).
+const router = useRouter();
+const desktopStore = useDesktopStore();
+watch(
+  isOnboardingCompleted,
+  (completed) => {
+    if (completed) desktopStore.goToDefaultPage(router);
+  },
+  { immediate: true },
+);
 
 // Закрытие диалога повестки (крестик / клик по фону / Escape) сбрасывает
 // его состояние через closeAgendaDialog. Открытие идёт только через

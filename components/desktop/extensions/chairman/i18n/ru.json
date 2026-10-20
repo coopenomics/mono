@@ -147,15 +147,6 @@
       "importMembersTitle": "Импорт пайщиков",
       "proposalCreatedMessage": "Предложение создано и шаг отмечен."
     },
-    "onboardingCelebration": {
-      "decisionsSubtitle": "Все необходимые решения совета приняты",
-      "decisionsTitle": "Решения приняты",
-      "hideLabel": "Скрыть онбординг",
-      "readySubtitle": "Все системы настроены и функционируют",
-      "readyTitle": "Цифровой Кооператив готов к работе",
-      "subtitle": "Поздравляем! Процесс подключения цифрового кооператива успешно завершен.",
-      "title": "Онбординг завершен!"
-    },
     "onboardingExpire": {
       "countdownFormat": "{days}д {hours}ч {minutes}м",
       "expiredLabel": "срок истёк"
