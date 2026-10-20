@@ -2,7 +2,6 @@
 import { computed } from 'vue'
 import { TariffSelector, type ITariff } from '../Tariffs'
 import { useConnectionAgreementStore, CONNECTION_STEP } from 'src/entities/ConnectionAgreement'
-import { useSystemStore } from 'src/entities/System/model'
 import { useConnectionCatalog } from 'src/features/Provider/model'
 import StepFrame from '../ui/StepFrame.vue'
 
@@ -11,7 +10,6 @@ const props = defineProps<{
 }>()
 
 const connectionAgreement = useConnectionAgreementStore()
-const system = useSystemStore()
 
 const selectedTariff = computed({
   get: () => props.selectedTariff || connectionAgreement.selectedTariff,
@@ -38,8 +36,6 @@ const handleTariffSelected = (tariff: ITariff) => {
   selectedTariff.value = tariff
 }
 
-const handleBack = () => connectionAgreement.setCurrentStep(CONNECTION_STEP.union)
-
 const handleContinue = () => {
   if (canContinue.value) connectionAgreement.setCurrentStep(CONNECTION_STEP.profile)
 }
@@ -49,9 +45,8 @@ const handleContinue = () => {
 StepFrame(
   :title="$t('connectionAgreementStepper.introStep.stepTitle')"
   :lead="$t('connectionAgreementStepper.introStep.lead')"
-  :can-back="system.info.is_unioned"
+  :can-back="false"
   :next-disabled="!canContinue"
-  @back="handleBack"
   @next="handleContinue"
 )
   TariffSelector(

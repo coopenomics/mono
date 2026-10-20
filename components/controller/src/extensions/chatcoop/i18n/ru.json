@@ -60,11 +60,6 @@
     },
     "spaceTopic": {
       "private": "Частное пространство кооператива {name}"
-    },
-    "unionChat": {
-      "defaultUnionName": "СПО РУСЬ",
-      "roomTopic": "Связь с представителем {unionName}",
-      "welcomeMessage": "Добро пожаловать в комнату связи между представителем кооператива {coopName} и {unionName}."
     }
   },
   "errors": {

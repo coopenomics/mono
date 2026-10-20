@@ -7,11 +7,9 @@ import {
   CONNECTION_STEP,
   previousVisibleStep,
 } from 'src/entities/ConnectionAgreement'
-import { useSystemStore } from 'src/entities/System/model'
 import StepFrame from '../ui/StepFrame.vue'
 
 const connectionAgreement = useConnectionAgreementStore()
-const system = useSystemStore()
 
 const announce = ref<string>(connectionAgreement.formData.announce || '')
 const errorMsg = ref<string>('')
@@ -39,10 +37,8 @@ const handleContinue = () => {
 }
 
 // Назад ведёт на предыдущий ПОКАЗАННЫЙ шаг: какие из них видны, зависит от
-// членства в союзе и наличия выбора тарифа.
-const previousStep = computed(() =>
-  previousVisibleStep(connectionAgreement.currentStep, { isUnioned: !!system.info.is_unioned }),
-)
+// наличия выбора тарифа.
+const previousStep = computed(() => previousVisibleStep(connectionAgreement.currentStep))
 const canGoBack = computed(() => previousStep.value !== null)
 
 const handleBack = () => {

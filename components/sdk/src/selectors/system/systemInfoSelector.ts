@@ -90,8 +90,6 @@ export const rawSystemInfoSelector = {
   blockchain_account: rawBlockchainAccountSelector,
   system_status: true,
   is_providered: true,
-  is_unioned: true,
-  union_link: true,
   contacts: rawContactsSelector,
   vars: rawVarsSelector,
   symbols: rawSymbolsSelector,
@@ -100,6 +98,9 @@ export const rawSystemInfoSelector = {
   features: rawFeaturesSelector,
 }
 
-const _validate: MakeAllFieldsRequired<ValueTypes['SystemInfo']> = rawSystemInfoSelector
+// is_unioned и union_link устарели (требование членства в союзе снято 20.10.2026) и
+// остаются в схеме на один выпуск ради столов, загруженных до выкатки. Новый стол их
+// не запрашивает — иначе удалить поля следующим выпуском было бы так же небезопасно.
+const _validate: MakeAllFieldsRequired<Omit<ValueTypes['SystemInfo'], 'is_unioned' | 'union_link'>> = rawSystemInfoSelector
 
 export const systemInfoSelector = Selector('SystemInfo')(rawSystemInfoSelector)

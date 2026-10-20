@@ -4,9 +4,6 @@ import { BaseExtensionModule, ActiveUserStatusGuard, ExtensionDomainRepository, 
 import { ChatCoopApplicationService } from './application/services/chatcoop-application.service';
 import { MatrixApiService } from './application/services/matrix-api.service';
 import { MatrixUserManagementService } from './domain/services/matrix-user-management.service';
-import { UnionChatService } from './domain/services/union-chat.service';
-import { UnionChatKyselyRepository } from './infrastructure/repositories/union-chat.kysely-repository';
-import { UNION_CHAT_REPOSITORY } from './domain/repositories/union-chat.repository';
 import { ChatCoopResolver } from './application/resolvers/chatcoop.resolver';
 import { ChatCoopCalendarResolver } from './application/resolvers/chatcoop-calendar.resolver';
 import { ChatCoopCalendarFeedController } from './application/controllers/chatcoop-calendar-feed.controller';
@@ -561,17 +558,12 @@ export class ChatCoopExtension extends BaseExtensionModule {
 
     // Domain Services
     MatrixUserManagementService,
-    UnionChatService,
     TranscriptionManagementService,
 
     // Repositories — Matrix
     {
       provide: MATRIX_USER_REPOSITORY,
       useClass: MatrixUserKyselyRepository,
-    },
-    {
-      provide: UNION_CHAT_REPOSITORY,
-      useClass: UnionChatKyselyRepository,
     },
 
     // Repositories — Transcriptions

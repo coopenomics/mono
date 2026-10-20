@@ -17853,7 +17853,7 @@ walletEvents?: [{	input: ValueTypes["WalletEventsInput"] | Variable<any, string>
 	features?:ValueTypes["SystemFeatures"],
 	/** Доступен ли функционал провайдера для подписок и запуска ПО */
 	is_providered?:boolean | `@${string}`,
-	/** Требуется ли членство в союзе кооперативов для подключения к кооперативной экономике */
+	/** Устарело: всегда false */
 	is_unioned?:boolean | `@${string}`,
 	/** Настройки системы */
 	settings?:ValueTypes["Settings"],
@@ -17861,7 +17861,7 @@ walletEvents?: [{	input: ValueTypes["WalletEventsInput"] | Variable<any, string>
 	symbols?:ValueTypes["Symbols"],
 	/** Статус контроллера кооператива */
 	system_status?:boolean | `@${string}`,
-	/** Ссылка на анкету для получения членства в союзе кооперативов */
+	/** Устарело: всегда пустая строка */
 	union_link?:boolean | `@${string}`,
 	/** Переменные кооператива */
 	vars?:ValueTypes["Vars"],
@@ -34981,7 +34981,7 @@ walletEvents?: [{	input: ResolverInputTypes["WalletEventsInput"]},ResolverInputT
 	features?:ResolverInputTypes["SystemFeatures"],
 	/** Доступен ли функционал провайдера для подписок и запуска ПО */
 	is_providered?:boolean | `@${string}`,
-	/** Требуется ли членство в союзе кооперативов для подключения к кооперативной экономике */
+	/** Устарело: всегда false */
 	is_unioned?:boolean | `@${string}`,
 	/** Настройки системы */
 	settings?:ResolverInputTypes["Settings"],
@@ -34989,7 +34989,7 @@ walletEvents?: [{	input: ResolverInputTypes["WalletEventsInput"]},ResolverInputT
 	symbols?:ResolverInputTypes["Symbols"],
 	/** Статус контроллера кооператива */
 	system_status?:boolean | `@${string}`,
-	/** Ссылка на анкету для получения членства в союзе кооперативов */
+	/** Устарело: всегда пустая строка */
 	union_link?:boolean | `@${string}`,
 	/** Переменные кооператива */
 	vars?:ResolverInputTypes["Vars"],
@@ -52081,7 +52081,7 @@ export type ModelTypes = {
 	features: ModelTypes["SystemFeatures"],
 	/** Доступен ли функционал провайдера для подписок и запуска ПО */
 	is_providered: boolean,
-	/** Требуется ли членство в союзе кооперативов для подключения к кооперативной экономике */
+	/** Устарело: всегда false */
 	is_unioned: boolean,
 	/** Настройки системы */
 	settings: ModelTypes["Settings"],
@@ -52089,7 +52089,7 @@ export type ModelTypes = {
 	symbols: ModelTypes["Symbols"],
 	/** Статус контроллера кооператива */
 	system_status: ModelTypes["SystemStatus"],
-	/** Ссылка на анкету для получения членства в союзе кооперативов */
+	/** Устарело: всегда пустая строка */
 	union_link: string,
 	/** Переменные кооператива */
 	vars?: ModelTypes["Vars"] | undefined | null
@@ -70278,7 +70278,7 @@ export type GraphQLTypes = {
 	features: GraphQLTypes["SystemFeatures"],
 	/** Доступен ли функционал провайдера для подписок и запуска ПО */
 	is_providered: boolean,
-	/** Требуется ли членство в союзе кооперативов для подключения к кооперативной экономике */
+	/** Устарело: всегда false */
 	is_unioned: boolean,
 	/** Настройки системы */
 	settings: GraphQLTypes["Settings"],
@@ -70286,7 +70286,7 @@ export type GraphQLTypes = {
 	symbols: GraphQLTypes["Symbols"],
 	/** Статус контроллера кооператива */
 	system_status: GraphQLTypes["SystemStatus"],
-	/** Ссылка на анкету для получения членства в союзе кооперативов */
+	/** Устарело: всегда пустая строка */
 	union_link: string,
 	/** Переменные кооператива */
 	vars?: GraphQLTypes["Vars"] | undefined | null,

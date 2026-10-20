@@ -250,8 +250,6 @@ export class SystemInteractor {
       system_status,
       symbols,
       settings,
-      is_unioned: config.union.is_unioned,
-      union_link: config.union.link,
       board_members,
       features: {
         // Поиск по документам теперь на PG-реестре подписанных документов (C28-21) — доступен всегда.

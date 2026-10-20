@@ -493,7 +493,6 @@ BaseExtensionModule
 - **Ключевые сервисы**:
   - `MatrixApiService` — API Matrix-сервера (создание комнат, пользователей)
   - `MatrixUserManagementService` — управление пользователями в Matrix
-  - `UnionChatService` — комнаты связи союза кооперативов
   - `SecretaryAgentService` — бот-секретарь для транскрипции звонков
   - `WhisperSttService` — Speech-to-Text через OpenAI Whisper
   - `TranscriptionManagementService` — управление транскрипциями

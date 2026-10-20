@@ -7,7 +7,12 @@ title: Учётная запись «Чата кооператива» — ст�
 #
 # Заведено 24.09.2026 (C28-80). С 02.10.2026 (C28-85) сервер чата на стенде
 # внешнего слоя играет подставной узел: заведение записи, проверка имени и
-# привязка по почте и общий чат пайщика-кооператива с союзом проверяются снаружи.
+# привязка по почте проверяются снаружи.
+#
+# 20.10.2026: требование членства в союзе снято (флаги IS_UNIONED, UNION_LINK,
+# MATRIX_UNION_*). Комната связи кооператива с представителем союза больше не
+# заводится при создании учётной записи; таблица union_chats оставлена в базе
+# как история, код её не пишет. Мессенджер в мастере подключения не обязателен.
 
 sources:
   backend:
@@ -15,8 +20,6 @@ sources:
     - components/controller/src/extensions/chatcoop/application/services/chatcoop-application.service.ts
     - components/controller/src/extensions/chatcoop/domain/services/matrix-user-management.service.ts
     - components/controller/src/extensions/chatcoop/infrastructure/repositories/matrix-user.kysely-repository.ts
-    - components/controller/src/extensions/chatcoop/domain/services/union-chat.service.ts
-    - components/controller/src/extensions/chatcoop/infrastructure/repositories/union-chat.kysely-repository.ts
 
 cases:
   - id: chat.acc.happy.01
@@ -76,13 +79,14 @@ cases:
     test: components/api-tests/src/chatcoop/account.test.ts
     status: written
 
-  - id: chat.acc.side.04
+  - id: chat.acc.break.01
     level: backend
-    kind: side
-    scenario: кооператив-пайщик (организация) получает общий чат с союзом
-    expect: при первой учётной записи кооператива-пайщика заводится комната с представителем союза, повторно не создаётся
+    kind: break
+    scenario: кооператив-пайщик (организация) заводит учётную запись чата
+    expect: учётная запись заводится; комната связи с союзом не создаётся, представителя союза никуда не добавляют
     test: components/api-tests/src/chatcoop/account.test.ts
-    status: written
+    api: components/api-tests/src/chatcoop/account.test.ts
+    status: written   # прогон — внешний слой на полигоне
 
   # Права по таблице прав расширения (C28-87, кусок 3, 05.10.2026): операции
   # стоят под общим гардом каркаса вместо `@AuthRoles`, состав исполнителей прежний.

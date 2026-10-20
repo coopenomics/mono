@@ -17,11 +17,6 @@ div.row.q-pa-md
 
         //- Показываем степпер если идет процесс подключения
         ConnectionAgreementStepper(v-else-if="!isOnCompletionRoute")
-          template(#union-registration)
-            MatrixRegistration(
-              :hasAccount="hasMatrixAccount"
-              @accountCreated="handleMatrixAccountCreated"
-            )
 
         //- Router view для дочерних страниц (завершение установки) только на дочерних маршрутах
         router-view(v-if="isOnCompletionRoute")
@@ -59,13 +54,10 @@ import { ConnectionDashboard } from 'src/widgets/ConnectionDashboard';
 import { BaseButton, BaseCard, EmptyState } from 'src/shared/ui/base';
 import { WindowLoader } from 'src/shared/ui/Loader';
 import { Zeus } from '@coopenomics/sdk';
-import { MatrixRegistration } from '../../../../extensions/chatcoop/widgets/MatrixRegistration';
-import { useChatCoopChatStore } from '../../../../extensions/chatcoop/entities/ChatCoopChat/model';
 
 const router = useRouter();
 const system = useSystemStore();
 const connectionAgreement = useConnectionAgreementStore();
-const chatcoopStore = useChatCoopChatStore();
 
 // Лоадер состояния
 const isLoading = ref(true);
@@ -88,11 +80,6 @@ const isInstallationCompleted = computed(() => {
 // Проверка, находимся ли мы на маршруте завершения установки
 const isOnCompletionRoute = computed(() => {
   return router.currentRoute.value.name === 'installation-completed';
-});
-
-// Проверка наличия аккаунта в мессенджере
-const hasMatrixAccount = computed(() => {
-  return chatcoopStore.accountStatus?.hasAccount || false;
 });
 
 // Переменная для отслеживания предыдущего состояния завершения установки
@@ -142,12 +129,6 @@ const init = async () => {
     connectionAgreement.setInitialized(true);
   }
 
-  // Загружаем статус аккаунта в мессенджере
-  const accountStatus = await chatcoopStore.loadAccountStatus();
-  if (accountStatus) {
-    connectionAgreement.setHasMatrixAccount(accountStatus.hasAccount);
-  }
-
   // Подтягиваем on-chain запись кооператива — её наличие означает, что
   // соглашение о подключении уже подписано (regcoop проходит только после
   // signagree). Используем как маркёр прохождения шагов 0–4.
@@ -184,8 +165,6 @@ const init = async () => {
     } else {
       targetStep = CONNECTION_STEP.dns; // DNS-шаг: ждём делегирования или провайдер ещё не подхватил coop
     }
-  } else if (system.info.is_unioned) {
-    targetStep = CONNECTION_STEP.union; // нужна регистрация в мессенджере союза
   } else {
     targetStep = FIRST_ONBOARDING_STEP; // онбординг с первого показанного шага
   }
@@ -259,8 +238,4 @@ onUnmounted(() => {
     stopInstanceRefresh = null;
   }
 });
-
-const handleMatrixAccountCreated = () => {
-  connectionAgreement.setHasMatrixAccount(true);
-};
 </script>

@@ -2,7 +2,6 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { MatrixUserManagementService } from '../../domain/services/matrix-user-management.service';
-import { UnionChatService } from '../../domain/services/union-chat.service';
 import { MatrixApiService } from './matrix-api.service';
 import { MatrixAccountStatusResponseDTO } from '../dto/matrix-account-status.dto';
 import { ExtensionDomainRepository, EXTENSION_REPOSITORY, DomainError } from '@coopenomics/extension-kit';
@@ -118,7 +117,6 @@ export class ChatCoopApplicationService {
     @Inject(INTEGRATION_SETTINGS_PORT) private readonly integrations: IIntegrationSettingsPort,
     private readonly matrixUserManagementService: MatrixUserManagementService,
     private readonly matrixApiService: MatrixApiService,
-    private readonly unionChatService: UnionChatService,
     private readonly configService: ConfigService,
     @Inject(ACCOUNT_PORT) private readonly accountDataPort: IAccountPort,
     @Inject(COOPERATIVE_VARS_PORT) private readonly cooperativeVars: ICooperativeVarsPort,
@@ -164,14 +162,12 @@ export class ChatCoopApplicationService {
 
       try {
         const account = await this.accountDataPort.getAccount(coopUsername);
-        await this.unionChatService.ensureUnionChat(account, matrixUser.matrixUserId);
-
         // Добавляем пользователя в комнаты чаткооп, если он еще не добавлен
         await this.addUserToChatCoopRooms(matrixUser.matrixUserId, account);
         // Допуск к проекту могли подтвердить раньше, чем человек снова открыл чат — повторно синхронизируем комнаты проектов
         this.emitMatrixUserLinkedForCapitalProjectRooms(coopUsername);
       } catch (error) {
-        this.logger.warn(`Не удалось проверить/создать union-комнату или добавить пользователя в комнаты чаткооп: ${error}`);
+        this.logger.warn(`Не удалось добавить пользователя в комнаты чаткооп: ${error}`);
       }
 
       return {
@@ -200,8 +196,6 @@ export class ChatCoopApplicationService {
           await this.addUserToChatCoopRooms(synapseUser.user_id, account);
           // В чат-сервере уже был пользователь с этим email — привязали к пайщику; теперь можно добавить во все подходящие комнаты проектов
           this.emitMatrixUserLinkedForCapitalProjectRooms(coopUsername);
-
-          await this.unionChatService.ensureUnionChat(account, synapseUser.user_id);
 
           const matrixClientUrl = this.matrixSettings.client_url;
           return {
@@ -271,8 +265,6 @@ export class ChatCoopApplicationService {
       await this.addUserToChatCoopRooms(registerResponse.user_id, account);
       // Регистрация с нуля: общие комнаты готовы — проверяем проекты с уже одобренным участием этого пайщика
       this.emitMatrixUserLinkedForCapitalProjectRooms(coopUsername);
-
-      await this.unionChatService.ensureUnionChat(account, registerResponse.user_id);
 
       return true;
     } catch (error) {

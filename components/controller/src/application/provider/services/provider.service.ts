@@ -41,6 +41,21 @@ function toConnectionCatalog(data: any): ProviderConnectionCatalogDTO {
   };
 }
 
+/**
+ * Текст сбоя обращения к провайдеру вместе с причиной транспорта.
+ *
+ * fetch отвечает на любой сетевой сбой одним «fetch failed», а настоящая причина
+ * (тайм-аут соединения, отказ, обрыв, имя не найдено) лежит в `cause`. Без неё в
+ * журнале не отличить тайм-аут от отказа (тестнет, 20.10.2026: три запроса около
+ * 06:00 не дошли до провайдера, причину установить было не по чему).
+ */
+function describeProviderError(error: any): string {
+  const message = error?.message || String(error);
+  const cause = error?.cause;
+  const reason = cause ? cause.code || cause.message || String(cause) : '';
+  return reason ? `${message} (${reason})` : message;
+}
+
 @Injectable()
 export class ProviderService {
   private readonly logger = new Logger(ProviderService.name);
@@ -94,7 +109,7 @@ export class ProviderService {
       });
       return toConnectionCatalog(response.data ?? {});
     } catch (error: any) {
-      this.logger.error(`Каталог витрины провайдера недоступен: ${error?.message || error}`);
+      this.logger.error(`Каталог витрины провайдера недоступен: ${describeProviderError(error)}`);
       throw DomainError.badRequest('PROVIDER_CATALOG_UNAVAILABLE');
     }
   }
@@ -145,7 +160,7 @@ export class ProviderService {
             item.subscriptions = await this.getUserSubscriptions(coop.username);
           } catch (error: any) {
             // Провайдер недоступен или у кооператива нет подписок — не роняем весь реестр.
-            this.logger.warn(`Не удалось получить подписки провайдера для ${coop.username}: ${error.message}`);
+            this.logger.warn(`Не удалось получить подписки провайдера для ${coop.username}: ${describeProviderError(error)}`);
           }
         }
 
@@ -244,7 +259,7 @@ export class ProviderService {
 
       return result;
     } catch (error: any) {
-      this.logger.error(`Ошибка при получении подписок для ${username}: ${error.message}`);
+      this.logger.error(`Ошибка при получении подписок для ${username}: ${describeProviderError(error)}`);
       throw error;
     }
   }
@@ -352,7 +367,7 @@ export class ProviderService {
       // Провайдер уже возвращает обогащенные данные
       return new ProviderSubscriptionDTO(subscription);
     } catch (error: any) {
-      this.logger.error(`Ошибка при получении подписки ${id}: ${error.message}`);
+      this.logger.error(`Ошибка при получении подписки ${id}: ${describeProviderError(error)}`);
       throw error;
     }
   }
@@ -405,7 +420,7 @@ export class ProviderService {
       // Провайдер не знает этого кооператива: инстанса у него нет. Это ответ,
       // а не сбой — стол показывает подключение с начала, а не ошибку провайдера.
       if (error?.status === 404) return null;
-      this.logger.error(`Ошибка при получении инстанса для ${username}: ${error.message}`);
+      this.logger.error(`Ошибка при получении инстанса для ${username}: ${describeProviderError(error)}`);
       throw error;
     }
   }

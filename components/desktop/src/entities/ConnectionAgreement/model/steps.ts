@@ -6,9 +6,12 @@ import { isTariffChoiceAvailable } from './tariffs'
  * Раньше числа были расставлены по месту: страница восстанавливала шаг числом,
  * шаг союза вёл на «1», шаг домена возвращался на «текущий минус один». Стоило
  * убрать шаг из мастера, и каждое такое число нужно было искать заново.
+ *
+ * Индекс 0 занимал шаг членства в союзе (мессенджер). Шаг снят 20.10.2026 —
+ * подключение начинается с тарифа; номера остальных не сдвигаются, текущий шаг
+ * хранится между сессиями числом.
  */
 export const CONNECTION_STEP = {
-  union: 0,
   intro: 1,
   profile: 2,
   domain: 3,
@@ -30,17 +33,11 @@ export const LAST_CONNECTION_STEP: number = CONNECTION_STEP.installation
 /**
  * Предыдущий ПОКАЗАННЫЙ шаг мастера — или null, если текущий первый.
  *
- * Видимых шагов меньше, чем индексов: шаг союза показывается только его членам,
- * шаг тарифа — только когда есть из чего выбирать. Считать «текущий минус один»
- * поэтому нельзя: у кооператива из союза первым экраном онбординга идёт рассказ
- * о себе, а вернуться из него надо на союз, который лежит на два индекса назад.
+ * Видимых шагов меньше, чем индексов: шаг тарифа показывается, только когда
+ * есть из чего выбирать. Считать «текущий минус один» поэтому нельзя.
  */
-export function previousVisibleStep(
-  currentStep: number,
-  options: { isUnioned: boolean },
-): number | null {
+export function previousVisibleStep(currentStep: number): number | null {
   const visible: number[] = [
-    ...(options.isUnioned ? [CONNECTION_STEP.union] : []),
     ...(isTariffChoiceAvailable ? [CONNECTION_STEP.intro] : []),
     CONNECTION_STEP.profile,
     CONNECTION_STEP.domain,

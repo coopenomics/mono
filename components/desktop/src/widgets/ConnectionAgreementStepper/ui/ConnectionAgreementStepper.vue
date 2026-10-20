@@ -2,7 +2,6 @@
 import { computed, watch } from 'vue'
 import { VerticalStepper } from 'src/shared/ui/domain/VerticalStepper'
 import type { StepperStep } from 'src/shared/ui/domain/VerticalStepper'
-import UnionMembershipStep from '../Steps/UnionMembershipStep.vue'
 import IntroStep from '../Steps/IntroStep.vue'
 import CooperativeProfileStep from '../Steps/CooperativeProfileStep.vue'
 import DomainStep from '../Steps/DomainStep.vue'
@@ -16,11 +15,9 @@ import {
   CONNECTION_STEP,
   isTariffChoiceAvailable,
 } from 'src/entities/ConnectionAgreement'
-import { useSystemStore } from 'src/entities/System/model'
 import { t } from 'src/shared/i18n';
 
 const connectionAgreement = useConnectionAgreementStore()
-const system = useSystemStore()
 
 const currentStep = computed(() => connectionAgreement.currentStep)
 const selectedTariff = computed(() => connectionAgreement.selectedTariff)
@@ -34,7 +31,6 @@ const html = computed(() => document.value?.data?.html)
 // Подпись под шагом — в одну строку, о чём шаг: подробное объяснение живёт
 // в самой карточке шага.
 const ALL_STEPS: Array<StepperStep & { index: number }> = [
-  { key: 'union', index: CONNECTION_STEP.union, label: t('connectionAgreementStepper.stepper.steps.union.title'), description: t('connectionAgreementStepper.stepper.steps.union.hint') },
   { key: 'intro', index: CONNECTION_STEP.intro, label: t('connectionAgreementStepper.stepper.steps.tariff.title'), description: t('connectionAgreementStepper.stepper.steps.tariff.hint') },
   { key: 'profile', index: CONNECTION_STEP.profile, label: t('connectionAgreementStepper.stepper.steps.profile.title'), description: t('connectionAgreementStepper.stepper.steps.profile.hint') },
   { key: 'domain', index: CONNECTION_STEP.domain, label: t('connectionAgreementStepper.stepper.steps.domain.title'), description: t('connectionAgreementStepper.stepper.steps.domain.hint') },
@@ -50,7 +46,6 @@ const ALL_STEPS: Array<StepperStep & { index: number }> = [
 // сразу с домена.
 const visibleSteps = computed(() =>
   ALL_STEPS.filter((s) => {
-    if (s.key === 'union') return system.info.is_unioned
     if (s.key === 'intro') return isTariffChoiceAvailable
     return true
   }),
@@ -116,11 +111,8 @@ watch(
 
   .col-12.col-md-8.col-lg-9
     .connection-stepper__content(:key="activeKey")
-      UnionMembershipStep(v-if="activeKey === 'union'")
-        template(#registration)
-          slot(name="union-registration")
       IntroStep(
-        v-else-if="activeKey === 'intro'"
+        v-if="activeKey === 'intro'"
         :selected-tariff="selectedTariff"
       )
       CooperativeProfileStep(v-else-if="activeKey === 'profile'")

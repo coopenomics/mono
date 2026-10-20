@@ -98,7 +98,9 @@ describe('chatcoop: учётная запись чата', () => {
       expect((await stubRequests('/_synapse/admin/v1/threepid/email/users/*')).length).toBe(asked)
     }, 300_000)
 
-    it(caseName('chat.acc.side.04', 'пайщик-кооператив получает общий чат с союзом: комната создана один раз, в ней он и представитель союза'), async () => {
+    // 20.10.2026: требование членства в союзе снято, комната связи с союзом больше не
+    // заводится сама. Кооператив-пайщик получает обычную учётную запись чата.
+    it(caseName('chat.acc.break.01', 'пайщик-кооператив заводит учётную запись чата — комнаты с союзом не появляется'), async () => {
       // Пайщик-организация типа «кооператив», заявленный формой вступления.
       const username = randomAccount('chco')
       const { publicKey } = await freshKeyPair()
@@ -109,11 +111,10 @@ describe('chatcoop: учётная запись чата', () => {
       // Чат открыт пайщикам: кандидата принимает совет (в цепи — registrator::adduser).
       await admitCandidate(username)
       const matrixName = `bb${username}`
-      const room = `!union-${username}:stub:8090`
       await stubRoute('PUT', USERS_PATH, { status: 201, body: { name: `@${matrixName}:stub:8090` } })
-      await stubRoute('POST', '/_matrix/client/v3/createRoom', { body: { room_id: room } })
-      await stubRoute('POST', '/_synapse/admin/v1/join/*', { body: { room_id: room } })
-      await stubRoute('PUT', '/_matrix/client/v3/rooms/*', { body: { event_id: '$blackbox-event' } })
+      await stubRoute('POST', '/_matrix/client/v3/createRoom', { body: { room_id: `!room-${username}:stub:8090` } })
+      await stubRoute('POST', '/_synapse/admin/v1/join/*', { body: { room_id: `!room-${username}:stub:8090` } })
+      const roomsBefore = (await stubRequests('/_matrix/client/v3/createRoom')).length
 
       // Узел узнаёт о приёме из цепи — до этого чат отвечает «только для пайщиков».
       const opened = await waitFor(async () => {
@@ -121,19 +122,12 @@ describe('chatcoop: учётная запись чата', () => {
         return r === null ? true : (String(r.code) === 'KIT_INSUFFICIENT_RIGHTS' ? null : r)
       }, { timeoutMs: 60_000, intervalMs: 1_500, label: 'принятый пайщик-кооператив завёл учётную запись чата' })
       expect(opened, JSON.stringify(opened)).toBe(true)
+      expect((await gql<any>(coopToken, STATUS)).chatcoopGetAccountStatus.hasAccount).toBe(true)
 
-      const created = await stubRequests('/_matrix/client/v3/createRoom')
-      expect(created, 'комната с союзом создана').toHaveLength(1)
-      expect(String(created[0].body.name)).toContain(`Сосед ${username}`)
-      expect(created[0].body.preset).toBe('private_chat')
-      const joined = (await stubRequests('/_synapse/admin/v1/join/*')).map(r => r.body.user_id)
-      expect(joined).toEqual(expect.arrayContaining(['@union-person:stub:8090', `@${matrixName}:stub:8090`]))
-      expect((await stubRequests('/_matrix/client/v3/rooms/*')).some(r => r.method === 'PUT'), 'приветствие отправлено').toBe(true)
-
-      // Повторное открытие чата комнату второй раз не создаёт.
-      const status = (await gql<any>(coopToken, STATUS)).chatcoopGetAccountStatus
-      expect(status.hasAccount).toBe(true)
-      expect(await stubRequests('/_matrix/client/v3/createRoom')).toHaveLength(1)
+      const created = (await stubRequests('/_matrix/client/v3/createRoom')).slice(roomsBefore)
+      expect(created.filter(r => String(r.body?.name ?? '').includes(`Сосед ${username}`)), 'комнаты с именем кооператива нет').toHaveLength(0)
+      const joined = (await stubRequests('/_synapse/admin/v1/join/*')).map(r => String(r.body?.user_id ?? ''))
+      expect(joined.some(u => u.includes('union')), 'представителя союза никуда не добавляют').toBe(false)
     }, 300_000)
 
     it(caseName('chat.acc.side.03', 'сервер чата отказал в регистрации — запись не заводится, статус «нет записи»'), async () => {

@@ -132,8 +132,6 @@ EOF
   set_env "$ctl_env" MATRIX_CLIENT_URL "http://stub:8090/matrix-client"
   set_env "$ctl_env" MATRIX_ADMIN_USERNAME blackbox-admin
   set_env "$ctl_env" MATRIX_ADMIN_PASSWORD blackbox-admin-password
-  # Представитель союза в чате: с ним платформа сводит пайщика-кооператива.
-  set_env "$ctl_env" MATRIX_UNION_PERSON_ID "@union-person:stub:8090"
   # GitHub для опроса коммитов Благороста — тоже подставной узел.
   set_env "$ctl_env" GITHUB_TOKEN blackbox-github-token
   set_env "$ctl_env" GITHUB_API_URL "http://stub:8090/github"

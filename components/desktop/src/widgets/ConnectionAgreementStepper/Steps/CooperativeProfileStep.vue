@@ -7,14 +7,12 @@ import {
   CONNECTION_STEP,
   previousVisibleStep,
 } from 'src/entities/ConnectionAgreement'
-import { useSystemStore } from 'src/entities/System/model'
 import { useCooperativeCharter } from 'src/features/Union/UploadCooperativeCharter'
 import { useLiveReload } from 'src/shared/lib/realtime'
 import StepFrame from '../ui/StepFrame.vue'
 import { t } from 'src/shared/i18n';
 
 const connectionAgreement = useConnectionAgreementStore()
-const system = useSystemStore()
 const { charter, uploading, error: uploadError, load, upload } = useCooperativeCharter()
 
 const description = ref<string>(connectionAgreement.formData.description || '')
@@ -71,9 +69,7 @@ const handleContinue = () => {
 
 // Назад ведёт на предыдущий показанный шаг; если рассказ о кооперативе —
 // первый экран мастера, возвращаться некуда и кнопки нет.
-const previousStep = computed(() =>
-  previousVisibleStep(connectionAgreement.currentStep, { isUnioned: !!system.info.is_unioned }),
-)
+const previousStep = computed(() => previousVisibleStep(connectionAgreement.currentStep))
 const canGoBack = computed(() => previousStep.value !== null)
 const handleBack = () => {
   if (previousStep.value === null) return

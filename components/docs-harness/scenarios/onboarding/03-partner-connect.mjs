@@ -7,7 +7,6 @@
 // (`/:coopname/connect`). Видимость: roles=['user'] + isCoop=true + coopname=voskhod.
 //
 // Степпер (см. widgets/ConnectionAgreementStepper):
-//   0 UnionMembershipStep — только если is_unioned (Восход = is_unioned=true)
 //   1 IntroStep            — приветствие + выбор тарифа
 //   2 FormStep             — реквизиты подключаемого кооператива
 //   3 AgreementStep        — текст Соглашения о подключении (подписывается)
@@ -17,7 +16,7 @@
 //
 // Расширенный сценарий: проходим IntroStep → FormStep → AgreementStep
 // (подписание + on-chain registerCooperative) → DomainValidationStep.
-// IS_UNIONED=false в controller/.env, поэтому UnionMembership/Matrix пропущен.
+// Мастер подключения начинается с тарифа (шаг мессенджера снят 20.10.2026).
 
 import path from 'node:path';
 import fs from 'node:fs';
@@ -97,7 +96,7 @@ export default async ({ page, shot }) => {
   await shot(
     page,
     '02-connect-stepper',
-    'Страница «Подключение к Кооперативной Экономике». IS_UNIONED=false в dev-стенде, шаг UnionMembership пропущен — активный шаг сразу IntroStep (выбор тарифа). Доступен единственный «Тестовый» тариф 1500 RUB/мес, 150 AXON.',
+    'Страница «Подключение к Кооперативной Экономике». Мастер начинается с выбора тарифа (IntroStep). Доступен единственный «Тестовый» тариф 1500 RUB/мес, 150 AXON.',
   );
 
   // ─── IntroStep: выбор тарифа ────────────────────────────────────────────

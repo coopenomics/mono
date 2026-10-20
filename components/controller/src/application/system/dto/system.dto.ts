@@ -57,13 +57,21 @@ export class SystemInfoDTO {
   @Field(() => Boolean, { description: 'Доступен ли функционал провайдера для подписок и запуска ПО' })
   public readonly is_providered: boolean;
 
+  // Требование членства в союзе снято 20.10.2026: подключение начинается с тарифа,
+  // мессенджер не обязателен. Поля оставлены на один выпуск постоянными, чтобы стол,
+  // загруженный до выкатки, не падал на запросе системной информации; следующим
+  // выпуском — удалить.
   @Field(() => Boolean, {
-    description: 'Требуется ли членство в союзе кооперативов для подключения к кооперативной экономике',
+    description: 'Устарело: всегда false',
+    deprecationReason: 'Требование членства в союзе снято; поле будет удалено',
   })
-  public readonly is_unioned!: boolean;
+  public readonly is_unioned: boolean = false;
 
-  @Field(() => String, { description: 'Ссылка на анкету для получения членства в союзе кооперативов' })
-  public readonly union_link!: string;
+  @Field(() => String, {
+    description: 'Устарело: всегда пустая строка',
+    deprecationReason: 'Требование членства в союзе снято; поле будет удалено',
+  })
+  public readonly union_link: string = '';
 
   @Field(() => [BoardMemberDTO], { description: 'Члены совета кооператива', nullable: true })
   @ValidateNested()
@@ -88,8 +96,6 @@ export class SystemInfoDTO {
       active_participants_count: Number(entity.cooperator_account.active_participants_count),
     });
     this.is_providered = isProvidered;
-    this.is_unioned = entity.is_unioned;
-    this.union_link = entity.union_link;
     this.board_members = entity.board_members?.map((member) => new BoardMemberDTO(member));
     this.features = entity.features || { search: false };
   }
