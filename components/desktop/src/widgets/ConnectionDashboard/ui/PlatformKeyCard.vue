@@ -36,13 +36,21 @@ component(
           q-icon(name="open_in_new" size="16px").q-ml-xs
         BaseButton(variant="secondary" :size="buttonSize" type="button" @click="confirming = true")
           | {{ $t('connectionDashboard.platformKeyCard.reissue') }}
+  //- Первый выпуск — тоже через подтверждение: ключ показывается один раз, и
+  //- случайное нажатие оставляло его на экране, где его не ждали (21.10.2026).
+  template(v-else-if="confirming")
+    BaseBanner(variant="info").q-mb-md {{ $t('connectionDashboard.platformKeyCard.issueNote') }}
+    .platform-key__actions
+      BaseButton(variant="primary" :size="buttonSize" type="button" :loading="isIssuing" @click="issue")
+        | {{ $t('connectionDashboard.platformKeyCard.confirmIssue') }}
+      BaseButton(variant="ghost" :size="buttonSize" type="button" :disabled="isIssuing" @click="confirming = false")
+        | {{ $t('connectionDashboard.platformKeyCard.cancel') }}
   BaseButton(
     v-else
     variant="primary"
     :size="buttonSize"
     type="button"
-    :loading="isIssuing"
-    @click="issue"
+    @click="confirming = true"
   ) {{ $t('connectionDashboard.platformKeyCard.issue') }}
 </template>
 

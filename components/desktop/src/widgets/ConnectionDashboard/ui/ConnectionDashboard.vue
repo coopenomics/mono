@@ -13,10 +13,6 @@
   //- остальное на этой странице вторично.
   BillingDueCard
 
-  //- Ключ установки — выше домена: без него платформа кооператива не
-  //- пройдёт мастер установки, а экран завершения человек видит один раз.
-  PlatformKeyCard(:site-url="siteUrl")
-
   DomainCard
 
   .conn-dash__wallets.row.q-col-gutter-md
@@ -36,6 +32,11 @@
     :subtitle="$t('connectionDashboard.dashboard.paymentsSubtitle')"
     :limit="20"
   )
+
+  //- Ключ установки — в самом низу (21.10.2026): нужен один раз, при установке,
+  //- а первым и крупным мешал панели, которой пользуются каждый день.
+  //- Выпуск и перевыпуск — через подтверждение.
+  PlatformKeyCard(:site-url="siteUrl")
 </template>
 
 <script setup lang="ts">
