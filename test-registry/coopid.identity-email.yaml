@@ -1,0 +1,68 @@
+feature: coopid.identity-email
+title: Почта пайщика — одна в базе узла и в CoopID
+
+# 21.10.2026, тестнет: почту аккаунта сменили в реестре пайщиков. База узла
+# получила новую, CoopID (authentik) сохранил старую: почта ставилась только
+# при создании учётки. Новый аккаунт зарегистрировали со старой почтой — база
+# пропустила, она проверяла только себя. Вход по почте идёт в CoopID, и он
+# впустил в первую найденную учётку — чужой кабинет.
+#
+# Теперь смена почты идёт сначала в CoopID, потом в базу (отказ CoopID
+# останавливает смену); занятость почты проверяется и в CoopID; ensureUser
+# выравнивает почту существующей учётки и не заводит вторую с занятой почтой.
+sources:
+  backend:
+    - components/controller/src/infrastructure/auth-v2/authentik-admin.adapter.ts
+    - components/controller/src/domain/auth-v2/ports/authentik-admin.port.ts
+    - components/controller/src/domain/user/user-domain.module.ts
+
+cases:
+  - id: coopid.identity-email.happy.01
+    level: backend
+    kind: happy
+    scenario: пайщику меняют почту (реестр пайщиков, профиль)
+    expect: почта сначала меняется в CoopID, затем в базе узла
+    test: components/controller/tests/unit/user/user-domain-email-identity.test.ts
+    external: unreachable
+    external_reason: "запись в authentik стенда через API не наблюдается; проверяется модульно"
+    status: passing
+
+  - id: coopid.identity-email.break.01
+    level: backend
+    kind: break
+    scenario: новая почта занята другой учёткой CoopID (в базе узла её уже нет)
+    expect: смена отклонена USER_EMAIL_TAKEN; ни CoopID, ни база не тронуты
+    test: components/controller/tests/unit/user/user-domain-email-identity.test.ts
+    external: unreachable
+    external_reason: "состояние authentik стенда через API не задаётся"
+    status: passing
+
+  - id: coopid.identity-email.break.02
+    level: backend
+    kind: break
+    scenario: CoopID недоступен в момент смены почты
+    expect: смена отклонена, база узла не меняется — почты не расходятся
+    test: components/controller/tests/unit/user/user-domain-email-identity.test.ts
+    external: unreachable
+    external_reason: "отказ authentik на стенде не воспроизводится через API"
+    status: passing
+
+  - id: coopid.identity-email.break.03
+    level: backend
+    kind: break
+    scenario: регистрация нового аккаунта с почтой, которую держит другая учётка CoopID
+    expect: отказ USER_EMAIL_ALREADY_REGISTERED, пользователь не создаётся
+    test: components/controller/tests/unit/user/user-domain-email-identity.test.ts
+    external: unreachable
+    external_reason: "состояние authentik стенда через API не задаётся"
+    status: passing
+
+  - id: coopid.identity-email.side.01
+    level: backend
+    kind: side
+    scenario: ensureUser для существующей учётки с другой почтой; для новой — с почтой чужой учётки
+    expect: существующей почта выравнивается PATCH; новая с занятой почтой не создаётся
+    test: components/controller/src/infrastructure/auth-v2/authentik-admin.adapter.spec.ts
+    external: unreachable
+    external_reason: "admin-API authentik проверяется модульно"
+    status: passing

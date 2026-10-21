@@ -1,4 +1,5 @@
-import { Injectable, Inject, Logger } from '@nestjs/common';
+import { Injectable, Inject, Logger, Optional } from '@nestjs/common';
+import { AUTHENTIK_ADMIN_PORT, type IAuthentikAdminPort } from '~/domain/auth-v2/ports/authentik-admin.port';
 import httpStatus from 'http-status';
 import { UserRepository, USER_REPOSITORY } from '../repositories/user.repository';
 import type { UserDomainEntity } from '../entities/user-domain.entity';
@@ -28,7 +29,34 @@ import { normalizeUserEmail } from '~/utils/normalize-user-email';
 export class UserDomainService {
   private readonly logger = new Logger(UserDomainService.name);
 
-  constructor(@Inject(USER_REPOSITORY) private readonly userRepository: UserRepository) {}
+  constructor(
+    @Inject(USER_REPOSITORY) private readonly userRepository: UserRepository,
+    // CoopID (authentik) хранит почту для входа отдельно от базы узла. Без него
+    // (контур без CoopID, модульные тесты) почта ведётся только в базе узла.
+    @Optional() @Inject(AUTHENTIK_ADMIN_PORT) private readonly authentikAdmin?: IAuthentikAdminPort
+  ) {}
+
+  /**
+   * Почта занята: другим пайщиком в базе узла либо другой учёткой CoopID.
+   *
+   * Вход идёт по почте в CoopID, поэтому проверка базы узла недостаточна:
+   * 21.10.2026 на тестнете почту сменили в реестре, CoopID сохранил старую,
+   * новый аккаунт занял её — и вход им открыл чужой кабинет.
+   */
+  private async emailTakenAnywhere(email: string, excludeUsername?: string): Promise<boolean> {
+    if (await this.userRepository.isEmailTaken(email, excludeUsername)) return true;
+    if (!this.authentikAdmin) return false;
+    const holders = await this.authentikAdmin.findUsernamesByEmail(email);
+    return holders.some((username) => username !== excludeUsername);
+  }
+
+  /**
+   * Почта сменилась — сначала в CoopID, потом в базе узла. Отказ CoopID
+   * останавливает смену: разошедшиеся почты и дали вход в чужой кабинет.
+   */
+  private async syncEmailToIdentity(username: string, email: string): Promise<void> {
+    await this.authentikAdmin?.updateEmail(username, email);
+  }
 
   /**
    * Создает нового пользователя
@@ -40,9 +68,9 @@ export class UserDomainService {
 
     const normalizedEmail = normalizeUserEmail(userData.email);
 
-    // Проверяем, существует ли пользователь с таким email
+    // Проверяем, существует ли пользователь с таким email — в базе узла и в CoopID
     const existingUser = await this.userRepository.findByEmail(normalizedEmail);
-    if (existingUser) {
+    if (existingUser || (await this.emailTakenAnywhere(normalizedEmail, userData.username))) {
       throw DomainError.badRequest('USER_EMAIL_ALREADY_REGISTERED');
     }
 
@@ -168,10 +196,10 @@ export class UserDomainService {
       const nextEmail = normalizeUserEmail(updates.email);
       const currentEmailNorm = existingUser.email ? normalizeUserEmail(existingUser.email) : '';
       if (nextEmail !== currentEmailNorm) {
-        const emailTaken = await this.userRepository.isEmailTaken(nextEmail, username);
-        if (emailTaken) {
+        if (await this.emailTakenAnywhere(nextEmail, username)) {
           throw DomainError.badRequest('USER_EMAIL_TAKEN');
         }
+        await this.syncEmailToIdentity(username, nextEmail);
       }
     }
 
@@ -203,10 +231,10 @@ export class UserDomainService {
       const nextEmail = normalizeUserEmail(updates.email);
       const currentEmailNorm = existingUser.email ? normalizeUserEmail(existingUser.email) : '';
       if (nextEmail !== currentEmailNorm) {
-        const emailTaken = await this.userRepository.isEmailTaken(nextEmail, existingUser.username);
-        if (emailTaken) {
+        if (await this.emailTakenAnywhere(nextEmail, existingUser.username)) {
           throw DomainError.badRequest('USER_EMAIL_TAKEN');
         }
+        await this.syncEmailToIdentity(existingUser.username, nextEmail);
       }
     }
 
@@ -310,7 +338,7 @@ export class UserDomainService {
    * @returns true, если email занят
    */
   async isEmailTaken(email: string, excludeUsername?: string): Promise<boolean> {
-    return this.userRepository.isEmailTaken(email, excludeUsername);
+    return this.emailTakenAnywhere(email, excludeUsername);
   }
 
   /**

@@ -258,3 +258,15 @@ cases:
       занятой не считается
     test: null
     status: missing   # продакшен 17.10.2026; сценарий harness не заведён
+
+  # 21.10.2026: почта ведётся и в CoopID — подробности в coopid.identity-email.
+  - id: cid.ev.side.12
+    level: backend
+    kind: side
+    scenario: смена почты пайщика (UserDomainService) на контуре с CoopID
+    expect: занятость почты проверяется в базе узла и в CoopID; смена идёт сначала в CoopID
+    test: components/controller/tests/unit/user/user-domain-email-identity.test.ts
+    external: unreachable
+    external_reason: "запись в authentik стенда через API не наблюдается"
+    status: passing
+

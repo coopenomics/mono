@@ -120,6 +120,7 @@
   },
   "errors": {
     "AUTH_V2_AUTHENTIK_CREATE_USER_FAILED": "authentik create-user вернул {status}",
+    "AUTH_V2_AUTHENTIK_UPDATE_USER_FAILED": "authentik update-user вернул {status}",
     "AUTH_V2_AUTHENTIK_ME_FAILED": "authentik me-endpoint вернул {status}",
     "AUTH_V2_AUTHENTIK_SET_PASSWORD_FAILED": "authentik set_password вернул {status}",
     "AUTH_V2_AUTHENTIK_USERS_LIST_FAILED": "authentik users-list вернул {status}",
