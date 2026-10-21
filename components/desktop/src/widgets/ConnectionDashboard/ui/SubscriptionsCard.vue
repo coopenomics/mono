@@ -22,7 +22,9 @@
     )
       template(#cell-name="{ row }")
         .subs-card__name {{ row.subscription_type_name }}
-        .subs-card__desc(v-if="row.subscription_type_description") {{ row.subscription_type_description }}
+        //- Описание и правило объёма документооборота — одним абзацем
+        //- (21.10.2026): двумя абзацами строка читалась как два разных текста.
+        .subs-card__desc(v-if="rowDescription(row)") {{ rowDescription(row) }}
         //- Текущая конфигурация и смена тарифа стоят здесь, а не отдельной
         //- колонкой: действие относится к самой услуге, а по одной цене
         //- кооператив не понимал, на каком сервере работает.
@@ -30,9 +32,6 @@
         //- само по себе ничего не говорит, а сравнивать её с предложением о
         //- смене нужно здесь же.
         .subs-card__specs(v-if="isHosting(row) && planSpecs(row)") {{ planSpecs(row) }}
-        //- Документооборот: объём месяца приходит в бак по дате оплаты, сверх
-        //- объёма — кванты. Без правила списание «ещё 50 ₽» выглядит необъяснимым.
-        .subs-card__specs(v-if="packageRule(row)") {{ packageRule(row) }}
         .subs-card__plan(v-if="isHosting(row)")
           BaseChip(variant="neutral" size="sm") {{ planName(row) }}
           BaseButton(
@@ -44,6 +43,9 @@
 
       template(#cell-status="{ row }")
         BaseBadge(:variant="subscriptionStatusVariant(row.status)") {{ subscriptionStatusLabel(row.status) }}
+        //- Без даты кооператив не знал, когда кончится пробный период и начнутся
+        //- списания (21.10.2026).
+        .subs-card__period(v-if="trialEndsOn(row)") {{ $t('connectionDashboard.subscriptionsCard.trialUntil', { date: trialEndsOn(row) }) }}
 
       //- Три случая: услуга включена оператором (цена 0), документооборот
       //- (цена месяца плюс кванты сверх объёма) и обычная повременная.
@@ -159,6 +161,7 @@ import { client } from 'src/shared/api/client'
 import { FailAlert, SuccessAlert } from 'src/shared/api/alerts'
 import { AXON_PRICE_RUB, AXON_QUANT, QUANT_PRICE_RUB } from 'src/shared/lib/axon'
 import { t } from 'src/shared/i18n';
+import { formatDateToLocalTimezone } from 'src/shared/lib/utils/dates/timezone'
 
 const { subscriptions, isLoading, error, loadSubscriptions } = useProviderSubscriptions()
 const { catalog, load: loadCatalog, connectionTariffs, currentTariff } = useConnectionCatalog()
@@ -274,11 +277,28 @@ const packageRule = (sub: any): string => {
   const threshold = Number(sub?.package_low_water_axon ?? 0)
   if (!Number.isFinite(threshold) || threshold <= 0) return ''
   return t('connectionDashboard.subscriptionsCard.nextPackageHint', {
-    axon: formatPrice(Number(sub?.price ?? 0) / AXON_PRICE_RUB),
+    axon: formatAxonCount(Number(sub?.price ?? 0) / AXON_PRICE_RUB),
     price: formatPrice(QUANT_PRICE_RUB),
     quant: AXON_QUANT,
     threshold,
   })
+}
+
+/** Число AXON без валюты: formatPrice дописал бы «RUB» к количеству токенов. */
+const formatAxonCount = (value: number): string =>
+  new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 4 }).format(value)
+
+/** Описание услуги, у документооборота — вместе с правилом объёма. */
+const rowDescription = (sub: any): string =>
+  [sub?.subscription_type_description, packageRule(sub)].filter(Boolean).join(' ')
+
+/**
+ * Дата окончания пробного периода. У пробной подписки провайдер ставит
+ * expires_at = начало + trial_days, после неё начинаются списания.
+ */
+const trialEndsOn = (sub: any): string => {
+  if (!sub?.is_trial || !sub?.expires_at) return ''
+  return formatDateToLocalTimezone(sub.expires_at, 'DD.MM.YYYY')
 }
 
 /** Под ценой месяца — сколько квантов сверх тарифа ушло в этом месяце. */

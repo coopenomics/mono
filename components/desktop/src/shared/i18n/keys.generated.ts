@@ -2361,6 +2361,7 @@ export type MessageKey =
   | 'connectionDashboard.subscriptionsCard.tariffOptionLine'
   | 'connectionDashboard.subscriptionsCard.title'
   | 'connectionDashboard.subscriptionsCard.totalPerMonth'
+  | 'connectionDashboard.subscriptionsCard.trialUntil'
   | 'connectionDashboard.subscriptionsCard.upgradeDoneLine1'
   | 'connectionDashboard.subscriptionsCard.upgradeDoneLine2'
   | 'consts.marketplaceUnits.kgLabel'

@@ -14,7 +14,7 @@
     },
     "dashboard": {
       "paymentNoteLine1": "Подписки оплачиваются членскими взносами: пайщик переводит в них свой",
-      "paymentNoteLine2": "паевой взнос. AXON для документооборота оператор докупает сам — по факту",
+      "paymentNoteLine2": "паевой взнос. AXON для документооборота оператор приобретает сам — по факту",
       "paymentNoteLine3": "работы, но не меньше 5 AXON в день; напрямую паевым взносом он не",
       "paymentNoteLine4": "пополняется.",
       "paymentsSubtitle": "Оплаты подписок членскими взносами кооператива",
@@ -98,6 +98,7 @@
       "noUpgradeTitle": "Тарифов мощнее нет",
       "perMonth": "в месяц",
       "perMonthPrice": "{currencySymbol}/месяц",
+      "trialUntil": "до {date}",
       "perYear": "в год",
       "planName": "Тариф «{name}»",
       "planUnknown": "Тариф не определён",
