@@ -129,8 +129,9 @@ function openDetails(row: IShareTransfer): void {
   detailsOpen.value = true;
 }
 
-function formatDate(value: string | Date): string {
-  return formatDateToLocalTimezone(value, 'DD.MM.YYYY HH:mm');
+// Слот таблицы отдаёт строку без типа — дату приводим здесь.
+function formatDate(value: unknown): string {
+  return formatDateToLocalTimezone(value instanceof Date ? value : String(value ?? ''), 'DD.MM.YYYY HH:mm');
 }
 
 async function load(): Promise<void> {

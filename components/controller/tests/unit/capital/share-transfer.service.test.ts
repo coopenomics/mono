@@ -38,9 +38,10 @@ function make(o: { balance?: string | null; draft?: unknown; comparison?: { isVa
       return row;
     }),
     confirm: jest.fn(async (id: string, transactionId: string) => {
-      Object.assign(saved.find((r) => r._id === id), { transaction_id: transactionId, confirmed: true });
-      // Цепь списала сумму — следующий запрос остатка видит новый.
-      balanceState.current = '500.0000 RUB';
+      const row = saved.find((r) => r._id === id);
+      Object.assign(row, { transaction_id: transactionId, confirmed: true });
+      // Цепь списала ровно переведённую сумму — следующий запрос остатка видит новый.
+      balanceState.current = `${(Number.parseFloat(String(balanceState.current)) - Number.parseFloat(row.amount)).toFixed(4)} RUB`;
     }),
     release: jest.fn(async (id: string) => {
       const i = saved.findIndex((r) => r._id === id && !r.confirmed);
