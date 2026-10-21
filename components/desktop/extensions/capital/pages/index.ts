@@ -36,3 +36,4 @@ export * from './MeasuresPage';
 export * from './MyTasksPage';
 export * from './ArtifactsListPage';
 export * from './MyProjectsPage';
+export * from './ShareTransferPage';

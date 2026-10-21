@@ -3,6 +3,7 @@ import type { Kysely } from 'kysely';
 import { KYSELY, TableStore } from '@coopenomics/extension-kit';
 import { ContentRevisionRecord } from '../entities/content-revision.record';
 import { FavoriteRecord } from '../entities/favorite.record';
+import { ShareTransferRecord } from '../entities/share-transfer.record';
 import { GithubBranchCommitSyncStateRecord } from '../entities/github-branch-commit-sync-state.record';
 import { GitHubFileIndexRecord } from '../entities/github-file-index.record';
 import { IssueLinkedGitCommitShaRecord } from '../entities/issue-linked-git-commit-sha.record';
@@ -41,6 +42,7 @@ import { VoteRecord } from '../entities/vote.record';
  */
 export const CAPITAL_CONTENT_REVISION_STORE = Symbol('Capital.CAPITAL_CONTENT_REVISION_STORE');
 export const CAPITAL_FAVORITE_STORE = Symbol('Capital.CAPITAL_FAVORITE_STORE');
+export const CAPITAL_SHARE_TRANSFER_STORE = Symbol('Capital.CAPITAL_SHARE_TRANSFER_STORE');
 export const CAPITAL_GITHUB_BRANCH_COMMIT_SYNC_STATE_STORE = Symbol('Capital.CAPITAL_GITHUB_BRANCH_COMMIT_SYNC_STATE_STORE');
 export const CAPITAL_GITHUB_FILE_INDEX_STORE = Symbol('Capital.CAPITAL_GITHUB_FILE_INDEX_STORE');
 export const CAPITAL_ISSUE_LINKED_GIT_COMMIT_SHA_STORE = Symbol('Capital.CAPITAL_ISSUE_LINKED_GIT_COMMIT_SHA_STORE');
@@ -83,6 +85,18 @@ export const capitalStoreProviders: Provider[] = [
         table: 'capital_content_revisions',
         primaryKey: ['_id'],
         sameNames: true,
+      }),
+  },
+  {
+    provide: CAPITAL_SHARE_TRANSFER_STORE,
+    inject: [KYSELY],
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    useFactory: (db: Kysely<any>) =>
+      new TableStore<ShareTransferRecord>(db, {
+        table: 'capital_share_transfers',
+        primaryKey: ['_id'],
+        sameNames: true,
+        json: ['statement'],
       }),
   },
   {

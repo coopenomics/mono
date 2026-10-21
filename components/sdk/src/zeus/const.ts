@@ -333,6 +333,12 @@ export const AllTypesProps: Record<string,any> = {
 	CapitalSegmentFilter:{
 		status:"SegmentStatus"
 	},
+	CapitalShareTransferFilter:{
+
+	},
+	CapitalShareTransferStateInput:{
+
+	},
 	CapitalStartTimerInput:{
 
 	},
@@ -351,6 +357,9 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	CapitalTopupProgramExpenseInput:{
 
+	},
+	CapitalTransferShareInput:{
+		statement:"ShareTransferStatementSignedDocumentInput"
 	},
 	CardcoopAttestationState: "enum" as const,
 	CardcoopEntryInput:{
@@ -1792,7 +1801,7 @@ export const AllTypesProps: Record<string,any> = {
 			options:"GenerateDocumentOptionsInput"
 		},
 		capitalGenerateCapitalizationToMainWalletConvertStatement:{
-			data:"GenerateDocumentInput",
+			data:"ShareTransferStatementGenerateDocumentInput",
 			options:"GenerateDocumentOptionsInput"
 		},
 		capitalGenerateComponentGenerationContract:{
@@ -1948,6 +1957,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		capitalTopupProgramExpensePool:{
 			data:"CapitalTopupProgramExpenseInput"
+		},
+		capitalTransferShare:{
+			data:"CapitalTransferShareInput"
 		},
 		capitalUpdateComponentMetric:{
 			data:"UpdateComponentMetricInput"
@@ -3149,6 +3161,13 @@ export const AllTypesProps: Record<string,any> = {
 			filter:"CapitalSegmentFilter",
 			options:"PaginationInput"
 		},
+		capitalShareTransferState:{
+			data:"CapitalShareTransferStateInput"
+		},
+		capitalShareTransfers:{
+			filter:"CapitalShareTransferFilter",
+			options:"PaginationInput"
+		},
 		capitalState:{
 			data:"GetCapitalConfigInput"
 		},
@@ -3975,6 +3994,16 @@ export const AllTypesProps: Record<string,any> = {
 	SetWifInput:{
 
 	},
+	ShareTransferStatementGenerateDocumentInput:{
+
+	},
+	ShareTransferStatementSignedDocumentInput:{
+		meta:"ShareTransferStatementSignedMetaDocumentInput",
+		signatures:"SignatureInfoInput"
+	},
+	ShareTransferStatementSignedMetaDocumentInput:{
+
+	},
 	SignActAsChairmanInput:{
 		act:"SignedDigitalDocumentInput"
 	},
@@ -4195,6 +4224,10 @@ export const AllTypesProps: Record<string,any> = {
 }
 
 export const ReturnTypes: Record<string,any> = {
+	auth:{
+		roles:"String",
+		self:"String"
+	},
 	AccessGrant:{
 		action:"String",
 		resource:"String"
@@ -5419,6 +5452,19 @@ export const ReturnTypes: Record<string,any> = {
 		value:"String",
 		voting_bonus:"String",
 		voting_completed:"Boolean"
+	},
+	CapitalShareTransfer:{
+		_id:"String",
+		amount:"String",
+		created_at:"DateTime",
+		display_name:"String",
+		statement_hash:"String",
+		transaction_id:"String",
+		username:"String"
+	},
+	CapitalShareTransferState:{
+		blagorost_balance:"String",
+		username:"String"
 	},
 	CapitalState:{
 		_created_at:"DateTime",
@@ -8016,6 +8062,7 @@ export const ReturnTypes: Record<string,any> = {
 		capitalStopTimer:"CapitalTimeEntry",
 		capitalSubmitVote:"Transaction",
 		capitalTopupProgramExpensePool:"Transaction",
+		capitalTransferShare:"CapitalShareTransferState",
 		capitalUpdateComponentMetric:"CapitalComponentMetric",
 		capitalUpdateIssue:"CapitalIssue",
 		capitalUpdateMeasure:"CapitalMeasure",
@@ -8535,6 +8582,12 @@ export const ReturnTypes: Record<string,any> = {
 		totalCount:"Int",
 		totalPages:"Int"
 	},
+	PaginatedCapitalShareTransfersPaginationResult:{
+		currentPage:"Int",
+		items:"CapitalShareTransfer",
+		totalCount:"Int",
+		totalPages:"Int"
+	},
 	PaginatedCapitalStoriesPaginationResult:{
 		currentPage:"Int",
 		items:"CapitalStory",
@@ -9035,6 +9088,8 @@ export const ReturnTypes: Record<string,any> = {
 		capitalResults:"PaginatedCapitalResultsPaginationResult",
 		capitalSegment:"CapitalSegment",
 		capitalSegments:"PaginatedCapitalSegmentsPaginationResult",
+		capitalShareTransferState:"CapitalShareTransferState",
+		capitalShareTransfers:"PaginatedCapitalShareTransfersPaginationResult",
 		capitalState:"CapitalState",
 		capitalStories:"PaginatedCapitalStoriesPaginationResult",
 		capitalStory:"CapitalStory",

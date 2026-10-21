@@ -921,6 +921,13 @@ export interface IVotingData {
   voting_deadline: ITimePointSec
 }
 
+export interface IWthshare {
+  coopname: IName
+  username: IName
+  amount: IAsset
+  statement: IDocument2
+}
+
 // ─── Эпик 5 (шасси расходов): програмные расходы через шасси expense ──────
 
 /**

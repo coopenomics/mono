@@ -3,7 +3,7 @@ import { markRaw } from 'vue';
 import { agreementsBase } from 'src/shared/lib/consts/workspaces';
 import type { IWorkspaceConfig } from 'src/shared/lib/types/workspace';
 import type { DesktopWalletCard } from 'src/shared/lib/types/desktop-wallet';
-import { ContributorsPage, ProgramExpensesPage, ProgramExpensePage, AllocationsPage, MeasuresPage, MyTasksPage, MyProjectsPage, ArtifactsListPage } from './pages';
+import { ContributorsPage, ProgramExpensesPage, ProgramExpensePage, AllocationsPage, MeasuresPage, MyTasksPage, MyProjectsPage, ArtifactsListPage, ShareTransferPage } from './pages';
 import { CapitalBase } from './pages/CapitalBase';
 import { ProjectsListPage } from './pages/ProjectsListPage';
 import { ProjectPage } from './pages/ProjectPage';
@@ -461,6 +461,21 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                 children: [],
               },
             ],
+          },
+          {
+            // Закрытая страница: право выдаётся председателю и пайщикам с
+            // ролью «Трансляция паевого взноса», остальным пункта в меню нет.
+            path: 'share-transfer',
+            name: 'capital-share-transfer',
+            component: markRaw(ShareTransferPage),
+            meta: {
+              title: t('capital.install.shareTransferRouteTitle'),
+              icon: 'move_up',
+              requires: 'CapitalDesk:transfer',
+              agreements: agreementsBase,
+              requiresAuth: true,
+            },
+            children: [],
           },
           {
             path: 'activity',

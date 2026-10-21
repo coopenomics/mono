@@ -2,6 +2,7 @@ import { CapitalBaseline1790197276752 } from './migrations/database/179019727675
 import { CapitalAssetAmountsAsText1790966897678 } from './migrations/database/1790966897678-asset-amounts-as-text';
 import { CapitalMirrorCreatedAtOptional1790971648531 } from './migrations/database/1790971648531-mirror-created-at-optional';
 import { CapitalDropGithubCommCursors1791180505721 } from './migrations/database/1791180505721-drop-github-comm-cursors';
+import { CapitalShareTransfers1792580400000 } from './migrations/database/1792580400000-share-transfers';
 
 /**
  * Миграции таблиц расширения — в порядке появления (метка времени в имени
@@ -11,4 +12,5 @@ import { CapitalDropGithubCommCursors1791180505721 } from './migrations/database
  */
 export const capitalDatabaseMigrations = [CapitalBaseline1790197276752,
   CapitalAssetAmountsAsText1790966897678,
-  CapitalMirrorCreatedAtOptional1790971648531, CapitalDropGithubCommCursors1791180505721];
+  CapitalMirrorCreatedAtOptional1790971648531, CapitalDropGithubCommCursors1791180505721,
+  CapitalShareTransfers1792580400000];

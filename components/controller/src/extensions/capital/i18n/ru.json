@@ -1328,7 +1328,19 @@
       "investAmount": "сумме инвестиции",
       "programInvestAmount": "сумме программной инвестиции",
       "allocatedAmount": "сумме направляемых средств",
-      "returnedAmount": "сумме возвращаемых средств"
+      "returnedAmount": "сумме возвращаемых средств",
+      "shareTransferAmount": "сумме трансляции паевого взноса"
+    },
+    "roles": {
+      "shareTransfer": {
+        "title": "Трансляция паевого взноса",
+        "description": "Переводит свой паевой взнос с кошелька Благороста в Цифровой Кошелёк для возврата.",
+        "permissions": {
+          "page": "Страница «Трансляция в Цифровой Кошелёк» на столе Благороста",
+          "history": "Свой остаток паевого взноса в Благоросте и история своих трансляций",
+          "transfer": "Заявление о трансляции своего паевого взноса в Цифровой Кошелёк"
+        }
+      }
     }
   },
   "errors": {
@@ -1539,6 +1551,9 @@
     "CAPITAL_SEGMENT_SYNC_AFTER_CONTRIBUTOR_SIGN_FAILED": "Не удалось синхронизировать сегмент {projectHash}:{username} после подписания акта участником",
     "CAPITAL_SEGMENT_SYNC_AFTER_RESULT_FAILED": "Не удалось синхронизировать сегмент {projectHash}:{username} после внесения результата",
     "CAPITAL_SEGMENT_SYNC_AFTER_VOTE_CALCULATION_FAILED": "Не удалось синхронизировать сегмент {projectHash}:{username} после расчета голосов",
+    "CAPITAL_SHARE_TRANSFER_AMOUNT_INVALID": "Сумма трансляции указывается в валюте кооператива и больше нуля",
+    "CAPITAL_SHARE_TRANSFER_INSUFFICIENT": "Сумма превышает паевой взнос на кошельке Благороста",
+    "CAPITAL_SHARE_TRANSFER_STATEMENT_USED": "По этому заявлению трансляция уже проведена — сформируйте новое заявление",
     "CAPITAL_SOFT_DELETE_PERSONAL_ONLY": "Мягкое удаление без блокчейна доступно только для персональных проектов",
     "CAPITAL_SOURCE_PROJECT_NOT_FOUND": "Проект источника не найден",
     "CAPITAL_STATEMENT_META_MISSING": "Мета-данные заявления не найдены",

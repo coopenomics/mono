@@ -3,14 +3,31 @@ import {
   desktopGrantsOf,
   memberRolesOf,
   type AppRights,
+  type AssignableRole,
   type MemberRole,
   type RightsCaller,
   type RightsTable,
 } from '@coopenomics/extension-kit';
-import { DESKTOP_GRANTS_REGISTRY_PORT, type IDesktopGrantsRegistryPort } from '@coopenomics/innercoop';
+import {
+  DESKTOP_GRANTS_REGISTRY_PORT,
+  MonoAccountStatus,
+  ROLE_ASSIGNMENTS_PORT,
+  type IDesktopGrantsRegistryPort,
+  type IRoleAssignmentsPort,
+} from '@coopenomics/innercoop';
+import { t } from '../../i18n';
 
 /** Имя рабочего стола расширения: под ним выдаются права страниц. */
 export const CAPITAL_DESKTOP_NAME = 'capital';
+
+/**
+ * Роль «Трансляция паевого взноса»: пайщик сам переводит свой паевой взнос с
+ * кошелька Благороста в Цифровой Кошелёк, откуда оформляет возврат. Временный
+ * приоритетный путь для ограниченного круга пайщиков — роль назначает
+ * председатель (на странице управления доступом ядра или на самой странице
+ * трансляции), у председателя страница открыта сразу.
+ */
+export const CAPITAL_SHARE_TRANSFER_ROLE = 'blagorost-transfer';
 
 /**
  * Исполнители Благороста на уровне кооператива:
@@ -20,7 +37,7 @@ export const CAPITAL_DESKTOP_NAME = 'capital';
  * Роль в проекте (автор, мастер, участник) сюда не входит: её ведёт таблица
  * ролей проекта в сервисах Благороста, и эта таблица её не заменяет.
  */
-export type CapitalRole = 'account' | MemberRole;
+export type CapitalRole = 'account' | MemberRole | typeof CAPITAL_SHARE_TRANSFER_ROLE;
 
 /**
  * Таблица прав Благороста (C28-87): роль → право `Ресурс:действие`.
@@ -134,11 +151,40 @@ export const capitalRightsTable: RightsTable<CapitalRole, never> = {
         ProgramExpense: ['pay'],
         Result: ['sign-chairman'],
         Voting: ['conduct'],
-        CapitalDesk: ['manage'],
+        CapitalDesk: ['manage', 'transfer'],
+        // Председатель транслирует свой взнос, видит историю трансляций всех пайщиков и список допущенных.
+        ShareTransfer: ['generate:own', 'create:own', 'read'],
+      },
+    },
+  ],
+  [CAPITAL_SHARE_TRANSFER_ROLE]: [
+    {
+      when: [],
+      rights: {
+        CapitalDesk: ['transfer'],
+        ShareTransfer: ['generate:own', 'create:own', 'read:own'],
       },
     },
   ],
 };
+
+/** Роли Благороста, которые председатель назначает пайщикам. */
+export const capitalAssignableRoles: readonly AssignableRole<CapitalRole>[] = [
+  {
+    key: CAPITAL_SHARE_TRANSFER_ROLE,
+    title: t('capital.roles.shareTransfer.title'),
+    description: t('capital.roles.shareTransfer.description'),
+    permissions: [
+      { title: t('capital.roles.shareTransfer.permissions.page'), access: 'read', rights: ['CapitalDesk:transfer'] },
+      { title: t('capital.roles.shareTransfer.permissions.history'), access: 'read', rights: ['ShareTransfer:read:own'] },
+      {
+        title: t('capital.roles.shareTransfer.permissions.transfer'),
+        access: 'write',
+        rights: ['ShareTransfer:generate:own', 'ShareTransfer:create:own'],
+      },
+    ],
+  },
+];
 
 /**
  * Описание прав Благороста: по нему работают общий гард операций расширения
@@ -148,14 +194,26 @@ export const capitalRightsTable: RightsTable<CapitalRole, never> = {
 export class CapitalRights implements AppRights<CapitalRole, never>, OnModuleInit {
   readonly extensionName = CAPITAL_DESKTOP_NAME;
   readonly table = capitalRightsTable;
+  readonly assignableRoles = capitalAssignableRoles;
 
-  constructor(@Inject(DESKTOP_GRANTS_REGISTRY_PORT) private readonly grantsRegistry: IDesktopGrantsRegistryPort) {}
+  constructor(
+    @Inject(DESKTOP_GRANTS_REGISTRY_PORT) private readonly grantsRegistry: IDesktopGrantsRegistryPort,
+    @Inject(ROLE_ASSIGNMENTS_PORT) private readonly roleAssignments: IRoleAssignmentsPort
+  ) {}
 
   onModuleInit(): void {
+    this.roleAssignments.declare(CAPITAL_DESKTOP_NAME, this.assignableRoles);
     this.grantsRegistry.register(desktopGrantsOf(this));
   }
 
+  /**
+   * Роли кооператива и назначенные председателем. Назначение действует у
+   * принятого пайщика: выход из кооператива закрывает страницу без снятия роли.
+   */
   async roles(caller: RightsCaller): Promise<CapitalRole[]> {
-    return ['account', ...memberRolesOf(caller)];
+    const base: CapitalRole[] = ['account', ...memberRolesOf(caller)];
+    if (caller.status !== MonoAccountStatus.Active) return base;
+    const assigned = await this.roleAssignments.rolesOf(CAPITAL_DESKTOP_NAME, caller.username);
+    return [...base, ...(assigned as CapitalRole[])];
   }
 }

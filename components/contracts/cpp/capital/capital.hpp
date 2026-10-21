@@ -280,6 +280,11 @@ public:
 
     [[eosio::action]]
     void capdeclwthd3(name coopname, checksum256 withdraw_hash, std::string reason);
+
+    // Трансляция паевого взноса из Благороста в Цифровой Кошелёк по заявлению
+    // пайщика (1090): одним действием, без совета; доступ даёт кооператив.
+    [[eosio::action]]
+    void wthshare(eosio::name coopname, eosio::name username, eosio::asset amount, document2 statement);
     
     
     // Проектные имущественные взносы

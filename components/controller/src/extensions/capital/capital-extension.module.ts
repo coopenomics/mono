@@ -407,6 +407,8 @@ import { ProjectPermissionsService } from './application/services/project-permis
 import { IssueAccessPolicyService } from './domain/services/access-policy.service';
 import { PermissionsService } from './application/services/permissions.service';
 import { InvestsManagementService } from './application/services/invests-management.service';
+import { ShareTransferService } from './application/services/share-transfer.service';
+import { ShareTransferKyselyRepository } from './infrastructure/repositories/share-transfer.kysely-repository';
 import { DebtManagementService } from './application/services/debt-management.service';
 import { PropertyManagementService } from './application/services/property-management.service';
 import { VotingService } from './application/services/voting.service';
@@ -466,6 +468,7 @@ import { GenerationResolver } from './application/resolvers/generation.resolver'
 import { ContentRevisionResolver } from './application/resolvers/content-revision.resolver';
 import { ComponentMetricResolver } from './application/resolvers/component-metric.resolver';
 import { InvestsManagementResolver } from './application/resolvers/invests-management.resolver';
+import { ShareTransferResolver } from './application/resolvers/share-transfer.resolver';
 import { DebtManagementResolver } from './application/resolvers/debt-management.resolver';
 import { PropertyManagementResolver } from './application/resolvers/property-management.resolver';
 import { TimeTrackerResolver } from './application/resolvers/time-tracker.resolver';
@@ -776,6 +779,8 @@ export class CapitalExtension extends BaseExtensionModule {
           'capital_issue_linked_git_commits',
         ].map((table) => ({ code, table })),
         { code, table: 'capital_favorites', owner_field: 'username' },
+        // История трансляций паевого взноса в Цифровой Кошелёк — личная.
+        { code, table: 'capital_share_transfers', owner_field: 'username' },
       ]);
       this.logger.log('[CAPITAL.ONBOARDING] зарегистрировано 5 шагов онбординга capital и документы реестра шаблонов');
     } catch (error: unknown) {
@@ -876,6 +881,8 @@ IssueIdGenerationService,
     IssueAccessPolicyService,
     PermissionsService,
     InvestsManagementService,
+    ShareTransferService,
+    ShareTransferKyselyRepository,
     DebtManagementService,
     PropertyManagementService,
     VotingService,
@@ -938,6 +945,7 @@ IssueIdGenerationService,
     ContentRevisionResolver,
     ComponentMetricResolver,
     InvestsManagementResolver,
+    ShareTransferResolver,
     DebtManagementResolver,
     PropertyManagementResolver,
     VotingResolver,
