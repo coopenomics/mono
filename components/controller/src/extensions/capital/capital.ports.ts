@@ -33,9 +33,11 @@ import {
   PROJECT_COMMUNICATION_ARTIFACTS_PORT,
   REGISTRATION_DOCUMENT_PARAMETERS_REGISTRY_PORT,
   REGISTRATION_REGISTRY_PORT,
+  ROLE_ASSIGNMENTS_PORT,
   SECRET_CIPHER_PORT,
   USER_DATA_PORT,
   USER_DIRECTORY_PORT,
+  USER_WALLET_PORT,
   VAULT_PORT,
 } from '@coopenomics/innercoop';
 
@@ -57,6 +59,10 @@ export const capitalPorts = {
     DOCUMENT_DECLARATION_PORT,
     ONBOARDING_STEP_REGISTRY_PORT,
     PROGRAM_WALLET_PORT,
+    // Роль «Трансляция паевого взноса»: Благорост объявляет её кооперативу и узнаёт, кому её назначил председатель.
+    ROLE_ASSIGNMENTS_PORT,
+    // Остаток паевого взноса на кошельке Благороста — для страницы трансляции.
+    USER_WALLET_PORT,
     REGISTRATION_DOCUMENT_PARAMETERS_REGISTRY_PORT,
     REGISTRATION_REGISTRY_PORT,
     SECRET_CIPHER_PORT,

@@ -373,6 +373,23 @@ export class CapitalBlockchainAdapter implements CapitalBlockchainPort {
   }
 
   /**
+   * Трансляция паевого взноса из Благороста в Цифровой Кошелёк (wthshare)
+   */
+  async transferShare(data: CapitalContract.Actions.TransferShare.ITransferShare): Promise<InnerTransactResult> {
+    const wif = await this.vaultDomainService.getWif(data.coopname);
+    if (!wif) throw new DomainError('CAPITAL_PRIVATE_KEY_NOT_FOUND', {}, httpStatus.BAD_GATEWAY);
+
+    this.blockchainService.initialize(data.coopname, wif);
+
+    return await this.blockchainService.transact({
+      account: CapitalContract.contractName.production,
+      name: CapitalContract.Actions.TransferShare.actionName,
+      authorization: [{ actor: data.coopname, permission: 'active' }],
+      data,
+    });
+  }
+
+  /**
    * Создание долга в CAPITAL контракте
    */
   async createDebt(data: CapitalContract.Actions.CreateDebt.ICreateDebt): Promise<InnerTransactResult> {

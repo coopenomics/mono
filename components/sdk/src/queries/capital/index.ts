@@ -33,6 +33,8 @@ export * as GetProgramExpenses from './getProgramExpenses'
 export * as GetInvest from './getInvest'
 
 export * as GetInvests from './getInvests'
+export * as GetShareTransferState from './getShareTransferState'
+export * as GetShareTransfers from './getShareTransfers'
 
 export * as GetIssue from './getIssue'
 

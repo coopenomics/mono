@@ -1,0 +1,120 @@
+feature: capital.share-transfer
+title: Благорост — трансляция паевого взноса в Цифровой Кошелёк по заявлению
+
+# Временный приоритетный путь к возврату паевого взноса для ограниченного круга
+# пайщиков. Пайщик с ролью «Трансляция паевого взноса» (назначает председатель)
+# на закрытой странице стола Благороста видит свой остаток на кошельке
+# Благороста, называет сумму, подписывает заявление 1090 — и контракт
+# `capital::wthshare` переводит сумму на главный паевой (o.cap.wthcap,
+# процесс p.cap.wthcap) без совета. Возврат с Цифрового Кошелька — отдельным
+# штатным заявлением. История трансляций — в базе узла, заявления — в реестре
+# документов цепи.
+
+sources:
+  contract:
+    - components/contracts/cpp/capital/app/distribution_managment/distribution_in_program/transfer_share/**
+  backend:
+    - components/controller/src/extensions/capital/application/access/capital-rights.ts
+    - components/controller/src/extensions/capital/application/services/share-transfer.service.ts
+    - components/controller/src/extensions/capital/application/resolvers/share-transfer.resolver.ts
+    - components/controller/src/extensions/capital/application/dto/share_transfer/**
+    - components/controller/src/extensions/capital/infrastructure/repositories/share-transfer.kysely-repository.ts
+  ui:
+    - components/desktop/extensions/capital/pages/ShareTransferPage/**
+    - components/desktop/extensions/capital/widgets/ShareTransferAccess/**
+    - components/desktop/extensions/capital/features/ShareTransfer/**
+    - components/desktop/extensions/capital/entities/ShareTransfer/**
+
+cases:
+  - id: cap.share-transfer.happy.01
+    level: backend
+    kind: happy
+    scenario: Пайщик с ролью транслирует часть остатка по подписанному заявлению на ту же сумму.
+    expect: В цепь уходит сумма в виде цепи; после ответа цепи пишется строка истории с хэшем заявления и транзакцией; ответ — новый остаток.
+    test: components/controller/tests/unit/capital/share-transfer.service.test.ts
+    api: components/api-tests/src/capital/share-transfer.test.ts
+    status: written   # прогон — CI на полигоне ci/tests; путь пройден на стенде mono-ai-5 скриптом через API
+  - id: cap.share-transfer.happy.02
+    level: backend
+    kind: happy
+    scenario: Пайщик транслирует весь остаток целиком.
+    expect: Сумма равна остатку и принимается.
+    test: components/controller/tests/unit/capital/share-transfer.service.test.ts
+    api: components/api-tests/src/capital/share-transfer.test.ts
+    status: written   # прогон — CI на полигоне ci/tests
+  - id: cap.share-transfer.side.01
+    level: backend
+    kind: side
+    scenario: Сумма ноль, отрицательная, не число или в чужой валюте.
+    expect: Отказ CAPITAL_SHARE_TRANSFER_AMOUNT_INVALID до цепи, история не пишется.
+    test: components/controller/tests/unit/capital/share-transfer.service.test.ts
+    api: components/api-tests/src/capital/share-transfer.test.ts
+    status: written   # прогон — CI на полигоне ci/tests
+  - id: cap.share-transfer.side.02
+    level: backend
+    kind: side
+    scenario: Сумма больше остатка на кошельке Благороста либо кошелька нет.
+    expect: Отказ CAPITAL_SHARE_TRANSFER_INSUFFICIENT до цепи.
+    test: components/controller/tests/unit/capital/share-transfer.service.test.ts
+    api: components/api-tests/src/capital/share-transfer.test.ts
+    status: written   # прогон — CI на полигоне ci/tests
+  - id: cap.share-transfer.side.03
+    level: backend
+    kind: side
+    scenario: Заявление подписано на другую сумму либо сервер его не генерировал.
+    expect: Отказ сверки документа (KIT_DOCUMENT_FIELD_MISMATCH / KIT_GENERATED_DOCUMENT_NOT_FOUND) до цепи.
+    test: components/controller/tests/unit/capital/share-transfer.service.test.ts
+    api: components/api-tests/src/capital/share-transfer.test.ts
+    status: written   # прогон — CI на полигоне ci/tests
+  - id: cap.share-transfer.break.01
+    level: backend
+    kind: break
+    scenario: Цепь отказала (остаток изменился между проверкой и транзакцией).
+    expect: Отказ цепи доходит до пайщика, строка истории не пишется.
+    test: components/controller/tests/unit/capital/share-transfer.service.test.ts
+    external: unreachable
+    external_reason: отказ цепи после проверки остатка сервером — гонка двух транзакций одного пайщика, через API стенда её условие не создать
+    status: written   # прогон — CI на полигоне ci/tests
+  - id: cap.share-transfer.side.04
+    level: backend
+    kind: side
+    scenario: Права — пайщик без роли, член совета, кандидат, вышедший пайщик с неснятой ролью.
+    expect: Трансляция и история закрыты (KIT_INSUFFICIENT_RIGHTS), страницы на столе нет.
+    test: components/controller/tests/unit/capital/capital-rights.test.ts
+    api: components/api-tests/src/capital/share-transfer.test.ts
+    status: written   # прогон — CI на полигоне ci/tests
+  - id: cap.share-transfer.side.05
+    level: backend
+    kind: side
+    scenario: Пайщик с ролью действует за другого — транслирует, смотрит остаток или историю чужого.
+    expect: Отказ KIT_RIGHT_SCOPE_OWN; председатель видит историю всех, но транслирует только своё.
+    test: components/controller/tests/unit/capital/capital-rights.test.ts
+    api: components/api-tests/src/capital/share-transfer.test.ts
+    status: written   # прогон — CI на полигоне ci/tests
+  - id: cap.share-transfer.side.06
+    level: backend
+    kind: side
+    scenario: Перечень полномочий роли совпадает с правами таблицы.
+    expect: Председатель на странице доступа читает ровно те права, что даёт роль.
+    test: components/controller/tests/unit/access-roles/role-permissions.test.ts
+    api: components/api-tests/src/platform/access-roles.test.ts
+    status: written   # прогон — CI на полигоне ci/tests
+  - id: cap.share-transfer.side.07
+    level: backend
+    kind: side
+    scenario: Председатель снял роль, пока у пайщика открыта страница и подписано заявление.
+    expect: Трансляция отклоняется (KIT_INSUFFICIENT_RIGHTS), остаток в Благоросте не меняется.
+    test: components/api-tests/src/capital/share-transfer.test.ts
+    status: written   # прогон — внешний слой на полигоне
+  - id: cap.share-transfer.contract.01
+    level: contract
+    kind: side
+    scenario: Контракт сам сверяет остаток, подпись пайщика и членство, фиксирует начисления программы до списания; пайщик, импортированный до настройки программы, транслирует без фиксации.
+    expect: Отказы с кодами CAPITAL_SHARE_*; o.cap.wthcap под хэшем заявления; заявление в реестре документов.
+    status: missing   # сценарий стандарта p.cap.wthcap не заведён; путь пройден на стенде mono-ai-5
+  - id: cap.share-transfer.ui.01
+    level: ui
+    kind: happy
+    scenario: Пайщик с ролью открывает страницу, видит остаток, транслирует сумму, строка появляется в истории.
+    expect: Пункт меню есть только у председателя и держателей роли; поле суммы не пускает больше остатка.
+    status: missing   # сценарий harness не написан; на стенде mono-ai-5 Благорост не установлен

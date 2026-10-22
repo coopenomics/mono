@@ -119,3 +119,4 @@
 #include "app/distribution_managment/distribution_in_program/withdraw_from_program/capauthwthd3.cpp"
 #include "app/distribution_managment/distribution_in_program/withdraw_from_program/capdeclwthd3.cpp"
 #include "app/distribution_managment/distribution_in_program/withdraw_from_program/createwthd3.cpp"
+#include "app/distribution_managment/distribution_in_program/transfer_share/wthshare.cpp"

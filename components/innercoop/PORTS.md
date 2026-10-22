@@ -58,7 +58,7 @@
 | `PROVIDER_TARIFF_PORT` | `IProviderTariffPort` (1)<br><sub>core-ports/provider-tariff.port.ts</sub> | `ProviderTariffInnercoopAdapter` | powerup* | Тариф кооператива у провайдера подключения: объём документооборота и суточный расход D (@ant 17.10.2026, «Оплата документооборота: бак AXON, объём тарифа и кванты»). |
 | `REALTIME_CHANNEL_PORT` | `IRealtimeChannelPort` (2)<br><sub>core-ports/realtime.port.ts</sub> | `RealtimeChannelInnercoopAdapter` | — | Шина событий реального времени — то, из чего кормятся подписки клиента. |
 | `REGISTRATION_REGISTRY_PORT` | `IRegistrationRegistryPort` (6)<br><sub>core-ports/registration.port.ts</sub> | `AgreementRegistryService` | capital, edubridge*, marketplace* | Оферты и программы участия, которые расширение предлагает вступающему пайщику. |
-| `ROLE_ASSIGNMENTS_PORT` | `IRoleAssignmentsPort` (4)<br><sub>core-ports/role-assignments.port.ts</sub> | `RoleAssignmentsRegistry` | edubridge, expenses, reports | Назначаемые роли приложений. |
+| `ROLE_ASSIGNMENTS_PORT` | `IRoleAssignmentsPort` (4)<br><sub>core-ports/role-assignments.port.ts</sub> | `RoleAssignmentsRegistry` | capital, edubridge, expenses, reports | Назначаемые роли приложений. |
 | `SECRET_CIPHER_PORT` | `ISecretCipherPort` (2)<br><sub>core-ports/secret-cipher.port.ts</sub> | `SecretCipherInnercoopAdapter` | capital, chatcoop, edubridge, soviet-robot | Шифрование секретов расширения. |
 | `USER_AVATAR_PORT` | `IUserAvatarPort` (2)<br><sub>core-ports/user-avatar.port.ts</sub> | `UserAvatarService` | edubridge | Фотография пайщика — одна на аккаунт, хранится ядром. |
 | `USER_CERTIFICATE_PORT` | `IUserCertificatePort` (1)<br><sub>core-ports/user-certificate.port.ts</sub> | `UserCertificateInnercoopAdapter` | edubridge, marketplace | Сертификат пайщика — как его подписывать в документах и показывать в интерфейсе. |
@@ -68,7 +68,7 @@
 | `VERIFICATION_PORT` | `IVerificationPort` (2)<br><sub>core-ports/verification.port.ts</sub> | `VerificationInnercoopAdapter` | marketplace | Верификация личности пайщика — уровни подтверждения, которыми ядро отвечает на вопрос расширения «можно ли этому пайщику доверить действие». |
 | `WALLET_WITHDRAW_PORT` | `IWalletWithdrawPort` (1)<br><sub>core-ports/wallet-withdraw.port.ts</sub> | `WalletWithdrawInnercoopAdapter` | edubridge | Заявка на возврат паевого взноса деньгами — та же, что пайщик подаёт из «Цифрового Кошелька»: подписанное заявление (док. |
 | `PROGRAM_WALLET_PORT` | `IProgramWalletPort` (2)<br><sub>core-ports/wallet.port.ts</sub> | `ProgramWalletInnercoopAdapter` | capital, reports | Кошельки пайщика. |
-| `USER_WALLET_PORT` | `IProgramWalletPort` (2)<br><sub>core-ports/wallet.port.ts</sub> | `UserWalletInnercoopAdapter` | edubridge, marketplace | Кошельки пайщика. |
+| `USER_WALLET_PORT` | `IProgramWalletPort` (2)<br><sub>core-ports/wallet.port.ts</sub> | `UserWalletInnercoopAdapter` | capital, edubridge, marketplace | Кошельки пайщика. |
 
 ## Межрасширенческие порты
 

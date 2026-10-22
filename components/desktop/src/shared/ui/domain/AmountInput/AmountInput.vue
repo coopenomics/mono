@@ -209,7 +209,10 @@ function applyMax(): void {
   font-size: var(--p-fs-body-sm, 13px);
   line-height: var(--p-lh-body-sm, 1.5);
   color: var(--p-ink-2);
-  margin-top: calc(-1 * var(--p-2, 8px));
+  /* Под полем зарезервировано место подсказки (reserve-hint-space). Баланс
+     раньше подтягивался в него отрицательным отступом и наезжал на текст
+     ошибки суммы — теперь стоит ниже с собственным отступом. */
+  margin-top: var(--p-1, 4px);
 }
 .amount-input__balance-value {
   color: var(--p-ink);

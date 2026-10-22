@@ -2315,23 +2315,17 @@ export type ValueTypes = {
 	represented_by?:ValueTypes["RepresentedBy"],
 	/** Краткое название организации */
 	short_name?:boolean | `@${string}`,
-	/** Доверенные аккаунты; пусто, если состав участка недоступен запрашивающему
-
-Требуемые роли: chairman, member.  */
+	/** Доверенные аккаунты; пусто, если состав участка недоступен запрашивающему */
 	trusted?:ValueTypes["Individual"],
 	/** Сертификаты доверенных лиц участка (ФИО) */
 	trusted_certificates?:ValueTypes["IndividualCertificate"],
-	/** Председатель кооперативного участка; пусто, если состав участка недоступен запрашивающему
-
-Требуемые роли: chairman, member.  */
+	/** Председатель кооперативного участка; пусто, если состав участка недоступен запрашивающему */
 	trustee?:ValueTypes["Individual"],
 	/** Сертификат председателя кооперативного участка (ФИО) */
 	trustee_certificate?:ValueTypes["IndividualCertificate"],
 	/** Тип организации */
 	type?:boolean | `@${string}`,
-	/** Пайщики в белом списке приватного участка (ФИО); пусто, если участок не свой
-
-Требуемые роли: chairman, member.  */
+	/** Пайщики в белом списке приватного участка (ФИО); пусто, если участок не свой */
 	whitelist_certificates?:ValueTypes["IndividualCertificate"],
 		__typename?: boolean | `@${string}`,
 	['...on Branch']?: Omit<ValueTypes["Branch"], "...on Branch">
@@ -3476,9 +3470,7 @@ export type ValueTypes = {
 	block_num?:boolean | `@${string}`,
 	/** Статус из блокчейна */
 	blockchain_status?:boolean | `@${string}`,
-	/** Контракт участника
-
-Требуемые роли: chairman, member.  */
+	/** Контракт участника */
 	contract?:ValueTypes["DocumentAggregate"],
 	/** Вклад как автор */
 	contributed_as_author?:boolean | `@${string}`,
@@ -3649,13 +3641,9 @@ export type ValueTypes = {
 	_updated_at?:boolean | `@${string}`,
 	/** Сумма долга */
 	amount?:boolean | `@${string}`,
-	/** Одобренное заявление
-
-Требуемые роли: chairman, member.  */
+	/** Одобренное заявление */
 	approved_statement?:ValueTypes["DocumentAggregate"],
-	/** Протокол решения совета
-
-Требуемые роли: chairman, member.  */
+	/** Протокол решения совета */
 	authorization?:ValueTypes["DocumentAggregate"],
 	/** Номер блока последнего обновления */
 	block_num?:boolean | `@${string}`,
@@ -3675,9 +3663,7 @@ export type ValueTypes = {
 	project_hash?:boolean | `@${string}`,
 	/** Дата погашения */
 	repaid_at?:boolean | `@${string}`,
-	/** Заявление на получение ссуды
-
-Требуемые роли: chairman, member.  */
+	/** Заявление на получение ссуды */
 	statement?:ValueTypes["DocumentAggregate"],
 	/** Статус долга */
 	status?:boolean | `@${string}`,
@@ -3696,13 +3682,9 @@ export type ValueTypes = {
 	_updated_at?:boolean | `@${string}`,
 	/** Сумма расхода */
 	amount?:boolean | `@${string}`,
-	/** Одобренная записка
-
-Требуемые роли: chairman, member.  */
+	/** Одобренная записка */
 	approved_statement?:ValueTypes["DocumentAggregate"],
-	/** Авторизация расхода
-
-Требуемые роли: chairman, member.  */
+	/** Авторизация расхода */
 	authorization?:ValueTypes["DocumentAggregate"],
 	/** Номер блока последнего обновления */
 	block_num?:boolean | `@${string}`,
@@ -3714,9 +3696,7 @@ export type ValueTypes = {
 	description?:boolean | `@${string}`,
 	/** Хеш расхода */
 	expense_hash?:boolean | `@${string}`,
-	/** Служебная записка о расходе
-
-Требуемые роли: chairman, member.  */
+	/** Служебная записка о расходе */
 	expense_statement?:ValueTypes["DocumentAggregate"],
 	/** ID фонда */
 	fund_id?:boolean | `@${string}`,
@@ -5049,6 +5029,43 @@ export type ValueTypes = {
 	/** Фильтр по имени пользователя */
 	username?: string | undefined | null | Variable<any, string>
 };
+	/** Трансляция паевого взноса из Благороста в Цифровой Кошелёк */
+["CapitalShareTransfer"]: AliasType<{
+	/** Идентификатор записи */
+	_id?:boolean | `@${string}`,
+	/** Сумма трансляции, с валютой */
+	amount?:boolean | `@${string}`,
+	/** Дата трансляции */
+	created_at?:boolean | `@${string}`,
+	/** ФИО пайщика или название организации */
+	display_name?:boolean | `@${string}`,
+	/** Хэш заявления о трансляции в реестре документов */
+	statement_hash?:boolean | `@${string}`,
+	/** Транзакция цепи */
+	transaction_id?:boolean | `@${string}`,
+	/** Пайщик */
+	username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on CapitalShareTransfer']?: Omit<ValueTypes["CapitalShareTransfer"], "...on CapitalShareTransfer">
+}>;
+	/** Отбор истории трансляций паевого взноса */
+["CapitalShareTransferFilter"]: {
+	/** Пайщик. Не указан — история всех пайщиков кооператива (только председателю) */
+	username?: string | undefined | null | Variable<any, string>
+};
+	/** Паевой взнос пайщика в Благоросте, доступный для трансляции */
+["CapitalShareTransferState"]: AliasType<{
+	/** Остаток паевого взноса на кошельке Благороста, с валютой */
+	blagorost_balance?:boolean | `@${string}`,
+	/** Пайщик */
+	username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on CapitalShareTransferState']?: Omit<ValueTypes["CapitalShareTransferState"], "...on CapitalShareTransferState">
+}>;
+	["CapitalShareTransferStateInput"]: {
+	/** Пайщик, чей остаток показать */
+	username: string | Variable<any, string>
+};
 	/** Старт таймера на одной задаче */
 ["CapitalStartTimerInput"]: {
 	/** Имя кооператива */
@@ -5289,6 +5306,16 @@ export type ValueTypes = {
 	amount: string | Variable<any, string>,
 	/** Имя кооператива. */
 	coopname: string | Variable<any, string>
+};
+	["CapitalTransferShareInput"]: {
+	/** Сумма трансляции, с валютой — та же, что в заявлении */
+	amount: string | Variable<any, string>,
+	/** Имя аккаунта кооператива */
+	coopname: string | Variable<any, string>,
+	/** Подписанное заявление о трансляции паевого взноса в Цифровой Кошелёк */
+	statement: ValueTypes["ShareTransferStatementSignedDocumentInput"] | Variable<any, string>,
+	/** Пайщик, чей паевой взнос транслируется */
+	username: string | Variable<any, string>
 };
 	/** Голос в системе CAPITAL */
 ["CapitalVote"]: AliasType<{
@@ -13813,7 +13840,7 @@ capitalGenerateCapitalizationMoneyInvestStatement?: [{	data: ValueTypes["Generat
 capitalGenerateCapitalizationPropertyInvestAct?: [{	data: ValueTypes["GenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 capitalGenerateCapitalizationPropertyInvestDecision?: [{	data: ValueTypes["GenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 capitalGenerateCapitalizationPropertyInvestStatement?: [{	data: ValueTypes["GenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
-capitalGenerateCapitalizationToMainWalletConvertStatement?: [{	data: ValueTypes["GenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
+capitalGenerateCapitalizationToMainWalletConvertStatement?: [{	data: ValueTypes["ShareTransferStatementGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 capitalGenerateComponentGenerationContract?: [{	data: ValueTypes["ComponentGenerationContractGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 capitalGenerateExpenseDecision?: [{	data: ValueTypes["GenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 capitalGenerateExpenseStatement?: [{	data: ValueTypes["GenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
@@ -13860,6 +13887,7 @@ capitalStopProject?: [{	data: ValueTypes["StopProjectInput"] | Variable<any, str
 capitalStopTimer?: [{	data: ValueTypes["CapitalStopTimerInput"] | Variable<any, string>},ValueTypes["CapitalTimeEntry"]],
 capitalSubmitVote?: [{	data: ValueTypes["SubmitVoteInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 capitalTopupProgramExpensePool?: [{	data: ValueTypes["CapitalTopupProgramExpenseInput"] | Variable<any, string>},ValueTypes["Transaction"]],
+capitalTransferShare?: [{	data: ValueTypes["CapitalTransferShareInput"] | Variable<any, string>},ValueTypes["CapitalShareTransferState"]],
 capitalUpdateComponentMetric?: [{	data: ValueTypes["UpdateComponentMetricInput"] | Variable<any, string>},ValueTypes["CapitalComponentMetric"]],
 capitalUpdateIssue?: [{	data: ValueTypes["UpdateIssueInput"] | Variable<any, string>},ValueTypes["CapitalIssue"]],
 capitalUpdateMeasure?: [{	data: ValueTypes["UpdateMeasureInput"] | Variable<any, string>},ValueTypes["CapitalMeasure"]],
@@ -14665,6 +14693,18 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 	totalPages?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on PaginatedCapitalSegmentsPaginationResult']?: Omit<ValueTypes["PaginatedCapitalSegmentsPaginationResult"], "...on PaginatedCapitalSegmentsPaginationResult">
+}>;
+	["PaginatedCapitalShareTransfersPaginationResult"]: AliasType<{
+	/** Текущая страница */
+	currentPage?:boolean | `@${string}`,
+	/** Элементы текущей страницы */
+	items?:ValueTypes["CapitalShareTransfer"],
+	/** Общее количество элементов */
+	totalCount?:boolean | `@${string}`,
+	/** Общее количество страниц */
+	totalPages?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on PaginatedCapitalShareTransfersPaginationResult']?: Omit<ValueTypes["PaginatedCapitalShareTransfersPaginationResult"], "...on PaginatedCapitalShareTransfersPaginationResult">
 }>;
 	["PaginatedCapitalStoriesPaginationResult"]: AliasType<{
 	/** Текущая страница */
@@ -16035,6 +16075,8 @@ capitalResult?: [{	data: ValueTypes["GetResultInput"] | Variable<any, string>},V
 capitalResults?: [{	filter?: ValueTypes["ResultFilter"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedCapitalResultsPaginationResult"]],
 capitalSegment?: [{	filter?: ValueTypes["CapitalSegmentFilter"] | undefined | null | Variable<any, string>},ValueTypes["CapitalSegment"]],
 capitalSegments?: [{	filter?: ValueTypes["CapitalSegmentFilter"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedCapitalSegmentsPaginationResult"]],
+capitalShareTransferState?: [{	data: ValueTypes["CapitalShareTransferStateInput"] | Variable<any, string>},ValueTypes["CapitalShareTransferState"]],
+capitalShareTransfers?: [{	filter?: ValueTypes["CapitalShareTransferFilter"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedCapitalShareTransfersPaginationResult"]],
 capitalState?: [{	data: ValueTypes["GetCapitalConfigInput"] | Variable<any, string>},ValueTypes["CapitalState"]],
 capitalStories?: [{	filter?: ValueTypes["CapitalStoryFilter"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedCapitalStoriesPaginationResult"]],
 capitalStory?: [{	data: ValueTypes["GetCapitalStoryByHashInput"] | Variable<any, string>},ValueTypes["CapitalStory"]],
@@ -17607,6 +17649,70 @@ verificationReviews?: [{	data?: ValueTypes["VerificationReviewsInput"] | undefin
 		__typename?: boolean | `@${string}`,
 	['...on Settings']?: Omit<ValueTypes["Settings"], "...on Settings">
 }>;
+	["ShareTransferStatementGenerateDocumentInput"]: {
+	/** Сумма трансляции паевого взноса, с валютой */
+	amount: string | Variable<any, string>,
+	/** Номер блока, на котором был создан документ */
+	block_num?: number | undefined | null | Variable<any, string>,
+	/** Название кооператива, связанное с документом */
+	coopname: string | Variable<any, string>,
+	/** Дата и время создания документа */
+	created_at?: string | undefined | null | Variable<any, string>,
+	/** Имя генератора, использованного для создания документа */
+	generator?: string | undefined | null | Variable<any, string>,
+	/** Язык документа */
+	lang?: string | undefined | null | Variable<any, string>,
+	/** Ссылки, связанные с документом */
+	links?: Array<string> | undefined | null | Variable<any, string>,
+	/** Часовой пояс, в котором был создан документ */
+	timezone?: string | undefined | null | Variable<any, string>,
+	/** Название документа */
+	title?: string | undefined | null | Variable<any, string>,
+	/** Имя пользователя, создавшего документ */
+	username: string | Variable<any, string>,
+	/** Версия генератора, использованного для создания документа */
+	version?: string | undefined | null | Variable<any, string>
+};
+	["ShareTransferStatementSignedDocumentInput"]: {
+	/** Хэш содержимого документа */
+	doc_hash: string | Variable<any, string>,
+	/** Общий хэш (doc_hash + meta_hash) */
+	hash: string | Variable<any, string>,
+	/** Метаинформация заявления о трансляции паевого взноса в Цифровой Кошелёк */
+	meta: ValueTypes["ShareTransferStatementSignedMetaDocumentInput"] | Variable<any, string>,
+	/** Хэш мета-данных */
+	meta_hash: string | Variable<any, string>,
+	/** Вектор подписей */
+	signatures: Array<ValueTypes["SignatureInfoInput"]> | Variable<any, string>,
+	/** Версия стандарта документа */
+	version: string | Variable<any, string>
+};
+	["ShareTransferStatementSignedMetaDocumentInput"]: {
+	/** Сумма трансляции паевого взноса, с валютой */
+	amount: string | Variable<any, string>,
+	/** Номер блока, на котором был создан документ */
+	block_num: number | Variable<any, string>,
+	/** Название кооператива, связанное с документом */
+	coopname: string | Variable<any, string>,
+	/** Дата и время создания документа */
+	created_at: string | Variable<any, string>,
+	/** Имя генератора, использованного для создания документа */
+	generator: string | Variable<any, string>,
+	/** Язык документа */
+	lang: string | Variable<any, string>,
+	/** Ссылки, связанные с документом */
+	links: Array<string> | Variable<any, string>,
+	/** ID документа в реестре */
+	registry_id: number | Variable<any, string>,
+	/** Часовой пояс, в котором был создан документ */
+	timezone: string | Variable<any, string>,
+	/** Название документа */
+	title: string | Variable<any, string>,
+	/** Имя пользователя, создавшего документ */
+	username: string | Variable<any, string>,
+	/** Версия генератора, использованного для создания документа */
+	version: string | Variable<any, string>
+};
 	["SignActAsChairmanInput"]: {
 	/** Акт о вкладе результатов */
 	act: ValueTypes["SignedDigitalDocumentInput"] | Variable<any, string>,
@@ -19905,23 +20011,17 @@ export type ResolverInputTypes = {
 	represented_by?:ResolverInputTypes["RepresentedBy"],
 	/** Краткое название организации */
 	short_name?:boolean | `@${string}`,
-	/** Доверенные аккаунты; пусто, если состав участка недоступен запрашивающему
-
-Требуемые роли: chairman, member.  */
+	/** Доверенные аккаунты; пусто, если состав участка недоступен запрашивающему */
 	trusted?:ResolverInputTypes["Individual"],
 	/** Сертификаты доверенных лиц участка (ФИО) */
 	trusted_certificates?:ResolverInputTypes["IndividualCertificate"],
-	/** Председатель кооперативного участка; пусто, если состав участка недоступен запрашивающему
-
-Требуемые роли: chairman, member.  */
+	/** Председатель кооперативного участка; пусто, если состав участка недоступен запрашивающему */
 	trustee?:ResolverInputTypes["Individual"],
 	/** Сертификат председателя кооперативного участка (ФИО) */
 	trustee_certificate?:ResolverInputTypes["IndividualCertificate"],
 	/** Тип организации */
 	type?:boolean | `@${string}`,
-	/** Пайщики в белом списке приватного участка (ФИО); пусто, если участок не свой
-
-Требуемые роли: chairman, member.  */
+	/** Пайщики в белом списке приватного участка (ФИО); пусто, если участок не свой */
 	whitelist_certificates?:ResolverInputTypes["IndividualCertificate"],
 		__typename?: boolean | `@${string}`
 }>;
@@ -21045,9 +21145,7 @@ export type ResolverInputTypes = {
 	block_num?:boolean | `@${string}`,
 	/** Статус из блокчейна */
 	blockchain_status?:boolean | `@${string}`,
-	/** Контракт участника
-
-Требуемые роли: chairman, member.  */
+	/** Контракт участника */
 	contract?:ResolverInputTypes["DocumentAggregate"],
 	/** Вклад как автор */
 	contributed_as_author?:boolean | `@${string}`,
@@ -21215,13 +21313,9 @@ export type ResolverInputTypes = {
 	_updated_at?:boolean | `@${string}`,
 	/** Сумма долга */
 	amount?:boolean | `@${string}`,
-	/** Одобренное заявление
-
-Требуемые роли: chairman, member.  */
+	/** Одобренное заявление */
 	approved_statement?:ResolverInputTypes["DocumentAggregate"],
-	/** Протокол решения совета
-
-Требуемые роли: chairman, member.  */
+	/** Протокол решения совета */
 	authorization?:ResolverInputTypes["DocumentAggregate"],
 	/** Номер блока последнего обновления */
 	block_num?:boolean | `@${string}`,
@@ -21241,9 +21335,7 @@ export type ResolverInputTypes = {
 	project_hash?:boolean | `@${string}`,
 	/** Дата погашения */
 	repaid_at?:boolean | `@${string}`,
-	/** Заявление на получение ссуды
-
-Требуемые роли: chairman, member.  */
+	/** Заявление на получение ссуды */
 	statement?:ResolverInputTypes["DocumentAggregate"],
 	/** Статус долга */
 	status?:boolean | `@${string}`,
@@ -21261,13 +21353,9 @@ export type ResolverInputTypes = {
 	_updated_at?:boolean | `@${string}`,
 	/** Сумма расхода */
 	amount?:boolean | `@${string}`,
-	/** Одобренная записка
-
-Требуемые роли: chairman, member.  */
+	/** Одобренная записка */
 	approved_statement?:ResolverInputTypes["DocumentAggregate"],
-	/** Авторизация расхода
-
-Требуемые роли: chairman, member.  */
+	/** Авторизация расхода */
 	authorization?:ResolverInputTypes["DocumentAggregate"],
 	/** Номер блока последнего обновления */
 	block_num?:boolean | `@${string}`,
@@ -21279,9 +21367,7 @@ export type ResolverInputTypes = {
 	description?:boolean | `@${string}`,
 	/** Хеш расхода */
 	expense_hash?:boolean | `@${string}`,
-	/** Служебная записка о расходе
-
-Требуемые роли: chairman, member.  */
+	/** Служебная записка о расходе */
 	expense_statement?:ResolverInputTypes["DocumentAggregate"],
 	/** ID фонда */
 	fund_id?:boolean | `@${string}`,
@@ -22577,6 +22663,41 @@ export type ResolverInputTypes = {
 	/** Фильтр по имени пользователя */
 	username?: string | undefined | null
 };
+	/** Трансляция паевого взноса из Благороста в Цифровой Кошелёк */
+["CapitalShareTransfer"]: AliasType<{
+	/** Идентификатор записи */
+	_id?:boolean | `@${string}`,
+	/** Сумма трансляции, с валютой */
+	amount?:boolean | `@${string}`,
+	/** Дата трансляции */
+	created_at?:boolean | `@${string}`,
+	/** ФИО пайщика или название организации */
+	display_name?:boolean | `@${string}`,
+	/** Хэш заявления о трансляции в реестре документов */
+	statement_hash?:boolean | `@${string}`,
+	/** Транзакция цепи */
+	transaction_id?:boolean | `@${string}`,
+	/** Пайщик */
+	username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Отбор истории трансляций паевого взноса */
+["CapitalShareTransferFilter"]: {
+	/** Пайщик. Не указан — история всех пайщиков кооператива (только председателю) */
+	username?: string | undefined | null
+};
+	/** Паевой взнос пайщика в Благоросте, доступный для трансляции */
+["CapitalShareTransferState"]: AliasType<{
+	/** Остаток паевого взноса на кошельке Благороста, с валютой */
+	blagorost_balance?:boolean | `@${string}`,
+	/** Пайщик */
+	username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["CapitalShareTransferStateInput"]: {
+	/** Пайщик, чей остаток показать */
+	username: string
+};
 	/** Старт таймера на одной задаче */
 ["CapitalStartTimerInput"]: {
 	/** Имя кооператива */
@@ -22811,6 +22932,16 @@ export type ResolverInputTypes = {
 	amount: string,
 	/** Имя кооператива. */
 	coopname: string
+};
+	["CapitalTransferShareInput"]: {
+	/** Сумма трансляции, с валютой — та же, что в заявлении */
+	amount: string,
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Подписанное заявление о трансляции паевого взноса в Цифровой Кошелёк */
+	statement: ResolverInputTypes["ShareTransferStatementSignedDocumentInput"],
+	/** Пайщик, чей паевой взнос транслируется */
+	username: string
 };
 	/** Голос в системе CAPITAL */
 ["CapitalVote"]: AliasType<{
@@ -31086,7 +31217,7 @@ capitalGenerateCapitalizationMoneyInvestStatement?: [{	data: ResolverInputTypes[
 capitalGenerateCapitalizationPropertyInvestAct?: [{	data: ResolverInputTypes["GenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 capitalGenerateCapitalizationPropertyInvestDecision?: [{	data: ResolverInputTypes["GenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 capitalGenerateCapitalizationPropertyInvestStatement?: [{	data: ResolverInputTypes["GenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
-capitalGenerateCapitalizationToMainWalletConvertStatement?: [{	data: ResolverInputTypes["GenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
+capitalGenerateCapitalizationToMainWalletConvertStatement?: [{	data: ResolverInputTypes["ShareTransferStatementGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 capitalGenerateComponentGenerationContract?: [{	data: ResolverInputTypes["ComponentGenerationContractGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 capitalGenerateExpenseDecision?: [{	data: ResolverInputTypes["GenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 capitalGenerateExpenseStatement?: [{	data: ResolverInputTypes["GenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
@@ -31133,6 +31264,7 @@ capitalStopProject?: [{	data: ResolverInputTypes["StopProjectInput"]},ResolverIn
 capitalStopTimer?: [{	data: ResolverInputTypes["CapitalStopTimerInput"]},ResolverInputTypes["CapitalTimeEntry"]],
 capitalSubmitVote?: [{	data: ResolverInputTypes["SubmitVoteInput"]},ResolverInputTypes["Transaction"]],
 capitalTopupProgramExpensePool?: [{	data: ResolverInputTypes["CapitalTopupProgramExpenseInput"]},ResolverInputTypes["Transaction"]],
+capitalTransferShare?: [{	data: ResolverInputTypes["CapitalTransferShareInput"]},ResolverInputTypes["CapitalShareTransferState"]],
 capitalUpdateComponentMetric?: [{	data: ResolverInputTypes["UpdateComponentMetricInput"]},ResolverInputTypes["CapitalComponentMetric"]],
 capitalUpdateIssue?: [{	data: ResolverInputTypes["UpdateIssueInput"]},ResolverInputTypes["CapitalIssue"]],
 capitalUpdateMeasure?: [{	data: ResolverInputTypes["UpdateMeasureInput"]},ResolverInputTypes["CapitalMeasure"]],
@@ -31903,6 +32035,17 @@ walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputType
 	currentPage?:boolean | `@${string}`,
 	/** Элементы текущей страницы */
 	items?:ResolverInputTypes["CapitalSegment"],
+	/** Общее количество элементов */
+	totalCount?:boolean | `@${string}`,
+	/** Общее количество страниц */
+	totalPages?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["PaginatedCapitalShareTransfersPaginationResult"]: AliasType<{
+	/** Текущая страница */
+	currentPage?:boolean | `@${string}`,
+	/** Элементы текущей страницы */
+	items?:ResolverInputTypes["CapitalShareTransfer"],
 	/** Общее количество элементов */
 	totalCount?:boolean | `@${string}`,
 	/** Общее количество страниц */
@@ -33221,6 +33364,8 @@ capitalResult?: [{	data: ResolverInputTypes["GetResultInput"]},ResolverInputType
 capitalResults?: [{	filter?: ResolverInputTypes["ResultFilter"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedCapitalResultsPaginationResult"]],
 capitalSegment?: [{	filter?: ResolverInputTypes["CapitalSegmentFilter"] | undefined | null},ResolverInputTypes["CapitalSegment"]],
 capitalSegments?: [{	filter?: ResolverInputTypes["CapitalSegmentFilter"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedCapitalSegmentsPaginationResult"]],
+capitalShareTransferState?: [{	data: ResolverInputTypes["CapitalShareTransferStateInput"]},ResolverInputTypes["CapitalShareTransferState"]],
+capitalShareTransfers?: [{	filter?: ResolverInputTypes["CapitalShareTransferFilter"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedCapitalShareTransfersPaginationResult"]],
 capitalState?: [{	data: ResolverInputTypes["GetCapitalConfigInput"]},ResolverInputTypes["CapitalState"]],
 capitalStories?: [{	filter?: ResolverInputTypes["CapitalStoryFilter"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedCapitalStoriesPaginationResult"]],
 capitalStory?: [{	data: ResolverInputTypes["GetCapitalStoryByHashInput"]},ResolverInputTypes["CapitalStory"]],
@@ -34749,6 +34894,70 @@ verificationReviews?: [{	data?: ResolverInputTypes["VerificationReviewsInput"] |
 	updated_at?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	["ShareTransferStatementGenerateDocumentInput"]: {
+	/** Сумма трансляции паевого взноса, с валютой */
+	amount: string,
+	/** Номер блока, на котором был создан документ */
+	block_num?: number | undefined | null,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at?: string | undefined | null,
+	/** Имя генератора, использованного для создания документа */
+	generator?: string | undefined | null,
+	/** Язык документа */
+	lang?: string | undefined | null,
+	/** Ссылки, связанные с документом */
+	links?: Array<string> | undefined | null,
+	/** Часовой пояс, в котором был создан документ */
+	timezone?: string | undefined | null,
+	/** Название документа */
+	title?: string | undefined | null,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version?: string | undefined | null
+};
+	["ShareTransferStatementSignedDocumentInput"]: {
+	/** Хэш содержимого документа */
+	doc_hash: string,
+	/** Общий хэш (doc_hash + meta_hash) */
+	hash: string,
+	/** Метаинформация заявления о трансляции паевого взноса в Цифровой Кошелёк */
+	meta: ResolverInputTypes["ShareTransferStatementSignedMetaDocumentInput"],
+	/** Хэш мета-данных */
+	meta_hash: string,
+	/** Вектор подписей */
+	signatures: Array<ResolverInputTypes["SignatureInfoInput"]>,
+	/** Версия стандарта документа */
+	version: string
+};
+	["ShareTransferStatementSignedMetaDocumentInput"]: {
+	/** Сумма трансляции паевого взноса, с валютой */
+	amount: string,
+	/** Номер блока, на котором был создан документ */
+	block_num: number,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at: string,
+	/** Имя генератора, использованного для создания документа */
+	generator: string,
+	/** Язык документа */
+	lang: string,
+	/** Ссылки, связанные с документом */
+	links: Array<string>,
+	/** ID документа в реестре */
+	registry_id: number,
+	/** Часовой пояс, в котором был создан документ */
+	timezone: string,
+	/** Название документа */
+	title: string,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version: string
+};
 	["SignActAsChairmanInput"]: {
 	/** Акт о вкладе результатов */
 	act: ResolverInputTypes["SignedDigitalDocumentInput"],
@@ -36982,23 +37191,17 @@ export type ModelTypes = {
 	represented_by: ModelTypes["RepresentedBy"],
 	/** Краткое название организации */
 	short_name: string,
-	/** Доверенные аккаунты; пусто, если состав участка недоступен запрашивающему
-
-Требуемые роли: chairman, member.  */
+	/** Доверенные аккаунты; пусто, если состав участка недоступен запрашивающему */
 	trusted?: Array<ModelTypes["Individual"]> | undefined | null,
 	/** Сертификаты доверенных лиц участка (ФИО) */
 	trusted_certificates: Array<ModelTypes["IndividualCertificate"]>,
-	/** Председатель кооперативного участка; пусто, если состав участка недоступен запрашивающему
-
-Требуемые роли: chairman, member.  */
+	/** Председатель кооперативного участка; пусто, если состав участка недоступен запрашивающему */
 	trustee?: ModelTypes["Individual"] | undefined | null,
 	/** Сертификат председателя кооперативного участка (ФИО) */
 	trustee_certificate: ModelTypes["IndividualCertificate"],
 	/** Тип организации */
 	type: string,
-	/** Пайщики в белом списке приватного участка (ФИО); пусто, если участок не свой
-
-Требуемые роли: chairman, member.  */
+	/** Пайщики в белом списке приватного участка (ФИО); пусто, если участок не свой */
 	whitelist_certificates?: Array<ModelTypes["IndividualCertificate"]> | undefined | null
 };
 	["BranchEstablishmentDecisionGenerateDocumentInput"]: {
@@ -38097,9 +38300,7 @@ export type ModelTypes = {
 	block_num?: number | undefined | null,
 	/** Статус из блокчейна */
 	blockchain_status?: string | undefined | null,
-	/** Контракт участника
-
-Требуемые роли: chairman, member.  */
+	/** Контракт участника */
 	contract?: ModelTypes["DocumentAggregate"] | undefined | null,
 	/** Вклад как автор */
 	contributed_as_author?: string | undefined | null,
@@ -38264,13 +38465,9 @@ export type ModelTypes = {
 	_updated_at: ModelTypes["DateTime"],
 	/** Сумма долга */
 	amount?: string | undefined | null,
-	/** Одобренное заявление
-
-Требуемые роли: chairman, member.  */
+	/** Одобренное заявление */
 	approved_statement?: ModelTypes["DocumentAggregate"] | undefined | null,
-	/** Протокол решения совета
-
-Требуемые роли: chairman, member.  */
+	/** Протокол решения совета */
 	authorization?: ModelTypes["DocumentAggregate"] | undefined | null,
 	/** Номер блока последнего обновления */
 	block_num?: number | undefined | null,
@@ -38290,9 +38487,7 @@ export type ModelTypes = {
 	project_hash?: string | undefined | null,
 	/** Дата погашения */
 	repaid_at?: string | undefined | null,
-	/** Заявление на получение ссуды
-
-Требуемые роли: chairman, member.  */
+	/** Заявление на получение ссуды */
 	statement?: ModelTypes["DocumentAggregate"] | undefined | null,
 	/** Статус долга */
 	status: ModelTypes["DebtStatus"],
@@ -38309,13 +38504,9 @@ export type ModelTypes = {
 	_updated_at: ModelTypes["DateTime"],
 	/** Сумма расхода */
 	amount?: string | undefined | null,
-	/** Одобренная записка
-
-Требуемые роли: chairman, member.  */
+	/** Одобренная записка */
 	approved_statement?: ModelTypes["DocumentAggregate"] | undefined | null,
-	/** Авторизация расхода
-
-Требуемые роли: chairman, member.  */
+	/** Авторизация расхода */
 	authorization?: ModelTypes["DocumentAggregate"] | undefined | null,
 	/** Номер блока последнего обновления */
 	block_num?: number | undefined | null,
@@ -38327,9 +38518,7 @@ export type ModelTypes = {
 	description?: string | undefined | null,
 	/** Хеш расхода */
 	expense_hash: string,
-	/** Служебная записка о расходе
-
-Требуемые роли: chairman, member.  */
+	/** Служебная записка о расходе */
 	expense_statement?: ModelTypes["DocumentAggregate"] | undefined | null,
 	/** ID фонда */
 	fund_id?: number | undefined | null,
@@ -39587,6 +39776,39 @@ export type ModelTypes = {
 	/** Фильтр по имени пользователя */
 	username?: string | undefined | null
 };
+	/** Трансляция паевого взноса из Благороста в Цифровой Кошелёк */
+["CapitalShareTransfer"]: {
+		/** Идентификатор записи */
+	_id: string,
+	/** Сумма трансляции, с валютой */
+	amount: string,
+	/** Дата трансляции */
+	created_at: ModelTypes["DateTime"],
+	/** ФИО пайщика или название организации */
+	display_name: string,
+	/** Хэш заявления о трансляции в реестре документов */
+	statement_hash: string,
+	/** Транзакция цепи */
+	transaction_id: string,
+	/** Пайщик */
+	username: string
+};
+	/** Отбор истории трансляций паевого взноса */
+["CapitalShareTransferFilter"]: {
+	/** Пайщик. Не указан — история всех пайщиков кооператива (только председателю) */
+	username?: string | undefined | null
+};
+	/** Паевой взнос пайщика в Благоросте, доступный для трансляции */
+["CapitalShareTransferState"]: {
+		/** Остаток паевого взноса на кошельке Благороста, с валютой */
+	blagorost_balance: string,
+	/** Пайщик */
+	username: string
+};
+	["CapitalShareTransferStateInput"]: {
+	/** Пайщик, чей остаток показать */
+	username: string
+};
 	/** Старт таймера на одной задаче */
 ["CapitalStartTimerInput"]: {
 	/** Имя кооператива */
@@ -39814,6 +40036,16 @@ export type ModelTypes = {
 	amount: string,
 	/** Имя кооператива. */
 	coopname: string
+};
+	["CapitalTransferShareInput"]: {
+	/** Сумма трансляции, с валютой — та же, что в заявлении */
+	amount: string,
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Подписанное заявление о трансляции паевого взноса в Цифровой Кошелёк */
+	statement: ModelTypes["ShareTransferStatementSignedDocumentInput"],
+	/** Пайщик, чей паевой взнос транслируется */
+	username: string
 };
 	/** Голос в системе CAPITAL */
 ["CapitalVote"]: {
@@ -47795,7 +48027,7 @@ export type ModelTypes = {
 	capitalGenerateCapitalizationPropertyInvestDecision: ModelTypes["GeneratedDocument"],
 	/** Сгенерировать заявление об инвестировании имуществом в благорост */
 	capitalGenerateCapitalizationPropertyInvestStatement: ModelTypes["GeneratedDocument"],
-	/** Сгенерировать заявление о конвертации из благороста в основной кошелек */
+	/** Сгенерировать заявление о трансляции паевого взноса из Благороста в Цифровой Кошелёк на указанную сумму */
 	capitalGenerateCapitalizationToMainWalletConvertStatement: ModelTypes["GeneratedDocument"],
 	/** Сгенерировать документ дополнения к приложению для компонента */
 	capitalGenerateComponentGenerationContract: ModelTypes["GeneratedDocument"],
@@ -47889,6 +48121,8 @@ export type ModelTypes = {
 	capitalSubmitVote: ModelTypes["Transaction"],
 	/** Пополнение пула программных расходов капитала из инвестиционного пула. */
 	capitalTopupProgramExpensePool: ModelTypes["Transaction"],
+	/** Транслировать паевой взнос из Благороста в Цифровой Кошелёк по подписанному заявлению */
+	capitalTransferShare: ModelTypes["CapitalShareTransferState"],
 	/** Обновление цели по мере на компоненте */
 	capitalUpdateComponentMetric: ModelTypes["CapitalComponentMetric"],
 	/** Обновление задачи в CAPITAL контракте */
@@ -48917,6 +49151,16 @@ export type ModelTypes = {
 	currentPage: number,
 	/** Элементы текущей страницы */
 	items: Array<ModelTypes["CapitalSegment"]>,
+	/** Общее количество элементов */
+	totalCount: number,
+	/** Общее количество страниц */
+	totalPages: number
+};
+	["PaginatedCapitalShareTransfersPaginationResult"]: {
+		/** Текущая страница */
+	currentPage: number,
+	/** Элементы текущей страницы */
+	items: Array<ModelTypes["CapitalShareTransfer"]>,
 	/** Общее количество элементов */
 	totalCount: number,
 	/** Общее количество страниц */
@@ -50197,6 +50441,10 @@ export type ModelTypes = {
 	capitalSegment?: ModelTypes["CapitalSegment"] | undefined | null,
 	/** Получение списка сегментов кооператива с фильтрацией и пагинацией */
 	capitalSegments: ModelTypes["PaginatedCapitalSegmentsPaginationResult"],
+	/** Паевой взнос пайщика на кошельке Благороста, доступный для трансляции в Цифровой Кошелёк */
+	capitalShareTransferState: ModelTypes["CapitalShareTransferState"],
+	/** История трансляций паевого взноса из Благороста в Цифровой Кошелёк */
+	capitalShareTransfers: ModelTypes["PaginatedCapitalShareTransfersPaginationResult"],
 	/** Получение полного состояния CAPITAL контракта кооператива */
 	capitalState?: ModelTypes["CapitalState"] | undefined | null,
 	/** Получение списка историй кооператива с фильтрацией */
@@ -51862,6 +52110,70 @@ export type ModelTypes = {
 	provider_name: string,
 	/** Дата последнего обновления */
 	updated_at: ModelTypes["DateTime"]
+};
+	["ShareTransferStatementGenerateDocumentInput"]: {
+	/** Сумма трансляции паевого взноса, с валютой */
+	amount: string,
+	/** Номер блока, на котором был создан документ */
+	block_num?: number | undefined | null,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at?: string | undefined | null,
+	/** Имя генератора, использованного для создания документа */
+	generator?: string | undefined | null,
+	/** Язык документа */
+	lang?: string | undefined | null,
+	/** Ссылки, связанные с документом */
+	links?: Array<string> | undefined | null,
+	/** Часовой пояс, в котором был создан документ */
+	timezone?: string | undefined | null,
+	/** Название документа */
+	title?: string | undefined | null,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version?: string | undefined | null
+};
+	["ShareTransferStatementSignedDocumentInput"]: {
+	/** Хэш содержимого документа */
+	doc_hash: string,
+	/** Общий хэш (doc_hash + meta_hash) */
+	hash: string,
+	/** Метаинформация заявления о трансляции паевого взноса в Цифровой Кошелёк */
+	meta: ModelTypes["ShareTransferStatementSignedMetaDocumentInput"],
+	/** Хэш мета-данных */
+	meta_hash: string,
+	/** Вектор подписей */
+	signatures: Array<ModelTypes["SignatureInfoInput"]>,
+	/** Версия стандарта документа */
+	version: string
+};
+	["ShareTransferStatementSignedMetaDocumentInput"]: {
+	/** Сумма трансляции паевого взноса, с валютой */
+	amount: string,
+	/** Номер блока, на котором был создан документ */
+	block_num: number,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at: string,
+	/** Имя генератора, использованного для создания документа */
+	generator: string,
+	/** Язык документа */
+	lang: string,
+	/** Ссылки, связанные с документом */
+	links: Array<string>,
+	/** ID документа в реестре */
+	registry_id: number,
+	/** Часовой пояс, в котором был создан документ */
+	timezone: string,
+	/** Название документа */
+	title: string,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version: string
 };
 	["SignActAsChairmanInput"]: {
 	/** Акт о вкладе результатов */
@@ -54122,23 +54434,17 @@ export type GraphQLTypes = {
 	represented_by: GraphQLTypes["RepresentedBy"],
 	/** Краткое название организации */
 	short_name: string,
-	/** Доверенные аккаунты; пусто, если состав участка недоступен запрашивающему
-
-Требуемые роли: chairman, member.  */
+	/** Доверенные аккаунты; пусто, если состав участка недоступен запрашивающему */
 	trusted?: Array<GraphQLTypes["Individual"]> | undefined | null,
 	/** Сертификаты доверенных лиц участка (ФИО) */
 	trusted_certificates: Array<GraphQLTypes["IndividualCertificate"]>,
-	/** Председатель кооперативного участка; пусто, если состав участка недоступен запрашивающему
-
-Требуемые роли: chairman, member.  */
+	/** Председатель кооперативного участка; пусто, если состав участка недоступен запрашивающему */
 	trustee?: GraphQLTypes["Individual"] | undefined | null,
 	/** Сертификат председателя кооперативного участка (ФИО) */
 	trustee_certificate: GraphQLTypes["IndividualCertificate"],
 	/** Тип организации */
 	type: string,
-	/** Пайщики в белом списке приватного участка (ФИО); пусто, если участок не свой
-
-Требуемые роли: chairman, member.  */
+	/** Пайщики в белом списке приватного участка (ФИО); пусто, если участок не свой */
 	whitelist_certificates?: Array<GraphQLTypes["IndividualCertificate"]> | undefined | null,
 	['...on Branch']: Omit<GraphQLTypes["Branch"], "...on Branch">
 };
@@ -55283,9 +55589,7 @@ export type GraphQLTypes = {
 	block_num?: number | undefined | null,
 	/** Статус из блокчейна */
 	blockchain_status?: string | undefined | null,
-	/** Контракт участника
-
-Требуемые роли: chairman, member.  */
+	/** Контракт участника */
 	contract?: GraphQLTypes["DocumentAggregate"] | undefined | null,
 	/** Вклад как автор */
 	contributed_as_author?: string | undefined | null,
@@ -55456,13 +55760,9 @@ export type GraphQLTypes = {
 	_updated_at: GraphQLTypes["DateTime"],
 	/** Сумма долга */
 	amount?: string | undefined | null,
-	/** Одобренное заявление
-
-Требуемые роли: chairman, member.  */
+	/** Одобренное заявление */
 	approved_statement?: GraphQLTypes["DocumentAggregate"] | undefined | null,
-	/** Протокол решения совета
-
-Требуемые роли: chairman, member.  */
+	/** Протокол решения совета */
 	authorization?: GraphQLTypes["DocumentAggregate"] | undefined | null,
 	/** Номер блока последнего обновления */
 	block_num?: number | undefined | null,
@@ -55482,9 +55782,7 @@ export type GraphQLTypes = {
 	project_hash?: string | undefined | null,
 	/** Дата погашения */
 	repaid_at?: string | undefined | null,
-	/** Заявление на получение ссуды
-
-Требуемые роли: chairman, member.  */
+	/** Заявление на получение ссуды */
 	statement?: GraphQLTypes["DocumentAggregate"] | undefined | null,
 	/** Статус долга */
 	status: GraphQLTypes["DebtStatus"],
@@ -55503,13 +55801,9 @@ export type GraphQLTypes = {
 	_updated_at: GraphQLTypes["DateTime"],
 	/** Сумма расхода */
 	amount?: string | undefined | null,
-	/** Одобренная записка
-
-Требуемые роли: chairman, member.  */
+	/** Одобренная записка */
 	approved_statement?: GraphQLTypes["DocumentAggregate"] | undefined | null,
-	/** Авторизация расхода
-
-Требуемые роли: chairman, member.  */
+	/** Авторизация расхода */
 	authorization?: GraphQLTypes["DocumentAggregate"] | undefined | null,
 	/** Номер блока последнего обновления */
 	block_num?: number | undefined | null,
@@ -55521,9 +55815,7 @@ export type GraphQLTypes = {
 	description?: string | undefined | null,
 	/** Хеш расхода */
 	expense_hash: string,
-	/** Служебная записка о расходе
-
-Требуемые роли: chairman, member.  */
+	/** Служебная записка о расходе */
 	expense_statement?: GraphQLTypes["DocumentAggregate"] | undefined | null,
 	/** ID фонда */
 	fund_id?: number | undefined | null,
@@ -56855,6 +57147,43 @@ export type GraphQLTypes = {
 	/** Фильтр по имени пользователя */
 	username?: string | undefined | null
 };
+	/** Трансляция паевого взноса из Благороста в Цифровой Кошелёк */
+["CapitalShareTransfer"]: {
+	__typename: "CapitalShareTransfer",
+	/** Идентификатор записи */
+	_id: string,
+	/** Сумма трансляции, с валютой */
+	amount: string,
+	/** Дата трансляции */
+	created_at: GraphQLTypes["DateTime"],
+	/** ФИО пайщика или название организации */
+	display_name: string,
+	/** Хэш заявления о трансляции в реестре документов */
+	statement_hash: string,
+	/** Транзакция цепи */
+	transaction_id: string,
+	/** Пайщик */
+	username: string,
+	['...on CapitalShareTransfer']: Omit<GraphQLTypes["CapitalShareTransfer"], "...on CapitalShareTransfer">
+};
+	/** Отбор истории трансляций паевого взноса */
+["CapitalShareTransferFilter"]: {
+		/** Пайщик. Не указан — история всех пайщиков кооператива (только председателю) */
+	username?: string | undefined | null
+};
+	/** Паевой взнос пайщика в Благоросте, доступный для трансляции */
+["CapitalShareTransferState"]: {
+	__typename: "CapitalShareTransferState",
+	/** Остаток паевого взноса на кошельке Благороста, с валютой */
+	blagorost_balance: string,
+	/** Пайщик */
+	username: string,
+	['...on CapitalShareTransferState']: Omit<GraphQLTypes["CapitalShareTransferState"], "...on CapitalShareTransferState">
+};
+	["CapitalShareTransferStateInput"]: {
+		/** Пайщик, чей остаток показать */
+	username: string
+};
 	/** Старт таймера на одной задаче */
 ["CapitalStartTimerInput"]: {
 		/** Имя кооператива */
@@ -57095,6 +57424,16 @@ export type GraphQLTypes = {
 	amount: string,
 	/** Имя кооператива. */
 	coopname: string
+};
+	["CapitalTransferShareInput"]: {
+		/** Сумма трансляции, с валютой — та же, что в заявлении */
+	amount: string,
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Подписанное заявление о трансляции паевого взноса в Цифровой Кошелёк */
+	statement: GraphQLTypes["ShareTransferStatementSignedDocumentInput"],
+	/** Пайщик, чей паевой взнос транслируется */
+	username: string
 };
 	/** Голос в системе CAPITAL */
 ["CapitalVote"]: {
@@ -65676,7 +66015,7 @@ export type GraphQLTypes = {
 	capitalGenerateCapitalizationPropertyInvestDecision: GraphQLTypes["GeneratedDocument"],
 	/** Сгенерировать заявление об инвестировании имуществом в благорост */
 	capitalGenerateCapitalizationPropertyInvestStatement: GraphQLTypes["GeneratedDocument"],
-	/** Сгенерировать заявление о конвертации из благороста в основной кошелек */
+	/** Сгенерировать заявление о трансляции паевого взноса из Благороста в Цифровой Кошелёк на указанную сумму */
 	capitalGenerateCapitalizationToMainWalletConvertStatement: GraphQLTypes["GeneratedDocument"],
 	/** Сгенерировать документ дополнения к приложению для компонента */
 	capitalGenerateComponentGenerationContract: GraphQLTypes["GeneratedDocument"],
@@ -65770,6 +66109,8 @@ export type GraphQLTypes = {
 	capitalSubmitVote: GraphQLTypes["Transaction"],
 	/** Пополнение пула программных расходов капитала из инвестиционного пула. */
 	capitalTopupProgramExpensePool: GraphQLTypes["Transaction"],
+	/** Транслировать паевой взнос из Благороста в Цифровой Кошелёк по подписанному заявлению */
+	capitalTransferShare: GraphQLTypes["CapitalShareTransferState"],
 	/** Обновление цели по мере на компоненте */
 	capitalUpdateComponentMetric: GraphQLTypes["CapitalComponentMetric"],
 	/** Обновление задачи в CAPITAL контракте */
@@ -66868,6 +67209,18 @@ export type GraphQLTypes = {
 	/** Общее количество страниц */
 	totalPages: number,
 	['...on PaginatedCapitalSegmentsPaginationResult']: Omit<GraphQLTypes["PaginatedCapitalSegmentsPaginationResult"], "...on PaginatedCapitalSegmentsPaginationResult">
+};
+	["PaginatedCapitalShareTransfersPaginationResult"]: {
+	__typename: "PaginatedCapitalShareTransfersPaginationResult",
+	/** Текущая страница */
+	currentPage: number,
+	/** Элементы текущей страницы */
+	items: Array<GraphQLTypes["CapitalShareTransfer"]>,
+	/** Общее количество элементов */
+	totalCount: number,
+	/** Общее количество страниц */
+	totalPages: number,
+	['...on PaginatedCapitalShareTransfersPaginationResult']: Omit<GraphQLTypes["PaginatedCapitalShareTransfersPaginationResult"], "...on PaginatedCapitalShareTransfersPaginationResult">
 };
 	["PaginatedCapitalStoriesPaginationResult"]: {
 	__typename: "PaginatedCapitalStoriesPaginationResult",
@@ -68285,6 +68638,10 @@ export type GraphQLTypes = {
 	capitalSegment?: GraphQLTypes["CapitalSegment"] | undefined | null,
 	/** Получение списка сегментов кооператива с фильтрацией и пагинацией */
 	capitalSegments: GraphQLTypes["PaginatedCapitalSegmentsPaginationResult"],
+	/** Паевой взнос пайщика на кошельке Благороста, доступный для трансляции в Цифровой Кошелёк */
+	capitalShareTransferState: GraphQLTypes["CapitalShareTransferState"],
+	/** История трансляций паевого взноса из Благороста в Цифровой Кошелёк */
+	capitalShareTransfers: GraphQLTypes["PaginatedCapitalShareTransfersPaginationResult"],
 	/** Получение полного состояния CAPITAL контракта кооператива */
 	capitalState?: GraphQLTypes["CapitalState"] | undefined | null,
 	/** Получение списка историй кооператива с фильтрацией */
@@ -70045,6 +70402,70 @@ export type GraphQLTypes = {
 	/** Дата последнего обновления */
 	updated_at: GraphQLTypes["DateTime"],
 	['...on Settings']: Omit<GraphQLTypes["Settings"], "...on Settings">
+};
+	["ShareTransferStatementGenerateDocumentInput"]: {
+		/** Сумма трансляции паевого взноса, с валютой */
+	amount: string,
+	/** Номер блока, на котором был создан документ */
+	block_num?: number | undefined | null,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at?: string | undefined | null,
+	/** Имя генератора, использованного для создания документа */
+	generator?: string | undefined | null,
+	/** Язык документа */
+	lang?: string | undefined | null,
+	/** Ссылки, связанные с документом */
+	links?: Array<string> | undefined | null,
+	/** Часовой пояс, в котором был создан документ */
+	timezone?: string | undefined | null,
+	/** Название документа */
+	title?: string | undefined | null,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version?: string | undefined | null
+};
+	["ShareTransferStatementSignedDocumentInput"]: {
+		/** Хэш содержимого документа */
+	doc_hash: string,
+	/** Общий хэш (doc_hash + meta_hash) */
+	hash: string,
+	/** Метаинформация заявления о трансляции паевого взноса в Цифровой Кошелёк */
+	meta: GraphQLTypes["ShareTransferStatementSignedMetaDocumentInput"],
+	/** Хэш мета-данных */
+	meta_hash: string,
+	/** Вектор подписей */
+	signatures: Array<GraphQLTypes["SignatureInfoInput"]>,
+	/** Версия стандарта документа */
+	version: string
+};
+	["ShareTransferStatementSignedMetaDocumentInput"]: {
+		/** Сумма трансляции паевого взноса, с валютой */
+	amount: string,
+	/** Номер блока, на котором был создан документ */
+	block_num: number,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at: string,
+	/** Имя генератора, использованного для создания документа */
+	generator: string,
+	/** Язык документа */
+	lang: string,
+	/** Ссылки, связанные с документом */
+	links: Array<string>,
+	/** ID документа в реестре */
+	registry_id: number,
+	/** Часовой пояс, в котором был создан документ */
+	timezone: string,
+	/** Название документа */
+	title: string,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version: string
 };
 	["SignActAsChairmanInput"]: {
 		/** Акт о вкладе результатов */
@@ -72391,6 +72812,8 @@ type ZEUS_VARIABLES = {
 	["CapitalRestoreContentRevisionInput"]: ValueTypes["CapitalRestoreContentRevisionInput"];
 	["CapitalResumeTimerInput"]: ValueTypes["CapitalResumeTimerInput"];
 	["CapitalSegmentFilter"]: ValueTypes["CapitalSegmentFilter"];
+	["CapitalShareTransferFilter"]: ValueTypes["CapitalShareTransferFilter"];
+	["CapitalShareTransferStateInput"]: ValueTypes["CapitalShareTransferStateInput"];
 	["CapitalStartTimerInput"]: ValueTypes["CapitalStartTimerInput"];
 	["CapitalStopTimerInput"]: ValueTypes["CapitalStopTimerInput"];
 	["CapitalStoryContentFormat"]: ValueTypes["CapitalStoryContentFormat"];
@@ -72398,6 +72821,7 @@ type ZEUS_VARIABLES = {
 	["CapitalTimeEntriesFilter"]: ValueTypes["CapitalTimeEntriesFilter"];
 	["CapitalTimeStatsInput"]: ValueTypes["CapitalTimeStatsInput"];
 	["CapitalTopupProgramExpenseInput"]: ValueTypes["CapitalTopupProgramExpenseInput"];
+	["CapitalTransferShareInput"]: ValueTypes["CapitalTransferShareInput"];
 	["CardcoopAttestationState"]: ValueTypes["CardcoopAttestationState"];
 	["CardcoopEntryInput"]: ValueTypes["CardcoopEntryInput"];
 	["CardcoopEntryOutcome"]: ValueTypes["CardcoopEntryOutcome"];
@@ -72991,6 +73415,9 @@ type ZEUS_VARIABLES = {
 	["SetRecoveryStrategyInput"]: ValueTypes["SetRecoveryStrategyInput"];
 	["SetVarsInput"]: ValueTypes["SetVarsInput"];
 	["SetWifInput"]: ValueTypes["SetWifInput"];
+	["ShareTransferStatementGenerateDocumentInput"]: ValueTypes["ShareTransferStatementGenerateDocumentInput"];
+	["ShareTransferStatementSignedDocumentInput"]: ValueTypes["ShareTransferStatementSignedDocumentInput"];
+	["ShareTransferStatementSignedMetaDocumentInput"]: ValueTypes["ShareTransferStatementSignedMetaDocumentInput"];
 	["SignActAsChairmanInput"]: ValueTypes["SignActAsChairmanInput"];
 	["SignActAsContributorInput"]: ValueTypes["SignActAsContributorInput"];
 	["SignByPresiderOnAnnualGeneralMeetInput"]: ValueTypes["SignByPresiderOnAnnualGeneralMeetInput"];

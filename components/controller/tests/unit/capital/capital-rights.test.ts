@@ -10,8 +10,15 @@
  * Роль в проекте ведёт таблица ролей проекта в сервисах — здесь её нет.
  */
 import { join } from 'node:path';
+
+// Кооператив узла: трансляция паевого взноса временно открыта только в «Восходе».
+let mockCoopname = 'voskhod';
+jest.mock('@coopenomics/extension-kit', () => {
+  const actual = jest.requireActual('@coopenomics/extension-kit');
+  return { ...actual, platformSettings: () => ({ ...actual.platformSettings(), coopname: mockCoopname }) };
+});
 import { desktopGrantsOf } from '@coopenomics/extension-kit';
-import { CapitalRights } from '~/extensions/capital/application/access/capital-rights';
+import { CAPITAL_SHARE_TRANSFER_ROLE, CapitalRights } from '~/extensions/capital/application/access/capital-rights';
 import { NO_RIGHT, OWN, candidate, chairman, councilMember, guardOver, participant, requirementAt, type Caller } from '../rights/core-rights.harness';
 
 const EXTENSIONS = join(__dirname, '../../../src/extensions');
@@ -182,8 +189,14 @@ function named(path: string, username: string): Record<string, unknown> {
   return keys.length === 1 ? { [keys[0]]: username } : { [keys[0]]: { [keys[1]]: username } };
 }
 
+/** Описание прав Благороста над подставными реестрами; `assigned` — назначенные председателем роли. */
+function capitalRights(assigned: Record<string, string[]> = {}): CapitalRights {
+  const roleAssignments = { declare: jest.fn(), rolesOf: jest.fn(async (_app: string, username: string) => assigned[username] ?? []) };
+  return new CapitalRights({ register: jest.fn() } as any, roleAssignments as any);
+}
+
 describe('Благорост: операции под общим гардом', () => {
-  const pass = guardOver(new CapitalRights({ register: jest.fn() } as any));
+  const pass = guardOver(capitalRights());
 
   it('в таблице названа каждая операция резолверов', () => {
     expect(OPERATIONS).toHaveLength(147);
@@ -205,7 +218,7 @@ describe('Благорост: операции под общим гардом', 
 
 describe('Благорост: права страниц рабочего стола', () => {
   const grantsFor = async (caller: Caller) =>
-    desktopGrantsOf(new CapitalRights({ register: jest.fn() } as any)).resolveGrants({
+    desktopGrantsOf(capitalRights()).resolveGrants({
       username: caller.username,
       userRole: caller.role,
       userStatus: caller.status,
@@ -217,5 +230,107 @@ describe('Благорост: права страниц рабочего сто�
     expect(await grantsFor(councilMember)).toContain('CapitalDesk:council');
     expect(await grantsFor(councilMember)).not.toContain('CapitalDesk:manage');
     expect(await grantsFor(chairman)).toEqual(expect.arrayContaining(['CapitalDesk:use', 'CapitalDesk:council', 'CapitalDesk:manage']));
+  });
+});
+
+/**
+ * Трансляция паевого взноса в Цифровой Кошелёк (случаи cap.share-transfer.*
+ * в test-registry/capital.share-transfer.yaml): страница и операции открыты
+ * председателю и пайщикам, которым он назначил роль «Трансляция паевого
+ * взноса». Пайщик действует и читает историю только на своё имя.
+ */
+describe('Благорост: трансляция паевого взноса — доступ по роли', () => {
+  const RESOLVER = join(EXTENSIONS, 'capital/application/resolvers/share-transfer.resolver.ts');
+  const holder: Caller = { username: 'oleg', role: 'user', status: 'active' };
+  const exited: Caller = { username: 'vera', role: 'user', status: 'exited' };
+  const assigned = { [holder.username]: [CAPITAL_SHARE_TRANSFER_ROLE], [exited.username]: [CAPITAL_SHARE_TRANSFER_ROLE] };
+  const pass = guardOver(capitalRights(assigned));
+  const grantsFor = (caller: Caller) =>
+    desktopGrantsOf(capitalRights(assigned)).resolveGrants({ username: caller.username, userRole: caller.role, userStatus: caller.status });
+
+  it('страница трансляции есть у председателя и у пайщика с ролью, у остальных её нет', async () => {
+    expect(await grantsFor(chairman)).toContain('CapitalDesk:transfer');
+    expect(await grantsFor(holder)).toContain('CapitalDesk:transfer');
+    for (const caller of [participant, councilMember, candidate, exited]) {
+      expect(await grantsFor(caller)).not.toContain('CapitalDesk:transfer');
+    }
+  });
+
+  it('пайщик с ролью транслирует свой взнос, чужой — нет', async () => {
+    const requirement = requirementAt(RESOLVER, 'capitalTransferShare');
+    await expect(pass(requirement, holder, { data: { username: holder.username } })).resolves.toBe(true);
+    await expect(pass(requirement, holder, { data: { username: 'drugoy' } })).rejects.toMatchObject(OWN);
+  });
+
+  it('пайщик без роли и член совета трансляцию не проводят даже на своё имя', async () => {
+    const requirement = requirementAt(RESOLVER, 'capitalTransferShare');
+    for (const caller of [participant, councilMember, candidate]) {
+      await expect(pass(requirement, caller, { data: { username: caller.username } })).rejects.toMatchObject(NO_RIGHT);
+    }
+  });
+
+  it('вышедший из кооператива пайщик теряет доступ без снятия роли', async () => {
+    const requirement = requirementAt(RESOLVER, 'capitalTransferShare');
+    await expect(pass(requirement, exited, { data: { username: exited.username } })).rejects.toMatchObject(NO_RIGHT);
+  });
+
+  it('председатель транслирует только свой взнос', async () => {
+    const requirement = requirementAt(RESOLVER, 'capitalTransferShare');
+    await expect(pass(requirement, chairman, { data: { username: chairman.username } })).resolves.toBe(true);
+    await expect(pass(requirement, chairman, { data: { username: holder.username } })).rejects.toMatchObject(OWN);
+  });
+
+  it('историю пайщик читает свою, председатель — всего кооператива', async () => {
+    const requirement = requirementAt(RESOLVER, 'capitalShareTransfers');
+    await expect(pass(requirement, holder, { filter: { username: holder.username } })).resolves.toBe(true);
+    await expect(pass(requirement, holder, {})).rejects.toMatchObject(OWN);
+    await expect(pass(requirement, chairman, {})).resolves.toBe(true);
+    await expect(pass(requirement, chairman, { filter: { username: holder.username } })).resolves.toBe(true);
+  });
+
+  it('остаток пайщик видит свой, чужой — только председатель', async () => {
+    const requirement = requirementAt(RESOLVER, 'capitalShareTransferState');
+    await expect(pass(requirement, holder, { data: { username: holder.username } })).resolves.toBe(true);
+    await expect(pass(requirement, holder, { data: { username: 'drugoy' } })).rejects.toMatchObject(OWN);
+    await expect(pass(requirement, chairman, { data: { username: holder.username } })).resolves.toBe(true);
+    await expect(pass(requirement, participant, { data: { username: participant.username } })).rejects.toMatchObject(NO_RIGHT);
+  });
+});
+
+describe('Благорост: трансляция паевого взноса — временно только в ПК «Восход»', () => {
+  const RESOLVER = join(EXTENSIONS, 'capital/application/resolvers/share-transfer.resolver.ts');
+  const holder: Caller = { username: 'oleg', role: 'user', status: 'active' };
+  const assigned = { [holder.username]: [CAPITAL_SHARE_TRANSFER_ROLE] };
+
+  afterEach(() => {
+    mockCoopname = 'voskhod';
+  });
+
+  it('в другом кооперативе страницы нет ни у председателя, ни у держателя роли', async () => {
+    mockCoopname = 'drugoycoop';
+    const grantsFor = (caller: Caller) =>
+      desktopGrantsOf(capitalRights(assigned)).resolveGrants({ username: caller.username, userRole: caller.role, userStatus: caller.status });
+    expect(await grantsFor(chairman)).not.toContain('CapitalDesk:transfer');
+    expect(await grantsFor(holder)).not.toContain('CapitalDesk:transfer');
+    expect(await grantsFor(chairman)).toContain('CapitalDesk:manage');
+  });
+
+  it('в другом кооперативе трансляция закрыта и председателю', async () => {
+    mockCoopname = 'drugoycoop';
+    const pass = guardOver(capitalRights(assigned));
+    const requirement = requirementAt(RESOLVER, 'capitalTransferShare');
+    await expect(pass(requirement, chairman, { data: { username: chairman.username } })).rejects.toMatchObject(NO_RIGHT);
+    await expect(pass(requirement, holder, { data: { username: holder.username } })).rejects.toMatchObject(NO_RIGHT);
+  });
+
+  it('роль трансляции объявляется председателю только в «Восходе»', () => {
+    const declareIn = (coop: string) => {
+      mockCoopname = coop;
+      const roleAssignments = { declare: jest.fn(), rolesOf: jest.fn(async () => []) };
+      new CapitalRights({ register: jest.fn() } as any, roleAssignments as any).onModuleInit();
+      return roleAssignments.declare.mock.calls.length;
+    };
+    expect(declareIn('voskhod')).toBe(1);
+    expect(declareIn('drugoycoop')).toBe(0);
   });
 });

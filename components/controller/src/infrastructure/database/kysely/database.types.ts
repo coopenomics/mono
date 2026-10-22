@@ -773,6 +773,18 @@ export interface CapitalSegments {
   voting_bonus: string | null;
 }
 
+export interface CapitalShareTransfers {
+  _id: Generated<string>;
+  amount: string;
+  confirmed: Generated<boolean>;
+  coopname: string;
+  created_at: Generated<Timestamp>;
+  statement: Json;
+  statement_hash: string;
+  transaction_id: Generated<string>;
+  username: string;
+}
+
 export interface CapitalState {
   _created_at: Generated<Timestamp>;
   _id: Generated<string>;
@@ -2679,6 +2691,7 @@ export interface DB {
   capital_projects: CapitalProjects;
   capital_results: CapitalResults;
   capital_segments: CapitalSegments;
+  capital_share_transfers: CapitalShareTransfers;
   capital_state: CapitalState;
   capital_stories: CapitalStories;
   capital_time_entries: CapitalTimeEntries;

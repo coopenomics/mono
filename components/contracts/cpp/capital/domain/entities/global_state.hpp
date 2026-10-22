@@ -125,6 +125,16 @@ inline global_state get_global_state(name coopname) {
 }
 
 /**
+ * @brief Есть ли у кооператива глобальное состояние программы (настройка
+ * Благороста проведена). До настройки распределения членских взносов не было
+ * и начислений по CRPS нет.
+ */
+inline bool has_global_state(name coopname) {
+  global_state_table global_state_inst(_capital, _capital.value);
+  return global_state_inst.find(coopname.value) != global_state_inst.end();
+}
+
+/**
  * @brief Проверяет что контракт инициализирован.
  *
  * @param coopname Имя кооператива.

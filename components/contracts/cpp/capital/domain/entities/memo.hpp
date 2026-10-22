@@ -35,6 +35,10 @@ namespace Capital::Memo {
     return "Зачёт части целевого паевого взноса по программе 'Благорост' в качестве паевого взноса по программе 'Цифровой Кошелёк' с ID: " + std::to_string(withdraw_id);
   }
 
+  inline std::string get_share_transfer_memo() {
+    return "Трансляция паевого взноса из ЦПП «Благорост» в ЦПП «Цифровой Кошелёк» по заявлению пайщика";
+  }
+
   inline std::string get_approve_invest_memo(uint64_t contributor_id) {
     return "Зачёт части целевого паевого взноса по программе 'Цифровой Кошелёк' в качестве паевого взноса по договору УХД с contributor_id:" + std::to_string(contributor_id);
   }

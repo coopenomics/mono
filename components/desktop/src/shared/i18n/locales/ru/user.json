@@ -229,7 +229,7 @@
       "typeOrganizationFull": "Юридические лица",
       "typeSectionHint": "От типа зависит набор полей в шаблоне импорта.",
       "typeSectionTitle": "Тип аккаунтов",
-      "uploadSectionHint": "Скачайте шаблон выше, заполните данными пайщиков и загрузите файл сюда.",
+      "uploadSectionHint": "Скачайте шаблон выше, заполните данными пайщиков и загрузите файл в эту область.",
       "uploadSectionTitle": "Загрузка CSV"
     },
     "loginForm": {
