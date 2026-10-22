@@ -114,7 +114,7 @@
       "agendaQuestionLabel": "Вопрос на повестке",
       "announceAllButton": "Объявить все ({count})",
       "announceConfirmLabel": "Объявить",
-      "announceConfirmMessage": "Вопросов к объявлению: {count}. Они уйдут в совет по порядку проектами решений, совет рассмотрит их на собрании.",
+      "announceConfirmMessage": "Вопросов к объявлению: {count}. Проекты решений по ним направляются в совет по порядку, совет рассмотрит их на заседании.",
       "announceConfirmTitle": "Объявить вопросы в совет?",
       "announceOneButton": "Объявить вопрос",
       "badgeApproved": "Утверждено",
