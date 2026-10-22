@@ -33,7 +33,8 @@
       template(#cell-status="{ row }")
         BaseBadge(v-if="row.awaiting" :variant="row.overdue ? 'neg' : 'warn'") {{ $t(row.overdue ? 'edubridge.teacherReportsPage.overdue' : 'edubridge.teacherReportsPage.awaiting') }}
         BaseBadge(v-else-if="row.contribution" :variant="statusOf(row.contribution.status).variant") {{ statusOf(row.contribution.status).label }}
-        BaseBadge(v-else-if="row.learners_count" variant="info") {{ $t('edubridge.teacherLessonsPage.statusInGuarantee') }}
+        //- Отчёт в гарантийный срок: документы подписываются после него — дата конца срока видна сразу.
+        BaseBadge(v-else-if="row.learners_count" variant="info") {{ guaranteeLabelOf(row) }}
         template(v-else) ______
       //- Действие за преподавателем — своей колонкой справа; нажатие строку не открывает.
       template(#cell-actions="{ row }")
@@ -52,6 +53,9 @@
       DataRow(:label="$t('edubridge.teacherLessonsPage.details.number')" :value="lessonNumbersOf(details)")
       DataRow(v-if="details.learners_count" :label="$t('edubridge.teacherLessonsPage.details.learners')" :value="String(details.learners_count)")
       DataRow(v-if="!details.contribution && expectedOf(details)" :label="$t('edubridge.teacherLessonsPage.details.amount')" :value="formatAsset2Digits(expectedOf(details))" )
+      template(v-if="inGuarantee(details)")
+        DataRow(:label="$t('edubridge.teacherLessonsPage.details.guaranteeUntil')" :value="formatDeadline(details.guarantee_until)")
+        .t-muted.t-sm.q-mt-sm {{ $t('edubridge.teacherLessonsPage.details.guaranteeHint') }}
       template(v-if="details.contribution")
         DataRow(:label="$t('edubridge.teacherLessonsPage.details.amount')" :value="formatAsset2Digits(details.contribution.amount)")
         DataRow(v-if="details.contribution.hold_until" :label="$t('edubridge.teacherLessonsPage.details.holdUntil')" :value="formatDate(details.contribution.hold_until)")
@@ -85,7 +89,7 @@ import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { BaseBadge, BaseButton, BaseCard, EmptyState, BaseTable, type BaseTableColumn } from 'src/shared/ui/base';
 import { DataRow, DetailsDrawer } from 'src/shared/ui/domain';
 import { CONTRIBUTION_STATUS_LABELS, commitLessonMaterials, signAct, type IContribution, type ILesson } from '../../entities/Teacher';
-import { formatLessonMoment } from '../../entities/Lesson';
+import { formatDeadline, formatLessonMoment } from '../../entities/Lesson';
 import { useTeacherLessons } from '../../features/TeacherLessons';
 import { LessonReportDialog } from '../../widgets/LessonReportDialog';
 import { lessonActionOf, type LessonAction } from '../../shared/lib/lessonAction';
@@ -184,6 +188,14 @@ function openDetails(row: ILessonRow): void {
 }
 
 
+/** Отчёт сохранён в гарантийный срок группы: взноса ещё нет, документы ждут конца срока. */
+const inGuarantee = (row: ILessonRow): boolean => !row.awaiting && !row.contribution && !!row.learners_count && !!row.guarantee_until;
+// Срок прошёл, а взноса ещё нет — очередь оформляет его: прошедшая дата «до …» читалась бы как ошибка.
+const guaranteeLabelOf = (row: ILessonRow): string => {
+  if (!row.guarantee_until) return t('edubridge.teacherLessonsPage.statusInGuarantee');
+  if (new Date(String(row.guarantee_until)).getTime() <= Date.now()) return t('edubridge.teacherLessonsPage.statusGuaranteeEnded');
+  return t('edubridge.teacherLessonsPage.statusInGuaranteeUntil', { date: formatDeadline(row.guarantee_until) });
+};
 const formatDate = (v: unknown) => (v ? new Date(String(v)).toLocaleDateString('ru-RU') : '______');
 
 async function onTransfer(lesson: ILesson): Promise<void> {

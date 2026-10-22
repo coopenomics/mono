@@ -1000,6 +1000,19 @@ describe('Допуски по списку «Курс ведут»', () => {
     expect((await service.lessonDtos('voskhod', [lesson]))[0]).toMatchObject({ learners_paid: 1, overdue: true });
   });
 
+  it('конец гарантийного срока у занятия — начало занятий группы плюс дни гарантии; без гарантии или до начала занятий — пусто', async () => {
+    const { service } = make();
+    const groups = (service as any).groups;
+    const lesson = { id: 'LG', coopname: 'voskhod', course_id: 'C1', group_id: 'G1', lesson_number: 1, held_at: new Date('2026-10-22T12:03:01Z'), duration_minutes: 60, status: 'held', origin: 'schedule', topic: '', materials: [], contribution_id: null } as any;
+    const group = { id: 'G1', chain_ref: '3', course_id: 'C1', title: 'Группа 1', status: 'active', report_days: 7, starts_at: '2026-10-22', starts_at_time: new Date('2026-10-22T12:03:01Z') };
+    groups.get.mockResolvedValue({ ...group, guarantee_days: 14 });
+    expect((await service.lessonDtos('voskhod', [lesson]))[0].guarantee_until).toEqual(new Date('2026-11-05T12:03:01Z'));
+    groups.get.mockResolvedValue({ ...group, guarantee_days: 0 });
+    expect((await service.lessonDtos('voskhod', [lesson]))[0].guarantee_until).toBeNull();
+    groups.get.mockResolvedValue({ ...group, guarantee_days: 14, starts_at: null, starts_at_time: null });
+    expect((await service.lessonDtos('voskhod', [lesson]))[0].guarantee_until).toBeNull();
+  });
+
   it('период — от начала занятий на весь срок программы; без даты — от сегодня', () => {
     // Месяц — четыре недели: восемь месяцев программы — 224 дня, последний день назначения — 223-й от начала.
     expect(coursePeriod({ starts_at: '2026-09-23', program_months: 8 } as any)).toEqual({ from: '2026-09-23', to: '2027-05-04' });

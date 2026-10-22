@@ -276,13 +276,17 @@ export class EduLessonDTO {
   @Field(() => Boolean, { description: 'Срок на отчёт вышел, отчёта нет; у занятия без обучающихся с оплаченным доступом отчёт не ждут' }) overdue!: boolean;
   @Field(() => Int, { description: 'Обучающихся с оплаченным доступом на дату занятия: ноль — расчёта по занятию не будет, отчёт не требуется' }) learners_paid!: number;
   @Field(() => String, { nullable: true, description: 'Показ суммы взноса преподавателя за занятие по ставке допуска, окну расписания и обучающимся с оплаченным доступом; окончательную сумму считает контракт' }) expected_amount!: string | null;
+  @Field(() => Date, { nullable: true, description: 'Когда кончается гарантийный срок группы: до этого момента отчёт закрывает занятие, а акт и заявление о взносе подписываются после; пусто — гарантии нет либо занятия группы не начались' }) guarantee_until!: Date | null;
   @Field(() => Date, { nullable: true, description: 'Когда подан отчёт' }) reported_at!: Date | null;
   @Field(() => Int, { description: 'Длительность, минут' }) duration_minutes!: number;
   @Field(() => Int, { nullable: true, description: 'Участников с оплаченным доступом, по которым проведён расчёт за занятие' }) learners_count!: number | null;
   @Field(() => [String], { description: 'Материалы занятия' }) materials!: string[];
   @Field(() => ID, { nullable: true, description: 'Взнос, оформленный по занятию' }) contribution_id!: string | null;
 
-  constructor(e: EdubridgeLessonRecord, titles: { course: string; group?: string; reportDays?: number; learnersPaid?: number; expectedAmount?: string | null }) {
+  constructor(
+    e: EdubridgeLessonRecord,
+    titles: { course: string; group?: string; reportDays?: number; learnersPaid?: number; expectedAmount?: string | null; guaranteeUntil?: Date | null },
+  ) {
     const reportDays = titles.reportDays ?? 7;
     this.id = e.id;
     this.course_id = e.course_id;
@@ -299,6 +303,7 @@ export class EduLessonDTO {
     this.ends_at = lessonEndsAt(e);
     this.report_until = reportUntil(e, reportDays);
     this.applySettlement(e, titles);
+    this.guarantee_until = titles.guaranteeUntil ?? null;
     this.reported_at = e.reported_at ?? null;
     this.duration_minutes = e.duration_minutes;
     this.learners_count = e.learners_count ?? null;

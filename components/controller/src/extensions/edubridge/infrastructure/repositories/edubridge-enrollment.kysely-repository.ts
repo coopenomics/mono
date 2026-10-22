@@ -44,12 +44,14 @@ export class EdubridgeEnrollmentKyselyRepository {
   }
 
   /** Активные подписки с истёкшим периодом — для воркера отзыва. */
-  /** Действующие подписки с удержанным взносом — кандидаты на разблокировку по истечении гарантийного срока курса. */
+  /** Действующие и истёкшие подписки с удержанным взносом — кандидаты на закрытие гарантийного срока группы. */
   findLocked(coopname: string, limit = 200): Promise<EdubridgeEnrollmentRecord[]> {
     return this.repo
       .sqlBuilder('e')
       .where('e.coopname = :coopname', { coopname })
-      .andWhere('e.status = :status', { status: EduEnrollmentStatus.ACTIVE })
+      // Истёкшая подписка остаётся в цепи до расчёта занятий: её гарантийный срок
+      // тоже закрывается, иначе взнос преподавателя за этот срок ждёт её вечно.
+      .andWhere('e.status IN (:...statuses)', { statuses: [EduEnrollmentStatus.ACTIVE, EduEnrollmentStatus.EXPIRED] })
       .andWhere('e.locked_amount IS NOT NULL')
       .orderBy('e.updated_at', 'ASC')
       .limit(limit)

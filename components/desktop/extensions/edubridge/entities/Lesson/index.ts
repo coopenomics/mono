@@ -79,6 +79,13 @@ export const RESERVE_WEEKDAY = 8;
 /** Дни недели коротко: 1 — понедельник … 7 — воскресенье. */
 export const WEEKDAY_OPTIONS = [1, 2, 3, 4, 5, 6, 7].map((value) => ({ value, label: t(`edubridge.schedule.weekday.${value}` as never) }));
 
+/** Срок с годом и временем: «05.11.2026, 17:03» — срок может лежать за пределами текущего года. */
+export function formatDeadline(value: unknown): string {
+  if (!value) return '______';
+  const d = new Date(String(value));
+  return `${d.toLocaleDateString('ru-RU')}, ${d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}`;
+}
+
 /** Момент занятия словами: «Чт 15.10, 17:00». */
 export function formatLessonMoment(value: unknown): string {
   if (!value) return '______';

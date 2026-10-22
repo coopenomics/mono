@@ -33,6 +33,7 @@ import { EdubridgeGroupService } from './edubridge-group.service';
 import { EdubridgeEnrollmentKyselyRepository } from '../../infrastructure/repositories/edubridge-enrollment.kysely-repository';
 import { chainAssignmentRef, EdubridgeChainTermsService, toChainTime } from './edubridge-chain-terms.service';
 import { isResumable } from '../../domain/lib/resumable';
+import { startMomentOf } from '../../domain/lib/group-start';
 import { formatDate, formatDateTime, lessonEndsAt } from '../../domain/lib/lesson-dates';
 import { EDUBRIDGE_CHAIN_PORT, type EdubridgeChainPort } from '../../domain/ports/edubridge-chain.port';
 import type {
@@ -977,7 +978,9 @@ export class EdubridgeTeacherService {
       const heldAt = new Date(l.held_at);
       const learnersPaid = (l.group_id ? subscriptions.get(l.group_id) ?? [] : []).filter((e) => paidAt(e, heldAt)).length;
       const expectedAmount = lessonAmountOf(l, group, rates.get(l.assignment_id ?? '') ?? null, learnersPaid);
-      return new EduLessonDTO(l, { course: titles.get(l.course_id) ?? '', group: group?.title, reportDays: group?.report_days, learnersPaid, expectedAmount });
+      // Конец гарантийного срока — по группе: тот же момент, что решает, сохраняется ли отчёт без документов.
+      const guaranteeUntil = group && group.guarantee_days > 0 ? guaranteeEndsAt({ starts_at: startMomentOf(group), guarantee_days: group.guarantee_days }) : null;
+      return new EduLessonDTO(l, { course: titles.get(l.course_id) ?? '', group: group?.title, reportDays: group?.report_days, learnersPaid, expectedAmount, guaranteeUntil });
     });
   }
 
