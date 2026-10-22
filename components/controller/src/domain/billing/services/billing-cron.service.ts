@@ -137,6 +137,12 @@ export class BillingCronService implements OnModuleInit, OnModuleDestroy {
       for (const coopname of coopnames) {
         await this.processCoop(coopname);
       }
+    } catch (error: any) {
+      // Такт вызывается из cron через `void`: необработанный отказ становится
+      // unhandledRejection, и общий обработчик гасит весь контроллер. Таймаут
+      // цепи при чтении реестра коопов — штатный случай под нагрузкой узла;
+      // такт пропускается, следующий повторит обход.
+      this.logger.error(`BillingCronService: такт оплат пропущен: ${error?.message ?? error}`);
     } finally {
       this.running = false;
     }
@@ -158,6 +164,9 @@ export class BillingCronService implements OnModuleInit, OnModuleDestroy {
       for (const coopname of coopnames) {
         await this.processPackageTopup(coopname);
       }
+    } catch (error: any) {
+      // Как и в такте оплат: отказ не выходит за пределы такта, иначе падает контроллер.
+      this.logger.error(`BillingCronService: такт бака пропущен: ${error?.message ?? error}`);
     } finally {
       this.packagesRunning = false;
     }

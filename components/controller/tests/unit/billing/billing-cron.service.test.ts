@@ -154,6 +154,20 @@ describe('BillingCronService — тик хаба', () => {
     release();
     await first;
   });
+
+  it('break: цепь не ответила при чтении реестра коопов (таймаут RPC) → такты оплат и бака завершаются без отказа, флаги наложения сняты — контроллер не падает', async () => {
+    const h = build();
+    const timeout = Object.assign(new Error('Цепь временно недоступна'), { code: 'BLOCKCHAIN_UNAVAILABLE' });
+    h.providerService.getCooperativesRegistry.mockRejectedValueOnce(timeout).mockRejectedValueOnce(timeout);
+    await expect(h.svc.tick()).resolves.toBeUndefined();
+    await expect(h.svc.tickPackages()).resolves.toBeUndefined();
+    expect(h.blockchainPort.pay).not.toHaveBeenCalled();
+    expect(h.blockchainPort.convertToAxn).not.toHaveBeenCalled();
+
+    // Следующий такт снова обходит коопы: флаг running не залип после отказа.
+    await h.svc.tick();
+    expect(h.blockchainPort.pay).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe('BillingCronService — идентификатор транзакции', () => {

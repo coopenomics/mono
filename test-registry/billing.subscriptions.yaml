@@ -125,6 +125,19 @@ cases:
     api: components/boot/src/tests/billing-tank.test.ts
     status: passing
 
+  - id: bill.break.15
+    level: backend
+    kind: break
+    scenario: >
+      Цепь не ответила хаб-крону при чтении реестра коопов (таймаут RPC под нагрузкой узла).
+    expect: >
+      такты оплат и бака пропускаются с записью в лог, отказ не выходит из такта —
+      контроллер не падает; следующий такт обходит коопы заново
+    test: components/controller/tests/unit/billing/billing-cron.service.test.ts
+    external: unreachable
+    external_reason: "таймаут RPC нельзя вызвать по требованию на стенде: узел цепи общий для всех процессов, его остановка рвёт сквозные прогоны"
+    status: passing
+
   - id: bill.break.03
     level: backend
     kind: break
