@@ -39,7 +39,7 @@ export default async ({ page, shot }) => {
     await withdraw.click();
     await page.waitForSelector('text=Заявление на возврат паевого взноса', { timeout: 15000 });
     await page.waitForTimeout(800);
-    await shot(page, '04-withdraw', 'Заявление на возврат паевого взноса: сумма в пределах доступного и способ получения. Заявление уходит в совет.');
+    await shot(page, '04-withdraw', 'Заявление на возврат паевого взноса: сумма в пределах доступного и способ получения. Заявление направляется в совет.');
     await page.keyboard.press('Escape');
     await page.waitForTimeout(800);
   }

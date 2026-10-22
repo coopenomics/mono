@@ -31,7 +31,7 @@ export default async ({ page, shot }) => {
   if (!(await way.innerText().catch(() => '')).includes('Очно')) await pick(page, 'Способ получения доступа', 'Очно');
   if (await page.locator('.q-menu').first().isVisible().catch(() => false)) await page.keyboard.press('Escape');
   await fill(page, 'Код пропуска', 'ПР-2042');
-  await shot(page, '02-new-learner', 'Новый обучающийся: фамилия, имя, отчество и способ получения доступа — очно по коду пропуска, на электронную почту или в Telegram. На этот адрес уходит доступ к курсу.');
+  await shot(page, '02-new-learner', 'Новый обучающийся: фамилия, имя, отчество и способ получения доступа — очно по коду пропуска, на электронную почту или в Telegram. На этот адрес направляется доступ к курсу.');
 
   await page.locator('.q-dialog button:has-text("Добавить")').last().click();
   await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});

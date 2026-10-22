@@ -33,7 +33,7 @@ export default async ({ page, context, shot, expect }) => {
     await announce.click();
     await page.waitForSelector('text=Объявить вопросы в совет?', { timeout: 15000 });
     await page.waitForTimeout(600);
-    await shot(page, '02-announce-confirm', 'Подтверждение объявления: вопросы уйдут в совет по порядку проектами решений, совет рассмотрит их на собрании.');
+    await shot(page, '02-announce-confirm', 'Подтверждение объявления: проекты решений по вопросам направляются в совет по порядку, совет рассмотрит их на заседании.');
     await page.locator('.q-dialog button:has-text("Объявить")').last().click();
     await page.waitForTimeout(2500);
     await signOnboardingAgreements(page);

@@ -17,7 +17,7 @@ export default async ({ page, context, shot, expect }) => {
   await shot(page, '03-confirm', 'Подтверждение одобрения документа председателем.');
   await page.locator('.q-dialog button:has-text("Одобрить")').last().click();
   // Сообщение об успехе живёт секунды; факт одобрения — строка ушла из ожидающих.
-  await expect(page.locator('tbody tr').filter({ hasText: 'Белоусов' }).first(), 'запрос не ушёл из ожидающих').toBeHidden({ timeout: 90000 });
+  await expect(page.locator('tbody tr').filter({ hasText: 'Белоусов' }).first(), 'запрос остался в ожидающих').toBeHidden({ timeout: 90000 });
   await page.waitForTimeout(2000);
-  await shot(page, '04-signed', 'Документ одобрен: председатель поставил вторую подпись, запрос ушёл из ожидающих. Отбор «Статус» показывает одобренные и отклонённые.');
+  await shot(page, '04-signed', 'Документ одобрен: председатель поставил вторую подпись, запрос снят из ожидающих. Отбор «Статус» показывает одобренные и отклонённые.');
 };

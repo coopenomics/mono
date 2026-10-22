@@ -60,7 +60,7 @@ export default async ({ page, context, shot, expect }) => {
   await expect(advance, 'нет платежа аванса пайщику').toBeVisible({ timeout: 30000 });
   await advance.click();
   await page.waitForTimeout(1000);
-  await shot(page, '05-advance-payment', 'Платёж аванса под отчёт: деньги уходят пайщику, он отвечает за них отчётом.');
+  await shot(page, '05-advance-payment', 'Платёж аванса под отчёт: деньги перечисляются пайщику, он отвечает за них отчётом.');
   await confirmPayment(page, advance);
   await page.waitForTimeout(1500);
   await shot(page, '07-report', 'Аванс выплачен. В раскрытой строке шаг «Отчёт пайщика»: если пайщик принёс чеки лично, кассир указывает потраченную сумму, прикладывает чек и отчитывается за него. Обычно пайщик отчитывается сам в своих платежах.');
