@@ -462,7 +462,7 @@
         "usnNotice": "Уведомление УСН"
       },
       "reportTypeMissingTitle": "Тип отчёта не задан",
-      "requisitesRequiredText": "Для отчёта «{reportTitle}» не хватает обязательных полей. Заполните их в разделе «Реквизиты», после чего вернитесь сюда.",
+      "requisitesRequiredText": "Для отчёта «{reportTitle}» не хватает обязательных полей. Заполните их в разделе «Реквизиты», после чего вернитесь к отчёту.",
       "requisitesRequiredTitle": "Сначала заполните реквизиты",
       "restoreStatusHint": "Вернуть обычный статус периода",
       "savingLabel": "Сохраняем…",

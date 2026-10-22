@@ -28,7 +28,7 @@
     "fss4": {
       "generationErrorMessage": "Ошибка генерации ЕФС-1: {message}",
       "pfrRegNumberRequiredPart1": "Для ЕФС-1 обязателен рег. номер страхователя в ПФР в формате XXX-XXX-XXXXXX ",
-      "pfrRegNumberRequiredPart2": "(поле signer.pfrRegNumber). Единый 10-значный номер СФР сюда не подходит — ",
+      "pfrRegNumberRequiredPart2": "(поле signer.pfrRegNumber). Единый 10-значный номер СФР для этого поля не подходит — ",
       "pfrRegNumberRequiredPart3": "оператор отклонит отчёт. Номер ПФР есть в выписке ЕГРЮЛ, в разделе о ",
       "pfrRegNumberRequiredPart4": "регистрации страхователя в территориальном органе СФР."
     },
