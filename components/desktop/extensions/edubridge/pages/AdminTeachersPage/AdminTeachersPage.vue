@@ -10,7 +10,7 @@
     row-key="username"
     :loading="firstLoad"
     :clickable-rows="true"
-    min-width="960px"
+    min-width="1120px"
     @row-click="openCard"
   )
     template(#cell-teacher="{ row }")
@@ -20,11 +20,14 @@
           .text-weight-medium.ellipsis {{ row.display_name || row.username }}
           .t-meta.t-muted.t-mono {{ row.username }}
     template(#cell-contract_status="{ row }")
-      BaseBadge(:variant="contractStatusOf(row.contract_status).variant") {{ contractStatusOf(row.contract_status).label }}
+      .edu-teachers__badge
+        BaseBadge(:variant="contractStatusOf(row.contract_status).variant") {{ contractStatusOf(row.contract_status).label }}
+        q-tooltip(max-width="320px") {{ contractStatusOf(row.contract_status).label }}
     template(#cell-hourly_rate="{ row }")
       span(v-if="parseFloat(row.hourly_rate) > 0") {{ formatAsset2Digits(row.hourly_rate) }}
       //- Ставка не назначена — дело администратора: без неё преподаватель в курс не ставится.
-      BaseBadge(v-else variant="warn") {{ $t('edubridge.adminTeachersPage.rate.notAssigned') }}
+      .edu-teachers__badge(v-else)
+        BaseBadge(variant="warn") {{ $t('edubridge.adminTeachersPage.rate.notAssigned') }}
     template(#cell-assignments="{ row }")
       span(v-if="row.assignments_active") {{ row.assignments_active }}
       span.t-muted(v-else) {{ $t('edubridge.adminTeachersPage.noCourses') }}
@@ -32,7 +35,7 @@
     //- Что ждёт подписи председателя у этого преподавателя: один документ — названием, несколько — числом.
     template(#cell-pending="{ row }")
       //- Метка не шире колонки: длинное название обрезается многоточием, целиком — в подсказке.
-      .edu-teachers__pending(v-if="row.pending_approvals.length")
+      .edu-teachers__badge(v-if="row.pending_approvals.length")
         BaseBadge(variant="warn")
           | {{ row.pending_approvals.length === 1 ? row.pending_approvals[0] : $t('edubridge.adminTeachersPage.pendingMany', { n: row.pending_approvals.length }) }}
         q-tooltip(max-width="320px") {{ row.pending_approvals.join('; ') }}
@@ -87,13 +90,17 @@ const current = ref<ITeacher | null>(null);
 
 // Номер договора — длинный ключ, в полосе он занимает место и ничего не решает:
 // его читают внутри карточки, когда нужен именно он.
+// Ширины — под самый длинный значок колонки с запасом: «Ожидает подписи
+// председателя», «не назначена», «Договор участия». Сумма колонок плюс место
+// под имя — это min-width таблицы: уже неё таблица прокручивается в своей
+// рамке, и колонки не наезжают одна на другую.
 const columns: BaseTableColumn<ITeacher>[] = [
   { key: 'teacher', label: i18nT('edubridge.adminTeachersPage.column.teacher') },
-  { key: 'contract_status', label: i18nT('edubridge.adminTeachersPage.column.contractStatus'), width: '180px' },
-  { key: 'hourly_rate', label: i18nT('edubridge.adminTeachersPage.column.hourlyRate'), numeric: true, width: '120px', nowrap: true },
+  { key: 'contract_status', label: i18nT('edubridge.adminTeachersPage.column.contractStatus'), width: '260px', nowrap: true },
+  { key: 'hourly_rate', label: i18nT('edubridge.adminTeachersPage.column.hourlyRate'), numeric: true, width: '150px', nowrap: true },
   { key: 'assignments', label: i18nT('edubridge.adminTeachersPage.column.assignments'), width: '90px', nowrap: true },
-  { key: 'signed_at', label: i18nT('edubridge.adminTeachersPage.column.signedAt'), width: '110px', nowrap: true },
-  { key: 'pending', label: i18nT('edubridge.adminTeachersPage.column.pending'), width: '200px', nowrap: true },
+  { key: 'signed_at', label: i18nT('edubridge.adminTeachersPage.column.signedAt'), width: '120px', nowrap: true },
+  { key: 'pending', label: i18nT('edubridge.adminTeachersPage.column.pending'), width: '220px', nowrap: true },
 ];
 
 const contractStatusOf = (s: string) => CONTRACT_STATUS_LABELS[s] ?? { label: s, variant: 'neutral' as const };
@@ -144,11 +151,14 @@ onMounted(load);
 </script>
 
 <style scoped>
-/* Метка документа на подписи не выходит за колонку: лишнее — многоточием. */
-.edu-teachers__pending {
-  max-width: 220px;
+/* Значок не выходит за свою колонку: ширина колонки рассчитана на самый
+   длинный текст, а если он всё же длиннее — конец заменяется многоточием,
+   целиком текст виден в подсказке. */
+.edu-teachers__badge {
+  max-width: 100%;
+  overflow: hidden;
 }
-.edu-teachers__pending :deep(.base-badge) {
+.edu-teachers__badge :deep(.base-badge) {
   display: inline-block;
   max-width: 100%;
   overflow: hidden;
