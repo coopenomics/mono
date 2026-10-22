@@ -16,6 +16,13 @@ export const RECIPIENT_LABELS: Record<string, string> = {
   [Zeus.EduRecipientType.ONSITE]: t('edubridge.learner.recipient.ONSITE'),
 };
 
+/**
+ * Способы получения доступа, которые форма обучающегося предлагает сейчас.
+ * Skillspace и GetCourse выдают доступ только на адрес почты; Telegram и
+ * очный пропуск скрыты вместе с их направлениями курса (22.10.2026).
+ */
+export const OPEN_RECIPIENT_TYPES: Zeus.EduRecipientType[] = [Zeus.EduRecipientType.EMAIL];
+
 /** Год — только у подписок, открытых до взноса за весь курс; новые так не оформляются. */
 export const PERIOD_LABELS: Record<string, string> = {
   [Zeus.EduEnrollmentPeriod.MONTH]: t('edubridge.enrollment.period.MONTH'),

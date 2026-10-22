@@ -12,6 +12,7 @@ import {
   CARRIERS_BY_DIRECTION,
   COURSE_IMAGE_MAX_BYTES,
   DIRECTION_LABELS,
+  OPEN_DIRECTIONS,
   PLATFORM_CARRIERS,
   createCourse,
   fetchPlatformCourses,
@@ -271,8 +272,6 @@ function useFeePreview(economy: ReturnType<typeof useEconomyFields>) {
   return { fee, feeError, ...labels };
 }
 
-const directionOptions = Object.entries(DIRECTION_LABELS).map(([value, label]) => ({ value, label }));
-
 /** Реестр школы читается под выбранную площадку; смена площадки читает его заново. */
 function watchPlatformCatalog(form: CourseFormFields, hasCatalog: ComputedRef<boolean>, platformCourses: Ref<IPlatformCourse[]>): void {
   watch(
@@ -300,6 +299,12 @@ function useAccess(form: CourseFormFields) {
   const platformCourses = ref<IPlatformCourse[]>([]);
   const skillspaceCourseId = ref<string | null>(null);
   const skillspaceGroupId = ref<string | null>(null);
+  // Скрытое направление остаётся в списке только у курса, который на нём уже стоит.
+  const directionOptions = computed(() =>
+    Object.entries(DIRECTION_LABELS)
+      .filter(([value]) => OPEN_DIRECTIONS.includes(value as Zeus.EduCourseDirection) || value === form.direction)
+      .map(([value, label]) => ({ value, label })),
+  );
   const allowedCarriers = computed(() => CARRIERS_BY_DIRECTION[form.direction] ?? []);
   const carrierOptions = computed(() => allowedCarriers.value.map((value) => ({ value, label: CARRIER_LABELS[value] ?? value })));
   const isPlatform = computed(() => PLATFORM_CARRIERS.includes(form.carrier));

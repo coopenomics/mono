@@ -1,7 +1,8 @@
 // Сценарий: администратор добавляет курс. Форма из шести шагов: курс,
 // занятия и взнос (окна расписания), выдача доступа, первая группа,
-// преподаватели, обложка. Курс сохраняется черновиком — публикация показана
-// на странице курса.
+// преподаватели, обложка. Курс не сохраняется: на стенде документации нет
+// ключей Skillspace и GetCourse, а курс для остальных статей создаёт
+// подготовка `edubridge:02-course`. Очное направление скрыто с 22.10.2026.
 
 import path from 'node:path';
 import { HARNESS_ROOT, loginAsChairman } from '../../../lib/harness.mjs';
@@ -53,9 +54,10 @@ export default async ({ page, context, shot, expect }) => {
 
   // ── Выдача доступа ──────────────────────────────────────────────────────
   await next(page);
-  await pick(page, 'Тип направления', 'Очное обучение');
+  // Без ключей площадки реестр школы не читается: сообщение об этом гаснет до снимка.
+  await page.locator('.q-notification').first().waitFor({ state: 'detached', timeout: 15000 }).catch(() => {});
   await page.waitForTimeout(400);
-  await shot(page, '05-access', 'Выдача доступа: направление и носитель — очно по коду пропуска либо курс на площадке.');
+  await shot(page, '05-access', 'Выдача доступа: площадка курса — Skillspace или GetCourse, курс выбирается из реестра школы.');
 
   // ── Первая группа и преподаватели ───────────────────────────────────────
   await next(page);
@@ -76,10 +78,4 @@ export default async ({ page, context, shot, expect }) => {
   await page.locator('input.edu-course-form__file').setInputFiles(path.join(HARNESS_ROOT, 'fixtures', 'cover-oge-math.jpg'));
   await page.waitForTimeout(1500);
   await shot(page, '07-cover', 'Обложка курса для каталога: JPEG, PNG или WEBP, лучше 1600 × 900. Без обложки плитка курса в каталоге пустая.');
-  await page.locator('button:has-text("Добавить курс")').last().click();
-  // Курс сохранён — открылась его страница с хлебной крошкой к реестру.
-  await page.waitForSelector('text=К реестру курсов', { timeout: 30000 });
-  await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
-  await page.waitForTimeout(1200);
-  await shot(page, '08-course-saved', 'Курс сохранён черновиком и открыт на своей странице. В каталог он попадёт после публикации.');
 };

@@ -46,6 +46,20 @@ export const CARRIERS_BY_DIRECTION: Record<Zeus.EduCourseDirection, Zeus.EduAcce
   [Zeus.EduCourseDirection.ONSITE]: [Zeus.EduAccessCarrier.ONSITE],
 };
 
+/**
+ * Направления, которые форма курса предлагает сейчас. Закрытое сообщество и
+ * очное обучение скрыты решением владельца 22.10.2026: у Telegram и ВКонтакте
+ * нет коннектора выдачи доступа, очный пропуск не выстроен и станет отдельным
+ * приложением. Сервер прежние направления принимает — на них стоят курсы
+ * прошлых лет и тестовые стенды. Вернуть направление — дописать его в список.
+ */
+export const OPEN_DIRECTIONS: Zeus.EduCourseDirection[] = [Zeus.EduCourseDirection.ONLINE_PLATFORM];
+
+/** Носители скрытых направлений: страница площадок их карточек не показывает. */
+export const HIDDEN_CARRIERS: Zeus.EduAccessCarrier[] = (Object.keys(CARRIERS_BY_DIRECTION) as Zeus.EduCourseDirection[])
+  .filter((d) => !OPEN_DIRECTIONS.includes(d))
+  .flatMap((d) => CARRIERS_BY_DIRECTION[d]);
+
 /** Носители, у которых есть идентификатор курса на площадке. */
 export const PLATFORM_CARRIERS: Zeus.EduAccessCarrier[] = [Zeus.EduAccessCarrier.SKILLSPACE, Zeus.EduAccessCarrier.GETCOURSE];
 

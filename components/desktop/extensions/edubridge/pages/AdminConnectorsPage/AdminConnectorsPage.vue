@@ -44,7 +44,7 @@ import { useFirstLoad } from 'src/shared/lib/composables';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { BaseBadge, BaseButton, BaseCard, BaseDialog, BaseForm, BaseInput, CardListSkeleton } from 'src/shared/ui/base';
 import { DataRow, PageHint } from 'src/shared/ui/domain';
-import { CARRIER_LABELS } from '../../entities/Course';
+import { CARRIER_LABELS, HIDDEN_CARRIERS } from '../../entities/Course';
 import { HEALTH_LABELS, checkConnector, fetchConnectors, setConnectorCredentials, setConnectorEnabled, type IConnector } from '../../entities/Admin';
 import { useLiveReload } from 'src/shared/lib/realtime';
 import { EduLive } from '../../shared/lib/live';
@@ -84,7 +84,8 @@ function replace(c: IConnector): void {
 async function load(): Promise<void> {
   loading.value = true;
   try {
-    items.value = await fetchConnectors();
+    // Площадки скрытых направлений курса не показываются: курсов на них не создать.
+    items.value = (await fetchConnectors()).filter((c) => !HIDDEN_CARRIERS.includes(c.carrier as Zeus.EduAccessCarrier));
   } catch (e) {
     FailAlert(e);
   } finally {

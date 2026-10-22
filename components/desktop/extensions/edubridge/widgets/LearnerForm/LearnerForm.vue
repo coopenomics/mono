@@ -6,7 +6,7 @@ BaseForm(:loading="loading" @submit="submit")
     BaseRadioCard(v-model="who" value="other" :title="$t('edubridge.learnerForm.whoOther')")
   template(v-if="showFields")
     BaseInput(v-if="!form.is_self" v-model="form.display_name" :label="$t('edubridge.learnerForm.displayNameLabel')" v-bind="PLAIN_FIELD" required)
-    BaseSelect(v-model="form.recipient_type" :label="$t('edubridge.learnerForm.recipientTypeLabel')" :options="recipientOptions" required)
+    BaseSelect(v-if="recipientOptions.length > 1" v-model="form.recipient_type" :label="$t('edubridge.learnerForm.recipientTypeLabel')" :options="recipientOptions" required)
     BaseInput(v-model="form.recipient_value" :label="recipientLabel" v-bind="PLAIN_FIELD" required)
   template(#footer)
     .row.justify-end.q-gutter-sm
@@ -21,7 +21,7 @@ import { Zeus } from '@coopenomics/sdk';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { BaseButton, BaseForm, BaseInput, BaseRadioCard, BaseSelect } from 'src/shared/ui/base';
 import { useSessionStore } from 'src/entities/Session';
-import { addLearner, RECIPIENT_LABELS, updateLearner, type ILearner, type ILearnerInput } from '../../entities/Learner';
+import { addLearner, OPEN_RECIPIENT_TYPES, RECIPIENT_LABELS, updateLearner, type ILearner, type ILearnerInput } from '../../entities/Learner';
 import { selfLearnerInput } from './model/selfLearner';
 import { t } from '../../i18n';
 
@@ -72,7 +72,12 @@ watch(
   { immediate: true },
 );
 
-const recipientOptions = Object.entries(RECIPIENT_LABELS).map(([value, label]) => ({ value, label }));
+// Скрытый способ остаётся в списке только у обучающегося, у которого он уже стоит.
+const recipientOptions = computed(() =>
+  Object.entries(RECIPIENT_LABELS)
+    .filter(([value]) => OPEN_RECIPIENT_TYPES.includes(value as Zeus.EduRecipientType) || value === form.recipient_type)
+    .map(([value, label]) => ({ value, label })),
+);
 const RECIPIENT_FIELD_LABELS: Record<string, string> = {
   [Zeus.EduRecipientType.EMAIL]: t('edubridge.learnerForm.recipientLabel.EMAIL'),
   [Zeus.EduRecipientType.TELEGRAM]: t('edubridge.learnerForm.recipientLabel.TELEGRAM'),

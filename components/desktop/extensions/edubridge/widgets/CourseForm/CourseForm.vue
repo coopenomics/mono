@@ -100,7 +100,8 @@ BaseForm.edu-course-form(ref="formEl" :loading="loading" :error="error" @submit=
   section.edu-course-form__section(v-if="show('access')")
     .edu-course-form__legend(v-if="!section") {{ $t('edubridge.courseForm.section.access') }}
     .edu-course-form__pair
-      BaseSelect(v-model="form.direction" :label="$t('edubridge.courseForm.directionLabel')" :options="directionOptions" required)
+      //- Одно открытое направление — выбирать нечего, остаётся выбор площадки.
+      BaseSelect(v-if="directionOptions.length > 1" v-model="form.direction" :label="$t('edubridge.courseForm.directionLabel')" :options="directionOptions" required)
         template(#append)
           FieldHelp(:text="COURSE_FORM_HELP.direction")
       BaseSelect(v-model="form.carrier" :label="$t('edubridge.courseForm.carrierLabel')" :options="carrierOptions" required)

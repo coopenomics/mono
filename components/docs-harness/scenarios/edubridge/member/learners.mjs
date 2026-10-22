@@ -1,7 +1,7 @@
 // Сценарий: обучающиеся ученика — список и добавление.
 
 import { loginAs } from '../../../lib/harness.mjs';
-import { EDU, loadFixture, openPage, settleAfterLogin, fill, pick } from '../../../lib/edu.mjs';
+import { EDU, loadFixture, openPage, settleAfterLogin, fill } from '../../../lib/edu.mjs';
 
 export const meta = {
   mode: 'docs',
@@ -26,11 +26,8 @@ export default async ({ page, shot }) => {
   const other = page.locator('text=Другой человек').first();
   if (await other.isVisible().catch(() => false)) await other.click();
   await fill(page, 'Фамилия, имя, отчество', 'Громова Вера Николаевна');
-  // Способ получения доступа: по умолчанию стоит очный — выбираем, только если стоит другой.
-  const way = page.locator('label:has-text("Способ получения доступа")').first();
-  if (!(await way.innerText().catch(() => '')).includes('Очно')) await pick(page, 'Способ получения доступа', 'Очно');
-  if (await page.locator('.q-menu').first().isVisible().catch(() => false)) await page.keyboard.press('Escape');
-  await fill(page, 'Код пропуска', 'ПР-2042');
+  // Доступ выдаётся на адрес почты: Skillspace и GetCourse другого не принимают.
+  await fill(page, 'Электронная почта', 'gromova.vera@example.com');
   await shot(page, '02-new-learner', 'Новый обучающийся: фамилия, имя, отчество и способ получения доступа — очно по коду пропуска, на электронную почту или в Telegram. На этот адрес направляется доступ к курсу.');
 
   await page.locator('.q-dialog button:has-text("Добавить")').last().click();
