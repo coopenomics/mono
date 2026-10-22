@@ -14,7 +14,7 @@
       row-key="id"
       :loading="firstLoad"
       :clickable-rows="true"
-      min-width="960px"
+      min-width="1000px"
       @row-click="openDetails"
     )
       template(#cell-lesson_number="{ row }") {{ lessonNumbersOf(row) }}
@@ -126,8 +126,9 @@ const columns: BaseTableColumn<ILessonRow>[] = [
   { key: 'held_at', label: t('edubridge.teacherLessonsPage.column.heldAt'), width: '110px', nowrap: true },
   { key: 'learners', label: t('edubridge.teacherReportsPage.column.learners'), numeric: true, width: '100px', nowrap: true },
   { key: 'amount', label: t('edubridge.teacherLessonsPage.column.amount'), numeric: true, width: '120px', nowrap: true },
-  { key: 'status', label: t('edubridge.teacherLessonsPage.column.status'), width: '190px', nowrap: true },
-  { key: 'actions', label: '', align: 'right', width: '150px', nowrap: true },
+  // Состояние переносится по словам; колонка действий — по самой широкой кнопке, «Подписать документы».
+  { key: 'status', label: t('edubridge.teacherLessonsPage.column.status'), width: '190px' },
+  { key: 'actions', label: '', align: 'right', width: '220px', nowrap: true },
 ];
 
 const statusOf = (s: string) => CONTRIBUTION_STATUS_LABELS[s] ?? { label: s, variant: 'neutral' as const };

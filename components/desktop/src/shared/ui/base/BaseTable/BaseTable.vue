@@ -287,6 +287,18 @@ const tableStyle = computed(() => ({
     overflow-wrap: anywhere;
   }
 
+  // Значок состояния в ячейке переносится по словам в пределах своей колонки,
+  // даже в колонке без переноса: в одну строку длинный статус («Ожидает
+  // передачи материалов») выходил на соседнюю колонку. Цвет значка остаётся,
+  // углы мягче — на две строки «таблетка» не ложится.
+  :deep(td .base-badge) {
+    white-space: normal;
+    overflow-wrap: normal;
+    text-align: left;
+    line-height: var(--p-lh-h2);
+    border-radius: var(--p-r-sm);
+  }
+
   &--sticky :deep(thead tr th) {
     position: sticky;
     top: 0;

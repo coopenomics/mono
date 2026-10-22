@@ -22,7 +22,6 @@
     template(#cell-contract_status="{ row }")
       .edu-teachers__badge
         BaseBadge(:variant="contractStatusOf(row.contract_status).variant") {{ contractStatusOf(row.contract_status).label }}
-        q-tooltip(max-width="320px") {{ contractStatusOf(row.contract_status).label }}
     template(#cell-hourly_rate="{ row }")
       span(v-if="parseFloat(row.hourly_rate) > 0") {{ formatAsset2Digits(row.hourly_rate) }}
       //- Ставка не назначена — дело администратора: без неё преподаватель в курс не ставится.
@@ -34,7 +33,7 @@
     template(#cell-signed_at="{ row }") {{ formatDate(row.signed_at) }}
     //- Что ждёт подписи председателя у этого преподавателя: один документ — названием, несколько — числом.
     template(#cell-pending="{ row }")
-      //- Метка не шире колонки: длинное название обрезается многоточием, целиком — в подсказке.
+      //- Метка не шире колонки: длинное название переносится, целиком — и в подсказке.
       .edu-teachers__badge(v-if="row.pending_approvals.length")
         BaseBadge(variant="warn")
           | {{ row.pending_approvals.length === 1 ? row.pending_approvals[0] : $t('edubridge.adminTeachersPage.pendingMany', { n: row.pending_approvals.length }) }}
@@ -151,20 +150,10 @@ onMounted(load);
 </script>
 
 <style scoped>
-/* Значок не выходит за свою колонку: ширина колонки рассчитана на самый
-   длинный текст, а если он всё же длиннее — конец заменяется многоточием,
-   целиком текст виден в подсказке. */
+/* Значок не выходит за свою колонку: длинный текст переносится по словам —
+   правило общее для ячеек BaseTable. */
 .edu-teachers__badge {
   max-width: 100%;
-  overflow: hidden;
-}
-.edu-teachers__badge :deep(.base-badge) {
-  display: inline-block;
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  vertical-align: middle;
 }
 .edu-teachers__person {
   display: flex;
