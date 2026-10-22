@@ -179,11 +179,21 @@ stack_migrate_schema() {
     host="$(grep -E '^POSTGRES_HOST=' "$boot_env" | tail -1 | cut -d= -f2-)"
     port="$(grep -E '^POSTGRES_PORT=' "$boot_env" | tail -1 | cut -d= -f2-)"
   fi
+  host="${POSTGRES_HOST:-${host:-127.0.0.1}}"
+  port="${POSTGRES_PORT:-${port:-5432}}"
+  # С 20.10.2026 схема накатывает и базу CoopID (coop_domain_db). В .env
+  # контроллера её адрес и пароль контейнерные: хост postgres и файл
+  # /run/secrets/coop_pg_app_password, которых на хосте нет. Миграция идёт с
+  # хоста, поэтому база CoopID берётся из той же службы postgres, что и
+  # основная, а пароль — из файла секрета в рабочем дереве.
   # ts-node сначала компилирует граф контроллера с проверкой типов — это
   # минута-две без единой строки вывода; спиннер показывает, что шаг живой.
   if ! (cd "$STACK_ROOT" && \
-    POSTGRES_HOST="${POSTGRES_HOST:-${host:-127.0.0.1}}" \
-    POSTGRES_PORT="${POSTGRES_PORT:-${port:-5432}}" \
+    POSTGRES_HOST="$host" \
+    POSTGRES_PORT="$port" \
+    COOP_DOMAIN_DB_HOST="$host" \
+    COOP_DOMAIN_DB_PORT="$port" \
+    COOP_DOMAIN_DB_PASSWORD_FILE="$STACK_ROOT/infra/coopid/secrets/coop_pg_app_password" \
     stack_spin "компиляция контроллера и накат схемы" \
       pnpm -F @coopenomics/controller run schema:migrate); then
     echo "✗ Миграции схемы не прошли — boot не запускаем"
