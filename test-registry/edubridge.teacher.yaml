@@ -716,6 +716,7 @@ cases:
     scenario: "Преподаватель отчитался о занятии в гарантийный срок группы; в реестре отчётов он видит, до какого момента идёт срок (просьба владельца 22.10.2026)."
     expect: "У занятия — конец гарантийного срока: начало занятий группы плюс дни гарантии; без гарантии или до начала занятий — пусто. Стол пишет «Гарантийный срок до ДД.ММ.ГГГГ, ЧЧ:ММ», после конца срока — «Гарантийный срок окончен»."
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    api: components/api-tests/src/edubridge/guarantee-term.test.ts
     status: written   # прогон — CI на полигоне ci/tests
 
   - id: edu.teach.break.11

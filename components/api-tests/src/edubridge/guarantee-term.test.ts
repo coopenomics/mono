@@ -127,6 +127,12 @@ describe.runIf(SHORT_DAYS)('Образование: конец гарантий�
       expect((await gql<any>(token, REFUND_PREVIEW, { id: e.id })).edubridgeRefundPreview.minutes_used).toBe(120)
   })
 
+  it(caseName('edu.teach.side.36', 'у занятия гарантийного срока видно, до какого момента идёт срок группы'), async () => {
+    const mine = (await gql<any>(teacherToken, MY_LESSONS)).edubridgeMyLessons.filter((l: any) => l.course_id === course.id && l.lesson_number <= 2)
+    expect(mine.length, 'отчитанные занятия срока в журнале преподавателя').toBe(2)
+    for (const l of mine) expect(new Date(l.guarantee_until).getTime(), 'конец срока — начало занятий плюс дни гарантии').toBe(endsAt)
+  })
+
   it(caseName('edu.enroll.side.29', 'заявление по гарантии удовлетворено: весь взнос возвращён, хотя занятия уже проведены'), async () => {
     const shareBefore = await walletOf(token, learner.account, SHARE_WALLET)
     const claim = await submitGuaranteeClaim(learner, token, granted.id, 'Занятия не подошли')
