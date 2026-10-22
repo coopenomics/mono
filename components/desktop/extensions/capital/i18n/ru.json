@@ -888,7 +888,7 @@
       "templateRouteTitle": "Шаблон",
       "trackerRouteTitle": "Время",
       "walletLabel": "Благорост",
-      "shareTransferRouteTitle": "Трансляция в Цифровой Кошелёк"
+      "shareTransferRouteTitle": "Трансляции"
     },
     "invitationDetailsWidget": {
       "blagorostReceivedLabel": "Получено по Благоросту",

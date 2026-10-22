@@ -7,7 +7,7 @@ BaseCard.access-card
       .access-card__title {{ $t('capital.shareTransfer.access.title') }}
       .access-card__meta {{ $t('capital.shareTransfer.access.meta') }}
   template(#actions)
-    BaseButton(variant='primary', size='sm', :disabled='!role', @click='openGrant')
+    BaseButton.access-card__grant(variant='primary', size='sm', :disabled='!role', @click='openGrant')
       template(#icon-left)
         q-icon(name='person_add', size='16px')
       | {{ $t('capital.shareTransfer.access.grantAction') }}
@@ -127,6 +127,13 @@ onMounted(load);
 </script>
 
 <style scoped lang="scss">
+/* Длинная подпись карточки сжимала колонку действий, и кнопка ломалась на
+   две строки (значок над текстом). Кнопка держит ширину, переносится подпись. */
+.access-card__grant {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
 .access-card__head {
   display: flex;
   flex-direction: column;

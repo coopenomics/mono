@@ -9,7 +9,7 @@ div
     @click='showDialog = true'
   )
     template(#icon-left)
-      q-icon(name='savings', size='18px')
+      q-icon(name='trending_up', size='18px')
     | {{ $t('capital.createProgramInvestButton.label') }}
 
   BaseDialog(
