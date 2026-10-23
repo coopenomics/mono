@@ -30,7 +30,7 @@ import { marketplaceDatabaseMigrations } from './marketplace/marketplace.databas
 import { sovietRobotDatabaseMigrations } from './soviet-robot/soviet-robot.database-migrations';
 import { reportsDatabaseMigrations } from './reports/reports.database-migrations';
 import { AppsCatalogProxyModule } from './apps-catalog-proxy/apps-catalog-proxy.module';
-import { DeveloperExtension, Schema as DeveloperSchema, defaultConfig as developerDefaultConfig } from './apps-catalog-proxy/developer-extension';
+import { DeveloperExtension, Schema as DeveloperSchema } from './apps-catalog-proxy/developer-extension';
 import { appsCatalogProxyDatabaseMigrations } from './apps-catalog-proxy/apps-catalog-proxy.database-migrations';
 import { appsCatalogProxyPorts } from './apps-catalog-proxy/apps-catalog-proxy.ports';
 
@@ -226,7 +226,9 @@ export const AppRegistry: INamedExtension = {
     image: 'https://i.ibb.co/HRW1nFY/Chat-GPT-Image-10-2025-20-40-57.png',
     class: AppsCatalogProxyModule,
     extensionClass: DeveloperExtension,
-    defaults: { enabled: true, config: developerDefaultConfig },
+    // Без defaults: стол нужен только кооперативу-оператору каталога, его
+    // председатель ставит расширение из витрины сам; в остальные кооперативы
+    // оно не попадает.
     databaseMigrations: appsCatalogProxyDatabaseMigrations,
     ports: appsCatalogProxyPorts,
     schema: DeveloperSchema,
