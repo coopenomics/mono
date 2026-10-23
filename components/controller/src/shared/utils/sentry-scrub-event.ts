@@ -20,6 +20,16 @@ export function scrubSensitiveDataFromSentryEvent(event: Event): Event {
     }
   }
 
+  // Cookies SDK разбирает из заголовка в отдельное поле, и чистка заголовков их
+  // не задевает. До 23.10.2026 события GlitchTip несли живые authentik_session,
+  // authentik_device и coop_session пайщиков (C28-94). Имена оставляем — по ним
+  // видно, какая сессия была у пайщика; значения не нужны ни для одного разбора.
+  if (event.request?.cookies) {
+    event.request.cookies = Object.fromEntries(
+      Object.keys(event.request.cookies).map((name) => [name, '[REDACTED]'])
+    );
+  }
+
   if (event.extra) {
     event.extra = redactSensitive(event.extra);
   }

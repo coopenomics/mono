@@ -54,6 +54,22 @@ describe('scrubSensitiveDataFromSentryEvent — секреты в Sentry-соб�
     expect(headers['content-type']).toBe('application/json');
   });
 
+  it('убирает значения cookies в event.request.cookies, имена оставляет', () => {
+    const event = {
+      request: {
+        headers: { cookie: 'authentik_session=s-secret; _ym_uid=42' },
+        cookies: { authentik_session: 's-secret', coop_session: 'c-secret', _ym_uid: '42' },
+      },
+    } as unknown as Event;
+
+    scrubSensitiveDataFromSentryEvent(event);
+
+    const cookies = (event.request as { cookies: Record<string, string> }).cookies;
+    expect(cookies).toEqual({ authentik_session: '[REDACTED]', coop_session: '[REDACTED]', _ym_uid: '[REDACTED]' });
+    expect(JSON.stringify(event)).not.toContain('s-secret');
+    expect(JSON.stringify(event)).not.toContain('c-secret');
+  });
+
   it('событие без extra/contexts/request не падает', () => {
     const event = { message: 'plain error' } as unknown as Event;
     expect(() => scrubSensitiveDataFromSentryEvent(event)).not.toThrow();
