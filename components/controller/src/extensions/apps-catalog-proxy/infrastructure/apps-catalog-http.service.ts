@@ -1,11 +1,12 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, type OnApplicationBootstrap } from '@nestjs/common';
+import { Interval } from '@nestjs/schedule';
+import { InnerKeyPermission, VAULT_PORT, type IVaultPort } from '@coopenomics/innercoop';
 import { PrivateKey } from '@wharfkit/antelope';
 import axios, { type AxiosInstance, AxiosError } from 'axios';
 import { v4 as uuidv4 } from 'uuid';
 import { ConfigService } from '@nestjs/config';
 import { platformSettings } from '@coopenomics/extension-kit';
 import { t } from '../i18n';
-import { accountPermissionHoldingKey, type ChainAccountPermission } from './catalog-signing-key';
 
 /** Код HTTP и текст отказа каталога: тело ответа, если оно есть, иначе сообщение ошибки. */
 function failureOf(err: unknown): { status: number | undefined; detail: string } {
@@ -260,8 +261,15 @@ export interface InstalledInstallScript {
  * возвращает пустой список вместо ошибки, чтобы dev-окружение без
  * apps-catalog (или CI без сети) не валило desktop boot.
  */
+/**
+ * Как часто ядро передаёт оркестратору tenant JWT каталога. Каталог выдаёт
+ * токен на 30 минут; раз в 10 минут оркестратор получает свежий задолго до
+ * истечения прежнего.
+ */
+const ORCHESTRATOR_TOKEN_PUSH_MS = 10 * 60_000;
+
 @Injectable()
-export class AppsCatalogHttpService {
+export class AppsCatalogHttpService implements OnApplicationBootstrap {
   private readonly logger = new Logger(AppsCatalogHttpService.name);
   private readonly client: AxiosInstance | null;
   /**
@@ -285,8 +293,6 @@ export class AppsCatalogHttpService {
    */
   private tenantJwt: string | null = null;
   private tenantJwtExpMs = 0;
-  /** Проверка ключа подписи каталога выполняется один раз на процесс. */
-  private signingKeyChecked: Promise<void> | null = null;
 
   /**
    * Настройки расширения — из env через ConfigService (как у chatcoop), а не
@@ -298,12 +304,13 @@ export class AppsCatalogHttpService {
     catalogApiKey: string | undefined;
     authUrl: string | undefined;
     tenantJwt: string | undefined;
-    catalogSigningKey: string | undefined;
-    chainRpcUrl: string | undefined;
     orchestratorUrl: string | undefined;
   };
 
-  constructor(configService: ConfigService) {
+  constructor(
+    configService: ConfigService,
+    @Inject(VAULT_PORT) private readonly vault: IVaultPort,
+  ) {
     const env = (name: string): string | undefined => {
       const value = configService.get<string>(name);
       return value === undefined || value === '' ? undefined : value;
@@ -313,8 +320,6 @@ export class AppsCatalogHttpService {
       catalogApiKey: env('APPS_CATALOG_OPERATOR_API_KEY'),
       authUrl: env('APPS_CATALOG_DELIVERY_URL'),
       tenantJwt: env('APPS_CATALOG_TENANT_JWT'),
-      catalogSigningKey: env('CATALOG_SIGNING_KEY'),
-      chainRpcUrl: env('BLOCKCHAIN_RPC'),
       orchestratorUrl: env('ORCHESTRATOR_URL'),
     };
     this.client = this.createAdminClient();
@@ -340,10 +345,10 @@ export class AppsCatalogHttpService {
 
   /** Клиент catalog-delivery под tenant JWT кооператива; без адреса и ключа — режим деградации. */
   private createAuthClient(): AxiosInstance | null {
-    const { authUrl, tenantJwt, catalogSigningKey } = this.settings;
-    if (!authUrl || !(tenantJwt || catalogSigningKey)) {
+    const { authUrl, tenantJwt } = this.settings;
+    if (!authUrl) {
       this.logger.warn(
-        'APPS_CATALOG_DELIVERY_URL + (CATALOG_SIGNING_KEY или APPS_CATALOG_TENANT_JWT) не заданы — subscribe mutation в degraded mode',
+        'APPS_CATALOG_DELIVERY_URL не задан — subscribe mutation в degraded mode',
       );
       return null;
     }
@@ -352,8 +357,8 @@ export class AppsCatalogHttpService {
     // через полчаса после деплоя. Поэтому заголовок ставится
     // interceptor'ом: статический APPS_CATALOG_TENANT_JWT (если задан —
     // отладочный режим) или авто-выпущенный через challenge→verify
-    // подписью ключа каталога CATALOG_SIGNING_KEY, с кэшем и обновлением
-    // по истечении.
+    // подписью ключа входа в каталог из хранилища узла, с кэшем и
+    // обновлением по истечении.
     authClient.interceptors.request.use(async (req) => {
       const jwt = tenantJwt ?? (await this.ensureTenantJwt());
       req.headers.Authorization = `Bearer ${jwt}`;
@@ -371,6 +376,36 @@ export class AppsCatalogHttpService {
       'ORCHESTRATOR_URL не задан — install.js отдаётся напрямую из catalog-operator без фильтра установленности (degraded)',
     );
     return null;
+  }
+
+  /** Оркестратор получает токен сразу при старте, не дожидаясь первого такта. */
+  onApplicationBootstrap(): void {
+    void this.pushCatalogTokenToOrchestrator();
+  }
+
+  /**
+   * Передать оркестратору tenant JWT каталога (Архитектура v5, 487-34).
+   *
+   * Оркестратор узнаёт подписки кооператива и скачивает пакеты из
+   * catalog-delivery от имени кооператива. Ключа входа в каталог у него нет:
+   * ключ живёт в хранилище ядра, и ядро отдаёт оркестратору только выпущенный
+   * этим ключом токен с ограниченным сроком. Направление — от ядра к
+   * оркестратору: токен не лежит на маршруте, который мог бы спросить любой
+   * контейнер сети расширений.
+   *
+   * Сбой не роняет ядро: оркестратор доработает на прежнем токене, следующий
+   * такт повторит передачу.
+   */
+  @Interval(ORCHESTRATOR_TOKEN_PUSH_MS) // timing: schedule — токен каталога живёт 30 минут
+  async pushCatalogTokenToOrchestrator(): Promise<void> {
+    if (!this.orchestratorClient || !this.settings.authUrl) return;
+    try {
+      const token = this.settings.tenantJwt ?? (await this.ensureTenantJwt());
+      await this.orchestratorClient.put('/v1/internal/catalog/tenant-token', { token });
+    }
+    catch (err) {
+      this.logger.warn(`tenant JWT каталога оркестратору не передан: ${failureOf(err).detail}`);
+    }
   }
 
   /** Сконфигурирован ли orchestrator-источник (E12-3 fallback-решение в контроллере). */
@@ -836,9 +871,10 @@ export class AppsCatalogHttpService {
   /**
    * Вернуть валидный tenant JWT кооператива, выпустив новый при
    * необходимости: `POST /v1/auth/challenge` → подпись challenge-строки
-   * ключом подписи каталога (CATALOG_SIGNING_KEY) → `POST /v1/auth/verify`.
-   * Каталог сверяет подпись с `apps::coops.signing_key`, отдельным от
-   * разрешений аккаунта: этим ключом нельзя подписать транзакцию.
+   * ключом входа в каталог → `POST /v1/auth/verify`. Ключ выпускает и
+   * публикует ядро (`<coop>@catalog`, CatalogKeyService), хранится он в
+   * хранилище узла; каталог сверяет подпись с ключом этого разрешения в цепи
+   * подсети кооператива. Транзакцию этим ключом не подписать.
    * Токен кэшируется до `exp` с минутным запасом — при штатной работе
    * выпуск происходит раз в ~29 минут, а не на каждый запрос.
    *
@@ -850,12 +886,10 @@ export class AppsCatalogHttpService {
     if (this.tenantJwt && Date.now() + REFRESH_MARGIN_MS < this.tenantJwtExpMs) {
       return this.tenantJwt;
     }
-    const signingKey = this.settings.catalogSigningKey;
+    const signingKey = await this.vault.getWif(platformSettings().coopname, InnerKeyPermission.CATALOG);
     if (!signingKey) {
       throw new Error(t('appsCatalogProxy.catalog.noCooperativeKey'));
     }
-    this.signingKeyChecked ??= this.assertNotAccountKey(signingKey);
-    await this.signingKeyChecked;
     const base = this.settings.authUrl;
     const challengeRes = await axios.post<{ challenge_string?: string }>(
       `${base}/v1/auth/challenge`,
@@ -882,29 +916,6 @@ export class AppsCatalogHttpService {
       `tenant JWT обновлён (exp ${new Date(this.tenantJwtExpMs).toISOString()})`,
     );
     return token;
-  }
-
-  /**
-   * Отказ, если ключ подписи каталога совпадает с ключом разрешения аккаунта
-   * кооператива. Каталогу нужен отдельный ключ, зарегистрированный в
-   * `apps::coops.signing_key`: такой ключ хранится в окружении открыто, и
-   * его утечка даёт только вход в каталог. Активный или владельческий ключ в
-   * окружении позволил бы подписывать транзакции кооператива. Без адреса цепи
-   * проверка пропускается.
-   */
-  private async assertNotAccountKey(signingKey: string): Promise<void> {
-    const rpc = this.settings.chainRpcUrl;
-    if (!rpc) return;
-    const res = await axios.post<{ permissions?: ChainAccountPermission[] }>(
-      `${rpc}/v1/chain/get_account`,
-      { account_name: platformSettings().coopname },
-      { timeout: 5000 },
-    );
-    const permission = accountPermissionHoldingKey(res.data.permissions ?? [], signingKey);
-    if (permission) {
-      this.signingKeyChecked = null;
-      throw new Error(t('appsCatalogProxy.catalog.signingKeyIsAccountKey', { permission }));
-    }
   }
 
   async activateSubscription(

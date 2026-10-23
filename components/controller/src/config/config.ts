@@ -515,12 +515,7 @@ const envVarsSchema = z.object({
     .string()
     .optional()
     // i18n-ignore: описание переменной окружения для схемы конфигурации при старте, до пайщика не доходит
-    .describe('Статический tenant JWT (только отладка: catalog-delivery выписывает их на 30 минут). В production использовать CATALOG_SIGNING_KEY — coopback сам выпускает и обновляет JWT.'),
-  CATALOG_SIGNING_KEY: z
-    .string()
-    .optional()
-    // i18n-ignore: описание переменной окружения для схемы конфигурации при старте, до пайщика не доходит
-    .describe('Закрытый ключ подписи каталога: открытая часть зарегистрирована в apps::coops.signing_key (regcoop/setcoop). Отдельный от разрешений аккаунта кооператива — транзакцию им не подписать; совпадение с ключом active/owner расширение отклоняет. Coopback выпускает им tenant JWT через challenge→verify catalog-delivery. Пусто и без APPS_CATALOG_TENANT_JWT = subscribe mutation в degraded mode.'),
+    .describe('Статический tenant JWT (только отладка: catalog-delivery выписывает их на 30 минут). В production coopback сам выпускает и обновляет JWT ключом разрешения catalog из хранилища.'),
 
   // E12-3: доставка фронт-частей расширений. install.js берётся из
   // volume-кэша orchestrator'а (только реально установленные у кооператива
@@ -803,7 +798,6 @@ export default {
   apps_catalog_auth: {
     url: envVars.data.APPS_CATALOG_DELIVERY_URL,
     tenant_jwt: envVars.data.APPS_CATALOG_TENANT_JWT,
-    catalog_signing_key: envVars.data.CATALOG_SIGNING_KEY,
   },
   orchestrator: {
     url: envVars.data.ORCHESTRATOR_URL,

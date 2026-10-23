@@ -112,7 +112,7 @@ export interface ReleaseInstallSpec {
   /** URL healthcheck'а (default — origin url + /_health). */
   healthUrl?: string;
   /**
-   * Per-package JWT, полученный по подписке через signed-request к catalog-delivery.
+   * Per-package JWT, выданный catalog-delivery по действующей подписке кооператива.
    * Идёт в docker login для pull'а из приватного registry.
    */
   pullJwt?: string;

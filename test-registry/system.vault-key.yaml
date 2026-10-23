@@ -60,3 +60,15 @@ cases:
     api: components/boot/src/tests/platform-key.test.ts
     status: written
 
+
+  # 487-34 (23.10.2026): ключ входа в каталог приложений — отдельное право хранилища.
+  - id: sys.vault.side.10
+    level: backend
+    kind: side
+    scenario: узел хранит ключ входа в каталог приложений рядом с ключом кооператива
+    expect: >
+      ключ лежит правом catalog и порт хранилища отдаёт его расширению по уровню
+      InnerKeyPermission.CATALOG; ключ кооператива (active) по этому уровню не выдаётся
+    test: components/controller/src/application/auth-v2/certificate/catalog-key.service.spec.ts
+    status: written
+    api: components/boot/src/tests/catalog-key.test.ts

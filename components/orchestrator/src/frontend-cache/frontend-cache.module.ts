@@ -8,9 +8,9 @@
  *    кэш живёт на том, что уже на диске;
  *  - `FRONTEND_CACHE_DIR` — каталог volume-кэша
  *    (default `/var/orchestrator/frontend-cache`);
- *  - `CATALOG_SIGNING_KEY` + `CATALOG_DELIVERY_BASE_URL` — включают независимую
- *    sha256-сверку с манифестом в catalog-delivery registry (тот же signed-request
- *    канал, что у auto-install watcher'а); без них принимаем по
+ *  - `CATALOG_DELIVERY_BASE_URL` — включает независимую sha256-сверку с
+ *    манифестом в catalog-delivery registry (вход — tenant JWT, который
+ *    передаёт ядро, как у auto-install watcher'а); без адреса принимаем по
  *    заголовку catalog-operator.
  *
  * Свой экземпляр {@link CatalogDeliveryReleaseMetadata} (а не общий с WatcherModule):
@@ -21,7 +21,7 @@
 import { Module } from '@nestjs/common';
 import { loadAppConfig } from '../config/app-config';
 import { CatalogDeliveryReleaseMetadata } from '../watcher/catalog-delivery-release-metadata.impl';
-import { catalogSigningKeyOrNull } from '../watcher/signed-request.client';
+import { CatalogTenantToken } from '../watcher/catalog-tenant-token';
 import { CatalogOperatorInstallSource, NoopInstallSource } from './catalog-operator-install-source.impl';
 import { FrontendCacheController } from './frontend-cache.controller';
 import { FRONTEND_CACHE_DIR, FrontendCacheService } from './frontend-cache.service';
@@ -52,17 +52,15 @@ import {
     },
     {
       provide: FRONTEND_MANIFEST_VERIFIER,
-      useFactory: async (): Promise<FrontendManifestVerifierPort | null> => {
+      inject: [CatalogTenantToken],
+      useFactory: (token: CatalogTenantToken): FrontendManifestVerifierPort | null => {
         const catalogDeliveryBaseUrl = process.env.CATALOG_DELIVERY_BASE_URL;
+        if (!catalogDeliveryBaseUrl) return null;
         const cfg = loadAppConfig();
-        const signingKey = await catalogSigningKeyOrNull(cfg.coopname);
-        if (!signingKey || !catalogDeliveryBaseUrl) return null;
-        return new CatalogDeliveryReleaseMetadata({
-          catalogDeliveryBaseUrl,
-          coopname: cfg.coopname,
-          catalogSigningKey: signingKey,
-          jwtSecret: cfg.jwtSecret,
-        });
+        return new CatalogDeliveryReleaseMetadata(
+          { catalogDeliveryBaseUrl, coopname: cfg.coopname, jwtSecret: cfg.jwtSecret },
+          token,
+        );
       },
     },
   ],

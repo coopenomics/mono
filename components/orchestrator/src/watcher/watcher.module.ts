@@ -1,19 +1,16 @@
 /**
- * @fileoverview WatcherModule — DI-проводка on-chain watcher'а (Story 10.5/10.5b).
+ * @fileoverview WatcherModule — DI-проводка watcher'а установки расширений.
  *
- * Реальные impl'ы портов включаются конфигурацией:
+ * Источник — catalog-delivery (Архитектура v5 каталога, 487-34): контракт
+ * apps выведен, подписки кооператива ведёт провайдер, каталог хранит копию.
  *
- *  - `CHAIN_RPC_URL` задан → {@link ChainRpcAppsEventStream} поллит таблицы
- *    apps-контракта (releases/subs/packages) через nodeos get_table_rows
- *    и синтезирует события; иначе — Noop (watcher молчит).
- *  - `CATALOG_SIGNING_KEY` + `CATALOG_DELIVERY_BASE_URL` заданы → {@link CatalogDeliveryReleaseMetadata}
- *    достаёт install-spec из npm-манифеста в catalog-delivery registry по
- *    signed-request + per-package JWT; иначе — Noop (install-spec взять
- *    неоткуда, auto-install отключён).
- *
- * Так dev-стенд без каталога стартует без ошибок, а полный стенд получает
- * автоматический pipeline «подписка/релиз on-chain → docker pull → run →
- * healthcheck → registry → supergraph recompose» без ручных вызовов.
+ *  - `CATALOG_DELIVERY_BASE_URL` задан → {@link CatalogDeliveryEventStream}
+ *    опрашивает действующие подписки кооператива и версии их выпусков,
+ *    {@link CatalogDeliveryReleaseMetadata} достаёт install-spec из
+ *    npm-манифеста в registry по per-package JWT. Вход в каталог — tenant JWT,
+ *    который передаёт ядро (ключ у оркестратора не хранится); пока токена нет,
+ *    опрос пропускается.
+ *  - адреса нет → Noop: dev-стенд без каталога стартует без ошибок.
  */
 import { Module } from '@nestjs/common';
 import { FrontendCacheModule } from '../frontend-cache/frontend-cache.module';
@@ -29,9 +26,9 @@ import {
   ReleaseMetadataPort,
 } from './ports';
 import { loadAppConfig } from '../config/app-config';
-import { ChainRpcAppsEventStream } from './chain-rpc-event-stream.impl';
+import { CatalogDeliveryEventStream } from './catalog-delivery-event-stream.impl';
 import { CatalogDeliveryReleaseMetadata } from './catalog-delivery-release-metadata.impl';
-import { catalogSigningKeyOrNull } from './signed-request.client';
+import { CatalogTenantToken } from './catalog-tenant-token';
 
 class NoopEventStream implements AppsContractEventStreamPort {
   async subscribe(_handler: (e: AppsContractEvent) => Promise<void>): Promise<{ unsubscribe(): void }> {
@@ -50,33 +47,41 @@ class NoopReleaseMetadata implements ReleaseMetadataPort {
   providers: [
     OnChainWatcherService,
     {
-      provide: APPS_CONTRACT_EVENT_STREAM,
-      useFactory: (): AppsContractEventStreamPort => {
-        const rpcUrl = process.env.CHAIN_RPC_URL;
-        if (!rpcUrl) return new NoopEventStream();
+      provide: RELEASE_METADATA_PORT,
+      inject: [CatalogTenantToken],
+      useFactory: (token: CatalogTenantToken): ReleaseMetadataPort => {
+        const catalogDeliveryBaseUrl = process.env.CATALOG_DELIVERY_BASE_URL;
+        if (!catalogDeliveryBaseUrl) return new NoopReleaseMetadata();
         const cfg = loadAppConfig();
-        return new ChainRpcAppsEventStream({
-          rpcUrl,
-          contractAccount: process.env.APPS_CONTRACT_ACCOUNT ?? 'apps',
-          coopname: cfg.coopname,
-          pollIntervalMs: Number(process.env.WATCHER_POLL_INTERVAL_MS ?? 15000),
-        });
+        return new CatalogDeliveryReleaseMetadata(
+          {
+            catalogDeliveryBaseUrl,
+            coopname: cfg.coopname,
+            jwtSecret: cfg.jwtSecret,
+            extensionsNetwork: process.env.EXTENSIONS_DOCKER_NETWORK,
+          },
+          token,
+        );
       },
     },
     {
-      provide: RELEASE_METADATA_PORT,
-      useFactory: async (): Promise<ReleaseMetadataPort> => {
+      provide: APPS_CONTRACT_EVENT_STREAM,
+      inject: [CatalogTenantToken, RELEASE_METADATA_PORT],
+      useFactory: (token: CatalogTenantToken, metadata: ReleaseMetadataPort): AppsContractEventStreamPort => {
         const catalogDeliveryBaseUrl = process.env.CATALOG_DELIVERY_BASE_URL;
-        const cfg = loadAppConfig();
-        const signingKey = await catalogSigningKeyOrNull(cfg.coopname);
-        if (!signingKey || !catalogDeliveryBaseUrl) return new NoopReleaseMetadata();
-        return new CatalogDeliveryReleaseMetadata({
-          catalogDeliveryBaseUrl,
-          coopname: cfg.coopname,
-          catalogSigningKey: signingKey,
-          jwtSecret: cfg.jwtSecret,
-          extensionsNetwork: process.env.EXTENSIONS_DOCKER_NETWORK,
-        });
+        if (!catalogDeliveryBaseUrl || !(metadata instanceof CatalogDeliveryReleaseMetadata)) {
+          return new NoopEventStream();
+        }
+        return new CatalogDeliveryEventStream(
+          {
+            catalogDeliveryBaseUrl,
+            coopname: loadAppConfig().coopname,
+            pollIntervalMs: Number(process.env.WATCHER_POLL_INTERVAL_MS ?? 15000),
+            releasePollEvery: Number(process.env.WATCHER_RELEASE_POLL_EVERY ?? 20),
+          },
+          token,
+          metadata,
+        );
       },
     },
     {

@@ -15,6 +15,7 @@ import { wifPermissions } from '~/domain/vault/types/vault.types';
  */
 const PERMISSION_IN_CORE: Record<InnerKeyPermission, wifPermissions> = {
   [InnerKeyPermission.ACTIVE]: wifPermissions.Active,
+  [InnerKeyPermission.CATALOG]: wifPermissions.Catalog,
 };
 
 @Injectable()

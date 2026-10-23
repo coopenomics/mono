@@ -1482,6 +1482,7 @@
 `enum` · core-ports
 
 - `ACTIVE = 'active',`
+- `CATALOG = 'catalog',`
 
 ## InnerLedger2Account
 

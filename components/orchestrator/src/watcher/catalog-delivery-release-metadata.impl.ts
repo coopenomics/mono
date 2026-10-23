@@ -6,7 +6,8 @@
  * нём — секцию `coopenomics.backend` (image, subgraphPort, healthcheck;
  * Story 10.7a). Доступ к registry — по per-package JWT, который выдаётся
  * `POST /v1/package/:scope/:name/token` ТОЛЬКО при активной подписке
- * кооператива (signed-request подписью кооперативного ключа).
+ * кооператива. Вход — tenant JWT кооператива, который оркестратору передаёт
+ * ядро: ключ входа в каталог у оркестратора не хранится (487-34).
  *
  * Тот же JWT возвращается в spec'е как `pullJwt` — им же делается
  * docker login/pull. Так подписка кооператива остаётся единственным
@@ -18,18 +19,14 @@
 import { Logger } from '@nestjs/common';
 import type { FrontendManifestVerifierPort } from '../frontend-cache/ports';
 import type { ReleaseInstallSpec, ReleaseMetadataPort } from './ports';
-import { SignedRequestSigner } from './signed-request.client';
+import type { CatalogTenantToken } from './catalog-tenant-token';
+import type { LatestVersionPort } from './catalog-delivery-event-stream.impl';
 
 const REQUEST_TIMEOUT_MS = 10_000;
 
 export interface CatalogDeliveryReleaseMetadataConfig {
   catalogDeliveryBaseUrl: string;
   coopname: string;
-  /**
-   * Ключ подписи каталога (`apps::coops.signing_key`) — для signed-request к
-   * catalog-delivery. Отдельный от разрешений аккаунта кооператива.
-   */
-  catalogSigningKey: string;
   /** JWT_SECRET стенда — прокидывается в контейнер расширения. */
   jwtSecret: string;
   /** Docker-сеть, в которой поднимаются расширения (для containerEnv/DNS). */
@@ -57,13 +54,21 @@ interface NpmPackumentLike {
 }
 
 export class CatalogDeliveryReleaseMetadata
-  implements ReleaseMetadataPort, FrontendManifestVerifierPort
+  implements ReleaseMetadataPort, FrontendManifestVerifierPort, LatestVersionPort
 {
   private readonly logger = new Logger(CatalogDeliveryReleaseMetadata.name);
-  private readonly signer: SignedRequestSigner;
 
-  constructor(private readonly cfg: CatalogDeliveryReleaseMetadataConfig) {
-    this.signer = new SignedRequestSigner(cfg.coopname, cfg.catalogSigningKey);
+  constructor(
+    private readonly cfg: CatalogDeliveryReleaseMetadataConfig,
+    private readonly token: CatalogTenantToken,
+  ) {}
+
+  /** `dist-tags.latest` пакета для этого кооператива; `null` — выпуска нет. */
+  async latestVersion(packageId: string): Promise<string | null> {
+    const coords = splitPackageId(packageId);
+    if (coords === null) return null;
+    const packument = await this.fetchPackument(coords, await this.issuePackageJwt(coords));
+    return packument['dist-tags']?.latest ?? null;
   }
 
   async fetchInstallSpec(opts: {
@@ -134,9 +139,8 @@ export class CatalogDeliveryReleaseMetadata
 
   private async issuePackageJwt(coords: { scope: string; name: string }): Promise<string> {
     const path = `/v1/package/@${coords.scope}/${coords.name}/token`;
-    const headers = this.signer.sign('POST', path, '');
     const body = (await this.request('POST', path, {
-      ...headers,
+      Authorization: `Bearer ${this.token.require()}`,
     })) as { token?: string };
     if (typeof body.token !== 'string' || body.token.length === 0) {
       throw new Error(`catalog-delivery ${path}: пустой token`);
@@ -160,6 +164,7 @@ export class CatalogDeliveryReleaseMetadata
     headers: Record<string, string>,
   ): Promise<unknown> {
     const ctrl = new AbortController();
+    // timing: timeout — запрос к каталогу не держит установку дольше 10 секунд
     const timer = setTimeout(() => ctrl.abort(), REQUEST_TIMEOUT_MS);
     try {
       const resp = await fetch(`${this.cfg.catalogDeliveryBaseUrl}${path}`, {

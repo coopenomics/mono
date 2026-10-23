@@ -1,0 +1,91 @@
+feature: apps.catalog-access
+title: Вход узла кооператива в каталог приложений — ключ catalog, токен для оркестратора, установка по подпискам
+
+# Архитектура v5 каталога (23.10.2026, @ant, задача 487-34). Контракт apps
+# выведен: подписки на приложения ведёт провайдер, каталог хранит их копию.
+# Каталог узнаёт кооператив по подписи ключом разрешения <coop>@catalog в цепи
+# его подсети. Ключ выпускает узел и хранит в хранилище ключей отдельным
+# правом `catalog`; в окружении ключа нет (раньше — CATALOG_SIGNING_KEY,
+# открытым текстом в файлах поставки; владелец отметил, что ключи узел нигде
+# открыто не хранит, и этот случай — нарушение правила). Разрешение не привязано
+# ни к одному действию: транзакцию этим ключом не подписать.
+#
+# Оркестратору ключ не отдаётся: ядро выпускает tenant JWT каталога и само
+# передаёт его оркестратору (раз в 10 минут, токен живёт 30). Оркестратор
+# опрашивает catalog-delivery: действующие подписки → установка/снятие,
+# версии выпусков → обновление.
+sources:
+  backend:
+    - components/controller/src/application/auth-v2/certificate/catalog-key.service.ts
+    - components/controller/src/extensions/apps-catalog-proxy/infrastructure/apps-catalog-http.service.ts
+    - components/orchestrator/src/watcher/**
+
+cases:
+  - id: apps.access.happy.01
+    level: backend
+    kind: happy
+    scenario: узел с каталогом стартует без ключа входа в каталог
+    expect: >
+      ключ выпускается, ложится в хранилище правом catalog, открытая часть публикуется
+      разрешением <coop>@catalog; при совпадении с цепью в цепь ничего не пишется
+    test: components/controller/src/application/auth-v2/certificate/catalog-key.service.spec.ts
+    status: written
+    api: components/boot/src/tests/catalog-key.test.ts
+
+  - id: apps.access.break.01
+    level: backend
+    kind: break
+    scenario: два хука старта публикуют ключ одновременно; публикация отвергнута, ключа в цепи нет; узел без каталога
+    expect: >
+      одна updateauth; сбой публикации не роняет старт (предупреждение в журнале); узел без
+      APPS_CATALOG_DELIVERY_URL ключ не выпускает и в цепь не пишет
+    test: components/controller/src/application/auth-v2/certificate/catalog-key.service.spec.ts
+    status: written
+    external: unreachable
+    external_reason: "гонку двух хуков старта и отказ цепи на updateauth через API стенда не создать"
+
+  - id: apps.access.happy.02
+    level: backend
+    kind: happy
+    scenario: оркестратор получил tenant JWT от ядра и опрашивает catalog-delivery
+    expect: >
+      первая выборка — активация каждой действующей подписки; новая подписка — активация;
+      пропавшая или истёкшая — снятие; новая версия выпуска — обновление; версии нет — отзыв
+    test: components/orchestrator/src/watcher/catalog-delivery-event-stream.impl.spec.ts
+    status: written
+    external: unreachable
+    external_reason: "опрос каталога ведёт оркестратор по таймеру; у стенда API нет точки, через которую эту смену событий вызвать и наблюдать — проверено прогоном на mono-ai-5 (случай e2e.01)"
+
+  - id: apps.access.break.02
+    level: backend
+    kind: break
+    scenario: продление подписки; каталог ответил ошибкой; установка при активации упала
+    expect: >
+      продление пакет не переустанавливает; ошибка каталога не превращается в снятие
+      подписок; неудавшаяся активация повторяется следующим опросом
+    test: components/orchestrator/src/watcher/catalog-delivery-event-stream.impl.spec.ts
+    status: written
+    external: unreachable
+    external_reason: "ошибку каталога и сбой docker pull через API стенда не создать"
+
+  - id: apps.access.side.01
+    level: backend
+    kind: side
+    scenario: оркестратор ещё не получил tenant JWT от ядра (только что перезапущен)
+    expect: в каталог не ходит — ни за спецификацией установки, ни за токеном пакета
+    test: components/orchestrator/src/watcher/catalog-delivery-release-metadata.impl.spec.ts
+    status: written
+    external: unreachable
+    external_reason: "окно между перезапуском оркестратора и первой передачей токена — доли секунды, снаружи его не поймать"
+
+  - id: apps.access.e2e.01
+    level: backend
+    kind: happy
+    scenario: >
+      подписка оформлена у провайдера → копия в каталоге → ядро передало токен →
+      оркестратор установил пакет; подписка отменена → пакет снят
+    expect: >
+      проверено на mono-ai-5 23.10.2026: @voskhod/demoapp 0.1.2 попал в кэш фронт-частей
+      оркестратора, sha256 сверен по манифесту через tenant JWT; снятие — не проверено
+    test: null
+    status: missing

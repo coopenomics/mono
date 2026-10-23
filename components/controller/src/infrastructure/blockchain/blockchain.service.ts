@@ -411,6 +411,15 @@ export class BlockchainService implements BlockchainPort {
    * именно затем, чтобы подпись удостоверений и распоряжение средствами не совпадали.
    */
   public async publishCertPermission(account: string, publicKey: string, signer?: string): Promise<void> {
+    await this.publishPermission(account, 'cert', publicKey, signer);
+  }
+
+  /**
+   * Публикует служебное разрешение аккаунта: дочернее к `active`, ровно один ключ,
+   * без делегирования. Правило то же, что у права заверения: проверяющий вне цепи
+   * сверяет подпись с единственным ключом разрешения.
+   */
+  public async publishPermission(account: string, permission: string, publicKey: string, signer?: string): Promise<void> {
     // Подписывает либо сам аккаунт, либо кооператив, которому переданы его
     // распорядительные права: цепь разрешает подпись по делегированию, а полномочие
     // указывается всё равно от имени аккаунта, которому меняют право.
@@ -426,7 +435,7 @@ export class BlockchainService implements BlockchainPort {
       authorization: [{ actor: account, permission: 'active' }],
       data: {
         account,
-        permission: 'cert',
+        permission,
         parent: 'active',
         auth: {
           threshold: 1,

@@ -1,13 +1,10 @@
 /**
  * @fileoverview Юнит-тесты CatalogDeliveryReleaseMetadata (Story 10.5b): получение
  * install-spec из npm-манифеста catalog-delivery registry. Сеть подменена mock'ом
- * global.fetch; подпись signed-request проверяется на форму заголовков.
+ * global.fetch. Вход в каталог — tenant JWT от ядра (487-34).
  */
 import { CatalogDeliveryReleaseMetadata, splitPackageId } from './catalog-delivery-release-metadata.impl';
-import { wifToPrivateKey } from './signed-request.client';
-
-// Известный dev-WIF voskhod (boot config.ini) — валиден как тестовая фикстура.
-const TEST_WIF = '5KQwrPbwdL6PhXujxW37FSSQZ1JiwsST4cqQzDeyXtP79zkvFD3';
+import { CatalogTenantToken } from './catalog-tenant-token';
 
 const PACKUMENT = {
   'dist-tags': { latest: '1.2.0' },
@@ -37,15 +34,6 @@ describe('splitPackageId', () => {
   });
 });
 
-describe('wifToPrivateKey', () => {
-  it('декодирует WIF в 32 байта', () => {
-    expect(wifToPrivateKey(TEST_WIF).length).toBe(32);
-  });
-  it('бросает на битой контрольной сумме', () => {
-    expect(() => wifToPrivateKey(TEST_WIF.slice(0, -1) + 'X')).toThrow();
-  });
-});
-
 describe('CatalogDeliveryReleaseMetadata', () => {
   const calls: Array<{ url: string; method: string; headers: Record<string, string> }> = [];
 
@@ -64,13 +52,20 @@ describe('CatalogDeliveryReleaseMetadata', () => {
       return new Response(JSON.stringify(packument), { status: 200 });
     };
 
-  const build = () =>
-    new CatalogDeliveryReleaseMetadata({
-      catalogDeliveryBaseUrl: 'http://catalog-delivery:3001',
-      coopname: 'voskhod',
-      catalogSigningKey: TEST_WIF,
-      jwtSecret: 'stand-secret',
-    });
+  const tenantToken = (value: string | null = 'tenant-jwt') => {
+    const token = new CatalogTenantToken();
+    if (value !== null) token.set(value);
+    return token;
+  };
+  const build = (token = tenantToken()) =>
+    new CatalogDeliveryReleaseMetadata(
+      {
+        catalogDeliveryBaseUrl: 'http://catalog-delivery:3001',
+        coopname: 'voskhod',
+        jwtSecret: 'stand-secret',
+      },
+      token,
+    );
 
   beforeEach(() => {
     calls.length = 0;
@@ -95,15 +90,27 @@ describe('CatalogDeliveryReleaseMetadata', () => {
       },
     });
 
-    // token-запрос подписан по канону signed-request
+    // токен пакета выдаётся по tenant JWT кооператива, подписи запроса нет
     const tokenCall = calls.find((c) => c.url.includes('/token'));
     expect(tokenCall?.method).toBe('POST');
-    expect(tokenCall?.headers['X-Signature']).toMatch(/^k1:/);
-    expect(tokenCall?.headers['X-Coopname']).toBe('voskhod');
-    expect(tokenCall?.headers['X-Nonce']).toMatch(/^[0-9a-f-]{36}$/);
+    expect(tokenCall?.headers['Authorization']).toBe('Bearer tenant-jwt');
+    expect(tokenCall?.headers['X-Signature']).toBeUndefined();
     // registry-запрос с Bearer per-package JWT
     const regCall = calls.find((c) => c.url.includes('/registry/'));
     expect(regCall?.headers['Authorization']).toBe('Bearer per-package-jwt');
+  });
+
+  it('break: tenant JWT от ядра ещё не получен — в каталог не ходим', async () => {
+    await expect(
+      build(tenantToken(null)).fetchInstallSpec({ packageId: '@voskhod/chatcoop', version: '' }),
+    ).rejects.toThrow(/tenant JWT/);
+    expect(calls).toEqual([]);
+  });
+
+  it('latestVersion → dist-tags.latest пакета для кооператива', async () => {
+    expect(await build().latestVersion('@voskhod/chatcoop')).toBe('1.2.0');
+    global.fetch = buildFetch({ versions: {} }) as typeof fetch;
+    expect(await build().latestVersion('@voskhod/chatcoop')).toBeNull();
   });
 
   it("version='' → dist-tags.latest", async () => {

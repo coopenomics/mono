@@ -129,6 +129,13 @@ export interface BlockchainPort {
    */
   publishCertPermission(account: string, publicKey: string, signer?: string): Promise<void>;
   /**
+   * Публикует служебное разрешение аккаунта (дочернее к `active`) — строго один
+   * ключ без делегирования. Такое разрешение не привязано ни к одному действию:
+   * им нельзя подписать транзакцию, только удостоверить кооператив вне цепи
+   * (например, ключ входа в каталог приложений `catalog`).
+   */
+  publishPermission(account: string, permission: string, publicKey: string, signer?: string): Promise<void>;
+  /**
    * Читает заверение субъекта из цепочки доверия. `null` — заверения нет, то есть
    * никто не подтверждал, что субъект вправе выпускать удостоверения.
    */

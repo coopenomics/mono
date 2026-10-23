@@ -2,11 +2,10 @@
   "appsCatalogProxy": {
     "catalog": {
       "adminNotConfigured": "Каталог приложений не подключён: не заданы APPS_CATALOG_OPERATOR_URL и APPS_CATALOG_OPERATOR_API_KEY",
-      "authNotConfigured": "Подписка через каталог не настроена: не заданы APPS_CATALOG_DELIVERY_URL и CATALOG_SIGNING_KEY",
+      "authNotConfigured": "Подписка через каталог не настроена: не задан APPS_CATALOG_DELIVERY_URL",
       "emptyChallenge": "Каталог не выдал строку для подписи при входе кооператива",
       "emptyToken": "Каталог не выдал токен входа кооператива",
-      "noCooperativeKey": "Не задан CATALOG_SIGNING_KEY: кооперативу нечем войти в каталог",
-      "signingKeyIsAccountKey": "Ключ подписи каталога совпадает с ключом разрешения {permission} аккаунта кооператива. Заведите отдельный ключ и зарегистрируйте его в каталоге действием setcoop",
+      "noCooperativeKey": "Ключ входа в каталог ещё не выпущен: узел выпускает его после ввода ключа кооператива",
       "tenantJwtNotConfigured": "Подписка через каталог не настроена: не заданы APPS_CATALOG_DELIVERY_URL и APPS_CATALOG_TENANT_JWT"
     },
     "publishers": {
