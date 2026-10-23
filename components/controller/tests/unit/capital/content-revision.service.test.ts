@@ -137,11 +137,74 @@ describe('ContentRevisionService.prepareWrite', () => {
   });
 
   it('cap.rev.break.01: rollbackWrite возвращает строку к предыдущей редакции и удаляет снимок', async () => {
-    const { service, revisions, row } = makeFakeDb({ title: 'T', description: 'v2', content_rev: 2 });
-    revisions.push({ rev: 1, title: 'T', description: 'v1' }, { rev: 2, title: 'T', description: 'v2' });
-    await service.rollbackWrite(ISSUE, 'h1', 2);
+    const { service, revisions, row } = makeFakeDb({ title: 'T', description: 'v1', content_rev: 1 });
+    revisions.push({ rev: 1, title: 'T', description: 'v1' });
+    const write = await service.prepareWrite({
+      entity_type: ISSUE,
+      entity_hash: 'h1',
+      author: 'alice',
+      origin: ContentRevisionOrigin.WEB,
+      base_rev: 1,
+      incoming: { description: 'v2' },
+    });
+    expect(row.description).toBe('v2');
+    await service.rollbackWrite(ISSUE, 'h1', write);
     expect(row.content_rev).toBe(1);
     expect(row.description).toBe('v1');
     expect(revisions.map((r) => r.rev)).toEqual([1]);
+  });
+
+  it('cap.rev.break.02: строка разошлась со снимком — откат возвращает строку, а не текст старой редакции', async () => {
+    // Дельта цепи стёрла описание мимо сервиса редакций: в строке пусто, в снимке rev 1 — прежний текст.
+    const { service, revisions, row } = makeFakeDb({ title: 'T', description: '', content_rev: 1 });
+    revisions.push({ rev: 1, title: 'T', description: 'старый текст' });
+    const write = await service.prepareWrite({
+      entity_type: ISSUE,
+      entity_hash: 'h1',
+      author: 'alice',
+      origin: ContentRevisionOrigin.CLI,
+      base_rev: 1,
+      incoming: { description: 'новый текст' },
+    });
+    await service.rollbackWrite(ISSUE, 'h1', write);
+    expect(row.description).toBe('');
+    expect(row.content_rev).toBe(1);
+    expect(revisions.map((r) => r.rev)).toEqual([1]);
+  });
+
+  it('cap.rev.side.10: запись без изменений — откат строку не трогает', async () => {
+    const { service, revisions, row, em } = makeFakeDb({ title: 'T', description: 'v1', content_rev: 1 });
+    revisions.push({ rev: 1, title: 'T', description: 'v1' });
+    const write = await service.prepareWrite({
+      entity_type: ISSUE,
+      entity_hash: 'h1',
+      author: 'alice',
+      origin: ContentRevisionOrigin.WEB,
+      base_rev: 1,
+      incoming: { description: 'v1' },
+    });
+    expect(write.changed).toBe(false);
+    em.executeQuery.mockClear();
+    await service.rollbackWrite(ISSUE, 'h1', write);
+    expect(em.executeQuery).not.toHaveBeenCalled();
+    expect(row.description).toBe('v1');
+  });
+
+  it('cap.rev.side.11: поверх записал другой автор — откат пропускается', async () => {
+    const { service, revisions, row } = makeFakeDb({ title: 'T', description: 'v1', content_rev: 1 });
+    revisions.push({ rev: 1, title: 'T', description: 'v1' });
+    const write = await service.prepareWrite({
+      entity_type: ISSUE,
+      entity_hash: 'h1',
+      author: 'alice',
+      origin: ContentRevisionOrigin.WEB,
+      base_rev: 1,
+      incoming: { description: 'v2' },
+    });
+    row.description = 'v3';
+    row.content_rev = 3;
+    await service.rollbackWrite(ISSUE, 'h1', write);
+    expect(row.description).toBe('v3');
+    expect(row.content_rev).toBe(3);
   });
 });

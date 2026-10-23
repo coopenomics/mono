@@ -170,6 +170,11 @@ export class ProjectManagementInteractor {
     if (!project) {
       throw DomainError.notFound('CAPITAL_PROJECT_NOT_FOUND_BY_HASH', { hash: data.project_hash });
     }
+    // Контракт отклоняет editproj у завершённого проекта («Нельзя редактировать
+    // завершенный проект»). Отказ здесь, до записи: правка не трогает ни базу, ни цепь.
+    if (!isLocalProject(project) && project.status === ProjectStatus.RESULT) {
+      throw DomainError.conflict('CAPITAL_PROJECT_EDIT_COMPLETED', { hash: project.project_hash });
+    }
     // Серверное слияние с параллельными правками + новая редакция (см. ContentRevisionService).
     // Слитый текст уже записан в БД; для блокчейн-проекта он же уходит в цепь, при провале — откат.
     const write = await this.contentRevisionService.prepareWrite({
@@ -199,13 +204,8 @@ export class ProjectManagementInteractor {
     try {
       transactResult = await this.capitalBlockchainPort.editProject(merged);
     } catch (error) {
-      if (write.changed) {
-        await this.contentRevisionService.rollbackWrite(
-          ContentEntityType.PROJECT,
-          project.project_hash,
-          write.content_rev
-        );
-      }
+      // Цепь правку не приняла — база возвращается к тому, что лежало в ней до записи.
+      await this.contentRevisionService.rollbackWrite(ContentEntityType.PROJECT, project.project_hash, write);
       throw error;
     }
 

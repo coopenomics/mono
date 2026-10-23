@@ -48,6 +48,12 @@ export interface PreparedContentWrite {
   changed: boolean;
   /** Редакция до записи (для отката при провале внешней транзакции). */
   previous_rev: number;
+  /**
+   * Содержимое строки до записи — ровно то, что лежало в базе, а не снимок
+   * `previous_rev`. Строку меняют и мимо сервиса (дельты цепи), поэтому снимок
+   * может от неё отличаться; откат обязан вернуть именно строку.
+   */
+  previous: ContentSnapshot;
 }
 
 interface LockedRow {
@@ -151,6 +157,7 @@ export class ContentRevisionService {
           merged,
           changed: false,
           previous_rev: currentRev,
+          previous: theirs,
         };
       }
 
@@ -178,33 +185,36 @@ export class ContentRevisionService {
         merged,
         changed: true,
         previous_rev: currentRev,
+        previous: theirs,
       };
     });
   }
 
   /**
    * Откат подготовленной записи, если внешняя транзакция (блокчейн) провалилась:
-   * снимок `rev` удаляется, строка возвращается к `rev - 1`.
+   * строка получает содержимое, которое лежало в ней до записи, снимок новой
+   * редакции удаляется.
+   *
+   * Источник — `write.previous`, а не снимок `previous_rev`. До 23.10.2026 откат
+   * брал снимок, и правка завершённого проекта, отклонённая цепью, оставляла в
+   * базе текст из старой редакции: строка к тому времени разошлась со снимком
+   * (C28-80 стёр описания мимо сервиса редакций).
    */
-  async rollbackWrite(entityType: ContentEntityType, entityHash: string, rev: number): Promise<void> {
+  async rollbackWrite(entityType: ContentEntityType, entityHash: string, write: PreparedContentWrite): Promise<void> {
+    if (!write.changed) return;
     await inTransaction(this.revisionRepository.kysely, async (em) => {
       const current = await this.lockRow(em, entityType, entityHash);
-      if (current.content_rev !== rev) {
+      if (current.content_rev !== write.content_rev) {
+        // Поверх успел записать другой автор, его слияние уже включает нашу правку.
         this.logger.warn(
-          `Откат редакции ${rev} для ${entityType} ${entityHash} пропущен: на строке уже ${current.content_rev}`
+          `Откат редакции ${write.content_rev} для ${entityType} ${entityHash} пропущен: на строке уже ${current.content_rev}`
         );
         return;
       }
-      const prev = await this.revisionRepository.on(em).findOne({ entity_type: entityType, entity_hash: entityHash, rev: rev - 1 });
-      if (!prev) return;
-      await this.writeRow(
-        em,
-        entityType,
-        entityHash,
-        { title: prev.title, description: normalizeDescription(prev.description) },
-        rev - 1
-      );
-      await this.revisionRepository.on(em).delete({ entity_type: entityType, entity_hash: entityHash, rev });
+      await this.writeRow(em, entityType, entityHash, write.previous, write.previous_rev);
+      await this.revisionRepository
+        .on(em)
+        .delete({ entity_type: entityType, entity_hash: entityHash, rev: write.content_rev });
     });
   }
 

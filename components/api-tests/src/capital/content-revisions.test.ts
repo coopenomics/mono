@@ -27,6 +27,7 @@ import {
   runTag,
 } from './cap-metrics.helpers'
 import { createChainProject, createLocalProject } from './cap-access.helpers'
+import { chainProject, sha256 } from './cap-results.helpers'
 
 const BASE_TEXT = [
   '# План работ',
@@ -206,5 +207,46 @@ describe('Благорост — редакции содержимого и сл
     expect(current.title, 'текст обязан остаться прежним').toBe(title)
     expect(current.description).toBe(BASE_TEXT)
 
+  })
+
+  it(caseName('cap.rev.happy.03', 'цепь приняла правку кооперативного проекта — новая редакция, хеш в цепи от текста в базе'), async () => {
+    await ensureCapitalInitialized()
+    const chairman = await tokenOf(CHAIRMAN)
+    const title = `Правка в цепи ${tag}`
+    const hash = await createChainProject(title, { description: BASE_TEXT })
+    const before = await getProject(chairman, hash)
+
+    const edited = withLine(BASE_TEXT, 2, 'Вторая строка — правка, принятая цепью')
+    await gql(chairman, EDIT_PROJECT, editProjectInput(hash, { title, description: edited, base_rev: before.content_rev }))
+
+    const after = await getProject(chairman, hash)
+    expect(after.content_rev).toBe(before.content_rev + 1)
+    expect(after.description).toBe(edited)
+    expect((await chainProject(hash)).description, 'цепь отвечает за текст из базы').toBe(sha256(edited))
+  })
+
+  it(caseName('cap.rev.side.10', 'цепь отклонила правку без изменений — редакции и текст не тронуты'), async () => {
+    await ensureCapitalInitialized()
+    const chairman = await tokenOf(CHAIRMAN)
+    const title = `Откат без правки ${tag}`
+    const hash = await createChainProject(title, { description: BASE_TEXT })
+    const before = await getProject(chairman, hash)
+    const revsBefore = await listRevisions(chairman, 'PROJECT', hash)
+
+    // Тот же приём, что в cap.rev.break.01: строки в цепи нет, editproj падает.
+    await transact(COOP_SIGNER, [{ account: 'capital', name: 'delproject', data: { coopname: COOP, project_hash: hash } }])
+
+    const err = await gqlError(chairman, EDIT_PROJECT, editProjectInput(hash, {
+      title,
+      description: BASE_TEXT,
+      base_rev: before.content_rev,
+    }))
+    expect(err, 'правка обязана упасть на транзакции цепи').not.toBeNull()
+
+    const revsAfter = await listRevisions(chairman, 'PROJECT', hash)
+    expect(revsAfter.map(r => r.rev), 'редакций столько же').toEqual(revsBefore.map(r => r.rev))
+    const current = await getRevision(chairman, 'PROJECT', hash, revsAfter[0].rev)
+    expect(current.title).toBe(title)
+    expect(current.description).toBe(BASE_TEXT)
   })
 })

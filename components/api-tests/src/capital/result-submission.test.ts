@@ -45,6 +45,7 @@ import {
   sha256,
   startProject,
 } from './cap-results.helpers'
+import { EDIT_PROJECT, editProjectInput, getProject } from './cap-metrics.helpers'
 
 async function inputFields(typeName: string): Promise<string[]> {
   const d = await gql<any>(await tokenOf(CHAIRMAN), 'query($n:String!){ __type(name:$n){ inputFields{ name } } }', { n: typeName })
@@ -174,6 +175,27 @@ describe('Благорост: приём РИД — путь результат�
     bobResult = (await resultOf(await tokenOf(bob), component, bob.account))?.result_hash
     expect(aliceResult, 'предусловие: документ результата участницы собран').toMatch(/^[0-9a-f]{64}$/)
     expect(bobResult, 'предусловие: документ результата участника собран').toMatch(/^[0-9a-f]{64}$/)
+  })
+
+  // Сразу после голосования: компонент завершён (result), дальше статус меняют уже доли.
+  it(caseName('cap.rev.break.03', 'правка завершённого проекта отклоняется до записи — текст и редакция прежние'), async () => {
+    const council = await tokenOf(CHAIRMAN)
+    const before = await waitFor(async () => {
+      const p = await getProject(council, component)
+      return p?.status === 'RESULT' ? p : null
+    }, { timeoutMs: 90_000, intervalMs: 1_000, label: 'компонент завершён в зеркале узла' })
+
+    const err = await gqlError(council, EDIT_PROJECT, editProjectInput(component, {
+      title: `${before.title} — правка`,
+      description: 'Правка завершённого компонента',
+      base_rev: before.content_rev,
+    }))
+    expect(err?.code).toBe('CAPITAL_PROJECT_EDIT_COMPLETED')
+
+    const after = await getProject(council, component)
+    expect(after.title, 'название прежнее').toBe(before.title)
+    expect(after.description, 'описание прежнее').toBe(before.description)
+    expect(after.content_rev, 'редакция не создана').toBe(before.content_rev)
   })
 
   it(caseName('cap.resdesk.side.10', 'признак голоса стоит только у доли проекта, где пайщик голосовал; чужие голоса на него не влияют'), async () => {
