@@ -16,6 +16,7 @@ import {
   InstallOutcome,
 } from './install-orchestrator.service';
 import { SubgraphRegistryService } from '../gateway/subgraph-registry.service';
+import { SupergraphRefreshService } from '../gateway/supergraph-refresh.service';
 
 interface UninstallResult {
   ok: boolean;
@@ -27,16 +28,22 @@ export class InstallController {
   constructor(
     private readonly orchestrator: InstallOrchestratorService,
     private readonly registry: SubgraphRegistryService,
+    private readonly refresh: SupergraphRefreshService,
   ) {}
 
   @Post('install')
   async install(@Body() input: InstallExtensionInput): Promise<InstallOutcome> {
-    return this.orchestrator.install(input);
+    const outcome = await this.orchestrator.install(input);
+    // Схема пересобирается сразу, а не на следующем опросе реестра: стол
+    // перечитывает расширения после ответа установки.
+    if (outcome.status === 'applied') await this.refresh.trigger();
+    return outcome;
   }
 
   @Delete('uninstall/:packageId')
   async uninstall(@Param('packageId') packageId: string): Promise<UninstallResult> {
     await this.registry.deactivate(packageId);
+    await this.refresh.trigger();
     return { ok: true, deactivated: packageId };
   }
 }
