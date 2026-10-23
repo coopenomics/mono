@@ -45,9 +45,9 @@ export type { MigrateParams, MigrateResult } from './migration'
 
 export { canonicalMigrationMessage, migrate } from './migration'
 export { isPasswordPolicyOk, PASSWORD_MIN_LENGTH, PASSWORD_POLICY_HINT, passwordPolicyErrors } from './password-policy'
-export type { ConfirmLoginFactorParams, ConfirmLoginFactorResult, FlowExecutorParams, HandshakeResult, LoginFactorKind, LoginParams, LoginResult, LogoutParams, SecondFactorChallenge, SessionTokens } from './oidc'
+export type { ConfirmLoginFactorParams, ConfirmLoginFactorResult, FlowExecutorParams, HandshakeResult, LoginFactorKind, LoginParams, LoginResult, LogoutParams, RecoveryContext, SecondFactorChallenge, SessionTokens } from './oidc'
 
-export { authenticateWithFlowExecutor, clearSession, configureCoopId, configureOidc, configureTokenStorage, confirmLoginFactor, currentTokens, DEFAULT_AUTHENTICATION_FLOW, getAccessToken, getParticipantCertificate, login, loginWithMagicLink, logout, performTimestampHandshake, recover, resendLoginEmailCode, restoreSession, warmUpAuthentik } from './oidc'
+export { authenticateWithFlowExecutor, clearSession, configureCoopId, configureOidc, configureTokenStorage, confirmLoginFactor, currentTokens, DEFAULT_AUTHENTICATION_FLOW, getAccessToken, getParticipantCertificate, login, loginWithMagicLink, logout, performTimestampHandshake, recover, recoveryContext, resendLoginEmailCode, restoreSession, warmUpAuthentik } from './oidc'
 export type { SignDocumentParams, TimestampSignature } from './signing'
 
 export { canonicalTimestampMessage, signChainDigest, signDocument, signTimestamp } from './signing'
@@ -56,4 +56,4 @@ export type { EncryptedVaultBlob, VaultSubject } from './vault'
 export { ARGON2ID_PARAMS, decryptPrivateKey, deriveKey, encryptPrivateKey } from './vault'
 export type { StorageAdapter } from './wallet'
 
-export { clearLocalVault, clearPinCache, DEFAULT_PIN, exportUnlockedKeyForDocumentSigning, fetchVaultBlob, getWallet, hasPinCache, isWalletUnlocked, loadLocalVault, lockWallet, persistPinCache, rotateKey, saveLocalVault, saveToVault, storeVaultBlob, unlockWallet, unlockWithPin, Wallet } from './wallet'
+export { clearLocalVault, clearPinCache, DEFAULT_PIN, exportUnlockedKeyForDocumentSigning, fetchVaultBlob, getWallet, hasPinCache, isWalletUnlocked, loadLocalVault, lockWallet, persistPinCache, rotateKey, saveLocalVault, unlockWallet, unlockWithPin, Wallet } from './wallet'

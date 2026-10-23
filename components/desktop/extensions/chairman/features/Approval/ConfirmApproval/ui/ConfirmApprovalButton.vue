@@ -9,23 +9,23 @@ div
     @click='showDialog = true',
     :loading='isSubmitting'
   )
-    q-tooltip Одобрить
+    q-tooltip {{ $t('chairman.confirmApprovalButton.approveLabel') }}
 
   BaseDialog(
     v-model='showDialog',
-    title='Подтверждение одобрения',
+    :title='$t("chairman.confirmApprovalButton.title")',
     size='sm',
     @update:model-value='(v) => !v && close()'
   )
     Form.q-pa-sm(
       :handler-submit='confirmApproval',
       :is-submitting='isSubmitting',
-      :button-cancel-txt='"Отменить"',
-      :button-submit-txt='"Одобрить"',
+      :button-cancel-txt='$t("chairman.confirmApprovalButton.cancelLabel")',
+      :button-submit-txt='$t("chairman.confirmApprovalButton.approveLabel")',
       @cancel='close'
     )
       div(style='max-width: 300px')
-        p Вы уверены, что хотите одобрить документ?
+        p {{ $t('chairman.confirmApprovalButton.confirmText') }}
 </template>
 
 <script lang="ts" setup>
@@ -35,6 +35,7 @@ import { ref } from 'vue';
 import { BaseDialog } from 'src/shared/ui/base/BaseDialog';
 import { Form } from 'src/shared/ui/Form';
 import type { IDocumentAggregate } from 'src/entities/Document/model/types';
+import { t } from '../../../../i18n';
 
 interface Props {
   approvalHash: string;
@@ -63,7 +64,7 @@ const confirmApproval = async () => {
       props.approvalHash,
       props.approvedDocument,
     );
-    SuccessAlert('Одобрение подтверждено');
+    SuccessAlert(t('chairman.confirmApprovalButton.successMessage'));
     emit('confirmed');
     close();
   } catch (e: any) {

@@ -17,6 +17,15 @@ export interface IAuthentikAdminPort {
   findUserPk(username: string): Promise<number | null>;
 
   /**
+   * username учётки authentik по её uuid (то, что уезжает наружу как `sub`), либо null.
+   *
+   * Нужен там, где кооператив узнаёт пайщика по идентификатору из CoopID, а не по своему:
+   * uuid учётки authentik и id пользователя ядра — разные числа, миграция их не выравнивает.
+   * @throws при сетевой/инфраструктурной недоступности IdP.
+   */
+  findUsernameByUuid(uuid: string): Promise<string | null>;
+
+  /**
    * Гарантирует существование учётки пайщика (создаёт при отсутствии), возвращает pk.
    * Идемпотентно: повторный вызов для существующего username вернёт его pk.
    */
@@ -27,4 +36,21 @@ export interface IAuthentikAdminPort {
    * @throws при ошибке записи/недоступности IdP.
    */
   setPassword(userPk: number, newPassword: string): Promise<void>;
+
+  /**
+   * Учётные имена authentik с этой почтой (без учёта регистра).
+   *
+   * Вход в CoopID идёт по почте: две учётки с одной почтой — и authentik
+   * впускает в первую найденную (тестнет, 21.10.2026: вход новым аккаунтом
+   * открыл чужой). Почта обязана быть уникальной и здесь, а не только в базе узла.
+   * @throws при сетевой/инфраструктурной недоступности IdP.
+   */
+  findUsernamesByEmail(email: string): Promise<string[]>;
+
+  /**
+   * Сменить почту учётки authentik. false — учётки ещё нет (пайщик не задавал
+   * пароль): менять нечего, почту возьмёт ensureUser при создании.
+   * @throws при ошибке записи/недоступности IdP.
+   */
+  updateEmail(username: string, email: string): Promise<boolean>;
 }

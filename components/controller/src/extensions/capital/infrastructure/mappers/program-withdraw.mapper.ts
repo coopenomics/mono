@@ -1,13 +1,13 @@
 import { ProgramWithdrawDomainEntity } from '../../domain/entities/program-withdraw.entity';
-import { ProgramWithdrawTypeormEntity } from '../entities/program-withdraw.typeorm-entity';
+import { ProgramWithdrawRecord } from '../entities/program-withdraw.record';
 import type { IProgramWithdrawDatabaseData } from '../../domain/interfaces/program-withdraw-database.interface';
 import type { IProgramWithdrawBlockchainData } from '../../domain/interfaces/program-withdraw-blockchain.interface';
 import type { ProgramWithdrawStatus } from '../../domain/enums/program-withdraw-status.enum';
 import type { ISignedDocument } from '@coopenomics/innercoop';
 import type { RequireFields } from '@coopenomics/extension-kit';
 
-type toEntityDatabasePart = RequireFields<Partial<ProgramWithdrawTypeormEntity>, keyof IProgramWithdrawDatabaseData>;
-type toEntityBlockchainPart = RequireFields<Partial<ProgramWithdrawTypeormEntity>, keyof IProgramWithdrawBlockchainData>;
+type toEntityDatabasePart = RequireFields<Partial<ProgramWithdrawRecord>, keyof IProgramWithdrawDatabaseData>;
+type toEntityBlockchainPart = RequireFields<Partial<ProgramWithdrawRecord>, keyof IProgramWithdrawBlockchainData>;
 
 type toDomainDatabasePart = RequireFields<Partial<ProgramWithdrawDomainEntity>, keyof IProgramWithdrawDatabaseData>;
 type toDomainBlockchainPart = RequireFields<Partial<ProgramWithdrawDomainEntity>, keyof IProgramWithdrawBlockchainData>;
@@ -19,7 +19,7 @@ export class ProgramWithdrawMapper {
   /**
    * Преобразование TypeORM сущности в доменную сущность
    */
-  static toDomain(entity: ProgramWithdrawTypeormEntity): ProgramWithdrawDomainEntity {
+  static toDomain(entity: ProgramWithdrawRecord): ProgramWithdrawDomainEntity {
     const databaseData: toDomainDatabasePart = {
       _id: entity._id,
       block_num: entity.block_num,
@@ -53,7 +53,7 @@ export class ProgramWithdrawMapper {
   /**
    * Преобразование доменной сущности в TypeORM сущность для создания
    */
-  static toEntity(domain: ProgramWithdrawDomainEntity): Partial<ProgramWithdrawTypeormEntity> {
+  static toEntity(domain: ProgramWithdrawDomainEntity): Partial<ProgramWithdrawRecord> {
     const dbPart: toEntityDatabasePart = {
       _id: domain._id,
       block_num: domain.block_num ?? 0,

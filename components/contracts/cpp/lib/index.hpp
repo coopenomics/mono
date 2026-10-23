@@ -9,8 +9,12 @@
 #include <eosio/permission.hpp>
 
 #include "consts.hpp"
+#include "core/ram_payer.hpp"
+#include "core/cleanup.hpp"
+#include "core/coop_contract.hpp"
 #include "core/registry.hpp"
 #include "core/utils.hpp"
+#include "core/text_digest.hpp"
 #include "core/names.hpp"
 #include "core/document.hpp"
 #include "domain/index.hpp"

@@ -1,0 +1,36 @@
+import type { EdubridgeContract } from 'cooptypes';
+import { calculateRefund, type RefundCalculation, type RefundChainState } from '../../domain/economy/refund.calculator';
+import type { EdubridgeCourseRecord, EdubridgeEnrollmentRecord } from '../../infrastructure/entities';
+
+type ChainSubscription = EdubridgeContract.Tables.EduSubs.IEduSubscription;
+
+/**
+ * Предварительная сумма возврата по подписке на текущий момент — по строке
+ * подписки из цепи. Показывается на столе до отмены и записывается после неё;
+ * сам возврат считает и проводит контракт.
+ *
+ * Строки в цепи нет либо она открыта до учёта занятий — возвращать по ней
+ * контракт не станет, показывается ноль.
+ */
+export function refundOf(
+  enrollment: EdubridgeEnrollmentRecord,
+  course: EdubridgeCourseRecord,
+  chain: ChainSubscription | null,
+  underfilled: boolean,
+  now = new Date()
+): RefundCalculation {
+  const symbol = String(enrollment.paid_amount ?? '').trim().split(' ')[1] ?? '';
+  return calculateRefund({
+    chain: chainState(chain, `0.0000 ${symbol}`.trim()),
+    starts_at: course.starts_at ? new Date(course.starts_at) : null,
+    now,
+    underfilled,
+  });
+}
+
+/** Что контракт ведёт по подписке; без учёта занятий — нули. */
+function chainState(chain: ChainSubscription | null, zero: string): RefundChainState {
+  const plan = chain?.plan;
+  if (!chain || !plan || Number(plan.version) !== 1) return { charged: zero, minutes_paid: 0, minutes_done: 0 };
+  return { charged: chain.charged ?? zero, minutes_paid: Number(plan.minutes_paid), minutes_done: Number(plan.minutes_done) };
+}

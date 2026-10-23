@@ -17,7 +17,8 @@ import type { IMonoAccount } from '@coopenomics/innercoop';
 import { PROJECT_REPOSITORY, ProjectRepository } from '../../domain/repositories/project.repository';
 import { assertBlockchainProject } from '../../domain/utils/assert-blockchain-project';
 import type { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
-import { DomainToBlockchainUtils } from '@coopenomics/extension-kit';
+import { DomainToBlockchainUtils, DomainError } from '@coopenomics/extension-kit';
+import { t } from '../../i18n';
 
 /**
  * Интерактор домена для подведения результатов в CAPITAL контракте
@@ -47,7 +48,7 @@ export class ResultSubmissionInteractor {
    */
   async pushResult(data: PushResultDomainInput): Promise<SegmentDomainEntity> {
     const project = await this.projectRepository.findByHash(data.project_hash.toLowerCase());
-    assertBlockchainProject(project, 'внесение результата');
+    assertBlockchainProject(project, t('capital.resultSubmissionInteractor.actionLabel.pushResult'));
 
     // Вызываем блокчейн порт
     // Преобразовываем доменный документ в формат блокчейна
@@ -68,7 +69,7 @@ export class ResultSubmissionInteractor {
     );
 
     if (!segmentEntity) {
-      throw new Error(`Не удалось синхронизировать сегмент ${data.project_hash}:${data.username} после внесения результата`);
+      throw DomainError.internal('CAPITAL_SEGMENT_SYNC_AFTER_RESULT_FAILED', { projectHash: data.project_hash, username: data.username });
     }
 
     // Возвращаем обновленную сущность сегмента
@@ -83,7 +84,7 @@ export class ResultSubmissionInteractor {
     _currentUser: IMonoAccount
   ): Promise<SegmentDomainEntity> {
     const project = await this.projectRepository.findByHash(data.project_hash.toLowerCase());
-    assertBlockchainProject(project, 'конвертацию сегмента');
+    assertBlockchainProject(project, t('capital.resultSubmissionInteractor.actionLabel.convertSegment'));
     // Преобразовываем доменный документ в формат блокчейна
     const blockchainData = {
       ...data,
@@ -106,9 +107,7 @@ export class ResultSubmissionInteractor {
     );
 
     if (!segmentEntity) {
-      throw new Error(
-        `Не удалось найти сегмент ${data.project_hash}:${data.username} для установки флага завершения после конвертации`
-      );
+      throw DomainError.internal('CAPITAL_SEGMENT_COMPLETION_FLAG_FAILED', { projectHash: data.project_hash, username: data.username });
     }
 
     // Возвращаем обновленную сущность сегмента
@@ -142,7 +141,7 @@ export class ResultSubmissionInteractor {
     // Получаем результат из базы данных, чтобы узнать project_hash
     const resultEntity = await this.resultRepository.findByResultHash(data.result_hash);
     if (!resultEntity || !resultEntity.project_hash) {
-      throw new Error(`Результат с хэшем ${data.result_hash} не найден или не содержит project_hash`);
+      throw DomainError.internal('CAPITAL_RESULT_PROJECT_HASH_ABSENT', { hash: data.result_hash });
     }
 
     // Валидация подписей: должна быть подпись только от пользователя, который подписывает
@@ -167,9 +166,7 @@ export class ResultSubmissionInteractor {
     );
 
     if (!segmentEntity) {
-      throw new Error(
-        `Не удалось синхронизировать сегмент ${resultEntity.project_hash}:${data.username} после подписания акта участником`
-      );
+      throw DomainError.internal('CAPITAL_SEGMENT_SYNC_AFTER_CONTRIBUTOR_SIGN_FAILED', { projectHash: resultEntity.project_hash, username: data.username });
     }
 
     // Возвращаем обновленную сущность сегмента
@@ -189,9 +186,7 @@ export class ResultSubmissionInteractor {
     // (как это делал прежний `|| ''`).
     const resultEntity = await this.resultRepository.findByResultHash(data.result_hash);
     if (!resultEntity || !resultEntity.username || !resultEntity.project_hash) {
-      throw new Error(
-        `Результат с хэшем ${data.result_hash} не найден или не содержит username и project_hash`
-      );
+      throw DomainError.internal('CAPITAL_RESULT_USERNAME_PROJECT_HASH_ABSENT', { hash: data.result_hash });
     }
 
     // Валидация подписей: должны быть подписи от username (участника) и chairman (председателя)
@@ -216,9 +211,7 @@ export class ResultSubmissionInteractor {
     );
 
     if (!segmentEntity) {
-      throw new Error(
-        `Не удалось синхронизировать сегмент ${resultEntity.project_hash}:${resultEntity.username} после подписания акта председателем`
-      );
+      throw DomainError.internal('CAPITAL_SEGMENT_SYNC_AFTER_CHAIRMAN_SIGN_FAILED', { projectHash: resultEntity.project_hash, username: resultEntity.username });
     }
 
     // Результат не синхронизируем - его уже нет в блокчейне отдельной записью

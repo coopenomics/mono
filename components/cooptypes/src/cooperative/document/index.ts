@@ -1,11 +1,25 @@
 import type { SovietContract } from '../../contracts'
 import type { IAction, IExtendedAction } from '../blockchain'
 
-export * from './decisionsRegistry'
+export * from './decisionTypesRegistry'
+export * from './approvals'
 // export * from './documentsRegistry'
 export interface IGenerationOptions {
   skip_save?: boolean
   lang?: string
+  /**
+   * Собрать только HTML, без PDF и без хэша. Для публичного показа положения
+   * на сайте: страница берёт тот же документ, что уходит на подпись, но не
+   * платит за рендер PDF на каждый заход. Документ без хэша не сохраняется.
+   */
+  skip_pdf?: boolean
+  /**
+   * Публичный показ: подписант ещё не известен, на его месте остаётся прочерк
+   * под рукописное заполнение. Отдельный флаг, а не пустой username: meta
+   * требует имя того, от кого сформирован документ (при публичном показе — сам
+   * кооператив), и по нему подписанта уже не отличить.
+   */
+  blank_signer?: boolean
 }
 
 export type LangType = 'ru'
@@ -26,6 +40,12 @@ export interface IMetaDocument {
   version: string
   coopname: string
   username: string
+  /**
+   * Момент генерации документа в ISO 8601, UTC, до миллисекунд
+   * (`2026-09-24T11:05:31.123Z`). Вид для человека («ДД.ММ.ГГГГ ЧЧ:ММ» в поясе
+   * `timezone`) собирает рендер: шаблон выводит его переменной `created_at`.
+   * Документы до 28.09.2026 хранят здесь дату уже в виде для человека.
+   */
   created_at: string
   block_num: number
   timezone: string

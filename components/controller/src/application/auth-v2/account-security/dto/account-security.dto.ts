@@ -117,3 +117,20 @@ export class ReportNotMeInputDTO {
   @Field(() => String, { nullable: true, description: 'Идентификатор подозрительной сессии (опционально, из настроек)' })
   session_id?: string | null;
 }
+
+/** Кого сбрасывает председатель: учётное имя пайщика в реестре. */
+@InputType('ResetParticipantTwoFactorInput')
+export class ResetParticipantTwoFactorInputDTO {
+  @Field(() => String, { description: 'Имя учётной записи пайщика' })
+  username!: string;
+}
+
+/** Состояние подтверждения входа у пайщика — для реестра пайщиков (только председателю). */
+@ObjectType('ParticipantLoginSecurity')
+export class ParticipantLoginSecurityDTO {
+  @Field(() => Boolean, { description: 'Приложение-аутентификатор подключено' })
+  totp_enrolled!: boolean;
+
+  @Field(() => Boolean, { description: 'Код из приложения запрашивается при входе' })
+  totp_enabled!: boolean;
+}

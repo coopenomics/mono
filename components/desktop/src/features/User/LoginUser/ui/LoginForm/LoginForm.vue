@@ -9,7 +9,7 @@
     <BaseInput
       v-if="mode === 'login'"
       v-model="email"
-      label="Электронная почта"
+      :label="$t('user.loginForm.emailLabel')"
       type="email"
       autocomplete="email"
       required
@@ -19,7 +19,7 @@
     <template v-if="mode === 'login'">
       <BaseInput
         v-model="secret"
-        label="Пароль или ключ доступа"
+        :label="$t('user.loginForm.secretLabel')"
         type="password"
         autocomplete="current-password"
         required
@@ -30,9 +30,17 @@
         block
         :loading="loading"
         :disabled="!secret || !email"
-      >
-        Войти
-      </BaseButton>
+      > {{ $t('user.loginForm.submit') }} </BaseButton>
+      <!-- Вход по карте кооператора (карта кооператора, story 9.2): карта опознаёт человека и ведёт
+           пайщика к его аккаунту, кандидата — в быструю регистрацию. Кнопка появляется только
+           когда кооператив подключён к сети: кнопка, ведущая в отказ, хуже её отсутствия. -->
+      <BaseButton
+        v-if="cardcoopEntryAvailable"
+        variant="secondary"
+        block
+        :disabled="loading"
+        @click="startCardcoopEntry"
+      > {{ $t('user.loginForm.cardcoopLogin') }} </BaseButton>
     </template>
 
     <!-- Шаг 2FA: пароль и ключ приняты, сервер ждёт код второго фактора -->
@@ -55,7 +63,7 @@
           :disabled="resendCooldown > 0 || loading"
           @click="resendEmail"
         >
-          {{ resendCooldown > 0 ? `Отправить код повторно (${resendCooldown} с)` : 'Отправить код повторно' }}
+          {{ resendCooldown > 0 ? $t(`user.loginForm.resendWithCooldown`, { resendCooldown }) : $t('user.loginForm.resend') }}
         </BaseButton>
       </div>
       <BaseButton
@@ -64,12 +72,8 @@
         block
         :loading="loading"
         :disabled="otp.length !== 6"
-      >
-        Подтвердить
-      </BaseButton>
-      <BaseButton variant="secondary" block :disabled="loading" @click="backToLogin">
-        Назад ко входу
-      </BaseButton>
+      > {{ $t('common.action.confirm') }} </BaseButton>
+      <BaseButton variant="secondary" block :disabled="loading" @click="backToLogin"> {{ $t('user.loginForm.backToLogin') }} </BaseButton>
     </template>
 
     <!-- Шаг миграции: вошли по ключу — обязательная установка пароля.
@@ -78,7 +82,7 @@
       <MigrationExplainer :in-session="false" />
       <BaseInput
         v-model="newPassword"
-        label="Новый пароль"
+        :label="$t('user.loginForm.newPasswordLabel')"
         type="password"
         autocomplete="new-password"
         :hint="PASSWORD_POLICY_HINT"
@@ -87,7 +91,7 @@
       />
       <BaseInput
         v-model="repeatPassword"
-        label="Повторите пароль"
+        :label="$t('user.loginForm.repeatPasswordLabel')"
         type="password"
         autocomplete="new-password"
         :error="repeatError"
@@ -99,37 +103,35 @@
         block
         :loading="loading"
         :disabled="!canMigrate"
-      >
-        Задать пароль и войти
-      </BaseButton>
+      > {{ $t('user.loginForm.setPasswordSubmit') }} </BaseButton>
     </template>
   </BaseForm>
 </template>
 
 <script lang="ts" setup>
 import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue';
-import { useRouter } from 'vue-router';
-import { LocalStorage } from 'quasar';
-import { useSessionStore } from 'src/entities/Session';
-import { useLoginUser } from 'src/features/User/LoginUser';
+import { Queries } from '@coopenomics/sdk';
+import { client } from 'src/shared/api/client';
+import { useEnterDesktop, useLoginUser } from 'src/features/User/LoginUser';
 import { useNotificationPermissionDialog } from 'src/features/NotificationPermissionDialog';
 import { FailAlert } from 'src/shared/api';
 import { BaseButton, BaseForm, BaseInput } from 'src/shared/ui/base';
 import { MigrationExplainer } from 'src/features/Security/SetPassword';
 import { useDesktopStore } from 'src/entities/Desktop/model';
-import { env, updateOpenReplayUser } from 'src/shared/config';
-import { useSystemStore } from 'src/entities/System/model';
+import { env } from 'src/shared/config';
 import { looksLikeWif } from 'src/shared/lib/utils/looksLikeWif';
 import { OtpInput } from 'src/shared/ui/domain/OtpInput';
 import {
   AuthV2Error,
   AuthV2ErrorCode,
+  describeAuthV2Error,
   PASSWORD_POLICY_HINT,
   passwordPolicyErrors,
   resendLoginEmailCode,
   warmUpAuthentik,
   type LoginFactorKind,
 } from '@coopenomics/auth';
+import { t } from 'src/shared/i18n';
 
 // Шаг формы наружу: заголовок карточки принадлежит не форме, а тому, кто её
 // показывает, — а меняться он обязан вместе с шагом.
@@ -137,14 +139,33 @@ const emit = defineEmits<{
   'step-change': [step: 'login' | 'migrate' | 'twofactor'];
 }>();
 
-const router = useRouter();
-const system = useSystemStore();
-const session = useSessionStore();
 const { showDialog } = useNotificationPermissionDialog();
 const { migrateAndLogin, loginWithPassword, confirmLoginSecondFactor } = useLoginUser();
+const { enterDesktop } = useEnterDesktop();
 
 const email = ref('');
 const secret = ref('');
+
+// Вход по карте кооператора (story 9.2). Доступность спрашивается один раз при открытии формы:
+// запрос публичный, а молчаливый отказ означает «кнопки нет» — экран входа не должен падать
+// из-за расширения.
+const cardcoopEntryAvailable = ref(false);
+// realtime: нет источника — форма входа открыта гостю, лента доступна только вошедшему пайщику; доступность входа по карте читается один раз.
+onMounted(async () => {
+  try {
+    const { [Queries.Cardcoop.GetEntryAvailable.name]: available } = await client.Query(
+      Queries.Cardcoop.GetEntryAvailable.query,
+    );
+    cardcoopEntryAvailable.value = Boolean(available);
+  } catch {
+    cardcoopEntryAvailable.value = false;
+  }
+});
+
+/** Уводит на card.coop: дальше человека ведут карта и сервер, секретов в браузере нет. */
+function startCardcoopEntry(): void {
+  window.location.href = `${env.BACKEND_URL.replace(/\/+$/, '')}/v1/extensions/cardcoop/entry/start`;
+}
 const mode = ref<'login' | 'migrate' | 'twofactor'>('login');
 const newPassword = ref('');
 const repeatPassword = ref('');
@@ -171,13 +192,14 @@ const currentFactor = computed<LoginFactorKind | null>(
 );
 const currentFactorLabel = computed(() =>
   currentFactor.value === 'email'
-    ? 'Код из письма, отправленного на вашу почту'
-    : 'Код из приложения-аутентификатора',
+    ? t('user.loginForm.factorEmailLabel')
+    : t('user.loginForm.factorAppLabel'),
 );
 
 function startResendCooldown(): void {
   resendCooldown.value = 60;
   if (resendTimer) clearInterval(resendTimer);
+  // timing: ui — обратный отсчёт до повторной отправки кода
   resendTimer = setInterval(() => {
     resendCooldown.value -= 1;
     if (resendCooldown.value <= 0 && resendTimer) {
@@ -203,7 +225,7 @@ const passwordError = computed(() =>
 );
 const repeatError = computed(() =>
   repeatPassword.value && repeatPassword.value !== newPassword.value
-    ? 'Пароли не совпадают'
+    ? t('user.loginForm.passwordMismatch')
     : '',
 );
 const canMigrate = computed(
@@ -212,59 +234,12 @@ const canMigrate = computed(
     repeatPassword.value === newPassword.value,
 );
 
-function navigateToSavedUrl(): boolean {
-  if (!process.env.CLIENT) return false;
-  const redirectUrl = LocalStorage.getItem('redirectAfterLogin') as string;
-  if (!redirectUrl) return false;
-  LocalStorage.remove('redirectAfterLogin');
-  try {
-    if (redirectUrl.startsWith('#')) {
-      void router.push(redirectUrl.substring(1));
-    } else {
-      const url = new URL(redirectUrl);
-      void router.push(url.pathname + url.search);
-    }
-  } catch (e) {
-    console.error('Error parsing URL, using direct navigation', e);
-    window.location.href = redirectUrl;
-  }
-  return true;
-}
-
-/** Общий пост-логин: трекер, переход к регистрации/дашборду, диалог уведомлений. */
+/** Общий пост-логин: стол (регистрация или кабинет), затем диалог уведомлений. */
 async function finishLogin(): Promise<void> {
-  const desktops = useDesktopStore();
-  updateOpenReplayUser({
-    username: session.username,
-    coopname: system.info.coopname,
-    cooperativeDisplayName: system.cooperativeDisplayName,
-  });
-
-  if (!session.isRegistrationComplete) {
-    desktops.setWorkspaceChanging(false);
-    void router.push({ name: 'signup' });
-  } else {
-    let attempts = 0;
-    const maxAttempts = 50;
-    while (!session.loadComplete && attempts < maxAttempts) {
-      await new Promise((resolve) => setTimeout(resolve, 100));
-      attempts++;
-    }
-    try {
-      await desktops.loadDesktop();
-    } catch (e) {
-      console.warn('[BOOTRACE] не удалось перезагрузить стол после входа:', e);
-    }
-    if (!navigateToSavedUrl()) {
-      desktops.selectDefaultWorkspace(true);
-      desktops.goToDefaultPage(router);
-    }
-    if (session.loadComplete) {
-      desktops.setWorkspaceChanging(false);
-    }
-  }
+  await enterDesktop();
 
   loading.value = false;
+  // timing: ui — диалог разрешения уведомлений открываем, когда переход на стол отрисован, а не поверх него
   setTimeout(() => {
     showDialog();
   }, 1000);
@@ -344,8 +319,10 @@ async function runLogin(action: () => Promise<void>): Promise<void> {
     }
 
     console.error(e);
-    errorMessage.value =
-      e?.message || 'Не удалось выполнить вход. Проверьте данные и попробуйте снова.';
+    // Текст берём из каталога SDK по коду ошибки, а не из `e.message`: в message
+    // приезжает ответ authentik, и пайщик видел на форме «Failed to authenticate.»
+    // (04.09.2026). Каталог — единственный источник текстов для человека.
+    errorMessage.value = describeAuthV2Error(e).message;
     FailAlert(e);
   }
 }
@@ -378,8 +355,7 @@ async function confirmFactor(): Promise<void> {
     }
     // Challenge истёк или сожжён перебором — начинаем вход заново.
     backToLogin();
-    errorMessage.value =
-      e?.message || 'Подтверждение входа не удалось. Войдите заново.';
+    errorMessage.value = describeAuthV2Error(e).message;
     FailAlert(e);
   }
 }

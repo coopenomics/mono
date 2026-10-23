@@ -1,0 +1,115 @@
+feature: platform.global-search
+title: Единый поиск окна столов и страниц — пайщики, документы, записи приложений
+
+# Окно столов и страниц (кнопка «Сменить стол», ⌘K) ищет не только по столам
+# и страницам, но и по данным: пайщики, документы, записи приложений. Окно
+# шлёт один запрос globalSearch, ядро опрашивает зарегистрированных
+# поставщиков параллельно и отдаёт находки группами. Поставщика регистрирует
+# владелец данных: ядро — пайщиков и документы, расширение — свои записи через
+# GLOBAL_SEARCH_REGISTRY_PORT. Задача C28-86.
+#
+# Права проверяет поставщик: личные данные пайщиков находит только совет,
+# документы пайщик находит только свои. Медленный или упавший поставщик не
+# держит ответ — его группа помечается, остальные приходят.
+
+sources:
+  backend:
+    - components/innercoop/src/hooks/global-search.hook.ts
+    - components/controller/src/application/search/global-search.registry.ts
+    - components/controller/src/application/search/dto/global-search.dto.ts
+    - components/controller/src/application/search/providers/**
+    - components/controller/src/application/search/resolvers/search.resolver.ts
+  ui:
+    - components/desktop/src/shared/ui/domain/CommandPalette/**
+    - components/desktop/src/features/GlobalSearch/**
+    - components/desktop/src/pages/Cooperative/ParticipantDetails/**
+
+cases:
+  - id: plat.gsearch.happy.01
+    level: backend
+    kind: happy
+    scenario: член совета ищет пайщика по фамилии
+    expect: группа «Пайщики» с находкой — ФИО, аккаунт, ссылка на страницу пайщика в столе совета
+    test: components/controller/tests/unit/search/core-search.providers.test.ts
+    api: components/api-tests/src/platform/global-search.test.ts
+    status: written
+
+  - id: plat.gsearch.side.01
+    level: backend
+    kind: side
+    scenario: рядовой пайщик ищет другого пайщика по фамилии
+    expect: группы «Пайщики» в ответе нет, в базу личных данных запрос не уходит
+    test: components/controller/tests/unit/search/core-search.providers.test.ts
+    api: components/api-tests/src/platform/global-search.test.ts
+    status: written
+
+  - id: plat.gsearch.happy.02
+    level: backend
+    kind: happy
+    scenario: член совета ищет документ по названию
+    expect: группа «Документы», находки ведут на страницу документа в столе совета
+    test: components/controller/tests/unit/search/core-search.providers.test.ts
+    api: components/api-tests/src/platform/global-search.test.ts
+    status: written
+
+  - id: plat.gsearch.side.02
+    level: backend
+    kind: side
+    scenario: пайщик ищет документы — свои и чужие
+    expect: чужие не находятся; свои ведут на страницу документа в столе пайщика
+    test: components/controller/tests/unit/search/core-search.providers.test.ts
+    api: components/api-tests/src/platform/global-search.test.ts
+    status: written
+
+  - id: plat.gsearch.side.03
+    level: backend
+    kind: side
+    scenario: запрос короче двух символов
+    expect: пустой ответ, поставщики не опрашиваются
+    test: components/controller/tests/unit/search/global-search.registry.test.ts
+    api: components/api-tests/src/platform/global-search.test.ts
+    status: written
+
+  - id: plat.gsearch.side.04
+    level: backend
+    kind: side
+    scenario: поиск без входа
+    expect: отказ авторизации
+    test: components/api-tests/src/platform/global-search.test.ts
+    api: components/api-tests/src/platform/global-search.test.ts
+    status: written
+
+  - id: plat.gsearch.side.05
+    level: backend
+    kind: side
+    scenario: поставщиков несколько, у одного нет находок
+    expect: группы идут по порядку поставщиков, пустая не возвращается, находки отрезаются по пределу
+    test: components/controller/tests/unit/search/global-search.registry.test.ts
+    api: components/api-tests/src/platform/global-search.test.ts
+    status: written
+
+  # Сбой и таймаут поставщика (группа помечается ERROR или TIMEOUT, остальные
+  # приходят) закрыты юнит-тестом global-search.registry.test.ts. Случаями они
+  # сюда не вписаны: снаружи уронить поставщика на стенде нечем, а внешний
+  # слой требует пробы через API.
+
+  - id: plat.gsearch.ui.01
+    level: ui
+    kind: happy
+    scenario: в окне набран запрос с фамилией пайщика, выбрана находка
+    expect: под столами и страницами — группа «Пайщики»; выбор открывает страницу пайщика и переключает стол
+    status: missing
+
+  - id: plat.gsearch.ui.02
+    level: ui
+    kind: side
+    scenario: источник поиска не успел ответить
+    expect: окно показывает найденное и строку «источник не успел ответить»
+    status: missing
+
+  - id: plat.gsearch.ui.03
+    level: ui
+    kind: happy
+    scenario: в реестре пайщиков открыта панель пайщика, нажата «Открыть страницу»
+    expect: открывается страница пайщика; адрес панели пересылается и «назад» закрывает панель
+    status: missing

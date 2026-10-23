@@ -1,3 +1,4 @@
+import type { SchemaMigration } from '../database/schema-migration';
 import type { ExtensionConfigPolicy } from '../config/config-policy';
 import type { IExtensionSchemaMigration } from '../migrations/schema-migration.contract';
 
@@ -49,7 +50,6 @@ export function isExtensionAvailable(availability: ExtensionAvailability, isMain
  * презентационные данные в домен.
  */
 export interface IRegistryExtension {
-  is_builtin: boolean; // расширение встроенное
   availability: ExtensionAvailability; // в каких сетях разрешено ставить
   is_internal: boolean; // расширение внутреннее
   desktops?: IDesktopConfig[]; // столы, которые предоставляет расширение
@@ -66,14 +66,14 @@ export interface IRegistryExtension {
    */
   configPolicy?: ExtensionConfigPolicy;
   /**
-   * Таблицы, которыми расширение владеет, — классы сущностей TypeORM.
+   * Миграции таблиц расширения — классы миграций TypeORM.
    *
-   * Состав объявляется здесь, а не выводится из положения файлов на диске:
-   * расширение, установленное пакетом в `node_modules`, ни под какой глоб по
-   * `src/` не попадёт, и его таблицы просто не создадутся. Пустой список у
-   * расширения, которое своих таблиц не держит, — нормальное состояние.
+   * Схему базы меняют только миграции: добавил или поменял колонку в сущности
+   * из `entities` — положи рядом миграцию (`pnpm schema:generate`). Порядок
+   * задаёт метка времени в имени класса, общая лента с миграциями ядра.
+   * Не путать с `migrations` ниже — те переводят конфиг расширения.
    */
-  entities?: ReadonlyArray<new (...args: any[]) => any>;
+  databaseMigrations?: ReadonlyArray<new () => SchemaMigration>;
   /**
    * Миграции схемы конфига расширения — в порядке применения.
    *

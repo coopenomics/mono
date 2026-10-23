@@ -1,12 +1,12 @@
 import { DebtDomainEntity } from '../../domain/entities/debt.entity';
-import { DebtTypeormEntity } from '../entities/debt.typeorm-entity';
+import { DebtRecord } from '../entities/debt.record';
 import type { IDebtDatabaseData } from '../../domain/interfaces/debt-database.interface';
 import type { IDebtBlockchainData } from '../../domain/interfaces/debt-blockchain.interface';
 import type { ISignedDocument } from '@coopenomics/innercoop';
 import type { RequireFields } from '@coopenomics/extension-kit';
 
-type toEntityDatabasePart = RequireFields<Partial<DebtTypeormEntity>, keyof IDebtDatabaseData>;
-type toEntityBlockchainPart = RequireFields<Partial<DebtTypeormEntity>, keyof IDebtBlockchainData>;
+type toEntityDatabasePart = RequireFields<Partial<DebtRecord>, keyof IDebtDatabaseData>;
+type toEntityBlockchainPart = RequireFields<Partial<DebtRecord>, keyof IDebtBlockchainData>;
 
 type toDomainDatabasePart = RequireFields<Partial<DebtDomainEntity>, keyof IDebtDatabaseData>;
 type toDomainBlockchainPart = RequireFields<Partial<DebtDomainEntity>, keyof IDebtBlockchainData>;
@@ -18,7 +18,7 @@ export class DebtMapper {
   /**
    * Преобразование TypeORM сущности в доменную сущность
    */
-  static toDomain(entity: DebtTypeormEntity): DebtDomainEntity {
+  static toDomain(entity: DebtRecord): DebtDomainEntity {
     const databaseData: toDomainDatabasePart = {
       _id: entity._id,
       block_num: entity.block_num,
@@ -40,7 +40,8 @@ export class DebtMapper {
         username: entity.username,
         debt_hash: entity.debt_hash,
         project_hash: entity.project_hash,
-        status: entity.status,
+        // Статус цепи как есть — из blockchain_status; доменный статус сущность выводит из него сама.
+        status: entity.blockchain_status as any,
         repaid_at: entity.repaid_at.toISOString(),
         amount: entity.amount,
         statement: entity.statement,
@@ -56,7 +57,7 @@ export class DebtMapper {
   /**
    * Преобразование доменной сущности в TypeORM сущность для создания
    */
-  static toEntity(domain: DebtDomainEntity): Partial<DebtTypeormEntity> {
+  static toEntity(domain: DebtDomainEntity): Partial<DebtRecord> {
     const dbPart: toEntityDatabasePart = {
       _id: domain._id,
       block_num: domain.block_num ?? 0,
@@ -77,7 +78,8 @@ export class DebtMapper {
         username: domain.username as string,
         debt_hash: domain.debt_hash,
         project_hash: domain.project_hash as string,
-        status: domain.blockchain_status as any,
+        // В колонку статуса идёт доменный статус; статус цепи как есть лежит в blockchain_status.
+        status: domain.status,
         repaid_at: domain.repaid_at ? new Date(domain.repaid_at) : new Date(),
         amount: domain.amount as string,
         statement: domain.statement as ISignedDocument,
@@ -94,8 +96,8 @@ export class DebtMapper {
    * Преобразование доменной сущности в данные для обновления TypeORM сущности
    * Обновляет только локальные поля базы данных, поля из блокчейна обновляются через синхронизацию
    */
-  static toUpdateEntity(domain: Partial<DebtDomainEntity>): Partial<DebtTypeormEntity> {
-    const updateData: Partial<DebtTypeormEntity> = {};
+  static toUpdateEntity(domain: Partial<DebtDomainEntity>): Partial<DebtRecord> {
+    const updateData: Partial<DebtRecord> = {};
 
     // Поля из базы данных (локальные)
     if (domain.block_num !== undefined) updateData.block_num = domain.block_num;

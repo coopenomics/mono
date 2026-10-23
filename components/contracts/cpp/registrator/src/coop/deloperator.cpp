@@ -32,7 +32,7 @@
   eosio::check(has_auth(coopname) || has_auth(current) || has_auth(_provider),
                "Снять оператора может сам кооператив, его оператор либо провайдер");
 
-  coops.modify(coop, eosio::same_payer, [&](auto &row) {
+  coops.modify(coop, RamPayer::of(coops, coopname), [&](auto &row) {
     row.parent_username = eosio::name();
   });
 }

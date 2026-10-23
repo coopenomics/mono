@@ -1,60 +1,50 @@
 <template lang="pug">
 div
-  .agreement-pending.t-body(v-if='isPending') Документ на утверждении советом.
-  DocumentHtmlReader(v-else :html='privacyPolicyHtml')
+  .agreement-pending.t-body(v-if='isPending') {{ $t('agreementer.staticPrivacyPolicy.pendingText') }}
+  .agreement-pending.t-body(v-else-if='isLoading') {{ $t('agreementer.staticPrivacyPolicy.loadingText') }}
+  .agreement-pending.t-body(v-else-if='error') {{ error }}
+  DocumentHtmlReader(v-else :html='html')
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useSystemStore } from 'src/entities/System/model';
 import { DocumentHtmlReader } from 'src/shared/ui/DocumentHtmlReader';
 import { Cooperative } from 'cooptypes';
+import { fetchPublicProvision } from '../api';
+import { t } from 'src/shared/i18n';
 
 const { info } = useSystemStore();
 
-const privacyPolicyTemplate = Cooperative.Registry.PrivacyPolicy;
+const html = ref('');
+const error = ref('');
+const isLoading = ref(true);
 
 const isPending = computed(() => {
   const protocol = info?.vars?.privacy_agreement;
   return !protocol?.protocol_number || !protocol?.protocol_day_month_year;
 });
 
-const privacyPolicyHtml = computed(() => {
-  if (!info || !info.vars) {
-    return '<div>Загрузка политики конфиденциальности...</div>';
+/**
+ * Текст собирает бэкенд из шаблона в блокчейне — той самой редакции, которую
+ * утвердил совет. Подставлять переменные здесь нельзя: это вторая копия логики
+ * фабрики документов, и она неизбежно разъезжается с подписываемым документом.
+ */
+// realtime: нет источника — гостевая страница с текстом положения: лента доступна только вошедшему пайщику, текст утверждённой редакции читается при открытии.
+onMounted(async () => {
+  if (isPending.value) {
+    isLoading.value = false;
+    return;
   }
 
-  const vars = info.vars;
-  const contacts = info.contacts;
-  const translation = privacyPolicyTemplate.translations.ru;
-
-  const replacePlaceholders = (text: string): string => {
-    return text
-      .replace(/\{\{\s*vars\.full_abbr_dative\s*\}\}/g, vars.full_abbr_dative || '')
-      .replace(/\{\{\s*vars\.name\s*\}\}/g, vars.name || '')
-      .replace(/\{\{\s*vars\.website\s*\}\}/g, vars.website || '')
-      .replace(/\{\{\s*vars\.short_abbr\s*\}\}/g, vars.short_abbr || '')
-      .replace(/\{\{\s*vars\.confidential_email\s*\}\}/g, vars.confidential_email || '')
-      .replace(/\{\{\s*vars\.confidential_link\s*\}\}/g, vars.confidential_link || '')
-      .replace(/\{\{\s*vars\.privacy_agreement\.protocol_number\s*\}\}/g, vars.privacy_agreement?.protocol_number || '')
-      .replace(/\{\{\s*vars\.privacy_agreement\.protocol_day_month_year\s*\}\}/g, vars.privacy_agreement?.protocol_day_month_year || '')
-      .replace(/\{\{\s*coop\.short_name\s*\}\}/g, contacts?.full_name || '');
-  };
-
-  const replaceTranslations = (html: string): string => {
-    let result = html;
-    Object.entries(translation).forEach(([key, value]) => {
-      const regex = new RegExp(`\\{\\%\\s*trans\\s*'${key}'\\s*\\%\\}`, 'g');
-      result = result.replace(regex, value);
-    });
-    return result;
-  };
-
-  let html = privacyPolicyTemplate.context;
-  html = replaceTranslations(html);
-  html = replacePlaceholders(html);
-
-  return html;
+  try {
+    const provision = await fetchPublicProvision({ registry_id: Cooperative.Registry.PrivacyPolicy.registry_id });
+    html.value = provision.html;
+  } catch (e: any) {
+    error.value = e?.message ?? t('agreementer.staticPrivacyPolicy.loadError');
+  } finally {
+    isLoading.value = false;
+  }
 });
 </script>
 

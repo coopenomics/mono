@@ -12,7 +12,7 @@ div(
       :coopname='project.coopname'
       :project-hash='project.project_hash'
       :can-delete='project.permissions?.can_delete_project ?? false'
-      entity-label='проект'
+      :entity-label='$t("capital.projectSidebarWidget.entityLabel")'
       @deleted='emit("project-deleted")'
     )
 
@@ -26,7 +26,7 @@ div(
         :coopname='project.coopname'
         :project-hash='project.project_hash'
         :can-delete='true'
-        entity-label='проект'
+        :entity-label='$t("capital.projectSidebarWidget.entityLabel")'
         @deleted='emit("project-deleted")'
       )
 </template>

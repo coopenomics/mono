@@ -1,14 +1,30 @@
 // infrastructure/generator/generator.service.ts
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, OnModuleInit, Optional } from '@nestjs/common';
 import httpStatus from 'http-status';
 import { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
 import type { GenerateDocumentDomainInterfaceWithOptions } from '~/domain/document/interfaces/generate-document-domain-with-options.interface';
 import { GeneratorPort } from '~/domain/document/ports/generator.port';
-import { Generator, type ISearchResult } from '@coopenomics/factory';
+import { DocumentNotApprovedError, Generator, UnknownDocumentFactoryError, documentMetaKey, type IGenerateBlank, type IGeneratedBlank, type ISearchResult } from '@coopenomics/factory';
 import type { Cooperative } from 'cooptypes';
 import config from '~/config/config';
-import { HttpApiError } from '@coopenomics/extension-kit';
+import { DomainError } from '@coopenomics/extension-kit';
 import { ControllerChainDataSource } from './controller-chain-data.source';
+import { ChainChangesService } from '~/infrastructure/blockchain/chain-changes.service';
+
+/**
+ * Коллекции генератора (MongoDB) и их имена в ленте изменений. Личные данные
+ * пайщика, способы оплаты и переменные кооператива живут не в Postgres —
+ * подписчик базы узла их не видит, поэтому сигнал шлёт этот сервис после
+ * записи. Имена объявлены в `chain-changes.service.ts`.
+ */
+const GENERATOR_FEED_TABLES: Record<string, string> = {
+  individual: 'private_accounts',
+  organization: 'private_accounts',
+  entrepreneur: 'private_accounts',
+  paymentMethod: 'payment_methods',
+  udata: 'user_data',
+  vars: 'coop_vars',
+};
 @Injectable()
 export class GeneratorInfrastructureService implements GeneratorPort, OnModuleInit {
   /**
@@ -17,8 +33,18 @@ export class GeneratorInfrastructureService implements GeneratorPort, OnModuleIn
    */
   private readonly generator: Generator;
 
-  constructor(private readonly chainDataSource: ControllerChainDataSource) {
+  constructor(
+    private readonly chainDataSource: ControllerChainDataSource,
+    @Optional() @Inject(ChainChangesService) private readonly feed: ChainChangesService | null = null
+  ) {
     this.generator = new Generator(this.chainDataSource);
+  }
+
+  /** Сигнал ленты после записи в коллекцию с личными данными или переменными. */
+  private signal(collection: string, data: Record<string, unknown> | undefined): void {
+    const table = GENERATOR_FEED_TABLES[collection];
+    if (!table) return;
+    void this.feed?.publishLocal(table, String(data?.username ?? data?.coopname ?? ''), data);
   }
 
   async onModuleInit() {
@@ -40,10 +66,28 @@ export class GeneratorInfrastructureService implements GeneratorPort, OnModuleIn
     return await this.generator.generate(data, options);
   }
 
+  async generateBlank(data: IGenerateBlank): Promise<IGeneratedBlank> {
+    try {
+      return await this.generator.generateBlank(data);
+    } catch (error) {
+      console.error('Ошибка при сборке бланка документа:', error);
+      const wrapped = DomainError.badRequest('GENERATOR_BLANK_ASSEMBLY_FAILED');
+      Object.defineProperty(wrapped, 'cause', { value: error, enumerable: false, configurable: true, writable: true });
+      throw wrapped;
+    }
+  }
+
   async getDocument(query: {
     hash: string;
     block_num?: number;
+    meta?: unknown;
   }): Promise<Cooperative.Document.IGeneratedDocument | null> {
+    // Точная версия по meta подписанного документа: у двух генераций в одном
+    // блоке совпадают и тело, и block_num (C28-80).
+    if (query.meta !== undefined && query.meta !== null) {
+      const exact = await this.generator.getDocument({ hash: query.hash, meta_key: documentMetaKey(query.meta) } as never);
+      if (exact) return exact;
+    }
     // Черновики версионируются по (hash + meta.block_num). При наличии
     // block_num тянем точную версию через dot-path mongo-фильтр, иначе —
     // любую версию с этим hash (легаси/превью).
@@ -60,10 +104,12 @@ export class GeneratorInfrastructureService implements GeneratorPort, OnModuleIn
 
   async save(collection: string, data: any): Promise<void> {
     await (this.generator as any).save(collection as any, data);
+    this.signal(collection, data);
   }
 
   async del(collection: string, query: Record<string, any>): Promise<void> {
     await (this.generator as any).del(collection as any, query);
+    this.signal(collection, query);
   }
 
   async list<T = any>(collection: string, filter?: Record<string, any>): Promise<Cooperative.Document.IGetResponse<T>> {
@@ -95,8 +141,23 @@ export class GeneratorInfrastructureService implements GeneratorPort, OnModuleIn
       const generated = await this.generate(body.data, body.options);
       return new DocumentDomainEntity(generated);
     } catch (error) {
+      // Документ, для которого нет фабрики, — неверный запрос с понятным кодом;
+      // до 25.09.2026 причина оставалась только в журнале (C28-80).
+      if (error instanceof UnknownDocumentFactoryError) {
+        throw DomainError.badRequest('GENERATOR_DOCUMENT_TYPE_UNKNOWN', { registryId: error.registry_id });
+      }
+      // Документ ждёт утверждения советом: причину и что сделать фабрика
+      // называет сама — она и уходит пользователю, а не общая «ошибка генерации».
+      if (error instanceof DocumentNotApprovedError) {
+        throw DomainError.badRequest('GENERATOR_DOCUMENT_NOT_APPROVED', { reason: (error as Error).message });
+      }
       console.error('Ошибка при генерации документа:', error);
-      throw new HttpApiError(httpStatus.BAD_REQUEST, 'Ошибка при генерации документа');
+      // Исходная ошибка фабрики остаётся причиной: по ней вызывающий различает
+      // отказы (робот совета так узнаёт отставание индекса голосов). Свойство
+      // неперечисляемое — в ответы API и сериализацию ошибки оно не попадает.
+      const wrapped = DomainError.badRequest('GENERATOR_DOCUMENT_GENERATION_FAILED');
+      Object.defineProperty(wrapped, 'cause', { value: error, enumerable: false, configurable: true, writable: true });
+      throw wrapped;
     }
   }
 }

@@ -14,6 +14,7 @@ describe('cooptypes exports', () => {
     expect(cooptypes.FundContract).toBeDefined()
     expect(cooptypes.LedgerContract).toBeDefined()
     expect(cooptypes.MarketContract).toBeDefined()
+    expect(cooptypes.EdubridgeContract).toBeDefined()
     expect(cooptypes.BranchContract).toBeDefined()
   })
 

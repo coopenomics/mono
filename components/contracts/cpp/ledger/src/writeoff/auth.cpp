@@ -22,7 +22,7 @@ void ledger::auth(eosio::name coopname, checksum256 writeoff_hash) {
   // Обновляем статус операции
   writeoffs_index writeoffs(_ledger, _ledger.value);
   auto writeoff_iter = writeoffs.find(writeoff.id);
-  writeoffs.modify(writeoff_iter, _soviet, [&](auto& w) {
+  writeoffs.modify(writeoff_iter, RamPayer::of(writeoffs, coopname), [&](auto& w) {
     w.status = "approved"_n;
   });
 

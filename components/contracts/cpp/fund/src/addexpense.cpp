@@ -13,7 +13,7 @@
                    quantity,
                "Недостаточно средств для списания");
 
-  coopwallet.modify(wal, _fund, [&](auto &w) {
+  coopwallet.modify(wal, RamPayer::of(coopwallet, coopname), [&](auto &w) {
 
     /**
      * @brief проверить что списание идет по хозяйственному фонду
@@ -45,5 +45,5 @@
 
   eosio::check(efund != expfunds.end(), "Фонд не найден");
 
-  expfunds.modify(efund, _fund, [&](auto &a) { a.expended += quantity; });
+  expfunds.modify(efund, RamPayer::of(expfunds, coopname), [&](auto &a) { a.expended += quantity; });
 };

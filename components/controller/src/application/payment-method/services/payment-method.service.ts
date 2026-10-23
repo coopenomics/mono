@@ -9,6 +9,7 @@ import type { AddPaymentMethodInputDTO } from '../dto/add-payment-method-input.d
 import type { PaymentMethodDomainEntity } from '~/domain/payment-method/entities/method-domain.entity';
 import type { PaginationResultDomainInterface } from '~/domain/common/interfaces/pagination.interface';
 import { PaymentMethodDTO } from '../dto/payment-method.dto';
+import { DomainError } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class PaymentMethodService {
@@ -35,7 +36,7 @@ export class PaymentMethodService {
       methodType = 'sbp';
       methodData = data.sbp_data;
     } else {
-      throw new Error('Не указан тип платежного метода');
+      throw DomainError.badRequest('PAYMENT_METHOD_TYPE_REQUIRED');
     }
 
     const domainData = {
@@ -58,15 +59,3 @@ export class PaymentMethodService {
 }
 
 // ПАГИНАЦИЯ на будущее как-то так. Работа должна быть реализована в репозиториях
-// /**
-//    * Получает список методов оплаты с учётом пагинации и сортировки.
-//    *
-//    * @param paginationInput - Параметры пагинации и сортировки.
-//    * @returns {Promise<PaginationResult<PaymentMethodEntity>>}
-//    */
-// async listPaymentMethods(
-//   paginationInput: PaginationInputDTO
-// ): Promise<PaginationResult<PaymentMethodEntity>> {
-//   const queryBuilder = this.paymentMethodRepository.createQueryBuilder('paymentMethod');
-//   return this.paginationService.paginate(queryBuilder, paginationInput);
-// }

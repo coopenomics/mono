@@ -7,7 +7,7 @@ div.short-invite-widget(
     :model-value="shortInvite"
     :readonly="true"
     :toolbar="false"
-    placeholder="Нет инвайта"
+    :placeholder="$t('capital.shortInviteWidget.emptyPlaceholder')"
     class="short-invite-editor"
     :padded="false"
   )
@@ -18,7 +18,7 @@ div.short-invite-widget(
       flat
       dense
       color="primary"
-      label="Подробности"
+      :label="$t('capital.shortInviteWidget.detailsLabel')"
       @click.stop="handleDetailsClick"
       icon="visibility"
     )

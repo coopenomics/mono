@@ -1,0 +1,65 @@
+feature: factory.document-created-at
+title: Дата создания документа и уникальность его хэша
+
+# Мета документа хранила дату создания до минуты («ДД.ММ.ГГГГ ЧЧ:ММ»), и две
+# генерации одного заявления в одну минуту давали один doc_hash (sha256 файла)
+# при разной мете. Черновик ищется по doc_hash — сверка подписи брала чужую
+# версию и отбивала повторную подпись как подмену: 24.09.2026 пайщик четыре
+# раза подряд не смог внести взнос в Благорост. Задача C28-84.
+#
+# Теперь meta.created_at — момент генерации в ISO 8601 до миллисекунд, вид для
+# человека собирает рендер (переменная шаблона created_at), а в свойства файла
+# вписывается отпечаток меты: одинаковый doc_hash бывает только у одинаковых
+# документов, перегенерация из той же меты даёт тот же хэш. Документы со старой
+# датой собираются по-старому, байт в байт.
+
+sources:
+  backend:
+    - components/factory/src/Utils/documentCreatedAt.ts
+    - components/factory/src/Services/Generator/index.ts
+
+cases:
+  - id: factory.docdate.happy.01
+    level: backend
+    kind: happy
+    scenario: дата меты в ISO показывается в документе и в реквизитах решения
+    expect: «ДД.ММ.ГГГГ ЧЧ:ММ» в поясе документа, дата и время по отдельности
+    test: components/factory/test/document-created-at.test.ts
+    api: components/api-tests/src/factory/document-created-at.test.ts
+    status: written
+
+  - id: factory.docdate.side.01
+    level: backend
+    kind: side
+    scenario: документ со старой датой «ДД.ММ.ГГГГ ЧЧ:ММ» пересобирается или разбирается
+    expect: дата показывается как есть, разбирается в поясе документа, отпечатка в файле нет
+    test: components/factory/test/document-created-at.test.ts
+    api: components/api-tests/src/factory/document-created-at.test.ts
+    status: written
+
+  - id: factory.docdate.break.01
+    level: backend
+    kind: break
+    scenario: две генерации одного документа в одну минуту — повтор подписи, двойной клик
+    expect: хэши файлов разные, поиск черновика по хэшу находит свою версию
+    test: components/factory/test/document-created-at.test.ts
+    api: components/api-tests/src/factory/document-created-at.test.ts
+    status: written
+
+  - id: factory.docdate.side.02
+    level: backend
+    kind: side
+    scenario: документ перегенерируется из своей же меты (проверка документа в кабинете)
+    expect: тот же хэш файла, в свойствах файла — отпечаток этой меты
+    test: components/factory/test/document-created-at.test.ts
+    api: components/api-tests/src/factory/document-created-at.test.ts
+    status: written
+
+  - id: factory.docdate.break.02
+    level: backend
+    kind: break
+    scenario: в мету передана непонятная дата
+    expect: разбор отказывает, дата не выдумывается
+    test: components/factory/test/document-created-at.test.ts
+    api: components/api-tests/src/factory/document-created-at.test.ts
+    status: written

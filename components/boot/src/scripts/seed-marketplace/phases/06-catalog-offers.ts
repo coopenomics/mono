@@ -23,6 +23,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { Client, Mutations, Queries, Zeus } from '@coopenomics/sdk'
+import { loginChairman } from '../../lib/chairman-login'
 import Blockchain from '../../../blockchain'
 import config from '../../../configs'
 
@@ -79,7 +80,8 @@ async function makeClient(username: string, email: string, wif: string) {
     wif,
     username,
   })
-  await client.login(email, wif)
+  // Председатель после пароля подписью не входит — токен из файла харнесса.
+  await loginChairman(client, email, wif, username)
   return client
 }
 

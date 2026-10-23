@@ -1,10 +1,9 @@
 import { Inject, Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import { Ledger2Contract } from 'cooptypes';
 import Redis from 'ioredis';
-import { DeltaEntity } from '~/infrastructure/database/typeorm/entities/delta.entity';
-import { ActionEntity } from '~/infrastructure/database/typeorm/entities/action.entity';
+import type { ActionDomainInterface } from '~/domain/parser/interfaces/action-domain.interface';
+import type { DeltaDomainInterface } from '~/domain/parser/interfaces/delta-domain.interface';
+import { PROCESS_JOURNAL_PORT, type ProcessJournalPort } from '../ports/process-journal.port';
 import { DocumentAggregator } from '~/domain/document/aggregators/document.aggregator';
 import { REDIS_PROVIDER } from '~/infrastructure/redis/redis.provider';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
@@ -25,10 +24,7 @@ import type {
   ProcessesFilter,
   ProcessSummary,
 } from '../interfaces/process-view.interface';
-import {
-  PaginationInputDTO,
-  PaginationResult,
-} from '@coopenomics/extension-kit';
+import { PaginationInputDTO, PaginationResult, DomainError } from '@coopenomics/extension-kit';
 
 const LEDGER2_CODE = Ledger2Contract.contractName.production;
 // Epic 1 addendum (2026-04-18): apply orchestrator + 3 atomic inlines.
@@ -42,6 +38,12 @@ const LEDGER2_CODE = Ledger2Contract.contractName.production;
 // unbounded scan при заведомо некорректном process_hash или ошибке в локаторе.
 const HARD_LIMIT = 200;
 const CACHE_TTL_SECONDS = 60;
+
+/** Подписанный документ-кандидат: откуда взят и сырое значение до агрегации. */
+type DocumentCandidate = {
+  source: ProcessDocumentView['source'];
+  value: unknown;
+};
 
 /** Ссылка на одну операцию нитки: код операции + имя нитки, если контракт его эмитил. */
 type ProcessApplyRef = {
@@ -76,10 +78,8 @@ type RedisClient = {
 @Injectable()
 export class ProcessRegistryService {
   constructor(
-    @InjectRepository(DeltaEntity)
-    private readonly deltaRepository: Repository<DeltaEntity>,
-    @InjectRepository(ActionEntity)
-    private readonly actionRepository: Repository<ActionEntity>,
+    @Inject(PROCESS_JOURNAL_PORT)
+    private readonly journal: ProcessJournalPort,
     private readonly documentAggregator: DocumentAggregator,
     @Inject(REDIS_PROVIDER)
     private readonly redisClient: RedisClient,
@@ -110,16 +110,10 @@ export class ProcessRegistryService {
     //
     // Index: idx_actions_process_hash (не-partial, full-table) — покрывает
     // оба случая (ledger2-only и cross-account).
-    const allActions = await this.actionRepository
-      .createQueryBuilder('a')
-      .where(`LOWER(a.data ->> 'process_hash') = :hash`, { hash: normHash })
-      .andWhere(`a.data ->> 'coopname' = :coop`, { coop: coopname })
-      .orderBy('a.block_num', 'ASC')
-      .addOrderBy('a.global_sequence', 'ASC')
-      .getMany();
+    const allActions = await this.journal.findActionsByProcess(normHash, coopname);
 
     if (allActions.length === 0) {
-      throw new NotFoundException(`Процесс с хэшем ${normHash} не найден`);
+      throw DomainError.notFound('PROCESS_REGISTRY_NOT_FOUND', { hash: normHash });
     }
 
     const processType = this.resolveProcessTypeOrFail(allActions, normHash);
@@ -135,7 +129,22 @@ export class ProcessRegistryService {
     this.enforceLimit(allActions.length, 'actions', normHash);
 
     // ---------- Phase C: документы ----------
-    const documents = await this.extractDocuments(allDeltas);
+    // Часть документов процесса живёт только в параметрах действий и в строку
+    // сущности не записывается: заявление 1110 о переводе паевого взноса в
+    // Стол заказов (`marketplace::convert`, хэш заказа — в targets), решение
+    // совета о приёме (`registrator::confirmreg`), решение на выплату
+    // (`wallet::authwthd` — отдельная транзакция без операций ledger2),
+    // протоколы `onmktrtauth` и `confirmwroff`. Без второго источника бухгалтер
+    // видит операцию процесса, а документа, на котором она основана, — нет.
+    // Поэтому к дельтам добавляются действия, в данных которых встречается хэш
+    // процесса, в отрезке блоков от первой до последней записи процесса.
+    const linkedActions = await this.scanDocumentActions(normHash, coopname, allActions, entityDeltas);
+    this.enforceLimit(linkedActions.length, 'document_actions', normHash);
+
+    const documents = await this.extractDocuments([
+      ...this.collectDeltaDocumentCandidates(allDeltas),
+      ...this.collectActionDocumentCandidates(linkedActions),
+    ]);
 
     const firstAt = allActions[0].created_at;
     const lastAt = allActions[allActions.length - 1].created_at;
@@ -173,7 +182,7 @@ export class ProcessRegistryService {
     const { baseFilter, params, nextParamIdx } = this.buildListFilter(filter);
     let pIdx = nextParamIdx;
 
-    const countRow = await this.actionRepository.manager.query(
+    const countRow = await this.journal.query<any>(
       `SELECT COUNT(DISTINCT LOWER(a.data ->> 'process_hash')) AS cnt
        FROM blockchain_actions a
        WHERE ${baseFilter}`,
@@ -204,7 +213,7 @@ export class ProcessRegistryService {
     const offsetIdx = pIdx;
     params.push(offset);
 
-    const rows = await this.actionRepository.manager.query(
+    const rows = await this.journal.query<any>(
       `SELECT
          ARRAY_AGG(a.data ->> 'operation_code'
                    ORDER BY a.block_num ASC, (a.global_sequence)::numeric ASC) AS "operationCodes",
@@ -212,6 +221,10 @@ export class ProcessRegistryService {
                    ORDER BY a.block_num ASC, (a.global_sequence)::numeric ASC) AS "processTypes",
          ARRAY_AGG(a.data ->> 'username'
                    ORDER BY a.block_num ASC, (a.global_sequence)::numeric ASC) AS "usernames",
+         ARRAY_AGG(a.data ->> 'amount'
+                   ORDER BY a.block_num ASC, (a.global_sequence)::numeric ASC) AS "amounts",
+         ARRAY_AGG(a.data ->> 'memo'
+                   ORDER BY a.block_num ASC, (a.global_sequence)::numeric ASC) AS "memos",
          LOWER(a.data ->> 'process_hash')     AS "processHash",
          (a.data ->> 'coopname')              AS "coopname",
          MIN(a.created_at)                    AS "firstSeenAt",
@@ -244,10 +257,11 @@ export class ProcessRegistryService {
    *
    * Имя берётся из `ledger2::apply` (он всегда присутствует в трио).
    */
-  private resolveProcessTypeOrFail(actions: ActionEntity[], processHash: string): string {
+  private resolveProcessTypeOrFail(actions: ActionDomainInterface[], processHash: string): string {
     const applies = actions.filter((a) => a.account === LEDGER2_CODE && a.name === 'apply');
     if (applies.length === 0) {
       throw new BadRequestException(
+        // i18n-ignore: внутренний инвариант реестра процессов ledger2 (отсутствует якорь apply), до пайщика не доходит
         `Якорь ledger2::apply отсутствует для process_hash=${processHash}; без него нельзя вывести process_type`
       );
     }
@@ -260,11 +274,13 @@ export class ProcessRegistryService {
         `ProcessRegistry: ни одна операция нитки не даёт имени процессу (hash=${processHash}, коды=[${codes}]). Синхронизируйте cooptypes/ledger2 с OPERATION_REGISTRY.`
       );
       throw new BadRequestException(
+        // i18n-ignore: внутренняя ошибка соответствия operation_code процессу, требует обновления карты разработчиком
         `Неизвестные operation_code: ${codes}. OPERATION_CODE_TO_PROCESS_TYPE требует обновления.`
       );
     }
     if (!KNOWN_PROCESS_TYPES.has(naming.processType)) {
       throw new BadRequestException(
+        // i18n-ignore: внутренняя ошибка соответствия process_type локатору, требует обновления разработчиком
         `Неизвестный process_type: ${naming.processType}. PROCESS_HASH_LOCATOR требует обновления.`
       );
     }
@@ -381,6 +397,8 @@ export class ProcessRegistryService {
     const codes: (string | null)[] = r.operationCodes ?? [];
     const types: (string | null)[] = r.processTypes ?? [];
     const usernames: (string | null)[] = r.usernames ?? [];
+    const amounts: (string | null)[] = r.amounts ?? [];
+    const memos: (string | null)[] = r.memos ?? [];
     const applies = codes.map((code, i) =>
       this.toApplyRef({ operation_code: code, process_type: types[i] })
     );
@@ -400,6 +418,11 @@ export class ProcessRegistryService {
     // операций экономики КУ в username стоит имя участка, а не заказчика.
     const subject = naming ? usernames[naming.index] : usernames.find((u) => !!u);
 
+    // Сумма и назначение — по главной операции нитки. Без них две нитки одного
+    // типа у одного пайщика (два заказа, два пополнения) выглядели в реестре
+    // двойниками: тип, пайщик и даты совпадают, отличался только хэш.
+    const main = this.pickMainOperation(amounts);
+
     return {
       processType: naming?.processType ?? '',
       processHash: r.processHash,
@@ -407,7 +430,28 @@ export class ProcessRegistryService {
       username: subject ?? null,
       firstSeenAt: new Date(r.firstSeenAt),
       lastSeenAt: new Date(r.lastSeenAt),
+      amount: main >= 0 ? amounts[main] : null,
+      memo: main >= 0 ? memos[main] || null : null,
     };
+  }
+
+  /**
+   * Индекс главной операции нитки — с наибольшей суммой; при равных суммах
+   * первая по порядку. У поставки это паевой резерв под тело заказа, а не
+   * перевод недостающей части или членский взнос; у приёма пайщика — полный
+   * регистрационный взнос, а не его доли. `-1` — ни одна операция суммы не несёт.
+   */
+  private pickMainOperation(amounts: (string | null)[]): number {
+    let best = -1;
+    let bestValue = -Infinity;
+    amounts.forEach((amount, i) => {
+      const value = Number.parseFloat(String(amount ?? '').split(' ')[0]);
+      if (Number.isFinite(value) && value > bestValue) {
+        best = i;
+        bestValue = value;
+      }
+    });
+    return best;
   }
 
   private toApplyRef(data: unknown): ProcessApplyRef {
@@ -466,16 +510,14 @@ export class ProcessRegistryService {
   private normalizeHash(hash: string): string {
     const trimmed = (hash ?? '').trim().toLowerCase();
     if (!/^[0-9a-f]{64}$/.test(trimmed)) {
-      throw new BadRequestException(`process_hash должен быть hex-64 (получено: "${hash}")`);
+      throw DomainError.badRequest('PROCESS_REGISTRY_HASH_INVALID_FORMAT', { hash });
     }
     return trimmed;
   }
 
   private enforceLimit(count: number, collection: string, hash: string) {
     if (count > HARD_LIMIT) {
-      throw new BadRequestException(
-        `Превышен лимит ${HARD_LIMIT} в ${collection} для процесса ${hash} (фактически: ${count})`
-      );
+      throw DomainError.badRequest('PROCESS_REGISTRY_LIMIT_EXCEEDED', { limit: HARD_LIMIT, collection, hash, count });
     }
   }
 
@@ -483,21 +525,14 @@ export class ProcessRegistryService {
     locations: HashLocation[],
     hash: string,
     coopname: string
-  ): Promise<DeltaEntity[]> {
+  ): Promise<DeltaDomainInterface[]> {
     if (locations.length === 0) return [];
-    const all: DeltaEntity[] = [];
+    const all: DeltaDomainInterface[] = [];
     for (const loc of locations) {
       // Coopname-скоупинг: часть таблиц хранит coopname в scope (ledger2,
       // большинство кооп-scope таблиц), часть — в value.jsonb (singleton-scope
       // контракты типа registrator). Поддерживаем оба варианта.
-      const rows = await this.deltaRepository
-        .createQueryBuilder('d')
-        .where('d.code = :code', { code: loc.code })
-        .andWhere('d.table = :table', { table: loc.table })
-        .andWhere(`LOWER(d.value ->> :field) = :hash`, { field: loc.field, hash })
-        .andWhere("(d.scope = :coop OR d.value ->> 'coopname' = :coop)", { coop: coopname })
-        .orderBy('d.block_num', 'ASC')
-        .getMany();
+      const rows = await this.journal.findEntityDeltas(loc, hash, coopname);
       all.push(...rows);
     }
     return all;
@@ -507,46 +542,99 @@ export class ProcessRegistryService {
   // Phase A (anchors), для них достаточно одного запроса по
   // blockchain_actions[ledger2].
 
-  private async extractDocuments(deltas: ProcessDeltaView[]): Promise<ProcessDocumentView[]> {
-    // Один логический документ (тождество по содержимому = doc_hash) встречается
-    // в НЕСКОЛЬКИХ дельта-версиях сущности и с РАЗНЫМ числом подписей: контракт
-    // сперва пишет одноподписную версию, затем — двухподписную (вторая подпись —
-    // ведущая). Без дедупликации UI показывает один и тот же акт 5-7 раз.
-    // Поэтому отдаём ОДНУ запись на документ — версию с максимумом подписей,
-    // при равенстве — последнюю по блоку (deltas отсортированы ASC).
-    const byContent = new Map<string, ProcessDocumentView>();
+  /**
+   * Действия с документами процесса вне сущностных таблиц: всё, что не ledger2,
+   * в данных которого встречается хэш процесса. Окно блоков — от первой до
+   * последней записи процесса (якорные действия и entity-дельты), по нему
+   * работает индекс block_num. Хэш сверяется без учёта регистра: контракты
+   * пишут checksum256 в данных в верхнем регистре. Хэш уже проверен как hex-64,
+   * поэтому в шаблон LIKE он подставляется без экранирования.
+   */
+  private async scanDocumentActions(
+    hash: string,
+    coopname: string,
+    anchors: ActionDomainInterface[],
+    entityDeltas: DeltaDomainInterface[]
+  ): Promise<ActionDomainInterface[]> {
+    const blocks = [...anchors, ...entityDeltas].map((r) => Number(r.block_num)).filter(Number.isFinite);
+    if (blocks.length === 0) return [];
+    return this.journal.findDocumentActions({
+      hash,
+      coopname,
+      fromBlock: Math.min(...blocks),
+      toBlock: Math.max(...blocks),
+      excludeAccount: LEDGER2_CODE,
+    });
+  }
+
+  private collectDeltaDocumentCandidates(deltas: ProcessDeltaView[]): DocumentCandidate[] {
+    const candidates: DocumentCandidate[] = [];
     for (const delta of deltas) {
       const v = delta.value as Record<string, unknown> | null;
       if (!v || typeof v !== 'object') continue;
+      for (const { field, value } of this.findDocumentFields(delta.code, delta.table, v)) {
+        candidates.push({
+          source: { code: delta.code, table: delta.table, field, primary_key: delta.primary_key },
+          value,
+        });
+      }
+    }
+    return candidates;
+  }
 
-      const candidates = this.findDocumentFields(delta.code, delta.table, v);
-      for (const { field, value } of candidates) {
-        try {
-          const signed = value as any;
-          const aggregate = await this.documentAggregator.buildDocumentAggregate(signed);
-          if (!aggregate) continue;
-          const entry: ProcessDocumentView = {
-            hash: aggregate.hash || signed.hash || signed.doc_hash || '',
-            source: {
-              code: delta.code,
-              table: delta.table,
-              field,
-              primary_key: delta.primary_key,
-            },
-            document: aggregate.document,
-            raw: aggregate.rawDocument ?? null,
-          };
-          const key = (entry.document?.doc_hash || signed.doc_hash || entry.hash || '').toLowerCase();
-          if (!key) continue;
-          const prev = byContent.get(key);
-          const sig = entry.document?.signatures?.length ?? 0;
-          const prevSig = prev?.document?.signatures?.length ?? 0;
-          if (!prev || sig >= prevSig) byContent.set(key, entry);
-        } catch (e: any) {
-          this.logger.warn(
-            `ProcessRegistry: buildDocumentAggregate упал для ${delta.code}/${delta.table}.${field}: ${e?.message}`
-          );
-        }
+  /** Документы из параметров действия: source — контракт, имя действия, параметр и global_sequence. */
+  private collectActionDocumentCandidates(actions: ActionDomainInterface[]): DocumentCandidate[] {
+    const candidates: DocumentCandidate[] = [];
+    for (const action of actions) {
+      const data = action.data as Record<string, unknown> | null;
+      if (!data || typeof data !== 'object') continue;
+      for (const [field, value] of Object.entries(data)) {
+        if (!looksLikeSignedDocument(value)) continue;
+        candidates.push({
+          source: {
+            code: action.account,
+            table: action.name,
+            field,
+            primary_key: String(action.global_sequence),
+          },
+          value,
+        });
+      }
+    }
+    return candidates;
+  }
+
+  private async extractDocuments(candidates: DocumentCandidate[]): Promise<ProcessDocumentView[]> {
+    // Один логический документ (тождество по содержимому = doc_hash) встречается
+    // в НЕСКОЛЬКИХ дельта-версиях сущности и с РАЗНЫМ числом подписей: контракт
+    // сперва пишет одноподписную версию, затем — двухподписную (вторая подпись —
+    // ведущая). Тот же документ приходит и из параметра действия, которым он
+    // подписан. Без дедупликации UI показывает один и тот же акт 5-7 раз.
+    // Поэтому отдаём ОДНУ запись на документ — версию с максимумом подписей,
+    // при равенстве — последнюю в порядке кандидатов (сначала дельты, затем
+    // действия, каждые по блоку ASC).
+    const byContent = new Map<string, ProcessDocumentView>();
+    for (const { source, value } of candidates) {
+      try {
+        const signed = value as any;
+        const aggregate = await this.documentAggregator.buildDocumentAggregate(signed);
+        if (!aggregate) continue;
+        const entry: ProcessDocumentView = {
+          hash: aggregate.hash || signed.hash || signed.doc_hash || '',
+          source,
+          document: aggregate.document,
+          raw: aggregate.rawDocument ?? null,
+        };
+        const key = (entry.document?.doc_hash || signed.doc_hash || entry.hash || '').toLowerCase();
+        if (!key) continue;
+        const prev = byContent.get(key);
+        const sig = entry.document?.signatures?.length ?? 0;
+        const prevSig = prev?.document?.signatures?.length ?? 0;
+        if (!prev || sig >= prevSig) byContent.set(key, entry);
+      } catch (e: any) {
+        this.logger.warn(
+          `ProcessRegistry: buildDocumentAggregate упал для ${source.code}/${source.table}.${source.field}: ${e?.message}`
+        );
       }
     }
     return [...byContent.values()];
@@ -577,7 +665,7 @@ export class ProcessRegistryService {
     return results;
   }
 
-  private toDeltaView = (d: DeltaEntity): ProcessDeltaView => ({
+  private toDeltaView = (d: DeltaDomainInterface): ProcessDeltaView => ({
     id: d.id,
     code: d.code,
     scope: d.scope,
@@ -589,8 +677,9 @@ export class ProcessRegistryService {
     created_at: d.created_at,
   });
 
-  private toActionView = (a: ActionEntity): ProcessActionView => ({
-    id: a.id,
+  // Действие из журнала всегда сохранено: ключ и дата записи у него есть.
+  private toActionView = (a: ActionDomainInterface): ProcessActionView => ({
+    id: a.id as string,
     account: a.account,
     name: a.name,
     data: a.data,
@@ -598,7 +687,7 @@ export class ProcessRegistryService {
     block_id: a.block_id,
     global_sequence: a.global_sequence,
     transaction_id: a.transaction_id,
-    created_at: a.created_at,
+    created_at: a.created_at as Date,
   });
 
   private compareByBlock = (

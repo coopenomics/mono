@@ -22,6 +22,7 @@
 #include "src/approve/createapprv.cpp"
 #include "src/approve/declineapprv.cpp"
 
+#include "src/automator/automation.hpp"
 #include "src/automator/automate.cpp"
 #include "src/automator/disautomate.cpp"
 
@@ -61,9 +62,9 @@
 #include "src/program/disableprog.cpp"
 #include "src/program/editprog.cpp"
 
-#include "src/system/converttoaxn.cpp"
 #include "src/system/init.cpp"
 #include "src/system/migrate.cpp"
+#include "src/system/cleanup.cpp"
 
 #include "src/vote/cancelvote.cpp"
 #include "src/vote/voteagainst.cpp"

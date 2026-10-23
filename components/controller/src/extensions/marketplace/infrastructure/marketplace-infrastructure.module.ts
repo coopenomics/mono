@@ -1,52 +1,11 @@
 import { Module } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { EXTENSION_DATABASE_PORT, type IExtensionDatabasePort } from '@coopenomics/innercoop';
 
 // TypeORM entities
-import { CategoryEntity } from './entities/category.entity';
-import { TypeEntity } from './entities/type.entity';
-import { AttributeEntity } from './entities/attribute.entity';
-import { DictionaryEntity } from './entities/dictionary.entity';
-import { DictionaryValueEntity } from './entities/dictionary-value.entity';
-import { CategoryTypeAttributeEntity } from './entities/category-type-attribute.entity';
-import { AvailableCategoryEntity } from './entities/available-category.entity';
-import { RequestEntity } from './entities/request.entity';
-import { RequestAttributeValueEntity } from './entities/request-attribute-value.entity';
-import { RequestImageEntity } from './entities/request-image.entity';
-import { KuDetailsTypeormEntity } from './entities/ku-details.entity';
-import { MarketplaceVitrineEntity } from './entities/marketplace-vitrine.entity';
-import { MarketplaceSupplierEntity } from './entities/marketplace-supplier.entity';
-import { MarketplaceCategoryEntity } from './entities/marketplace-category.entity';
-import { MarketplaceOfferEntity } from './entities/marketplace-offer.entity';
-import { MarketplaceModerationLogEntity } from './entities/marketplace-moderation-log.entity';
-import { MarketplaceOrderEntity } from './entities/marketplace-order.entity';
-import { MarketplaceConsolidatedRequestEntity } from './entities/marketplace-consolidated-request.entity';
-import { MarketplaceShipmentEntity } from './entities/marketplace-shipment.entity';
-import { MarketplaceSupplyValidationLogEntity } from './entities/marketplace-supply-validation-log.entity';
-import { MarketplaceInventoryEntity } from './entities/marketplace-inventory.entity';
-import { MarketplaceStorageCellEntity } from './entities/marketplace-storage-cell.entity';
-import {
-  MarketplaceContainerEntity,
-  MarketplaceContainerTypeEntity,
-} from './entities/marketplace-container.entity';
-import { MarketplaceStockProposalEntity } from './entities/marketplace-stock-proposal.entity';
-import { MarketplaceAplReceptionEntity } from './entities/marketplace-apl-reception.entity';
-import { MarketplaceOutgoingPaymentRequestEntity } from './entities/marketplace-outgoing-payment-request.entity';
-import { MarketplaceTtnDocumentEntity } from './entities/marketplace-ttn-document.entity';
-import { MarketplaceReturnClaimEntity } from './entities/marketplace-return-claim.entity';
-import { MarketplaceWriteoffProposalEntity } from './entities/marketplace-writeoff-proposal.entity';
-import { MarketplaceCartEntity } from './entities/marketplace-cart.entity';
-import { MarketplaceCartItemEntity } from './entities/marketplace-cart-item.entity';
-import { MarketplaceSupplierSettingsEntity } from './entities/marketplace-supplier-settings.entity';
 
 // Repository adapters
 import { CategoryRepositoryAdapter } from './adapters/category-repository.adapter';
 import { TypeRepositoryAdapter } from './adapters/type-repository.adapter';
-import { AttributeRepositoryAdapter } from './adapters/attribute-repository.adapter';
-import { DictionaryRepositoryAdapter } from './adapters/dictionary-repository.adapter';
-import { DictionaryValueRepositoryAdapter } from './adapters/dictionary-value-repository.adapter';
 import { AvailableCategoryRepositoryAdapter } from './adapters/available-category-repository.adapter';
-import { RequestRepositoryAdapter } from './adapters/request-repository.adapter';
 import { KuDetailsRepositoryAdapter } from './adapters/ku-details-repository.adapter';
 import { geocoderPortFactory } from './adapters/geocoder.factory';
 import { MarketplaceVitrineRepositoryAdapter } from './adapters/marketplace-vitrine-repository.adapter';
@@ -70,6 +29,8 @@ import { MarketplaceAplReceptionRepositoryAdapter } from './adapters/marketplace
 import { MarketplaceOutgoingPaymentRequestRepositoryAdapter } from './adapters/marketplace-outgoing-payment-request-repository.adapter';
 import { MarketplaceTtnDocumentRepositoryAdapter } from './adapters/marketplace-ttn-document-repository.adapter';
 import { MarketplaceReturnClaimRepositoryAdapter } from './adapters/marketplace-return-claim-repository.adapter';
+import { MarketplaceSupplierClaimRepositoryAdapter } from './adapters/marketplace-supplier-claim-repository.adapter';
+import { MarketplaceIssuanceSagaRepositoryAdapter } from './adapters/marketplace-issuance-saga-repository.adapter';
 import { MarketplaceWriteoffProposalRepositoryAdapter } from './adapters/marketplace-writeoff-proposal-repository.adapter';
 import { MarketplaceCartRepositoryAdapter } from './adapters/marketplace-cart-repository.adapter';
 import { MarketplaceSupplierSettingsRepositoryAdapter } from './adapters/marketplace-supplier-settings-repository.adapter';
@@ -94,21 +55,18 @@ import {
 import { MarketplaceStockProposalMapper } from './mappers/marketplace-stock-proposal.mapper';
 import { MarketplaceAplReceptionMapper } from './mappers/marketplace-apl-reception.mapper';
 import { INTEGRATION_SETTINGS_PORT, type IIntegrationSettingsPort } from '@coopenomics/innercoop';
-import { MarketplaceAplReceptionIndexInitializer } from './services/marketplace-apl-reception-index-initializer.service';
 import { MarketplaceOutgoingPaymentRequestMapper } from './mappers/marketplace-outgoing-payment-request.mapper';
 import { MarketplaceTtnDocumentMapper } from './mappers/marketplace-ttn-document.mapper';
 import { MarketplaceReturnClaimMapper } from './mappers/marketplace-return-claim.mapper';
+import { MarketplaceSupplierClaimMapper } from './mappers/marketplace-supplier-claim.mapper';
+import { MarketplaceIssuanceSagaMapper } from './mappers/marketplace-issuance-saga.mapper';
 import { MarketplaceWriteoffProposalMapper } from './mappers/marketplace-writeoff-proposal.mapper';
 import { MarketplaceCartMapper } from './mappers/marketplace-cart.mapper';
 
 // Repository tokens
 import { CATEGORY_DOMAIN_REPOSITORY } from '../domain/repositories/category-domain.repository';
 import { TYPE_DOMAIN_REPOSITORY } from '../domain/repositories/type-domain.repository';
-import { ATTRIBUTE_DOMAIN_REPOSITORY } from '../domain/repositories/attribute-domain.repository';
-import { DICTIONARY_DOMAIN_REPOSITORY } from '../domain/repositories/dictionary-domain.repository';
-import { DICTIONARY_VALUE_DOMAIN_REPOSITORY } from '../domain/repositories/dictionary-value-domain.repository';
 import { AVAILABLE_CATEGORY_DOMAIN_REPOSITORY } from '../domain/repositories/available-category-domain.repository';
-import { REQUEST_DOMAIN_REPOSITORY } from '../domain/repositories/request-domain.repository';
 import { KU_DETAILS_DOMAIN_REPOSITORY } from '../domain/repositories/ku-details-domain.repository';
 import { GEOCODER_PORT } from '../domain/ports/geocoder.port';
 import { MARKETPLACE_VITRINE_REPOSITORY } from '../domain/repositories/marketplace-vitrine.repository';
@@ -132,114 +90,20 @@ import { MARKETPLACE_APL_RECEPTION_REPOSITORY } from '../domain/repositories/mar
 import { MARKETPLACE_OUTGOING_PAYMENT_REQUEST_REPOSITORY } from '../domain/repositories/marketplace-outgoing-payment-request.repository';
 import { MARKETPLACE_TTN_DOCUMENT_REPOSITORY } from '../domain/repositories/marketplace-ttn-document.repository';
 import { MARKETPLACE_RETURN_CLAIM_REPOSITORY } from '../domain/repositories/marketplace-return-claim.repository';
+import { MARKETPLACE_SUPPLIER_CLAIM_REPOSITORY } from '../domain/repositories/marketplace-supplier-claim.repository';
+import { MARKETPLACE_ISSUANCE_SAGA_REPOSITORY } from '../domain/repositories/marketplace-issuance-saga.repository';
 import { MARKETPLACE_WRITEOFF_PROPOSAL_REPOSITORY } from '../domain/repositories/marketplace-writeoff-proposal.repository';
 import { MARKETPLACE_CART_REPOSITORY } from '../domain/repositories/marketplace-cart.repository';
 import { MARKETPLACE_SUPPLIER_SETTINGS_REPOSITORY } from '../domain/repositories/marketplace-supplier-settings.repository';
+import { MarketplaceLiveFeedSubscriber } from './realtime/marketplace-live-feed.subscriber';
+import { MARKETPLACE_INVENTORY_STORE, MARKETPLACE_ORDER_STORE, marketplaceStoreProviders } from './database/marketplace-stores';
 
 @Module({
-  imports: [
-    // Создаем отдельное подключение для marketplace
-    // Своё подключение под собственный набор сущностей. Реквизиты приходят от
-    // ядра через порт: где стоит база расширения — знание контура, а не
-    // расширения.
-    TypeOrmModule.forRootAsync({
-      name: 'marketplace', // Имя подключения
-      inject: [EXTENSION_DATABASE_PORT],
-      useFactory: (databases: IExtensionDatabasePort) => {
-        const connection = databases.getConnection('marketplace');
-        if (!connection) {
-          throw new Error(
-            'Расширению marketplace не заведена отдельная база: без неё каталог, склад и заказы читать неоткуда'
-          );
-        }
-        return {
-          type: 'postgres',
-          host: connection.host,
-          port: connection.port,
-          username: connection.username,
-          password: connection.password,
-          database: connection.database,
-          entities: [
-            CategoryEntity,
-            TypeEntity,
-            AttributeEntity,
-            DictionaryEntity,
-            DictionaryValueEntity,
-            CategoryTypeAttributeEntity,
-            AvailableCategoryEntity,
-            RequestEntity,
-            RequestAttributeValueEntity,
-            RequestImageEntity,
-            KuDetailsTypeormEntity,
-            MarketplaceVitrineEntity,
-            MarketplaceSupplierEntity,
-            MarketplaceCategoryEntity,
-            MarketplaceOfferEntity,
-            MarketplaceModerationLogEntity,
-            MarketplaceOrderEntity,
-            MarketplaceConsolidatedRequestEntity,
-            MarketplaceShipmentEntity,
-            MarketplaceSupplyValidationLogEntity,
-            MarketplaceInventoryEntity,
-            MarketplaceStorageCellEntity,
-            MarketplaceContainerTypeEntity,
-            MarketplaceContainerEntity,
-            MarketplaceStockProposalEntity,
-            MarketplaceAplReceptionEntity,
-            MarketplaceOutgoingPaymentRequestEntity,
-            MarketplaceTtnDocumentEntity,
-            MarketplaceReturnClaimEntity,
-            MarketplaceWriteoffProposalEntity,
-            MarketplaceCartEntity,
-            MarketplaceCartItemEntity,
-            MarketplaceSupplierSettingsEntity,
-          ],
-          synchronize: true,
-          logging: false,
-        };
-      },
-    }),
-    // Регистрируем entities для этого подключения
-    TypeOrmModule.forFeature(
-      [
-        CategoryEntity,
-        TypeEntity,
-        AttributeEntity,
-        DictionaryEntity,
-        DictionaryValueEntity,
-        CategoryTypeAttributeEntity,
-        AvailableCategoryEntity,
-        RequestEntity,
-        RequestAttributeValueEntity,
-        RequestImageEntity,
-        KuDetailsTypeormEntity,
-        MarketplaceVitrineEntity,
-        MarketplaceSupplierEntity,
-        MarketplaceCategoryEntity,
-        MarketplaceOfferEntity,
-        MarketplaceModerationLogEntity,
-        MarketplaceOrderEntity,
-        MarketplaceConsolidatedRequestEntity,
-        MarketplaceShipmentEntity,
-        MarketplaceSupplyValidationLogEntity,
-        MarketplaceInventoryEntity,
-        MarketplaceStorageCellEntity,
-        MarketplaceContainerTypeEntity,
-        MarketplaceContainerEntity,
-        MarketplaceStockProposalEntity,
-        MarketplaceAplReceptionEntity,
-        MarketplaceOutgoingPaymentRequestEntity,
-        MarketplaceTtnDocumentEntity,
-        MarketplaceReturnClaimEntity,
-        MarketplaceWriteoffProposalEntity,
-        MarketplaceCartEntity,
-        MarketplaceCartItemEntity,
-        MarketplaceSupplierSettingsEntity,
-      ],
-      'marketplace'
-    ), // Указываем имя подключения
-  ],
   providers: [
+    // Шлюзы таблиц расширения на Kysely (C28-81).
+    ...marketplaceStoreProviders,
+    // Объявление таблиц расширения в общей ленте изменений (C28-83).
+    MarketplaceLiveFeedSubscriber,
     {
       provide: CATEGORY_DOMAIN_REPOSITORY,
       useClass: CategoryRepositoryAdapter,
@@ -249,24 +113,8 @@ import { MARKETPLACE_SUPPLIER_SETTINGS_REPOSITORY } from '../domain/repositories
       useClass: TypeRepositoryAdapter,
     },
     {
-      provide: ATTRIBUTE_DOMAIN_REPOSITORY,
-      useClass: AttributeRepositoryAdapter,
-    },
-    {
-      provide: DICTIONARY_DOMAIN_REPOSITORY,
-      useClass: DictionaryRepositoryAdapter,
-    },
-    {
-      provide: DICTIONARY_VALUE_DOMAIN_REPOSITORY,
-      useClass: DictionaryValueRepositoryAdapter,
-    },
-    {
       provide: AVAILABLE_CATEGORY_DOMAIN_REPOSITORY,
       useClass: AvailableCategoryRepositoryAdapter,
-    },
-    {
-      provide: REQUEST_DOMAIN_REPOSITORY,
-      useClass: RequestRepositoryAdapter,
     },
     {
       provide: KU_DETAILS_DOMAIN_REPOSITORY,
@@ -364,7 +212,6 @@ import { MARKETPLACE_SUPPLIER_SETTINGS_REPOSITORY } from '../domain/repositories
     },
     // Story 5.3 / 5.4 — АПП приёмки на КУ
     MarketplaceAplReceptionMapper,
-    MarketplaceAplReceptionIndexInitializer,
     {
       provide: MARKETPLACE_APL_RECEPTION_REPOSITORY,
       useClass: MarketplaceAplReceptionRepositoryAdapter,
@@ -387,6 +234,18 @@ import { MARKETPLACE_SUPPLIER_SETTINGS_REPOSITORY } from '../domain/repositories
       provide: MARKETPLACE_RETURN_CLAIM_REPOSITORY,
       useClass: MarketplaceReturnClaimRepositoryAdapter,
     },
+    // Компонент 68 / 99D-13 — гарантийные претензии поставщику
+    MarketplaceSupplierClaimMapper,
+    {
+      provide: MARKETPLACE_SUPPLIER_CLAIM_REPOSITORY,
+      useClass: MarketplaceSupplierClaimRepositoryAdapter,
+    },
+    // Компонент 68 — сага выдачи имущества (заявление → совет → акт → закрытие)
+    MarketplaceIssuanceSagaMapper,
+    {
+      provide: MARKETPLACE_ISSUANCE_SAGA_REPOSITORY,
+      useClass: MarketplaceIssuanceSagaRepositoryAdapter,
+    },
     // Эпик 8 — проекты решения совета о списании скоропорта
     MarketplaceWriteoffProposalMapper,
     {
@@ -406,13 +265,12 @@ import { MARKETPLACE_SUPPLIER_SETTINGS_REPOSITORY } from '../domain/repositories
     },
   ],
   exports: [
+    // Шлюзы, которыми пользуются фоновые задачи слоя application.
+    MARKETPLACE_INVENTORY_STORE,
+    MARKETPLACE_ORDER_STORE,
     CATEGORY_DOMAIN_REPOSITORY,
     TYPE_DOMAIN_REPOSITORY,
-    ATTRIBUTE_DOMAIN_REPOSITORY,
-    DICTIONARY_DOMAIN_REPOSITORY,
-    DICTIONARY_VALUE_DOMAIN_REPOSITORY,
     AVAILABLE_CATEGORY_DOMAIN_REPOSITORY,
-    REQUEST_DOMAIN_REPOSITORY,
     KU_DETAILS_DOMAIN_REPOSITORY,
     GEOCODER_PORT,
     MARKETPLACE_VITRINE_REPOSITORY,
@@ -441,6 +299,8 @@ import { MARKETPLACE_SUPPLIER_SETTINGS_REPOSITORY } from '../domain/repositories
     MARKETPLACE_TTN_DOCUMENT_REPOSITORY,
     // Эпик 7 — гарантийный возврат
     MARKETPLACE_RETURN_CLAIM_REPOSITORY,
+    MARKETPLACE_SUPPLIER_CLAIM_REPOSITORY,
+    MARKETPLACE_ISSUANCE_SAGA_REPOSITORY,
     // Эпик 8 — списание скоропорта
     MARKETPLACE_WRITEOFF_PROPOSAL_REPOSITORY,
     // Эпик 16 — корзина заказчика

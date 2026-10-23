@@ -1,8 +1,8 @@
 <template lang="pug">
 CreateDialog(
   ref="dialogRef"
-  title="План"
-  submit-text="Сохранить план"
+  :title="$t('capital.setPlanDialog.title')"
+  :submit-text="$t('capital.setPlanDialog.submit')"
   size="xl"
   :is-submitting="isSubmitting"
   @submit="handleSubmit"
@@ -10,31 +10,31 @@ CreateDialog(
 )
   template(#form-fields)
     .plan-dialog__section.plan-dialog__finance(v-if='!isLocalProject')
-      .plan-dialog__section-title Финансовый план
-      .plan-dialog__section-hint.t-sm Необязательно. Если часы не заданы — в блокчейн не отправляется, можно сохранить только цели по мерам.
+      .plan-dialog__section-title {{ $t('capital.setPlanDialog.financialSectionTitle') }}
+      .plan-dialog__section-hint.t-sm {{ $t('capital.setPlanDialog.financialHint') }}
       BaseInput(
         v-model='formData.plan_creators_hours',
-        label='Плановое количество часов исполнителей',
+        :label='$t("capital.setPlanDialog.hoursLabel")',
         type='number',
-        suffix='ч',
+        :suffix='$t("capital.setPlanDialog.hoursSuffix")',
         :error='financeErrors.hours'
       )
       BaseInput(
         v-model='formData.plan_hour_cost',
-        label='Стоимость часа работы',
+        :label='$t("capital.setPlanDialog.hourCostLabel")',
         :suffix='governSymbol',
         :error='financeErrors.hourCost'
       )
       BaseInput(
         v-model='formData.plan_expenses',
-        label='Дополнительные расходы',
+        :label='$t("capital.setPlanDialog.extraExpensesLabel")',
         :suffix='governSymbol',
         :error='financeErrors.expenses'
       )
 
     .plan-dialog__section(v-if='showMetrics')
       .plan-dialog__section-head
-        .plan-dialog__section-title Цели по мерам
+        .plan-dialog__section-title {{ $t('capital.setPlanDialog.measureTargetsTitle') }}
         .plan-dialog__section-actions
           BaseButton(
             v-if='measures.length'
@@ -44,7 +44,7 @@ CreateDialog(
           )
             template(#icon-left)
               q-icon(name='history' size='16px')
-            | Из своих
+            | {{ $t('capital.setPlanDialog.fromOwnLabel') }}
             q-menu(auto-close)
               q-list(dense style='min-width: 220px')
                 q-item(
@@ -63,7 +63,7 @@ CreateDialog(
           )
             template(#icon-left)
               q-icon(name='add' size='16px')
-            | Добавить
+            | {{ $t('common.action.add') }}
 
       .plan-dialog__metric(
         v-for='(row, index) in metricRows',
@@ -72,22 +72,22 @@ CreateDialog(
         .plan-dialog__metric-fields
           BaseInput.plan-dialog__metric-measure(
             v-model='row.title',
-            label='Мера',
-            placeholder='Например: ролики'
+            :label='$t("capital.setPlanDialog.measureLabel")',
+            :placeholder='$t("capital.setPlanDialog.measurePlaceholder")'
           )
           BaseInput.plan-dialog__metric-unit(
             v-model='row.unit',
-            label='Ед. изм.',
-            placeholder='шт'
+            :label='$t("capital.setPlanDialog.unitLabel")',
+            :placeholder='$t("capital.setPlanDialog.unitPlaceholder")'
           )
           BaseSelect.plan-dialog__metric-mode(
             v-model='row.series_mode',
             :options='seriesModeOptions',
-            label='Тип'
+            :label='$t("capital.setPlanDialog.typeLabel")'
           )
           BaseInput.plan-dialog__metric-target(
             v-model.number='row.target_value',
-            label='Цель',
+            :label='$t("capital.setPlanDialog.targetLabel")',
             type='number'
           )
         BaseButton(
@@ -95,16 +95,16 @@ CreateDialog(
           size='sm',
           :icon-only='true',
           type='button',
-          aria-label='Убрать цель',
+          :aria-label='$t("capital.setPlanDialog.removeTargetAriaLabel")',
           @click='removeMetricRow(index)'
         )
           template(#icon-left)
             q-icon(name='close' size='16px')
 
       .plan-dialog__metrics-hint.t-sm(v-if='!metricRows.length')
-        | Целей пока нет — нажмите «Добавить» и впишите меру своими словами.
+        | {{ $t('capital.setPlanDialog.emptyTargetsHint') }}
       .plan-dialog__metrics-hint.t-sm(v-else)
-        | Мера пишется как удобно. Новая попадёт в меры кооператива — потом её можно взять кнопкой «Из своих».
+        | {{ $t('capital.setPlanDialog.measureHint') }}
 </template>
 
 <script setup lang="ts">
@@ -124,6 +124,7 @@ import type {
   IComponentMetric,
   IMeasure,
 } from 'app/extensions/capital/entities/ComponentMetric/model';
+import { t } from '../../../../../i18n';
 
 interface MetricDraftRow {
   key: string;
@@ -195,24 +196,24 @@ const validateFinanceFields = (): boolean => {
 
   let ok = true;
   if (!String(formData.value.plan_hour_cost ?? '').trim()) {
-    financeErrors.value.hourCost = 'Укажите стоимость часа или очистите часы';
+    financeErrors.value.hourCost = t('capital.setPlanDialog.hourCostRequiredError');
     ok = false;
   }
   if (!String(formData.value.plan_expenses ?? '').trim()) {
-    financeErrors.value.expenses = 'Укажите расходы или очистите часы';
+    financeErrors.value.expenses = t('capital.setPlanDialog.expensesRequiredError');
     ok = false;
   }
   const n = Number(formData.value.plan_creators_hours);
   if (!Number.isFinite(n) || n <= 0) {
-    financeErrors.value.hours = 'Количество часов должно быть больше 0';
+    financeErrors.value.hours = t('capital.setPlanDialog.hoursPositiveError');
     ok = false;
   }
   return ok;
 };
 
 const seriesModeOptions: BaseSelectOption[] = [
-  { value: Zeus.MetricSeriesMode.RATE, label: 'Скорость' },
-  { value: Zeus.MetricSeriesMode.LEVEL, label: 'Уровень' },
+  { value: Zeus.MetricSeriesMode.RATE, label: t('capital.setPlanDialog.speedTypeOption') },
+  { value: Zeus.MetricSeriesMode.LEVEL, label: t('capital.setPlanDialog.levelTypeOption') },
 ];
 
 let draftKeySeq = 0;
@@ -365,11 +366,11 @@ const handleSubmit = async () => {
 
   const canFinance = !!props.project.permissions?.can_set_plan;
   if (!isLocalProject.value && !canFinance) {
-    FailAlert('У вас нет прав на установку плана');
+    FailAlert(t('capital.setPlanDialog.setPlanPermissionError'));
     return;
   }
   if (isLocalProject.value && !canEditMetrics.value) {
-    FailAlert('У вас нет прав на редактирование целей по мерам');
+    FailAlert(t('capital.setPlanDialog.editTargetsPermissionError'));
     return;
   }
 
@@ -377,7 +378,7 @@ const handleSubmit = async () => {
     (row) => isMetricRowTouched(row) && !isMetricRowFilled(row),
   );
   if (incomplete) {
-    FailAlert('Впишите меру, единицу измерения и цель — или удалите незаполненные строки');
+    FailAlert(t('capital.setPlanDialog.incompleteTargetRowError'));
     return;
   }
 
@@ -389,8 +390,8 @@ const handleSubmit = async () => {
   if (!finance && !metricsToSave) {
     FailAlert(
       isLocalProject.value
-        ? 'Укажите цели по мерам'
-        : 'Укажите финансовый план (часы > 0) или цели по мерам',
+        ? t('capital.setPlanDialog.targetsRequiredError')
+        : t('capital.setPlanDialog.planOrTargetsRequiredError'),
     );
     return;
   }
@@ -421,9 +422,9 @@ const handleSubmit = async () => {
     }
 
     if (finance) {
-      SuccessAlert(props.project.is_planed ? 'План сохранён' : 'План установлен');
+      SuccessAlert(props.project.is_planed ? t('capital.setPlanDialog.savedSuccess') : t('capital.setPlanDialog.setSuccess'));
     } else {
-      SuccessAlert('Цели по мерам сохранены');
+      SuccessAlert(t('capital.setPlanDialog.targetsSavedSuccess'));
     }
     dialogRef.value?.clear();
     emit('success');

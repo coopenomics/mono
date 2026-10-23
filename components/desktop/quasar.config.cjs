@@ -49,7 +49,10 @@ module.exports = configure(function (ctx) {
     // app boot file (/src/boot)
     // --> boot files are part of "main.js"
     // https://v2.quasar.dev/quasar-cli-vite/boot-files
-    boot: ['widget', 'coopid', 'init', 'axios', 'sentry', 'network', 'chatwoot', 'theme', 'ui', 'haptics', 'pwa-update'],
+    // `hmr-guard` идёт первым: он должен встать раньше, чем страница начнёт
+    // грузить остальное, иначе первые же сообщения об обновлении пройдут мимо.
+    // `i18n` — раньше `init`: расширения при установке берут заголовки из словарей.
+    boot: ['ssr-errors', 'hmr-guard', 'i18n', 'widget', 'coopid', 'init', 'axios', 'sentry', 'network', 'chatwoot', 'theme', 'ui', 'haptics', 'pwa-update'],
 
     // https://v2.quasar.dev/quasar-cli-vite/quasar-config-js#css
     css: [
@@ -138,6 +141,16 @@ module.exports = configure(function (ctx) {
             'api-dev.coopenomics.world',
             'localhost',
             '127.0.0.1',
+            // Стенды разработки живут только во внутреннем контуре под именами
+            // voskhod-test-N.int.coopenomics.world — ведущая точка у Vite значит
+            // «домен и все его поддомены», так что новый стенд ничего настраивать не должен.
+            '.int.coopenomics.world',
+            // Публичные имена прочих стендов — из окружения, а не правкой кода под каждый:
+            // DESKTOP_EXTRA_ALLOWED_HOSTS=voskhod-dev-4.coopenomics.world,ещё.один.
+            ...String(process.env.DESKTOP_EXTRA_ALLOWED_HOSTS || '')
+              .split(',')
+              .map((host) => host.trim())
+              .filter(Boolean),
           ];
           viteConf.server.fs = viteConf.server.fs || {};
           viteConf.server.fs.strict = false;
@@ -193,6 +206,17 @@ module.exports = configure(function (ctx) {
       port: parseInt(process.env.DESKTOP_PORT || '2999', 10),
       strictPort: true,
       host: '0.0.0.0',
+      // SSR dev: Vite работает как middleware и держит вебсокет горячей
+      // перезагрузки на отдельном порту 24678, а браузеру велит подключаться
+      // к нему по адресу страницы. За шлюзом стенда этот порт закрыт, и клиент
+      // Vite бесконечно переподключается — тысячи «Uncaught (in promise)» в
+      // консоли, задержки на каждом переходе. Отдаём вебсокету свой путь и
+      // публичный порт страницы: nginx стенда проксирует /__vite_hmr на 24678
+      // (infra/coopid/nginx/dev.conf). В SPA-режиме вебсокет живёт на порту
+      // самого dev-сервера, и настройка не нужна.
+      ...(ctx.mode.ssr
+        ? { hmr: { path: '/__vite_hmr', port: 24678, clientPort: 443 } }
+        : {}),
     },
 
     // https://v2.quasar.dev/quasar-cli-vite/quasar-config-js#framework
@@ -258,6 +282,7 @@ module.exports = configure(function (ctx) {
         'generateConfig', // middleware для генерации config.js с переменными окружения
         'dynamicManifest', // динамический /manifest.json с именем коопа из env (пер-кооп установочник)
         'version', // self-report версии ноды (/version) для оповещения об обновлении
+        'sessionContext', // кто запросил документ: по cookie сессии — аккаунт и стол пайщика до рендера
         'render', // keep this as last one
       ],
 

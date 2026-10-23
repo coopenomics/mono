@@ -22,6 +22,7 @@ BaseForm.form-shim(@submit='handlerSubmit', :loading='isSubmitting')
 <script setup lang="ts">
 import { BaseForm } from 'src/shared/ui/base/BaseForm';
 import { BaseButton } from 'src/shared/ui/base/BaseButton';
+import { t } from 'src/shared/i18n';
 
 const emit = defineEmits(['cancel']);
 
@@ -40,8 +41,8 @@ withDefaults(defineProps<IFormProps>(), {
   isSubmitting: false,
   showCancel: true,
   showSubmit: true,
-  buttonSubmitTxt: 'Продолжить',
-  buttonCancelTxt: 'Отменить',
+  buttonSubmitTxt: t('ui.form.continueLabel'),
+  buttonCancelTxt: t('ui.form.cancelLabel'),
   disabled: false,
   size: 'md',
 });

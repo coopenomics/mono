@@ -16,7 +16,7 @@ export interface Action extends IGenerate {
 export type Meta = IMetaDocument & Action
 
 // Инстанс оферты ЦПП «Стол заказов» для конкретного пайщика
-// (renderуется из шаблона 1101.MarketplaceOfferTemplate) с подстановкой ФИО.
+// (совет утверждает бланк этого же документа; двойник 1101 выведен) с подстановкой ФИО.
 export interface Model {
   meta: IMetaDocument
   coop: ICooperativeData

@@ -1,31 +1,36 @@
 /**
- * `RolesGuard` живёт в пакете, а пакет собирается esbuild'ом — без
- * `emitDecoratorMetadata`. Значит зависимость гарда объявляется явным
+ * Гард прав (`RightsGuard`) живёт в пакете, а пакет собирается esbuild'ом — без
+ * `emitDecoratorMetadata`. Значит зависимости гарда объявляются явным
  * `@Inject`: иначе Nest построит его без аргументов, `reflector` окажется
- * `undefined`, и первый же запрос с `@AuthRoles` вместо отказа вернёт 500
- * («Cannot read properties of undefined (reading 'get')»).
+ * `undefined`, и первый же запрос с `@RequireRight` вместо отказа вернёт 500.
  *
- * Тест проверяет ровно это: контейнер обязан отдать гард с готовым Reflector,
- * а гард без объявленных ролей — пропустить запрос, а не упасть.
+ * Тест проверяет ровно это: контейнер обязан отдать гард с готовым Reflector и
+ * описанием прав приложения, а операцию без требования гард пропускает.
  */
 import { Test } from '@nestjs/testing';
 import { Reflector } from '@nestjs/core';
-import { RolesGuard } from '@coopenomics/extension-kit';
+import { APP_RIGHTS, RightsGuard, type AppRights } from '@coopenomics/extension-kit';
 
-describe('RolesGuard: зависимость приходит через DI (пакет без emitDecoratorMetadata)', () => {
-  it('контейнер инстанцирует гард с Reflector, а не с undefined', async () => {
-    const moduleRef = await Test.createTestingModule({ providers: [RolesGuard] }).compile();
+const rights: AppRights<'council', never> = {
+  extensionName: 'probe',
+  table: { council: [] },
+  roles: async () => [],
+};
 
-    const guard = moduleRef.get(RolesGuard);
+describe('RightsGuard: зависимости приходят через DI (пакет без emitDecoratorMetadata)', () => {
+  const build = async () => {
+    const moduleRef = await Test.createTestingModule({ providers: [RightsGuard, { provide: APP_RIGHTS, useValue: rights }] }).compile();
+    return moduleRef.get(RightsGuard);
+  };
 
+  it('контейнер инстанцирует гард с Reflector и описанием прав, а не с undefined', async () => {
+    const guard = await build();
     expect((guard as any).reflector).toBeInstanceOf(Reflector);
+    expect((guard as any).def).toBe(rights);
   });
 
-  it('роли не объявлены — доступ открыт (обращение к reflector не роняет запрос)', async () => {
-    const moduleRef = await Test.createTestingModule({ providers: [RolesGuard] }).compile();
-    const guard = moduleRef.get(RolesGuard);
-
-    // Контекст GraphQL-запроса без метаданных ролей: гард обязан вернуть true.
+  it('требование не объявлено — доступ открыт (обращение к reflector не роняет запрос)', async () => {
+    const guard = await build();
     const handler = function unprotectedResolver() {};
     const context: any = {
       getHandler: () => handler,
@@ -35,7 +40,6 @@ describe('RolesGuard: зависимость приходит через DI (п�
       getArgByIndex: (i: number) => context.getArgs()[i],
       switchToHttp: () => ({ getRequest: () => ({ headers: {} }) }),
     };
-
-    expect(guard.canActivate(context)).toBe(true);
+    await expect(guard.canActivate(context)).resolves.toBe(true);
   });
 });

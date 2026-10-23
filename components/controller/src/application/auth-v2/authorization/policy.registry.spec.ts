@@ -37,7 +37,7 @@ function buildRegistry(instances: Array<unknown>): PolicyRegistry {
 const ctx = (username: string): PolicyEvaluationContext => ({
   user: { username, role: 'user' },
   action: 'vote',
-  subject: 'CriticalAction',
+  subject: 'Participant',
 });
 
 describe('PolicyRegistry — Layer 3 (Story 6.3)', () => {

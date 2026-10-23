@@ -1,5 +1,5 @@
 <template lang="pug">
-.project-page-shell.column.flex-1.min-h-0.min-w-0.no-wrap
+.project-page-shell.page-shell.column.flex-1.min-h-0.min-w-0.no-wrap
   // Меню вкладок — сразу под шапкой, без внешних отступов (chrome на canvas)
   PageTabs(
     v-if="project && !isIssueRoute"
@@ -54,8 +54,17 @@
             @authors-added="handleAuthorsAdded"
           )
 
+  // Проект удалён или недоступен — скелетон крутиться не должен
+  .project-page-missing(v-if="notFound")
+    EmptyState(
+      :title="$t('capital.projectPage.unavailableTitle')"
+      :body="$t('capital.projectPage.unavailableBody')"
+    )
+      template(#icon)
+        q-icon(name="folder_off" size="32px")
+
   // Скелетон первичной загрузки проекта
-  .project-page-skeleton(v-if="!project")
+  .project-page-skeleton(v-else-if="!project")
     .project-page-skeleton__side(v-if="showSidebar")
       .skel(v-for="i in 4", :key="i")
     .project-page-skeleton__main
@@ -126,12 +135,13 @@
       router-view
 </template>
 <script lang="ts" setup>
-import { onMounted, computed, watch, ref } from 'vue';
+import { onMounted, computed, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useWindowSize } from 'src/shared/hooks/useWindowSize';
 import { useProjectLoader } from 'app/extensions/capital/entities/Project/model';
-import { useBackButton } from 'src/shared/lib/navigation';
+import { goBackOr, useBackButton } from 'src/shared/lib/navigation';
 import { PageTabs } from 'src/shared/ui/layout';
+import { EmptyState } from 'src/shared/ui/base';
 import { CreateComponentButton } from 'app/extensions/capital/features/Project/CreateComponent';
 import { CreateRequirementButton } from 'app/extensions/capital/features/Story/CreateStory';
 import { AddAuthorButton } from 'app/extensions/capital/features/Project/AddAuthor';
@@ -140,6 +150,7 @@ import { PendingClearanceButton } from 'app/extensions/capital/shared/ui/Pending
 import { ProjectSidebarWidget } from 'app/extensions/capital/widgets';
 import { ProjectTitleEditor } from 'app/extensions/capital/widgets/ProjectTitleEditor';
 import { useCapitalFabHotkeys, useCapitalWorkspaceRoutes } from 'app/extensions/capital/shared/lib';
+import { t, t as i18nT } from '../../../i18n';
 
 // Используем window size для определения размера экрана
 const { isMobile } = useWindowSize();
@@ -178,7 +189,7 @@ const addAuthorRef = ref<CapitalActionOpen>(null);
 const makeClearanceRef = ref<CapitalActionOpen>(null);
 
 // Используем composable для загрузки проекта
-const { project, projectHash, loadProject } = useProjectLoader();
+const { project, projectHash, notFound, loadProject } = useProjectLoader();
 
 const isLocalProject = computed(() => project.value?.origin === 'local');
 
@@ -240,66 +251,35 @@ const showSidebar = computed(
 // Субменю проекта (вкладки)
 const projectTabs = computed(() => {
   const params = { project_hash: projectHash.value };
-  const currentBackRoute = route.query._backRoute as string;
-  const query = currentBackRoute ? { _backRoute: currentBackRoute } : {};
 
   const tabs = [
-    { key: routeName('project-description'), label: 'Описание', route: { name: routeName('project-description'), params, query } },
-    { key: routeName('project-requirements'), label: 'Артефакты', route: { name: routeName('project-requirements'), params, query } },
-    { key: routeName('project-components'), label: 'Компоненты', route: { name: routeName('project-components'), params, query } },
-    { key: routeName('project-planning'), label: 'План', route: { name: routeName('project-planning'), params, query } },
+    { key: routeName('project-description'), label: t('capital.projectPage.descriptionTabLabel'), route: { name: routeName('project-description'), params } },
+    { key: routeName('project-requirements'), label: t('capital.projectPage.artifactsTabLabel'), route: { name: routeName('project-requirements'), params } },
+    { key: routeName('project-components'), label: t('capital.projectPage.componentsTabLabel'), route: { name: routeName('project-components'), params } },
+    { key: routeName('project-planning'), label: t('capital.projectPage.planTabLabel'), route: { name: routeName('project-planning'), params } },
   ];
 
   if (!isLocalProject.value) {
     tabs.push(
-      { key: routeName('project-contributors'), label: 'Участники', route: { name: routeName('project-contributors'), params, query } },
+      { key: routeName('project-contributors'), label: t('capital.projectPage.contributorsTabLabel'), route: { name: routeName('project-contributors'), params } },
     );
   }
 
-  tabs.push({ key: routeName('project-history'), label: 'История', route: { name: routeName('project-history'), params, query } });
+  tabs.push({ key: routeName('project-history'), label: t('capital.projectPage.historyTabLabel'), route: { name: routeName('project-history'), params } });
 
   return tabs;
 });
 
-// Настраиваем кнопку "Назад"
-const { setBackButton } = useBackButton({
-  text: 'Назад',
+// Назад — туда, откуда пришли (см. smartBack.ts); при прямом заходе по
+// ссылке истории нет — уходим на канонический список
+useBackButton({
+  text: i18nT('common.action.back'),
   componentId: 'project-base-' + projectHash.value,
-  onClick: () => {
-    if (isMyProjects.value) {
-      router.push({ name: 'capital-my-projects', params: { coopname: route.params.coopname } });
-      return;
-    }
-    const backRoute = route.query._backRoute as string;
-    if (backRoute) {
-      // Проверяем, является ли backRoute ключом sessionStorage
-      const storedRoute = sessionStorage.getItem(backRoute);
-      if (storedRoute) {
-        try {
-          const routeData = JSON.parse(storedRoute);
-          router.push({
-            name: routeData.name,
-            params: routeData.params,
-            query: routeData.query
-          });
-          // Очищаем сохраненные данные
-          sessionStorage.removeItem(backRoute);
-          return;
-        } catch (error) {
-          console.warn('Failed to parse stored route:', error);
-        }
-      }
-      // Если это обычное название маршрута, переходим стандартно
-      router.push({ name: backRoute });
-    } else {
-      router.push({ name: listRoute.value });
-    }
-  }
-});
-
-// Отслеживаем изменение backRoute для обновления кнопки "Назад"
-watch(() => route.query._backRoute, () => {
-  setBackButton();
+  onClick: () =>
+    goBackOr(router, {
+      name: isMyProjects.value ? 'capital-my-projects' : listRoute.value,
+      params: { coopname: route.params.coopname },
+    }),
 });
 
 // Обработчик создания компонента
@@ -340,6 +320,7 @@ const handleProjectDeleted = () => {
   router.push({ name: listRoute.value, params: { coopname } });
 };
 
+// realtime: нет источника — карточка с редакторами и разрешением конфликтов правок (content_rev): живое перечитывание подменило бы редактируемый объект; чужие правки ловит проверка версии при сохранении.
 onMounted(async () => {
   // Загружаем сохраненную ширину sidebar
   loadSidebarWidth();
@@ -350,13 +331,6 @@ onMounted(async () => {
 </script>
 
 <style lang="scss" scoped>
-// Оболочка заполняет вьюпорт под топбаром — единая высота surface на всех вкладках
-.project-page-shell {
-  height: calc(100vh - var(--p-topbar-h));
-  max-height: calc(100vh - var(--p-topbar-h));
-  overflow: hidden;
-}
-
 // Рабочая плоскость страницы проекта: контент на --p-surface,
 // табы/шапка остаются на --p-canvas (канон canvas → surface)
 .page-surface {
@@ -374,6 +348,16 @@ onMounted(async () => {
 }
 
 // Каркас первичной загрузки: повторяет раскладку «сайдбар + контент»
+.project-page-missing {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  align-items: center;
+  justify-content: center;
+  padding: var(--p-6);
+  background: var(--p-surface);
+}
+
 .project-page-skeleton {
   display: flex;
   gap: var(--p-4);

@@ -1,4 +1,5 @@
 import { onMounted, onUnmounted, type Ref } from 'vue';
+import { isEditableTarget } from 'src/shared/lib/shortcuts';
 import { CAPITAL_FAB_HOTKEY_CODES, type CapitalFabHotkeyId } from '../capital-fab-hotkeys';
 
 export type CapitalFabHotkeyHandler = () => void;
@@ -7,20 +8,6 @@ export type CapitalFabHotkeyHandler = () => void;
 export type CapitalFabHotkeysHandlers = Partial<
   Record<CapitalFabHotkeyId, CapitalFabHotkeyHandler>
 >;
-
-function isEditableTarget(target: EventTarget | null): boolean {
-  if (!(target instanceof HTMLElement)) {
-    return false;
-  }
-  const tag = target.tagName;
-  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') {
-    return true;
-  }
-  if (target.isContentEditable) {
-    return true;
-  }
-  return target.closest('[contenteditable="true"]') !== null;
-}
 
 const CODE_TO_ACTION: Record<string, CapitalFabHotkeyId> = {
   [CAPITAL_FAB_HOTKEY_CODES.project]: 'project',

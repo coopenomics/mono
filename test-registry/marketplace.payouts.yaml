@@ -1,0 +1,133 @@
+feature: marketplace.payouts
+title: Выплаты поставщикам — лента совета и разворот одной выплаты
+
+# Слайс от заведённой выплаты до её разворота на столе совета: лента выплат по
+# всему кооперативу (Payment:read:all), поиск по человеческому имени получателя
+# и карточка, отвечающая на вопрос «за что заплатили» — предмет поставки,
+# состояние заказа и подтверждение оплаты (запись в реестре кассира плюс
+# проводка в цепи).
+#
+# Проведение и отказ выплаты — работа кассира в общем столе кооператива
+# (расширение gateway). Здесь только чтение: marketplace отзеркаливает статусы
+# из цепи и показывает их совету.
+
+# Правка 24.09.2026 (C28-83, второй проход): на ленту переведены и экраны
+# Стола заказов, которые раньше не слушали marketplaceEvents, — реестры
+# председателя, экономика стола и участка, выплаты, претензии поставщику,
+# склад участка, онбординг кооператива и поставщика, пункты выдачи, карточки
+# реестров и виджеты процессов. Сбор с оборота (marketplace::config) объявлен в
+# ленте таблицей цепи. Онбординг пайщика ждёт подписи по ленте, а не циклом с
+# паузой. Серверные сценарии и набор случаев прежние.
+
+# Правка 2026-10-04 (C28-87): права операций сверяются с единой таблицей прав
+# Стола заказов вместе с условием строки (кооператив подключён, заказчик
+# подключён, хранение включено); декоратор операции — общий `@RequireRight` из
+# каркаса расширений. Случаи про условия — в marketplace.rights-table; набор
+# случаев этой фичи прежний.
+
+# Правка 2026-10-05 (C28-87, пункт 1а): список выплат поставщику назван
+# источником «сам пайщик» (`SELF`) в `@RequireRight`: отбор идёт по имени
+# вызвавшего. Поведение и набор случаев прежние.
+
+# Правка 2026-10-05 (C28-87, общий гард): права операций сверяет общий гард
+# каркаса расширений (`RightsGuard`) над описанием прав Стола заказов;
+# собственный гард стола, декоратор роли и ручной провайдер прав рабочего стола
+# убраны. Отказ «право не положено» отвечает кодом KIT_INSUFFICIENT_RIGHTS (был
+# отказ без кода). Набор случаев прежний.
+
+sources:
+  backend:
+    - components/controller/src/extensions/marketplace/application/resolvers/marketplace-outgoing-payment.resolver.ts
+    - components/controller/src/extensions/marketplace/application/dto/marketplace-outgoing-payment.dto.ts
+    - components/controller/src/extensions/marketplace/application/services/marketplace-payout-sync*.ts
+  ui:
+    - components/desktop/src/pages/Marketplace/BoardPayoutsReadonly/**
+
+cases:
+  - id: mkt.payouts.happy.01
+    level: backend
+    kind: happy
+    scenario: >
+      Совет открывает выплату, у которой есть и заказ, и платёж в реестре кассира.
+    expect: >
+      разворот собирает три источника: реквизиты выплаты, предмет поставки с
+      состоянием заказа и статус кассирского платежа; платёж ищется по
+      order_hash — marketplace заводит его именно с этим payment_hash
+    test: components/controller/tests/unit/marketplace/marketplace-outgoing-payment-detail.test.ts
+    api: components/api-tests/src/marketplace/payouts.test.ts
+    status: passing
+
+  - id: mkt.payouts.side.01
+    level: backend
+    kind: side
+    scenario: >
+      Запрошен идентификатор выплаты другого кооператива.
+    expect: >
+      ответ null, заказ и кассирский порт не опрашиваются — чужой идентификатор
+      не должен подтверждаться ни ответом, ни отказом по праву
+    test: components/controller/tests/unit/marketplace/marketplace-outgoing-payment-detail.test.ts
+    external: unreachable
+    external_reason: "на стенде один кооператив; выплату другого кооператива через API не завести"
+    status: passing
+
+  - id: mkt.payouts.side.02
+    level: backend
+    kind: side
+    scenario: >
+      Выплаты с таким идентификатором нет вовсе.
+    expect: ответ null
+    test: components/controller/tests/unit/marketplace/marketplace-outgoing-payment-detail.test.ts
+    api: components/api-tests/src/marketplace/payouts.test.ts
+    status: passing
+
+  - id: mkt.payouts.side.03
+    level: backend
+    kind: side
+    scenario: >
+      Заказ, за который платили, не нашёлся.
+    expect: >
+      разворот отдаётся без предмета поставки (order = null) — выплата и её
+      реквизиты совету видны в любом случае
+    test: components/controller/tests/unit/marketplace/marketplace-outgoing-payment-detail.test.ts
+    external: unreachable
+    external_reason: "заказ выплаты в базе узла не удаляется; состояние «заказ не нашёлся» через API не создать"
+    status: passing
+
+  - id: mkt.payouts.break.01
+    level: backend
+    kind: break
+    scenario: >
+      Кассирский порт недоступен в момент открытия выплаты.
+    expect: >
+      разворот остаётся живым, core_payment пуст — marketplace-статус
+      самодостаточен, отказ соседнего стола не должен гасить карточку
+    test: components/controller/tests/unit/marketplace/marketplace-outgoing-payment-detail.test.ts
+    external: unreachable
+    external_reason: "отказ кассирского порта через API стенда не вызвать"
+    status: passing
+
+  - id: mkt.payouts.side.04
+    level: backend
+    kind: side
+    scenario: >
+      Выплата заведена, но платёж кассиру ещё не создан (core_payment_id пуст).
+    expect: core_payment = null, разворот отдаётся
+    test: components/controller/tests/unit/marketplace/marketplace-outgoing-payment-detail.test.ts
+    external: unreachable
+    external_reason: "выплата без платежа кассиру — промежуточное состояние внутри одной операции, снаружи не наблюдается"
+    status: passing
+
+  - id: mkt.payouts.side.05
+    level: ui
+    kind: side
+    scenario: >
+      В ленте выплат совет ищет поставщика по фамилии, а у одного из получателей
+      имя в профиле не заполнено.
+    expect: >
+      колонка показывает ФИО или наименование организации, для незаполненного
+      профиля — логин аккаунта; поиск идёт по имени, не по логину
+    status: missing
+
+# 2026-09-23 (EEA-6…EEA-9): тексты интерфейса, отказов и уведомлений фичи вынесены из
+# кода в словари i18n, отказы бэкенда переведены на DomainError с кодом — текст
+# и HTTP-статус ответа прежние. Сценарии фичи и её проверки не менялись.

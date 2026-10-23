@@ -1,7 +1,7 @@
 import { computed, ref, watch } from 'vue';
-import { FailAlert, SuccessAlert } from 'src/shared/api';
+import { Cooperative } from 'cooptypes';
+import { FailAlert } from 'src/shared/api';
 import { useSystemStore } from 'src/entities/System/model';
-import { useSessionStore } from 'src/entities/Session';
 import { useDesktopStore } from 'src/entities/Desktop/model';
 import type {
   ICouncilOnboardingConfig,
@@ -13,13 +13,14 @@ import {
   generateDocument,
   type MarketplaceOnboardingState,
 } from '../api';
+import { t } from 'src/shared/i18n';
 
 /**
  * L1-онбординг ЦПП «Стол заказов» на платформенном механизме онбординга.
  *
  * Два документа утверждаются Советом по очереди (free-decision):
- *  1. Положение ЦПП «Стол заказов»   — cooptypes 1100.MarketplaceProgramTemplate;
- *  2. Шаблон публичной оферты ЦПП     — cooptypes 1101.MarketplaceOfferTemplate.
+ *  1. Положение ЦПП «Стол заказов»   — cooptypes MarketplaceProgramTemplate;
+ *  2. Шаблон публичной оферты ЦПП     — бланк cooptypes MarketplaceOffer.
  *
  * Статус каждого шага приходит с бэкенда (`done`/`hash`) и обновляется по
  * РЕАЛЬНОМУ ончейн-решению совета. Когда оба шага done — расширение
@@ -27,9 +28,11 @@ import {
  */
 
 // step_key (бэкенд) → registry_id рендерящегося документа
+// Шаг → рабочий документ, который совет утверждает в бланке. Двойник оферты
+// 1101 выведен: совет утверждает саму оферту 1102 (фабрика утверждений).
 const stepToRegistryId: Record<string, number> = {
-  marketplace_provision: 1100,
-  marketplace_offer_template: 1101,
+  marketplace_provision: Cooperative.Registry.MarketplaceProgramTemplate.registry_id,
+  marketplace_offer_template: Cooperative.Registry.MarketplaceOffer.registry_id,
 };
 
 interface StepMeta {
@@ -43,32 +46,30 @@ interface StepMeta {
 const STEP_META: StepMeta[] = [
   {
     id: 'marketplace_provision',
-    title: 'Положение о ЦПП «Стол заказов»',
+    title: t('marketplace.composable.stepProvisionTitle'),
     description:
-      'Утверждение Положения о целевой потребительской программе «Стол заказов»',
-    question: 'Об утверждении Положения о ЦПП «Стол заказов»',
-    decisionPrefix: 'Утвердить Положение о ЦПП «Стол заказов»:',
+      t('marketplace.composable.stepProvisionDescription'),
+    question: t('marketplace.composable.stepProvisionQuestion'),
+    decisionPrefix: t('marketplace.composable.stepProvisionDecisionPrefix'),
   },
   {
     id: 'marketplace_offer_template',
-    title: 'Шаблон публичной оферты ЦПП «Стол заказов»',
+    title: t('marketplace.composable.stepOfferTemplateTitle'),
     description:
-      'Утверждение шаблона публичной оферты по присоединению пайщиков к ЦПП «Стол заказов»',
+      t('marketplace.composable.stepOfferTemplateDescription'),
     question:
-      'Об утверждении шаблона публичной оферты по присоединению к ЦПП «Стол заказов»',
+      t('marketplace.composable.stepOfferTemplateQuestion'),
     decisionPrefix:
-      'Утвердить шаблон публичной оферты по присоединению к ЦПП «Стол заказов»:',
+      t('marketplace.composable.stepOfferTemplateDecisionPrefix'),
   },
 ];
 
 export const useMarketplaceOnboarding = () => {
   const systemStore = useSystemStore();
-  const sessionStore = useSessionStore();
   const desktopStore = useDesktopStore();
 
   const onboardingState = ref<MarketplaceOnboardingState | null>(null);
   const loading = ref(false);
-  const submitting = ref(false);
   // HTML документов по step_key — рендерим заранее, чтобы карточка показала
   // содержимое в диалоге «Проект решения».
   const documentsHtml = ref<Record<string, string>>({});
@@ -102,9 +103,12 @@ export const useMarketplaceOnboarding = () => {
     steps: stepsConfig.value,
     // Счётчик срока адаптации на Столе заказов не показываем — подключение
     // ЦПП не привязано к дедлайну онбординга платформы.
-    completionTitle: 'ЦПП «Стол заказов» подключена!',
+    completionTitle: t('marketplace.composable.connectedTitle'),
     completionMessage:
-      'Совет утвердил Положение и шаблон оферты. Пайщики могут пользоваться Столом заказов.',
+      t('marketplace.composable.connectedMessage') +
+      t('marketplace.composable.nextStepsHintIntro') +
+      t('marketplace.composable.nextStepsHintPvz') +
+      t('marketplace.composable.nextStepsHintTail'),
   }));
 
   const isCompleted = computed(
@@ -130,9 +134,8 @@ export const useMarketplaceOnboarding = () => {
       await systemStore.loadSystemInfo();
       onboardingState.value = await fetchOnboardingState();
 
-      // Заранее рендерим HTML обоих документов (registry 1100 + 1101).
+      // Заранее рендерим бланки обоих документов (registry 1100 + 1102).
       const coopname = systemStore.info?.coopname || '';
-      const username = sessionStore.username;
       const entries = await Promise.all(
         STEP_META.map(async (meta) => {
           try {
@@ -140,7 +143,7 @@ export const useMarketplaceOnboarding = () => {
             if (typeof registryId !== 'number') {
               return [meta.id, ''] as const;
             }
-            const doc = await generateDocument(coopname, username, registryId);
+            const doc = await generateDocument(coopname, registryId);
             return [meta.id, doc.html] as const;
           } catch {
             return [meta.id, ''] as const;
@@ -155,31 +158,30 @@ export const useMarketplaceOnboarding = () => {
     }
   };
 
-  const handleStepSubmit = async (step: ICouncilOnboardingStep) => {
-    try {
-      submitting.value = true;
-      const state = await completeStep({
-        extension_name: 'market',
-        step_key: step.id,
-        title: step.title,
-        question: step.question,
-        decision: documentsHtml.value[step.id] || step.decisionPrefix || '',
-      });
-      onboardingState.value = state;
-      SuccessAlert('Проект решения создан и отправлен в Совет.');
-    } catch (error) {
-      FailAlert(error);
-    } finally {
-      submitting.value = false;
-    }
+  /** Перечитать только состояние шагов — бланки документов не пересобираются. */
+  const refreshState = async () => {
+    if (isCompleted.value) return;
+    onboardingState.value = await fetchOnboardingState();
+  };
+
+  // Загрузку и сообщения показывает карточка; ошибка уходит к ней — по ней
+  // останавливается очередь «Объявить все».
+  const submitStep = async (step: ICouncilOnboardingStep) => {
+    onboardingState.value = await completeStep({
+      extension_name: 'market',
+      step_key: step.id,
+      title: step.title,
+      question: step.question,
+      decision: documentsHtml.value[step.id] || step.decisionPrefix || '',
+    });
   };
 
   return {
     config,
     loading,
-    submitting,
     isCompleted,
     loadState,
-    handleStepSubmit,
+    refreshState,
+    submitStep,
   };
 };

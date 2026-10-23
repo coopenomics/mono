@@ -7,8 +7,8 @@ form.full-width(@submit.prevent='submit')
         q-select(
           v-model='formData.authorized_default_workspace'
           :options='workspaceOptions'
-          label='Рабочий стол для авторизованных пользователей'
-          placeholder='Выберите рабочий стол'
+          :label='$t("chairman.defaultPagesForm.authDesktopLabel")'
+          :placeholder='$t("chairman.defaultPagesForm.desktopPlaceholder")'
           dense
           outlined
           color="primary"
@@ -24,8 +24,8 @@ form.full-width(@submit.prevent='submit')
         q-select(
           v-model='formData.authorized_default_route'
           :options='getRouteOptions(formData.authorized_default_workspace)'
-          label='Страница для авторизованных пользователей'
-          placeholder='Выберите страницу'
+          :label='$t("chairman.defaultPagesForm.authPageLabel")'
+          :placeholder='$t("chairman.defaultPagesForm.pagePlaceholder")'
           dense
           outlined
           color="primary"
@@ -44,8 +44,8 @@ form.full-width(@submit.prevent='submit')
         q-select(
           v-model='formData.non_authorized_default_workspace'
           :options='workspaceOptions'
-          label='Рабочий стол для неавторизованных пользователей'
-          placeholder='Выберите рабочий стол'
+          :label='$t("chairman.defaultPagesForm.guestDesktopLabel")'
+          :placeholder='$t("chairman.defaultPagesForm.desktopPlaceholder")'
           dense
           outlined
           color="primary"
@@ -61,8 +61,8 @@ form.full-width(@submit.prevent='submit')
         q-select(
           v-model='formData.non_authorized_default_route'
           :options='getRouteOptions(formData.non_authorized_default_workspace)'
-          label='Страница для неавторизованных пользователей'
-          placeholder='Выберите страницу'
+          :label='$t("chairman.defaultPagesForm.guestPageLabel")'
+          :placeholder='$t("chairman.defaultPagesForm.pagePlaceholder")'
           dense
           outlined
           color="primary"
@@ -78,14 +78,14 @@ form.full-width(@submit.prevent='submit')
     .row.justify-start.q-gutter-sm
       q-btn(
         flat
-        label='Сбросить'
+        :label='$t("chairman.defaultPagesForm.resetLabel")'
         color='grey'
         @click='resetForm'
         :loading='loading'
       )
       q-btn(
         type='submit'
-        label='Сохранить'
+        :label='$t("common.action.save")'
         color='primary'
         :loading='loading'
         :disable='!hasChanges'
@@ -98,6 +98,7 @@ import { useSystemStore } from 'src/entities/System/model'
 import { useDesktopStore } from 'src/entities/Desktop/model'
 import { useUpdateSettings } from '../model'
 import { FailAlert, SuccessAlert } from 'src/shared/api'
+import { t } from '../../../i18n';
 
 interface Props {
   loading?: boolean
@@ -164,8 +165,8 @@ const getRouteOptions = (workspaceName: string) => {
 
   // Добавляем глобальные маршруты (signin, signup) для всех рабочих столов
   const globalRoutes = [
-    { value: 'signin', label: 'Вход' },
-    { value: 'signup', label: 'Регистрация пайщика' }
+    { value: 'signin', label: t('chairman.defaultPagesForm.loginPageName') },
+    { value: 'signup', label: t('chairman.defaultPagesForm.registerPageName') }
   ]
 
   return [...routes, ...globalRoutes]
@@ -227,7 +228,7 @@ const submit = async () => {
     // Обновляем оригинальные данные
     originalData.value = { ...formData.value }
 
-    SuccessAlert('Настройки сохранены успешно')
+    SuccessAlert(t('chairman.defaultPagesForm.successMessage'))
     emit('success')
 
   } catch (error: any) {

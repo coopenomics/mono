@@ -1,5 +1,7 @@
 #pragma once
 
+
+#include "../core/ram_payer.hpp"
 #include <eosio/eosio.hpp>
 #include <eosio/time.hpp>
 
@@ -24,3 +26,6 @@ struct [[eosio::table, eosio::contract(LEDGER2)]] ledger2_meta {
 };
 
 typedef eosio::multi_index<"meta"_n, ledger2_meta> ledger2_meta_index;
+
+// Плательщик за оперативную память строк таблицы — правило в lib/core/ram_payer.hpp.
+RAM_PAYER_CLASS(ledger2_meta, contract);

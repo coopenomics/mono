@@ -32,7 +32,7 @@
       }
     }
 
-    branches.modify(branch, coopname, [&](auto &b) {
+    branches.modify(branch, RamPayer::of(branches, coopname), [&](auto &b) {
         b.trustee = trustee;
     });
 

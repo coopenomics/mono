@@ -26,7 +26,7 @@
           round
           dense
           icon="close"
-          aria-label="Закрыть"
+          :aria-label="$t('common.action.close')"
           @click="emit('update:modelValue', false)"
         />
       </q-card-section>
@@ -63,6 +63,7 @@ const maxWidthBySize: Record<BaseDialogSize, string> = {
   md: '440px',
   lg: '640px',
   xl: '800px',
+  xxl: '1200px',
 };
 </script>
 

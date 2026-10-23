@@ -1,5 +1,5 @@
 import { Ndfl6DataService } from '../../../src/extensions/reports/domain/services/ndfl6-data.service';
-import type { Ledger2OperationDTO } from '../../../src/application/ledger2/dto/ledger2-operation.dto';
+import type { Ledger2OperationDTO } from '@coopenomics/extension-kit';
 import type { IndividualDomainInterface } from '../../../src/domain/common/interfaces/individual-domain.interface';
 
 /**

@@ -14,7 +14,7 @@
   cooperatives2_index coops(_registrator, _registrator.value);
   auto coop = coops.find(coopname.value);
   
-  coops.modify(coop, _branch, [&](auto &c){
+  coops.modify(coop, RamPayer::of(coops, coopname), [&](auto &c){
     c.is_branched = false;
   });
 };

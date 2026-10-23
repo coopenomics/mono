@@ -4,6 +4,7 @@ import { ACCOUNT_DOMAIN_SERVICE, AccountDomainService } from '~/domain/account/s
 import config from '~/config/config';
 import type { InnerNotifyResult } from '@coopenomics/innercoop';
 import { NotificationService as NotificationCenterService } from '~/application/notification-center/notification.service';
+import { DomainError } from '@coopenomics/extension-kit';
 
 /**
  * Сервис отправки уведомлений пользователям через Центр уведомлений (DC v3).
@@ -43,7 +44,7 @@ export class NotificationSenderService {
     const account = await this.accountDomainService.getAccount(username);
     const subscriberId = account.provider_account?.subscriber_id?.trim();
     if (!subscriberId) {
-      throw new Error(`Не удалось сформировать получателя для ${username}: нет subscriber_id в профиле`);
+      throw DomainError.internal('NOTIFICATION_RECIPIENT_BUILD_FAILED', { username });
     }
 
     return this.notificationCenter.notify({

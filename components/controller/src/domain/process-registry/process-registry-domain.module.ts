@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { DeltaEntity } from '~/infrastructure/database/typeorm/entities/delta.entity';
-import { ActionEntity } from '~/infrastructure/database/typeorm/entities/action.entity';
+import { ProcessJournalKyselyRepository } from '~/infrastructure/database/kysely/repositories/process-journal.kysely-repository';
+import { PROCESS_JOURNAL_PORT } from './ports/process-journal.port';
 import { DocumentDomainModule } from '~/domain/document/document.module';
 import { RedisModule } from '~/infrastructure/redis/redis.module';
 import { ProcessRegistryService } from './services/process-registry.service';
@@ -15,11 +14,10 @@ import { ProcessRegistryService } from './services/process-registry.service';
  */
 @Module({
   imports: [
-    TypeOrmModule.forFeature([DeltaEntity, ActionEntity]),
     DocumentDomainModule,
     RedisModule,
   ],
-  providers: [ProcessRegistryService],
+  providers: [ProcessRegistryService, { provide: PROCESS_JOURNAL_PORT, useClass: ProcessJournalKyselyRepository }],
   exports: [ProcessRegistryService],
 })
 export class ProcessRegistryDomainModule {}

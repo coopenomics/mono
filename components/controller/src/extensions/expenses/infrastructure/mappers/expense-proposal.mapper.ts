@@ -1,11 +1,11 @@
 import { ExpenseProposalDomainEntity } from '../../domain/entities/expense-proposal.entity';
-import { ExpenseProposalTypeormEntity } from '../entities/expense-proposal.typeorm-entity';
+import { ExpenseProposalRecord } from '../entities/expense-proposal.record';
 import type { IExpenseProposalDatabaseData } from '../../domain/interfaces/expense-proposal-database.interface';
 import type { IExpenseProposalBlockchainData } from '../../domain/interfaces/expense-proposal-blockchain.interface';
 import { ExpenseProposalStatus } from '../../domain/enums/expense-proposal-status.enum';
 
 /**
- * Маппер `ExpenseProposalTypeormEntity` ↔ `ExpenseProposalDomainEntity`.
+ * Маппер `ExpenseProposalRecord` ↔ `ExpenseProposalDomainEntity`.
  *
  * Логика идентична capital-стилю: статус/идентификация хранится локально,
  * экономика (items, total_*, документы) — образ блокчейна и обновляется
@@ -13,7 +13,7 @@ import { ExpenseProposalStatus } from '../../domain/enums/expense-proposal-statu
  * пробрасывает наверх только `block_num`/`present`.
  */
 export class ExpenseProposalMapper {
-  static toDomain(entity: ExpenseProposalTypeormEntity): ExpenseProposalDomainEntity {
+  static toDomain(entity: ExpenseProposalRecord): ExpenseProposalDomainEntity {
     const databaseData: IExpenseProposalDatabaseData = {
       _id: entity._id,
       block_num: entity.block_num,
@@ -52,8 +52,8 @@ export class ExpenseProposalMapper {
     return new ExpenseProposalDomainEntity(databaseData, blockchainData);
   }
 
-  static toEntity(domain: ExpenseProposalDomainEntity): Partial<ExpenseProposalTypeormEntity> {
-    const dbPart: Partial<ExpenseProposalTypeormEntity> = {
+  static toEntity(domain: ExpenseProposalDomainEntity): Partial<ExpenseProposalRecord> {
+    const dbPart: Partial<ExpenseProposalRecord> = {
       _id: domain._id,
       block_num: domain.block_num ?? 0,
       present: domain.present,
@@ -65,7 +65,7 @@ export class ExpenseProposalMapper {
     };
 
     if (domain.id !== undefined) {
-      const bcPart: Partial<ExpenseProposalTypeormEntity> = {
+      const bcPart: Partial<ExpenseProposalRecord> = {
         id: domain.id,
         username: domain.username,
         source_wallet: domain.source_wallet,
@@ -85,8 +85,8 @@ export class ExpenseProposalMapper {
     return dbPart;
   }
 
-  static toUpdateEntity(domain: Partial<ExpenseProposalDomainEntity>): Partial<ExpenseProposalTypeormEntity> {
-    const updateData: Partial<ExpenseProposalTypeormEntity> = {};
+  static toUpdateEntity(domain: Partial<ExpenseProposalDomainEntity>): Partial<ExpenseProposalRecord> {
+    const updateData: Partial<ExpenseProposalRecord> = {};
     if (domain.block_num !== undefined) updateData.block_num = domain.block_num;
     if (domain.present !== undefined) updateData.present = domain.present;
     return updateData;

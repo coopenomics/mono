@@ -16,6 +16,10 @@ export class DesktopWorkspaceDTO implements DesktopWorkspaceDomainInterface {
   @IsString()
   public readonly extension_name!: string;
 
+  @Field(() => String, { description: 'Название приложения, которому принадлежит рабочий стол' })
+  @IsString()
+  public readonly extension_title!: string;
+
   @Field(() => String, { nullable: true, description: 'Иконка для меню' })
   @IsOptional()
   @IsString()
@@ -40,6 +44,7 @@ export class DesktopWorkspaceDTO implements DesktopWorkspaceDomainInterface {
     this.name = data.name;
     this.title = data.title;
     this.extension_name = data.extension_name;
+    this.extension_title = data.extension_title;
     this.icon = data.icon;
     this.defaultRoute = data.defaultRoute;
     this.grants = data.grants;

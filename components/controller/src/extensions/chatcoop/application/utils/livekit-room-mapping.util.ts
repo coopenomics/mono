@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import { t } from '../../i18n';
 
 /** Слот звонка по умолчанию в Element Call / MatrixRTC (одна комната = один room-scoped звонок). */
 const DEFAULT_CALL_SLOT_ID = 'm.call#ROOM';
@@ -71,8 +72,8 @@ export function matchLivekitRoomToMatrixRooms(
   displayName: string | null;
 } {
   const possibleRooms = [
-    { id: membersRoomId, type: 'members' as const, displayName: 'Комната пайщиков' },
-    { id: councilRoomId, type: 'council' as const, displayName: 'Комната совета' }
+    { id: membersRoomId, type: 'members' as const, displayName: t('chatcoop.room.status.members') },
+    { id: councilRoomId, type: 'council' as const, displayName: t('chatcoop.room.status.council') }
   ];
 
   for (const room of possibleRooms) {

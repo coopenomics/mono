@@ -1,33 +1,44 @@
 <template lang="pug">
 .not-me-page
-  AuthCard(title='Это не я', subtitle='Защита аккаунта')
+  AuthSplit(
+    :eyebrow='coopTitle',
+    :title='$t("security.notMePage.title")',
+    :lead='$t("security.notMePage.lead")',
+    :quote='$t("security.notMePage.quote")',
+    :step-eyebrow='$t("security.notMePage.title")',
+    :heading='$t("security.notMePage.heading")'
+  )
+    template(#actions)
+      AuthActions
     .not-me__body
       template(v-if='state === "pending"')
         q-spinner(size='28px', color='primary')
-        p.not-me__text Завершаем все сессии вашего аккаунта…
+        p.not-me__text {{ $t('security.notMePage.progress') }}
 
       template(v-else-if='state === "done"')
         q-icon.not-me__icon.not-me__icon--ok(name='verified_user', size='36px')
         p.not-me__text
-          | Готово: все сессии завершены{{ revoked ? ` (${revoked})` : '' }}.
-          | Тот, кто вошёл с чужого устройства, больше не в аккаунте.
-        p.not-me__hint Теперь войдите и смените пароль в настройках безопасности.
+          | {{ $t('security.notMePage.done', { revokedSuffix: revoked ? ` (${revoked})` : '' }) }}
+          | {{ $t('security.notMePage.strangerNote') }}
+        p.not-me__hint {{ $t('security.notMePage.nextStep') }}
 
       template(v-else)
         q-icon.not-me__icon.not-me__icon--warn(name='error_outline', size='36px')
         p.not-me__text {{ errorMessage }}
-        p.not-me__hint Ссылка одноразовая и живёт ограниченное время. Если сессии не завершились — войдите и завершите их на странице настроек.
+        p.not-me__hint {{ $t('security.notMePage.expiredNote') }}
 
-    template(#footer)
-      BaseButton(variant='primary', @click='goToSignIn') Войти
+    BaseButton(v-if='state !== "pending"', variant='primary', block, @click='goToSignIn') {{ $t('security.notMePage.login') }}
 </template>
 
 <script lang="ts" setup>
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { AuthCard } from 'src/shared/ui/domain/AuthCard';
+import { AuthSplit } from 'src/shared/ui/layout/AuthSplit';
+import { AuthActions } from 'src/widgets/Registrator/AuthActions';
+import { useSystemStore } from 'src/entities/System/model';
 import { BaseButton } from 'src/shared/ui/base/BaseButton';
 import { env } from 'src/shared/config';
+import { t } from 'src/shared/i18n';
 
 /**
  * Landing one-click ссылки «Это не я» из письма о входе с нового устройства
@@ -38,11 +49,14 @@ import { env } from 'src/shared/config';
 
 const route = useRoute();
 const router = useRouter();
+const systemStore = useSystemStore();
+const coopTitle = computed(() => systemStore.cooperativeDisplayName);
 
 const state = ref<'pending' | 'done' | 'error'>('pending');
 const revoked = ref(0);
 const errorMessage = ref('');
 
+// realtime: нет источника — разовое действие по ссылке из письма «это был не я», открывается без входа.
 onMounted(async () => {
   const token = String(route.params.token ?? '');
   try {
@@ -51,7 +65,7 @@ onMounted(async () => {
     });
     if (!res.ok) {
       const body = (await res.json().catch(() => null)) as { error_description?: string } | null;
-      errorMessage.value = body?.error_description ?? 'Ссылка недействительна или уже использована.';
+      errorMessage.value = body?.error_description ?? t('security.notMePage.linkInvalidError');
       state.value = 'error';
       return;
     }
@@ -59,7 +73,7 @@ onMounted(async () => {
     revoked.value = body?.revoked ?? 0;
     state.value = 'done';
   } catch {
-    errorMessage.value = 'Не удалось связаться с кооперативом. Проверьте интернет и обновите страницу.';
+    errorMessage.value = t('security.notMePage.connectionError');
     state.value = 'error';
   }
 });
@@ -71,19 +85,13 @@ function goToSignIn(): void {
 
 <style scoped>
 .not-me-page {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--p-6);
-  min-height: 100%;
+  min-height: inherit;
 }
 .not-me__body {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
   gap: var(--p-3);
-  text-align: center;
-  padding: var(--p-4) 0;
 }
 .not-me__text {
   margin: 0;

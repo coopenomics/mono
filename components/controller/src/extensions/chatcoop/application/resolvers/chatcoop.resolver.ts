@@ -1,5 +1,5 @@
 import { Resolver, Query, Mutation, Args } from '@nestjs/graphql';
-import { GqlJwtAuthGuard, CurrentUser, AuthRoles, RolesGuard } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, CurrentUser, RequireRight, RightsGuard, SELF } from '@coopenomics/extension-kit';
 import { UseGuards } from '@nestjs/common';
 import type { IMonoAccount } from '@coopenomics/innercoop';
 import { ChatCoopApplicationService } from '../services/chatcoop-application.service';
@@ -13,8 +13,8 @@ export class ChatCoopResolver {
     name: 'chatcoopGetAccountStatus',
     description: 'Проверить статус Matrix аккаунта пользователя и получить iframe URL',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('ChatAccount', 'manage:own', SELF)
   async getMatrixAccountStatus(
     @CurrentUser() currentUser: IMonoAccount
   ): Promise<MatrixAccountStatusResponseDTO> {
@@ -25,8 +25,8 @@ export class ChatCoopResolver {
     name: 'chatcoopCreateAccount',
     description: 'Создать Matrix аккаунт с именем пользователя и паролем',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('ChatAccount', 'manage:own', SELF)
   async createMatrixAccount(
     @CurrentUser() currentUser: IMonoAccount,
     @Args('data', { type: () => CreateMatrixAccountInputDTO }) data: CreateMatrixAccountInputDTO
@@ -38,8 +38,8 @@ export class ChatCoopResolver {
     name: 'chatcoopCheckUsernameAvailability',
     description: 'Проверяет доступность Matrix username',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('ChatAccount', 'manage:own', SELF)
   async checkUsernameAvailability(
     @Args('data', { type: () => CheckMatrixUsernameInput }) data: CheckMatrixUsernameInput
   ): Promise<boolean> {

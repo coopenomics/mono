@@ -1,0 +1,83 @@
+/** Каталог опубликованных курсов (открыт гостю) */
+export * as Catalog from './catalog'
+/** Карточка курса в каталоге */
+export * as CatalogCourse from './catalogCourse'
+/** Предметы и классы каталога */
+/** Курсы кооператива во всех состояниях (владелец/администратор) */
+export * as Courses from './courses'
+/** Курс со служебными полями */
+export * as Course from './course'
+/** Наценка кооператива и предельная скидка за взнос разом за весь курс */
+export * as EconomySettings from './economySettings'
+/** Что вернут при отмене подписки */
+export * as RefundPreview from './refundPreview'
+/** Расходы программы из её фонда */
+export * as Expenses from './expenses'
+/** Деньги программы: кошельки и движение средств */
+export * as ProgramFund from './programFund'
+/** Расчёт взноса по параметрам курса — до сохранения */
+export * as CourseFeePreview from './courseFeePreview'
+/** Экономика курса: план и факт по преподавателям */
+export * as CourseEconomy from './courseEconomy'
+/** Группы курса и группы с открытым набором */
+export * as CourseGroups from './courseGroups'
+export * as GroupLessons from './groupLessons'
+export * as LessonCalendar from './lessonCalendar'
+export * as OpenGroups from './openGroups'
+export * as MyTeachingGroups from './myTeachingGroups'
+/** Преподаватели, которых можно назначить на курс (с договором УХД) */
+export * as TeacherOptions from './teacherOptions'
+export * as Teachers from './teachers'
+export * as TeacherApprovals from './teacherApprovals'
+export * as Attention from './attention'
+/** Курсы и группы на площадке кооператива — для привязки курса каталога */
+export * as PlatformCourses from './platformCourses'
+/** Подписаны ли оферты ученика и преподавателя */
+export * as OnboardingState from './onboardingState'
+/** Мои обучающиеся */
+export * as MyLearners from './myLearners'
+/** Подписки моих обучающихся */
+export * as MyEnrollments from './myEnrollments'
+/** Сумма взноса и хватает ли паевого */
+export * as Quote from './quote'
+/** Мой профиль преподавателя: рассказ о себе и ставка часа */
+export * as MyTeacherProfile from './myTeacherProfile'
+/** Мой договор участия в хозяйственной деятельности */
+export * as MyContract from './myContract'
+/** Мои назначения */
+export * as MyAssignments from './myAssignments'
+/** Мои проведённые занятия */
+export * as MyLessons from './myLessons'
+/** Мои взносы результатами работы */
+export * as MyContributions from './myContributions'
+/** Документы моего взноса результатом работы */
+export * as MyContributionDocuments from './myContributionDocuments'
+/** Мой расчёт */
+export * as MySettlement from './mySettlement'
+/** Моя выписка: зачисления и возвраты с состоянием */
+export * as MySettlementJournal from './mySettlementJournal'
+/** Заявления моего возврата паевого взноса */
+export * as MyGuaranteeClaimDocument from './myGuaranteeClaimDocument'
+export * as MyShareReturnDocuments from './myShareReturnDocuments'
+/** Назначения преподавателей кооператива */
+export * as Assignments from './assignments'
+/** Взносы РИД всех преподавателей */
+export * as Contributions from './contributions'
+/** Документы взноса: заявление, акт хранения, акт приёма-передачи */
+export * as ContributionDocuments from './contributionDocuments'
+export * as ContributionBrief from './contributionBrief'
+/** Реестр пайщиков приложения */
+export * as Members from './members'
+/** Сводная карточка пайщика */
+export * as MemberCard from './memberCard'
+/** Очередь выдачи доступа */
+export * as Queue from './queue'
+/** Площадки и их состояние */
+export * as Connectors from './connectors'
+export * as MyContractDocument from './myContractDocument'
+export * as TeacherContractDocument from './teacherContractDocument'
+
+/** Возврат остатка кошелька программы в паевой взнос. */
+export * as MyGuarantees from './myGuarantees'
+export * as ReturnBalance from './returnBalance'
+export * as Sections from './sections'

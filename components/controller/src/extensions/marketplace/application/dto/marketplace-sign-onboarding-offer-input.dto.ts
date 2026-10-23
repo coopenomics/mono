@@ -12,13 +12,13 @@ import { SignedDigitalDocumentInputDTO } from '@coopenomics/extension-kit';
  *    `MarketplaceMembershipGuard` (JWT-пайщик), чтобы исключить подделку
  *    подписи за другого пайщика.
  *  - `document` — уже подписанный фронтом инстанс оферты ЦПП «Стол заказов»
- *    (`registry_id=1101`). Backend проверяет подпись через on-chain
+ *    (`Cooperative.Registry.MarketplaceOffer`). Backend проверяет подпись через on-chain
  *    `verify_document_or_fail` внутри `wallet::signagree`.
  */
 @InputType('MarketplaceSignOnboardingOfferInput')
 export class MarketplaceSignOnboardingOfferInputDTO {
   @Field(() => SignedDigitalDocumentInputDTO, {
-    description: 'Подписанный пайщиком инстанс оферты ЦПП «Стол заказов» (registry_id=1101)',
+    description: 'Подписанная пайщиком оферта ЦПП «Стол заказов»',
   })
   @ValidateNested()
   @Type(() => SignedDigitalDocumentInputDTO)

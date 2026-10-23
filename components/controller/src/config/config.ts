@@ -1,4 +1,5 @@
 import dotenv from 'dotenv';
+import { parseTrustProxy } from './trust-proxy';
 import { z } from 'zod';
 import path from 'path';
 import fs from 'fs';
@@ -38,18 +39,28 @@ const envVarsSchema = z.object({
   BACKEND_URL: z
     .string()
     .min(1)
+    // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
     .describe('Публичный базовый URL API (GraphQL/REST), без завершающего слэша; ICS-лента, интеграции'),
   FRONTEND_URL: z
     .string()
     .min(1)
+    // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
     .describe('Публичный базовый URL рабочего стола (SPA); ссылки в письмах и deep links'),
   SERVER_SECRET: z.string(),
+  TRUST_PROXY: z
+    .string()
+    .default('loopback, linklocal, uniquelocal')
+    // i18n-ignore: описание переменной окружения для схемы конфигурации при старте, до пайщика не доходит
+    .describe('От кого принимать X-Forwarded-For (синтаксис Express trust proxy): по умолчанию — только от прокси в частных сетях'),
   LOG_LEVEL: z
     .enum(['error', 'warn', 'info', 'http', 'verbose', 'debug', 'silly'])
     .optional()
     .describe(
+      // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
       'Уровень логов winston. По умолчанию info на проде и debug в разработке. ' +
+        // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
         'На debug в лог попадают успешные HTTP-запросы с временем ответа (morgan successHandler) — ' +
+        // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
         'без этого в логе видны только ответы 4xx/5xx, и латентность по логам не измерить',
     ),
   PORT: z
@@ -90,44 +101,76 @@ const envVarsSchema = z.object({
   // POST'ом на релей вместо прямого SMTP (хостинг кооператива может резать порты).
   EMAIL_RELAY_URL: z.string().default(''),
   EMAIL_RELAY_TOKEN: z.string().default(''),
+  // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
   COOPNAME: z.string().min(1, { message: 'Не должно быть пустым' }).default('voskhod'), // Задаём дефолтное значение, пустая строка невалидна
+  // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
   TIMEZONE: z.string().min(1, { message: 'Не должно быть пустым' }).default('Europe/Moscow'), // Пустая строка невалидна
   GRAPHQL_SERVICE: z
     .string()
+    // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
     .min(1, { message: 'Не должно быть пустым' })
     .default('http://localhost:4090')
+    // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
     .describe('адрес сервиса GRAPHQL'),
+  // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
   PROVIDER_BASE_URL: z.string().default('').describe('базовый URL сервиса провайдера'),
-
-  // Параметры союза кооперативов
-  UNION_LINK: z
+  PROVIDER_BEARER_TOKEN: z
     .string()
-    .default('https://союз-русь.рф/anketa')
-    .describe('ссылка на анкету для получения членства в союзе кооперативов'),
-  IS_UNIONED: z
-    .string()
-    .default('true')
-    .transform((v) => v === 'true')
-    .describe('флаг, указывающий что требуется членство в союзе для подключения к кооперативной экономике'),
-  MATRIX_UNION_PERSON_ID: z.string().optional().describe('Matrix userId представителя союза для связи с кооперативами'),
-  MATRIX_UNION_NAME: z.string().default('СПО РУСЬ').describe('Название союза для подписания комнат связи'),
+    .default('')
+    // i18n-ignore: описание переменной окружения — документация конфигурации
+    .describe('Bearer-токен read-only витрины провайдера (GET /v1/subscription-types)'),
 
+  // Billing Single-Hub v5: BillingModule подключается только на Восходе-хабе.
+  // На спицах флаг false → модуль вообще не регистрируется, endpoints/cron
+  // не появляются. Antelope не поддерживает deferred_trx — тик крона
+  // инициирует backend.
+  BILLING_HUB_MODE: z
+    .string()
+    .default('false')
+    .transform((v) => v === 'true' || v === '1')
+    // i18n-ignore: описание переменной окружения — документация конфигурации
+    .describe('узел работает как биллинг-хаб (только Восход): включает BillingModule, крон и GraphQL Billing.*'),
+  BILLING_CRON_EXPRESSION: z
+    .string()
+    .default('0 * * * *')
+    // i18n-ignore: описание переменной окружения — документация конфигурации
+    .describe('cron-выражение тика биллинга (по умолчанию ежечасно)'),
+  BILLING_PACKAGE_CRON_EXPRESSION: z
+    .string()
+    .default('*/5 * * * *')
+    // i18n-ignore: описание переменной окружения — документация конфигурации
+    .describe('cron-выражение проверки бака AXON спиц (по умолчанию каждые 5 минут): объём месяца по дате и кванты сверх тарифа'),
+  BILLING_PACKAGE_LOW_WATER_AXON: z
+    .string()
+    .default('5')
+    .transform((v) => Number(v))
+    .pipe(z.number().min(0))
+    .describe(
+      // i18n-ignore: описание переменной окружения — документация конфигурации
+      'квант бака AXON для подсказки кооперативу в кабинете: ниже него провайдер выписывает квант 5 AXON за 50 ₽; само решение о пополнении принимает провайдер по переданному балансу',
+    ),
   // Новые переменные для PostgreSQL
+  // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
   POSTGRES_HOST: z.string().min(1, { message: 'Не должно быть пустым' }).default('127.0.0.1'),
   POSTGRES_PORT: z
     .string()
     .default('5432')
     .transform((val) => parseInt(val, 10)),
+  // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
   POSTGRES_USERNAME: z.string().min(1, { message: 'Не должно быть пустым' }),
+  // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
   POSTGRES_PASSWORD: z.string().min(1, { message: 'Не должно быть пустым' }),
+  // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
   POSTGRES_DATABASE: z.string().min(1, { message: 'Не должно быть пустым' }),
 
+  // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
   REDIS_HOST: z.string().min(1, { message: 'Не должно быть пустым' }),
   REDIS_PORT: z
     .string()
     .default('6379')
     .transform((val) => parseInt(val, 10)),
   REDIS_PASSWORD: z.string(),
+  // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
   BLOCKCHAIN_RPC: z.string().min(1, { message: 'Не должно быть пустым' }),
   // CSV-список RPC-endpoint'ов COOPOS (CoopID, Story 1.3): на prod ≥2 для
   // failover (механика — Story 9.4). Не задан — используется [BLOCKCHAIN_RPC].
@@ -135,6 +178,7 @@ const envVarsSchema = z.object({
     .string()
     .optional()
     .transform(v => (v ? [...new Set(v.split(',').map(s => s.trim()).filter(Boolean))] : []))
+    // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
     .pipe(z.array(z.string().url({ message: 'Каждый элемент BLOCKCHAIN_RPC_LIST — валидный URL' }))),
   // Устойчивость COOPOS RPC (CoopID, Эпик 9). Интервал health-check каждого узла
   // (get_info); 0 — отключить фоновую проверку (Story 9.4).
@@ -145,6 +189,12 @@ const envVarsSchema = z.object({
   // Сколько узлов опрашивать для M-of-N консенсуса при обновлении кэша ключей
   // (Story 9.7). <2 здоровых узлов — консенсус не проверяется (single-node).
   BLOCKCHAIN_RPC_QUORUM_SIZE: z.coerce.number().default(2),
+  // Повтор транзакции, срезанной лимитами CPU/NET цепи (см. chain-retry.ts):
+  // сколько раз переотправлять после первой отправки. 0 — повторов нет.
+  BLOCKCHAIN_TX_RETRY_ATTEMPTS: z.coerce.number().default(3),
+  // Пауза перед первым повтором, дальше удваивается (500/1000/2000мс): «не влезли
+  // в блок» рассасывается за интервал блока, а ответа ждёт живой пайщик.
+  BLOCKCHAIN_TX_RETRY_DELAY_MS: z.coerce.number().default(500),
   // Интервал блока цепи (мс) — для оценки времени LIB-блока, когда узел не отдаёт
   // last_irreversible_block_time напрямую (Story 9.6).
   BLOCKCHAIN_BLOCK_INTERVAL_MS: z.coerce.number().default(500),
@@ -152,6 +202,7 @@ const envVarsSchema = z.object({
   // его last_updated не позже (время LIB − запас) — компенсирует оценку времени LIB
   // (Story 9.6).
   BLOCKCHAIN_FINALITY_MARGIN_MS: z.coerce.number().default(500),
+  // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
   CHAIN_ID: z.string().min(1, { message: 'Не должно быть пустым' }),
   // coop_domain_db (CoopID, Story 1.4): отдельная БД в общем сервисе postgres.
   // Пароль — значением или файлом (*_FILE приоритетнее; путь /run/secrets/... в контейнере).
@@ -178,19 +229,40 @@ const envVarsSchema = z.object({
   // в vostok.cert миграцией 052 (on-chain цепь обязана совпасть с ключом подписи).
   COOP_CERT_KEY: z.string().optional(),
   COOP_CERT_KEY_FILE: z.string().optional(),
-  /** Задержка (мс) перед get_table_rows после мутации; 0 — отключить */
-  POST_TRANSACT_CHAIN_READ_DELAY_MS: z
+  /**
+   * Действие уходит в шину, когда его блок разобран целиком (следующий блок
+   * или простой потока, ActionReleaseGate). Пока в очереди есть действия, на
+   * простое каждые столько мс проверяется прогресс parser2 и группы в Redis.
+   */
+  BLOCKCHAIN_ACTION_RELEASE_POLL_MS: z
     .string()
-    .default('1000')
+    .default('100')
     .transform((val) => parseInt(val, 10)),
   /**
-   * Задержка (мс) перед emit'ом action-события во внутреннюю шину. Даёт
-   * дельтам того же блока сохраниться в БД раньше, чем обработчики action
-   * полезут читать состояние (DEC-007, ранее хардкод-константа 3000).
+   * Страховка: действие без подтверждения разбора блока (Redis не ответил)
+   * уходит в шину не позже этого срока — с предупреждением в журнал.
    */
-  BLOCKCHAIN_ACTION_EMIT_DELAY_MS: z
+  BLOCKCHAIN_ACTION_RELEASE_MAX_WAIT_MS: z
+    .string()
+    .default('5000')
+    .transform((val) => parseInt(val, 10)),
+  /**
+   * Сколько мутация ждёт изменение своей транзакции из цепи, прежде чем
+   * ответить «ещё идёт» (ADR-009, DEC-023). Обычно дельта приходит за доли
+   * секунды — это верхняя граница, а не пауза.
+   */
+  BLOCKCHAIN_WRITE_WAIT_DELTA_MS: z
     .string()
     .default('3000')
+    .transform((val) => parseInt(val, 10)),
+  /**
+   * Сколько потребитель событий ждёт слушателей дельты (проекции в базе),
+   * прежде чем будить ожидающие мутации и идти дальше. Барьер не даёт
+   * медленному слушателю остановить разбор цепи.
+   */
+  BLOCKCHAIN_DELTA_LISTENERS_BARRIER_MS: z
+    .string()
+    .default('5000')
     .transform((val) => parseInt(val, 10)),
   /**
    * Story 4.4: глобальный выключатель ежечасного retention-крона архива
@@ -222,6 +294,20 @@ const envVarsSchema = z.object({
    * (свойство сети, не оператора).
    */
   BLOCKCHAIN_ARCHIVE_RETENTION_CRON: z.string().default('0 * * * *'),
+  /**
+   * Фабрика утверждений документов: напоминание председателю о редакциях,
+   * ждущих решения совета. По умолчанию — по понедельникам в 9 утра.
+   */
+  DOCUMENT_APPROVAL_REMINDER_ENABLED: z
+    .string()
+    .default('true')
+    .transform((val) => val === 'true'),
+  DOCUMENT_APPROVAL_REMINDER_CRON: z.string().default('0 9 * * 1'),
+  /** Перенос утверждений из настроек кооператива в цепь при старте узла (идемпотентен). */
+  DOCUMENT_APPROVAL_SEED_ON_START: z
+    .string()
+    .default('true')
+    .transform((val) => val === 'true'),
   /**
    * Story 6.5: при `true` mapper-fail (mapDeltaToBlockchainData → null) перестаёт
    * быть silent loss и поднимается `UnsupportedContractVersionError` из
@@ -280,7 +366,9 @@ const envVarsSchema = z.object({
     .transform((val) => parseInt(val, 10)),
 
   // Параметры VAPID для web push
+  // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
   VAPID_PUBLIC_KEY: z.string().min(1, { message: 'VAPID_PUBLIC_KEY не должен быть пустым' }),
+  // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
   VAPID_PRIVATE_KEY: z.string().min(1, { message: 'VAPID_PRIVATE_KEY не должен быть пустым' }),
   VAPID_SUBJECT: z.string().default('mailto:admin@coopenomics.world'),
 
@@ -304,44 +392,72 @@ const envVarsSchema = z.object({
   MATRIX_COMMON_ROOM_ID: z.string().optional(),
 
   // Параметры Sentry для отслеживания ошибок
+  // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
   SENTRY_DSN: z.string().optional().describe('Sentry DSN для отслеживания ошибок'),
 
   // Параметры GitHub
+  // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
   GITHUB_TOKEN: z.string().optional().describe('GitHub токен для доступа к API'),
+  // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
+  GITHUB_API_URL: z.string().optional().describe('Адрес GitHub API; не задан — https://api.github.com'),
+
+  // Клиент card.coop в CoopID кооператива (карта кооператора, story 7.0/7.6). Те же значения
+  // получает блюпринт coopid-cardcoop-client через окружение authentik; расширение доносит
+  // их в реестр сети подписанным документом. Пустой секрет = подключение не отправляется.
+  // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
+  CARDCOOP_CLIENT_ID: z.string().optional().describe('client_id клиента card.coop в CoopID кооператива'),
+  // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
+  CARDCOOP_CLIENT_SECRET: z.string().optional().describe('client_secret того же клиента'),
+  CARDCOOP_OIDC_ISSUER: z
+    .string()
+    .optional()
+    // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
+    .describe('Issuer OIDC-провайдера cardcoop в CoopID кооператива — точно как в токенах'),
 
   // Параметры LiveKit для секретаря-агента
   LIVEKIT_URL: z.string().optional().describe('LiveKit server URL (ws://livekit:7880)'),
+  // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
   LIVEKIT_API_KEY: z.string().optional().describe('LiveKit API key для генерации токенов'),
+  // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
   LIVEKIT_API_SECRET: z.string().optional().describe('LiveKit API secret для генерации токенов'),
 
   // Параметры геокодера (провайдер-агностично; реализация выбирается через GEOCODER_PROVIDER)
   GEOCODER_PROVIDER: z
     .enum(['yandex', 'noop'])
     .default('noop')
+    // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
     .describe('Провайдер геокодинга адресов: yandex | noop (отключён). Будущие: google, maps.me'),
   GEOCODER_API_KEY: z
     .string()
     .optional()
+    // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
     .describe('API ключ выбранного провайдера геокодинга'),
   GEOCODER_BASE_URL: z
     .string()
     .optional()
+    // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
     .describe('Базовый URL HTTP API геокодера (пусто — дефолт провайдера)'),
   GEOCODER_RATE_LIMIT_RPS: z
     .string()
     .default('10')
     .transform((val) => parseInt(val, 10))
+    // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
     .describe('Локальный rate-limit на запросы к провайдеру геокодинга (req/sec)'),
   GEOCODER_TIMEOUT_MS: z
     .string()
     .default('5000')
     .transform((val) => parseInt(val, 10))
+    // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
     .describe('Таймаут одиночного HTTP-запроса к провайдеру геокодинга (ms)'),
 
   // Параметры OpenAI Whisper для STT
+  // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
   OPENAI_API_KEY: z.string().optional().describe('OpenAI API ключ для Whisper STT'),
+  // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
   OPENAI_BASE_URL: z.string().optional().describe('Базовый URL для Whisper API (через chatcoop-proxy nginx)'),
+  // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
   WHISPER_MODEL: z.string().default('whisper-1').describe('Модель Whisper для STT'),
+  // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
   WHISPER_LANGUAGE: z.string().default('ru').describe('Язык для Whisper STT'),
 
   // Файловое хранилище (MinIO в dev/контуре кооператива; S3 в проде по плану E59-N).
@@ -350,20 +466,26 @@ const envVarsSchema = z.object({
   MINIO_ENDPOINT: z
     .string()
     .optional()
+    // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
     .describe('Endpoint S3-совместимого бэкенда; в compose — service name. Пусто = file storage отключён.'),
+  // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
   MINIO_ACCESS_KEY: z.string().default('minioadmin').describe('Access-key для MinIO/S3'),
+  // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
   MINIO_SECRET_KEY: z.string().default('minioadmin').describe('Secret-key для MinIO/S3'),
   MINIO_BUCKET: z
     .string()
     .optional()
+    // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
     .describe('Имя физического бакета; по умолчанию `coop-${COOPNAME}`'),
   FILE_STORAGE_SIGNING_SECRET: z
     .string()
     .optional()
+    // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
     .describe('HMAC-секрет для подписи read-URL; пусто — берётся SERVER_SECRET'),
   FILE_STORAGE_PUBLIC_BASE_URL: z
     .string()
     .optional()
+    // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
     .describe('База публичного URL контроллера для read-URL; пусто — берётся BACKEND_URL'),
 
   // apps-catalog proxy (Story 9.5.b). Витрина remote-пакетов — это HTTP-прокси
@@ -414,6 +536,7 @@ const envVarsSchema = z.object({
   MIN_SOVIET_MEMBERS_COUNT: z
     .string()
     .optional()
+    // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
     .describe('Минимум членов совета при install; пусто — 3 на production, 1 на development/test'),
 });
 
@@ -427,10 +550,12 @@ if (!envVars.success) {
 
   const errorMessages = Object.keys(formattedErrors)
     .filter((key) => key !== '_errors')
+    // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
     .map((key) => `${key}: параметр не установлен`)
     .join('\n');
 
   const hint = isSchemaGeneration
+    // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
     ? '\n(Режим CONTROLLER_SCHEMA_GEN: проверьте, что новые обязательные поля добавлены в PLACEHOLDER_ENV_DEFAULTS в src/config/placeholder-env.ts.)\n'
     : '\n';
   console.error('❌ Ошибка конфигурации:\n', errorMessages, hint);
@@ -446,6 +571,7 @@ export default {
   frontend_url: envVars.data.FRONTEND_URL,
   port: envVars.data.PORT,
   server_secret: envVars.data.SERVER_SECRET,
+  trust_proxy: parseTrustProxy(envVars.data.TRUST_PROXY),
   timezone: envVars.data.TIMEZONE,
   coopDomainDb: {
     host: envVars.data.COOP_DOMAIN_DB_HOST,
@@ -460,6 +586,7 @@ export default {
         try {
           return fs.readFileSync(file, 'utf-8').trim();
         } catch (e) {
+          // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
           throw new Error(`COOP_DOMAIN_DB_PASSWORD_FILE недоступен (${file}): ${e instanceof Error ? e.message : e}`);
         }
       }
@@ -526,6 +653,8 @@ export default {
     rpcHealthCheckIntervalMs: envVars.data.BLOCKCHAIN_RPC_HEALTHCHECK_INTERVAL_MS,
     rpcTimeoutMs: envVars.data.BLOCKCHAIN_RPC_TIMEOUT_MS,
     rpcQuorumSize: envVars.data.BLOCKCHAIN_RPC_QUORUM_SIZE,
+    txRetryAttempts: envVars.data.BLOCKCHAIN_TX_RETRY_ATTEMPTS,
+    txRetryDelayMs: envVars.data.BLOCKCHAIN_TX_RETRY_DELAY_MS,
     blockIntervalMs: envVars.data.BLOCKCHAIN_BLOCK_INTERVAL_MS,
     finalityMarginMs: envVars.data.BLOCKCHAIN_FINALITY_MARGIN_MS,
     id: envVars.data.CHAIN_ID,
@@ -535,8 +664,10 @@ export default {
     root_govern_symbol: envVars.data.ROOT_GOVERN_SYMBOL,
     root_precision: envVars.data.ROOT_PRECISION,
     root_govern_precision: envVars.data.ROOT_GOVERN_PRECISION,
-    post_transact_chain_read_delay_ms: envVars.data.POST_TRANSACT_CHAIN_READ_DELAY_MS,
-    action_emit_delay_ms: envVars.data.BLOCKCHAIN_ACTION_EMIT_DELAY_MS,
+    action_release_poll_ms: envVars.data.BLOCKCHAIN_ACTION_RELEASE_POLL_MS,
+    action_release_max_wait_ms: envVars.data.BLOCKCHAIN_ACTION_RELEASE_MAX_WAIT_MS,
+    write_wait_delta_ms: envVars.data.BLOCKCHAIN_WRITE_WAIT_DELTA_MS,
+    delta_listeners_barrier_ms: envVars.data.BLOCKCHAIN_DELTA_LISTENERS_BARRIER_MS,
     archive_retention_enabled: envVars.data.BLOCKCHAIN_ARCHIVE_RETENTION_ENABLED,
     archive_retention_cron: envVars.data.BLOCKCHAIN_ARCHIVE_RETENTION_CRON,
     unsupported_version_strict: envVars.data.BLOCKCHAIN_UNSUPPORTED_VERSION_STRICT,
@@ -553,6 +684,11 @@ export default {
       // useNewUrlParser: true,
       // useUnifiedTopology: true,
     },
+  },
+  document_approval: {
+    reminder_enabled: envVars.data.DOCUMENT_APPROVAL_REMINDER_ENABLED,
+    reminder_cron: envVars.data.DOCUMENT_APPROVAL_REMINDER_CRON,
+    seed_on_start: envVars.data.DOCUMENT_APPROVAL_SEED_ON_START,
   },
   jwt: {
     secret: envVars.data.JWT_SECRET,
@@ -585,11 +721,21 @@ export default {
       : 1,
   graphql_service: envVars.data.GRAPHQL_SERVICE,
   provider_base_url: envVars.data.PROVIDER_BASE_URL,
-  union: {
-    link: envVars.data.UNION_LINK,
-    is_unioned: envVars.data.IS_UNIONED,
-    union_person_id: envVars.data.MATRIX_UNION_PERSON_ID,
-    union_name: envVars.data.MATRIX_UNION_NAME,
+  provider_bearer_token: envVars.data.PROVIDER_BEARER_TOKEN,
+  billing: {
+    hub_mode: envVars.data.BILLING_HUB_MODE,
+    cron_expression: envVars.data.BILLING_CRON_EXPRESSION,
+    // Проверка бака AXON спиц — отдельный, частый такт: хаб передаёт баланс
+    // провайдеру, тот решает — объём месяца по дате, квант или NOT_DUE
+    // (@ant 17.10.2026).
+    package_cron_expression: envVars.data.BILLING_PACKAGE_CRON_EXPRESSION,
+    // Квант бака для подсказки в кабинете кооператива (решение — у провайдера).
+    package_low_water_axon: envVars.data.BILLING_PACKAGE_LOW_WATER_AXON,
+    // Список коопов — из on-chain `registrator.coops` через ProviderService
+    // (см. BillingCronService.activeCoopnames). Env-override отсутствует.
+    // Подписант списаний — оператор платформы (аккаунт узла, config.coopname);
+    // отдельного BILLING_CRON_PAYER больше нет: пайщик-плательщик = сам
+    // кооператив, владелец w.wal.bill.
   },
   postgres: {
     host: envVars.data.POSTGRES_HOST,
@@ -620,6 +766,12 @@ export default {
   },
   github: {
     token: envVars.data.GITHUB_TOKEN,
+    api_url: envVars.data.GITHUB_API_URL,
+  },
+  cardcoop_client: {
+    client_id: envVars.data.CARDCOOP_CLIENT_ID,
+    client_secret: envVars.data.CARDCOOP_CLIENT_SECRET,
+    issuer: envVars.data.CARDCOOP_OIDC_ISSUER,
   },
   livekit: {
     url: envVars.data.LIVEKIT_URL,

@@ -5,6 +5,7 @@ import { LOGGER_PORT, type ILoggerPort,
   type InnerChainActionRecord,
 } from '@coopenomics/innercoop';
 import { MarketplaceWriteoffService } from './marketplace-writeoff.service';
+import { t } from '../../i18n';
 
 /**
  * Слушатель callback'ов совета по проекту списания скоропорта.
@@ -64,7 +65,7 @@ export class MarketplaceWriteoffSyncService {
       await this.writeoffService.onCouncilDeclined({
         coopname: data.coopname,
         proposal_hash: String(data.hash).toLowerCase(),
-        reason: data.reason ?? 'причина не указана',
+        reason: data.reason ?? t('marketplace.writeoffSync.reasonFallback'),
       });
     } catch (err: any) {
       this.logger.error(`onmktwodecl listener упал: ${err.message}`, err.stack);

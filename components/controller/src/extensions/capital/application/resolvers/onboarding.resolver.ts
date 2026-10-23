@@ -1,6 +1,6 @@
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
-import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, CurrentUser, RequireRight, RightsGuard } from '@coopenomics/extension-kit';
 import {
   CapitalOnboardingStepInputDTO,
   CapitalOnboardingStateDTO,
@@ -17,8 +17,8 @@ export class CapitalOnboardingResolver {
     name: 'getCapitalOnboardingState',
     description: 'Получить состояние онбординга capital',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('CapitalOnboarding', 'read')
   async getState(): Promise<CapitalOnboardingStateDTO> {
     return this.onboardingService.getState();
   }
@@ -27,8 +27,8 @@ export class CapitalOnboardingResolver {
     name: 'completeCapitalOnboardingStep',
     description: 'Выполнить шаг онбординга capital (создание предложения повестки)',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('CapitalOnboarding', 'update')
   async completeStep(
     @Args('data', { type: () => CapitalOnboardingStepInputDTO }) data: CapitalOnboardingStepInputDTO,
     @CurrentUser() currentUser: IMonoAccount
@@ -40,8 +40,8 @@ export class CapitalOnboardingResolver {
     name: 'saveCapitalProgramDocDataHash',
     description: 'Сохранить hash PrivateData параметров документов ЦПП',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('CapitalOnboarding', 'update')
   async saveProgramDocDataHash(
     @Args('data', { type: () => SaveCapitalProgramDocDataInputDTO }) data: SaveCapitalProgramDocDataInputDTO,
   ): Promise<CapitalOnboardingStateDTO> {

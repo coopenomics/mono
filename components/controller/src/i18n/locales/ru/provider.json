@@ -1,0 +1,26 @@
+{
+  "errors": {
+    "PROVIDER_BASE_URL_MISSING": "Провайдер не настроен (PROVIDER_BASE_URL)",
+    "PROVIDER_CATALOG_TOKEN_MISSING": "Витрина провайдера не настроена (PROVIDER_BEARER_TOKEN)",
+    "PROVIDER_CATALOG_UNAVAILABLE": "Каталог тарифов провайдера временно недоступен, попробуйте позже",
+    "PROVIDER_CHARTER_CHECKSUM_MISMATCH": "checksum_sha256 не совпадает с реальным SHA-256 содержимого.",
+    "PROVIDER_CHARTER_DUPLICATE": "Этот же файл устава уже приложен к заявке.",
+    "PROVIDER_CHARTER_NOT_FOUND": "Устав #{id} не найден.",
+    "PROVIDER_CHARTER_SIZE_MISMATCH": "size_bytes ({declared}) не совпадает с фактическим размером base64-содержимого ({actual}).",
+    "PROVIDER_DOCUMENT_HASH_MISMATCH": "Хэш документа не совпадает с хранимым",
+    "PROVIDER_DOCUMENT_NOT_FOUND": "Документ не найден в реестре",
+    "PROVIDER_HOSTING_PLAN_CHANGE_FAILED": "Не удалось сменить тариф: {reason}",
+    "PROVIDER_NOT_CONFIGURED": "Провайдер не настроен",
+    "PROVIDER_TARIFF_CHANGE_FAILED": "Не удалось сменить тариф: {reason}",
+    "PROVIDER_TARIFF_SELECT_FAILED": "Провайдер не принял выбор тарифа: {reason}"
+  },
+  "provider": {
+    "hostingPlan": {
+      "unknownError": "неизвестная ошибка"
+    },
+    "charterInput": {
+      "mimeType": "Устав принимается в PDF, JPEG или PNG.",
+      "checksumFormat": "checksum_sha256 должен быть 64-символьным lowercase hex."
+    }
+  }
+}

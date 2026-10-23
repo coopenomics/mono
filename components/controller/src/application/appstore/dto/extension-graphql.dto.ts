@@ -39,9 +39,6 @@ export class ExtensionDTO<TConfig = any> implements Omit<IResolvedRegistryExtens
   })
   desktops?: IDesktopConfig[];
 
-  @Field(() => Boolean, { description: 'Показывает, встроенное ли это расширение' })
-  is_builtin: boolean;
-
   @Field(() => Boolean, { description: 'Показывает, внутреннее ли это расширение' })
   is_internal: boolean;
 
@@ -96,7 +93,6 @@ export class ExtensionDTO<TConfig = any> implements Omit<IResolvedRegistryExtens
     this.is_available = registryData.is_available;
     this.is_internal = registryData.is_internal;
     this.external_url = registryData.external_url;
-    this.is_builtin = registryData.is_builtin;
     this.is_installed = !!installedExtension;
     this.desktops = registryData.desktops;
     this.enabled = installedExtension?.enabled ?? false;

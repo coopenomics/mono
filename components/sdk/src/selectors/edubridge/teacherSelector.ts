@@ -1,0 +1,112 @@
+import { Selector, type ValueTypes } from '../../zeus/index'
+import type { MakeAllFieldsRequired } from '../../utils/MakeAllFieldsRequired'
+
+const rawContractSelector = { contract_hash: true, contract_number: true, status: true, decline_reason: true, hourly_rate: true, signed_at: true, approved_at: true }
+const _validateContract: MakeAllFieldsRequired<ValueTypes['EduTeacherContract']> = rawContractSelector
+export const eduTeacherContractSelector = Selector('EduTeacherContract')(rawContractSelector)
+
+const rawProfileSelector = { about: true, hourly_rate: true, rate_locked: true }
+const _validateProfile: MakeAllFieldsRequired<ValueTypes['EduTeacherProfile']> = rawProfileSelector
+export const eduTeacherProfileSelector = Selector('EduTeacherProfile')(rawProfileSelector)
+
+const rawAssignmentSelector = {
+  id: true,
+  teacher_username: true,
+  course_id: true,
+  course_title: true,
+  course_description: true,
+  course_syllabus: true,
+  schedule: true,
+  expected_result: true,
+  period_from: true,
+  period_to: true,
+  minutes_per_month: true,
+  hourly_rate: true,
+  status: true,
+  created_at: true,
+}
+const _validateAssignment: MakeAllFieldsRequired<ValueTypes['EduAssignment']> = rawAssignmentSelector
+export const eduAssignmentSelector = Selector('EduAssignment')(rawAssignmentSelector)
+
+const rawContributionSelector = {
+  hold_until: true,
+  learners_count: true,
+  storage_act_hash: true,
+  id: true,
+  teacher_username: true,
+  assignment_id: true,
+  rid_hash: true,
+  rid_type: true,
+  links: true,
+  description: true,
+  amount: true,
+  status: true,
+  statement_hash: true,
+  decision_hash: true,
+  act_hash: true,
+  decline_reason: true,
+  council_decision_id: true,
+  council_outcome: true,
+  decided_at: true,
+  created_at: true,
+}
+const _validateContribution: MakeAllFieldsRequired<ValueTypes['EduContribution']> = rawContributionSelector
+export const eduContributionSelector = Selector('EduContribution')(rawContributionSelector)
+
+const rawContributionBriefSelector = {
+  rid_hash: true,
+  teacher_username: true,
+  teacher_name: true,
+  course_id: true,
+  course_title: true,
+  group_title: true,
+  lesson_number: true,
+  lesson_topic: true,
+  held_at: true,
+  duration_minutes: true,
+  learners_count: true,
+  hourly_rate: true,
+  amount: true,
+  rid_type: true,
+  description: true,
+  links: true,
+  hold_until: true,
+  created_at: true,
+}
+export const eduContributionBriefSelector = Selector('EduContributionBrief')(rawContributionBriefSelector)
+
+const rawSettlementSelector = { accepted_total: true, program_share: true, available: true, last_accepted_at: true }
+const _validateSettlement: MakeAllFieldsRequired<ValueTypes['EduTeacherSettlement']> = rawSettlementSelector
+export const eduTeacherSettlementSelector = Selector('EduTeacherSettlement')(rawSettlementSelector)
+
+const rawLessonSelector = {
+  id: true,
+  course_id: true,
+  course_title: true,
+  lesson_number: true,
+  topic: true,
+  held_at: true,
+  duration_minutes: true,
+  learners_count: true,
+  group_id: true,
+  group_title: true,
+  teacher_username: true,
+  assignment_id: true,
+  status: true,
+  origin: true,
+  ends_at: true,
+  report_until: true,
+  overdue: true,
+  learners_paid: true,
+  expected_amount: true,
+  guarantee_until: true,
+  reported_at: true,
+  materials: true,
+  contribution_id: true,
+}
+const _validateLesson: MakeAllFieldsRequired<ValueTypes['EduLesson']> = rawLessonSelector
+export const eduLessonSelector = Selector('EduLesson')(rawLessonSelector)
+
+const rawSettlementEntrySelector = { id: true, at: true, kind: true, title: true, amount: true, status: true, contribution_id: true, return_id: true, payment_hash: true }
+const _validateSettlementEntry: MakeAllFieldsRequired<ValueTypes['EduSettlementEntry']> = rawSettlementEntrySelector
+export const eduSettlementEntrySelector = Selector('EduSettlementEntry')(rawSettlementEntrySelector)

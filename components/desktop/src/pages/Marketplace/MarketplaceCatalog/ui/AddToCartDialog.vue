@@ -1,10 +1,17 @@
 <script lang="ts" setup>
 import { computed, ref, watch } from 'vue';
+import { uiLocale, t, t as i18nT } from 'src/shared/i18n';
 import { useRoute, useRouter } from 'vue-router';
 import { FailAlert, NotifyAlert, SuccessAlert } from 'src/shared/api';
 import { useSystemStore } from 'src/entities/System/model';
 import { useMarketplaceCartStore } from 'src/entities/MarketplaceCart';
-import { applyMembershipFee, saleQuantityStep, quantizeSaleQuantity } from 'src/shared/lib/marketplace';
+import {
+  applyMembershipFee,
+  marketplaceAvailablePackages,
+  marketplacePackageLabel,
+  saleQuantityStep,
+  quantizeSaleQuantity,
+} from 'src/shared/lib/marketplace';
 import { BaseDialog, BaseInput, BaseButton, BaseSelect } from 'src/shared/ui/base';
 import { marketplaceOrderUnitLabel, MarketplaceSaleForm } from 'src/shared/lib/consts';
 import type { MarketplaceOfferView } from '../types';
@@ -66,34 +73,64 @@ const unitLabel = computed(() =>
 // Шаг ввода: по мере — штука целая (1), вес/объём дробный (0.001); упаковкой — целое.
 const quantityStep = computed(() => saleQuantityStep(props.offer));
 
-// Подпись варианта в селекте — название (если задано) ВСЕГДА вместе с
-// размером упаковки, а не вместо него: заказчику нужно видеть объём сразу
-// при выборе, не выбирая упаковку заранее ради строки «Цена: ... за упак.» под селектом.
-const packageOptions = computed(() =>
-  (props.offer?.packages ?? []).map((p) => {
-    const sizeLabel = `${String(p.size).replace('.', ',')} ${unitLabel.value}`;
-    // Вид тары идёт вместе с объёмом: молоко в стекле и в пластике заказчик
-    // выбирает по-разному, а возвратную корзинку надо будет вернуть.
-    const withType = p.package_type ? `${sizeLabel}, ${p.package_type}` : sizeLabel;
-    const nameLabel = p.label ? `${p.label} — ${withType}` : `Упаковка ${withType}`;
-    const priceLabel = `${applyMembershipFee(Number(p.price), props.feePercent).toLocaleString('ru-RU')} ${system.governSymbol}`;
-    return {
-      value: p.id,
-      label: `${nameLabel} — ${priceLabel}`,
-    };
-  }),
+/**
+ * Заказчику предлагаем только ту тару, которую можно взять: пустая упаковка
+ * давала «Доступно: 0» и неактивную кнопку — окно выглядело сломанным
+ * (жалоба 2026-09-14).
+ */
+const availablePackages = computed(() =>
+  marketplaceAvailablePackages(props.offer?.packages, Boolean(props.offer?.unlimited_flag)),
 );
 
-const selectedPackage = computed(() =>
-  (props.offer?.packages ?? []).find((p) => p.id === selectedPackageId.value) ?? null,
+/** «0,5 л, пластик» — объём и тара словами поставщика, как в карточке. */
+function packageLabel(pkg: { size: number; package_type?: string | null }): string {
+  return marketplacePackageLabel(pkg.size, props.offer?.unit_of_measure, pkg.package_type);
+}
+
+function packagePrice(pkg: { price: string | number }): string {
+  const value = applyMembershipFee(Number(pkg.price), props.feePercent);
+  return `${value.toLocaleString(uiLocale())} ${system.governSymbol}`;
+}
+
+// Подпись варианта: объём с тарой и цена. Название упаковки от поставщика
+// («литрушка») ничего не добавляет к «1 л, стекло» — в списке из двух строк
+// оно только удлиняет строку и обрезается многоточием.
+const packageOptions = computed(() =>
+  availablePackages.value.map((p) => ({
+    value: p.id,
+    label: `${packageLabel(p)} — ${packagePrice(p)}`,
+  })),
+);
+
+/** Выбор нужен только когда есть из чего выбирать. */
+const hasPackageChoice = computed(() => isPackaged.value && availablePackages.value.length > 1);
+
+const selectedPackage = computed(
+  () => availablePackages.value.find((p) => p.id === selectedPackageId.value) ?? null,
+);
+
+/** Строка единицы отпуска: что именно и почём кладётся в корзину. */
+const saleLine = computed(() => {
+  if (!props.offer) return '';
+  if (isPackaged.value) {
+    const pkg = selectedPackage.value;
+    return pkg ? `${packageLabel(pkg)} — ${packagePrice(pkg)}` : '';
+  }
+  return t('marketplace.addToCartDialog.priceLine', { amount: priceWithFee.value.toLocaleString(uiLocale()), symbol: system.governSymbol, unit: unitLabel.value });
+});
+
+/** Нечего заказывать: упаковочный товар, у которого свободной тары не осталось. */
+const nothingAvailable = computed(
+  () => isPackaged.value && availablePackages.value.length === 0,
 );
 
 const maxQuantity = computed(() => {
   if (!props.offer) return null;
   if (props.offer.unlimited_flag) return null;
-  // Остаток в базовых единицах; при упаковке — переводим в число упаковок.
-  if (isPackaged.value && selectedPackage.value) {
-    return Math.floor(props.offer.quantity_available / selectedPackage.value.size);
+  // Остаток ведётся на упаковке: бутылок нужного объёма может не быть при
+  // полном котле литров, поэтому делить общий остаток на размер нельзя.
+  if (isPackaged.value) {
+    return selectedPackage.value?.quantity_available ?? 0;
   }
   return props.offer.quantity_available;
 });
@@ -109,7 +146,7 @@ const priceWithFee = computed(() => {
 
 const saleUnitLabel = computed(() => {
   if (isPackaged.value && selectedPackage.value) {
-    return `упак. ${String(selectedPackage.value.size).replace('.', ',')} ${unitLabel.value}`;
+    return t('marketplace.addToCartDialog.packageSaleUnitLabel', { size: String(selectedPackage.value.size).replace('.', ','), unit: unitLabel.value });
   }
   return unitLabel.value;
 });
@@ -147,7 +184,7 @@ function onQuantityInput(value: string | number | null): void {
   const max = maxQuantity.value;
   if (max !== null && next > max) {
     next = max;
-    NotifyAlert(`Доступно не больше ${max} ${isPackaged.value ? 'упак.' : unitLabel.value}`);
+    NotifyAlert(t('marketplace.addToCartDialog.maxAvailableWarning', { max, unit: isPackaged.value ? i18nT('marketplace.addToCart.packUnit') : unitLabel.value }));
   }
   // Если клампинг возвращает то же значение, что уже лежит в quantity (типовой
   // случай — пользователь допечатал цифру сверх ранее заклампленного числа),
@@ -167,7 +204,7 @@ watch(
     if (v) {
       quantity.value = 1;
       // Предвыбираем упаковку по умолчанию (или первую).
-      const pkgs = props.offer?.packages ?? [];
+      const pkgs = availablePackages.value;
       selectedPackageId.value = isPackaged.value
         ? (pkgs.find((p) => p.is_default)?.id ?? pkgs[0]?.id ?? null)
         : null;
@@ -182,8 +219,8 @@ async function onSubmit(): Promise<void> {
   // к моменту показа уже могут смениться.
   const addedLabel = [
     props.offer.product_name,
-    `${Number(quantity.value).toLocaleString('ru-RU')} × ${saleUnitLabel.value}`,
-    `${totalSum.value.toLocaleString('ru-RU')} ${system.governSymbol}`,
+    `${Number(quantity.value).toLocaleString(uiLocale())} ${saleUnitLabel.value}`,
+    `${totalSum.value.toLocaleString(uiLocale())} ${system.governSymbol}`,
   ].join(' · ');
   try {
     await cartStore.addItem(
@@ -197,9 +234,9 @@ async function onSubmit(): Promise<void> {
     // Рядом равноправный по смыслу отказ: набирать корзину дальше — такой же
     // нормальный сценарий, и человек не должен искать для этого крестик.
     SuccessAlert(
-      'Добавлено в корзину',
+      t('marketplace.addToCartDialog.addedToCartTitle'),
       {
-        text: 'Перейти в корзину',
+        text: t('marketplace.addToCartDialog.goToCartAction'),
         icon: 'shopping_cart',
         handler: () => {
           void router.push({
@@ -208,7 +245,7 @@ async function onSubmit(): Promise<void> {
           });
         },
       },
-      { caption: addedLabel, dismissText: 'Продолжить заказы' },
+      { caption: addedLabel, dismissText: t('marketplace.addToCartDialog.continueShoppingAction') },
     );
     emit('added');
     open.value = false;
@@ -223,47 +260,54 @@ async function onSubmit(): Promise<void> {
 <template lang="pug">
 BaseDialog(
   :model-value="open",
-  title="В корзину",
+  :title="offer?.product_name || $t('marketplace.addToCartDialog.dialogTitleFallback')",
   size="sm",
   :close-on-backdrop="!submitting",
   @update:model-value="(v) => open = v"
 )
   template(#default)
     .add-to-cart
-      .add-to-cart__offer(v-if="offer") {{ offer.product_name }}
-      BaseSelect(
-        v-if="isPackaged",
-        :model-value="selectedPackageId",
-        :options="packageOptions",
-        label="Упаковка",
-        @update:model-value="(v) => selectedPackageId = v ? String(v) : null"
-      )
-      BaseInput(
-        :model-value="quantity",
-        type="number",
-        :step="quantityStep",
-        :min="0",
-        :max="maxQuantity ?? undefined",
-        :label="isPackaged ? 'Число упаковок' : `Количество (${unitLabel})`",
-        :hint="maxQuantity !== null ? `Доступно: ${maxQuantity} ${isPackaged ? 'упак.' : unitLabel}` : 'Без ограничения остатка'",
-        @update:model-value="onQuantityInput"
-      )
-      .add-to-cart__note(v-if="alreadyInCart > 0")
-        | Уже в корзине: {{ alreadyInCart }} — добавление суммируется.
-      .add-to-cart__packaging(v-if="selectedPackage?.package_type")
-        | Упаковка: {{ selectedPackage.package_type }}
-      .add-to-cart__price(v-if="offer")
-        | Цена: {{ priceWithFee.toLocaleString('ru-RU') }} {{ system.governSymbol }} за {{ saleUnitLabel }}
-      .add-to-cart__total(v-if="offer")
-        | Итого: {{ totalSum.toLocaleString('ru-RU') }} {{ system.governSymbol }}
+      //- Свободной тары не осталось — предлагать нечего, и число тут ни при чём.
+      .banner.banner--warn(v-if="nothingAvailable")
+        q-icon.banner__icon(name="inventory_2", size="18px")
+        .banner__body {{ $t('marketplace.addToCartDialog.soldOutMessage') }}
+
+      template(v-else)
+        //- Выбор тары — только когда вариантов больше одного. Цена стоит прямо
+        //- в строке варианта, поэтому отдельной строкой цену не повторяем.
+        BaseSelect(
+          v-if="hasPackageChoice",
+          :model-value="selectedPackageId",
+          :options="packageOptions",
+          :label="$t('marketplace.addToCartDialog.packageLabel')",
+          @update:model-value="(v) => selectedPackageId = v ? String(v) : null"
+        )
+        .add-to-cart__sale(v-else-if="saleLine") {{ saleLine }}
+
+        BaseInput(
+          :model-value="quantity",
+          type="number",
+          :step="quantityStep",
+          :min="0",
+          :max="maxQuantity ?? undefined",
+          :label="isPackaged ? $t('marketplace.addToCartDialog.packageCountLabel') : $t(`marketplace.addToCartDialog.quantityLabel`, { unit: unitLabel })",
+          :hint="maxQuantity !== null ? $t(`marketplace.addToCartDialog.availableHint`, { max: maxQuantity, unit: isPackaged ? $t('marketplace.addToCart.packUnit') : unitLabel }) : $t('marketplace.addToCartDialog.unlimitedStockHint')",
+          @update:model-value="onQuantityInput"
+        )
+
+        .add-to-cart__note(v-if="alreadyInCart > 0")
+          | {{ $t('marketplace.addToCartDialog.alreadyInCartHint', { amount: alreadyInCart }) }}
+
+        .add-to-cart__total(v-if="offer")
+          | {{ $t('marketplace.addToCartDialog.totalLabel', { amount: totalSum.toLocaleString(uiLocale()), symbol: system.governSymbol }) }}
   template(#footer)
-    BaseButton(variant="ghost", :disabled="submitting", @click="open = false") Отмена
+    BaseButton(variant="ghost", :disabled="submitting", @click="open = false") {{ $t('common.action.cancel') }}
     BaseButton(
       variant="primary",
-      :disabled="!canSubmit",
+      :disabled="!canSubmit || nothingAvailable",
       :loading="submitting",
       @click="onSubmit"
-    ) Добавить в корзину
+    ) {{ $t('marketplace.addToCartDialog.submitAction') }}
 </template>
 
 <style scoped lang="scss">
@@ -272,22 +316,12 @@ BaseDialog(
   flex-direction: column;
   gap: var(--p-3, 12px);
 
-  &__offer {
-    color: var(--p-ink-2);
-    font-size: var(--p-fs-body-sm);
+  &__sale {
+    color: var(--p-ink);
+    font-size: var(--p-fs-body);
   }
 
   &__note {
-    font-size: var(--p-fs-body-sm);
-    color: var(--p-ink-2);
-  }
-
-  &__packaging {
-    font-size: var(--p-fs-body-sm);
-    color: var(--p-ink-2);
-  }
-
-  &__price {
     font-size: var(--p-fs-body-sm);
     color: var(--p-ink-2);
   }

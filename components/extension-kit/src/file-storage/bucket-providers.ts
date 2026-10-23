@@ -41,6 +41,7 @@ export function bucketProvidersFor(
     const spec = BucketRegistry.get(cls);
     if (!spec) {
       throw new Error(
+        // i18n-ignore: ошибка объявления хранилища при старте, до пайщика не доходит
         `bucketProvidersFor: класс ${cls.name} не помечен @UseBucket — объявите хранилище рядом с сервисом`
       );
     }

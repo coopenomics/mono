@@ -1,0 +1,6 @@
+{
+  "errors": {
+    "APPSTORE_EXTENSION_DATA_COLLECTION_FAILED": "Не удалось собрать данные о расширении",
+    "APPSTORE_EXTENSION_NAME_REQUIRED": "Имя у приложения должно быть задано"
+  }
+}

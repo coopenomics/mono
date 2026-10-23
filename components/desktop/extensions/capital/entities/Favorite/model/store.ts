@@ -10,6 +10,7 @@ interface IFavoritesStore {
   isFavorite: (target_type: IFavoriteTargetType, target_hash: string) => boolean;
   loadFavorites: (filter: IGetFavoritesInput) => Promise<void>;
   toggleFavorite: (data: IFavoriteInput) => Promise<void>;
+  dropTarget: (target_hash: string) => void;
 }
 
 /**
@@ -39,5 +40,14 @@ export const useFavoritesStore = defineStore(namespace, (): IFavoritesStore => {
       : await api.addFavorite(normalized);
   }
 
-  return { favorites, isFavorite, loadFavorites, toggleFavorite };
+  /**
+   * Снятие цели после удаления сущности: сервер уже убрал её из избранного,
+   * звёздочке и суб-пункту меню незачем ждать перезагрузки страницы.
+   */
+  function dropTarget(target_hash: string): void {
+    const hash = target_hash.toLowerCase();
+    favorites.value = favorites.value.filter((f) => f.target_hash !== hash);
+  }
+
+  return { favorites, isFavorite, loadFavorites, toggleFavorite, dropTarget };
 });

@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
+import { APP_VERSION } from 'src/shared/config';
 
 /**
  * Отслеживание версий и оповещение об обновлении.
@@ -14,7 +15,7 @@ import { ref, computed } from 'vue';
  */
 
 // Запечённая при сборке версия клиента (CalVer, lockstep через lerna).
-const LOCAL_VERSION = (process.env.APP_VERSION as string) || 'dev';
+const LOCAL_VERSION = APP_VERSION;
 
 // Та же каденция, что у SW-троттла обновления: раз в 5 минут + при возврате на вкладку.
 const CHECK_INTERVAL_MS = 5 * 60 * 1000;
@@ -108,6 +109,7 @@ export const useUpdateWatch = defineStore('updateWatch', () => {
   const checkWithStartupRetries = async (): Promise<void> => {
     for (const delay of STARTUP_RETRY_MS) {
       if (delay > 0) {
+        // timing: backoff — повтор проверки версии сразу после деплоя
         await new Promise((r) => setTimeout(r, delay));
       }
       const ok = await check();
@@ -118,6 +120,7 @@ export const useUpdateWatch = defineStore('updateWatch', () => {
   const scheduleNext = (): void => {
     if (typeof window === 'undefined') return; // SSR-safe
     stop();
+    // timing: schedule — периодическая проверка новой версии приложения
     timer = setTimeout(() => {
       if (document.visibilityState === 'visible') void check();
       scheduleNext();

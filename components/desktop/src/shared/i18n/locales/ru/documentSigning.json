@@ -1,0 +1,12 @@
+{
+  "documentSigning": {
+    "composable": {
+      "progress": "Подписываем {title}"
+    },
+    "documentsSignCanvas": {
+      "clear": "Очистить",
+      "emptyError": "Пожалуйста, оставьте собственноручную подпись в окне",
+      "hint": "Оставьте собственноручную подпись в рамке"
+    }
+  }
+}

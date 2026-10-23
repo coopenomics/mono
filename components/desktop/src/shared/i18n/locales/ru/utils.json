@@ -1,0 +1,17 @@
+{
+  "utils": {
+    "account": {
+      "entrepreneurFullName": "ИП {lastName} {firstName} {middleName}"
+    },
+    "error": {
+      "fileReadError": "Ошибка чтения файла",
+      "fileReadFailed": "Не удалось прочитать файл"
+    },
+    "formatDateToHumanDateTime": {
+      "invalidDate": "Неверная дата"
+    },
+    "timezone": {
+      "moscowAbbr": "МСК"
+    }
+  }
+}

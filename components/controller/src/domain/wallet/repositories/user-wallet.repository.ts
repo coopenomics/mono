@@ -3,6 +3,10 @@ import type { UserWalletDomainEntity } from '../entities/user-wallet-domain.enti
 
 /**
  * Репозиторий L3 кошельков пайщиков (`ledger2::userwallets`, Эпик 3).
+ *
+ * Все выборки отдают только живые строки (`present = true`). Контракт
+ * стирает кошелёк при нулевом остатке, копия в базе остаётся надгробием
+ * ради версионирования — для читателя такого кошелька нет, остаток ноль.
  */
 export interface UserWalletRepository extends IBlockchainSyncRepository<UserWalletDomainEntity> {
   /** L3-запись по уникальному (coopname, wallet_name, username). */

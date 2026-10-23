@@ -103,7 +103,7 @@ module.exports = {
         ],
       },
     },
-    ...['capital', 'chairman', 'chatcoop', 'expenses', 'participant', 'powerup', 'reports', 'soviet'].map(
+    ...['capital', 'cashier', 'chairman', 'chatcoop', 'expenses', 'participant', 'powerup', 'reports', 'soviet'].map(
       (name) => ({
         files: [`extensions/${name}/**/*.{ts,js,vue}`],
         // Долг: два прямых кросс-импорта в expenses через алиас app/extensions/**.

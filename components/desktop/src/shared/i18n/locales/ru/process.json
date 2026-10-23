@@ -1,0 +1,29 @@
+{
+  "process": {
+    "accountCodeBadge": {
+      "namedTooltip": "{name} (клик — копировать)",
+      "tooltip": "Клик — копировать"
+    },
+    "processDetailCard": {
+      "amountColumn": "Сумма",
+      "copied": "Скопировано",
+      "copyFailed": "Не удалось скопировать",
+      "creditColumn": "Кредит",
+      "dateColumn": "Дата",
+      "debitColumn": "Дебет",
+      "documentFallbackTitle": "Документ",
+      "documentsEmpty": "Документы не приложены",
+      "documentsTitle": "Документы",
+      "opNumberColumn": "№ операции",
+      "openInOperationsRegistry": "Открыть в реестре операций",
+      "openInPostingsRegistry": "Открыть в реестре проводок",
+      "operationColumn": "Операция",
+      "operationsEmpty": "Операций нет",
+      "operationsTitle": "Операции",
+      "postingNumberColumn": "№ проводки",
+      "postingsEmpty": "Проводок нет",
+      "postingsTitle": "Проводки",
+      "processIdLabel": "ID процесса:"
+    }
+  }
+}

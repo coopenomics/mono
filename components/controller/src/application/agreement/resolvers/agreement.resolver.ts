@@ -1,7 +1,21 @@
 import { Resolver, Mutation, Args, Query } from '@nestjs/graphql';
-import { GqlJwtAuthGuard, RolesGuard, AuthRoles, createPaginationResult, PaginationInputDTO, PaginationResult, GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO, TransactionDTO, GenerateDocumentInputDTO } from '@coopenomics/extension-kit';
+import {
+  GqlJwtAuthGuard,
+  CurrentUser,
+  createPaginationResult,
+  PaginationInputDTO,
+  PaginationResult,
+  GenerateDocumentOptionsInputDTO,
+  GeneratedDocumentDTO,
+  TransactionDTO,
+  GenerateDocumentInputDTO,
+  RequireRight,
+  RightsGuard,
+  DOCUMENT_GENERATION_THROTTLE,
+} from '@coopenomics/extension-kit';
 import { UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
+import type { IMonoAccount } from '@coopenomics/innercoop';
 import { AgreementService } from '../services/agreement.service';
 import { AgreementDTO } from '../dto/agreement.dto';
 import { AgreementFilterInput } from '../dto/agreement-filter.input';
@@ -29,6 +43,8 @@ export class AgreementResolver {
     name: 'agreements',
     description: 'Получение списка соглашений с фильтрацией и пагинацией',
   })
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Agreement', ['read:own', 'read:all'], { owner: 'filter.username' })
   async getAgreements(
     @Args('filter', { nullable: true }) filter?: AgreementFilterInput,
     @Args('options', { nullable: true }) options?: PaginationInputDTO
@@ -90,9 +106,9 @@ export class AgreementResolver {
     name: 'generateWalletAgreement',
     description: 'Сгенерировать документ соглашения о целевой потребительской программе "Цифровой Кошелёк"',
   })
-  @Throttle({ default: { limit: 3, ttl: 60000 } })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @Throttle(DOCUMENT_GENERATION_THROTTLE)
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Agreement', 'generate:own', { owner: 'data.username' })
   async generateWalletAgreement(
     @Args('data', { type: () => GenerateDocumentInputDTO })
     data: GenerateDocumentInputDTO,
@@ -106,9 +122,9 @@ export class AgreementResolver {
     name: 'generatePrivacyAgreement',
     description: 'Сгенерировать документ согласия с политикой конфиденциальности.',
   })
-  @Throttle({ default: { limit: 3, ttl: 60000 } })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @Throttle(DOCUMENT_GENERATION_THROTTLE)
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Agreement', 'generate:own', { owner: 'data.username' })
   async generatePrivacyAgreement(
     @Args('data', { type: () => GenerateDocumentInputDTO })
     data: GenerateDocumentInputDTO,
@@ -122,9 +138,9 @@ export class AgreementResolver {
     name: 'generateSignatureAgreement',
     description: 'Сгенерировать документ соглашения о порядка и правилах использования простой электронной подписи.',
   })
-  @Throttle({ default: { limit: 3, ttl: 60000 } })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @Throttle(DOCUMENT_GENERATION_THROTTLE)
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Agreement', 'generate:own', { owner: 'data.username' })
   async generateSignatureAgreement(
     @Args('data', { type: () => GenerateDocumentInputDTO })
     data: GenerateDocumentInputDTO,
@@ -138,9 +154,9 @@ export class AgreementResolver {
     name: 'generateUserAgreement',
     description: 'Сгенерировать документ пользовательского соглашения.',
   })
-  @Throttle({ default: { limit: 3, ttl: 60000 } })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @Throttle(DOCUMENT_GENERATION_THROTTLE)
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Agreement', 'generate:own', { owner: 'data.username' })
   async generateUserAgreement(
     @Args('data', { type: () => GenerateDocumentInputDTO })
     data: GenerateDocumentInputDTO,
@@ -157,11 +173,13 @@ export class AgreementResolver {
     description: 'Отправить соглашение',
   })
   @Throttle({ default: { limit: 5, ttl: 60000 } })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Agreement', ['sign:own', 'sign:all'], { owner: 'data.username' })
   async sendAgreement(
-    @Args('data', { type: () => SendAgreementInputDTO }) data: SendAgreementInputDTO
+    @Args('data', { type: () => SendAgreementInputDTO }) data: SendAgreementInputDTO,
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<TransactionDTO> {
-    return this.agreementService.sendAgreement(data);
+    return this.agreementService.sendAgreement(data, currentUser);
   }
 
   @Mutation(() => TransactionDTO, {
@@ -169,8 +187,8 @@ export class AgreementResolver {
     description: 'Подтвердить соглашение пайщика администратором',
   })
   @Throttle({ default: { limit: 10, ttl: 60000 } })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Agreement', 'confirm')
   async confirmAgreement(
     @Args('data', { type: () => ConfirmAgreementInputDTO }) data: ConfirmAgreementInputDTO
   ): Promise<TransactionDTO> {
@@ -182,8 +200,8 @@ export class AgreementResolver {
     description: 'Отклонить соглашение пайщика администратором',
   })
   @Throttle({ default: { limit: 10, ttl: 60000 } })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Agreement', 'confirm')
   async declineAgreement(
     @Args('data', { type: () => DeclineAgreementInputDTO }) data: DeclineAgreementInputDTO
   ): Promise<TransactionDTO> {

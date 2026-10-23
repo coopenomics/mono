@@ -9,10 +9,6 @@ import { Invite } from 'src/widgets/Registrator/Invite';
 
 <style scoped>
 .invite-page {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--p-6, 24px);
-  min-height: 100%;
+  min-height: inherit;
 }
 </style>

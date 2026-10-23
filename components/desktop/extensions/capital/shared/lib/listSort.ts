@@ -1,4 +1,5 @@
 import { Zeus } from '@coopenomics/sdk';
+import { uiLocale } from 'src/shared/i18n';
 
 /** Порядок приоритетов «сверху вниз» — совпадает с ORDER BY enum на бэкенде (ASC = срочный первым). */
 const PRIORITY_ORDER: string[] = [
@@ -30,7 +31,7 @@ const priorityIndex = (priority: string | null | undefined): number => {
 type Comparator = (a: SortableRow, b: SortableRow) => number;
 
 const COMPARATORS: Record<string, Comparator> = {
-  title: (a, b) => (a.title || '').localeCompare(b.title || '', 'ru'),
+  title: (a, b) => (a.title || '').localeCompare(b.title || '', uiLocale()),
   status: (a, b) => (a.status || '').localeCompare(b.status || ''),
   priority: (a, b) => priorityIndex(a.priority) - priorityIndex(b.priority),
   _updated_at: (a, b) => timeOf(a._updated_at) - timeOf(b._updated_at),

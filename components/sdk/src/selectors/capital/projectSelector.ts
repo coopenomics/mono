@@ -118,6 +118,8 @@ const rawBaseProjectSelector = {
   status: true,
   /** Приоритет проекта/компонента (только БД) */
   priority: true,
+  /** Редакция содержимого — передаётся как base_rev при сохранении */
+  content_rev: true,
   project_hash: true,
   coopname: true,
   parent_hash: true,

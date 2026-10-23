@@ -29,7 +29,7 @@ export class Factory extends DocFactory<AnnualGeneralMeetingDecision.Action> {
     // дополнительная обработка времени не требуется
 
     // Создаем данные решения общего собрания (НЕ решения совета!)
-    const decision = await super.getGeneralMeetingDecision(meet, meta.created_at)
+    const decision = await super.getGeneralMeetingDecision(meet, meta.created_at, meta.timezone)
 
     const combinedData: AnnualGeneralMeetingDecision.Model = {
       meta,

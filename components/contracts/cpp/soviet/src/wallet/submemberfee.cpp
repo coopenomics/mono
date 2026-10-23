@@ -31,7 +31,7 @@ void soviet::submemberfee(eosio::name coopname, eosio::name username, uint64_t p
   auto current_contribution = wallet->membership_contribution.has_value() ? wallet->membership_contribution.value() : asset(0, quantity.symbol);
   eosio::check(current_contribution >= quantity, "Недостаточно средств для списания членского взноса");
   
-  progwallets.modify(wallet, payer, [&](auto &p) { 
+  progwallets.modify(wallet, RamPayer::of(progwallets, coopname), [&](auto &p) { 
     p.membership_contribution = current_contribution - quantity;
   });
   
@@ -39,7 +39,7 @@ void soviet::submemberfee(eosio::name coopname, eosio::name username, uint64_t p
   auto current_program_contributions = prg->membership_contributions.has_value() ? prg->membership_contributions.value() : asset(0, quantity.symbol);
   eosio::check(current_program_contributions >= quantity, "Недостаточно средств в программе для списания");
   
-  programs.modify(prg, payer, [&](auto &p){
+  programs.modify(prg, RamPayer::of(programs, coopname), [&](auto &p){
     p.membership_contributions = current_program_contributions - quantity;
   });
 } 

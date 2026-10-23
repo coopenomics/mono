@@ -23,6 +23,8 @@ export interface IndexEntry {
   relative_path: string
   remote_updated_at: string
   content_etag_local: string
+  /** Редакция содержимого на сервере при последнем pull/push (base_rev для следующего push). */
+  remote_rev?: number
 }
 
 export interface IndexFile {

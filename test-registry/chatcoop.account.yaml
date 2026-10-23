@@ -1,0 +1,100 @@
+feature: chatcoop.account
+title: Учётная запись «Чата кооператива» — статус, заведение, проверка имени
+
+# Статус говорит, привязана ли к пайщику учётная запись Matrix и куда
+# открывать клиент чата; при отсутствии локальной записи сервер ищет
+# пользователя Matrix по почте и привязывает найденного.
+#
+# Заведено 24.09.2026 (C28-80). С 02.10.2026 (C28-85) сервер чата на стенде
+# внешнего слоя играет подставной узел: заведение записи, проверка имени и
+# привязка по почте проверяются снаружи.
+#
+# 20.10.2026: требование членства в союзе снято (флаги IS_UNIONED, UNION_LINK,
+# MATRIX_UNION_*). Комната связи кооператива с представителем союза больше не
+# заводится при создании учётной записи; таблица union_chats оставлена в базе
+# как история, код её не пишет. Мессенджер в мастере подключения не обязателен.
+
+sources:
+  backend:
+    - components/controller/src/extensions/chatcoop/application/resolvers/chatcoop.resolver.ts
+    - components/controller/src/extensions/chatcoop/application/services/chatcoop-application.service.ts
+    - components/controller/src/extensions/chatcoop/domain/services/matrix-user-management.service.ts
+    - components/controller/src/extensions/chatcoop/infrastructure/repositories/matrix-user.kysely-repository.ts
+
+cases:
+  - id: chat.acc.happy.01
+    level: backend
+    kind: happy
+    scenario: Новый пайщик без учётной записи чата запрашивает статус
+    expect: hasAccount=false, без имени и адреса клиента
+    test: components/api-tests/src/chatcoop/account.test.ts
+    api: components/api-tests/src/chatcoop/account.test.ts
+    status: passing
+
+  - id: chat.acc.side.01
+    level: backend
+    kind: side
+    scenario: Гость запрашивает статус учётной записи чата
+    expect: отказ 401
+    test: components/api-tests/src/chatcoop/account.test.ts
+    api: components/api-tests/src/chatcoop/account.test.ts
+    status: passing
+
+  - id: chat.acc.happy.02
+    level: backend
+    kind: happy
+    scenario: >
+      Пайщик заводит учётную запись чата с именем и паролем; повторное заведение
+    expect: >
+      серверу чата ушла регистрация с почтой и именем пайщика; статус
+      hasAccount=true с именем и адресом клиента; повтор —
+      CHATCOOP_MATRIX_ACCOUNT_ALREADY_EXISTS
+    test: components/api-tests/src/chatcoop/account.test.ts
+    status: written
+
+  - id: chat.acc.happy.03
+    level: backend
+    kind: happy
+    scenario: >
+      У пайщика уже есть пользователь Matrix с той же почтой — статус привязывает его
+    expect: >
+      hasAccount=true с именем найденной записи; привязка записана — повторный
+      запрос статуса сервер чата по почте уже не спрашивает
+    test: components/api-tests/src/chatcoop/account.test.ts
+    status: written
+
+  - id: chat.acc.side.02
+    level: backend
+    kind: side
+    scenario: пайщик проверяет, свободно ли имя для учётной записи чата
+    expect: имя, которого сервер чата не знает, свободно; известное серверу — занято
+    test: components/api-tests/src/chatcoop/account.test.ts
+    status: written
+
+  - id: chat.acc.side.03
+    level: backend
+    kind: side
+    scenario: сервер чата отказал в регистрации
+    expect: отказ CHATCOOP_MATRIX_ACCOUNT_CREATE_FAILED, запись не привязана, статус «нет записи»
+    test: components/api-tests/src/chatcoop/account.test.ts
+    status: written
+
+  - id: chat.acc.break.01
+    level: backend
+    kind: break
+    scenario: кооператив-пайщик (организация) заводит учётную запись чата
+    expect: учётная запись заводится; комната связи с союзом не создаётся, представителя союза никуда не добавляют
+    test: components/api-tests/src/chatcoop/account.test.ts
+    api: components/api-tests/src/chatcoop/account.test.ts
+    status: written   # прогон — внешний слой на полигоне
+
+  # Права по таблице прав расширения (C28-87, кусок 3, 05.10.2026): операции
+  # стоят под общим гардом каркаса вместо `@AuthRoles`, состав исполнителей прежний.
+  - id: chat.acc.side.05
+    level: backend
+    kind: side
+    scenario: операции расширения зовут пайщик, член совета, председатель и кандидат
+    expect: право есть у названных в таблице прав расширения, остальным отказ KIT_INSUFFICIENT_RIGHTS; кандидат прав пайщика не имеет
+    test: components/controller/tests/unit/rights/extension-rights-tables.test.ts
+    api: components/api-tests/src/rights/matrix.test.ts
+    status: written

@@ -1,12 +1,14 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { useFirstLoad } from 'src/shared/lib/composables';
 import { debounce } from 'quasar';
 import { useRouter } from 'vue-router';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { BaseBadge, BaseButton, BaseCard, BaseSelect, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
 import type { BaseBadgeVariant, BaseSelectOption } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
-import { useMarketplaceRealtime } from 'src/shared/lib/marketplace';
+import { marketLiveTables } from 'src/shared/lib/marketplace';
 import { useSystemStore } from 'src/entities/System/model';
 import { useSessionStore } from 'src/entities/Session';
 import { useWalletStore } from 'src/entities/Wallet';
@@ -19,6 +21,7 @@ import {
 import { formatDateToHumanDateTime } from 'src/shared/lib/utils/dates/formatDateToHumanDateTime';
 import { formatAsset2Digits } from 'src/shared/lib/utils';
 import { listMyPayments, type MarketplaceOutgoingPaymentRequestView } from '../api';
+import { t } from 'src/shared/i18n';
 
 /**
  * Стол поставщика «Выплаты»: настройка «выплаты получаю на…» + история выплат.
@@ -43,11 +46,11 @@ const savingMethod = ref(false);
 function methodLabel(method: { method_type: string; data: unknown }): string {
   if (method.method_type === 'sbp') {
     const phone = (method.data as ISBPData).phone ?? '';
-    return phone ? `СБП ${phone}` : 'СБП';
+    return phone ? t('marketplace.offererPaymentHistoryPage.sbpLabel', { phone }) : t('marketplace.offererPaymentHistoryPage.sbpMethodLabel');
   }
   const bank = method.data as IBankTransferData;
   const tail = (bank.account_number ?? '').slice(-4);
-  const name = bank.bank_name?.trim() || 'Банковский счёт';
+  const name = bank.bank_name?.trim() || t('marketplace.offererPaymentHistoryPage.bankAccountMethodLabel');
   return tail ? `${name} •${tail}` : name;
 }
 
@@ -64,7 +67,7 @@ const selectedMethodId = computed(() => settings.value?.payout_method_id ?? null
 const selectHint = computed(() => {
   if (!settings.value) return undefined;
   if (!settings.value.payout_method_id && settings.value.has_payout_method) {
-    return `Используются реквизиты по умолчанию: ${settings.value.payout_destination ?? ''}`;
+    return t('marketplace.offererPaymentHistoryPage.defaultDetailsHint', { details: settings.value.payout_destination ?? '' });
   }
   return undefined;
 });
@@ -74,7 +77,7 @@ async function loadSettings(): Promise<void> {
   try {
     settings.value = await loadSupplierPaymentSettings();
   } catch (e) {
-    FailAlert(e, 'Не удалось загрузить настройки выплат');
+    FailAlert(e, t('marketplace.offererPaymentHistoryPage.loadSettingsFailedMessage'));
   } finally {
     settingsLoading.value = false;
   }
@@ -85,9 +88,9 @@ async function onPickMethod(method_id: string | number | null): Promise<void> {
   savingMethod.value = true;
   try {
     settings.value = await setSupplierPayoutMethod(String(method_id));
-    SuccessAlert('Реквизиты для выплат сохранены');
+    SuccessAlert(t('marketplace.offererPaymentHistoryPage.detailsSavedMessage'));
   } catch (e) {
-    FailAlert(e, 'Не удалось сохранить реквизиты для выплат');
+    FailAlert(e, t('marketplace.offererPaymentHistoryPage.saveDetailsFailedMessage'));
   } finally {
     savingMethod.value = false;
   }
@@ -102,13 +105,17 @@ function goToRequisites(): void {
 
 // ── история выплат ──
 const items = ref<MarketplaceOutgoingPaymentRequestView[]>([]);
-const loading = ref(false);
+// true до первого запроса: иначе первый кадр до загрузки показывает пустое
+// состояние вместо скелетона, и первая загрузка неотличима от пустого списка.
+const loading = ref(true);
+/** Скелетон — только на первой загрузке; дочитка обновляет молча. */
+const firstLoad = useFirstLoad(loading);
 
 // Статус выплаты (PENDING/COMPLETED/DECLINED) → метка + canon-вариант бейджа.
 const PAYMENT_STATUS: Record<string, { label: string; variant: BaseBadgeVariant }> = {
-  PENDING: { label: 'Ожидает оплаты', variant: 'warn' },
-  COMPLETED: { label: 'Оплачена', variant: 'pos' },
-  DECLINED: { label: 'Отклонена', variant: 'neg' },
+  PENDING: { label: t('marketplace.offererPaymentHistoryPage.statusPending'), variant: 'warn' },
+  COMPLETED: { label: t('marketplace.offererPaymentHistoryPage.statusPaid'), variant: 'pos' },
+  DECLINED: { label: t('marketplace.offererPaymentHistoryPage.statusDeclined'), variant: 'neg' },
 };
 
 function statusOf(v?: string | null): { label: string; variant: BaseBadgeVariant } {
@@ -121,7 +128,7 @@ async function load(): Promise<void> {
   try {
     items.value = await listMyPayments();
   } catch (e) {
-    FailAlert(e, 'Не удалось загрузить историю выплат');
+    FailAlert(e, t('marketplace.offererPaymentHistoryPage.loadHistoryFailedMessage'));
   } finally {
     loading.value = false;
   }
@@ -134,13 +141,7 @@ const reloadLive = debounce(() => {
   if (loading.value) return;
   void load();
 }, 400);
-useMarketplaceRealtime(
-  {
-    MarketplacePaymentStatusChangedEvent: () => reloadLive(),
-    MarketplaceAplReceptionStatusChangedEvent: () => reloadLive(),
-  },
-  { onResync: () => reloadLive() },
-);
+useLiveReload(marketLiveTables('payment', 'reception'), () => reloadLive());
 
 onMounted(() => {
   void load();
@@ -152,22 +153,22 @@ onMounted(() => {
 <template lang="pug">
 q-page.offerer-payments
   PageHint(storage-key='mp:offerer-payments:banner-dismissed')
-    | Выплаты по вашим актам приёмки. Совет авторизует выплату, после чего
-    | она уходит в банк — статус обновляется здесь по мере обработки.
+    | {{ $t('marketplace.offererPaymentHistoryPage.bannerHintIntro') }}
+    | {{ $t('marketplace.offererPaymentHistoryPage.bannerHintProcessing') }}
 
   //- ───────── Куда получаю выплаты ─────────
-  BaseCard(title='Выплаты получаю на')
+  BaseCard(:title='$t("marketplace.offererPaymentHistoryPage.payoutDestinationTitle")')
     template(#actions)
       BaseButton(variant='ghost', size='sm', @click='goToRequisites')
         q-icon(name='add_card', size='16px')
-        span.q-ml-sm Добавить реквизиты
+        span.q-ml-sm {{ $t('marketplace.offererPaymentHistoryPage.addDetailsAction') }}
 
     .payout-method(v-if='hasMethods')
       BaseSelect.payout-method__select(
         :model-value='selectedMethodId',
         :options='methodOptions',
-        label='Реквизиты для выплат',
-        placeholder='Выберите реквизиты',
+        :label='$t("marketplace.offererPaymentHistoryPage.detailsSelectLabel")',
+        :placeholder='$t("marketplace.offererPaymentHistoryPage.detailsSelectPlaceholder")',
         :hint='selectHint',
         :disabled='savingMethod || settingsLoading',
         @update:model-value='onPickMethod'
@@ -176,13 +177,13 @@ q-page.offerer-payments
     .banner.banner--warn(v-else)
       q-icon.banner__icon(name='warning_amber', size='18px')
       .banner__body
-        | У вас нет сохранённых реквизитов. Добавьте банковский счёт или СБП
-        | в разделе «Реквизиты» — без них публикация предложений недоступна.
+        | {{ $t('marketplace.offererPaymentHistoryPage.noDetailsHintIntro') }}
+        | {{ $t('marketplace.offererPaymentHistoryPage.noDetailsHintTail') }}
 
   //- ───────── История выплат ─────────
   //- Карточки, не таблица: на узких экранах таблица уезжала в горизонтальный
   //- скролл и дёргалась — карточки мотаются просто вниз.
-  CardListSkeleton(v-if='loading && !items.length', :count='4')
+  CardListSkeleton(v-if='firstLoad', :count='4')
   .payout-list(v-else-if='items.length')
     BaseCard(v-for='row in items', :key='row.id')
       .payout-card
@@ -193,13 +194,16 @@ q-page.offerer-payments
         .payout-card__row(v-if='row.payout_destination')
           q-icon(name='account_balance', size='14px')
           span {{ row.payout_destination }}
+        .payout-card__row(v-if='Number(row.withheld_amount) > 0')
+          q-icon(name='request_quote', size='14px')
+          span {{ $t('marketplace.offererPaymentHistoryPage.withheldLabel', { amount: formatAsset2Digits(`${row.withheld_amount} ${row.symbol}`) }) }}
         .payout-card__purpose(v-if='row.purpose') {{ row.purpose }}
-        .payout-card__decline(v-if='row.decline_reason') Причина отказа: {{ row.decline_reason }}
+        .payout-card__decline(v-if='row.decline_reason') {{ $t('marketplace.offererPaymentHistoryPage.declineReasonLabel', { reason: row.decline_reason }) }}
 
   EmptyState(
     v-else,
-    title='Выплат пока нет',
-    body='Здесь появятся выплаты по вашим актам приёмки, когда совет их авторизует.'
+    :title='$t("marketplace.offererPaymentHistoryPage.emptyTitle")',
+    :body='$t("marketplace.offererPaymentHistoryPage.emptyBody")'
   )
     template(#icon)
       q-icon(name='payments', size='48px')

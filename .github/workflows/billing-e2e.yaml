@@ -1,0 +1,213 @@
+name: Billing E2E
+
+# Сквозной прогон оплаты подписок хаб ↔ провайдер подключения (B2D-32).
+#
+# Поднимает стенд mono, как полигон Blackbox (scripts/blackbox/stack.sh), рядом
+# поднимает провайдер подключения из coopenomics/provider и гоняет тест
+# components/boot/src/tests/billing-tank.test.ts: кооператив partner1 с тарифом
+# Стандарт проходит пробный период, первую оплату одной транзакцией, объём
+# месяца документооборота в бак AXON и квант при пустом баке. Время провайдера
+# сжато: месяц живёт 30 минут, сутки — минуту.
+#
+# Что проверяет и что нет:
+#   - проверяет связку целиком: хаб биллинга контроллера, провайдер (тариф,
+#     подписки, счета, платежи), контракты billing (pay, converttoaxn) и
+#     ledger кошелька взносов, аренду ресурсов в цепи;
+#   - не проверяет поставку сервера: провайдер стартует с заведомо
+#     недействительным ключом Hostkey, заказ отказывает сразу. Для оплаты
+#     сервер не нужен — хаб платит провайдеру, а не серверу.
+#
+# Когда запускается:
+#   - пуш в ветку-полигон ci/billing-e2e — проверить ветку до слияния
+#     (`git push -f origin HEAD:ci/billing-e2e` + синхронизация зеркала Gitea);
+#   - пуш в dev и main, если затронут биллинг, провайдерский модуль, расширение
+#     powerup, контракт billing или сам прогон (фильтр — задача changes);
+#   - каждую ночь из main (расписание GitHub работает только из ветки по
+#     умолчанию) — ловит изменения провайдера, о которых mono не знает;
+#   - вручную (Actions → Billing E2E → Run workflow) с веткой провайдера.
+#
+# Код провайдера закрытый: его берёт ключ только для чтения, секрет
+# PROVIDER_DEPLOY_KEY. Ветка провайдера: ввод provider_ref при ручном запуске,
+# иначе переменная репозитория BILLING_E2E_PROVIDER_REF, иначе main.
+on:
+  push:
+    branches: [ci/billing-e2e, dev, main]
+  schedule:
+    - cron: '0 1 * * *' # 04:00 МСК
+  workflow_dispatch:
+    inputs:
+      provider_ref:
+        description: Ветка coopenomics/provider
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  # На dev и main прогон идёт только при правке связки: сорок минут раннера на
+  # каждый коммит не нужны. Полигон, расписание и ручной запуск — всегда.
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      run: ${{ steps.decide.outputs.run }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: decide
+        env:
+          EVENT: ${{ github.event_name }}
+          REF: ${{ github.ref_name }}
+          BEFORE: ${{ github.event.before }}
+          AFTER: ${{ github.sha }}
+        run: |
+          if [ "$EVENT" != "push" ] || [ "$REF" = "ci/billing-e2e" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          if ! git cat-file -e "$BEFORE" 2>/dev/null; then
+            echo "run=true" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          if git diff --name-only "$BEFORE" "$AFTER" | grep -qE '^(components/controller/src/(domain|infrastructure|application)/billing/|components/controller/src/application/provider/|components/controller/src/extensions/powerup/|components/contracts/cpp/billing/|components/boot/src/tests/billing-tank\.test\.ts|components/boot/src/init/infra\.ts|scripts/blackbox/billing-e2e\.sh|\.github/workflows/billing-e2e\.yaml)'; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  billing-e2e:
+    needs: changes
+    if: needs.changes.outputs.run == 'true'
+    # 22.04 — как у Blackbox: node_modules с нативными модулями ставятся на
+    # хосте и монтируются в контейнер node:22-slim (glibc 2.36).
+    runs-on: ubuntu-22.04
+    timeout-minutes: 120
+
+    env:
+      COMPOSE_FILE: ${{ github.workspace }}/docker-compose.yaml:${{ github.workspace }}/scripts/blackbox/docker-compose.blackbox.yml
+      BLACKBOX_OUT: ${{ github.workspace }}/.blackbox
+      CONTRACTS_MODE: test
+      PROVIDER_DIR: ${{ github.workspace }}/_provider
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Код провайдера
+        uses: actions/checkout@v4
+        with:
+          repository: coopenomics/provider
+          ref: ${{ inputs.provider_ref || vars.BILLING_E2E_PROVIDER_REF || 'main' }}
+          path: _provider
+          ssh-key: ${{ secrets.PROVIDER_DEPLOY_KEY }}
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install workspace
+        run: pnpm install --frozen-lockfile
+
+      # Контракты — те же кеш и сборка, что у Blackbox: ключ кеша общий.
+      - name: Контракты — кеш
+        id: contracts
+        uses: actions/cache/restore@v4
+        with:
+          path: components/contracts/build
+          key: blackbox-contracts-build-${{ env.CONTRACTS_MODE }}-${{ hashFiles('components/contracts/**', '!components/contracts/build/**', '!components/contracts/docs/**') }}
+          restore-keys: blackbox-contracts-build-${{ env.CONTRACTS_MODE }}-
+
+      - name: Контракты — CDT
+        if: steps.contracts.outputs.cache-hit != 'true'
+        timeout-minutes: 10
+        run: |
+          sudo apt-get -o Acquire::Retries=3 update
+          sudo apt-get -o Acquire::Retries=3 install -y --no-install-recommends \
+            curl ca-certificates cmake make build-essential \
+            libz3-4 libtinfo6 libxml2 zlib1g
+          curl -fsSL -o /tmp/cdt.deb \
+            https://git.coopenomics.world/C9S/cdt/releases/download/v4.2.0/cdt_4.2.0-1_amd64.deb
+          sudo apt-get install -y /tmp/cdt.deb
+          sudo mkdir -p /cdt
+          sudo ln -sfn /usr/opt/cdt/4.2.0 /cdt/build
+
+      - name: Контракты — компиляция
+        if: steps.contracts.outputs.cache-hit != 'true'
+        working-directory: components/contracts
+        env:
+          MAKEFLAGS: -j4
+        run: |
+          if [ -d build ]; then find build -type f -exec touch {} +; fi
+          ./build_contracts_cdt.sh "$CONTRACTS_MODE"
+
+      - name: Контракты — сохранить в кеш
+        if: steps.contracts.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: components/contracts/build
+          key: ${{ steps.contracts.outputs.cache-primary-key }}
+
+      - name: Build all workspace packages
+        run: pnpm lerna run build
+
+      - name: Стенд — окружение и секреты
+        run: bash scripts/blackbox/stack.sh env
+
+      - name: Стенд — образ контроллера
+        run: bash scripts/blackbox/stack.sh image
+
+      - name: Стенд — базы, хранилище, CoopID, миграции
+        run: bash scripts/blackbox/stack.sh infra
+
+      # EXTRA_RENT=1: partner1 — активный кооператив в цепи и пайщик-организация
+      # ВОСХОДа (с паевого кошелька пополняет биллинг-кошелёк).
+      - name: Стенд — цепь, контракты, совет, пайщики и partner1
+        timeout-minutes: 30
+        env:
+          EXTRA_RENT: '1'
+        run: bash scripts/blackbox/stack.sh boot
+
+      - name: Хаб биллинга в окружении контроллера
+        run: bash scripts/blackbox/billing-e2e.sh hub
+
+      - name: Стенд — индексер и контроллер
+        id: app
+        timeout-minutes: 20
+        run: bash scripts/blackbox/stack.sh app
+
+      - name: Провайдер подключения (без аренды сервера)
+        id: provider
+        timeout-minutes: 20
+        run: bash scripts/blackbox/billing-e2e.sh provider
+
+      - name: Тариф Стандарт для partner1
+        run: bash scripts/blackbox/billing-e2e.sh tariff
+
+      - name: Сквозной тест оплаты (бак AXON, сжатое время)
+        id: test
+        timeout-minutes: 40
+        run: bash scripts/blackbox/billing-e2e.sh test
+
+      - name: Логи стенда
+        if: always()
+        run: |
+          bash scripts/blackbox/stack.sh collect || true
+          bash scripts/blackbox/billing-e2e.sh collect || true
+
+      - name: Артефакты
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: billing-e2e-${{ github.run_id }}
+          path: .blackbox
+          include-hidden-files: true
+          retention-days: 14
+
+      - name: Сводка
+        if: always()
+        run: bash scripts/blackbox/billing-e2e.sh summary

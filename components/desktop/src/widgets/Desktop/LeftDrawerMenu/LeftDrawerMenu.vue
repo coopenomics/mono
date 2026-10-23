@@ -5,14 +5,11 @@
     :active-key='activeKey',
     :coop-name='coopShortName',
     :coop-meta='coopMeta',
-    :show-cmdk='true',
-    cmdk-label='Найти',
-    cmdk-hint='Поиск (⌘K)',
-    @select='onSelect',
-    @cmdk='onCmdk'
+    @select='onSelect'
   )
-    //- Переопределяем стандартный brand-row на WorkspaceSwitcher:
-    //- кооп + текущий стол + меню переключения столов.
+    //- Переопределяем стандартный brand-row на WorkspaceSwitcher: кооп, текущий
+    //- стол и вход в единое окно столов и страниц. Отдельной кнопки поиска в
+    //- меню нет — её роль выполняет нижняя строка переключателя.
     template(#brand)
       WorkspaceSwitcher.left-drawer-menu__ws
 
@@ -26,15 +23,26 @@
         :balance='walletBalance',
         :symbol='walletSymbol',
         :locked-balance='walletLocked',
-        balance-label='Главный паевой кошелёк',
-        :balance-route='{ name: "wallet", params: { coopname: info.coopname } }',
-        primary-action-label='Пополнить',
+        :balance-label='$t("desktop.leftDrawerMenu.walletBalanceLabel")',
+        :balance-route='{ name: "wallet", params: { coopname: systemStore.info.coopname } }',
+        :primary-action-label='$t("desktop.leftDrawerMenu.depositAction")',
         show-signout,
-        signout-label='Выйти из кабинета',
+        :signout-label='$t("desktop.leftDrawerMenu.signOutLabel")',
         @primary-action='onDeposit',
         @signout='onLogout'
       )
-      .left-drawer-menu__version(:title='`Версия ${updateWatch.currentVersion}`')
+      //- Карточка пайщика появляется вместе с кошельками программ, а их нет,
+      //- пока председатель не подписал положения (тестнет, 20.10.2026). Выход из
+      //- кабинета нужен всегда: без него оставалось только удалять сессию в
+      //- браузере. Та же кнопка, что в карточке.
+      button.rail__signout.left-drawer-menu__signout(
+        v-else,
+        type='button',
+        @click='onLogout'
+      )
+        q-icon(name='logout')
+        | {{ $t('desktop.leftDrawerMenu.signOutLabel') }}
+      .left-drawer-menu__version(:title='$t(`desktop.leftDrawerMenu.versionTitle`, { version: updateWatch.currentVersion })')
         NodeSyncIndicator
         span v{{ updateWatch.currentVersion }}
 
@@ -48,7 +56,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted } from 'vue';
+import { computed, ref, onBeforeUnmount, onMounted, watch } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { marketLiveTables } from 'src/shared/lib/marketplace';
 import { useRouter } from 'vue-router';
 import type { RouteRecordRaw } from 'vue-router';
 import { Zeus } from '@coopenomics/sdk';
@@ -57,30 +67,34 @@ import { useSessionStore } from 'src/entities/Session';
 import { useSystemStore } from 'src/entities/System/model';
 import { NodeSyncIndicator } from 'src/entities/System/ui';
 import { useWalletStore } from 'src/entities/Wallet';
-import { useCommandPaletteStore } from 'src/entities/CommandPalette/model';
 import { useActionsStore } from 'src/shared/lib/stores/actions.store';
 import { useLogoutUser } from 'src/features/User/Logout';
 import { useDepositDialog, DepositButton } from 'src/features/Wallet/DepositToWallet';
 import { WithdrawButton } from 'src/features/Wallet/WithdrawFromWallet';
 import { FailAlert } from 'src/shared/api';
-import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
+import { splitAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { AppDrawer } from 'src/shared/ui/layout/AppDrawer';
 import type { RailItem } from 'src/shared/ui/layout/AppDrawer';
 import { useMenuSubItemsReader } from 'src/shared/hooks/useMenuSubItems';
 import { RailUserCard } from 'src/shared/ui/domain/RailUserCard';
 import { WorkspaceSwitcher } from 'src/widgets/Desktop/WorkspaceSwitcher';
 import { useUpdateWatch } from 'src/entities/AppVersion/model';
+import { useMarketplaceCartStore } from 'src/entities/MarketplaceCart';
+import { hasMenuBadge, menuBadgeOf, refreshMenuBadges } from 'src/shared/lib/menuBadges';
+import { t } from 'src/shared/i18n';
 
 const router = useRouter();
 const updateWatch = useUpdateWatch();
 const desktop = useDesktopStore();
 const session = useSessionStore();
 const systemStore = useSystemStore();
-const { info } = systemStore;
+// info читается из хранилища на месте, а не разовым деструктурированием: после
+// loadSystemInfo в хранилище новый объект, и меню видело старый — пункт
+// «Онбординг» не пропадал после завершения до перезагрузки (тестнет, 20.10.2026).
 const walletStore = useWalletStore();
 const actionsStore = useActionsStore();
-const palette = useCommandPaletteStore();
 const { subItemsFor } = useMenuSubItemsReader();
+const cartStore = useMarketplaceCartStore();
 
 // --- Адаптер: activeSecondLevelRoutes → RailItem[] -------------------------
 
@@ -99,9 +113,9 @@ const filterContext = computed(() => {
     isCoop,
     userRole: userRole.value,
     userAccount: acc,
-    coopname: info.coopname,
-    isOnboardingHidden:
-      localStorage.getItem('chairman-onboarding-hidden') === 'true',
+    coopname: systemStore.info.coopname,
+    // Онбординг завершает председатель — отметка в настройках кооператива.
+    isOnboardingHidden: !!systemStore.info.settings?.onboarding_completed_at,
   };
 });
 
@@ -126,6 +140,13 @@ interface MenuMeta {
   conditions?: string;
   hidden?: boolean;
   action?: string;
+  /**
+   * Раздел, которому принадлежит скрытая страница: имя маршрута пункта меню.
+   * Страница заказа или предложения живёт отдельным маршрутом рядом с реестром,
+   * а не внутри него, поэтому по `matched` меню её разделу не находит и гасит
+   * подсветку целиком — оператор видел пустое меню и не понимал, где он.
+   */
+  menuKey?: string;
 }
 
 const filteredRoutes = computed<RouteRecordRaw[]>(() => {
@@ -136,23 +157,80 @@ const filteredRoutes = computed<RouteRecordRaw[]>(() => {
     const meta = (r.meta ?? {}) as MenuMeta;
     if (meta.hidden) return false;
     if (!evalCondition(meta.conditions, ctx)) return false;
-    // Canon-grants: для grant-стола проверяется meta.requires против выданных
-    // бэкендом прав; для legacy-стола fallback на meta.roles по core-роли.
+    // Требование страницы meta.requires сверяется с выданными бэкендом правами.
     return desktop.isPageVisible(r.meta, wsName);
   });
 });
+
+/**
+ * Счётчики на пунктах меню. Корзина заказчика раньше висела отдельной кнопкой
+ * в шапке каталога и занимала место рядом с кошельком; число позиций живёт
+ * теперь прямо на пункте меню, куда заказчик и идёт за корзиной.
+ */
+const CART_ROUTE = 'marketplace-cart';
+
+function badgeFor(routeName: string): string | number | undefined {
+  if (routeName === CART_ROUTE) return cartStore.positionsCount || undefined;
+  // Остальные пункты — по числам, которые зарегистрировали расширения.
+  return menuBadgeOf(routeName);
+}
 
 const railItems = computed<RailItem[]>(() =>
   filteredRoutes.value.map((r) => {
     const meta = (r.meta ?? {}) as MenuMeta;
     const children = subItemsFor(String(r.name));
+    const badge = badgeFor(String(r.name));
     return {
       key: String(r.name),
       label: meta.title ?? String(r.name),
       icon: meta.icon,
+      ...(badge !== undefined ? { badge } : {}),
       ...(children.length ? { children } : {}),
     };
   }),
+);
+
+/**
+ * Корзину подтягиваем, как только в меню появился её пункт: раньше это делала
+ * кнопка в шапке каталога, и до захода в каталог число было неизвестно.
+ * На столах без корзины запрос не уходит.
+ */
+const cartInMenu = computed(() =>
+  filteredRoutes.value.some((r) => String(r.name) === CART_ROUTE),
+);
+
+watch(
+  cartInMenu,
+  (present) => {
+    if (present) void cartStore.load().catch(() => undefined);
+  },
+  { immediate: true },
+);
+
+/**
+ * Числа дел на пунктах: спрашиваем, когда пункты видны, при каждом переходе
+ * (дело на странице могли только что закрыть) и раз в минуту.
+ */
+const MENU_BADGE_POLL_MS = 60_000;
+const badgeRoutes = computed(() => filteredRoutes.value.map((r) => String(r.name)).filter(hasMenuBadge));
+function refreshBadges(): void {
+  if (badgeRoutes.value.length) void refreshMenuBadges(badgeRoutes.value);
+}
+watch(() => [badgeRoutes.value.join(','), router.currentRoute.value.fullPath], refreshBadges);
+let badgeTimer: ReturnType<typeof setInterval> | null = null;
+onMounted(() => {
+  refreshBadges();
+  // timing: schedule — счётчики пунктов меню сервер событиями не шлёт, они перечитываются раз в минуту
+  badgeTimer = setInterval(refreshBadges, MENU_BADGE_POLL_MS);
+});
+onBeforeUnmount(() => {
+  if (badgeTimer) clearInterval(badgeTimer);
+});
+
+// Счётчик корзины живёт по ленте: добавление с другой вкладки или устройства,
+// оформление заказа и смена остатков видны в меню сразу.
+useLiveReload(marketLiveTables('cart'), () =>
+  cartInMenu.value ? cartStore.load().catch(() => undefined) : undefined,
 );
 
 // --- Активный пункт через router -------------------------------------------
@@ -165,6 +243,14 @@ const activeKey = computed<string | undefined>(() => {
   for (const r of filteredRoutes.value) {
     if (r.name === currentName) return String(r.name);
     if (current.matched.some((m) => m.name === r.name)) return String(r.name);
+  }
+
+  // Скрытая страница раздела (карточка заказа, предложения, возврата) — она
+  // сиблинг реестра, а не его потомок, поэтому подсвечиваем раздел по явному
+  // указанию `menuKey`.
+  const menuKey = (current.meta as MenuMeta | undefined)?.menuKey;
+  if (menuKey && filteredRoutes.value.some((r) => String(r.name) === menuKey)) {
+    return menuKey;
   }
   return undefined;
 });
@@ -187,24 +273,19 @@ function onSelect(item: RailItem): void {
   }
   void router.push({
     name: route.name,
-    params: { coopname: info.coopname },
+    params: { coopname: systemStore.info.coopname },
   });
   desktop.closeLeftDrawerOnMobile();
-}
-
-function onCmdk(): void {
-  // Открываем canon-палитру команд через её store; диалог mount'ится в layout.
-  palette.open();
 }
 
 // --- Шапка рейла (бренд) ---------------------------------------------------
 
 const coopShortName = computed<string>(
-  () => info.vars?.short_abbr || info.coopname || 'Кооператив',
+  () => systemStore.info.vars?.short_abbr || systemStore.info.coopname || t('desktop.leftDrawerMenu.defaultCoopName'),
 );
 const coopMeta = computed<string | undefined>(() =>
-  info.vars?.name && info.vars.name !== coopShortName.value
-    ? info.vars.name
+  systemStore.info.vars?.name && systemStore.info.vars.name !== coopShortName.value
+    ? systemStore.info.vars.name
     : undefined,
 );
 
@@ -218,30 +299,24 @@ const shareWallet = computed(() =>
 );
 const walletReady = computed<boolean>(() => walletStore.program_wallets.length > 0);
 
-function splitAsset(asset?: string | null): { amount: string; symbol: string } {
-  if (!asset) return { amount: '0,00', symbol: '' };
-  const formatted = formatAsset2Digits(asset);
-  const parts = formatted.split(' ');
-  return { amount: parts[0] || '0,00', symbol: parts[1] || '' };
-}
 
-const walletAvail = computed(() => splitAsset(shareWallet.value?.available));
+const walletAvail = computed(() => splitAsset2Digits(shareWallet.value?.available));
 const walletBalance = computed<string>(() => walletAvail.value.amount);
 const walletSymbol = computed<string>(
-  () => walletAvail.value.symbol || info.symbols?.root_govern_symbol || 'RUB',
+  () => walletAvail.value.symbol || systemStore.info.symbols?.root_govern_symbol || 'RUB',
 );
 const walletLocked = computed<string | undefined>(() => {
-  const split = splitAsset(shareWallet.value?.blocked);
+  const split = splitAsset2Digits(shareWallet.value?.blocked);
   if (split.amount === '0,00' || split.amount === '0.00') return undefined;
   return split.amount;
 });
 
 const userName = computed<string>(() => {
   const acc = session.currentUserAccount?.private_account;
-  if (!acc) return 'Пайщик';
+  if (!acc) return t('desktop.leftDrawerMenu.defaultUserName');
   if (acc.type === Zeus.AccountType.organization) {
     const od = acc.organization_data as { short_name?: string; name?: string } | undefined;
-    return od?.short_name || od?.name || 'Организация';
+    return od?.short_name || od?.name || t('desktop.leftDrawerMenu.defaultOrgName');
   }
   const id = acc.individual_data as
     | { first_name?: string; last_name?: string; middle_name?: string }
@@ -249,10 +324,10 @@ const userName = computed<string>(() => {
   if (id?.first_name || id?.last_name) {
     return [id?.last_name, id?.first_name, id?.middle_name].filter(Boolean).join(' ').trim();
   }
-  return session.username || 'Пайщик';
+  return session.username || t('desktop.leftDrawerMenu.defaultUserName');
 });
 const userRoleLabel = computed<string>(() =>
-  session.isChairman ? 'Председатель' : session.isMember ? 'Член совета' : 'Пайщик',
+  session.isChairman ? t('desktop.leftDrawerMenu.roleChairman') : session.isMember ? t('desktop.leftDrawerMenu.roleMember') : t('desktop.leftDrawerMenu.roleShareholder'),
 );
 
 // --- Свёртка кошелька: замок или стрелка ----------------------------------
@@ -310,7 +385,7 @@ async function onLogout(): Promise<void> {
     void router.push({ name: 'signin' });
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
-    FailAlert('Ошибка при выходе: ' + msg);
+    FailAlert(t('desktop.leftDrawerMenu.signOutError') + msg);
   }
 }
 </script>
@@ -340,6 +415,17 @@ async function onLogout(): Promise<void> {
    шла сразу под ней без лишнего вертикального зазора. */
 :deep(.rail__signout) {
   padding-bottom: var(--p-1, 4px);
+}
+/* Выход без карточки пайщика: canon `.rail__signout` рассчитан на <div>, у
+   <button> сбрасываем браузерные дефолты — как в RailUserCard. */
+.left-drawer-menu__signout {
+  font-family: inherit;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border-right: 0;
+  border-bottom: 0;
+  border-left: 0;
 }
 /* Версия приложения — приглушённая подпись под карточкой пользователя.
    Рядом с ней кружок состояния узла: место видно с любого стола. */

@@ -1,0 +1,186 @@
+feature: registration.organization-lookup
+title: Анкеты организации и ИП при вступлении заполняются по ИНН из реестра страны
+
+# Организация вводит ИНН первым полем анкеты. Если для страны анкеты встал
+# коннектор реестра организаций (для России — расширение DaData с ключом
+# кооператива), сервер получает сведения и заполняет ими поля анкеты:
+# наименования, тип, ОГРН, КПП, юридический адрес, город, руководителя и
+# должность. Эти поля закрыты для правки, остальное пайщик заполняет сам.
+# Без коннектора, при сбое сервиса или если организация не найдена, анкета
+# заполняется вручную. Задача C28-92.
+#
+# Анкета ИП устроена так же: ФИО, город и ОГРНИП из реестра закрыты для
+# правки. Адрес реестр ИП публикует только городом, поэтому его пайщик
+# вводит сам. Анкета организации ищет только юрлица, анкета ИП — только ИП.
+
+sources:
+  backend:
+    - components/innercoop/src/hooks/organization-lookup.hook.ts
+    - components/controller/src/application/organization-lookup/**
+    - components/controller/src/extensions/dadata/**
+  ui:
+    - components/desktop/src/shared/ui/UserDataForm/OrganizationDataForm/**
+    - components/desktop/src/shared/ui/UserDataForm/EntrepreneurDataForm/**
+    - components/desktop/src/shared/ui/UserDataForm/useRegistryLookup.ts
+
+cases:
+  - id: reg.orglookup.happy.01
+    level: backend
+    kind: happy
+    scenario: коннектор России стоит, пайщик ищет организацию по ИНН
+    expect: сведения коннектора приходят анкете, страна с коннектором видна в списке
+    test: components/controller/tests/unit/registration/organization-lookup.registry.test.ts
+    api: components/api-tests/src/registration/organization-lookup.test.ts
+    status: written
+
+  - id: reg.orglookup.happy.02
+    level: backend
+    kind: happy
+    scenario: DaData вернула карточку потребительского кооператива
+    expect: наименования, тип «потребительский кооператив», ОГРН, КПП, адрес с индексом, город, ФИО руководителя по частям и должность с заглавной буквы
+    test: components/controller/tests/unit/extension/dadata-party-to-organization.test.ts
+    api: components/api-tests/src/registration/organization-lookup.test.ts
+    status: written
+
+  - id: reg.orglookup.side.01
+    level: backend
+    kind: side
+    scenario: в карточке нет руководителя или адреса
+    expect: эти поля пусты, анкета оставляет их пайщику
+    test: components/controller/tests/unit/extension/dadata-party-to-organization.test.ts
+    api: components/api-tests/src/registration/organization-lookup.test.ts
+    status: written
+
+  - id: reg.orglookup.side.02
+    level: backend
+    kind: side
+    scenario: правовая форма вне трёх типов анкеты (АО, НКО и другие)
+    expect: тип пуст, пайщик выбирает его сам
+    test: components/controller/tests/unit/extension/dadata-party-to-organization.test.ts
+    api: components/api-tests/src/registration/organization-lookup.test.ts
+    status: written
+
+  - id: reg.orglookup.side.03
+    level: backend
+    kind: side
+    scenario: для страны анкеты коннектора нет
+    expect: ответ пустой, анкета заполняется вручную
+    test: components/controller/tests/unit/registration/organization-lookup.registry.test.ts
+    api: components/api-tests/src/registration/organization-lookup.test.ts
+    status: written
+
+  - id: reg.orglookup.side.04
+    level: backend
+    kind: side
+    scenario: расширение-коннектор остановлено или удалено
+    expect: его страна пропадает из списка, остальные страны остаются
+    test: components/controller/tests/unit/registration/organization-lookup.registry.test.ts
+    api: components/api-tests/src/registration/organization-lookup.test.ts
+    status: written
+
+  - id: reg.orglookup.side.05
+    level: backend
+    kind: side
+    scenario: поставили второй коннектор той же страны
+    expect: анкета спрашивает новый коннектор
+    test: components/controller/tests/unit/registration/organization-lookup.registry.test.ts
+    external: unreachable
+    external_reason: "на стенде один коннектор страны (DaData); второго коннектора той же страны в каталоге нет"
+    status: written
+
+  - id: reg.orglookup.break.01
+    level: backend
+    kind: break
+    scenario: DaData отвечает ошибкой (неверный ключ, исчерпан лимит)
+    expect: ответ пустой, анкета заполняется вручную, причина в журнале узла
+    test: components/controller/tests/unit/registration/organization-lookup.registry.test.ts
+    api: components/api-tests/src/registration/organization-lookup.test.ts
+    status: written
+
+  - id: reg.orglookup.break.02
+    level: backend
+    kind: break
+    scenario: DaData не отвечает
+    expect: через пять секунд ответ пустой, анкета не висит
+    test: components/controller/tests/unit/registration/organization-lookup.registry.test.ts
+    api: components/api-tests/src/registration/organization-lookup.test.ts
+    status: written
+
+  - id: reg.orglookup.side.06
+    level: backend
+    kind: side
+    scenario: аноним шлёт поиск по ИНН чаще десяти раз в минуту
+    expect: отказ по частоте, ключ кооператива не расходуется
+    test:
+    status: missing
+
+  - id: reg.orglookup.happy.03
+    level: ui
+    kind: happy
+    scenario: организация вводит ИНН на стенде с ключом DaData
+    expect: найденные поля заполнены и закрыты для правки, телефон, основание, фактический адрес и банк открыты
+    test:
+    status: missing
+
+  - id: reg.orglookup.side.07
+    level: ui
+    kind: side
+    scenario: организация по ИНН не найдена
+    expect: анкета открывает все поля для ручного ввода
+    test:
+    status: missing
+
+  - id: reg.orglookup.happy.04
+    level: backend
+    kind: happy
+    scenario: DaData вернула карточку ИП
+    expect: фамилия, имя, отчество, город, ИНН и ОГРНИП; адреса в ответе нет
+    test: components/controller/tests/unit/extension/dadata-party-to-organization.test.ts
+    api: components/api-tests/src/registration/organization-lookup.test.ts
+    status: written
+
+  - id: reg.orglookup.side.08
+    level: backend
+    kind: side
+    scenario: у ИП в реестре нет отчества или адрес назван только регионом
+    expect: отчество и город пусты, анкета оставляет их пайщику
+    test: components/controller/tests/unit/extension/dadata-party-to-organization.test.ts
+    api: components/api-tests/src/registration/organization-lookup.test.ts
+    status: written
+
+  - id: reg.orglookup.side.09
+    level: backend
+    kind: side
+    scenario: коннектор страны не умеет искать ИП
+    expect: ответ пустой, анкета ИП заполняется вручную
+    test: components/controller/tests/unit/registration/organization-lookup.registry.test.ts
+    external: unreachable
+    external_reason: "коннектор стенда (DaData) ищет и организации, и ИП; коннектора страны без поиска ИП в каталоге нет"
+    status: written
+
+  - id: reg.orglookup.side.10
+    level: backend
+    kind: side
+    scenario: в анкету организации ввели ИНН ИП, в анкету ИП — ИНН организации
+    expect: сведения не находятся, анкета заполняется вручную
+    test:
+    status: missing
+
+  - id: reg.orglookup.happy.05
+    level: ui
+    kind: happy
+    scenario: ИП вводит ИНН на стенде с ключом DaData
+    expect: ФИО, город и ОГРНИП заполнены и закрыты для правки, адрес, дата рождения, телефон и банк открыты, согласие появляется после ввода ИНН
+    test:
+    status: missing
+
+  # 20.10.2026: на тестнете «Включить» с ключом падало «api_url: Expected string,
+  # received null» — форма шлёт незаполненное скрытое поле как null.
+  - id: reg.orglookup.side.11
+    level: backend
+    kind: side
+    scenario: председатель включает DaData из формы стола; скрытое поле адреса сервиса приходит null
+    expect: настройки проходят проверку схемы и сохраняются; пустой адрес — запросы идут в настоящий DaData
+    test: components/controller/tests/unit/extension/dadata-config-schema.test.ts
+    api: components/api-tests/src/registration/organization-lookup.test.ts
+    status: written   # прогон — CI на полигоне ci/tests

@@ -177,6 +177,8 @@ export interface IExit {
   approved_statement: IDocument2
   exit_hash: IChecksum256
   quantity: IAsset
+  /** Заявление об аннулировании соглашений ЦПП; пусто у заявлений, поданных до его появления. */
+  annulment_statement?: IDocument2
 }
 
 export interface IExitcoop {
@@ -184,6 +186,15 @@ export interface IExitcoop {
   username: IName
   exit_hash: IChecksum256
   statement: IDocument2
+}
+
+/** Заявление об аннулировании соглашений ЦПП к поданному заявлению на выход. */
+export interface IExitagree {
+  coopname: IName
+  username: IName
+  exit_hash: IChecksum256
+  /** Подписанное заявление об аннулировании соглашений (registry 190). */
+  annulment: IDocument2
 }
 
 export interface IInit {
@@ -248,6 +259,25 @@ export interface IStcoopstatus {
  * это тот, кто развернул установку, а не учредитель: кооперативы друг друга не
  * учреждают. Пустой оператор означает собственную установку.
  */
+/**
+ * Выпуск разрешения `platform` — ключа узла кооператива. `active` получает
+ * второй вход `username@platform`, восстановление доступа его сохраняет.
+ */
+export interface ISetplatform {
+  coopname: IName
+  username: IName
+  platform_key: IPublicKey
+  active_key: IPublicKey
+}
+
+/** Выпущенное разрешение `platform` аккаунта. */
+export interface IPlatform {
+  username: IName
+  coopname: IName
+  public_key: IPublicKey
+  issued_at: ITimePointSec
+}
+
 export interface ISetoperator {
   coopname: IName
   operator_name: IName

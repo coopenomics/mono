@@ -1,0 +1,256 @@
+import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
+import {
+  desktopGrantsOf,
+  memberRolesOf,
+  platformSettings,
+  type AppRights,
+  type AssignableRole,
+  type MemberRole,
+  type RightsCaller,
+  type RightsTable,
+} from '@coopenomics/extension-kit';
+import {
+  DESKTOP_GRANTS_REGISTRY_PORT,
+  MonoAccountStatus,
+  ROLE_ASSIGNMENTS_PORT,
+  type IDesktopGrantsRegistryPort,
+  type IRoleAssignmentsPort,
+} from '@coopenomics/innercoop';
+import { t } from '../../i18n';
+
+/** Имя рабочего стола расширения: под ним выдаются права страниц. */
+export const CAPITAL_DESKTOP_NAME = 'capital';
+
+/**
+ * Роль «Трансляция паевого взноса»: пайщик сам переводит свой паевой взнос с
+ * кошелька Благороста в Цифровой Кошелёк, откуда оформляет возврат. Временный
+ * приоритетный путь для ограниченного круга пайщиков — роль назначает
+ * председатель (на странице управления доступом ядра или на самой странице
+ * трансляции), у председателя страница открыта сразу.
+ */
+export const CAPITAL_SHARE_TRANSFER_ROLE = 'blagorost-transfer';
+
+/**
+ * Права председателя на трансляцию: свой взнос, история всех пайщиков. Роль
+ * служебная — её не назначают, председатель получает её сам там, где
+ * трансляция открыта.
+ */
+export const CAPITAL_SHARE_TRANSFER_CHAIRMAN_ROLE = 'blagorost-transfer-chairman';
+
+/**
+ * ВРЕМЕННО: трансляция открыта только в ПК «Восход» (решение владельца
+ * 22.10.2026). В остальных кооперативах страницы нет ни у кого, роль не
+ * объявляется председателю. Когда трансляцию откроют всем — убрать этот
+ * список вместе с проверкой `shareTransferOpen()`.
+ */
+export const SHARE_TRANSFER_COOPS: readonly string[] = ['voskhod'];
+
+/** Открыта ли трансляция паевого взноса в этом кооперативе. */
+export function shareTransferOpen(): boolean {
+  return SHARE_TRANSFER_COOPS.includes(platformSettings().coopname);
+}
+
+/**
+ * Исполнители Благороста на уровне кооператива:
+ *  - `account`     — любой вошедший: действует только на своё имя;
+ *  - `participant` — принятый пайщик;
+ *  - `council`     — член совета, `chairman` — председатель.
+ * Роль в проекте (автор, мастер, участник) сюда не входит: её ведёт таблица
+ * ролей проекта в сервисах Благороста, и эта таблица её не заменяет.
+ */
+export type CapitalRole =
+  | 'account'
+  | MemberRole
+  | typeof CAPITAL_SHARE_TRANSFER_ROLE
+  | typeof CAPITAL_SHARE_TRANSFER_CHAIRMAN_ROLE;
+
+/**
+ * Таблица прав Благороста (C28-87): роль → право `Ресурс:действие`.
+ *
+ * Перенос один в один с прежних списков ролей операций. Право с охватом
+ * «своё» (`:own`) — прежний проход «на своё имя»: имя в запросе сверяется с
+ * вошедшим. Право без охвата — прежний проход по роли. Какой проект, сегмент
+ * или результат доступен пайщику, решает таблица ролей проекта.
+ */
+export const capitalRightsTable: RightsTable<CapitalRole, never> = {
+  account: [
+    {
+      when: [],
+      rights: {
+        CapitalExpense: ['read:own', 'generate:own'],
+        CapitalProgram: ['refresh:own', 'generate:own'],
+        Clearance: ['request:own', 'generate:own'],
+        Commit: ['create:own', 'read:own'],
+        Contributor: ['register:own', 'update:own', 'read:own', 'generate:own'],
+        Debt: ['create:own', 'read:own', 'generate:own'],
+        Favorite: ['manage:own'],
+        Invest: ['generate:own', 'create:own', 'read:own'],
+        Property: ['create:own', 'generate:own'],
+        Result: ['create:own', 'read:own', 'generate:own'],
+        Segment: ['convert:own', 'read:own', 'refresh:own'],
+        Time: ['read:own', 'track:own'],
+        Voting: ['calculate:own'],
+        // Страницы стола открыты каждому вошедшему; данные на них отбирают операции.
+        CapitalDesk: ['use'],
+      },
+    },
+  ],
+  participant: [
+    {
+      when: [],
+      rights: {
+        CapitalConfig: ['read'],
+        CapitalExpense: ['read'],
+        CapitalOnboarding: ['read'],
+        Commit: ['approve', 'decline', 'read'],
+        Contributor: ['read'],
+        Cycle: ['read'],
+        Debt: ['read'],
+        Favorite: ['manage'],
+        Invest: ['read'],
+        Issue: ['update', 'read', 'create', 'delete'],
+        Measure: ['read'],
+        Metric: ['create', 'update', 'delete', 'read'],
+        ProcessInstance: ['run', 'read'],
+        ProcessTemplate: ['read'],
+        Project: ['create-local', 'update', 'authors', 'plan', 'delete', 'read'],
+        ProjectLog: ['read'],
+        Result: ['create', 'read', 'sign'],
+        Revision: ['read', 'update'],
+        Segment: ['read', 'refresh'],
+        Story: ['create', 'update', 'read', 'delete'],
+        Time: ['read', 'track'],
+        Voting: ['vote', 'calculate', 'read'],
+      },
+    },
+  ],
+  council: [
+    {
+      when: [],
+      rights: {
+        CapitalConfig: ['read'],
+        CapitalExpense: ['read', 'generate'],
+        CapitalOnboarding: ['read'],
+        CapitalProgram: ['generate'],
+        Clearance: ['generate'],
+        Commit: ['approve', 'decline', 'read'],
+        Contributor: ['read', 'generate'],
+        Cycle: ['read'],
+        Debt: ['read', 'generate'],
+        Favorite: ['manage'],
+        Invest: ['generate', 'read'],
+        Issue: ['update', 'read', 'create', 'delete'],
+        Measure: ['read'],
+        Metric: ['create', 'update', 'delete', 'read'],
+        ProcessInstance: ['run', 'read'],
+        ProcessTemplate: ['manage', 'read'],
+        ProgramExpense: ['create', 'read'],
+        Project: ['create', 'create-local', 'update', 'master', 'authors', 'plan', 'status', 'delete', 'read'],
+        ProjectLog: ['read'],
+        Property: ['generate'],
+        Result: ['create', 'read', 'generate', 'sign'],
+        Revision: ['read', 'update'],
+        Segment: ['convert', 'read', 'refresh'],
+        Story: ['create', 'update', 'read', 'delete'],
+        Time: ['read', 'track'],
+        Voting: ['vote', 'calculate', 'read'],
+        // Страницы совета: пайщики программы, распределения, расходы программы.
+        CapitalDesk: ['council'],
+      },
+    },
+  ],
+  chairman: [
+    {
+      when: [],
+      rights: {
+        Allocation: ['manage'],
+        CapitalConfig: ['update'],
+        CapitalExpense: ['create'],
+        CapitalOnboarding: ['update'],
+        CapitalProgram: ['fund', 'refresh'],
+        Clearance: ['request'],
+        Commit: ['create'],
+        Contributor: ['register', 'import', 'update'],
+        Cycle: ['create'],
+        Measure: ['update'],
+        ProgramExpense: ['pay'],
+        Result: ['sign-chairman'],
+        Voting: ['conduct'],
+        CapitalDesk: ['manage'],
+      },
+    },
+  ],
+  // Председатель транслирует свой взнос, видит историю трансляций всех пайщиков и список допущенных.
+  [CAPITAL_SHARE_TRANSFER_CHAIRMAN_ROLE]: [
+    {
+      when: [],
+      rights: {
+        CapitalDesk: ['transfer'],
+        ShareTransfer: ['generate:own', 'create:own', 'read'],
+      },
+    },
+  ],
+  [CAPITAL_SHARE_TRANSFER_ROLE]: [
+    {
+      when: [],
+      rights: {
+        CapitalDesk: ['transfer'],
+        ShareTransfer: ['generate:own', 'create:own', 'read:own'],
+      },
+    },
+  ],
+};
+
+/** Роли Благороста, которые председатель назначает пайщикам. */
+export const capitalAssignableRoles: readonly AssignableRole<CapitalRole>[] = [
+  {
+    key: CAPITAL_SHARE_TRANSFER_ROLE,
+    title: t('capital.roles.shareTransfer.title'),
+    description: t('capital.roles.shareTransfer.description'),
+    permissions: [
+      { title: t('capital.roles.shareTransfer.permissions.page'), access: 'read', rights: ['CapitalDesk:transfer'] },
+      { title: t('capital.roles.shareTransfer.permissions.history'), access: 'read', rights: ['ShareTransfer:read:own'] },
+      {
+        title: t('capital.roles.shareTransfer.permissions.transfer'),
+        access: 'write',
+        rights: ['ShareTransfer:generate:own', 'ShareTransfer:create:own'],
+      },
+    ],
+  },
+];
+
+/**
+ * Описание прав Благороста: по нему работают общий гард операций расширения
+ * (`RightsGuard`) и права страниц рабочего стола.
+ */
+@Injectable()
+export class CapitalRights implements AppRights<CapitalRole, never>, OnModuleInit {
+  readonly extensionName = CAPITAL_DESKTOP_NAME;
+  readonly table = capitalRightsTable;
+  readonly assignableRoles = capitalAssignableRoles;
+
+  constructor(
+    @Inject(DESKTOP_GRANTS_REGISTRY_PORT) private readonly grantsRegistry: IDesktopGrantsRegistryPort,
+    @Inject(ROLE_ASSIGNMENTS_PORT) private readonly roleAssignments: IRoleAssignmentsPort
+  ) {}
+
+  onModuleInit(): void {
+    // Роль трансляции видна председателю на странице доступа только там, где трансляция открыта.
+    if (shareTransferOpen()) this.roleAssignments.declare(CAPITAL_DESKTOP_NAME, this.assignableRoles);
+    this.grantsRegistry.register(desktopGrantsOf(this));
+  }
+
+  /**
+   * Роли кооператива и назначенные председателем. Назначение действует у
+   * принятого пайщика: выход из кооператива закрывает страницу без снятия роли.
+   * Роли трансляции — только в кооперативах из `SHARE_TRANSFER_COOPS`.
+   */
+  async roles(caller: RightsCaller): Promise<CapitalRole[]> {
+    const base: CapitalRole[] = ['account', ...memberRolesOf(caller)];
+    if (!shareTransferOpen()) return base;
+    if (base.includes('chairman')) base.push(CAPITAL_SHARE_TRANSFER_CHAIRMAN_ROLE);
+    if (caller.status !== MonoAccountStatus.Active) return base;
+    const assigned = await this.roleAssignments.rolesOf(CAPITAL_DESKTOP_NAME, caller.username);
+    return [...base, ...(assigned as CapitalRole[])];
+  }
+}

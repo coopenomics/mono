@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { TableStore } from '@coopenomics/extension-kit';
+import { MARKETPLACE_MODERATION_LOG_STORE } from '../../infrastructure/database/marketplace-stores';
+import { Inject, Injectable } from '@nestjs/common';
 import type { MarketplaceModerationLogDomainRepository } from '../../domain/repositories/marketplace-moderation-log.repository';
 import type {
   MarketplaceModerationLogDomainEntity,
@@ -14,8 +14,8 @@ export class MarketplaceModerationLogRepositoryAdapter
   implements MarketplaceModerationLogDomainRepository
 {
   constructor(
-    @InjectRepository(MarketplaceModerationLogEntity, 'marketplace')
-    private readonly repo: Repository<MarketplaceModerationLogEntity>,
+    @Inject(MARKETPLACE_MODERATION_LOG_STORE)
+private readonly repo: TableStore<MarketplaceModerationLogEntity>,
     private readonly mapper: MarketplaceModerationLogMapper
   ) {}
 
@@ -36,10 +36,7 @@ export class MarketplaceModerationLogRepositoryAdapter
   }
 
   async listByOffer(offer_id: string): Promise<MarketplaceModerationLogDomainEntity[]> {
-    const rows = await this.repo.find({
-      where: { offer_id },
-      order: { created_at: 'ASC' },
-    });
+    const rows = await this.repo.find({ offer_id }, { order: { created_at: 'ASC' } });
     return rows.map((r) => this.mapper.toDomain(r));
   }
 }

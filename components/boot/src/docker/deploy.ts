@@ -1,13 +1,12 @@
 /* eslint-disable node/prefer-global/process */
 import Blockchain from '../blockchain'
 import contracts from '../configs/contracts'
-import type { INetwork } from '../configs/networks'
 import { networks } from '../configs/networks'
-import type { Contract } from '../types'
+import type { Contract, Network } from '../types'
 import { execCommand } from './exec'
 
 export async function deployCommand(name: string, pre_target: string, pre_network: string): Promise<void> {
-  const network: INetwork | undefined = networks.find(el => el.name === pre_network)
+  const network: Network | undefined = networks.find(el => el.name === pre_network)
 
   if (!network)
     throw new Error('Сеть не найдена')

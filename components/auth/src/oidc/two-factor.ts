@@ -8,6 +8,7 @@
  * приложение продолжает свой обычный пост-логин.
  */
 import type { HandshakeResult, LoginFactorKind } from './handshake'
+import { lt } from '@coopenomics/i18n'
 import { AuthV2Error, AuthV2ErrorCode } from '../errors'
 import { coopIdApiUrl } from './client'
 import { setSession } from './tokens'
@@ -70,10 +71,10 @@ export async function confirmLoginFactor(params: ConfirmLoginFactorParams): Prom
     })
   }
   catch (e) {
-    throw new AuthV2Error(AuthV2ErrorCode.NetworkError, `Сеть недоступна при подтверждении входа: ${e instanceof Error ? e.message : String(e)}`)
+    throw new AuthV2Error(AuthV2ErrorCode.NetworkError, lt('authClient.twoFactor.confirmNetworkError', { error: e instanceof Error ? e.message : String(e) }))
   }
   if (!res.ok)
-    throw await authErrorFromResponse(res, AuthV2ErrorCode.InvalidTwoFactorCode, `Подтверждение входа отклонено (HTTP ${res.status})`)
+    throw await authErrorFromResponse(res, AuthV2ErrorCode.InvalidTwoFactorCode, lt('authClient.twoFactor.confirmRejected', { status: res.status }))
 
   const body = (await res.json()) as ConfirmResponseProgress | ConfirmResponseTokens
   if ('access_token' in body) {
@@ -105,8 +106,8 @@ export async function resendLoginEmailCode(challengeToken: string): Promise<void
     })
   }
   catch (e) {
-    throw new AuthV2Error(AuthV2ErrorCode.NetworkError, `Сеть недоступна при повторной отправке кода: ${e instanceof Error ? e.message : String(e)}`)
+    throw new AuthV2Error(AuthV2ErrorCode.NetworkError, lt('authClient.twoFactor.resendNetworkError', { error: e instanceof Error ? e.message : String(e) }))
   }
   if (!res.ok && res.status !== 202)
-    throw await authErrorFromResponse(res, AuthV2ErrorCode.NetworkError, `Повторная отправка кода отклонена (HTTP ${res.status})`)
+    throw await authErrorFromResponse(res, AuthV2ErrorCode.NetworkError, lt('authClient.twoFactor.resendRejected', { status: res.status }))
 }

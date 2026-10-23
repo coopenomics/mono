@@ -30,37 +30,20 @@ const shellStyle = computed(() => ({
   width: 100%;
   margin: 0 auto;
 }
+/*
+ * Обычная карточка канона: волосяная рамка, без тени и без цветной полосы сверху. Полоса
+ * была акцентным рельсом — канон такие запрещает, и экраны входа выглядели чужими среди
+ * остальных (решение владельца 03.09.2026). Тень остаётся только у overlay-элементов.
+ */
 .auth-card {
   padding: 0;
   display: flex;
   flex-direction: column;
   gap: var(--p-3, 12px);
-  /* Auth-карточка — hero-element auth-страницы. Усиливаем shadow поверх
-     canon-минималистского q-card — без этого светлая тема выглядит плоской
-     (canvas и surface почти неразличимы). На тёмной shadow поверх чёрного
-     фона остаётся ненавязчивой — лишнего шума не даёт. */
-  box-shadow:
-    0 1px 2px rgba(9, 9, 11, 0.04),
-    0 8px 24px rgba(9, 9, 11, 0.06);
-  border-color: var(--p-line-1);
-  position: relative;
+  background: var(--p-surface);
+  border: 1px solid var(--p-line);
+  border-radius: var(--p-r-md);
   overflow: hidden;
-}
-/* Статичный accent-стрип сверху — визуальный якорь без анимации. */
-.auth-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: var(--p-primary);
-  z-index: 1;
-}
-[data-theme="dark"] .auth-card {
-  box-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.4),
-    0 12px 32px rgba(0, 0, 0, 0.32);
 }
 .auth-card__head {
   padding: var(--p-6, 24px) var(--p-6, 24px) var(--p-2, 8px);
@@ -79,8 +62,17 @@ const shellStyle = computed(() => ({
   color: var(--p-ink-2);
   margin: 6px 0 0;
 }
+/*
+ * Содержимое — колонка с ровным зазором. Без него соседние блоки слипались: баннер
+ * упирался в кнопку под ним (владелец 03.09.2026). Зазор задаётся контейнером, а не
+ * отступами у детей: содержимое приходит слотом из чужой области видимости, и scoped-правила
+ * до него не достают.
+ */
 .auth-card__body {
   padding: var(--p-3, 12px) var(--p-6, 24px) var(--p-5, 20px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-4, 16px);
 }
 .auth-card__footer {
   border-top: 1px solid var(--p-line);

@@ -8,12 +8,12 @@ BaseButton(
   variant='ghost',
   :icon-only='true',
   :loading='agendaStore.refreshing',
-  aria-label='Обновить повестку',
+  :aria-label='$t("decision.refreshAgendaButton.label")',
   @click='onRefresh'
 )
   template(#icon-left)
     q-icon(name='refresh', size='20px')
-    q-tooltip Обновить повестку
+    q-tooltip {{ $t('decision.refreshAgendaButton.label') }}
 </template>
 
 <script setup lang="ts">

@@ -1,0 +1,48 @@
+{
+  "installer": {
+    "error": {
+      "varsNotSet": "Переменные не установлены"
+    },
+    "install": {
+      "sovietMinMembers": "Совет должен включать не менее {minSovietMembers} человек (председатель и члены совета)",
+      "sovietNotSet": "Совет не установлен"
+    },
+    "requestKeyForm": {
+      "installError": "Ошибка установки ключа",
+      "keyLabel": "Ключ установки",
+      "submit": "Продолжить"
+    },
+    "setInitForm": {
+      "continueSubmit": "Продолжить",
+      "fillNoticeLine1": "Заполните данные кооператива. Они будут использоваться для организации",
+      "fillNoticeLine2": "документооборота с пайщиками.",
+      "initError": "Ошибка инициализации",
+      "installCodeExpired": "Код установки истек или невалиден. Пожалуйста, введите ключ заново.",
+      "installCodeNotFound": "Код установки не найден",
+      "loadError": "Ошибка загрузки данных",
+      "loadingText": "Загрузка данных...",
+      "orgEmailLabel": "Email организации",
+      "presetNoticeLine1": "Вам предустановлены данные кооператива. Пожалуйста, проверьте их, и",
+      "presetNoticeLine2": "в случае обнаружения ошибок обратитесь к вашему оператору для внесения",
+      "presetNoticeLine3": "изменений."
+    },
+    "setSovietForm": {
+      "addMember": "Добавить члена совета",
+      "chairmanRole": "Председатель совета",
+      "continueSubmit": "Продолжить",
+      "emailLabel": "Электронная почта",
+      "memberRole": "Член совета",
+      "removeMemberAria": "Удалить члена совета",
+      "requirementText": "В составе совета — минимум {minSovietMembers} человека: председатель и члены совета."
+    },
+    "setVariablesForm": {
+      "finishInstall": "Завершить установку",
+      "installSuccess": "Установка произведена успешно"
+    },
+    "soviet": {
+      "continueBlocked": "Для продолжения нужно {min} человека в составе совета (ещё {missing} человек) | Для продолжения нужно {min} человека в составе совета (ещё {missing} человека) | Для продолжения нужно {min} человека в составе совета (ещё {missing} человек)",
+      "fillChairman": "Заполните данные председателя",
+      "progressHint": "Указано {current} из {min}. Добавьте ещё {missing} человек. | Указано {current} из {min}. Добавьте ещё {missing} человека. | Указано {current} из {min}. Добавьте ещё {missing} человек."
+    }
+  }
+}

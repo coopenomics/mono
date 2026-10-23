@@ -11,7 +11,7 @@ import { SignedDocumentStatus } from '~/domain/document/enums/signed-document-st
 import type { DocumentPackageAggregateDomainInterface } from '~/domain/document/interfaces/document-package-aggregate-domain.interface';
 import config from '~/config/config';
 import type { IAction } from '~/types/common';
-import moment from 'moment-timezone';
+import { parseCreatedAt } from '@coopenomics/factory';
 
 const SOVIET = SovietContract.contractName.production;
 const Registry = SovietContract.Actions.Registry;
@@ -294,19 +294,20 @@ export class SignedDocumentIngestionService {
   }
 
   /**
-   * Парсит meta.created_at в Date для колонки timestamptz. Документы хранят дату в
-   * ЛОКАЛИЗОВАННОМ формате `DD.MM.YYYY HH:mm` + отдельное поле meta.timezone — именно так её
-   * пишет фабрика @coopenomics/factory (Generator.updateMetadata через moment.tz). Нативный
-   * `new Date(meta.created_at)` этот формат НЕ понимает и даёт Invalid Date → pg-драйвер пишет
-   * в timestamptz "0NaN-NaN-NaN…" и вся вставка падает. Парсим тем же moment.tz, что и фабрика;
-   * timezone берём из меты, иначе — из конфига кооператива. Невалидное/пустое значение → null
-   * (одна битая дата не должна ронять запись и весь backfill).
+   * Парсит meta.created_at в Date для колонки timestamptz. Фабрика пишет дату в ISO 8601,
+   * а документы до 28.09.2026 — в виде `DD.MM.YYYY HH:mm` в поясе meta.timezone; разбирает оба
+   * вида сама фабрика (`parseCreatedAt`). Пояс берём из меты, иначе — из конфига кооператива.
+   * Невалидное/пустое значение → null (одна битая дата не должна ронять запись и весь backfill).
    */
   private parseDocumentDate(createdAt: unknown, timezone: unknown): Date | null {
     if (!createdAt || typeof createdAt !== 'string') return null;
     const tz = typeof timezone === 'string' && timezone ? timezone : config.timezone;
-    const parsed = moment.tz(createdAt, 'DD.MM.YYYY HH:mm', tz);
-    return parsed.isValid() ? parsed.toDate() : null;
+    try {
+      const parsed = parseCreatedAt(createdAt, tz);
+      return parsed.isValid() ? parsed.toDate() : null;
+    } catch {
+      return null;
+    }
   }
 
   private stripHtml(html: string): string {

@@ -63,6 +63,21 @@ export interface DeserializedDescriptionOfExtension {
   maxRows?: number;
 
   /**
+   * Сколько строк многострочное поле показывает сразу, до ввода текста. Поле
+   * растёт по мере ввода, но не бывает ниже этой высоты — по виду сразу понятно,
+   * что ответ ждут развёрнутый. Задание `minRows` само делает поле многострочным.
+   * Необязательное поле.
+   */
+  minRows?: number;
+
+  /**
+   * Текст-заполнитель внутри пустого поля: пример ответа или формата, чтобы
+   * поле не выглядело пустым. Исчезает, как только человек начинает ввод.
+   * Необязательное поле.
+   */
+  placeholder?: string;
+
+  /**
    * Добавляет текст после значения поля в интерфейсе (например, символ валюты).
    * Необязательное поле.
    */
@@ -112,4 +127,12 @@ export interface DeserializedDescriptionOfExtension {
    * Необязательное поле.
    */
   copyable?: boolean;
+}
+
+/**
+ * Описание поля конфигурации для `.describe()` zod-схемы: форма настроек
+ * расширения берёт отсюда подпись, подсказку и вид поля.
+ */
+export function describeConfigField(description: DeserializedDescriptionOfExtension): string {
+  return JSON.stringify(description);
 }

@@ -1,11 +1,12 @@
 import { computed, ref } from 'vue';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useSystemStore } from 'src/entities/System/model';
-import { useSessionStore } from 'src/entities/Session';
 import { api, type CapitalOnboardingState } from '../api';
-import { Mutations } from '@coopenomics/sdk';
+import { Mutations, Queries, Zeus } from '@coopenomics/sdk';
 import type { ICouncilOnboardingConfig, ICouncilOnboardingStep } from 'src/shared/ui/CouncilOnboarding';
 import { client } from 'src/shared/api/client';
+import { Cooperative } from 'cooptypes';
+import { t } from '../../../i18n';
 
 interface GeneratedDocument {
   hash: string;
@@ -23,62 +24,63 @@ const currentGeneratedDoc = ref<GeneratedDocument | null>(null);
 
 export const useCapitalOnboarding = () => {
   const systemStore = useSystemStore();
-  const sessionStore = useSessionStore();
 
-  // Маппинг шагов на registry_id
+  // Шаг → рабочий документ, который совет утверждает в бланке. Шаблоны-двойники
+  // «для утверждения» (995, 997, 999) выведены: их тексты расходились с теми,
+  // что подписывает пайщик (фабрика утверждений, компонент 66).
   const stepToRegistryId: Record<CapitalOnboardingStepId, number> = {
-    'generator_program_template': 994,
-    'generation_contract_template': 997,
-    'generator_offer_template': 995,
-    'blagorost_program': 998,
-    'blagorost_offer_template': 999,
+    'generator_program_template': Cooperative.Registry.GeneratorProgramTemplate.registry_id,
+    'generation_contract_template': Cooperative.Registry.GenerationContract.registry_id,
+    'generator_offer_template': Cooperative.Registry.GeneratorOffer.registry_id,
+    'blagorost_program': Cooperative.Registry.BlagorostProgramTemplate.registry_id,
+    'blagorost_offer_template': Cooperative.Registry.BlagorostOffer.registry_id,
   };
-  const capitalProgramDocDataRegistryIds = new Set([994, 995, 998, 999]);
+  // Документы, в которые подставляются параметры программы из мастера.
+  const capitalProgramDocDataRegistryIds = new Set<number>([
+    Cooperative.Registry.GeneratorProgramTemplate.registry_id,
+    Cooperative.Registry.GeneratorOffer.registry_id,
+    Cooperative.Registry.BlagorostProgramTemplate.registry_id,
+    Cooperative.Registry.BlagorostOffer.registry_id,
+  ]);
 
   const isCapitalOnboardingStepId = (stepId: string): stepId is CapitalOnboardingStepId => {
     return stepId in stepToRegistryId;
   };
 
-  // Генерация документа для шага
+  // Бланк текущей редакции документа — тот же текст, что уйдёт в решение совета.
   const generateDocument = async (step: ICouncilOnboardingStep): Promise<GeneratedDocument> => {
     try {
       generatingDocument.value = true;
       if (!isCapitalOnboardingStepId(step.id)) {
-        throw new Error(`Неизвестный шаг онбординга: ${step.id}`);
+        throw new Error(t('capital.error.onboardingUnknownStep', { stepId: step.id }));
       }
 
       const registry_id = stepToRegistryId[step.id];
       const docDataHash = onboardingState.value?.capital_program_doc_data_hash;
       if (capitalProgramDocDataRegistryIds.has(registry_id) && !docDataHash) {
-        throw new Error('Сначала заполните параметры документов ЦПП и сформируйте предпросмотр');
+        throw new Error(t('capital.error.onboardingParamsNotFilled'));
       }
 
-      const generateDocInput: Mutations.Documents.GenerateDocument.IInput = {
-        input: {
-          data: {
-            coopname: systemStore.info?.coopname || '',
-            username: sessionStore.username,
-            registry_id,
-            ...(docDataHash && capitalProgramDocDataRegistryIds.has(registry_id) ? { doc_data_hash: docDataHash } : {}),
-          },
-        },
-      };
-
-      const { [Mutations.Documents.GenerateDocument.name]: result } = await client.Mutation(
-        Mutations.Documents.GenerateDocument.mutation,
+      const { [Queries.DocumentApprovals.DocumentTemplateBlank.name]: blank } = await client.Query(
+        Queries.DocumentApprovals.DocumentTemplateBlank.query,
         {
-          variables: generateDocInput,
+          variables: {
+            coopname: systemStore.info?.coopname || '',
+            registry_id,
+            edition: Zeus.DocumentTemplateEdition.Current,
+            doc_data_hash: capitalProgramDocDataRegistryIds.has(registry_id) ? docDataHash : undefined,
+          },
         }
       );
 
-      if (!result?.html) {
-        throw new Error('Документ не был сгенерирован');
+      if (!blank?.html) {
+        throw new Error(t('capital.error.onboardingDocumentNotGenerated'));
       }
 
       return {
-        hash: result.hash || '',
-        html: result.html || '',
-        full_title: result.full_title || '',
+        hash: blank.text_hash || '',
+        html: blank.html || '',
+        full_title: blank.title || '',
       };
     } finally {
       generatingDocument.value = false;
@@ -92,44 +94,44 @@ export const useCapitalOnboarding = () => {
     return [
       {
         id: 'generator_program_template',
-        title: 'Положение о целевой потребительской программе "ГЕНЕРАТОР"',
-        description: 'Утверждение Положения о целевой потребительской программе «ГЕНЕРАТОР»',
-        question: 'О утверждении Положения о целевой потребительской программе «ГЕНЕРАТОР»',
+        title: t('capital.composable.generatorRegulationDocTitle'),
+        description: t('capital.composable.generatorRegulationAgendaTitle'),
+        question: t('capital.composable.generatorRegulationDecisionTitle'),
         decision: '', // Будет заполнено через генерацию документа
-        decisionPrefix: 'Утвердить Положение о целевой потребительской программе «ГЕНЕРАТОР»:',
+        decisionPrefix: t('capital.composable.generatorRegulationDecisionText'),
         status: state?.generator_program_template_done ? 'completed' :
                 state?.onboarding_generator_program_template_hash ? 'in_progress' : 'pending',
         hash: typeof state?.onboarding_generator_program_template_hash === 'string' && state.onboarding_generator_program_template_hash ? state.onboarding_generator_program_template_hash : null,
       },
       {
         id: 'generation_contract_template',
-        title: 'Шаблон договора участия в хозяйственной деятельности',
-        description: 'Утверждение шаблона договора участия в хозяйственной деятельности для работы по программе',
-        question: 'О утверждении шаблона договора участия в хозяйственной деятельности',
+        title: t('capital.composable.contractTemplateDocTitle'),
+        description: t('capital.composable.contractTemplateAgendaTitle'),
+        question: t('capital.composable.contractTemplateDecisionTitle'),
         decision: '', // Будет заполнено через генерацию документа
-        decisionPrefix: 'Утвердить шаблон договора участия в хозяйственной деятельности:',
+        decisionPrefix: t('capital.composable.contractTemplateDecisionText'),
         status: state?.generation_contract_template_done ? 'completed' :
                 state?.onboarding_generation_contract_template_hash ? 'in_progress' : 'pending',
         hash: typeof state?.onboarding_generation_contract_template_hash === 'string' && state.onboarding_generation_contract_template_hash ? state.onboarding_generation_contract_template_hash : null,
       },
       {
         id: 'blagorost_program',
-        title: 'Положение о ЦПП «БЛАГОРОСТ»',
-        description: 'Утверждение Положения о целевой потребительской программе «БЛАГОРОСТ»',
-        question: 'О утверждении Положения о целевой потребительской программе «БЛАГОРОСТ»',
+        title: t('capital.composable.blagorostRegulationDocTitle'),
+        description: t('capital.composable.blagorostRegulationAgendaTitle'),
+        question: t('capital.composable.blagorostRegulationDecisionTitle'),
         decision: '', // Будет заполнено через генерацию документа
-        decisionPrefix: 'Утвердить Положение о целевой потребительской программе «БЛАГОРОСТ»:',
+        decisionPrefix: t('capital.composable.blagorostRegulationDecisionText'),
         status: state?.blagorost_provision_done ? 'completed' :
                 state?.onboarding_blagorost_provision_hash ? 'in_progress' : 'pending',
         hash: typeof state?.onboarding_blagorost_provision_hash === 'string' && state.onboarding_blagorost_provision_hash ? state.onboarding_blagorost_provision_hash : null,
       },
       {
         id: 'generator_offer_template',
-        title: 'Шаблон пользовательского соглашения (оферты) по участию в целевой потребительской программе "ГЕНЕРАТОР"',
-        description: 'Утверждение шаблона публичной оферты по ЦПП "ГЕНЕРАТОР" для пайщика',
-        question: 'О утверждении шаблона пользовательского соглашения (оферты) по участию в целевой потребительской программе "ГЕНЕРАТОР"',
+        title: t('capital.composable.generatorOfferDocTitle'),
+        description: t('capital.composable.generatorOfferAgendaTitle'),
+        question: t('capital.composable.generatorOfferDecisionTitle'),
         decision: '', // Будет заполнено через генерацию документа
-        decisionPrefix: 'Утвердить шаблон пользовательского соглашения (оферты) по участию в целевой потребительской программе "ГЕНЕРАТОР":',
+        decisionPrefix: t('capital.composable.generatorOfferDecisionText'),
         status: state?.generator_offer_template_done ? 'completed' :
                 state?.onboarding_generator_offer_template_hash ? 'in_progress' : 'pending',
         hash: typeof state?.onboarding_generator_offer_template_hash === 'string' && state.onboarding_generator_offer_template_hash ? state.onboarding_generator_offer_template_hash : null,
@@ -137,11 +139,11 @@ export const useCapitalOnboarding = () => {
       },
       {
         id: 'blagorost_offer_template',
-        title: 'Пользовательское соглашение (оферта) по ЦПП «БЛАГОРОСТ»',
-        description: 'Утверждение пользовательского соглашения (оферты) по присоединению к ЦПП «БЛАГОРОСТ»',
-        question: 'О утверждении пользовательского соглашения (оферты) по присоединению к ЦПП «БЛАГОРОСТ»',
+        title: t('capital.composable.blagorostOfferDocTitle'),
+        description: t('capital.composable.blagorostOfferAgendaTitle'),
+        question: t('capital.composable.blagorostOfferDecisionTitle'),
         decision: '', // Будет заполнено через генерацию документа
-        decisionPrefix: 'Утвердить пользовательское соглашение (оферту) по присоединению к ЦПП «БЛАГОРОСТ»:',
+        decisionPrefix: t('capital.composable.blagorostOfferDecisionText'),
         status: state?.blagorost_offer_template_done ? 'completed' :
                 state?.onboarding_blagorost_offer_template_hash ? 'in_progress' : 'pending',
         hash: typeof state?.onboarding_blagorost_offer_template_hash === 'string' && state.onboarding_blagorost_offer_template_hash ? state.onboarding_blagorost_offer_template_hash : null,
@@ -157,8 +159,13 @@ export const useCapitalOnboarding = () => {
     return Number.isNaN(date.getTime()) ? null : date;
   });
 
+  // Подключение завершено, когда приняты решения совета И заданы параметры
+  // положений: без параметров не собрать ни оферты вступающих, ни документы
+  // регистрации участника. Решения могли прийти переносом прежних протоколов —
+  // тогда председатель попадает прямо на ввод параметров (то же правило, что
+  // на сервере — isCapitalL1Complete).
   const isOnboardingCompleted = computed(() => {
-    return stepsConfig.value.every(step => step.status === 'completed');
+    return stepsConfig.value.every(step => step.status === 'completed') && Boolean(onboardingState.value?.capital_program_doc_data_hash);
   });
 
   const hasPendingCouncilDecisions = computed(() =>
@@ -171,8 +178,8 @@ export const useCapitalOnboarding = () => {
   const config = computed<ICouncilOnboardingConfig>(() => ({
     steps: stepsConfig.value,
     expireAt: expireAt.value,
-    completionTitle: 'Онбординг ЦПП «БЛАГОРОСТ» завершен!',
-    completionMessage: 'Все необходимые документы для работы с программой утверждены.',
+    completionTitle: t('capital.composable.onboardingCompleteTitle'),
+    completionMessage: t('capital.composable.onboardingCompleteText'),
   }));
 
   const loadState = async (options?: { silent?: boolean }) => {
@@ -217,7 +224,7 @@ export const useCapitalOnboarding = () => {
       }
 
       if (!isCapitalOnboardingStepId(step.id)) {
-        throw new Error(`Неизвестный шаг онбординга: ${step.id}`);
+        throw new Error(t('capital.error.onboardingUnknownStep', { stepId: step.id }));
       }
 
       // Подготавливаем данные для отправки
@@ -232,7 +239,7 @@ export const useCapitalOnboarding = () => {
       onboardingState.value = state;
       currentGeneratedDoc.value = null;
 
-      SuccessAlert('Предложение создано и шаг отмечен.');
+      SuccessAlert(t('capital.composable.proposalCreatedSuccess'));
     } catch (error) {
       FailAlert(error);
     } finally {

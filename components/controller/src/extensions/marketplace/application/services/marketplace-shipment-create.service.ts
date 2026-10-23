@@ -1,10 +1,4 @@
-import {
-  BadRequestException,
-  ForbiddenException,
-  Inject,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { randomBytes } from 'crypto';
 import { Cooperative } from 'cooptypes';
 import { LOGGER_PORT, type ILoggerPort, DOCUMENT_PORT, type IDocumentPort } from '@coopenomics/innercoop';
@@ -45,6 +39,8 @@ import {
   MARKETPLACE_ASSET_CONFIG,
   type MarketplaceAssetConfig,
 } from './marketplace-asset.config';
+import { t } from '../../i18n';
+import { DomainError } from '@coopenomics/extension-kit';
 
 /** Группа доставки одного поставщика на один КУ = одна партия. */
 export interface MarketplaceShipmentGroupInput {
@@ -122,23 +118,21 @@ export class MarketplaceShipmentCreateService {
     // ── 1. Заявка существует + ACCEPTED + ownership ─────────────────
     const cycle = await this.cycleRepo.findById(input.cycle_id);
     if (!cycle) {
-      throw new NotFoundException('Консолидированная заявка не найдена.');
+      throw DomainError.notFound('MARKETPLACE_SHIPMENT_CYCLE_NOT_FOUND');
     }
     if (cycle.coopname !== input.coopname) {
-      throw new ForbiddenException('Заявка принадлежит другому кооперативу.');
+      throw DomainError.forbidden('MARKETPLACE_SHIPMENT_CYCLE_WRONG_COOP');
     }
     if (cycle.supplier_account !== input.offerer_account) {
-      throw new ForbiddenException('Партию формирует только поставщик заявки.');
+      throw DomainError.forbidden('MARKETPLACE_SHIPMENT_NOT_SUPPLIER');
     }
     if (cycle.status !== 'ACCEPTED') {
       await this.logRejection(
         input,
         MarketplaceSupplyValidationReasons.CYCLE_NOT_ACCEPTED,
-        `Заявка в статусе ${cycle.status}; партии можно формировать только из ACCEPTED.`
+        t('marketplace.shipmentCreate.rejectionCycleNotAccepted', { cycleStatus: cycle.status })
       );
-      throw new BadRequestException(
-        `Состав поставки не соответствует акцептованной заявке: заявка в статусе ${cycle.status}.`
-      );
+      throw DomainError.badRequest('MARKETPLACE_SHIPMENT_COMPOSITION_CYCLE_NOT_ACCEPTED', { cycleStatus: cycle.status });
     }
 
     // ── 2. Order'ы заявки + резолв состава каждой группы ──────────
@@ -147,11 +141,9 @@ export class MarketplaceShipmentCreateService {
       await this.logRejection(
         input,
         MarketplaceSupplyValidationReasons.EMPTY_GROUPS,
-        'В заявке нет Order\'ов.'
+        t('marketplace.shipmentCreate.rejectionEmptyGroups')
       );
-      throw new BadRequestException(
-        'Состав поставки не соответствует акцептованной заявке: в заявке нет Order\'ов.'
-      );
+      throw DomainError.badRequest('MARKETPLACE_SHIPMENT_COMPOSITION_EMPTY_GROUPS');
     }
 
     // Резолвим состав каждой группы независимо (покрытие всех КУ заявки НЕ
@@ -199,7 +191,7 @@ export class MarketplaceShipmentCreateService {
       const assigned = await this.orderRepo.assignToShipment(
         groupOrders.map((o) => o.id),
         shipment.id,
-        `Партия #${shipment.id} (вариант ${group.delivery_variant})`
+        t('marketplace.shipmentCreate.shipmentLabel', { shipmentId: shipment.id, deliveryVariant: group.delivery_variant })
       );
       if (assigned !== groupOrders.length) {
         this.logger.warn(
@@ -230,30 +222,30 @@ export class MarketplaceShipmentCreateService {
 
   private validateInputShape(input: MarketplaceShipmentCreateInputDto): void {
     if (!input.coopname || !input.offerer_account || !input.cycle_id) {
-      throw new BadRequestException('Параметры coopname / offerer_account / cycle_id обязательны.');
+      throw DomainError.badRequest('MARKETPLACE_SHIPMENT_REQUIRED_PARAMS');
     }
     if (!input.groups || input.groups.length === 0) {
-      throw new BadRequestException('Не задано ни одной группы доставки.');
+      throw DomainError.badRequest('MARKETPLACE_SHIPMENT_NO_DELIVERY_GROUPS');
     }
     for (const g of input.groups) {
       if (!g.braname) {
-        throw new BadRequestException('У одной из групп не указан braname.');
+        throw DomainError.badRequest('MARKETPLACE_SHIPMENT_GROUP_BRANAME_REQUIRED');
       }
       if (
         g.delivery_variant !== MarketplaceShipmentDeliveryVariants.SELF &&
         g.delivery_variant !== MarketplaceShipmentDeliveryVariants.EXPEDITOR
       ) {
-        throw new BadRequestException(`Недопустимый вариант доставки: ${String(g.delivery_variant)}.`);
+        throw DomainError.badRequest('MARKETPLACE_SHIPMENT_INVALID_DELIVERY_VARIANT', { variant: String(g.delivery_variant) });
       }
       if (g.delivery_variant === MarketplaceShipmentDeliveryVariants.EXPEDITOR) {
         this.assertTTNData(g.ttn_data);
       }
       if (g.order_ids != null) {
         if (!Array.isArray(g.order_ids)) {
-          throw new BadRequestException(`order_ids группы КУ "${g.braname}" должен быть массивом.`);
+          throw DomainError.badRequest('MARKETPLACE_SHIPMENT_ORDER_IDS_NOT_ARRAY', { braname: g.braname });
         }
         if (g.order_ids.some((id) => typeof id !== 'string' || id.trim().length === 0)) {
-          throw new BadRequestException(`order_ids группы КУ "${g.braname}" содержит пустой идентификатор.`);
+          throw DomainError.badRequest('MARKETPLACE_SHIPMENT_ORDER_IDS_EMPTY_ENTRY', { braname: g.braname });
         }
       }
     }
@@ -265,7 +257,7 @@ export class MarketplaceShipmentCreateService {
   // проверяет тип, если объект передан.
   private assertTTNData(ttn: MarketplaceShipmentTTNData | null | undefined): void {
     if (ttn != null && typeof ttn !== 'object') {
-      throw new BadRequestException('ttn_data должен быть объектом.');
+      throw DomainError.badRequest('MARKETPLACE_SHIPMENT_TTN_DATA_INVALID');
     }
   }
 
@@ -293,7 +285,7 @@ export class MarketplaceShipmentCreateService {
         await this.rejectComposition(
           input,
           MarketplaceSupplyValidationReasons.UNKNOWN_ORDER,
-          `КУ "${group.braname}" не присутствует ни в одном Order'е заявки.`
+          t('marketplace.shipmentCreate.rejectionUnknownOrderKu', { braname: group.braname })
         );
       }
 
@@ -310,8 +302,8 @@ export class MarketplaceShipmentCreateService {
           await this.rejectComposition(
             input,
             MarketplaceSupplyValidationReasons.ORDER_SET_MISMATCH,
-            `Часть выбранных заказов недоступна для формирования по КУ "${group.braname}" ` +
-              `(не принадлежит КУ, не в статусе ACCEPTED или уже включена в другую партию).`
+            t('marketplace.shipmentCreate.rejectionOrderSetMismatch', { braname: group.braname }) +
+              t('marketplace.shipmentCreate.rejectionOrderSetMismatchNote')
           );
         }
       } else {
@@ -322,7 +314,7 @@ export class MarketplaceShipmentCreateService {
         await this.rejectComposition(
           input,
           MarketplaceSupplyValidationReasons.ORDER_SET_MISMATCH,
-          `Для КУ "${group.braname}" нет акцептованных заказов для формирования партии.`
+          t('marketplace.shipmentCreate.rejectionNoAcceptedOrders', { braname: group.braname })
         );
       }
 
@@ -339,7 +331,7 @@ export class MarketplaceShipmentCreateService {
     message: string
   ): Promise<never> {
     await this.logRejection(input, reason_code, message);
-    throw new BadRequestException(`Состав поставки не соответствует акцептованной заявке: ${message}`);
+    throw DomainError.badRequest('MARKETPLACE_SHIPMENT_COMPOSITION_MISMATCH', { message });
   }
 
   // ⚠️ ЗАРЕЗЕРВИРОВАНО / ПОКА НЕ ВЫЗЫВАЕТСЯ. Фабричная генерация ТТН (registry
@@ -412,6 +404,7 @@ export class MarketplaceShipmentCreateService {
   // случайности (2^48) — коллизия практически невозможна; уникальность одна на
   // партию. Один и тот же номер печатается и в фабричном документе, и в превью.
   private computeTTNNumber(): string {
+    // i18n-ignore: маска номера документа (ТТН), не текст интерфейса
     return `ТТН-${randomBytes(6).toString('hex').toUpperCase()}`;
   }
 

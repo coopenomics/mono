@@ -3,7 +3,7 @@ q-card(flat).mb-4
   q-card-section
     q-checkbox(
       v-model='expandAllModel',
-      label='Развернуть всё'
+      :label='$t("capital.expandOptionsWidget.expandAllLabel")'
     )
 
 </template>

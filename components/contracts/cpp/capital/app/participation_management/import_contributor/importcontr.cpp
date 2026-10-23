@@ -59,6 +59,19 @@ void capital::importcontrib(eosio::name coopname, eosio::name username, checksum
     std::make_tuple(coopname, username, _capital_program, uint64_t(0)) // agreement_id = 0
   ).send();
 
+  // Соглашение Благороста у импортируемого пайщика подписано на бумаге до перехода
+  // на электронный учёт, электронной подписи под ним нет. Фиксируем его в
+  // wallet::users.programs[] до первой операции по кошельку: ledger2::walletop
+  // требует запись программы перед зачислением на w.cap.blago (ADR-004, ADR-008).
+  // Порядок важен: inline-действия исполняются в порядке отправки, поэтому
+  // соглашение уходит до любого Ledger2::apply ниже.
+  eosio::action(
+    permission_level{ _capital, "active"_n },
+    _wallet,
+    Names::WalletActions::IMPORT_AGREEMENT,
+    std::make_tuple(coopname, username, get_program_id(_capital_program))
+  ).send();
+
   // Пополнение кошелька программы благороста
   std::string internal_memo = Capital::Memo::get_import_contributor_memo(contributor_hash, contribution_amount);
 

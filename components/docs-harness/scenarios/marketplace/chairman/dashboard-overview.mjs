@@ -7,7 +7,7 @@
 // и goto. После клика «Войти» token успевает сохраниться в IndexedDB, что
 // позволяет последующим goto'ам захватить authenticated layout (хедер).
 
-import { cleanViteOverlays, clickMenu, env, passFirstLoginAgreements } from '../../../lib/harness.mjs';
+import { cleanViteOverlays, clickMenu, env, loginAsChairman } from '../../../lib/harness.mjs';
 
 export const meta = {
   title: 'Стол председателя ПК: экскурсия по marketplace',
@@ -31,24 +31,13 @@ const CHAIRMAN_MENU = [
 ];
 
 export default async ({ page, shot, context }) => {
-  // --- Login (hash router: URL вида #/<coopname>/...)
-  await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/auth/signin`, { waitUntil: 'domcontentloaded', timeout: 60000 });
-  // Harness escape hatch: отключаем branch-overlay чтобы можно было снять скриншоты
-  // всех разделов Стола председателя без процедуры выбора КУ.
+  // Вход через harness: с 24.09.2026 форма по ключу требует задать пароль,
+  // а второй фактор приходит письмом — loginAsChairman знает оба шага.
+  await loginAsChairman(page, context);
+  // Harness escape hatch: отключаем branch-overlay, чтобы снять все разделы
+  // Стола председателя без процедуры выбора КУ.
   await page.evaluate(() => localStorage.setItem('harness:noBranchOverlay', '1'));
-  await page.waitForSelector('button:has-text("Войти")', { timeout: 60000 });
-  await cleanViteOverlays(page);
-  await page.locator('input[type="email"]').first().fill(env.CHAIRMAN_EMAIL);
-  await page.locator('input[type="password"]').first().fill(env.CHAIRMAN_WIF);
-  await cleanViteOverlays(page);
-  await page.locator('button:has-text("Войти")').click();
-  // Соглашения первого входа: на свежей цепи каскад модалок перехватывает
-  // клики оверлеем, и сценарий падает на «не могу нажать пункт меню».
-  await page.waitForFunction(() => !/auth\/signin/.test(window.location.href), { timeout: 30000 }).catch(() => {});
-  await passFirstLoginAgreements(page);
-
-  // Дожидаемся редиректа на онбординг председателя
-  await page.waitForURL(/chairman/, { timeout: 30000 });
+  await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/chairman`, { waitUntil: 'domcontentloaded', timeout: 60000 });
   await page.waitForTimeout(4000);
   await cleanViteOverlays(page);
   await shot(page, '00-after-login', 'Сразу после клика «Войти» — председатель попадает на онбординг Стола председателя. Слева — меню всех разделов (Онбординг, Запросы одобрений, Магазин приложений и др.).');

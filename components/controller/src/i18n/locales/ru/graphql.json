@@ -1,0 +1,7 @@
+{
+  "errors": {
+    "GRAPHQL_FIELD_FORBIDDEN": "Недостаточно прав доступа к полю \"{fieldName}\". Требуемые роли: {requiredRoles}.",
+    "GRAPHQL_FIELD_UNAUTHORIZED": "Пользователь не авторизован для доступа к полю \"{fieldName}\". Выполните вход.",
+    "GRAPHQL_RATE_LIMITED": "Слишком часто. Повторите через {seconds} с."
+  }
+}

@@ -7,12 +7,21 @@ import { isEmpty } from '../Utils'
 
 export { UserAgreement as Template } from '../Templates'
 
+/**
+ * Соглашение показывают публично — до того, как известен пайщик, который его
+ * подпишет. Тогда место подписанта остаётся прочерком под рукописное
+ * заполнение, а документ собирается из тех же шаблона, реквизитов и переводов.
+ */
+const BLANK_SIGNER_NAME = '____________________'
+
 export class Factory extends DocFactory<UserAgreement.Action> {
   constructor(storage: MongoDBConnector) {
     super(storage)
   }
 
   async generateDocument(data: UserAgreement.Action, options?: IGenerationOptions): Promise<IGeneratedDocument> {
+    const isBlank = options?.blank_signer === true || isEmpty(data.username)
+
     // Независимые источники тянем параллельно (см. resolveParallel в DocFactory)
     const { template, coop, vars, user } = await this.resolveParallel({
       template: () => process.env.SOURCE === 'local'
@@ -20,12 +29,12 @@ export class Factory extends DocFactory<UserAgreement.Action> {
         : this.getTemplate<UserAgreement.Model>(DraftContract.contractName.production, UserAgreement.registry_id, data.block_num),
       coop: () => super.getCooperative(data.coopname, data.block_num),
       vars: () => super.getVars(data.coopname, data.block_num),
-      user: () => super.getUser(data.username, data.block_num),
+      user: () => isBlank ? Promise.resolve(null) : super.getUser(data.username, data.block_num),
     })
 
     // meta зависит от template.title, full_name зависит от user — резолвим после батча
     const meta: IMetaDocument = await super.getMeta({ title: template.title, ...data })
-    const full_name = super.getFullName(user.data)
+    const full_name = user ? super.getFullName(user.data) : BLANK_SIGNER_NAME
 
     if (!vars?.user_agreement || isEmpty(vars.user_agreement.protocol_number) || isEmpty(vars.user_agreement.protocol_day_month_year))
       throw new Error('Реквизиты протокола по пользовательскому соглашению не заполнены. Укажите номер и дату протокола в настройках кооператива.')
@@ -43,7 +52,7 @@ export class Factory extends DocFactory<UserAgreement.Action> {
 
     const translation = template.translations[meta.lang]
 
-    const document: IGeneratedDocument = await super.generatePDF('', template.context, combinedData, translation, meta, options?.skip_save)
+    const document: IGeneratedDocument = await super.generatePDF('', template.context, combinedData, translation, meta, options?.skip_save, options?.skip_pdf)
 
     return document
   }

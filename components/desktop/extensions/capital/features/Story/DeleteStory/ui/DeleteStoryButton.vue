@@ -13,19 +13,19 @@ div
 
   BaseDialog(
     v-model='showDialog',
-    title='Удаление',
+    :title='$t("capital.deleteStoryButton.dialogTitle")',
     size='sm',
     @update:model-value='(v) => !v && close()'
   )
     Form.q-pa-sm(
       :handler-submit='deleteStory',
       :is-submitting='isSubmitting',
-      :button-cancel-txt='"Отменить"',
-      :button-submit-txt='"Удалить"',
+      :button-cancel-txt='$t("capital.deleteStoryButton.cancel")',
+      :button-submit-txt='$t("common.action.delete")',
       @cancel='close'
     )
       div(style='max-width: 300px')
-        p Вы уверены, что хотите удалить?
+        p {{ $t('capital.deleteStoryButton.confirmText') }}
 </template>
 
 <script lang="ts" setup>
@@ -34,6 +34,7 @@ import { useDeleteStory } from '../model';
 import { ref } from 'vue';
 import { BaseDialog } from 'src/shared/ui/base/BaseDialog';
 import { Form } from 'src/shared/ui/Form';
+import { t } from '../../../../i18n';
 
 const { deleteStory: deleteStoryAction } = useDeleteStory();
 const isSubmitting = ref(false);
@@ -57,11 +58,11 @@ const deleteStory = async () => {
   isSubmitting.value = true;
   try {
     await deleteStoryAction({ story_hash: props.storyHash });
-    SuccessAlert('Успешно удалено');
+    SuccessAlert(t('capital.deleteStoryButton.success'));
     emit('deleted');
     close();
   } catch (e: any) {
-    FailAlert(e, 'Возникла ошибка при удалении');
+    FailAlert(e, t('capital.deleteStoryButton.error'));
     close();
   } finally {
     isSubmitting.value = false;

@@ -1,18 +1,18 @@
+import './i18n';
 import cron from 'node-cron';
-import { Inject, Module, OnModuleDestroy } from '@nestjs/common';
-import { BaseExtensionModule, EXTENSION_REPOSITORY, type ExtensionDomainRepository, LOG_EXTENSION_REPOSITORY, LogExtensionDomainRepository, platformSettings } from '@coopenomics/extension-kit';
+import { Inject, Module, OnModuleDestroy, Optional } from '@nestjs/common';
+import { BaseExtensionModule, EXTENSION_REPOSITORY, type ExtensionDomainRepository, LOG_EXTENSION_REPOSITORY, LogExtensionDomainRepository, platformSettings, DomainError } from '@coopenomics/extension-kit';
 import { LOGGER_PORT, type ILoggerPort,
   CHAIN_RESOURCES_PORT,
   type IChainResourcesPort,
+  PROVIDER_TARIFF_PORT,
+  type IProviderTariffPort,
 } from '@coopenomics/innercoop';
 import type { ExtensionDomainEntity } from '@coopenomics/extension-kit';
 import { z } from 'zod';
-import { type DeserializedDescriptionOfExtension } from '@coopenomics/extension-kit';
-
-// Функция для проверки и сериализации FieldDescription
-function describeField(description: DeserializedDescriptionOfExtension): string {
-  return JSON.stringify(description);
-}
+import { describeConfigField } from '@coopenomics/extension-kit';
+import { t } from './i18n';
+import { PowerupRights } from './powerup-rights';
 
 // Символ и точность системного токена — свойство контура, а не расширения:
 // расширение обязано подставлять их в суммы пополнения ровно такими, какими их
@@ -38,10 +38,10 @@ export const Schema = z.object({
     .number()
     .default(defaultConfig.dailyPackageSize)
     .describe(
-      describeField({
-        label: 'Стоимость минимальной квоты',
-        note: `Минимум: 5 ${defaultConfig.systemSymbol}. Ежедневно пополняет вычислительные ресурсы кооператива на указанную сумму токенов. При достижении минимального порога использования ресурсов происходит автоматическое пополнение ресурсов на сумму стоимости минимальной квоты.`,
-        rules: ['val >= 5'],
+      describeConfigField({
+        label: t('powerup.settings.minQuotaCostLabel'),
+        note: t('powerup.settings.minQuotaCostNote', { symbol: defaultConfig.systemSymbol }),
+        rules: ['val > 0'],
         prepend: defaultConfig.systemSymbol,
       })
     ),
@@ -53,9 +53,9 @@ export const Schema = z.object({
         .max(100)
         .default(defaultConfig.thresholds.cpu)
         .describe(
-          describeField({
-            label: 'Порог использования CPU (%)',
-            note: 'При достижении указанного процента использования CPU происходит автоматическое пополнение ресурсов на сумму минимальной квоты.',
+          describeConfigField({
+            label: t('powerup.settings.cpuThresholdLabel'),
+            note: t('powerup.settings.cpuThresholdNote'),
             append: '%',
             rules: ['val >= 0', 'val <= 100'],
           })
@@ -66,9 +66,9 @@ export const Schema = z.object({
         .max(100)
         .default(defaultConfig.thresholds.net)
         .describe(
-          describeField({
-            label: 'Порог использования NET (%)',
-            note: 'При достижении указанного процента использования NET происходит автоматическое пополнение ресурсов на сумму минимальной квоты.',
+          describeConfigField({
+            label: t('powerup.settings.netThresholdLabel'),
+            note: t('powerup.settings.netThresholdNote'),
             append: '%',
             rules: ['val >= 0', 'val <= 100'],
           })
@@ -79,9 +79,9 @@ export const Schema = z.object({
         .max(100)
         .default(defaultConfig.thresholds.ram)
         .describe(
-          describeField({
-            label: 'Порог использования RAM (%)',
-            note: 'При достижении указанного процента использования RAM происходит автоматическое пополнение ресурсов на сумму минимальной квоты.',
+          describeConfigField({
+            label: t('powerup.settings.ramThresholdLabel'),
+            note: t('powerup.settings.ramThresholdNote'),
             append: '%',
             rules: ['val >= 0', 'val <= 100'],
           })
@@ -89,26 +89,29 @@ export const Schema = z.object({
     })
     .default(defaultConfig.thresholds)
     .describe(
-      describeField({
-        label: 'Пороги использования ресурсов',
-        note: 'Настройки для автоматического пополнения при достижении указанного процента использования ресурсов. Если любой из ресурсов (CPU, NET или RAM) достигает указанного порога, происходит автоматическое пополнение на сумму минимальной квоты.',
+      describeConfigField({
+        label: t('powerup.settings.thresholdsGroupLabel'),
+        note: t('powerup.settings.thresholdsGroupNote'),
       })
     ),
   lastDailyReplenishmentDate: z
     .string()
     .default(defaultConfig.lastDailyReplenishmentDate)
     .describe(
-      describeField({ label: 'Дата последнего ежедневного пополнения', visible: false, minLength: 10, maxLength: 10 })
+      // i18n-ignore: поле конфигурации visible:false — не отображается пайщику/админу
+      describeConfigField({ label: 'Дата последнего ежедневного пополнения', visible: false, minLength: 10, maxLength: 10 })
     ),
   systemPrecision: z
     .number()
     .default(defaultConfig.systemPrecision)
-    .describe(describeField({ label: 'Точность системного утилити-токена', visible: false })),
+    // i18n-ignore: поле конфигурации visible:false — не отображается пайщику/админу
+    .describe(describeConfigField({ label: 'Точность системного утилити-токена', visible: false })),
   systemSymbol: z
     .string()
     .default(defaultConfig.systemSymbol)
     .describe(
-      describeField({ label: 'Символ системного утилити-токена', visible: false, minLength: 3, maxLength: 5, maxRows: 4 })
+      // i18n-ignore: поле конфигурации visible:false — не отображается пайщику/админу
+      describeConfigField({ label: 'Символ системного утилити-токена', visible: false, minLength: 3, maxLength: 5, maxRows: 4 })
     ),
 });
 
@@ -118,6 +121,12 @@ export type IConfig = z.infer<typeof Schema>;
 export interface ILog {
   type: 'daily' | 'now';
   amount: string;
+  /**
+   * Идентификатор транзакции пополнения. Журнал аренды ведётся по факту: запись
+   * появляется только тогда, когда цепь приняла транзакцию, и по этому
+   * идентификатору пополнение можно найти в цепи.
+   */
+  trx_id?: string;
   resources: {
     username: string;
     ram_usage: any;
@@ -127,15 +136,31 @@ export interface ILog {
   };
 }
 
+/** С какой паузы начинается отход после первого отказа пополнения. */
+const RETRY_BACKOFF_START_MS = 5 * 60 * 1000;
+/** Дальше пауза удваивается, но не растёт больше часа. */
+const RETRY_BACKOFF_MAX_MS = 60 * 60 * 1000;
+
 export class PowerupExtension extends BaseExtensionModule implements OnModuleDestroy {
   private dailyCronJob: cron.ScheduledTask | null = null;
   private resourceCronJob: cron.ScheduledTask | null = null;
+
+  /**
+   * Отход после отказа пополнения. Проверка ресурсов идёт каждую минуту, и
+   * пока причина отказа не устранена (нет системного токена, ассерт цепи),
+   * минутный цикл бьётся в ту же стену: за двое суток инцидента 16.09.2026
+   * набралось 3 235 одинаковых отказов. Пауза растёт вдвое с каждой неудачей,
+   * а первая ошибка серии пишется уровнем `error` — чтобы её было видно.
+   */
+  private failureStreak = 0;
+  private nextAttemptAt = 0;
 
   constructor(
     @Inject(EXTENSION_REPOSITORY) private readonly extensionRepository: ExtensionDomainRepository<IConfig>,
     @Inject(LOG_EXTENSION_REPOSITORY) private readonly logExtensionRepository: LogExtensionDomainRepository<ILog>,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
-    @Inject(CHAIN_RESOURCES_PORT) private readonly blockchainPort: IChainResourcesPort
+    @Inject(CHAIN_RESOURCES_PORT) private readonly blockchainPort: IChainResourcesPort,
+    @Optional() @Inject(PROVIDER_TARIFF_PORT) private readonly tariffPort?: IProviderTariffPort
   ) {
     super();
     this.logger.setContext(PowerupExtension.name);
@@ -149,7 +174,7 @@ export class PowerupExtension extends BaseExtensionModule implements OnModuleDes
 
   async initialize() {
     const extensionData = await this.extensionRepository.findByName(this.name);
-    if (!extensionData) throw new Error('Конфиг не найден');
+    if (!extensionData) throw DomainError.internal('POWERUP_CONFIG_NOT_FOUND');
 
     this.extension = extensionData;
 
@@ -170,14 +195,28 @@ export class PowerupExtension extends BaseExtensionModule implements OnModuleDes
     }
 
     // Регистрация cron-задачи для ежедневного пополнения
-    this.dailyCronJob = cron.schedule('0 0 * * *', () => {
-      this.runDailyTask();
-    });
+    // Кроны на UTC, чтобы суточная отсечка не зависела от локального времени сервера;
+    // отклонённый промис ловится, иначе node-cron молча теряет ошибку.
+    this.dailyCronJob = cron.schedule(
+      '0 0 * * *',
+      () => {
+        void this.runDailyTask().catch((err) =>
+          this.logger.error('PowerupExtension: daily-cron fail', err as Error),
+        );
+      },
+      { timezone: 'UTC' },
+    );
 
     // Регистрация cron-задачи для проверки ресурсов каждую минуту
-    this.resourceCronJob = cron.schedule('* * * * *', () => {
-      this.runTask();
-    });
+    this.resourceCronJob = cron.schedule(
+      '* * * * *',
+      () => {
+        void this.runTask().catch((err) =>
+          this.logger.error('PowerupExtension: resource-cron fail', err as Error),
+        );
+      },
+      { timezone: 'UTC' },
+    );
   }
 
   onModuleDestroy() {
@@ -198,21 +237,40 @@ export class PowerupExtension extends BaseExtensionModule implements OnModuleDes
     return `${amount.toFixed(this.extension.config.systemPrecision)} ${this.extension.config.systemSymbol}`;
   }
 
+  /**
+   * Суточная аренда: D тарифа у провайдера (объём месяца / число дней месяца,
+   * @ant 17.10.2026), чтобы бак AXON опустел ровно к дате оплаты. Без тарифа
+   * или без ответа провайдера — настройка расширения, как раньше.
+   */
+  private async dailyAmount(username: string): Promise<number> {
+    const fallback = this.extension.config.dailyPackageSize;
+    if (!this.tariffPort) return fallback;
+    const tariff = await this.tariffPort.currentTariff(username);
+    if (!tariff || !Number.isFinite(tariff.daily_axon) || tariff.daily_axon <= 0) return fallback;
+    return tariff.daily_axon;
+  }
+
   // Ежедневная задача пополнения
   private async runDailyTask() {
-    const quantity = this.getQuantity(this.extension.config.dailyPackageSize);
+    let quantity = this.getQuantity(this.extension.config.dailyPackageSize);
 
     try {
       // Получаем имя пользователя из окружения или другой конфигурации
       const username = platformSettings().coopname;
+      quantity = this.getQuantity(await this.dailyAmount(username));
       const account = await this.blockchainPort.getAccount(username);
 
       if (!account) {
-        throw new Error('Аккаунт не найден');
+        throw DomainError.notFound('POWERUP_ACCOUNT_NOT_FOUND');
       }
 
-      await this.blockchainPort.powerUp(username, quantity);
+      const trx_id = await this.blockchainPort.powerUp(username, quantity);
+      this.onReplenishmentSucceeded();
 
+      // Дата последнего пополнения ставится только после того, как цепь приняла
+      // транзакцию: иначе отказ выглядел бы выполненным пополнением и сутки
+      // никто бы не повторил попытку.
+      //
       // read-modify-write по СВЕЖЕМУ config: daily-cron держит in-memory снимок
       // `this.extension` с момента boot, а update() заменяет весь config JSONB
       // целиком. Перезапись устаревшего снимка стёрла бы поля, записанные за
@@ -226,19 +284,24 @@ export class PowerupExtension extends BaseExtensionModule implements OnModuleDes
       await this.extensionRepository.update({ name: this.name, config: nextConfig });
       this.extension = { ...this.extension, config: nextConfig };
 
+      // Ресурсы читаем после пополнения — в журнале должно стоять то состояние,
+      // к которому пополнение привело, а не то, что было до него.
+      const updatedAccount = (await this.blockchainPort.getAccount(username)) ?? account;
+
       await this.log({
         type: 'daily',
         amount: quantity,
+        trx_id,
         resources: {
-          username: account.account_name,
-          ram_usage: account.ram_usage,
-          ram_quota: account.ram_quota,
-          net_limit: account.net_limit,
-          cpu_limit: account.cpu_limit,
+          username: updatedAccount.account_name,
+          ram_usage: updatedAccount.ram_usage,
+          ram_quota: updatedAccount.ram_quota,
+          net_limit: updatedAccount.net_limit,
+          cpu_limit: updatedAccount.cpu_limit,
         },
       });
     } catch (error) {
-      this.logger.info('Предупреждение при выполнении ежедневного пополнения:', error as Error);
+      this.onReplenishmentFailed(t('powerup.replenishment.kind.daily'), error);
     }
   }
 
@@ -246,8 +309,44 @@ export class PowerupExtension extends BaseExtensionModule implements OnModuleDes
     await this.logExtensionRepository.push(this.name, action);
   }
 
+  /**
+   * Пополнение прошло: серия отказов закончилась, следующая проверка ресурсов
+   * идёт по обычному расписанию.
+   */
+  private onReplenishmentSucceeded() {
+    if (this.failureStreak > 0) {
+      this.logger.info(`Пополнение ресурсов прошло после ${this.failureStreak} неудачных попыток`);
+    }
+    this.failureStreak = 0;
+    this.nextAttemptAt = 0;
+  }
+
+  /**
+   * Пополнение не прошло: записи в журнал аренды не будет, а следующая попытка
+   * отодвигается — пока причина не устранена, повтор каждую минуту ничего не
+   * меняет и только засыпает журнал одинаковыми строками.
+   */
+  private onReplenishmentFailed(what: string, error: unknown) {
+    this.failureStreak += 1;
+    const backoffMs = Math.min(RETRY_BACKOFF_START_MS * 2 ** (this.failureStreak - 1), RETRY_BACKOFF_MAX_MS);
+    this.nextAttemptAt = Date.now() + backoffMs;
+
+    const message = t('powerup.replenishment.failureMessage', { what, attempt: this.failureStreak, minutes: Math.round(backoffMs / 60000) });
+
+    // Первый отказ серии — заметный; дальше причина та же, и повторять её
+    // уровнем `error` незачем.
+    if (this.failureStreak === 1) {
+      this.logger.error(message, error instanceof Error ? error : String(error));
+    } else {
+      this.logger.warn(`${message}: ${String(error)}`);
+    }
+  }
+
   // Задача проверки и пополнения ресурсов
   private async runTask() {
+    // Отход после отказа: пока пауза не вышла, цепь не трогаем.
+    if (this.nextAttemptAt > Date.now()) return;
+
     try {
       // Получаем имя пользователя из окружения или другой конфигурации
       const username = platformSettings().coopname;
@@ -255,7 +354,7 @@ export class PowerupExtension extends BaseExtensionModule implements OnModuleDes
       const account = await this.blockchainPort.getAccount(username);
 
       if (!account) {
-        throw new Error('Аккаунт не найден');
+        throw DomainError.notFound('POWERUP_ACCOUNT_NOT_FOUND');
       }
 
       // Получаем текущие значения квот
@@ -293,18 +392,22 @@ export class PowerupExtension extends BaseExtensionModule implements OnModuleDes
       if (needPowerUp) {
         // Выполняем пополнение ресурсов на сумму ежедневной аренды
         const quantity = this.getQuantity(this.extension.config.dailyPackageSize);
-        await this.blockchainPort.powerUp(username, quantity);
+        const trx_id = await this.blockchainPort.powerUp(username, quantity);
+        this.onReplenishmentSucceeded();
 
         // Получаем актуальные данные после пополнения для логирования
         const updatedAccount = await this.blockchainPort.getAccount(username);
 
         if (!updatedAccount) {
-          throw new Error('Аккаунт не найден');
+          throw DomainError.notFound('POWERUP_ACCOUNT_NOT_FOUND');
         }
 
+        // Журнал аренды ведётся по факту: строка появляется только после того,
+        // как цепь приняла транзакцию.
         await this.log({
           type: 'now',
           amount: quantity,
+          trx_id,
           resources: {
             username: updatedAccount.account_name,
             ram_usage: updatedAccount.ram_usage,
@@ -315,13 +418,13 @@ export class PowerupExtension extends BaseExtensionModule implements OnModuleDes
         });
       }
     } catch (error) {
-      this.logger.info('Предупреждение при проверке и пополнении ресурсов:', error as Error);
+      this.onReplenishmentFailed(t('powerup.replenishment.kind.manual'), error);
     }
   }
 }
 
 @Module({
-  providers: [PowerupExtension], // Регистрируем PowerupExtension как провайдер
+  providers: [PowerupExtension, PowerupRights], // расширение и описание прав страниц его стола
   exports: [PowerupExtension], // Экспортируем его для доступа в других модулях
 })
 export class PowerupExtensionModule {

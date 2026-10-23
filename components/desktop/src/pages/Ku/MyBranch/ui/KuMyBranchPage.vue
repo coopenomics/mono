@@ -5,8 +5,8 @@
   KuBranchDetailsWidget(v-else-if='myBraname', :braname='myBraname')
   EmptyState(
     v-else,
-    title='Кооперативный участок пока не выбран',
-    body='Здесь появится ваш участок, когда вы выберете его для участия в общих собраниях или будете избраны его председателем. Участки кооператива — на вкладке «Кооперативные участки», учреждение нового — на вкладке «Собрания».'
+    :title='$t("ku.kuMyBranchPage.emptyTitle")',
+    :body='$t("ku.kuMyBranchPage.emptyBody")'
   )
     template(#icon)
       q-icon(name='home_work', size='48px')
@@ -14,6 +14,8 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { KU_LIVE_TABLES } from 'src/entities/Ku/model';
 import { useAccountStore } from 'src/entities/Account/model';
 import { useBranchStore } from 'src/entities/Branch/model';
 import { findChairedBranch } from 'src/entities/Branch/lib';
@@ -23,11 +25,12 @@ import { FailAlert } from 'src/shared/api';
 import { EmptyState, TableSkeleton } from 'src/shared/ui/base';
 import type { TableSkeletonColumn } from 'src/shared/ui/base';
 import { KuBranchDetailsWidget } from 'src/widgets/Ku/BranchDetails';
+import { t } from 'src/shared/i18n';
 
 const skeletonColumns: TableSkeletonColumn[] = [
-  { label: 'Участок' },
-  { label: 'Председатель' },
-  { label: 'Доверенные' },
+  { label: t('ku.kuMyBranchPage.column.branch') },
+  { label: t('ku.kuMyBranchPage.column.chairman') },
+  { label: t('ku.kuMyBranchPage.column.trustees') },
 ];
 
 const account = useAccountStore();
@@ -45,6 +48,12 @@ const myBraname = computed(() => {
   if (selected) return selected;
   return findChairedBranch(branchStore.publicBranches, session.username)?.braname ?? '';
 });
+
+// Свой участок живёт по ленте изменений: участки — здесь, прикрепление к
+// участку — через учётную запись, которую держит сессия (userContextLive).
+useLiveReload(KU_LIVE_TABLES, () =>
+  branchStore.loadPublicBranches({ coopname: system.info.coopname }).catch((e) => console.warn('[ku] фоновое перечитывание не удалось', e)),
+);
 
 onMounted(async () => {
   loading.value = true;

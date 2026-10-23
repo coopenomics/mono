@@ -31,7 +31,7 @@ class TransExtension {
 }
 
 export class TemplateEngine implements ITemplateEngine {
-  private readonly env: nunjucks.Environment
+  protected readonly env: nunjucks.Environment
 
   constructor(translation: ITranslations) {
     // Включаем явный режим без автоэкранирования, чтобы HTML из данных рендерился как разметка
@@ -50,7 +50,7 @@ export class TemplateEngine implements ITemplateEngine {
       .replace(/&#39;/g, '\'')
   }
 
-  private prepareVars(value: unknown): unknown {
+  protected prepareVars(value: unknown): unknown {
     if (typeof value === 'string') {
       return this.decodeHtml(value)
     }
@@ -70,6 +70,97 @@ export class TemplateEngine implements ITemplateEngine {
   renderTemplate(template: string, vars: any): string {
     const prepared = this.prepareVars(vars)
     const context = prepared && typeof prepared === 'object' ? (prepared as object) : {}
+    return this.env.renderString(template, context)
+  }
+}
+
+/** Прочерк под рукописное заполнение — так в бланке выглядит любое поле, данных для которого у совета нет. */
+export const BLANK_PLACEHOLDER = '______'
+
+const BLANK_PRIMITIVE_KEYS = new Set<string | symbol>(['toString', 'valueOf', 'toJSON', Symbol.toPrimitive])
+
+/**
+ * Значение-заглушка бланка: в тексте печатается прочерком, вложенное поле
+ * даёт такую же заглушку, перебор по нему даёт одну строку-образец из
+ * заглушек — так в бланке видно, как выглядит позиция списка. Так один и тот
+ * же шаблон собирается и с данными события, и без них — совет утверждает
+ * форму, а не заполненный экземпляр.
+ */
+function blankValue(): unknown {
+  const target: Record<string | symbol, unknown> = {}
+  const proxy: unknown = new Proxy(target, {
+    get(_t, key) {
+      if (BLANK_PRIMITIVE_KEYS.has(key))
+        return () => BLANK_PLACEHOLDER
+      if (key === 'length')
+        return 0
+      // Перебор `{% for %}` — одна строка-образец (nunjucks читает итератор
+      // через Array.from).
+      if (key === Symbol.iterator)
+        return function* sample() { yield blankValue() }
+      // Не обещание и не «объект с прототипом»: движок и Node проверяют эти
+      // ключи и не должны принять заглушку за них.
+      if (key === 'then' || key === 'constructor' || key === 'prototype' || key === '__proto__')
+        return undefined
+      return proxy
+    },
+    has: (_t, key) => key === Symbol.iterator,
+    ownKeys: () => [],
+    getOwnPropertyDescriptor: () => undefined,
+  })
+  return proxy
+}
+
+/**
+ * Оборачивает данные так, что любое отсутствующее поле на любой глубине
+ * печатается прочерком. Известные значения остаются как есть.
+ */
+function blankify(value: unknown): unknown {
+  if (Array.isArray(value))
+    return value.map(blankify)
+  if (value && typeof value === 'object') {
+    const source = value as Record<string, unknown>
+    return new Proxy(source, {
+      get(target, key) {
+        if (typeof key === 'symbol' || key in target)
+          return blankify(Reflect.get(target, key))
+        return blankValue()
+      },
+    })
+  }
+  return value
+}
+
+/**
+ * Собирает бланк: те же шаблон и переводы, что у документа на подпись, но
+ * поля, для которых нет данных, печатаются прочерком. `knownKeys` — верхний
+ * уровень модели шаблона: движок копирует контекст по ключам, поэтому имена,
+ * которых нет во входе, объявляются здесь заглушками.
+ */
+export class BlankTemplateEngine extends TemplateEngine {
+  constructor(translation: ITranslations) {
+    super(translation)
+    // Имя, которого нет в данных, nunjucks ищет в глобальных переменных
+    // окружения. Шаблон может обращаться к полям вне модели документа — в
+    // бланке они тоже прочерк, а не пустая строка и не «undefined» в
+    // аргументах перевода. Встроенные глобальные (range, cycler, joiner)
+    // остаются как есть.
+    const builtins = (this.env as unknown as { globals: Record<string, unknown> }).globals
+    ;(this.env as unknown as { globals: Record<string, unknown> }).globals = new Proxy(builtins, {
+      has: () => true,
+      get: (target, key) => (typeof key === 'symbol' || key in target ? Reflect.get(target, key) : blankValue()),
+    })
+  }
+
+  renderBlank(template: string, vars: Record<string, unknown>, knownKeys: string[]): string {
+    // Подготовка (раскодирование HTML) идёт до заглушек: она копирует объекты
+    // по ключам и стёрла бы прокси. Контекст движку отдаём уже обёрнутым.
+    const prepared = blankify(this.prepareVars(vars)) as Record<string, unknown>
+    const context: Record<string, unknown> = {}
+    for (const key of knownKeys)
+      context[key] = blankValue()
+    for (const key of Object.keys(vars))
+      context[key] = prepared[key]
     return this.env.renderString(template, context)
   }
 }

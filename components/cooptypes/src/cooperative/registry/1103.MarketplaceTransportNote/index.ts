@@ -100,7 +100,7 @@ th {  width: 35%; }
 <div class="digital-document">
   <h1 class="header">{% trans 'ttn_number_label', ttn_number %}</h1>
   <p style="text-align:center" class="subheader">{% trans 'ttn_subtitle' %}</p>
-  <p style="text-align: right">{{ meta.created_at }}, {{ coop.city }}</p>
+  <p style="text-align: right">{{ created_at }}, {{ coop.city }}</p>
 
   <p>{% trans 'ttn_intro', vars.full_abbr, vars.name, supplier.full_name_or_short_name %}</p>
 

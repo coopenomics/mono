@@ -6,23 +6,23 @@
     .edit-field__main
       template(v-if='!isEditing')
         .edit-field__head
-          span.t-sm.t-muted Стоимость часа
+          span.t-sm.t-muted {{ $t('capital.editRatePerHourInput.label') }}
           BaseButton(
             v-if='isOwnProfile',
             variant='ghost',
             size='sm',
             icon-only,
-            aria-label='Редактировать стоимость часа',
+            :aria-label='$t("capital.editRatePerHourInput.editAriaLabel")',
             @click='startEditing'
           )
             template(#icon-left)
               q-icon(name='edit', size='16px')
-        .edit-field__value.t-mono(:class='{ "t-muted": !hasRate }') {{ hasRate ? formattedRate : 'Не указано' }}
+        .edit-field__value.t-mono(:class='{ "t-muted": !hasRate }') {{ hasRate ? formattedRate : $t('capital.editRatePerHourInput.notSpecified') }}
       template(v-else)
         BaseForm(:loading='isSaving', @submit='saveRate')
           AmountInput(
             v-model='localRate',
-            label='Стоимость часа',
+            :label='$t("capital.editRatePerHourInput.label")',
             placeholder='0,00',
             :symbol='governSymbol',
             :precision='2',
@@ -31,14 +31,14 @@
             :error='rateError'
           )
           template(#footer)
-            BaseButton(variant='ghost', size='sm', @click='cancelEditing') Отмена
+            BaseButton(variant='ghost', size='sm', @click='cancelEditing') {{ $t('common.action.cancel') }}
             BaseButton(
               variant='primary',
               size='sm',
               type='submit',
               :loading='isSaving',
               :disabled='!hasChanges || !!rateError'
-            ) Сохранить
+            ) {{ $t('common.action.save') }}
 </template>
 
 <script setup lang="ts">
@@ -51,6 +51,7 @@ import { useSystemStore } from 'src/entities/System/model';
 import { BaseButton, BaseForm } from 'src/shared/ui/base';
 import { AmountInput } from 'src/shared/ui/domain/AmountInput';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
+import { t } from '../../../../i18n';
 
 const emit = defineEmits<{
   'rate-updated': [];
@@ -88,8 +89,8 @@ const formattedRate = computed(() => {
 const rateError = computed(() => {
   if (!localRate.value || !localRate.value.toString().trim()) return undefined;
   const numericValue = parseFloat(localRate.value.toString());
-  if (isNaN(numericValue)) return 'Введите число';
-  return numericValue >= 0 && numericValue <= 3000 ? undefined : 'От 0 до 3000';
+  if (isNaN(numericValue)) return t('capital.editRatePerHourInput.invalidNumber');
+  return numericValue >= 0 && numericValue <= 3000 ? undefined : t('capital.editRatePerHourInput.rangeHint');
 });
 
 // Проверяем, есть ли изменения
@@ -149,14 +150,14 @@ const saveRate = async () => {
       rate_per_hour: formattedRate,
     });
 
-    SuccessAlert('Ставка за час успешно обновлена');
+    SuccessAlert(t('capital.editRatePerHourInput.updateSuccess'));
     isEditing.value = false;
 
     // Уведомляем родительский компонент
     emit('rate-updated');
   } catch (error) {
     console.error('Ошибка при обновлении ставки за час:', error);
-    FailAlert(error, 'Не удалось обновить ставку за час');
+    FailAlert(error, t('capital.editRatePerHourInput.updateError'));
   }
 };
 

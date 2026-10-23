@@ -14,7 +14,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { cleanViteOverlays, env, loginAs, pickBranchIfAsked } from '../../../lib/harness.mjs';
+import { SHOT_SCALE, SHOT_VIEWPORT, cleanViteOverlays, env, loginAs, pickBranchIfAsked, signReceiptIfAsked } from '../../../lib/harness.mjs';
 import { makeSolidPng } from '../../../lib/png.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -34,7 +34,7 @@ export const meta = {
   role: 'user',
   mode: 'docs',
   fixture: 'orderer2',
-  fixtures: ['orderer2'],
+  fixtures: ['orderer2', 'chairkrg'],
   feature: 'marketplace.stock',
   cases: ['mkt.stock.happy.04'],
   prepare: [
@@ -48,8 +48,15 @@ export const meta = {
 };
 
 export default async ({ page, shot, expect }) => {
-  await loginAs(page, loadFixture('orderer2'));
+  // Автоподпись соглашений выключена: оверлей акта обязан дойти до подписи,
+  // а не закрыться каскадом первого входа.
+  await loginAs(page, loadFixture('orderer2'), { signAgreements: false });
   await pickBranchIfAsked(page);
+
+  // Выдачу со склада оператор отправил пайщику на подпись (stock-issuance) —
+  // без подписи заказ не получен, и возвращать по нему нечего.
+  const signed = await signReceiptIfAsked(page);
+  expect(signed, 'оверлей «Подписать и получить» не появился: акт выдачи со склада не дошёл до пайщика').toBe(true);
 
   await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/market/my-orders`, {
     waitUntil: 'domcontentloaded',
@@ -59,6 +66,38 @@ export default async ({ page, shot, expect }) => {
   await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
   await page.waitForTimeout(3000);
   await cleanViteOverlays(page);
+
+  // После подписи пайщика выдачу закрывает стол ПВЗ: вторую подпись акта он
+  // ставит сам, но только пока открыт у оператора. В цепочке первого заказа
+  // стол открывает сценарий issuance-finalize; здесь открываем его во втором
+  // окне и ждём, пока заказ станет полученным.
+  const operatorContext = await page.context().browser().newContext({
+    viewport: SHOT_VIEWPORT,
+    deviceScaleFactor: SHOT_SCALE,
+    locale: 'ru-RU',
+    // Время на кадрах — московское, как у кооператива: в CI браузер иначе живёт в UTC.
+    timezoneId: 'Europe/Moscow',
+  });
+  try {
+    const operatorPage = await operatorContext.newPage();
+    await loginAs(operatorPage, loadFixture('chairkrg'));
+    await pickBranchIfAsked(operatorPage);
+    await operatorPage.goto(`${env.APP_PREFIX}/${env.COOPNAME}/market-pvz/issuance`, {
+      waitUntil: 'domcontentloaded',
+      timeout: 60000,
+    });
+    await operatorPage.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
+    let received = false;
+    for (let i = 0; i < 18 && !received; i++) {
+      await page.waitForTimeout(8000);
+      await page.reload({ waitUntil: 'domcontentloaded' });
+      await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
+      received = await page.getByText('Получен', { exact: true }).first().isVisible().catch(() => false);
+    }
+    expect(received, 'заказ со склада не стал полученным: стол ПВЗ не закрыл выдачу после подписи пайщика').toBe(true);
+  } finally {
+    await operatorContext.close();
+  }
 
   await page.getByText('Яблочный сок').first().click({ force: true });
   await page.waitForSelector('text=Факт выдачи', { timeout: 30000 });

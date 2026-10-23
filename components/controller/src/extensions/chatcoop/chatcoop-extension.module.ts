@@ -1,12 +1,9 @@
+import './i18n';
 import { Module, Injectable, Inject } from '@nestjs/common';
-import { BaseExtensionModule, ActiveUserStatusGuard, ExtensionDomainRepository, ExtensionDomainEntity, EXTENSION_REPOSITORY, platformSettings } from '@coopenomics/extension-kit';
-import { ChatCoopDatabaseModule } from './infrastructure/database/chatcoop-database.module';
+import { BaseExtensionModule, ActiveUserStatusGuard, ExtensionDomainRepository, ExtensionDomainEntity, EXTENSION_REPOSITORY, platformSettings, DomainError } from '@coopenomics/extension-kit';
 import { ChatCoopApplicationService } from './application/services/chatcoop-application.service';
 import { MatrixApiService } from './application/services/matrix-api.service';
 import { MatrixUserManagementService } from './domain/services/matrix-user-management.service';
-import { UnionChatService } from './domain/services/union-chat.service';
-import { UnionChatTypeormRepository } from './infrastructure/repositories/union-chat.typeorm-repository';
-import { UNION_CHAT_REPOSITORY } from './domain/repositories/union-chat.repository';
 import { ChatCoopResolver } from './application/resolvers/chatcoop.resolver';
 import { ChatCoopCalendarResolver } from './application/resolvers/chatcoop-calendar.resolver';
 import { ChatCoopCalendarFeedController } from './application/controllers/chatcoop-calendar-feed.controller';
@@ -30,8 +27,8 @@ import * as crypto from 'crypto';
 import { TranscriptionManagementService } from './domain/services/transcription-management.service';
 import { CALL_TRANSCRIPTION_REPOSITORY } from './domain/repositories/call-transcription.repository';
 import { TRANSCRIPTION_SEGMENT_REPOSITORY } from './domain/repositories/transcription-segment.repository';
-import { CallTranscriptionTypeormRepository } from './infrastructure/repositories/call-transcription.typeorm-repository';
-import { TranscriptionSegmentTypeormRepository } from './infrastructure/repositories/transcription-segment.typeorm-repository';
+import { CallTranscriptionKyselyRepository } from './infrastructure/repositories/call-transcription.kysely-repository';
+import { TranscriptionSegmentKyselyRepository } from './infrastructure/repositories/transcription-segment.kysely-repository';
 import { SecretaryAgentService } from './application/services/secretary-agent.service';
 import { WhisperSttService } from './application/services/whisper-stt.service';
 import { LiveKitWebhookController } from './application/controllers/livekit-webhook.controller';
@@ -40,9 +37,9 @@ import { COUNCIL_ROOM_MATRIX } from './application/config/matrix-council-room.co
 import { CapitalProjectMatrixSyncService } from './application/services/capital-project-matrix-sync.service';
 import { CHATCOOP_MANAGED_MATRIX_ROOM_REPOSITORY } from './domain/repositories/managed-matrix-room.repository';
 import type { ChatcoopManagedMatrixRoomRepository } from './domain/repositories/managed-matrix-room.repository';
-import { ManagedMatrixRoomTypeormRepository } from './infrastructure/repositories/managed-matrix-room.typeorm-repository';
+import { ManagedMatrixRoomKyselyRepository } from './infrastructure/repositories/managed-matrix-room.kysely-repository';
 import { ROOM_MESSAGE_HISTORY_REPOSITORY } from './domain/repositories/room-message-history.repository';
-import { RoomMessageHistoryTypeormRepository } from './infrastructure/repositories/room-message-history.typeorm-repository';
+import { RoomMessageHistoryKyselyRepository } from './infrastructure/repositories/room-message-history.kysely-repository';
 import { MatrixRoomMessageHistoryIngestService } from './application/services/matrix-room-message-history-ingest.service';
 import { ChatCoopSecretaryMatrixTokenService } from './application/services/chatcoop-secretary-matrix-token.service';
 import { MatrixRoomMessageHistoryCronService } from './application/services/matrix-room-message-history-cron.service';
@@ -50,18 +47,15 @@ import { ChatcoopInnercoopProjectCommunicationArtifactsAdapter } from './infrast
 import { ChatcoopInnercoopMatrixRoomMessagingAdapter } from './infrastructure/innercoop/chatcoop-innercoop-matrix-room-messaging.adapter';
 import { ChatcoopInnercoopChatCoopCalendarAdapter } from './infrastructure/innercoop/chatcoop-innercoop-chatcoop-calendar.adapter';
 import { ChatCoopCalendarApplicationService } from './application/services/chatcoop-calendar-application.service';
-import { CalendarEventTypeormRepository } from './infrastructure/repositories/calendar-event.typeorm-repository';
-import { CalendarIcsSubscriptionTypeormRepository } from './infrastructure/repositories/calendar-ics-subscription.typeorm-repository';
+import { CalendarEventKyselyRepository } from './infrastructure/repositories/calendar-event.kysely-repository';
+import { CalendarIcsSubscriptionKyselyRepository } from './infrastructure/repositories/calendar-ics-subscription.kysely-repository';
 import { CHATCOOP_CALENDAR_EVENT_REPOSITORY } from './domain/repositories/calendar-event.repository';
 import { CHATCOOP_CALENDAR_ICS_SUBSCRIPTION_REPOSITORY } from './domain/repositories/calendar-ics-subscription.repository';
 import { CHATCOOP_STATE_REPOSITORY } from './domain/repositories/chatcoop-state.repository';
 import type { ChatcoopStateRepository } from './domain/repositories/chatcoop-state.repository';
-import { ChatcoopStateTypeormRepository } from './infrastructure/repositories/chatcoop-state.typeorm-repository';
-
-// Функция для проверки и сериализации FieldDescription
-function describeField(description: DeserializedDescriptionOfExtension): string {
-  return JSON.stringify(description);
-}
+import { ChatcoopStateKyselyRepository } from './infrastructure/repositories/chatcoop-state.kysely-repository';
+import { t } from './i18n';
+import { describeConfigField } from '@coopenomics/extension-kit';
 
 // Схема конфигурации для чаткооп (только то, что безопасно терять при переустановке расширения; space/секретарь — в PG `chatcoop_state`)
 export const Schema = z.object({
@@ -72,9 +66,9 @@ export const Schema = z.object({
     .max(60)
     .default(2)
     .describe(
-      describeField({
-        label: 'Интервал синхронизации истории чата (мин)',
-        note: 'Как часто бот подтягивает сообщения в PG (независимо от звонков). 1 = каждую минуту.',
+      describeConfigField({
+        label: t('chatcoop.settings.historySyncIntervalLabel'),
+        note: t('chatcoop.settings.historySyncIntervalNote'),
         visible: true,
       })
     ),
@@ -89,11 +83,13 @@ export const defaultConfig = {
 export type IConfig = z.infer<typeof Schema>;
 
 // Репозитории
-import { MatrixUserTypeormRepository } from './infrastructure/repositories/matrix-user.typeorm-repository';
+import { MatrixUserKyselyRepository } from './infrastructure/repositories/matrix-user.kysely-repository';
 
 // Символы для DI
 import { MATRIX_USER_REPOSITORY } from './domain/repositories/matrix-user.repository';
-import { type DeserializedDescriptionOfExtension } from '@coopenomics/extension-kit';
+import { ChatcoopLiveFeedService } from './infrastructure/realtime/chatcoop-live-feed.service';
+import { APP_RIGHTS, RightsGuard } from '@coopenomics/extension-kit';
+import { ChatcoopRights } from './application/access/chatcoop-rights';
 @Injectable()
 export class ChatCoopExtension extends BaseExtensionModule {
   constructor(
@@ -137,14 +133,24 @@ export class ChatCoopExtension extends BaseExtensionModule {
 
       // Получаем конфигурацию расширения
       const extensionData = await this.extensionRepository.findByName(this.name);
-      if (!extensionData) throw new Error('Конфиг чаткооп не найден');
+      if (!extensionData) throw DomainError.internal('CHATCOOP_CONFIG_NOT_FOUND');
 
       this.extension = extensionData;
 
-      // Выполняем логин администратора при инициализации
-      await this.matrixApiService.loginAdmin();
+      // Вход администратора при старте — проверка, а не условие запуска. Matrix
+      // перезапускается вместе с узлом и может ответить на несколько секунд
+      // позже контроллера; раньше такой отказ ронял запуск расширения, и чат
+      // оставался выключенным до следующего рестарта. Каждый вызов Matrix
+      // входит заново сам (loginAdmin кэширует токен), отложенная настройка
+      // ниже повторит попытку через десять секунд.
+      await this.matrixApiService.loginAdmin().catch((error) => {
+        this.logger.warn(
+          `Matrix не принял вход администратора при старте, вход повторится при первом обращении: ${error?.message ?? error}`
+        );
+      });
 
       // Отложенная инициализация (MongoDB/Generator могут быть ещё не готовы)
+      // timing: schedule — настройка пространства Matrix после старта узла; сигнала готовности генератора нет, заменить на него — отдельная задача
       setTimeout(async () => {
         try {
           const st = await this.chatcoopState.getSingleton();
@@ -189,6 +195,7 @@ export class ChatCoopExtension extends BaseExtensionModule {
    * Выполняется только если расширение установлено (this.extension задаётся в initialize()).
    */
   async onModuleInit(): Promise<void> {
+    // timing: schedule — отложенная настройка секретаря после старта узла; сигнала готовности генератора нет, заменить на него — отдельная задача
     setTimeout(async () => {
       try {
         // Расширение не установлено — initialize() не вызывался, пропускаем
@@ -251,17 +258,17 @@ export class ChatCoopExtension extends BaseExtensionModule {
 
       const vars = await this.cooperativeVars.get();
       if (!vars) {
-        throw new Error('Не удалось получить переменные кооператива для комнаты пайщиков');
+        throw DomainError.internal('CHATCOOP_COOP_VARS_UNAVAILABLE_FOR_MEMBERS');
       }
 
-      const membersRoomName = `Комната пайщиков ${vars.shortAbbr} ${vars.name}`;
+      const membersRoomName = t('chatcoop.roomNames.members', { shortAbbr: vars.shortAbbr, name: vars.name });
       const membersMatrix = COOPERATIVE_MEMBERS_ROOM_MATRIX;
       const adminUserId = this.matrixApiService.getAdminUserId();
       const membersRoomPowerLevels = membersMatrix.buildPowerLevels(adminUserId);
 
       const membersRoomId = await this.matrixApiService.createRoom(
         membersRoomName,
-        'Чат для всех пайщиков кооператива',
+        t('chatcoop.roomTopics.members'),
         membersMatrix.isPrivate,
         membersMatrix.roomType,
         membersMatrix.initialState.length > 0 ? membersMatrix.initialState : undefined,
@@ -275,7 +282,7 @@ export class ChatCoopExtension extends BaseExtensionModule {
         matrixRoomId: membersRoomId,
         encrypted: membersMatrix.encrypt,
         kind: 'members',
-        displayLabel: 'Комната пайщиков',
+        displayLabel: t('chatcoop.room.status.members'),
         projectHash: null,
       });
 
@@ -296,12 +303,12 @@ export class ChatCoopExtension extends BaseExtensionModule {
       // Получаем переменные кооператива
       const vars = await this.cooperativeVars.get();
       if (!vars) {
-        throw new Error('Не удалось получить переменные кооператива');
+        throw DomainError.internal('CHATCOOP_COOP_VARS_UNAVAILABLE');
       }
 
       const spaceName = `${vars.shortAbbr} ${vars.name.toUpperCase()}`;
-      const membersRoomName = `Комната пайщиков ${vars.shortAbbr} ${vars.name}`;
-      const councilRoomName = `Комната совета ${vars.shortAbbr} ${vars.name}`;
+      const membersRoomName = t('chatcoop.roomNames.members', { shortAbbr: vars.shortAbbr, name: vars.name });
+      const councilRoomName = t('chatcoop.roomNames.council', { shortAbbr: vars.shortAbbr, name: vars.name });
 
       // Получаем user_id администратора Matrix
       const adminUserId = this.matrixApiService.getAdminUserId();
@@ -313,12 +320,12 @@ export class ChatCoopExtension extends BaseExtensionModule {
       const councilRoomPowerLevels = councilMatrix.buildPowerLevels(adminUserId);
 
       // Создаем пространство кооператива
-      const spaceId = await this.matrixApiService.createSpace(spaceName, `Частное пространство кооператива ${vars.name}`);
+      const spaceId = await this.matrixApiService.createSpace(spaceName, t('chatcoop.spaceTopic.private', { name: vars.name }));
       this.logger.log(`Создано пространство кооператива: ${spaceId}`);
 
       const membersRoomId = await this.matrixApiService.createRoom(
         membersRoomName,
-        'Чат для всех пайщиков кооператива',
+        t('chatcoop.roomTopics.members'),
         membersMatrix.isPrivate,
         membersMatrix.roomType,
         membersMatrix.initialState.length > 0 ? membersMatrix.initialState : undefined,
@@ -330,7 +337,7 @@ export class ChatCoopExtension extends BaseExtensionModule {
       // Создаем комнату для совета
       const councilRoomId = await this.matrixApiService.createRoom(
         councilRoomName,
-        'Чат для членов совета кооператива',
+        t('chatcoop.roomTopics.council'),
         councilMatrix.isPrivate,
         councilMatrix.roomType,
         councilMatrix.initialState.length > 0 ? councilMatrix.initialState : undefined,
@@ -356,14 +363,14 @@ export class ChatCoopExtension extends BaseExtensionModule {
         matrixRoomId: membersRoomId,
         encrypted: membersMatrix.encrypt,
         kind: 'members',
-        displayLabel: 'Комната пайщиков',
+        displayLabel: t('chatcoop.room.status.members'),
         projectHash: null,
       });
       await this.managedMatrixRooms.upsertRoom({
         matrixRoomId: councilRoomId,
         encrypted: councilMatrix.encrypt,
         kind: 'council',
-        displayLabel: 'Комната совета',
+        displayLabel: t('chatcoop.room.status.council'),
         projectHash: null,
       });
 
@@ -393,7 +400,7 @@ export class ChatCoopExtension extends BaseExtensionModule {
       // Получаем имя кооператива для формирования username
       const vars = await this.cooperativeVars.get();
       if (!vars) {
-        throw new Error('Не удалось получить переменные кооператива');
+        throw DomainError.internal('CHATCOOP_COOP_VARS_UNAVAILABLE');
       }
 
       const coopname = vars.coopname || platformSettings().coopname;
@@ -412,7 +419,7 @@ export class ChatCoopExtension extends BaseExtensionModule {
       const randomSuffix = Math.random().toString(36).substring(2, 5);
       const secretaryUsername = `secretary-${coopname}-${randomSuffix}`;
       const secretaryPassword = crypto.randomBytes(32).toString('hex');
-      const displayName = `Секретарь | ${vars.shortAbbr} ${vars.name}`;
+      const displayName = t('chatcoop.secretaryAccount.displayName', { shortAbbr: vars.shortAbbr, name: vars.name });
 
       this.logger.log(`Создание Matrix аккаунта секретаря: ${secretaryUsername}`);
 
@@ -508,7 +515,6 @@ export class ChatCoopExtension extends BaseExtensionModule {
 
 @Module({
   imports: [
-    ChatCoopDatabaseModule,
     ConfigModule,
   ],
   controllers: [
@@ -516,6 +522,11 @@ export class ChatCoopExtension extends BaseExtensionModule {
     ChatCoopCalendarFeedController,
   ],
   providers: [
+    // Права стола: описание для общего гарда операций и прав страниц
+    ChatcoopRights,
+    { provide: APP_RIGHTS, useExisting: ChatcoopRights },
+    RightsGuard,
+
     // Extension
     ChatCoopExtension,
 
@@ -542,49 +553,47 @@ export class ChatCoopExtension extends BaseExtensionModule {
 
     // Repositories
 
+    // Лента изменений чата (C28-83)
+    ChatcoopLiveFeedService,
+
     // Domain Services
     MatrixUserManagementService,
-    UnionChatService,
     TranscriptionManagementService,
 
     // Repositories — Matrix
     {
       provide: MATRIX_USER_REPOSITORY,
-      useClass: MatrixUserTypeormRepository,
-    },
-    {
-      provide: UNION_CHAT_REPOSITORY,
-      useClass: UnionChatTypeormRepository,
+      useClass: MatrixUserKyselyRepository,
     },
 
     // Repositories — Transcriptions
     {
       provide: CALL_TRANSCRIPTION_REPOSITORY,
-      useClass: CallTranscriptionTypeormRepository,
+      useClass: CallTranscriptionKyselyRepository,
     },
     {
       provide: TRANSCRIPTION_SEGMENT_REPOSITORY,
-      useClass: TranscriptionSegmentTypeormRepository,
+      useClass: TranscriptionSegmentKyselyRepository,
     },
     {
       provide: CHATCOOP_MANAGED_MATRIX_ROOM_REPOSITORY,
-      useClass: ManagedMatrixRoomTypeormRepository,
+      useClass: ManagedMatrixRoomKyselyRepository,
     },
     {
       provide: CHATCOOP_STATE_REPOSITORY,
-      useClass: ChatcoopStateTypeormRepository,
+      useClass: ChatcoopStateKyselyRepository,
     },
     {
       provide: ROOM_MESSAGE_HISTORY_REPOSITORY,
-      useClass: RoomMessageHistoryTypeormRepository,
+      useClass: RoomMessageHistoryKyselyRepository,
     },
     {
       provide: CHATCOOP_CALENDAR_EVENT_REPOSITORY,
-      useClass: CalendarEventTypeormRepository,
+      useClass: CalendarEventKyselyRepository,
     },
     {
       provide: CHATCOOP_CALENDAR_ICS_SUBSCRIPTION_REPOSITORY,
-      useClass: CalendarIcsSubscriptionTypeormRepository,
+      useClass: CalendarIcsSubscriptionKyselyRepository,
     },
 
     // GraphQL Resolvers

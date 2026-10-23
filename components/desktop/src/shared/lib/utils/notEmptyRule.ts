@@ -1,3 +1,5 @@
+import { t } from 'src/shared/i18n'
+
 export const notEmpty = (val: any) => {
-  return !!val || 'Это поле обязательно для заполнения'
+  return !!val || t('validation.required')
 }

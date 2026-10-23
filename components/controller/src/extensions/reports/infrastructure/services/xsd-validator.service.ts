@@ -5,6 +5,7 @@ import { join, resolve } from 'path';
 import iconv from 'iconv-lite';
 import { parseXml, type Document } from 'libxmljs2';
 import { ReportType, REPORT_CONFIG } from '../../domain/enums/report-type.enum';
+import { t } from '../../i18n';
 
 export interface XsdValidationError {
   message: string;
@@ -47,10 +48,15 @@ const EFS1_MAIN_XSD = 'efs1.xsd';
 // Порядок важен: от более длинных к коротким, чтобы не было частичных замен.
 // Экспортируется для unit-тестов — иначе таблица дублируется и может разойтись.
 export const EFS1_XML_NS_MAP: [string, string][] = [
+  // i18n-ignore: официальная форма — URI XSD-схемы/namespace
   ['http://пф.рф/ВС/ЕФС/2026-01-01', 'http://ns.efs.ru/VS/EFS/2026-01-01'],
+  // i18n-ignore: официальная форма — URI XSD-схемы/namespace
   ['http://пф.рф/ЕФС-1/2026-01-01',  'http://ns.efs.ru/EFS-1/2026-01-01'],
+  // i18n-ignore: официальная форма — URI XSD-схемы/namespace
   ['http://пф.рф/ВС/типы/2025-01-01','http://ns.efs.ru/VS/types/2025-01-01'],
+  // i18n-ignore: официальная форма — URI XSD-схемы/namespace
   ['http://пф.рф/АФ/2025-01-01',     'http://ns.efs.ru/AF/2025-01-01'],
+  // i18n-ignore: официальная форма — URI XSD-схемы/namespace
   ['http://пф.рф/УТ/2025-01-01',     'http://ns.efs.ru/UT/2025-01-01'],
 ];
 
@@ -111,7 +117,7 @@ export class XsdValidatorService implements OnModuleInit {
     if (!xsdDoc) {
       return {
         isValid: false,
-        errors: [{ message: `XSD-схема не найдена: ${xsdFileName}. Доступны: ${[...this.xsdCache.keys()].join(', ')}` }],
+        errors: [{ message: t('reports.xsdValidator.schemaNotFoundMessage', { fileName: xsdFileName, availableSchemas: [...this.xsdCache.keys()].join(', ') }) }],
       };
     }
     // Для ЕФС-1: подменяем namespace'ы в XML + chdir в efs1/ на время validate
@@ -131,7 +137,7 @@ export class XsdValidatorService implements OnModuleInit {
       // явно isValid:false, чтобы нельзя было «случайно» пропустить форму.
       return {
         isValid: false,
-        errors: [{ message: `XSD для отчёта ${reportType} не определена — валидация невозможна` }],
+        errors: [{ message: t('reports.xsdValidator.schemaNotDefinedMessage', { reportType }) }],
       };
     }
     return this.validate(xml, cfg.xsdFile);
@@ -198,7 +204,7 @@ export class XsdValidatorService implements OnModuleInit {
     } catch (e) {
       return {
         isValid: false,
-        errors: [{ message: `Ошибка парсинга XML: ${e instanceof Error ? e.message : String(e)}` }],
+        errors: [{ message: t('reports.xsdValidator.xmlParseErrorMessage', { message: e instanceof Error ? e.message : String(e) }) }],
       };
     }
 

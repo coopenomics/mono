@@ -4,6 +4,7 @@ import { DocFactory } from '../Factory'
 import { Udata } from '../Models/Udata'
 import type { IGeneratedDocument, IGenerationOptions, IMetaDocument, ITemplate } from '../Interfaces'
 import type { MongoDBConnector } from '../Services/Databazor'
+import { formatCreatedAt } from '../Utils/documentCreatedAt'
 
 export { GenerationMoneyInvestStatement as Template } from '../Templates'
 
@@ -80,7 +81,8 @@ export class Factory extends DocFactory<GenerationMoneyInvestStatement.Action> {
       short_appendix_hash: this.getShortHash(data.appendix_hash),
       contributor_contract_number: String(contributorContractUdata.value),
       contributor_contract_created_at: String(contributorContractCreatedAtUdata.value),
-      appendix_created_at: data.appendix_created_at,
+      // Дата приложения — это `meta.created_at` его документа: в заявлении её видит человек.
+      appendix_created_at: formatCreatedAt(data.appendix_created_at, meta.timezone),
       project_hash: data.project_hash,
       amount: super.formatAsset(data.amount),
       blagorost_agreement_number: String(blagorostAgreementUdata.value),

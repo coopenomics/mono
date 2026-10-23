@@ -28,6 +28,7 @@
  *                                       o.mkt.payout + o.mkt.consum
  *   - processes::marketplace::RETURN  ← o.mkt.return
  *   - processes::marketplace::WRITEOFF ← o.mkt.wroff
+ *   - processes::marketplace::CLAIM    ← o.mkt.claim + o.mkt.admit
  *
  * Одноактовые процессы: `capital::IMPORT`, `capital::PROPERTY`,
  * `capital::INVEST`, `soviet::AXN_CONVERT` (process_type совпадает с
@@ -74,11 +75,12 @@ namespace processes {
     inline constexpr eosio::name SUPPLY    = "p.mkt.supply"_n;   ///< Прямая поставка-приобретение имущества (5 операций: o.mkt.lock + o.mkt.unlock + o.mkt.purch + o.mkt.payout + o.mkt.consum).
     inline constexpr eosio::name RETURN    = "p.mkt.return"_n;   ///< Гарантийный возврат имущества пайщиком — compensating forward к o.mkt.consum (o.mkt.return).
     inline constexpr eosio::name WRITEOFF  = "p.mkt.wroff"_n;    ///< Утилизация скоропорта со склада КУ (o.mkt.wroff, по протоколу совета).
+    inline constexpr eosio::name CLAIM     = "p.mkt.claim"_n;    ///< Гарантийная претензия поставщику по отменённой советом сделке (o.mkt.claim → o.mkt.admit; несогласие в цепь не пишется); удержание долга из выплат — o.mkt.deduct в нитке заказа.
   }
 
   // branch — экономика кооперативного участка (requirement b6)
   namespace branch {
-    inline constexpr eosio::name FEES  = "p.brn.fees"_n;  ///< Членские взносы КУ: зачисление в общий кошелёк при финализации заказа (o.brn.common), ручное распределение председателем (o.brn.release + o.brn.person) и использование персональных средств доверенным (o.brn.conv).
+    inline constexpr eosio::name FEES  = "p.brn.fees"_n;  ///< Членские взносы КУ: зачисление в общий кошелёк при финализации заказа (o.brn.common), ручное распределение председателем (o.brn.release + o.brn.person).
     inline constexpr eosio::name AID   = "p.brn.aid"_n;   ///< Материальная помощь доверенному КУ из его персонального кошелька (o.brn.aid; заявление → выплата кассиром).
     inline constexpr eosio::name SPEND = "p.brn.spend"_n; ///< Оплата расхода КУ из общего кошелька (o.brn.spend; команда председателя → выплата кассиром по реквизитам). Плановый реестр расходов и резерв 30 дней ведёт бэкенд.
   }
@@ -88,10 +90,28 @@ namespace processes {
     inline constexpr eosio::name PROPOSAL  = "p.exp.expns"_n;    ///< Цикл расхода по СЗ: o.exp.blgadv|blgdir (платёж) + опц. o.exp.over (перерасход) + o.exp.advrpt (отчёт ADVANCE) + опц. o.exp.advret (возврат). Анкер процесса — proposal_hash.
   }
 
+  // edubridge — ЦПП «Образование» (приложение «Образовательный мост»)
+  namespace edubridge {
+    inline constexpr eosio::name ACCESS    = "p.edu.access"_n;   ///< Доступ к курсу: конвертация паевого в членский взнос программы (o.edu.conv) + подписка (opensub/extendsub/expiresub без движений). Анкер процесса — sub_hash.
+    inline constexpr eosio::name RID       = "p.edu.rid"_n;      ///< Паевой взнос преподавателя результатом интеллектуальной деятельности: заявление → решение совета → акт (o.edu.rid, одноактовый по средствам). Анкер процесса — rid_hash.
+    inline constexpr eosio::name SPEND     = "p.edu.spend"_n;    ///< Расход средств программы «Образование»: служебная записка на расход из фонда, решение совета, оплата или аванс под отчёт, отчёт. Обслуживает шасси расходов; анкер процесса — expense_hash.
+    inline constexpr eosio::name TEACH     = "p.edu.teach"_n;    ///< Участие преподавателя в хозяйственной деятельности: договор УХД и приложения к нему на курс, обе подписи (преподаватель + председатель через одобрение). Движений средств нет. Анкер процесса — contract_hash.
+    inline constexpr eosio::name RETURN_SHARE   = "p.edu.retshr"_n;  ///< Возврат членского взноса программы «Образование» на паевой по заявлению участника (o.edu.retshr). Самостоятельный процесс из одного действия: хэш процесса — хэш заявления.
+    inline constexpr eosio::name WITHDRAW_SHARE = "p.edu.wthshr"_n;  ///< Перевод паевого взноса преподавателя из программы «Образование» в программу «Цифровой Кошелёк» по его заявлению (o.edu.wthshr). Самостоятельный процесс из одного действия: хэш процесса — хэш заявления.
+  }
+
   // soviet
   namespace soviet {
     inline constexpr eosio::name AXN_CONVERT = "p.sov.axncnv"_n; ///< Конвертация паевого RUB → делегатский ЧВ (одноактовый).
     inline constexpr eosio::name TAX         = "p.sov.tax"_n;    ///< Перечисление удержанного налога в бюджет (заявка бухгалтера → платёж кассира → закрытие обязательства). Собственная нитка, а не продолжение выплаты: платёж гасит удержания всех программ сразу, и привязать его к одной выплате нельзя.
+  }
+
+  // billing (Epic 12 — контракт billing)
+  // ВНИМАНИЕ: имя константы НЕ `FUND` — `FUND` занят макросом `#define FUND "fund"`
+  // в consts.hpp (имя контракта fund). Используем `CONVERT` (бэкенд-имя действия).
+  namespace billing {
+    inline constexpr eosio::name CONVERT = "p.bil.fund"_n; ///< Пополнение биллинг-кошелька пайщика (трансляция паевого в членский, одноактовый; anchor = hash заявления document2).
+    inline constexpr eosio::name PAY     = "p.bil.pay"_n;  ///< Оплата подписки с биллинг-кошелька (одноактовый; anchor = payment_hash из БД провайдера).
   }
 
   // migration
@@ -126,9 +146,12 @@ static constexpr eosio::name PROCESS_REGISTRY[] = {
   capital::IMPORT,       capital::INVEST,      capital::DEBT,
   capital::RID,          capital::PROPERTY,    capital::PREIMP,
   capital::WTHCAP,       capital::PGEXP,
-  marketplace::SUPPLY,   marketplace::RETURN,  marketplace::WRITEOFF,
+  marketplace::SUPPLY,   marketplace::RETURN,  marketplace::WRITEOFF, marketplace::CLAIM,
   branch::FEES,          branch::AID,          branch::SPEND,
   expense::PROPOSAL,
+  billing::CONVERT,      billing::PAY,
+  edubridge::ACCESS,     edubridge::RID,       edubridge::TEACH,     edubridge::SPEND,
+  edubridge::RETURN_SHARE, edubridge::WITHDRAW_SHARE,
   soviet::AXN_CONVERT,   soviet::TAX,
   migration::TRANSIT,
   adjustment::CORRECTION,

@@ -15,10 +15,16 @@ import type {
  */
 @Injectable()
 export class ExtensionGrantsRegistry {
-  private readonly providers = new Map<string, IExtensionDesktopGrantsProvider>();
+  private readonly providers = new Map<string, IExtensionDesktopGrantsProvider[]>();
 
+  /**
+   * На одном столе сходятся права из нескольких таблиц: стол председателя
+   * получает права ядра и права расширения «Председатель». Каждая таблица
+   * кладёт своего поставщика, стол получает объединение.
+   */
   register(provider: IExtensionDesktopGrantsProvider): void {
-    this.providers.set(provider.extensionName, provider);
+    const known = this.providers.get(provider.extensionName) ?? [];
+    this.providers.set(provider.extensionName, [...known, provider]);
   }
 
   has(extensionName: string): boolean {
@@ -33,9 +39,10 @@ export class ExtensionGrantsRegistry {
     extensionName: string,
     ctx: IDesktopGrantsContext,
   ): Promise<string[] | undefined> {
-    const provider = this.providers.get(extensionName);
-    if (!provider) return undefined;
-    return provider.resolveGrants(ctx);
+    const providers = this.providers.get(extensionName);
+    if (!providers) return undefined;
+    const granted = await Promise.all(providers.map((provider) => provider.resolveGrants(ctx)));
+    return [...new Set(granted.flat())];
   }
 }
 

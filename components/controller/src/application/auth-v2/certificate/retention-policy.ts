@@ -34,8 +34,11 @@ export function buildClaimsPolicy(coopname: string): CoopIdClaimsPolicy {
     data_retention_contract: DATA_RETENTION_CONTRACT,
     retention_period_days: RETENTION_PERIOD_DAYS,
     description:
+      // i18n-ignore: текст юридической политики хранения данных для внешнего сервиса (RP), остаётся на языке юрисдикции
       'Приняв participant_certificate, внешний сервис (RP) обязуется удалить персональные данные '
+      // i18n-ignore: текст юридической политики хранения данных для внешнего сервиса (RP), остаётся на языке юрисдикции
       + 'пайщика при его исключении из кооператива и не позднее retention_deadline_ts. '
+      // i18n-ignore: текст юридической политики хранения данных для внешнего сервиса (RP), остаётся на языке юрисдикции
       + 'Обязательство закреплено в договоре присоединения кооператива.',
     membership_agreement_url: `https://${coopname}.coop/agreement`,
     policy_version: CLAIMS_POLICY_VERSION,

@@ -1,13 +1,3 @@
-export { getExpenseProposalsByCooperative } from './queries/getExpenseProposalsByCooperative';
-export type {
-  IGetExpenseProposalsByCooperativeInput,
-  IExpenseProposalsByCooperativeResult,
-} from './queries/getExpenseProposalsByCooperative';
-export { getExpenseProposalsByMember } from './queries/getExpenseProposalsByMember';
-export type {
-  IGetExpenseProposalsByMemberInput,
-  IExpenseProposalsByMemberResult,
-} from './queries/getExpenseProposalsByMember';
 export { getExpenseProposal } from './queries/getExpenseProposal';
 export type {
   IGetExpenseProposalInput,
@@ -25,3 +15,5 @@ export { generateExpenseProposalDecisionDocument } from './mutations/generateExp
 export type { IGenerateExpenseProposalDecisionDocumentInput } from './mutations/generateExpenseProposalDecisionDocument';
 export { createExpenseProposal } from './mutations/createExpenseProposal';
 export type { ICreateExpenseProposalInput } from './mutations/createExpenseProposal';
+export { submitExpenseReport } from './mutations/submitExpenseReport';
+export type { ISubmitExpenseReportInput } from './mutations/submitExpenseReport';

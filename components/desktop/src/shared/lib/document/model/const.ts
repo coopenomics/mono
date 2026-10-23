@@ -1,4 +1,5 @@
 import type { IDocument } from '../../types/document';
+import { Cooperative } from 'cooptypes';
 
 export const fakeDocument: IDocument = {
   version: '1.0.0',
@@ -12,8 +13,9 @@ export const fakeDocument: IDocument = {
     generator: 'generator',
     lang: 'ru',
     links: [],
-    registry_id: 1,
+    registry_id: Cooperative.Registry.WalletAgreement.registry_id,
     timezone: 'Europe/Moscow',
+    // i18n-ignore: тестовые данные-заглушка (фикстура), не текст интерфейса
     title: 'Фейковый документ',
     username: 'tester',
     version: '1.0.0',

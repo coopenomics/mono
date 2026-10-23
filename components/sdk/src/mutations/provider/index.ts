@@ -1,9 +1,7 @@
 /**
- * Мутации для работы с провайдером
+ * Мутации для работы с провайдером.
+ *
+ * Конвертация паевого взноса в AXON отсюда убрана (Epic 13): см. Mutations.Billing
+ * (convert — паевой → членский на w.wal.bill; AXON докупает хаб).
  */
-
-/** Генерирует заявление на конвертацию паевого взноса в членский взнос */
-export * as GenerateConvertToAxonStatement from './generateConvertToAxonStatement'
-
-/** Обрабатывает подписанное заявление на конвертацию и выполняет блокчейн-транзакцию */
-export * as ProcessConvertToAxonStatement from './processConvertToAxonStatement'
+export {}

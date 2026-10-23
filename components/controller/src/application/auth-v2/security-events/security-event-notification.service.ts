@@ -10,6 +10,7 @@ import {
   SecurityEventKind,
 } from '~/domain/auth-v2/security-events/security-event.types';
 import { isPrivateIp } from '../device-tracking/device-description.util';
+import { t } from '~/i18n';
 
 /**
  * IP для письма человеческим языком: IPv4-in-IPv6 префикс срезается, приватные
@@ -17,8 +18,8 @@ import { isPrivateIp } from '../device-tracking/device-description.util';
  */
 function humanIp(ip: string | null): string {
   const bare = (ip ?? '').replace(/^::ffff:/i, '').trim();
-  if (!bare) return 'неизвестен';
-  return isPrivateIp(bare) ? 'локальная сеть' : bare;
+  if (!bare) return t('authV2.securityEventNotificationService.unknownIp');
+  return isPrivateIp(bare) ? t('authV2.securityEventNotificationService.localNetwork') : bare;
 }
 
 export interface SecurityEventNotificationInput {

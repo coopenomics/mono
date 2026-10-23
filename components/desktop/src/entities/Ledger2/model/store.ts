@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import type { RegistrySource } from 'src/shared/lib/registry-source'
 import { ref, type Ref } from 'vue'
 import { ledger2Api } from '../api'
 import type {
@@ -19,10 +20,10 @@ interface ILedger2Store {
   accounts: Ref<ILedger2Account[]>
   wallets: Ref<ILedger2Wallet[]>
   loading: Ref<boolean>
-  loadAccounts: (coopname: string) => Promise<ILedger2Account[]>
-  loadWallets: (coopname: string) => Promise<ILedger2Wallet[]>
-  loadHistory: (input: ILedger2HistoryFilterInput) => Promise<ILedger2HistoryResponse | undefined>
-  loadPostings: (input: ILedger2PostingsFilterInput) => Promise<ILedger2PostingsResponse | undefined>
+  loadAccounts: (coopname: string, source?: RegistrySource) => Promise<ILedger2Account[]>
+  loadWallets: (coopname: string, source?: RegistrySource) => Promise<ILedger2Wallet[]>
+  loadHistory: (input: ILedger2HistoryFilterInput, source?: RegistrySource) => Promise<ILedger2HistoryResponse | undefined>
+  loadPostings: (input: ILedger2PostingsFilterInput, source?: RegistrySource) => Promise<ILedger2PostingsResponse | undefined>
   getAccountById: (id: number) => ILedger2Account | undefined
   /** `name` — eosio::name кошелька (`w.<contract>.<waltype>`). */
   getWalletByName: (name: string) => ILedger2Wallet | undefined
@@ -34,20 +35,20 @@ export const useLedger2Store = defineStore(namespace, (): ILedger2Store => {
   const wallets = ref<ILedger2Wallet[]>([])
   const loading = ref(false)
 
-  async function loadAccounts(coopname: string): Promise<ILedger2Account[]> {
+  async function loadAccounts(coopname: string, source?: RegistrySource): Promise<ILedger2Account[]> {
     loading.value = true
     try {
-      accounts.value = await ledger2Api.getAccounts(coopname)
+      accounts.value = await ledger2Api.getAccounts(coopname, source)
       return accounts.value
     } finally {
       loading.value = false
     }
   }
 
-  async function loadWallets(coopname: string): Promise<ILedger2Wallet[]> {
+  async function loadWallets(coopname: string, source?: RegistrySource): Promise<ILedger2Wallet[]> {
     loading.value = true
     try {
-      wallets.value = await ledger2Api.getWallets(coopname)
+      wallets.value = await ledger2Api.getWallets(coopname, source)
       return wallets.value
     } finally {
       loading.value = false
@@ -56,14 +57,16 @@ export const useLedger2Store = defineStore(namespace, (): ILedger2Store => {
 
   async function loadHistory(
     input: ILedger2HistoryFilterInput,
+    source?: RegistrySource,
   ): Promise<ILedger2HistoryResponse | undefined> {
-    return ledger2Api.getHistory(input)
+    return ledger2Api.getHistory(input, source)
   }
 
   async function loadPostings(
     input: ILedger2PostingsFilterInput,
+    source?: RegistrySource,
   ): Promise<ILedger2PostingsResponse | undefined> {
-    return ledger2Api.getPostings(input)
+    return ledger2Api.getPostings(input, source)
   }
 
   function getAccountById(id: number): ILedger2Account | undefined {

@@ -2,13 +2,9 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { MatrixUserManagementService } from '../../domain/services/matrix-user-management.service';
-import { UnionChatService } from '../../domain/services/union-chat.service';
 import { MatrixApiService } from './matrix-api.service';
 import { MatrixAccountStatusResponseDTO } from '../dto/matrix-account-status.dto';
-import {
-  ExtensionDomainRepository,
-  EXTENSION_REPOSITORY,
-} from '@coopenomics/extension-kit';
+import { ExtensionDomainRepository, EXTENSION_REPOSITORY, DomainError } from '@coopenomics/extension-kit';
 import { IConfig } from '../../chatcoop-extension.module';
 import {
   CHATCOOP_MANAGED_MATRIX_ROOM_REPOSITORY,
@@ -121,7 +117,6 @@ export class ChatCoopApplicationService {
     @Inject(INTEGRATION_SETTINGS_PORT) private readonly integrations: IIntegrationSettingsPort,
     private readonly matrixUserManagementService: MatrixUserManagementService,
     private readonly matrixApiService: MatrixApiService,
-    private readonly unionChatService: UnionChatService,
     private readonly configService: ConfigService,
     @Inject(ACCOUNT_PORT) private readonly accountDataPort: IAccountPort,
     @Inject(COOPERATIVE_VARS_PORT) private readonly cooperativeVars: ICooperativeVarsPort,
@@ -167,14 +162,12 @@ export class ChatCoopApplicationService {
 
       try {
         const account = await this.accountDataPort.getAccount(coopUsername);
-        await this.unionChatService.ensureUnionChat(account, matrixUser.matrixUserId);
-
         // Добавляем пользователя в комнаты чаткооп, если он еще не добавлен
         await this.addUserToChatCoopRooms(matrixUser.matrixUserId, account);
         // Допуск к проекту могли подтвердить раньше, чем человек снова открыл чат — повторно синхронизируем комнаты проектов
         this.emitMatrixUserLinkedForCapitalProjectRooms(coopUsername);
       } catch (error) {
-        this.logger.warn(`Не удалось проверить/создать union-комнату или добавить пользователя в комнаты чаткооп: ${error}`);
+        this.logger.warn(`Не удалось добавить пользователя в комнаты чаткооп: ${error}`);
       }
 
       return {
@@ -204,8 +197,6 @@ export class ChatCoopApplicationService {
           // В чат-сервере уже был пользователь с этим email — привязали к пайщику; теперь можно добавить во все подходящие комнаты проектов
           this.emitMatrixUserLinkedForCapitalProjectRooms(coopUsername);
 
-          await this.unionChatService.ensureUnionChat(account, synapseUser.user_id);
-
           const matrixClientUrl = this.matrixSettings.client_url;
           return {
             hasAccount: true,
@@ -228,7 +219,7 @@ export class ChatCoopApplicationService {
     // Проверяем, не существует ли уже аккаунт
     const existingUser = await this.matrixUserManagementService.getMatrixUserByCoopUsername(coopUsername);
     if (existingUser) {
-      throw new Error('Matrix аккаунт уже существует для данного пользователя');
+      throw DomainError.internal('CHATCOOP_MATRIX_ACCOUNT_ALREADY_EXISTS');
     }
 
     // Получаем данные аккаунта и кооператива
@@ -275,12 +266,10 @@ export class ChatCoopApplicationService {
       // Регистрация с нуля: общие комнаты готовы — проверяем проекты с уже одобренным участием этого пайщика
       this.emitMatrixUserLinkedForCapitalProjectRooms(coopUsername);
 
-      await this.unionChatService.ensureUnionChat(account, registerResponse.user_id);
-
       return true;
     } catch (error) {
       console.error('Failed to create Matrix account:', error);
-      throw new Error('Не удалось создать Matrix аккаунт');
+      throw DomainError.internal('CHATCOOP_MATRIX_ACCOUNT_CREATE_FAILED');
     }
   }
 
@@ -390,8 +379,6 @@ export class ChatCoopApplicationService {
     try {
       this.logger.debug('Начинаем синхронизацию существующих пользователей в комнаты чаткооп...');
 
-      // Небольшая задержка, чтобы конфигурация успела сохраниться
-      await new Promise((resolve) => setTimeout(resolve, 1000));
 
       // Получаем всех существующих Matrix пользователей
       const existingUsers = await this.matrixUserManagementService.getAllMatrixUsers();

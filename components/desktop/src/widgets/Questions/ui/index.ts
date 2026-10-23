@@ -1,3 +1,5 @@
 export * from './QuestionCard'
 export * from './QuestionsTable'
 export * from './VotingButtons'
+export * from './QuestionDetails'
+export * from './ChairmanDecisionButton'

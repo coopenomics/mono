@@ -33,11 +33,6 @@ export type IGetMeasuresInput = Queries.Capital.GetMeasures.IInput['data'];
 export type IGetMeasuresOutput =
   Queries.Capital.GetMeasures.IOutput[typeof Queries.Capital.GetMeasures.name];
 
-export type ICreateMeasureInput = Mutations.Capital.CreateMeasure.IInput['data'];
-
-export type ICreateMeasureOutput =
-  Mutations.Capital.CreateMeasure.IOutput[typeof Mutations.Capital.CreateMeasure.name];
-
 export type IUpdateMeasureInput = Mutations.Capital.UpdateMeasure.IInput['data'];
 
 export type IUpdateMeasureOutput =

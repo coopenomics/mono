@@ -9,19 +9,19 @@ BaseDialog(
     .banner.banner--info
       q-icon.banner__icon(name="info", size="18px")
       .banner__body
-        | Наименование, адрес и контакты участка задаются на столе председателя
-        | в разделе «Кооперативные участки» и едины для всего кооператива. Здесь
-        | вы отмечаете участок как пункт выдачи и настраиваете режим его работы.
+        | {{ $t('marketplaceDetailKU.marketplaceDetailKUDialog.bannerHint1') }}
+        | {{ $t('marketplaceDetailKU.marketplaceDetailKUDialog.bannerHint2') }}
+        | {{ $t('marketplaceDetailKU.marketplaceDetailKUDialog.bannerHint3') }}
 
     .detail-ku__readonly
       .detail-ku__ro-row
-        .detail-ku__ro-label Участок
+        .detail-ku__ro-label {{ $t('marketplaceDetailKU.marketplaceDetailKUDialog.branchLabel') }}
         .detail-ku__ro-value {{ branchName || coreBraname }}
       .detail-ku__ro-row
-        .detail-ku__ro-label Адрес
+        .detail-ku__ro-label {{ $t('marketplaceDetailKU.marketplaceDetailKUDialog.addressLabel') }}
         .detail-ku__ro-value {{ branchAddress || '—' }}
       .detail-ku__ro-row
-        .detail-ku__ro-label Контакты
+        .detail-ku__ro-label {{ $t('marketplaceDetailKU.marketplaceDetailKUDialog.contactsLabel') }}
         .detail-ku__ro-value {{ branchContacts || '—' }}
 
     q-form.detail-ku__form(ref="formRef", greedy)
@@ -29,13 +29,13 @@ BaseDialog(
         v-model="form.description"
         outlined
         dense
-        label="Описание (опционально)"
+        :label="$t('marketplaceDetailKU.marketplaceDetailKUDialog.descriptionLabel')"
         type="textarea"
         autogrow
-        aria-label="Описание пункта выдачи"
+        :aria-label="$t('marketplaceDetailKU.marketplaceDetailKUDialog.descriptionAriaLabel')"
       )
 
-      .detail-ku__section-title Режим работы
+      .detail-ku__section-title {{ $t('marketplaceDetailKU.marketplaceDetailKUDialog.scheduleTitle') }}
       .detail-ku__days
         .detail-ku__day(v-for="day in days", :key="day.key")
           q-toggle(
@@ -52,7 +52,7 @@ BaseDialog(
               outlined
               dense
               hide-bottom-space
-              label="Открытие"
+              :label="$t('marketplaceDetailKU.marketplaceDetailKUDialog.openTimeLabel')"
               mask="time"
               placeholder="09:00"
               :disable="!form.workingHours[day.key].enabled"
@@ -64,7 +64,7 @@ BaseDialog(
               outlined
               dense
               hide-bottom-space
-              label="Закрытие"
+              :label="$t('marketplaceDetailKU.marketplaceDetailKUDialog.closeTimeLabel')"
               mask="time"
               placeholder="18:00"
               :disable="!form.workingHours[day.key].enabled"
@@ -73,11 +73,11 @@ BaseDialog(
             )
 
   template(#footer)
-    BaseButton(variant="ghost", :disabled="isSaving", @click="cancel") Отмена
+    BaseButton(variant="ghost", :disabled="isSaving", @click="cancel") {{ $t('common.action.cancel') }}
     BaseButton(variant="primary", :loading="isSaving", @click="submit")
       template(#icon-left)
         q-icon(name="save", size="16px")
-      | Сохранить
+      | {{ $t('common.action.save') }}
 </template>
 
 <script setup lang="ts">
@@ -91,6 +91,7 @@ import type {
   IWorkingHours,
 } from 'src/entities/MarketplaceKUDetails'
 import type { IBranch } from 'src/entities/Branch/model'
+import { t } from 'src/shared/i18n';
 
 /**
  * Детализация существующего в core кооперативного участка как ПВЗ Стола
@@ -117,13 +118,13 @@ const emit = defineEmits<{
 }>()
 
 const days = [
-  { key: 'mon' as const, label: 'Пн' },
-  { key: 'tue' as const, label: 'Вт' },
-  { key: 'wed' as const, label: 'Ср' },
-  { key: 'thu' as const, label: 'Чт' },
-  { key: 'fri' as const, label: 'Пт' },
-  { key: 'sat' as const, label: 'Сб' },
-  { key: 'sun' as const, label: 'Вс' },
+  { key: 'mon' as const, label: t('marketplaceDetailKU.marketplaceDetailKUDialog.day.mon') },
+  { key: 'tue' as const, label: t('marketplaceDetailKU.marketplaceDetailKUDialog.day.tue') },
+  { key: 'wed' as const, label: t('marketplaceDetailKU.marketplaceDetailKUDialog.day.wed') },
+  { key: 'thu' as const, label: t('marketplaceDetailKU.marketplaceDetailKUDialog.day.thu') },
+  { key: 'fri' as const, label: t('marketplaceDetailKU.marketplaceDetailKUDialog.day.fri') },
+  { key: 'sat' as const, label: t('marketplaceDetailKU.marketplaceDetailKUDialog.day.sat') },
+  { key: 'sun' as const, label: t('marketplaceDetailKU.marketplaceDetailKUDialog.day.sun') },
 ]
 
 type DayKey = (typeof days)[number]['key']
@@ -148,7 +149,7 @@ const branchContacts = computed(() => {
 
 // В заголовке — человекочитаемое имя участка, не служебный braname.
 const dialogTitle = computed(
-  () => `Детализация ПВЗ — ${branchName.value || props.coreBraname}`
+  () => t('marketplaceDetailKU.marketplaceDetailKUDialog.title', { branchName: branchName.value || props.coreBraname })
 )
 
 // Правила с регулярками держим в script, а не inline в pug-атрибуте:
@@ -156,7 +157,7 @@ const dialogTitle = computed(
 // деградируют в литералы `d`/`.`, из-за чего валидные значения ложно
 // краснеют (канон форм — выносить такие правила в функции, ср. priceRule).
 function timeRule(v: string): true | string {
-  return /^([01]\d|2[0-3]):[0-5]\d$/.test(v) || 'Время в формате ЧЧ:ММ'
+  return /^([01]\d|2[0-3]):[0-5]\d$/.test(v) || t('marketplaceDetailKU.marketplaceDetailKUDialog.timeFormatError')
 }
 
 const form = reactive({
@@ -223,11 +224,11 @@ async function submit() {
       description: form.description || undefined,
       workingHours: buildWorkingHours(),
     })
-    SuccessAlert('Пункт выдачи сохранён. Адрес геокодируется автоматически.')
+    SuccessAlert(t('marketplaceDetailKU.marketplaceDetailKUDialog.saveSuccess'))
     emit('saved', saved)
     emit('update:modelValue', false)
   } catch (e) {
-    FailAlert(e, 'Не удалось сохранить пункт выдачи')
+    FailAlert(e, t('marketplaceDetailKU.marketplaceDetailKUDialog.saveError'))
   } finally {
     isSaving.value = false
   }

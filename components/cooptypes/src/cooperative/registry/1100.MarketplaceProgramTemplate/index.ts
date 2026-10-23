@@ -12,7 +12,7 @@ export type Meta = IMetaDocument & Action
 
 // Модель данных документа — Положение о ЦПП «Стол заказов».
 // Эпик 1 — первый документ онбординга, утверждается Советом до шаблона оферты
-// (1101.MarketplaceOfferTemplate). Аналог 998.BlagorostProgramTemplate.
+// (1102.MarketplaceOffer, совет утверждает его бланк). Аналог 998.BlagorostProgramTemplate.
 export interface Model {
   meta: IMetaDocument
   coop: ICooperativeData

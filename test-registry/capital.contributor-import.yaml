@@ -1,0 +1,248 @@
+feature: capital.contributor-import
+title: Импорт пайщика с бумажными договорами
+
+# Правка 2026-09-23 (C28-78): проверка «хеш текста или пустая строка» вынесена
+# в общее — lib/core/text_digest.hpp в контрактах и extension-kit
+# (blockchain/chain-text-digest.ts) в контроллере: ею пользуются и проекты, и
+# вопросы общих собраний. Поведение действий этой фичи прежнее, набор случаев
+# не менялся.
+
+# Правка 2026-10-21: в общий адаптер цепи Благороста добавлена отправка
+# `capital::wthshare` (трансляция паевого взноса, capital.share-transfer).
+# Отправка импорта не менялась, набор случаев прежний.
+
+# Кооператив вводит в электронный учёт пайщика, который вступил в «Благорост» до
+# платформы: договор УХД и соглашение о присоединении к программе подписаны на
+# бумаге, электронной подписи под ними нет и быть не может. Председатель со
+# стола участников заполняет имя, сумму взноса и реквизиты обоих бумажных
+# документов, а `capital::importcontrib` одним действием заводит запись
+# участника, фиксирует соглашение программы и зачисляет взнос на кошелёк
+# «Благороста».
+#
+# Соглашение фиксируется через `wallet::importagree` — действие с
+# авторизацией только у контракта capital. Запись получает нулевой doc_hash и
+# draft_id = 0: это и есть признак «подписано вне платформы». Без неё
+# `ledger2::walletop` не пускает зачисление на `w.cap.blago` (ADR-004), и импорт
+# падал с «не подписано соглашение program_id=4».
+#
+# Реквизиты бумажных документов (номера и даты) кооператив хранит в реестре
+# параметров документов, вне цепи — в цепи остаётся только факт соглашения.
+
+# Правка 2026-09-21 (C28-78): плательщик за оперативную память строк
+# выбирается хелпером RamPayer::of по классу таблицы (lib/core/ram_payer.hpp),
+# а не именем, переданным вручную в emplace/modify. Меняется только то, с кого
+# цепь списывает память; содержимое строк, проверки и поведение действий
+# прежние, набор случаев этой фичи не менялся. Правило плательщика покрыто
+# отдельно — test-registry/contracts.ram-payer.yaml.
+#
+# Правка 23.09.2026 (7DD-22): пауза waitAfterTransactBeforeChainTableRead
+# (1 с перед чтением таблицы цепи после транзакции) снята — transact
+# возвращается после разбора своего блока, строка уже видна.
+
+
+# Правка 2026-09-22 (C28-78): описание и приглашение проекта уходят в цепь
+# хешем (sha256 текста), сам текст остаётся в базе контроллера. Контракт
+# принимает в этих полях только хеш или пустую строку, capital::migrate
+# переводит старые строки. Поведение действий этой фичи прежнее, набор случаев
+# не менялся; правило хранения текстов покрыто
+# test-registry/capital.project-chain-texts.yaml.
+
+# Правка 25.09.2026 (C28-80): строка участника заводится до отправки в цепь.
+# Транзакция с 23.09 ждёт свой блок, и дельта участника приходила раньше, чем
+# контроллер создавал строку: синхронизатор не мог записать участника без
+# имени, и после импорта зеркало навсегда показывало «ожидает» без взноса.
+# Цепь отказала — строка удаляется. Завершение регистрации сохраняет строку,
+# перечитанную после транзакции, а не объект до неё. Участник, заведённый в
+# цепи мимо контроллера, попадает в зеркало с именем из аккаунта.
+
+sources:
+  contract:
+    - components/contracts/cpp/capital/app/participation_management/import_contributor/importcontr.cpp
+    - components/contracts/cpp/capital/app/participation_management/register_contributor/regcontrib.cpp
+    - components/contracts/cpp/wallet/src/agreement/importagree.cpp
+  backend:
+    - components/controller/src/extensions/capital/application/use-cases/participation-management.interactor.ts
+    - components/controller/src/extensions/capital/application/syncers/contributor-sync.service.ts
+    - components/controller/src/extensions/capital/domain/entities/contributor.entity.ts
+    - components/controller/src/extensions/capital/infrastructure/blockchain/adapters/capital-blockchain.adapter.ts
+  ui:
+    - components/desktop/extensions/capital/features/Contributor/ImportContributor/**
+
+cases:
+  # ── Уровень контракта ─────────────────────────────────────────────────────
+
+  - id: cap.cimp.happy.01
+    level: contract
+    kind: happy
+    scenario: >
+      Пайщик состоит в кооперативе, оферту «Благороста» в платформе не
+      подписывал — его соглашение на бумаге. Председатель импортирует его с
+      суммой взноса по бумажному договору.
+    expect: >
+      импорт проходит без единой электронной подписи: появляется запись
+      участника, в wallet::users заводится соглашение программы с нулевым
+      doc_hash и draft_id = 0, взнос ложится на кошелёк программы
+    test: components/boot/src/tests/capital-contributor-import.test.ts
+    status: written
+
+  - id: cap.cimp.side.01
+    level: contract
+    kind: side
+    scenario: >
+      Импортируется пайщик, который оферту «Благороста» в платформе уже
+      подписал электронно.
+    expect: >
+      импорт не перетирает подпись — хэш документа и шаблон остаются прежними.
+      Электронная подпись старше бумаги
+    test: components/boot/src/tests/capital-contributor-import.test.ts
+    status: written
+
+  - id: cap.cimp.side.02
+    level: contract
+    kind: side
+    scenario: >
+      Импортированный пайщик пополняет паевой кошелёк и вносит взнос в
+      программу — обычная работа после ввода в учёт.
+    expect: >
+      взнос проходит: соглашение, заведённое импортом, пускает операции
+      программы наравне с подписанным в платформе
+    test: components/boot/src/tests/capital-contributor-import.test.ts
+    status: written
+
+  - id: cap.cimp.break.01
+    level: contract
+    kind: break
+    scenario: >
+      Кооператив пробует записать программное соглашение без подписи напрямую —
+      зовёт wallet::importagree от своего имени, минуя импорт.
+    expect: >
+      отказ авторизации: путь ввода бумажного соглашения открыт только
+      контракту capital, иначе подпись под программой можно было бы подделать
+    test: ~
+    status: missing
+
+  - id: cap.cimp.break.02
+    level: contract
+    kind: break
+    scenario: Повторный импорт того же пайщика.
+    expect: >
+      отказ «Участник уже существует» — ни второй записи участника, ни второго
+      зачисления взноса
+    test: ~
+    status: missing
+
+  # ── Уровень бэкенда ───────────────────────────────────────────────────────
+
+  - id: cap.cimp.side.03
+    level: backend
+    kind: side
+    scenario: >
+      Импорт участника, который уже заведён в реестре контроллера.
+    expect: отказ до обращения к цепи
+    test: components/controller/tests/unit/capital/contributor-row-before-transact.test.ts
+    api: components/api-tests/src/capital/contributor-import.test.ts
+    status: passing
+
+  - id: cap.cimp.side.04
+    level: backend
+    kind: side
+    scenario: >
+      Цепь отклонила импорт (например, сумма взноса нулевая).
+    expect: >
+      ни записи участника, ни параметров бумажных документов в реестре
+      контроллера не остаётся
+    test: components/controller/tests/unit/capital/contributor-row-before-transact.test.ts
+    api: components/api-tests/src/capital/contributor-import.test.ts
+    status: passing
+
+  - id: cap.cimp.side.07
+    level: backend
+    kind: side
+    scenario: >
+      Председатель импортирует пайщика; стол сразу после ответа открывает его
+      карточку.
+    expect: >
+      участник уже в зеркале со статусом из цепи, суммой взноса и именем —
+      строка заведена до транзакции, дельта своего блока ложится в неё
+    test: components/controller/tests/unit/capital/contributor-row-before-transact.test.ts
+    api: components/api-tests/src/capital/contributor-import.test.ts
+    status: passing
+
+  - id: cap.cimp.side.08
+    level: backend
+    kind: side
+    scenario: >
+      Договор УХД пайщика отправлен в цепь мимо контроллера (прямое действие
+      регистрации вкладчика).
+    expect: >
+      участник появляется в зеркале, имя дописывается из аккаунта пайщика
+    test: components/controller/tests/unit/capital/contributor-row-before-transact.test.ts
+    api: components/api-tests/src/capital/contributor-import.test.ts
+    status: passing
+
+  - id: cap.cimp.side.09
+    level: backend
+    kind: side
+    scenario: >
+      Импортированный пайщик завершает регистрацию в Благоросте — отправляет
+      договор УХД и соглашения.
+    expect: >
+      сохраняется строка, перечитанная после транзакции: данные цепи из дельты
+      своего блока не затираются объектом, прочитанным до неё
+    test: components/controller/tests/unit/capital/contributor-row-before-transact.test.ts
+    api: components/api-tests/src/capital/contributor-import.test.ts
+    status: passing
+
+  # ── Уровень UI ────────────────────────────────────────────────────────────
+
+  - id: cap.cimp.ui.01
+    level: ui
+    kind: side
+    scenario: >
+      Председатель «Восхода» открывает стол участников «Благороста» и заводит
+      пайщика по бумажным договорам через кнопку «Добавить».
+    expect: >
+      форма принимает имя, сумму и реквизиты обоих документов, участник
+      появляется в реестре со своим взносом
+    test: ~
+    status: missing
+  - id: capital.ci.side.fact-01
+    level: backend
+    kind: side
+    scenario: "После транзакции строка пайщика программы читается из таблицы цепи."
+    expect: "Чтение сразу, без паузы: transact вернулся, когда узел разобрал блок транзакции."
+    test: components/controller/tests/unit/blockchain/blockchain-service-block-wait.test.ts
+    api: components/api-tests/src/capital/contributor-import.test.ts
+    status: passing
+
+# 2026-09-23 (EEA-6…EEA-9): тексты интерфейса, отказов и уведомлений фичи вынесены из
+# кода в словари i18n, отказы бэкенда переведены на DomainError с кодом — текст
+# и HTTP-статус ответа прежние. Сценарии фичи и её проверки не менялись.
+
+# 2026-09-24 (C28-82): регистрация вкладчика договором УХД (capital::regcontrib)
+# стоит рядом с импортом — у неё есть ветка завершения регистрации
+# импортированного пайщика. Восстановлена пропущенная с сентября 2025 проверка
+# повторной регистрации.
+  - id: cap.cimp.side.05
+    level: contract
+    kind: side
+    scenario: >
+      Пайщику с действующим договором УХД повторно отправляют регистрацию
+      вкладчика с новым хэшем.
+    expect: >
+      отказ «Пайщик уже обладает подписанным договором УХД»; запись вкладчика и
+      её хэш прежние
+    test: components/boot/src/tests/capital.test.ts
+    status: written
+
+  - id: cap.cimp.side.06
+    level: contract
+    kind: side
+    scenario: >
+      Новый пайщик регистрируется вкладчиком с хэшем, который уже закреплён за
+      другим вкладчиком.
+    expect: >
+      отказ «Контрибьютор с данным хэшем уже зарегистрирован»; вкладчик не
+      создаётся
+    test: components/boot/src/tests/capital.test.ts
+    status: written

@@ -11,13 +11,6 @@ import {
 } from './types';
 import { ILoadUserWallet } from './types';
 import { computed, Ref, ref } from 'vue';
-import {
-  applyAssetDelta,
-  generatePatchId,
-  matchesEntry,
-  type IWalletPatch,
-  type IWalletPatchEntry,
-} from './optimistic';
 
 const namespace = 'wallet';
 
@@ -40,6 +33,13 @@ interface IWalletStore {
   methods: Ref<IPaymentMethodData[]>;
   agreements: Ref<IUserAgreement[]>;
   /**
+   * Удалось ли хоть раз получить подписи пайщика с сервера. Пустой список —
+   * это «пайщик ничего не подписал», и по нему интерфейс требует подписей;
+   * неудачная выборка выглядит точно так же, поэтому её нельзя выдавать за
+   * пустоту. Пока здесь false, о подписях достоверно не известно ничего.
+   */
+  agreementsLoaded: Ref<boolean>;
+  /**
    * Подписано ли пайщиком главное соглашение цифрового кошелька. Пока оно не
    * подписано, кошелёк не активен — операции взноса и возврата недоступны
    * (так же скрыта карточка кошелька в столе пайщика).
@@ -47,22 +47,7 @@ interface IWalletStore {
   isWalletAgreementSigned: Ref<boolean>;
 
   loadUserWallet: (params: ILoadUserWallet) => Promise<void>;
-
-  /**
-   * Универсальный optimistic-update для program_wallets. Любая фича, которая
-   * двигает деньги между кошельками, может вызвать это перед/после своей
-   * мутации — UI отразит изменение моментально, до того как дельта реально
-   * прилетит из блокчейна и сервера.
-   *
-   * Возвращает id патча — его можно ревертить вручную (если мутация упала)
-   * или дождаться авто-снятия по TTL / следующего loadUserWallet.
-   */
-  applyOptimisticPatch: (entries: IWalletPatchEntry[], ttlMs?: number) => string;
-  revertOptimisticPatch: (patchId: string) => void;
-  clearOptimisticPatches: () => void;
 }
-
-const DEFAULT_OPTIMISTIC_TTL_MS = 8000;
 
 export const useWalletStore = defineStore(namespace, (): IWalletStore => {
   const deposits = ref<IDepositData[]>([]);
@@ -71,7 +56,8 @@ export const useWalletStore = defineStore(namespace, (): IWalletStore => {
   const _program_wallets_base = ref<ExtendedProgramWalletData[]>([]);
   const methods = ref<IPaymentMethodData[]>([]);
   const agreements = ref<IUserAgreement[]>([]);
-  const _patches = ref<IWalletPatch[]>([]);
+  const agreementsLoaded = ref(false);
+
 
   const isWalletAgreementSigned = computed<boolean>(() =>
     agreements.value.some(
@@ -81,47 +67,8 @@ export const useWalletStore = defineStore(namespace, (): IWalletStore => {
     ),
   );
 
-  const program_wallets = computed<ExtendedProgramWalletData[]>(() => {
-    if (_patches.value.length === 0) return _program_wallets_base.value;
-    const overlay = _program_wallets_base.value.map((w) => ({ ...w }));
-    for (const patch of _patches.value) {
-      for (const entry of patch.entries) {
-        for (const item of overlay) {
-          if (!matchesEntry(item, entry)) continue;
-          if (entry.available_delta) {
-            item.available = applyAssetDelta(item.available ?? '0.0000 RUB', entry.available_delta);
-          }
-        }
-      }
-    }
-    return overlay;
-  });
+  const program_wallets = computed<ExtendedProgramWalletData[]>(() => _program_wallets_base.value);
 
-  const applyOptimisticPatch = (
-    entries: IWalletPatchEntry[],
-    ttlMs: number = DEFAULT_OPTIMISTIC_TTL_MS,
-  ): string => {
-    const id = generatePatchId();
-    const patch: IWalletPatch = {
-      id,
-      entries,
-      appliedAt: Date.now(),
-      ttlMs,
-    };
-    _patches.value = [..._patches.value, patch];
-    if (ttlMs > 0) {
-      setTimeout(() => revertOptimisticPatch(id), ttlMs);
-    }
-    return id;
-  };
-
-  const revertOptimisticPatch = (patchId: string): void => {
-    _patches.value = _patches.value.filter((p) => p.id !== patchId);
-  };
-
-  const clearOptimisticPatches = (): void => {
-    _patches.value = [];
-  };
 
   // Запросы независимы (разные срезы кошелька/соглашений) — allSettled, а не
   // all: падение одного (напр. недостаточно прав на один из резолверов) не
@@ -133,6 +80,10 @@ export const useWalletStore = defineStore(namespace, (): IWalletStore => {
   }
 
   const loadUserWallet = async (params: ILoadUserWallet) => {
+    // Имя пайщика обязательно: с пустым именем шесть запросов ниже уходят как
+    // обращение к чужим данным и получают отказ вместо пустого ответа.
+    if (!params.username || !params.coopname) return;
+
     const [depositsRes, withdrawsRes, programWalletsRes, methodsRes, agreementsRes, userWalletsRes] =
       await Promise.allSettled([
         api.loadUserDepositsData(params),
@@ -147,12 +98,20 @@ export const useWalletStore = defineStore(namespace, (): IWalletStore => {
     withdraws.value = unwrap(withdrawsRes, []);
     _program_wallets_base.value = unwrap(programWalletsRes, []);
     methods.value = unwrap(methodsRes, []);
-    agreements.value = unwrap(agreementsRes, []);
+    /**
+     * Подписи не проходят через unwrap: его запасное значение — пустой список,
+     * а пустой список подписей интерфейс читает как «ничего не подписано» и
+     * снова просит подписать уже подписанное. Упавшую выборку оставляем без
+     * последствий: прежние данные достовернее пустоты, а если их ещё не было,
+     * состояние так и останется «неизвестно» до успешной загрузки.
+     */
+    if (agreementsRes.status === 'fulfilled') {
+      agreements.value = agreementsRes.value ?? [];
+      agreementsLoaded.value = true;
+    } else {
+      console.error(agreementsRes.reason);
+    }
     user_wallets.value = unwrap(userWalletsRes, []);
-    // Серверная правда выигрывает — все наложенные оптимистичные патчи
-    // сбрасываются. Если расхождение есть, оно будет видно сразу (а не
-    // как «откат через TTL» через несколько секунд).
-    clearOptimisticPatches();
   };
 
   return {
@@ -162,10 +121,8 @@ export const useWalletStore = defineStore(namespace, (): IWalletStore => {
     withdraws,
     methods,
     agreements,
+    agreementsLoaded,
     isWalletAgreementSigned,
     loadUserWallet,
-    applyOptimisticPatch,
-    revertOptimisticPatch,
-    clearOptimisticPatches,
   };
 });

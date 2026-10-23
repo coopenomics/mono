@@ -1,0 +1,48 @@
+feature: coopid.key-revocation
+title: Отзыв ключа пайщика председателем
+
+# Ключ пайщика председатель отзывает сам, с обоснованием: сессии пайщика
+# закрываются, вход отозванным ключом закрыт, пока пайщик не сменит ключ.
+#
+# Заведено 02.10.2026 (C28-85): таблицу revoked_keys трогала только матрица
+# прав (карта готовности к уходу с TypeORM, C28-81). Случаи переехали из
+# реестра «критические действия совета»: заготовка двух подписей убрана с
+# сервера по решению владельца от 02.10.2026 — ею никто не пользовался, и
+# проведённое действие ничего не исполняло (находка 62).
+sources:
+  backend:
+    - components/controller/src/application/auth-v2/key-revocation/key-revocation.resolver.ts
+    - components/controller/src/application/auth-v2/key-revocation/key-revocation.service.ts
+    - components/controller/src/application/auth-v2/key-revocation/dto/**
+    - components/controller/src/domain/auth-v2/ports/key-revocation.port.ts
+    - components/controller/src/infrastructure/auth-v2/postgres-key-revocation.repository.ts
+
+cases:
+  - id: coopid.revoke.happy.01
+    level: backend
+    kind: happy
+    scenario: председатель отзывает ключ пайщика с обоснованием
+    expect: ответ «отозван», сессии пайщика закрыты, пайщик обязан восстановить доступ
+    test: components/api-tests/src/coopid/key-revocation.test.ts
+    status: written
+
+  - id: coopid.revoke.side.01
+    level: backend
+    kind: side
+    scenario: ключ отзывает член совета, пайщик, гость
+    expect: отказ по правам (гостю — отказ входа)
+    test: components/api-tests/src/coopid/key-revocation.test.ts
+    status: written
+
+  - id: coopid.revoke.side.02
+    level: backend
+    kind: side
+    scenario: пайщик с отозванным ключом входит тем же ключом заново
+    expect: >
+      вход отозванным ключом отклонён (AUTH_KEY_REVOKED_RECOVERY_REQUIRED) на
+      обоих контурах входа; после смены ключа отзыв закрыт — вход новым ключом
+      открыт, прежний ключ не подходит
+    # До 02.10.2026 отзыв только закрывал сессии и оставлял запись, признак отзыва
+    # никто не читал (C28-85, находка 61).
+    test: components/api-tests/src/coopid/key-revocation.test.ts
+    status: written

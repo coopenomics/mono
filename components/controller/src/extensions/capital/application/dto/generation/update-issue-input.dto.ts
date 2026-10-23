@@ -1,5 +1,7 @@
 import { Field, InputType, Int, Float } from '@nestjs/graphql';
-import { IsNotEmpty, IsString, IsOptional, IsEnum, Min, IsArray, IsNumber } from 'class-validator';
+import { validationMessage } from '@coopenomics/extension-kit';
+import { IsNotEmpty, IsString, IsOptional, IsEnum, Min, IsArray, IsNumber, IsInt } from 'class-validator';
+import { ContentRevisionOrigin } from '../../../domain/enums/content-revision-origin.enum';
 import { IssuePriority } from '../../../domain/enums/issue-priority.enum';
 import { IssueStatus } from '../../../domain/enums/issue-status.enum';
 
@@ -11,8 +13,8 @@ export class UpdateIssueInputDTO {
   @Field(() => String, {
     description: 'Хэш задачи для обновления',
   })
-  @IsNotEmpty({ message: 'Хэш задачи не должен быть пустым' })
-  @IsString({ message: 'Хэш задачи должен быть строкой' })
+  @IsNotEmpty({ message: validationMessage('capital.updateIssueInput.issueHash.required') })
+  @IsString({ message: validationMessage('capital.updateIssueInput.issueHash.string') })
   issue_hash!: string;
 
   @Field(() => String, {
@@ -20,7 +22,7 @@ export class UpdateIssueInputDTO {
     description: 'Название задачи',
   })
   @IsOptional()
-  @IsString({ message: 'Название задачи должно быть строкой' })
+  @IsString({ message: validationMessage('capital.updateIssueInput.title.string') })
   title?: string;
 
   @Field(() => String, {
@@ -28,7 +30,7 @@ export class UpdateIssueInputDTO {
     description: 'Описание задачи',
   })
   @IsOptional()
-  @IsString({ message: 'Описание задачи должно быть строкой' })
+  @IsString({ message: validationMessage('capital.updateIssueInput.description.string') })
   description?: string;
 
   @Field(() => IssuePriority, {
@@ -36,7 +38,7 @@ export class UpdateIssueInputDTO {
     description: 'Приоритет задачи',
   })
   @IsOptional()
-  @IsEnum(IssuePriority, { message: 'Неверный приоритет задачи' })
+  @IsEnum(IssuePriority, { message: validationMessage('capital.updateIssueInput.priority.invalid') })
   priority?: IssuePriority;
 
   @Field(() => IssueStatus, {
@@ -44,7 +46,7 @@ export class UpdateIssueInputDTO {
     description: 'Статус задачи',
   })
   @IsOptional()
-  @IsEnum(IssueStatus, { message: 'Неверный статус задачи' })
+  @IsEnum(IssueStatus, { message: validationMessage('capital.updateIssueInput.status.invalid') })
   status?: IssueStatus;
 
   @Field(() => Float, {
@@ -52,8 +54,8 @@ export class UpdateIssueInputDTO {
     description: 'Оценка в часах (допускаются дроби)',
   })
   @IsOptional()
-  @IsNumber({ allowNaN: false, allowInfinity: false }, { message: 'Оценка должна быть числом' })
-  @Min(0, { message: 'Оценка не может быть отрицательной' })
+  @IsNumber({ allowNaN: false, allowInfinity: false }, { message: validationMessage('capital.updateIssueInput.estimate.number') })
+  @Min(0, { message: validationMessage('capital.updateIssueInput.estimate.min') })
   estimate?: number;
 
   @Field(() => Int, {
@@ -61,7 +63,7 @@ export class UpdateIssueInputDTO {
     description: 'Порядок сортировки',
   })
   @IsOptional()
-  @Min(0, { message: 'Порядок сортировки не может быть отрицательным' })
+  @Min(0, { message: validationMessage('capital.updateIssueInput.sortOrder.min') })
   sort_order?: number;
 
   @Field(() => String, {
@@ -69,7 +71,7 @@ export class UpdateIssueInputDTO {
     description: 'Имя пользователя ответственного (contributor)',
   })
   @IsOptional()
-  @IsString({ message: 'Имя пользователя ответственного должно быть строкой' })
+  @IsString({ message: validationMessage('capital.updateIssueInput.submaster.string') })
   submaster?: string;
 
   @Field(() => [String], {
@@ -77,7 +79,7 @@ export class UpdateIssueInputDTO {
     description: 'Массив имен пользователей создателей (contributors)',
   })
   @IsOptional()
-  @IsArray({ message: 'Создатели должны быть массивом строк' })
+  @IsArray({ message: validationMessage('capital.updateIssueInput.creators.arrayOfStrings') })
   creators?: string[];
 
   @Field(() => String, {
@@ -85,7 +87,7 @@ export class UpdateIssueInputDTO {
     description: 'ID цикла',
   })
   @IsOptional()
-  @IsString({ message: 'ID цикла должен быть строкой' })
+  @IsString({ message: validationMessage('capital.updateIssueInput.cycleId.string') })
   cycle_id?: string;
 
   @Field(() => [String], {
@@ -93,7 +95,7 @@ export class UpdateIssueInputDTO {
     description: 'Метки задачи',
   })
   @IsOptional()
-  @IsArray({ message: 'Метки должны быть массивом строк' })
+  @IsArray({ message: validationMessage('capital.updateIssueInput.labels.arrayOfStrings') })
   labels?: string[];
 
   @Field(() => [String], {
@@ -101,6 +103,24 @@ export class UpdateIssueInputDTO {
     description: 'Вложения задачи',
   })
   @IsOptional()
-  @IsArray({ message: 'Вложения должны быть массивом строк' })
+  @IsArray({ message: validationMessage('capital.updateIssueInput.attachments.arrayOfStrings') })
   attachments?: string[];
+
+  @Field(() => Int, {
+    nullable: true,
+    description:
+      'Редакция содержимого (content_rev), с которой автор начал правку. Сервер сливает правку с параллельными изменениями; без поля — запись без проверки версии',
+  })
+  @IsOptional()
+  @IsInt({ message: validationMessage('capital.updateIssueInput.baseRev.int') })
+  @Min(0, { message: validationMessage('capital.updateIssueInput.baseRev.min') })
+  base_rev?: number;
+
+  @Field(() => ContentRevisionOrigin, {
+    nullable: true,
+    description: 'Источник правки для истории редакций (WEB по умолчанию, CLI для blago)',
+  })
+  @IsOptional()
+  @IsEnum(ContentRevisionOrigin, { message: validationMessage('capital.updateIssueInput.origin.invalid') })
+  origin?: ContentRevisionOrigin;
 }

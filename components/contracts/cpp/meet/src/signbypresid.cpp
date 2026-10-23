@@ -36,6 +36,9 @@ void meet::signbypresid(name coopname, name username, checksum256 hash, document
     
     // Проверяем документ
     verify_document_or_fail(presider_decision, {meet_record.secretary, meet_record.presider});
+    // Обе подписи под протоколом сделаны ключами своих аккаунтов.
+    verify_signer_keys_or_fail(presider_decision, meet_record.secretary);
+    verify_signer_keys_or_fail(presider_decision, meet_record.presider);
 
     // Сформируем данные об итогах голосования по каждому вопросу
     Meet::questions_index questions(_meet, coopname.value);
@@ -71,7 +74,7 @@ void meet::signbypresid(name coopname, name username, checksum256 hash, document
     
     eosio::check(meet_itr != hash_index.end(), "Собрание не найдено");
     
-    hash_index.modify(meet_itr, same_payer, [&](auto& m) {
+    hash_index.modify(meet_itr, RamPayer::of(hash_index, coopname), [&](auto& m) {
         m.decision2 = presider_decision;
         m.status = "closed"_n;
     });
@@ -108,5 +111,16 @@ void meet::signbypresid(name coopname, name username, checksum256 hash, document
       hash,
       presider_decision
     );
+
+    // Собрание завершено: итоги ушли событием newgdecision, протокол — в реестр
+    // документов совета. Ни одно действие к строке больше не обратится, поэтому
+    // она стирается целиком — память кооператива освобождается сразу. Контроллер
+    // читает закрытое собрание из журнала дельт.
+    // Второй шаг выноса (см. TextDigest::PHASE2): прежний контроллер закрытое
+    // собрание из журнала не читает и потерял бы его со стола.
+    if (TextDigest::PHASE2) {
+      auto closed_itr = hash_index.find(hash);
+      hash_index.erase(closed_itr);
+    }
 
 } 

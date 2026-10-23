@@ -1,0 +1,41 @@
+{
+  "errors": {
+    "PARTICIPANT_CONFIG_NOT_FOUND": "Конфиг не найден"
+  },
+  "participant": {
+    "meetWorkflowNotification": {
+      "closedMessage": "Общее собрание пайщиков №{meetId} успешно завершено. Протокол собрания утвержден.",
+      "closedTitle": "Общее собрание №{meetId} в {coopShortName} завершено",
+      "eventType": {
+        "ended": "собрание завершено",
+        "newMeet": "новое общее собрание",
+        "reminderBeforeEnd": "напоминание за {timeDescription} до завершения",
+        "reminderBeforeStart": "напоминание за {timeDescription} до начала",
+        "restartScheduled": "назначена новая дата повторного собрания",
+        "started": "собрание началось"
+      },
+      "noQuorumMessage": "Кворум общего собрания №{meetId} не собран. В ближайшее время будет назначена новая дата собрания с прежней повесткой. Следите за обновлениями.",
+      "noQuorumTitle": "Кворум общего собрания №{meetId} в {coopShortName} не собран",
+      "timezoneMsk": "МСК",
+      "votingCompletedMessage": "Голосование по собранию №{meetId} завершено. Ожидаем утверждения протокола собрания советом.",
+      "votingCompletedTitle": "Голосование по собранию №{meetId} в {coopShortName} завершено"
+    },
+    "notificationSender": {
+      "closedMessage": "Уважаемый пайщик!\n\nОбщее собрание пайщиков №{meetId} успешно завершено. Протокол собрания утвержден.\n\nДля просмотра результатов собрания перейдите по ссылке:\n{url}\n\nС уважением, Совет {coopShortName}.",
+      "closedTitle": "Общее собрание №{meetId} в {coopShortName} завершено",
+      "noQuorumMessage": "Уважаемый пайщик!\n\nКворум общего собрания №{meetId} не собран. В ближайшее время будет назначена новая дата собрания с прежней повесткой.\n\nСледите за обновлениями.\n\nС уважением, Совет {coopShortName}.",
+      "noQuorumTitle": "Кворум общего собрания №{meetId} в {coopShortName} не собран",
+      "timezoneMsk": "МСК",
+      "votingCompletedMessage": "Уважаемый пайщик!\n\nГолосование по собранию №{meetId} завершено. Ожидаем утверждения протокола собрания советом.\n\nДля просмотра результатов голосования перейдите по ссылке:\n{url}\n\nС уважением, Совет {coopShortName}.",
+      "votingCompletedTitle": "Голосование по собранию №{meetId} в {coopShortName} завершено"
+    },
+    "settings": {
+      "beforeEndMinutesLabel": "За сколько минут до конца собрания отправлять уведомление",
+      "beforeEndMinutesNote": "По умолчанию: 1440 минут (1 день). Для тестирования можно установить 5-10 минут",
+      "beforeStartMinutesLabel": "За сколько минут до начала собрания отправлять уведомление",
+      "beforeStartMinutesNote": "По умолчанию: 4320 минут (3 дня). Для тестирования можно установить 5-10 минут",
+      "meetCheckIntervalLabel": "Интервал проверки наличия новых собраний (в минутах)",
+      "meetCheckIntervalNote": "Минимум: 1 минута"
+    }
+  }
+}

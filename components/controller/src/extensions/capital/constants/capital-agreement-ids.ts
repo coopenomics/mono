@@ -34,3 +34,6 @@ export const BLAGOROST_AGREEMENT_TYPE = 'capital';
 
 export const GENERATION_PROGRAM_KEY = 'GENERATION';
 export const CAPITALIZATION_PROGRAM_KEY = 'CAPITALIZATION';
+
+/** Анкета вступления в программу «Генератор» (сопроводительное письмо). */
+export const GENERATOR_INTAKE_FORM_ID = 'generator_cover_letter';

@@ -1,6 +1,6 @@
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
-import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, CurrentUser, RequireRight, RightsGuard } from '@coopenomics/extension-kit';
 import {
   ChairmanOnboardingAgendaInputDTO,
   ChairmanOnboardingGeneralMeetInputDTO,
@@ -17,8 +17,8 @@ export class ChairmanOnboardingResolver {
     name: 'getChairmanOnboardingState',
     description: 'Получить состояние онбординга председателя',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('ChairmanOnboarding', 'manage')
   async getState(): Promise<ChairmanOnboardingStateDTO> {
     return this.onboardingService.getState();
   }
@@ -27,8 +27,8 @@ export class ChairmanOnboardingResolver {
     name: 'completeChairmanAgendaStep',
     description: 'Выполнить один из шагов онбординга (создание предложения повестки)',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('ChairmanOnboarding', 'manage')
   async completeAgendaStep(
     @Args('data', { type: () => ChairmanOnboardingAgendaInputDTO }) data: ChairmanOnboardingAgendaInputDTO,
     @CurrentUser() currentUser: IMonoAccount
@@ -41,8 +41,8 @@ export class ChairmanOnboardingResolver {
     name: 'completeChairmanGeneralMeetStep',
     description: 'Выполнить шаг онбординга по созданию общего собрания (сохранить hash повестки)',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('ChairmanOnboarding', 'manage')
   async completeGeneralMeetStep(
     @Args('data', { type: () => ChairmanOnboardingGeneralMeetInputDTO }) data: ChairmanOnboardingGeneralMeetInputDTO,
     @CurrentUser() currentUser: IMonoAccount

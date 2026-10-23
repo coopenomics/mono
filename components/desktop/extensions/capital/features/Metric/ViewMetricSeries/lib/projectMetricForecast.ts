@@ -27,6 +27,7 @@
 import type { IMetricWave } from 'app/extensions/capital/entities/ComponentMetric/model';
 import { Zeus } from '@coopenomics/sdk';
 import type { ApexTooltipCustomOpts } from 'apexcharts';
+import { t } from '../../../../i18n';
 
 export type ForecastPath = [number, number];
 
@@ -125,7 +126,7 @@ export function scenarioPathsFromWave(wave: IMetricWave | null | undefined): {
   if (!Array.isArray(raw) || raw.length < 2) return [];
   return [
     {
-      label: 'Прогноз',
+      label: t('capital.projectMetricForecast.label'),
       path: [roundMetric(raw[0]), roundMetric(raw[1])],
     },
   ];

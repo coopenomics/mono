@@ -24,6 +24,7 @@
  *     для мастера = true.
  */
 import { Client, Mutations, Queries } from '@coopenomics/sdk'
+import { loginChairman } from '../../lib/chairman-login'
 import { createHash } from 'node:crypto'
 import Blockchain from '../../../blockchain'
 import config from '../../../configs'
@@ -170,7 +171,7 @@ export async function phase09b(): Promise<void> {
     username: CHAIRMAN,
   })
   log(`логин ${CHAIRMAN_EMAIL} (мастер компонента)...`)
-  await client.login(CHAIRMAN_EMAIL, wif)
+  await loginChairman(client, CHAIRMAN_EMAIL, wif)
 
   // Подгружаем все существующие артефакты компонента и проекта — для идемпотентности.
   const existingHashes = new Set<string>()

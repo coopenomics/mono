@@ -31,7 +31,7 @@
  * пропускаем участников, у которых сегмента нет.
  */
 import { CapitalContract } from 'cooptypes'
-import { createHash, randomBytes } from 'node:crypto'
+import { createHash } from 'node:crypto'
 import Blockchain from '../../../blockchain'
 import config from '../../../configs'
 import { fakeDocument } from '../../../tests/shared/fakeDocument'
@@ -60,8 +60,12 @@ interface IProjectRow {
   status?: string
 }
 
-function randomSha256(): string {
-  return createHash('sha256').update(randomBytes(32)).digest('hex')
+/** Строка таблицы `results` — анкер процесса внесения РИД. */
+interface IResultRow {
+  result_hash: string
+  project_hash: string
+  username: string
+  status: string
 }
 
 function parseRub(asset: string): number {
@@ -88,6 +92,25 @@ async function getProject(blockchain: Blockchain): Promise<IProjectRow | undefin
   return rows[0]
 }
 
+/**
+ * Возвращает `result_hash` пайщика — тот самый анкер, который завела фаза 13
+ * (`pushrslt`) и который дошёл до статуса `act2` после `signact2`.
+ * `convertsegm` принимает именно его: контракт сверяет проект, пайщика и
+ * статус результата, поэтому произвольный хеш здесь не годится.
+ */
+async function getResultHash(blockchain: Blockchain, username: string): Promise<string | undefined> {
+  const rows = await blockchain.getTableRows(
+    CapitalContract.contractName.production,
+    COOPNAME,
+    'results',
+    1000,
+  ) as IResultRow[]
+
+  return rows.find(
+    r => r.username === username && r.project_hash === COMPONENT_HASH && r.status === 'act2',
+  )?.result_hash
+}
+
 async function getSegments(blockchain: Blockchain): Promise<ISegmentRow[]> {
   return await blockchain.getTableRows(
     CapitalContract.contractName.production,
@@ -104,10 +127,10 @@ async function getSegments(blockchain: Blockchain): Promise<ISegmentRow[]> {
 async function convertSegment(
   blockchain: Blockchain,
   username: string,
+  resultHash: string,
   walletAmount: string,
   capitalAmount: string,
 ) {
-  const convertHash = randomSha256()
   log(`capital::convertsegm ${username} → wallet=${walletAmount}, capital=${capitalAmount}`)
   await blockchain.api.transact({
     actions: [{
@@ -118,7 +141,7 @@ async function convertSegment(
         coopname: COOPNAME,
         username,
         project_hash: COMPONENT_HASH,
-        convert_hash: convertHash,
+        result_hash: resultHash,
         wallet_amount: walletAmount,
         capital_amount: capitalAmount,
         convert_statement: fakeDocument,
@@ -178,8 +201,14 @@ export async function phase14(): Promise<void> {
       throw new Error(`${s.username}: capital_amount<0 (avail_program=${availProgram}, wallet=${walletAmount})`)
     }
 
+    const resultHash = await getResultHash(blockchain, s.username)
+    if (!resultHash) {
+      log(`${s.username}: результат в статусе act2 не найден — пропуск`)
+      continue
+    }
+
     log(`${s.username}: avail_wallet=${availWallet}, avail_program=${availProgram}, ratio=${ratio}`)
-    await convertSegment(blockchain, s.username, fmtRub(walletAmount), fmtRub(capitalAmount))
+    await convertSegment(blockchain, s.username, resultHash, fmtRub(walletAmount), fmtRub(capitalAmount))
   }
 
   // После всех convertsegm все сегменты компонента удалены из таблицы.

@@ -1,11 +1,4 @@
-import {
-  BadRequestException,
-  ConflictException,
-  ForbiddenException,
-  Inject,
-  Injectable,
-  Logger,
-} from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, Logger } from '@nestjs/common';
 import { registerEnumType } from '@nestjs/graphql';
 import { createHash, randomBytes } from 'crypto';
 import { Cooperative, type BranchContract } from 'cooptypes';
@@ -13,7 +6,10 @@ import { PublicKey, Signature } from '@wharfkit/antelope';
 import http from 'http-status';
 import { LEDGER2_HISTORY_PORT, type ILedger2HistoryPort, type InnerLedger2HistoryResult, EXPENSE_CHASSIS_PORT, type IExpenseChassisPort, DOCUMENT_PORT, type IDocumentPort, type InnerGeneratedDocument } from '@coopenomics/innercoop';
 import { PaymentStatus, PaymentType } from '@coopenomics/innercoop';
-import { SignedDigitalDocumentInputDTO, PaginationInputDTO, type PaginationResult, HttpApiError, rethrowChainError } from '@coopenomics/extension-kit';
+import { SignedDigitalDocumentInputDTO, PaginationInputDTO, type PaginationResult, rethrowChainError, DomainError } from '@coopenomics/extension-kit';
+import type { MarketplaceUnitOfMeasure } from '../../domain/entities/marketplace-offer.types';
+import { calcCostMinor } from '../shared/cost.util';
+import type { ResolvedSaleUnit } from '../shared/packaging.util';
 import {
   MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT,
   type MarketplaceCanonicalBlockchainPort,
@@ -43,6 +39,7 @@ import {
 } from '@coopenomics/innercoop';
 import { PAYMENT_METHOD_PORT, type IPaymentMethodPort } from '@coopenomics/innercoop';
 import { PAYMENT_DESK_PORT, type IPaymentDeskPort, VAT_EXEMPT_NOTE } from '@coopenomics/innercoop';
+import { t as i18nT } from '../../i18n';
 
 /** Значение `aids.status` на цепи, означающее «совет одобрил, ждёт выплаты». */
 const BRANCH_AID_STATUS_AUTHORIZED = 'authorized';
@@ -169,13 +166,35 @@ export class MarketplaceEconomyService {
 
   private toContractPercent(human: number, label: string): number {
     if (!Number.isFinite(human) || human < 0 || human > 100) {
-      throw new BadRequestException(`${label} должна быть в диапазоне от 0 до 100 процентов`);
+      throw DomainError.badRequest('MARKETPLACE_ECONOMY_PERCENT_OUT_OF_RANGE', { label });
     }
     return Math.round((human * HUNDR_PERCENTS) / 100);
   }
 
   private toHumanPercent(contractValue: number | string): number {
     return (Number(contractValue) * 100) / HUNDR_PERCENTS;
+  }
+
+  /** Контрактная ставка (HUNDR_PERCENTS = 100%) → проценты для человека (30 = 30%). */
+  toHumanFeePercent(contractValue: number | string): number {
+    return this.toHumanPercent(contractValue);
+  }
+
+  /**
+   * Тело строки заказа в минимальных единицах валюты — каноническим расчётом
+   * стоимости (`calcCostMinor`, зеркало `Marketplace::calc_cost`): по мере —
+   * базовое количество × цена с округлением половины вверх, упаковкой — число
+   * упаковок × цена упаковки. До 25.09.2026 здесь было `BigInt(количество)`,
+   * и дробная мера (1,5 кг) роняла превью и оформление корзины ошибкой 500.
+   */
+  lineBodyUnits(sale: Pick<ResolvedSaleUnit, 'baseQuantity' | 'unitPrice' | 'packageSize'>, unit: MarketplaceUnitOfMeasure): bigint {
+    return calcCostMinor({
+      quantity: sale.baseQuantity,
+      unit,
+      unitPrice: sale.unitPrice,
+      packageSize: sale.packageSize,
+      decimals: this.assetConfig.decimals,
+    });
   }
 
   private formatAsset(amount: number): string {
@@ -211,20 +230,6 @@ export class MarketplaceEconomyService {
     return (totalCostUnits * BigInt(contractPercent)) / BigInt(HUNDR_PERCENTS);
   }
 
-  /**
-   * Сумма конвертации строки заказа = стоимость + членский взнос,
-   * целочисленно в минимальных единицах валюты той же формулой, что
-   * контракт (`calc_membership_fee`): сумма заявления о конвертации
-   * должна побитово совпадать с фактическим списанием on-chain.
-   */
-  convertAmountForLine(pricePerUnit: string, quantity: number, contractPercent: number): string {
-    const decimals = this.assetConfig.decimals;
-    const totalUnits = this.toUnits(pricePerUnit, decimals) * BigInt(quantity);
-    const units = totalUnits + this.membershipFeeUnits(totalUnits, contractPercent);
-    const padded = units.toString().padStart(decimals + 1, '0');
-    return `${padded.slice(0, padded.length - decimals)}.${padded.slice(-decimals)} ${this.assetConfig.symbol}`;
-  }
-
   /** Десятичная строка → минимальные единицы валюты (без float-погрешности). */
   private toUnits(value: string, decimals: number): bigint {
     const [int, frac = ''] = String(value).trim().split('.');
@@ -248,18 +253,12 @@ export class MarketplaceEconomyService {
     return `${padded.slice(0, padded.length - decimals)}.${padded.slice(-decimals)} ${this.assetConfig.symbol}`;
   }
 
-  /** Сумма строки заказа (тело + членский взнос) в минимальных единицах валюты. */
-  lineUnits(pricePerUnit: string, quantity: number, contractPercent: number): bigint {
-    const totalUnits = this.toUnits(pricePerUnit, this.assetConfig.decimals) * BigInt(quantity);
-    return totalUnits + this.membershipFeeUnits(totalUnits, contractPercent);
-  }
-
   async setMembershipFee(coopname: string, feePercentHuman: number): Promise<number> {
-    // Человеку это поле известно как «наценка» (стол администратора) —
+    // Человеку это поле известно как «целевой членский взнос» (стол администратора) —
     // сообщение об ошибке должно говорить его словами.
     const membership_fee_percent = this.toContractPercent(
       feePercentHuman,
-      'Наценка'
+      i18nT('marketplace.economy.targetMembershipFeeLabel')
     );
     try {
       await this.chainPort.setFee({ coopname, membership_fee_percent });
@@ -416,14 +415,12 @@ export class MarketplaceEconomyService {
   ): Promise<string> {
     await this.assertIsTrusteeOfBranch(coopname, braname, initiator);
     if (!Number.isFinite(amount) || amount <= 0) {
-      throw new BadRequestException('Сумма распределения должна быть больше нуля');
+      throw DomainError.badRequest('MARKETPLACE_DISTRIBUTION_AMOUNT_MUST_BE_POSITIVE');
     }
 
     const economy = await this.getBranchEconomy(coopname, braname);
     if (economy.total_weight <= 0) {
-      throw new BadRequestException(
-        'Распределение не настроено: задайте веса участников распределения'
-      );
+      throw DomainError.badRequest('MARKETPLACE_DISTRIBUTION_NOT_CONFIGURED');
     }
     const common = this.assetToNumber(economy.common_balance);
     const reserve = this.assetToNumber(economy.reserve_amount);
@@ -432,9 +429,9 @@ export class MarketplaceEconomyService {
       // пути отказа, чтобы объяснить человеку, за какой срок посчитан резерв.
       const { horizonDays } = await this.expenseChassis.getPlannedReserve(coopname, braname);
       throw new BadRequestException(
-        `Распределение нарушает плановый резерв расходов на ${horizonDays} дней: ` +
-          `в общем кошельке ${economy.common_balance}, резерв ${economy.reserve_amount}, ` +
-          `доступно к распределению ${economy.available_to_distribute}`
+        i18nT('marketplace.economy.distributionReserveViolationIntro', { horizonDays }) +
+          i18nT('marketplace.economy.distributionReserveDetail', { commonBalance: economy.common_balance, reserveAmount: economy.reserve_amount }) +
+          i18nT('marketplace.economy.distributionAvailable', { availableToDistribute: economy.available_to_distribute })
       );
     }
 
@@ -449,7 +446,7 @@ export class MarketplaceEconomyService {
         source_contract: MARKETPLACE_SOURCE_CONTRACT,
         round_hash,
         amount: asset,
-        memo: 'Распределение членских взносов кооперативного участка',
+        memo: i18nT('marketplace.economy.distributionTitle'),
       });
     } catch (e) {
       rethrowChainError(e);
@@ -473,9 +470,7 @@ export class MarketplaceEconomyService {
   ): Promise<void> {
     const trustee = await this.kuChairmanService.getTrusteeOfBranch(coopname, braname);
     if (trustee !== username) {
-      throw new ForbiddenException(
-        'Настройки распределения членских взносов меняет только председатель этого кооперативного участка'
-      );
+      throw DomainError.forbidden('MARKETPLACE_DISTRIBUTION_SETTINGS_FORBIDDEN');
     }
   }
 
@@ -488,7 +483,7 @@ export class MarketplaceEconomyService {
   ): Promise<void> {
     await this.assertIsTrusteeOfBranch(coopname, braname, initiator);
     if (!Number.isInteger(weight) || weight <= 0) {
-      throw new BadRequestException('Вес должен быть целым числом больше нуля');
+      throw DomainError.badRequest('MARKETPLACE_DISTRIBUTION_WEIGHT_INVALID');
     }
     try {
       await this.chainPort.setWeight({
@@ -522,23 +517,8 @@ export class MarketplaceEconomyService {
     }
   }
 
-  // ── Персональные средства доверенного ────────────────────────────────
+  // ── Свободный паевой Стола заказов ───────────────────────────────────
 
-  async convertBranchFunds(coopname: string, username: string, amount: number): Promise<string> {
-    if (!Number.isFinite(amount) || amount <= 0) {
-      throw new BadRequestException('Сумма перевода должна быть больше нуля');
-    }
-    const asset = this.formatAsset(amount);
-    const convert_hash = createHash('sha256')
-      .update(`${coopname}:${username}:convert:${randomBytes(16).toString('hex')}`)
-      .digest('hex');
-    try {
-      await this.chainPort.convertBranchFunds({ coopname, username, convert_hash, amount: asset });
-    } catch (e) {
-      rethrowChainError(e);
-    }
-    return asset;
-  }
 
   /**
    * Сформировать подписываемое Заявление на материальную помощь (registry
@@ -552,13 +532,11 @@ export class MarketplaceEconomyService {
     amount: number
   ): Promise<InnerGeneratedDocument> {
     if (!Number.isFinite(amount) || amount <= 0) {
-      throw new BadRequestException('Сумма материальной помощи должна быть больше нуля');
+      throw DomainError.badRequest('MARKETPLACE_AID_AMOUNT_MUST_BE_POSITIVE');
     }
     const isMember = await this.kuChairmanService.isMemberOfBranch(coopname, braname, username);
     if (!isMember) {
-      throw new ForbiddenException(
-        'Материальная помощь доступна председателю и доверенным этого кооперативного участка'
-      );
+      throw DomainError.forbidden('MARKETPLACE_AID_FORBIDDEN');
     }
     const aid_hash = createHash('sha256')
       .update(`${coopname}:${username}:aid:${randomBytes(16).toString('hex')}`)
@@ -585,13 +563,11 @@ export class MarketplaceEconomyService {
     paymentMethodId: string
   ): Promise<string> {
     if (!Number.isFinite(amount) || amount <= 0) {
-      throw new BadRequestException('Сумма материальной помощи должна быть больше нуля');
+      throw DomainError.badRequest('MARKETPLACE_AID_AMOUNT_MUST_BE_POSITIVE');
     }
     const isMember = await this.kuChairmanService.isMemberOfBranch(coopname, braname, username);
     if (!isMember) {
-      throw new ForbiddenException(
-        'Материальная помощь доступна председателю и доверенным этого кооперативного участка'
-      );
+      throw DomainError.forbidden('MARKETPLACE_AID_FORBIDDEN');
     }
 
     this.verifyDocumentSignature(signedStatement, username);
@@ -602,22 +578,16 @@ export class MarketplaceEconomyService {
       !meta ||
       meta.registry_id !== Cooperative.Registry.BranchFinancialAidStatement.registry_id
     ) {
-      throw new BadRequestException(
-        `Заявление должно быть зарегистрировано с registry_id=${Cooperative.Registry.BranchFinancialAidStatement.registry_id}`
-      );
+      throw DomainError.badRequest('MARKETPLACE_AID_STATEMENT_WRONG_REGISTRY', { registryId: Cooperative.Registry.BranchFinancialAidStatement.registry_id });
     }
     if (meta.aid_hash && meta.aid_hash !== aidHash) {
-      throw new ConflictException(
-        'Заявление подписано для другой заявки — пересоберите Заявление перед отправкой'
-      );
+      throw DomainError.conflict('MARKETPLACE_AID_STATEMENT_WRONG_REQUEST');
     }
 
     const asset = this.formatAsset(amount);
     const balance = await this.getPersonalBalance(coopname, username);
     if (this.assetToNumber(balance) < amount) {
-      throw new BadRequestException(
-        `Недостаточно средств на персональном кошельке: доступно ${balance}, запрошено ${asset}`
-      );
+      throw DomainError.badRequest('MARKETPLACE_PERSONAL_WALLET_INSUFFICIENT_FUNDS', { balance, requested: asset });
     }
 
     // Реквизиты обязаны существовать и принадлежать самому получателю —
@@ -626,9 +596,7 @@ export class MarketplaceEconomyService {
     try {
       payoutMethod = await this.paymentMethodRepo.get({ username, method_id: paymentMethodId });
     } catch {
-      throw new BadRequestException(
-        'Реквизиты не найдены. Добавьте их в разделе «Реквизиты» стола пайщика и выберите снова.'
-      );
+      throw DomainError.badRequest('MARKETPLACE_PAYMENT_DETAILS_NOT_FOUND');
     }
 
     // Core-платёж создаётся ДО отправки на цепь и скрыт от кассира
@@ -653,7 +621,7 @@ export class MarketplaceEconomyService {
         // её номер и налоговая оговорка. Номер — начало хэша заявки, как и
         // везде в реестрах: по нему выписка сходится с заявлением, если выплат
         // в день несколько.
-        memo: `Материальная помощь № ${aidHash.slice(0, 8)}. ${VAT_EXEMPT_NOTE}`,
+        memo: i18nT('marketplace.economy.aidPaymentTitle', { aidHashShort: aidHash.slice(0, 8), vatExemptNote: VAT_EXEMPT_NOTE }),
         type: PaymentType.AID,
         status: PaymentStatus.AWAITING_AUTHORIZATION,
         related_extension: 'marketplace',
@@ -671,9 +639,7 @@ export class MarketplaceEconomyService {
         },
       });
     } catch (e: any) {
-      throw new ConflictException(
-        `Не удалось зарегистрировать выплату в реестре платежей: ${e.message}. Заявление не подано, повторите попытку.`
-      );
+      throw DomainError.conflict('MARKETPLACE_AID_PAYMENT_REGISTRATION_FAILED', { errorMessage: e.message });
     }
 
     // Заявление уходит не кассиру, а на повестку совета: выплата денег из
@@ -702,7 +668,7 @@ export class MarketplaceEconomyService {
       await this.cancelAidPayment(
         coopname,
         aidHash,
-        'Заявление не удалось внести на рассмотрение совета'
+        i18nT('marketplace.economy.aidCouncilSubmitFailedNote')
       );
       rethrowChainError(e);
     }
@@ -742,9 +708,7 @@ export class MarketplaceEconomyService {
     // но подаёт председатель. Тот же guard стоит в контракте.
     const trustee = await this.kuChairmanService.getTrusteeOfBranch(coopname, input.braname);
     if (trustee !== username) {
-      throw new ForbiddenException(
-        'Расход на оплату подаёт только председатель этого кооперативного участка'
-      );
+      throw DomainError.forbidden('MARKETPLACE_EXPENSE_SUBMIT_FORBIDDEN');
     }
 
     this.verifyDocumentSignature(input.statement as unknown as SignedDigitalDocumentInputDTO, username);
@@ -890,18 +854,15 @@ export class MarketplaceEconomyService {
     expectedSigner: string
   ): void {
     const sig = document.signatures?.[0];
-    if (!sig) throw new HttpApiError(http.BAD_REQUEST, 'Заявление не подписано');
+    if (!sig) throw DomainError.badRequest('MARKETPLACE_AID_STATEMENT_NOT_SIGNED');
     if (sig.signer !== expectedSigner) {
-      throw new HttpApiError(
-        http.BAD_REQUEST,
-        'Заявление должно быть подписано самим получателем материальной помощи'
-      );
+      throw DomainError.badRequest('MARKETPLACE_AID_STATEMENT_WRONG_SIGNER');
     }
     const publicKey = PublicKey.from(sig.public_key);
     const signature = Signature.from(sig.signature);
     const verified = signature.verifyDigest(sig.signed_hash, publicKey);
     if (!verified) {
-      throw new HttpApiError(http.BAD_REQUEST, 'Недействительная подпись Заявления');
+      throw DomainError.badRequest('MARKETPLACE_AID_STATEMENT_SIGNATURE_INVALID');
     }
   }
 }

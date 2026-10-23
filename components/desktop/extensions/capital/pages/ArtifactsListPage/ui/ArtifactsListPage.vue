@@ -27,29 +27,28 @@
 
       .list-empty(v-else)
         q-icon(name='inbox', size='20px')
-        span Нет доступных артефактов
+        span {{ $t('capital.artifactsListPage.emptyText') }}
 
-  //- Просмотр/правка — полноэкранный диалог, тот же, что на вкладках «Артефакты»
-  EditRequirementDialog(
-    ref='editDialogRef',
-    :requirement='selectedStory',
-    :can-edit='selectedCanEdit',
-    @updated='onStoryUpdated'
-  )
+  //- Просмотр/правка — оверлей поверх списка (?story= в адресе), тот же,
+  //- что на вкладках «Артефакты»: список не размонтируется, «назад»
+  //- закрывает оверлей, ссылка на открытый артефакт пересылается
+  RequirementOverlay(:items='items', @updated='onStoryUpdated')
 </template>
 
 <script lang="ts" setup>
 import { onMounted, ref } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { CAPITAL_LIVE_TABLES } from 'app/extensions/capital/shared/lib/live';
 import { Zeus } from '@coopenomics/sdk';
 import { useSystemStore } from 'src/entities/System/model';
 import { FailAlert } from 'src/shared/api';
+import { useQueryOverlay } from 'src/shared/lib/navigation';
 import { api as StoryApi } from 'app/extensions/capital/entities/Story/api';
-import { api as IssueApi } from 'app/extensions/capital/entities/Issue/api';
-import { useProjectStore } from 'app/extensions/capital/entities/Project/model';
 import type { IStory } from 'app/extensions/capital/entities/Story/model';
 import { FavoriteStarButton } from 'app/extensions/capital/features/Favorite/ToggleFavorite';
-import { EditRequirementDialog } from 'app/extensions/capital/features/Story/EditRequirement';
+import { RequirementOverlay } from 'app/extensions/capital/features/Story/EditRequirement';
 import { storyContentIcon } from 'app/extensions/capital/shared/lib/storyContentIcon';
+import { t } from '../../../i18n';
 
 const FavoriteTargetType = Zeus.CapitalFavoriteTargetType;
 
@@ -70,54 +69,27 @@ async function load(): Promise<void> {
     items.value = result.items;
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
-    FailAlert('Не удалось загрузить артефакты: ' + msg);
+    FailAlert(t('capital.artifactsListPage.loadError') + msg);
   } finally {
     loading.value = false;
   }
 }
 
+// Артефакты живут по ленте изменений Благороста.
+useLiveReload(CAPITAL_LIVE_TABLES, () => load());
+
 onMounted(load);
 
-// --- Открытие артефакта: полноэкранный диалог, право на правку — от проекта-владельца
+// --- Открытие артефакта: оверлей сам загружает данные и выясняет право
+// на правку от проекта-владельца (см. RequirementOverlay)
 
-const projectStore = useProjectStore();
-const editDialogRef = ref<{ openDialog: () => void } | null>(null);
-const selectedStory = ref<IStory | null>(null);
-const selectedCanEdit = ref(false);
-
-async function resolveOwnerProjectHash(story: IStory): Promise<string | undefined> {
-  if (story.issue_hash) {
-    try {
-      const issue = await IssueApi.loadIssue({ issue_hash: story.issue_hash });
-      if (issue?.project_hash) return issue.project_hash;
-    } catch {
-      // остаёмся на project_hash самого артефакта
-    }
-  }
-  return story.project_hash ?? undefined;
-}
+const overlay = useQueryOverlay('story');
 
 function openStory(story: IStory): void {
-  selectedStory.value = story;
-  selectedCanEdit.value = false;
-  editDialogRef.value?.openDialog();
-  // Право подтягивается после открытия — просмотр не ждёт загрузки проекта
-  void (async () => {
-    try {
-      const ownerHash = await resolveOwnerProjectHash(story);
-      if (!ownerHash) return;
-      const project = await projectStore.loadProject({ hash: ownerHash });
-      if (selectedStory.value?.story_hash === story.story_hash) {
-        selectedCanEdit.value = project?.permissions?.can_edit_requirement ?? false;
-      }
-    } catch {
-      // без прав остаёмся в режиме просмотра
-    }
-  })();
+  overlay.open(story.story_hash);
 }
 
 function onStoryUpdated(updated: IStory): void {
-  selectedStory.value = updated;
   items.value = items.value.map((s) => (s.story_hash === updated.story_hash ? updated : s));
 }
 </script>

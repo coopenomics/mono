@@ -10,7 +10,7 @@ component(
   button.account-badge__copy(
     v-if='copyable',
     type='button',
-    aria-label='Скопировать имя аккаунта',
+    :aria-label='$t("ui.accountBadge.copyAriaLabel")',
     @click.stop.prevent='onCopy'
   )
     q-icon(name='content_copy' size='14px')
@@ -20,6 +20,7 @@ component(
 import { computed } from 'vue';
 import { copyToClipboard, Notify } from 'quasar';
 import type { AccountBadgeProps } from './AccountBadge.types';
+import { t } from 'src/shared/i18n';
 
 const props = withDefaults(defineProps<AccountBadgeProps>(), {
   size: 'sm',
@@ -42,9 +43,9 @@ async function onCopy(): Promise<void> {
   try {
     await copyToClipboard(props.accountName);
     emit('copy', props.accountName);
-    Notify.create({ type: 'positive', message: 'Скопировано', timeout: 1200, position: 'top' });
+    Notify.create({ type: 'positive', message: t('ui.accountBadge.copiedText'), timeout: 1200, position: 'top' });
   } catch {
-    Notify.create({ type: 'negative', message: 'Не удалось скопировать', timeout: 2000, position: 'top' });
+    Notify.create({ type: 'negative', message: t('ui.accountBadge.copyErrorText'), timeout: 2000, position: 'top' });
   }
 }
 </script>

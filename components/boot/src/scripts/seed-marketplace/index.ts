@@ -21,6 +21,7 @@ import { phase05 } from './phases/05-sign-offer'
 import { phase06 } from './phases/06-catalog-offers'
 import { phase06b } from './phases/06b-approve-catalog'
 import { phase07 } from './phases/07-warehouse-config'
+import { phase08off, phase08on } from './phases/08-robot-off'
 
 const PHASES: Record<string, () => Promise<void>> = {
   '01-l1-accept': phase01,
@@ -31,9 +32,14 @@ const PHASES: Record<string, () => Promise<void>> = {
   '06-catalog-offers': phase06,
   '06b-approve-catalog': phase06b,
   '07-warehouse-config': phase07,
+  '08-robot-off': phase08off,
+  '08-robot-on': phase08on,
 }
 
-const PHASE_ORDER = Object.keys(PHASES)
+// Рычаги робота совета — не шаги подготовки стенда: их зовут сами сценарии
+// списания, в `all` и `--up-to` они не входят.
+const LEVERS = new Set(['08-robot-off', '08-robot-on'])
+const PHASE_ORDER = Object.keys(PHASES).filter(name => !LEVERS.has(name))
 
 function usage(): never {
   console.error('Usage: seed-marketplace <phase> [<phase> ...] | --up-to=<phase> | all')

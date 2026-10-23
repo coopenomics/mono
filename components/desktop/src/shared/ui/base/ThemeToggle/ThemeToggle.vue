@@ -6,17 +6,17 @@ q-btn(
   stretch,
   :icon='isDark ? "brightness_7" : "brightness_3"',
   :size='isMobile ? "sm" : "md"',
-  :aria-label='isDark ? "Светлая тема" : "Тёмная тема"',
+  :aria-label='isDark ? $t("ui.themeToggle.lightThemeLabel") : $t("ui.themeToggle.darkThemeLabel")',
   @click='toggleTheme'
 )
-  q-tooltip {{ isDark ? 'Светлая тема' : 'Тёмная тема' }}
+  q-tooltip {{ isDark ? $t('ui.themeToggle.lightThemeLabel') : $t('ui.themeToggle.darkThemeLabel') }}
 
 //- Вариант для списка (элемент q-list внутри dropdown).
 q-item(v-else, flat, clickable, @click='toggleTheme')
   q-item-section
     q-item-label
       q-icon.q-mr-sm(:name='isDark ? "brightness_7" : "brightness_3"')
-      span.theme-toggle__label(v-if='showText') {{ isDark ? 'ДНЕВНОЙ РЕЖИМ' : 'НОЧНОЙ РЕЖИМ' }}
+      span.theme-toggle__label(v-if='showText') {{ isDark ? $t('ui.themeToggle.dayModeLabel') : $t('ui.themeToggle.nightModeLabel') }}
 </template>
 
 <script setup lang="ts">

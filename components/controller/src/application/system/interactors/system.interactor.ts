@@ -1,4 +1,7 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { prepareVarsUpdate } from '~/domain/system/utils/merge-vars.util';
+import { COOP_KEY_INSTALLED_EVENT, type CoopKeyInstalledEvent } from '~/domain/system/interfaces/coop-key-installed.event';
 import { SYSTEM_BLOCKCHAIN_PORT, SystemBlockchainPort } from '~/domain/system/interfaces/system-blockchain.port';
 import { SystemInfoDomainEntity } from '~/domain/system/entities/systeminfo-domain.entity';
 import config from '~/config/config';
@@ -37,6 +40,7 @@ import {
 } from '~/domain/payment-method/ports/payment-method-domain.port';
 import { LoadContactsInteractor } from './load-contacts.interactor';
 import { isRegistrationOpen } from '~/domain/system/utils/is-registration-open.util';
+import { DomainError } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class SystemInteractor {
@@ -54,7 +58,8 @@ export class SystemInteractor {
     private readonly wifInteractor: WifInteractor,
     @Inject(MONO_STATUS_REPOSITORY) private readonly monoStatusRepository: MonoStatusRepository,
     @Inject(USER_REPOSITORY) private readonly userRepository: UserRepository,
-    @Inject(PAYMENT_METHOD_DOMAIN_PORT) private readonly paymentMethodDomainPort: PaymentMethodDomainPort
+    @Inject(PAYMENT_METHOD_DOMAIN_PORT) private readonly paymentMethodDomainPort: PaymentMethodDomainPort,
+    private readonly events: EventEmitter2
   ) {}
 
   async startInstall(data: StartInstallInputDomainInterface): Promise<StartInstallResultDomainInterface> {
@@ -66,7 +71,7 @@ export class SystemInteractor {
     // 3. Статус 'initialized' (предустановка через server_secret уже выполнена, теперь устанавливаем ключ)
     if (existingMono && existingMono.status) {
       if (existingMono.status !== SystemStatus.install && existingMono.status !== SystemStatus.initialized) {
-        throw new Error('Установка ключа невозможна. Система находится в статусе: ' + existingMono.status);
+        throw DomainError.conflict('SYSTEM_INSTALL_KEY_STATUS_INVALID', { status: existingMono.status });
       }
     }
 
@@ -76,6 +81,9 @@ export class SystemInteractor {
       wif: data.wif,
       permission: 'active',
     });
+    // Ключ есть — подписывать от имени кооператива теперь можно (право заверения
+    // удостоверений публикует CertKeyService по этому событию).
+    this.events.emit(COOP_KEY_INSTALLED_EVENT, { coopname: config.coopname } satisfies CoopKeyInstalledEvent);
 
     // Если есть валидный код установки - возвращаем его
     if (existingMono?.install_code && existingMono.install_code_expires_at > new Date()) {
@@ -104,11 +112,24 @@ export class SystemInteractor {
     };
   }
 
+  /**
+   * Установка совета и данных организации до активации кооператива открыта
+   * без входа — учётных записей ещё нет. Единственное, что отличает владельца
+   * от постороннего, — код установки: его выдаёт `startInstall` тому, кто
+   * показал ключ кооператива. Провайдер с межсервисным секретом кода не имеет.
+   */
+  async assertInstallCode(code: string | undefined, trusted: boolean): Promise<void> {
+    if (trusted) return;
+    if (!code || !(await this.monoStatusRepository.validateInstallCode(code))) {
+      throw DomainError.forbidden('SYSTEM_INSTALL_CODE_INVALID_RESTART');
+    }
+  }
+
   async getInstallationStatus(data: GetInstallationStatusInputDomainInterface): Promise<InstallationStatusDomainInterface> {
     // Проверяем валидность кода установки
     const isValidCode = await this.monoStatusRepository.validateInstallCode(data.install_code);
     if (!isValidCode) {
-      throw new Error('Неверный или истекший код установки');
+      throw DomainError.badRequest('SYSTEM_INSTALL_CODE_INVALID');
     }
 
     // Получаем mono документ для получения дополнительных данных
@@ -148,6 +169,11 @@ export class SystemInteractor {
   }
 
   async setWif(data: SetWifInputDomainInterface): Promise<void> {
+    // Узел подписывает только ключом кооператива: личные ключи пайщиков в его
+    // хранилище не принимаются, даже верные.
+    if (data.username !== config.coopname) {
+      throw DomainError.forbidden('SYSTEM_VAULT_COOPERATIVE_KEY_ONLY');
+    }
     await this.wifInteractor.setWif(data);
   }
 
@@ -165,14 +191,17 @@ export class SystemInteractor {
 
     // Проверяем, что статус действительно изменился на активный
     if (systemInfo.system_status !== SystemStatus.active) {
-      throw new Error('Система не была правильно установлена: статус не изменился на активный');
+      throw DomainError.badRequest('SYSTEM_INSTALL_NOT_ACTIVE');
     }
 
     return systemInfo;
   }
 
   async update(data: UpdateInputDomainInterface): Promise<SystemInfoDomainEntity> {
-    if (data.vars) await this.varsRepository.create(data.vars);
+    if (data.vars) {
+      // Имя сверяется с узлом, новые значения ложатся поверх текущих (поля расширений).
+      await this.varsRepository.create(prepareVarsUpdate(await this.varsRepository.get(), data.vars, config.coopname));
+    }
     if (data.organization_data) await this.organizationRepository.create(data.organization_data);
 
     return this.getInfo();
@@ -231,8 +260,6 @@ export class SystemInteractor {
       system_status,
       symbols,
       settings,
-      is_unioned: config.union.is_unioned,
-      union_link: config.union.link,
       board_members,
       features: {
         // Поиск по документам теперь на PG-реестре подписанных документов (C28-21) — доступен всегда.

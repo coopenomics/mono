@@ -36,6 +36,8 @@ void meet::restartmeet(name coopname, checksum256 hash, checksum256 new_hash, do
 
     // Проверяем документ нового предложения
     verify_document_or_fail(newproposal);
+    // Созыв повторного собрания подписывает инициатор прежнего.
+    verify_signer_keys_or_fail(newproposal, meet_record.initiator);
 
     // Обновляем запись собрания
     Meet::meets_index genmeets(_meet, coopname.value);
@@ -47,7 +49,7 @@ void meet::restartmeet(name coopname, checksum256 hash, checksum256 new_hash, do
     
     document2 empty_document;
     
-    genmeets.modify(meet_itr, coopname, [&](auto &m) {
+    genmeets.modify(meet_itr, RamPayer::of(genmeets, coopname), [&](auto &m) {
         m.hash              = new_hash;  // Заменяем старый хэш на новый
         m.status            = "onrestart"_n;
         m.proposal          = newproposal;
@@ -82,7 +84,7 @@ void meet::restartmeet(name coopname, checksum256 hash, checksum256 new_hash, do
         auto main_itr = questions.find(idx_itr->primary_key());
         eosio::check(main_itr != questions.end(), "Не найден вопрос в основном индексе");
 
-        questions.modify(main_itr, coopname, [&](auto &q) {
+        questions.modify(main_itr, RamPayer::of(questions, coopname), [&](auto &q) {
             q.counter_votes_for = 0;
             q.counter_votes_against = 0;
             q.counter_votes_abstained = 0;

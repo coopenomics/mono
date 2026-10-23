@@ -4,7 +4,7 @@
   .components-skeleton(v-if='isInitialLoading')
     .skel(v-for='i in 8', :key='i')
 
-  .components-scroll-area(v-else)
+  .components-scroll-area(v-else, ref='scrollAreaRef')
     // Список — плоские строки компонентов; таблица здесь не нужна:
     // строка одна на всех уровнях дерева, а под ней раскрывается контент
     // переменной высоты (задачи компонента)
@@ -24,7 +24,7 @@
     // Канон-пустое состояние
     .list-empty(v-if='!components.items.length')
       q-icon(name='inbox', size='20px')
-      span {{ hasFiltersApplied ? 'Нет результатов по фильтрам' : 'Нет компонентов' }}
+      span {{ hasFiltersApplied ? $t('capital.componentsTreeWidget.noFilterResults') : $t('capital.componentsTreeWidget.emptyText') }}
 
     // Сентинел догрузки: попал в вид — тянем следующую страницу
     .components-sentinel(v-if='hasMorePages', ref='sentinelRef')
@@ -33,13 +33,23 @@
 
 <script lang="ts" setup>
 import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue';
+import { useLiveReload, liveWindow, type LiveWindow } from 'src/shared/lib/realtime';
+import { CAPITAL_LIVE_TABLES } from 'app/extensions/capital/shared/lib/live';
 import { useSystemStore } from 'src/entities/System/model';
 import { FailAlert } from 'src/shared/api';
 import { useProjectStore } from 'app/extensions/capital/entities/Project/model';
 import type { IGetProjectsInput } from 'app/extensions/capital/entities/Project/model';
 import { ComponentListRow } from 'app/extensions/capital/widgets/ComponentsListWidget';
+import { t } from '../../../i18n';
 
 type IProjectsFilter = NonNullable<IGetProjectsInput['filter']>;
+
+// Память списка между заходами: скролл и ключ фильтра. Данные ленты — в
+// projectStore.components; возврат «назад» с компонента восстанавливает
+// позицию и пагинацию без перезагрузки. См. тот же приём в ProjectsListWidget.
+const listMemory = { filterKey: '', scrollTop: 0 };
+
+const PAGE_SIZE = 25;
 
 const props = defineProps<{
   coopname?: string;
@@ -70,6 +80,19 @@ const loading = ref(false);
 const nextPage = ref(1);
 const lastPage = ref(1);
 const sentinelRef = ref<HTMLElement | null>(null);
+const scrollAreaRef = ref<HTMLElement | null>(null);
+
+const filterKey = computed(() =>
+  JSON.stringify([
+    props.coopname,
+    props.statuses,
+    props.priorities,
+    props.master,
+    props.origin,
+    props.sortBy,
+    props.sortOrder,
+  ]),
+);
 let observer: IntersectionObserver | null = null;
 
 const components = computed(() => projectStore.components);
@@ -84,35 +107,31 @@ const isInitialLoading = computed(
 
 const hasMorePages = computed(() => nextPage.value <= lastPage.value);
 
-const loadComponents = async (page = 1, append = false) => {
-  loading.value = true;
+/** Фильтр ленты компонентов по свойствам виджета. */
+function componentsFilter(): IProjectsFilter {
+  const filter: IProjectsFilter = {
+    coopname: props.coopname || info.coopname,
+    // Плоский список: только компоненты, без первого уровня проектов
+    is_component: true,
+  };
+  if (props.statuses?.length) filter.statuses = props.statuses as IProjectsFilter['statuses'];
+  if (props.priorities?.length) filter.priorities = props.priorities as IProjectsFilter['priorities'];
+  if (props.master) filter.master = props.master;
+  if (props.origin) filter.origin = props.origin;
+  return filter;
+}
+
+// `window` — перечитывание по ленте изменений: все уже загруженные страницы
+// одним запросом, тихо, с сохранением позиции ленты.
+const loadComponents = async (page = 1, append = false, window?: LiveWindow) => {
+  if (!window) loading.value = true;
 
   try {
-    const filter: IProjectsFilter = {
-      coopname: props.coopname || info.coopname,
-      // Плоский список: только компоненты, без первого уровня проектов
-      is_component: true,
-    };
-
-    if (props.statuses?.length) {
-      filter.statuses = props.statuses as IProjectsFilter['statuses'];
-    }
-    if (props.priorities?.length) {
-      filter.priorities = props.priorities as IProjectsFilter['priorities'];
-    }
-    if (props.master) {
-      filter.master = props.master;
-    }
-    if (props.origin) {
-      filter.origin = props.origin;
-    }
-
     await projectStore.loadComponents(
       {
-        filter,
+        filter: componentsFilter(),
         options: {
-          page,
-          limit: 25,
+          ...(window?.options ?? { page, limit: PAGE_SIZE }),
           sortBy: props.sortBy || '_created_at',
           sortOrder: props.sortOrder || 'DESC',
         },
@@ -120,8 +139,9 @@ const loadComponents = async (page = 1, append = false) => {
       append,
     );
 
-    lastPage.value = projectStore.components.totalPages || 1;
-    nextPage.value = page + 1;
+    // Страницы считаем в размере ленты: окно перечитывания грузит их разом.
+    lastPage.value = Math.max(1, Math.ceil(projectStore.components.totalCount / PAGE_SIZE));
+    nextPage.value = (window?.pages ?? page) + 1;
 
     emit(
       'dataLoaded',
@@ -129,11 +149,14 @@ const loadComponents = async (page = 1, append = false) => {
     );
   } catch (error) {
     console.error('Ошибка при загрузке компонентов:', error);
-    FailAlert('Не удалось загрузить список компонентов');
+    if (!window) FailAlert(t('capital.componentsTreeWidget.loadError'));
   } finally {
     loading.value = false;
   }
 };
+
+// Живой список компонентов — по ленте изменений Благороста, тихо.
+useLiveReload(CAPITAL_LIVE_TABLES, () => loadComponents(1, false, liveWindow(nextPage.value - 1, PAGE_SIZE)));
 
 const loadNextPage = () => {
   if (loading.value || !hasMorePages.value) return;
@@ -166,11 +189,25 @@ const resetList = () => {
 };
 
 onMounted(async () => {
+  const cached = projectStore.components.items || [];
+  if (listMemory.filterKey === filterKey.value && cached.length > 0) {
+    // Возврат на список: лента в сторе — восстанавливаем пагинацию из её
+    // длины и позицию прокрутки, без сетевого запроса
+    nextPage.value = Math.floor(cached.length / PAGE_SIZE) + 1;
+    lastPage.value = projectStore.components.totalPages || 1;
+    emit('dataLoaded', cached.map((c) => c.project_hash));
+    await nextTick();
+    if (scrollAreaRef.value) scrollAreaRef.value.scrollTop = listMemory.scrollTop;
+    await observeSentinel();
+    return;
+  }
   await loadComponents(1, false);
   await observeSentinel();
 });
 
 onBeforeUnmount(() => {
+  listMemory.scrollTop = scrollAreaRef.value?.scrollTop ?? 0;
+  listMemory.filterKey = filterKey.value;
   observer?.disconnect();
   observer = null;
 });

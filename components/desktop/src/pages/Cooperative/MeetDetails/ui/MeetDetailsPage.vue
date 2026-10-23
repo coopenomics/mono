@@ -3,7 +3,7 @@
   //- Canon back-link под шапкой, слева (вместо кнопки «Назад» в топбаре).
   button.meet-back(type='button', @click='goBack')
     q-icon(name='arrow_back', size='18px')
-    span К списку собраний
+    span {{ $t('cooperative.meetDetailsPage.backLabel') }}
 
   div(v-if='loading')
     q-skeleton.q-mb-md.rounded-borders(type='rect', height='220px')
@@ -11,8 +11,8 @@
 
   EmptyState(
     v-else-if='!meet',
-    title='Собрание не найдено',
-    body='Проверьте правильность ссылки или вернитесь к списку собраний.'
+    :title='$t("cooperative.meetDetailsPage.notFoundTitle")',
+    :body='$t("cooperative.meetDetailsPage.notFoundBody")'
   )
     template(#icon)
       q-icon(name='search_off', size='48px')
@@ -52,11 +52,13 @@ import { MeetDetailsAgenda } from 'src/widgets/Meets/MeetDetailsAgenda';
 import { MeetDetailsVoting } from 'src/widgets/Meets/MeetDetailsVoting';
 import { MeetDetailsResults } from 'src/widgets/Meets/MeetDetailsResults';
 import { EmptyState } from 'src/shared/ui/base/EmptyState';
-import { useMeetStore } from 'src/entities/Meet';
+import { useMeetStore, MEET_LIVE_TABLES } from 'src/entities/Meet';
 import { useDesktopStore } from 'src/entities/Desktop';
 import { useVoteOnMeet } from 'src/features/Meet/VoteOnMeet';
 import { Zeus } from '@coopenomics/sdk';
 import { FailAlert } from 'src/shared/api';
+import { t } from 'src/shared/i18n';
+import { useLiveReload } from 'src/shared/lib/realtime';
 
 const route = useRoute();
 const router = useRouter();
@@ -72,7 +74,7 @@ const loading = ref(true);
 // Название собрания — в заголовок шапки (вместо «Детали собрания»).
 const meetTitle = computed(() => {
   const id = meet.value?.processing?.meet?.id;
-  return id ? `Общее собрание № ${id}` : 'Детали собрания';
+  return id ? t('cooperative.meetDetailsPage.titleWithId', { id }) : t('cooperative.meetDetailsPage.defaultTitle');
 });
 
 const isProcessed = computed(() => !!meet.value?.processed);
@@ -85,17 +87,19 @@ const showAgenda = computed(
 
 const { isVotingNow, setMeet } = useVoteOnMeet();
 
-let intervalId: ReturnType<typeof setInterval> | null = null;
-
-const loadMeetDetails = async () => {
+const loadMeetDetails = async (silent = false) => {
   try {
-    await meetStore.loadMeet({
-      coopname: coopname.value,
-      hash: meetHash.value,
-    });
+    await meetStore.loadMeet(
+      {
+        coopname: coopname.value,
+        hash: meetHash.value,
+      },
+      { silent },
+    );
     if (meet.value) setMeet(meet.value);
   } catch (error: any) {
-    FailAlert(error);
+    // Фоновое перечитывание не пугает отказом: следующий сигнал повторит.
+    if (!silent) FailAlert(error);
   } finally {
     loading.value = false;
   }
@@ -123,15 +127,17 @@ watch(
 
 onMounted(() => {
   loadMeetDetails();
-  intervalId = setInterval(loadMeetDetails, 15000);
 });
+
+// Карточка живёт по ленте изменений вместо опроса раз в 15 секунд: голоса
+// пайщиков, открытие, закрытие и подпись протокола приходят сигналом.
+useLiveReload(
+  MEET_LIVE_TABLES,
+  () => loadMeetDetails(true),
+);
 
 onUnmounted(() => {
   desktopStore.clearPageTitleOverride();
-  if (intervalId) {
-    clearInterval(intervalId);
-    intervalId = null;
-  }
 });
 </script>
 

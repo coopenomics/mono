@@ -2,6 +2,7 @@ import { defineStore } from 'pinia';
 import { ref, Ref } from 'vue';
 import { api } from '../api';
 import type { IChatCoopAccountStatus } from './types';
+import { t } from '../../../i18n';
 
 const namespace = 'chatcoopChatStore';
 
@@ -22,7 +23,13 @@ export const useChatCoopChatStore = defineStore(
     const error = ref<string | null>(null);
 
     const loadAccountStatus = async (): Promise<IChatCoopAccountStatus | null> => {
-      isLoading.value = true;
+      // Лоадер и ошибка — только до первого ответа. Дочитка по ленте и по
+      // возврату вкладки идёт при уже открытом чате: экран ветвится по
+      // isLoading/error через v-if, и каждое их переключение снимало iframe
+      // Matrix-клиента и вставляло заново — клиент загружался с нуля при
+      // каждом возврате фокуса на вкладку.
+      const firstLoad = accountStatus.value === null;
+      if (firstLoad) isLoading.value = true;
       error.value = null;
 
       try {
@@ -31,8 +38,8 @@ export const useChatCoopChatStore = defineStore(
         return status;
       } catch (err) {
         console.error('Failed to load ChatCoop account status:', err);
-        error.value = 'Не удалось получить статус аккаунта. Попробуйте обновить страницу.';
-        return null;
+        if (firstLoad) error.value = t('chatcoop.chatStore.statusError');
+        return accountStatus.value;
       } finally {
         isLoading.value = false;
       }

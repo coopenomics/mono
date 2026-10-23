@@ -1,3 +1,8 @@
+import type {
+  MarketplaceReturnClaimDecision,
+  MarketplaceReturnClaimDecisionStage,
+} from '../../domain/entities/marketplace-return-claim.types';
+
 /**
  * Per-contract event-bus каналы marketplace для push-уведомлений (Эпик 5).
  * Эмитятся ПОСЛЕ commit'а в PG (INV-12) — listener доставляет уведомление
@@ -219,11 +224,21 @@ export interface MarketplaceOfferCountersChangedEvent {
   offer_id: string;
   supplier_account: string;
   op: 'block' | 'unblock' | 'consume' | 'rollback';
+  /** Базовое количество движения. */
   qty: number;
+  /** Заказанная упаковка и число упаковок; null — отпуск по мере. */
+  package: { id: string; count: number } | null;
   quantity_available: number;
   quantity_blocked: number;
   quantity_consumed: number;
   unlimited_flag: boolean;
+  /** Счётчики упаковок после движения — в упаковках; пусто при отпуске по мере. */
+  packages: Array<{
+    id: string;
+    quantity_available: number;
+    quantity_blocked: number;
+    quantity_consumed: number;
+  }>;
 }
 
 export interface MarketplaceOfferApprovedEvent {
@@ -313,7 +328,7 @@ export const MARKETPLACE_RETURN_CLAIM_DECIDED_EVENT =
 
 /**
  * Story 7.4 (Эпик 7): заявление достигло финального статуса
- * (ACCEPTED_AT_VISIT / REJECTED_REMOTELY / REJECTED_AT_VISIT) — отдельное
+ * (ACCEPTED_BY_COUNCIL / HANDED_BACK / REJECTED_REMOTELY / REJECTED_AT_VISIT) — отдельное
  * событие для финализации orderer-стола и обновления карточки Order'а.
  */
 export const MARKETPLACE_RETURN_CLAIM_FINALIZED_EVENT =
@@ -329,24 +344,30 @@ export interface MarketplaceReturnClaimSubmittedEvent {
 }
 
 /**
- * Карта уведомлений (пробел B): гарантийный возврат принят в кооператив на
- * очном осмотре (`accretrn`) — имущество принято на счёт 10, претензия
- * зафиксирована. Поставщику уходит multi-channel уведомление: дальше
- * председатель КУ свяжется с ним по претензии за пределами системы. Эмитится
- * ПОСЛЕ commit'а решения в PG (INV-12).
+ * Задача 99D-13: по решению совета об отмене сделки поставщику выставлена
+ * гарантийная претензия — рекламация пайщика в две подписи, имущество на
+ * участке, сумма к признанию или отказу. Поставщику уходит multi-channel
+ * уведомление со ссылкой на раздел «Гарантийные возвраты» его стола.
+ * Эмитится ПОСЛЕ записи претензии в PG (INV-12).
  */
-export const MARKETPLACE_RETURN_ACCEPTED_FOR_SUPPLIER_EVENT =
-  'marketplace.returnClaim.supplier.acceptedToCoop';
+export const MARKETPLACE_SUPPLIER_CLAIM_ISSUED_EVENT = 'marketplace.supplierClaim.issued';
 
-export interface MarketplaceReturnAcceptedForSupplierEvent {
+export interface MarketplaceSupplierClaimIssuedEvent {
   coopname: string;
+  /** Претензия поставщику (marketplace_supplier_claim). */
   claim_id: string;
+  /** Заявление на гарантийный возврат, из которого выросла претензия. */
+  return_claim_id: string;
   order_id: string;
   /** Поставщик — адресат уведомления. */
   supplier_account: string;
-  /** КУ доставки, где имущество принято обратно. */
+  /** КУ, где имущество принято и где поставщик может его забрать. */
   braname: string;
-  /** Результат очного осмотра (краткая причина претензии). */
+  /** Сумма претензии с символом. */
+  amount: string;
+  /** Причина обращения пайщика. */
+  reason_text: string;
+  /** Результат осмотра имущества оператором участка. */
   inspection_result: string;
 }
 
@@ -354,8 +375,8 @@ export interface MarketplaceReturnClaimDecidedEvent {
   coopname: string;
   claim_id: string;
   orderer_account: string;
-  stage: 'remote' | 'on_site';
-  decision: 'approve_visit' | 'reject_remote' | 'accept_at_visit' | 'reject_at_visit';
+  stage: MarketplaceReturnClaimDecisionStage;
+  decision: MarketplaceReturnClaimDecision;
   comment: string;
   braname: string;
 }
@@ -366,8 +387,8 @@ export interface MarketplaceReturnClaimFinalizedEvent {
   orderer_account: string;
   /** Финальный статус заявления (значение из `MarketplaceReturnClaimStatuses`). */
   final_status: string;
-  /** Действие, приведшее к финальному состоянию (approve_visit здесь не появляется). */
-  decision: 'approve_visit' | 'reject_remote' | 'accept_at_visit' | 'reject_at_visit';
+  /** Действие, приведшее к финальному состоянию (approve_visit / accept_at_visit здесь не появляются). */
+  decision: MarketplaceReturnClaimDecision;
   comment: string;
   ledger_snapshot: {
     amount: string;
@@ -518,4 +539,61 @@ export interface MarketplaceAidCouncilDecidedEvent {
   /** true — совет одобрил выплату; false — отказал либо повестка просрочена. */
   approved: boolean;
   reason?: string;
+}
+
+// ── Паевая модель: сага выдачи и возврат по решению совета (компонент 68) ──
+
+/**
+ * Этап саги выдачи изменился: оператор зафиксировал факт, заказчик подписал
+ * заявление, совет решил (робот или люди), подписан акт, выдача закрыта или
+ * отменена. Один сигнал на все переходы: клиент дочитывает сагу запросом.
+ * Адресаты — заказчик (персональный канал) и персонал участка выдачи
+ * (служебный канал стойки).
+ */
+export const MARKETPLACE_ISSUANCE_SAGA_UPDATED_EVENT = 'marketplace.issuance.saga.updated';
+
+export interface MarketplaceIssuanceSagaUpdatedEvent {
+  coopname: string;
+  saga_id: string;
+  order_id: string;
+  order_hash: string;
+  proposal_id: string | null;
+  member_account: string;
+  braname: string;
+  /** Этап саги (MarketplaceIssuanceSagaStage). */
+  stage: string;
+  /** Как принято решение: ROBOT / MANUAL / UNKNOWN. */
+  decision_mode: string;
+}
+
+/**
+ * Совет принял решение по выдаче в ручном режиме (робота нет или кворум
+ * набирали люди), а пайщика у стойки уже нет: push «решение принято,
+ * подпишите акт». В режиме робота сигнала достаточно — пайщик у стойки.
+ */
+export const MARKETPLACE_ISSUANCE_DECIDED_OFFLINE_EVENT = 'marketplace.issuance.member.decidedOffline';
+
+export interface MarketplaceIssuanceDecidedOfflineEvent {
+  coopname: string;
+  order_id: string;
+  order_hash: string;
+  orderer_account: string;
+  braname: string;
+  /** true — совет согласился, false — отказал. */
+  authorized: boolean;
+}
+
+/**
+ * Совет решил по гарантийному возврату (принял имущество как паевой взнос
+ * или отказал): заявка меняет статус, заказчику и стойке — сигнал и push.
+ */
+export const MARKETPLACE_RETURN_COUNCIL_DECIDED_EVENT = 'marketplace.return.council.decided';
+
+export interface MarketplaceReturnCouncilDecidedEvent {
+  coopname: string;
+  claim_id: string;
+  order_id: string;
+  orderer_account: string;
+  delivery_braname: string;
+  authorized: boolean;
 }

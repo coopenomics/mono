@@ -13,6 +13,38 @@ title: Доступность расширений в зависимости о�
 # стало `extensionClass`, классы расширений `<X>Plugin`/`<X>PluginModule` —
 # `<X>Extension`/`<X>ExtensionModule`. Только имена; поведение, набор полей
 # и набор случаев не менялись. Поле внутреннее, в GraphQL не экспонируется.
+#
+# Правка 2026-09-05 (AC9-3): в реестр добавлена запись расширения «Робот
+# совета» (`robot`, availability EVERYWHERE). Логика доступности не менялась;
+# случаи те же.
+#
+# Правка 2026-09-06 (99D-7): у записи `robot` убран блок `defaults` — расширение
+# ставит председатель из каталога, как любое приложение. С `defaults` оно
+# попадало в каждый новый кооператив выключенным («установлен, но не включён»);
+# на стенд его ставит и включает предустановка boot:extra.
+#
+# Правка 2026-09-08 (решение владельца): «Карта кооператора» переведена с
+# NON_MAINNET_ONLY на EVERYWHERE — сеть карт открыта для основной сети, боевой узел
+# работает на id.card.coop. До этого кооперативы основной сети расширения не получали
+# вовсе: раздел в кабинете был, а записи установки в базе не было, и запросы падали на
+# пустой конфигурации. Логика доступности не менялась, случаи те же; ожидание в
+# extension-availability.test.ts обновлено под новое значение.
+#
+# Правка 2026-09-23 (C28-79): в реестр расширений добавлено поле
+# `databaseMigrations` (миграции таблиц расширения) и их сбор в
+# `registerExtensionDatabaseMigrations`. Доступность расширений и набор случаев
+# не менялись.
+
+# Правка 25.09.2026 (C28-80): деловые отказы (не найдено, нет прав, уже есть,
+# неверный ввод) отвечают своим статусом — 404, 403, 409, 400, — а не 500
+# «внутренняя ошибка»: коды и тексты прежние, меняется только статус ответа, и
+# такие отказы больше не попадают в журнал ошибок сервера как поломки.
+
+# Правка 2026-10-05 (C28-87): в реестре расширений поправлен комментарий у
+# столов Стола заказов — права страниц выдаёт описание прав стола
+# (`MarketplaceRightsService`), отдельного провайдера больше нет. Логика
+# доступности расширений прежняя.
+
 sources:
   backend:
     - components/controller/src/extensions/extensions.registry.ts
@@ -28,6 +60,7 @@ cases:
     expect: >
       расширение отдаётся как доступное и ставится без отказа
     test: components/controller/tests/unit/extension/extension-availability.test.ts
+    api: components/api-tests/src/extensions/availability.test.ts
     status: passing
 
   - id: ext.avail.side.01
@@ -39,6 +72,8 @@ cases:
       расширение отдаётся как недоступное — карточка не кликабельна, рабочий
       стол расширения в состав столов не попадает
     test: components/controller/tests/unit/extension/extension-availability.test.ts
+    external: unreachable
+    external_reason: "стенд работает вне основной сети; режим основной сети и смену реестра расширений через API не задать"
     status: passing
 
   - id: ext.avail.side.02
@@ -49,6 +84,7 @@ cases:
     expect: >
       расширение доступно к установке
     test: components/controller/tests/unit/extension/extension-availability.test.ts
+    api: components/api-tests/src/extensions/availability.test.ts
     status: passing
 
   - id: ext.avail.side.03
@@ -59,6 +95,7 @@ cases:
     expect: >
       расширение остаётся недоступным — тестовый контур не является послаблением
     test: components/controller/tests/unit/extension/extension-install-gate.test.ts
+    api: components/api-tests/src/extensions/availability.test.ts
     status: passing
 
   - id: ext.avail.break.01
@@ -70,6 +107,7 @@ cases:
     expect: >
       сервер отказывает в установке; скрытая карточка не является защитой
     test: components/controller/tests/unit/extension/extension-install-gate.test.ts
+    api: components/api-tests/src/extensions/availability.test.ts
     status: passing
 
   - id: ext.avail.break.02
@@ -80,6 +118,7 @@ cases:
     expect: >
       сервер отказывает с сообщением о ненайденном приложении
     test: components/controller/tests/unit/extension/extension-install-gate.test.ts
+    api: components/api-tests/src/extensions/availability.test.ts
     status: passing
 
   # Открытые вопросы, требующие решения человека:
@@ -99,5 +138,84 @@ cases:
       сторожит только УСТАНОВКУ. Останавливается расширение лишь при удалении.
       Решение владельца, зафиксировано 2026-08-20
     test: components/controller/tests/unit/extension/extension-install-gate.test.ts
+    external: unreachable
+    external_reason: "стенд работает вне основной сети; режим основной сети и смену реестра расширений через API не задать"
     status: passing
 
+  - id: ext.avail.side.05
+    level: backend
+    kind: side
+    scenario: >
+      Расширение «Карта кооператора» заведено в реестре: сеть карт обкатывается на
+      тестовом контуре раньше, чем открывается в основной.
+    expect: >
+      запись помечена NON_MAINNET_ONLY — в основной сети расширение к установке
+      закрыто, вне её доступно
+    test: components/controller/tests/unit/extension/extension-availability.test.ts
+    api: components/api-tests/src/extensions/availability.test.ts
+    status: passing
+
+  - id: ext.avail.side.06
+    level: backend
+    kind: side
+    scenario: >
+      запись реестра расширения после ухода с TypeORM: расширение объявляет
+      миграции своих таблиц, состав сущностей не объявляет
+    expect: >
+      миграции таблиц расширений берутся из записей реестра и идут одной лентой
+      с миграциями ядра по метке времени; уже применённые пропускаются
+    test: components/controller/tests/unit/database/schema-migrations.test.ts
+    external: unreachable
+    external_reason: "состав ленты миграций снаружи не виден; доступность и установка расширений через API покрыты случаями фичи"
+    status: written
+
+  - id: ext.avail.side.07
+    level: backend
+    kind: side
+    scenario: >
+      Расширение «Образовательный мост» (edubridge) объявлено NON_MAINNET_ONLY
+      на время обкатки MVP.
+    expect: >
+      в основной сети расширение в каталоге закрыто для установки; на тестовом
+      контуре ставится. Открытие для mainnet — отдельным решением после приёмки.
+    test: ~
+    status: missing
+
+# 2026-09-23 (EEA-6…EEA-9): тексты интерфейса, отказов и уведомлений фичи вынесены из
+# кода в словари i18n, отказы бэкенда переведены на DomainError с кодом — текст
+# и HTTP-статус ответа прежние. Сценарии фичи и её проверки не менялись.
+
+  - id: ext.avail.happy.03
+    level: backend
+    kind: happy
+    scenario: >
+      Образовательный мост выпущен в продакшн (решение владельца 15.10.2026),
+      узел работает в основной сети.
+    expect: >
+      расширение «Образовательный мост» отдаётся как доступное и в основной сети,
+      и на тестовом контуре; Стол заказов остаётся только вне основной сети
+    test: components/controller/tests/unit/extension/extension-availability.test.ts
+    external: unreachable
+    external_reason: "стенд работает в тестовой сети; доступность расширения в основной сети снаружи не проверить"
+    status: written   # прогон — CI на полигоне ci/tests
+
+
+# 16.10.2026, C28-92: в реестр расширений добавлено расширение dadata (доступно везде, по умолчанию выключено); правила доступности не менялись, случаи покрывают его так же.
+
+# 2026-10-16 (7DD-25): в реестр приложений добавлен встроенный стол кассира
+# (`cashier`, доступен везде, ставится по умолчанию). Правила доступности и их
+# проверки не менялись; сам стол — test-registry/cashier.desk.yaml.
+
+  # 20.10.2026: DaData приезжала в каждый кооператив установленной и выключенной —
+  # у записи реестра стояли `defaults`. Убраны, как у робота совета (99D-7).
+  - id: ext.avail.side.08
+    level: backend
+    kind: side
+    scenario: узел стартует впервые и ставит расширения по умолчанию
+    expect: >
+      DaData в состав по умолчанию не входит — председатель ставит её из каталога,
+      вписав ключ; «установлено, но выключено» не появляется
+    test: components/controller/tests/unit/extension/extension-availability.test.ts
+    external: unreachable
+    external_reason: "состав по умолчанию ставится при первом старте узла; стенд внешнего слоя уже поднят, свежий узел снаружи не создать"
+    status: written   # прогон — CI на полигоне ci/tests

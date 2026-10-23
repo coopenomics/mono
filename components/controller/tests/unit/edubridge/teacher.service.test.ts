@@ -1,0 +1,1157 @@
+/** Преподавательский контур: ДУХД и приложение двухподписные через одобрение председателя, взнос РИД, решение совета повесткой контракта, акт → acceptrid, отклонение. */
+import { EdubridgeTeacherService, coursePeriod } from '~/extensions/edubridge/application/services/edubridge-teacher.service';
+import { EduAssignmentStatus, EduContractStatus, EduContributionStatus, EduCouncilOutcome } from '~/extensions/edubridge/domain/enums';
+import { Cooperative } from 'cooptypes';
+import { EduAssignmentDTO } from '~/extensions/edubridge/application/dto/edu-teacher.dto';
+
+const R = Cooperative.Registry;
+
+jest.mock('@coopenomics/extension-kit', () => ({
+  ...jest.requireActual('@coopenomics/extension-kit'),
+  platformSettings: () => ({ coopname: 'voskhod', blockchain: { rootGovernSymbol: 'RUB', rootGovernPrecision: 4 } }),
+}));
+
+const logger = { setContext: jest.fn(), info: jest.fn(), warn: jest.fn(), error: jest.fn() } as any;
+const signedBy = (signer: string, hash = 'ABC') => ({ hash, doc_hash: hash, meta_hash: hash, version: '1.0', meta: {}, signatures: [{ signer }] }) as any;
+
+function make(
+  opts: { learners?: number; calendar?: boolean; lessonAmount?: string; contract?: boolean | EduContractStatus; assignmentStatus?: EduAssignmentStatus; lessonsTotal?: number; guaranteeDays?: number; subsLocked?: number; deferred?: string; plannedRate?: string; startsAt?: Date | null; courseTeachers?: string[]; profile?: { about: string; hourly_rate: string } | null } = {}
+) {
+  const assignment = { id: 'A1', coopname: 'voskhod', teacher_username: 'teach', course_id: 'C1', status: opts.assignmentStatus ?? EduAssignmentStatus.ACTIVE, period_from: '2025-09-01', period_to: '2027-06-01', created_at: new Date('2026-01-01') } as any;
+  const store = new Map<string, any>();
+  const returns = new Map<string, any>();
+  const contractState: { current: any } = {
+    current: opts.contract === false ? null : { coopname: 'voskhod', teacher_username: 'teach', contract_hash: 'h', contract_number: 'N1', hourly_rate: '1000.0000 RUB', status: typeof opts.contract === 'string' ? opts.contract : EduContractStatus.ACTIVE, decline_reason: '', approved_at: null },
+  };
+  const profileState: { current: any } = { current: opts.profile ? { coopname: 'voskhod', teacher_username: 'teach', ...opts.profile } : null };
+  const teachers = {
+    findContract: jest.fn(async () => contractState.current),
+    findContractByHash: jest.fn(async (_c: string, hash: string) =>
+      contractState.current && String(contractState.current.contract_hash).toLowerCase() === hash.toLowerCase() ? contractState.current : null
+    ),
+    listContracts: jest.fn(async () => (contractState.current ? [contractState.current] : [])),
+    saveContract: jest.fn(async (d: any) => { contractState.current = { ...d }; return contractState.current; }),
+    findProfile: jest.fn(async () => profileState.current),
+    listProfiles: jest.fn(async () => (profileState.current ? [profileState.current] : [])),
+    saveProfile: jest.fn(async (d: any) => { profileState.current = { ...d }; return profileState.current; }),
+    findAssignment: jest.fn(async () => assignment),
+    // Допуски отбираются по преподавателю, как в хранилище.
+    listAssignments: jest.fn(async (_c?: string, f?: { teacher?: string }) => [assignment].filter((a) => !f?.teacher || a.teacher_username === f.teacher)),
+    createAssignment: jest.fn((d: any) => ({ ...d })),
+    saveAssignment: jest.fn(async (a: any) => a),
+    listContributions: jest.fn(async () => [...store.values()]),
+    findContribution: jest.fn(async (_c: string, id: string) => store.get(id) ?? null),
+    findContributionByRidHash: jest.fn(async (h: string) => [...store.values()].find((c) => c.rid_hash === h) ?? null),
+    createContribution: jest.fn((d: any) => ({ ...d, id: 'K1', created_at: new Date('2026-02-01'), links: d.links })),
+    saveContribution: jest.fn(async (c: any) => { store.set(c.id, c); return c; }),
+    findHeldDue: jest.fn(async () => []),
+    findSubmittedWithoutProject: jest.fn(async () => []),
+    findContributionByAgendaId: jest.fn(async (_c: string, id: string) => [...store.values()].find((c) => c.council_agenda_id === id) ?? null),
+    findContributionByActHash: jest.fn(async (_c: string, h: string) => [...store.values()].find((c) => c.act_hash === h) ?? null),
+    listShareReturns: jest.fn(async () => [...returns.values()]),
+    findShareReturn: jest.fn(async (_c: string, id: string) => returns.get(id) ?? null),
+    saveShareReturn: jest.fn(async (r: any) => { const saved = { ...r, id: 'R1', created_at: new Date('2026-10-07') }; returns.set('R1', saved); return saved; }),
+  } as any;
+  const courses = {
+    // Курс отдаётся под запрошенным идентификатором; без идентификатора — C1.
+    findById: jest.fn(async (_c?: string, id?: string) => ({
+      id: id ?? 'C1',
+      title: 'Алгебра',
+      chain_ref: '7',
+      lessons_total: opts.lessonsTotal ?? 64,
+      lesson_minutes: 60,
+      program_months: 8,
+      minutes_per_month: 480,
+      minutes_total: 3840,
+      guarantee_days: opts.guaranteeDays ?? 14,
+      planned_hourly_rate: opts.plannedRate ?? '1000.0000 RUB',
+      // По умолчанию гарантийный срок группы вышел месяц назад: отчёт сразу даёт взнос и документы.
+      starts_at: opts.startsAt === undefined ? new Date(Date.now() - 45 * 86400_000) : opts.startsAt,
+      teacher_usernames: opts.courseTeachers ?? ['teach'],
+    })),
+    save: jest.fn(async (c: any) => c),
+    listAll: jest.fn(async () => [await (courses as any).findById()]),
+  } as any;
+  const lessonStore = new Map<number, any>();
+  const lessons = {
+    findByNumber: jest.fn(async (_c: string, _course: string, n: number) => lessonStore.get(n) ?? null),
+    findByTeacher: jest.fn(async () => [...lessonStore.values()]),
+    findByCourse: jest.fn(async () => [...lessonStore.values()]),
+    // Порядок и номера занятий ведутся внутри группы.
+    findByGroup: jest.fn(async () => [...lessonStore.values()]),
+    findByGroupNumber: jest.fn(async (_c: string, _g: string, n: number) => lessonStore.get(n) ?? null),
+    findById: jest.fn(async (_c: string, id: string) => [...lessonStore.values()].find((l) => l.id === id) ?? null),
+    create: jest.fn((d: any) => ({ id: `LS${d.lesson_number}`, ...d })),
+    save: jest.fn(async (l: any) => { lessonStore.set(l.lesson_number, l); return l; }),
+  } as any;
+  // Занятие календаря: запланировано на вчера, закреплено за преподавателем; отчёт по нему — по идентификатору.
+  const planLesson = (n: number, over: Record<string, unknown> = {}) => {
+    const lesson = { id: `LS${n}`, coopname: 'voskhod', course_id: 'C1', group_id: 'G1', lesson_number: n, held_at: new Date(Date.now() - 86400_000), duration_minutes: 60, status: 'planned', origin: 'schedule', reported_at: null, assignment_id: 'A1', teacher_username: 'teach', materials: [], topic: '', contribution_id: null, learners_count: null, ...over };
+    lessonStore.set(n, lesson);
+    return lesson;
+  };
+  // Календарь группы по умолчанию: три занятия, отчёт по ним открыт.
+  if (opts.calendar !== false) for (const n of [1, 2, 3]) planLesson(n);
+  const lessonOpen = { current: false };
+  const chain = {
+    holdRid: jest.fn(async () => ({})), recallRid: jest.fn(async () => ({})),
+    submitRid: jest.fn(async () => ({})), acceptRid: jest.fn(async () => ({})), declineRid: jest.fn(async () => ({})), signRidAct: jest.fn(async () => ({})),
+    signContract: jest.fn(async () => ({})), terminateContract: jest.fn(async () => ({})),
+    withdrawShare: jest.fn(async () => ({})),
+    // Расчёт занятия ведёт контракт: число участников и сумму приложение читает из записи занятия.
+    openLesson: jest.fn(async () => { lessonOpen.current = true; return {}; }),
+    chargeLesson: jest.fn(async () => ({})),
+    closeCharge: jest.fn(async () => ({})),
+    dropLesson: jest.fn(async () => { lessonOpen.current = false; return {}; }),
+    // Условия группы и допуск в цепи: сколько подписок не закрыло гарантийный срок и сумма за занятия периода.
+    readTerms: jest.fn(async () => ({ subs_locked: opts.subsLocked ?? 0 })),
+    readAssignment: jest.fn(async () => ({ deferred: opts.deferred ?? '3000.0000 RUB', deferred_lessons: 2 })),
+    readLesson: jest.fn(async () => (lessonOpen.current ? { learners: opts.learners ?? 1, amount: opts.lessonAmount ?? '1000.0000 RUB' } : null)),
+  } as any;
+  const chainTerms = { pushAssignment: jest.fn(async () => undefined), tryPushAssignment: jest.fn(async () => undefined), dropAssignment: jest.fn(async () => undefined), tryPushCourse: jest.fn(async () => true) } as any;
+  // Одна действующая подписка курса, оплаченная на год вперёд.
+  const subscriptions = [{ id: 'E1', sub_hash: 'sub1', status: 'active', paid_until: new Date(Date.now() + 365 * 86400_000) }];
+  const enrollments = { findByCourse: jest.fn(async () => subscriptions), findByGroup: jest.fn(async () => subscriptions) } as any;
+  const documents = {
+    generate: jest.fn(async (r: any) => ({ hash: `H${r.data.registry_id}`, html: '', full_title: '', binary: '', meta: {} })),
+    buildAggregate: jest.fn(async (d: any) => ({ hash: d.hash, document: d, rawDocument: { hash: d.hash, html: '', meta: {} } })),
+  } as any;
+  // Повестку ставит контракт с hash = rid_hash: вопрос находится по хэшу материалов.
+  const council = { getDecisions: jest.fn(async () => [...store.values()].map((c: any) => ({ id: 77, hash: c.rid_hash }))) } as any;
+  // Паевой взнос по программе и главный паевой — разные кошельки с разными остатками.
+  const balances: Record<string, string> = { 'w.edu.share': '3000.0000 RUB', 'w.wal.share': '7000.0000 RUB' };
+  const wallets = { findByWalletAndUsername: jest.fn(async (_c: string, wallet: string) => (balances[wallet] ? { available: balances[wallet] } : null)) } as any;
+  // Имя и фотография приходят из ядра портами — расширение своей копии не держит.
+  const avatars = { getAvatarUrl: jest.fn(async () => null), getAvatarUrls: jest.fn(async () => new Map([['teach', '/backend/avatar.jpg']])) } as any;
+  const names = { displayName: jest.fn(async () => 'Иванов Иван Иванович'), displayNames: jest.fn(async () => new Map([['teach', 'Иванов Иван Иванович']])) } as any;
+  // Сверка записей с цепью после закрытия срока и приёма результата — отдельный сервис.
+  const funds = { onSettled: jest.fn(async () => undefined), unlockDue: jest.fn(async () => 0) } as any;
+  const events = { emit: jest.fn() } as any;
+  // Данные пайщика: сюда пишутся номер и дата договора для документов преподавателя.
+  const udata = { save: jest.fn(async () => undefined), get: jest.fn(async () => null) } as any;
+  const walletWithdraw = { createWithdraw: jest.fn(async () => ({ withdraw_hash: 'WH' })) } as any;
+  const service = new EdubridgeTeacherService(teachers, courses, lessons, chain, documents, council, wallets, avatars, names, funds, udata, logger, events, walletWithdraw, chainTerms, enrollments, { syncCalendars: jest.fn(async () => undefined), viewOf: (c: any) => c, courseOf: jest.fn(async (...a: any[]) => (courses as any).findById(a[0], a[1])), openFor: jest.fn(async () => ({ id: 'G1', chain_ref: '3', course_id: 'C1' })), get: jest.fn(async () => ({ id: 'G1', chain_ref: '3', course_id: 'C1', title: 'Группа 1', status: 'active', report_days: 7 })), list: jest.fn(async () => [{ id: 'G1', chain_ref: '7', course_id: 'C1', status: 'active', starts_at: null, teacher_reserve_balance: null, teacher_settled_total: null }]), firstOf: jest.fn(async () => ({ id: 'G1', chain_ref: '7', course_id: 'C1', status: 'active' })), saveFunds: jest.fn(async (g: any, r: string, st: string) => { g.teacher_reserve_balance = r; g.teacher_settled_total = st; return true; }) } as any);
+  return { chainTerms, enrollments, udata, service, teachers, courses, chain, documents, council, funds, store, assignment, avatars, names, lessons, wallets, balances, walletWithdraw, returns, planLesson, lessonStore };
+}
+
+
+describe('EdubridgeTeacherService — договор УХД и приложение через одобрение председателя', () => {
+  it('подпись договора преподавателем: signcontract в цепь, статус «ждёт подписи председателя»', async () => {
+    const { service, chain } = make({ contract: false });
+    const c = await service.signContract('voskhod', 'teach', signedBy('teach', 'CONTRACT'), 'N-1');
+    expect(chain.signContract).toHaveBeenCalledWith(expect.objectContaining({ username: 'teach', contract_hash: 'CONTRACT' }));
+    expect(c.status).toBe(EduContractStatus.PENDING_APPROVAL);
+    expect(c.contract_hash).toBe('contract');
+    // Ставку преподаватель себе не называет: её назначает администратор.
+    expect(c.hourly_rate).toBe('0.0000 RUB');
+  });
+
+  it('договор без подписи преподавателя не уходит в цепь', async () => {
+    const { service, chain } = make({ contract: false });
+    await expect(service.signContract('voskhod', 'teach', signedBy('someone', 'X'), 'N')).rejects.toThrow(/не подписан преподавателем/);
+    expect(chain.signContract).not.toHaveBeenCalled();
+  });
+
+  it('пока договор ждёт председателя — отчёт по занятию и взнос недоступны, хотя допуск к курсу уже есть', async () => {
+    const { service, store } = make({ contract: EduContractStatus.PENDING_APPROVAL });
+    await expect(contributionOfLesson(service, store)).rejects.toThrow(/ещё не подписан председателем/);
+  });
+
+  it('коллбэк совета apprvcontr делает договор действующим; dclinecontr — отклонённым с причиной, и его можно подписать заново', async () => {
+    const { service, chain } = make({ contract: EduContractStatus.PENDING_APPROVAL });
+    await service.onContractApproved('voskhod', 'H');
+    expect((await service.contract('voskhod', 'teach'))!.status).toBe(EduContractStatus.ACTIVE);
+
+    await service.onContractDeclined('voskhod', 'H', 'Нет квалификации');
+    const declined = (await service.contract('voskhod', 'teach'))!;
+    expect(declined.status).toBe(EduContractStatus.DECLINED);
+    expect(declined.decline_reason).toBe('Нет квалификации');
+
+    const again = await service.signContract('voskhod', 'teach', signedBy('teach', 'CONTRACT2'), 'N-2');
+    expect(chain.signContract).toHaveBeenCalledTimes(1);
+    expect(again.status).toBe(EduContractStatus.PENDING_APPROVAL);
+    expect(again.contract_hash).toBe('contract2');
+  });
+
+  it('отклонённый договор подписывается заново с назначенной администратором ставкой', async () => {
+    const { service } = make();
+    await service.onContractDeclined('voskhod', 'H', 'Нет квалификации');
+    const again = await service.signContract('voskhod', 'teach', signedBy('teach', 'CONTRACT3'), 'N-3');
+    expect(again.hourly_rate).toBe('1000.0000 RUB');
+  });
+
+  it('преподаватель без назначенной ставки к курсу не допускается', async () => {
+    const { service, teachers } = make();
+    (await service.contract('voskhod', 'teach'))!.hourly_rate = '0.0000 RUB';
+    const input = { teacher_username: 'teach', course_id: 'C1', period_from: '2027-09-01', period_to: '2028-06-01' } as any;
+    await expect(service.createAssignment('voskhod', input)).rejects.toMatchObject({ code: 'EDUBRIDGE_TEACHER_RATE_NOT_ASSIGNED' });
+    // Ставка на курсе, названная в допуске, договорную не заменяет.
+    await expect(service.createAssignment('voskhod', { ...input, hourly_rate: '700.0000 RUB' })).rejects.toMatchObject({ code: 'EDUBRIDGE_TEACHER_RATE_NOT_ASSIGNED' });
+    expect(teachers.saveAssignment).not.toHaveBeenCalled();
+  });
+
+  it('прекращение договора: termcontract в цепь, статус «прекращён», подписывается заново — ставку назначают заново', async () => {
+    const { service, chain, teachers } = make();
+    teachers.listAssignments.mockResolvedValue([]);
+    const terminated = await service.terminateContract('voskhod', 'teach', 'выход преподавателя из кооператива');
+    expect(chain.terminateContract).toHaveBeenCalledWith({ coopname: 'voskhod', username: 'teach', contract_hash: 'h', reason: 'выход преподавателя из кооператива' });
+    expect(terminated?.status).toBe(EduContractStatus.TERMINATED);
+    await expect(service.reportLesson('voskhod', 'teach', { lesson_id: 'LS1', materials: ['x'] } as any)).rejects.toThrow(/прекращён/);
+
+    const again = await service.signContract('voskhod', 'teach', signedBy('teach', 'NEW'), 'N2');
+    expect(chain.signContract).toHaveBeenCalled();
+    expect(again.status).toBe(EduContractStatus.PENDING_APPROVAL);
+    expect(again.hourly_rate).toBe('0.0000 RUB');
+  });
+
+  it('договор не прекращается, пока преподаватель ведёт курс или по занятиям не закрыт расчёт', async () => {
+    const { service, chain, teachers, store } = make();
+    await expect(service.terminateContract('voskhod', 'teach', 'соглашение сторон')).rejects.toThrow(/ведёт курсы/);
+    teachers.listAssignments.mockResolvedValue([]);
+    store.set('K9', { id: 'K9', status: EduContributionStatus.HELD });
+    await expect(service.terminateContract('voskhod', 'teach', 'соглашение сторон')).rejects.toThrow(/не закрыт расчёт/);
+    expect(chain.terminateContract).not.toHaveBeenCalled();
+  });
+
+  it('прекращать нечего: без договора и с уже прекращённым в цепь не ходим; основание обязательно', async () => {
+    const none = make({ contract: false });
+    await expect(none.service.terminateContract('voskhod', 'teach', 'выход')).resolves.toBeNull();
+    const done = make({ contract: EduContractStatus.TERMINATED });
+    await done.service.terminateContract('voskhod', 'teach', 'выход');
+    expect(done.chain.terminateContract).not.toHaveBeenCalled();
+    const live = make();
+    live.teachers.listAssignments.mockResolvedValue([]);
+    await expect(live.service.terminateContract('voskhod', 'teach', ' ')).rejects.toThrow(/основание/);
+  });
+
+  it('подпись договора пишет его номер и дату в данные пайщика — документы преподавателя берут их оттуда', async () => {
+    const { service, udata } = make({ contract: false, profile: { about: 'Учу', hourly_rate: '1000.0000 RUB' } });
+    const doc = { ...signedBy('teach', 'CONTRACT'), meta: { contract_created_at: '06.10.2026' } };
+    await service.signContract('voskhod', 'teach', doc as any, 'N-77');
+    expect(udata.save).toHaveBeenCalledWith({ coopname: 'voskhod', username: 'teach', key: 'education_contract_number', value: 'N-77' });
+    expect(udata.save).toHaveBeenCalledWith({ coopname: 'voskhod', username: 'teach', key: 'education_contract_created_at', value: '06.10.2026' });
+  });
+
+  it('допуски одного преподавателя к одному курсу не пересекаются по периодам: то же окно — отказ, следующее и после снятия — можно', async () => {
+    // В заготовке преподаватель допущен к курсу C1 с 01.09.2025 по 01.06.2027.
+    const admit = (from: string, to: string, course = 'C1') => ({ teacher_username: 'teach', course_id: course, period_from: from, period_to: to }) as any;
+    const taken = make();
+    await expect(taken.service.createAssignment('voskhod', admit('2026-09-01', '2026-12-31'))).rejects.toMatchObject({ code: 'EDUBRIDGE_ASSIGNMENT_PERIOD_OVERLAP' });
+    // Границы включительно: окно с последнего дня действующего допуска пересекается.
+    await expect(taken.service.createAssignment('voskhod', admit('2027-06-01', '2027-08-01'))).rejects.toMatchObject({ code: 'EDUBRIDGE_ASSIGNMENT_PERIOD_OVERLAP' });
+    await expect(taken.service.createAssignment('voskhod', admit('2027-06-02', '2027-08-01'))).resolves.toMatchObject({ status: EduAssignmentStatus.ACTIVE });
+    // Другой курс и снятый допуск окно не занимают.
+    await expect(taken.service.createAssignment('voskhod', admit('2026-09-01', '2026-12-31', 'C2'))).resolves.toMatchObject({ course_id: 'C2' });
+    const freed = make({ assignmentStatus: EduAssignmentStatus.CLOSED });
+    await expect(freed.service.createAssignment('voskhod', admit('2026-09-01', '2026-12-31'))).resolves.toMatchObject({ status: EduAssignmentStatus.ACTIVE });
+  });
+
+  it('назначение на курс: ставка на курсе — из договора либо названная администратором; потолок держит стоимость занятия по окну', async () => {
+    const input = { teacher_username: 'teach', course_id: 'C1', period_from: '2027-09-01', period_to: '2028-06-01' } as any;
+    await expect(make().service.createAssignment('voskhod', input)).resolves.toMatchObject({ teacher_username: 'teach', status: EduAssignmentStatus.ACTIVE, hourly_rate: '1000.0000 RUB' });
+    // Плановая ставка курса 900 допуску не мешает: взнос за занятие контракт ограничит стоимостью окна.
+    await expect(make({ plannedRate: '900.0000 RUB' }).service.createAssignment('voskhod', input)).resolves.toMatchObject({ hourly_rate: '1000.0000 RUB' });
+    await expect(make().service.createAssignment('voskhod', { ...input, hourly_rate: '700.0000 RUB' })).resolves.toMatchObject({ hourly_rate: '700.0000 RUB' });
+    await expect(make({ plannedRate: '900.0000 RUB' }).service.createAssignment('voskhod', { ...input, hourly_rate: '950.0000 RUB' })).resolves.toMatchObject({ hourly_rate: '950.0000 RUB' });
+  });
+
+  it('отчёт — только по занятию календаря после его конца: занятие ещё идёт, чужое, отменённое и повторный отчёт отклоняются; просроченное принимается', async () => {
+    const { service, planLesson, chain } = make();
+    planLesson(1);
+    planLesson(2, { held_at: new Date(Date.now() + 3600_000) });
+    planLesson(3, { held_at: new Date(Date.now() - 30 * 86400_000) });
+    planLesson(4, { teacher_username: 'other', assignment_id: 'A9' });
+    planLesson(5, { status: 'cancelled' });
+    const report = (n: number) => service.reportLesson('voskhod', 'teach', { lesson_id: `LS${n}`, materials: ['https://video/1'] } as any);
+    await expect(report(2)).rejects.toMatchObject({ code: 'EDUBRIDGE_LESSON_REPORT_TOO_EARLY' });
+    await expect(report(4)).rejects.toMatchObject({ code: 'EDUBRIDGE_LESSON_OTHER_TEACHER' });
+    await expect(report(5)).rejects.toMatchObject({ code: 'EDUBRIDGE_LESSON_CANCELLED' });
+    // Отклонённый отчёт до цепи не доходит.
+    expect(chain.openLesson).not.toHaveBeenCalled();
+    // Порядка отчётов нет: третье по номеру занятие отчитывается раньше первого, номер и длительность уходят в цепь из календаря.
+    planLesson(6);
+    const sixth = await report(6);
+    expect(sixth.status).toBe('held');
+    expect(chain.openLesson).toHaveBeenCalledWith(expect.objectContaining({ number: 6, minutes: 60 }));
+    expect(chain.closeCharge).toHaveBeenCalledWith(expect.objectContaining({ rid_hash: expect.any(String) }));
+    await expect(report(6)).rejects.toMatchObject({ code: 'EDUBRIDGE_LESSON_REPORT_ALREADY_SUBMITTED' });
+    await expect(report(1)).resolves.toMatchObject({ lesson_number: 1, status: 'held' });
+    // Срок на отчёт вышел месяц назад: календарь показывает просрочку, приём не держит.
+    await expect(report(3)).resolves.toMatchObject({ lesson_number: 3, status: 'held' });
+  });
+
+  it('взнос за занятие считает контракт: расчёт по каждой подписке, сумма и число участников — из цепи', async () => {
+    const report = { lesson_id: 'LS1', materials: ['https://video/1'], topic: 'Тема' } as any;
+    const group = make({ learners: 3, lessonAmount: '900.0000 RUB' });
+    group.planLesson(1);
+    const lesson = await group.service.reportLesson('voskhod', 'teach', report);
+    // Допуск со ставкой — в цепь перед занятием, затем отчёт и расчёт по подписке.
+    expect(group.chainTerms.pushAssignment).toHaveBeenCalled();
+    expect(group.chain.openLesson).toHaveBeenCalledWith(expect.objectContaining({ username: 'teach' }));
+    expect(group.chain.openLesson.mock.calls[0][0].amount).toBeUndefined();
+    expect(group.chain.chargeLesson).toHaveBeenCalledWith(expect.objectContaining({ sub_hash: 'sub1' }));
+    expect([...group.store.values()].find((c) => c.lesson_id === lesson.id).amount).toBe('900.0000 RUB');
+    expect(lesson.learners_count).toBe(3);
+    // Участников с оплаченным доступом нет — отчёт отзывается, занятие учениками не оплачено.
+    const empty = make({ learners: 0, lessonAmount: '0.0000 RUB' });
+    empty.planLesson(1);
+    await expect(empty.service.reportLesson('voskhod', 'teach', report)).rejects.toMatchObject({ code: 'EDUBRIDGE_LESSON_NOT_PAID_BY_LEARNERS' });
+    expect(empty.chain.dropLesson).toHaveBeenCalled();
+    // Занятие остаётся в календаре запланированным: отчёт подаётся заново.
+    expect(empty.lessonStore.get(1).status).toBe('planned');
+  });
+
+  it('ставка на курсе правится администратором; нулевая — отказ', async () => {
+    const { service, teachers } = make();
+    await expect(service.setAssignmentRate('voskhod', 'A1', '0.0000 RUB')).rejects.toMatchObject({ code: 'EDUBRIDGE_TEACHER_RATE_REQUIRED' });
+    expect(teachers.saveAssignment).not.toHaveBeenCalled();
+    await expect(service.setAssignmentRate('voskhod', 'A1', '800.0000 RUB')).resolves.toMatchObject({ hourly_rate: '800.0000 RUB' });
+  });
+
+  it('назначение на курс: без договора, с отклонённым либо прекращённым договором пайщик к курсу не допускается', async () => {
+    const input = { teacher_username: 'teach', course_id: 'C1', period_from: '2027-09-01', period_to: '2028-06-01' } as any;
+    for (const contract of [false, EduContractStatus.DECLINED, EduContractStatus.TERMINATED] as const) {
+      const { service, teachers, courses } = make({ contract, courseTeachers: [] });
+      await expect(service.createAssignment('voskhod', input)).rejects.toMatchObject({ code: 'EDUBRIDGE_COURSE_TEACHERS_WITHOUT_CONTRACT' });
+      expect(teachers.saveAssignment).not.toHaveBeenCalled();
+      expect(courses.save).not.toHaveBeenCalled();
+    }
+    // Договор на подписи у председателя допуску не мешает — как в форме курса.
+    const pending = make({ contract: EduContractStatus.PENDING_APPROVAL });
+    await expect(pending.service.createAssignment('voskhod', input)).resolves.toMatchObject({ status: EduAssignmentStatus.ACTIVE });
+  });
+
+  it('действующий договор повторно не подписывается — возвращается тот же', async () => {
+    const { service, chain } = make();
+    const c = await service.signContract('voskhod', 'teach', signedBy('teach', 'NEW'), 'N-9');
+    expect(chain.signContract).not.toHaveBeenCalled();
+    expect(c.contract_hash).toBe('h');
+  });
+
+  it('допуск к курсу действует сразу: документа и подписей нет, в цепь ничего не уходит', async () => {
+    const { service, chain, teachers } = make();
+    const a = await service.createAssignment('voskhod', { teacher_username: 'teach', course_id: 'C1', period_from: '2027-09-01', period_to: '2028-06-01' } as any);
+    expect(a.status).toBe(EduAssignmentStatus.ACTIVE);
+    expect(teachers.saveAssignment).toHaveBeenCalledTimes(1);
+    for (const call of Object.values(chain) as jest.Mock[]) expect(call).not.toHaveBeenCalled();
+    // Действий и таблицы приложения к договору у расширения больше нет.
+    expect((service as any).signAnnex).toBeUndefined();
+    expect((chain as any).signAnnex).toBeUndefined();
+  });
+
+  it('допущенный преподаватель попадает в список «Курс ведут»; уже стоящий в списке курс не пересохраняет', async () => {
+    const input = { teacher_username: 'teach', course_id: 'C1', period_from: '2027-09-01', period_to: '2028-06-01' } as any;
+    const absent = make({ courseTeachers: [] });
+    await absent.service.createAssignment('voskhod', input);
+    expect(absent.courses.save).toHaveBeenCalledWith(expect.objectContaining({ teacher_usernames: ['teach'] }));
+
+    const listed = make({ courseTeachers: ['teach'] });
+    await listed.service.createAssignment('voskhod', input);
+    expect(listed.courses.save).not.toHaveBeenCalled();
+  });
+
+  it('снятие допуска закрывает назначение и убирает преподавателя из курса — сверка не выдаст допуск заново', async () => {
+    const { service, assignment, courses } = make({ courseTeachers: ['teach', 'other'] });
+    const closed = await service.closeAssignment('voskhod', 'A1');
+    expect(closed.status).toBe(EduAssignmentStatus.CLOSED);
+    expect(assignment.status).toBe(EduAssignmentStatus.CLOSED);
+    expect(courses.save).toHaveBeenCalledWith(expect.objectContaining({ teacher_usernames: ['other'] }));
+  });
+
+  it('снятие допуска у преподавателя вне списка курса курс не трогает; несуществующее назначение — отказ', async () => {
+    const { service, courses, teachers } = make({ courseTeachers: ['other'] });
+    await service.closeAssignment('voskhod', 'A1');
+    expect(courses.save).not.toHaveBeenCalled();
+    teachers.findAssignment.mockResolvedValueOnce(null);
+    await expect(service.closeAssignment('voskhod', 'NOPE')).rejects.toThrow(/Назначение не найдено/);
+  });
+});
+
+/**
+ * Взнос рождается отчётом о занятии: произвольной суммы у него больше нет.
+ * Материалы передаются на ответственное хранение, а гарантийный срок в этих
+ * случаях снимается — проверяется путь заявления в совет, а не удержание.
+ */
+async function contributionOfLesson(service: any, store: Map<string, any>, lessonNumber = 1) {
+  const lesson = await service.reportLesson('voskhod', 'teach', {
+    lesson_id: `LS${lessonNumber}`,
+    materials: ['https://video/1'],
+    topic: 'Тема',
+  });
+  const contribution = [...store.values()].find((c) => c.lesson_id === lesson.id);
+  await service.holdContribution('voskhod', 'teach', contribution.id, signedBy('teach', 'HOLD'));
+  contribution.hold_until = null;
+  return contribution;
+}
+
+describe('EdubridgeTeacherService', () => {
+  it('без договора УХД взнос не подготовить', async () => {
+    const { service, store } = make({ contract: false });
+    await expect(contributionOfLesson(service, store)).rejects.toThrow(/договор участия/);
+  });
+
+  it('допуск к курсу снят — отчитаться по занятию и подготовить взнос нельзя', async () => {
+    const { service, store } = make({ assignmentStatus: EduAssignmentStatus.CLOSED });
+    await expect(contributionOfLesson(service, store)).rejects.toThrow(/Допуск к курсу снят/);
+  });
+
+  it('подача: submitrid в цепь (повестку ставит контракт), номер вопроса из повестки по хэшу материалов, статус SUBMITTED', async () => {
+    const { service, chain, council, store } = make();
+    const c = await contributionOfLesson(service, store);
+    const submitted = await service.submitContribution('voskhod', 'teach', c.id, signedBy('teach', 'STMT'));
+    expect(chain.submitRid).toHaveBeenCalledWith(expect.objectContaining({ rid_hash: c.rid_hash, amount: '1000.0000 RUB', statement: expect.objectContaining({ hash: 'STMT' }) }));
+    expect(council.getDecisions).toHaveBeenCalledWith('voskhod');
+    expect(submitted.status).toBe(EduContributionStatus.SUBMITTED);
+    expect(submitted.statement_hash).toBe('stmt');
+    expect(submitted.council_agenda_id).toBe('77');
+  });
+
+  it('решение совета (onridauth с протоколом) → COUNCIL_APPROVED; акт преподавателя → signridact с тем же протоколом, ACT_SIGNED; подпись председателя в одобрении (apprvridact) → ACCEPTED', async () => {
+    const { funds, service, chain, documents, store } = make();
+    const c = await contributionOfLesson(service, store);
+    await service.submitContribution('voskhod', 'teach', c.id, signedBy('teach'));
+    // Протокол 3009 подписал председатель — он приходит обратным вызовом контракта, с номером решения в метаданных.
+    await service.onCouncilApproved('voskhod', c.rid_hash, { ...signedBy('ant', 'PROTO'), meta: { decision_id: 17 } } as any);
+    const approved = await service.listContributions('voskhod', 'teach');
+    expect(approved[0]!.status).toBe(EduContributionStatus.COUNCIL_APPROVED);
+    expect(approved[0]!.council_decision_id).toBe('17');
+    expect(approved[0]!.decision_hash).toBe('proto');
+
+    await expect(service.act('voskhod', 'teach', c.id)).resolves.toBeTruthy();
+    const teacherAct = signedBy('teach', 'ACT');
+    const signedByTeacher = await service.signAct('voskhod', 'teach', c.id, teacherAct);
+    expect(signedByTeacher.status).toBe(EduContributionStatus.ACT_SIGNED);
+    // В цепь уходят протокол, подписанный советом, и акт с первой подписью — вторую ставит председатель в одобрении.
+    expect(chain.signRidAct).toHaveBeenCalledWith(expect.objectContaining({ username: 'teach', rid_hash: c.rid_hash, decision: expect.objectContaining({ hash: 'PROTO' }), act: expect.objectContaining({ hash: 'ACT' }) }));
+    expect(chain.acceptRid).not.toHaveBeenCalled();
+    expect(documents.generate.mock.calls.some((x: any) => x[0].data.registry_id === R.EducationRidDecision.registry_id)).toBe(false);
+    // Акт ссылается на протокол совета, которым принят взнос.
+    const actData = documents.generate.mock.calls.find((x: any) => x[0].data.registry_id === R.EducationRidAct.registry_id)![0].data;
+    expect(actData.decision_id).toBe(17);
+    // До второй подписи резерв курса доводится до текущего состояния — приём по одобрению не ждёт прохода очереди.
+    expect(funds.unlockDue).toHaveBeenCalledWith('voskhod', expect.any(Date), 'C1');
+
+    // Председатель подписал акт в запросах одобрений — контракт принял результат и вызвал apprvridact.
+    const bothSigned = { ...teacherAct, signatures: [{ signer: 'teach' }, { signer: 'ant' }] };
+    await service.onActApproved('voskhod', c.rid_hash, bothSigned);
+    expect(c.status).toBe(EduContributionStatus.ACCEPTED);
+    expect((c.act_signed as any).signatures).toHaveLength(2);
+    // Цепь списала резерв преподавателям — обязательство по курсу уменьшается на стоимость результата.
+    expect(funds.onSettled).toHaveBeenCalledWith('voskhod', 'C1');
+  });
+
+  it('сбой учёта резерва приём результата не отменяет; у взноса без сохранённого протокола он собирается по номеру решения', async () => {
+    const { service, funds, documents, chain, store } = make();
+    funds.onSettled.mockRejectedValue(new Error('база недоступна'));
+    const c = await contributionOfLesson(service, store);
+    Object.assign(c, { status: EduContributionStatus.COUNCIL_APPROVED, council_decision_id: '17' });
+    await service.signAct('voskhod', 'teach', c.id, signedBy('teach', 'ACT'));
+    // Протокол называет пайщиком преподавателя, а не председателя, и несёт вид результата.
+    const protocol = documents.generate.mock.calls.find((x: any) => x[0].data.registry_id === R.EducationRidDecision.registry_id)![0].data;
+    expect(protocol).toMatchObject({ username: c.teacher_username, rid_type: c.rid_type, decision_id: 17 });
+    expect(chain.signRidAct).toHaveBeenCalledWith(expect.objectContaining({ decision: expect.objectContaining({ hash: `H${R.EducationRidDecision.registry_id}` }) }));
+    await service.onActApproved('voskhod', c.rid_hash, { ...signedBy('teach', 'ACT'), signatures: [{ signer: 'teach' }, { signer: 'ant' }] });
+    expect(c.status).toBe(EduContributionStatus.ACCEPTED);
+  });
+
+  it('акт без подписи преподавателя в цепь не уходит; одобрение по взносу не на подписи игнорируется; отказ председателя закрывает заявление', async () => {
+    const { service, chain, store } = make();
+    const c = await contributionOfLesson(service, store);
+    await service.submitContribution('voskhod', 'teach', c.id, signedBy('teach'));
+    await service.onCouncilApproved('voskhod', c.rid_hash, { ...signedBy('ant', 'PROTO'), meta: { decision_id: 1 } } as any);
+    await expect(service.signAct('voskhod', 'teach', c.id, signedBy('ant', 'ACT'))).rejects.toThrow(/не подписан преподавателем/);
+    expect(chain.signRidAct).not.toHaveBeenCalled();
+    await service.onActApproved('voskhod', c.rid_hash, signedBy('ant', 'ACT'));
+    expect(c.status).toBe(EduContributionStatus.COUNCIL_APPROVED);
+
+    await service.signAct('voskhod', 'teach', c.id, signedBy('teach', 'ACT'));
+    await service.onActDeclined('voskhod', c.rid_hash, 'Акт расходится с материалами');
+    expect(c.status).toBe(EduContributionStatus.DECLINED);
+    expect(c.decline_reason).toBe('Акт расходится с материалами');
+    // Решение совета есть — заявление закрывается его протоколом.
+    expect(chain.declineRid).toHaveBeenCalledWith(expect.objectContaining({ rid_hash: c.rid_hash, decision: expect.objectContaining({ hash: 'PROTO' }) }));
+  });
+
+  it('акт до решения совета недоступен; решение по чужим материалам игнорируется', async () => {
+    const { service, store } = make();
+    const c = await contributionOfLesson(service, store);
+    await service.submitContribution('voskhod', 'teach', c.id, signedBy('teach'));
+    await service.onCouncilApproved('voskhod', 'x', signedBy('ant', 'PROTO'));
+    await expect(service.act('voskhod', 'teach', c.id)).rejects.toThrow(/после решения совета/);
+  });
+
+  it('отказ совета обратным вызовом контракта исполняется сразу: материалы сняты с хранения с основанием совета, взнос отклонён', async () => {
+    const { service, chain, documents, store } = make();
+    const c = await contributionOfLesson(service, store);
+    await service.submitContribution('voskhod', 'teach', c.id, signedBy('teach'));
+    documents.generate.mockClear();
+    await service.onCouncilDeclinedByHash('voskhod', c.rid_hash, 'Материал не соответствует программе');
+    expect(c.status).toBe(EduContributionStatus.DECLINED);
+    expect(c.council_outcome).toBe(EduCouncilOutcome.DECLINED);
+    expect(c.decline_reason).toBe('Материал не соответствует программе');
+    // Отрицательного протокола у совета не бывает: собирать его не из чего, declinerid не зовётся.
+    expect(documents.generate).not.toHaveBeenCalled();
+    expect(chain.declineRid).not.toHaveBeenCalled();
+    expect(chain.recallRid).toHaveBeenCalledWith(
+      expect.objectContaining({ rid_hash: c.rid_hash, reason: 'совет не принял решение о приёме: Материал не соответствует программе' })
+    );
+    // Повторный вызов и вызов по закрытому взносу ничего не делают.
+    await service.onCouncilDeclinedByHash('voskhod', c.rid_hash, 'повторно');
+    expect(chain.recallRid).toHaveBeenCalledTimes(1);
+  });
+
+  it('снятие вопроса по сроку: исход «срок» помечен действием совета, обратный вызов закрывает взнос с основанием совета', async () => {
+    const { service, chain, store } = make();
+    const c = await contributionOfLesson(service, store);
+    await service.submitContribution('voskhod', 'teach', c.id, signedBy('teach', 'STMT'));
+    await service.onCouncilGaveUp('voskhod', '77', EduCouncilOutcome.EXPIRED);
+    await service.onCouncilDeclinedByHash('voskhod', c.rid_hash, '');
+    expect(c.status).toBe(EduContributionStatus.DECLINED);
+    expect(c.council_outcome).toBe(EduCouncilOutcome.EXPIRED);
+    expect(c.decline_reason).toBe('совет отказал в приёме');
+    expect(chain.recallRid).toHaveBeenCalledTimes(1);
+  });
+
+  it('подача запоминает номер вопроса в повестке совета; отклонение и просрочка помечают заявление', async () => {
+    const { service, store } = make();
+    const c = await contributionOfLesson(service, store);
+    await service.submitContribution('voskhod', 'teach', c.id, signedBy('teach', 'STMT'));
+    expect(c.council_agenda_id).toBe('77');
+
+    await service.onCouncilGaveUp('voskhod', '77', EduCouncilOutcome.DECLINED);
+    expect(c.council_outcome).toBe(EduCouncilOutcome.DECLINED);
+    // Пометка — только исход; закрывает взнос обратный вызов контракта `onriddecl` тем же действием совета.
+    expect(c.status).toBe(EduContributionStatus.SUBMITTED);
+  });
+
+  it('чужой вопрос повестки и заявление не на рассмотрении не помечаются', async () => {
+    const { service, store } = make();
+    const c = await contributionOfLesson(service, store);
+    await service.submitContribution('voskhod', 'teach', c.id, signedBy('teach', 'STMT'));
+    await service.onCouncilGaveUp('voskhod', '78', EduCouncilOutcome.EXPIRED);
+    expect(c.council_outcome ?? null).toBeNull();
+    c.status = EduContributionStatus.COUNCIL_APPROVED;
+    await service.onCouncilGaveUp('voskhod', '77', EduCouncilOutcome.EXPIRED);
+    expect(c.council_outcome ?? null).toBeNull();
+  });
+
+  it('повестка совета недоступна — подача проходит, пометки не будет', async () => {
+    const { service, council, store } = make();
+    council.getDecisions.mockRejectedValue(new Error('цепь не отвечает'));
+    const c = await contributionOfLesson(service, store);
+    const submitted = await service.submitContribution('voskhod', 'teach', c.id, signedBy('teach', 'STMT'));
+    expect(submitted.status).toBe(EduContributionStatus.SUBMITTED);
+    expect(submitted.council_agenda_id).toBeNull();
+  });
+
+  it('повестка ещё не прочитана: заявление в цепи зафиксировано, номер вопроса допишет очередь без повторной подачи', async () => {
+    const { service, chain, council, teachers, store } = make();
+    const c = await contributionOfLesson(service, store);
+    council.getDecisions.mockResolvedValueOnce([]);
+    const submitted = await service.submitContribution('voskhod', 'teach', c.id, signedBy('teach', 'STMT'));
+    expect(submitted.status).toBe(EduContributionStatus.SUBMITTED);
+    expect(c.statement_document).toBeTruthy();
+    expect(c.council_agenda_id ?? null).toBeNull();
+
+    teachers.findSubmittedWithoutProject.mockResolvedValue([c]);
+    await expect(service.publishDueContributions('voskhod')).resolves.toBe(1);
+    expect(chain.submitRid).toHaveBeenCalledTimes(1);
+    expect(c.council_agenda_id).toBe('77');
+  });
+
+  it('цепь отвечает «уже подано» — подача продолжается с поиска вопроса в повестке', async () => {
+    const { service, chain, store } = make();
+    const c = await contributionOfLesson(service, store);
+    chain.submitRid.mockRejectedValueOnce(new Error('assertion failure with message: EDUBRIDGE_RID_STATEMENT_ALREADY_SUBMITTED: Заявление о паевом взносе по этим материалам уже подано'));
+    const submitted = await service.submitContribution('voskhod', 'teach', c.id, signedBy('teach', 'STMT'));
+    expect(submitted.status).toBe(EduContributionStatus.SUBMITTED);
+    expect(submitted.council_agenda_id).toBe('77');
+  });
+
+  it('иная ошибка цепи при подаче статус не меняет', async () => {
+    const { service, chain, store } = make();
+    const c = await contributionOfLesson(service, store);
+    chain.submitRid.mockRejectedValueOnce(new Error('Гарантийный срок по материалам занятия ещё идёт'));
+    await expect(service.submitContribution('voskhod', 'teach', c.id, signedBy('teach', 'STMT'))).rejects.toThrow(/ещё идёт/);
+    expect(c.status).toBe(EduContributionStatus.HELD);
+  });
+
+  it('расчёт: сумма принятых, паевой взнос по программе и доступное в главном кошельке', async () => {
+    const { service, store } = make();
+    store.set('Z', { status: EduContributionStatus.ACCEPTED, amount: '5000.0000 RUB', decided_at: new Date('2026-03-02'), teacher_username: 'teach' });
+    const s = await service.settlement('voskhod', 'teach');
+    expect(s.accepted_total).toBe('5000.0000 RUB');
+    expect(s.program_share).toBe('3000.0000 RUB');
+    expect(s.available).toBe('7000.0000 RUB');
+  });
+
+  it('расчёт: кошелька программы у преподавателя ещё нет — паевой взнос по программе нулевой', async () => {
+    const { service, balances } = make();
+    delete balances['w.edu.share'];
+    expect((await service.settlement('voskhod', 'teach')).program_share).toBe('0.0000 RUB');
+  });
+});
+
+
+describe('EdubridgeTeacherService — преподаватели кооператива', () => {
+  it('список собирается по договорам: имя и фотография из ядра, назначения посчитаны', async () => {
+    const { service } = make();
+    const [teacher] = await service.listTeachers('voskhod');
+    expect(teacher).toMatchObject({
+      username: 'teach',
+      display_name: 'Иванов Иван Иванович',
+      avatar_url: '/backend/avatar.jpg',
+      contract_number: 'N1',
+      contract_status: EduContractStatus.ACTIVE,
+      assignments_total: 1,
+      assignments_active: 1,
+    });
+  });
+
+  it('закрытое назначение в число действующих не идёт', async () => {
+    const { service } = make({ assignmentStatus: EduAssignmentStatus.CLOSED });
+    const [teacher] = await service.listTeachers('voskhod');
+    expect(teacher).toMatchObject({ assignments_total: 1, assignments_active: 0 });
+  });
+
+  it('без подписанных договоров список пуст', async () => {
+    const { service } = make({ contract: false });
+    await expect(service.listTeachers('voskhod')).resolves.toEqual([]);
+  });
+
+  it('пайщик без сертификата остаётся с учётным именем, фотографии может не быть', async () => {
+    const { service, names, avatars } = make();
+    names.displayNames.mockResolvedValueOnce(new Map());
+    avatars.getAvatarUrls.mockResolvedValueOnce(new Map());
+    const [teacher] = await service.listTeachers('voskhod');
+    expect(teacher).toMatchObject({ display_name: '', avatar_url: null });
+  });
+});
+
+describe('EdubridgeTeacherService — занятия и гарантийный срок', () => {
+  const report = { lesson_id: 'LS1', materials: ['https://video/1'], topic: 'Дроби' };
+
+  it('отчёт о занятии: взнос считается как часы по ставке, заявление держится гарантийный срок', async () => {
+    const { service, store } = make();
+    const lesson = await service.reportLesson('voskhod', 'teach', report as any);
+    expect(lesson.lesson_number).toBe(1);
+    expect(lesson.contribution_id).toBeTruthy();
+    const contribution = [...store.values()][0];
+    // Час занятия при ставке 1000 ₽/ч — тысяча рублей, произвольной суммы нет.
+    expect(contribution.amount).toBe('1000.0000 RUB');
+    expect(contribution.hold_until).toBeInstanceOf(Date);
+  });
+
+  it('занятия вне календаря нет: отчёт по неизвестному занятию отклоняется', async () => {
+    const { service } = make();
+    await expect(service.reportLesson('voskhod', 'teach', { ...report, lesson_id: 'LS9' } as any)).rejects.toMatchObject({ code: 'EDUBRIDGE_LESSON_NOT_FOUND' });
+  });
+
+  it('повторный отчёт по тому же занятию отклоняется', async () => {
+    const { service } = make();
+    await service.reportLesson('voskhod', 'teach', report as any);
+    await expect(service.reportLesson('voskhod', 'teach', report as any)).rejects.toThrow(/уже подан/);
+  });
+
+  it('передача материалов: holdrid в цепь без суммы и срока, статус «на хранении»', async () => {
+    const { service, chain, store } = make();
+    // Курс ещё не активирован, гарантия 14 дней: срок считается от сегодняшнего
+    // дня, дата занятия на него не влияет.
+    const lesson = await service.reportLesson('voskhod', 'teach', report as any);
+    const contribution = [...store.values()].find((c) => c.lesson_id === lesson.id);
+    const held = await service.holdContribution('voskhod', 'teach', contribution.id, signedBy('teach', 'HOLD'));
+    const [payload] = chain.holdRid.mock.calls[0];
+    // Сумму и срок хранения контракт берёт из записи занятия — в действии их нет.
+    expect(payload).toMatchObject({ rid_hash: contribution.rid_hash, username: 'teach' });
+    expect(payload.amount).toBeUndefined();
+    expect(payload.hold_until).toBeUndefined();
+    expect(held.status).toBe(EduContributionStatus.HELD);
+    expect(held.storage_act_hash).toBe('hold');
+  });
+
+  it('акт хранения называет срок от дня передачи', async () => {
+    const { service, chain, documents, store } = make();
+    const lesson = await service.reportLesson('voskhod', 'teach', report as any);
+    const contribution = [...store.values()].find((c) => c.lesson_id === lesson.id);
+    contribution.hold_until = new Date('2026-01-01');
+    await service.storageAct('voskhod', 'teach', contribution.id);
+    // Акт называет конец гарантийного срока группы: начало занятий плюс срок курса.
+    const course = await (make().courses as any).findById();
+    expect(Math.abs(contribution.hold_until.getTime() - (new Date(course.starts_at).getTime() + 14 * 86400_000))).toBeLessThan(60_000);
+    expect(documents.generate).toHaveBeenLastCalledWith(expect.objectContaining({ data: expect.objectContaining({ registry_id: R.EducationRidStorageAct.registry_id }) }));
+    await service.holdContribution('voskhod', 'teach', contribution.id, signedBy('teach', 'HOLD'));
+    expect(chain.holdRid).toHaveBeenCalledTimes(1);
+  });
+
+  it('в гарантийный срок группы отчёт сохраняется без взноса и документов; следующее занятие отчитывается сразу', async () => {
+    const { service, chain, store, lessons } = make({ startsAt: new Date(Date.now() - 3 * 86400_000) });
+    const first = await service.reportLesson('voskhod', 'teach', report as any);
+    expect(first.contribution_id).toBeNull();
+    expect(first.learners_count).toBe(1);
+    expect(store.size).toBe(0);
+    expect(chain.openLesson).toHaveBeenCalledTimes(1);
+    expect(chain.chargeLesson).toHaveBeenCalledWith(expect.objectContaining({ sub_hash: 'sub1' }));
+    expect(chain.holdRid).not.toHaveBeenCalled();
+    // Отчёт по тому же занятию второй раз не принимается; следующее занятие — сразу.
+    await expect(service.reportLesson('voskhod', 'teach', report as any)).rejects.toMatchObject({ code: 'EDUBRIDGE_LESSON_REPORT_ALREADY_SUBMITTED' });
+    chain.readLesson.mockResolvedValueOnce(null);
+    const second = await service.reportLesson('voskhod', 'teach', { ...report, lesson_id: 'LS2' } as any);
+    expect(second.contribution_id).toBeNull();
+    expect(lessons.save).toHaveBeenCalled();
+  });
+
+  it('в гарантийный срок отчёт без обучающихся с оплаченным доступом отзывается', async () => {
+    const { service, chain, store } = make({ startsAt: new Date(Date.now() - 3 * 86400_000), learners: 0 });
+    await expect(service.reportLesson('voskhod', 'teach', report as any)).rejects.toMatchObject({ code: 'EDUBRIDGE_LESSON_NOT_PAID_BY_LEARNERS' });
+    expect(chain.dropLesson).toHaveBeenCalled();
+    expect(store.size).toBe(0);
+  });
+
+  it('гарантийный срок идёт либо подписки его не закрыли — взнос за занятия периода не заводится', async () => {
+    const running = make({ startsAt: new Date(Date.now() - 3 * 86400_000) });
+    await running.service.reportLesson('voskhod', 'teach', report as any);
+    expect(await running.service.openGuaranteePacks('voskhod')).toBe(0);
+    expect(running.store.size).toBe(0);
+
+    // Срок вышел, но одна подписка его не закрыла: заявление по гарантийным условиям на рассмотрении совета.
+    const frozen = make({ subsLocked: 1 });
+    await frozen.lessons.save({ id: 'LS1', coopname: 'voskhod', course_id: 'C1', group_id: 'G1', assignment_id: 'A1', teacher_username: 'teach', lesson_number: 1, learners_count: 2, contribution_id: null, materials: ['https://video/1'], held_at: new Date() });
+    expect(await frozen.service.openGuaranteePacks('voskhod')).toBe(0);
+    expect(frozen.store.size).toBe(0);
+  });
+
+  it('после гарантийного срока заводится один взнос на все занятия периода: сумма из допуска в цепи, материалы принимаются одним актом', async () => {
+    // Календарь по умолчанию не заводится: в группе ровно два отчитанных занятия теста.
+    const { service, chain, store, lessons } = make({ calendar: false });
+    for (const n of [1, 2]) {
+      await lessons.save({ id: `LS${n}`, coopname: 'voskhod', course_id: 'C1', group_id: 'G1', assignment_id: 'A1', teacher_username: 'teach', lesson_number: n, learners_count: 2, contribution_id: null, materials: [`https://video/${n}`], held_at: new Date(Date.now() - 40 * 86400_000), topic: `Тема ${n}`, duration_minutes: 60 });
+    }
+    expect(await service.openGuaranteePacks('voskhod')).toBe(1);
+    const pack = [...store.values()][0];
+    expect(pack).toMatchObject({ amount: '3000.0000 RUB', lesson_id: null, status: EduContributionStatus.DRAFT, links: ['https://video/1', 'https://video/2'] });
+    expect((await lessons.findByGroup()).map((l: any) => l.contribution_id)).toEqual([pack.id, pack.id]);
+    // Повторный проход очереди второй взнос не заводит.
+    expect(await service.openGuaranteePacks('voskhod')).toBe(0);
+
+    await service.storageAct('voskhod', 'teach', pack.id);
+    await service.holdContribution('voskhod', 'teach', pack.id, signedBy('teach', 'HOLD'));
+    const sent = chain.holdRid.mock.calls[0][0];
+    expect(sent.rid_hash).toBe(pack.rid_hash);
+    expect(sent.pack).toHaveLength(2);
+    expect(new Set(sent.pack).size).toBe(2);
+  });
+
+  it('срок курса вышел — заявление преподавателя уходит в совет сразу', async () => {
+    const { service, chain, store } = make({ startsAt: new Date(Date.now() - 30 * 86400_000) });
+    const lesson = await service.reportLesson('voskhod', 'teach', report as any);
+    const contribution = [...store.values()].find((c) => c.lesson_id === lesson.id);
+    await service.holdContribution('voskhod', 'teach', contribution.id, signedBy('teach', 'HOLD'));
+    const submitted = await service.submitContribution('voskhod', 'teach', contribution.id, signedBy('teach', 'STMT'));
+    expect(submitted.status).toBe(EduContributionStatus.SUBMITTED);
+    expect(chain.submitRid).toHaveBeenCalled();
+  });
+
+  it('акт, сформированный давно, называет срок короче гарантийного — подписать его нельзя', async () => {
+    const { service, chain, store } = make();
+    const lesson = await service.reportLesson('voskhod', 'teach', report as any);
+    const contribution = [...store.values()].find((c) => c.lesson_id === lesson.id);
+    contribution.hold_until = new Date(Date.now() + 3 * 86400_000);
+    await expect(service.holdContribution('voskhod', 'teach', contribution.id, signedBy('teach', 'HOLD'))).rejects.toThrow(/устарел/);
+    expect(chain.holdRid).not.toHaveBeenCalled();
+  });
+
+  it('длительность занятия — из календаря: двухчасовое занятие уходит в цепь со своими минутами', async () => {
+    const { service, store, chain, planLesson } = make();
+    planLesson(1, { duration_minutes: 120 });
+    const lesson = await service.reportLesson('voskhod', 'teach', report as any);
+    expect(lesson.duration_minutes).toBe(120);
+    expect(chain.openLesson.mock.calls[0][0]).toMatchObject({ number: 1, minutes: 120 });
+    expect(store.size).toBe(1);
+  });
+
+  it('после отказа совета занятие проводится и отчитывается заново — взнос новый', async () => {
+    const { service, teachers, store } = make();
+    let n = 0;
+    teachers.createContribution.mockImplementation((d: any) => ({ ...d, id: `K${++n}`, created_at: new Date('2026-02-01') }));
+    const first = await service.reportLesson('voskhod', 'teach', report as any);
+    const firstContribution = store.get('K1');
+    // Совет отклонил вопрос о приёме — обратный вызов контракта снял материалы с хранения.
+    firstContribution.status = EduContributionStatus.SUBMITTED;
+    await service.onCouncilDeclinedByHash('voskhod', firstContribution.rid_hash, 'Совет отклонил вопрос');
+    const again = await service.reportLesson('voskhod', 'teach', { ...report, topic: 'Дроби, повтор' } as any);
+    expect(again.id).toBe(first.id);
+    expect(again.topic).toBe('Дроби, повтор');
+    expect(again.contribution_id).toBe('K2');
+    expect(store.get('K2').rid_hash).not.toBe(firstContribution.rid_hash);
+  });
+
+  it('отчёт задним числом и курс без гарантии: материалы всё равно принимаются на хранение', async () => {
+    const { service, chain, store } = make({ guaranteeDays: 0 });
+    const lesson = await service.reportLesson('voskhod', 'teach', { ...report, held_at: '2026-01-01T10:00:00Z' } as any);
+    const contribution = [...store.values()].find((c) => c.lesson_id === lesson.id);
+    const held = await service.holdContribution('voskhod', 'teach', contribution.id, signedBy('teach', 'HOLD'));
+    // Гарантия на курсе не объявлена: срок кончается в момент приёма.
+    expect(chain.holdRid).toHaveBeenCalledTimes(1);
+    expect(held.status).toBe(EduContributionStatus.HELD);
+
+    // Срок уже истёк, поэтому заявление уходит в совет сразу.
+    const submitted = await service.submitContribution('voskhod', 'teach', contribution.id, signedBy('teach', 'STMT'));
+    expect(submitted.status).toBe(EduContributionStatus.SUBMITTED);
+    expect(chain.submitRid).toHaveBeenCalled();
+  });
+
+  it('повторная передача тех же материалов отклоняется', async () => {
+    const { service, store } = make();
+    const lesson = await service.reportLesson('voskhod', 'teach', report as any);
+    const contribution = [...store.values()].find((c) => c.lesson_id === lesson.id);
+    await service.holdContribution('voskhod', 'teach', contribution.id, signedBy('teach', 'HOLD'));
+    await expect(service.holdContribution('voskhod', 'teach', contribution.id, signedBy('teach', 'HOLD2'))).rejects.toThrow(/уже приняты на ответственное хранение/);
+  });
+
+  it('заявление без передачи материалов на хранение не принимается', async () => {
+    const { service, chain, store } = make();
+    const lesson = await service.reportLesson('voskhod', 'teach', report as any);
+    const contribution = [...store.values()].find((c) => c.lesson_id === lesson.id);
+    await expect(service.submitContribution('voskhod', 'teach', contribution.id, signedBy('teach', 'STMT'))).rejects.toThrow(/не приняты на ответственное хранение/);
+    expect(chain.submitRid).not.toHaveBeenCalled();
+  });
+
+
+  it('по истечении срока очередь отправляет заявление сама, без участия преподавателя', async () => {
+    const { service, chain, teachers, store } = make({ guaranteeDays: 0 });
+    const lesson = await service.reportLesson('voskhod', 'teach', { ...report, held_at: '2026-01-01T10:00:00Z' } as any);
+    const contribution = [...store.values()].find((c) => c.lesson_id === lesson.id);
+    contribution.status = EduContributionStatus.HELD;
+    contribution.statement_document = signedBy('teach', 'STMT');
+    teachers.findHeldDue = jest.fn(async () => [contribution]);
+    const published = await service.publishDueContributions('voskhod');
+    expect(published).toBe(1);
+    expect(chain.submitRid).toHaveBeenCalled();
+  });
+
+
+});
+
+describe('EdubridgeTeacherService — договор следует за таблицей цепи (ответ после дельты)', () => {
+  it('дельта «active» переводит ждущий договор в действующий с датой подписи из цепи — без уведомления', async () => {
+    const { service, teachers } = make({ contract: EduContractStatus.PENDING_APPROVAL });
+    await service.applyContractFromChain('voskhod', 'teach', 'H', 'active', '2026-09-23T13:49:52');
+    const saved = teachers.saveContract.mock.calls[0]![0];
+    expect(saved.status).toBe(EduContractStatus.ACTIVE);
+    expect(saved.approved_at).toEqual(new Date('2026-09-23T13:49:52Z'));
+  });
+
+  it('строка стёрта у ждущего договора — отказ; действующий договор дельтой не трогается', async () => {
+    const pending = make({ contract: EduContractStatus.PENDING_APPROVAL });
+    await pending.service.applyContractFromChain('voskhod', 'teach', 'h', null, null);
+    expect(pending.teachers.saveContract.mock.calls[0]![0].status).toBe(EduContractStatus.DECLINED);
+
+    const active = make({ contract: EduContractStatus.ACTIVE });
+    await active.service.applyContractFromChain('voskhod', 'teach', 'h', null, null);
+    expect(active.teachers.saveContract).not.toHaveBeenCalled();
+  });
+
+  it('действие apprvcontr после дельты не перетирает дату подписи из цепи', async () => {
+    const { service, teachers } = make({ contract: EduContractStatus.PENDING_APPROVAL });
+    await service.applyContractFromChain('voskhod', 'teach', 'h', 'active', '2026-09-23T13:49:52');
+    await service.onContractApproved('voskhod', 'h');
+    expect(teachers.saveContract.mock.calls[1]![0].approved_at).toEqual(new Date('2026-09-23T13:49:52Z'));
+  });
+});
+
+describe('Профиль преподавателя — рассказ о себе; ставку назначает администратор', () => {
+  it('первый шаг подключения: без договора сохраняется рассказ, ставка преподавателем не задаётся', async () => {
+    const { service, teachers } = make({ contract: false });
+    const saved = await service.saveProfile('voskhod', 'teach', { about: '  Преподаю математику, 12 лет в школе  ', hourly_rate: '1200.0000 RUB' });
+    expect(saved).toEqual({ about: 'Преподаю математику, 12 лет в школе', hourly_rate: '0.0000 RUB', rate_locked: false });
+    expect(teachers.saveProfile).toHaveBeenCalledWith(expect.objectContaining({ coopname: 'voskhod', teacher_username: 'teach', hourly_rate: '0.0000 RUB' }));
+  });
+
+  it('пустой рассказ о себе не принимается — в карточке преподавателя не должно быть пусто', async () => {
+    const { service, teachers } = make({ contract: false });
+    await expect(service.saveProfile('voskhod', 'teach', { about: '   ' })).rejects.toThrow(/Расскажите о себе/);
+    expect(teachers.saveProfile).not.toHaveBeenCalled();
+  });
+
+  it('с договором профиль показывает ставку договора; названная преподавателем ставка её не меняет', async () => {
+    const { service } = make();
+    const saved = await service.saveProfile('voskhod', 'teach', { about: 'Дописал о себе', hourly_rate: '5000.0000 RUB' });
+    expect(saved).toEqual({ about: 'Дописал о себе', hourly_rate: '1000.0000 RUB', rate_locked: true });
+  });
+
+  it('прекращённый договор ставку не держит — её назначают заново', async () => {
+    const { service } = make({ contract: EduContractStatus.TERMINATED });
+    const saved = await service.saveProfile('voskhod', 'teach', { about: 'Возвращаюсь преподавать', hourly_rate: '1500.0000 RUB' });
+    expect(saved).toMatchObject({ hourly_rate: '0.0000 RUB', rate_locked: false });
+  });
+
+  it('профиль без записи: рассказ пуст, ставка — из договора либо не назначена', async () => {
+    await expect(make().service.profile('voskhod', 'teach')).resolves.toEqual({ about: '', hourly_rate: '1000.0000 RUB', rate_locked: true });
+    await expect(make({ contract: false }).service.profile('voskhod', 'teach')).resolves.toEqual({ about: '', hourly_rate: '0.0000 RUB', rate_locked: false });
+  });
+
+  it('договор подписывается без ставки: названная когда-то в профиле в договор не переходит', async () => {
+    const named = make({ contract: false, profile: { about: 'Учу', hourly_rate: '1300.0000 RUB' } });
+    const c = await named.service.signContract('voskhod', 'teach', signedBy('teach', 'NEW'), 'N-9');
+    expect(c.hourly_rate).toBe('0.0000 RUB');
+    expect(named.chain.signContract).toHaveBeenCalledTimes(1);
+  });
+
+  it('список преподавателей у администратора несёт рассказ о себе', async () => {
+    const { service } = make({ profile: { about: 'Учу алгебре', hourly_rate: '1000.0000 RUB' } });
+    const [teacher] = await service.listTeachers('voskhod');
+    expect(teacher!.about).toBe('Учу алгебре');
+    const [silent] = await make().service.listTeachers('voskhod');
+    expect(silent!.about).toBe('');
+  });
+});
+
+describe('Допуски по списку «Курс ведут»', () => {
+  const course = (teachers: string[]) =>
+    ({ id: 'C1', title: 'Алгебра', schedule: 'Вт, Чт 17–19', teacher_usernames: teachers, starts_at: '2026-09-23', program_months: 8, minutes_per_month: 480, lesson_minutes: 60, planned_hourly_rate: '1000.0000 RUB' }) as any;
+
+  it('добавленный в курс преподаватель сразу получает действующий допуск, уже допущенный — нет', async () => {
+    const { service, teachers } = make({ assignmentStatus: EduAssignmentStatus.ACTIVE, courseTeachers: ['teach', 'newbie'] });
+
+    await service.syncCourseAssignments('voskhod', course(['teach', 'newbie']));
+
+    expect(teachers.saveAssignment).toHaveBeenCalledTimes(1);
+    expect(teachers.saveAssignment).toHaveBeenCalledWith(
+      expect.objectContaining({
+        teacher_username: 'newbie',
+        course_id: 'C1',
+        status: EduAssignmentStatus.ACTIVE,
+        schedule: 'Вт, Чт 17–19',
+        period_from: '2026-09-23',
+        period_to: '2027-05-04',
+        expected_result: 'Проведение занятий курса «Алгебра» по его учебной программе',
+      })
+    );
+  });
+
+  it('убранный из курса: действующий допуск снимается', async () => {
+    const { service, assignment, teachers } = make({ assignmentStatus: EduAssignmentStatus.ACTIVE });
+
+    await service.syncCourseAssignments('voskhod', course([]));
+
+    expect(assignment.status).toBe(EduAssignmentStatus.CLOSED);
+    expect(teachers.saveAssignment).toHaveBeenCalledTimes(1);
+  });
+
+  it('убранный из курса: уже снятый допуск повторно не сохраняется', async () => {
+    const { service, assignment, teachers } = make({ assignmentStatus: EduAssignmentStatus.CLOSED });
+
+    await service.syncCourseAssignments('voskhod', course([]));
+
+    expect(assignment.status).toBe(EduAssignmentStatus.CLOSED);
+    expect(teachers.saveAssignment).not.toHaveBeenCalled();
+  });
+
+  it('возвращённый в курс после снятия допуска получает новый допуск', async () => {
+    const { service, teachers } = make({ assignmentStatus: EduAssignmentStatus.CLOSED });
+
+    await service.syncCourseAssignments('voskhod', course(['teach']));
+
+    expect(teachers.saveAssignment).toHaveBeenCalledTimes(1);
+    expect(teachers.saveAssignment).toHaveBeenCalledWith(expect.objectContaining({ teacher_username: 'teach', status: EduAssignmentStatus.ACTIVE }));
+  });
+
+  it('повторная сверка ничего не создаёт — идемпотентно', async () => {
+    const { service, teachers } = make({ assignmentStatus: EduAssignmentStatus.ACTIVE });
+
+    await service.syncCourseAssignments('voskhod', course(['teach']));
+
+    expect(teachers.saveAssignment).not.toHaveBeenCalled();
+  });
+
+  it('сведения о взносе для вопроса совета: курс, группа, занятие, преподаватель и сумма — по ключу взноса из заявления', async () => {
+    const { service, store, lessonStore } = make();
+    const heldAt = new Date('2026-10-13T18:40:00Z');
+    lessonStore.set(3, { id: 'L3', course_id: 'C1', group_id: 'G1', lesson_number: 3, held_at: heldAt, duration_minutes: 60, slot_index: 0, topic: 'Дроби', learners_count: 2 });
+    store.set('K7', { id: 'K7', coopname: 'voskhod', teacher_username: 'teach', assignment_id: 'A1', rid_hash: 'abc123', rid_type: 'lesson_recording', links: ['https://disk.example/rec'], description: 'Запись занятия', amount: '1000.0000 RUB', lesson_id: 'L3', hold_until: null, created_at: new Date('2026-10-13T19:00:00Z') });
+    expect(await service.contributionBrief('voskhod', 'abc123')).toMatchObject({
+      rid_hash: 'abc123', course_id: 'C1', course_title: 'Алгебра', group_title: 'Группа 1', lesson_number: 3, lesson_topic: 'Дроби', held_at: heldAt,
+      duration_minutes: 60, learners_count: 2, teacher_name: 'Иванов Иван Иванович', amount: '1000.0000 RUB', links: ['https://disk.example/rec'],
+      // У группы теста окон расписания нет — стоимости часа окна нет.
+      hourly_rate: null,
+    });
+  });
+
+  it('сведения о взносе: чужой кооператив и неизвестный ключ дают пусто; взнос вне журнала занятий отдаёт курс по допуску', async () => {
+    const { service, store } = make();
+    store.set('K8', { id: 'K8', coopname: 'voskhod', teacher_username: 'teach', assignment_id: 'A1', rid_hash: 'def456', rid_type: 'lesson_recording', links: [], description: '', amount: '500.0000 RUB', lesson_id: null, hold_until: null, created_at: new Date('2026-10-13T19:00:00Z') });
+    expect(await service.contributionBrief('othercoop', 'def456')).toBeNull();
+    expect(await service.contributionBrief('voskhod', 'нет-такого')).toBeNull();
+    expect(await service.contributionBrief('voskhod', 'def456')).toMatchObject({ course_title: 'Алгебра', group_title: '', lesson_number: null, held_at: null, learners_count: null });
+  });
+
+  it('занятие без обучающихся с оплаченным доступом отчёта не ждёт: просрочки нет; с оплаченной на его дату подпиской — просрочено', async () => {
+    const { service, enrollments } = make();
+    const heldAt = new Date(Date.now() - 30 * 86400_000);
+    const lesson = { id: 'LX', coopname: 'voskhod', course_id: 'C1', group_id: 'G1', lesson_number: 9, held_at: heldAt, duration_minutes: 60, status: 'planned', origin: 'schedule', topic: '', materials: [], contribution_id: null } as any;
+    enrollments.findByGroup.mockResolvedValue([]);
+    expect((await service.lessonDtos('voskhod', [lesson]))[0]).toMatchObject({ learners_paid: 0, overdue: false });
+    // Одна подписка оплачена на дату занятия, у второй оплаченный срок вышел раньше, третья отозвана.
+    enrollments.findByGroup.mockResolvedValue([
+      { status: 'active', paid_until: new Date(Date.now() + 86400_000) },
+      { status: 'active', paid_until: new Date(heldAt.getTime() - 86400_000) },
+      { status: 'cancelled', paid_until: new Date(Date.now() + 86400_000) },
+    ]);
+    expect((await service.lessonDtos('voskhod', [lesson]))[0]).toMatchObject({ learners_paid: 1, overdue: true });
+  });
+
+  it('конец гарантийного срока у занятия — начало занятий группы плюс дни гарантии; без гарантии или до начала занятий — пусто', async () => {
+    const { service } = make();
+    const groups = (service as any).groups;
+    const lesson = { id: 'LG', coopname: 'voskhod', course_id: 'C1', group_id: 'G1', lesson_number: 1, held_at: new Date('2026-10-22T12:03:01Z'), duration_minutes: 60, status: 'held', origin: 'schedule', topic: '', materials: [], contribution_id: null } as any;
+    const group = { id: 'G1', chain_ref: '3', course_id: 'C1', title: 'Группа 1', status: 'active', report_days: 7, starts_at: '2026-10-22', starts_at_time: new Date('2026-10-22T12:03:01Z') };
+    groups.get.mockResolvedValue({ ...group, guarantee_days: 14 });
+    expect((await service.lessonDtos('voskhod', [lesson]))[0].guarantee_until).toEqual(new Date('2026-11-05T12:03:01Z'));
+    groups.get.mockResolvedValue({ ...group, guarantee_days: 0 });
+    expect((await service.lessonDtos('voskhod', [lesson]))[0].guarantee_until).toBeNull();
+    groups.get.mockResolvedValue({ ...group, guarantee_days: 14, starts_at: null, starts_at_time: null });
+    expect((await service.lessonDtos('voskhod', [lesson]))[0].guarantee_until).toBeNull();
+  });
+
+  it('период — от начала занятий на весь срок программы; без даты — от сегодня', () => {
+    // Месяц — четыре недели: восемь месяцев программы — 224 дня, последний день назначения — 223-й от начала.
+    expect(coursePeriod({ starts_at: '2026-09-23', program_months: 8 } as any)).toEqual({ from: '2026-09-23', to: '2027-05-04' });
+    // Три месяца и две недели — 98 дней.
+    expect(coursePeriod({ starts_at: '2026-09-23', program_months: 3.5 } as any)).toEqual({ from: '2026-09-23', to: '2026-12-29' });
+    expect(coursePeriod({ starts_at: '2026-01-31', program_months: 1 } as any)).toEqual({ from: '2026-01-31', to: '2026-02-27' });
+    expect(coursePeriod({ starts_at: null, program_months: 1 } as any).from).toBe(new Date().toISOString().slice(0, 10));
+  });
+
+});
+
+describe('EduAssignmentDTO — назначение в ответе API', () => {
+  const course = { title: 'Алгебра', description: 'Про уравнения', syllabus: '1. Линейные уравнения' };
+  const entity = { id: 'A1', teacher_username: 'teach', course_id: 'C1', schedule: 'Вт', expected_result: 'Занятия', period_from: '2026-09-23', period_to: '2027-05-04', minutes_per_month: 480, status: EduAssignmentStatus.ACTIVE, created_at: new Date('2026-09-23') } as any;
+
+  it('назначение — рабочий допуск: полей приложения к договору в ответе нет', () => {
+    const dto = new EduAssignmentDTO(entity, course) as unknown as Record<string, unknown>;
+    expect(dto).not.toHaveProperty('annex_hash');
+    expect(dto).not.toHaveProperty('decline_reason');
+  });
+
+  it('обязательные поля схемы назначения заполнены', () => {
+    const dto = new EduAssignmentDTO(entity, course) as unknown as Record<string, unknown>;
+    for (const field of ['id', 'teacher_username', 'course_id', 'course_title', 'course_description', 'course_syllabus', 'schedule', 'expected_result', 'period_from', 'period_to', 'minutes_per_month', 'status', 'created_at']) {
+      expect(dto[field]).not.toBeUndefined();
+    }
+  });
+
+  it('программа и описание курса — в назначении: преподаватель читает их на своём столе; курса нет — пусто', () => {
+    const dto = new EduAssignmentDTO(entity, course);
+    expect(dto.course_title).toBe('Алгебра');
+    expect(dto.course_syllabus).toBe('1. Линейные уравнения');
+    expect(dto.course_description).toBe('Про уравнения');
+    const orphan = new EduAssignmentDTO(entity, null);
+    expect([orphan.course_title, orphan.course_syllabus, orphan.course_description]).toEqual(['', '', '']);
+  });
+});
+
+
+describe('EdubridgeTeacherService — документ договора для просмотра', () => {
+  const approved = { hash: 'h', meta: {}, signatures: [{ signer: 'teach' }, { signer: 'chair' }] } as any;
+
+  it('подпись председателя кладёт в запись документ с двумя подписями', async () => {
+    const { service, teachers } = make({ contract: EduContractStatus.ACTIVE });
+    await service.saveApprovedContractDocument('voskhod', 'H', approved);
+    expect(teachers.saveContract.mock.calls[0]![0].contract_document).toBe(approved);
+  });
+
+  it('документ чужого договора и пустой документ запись не меняют', async () => {
+    const { service, teachers } = make({ contract: EduContractStatus.ACTIVE });
+    await service.saveApprovedContractDocument('voskhod', 'другой', approved);
+    await service.saveApprovedContractDocument('voskhod', 'h', undefined);
+    expect(teachers.saveContract).not.toHaveBeenCalled();
+  });
+
+  it('у договора без сохранённого документа просмотр отдаёт пусто, без обращения к реестру', async () => {
+    const { service, documents } = make({ contract: EduContractStatus.ACTIVE });
+    await expect(service.contractDocument('voskhod', 'teach')).resolves.toBeNull();
+    expect(documents.buildAggregate).not.toHaveBeenCalled();
+  });
+});
+
+describe('EdubridgeTeacherService — возврат паевого взноса одной кнопкой', () => {
+  const HASH = 'a'.repeat(64);
+  const transfer = (amount: string) => ({ ...signedBy('teach', 'WTH'), meta: { amount } });
+  const ret = (quantity: string, payment_hash = HASH) => ({ ...signedBy('teach', 'RET'), meta: { quantity, currency: 'RUB', method_id: 'M1', payment_hash } });
+  const request = (amount: string, over: Record<string, unknown> = {}) => ({
+    amount,
+    method_id: 'M1',
+    payment_hash: HASH,
+    transfer_statement: transfer(amount),
+    return_statement: ret(amount.split(' ')[0]!),
+    ...over,
+  });
+
+  it('заявление 3015 формируется на названную сумму в виде цепи', async () => {
+    const { service, documents } = make();
+    await service.shareWithdrawStatement('voskhod', 'teach', '1500');
+    expect(documents.generate).toHaveBeenCalledWith({
+      data: expect.objectContaining({ registry_id: R.EducationShareWithdrawStatement.registry_id, username: 'teach', amount: '1500.0000 RUB' }),
+    });
+  });
+
+  it('по одной кнопке: перевод в цепь, заявка на возврат ядром под тот же платёж, связка сохранена', async () => {
+    const { service, chain, walletWithdraw, teachers } = make();
+    const s = await service.requestShareReturn('voskhod', 'teach', request('1500.0000 RUB'));
+    expect(chain.withdrawShare).toHaveBeenCalledWith(expect.objectContaining({ coopname: 'voskhod', username: 'teach', amount: '1500.0000 RUB' }));
+    expect(walletWithdraw.createWithdraw).toHaveBeenCalledWith(
+      expect.objectContaining({ coopname: 'voskhod', username: 'teach', quantity: 1500, symbol: 'RUB', method_id: 'M1', payment_hash: HASH })
+    );
+    expect(teachers.saveShareReturn).toHaveBeenCalledWith(expect.objectContaining({ teacher_username: 'teach', amount: '1500.0000 RUB', payment_hash: HASH }));
+    expect(s.program_share).toBe('3000.0000 RUB');
+  });
+
+  it('заявка не принята ядром после перевода — связка не пишется, ошибка наверх; перевод назад не откатывается', async () => {
+    const { service, chain, walletWithdraw, teachers } = make();
+    walletWithdraw.createWithdraw.mockRejectedValueOnce(new Error('GATEWAY_PAYMENT_METHOD_NOT_FOUND'));
+    await expect(service.requestShareReturn('voskhod', 'teach', request('1500.0000 RUB'))).rejects.toThrow(/METHOD_NOT_FOUND/);
+    expect(chain.withdrawShare).toHaveBeenCalledTimes(1);
+    expect(teachers.saveShareReturn).not.toHaveBeenCalled();
+  });
+
+  it('сумма больше паевого взноса по программе — ничего не уходит', async () => {
+    const { service, chain, walletWithdraw, documents } = make();
+    await expect(service.shareWithdrawStatement('voskhod', 'teach', '3000.0001')).rejects.toThrow(/превышает паевой взнос по программе/);
+    await expect(service.requestShareReturn('voskhod', 'teach', request('5000.0000 RUB'))).rejects.toThrow(/превышает паевой взнос по программе/);
+    expect(documents.generate).not.toHaveBeenCalled();
+    expect(chain.withdrawShare).not.toHaveBeenCalled();
+    expect(walletWithdraw.createWithdraw).not.toHaveBeenCalled();
+  });
+
+  it.each(['0', '-5', 'abc', '', '100 USD'])('сумма «%s» отклоняется', async (amount) => {
+    const { service, chain } = make();
+    await expect(service.shareWithdrawStatement('voskhod', 'teach', amount)).rejects.toThrow(/сумму перевода больше нуля/);
+    await expect(service.requestShareReturn('voskhod', 'teach', request(amount))).rejects.toThrow(/сумму перевода больше нуля/);
+    expect(chain.withdrawShare).not.toHaveBeenCalled();
+  });
+
+  it('заявление о трансляции на другую сумму — ничего не уходит', async () => {
+    const { service, chain, walletWithdraw } = make();
+    await expect(service.requestShareReturn('voskhod', 'teach', request('1500.0000 RUB', { transfer_statement: transfer('1000.0000 RUB') }))).rejects.toThrow(/Сформируйте заявление заново/);
+    expect(chain.withdrawShare).not.toHaveBeenCalled();
+    expect(walletWithdraw.createWithdraw).not.toHaveBeenCalled();
+  });
+
+  it('заявление о возврате под другой платёж или другую сумму — ничего не уходит', async () => {
+    const { service, chain, walletWithdraw } = make();
+    await expect(service.requestShareReturn('voskhod', 'teach', request('1500.0000 RUB', { return_statement: ret('1500', 'b'.repeat(64)) }))).rejects.toThrow(/заявление о возврате/i);
+    await expect(service.requestShareReturn('voskhod', 'teach', request('1500.0000 RUB', { return_statement: ret('1000') }))).rejects.toThrow(/заявление о возврате/i);
+    expect(chain.withdrawShare).not.toHaveBeenCalled();
+    expect(walletWithdraw.createWithdraw).not.toHaveBeenCalled();
+  });
+
+  it('документы возврата: оба заявления, и только своему преподавателю', async () => {
+    const { service } = make();
+    await service.requestShareReturn('voskhod', 'teach', request('1500.0000 RUB'));
+    const docs = await service.shareReturnDocuments('voskhod', 'teach', 'R1');
+    expect(docs.map((d) => d.kind)).toEqual(['transfer_statement', 'return_statement']);
+    await expect(service.shareReturnDocuments('voskhod', 'other', 'R1')).rejects.toThrow();
+    await expect(service.shareReturnDocuments('voskhod', 'teach', 'R9')).rejects.toThrow();
+  });
+});

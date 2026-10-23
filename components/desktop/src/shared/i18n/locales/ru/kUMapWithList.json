@@ -1,0 +1,12 @@
+{
+  "kUMapWithList": {
+    "kUMapWithList": {
+      "defaultAriaLabel": "Список пунктов выдачи Стола заказов",
+      "fallbackBranchName": "Кооперативный участок",
+      "geocodeErrorGeneric": "Ошибка геокодинга",
+      "geocodeErrorWithMessage": "Ошибка геокодинга: {errorMessage}",
+      "geocodePendingWarning": "Координаты не определены — повторите позже",
+      "mapUnavailableBanner": "Карта недоступна: не задан YANDEX_MAPS_API_KEY."
+    }
+  }
+}

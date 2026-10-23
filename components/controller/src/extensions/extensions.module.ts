@@ -6,14 +6,18 @@ import { PowerupExtensionModule } from './powerup/powerup-extension.module';
 import { YookassaExtensionModule } from './yookassa/yookassa-extension.module';
 import { SberpollExtensionModule } from './sberpoll/sberpoll-extension.module';
 import { QrPayExtensionModule } from './qrpay/qrpay-extension.module';
+import { DadataExtensionModule } from './dadata/dadata-extension.module';
 import { BuiltinExtensionModule } from './builtin/builtin-extension.module';
 import { ParticipantExtensionModule } from './participant/participant-extension.module';
 import { ChatCoopExtensionModule } from './chatcoop/chatcoop-extension.module';
 import { ReportsExtensionModule } from './reports/reports-extension.module';
 import { AppsCatalogProxyModule } from './apps-catalog-proxy/apps-catalog-proxy.module';
 import { MarketplaceExtensionModule } from './marketplace/marketplace-extension.module';
+import { EdubridgeExtensionModule } from './edubridge/edubridge-extension.module';
 import { ExpensesExtensionModule } from './expenses/expenses-extension.module';
 import { KuExtensionModule } from './ku/ku-extension.module';
+import { CardcoopExtensionModule } from './cardcoop/cardcoop-extension.module';
+import { SovietRobotExtensionModule } from './soviet-robot/soviet-robot-extension.module';
 
 @Module({})
 export class ExtensionsModule {
@@ -30,14 +34,18 @@ export class ExtensionsModule {
         YookassaExtensionModule,
         SberpollExtensionModule,
         QrPayExtensionModule,
+        DadataExtensionModule,
         ParticipantExtensionModule,
         ChatCoopExtensionModule,
         InnercoopBridgeModule,
         ReportsExtensionModule,
         AppsCatalogProxyModule,
         MarketplaceExtensionModule,
+        EdubridgeExtensionModule,
         ExpensesExtensionModule,
         KuExtensionModule,
+        CardcoopExtensionModule,
+        SovietRobotExtensionModule,
       ],
       providers: [],
       // Экспортируем все модули расширений, чтобы их провайдеры были доступны
@@ -50,14 +58,18 @@ export class ExtensionsModule {
         YookassaExtensionModule,
         SberpollExtensionModule,
         QrPayExtensionModule,
+        DadataExtensionModule,
         ParticipantExtensionModule,
         ChatCoopExtensionModule,
         InnercoopBridgeModule,
         ReportsExtensionModule,
         AppsCatalogProxyModule,
         MarketplaceExtensionModule,
+        EdubridgeExtensionModule,
         ExpensesExtensionModule,
         KuExtensionModule,
+        CardcoopExtensionModule,
+        SovietRobotExtensionModule,
       ],
     };
   }

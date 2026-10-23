@@ -16,6 +16,11 @@ export function configPath(root: string): string {
   return path.join(root, BLAGO_DIR, CONFIG_FILE)
 }
 
+/** Снимок серверного текста сущности на момент последнего pull/push — база для трёхстороннего слияния. */
+export function baseSnapshotPath(root: string, entityType: string, entityHash: string): string {
+  return path.join(blagoDir(root), 'base', entityType, `${entityHash}.md`)
+}
+
 export function indexPath(root: string): string {
   return path.join(root, BLAGO_DIR, INDEX_FILE)
 }

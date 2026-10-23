@@ -75,6 +75,30 @@ function actionNodeIdFor(t: Transition): string {
   return `action::${from}::${actionShort(t.action)}::${t.to}`;
 }
 
+/** Перечисление статусов через `|`: «accepted | supplyprep» — переход из любого. */
+function splitStates(value: string): string[] {
+  return value.split('|').map((x) => x.trim()).filter(Boolean);
+}
+
+/**
+ * Переход в «∅» — контракт удаляет запись, процесс для неё закончился.
+ * С основного пути сценария это успешное завершение (стрелка в финиш),
+ * из ответвления или действием-отказом — завершение отказом.
+ */
+function isRemoval(t: Transition): boolean {
+  return t.to === INITIAL_MARKER;
+}
+
+function removalIsSuccess(standard: Standard, t: Transition, rejectActionNames: Set<string>): boolean {
+  if (rejectActionNames.has(t.action) || looksLikeRejectAction(t.action)) return false;
+  const main = new Set((standard.scenario?.steps ?? []).map((st) => st.action).filter(Boolean));
+  return main.size === 0 || main.has(t.action);
+}
+
+function rejectNamesOf(standard: Standard): Set<string> {
+  return new Set((standard.actions ?? []).filter((a) => a.role === 'reject').map((a) => a.name));
+}
+
 function isTerminalSuccess(
   state: EntityState,
   transitions: Transition[],
@@ -181,15 +205,12 @@ export function computeProcessFlow(standard: Standard): NavItem[] {
   const transitions = standard.transitions ?? [];
   const states = standard.states ?? [];
   const virtualStateNames = new Set(states.filter(isVirtual).map((s) => s.name));
-  const hasTerminal = states.some((s) =>
-    isTerminalSuccess(s, transitions, virtualStateNames),
-  );
   // legacy: actions[].role === 'reject' — явная пометка отказа в манифесте
-  const rejectActionNames = new Set(
-    (standard.actions ?? [])
-      .filter((a) => a.role === 'reject')
-      .map((a) => a.name),
-  );
+  const rejectActionNames = rejectNamesOf(standard);
+  const successRemoval = (t: Transition) => isRemoval(t) && removalIsSuccess(standard, t, rejectActionNames);
+  const hasTerminal =
+    states.some((s) => isTerminalSuccess(s, transitions, virtualStateNames)) ||
+    transitions.some(successRemoval);
 
   const hasStart = transitions.some((t) => t.from === INITIAL_MARKER);
   let current: string;
@@ -206,7 +227,13 @@ export function computeProcessFlow(standard: Standard): NavItem[] {
   const visited = new Set<string>([current]);
   while (true) {
     const outs = transitions.filter(
-      (t) => t.from === current && !virtualStateNames.has(t.to),
+      (t) =>
+        splitStates(t.from).includes(current) &&
+        !virtualStateNames.has(t.to) &&
+        // Удаление записи по отказу — не основной путь.
+        (!isRemoval(t) || successRemoval(t)) &&
+        // Действие вне процесса «∅ → ∅» основной путь не продолжает.
+        !(t.from === INITIAL_MARKER && isRemoval(t)),
     );
     if (outs.length === 0) break;
     const chosen = pickHappyTransition(
@@ -221,8 +248,10 @@ export function computeProcessFlow(standard: Standard): NavItem[] {
       id: actionNodeId,
       actionName: chosen.action,
       from: chosen.from === INITIAL_MARKER ? START_ID : chosen.from,
-      to: chosen.to,
+      to: isRemoval(chosen) ? END_ID : chosen.to,
     });
+    // Удаление записи — финиш процесса: дальше идти некуда.
+    if (isRemoval(chosen)) break;
     items.push({ kind: 'state', id: chosen.to });
     if (visited.has(chosen.to)) break;
     visited.add(chosen.to);
@@ -252,7 +281,10 @@ function buildLayout(standard: Standard): LayoutResult {
   const terminalStates = states.filter((s) =>
     isTerminalSuccess(s, transitions, virtualStateNames),
   );
-  const hasEnd = terminalStates.length > 0;
+  const rejectActionNames = rejectNamesOf(standard);
+  const hasEnd =
+    terminalStates.length > 0 ||
+    transitions.some((t) => isRemoval(t) && removalIsSuccess(standard, t, rejectActionNames));
 
   // ── Dagre: states + actions + rejected nodes (для basic LR-раскладки) ───
   const g = new dagre.graphlib.Graph({ directed: true });
@@ -280,23 +312,29 @@ function buildLayout(standard: Standard): LayoutResult {
   }
 
   // Action-узлы + потенциальные rejected-узлы
-  interface TInfo { t: Transition; actionId: string; targetId: string; isReject: boolean }
+  interface TInfo { t: Transition; actionId: string; targetIds: string[]; isReject: boolean }
+  const sourcesOf = (t: Transition): string[] =>
+    t.from === INITIAL_MARKER ? [START_ID] : splitStates(t.from);
   const tInfos: TInfo[] = [];
   for (const t of transitions) {
-    const source = t.from === INITIAL_MARKER ? START_ID : t.from;
     const actionId = actionNodeIdFor(t);
     g.setNode(actionId, { ...SIZE.action });
 
-    const isReject = virtualStateNames.has(t.to);
-    let targetId: string = t.to;
+    const removal = isRemoval(t);
+    const isReject =
+      virtualStateNames.has(t.to) || (removal && !removalIsSuccess(standard, t, rejectActionNames));
+    let targetIds: string[] = splitStates(t.to);
     if (isReject) {
-      targetId = rejectedIdFor(t);
-      if (!g.hasNode(targetId)) g.setNode(targetId, { ...SIZE.rejected });
+      const rid = rejectedIdFor(t);
+      if (!g.hasNode(rid)) g.setNode(rid, { ...SIZE.rejected });
+      targetIds = [rid];
+    } else if (removal) {
+      targetIds = [END_ID];
     }
 
-    g.setEdge(source, actionId);
-    g.setEdge(actionId, targetId);
-    tInfos.push({ t, actionId, targetId, isReject });
+    for (const src of sourcesOf(t)) g.setEdge(src, actionId);
+    for (const tid of targetIds) g.setEdge(actionId, tid);
+    tInfos.push({ t, actionId, targetIds, isReject });
   }
 
   dagre.layout(g);
@@ -389,7 +427,7 @@ function buildLayout(standard: Standard): LayoutResult {
 
   // Actions + linked state→action, action→target edges
   for (const info of tInfos) {
-    const { t, actionId, targetId, isReject } = info;
+    const { t, actionId, targetIds, isReject } = info;
     const pos = g.node(actionId);
     if (!pos) continue;
     const meta = actionMetaByName.get(t.action);
@@ -421,7 +459,6 @@ function buildLayout(standard: Standard): LayoutResult {
       sourcePosition: TR,
     });
 
-    const source = t.from === INITIAL_MARKER ? START_ID : t.from;
     const edgeBaseStyle = isReject
       ? { stroke: 'var(--reject)', strokeDasharray: '5 4', opacity: 0.55 }
       : { stroke: 'var(--border-strong)' };
@@ -432,33 +469,38 @@ function buildLayout(standard: Standard): LayoutResult {
       color: isReject ? 'var(--reject)' : 'var(--border-strong)',
     };
 
-    edges.push({
-      id: `e::${source}->${actionId}`,
-      source,
-      target: actionId,
-      type: 'smoothstep',
-      style: edgeBaseStyle,
-      markerEnd: marker,
-    });
-    edges.push({
-      id: `e::${actionId}->${targetId}`,
-      source: actionId,
-      target: targetId,
-      type: 'smoothstep',
-      style: edgeBaseStyle,
-      markerEnd: marker,
-    });
+    for (const source of sourcesOf(t)) {
+      edges.push({
+        id: `e::${source}->${actionId}`,
+        source,
+        target: actionId,
+        type: 'smoothstep',
+        style: edgeBaseStyle,
+        markerEnd: marker,
+      });
+    }
+    for (const targetId of targetIds) {
+      edges.push({
+        id: `e::${actionId}->${targetId}`,
+        source: actionId,
+        target: targetId,
+        type: 'smoothstep',
+        style: edgeBaseStyle,
+        markerEnd: marker,
+      });
+    }
   }
 
   // Rejected nodes
   for (const info of tInfos) {
     if (!info.isReject) continue;
-    const pos = g.node(info.targetId);
+    const rid = info.targetIds[0];
+    const pos = g.node(rid);
     if (!pos) continue;
     // Добавляем только один раз (если несколько transitions разделяют один rejected-id)
-    if (nodes.some((n) => n.id === info.targetId)) continue;
+    if (nodes.some((n) => n.id === rid)) continue;
     nodes.push({
-      id: info.targetId,
+      id: rid,
       type: NODE_TYPES.REJECTED,
       position: { x: pos.x - pos.width / 2, y: pos.y - pos.height / 2 },
       data: {

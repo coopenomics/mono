@@ -26,3 +26,4 @@ declare global {
     subcode?: number;
   }
 }
+

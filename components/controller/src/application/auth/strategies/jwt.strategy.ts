@@ -1,48 +1,33 @@
 // src/auth/strategies/jwt.strategy.ts
-import { Injectable, Inject, UnauthorizedException } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy as JwtStrategy } from 'passport-jwt';
 import config from '~/config/config';
 import { tokenTypes } from '~/types/token.types';
 import { USER_REPOSITORY, UserRepository } from '~/domain/user/repositories/user.repository';
 import { UserDomainService, USER_DOMAIN_SERVICE } from '~/domain/user/services/user-domain.service';
-import { TOKEN_REPOSITORY, TokenRepository } from '~/domain/token/repositories/token.repository';
 import { resolveUserBySub } from '~/application/auth/utils/resolve-user-by-sub';
+import { SessionAliveService } from '~/application/auth/services/session-alive.service';
+import { USER_ACTIVITY_PORT, type UserActivityPort } from '~/domain/metrics/ports/user-activity.port';
+import { registerWsUserResolver } from '~/infrastructure/graphql/ws-auth.registry';
+import { DomainError } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class JwtAuthStrategy extends PassportStrategy(JwtStrategy) {
   constructor(
     @Inject(USER_REPOSITORY) private readonly userRepository: UserRepository,
     @Inject(USER_DOMAIN_SERVICE) private readonly userDomainService: UserDomainService,
-    @Inject(TOKEN_REPOSITORY) private readonly tokenRepository: TokenRepository
+    private readonly sessionAlive: SessionAliveService,
+    @Inject(USER_ACTIVITY_PORT) private readonly activity: UserActivityPort
   ) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       secretOrKey: config.jwt.secret,
     });
-  }
-
-  /**
-   * Сессия, которой выдан токен, ещё жива?
-   *
-   * Токен несёт claim `sid` — id строки refresh-токена, то есть самой сессии.
-   * Завершение сессии удаляет эту строку, и с этого момента access-токен, выданный
-   * вместе с ней, перестаёт открывать доступ. Без такой проверки кнопка «Завершить
-   * сессию» ничего не меняла: строка удалялась, а токен работал до истечения срока —
-   * а срок в поставочной конфигурации измеряется сотнями дней.
-   *
-   * Токены, выпущенные до появления claim'а, `sid` не содержат и проверку проходят:
-   * иначе выкатывание изменения разом разлогинило бы всех действующих пайщиков.
-   * Со временем такие токены сойдут на нет сами — новые входы выдают привязанные.
-   */
-  private async assertSessionAlive(sessionId: unknown): Promise<void> {
-    if (typeof sessionId !== 'string' || !sessionId) return;
-    const session = await this.tokenRepository.findById(sessionId);
-    if (!session || session.blacklisted) {
-      // Формулировка не случайна: клиент распознаёт потерю доступа по слову
-      // «авторизац» и сам уводит на вход, отдельного кода ошибки для этого нет.
-      throw new UnauthorizedException('Сессия завершена, требуется повторная авторизация');
-    }
+    // ws-соединение опознаёт пайщика этим же validate: пользователь в контексте
+    // подписки — тот же объект, что у HTTP-запроса. Регистрация в конструкторе,
+    // а не в onModuleInit: соединение может прийти раньше полной инициализации.
+    registerWsUserResolver((payload) => this.validate(payload));
   }
 
   async validate(payload: any) {
@@ -50,9 +35,25 @@ export class JwtAuthStrategy extends PassportStrategy(JwtStrategy) {
       throw new Error('Invalid token type');
     }
 
-    await this.assertSessionAlive(payload.sid);
-
     const user = await resolveUserBySub(payload.sub, this.userRepository, this.userDomainService);
+
+    if (!(await this.sessionAlive.isAlive(payload.sid, user.username))) {
+      // Формулировка не случайна: клиент распознаёт потерю доступа по слову
+      // «авторизац» и сам уводит на вход, отдельного кода ошибки для этого нет.
+      throw DomainError.unauthorized('AUTH_SESSION_TERMINATED');
+    }
+
+    // След захода — здесь и только здесь. Это единственная точка, через которую
+    // проходит КАЖДЫЙ авторизованный запрос пайщика и в которой он уже опознан.
+    //
+    // Считать активность по таблице токенов нельзя: она фиксирует выдачу токена,
+    // то есть вход, а срок жизни токена в поставочной конфигурации измеряется
+    // сотнями дней — пайщик, работающий в кабинете ежедневно, оставил бы там одну
+    // строку за всё время.
+    //
+    // Намеренно БЕЗ await: запись следа не должна добавлять пайщику ожидания на
+    // каждом запросе, а сама она молчалива и ошибку наружу не выпускает.
+    void this.activity.markActive(user.username);
 
     // Возвращаем объект в формате, совместимом с IMonoAccount
     return {

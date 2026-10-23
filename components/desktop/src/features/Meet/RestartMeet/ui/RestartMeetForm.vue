@@ -8,7 +8,7 @@ q-dialog(
   q-card
     div
       q-bar.bg-gradient-dark.text-white
-        span Перезапустить собрание
+        span {{ $t('meet.restartMeetForm.title') }}
         q-space
         q-btn(
           v-close-popup,
@@ -17,54 +17,54 @@ q-dialog(
           icon='close',
           @click='$emit("update:modelValue", false)'
         )
-          q-tooltip Закрыть
+          q-tooltip {{ $t('common.action.close') }}
 
       .q-pa-sm.row.justify-center
         .q-pa-md(style='max-width: 800px; width: 100%')
-          .text-caption.text-grey.q-mt-md При перезапуске собрания будут использованы существующие пункты повестки.
+          .text-caption.text-grey.q-mt-md {{ $t('meet.restartMeetForm.introLine1') }}
             |
-            | Собрание будет назначено на новые даты с новыми ответственными лицами.
+            | {{ $t('meet.restartMeetForm.introLine2') }}
 
           q-form.q-mt-md(@submit='handleSubmit')
-            .text-subtitle1.q-mb-sm Выберите новые даты и ответственных для собрания
+            .text-subtitle1.q-mb-sm {{ $t('meet.restartMeetForm.introLine3') }}
 
             UserSearchSelector.q-mb-md(
               v-model='formData.new_presider',
-              label='Председатель собрания',
-              :rules='[(val) => !!val || "Обязательное поле"]',
+              :label='$t("meet.restartMeetForm.presiderLabel")',
+              :rules='[(val) => !!val || $t("meet.restartMeetForm.requiredField")]',
               dense,
               standout='bg-teal text-white'
             )
 
             UserSearchSelector.q-mb-md(
               v-model='formData.new_secretary',
-              label='Секретарь собрания',
-              :rules='[(val) => !!val || "Обязательное поле"]',
+              :label='$t("meet.restartMeetForm.secretaryLabel")',
+              :rules='[(val) => !!val || $t("meet.restartMeetForm.requiredField")]',
               dense,
               standout='bg-teal text-white'
             )
 
             q-input.q-mb-md(
               v-model='formData.new_open_at',
-              :label='`Новая дата и время открытия (мин. через 15 дней, ${timezoneLabel})`',
+              :label='$t(`meet.restartMeetForm.openAtLabel`, { timezone: timezoneLabel })',
               type='datetime-local',
-              :rules='[(val) => !!val || "Обязательное поле"]',
+              :rules='[(val) => !!val || $t("meet.restartMeetForm.requiredField")]',
               dense,
               standout='bg-teal text-white'
             )
 
             q-input.q-mb-md(
               v-model='formData.new_close_at',
-              :label='`Новая дата и время закрытия (${timezoneLabel})`',
+              :label='$t(`meet.restartMeetForm.closeAtLabel`, { timezone: timezoneLabel })',
               type='datetime-local',
-              :rules='[(val) => !!val || "Обязательное поле"]',
+              :rules='[(val) => !!val || $t("meet.restartMeetForm.requiredField")]',
               dense,
               standout='bg-teal text-white'
             )
 
             q-input.q-mb-md(
               v-model='formData.details',
-              label='Дополнительная информация для пайщиков (для нового слота; необязательно)',
+              :label='$t("meet.restartMeetForm.detailsLabel")',
               type='textarea',
               autogrow,
               :maxlength='maxMeetDetailsLength',
@@ -74,7 +74,7 @@ q-dialog(
               :rules='[validateMeetDetailsLength]'
             )
 
-            .text-subtitle1.q-mb-sm Пункты повестки для перезапуска:
+            .text-subtitle1.q-mb-sm {{ $t('meet.restartMeetForm.agendaListTitle') }}
 
             template(v-if='meetStore.currentMeet?.processing?.questions?.length')
               .meet-form-agenda-item.q-mb-sm(
@@ -87,10 +87,10 @@ q-dialog(
                   .col.min-w-0
                     .text-body1.text-weight-medium.q-mb-sm {{ question.title }}
                     .meet-form-field-row.q-mb-xs
-                      span.meet-form-field-label Проект решения
+                      span.meet-form-field-label {{ $t('meet.restartMeetForm.decisionLabel') }}
                       span.meet-form-field-text {{ question.decision }}
                     .meet-form-field-row
-                      span.meet-form-field-label Приложения
+                      span.meet-form-field-label {{ $t('meet.restartMeetForm.contextLabel') }}
                       span.meet-form-field-text(
                         v-if='question.context',
                         v-html='parseLinks(question.context)'
@@ -98,18 +98,18 @@ q-dialog(
                       span.meet-form-field-text(v-else) —
 
             .q-pa-sm.q-my-sm.bg-red-1.text-red-8.rounded-borders(v-else)
-              .text-center Вопросы повестки не найдены
+              .text-center {{ $t('meet.restartMeetForm.agendaEmpty') }}
 
           .q-mt-lg
             q-btn(
               flat,
-              label='Отмена',
+              :label='$t("common.action.cancel")',
               @click='$emit("update:modelValue", false)',
               :disable='loading'
             )
             q-btn.q-ml-sm(
               color='primary',
-              label='Перезапустить',
+              :label='$t("meet.restartMeetForm.submit")',
               @click='handleSubmit',
               :loading='loading',
               :disable='!meetStore.currentMeet?.processing?.questions?.length'
@@ -129,10 +129,11 @@ import { env } from 'src/shared/config/Environment';
 import { AgendaNumberAvatar } from 'src/shared/ui/AgendaNumberAvatar';
 import { UserSearchSelector } from 'src/shared/ui';
 import { parseLinks } from 'src/shared/lib/utils';
+import { t } from 'src/shared/i18n';
 
 const maxMeetDetailsLength = 10000;
 const validateMeetDetailsLength = (val: string | null | undefined): true | string =>
-  !val || val.length <= maxMeetDetailsLength || `Не более ${maxMeetDetailsLength} символов`;
+  !val || val.length <= maxMeetDetailsLength || t('meet.restartMeetForm.detailsMaxLength', { max: maxMeetDetailsLength });
 
 const props = defineProps<{
   modelValue: boolean;

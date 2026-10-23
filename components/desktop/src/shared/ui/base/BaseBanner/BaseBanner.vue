@@ -23,29 +23,42 @@ withDefaults(defineProps<BaseBannerProps>(), {
 </script>
 
 <style scoped>
+/*
+ * Один в один прототип-класс `.banner` канона (components.css): мягкая заливка по смыслу,
+ * без рамки и без цветного рельса слева. Рельс был акцентной полосой на карточке — канон
+ * такие запрещает, и баннер выбивался из остальных экранов (владелец 03.09.2026).
+ */
+.base-banner {
+  padding: 12px 14px;
+  border-radius: var(--p-r-sm);
+  background: var(--p-surface-2);
+  border: 1px solid var(--p-line);
+  font-size: var(--p-fs-body-sm);
+  color: var(--p-ink);
+}
 .base-banner--info {
   background: var(--p-info-soft);
-  color: var(--p-ink);
-  border-left: 3px solid var(--p-info);
+  border-color: transparent;
 }
 .base-banner--pos {
   background: var(--p-pos-soft);
-  color: var(--p-ink);
-  border-left: 3px solid var(--p-pos);
+  border-color: transparent;
 }
 .base-banner--warn {
   background: var(--p-warn-soft);
-  color: var(--p-ink);
-  border-left: 3px solid var(--p-warn);
+  border-color: transparent;
 }
 .base-banner--neg {
   background: var(--p-neg-soft);
-  color: var(--p-ink);
-  border-left: 3px solid var(--p-neg);
+  border-color: transparent;
 }
 .base-banner--neutral {
   background: var(--p-surface-2);
-  color: var(--p-ink);
-  border-left: 3px solid var(--p-line-2);
 }
+/* Цвет значка — по смыслу баннера, как в каноне: он и остаётся единственным акцентом. */
+.base-banner--info :deep(.q-icon) { color: var(--p-info); }
+.base-banner--pos :deep(.q-icon) { color: var(--p-pos); }
+.base-banner--warn :deep(.q-icon) { color: var(--p-warn); }
+.base-banner--neg :deep(.q-icon) { color: var(--p-neg); }
+.base-banner--neutral :deep(.q-icon) { color: var(--p-ink-2); }
 </style>

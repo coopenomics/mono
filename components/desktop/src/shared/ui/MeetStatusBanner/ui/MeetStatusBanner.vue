@@ -20,6 +20,7 @@ import {
   STATUS_BANNER_CONFIG,
 } from 'src/shared/lib/consts';
 import { formatDateFromNow } from 'src/shared/lib/utils/dates/timezone';
+import { t } from 'src/shared/i18n';
 
 const props = defineProps<{
   meet: IMeet;
@@ -32,10 +33,10 @@ const extendedStatus = computed(() => {
 
 // Текст статуса собрания
 const statusText = computed(() => {
-  if (!props.meet?.processing?.extendedStatus) return 'Неизвестный статус';
+  if (!props.meet?.processing?.extendedStatus) return t('ui.meetStatusBanner.unknownStatus');
   return (
     EXTENDED_STATUS_MAP[props.meet.processing.extendedStatus] ||
-    'Неизвестный статус'
+    t('ui.meetStatusBanner.unknownStatus')
   );
 });
 

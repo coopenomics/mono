@@ -1,4 +1,5 @@
-import { Injectable, Inject, Logger } from '@nestjs/common';
+import { Injectable, Inject, Logger, Optional } from '@nestjs/common';
+import { AUTHENTIK_ADMIN_PORT, type IAuthentikAdminPort } from '~/domain/auth-v2/ports/authentik-admin.port';
 import httpStatus from 'http-status';
 import { UserRepository, USER_REPOSITORY } from '../repositories/user.repository';
 import type { UserDomainEntity } from '../entities/user-domain.entity';
@@ -11,6 +12,7 @@ import type {
   PaginationInputDomainInterface,
   PaginationResultDomainInterface,
 } from '~/domain/common/interfaces/pagination.interface';
+import { DomainError } from '@coopenomics/extension-kit';
 
 /**
  * Токен для инъекции зависимости сервиса пользователей
@@ -18,7 +20,6 @@ import type {
 export const USER_DOMAIN_SERVICE = Symbol('UserDomainService');
 import { userStatus } from '~/types/user.types';
 import { normalizeUserEmail } from '~/utils/normalize-user-email';
-import { HttpApiError } from '@coopenomics/extension-kit';
 
 /**
  * Доменный сервис для работы с пользователями
@@ -28,7 +29,34 @@ import { HttpApiError } from '@coopenomics/extension-kit';
 export class UserDomainService {
   private readonly logger = new Logger(UserDomainService.name);
 
-  constructor(@Inject(USER_REPOSITORY) private readonly userRepository: UserRepository) {}
+  constructor(
+    @Inject(USER_REPOSITORY) private readonly userRepository: UserRepository,
+    // CoopID (authentik) хранит почту для входа отдельно от базы узла. Без него
+    // (контур без CoopID, модульные тесты) почта ведётся только в базе узла.
+    @Optional() @Inject(AUTHENTIK_ADMIN_PORT) private readonly authentikAdmin?: IAuthentikAdminPort
+  ) {}
+
+  /**
+   * Почта занята: другим пайщиком в базе узла либо другой учёткой CoopID.
+   *
+   * Вход идёт по почте в CoopID, поэтому проверка базы узла недостаточна:
+   * 21.10.2026 на тестнете почту сменили в реестре, CoopID сохранил старую,
+   * новый аккаунт занял её — и вход им открыл чужой кабинет.
+   */
+  private async emailTakenAnywhere(email: string, excludeUsername?: string): Promise<boolean> {
+    if (await this.userRepository.isEmailTaken(email, excludeUsername)) return true;
+    if (!this.authentikAdmin) return false;
+    const holders = await this.authentikAdmin.findUsernamesByEmail(email);
+    return holders.some((username) => username !== excludeUsername);
+  }
+
+  /**
+   * Почта сменилась — сначала в CoopID, потом в базе узла. Отказ CoopID
+   * останавливает смену: разошедшиеся почты и дали вход в чужой кабинет.
+   */
+  private async syncEmailToIdentity(username: string, email: string): Promise<void> {
+    await this.authentikAdmin?.updateEmail(username, email);
+  }
 
   /**
    * Создает нового пользователя
@@ -40,16 +68,16 @@ export class UserDomainService {
 
     const normalizedEmail = normalizeUserEmail(userData.email);
 
-    // Проверяем, существует ли пользователь с таким email
+    // Проверяем, существует ли пользователь с таким email — в базе узла и в CoopID
     const existingUser = await this.userRepository.findByEmail(normalizedEmail);
-    if (existingUser) {
-      throw new HttpApiError(httpStatus.BAD_REQUEST, 'Пользователь с указанным EMAIL уже зарегистрирован');
+    if (existingUser || (await this.emailTakenAnywhere(normalizedEmail, userData.username))) {
+      throw DomainError.badRequest('USER_EMAIL_ALREADY_REGISTERED');
     }
 
     // Проверяем, существует ли пользователь с таким username
     const existingUsername = await this.userRepository.findByUsername(userData.username);
     if (existingUsername) {
-      throw new HttpApiError(httpStatus.BAD_REQUEST, 'Пользователь с указанным именем уже зарегистрирован');
+      throw DomainError.badRequest('USER_USERNAME_ALREADY_REGISTERED');
     }
 
     // Создаем пользователя
@@ -79,7 +107,7 @@ export class UserDomainService {
   async getUserByUsername(username: string): Promise<UserDomainEntity> {
     const user = await this.userRepository.findByUsername(username);
     if (!user) {
-      throw new HttpApiError(httpStatus.NOT_FOUND, 'Пользователь не найден');
+      throw DomainError.notFound('USER_NOT_FOUND');
     }
     return user;
   }
@@ -101,7 +129,7 @@ export class UserDomainService {
   async getUserById(id: string): Promise<UserDomainEntity> {
     const user = await this.userRepository.findById(id);
     if (!user) {
-      throw new HttpApiError(httpStatus.NOT_FOUND, 'Пользователь не найден');
+      throw DomainError.notFound('USER_NOT_FOUND');
     }
     return user;
   }
@@ -124,7 +152,7 @@ export class UserDomainService {
     const user = await this.userRepository.findByEmail(email);
 
     if (!user) {
-      throw new HttpApiError(httpStatus.NOT_FOUND, 'Пользователь не найден');
+      throw DomainError.notFound('USER_NOT_FOUND');
     }
     return user;
   }
@@ -146,7 +174,7 @@ export class UserDomainService {
   async getUserBySubscriberId(subscriberId: string): Promise<UserDomainEntity> {
     const user = await this.userRepository.findBySubscriberId(subscriberId);
     if (!user) {
-      throw new HttpApiError(httpStatus.NOT_FOUND, 'Пользователь не найден');
+      throw DomainError.notFound('USER_NOT_FOUND');
     }
     return user;
   }
@@ -168,17 +196,17 @@ export class UserDomainService {
       const nextEmail = normalizeUserEmail(updates.email);
       const currentEmailNorm = existingUser.email ? normalizeUserEmail(existingUser.email) : '';
       if (nextEmail !== currentEmailNorm) {
-        const emailTaken = await this.userRepository.isEmailTaken(nextEmail, username);
-        if (emailTaken) {
-          throw new HttpApiError(httpStatus.BAD_REQUEST, 'Email уже занят');
+        if (await this.emailTakenAnywhere(nextEmail, username)) {
+          throw DomainError.badRequest('USER_EMAIL_TAKEN');
         }
+        await this.syncEmailToIdentity(username, nextEmail);
       }
     }
 
     // Обновляем пользователя
     const updatedUser = await this.userRepository.updateByUsername(username, updates);
     if (!updatedUser) {
-      throw new HttpApiError(httpStatus.NOT_FOUND, 'Пользователь не найден');
+      throw DomainError.notFound('USER_NOT_FOUND');
     }
 
     this.logger.log(`Пользователь ${username} успешно обновлен`);
@@ -196,24 +224,24 @@ export class UserDomainService {
 
     const existingUser = await this.userRepository.findById(id);
     if (!existingUser) {
-      throw new HttpApiError(httpStatus.NOT_FOUND, 'Пользователь не найден');
+      throw DomainError.notFound('USER_NOT_FOUND');
     }
 
     if (updates.email !== undefined && updates.email !== null && updates.email !== '') {
       const nextEmail = normalizeUserEmail(updates.email);
       const currentEmailNorm = existingUser.email ? normalizeUserEmail(existingUser.email) : '';
       if (nextEmail !== currentEmailNorm) {
-        const emailTaken = await this.userRepository.isEmailTaken(nextEmail, existingUser.username);
-        if (emailTaken) {
-          throw new HttpApiError(httpStatus.BAD_REQUEST, 'Email уже занят');
+        if (await this.emailTakenAnywhere(nextEmail, existingUser.username)) {
+          throw DomainError.badRequest('USER_EMAIL_TAKEN');
         }
+        await this.syncEmailToIdentity(existingUser.username, nextEmail);
       }
     }
 
     // Обновляем пользователя
     const updatedUser = await this.userRepository.updateById(id, updates);
     if (!updatedUser) {
-      throw new HttpApiError(httpStatus.NOT_FOUND, 'Пользователь не найден');
+      throw DomainError.notFound('USER_NOT_FOUND');
     }
 
     this.logger.log(`Пользователь с ID ${id} успешно обновлен`);
@@ -289,7 +317,7 @@ export class UserDomainService {
   async getUserByLegacyMongoId(legacyMongoId: string): Promise<UserDomainEntity> {
     const user = await this.userRepository.findByLegacyMongoId(legacyMongoId);
     if (!user) {
-      throw new HttpApiError(httpStatus.NOT_FOUND, 'Пользователь не найден');
+      throw DomainError.notFound('USER_NOT_FOUND');
     }
     return user;
   }
@@ -310,7 +338,18 @@ export class UserDomainService {
    * @returns true, если email занят
    */
   async isEmailTaken(email: string, excludeUsername?: string): Promise<boolean> {
-    return this.userRepository.isEmailTaken(email, excludeUsername);
+    return this.emailTakenAnywhere(email, excludeUsername);
+  }
+
+  /**
+   * Зарегистрирован ли в кооперативе пайщик с этим адресом — правило
+   * {@link UserDomainEntity.holdsEmail}. Им же пользуются создание аккаунта
+   * и шаг ввода почты в регистрации, иначе первый шаг пропустил бы адрес,
+   * на котором споткнётся последний.
+   */
+  async isEmailRegistered(email: string): Promise<boolean> {
+    const user = await this.userRepository.findByEmail(email);
+    return user?.holdsEmail() === true;
   }
 
   /**
@@ -338,6 +377,6 @@ export class UserDomainService {
       this.logger.warn(`Дублирование subscriber_id: ${subscriberId}, попытка ${attempt + 1}/${maxRetries}`);
     }
 
-    throw new Error(`Не удалось сгенерировать уникальный subscriber_id после ${maxRetries} попыток`);
+    throw DomainError.internal('USER_SUBSCRIBER_ID_GENERATION_FAILED', { maxRetries });
   }
 }

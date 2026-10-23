@@ -1,12 +1,13 @@
 import { Mutations, Queries, Zeus } from '@coopenomics/sdk';
 import { client } from 'src/shared/api/client';
+import { t } from 'src/shared/i18n';
 
 const DEFECT_CATEGORY_LABELS: Record<string, string> = {
-  [Zeus.MarketplaceReturnClaimDefectCategory.BROKEN]: 'Повреждено / сломано',
-  [Zeus.MarketplaceReturnClaimDefectCategory.EXPIRED]: 'Истёк срок годности',
-  [Zeus.MarketplaceReturnClaimDefectCategory.NOT_AS_DESCRIBED]: 'Не соответствует описанию',
-  [Zeus.MarketplaceReturnClaimDefectCategory.WRONG_ITEM]: 'Не тот товар',
-  [Zeus.MarketplaceReturnClaimDefectCategory.OTHER]: 'Другое',
+  [Zeus.MarketplaceReturnClaimDefectCategory.BROKEN]: t('marketplace.returnClaimDefect.broken'),
+  [Zeus.MarketplaceReturnClaimDefectCategory.EXPIRED]: t('marketplace.returnClaimDefect.expired'),
+  [Zeus.MarketplaceReturnClaimDefectCategory.NOT_AS_DESCRIBED]: t('marketplace.returnClaimDefect.notAsDescribed'),
+  [Zeus.MarketplaceReturnClaimDefectCategory.WRONG_ITEM]: t('marketplace.returnClaimDefect.wrongItem'),
+  [Zeus.MarketplaceReturnClaimDefectCategory.OTHER]: t('marketplace.returnClaimDefect.other'),
 };
 
 // Человекочитаемая метка категории дефекта; для незнакомых значений возвращаем
@@ -42,23 +43,31 @@ export type IAcceptReturnAtVisitInput =
 export type IRejectReturnAtVisitInput =
   Mutations.Marketplace.RejectReturnAtVisit.IInput['data'];
 
-/** Агрегат документа: тело + подпись пайщика. Председатель со-подписывает поверх, не перегенерируя документ. */
-type _RawChairmanSignablePayload =
+/**
+ * Документы приёма имущества у стойки: заявление оператора в совет об отмене
+ * сделки (1116, бэкенд генерирует по рекламации, заказу и результату осмотра;
+ * одна подпись оператора) и рекламация пайщика (1106) под вторую подпись
+ * оператора. Пайщик ничего не подписывает.
+ */
+type _RawAcceptancePayload =
   Queries.Marketplace.ReturnClaimChairmanSignablePayload.IOutput['marketplaceReturnClaimChairmanSignablePayload'];
 
-export type MarketplaceReturnClaimDocumentAggregateView = Omit<_RawChairmanSignablePayload, 'rawDocument'> & {
-  rawDocument: NonNullable<_RawChairmanSignablePayload['rawDocument']>;
+export type MarketplaceReturnAcceptancePayloadView = Omit<_RawAcceptancePayload, 'reclamation'> & {
+  reclamation: Omit<_RawAcceptancePayload['reclamation'], 'rawDocument'> & {
+    rawDocument: NonNullable<_RawAcceptancePayload['reclamation']['rawDocument']>;
+  };
 };
 
 export async function fetchChairmanReturnSignablePayload(
   claim_id: string,
-): Promise<MarketplaceReturnClaimDocumentAggregateView> {
+  inspection_result: string,
+): Promise<MarketplaceReturnAcceptancePayloadView> {
   const { [Queries.Marketplace.ReturnClaimChairmanSignablePayload.name]: result } = await client.Query(
     Queries.Marketplace.ReturnClaimChairmanSignablePayload.query,
-    { variables: { claim_id } },
+    { variables: { claim_id, inspection_result } },
   );
-  // Backend всегда возвращает rawDocument; в Zeus оно опционально — фиксируем как обязательное.
-  return result as MarketplaceReturnClaimDocumentAggregateView;
+  // Бэкенд всегда отдаёт тело рекламации; в Zeus оно опционально — фиксируем как обязательное.
+  return result as MarketplaceReturnAcceptancePayloadView;
 }
 
 export async function listReturnClaimsByBraname(
@@ -100,6 +109,17 @@ export async function acceptReturnAtVisit(
     { variables: { data } },
   );
   return result;
+}
+
+export type IHandBackReturnInput = Mutations.Marketplace.HandBackReturn.IInput['data'];
+
+/** Оператор выдал имущество обратно: после отказа совета либо по истечении срока ожидания. */
+export async function handBackReturn(data: IHandBackReturnInput): Promise<MarketplaceReturnClaimResultView> {
+  const { [Mutations.Marketplace.HandBackReturn.name]: result } = await client.Mutation(
+    Mutations.Marketplace.HandBackReturn.mutation,
+    { variables: { data } },
+  );
+  return result as MarketplaceReturnClaimResultView;
 }
 
 export async function rejectReturnAtVisit(

@@ -1,0 +1,79 @@
+// i18n-ignore-file: SQL миграции схемы CoopID и сообщения для оператора, до пайщика не доходят
+import type { SchemaMigration, SchemaQueryRunner } from '@coopenomics/extension-kit';
+import config from '~/config/config';
+
+/**
+ * CoopID Story 8.1: audit_events schema (append-only + помесячные партиции + триггеры +
+ * GRANT) уже создан в V2.4.0. Эта миграция закрывает остаток AC, отложенный тогда:
+ *  - колонка `user_agent` (форензика, наполняет 8.2);
+ *  - выделенная read-only роль `coop_audit_reader` (AC: INSERT приложению, SELECT читателю
+ *    аудита) — в V2.4.0 разделение ролей было отложено в prod-плейбук;
+ *  - форвард-роллинг партиций на текущий+2 месяца (идемпотентно);
+ *  - re-assert append-only грантов приложению.
+ * Имена колонок event/context/created_at сохранены намеренно (боевая партиционированная
+ * append-only таблица, ~30 точек записи) — семантически = AC action/metadata/timestamp.
+ *
+ * Перенесена дословно из миграции данных `V2.4.11__coopid_audit_events_schema.ts` (учёт `2.4.11`): таблицы
+ * coop_domain_db — схема, и применяет их сам контроллер при старте. На узле,
+ * где миграция данных уже прошла, она не повторяется: учёт переносится.
+ */
+export class CoopDomainAuditEventsSchema1781000000011 implements SchemaMigration {
+  name = 'CoopDomainAuditEventsSchema1781000000011';
+
+  public async up(queryRunner: SchemaQueryRunner): Promise<void> {
+    // 1. user_agent — AC явно перечисляет в структуре; nullable (backfill невозможен).
+    await queryRunner.query(`ALTER TABLE audit_events ADD COLUMN IF NOT EXISTS user_agent text;`);
+
+    // 2. coop_audit_reader (NOLOGIN group-role) — SELECT-only для читателя аудита.
+    //    Создание под insufficient_privilege-страховкой: в рестриктед prod без CREATEROLE
+    //    роль заведёт плейбук, миграция не падает (как и декларация грантов в V2.4.0).
+    await queryRunner.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'coop_audit_reader') THEN
+          BEGIN
+            CREATE ROLE coop_audit_reader NOLOGIN;
+          EXCEPTION WHEN insufficient_privilege THEN
+            RAISE NOTICE 'coop_audit_reader не создан: нет CREATEROLE; роль заведёт prod-playbook';
+          END;
+        END IF;
+      END $$;
+    `);
+    await queryRunner.query(`
+      DO $$
+      BEGIN
+        IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'coop_audit_reader') THEN
+          EXECUTE 'GRANT SELECT ON audit_events TO coop_audit_reader';
+        END IF;
+      END $$;
+    `);
+
+    // 3. Форвард-роллинг партиций: текущий + следующие 2 месяца (идемпотентно).
+    await queryRunner.query(`
+      DO $$
+      DECLARE
+        m date;
+        m_next date;
+        i int;
+      BEGIN
+        FOR i IN 0..2 LOOP
+          m := (date_trunc('month', now()) + (i || ' month')::interval)::date;
+          m_next := (date_trunc('month', now()) + ((i + 1) || ' month')::interval)::date;
+          EXECUTE format(
+            'CREATE TABLE IF NOT EXISTS audit_events_%s PARTITION OF audit_events FOR VALUES FROM (%L) TO (%L)',
+            to_char(m, 'YYYY_MM'), m, m_next);
+        END LOOP;
+      END $$;
+    `);
+
+    // 4. Re-assert append-only грантов приложению (идемпотентно; имя роли валидируем —
+    //    идентификатор в DDL, биндинг невозможен).
+    const role = config.coopDomainDb.username;
+    if (!/^[a-z_][a-z0-9_]*$/.test(role))
+      throw new Error(`Недопустимое имя роли COOP_DOMAIN_DB_USERNAME: ${role}`);
+    await queryRunner.query(`
+      REVOKE UPDATE, DELETE, TRUNCATE ON audit_events FROM ${role};
+      GRANT INSERT, SELECT ON audit_events TO ${role};
+    `);
+  }
+}

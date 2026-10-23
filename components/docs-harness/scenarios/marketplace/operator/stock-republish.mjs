@@ -61,7 +61,7 @@ export default async ({ page, shot, expect }) => {
   await page.waitForTimeout(2500);
   await cleanViteOverlays(page);
 
-  const rows = page.locator('table.table tbody tr');
+  const rows = page.locator('tbody tr');
   const rowsBefore = await rows.count();
 
   await shot(

@@ -8,20 +8,20 @@ q-btn(
   no-wrap
 )
   q-icon(name='fa-solid fa-plus')
-  span.q-ml-sm(v-if='!micro') Добавить
-  q-tooltip(v-if='micro') Добавить реквизиты
+  span.q-ml-sm(v-if='!micro') {{ $t('common.action.add') }}
+  q-tooltip(v-if='micro') {{ $t('paymentMethod.addPaymentButton.buttonLabel') }}
 
 BaseDialog(
   v-model='showDialog',
-  title='Добавить метод платежа',
+  :title='$t("paymentMethod.addPaymentButton.title")',
   size='lg',
   @update:model-value='(v) => !v && clear()'
 )
   Form(
     :handler-submit='handlerSubmit',
     :is-submitting='isSubmitting',
-    :button-cancel-txt='"Отменить"',
-    :button-submit-txt='"Продолжить"',
+    :button-cancel-txt='$t("paymentMethod.addPaymentButton.cancel")',
+    :button-submit-txt='$t("paymentMethod.addPaymentButton.submit")',
     @cancel='clear'
   )
     q-select(
@@ -32,7 +32,7 @@ BaseDialog(
       emit-value,
       option-label='title',
       option-value='value',
-      label='Выберите способ получения платежа',
+      :label='$t("paymentMethod.addPaymentButton.methodLabel")',
       :rules='[(val) => notEmpty(val)]'
     )
 
@@ -42,8 +42,8 @@ BaseDialog(
         standout='bg-teal text-white',
         mask='+7 (###) ###-##-##',
         fill-mask,
-        label='Номер телефона',
-        hint='Имя и фамилия получателя должны совпадать с теми, которые указаны в Удостоверении.',
+        :label='$t("paymentMethod.addPaymentButton.phoneLabel")',
+        :hint='$t("paymentMethod.addPaymentButton.recipientNameHint")',
         :rules='[(val) => notEmpty(val)]',
         autocomplete='off'
       )
@@ -51,7 +51,7 @@ BaseDialog(
     div(v-if='methodType == "bank_transfer"')
       q-select(
         v-model='bank_transfer.currency',
-        label='Валюта счёта',
+        :label='$t("paymentMethod.addPaymentButton.currencyLabel")',
         standout='bg-teal text-white',
         :options='[{ label: "RUB", value: "RUB" }]',
         emit-value,
@@ -61,7 +61,7 @@ BaseDialog(
       q-input(
         v-model='bank_transfer.bank_name',
         standout='bg-teal text-white',
-        label='Наименование банка',
+        :label='$t("paymentMethod.addPaymentButton.bankNameLabel")',
         :rules='[(val) => notEmpty(val)]',
         autocomplete='off'
       )
@@ -70,8 +70,8 @@ BaseDialog(
         v-model='bank_transfer.details.corr',
         standout='bg-teal text-white',
         mask='####################',
-        label='Корреспондентский счет',
-        :rules='[(val) => notEmpty(val), (val) => val.length === 20 || "ожидаем 20 цифр"]',
+        :label='$t("paymentMethod.addPaymentButton.correspondentAccountLabel")',
+        :rules='[(val) => notEmpty(val), (val) => val.length === 20 || $t("paymentMethod.addPaymentButton.expect20DigitsError")]',
         autocomplete='off'
       )
 
@@ -79,8 +79,8 @@ BaseDialog(
         v-model='bank_transfer.details.bik',
         standout='bg-teal text-white',
         mask='#########',
-        label='БИК',
-        :rules='[(val) => notEmpty(val), (val) => val.length === 9 || "ожидаем 9 цифр"]',
+        :label='$t("paymentMethod.addPaymentButton.bikLabel")',
+        :rules='[(val) => notEmpty(val), (val) => val.length === 9 || $t("paymentMethod.addPaymentButton.expect9DigitsError")]',
         autocomplete='off'
       )
 
@@ -88,10 +88,10 @@ BaseDialog(
         v-model='bank_transfer.account_number',
         standout='bg-teal text-white',
         mask='####################',
-        label='Номер счета',
-        :rules='[(val) => notEmpty(val), (val) => val.length === 20 || "ожидаем 20 цифр"]',
+        :label='$t("paymentMethod.addPaymentButton.accountNumberLabel")',
+        :rules='[(val) => notEmpty(val), (val) => val.length === 20 || $t("paymentMethod.addPaymentButton.expect20DigitsError")]',
         autocomplete='off',
-        hint='Имя и фамилия получателя должны совпадать с теми, которые указаны в Удостоверении.'
+        :hint='$t("paymentMethod.addPaymentButton.recipientNameHint")'
       )
 </template>
 
@@ -101,6 +101,7 @@ import { useAddPaymentMethod } from '../model';
 import { FailAlert } from 'src/shared/api';
 import { BaseDialog } from 'src/shared/ui/base/BaseDialog';
 import { Form } from 'src/shared/ui/Form';
+import { t } from 'src/shared/i18n';
 
 const props = defineProps({
   username: {
@@ -118,17 +119,17 @@ const methodType = ref();
 
 const methods = ref([
   {
-    title: 'Система Быстрых Платежей (СБП)',
+    title: t('paymentMethod.addPaymentButton.methodSbp'),
     value: 'sbp',
   },
   {
-    title: 'Банковский перевод',
+    title: t('paymentMethod.addPaymentButton.methodBankTransfer'),
     value: 'bank_transfer',
   },
 ]);
 
 const notEmpty = (val: any) => {
-  return !!val || 'Это поле обязательно для заполнения';
+  return !!val || t('paymentMethod.addPaymentButton.requiredFieldError');
 };
 
 const showDialog = ref(false);

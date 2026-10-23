@@ -38,7 +38,7 @@ void apps::regclient(eosio::name catalog_operator,
   eosio::check(it == clients.end(), "client already registered");
 
   auto now = eosio::time_point_sec(eosio::current_time_point().sec_since_epoch());
-  clients.emplace(catalog_operator, [&](auto &c) {
+  clients.emplace(RamPayer::of(clients), [&](auto &c) {
     c.client_coopname = client_coopname;
     c.registered_at   = now;
   });

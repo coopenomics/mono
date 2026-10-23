@@ -3,13 +3,13 @@ div.footer-root.blockinfo.no-select
   div(v-if="missedConnection")
     i(style="color: red").far.fa-circle
     div
-      span нет
+      span {{ $t('ui.blockchainStatusBar.noConnectionTop') }}
     div
-      span соединения
+      span {{ $t('ui.blockchainStatusBar.noConnectionBottom') }}
   div(v-else)
     i(style="color: green").far.fa-circle
     div
-      span блок №
+      span {{ $t('ui.blockchainStatusBar.blockNumberLabel') }}
     div
       span {{ currentBlock }}
 

@@ -9,6 +9,7 @@ span(v-else)
 import { computed } from 'vue'
 import { EntityIdBadge } from 'src/shared/ui'
 import { getAccountName } from 'src/shared/lib/ledger2'
+import { t } from 'src/shared/i18n';
 
 const props = defineProps<{
   /** Код счёта (51, 80, 86), не stored id×1000. */
@@ -18,6 +19,6 @@ const props = defineProps<{
 const tooltipText = computed(() => {
   if (props.accountCode === null || props.accountCode === undefined) return ''
   const name = getAccountName(props.accountCode)
-  return name ? `${name} (клик — копировать)` : 'Клик — копировать'
+  return name ? t('process.accountCodeBadge.namedTooltip', { name }) : t('process.accountCodeBadge.tooltip')
 })
 </script>

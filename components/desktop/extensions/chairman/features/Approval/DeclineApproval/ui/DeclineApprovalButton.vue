@@ -9,30 +9,30 @@ div
     @click='showDialog = true',
     :loading='isSubmitting'
   )
-    q-tooltip Отклонить
+    q-tooltip {{ $t('chairman.declineApprovalButton.declineLabel') }}
 
   BaseDialog(
     v-model='showDialog',
-    title='Отклонение одобрения',
+    :title='$t("chairman.declineApprovalButton.title")',
     size='md',
     @update:model-value='(v) => !v && close()'
   )
     Form.q-pa-sm(
       :handler-submit='declineApproval',
       :is-submitting='isSubmitting',
-      :button-cancel-txt='"Отменить"',
-      :button-submit-txt='"Отклонить"',
+      :button-cancel-txt='$t("chairman.declineApprovalButton.cancelLabel")',
+      :button-submit-txt='$t("chairman.declineApprovalButton.declineLabel")',
       @cancel='close'
     )
       div(style='max-width: 400px')
-        p Вы уверены, что хотите отклонить одобрение?
+        p {{ $t('chairman.declineApprovalButton.confirmText') }}
         q-input.q-mt-md(
           v-model='reason',
-          label='Причина отклонения',
+          :label='$t("chairman.declineApprovalButton.reasonLabel")',
           outlined,
           type='textarea',
           rows='3',
-          :rules='[val => !!val || "Причина обязательна"]'
+          :rules='[val => !!val || $t("chairman.declineApprovalButton.reasonRequiredHint")]'
         )
 </template>
 
@@ -42,6 +42,7 @@ import { useDeclineApproval } from '../model';
 import { ref } from 'vue';
 import { BaseDialog } from 'src/shared/ui/base/BaseDialog';
 import { Form } from 'src/shared/ui/Form';
+import { t } from '../../../../i18n';
 
 interface Props {
   approvalHash: string;
@@ -73,11 +74,11 @@ const declineApproval = async () => {
       coopname: props.coopname,
       reason: reason.value.trim(),
     });
-    SuccessAlert('Одобрение отклонено');
+    SuccessAlert(t('chairman.declineApprovalButton.successMessage'));
     emit('declined');
     close();
   } catch (e: any) {
-    FailAlert(`Возникла ошибка: ${e.message}`);
+    FailAlert(t('chairman.declineApprovalButton.errorMessage', { message: e.message }));
     close();
   } finally {
     isSubmitting.value = false;

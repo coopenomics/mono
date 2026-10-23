@@ -27,6 +27,7 @@ export const rawReportRequisitesViewSelector = {
   pfrRegNumber: rawRequisiteFieldViewSelector,
   chairmanPosition: rawRequisiteFieldViewSelector,
   signerSnils: rawRequisiteFieldViewSelector,
+  signerInn: rawRequisiteFieldViewSelector,
   signerRepDoc: rawRequisiteFieldViewSelector,
   signerType: true,
 }

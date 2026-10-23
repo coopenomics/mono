@@ -151,6 +151,8 @@ const { header, getAttr, padInn, formatDate } = useReportXml(
   () => props.year,
 )
 
+// i18n-ignore: XML-идентификатор для поиска узла в отчёте, не текст интерфейса
+// i18n-ignore: XML-идентификатор для поиска узла в отчёте, не текст интерфейса
 const poMestu = computed(() => getAttr('Документ', 'ПоМесту'))
 
 const fullSignerName = computed(() => {

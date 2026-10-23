@@ -22,6 +22,7 @@ import { formatPeriodLabel } from 'app/extensions/capital/features/Metric/ViewMe
 import { metricChartPalette } from 'app/extensions/capital/features/Metric/ViewMetricSeries/lib/metricChartTheme';
 import { superpositionScore } from '../lib/superpositionPolar';
 import type { IMetricSuperpositionFrame } from 'app/extensions/capital/entities/ComponentMetric/model';
+import { t } from '../../../../i18n';
 
 const props = defineProps<{
   frames: IMetricSuperpositionFrame[];
@@ -53,12 +54,12 @@ const passedScore = computed(() => {
 
 const chartSeries = computed(() => [
   {
-    name: 'Пройдено',
+    name: t('capital.superpositionHistoryChart.passedLabel'),
     type: 'area',
     data: passedScore.value,
   },
   {
-    name: 'Резонанс',
+    name: t('capital.superpositionHistoryChart.resonanceLabel'),
     type: 'line',
     data: scoreSeries.value,
   },
@@ -169,7 +170,7 @@ const chartOptions = computed((): ApexOptions => {
                   background: p.surface2,
                   fontSize: '11px',
                 },
-                text: 'срез',
+                text: t('capital.superpositionHistoryChart.sliceLabel'),
                 orientation: 'horizontal',
                 offsetY: 0,
               },

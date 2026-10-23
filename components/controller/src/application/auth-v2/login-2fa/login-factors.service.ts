@@ -10,6 +10,7 @@ import { SecurityEventKind } from '~/domain/auth-v2/security-events/security-eve
 import { AuditService } from '../audit/audit.service';
 import { SecurityEventNotificationService } from '../security-events/security-event-notification.service';
 import { VaultService } from '../vault/vault.service';
+import { t } from '~/i18n';
 
 export interface LoginFactorsView {
   /** TOTP-секрет подключён (enrollment подтверждён) — фактор можно включить. */
@@ -69,14 +70,10 @@ export class LoginFactorsService {
     // подписи гейтом hasEnabledFactorSettings и кривила путь пайщика при входе.
     // Выключение (false/false) не гейтим — выключать можно всегда.
     if (input.totp_enabled || input.email_enabled) {
-      const user = await this.users.findUserById(subjectId);
-      const blob = user?.username
-        ? await this.vault.retrieve({ subject_type: 'participant', subject_id: user.username })
-        : null;
-      if (!blob) {
+      if (!(await this.hasPasswordBlob(subjectId))) {
         throw new AuthV2Error(
           AuthV2ErrorCode.InsufficientVerification,
-          'Подтверждение входа станет доступно после установки пароля.',
+          t('authV2.loginFactorsService.passwordRequiredMessage'),
         );
       }
     }
@@ -89,11 +86,11 @@ export class LoginFactorsService {
       if (!enrolled) {
         throw new AuthV2Error(
           AuthV2ErrorCode.TwoFactorNotEnrolled,
-          'Сначала подключите приложение-аутентификатор.',
+          t('authV2.loginFactorsService.totpNotEnrolledMessage'),
         );
       }
       if (!input.code || !(await this.twoFactor.verify(subjectId, input.code.trim()))) {
-        throw new AuthV2Error(AuthV2ErrorCode.InvalidTwoFactorCode, 'Неверный код из приложения-аутентификатора.');
+        throw new AuthV2Error(AuthV2ErrorCode.InvalidTwoFactorCode, t('authV2.loginFactorsService.invalidTotpCodeMessage'));
       }
     }
 
@@ -102,7 +99,7 @@ export class LoginFactorsService {
       if (!user?.is_email_verified) {
         throw new AuthV2Error(
           AuthV2ErrorCode.InvalidCredentials,
-          'Почта не подтверждена — код на неё отправлять нельзя.',
+          t('authV2.loginFactorsService.emailNotVerifiedMessage'),
         );
       }
     }
@@ -124,6 +121,51 @@ export class LoginFactorsService {
     }
 
     return this.get(subjectId);
+  }
+
+  /**
+   * Есть ли у пайщика пароль (vault-блоб). Факторы — надстройка над входом по
+   * паролю: без блоба спрашивать код негде, а включённая настройка закрыла бы
+   * легаси-вход по подписи гейтом hasEnabledFactorSettings.
+   */
+  private async hasPasswordBlob(subjectId: string): Promise<boolean> {
+    const user = await this.users.findUserById(subjectId);
+    if (!user?.username) return false;
+    const blob = await this.vault.retrieve({ subject_type: 'participant', subject_id: user.username });
+    return !!blob;
+  }
+
+  /**
+   * Приложение-аутентификатор подключено (`activateTwoFactor`) — сразу включаем
+   * TOTP-фактор входа.
+   *
+   * Владелец 04.09.2026: «я же включил его, зачем мне второй раз код вводить?».
+   * Раньше активация только записывала секрет, а тумблер оставался выключенным —
+   * пайщик проходил QR, вводил первый код, видел выключённый фактор и был вынужден
+   * двигать тумблер и вводить код ещё раз. Подключение приложения по своей воле и
+   * есть согласие спрашивать код при входе; step-up тут уже состоялся — первым
+   * кодом, которым подтверждён enrollment.
+   *
+   * Тумблер остаётся выключенным ровно в одном случае: пароля (vault-блоба) ещё
+   * нет — тогда фактор некуда прикладывать, и включать его нельзя (гейт тот же,
+   * что в {@link set}). Такой пайщик включит фактор сам, когда поставит пароль.
+   */
+  async onTotpEnrolled(subjectId: string, ip: string | null = null): Promise<void> {
+    const current = await this.repo.get(subjectId);
+    if (current?.totpEnabled) return;
+    if (!(await this.hasPasswordBlob(subjectId))) return;
+
+    await this.repo.set({ subjectId, totpEnabled: true, emailEnabled: current?.emailEnabled ?? false });
+    await this.audit.record({
+      event: 'coopid.login_factors.changed',
+      subjectId,
+      actor: 'self',
+      result: 'success',
+      context: { totp_enabled: true, email_enabled: current?.emailEnabled ?? false, reason: 'totp_enrolled' },
+      ip,
+    });
+    // Отдельного уведомления не шлём: `activateTwoFactor` уже отправил письмо о
+    // подключении приложения, второе письмо про то же действие — шум.
   }
 
   /**

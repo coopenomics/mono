@@ -1,21 +1,8 @@
-import { client } from 'src/shared/api/client';
-import { Mutations } from '@coopenomics/sdk';
+// Вызовы одобрений живут в общем слое платформы: подписать одобрение можно и со
+// стола, где процесс начался. Здесь — только то, чем пользуется стол председателя.
+import { declineApproval } from 'src/features/ChairmanApproval';
 
-export type IDeclineApprovalInput = Mutations.Chairman.DeclineApprove.IInput['data'];
-export type IDeclineApprovalOutput = Mutations.Chairman.DeclineApprove.IOutput[typeof Mutations.Chairman.DeclineApprove.name];
-
-async function declineApproval(
-  data: IDeclineApprovalInput,
-): Promise<IDeclineApprovalOutput> {
-  const { [Mutations.Chairman.DeclineApprove.name]: result } =
-    await client.Mutation(Mutations.Chairman.DeclineApprove.mutation, {
-      variables: {
-        data,
-      },
-    });
-
-  return result;
-}
+export type { IDeclineApprovalInput, IDeclineApprovalOutput } from 'src/features/ChairmanApproval';
 
 export const api = {
   declineApproval,

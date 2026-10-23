@@ -1,4 +1,5 @@
 import { Zeus } from '@coopenomics/sdk';
+import { t } from '../../i18n';
 
 /**
  * Получение текста статуса сегмента
@@ -7,27 +8,27 @@ import { Zeus } from '@coopenomics/sdk';
 export const getSegmentStatusLabel = (status: string, isCompleted = false, segment?: any) => {
   // Если сегмент завершен, показываем специальный статус
   if (isCompleted) {
-    return 'Сегмент получен';
+    return t('capital.segment.status.completed');
   }
   switch (status) {
     case Zeus.SegmentStatus.GENERATION:
-      return 'Ожидаем пересчета стоимости результата интеллектуальной деятельности';
+      return t('capital.segment.status.generation');
     case Zeus.SegmentStatus.READY:
-      return 'Готов к внесению результата интеллектуальной деятельности';
+      return t('capital.segment.status.ready');
     case Zeus.SegmentStatus.STATEMENT:
-      return 'Заявление на предварительном рассмотрении председателя';
+      return t('capital.segment.status.statement');
     case Zeus.SegmentStatus.APPROVED:
-      return 'Одобрено председателем, ожидается решение совета о приёме';
+      return t('capital.segment.status.approved');
     case Zeus.SegmentStatus.AUTHORIZED:
-      return 'Получено решение совета, ожидаем подпись пайщика на акте приёма-передачи доли в объекте авторских прав';
+      return t('capital.segment.status.authorized');
     case Zeus.SegmentStatus.ACT1:
-      return 'Акт приёма-передачи подписан пайщиком, ожидаем подпись председателя';
+      return t('capital.segment.status.act1');
     case Zeus.SegmentStatus.CONTRIBUTED:
-      return 'Результат интеллектуальной деятельности принят';
+      return t('capital.segment.status.contributed');
     case Zeus.SegmentStatus.FINALIZED:
-      return 'Доля в объекте авторских прав получена';
+      return t('capital.segment.status.finalized');
     default:
-      return 'Неизвестный статус';
+      return t('capital.segment.status.unknown');
   }
 };
 
@@ -42,24 +43,24 @@ export const getSegmentShortStatus = (segment: {
   status: string;
   is_completed?: boolean;
 }): string => {
-  if (segment.is_completed) return 'Получен';
+  if (segment.is_completed) return t('capital.segment.statusShort.completed');
   switch (segment.status) {
     case Zeus.SegmentStatus.GENERATION:
-      return 'Расчёт';
+      return t('capital.segment.statusShort.generation');
     case Zeus.SegmentStatus.READY:
-      return 'Готов';
+      return t('capital.segment.statusShort.ready');
     case Zeus.SegmentStatus.STATEMENT:
-      return 'На рассмотрении';
+      return t('capital.segment.statusShort.statement');
     case Zeus.SegmentStatus.APPROVED:
-      return 'Одобрен';
+      return t('capital.segment.statusShort.approved');
     case Zeus.SegmentStatus.AUTHORIZED:
-      return 'Подпись пайщика';
+      return t('capital.segment.statusShort.authorized');
     case Zeus.SegmentStatus.ACT1:
-      return 'Подпись председателя';
+      return t('capital.segment.statusShort.act1');
     case Zeus.SegmentStatus.CONTRIBUTED:
-      return 'Принят';
+      return t('capital.segment.statusShort.contributed');
     case Zeus.SegmentStatus.FINALIZED:
-      return 'Завершён';
+      return t('capital.segment.statusShort.finalized');
     default:
       return getSegmentStatusLabel(segment.status, segment.is_completed);
   }

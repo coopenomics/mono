@@ -41,14 +41,14 @@ void capital::setconfig(eosio::name coopname, Capital::config config) {
   const asset zero_rub = asset(0, _root_govern_symbol);
 
   if (itr == global_state_inst.end()) {
-    global_state_inst.emplace(coopname, [&](auto& s) {
+    global_state_inst.emplace(RamPayer::of(global_state_inst, coopname), [&](auto& s) {
       s.coopname = coopname;
       s.config = config;
       s.program_expense_pool = zero_rub;
       s.program_expense_reserved = zero_rub;
     });
   } else {
-    global_state_inst.modify(itr, coopname, [&](auto& s) {
+    global_state_inst.modify(itr, RamPayer::of(global_state_inst, coopname), [&](auto& s) {
       s.config = config;
       // Лечим уже записанные битые нули с пустым символом (после reboot/старых деплоев).
       s.program_expense_pool =

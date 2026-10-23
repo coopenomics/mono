@@ -253,13 +253,18 @@
         <h2 class="dev-ui__sect-title">Диалоги</h2>
         <p class="dev-ui__sect-sub">
           Модальное окно с шапкой, телом и подвалом действий. Telleport в body,
-          закрытие по backdrop и Escape — управляемое через props.
+          закрытие по backdrop и Escape — управляемое через props. Вопрос
+          «вы уверены?» своего диалога не требует: его задаёт
+          <code>useConfirm()</code>, окно на всё приложение одно.
         </p>
       </div>
       <div class="dev-ui__stage">
         <div class="u-row u-row--wrap u-row--gap-4">
           <BaseButton @click="dialogOpen = true">Открыть диалог</BaseButton>
+          <BaseButton variant="secondary" @click="askConfirm">Спросить подтверждение</BaseButton>
+          <BaseButton variant="danger" @click="askDangerConfirm">Разрушительное действие</BaseButton>
         </div>
+        <p v-if="confirmAnswer" class="t-sm t-muted" style="margin: 0">Ответ: {{ confirmAnswer }}</p>
 
         <BaseDialog v-model="dialogOpen" title="Паевой взнос">
           <p class="t-sm t-muted" style="margin: 0">
@@ -765,9 +770,35 @@
         <h2 class="dev-ui__sect-title">Карточка аутентификации (AuthCard)</h2>
         <p class="dev-ui__sect-sub">
           Композит из <code>.card</code> + center-aligned head + footer-slot.
-          Используется на страницах входа / восстановления / приглашения.
-          AuthLayout — обёртка для full-page центрирования с тоглом темы.
+          Остался у приглашения, входа по карте и потоков CoopID. Вход,
+          восстановление и вступление с 16.09.2026 живут в <code>AuthSplit</code>
+          (ниже): тёмная панель слева с шагами или цитатой, форма справа; на
+          экране уже 1024px панель сворачивается в шапку с полосой прогресса.
         </p>
+      </div>
+      <div class="dev-ui__stage dev-ui__stage--bleed">
+        <AuthSplit
+          eyebrow="ПК ВОСХОД"
+          title="Вступление в пайщики"
+          lead="Семь коротких шагов: заявление, подпись и взнос. Обычно занимает десять минут."
+          :steps="authSplitSteps"
+          active-key="email"
+          :completed-keys="[]"
+          step-eyebrow="Шаг 1 из 7"
+          heading="Электронная почта"
+          text="На неё придёт код подтверждения, а после вступления — уведомления кооператива."
+        >
+          <template #pane-foot>
+            Уже пайщик? <a href="#" class="auth-link">Войти</a>
+          </template>
+          <BaseForm>
+            <BaseInput label="Электронная почта" type="email" placeholder="name@example.ru" />
+            <BaseButton variant="primary" block type="submit">Продолжить</BaseButton>
+          </BaseForm>
+          <template #foot>
+            <a href="#" class="auth-link">Начать с начала</a>
+          </template>
+        </AuthSplit>
       </div>
       <div class="dev-ui__stage">
         <AuthCard
@@ -890,6 +921,18 @@
             </template>
           </DataRow>
           <DataRow label="Дата регистрации" value="—" />
+        </div>
+      </div>
+      <p class="dev-ui__sect-sub">
+        <code>align="spread"</code> — для боковых карточек с короткими значениями: подпись слева,
+        значение у правого края в одну строку. В узкой карточке строка остаётся строкой,
+        а не складывается в столбик.
+      </p>
+      <div class="dev-ui__stage">
+        <div class="dev-ui__data-stack" style="max-width: 340px">
+          <DataRow label="Занятий в месяц" value="8" align="spread" />
+          <DataRow label="Занятие" value="60 минут" align="spread" />
+          <DataRow label="Себестоимость в месяц" value="10 000,00 RUB" align="spread" />
         </div>
       </div>
     </section>
@@ -1054,8 +1097,9 @@
         <span class="dev-ui__sect-num">30</span>
         <h2 class="dev-ui__sect-title">Превью документа (DocumentPreview)</h2>
         <p class="dev-ui__sect-sub">
-          HTML/PDF/IMAGE/TXT. HTML прогоняется через DOMPurify (можно отключить
-          <code>:sanitize="false"</code>). <code>loading</code> и
+          HTML/PDF/IMAGE/TXT. HTML всегда очищается; у документа со своей
+          вёрсткой — <code>profile="document"</code>, тогда сохраняются
+          <code>&lt;style&gt;</code> и таблицы. <code>loading</code> и
           <code>error</code> — стейты сверху.
         </p>
       </div>
@@ -1297,11 +1341,11 @@
         <span class="dev-ui__sect-num">37</span>
         <h2 class="dev-ui__sect-title">Палитра команд (CommandPalette)</h2>
         <p class="dev-ui__sect-sub">
-          ⌘K / Ctrl+K. Иерархия <strong>рабочих столов</strong> и их страниц.
-          Активный стол sticky сверху с бейджем «Активный». Пустой запрос — иерархия,
-          с запросом — плоский список (со столом-префиксом у каждой страницы).
-          Стол отдельной строкой появляется только если запрос явно начинается
-          с его имени или содержит «стол»/«workspace».
+          ⌘K / Ctrl+K и кнопка «Сменить стол». Слева <strong>рабочие столы</strong>:
+          сначала столы приложений с одним столом, ниже приложения с несколькими
+          столами под своим заголовком. Справа страницы стола, выбранного слева.
+          С запросом справа идут найденные столы и страницы, у каждой строки
+          подписаны стол и приложение.
         </p>
       </div>
       <div class="dev-ui__stage">
@@ -1398,8 +1442,10 @@
 import type { BaseTableColumn } from 'src/shared/ui/base';
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
 import { Dark } from 'quasar';
+import { useConfirm } from 'src/shared/lib/composables';
 import { AppDrawer } from 'src/shared/ui/layout/AppDrawer';
 import { AppHeader } from 'src/shared/ui/layout/AppHeader';
+import { AuthSplit } from 'src/shared/ui/layout/AuthSplit';
 import { PageHead } from 'src/shared/ui/layout/PageHead';
 import { PageTabs } from 'src/shared/ui/layout/PageTabs';
 import { RailUserCard } from 'src/shared/ui/domain/RailUserCard';
@@ -1420,6 +1466,16 @@ import { LostKey } from 'src/widgets/Registrator/LostKey';
 import { ResetKeyForm } from 'src/widgets/Registrator/ResetKey';
 import { useCreateUser } from 'src/features/User/CreateUser';
 import type { RailItem, RailSection } from 'src/shared/ui/layout/AppDrawer';
+
+const authSplitSteps = [
+  { key: 'email', label: 'Электронная почта' },
+  { key: 'data', label: 'Заявление' },
+  { key: 'password', label: 'Пароль для входа' },
+  { key: 'branch', label: 'Кооперативный участок' },
+  { key: 'read', label: 'Проверка заявления' },
+  { key: 'sign', label: 'Подпись' },
+  { key: 'pay', label: 'Вступительный взнос' },
+];
 import type { PageTab } from 'src/shared/ui/layout/PageTabs';
 import type { IGeneratedAccount } from 'src/shared/lib/types/user';
 import type { ContactItem } from 'src/shared/ui/domain/ContactSheet';
@@ -1595,6 +1651,31 @@ const selectPeriod = ref<string | number>('apr-2026');
 
 const dialogOpen = ref(false);
 const dialogAmount = ref('1 000');
+
+// Подтверждение — общее окно платформы: страницы своего диалога «вы уверены?»
+// не заводят, а спрашивают и ждут ответ обычным await.
+const { confirm } = useConfirm();
+const confirmAnswer = ref('');
+
+async function askConfirm(): Promise<void> {
+  const agreed = await confirm({
+    title: 'Опубликовать курс?',
+    message: 'Курс появится в каталоге, пайщики смогут подключить подписку.',
+    confirmLabel: 'Опубликовать',
+  });
+  confirmAnswer.value = agreed ? 'подтверждено' : 'отменено';
+}
+
+async function askDangerConfirm(): Promise<void> {
+  const agreed = await confirm({
+    title: 'Удалить запись?',
+    message: 'Запись исчезнет из реестра.',
+    note: 'Отменить это действие нельзя.',
+    confirmLabel: 'Удалить',
+    danger: true,
+  });
+  confirmAnswer.value = agreed ? 'удалено' : 'отменено';
+}
 
 const formEmail = ref('');
 const formPass = ref('');
@@ -1998,6 +2079,8 @@ const commandWorkspacesDemo: CommandPaletteWorkspace[] = [
     name: 'chairman',
     title: 'Стол Председателя',
     icon: 'person',
+    appName: 'chairman',
+    appTitle: 'Стол Председателя',
     isActive: true,
     pages: [
       { name: 'chairman-onboarding', title: 'Онбординг', icon: 'rocket_launch' },
@@ -2014,6 +2097,8 @@ const commandWorkspacesDemo: CommandPaletteWorkspace[] = [
     name: 'member',
     title: 'Стол пайщика',
     icon: 'account_circle',
+    appName: 'participant',
+    appTitle: 'Стол пайщика',
     pages: [
       { name: 'member-dashboard', title: 'Главная', icon: 'home' },
       { name: 'member-wallet', title: 'Кошелёк', icon: 'account_balance_wallet', shortcut: '⌘W' },
@@ -2026,9 +2111,41 @@ const commandWorkspacesDemo: CommandPaletteWorkspace[] = [
     name: 'reports',
     title: 'Стол отчётности',
     icon: 'analytics',
+    appName: 'reports',
+    appTitle: 'Стол отчётности',
     pages: [
       { name: 'reports-kpi', title: 'KPI кооператива', icon: 'insights' },
       { name: 'reports-export', title: 'Выгрузка реестров', icon: 'download' },
+    ],
+  },
+  {
+    name: 'capital',
+    title: 'Стол благороста',
+    icon: 'trending_up',
+    appName: 'capital',
+    appTitle: 'Благорост',
+    pages: [{ name: 'capital-projects', title: 'Проекты', icon: 'rocket_launch' }],
+  },
+  {
+    name: 'market',
+    title: 'Стол заказчика',
+    icon: 'shopping_cart',
+    appName: 'market',
+    appTitle: 'Стол заказов',
+    pages: [
+      { name: 'market-catalog', title: 'Каталог', icon: 'storefront' },
+      { name: 'market-orders', title: 'Мои заказы', icon: 'receipt_long' },
+    ],
+  },
+  {
+    name: 'market-admin',
+    title: 'Стол администратора',
+    icon: 'admin_panel_settings',
+    appName: 'market',
+    appTitle: 'Стол заказов',
+    pages: [
+      { name: 'market-admin-orders', title: 'Реестр заказов', icon: 'list_alt' },
+      { name: 'market-admin-stock', title: 'Склад', icon: 'inventory_2' },
     ],
   },
 ];
@@ -2142,6 +2259,12 @@ function showNotifyWithAvatarToast(): void {
   border: 1px solid var(--p-line);
   border-radius: var(--p-r-md);
   padding: 24px;
+}
+/* Сцена без внутренних отступов — для полноэкранных оболочек (AuthSplit). */
+.dev-ui__stage--bleed {
+  padding: 0;
+  overflow: hidden;
+  min-height: 560px;
 }
 
 .dev-ui__data-stack {

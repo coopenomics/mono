@@ -1,0 +1,167 @@
+feature: edubridge.admin
+title: Образовательный мост — реестры, очередь, площадки, администраторы, контакты
+
+# E9 (задача 7DD-10). Контакты — только владельцу и на уровне данных: резолвер
+# карточки вырезает их, если у запросившего нет EduContacts:read. Ключи площадок
+# наружу не выдаются — только признак «задано». Выдать доступ в обход взноса
+# нельзя: такой операции нет, «Повторить» лишь возвращает задачу в очередь.
+
+# Правка 14.10.2026: календарь школы передаёт курс занятия диалогу переноса строкой —
+# поведение прежнее, исправлена ошибка проверки типов, которая роняла выпуск в testnet.
+sources:
+  backend:
+    - components/controller/src/extensions/edubridge/application/services/edubridge-admin.service.ts
+    - components/controller/src/extensions/edubridge/application/resolvers/edubridge-admin.resolver.ts
+    - components/controller/src/extensions/edubridge/infrastructure/repositories/edubridge-admin.kysely-repository.ts
+    - components/controller/src/extensions/edubridge/application/dto/edu-admin.dto.ts
+    - components/controller/src/extensions/edubridge/infrastructure/connectors/**
+    - components/controller/src/extensions/edubridge/domain/connectors/**
+    - components/controller/src/extensions/edubridge/application/services/edubridge-approvals.service.ts
+    - components/controller/src/extensions/edubridge/application/services/edubridge-attention.service.ts
+    - components/controller/src/extensions/chairman/infrastructure/innercoop/**
+  ui:
+    - components/desktop/extensions/edubridge/pages/Admin*/**
+    - components/desktop/extensions/edubridge/entities/Admin/**
+    - components/desktop/src/features/ChairmanApproval/**
+    - components/desktop/src/shared/lib/menuBadges/**
+
+cases:
+  - id: edu.admin.happy.01
+    level: backend
+    kind: happy
+    scenario: Карточка пайщика запрошена администратором и владельцем.
+    expect: Администратор получает recipient_value = null, владелец — контакт.
+    test: components/controller/tests/unit/edubridge/admin.service.test.ts
+    api: components/api-tests/src/edubridge/admin.test.ts
+    status: passing
+  - id: edu.admin.happy.02
+    level: backend
+    kind: happy
+    scenario: Состояние площадок.
+    expect: Ключи в ответе отсутствуют, только configured/health/last_check.
+    test: components/controller/tests/unit/edubridge/admin.service.test.ts
+    api: components/api-tests/src/edubridge/admin.test.ts
+    status: passing
+  - id: edu.admin.side.13
+    level: backend
+    kind: side
+    scenario: "«Проверить» площадку с верными ключами, в каталоге ещё нет курсов (инцидент 23.09.2026: статус «Работает» и «У курса не задан идентификатор курса Skillspace»)."
+    expect: "Проверка идёт одним чтением с ключами (ping), курс-проба не участвует; в результат пишется итог площадки."
+    test: components/controller/tests/unit/edubridge/admin.service.test.ts
+    api: components/api-tests/src/edubridge/platforms.test.ts
+    status: passing
+  - id: edu.admin.side.14
+    level: backend
+    kind: side
+    scenario: "«Проверить» площадку с неверным ключом."
+    expect: "Площадка помечается сбоящей, в результат пишется сообщение площадки."
+    test: components/controller/tests/unit/edubridge/admin.service.test.ts
+    api: components/api-tests/src/edubridge/platforms.test.ts
+    status: passing
+  - id: edu.admin.happy.03
+    level: backend
+    kind: happy
+    scenario: Повтор задачи из очереди.
+    expect: Задача снова pending, счётчик попыток сохраняется.
+    test: components/controller/tests/unit/edubridge/admin.service.test.ts
+    api: components/api-tests/src/edubridge/admin.test.ts
+    status: passing
+  - id: edu.admin.break.01
+    level: backend
+    kind: break
+    scenario: Председатель назначает пайщику роль администратора образования на общей странице управления доступом; администратор открывает площадки и меняет ставку часа.
+    expect: Администратор ведёт курсы, допуски преподавателей и очередь; площадки, ставки, целевой взнос, расходы программы и отклонение взноса ему закрыты; роли он не назначает; со снятой ролью пайщик снова рядовой.
+    test: components/api-tests/src/edubridge/rights.test.ts
+    api: components/api-tests/src/edubridge/rights.test.ts
+    status: passing
+  - id: edu.admin.happy.04
+    level: ui
+    kind: happy
+    scenario: Реестры, карточка, очередь с фильтром needs_attention и кнопкой «Повторить», площадки с индикатором.
+    expect: У администратора контактов в карточке нет; у владельца — есть.
+    test: ~
+    status: missing
+  - id: edu.admin.side.10
+    level: backend
+    kind: side
+    scenario: "Реестр пайщиков (memberRows): агрегаты по обучающимся, подпискам и задачам выдачи при нескольких пайщиках и кооперативах; подзапросы не ссылаются на колонки внешнего запроса вне GROUP BY (инцидент 02.09.2026: «Subquery uses ungrouped column l.coopname»)."
+    expect: "Запрос выполняется в Postgres, счётчики по каждому пайщику верны и не смешивают кооперативы."
+    test: ~
+    status: missing
+  - id: edu.admin.side.11
+    level: backend
+    kind: side
+    scenario: "ФИО пайщика для столов (EdubridgeNamesService): физлицо — «Фамилия Имя Отчество», организация — короткое наименование, без сертификата — пусто; пачка имён одним запросом на уникальное имя, ошибка порта не роняет; реестр пайщиков ищет по фрагменту ФИО или учётного имени без учёта регистра."
+    expect: "display_name в строках реестра, карточке, администраторах и преподавателях; поиск реестра по ФИО."
+    test: components/controller/tests/unit/edubridge/names.service.test.ts
+    api: components/api-tests/src/edubridge/admin.test.ts
+    status: written
+  - id: edu.admin.ui.03
+    level: ui
+    kind: happy
+    scenario: "Стол администратора после замечаний 03.09.2026: курсы — карточками с обложкой, статусом и действиями (без таблицы); пустые таблицы не показываются, только пустое состояние; реестр пайщиков — ФИО и учётное имя, поиск по ФИО, сводная карточка боковой панелью; администраторы — кнопка «Назначить администратора» в шапке, выбор пайщика поиском по ФИО, список с ФИО; площадки — карточки с состоянием в шапке и действиями в подвале; таблицы не шире экрана 1100 px."
+    expect: "Ни одна таблица стола не требует горизонтальной прокрутки на ноутбуке; имена людей — ФИО, учётное имя вторым рядом моноширинным."
+    test: ~
+    status: missing
+  - id: edu.admin.side.12
+    level: backend
+    kind: side
+    scenario: "Ключи площадок в привязке коннектора (EdubridgeConnectorCredentialsStore): сохранение шифрует SECRET_CIPHER_PORT, пустое значение оставляет прежнее; чтение расшифровывает, до первого сохранения берёт прежние настройки расширения; повреждённый шифротекст → пусто и лог; площадка без полей считается настроенной. Сервис: чужие поля отвергаются, после смены ключей здоровье сбрасывается, проверка ненастроенной площадки — отказ без обращения к площадке; наружу только флаги «задано»."
+    expect: "Ключи не выходят из бэкенда; коннекторы получают их через CONNECTOR_CREDENTIALS_SOURCE по кооперативу."
+    test: components/controller/tests/unit/edubridge/connector-credentials.store.test.ts
+    api: components/api-tests/src/edubridge/admin.test.ts
+    status: written
+  - id: edu.admin.side.15
+    level: backend
+    kind: side
+    scenario: "Карточка преподавателя: договор УХД, ждущий подписи председателя (одобрение apprvcontr), берётся у председателя через порт одобрений; расширения председателя нет."
+    expect: "В ответе только документы этого преподавателя в состоянии «ждёт», с человеческим названием; без расширения председателя — пустой список, а не отказ."
+    test: components/controller/tests/unit/edubridge/approvals.service.test.ts
+    api: components/api-tests/src/edubridge/admin.test.ts
+    status: passing
+  - id: edu.admin.ui.05
+    level: ui
+    kind: happy
+    scenario: "Председатель открывает карточку преподавателя с договором на подписи и подписывает его прямо там; администратор без роли председателя видит «Ждёт подписи председателя»."
+    expect: "После подписи одобрение закрыто и в «Запросах одобрений» стола председателя; договор преподавателя становится действующим после разбора блока."
+    test: ~
+    status: missing
+  - id: edu.admin.side.16
+    level: backend
+    kind: side
+    scenario: "Сводка дел для пунктов меню: документы преподавателей на подписи председателя и задачи выдачи доступа в состояниях «требует внимания»/«сбой»; запрашивает пользователь без прав администратора."
+    expect: "Администратор получает оба числа; ученик и преподаватель — нули, чужие данные не считаются и не запрашиваются."
+    test: components/controller/tests/unit/edubridge/attention.service.test.ts
+    api: components/api-tests/src/edubridge/admin.test.ts
+    status: passing
+  - id: edu.admin.ui.06
+    level: ui
+    kind: happy
+    scenario: "Стол администратора: у пунктов «Преподаватели» и «Ученики» числа дел; председатель подписывает договор в карточке преподавателя, администратор повторяет застрявшую выдачу."
+    expect: "Число на пункте уменьшается сразу после действия, без перезагрузки; ноль бейджа не рисует; стол без прав администратора числа не запрашивает."
+    test: ~
+    status: missing
+  - id: edu.admin.side.17
+    level: backend
+    kind: side
+    scenario: "Администратор удаляет курс: без подписок и занятий; с подписками; с проведёнными занятиями."
+    expect: "Курс без подписок и занятий стирается вместе с допусками и обложкой; при подписках либо занятиях — отказ с предложением снять курс с публикации."
+    test: components/controller/tests/unit/edubridge/course.service.test.ts
+    api: components/api-tests/src/edubridge/course-rules.test.ts
+    status: written
+  - id: edu.admin.break.02
+    level: backend
+    kind: break
+    scenario: "Администратор меняет плановую ставку курса при действующих подписках."
+    expect: "Правка проходит и действует для новых групп; идущая группа продлевается по прежнему взносу."
+    test: components/controller/tests/unit/edubridge/course.service.test.ts
+    api: components/api-tests/src/edubridge/course-rules.test.ts
+    status: written
+  - id: edu.admin.side.18
+    level: backend
+    kind: side
+    scenario: "Администратор ищет в окне столов и страниц ученика, его обучающегося либо преподавателя; тот же запрос делает ученик."
+    expect: "Группы «Ученики» и «Преподаватели» возвращают находки только тому, у кого есть право на соответствующую страницу. Пайщик и его обучающийся ведут в карточку ученика, преподаватель — на свою страницу. Без права группа пуста, данные не читаются."
+    test: components/controller/tests/unit/edubridge/search.provider.test.ts
+    api: components/api-tests/src/edubridge/admin.test.ts
+    status: written

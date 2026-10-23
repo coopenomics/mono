@@ -1,5 +1,5 @@
 <template lang="pug">
-.component-page-shell.column.flex-1.min-h-0.min-w-0.no-wrap
+.component-page-shell.page-shell.column.flex-1.min-h-0.min-w-0.no-wrap
   // Меню вкладок — сразу под шапкой, без внешних отступов
   PageTabs(
     v-if="project && !isIssueRoute"
@@ -13,7 +13,7 @@
           ref="createIssueRef"
           :project-hash="projectHash"
           size="sm"
-          label="Задача"
+          :label="$t('capital.componentPage.issueTabLabel')"
           @action-completed="handleIssueCreated"
         )
         CreateRequirementButton(
@@ -45,7 +45,7 @@
             ref="createIssueRef"
             :project-hash="projectHash"
             size="sm"
-            label="Задача"
+            :label="$t('capital.componentPage.issueTabLabel')"
             @action-completed="handleIssueCreated"
           )
           CreateRequirementButton(
@@ -68,8 +68,17 @@
             @authors-added="handleAuthorsAdded"
           )
 
+  // Компонент удалён или недоступен — скелетон крутиться не должен
+  .component-page-missing(v-if="notFound")
+    EmptyState(
+      :title="$t('capital.componentPage.unavailableTitle')"
+      :body="$t('capital.componentPage.unavailableBody')"
+    )
+      template(#icon)
+        q-icon(name="code_off" size="32px")
+
   // Скелетон первичной загрузки компонента
-  .component-page-skeleton(v-if="!project")
+  .component-page-skeleton(v-else-if="!project")
     .component-page-skeleton__side(v-if="showSidebar")
       .skel(v-for="i in 4", :key="i")
     .component-page-skeleton__main
@@ -88,7 +97,7 @@
       .q-px-md
         ProjectTitleEditor(
           :project="project"
-          label="Компонент"
+          :label="$t('capital.componentPage.componentTabLabel')"
           @field-change="handleFieldChange"
           @update:title="handleTitleUpdate"
         ).full-width
@@ -113,7 +122,7 @@
     .q-px-md
       ProjectTitleEditor(
         :project="project"
-        label="Компонент"
+        :label="$t('capital.componentPage.componentTabLabel')"
         @field-change="handleFieldChange"
         @update:title="handleTitleUpdate"
       ).full-width
@@ -152,12 +161,13 @@
       router-view
 </template>
 <script lang="ts" setup>
-import { onMounted, computed, watch, ref } from 'vue';
+import { onMounted, computed, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useWindowSize } from 'src/shared/hooks/useWindowSize';
 import { useProjectLoader } from 'app/extensions/capital/entities/Project/model';
-import { useBackButton } from 'src/shared/lib/navigation';
+import { goBackOr, useBackButton } from 'src/shared/lib/navigation';
 import { PageTabs } from 'src/shared/ui/layout';
+import { EmptyState } from 'src/shared/ui/base';
 import { CreateIssueButton } from 'app/extensions/capital/features/Issue/CreateIssue';
 import { CreateRequirementButton } from 'app/extensions/capital/features/Story/CreateStory';
 import { AddAuthorButton } from 'app/extensions/capital/features/Project/AddAuthor';
@@ -168,6 +178,7 @@ import { ComponentSidebarWidget } from 'app/extensions/capital/widgets';
 import { ProjectTitleEditor } from 'app/extensions/capital/widgets/ProjectTitleEditor';
 import { ComponentToProjectPathWidget } from 'app/extensions/capital/widgets/ComponentToProjectPathWidget';
 import { useCapitalFabHotkeys, useCapitalWorkspaceRoutes } from 'app/extensions/capital/shared/lib';
+import { t, t as i18nT } from '../../../i18n';
 
 // Используем window size для определения размера экрана
 const { isMobile } = useWindowSize();
@@ -207,7 +218,7 @@ const addAuthorRef = ref<CapitalActionOpen>(null);
 const makeClearanceRef = ref<CapitalActionOpen>(null);
 
 // Используем composable для загрузки проекта
-const { project, projectHash, loadProject } = useProjectLoader();
+const { project, projectHash, notFound, loadProject } = useProjectLoader();
 
 const isLocalProject = computed(() => project.value?.origin === 'local');
 
@@ -279,76 +290,38 @@ const showSidebar = computed(
 // Субменю компонента (вкладки)
 const componentTabs = computed(() => {
   const params = { project_hash: projectHash.value };
-  const currentBackRoute = route.query._backRoute as string;
-  const query = currentBackRoute ? { _backRoute: currentBackRoute } : {};
 
   const tabs = [
-    { key: routeName('component-description'), label: 'Описание', route: { name: routeName('component-description'), params, query } },
-    { key: routeName('component-tasks'), label: 'Задачи', route: { name: routeName('component-tasks'), params, query } },
-    { key: routeName('component-requirements'), label: 'Артефакты', route: { name: routeName('component-requirements'), params, query } },
-    { key: routeName('component-planning'), label: 'План', route: { name: routeName('component-planning'), params, query } },
+    { key: routeName('component-description'), label: t('capital.componentPage.descriptionTabLabel'), route: { name: routeName('component-description'), params } },
+    { key: routeName('component-tasks'), label: t('capital.componentPage.tasksTabLabel'), route: { name: routeName('component-tasks'), params } },
+    { key: routeName('component-requirements'), label: t('capital.componentPage.artifactsTabLabel'), route: { name: routeName('component-requirements'), params } },
+    { key: routeName('component-planning'), label: t('capital.componentPage.planTabLabel'), route: { name: routeName('component-planning'), params } },
   ];
 
   if (!isLocalProject.value) {
     tabs.push(
-      { key: routeName('component-voting'), label: 'Голосование', route: { name: routeName('component-voting'), params, query } },
-      { key: routeName('component-results'), label: 'Результаты', route: { name: routeName('component-results'), params, query } },
-      { key: routeName('component-contributors'), label: 'Участники', route: { name: routeName('component-contributors'), params, query } },
+      { key: routeName('component-voting'), label: t('capital.componentPage.votingTabLabel'), route: { name: routeName('component-voting'), params } },
+      { key: routeName('component-results'), label: t('capital.componentPage.resultsTabLabel'), route: { name: routeName('component-results'), params } },
+      { key: routeName('component-contributors'), label: t('capital.componentPage.contributorsTabLabel'), route: { name: routeName('component-contributors'), params } },
     );
   }
 
-  tabs.push({ key: routeName('component-history'), label: 'История', route: { name: routeName('component-history'), params, query } });
+  tabs.push({ key: routeName('component-history'), label: t('capital.componentPage.historyTabLabel'), route: { name: routeName('component-history'), params } });
 
   return tabs;
 });
 
-// Настраиваем кнопку "Назад"
-const { setBackButton } = useBackButton({
-  text: 'Назад',
+// Назад — туда, откуда пришли (см. smartBack.ts). Раньше здесь стоял жёсткий
+// приоритет parent_hash — «назад» всегда уводил вверх к проекту, даже если
+// компонент открыли из списка компонентов или из «Моих проектов».
+useBackButton({
+  text: i18nT('common.action.back'),
   componentId: 'component-base-' + projectHash.value,
-  onClick: () => {
-    const parentHash = project.value?.parent_hash;
-    if (parentHash) {
-      router.push({
-        name: routeName('project-description'),
-        params: { coopname: route.params.coopname, project_hash: parentHash },
-      });
-      return;
-    }
-    if (isMyProjects.value) {
-      router.push({ name: 'capital-my-projects', params: { coopname: route.params.coopname } });
-      return;
-    }
-    const backRoute = route.query._backRoute as string;
-    if (backRoute) {
-      // Проверяем, является ли backRoute ключом sessionStorage
-      const storedRoute = sessionStorage.getItem(backRoute);
-      if (storedRoute) {
-        try {
-          const routeData = JSON.parse(storedRoute);
-          router.push({
-            name: routeData.name,
-            params: routeData.params,
-            query: routeData.query
-          });
-          // Очищаем сохраненные данные
-          sessionStorage.removeItem(backRoute);
-          return;
-        } catch (error) {
-          console.warn('Failed to parse stored route:', error);
-        }
-      }
-      // Если это обычное название маршрута, переходим стандартно
-      router.push({ name: backRoute });
-    } else {
-      router.back();
-    }
-  }
-});
-
-// Отслеживаем изменение backRoute для обновления кнопки "Назад"
-watch(() => route.query._backRoute, () => {
-  setBackButton();
+  onClick: () =>
+    goBackOr(router, {
+      name: isMyProjects.value ? 'capital-my-projects' : 'components-list',
+      params: { coopname: route.params.coopname },
+    }),
 });
 
 // Обработчик создания задачи
@@ -402,6 +375,7 @@ const handleProjectDeleted = () => {
   router.push({ name: listRoute.value, params: { coopname } });
 };
 
+// realtime: нет источника — карточка с редакторами и разрешением конфликтов правок (content_rev): живое перечитывание подменило бы редактируемый объект; чужие правки ловит проверка версии при сохранении.
 onMounted(async () => {
   // Загружаем сохраненную ширину sidebar
   loadSidebarWidth();
@@ -412,14 +386,6 @@ onMounted(async () => {
 </script>
 
 <style lang="scss" scoped>
-// Оболочка заполняет вьюпорт под топбаром — иначе flex-1 у page-surface
-// схлопывается по контенту (План/Артефакты «короткие», Задачи с 100vh — длиннее экрана).
-.component-page-shell {
-  height: calc(100vh - var(--p-topbar-h));
-  max-height: calc(100vh - var(--p-topbar-h));
-  overflow: hidden;
-}
-
 // Рабочая плоскость: контент на --p-surface, табы на --p-canvas
 .page-surface {
   background: var(--p-surface);
@@ -448,6 +414,17 @@ onMounted(async () => {
   font-size: var(--p-fs-body);
   font-weight: 500;
   color: var(--p-ink);
+}
+
+// Заглушка удалённого/недоступного компонента — на месте каркаса загрузки
+.component-page-missing {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  align-items: center;
+  justify-content: center;
+  padding: var(--p-6);
+  background: var(--p-surface);
 }
 
 // Каркас первичной загрузки: повторяет раскладку «сайдбар + контент»

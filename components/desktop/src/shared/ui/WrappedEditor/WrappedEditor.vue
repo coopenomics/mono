@@ -11,7 +11,7 @@ label.q-field.row.no-wrap.items-start.q-input.q-field--labeled.q-field--with-bot
           Editor(
             :model-value="modelValue",
             :readonly="readonly",
-            :placeholder="placeholder || 'Начните писать...'",
+            :placeholder="placeholder || $t('ui.wrappedEditor.placeholder')",
             :min-height="minHeight || 150",
             :show-focus-ring="true"
             @update:modelValue="emit('update:modelValue', $event)"

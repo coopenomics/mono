@@ -8,6 +8,11 @@ title: Список участников проекта и компонента
 # Сам приём результата и подписание актов — соседний слайс
 # (capital.result-submission), здесь заводятся только последствия для списка.
 #
+# Правка 2026-08-23: удаление проекта и компонента теперь снимает их с личного
+# избранного пайщиков (`favoriteRepository.removeAllByTargetHash` в
+# project-management.interactor). Состав участников и набор случаев этой фичи не
+# менялись — случаи на снятие ведёт test-registry/capital.favorites.yaml.
+#
 # Список догружается по мере прокрутки: первая порция появляется сразу,
 # остальные подтягиваются, пока пользователь листает. Номеров страниц в
 # интерфейсе нет — счёт страниц список ведёт у себя.
@@ -21,6 +26,37 @@ title: Список участников проекта и компонента
 #
 # Тот же источник долей читает стол «Результаты» — но по участнику, а не по
 # проекту, и с контекстом проекта в строке (test-registry/capital.results-desk.yaml).
+
+# Правка 2026-09-22 (C28-78): описание и приглашение проекта уходят в цепь
+# хешем (sha256 текста), сам текст остаётся в базе контроллера. Контракт
+# принимает в этих полях только хеш или пустую строку, capital::migrate
+# переводит старые строки. Поведение действий этой фичи прежнее, набор случаев
+# не менялся; правило хранения текстов покрыто
+# test-registry/capital.project-chain-texts.yaml.
+
+# Правка 2026-09-23 (C28-42): в репозиториях фичи изменилась только строка
+# импорта — выбор колонки сортировки `resolveSortColumn` переехал в
+# `@coopenomics/extension-kit`. Поведение и набор случаев не менялись.
+#
+# Правка 23.09.2026 (7DD-22): пауза waitAfterTransactBeforeChainTableRead
+# (1 с перед чтением таблицы цепи после транзакции) снята — transact
+# возвращается после разбора своего блока, строка уже видна.
+
+# Правка 24.09.2026 (C28-83): экраны фичи перечитываются по ленте изменений
+# (таблицы Благороста объявлены расширением, набор на столе —
+# shared/lib/live.ts) вместо опроса useDataPoller раз в 10–30 с. Поведение
+# фичи и набор случаев не менялись.
+
+# Правка 24.09.2026 (C28-83), экраны: страницы, виджеты и панели фичи живут по
+# ленте изменений Благороста (CAPITAL_LIVE_TABLES); формы, диалоги выбора и
+# редакторы помечены «realtime: нет источника» с причиной. Поведение и набор
+# случаев не менялись.
+
+# Правка 25.09.2026 (C28-80): деловые отказы (не найдено, нет прав, уже есть,
+# неверный ввод) отвечают своим статусом — 404, 403, 409, 400, — а не 500
+# «внутренняя ошибка»: коды и тексты прежние, меняется только статус ответа, и
+# такие отказы больше не попадают в журнал ошибок сервера как поломки.
+
 sources:
   contract:
     - components/contracts/cpp/capital/app/project_managment/add_author/**
@@ -30,7 +66,7 @@ sources:
     - components/controller/src/extensions/capital/application/use-cases/segments.interactor.ts
     - components/controller/src/extensions/capital/application/use-cases/project-management.interactor.ts
     - components/controller/src/extensions/capital/application/syncers/segment-sync.service.ts
-    - components/controller/src/extensions/capital/infrastructure/repositories/segment.typeorm-repository.ts
+    - components/controller/src/extensions/capital/infrastructure/repositories/segment.kysely-repository.ts
   ui:
     - components/desktop/extensions/capital/widgets/ProjectInfoSelectorWidget/ProjectContributorsList.vue
     - components/desktop/extensions/capital/pages/ProjectContributorsPage/**
@@ -86,8 +122,8 @@ cases:
     expect: >
       возвращаются доли только этого компонента, с именами пайщиков и
       состоянием их ролей
-    test: ~
-    status: missing
+    test: components/api-tests/src/capital/project-contributors.test.ts
+    status: written
 
   - id: cap.contrib.happy.03
     level: backend
@@ -96,8 +132,8 @@ cases:
     expect: >
       доли всех компонентов и самого проекта объединяются по пайщику: один
       человек — одна строка, взносы суммируются
-    test: ~
-    status: missing
+    test: components/api-tests/src/capital/project-contributors.test.ts
+    status: written
 
   - id: cap.contrib.side.04
     level: backend
@@ -108,8 +144,8 @@ cases:
       страница отрезается уже после объединения, и общее количество считается
       по объединённым строкам. Отрезать до объединения означало бы неверное
       общее количество и потерянные строки на границе страниц
-    test: ~
-    status: missing
+    test: components/api-tests/src/capital/project-contributors.test.ts
+    status: written
 
   - id: cap.contrib.break.01
     level: backend
@@ -119,16 +155,16 @@ cases:
       отказ с указанием допустимых границ. Список участников берёт порции
       заметно меньше предела, но предел остаётся защитой от запроса, который
       вытянул бы всех участников кооператива разом
-    test: ~
-    status: missing
+    test: components/api-tests/src/capital/project-contributors.test.ts
+    status: written
 
   - id: cap.contrib.side.05
     level: backend
     kind: side
     scenario: запрошены участники по хэшу, которого нет среди проектов
     expect: доли ищутся напрямую по хэшу, объединение не применяется
-    test: ~
-    status: missing
+    test: components/api-tests/src/capital/project-contributors.test.ts
+    status: written
 
   - id: cap.contrib.happy.04
     level: backend
@@ -142,6 +178,7 @@ cases:
       лишь очередным сообщением от парсера — до тех пор список оставался
       без нового соавтора
     test: components/controller/tests/unit/capital/add-author-segment-sync.test.ts
+    api: components/api-tests/src/capital/project-contributors.test.ts
     status: passing
 
   - id: cap.contrib.side.06
@@ -155,6 +192,8 @@ cases:
       доля дойдёт до базы сообщением от парсера. Падение здесь означало бы
       отказ уже совершённого действия
     test: components/controller/tests/unit/capital/add-author-segment-sync.test.ts
+    external: unreachable
+    external_reason: "задержка чтения доли из цепи сразу после записи — гонка внутри узла, снаружи не ставится"
     status: passing
 
   # ── Уровень интерфейса ────────────────────────────────────────────────────
@@ -321,6 +360,8 @@ cases:
       обращения к базе на каждую долю
     test: ~
     status: missing
+    external: unreachable
+    external_reason: число обращений к базе за один запрос списка снаружи не видно — проверяется изнутри
 
   - id: cap.contrib.side.15
     level: backend
@@ -331,8 +372,8 @@ cases:
     expect: >
       отбор идёт по проекту доли, а не по самой доле, и «нет родителя»
       понимается одинаково для пустого хэша и незаполненного поля
-    test: ~
-    status: missing
+    test: components/api-tests/src/capital/project-contributors.test.ts
+    status: written
 
   - id: cap.contrib.side.16
     level: backend
@@ -343,8 +384,8 @@ cases:
     expect: >
       доля приходит с признаком закрытого голосования. Считать закрытость по
       записям о голосах нельзя: в таком компоненте их не появляется вовсе
-    test: ~
-    status: missing
+    test: components/api-tests/src/capital/result-submission.test.ts
+    status: written
 
   - id: cap.contrib.side.13
     level: backend
@@ -358,6 +399,86 @@ cases:
       дочерних проектов. Постраничная выборка исказила бы расчёт: он идёт
       по самому «дорогому» заёмщику, и пропущенный участник дал бы сумму,
       которую цепь отклонит
-    test: ~
-    status: missing
+    test: components/api-tests/src/capital/dealloc-debt-limit.test.ts
+    status: written
 
+  - id: cap.contrib.side.17
+    level: backend
+    kind: side
+    scenario: >
+      Рядовой пайщик открывает страницу результатов, и она загружает его
+      собственные доли по всем проектам — без указания проекта, с фильтром по
+      его имени.
+    expect: >
+      доли отдаются: это не сводный список кооператива, а свои данные пайщика.
+      Фильтр по чужому имени без проекта по-прежнему получает отказ
+      (cap.resdesk.break.03). До 10.09.2026 отказ приходил каждому рядовому
+      участнику, открывшему страницу, и падал в журнал ошибок
+    test: components/controller/tests/unit/capital/segments-role.test.ts
+    api: components/api-tests/src/capital/project-contributors.test.ts
+    status: passing
+
+  - id: cap.contrib.break.18
+    level: backend
+    kind: break
+    scenario: >
+      Учётная запись, которую совет ещё не принял (статус вступления) или уже
+      исключил, запрашивает доли и участников проекта.
+    expect: >
+      отказ «Доступ только для пайщиков кооператива»: списки «Капитала» видят
+      принятые пайщики и совет. До 17.09.2026 хватало любого токена, а токен
+      выдаётся уже при регистрации учётной записи — ФИО участников читал
+      кто угодно с улицы. Правило — общее для роли `user` в RolesGuard
+      (extension-kit); свои доли по имени кандидат по-прежнему получает
+      через самообход
+    test: components/controller/tests/unit/capital/capital-rights.test.ts
+    api: components/api-tests/src/capital/project-contributors.test.ts
+    status: passing
+  - id: capital.pc.side.fact-01
+    level: backend
+    kind: side
+    scenario: "После транзакции строка сегмента читается из таблицы цепи."
+    expect: "Чтение сразу, без паузы: transact вернулся, когда узел разобрал блок транзакции."
+    test: components/controller/tests/unit/blockchain/blockchain-service-block-wait.test.ts
+    api: components/api-tests/src/capital/project-contributors.test.ts
+    status: passing
+
+
+  - id: cap.contrib.side.19
+    level: backend
+    kind: side
+    scenario: >
+      хранилища зеркал Благороста после перевода на Kysely: условия правки и
+      удаления записей времени, выборка коммитов и историй проекта, чтение
+      проекта и адресов репозиториев; создание записи из дельты и версии перед
+      изменением
+    expect: >
+      условия запросов прежние: правятся и удаляются только подходящие записи,
+      хэши ищутся в нижнем регистре, удалённые в цепи проекты не отдаются;
+      устаревшая дельта запись не затирает, прежнее состояние перед изменением
+      уходит в версии
+    test: components/controller/tests/unit/capital/capital-chain-mirrors.test.ts
+    external: unreachable
+    external_reason: "проверяются условия запросов к базе и порядок работы с версиями — снаружи они не видны; поведение фичи через API покрыто её случаями во внешнем слое"
+    status: written
+
+# 2026-09-23 (EEA-6…EEA-9): тексты интерфейса, отказов и уведомлений фичи вынесены из
+# кода в словари i18n, отказы бэкенда переведены на DomainError с кодом — текст
+# и HTTP-статус ответа прежние. Сценарии фичи и её проверки не менялись.
+
+# 2026-10-05 (C28-81): файлы и классы хранилищ переименованы после ухода с TypeORM
+# (typeorm-repository → kysely-repository, typeorm-entity → record); частичная правка
+# полей собрана помощником pickDefined. Сценарии фичи и её проверки не менялись.
+
+  # Права по таблице прав Благороста (C28-87, кусок 4, 05.10.2026): операции
+  # стоят под общим гардом каркаса вместо `@AuthRoles`; прежние списки ролей и
+  # проход «на своё имя» перенесены один в один, роль в проекте по-прежнему
+  # ведёт таблица ролей проекта.
+  - id: cap.contrib.side.20
+    level: backend
+    kind: side
+    scenario: операции раздела зовут кандидат, пайщик, член совета и председатель с чужим именем в запросе и со своим
+    expect: "исход прежнего правила операции: по роли проходит названный в таблице прав, на своё имя — каждый вошедший, остальным отказ KIT_INSUFFICIENT_RIGHTS либо KIT_RIGHT_SCOPE_OWN"
+    test: components/controller/tests/unit/capital/capital-rights.test.ts
+    api: components/api-tests/src/rights/matrix.test.ts
+    status: written

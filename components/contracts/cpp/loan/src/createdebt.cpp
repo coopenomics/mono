@@ -25,7 +25,7 @@ void loan::createdebt(name coopname, name username, checksum256 debt_hash, time_
   Loan::debts_index debts(_loan, coopname.value);
   uint64_t new_id = get_global_id_in_scope(_loan, coopname, "debts"_n);
 
-  debts.emplace(_loan, [&](auto& d) {
+  debts.emplace(RamPayer::of(debts, coopname), [&](auto& d) {
     d.id = new_id;
     d.coopname = coopname;
     d.username = username;
@@ -38,12 +38,12 @@ void loan::createdebt(name coopname, name username, checksum256 debt_hash, time_
   Loan::summaries_index summaries(_loan, coopname.value);
   auto sum_itr = summaries.find(username.value);
   if (sum_itr == summaries.end()) {
-    summaries.emplace(_loan, [&](auto& s) {
+    summaries.emplace(RamPayer::of(summaries, coopname), [&](auto& s) {
       s.username = username;
       s.total = quantity;
     });
   } else {
-    summaries.modify(sum_itr, same_payer, [&](auto& s) {
+    summaries.modify(sum_itr, RamPayer::of(summaries, coopname), [&](auto& s) {
       s.total += quantity;
     });
   }

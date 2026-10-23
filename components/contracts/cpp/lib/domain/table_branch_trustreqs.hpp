@@ -1,5 +1,7 @@
 #pragma once
 
+
+#include "../core/ram_payer.hpp"
 #include <eosio/eosio.hpp>
 
 #include "../consts.hpp"
@@ -43,3 +45,6 @@ inline trustreq get_trustreq_or_fail(eosio::name coopname, eosio::checksum256 ha
   eosio::check(itr != idx.end(), "Заявка доверенного не найдена");
   return *itr;
 }
+
+// Плательщик за оперативную память строк таблицы — правило в lib/core/ram_payer.hpp.
+RAM_PAYER_CLASS(trustreq, cooperative);

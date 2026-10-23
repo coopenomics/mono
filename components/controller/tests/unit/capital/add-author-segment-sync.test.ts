@@ -51,8 +51,10 @@ function makeInteractor(o: { syncedSegment?: any; syncSegmentThrows?: Error } = 
     projectRepository,
     makeLoggerStub(),
     projectSyncService,
+    {} as any, // contentRevisionService
     segmentSyncService,
-    {} as any
+    {} as any, // componentMatrixAnnouncement
+    {} as any // favoriteRepository
   );
 
   return { interactor, capitalBlockchainPort, projectSyncService, segmentSyncService };

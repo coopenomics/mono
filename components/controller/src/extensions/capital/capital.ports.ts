@@ -11,11 +11,14 @@
  * Необязательные могут отсутствовать: без них часть возможностей выключена.
  */
 import {
+  DESKTOP_GRANTS_REGISTRY_PORT,
   ACCOUNT_PORT,
   CANDIDATE_PORT,
+  CHAIN_DELTA_WAIT_PORT,
   CHAIN_PORT,
   COUNCIL_PORT,
   DECISION_TRACKING_PORT,
+  DOCUMENT_APPROVAL_PORT,
   DOCUMENT_PORT,
   EXPENSE_CHASSIS_PORT,
   FREE_DECISION_PORT,
@@ -23,32 +26,43 @@ import {
   LOGGER_PORT,
   MATRIX_ROOM_MESSAGING_PORT,
   MUTATION_LOG_PORT,
+  DOCUMENT_DECLARATION_PORT,
+  CHAIN_CHANGES_PORT,
   ONBOARDING_STEP_REGISTRY_PORT,
   PROGRAM_WALLET_PORT,
   PROJECT_COMMUNICATION_ARTIFACTS_PORT,
   REGISTRATION_DOCUMENT_PARAMETERS_REGISTRY_PORT,
   REGISTRATION_REGISTRY_PORT,
+  ROLE_ASSIGNMENTS_PORT,
   SECRET_CIPHER_PORT,
   USER_DATA_PORT,
   USER_DIRECTORY_PORT,
+  USER_WALLET_PORT,
   VAULT_PORT,
 } from '@coopenomics/innercoop';
 
 export const capitalPorts = {
   required: [
+    DESKTOP_GRANTS_REGISTRY_PORT,
     ACCOUNT_PORT,
     CANDIDATE_PORT,
     CHAIN_PORT,
     COUNCIL_PORT,
     DECISION_TRACKING_PORT,
+    DOCUMENT_APPROVAL_PORT,
     DOCUMENT_PORT,
     EXPENSE_CHASSIS_PORT,
     FREE_DECISION_PORT,
     INTEGRATION_SETTINGS_PORT,
     LOGGER_PORT,
     MUTATION_LOG_PORT,
+    DOCUMENT_DECLARATION_PORT,
     ONBOARDING_STEP_REGISTRY_PORT,
     PROGRAM_WALLET_PORT,
+    // Роль «Трансляция паевого взноса»: Благорост объявляет её кооперативу и узнаёт, кому её назначил председатель.
+    ROLE_ASSIGNMENTS_PORT,
+    // Остаток паевого взноса на кошельке Благороста — для страницы трансляции.
+    USER_WALLET_PORT,
     REGISTRATION_DOCUMENT_PARAMETERS_REGISTRY_PORT,
     REGISTRATION_REGISTRY_PORT,
     SECRET_CIPHER_PORT,
@@ -57,6 +71,10 @@ export const capitalPorts = {
     VAULT_PORT,
   ],
   optional: [
+    // Ответ мутаций после факта из цепи (ADR-009); без порта — сразу, как раньше.
+    CHAIN_DELTA_WAIT_PORT,
+    // Лента изменений цепи для столов; без неё столы живут дочиткой.
+    CHAIN_CHANGES_PORT,
     MATRIX_ROOM_MESSAGING_PORT,
     PROJECT_COMMUNICATION_ARTIFACTS_PORT,
   ],

@@ -8,10 +8,12 @@ import { formatToAsset } from 'src/shared/lib/utils/formatToAsset';
 import { ref, watch, computed } from 'vue';
 import { useSystemStore } from 'src/entities/System/model';
 import { env } from 'src/shared/config';
+import { t } from 'src/shared/i18n';
 
 const { info } = useSystemStore();
 const currency = computed(() => env.CURRENCY);
 const coop = useCooperativeStore();
+// realtime: нет источника — форма взносов при вступлении: поля заполняются из карточки кооператива, живое перечитывание затёрло бы ввод; меняет их только этот экран.
 coop.loadPublicCooperativeData(info.coopname);
 
 const localCoop = ref({
@@ -39,12 +41,12 @@ const save = async () => {
       });
       await coop.loadPublicCooperativeData(info.coopname);
 
-      SuccessAlert('Размеры взносов успешно обновлены');
+      SuccessAlert(t('cooperative.changeRegisterPayments.updateSuccess'));
     } catch (e: any) {
       FailAlert(`${e.message}`);
     }
   } else {
-    FailAlert('Не удалось обновить взносы. Попробуйте перезагрузить страницу');
+    FailAlert(t('cooperative.changeRegisterPayments.updateError'));
   }
 };
 
@@ -68,18 +70,18 @@ watch(
   .banner
     q-icon.banner__icon(name='fa-solid fa-circle-info' size='18px')
     .banner__body
-      | Укажите размеры вступительных и минимальных паевых взносов для пайщиков. Их величины должны соответствовать определённым в Уставе.
+      | {{ $t('cooperative.changeRegisterPayments.bannerText') }}
 
   .section-grid.two-col
     q-card.surface-card(flat bordered)
-      .section-title Физические лица и ИП
-      .section-note Минимальные взносы для новых пайщиков.
+      .section-title {{ $t('cooperative.changeRegisterPayments.individualSectionTitle') }}
+      .section-note {{ $t('cooperative.changeRegisterPayments.individualSectionNote') }}
       q-input(
         outlined
         color="primary"
         dense
         v-model="localCoop.initial"
-        label="Вступительный взнос"
+        :label="$t('cooperative.changeRegisterPayments.initialIndividualLabel')"
       )
         template(#append)
           span.text-overline {{ currency }}
@@ -89,20 +91,20 @@ watch(
         color="primary"
         dense
         v-model="localCoop.minimum"
-        label="Минимальный паевый взнос"
+        :label="$t('cooperative.changeRegisterPayments.minimumIndividualLabel')"
       )
         template(#append)
           span.text-overline {{ currency }}
 
     q-card.surface-card(flat bordered)
-      .section-title Юридические лица
-      .section-note Для организаций и кооперативов.
+      .section-title {{ $t('cooperative.changeRegisterPayments.orgSectionTitle') }}
+      .section-note {{ $t('cooperative.changeRegisterPayments.orgSectionNote') }}
       q-input(
         outlined
         color="primary"
         dense
         v-model="localCoop.org_initial"
-        label="Вступительный взнос"
+        :label="$t('cooperative.changeRegisterPayments.initialOrgLabel')"
       )
         template(#append)
           span.text-overline {{ currency }}
@@ -111,7 +113,7 @@ watch(
         color="primary"
         dense
         v-model="localCoop.org_minimum"
-        label="Минимальный паевый взнос"
+        :label="$t('cooperative.changeRegisterPayments.minimumOrgLabel')"
       )
         template(#append)
           span.text-overline {{ currency }}
@@ -122,7 +124,7 @@ watch(
       @click="save"
     )
       q-icon(name="save").q-mr-sm
-      span Сохранить
+      span {{ $t('common.action.save') }}
 </template>
 
 <style scoped lang="scss">

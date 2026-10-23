@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In, Not, IsNull } from 'typeorm';
+import { TableStore, isNull, notNull, oneOf } from '@coopenomics/extension-kit';
+import { MARKETPLACE_AVAILABLE_CATEGORY_STORE } from '../../infrastructure/database/marketplace-stores';
+import { Inject, Injectable } from '@nestjs/common';
 import { AvailableCategoryDomainRepository } from '../../domain/repositories/available-category-domain.repository';
 import { AvailableCategoryDomainEntity } from '../../domain/entities/available-category-domain.entity';
 import { AvailableCategoryEntity } from '../entities/available-category.entity';
@@ -9,23 +9,17 @@ import { AvailableCategoryMapper } from '../mappers/available-category.mapper';
 @Injectable()
 export class AvailableCategoryRepositoryAdapter implements AvailableCategoryDomainRepository {
   constructor(
-    @InjectRepository(AvailableCategoryEntity, 'marketplace')
-    private readonly availableCategoryRepository: Repository<AvailableCategoryEntity>
+    @Inject(MARKETPLACE_AVAILABLE_CATEGORY_STORE)
+private readonly availableCategoryRepository: TableStore<AvailableCategoryEntity>
   ) {}
 
   async findByCoopname(coopname: string): Promise<AvailableCategoryDomainEntity[]> {
-    const entities = await this.availableCategoryRepository.find({
-      where: { coopname },
-      order: { createdAt: 'DESC' },
-    });
+    const entities = await this.availableCategoryRepository.find({ coopname }, { order: { createdAt: 'DESC' } });
     return AvailableCategoryMapper.toDomainArray(entities);
   }
 
   async findActiveByCoopname(coopname: string): Promise<AvailableCategoryDomainEntity[]> {
-    const entities = await this.availableCategoryRepository.find({
-      where: { coopname, isActive: true },
-      order: { createdAt: 'DESC' },
-    });
+    const entities = await this.availableCategoryRepository.find({ coopname, isActive: true }, { order: { createdAt: 'DESC' } });
     return AvailableCategoryMapper.toDomainArray(entities);
   }
 
@@ -38,12 +32,10 @@ export class AvailableCategoryRepositoryAdapter implements AvailableCategoryDoma
     if (typeId !== undefined) {
       whereCondition.typeId = typeId;
     } else {
-      whereCondition.typeId = IsNull();
+      whereCondition.typeId = isNull();
     }
 
-    const entity = await this.availableCategoryRepository.findOne({
-      where: whereCondition,
-    });
+    const entity = await this.availableCategoryRepository.findOne(whereCondition);
     return entity ? AvailableCategoryMapper.toDomain(entity) : null;
   }
 
@@ -55,12 +47,12 @@ export class AvailableCategoryRepositoryAdapter implements AvailableCategoryDoma
 
   async saveMany(availableCategories: AvailableCategoryDomainEntity[]): Promise<AvailableCategoryDomainEntity[]> {
     const entities = AvailableCategoryMapper.toEntityArray(availableCategories);
-    const saved = await this.availableCategoryRepository.save(entities);
+    const saved = await this.availableCategoryRepository.saveMany(entities);
     return AvailableCategoryMapper.toDomainArray(saved);
   }
 
   async delete(id: number): Promise<void> {
-    await this.availableCategoryRepository.delete(id);
+    await this.availableCategoryRepository.delete({ id });
   }
 
   async addCategory(coopname: string, categoryId: number, addedBy: string): Promise<AvailableCategoryDomainEntity> {
@@ -126,31 +118,20 @@ export class AvailableCategoryRepositoryAdapter implements AvailableCategoryDoma
   }
 
   async getAvailableCategoryIds(coopname: string): Promise<number[]> {
-    const entities = await this.availableCategoryRepository.find({
-      where: { coopname, isActive: true, typeId: IsNull() }, // только целые категории
-      select: ['categoryId'],
-    });
+    // только целые категории
+    const entities = await this.availableCategoryRepository.find({ coopname, isActive: true, typeId: isNull() });
     return entities.map((entity) => entity.categoryId);
   }
 
   async getAvailableTypeIds(coopname: string, categoryId: number): Promise<number[]> {
-    const entities = await this.availableCategoryRepository.find({
-      where: {
-        coopname,
-        categoryId,
-        isActive: true,
-        typeId: Not(IsNull()), // только конкретные типы
-      },
-      select: ['typeId'],
-    });
+    // только конкретные типы
+    const entities = await this.availableCategoryRepository.find({ coopname, categoryId, isActive: true, typeId: notNull() });
     return entities.map((entity) => entity.typeId!).filter((id) => id !== undefined);
   }
 
   async isCategoryAvailable(coopname: string, categoryId: number): Promise<boolean> {
     // Категория доступна если есть правило для всей категории ИЛИ есть хотя бы один доступный тип
-    const entities = await this.availableCategoryRepository.find({
-      where: { coopname, categoryId, isActive: true },
-    });
+    const entities = await this.availableCategoryRepository.find({ coopname, categoryId, isActive: true });
     return entities.length > 0;
   }
 
@@ -158,33 +139,26 @@ export class AvailableCategoryRepositoryAdapter implements AvailableCategoryDoma
     // Тип доступен если:
     // 1. Есть правило для всей категории (typeId = null)
     // 2. Есть конкретное правило для этого типа
-    const entities = await this.availableCategoryRepository.find({
-      where: [
-        { coopname, categoryId, isActive: true, typeId: IsNull() }, // вся категория
+    const entities = await this.availableCategoryRepository.find([
+        { coopname, categoryId, isActive: true, typeId: isNull() }, // вся категория
         { coopname, categoryId, typeId, isActive: true }, // конкретный тип
-      ],
-    });
+      ]);
     return entities.length > 0;
   }
 
   async countByCoopname(coopname: string): Promise<number> {
-    return this.availableCategoryRepository.count({
-      where: { coopname, isActive: true },
-    });
+    return this.availableCategoryRepository.count({ coopname, isActive: true });
   }
 
   async findByCategoryId(coopname: string, categoryId: number): Promise<AvailableCategoryDomainEntity[]> {
-    const entities = await this.availableCategoryRepository.find({
-      where: { coopname, categoryId },
-      order: { createdAt: 'DESC' },
-    });
+    const entities = await this.availableCategoryRepository.find({ coopname, categoryId }, { order: { createdAt: 'DESC' } });
     return AvailableCategoryMapper.toDomainArray(entities);
   }
 
   async updateStatus(coopname: string, categoryIds: number[], isActive: boolean, typeId?: number): Promise<void> {
     const whereCondition: any = {
       coopname,
-      categoryId: In(categoryIds),
+      categoryId: oneOf(categoryIds),
     };
 
     if (typeId !== undefined) {

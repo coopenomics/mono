@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { Ledger2Contract, SovietContract } from 'cooptypes';
 import httpStatus from 'http-status';
-import { HttpApiError } from '@coopenomics/extension-kit';
+import { DomainError } from '@coopenomics/extension-kit';
 import {
   CHAIN_PORT,
   VAULT_PORT,
@@ -58,10 +58,7 @@ export class WithheldTaxBlockchainAdapter implements WithheldTaxBlockchainPort {
   ): Promise<InnerTransactResult> {
     const wif = await this.vault.getWif(data.coopname);
     if (!wif) {
-      throw new HttpApiError(
-        httpStatus.BAD_GATEWAY,
-        'Не найден приватный ключ кооператива для отправки налогового платежа'
-      );
+      throw new DomainError('REPORTS_COOPERATIVE_PRIVATE_KEY_NOT_FOUND', {}, httpStatus.BAD_GATEWAY);
     }
     this.chain.initialize(data.coopname, wif);
     return this.chain.transact({

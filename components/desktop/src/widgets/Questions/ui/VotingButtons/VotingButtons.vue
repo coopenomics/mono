@@ -25,7 +25,7 @@
       size='28px',
       color='negative'
     )
-      q-tooltip Решение отклонено советом (большинство против)
+      q-tooltip {{ $t('questions.votingButtons.rejected') }}
     q-checkbox(
       v-else,
       :model-value='approved',
@@ -33,7 +33,7 @@
       color='primary',
       size='md'
     )
-      q-tooltip {{ approved ? 'Решение принято советом' : 'Решение ещё не принято советом' }}
+      q-tooltip {{ approved ? $t('questions.votingButtons.approved') : $t('questions.votingButtons.pending') }}
 
   //- За
   .vote-side

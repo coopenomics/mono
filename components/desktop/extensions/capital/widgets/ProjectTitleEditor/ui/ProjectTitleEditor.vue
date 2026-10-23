@@ -3,14 +3,14 @@ div
   q-input(
     v-if="project"
     v-model='title'
-    :label='label || "Проект"'
+    :label='label || $t("capital.projectTitleEditor.placeholder")'
     :readonly="!permissions?.can_edit_project"
     @input="handleFieldChange"
     outline
     type="textarea"
     autogrow
     :hide-bottom-space="!$slots.hint"
-    :rules="[val => !!val || 'Название проекта обязательно']"
+    :rules="[val => !!val || $t('capital.projectTitleEditor.requiredError')]"
   ).full-width.capital-title-editor-input
     template(#prepend)
       // Показываем иконку отмены при наличии изменений, иначе - слот с иконкой
@@ -24,7 +24,7 @@ div
         size="sm"
         @click="resetChanges"
       )
-        q-tooltip Отменить изменения
+        q-tooltip {{ $t('capital.projectTitleEditor.cancelTooltip') }}
       .row.items-center.no-wrap.q-gutter-xs(v-else)
         PrivateShieldIcon(:show='project?.origin === "local"')
         slot(name="prepend-icon")
@@ -42,7 +42,7 @@ div
             :loading="isSaving"
             @click="saveChanges"
           )
-            q-tooltip Сохранить изменения
+            q-tooltip {{ $t('capital.projectTitleEditor.saveTooltip') }}
         .row.items-center.no-wrap(v-if="!(hasChanges && project?.permissions?.can_edit_project)")
           FavoriteStarButton(
             v-if='project?.project_hash',
@@ -64,11 +64,12 @@ import { ref, computed, watch } from 'vue';
 import type { IProject, IProjectPermissions } from 'app/extensions/capital/entities/Project/model';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { EntityIdBadge } from 'src/shared/ui';
-import { useEditProject } from 'app/extensions/capital/features/Project/EditProject';
+import { buildEditProjectInput, useEditProject } from 'app/extensions/capital/features/Project/EditProject';
 import { PrivateShieldIcon } from 'app/extensions/capital/shared/ui';
 import { FavoriteStarButton } from 'app/extensions/capital/features/Favorite/ToggleFavorite';
 import { isProject } from 'app/extensions/capital/shared/lib/project-utils';
 import { Zeus } from '@coopenomics/sdk';
+import { t } from '../../../i18n';
 
 const props = defineProps<{
   project: IProject | null | undefined;
@@ -126,27 +127,18 @@ const saveChanges = async () => {
   try {
     isSaving.value = true;
 
-    const updateData = {
-      project_hash: props.project.project_hash || '',
-      title: props.project.title || '',
-      description: props.project.description || '',
-      invite: props.project.invite || '',
-      coopname: (props.project as any).coopname || '',
-      meta: '',
-      data: '',
-    };
-
-    await saveImmediately(updateData);
+    // Полный вход из проекта: пустые meta/data стирали бы видео и шаблон в цепи
+    await saveImmediately(buildEditProjectInput(props.project));
 
     // Обновляем оригинальное состояние после успешного сохранения
     if (props.project) {
       originalProject.value = JSON.parse(JSON.stringify(props.project));
     }
 
-    SuccessAlert('Название проекта сохранено успешно');
+    SuccessAlert(t('capital.projectTitleEditor.savedNotice'));
   } catch (error) {
     console.error('Ошибка при сохранении названия проекта:', error);
-    FailAlert('Не удалось сохранить название проекта');
+    FailAlert(t('capital.projectTitleEditor.saveError'));
   } finally {
     isSaving.value = false;
   }

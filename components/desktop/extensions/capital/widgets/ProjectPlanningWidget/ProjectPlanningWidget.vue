@@ -3,9 +3,9 @@
   table.table
     thead
       tr
-        th Показатель
-        th.col-num План
-        th.col-num Факт
+        th {{ $t('capital.projectPlanningWidget.columnMetric') }}
+        th.col-num {{ $t('capital.projectPlanningWidget.columnPlan') }}
+        th.col-num {{ $t('capital.projectPlanningWidget.columnFact') }}
     tbody
       tr(v-for='row in comparisonFields', :key='row.key')
         td
@@ -23,6 +23,7 @@ import type {
 } from '../../entities/Project/model';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { formatHours } from 'src/shared/lib/utils/pluralizeHours';
+import { t } from '../../i18n';
 
 const props = defineProps<{
   project: IProject | IProjectComponent | null | undefined;
@@ -33,37 +34,37 @@ const props = defineProps<{
 const { project } = toRefs(props);
 
 const comparisonFields = [
-  { key: 'hour_cost', label: 'Стоимость часа исполнителей' },
-  { key: 'creators_hours', label: 'Требуемый ресурс времени исполнителей' },
+  { key: 'hour_cost', label: t('capital.projectPlanningWidget.rowPerformerHourCost') },
+  { key: 'creators_hours', label: t('capital.projectPlanningWidget.rowPerformerHoursRequired') },
   {
     key: 'creators_base_pool',
-    label: 'Стоимость профессионального времени исполнителей',
+    label: t('capital.projectPlanningWidget.rowPerformerProfessionalCost'),
   },
   {
     key: 'authors_base_pool',
-    label: 'Стоимость профессионального времени соавторов',
+    label: t('capital.projectPlanningWidget.rowCoauthorProfessionalCost'),
   },
   {
     key: 'coordinators_base_pool',
-    label: 'Стоимость профессионального времени координаторов',
+    label: t('capital.projectPlanningWidget.rowCoordinatorProfessionalCost'),
   },
   {
     key: 'creators_bonus_pool',
-    label: 'Стоимость общественно-полезного времени исполнителей',
+    label: t('capital.projectPlanningWidget.rowPerformerPublicCost'),
   },
   {
     key: 'authors_bonus_pool',
-    label: 'Стоимость общественно-полезного времени соавторов',
+    label: t('capital.projectPlanningWidget.rowCoauthorPublicCost'),
   },
   {
     key: 'contributors_bonus_pool',
-    label: 'Распределение на участников Благороста',
+    label: t('capital.projectPlanningWidget.rowBlagorostAllocation'),
   },
-  { key: 'target_expense_pool', label: 'Дополнительные расходы' },
-  { key: 'total_received_investments', label: 'Привлекаемые инвестиции' },
+  { key: 'target_expense_pool', label: t('capital.projectPlanningWidget.rowAdditionalExpenses') },
+  { key: 'total_received_investments', label: t('capital.projectPlanningWidget.rowInvestmentsRaised') },
   {
     key: 'total',
-    label: 'Стоимость результата интеллектуальной деятельности',
+    label: t('capital.projectPlanningWidget.rowResultCost'),
   },
 ];
 
@@ -104,7 +105,7 @@ const formatValue = (value: unknown, fieldKey?: string): string => {
 
 const planCell = (key: string): string => {
   if (!(props.alwaysShowPlan || project.value?.is_planed)) {
-    return 'не установлено';
+    return t('capital.projectPlanningWidget.notSetValue');
   }
   return formatValue(getPlanValue(key), key);
 };

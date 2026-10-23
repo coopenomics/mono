@@ -1,13 +1,6 @@
-import {
-  BadRequestException,
-  ConflictException,
-  ForbiddenException,
-  Inject,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { LOGGER_PORT, type ILoggerPort, DOCUMENT_PORT, type IDocumentPort, type InnerGeneratedDocument, type InnerDocumentAggregate } from '@coopenomics/innercoop';
+import { LOGGER_PORT, type ILoggerPort, DOCUMENT_PORT, type IDocumentPort, type InnerGeneratedDocument, type InnerDocumentAggregate, USER_WALLET_PORT, type IUserWalletPort } from '@coopenomics/innercoop';
 import {
   MARKETPLACE_APL_RECEPTION_STATUS_CHANGED_EVENT,
   MARKETPLACE_APL_SUPPLIER_SIGN_REQUEST_EVENT,
@@ -40,6 +33,7 @@ import {
   MARKETPLACE_OUTGOING_PAYMENT_REQUEST_REPOSITORY,
   type MarketplaceOutgoingPaymentRequestDomainRepository,
 } from '../../domain/repositories/marketplace-outgoing-payment-request.repository';
+import type { MarketplaceOutgoingPaymentRequestDomainEntity } from '../../domain/entities/marketplace-outgoing-payment-request.entity';
 import {
   MARKETPLACE_OFFER_REPOSITORY,
   type MarketplaceOfferDomainRepository,
@@ -76,7 +70,7 @@ import { PublicKey, Signature } from '@wharfkit/antelope';
 import http from 'http-status';
 import type { ISignedDocument } from '@coopenomics/innercoop';
 import type { MarketplaceAplReceptionSignedDocumentInputDTO } from '../documents-dto/marketplace-apl-reception-document.dto';
-import { SignedDigitalDocumentInputDTO, HttpApiError } from '@coopenomics/extension-kit';
+import { SignedDigitalDocumentInputDTO, DomainError } from '@coopenomics/extension-kit';
 import {
   MarketplaceAplReceptionStatuses,
   MarketplaceAplReceptionVariants,
@@ -109,6 +103,7 @@ import type { MarketplaceAplReceptionDomainEntity } from '../../domain/entities/
 import type { MarketplaceOrderDomainEntity } from '../../domain/entities/marketplace-order.entity';
 import { MarketplaceOrderStatuses } from '../../domain/entities/marketplace-order.types';
 import { presentSaleUnit } from '../shared/packaging.util';
+import { t } from '../../i18n';
 
 export interface MarketplaceAplReceptionCreateInputDto {
   coopname: string;
@@ -244,7 +239,8 @@ export interface MarketplaceExpressPickupCandidate {
  *      Здесь — backend-only переход в ACCEPTED_TO_COOP; Order'ы группы
  *      переводятся в ACCEPTED_TO_COOP, Shipment → ACCEPTED_TO_COOP.
  *      offerer_counters.onOrderRolledBack/onOrderConsumed не дёргаем —
- *      consumed-переход выполняется на выдаче (Эпик 6).
+ *      consumed-переход выполняется на выдаче, при закрывающей подписи
+ *      (`MarketplaceIssuanceService.settleOfferCounters`).
  *
  * Edge-case (Story 5.4 «поставщик не подписывает»): АПП остаётся в
  * PENDING_SUPPLIER_SIGN. MVP не автоматизирует разрешение; кооператив
@@ -285,6 +281,7 @@ export class MarketplaceAplReceptionService {
     @Inject(MARKETPLACE_ORDER_SUPPLIER_ACTION_SERVICE)
     private readonly supplierActionService: MarketplaceOrderSupplierActionService,
     @Inject(DOCUMENT_PORT) private readonly documentPort: IDocumentPort,
+    @Inject(USER_WALLET_PORT) private readonly userWallets: IUserWalletPort,
     private readonly eventBus: EventEmitter2,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
@@ -341,17 +338,13 @@ export class MarketplaceAplReceptionService {
     const reception = await this.loadReception(coopname, apl_reception_id);
     const signedDocs = reception.supplier_signed_documents;
     if (!signedDocs || signedDocs.length === 0) {
-      throw new ConflictException(
-        `АПП ${reception.id}: нет supplier-подписанных документов — закрывающая подпись председателя недоступна до подписи поставщика.`
-      );
+      throw DomainError.conflict('MARKETPLACE_RECEPTION_CHAIRMAN_SIGN_BEFORE_SUPPLIER', { receptionId: reception.id });
     }
     const aggregates: InnerDocumentAggregate[] = [];
     for (const signed of signedDocs) {
       const aggregate = await this.documentPort.buildAggregate(signed);
       if (!aggregate) {
-        throw new ConflictException(
-          `АПП ${reception.id}: исходный документ по doc_hash ${signed.doc_hash} не найден в сторе. Требуется пересоздать АПП (тело документа не сохранено).`
-        );
+        throw DomainError.conflict('MARKETPLACE_RECEPTION_SOURCE_DOCUMENT_NOT_FOUND', { receptionId: reception.id, docHash: signed.doc_hash });
       }
       aggregates.push(aggregate);
     }
@@ -408,7 +401,7 @@ export class MarketplaceAplReceptionService {
       total_amount,
       supplier_account: input.reception.offerer_account,
       sku: input.order.offer_id,
-      product_title: offer?.product_name ?? 'Товар по предложению',
+      product_title: offer?.product_name ?? t('marketplace.aplReception.itemFallbackName'),
       unit_of_measurement: pres.unitLabel,
       unit_cost: fact_unit_price,
       currency: this.assetConfig.symbol,
@@ -425,24 +418,20 @@ export class MarketplaceAplReceptionService {
     input: MarketplaceAplReceptionCreateInputDto
   ): Promise<MarketplaceAplReceptionResult> {
     if (!input.shipment_id) {
-      throw new BadRequestException('Не указан shipment_id.');
+      throw DomainError.badRequest('MARKETPLACE_SHIPMENT_ID_REQUIRED');
     }
 
     const shipment = await this.shipmentRepo.findById(input.shipment_id);
     if (!shipment || shipment.coopname !== input.coopname) {
-      throw new NotFoundException('Партия поставки не найдена.');
+      throw DomainError.notFound('MARKETPLACE_SHIPMENT_NOT_FOUND');
     }
     if (shipment.status !== MarketplaceShipmentStatuses.SUPPLY_PREPARED) {
-      throw new BadRequestException(
-        `Партия не готова к приёмке: статус «${shipment.status}», ожидался SUPPLY_PREPARED.`
-      );
+      throw DomainError.badRequest('MARKETPLACE_SHIPMENT_NOT_READY_FOR_RECEPTION', { status: shipment.status });
     }
     // Один Shipment — одна активная АПП.
     const existing = await this.receptionRepo.findByShipmentId(input.coopname, shipment.id);
     if (existing) {
-      throw new ConflictException(
-        `АПП для партии ${shipment.id} уже сформирована (id=${existing.id}); повторное создание запрещено.`
-      );
+      throw DomainError.conflict('MARKETPLACE_RECEPTION_ALREADY_CREATED', { shipmentId: shipment.id, existingId: existing.id });
     }
 
     // Состав партии — по прямой связи order.shipment_id (обязательно при
@@ -454,9 +443,7 @@ export class MarketplaceAplReceptionService {
       groupOrders = orders.filter((o) => o.delivery_braname === shipment.braname);
     }
     if (groupOrders.length === 0) {
-      throw new BadRequestException(
-        'В партии поставки нет Order\'ов на этот КУ — нечего принимать.'
-      );
+      throw DomainError.badRequest('MARKETPLACE_SHIPMENT_NO_ORDERS_FOR_BRANCH');
     }
 
     const fact = this.buildFactQuantity(input.fact_quantity_per_order ?? [], groupOrders);
@@ -505,7 +492,7 @@ export class MarketplaceAplReceptionService {
         supplier_account: reception.offerer_account,
         ku_name: reception.braname,
         ttn_number: reception.ttn_number ?? '—',
-        expeditor_name: reception.expeditor_data?.expeditor_full_name ?? 'экспедитор',
+        expeditor_name: reception.expeditor_data?.expeditor_full_name ?? t('marketplace.aplReception.expediterRoleLabel'),
       };
       this.eventBus.emit(MARKETPLACE_APL_SUPPLIER_SIGN_REQUEST_EVENT, event);
     } else {
@@ -592,7 +579,7 @@ export class MarketplaceAplReceptionService {
     input: MarketplaceCreateExpressReceptionInputDto
   ): Promise<MarketplaceCreateExpressReceptionResult> {
     if (!input.offerer_account || !input.braname) {
-      throw new BadRequestException('Не указан поставщик или ПВЗ для express-приёмки.');
+      throw DomainError.badRequest('MARKETPLACE_EXPRESS_RECEPTION_PARAMS_REQUIRED');
     }
 
     const page = await this.orderRepo.list(
@@ -606,9 +593,7 @@ export class MarketplaceAplReceptionService {
     );
     const orders = page.items.filter((o) => o.cycle_id);
     if (orders.length === 0) {
-      throw new BadRequestException(
-        'У поставщика нет принятых заказов, ожидающих самовывоза на этом КУ.'
-      );
+      throw DomainError.badRequest('MARKETPLACE_SUPPLIER_NO_ORDERS_AWAITING_PICKUP');
     }
 
     // Партия (и приёмка) формируется per (cycle, КУ) — группируем по заявке.
@@ -618,6 +603,14 @@ export class MarketplaceAplReceptionService {
       const arr = byCycle.get(cid) ?? [];
       arr.push(o);
       byCycle.set(cid, arr);
+    }
+
+    // Факт оператора проверяется до любой записи: прежде партия создавалась и
+    // заказы к ней привязывались раньше проверки в create(), и отказ (факт
+    // больше заказа) оставлял заказы в подготовленной партии — повторная
+    // экспресс-приёмка их уже не видела (до 25.09.2026).
+    for (const cycleOrders of byCycle.values()) {
+      this.buildFactQuantity(input.fact_quantity_per_order ?? [], cycleOrders);
     }
 
     const receptions: MarketplaceAplReceptionDomainEntity[] = [];
@@ -651,7 +644,7 @@ export class MarketplaceAplReceptionService {
       await this.orderRepo.assignToShipment(
         cycleOrders.map((o) => o.id),
         shipment.id,
-        `Express-приёмка самовывоза (оператор ${input.operator_account}, партия ${shipment.id})`
+        t('marketplace.aplReception.expressPickupTitle', { operatorAccount: input.operator_account, shipmentId: shipment.id })
       );
 
       const result = await this.create({
@@ -677,12 +670,10 @@ export class MarketplaceAplReceptionService {
   ): Promise<MarketplaceAplReceptionResult> {
     const reception = await this.loadReception(input.coopname, input.apl_reception_id);
     if (reception.offerer_account !== input.supplier_account) {
-      throw new ForbiddenException('АПП подписывает только поставщик-владелец Offer\'ов.');
+      throw DomainError.forbidden('MARKETPLACE_RECEPTION_SIGN_FORBIDDEN_NOT_OWNER');
     }
     if (!reception.awaits_supplier) {
-      throw new ConflictException(
-        `АПП находится в статусе «${reception.status}», подпись поставщика недопустима.`
-      );
+      throw DomainError.conflict('MARKETPLACE_RECEPTION_SUPPLIER_SIGN_WRONG_STATUS', { status: reception.status });
     }
 
     // Разнос позиций: оператор на стойке снял некондицию (факт = 0). Поставщик
@@ -700,7 +691,7 @@ export class MarketplaceAplReceptionService {
         coopname: reception.coopname,
         offerer_account: input.supplier_account,
         orders: rejected,
-        reason: 'Отказ в приёмке: вся партия снята оператором (некондиция)',
+        reason: t('marketplace.aplReception.wholeBatchRejectedNote'),
       });
       const cancelled = await this.receptionRepo.applySignatures(reception.id, {
         status: MarketplaceAplReceptionStatuses.CANCELLED,
@@ -728,9 +719,7 @@ export class MarketplaceAplReceptionService {
       this.logger.warn(
         `АПП ${reception.id}: on-chain signsupp упал (${err.message}); статус не меняется, повторите подпись.`
       );
-      throw new ConflictException(
-        `Подпись на цепи не выполнена: ${err.message}. Повторите подписание.`
-      );
+      throw DomainError.conflict('MARKETPLACE_RECEPTION_SUPPLIER_SIGN_CHAIN_FAILED', { errorMessage: err.message });
     }
 
     // Снятые позиции — отказ в приёмке (полный возврат заказчику, без штрафа).
@@ -741,7 +730,7 @@ export class MarketplaceAplReceptionService {
         coopname: reception.coopname,
         offerer_account: input.supplier_account,
         orders: rejected,
-        reason: 'Отказ в приёмке: позиция снята оператором (некондиция)',
+        reason: t('marketplace.aplReception.itemRejectedNote'),
       });
     }
 
@@ -779,9 +768,7 @@ export class MarketplaceAplReceptionService {
     }
 
     if (!reception.awaits_chairman) {
-      throw new ConflictException(
-        `АПП находится в статусе «${reception.status}», закрывающая подпись председателя недопустима.`
-      );
+      throw DomainError.conflict('MARKETPLACE_RECEPTION_CHAIRMAN_SIGN_WRONG_STATUS', { status: reception.status });
     }
 
     // Председатель закрывает приёмку только по принятым позициям (факт > 0).
@@ -812,9 +799,7 @@ export class MarketplaceAplReceptionService {
       this.logger.warn(
         `АПП ${reception.id}: on-chain signchair упал (${err.message}); статус не меняется, повторите подпись.`
       );
-      throw new ConflictException(
-        `Закрывающая подпись на цепи не выполнена: ${err.message}. Повторите подписание.`
-      );
+      throw DomainError.conflict('MARKETPLACE_RECEPTION_CHAIRMAN_SIGN_CHAIN_FAILED', { errorMessage: err.message });
     }
     const acceptedAt = new Date();
 
@@ -832,7 +817,7 @@ export class MarketplaceAplReceptionService {
       await this.orderRepo.applyStatusTransition(
         o.id,
         'ACCEPTED_TO_COOP',
-        `АПП #${reception.id} закрывающая подпись председателя ${input.chairman_account}`
+        t('marketplace.aplReception.chairmanSignTitle', { receptionId: reception.id, chairmanAccount: input.chairman_account })
       );
     }
 
@@ -921,9 +906,7 @@ export class MarketplaceAplReceptionService {
   }): Promise<MarketplaceAplReceptionResult> {
     const reception = await this.loadReception(input.coopname, input.apl_reception_id);
     if (reception.status !== MarketplaceAplReceptionStatuses.PENDING_SUPPLIER_SIGN) {
-      throw new ConflictException(
-        `Отменить приёмку можно только до подписи поставщика. Текущий статус: «${reception.status}».`
-      );
+      throw DomainError.conflict('MARKETPLACE_RECEPTION_CANCEL_WRONG_STATUS', { status: reception.status });
     }
 
     const cancelled = await this.receptionRepo.applySignatures(reception.id, {
@@ -998,10 +981,10 @@ export class MarketplaceAplReceptionService {
    * поставщика номер договора не задан — обобщённая формулировка без акта.
    */
   private buildPayoutPurpose(contractNumber: string | null, contractDate: string | null): string {
-    if (!contractNumber) return 'Оплата по договору поставки';
+    if (!contractNumber) return t('marketplace.aplReception.contractPaymentLabel');
     const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(contractDate ?? '');
-    const datePart = m ? ` от ${m[3]}.${m[2]}.${m[1]}` : '';
-    return `Оплата по договору № ${contractNumber}${datePart}`;
+    const datePart = m ? t('marketplace.aplReception.contractDatePart', { day: m[3], month: m[2], year: m[1] }) : '';
+    return t('marketplace.aplReception.contractNumberLabel', { contractNumber, datePart });
   }
 
   private async initiatePayouts(
@@ -1009,9 +992,7 @@ export class MarketplaceAplReceptionService {
     allOrders: MarketplaceOrderDomainEntity[],
     orderHashByOrderId: Map<string, string>
   ): Promise<void> {
-    const factByOrderId = new Map(
-      reception.fact_quantity_per_order.map((f) => [f.order_id, f.fact_quantity])
-    );
+    const factByOrderId = new Map(reception.fact_quantity_per_order.map((f) => [f.order_id, f]));
     const groupOrders = allOrders.filter((o) => o.delivery_braname === reception.braname);
 
     // Реквизиты поставщика резолвятся один раз на всю группу: снапшот на
@@ -1049,6 +1030,11 @@ export class MarketplaceAplReceptionService {
       supplier?.contract_date ?? null
     );
 
+    // Признанный гарантийный долг поставщика (99D-13) удерживается из выплат:
+    // контракт `payout` уменьшает перевод на остаток долга, проекция должна
+    // показывать ту же сумму. Остаток списывается по заказам в порядке обхода.
+    let debtLeft = await this.supplierAdmittedDebt(reception.coopname, reception.offerer_account);
+
     for (const order of groupOrders) {
       const orderHash = orderHashByOrderId.get(order.id);
       if (!orderHash) {
@@ -1057,17 +1043,18 @@ export class MarketplaceAplReceptionService {
         );
         continue;
       }
-      const factQuantity = factByOrderId.get(order.id) ?? order.quantity;
-      // Цена заказа — за единицу отпуска (при упаковочном отпуске за упаковку),
-      // поэтому сумма выплаты считается общей формулой, а не произведением на
-      // базовое количество.
-      const amount = calcCostAmount({
-        quantity: factQuantity,
-        unit: order.unit_of_measure,
-        unitPrice: order.price_per_unit,
-        packageSize: order.package_size,
-        decimals: this.assetConfig.decimals,
-      });
+      // Сумма выплаты — принятая стоимость по акту: то же количество и та же
+      // цена, что ушли в закрывающую подпись приёмки и в проводку Дт 10 / Кт 76.
+      // Цена заказа здесь не годится: оператор мог принять со скидкой, и
+      // контракт тогда проведёт выплату на одну сумму, а кассир переведёт
+      // другую (задача 99D-14).
+      const amount = this.factEntryAmount(factByOrderId.get(order.id), order);
+
+      const full = Number.parseFloat(amount);
+      const withheldNum = Math.min(debtLeft, full);
+      debtLeft = Math.max(0, debtLeft - withheldNum);
+      const withheld = withheldNum.toFixed(this.assetConfig.decimals);
+      const toPay = (full - withheldNum).toFixed(this.assetConfig.decimals);
 
       await this.initiatePayoutForOrder({
         coopname: reception.coopname,
@@ -1075,10 +1062,23 @@ export class MarketplaceAplReceptionService {
         order_id: order.id,
         apl_reception_id: reception.id,
         payee_account: reception.offerer_account,
-        amount,
+        amount: toPay,
+        withheld_amount: withheld,
         purpose,
         payout_method: payoutMethod,
       });
+    }
+  }
+
+  /** Остаток признанного гарантийного долга поставщика (`w.mkt.debt`) из PG-кеша кошельков; нет записи — 0. */
+  private async supplierAdmittedDebt(coopname: string, supplier: string): Promise<number> {
+    try {
+      const row = await this.userWallets.findByWalletAndUsername(coopname, 'w.mkt.debt', supplier);
+      const num = Number.parseFloat(String(row?.available ?? '0').split(' ')[0]);
+      return Number.isFinite(num) && num > 0 ? num : 0;
+    } catch (err) {
+      this.logger.warn(`initiatePayouts: остаток долга поставщика ${supplier} не прочитан (${(err as Error).message}) — считаю 0.`);
+      return 0;
     }
   }
 
@@ -1089,13 +1089,14 @@ export class MarketplaceAplReceptionService {
     apl_reception_id: string;
     payee_account: string;
     amount: string;
+    withheld_amount: string;
     purpose: string;
     payout_method: InnerPaymentMethod | null;
   }): Promise<void> {
     const payoutDestination = input.payout_method
       ? formatPayoutDestination(input.payout_method)
       : null;
-    let projection;
+    let projection: MarketplaceOutgoingPaymentRequestDomainEntity;
     try {
       projection = await this.paymentRepo.createIfNotExists({
         coopname: input.coopname,
@@ -1104,6 +1105,7 @@ export class MarketplaceAplReceptionService {
         apl_reception_id: input.apl_reception_id,
         payee_account: input.payee_account,
         amount: input.amount,
+        withheld_amount: input.withheld_amount,
         symbol: this.assetConfig.symbol,
         purpose: input.purpose,
         payout_destination: payoutDestination,
@@ -1114,61 +1116,118 @@ export class MarketplaceAplReceptionService {
       );
       return;
     }
+    await this.deliverPayout(projection, input.payout_method, { createCorePayment: true, submitChain: true });
+  }
 
-    if (!projection.core_payment_id) {
+  /**
+   * Повтор доставки выплаты по уже созданной проекции (крон, задача 99D-15):
+   * платёж в общем реестре кооператива, если его ещё нет, и `marketplace::payout`,
+   * если цепь его ещё не приняла. Какие шаги нужны, решает вызывающий по
+   * состоянию проекции и зеркала заказа; реквизиты поставщика резолвятся
+   * заново — снапшот в проекции маскирован и для платежа не годится.
+   */
+  async redeliverPayout(
+    projection: MarketplaceOutgoingPaymentRequestDomainEntity,
+    steps: { createCorePayment: boolean; submitChain: boolean }
+  ): Promise<void> {
+    let payoutMethod: InnerPaymentMethod | null = null;
+    if (steps.createCorePayment && !projection.core_payment_id) {
       try {
-        // payment_hash обязан совпадать с on-chain gateway::outcomes.outcome_hash,
-        // который marketplace::payout регистрирует как сам order_hash. Иначе
-        // кассирский gateway::outcomplete ищет объект выплаты по другому хэшу и
-        // падает с «Объект возврата не существует с указанным хэшем».
-        // Снапшот реквизитов поставщика — кассир видит банк/счёт/назначение
-        // прямо в развороте платежа общего реестра (как у обычного withdraw).
-        const corePayment = await this.coreGateway.createSystemOutgoingPayment({
-          coopname: input.coopname,
-          username: input.payee_account,
-          quantity: Number.parseFloat(input.amount),
-          symbol: this.assetConfig.symbol,
-          memo: input.purpose,
-          related_extension: 'marketplace',
-          related_entity_id: projection.id,
-          payment_hash: input.order_hash,
-          payment_method_id: input.payout_method?.method_id,
-          payment_details: input.payout_method
-            ? {
-                data: input.payout_method.data,
-                amount_plus_fee: input.amount,
-                amount_without_fee: input.amount,
-                fee_amount: '0',
-                fee_percent: 0,
-                fact_fee_percent: 0,
-                tolerance_percent: 0,
-              }
-            : undefined,
-        });
-        if (corePayment.id) {
-          await this.paymentRepo.applyCorePaymentId(
-            input.coopname,
-            input.order_hash,
-            corePayment.id
-          );
-        }
+        payoutMethod = await this.supplierSettings.resolvePayoutMethod(projection.coopname, projection.payee_account);
       } catch (err: any) {
         this.logger.warn(
-          `initiatePayouts: core createSystemOutgoingPayment для order ${input.order_id} упал: ${err.message}; кассирский стол core не увидит выплату до повторной попытки.`
+          `redeliverPayout: резолв реквизитов поставщика ${projection.payee_account} упал: ${err.message}; платёж создаётся без реквизитов.`
         );
       }
     }
+    await this.deliverPayout(projection, payoutMethod, steps);
+  }
 
+  /**
+   * Довоз выплаты до кассы и до цепи. Обе части best-effort: сбой пишется в
+   * журнал, проекция остаётся PENDING, и крон повторяет недостающий шаг.
+   */
+  private async deliverPayout(
+    projection: MarketplaceOutgoingPaymentRequestDomainEntity,
+    payoutMethod: InnerPaymentMethod | null,
+    steps: { createCorePayment: boolean; submitChain: boolean }
+  ): Promise<void> {
+    // Долг покрыл всю выплату: банковского перевода нет, контракт в `payout`
+    // сразу проводит удержание и закрывает выплату — платёж кассиру не нужен.
+    const nothingToPay = Number.parseFloat(projection.amount) <= 0;
+    if (steps.createCorePayment && !projection.core_payment_id && !nothingToPay) {
+      await this.createCorePayment(projection, payoutMethod);
+    }
+    if (!steps.submitChain) return;
     try {
-      await this.chainPort.payOut({
-        coopname: input.coopname,
-        order_hash: input.order_hash,
+      const tx = await this.chainPort.payOut({
+        coopname: projection.coopname,
+        order_hash: projection.order_hash,
       });
+      if (nothingToPay) await this.completeWithheldPayout(projection.coopname, projection.order_hash, tx);
     } catch (err: any) {
       this.logger.warn(
-        `initiatePayouts: on-chain payOut для order ${input.order_id} упал: ${err.message}; projection остаётся PENDING, gateway::outcomes не создан. Требуется retry.`
+        `initiatePayouts: on-chain payOut для order ${projection.order_id} упал: ${err.message}; projection остаётся PENDING, gateway::outcomes не создан — повтор по расписанию.`
       );
     }
+  }
+
+  /**
+   * Платёж поставщику в общем реестре кооператива — его видит кассир.
+   * payment_hash обязан совпадать с on-chain gateway::outcomes.outcome_hash,
+   * который marketplace::payout регистрирует как сам order_hash. Иначе
+   * кассирский gateway::outcomplete ищет объект выплаты по другому хэшу и
+   * падает с «Объект возврата не существует с указанным хэшем».
+   * Снапшот реквизитов поставщика — кассир видит банк/счёт/назначение
+   * прямо в развороте платежа общего реестра (как у обычного withdraw).
+   */
+  private async createCorePayment(
+    projection: MarketplaceOutgoingPaymentRequestDomainEntity,
+    payoutMethod: InnerPaymentMethod | null
+  ): Promise<void> {
+    try {
+      const corePayment = await this.coreGateway.createSystemOutgoingPayment({
+        coopname: projection.coopname,
+        username: projection.payee_account,
+        quantity: Number.parseFloat(projection.amount),
+        symbol: this.assetConfig.symbol,
+        memo: projection.purpose,
+        related_extension: 'marketplace',
+        related_entity_id: projection.id,
+        payment_hash: projection.order_hash,
+        payment_method_id: payoutMethod?.method_id,
+        payment_details: payoutMethod
+          ? {
+              data: payoutMethod.data,
+              amount_plus_fee: projection.amount,
+              amount_without_fee: projection.amount,
+              fee_amount: '0',
+              fee_percent: 0,
+              fact_fee_percent: 0,
+              tolerance_percent: 0,
+            }
+          : undefined,
+      });
+      if (corePayment.id) {
+        await this.paymentRepo.applyCorePaymentId(projection.coopname, projection.order_hash, corePayment.id);
+      }
+    } catch (err: any) {
+      this.logger.warn(
+        `initiatePayouts: core createSystemOutgoingPayment для order ${projection.order_id} упал: ${err.message}; кассирский стол core не увидит выплату до повтора по расписанию.`
+      );
+    }
+  }
+
+  /**
+   * Долг покрыл всю выплату: контракт закрыл её удержанием в той же транзакции,
+   * `payconfirm` не придёт — проекция закрывается здесь.
+   */
+  private async completeWithheldPayout(coopname: string, order_hash: string, tx: unknown): Promise<void> {
+    const txId = (tx as { response?: { transaction_id?: string } } | undefined)?.response?.transaction_id ?? null;
+    await this.paymentRepo.applyCompletion(coopname, order_hash, {
+      completed_at: new Date(),
+      payout_tx_hash: txId,
+    });
   }
 
   // ── private ──
@@ -1179,7 +1238,7 @@ export class MarketplaceAplReceptionService {
   ): Promise<MarketplaceAplReceptionDomainEntity> {
     const reception = await this.receptionRepo.findById(id);
     if (!reception || reception.coopname !== coopname) {
-      throw new NotFoundException('АПП приёмки не найден.');
+      throw DomainError.notFound('MARKETPLACE_RECEPTION_ACT_NOT_FOUND');
     }
     return reception;
   }
@@ -1263,9 +1322,7 @@ export class MarketplaceAplReceptionService {
 
     for (const placement of placements) {
       if (!targetOrderIds.has(placement.order_id)) {
-        throw new BadRequestException(
-          'Указано место для заказа, которого нет в этой приёмке.'
-        );
+        throw DomainError.badRequest('MARKETPLACE_RECEPTION_PLACEMENT_UNKNOWN_ORDER');
       }
       const container_id = placement.container_id ?? null;
       const cell_id = placement.cell_id ?? null;
@@ -1277,12 +1334,10 @@ export class MarketplaceAplReceptionService {
       );
 
       if (container_id && cell_id) {
-        throw new BadRequestException(
-          'Для одного заказа укажите одно место: либо бокс, либо ячейку. Ячейка бокса определяется по самому боксу.'
-        );
+        throw DomainError.badRequest('MARKETPLACE_RECEPTION_PLACEMENT_SINGLE_LOCATION_REQUIRED');
       }
       if (quantity !== null && quantity <= 0) {
-        throw new BadRequestException('Количество в месте хранения должно быть больше нуля.');
+        throw DomainError.badRequest('MARKETPLACE_STORAGE_QUANTITY_MUST_BE_POSITIVE');
       }
 
       const parts = resolved.get(placement.order_id) ?? [];
@@ -1300,15 +1355,13 @@ export class MarketplaceAplReceptionService {
       if (container_id) {
         const container = await this.containerRepo.findById(container_id);
         if (!container || container.coopname !== reception.coopname) {
-          throw new NotFoundException('Бокс не найден.');
+          throw DomainError.notFound('MARKETPLACE_CONTAINER_NOT_FOUND');
         }
         if (!container.is_active) {
-          throw new ConflictException(`Бокс «${container.code}» выведен из оборота.`);
+          throw DomainError.conflict('MARKETPLACE_CONTAINER_DECOMMISSIONED', { containerCode: container.code });
         }
         if (container.braname !== reception.braname) {
-          throw new ConflictException(
-            `Бокс «${container.code}» числится за участком ${container.braname}, а приёмка идёт на ${reception.braname}.`
-          );
+          throw DomainError.conflict('MARKETPLACE_CONTAINER_BRANCH_MISMATCH_RECEPTION', { containerCode: container.code, containerBranch: container.braname, receptionBranch: reception.braname });
         }
         parts.push({ container_id, cell_id: null, barcode_value, quantity });
         resolved.set(placement.order_id, parts);
@@ -1317,15 +1370,13 @@ export class MarketplaceAplReceptionService {
 
       const cell = await this.cellRepo.findById(cell_id as string);
       if (!cell || cell.coopname !== reception.coopname) {
-        throw new NotFoundException('Ячейка не найдена.');
+        throw DomainError.notFound('MARKETPLACE_CELL_NOT_FOUND');
       }
       if (!cell.is_active) {
-        throw new ConflictException(`Ячейка «${cell.code}» выведена из оборота.`);
+        throw DomainError.conflict('MARKETPLACE_CELL_DECOMMISSIONED', { cellCode: cell.code });
       }
       if (cell.braname !== reception.braname) {
-        throw new ConflictException(
-          `Ячейка «${cell.code}» относится к участку ${cell.braname}, а приёмка идёт на ${reception.braname}.`
-        );
+        throw DomainError.conflict('MARKETPLACE_CELL_BRANCH_MISMATCH_RECEPTION', { cellCode: cell.code, cellBranch: cell.braname, receptionBranch: reception.braname });
       }
       parts.push({ container_id: null, cell_id, barcode_value, quantity });
       resolved.set(placement.order_id, parts);
@@ -1347,9 +1398,7 @@ export class MarketplaceAplReceptionService {
         return this.placedQuantityOf(resolved.get(o.id) ?? [], fact) + MARKETPLACE_QUANTITY_EPSILON < fact;
       });
       if (missing.length > 0) {
-        throw new BadRequestException(
-          `Укажите место хранения для всего принятого: не размещено позиций — ${missing.length}.`
-        );
+        throw DomainError.badRequest('MARKETPLACE_STORAGE_PLACEMENT_INCOMPLETE', { missingCount: missing.length });
       }
     }
 
@@ -1383,15 +1432,11 @@ export class MarketplaceAplReceptionService {
       const fact = factByOrderId.get(orderId) ?? 0;
       const withoutQuantity = parts.filter((p) => p.quantity === null);
       if (parts.length > 1 && withoutQuantity.length > 0) {
-        throw new BadRequestException(
-          'Когда принятое по заказу раскладывают по нескольким местам, у каждого места укажите количество.'
-        );
+        throw DomainError.badRequest('MARKETPLACE_STORAGE_SPLIT_QUANTITY_REQUIRED');
       }
       const total = parts.reduce((sum, p) => sum + (p.quantity ?? fact), 0);
       if (total > fact + MARKETPLACE_QUANTITY_EPSILON) {
-        throw new BadRequestException(
-          `По местам хранения разложено больше, чем принято по заказу: ${total} при принятых ${fact}.`
-        );
+        throw DomainError.badRequest('MARKETPLACE_STORAGE_PLACEMENT_EXCEEDS_ACCEPTED', { placedTotal: total, acceptedFact: fact });
       }
     }
   }
@@ -1416,21 +1461,15 @@ export class MarketplaceAplReceptionService {
     // акт закроется on-chain, а позиция склада не создастся, и закрыть приёмку
     // повторно будет уже нечем.
     if (!isValidEan13(barcode)) {
-      throw new BadRequestException(
-        `Этикетка «${barcode}» не похожа на штрихкод с листа этикеток: нужны 13 цифр. Отсканируйте штрихкод, а не QR-код тары.`
-      );
+      throw DomainError.badRequest('MARKETPLACE_LABEL_BARCODE_FORMAT_INVALID', { barcode });
     }
 
     if (seenInBatch.has(barcode)) {
-      throw new ConflictException(
-        `Этикетка «${barcode}» указана дважды в одной приёмке — на каждой единице имущества свой номер.`
-      );
+      throw DomainError.conflict('MARKETPLACE_LABEL_DUPLICATE_IN_RECEPTION', { barcode });
     }
     const conflict = await this.inventoryRepo.findByBarcode(coopname, barcode);
     if (conflict) {
-      throw new ConflictException(
-        `Этикетка «${barcode}» уже привязана к другой позиции склада.`
-      );
+      throw DomainError.conflict('MARKETPLACE_LABEL_ALREADY_BOUND', { barcode });
     }
     seenInBatch.add(barcode);
     return barcode;
@@ -1585,9 +1624,7 @@ export class MarketplaceAplReceptionService {
     for (const order of groupOrders) {
       const signed = byOrderId.get(order.id);
       if (!signed) {
-        throw new BadRequestException(
-          `Нет подписанного акта приёмки для Order ${order.id}; нужны акты по всем Order'ам группы (${groupOrders.length}).`
-        );
+        throw DomainError.badRequest('MARKETPLACE_RECEPTION_SUPPLIER_ACT_MISSING', { orderId: order.id, groupOrdersCount: groupOrders.length });
       }
       this.verifyDocumentSignature(signed);
       const act = this.toChainDocument(signed) as MarketContract.Actions.SignSupp.ISignSupp['act'];
@@ -1605,9 +1642,7 @@ export class MarketplaceAplReceptionService {
         // в БД с фантомным fallback'ом ('signsupp-<reception_id>')
         // означает потерять связь с конкретным tx. Лучше отбить — ретрай
         // безопасен (цепь идемпотентна по order_hash).
-        throw new ConflictException(
-          `signsupp по Order ${order.id}: цепь не вернула tx_hash. Повторите подписание группы.`
-        );
+        throw DomainError.conflict('MARKETPLACE_RECEPTION_SUPPLIER_SIGN_NO_TX_HASH', { orderId: order.id });
       }
       lastTxHash = txHash;
       this.logger.debug(`signsupp on-chain OK: order ${order.id} → tx ${txHash}`);
@@ -1630,9 +1665,7 @@ export class MarketplaceAplReceptionService {
     for (const order of groupOrders) {
       const signed = byOrderId.get(order.id);
       if (!signed) {
-        throw new BadRequestException(
-          `Нет подписанного акта приёмки председателя для Order ${order.id}; нужны акты по всем Order'ам группы.`
-        );
+        throw DomainError.badRequest('MARKETPLACE_RECEPTION_CHAIRMAN_ACT_MISSING', { orderId: order.id });
       }
       this.verifyDocumentSignature(signed);
       const act = this.toChainDocument(signed) as MarketContract.Actions.SignChair.ISignChair['act'];
@@ -1652,9 +1685,7 @@ export class MarketplaceAplReceptionService {
       });
       const txHash = this.extractTxHash(tx);
       if (!txHash) {
-        throw new ConflictException(
-          `signchair по Order ${order.id}: цепь не вернула tx_hash. Повторите подписание группы.`
-        );
+        throw DomainError.conflict('MARKETPLACE_RECEPTION_CHAIRMAN_SIGN_NO_TX_HASH', { orderId: order.id });
       }
       lastTxHash = txHash;
       this.logger.debug(`signchair on-chain OK: order ${order.id} → tx ${txHash}`);
@@ -1669,9 +1700,7 @@ export class MarketplaceAplReceptionService {
     for (const d of docs) {
       const orderId = d.meta?.order_id;
       if (!orderId) {
-        throw new BadRequestException(
-          'Каждый подписанный акт приёмки должен содержать meta.order_id, по которому он привязывается к Order группы.'
-        );
+        throw DomainError.badRequest('MARKETPLACE_RECEPTION_ACT_META_ORDER_ID_MISSING');
       }
       out.set(orderId, d);
     }
@@ -1691,13 +1720,13 @@ export class MarketplaceAplReceptionService {
   private verifyDocumentSignature(document: ISignedDocument): void {
     const sig = document.signatures?.[0];
     if (!sig) {
-      throw new HttpApiError(http.BAD_REQUEST, 'Документ не подписан: signatures пуст.');
+      throw DomainError.badRequest('MARKETPLACE_DOCUMENT_NOT_SIGNED');
     }
     const publicKey = PublicKey.from(sig.public_key);
     const signature = Signature.from(sig.signature);
     const verified = signature.verifyDigest(sig.signed_hash, publicKey);
     if (!verified) {
-      throw new HttpApiError(http.BAD_REQUEST, 'Недействительная подпись акта приёмки.');
+      throw DomainError.badRequest('MARKETPLACE_RECEPTION_SIGNATURE_INVALID');
     }
   }
 
@@ -1724,17 +1753,13 @@ export class MarketplaceAplReceptionService {
       if (entry !== undefined) {
         const fact = entry.fact_quantity;
         if (!Number.isInteger(fact) || fact < 0) {
-          throw new BadRequestException(
-            `Некорректное fact_quantity для Order ${o.id}: ${fact}.`
-          );
+          throw DomainError.badRequest('MARKETPLACE_ORDER_FACT_QUANTITY_INVALID', { orderId: o.id, factQuantity: fact });
         }
         // Потолок приёмки = акцепт (заказанное кол-во): сверх акцепта
         // принципиально не принимаем («больше, чем заказано — не надо»).
         // Меньше — допустимо (недовоз). Партия/ТТН — лишь декларация, не лимит.
         if (fact > o.quantity) {
-          throw new BadRequestException(
-            `Нельзя принять сверх акцепта по Order ${o.id}: факт ${fact} > заказано ${o.quantity}.`
-          );
+          throw DomainError.badRequest('MARKETPLACE_ORDER_FACT_EXCEEDS_ORDERED', { orderId: o.id, factQuantity: fact, orderedQuantity: o.quantity });
         }
         // Цена за единицу: оператор может скорректировать (привезли хуже —
         // принимаем со скидкой). По умолчанию — цена заказа.
@@ -1742,9 +1767,7 @@ export class MarketplaceAplReceptionService {
         if (entry.fact_unit_price !== undefined) {
           const priceNum = Number.parseFloat(entry.fact_unit_price);
           if (Number.isNaN(priceNum) || priceNum <= 0) {
-            throw new BadRequestException(
-              `Некорректная цена за единицу для Order ${o.id}: ${entry.fact_unit_price}.`
-            );
+            throw DomainError.badRequest('MARKETPLACE_ORDER_FACT_UNIT_PRICE_INVALID', { orderId: o.id, factUnitPrice: entry.fact_unit_price });
           }
           fact_unit_price = priceNum.toFixed(this.assetConfig.decimals);
         }
@@ -1765,19 +1788,29 @@ export class MarketplaceAplReceptionService {
     for (const entry of fact) {
       const order = byId.get(entry.order_id);
       if (!order) continue;
-      // Цена — за единицу отпуска: при отпуске упаковкой это цена упаковки, и
-      // умножать её на базовое количество нельзя (сумма занижалась в разы).
-      amounts.push(
-        calcCostAmount({
-          quantity: entry.fact_quantity,
-          unit: order.unit_of_measure,
-          unitPrice: entry.fact_unit_price ?? order.price_per_unit,
-          packageSize: order.package_size,
-          decimals: this.assetConfig.decimals,
-        })
-      );
+      amounts.push(this.factEntryAmount(entry, order));
     }
     return sumMoney(amounts, this.assetConfig.decimals);
+  }
+
+  /**
+   * Принятая стоимость позиции акта: фактическое количество по фактической
+   * цене приёмки (без записи в акте — заказанное по цене заказа). Одна формула
+   * для итога акта, суммы выплаты поставщику и того, что контракт проводит на
+   * `signchair`: цена — за единицу отпуска, при отпуске упаковкой это цена
+   * упаковки, и умножать её на базовое количество нельзя.
+   */
+  private factEntryAmount(
+    entry: MarketplaceAplReceptionFactQuantityEntry | undefined,
+    order: MarketplaceOrderDomainEntity
+  ): string {
+    return calcCostAmount({
+      quantity: entry?.fact_quantity ?? order.quantity,
+      unit: order.unit_of_measure,
+      unitPrice: entry?.fact_unit_price ?? order.price_per_unit,
+      packageSize: order.package_size,
+      decimals: this.assetConfig.decimals,
+    });
   }
 
   private formatAsset(value: string): string {

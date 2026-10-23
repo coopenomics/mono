@@ -19,6 +19,7 @@ export class IssueDomainEntity extends BaseDomainEntity<IIssueDatabaseData> {
   public status: IssueStatus; // Статус задачи
   public estimate: number; // Оценка в story points или часах
   public sort_order: number; // Порядок сортировки
+  public content_rev: number; // Редакция содержимого
   public created_by: string; // Имя пользователя, создавшего задачу
   public submaster?: string; // Имя пользователя ответственного (contributor)
   public creators: string[]; // Массив имен пользователей создателей (contributors)
@@ -49,6 +50,7 @@ export class IssueDomainEntity extends BaseDomainEntity<IIssueDatabaseData> {
     this.status = databaseData.status; // Переопределяем статус с правильным типом
     this.estimate = databaseData.estimate;
     this.sort_order = databaseData.sort_order;
+    this.content_rev = databaseData.content_rev ?? 0;
     this.created_by = databaseData.created_by;
     this.creators = databaseData.creators;
     this.submaster = databaseData.submaster;

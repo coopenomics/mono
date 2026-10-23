@@ -7,3 +7,7 @@
  */
 export * from './registration-document-parameters.hook';
 export * from './desktop-grants.hook';
+export * from './desktop-grants-filter.hook';
+export * from './registration-offer-filter.hook';
+export * from './global-search.hook';
+export * from './organization-lookup.hook';

@@ -1,35 +1,42 @@
 <template lang="pug">
 .log-details
   .detail-row
-    span.detail-label Тип операции
+    span.detail-label {{ $t('powerup.powerupLogItem.operationTypeLabel') }}
     span.detail-value
       BaseBadge(:variant="getTypeVariant(log.type)") {{ getTypeLabel(log.type) }}
 
   .detail-row
-    span.detail-label Сумма
+    span.detail-label {{ $t('powerup.powerupLogItem.amountLabel') }}
     span.detail-value {{ log.amount }}
 
   .detail-row
     span.detail-label RAM
-    span.detail-value {{ formatBytes(log.resources.ram_usage) }} / {{ formatBytes(log.resources.ram_quota) }} ({{ calculateRamPercent(log.resources.ram_usage, log.resources.ram_quota).toFixed(2) }}% использовано)
+    span.detail-value {{ $t('powerup.powerupLogItem.ramUsageText', { used: formatBytes(log.resources.ram_usage), quota: formatBytes(log.resources.ram_quota), percent: calculateRamPercent(log.resources.ram_usage, log.resources.ram_quota).toFixed(2) }) }}
 
   .detail-row
     span.detail-label CPU
-    span.detail-value {{ formatCpuNet(log.resources.cpu_limit) }} ({{ calculateCpuNetPercent(log.resources.cpu_limit).toFixed(2) }}% использовано)
+    span.detail-value {{ $t('powerup.powerupLogItem.cpuUsageText', { value: formatCpuTime(log.resources.cpu_limit), percent: calculateCpuNetPercent(log.resources.cpu_limit).toFixed(2) }) }}
 
   .detail-row
     span.detail-label NET
-    span.detail-value {{ formatCpuNet(log.resources.net_limit) }} ({{ calculateCpuNetPercent(log.resources.net_limit).toFixed(2) }}% использовано)
+    span.detail-value {{ $t('powerup.powerupLogItem.netUsageText', { value: formatNet(log.resources.net_limit), percent: calculateCpuNetPercent(log.resources.net_limit).toFixed(2) }) }}
+
+  .detail-row(v-if="log.trx_id")
+    span.detail-label {{ $t('powerup.powerupLogItem.transactionLabel') }}
+    span.detail-value {{ log.trx_id.slice(0, 16) }}…
 </template>
 
 <script lang="ts" setup>
 import { BaseBadge } from 'src/shared/ui/base/BaseBadge'
 import type { BaseBadgeVariant } from 'src/shared/ui/base/BaseBadge'
+import { t } from '../../../i18n';
 
 interface PowerupLog {
   type: 'daily' | 'now'
   amount: string
   timestamp?: string
+  /** Транзакция пополнения в цепи. Запись в журнале появляется только после неё. */
+  trx_id?: string
   resources: {
     username: string
     ram_usage: any
@@ -46,7 +53,7 @@ interface Props {
 defineProps<Props>()
 
 const getTypeLabel = (type: string) => {
-  return type === 'daily' ? 'Ежедневное пополнение' : 'Немедленное пополнение'
+  return type === 'daily' ? t('powerup.powerupLogItem.dailyTypeLabel') : t('powerup.powerupLogItem.immediateTypeLabel')
 }
 
 const getTypeVariant = (type: string): BaseBadgeVariant => {
@@ -65,13 +72,34 @@ const formatBytes = (value: any) => {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
 }
 
-const formatCpuNet = (resource: any) => {
+// Полоса меряется в байтах, процессорное время — в микросекундах. Раньше обе
+// величины печатались байтами, и час процессорного времени выглядел как «36 ГБ».
+const formatNet = (resource: any) => {
   if (!resource || typeof resource !== 'object') return 'N/A'
 
   const available = resource.available || resource.current_used || 0
   const max = resource.max || 0
 
   return `${formatBytes(available)} / ${formatBytes(max)}`
+}
+
+const formatMicroseconds = (value: any) => {
+  const us = typeof value === 'string' ? parseInt(value) : value || 0
+  if (!us) return t('powerup.powerupLogItem.microsecondsZero')
+  if (us < 1_000) return t('powerup.powerupLogItem.microseconds', { value: us })
+  if (us < 1_000_000) return t('powerup.powerupLogItem.milliseconds', { value: (us / 1_000).toFixed(2) })
+  if (us < 60 * 1_000_000) return t('powerup.powerupLogItem.seconds', { value: (us / 1_000_000).toFixed(2) })
+  if (us < 3600 * 1_000_000) return t('powerup.powerupLogItem.minutesShort', { value: (us / 60_000_000).toFixed(2) })
+  return t('powerup.powerupLogItem.hoursShort', { value: (us / 3_600_000_000).toFixed(2) })
+}
+
+const formatCpuTime = (resource: any) => {
+  if (!resource || typeof resource !== 'object') return 'N/A'
+
+  const available = resource.available || resource.current_used || 0
+  const max = resource.max || 0
+
+  return `${formatMicroseconds(available)} / ${formatMicroseconds(max)}`
 }
 
 const calculateRamPercent = (usage: any, quota: any) => {

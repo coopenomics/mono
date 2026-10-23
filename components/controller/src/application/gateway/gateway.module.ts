@@ -18,9 +18,11 @@ import { RedisModule } from '~/infrastructure/redis/redis.module';
 import { bucketProvidersFor } from '@coopenomics/extension-kit';
 import { FILE_STORAGE_PORT } from '@coopenomics/innercoop';
 import { GATEWAY_INTERACTOR_PORT } from '~/domain/wallet/ports/gateway-interactor.port';
+import { CoreRightsModule } from '../rights/core-rights.module';
 
 @Module({
   imports: [
+    CoreRightsModule,
     // Реестр платёжных провайдеров (PROVIDER_PORT). Обратного ребра нет:
     // инфраструктура шлюза про приложение не знает.
     GatewayInfrastructureModule,

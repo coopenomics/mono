@@ -1,5 +1,7 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref, watch } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { useFirstLoad } from 'src/shared/lib/composables';
 import { debounce } from 'quasar';
 import { useRoute, useRouter } from 'vue-router';
 import { Zeus } from '@coopenomics/sdk';
@@ -9,12 +11,13 @@ import { BaseBadge, BaseButton, CardListSkeleton, EmptyState } from 'src/shared/
 import { PageHint } from 'src/shared/ui/domain';
 import { PageTabs, type PageTab } from 'src/shared/ui/layout';
 import { ScannerDialog } from 'src/widgets/Marketplace/ScannerDialog';
-import { useMarketplaceRealtime, decodeReturnClaimCode } from 'src/shared/lib/marketplace';
-import { marketplaceOrderSaleUnit } from 'src/shared/lib/consts/marketplace-units';
+import { marketLiveTables, decodeReturnClaimCode } from 'src/shared/lib/marketplace';
+import { marketplaceOrderSaleUnitLabel } from 'src/shared/lib/consts/marketplace-units';
 import { formatAsset2Digits } from 'src/shared/lib/utils';
 import { returnClaimStatusLabel, returnClaimStatusVariant } from '../../OrdererReturnClaims';
 import { listReturnClaimsByBraname, type MarketplaceReturnClaimView } from '../api';
 import OnSiteDecisionDialog from './OnSiteDecisionDialog.vue';
+import { t } from 'src/shared/i18n';
 
 /**
  * Story 7.2-7.4 — operator-стол председателя КУ: лента заявлений на
@@ -41,12 +44,14 @@ const coopname = computed(() => String(route.params.coopname ?? ''));
 const braname = computed(() => store.activeBraname ?? '');
 const items = ref<MarketplaceReturnClaimView[]>([]);
 const loading = ref(true);
+/** Скелетон — только на первой загрузке; дочитка обновляет молча. */
+const firstLoad = useFirstLoad(loading);
 
 const onSiteDialog = ref(false);
 const scanDialogOpen = ref(false);
 const selectedClaim = ref<MarketplaceReturnClaimView | null>(null);
 
-const activeKey = ref<'all' | 'pending' | 'approved' | 'archive'>('all');
+const activeKey = ref<'all' | 'pending' | 'approved' | 'council' | 'archive'>('all');
 
 const pendingClaims = computed(() =>
   items.value.filter((c) => c.status === Zeus.MarketplaceReturnClaimStatus.PENDING_CHAIRMAN_REVIEW),
@@ -54,20 +59,31 @@ const pendingClaims = computed(() =>
 const approvedClaims = computed(() =>
   items.value.filter((c) => c.status === Zeus.MarketplaceReturnClaimStatus.APPROVED_FOR_VISIT),
 );
+// Имущество на участке: ждём решение совета либо совет отказал и пайщик
+// должен забрать имущество (оператор выдаёт обратно).
+const councilClaims = computed(() =>
+  items.value.filter(
+    (c) =>
+      c.status === Zeus.MarketplaceReturnClaimStatus.PENDING_COUNCIL ||
+      c.status === Zeus.MarketplaceReturnClaimStatus.DECLINED_BY_COUNCIL,
+  ),
+);
 const archiveClaims = computed(() =>
   items.value.filter(
     (c) =>
-      c.status === Zeus.MarketplaceReturnClaimStatus.ACCEPTED_AT_VISIT ||
+      c.status === Zeus.MarketplaceReturnClaimStatus.ACCEPTED_BY_COUNCIL ||
+      c.status === Zeus.MarketplaceReturnClaimStatus.HANDED_BACK ||
       c.status === Zeus.MarketplaceReturnClaimStatus.REJECTED_REMOTELY ||
       c.status === Zeus.MarketplaceReturnClaimStatus.REJECTED_AT_VISIT,
   ),
 );
 
 const tabs = computed<PageTab[]>(() => [
-  { key: 'all', label: 'Все', count: items.value.length },
-  { key: 'pending', label: 'Ждут рассмотрения', count: pendingClaims.value.length },
-  { key: 'approved', label: 'Ожидают визита', count: approvedClaims.value.length },
-  { key: 'archive', label: 'Архив', count: archiveClaims.value.length },
+  { key: 'all', label: t('marketplace.operatorReturnClaimsPage.tabAll'), count: items.value.length },
+  { key: 'pending', label: t('marketplace.operatorReturnClaimsPage.tabPending'), count: pendingClaims.value.length },
+  { key: 'approved', label: t('marketplace.operatorReturnClaimsPage.tabAwaitingVisit'), count: approvedClaims.value.length },
+  { key: 'council', label: t('marketplace.operatorReturnClaimsPage.tabPropertyOnSite'), count: councilClaims.value.length },
+  { key: 'archive', label: t('marketplace.operatorReturnClaimsPage.tabArchive'), count: archiveClaims.value.length },
 ]);
 
 const visibleClaims = computed(() => {
@@ -76,6 +92,8 @@ const visibleClaims = computed(() => {
       return pendingClaims.value;
     case 'approved':
       return approvedClaims.value;
+    case 'council':
+      return councilClaims.value;
     case 'archive':
       return archiveClaims.value;
     default:
@@ -93,7 +111,7 @@ async function load(): Promise<void> {
   try {
     items.value = await listReturnClaimsByBraname({ delivery_braname: braname.value.trim() });
   } catch (e) {
-    FailAlert(e, 'Не удалось загрузить заявления на возврат');
+    FailAlert(e, t('marketplace.operatorReturnClaimsPage.loadError'));
   } finally {
     loading.value = false;
   }
@@ -114,16 +132,16 @@ function onQrScanned(code: string): void {
   scanDialogOpen.value = false;
   const claimId = decodeReturnClaimCode(code, coopname.value);
   if (!claimId) {
-    FailAlert(new Error('Нераспознанный код. Отсканируйте QR-код возврата, который показывает пайщик.'));
+    FailAlert(new Error(t('marketplace.error.returnClaimCodeUnrecognized')));
     return;
   }
   const claim = items.value.find((c) => c.id === claimId);
   if (!claim) {
-    FailAlert(new Error('Заявление с этим кодом не найдено на вашем участке.'));
+    FailAlert(new Error(t('marketplace.error.returnClaimNotFoundOnBranch')));
     return;
   }
   if (claim.status !== Zeus.MarketplaceReturnClaimStatus.APPROVED_FOR_VISIT) {
-    FailAlert(new Error('По этой заявке пока не одобрен очный осмотр.'));
+    FailAlert(new Error(t('marketplace.error.returnClaimInspectionNotApproved')));
     return;
   }
   selectedClaim.value = claim;
@@ -131,8 +149,7 @@ function onQrScanned(code: string): void {
 }
 
 function claimQuantityLabel(c: MarketplaceReturnClaimView): string {
-  const saleUnit = marketplaceOrderSaleUnit(c.actual_quantity, c.unit_of_measure, c.package_size);
-  return `${saleUnit.units}×${saleUnit.unitLabel}`;
+  return marketplaceOrderSaleUnitLabel(c.actual_quantity, c.unit_of_measure, c.package_size);
 }
 
 function onDecided(): void {
@@ -148,14 +165,7 @@ const reloadLive = debounce(() => {
   if (loading.value) return;
   void load();
 }, 400);
-useMarketplaceRealtime(
-  {
-    MarketplaceReturnClaimStatusChangedEvent: (event) => {
-      if (event.braname === braname.value.trim()) reloadLive();
-    },
-  },
-  { onResync: () => reloadLive() },
-);
+useLiveReload(marketLiveTables('return'), () => reloadLive());
 
 onMounted(async () => {
   await store.ensureLoaded(coopname.value);
@@ -164,13 +174,13 @@ onMounted(async () => {
 </script>
 
 <template lang="pug">
-q-page.returns(role='region', aria-label='Гарантийные возвраты')
+q-page.returns(role='region', :aria-label='$t("marketplace.operatorReturnClaimsPage.pageAriaLabel")')
   OperatorBranchBar
 
   EmptyState(
     v-if='store.loaded && !store.isOperator',
-    title='Вы не оператор кооперативного участка',
-    body='Рассмотрение гарантийных возвратов доступно председателю участка и его доверенным лицам.'
+    :title='$t("marketplace.operatorReturnClaimsPage.notOperatorTitle")',
+    :body='$t("marketplace.operatorReturnClaimsPage.notOperatorBody")'
   )
     template(#icon)
       q-icon(name='storefront', size='48px')
@@ -182,19 +192,19 @@ q-page.returns(role='region', aria-label='Гарантийные возврат�
       BaseButton(variant='primary', size='sm', @click='scanDialogOpen = true')
         template(#icon-left)
           q-icon(name='qr_code_scanner', size='16px')
-        | Сканировать код
+        | {{ $t('marketplace.operatorReturnClaimsPage.scanButton') }}
 
     PageHint(storage-key='mp:operator-returns:banner-dismissed')
-      | Рассматривайте заявления пайщиков: удалённое решение по заявке, затем очный осмотр и приём возврата на пункте выдачи. Пайщик, пришедший на осмотр, показывает QR из своей заявки — отсканируйте его кнопкой «Сканировать код» сверху. Откройте карточку заявления, чтобы увидеть подробности и принять решение.
+      | {{ $t('marketplace.operatorReturnClaimsPage.introText') }}
 
     PageTabs(:tabs='tabs', :active-key='activeKey', @select='onSelectTab')
 
     //- Канон загрузки: скелетон вместо мелькающих заглушек «пусто» на первичной загрузке.
-    CardListSkeleton(v-if='loading && !items.length', :count='2')
+    CardListSkeleton(v-if='firstLoad', :count='2')
 
     EmptyState(
       v-else-if='!visibleClaims.length',
-      :title='activeKey === "archive" ? "Архив пуст" : "Заявлений нет"'
+      :title='activeKey === "archive" ? $t("marketplace.operatorReturnClaimsPage.archiveEmpty") : $t("marketplace.operatorReturnClaimsPage.listEmpty")'
     )
       template(#icon)
         q-icon(name='inbox', size='40px')
@@ -202,17 +212,17 @@ q-page.returns(role='region', aria-label='Гарантийные возврат�
     .returns__list(v-else)
       .return-row(v-for='c in visibleClaims', :key='c.id', @click='openDetail(c)')
         .return-row__main
-          .return-row__title Заказ {{ c.order_id.slice(0, 8) }} · заказчик {{ c.orderer_name || c.orderer_account }}
+          .return-row__title {{ $t('marketplace.operatorReturnClaimsPage.rowSubtitle', { orderId: c.order_id.slice(0, 8), ordererName: c.orderer_name || c.orderer_account }) }}
           .return-row__sub
             span.return-row__num №&nbsp;{{ c.id.slice(0, 8) }}
             span(aria-hidden='true') ·
             span {{ c.reason_text }}
         BaseBadge.return-row__status(:variant='returnClaimStatusVariant(c.status)') {{ returnClaimStatusLabel(c.status) }}
         .return-row__fact
-          .return-row__fact-label Кол-во
+          .return-row__fact-label {{ $t('marketplace.operatorReturnClaimsPage.column.quantity') }}
           .return-row__fact-value {{ claimQuantityLabel(c) }}
         .return-row__fact
-          .return-row__fact-label Сумма
+          .return-row__fact-label {{ $t('marketplace.operatorReturnClaimsPage.column.amount') }}
           .return-row__fact-value.return-row__fact-value--money {{ formatAsset2Digits(c.fact_cost) }} ₽
         q-icon.return-row__chevron(name='chevron_right', size='20px')
 
@@ -224,8 +234,8 @@ q-page.returns(role='region', aria-label='Гарантийные возврат�
   )
   ScannerDialog(
     v-model='scanDialogOpen',
-    title='Сканирование кода возврата',
-    idle-caption='Наведите камеру на QR-код, который показывает пайщик',
+    :title='$t("marketplace.operatorReturnClaimsPage.scanDialogTitle")',
+    :idle-caption='$t("marketplace.operatorReturnClaimsPage.scanDialogCaption")',
     @scanned='onQrScanned'
   )
 </template>

@@ -22,13 +22,14 @@ import 'vue-router';
 declare module 'vue-router' {
   // Расширяем интерфейс RouteMeta, добавляя новые свойства
   interface RouteMeta {
-    roles?: string[];
     conditions?: string;
     agreements?: string[];
     title: string;
     icon: string;
     requiresAuth?: boolean;
     hidden?: boolean;
+    /** Экран в оболочке AuthSplit: layout не рисует общую шапку и футер. */
+    authSplit?: boolean;
     // Канон авторизации столов: требуемое право (capability «Resource:action»)
     // и признак страницы-шлюза стола. Смысл и правила — IWorkspaceRouteMeta
     // в shared/lib/types/workspace.ts (там же, где их объявляют расширения).

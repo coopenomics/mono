@@ -7,29 +7,29 @@
     .banner__icon
       q-icon(name='block', size='sm')
     .banner__body
-      .t-sm.t-muted Платёж отклонён. Причина:
-      div {{ payment.message || 'причина не указана' }}
+      .t-sm.t-muted {{ $t('ui.paymentDetails.rejectedReasonLabel') }}
+      div {{ payment.message || $t('ui.paymentDetails.reasonNotSpecifiedText') }}
 
   //- Причина ошибки для неуспешных платежей
   .payment-error.text-red-6.q-mb-sm(v-if='payment.status === "FAILED"')
     q-icon.q-mr-xs(name='error', size='sm')
-    span {{ payment.message || 'нет дополнительной информации' }}
+    span {{ payment.message || $t('ui.paymentDetails.noExtraInfoText') }}
 
   //- Реквизиты платежа — компактные строки с копированием (DataRow). Для любого
   //- направления: исходящий = реквизиты получателя (кому платит кооператив),
   //- входящий возврат = реквизиты кооператива (куда платит пайщик).
   template(v-else-if='payment.payment_details')
-    DataRow(v-if='bankData?.bank_name', label='Банк получателя', :value='bankData.bank_name', copyable)
-    DataRow(v-if='bankData?.details?.bik', label='БИК', :value='bankData.details.bik', copyable, mono)
-    DataRow(v-if='bankData?.account_number', label='Номер счета', :value='bankData.account_number', copyable, mono)
-    DataRow(v-if='bankData?.details?.corr', label='Корреспондентский счет', :value='bankData.details.corr', copyable, mono)
-    DataRow(v-if='bankData?.card_number', label='Номер карты', :value='bankData.card_number', copyable, mono)
-    DataRow(v-if='bankData?.currency', label='Валюта', :value='bankData.currency')
-    DataRow(v-if='sbpData?.phone', label='Телефон (СБП)', :value='sbpData.phone', copyable, mono)
+    DataRow(v-if='bankData?.bank_name', :label='$t("ui.paymentDetails.bankLabel")', :value='bankData.bank_name', copyable)
+    DataRow(v-if='bankData?.details?.bik', :label='$t("ui.paymentDetails.bikLabel")', :value='bankData.details.bik', copyable, mono)
+    DataRow(v-if='bankData?.account_number', :label='$t("ui.paymentDetails.accountNumberLabel")', :value='bankData.account_number', copyable, mono)
+    DataRow(v-if='bankData?.details?.corr', :label='$t("ui.paymentDetails.corrAccountLabel")', :value='bankData.details.corr', copyable, mono)
+    DataRow(v-if='bankData?.card_number', :label='$t("ui.paymentDetails.cardNumberLabel")', :value='bankData.card_number', copyable, mono)
+    DataRow(v-if='bankData?.currency', :label='$t("ui.paymentDetails.currencyLabel")', :value='bankData.currency')
+    DataRow(v-if='sbpData?.phone', :label='$t("ui.paymentDetails.sbpPhoneLabel")', :value='sbpData.phone', copyable, mono)
     //- Оплата расхода: получатель-организация и её реквизиты приходят
     //- свободной строкой из снимка СЗ (не платёжным методом пайщика).
-    DataRow(v-if='freeData?.recipient_name', label='Получатель', :value='freeData.recipient_name', copyable)
-    DataRow(v-if='freeData?.requisites', label='Реквизиты', :value='freeData.requisites', copyable, mono)
+    DataRow(v-if='freeData?.recipient_name', :label='$t("ui.paymentDetails.recipientLabel")', :value='freeData.recipient_name', copyable)
+    DataRow(v-if='freeData?.requisites', :label='$t("ui.paymentDetails.detailsLabel")', :value='freeData.requisites', copyable, mono)
     //- Перечисление налога: реквизиты бюджета приходят готовым списком строк —
     //- они не принадлежат пайщику и зависят от страны кооператива, поэтому
     //- сервер отдаёт их снимком, а не через платёжный метод.
@@ -41,32 +41,32 @@
       copyable,
       mono
     )
-    DataRow(v-if='expenseDescription', label='Что оплачиваем', :value='expenseDescription')
-    DataRow(v-if='payment.memo', label='Назначение платежа', :value='payment.memo', copyable)
+    DataRow(v-if='expenseDescription', :label='$t("ui.paymentDetails.purposeShortLabel")', :value='expenseDescription')
+    DataRow(v-if='payment.memo', :label='$t("ui.paymentDetails.purposeLabel")', :value='payment.memo', copyable)
     DataRow(
       v-if='amountToPayLabel',
-      label='Сумма к переводу',
+      :label='$t("ui.paymentDetails.amountLabel")',
       :value='amountToPayLabel',
       copyable,
       mono
     )
     DataRow(
       v-if='payment.payment_details.fee_amount && payment.payment_details.fee_amount !== "0"',
-      label='Комиссия',
+      :label='$t("ui.paymentDetails.feeLabel")',
       :value='payment.payment_details.fee_amount',
       mono
     )
 
   //- Назначение платежа без банковских реквизитов: даём скопировать готовый текст.
   template(v-else-if='payment.memo || expenseDescription')
-    DataRow(v-if='expenseDescription', label='Что оплачиваем', :value='expenseDescription')
-    DataRow(v-if='payment.memo', label='Назначение платежа', :value='payment.memo', copyable)
+    DataRow(v-if='expenseDescription', :label='$t("ui.paymentDetails.purposeShortLabel")', :value='expenseDescription')
+    DataRow(v-if='payment.memo', :label='$t("ui.paymentDetails.purposeLabel")', :value='payment.memo', copyable)
 
   //- Сообщение по умолчанию
   div(v-else)
     .text-grey-6.text-center.q-py-md
       q-icon.q-mr-xs(name='info_outline', size='sm')
-      span нет дополнительной информации
+      span {{ $t('ui.paymentDetails.noExtraInfoText') }}
 </template>
 
 <script setup lang="ts">

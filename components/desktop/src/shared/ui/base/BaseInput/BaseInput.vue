@@ -32,7 +32,7 @@
     @update:model-value="onUpdate"
     @clear="$emit('clear')"
     @blur="$emit('blur', $event)"
-    @focus="$emit('focus', $event)"
+    @focus="onFocus"
   >
     <template v-if="$slots.prepend" #prepend>
       <slot name="prepend" />
@@ -90,6 +90,20 @@ const rowsStyle = computed(() =>
 
 function onUpdate(value: string | number | null): void {
   emit('update:modelValue', value == null ? '' : String(value));
+}
+
+/**
+ * В числовом поле введённое при входе выделяется целиком: первая набранная
+ * цифра заменяет значение, а не дописывается к нему (к нулю по умолчанию «1»
+ * давала «10»). Выделение на следующем кадре — сразу при фокусе его снимает
+ * отпускание кнопки мыши после клика. Текстовые поля не трогаем.
+ */
+function onFocus(event: Event): void {
+  emit('focus', event);
+  if (props.type !== 'number' || props.readonly || props.disabled) return;
+  const input = event.target;
+  if (!(input instanceof HTMLInputElement)) return;
+  requestAnimationFrame(() => input.select());
 }
 
 const qInputRef = ref<QInput | null>(null);

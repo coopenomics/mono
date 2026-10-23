@@ -7,7 +7,7 @@
 //- а закрытие трактуется как «Позже» — пайщик оффера просто не увидит.
 BaseDialog(
   v-model='visible',
-  title='Удостоверение пайщика',
+  :title='$t("security.migrationOfferDialog.title")',
   size='sm',
   :close-on-route-change='false'
 )
@@ -17,7 +17,7 @@ BaseDialog(
   .migration-offer(v-else)
     BaseInput(
       v-model='password',
-      label='Новый пароль',
+      :label='$t("security.migrationOfferDialog.newPasswordLabel")',
       type='password',
       autocomplete='new-password',
       :hint='PASSWORD_POLICY_HINT',
@@ -26,7 +26,7 @@ BaseDialog(
     )
     BaseInput(
       v-model='repeat',
-      label='Повторите пароль',
+      :label='$t("security.migrationOfferDialog.repeatPasswordLabel")',
       type='password',
       autocomplete='new-password',
       :error='repeatError'
@@ -34,26 +34,25 @@ BaseDialog(
 
   template(#footer)
     template(v-if='step === "intro"')
-      BaseButton(variant='secondary', @click='postpone') Позже
+      BaseButton(variant='secondary', @click='postpone') {{ $t('security.migrationOfferDialog.later') }}
       BaseButton(variant='primary', @click='step = "form"')
         template(#icon-left)
           q-icon(name='password', size='18px')
-        | Установить пароль
+        | {{ $t('security.migrationOfferDialog.setPassword') }}
     template(v-else)
-      BaseButton(variant='secondary', :disabled='saving', @click='step = "intro"') Назад
+      BaseButton(variant='secondary', :disabled='saving', @click='step = "intro"') {{ $t('common.action.back') }}
       BaseButton(
         variant='primary',
         :loading='saving',
         :disabled='!isValid',
         @click='onSetPassword'
-      ) Установить
+      ) {{ $t('security.migrationOfferDialog.submit') }}
 </template>
 
 <script lang="ts" setup>
 import { computed, ref } from 'vue';
 import { PASSWORD_POLICY_HINT } from '@coopenomics/auth';
 import { BaseButton, BaseDialog, BaseInput } from 'src/shared/ui/base';
-import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useSessionStore } from 'src/entities/Session';
 import {
   migrationOfferDismissed as dismissed,
@@ -63,7 +62,7 @@ import {
 import MigrationExplainer from './MigrationExplainer.vue';
 
 const session = useSessionStore();
-const { setPassword } = useSetPassword();
+const { setPasswordFromScreen } = useSetPassword();
 
 const step = ref<'intro' | 'form'>('intro');
 const saving = ref(false);
@@ -98,12 +97,14 @@ async function onSetPassword(): Promise<void> {
   if (!isValid.value || saving.value) return;
   saving.value = true;
   try {
-    await setPassword(password.value);
-    dismissed.value = true;
-    reset();
-    SuccessAlert('Пароль установлен — вы уже вошли по нему, работайте дальше.');
-  } catch (e) {
-    FailAlert(e);
+    // Диалог закрываем при любом исходе, кроме сбоя самой установки: если пароль
+    // записан, а перевход не удался, пайщика ведут на вход — держать здесь
+    // форму с кнопкой «Установить» нельзя, повторная установка уже невозможна.
+    const stayed = await setPasswordFromScreen(password.value);
+    if (stayed || session.currentUserAccount?.has_password !== false) {
+      dismissed.value = true;
+      reset();
+    }
   } finally {
     saving.value = false;
   }

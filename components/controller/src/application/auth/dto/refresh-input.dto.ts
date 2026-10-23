@@ -1,13 +1,14 @@
 import { Field, InputType } from '@nestjs/graphql';
+import { validationMessage } from '@coopenomics/extension-kit';
 import { IsNotEmpty } from 'class-validator';
 
 @InputType('RefreshInput')
 export class RefreshInputDTO {
   @Field({ description: 'Токен обновления' })
-  @IsNotEmpty({ message: 'Поле "refresh_token" обязательно для заполнения.' })
+  @IsNotEmpty({ message: validationMessage('auth.refreshInputDto.fieldRefreshTokenRequired') })
   refresh_token!: string;
 
   @Field({ description: 'Токен доступа' })
-  @IsNotEmpty({ message: 'Поле "access_token" обязательно для заполнения.' })
+  @IsNotEmpty({ message: validationMessage('auth.refreshInputDto.fieldAccessTokenRequired') })
   access_token!: string;
 }

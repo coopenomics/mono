@@ -24,4 +24,11 @@ export interface ApprovalRepository extends IBlockchainSyncRepository<ApprovalDo
   findByCoopname(coopname: string): Promise<ApprovalDomainEntity[]>;
   findByUsername(username: string): Promise<ApprovalDomainEntity[]>;
   findByApprovalHash(approvalHash: string): Promise<ApprovalDomainEntity | null>;
+  /** Одобрения по типам (действиям контракта-инициатора) — для столов, чей процесс их завёл. */
+  findByActions(query: {
+    coopname: string;
+    actions: string[];
+    usernames?: string[];
+    statuses?: string[];
+  }): Promise<ApprovalDomainEntity[]>;
 }

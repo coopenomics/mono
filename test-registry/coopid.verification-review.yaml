@@ -23,7 +23,7 @@ sources:
     - components/controller/src/domain/auth-v2/verification/constants/verification-bucket.ts
     - components/controller/src/domain/auth-v2/ports/verification-review.port.ts
     - components/controller/src/infrastructure/auth-v2/postgres-verification-review.repository.ts
-    - components/controller/migrations/V2.5.4__coopid_verification_reviews.ts
+    - components/controller/src/infrastructure/auth-v2/coop-domain-migrations/1781000000016-coopid-verification-reviews.ts
     - components/controller/src/application/auth-v2/verification/verification-onsite.service.ts
   ui:
     - components/desktop/src/widgets/Verifications/**
@@ -42,6 +42,7 @@ cases:
       снимок ложится в хранилище кооператива, запись журнала заводится со
       статусом «на проверке», уровень на цепи выдан сразу
     test: components/controller/src/application/auth-v2/verification/verification-review.service.spec.ts
+    api: components/api-tests/src/coopid/verification-review.test.ts
     status: passing
 
   - id: cid.vrev.break.01
@@ -50,6 +51,7 @@ cases:
     scenario: сверка на участке отправлена без единого снимка
     expect: отказ — совету потом не по чему решать
     test: components/controller/src/application/auth-v2/verification/verification-review.service.spec.ts
+    api: components/api-tests/src/coopid/verification-review.test.ts
     status: passing
 
   - id: cid.vrev.break.02
@@ -60,6 +62,7 @@ cases:
       отказ ДО записи в цепь — узнать о битом файле после verifyacc поздно,
       уровень уже выдан и его пришлось бы отзывать отдельным действием
     test: components/controller/src/application/auth-v2/verification/verification-review.service.spec.ts
+    api: components/api-tests/src/coopid/verification-review.test.ts
     status: passing
 
   - id: cid.vrev.break.03
@@ -68,6 +71,7 @@ cases:
     scenario: к одной сверке приложено больше пяти снимков
     expect: отказ с указанием предела
     test: components/controller/src/application/auth-v2/verification/verification-review.service.spec.ts
+    api: components/api-tests/src/coopid/verification-review.test.ts
     status: passing
 
   - id: cid.vrev.side.01
@@ -78,6 +82,7 @@ cases:
       снимки не требуются, запись сразу утверждённая — совет и есть
       проверяющая сторона и себя не проверяет
     test: components/controller/src/application/auth-v2/verification/verification-review.service.spec.ts
+    api: components/api-tests/src/coopid/verification-review.test.ts
     status: passing
 
   - id: cid.vrev.break.04
@@ -85,10 +90,12 @@ cases:
     kind: break
     scenario: файл больше десяти мегабайт либо не изображение
     expect: >
-      бакет coopid:verification отклоняет по maxBytes и allowedMime, запись
-      журнала не заводится
-    test: ~
-    status: missing
+      отказ по правилам бакета coopid:verification (maxBytes, allowedMime) до
+      записи в цепь: уровень не выдаётся, запись журнала не заводится. До
+      25.09.2026 уровень выдавался, а запись для совета не заводилась.
+    test: components/controller/src/application/auth-v2/verification/verification-review.service.spec.ts
+    api: components/api-tests/src/coopid/verification-review.test.ts
+    status: passing
 
   # ── Решение совета ────────────────────────────────────────────────────────
 
@@ -100,6 +107,7 @@ cases:
       снимки удалены из хранилища, статус «подтверждена», цепь не тронута —
       уровень там уже есть
     test: components/controller/src/application/auth-v2/verification/verification-review.service.spec.ts
+    api: components/api-tests/src/coopid/verification-review.test.ts
     status: passing
 
   - id: cid.vrev.happy.03
@@ -110,6 +118,7 @@ cases:
       верификация отозвана с цепи (unverifyacc), снимки удалены, статус
       «отклонена», причина сохранена
     test: components/controller/src/application/auth-v2/verification/verification-review.service.spec.ts
+    api: components/api-tests/src/coopid/verification-review.test.ts
     status: passing
 
   - id: cid.vrev.break.05
@@ -118,6 +127,7 @@ cases:
     scenario: решение принимается повторно по уже закрытой сверке
     expect: отказ, состояние не переписывается
     test: components/controller/src/application/auth-v2/verification/verification-review.service.spec.ts
+    api: components/api-tests/src/coopid/verification-review.test.ts
     status: passing
 
   - id: cid.vrev.break.06
@@ -128,6 +138,7 @@ cases:
       отказ на каждом из четырёх входов; оператор участка проверяемая сторона
       и своих снимков после отправки уже не видит
     test: components/controller/src/application/auth-v2/verification/verification-review.service.spec.ts
+    api: components/api-tests/src/coopid/verification-review.test.ts
     status: passing
 
   - id: cid.vrev.break.07
@@ -136,6 +147,7 @@ cases:
     scenario: запрошены снимки сверки, по которой решение уже принято
     expect: отказ — снимков больше нет, они удалены вместе с решением
     test: components/controller/src/application/auth-v2/verification/verification-review.service.spec.ts
+    api: components/api-tests/src/coopid/verification-review.test.ts
     status: passing
 
   - id: cid.vrev.side.02
@@ -144,6 +156,8 @@ cases:
     scenario: выдача снимков председателю
     expect: пишется в аудит — смотреть чужой паспорт молча нельзя
     test: components/controller/src/application/auth-v2/verification/verification-review.service.spec.ts
+    external: unreachable
+    external_reason: "журнал безопасности (события доступа и снятия защиты) через API не читается"
     status: passing
 
   - id: cid.vrev.side.03
@@ -155,17 +169,21 @@ cases:
       осиротевший объект удалится следующей попыткой
     test: ~
     status: missing
+    external: unreachable
+    external_reason: "отказ хранилища снимков посреди решения: остановка хранилища роняет и остальные сценарии сверки, точечно сбой не создать"
 
   - id: cid.vrev.break.08
     level: backend
     kind: break
     scenario: >
-      ответ UPDATE ... RETURNING от TypeORM приходит парой «строки и число
-      задетых», а не плоским списком строк
+      решение по заявке пишется одним UPDATE ... RETURNING; заявка есть и
+      заявки нет; то же правило для кода второго фактора и очистки правил
     expect: >
-      запись читается верно; иначе отзыв верификации падает уже после того,
-      как цепь его провела, и повторить его контракт не даёт
+      запись читается из возвращённой строки, без строки — пусто; иначе отзыв
+      верификации падает уже после того, как цепь его провела, и повторить
+      его контракт не даёт; повтор кода не проходит, число удалённых верное
     test: components/controller/src/infrastructure/auth-v2/postgres-verification-review.repository.spec.ts
+    api: components/api-tests/src/coopid/verification-review.test.ts
     status: passing
 
   - id: cid.vrev.side.08
@@ -179,6 +197,8 @@ cases:
     status: missing
 
   # ── Журнал ────────────────────────────────────────────────────────────────
+    external: unreachable
+    external_reason: "недоступный журнал аудита после успешного действия в цепи: журнал живёт в той же базе, что и весь CoopID"
 
   - id: cid.vrev.happy.04
     level: backend
@@ -188,6 +208,7 @@ cases:
       последняя запись журнала отмечается отозванной с автором и причиной —
       цепь истории не хранит, отзыв стирает запись подтверждения
     test: components/controller/src/application/auth-v2/verification/verification-review.service.spec.ts
+    api: components/api-tests/src/coopid/verification-review.test.ts
     status: passing
 
   - id: cid.vrev.side.04
@@ -196,6 +217,7 @@ cases:
     scenario: отзыв по пайщику, чья сверка уже отклонена или отозвана
     expect: журнал не переписывается повторно
     test: components/controller/src/application/auth-v2/verification/verification-review.service.spec.ts
+    api: components/api-tests/src/coopid/verification-review.test.ts
     status: passing
 
   # ── Интерфейс ─────────────────────────────────────────────────────────────

@@ -44,6 +44,7 @@ export class Factory extends DocFactory<MarketplaceWriteoffProtocol.Action> {
       data.coopname,
       data.decision_id,
       meta.created_at,
+      meta.timezone,
     )
 
     const combinedData: MarketplaceWriteoffProtocol.Model = {

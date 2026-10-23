@@ -1,4 +1,5 @@
 import { ALL_DOC_FIELDS, type EditableFieldKey } from './capitalProgramDocFields';
+import { BLAGOROST_PROGRAM_REGISTRY_ID, GENERATOR_PROGRAM_REGISTRY_ID } from './capitalOnboardingWizard';
 
 const STORAGE_PREFIX = 'capital-cpp-doc-params-draft';
 
@@ -74,11 +75,11 @@ export function readCapitalProgramDocParamsDraft(storageKey: string): CapitalPro
     const form = normalizeForm(parsed.form);
     if (!form) return null;
 
-    const legacyTab = typeof parsed.activeTab === 'number' ? parsed.activeTab : 994;
+    const legacyTab = typeof parsed.activeTab === 'number' ? parsed.activeTab : GENERATOR_PROGRAM_REGISTRY_ID;
     const wizardStepKey =
       typeof parsed.wizardStepKey === 'string'
         ? parsed.wizardStepKey
-        : legacyTab === 998
+        : legacyTab === BLAGOROST_PROGRAM_REGISTRY_ID
           ? 'doc_blagorost'
           : 'doc_generator';
 

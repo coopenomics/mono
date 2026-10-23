@@ -1,0 +1,266 @@
+/**
+ * Принимающая сторона раскрытий: анкета для быстрой регистрации (story 9.3, FR-F2/F4).
+ *
+ * Кандидат с картой выбирает кооператив, где его уже верифицировали, и мы просим card.coop
+ * спросить его согласия. Дальше всё происходит без нас и без него: держатель разрешает, сеть
+ * привозит грант подписанным уведомлением (ADR-2 card.coop), мы немедленно меняем грант на
+ * анкету у кооператива-источника — напрямую, минуя card.coop, — и анкета ждёт единственного
+ * прочтения в форму.
+ *
+ * Ответ источника проверяется по цепи, а не по чьему-либо слову: ключ, которым подписана
+ * анкета, обязан совпадать с ключом заверения кооператива-источника из `ano::endorsements`
+ * главной цепи. Узел кооператива читает цепь сам — ему, в отличие от card.coop, для этого
+ * не нужны ни JWKS, ни посредники.
+ */
+import { TableStore } from '@coopenomics/extension-kit';
+import { CARDCOOP_ENTRY_SESSION_STORE } from '../infrastructure/database/cardcoop-stores';
+import { Inject, Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import canonicalize from 'canonicalize';
+import { Signature } from '@wharfkit/antelope';
+import { AnoContract } from 'cooptypes';
+import { CHAIN_PORT, type IChainPort, LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
+import { platformSettings, DomainError } from '@coopenomics/extension-kit';
+import { CardcoopAttestationService } from '../attestation/attestation.service';
+import {
+  CardcoopEntryOutcome,
+  CardcoopEntrySessionRecord,
+  CardcoopEntryStatus,
+} from '../infrastructure/records/cardcoop-entry-session.record';
+import { t } from '../i18n';
+
+/** Аккаунт цепи, на котором живут заверения сети. */
+const ANO = AnoContract.contractName.production;
+
+/** Таблица заверений: кто признан, каким ключом и до какого момента. */
+const ENDORSEMENTS_TABLE = AnoContract.Tables.Endorsements.tableName;
+
+/** Заголовок таймаута обмена: источник рядом, а держатель ждёт у экрана. */
+const EXCHANGE_TIMEOUT_MS = 15_000;
+
+/** Строка заверения из цепи. */
+interface EndorsementRow {
+  subject?: string;
+  cert_key?: string;
+  expires_at?: string;
+}
+
+/** Уведомление сети о решении держателя. */
+export interface DisclosureDecisionNotification {
+  disclosure_id?: string;
+  grant?: string;
+  from_coopname?: string;
+  from_disclosure_url?: string | null;
+}
+
+@Injectable()
+export class CardcoopDisclosureIntakeService {
+  constructor(
+    @Inject(CARDCOOP_ENTRY_SESSION_STORE)
+    private readonly sessions: TableStore<CardcoopEntrySessionRecord>,
+    private readonly attestationService: CardcoopAttestationService,
+    @Inject(CHAIN_PORT) private readonly chain: IChainPort,
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
+  ) {
+    this.logger.setContext(CardcoopDisclosureIntakeService.name);
+  }
+
+  /**
+   * Просит card.coop спросить согласие держателя на перенос анкеты.
+   *
+   * @param apiUrl — адрес сети из конфигурации расширения.
+   * @param sessionId — сессия входа кандидата.
+   * @param fromCoopname — выбранный кооператив-источник.
+   * @returns Обновлённая сессия: ждём решения держателя.
+   * @throws NotFoundException Если сессии нет или источник не из её членств.
+   * @throws ConflictException Если сеть не приняла запрос (висит прежний либо недавний отказ).
+   */
+  async requestDisclosure(
+    apiUrl: string,
+    sessionId: string,
+    fromCoopname: string
+  ): Promise<CardcoopEntrySessionRecord> {
+    const session = await this.candidateSession(sessionId);
+
+    if (!session.memberships.some((entry) => entry.coopname === fromCoopname)) {
+      // Источник — только из членств, показанных с согласия держателя при входе: просить
+      // анкету у кооператива, о членстве в котором человек нам не говорил, нельзя.
+      throw DomainError.notFound('CARDCOOP_SOURCE_COOP_NOT_IN_MEMBERSHIPS');
+    }
+
+    const envelope = await this.attestationService.signDocument({
+      type: 'disclosure_request',
+      coopname: platformSettings().coopname,
+      card_id: session.cardId,
+      from_coopname: fromCoopname,
+      issued_at: new Date().toISOString(),
+      chain_id: platformSettings().blockchain.chainId,
+    });
+
+    const result = await this.attestationService.deliverDocument(`${trim(apiUrl)}/v1/disclosures`, envelope);
+    const disclosureId = typeof result.body?.id === 'string' ? result.body.id : null;
+
+    if (!result.delivered || !disclosureId) {
+      throw new ConflictException(
+        result.reason ?? t('cardcoop.disclosureIntake.deliveryFailedHint')
+      );
+    }
+
+    session.disclosureId = disclosureId;
+    session.status = CardcoopEntryStatus.AwaitingConsent;
+    return this.sessions.save(session);
+  }
+
+  /**
+   * Держатель разрешил: меняем грант на анкету у источника — немедленно.
+   *
+   * Немедленно, потому что грант живёт минуты и одноразов: отложить обмен значит его
+   * потерять. Ошибка не бросается наружу — уведомление сеть уже доставила, и повторная
+   * присылка того же гранта ничего не исправит; исход разбирается по журналу и по состоянию
+   * сессии.
+   *
+   * @param notification — уведомление сети с грантом.
+   */
+  async handleGranted(notification: DisclosureDecisionNotification): Promise<void> {
+    const session = await this.byDisclosure(notification.disclosure_id);
+    if (!session) return;
+
+    try {
+      if (!notification.grant || !notification.from_disclosure_url || !notification.from_coopname) {
+        throw DomainError.internal('CARDCOOP_NOTIFICATION_LEGACY_SOURCE');
+      }
+
+      const envelope = await this.fetchProfile(notification.from_disclosure_url, notification.grant);
+      await this.acceptProfile(session, envelope, notification.from_coopname);
+    } catch (error) {
+      // Переносить нечего — и человек обязан это увидеть. Прежде исход оставался только в
+      // журнале, а сессия висела в ожидании: страница опрашивала сервер бесконечно, хотя
+      // всё уже было решено (3B5-54). Причина остаётся здесь, вступающему её знать незачем.
+      session.status = CardcoopEntryStatus.Failed;
+      await this.sessions.save(session);
+
+      this.logger.error(
+        `Анкета по согласию ${session.disclosureId} не получена: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
+  }
+
+  /**
+   * Держатель промолчал: сеть погасила запрос по сроку.
+   *
+   * Молчание согласием не считается, и ждать больше нечего: сессия закрывается, а человек
+   * продолжает вступление вручную либо просит согласие заново.
+   *
+   * @param notification — уведомление сети.
+   */
+  async handleExpired(notification: DisclosureDecisionNotification): Promise<void> {
+    const session = await this.byDisclosure(notification.disclosure_id);
+    if (!session) return;
+
+    session.status = CardcoopEntryStatus.Expired;
+    await this.sessions.save(session);
+    this.logger.info(`Согласие ${session.disclosureId} погасло без ответа держателя`);
+  }
+
+  /**
+   * Держатель отказал: анкеты не будет, регистрация продолжается руками.
+   *
+   * @param notification — уведомление сети.
+   */
+  async handleDenied(notification: DisclosureDecisionNotification): Promise<void> {
+    const session = await this.byDisclosure(notification.disclosure_id);
+    if (!session) return;
+
+    session.status = CardcoopEntryStatus.Denied;
+    await this.sessions.save(session);
+    this.logger.info(`Держатель отказал в раскрытии по согласию ${session.disclosureId}`);
+  }
+
+  /** Забирает анкету у источника по гранту. */
+  private async fetchProfile(
+    url: string,
+    grant: string
+  ): Promise<{ payload: Record<string, unknown>; signature: string }> {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ grant }),
+      signal: AbortSignal.timeout(EXCHANGE_TIMEOUT_MS),
+    });
+
+    if (!response.ok) throw DomainError.internal('CARDCOOP_SOURCE_RESPONDED_WITH_STATUS', { status: response.status });
+
+    const envelope = (await response.json()) as { payload?: Record<string, unknown>; signature?: string };
+    if (!envelope.payload || typeof envelope.signature !== 'string') {
+      throw DomainError.internal('CARDCOOP_SOURCE_RESPONSE_NOT_SIGNED_ENVELOPE');
+    }
+    return { payload: envelope.payload, signature: envelope.signature };
+  }
+
+  /**
+   * Проверяет конверт источника и сохраняет анкету.
+   *
+   * Проверка по цепи: ключ подписи обязан совпадать с действующим ключом заверения
+   * кооператива-источника из `ano::endorsements`. Ответ, подписанный кем угодно другим —
+   * включая правильный по форме, — анкетой не становится.
+   */
+  private async acceptProfile(
+    session: CardcoopEntrySessionRecord,
+    envelope: { payload: Record<string, unknown>; signature: string },
+    fromCoopname: string
+  ): Promise<void> {
+    const { payload } = envelope;
+
+    if (payload.type !== 'disclosure_profile') throw DomainError.badRequest('CARDCOOP_SOURCE_WRONG_DOCUMENT_TYPE');
+    if (payload.coopname !== fromCoopname) throw DomainError.internal('CARDCOOP_SOURCE_SIGNER_MISMATCH');
+    if (payload.grant_jti !== session.disclosureId) throw DomainError.badRequest('CARDCOOP_PROFILE_WRONG_GRANT');
+    if (payload.card_id !== session.cardId) throw DomainError.badRequest('CARDCOOP_PROFILE_WRONG_CARD');
+    if (payload.to_coopname !== platformSettings().coopname) throw DomainError.badRequest('CARDCOOP_PROFILE_WRONG_TARGET_COOP');
+
+    await this.verifyByChain(payload, envelope.signature, fromCoopname);
+
+    session.profileType = typeof payload.subject_type === 'string' ? payload.subject_type : null;
+    session.profile = (payload.profile as Record<string, unknown>) ?? null;
+    session.status = CardcoopEntryStatus.ProfileReady;
+    await this.sessions.save(session);
+
+    this.logger.info(`Анкета кандидата получена от ${fromCoopname} по согласию ${session.disclosureId}`);
+  }
+
+  /** Подпись конверта против действующего заверения источника в цепи. */
+  private async verifyByChain(
+    payload: Record<string, unknown>,
+    signature: string,
+    fromCoopname: string
+  ): Promise<void> {
+    const canonical = canonicalize(payload);
+    if (canonical === undefined) throw DomainError.internal('CARDCOOP_PROFILE_NOT_CANONICAL_JSON');
+
+    const endorsement = await this.chain.getSingleRow<EndorsementRow>(ANO, ANO, ENDORSEMENTS_TABLE, fromCoopname);
+    if (!endorsement?.cert_key) throw DomainError.internal('CARDCOOP_SOURCE_COOP_NOT_ENDORSED', { coopname: fromCoopname });
+    if (endorsement.expires_at && Date.parse(`${endorsement.expires_at}Z`) < Date.now()) {
+      throw DomainError.internal('CARDCOOP_SOURCE_ENDORSEMENT_EXPIRED', { coopname: fromCoopname });
+    }
+
+    const signer = Signature.from(signature).recoverMessage(Buffer.from(canonical, 'utf8')).toString();
+    if (signer !== endorsement.cert_key) {
+      throw DomainError.internal('CARDCOOP_PROFILE_SIGNATURE_MISMATCH');
+    }
+  }
+
+  /** Сессия кандидата; пайщику раскрытие не нужно — его анкета и так у нас. */
+  private async candidateSession(id: string): Promise<CardcoopEntrySessionRecord> {
+    const session = await this.sessions.findOne({ id });
+    if (!session || session.outcome !== CardcoopEntryOutcome.Candidate) {
+      throw DomainError.notFound('CARDCOOP_ENTRY_SESSION_NOT_FOUND');
+    }
+    return session;
+  }
+
+  /** Сессия по согласию; отсутствие — норма: уведомление могло пережить сессию. */
+  private async byDisclosure(disclosureId?: string): Promise<CardcoopEntrySessionRecord | null> {
+    if (!disclosureId) return null;
+    return this.sessions.findOne({ disclosureId });
+  }
+}
+
+const trim = (url: string) => url.replace(/\/+$/, '');

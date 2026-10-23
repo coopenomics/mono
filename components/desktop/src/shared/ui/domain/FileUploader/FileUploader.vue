@@ -12,7 +12,7 @@
     @keydown.space.prevent='openPicker'
   )
     q-icon.file-uploader__icon(name='cloud_upload', size='28px')
-    .file-uploader__title {{ title ?? 'Перетащите файлы или нажмите для выбора' }}
+    .file-uploader__title {{ title ?? $t('ui.fileUploader.dropzoneText') }}
     .file-uploader__hint(v-if='resolvedHint') {{ resolvedHint }}
     input.file-uploader__native(
       ref='inputRef',
@@ -35,7 +35,7 @@
         slot(name='progress', :file='f', :index='idx')
       button.file-uploader__item-remove(
         type='button',
-        :aria-label='`Удалить ${f.name}`',
+        :aria-label='$t(`ui.fileUploader.removeFileText`, { fileName: f.name })',
         @click='removeAt(idx)'
       )
         q-icon(name='close', size='16px')
@@ -44,6 +44,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import type { FileUploaderError, FileUploaderProps } from './FileUploader.types';
+import { t as i18nT } from 'src/shared/i18n';
 
 const props = withDefaults(defineProps<FileUploaderProps>(), {
   multiple: false,
@@ -67,9 +68,9 @@ const files = computed<File[]>(() => {
 const resolvedHint = computed((): string => {
   if (props.hint) return props.hint;
   const parts: string[] = [];
-  if (props.accept) parts.push(`Форматы: ${props.accept}`);
-  if (props.maxSize) parts.push(`до ${formatSize(props.maxSize)}`);
-  if (props.maxFiles && props.multiple) parts.push(`не более ${props.maxFiles} файлов`);
+  if (props.accept) parts.push(i18nT('ui.fileUploader.formatsHint', { accept: props.accept }));
+  if (props.maxSize) parts.push(i18nT('ui.fileUploader.maxSizeHint', { maxSize: formatSize(props.maxSize) }));
+  if (props.maxFiles && props.multiple) parts.push(i18nT('ui.fileUploader.maxFilesHint', { maxFiles: props.maxFiles }));
   return parts.join(' · ');
 });
 
@@ -108,11 +109,11 @@ function applyFiles(picked: File[]): void {
   const accepted: File[] = [];
   for (const f of picked) {
     if (props.accept && !matchesAccept(f, props.accept)) {
-      emit('error', { code: 'accept', file: f, message: `Тип файла не разрешён: ${f.name}` });
+      emit('error', { code: 'accept', file: f, message: i18nT('ui.fileUploader.typeNotAllowedError', { fileName: f.name }) });
       continue;
     }
     if (props.maxSize && f.size > props.maxSize) {
-      emit('error', { code: 'max-size', file: f, message: `Файл больше ${formatSize(props.maxSize)}: ${f.name}` });
+      emit('error', { code: 'max-size', file: f, message: i18nT('ui.fileUploader.fileTooLargeError', { maxSize: formatSize(props.maxSize), fileName: f.name }) });
       continue;
     }
     accepted.push(f);
@@ -125,7 +126,7 @@ function applyFiles(picked: File[]): void {
   }
   const merged = [...files.value, ...accepted];
   if (props.maxFiles && merged.length > props.maxFiles) {
-    emit('error', { code: 'max-files', message: `Можно загрузить не более ${props.maxFiles} файлов` });
+    emit('error', { code: 'max-files', message: i18nT('ui.fileUploader.tooManyFilesError', { maxFiles: props.maxFiles }) });
     emit('update:modelValue', merged.slice(0, props.maxFiles));
     return;
   }
@@ -157,12 +158,12 @@ function matchesAccept(file: File, accept: string): boolean {
 }
 
 function formatSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} Б`;
+  if (bytes < 1024) return i18nT('ui.fileUploader.sizeBytesText', { bytes });
   const kb = bytes / 1024;
-  if (kb < 1024) return `${kb.toFixed(kb < 10 ? 1 : 0)} КБ`;
+  if (kb < 1024) return i18nT('ui.fileUploader.sizeKbText', { kb: kb.toFixed(kb < 10 ? 1 : 0) });
   const mb = kb / 1024;
-  if (mb < 1024) return `${mb.toFixed(mb < 10 ? 1 : 0)} МБ`;
-  return `${(mb / 1024).toFixed(1)} ГБ`;
+  if (mb < 1024) return i18nT('ui.fileUploader.sizeMbText', { mb: mb.toFixed(mb < 10 ? 1 : 0) });
+  return i18nT('ui.fileUploader.sizeGbText', { gb: (mb / 1024).toFixed(1) });
 }
 
 function iconFor(f: File): string {

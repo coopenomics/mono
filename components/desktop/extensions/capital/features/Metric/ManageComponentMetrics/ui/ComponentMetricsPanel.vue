@@ -1,7 +1,7 @@
 <template lang="pug">
 .metrics-panel
   .metrics-panel__head
-    .metrics-panel__title Цели по мерам
+    .metrics-panel__title {{ $t('capital.componentMetricsPanel.title') }}
 
   .metrics-panel__list.row.q-col-gutter-md(v-if='!isLoading && metricList.length')
     .col-12.col-md-6(v-for='metric in metricList', :key='metric.metric_hash')
@@ -9,7 +9,7 @@
         .metric-item__header
           .metric-item__title {{ metric.title }}
           .metric-item__marks
-            BaseBadge(v-if='metric.status === archivedStatus', variant='neutral') архив
+            BaseBadge(v-if='metric.status === archivedStatus', variant='neutral') {{ $t('capital.componentMetricsPanel.archiveTag') }}
             BaseBadge(:variant='seriesModeVariant(metric.series_mode)') {{ seriesModeLabel(metric.series_mode) }}
 
         .metric-item__progress
@@ -28,7 +28,7 @@
         MetricSeriesPanel(:metric-hash='metric.metric_hash')
 
   .metrics-panel__empty(v-else-if='!isLoading && !metricList.length')
-    EmptyState(title='Цели по мерам не заданы — откройте «План»')
+    EmptyState(:title='$t("capital.componentMetricsPanel.emptyHint")')
       template(#icon)
         q-icon(name='bar_chart', size='32px')
 
@@ -39,10 +39,13 @@
 
 <script setup lang="ts">
 import { computed, onMounted } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { CAPITAL_LIVE_TABLES } from 'app/extensions/capital/shared/lib/live';
 import { Zeus } from '@coopenomics/sdk';
 import { BaseBadge, EmptyState } from 'src/shared/ui/base';
 import { MetricSeriesPanel } from '../../ViewMetricSeries';
 import { useManageComponentMetrics } from '../model';
+import { t } from '../../../../i18n';
 
 const props = defineProps<{
   projectHash: string;
@@ -62,7 +65,7 @@ const metricList = computed(() =>
 
 /** Как в «Плане»: RATE — дельты, LEVEL — абсолютное значение. */
 const seriesModeLabel = (mode: Zeus.ModelTypes['MetricSeriesMode']) =>
-  mode === Zeus.MetricSeriesMode.LEVEL ? 'Уровень' : 'Изменения';
+  mode === Zeus.MetricSeriesMode.LEVEL ? t('capital.componentMetricsPanel.levelLabel') : t('capital.componentMetricsPanel.changesLabel');
 
 const seriesModeVariant = (
   mode: Zeus.ModelTypes['MetricSeriesMode'],
@@ -73,6 +76,9 @@ const progressValue = (metric: { fact: number; target_value: number }) => {
   if (!metric.target_value) return 0;
   return Math.min(metric.fact / metric.target_value, 1);
 };
+
+// Метрики компонента живут по ленте изменений Благороста.
+useLiveReload(CAPITAL_LIVE_TABLES, () => loadMetrics());
 
 onMounted(async () => {
   await loadMetrics();

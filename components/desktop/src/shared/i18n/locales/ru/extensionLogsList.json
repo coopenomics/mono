@@ -1,0 +1,13 @@
+{
+  "extensionLogsList": {
+    "extensionLogsList": {
+      "dateFromLabel": "Дата от",
+      "dateToLabel": "Дата до",
+      "emptyBody": "За выбранный период записей нет.",
+      "emptyTitle": "Логи не найдены",
+      "loadMore": "Загрузить ещё",
+      "rangeLabel": "1–{count} из {total}",
+      "zeroRangeLabel": "0 из {total}"
+    }
+  }
+}

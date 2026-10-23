@@ -1,5 +1,7 @@
 #pragma once
 
+
+#include "../../../lib/core/ram_payer.hpp"
 #include "../core/gamification/gamification.hpp"
 
 using namespace eosio;
@@ -86,7 +88,7 @@ namespace Capital::Contributors {
   inline void create_contributor(eosio::name coopname, eosio::name username, checksum256 contributor_hash, bool is_external_contract, document2 contract, eosio::asset rate_per_hour, uint64_t hours_per_day){
     Capital::contributor_index contributors(_capital, coopname.value);
    
-    contributors.emplace(coopname, [&](auto &c) {
+    contributors.emplace(RamPayer::of(contributors, coopname), [&](auto &c) {
       c.id = get_global_id_in_scope(_capital, coopname, "contributors"_n);
       c.coopname = coopname;
       c.username = username;
@@ -118,7 +120,7 @@ namespace Capital::Contributors {
   ) {
     Capital::contributor_index contributors(_capital, coopname.value);
 
-    contributors.emplace(coopname, [&](auto &c) {
+    contributors.emplace(RamPayer::of(contributors, coopname), [&](auto &c) {
       c.id = get_global_id_in_scope(_capital, coopname, "contributors"_n);
       c.coopname = coopname;
       c.username = username;
@@ -147,7 +149,7 @@ namespace Capital::Contributors {
     auto contributor_itr = contributors.find(contributor_id);
     eosio::check(contributor_itr != contributors.end(), "Контрибьютор не найден");
     
-    contributors.modify(contributor_itr, _capital, [&](auto &c) {
+    contributors.modify(contributor_itr, RamPayer::of(contributors, coopname), [&](auto &c) {
       c.appendixes.push_back(project_hash);
     });
   }
@@ -273,7 +275,7 @@ inline void update_contributor_ratings_from_segment(eosio::name coopname, uint64
 
   eosio::check(contributor != contributors.end(), "Контрибьютор не найден");
   
-  contributors.modify(contributor, _capital, [&](auto &c) {
+  contributors.modify(contributor, RamPayer::of(contributors, coopname), [&](auto &c) {
     // ВАЖНО: contributed_as_investor НЕ обновляется здесь, так как обновляется в момент инвестиции (createinvest)
     // Это предотвращает двойное начисление для участников с несколькими ролями (инвестор+создатель/автор и т.д.)
     
@@ -311,7 +313,7 @@ inline void increase_debt_amount(eosio::name coopname, uint64_t contributor_id, 
   
   eosio::check(contributor != contributors.end(), "Контрибьютор не найден");
   //TODO: make coopname payer
-  contributors.modify(contributor, _capital, [&](auto &c) {
+  contributors.modify(contributor, RamPayer::of(contributors, coopname), [&](auto &c) {
     c.debt_amount += amount;
   });
 }
@@ -327,7 +329,7 @@ inline void increase_debt_amount(eosio::name coopname, uint64_t contributor_id, 
   eosio::check(contributor->debt_amount >= amount, "Недостаточно долга для погашения");
 
   //TODO: make coopname payer
-  contributors.modify(contributor, _capital, [&](auto &c) {
+  contributors.modify(contributor, RamPayer::of(contributors, coopname), [&](auto &c) {
     c.debt_amount -= amount;
   });
 }
@@ -341,7 +343,7 @@ inline void edit_contributor(eosio::name coopname, uint64_t contributor_id, eosi
 
   eosio::check(contributor != contributors.end(), "Участник не найден");
 
-  contributors.modify(contributor, coopname, [&](auto &c) {
+  contributors.modify(contributor, RamPayer::of(contributors, coopname), [&](auto &c) {
     c.rate_per_hour = rate_per_hour;
     c.hours_per_day = hours_per_day;
   });
@@ -359,7 +361,7 @@ inline void increase_investor_contribution(eosio::name coopname, uint64_t contri
 
   eosio::check(contributor != contributors.end(), "Участник не найден");
 
-  contributors.modify(contributor, _capital, [&](auto &c) {
+  contributors.modify(contributor, RamPayer::of(contributors, coopname), [&](auto &c) {
     c.contributed_as_investor += amount;
   });
 }
@@ -385,7 +387,7 @@ inline void complete_imported_contributor_registration(
   eosio::check(contributor->status == Status::IMPORT, "Участник не находится в статусе импорта");
   eosio::check(contributor->is_external_contract == is_external_contract, "Флаг внешнего контракта не совпадает с импортированным");
 
-  contributors.modify(contributor, coopname, [&](auto &c) {
+  contributors.modify(contributor, RamPayer::of(contributors, coopname), [&](auto &c) {
     c.rate_per_hour = rate_per_hour;
     c.hours_per_day = hours_per_day;
     // Для не внешних контрактов обновляем contract
@@ -398,3 +400,6 @@ inline void complete_imported_contributor_registration(
 
 
 }// namespace Capital::Contributors
+
+// Плательщик за оперативную память строк таблицы — правило в lib/core/ram_payer.hpp.
+RAM_PAYER_CLASS(Capital::contributor, contract);

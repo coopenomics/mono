@@ -30,6 +30,9 @@
   if (braname) {
     auto branch = get_branch_or_fail(coopname, braname);
     eosio::check(branch.is_user_authorized(verificator), "Верификацию проводит председатель кооперативного участка или его доверенное лицо");
+    // Свою личность на участке не сверяют: председатель участка и доверенное
+    // лицо выдали бы себе уровень сами. Их сверяет совет кооператива.
+    eosio::check(verificator != username, "Свою личность на участке не сверяют — её подтверждает совет кооператива");
   } else {
     check_auth_or_fail(_registrator, coopname, verificator, "verifyacc"_n);
   }
@@ -45,7 +48,11 @@
     eosio::check(!(ver.procedure == procedure && ver.is_verified), "Верификация по этой процедуре уже проведена");
   }
 
-  accounts.modify(account, eosio::same_payer, [&](auto &a)
+  // Запись о верификации удлиняет строку аккаунта, и прирост памяти списывается
+  // с плательщика строки. У аккаунтов, заведённых при запуске сети, плательщик —
+  // системный аккаунт, и без его подписи цепь такой прирост отвергает. Поэтому
+  // строку оплачивает сам регистратор — так же, как при подтверждении регистрации.
+  accounts.modify(account, RamPayer::of(accounts, coopname), [&](auto &a)
   {
     verification new_verification {
       .verificator = verificator,

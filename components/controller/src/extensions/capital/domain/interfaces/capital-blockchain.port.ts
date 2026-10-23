@@ -113,6 +113,9 @@ export interface CapitalBlockchainPort {
    */
   createProgramInvest(data: CapitalContract.Actions.CreateProgramInvest.ICreateProgramInvest): Promise<InnerTransactResult>;
 
+  /** Трансляция паевого взноса из Благороста в Цифровой Кошелёк по заявлению пайщика (wthshare). */
+  transferShare(data: CapitalContract.Actions.TransferShare.ITransferShare): Promise<InnerTransactResult>;
+
   /**
    * Создание долга в CAPITAL контракте
    */

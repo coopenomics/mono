@@ -1,5 +1,6 @@
 import { Field, InputType, ObjectType, registerEnumType } from '@nestjs/graphql';
 import { IsEnum, IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
+import { SafeMarkup } from '@coopenomics/extension-kit';
 
 export enum CapitalOnboardingStepEnum {
   generator_program_template = 'generator_program_template',
@@ -23,16 +24,19 @@ export class CapitalOnboardingStepInputDTO {
   @IsOptional()
   @IsString()
   @MaxLength(200)
+  @SafeMarkup()
   title?: string;
 
   @Field(() => String)
   @IsString()
   @IsNotEmpty()
+  @SafeMarkup()
   question!: string;
 
   @Field(() => String)
   @IsString()
   @IsNotEmpty()
+  @SafeMarkup()
   decision!: string;
 }
 

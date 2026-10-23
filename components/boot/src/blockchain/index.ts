@@ -1,3 +1,4 @@
+import axios from 'axios'
 import { TextDecoder, TextEncoder } from 'node:util' // Add missing import
 import fs from 'node:fs'
 import { JsSignatureProvider } from 'eosjs/dist/eosjs-jssig'
@@ -12,12 +13,52 @@ import {
 } from 'cooptypes'
 // @ts-expect-error заменить на antelope
 import EosApi from 'eosjs-api'
-// @ts-expect-error заменить на antelope
 import ecc from 'eosjs-ecc'
 import config from '../configs'
 import { consoleIt } from '../tests/shared/consoleIt'
 
 import type { Contract, Feature, Keys, Network } from '../types'
+
+/**
+ * Ретрай транзакций, срезанных лимитом `max_transaction_cpu_usage` (290000us).
+ *
+ * Тяжёлые действия — установка крупных WASM'ов (capital, marketplace, soviet)
+ * при первой компиляции в eos-vm и заливка шаблонов документов
+ * (`draft::createdraft`) — стоят ~290-310ms и на загруженной машине не влезают
+ * в лимит. Это wall-time, а не детерминированная стоимость: то же действие на
+ * свободной машине проходит. Транзакция, срезанная по CPU, в цепь не попадает,
+ * поэтому повтор безопасен и не даёт дублей.
+ *
+ * Ретрай ставится на `api.transact` целиком, а не вокруг отдельных вызовов:
+ * иначе на загруженном стенде boot падает в случайном месте — там, где ретрая
+ * ещё не завели.
+ */
+const CPU_RETRY_ATTEMPTS = 8
+const CPU_RETRY_DELAY_MS = 2000
+
+function isCpuTimeoutError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error)
+  return /executing for too long|max_transaction_cpu_usage|tx_cpu_usage_exceeded/i.test(message)
+}
+
+function withCpuTimeoutRetry(api: any): void {
+  const transact = api.transact.bind(api)
+
+  api.transact = async (...args: any[]) => {
+    for (let attempt = 1; attempt <= CPU_RETRY_ATTEMPTS; attempt++) {
+      try {
+        return await transact(...args)
+      }
+      catch (error) {
+        if (!isCpuTimeoutError(error) || attempt === CPU_RETRY_ATTEMPTS)
+          throw error
+
+        console.warn(`[transact] CPU timeout, попытка ${attempt}/${CPU_RETRY_ATTEMPTS} — повтор через ${CPU_RETRY_DELAY_MS / 1000}с`)
+        await new Promise(resolve => setTimeout(resolve, CPU_RETRY_DELAY_MS))
+      }
+    }
+  }
+}
 
 export default class Blockchain {
   public signatureProvider: any
@@ -51,6 +92,7 @@ export default class Blockchain {
       textEncoder: new TextEncoder() as any,
     })
     this.api.read = await EosApi({ httpEndpoint: res })
+    withCpuTimeoutRetry(this.api)
   }
 
   generateRandomUsername(): string {
@@ -232,66 +274,44 @@ export default class Blockchain {
       // console.log(data)
       // console.log("abi: ", serializedAbiHexString)
 
-      // Retry на CPU-timeout: тяжёлые WASM'ы (capital, marketplace, soviet)
-      // на старте требуют ~290-300ms CPU при первой компиляции в eos-vm.
-      // Дефолт chain `max_transaction_cpu_usage=290000us` срезает их.
-      // CPU usage варьируется по +-N us; повторные попытки иногда влезают.
-      const MAX_ATTEMPTS = 8
-      let lastErr: unknown
-      for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-        try {
-          await this.api.transact(
+      // Ретрай на CPU-таймаут навешен на api.transact целиком
+      // (см. withCpuTimeoutRetry) — здесь его дублировать не нужно.
+      await this.api.transact(
+        {
+          actions: [
             {
-              actions: [
+              account: 'eosio',
+              name: 'setcode',
+              authorization: [
                 {
-                  account: 'eosio',
-                  name: 'setcode',
-                  authorization: [
-                    {
-                      actor: contract.target,
-                      permission: 'active',
-                    },
-                  ],
-                  data,
-                },
-                {
-                  account: 'eosio',
-                  name: 'setabi',
-                  authorization: [
-                    {
-                      actor: contract.target,
-                      permission: 'active',
-                    },
-                  ],
-                  data: {
-                    account: contract.target,
-                    abi: serializedAbiHexString,
-                  },
+                  actor: contract.target,
+                  permission: 'active',
                 },
               ],
+              data,
             },
             {
-              blocksBehind: 3,
-              expireSeconds: 30,
+              account: 'eosio',
+              name: 'setabi',
+              authorization: [
+                {
+                  actor: contract.target,
+                  permission: 'active',
+                },
+              ],
+              data: {
+                account: contract.target,
+                abi: serializedAbiHexString,
+              },
             },
-          )
-          if (attempt > 1) console.log(`contract setted (attempt ${attempt}): `, contract.target)
-          else console.log('contract setted: ', contract.target)
-          lastErr = undefined
-          break
-        }
-        catch (txErr) {
-          const txMsg = txErr instanceof Error ? txErr.message : String(txErr)
-          const isCpuTimeout = /executing for too long|max_transaction_cpu_usage/i.test(txMsg)
-          if (!isCpuTimeout || attempt === MAX_ATTEMPTS) {
-            lastErr = txErr
-            break
-          }
-          console.warn(`[setContract] CPU timeout on '${contract.target}' attempt ${attempt}/${MAX_ATTEMPTS} — retrying in 2s`)
-          await new Promise(resolve => setTimeout(resolve, 2000))
-        }
-      }
-      if (lastErr) throw lastErr
+          ],
+        },
+        {
+          blocksBehind: 3,
+          expireSeconds: 30,
+        },
+      )
+      console.log('contract setted: ', contract.target)
     }
     catch (e) {
       // Отсутствующий wasm/abi — soft warn. Контракт может быть
@@ -315,8 +335,39 @@ export default class Blockchain {
     }
   }
 
+  /**
+   * Digest фичи по её кодовому имени у самой ноды. Текст описания builtin-фичи
+   * в coopos правили после выкатов, и digest в конфиге расходится с тем, что
+   * знает конкретный бинарь (у ASSERT_RECOVER_KEY_ACCOUNT три разных digest:
+   * в репозитории, в образе dev-стендов и на боевой цепи). Нода на чужой digest
+   * отвечает «protocol feature … is unrecognized», поэтому спрашиваем её саму.
+   * Если producer API недоступен или имени нет — остаётся digest из конфига.
+   */
+  async resolveFeatureDigest(feature: Feature): Promise<string> {
+    try {
+      const url = `${this.network.protocol}://${this.network.host}${this.network.port}`
+      const response = await axios.post(`${url}/v1/producer/get_supported_protocol_features`, {
+        exclude_disabled: false,
+        exclude_unactivatable: false,
+      })
+      const supported: any[] = Array.isArray(response.data) ? response.data : []
+      const found = supported.find(f =>
+        (f.specification ?? []).some((s: any) => s.name === 'builtin_feature_codename' && s.value === feature.name),
+      )
+      if (found?.feature_digest && found.feature_digest !== feature.hash) {
+        console.warn(`Фича ${feature.name}: нода знает digest ${found.feature_digest}, в конфиге ${feature.hash} — берём digest ноды`)
+        return found.feature_digest
+      }
+    }
+    catch (e: any) {
+      console.warn(`Не удалось спросить у ноды список фич (${e?.message}), используем digest из конфига`)
+    }
+    return feature.hash
+  }
+
   async activateFeature(feature: Feature) {
     await this.update_pass_instance()
+    const featureDigest = await this.resolveFeatureDigest(feature)
 
     try {
       await this.api.transact(
@@ -332,7 +383,7 @@ export default class Blockchain {
                 },
               ],
               data: {
-                feature_digest: feature.hash,
+                feature_digest: featureDigest,
               },
             },
           ],
@@ -480,6 +531,33 @@ export default class Blockchain {
     )
 
     console.log('Эмиссия инициализирована', params)
+  }
+
+  /**
+   * Настройка выдачи памяти контрактам платформы: порог, объём одной выдачи,
+   * интервал проверки и список контрактов, которым сеть выдаёт память сама.
+   */
+  async setRamGrant(config: {
+    threshold_percent: number
+    grant_bytes: number
+    check_interval_sec: number
+    contracts: string[]
+  }) {
+    await this.update_pass_instance()
+
+    await this.api.transact(
+      {
+        actions: [
+          {
+            account: SystemContract.contractName.production,
+            name: 'setramgrant',
+            authorization: [{ actor: 'eosio', permission: 'active' }],
+            data: { config },
+          },
+        ],
+      },
+      { blocksBehind: 3, expireSeconds: 30 },
+    )
   }
 
   async initPowerup(params: SystemContract.Actions.InitPowerup.IInitPowerup) {
@@ -890,12 +968,17 @@ export default class Blockchain {
                       weight: 1,
                     },
                   ],
+                  // Право контракта действовать от своего имени (eosio.code) остаётся:
+                  // без него заявка на память из конструктора контракта роняет
+                  // любое его действие. Цепь требует список по возрастанию имени.
                   accounts: [
-                    {
-                      permission: { actor: delegate, permission: 'active' },
-                      weight: 1,
-                    },
-                  ],
+                    { permission: { actor: delegate, permission: 'active' }, weight: 1 },
+                    { permission: { actor: account, permission: 'eosio.code' }, weight: 1 },
+                  ].sort((a, b) => {
+                    const left = `${a.permission.actor}@${a.permission.permission}`
+                    const right = `${b.permission.actor}@${b.permission.permission}`
+                    return left < right ? -1 : left > right ? 1 : 0
+                  }),
                   waits: [],
                 },
               },

@@ -1,9 +1,9 @@
 /**
- * Unit-тесты MarketplaceDesktopGrantsProvider — канон видимости столов.
+ * Права страниц Стола заказов из описания прав приложения — канон видимости столов.
  *
  * Покрывают двухуровневый онбординг-гейт:
  *   (L1 кооператив) пока coopAcceptance.accepted !== true → у председателя
- *      только ['Extension:configure'], у прочих [].
+ *      только ['Extension:configure', 'Onboarding:coop'], у прочих [].
  *   (L3 пайщик-заказчик) после принятия ЦПП orderer-права выдаются только при
  *      ДВУХ независимых фактах — подписана персональная оферта
  *      (requires_gate=false, могло случиться ещё на L2 при регистрации) И
@@ -15,7 +15,8 @@
  *   Гость / не-active → [].
  */
 import { MonoAccountStatus } from '@coopenomics/innercoop';
-import { MarketplaceDesktopGrantsProvider } from '~/extensions/marketplace/application/desktop/marketplace-desktop-grants.provider';
+import { desktopGrantsOf } from '@coopenomics/extension-kit';
+import { MarketplaceRightsService } from '~/extensions/marketplace/application/access/marketplace-rights.service';
 import { MarketplaceOnboardingSource } from '~/extensions/marketplace/application/dto/marketplace-onboarding-state.dto';
 
 function makeProvider(opts: {
@@ -50,13 +51,11 @@ function makeProvider(opts: {
         opts.hasDeliveryPoint ? { delivery_braname: 'ku-1' } : null,
       ),
   } as any;
-  const provider = new MarketplaceDesktopGrantsProvider(
-    registry,
-    whitelist,
-    kuChairman,
-    onboarding,
-    cart,
-  );
+  // Права считает тот же сервис, что и серверный гард: конфиг приложения
+  // провайдеру передаёт платформа, поэтому чтение конфига здесь не нужно.
+  const rights = new MarketplaceRightsService({ get: jest.fn() } as any, onboarding, cart, whitelist, kuChairman, {} as any, registry);
+  // Права стола выдаёт общий провайдер каркаса по описанию прав Стола заказов.
+  const provider = desktopGrantsOf(rights);
   return { provider, onboarding, cart };
 }
 
@@ -66,7 +65,7 @@ const baseCtx = {
   userStatus: MonoAccountStatus.Active,
 };
 
-describe('MarketplaceDesktopGrantsProvider', () => {
+describe('права страниц Стола заказов', () => {
   it('гость (нет username) → []', async () => {
     const { provider } = makeProvider({});
     expect(await provider.resolveGrants({ coopname: 'voskhod' })).toEqual([]);
@@ -82,25 +81,39 @@ describe('MarketplaceDesktopGrantsProvider', () => {
     expect(grants).toEqual([]);
   });
 
+  it('председатель со статусом registered получает права по роли', async () => {
+    const { provider } = makeProvider({});
+    const grants = await provider.resolveGrants({
+      ...baseCtx,
+      userRole: 'chairman',
+      userStatus: 'registered' as any,
+      config: { coopAcceptance: { accepted: false } },
+    });
+    expect(grants).toContain('Extension:configure');
+  });
+
   describe('L1: ЦПП ещё не принята кооперативом', () => {
-    it('председатель → только Extension:configure', async () => {
+    it('председатель → настройка расширения и маркер страницы подключения', async () => {
       const { provider } = makeProvider({});
       const grants = await provider.resolveGrants({
         ...baseCtx,
         userRole: 'chairman',
         config: { coopAcceptance: { accepted: false } },
       });
-      expect(grants).toEqual(['Extension:configure']);
+      expect(grants).toEqual(expect.arrayContaining(['Extension:configure', 'Onboarding:coop']));
+      // До решения совета рабочих прав нет ни у кого, включая председателя.
+      expect(grants).not.toContain('KU:manage');
+      expect(grants).not.toContain('Offer:read');
     });
 
-    it('обычный пайщик → []', async () => {
+    it('обычный пайщик → только состояние приложения и свои роли, страниц нет', async () => {
       const { provider } = makeProvider({});
       const grants = await provider.resolveGrants({
         ...baseCtx,
         userRole: 'user',
         config: {},
       });
-      expect(grants).toEqual([]);
+      expect([...grants].sort()).toEqual(['Extension:read', 'Membership:read:own']);
     });
   });
 
@@ -164,6 +177,9 @@ describe('MarketplaceDesktopGrantsProvider', () => {
       expect(grants).toContain('Order:read:all');
       expect(grants).toContain('Whitelist:manage');
       expect(grants).toContain('Extension:configure');
+      // Страница подключения ЦПП после принятия исчезает: маркер её видимости
+      // живёт только до подключения.
+      expect(grants).not.toContain('Onboarding:coop');
       // маркер онбординга выдан (orderer-роль гейтится)
       expect(grants).toContain('Onboarding:orderer');
       // orderer-эксклюзивное рабочее право (оформление заказа) под гейтом:

@@ -4,7 +4,7 @@
   .document-details-page__bar
     button.document-back(type='button', @click='goBack')
       q-icon(name='arrow_back', size='18px')
-      span К реестру документов
+      span {{ $t('cooperative.documentDetailsPage.backLabel') }}
 
   .document-details-page__content
     div(v-if='loading')
@@ -15,8 +15,8 @@
 
     EmptyState(
       v-else,
-      title='Документ не найден',
-      body='Проверьте правильность ссылки или вернитесь к реестру документов.'
+      :title='$t("cooperative.documentDetailsPage.notFoundTitle")',
+      :body='$t("cooperative.documentDetailsPage.notFoundBody")'
     )
       template(#icon)
         q-icon(name='search_off', size='48px')
@@ -24,6 +24,7 @@
 
 <script setup lang="ts">
 import { onMounted, ref, computed, onUnmounted, watch } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
 import { useRoute, useRouter } from 'vue-router';
 import { ComplexDocument } from 'src/shared/ui/ComplexDocument';
 import { EmptyState } from 'src/shared/ui/base/EmptyState';
@@ -32,6 +33,7 @@ import { useDesktopStore } from 'src/entities/Desktop';
 import { useSessionStore } from 'src/entities/Session';
 import { FailAlert } from 'src/shared/api';
 import type { IDocumentPackageAggregate } from 'src/entities/Document/model/types';
+import { t } from 'src/shared/i18n';
 
 const route = useRoute();
 const router = useRouter();
@@ -50,7 +52,7 @@ const documentTitle = computed(() => {
   const meta = (document.value?.statement?.documentAggregate?.document?.meta ??
     document.value?.decision?.documentAggregate?.document?.meta) as Record<string, any> | undefined;
   const title = typeof meta?.title === 'string' ? meta.title : '';
-  return title || 'Документ';
+  return title || t('cooperative.documentDetailsPage.defaultTitle');
 });
 
 // Раздел выводим из имени роута (детерминированно даже при холодном deep-link,
@@ -72,26 +74,30 @@ const goBack = (): void => {
   });
 };
 
-const loadDocument = async (): Promise<void> => {
-  loading.value = true;
+const loadDocument = async (silent = false): Promise<void> => {
+  if (!silent) loading.value = true;
   try {
     document.value = await documentStore.loadDocument(
       scopeUsername.value,
       documentHash.value,
     );
   } catch (error: any) {
-    FailAlert(error);
+    if (!silent) FailAlert(error);
   } finally {
     loading.value = false;
   }
 };
+
+// Решение совета, подпись и аннулирование пишут реестр signed_documents —
+// открытый документ перечитывается сам.
+useLiveReload([{ code: 'core', table: 'signed_documents' }], () => loadDocument(true));
 
 // Наименование документа держим в заголовке шапки, пока открыта страница.
 watch(documentTitle, (title) => desktopStore.setPageTitleOverride(title), {
   immediate: true,
 });
 
-onMounted(loadDocument);
+onMounted(() => loadDocument());
 
 onUnmounted(() => desktopStore.clearPageTitleOverride());
 </script>

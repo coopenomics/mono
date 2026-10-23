@@ -42,6 +42,7 @@ export * as RegisterUser from './registerUser'
 /**
  * Действие подачи заявления на выход пайщика из кооператива (возврат паевого взноса)
  */
+export * as ExitAgree from './exitAgree'
 export * as ExitCoop from './exitCoop'
 
 /**
@@ -100,3 +101,8 @@ export * as EnableBranches from './enableBranches'
  * @private
  */
 export * as DisableBranches from './disableBranches'
+
+/**
+ * Действие выпуска разрешения `platform` — ключа узла кооператива
+ */
+export * as SetPlatform from './setPlatform'

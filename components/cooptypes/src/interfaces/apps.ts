@@ -119,7 +119,6 @@ export interface IWithdraw {
 }
 
 export interface ICleanup {
-  package_id: IName
 }
 
 export interface IRegsub {

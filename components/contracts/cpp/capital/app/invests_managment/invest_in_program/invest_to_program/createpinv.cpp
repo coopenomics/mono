@@ -18,6 +18,8 @@ void capital::createpinv(name coopname, name username, checksum256 invest_hash, 
   require_auth(coopname);
   
   verify_document_or_fail(statement, {username});
+  // Заявление о вложении в программу подписывает сам пайщик. Транзакцию шлёт кооператив, поэтому ключ сверяется с аккаунтом.
+  verify_signer_keys_or_fail(statement, username);
   
   // Проверяем сумму инвестиции
   Wallet::validate_asset(amount);

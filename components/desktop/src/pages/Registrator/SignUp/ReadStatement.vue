@@ -1,16 +1,11 @@
 <template lang='pug'>
-div
-  q-step(
-    :name='registratorStore.steps.ReadStatement',
-    title='Ознакомьтесь с заполненным заявлением на вступление в кооператив',
-    :done='registratorStore.isStepDone("ReadStatement")'
-  )
+div(v-show='registratorStore.isStep("ReadStatement")')
 
     //- p Прочитайте заявление и примите положения
     div(v-if='isLoading').full-width.text-center.q-mt-lg.q-mb-lg
       Loader(:text='loadingText')
     // eslint-disable-next-line vue/no-v-html
-    div(ref='statementDiv' v-if='!isLoading' v-html='html').statement
+    div(ref='statementDiv' v-if='!isLoading' v-html='safeHtml').statement
 
     .agreements(v-if='!isLoading')
       //- Динамические галочки из конфигурации
@@ -28,24 +23,24 @@ div
             :text='doc.link_text'
           )
             // eslint-disable-next-line vue/no-v-html
-            div(v-html='doc.document.html').q-mb-lg
+            div(v-html='sanitizeDocumentHtml(doc.document.html)').q-mb-lg
 
       //- Устав кооператива (всегда показывается)
       BaseCheckbox(block v-model='registratorStore.state.agreements.ustav')
-        | Я прочитал и принимаю
-        a(v-if='hasStatuteLink' @click.stop='(event) => event.stopPropagation()' :href='statuteLink' target='_blank').agreements__link Устав кооператива
-        span(v-else).agreements__link Устав кооператива
+        | {{ $t('registrator.readStatement.agreementPrefix') }}
+        a(v-if='hasStatuteLink' @click.stop='(event) => event.stopPropagation()' :href='statuteLink' target='_blank').agreements__link {{ $t('registrator.readStatement.statuteLinkText') }}
+        span(v-else).agreements__link {{ $t('registrator.readStatement.statuteLinkText') }}
 
     .row.q-gutter-md.q-mt-lg.q-mb-lg(v-if='!isLoading')
       BaseButton(variant='ghost', @click='back')
-        i.fa.fa-arrow-left
-        span.q-ml-md назад
+        q-icon(name='arrow_back')
+        span.q-ml-md {{ $t('registrator.readStatement.back') }}
 
       BaseButton(
         variant='primary',
         :disabled='!agreeWithAll',
         @click='registratorStore.next()'
-      ) Продолжить
+      ) {{ $t('registrator.readStatement.submit') }}
 </template>
 <script lang="ts" setup>
 import { ref, computed, watch, nextTick } from 'vue'
@@ -59,6 +54,8 @@ import { BaseCheckbox } from 'src/shared/ui/base/BaseCheckbox';
 import { useRegistratorStore } from 'src/entities/Registrator'
 import { useRegistrationStore } from 'src/entities/Registration'
 import { useSystemStore } from 'src/entities/System/model'
+import { sanitizeDocumentHtml } from 'src/shared/lib/utils'
+import { t } from 'src/shared/i18n';
 
 const registratorStore = useRegistratorStore()
 const registrationStore = useRegistrationStore()
@@ -75,9 +72,10 @@ const agreeWithAll = computed(() => {
 })
 
 const html = ref()
+const safeHtml = computed(() => sanitizeDocumentHtml(html.value))
 const isLoading = ref(false)
 const isGenerating = ref(false)
-const loadingText = ref('Загружаем документы...')
+const loadingText = ref(t('registrator.readStatement.loadingDocuments'))
 const statementDiv = ref<any>()
 
 const loadDocuments = async (): Promise<void> => {
@@ -89,12 +87,12 @@ const loadDocuments = async (): Promise<void> => {
   try {
     isGenerating.value = true
     isLoading.value = true
-    loadingText.value = 'Генерируем документы для подписи...'
+    loadingText.value = t('registrator.readStatement.generatingDocuments')
 
     // Генерируем все документы регистрации с бэкенда (они уже содержат HTML для отображения)
     await generateAllRegistrationDocuments(registratorStore.state.selectedProgramKey || undefined)
 
-    loadingText.value = 'Заполняем заявление...'
+    loadingText.value = t('registrator.readStatement.fillingStatement')
 
     // Генерируем заявление для просмотра
     const document = await generateStatementWithoutSignature()
@@ -119,6 +117,7 @@ const back = () => {
   }
 }
 
+// realtime: нет источника — заявление и документы собираются из данных, введённых на прошлых шагах; перечитывание сбросило бы согласие.
 // Используем только watch с immediate: true вместо onMounted + watch
 watch(() => registratorStore.state.step, (value: number) => {
   if (value === registratorStore.steps.ReadStatement) {

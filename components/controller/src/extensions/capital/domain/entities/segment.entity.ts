@@ -146,6 +146,9 @@ export class SegmentDomainEntity
 
     // Устанавливаем статус из databaseData по умолчанию
     this.status = databaseData.status ? this.mapStatusToDomain(databaseData.status) : SegmentStatus.UNDEFINED;
+    // Признак живёт только в базе: без переноса доля всегда считалась
+    // незавершённой (C28-80).
+    this.is_completed = databaseData.is_completed;
 
     // Специфичные поля для segment
     // Для сегментов статус будет установлен из blockchainData или по умолчанию

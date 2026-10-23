@@ -1,4 +1,5 @@
 import type { DecisionHandlersRegistry, IDecisionHandler, IGenerateDecisionData } from '../types/decision-factory'
+import { t, t as i18nT } from 'src/shared/i18n';
 
 /**
  * Фабрика обработчиков решений
@@ -9,7 +10,7 @@ class DecisionFactory {
 
   /**
    * Регистрирует обработчик для типа решения
-   * @param decisionType - тип решения (ключ из decisionsRegistry)
+   * @param decisionType - тип решения (ключ из decisionTypesRegistry)
    * @param handler - обработчик решения
    */
   registerHandler(decisionType: string, handler: IDecisionHandler): void {
@@ -45,14 +46,14 @@ class DecisionFactory {
     const handler = this.getHandler(decisionType)
 
     if (!handler) {
-      throw new Error(`Не найден обработчик для типа решения: ${decisionType}`)
+      throw new Error(t('decisionFactory.error.handlerNotFound', { decisionType }))
     }
 
     try {
       return await handler.generateHandler(data)
     } catch (error) {
       console.error(`Ошибка при генерации документа решения типа ${decisionType}:`, error)
-      throw new Error(`Ошибка при генерации документа решения: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`)
+      throw new Error(t('decisionFactory.error.generateError', { message: error instanceof Error ? error.message : i18nT('api.error.unknown') }))
     }
   }
 

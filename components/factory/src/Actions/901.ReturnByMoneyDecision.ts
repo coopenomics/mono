@@ -44,6 +44,7 @@ export class Factory extends DocFactory<ReturnByMoneyDecision.Action> {
       data.coopname,
       data.decision_id,
       meta.created_at,
+      meta.timezone,
     )
 
     const combinedData: ReturnByMoneyDecision.Model = {

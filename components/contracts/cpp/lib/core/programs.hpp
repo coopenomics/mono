@@ -84,13 +84,17 @@ struct ProgramInfo {
  *          шаблон от прежней версии программы),
  *   996  — GeneratorOffer (было 0 — при нуле signagree не сверяет шаблон и
  *          пишет version=0, из-за чего переподпись не запрашивалась никогда),
- *   1000 — BlagorostOffer.
+ *   1000 — BlagorostOffer,
+ *   3002 — EducationParentOffer (ЦПП «Образование», обучение),
+ *   3004 — EducationTeacherOffer (ЦПП «Образование», преподавание).
  */
 static const std::map<eosio::name, ProgramInfo> program_map = {
     {_wallet_program, {1, 1}},
     {_marketplace_program, {2, 1102}},
     {_source_program, {3, 996}},
-    {_capital_program, {4, 1000}}};
+    {_capital_program, {4, 1000}},
+    {_eduparent_program, {5, 3002}},
+    {_eduteacher_program, {6, 3004}}};
 
 inline void check_valid_program(const eosio::name &type) {
   eosio::check(program_map.find(type) != program_map.end(), "Недопустимый тип программы");

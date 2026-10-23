@@ -16,10 +16,24 @@ title: Уровень и энергия участника программы «
 # требует одобренного председателем договора об участии в хозяйственной
 # деятельности, достаточно подписи пайщика. На начисление энергии это не влияет —
 # формула считается от суммы взноса, а не от статуса договора.
+# Правка 2026-09-21 (C28-78): плательщик за оперативную память строк
+# выбирается хелпером RamPayer::of по классу таблицы (lib/core/ram_payer.hpp),
+# а не именем, переданным вручную в emplace/modify. Меняется только то, с кого
+# цепь списывает память; содержимое строк, проверки и поведение действий
+# прежние, набор случаев этой фичи не менялся. Правило плательщика покрыто
+# отдельно — test-registry/contracts.ram-payer.yaml.
+
+# Правка 24.09.2026 (C28-83), экраны: страницы, виджеты и панели фичи живут по
+# ленте изменений Благороста (CAPITAL_LIVE_TABLES); формы, диалоги выбора и
+# редакторы помечены «realtime: нет источника» с причиной. Поведение и набор
+# случаев не менялись.
+
 sources:
   contract:
     - components/contracts/cpp/capital/domain/core/gamification/**
     - components/contracts/cpp/capital/app/invests_managment/invest_in_program/invest_to_program/createpinv.cpp
+  backend:
+    - components/controller/src/extensions/capital/infrastructure/services/gamification-scheduler.service.ts
   ui:
     - components/desktop/extensions/capital/widgets/ContributorGamificationWidget/**
 
@@ -118,6 +132,53 @@ cases:
     test: ~
     status: missing
 
+  # ── Планировщик обновления энергии ────────────────────────────────────────
+
+  - id: cap.gam.happy.02
+    level: backend
+    kind: happy
+    scenario: >
+      ежесуточное обновление энергии участников кооператива
+    expect: >
+      действие цепи вызывается только для участников с активным договором УХД
+    test: components/controller/tests/unit/capital/gamification-scheduler.service.test.ts
+    api: components/api-tests/src/capital/gamification.test.ts
+    status: passing
+
+  - id: cap.gam.break.02
+    level: backend
+    kind: break
+    scenario: >
+      у участника договор УХД в цепи не активен (импортирован, одобрен, но не
+      активирован)
+    expect: >
+      планировщик его пропускает. Прежде он брал всех, кроме явно неактивных, и
+      каждые сутки получал от цепи ассерт «Договор УХД с пайщиком не активен» на
+      одном и том же человеке (11 одинаковых ошибок за неделю 11–18.09.2026)
+    test: components/controller/tests/unit/capital/gamification-scheduler.service.test.ts
+    api: components/api-tests/src/capital/gamification.test.ts
+    status: passing
+
+  - id: cap.gam.side.09
+    level: backend
+    kind: side
+    scenario: участник другого кооператива в общей выборке
+    expect: не обновляется — планировщик работает только по своему кооперативу
+    test: components/controller/tests/unit/capital/gamification-scheduler.service.test.ts
+    external: unreachable
+    external_reason: "на стенде один кооператив; участника другого кооператива в выборку не завести"
+    status: passing
+
+  - id: cap.gam.side.10
+    level: backend
+    kind: side
+    scenario: цепь отклонила обновление одного участника
+    expect: остальные участники обновляются, цикл не прерывается
+    test: components/controller/tests/unit/capital/gamification-scheduler.service.test.ts
+    external: unreachable
+    external_reason: "отказ цепи по одному участнику не вызвать: участников без активного договора планировщик пропускает сам (cap.gam.break.02)"
+    status: passing
+
   # ── Уровень UI ────────────────────────────────────────────────────────────
 
   - id: cap.gam.side.05
@@ -139,3 +200,22 @@ cases:
       поэтому небольшой вклад не меняет показания вовсе
     test: ~
     status: missing
+
+  - id: cap.gam.sign.01
+    level: contract
+    kind: break
+    scenario: >
+      Документ подан с подписью, где рядом с именем пайщика стоит чужой ключ
+      (вложение в программу).
+    expect: >
+      отказ «Public key does not belong to account»: подпись сверяется с ключом
+      аккаунта подписанта. Транзакции шлёт кооператив, поэтому до 17.09.2026
+      любой ключ рядом с чужим именем проходил как подпись этого человека.
+      Механизм общий для всех контрактов (`verify_signer_keys_or_fail`) и
+      проверен на самом коротком пути — заявлении о вступлении
+    test: components/boot/src/tests/document-signature.test.ts
+    status: passing
+
+# 2026-09-23 (EEA-6…EEA-9): тексты интерфейса, отказов и уведомлений фичи вынесены из
+# кода в словари i18n, отказы бэкенда переведены на DomainError с кодом — текст
+# и HTTP-статус ответа прежние. Сценарии фичи и её проверки не менялись.

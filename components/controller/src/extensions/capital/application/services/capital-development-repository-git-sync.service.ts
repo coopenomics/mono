@@ -54,6 +54,24 @@ export class CapitalDevelopmentRepositoryGitSyncService {
     return b || 'dev';
   }
 
+  /**
+   * Настройка ветки одна на кооператив, а репозитории проектов живут с разными канонами
+   * (`dev` у mono, `main` у отдельных продуктов): если настроенной ветки в репозитории нет —
+   * берём его ветку по умолчанию, иначе первый же синк упёрся бы в 404 и молча ничего не привязал.
+   */
+  private async resolveRepositoryBaseBranch(
+    parsed: { owner: string; repo: string },
+    configuredBranch: string
+  ): Promise<string | null> {
+    try {
+      return await this.githubService.resolveExistingBaseBranch(parsed.owner, parsed.repo, configuredBranch);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.warn(`Git маркеры: не удалось определить базовую ветку ${parsed.owner}/${parsed.repo}: ${message}`);
+      return null;
+    }
+  }
+
   /** Прервать синк и снять курсоры всех веток, если репозиторий больше не привязан ни к одному проекту. */
   private async releaseOrphanedRepositoryKey(coopname: string, repositoryKey: string, fallbackBranch: string): Promise<void> {
     this.abortInFlightForRepositoryKey(repositoryKey);
@@ -98,6 +116,14 @@ export class CapitalDevelopmentRepositoryGitSyncService {
       return;
     }
 
+    const baseBranch = await this.resolveRepositoryBaseBranch(parsed, branch);
+    if (!baseBranch) {
+      this.logger.warn(
+        `Git маркеры: в ${args.nextNormalizedKey} нет ни ветки «${branch}», ни доступной ветки по умолчанию — синк пропущен`
+      );
+      return;
+    }
+
     const ac = new AbortController();
     this.abortInFlightForRepositoryKey(args.nextNormalizedKey);
     this.syncAbortByRepositoryKey.set(args.nextNormalizedKey, ac);
@@ -107,8 +133,8 @@ export class CapitalDevelopmentRepositoryGitSyncService {
       await this.gitCommitMarkersSyncService.syncMarkedCommits({
         owner: parsed.owner,
         repo: parsed.repo,
-        branch,
-        defaultBranch: branch,
+        branch: baseBranch,
+        defaultBranch: baseBranch,
         githubRepositoryKey: args.nextNormalizedKey,
         signal,
       });

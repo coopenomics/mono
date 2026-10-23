@@ -1,13 +1,8 @@
 <template>
-  <q-form class="base-form" @submit.prevent="onSubmit">
-    <q-banner
-      v-if="error"
-      class="base-form__banner bg-negative-soft"
-      role="alert"
-      dense
-    >
+  <q-form ref="formEl" class="base-form" @submit.prevent="onSubmit">
+    <BaseBanner v-if="error" variant="neg" role="alert">
       {{ error }}
-    </q-banner>
+    </BaseBanner>
     <div class="base-form__body">
       <slot />
     </div>
@@ -18,6 +13,9 @@
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue';
+import type { QForm } from 'quasar';
+import { BaseBanner } from '../BaseBanner';
 import type { BaseFormProps } from './BaseForm.types';
 
 const props = withDefaults(defineProps<BaseFormProps>(), {
@@ -32,6 +30,19 @@ function onSubmit(e: Event): void {
   if (props.loading) return;
   emit('submit', e);
 }
+
+const formEl = ref<QForm | null>(null);
+
+/**
+ * Проверка полей наружу: кнопка отправки живёт вне формы, когда форма стоит в
+ * правой панели с прибитым низом. Без этого обязательные поля не проверялись —
+ * отправка шла мимо самой формы.
+ */
+async function validate(): Promise<boolean> {
+  return (await formEl.value?.validate()) ?? true;
+}
+
+defineExpose({ validate });
 </script>
 
 <style scoped>
@@ -56,12 +67,5 @@ function onSubmit(e: Event): void {
      «Пароли не совпадают» упиралось в кнопку. Инвариант «поля не прыгают»
      сохраняется: место резервируется всегда, зазор постоянный. */
   gap: var(--p-3);
-}
-
-.base-form__banner {
-  background: var(--p-neg-soft);
-  color: var(--p-neg);
-  border-left: 3px solid var(--p-neg);
-  border-radius: var(--p-r-sm, 8px);
 }
 </style>

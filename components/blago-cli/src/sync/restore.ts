@@ -6,6 +6,7 @@ import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
 
 import { Queries, Zeus } from '@coopenomics/sdk'
+import { resolveCoopname } from '../config/index.js'
 
 import {
   issueToFrontmatterAndBody,
@@ -17,12 +18,14 @@ import {
 } from '../format/index.js'
 import { sha256Hex } from '../lib/hash.js'
 import { effectiveParentHash } from '../lib/parent-hash.js'
+import { formatThrownValue } from '../ui/output.js'
 import { resolveRestoreUserPathToRelativeMarkdown } from './capital-target-expand.js'
 import {
   projectCommunicationDayToMarkdown,
   renderCallTranscriptionMarkdown,
   type CommunicationDayLine,
 } from './communication-markdown.js'
+import { factHoursForIssueFile, loadContributorUsernameByHash } from './fact-hours.js'
 import {
   findByRelativePath,
   loadIndex,
@@ -34,7 +37,6 @@ import {
   type IndexEntry,
   type IndexFile,
 } from './index-store.js'
-import { formatThrownValue } from '../ui/output.js'
 import {
   generateSlug,
   issueFileRelativePath,
@@ -42,13 +44,13 @@ import {
   storyFileRelativePath,
   workspaceBasePath,
 } from './layout.js'
+import { saveBaseSnapshot } from './merge3.js'
 import { loadProjectMapsFromIndex } from './project-index-map.js'
 import { resolveProjectMarkerFromRelativePath } from './resolve-project-hash-from-path.js'
 import { writeWorkspaceIndexMarkdown } from './workspace-index.js'
-import { factHoursForIssueFile, loadContributorUsernameByHash } from './fact-hours.js'
-import { resolveCoopname } from '../config/index.js'
 
 interface CapitalProjectRow {
+  content_rev?: number | null
   id?: number | null
   project_hash: string
   title?: string | null
@@ -62,6 +64,7 @@ interface CapitalProjectRow {
 }
 
 interface CapitalIssueRow {
+  content_rev?: number | null
   id?: string | null
   issue_hash: string
   title: string
@@ -81,6 +84,7 @@ interface CapitalIssueRow {
 }
 
 interface CapitalStoryRow {
+  content_rev?: number | null
   _id?: string | null
   story_hash: string
   title: string
@@ -170,8 +174,9 @@ async function writeRestoredFile(params: {
   entry: IndexEntry
   content: string
   remoteUpdatedAt: string
+  remoteRev?: number
 }): Promise<void> {
-  const { root, index, entry, content, remoteUpdatedAt } = params
+  const { root, index, entry, content, remoteUpdatedAt, remoteRev } = params
   const rel = normalizeRelativePath(entry.relative_path)
   const abs = path.join(root, rel)
   await fs.mkdir(path.dirname(abs), { recursive: true })
@@ -182,8 +187,10 @@ async function writeRestoredFile(params: {
     entity_hash: entry.entity_hash,
     relative_path: rel,
     remote_updated_at: remoteUpdatedAt,
+    remote_rev: remoteRev ?? entry.remote_rev,
     content_etag_local: etag,
   })
+  await saveBaseSnapshot(root, entry.entity_type, entry.entity_hash, content)
 }
 
 async function unstagedPath(root: string, rel: string): Promise<void> {
@@ -248,6 +255,7 @@ export async function runRestore(ctx: AuthenticatedContext, userPath: string): P
       entry,
       content,
       remoteUpdatedAt: toUpdatedIso(row._updated_at),
+      remoteRev: row.content_rev ?? undefined,
     })
     await saveIndex(ctx.root, index)
     await unstagedPath(ctx.root, rel)
@@ -303,6 +311,7 @@ export async function runRestore(ctx: AuthenticatedContext, userPath: string): P
       entry,
       content,
       remoteUpdatedAt: toUpdatedIso(issueRow._updated_at),
+      remoteRev: issueRow.content_rev ?? undefined,
     })
     await saveIndex(ctx.root, index)
     await unstagedPath(ctx.root, rel)
@@ -372,6 +381,7 @@ export async function runRestore(ctx: AuthenticatedContext, userPath: string): P
       entry,
       content,
       remoteUpdatedAt: toUpdatedIso(storyRow._updated_at),
+      remoteRev: storyRow.content_rev ?? undefined,
     })
     await saveIndex(ctx.root, index)
     await unstagedPath(ctx.root, rel)

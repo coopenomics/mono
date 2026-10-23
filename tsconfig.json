@@ -23,9 +23,6 @@
       "path": "./components/factory"
     },
     {
-      "path": "./components/parser"
-    },
-    {
       "path": "./components/boot"
     },
     {

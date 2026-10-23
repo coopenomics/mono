@@ -1,6 +1,6 @@
 import { Args, Int, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
-import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, CurrentUser, RequireRight, RightsGuard } from '@coopenomics/extension-kit';
 import type { IMonoAccount } from '@coopenomics/innercoop';
 import { ExpenseFilesService } from '../services/expense-files.service';
 import { UploadExpenseFileInputDTO } from '../dto/upload-expense-file.input';
@@ -21,13 +21,13 @@ export class ExpenseFilesResolver {
     name: 'uploadExpenseFile',
     description: 'Загрузить первичный файл расхода (платёжка/чек/возврат) в бакет expenses:files.',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('ExpenseFile', 'upload')
   async uploadExpenseFile(
     @Args('data', { type: () => UploadExpenseFileInputDTO }) data: UploadExpenseFileInputDTO,
     @CurrentUser() user: IMonoAccount
   ): Promise<ExpenseFileOutputDTO> {
-    const { data: saved, readUrl } = await this.expenseFiles.uploadFile(data, user.username);
+    const { data: saved, readUrl } = await this.expenseFiles.uploadFile(data, user);
     return ExpenseFileOutputDTO.fromDomain(saved, readUrl);
   }
 
@@ -35,10 +35,13 @@ export class ExpenseFilesResolver {
     name: 'expenseFile',
     description: 'Получить запись о файле + свежий короткоживущий read-URL.',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
-  async getExpenseFile(@Args('id', { type: () => Int }) id: number): Promise<ExpenseFileOutputDTO> {
-    const { data, readUrl } = await this.expenseFiles.getReadUrl(id);
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('ExpenseFile', 'read')
+  async getExpenseFile(
+    @Args('id', { type: () => Int }) id: number,
+    @CurrentUser() user: IMonoAccount
+  ): Promise<ExpenseFileOutputDTO> {
+    const { data, readUrl } = await this.expenseFiles.getReadUrl(id, user);
     return ExpenseFileOutputDTO.fromDomain(data, readUrl);
   }
 
@@ -46,13 +49,14 @@ export class ExpenseFilesResolver {
     name: 'expenseFilesByProposal',
     description: 'Список файлов сметы расхода (без read-URL — запрос отдельно по id).',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('ExpenseFile', 'read')
   async listByProposal(
     @Args('coopname', { type: () => String }) coopname: string,
-    @Args('proposal_hash', { type: () => String }) proposalHash: string
+    @Args('proposal_hash', { type: () => String }) proposalHash: string,
+    @CurrentUser() user: IMonoAccount
   ): Promise<ExpenseFileOutputDTO[]> {
-    const items = await this.expenseFiles.listByProposal(coopname, proposalHash);
+    const items = await this.expenseFiles.listByProposal(coopname, proposalHash, user);
     return items.map((d) => ExpenseFileOutputDTO.fromDomain(d));
   }
 
@@ -60,14 +64,15 @@ export class ExpenseFilesResolver {
     name: 'expenseFilesByItem',
     description: 'Список файлов строки расхода (без read-URL — запрос отдельно по id).',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('ExpenseFile', 'read')
   async listByItem(
     @Args('coopname', { type: () => String }) coopname: string,
     @Args('proposal_hash', { type: () => String }) proposalHash: string,
-    @Args('item_hash', { type: () => String }) itemHash: string
+    @Args('item_hash', { type: () => String }) itemHash: string,
+    @CurrentUser() user: IMonoAccount
   ): Promise<ExpenseFileOutputDTO[]> {
-    const items = await this.expenseFiles.listByItem(coopname, proposalHash, itemHash);
+    const items = await this.expenseFiles.listByItem(coopname, proposalHash, itemHash, user);
     return items.map((d) => ExpenseFileOutputDTO.fromDomain(d));
   }
 }

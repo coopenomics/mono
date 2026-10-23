@@ -20,6 +20,7 @@ import { AuditService } from '../audit/audit.service';
 import { AuthMetricsService } from '../metrics/auth-metrics.service';
 import { SessionIssueService } from '../verify-timestamp/session-issue.service';
 import type { SessionIssueResult } from '../verify-timestamp/session-issue.service';
+import { t } from '~/i18n';
 
 /** Окно на прохождение факторов после доказательства пароля и ключа. */
 const CHALLENGE_TTL_SEC = 10 * 60;
@@ -181,7 +182,7 @@ export class LoginTwoFactorService {
     if (!current) {
       // Дефектное состояние (все пройдены, но challenge не сожжён) — не выпускаем ничего.
       await this.challenges.delete(input.token);
-      throw new AuthV2Error(AuthV2ErrorCode.LoginChallengeExpired, 'Подтверждение входа истекло — войдите заново.');
+      throw new AuthV2Error(AuthV2ErrorCode.LoginChallengeExpired, t('authV2.loginTwoFactorService.challengeExpiredMessage'));
     }
 
     const ok = await this.verifyFactor(state, current, input.code);
@@ -191,13 +192,13 @@ export class LoginTwoFactorService {
       if (attempts >= MAX_CODE_ATTEMPTS) {
         // Сжигаем challenge: перебор кодов упирается в повторный вход (пароль + ключ).
         await this.challenges.delete(input.token);
-        throw new AuthV2Error(AuthV2ErrorCode.TooManyAttempts, 'Слишком много неверных кодов — войдите заново.');
+        throw new AuthV2Error(AuthV2ErrorCode.TooManyAttempts, t('authV2.loginTwoFactorService.tooManyInvalidCodesMessage'));
       }
       throw new AuthV2Error(
         AuthV2ErrorCode.InvalidTwoFactorCode,
         current === LoginFactorKind.Totp
-          ? 'Неверный код из приложения-аутентификатора.'
-          : 'Неверный код из письма.',
+          ? t('authV2.loginTwoFactorService.invalidTotpCodeMessage')
+          : t('authV2.loginTwoFactorService.invalidEmailCodeMessage'),
       );
     }
 
@@ -232,13 +233,13 @@ export class LoginTwoFactorService {
     const state = await this.requireState(token);
     const current = state.factors[state.passed.length];
     if (current !== LoginFactorKind.Email) {
-      throw new AuthV2Error(AuthV2ErrorCode.InvalidCredentials, 'Код на почту сейчас не запрашивается.');
+      throw new AuthV2Error(AuthV2ErrorCode.InvalidCredentials, t('authV2.loginTwoFactorService.emailCodeNotRequestedMessage'));
     }
     if (state.emailSendCount >= MAX_EMAIL_SENDS) {
-      throw new AuthV2Error(AuthV2ErrorCode.TooManyAttempts, 'Лимит отправок кода исчерпан — войдите заново.');
+      throw new AuthV2Error(AuthV2ErrorCode.TooManyAttempts, t('authV2.loginTwoFactorService.emailSendLimitExceededMessage'));
     }
     if (!(await this.challenges.tryAcquireResend(token, EMAIL_RESEND_THROTTLE_SEC))) {
-      throw new AuthV2Error(AuthV2ErrorCode.TooManyAttempts, 'Код уже отправлен — подождите минуту перед повтором.');
+      throw new AuthV2Error(AuthV2ErrorCode.TooManyAttempts, t('authV2.loginTwoFactorService.codeAlreadySentMessage'));
     }
     await this.attachFreshEmailCode(state);
     await this.challenges.put(token, state);
@@ -256,7 +257,7 @@ export class LoginTwoFactorService {
   private async requireState(token: string): Promise<LoginChallengeState> {
     const state = await this.challenges.get(token);
     if (!state) {
-      throw new AuthV2Error(AuthV2ErrorCode.LoginChallengeExpired, 'Подтверждение входа истекло — войдите заново.');
+      throw new AuthV2Error(AuthV2ErrorCode.LoginChallengeExpired, t('authV2.loginTwoFactorService.challengeExpiredMessage'));
     }
     return state;
   }
@@ -277,7 +278,7 @@ export class LoginTwoFactorService {
   private async attachFreshEmailCode(state: LoginChallengeState): Promise<void> {
     const user = await this.users.findUserById(state.subjectId);
     if (!user || !user.subscriber_id || !user.is_email_verified) {
-      throw new AuthV2Error(AuthV2ErrorCode.CooposDegraded, 'Не удалось отправить код подтверждения на почту.');
+      throw new AuthV2Error(AuthV2ErrorCode.CooposDegraded, t('authV2.loginTwoFactorService.emailSendFailedMessage'));
     }
     const code = String(randomInt(0, 1_000_000)).padStart(6, '0');
     // Dev-контур: почта на стенде обычно не настроена, а код нужен — печатаем в
@@ -290,11 +291,11 @@ export class LoginTwoFactorService {
         coopname: config.coopname,
         workflowId: Workflows.LoginEmailCode.id,
         to: { subscriberId: user.subscriber_id, email: user.email, username: user.username },
-        payload: { code, ttl: '10 минут' },
+        payload: { code, ttl: t('authV2.loginTwoFactorService.emailCodeTtlLabel') },
       });
     } catch (e) {
       this.logger.warn(`email-код входа не отправлен для ${state.sub}: ${e instanceof Error ? e.message : e}`);
-      throw new AuthV2Error(AuthV2ErrorCode.CooposDegraded, 'Не удалось отправить код подтверждения на почту. Повторите попытку позже.');
+      throw new AuthV2Error(AuthV2ErrorCode.CooposDegraded, t('authV2.loginTwoFactorService.emailSendFailedRetryMessage'));
     }
     // Хэш пишется только после успешной постановки в очередь — старый код остаётся
     // действующим при сбое отправки нового.

@@ -16,8 +16,8 @@ import { PrivateAccountSearchResultDTO } from '../dto/search-private-accounts-re
 export class AccountService {
   constructor(private readonly accountInteractor: AccountInteractor) {}
 
-  public async updateAccount(data: UpdateAccountInputDTO): Promise<AccountDTO> {
-    const result = await this.accountInteractor.updateAccount(data);
+  public async updateAccount(data: UpdateAccountInputDTO, actor: string): Promise<AccountDTO> {
+    const result = await this.accountInteractor.updateAccount(data, actor);
     return new AccountDTO(result);
   }
 

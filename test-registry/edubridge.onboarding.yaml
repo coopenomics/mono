@@ -1,0 +1,107 @@
+feature: edubridge.onboarding
+title: Образовательный мост — подключение ЦПП советом, вступление по офертам, роли
+
+# E5 (задача 7DD-6). L1: четыре решения совета (положение 3000, шаблоны оферт
+# 3001/3003, шаблон ДУХД 3005) через платформенный онбординг → coopAcceptance.
+# L2: две программы в витрине вступления — «Обучение» (EDUCATION, оферта 3002,
+# тип eduparent, program_id 5) и «Преподавание» (EDUCATION_TEACHING, оферта
+# 3004, тип eduteacher, program_id 6). Роль = подписанная программная оферта.
+# Параметры оферт (номер/дата) — в Udata общим хуком по ключу программы.
+
+sources:
+  contract:
+    - components/contracts/cpp/lib/core/programs.hpp
+  backend:
+    - components/controller/src/extensions/edubridge/application/onboarding/**
+    - components/controller/src/extensions/edubridge/application/registration/**
+    - components/controller/src/extensions/edubridge/application/membership/edubridge-role-facts.adapter.ts
+    - components/controller/src/extensions/edubridge/edubridge-extension.module.ts
+    - components/controller/src/extensions/edubridge/constants/edubridge-agreement-ids.ts
+    - components/controller/src/extensions/edubridge/application/services/edubridge-onboarding.service.ts
+  ui:
+    - components/desktop/extensions/edubridge/pages/ConfigurePage/**
+    - components/desktop/src/shared/ui/CouncilOnboarding/**
+    - components/desktop/extensions/edubridge/pages/MemberOnboardingPage/**
+    - components/desktop/extensions/edubridge/pages/TeacherOnboardingPage/**
+    - components/desktop/extensions/edubridge/features/OfferGate/**
+
+cases:
+  - id: edu.onb.happy.01
+    level: backend
+    kind: happy
+    scenario: Регистрация витрины вступления.
+    expect: Две оферты (3002, 3004; agreement_type ≤ 12 символов, не дефолтные) и две программы с правильными agreement_ids.
+    test: components/controller/tests/unit/edubridge/registration.test.ts
+    api: components/api-tests/src/edubridge/admin.test.ts
+    status: passing
+  - id: edu.onb.happy.02
+    level: backend
+    kind: happy
+    scenario: Факты ролей по подписям программ и таблице администраторов.
+    expect: learner/teacher/admin по источникам; программы не открыты → false; сбой порта → false + предупреждение.
+    test: components/controller/tests/unit/edubridge/registration.test.ts
+    api: components/api-tests/src/edubridge/rights.test.ts
+    status: passing
+  - id: edu.onb.happy.03
+    level: backend
+    kind: happy
+    scenario: Совет принял все четыре решения онбординга.
+    expect: coopAcceptance.accepted=true, оферты и программы зарегистрированы в витрине; до этого — не зарегистрированы.
+    test: ~
+    status: missing
+  - id: edu.onb.happy.04
+    level: contract
+    kind: happy
+    scenario: soviet::createprog типов eduparent/eduteacher.
+    expect: program_id 5/6, draft_id 3002/3004; конвертация в w.edu.member требует подписи программы 5.
+    test: ~
+    status: missing
+  - id: edu.onb.side.01
+    level: backend
+    kind: side
+    scenario: Пайщик, вступивший по программе «Обучение», позже подписывает оферту преподавателя со стола.
+    expect: Обе роли суммируются, столы обоих видны.
+    test: ~
+    status: missing
+  - id: edu.onb.happy.05
+    level: ui
+    kind: happy
+    scenario: Председатель проходит четыре шага подключения; пайщик без оферты видит гейт, подписывает оферту и попадает на стол.
+    expect: После подписи столы перечитываются, гейт уводит на рабочую страницу; при NOT_CONFIGURED — предупреждение вместо кнопки.
+    test: ~
+    status: missing
+  - id: edu.onb.side.02
+    level: ui
+    kind: side
+    scenario: "Шлюз стола: подписан последний документ — договор преподавателя (ждёт председателя) или единственная оферта ученика (инцидент 23.09.2026: после подписи договора вечный скелетон вместо перехода в «Профиль»)."
+    expect: "Страница уходит на рабочую страницу стола сама, без перезагрузки: переход вызывается функцией подписи, а не событием шага, который к этому моменту уже снят со страницы."
+    test: ~
+    status: missing
+  - id: edu.onb.happy.06
+    level: ui
+    kind: happy
+    scenario: >
+      Председатель на подключении ЦПП (образование, Стол заказов — общий виджет
+      CouncilOnboardingCard): шаги плашками со статусом, нажатие раскрывает
+      вопрос повестки и проект решения на месте; внизу одна кнопка «Объявить все».
+    expect: >
+      кнопка доступна, когда сформированы все документы; после подтверждения
+      вопросы уходят в совет по порядку, плашка каждого показывает отправку и
+      переходит в «В совете»; ошибка останавливает очередь, раскрывает свой
+      вопрос, повтор продолжает с неотправленных; прогресс «Утверждено N из M»
+    test: ~
+    status: missing
+  - id: edu.onb.side.03
+    level: ui
+    kind: side
+    scenario: "Ученик без подписанной оферты нажимает «Получить доступ» на странице курса (замечание владельца 13.10.2026: после подписи его выбрасывало в каталог, оформление обрывалось)."
+    expect: "Курс и намерение едут в адресе страницы подписи; после подписи человек возвращается на тот же курс, диалог «Получить доступ» открывается сам, намерение из адреса снимается. Право на шлюз ещё стоит — второй раз на подпись не уводит."
+    test: ~
+    status: missing
+  - id: edu.onb.side.04
+    level: ui
+    kind: side
+    scenario: "Гость нажимает «Получить доступ» на странице курса и уходит на регистрацию либо вход (замечание владельца 13.10.2026: курс терялся, после регистрации человек попадал на рабочую страницу стола)."
+    expect: "Адрес курса с намерением запоминается в хранилище браузера; после входа либо завершения регистрации человек возвращается на курс, оформление доступа продолжается: подпись оферты, затем диалог «Получить доступ»."
+    test: ~
+    status: missing

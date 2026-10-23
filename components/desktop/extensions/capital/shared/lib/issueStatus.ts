@@ -1,4 +1,5 @@
 import { Zeus } from '@coopenomics/sdk';
+import { t } from '../../i18n';
 
 /**
  * Получение цвета статуса задачи
@@ -28,17 +29,17 @@ export const getIssueStatusColor = (status: string) => {
 export const getIssueStatusLabel = (status: string) => {
   switch (status) {
     case Zeus.IssueStatus.TODO:
-      return 'К выполнению';
+      return t('capital.issue.status.todo');
     case Zeus.IssueStatus.IN_PROGRESS:
-      return 'В работе';
+      return t('capital.issue.status.inProgress');
     case Zeus.IssueStatus.BACKLOG:
-      return 'Бэклог';
+      return t('capital.issue.status.backlog');
     case Zeus.IssueStatus.ON_REVIEW:
-      return 'На проверке';
+      return t('capital.issue.status.onReview');
     case Zeus.IssueStatus.DONE:
-      return 'Выполнена';
+      return t('capital.issue.status.done');
     case Zeus.IssueStatus.CANCELED:
-      return 'Отменена';
+      return t('capital.issue.status.canceled');
     default:
       return status;
   }

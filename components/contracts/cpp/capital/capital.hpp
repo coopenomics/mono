@@ -59,9 +59,9 @@ using std::string;
  *  @brief  Контракт Capital управляет вкладами, распределением вознаграждений и выводом средств для участников.
  *  Capital — это контракт, управляющий вкладами участников, распределением вознаграждений и механизмами вывода средств в системе. Он поддерживает два типа вкладов — интеллектуальные и имущественные, и предоставляет два метода для участников, чтобы вывести свои средства при различных условиях.
  */
-class [[eosio::contract]] capital : public contract {
+class [[eosio::contract]] capital : public coop_contract {
 public:
-    using contract::contract;
+    using coop_contract::coop_contract;
     
     /**
      * @brief Устанавливает или обновляет конфигурацию контракта для кооператива.
@@ -72,6 +72,9 @@ public:
 
     [[eosio::action]]
     void migrate();
+    /// Очистка отработавших записей по правилам контракта (lib/core/cleanup.hpp); плейбук вызывает её на каждом деплое.
+    [[eosio::action]]
+    void cleanup();
 
     // Создать проект
     [[eosio::action]]
@@ -277,6 +280,11 @@ public:
 
     [[eosio::action]]
     void capdeclwthd3(name coopname, checksum256 withdraw_hash, std::string reason);
+
+    // Трансляция паевого взноса из Благороста в Цифровой Кошелёк по заявлению
+    // пайщика (1090): одним действием, без совета; доступ даёт кооператив.
+    [[eosio::action]]
+    void wthshare(eosio::name coopname, eosio::name username, eosio::asset amount, document2 statement);
     
     
     // Проектные имущественные взносы

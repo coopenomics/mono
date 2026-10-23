@@ -1,5 +1,8 @@
 #pragma once
 
+#include <eosio/binary_extension.hpp>
+
+#include "../core/ram_payer.hpp"
 #include <optional>
 
 #include <eosio/asset.hpp>
@@ -46,6 +49,17 @@ struct [[eosio::table, eosio::contract(REGISTRATOR)]] exit {
   document2 approved_statement; ///< решение совета о выходе (авторизация)
   checksum256 exit_hash;
   asset quantity;               ///< итоговая сумма возврата (заполняется на confirmexit)
+  /// Заявление об аннулировании соглашений ЦПП (registry 190), приходит
+  /// действием exitagree одной транзакцией с exitcoop. Расширение, а не поле:
+  /// заявления, поданные до появления аннулирования, читаются по-прежнему.
+  eosio::binary_extension<document2> annulment_statement;
+
+  /// Приложено ли заявление об аннулировании. Расширение пишется в строку
+  /// всегда — пустым документом, если его не задали, — поэтому `has_value()`
+  /// после записи истинно у любой строки; признак — непустой документ.
+  bool has_annulment() const {
+    return annulment_statement.has_value() && !is_empty_document(annulment_statement.value());
+  }
 
   uint64_t primary_key() const { return username.value; }
   checksum256 by_hash() const { return exit_hash; }
@@ -69,3 +83,6 @@ inline std::optional<exit> get_exit_by_hash(name coopname, const checksum256 &ha
 }
 
 } // namespace Registrator
+
+// Плательщик за оперативную память строк таблицы — правило в lib/core/ram_payer.hpp.
+RAM_PAYER_CLASS(Registrator::exit, cooperative);

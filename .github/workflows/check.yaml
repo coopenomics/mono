@@ -36,14 +36,16 @@ name: Check
 # их нет — триггер всё равно не срабатывал ни разу.
 on:
   push:
-    branches: [testnet, main]
+    # ci/tests — ветка-полигон: полный вердикт по рабочей ветке до слияния.
+    branches: [testnet, main, ci/tests, 'ci/tests-*']
   workflow_call:
   workflow_dispatch:
 
-# Новый push в PR-ветку отменяет ещё бегущий прогон по той же ветке.
-concurrency:
-  group: check-${{ github.head_ref || github.ref }}
-  cancel-in-progress: true
+# ci/tests-<имя> — личный полигон агента: параллельные починки не перетирают
+# чужую проверку в общем ci/tests.
+# Прогоны не отменяют друг друга: полигоны ci/tests и ci/blackbox общие для
+# нескольких агентов, и отмена прежнего прогона новым пушем обрывала чужую
+# проверку. Каждый пуш доводится до исхода.
 
 jobs:
   gates:

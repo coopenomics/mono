@@ -8,6 +8,7 @@ export * as ConvertToAxonStatement from './51.ConvertToAxonStatement'
 export * as ParticipantApplication from './100.ParticipantApplication'
 export * as DecisionOfParticipantApplication from './501.DecisionOfParticipantApplication'
 
+export * as ProgramAgreementsAnnulmentStatement from './190.ProgramAgreementsAnnulmentStatement'
 export * as ParticipantExitApplication from './200.ParticipantExitApplication'
 export * as DecisionOfParticipantExit from './201.DecisionOfParticipantExit'
 
@@ -15,24 +16,16 @@ export * as SelectBranchStatement from './101.SelectBranchStatement'
 export * as ProjectFreeDecision from './599.ProjectFreeDecision'
 export * as FreeDecision from './600.FreeDecision'
 
-export * as AssetContributionStatement from './700.AssetContributionStatement'
-export * as AssetContributionDecision from './701.AssetContributionDecision'
-export * as AssetContributionAct from './702.AssetContributionAct'
-
-export * as ReturnByAssetStatement from './800.ReturnByAssetStatement'
-export * as ReturnByAssetDecision from './801.ReturnByAssetDecision'
-export * as ReturnByAssetAct from './802.ReturnByAssetAct'
-
 export * as ReturnByMoney from './900.ReturnByMoney'
 export * as ReturnByMoneyDecision from './901.ReturnByMoneyDecision'
 
 export * as GeneratorProgramTemplate from './994.GeneratorProgramTemplate'
-export * as GeneratorOfferTemplate from './995.GeneratorOfferTemplate'
+// Двойник «для утверждения» оферты 996: совет утверждает рабочую оферту в бланке (фабрика утверждений, компонент 66). Не объявлять в реестре шаблонов кооператива; остаётся для переизготовления старых документов.
 export * as GeneratorOffer from './996.GeneratorOffer'
 export * as BlagorostOffer from './1000.BlagorostOffer'
 export * as BlagorostProgramTemplate from './998.BlagorostProgramTemplate'
-export * as BlagorostOfferTemplate from './999.BlagorostOfferTemplate'
-export * as GenerationContractTemplate from './997.GenerationContractTemplate'
+// Двойник «для утверждения» оферты 1000: совет утверждает рабочую оферту в бланке. Не объявлять; остаётся для старых документов.
+// Двойник «для утверждения» договора 1001: совет утверждает рабочий договор в бланке. Не объявлять; остаётся для старых документов.
 export * as GenerationContract from './1001.GenerationContract'
 export * as ProjectGenerationContract from './1002.ProjectGenerationContract'
 export * as ComponentGenerationContract from './1003.ComponentGenerationContract'
@@ -75,11 +68,10 @@ export * as CapitalizationToMainWalletConvertStatement from './1090.Capitalizati
 // Marketplace — ЦПП «Стол заказов» (Story 1.7)
 // Положение ЦПП «Стол заказов» (онбординг — первый документ, утверждаемый Советом)
 export * as MarketplaceProgramTemplate from './1100.MarketplaceProgramTemplate'
-export * as MarketplaceOfferTemplate from './1101.MarketplaceOfferTemplate'
+// Двойник «для утверждения» оферты 1102: совет утверждает рабочую оферту в бланке. Не объявлять; остаётся для старых документов.
 export * as MarketplaceOffer from './1102.MarketplaceOffer'
 export * as MarketplaceTransportNote from './1103.MarketplaceTransportNote'
 export * as MarketplaceAplReception from './1104.MarketplaceAplReception'
-export * as MarketplaceAplIssuance from './1105.MarketplaceAplIssuance'
 export * as MarketplaceReturnStatement from './1106.MarketplaceReturnStatement'
 export * as MarketplaceWriteoffProtocol from './1107.MarketplaceWriteoffProtocol'
 export * as MarketplaceWriteoffStatement from './1108.MarketplaceWriteoffStatement'
@@ -87,6 +79,13 @@ export * as BranchFinancialAidStatement from './1109.BranchFinancialAidStatement
 export * as MarketplaceConvertStatement from './1110.MarketplaceConvertStatement'
 export * as MarketplaceWriteoffServiceMemo from './1111.MarketplaceWriteoffServiceMemo'
 export * as BranchFinancialAidProtocol from './1112.BranchFinancialAidProtocol'
+export * as BillingConversionStatement from './1095.BillingConversionStatement'
+// Стол заказов — паевая модель (компонент 68): выдача и гарантийный возврат
+export * as MarketplaceShareReturnStatement from './1113.MarketplaceShareReturnStatement'
+export * as MarketplaceShareReturnDecision from './1114.MarketplaceShareReturnDecision'
+export * as MarketplaceShareReturnAct from './1115.MarketplaceShareReturnAct'
+export * as MarketplaceReturnCancelStatement from './1116.MarketplaceReturnCancelStatement'
+export * as MarketplaceReturnCancelDecision from './1117.MarketplaceReturnCancelDecision'
 
 export * as SosediAgreement from './699.SosediAgreement'
 
@@ -98,6 +97,7 @@ export * as AnnualGeneralMeetingVotingBallot from './303.AnnualGeneralMeetingVot
 export * as AnnualGeneralMeetingDecision from './304.AnnualGeneralMeetingDecision'
 
 export * from './capitalProgramPrivateData'
+export { educationRidTypeLabel } from './educationContractDocs'
 // самоорганизация кооперативных участков
 export * as BranchMeetingProposal from './320.BranchMeetingProposal'
 export * as BranchMeetingBallot from './322.BranchMeetingBallot'
@@ -109,3 +109,28 @@ export * as BranchTrustedLiabilityAgreement from './327.BranchTrustedLiabilityAg
 export * as BranchTrusteeLiabilityAgreement from './328.BranchTrusteeLiabilityAgreement'
 export * as BranchTrusteePowerOfAttorney from './329.BranchTrusteePowerOfAttorney'
 export * as BranchTrustedPowerOfAttorney from './330.BranchTrustedPowerOfAttorney'
+
+// Edubridge — ЦПП «Образование»
+export * as EducationProgramTemplate from './3000.EducationProgramTemplate'
+export * as EducationParentOffer from './3002.EducationParentOffer'
+export * as EducationTeacherOffer from './3004.EducationTeacherOffer'
+export * as EducationParticipationContract from './3006.EducationParticipationContract'
+export * as EducationRidStatement from './3008.EducationRidStatement'
+export * as EducationRidDecision from './3009.EducationRidDecision'
+export * as EducationRidAct from './3010.EducationRidAct'
+export * as EducationConvertStatement from './3011.EducationConvertStatement'
+export * as EducationRidStorageAct from './3012.EducationRidStorageAct'
+export * as EducationGuaranteeStatement from './3013.EducationGuaranteeStatement'
+export * as EducationGuaranteeDecision from './3014.EducationGuaranteeDecision'
+export * as EducationShareWithdrawStatement from './3015.EducationShareWithdrawStatement'
+/**
+ * Выведенные номера реестра (16.09.2026): 995, 997, 999, 1101 — шаблоны-двойники
+ * «для утверждения советом» оферт Генератора, Благороста, Стола заказов и договора
+ * Генерации. Совет утверждает рабочий документ (996, 1001, 1000, 1102) в виде
+ * бланка: те же шаблон и переводы, поля пайщика и события — прочерком. Номера
+ * не переиспользовать: в действующих сетях их записи остаются.
+ *
+ * Так же выведены (23.09.2026) 3001, 3003, 3005 — двойники оферт родителя-слушателя
+ * и преподавателя и договора участия ЦПП «Образование»; совет утверждает рабочие
+ * 3002, 3004, 3006 в бланке.
+ */

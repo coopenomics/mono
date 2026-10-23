@@ -1,19 +1,14 @@
 <template lang="pug">
-div
-  q-step(
-    :name='store.steps.GenerateAccount',
-    title='Установите пароль для входа',
-    :done='store.isStepDone("GenerateAccount")'
-  )
+div(v-show='store.isStep("GenerateAccount")')
     .generate
       //- Ключ доступа больше не показывается и не выдаётся на руки: он создаётся
       //- здесь же, шифруется этим паролем и хранится в защищённом хранилище
       //- кооператива. Пайщик знает только пароль — им и входит.
-      p.generate__hint Пароль понадобится для входа в кооператив с любого устройства. Цифровая подпись создаётся автоматически и хранится в зашифрованном виде — доступ к ней открывает только ваш пароль.
+      p.generate__hint {{ $t('registrator.generateAccount.passwordHint') }}
 
       BaseInput(
         v-model='password',
-        label='Пароль',
+        :label='$t("registrator.generateAccount.passwordLabel")',
         type='password',
         autocomplete='new-password',
         :hint='PASSWORD_POLICY_HINT',
@@ -24,7 +19,7 @@ div
       BaseInput(
         ref='repeatRef',
         v-model='repeatPassword',
-        label='Повторите пароль',
+        :label='$t("registrator.generateAccount.repeatPasswordLabel")',
         type='password',
         autocomplete='new-password',
         :error='repeatError',
@@ -35,7 +30,7 @@ div
       .generate__actions
         BaseButton(variant='ghost', @click='store.prev()')
           q-icon(name='arrow_back')
-          span.q-ml-md назад
+          span.q-ml-md {{ $t('registrator.generateAccount.backAction') }}
 
         BaseButton(
           variant='primary',
@@ -43,7 +38,7 @@ div
           :loading='isLoading',
           @click='setAccount'
         )
-          | Продолжить
+          | {{ $t('registrator.generateAccount.submitAction') }}
 </template>
 <script lang="ts" setup>
 import { ref, computed, watch } from 'vue';
@@ -53,12 +48,17 @@ import { Classes } from '@coopenomics/sdk';
 import { migrate, PASSWORD_POLICY_HINT, passwordPolicyErrors } from '@coopenomics/auth';
 import { updateOpenReplayUser } from 'src/shared/config';
 import { useSystemStore } from 'src/entities/System/model';
+import { useAccountStore } from 'src/entities/Account/model';
+import { useSessionStore } from 'src/entities/Session';
 import { BaseButton } from 'src/shared/ui/base/BaseButton';
 import { BaseInput } from 'src/shared/ui/base/BaseInput';
 import { FailAlert } from 'src/shared/api';
+import { t } from 'src/shared/i18n';
 
 const store = useRegistratorStore();
 const system = useSystemStore();
+const accountStore = useAccountStore();
+const session = useSessionStore();
 
 const api = useCreateUser();
 const account = ref(store.state.account);
@@ -97,7 +97,7 @@ const passwordError = computed(() => {
 });
 const repeatError = computed(() =>
   repeatPassword.value && repeatPassword.value !== password.value
-    ? 'Пароли не совпадают'
+    ? t('registrator.generateAccount.passwordMismatchError')
     : '',
 );
 const canContinue = computed(
@@ -109,30 +109,45 @@ const canContinue = computed(
 const setAccount = async () => {
   isLoading.value = true;
   try {
+    // Ключ и отметку «учётка создана» ставит createUser сам.
     if (!store.state.accountCreated) {
       await api.createUser(email.value, userData.value, account.value);
-      store.state.account = account.value;
-      store.state.accountCreated = true;
     }
 
     // Пароль — сразу в контур CoopID: учётка входа + ключ, зашифрованный этим
     // паролем, в защищённом хранилище. Владение доказывается подписью только что
     // созданного ключа; `rotate: false` — ключ никому не показывался, ротировать
     // нечего (да и нельзя до принятия в пайщики). Дальше пайщик входит паролем.
-    await migrate({
-      email: email.value,
-      privateKey: account.value.private_key,
-      newPassword: password.value,
-      rotate: false,
-    });
+    //
+    // Ключ берётся из состояния вступления, а не из поля шага: после продолжения
+    // вступления (сбой, другое устройство) там ключ учётки, а поле шага при
+    // монтировании сгенерировало новый. Ключа нет — вошли паролем, он уже стоит.
+    const privateKey = store.state.account.private_key;
+    if (privateKey) {
+      await migrate({
+        email: email.value,
+        privateKey,
+        newPassword: password.value,
+        rotate: false,
+      });
+      // Признак пароля стол берёт с сервера (has_password): без перечитки шаг
+      // пароля считался бы непройденным до перезагрузки страницы.
+      const updated = await accountStore
+        .getAccount(store.state.account.username)
+        .catch(() => undefined);
+      if (updated) session.setCurrentUserAccount(updated);
+    }
 
     // Обновляем username в OpenReplay tracker после создания пользователя
     updateOpenReplayUser({
-      username: account.value.username,
+      username: store.state.account.username,
       coopname: system.info.coopname,
       cooperativeDisplayName: system.cooperativeDisplayName,
     });
 
+    // Шага «У меня есть карта» здесь больше нет: карта нужна ДО анкеты, чтобы перенести
+    // её данные, и предлагается на первом шаге вместе с почтой (владелец 03.09.2026).
+    // Кто регистрировался почтой — свяжет карту позже, из раздела «Карта кооператора».
     if (store.isBranched) store.goTo('SelectBranch');
     else store.goTo('ReadStatement');
   } catch (e: any) {

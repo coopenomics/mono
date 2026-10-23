@@ -1,30 +1,32 @@
 <template>
-  <AuthCard
-    :title="title"
-    :subtitle="subtitle"
-    :max-width="mode === 'save-key' ? 560 : 480"
+  <AuthSplit
+    :eyebrow="coopTitle"
+    :title="$t('registrator.resetKeyForm.title')"
+    :lead="$t('registrator.resetKeyForm.lead')"
+    :quote="$t('registrator.resetKeyForm.quote')"
+    :step-eyebrow="$t('registrator.resetKeyForm.title')"
+    :heading="title"
+    :text="subtitle"
+    :size="mode === 'save-key' ? 'md' : 'sm'"
   >
+    <template v-if="$slots.actions" #actions>
+      <slot name="actions" />
+    </template>
+    <template v-if="$slots['pane-foot']" #pane-foot>
+      <slot name="pane-foot" />
+    </template>
     <!-- Шаг ожидания письма -->
     <template v-if="mode === 'check-mail'">
-      <BaseBanner variant="info">
-        Письмо со ссылкой для перевыпуска ключа отправлено на указанную почту.
-        Перейдите по ссылке, чтобы продолжить.
-      </BaseBanner>
+      <BaseBanner variant="info"> {{ $t('registrator.resetKeyForm.checkMailBanner') }} </BaseBanner>
     </template>
 
     <!-- Шаг сохранения ключа -->
     <template v-else-if="account">
-      <p class="rk-form__lead">
-        Новый приватный ключ сгенерирован прямо в вашем браузере и не передаётся
-        на серверы. Сохраните его в надёжном месте — рекомендуем менеджер
-        паролей, например
-        <a href="https://bitwarden.com/download" target="_blank" rel="noopener">Bitwarden</a>.
-        Без ключа доступ к аккаунту восстановить нельзя.
-      </p>
+      <p class="rk-form__lead"> {{ $t('registrator.resetKeyForm.saveKeyLeadPart1') }} <a href="https://bitwarden.com/download" target="_blank" rel="noopener">Bitwarden</a>{{ $t('registrator.resetKeyForm.saveKeyLeadPart2') }} </p>
 
       <BaseInput
         :model-value="account.private_key"
-        label="Приватный ключ"
+        :label="$t('registrator.resetKeyForm.privateKeyLabel')"
         readonly
         mono
       />
@@ -33,22 +35,17 @@
         <BaseButton
           variant="ghost"
           size="sm"
-          :aria-label="copied ? 'Скопировано' : 'Скопировать ключ'"
+          :aria-label="copied ? $t('registrator.resetKeyForm.copiedLabel') : $t('registrator.resetKeyForm.copyKeyAriaLabel')"
           @click="copy"
         >
           <template #icon-left>
             <q-icon :name="copied ? 'check' : 'content_copy'" />
           </template>
-          {{ copied ? 'Скопировано' : 'Копировать ключ' }}
+          {{ copied ? $t('registrator.resetKeyForm.copiedLabel') : $t('registrator.resetKeyForm.copyKeyLabel') }}
         </BaseButton>
       </div>
 
-      <q-checkbox
-        v-model="iSave"
-        class="rk-form__confirm"
-        label="Я сохранил ключ"
-        color="primary"
-      />
+      <BaseCheckbox v-model="iSave" class="rk-form__confirm" :label="$t('registrator.resetKeyForm.saveKeyConfirmLabel')" />
 
       <BaseButton
         variant="primary"
@@ -56,24 +53,26 @@
         :disabled="!iSave"
         block
         @click="submit"
-      >
-        Установить ключ
-      </BaseButton>
+      > {{ $t('registrator.resetKeyForm.submit') }} </BaseButton>
     </template>
 
     <template v-else>
-      <BaseBanner variant="neg">
-        Не удалось сгенерировать ключ. Обновите страницу и попробуйте снова.
-      </BaseBanner>
+      <BaseBanner variant="neg"> {{ $t('registrator.resetKeyForm.genErrorBanner') }} </BaseBanner>
     </template>
-  </AuthCard>
+    <template v-if="$slots.footer" #foot>
+      <slot name="footer" />
+    </template>
+  </AuthSplit>
 </template>
 
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { copyToClipboard, Notify } from 'quasar';
-import { AuthCard } from 'src/shared/ui/domain/AuthCard';
+import { AuthSplit } from 'src/shared/ui/layout/AuthSplit';
+import { BaseCheckbox } from 'src/shared/ui/base/BaseCheckbox';
+import { useSystemStore } from 'src/entities/System/model';
 import type { ResetKeyFormProps } from './ResetKeyForm.types';
+import { t } from 'src/shared/i18n';
 
 const props = withDefaults(defineProps<ResetKeyFormProps>(), {
   loading: false,
@@ -85,16 +84,19 @@ const emit = defineEmits<{
   submit: [];
 }>();
 
+const systemStore = useSystemStore();
+const coopTitle = computed(() => systemStore.cooperativeDisplayName);
+
 const copied = ref(false);
 const iSave = ref(false);
 
 const title = computed(() =>
-  props.mode === 'save-key' ? 'Сохраните ключ' : 'Проверьте почту',
+  props.mode === 'save-key' ? t('registrator.resetKeyForm.saveKeyTitle') : t('registrator.resetKeyForm.checkMailTitle'),
 );
 const subtitle = computed(() =>
   props.mode === 'save-key'
-    ? 'Новый приватный ключ сгенерирован и готов к сохранению'
-    : 'Мы отправили ссылку для перевыпуска ключа',
+    ? t('registrator.resetKeyForm.saveKeySubtitle')
+    : t('registrator.resetKeyForm.checkMailSubtitle'),
 );
 
 async function copy(): Promise<void> {
@@ -103,7 +105,7 @@ async function copy(): Promise<void> {
     await copyToClipboard(props.account.private_key);
     copied.value = true;
     Notify.create({
-      message: 'Ключ скопирован',
+      message: t('registrator.resetKeyForm.copiedNotify'),
       type: 'positive',
       position: 'top',
       timeout: 1500,
@@ -111,7 +113,7 @@ async function copy(): Promise<void> {
     emit('copy');
   } catch {
     Notify.create({
-      message: 'Не удалось скопировать. Перенесите ключ вручную.',
+      message: t('registrator.resetKeyForm.copyFailNotify'),
       type: 'negative',
       position: 'top',
     });
@@ -141,11 +143,8 @@ function submit(): void {
 .rk-form__copy {
   display: flex;
   justify-content: flex-end;
-  margin-top: -8px;
-  margin-bottom: var(--p-2, 8px);
 }
 .rk-form__confirm {
-  margin: var(--p-2, 8px) 0;
   color: var(--p-ink);
 }
 </style>

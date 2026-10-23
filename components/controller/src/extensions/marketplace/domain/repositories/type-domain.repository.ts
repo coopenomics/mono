@@ -51,16 +51,6 @@ export interface TypeDomainRepository {
   count(): Promise<number>;
 
   /**
-   * Найти типы товаров с атрибутами
-   */
-  findWithAttributes(): Promise<TypeDomainEntity[]>;
-
-  /**
-   * Найти типы товаров по ID категории с атрибутами
-   */
-  findByCategoryIdWithAttributes(categoryId: number): Promise<TypeDomainEntity[]>;
-
-  /**
    * Поиск типов товаров по названию (оптимизированный)
    */
   searchByName(searchTerm: string, limit?: number): Promise<TypeDomainEntity[]>;

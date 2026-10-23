@@ -3,7 +3,7 @@ q-btn(
   color='primary',
   @click='handleFundProgram',
   :loading='loading',
-  label='Финансировать программу'
+  :label='$t("capital.fundProgramButton.label")'
 )
 </template>
 

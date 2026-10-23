@@ -26,7 +26,7 @@
   eosio::check(indoc->program_id == 0,
                "soviet::declineagree: программные соглашения (program_id > 0) отклоняются через wallet::revokeagree");
   
-  agreements.modify(indoc, administrator, [&](auto &d) { 
+  agreements.modify(indoc, RamPayer::of(agreements, coopname), [&](auto &d) { 
     d.status = "declined"_n;
   });
   

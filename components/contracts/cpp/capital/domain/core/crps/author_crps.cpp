@@ -17,7 +17,7 @@ namespace Capital::Core {
     
     if (segment == segments.end()) {
         // Создаем сегмент автора с переданным ID
-        segments.emplace(_capital, [&](auto &g){
+        segments.emplace(RamPayer::of(segments, coopname), [&](auto &g){
             g.id            = segment_id;
             g.coopname      = coopname;
             g.project_hash  = project.project_hash;
@@ -42,7 +42,7 @@ namespace Capital::Core {
         bool became_author = (!segment->is_author);
 
         // Обновляем сегмент автора
-        segments.modify(segment, _capital, [&](auto &g) {
+        segments.modify(segment, RamPayer::of(segments, coopname), [&](auto &g) {
             if (!g.is_author) {
                 g.is_author = true;
                 // Инициализируем CRPS поля для нового автора
@@ -72,7 +72,7 @@ namespace Capital::Core {
       return; // Сегмент не найден
     }
     
-    segments.modify(segment, coopname, [&](auto &s) {
+    segments.modify(segment, RamPayer::of(segments, coopname), [&](auto &s) {
       if (s.is_author) {
 
         // Обновляем базовые авторские награды
@@ -113,7 +113,7 @@ namespace Capital::Core {
     Capital::project_index projects(_capital, coopname.value);
     auto project_for_modify = projects.find(project_id);
 
-    projects.modify(project_for_modify, _capital, [&](auto &p) {
+    projects.modify(project_for_modify, RamPayer::of(projects, coopname), [&](auto &p) {
       if (p.counts.total_authors > 0) {
         uint128_t authors_count_128 = static_cast<uint128_t>(p.counts.total_authors);
         

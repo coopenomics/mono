@@ -24,17 +24,34 @@ const REPORT_DIR = join(ROOT, 'node_modules', '.cache', 'unit-reports');
 
 const PACKAGES = [
   { title: 'cooptypes', filter: 'cooptypes', runner: 'vitest' },
-  { title: 'parser', filter: '@coopenomics/parser', runner: 'vitest' },
   { title: 'notifications', filter: '@coopenomics/notifications', runner: 'vitest' },
+  // У SDK один каталог test/ на два набора: index.test.ts ходит в живой узел и
+  // гоняется интеграцией (run-integration-tests.sh), остальные файлы — чистые
+  // юниты с замоканным fetch. Здесь берём только юниты, поимённо.
+  {
+    title: 'sdk',
+    filter: '@coopenomics/sdk',
+    runner: 'vitest',
+    files: ['test/access-token-provider.test.ts', 'test/graphql-response-error.test.ts', 'test/auth-loss.test.ts'],
+  },
+  // У auth часть наборов ходит в живой узел и в браузер — здесь только юниты, поимённо.
+  {
+    title: 'auth',
+    filter: '@coopenomics/auth',
+    runner: 'vitest',
+    files: ['test/oidc-tokens.test.ts'],
+  },
+  // Логика рабочего стола без DOM и сети; набор задаёт vitest.config.ts (test/unit).
+  { title: 'desktop', filter: '@coopenomics/desktop', runner: 'vitest' },
   { title: 'controller', filter: '@coopenomics/controller', runner: 'jest' },
 ];
 
 /** Аргументы раннера: JSON-отчёт в файл, читаемый лог — по-прежнему в консоль. */
-function runnerArgs(runner, reportFile) {
+function runnerArgs(runner, reportFile, files = []) {
   if (runner === 'vitest') {
-    return ['exec', 'vitest', 'run', '--reporter=default', '--reporter=json', `--outputFile=${reportFile}`];
+    return ['exec', 'vitest', 'run', '--reporter=default', '--reporter=json', `--outputFile=${reportFile}`, ...files];
   }
-  return ['exec', 'jest', '-i', '--json', `--outputFile=${reportFile}`];
+  return ['exec', 'jest', '-i', '--json', `--outputFile=${reportFile}`, ...files];
 }
 
 /** vitest и jest пишут json одного формата — разбираем одинаково. */
@@ -73,7 +90,7 @@ for (const pkg of PACKAGES) {
 
   console.log(`\n─── ${pkg.title} ───`);
   const started = Date.now();
-  const proc = spawnSync('pnpm', ['--filter', pkg.filter, ...runnerArgs(pkg.runner, reportFile)], {
+  const proc = spawnSync('pnpm', ['--filter', pkg.filter, ...runnerArgs(pkg.runner, reportFile, pkg.files)], {
     cwd: ROOT,
     stdio: 'inherit',
     env: { ...process.env, FORCE_COLOR: '1' },

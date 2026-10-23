@@ -17,9 +17,9 @@ on:
       - '.github/workflows/sdk-cross-runtime.yaml'
   workflow_call:
 
-concurrency:
-  group: sdk-cross-runtime-${{ github.head_ref || github.ref }}
-  cancel-in-progress: true
+# Прогоны не отменяют друг друга: полигоны ci/tests и ci/blackbox общие для
+# нескольких агентов, и отмена прежнего прогона новым пушем обрывала чужую
+# проверку. Каждый пуш доводится до исхода.
 
 jobs:
   cross-runtime:

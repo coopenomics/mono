@@ -38,20 +38,39 @@ name: Tests
 # не дожидаясь релиза.
 on:
   push:
-    branches: [dev, ci/tests]
+    # Только полигон: рабочая ветка пушится в ci/tests и там получает вердикт
+    # до слияния. Прогон на каждый коммит в dev дублировал бы тот же код
+    # (снято 2026-09-08 по решению владельца).
+    branches: [ci/tests, 'ci/tests-*']
   workflow_call:
   workflow_dispatch:
 
-# Новый push в ту же ветку отменяет ещё бегущий прогон: при частых коммитах в
-# dev результат по устаревшему коду не нужен, а очередь съедает раннеры.
-# Ветки друг друга не трогают — группа по ref.
-concurrency:
-  group: tests-${{ github.ref }}
-  cancel-in-progress: true
+# ci/tests-<имя> — личный полигон агента: параллельные починки не перетирают
+# чужую проверку в общем ci/tests.
+# Прогоны не отменяют друг друга: полигоны ci/tests и ci/blackbox общие для
+# нескольких агентов, и отмена прежнего прогона новым пушем обрывала чужую
+# проверку. Каждый пуш доводится до исхода.
 
 jobs:
   unit:
     runs-on: ubuntu-latest
+
+    # Postgres — для гейта схемы: база собирается одними миграциями и
+    # сверяется с сущностями (scripts/schema-check.ts). Как и mongo ниже,
+    # сервис доступен по проброшенному порту на 127.0.0.1.
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
     steps:
       - uses: actions/checkout@v4
 
@@ -70,7 +89,7 @@ jobs:
       - name: Build all workspace packages
         run: pnpm lerna run build
 
-      # cooptypes + parser + notifications + controller.
+      # cooptypes + notifications + controller.
       # Юнит-тесты controller гоняются через `jest -i` (runInBand) — так же,
       # как требует CLAUDE.md для локального запуска.
       #
@@ -81,6 +100,28 @@ jobs:
       # одну таблицу с поимённым списком падений.
       - name: Unit-тесты
         run: node scripts/run-unit-tests.mjs
+
+      # Схему меняют только миграции (C28-79). Пустая база, все миграции ядра и
+      # расширений, затем TypeORM не должен видеть ни одного отличия от
+      # сущностей: колонка, добавленная в класс без миграции, роняет шаг —
+      # иначе на узлах кооперативов её бы просто не было.
+      - name: Схема базы — только миграциями
+        env:
+          POSTGRES_HOST: 127.0.0.1
+          POSTGRES_PORT: 5432
+          POSTGRES_USERNAME: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DATABASE: postgres
+        # Конфиг контроллера требует ключи VAPID (веб-уведомления); для сверки
+        # схемы годится одноразовая пара — генерируем её здесь, а не храним.
+        run: |
+          cp components/controller/.env-example components/controller/.env
+          cd components/controller
+          eval "$(node -e "const k=require('web-push').generateVAPIDKeys(); console.log('export VAPID_PUBLIC_KEY=' + k.publicKey + ' VAPID_PRIVATE_KEY=' + k.privateKey)")"
+          pnpm run schema:check
+          # Типы таблиц для Kysely собираются из тех же миграций (C28-81): миграция
+          # без пересборки типов оставила бы запросы проверенными по старой схеме.
+          pnpm run schema:types --verify
 
   component:
     runs-on: ubuntu-latest

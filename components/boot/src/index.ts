@@ -7,7 +7,7 @@ import { execCommand } from './docker/exec'
 import { stopContainerByName } from './docker/stop'
 import { runContainer, runInfraContainers } from './docker/run'
 import { boot, bootClean, bootExtra } from './init/booter'
-import { startCoop } from './init/cooperative'
+// startCoop удалён из CLI: create-coop теперь регистрирует кооператив в подсети (Epic 29)
 import { sleep } from './utils'
 import { checkHealth } from './docker/health'
 import { clearDB, clearDirectory, deleteFile } from './docker/purge'
@@ -74,6 +74,27 @@ program
     }
   })
 
+// Активация протокольных фич на работающей цепи: свежий boot включает их
+// при genesis, а уже поднятому стенду новую фичу (например, интринзик
+// assert_recover_key_account для робота решений совета) иначе не дать.
+// Уже активированные пропускаются, ключ — eosio из EOSIO_PRV_KEY.
+program
+  .command('activate-features')
+  .description('Activate protocol features from config on a running chain (already active are skipped)')
+  .action(async () => {
+    try {
+      const { default: Blockchain } = await import('./blockchain')
+      const { default: config } = await import('./configs')
+      const blockchain = new Blockchain(config.network, config.private_keys)
+      for (const feature of config.features)
+        await blockchain.activateFeature(feature)
+      process.exit(0)
+    }
+    catch (error) {
+      console.error('Failed to activate features:', error)
+      process.exit(1)
+    }
+  })
 // Команда для получения списка контейнеров
 program
   .command('stop')
@@ -255,13 +276,25 @@ Y88b  d88P Y88b. .d88P 888   "   888 888        888      888            888     
     }
   })
 
-// Команда для создания кооператива
+// Epic 29 (провайдер, тип запуска new_subnet): регистрация кооператива-клиента
+// в свежей подсети после boot:remote. Вызывается плейбуком поставки из образа
+// dicoop/bootcoop (blockchain/subnet-bootstrap.yaml в coopenomics/playbooks).
 program
   .command('create-coop')
-  .description('Create cooperative after clean boot')
-  .action(async () => {
+  .description('Register and activate a cooperative in a freshly booted subnet')
+  .argument('<coopname>', 'account name of the cooperative')
+  .option('--public-key <key>', 'cooperative active key from the main chain (set after registration)')
+  .option('--announce <domain>', 'cooperative domain (goes to params.announce)')
+  .option('--description <text>', 'human-readable description')
+  .action(async (coopname: string, options: { publicKey?: string, announce?: string, description?: string }) => {
     try {
-      await startCoop()
+      const { registerCoopInSubnet } = await import('./init/subnet-coop')
+      await registerCoopInSubnet({
+        coopname,
+        publicKey: options.publicKey,
+        announce: options.announce,
+        description: options.description,
+      })
       console.log('Кооператив успешно создан')
       process.exit(0)
     }

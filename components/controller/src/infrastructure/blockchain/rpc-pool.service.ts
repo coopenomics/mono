@@ -3,6 +3,7 @@ import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { APIClient } from '@wharfkit/antelope';
 import config from '~/config/config';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
+import { DomainError } from '@coopenomics/extension-kit';
 
 /**
  * Пул COOPOS RPC-узлов с health-aware failover (CoopID, Story 9.4).
@@ -44,6 +45,30 @@ export function isFailoverWorthy(e: unknown): boolean {
   return false;
 }
 
+/**
+ * Узел цепи недостижим: соединение не установлено, оборвано либо ответа не дождались.
+ * Отличается от «узел ответил ошибкой» — там есть HTTP-статус и разбор ответа.
+ */
+export function isChainUnreachable(e: unknown): boolean {
+  if (e instanceof DomainError) return e.code === 'BLOCKCHAIN_RPC_TIMEOUT';
+  if (rpcErrorStatus(e) !== undefined) return false;
+  const error = e as { message?: unknown; code?: unknown; cause?: { code?: unknown } } | null;
+  const code = String(error?.cause?.code ?? error?.code ?? '');
+  return (
+    error?.message === 'fetch failed' ||
+    /^(ECONNREFUSED|ECONNRESET|ENOTFOUND|EAI_AGAIN|ETIMEDOUT|EHOSTUNREACH|UND_ERR_)/.test(code)
+  );
+}
+
+/**
+ * Отказ пайщику, когда цепь недостижима: код и статус 503 вместо внутренней ошибки
+ * «fetch failed» без кода (C28-85, находка 52). Стол по коду отличает «повторите позже»
+ * от отказа по существу.
+ */
+export function chainUnavailable(e: unknown): DomainError {
+  return DomainError.serviceUnavailable('BLOCKCHAIN_UNAVAILABLE', { reason: errMsg(e) });
+}
+
 interface RpcEndpoint {
   url: string;
   client: APIClient;
@@ -78,6 +103,7 @@ export class RpcPool implements OnModuleInit, OnModuleDestroy {
   onModuleInit(): void {
     const interval = config.blockchain.rpcHealthCheckIntervalMs;
     if (this.endpoints.length > 1 && interval > 0) {
+      // timing: schedule — проверка здоровья узлов RPC
       this.healthTimer = setInterval(() => void this.probeAll(), interval);
       this.healthTimer.unref?.();
     }
@@ -101,7 +127,8 @@ export class RpcPool implements OnModuleInit, OnModuleDestroy {
   /**
    * Выполнить чтение на здоровом узле с failover. Транспортный сбой → следующий
    * здоровый узел; прикладная 4xx → проброс без перебора. Если все узлы
-   * исчерпаны — бросает последнюю ошибку (вызывающий решает: degraded/кэш).
+   * исчерпаны — бросает последнюю ошибку (вызывающий решает: degraded/кэш); если узлы
+   * недостижимы вовсе — отказ с кодом `BLOCKCHAIN_UNAVAILABLE` (503).
    */
   async read<T>(fn: (client: APIClient) => Promise<T>): Promise<T> {
     const order = this.readOrder();
@@ -122,7 +149,8 @@ export class RpcPool implements OnModuleInit, OnModuleDestroy {
         }
       }
     }
-    throw lastErr ?? new Error('RpcPool: нет доступных RPC-узлов');
+    if (lastErr !== undefined && isChainUnreachable(lastErr)) throw chainUnavailable(lastErr);
+    throw lastErr ?? DomainError.internal('BLOCKCHAIN_RPC_NO_NODES_AVAILABLE');
   }
 
   /**
@@ -188,7 +216,8 @@ export class RpcPool implements OnModuleInit, OnModuleDestroy {
   private withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
     if (!ms || ms <= 0) return p;
     return new Promise<T>((resolve, reject) => {
-      const t = setTimeout(() => reject(new Error(`RpcPool: таймаут RPC ${ms}мс`)), ms);
+      // timing: timeout — предел ожидания ответа RPC
+      const t = setTimeout(() => reject(DomainError.internal('BLOCKCHAIN_RPC_TIMEOUT', { ms })), ms);
       t.unref?.();
       p.then(
         (v) => { clearTimeout(t); resolve(v); },

@@ -1,6 +1,6 @@
 <template lang="pug">
 .desktops-list(v-if='desktops && desktops.length > 0')
-  .desktops-list__title Рабочие столы
+  .desktops-list__title {{ $t('extensionDesktopsList.desktopsList.title') }}
   .desktops-list__items
     .desktops-list__row(
       v-for='(desktop, index) in desktops',
@@ -8,7 +8,7 @@
     )
       q-avatar.desktops-list__ico(size='32px')
         q-icon(:name='desktop.icon || "fa-solid fa-desktop"', size='16px')
-      span.desktops-list__label {{ desktop.title || 'Без названия' }}
+      span.desktops-list__label {{ desktop.title || $t('extensionDesktopsList.desktopsList.untitledFallback') }}
 </template>
 
 <script setup lang="ts">

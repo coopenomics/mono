@@ -13,6 +13,7 @@ import { CapitalContract } from 'cooptypes'
 import Blockchain from '../../../blockchain'
 import config from '../../../configs'
 import { PROJECTS, ROOT_HASH, projectHash } from '../data/projects'
+import { chainTextDigest } from '../../../utils/chainTextDigest'
 
 const log = (...a: unknown[]) => console.error('[seed-capital:03]', ...a)
 
@@ -82,7 +83,7 @@ export async function phase03(): Promise<void> {
       project_hash: hash,
       parent_hash,
       title: project.title,
-      description: makeDescription(project.title),
+      description: chainTextDigest(makeDescription(project.title)),
       invite: '',
       data: makeData(project.title),
       meta: makeMeta(project.id, project.title),

@@ -1,4 +1,10 @@
+import './i18n';
 import { markRaw } from 'vue';
+import { Zeus } from '@coopenomics/sdk';
+import { refreshMenuBadges, registerMenuBadge } from 'src/shared/lib/menuBadges';
+import { registerLiveReload, type ChainTableRef } from 'src/shared/lib/realtime';
+import { useSystemStore } from 'src/entities/System/model';
+import { api as approvalsApi } from 'app/extensions/chairman/entities/Approval/api';
 import { ExtensionsShowcase } from 'src/pages/ExtensionStore/ExtensionsShowcase';
 import { InstalledExtensions } from 'src/pages/ExtensionStore/InstalledExtensions';
 import { ExtensionPage } from 'src/pages/ExtensionStore/ExtensionPage';
@@ -10,27 +16,48 @@ import { MembersPage } from 'src/pages/Cooperative/MembersPage';
 import { CooperativeKeyPage } from 'src/pages/Cooperative/CooperativeKey';
 import { ApprovalsPage } from 'app/extensions/chairman/pages/ApprovalsPage';
 import { SystemSettingsPage } from 'app/extensions/chairman/pages/SystemSettingsPage';
+import { CooperativeVarsPage } from 'app/extensions/chairman/pages/CooperativeVarsPage';
 import { PaymentProviderPage } from 'app/extensions/chairman/pages/PaymentProviderPage';
 import { ConnectPage } from 'app/extensions/chairman/pages/ConnectPage';
 import { AgendaPresetsPage } from 'app/extensions/chairman/pages/AgendaPresetsPage';
+import { AccessRolesPage } from 'app/extensions/chairman/pages/AccessRolesPage';
 import { NotificationsJournalPage } from 'src/pages/Chairman/NotificationsJournalPage';
 
 import { agreementsBase } from 'src/shared/lib/consts/workspaces';
 import type { IWorkspaceConfig } from 'src/shared/lib/types/workspace';
+import { t } from './i18n';
 
 export default async function (): Promise<IWorkspaceConfig[]> {
+  // Число на пункте «Запросы одобрений»: сколько документов ждёт подписи
+  // председателя. Меняется по ленте одобрений — подпись, отказ, новый запрос.
+  const APPROVALS_TABLE: ChainTableRef = { code: 'chairman', table: 'chairman_approvals' };
+  registerMenuBadge('approvals', async () => {
+    try {
+      const { info } = useSystemStore();
+      const page = await approvalsApi.loadApprovals({
+        filter: { coopname: info.coopname, statuses: [Zeus.ApprovalStatus.PENDING] },
+        options: { page: 1, limit: 1, sortOrder: 'DESC' },
+      });
+      return page?.totalCount ?? 0;
+    } catch {
+      // Одобрения читает только председатель — остальным число не показывается.
+      return 0;
+    }
+  });
+  registerLiveReload([APPROVALS_TABLE], () => refreshMenuBadges(['approvals']));
+
   return [{
     workspace: 'chairman',
     extension_name: 'chairman',
-    title: 'Стол председателя',
+    title: t('chairman.install.extensionName'),
     icon: 'fa-solid fa-user-tie',
     defaultRoute: 'approvals', // Маршрут по умолчанию для рабочего стола председателя
     routes: [
       {
         meta: {
-          title: 'Стол председателя',
+          title: t('chairman.install.extensionName'),
           icon: 'fa-solid fa-user-tie',
-          roles: ['chairman'],
+          requires: 'System:manage',
         },
         path: '/:coopname/chairman',
         name: 'chairman',
@@ -40,9 +67,9 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             name: 'chairman-connect',
             component: markRaw(ConnectPage),
             meta: {
-              title: 'Онбординг',
+              title: t('chairman.install.onboardingNavTitle'),
               icon: 'fa-solid fa-rocket',
-              roles: ['chairman'],
+              requires: 'System:manage',
               agreements: agreementsBase,
               requiresAuth: true,
               conditions: '!isOnboardingHidden',
@@ -53,9 +80,9 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             name: 'chairman-agenda-presets',
             component: markRaw(AgendaPresetsPage),
             meta: {
-              title: 'Пресеты предложений',
+              title: t('chairman.install.agendaPresetsNavTitle'),
               icon: 'fa-solid fa-file-alt',
-              roles: ['chairman'],
+              requires: 'System:manage',
               agreements: agreementsBase,
               requiresAuth: true,
               hidden: true,
@@ -66,9 +93,21 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             name: 'approvals',
             component: markRaw(ApprovalsPage),
             meta: {
-              title: 'Запросы одобрений',
+              title: t('chairman.install.approvalsNavTitle'),
               icon: 'fa-solid fa-check-circle',
-              roles: ['chairman'],
+              requires: 'Approval:confirm',
+              agreements: agreementsBase,
+              requiresAuth: true,
+            },
+          },
+          {
+            path: 'access',
+            name: 'chairman-access-roles',
+            component: markRaw(AccessRolesPage),
+            meta: {
+              title: t('chairman.install.accessRolesNavTitle'),
+              icon: 'admin_panel_settings',
+              requires: 'AccessRole:manage',
               agreements: agreementsBase,
               requiresAuth: true,
             },
@@ -78,9 +117,9 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             name: 'chairman-notifications-journal',
             component: markRaw(NotificationsJournalPage),
             meta: {
-              title: 'Журнал уведомлений',
+              title: t('chairman.install.notificationsLogNavTitle'),
               icon: 'notifications',
-              roles: ['chairman'],
+              requires: 'NotificationJournal:resend',
               agreements: agreementsBase,
               requiresAuth: true,
             },
@@ -91,9 +130,9 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             name: 'extensions',
             component: markRaw(ExtensionsManagement),
             meta: {
-              title: 'Каталог приложений',
+              title: t('chairman.install.appCatalogNavTitle'),
               icon: 'fa-solid fa-puzzle-piece',
-              roles: ['chairman'],
+              requires: 'Extension:manage',
               agreements: agreementsBase,
               requiresAuth: true,
             },
@@ -104,9 +143,9 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                 name: 'extstore-showcase',
                 component: markRaw(ExtensionsShowcase),
                 meta: {
-                  title: 'Витрина',
+                  title: t('chairman.install.marketplaceNavTitle'),
                   icon: 'fa-solid fa-store',
-                  roles: ['chairman'],
+                  requires: 'Extension:manage',
                   requiresAuth: true,
                 },
               },
@@ -115,9 +154,9 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                 name: 'appstore-installed',
                 component: markRaw(InstalledExtensions),
                 meta: {
-                  title: 'Установленные приложения',
+                  title: t('chairman.install.installedAppsNavTitle'),
                   icon: 'fa-solid fa-download',
-                  roles: ['chairman'],
+                  requires: 'Extension:manage',
                   requiresAuth: true,
                 },
               },
@@ -126,9 +165,9 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                 name: 'one-extension',
                 component: markRaw(ExtensionPage),
                 meta: {
-                  title: 'Расширение',
+                  title: t('chairman.install.extensionNavTitle'),
                   icon: 'fa-solid fa-cog',
-                  roles: ['chairman'],
+                  requires: 'Extension:manage',
                   requiresAuth: true,
                 },
                 children: [
@@ -137,9 +176,9 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                     name: 'extension-settings',
                     component: markRaw(ExtensionPage),
                     meta: {
-                      title: 'Настройки приложения',
+                      title: t('chairman.install.appSettingsNavTitle'),
                       icon: 'fa-solid fa-cog',
-                      roles: ['chairman'],
+                      requires: 'Extension:manage',
                       requiresAuth: true,
                     },
                   },
@@ -148,9 +187,9 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                     name: 'extension-install',
                     component: markRaw(ExtensionPage),
                     meta: {
-                      title: 'Установка приложения',
+                      title: t('chairman.install.appInstallNavTitle'),
                       icon: 'fa-solid fa-download',
-                      roles: ['chairman'],
+                      requires: 'Extension:manage',
                       requiresAuth: true,
                     },
                   },
@@ -163,9 +202,21 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             name: 'system-settings',
             component: markRaw(SystemSettingsPage),
             meta: {
-              title: 'Стартовые страницы',
+              title: t('chairman.install.defaultPagesNavTitle'),
               icon: 'fa-solid fa-house',
-              roles: ['chairman'],
+              requires: 'System:manage',
+              agreements: agreementsBase,
+              requiresAuth: true,
+            },
+          },
+          {
+            path: 'settings/vars',
+            name: 'cooperative-vars',
+            component: markRaw(CooperativeVarsPage),
+            meta: {
+              title: t('chairman.install.cooperativeVarsNavTitle'),
+              icon: 'tune',
+              requires: 'System:manage',
               agreements: agreementsBase,
               requiresAuth: true,
             },
@@ -175,9 +226,9 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             name: 'members',
             component: markRaw(MembersPage),
             meta: {
-              title: 'Члены совета',
+              title: t('chairman.install.councilMembersNavTitle'),
               icon: 'fa-solid fa-users',
-              roles: ['chairman'],
+              requires: 'Account:update',
               agreements: agreementsBase,
               requiresAuth: true,
             },
@@ -188,9 +239,9 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             name: 'branches',
             component: markRaw(MemberBranchList),
             meta: {
-              title: 'Кооперативные Участки',
+              title: t('chairman.install.cooperativeUnitsNavTitle'),
               icon: 'fa-solid fa-sitemap',
-              roles: ['chairman'],
+              requires: 'Branch:manage',
               agreements: agreementsBase,
               requiresAuth: true,
             },
@@ -201,9 +252,9 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             name: 'initial-contributions',
             component: markRaw(ChangeRegisterPaymentsPage),
             meta: {
-              title: 'Регистрационные взносы',
+              title: t('chairman.install.registrationFeesNavTitle'),
               icon: 'fa-solid fa-coins',
-              roles: ['chairman'],
+              requires: 'System:manage',
               agreements: agreementsBase,
               requiresAuth: true,
             },
@@ -214,9 +265,9 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             name: 'cooperative-key',
             component: markRaw(CooperativeKeyPage),
             meta: {
-              title: 'Ключ кооператива',
+              title: t('chairman.install.cooperativeKeyNavTitle'),
               icon: 'fa-solid fa-key',
-              roles: ['chairman'],
+              requires: 'System:manage',
               agreements: agreementsBase,
               requiresAuth: true,
             },
@@ -227,9 +278,9 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             name: 'payment-provider',
             component: markRaw(PaymentProviderPage),
             meta: {
-              title: 'Провайдер платежей',
+              title: t('chairman.install.paymentProviderNavTitle'),
               icon: 'fa-solid fa-credit-card',
-              roles: ['chairman'],
+              requires: 'System:manage',
               agreements: agreementsBase,
               requiresAuth: true,
             },
@@ -240,9 +291,9 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             name: 'change-contacts',
             component: markRaw(ChangeCooperativeContacts),
             meta: {
-              title: 'Контакты кооператива',
+              title: t('chairman.install.cooperativeContactsNavTitle'),
               icon: 'fa-solid fa-address-book',
-              roles: ['chairman'],
+              requires: 'System:manage',
               agreements: agreementsBase,
               requiresAuth: true,
             },

@@ -1,4 +1,5 @@
 import { Field, InputType } from '@nestjs/graphql';
+import { validationMessage } from '@coopenomics/extension-kit';
 import { IsNotEmpty, IsOptional, Matches, MaxLength } from 'class-validator';
 import { MarketplaceSupplierModel } from '../../domain/entities/marketplace-supplier.types';
 
@@ -14,7 +15,7 @@ export class MarketplaceRequestSupplierInputDTO {
   public contract_number!: string;
 
   @Field(() => String, { description: 'Дата заключения договора (ГГГГ-ММ-ДД)' })
-  @Matches(ISO_DATE, { message: 'Дата договора в формате ГГГГ-ММ-ДД' })
+  @Matches(ISO_DATE, { message: validationMessage('marketplace.supplierInput.contractDateFormat') })
   public contract_date!: string;
 }
 
@@ -24,7 +25,7 @@ export class MarketplaceAddSupplierInputDTO {
   @Field(() => String, { description: 'Аккаунт поставщика' })
   @IsNotEmpty()
   @MaxLength(13)
-  @Matches(EOSIO_NAME, { message: 'Некорректный аккаунт (только [.1-5a-z], до 12 символов)' })
+  @Matches(EOSIO_NAME, { message: validationMessage('marketplace.supplierInput.accountInvalidFormat') })
   public member_account!: string;
 
   @Field(() => MarketplaceSupplierModel, {
@@ -41,7 +42,7 @@ export class MarketplaceAddSupplierInputDTO {
 
   @Field(() => String, { nullable: true, description: 'Дата заключения договора (ГГГГ-ММ-ДД)' })
   @IsOptional()
-  @Matches(ISO_DATE, { message: 'Дата договора в формате ГГГГ-ММ-ДД' })
+  @Matches(ISO_DATE, { message: validationMessage('marketplace.supplierInput.contractDateFormat') })
   public contract_date?: string;
 }
 
@@ -51,7 +52,7 @@ export class MarketplaceSupplierMemberInputDTO {
   @Field(() => String, { description: 'Аккаунт поставщика' })
   @IsNotEmpty()
   @MaxLength(13)
-  @Matches(EOSIO_NAME, { message: 'Некорректный аккаунт' })
+  @Matches(EOSIO_NAME, { message: validationMessage('marketplace.supplierInput.accountInvalid') })
   public member_account!: string;
 }
 
@@ -68,6 +69,6 @@ export class MarketplaceSwitchSupplierModelInputDTO {
 
   @Field(() => String, { nullable: true, description: 'Дата нового договора (ГГГГ-ММ-ДД)' })
   @IsOptional()
-  @Matches(ISO_DATE, { message: 'Дата договора в формате ГГГГ-ММ-ДД' })
+  @Matches(ISO_DATE, { message: validationMessage('marketplace.supplierInput.contractDateFormat') })
   public contract_date?: string;
 }

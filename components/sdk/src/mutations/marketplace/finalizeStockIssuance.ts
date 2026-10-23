@@ -1,16 +1,10 @@
-import { marketplaceStockProposalSelector } from '../../selectors/marketplace/stockProposalSelector'
+import { marketplaceStockProposalAcceptResultSelector } from '../../selectors/marketplace/stockProposalSelector'
 import { $, type GraphQLTypes, type InputType, type ModelTypes, Selector } from '../../zeus/index'
 
 export const name = 'marketplaceFinalizeStockIssuance'
 
 export const mutation = Selector('Mutation')({
-  [name]: [
-    { data: $('data', 'MarketplaceFinalizeStockIssuanceInput!') },
-    {
-      proposal: marketplaceStockProposalSelector,
-      order_ids: true,
-    },
-  ],
+  [name]: [{ data: $('data', 'MarketplaceFinalizeStockIssuanceInput!') }, marketplaceStockProposalAcceptResultSelector],
 })
 
 export interface IInput {

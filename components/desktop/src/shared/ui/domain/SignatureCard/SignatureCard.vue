@@ -18,14 +18,14 @@
       span.signature-card__date(v-if='signature.signedAt') {{ signature.signedAt }}
 
   .signature-card__hash(v-if='signature.status === "signed" && signature.hash')
-    span.signature-card__hash-label Хэш подписи
+    span.signature-card__hash-label {{ $t('ui.signatureCard.hashLabel') }}
     span.signature-card__hash-value {{ signature.hash }}
 
   BaseBanner(
     v-if='signature.status === "rejected" && signature.rejectionReason',
     variant='neg'
   )
-    strong Подпись отклонена.
+    strong {{ $t('ui.signatureCard.rejectedText') }}
     |  {{ signature.rejectionReason }}
 </template>
 
@@ -36,6 +36,7 @@ import { BaseBanner } from 'src/shared/ui/base/BaseBanner';
 import { BaseChip } from 'src/shared/ui/base/BaseChip';
 import { AccountBadge } from 'src/shared/ui/domain/AccountBadge';
 import type { SignatureCardProps, SignatureStatus } from './SignatureCard.types';
+import { t } from 'src/shared/i18n';
 
 const props = defineProps<SignatureCardProps>();
 
@@ -45,9 +46,9 @@ const STATUS_VARIANT: Record<SignatureStatus, 'pos' | 'neg' | 'warn'> = {
   pending: 'warn',
 };
 const STATUS_LABEL: Record<SignatureStatus, string> = {
-  signed: 'Подписано',
-  rejected: 'Отклонено',
-  pending: 'Ожидает подписи',
+  signed: t('ui.signatureCard.status.signed'),
+  rejected: t('ui.signatureCard.status.rejected'),
+  pending: t('ui.signatureCard.status.pending'),
 };
 
 const statusVariant = computed(() => STATUS_VARIANT[props.signature.status]);

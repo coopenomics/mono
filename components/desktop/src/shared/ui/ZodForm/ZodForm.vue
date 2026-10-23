@@ -4,28 +4,40 @@ div.settings-form
     v-for="item in visibleProperties"
     :key="item.propertyName"
   )
-    .setting-header
-      .setting-title.text-subtitle1 {{ getLabel(item.property, item.propertyName) }}
-      .setting-hint.text-body2(v-if="getHint(item.property)")
-        | {{ getHint(item.property) }}
-
-    .setting-input
+    //- Галочка стоит слева от названия параметра, пояснение — под названием.
+    .setting-boolean(v-if="item.property.type === 'boolean' && !item.property.enum")
       component(
         :is="getComponentType(item.property)"
         v-bind="getComponentProps(item.property, item.propertyName)"
       )
-        // Слот для prepend, если указано
-        template(v-slot:prepend v-if="item.property.description?.prepend")
-          span {{ item.property.description.prepend }}
+      .setting-header
+        .setting-title.text-subtitle1 {{ getLabel(item.property, item.propertyName) }}
+        .setting-hint.text-body2(v-if="getHint(item.property)")
+          | {{ getHint(item.property) }}
 
-        // Слот для append, если указано или нужна иконка видимости пароля/копирования
-        template(v-slot:append)
-          span(v-if="item.property.description?.append") {{ item.property.description.append }}
-          q-icon.cursor-pointer(
-            v-if="shouldShowCopyIcon(item.property) || item.property.description?.password"
-            :name="getIconName(item.propertyName)"
-            @click="handleIconClick(item.propertyName)"
-          )
+    template(v-else)
+      .setting-header
+        .setting-title.text-subtitle1 {{ getLabel(item.property, item.propertyName) }}
+        .setting-hint.text-body2(v-if="getHint(item.property)")
+          | {{ getHint(item.property) }}
+
+      .setting-input
+        component(
+          :is="getComponentType(item.property)"
+          v-bind="getComponentProps(item.property, item.propertyName)"
+        )
+          // Слот для prepend, если указано
+          template(v-slot:prepend v-if="item.property.description?.prepend")
+            span {{ item.property.description.prepend }}
+
+          // Слот для append, если указано или нужна иконка видимости пароля/копирования
+          template(v-slot:append)
+            span(v-if="item.property.description?.append") {{ item.property.description.append }}
+            q-icon.cursor-pointer(
+              v-if="shouldShowCopyIcon(item.property) || item.property.description?.password"
+              :name="getIconName(item.propertyName)"
+              @click="handleIconClick(item.propertyName)"
+            )
 
 </template>
 <script lang="ts" setup>
@@ -33,6 +45,7 @@ div.settings-form
   import { QInput, QCheckbox, QSelect, copyToClipboard } from 'quasar';
   import type { IExtensionConfigSchema, ISchemaProperty } from 'src/entities/Extension/model';
   import { SuccessAlert } from 'src/shared/api/alerts';
+import { t } from 'src/shared/i18n';
 
   // Устанавливаем имя компонента для рекурсивного вызова
   defineOptions({
@@ -94,7 +107,7 @@ div.settings-form
       copyToClipboard(valueToCopy);
 
       // Показываем уведомление об успешном копировании
-      SuccessAlert('Значение скопировано в буфер обмена');
+      SuccessAlert(t('ui.zodForm.copiedText'));
     } else if (property?.description?.password) {
       // Переключаем видимость пароля
       togglePasswordVisibility(propertyName);
@@ -172,6 +185,15 @@ div.settings-form
     setDefaults(props.schema, data);
   }
 
+  // Значения секретных параметров сервер не отдаёт: вместо них приходит метка
+  // «задано» (EXTENSION_SECRET_SET в extension-kit). Показать её текстом
+  // нельзя — набранное припишется к метке и сохранится как новый ключ. Поле
+  // остаётся пустым с пометкой «задано»; пустое при сохранении возвращает
+  // метку, и сервер оставляет сохранённое значение.
+  const SECRET_SET_MARKER = '__secret_set__';
+  const secretSetFields = new Set(Object.keys(data).filter((key) => data[key] === SECRET_SET_MARKER));
+  const isSecretKept = (propertyName: string) => data[propertyName] === SECRET_SET_MARKER;
+
   // Эмитим начальные данные (важно для сгенерированных значений)
   emit('update:modelValue', { ...data });
 
@@ -188,7 +210,7 @@ div.settings-form
   function parseRules(rules: string[]): Array<(val: any) => boolean | string> {
     return rules.map(rule => {
       const fn = new Function('val', `return ${rule};`);
-      return (val: any) => fn(val) || `Значение должно удовлетворять правилу: ${rule}`;
+      return (val: any) => fn(val) || t('ui.zodForm.ruleError', { rule });
     });
   }
 
@@ -210,8 +232,12 @@ div.settings-form
 
   function getComponentProps(property: ISchemaProperty, propertyName: string) {
     const componentProps: Record<string, any> = {
-      modelValue: data[propertyName],
+      modelValue: isSecretKept(propertyName) ? '' : data[propertyName],
       'onUpdate:modelValue': (value: any) => {
+        if (secretSetFields.has(propertyName) && (value === '' || value === null)) {
+          data[propertyName] = SECRET_SET_MARKER;
+          return;
+        }
         data[propertyName] = property.type === 'number' ? parseFloat(value) : value;
       },
     };
@@ -219,17 +245,44 @@ div.settings-form
 
     let rules = parseRules(property.description?.rules || []);
 
+    // Обязательность берём из самой схемы (`required` у объекта): так её
+    // объявляет Zod, отдельного признака в описании поля нет.
+    if (props.schema.required?.includes(propertyName)) {
+      rules.unshift((val: unknown) => {
+        const filled = typeof val === 'string' ? val.trim() !== '' : val !== null && val !== undefined;
+        return filled || isSecretKept(propertyName) || t('ui.zodForm.requiredError');
+      });
+    }
+
     const minLength = property.description?.minLength;
     const maxLength = property.description?.maxLength;
 
+    // Незаполненное поле хранится как null — длину считаем от пустой строки,
+    // иначе правило падает с TypeError раньше, чем успевает что-то сказать.
+    const lengthOf = (val: unknown) => String(val ?? '').trim().length;
+
     if (typeof minLength === 'number') {
-      rules.push((val: string) => val.length >= minLength || `Минимальная длина: ${minLength}`);
+      rules.push((val: unknown) => lengthOf(val) >= minLength || t('ui.zodForm.minLengthError', { minLength }));
       componentProps.minLength = minLength;
     }
 
     if (typeof maxLength === 'number') {
-      rules.push((val: string) => val.length <= maxLength || `Максимальная длина: ${maxLength}`);
+      rules.push((val: unknown) => lengthOf(val) <= maxLength || t('ui.zodForm.maxLengthError', { maxLength }));
       componentProps.maxLength = maxLength;
+      componentProps.counter = true;
+    }
+
+    if (property.format === 'uri') {
+      rules.push((val: unknown) => {
+        const text = String(val ?? '').trim();
+        if (!text) return true;
+        try {
+          const url = new URL(text);
+          return ['http:', 'https:'].includes(url.protocol) || t('ui.zodForm.urlError');
+        } catch {
+          return t('ui.zodForm.urlError');
+        }
+      });
     }
 
     componentProps.rules = rules
@@ -240,6 +293,14 @@ div.settings-form
       if (property.description?.fillMask !== undefined) {
         componentProps.fillMask = property.description.fillMask;
       }
+    }
+
+    // Заполнитель пустого поля: пример ответа или формата.
+    if (property.description?.placeholder) {
+      componentProps.placeholder = property.description.placeholder;
+    }
+    if (secretSetFields.has(propertyName)) {
+      componentProps.placeholder = t('ui.zodForm.secretSetPlaceholder');
     }
 
     // Поддержка readonly
@@ -253,8 +314,12 @@ div.settings-form
     } else if (property.type === 'string') {
       // Проверка на пароль
       if (property.description?.password) {
-        // В режиме установки показываем пароль как обычный текст для копирования
-        if (props.installMode) {
+        // Открытым текстом — только значение, которое форма сгенерировала сама и
+        // которое нужно скопировать (у него иконка копирования вместо глазика).
+        // Ключ, который человек вводит сам, скрыт точками с первого символа и
+        // раскрывается глазиком: раньше при установке он шёл открытым (ключи
+        // DaData на тестнете, 20.10.2026).
+        if (props.installMode && shouldShowCopyIcon(property)) {
           componentProps.type = 'text';
         } else {
           componentProps.type = passwordVisibility[propertyName] ? 'text' : 'password';
@@ -262,11 +327,22 @@ div.settings-form
       } else {
         componentProps.type = 'text';  // Поле для строк
       }
-      // Проверка на многосстрочный ввод
-      if (property.description?.maxRows) {
+      // Ссылка: мобильная клавиатура с «/» и «.com», проверка адреса ниже.
+      if (property.format === 'uri') {
+        componentProps.type = 'url';
+        componentProps.inputmode = 'url';
+      }
+      // Многострочный ввод. Поле растёт вместе с текстом, но не бывает ниже
+      // `minRows` строк: иначе пустое поле выглядит однострочным, и не видно,
+      // что ждут развёрнутый ответ. У Quasar с autogrow атрибут rows не работает
+      // (высота пересчитывается по содержимому), поэтому держим её min-height.
+      const minRows = property.description?.minRows;
+      if (property.description?.maxRows || minRows) {
         componentProps.type = 'textarea';
-        componentProps.autogrow = true; // Автоматический рост поля при вводе
-        componentProps.rows = property.description?.maxRows; // Установка максимального количества строк
+        componentProps.autogrow = true;
+        if (minRows) {
+          componentProps.inputStyle = { minHeight: `calc(${minRows} * var(--p-lh-body, 1.55) * 1em)` };
+        }
       }
     }
 
@@ -330,6 +406,23 @@ div.settings-form
       line-height: 1.5;
       font-size: var(--p-fs-body-sm, 13px);
       color: var(--p-ink-2);
+    }
+  }
+
+  // Параметр-галочка: галочка и название на одной строке.
+  .setting-boolean {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--p-2, 8px);
+
+    :deep(.q-checkbox) {
+      flex: 0 0 auto;
+      margin-top: -8px;
+      margin-left: -8px;
+    }
+
+    .setting-header {
+      margin-bottom: 0;
     }
   }
 

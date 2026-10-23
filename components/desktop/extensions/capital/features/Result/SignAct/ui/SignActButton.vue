@@ -4,7 +4,7 @@ BaseButton(
   size='sm',
   :loading='isLoading',
   @click.stop='handleSignAct'
-) Подписать акт
+) {{ $t('capital.signActButton.label') }}
 </template>
 
 <script setup lang="ts">
@@ -12,6 +12,7 @@ import { useSignAct } from '../model';
 import { FailAlert, SuccessAlert } from 'src/shared/api/alerts';
 import { BaseButton } from 'src/shared/ui/base';
 import type { ISegment } from 'app/extensions/capital/entities/Segment/model';
+import { t } from '../../../../i18n';
 
 interface Props {
   segment: ISegment;
@@ -28,7 +29,7 @@ const { signActAsContributor, isLoading } = useSignAct();
 const handleSignAct = async () => {
   try {
     await signActAsContributor(props.segment, props.coopname);
-    SuccessAlert('Акт успешно подписан и отправлен');
+    SuccessAlert(t('capital.signActButton.success'));
     emit('signed');
   } catch (error) {
     FailAlert(error);

@@ -50,16 +50,18 @@
  *
  *  \note Этот класс служит основой для регистрации и идентификации участников в блокчейн-среде.
  */
-class [[eosio::contract(REGISTRATOR)]] registrator : public eosio::contract
+class [[eosio::contract(REGISTRATOR)]] registrator : public coop_contract
 {
 
 public:
   registrator(eosio::name receiver, eosio::name code,
               eosio::datastream<const char *> ds)
-      : eosio::contract(receiver, code, ds) {}
+      : coop_contract(receiver, code, ds) {}
 
   [[eosio::action]] void init();
   [[eosio::action]] void migrate();
+  /// Очистка отработавших записей по правилам контракта (lib/core/cleanup.hpp); плейбук вызывает её на каждом деплое.
+  [[eosio::action]] void cleanup();
   
   [[eosio::action]] void updateaccnt(eosio::name username, eosio::name account_to_change, std::string meta);
   [[eosio::action]] void updatecoop(eosio::name coopname, eosio::name username, eosio::asset initial, eosio::asset minimum, eosio::asset org_initial, eosio::asset org_minimum, std::string announce, std::string description);
@@ -116,11 +118,21 @@ public:
     checksum256 registration_hash);
   
   [[eosio::action]] void changekey(eosio::name coopname, eosio::name changer, eosio::name username, eosio::public_key public_key);
+
+  /**
+   * \brief Выпуск разрешения `platform` — ключа узла кооператива, который
+   * переживает смену ключа пайщика при восстановлении доступа.
+   *
+   * \note Авторизация: сам аккаунт @p username либо кооператив @p coopname,
+   * в котором аккаунт — действующий пайщик.
+   */
+  [[eosio::action]] void setplatform(eosio::name coopname, eosio::name username, eosio::public_key platform_key, eosio::public_key active_key);
   
   [[eosio::action]] void confirmreg(eosio::name coopname, checksum256 registration_hash, document2 authorization);
 
   // Выход пайщика из кооператива (возврат паевого взноса) — src/exit/*.cpp
   [[eosio::action]] void exitcoop(eosio::name coopname, eosio::name username, checksum256 exit_hash, document2 statement);
+  [[eosio::action]] void exitagree(eosio::name coopname, eosio::name username, checksum256 exit_hash, document2 annulment);
   [[eosio::action]] void confirmexit(eosio::name coopname, checksum256 exit_hash, document2 authorization);
   [[eosio::action]] void completexit(eosio::name coopname, checksum256 exit_hash);
   [[eosio::action]] void declinexit(eosio::name coopname, checksum256 exit_hash, std::string reason);

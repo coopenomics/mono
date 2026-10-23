@@ -1,21 +1,21 @@
 <template lang="pug">
 .ndfl6-tax(v-if='editsValue')
-  BaseCard(title='Удержанный налог')
+  BaseCard(:title='$t("reports.ndfl6TaxSection.taxCardTitle")')
     p.ndfl6-tax__hint
-      | Суммы посчитаны по удержаниям из материальной помощи. Итоги — нарастающим
-      | итогом с начала года, разбивка по срокам — за последний квартал отчётного
-      | периода. Правьте, только если выплата прошла мимо платформы.
+      | {{ $t('reports.ndfl6TaxSection.taxHintPart1') }}
+      | {{ $t('reports.ndfl6TaxSection.taxHintPart2') }}
+      | {{ $t('reports.ndfl6TaxSection.taxHintPart3') }}
 
     .ndfl6-tax__grid
       BaseInput(
-        label='Физлиц, получивших доход'
+        :label='$t("reports.ndfl6TaxSection.peopleCountLabel")'
         type='number'
         :model-value='editsValue.tax.peopleCount'
         :error='msgFor("tax.peopleCount")'
         @update:model-value='v => update("tax.peopleCount", toInt(v))'
       )
       AmountInput(
-        label='Сумма дохода'
+        :label='$t("reports.ndfl6TaxSection.incomeTotalLabel")'
         symbol='RUB'
         :precision='2'
         :min='0'
@@ -24,7 +24,7 @@
         @update:model-value='v => update("tax.incomeTotal", toMoney(v))'
       )
       AmountInput(
-        label='Налоговые вычеты'
+        :label='$t("reports.ndfl6TaxSection.deductionsTotalLabel")'
         symbol='RUB'
         :precision='2'
         :min='0'
@@ -33,7 +33,7 @@
         @update:model-value='v => update("tax.deductionsTotal", toMoney(v))'
       )
       AmountInput(
-        label='Налоговая база'
+        :label='$t("reports.ndfl6TaxSection.taxBaseLabel")'
         symbol='RUB'
         :precision='2'
         :min='0'
@@ -42,24 +42,24 @@
         @update:model-value='v => update("tax.taxBase", toMoney(v))'
       )
       BaseInput(
-        label='Налог исчисленный, ₽'
+        :label='$t("reports.ndfl6TaxSection.taxCalculatedLabel")'
         type='number'
         :model-value='editsValue.tax.taxCalculated'
         :error='msgFor("tax.taxCalculated")'
         @update:model-value='v => update("tax.taxCalculated", toInt(v))'
       )
       BaseInput(
-        label='Налог удержанный, ₽'
+        :label='$t("reports.ndfl6TaxSection.withheldTotalLabel")'
         type='number'
         :model-value='editsValue.tax.withheldTotal'
         :error='msgFor("tax.withheldTotal")'
         @update:model-value='v => update("tax.withheldTotal", toInt(v))'
       )
 
-  BaseCard(title='Сроки перечисления')
+  BaseCard(:title='$t("reports.ndfl6TaxSection.termsCardTitle")')
     p.ndfl6-tax__hint
-      | Шесть сроков последнего квартала: с 1-го по 22-е и с 23-го по последнее
-      | число каждого месяца.
+      | {{ $t('reports.ndfl6TaxSection.termsHintPart1') }}
+      | {{ $t('reports.ndfl6TaxSection.termsHintPart2') }}
 
     .ndfl6-tax__grid
       BaseInput(
@@ -73,35 +73,35 @@
       )
 
     .ndfl6-tax__total(:class='{ "ndfl6-tax__total--mismatch": termsMismatch }')
-      span Сумма по срокам: {{ termsSum }} ₽
-      span(v-if='termsMismatch') Больше удержанного за год — проверьте разбивку
+      span {{ $t('reports.ndfl6TaxSection.termsSumLabel', { amount: termsSum }) }}
+      span(v-if='termsMismatch') {{ $t('reports.ndfl6TaxSection.termsMismatchWarning') }}
 
-  BaseCard(v-if='isAnnual', title='Справки о доходах')
+  BaseCard(v-if='isAnnual', :title='$t("reports.ndfl6TaxSection.certificatesCardTitle")')
     p.ndfl6-tax__hint
-      | Приложение № 1 — по одной справке на получателя, сдаётся раз в год.
-      | ИНН физического лица не требуется: при его отсутствии у налогового
-      | агента поле не заполняется.
+      | {{ $t('reports.ndfl6TaxSection.certificatesHintPart1') }}
+      | {{ $t('reports.ndfl6TaxSection.certificatesHintPart2') }}
+      | {{ $t('reports.ndfl6TaxSection.certificatesHintPart3') }}
 
-    EmptyState(v-if='certificates.length === 0', title='Выплат за год не было')
+    EmptyState(v-if='certificates.length === 0', :title='$t("reports.ndfl6TaxSection.noPaymentsTitle")')
       template(#icon)
         q-icon(name='description', size='40px')
 
     .ndfl6-tax__certificate(v-for='(certificate, index) in certificates', :key='certificate.username')
       .ndfl6-tax__certificate-head
         span.ndfl6-tax__certificate-name {{ fullName(certificate) }}
-        BaseBadge(v-if='!certificate.documentSerialNumber', variant='warn') Нет паспорта
+        BaseBadge(v-if='!certificate.documentSerialNumber', variant='warn') {{ $t('reports.ndfl6TaxSection.noPassportBadge') }}
 
       .ndfl6-tax__grid
         BaseInput(
-          label='Дата рождения'
-          placeholder='ДД.ММ.ГГГГ'
+          :label='$t("reports.ndfl6TaxSection.birthDateLabel")'
+          :placeholder='$t("reports.ndfl6TaxSection.birthDatePlaceholder")'
           stack-label
           :model-value='certificate.birthDate'
           :error='msgFor(`certificates.${index}.birthDate`)'
           @update:model-value='v => update(`certificates.${index}.birthDate`, String(v ?? ""))'
         )
         BaseInput(
-          label='Серия и номер документа'
+          :label='$t("reports.ndfl6TaxSection.documentNumberLabel")'
           placeholder='0405 123456'
           stack-label
           :model-value='certificate.documentSerialNumber'
@@ -109,38 +109,40 @@
           @update:model-value='v => update(`certificates.${index}.documentSerialNumber`, String(v ?? ""))'
         )
         BaseInput(
-          label='Статус налогоплательщика'
-          hint='1 — налоговый резидент РФ'
+          :label='$t("reports.ndfl6TaxSection.taxpayerStatusLabel")'
+          :hint='$t("reports.ndfl6TaxSection.taxpayerStatusHint")'
           :model-value='certificate.taxpayerStatus'
           :error='msgFor(`certificates.${index}.taxpayerStatus`)'
           @update:model-value='v => update(`certificates.${index}.taxpayerStatus`, String(v ?? ""))'
         )
         BaseInput(
-          label='Гражданство'
-          hint='Код страны по ОКСМ, 643 — Россия'
+          :label='$t("reports.ndfl6TaxSection.citizenshipLabel")'
+          :hint='$t("reports.ndfl6TaxSection.citizenshipHint")'
           :model-value='certificate.citizenshipCode'
           :error='msgFor(`certificates.${index}.citizenshipCode`)'
           @update:model-value='v => update(`certificates.${index}.citizenshipCode`, String(v ?? ""))'
         )
         BaseInput(
-          label='Код вида документа'
-          hint='21 — паспорт гражданина РФ'
+          :label='$t("reports.ndfl6TaxSection.documentTypeLabel")'
+          :hint='$t("reports.ndfl6TaxSection.documentTypeHint")'
           :model-value='certificate.documentTypeCode'
           :error='msgFor(`certificates.${index}.documentTypeCode`)'
           @update:model-value='v => update(`certificates.${index}.documentTypeCode`, String(v ?? ""))'
         )
 
       .ndfl6-tax__certificate-sums
-        span Доход за год: {{ formatMoney(certificate.incomeTotal) }} ₽
-        span Удержано: {{ certificate.taxWithheld }} ₽
-        span Месяцев с выплатами: {{ certificate.monthlyIncome.length }}
+        span {{ $t('reports.ndfl6TaxSection.incomeTotalSummary', { amount: formatMoney(certificate.incomeTotal) }) }}
+        span {{ $t('reports.ndfl6TaxSection.withheldSummary', { amount: certificate.taxWithheld }) }}
+        span {{ $t('reports.ndfl6TaxSection.monthsWithPaymentsSummary', { count: certificate.monthlyIncome.length }) }}
 </template>
 
 <script lang="ts" setup>
 import { computed } from 'vue'
+import { uiLocale } from 'src/shared/i18n';
 import { BaseCard, BaseInput, BaseBadge, EmptyState } from 'src/shared/ui/base'
 import { AmountInput } from 'src/shared/ui/domain'
 import type { Ndfl6Edits, Ndfl6Certificate } from './ndfl6-edits'
+import { t } from '../../i18n';
 
 /**
  * Разделы 6-НДФЛ с суммами и справки о доходах. Остальные секции формы
@@ -167,12 +169,12 @@ const emit = defineEmits<{
 }>()
 
 const TERM_LABELS = [
-  'Срок 1 (1–22 первого месяца), ₽',
-  'Срок 2 (23–конец первого месяца), ₽',
-  'Срок 3 (1–22 второго месяца), ₽',
-  'Срок 4 (23–конец второго месяца), ₽',
-  'Срок 5 (1–22 третьего месяца), ₽',
-  'Срок 6 (23–конец третьего месяца), ₽',
+  t('reports.ndfl6TaxSection.termLabel.1'),
+  t('reports.ndfl6TaxSection.termLabel.2'),
+  t('reports.ndfl6TaxSection.termLabel.3'),
+  t('reports.ndfl6TaxSection.termLabel.4'),
+  t('reports.ndfl6TaxSection.termLabel.5'),
+  t('reports.ndfl6TaxSection.termLabel.6'),
 ]
 
 const editsValue = computed(() => props.edits)
@@ -198,7 +200,7 @@ function fullName(certificate: Ndfl6Certificate): string {
 }
 
 function formatMoney(value: number): string {
-  return value.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  return value.toLocaleString(uiLocale(), { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
 function toInt(value: unknown): number {

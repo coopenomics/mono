@@ -18,11 +18,14 @@
   check_auth_or_fail(_branch, coopname, coopname, "createdec"_n);
 
   verify_document_or_fail(proposal);
+  // Предложение о собрании участка подписывает его организатор: транзакцию
+  // шлёт кооператив, и без сверки ключа собрание созывалось бы от чужого имени.
+  verify_signer_keys_or_fail(proposal, initiator);
 
   eosio::check(type == "free"_n || type == "createbranch"_n, "Недопустимый тип решения");
 
   get_cooperative_or_fail(coopname);
-  get_participant_or_fail(coopname, initiator);
+  get_active_participant_or_fail(coopname, initiator);
 
   decision_index decisions(_branch, coopname.value);
   auto idx = decisions.get_index<"byhash"_n>();
@@ -36,7 +39,7 @@
 
   uint64_t decision_id = get_global_id_in_scope(_branch, coopname, "decisions"_n);
 
-  decisions.emplace(coopname, [&](auto &d) {
+  decisions.emplace(RamPayer::of(decisions, coopname), [&](auto &d) {
     d.id = decision_id;
     d.hash = hash;
     d.coopname = coopname;
@@ -61,7 +64,7 @@
     number++;
     eosio::check(number <= 10, "Не больше 10 вопросов на повестке собрания");
 
-    questions.emplace(coopname, [&](auto &q) {
+    questions.emplace(RamPayer::of(questions, coopname), [&](auto &q) {
       q.id = get_global_id_in_scope(_branch, coopname, "decisionq"_n);
       q.decision_id = decision_id;
       q.number = number;

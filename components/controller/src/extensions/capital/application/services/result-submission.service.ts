@@ -1,15 +1,13 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { ResultSubmissionInteractor } from '../use-cases/result-submission.interactor';
-import type { IMonoAccount } from '@coopenomics/innercoop';
+import { DOCUMENT_PORT, type IDocumentPort, type ILoggerPort, type IMonoAccount, LOGGER_PORT } from '@coopenomics/innercoop';
 import type { PushResultInputDTO } from '../dto/result_submission/push-result-input.dto';
 import type { ConvertSegmentInputDTO } from '../dto/result_submission/convert-segment-input.dto';
 import type { SignActAsContributorInputDTO } from '../dto/result_submission/sign-act-as-contributor-input.dto';
 import type { SignActAsChairmanInputDTO } from '../dto/result_submission/sign-act-as-chairman-input.dto';
 import { ResultOutputDTO } from '../dto/result_submission/result.dto';
 import { ResultFilterInputDTO } from '../dto/result_submission/result-filter.input';
-import { PaginationInputDTO, PaginationResult, GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO,
-  platformSettings,
-} from '@coopenomics/extension-kit';
+import { PaginationInputDTO, PaginationResult, GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO, platformSettings, DomainError } from '@coopenomics/extension-kit';
 import { ResultContributionStatementGenerateInputDTO } from '../dto/result_submission/generate-result-contribution-statement-input.dto';
 import { ResultContributionDecisionGenerateInputDTO } from '../dto/result_submission/generate-result-contribution-decision-input.dto';
 import { ResultContributionActGenerateInputDTO } from '../dto/result_submission/generate-result-contribution-act-input.dto';
@@ -46,7 +44,7 @@ import {
   RESULT_DOCUMENT_PAYLOAD_VERSION,
   type ResultDocumentPayloadV2,
 } from '../../domain/result-document-payload';
-import { LOGGER_PORT, type ILoggerPort, DOCUMENT_PORT, type IDocumentPort } from '@coopenomics/innercoop';
+import { t as i18nT } from '../../i18n';
 /**
  * Сервис уровня приложения для подачи результатов в CAPITAL
  * Обрабатывает запросы от ResultSubmissionResolver
@@ -83,21 +81,19 @@ export class ResultSubmissionService {
   async pushResult(data: PushResultInputDTO, currentUser: IMonoAccount): Promise<SegmentOutputDTO> {
     // Проверяем, что пользователь может вносить результаты только для себя
     if (data.username !== currentUser.username) {
-      throw new Error('Вы можете вносить результаты только для себя');
+      throw DomainError.forbidden('CAPITAL_RESULT_SUBMIT_FOR_SELF_ONLY');
     }
 
     // Находим существующий Result по project_hash и username
     const result = await this.resultRepository.findByProjectHashAndUsername(data.project_hash, data.username);
     if (!result || !result.result_hash) {
-      throw new Error(`Результат для проекта ${data.project_hash} и пользователя ${data.username} не найден. Сначала необходимо сгенерировать заявление.`);
+      throw DomainError.notFound('CAPITAL_RESULT_NOT_FOUND_FOR_PROJECT_USER', { projectHash: data.project_hash, username: data.username });
     }
 
     // Получаем сгенерированный документ из репозитория по doc_hash
     const generatedDocument = await this.documentPort.getByHash(data.statement.doc_hash);
     if (!generatedDocument) {
-      throw new Error(
-        `Сгенерированный документ с хешем ${data.statement.doc_hash} не найден. Необходимо сначала сгенерировать заявление.`
-      );
+      throw DomainError.notFound('CAPITAL_GENERATED_DOCUMENT_NOT_FOUND', { hash: data.statement.doc_hash });
     }
 
     // Выполняем глубокую сверку подписанного и сгенерированного документов через SDK
@@ -108,11 +104,9 @@ export class ResultSubmissionService {
 
     if (!comparison.isValid) {
       const differences = Object.entries(comparison.differences)
-        .map(([field, values]) => `${field}: ожидалось "${values.expected}", получено "${values.actual}"`)
+        .map(([field, values]) => i18nT('capital.resultSubmission.mismatchLine', { field, expected: values.expected, actual: values.actual }))
         .join('; ');
-      throw new Error(
-        `Сверка документов не прошла. Обнаружены расхождения: ${differences}. Возможна подмена документа.`
-      );
+      throw DomainError.internal('CAPITAL_DOCUMENT_VERIFICATION_MISMATCH', { differences });
     }
 
     this.logger.info(`Глубокая сверка документов успешна для результата ${result.result_hash}`);
@@ -126,7 +120,7 @@ export class ResultSubmissionService {
     });
 
     if (!segment) {
-      throw new Error(`Сегмент для пользователя ${data.username} и проекта ${data.project_hash} не найден`);
+      throw DomainError.notFound('CAPITAL_SEGMENT_NOT_FOUND', { username: data.username, projectHash: data.project_hash });
     }
 
     // Суммы живут в блокчейн-части сегмента. Если её нет, сегмент не
@@ -134,9 +128,7 @@ export class ResultSubmissionService {
     // (нет дробной части и символа) — запрос упал бы на разборе ABI, а не с
     // внятным отказом. Отсекаем здесь.
     if (!segment.intellectual_cost || !segment.debt_amount) {
-      throw new Error(
-        `Сегмент пользователя ${data.username} по проекту ${data.project_hash} не синхронизирован с блокчейном: не заданы сумма взноса или сумма долга. Обновите сегмент и повторите.`
-      );
+      throw DomainError.internal('CAPITAL_SEGMENT_NOT_SYNCED', { username: data.username, projectHash: data.project_hash });
     }
 
     // Формируем данные для domain layer
@@ -172,9 +164,7 @@ export class ResultSubmissionService {
     const statementResultHash =
       typeof generatedDocument.meta?.result_hash === 'string' ? generatedDocument.meta.result_hash.toLowerCase() : null;
     if (statementResultHash && statementResultHash !== resultHash.toLowerCase()) {
-      throw new Error(
-        'Результат изменился после генерации заявления (появились новые коммиты). Сгенерируйте и подпишите заявление заново.'
-      );
+      throw DomainError.internal('CAPITAL_RESULT_CHANGED_AFTER_STATEMENT');
     }
   }
 
@@ -299,12 +289,12 @@ export class ResultSubmissionService {
             : description;
         const label =
           format === StoryContentFormat.BPMN
-            ? 'Диаграмма BPMN (фрагмент XML)'
-            : 'Диаграмма Draw.io (фрагмент XML)';
+            ? i18nT('capital.resultSubmission.diagramBpmnLabel')
+            : i18nT('capital.resultSubmission.diagramDrawioLabel');
         return `*${label}*\n\n${this.fencedMarkdownCodeBlock('xml', excerpt)}`;
       }
       case StoryContentFormat.MERMAID:
-        return `*Текст диаграммы Mermaid*\n\n${this.fencedMarkdownCodeBlock('mermaid', description)}`;
+        return i18nT('capital.resultSubmission.diagramMermaidLabel', { content: this.fencedMarkdownCodeBlock('mermaid', description) });
       case StoryContentFormat.MARKDOWN:
       default:
         return description;
@@ -343,7 +333,7 @@ export class ResultSubmissionService {
     // Находим проект
     const project = await this.projectRepository.findByHash(projectHash);
     if (!project) {
-      throw new Error(`Проект с хешем ${projectHash} не найден`);
+      throw DomainError.notFound('CAPITAL_PROJECT_NOT_FOUND_BY_HASH', { hash: projectHash });
     }
 
     // Находим родительский проект
@@ -358,7 +348,7 @@ export class ResultSubmissionService {
     });
 
     if (!segment) {
-      throw new Error(`Сегмент для пользователя ${username} и проекта ${projectHash} не найден`);
+      throw DomainError.notFound('CAPITAL_SEGMENT_NOT_FOUND', { username, projectHash });
     }
 
     // Находим все коммиты
@@ -457,7 +447,7 @@ export class ResultSubmissionService {
         }
         const issueStories = await this.storyRepository.findByIssueHash(issue.issue_hash);
         if (issueStories.length > 0) {
-          mdParts.push('#### Артефакты задачи');
+          mdParts.push(i18nT('capital.resultSubmission.artifactsHeading'));
           const reqLines: string[] = [];
           for (const story of issueStories) {
             reqLines.push(`**${story.title}**`);
@@ -476,7 +466,7 @@ export class ResultSubmissionService {
     }
 
     if (segment.is_creator) {
-      mdParts.push('## Исполнено');
+      mdParts.push(i18nT('capital.resultSubmission.executedHeading'));
 
       const completedIssues = await this.issueRepository.findCompletedByProjectAndCreators(
         project.project_hash,
@@ -488,7 +478,7 @@ export class ResultSubmissionService {
       }
 
       if (commits.length > 0) {
-        mdParts.push('## Исполнение');
+        mdParts.push(i18nT('capital.resultSubmission.executionHeading'));
 
         for (const commit of commits) {
           if (!commit.data?.length) {
@@ -509,19 +499,19 @@ export class ResultSubmissionService {
                 if (issues?.length) {
                   const items = issues
                     .map((issue) => {
-                      const title = this.escapeHtml(issue.title?.trim() || issue.issue_hash || 'Задача');
+                      const title = this.escapeHtml(issue.title?.trim() || issue.issue_hash || i18nT('capital.resultSubmission.issueLabel'));
                       return `<li>${title}</li>`;
                     })
                     .join('');
                   diffHtmlBlocks.push(
-                    `<div class="commit-content committed-issues"><p><strong>Задачи:</strong></p><ul>${items}</ul></div>`
+                    i18nT('capital.resultSubmission.issuesListBlock', { items })
                   );
                 }
                 break;
               }
               default: {
                 const t = this.escapeHtml(String((content as { type?: string }).type ?? '?'));
-                diffHtmlBlocks.push(`<div class="commit-content"><p>Неизвестный тип контента: ${t}</p></div>`);
+                diffHtmlBlocks.push(i18nT('capital.resultSubmission.unknownContentBlock', { type: t }));
               }
             }
           }
@@ -573,7 +563,7 @@ export class ResultSubmissionService {
   ): Promise<GeneratedDocumentDTO> {
     // Проверяем, что пользователь может генерировать документы только для себя
     if (data.username !== currentUser.username) {
-      throw new Error('Вы можете генерировать документы только для себя');
+      throw DomainError.internal('CAPITAL_DOCUMENT_GENERATION_FOR_SELF_ONLY');
     }
 
     // Находим существующий Result для данного пользователя и проекта
@@ -583,15 +573,13 @@ export class ResultSubmissionService {
     );
 
     if (!resultEntity || !resultEntity.data) {
-      throw new Error(
-        `Текст результата не найден. Необходимо сначала обновить сегмент для проекта ${data.project_hash}`
-      );
+      throw DomainError.internal('CAPITAL_RESULT_TEXT_MISSING', { projectHash: data.project_hash });
     }
 
     // Находим проект по project_hash
     const project = await this.projectRepository.findByHash(data.project_hash);
     if (!project) {
-      throw new Error(`Проект с хешем ${data.project_hash} не найден`);
+      throw DomainError.notFound('CAPITAL_PROJECT_NOT_FOUND_BY_HASH', { hash: data.project_hash });
     }
 
     // Находим родительский проект по parent_hash
@@ -606,7 +594,7 @@ export class ResultSubmissionService {
     });
 
     if (!segment) {
-      throw new Error(`Сегмент для пользователя ${currentUser.username} и проекта ${data.project_hash} не найден`);
+      throw DomainError.notFound('CAPITAL_SEGMENT_NOT_FOUND', { username: currentUser.username, projectHash: data.project_hash });
     }
 
     // Извлекаем данные
@@ -614,35 +602,35 @@ export class ResultSubmissionService {
     const username = currentUser.username;
 
     if (!project.title) {
-      throw new Error(`Название компонента не найдено`);
+      throw DomainError.internal('CAPITAL_COMPONENT_TITLE_MISSING');
     }
     // component_name - название текущего проекта
     const component_name = project.title;
 
     // project_name - название родительского проекта
     if (!parentProject?.title) {
-      throw new Error(`Название проекта не найдено`);
+      throw DomainError.internal('CAPITAL_PROJECT_TITLE_MISSING');
     }
     const project_name = parentProject.title;
 
     if (!segment.intellectual_cost) {
-      throw new Error(`Сумма сегмента не найдена`);
+      throw DomainError.internal('CAPITAL_SEGMENT_AMOUNT_MISSING');
     }
     // total_amount - из сегмента поле intellectual_cost
     const total_amount = segment.intellectual_cost;
 
     // percent_of_result - рассчитываем как процент от fact.total_amount с округлением
     if (!project.fact?.total) {
-      throw new Error(`Сумма проекта не найдена`);
+      throw DomainError.internal('CAPITAL_PROJECT_AMOUNT_MISSING');
     }
 
     const factTotalAmount = parseFloat(project.fact.total);
     if (factTotalAmount <= 0) {
-      throw new Error(`Сумма проекта не может быть меньше или равна 0`);
+      throw DomainError.badRequest('CAPITAL_PROJECT_AMOUNT_NOT_POSITIVE');
     }
 
     if (!segment.share_percent) {
-      throw new Error('Доля участника в результате (segment.share_percent) не найдена');
+      throw DomainError.internal('CAPITAL_RESULT_SHARE_PERCENT_MISSING');
     }
     const percent_of_result = (segment.share_percent).toFixed(8);
 
@@ -685,27 +673,27 @@ export class ResultSubmissionService {
     // Находим результат по result_hash
     const result = await this.resultRepository.findByResultHash(data.result_hash);
     if (!result) {
-      throw new Error(`Результат с хешем ${data.result_hash} не найден`);
+      throw DomainError.notFound('CAPITAL_RESULT_NOT_FOUND', { hash: data.result_hash });
     }
 
     // Находим заявление по result_hash (должно быть в блокчейн данных)
     if (!result.statement) {
-      throw new Error('Заявление не найдено в данных результата');
+      throw DomainError.internal('CAPITAL_RESULT_STATEMENT_MISSING');
     }
 
     // Извлекаем данные из заявления
     const statementMeta = result.statement.meta;
     if (!statementMeta) {
-      throw new Error('Мета-данные заявления не найдены');
+      throw DomainError.internal('CAPITAL_STATEMENT_META_MISSING');
     }
 
     // Сверяем данные с текущими данными проекта и сегмента
     if (!result.project_hash) {
-      throw new Error('Хеш проекта не найден в результате');
+      throw DomainError.internal('CAPITAL_RESULT_PROJECT_HASH_MISSING');
     }
     const project = await this.projectRepository.findByHash(result.project_hash);
     if (!project) {
-      throw new Error(`Проект с хешем ${result.project_hash} не найден`);
+      throw DomainError.notFound('CAPITAL_PROJECT_NOT_FOUND_BY_HASH', { hash: result.project_hash });
     }
 
     // Находим родительский проект
@@ -715,7 +703,7 @@ export class ResultSubmissionService {
 
     // Находим сегмент
     if (!result.username) {
-      throw new Error('Имя пользователя не найдено в результате');
+      throw DomainError.internal('CAPITAL_RESULT_USERNAME_MISSING');
     }
     const segment = await this.segmentRepository.findOne({
       project_hash: result.project_hash,
@@ -723,49 +711,49 @@ export class ResultSubmissionService {
     });
 
     if (!segment) {
-      throw new Error(`Сегмент для пользователя ${result.username} и проекта ${result.project_hash} не найден`);
+      throw DomainError.notFound('CAPITAL_SEGMENT_NOT_FOUND', { username: result.username, projectHash: result.project_hash });
     }
 
     // Сверяем данные из заявления с текущими данными
     if (!project.title) {
-      throw new Error('Название компонента (project.title) не найдено');
+      throw DomainError.internal('CAPITAL_COMPONENT_PROJECT_TITLE_MISSING');
     }
     const expectedComponentName = project.title;
 
     if (!parentProject?.title) {
-      throw new Error('Название проекта (parentProject.title) не найдено');
+      throw DomainError.internal('CAPITAL_PARENT_PROJECT_TITLE_MISSING');
     }
     const expectedProjectName = parentProject.title;
 
     if (!segment.intellectual_cost) {
-      throw new Error('Интеллектуальная стоимость сегмента (segment.intellectual_cost) не найдена');
+      throw DomainError.internal('CAPITAL_SEGMENT_INTELLECTUAL_COST_MISSING');
     }
     const expectedTotalAmount = segment.intellectual_cost;
 
     if (!project.fact?.total) {
-      throw new Error('Общая сумма проекта (project.fact.total) не найдена');
+      throw DomainError.internal('CAPITAL_PROJECT_FACT_TOTAL_MISSING');
     }
 
     if (!segment.share_percent) {
-      throw new Error('Доля участника в результате (segment.share_percent) не найдена');
+      throw DomainError.internal('CAPITAL_RESULT_SHARE_PERCENT_MISSING');
     }
     const expectedPercentOfResult = (segment.share_percent).toFixed(8);
 
     // Сверка данных
     if (statementMeta.component_name !== expectedComponentName) {
-      throw new Error(`Несоответствие названия компонента: ожидалось "${expectedComponentName}", получено "${statementMeta.component_name}"`);
+      throw DomainError.internal('CAPITAL_COMPONENT_NAME_MISMATCH', { expected: expectedComponentName, actual: statementMeta.component_name });
     }
 
     if (statementMeta.project_name !== expectedProjectName) {
-      throw new Error(`Несоответствие названия проекта: ожидалось "${expectedProjectName}", получено "${statementMeta.project_name}"`);
+      throw DomainError.internal('CAPITAL_PROJECT_NAME_MISMATCH', { expected: expectedProjectName, actual: statementMeta.project_name });
     }
 
     if (statementMeta.total_amount !== expectedTotalAmount) {
-      throw new Error(`Несоответствие общей суммы: ожидалось "${expectedTotalAmount}", получено "${statementMeta.total_amount}"`);
+      throw DomainError.internal('CAPITAL_TOTAL_AMOUNT_MISMATCH', { expected: expectedTotalAmount, actual: statementMeta.total_amount });
     }
 
     if (statementMeta.percent_of_result !== expectedPercentOfResult) {
-      throw new Error(`Несоответствие процента от результата: ожидалось "${expectedPercentOfResult}", получено "${statementMeta.percent_of_result}"`);
+      throw DomainError.internal('CAPITAL_PERCENT_OF_RESULT_MISMATCH', { expected: expectedPercentOfResult, actual: statementMeta.percent_of_result });
     }
 
     // Все проверки пройдены, генерируем документ
@@ -801,10 +789,10 @@ export class ResultSubmissionService {
     // Находим результат по result_hash
     const result = await this.resultRepository.findByResultHash(data.result_hash);
     if (!result) {
-      throw new Error(`Результат с хешем ${data.result_hash} не найден`);
+      throw DomainError.notFound('CAPITAL_RESULT_NOT_FOUND', { hash: data.result_hash });
     }
     if (!result.username) {
-      throw new Error('Имя пользователя не найдено в результате');
+      throw DomainError.internal('CAPITAL_RESULT_USERNAME_MISSING');
     }
 
     // Владельца определяет результат, а не запрос. Акт формируется по
@@ -814,17 +802,17 @@ export class ResultSubmissionService {
     // не убрано: по нему RolesGuard пропускает пайщика к своим ресурсам.
     // Председатель ставит на акте вторую подпись и вправе сгенерировать любой.
     if (result.username !== currentUser.username && currentUser.role !== 'chairman') {
-      throw new Error('Вы можете генерировать документы только для себя');
+      throw DomainError.internal('CAPITAL_DOCUMENT_GENERATION_FOR_SELF_ONLY');
     }
 
     // Находим заявление по result_hash (должно быть в блокчейн данных)
     if (!result.statement) {
-      throw new Error('Заявление не найдено в данных результата');
+      throw DomainError.internal('CAPITAL_RESULT_STATEMENT_MISSING');
     }
 
     // Находим решение по result_hash (должно быть в блокчейн данных)
     if (!result.authorization) {
-      throw new Error('Решение совета не найдено в данных результата');
+      throw DomainError.internal('CAPITAL_COUNCIL_DECISION_MISSING');
     }
 
     // Извлекаем данные из заявления и решения
@@ -832,34 +820,34 @@ export class ResultSubmissionService {
     const decisionMeta = result.authorization.meta;
 
     if (!statementMeta || !decisionMeta) {
-      throw new Error('Мета-данные заявления или решения не найдены');
+      throw DomainError.internal('CAPITAL_STATEMENT_OR_DECISION_META_MISSING');
     }
 
     // Извлекаем decision_id из authorization.meta
     const decision_id = decisionMeta.decision_id;
     if (!decision_id) {
-      throw new Error('ID решения не найден в мета-данных решения');
+      throw DomainError.internal('CAPITAL_DECISION_ID_MISSING');
     }
 
     // Сверяем данные из заявления с данными решения
     if (statementMeta.component_name !== decisionMeta.component_name) {
-      throw new Error(`Несоответствие названия компонента между заявлением и решением`);
+      throw DomainError.internal('CAPITAL_COMPONENT_NAME_MISMATCH_STATEMENT_DECISION');
     }
 
     if (statementMeta.project_name !== decisionMeta.project_name) {
-      throw new Error(`Несоответствие названия проекта между заявлением и решением`);
+      throw DomainError.internal('CAPITAL_PROJECT_NAME_MISMATCH_STATEMENT_DECISION');
     }
 
     if (statementMeta.total_amount !== decisionMeta.total_amount) {
-      throw new Error(`Несоответствие общей суммы между заявлением и решением`);
+      throw DomainError.internal('CAPITAL_TOTAL_AMOUNT_MISMATCH_STATEMENT_DECISION');
     }
 
     if (statementMeta.percent_of_result !== decisionMeta.percent_of_result) {
-      throw new Error(`Несоответствие процента от результата между заявлением и решением`);
+      throw DomainError.internal('CAPITAL_PERCENT_MISMATCH_STATEMENT_DECISION');
     }
 
     if (statementMeta.result_hash !== decisionMeta.result_hash) {
-      throw new Error(`Несоответствие хеша результата между заявлением и решением`);
+      throw DomainError.internal('CAPITAL_RESULT_HASH_MISMATCH_STATEMENT_DECISION');
     }
 
     // Генерируем result_act_hash как SHA256 от комбинации result_hash и decision_id

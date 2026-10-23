@@ -3,12 +3,12 @@ div
   BaseButton(
     variant='primary',
     :size='isMobile ? "sm" : "md"',
-    aria-label='Создать проект',
+    :aria-label='$t("capital.createProjectHeaderButton.ariaLabel")',
     @click='dialogRef?.openDialog()'
   )
     template(#icon-left)
       q-icon(name='add', size='18px')
-    | Проект
+    | {{ $t('capital.createProjectHeaderButton.label') }}
 
   CreateProjectDialog(
     ref='dialogRef',

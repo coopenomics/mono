@@ -1,0 +1,9 @@
+{
+  "extensionCard": {
+    "extensionCard": {
+      "inDevelopmentBadge": "В разработке",
+      "installedBadge": "Установлено",
+      "moreLink": "Подробнее"
+    }
+  }
+}

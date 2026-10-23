@@ -1,0 +1,30 @@
+import { EdubridgeBaseline1790236885856 } from './migrations/database/1790236885856-baseline';
+import { EdubridgeAssignmentWithoutAnnex1790834774344 } from './migrations/database/1790834774344-assignment-without-annex';
+import { EdubridgeTeacherProfile1790951823745 } from './migrations/database/1790951823745-teacher-profile';
+import { EdubridgeEnrollmentClosePending1791201397413 } from './migrations/database/1791201397413-enrollment-close-pending';
+import { EdubridgeContractDocument1791201979422 } from './migrations/database/1791201979422-contract-document';
+import { EdubridgeGuaranteeClaims1791203803222 } from './migrations/database/1791203803222-guarantee-claims';
+import { EdubridgeAssignmentHourlyRate1791290272066 } from './migrations/database/1791290272066-assignment-hourly-rate';
+import { EdubridgeContributionStorageActDocument1791362839623 } from './migrations/database/1791362839623-contribution-storage-act-document';
+import { EdubridgeContributionDecisionDocument1791365100000 } from './migrations/database/1791365100000-contribution-decision-document';
+import { EdubridgeShareReturns1791380400000 } from './migrations/database/1791380400000-share-returns';
+import { EdubridgeChainEconomy1791443921510 } from './migrations/database/1791443921510-chain-economy';
+import { EdubridgeGroups1791447267515 } from './migrations/database/1791447267515-groups';
+import { EdubridgeGroupEnrollmentClosedOnStart1791530000000 } from './migrations/database/1791530000000-group-enrollment-closed-on-start';
+import { EdubridgeLearnerPlatformRemoved1791540000000 } from './migrations/database/1791540000000-learner-platform-removed';
+import { EdubridgeAdminsToRoleAssignments1791629940202 } from './migrations/database/1791629940202-admins-to-role-assignments';
+import { EdubridgeGroupStartMoment1791640000000 } from './migrations/database/1791640000000-group-start-moment';
+import { EdubridgeEnrollmentUniquePerGroup1791650000000 } from './migrations/database/1791650000000-enrollment-unique-per-group';
+import { EdubridgeEnrollmentChainCloseAfter1791660000000 } from './migrations/database/1791660000000-enrollment-chain-close-after';
+import { EdubridgeLessonUniquePerGroup1791700000000 } from './migrations/database/1791700000000-lesson-unique-per-group';
+import { EdubridgeLessonCalendar1791710000000 } from './migrations/database/1791710000000-lesson-calendar';
+import { EdubridgeProgramMinutes1791720000000 } from './migrations/database/1791720000000-program-minutes';
+import { EdubridgeLessonSlotIndex1791730000000 } from './migrations/database/1791730000000-lesson-slot-index';
+import { EdubridgeProgramMonthsWeeks1791740000000 } from './migrations/database/1791740000000-program-months-weeks';
+/**
+ * Миграции таблиц расширения — в порядке появления (метка времени в имени
+ * класса). Объявляются в записи реестра (`databaseMigrations`) рядом с
+ * сущностями, и файлы лежат здесь же: вынесенное расширение уносит историю
+ * своих таблиц с собой. Новую миграцию `pnpm schema:generate` дописывает сюда.
+ */
+export const edubridgeDatabaseMigrations = [EdubridgeBaseline1790236885856, EdubridgeAssignmentWithoutAnnex1790834774344, EdubridgeTeacherProfile1790951823745, EdubridgeEnrollmentClosePending1791201397413, EdubridgeContractDocument1791201979422, EdubridgeGuaranteeClaims1791203803222, EdubridgeAssignmentHourlyRate1791290272066, EdubridgeContributionStorageActDocument1791362839623, EdubridgeContributionDecisionDocument1791365100000, EdubridgeShareReturns1791380400000, EdubridgeChainEconomy1791443921510, EdubridgeGroups1791447267515, EdubridgeGroupEnrollmentClosedOnStart1791530000000, EdubridgeLearnerPlatformRemoved1791540000000, EdubridgeAdminsToRoleAssignments1791629940202, EdubridgeGroupStartMoment1791640000000, EdubridgeEnrollmentUniquePerGroup1791650000000, EdubridgeEnrollmentChainCloseAfter1791660000000, EdubridgeLessonUniquePerGroup1791700000000, EdubridgeLessonCalendar1791710000000, EdubridgeProgramMinutes1791720000000, EdubridgeLessonSlotIndex1791730000000, EdubridgeProgramMonthsWeeks1791740000000];

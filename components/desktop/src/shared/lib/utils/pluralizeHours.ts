@@ -1,3 +1,5 @@
+import { t } from 'src/shared/i18n';
+
 /**
  * Общая функция для склонения русских слов по количеству
  * @param count - количество
@@ -15,14 +17,14 @@ export const pluralize = (count: number, titles: [string, string, string]): stri
  * @returns правильно склоненное слово
  */
 export const pluralizeHours = (count: number): string => {
-  return pluralize(count, ['час', 'часа', 'часов']);
+  return t('datetime.unitWord.hour', count);
 };
 
 /**
  * Склонение слова "минута" в зависимости от количества
  */
 export const pluralizeMinutes = (count: number): string => {
-  return pluralize(count, ['минута', 'минуты', 'минут']);
+  return t('datetime.unitWord.minute', count);
 };
 
 /**
@@ -31,7 +33,7 @@ export const pluralizeMinutes = (count: number): string => {
  * @returns правильно склоненное слово
  */
 export const pluralizeDays = (count: number): string => {
-  return pluralize(count, ['день', 'дня', 'дней']);
+  return t('datetime.unitWord.day', count);
 };
 
 /**
@@ -40,7 +42,7 @@ export const pluralizeDays = (count: number): string => {
  * @returns правильно склоненное слово
  */
 export const pluralizeAccounts = (count: number): string => {
-  return pluralize(count, ['аккаунт', 'аккаунта', 'аккаунтов']);
+  return t('datetime.unitWord.account', count);
 };
 
 /**
@@ -64,7 +66,7 @@ export const formatHours = (hours: number): string => {
 
   // Для дробных чисел используем единственное число "час"
   if (formattedHours % 1 !== 0) {
-    return `${formattedHours} час`;
+    return `${formattedHours} ${t('datetime.unitWord.hour', 1)}`;
   }
 
   // Для целых чисел используем обычное склонение

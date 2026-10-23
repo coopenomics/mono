@@ -79,6 +79,8 @@ export * as CreateProjectInvest from './createInvest'
 
 // Программные инвестиции
 export * as CreateProgramInvest from './createProgramInvest'
+// Трансляция паевого взноса из Благороста в Цифровой Кошелёк
+export * as TransferShare from './transferShare'
 // Проектные имущественные взносы (новые действия)
 export * as CreateProjectProperty from './createProjectProperty'
 

@@ -1,16 +1,12 @@
 <template lang="pug">
-q-step(
-  :name='store.steps.PayInitial',
-  title='Оплатите вступительный взнос',
-  :done='store.isStepDone("PayInitial")'
-)
+div(v-show='store.isStep("PayInitial")')
 
-  Loader(v-if="isCreatingPayment" text="готовим данные для приёма взносов")
+  Loader(v-if="isCreatingPayment" :text="$t('registrator.payInitial.preparingText')")
   div(v-else-if='payment?.payment_details?.amount_without_fee').q-pa-sm
-    p Пожалуйста, совершите оплату регистрационного взноса {{ payment.payment_details.amount_without_fee }}. Комиссия провайдера {{ payment.payment_details.fact_fee_percent }}%, всего к оплате: {{ payment.payment_details.amount_plus_fee }}.
+    p {{ $t('registrator.payInitial.paymentInstructions', { amountWithoutFee: payment.payment_details.amount_without_fee, feePercent: payment.payment_details.fact_fee_percent, amountWithFee: payment.payment_details.amount_plus_fee }) }}
     .q-mt-md
-      span.text-bold Внимание!
-      span.q-ml-xs Оплату необходимо произвести с банковского счета пайщика, который вступает в кооператив. При поступлении средств с другого счета, оплата будет аннулирована, а вступление в кооператив приостановлено.
+      span.text-bold {{ $t('registrator.payInitial.attentionLabel') }}
+      span.q-ml-xs {{ $t('registrator.payInitial.attentionText') }}
     PayWithProvider(
       v-if='payment',
       :payment-order='payment',
@@ -20,10 +16,12 @@ q-step(
 </template>
 
 <script lang="ts" setup>
-import { computed, watch, ref, onBeforeUnmount } from 'vue';
+import { computed, watch, ref } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
 import { useCreateUser } from 'src/features/User/CreateUser';
 import { FailAlert } from 'src/shared/api';
 import { useSystemStore } from 'src/entities/System/model';
+import { t } from 'src/shared/i18n';
 const { info } = useSystemStore();
 
 import { useCooperativeStore } from 'src/entities/Cooperative';
@@ -43,12 +41,11 @@ const step = computed(() => store.state.step);
 const coop = useCooperativeStore();
 const isCreatingPayment = ref(false);
 
-// Поллинг приёма оплаты. Провайдер QR (Bank) не эмитит success-колбэк, а деньги
-// подтверждаются вебхуком на бэке асинхронно — без поллинга экран висит на форме
-// оплаты до перезагрузки. Каждые 10с подтягиваем аккаунт; как только вступительный
-// платёж покинул статус PENDING (принят/отклонён) — уходим на шаг ожидания решения
-// совета, который сам показывает «платёж принят» либо причину отказа.
-const pollInterval = ref();
+// Приём оплаты. Провайдер QR (Bank) не эмитит success-колбэк, а деньги
+// подтверждаются вебхуком на бэке асинхронно. Запись платежа приходит пайщику
+// сигналом ленты изменений — подтягиваем аккаунт; как только вступительный
+// платёж покинул статус PENDING (принят/отклонён) — уходим на шаг ожидания
+// решения совета, который сам показывает «платёж принят» либо причину отказа.
 
 const POLL_TERMINAL_STATUSES = [
   Zeus.PaymentStatus.PAID,
@@ -65,7 +62,6 @@ const pollPaymentStatus = async () => {
     session.setCurrentUserAccount(account);
     const status = session.registrationPayment?.status;
     if (status && POLL_TERMINAL_STATUSES.includes(status)) {
-      clearInterval(pollInterval.value);
       store.goTo('WaitingRegistration');
     }
   } catch (e) {
@@ -78,8 +74,16 @@ const payment = computed(() => store.state.payment);
 
 const currentStep = store.steps.PayInitial;
 
-// Загружаем данные кооператива один раз при инициализации
-coop.loadPublicCooperativeData(info.coopname);
+// Загружаем данные кооператива один раз при инициализации.
+//
+// Без ожидания и без перехвата отказ уходил необработанным: 08.09.2026 во время
+// перезапуска узла страница регистрации пересоздавалась по кругу, и один
+// браузер за минуту отправил в журнал ошибок 558 одинаковых «Failed to fetch».
+// Реквизиты здесь справочные — не загрузились сейчас, подтянутся при следующем
+// открытии шага.
+coop.loadPublicCooperativeData(info.coopname).catch((e) => {
+  console.warn('Не удалось загрузить данные кооператива:', e);
+});
 
 const createInitialPayment = async () => {
   // Защита от повторных вызовов
@@ -91,7 +95,7 @@ const createInitialPayment = async () => {
     await api.createInitialPayment();
   } catch (e: any) {
     FailAlert(
-      'Возникла ошибка на этапе оплаты. Попробуйте позже или обратитесь в поддержку.',
+      t('registrator.payInitial.paymentError'),
     );
     console.error(e);
   } finally {
@@ -102,18 +106,16 @@ const createInitialPayment = async () => {
 
 // Используем только watch с immediate: true вместо onMounted + watch
 watch(step, (newValue) => {
-  if (newValue === currentStep) {
-    createInitialPayment();
-    clearInterval(pollInterval.value);
-    pollInterval.value = setInterval(() => pollPaymentStatus(), 10000);
-  } else {
-    clearInterval(pollInterval.value);
-  }
+  if (newValue === currentStep) createInitialPayment();
 }, { immediate: true });
 
-onBeforeUnmount(() => {
-  clearInterval(pollInterval.value);
-});
+useLiveReload(
+  [
+    { code: 'core', table: 'payments' },
+    { code: 'core', table: 'users' },
+  ],
+  () => (step.value === currentStep ? pollPaymentStatus() : undefined),
+);
 
 watch(
   () => store.state.is_paid,
@@ -127,7 +129,7 @@ watch(
 
 const paymentFail = (): void => {
   FailAlert(
-    'Возникла ошибка на этапе оплаты. Попробуйте позже или обратитесь в поддержку.',
+    t('registrator.payInitial.paymentError'),
   );
 };
 

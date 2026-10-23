@@ -28,7 +28,7 @@
 
       <div v-if="offer.coopStock" class="mp-catalog-offer-card__supplier">
         <q-icon name="warehouse" size="13px" />
-        <span>Со склада кооператива — выдача сразу</span>
+        <span>{{ $t('marketplace.catalogOfferCard.fromStockBadge') }}</span>
       </div>
       <div v-else-if="offer.supplierName" class="mp-catalog-offer-card__supplier">
         <q-icon name="storefront" size="13px" />
@@ -40,18 +40,35 @@
           {{ formatPrice(displayUnitCost) }}
           <span class="mp-catalog-offer-card__unit">/ {{ unitLabel }}</span>
         </span>
-        <span class="mp-catalog-offer-card__stock" :class="{ 'mp-catalog-offer-card__stock--empty': isEmpty }">
+        <span
+          v-if="!packageRows.length"
+          class="mp-catalog-offer-card__stock"
+          :class="{ 'mp-catalog-offer-card__stock--empty': isEmpty }"
+        >
           {{ stockLabel }}
         </span>
       </div>
+
+      <!-- Отпуск упаковкой: в чём приедет товар и сколько какой упаковки
+           осталось. Одно число в базовых единицах тут ничего не говорит —
+           заказчик берёт упаковку, а не литр. -->
+      <ul v-if="visiblePackages.length" class="mp-catalog-offer-card__packages">
+        <li v-for="row in visiblePackages" :key="row.id" class="mp-catalog-offer-card__package">
+          <span class="mp-catalog-offer-card__package-name">{{ row.label }}</span>
+          <span class="mp-catalog-offer-card__package-value">
+            {{ formatPrice(row.price) }}<template v-if="row.remain"> · {{ row.remain }}</template>
+          </span>
+        </li>
+        <li v-if="hiddenPackages" class="mp-catalog-offer-card__package mp-catalog-offer-card__package--more"> {{ $t('marketplace.catalogOfferCard.andMoreText') }} {{ hiddenPackages }} {{ hiddenPackages === 1 ? $t('marketplace.catalogOfferCard.packageUnitSingular') : $t('marketplace.catalogOfferCard.packageUnitFew') }}
+        </li>
+      </ul>
 
       <div v-if="offer.referenceNote" class="mp-catalog-offer-card__reference">
         {{ offer.referenceNote }}
       </div>
 
       <!-- На столе поставщика/админа: своя цена сверху, ниже — сколько заплатит пайщик. -->
-      <div v-if="hasFee && showFeeNote" class="mp-catalog-offer-card__fee-note">
-        Цена для заказчика {{ formatPrice(unitCostWithFee) }}
+      <div v-if="hasFee && showFeeNote" class="mp-catalog-offer-card__fee-note"> {{ $t('marketplace.catalogOfferCard.priceForOrdererLabel') }} {{ formatPrice(unitCostWithFee) }}
         <span class="mp-catalog-offer-card__unit">/ {{ unitLabel }}</span>
       </div>
 
@@ -75,26 +92,10 @@
 
 <script setup lang="ts">
 import { computed, type PropType } from 'vue'
+import { uiLocale, t } from 'src/shared/i18n';
 import { OfferGallery } from 'src/widgets/Marketplace/OfferGallery'
 import { applyMembershipFee } from 'src/shared/lib/marketplace'
-
-export type CatalogOfferStatus = 'draft' | 'published' | 'paused' | 'sold-out' | 'completed' | 'moderation' | 'withdrawn'
-
-export interface CatalogOffer {
-  id?: string | number
-  title: string
-  description?: string
-  preview?: string         // URL одиночного изображения (legacy / обложка)
-  images?: string[]        // URL'ы всех изображений — показываются каруселью
-  remainUnits?: number
-  unitCost?: number | string
-  unitLabel?: string       // единица заказа: «100 г», «упаковка 8 шт», «шт»…
-  referenceNote?: string   // справочная цена за базовую единицу «≈ 2500 ₽ за кг»
-  status?: CatalogOfferStatus
-  category?: string        // название категории — показывается над заголовком
-  supplierName?: string    // ФИО / наименование поставщика
-  coopStock?: boolean      // предложение кооператива со склада КУ — мгновенная выдача
-}
+import type { CatalogOfferStatus, CatalogOffer } from './CatalogOfferCard.types'
 
 const props = defineProps({
   offer: { type: Object as PropType<CatalogOffer>, required: true },
@@ -121,19 +122,19 @@ const images = computed<string[]>(() => {
   if (props.offer.images?.length) return props.offer.images
   return props.offer.preview ? [props.offer.preview] : []
 })
-const unitLabel = computed(() => props.offer.unitLabel ?? 'ед.')
+const unitLabel = computed(() => props.offer.unitLabel ?? t('marketplace.catalogOfferCard.unitShort'))
 const status = computed(() => props.offer.status)
 
 type StatusKind = 'info' | 'success' | 'warning' | 'error' | 'neutral'
 
 const STATUS_MAP: Record<CatalogOfferStatus, { label: string; kind: StatusKind }> = {
-  draft:      { label: 'Черновик',      kind: 'neutral' },
-  moderation: { label: 'На модерации',  kind: 'warning' },
-  published:  { label: 'Опубликовано',  kind: 'success' },
-  paused:     { label: 'Приостановлено', kind: 'warning' },
-  'sold-out': { label: 'Закончилось',   kind: 'neutral' },
-  completed:  { label: 'Завершено',     kind: 'neutral' },
-  withdrawn:  { label: 'Снято с публикации', kind: 'neutral' },
+  draft:      { label: t('marketplace.catalogOfferCard.statusDraft'),      kind: 'neutral' },
+  moderation: { label: t('marketplace.catalogOfferCard.statusModeration'),  kind: 'warning' },
+  published:  { label: t('marketplace.catalogOfferCard.statusPublished'),  kind: 'success' },
+  paused:     { label: t('marketplace.catalogOfferCard.statusPaused'), kind: 'warning' },
+  'sold-out': { label: t('marketplace.catalogOfferCard.statusSoldOut'),   kind: 'neutral' },
+  completed:  { label: t('marketplace.catalogOfferCard.statusCompleted'),     kind: 'neutral' },
+  withdrawn:  { label: t('marketplace.catalogOfferCard.statusUnpublished'), kind: 'neutral' },
 }
 
 const statusLabel = computed(() => (status.value ? STATUS_MAP[status.value].label : ''))
@@ -157,10 +158,10 @@ const shortDescription = computed(() => {
 const isUnlimited = computed(() => props.offer.remainUnits == null)
 const isEmpty = computed(() => !isUnlimited.value && (props.offer.remainUnits ?? 0) <= 0)
 const stockLabel = computed(() => {
-  if (isUnlimited.value) return 'Без ограничений'
+  if (isUnlimited.value) return t('marketplace.catalogOfferCard.noLimitLabel')
   return isEmpty.value
-    ? 'Нет в наличии'
-    : `${props.offer.remainUnits}×${unitLabel.value}`
+    ? t('marketplace.catalogOfferCard.outOfStockLabel')
+    : `${props.offer.remainUnits} ${unitLabel.value}`
 })
 
 const cardClasses = computed(() => ({
@@ -187,10 +188,35 @@ const displayUnitCost = computed<number | string>(() => {
   return base
 })
 
+/**
+ * Строки упаковок: подпись, цена за упаковку (с тем же взносом, что и крупная
+ * цена) и остаток в упаковках. Пусто — отпуск по мере, карточка остаётся
+ * прежней.
+ */
+const packageRows = computed(() =>
+  (props.offer.packages ?? []).map((p) => ({
+    id: p.id,
+    label: p.label,
+    price: hasFee.value && !props.showFeeNote
+      ? applyMembershipFee(Number(p.price), props.feePercent)
+      : p.price,
+    remain: p.remain == null ? t('marketplace.catalogOfferCard.noLimitInlineLabel') : t('marketplace.catalogOfferCard.remainingPackages', { count: p.remain }),
+  })),
+)
+
+/**
+ * В карточке показываем не больше трёх упаковок: пять вариантов растянули бы
+ * её на полэкрана, а соседние карточки в ряду тянутся за самой высокой.
+ * Полный список — на странице предложения, туда и ведёт нажатие.
+ */
+const PACKAGES_MAX = 3
+const visiblePackages = computed(() => packageRows.value.slice(0, PACKAGES_MAX))
+const hiddenPackages = computed(() => Math.max(0, packageRows.value.length - PACKAGES_MAX))
+
 function formatPrice(v: number | string) {
   const n = typeof v === 'number' ? v : Number(v)
   if (Number.isNaN(n)) return String(v)
-  return new Intl.NumberFormat('ru-RU', { minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(n) + ' ₽'
+  return new Intl.NumberFormat(uiLocale(), { minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(n) + ' ₽'
 }
 
 function onClick() {
@@ -205,19 +231,27 @@ function onClick() {
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  // Карточка занимает ячейку сетки целиком, а действия прижаты к низу: иначе
+  // соседи в ряду расходятся по высоте от одной лишней строки описания, и
+  // кнопки «В корзину» стоят на разных уровнях (жалоба 2026-09-14).
+  height: 100%;
 
   &__media {
     position: relative;
     width: 100%;
-    aspect-ratio: 4 / 3;
-    background: var(--mp-surface-1);
+    // Квадрат вместо 4:3 — компромисс между вертикальными и горизонтальными
+    // снимками: и те и другие помещаются целиком, не мельчая.
+    aspect-ratio: 1 / 1;
+    background: var(--p-surface-2);
     overflow: hidden;
 
     // img живёт внутри дочернего OfferGallery — достаём через :deep.
+    // Целиком, а не с обрезкой: на срезанном низу оставались вес и надпись с
+    // упаковки, ради которых фото и делали.
     :deep(img) {
       width: 100%;
       height: 100%;
-      object-fit: cover;
+      object-fit: contain;
       transition: transform .4s ease;
     }
   }
@@ -260,6 +294,9 @@ function onClick() {
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
+    // Место под две строки держится всегда: короткое название иначе поднимает
+    // цену выше, чем у соседа, и ряд читается как ступеньки.
+    min-height: calc(15px * 1.35 * 2);
   }
 
   &__supplier {
@@ -307,6 +344,41 @@ function onClick() {
     margin-left: 2px;
   }
 
+  // Упаковки: подпись слева, цена и остаток справа — по строке на упаковку.
+  &__packages {
+    margin: var(--p-1, 4px) 0 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  &__package {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--p-2, 8px);
+    font-size: var(--p-fs-body-sm, 13px);
+  }
+
+  &__package-name {
+    min-width: 0;
+    color: var(--p-ink-2);
+    overflow-wrap: anywhere;
+  }
+
+  &__package--more {
+    color: var(--p-ink-3);
+    font-size: var(--p-fs-meta, 12px);
+  }
+
+  &__package-value {
+    flex: 0 0 auto;
+    color: var(--p-ink-3);
+    font-variant-numeric: tabular-nums;
+  }
+
   &__stock {
     font-size: 12px;
     color: var(--mp-on-surface-muted);
@@ -334,6 +406,7 @@ function onClick() {
   &__actions {
     padding: 0 var(--mp-space-md) var(--mp-space-md);
     gap: var(--mp-space-sm);
+    margin-top: auto;
   }
 }
 
@@ -342,7 +415,7 @@ function onClick() {
   .mp-catalog-offer-card {
     &__title { font-size: 14px; }
     &__price { font-size: 16px; }
-    &__media { aspect-ratio: 16 / 10; }
+    &__media { aspect-ratio: 1 / 1; }
   }
 }
 

@@ -1,4 +1,5 @@
 import moment from './moment';
+import { t } from 'src/shared/i18n';
 
 export function validateDateWithinRange(yearsAgo, yearsAhead = 0) {
   return (val) => {
@@ -7,15 +8,15 @@ export function validateDateWithinRange(yearsAgo, yearsAhead = 0) {
     const upperLimit = moment().add(Math.abs(yearsAhead), 'years'); // Предел в будущем
 
     if (!inputDate.isValid()) {
-      return 'Неверный формат даты';
+      return t('validation.date.invalidFormat');
     }
 
     if (inputDate.isBefore(lowerLimit)) {
-      return `Дата не может быть раньше ${lowerLimit.format('YYYY/MM/DD HH:mm')}`;
+      return t('validation.date.tooEarly', { date: lowerLimit.format('YYYY/MM/DD HH:mm') });
     }
 
     if (inputDate.isAfter(upperLimit)) {
-      return `Дата не может быть позже ${upperLimit.format('YYYY/MM/DD HH:mm')}`;
+      return t('validation.date.tooLate', { date: upperLimit.format('YYYY/MM/DD HH:mm') });
     }
 
     return true;

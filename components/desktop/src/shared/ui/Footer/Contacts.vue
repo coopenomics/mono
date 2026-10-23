@@ -2,9 +2,9 @@
 .contact-footer.q-pa-xs.text-center
   .contact-footer__text(v-if='text') {{ text }}
   .contact-footer__links
-    router-link.contact-footer__link(to='/privacy') Политика конфиденциальности
+    router-link.contact-footer__link(to='/privacy') {{ $t('ui.contacts.privacyPolicyLabel') }}
     span.contact-footer__sep ·
-    router-link.contact-footer__link(to='/terms') Пользовательское соглашение
+    router-link.contact-footer__link(to='/terms') {{ $t('ui.contacts.termsLabel') }}
 </template>
 
 <script setup lang='ts'>

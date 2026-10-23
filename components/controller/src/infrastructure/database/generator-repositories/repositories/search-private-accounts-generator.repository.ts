@@ -57,6 +57,7 @@ export class SearchPrivateAccountsRepositoryImplementation implements SearchPriv
         domainData = this.convertOrganizationData(factoryResult.data as any);
         break;
       default:
+        // i18n-ignore: внутренняя ошибка генератора поиска приватных аккаунтов (неизвестный factoryResult.type), до пайщика не доходит
         throw new Error(`Неизвестный тип данных: ${factoryResult.type}`);
     }
 

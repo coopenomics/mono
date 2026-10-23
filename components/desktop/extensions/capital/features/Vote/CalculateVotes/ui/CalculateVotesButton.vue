@@ -4,7 +4,7 @@ BaseButton(
   size='sm',
   :loading='loading',
   @click='handleCalculateVotes'
-) Рассчитать голоса
+) {{ $t('capital.calculateVotesButton.label') }}
 </template>
 
 <script setup lang="ts">

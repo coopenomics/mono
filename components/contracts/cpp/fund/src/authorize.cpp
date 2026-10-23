@@ -17,6 +17,6 @@
   auto withdraw = fundwithdraws.find(withdraw_id);
   eosio::check(withdraw != fundwithdraws.end(), "Вывод не найден");
 
-  fundwithdraws.modify(withdraw, _soviet,
+  fundwithdraws.modify(withdraw, RamPayer::of(fundwithdraws, coopname),
                        [&](auto &s) { s.status = "authorized"_n; });
 };

@@ -4,6 +4,7 @@ import { DocFactory } from '../Factory'
 import { Udata } from '../Models/Udata'
 import type { IGeneratedDocument, IGenerationOptions, IMetaDocument, ITemplate } from '../Interfaces'
 import type { MongoDBConnector } from '../Services/Databazor'
+import { DocumentNotApprovedError } from '../errors'
 
 export { BlagorostOffer as Template } from '../Templates'
 
@@ -47,11 +48,11 @@ export class Factory extends DocFactory<BlagorostOffer.Action> {
 
     // Проверяем наличие данных протоколов, утвердивших предыдущие документы
     if (!vars.blagorost_program?.protocol_number || !vars.blagorost_program?.protocol_day_month_year) {
-      throw new Error('Данные протокола об утверждении Положения о ЦПП «БЛАГОРОСТ» не найдены. Сначала утвердите Положение и сохраните данные протокола.')
+      throw new DocumentNotApprovedError('Данные протокола об утверждении Положения о ЦПП «БЛАГОРОСТ» не найдены. Сначала утвердите Положение и сохраните данные протокола.')
     }
 
     if (!vars.blagorost_offer_template?.protocol_number || !vars.blagorost_offer_template?.protocol_day_month_year) {
-      throw new Error('Данные протокола об утверждении шаблона публичной оферты ЦПП «БЛАГОРОСТ» не найдены. Сначала утвердите шаблон оферты и сохраните данные протокола.')
+      throw new DocumentNotApprovedError('Данные протокола об утверждении шаблона публичной оферты ЦПП «БЛАГОРОСТ» не найдены. Сначала утвердите шаблон оферты и сохраните данные протокола.')
     }
 
     if (!blagorostAgreementUdata?.value) {

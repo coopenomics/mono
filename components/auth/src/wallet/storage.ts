@@ -1,3 +1,4 @@
+import { lt } from '@coopenomics/i18n'
 /**
  * In-memory keystore (Story 2.2). ЕДИНСТВЕННОЕ место, где живёт расшифрованный
  * приватный ключ пайщика — module-private переменная, только в RAM процесса/вкладки.
@@ -30,7 +31,7 @@ export function isUnlocked(): boolean {
 /** Публичный «вид» кошелька без приватного ключа. Бросает, если заперто. */
 export function currentView(): { account: string, publicKey: string } {
   if (!unlocked)
-    throw new AuthV2Error(AuthV2ErrorCode.WalletLocked, 'Кошелёк заперт: сначала вызовите unlockWallet()')
+    throw new AuthV2Error(AuthV2ErrorCode.WalletLocked, lt('authClient.storage.walletLockedCurrentView'))
   return { account: unlocked.account, publicKey: unlocked.publicKey }
 }
 
@@ -40,7 +41,7 @@ export function currentView(): { account: string, publicKey: string } {
  */
 export function readUnlockedKey(): string {
   if (!unlocked)
-    throw new AuthV2Error(AuthV2ErrorCode.WalletLocked, 'Кошелёк заперт: подпись невозможна без unlockWallet()')
+    throw new AuthV2Error(AuthV2ErrorCode.WalletLocked, lt('authClient.storage.walletLockedSigning'))
   return unlocked.privateKey
 }
 

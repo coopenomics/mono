@@ -1,6 +1,6 @@
-import { ConflictException, Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { In, IsNull, Repository } from 'typeorm';
+import { TableStore, isNull, oneOf } from '@coopenomics/extension-kit';
+import { MARKETPLACE_CONTAINER_STORE, MARKETPLACE_CONTAINER_TYPE_STORE } from '../../infrastructure/database/marketplace-stores';
+import { Inject, Injectable } from '@nestjs/common';
 import {
   MarketplaceContainerDomainEntity,
   MarketplaceContainerTypeDomainEntity,
@@ -26,20 +26,21 @@ import {
   MarketplaceContainerMapper,
   MarketplaceContainerTypeMapper,
 } from '../mappers/marketplace-container.mapper';
+import { DomainError } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class MarketplaceContainerTypeRepositoryAdapter implements MarketplaceContainerTypeDomainRepository {
   constructor(
-    @InjectRepository(MarketplaceContainerTypeEntity, 'marketplace')
-    private readonly repo: Repository<MarketplaceContainerTypeEntity>,
+    @Inject(MARKETPLACE_CONTAINER_TYPE_STORE)
+private readonly repo: TableStore<MarketplaceContainerTypeEntity>,
     private readonly mapper: MarketplaceContainerTypeMapper
   ) {}
 
   async create(input: MarketplaceContainerTypeCreateInput): Promise<MarketplaceContainerTypeDomainEntity> {
     const name = input.name.trim();
-    const duplicate = await this.repo.findOne({ where: { coopname: input.coopname, name } });
+    const duplicate = await this.repo.findOne({ coopname: input.coopname, name });
     if (duplicate) {
-      throw new ConflictException(`Тип боксов «${name}» уже заведён.`);
+      throw DomainError.conflict('MARKETPLACE_CONTAINER_TYPE_NAME_TAKEN', { name });
     }
     const row = this.repo.create({
       coopname: input.coopname,
@@ -56,14 +57,16 @@ export class MarketplaceContainerTypeRepositoryAdapter implements MarketplaceCon
   }
 
   async findById(id: string): Promise<MarketplaceContainerTypeDomainEntity | null> {
-    const row = await this.repo.findOne({ where: { id } });
+    const row = await this.repo.findOne({ id });
     return row ? this.mapper.toDomain(row) : null;
   }
 
   async list(coopname: string, is_active?: boolean): Promise<MarketplaceContainerTypeDomainEntity[]> {
     const where: Record<string, unknown> = { coopname };
-    if (is_active !== undefined) where.is_active = is_active;
-    const rows = await this.repo.find({ where, order: { name: 'ASC' } });
+    // Необязательный отбор приходит из GraphQL и как undefined, и как null
+    // (стол шлёт null): null в условии превращается в IS NULL и прячет все строки.
+    if (is_active != null) where.is_active = is_active;
+    const rows = await this.repo.find(where, { order: { name: 'ASC' } });
     return rows.map((row) => this.mapper.toDomain(row));
   }
 
@@ -71,7 +74,7 @@ export class MarketplaceContainerTypeRepositoryAdapter implements MarketplaceCon
     id: string,
     patch: MarketplaceContainerTypePatch
   ): Promise<MarketplaceContainerTypeDomainEntity | null> {
-    const row = await this.repo.findOne({ where: { id } });
+    const row = await this.repo.findOne({ id });
     if (!row) return null;
     if (patch.name !== undefined) row.name = patch.name.trim();
     if (patch.volume_m3 !== undefined) row.volume_m3 = patch.volume_m3;
@@ -84,8 +87,8 @@ export class MarketplaceContainerTypeRepositoryAdapter implements MarketplaceCon
 @Injectable()
 export class MarketplaceContainerRepositoryAdapter implements MarketplaceContainerDomainRepository {
   constructor(
-    @InjectRepository(MarketplaceContainerEntity, 'marketplace')
-    private readonly repo: Repository<MarketplaceContainerEntity>,
+    @Inject(MARKETPLACE_CONTAINER_STORE)
+private readonly repo: TableStore<MarketplaceContainerEntity>,
     private readonly mapper: MarketplaceContainerMapper
   ) {}
 
@@ -104,31 +107,31 @@ export class MarketplaceContainerRepositoryAdapter implements MarketplaceContain
         is_active: true,
       })
     );
-    const saved = await this.repo.save(rows);
+    const saved = await this.repo.saveMany(rows);
     return saved.map((row) => this.mapper.toDomain(row));
   }
 
   async findById(id: string): Promise<MarketplaceContainerDomainEntity | null> {
-    const row = await this.repo.findOne({ where: { id } });
+    const row = await this.repo.findOne({ id });
     return row ? this.mapper.toDomain(row) : null;
   }
 
   async findByCode(coopname: string, code: string): Promise<MarketplaceContainerDomainEntity | null> {
-    const row = await this.repo.findOne({ where: { coopname, code: code.trim() } });
+    const row = await this.repo.findOne({ coopname, code: code.trim() });
     return row ? this.mapper.toDomain(row) : null;
   }
 
   async list(filter: MarketplaceContainerListFilter): Promise<MarketplaceContainerDomainEntity[]> {
     const where: Record<string, unknown> = { coopname: filter.coopname };
     if (filter.braname !== undefined) {
-      where.braname = Array.isArray(filter.braname) ? In(filter.braname) : filter.braname;
+      where.braname = Array.isArray(filter.braname) ? oneOf(filter.braname) : filter.braname;
     }
-    if (filter.is_active !== undefined) where.is_active = filter.is_active;
-    if (filter.container_type_id !== undefined) where.container_type_id = filter.container_type_id;
-    if (filter.unplaced_only) where.cell_id = IsNull();
-    else if (filter.cell_id !== undefined) where.cell_id = filter.cell_id;
+    if (filter.is_active != null) where.is_active = filter.is_active;
+    if (filter.container_type_id != null) where.container_type_id = filter.container_type_id;
+    if (filter.unplaced_only) where.cell_id = isNull();
+    else if (filter.cell_id != null) where.cell_id = filter.cell_id;
 
-    const rows = await this.repo.find({ where, order: { code: 'ASC' } });
+    const rows = await this.repo.find(where, { order: { code: 'ASC' } });
     return rows.map((row) => this.mapper.toDomain(row));
   }
 
@@ -136,7 +139,7 @@ export class MarketplaceContainerRepositoryAdapter implements MarketplaceContain
     id: string,
     patch: MarketplaceContainerPatch
   ): Promise<MarketplaceContainerDomainEntity | null> {
-    const row = await this.repo.findOne({ where: { id } });
+    const row = await this.repo.findOne({ id });
     if (!row) return null;
     if (patch.label !== undefined) row.label = patch.label;
     if (patch.is_active !== undefined) row.is_active = patch.is_active;
@@ -145,11 +148,11 @@ export class MarketplaceContainerRepositoryAdapter implements MarketplaceContain
   }
 
   async countByCell(coopname: string, cell_id: string): Promise<number> {
-    return this.repo.count({ where: { coopname, cell_id, is_active: true } });
+    return this.repo.count({ coopname, cell_id, is_active: true });
   }
 
   async maxCodeSequence(coopname: string): Promise<number> {
-    const rows = await this.repo.find({ where: { coopname }, select: ['code'] });
+    const rows = await this.repo.find({ coopname });
     return rows.reduce((max, row) => {
       const sequence = parseContainerCodeSequence(row.code);
       return sequence !== null && sequence > max ? sequence : max;

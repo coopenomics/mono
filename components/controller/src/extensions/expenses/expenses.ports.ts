@@ -11,6 +11,10 @@
  * Необязательные могут отсутствовать: без них часть возможностей выключена.
  */
 import {
+  ACCOUNT_PORT,
+  DESKTOP_GRANTS_REGISTRY_PORT,
+  ROLE_ASSIGNMENTS_PORT,
+  CHAIN_CHANGES_PORT,
   CHAIN_PORT,
   DOCUMENT_PORT,
   FILE_STORAGE_PORT,
@@ -23,6 +27,11 @@ import {
 
 export const expensesPorts = {
   required: [
+    // Авансы на кассе показывают получателя по ФИО.
+    ACCOUNT_PORT,
+    DESKTOP_GRANTS_REGISTRY_PORT,
+    // Ревизору расходы дают чтение своего реестра: дополнение роли и её держатели.
+    ROLE_ASSIGNMENTS_PORT,
     CHAIN_PORT,
     DOCUMENT_PORT,
     FILE_STORAGE_PORT,
@@ -33,5 +42,7 @@ export const expensesPorts = {
     VAULT_PORT,
   ],
   optional: [
+    // Лента изменений: реестр расходов обновляется на столах сам.
+    CHAIN_CHANGES_PORT,
   ],
 };

@@ -5,6 +5,14 @@
 /* ---- Reset & base ---- */
 * { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; }
+/* Место под вертикальную полосу прокрутки держится всегда. Открытый диалог
+   запрещает прокрутку страницы, полоса исчезает — и без этого правила вся
+   страница на её ширину прыгает вбок, а внизу проступает горизонтальная
+   полоса (жалоба 2026-09-14). */
+html { scrollbar-gutter: stable; }
+/* Пока диалог открыт, странице ехать вбок незачем: прокрутка живёт внутри
+   самого диалога. */
+body.q-body--prevent-scroll { overflow-x: hidden; }
 body {
   font-family: var(--p-sans);
   font-size: var(--p-fs-body);
@@ -352,6 +360,15 @@ body {
   white-space: normal;
   overflow: visible;
 }
+/* Знак вопроса после заголовка: подробности — во всплывающей подсказке. */
+.wallet__hint {
+  margin-left: var(--p-1);
+  font-size: var(--p-fs-body);
+  color: var(--p-ink-3);
+  vertical-align: -2px;
+  cursor: help;
+}
+.wallet__hint:hover { color: var(--p-ink-2); }
 .wallet__sub {
   font-size: var(--p-fs-meta);
   color: var(--p-ink-2);
@@ -446,6 +463,17 @@ body {
    вариант для всех карточек группы; выключка суммы вправо сохраняется. */
 .wallet--stacked .wallet__amount { flex: 1 0 100%; }
 
+/* Строка действий кошелька: во всю ширину тела, отделена hairline'ом. */
+.wallet__actions {
+  flex: 1 0 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--p-2);
+  margin-top: var(--p-1);
+  padding-top: var(--p-3);
+  border-top: 1px solid var(--p-line);
+}
+
 /* ---- Table ---- */
 .table-wrap {
   background: var(--p-surface);
@@ -479,7 +507,7 @@ body {
 }
 .table tbody tr:last-child td { border-bottom: 0; }
 .table tbody tr { transition: background var(--p-dur-fast); }
-.table tbody tr:hover { background: var(--p-surface-2); }
+.table tbody tr:hover { background: var(--p-primary-soft); }
 .table .col-num { text-align: right; font-variant-numeric: tabular-nums; }
 .table .col-action { width: 1%; text-align: right; }
 .table .doc-type {
@@ -558,18 +586,143 @@ body {
 .icon-btn:hover { background: var(--p-surface-2); color: var(--p-ink); }
 .icon-btn svg { width: 16px; height: 16px; }
 
+/* ---- Page shell (раздел на всю высоту экрана) -----------------------
+   Оболочка страницы раздела: на десктопе занимает вьюпорт под шапкой, и
+   прокручивается не она, а лента внутри — так у раздела всегда виден каркас
+   (заголовок, табы), а бежит только содержимое.
+
+   На мобильном фиксация снимается: страница прокручивается окном, как обычный
+   документ. Без этого шапка не могла уехать при прокрутке (reveal у q-header
+   реагирует только на скролл окна), а вложенный скролл внутри скролла ловил
+   инерцию и заставлял ленту дрожать под пальцем.
+
+   ОБЯЗАТЕЛЬНОЕ УСЛОВИЕ: внутри оболочки должен быть свой контейнер прокрутки
+   (`.column.flex-1.min-h-0` + `overflow: auto` на ленте). Без него содержимое
+   выше экрана просто обрезается и прокрутить страницу нечем — так было на трёх
+   реестрах Стола бухгалтера, где класс стоял с тех пор, когда он ещё ничего не
+   значил. Не нужна фиксация каркаса — оболочку не ставить вовсе.
+   ------------------------------------------------------------------- */
+.page-shell {
+  height: calc(100vh - var(--p-topbar-h));
+  max-height: calc(100vh - var(--p-topbar-h));
+  overflow: hidden;
+}
+@media (max-width: 600px) {
+  .page-shell {
+    height: auto;
+    max-height: none;
+    overflow: visible;
+  }
+}
+
 /* ---- Page tabs (sub-navigation) -------------------------------------
    Horizontal sub-nav living between the topbar and the content. Scrolls
    horizontally on overflow. Right side is a fixed slot for page-scoped
    action buttons ("Совершить взнос", "Получить возврат", "Фильтр", …).
    Use INSTEAD of page-head__actions when the page has sub-pages.
    ------------------------------------------------------------------- */
+/* Место для поднятой полосы вкладок: она рендерится в каркасе над содержимым
+   страницы, поэтому идёт во всю ширину окна и не зависит от боковых отступов
+   страницы. Хост прозрачен для раскладки: липкая полоса держится только в
+   пределах своего родителя, а обёртка высотой ровно с полосу не оставляла ей
+   места — вкладки уезжали вместе со страницей. С `display: contents` полоса
+   для раскладки — прямой ребёнок контейнера страниц и липнет под шапкой на всю
+   её высоту; пустой хост при этом ничего не занимает. */
+.page-tabs-host {
+  display: contents;
+}
+/* Quasar задаёт странице минимальную высоту «окно минус шапка» (инлайн-стилем)
+   и про полосу вкладок над ней не знает: страница во весь экран плюс полоса
+   сверху давали вертикальную прокрутку даже на пустом экране — ровно на высоту
+   полосы. Полоса меряет свою фактическую высоту и кладёт в --p-tabs-host-h
+   (см. useHoistedTabsHeight), а страница на неё укорачивается. Запасное
+   значение — токен высоты полосы, а не ноль: с нулём любая осечка публикации
+   молча возвращала прокрутку.
+
+   Условия два, и это намеренно. Первое — признак, который ставит сама полоса
+   при подъёме: он не зависит от того, как она вложена в каркас. Второе — по
+   структуре, на случай отключённого сценария с признаком.
+
+   В структурном условии полосу ищем внутри хоста, а не прямым потомком:
+   `display: contents` убирает хост из раскладки, но не из дерева документа —
+   селекторы по-прежнему видят вложенность. */
+.q-page-container.has-hoisted-tabs > .q-page,
+.q-page-container:has(> .page-tabs-host > .tabbar) > .q-page {
+  min-height: calc(100dvh - var(--p-topbar-h) - var(--p-tabs-host-h, var(--p-tabbar-h))) !important;
+}
+
+/* Состав поставки в диалогах подписи — накладная в рамке. Один класс на обе
+   стороны подписи: поставщик и оператор подписывают одну и ту же поставку и
+   обязаны видеть её одинаково, вплоть до строк по упаковкам (просьба владельца
+   2026-09-09). Раньше стиль лежал двумя копиями в самих диалогах и разошёлся. */
+.act-table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid var(--p-line);
+  border-radius: var(--p-r-sm);
+  overflow: hidden;
+  font-size: var(--p-fs-body-sm);
+}
+.act-table th,
+.act-table td {
+  padding: var(--p-2) var(--p-3);
+  text-align: left;
+  color: var(--p-ink);
+}
+.act-table thead th {
+  background: var(--p-surface-2);
+  border-bottom: 1px solid var(--p-line);
+  font-size: var(--p-fs-meta);
+  font-weight: 400;
+  letter-spacing: var(--p-ls-eyebrow);
+  text-transform: uppercase;
+  color: var(--p-ink-3);
+}
+.act-table tbody td { border-top: 1px solid var(--p-line); }
+.act-table tbody tr:first-child td { border-top: none; }
+.act-table .num { text-align: right; font-variant-numeric: tabular-nums; }
+/* Итог — главная величина акта: отбит линией и крупнее строк состава. */
+.act-table tfoot td {
+  border-top: 1px solid var(--p-line);
+  background: var(--p-surface-2);
+  font-weight: 700;
+}
+.act-table tfoot .num:last-child { font-size: var(--p-fs-h3); }
+
 .tabbar {
   display: flex;
   align-items: stretch;
   border-bottom: 1px solid var(--p-line);
   background: var(--p-canvas);
-  min-height: 52px;
+  min-height: var(--p-tabbar-h);
+  /* Полоса табов липнет под шапкой и остаётся на виду всю прокрутку: это
+     основная навигация раздела, уезжать вместе с контентом ей незачем.
+     Отступ сверху равен высоте шапки — ровно под ней. */
+  position: sticky;
+  top: var(--p-topbar-h);
+  z-index: 5;
+  transition: top var(--p-dur-fast);
+}
+/* Шапка уехала (reveal на мобильном) — Quasar обнуляет её вклад в отступ
+   контента, поэтому табы поднимаются к самому верху экрана. Селектор идёт от
+   шапки к контейнеру страницы: в q-layout это соседи. */
+.q-header--hidden ~ .q-page-container .tabbar {
+  top: 0;
+}
+/* Внутри оболочки раздела на широком экране липкость не нужна и вредна:
+   `.page-shell` там сам контейнер прокрутки (overflow: hidden), поэтому sticky
+   отсчитывает `top` от его верха и отталкивает вкладки вниз на высоту шапки —
+   между шапкой и вкладками появлялась пустая полоса. Прокручивается там лента
+   внутри, а вкладки и без липкости всегда на виду. */
+.page-shell > .tabbar {
+  position: static;
+}
+@media (max-width: 600px) {
+  /* На узком экране оболочка прокрутку уже не режет — липкость снова работает
+     от окна, и вкладки держатся под шапкой. */
+  .page-shell > .tabbar {
+    position: sticky;
+  }
 }
 .tabbar__tabs {
   flex: 1;
@@ -584,27 +737,34 @@ body {
   position: relative;
 }
 .tabbar__tabs::-webkit-scrollbar { display: none; }
-/* — fade edges to communicate horizontal scroll — */
-.tabbar__tabs::before,
-.tabbar__tabs::after {
-  content: "";
-  position: sticky;
-  top: 0; bottom: 0;
-  width: 24px;
-  pointer-events: none;
+/* Растворяющих градиентов по краям здесь намеренно нет. Они рисовались слоем
+   ПОВЕРХ табов (sticky, 24px, отрицательный внешний отступ), поэтому текст под
+   слоем шёл притемнённым, а на его правом крае яркость возвращалась скачком —
+   через слово проходила вертикальная линия, стоявшая на месте при прокрутке.
+   Что полосу можно листать, и без них видно по обрезанному крайнему табу. */
+/* Стрелки прокрутки вкладок. Стоят в потоке, а не поверх полосы: слой поверх
+   содержимого уже подводил — притемнял текст и давал скачок яркости на своём
+   крае. Обе появляются вместе, когда вкладки не помещаются; недоступная
+   гаснет, но места не освобождает, чтобы полоса не дёргалась. */
+.tabbar__arrow {
   flex-shrink: 0;
-  z-index: 1;
+  align-self: center;
+  margin: 0 2px;
 }
-.tabbar__tabs::before {
-  left: 0;
-  margin-right: -24px;
-  background: linear-gradient(to right, var(--p-canvas), transparent);
+.tabbar__arrow:first-child { margin-left: var(--p-3); }
+.tabbar__arrow--faded {
+  color: var(--p-ink-4);
+  cursor: default;
 }
-.tabbar__tabs::after {
-  right: 0;
-  margin-left: -24px;
-  background: linear-gradient(to left, var(--p-canvas), transparent);
+.tabbar__arrow--faded:hover {
+  background: transparent;
+  color: var(--p-ink-4);
 }
+/* Стрелки уже отбивают полосу от краёв — двойной отступ у самих вкладок лишний */
+.tabbar__arrow + .tabbar__tabs {
+  padding-left: var(--p-2);
+}
+
 .tab {
   position: relative;
   display: inline-flex;
@@ -624,6 +784,13 @@ body {
   letter-spacing: -0.005em;
 }
 .tab:hover { color: var(--p-ink); }
+/* Иконка таба наследует приглушённый цвет, у активного — акцент */
+.tab__ico {
+  color: var(--p-ink-3);
+}
+.tab--active .tab__ico {
+  color: var(--p-primary);
+}
 .tab__count {
   font-family: var(--p-mono);
   font-size: 11px;
@@ -660,32 +827,58 @@ body {
 /* Мобильный: любые кнопки страницы в полосе табов ужимаются централизованно —
    место делится с табами, полноразмерная кнопка съедает половину строки */
 @media (max-width: 640px) {
+  .tabbar__arrow {
+    width: 28px;
+    height: 28px;
+  }
+  .tabbar__arrow:first-child { margin-left: var(--p-2); }
   .tabbar__actions {
-    padding: 6px var(--p-3);
+    padding: 6px var(--p-2);
     gap: 6px;
+    /* Вертикальная линия слева на узком экране читается как случайная тень и
+       съедает и без того дефицитную ширину — табам нужнее */
+    border-left: 0;
   }
   .tabbar__actions .q-btn {
     font-size: 12px;
     min-height: 28px;
     padding: 2px 10px;
   }
+  /* Кнопка с иконкой сворачивается до неё одной: «+ Артефакт» занимал треть
+     строки и обрезал соседний таб. Текст остаётся у кнопок без иконки —
+     иначе от них остался бы пустой прямоугольник (см. то же правило шапки). */
+  .tabbar__actions .q-btn:has(.q-icon) .base-btn__label {
+    display: none;
+  }
+  .tabbar__actions .q-btn:has(.q-icon) {
+    padding: 2px 8px;
+  }
+  .tabbar__actions .q-btn:has(.q-icon) .q-btn__content {
+    gap: 0;
+  }
 }
 
 /* ---- Avatar -----------------------------------------------------------
    Initials avatar with sizes; supports an img child for photos. Used in
    tables, sidebars, person cards, and council member lists.
+
+   Кружок с инициалами — первое, что видно о человеке, поэтому он взят в цвета
+   платформы: мягкая заливка от primary к accent, буквы тёмным оттенком primary
+   и тонкое кольцо по краю. Серая заливка делала из него пустое место.
    --------------------------------------------------------------------- */
 .avatar {
   display: grid; place-items: center;
   border-radius: 50%;
-  background: var(--p-surface-3);
-  color: var(--p-ink-1);
-  font-weight: 600;
-  letter-spacing: 0.02em;
+  background: linear-gradient(145deg, var(--p-primary-soft), var(--p-accent-soft));
+  color: var(--p-primary-strong);
+  box-shadow: inset 0 0 0 1px var(--p-primary-line);
+  font-weight: 650;
+  letter-spacing: 0.04em;
   flex-shrink: 0;
   overflow: hidden;
   width: 36px; height: 36px;
   font-size: 12px;
+  user-select: none;
 }
 .avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .avatar--xs { width: 24px; height: 24px; font-size: 10px; }
@@ -1698,12 +1891,23 @@ body {
 .topbar__actions .q-btn .q-btn__content {
   flex-wrap: nowrap;
 }
-/* На мобильном крошка/заголовок страницы не показывается вовсе: от «Проекты ›
-   Компонент…» остаётся обрезанный огрызок, наезжающий на правую группу, а
-   ориентир пользователю дают табы и заголовок контента. Кнопка «Назад»
-   продолжает показываться. */
-.topbar--mobile .topbar__crumb > *:not(.back-button) {
-  display: none;
+/* На мобильном крошка/заголовок страницы не показывается вовсе: даже одиночное
+   имя страницы наезжает на правую группу (колокольчик, тема), а ориентир даёт
+   полоса табов и заголовок контента. Кнопка «Назад» продолжает показываться.
+   Правило завязано на ширину, а не на класс: `topbar--mobile` навешивать
+   некому — это был модификатор HTML-прототипа, и раньше правило не работало. */
+@media (max-width: 600px) {
+  .topbar__crumb > *:not(.back-button) {
+    display: none;
+  }
+  /* Крошка скрыта — правая группа не должна прилипать к бургеру */
+  .topbar__crumb {
+    flex: 0 0 auto;
+  }
+  .topbar {
+    padding: 0 12px;
+    gap: 8px;
+  }
 }
 /* Когда в actions нет ни store-кнопок, ни телепортированных действий
    (остался только пустой teleport-host) — прячем блок, чтобы не появлялся
@@ -1730,41 +1934,6 @@ body {
   align-items: center;
   gap: 4px;
 }
-
-/* Mobile demo modifier — collapses everything except primary + overflow */
-.topbar--mobile {
-  height: 52px;
-  padding: 0 12px;
-  gap: 8px;
-}
-.topbar--mobile .topbar__crumb {
-  font-size: 14px;
-  gap: 6px;
-  flex: 1 1 auto;
-  min-width: 0;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-.topbar--mobile .topbar__crumb b {
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  min-width: 0;
-  display: inline-block;
-  max-width: 100%;
-}
-.topbar--mobile .topbar__crumb svg { width: 11px; height: 11px; flex-shrink: 0; }
-.topbar--mobile .topbar__brand { font-size: 14px; gap: 8px; flex: 1 1 auto; min-width: 0; overflow: hidden; }
-.topbar--mobile .topbar__brand img,
-.topbar--mobile .topbar__brand svg { width: 20px; height: 20px; }
-.topbar--mobile .topbar__brand b { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; min-width: 0; display: inline-block; max-width: 100%; }
-.topbar--mobile .topbar__brand small { display: none; }
-.topbar--mobile .topbar__actions { gap: 4px; flex-shrink: 0; }
-.topbar--mobile .topbar__actions > .btn:not(.is-mobile-keep) { display: none; }
-.topbar--mobile .topbar__right > :not(:last-child) { display: none; }
-.topbar--mobile .topbar__right { padding-left: 4px; border-left: 0; }
-.topbar--mobile .topbar__actions + .topbar__right { padding-left: 4px; border-left: 0; }
 
 /* ---- Page header ---- */
 .page-head {
@@ -2923,4 +3092,16 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   .auto-avatar--animated:hover .ring-seg { animation: none; }
+}
+
+/* ── Ссылки на экранах входа и вступления (AuthSplit): текстовая ссылка без
+   кнопочной рамки; внутри тёмной панели цвет задаёт сама панель. ── */
+.auth-link {
+  color: var(--p-primary);
+  text-decoration: none;
+  border-bottom: 1px solid var(--p-primary-line);
+  transition: border-color var(--p-dur-fast) var(--p-ease-standard);
+}
+.auth-link:hover {
+  border-bottom-color: var(--p-primary);
 }

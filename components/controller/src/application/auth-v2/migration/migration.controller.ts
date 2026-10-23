@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, HttpCode, Post, Req, UseFilters, UseGuards } from '@nestjs/common';
+import { Body, Controller, HttpCode, Post, Req, UseFilters, UseGuards } from '@nestjs/common';
 import type { Request } from 'express';
 import type { EncryptedVaultBlob } from '~/domain/auth-v2/vault/vault.types';
 import { AuthV2ExceptionFilter } from '../exceptions/auth-v2-exception.filter';
@@ -6,6 +6,7 @@ import { AuthRateLimit } from '../rate-limit/auth-rate-limit.decorator';
 import { AuthRateLimitGuard } from '../rate-limit/auth-rate-limit.guard';
 import { LOGIN_ACCOUNT_RULE, LOGIN_IP_RULE } from '../rate-limit/auth-rate-limit.types';
 import { MigrationService } from './migration.service';
+import { DomainError } from '@coopenomics/extension-kit';
 
 interface MigrateBody {
   email?: string;
@@ -25,8 +26,9 @@ interface MigrateBody {
  *
  * С `new_public_key` + `vault` выполняется ротация ключа: подпись биндит новый
  * pubkey (см. canonicalMigrationMessage), сервер сохраняет блоб и гасит старый
- * ключ через `registrator::changekey`. Без них — старое поведение: шифрование
- * текущего WIF в vault делает клиент после успеха (SDK `migrate`).
+ * ключ через `registrator::changekey`. Без ротации `vault` несёт текущий ключ под
+ * новым паролём — сервер сохраняет его сам после проверки подписи; отдельной
+ * записи vault нет.
  */
 @Controller('coop/migration')
 @UseFilters(AuthV2ExceptionFilter)
@@ -47,14 +49,14 @@ export class MigrationController {
     const signature = body?.signature;
     const newPassword = body?.new_password;
     if (!email || !timestamp || !signature || !newPassword)
-      throw new BadRequestException('Требуются email, timestamp, signature, new_password');
+      throw DomainError.badRequest('AUTH_V2_MIGRATION_FIELDS_REQUIRED');
 
     const newPublicKey = typeof body?.new_public_key === 'string' && body.new_public_key ? body.new_public_key : null;
     const vaultBlob = body?.vault && typeof body.vault === 'object' ? (body.vault as unknown as EncryptedVaultBlob) : null;
     if (newPublicKey && !vaultBlob)
-      throw new BadRequestException('Ротация требует зашифрованный vault-блоб с новым ключом');
+      throw DomainError.badRequest('AUTH_V2_ROTATION_VAULT_BLOB_REQUIRED');
 
-    // username возвращается клиенту как subject_id vault'а (SDK saveToVault).
+    // username возвращается клиенту для локальной копии vault (SDK migrate).
     return this.migration.migrate({ email, timestamp, signature, newPassword, newPublicKey, vaultBlob, ip: req.ip ?? null });
   }
 }

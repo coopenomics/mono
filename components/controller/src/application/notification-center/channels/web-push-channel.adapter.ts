@@ -13,6 +13,7 @@ import type {
 } from '~/domain/notification/interfaces/channel.ports';
 import { renderTemplate, resolveTemplate } from '../template.util';
 import { NotificationChannel } from '~/domain/notification/interfaces/notify-input.domain.interface';
+import { t } from '~/i18n';
 
 /**
  * Канал «Веб-пуш» — реализация {@link WebPushChannelPort}.
@@ -37,6 +38,7 @@ export class WebPushChannelAdapter implements WebPushChannelPort {
     const username = message.recipient.username;
     if (!username) {
       // Нет адресации web-push — канал неприменим, не ошибка.
+      // i18n-ignore: техническая причина пропуска web-push канала, для диагностики доставки, не для пайщика
       return { delivered: false, skipped: true, error: 'у получателя нет username для web-push' };
     }
 
@@ -47,12 +49,13 @@ export class WebPushChannelAdapter implements WebPushChannelPort {
       return {
         delivered: false,
         skipped: true,
+        // i18n-ignore: техническая причина пропуска web-push канала, для диагностики доставки, не для пайщика
         error: `у получателя '${username}' нет активной push-подписки`,
       };
     }
 
-    const template = resolveTemplate(message.workflowId, NotificationChannel.PUSH);
-    const title = renderTemplate(template?.subject, message) || 'Уведомление';
+    const template = resolveTemplate(message.workflowId, NotificationChannel.PUSH, message.locale);
+    const title = renderTemplate(template?.subject, message) || t('notificationCenter.webPushChannelAdapter.defaultTitle');
     const body = renderTemplate(template?.body, message);
 
     // info-уровень: видно сколько эндпоинтов адресуем (диагностика «push не пришёл»).

@@ -1,5 +1,5 @@
 <template lang="pug">
-aside.rail(role='navigation', aria-label='Главная навигация')
+aside.rail(role='navigation', :aria-label='$t("ui.appDrawer.navAriaLabel")')
   //- Бренд: иконка + ПК «Название» / подпись расширения
   .rail__top
     slot(name='brand')
@@ -7,7 +7,7 @@ aside.rail(role='navigation', aria-label='Главная навигация')
         slot(name='brand-icon')
           q-icon(name='dashboard')
       .rail__name
-        strong {{ coopName ?? 'Кооператив' }}
+        strong {{ coopName ?? $t('ui.appDrawer.cooperativeLabel') }}
         span(v-if='coopMeta') {{ coopMeta }}
 
   //- ⌘K поиск — отдельным блоком после rail__top, выровнен с .rail__nav
@@ -15,11 +15,11 @@ aside.rail(role='navigation', aria-label='Главная навигация')
     v-if='showCmdk',
     type='button',
     :style='cmdkStyle',
-    :title="cmdkHint ?? 'Поиск'",
+    :title="cmdkHint ?? $t('common.action.search')",
     @click="emit('cmdk')"
   )
     q-icon(name='search', :style="{ color: 'var(--p-ink-3)' }")
-    span(:style="{ color: 'var(--p-ink-2)', flex: 1, textAlign: 'left' }") {{ cmdkLabel ?? 'Найти' }}
+    span(:style="{ color: 'var(--p-ink-2)', flex: 1, textAlign: 'left' }") {{ cmdkLabel ?? $t('ui.appDrawer.findLabel') }}
     span(:style="{ display: 'inline-flex', gap: '2px' }")
       span.kbd ⌘
       span.kbd K
@@ -44,7 +44,7 @@ aside.rail(role='navigation', aria-label='Главная навигация')
           )
             q-icon.rail__item-ico(v-if='item.icon', :name='item.icon')
             span.rail__item-label {{ item.label }}
-            span.rail__item-meta(v-if='item.badge !== undefined') {{ item.badge }}
+            BaseCounter.rail__item-counter(v-if='item.badge !== undefined', :value='item.badge')
             span.rail__item-meta(v-else-if='item.meta') {{ item.meta }}
           .rail__subnav(v-if='item.children?.length')
             component(
@@ -78,7 +78,7 @@ aside.rail(role='navigation', aria-label='Главная навигация')
       )
         q-icon.rail__item-ico(v-if='item.icon', :name='item.icon')
         span.rail__item-label {{ item.label }}
-        span.rail__item-meta(v-if='item.badge !== undefined') {{ item.badge }}
+        BaseCounter.rail__item-counter(v-if='item.badge !== undefined', :value='item.badge')
         span.rail__item-meta(v-else-if='item.meta') {{ item.meta }}
       .rail__subnav(v-if='item.children?.length')
         component(
@@ -103,6 +103,7 @@ aside.rail(role='navigation', aria-label='Главная навигация')
 
 <script setup lang="ts">
 import { computed } from 'vue';
+import { BaseCounter } from 'src/shared/ui/base/BaseCounter';
 import type { AppDrawerProps, RailItem, RailSection } from './AppDrawer.types';
 
 const props = defineProps<AppDrawerProps>();
@@ -163,6 +164,10 @@ const cmdkStyle = {
 </script>
 
 <style scoped>
+/* Счётчик дел прижат к правому краю пункта, как и справочная подпись. */
+.rail__item-counter {
+  margin-left: auto;
+}
 .kbd {
   display: inline-grid;
   place-items: center;

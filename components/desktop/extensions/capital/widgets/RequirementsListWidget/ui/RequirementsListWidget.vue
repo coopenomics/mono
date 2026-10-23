@@ -74,19 +74,21 @@ div
                     @click.stop
                   )
 
-  // Диалог просмотра/редактирования артефакта
-  EditRequirementDialog(
-    ref='editDialog'
-    :requirement='selectedRequirement'
-    :canEdit='canEditRequirement'
+  //- Артефакт открывается оверлеем поверх списка (?story= в адресе):
+  //- список не размонтируется, «назад» закрывает оверлей, ссылка пересылается
+  RequirementOverlay(
+    :items='requirements?.items',
+    :can-edit='overlayCanEdit',
     @updated='handleRequirementUpdated'
-    @close='handleDialogClose'
   )
 </template>
 
 <script lang="ts" setup>
 import { ref, onMounted, computed, watch } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { CAPITAL_LIVE_TABLES } from 'app/extensions/capital/shared/lib/live';
 import { useRouter, useRoute } from 'vue-router';
+import { useQueryOverlay } from 'src/shared/lib/navigation';
 import { Zeus } from '@coopenomics/sdk';
 import {
   type IStory,
@@ -98,7 +100,7 @@ import { FailAlert } from 'src/shared/api';
 import { api as ProjectApi } from 'app/extensions/capital/entities/Project/api';
 import { api as IssueApi } from 'app/extensions/capital/entities/Issue/api';
 import { DeleteStoryButton } from 'app/extensions/capital/features/Story/DeleteStory';
-import { EditRequirementDialog } from 'app/extensions/capital/features/Story/EditRequirement';
+import { RequirementOverlay } from 'app/extensions/capital/features/Story/EditRequirement';
 import type { IProjectPermissions } from 'app/extensions/capital/entities/Project/model';
 import type { IIssuePermissions } from 'app/extensions/capital/entities/Issue/model';
 import { EntityIdBadge } from 'src/shared/ui/EntityIdBadge';
@@ -106,6 +108,7 @@ import { CapitalSectionEmpty } from 'app/extensions/capital/shared/ui/CapitalSec
 import { capitalRouteName } from 'app/extensions/capital/shared/lib/capitalWorkspaceRoutes';
 import { FavoriteStarButton } from 'app/extensions/capital/features/Favorite/ToggleFavorite';
 import { storyContentIcon } from 'app/extensions/capital/shared/lib/storyContentIcon';
+import { t } from '../../../i18n';
 
 const FavoriteTargetType = Zeus.CapitalFavoriteTargetType;
 
@@ -114,8 +117,6 @@ const props = withDefaults(
     filter?: Partial<IGetStoriesInput['filter']>;
     maxItems?: number;
     permissions?: IProjectPermissions | IIssuePermissions | null;
-    /** Имя маршрута карточки артефакта (project-requirement-detail / component-requirement-detail) */
-    detailRouteName?: string;
     /** На странице артефактов корневого проекта — подпись и ссылка на компонент для чужих project_hash */
     showComponentScopeBadge?: boolean;
     emptyTitle?: string;
@@ -123,22 +124,22 @@ const props = withDefaults(
   }>(),
   {
     showComponentScopeBadge: false,
-    emptyTitle: 'Артефактов пока нет',
-    emptyBody: 'Добавьте первый артефакт, чтобы зафиксировать требования и решения.',
+    emptyTitle: t('capital.requirementsListWidget.emptyTitle'),
+    emptyBody: t('capital.requirementsListWidget.emptyBody'),
   },
 );
 
 const storyStore = useStoryStore();
+const overlay = useQueryOverlay('story');
 const { info } = useSystemStore();
 const router = useRouter();
 const route = useRoute();
-const editDialog = ref();
-const selectedRequirement = ref<IStory | null>(null);
 
-// Проверка прав на редактирование артефакта
-const canEditRequirement = computed(() => {
-  return props.permissions?.can_edit_requirement ?? false;
-});
+// Право правки: когда страница знает права — отдаём их оверлею как есть;
+// когда нет (список вне контекста проекта) — undefined, и оверлей выяснит сам
+const overlayCanEdit = computed(() =>
+  props.permissions ? (props.permissions.can_edit_requirement ?? false) : undefined,
+);
 
 // Проверка прав на удаление артефакта
 const canDeleteRequirement = computed(() => {
@@ -264,7 +265,7 @@ const loadSourceTitle = async (requirement: IStory) => {
       });
 
       if (projectData?.title) {
-        const prefix = projectData.parent_hash ? '[Компонент]' : '[Проект]';
+        const prefix = projectData.parent_hash ? t('capital.requirementsListWidget.componentFallback') : t('capital.requirementsListWidget.projectFallback');
         projectTitles.value[requirement.project_hash] = `${prefix}${projectData.title}`;
       }
     }
@@ -286,21 +287,21 @@ const columns = [
   },
   {
     name: 'status',
-    label: 'Статус',
+    label: t('capital.requirementsListWidget.columnStatus'),
     align: 'center' as const,
     field: 'status' as const,
     sortable: true,
   },
   {
     name: 'title',
-    label: 'Артефакт',
+    label: t('capital.requirementsListWidget.columnArtifact'),
     align: 'left' as const,
     field: 'title' as const,
     sortable: true,
   },
   {
     name: 'type',
-    label: 'Тип',
+    label: t('capital.requirementsListWidget.columnType'),
     align: 'right' as const,
     field: '' as const,
     sortable: false,
@@ -326,7 +327,7 @@ const loadRequirements = async () => {
     await storyStore.loadStories({ filter, options });
   } catch (error) {
     console.error('Ошибка при загрузке артефактов:', error);
-    FailAlert('Не удалось загрузить артефакты');
+    FailAlert(t('capital.requirementsListWidget.loadError'));
   } finally {
     loading.value = false;
   }
@@ -428,32 +429,16 @@ const onDeleteDialogClose = () => {
   // Обработка закрытия диалога
 };
 
-// Обработчик клика на артефакт: переход на страницу или диалог (списки без detailRouteName)
+// Клик на артефакт: всегда оверлей поверх списка. Раньше уровни вели себя
+// по-разному (страница при detailRouteName, диалог без него) — «то туда, то
+// сюда»; полная страница осталась только для прямого захода по ссылке.
 const handleRequirementClick = (requirement: IStory) => {
-  const ph = props.filter?.project_hash;
-  if (props.detailRouteName && ph) {
-    void router.push({
-      name: props.detailRouteName,
-      params: { project_hash: ph, story_hash: requirement.story_hash },
-    });
-    return;
-  }
-  selectedRequirement.value = requirement;
-  editDialog.value?.openDialog();
+  overlay.open(requirement.story_hash);
 };
 
-// Обработчик обновления артефакта
+// Обновление из оверлея — сразу в стор, список показывает свежие данные
 const handleRequirementUpdated = (updatedRequirement: IStory) => {
-  if (
-    selectedRequirement.value?.story_hash === updatedRequirement.story_hash
-  ) {
-    selectedRequirement.value = updatedRequirement;
-  }
-};
-
-// Обработчик закрытия диалога
-const handleDialogClose = () => {
-  selectedRequirement.value = null;
+  storyStore.updateStoryInPlace(updatedRequirement);
 };
 
 // Загрузка названий источников для видимых артефактов
@@ -472,6 +457,12 @@ watch(requirements, async (newRequirements) => {
 }, { immediate: true });
 
 // Инициализация
+// Виджет живёт по ленте изменений Благороста.
+useLiveReload(CAPITAL_LIVE_TABLES, async () => {
+  await loadRequirements();
+  await loadVisibleTitles();
+});
+
 onMounted(async () => {
   await loadRequirements();
   await loadVisibleTitles();

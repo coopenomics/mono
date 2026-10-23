@@ -39,8 +39,14 @@ set_env_var() {
   echo "  ✅ $name перенесён в .env"
 }
 
+# COOPID_WEBHOOK_TOKEN живёт в двух местах: файл секрета читает контроллер, а
+# значение из .env подставляется в blueprint authentik. Генератор секретов дописывает
+# переменную в .env только если её там ещё нет, поэтому «старый .env + свежий файл
+# секрета» расходятся молча, а наружу это выходит как 403 на вебхуке. Синхронизируем
+# так же, как bootstrap-значения: истина — файл.
 for pair in "AUTHENTIK_BOOTSTRAP_PASSWORD:authentik_bootstrap_password" \
-            "AUTHENTIK_BOOTSTRAP_TOKEN:authentik_bootstrap_token"; do
+            "AUTHENTIK_BOOTSTRAP_TOKEN:authentik_bootstrap_token" \
+            "COOPID_WEBHOOK_TOKEN:authentik_webhook_token"; do
   var="${pair%%:*}"
   file="$SECRETS_DIR/${pair##*:}"
   if [ ! -r "$file" ]; then

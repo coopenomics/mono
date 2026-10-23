@@ -18,7 +18,18 @@ import { GetCommitByHashInputDTO } from '../dto/generation/get-commit-by-hash.in
 import { GetStoryByHashInputDTO } from '../dto/generation/get-story-by-hash.input';
 import { DeleteStoryByHashInputDTO } from '../dto/generation/delete-story-by-hash.input';
 import { DeleteIssueByHashInputDTO } from '../dto/generation/delete-issue-by-hash.input';
-import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser, createPaginationResult, PaginationInputDTO, PaginationResult, GeneratedDocumentDTO, GenerateDocumentOptionsInputDTO } from '@coopenomics/extension-kit';
+import {
+  GqlJwtAuthGuard,
+  CurrentUser,
+  createPaginationResult,
+  PaginationInputDTO,
+  PaginationResult,
+  GeneratedDocumentDTO,
+  GenerateDocumentOptionsInputDTO,
+  RequireRight,
+  RightsGuard,
+  DOCUMENT_GENERATION_THROTTLE,
+} from '@coopenomics/extension-kit';
 import { UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import type { IMonoAccount } from '@coopenomics/innercoop';
@@ -49,8 +60,8 @@ export class GenerationResolver {
     name: 'capitalCreateCommit',
     description: 'Создание коммита в CAPITAL контракте',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Commit', ['create:own', 'create'], { owner: 'data.username' })
   async createCapitalCommit(
     @Args('data', { type: () => CreateCommitInputDTO }) data: CreateCommitInputDTO,
     @CurrentUser() currentUser: IMonoAccount
@@ -66,8 +77,8 @@ export class GenerationResolver {
     name: 'capitalApproveCommit',
     description: 'Одобрение коммита в CAPITAL контракте',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Commit', 'approve')
   async approveCapitalCommit(
     @Args('data', { type: () => CommitApproveInputDTO }) data: CommitApproveInputDTO,
     @CurrentUser() currentUser: IMonoAccount
@@ -83,8 +94,8 @@ export class GenerationResolver {
     name: 'capitalDeclineCommit',
     description: 'Отклонение коммита в CAPITAL контракте',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Commit', 'decline')
   async declineCapitalCommit(
     @Args('data', { type: () => CommitDeclineInputDTO }) data: CommitDeclineInputDTO,
     @CurrentUser() currentUser: IMonoAccount
@@ -102,8 +113,8 @@ export class GenerationResolver {
     name: 'capitalCreateStory',
     description: 'Создание истории в CAPITAL контракте',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Story', 'create')
   async createCapitalStory(
     @Args('data', { type: () => CreateStoryInputDTO }) data: CreateStoryInputDTO,
     @CurrentUser() currentUser: IMonoAccount
@@ -119,8 +130,8 @@ export class GenerationResolver {
     name: 'capitalUpdateStory',
     description: 'Обновление истории в CAPITAL контракте',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Story', 'update')
   async updateCapitalStory(
     @Args('data', { type: () => UpdateStoryInputDTO }) data: UpdateStoryInputDTO,
     @CurrentUser() currentUser: IMonoAccount
@@ -138,8 +149,8 @@ export class GenerationResolver {
     name: 'capitalCreateIssue',
     description: 'Создание задачи в CAPITAL контракте',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Issue', 'create')
   async createCapitalIssue(
     @Args('data', { type: () => CreateIssueInputDTO }) data: CreateIssueInputDTO,
     @CurrentUser() currentUser: IMonoAccount
@@ -155,8 +166,8 @@ export class GenerationResolver {
     name: 'capitalUpdateIssue',
     description: 'Обновление задачи в CAPITAL контракте',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Issue', 'update')
   async updateCapitalIssue(
     @Args('data', { type: () => UpdateIssueInputDTO }) data: UpdateIssueInputDTO,
     @CurrentUser() currentUser: IMonoAccount
@@ -173,8 +184,8 @@ export class GenerationResolver {
     description:
       'Перенос задачи между компонентами одного проекта или назначение свободной задачи компоненту',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Issue', 'update')
   async moveCapitalIssueToComponent(
     @Args('data', { type: () => MoveCapitalIssueToComponentInputDTO }) data: MoveCapitalIssueToComponentInputDTO,
     @CurrentUser() currentUser: IMonoAccount
@@ -191,8 +202,8 @@ export class GenerationResolver {
     name: 'capitalCreateCycle',
     description: 'Создание цикла в CAPITAL контракте',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Cycle', 'create')
   async createCapitalCycle(
     @Args('data', { type: () => CreateCycleInputDTO }) data: CreateCycleInputDTO
   ): Promise<CycleOutputDTO> {
@@ -209,8 +220,8 @@ export class GenerationResolver {
     name: 'capitalStories',
     description: 'Получение списка историй кооператива с фильтрацией',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Story', 'read')
   async getCapitalStories(
     @Args('filter', { nullable: true }) filter?: StoryFilterInputDTO,
     @Args('options', { nullable: true }) options?: PaginationInputDTO,
@@ -228,8 +239,8 @@ export class GenerationResolver {
     name: 'capitalIssues',
     description: 'Получение списка задач кооператива с фильтрацией',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Issue', 'read')
   async getCapitalIssues(
     @Args('filter', { nullable: true }) filter?: IssueFilterInputDTO,
     @Args('options', { nullable: true }) options?: PaginationInputDTO,
@@ -247,8 +258,8 @@ export class GenerationResolver {
     name: 'capitalCommits',
     description: 'Получение списка коммитов кооператива с фильтрацией',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Commit', ['read:own', 'read'], { owner: 'filter.username' })
   async getCapitalCommits(
     @Args('filter', { nullable: true }) filter?: CommitFilterInputDTO,
     @Args('options', { nullable: true }) options?: PaginationInputDTO,
@@ -266,8 +277,8 @@ export class GenerationResolver {
     name: 'capitalCycles',
     description: 'Получение списка циклов кооператива с фильтрацией',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Cycle', 'read')
   async getCapitalCycles(
     @Args('filter', { nullable: true }) filter?: CycleFilterInputDTO,
     @Args('options', { nullable: true }) options?: PaginationInputDTO
@@ -285,8 +296,8 @@ export class GenerationResolver {
     description: 'Получение истории по хэшу',
     nullable: true,
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Story', 'read')
   async getCapitalStory(
     @Args('data') data: GetStoryByHashInputDTO,
     @CurrentUser() currentUser?: IMonoAccount
@@ -302,8 +313,8 @@ export class GenerationResolver {
     description: 'Получение задачи по хэшу',
     nullable: true,
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Issue', 'read')
   async getCapitalIssue(
     @Args('data') data: GetIssueByHashInputDTO,
     @CurrentUser() currentUser?: IMonoAccount
@@ -319,8 +330,8 @@ export class GenerationResolver {
     description: 'Получение коммита по хэшу',
     nullable: true,
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Commit', 'read')
   async getCapitalCommit(
     @Args('data') data: GetCommitByHashInputDTO,
     @CurrentUser() currentUser?: IMonoAccount
@@ -337,8 +348,8 @@ export class GenerationResolver {
     name: 'capitalDeleteStory',
     description: 'Удаление истории по хэшу',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Story', 'delete')
   async deleteCapitalStory(
     @Args('data', { type: () => DeleteStoryByHashInputDTO }) data: DeleteStoryByHashInputDTO,
     @CurrentUser() currentUser: IMonoAccount
@@ -353,12 +364,13 @@ export class GenerationResolver {
     name: 'capitalDeleteIssue',
     description: 'Удаление задачи по хэшу',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Issue', 'delete')
   async deleteCapitalIssue(
-    @Args('data', { type: () => DeleteIssueByHashInputDTO }) data: DeleteIssueByHashInputDTO
+    @Args('data', { type: () => DeleteIssueByHashInputDTO }) data: DeleteIssueByHashInputDTO,
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<boolean> {
-    return await this.generationService.deleteIssueByHash(data.issue_hash);
+    return await this.generationService.deleteIssueByHash(data.issue_hash, currentUser);
   }
 
   // ============ ГЕНЕРАЦИЯ ДОКУМЕНТОВ ============
@@ -370,9 +382,9 @@ export class GenerationResolver {
     name: 'capitalGenerateGenerationMoneyInvestStatement',
     description: 'Сгенерировать заявление об инвестировании в генерацию',
   })
-  @Throttle({ default: { limit: 3, ttl: 60000 } })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @Throttle(DOCUMENT_GENERATION_THROTTLE)
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Invest', ['generate:own', 'generate'], { owner: 'data.username' })
   async generateGenerationMoneyInvestStatement(
     @Args('data', { type: () => GenerationMoneyInvestStatementGenerateDocumentInputDTO })
     data: GenerationMoneyInvestStatementGenerateDocumentInputDTO,
@@ -390,9 +402,9 @@ export class GenerationResolver {
     name: 'capitalGenerateProgramMoneyInvestStatement',
     description: 'Сгенерировать заявление об инвестировании в программу благороста (без привязки к проекту)',
   })
-  @Throttle({ default: { limit: 3, ttl: 60000 } })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @Throttle(DOCUMENT_GENERATION_THROTTLE)
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Invest', ['generate:own', 'generate'], { owner: 'data.username' })
   async generateProgramMoneyInvestStatement(
     @Args('data', { type: () => ProgramCapitalizationMoneyInvestStatementGenerateDocumentInputDTO })
     data: ProgramCapitalizationMoneyInvestStatementGenerateDocumentInputDTO,

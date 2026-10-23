@@ -1,5 +1,5 @@
 <template lang="pug">
-q-btn.full-width(@click='cancel', flat, no-caps, color='grey-7') Отменить
+q-btn.full-width(@click='cancel', flat, no-caps, color='grey-7') {{ $t('extension.cancelButton.label') }}
 </template>
 
 <script setup lang="ts">

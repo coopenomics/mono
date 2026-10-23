@@ -1,17 +1,8 @@
+import './i18n';
 import { Module, Inject } from '@nestjs/common';
 import { YooCheckout } from '@a2seven/yoo-checkout';
 import { z } from 'zod';
-import {
-  ExtensionDomainEntity,
-  EXTENSION_REPOSITORY,
-  type ExtensionDomainRepository,
-  platformSettings,
-  checkPaymentAmount,
-  checkPaymentSymbol,
-  getAmountPlusFee,
-  IPNProvider,
-  type PaymentDetails,
-} from '@coopenomics/extension-kit';
+import { ExtensionDomainEntity, EXTENSION_REPOSITORY, type ExtensionDomainRepository, platformSettings, checkPaymentAmount, checkPaymentSymbol, getAmountPlusFee, IPNProvider, type PaymentDetails, DomainError } from '@coopenomics/extension-kit';
 import {
   LOGGER_PORT,
   type ILoggerPort,
@@ -26,6 +17,7 @@ import {
   PaymentStatus,
   PaymentDirection,
 } from '@coopenomics/innercoop';
+import { t } from './i18n';
 
 export const Schema = z.object({
   client: z.string(),
@@ -121,7 +113,7 @@ export class YookassaExtension extends IPNProvider {
 
   async initialize(): Promise<void> {
     const extensionData = await this.extensionRepository.findByName(this.name);
-    if (!extensionData) throw new Error('Конфиг не найден');
+    if (!extensionData) throw DomainError.internal('YOOKASSA_CONFIG_NOT_FOUND');
 
     this.extension = extensionData;
 
@@ -137,15 +129,39 @@ export class YookassaExtension extends IPNProvider {
   public tolerance_percent = 0; /// (0.0005%) < Допустимая погрешность приёма платежей
   public fee_percent = 3.5; ///%
 
-  public async handleIPN(request: IIpnRequest): Promise<void> {
+  public async handleIPN(notice: IIpnRequest): Promise<void> {
+    // Уведомления ЮKassa не подписаны — тело мог прислать кто угодно. Верим
+    // только самой ЮKassa: запрашиваем платёж по id своим ключом магазина и
+    // дальше работаем с её ответом. Сбой запроса — ошибка обработчика, и
+    // ЮKassa повторит уведомление.
+    const request = await this.verifyNotice(notice);
     const { event } = request;
+
+    // Незавершённый платёж ничего не меняет и в журнал не пишется: иначе
+    // ранняя запись по этому id отбросила бы настоящее уведомление об оплате
+    // как «уже обработанное».
+    if (event !== 'payment.succeeded' && event !== 'payment.failed') {
+      this.logger.info('Платёж ЮKassa ещё не завершён — уведомление пропущено', { source: 'handleIPN', requestId: request.object.id, event });
+      return;
+    }
 
     const exist = await this.noticeLog.find({ data: { object: { id: request.object.id } } });
 
     if (!exist) {
       await this.noticeLog.record({ provider: 'yookassa', data: request });
 
-      const { secret } = request.object.metadata;
+      const secret = request.object.metadata?.secret;
+      // Без секрета платёж не наш: его создавали не мы (ссылка из кабинета ЮKassa,
+      // другой сервис того же магазина). Пустой секрет выключил бы фильтр выборки,
+      // и оплату получил бы последний входящий платёж любого пайщика.
+      if (typeof secret !== 'string' || !secret) {
+        this.logger.warn('Платёж ЮKassa без секрета кооператива — уведомление пропущено', {
+          source: 'handleIPN',
+          requestId: request.object.id,
+          event,
+        });
+        return;
+      }
       const payments = await this.payments.list(
         {
           secret,
@@ -246,12 +262,50 @@ export class YookassaExtension extends IPNProvider {
     }
   }
 
+  /**
+   * Уведомление, пересобранное из платежа, полученного у ЮKassa. Событие
+   * выводится из фактического статуса: `succeeded` — оплачен, `canceled` —
+   * отменён; прочие статусы изменений не несут.
+   */
+  private async verifyNotice(notice: IIpnRequest): Promise<IIpnRequest> {
+    const id = notice?.object?.id;
+    if (!id || typeof id !== 'string') throw DomainError.internal('YOOKASSA_NOTICE_MISSING_PAYMENT_ID');
+
+    const checkout = new YooCheckout({
+      shopId: this.extension.config.client,
+      secretKey: this.extension.config.secret,
+    });
+    const actual = await checkout.getPayment(id);
+    if (!actual || actual.id !== id) throw DomainError.internal('YOOKASSA_PAYMENT_NOT_CONFIRMED', { id });
+
+    const event =
+      actual.status === 'succeeded' ? 'payment.succeeded' : actual.status === 'canceled' ? 'payment.failed' : `payment.${actual.status}`;
+    if (event !== notice.event) {
+      this.logger.warn('Событие уведомления ЮKassa не совпало со статусом платежа', {
+        source: 'handleIPN',
+        requestId: id,
+        notice: notice.event,
+        actual: actual.status,
+      });
+    }
+
+    return {
+      ...notice,
+      event,
+      object: {
+        ...(actual as unknown as IIpnRequest['object']),
+        income_amount: (actual.income_amount ?? { value: '0', currency: actual.amount?.currency ?? '' }) as IIpnRequest['object']['income_amount'],
+        metadata: (actual.metadata ?? {}) as IIpnRequest['object']['metadata'],
+      },
+    };
+  }
+
   public async createPayment(hash: string): Promise<PaymentDetails> {
     // Получаем данные платежа по hash
     const payment = await this.payments.findByHash(hash);
 
     if (!payment) {
-      throw new Error(`Платеж с hash ${hash} не найден`);
+      throw DomainError.notFound('YOOKASSA_PAYMENT_NOT_FOUND', { hash });
     }
 
     // Используем QuantityUtils для парсинга quantity
@@ -259,7 +313,7 @@ export class YookassaExtension extends IPNProvider {
     const amount = payment.quantity;
 
     if (!payment.secret) {
-      throw new Error(`У платежа ${hash} отсутствует secret`);
+      throw DomainError.internal('YOOKASSA_PAYMENT_SECRET_MISSING', { hash });
     }
 
     const checkout = new YooCheckout({
@@ -273,7 +327,7 @@ export class YookassaExtension extends IPNProvider {
     // Фактический процент комиссии
     const fact_fee_percent = Math.round((parseFloat(fee_amount) / amount) * 100 * 100) / 100;
 
-    const description = payment.memo || `Платеж для ${payment.username}`;
+    const description = payment.memo || t('yookassa.payment.defaultDescription', { username: payment.username });
 
     const payment_result = await checkout.createPayment(
       {

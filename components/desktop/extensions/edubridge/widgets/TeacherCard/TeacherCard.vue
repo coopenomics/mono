@@ -1,0 +1,532 @@
+<template lang="pug">
+.edu-teacher-card
+  .edu-teacher-card__head
+    Avatar(:name="teacher.display_name || teacher.username" :src="teacher.avatar_url || undefined" size="xl")
+    .edu-teacher-card__head-text
+      .text-subtitle1.text-weight-medium {{ teacher.display_name || teacher.username }}
+      AccountBadge(:account-name="teacher.username")
+      BaseBadge.q-mt-xs(:variant="contractStatusOf(teacher.contract_status).variant") {{ contractStatusOf(teacher.contract_status).label }}
+
+  //- Ставку за час назначает администратор при приёме преподавателя: без неё в курс он не ставится.
+  BaseBanner.q-mt-md(v-if="!rateAssigned" variant="warn")
+    .row.items-center.justify-between.no-wrap.q-gutter-sm
+      span {{ $t('edubridge.adminTeachersPage.rate.notAssignedNotice') }}
+      BaseButton(v-if="canManageEconomy" variant="secondary" size="sm" @click="openRate") {{ $t('edubridge.adminTeachersPage.rate.assign') }}
+
+  //- Документы на подписи у председателя — здесь же, чтобы подписать, не
+  //- уходя на стол председателя. Одобрение одно: решение здесь закрывает
+  //- его и в «Запросах одобрений».
+  .edu-teacher-card__approvals(v-if="approvals.length")
+    .text-subtitle2.q-mb-xs {{ $t('edubridge.adminTeachersPage.approvalsTitle') }}
+    .edu-teacher-card__approval(v-for="a in approvals" :key="a.approval_hash")
+      //- Документ раскрывается строкой, как на столе совета: председатель
+      //- читает то, что подписывает. Без текста остаётся одно название.
+      ComplexDocument(v-if="approvalDocuments[a.approval_hash]" :document="approvalDocuments[a.approval_hash]" collapsible)
+      .t-sm.text-weight-medium(v-else) {{ a.title }}
+      .edu-teacher-card__approval-foot
+        .t-meta.t-muted {{ $t('edubridge.adminTeachersPage.approvalSentAt', { date: formatDate(a.created_at) }) }}
+        ChairmanApprovalActions(:coopname="coopname" :approval-hash="a.approval_hash" :title="a.title" @decided="onApprovalDecided")
+
+  //- Вкладки сразу под именем, как на странице курса: обзор, договор, назначения, взносы.
+  PageTabs.q-mt-md(:tabs="tabs" :active-key="tab" @select="(t) => (tab = t.key)")
+
+  //- Обзор: чем преподаватель занят и сколько принёс — строками сведений, как на вкладке договора;
+  //- ставка часа в документы не попадает, она живёт в записи расширения и правится здесь же.
+  template(v-if="tab === 'overview'")
+    .q-mt-md
+      DataRow(:label="$t('edubridge.adminTeachersPage.stats.rate')")
+        template(#value-override)
+          .row.items-center.no-wrap.q-gutter-xs
+            span.t-num(v-if="rateAssigned") {{ formatAsset2Digits(teacher.hourly_rate) }}
+            BaseBadge(v-else variant="warn") {{ $t('edubridge.adminTeachersPage.rate.notAssigned') }}
+            BaseButton(v-if="canManageEconomy" variant="ghost" size="sm" icon-only :aria-label="$t('edubridge.adminTeachersPage.rate.edit')" @click="openRate")
+              template(#icon-left)
+                q-icon(name="edit" size="16px")
+      DataRow(:label="$t('edubridge.adminTeachersPage.stats.courses')" :value="String(teacher.assignments_active)")
+      DataRow(:label="$t('edubridge.adminTeachersPage.stats.assignmentsTotal')" :value="String(teacher.assignments_total)")
+      DataRow(:label="$t('edubridge.adminTeachersPage.stats.accepted')" :value="String(acceptedContributions.length)")
+      DataRow(:label="$t('edubridge.adminTeachersPage.stats.acceptedAmount')" :value="acceptedTotal")
+    //- Что преподаватель рассказал о себе — по этому администратор судит, кого допускает к курсу.
+    .edu-teacher-card__about(v-if="teacher.about")
+      .t-eyebrow.q-mb-xs {{ $t('edubridge.adminTeachersPage.aboutTitle') }}
+      .edu-teacher-card__about-text {{ teacher.about }}
+
+  template(v-else-if="tab === 'contract'")
+    //- Сам договор — первой строкой вкладки, текст открывается по нажатию.
+    ComplexDocument.q-mt-md.q-mb-sm(v-if="contractDocument" :document="contractDocument" collapsible)
+    DataRow(:label="$t('edubridge.adminTeachersPage.contract.numberLabel')" :value="teacher.contract_number" mono copyable)
+    DataRow(:label="$t('edubridge.adminTeachersPage.contract.signedByTeacherLabel')" :value="formatDate(teacher.signed_at)")
+    DataRow(:label="$t('edubridge.adminTeachersPage.contract.signedByChairmanLabel')" :value="teacher.approved_at ? formatDate(teacher.approved_at) : '______'")
+
+    //- Прекращение по соглашению сторон: основание уходит в цепь вместе с действием.
+    //- Кнопка красная и заметная, а от случайного нажатия защищают три шага:
+    //- она только открывает форму, форма требует основание, отправка
+    //- спрашивает подтверждение.
+    template(v-if="canManageAssignments && teacher.contract_status === Zeus.EduContractStatus.ACTIVE")
+      BaseButton.q-mt-lg(v-if="!terminateFormOpen" variant="danger" @click="openTerminateForm")
+        template(#icon-left)
+          q-icon(name="block" size="18px")
+        | {{ $t('edubridge.adminTeachersPage.terminate.open') }}
+      BaseForm.q-mt-lg(v-else :loading="busy" @submit="onTerminate")
+        BaseInput(v-model="terminateReason" :label="$t('edubridge.adminTeachersPage.terminate.reasonLabel')" type="textarea" :rows="2" required)
+        template(#footer)
+          .row.justify-end.q-gutter-sm
+            BaseButton(variant="ghost" type="button" :disabled="busy" @click="terminateFormOpen = false") {{ $t('edubridge.adminTeachersPage.cancel') }}
+            BaseButton(variant="danger" type="submit" :disabled="!terminateReason.trim()" :loading="busy") {{ $t('edubridge.adminTeachersPage.terminate.submit') }}
+
+  //- Взносы результатами работы: что передал, когда, на сколько и в каком состоянии.
+  template(v-else-if="tab === 'contributions'")
+    q-list.q-mb-md(v-if="ownContributions.length" separator)
+      q-item(v-for="c in ownContributions" :key="asText(c.id)")
+        q-item-section
+          .text-weight-medium {{ c.description || '______' }}
+          .t-meta.t-muted {{ ridType(c.rid_type) }} · {{ formatDate(c.created_at) }}
+        q-item-section(side)
+          .edu-teacher-card__contrib-side
+            span.t-num.text-weight-medium {{ formatAsset2Digits(c.amount) }}
+            BaseBadge(:variant="contributionStatusOf(c.status).variant") {{ contributionStatusOf(c.status).label }}
+    .t-muted.t-sm.q-mb-md(v-else-if="assignmentsLoaded") {{ $t('edubridge.adminTeachersPage.contributions.empty') }}
+    CardListSkeleton(v-else :count="1")
+
+  template(v-else)
+    q-list.q-mb-md(v-if="ownAssignments.length" separator)
+      q-item(v-for="a in ownAssignments" :key="asText(a.id)")
+        q-item-section
+          .text-weight-medium {{ a.course_title }}
+          .t-meta.t-muted {{ formatDate(a.period_from) }} — {{ formatDate(a.period_to) }}
+          .t-meta.t-muted(v-if="a.schedule") {{ a.schedule }}
+          //- Ставка на этом курсе своя: по умолчанию из договора, не выше плановой ставки курса.
+          .row.items-center.no-wrap.q-gutter-xs
+            .t-meta.t-muted {{ $t('edubridge.adminTeachersPage.assignment.rateLine', { rate: formatAsset2Digits(a.hourly_rate) }) }}
+            BaseButton(v-if="canManageEconomy && a.status !== Zeus.EduAssignmentStatus.CLOSED" variant="ghost" size="sm" icon-only :aria-label="$t('edubridge.adminTeachersPage.rate.edit')" @click="openAssignmentRate(a)")
+              template(#icon-left)
+                q-icon(name="edit" size="16px")
+        q-item-section(side)
+          .row.items-center.q-gutter-sm
+            BaseBadge(:variant="assignmentStatusOf(a.status).variant") {{ assignmentStatusOf(a.status).label }}
+            BaseButton(v-if="canManageAssignments && a.status !== Zeus.EduAssignmentStatus.CLOSED" variant="secondary" size="sm" @click="onClose(a)") {{ $t('edubridge.adminTeachersPage.assignment.close') }}
+    //- «Курсов нет» — только после загрузки: до неё список пуст потому, что ещё не прочитан.
+    .t-muted.t-sm.q-mb-md(v-else-if="assignmentsLoaded") {{ $t('edubridge.adminTeachersPage.assignment.empty') }}
+    CardListSkeleton(v-else :count="1")
+
+    BaseButton(v-if="canManageAssignments && !assignFormOpen" variant="secondary" size="sm" @click="openAssignForm")
+      template(#icon-left)
+        q-icon(name="add" size="18px")
+      | {{ $t('edubridge.adminTeachersPage.assignment.open') }}
+
+    BaseForm(v-else-if="canManageAssignments" :loading="busy" @submit="onCreate")
+      BaseSelect(v-model="form.course_id" :label="$t('edubridge.adminTeachersPage.assignment.courseLabel')" :options="courseOptions" required)
+      //- Преподаватель уже допущен к выбранному курсу — периоды видны до отправки:
+      //- новый допуск принимается только окном, которое с ними не пересекается.
+      .t-sm.t-muted.q-mb-md(v-if="courseAssignments.length")
+        | {{ $t('edubridge.adminTeachersPage.assignment.existingNote', { periods: courseAssignments.map((a) => `${formatDate(a.period_from)} — ${formatDate(a.period_to)}`).join('; ') }) }}
+      BaseInput(v-model="form.schedule" :label="$t('edubridge.adminTeachersPage.assignment.scheduleLabel')")
+      BaseInput(v-model="form.expected_result" :label="$t('edubridge.adminTeachersPage.assignment.expectedResultLabel')" type="textarea" :rows="2")
+      .row.q-col-gutter-md
+        .col-6
+          BaseInput(v-model="form.period_from" :label="$t('edubridge.adminTeachersPage.assignment.periodFromLabel')" type="date" stack-label required)
+        .col-6
+          BaseInput(v-model="form.period_to" :label="$t('edubridge.adminTeachersPage.assignment.periodToLabel')" type="date" stack-label required)
+      BaseBanner(v-if="periodOverlaps" variant="warn")
+        template(#icon)
+          q-icon(name="event_busy")
+        | {{ $t('edubridge.adminTeachersPage.assignment.overlapWarning') }}
+      template(#footer)
+        .row.justify-end.q-gutter-sm
+          BaseButton(variant="ghost" type="button" :disabled="busy" @click="assignFormOpen = false") {{ $t('edubridge.adminTeachersPage.cancel') }}
+          BaseButton(variant="primary" type="submit" :disabled="periodOverlaps" :loading="busy") {{ $t('edubridge.adminTeachersPage.assignment.submit') }}
+
+  BaseDialog(v-model="rateOpen" :title="rateTarget ? $t('edubridge.adminTeachersPage.rate.courseDialogTitle', { courseTitle: rateTarget.course_title }) : $t('edubridge.adminTeachersPage.rate.dialogTitle')" size="sm")
+    BaseForm(:loading="savingRate" @submit="onSaveRate")
+      BaseInput(v-model="rate" :label="$t('edubridge.adminTeachersPage.rate.label')" type="number" :suffix="symbol" :hint="rateHint" autofocus required)
+      template(#footer)
+        .row.justify-end.q-gutter-sm
+          BaseButton(variant="ghost" type="button" :disabled="savingRate" @click="rateOpen = false") {{ $t('edubridge.adminTeachersPage.cancel') }}
+          BaseButton(variant="primary" type="submit" :loading="savingRate") {{ $t('common.action.save') }}
+</template>
+
+<script setup lang="ts">
+import { computed, onMounted, reactive, ref, shallowRef } from 'vue';
+import { EdubridgeContract } from 'cooptypes';
+import { Zeus } from '@coopenomics/sdk';
+import { asDateInput, asText, formatToAsset } from 'src/shared/lib/utils';
+import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
+import { useConfirm } from 'src/shared/lib/composables';
+import { FailAlert, SuccessAlert } from 'src/shared/api';
+import { Avatar, BaseBadge, BaseBanner, BaseButton, BaseDialog, BaseForm, BaseInput, BaseSelect, CardListSkeleton } from 'src/shared/ui/base';
+import { AccountBadge, DataRow } from 'src/shared/ui/domain';
+import { ComplexDocument } from 'src/shared/ui/ComplexDocument';
+import { PageTabs, type PageTab } from 'src/shared/ui/layout';
+import { useSessionStore } from 'src/entities/Session';
+import { useSystemStore } from 'src/entities/System/model';
+import type { IDocumentAggregate } from 'src/entities/Document/model';
+import { ChairmanApprovalActions, findApprovalByHash } from 'src/features/ChairmanApproval';
+import { refreshMenuBadges } from 'src/shared/lib/menuBadges';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { courseSectionLabel, fetchCourses, type ICourse } from '../../entities/Course';
+import { setTeacherRate } from '../../entities/Economy';
+import {
+  ASSIGNMENT_STATUS_LABELS,
+  CONTRACT_STATUS_LABELS,
+  CONTRIBUTION_STATUS_LABELS,
+  RID_TYPE_LABELS,
+  closeAssignment,
+  setAssignmentRate,
+  createAssignment,
+  fetchAssignments,
+  fetchContributions,
+  fetchTeacherApprovals,
+  fetchTeacherContractDocument,
+  terminateContract,
+  type IAssignment,
+  type IAssignmentInput,
+  type IContribution,
+  type ITeacher,
+  type ITeacherApproval,
+} from '../../entities/Teacher';
+import { EduLive } from '../../shared/lib/live';
+import { t as i18nT } from '../../i18n';
+import { useEduRights } from '../../shared/lib/rights';
+
+const { canManageAssignments, canManageEconomy } = useEduRights();
+
+/**
+ * Карточка преподавателя: кто он, его договор и назначения на курсы. Одна и та
+ * же и в правой панели списка, и на отдельной странице. Самого преподавателя
+ * карточка получает снаружи и о правках сообщает наверх: строка списка и
+ * страница держат свою копию. Смену преподавателя владелец оформляет ключом —
+ * вкладка, формы и документы тогда начинаются заново.
+ */
+const props = defineProps<{ teacher: ITeacher }>();
+const emit = defineEmits<{
+  /** Преподаватель после правки на месте: ставка, счётчики назначений, состояние договора. */
+  change: [teacher: ITeacher];
+  /** Решение председателя принято — владелец перечитывает преподавателя из сервера. */
+  refresh: [];
+}>();
+
+const assignments = ref<IAssignment[]>([]);
+const assignmentsLoaded = ref(false);
+const courses = ref<ICourse[]>([]);
+const busy = ref(false);
+const approvals = ref<ITeacherApproval[]>([]);
+// Тексты документов на подписи, по хэшу одобрения. Агрегат документа глубоко
+// вложен и только читается — глубокая реактивность ему не нужна.
+const approvalDocuments = shallowRef<Record<string, IDocumentAggregate>>({});
+const session = useSessionStore();
+const system = useSystemStore();
+const coopname = computed(() => system.info?.coopname ?? '');
+const symbol = computed(() => system.governSymbol);
+const tab = ref('overview');
+const assignFormOpen = ref(false);
+const terminateFormOpen = ref(false);
+const terminateReason = ref('');
+const { confirm } = useConfirm();
+
+const tabs: PageTab[] = [
+  { key: 'overview', label: i18nT('edubridge.adminTeachersPage.tab.overview') },
+  { key: 'contract', label: i18nT('edubridge.adminTeachersPage.tab.contract') },
+  { key: 'assignments', label: i18nT('edubridge.adminTeachersPage.tab.assignments') },
+  { key: 'contributions', label: i18nT('edubridge.adminTeachersPage.tab.contributions') },
+];
+
+/** Взносы преподавателя результатами работы — всех преподавателей, отфильтрованные по этому. */
+const contributions = ref<IContribution[]>([]);
+const ownContributions = computed(() =>
+  contributions.value
+    .filter((c) => c.teacher_username === props.teacher.username)
+    .sort((a, b) => String(b.created_at).localeCompare(String(a.created_at))),
+);
+const contributionStatusOf = (s: string) => CONTRIBUTION_STATUS_LABELS[s] ?? { label: s, variant: 'neutral' as const };
+const ridType = (k: string) => RID_TYPE_LABELS[k] ?? k;
+/** Принято советом: сколько взносов и на какую сумму. Суммы — ассеты одного тикера. */
+/** Администратор назначил преподавателю ставку за час. */
+const rateAssigned = computed(() => parseFloat(props.teacher.hourly_rate ?? '') > 0);
+const acceptedContributions = computed(() => ownContributions.value.filter((c) => c.status === Zeus.EduContributionStatus.ACCEPTED));
+const acceptedTotal = computed(() => {
+  const total = acceptedContributions.value.reduce((sum, c) => sum + (Number.parseFloat(c.amount) || 0), 0);
+  return formatAsset2Digits(`${total.toFixed(4)} ${symbol.value}`);
+});
+const form = reactive<IAssignmentInput>({ teacher_username: '', course_id: '', schedule: '', expected_result: '', period_from: '', period_to: '' });
+
+const courseOptions = computed(() => courses.value.map((c) => ({ value: asText(c.id), label: `${c.title} · ${courseSectionLabel(c.section_title, c.level_title, ', ')}` })));
+const ownAssignments = computed(() => assignments.value.filter((a) => a.teacher_username === props.teacher.username));
+/** Действующие допуски преподавателя к курсу, выбранному в форме назначения. */
+const courseAssignments = computed(() =>
+  ownAssignments.value.filter((a) => asText(a.course_id) === form.course_id && a.status === Zeus.EduAssignmentStatus.ACTIVE),
+);
+/** День периода без времени, как в полях формы: ГГГГ-ММ-ДД. */
+const dayOf = (v: unknown): string => {
+  const input = asDateInput(v);
+  return input ? new Date(input).toISOString().slice(0, 10) : '';
+};
+/** Период из формы пересекается с действующим допуском к этому курсу — сервер такой допуск не примет; границы включительно. */
+const periodOverlaps = computed(() => {
+  if (!form.period_from || !form.period_to) return false;
+  return courseAssignments.value.some((a) => dayOf(a.period_from) <= form.period_to && form.period_from <= dayOf(a.period_to));
+});
+// Договор на вкладке — подписанный документ из записи договора: он есть в любом
+// состоянии. У договоров, подписанных до появления этого поля, документа в
+// записи нет — тогда, пока договор на подписи, текст берётся из одобрения.
+const storedContract = shallowRef<IDocumentAggregate | null>(null);
+const contractDocument = computed(() => {
+  if (storedContract.value) return storedContract.value;
+  const approval = approvals.value.find((a) => a.action === EdubridgeContract.Actions.Apprvcontr.actionName);
+  return approval ? approvalDocuments.value[approval.approval_hash] : undefined;
+});
+
+/** Ошибка загрузки текста карточку не ломает: реквизиты договора видны и без него. */
+async function loadContractDocument(): Promise<void> {
+  try {
+    storedContract.value = await fetchTeacherContractDocument(props.teacher.username);
+  } catch {
+    storedContract.value = null;
+  }
+}
+
+const contractStatusOf = (s: string) => CONTRACT_STATUS_LABELS[s] ?? { label: s, variant: 'neutral' as const };
+const assignmentStatusOf = (s: string) => ASSIGNMENT_STATUS_LABELS[s] ?? { label: s, variant: 'neutral' as const };
+const formatDate = (v: unknown) => {
+  const input = asDateInput(v);
+  return input ? new Date(input).toLocaleDateString('ru-RU') : '______';
+};
+
+/** Назначения, курсы для формы назначения и взносы преподавателя. */
+async function loadAssignments(): Promise<void> {
+  const [a, c, k] = await Promise.all([
+    fetchAssignments(),
+    fetchCourses({ options: { page: 1, limit: 200, sortBy: 'sort_order', sortOrder: 'ASC' } }),
+    // Взносы читает тот, кто по ним решает; остальным карточка показывает их пустыми.
+    fetchContributions().catch(() => [] as IContribution[]),
+  ]);
+  assignments.value = a;
+  courses.value = c.items;
+  contributions.value = k;
+  assignmentsLoaded.value = true;
+}
+
+/** Документы преподавателя на подписи у председателя. */
+async function loadApprovals(): Promise<void> {
+  approvals.value = await fetchTeacherApprovals(props.teacher.username);
+  void loadApprovalDocuments();
+  void loadContractDocument();
+}
+
+/**
+ * Тексты документов на подписи. Одобрение с документом отдаёт реестр
+ * председателя, а он открыт только председателю и членам совета — остальным
+ * строка остаётся с одним названием. Ошибка здесь не показывается: карточка
+ * работает и без текста, а решение по документу принимается отдельной кнопкой.
+ */
+async function loadApprovalDocuments(): Promise<void> {
+  if (!session.isChairman && !session.isMember) return;
+  const missing = approvals.value.filter((a) => !approvalDocuments.value[a.approval_hash]);
+  const found = await Promise.all(
+    missing.map(async (a) => {
+      try {
+        return { hash: a.approval_hash, document: (await findApprovalByHash(coopname.value, a.approval_hash))?.document ?? null };
+      } catch {
+        return { hash: a.approval_hash, document: null };
+      }
+    }),
+  );
+  const next = { ...approvalDocuments.value };
+  for (const { hash, document } of found) if (document) next[hash] = document;
+  approvalDocuments.value = next;
+}
+
+/** Решение принято: цепь закрыла одобрение, перечитываем список и договор. */
+async function onApprovalDecided(): Promise<void> {
+  await Promise.all([loadApprovals(), refreshMenuBadges(['edubridge-admin-teachers'])]);
+  emit('refresh');
+}
+
+function openAssignForm(): void {
+  Object.assign(form, {
+    teacher_username: props.teacher.username,
+    course_id: '',
+    schedule: '',
+    expected_result: '',
+    period_from: '',
+    period_to: '',
+  });
+  assignFormOpen.value = true;
+}
+
+async function onCreate(): Promise<void> {
+  busy.value = true;
+  try {
+    await createAssignment({ ...form });
+    // Список перечитывается с сервера: приписывать ответ к списку нельзя — лента изменений
+    // успевает перечитать его раньше, и новый допуск встал бы двумя строками.
+    await loadAssignments();
+    // Допуск действует сразу — действующих назначений тоже стало больше.
+    patch((t) => ({ ...t, assignments_total: t.assignments_total + 1, assignments_active: t.assignments_active + 1 }));
+    assignFormOpen.value = false;
+    SuccessAlert(i18nT('edubridge.adminTeachersPage.assignment.created'));
+  } catch (e) {
+    FailAlert(e);
+  } finally {
+    busy.value = false;
+  }
+}
+
+async function onClose(a: IAssignment): Promise<void> {
+  try {
+    const updated = await closeAssignment(asText(a.id));
+    assignments.value = assignments.value.map((x) => (x.id === updated.id ? { ...x, status: updated.status } : x));
+    if (a.status === Zeus.EduAssignmentStatus.ACTIVE) patch((t) => ({ ...t, assignments_active: Math.max(0, t.assignments_active - 1) }));
+  } catch (e) {
+    FailAlert(e);
+  }
+}
+
+function openTerminateForm(): void {
+  terminateReason.value = '';
+  terminateFormOpen.value = true;
+}
+
+/**
+ * Договор прекращается, когда расчёт с преподавателем закрыт: действующие
+ * назначения и незакрытые взносы сервер назовёт сам.
+ */
+async function onTerminate(): Promise<void> {
+  const ok = await confirm({
+    title: i18nT('edubridge.adminTeachersPage.terminate.confirmTitle'),
+    message: i18nT('edubridge.adminTeachersPage.terminate.confirmMessage'),
+    note: i18nT('edubridge.adminTeachersPage.terminate.confirmNote'),
+    confirmLabel: i18nT('edubridge.adminTeachersPage.terminate.confirmLabel'),
+    danger: true,
+  });
+  if (!ok) return;
+  busy.value = true;
+  try {
+    const contract = await terminateContract(props.teacher.username, terminateReason.value.trim());
+    if (contract) patch((t) => ({ ...t, contract_status: contract.status }));
+    terminateFormOpen.value = false;
+    SuccessAlert(i18nT('edubridge.adminTeachersPage.terminate.success'));
+  } catch (e) {
+    FailAlert(e);
+  } finally {
+    busy.value = false;
+  }
+}
+
+const rateOpen = ref(false);
+const rate = ref('');
+const savingRate = ref(false);
+
+/** Чью ставку правит диалог: допуска к курсу либо, без него, ставку договора. */
+const rateTarget = ref<IAssignment | null>(null);
+
+/** За что ставка на курсе и её предел — по способу расчёта курса. */
+const rateHint = computed(() => {
+  const course = rateTarget.value ? courses.value.find((c) => asText(c.id) === asText(rateTarget.value?.course_id)) : null;
+  if (!course) return '';
+  const key = course.pay_per_learner ? 'edubridge.adminTeachersPage.rate.hintPerLearner' : 'edubridge.adminTeachersPage.rate.hintFixed';
+  return i18nT(key, { plannedRate: formatAsset2Digits(course.planned_hourly_rate) });
+});
+
+function openRate(): void {
+  rateTarget.value = null;
+  rate.value = String(parseFloat(props.teacher.hourly_rate ?? '') || '');
+  rateOpen.value = true;
+}
+
+function openAssignmentRate(a: IAssignment): void {
+  rateTarget.value = a;
+  rate.value = String(parseFloat(a.hourly_rate ?? '') || '');
+  rateOpen.value = true;
+}
+
+async function onSaveRate(): Promise<void> {
+  savingRate.value = true;
+  try {
+    const hourly_rate = formatToAsset(String(rate.value).replace(',', '.'), symbol.value);
+    const target = rateTarget.value;
+    if (target) {
+      const updated = await setAssignmentRate(asText(target.id), hourly_rate);
+      assignments.value = assignments.value.map((x) => (x.id === updated.id ? { ...x, hourly_rate: updated.hourly_rate } : x));
+    } else {
+      await setTeacherRate({ username: props.teacher.username, hourly_rate });
+      patch((t) => ({ ...t, hourly_rate }));
+    }
+    rateOpen.value = false;
+    SuccessAlert(i18nT('edubridge.adminTeachersPage.rate.saved'));
+  } catch (e) {
+    FailAlert(e);
+  } finally {
+    savingRate.value = false;
+  }
+}
+
+/** Счётчики и ставку считает сервер; после действия правим их на месте, не перечитывая список. */
+function patch(fn: (t: ITeacher) => ITeacher): void {
+  emit('change', fn(props.teacher));
+}
+
+// Живое обновление: назначения и курсы меняют другие администраторы, одобрения
+// закрывает председатель — карточка узнаёт об этом по ленте изменений. Самого
+// преподавателя перечитывает владелец карточки.
+useLiveReload([EduLive.assignments, EduLive.courses, EduLive.contributions], loadAssignments);
+useLiveReload([EduLive.approvals], loadApprovals);
+
+onMounted(async () => {
+  try {
+    await Promise.all([loadAssignments(), loadApprovals()]);
+  } catch (e) {
+    FailAlert(e);
+  }
+});
+</script>
+
+<style scoped>
+/* Вкладки внутри карточки: полоса без собственного фона и боковых полей —
+   её серый фон рассчитан на положение под шапкой страницы. */
+.edu-teacher-card :deep(.tabbar) {
+  background: transparent;
+  padding: 0;
+}
+.edu-teacher-card__about {
+  margin-top: var(--p-4);
+}
+.edu-teacher-card__about-text {
+  white-space: pre-wrap;
+  font-size: var(--p-fs-body);
+  line-height: 1.6;
+}
+.edu-teacher-card__approvals {
+  margin-top: var(--p-4);
+  padding: var(--p-3) var(--p-4);
+  border-radius: var(--p-r-md);
+  background: var(--p-warn-soft);
+}
+.edu-teacher-card__approval {
+  padding: var(--p-2) 0;
+}
+.edu-teacher-card__approval-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--p-3);
+  margin-top: var(--p-2);
+}
+.edu-teacher-card__head {
+  display: flex;
+  align-items: center;
+  gap: var(--p-3);
+}
+.edu-teacher-card__head-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--p-1);
+  min-width: 0;
+}
+.edu-teacher-card__contrib-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--p-1);
+}
+</style>

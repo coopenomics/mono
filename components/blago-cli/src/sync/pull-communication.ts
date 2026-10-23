@@ -28,6 +28,7 @@ import {
 import { findByHash, normalizeRelativePath, upsertEntry } from './index-store.js'
 import { generateSlug, workspaceBasePath, type ProjectPathModel } from './layout.js'
 import {
+  isNonProjectRoomsCacheFresh,
   isRoomsCacheFresh,
   loadRoomsCache,
   saveRoomsCache,
@@ -265,6 +266,7 @@ async function resolveProjectRooms(
       // Отметку свежести ставим только при полном обходе: иначе кэш «застынет» с дырами.
       refreshedAt: allResolved ? new Date().toISOString() : cache.refreshedAt,
       projectRooms,
+      nonProjectRefreshedAt: cache.nonProjectRefreshedAt,
       nonProjectRooms: cache.nonProjectRooms,
     })
   }
@@ -529,6 +531,7 @@ async function persistNonProjectRooms(
     await saveRoomsCache(root, {
       refreshedAt: current.refreshedAt || cache.refreshedAt,
       projectRooms: current.projectRooms,
+      nonProjectRefreshedAt: new Date().toISOString(),
       nonProjectRooms: rooms,
     })
   }
@@ -549,7 +552,7 @@ export async function pullNonProjectCommunicationArtifacts(
 ): Promise<void> {
   const roomsCache = await loadRoomsCache(ctx.root)
   let rooms: CachedNonProjectRoom[]
-  if (options.refreshRooms !== true && isRoomsCacheFresh(roomsCache)) {
+  if (options.refreshRooms !== true && isNonProjectRoomsCacheFresh(roomsCache)) {
     rooms = roomsCache.nonProjectRooms
   }
   else {

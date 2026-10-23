@@ -1,5 +1,5 @@
 <template lang="pug">
-div.page-shell
+div.coop-wallets-page
   q-card(flat)
     q-table.full-height(
       flat
@@ -9,7 +9,7 @@ div.page-shell
       row-key='id'
       :pagination='pagination'
       :loading='loading'
-      :no-data-label='"Кошельки не найдены"'
+      :no-data-label='$t("reports.coopWalletsPage.emptyLabel")'
     )
       template(#header='props')
         q-tr(:props='props')
@@ -33,7 +33,7 @@ div.page-shell
               icon='fa-solid fa-arrow-right-arrow-left'
               @click='openTransferFor(props.row.id)'
             )
-              q-tooltip Перевести с этого кошелька
+              q-tooltip {{ $t('reports.coopWalletsPage.transferFromLabel') }}
 
         q-tr.q-virtual-scroll--with-prev(
           no-hover
@@ -45,12 +45,12 @@ div.page-shell
             .q-pa-sm
               .row.items-center.q-mb-sm
                 .col
-                  .text-caption.caption-muted Движения по кошельку
+                  .text-caption.caption-muted {{ $t('reports.coopWalletsPage.movementsTitle') }}
                 .col-auto
                   q-btn(
                     flat dense size='sm' color='primary'
                     icon='fa-solid fa-arrow-right'
-                    label='К операциям'
+                    :label='$t("reports.coopWalletsPage.toOperationsLabel")'
                     :to='{ name: "reports-operations", query: { wallet_name: props.row.id } }'
                   )
               q-table(
@@ -61,7 +61,7 @@ div.page-shell
                 hide-pagination
                 :pagination='{ rowsPerPage: 0 }'
                 :loading='childLoading.has(props.row.id)'
-                no-data-label='Движений нет'
+                :no-data-label='$t("reports.coopWalletsPage.movementsEmptyLabel")'
               )
                 template(#body-cell-movementId='cp')
                   q-td(:props='cp')
@@ -69,7 +69,7 @@ div.page-shell
                       :rawId='cp.row.globalSequence'
                       @click='copyText(String(cp.row.globalSequence))'
                     )
-                      q-tooltip Клик — копировать
+                      q-tooltip {{ $t('reports.coopWalletsPage.copyHintLabel') }}
                 template(#body-cell-direction='cp')
                   q-td(:props='cp')
                     DirectionCell(:direction='directionFor(cp.row, String(props.row.id))')
@@ -93,7 +93,7 @@ div.page-shell
                       icon='fa-solid fa-arrow-right'
                       :to='{ name: "reports-operations", query: { process_hash: cp.row.processHash } }'
                     )
-                      q-tooltip К операции
+                      q-tooltip {{ $t('reports.coopWalletsPage.toOperationLabel') }}
 
       template(#item='props')
         .col-12
@@ -111,7 +111,7 @@ div.page-shell
                 )
             .row.q-mt-sm
               .col-6
-                .text-caption.caption-muted Доступно
+                .text-caption.caption-muted {{ $t('reports.coopWalletsPage.availableLabel') }}
                 .text-body2.text-weight-medium {{ formatAsset2Digits(props.row.available) }}
 
   WalletTransferDialog(
@@ -124,6 +124,10 @@ div.page-shell
 
 <script setup lang="ts">
 import { computed, markRaw, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
+import { useLiveReload } from 'src/shared/lib/realtime'
+import { LEDGER_LIVE_TABLES } from 'app/extensions/reports/shared/lib/live'
+import { useDeskRegistries } from 'app/extensions/reports/shared/lib/registries'
+import { uiLocale } from 'src/shared/i18n';
 import { storeToRefs } from 'pinia'
 import { copyToClipboard } from 'quasar'
 import { useWindowSize } from 'src/shared/hooks'
@@ -131,17 +135,18 @@ import { useHeaderActions } from 'src/shared/hooks/useHeaderActions'
 import { formatAsset2Digits } from 'src/shared/lib/utils'
 import { useSystemStore } from 'src/entities/System/model'
 import { useSessionStore } from 'src/entities/Session/model'
-import { useLedger2Store, type ILedger2Wallet, type ILedger2Operation } from 'src/entities/Ledger2'
+import type { ILedger2Wallet, ILedger2Operation } from 'src/entities/Ledger2'
 import { FailAlert, SuccessAlert } from 'src/shared/api'
 import { ExpandToggleButton } from 'src/shared/ui/ExpandToggleButton'
 import { EntityIdBadge } from 'src/shared/ui'
 import { DirectionCell, WalletIdCell } from '../../../shared/ui'
 import WalletTransferDialog from './WalletTransferDialog.vue'
 import TransferWalletsButton from './TransferWalletsButton.vue'
+import { t } from '../../../i18n';
 
 const { info } = useSystemStore()
 const { isMobile } = useWindowSize()
-const ledger2Store = useLedger2Store()
+const registries = useDeskRegistries()
 const session = useSessionStore()
 const { isChairman } = storeToRefs(session)
 
@@ -179,19 +184,23 @@ function openTransferFor(walletName: string): void {
   transferDialog.open = true
 }
 
-async function onTransferSuccess(): Promise<void> {
-  // Перезагружаем кошельки и сбрасываем кэш развёрнутых движений.
-  childOps.value.clear()
-  expanded.value.clear()
+async function reloadWallets(): Promise<void> {
   try {
-    wallets.value = await ledger2Store.loadWallets(info.coopname)
+    wallets.value = await registries.loadWallets(info.coopname)
   } catch (e) {
     FailAlert(e)
   }
 }
 
+async function onTransferSuccess(): Promise<void> {
+  // Перезагружаем кошельки и сбрасываем кэш развёрнутых движений.
+  childOps.value.clear()
+  expanded.value.clear()
+  await reloadWallets()
+}
+
 function formatDate(d: string | Date): string {
-  return new Date(d).toLocaleString('ru-RU', {
+  return new Date(d).toLocaleString(uiLocale(), {
     day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
   })
 }
@@ -199,9 +208,9 @@ function formatDate(d: string | Date): string {
 async function copyText(text: string) {
   try {
     await copyToClipboard(text)
-    SuccessAlert('Скопировано')
+    SuccessAlert(t('reports.coopWalletsPage.copySuccess'))
   } catch {
-    FailAlert('Не удалось скопировать')
+    FailAlert(t('reports.coopWalletsPage.copyError'))
   }
 }
 
@@ -209,8 +218,8 @@ const columns = computed<any[]>(() => {
   const base: any[] = [
     { name: 'expand', align: 'left', label: '', field: 'expand', sortable: false },
     { name: 'id', align: 'left', label: 'ID', field: 'id', sortable: true },
-    { name: 'name', align: 'left', label: 'Наименование', field: 'name', sortable: true },
-    { name: 'available', align: 'right', label: 'Доступно', field: 'available', sortable: true },
+    { name: 'name', align: 'left', label: t('reports.coopWalletsPage.column.name'), field: 'name', sortable: true },
+    { name: 'available', align: 'right', label: t('reports.coopWalletsPage.availableLabel'), field: 'available', sortable: true },
   ]
   if (isChairman.value && transferEnabled) {
     base.push({ name: 'actions', align: 'right', label: '', field: 'actions', sortable: false })
@@ -221,11 +230,11 @@ const columns = computed<any[]>(() => {
 const childColumns: any[] = [
   { name: 'movementId', align: 'left', label: '№', field: 'globalSequence' },
   { name: 'direction', align: 'center', label: '', field: 'direction' },
-  { name: 'walletFrom', align: 'left', label: 'Из', field: 'walletFrom' },
-  { name: 'walletTo', align: 'left', label: 'В', field: 'walletTo' },
-  { name: 'quantity', align: 'right', label: 'Сумма', field: 'quantity' },
-  { name: 'memo', align: 'left', label: 'Примечание', field: 'memo' },
-  { name: 'createdAt', align: 'left', label: 'Дата', field: 'createdAt' },
+  { name: 'walletFrom', align: 'left', label: t('reports.coopWalletsPage.column.walletFrom'), field: 'walletFrom' },
+  { name: 'walletTo', align: 'left', label: t('reports.coopWalletsPage.column.walletTo'), field: 'walletTo' },
+  { name: 'quantity', align: 'right', label: t('reports.coopWalletsPage.column.amount'), field: 'quantity' },
+  { name: 'memo', align: 'left', label: t('reports.coopWalletsPage.column.memo'), field: 'memo' },
+  { name: 'createdAt', align: 'left', label: t('reports.coopWalletsPage.column.date'), field: 'createdAt' },
   { name: 'open', align: 'right', label: '', field: 'processHash' },
 ]
 
@@ -248,7 +257,7 @@ async function toggleExpand(id: string) {
   if (childOps.value.has(id)) return
   childLoading.value.add(id)
   try {
-    const resp = await ledger2Store.loadHistory({
+    const resp = await registries.loadHistory({
       coopname: info.coopname,
       walletName: id,
       actionNames: ['walletop'],
@@ -266,7 +275,7 @@ async function toggleExpand(id: string) {
 onMounted(async () => {
   try {
     loading.value = true
-    wallets.value = await ledger2Store.loadWallets(info.coopname)
+    wallets.value = await registries.loadWallets(info.coopname)
   } catch (e) {
     FailAlert(e)
   } finally {
@@ -289,6 +298,10 @@ onMounted(async () => {
 onBeforeUnmount(() => {
   unregisterAction(HEADER_ACTION_ID)
 })
+
+// Кошельки кооператива живут по ленте: остатки обновляются на месте,
+// раскрытые строки остаются раскрытыми.
+useLiveReload(LEDGER_LIVE_TABLES, reloadWallets)
 </script>
 
 <style scoped lang="scss">

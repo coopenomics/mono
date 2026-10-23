@@ -2,7 +2,7 @@ import { Field, InputType, Int, IntersectionType, OmitType } from '@nestjs/graph
 import { Cooperative } from 'cooptypes';
 import { IsArray, IsNotEmpty, IsNumber, IsOptional, IsString, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
-import { SignedDigitalDocumentInputDTO, MetaDocumentInputDTO, GenerateMetaDocumentInputDTO, ExcludeCommonProps } from '@coopenomics/extension-kit';
+import { SignedDigitalDocumentInputDTO, MetaDocumentInputDTO, GenerateMetaDocumentInputDTO, ExcludeCommonProps, SafeMarkup } from '@coopenomics/extension-kit';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Общие вложенные DTO
@@ -18,16 +18,19 @@ export class KuAgendaQuestionInputDTO {
   @Field(() => String, { description: 'Заголовок вопроса' })
   @IsString()
   @IsNotEmpty()
+  @SafeMarkup()
   title!: string;
 
   @Field(() => String, { nullable: true, description: 'Дополнительная информация' })
   @IsOptional()
   @IsString()
+  @SafeMarkup()
   context?: string;
 
   @Field(() => String, { description: 'Проект решения по вопросу' })
   @IsString()
   @IsNotEmpty()
+  @SafeMarkup()
   decision!: string;
 }
 
@@ -64,16 +67,19 @@ export class KuBallotQuestionInputDTO {
   @Field(() => String, { description: 'Заголовок вопроса' })
   @IsString()
   @IsNotEmpty()
+  @SafeMarkup()
   title!: string;
 
   @Field(() => String, { nullable: true, description: 'Дополнительная информация' })
   @IsOptional()
   @IsString()
+  @SafeMarkup()
   context?: string;
 
   @Field(() => String, { description: 'Проект решения по вопросу' })
   @IsString()
   @IsNotEmpty()
+  @SafeMarkup()
   decision!: string;
 }
 
@@ -87,16 +93,19 @@ export class KuProtocolQuestionInputDTO {
   @Field(() => String, { description: 'Заголовок вопроса' })
   @IsString()
   @IsNotEmpty()
+  @SafeMarkup()
   title!: string;
 
   @Field(() => String, { nullable: true, description: 'Дополнительная информация' })
   @IsOptional()
   @IsString()
+  @SafeMarkup()
   context?: string;
 
   @Field(() => String, { description: 'Текст решения по вопросу' })
   @IsString()
   @IsNotEmpty()
+  @SafeMarkup()
   decision!: string;
 
   @Field(() => String, { description: 'Количество голосов «за»' })

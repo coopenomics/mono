@@ -27,12 +27,12 @@ void soviet::addmemberfee(eosio::name coopname, eosio::name username, uint64_t p
   progwallets_index progwallets(_soviet, coopname.value);
   auto wallet = progwallets.find(exist_wallet.id);
 
-  progwallets.modify(wallet, payer, [&](auto &p) {
+  progwallets.modify(wallet, RamPayer::of(progwallets, coopname), [&](auto &p) {
     p.membership_contribution = p.membership_contribution.value_or(asset(0, quantity.symbol)) + quantity;
   });
   
   // Обновляем агрегированный баланс в самой программе (program_id)
-  programs.modify(prg, payer, [&](auto &p){
+  programs.modify(prg, RamPayer::of(programs, coopname), [&](auto &p){
     p.membership_contributions = p.membership_contributions.value_or(asset(0, quantity.symbol)) + quantity;
   });
 }

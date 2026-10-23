@@ -3,7 +3,7 @@
   .meet-results__card
     .meet-results__head
       q-icon(name='fact_check', size='18px')
-      span.meet-results__title Результаты
+      span.meet-results__title {{ $t('meet.meetDetailsResults.title') }}
 
     .meet-results__items
       .meet-result-card(
@@ -21,7 +21,7 @@
 
         .meet-result-card__outcome
           .meet-result-card__outcome-row
-            span.meet-result-card__outcome-label Решение
+            span.meet-result-card__outcome-label {{ $t('meet.meetDetailsResults.decisionLabel') }}
             span.outcome-chip(:class='getOutcomeChipClass(item)')
               q-icon(:name='getResultIcon(item)', size='14px')
               span {{ getResultText(item) }}
@@ -29,19 +29,19 @@
 
         .meet-result-card__votes
           .vote-stat.vote-stat--for
-            span.vote-stat__label За
+            span.vote-stat__label {{ $t('meet.meetDetailsResults.forLabel') }}
             span.vote-stat__value {{ item.votes_for }}
           .vote-stat.vote-stat--against
-            span.vote-stat__label Против
+            span.vote-stat__label {{ $t('meet.meetDetailsResults.againstLabel') }}
             span.vote-stat__value {{ item.votes_against }}
           .vote-stat.vote-stat--neutral
-            span.vote-stat__label Воздержались
+            span.vote-stat__label {{ $t('meet.meetDetailsResults.abstainedLabel') }}
             span.vote-stat__value {{ item.votes_abstained }}
 
   ExpandableDocument.meet-results__protocol(
     v-if='protocolDocumentAggregate',
     :documentAggregate='protocolDocumentAggregate',
-    title='Протокол решения общего собрания пайщиков'
+    :title='$t("meet.meetDetailsResults.protocolTitle")'
   )
 </template>
 
@@ -51,6 +51,7 @@ import { computed } from 'vue';
 import { ExpandableDocument } from 'src/shared/ui';
 import { AgendaNumberAvatar } from 'src/shared/ui/AgendaNumberAvatar';
 import { parseLinks } from 'src/shared/lib/utils';
+import { t } from 'src/shared/i18n';
 
 const props = defineProps<{
   meet: IMeet;
@@ -66,8 +67,8 @@ const protocolDocumentAggregate = computed(
 );
 
 const getResultText = (question: any) => {
-  if (question.accepted === undefined) return 'Нет данных';
-  return question.accepted ? 'Принято' : 'Отклонено';
+  if (question.accepted === undefined) return t('common.state.empty');
+  return question.accepted ? t('meet.meetDetailsResults.accepted') : t('meet.meetDetailsResults.rejected');
 };
 
 const getResultIcon = (question: any) => {

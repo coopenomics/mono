@@ -16,8 +16,9 @@ q-fab-action.bg-fab-accent-radial(
 import { ref } from 'vue';
 import { CreateIssueDialog } from '../Dialog';
 import { formatCapitalFabLabel } from 'app/extensions/capital/shared/lib';
+import { t } from '../../../../../i18n';
 
-const fabLabel = formatCapitalFabLabel('Задача', 'issue');
+const fabLabel = formatCapitalFabLabel(t('capital.createIssueFabAction.label'), 'issue');
 
 defineProps<{
   projectHash?: string;

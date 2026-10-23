@@ -7,6 +7,7 @@ import type {
   IDocumentSigningOptions,
   ISigningDocument,
 } from './types'
+import { t } from 'src/shared/i18n';
 
 export interface IDocumentSigningController {
   documents: Ref<ISigningDocument[]>
@@ -98,7 +99,7 @@ export function useDocumentSigning(
     onProgress?: (message: string) => void
   ): Promise<ISigningDocument[]> => {
     for (const doc of documents.value) {
-      onProgress?.(`Подписываем ${doc.title}`)
+      onProgress?.(t('documentSigning.composable.progress', { title: doc.title }))
       const digital = new DigitalDocument(doc.document)
       doc.signed_document = await digital.sign(username)
     }

@@ -27,16 +27,17 @@ DocumentsTable(
         spread,
         unelevated,
         toggle-color='primary',
-        :options='[ { label: "Все входящие", value: "newsubmitted" }, { label: "Только утверждённые", value: "newresolved" }, ]'
+        :options='[ { label: $t("cooperative.listOfDocumentsWidget.allIncomingOption"), value: "newsubmitted" }, { label: $t("cooperative.listOfDocumentsWidget.onlyApprovedOption"), value: "newresolved" }, ]'
       )
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, onBeforeUnmount } from 'vue';
+import { onMounted, ref } from 'vue';
 import { DocumentModel } from 'src/entities/Document';
 import { DocumentsTable, DocumentCardsList } from '../ui';
 import { FailAlert } from 'src/shared/api';
 import type { DocumentType } from 'src/entities/Document/model/types';
+import { useLiveReload } from 'src/shared/lib/realtime';
 
 const props = defineProps({
   username: {
@@ -113,9 +114,6 @@ function toggleExpand(document: any) {
   emit('toggle-expand', document);
 }
 
-// Периодическое обновление данных
-let interval: number | null = null;
-
 // Загрузка документов при монтировании
 onMounted(() => {
   // Начальная загрузка документов
@@ -125,10 +123,9 @@ onMounted(() => {
     .catch((e) => FailAlert(e));
 });
 
-// Очистка таймера при размонтировании компонента
-onBeforeUnmount(() => {
-  if (interval !== null) {
-    window.clearInterval(interval);
-  }
-});
+// Живой реестр: подписанный документ, решение совета и аннулирование пишут
+// реестр узла signed_documents — показанные страницы перечитываются сами.
+useLiveReload([{ code: 'core', table: 'signed_documents' }], () =>
+  documentStore.reloadLoaded(props.username, props.filter),
+);
 </script>

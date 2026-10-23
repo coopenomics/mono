@@ -1,4 +1,5 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
+import { DomainError } from '@coopenomics/extension-kit';
 import {
   KEY_REVOCATION_REPOSITORY,
   type IKeyRevocationRepository,
@@ -68,5 +69,20 @@ export class KeyRevocationService {
   /** Активен ли отзыв ключа пайщика (пайщик ещё не прошёл recovery). */
   async isPendingRecovery(targetId: string): Promise<boolean> {
     return (await this.repo.findActive(targetId)) !== null;
+  }
+
+  /**
+   * Гейт входа: отозванным ключом войти нельзя, пока пайщик не восстановил доступ.
+   * Без него отзыв только закрывал сессии — тем же ключом открывалась новая.
+   */
+  async assertNotRevoked(targetId: string): Promise<void> {
+    if (await this.isPendingRecovery(targetId)) {
+      throw DomainError.unauthorized('AUTH_KEY_REVOKED_RECOVERY_REQUIRED');
+    }
+  }
+
+  /** Ключ пайщика сменён (восстановление доступа завершено) — отзыв закрыт. */
+  async markRecovered(targetId: string): Promise<void> {
+    await this.repo.markRecovered(targetId);
   }
 }

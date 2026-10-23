@@ -1,5 +1,5 @@
 import { IssueDomainEntity } from '../../domain/entities/issue.entity';
-import { IssueTypeormEntity } from '../entities/issue.typeorm-entity';
+import { IssueRecord } from '../entities/issue.record';
 import type { IIssueDatabaseData } from '../../domain/interfaces/issue-database.interface';
 
 function normalizeEstimateFromDb(value: number | string): number {
@@ -17,7 +17,7 @@ export class IssueMapper {
   /**
    * Преобразование TypeORM сущности в доменную сущность
    */
-  static toDomain(entity: IssueTypeormEntity): IssueDomainEntity {
+  static toDomain(entity: IssueRecord): IssueDomainEntity {
     const databaseData: IIssueDatabaseData = {
       _id: entity._id,
       id: entity.id,
@@ -30,6 +30,7 @@ export class IssueMapper {
       status: entity.status,
       estimate: normalizeEstimateFromDb(entity.estimate as number | string),
       sort_order: entity.sort_order,
+      content_rev: entity.content_rev ?? 0,
       created_by: entity.created_by,
       creators: entity.creators,
       submaster: entity.submaster,
@@ -47,8 +48,8 @@ export class IssueMapper {
   /**
    * Преобразование доменной сущности в TypeORM сущность для создания
    */
-  static toEntity(domain: Partial<IssueDomainEntity>): Partial<IssueTypeormEntity> {
-    const entity: Partial<IssueTypeormEntity> = {};
+  static toEntity(domain: Partial<IssueDomainEntity>): Partial<IssueRecord> {
+    const entity: Partial<IssueRecord> = {};
     // Object.assign(entity, domain);
     if (domain._id !== undefined) entity._id = domain._id;
     if (domain.id !== undefined) entity.id = domain.id;
@@ -60,6 +61,8 @@ export class IssueMapper {
     if (domain.status !== undefined) entity.status = domain.status;
     if (domain.estimate !== undefined) entity.estimate = domain.estimate;
     if (domain.sort_order !== undefined) entity.sort_order = domain.sort_order;
+    // 0 не пишем: номер редакции двигает только ContentRevisionService
+    if (domain.content_rev) entity.content_rev = domain.content_rev;
     if (domain.created_by !== undefined) entity.created_by = domain.created_by;
     if (domain.creators !== undefined) entity.creators = domain.creators;
     if (domain.submaster !== undefined) entity.submaster = domain.submaster;

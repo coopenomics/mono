@@ -15,7 +15,7 @@
               style='font-size: 12px; margin-bottom: 4px'
             ) {{ role }}
             .text-h6
-              span.q-mr-sm(v-if='isIP') ИП
+              span.q-mr-sm(v-if='isIP') {{ $t('user.coopCard.ipPrefix') }}
               | {{ displayName }}
         .row
           DepositButton.col-6.border-left-radius-buttons
@@ -26,7 +26,7 @@
       q-list.q-gutter-sm(flat)
         q-item
           q-item-section
-            q-item-label(caption) Имя аккаунта
+            q-item-label(caption) {{ $t('user.coopCard.usernameLabel') }}
             q-item-label.text-bold(style='font-size: 20px') {{ session.username }}
 
         //- q-item
@@ -36,7 +36,7 @@
 
         q-item
           q-item-section
-            q-item-label(caption) Минимальный паевый счёт
+            q-item-label(caption) {{ $t('user.coopCard.minimumAccountLabel') }}
             q-item-label.text-bold(style='font-size: 20px') {{ session.participantAccount?.minimum_amount }}
 
         q-item(
@@ -57,6 +57,7 @@ import { WithdrawButton } from 'src/features/Wallet/WithdrawFromWallet';
 import { AutoAvatar } from 'src/shared/ui/domain/AutoAvatar';
 import { useWalletStore } from 'src/entities/Wallet';
 import { useSessionStore } from 'src/entities/Session';
+import { t } from 'src/shared/i18n';
 const walletStore = useWalletStore();
 const session = useSessionStore();
 
@@ -69,9 +70,9 @@ const isIP = computed(
 );
 
 const role = computed(() => {
-  if (session.isChairman) return 'Председатель совета';
-  else if (session.isMember) return 'Член совета';
-  else return 'Пайщик';
+  if (session.isChairman) return t('user.coopCard.role.chairman');
+  else if (session.isMember) return t('user.coopCard.role.member');
+  else return t('user.coopCard.role.participant');
 });
 
 const individualProfile = computed(() => {

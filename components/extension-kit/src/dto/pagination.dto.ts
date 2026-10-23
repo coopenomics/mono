@@ -1,4 +1,18 @@
 import { Field, Int, ObjectType, InputType } from '@nestjs/graphql';
+import { IsIn, IsOptional, Matches } from 'class-validator';
+import { DomainError, validationMessage } from '../errors/domain-error';
+
+/**
+ * Допустимое поле сортировки: имя из латиницы, цифр и подчёркивания и, по
+ * желанию, направление через двоеточие (`created_at:desc` — так сортирует
+ * реестр пайщиков, репозиторий пользователей разбирает пару сам). Поле уходит
+ * в `ORDER BY` строкой, и любой другой символ открывал бы подстановку SQL.
+ * Какая именно колонка разрешена, решает репозиторий по своему списку или
+ * метаданным сущности (`resolveSortColumn`); здесь отсекается всё, что именем
+ * колонки быть не может. Пустая строка — «без сортировки»: её отдаёт таблица
+ * со снятой сортировкой, и репозитории берут порядок по умолчанию.
+ */
+export const SORT_FIELD_PATTERN = /^([A-Za-z_][A-Za-z0-9_]*(:(asc|desc))?)?$/i;
 
 /**
  * Входные параметры для пагинации и сортировки
@@ -12,12 +26,18 @@ export class PaginationInputDTO {
   limit!: number;
 
   @Field(() => String, { nullable: true, description: 'Ключ сортировки (например, "name")' })
+  @IsOptional()
+  @Matches(SORT_FIELD_PATTERN, { message: validationMessage('kit.pagination.invalidSortField') })
   sortBy?: string;
 
   @Field(() => String, {
     description: 'Направление сортировки ("ASC" или "DESC")',
     defaultValue: 'ASC',
   })
+  // Иное направление отклоняется на входе: до 25.09.2026 оно доходило до
+  // ORDER BY в списках Стола заказов и роняло их ошибкой 500 (C28-80).
+  @IsOptional()
+  @IsIn(['ASC', 'DESC'], { message: validationMessage('kit.pagination.invalidSortOrder') })
   sortOrder!: 'ASC' | 'DESC';
 }
 
@@ -123,15 +143,19 @@ export class PaginationUtils {
     const { page = 1, limit = 10, sortBy, sortOrder = 'ASC' } = options;
 
     if (page < 1) {
-      throw new Error('Номер страницы должен быть больше 0');
+      throw DomainError.badRequest('KIT_PAGE_NUMBER_INVALID');
     }
 
     if (limit < 1 || limit > 1000) {
-      throw new Error('Количество элементов на странице должно быть от 1 до 1000');
+      throw DomainError.badRequest('KIT_PAGE_LIMIT_INVALID');
     }
 
     if (sortOrder !== 'ASC' && sortOrder !== 'DESC') {
-      throw new Error('Направление сортировки должно быть ASC или DESC');
+      throw DomainError.badRequest('KIT_SORT_ORDER_INVALID');
+    }
+
+    if (sortBy !== undefined && sortBy !== null && !SORT_FIELD_PATTERN.test(sortBy)) {
+      throw DomainError.badRequest('KIT_SORT_FIELD_INVALID');
     }
 
     return {

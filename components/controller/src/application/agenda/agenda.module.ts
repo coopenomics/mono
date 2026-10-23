@@ -7,9 +7,11 @@ import { UserDomainModule } from '~/domain/user/user-domain.module';
 import { UserInfrastructureModule } from '~/infrastructure/user/user-infrastructure.module';
 import { AccountInfrastructureModule } from '~/infrastructure/account/account-infrastructure.module';
 import { DocumentDomainModule } from '~/domain/document/document.module';
+import { CoreRightsModule } from '../rights/core-rights.module';
 
 @Module({
   imports: [
+    CoreRightsModule,
     AgendaDomainModule,
     DocumentDomainModule,
     UserInfrastructureModule,

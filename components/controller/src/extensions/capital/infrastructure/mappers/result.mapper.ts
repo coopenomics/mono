@@ -1,6 +1,6 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { ResultDomainEntity } from '../../domain/entities/result.entity';
-import { ResultTypeormEntity } from '../entities/result.typeorm-entity';
+import { ResultRecord } from '../entities/result.record';
 import type { IResultDatabaseData } from '../../domain/interfaces/result-database.interface';
 import type { IResultBlockchainData } from '../../domain/interfaces/result-blockchain.interface';
 import type { ISignedDocument } from '@coopenomics/innercoop';
@@ -10,8 +10,8 @@ import type { RequireFields } from '@coopenomics/extension-kit';
 import { DomainToBlockchainUtils } from '@coopenomics/extension-kit';
 import { DocumentAggregateDTO } from '@coopenomics/extension-kit';
 
-type toEntityDatabasePart = RequireFields<Partial<ResultTypeormEntity>, keyof IResultDatabaseData>;
-type toEntityBlockchainPart = RequireFields<Partial<ResultTypeormEntity>, keyof IResultBlockchainData>;
+type toEntityDatabasePart = RequireFields<Partial<ResultRecord>, keyof IResultDatabaseData>;
+type toEntityBlockchainPart = RequireFields<Partial<ResultRecord>, keyof IResultBlockchainData>;
 
 type toDomainDatabasePart = RequireFields<Partial<ResultDomainEntity>, keyof IResultDatabaseData>;
 type toDomainBlockchainPart = RequireFields<Partial<ResultDomainEntity>, keyof IResultBlockchainData>;
@@ -28,7 +28,7 @@ export class ResultMapper {
   /**
    * Преобразование TypeORM сущности в доменную сущность
    */
-  static toDomain(entity: ResultTypeormEntity): ResultDomainEntity {
+  static toDomain(entity: ResultRecord): ResultDomainEntity {
     const databaseData: toDomainDatabasePart = {
       _id: entity._id,
       block_num: entity.block_num,
@@ -71,7 +71,7 @@ export class ResultMapper {
   /**
    * Преобразование доменной сущности в TypeORM сущность для создания
    */
-  static toEntity(domain: ResultDomainEntity): Partial<ResultTypeormEntity> {
+  static toEntity(domain: ResultDomainEntity): Partial<ResultRecord> {
     const dbPart: toEntityDatabasePart = {
       _id: domain._id,
       block_num: domain.block_num ?? 0,
@@ -113,8 +113,8 @@ export class ResultMapper {
    * Преобразование доменной сущности в данные для обновления TypeORM сущности
    * Обновляет только локальные поля базы данных, поля из блокчейна обновляются через синхронизацию
    */
-  static toUpdateEntity(domain: Partial<ResultDomainEntity>): Partial<ResultTypeormEntity> {
-    const updateData: Partial<ResultTypeormEntity> = {};
+  static toUpdateEntity(domain: Partial<ResultDomainEntity>): Partial<ResultRecord> {
+    const updateData: Partial<ResultRecord> = {};
 
     // Поля из базы данных (локальные)
     if (domain.block_num !== undefined) updateData.block_num = domain.block_num;

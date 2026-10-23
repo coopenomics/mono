@@ -6,6 +6,7 @@
 #include "document_core.hpp"
 #include "table_draft_drafts.hpp"
 #include "table_draft_translations.hpp"
+#include "table_draft_approvals.hpp"
 
 // accounts (registrator)
 #include "account_payer.hpp"
@@ -18,6 +19,7 @@
 #include "table_registrator_candidates.hpp"
 #include "table_registrator_candidates_legacy.hpp"
 #include "table_registrator_exits.hpp"
+#include "table_registrator_platforms.hpp"
 
 // coops (soviet)
 #include "coops_access_helpers.hpp"
@@ -80,7 +82,17 @@
 #include "table_marketplace_fee_config.hpp"
 #include "table_marketplace_orders.hpp"
 #include "table_marketplace_return_requests.hpp"
+#include "table_marketplace_warranty_claims.hpp"
 #include "table_marketplace_writeoff_proposals.hpp"
+
+// edubridge (ЦПП «Образование», приложение «Образовательный мост») —
+// anchor-таблицы процессов p.edu.access (подписки) и p.edu.rid (РИД).
+#include "table_edubridge_subscriptions.hpp"
+#include "table_edubridge_courses.hpp"
+#include "table_edubridge_terms.hpp"
+#include "table_edubridge_expenses.hpp"
+#include "table_edubridge_rids.hpp"
+#include "table_edubridge_contracts.hpp"
 
 // apps (каталог приложений)
 #include "table_apps_packages.hpp"
@@ -93,3 +105,4 @@
 
 // ano (цепочка доверия)
 #include "table_ano_endorsements.hpp"
+#include "table_ano_repschemas.hpp"

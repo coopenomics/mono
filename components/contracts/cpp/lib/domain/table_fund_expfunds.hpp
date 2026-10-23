@@ -1,5 +1,7 @@
 #pragma once
 
+
+#include "../core/ram_payer.hpp"
 #include <eosio/asset.hpp>
 #include <eosio/eosio.hpp>
 #include <string>
@@ -25,3 +27,6 @@ struct [[eosio::table, eosio::contract(FUND)]] expfund {
 };
 
 typedef eosio::multi_index<"expfunds"_n, expfund> expfunds_index;
+
+// Плательщик за оперативную память строк таблицы — правило в lib/core/ram_payer.hpp.
+RAM_PAYER_CLASS(expfund, contract);

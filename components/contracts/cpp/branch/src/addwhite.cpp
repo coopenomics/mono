@@ -19,7 +19,7 @@
 
     get_account_or_fail(account);
 
-    branches.modify(branch, coopname, [&](auto &b) {
+    branches.modify(branch, RamPayer::of(branches, coopname), [&](auto &b) {
         b.add_account_to_whitelist(account);
     });
 }

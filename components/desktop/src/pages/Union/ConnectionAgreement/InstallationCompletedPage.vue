@@ -1,269 +1,207 @@
 <template lang="pug">
-div.row.q-pa-md
-  div.col-md-12.col-xs-12
-    .completion-container
-      .completion-card
-        .completion-header
-          .celebration-icon
-            q-icon(name="celebration" color="positive" size="80px")
-            .sparkle.sparkle-1
-            .sparkle.sparkle-2
-            .sparkle.sparkle-3
-          .completion-title.text-h5.text-positive.q-mt-lg Поставка завершена!
-          .completion-subtitle.text-body1.text-grey-7.q-mt-sm
-          | Ваш Цифровой Кооператив успешно развернут и подключен к платформе
+//- Экран сразу после установки: что сделать, чтобы начать работу. Одна
+//- карточка: шапка и путь из трёх шагов на общей оси. Порядок жёсткий —
+//- мастер установки на сайте спросит ключ первым шагом, поэтому без ключа
+//- следующие шаги приглушены и их кнопки заблокированы. Ключ и переход на
+//- сайт есть и на панели управления подключением: сюда человек попадает
+//- один раз.
+.done-page
+  BaseCard.done-page__card
+    .done-page__head
+      .done-page__icon
+        q-icon(name="check" size="24px")
+      div
+        .done-page__title {{ $t('union.installationCompletedPage.title') }}
+        .done-page__lead {{ $t('union.installationCompletedPage.subtitle', { domain: announce }) }}
 
-        .completion-details.q-mt-xl
-          .detail-item
-            q-icon(name="check_circle" color="positive" size="24px").q-mr-md
-            .detail-text
-              .text-body2.text-weight-medium Серверная инфраструктура
-              .text-caption.text-grey-6 Полностью настроена
+    ol.done-page__steps
+      li.done-page__step(:class="hasKey ? 'done-page__step--done' : 'done-page__step--current'")
+        .done-page__mark
+          q-icon(v-if="hasKey" name="check" size="16px")
+          template(v-else) 1
+        .done-page__body
+          .done-page__step-title
+            | {{ hasKey ? $t('union.installationCompletedPage.keyStepDoneTitle') : $t('union.installationCompletedPage.keyStepTitle') }}
+          .done-page__step-text {{ keyStepText }}
+          PlatformKeyCard.done-page__action(bare button-size="md" @state="keyState = $event")
 
-          .detail-item.q-mt-md
-            q-icon(name="check_circle" color="positive" size="24px").q-mr-md
-            .detail-text
-              .text-body2.text-weight-medium Блокчейн-узел
-              .text-caption.text-grey-6 Развернут, синхронизирован и подключен к сети
+      li.done-page__step(:class="hasKey ? 'done-page__step--current' : 'done-page__step--locked'")
+        .done-page__mark 2
+        .done-page__body
+          .done-page__step-title {{ $t('union.installationCompletedPage.siteStepTitle') }}
+          .done-page__step-text {{ $t('union.installationCompletedPage.setupStepText') }}
+          BaseButton.done-page__action(
+            variant="primary"
+            type="button"
+            :disabled="!hasKey"
+            @click="goToCooperativeSite"
+          )
+            | {{ $t('union.installationCompletedPage.goToSiteLabel') }}
+            q-icon(name="open_in_new" size="16px").q-ml-xs
 
-          .detail-item.q-mt-md
-            q-icon(name="check_circle" color="positive" size="24px").q-mr-md
-            .detail-text
-              .text-body2.text-weight-medium База данных
-              .text-caption.text-grey-6 Инициализирована и готова к работе
-
-          .detail-item.q-mt-md
-            q-icon(name="check_circle" color="positive" size="24px").q-mr-md
-            .detail-text
-              .text-body2.text-weight-medium Мониторинг кооператива
-              .text-caption.text-grey-6 Запущен и функционирует
-
-        .next-steps.q-mt-xl
-          .text-subtitle2.text-weight-medium.q-mb-md Что дальше?
-
-          .next-step-item.q-mb-lg
-            .text-body2.text-grey-8.q-mb-md
-              | Завершите начальную настройку вашего Цифрового Кооператива на сайте.
-            q-btn(
-              color="primary"
-              label="Перейти на сайт кооператива"
-              @click="goToCooperativeSite"
-              size="lg"
-              unelevated
-              no-caps
-              target="_blank"
-              :href="cooperativeDomain"
-            )
-
-          .next-step-item
-            .text-body2.text-grey-8.q-mb-md
-              | Перейдите к управлению подключением, где сможете просматривать статус подключения, управлять подписками и настраивать параметры платформы.
-            q-btn(
-              color="primary"
-              label="Перейти к управлению подключением"
-              @click="goToDashboard"
-              size="lg"
-              unelevated
-              no-caps
-            )
+      li.done-page__step(:class="{ 'done-page__step--locked': !hasKey }")
+        .done-page__mark 3
+        .done-page__body
+          .done-page__step-title {{ $t('union.installationCompletedPage.dashboardStepTitle') }}
+          .done-page__step-text {{ $t('union.installationCompletedPage.dashboardStepText') }}
+          BaseButton.done-page__action(
+            variant="secondary"
+            type="button"
+            :disabled="!hasKey"
+            @click="goToDashboard"
+          ) {{ $t('union.installationCompletedPage.goToDashboardLabel') }}
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
+import { PlatformKeyCard, type PlatformKeyState } from 'src/widgets/ConnectionDashboard';
+import { t } from 'src/shared/i18n'
+import { RegistratorContract } from 'cooptypes'
+import { liveTable, useLiveReload } from 'src/shared/lib/realtime'
 import { useRouter } from 'vue-router'
 import { useCooperativeStore } from 'src/entities/Cooperative'
 import { useSessionStore } from 'src/entities/Session'
+import { BaseButton, BaseCard } from 'src/shared/ui/base'
 
 const router = useRouter()
 const coop = useCooperativeStore()
 const session = useSessionStore()
 
-// Загружаем данные кооператива при монтировании
+// Ключ выпущен — сейчас или раньше (запись в цепи): тогда открываются
+// следующие действия. Подпись шага зависит от того, показан ли ключ сейчас.
+const keyState = ref<PlatformKeyState>('none')
+const hasKey = computed(() => keyState.value !== 'none')
+const keyStepText = computed(() => {
+  if (keyState.value === 'shown') return t('union.installationCompletedPage.keyStepShownText')
+  if (keyState.value === 'exists') return t('union.installationCompletedPage.keyStepExistsText')
+  return t('union.installationCompletedPage.keyStepText')
+})
+
 coop.loadPublicCooperativeData(session.username)
 
-const cooperativeDomain = computed(() => {
-  const domain = coop?.publicCooperativeData?.announce
-  return domain ? `https://${domain}` : '#'
-})
+// Карточка кооператива в реестре сети живёт по ленте.
+useLiveReload([liveTable(RegistratorContract, RegistratorContract.Tables.Cooperatives)], () => coop.loadPublicCooperativeData(session.username))
+
+const announce = computed(() => coop?.publicCooperativeData?.announce || '')
 
 const goToDashboard = () => {
   router.push({ name: 'connect' })
 }
 
 const goToCooperativeSite = () => {
-  const domain = cooperativeDomain.value
-
-  if (domain && domain !== '#') {
-    window.open(domain, '_blank')
-  }
+  if (announce.value) window.open(`https://${announce.value}`, '_blank')
 }
 </script>
 
 <style scoped>
-.completion-container {
+.done-page {
   display: flex;
   justify-content: center;
-  align-items: center;
-  min-height: 80vh;
-  padding: 2rem 0;
+  padding: var(--p-6) var(--p-4);
 }
-
-.completion-card {
-  max-width: 600px;
+.done-page__card {
   width: 100%;
-  text-align: center;
-  padding: 3rem;
-  border-radius: 24px;
-  border: 1px solid rgba(76, 175, 80, 0.1);
-  box-shadow:
-    0 12px 40px rgba(0, 0, 0, 0.08),
-    0 4px 16px rgba(0, 0, 0, 0.04);
-  position: relative;
-  overflow: hidden;
+  max-width: 880px;
 }
-
-.completion-card::before {
+.done-page__head {
+  display: grid;
+  grid-template-columns: 48px 1fr;
+  gap: var(--p-4);
+  align-items: center;
+  padding-bottom: var(--p-5);
+  border-bottom: 1px solid var(--p-line);
+}
+.done-page__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--p-pos-soft);
+  color: var(--p-pos);
+}
+.done-page__title {
+  font-size: var(--p-fs-h3);
+  font-weight: 600;
+  color: var(--p-ink);
+}
+.done-page__lead {
+  font-size: var(--p-fs-body-sm);
+  color: var(--p-ink-2);
+  margin-top: 2px;
+}
+.done-page__steps {
+  list-style: none;
+  margin: 0;
+  padding: var(--p-5) 0 0;
+}
+/* Номера шагов стоят на одной оси со значком шапки (колонка 48px),
+   линия между ними показывает путь. */
+.done-page__step {
+  position: relative;
+  display: grid;
+  grid-template-columns: 48px 1fr;
+  gap: var(--p-4);
+  padding-bottom: var(--p-6);
+}
+.done-page__step:last-child {
+  padding-bottom: 0;
+}
+.done-page__step:not(:last-child)::before {
   content: '';
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 4px;
-  background: linear-gradient(90deg, var(--q-positive) 0%, #4CAF50 50%, var(--q-positive) 100%);
-  background-size: 200% 100%;
-  animation: completion-shimmer 3s cubic-bezier(0.25, 0.46, 0.45, 0.94) infinite;
+  left: 23px;
+  top: 36px;
+  bottom: 4px;
+  width: 2px;
+  background: var(--p-line);
 }
-
-@keyframes completion-shimmer {
-  0%, 100% { background-position: -100% 0; }
-  50% { background-position: 100% 0; }
+.done-page__step--done:not(:last-child)::before {
+  background: var(--p-primary);
 }
-
-.completion-header {
-  position: relative;
-}
-
-.celebration-icon {
-  position: relative;
-  display: inline-block;
-  margin-bottom: 1rem;
-}
-
-.sparkle {
-  position: absolute;
-  width: 8px;
-  height: 8px;
-  background: var(--q-positive);
-  border-radius: 50%;
-  animation: sparkle 2s infinite ease-in-out;
-}
-
-.sparkle-1 {
-  top: -10px;
-  right: -10px;
-  animation-delay: 0s;
-}
-
-.sparkle-2 {
-  top: 20px;
-  left: -15px;
-  animation-delay: 0.5s;
-}
-
-.sparkle-3 {
-  bottom: -5px;
-  right: 15px;
-  animation-delay: 1s;
-}
-
-@keyframes sparkle {
-  0%, 100% {
-    opacity: 0;
-    transform: scale(0);
-  }
-  50% {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-.completion-title {
-  font-weight: 700;
-  letter-spacing: -0.5px;
-  margin-bottom: 0.5rem;
-  background: linear-gradient(135deg, var(--q-positive) 0%, #4CAF50 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  text-shadow: 0 2px 4px rgba(76, 175, 80, 0.3);
-}
-
-.completion-details {
-  margin-top: 2rem;
-  text-align: left;
-}
-
-.detail-item {
-  display: flex;
+.done-page__mark {
+  justify-self: center;
+  display: inline-flex;
   align-items: center;
-  padding: 1rem;
-  background: rgba(76, 175, 80, 0.02);
-  border-radius: 12px;
-  border: 1px solid rgba(76, 175, 80, 0.1);
-  transition: all 0.3s ease;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2px solid var(--p-line-2);
+  color: var(--p-ink-3);
+  font-size: var(--p-fs-body-sm);
+  font-weight: 600;
+  background: var(--p-surface);
 }
-
-.detail-item:hover {
-  transform: translateX(4px);
-  background: rgba(76, 175, 80, 0.05);
-  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.1);
+.done-page__step--current .done-page__mark {
+  border-color: var(--p-primary);
+  color: var(--p-primary);
 }
-
-.detail-text {
-  margin-left: 1rem;
+.done-page__step--done .done-page__mark {
+  border-color: var(--p-primary);
+  background: var(--p-primary);
+  color: var(--p-ink-on-primary);
 }
-
-.next-steps {
-  margin-top: 2rem;
-  text-align: left;
-  padding: 1.5rem;
-  background: rgba(0, 0, 0, 0.02);
-  border-radius: 12px;
+.done-page__body {
+  min-width: 0;
+  padding-top: 4px;
 }
-
-.next-step-item {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  padding: 1rem;
-  border-radius: 8px;
+.done-page__step-title {
+  font-size: var(--p-fs-body);
+  font-weight: 600;
+  color: var(--p-ink);
 }
-
-/* Адаптивность */
-@media (max-width: 768px) {
-  .completion-card {
-    padding: 2rem;
-  }
-
-  .detail-item {
-    flex-direction: column;
-    text-align: center;
-    gap: 0.5rem;
-  }
-
-  .next-step-item {
-    padding: 0.75rem;
-  }
-
-  .completion-container {
-    min-height: 70vh;
-    padding: 1rem 0;
-  }
+.done-page__step-text {
+  margin-top: var(--p-1);
+  font-size: var(--p-fs-body-sm);
+  color: var(--p-ink-2);
 }
-
-@media (max-width: 480px) {
-  .completion-card {
-    padding: 1.5rem;
-  }
+.done-page__step--locked .done-page__step-title,
+.done-page__step--locked .done-page__step-text {
+  color: var(--p-ink-3);
+}
+.done-page__action {
+  margin-top: var(--p-3);
 }
 </style>

@@ -10,6 +10,7 @@ import { DigitalDocument } from 'src/shared/lib/document';
 import type { IGeneratedDocumentOutput } from 'src/shared/lib/types/document';
 import { useSegmentStore } from 'app/extensions/capital/entities/Segment/model';
 import { useProjectStore } from 'app/extensions/capital/entities/Project/model';
+import { t } from '../../../../i18n';
 
 export type IPushResultInput = Mutations.Capital.PushResult.IInput['data'];
 
@@ -62,7 +63,7 @@ export function usePushResult() {
     // Генерируем заявление
     const document = await generateResultContributionStatement(projectHash);
     if (!document) {
-      throw new Error('Не удалось сгенерировать заявление');
+      throw new Error(t('capital.error.statementGenerationFailed'));
     }
 
     // Подписываем документ

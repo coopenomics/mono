@@ -15,7 +15,7 @@ BaseDialog(
     v-if='modelValue && documentAggregate'
     :document-aggregate='documentAggregate'
   )
-  .text-body2.text-grey-7(v-else) Документ недоступен
+  .text-body2.text-grey-7(v-else) {{ $t('ui.documentViewerDialog.unavailableText') }}
 </template>
 
 <script setup lang="ts">

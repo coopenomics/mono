@@ -13,7 +13,7 @@ void gateway::outdecline(eosio::name coopname, checksum256 outcome_hash, std::st
   require_auth(coopname);
 
   auto exist_outcome = Gateway::get_outcome(coopname, outcome_hash);
-  eosio::check(exist_outcome.has_value(), "Объект возврата не существует с указанным хэшем");
+  eosio::check(exist_outcome.has_value(), "GATEWAY_OUTCOME_NOT_FOUND: Объект возврата не существует с указанным хэшем");
   Gateway::outcomes_index outcomes(_gateway, coopname.value);
 
   auto outcome = outcomes.find(exist_outcome -> id);

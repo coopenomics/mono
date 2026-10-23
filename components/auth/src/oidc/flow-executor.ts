@@ -1,3 +1,4 @@
+import { lt } from '@coopenomics/i18n'
 /**
  * Story 11.2 — встроенный фактор-1 входа CoopID через flow-executor authentik.
  *
@@ -74,8 +75,8 @@ function assertSameOrigin(base: string): void {
     return
   throw new AuthV2Error(
     AuthV2ErrorCode.NetworkError,
-    `Вход настроен на ${base}, а страница открыта по ${here}. Для браузера это разные адреса: `
-    + `куки и ответ входа он не отдаст. Откройте ${base} — вход возможен только с того же адреса.`,
+    lt('authClient.flowExecutor.originMismatchIntro', { configuredOrigin: base, currentOrigin: here })
+    + lt('authClient.flowExecutor.originMismatchHint', { configuredOrigin: base }),
   )
 }
 
@@ -92,6 +93,31 @@ function isSuccess(c: FlowChallenge): boolean {
 /** Доступ отклонён политикой flow (например, аккаунт неактивен). */
 function isAccessDenied(c: FlowChallenge): boolean {
   return c.component === 'ak-stage-access-denied'
+}
+
+/**
+ * Сообщения authentik приходят по-английски и в интерфейс кооператива попадать не
+ * должны: пайщик видел «Failed to authenticate.» на форме входа (04.09.2026).
+ * Знакомые сводим к человеческому русскому тексту, незнакомое английское —
+ * к общему: показывать сырой ответ чужой системы всё равно нечего, а оригинал
+ * уезжает в `details` ошибки для разбора.
+ */
+const AUTHENTIK_MESSAGES: Record<string, string> = {
+  'Failed to authenticate.': lt('authClient.flowExecutor.authentikInvalidCredentials'),
+  'Invalid password': lt('authClient.flowExecutor.authentikInvalidCredentials'),
+  'Invalid credentials': lt('authClient.flowExecutor.authentikInvalidCredentials'),
+  'Invalid token': lt('authClient.flowExecutor.authentikInvalidCode'),
+  'Invalid code': lt('authClient.flowExecutor.authentikInvalidCode'),
+  'This field may not be blank.': lt('authClient.flowExecutor.authentikFieldRequired'),
+  'Access denied': lt('authClient.flowExecutor.authentikAccessDenied'),
+}
+
+function humanizeAuthentikMessage(raw: string): string {
+  const known = AUTHENTIK_MESSAGES[raw.trim()]
+  if (known)
+    return known
+  // Латиница в тексте = сообщение чужой системы, а не наш текст.
+  return /[a-z]/i.test(raw) ? lt('authClient.flowExecutor.loginFailedFallback') : raw
 }
 
 /** Первое человеко-читаемое сообщение об ошибке валидации из challenge'а (если есть). */
@@ -113,10 +139,10 @@ async function getChallenge(url: string): Promise<FlowChallenge> {
     res = await fetch(url, { method: 'GET', credentials: 'include', headers: { accept: 'application/json', ...csrfHeader() } })
   }
   catch (e) {
-    throw new AuthV2Error(AuthV2ErrorCode.NetworkError, `Сеть недоступна на старте входа: ${e instanceof Error ? e.message : String(e)}`)
+    throw new AuthV2Error(AuthV2ErrorCode.NetworkError, lt('authClient.flowExecutor.networkErrorStart', { error: e instanceof Error ? e.message : String(e) }))
   }
   if (!res.ok)
-    throw new AuthV2Error(AuthV2ErrorCode.NetworkError, `flow-executor (старт) вернул HTTP ${res.status}`)
+    throw new AuthV2Error(AuthV2ErrorCode.NetworkError, lt('authClient.flowExecutor.startHttpError', { status: res.status }))
   return (await res.json()) as FlowChallenge
 }
 
@@ -131,12 +157,12 @@ async function postChallenge(url: string, body: Record<string, unknown>): Promis
     })
   }
   catch (e) {
-    throw new AuthV2Error(AuthV2ErrorCode.NetworkError, `Сеть недоступна при отправке формы входа: ${e instanceof Error ? e.message : String(e)}`)
+    throw new AuthV2Error(AuthV2ErrorCode.NetworkError, lt('authClient.flowExecutor.networkErrorSubmit', { error: e instanceof Error ? e.message : String(e) }))
   }
   // 400 — authentik перерисовывает ту же стадию с `response_errors` (неверный пароль);
   // это валидное тело challenge'а, читаем его. Остальные не-ok — сетевая/конфиг ошибка.
   if (!res.ok && res.status !== 400)
-    throw new AuthV2Error(AuthV2ErrorCode.NetworkError, `flow-executor вернул HTTP ${res.status}`)
+    throw new AuthV2Error(AuthV2ErrorCode.NetworkError, lt('authClient.flowExecutor.submitHttpError', { status: res.status }))
   return (await res.json()) as FlowChallenge
 }
 
@@ -175,11 +201,16 @@ export async function authenticateWithFlowExecutor(params: FlowExecutorParams): 
       return
 
     if (isAccessDenied(challenge))
-      throw new AuthV2Error(AuthV2ErrorCode.InvalidCredentials, 'Доступ запрещён: проверьте email и пароль')
+      throw new AuthV2Error(AuthV2ErrorCode.InvalidCredentials, lt('authClient.flowExecutor.accessDenied'))
 
     const err = firstResponseError(challenge)
-    if (err !== null)
-      throw new AuthV2Error(AuthV2ErrorCode.InvalidCredentials, err || 'Неверный email или пароль')
+    if (err !== null) {
+      throw new AuthV2Error(
+        AuthV2ErrorCode.InvalidCredentials,
+        err ? humanizeAuthentikMessage(err) : lt('authClient.flowExecutor.invalidCredentialsFallback'),
+        err ? { authentik_message: err } : undefined,
+      )
+    }
 
     switch (challenge.component) {
       case 'ak-stage-identification':
@@ -192,9 +223,9 @@ export async function authenticateWithFlowExecutor(params: FlowExecutorParams): 
       default:
         throw new AuthV2Error(
           AuthV2ErrorCode.InvalidCredentials,
-          `Стадия входа «${challenge.component ?? challenge.type ?? 'неизвестно'}» не поддерживается встроенной формой`,
+          lt('authClient.flowExecutor.unsupportedStage', { stage: challenge.component ?? challenge.type ?? lt('authClient.flowExecutor.unknownStage') }),
         )
     }
   }
-  throw new AuthV2Error(AuthV2ErrorCode.InvalidCredentials, 'Вход не завершён: превышено число шагов flow authentik')
+  throw new AuthV2Error(AuthV2ErrorCode.InvalidCredentials, lt('authClient.flowExecutor.tooManySteps'))
 }

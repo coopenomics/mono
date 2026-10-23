@@ -22,7 +22,10 @@ export class UserDomainEntity {
     public readonly subscriber_hash: string,
     public readonly legacy_mongo_id?: string,
     public readonly createdAt?: Date,
-    public readonly updatedAt?: Date
+    public readonly updatedAt?: Date,
+    /** Фотография пайщика: ключ объекта в хранилище и его тип. */
+    public readonly avatar_key?: string | null,
+    public readonly avatar_mime?: string | null
   ) {}
 
   /**
@@ -30,6 +33,17 @@ export class UserDomainEntity {
    */
   isActive(): boolean {
     return this.status === userStatus['5_Active'];
+  }
+
+  /**
+   * Закреплён ли адрес почты за этой учётной записью.
+   *
+   * Запись в начальном статусе — незавершённая регистрация: человек может
+   * начать её заново на тот же адрес, и создание аккаунта перезапишет данные.
+   * Дальше начального статуса адрес занят, а второй аккаунт на него не заводится.
+   */
+  holdsEmail(): boolean {
+    return this.status !== userStatus['1_Created'];
   }
 
   /**

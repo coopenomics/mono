@@ -1,37 +1,42 @@
 <template lang="pug">
 q-btn(
   v-if='canContribute',
-  @click='showDialog = true',
+  @click='openDialog',
   :color='micro ? "accent" : "primary"',
   :flat='micro',
+  :outline='Boolean(label) && !primary',
+  :no-caps='Boolean(label)',
   :dense='micro',
-  :size='micro ? "sm" : undefined'
+  :size='micro || (label && !primary) ? "sm" : undefined'
 )
-  q-icon(:name='micro ? "fa-solid fa-arrow-up" : "fa-solid fa-chevron-up"')
-  span(v-if='!micro').q-ml-sm Совершить взнос
-  q-tooltip(v-if='micro') Внести
+  //- С подписью кнопка стоит внутри чужой формы (например, запись на курс) и называет действие словами.
+  span(v-if='label') {{ label }}
+  template(v-else)
+    q-icon(:name='micro ? "fa-solid fa-arrow-up" : "fa-solid fa-chevron-up"')
+    span(v-if='!micro').q-ml-sm {{ $t('wallet.depositButton.buttonLabel') }}
+  q-tooltip(v-if='micro') {{ $t('wallet.depositButton.submitLabel') }}
 
   BaseDialog(
     v-if='!paymentOrder',
     v-model='showDialog',
-    title='Паевой взнос',
+    :title='$t("wallet.depositButton.dialogTitle")',
     size='md',
     @update:model-value='(v) => !v && clear()'
   )
     Form(
       :handler-submit='handlerSubmit',
       :is-submitting='isSubmitting',
-      :button-cancel-txt='"Отменить"',
-      :button-submit-txt='"Продолжить"',
+      :button-cancel-txt='$t("wallet.depositButton.cancel")',
+      :button-submit-txt='$t("wallet.depositButton.confirm")',
       @cancel='clear'
     )
       q-input(
         v-model='quantity',
         standout='bg-teal text-white',
-        placeholder='Введите сумму',
+        :placeholder='$t("wallet.depositButton.amountPlaceholder")',
         type='number',
         :min='0',
-        :rules='[(val) => val > 0 || "Сумма взноса должна быть положительной"]'
+        :rules='[(val) => val > 0 || $t("wallet.depositButton.amountPositiveError")]'
       )
         template(#append)
           span.text-overline {{ currency }}
@@ -39,15 +44,15 @@ q-btn(
   BaseDialog(
     v-else,
     v-model='showDialog',
-    title='Совершите взнос',
+    :title='$t("wallet.depositButton.paymentDialogTitle")',
     size='md',
     @update:model-value='(v) => !v && clear()'
   )
-    p Пожалуйста, совершите оплату паевого взноса {{ paymentOrder?.payment_details?.amount_without_fee }}. Комиссия провайдера {{ paymentOrder?.payment_details?.fact_fee_percent }}%, всего к оплате: {{ paymentOrder?.payment_details?.amount_plus_fee }}.
+    p {{ $t('wallet.depositButton.paymentInstructions', { amount: paymentOrder?.payment_details?.amount_without_fee, feePercent: paymentOrder?.payment_details?.fact_fee_percent, totalAmount: paymentOrder?.payment_details?.amount_plus_fee }) }}
 
     p
-      span.text-bold Внимание!
-      span.q-ml-xs Оплату необходимо произвести с банковского счета, который принадлежит именно Вам. При поступлении средств с другого счета, оплата будет аннулирована.
+      span.text-bold {{ $t('wallet.depositButton.warningTitle') }}
+      span.q-ml-xs {{ $t('wallet.depositButton.warningText') }}
 
     PayWithProvider.q-mb-md(
       :payment-order='paymentOrder',
@@ -56,14 +61,29 @@ q-btn(
     )
 </template>
 
-<script setup lang="ts">
+<script setup lang="ts">import { t } from 'src/shared/i18n';
+
 interface Props {
   micro?: boolean;
+  /**
+   * Сумма, которую нужно внести: подставляется в поле при открытии окна.
+   * С ней кнопка ведёт своё окно сама и не открывает окна других кнопок
+   * пополнения на странице.
+   */
+  amount?: number | null;
+  /** Подпись кнопки вместо значка — когда кнопка стоит внутри чужой формы. */
+  label?: string;
+  /** Кнопка с подписью — главное действие чужого окна: залита и обычного размера. */
+  primary?: boolean;
 }
 
-withDefaults(defineProps<Props>(), {
+const props = withDefaults(defineProps<Props>(), {
   micro: false,
+  amount: null,
+  label: '',
+  primary: false,
 });
+const emit = defineEmits<{ deposited: [] }>();
 import { ref, computed } from 'vue';
 import { Form } from 'src/shared/ui/Form';
 import { BaseDialog } from 'src/shared/ui/base/BaseDialog';
@@ -85,7 +105,13 @@ const { createDeposit } = useCreateDepositPayment();
 
 const session = useSessionStore();
 const quantity = ref();
-const { showDialog } = useDepositDialog();
+// Общее состояние открывает окно из любого места кошелька; кнопка с заданной суммой ведёт своё окно сама.
+const showDialog = props.amount ? ref(false) : useDepositDialog().showDialog;
+
+const openDialog = (): void => {
+  if (props.amount) quantity.value = Math.ceil(Number(props.amount) * 100) / 100;
+  showDialog.value = true;
+};
 const isSubmitting = ref(false);
 const paymentOrder = ref();
 
@@ -124,7 +150,7 @@ const currency = computed(() => env.CURRENCY);
 
 const paymentFail = (): void => {
   clear();
-  FailAlert('Произошла ошибка при приёме платежа');
+  FailAlert(t('wallet.depositButton.acceptError'));
 };
 
 const paymentSuccess = (): void => {
@@ -133,7 +159,8 @@ const paymentSuccess = (): void => {
     username: session.username as string,
   } as ILoadUserWallet);
   clear();
-  SuccessAlert('Платеж успешно принят');
+  SuccessAlert(t('wallet.depositButton.acceptSuccess'));
+  emit('deposited');
 };
 </script>
 <style scoped></style>

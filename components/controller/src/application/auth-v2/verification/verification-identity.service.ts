@@ -1,4 +1,4 @@
-import { ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import config from '~/config/config';
 import { ACCOUNT_DOMAIN_SERVICE } from '~/domain/account/services/account-domain.service';
 import type { AccountDomainService } from '~/domain/account/services/account-domain.service';
@@ -8,11 +8,8 @@ import { AuditService } from '../audit/audit.service';
 import { VerificationTypesService } from './verification-types.service';
 import { VerificationAuthorityService, type VerificationActor } from './verification-authority.service';
 import type { ParticipantIdentityForVerificationDTO } from './dto/verification.dto';
-
-/** ФИО одной строкой; отсутствующие части просто пропускаем. */
-function fullName(data: { last_name?: string; first_name?: string; middle_name?: string }): string {
-  return [data.last_name, data.first_name, data.middle_name].filter(Boolean).join(' ');
-}
+import { DomainError } from '@coopenomics/extension-kit';
+import { personFullName } from '~/shared/utils/person-name';
 
 /**
  * Персональные данные пайщика для сверки с документом.
@@ -33,14 +30,14 @@ export class VerificationIdentityService {
   ) {}
 
   async getForVerification(actor: VerificationActor, username: string): Promise<ParticipantIdentityForVerificationDTO> {
-    await this.verificationAuthorityService.assertMayVerify(actor);
+    await this.verificationAuthorityService.assertMayVerify(actor, username);
 
     const participant = await this.accountDomainService.getParticipantAccount(config.coopname, username);
-    if (!participant) throw new NotFoundException('Пайщик не найден в кооперативе');
+    if (!participant) throw DomainError.notFound('AUTH_V2_PARTICIPANT_NOT_FOUND');
 
     const levels = await this.verificationTypesService.resolveForUsername(username);
     if (levels.some((level) => level.type === VerificationType.PassportOnsite)) {
-      throw new ForbiddenException('Личность пайщика уже подтверждена — данные для сверки не выдаются');
+      throw DomainError.forbidden('AUTH_V2_IDENTITY_ALREADY_VERIFIED');
     }
 
     const account = await this.accountDomainService.getAccount(username);
@@ -74,7 +71,7 @@ export class VerificationIdentityService {
     if (type === InnerAccountType.organization) {
       return this.buildOrganization(username, privateAccount.organization_data ?? {});
     }
-    throw new NotFoundException('У пайщика не заполнены данные для сверки личности');
+    throw DomainError.notFound('AUTH_V2_VERIFICATION_DATA_MISSING');
   }
 
   private buildIndividual(username: string, data: any): ParticipantIdentityForVerificationDTO {
@@ -82,7 +79,7 @@ export class VerificationIdentityService {
     return {
       username,
       type: InnerAccountType.individual,
-      full_name: fullName(data),
+      full_name: personFullName(data),
       birthdate: data.birthdate ?? null,
       passport_series: passport.series != null ? String(passport.series) : null,
       passport_number: passport.number != null ? String(passport.number) : null,
@@ -97,7 +94,7 @@ export class VerificationIdentityService {
     return {
       username,
       type: InnerAccountType.entrepreneur,
-      full_name: fullName(data),
+      full_name: personFullName(data),
       birthdate: data.birthdate ?? null,
       full_address: data.full_address ?? null,
       inn: data.details?.inn ?? null,
@@ -114,7 +111,7 @@ export class VerificationIdentityService {
       full_address: data.full_address ?? null,
       inn: data.details?.inn ?? null,
       ogrn: data.details?.ogrn ?? null,
-      representative_name: fullName(rep) || null,
+      representative_name: personFullName(rep) || null,
       representative_position: rep.position ?? null,
       representative_based_on: rep.based_on ?? null,
     };

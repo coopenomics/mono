@@ -8,7 +8,7 @@ import { ExtensionLogDTO } from '../dto/extension-log.dto';
 import { GetExtensionLogsInputDTO } from '../dto/get-extension-logs-input.dto';
 import { ExtensionInteractor } from '~/application/appstore/interactors/extension.interactor';
 import { ExtensionListingInteractor } from '~/application/appstore/interactors/extension-listing.interactor';
-import { LOG_EXTENSION_REPOSITORY, LogExtensionDomainRepository, PaginationInputDTO } from '@coopenomics/extension-kit';
+import { LOG_EXTENSION_REPOSITORY, LogExtensionDomainRepository, PaginationInputDTO, DomainError } from '@coopenomics/extension-kit';
 import type {
   LogExtensionFilter,
   LogExtensionPaginationOptions,
@@ -40,7 +40,7 @@ export class AppManagementService<TConfig = any> {
     await this.extensionInteractor.installApp(data);
     // Собираем DTO из нового listingInteractor
     const app = await this.listingInteractor.getCombinedApp(data.name);
-    if (!app) throw new Error('Не удалось собрать данные о расширении');
+    if (!app) throw DomainError.internal('APPSTORE_EXTENSION_DATA_COLLECTION_FAILED');
     return app;
   }
 
@@ -56,7 +56,7 @@ export class AppManagementService<TConfig = any> {
     await this.extensionInteractor.updateApp(data);
 
     const app = await this.listingInteractor.getCombinedApp(data.name);
-    if (!app) throw new Error('Не удалось собрать данные о расширении');
+    if (!app) throw DomainError.internal('APPSTORE_EXTENSION_DATA_COLLECTION_FAILED');
     return app;
   }
 

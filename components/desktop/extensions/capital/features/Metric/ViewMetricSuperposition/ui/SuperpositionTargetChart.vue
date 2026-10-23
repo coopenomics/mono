@@ -60,6 +60,7 @@ import {
   layoutSectorLabel,
   type PolarSector,
 } from '../lib/superpositionPolar';
+import { t } from '../../../../i18n';
 
 const props = withDefaults(
   defineProps<{
@@ -82,7 +83,7 @@ const props = withDefaults(
     coreR: 18,
     coreFill: 'var(--p-surface)',
     gradPrefix: '',
-    ariaLabel: 'Мишень резонанса',
+    ariaLabel: t('capital.superpositionTargetChart.label'),
   },
 );
 

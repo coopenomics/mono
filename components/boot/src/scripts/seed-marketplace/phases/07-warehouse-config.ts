@@ -12,6 +12,7 @@
  * Идемпотентна: если обе опции уже включены — no-op.
  */
 import { Client, Mutations, Queries } from '@coopenomics/sdk'
+import { loginChairman } from '../../lib/chairman-login'
 import Blockchain from '../../../blockchain'
 import config from '../../../configs'
 
@@ -36,7 +37,7 @@ export async function phase07(): Promise<void> {
     wif,
     username: CHAIRMAN,
   })
-  await client.login(CHAIRMAN_EMAIL, wif)
+  await loginChairman(client, CHAIRMAN_EMAIL, wif)
 
   const listed = await client.Query(Queries.Extensions.GetExtensions.query, {
     variables: { data: { name: EXTENSION } },

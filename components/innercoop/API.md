@@ -9,13 +9,19 @@
 экспорта, исчезнувший метод, новый обязательный параметр требуют major, а
 снятое старое — периода устаревания не меньше одного minor (INV-009).
 
-Всего экспортов: 258.
+Всего экспортов: 336.
 
 ## ACCOUNT_PORT
 
 `const` · core-ports
 
 - `Symbol.for('Innercoop.CorePort.Account')`
+
+## ACCOUNTING_REGISTRY_PORT
+
+`const` · core-ports
+
+- `Symbol.for('Innercoop.CorePort.AccountingRegistry')`
 
 ## AGREEMENT_CATALOG_PORT
 
@@ -45,6 +51,18 @@
 `const` · cross-plugin-ports
 
 
+## CHAIN_CHANGES_PORT
+
+`const` · core-ports
+
+- `Symbol.for('Innercoop.CorePort.ChainChanges')`
+
+## CHAIN_DELTA_WAIT_PORT
+
+`const` · core-ports
+
+- `Symbol.for('Innercoop.CorePort.ChainDeltaWait')`
+
 ## CHAIN_PORT
 
 `const` · core-ports
@@ -56,6 +74,12 @@
 `const` · core-ports
 
 - `Symbol.for('Innercoop.CorePort.ChainResources')`
+
+## CHAIRMAN_APPROVALS_PORT
+
+`const` · cross-plugin-ports
+
+- `Symbol.for('Innercoop.CrossPlugin.ChairmanApprovals')`
 
 ## CHATCOOP_CALENDAR_PORT
 
@@ -78,6 +102,12 @@
 `const` · cross-plugin-ports
 
 - `Symbol.for('Innercoop.CrossPlugin.CoopCalendarEventNotification')`
+
+## COOP_CREDENTIAL_PORT
+
+`const` · core-ports
+
+- `Symbol.for('Innercoop.CorePort.CoopCredential')`
 
 ## COOPERATIVE_VARS_PORT
 
@@ -132,11 +162,29 @@
 - `decision_date?: string`
 - `metadata: Record<string, any>`
 
+## DESKTOP_GRANTS_FILTER_REGISTRY_PORT
+
+`const` · hooks
+
+- `Symbol.for('Innercoop.CorePort.DesktopGrantsFilterRegistry')`
+
 ## DESKTOP_GRANTS_REGISTRY_PORT
 
 `const` · hooks
 
 - `Symbol.for('Innercoop.CorePort.DesktopGrantsRegistry')`
+
+## DOCUMENT_APPROVAL_PORT
+
+`const` · core-ports
+
+- `Symbol.for('Innercoop.CorePort.DocumentApproval')`
+
+## DOCUMENT_DECLARATION_PORT
+
+`const` · core-ports
+
+- `Symbol.for('Innercoop.CorePort.DocumentDeclaration')`
 
 ## DOCUMENT_PORT
 
@@ -189,6 +237,23 @@
 
 - `Symbol.for('Innercoop.CorePort.FreeDecision')`
 
+## GLOBAL_SEARCH_REGISTRY_PORT
+
+`const` · hooks
+
+- `Symbol.for('Innercoop.CorePort.GlobalSearchRegistry')`
+
+## IAccountingRegistryPort
+
+`interface` · core-ports
+
+- `ledgerAccounts(coopname: string): Promise<InnerRegistryRecord[]>`
+- `ledgerWallets(coopname: string): Promise<InnerRegistryRecord[]>`
+- `ledgerHistory(input: InnerRegistryRecord): Promise<InnerRegistryRecord>`
+- `ledgerPostings(input: InnerRegistryRecord): Promise<InnerRegistryRecord>`
+- `process(hash: string, coopname: string): Promise<InnerRegistryRecord>`
+- `processes(filter: InnerRegistryRecord, pagination: InnerRegistryRecord): Promise<InnerRegistryRecord>`
+
 ## IAccountPort
 
 `interface` · core-ports
@@ -236,6 +301,23 @@
 - `project_hash: string`
 - `matrix_room_id: string`
 
+## IChainChangesPort
+
+`interface` · core-ports
+
+- `declareTables(tables: InnerChainChangesTable[]): void`
+- `declareLocalTables(tables: InnerChainChangesTable[]): void`
+- `setStaff(code: string, usernames: string[]): void`
+- `publishLocal(table: string, primary_key: string, row?: Record<string, unknown>): Promise<void>`
+
+## IChainDeltaWaitPort
+
+`interface` · core-ports
+
+- `afterTransact(transactResult: unknown, waits: InnerChainTxWait[]): Promise<boolean>`
+- `blockOf(transactResult: unknown): number`
+- `waitForDelta(query: InnerChainDeltaWaitQuery): Promise<InnerChainDelta | null>`
+
 ## IChainPort
 
 `interface` · core-ports
@@ -257,7 +339,13 @@
 `interface` · core-ports
 
 - `getAccount(username: string): Promise<InnerChainAccountResources | null>`
-- `powerUp(username: string, quantity: string): Promise<void>`
+- `powerUp(username: string, quantity: string): Promise<string>`
+
+## IChairmanApprovalsPort
+
+`interface` · cross-plugin-ports
+
+- `list(query: InnerChairmanApprovalsQuery): Promise<InnerChairmanApproval[]>`
 
 ## IChatCoopCalendarPort
 
@@ -288,6 +376,15 @@
 - `notifyEventCreated(input: InnerCoopCalendarEventNotificationInput): Promise<void>`
 - `notifyEventUpdated(input: InnerCoopCalendarEventNotificationInput): Promise<void>`
 
+## ICoopCredentialPort
+
+`interface` · core-ports
+
+- `signWithCertKey(message: Uint8Array): Promise<string>`
+- `getTrustChain(): Promise<InnerEndorsementCredential[]>`
+- `getChainId(): Promise<string>`
+- `getPermissionKey(account: string, permission: string): Promise<string | null>`
+
 ## ICooperativeVarsPort
 
 `interface` · core-ports
@@ -317,6 +414,20 @@
 - `deactivateRule(id: string): Promise<void>`
 - `deleteRule(id: string): Promise<void>`
 
+## IDesktopGrantsFilterHook
+
+`interface` · hooks
+
+- `readonly extensionName: string`
+- `filterGrants(target: InnerDesktopGrantsFilterTarget, context: InnerDesktopGrantsContext): Promise<readonly string[]>`
+
+## IDesktopGrantsFilterRegistryPort
+
+`interface` · hooks
+
+- `register(filter: IDesktopGrantsFilterHook): void`
+- `unregister(extensionName: string): void`
+
 ## IDesktopGrantsHook
 
 `interface` · hooks
@@ -329,6 +440,20 @@
 `interface` · hooks
 
 - `register(provider: IDesktopGrantsHook): void`
+
+## IDocumentApprovalPort
+
+`interface` · core-ports
+
+- `proposeOnboardingStep(input: InnerProposeOnboardingStepInput): Promise<InnerOnboardingStepProposal | null>`
+- `isStepApproved(extension_name: string, step_key: string): Promise<boolean>`
+
+## IDocumentDeclarationPort
+
+`interface` · core-ports
+
+- `registerDocuments(declarations: InnerDocumentDeclaration[]): Promise<void>`
+- `unregisterByExtension(extension_name: string): Promise<void>`
 
 ## IDocumentPort
 
@@ -366,6 +491,7 @@
 `interface` · core-ports
 
 - `get<T = Record<string, any>>(extensionName: string): Promise<T | null>`
+- `isEnabled(extensionName: string): Promise<boolean>`
 
 ## IExtensionDatabasePort
 
@@ -390,6 +516,23 @@
 - `): Promise<InnerFreeDecisionDocument>`
 - `publishProjectOfFreeDecision(data: InnerPublishProjectFreeDecisionInput): Promise<boolean>`
 
+## IGlobalSearchHook
+
+`interface` · hooks
+
+- `readonly extensionName: string`
+- `readonly key: string`
+- `readonly title: string`
+- `readonly icon: string`
+- `readonly order: number`
+- `search(query: string, context: InnerGlobalSearchContext, limit: number): Promise<InnerGlobalSearchHit[]>`
+
+## IGlobalSearchRegistryPort
+
+`interface` · hooks
+
+- `register(provider: IGlobalSearchHook): void`
+
 ## IIndividualPort
 
 `interface` · core-ports
@@ -409,6 +552,7 @@
 
 - `getHistory(filter: InnerLedger2HistoryFilter): Promise<InnerLedger2HistoryResult>`
 - `getAccounts(coopname: string): Promise<InnerLedger2Account[]>`
+- `getWallets(coopname: string): Promise<InnerLedger2Wallet[]>`
 
 ## ILoggerPort
 
@@ -443,6 +587,13 @@
 - `getMeets(data: InnerGetMeetsInput, username?: string): Promise<InnerMeet[]>`
 - `getMeet(data: InnerGetMeetInput, username?: string): Promise<InnerMeet>`
 - `getMeetDraft(hash: string): Promise<InnerMeetDraft | null>`
+
+## IMemberExitRegistryPort
+
+`interface` · core-ports
+
+- `registerExitBlockers(provider: InnerExitBlockersProvider): void`
+- `unregisterExitBlockersByExtension(extensionName: string): void`
 
 ## IMessageChannelPort
 
@@ -485,6 +636,7 @@
 - `initial_order?: string`
 - `subscriber_id: string`
 - `subscriber_hash: string`
+- `created_at?: string`
 
 ## IMutationLogPort
 
@@ -546,6 +698,22 @@
 - `order: number`
 - `extension_name: string`
 - `resolve_doc_data_hash?: () => Promise<string | undefined>`
+
+## InnerAssignableRole
+
+`interface` · core-ports
+
+- `key: string`
+- `title: string`
+- `description: string`
+- `permissions: readonly InnerRolePermission[]`
+
+## InnerAttachedRole
+
+`interface` · core-ports
+
+- `key: string`
+- `permissions: readonly InnerRolePermission[]`
 
 ## InnerBankTransferData
 
@@ -670,6 +838,70 @@
 - `repeat?: boolean`
 - `created_at?: Date`
 
+## InnerChainChangesTable
+
+`interface` · core-ports
+
+- `code: string`
+- `table: string`
+- `owner_field?: string`
+- `staff_only?: boolean`
+
+## InnerChainDelta
+
+`interface` · core-ports
+
+- `code: string`
+- `scope: string`
+- `table: string`
+- `primary_key: string`
+- `block_num: number`
+- `present: boolean`
+- `value?: Record<string, unknown>`
+
+## InnerChainDeltaWaitQuery
+
+`interface` · core-ports
+
+- `code: string`
+- `table?: string`
+- `scope?: string`
+- `minBlockNum: number`
+- `match?: (delta: InnerChainDelta) => boolean`
+- `timeoutMs?: number`
+
+## InnerChainTxWait
+
+`type` · core-ports
+
+- `Omit<InnerChainDeltaWaitQuery, 'minBlockNum'>`
+
+## InnerChairmanApproval
+
+`interface` · cross-plugin-ports
+
+- `approval_hash: string`
+- `coopname: string`
+- `username: string`
+- `action: string`
+- `status: InnerChairmanApprovalStatus`
+- `created_at: string`
+
+## InnerChairmanApprovalsQuery
+
+`interface` · cross-plugin-ports
+
+- `coopname: string`
+- `actions: string[]`
+- `usernames?: string[]`
+- `statuses?: InnerChairmanApprovalStatus[]`
+
+## InnerChairmanApprovalStatus
+
+`type` · cross-plugin-ports
+
+- `'pending' | 'approved' | 'declined'`
+
 ## InnerCompletedCallTranscriptionHead
 
 `interface` · cross-plugin-ports
@@ -754,6 +986,24 @@
 - `expired_at?: string`
 - `[key: string]: any`
 
+## InnerCreateWithdrawInput
+
+`interface` · core-ports
+
+- `coopname: string`
+- `username: string`
+- `quantity: number`
+- `symbol: string`
+- `method_id: string`
+- `payment_hash: string`
+- `statement: ISignedDocument`
+
+## InnerCreateWithdrawResult
+
+`interface` · core-ports
+
+- `withdraw_hash: string`
+
 ## InnerDesktopGrantsContext
 
 `interface` · hooks
@@ -764,6 +1014,13 @@
 - `userStatus?: string`
 - `config?: Record<string, any>`
 
+## InnerDesktopGrantsFilterTarget
+
+`interface` · hooks
+
+- `extensionName: string`
+- `grants: readonly string[]`
+
 ## InnerDocumentAggregate
 
 `interface` · core-ports
@@ -771,6 +1028,31 @@
 - `hash: string`
 - `document: ISignedDocument & Record<string, any>`
 - `rawDocument?: InnerGeneratedDocument`
+
+## InnerDocumentApproval
+
+`type` · core-ports
+
+- `'required' | 'none'`
+
+## InnerDocumentDeclaration
+
+`interface` · core-ports
+
+- `extension_name: string`
+- `registry_id: number`
+- `kind: InnerDocumentKind`
+- `approval: InnerDocumentApproval`
+- `bundle?: string`
+- `vars_field?: string`
+- `title?: string`
+- `order: number`
+
+## InnerDocumentKind
+
+`type` · core-ports
+
+- `'agreement' | 'provision' | 'form' | 'service'`
 
 ## InnerDocumentValidation
 
@@ -782,6 +1064,12 @@
 - `original_found: boolean`
 - `hash_matches: boolean`
 - `signatures_valid: boolean`
+
+## InnerEndorsementCredential
+
+`type` · core-ports
+
+- `string`
 
 ## InnerEnsureProgramParams
 
@@ -798,6 +1086,35 @@
 
 - `created: boolean`
 - `program_id: number`
+
+## InnerEntrepreneurLookupRecord
+
+`interface` · hooks
+
+- `last_name?: string`
+- `first_name?: string`
+- `middle_name?: string`
+- `city?: string`
+- `details: {`
+- `inn: string`
+- `ogrn?: string`
+- `}`
+
+## InnerExitBlockersProvider
+
+`interface` · core-ports
+
+- `extension_name: string`
+- `blockers(coopname: string, username: string): Promise<string[]>`
+- `pendingReturns?(coopname: string, username: string): Promise<InnerExitPendingReturn[]>`
+
+## InnerExitPendingReturn
+
+`interface` · core-ports
+
+- `wallet_name: string`
+- `human_name: string`
+- `amount: string`
 
 ## InnerExpenseCallbackHandler
 
@@ -1086,6 +1403,33 @@
 - `coopname: string`
 - `username?: string`
 
+## InnerGlobalSearchContext
+
+`interface` · hooks
+
+- `coopname: string`
+- `username: string`
+- `userRole?: string`
+- `userStatus?: string`
+
+## InnerGlobalSearchHit
+
+`interface` · hooks
+
+- `key: string`
+- `title: string`
+- `subtitle?: string`
+- `icon?: string`
+- `route: InnerGlobalSearchRoute`
+
+## InnerGlobalSearchRoute
+
+`interface` · hooks
+
+- `name: string`
+- `params?: Record<string, string>`
+- `query?: Record<string, string>`
+
 ## InnerIndividual
 
 `interface` · core-ports
@@ -1099,6 +1443,39 @@
 - `phone: string`
 - `email: string`
 - `passport?: InnerPassport`
+
+## InnerIntakeFormRegistration
+
+`interface` · core-ports
+
+- `id: string`
+- `extension_name: string`
+- `title: string`
+- `description?: string`
+- `schema: InnerIntakeJsonSchema`
+- `applicable_account_types: InnerAccountType[]`
+- `order: number`
+
+## InnerIntakeJsonSchema
+
+`interface` · core-ports
+
+- `properties?: Record<string, InnerIntakeJsonSchemaProperty>`
+
+## InnerIntakeJsonSchemaProperty
+
+`interface` · core-ports
+
+- `type?: string`
+- `description?: unknown`
+- `enum?: unknown[]`
+- `minLength?: number`
+- `maxLength?: number`
+- `minimum?: number`
+- `maximum?: number`
+- `properties?: Record<string, InnerIntakeJsonSchemaProperty>`
+- `required?: string[]`
+- `[key: string]: unknown`
 
 ## InnerKeyPermission
 
@@ -1164,6 +1541,14 @@
 - `memo?: string | null`
 - `parentApplyGlobalSequence?: string | null`
 - `createdAt: Date`
+
+## InnerLedger2Wallet
+
+`interface` · core-ports
+
+- `id: string`
+- `name: string`
+- `available: string`
 
 ## InnerLogMeta
 
@@ -1338,6 +1723,14 @@
 - `default_title?: string`
 - `order: number`
 
+## InnerOnboardingStepProposal
+
+`interface` · core-ports
+
+- `hash: string | null`
+- `registry_ids: number[]`
+- `approved: boolean`
+
 ## InnerOrganization
 
 `interface` · core-ports
@@ -1362,6 +1755,31 @@
 - `inn: string`
 - `ogrn: string`
 - `kpp: string`
+
+## InnerOrganizationLookupRecord
+
+`interface` · hooks
+
+- `short_name?: string`
+- `full_name?: string`
+- `type?: InnerOrganizationType`
+- `represented_by?: InnerOrganizationLookupRepresentative`
+- `city?: string`
+- `full_address?: string`
+- `details: {`
+- `inn: string`
+- `ogrn?: string`
+- `kpp?: string`
+- `}`
+
+## InnerOrganizationLookupRepresentative
+
+`interface` · hooks
+
+- `last_name?: string`
+- `first_name?: string`
+- `middle_name?: string`
+- `position?: string`
 
 ## InnerOrganizationType
 
@@ -1421,6 +1839,7 @@
 - `account_type: string`
 - `blagorost_offer_hash?: string`
 - `generator_offer_hash?: string`
+- `intake_answers?: Record<string, Record<string, unknown>>`
 
 ## InnerPassport
 
@@ -1567,6 +1986,7 @@
 - `requirements?: string`
 - `applicable_account_types: InnerAccountType[]`
 - `agreement_ids: string[]`
+- `intake_form_ids?: string[]`
 - `order: number`
 - `extension_name: string`
 
@@ -1607,6 +2027,25 @@
 - `matrixRoomId: string`
 - `displayLabel: string`
 
+## InnerProposeOnboardingStepInput
+
+`interface` · core-ports
+
+- `extension_name: string`
+- `step_key: string`
+- `username: string`
+- `title?: string`
+- `doc_data_hash?: string`
+
+## InnerProviderTariff
+
+`interface` · core-ports
+
+- `code: string`
+- `docflow_axon: number`
+- `daily_axon: number`
+- `trial_days: number`
+
 ## InnerPublishProjectFreeDecisionInput
 
 `interface` · core-ports
@@ -1615,6 +2054,19 @@
 - `username: string`
 - `meta: string`
 - `document: ISignedDocument`
+
+## InnerRegistrationOfferFilterContext
+
+`interface` · hooks
+
+- `coopname?: string`
+- `accountType?: InnerAccountType | string`
+
+## InnerRegistryRecord
+
+`type` · core-ports
+
+- `Record<string, any>`
 
 ## InnerRepresentative
 
@@ -1625,6 +2077,38 @@
 - `middle_name: string`
 - `position: string`
 - `based_on: string`
+
+## InnerRobotDecisionOutcome
+
+`type` · cross-plugin-ports
+
+- `| 'authorized' | 'declined' | 'pending' | 'manual' | 'failed'`
+
+## InnerRobotDecisionRequest
+
+`interface` · cross-plugin-ports
+
+- `coopname: string`
+- `decision_id: number`
+- `decision_type: string`
+- `decision_hash: string`
+- `username: string`
+
+## InnerRobotDecisionResult
+
+`interface` · cross-plugin-ports
+
+- `outcome: InnerRobotDecisionOutcome`
+- `tx_hash?: string`
+- `detail?: string`
+
+## InnerRolePermission
+
+`interface` · core-ports
+
+- `title: string`
+- `access: 'read' | 'write'`
+- `rights: readonly string[]`
 
 ## InnerRoomMessageKind
 
@@ -1783,6 +2267,21 @@
 - `registerStep(step: InnerOnboardingStep): void`
 - `unregisterStepsByExtension(extensionName: string): void`
 
+## IOrganizationLookupHook
+
+`interface` · hooks
+
+- `readonly extensionName: string`
+- `readonly country: string`
+- `findByInn(inn: string): Promise<InnerOrganizationLookupRecord | null>`
+- `findEntrepreneurByInn?(inn: string): Promise<InnerEntrepreneurLookupRecord | null>`
+
+## IOrganizationLookupRegistryPort
+
+`interface` · hooks
+
+- `register(provider: IOrganizationLookupHook): void`
+
 ## IOrganizationPort
 
 `interface` · core-ports
@@ -1797,6 +2296,7 @@
 - `getPayments(filters: InnerPaymentFilters, page: InnerPageRequest): Promise<InnerPage<InnerPayment>>`
 - `setPaymentStatus(input: InnerSetPaymentStatusInput): Promise<InnerPayment>`
 - `createSystemOutgoingPayment(input: InnerSystemOutgoingPaymentInput): Promise<InnerPayment>`
+- `confirmers(): Promise<string[]>`
 
 ## IPaymentMethodPort
 
@@ -1860,6 +2360,13 @@
 - `generateStorageAgreementParameters(coopname: string, username: string): Promise<void>`
 - `generateBlagorostAgreementParametersIfNotExist(coopname: string, username: string): Promise<void>`
 
+## IProgramOfferParametersHook
+
+`interface` · hooks
+
+- `readonly programKey: string`
+- `generateOfferParameters(coopname: string, username: string): Promise<void>`
+
 ## IProgramWalletPort
 
 `interface` · core-ports
@@ -1897,6 +2404,12 @@
 - `getMaxCompletedEndedAtForRooms(matrixRoomIds: string[]): Promise<Date | null>`
 - `renderCompletedCallTranscriptionMarkdown(transcriptionId: string): Promise<string | null>`
 
+## IProviderTariffPort
+
+`interface` · core-ports
+
+- `currentTariff(coopname: string): Promise<InnerProviderTariff | null>`
+
 ## IRealtimeChannelPort
 
 `interface` · core-ports
@@ -1910,6 +2423,25 @@
 
 - `registerProgramHook(hook: IProgramDocumentParametersHook): void`
 - `registerMarketplaceHook(hook: IMarketplaceDocumentParametersHook): void`
+- `registerProgramOfferHook(hook: IProgramOfferParametersHook): void`
+
+## IRegistrationOfferFilterHook
+
+`interface` · hooks
+
+- `readonly extensionName: string`
+- `filterPrograms(programs: readonly InnerProgramRegistration[], context: InnerRegistrationOfferFilterContext): readonly string[]`
+- `filterAgreements(`
+- `agreements: readonly InnerAgreementRegistration[],`
+- `context: InnerRegistrationOfferFilterContext`
+- `): readonly string[]`
+
+## IRegistrationOfferFilterRegistryPort
+
+`interface` · hooks
+
+- `register(filter: IRegistrationOfferFilterHook): void`
+- `unregister(extensionName: string): void`
 
 ## IRegistrationRegistryPort
 
@@ -1919,6 +2451,17 @@
 - `unregisterAgreement(id: string, extensionName: string): void`
 - `registerProgram(spec: InnerProgramRegistration): void`
 - `unregisterProgram(key: string, extensionName: string): void`
+- `registerIntakeForm(spec: InnerIntakeFormRegistration): void`
+- `unregisterIntakeForm(id: string, extensionName: string): void`
+
+## IRoleAssignmentsPort
+
+`interface` · core-ports
+
+- `declare(extensionName: string, roles: readonly InnerAssignableRole[]): void`
+- `attach(extensionName: string, roles: readonly InnerAttachedRole[]): void`
+- `rolesOf(extensionName: string, username: string): Promise<string[]>`
+- `holdersOf(extensionName: string, role: string): Promise<string[]>`
 
 ## ISecretCipherPort
 
@@ -1944,6 +2487,20 @@
 `type` · core-ports
 
 - `{ version: string`
+
+## ISovietRobotPort
+
+`interface` · cross-plugin-ports
+
+- `isEnabled(): Promise<boolean>`
+- `requestDecision(input: InnerRobotDecisionRequest): Promise<InnerRobotDecisionResult>`
+
+## IUserAvatarPort
+
+`interface` · core-ports
+
+- `getAvatarUrl(username: string): Promise<string | null>`
+- `getAvatarUrls(usernames: string[]): Promise<Map<string, string>>`
 
 ## IUserCertificatePort
 
@@ -1995,6 +2552,12 @@
 - `getVerificationTypes(username: string): Promise<InnerVerificationEntry[]>`
 - `checkRequired(username: string, actionCode: string): Promise<InnerVerificationCheck>`
 
+## IWalletWithdrawPort
+
+`interface` · core-ports
+
+- `createWithdraw(input: InnerCreateWithdrawInput): Promise<InnerCreateWithdrawResult>`
+
 ## LEDGER2_HISTORY_PORT
 
 `const` · core-ports
@@ -2018,6 +2581,12 @@
 `const` · core-ports
 
 - `Symbol.for('Innercoop.CorePort.Meet')`
+
+## MEMBER_EXIT_REGISTRY_PORT
+
+`const` · core-ports
+
+- `Symbol.for('Innercoop.CorePort.MemberExitRegistry')`
 
 ## MESSAGE_CHANNEL_PORT
 
@@ -2061,6 +2630,12 @@
 `const` · core-ports
 
 - `Symbol.for('Innercoop.CorePort.OnboardingStepRegistry')`
+
+## ORGANIZATION_LOOKUP_REGISTRY_PORT
+
+`const` · hooks
+
+- `Symbol.for('Innercoop.CorePort.OrganizationLookupRegistry')`
 
 ## ORGANIZATION_PORT
 
@@ -2175,6 +2750,8 @@
 - `GENERATION = 'GENERATION',`
 - `CAPITALIZATION = 'CAPITALIZATION',`
 - `MARKETPLACE = 'MARKETPLACE',`
+- `EDUCATION = 'EDUCATION',`
+- `EDUCATION_TEACHING = 'EDUCATION_TEACHING',`
 - `UNDEFINED = 'UNDEFINED',`
 
 ## ProgramType
@@ -2198,6 +2775,12 @@
 
 - `Symbol.for('Innercoop.CrossPlugin.ProjectCommunicationArtifacts')`
 
+## PROVIDER_TARIFF_PORT
+
+`const` · core-ports
+
+- `Symbol.for('Innercoop.CorePort.ProviderTariff')`
+
 ## REALTIME_CHANNEL_PORT
 
 `const` · core-ports
@@ -2210,17 +2793,49 @@
 
 - `Symbol.for('Innercoop.CorePort.RegistrationDocumentParametersRegistry')`
 
+## REGISTRATION_OFFER_FILTER_REGISTRY_PORT
+
+`const` · hooks
+
+- `Symbol.for('Innercoop.CorePort.RegistrationOfferFilterRegistry')`
+
 ## REGISTRATION_REGISTRY_PORT
 
 `const` · core-ports
 
 - `Symbol.for('Innercoop.CorePort.RegistrationRegistry')`
 
+## ROLE_ASSIGNMENT_CHANGED_EVENT
+
+`const` · core-ports
+
+- `Symbol.for('Innercoop.CorePort.RoleAssignments')`
+
+## ROLE_ASSIGNMENTS_PORT
+
+`const` · core-ports
+
+- `Symbol.for('Innercoop.CorePort.RoleAssignments')`
+
+## RoleAssignmentChangedEvent
+
+`interface` · core-ports
+
+- `extensionName: string`
+- `role: string`
+- `username: string`
+
 ## SECRET_CIPHER_PORT
 
 `const` · core-ports
 
 - `Symbol.for('Innercoop.CorePort.SecretCipher')`
+
+## SOVIET_ROBOT_PORT
+
+`const` · cross-plugin-ports
+
+- `Symbol.for('Innercoop.CrossPlugin.SovietRobot')`
 
 ## TrackingRule
 
@@ -2233,6 +2848,12 @@
 - `metadata: Record<string, any>`
 - `active: boolean`
 - `created_at: Date`
+
+## USER_AVATAR_PORT
+
+`const` · core-ports
+
+- `Symbol.for('Innercoop.CorePort.UserAvatar')`
 
 ## USER_CERTIFICATE_PORT
 
@@ -2275,3 +2896,9 @@
 `const` · core-ports
 
 - `Symbol.for('Innercoop.CorePort.Verification')`
+
+## WALLET_WITHDRAW_PORT
+
+`const` · core-ports
+
+- `Symbol.for('Innercoop.CorePort.WalletWithdraw')`

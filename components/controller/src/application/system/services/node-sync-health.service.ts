@@ -7,6 +7,7 @@ import { PUB_SUB } from '~/infrastructure/pubsub/pubsub.module';
 import { REDIS_PORT, type RedisPort } from '~/domain/common/ports/redis.port';
 import { BLOCKCHAIN_PORT, type BlockchainPort } from '~/domain/common/ports/blockchain.port';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
+import { PlatformMetricsService } from '~/application/metrics/platform-metrics.service';
 import { NodeSyncStateDTO } from '../dto/node-sync-state.dto';
 import { NodeSyncOutage, NodeSyncStatus } from '../enum/node-sync-status.enum';
 
@@ -54,7 +55,8 @@ export class NodeSyncHealthService {
     private readonly logger: WinstonLoggerService,
     @Inject(PUB_SUB) private readonly pubSub: PubSub,
     @Inject(REDIS_PORT) private readonly redis: RedisPort,
-    @Inject(BLOCKCHAIN_PORT) private readonly blockchain: BlockchainPort
+    @Inject(BLOCKCHAIN_PORT) private readonly blockchain: BlockchainPort,
+    private readonly metrics: PlatformMetricsService
   ) {
     this.logger.setContext(NodeSyncHealthService.name);
   }
@@ -72,6 +74,10 @@ export class NodeSyncHealthService {
     try {
       const next = await this.computeState();
       this.state = next;
+      // Отдаём посчитанное в метрики отсюда, а не считаем второй раз в сервисе
+      // метрик: голова цепи и позиция чтения уже здесь, а повторный опрос был бы
+      // лишним запросом в цепь и вторым источником правды о том же числе.
+      this.metrics.recordNodeSync(next);
       if (this.shouldPublish(next)) {
         this.publishedState = next;
         await this.pubSub.publish(NODE_SYNC_STATE_TOPIC, { nodeSyncState: next });

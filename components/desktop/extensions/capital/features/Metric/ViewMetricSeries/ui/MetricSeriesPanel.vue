@@ -38,10 +38,10 @@
         )
           | {{ mode.label }}
           q-tooltip {{ mode.hint }}
-      .metric-series__scale.t-sm.t-muted Дни
+      .metric-series__scale.t-sm.t-muted {{ $t('capital.metricSeriesPanel.daysLabel') }}
 
   .metric-series__empty(v-else-if='!isLoading')
-    EmptyState(title='Пока нет точек ряда — закройте задачу с привязкой метрики')
+    EmptyState(:title='$t("capital.metricSeriesPanel.emptyHint")')
       template(#icon)
         q-icon(name='timeline', size='28px')
 
@@ -73,6 +73,7 @@ import {
   roundMetric,
   scenarioPathsFromWave,
 } from '../lib/projectMetricForecast';
+import { t } from '../../../../i18n';
 
 type ChartMode = 'accumulation' | 'dynamics';
 
@@ -107,16 +108,16 @@ const levelMode = computed(() =>
 /** RATE — накопление дельт; LEVEL — текущий уровень (вес и т.п.). */
 const chartModes = computed(() => [
   {
-    label: levelMode.value ? 'Уровень' : 'Накопление',
+    label: levelMode.value ? t('capital.metricSeriesPanel.levelTab') : t('capital.metricSeriesPanel.accumulationTab'),
     value: 'accumulation' as ChartMode,
     hint: levelMode.value
-      ? 'Уровень и прогноз к цели'
-      : 'Накопление и прогноз к цели',
+      ? t('capital.metricSeriesPanel.levelTooltip')
+      : t('capital.metricSeriesPanel.accumulationTooltip'),
   },
   {
-    label: 'Динамика',
+    label: t('capital.metricSeriesPanel.dynamicsTab'),
     value: 'dynamics' as ChartMode,
-    hint: 'Изменения и прогноз динамики',
+    hint: t('capital.metricSeriesPanel.dynamicsTooltip'),
   },
 ]);
 
@@ -198,13 +199,13 @@ const accumulationSeries = computed(() => {
   const factData = s.points.map((p) => roundMetric(p.cumulative));
   const result: { name: string; data: Array<number | null> }[] = [
     {
-      name: 'Факт',
+      name: t('capital.metricSeriesPanel.factSeries'),
       data: [...factData, null, null],
     },
   ];
   if (hasIdeal.value) {
     result.push({
-      name: 'План',
+      name: t('capital.metricSeriesPanel.planSeries'),
       data: [
         ...s.points.map((p) =>
           p.ideal_cumulative == null ? null : roundMetric(p.ideal_cumulative),
@@ -254,7 +255,7 @@ const accumulationOptions = computed((): ApexOptions => {
           borderColor: p.warn,
           strokeDashArray: 4,
           label: {
-            text: `Цель ${target}`,
+            text: t('capital.metricSeriesPanel.targetSeries', { target }),
             style: {
               color: p.warn,
               background: 'transparent',
@@ -279,7 +280,7 @@ const dynamicsSeries = computed(() => {
     data: Array<number | null>;
   }[] = [
     {
-      name: 'Изменение',
+      name: t('capital.metricSeriesPanel.changeSeries'),
       type: 'bar',
       data: [...hist, null, null],
     },

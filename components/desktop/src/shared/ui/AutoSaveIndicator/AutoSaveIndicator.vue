@@ -18,6 +18,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { t } from 'src/shared/i18n';
 
 interface Props {
   isAutoSaving?: boolean
@@ -29,8 +30,8 @@ interface Props {
 const props = withDefaults(defineProps<Props>(), {
   isAutoSaving: false,
   autoSaveError: null,
-  savingText: 'Авто-сохранение...',
-  errorText: 'Ошибка сохранения'
+  savingText: t('ui.autoSaveIndicator.saving'),
+  errorText: t('ui.autoSaveIndicator.error')
 })
 
 

@@ -8,6 +8,7 @@ import type {
   IExtensionOnboardingStepState,
   ICompleteExtensionOnboardingStepInput,
 } from './types'
+import { useLiveReload } from 'src/shared/lib/realtime'
 
 export interface IExtensionCooperativeOnboardingController {
   state: Ref<IExtensionOnboardingState | null>
@@ -86,6 +87,10 @@ export function useExtensionCooperativeOnboarding(
     state.value = null
     error.value = null
   }
+
+  // Живое обновление: шаг подключения закрывает решение совета, и экран
+  // узнаёт об этом по ленте изменений (конфигурация расширения в базе узла).
+  useLiveReload([{ code: 'core', table: 'extensions' }], load)
 
   watch(
     () => getExtensionName(),

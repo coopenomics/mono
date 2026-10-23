@@ -1,0 +1,90 @@
+feature: contracts.ram-grant
+title: Контракты платформы сами получают память от сети
+
+# Служебные записи контракта (реестры, счётчики, договоры участия) оплачивает
+# сам контракт, и его квота памяти со временем подходит к концу (C28-78).
+#
+# Контракт непривилегированный и свою квоту узнать не может: вызовы квоты узел
+# разрешает только привилегированным контрактам. Поэтому конструктор общего
+# базового класса coop_contract читает у системного контракта время следующей
+# проверки (eosio::ramwatch) и, когда оно подошло, подаёт inline-заявку
+# eosio::ramreq. Системный контракт сверяет квоту и, если занято не меньше
+# порога, выдаёт память бессрочно из свободного пула сети. Порог, объём,
+# интервал и список контрактов задаёт eosio::setramgrant.
+#
+# Квоту памяти узел сверяет в конце транзакции, после inline-действий, поэтому
+# выданная память успевает и для действия, в котором подана заявка. Заявка не
+# роняет транзакцию ни в одной ветке.
+
+sources:
+  contract:
+    - components/contracts/cpp/lib/core/coop_contract.hpp
+    - components/contracts/cpp/lib/core/ram_watch.hpp
+    - components/contracts/cpp/system/contracts/eosio.system/src/ram_grant.cpp
+
+cases:
+  - id: ram.grant.happy.01
+    level: contract
+    kind: happy
+    scenario: boot разворачивает сеть
+    expect: >
+      выставлена настройка выдачи со списком прикладных контрактов; системных
+      аккаунтов eosio.* в списке нет
+    test: components/boot/src/tests/ram-grant.test.ts
+    status: passing
+
+  - id: ram.grant.happy.02
+    level: contract
+    kind: happy
+    scenario: действие контракта выполняется впервые
+    expect: >
+      контракт подаёт заявку, у него появляется время следующей проверки в
+      будущем, транзакция проходит
+    test: components/boot/src/tests/ram-grant.test.ts
+    status: passing
+
+  - id: ram.grant.happy.03
+    level: contract
+    kind: happy
+    scenario: квота контракта ограничена и занята выше порога
+    expect: >
+      сеть выдаёт контракту объём одной выдачи бессрочно — квота растёт ровно
+      на него, выданное учитывается в расписании
+    test: components/boot/src/tests/ram-grant.test.ts
+    status: passing
+
+  - id: ram.grant.side.01
+    level: contract
+    kind: side
+    scenario: действие контракта до срока следующей проверки
+    expect: заявка не подаётся, время следующей проверки не меняется
+    test: components/boot/src/tests/ram-grant.test.ts
+    status: passing
+
+  - id: ram.grant.break.01
+    level: contract
+    kind: break
+    scenario: >
+      заявка подана до срока в обход конструктора — контракт с дефектом шлёт её
+      на каждом действии
+    expect: системный контракт ничего не выдаёт и не сдвигает срок
+    test: components/boot/src/tests/ram-grant.test.ts
+    status: passing
+
+  - id: ram.grant.break.02
+    level: contract
+    kind: break
+    scenario: заявку подаёт контракт не из списка, с квотой выше порога
+    expect: память не выдаётся, транзакция проходит без отказа
+    test: components/boot/src/tests/ram-grant.test.ts
+    status: passing
+
+  - id: ram.grant.side.02
+    level: contract
+    kind: side
+    scenario: квота контракта не ограничена
+    expect: >
+      выдачи нет — иначе неограниченный контракт стал бы ограниченным меньше
+      занятого
+    test: ~
+    status: missing

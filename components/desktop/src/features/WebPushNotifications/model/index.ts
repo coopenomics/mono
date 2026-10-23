@@ -10,6 +10,7 @@ import type {
   IPushNotificationSupport,
   IGetUserSubscriptionsInput,
 } from 'src/entities/WebPushSubscription';
+import { t } from 'src/shared/i18n';
 
 export function useWebPushNotifications() {
   const store = useWebPushSubscriptionStore();
@@ -75,17 +76,17 @@ export function useWebPushNotifications() {
     try {
       // Проверяем поддержку Push API
       if (!('serviceWorker' in navigator)) {
-        result.error = 'Service Worker не поддерживается';
+        result.error = t('webPushNotifications.model.serviceWorkerUnsupported');
         return result;
       }
 
       if (!('PushManager' in window)) {
-        result.error = 'Push API не поддерживается';
+        result.error = t('webPushNotifications.model.pushApiUnsupported');
         return result;
       }
 
       if (!('Notification' in window)) {
-        result.error = 'Notifications API не поддерживается';
+        result.error = t('webPushNotifications.model.notificationsApiUnsupported');
         return result;
       }
 
@@ -95,7 +96,7 @@ export function useWebPushNotifications() {
       result.hasPermission = Notification.permission === 'granted';
       result.canSubscribe = result.hasPermission && result.isSupported;
     } catch (err) {
-      result.error = `Ошибка проверки поддержки: ${err}`;
+      result.error = t('webPushNotifications.model.supportCheckError', { error: err });
     }
 
     return result;
@@ -108,15 +109,16 @@ export function useWebPushNotifications() {
   const requestPermission = async (): Promise<boolean> => {
     try {
       if (!store.support.isSupported) {
-        throw new Error('Push уведомления не поддерживаются');
+        throw new Error(t('webPushNotifications.error.webpushNotSupported'));
       }
 
       // Добавляем timeout на случай, если пользователь не взаимодействует с диалогом
       const permission = await Promise.race([
         Notification.requestPermission(),
         new Promise<never>((_, reject) => {
+          // timing: timeout — браузер может не ответить на запрос разрешения или готовности service worker
           setTimeout(() => {
-            reject(new Error('Пользователь не ответил на запрос разрешения в течение 30 секунд'));
+            reject(new Error(t('webPushNotifications.error.webpushPermissionTimeout')));
           }, 15000);
         }),
       ]);
@@ -127,14 +129,14 @@ export function useWebPushNotifications() {
         store.support.hasPermission && store.support.isSupported;
 
       if (permission === 'granted') {
-        SuccessAlert('Разрешение на уведомления получено');
+        SuccessAlert(t('webPushNotifications.model.permissionGranted'));
       } else {
-        FailAlert('Разрешение на уведомления отклонено');
+        FailAlert(t('webPushNotifications.model.permissionDenied'));
       }
 
       return permission === 'granted';
     } catch (err) {
-      store.error = `Ошибка запроса разрешения: ${err}`;
+      store.error = t('webPushNotifications.model.permissionRequestError', { error: err });
       FailAlert(err);
       return false;
     }
@@ -169,7 +171,7 @@ export function useWebPushNotifications() {
         'Разрешение сброшено. Теперь можно запросить новое разрешение.',
       );
       SuccessAlert(
-        'Разрешение сброшено. Теперь можно запросить новое разрешение.',
+        t('webPushNotifications.model.permissionReset'),
       );
     } catch (error) {
       console.error('Ошибка сброса разрешения:', error);
@@ -183,7 +185,7 @@ export function useWebPushNotifications() {
   const forceRequestPermission = async (): Promise<boolean> => {
     try {
       if (!store.support.isSupported) {
-        throw new Error('Push уведомления не поддерживаются');
+        throw new Error(t('webPushNotifications.error.webpushNotSupported'));
       }
 
       console.log('Форсированный запрос разрешения...');
@@ -192,8 +194,9 @@ export function useWebPushNotifications() {
       const permission = await Promise.race([
         Notification.requestPermission(),
         new Promise<never>((_, reject) => {
+          // timing: timeout — браузер может не ответить на запрос разрешения или готовности service worker
           setTimeout(() => {
-            reject(new Error('Пользователь не ответил на запрос разрешения в течение 30 секунд'));
+            reject(new Error(t('webPushNotifications.error.webpushPermissionTimeout')));
           }, 30000);
         }),
       ]);
@@ -204,14 +207,14 @@ export function useWebPushNotifications() {
         store.support.hasPermission && store.support.isSupported;
 
       if (permission === 'granted') {
-        SuccessAlert('Разрешение на уведомления получено');
+        SuccessAlert(t('webPushNotifications.model.permissionGranted'));
       } else {
-        FailAlert('Разрешение на уведомления отклонено');
+        FailAlert(t('webPushNotifications.model.permissionDenied'));
       }
 
       return permission === 'granted';
     } catch (err) {
-      store.error = `Ошибка запроса разрешения: ${err}`;
+      store.error = t('webPushNotifications.model.permissionRequestError', { error: err });
       FailAlert(err);
       return false;
     }
@@ -231,7 +234,7 @@ export function useWebPushNotifications() {
       store.subscriptions =
         await webPushSubscriptionApi.getUserWebPushSubscriptions(data);
     } catch (err) {
-      store.error = `Ошибка загрузки подписок: ${err}`;
+      store.error = t('webPushNotifications.model.subscriptionsLoadError', { error: err });
       console.error('Ошибка загрузки подписок:', err);
     } finally {
       store.isLoading = false;
@@ -280,8 +283,9 @@ export function useWebPushNotifications() {
         const registration = await Promise.race([
           navigator.serviceWorker.ready,
           new Promise<never>((_, reject) => {
+            // timing: timeout — браузер может не ответить на запрос разрешения или готовности service worker
             setTimeout(() => {
-              reject(new Error('Service Worker не готов в течение 5 секунд'));
+              reject(new Error(t('webPushNotifications.error.webpushServiceWorkerTimeout')));
             }, 5000);
           }),
         ]);
@@ -319,7 +323,7 @@ export function useWebPushNotifications() {
         // Получаем VAPID ключ из окружения
         const vapidPublicKey = env.VAPID_PUBLIC_KEY;
         if (!vapidPublicKey) {
-          throw new Error('VAPID_PUBLIC_KEY не найден в конфигурации');
+          throw new Error(t('webPushNotifications.error.webpushVapidKeyMissing'));
         }
 
         // Конвертируем VAPID ключ в Uint8Array
@@ -348,7 +352,7 @@ export function useWebPushNotifications() {
     const auth = subscription.getKey('auth');
 
     if (!p256dh || !auth) {
-      throw new Error('Не удалось получить ключи подписки');
+      throw new Error(t('webPushNotifications.error.webpushSubscriptionKeysError'));
     }
 
     return {
@@ -373,7 +377,7 @@ export function useWebPushNotifications() {
       // Проверяем поддержку
       if (!store.support.isSupported) {
         throw new Error(
-          store.support.error || 'Push уведомления не поддерживаются',
+          store.support.error || t('webPushNotifications.model.pushUnsupported'),
         );
       }
       console.log('store.support.hasPermission', store.support.hasPermission);
@@ -422,10 +426,10 @@ export function useWebPushNotifications() {
           store.subscriptions.push(result.subscription);
         }
 
-        SuccessAlert('Подписка на уведомления успешно создана');
+        SuccessAlert(t('webPushNotifications.model.subscribeSuccess'));
         return true;
       } else {
-        throw new Error(result.message || 'Ошибка создания подписки');
+        throw new Error(result.message || t('webPushNotifications.model.subscribeError'));
       }
     } catch (error) {
       console.error('Ошибка подписки:', error);
@@ -448,13 +452,13 @@ export function useWebPushNotifications() {
       // Получаем текущую браузерную подписку
       const registration = await getServiceWorkerRegistration();
       if (!registration) {
-        throw new Error('Service Worker не найден');
+        throw new Error(t('webPushNotifications.error.webpushServiceWorkerNotFound'));
       }
 
       const browserSubscription =
         await registration.pushManager.getSubscription();
       if (!browserSubscription) {
-        throw new Error('Браузерная подписка не найдена');
+        throw new Error(t('webPushNotifications.error.webpushBrowserSubscriptionNotFound'));
       }
 
       // Ищем соответствующую подписку в store по endpoint
@@ -463,7 +467,7 @@ export function useWebPushNotifications() {
       );
 
       if (!correspondingSubscription) {
-        throw new Error('Соответствующая подписка в store не найдена');
+        throw new Error(t('webPushNotifications.error.webpushStoreSubscriptionNotFound'));
       }
 
       // Деактивируем на сервере
@@ -477,7 +481,7 @@ export function useWebPushNotifications() {
       // Отписываемся в браузере
       await browserSubscription.unsubscribe();
 
-      SuccessAlert('Подписка на уведомления отключена');
+      SuccessAlert(t('webPushNotifications.model.unsubscribeSuccess'));
       return true;
     } catch (error) {
       console.error('Ошибка отписки:', error);
@@ -606,6 +610,7 @@ export function useWebPushNotifications() {
               return true;
             }),
             new Promise<boolean>((resolve) => {
+              // timing: timeout — браузер может не ответить на запрос разрешения или готовности service worker
               setTimeout(() => {
                 console.log(
                   'Timeout: Service Worker не готов в течение 3 секунд',

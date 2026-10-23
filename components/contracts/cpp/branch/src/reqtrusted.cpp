@@ -18,8 +18,11 @@
 
   verify_document_or_fail(application);
   verify_document_or_fail(authority);
+  // Заявление и доверенность подписывает сам кандидат в доверенные лица.
+  verify_signer_keys_or_fail(application, username);
+  verify_signer_keys_or_fail(authority, username);
 
-  get_participant_or_fail(coopname, username);
+  get_active_participant_or_fail(coopname, username);
 
   auto br = get_branch_or_fail(coopname, braname);
   eosio::check(br.trustee != username, "Председатель участка не может быть доверенным лицом");
@@ -30,7 +33,7 @@
   auto idx = trustreqs.get_index<"byhash"_n>();
   eosio::check(idx.find(hash) == idx.end(), "Заявка с указанным идентификатором уже существует");
 
-  trustreqs.emplace(coopname, [&](auto &r) {
+  trustreqs.emplace(RamPayer::of(trustreqs, coopname), [&](auto &r) {
     r.id = get_global_id_in_scope(_branch, coopname, "trustreqs"_n);
     r.hash = hash;
     r.coopname = coopname;

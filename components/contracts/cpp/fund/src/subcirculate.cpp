@@ -19,7 +19,7 @@
     eosio::check(wal->circulating_account.available >= quantity,
                 "Недостаточно средств для списания на паевом счете кооператива");
 
-  coopwallet.modify(wal, _fund, [&](auto &w) {
+  coopwallet.modify(wal, RamPayer::of(coopwallet, coopname), [&](auto &w) {
     w.circulating_account.available -= quantity;
     w.circulating_account.withdrawed += quantity;
   });

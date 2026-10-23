@@ -1,8 +1,8 @@
 <template lang="pug">
 CreateDialog(
   ref="dialogRef"
-  title="Инвестирование в проект"
-  submit-text="Инвестировать"
+  :title="$t('capital.createProjectInvestDialog.title')"
+  :submit-text="$t('capital.createProjectInvestDialog.submit')"
   dialog-style="width: 600px; max-width: 100% !important;"
   :is-submitting="isGenerating"
   @submit="handleSubmit"
@@ -12,9 +12,9 @@ CreateDialog(
     q-input(
       v-model='quantity'
       standout='bg-teal text-white'
-      placeholder='Введите сумму инвестиций'
+      :placeholder='$t("capital.createProjectInvestDialog.amountPlaceholder")'
       :min='0'
-      :rules='[(val) => val > 0 || "Сумма инвестиций должна быть положительной"]'
+      :rules='[(val) => val > 0 || $t("capital.createProjectInvestDialog.positiveAmountError")]'
     )
       template(#append)
         span.text-overline {{ currency }}
@@ -27,6 +27,7 @@ import { useCreateProjectInvest } from '../../model';
 import { useSetPlan } from 'app/extensions/capital/features/Project/SetPlan';
 import { FailAlert, SuccessAlert } from 'src/shared/api/alerts';
 import type { IProject } from '../../../../../entities/Project/model';
+import { t } from '../../../../../i18n';
 
 const props = defineProps<{ project: IProject | null | undefined }>();
 
@@ -51,7 +52,7 @@ const clear = (): void => {
 // Обработка инвестирования (генерация + подпись + создание)
 const handleSubmit = async (): Promise<void> => {
   if (!props.project?.project_hash) {
-    FailAlert('Не указан проект');
+    FailAlert(t('capital.createProjectInvestDialog.projectMissingError'));
     return;
   }
 
@@ -63,7 +64,7 @@ const handleSubmit = async (): Promise<void> => {
     );
 
     // Показываем сообщение об успехе и закрываем диалог
-    SuccessAlert('Инвестиция принята успешно');
+    SuccessAlert(t('capital.createProjectInvestDialog.success'));
 
     // Закрываем диалог после успешного создания
     dialogRef.value?.clear();

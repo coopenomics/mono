@@ -5,19 +5,19 @@ q-card.column.no-wrap.edit-req-panel(
   flat
 )
   //- Шапка — тот же паттерн, что ProjectTitleEditor/IssueTitleEditor: outline-textarea
-  //- с иконкой типа в prepend; при изменениях слева undo, справа save; в покое
-  //- справа звёздочка избранного (и close в диалоге)
+  //- с иконкой типа в prepend; при изменениях слева undo; close в диалоге справа.
+  //- Сохранение/редакции/избранное — в EditorSaveBar ниже, как у проекта и компонента
   //- Обёртка и отступы — как у заголовка задачи на IssuePage: .q-px-md.q-pb-sm
   .edit-req-panel__head.q-px-md.q-pb-sm
     q-input.full-width.capital-title-editor-input(
       v-model='localTitle'
-      label='Артефакт'
+      :label='$t("capital.editRequirementPanel.titleFieldLabel")'
       :readonly='!canEdit'
       outline
       type='textarea'
       autogrow
       hide-bottom-space
-      :rules='[(val) => !!val?.trim() || "Заголовок обязателен"]'
+      :rules='[(val) => !!val?.trim() || $t("capital.editRequirementPanel.titleRequiredError")]'
     )
       template(#prepend)
         q-btn(
@@ -31,38 +31,39 @@ q-card.column.no-wrap.edit-req-panel(
           :disable='isSaving'
           @click='resetChanges'
         )
-          q-tooltip Отменить изменения
+          q-tooltip {{ $t('capital.editRequirementPanel.cancelChanges') }}
         q-icon(v-else :name='formatIcon' size='24px' color='primary')
       template(#append)
-        .capital-title-editor-append.column.items-end.justify-center
-          q-btn(
-            v-if='canEdit && hasChanges'
-            round
-            dense
-            color='primary'
-            icon='save'
-            size='sm'
-            :loading='isSaving'
-            :disable='!titleOk'
-            @click='handleSave'
-          )
-            q-tooltip Сохранить изменения
-          .row.items-center.no-wrap(v-else)
-            FavoriteStarButton(
-              v-if='requirement'
-              :target-type='FavoriteTargetType.ARTIFACT'
-              :target-hash='requirement.story_hash'
-            )
-            BaseButton(
-              v-if='variant === "dialog"'
-              variant='ghost'
-              size='sm'
-              icon-only
-              aria-label='Закрыть'
-              @click='handleClose'
-            )
-              template(#icon-left)
-                q-icon(name='close' size='18px')
+        BaseButton(
+          v-if='variant === "dialog"'
+          variant='ghost'
+          size='sm'
+          icon-only
+          :aria-label='$t("common.action.close")'
+          @click='handleClose'
+        )
+          template(#icon-left)
+            q-icon(name='close' size='18px')
+    //- Как у проекта/компонента: состояние слева, справа «Редакции», избранное и «Сохранить» — всегда на месте
+    EditorSaveBar(
+      v-if='requirement'
+      :entity-type='Zeus.CapitalContentEntityType.STORY'
+      :entity-hash='requirement.story_hash'
+      :current-title='localTitle'
+      :current-description='localDescription'
+      :current-rev='currentRev'
+      :can-edit='canEdit'
+      :has-changes='hasChanges && titleOk'
+      :saving='isSaving'
+      :note='saveNote'
+      @save='handleSave'
+      @restored='handleRestored'
+    )
+      template(#actions)
+        FavoriteStarButton(
+          :target-type='FavoriteTargetType.ARTIFACT'
+          :target-hash='requirement.story_hash'
+        )
 
   q-card-section.col.scroll.column.no-wrap.edit-req-panel__body
     template(v-if='requirement && isBpmnFormat')
@@ -96,11 +97,12 @@ q-card.column.no-wrap.edit-req-panel(
       Editor(
         v-model='localDescription'
         :readonly='!canEdit'
-        :placeholder='canEdit ? "Опишите артефакт подробно..." : "Описание отсутствует"'
+        :placeholder='canEdit ? $t("capital.editRequirementPanel.descriptionPlaceholder") : $t("capital.editRequirementPanel.descriptionEmpty")'
         :minHeight='markdownViewportMinHeight'
         :padded='false'
         :show-focus-ring="variant === 'dialog'"
       )
+  ConflictDialog(v-model='conflictOpen' :conflict='conflict' @resolve='applyConflictResolution')
 
 </template>
 
@@ -117,8 +119,17 @@ import { BpmnStoryEditor } from 'app/extensions/capital/features/Story/BpmnStory
 import { MermaidStoryEditor } from 'app/extensions/capital/features/Story/MermaidStoryEditor';
 import { DrawioStoryEmbedEditor } from 'app/extensions/capital/features/Story/DrawioStoryEmbedEditor';
 import { useUpdateStory } from '../../UpdateStory/model';
+import {
+  ConflictDialog,
+  EditorSaveBar,
+  extractContentConflict,
+  type IContentConflict,
+  type IContentRevisionSummary,
+} from 'app/extensions/capital/features/ContentRevisions';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import type { IStory } from 'app/extensions/capital/entities/Story/model';
+import { api as StoryApi } from 'app/extensions/capital/entities/Story/api';
+import { t } from '../../../../i18n';
 
 export type EditRequirementPanelVariant = 'dialog' | 'page';
 
@@ -154,6 +165,13 @@ const originalTitle = ref('');
 const originalDescription = ref('');
 const isSaving = ref(false);
 const { updateStory } = useUpdateStory();
+
+/** Редакция, относительно которой идёт сохранение: content_rev артефакта, после конфликта — current_rev сервера */
+const baseRevOverride = ref<number | null>(null);
+const currentRev = computed(() => baseRevOverride.value ?? props.requirement?.content_rev ?? 0);
+const conflict = ref<IContentConflict | null>(null);
+const conflictOpen = ref(false);
+const saveNote = ref<string | null>(null);
 
 const editorMinHeight = computed(() => (props.variant === 'dialog' ? 480 : 520));
 
@@ -209,7 +227,7 @@ watch(
 const handleClose = () => {
   if (hasChanges.value) {
     if (
-      confirm('У вас есть несохранённые изменения. Вы уверены, что хотите закрыть?')
+      confirm(t('capital.editRequirementPanel.unsavedCloseConfirm'))
     ) {
       if (props.variant === 'dialog') {
         emit('close');
@@ -234,20 +252,57 @@ const handleSave = async () => {
       story_hash: props.requirement.story_hash,
       title: localTitle.value,
       description: localDescription.value,
+      base_rev: currentRev.value,
     };
 
     const updatedRequirement = await updateStory(updateData);
 
+    // Сервер мог слить текст с параллельной правкой — показываем итог, а не то, что отправили
+    const merged =
+      (updatedRequirement.description || '') !== localDescription.value ||
+      (updatedRequirement.title || '') !== localTitle.value;
+    localTitle.value = updatedRequirement.title || '';
+    localDescription.value = updatedRequirement.description || '';
     originalTitle.value = localTitle.value;
     originalDescription.value = localDescription.value;
+    baseRevOverride.value = null;
 
-    SuccessAlert('Артефакт успешно обновлён');
+    saveNote.value = merged ? t('capital.editRequirementPanel.savedMergedSuccess') : t('capital.editRequirementPanel.savedSuccess');
+    SuccessAlert(merged ? t('capital.editRequirementPanel.savedMergedFullSuccess') : t('capital.editRequirementPanel.updatedSuccess'));
     emit('updated', updatedRequirement);
   } catch (error) {
+    const c = extractContentConflict(error);
+    if (c) {
+      conflict.value = c;
+      conflictOpen.value = true;
+      return;
+    }
     console.error('Ошибка при обновлении артефакта:', error);
-    FailAlert('Не удалось обновить артефакт');
+    FailAlert(t('capital.editRequirementPanel.updateError'));
   } finally {
     isSaving.value = false;
+  }
+};
+
+/** Выбор в диалоге конфликта: текст в редактор, дальнейшее сохранение — относительно серверной редакции */
+const applyConflictResolution = (value: { title: string; description: string; base_rev: number }) => {
+  localTitle.value = value.title;
+  localDescription.value = value.description;
+  baseRevOverride.value = value.base_rev;
+};
+
+/** После отката к редакции перечитываем артефакт с сервера и сообщаем родителю как об обновлении */
+const handleRestored = async (_summary: IContentRevisionSummary) => {
+  if (!props.requirement) return;
+  baseRevOverride.value = null;
+  try {
+    const row = await StoryApi.loadStory({ story_hash: props.requirement.story_hash });
+    if (row) {
+      syncFromRequirement(row);
+      emit('updated', row);
+    }
+  } catch (error) {
+    FailAlert(error);
   }
 };
 
@@ -262,7 +317,7 @@ function tryNavigateAway(): boolean {
     return true;
   }
   return confirm(
-    'У вас есть несохранённые изменения. Уйти со страницы?',
+    t('capital.editRequirementPanel.unsavedLeaveConfirm'),
   );
 }
 
@@ -294,10 +349,6 @@ defineExpose({
   align-self: stretch;
 }
 
-.capital-title-editor-append {
-  min-height: 100%;
-  max-width: min(100%, 14rem);
-}
 
 .edit-req-panel__body {
   flex: 1 1 auto;

@@ -36,7 +36,6 @@ const navigateToProject = (hash?: string) => {
     router.push({
       name: capitalRouteName('project-description', route),
       params: { project_hash: hash },
-      query: { _useHistoryBack: 'true' },
     });
   }
 };
@@ -46,7 +45,6 @@ const navigateToComponent = (hash?: string) => {
     router.push({
       name: capitalRouteName('component-description', route),
       params: { project_hash: hash },
-      query: { _useHistoryBack: 'true' },
     });
   }
 };

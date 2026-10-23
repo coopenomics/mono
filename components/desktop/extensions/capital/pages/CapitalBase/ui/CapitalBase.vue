@@ -1,7 +1,7 @@
 <template lang="pug">
 div
   // Лоадер пока идет предзагрузка пользователя
-  WindowLoader(v-if="isLoading", text="Загрузка данных участника...")
+  WindowLoader(v-if="isLoading", :text="$t('capital.capitalBase.loadingText')")
 
   // Показываем онбординг если он не завершен и пользователь председатель
   CapitalOnboardingCard(
@@ -10,7 +10,7 @@ div
   // Показываем сообщение для обычных участников если контракт не активирован
   InfoCard(
     v-else-if="shouldShowContractNotActivatedMessage"
-    text="Программа еще не активирована. Только председатель может завершить настройку системы."
+    :text="$t('capital.capitalBase.notActivatedText')"
   )
   // Основной контент после загрузки
   router-view(v-else)
@@ -19,6 +19,8 @@ div
 
 <script lang="ts" setup>
 import { ref, onMounted, onBeforeUnmount, computed, watch } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { CAPITAL_LIVE_TABLES } from 'app/extensions/capital/shared/lib/live';
 import { useRouter, useRoute } from 'vue-router';
 import { Zeus } from '@coopenomics/sdk';
 import { WindowLoader } from 'src/shared/ui/Loader';
@@ -29,6 +31,7 @@ import { useContributorStore } from 'app/extensions/capital/entities/Contributor
 import { useConfigStore } from 'app/extensions/capital/entities/Config/model';
 import { useFavoritesStore } from 'app/extensions/capital/entities/Favorite';
 import { useSessionStore } from 'src/entities/Session';
+import { FailAlert } from 'src/shared/api/alerts';
 import { useSystemStore } from 'src/entities/System/model';
 import { CapitalOnboardingCard } from 'app/extensions/capital/features/Onboarding/ui';
 import { useCapitalOnboarding } from 'app/extensions/capital/features/Onboarding/model';
@@ -148,15 +151,32 @@ const redirectToRegistration = () => {
   }
 };
 
-onMounted(async () => {
-  // Загружаем данные пользователя
-  await contributorStore.loadSelf({username: session.username});
-
-  // Загружаем конфигурацию контракта
-  await configStore.loadState({coopname: system.info.coopname});
-
-  // Загружаем состояние онбординга
+// Свой статус участника и состояние программы живут по ленте изменений Благороста.
+useLiveReload(CAPITAL_LIVE_TABLES, async () => {
+  await contributorStore.loadSelf({ username: session.username });
+  await configStore.loadState({ coopname: system.info.coopname });
   await loadState();
+});
+
+onMounted(async () => {
+  // Отказ сервера здесь раньше уходил из onMounted необработанным: в журнал
+  // ошибок — безымянным «Object captured as exception», а пайщику — вечным
+  // «Загрузка данных участника...». Теперь он видит причину, стол открывается,
+  // а на регистрацию по недогруженным данным не уводим.
+  try {
+    // Загружаем данные пользователя
+    await contributorStore.loadSelf({username: session.username});
+
+    // Загружаем конфигурацию контракта
+    await configStore.loadState({coopname: system.info.coopname});
+
+    // Загружаем состояние онбординга
+    await loadState();
+  } catch (e) {
+    FailAlert(e);
+    isLoading.value = false;
+    return;
+  }
 
   // Избранное — не блокирует вход на стол
   favoritesStore

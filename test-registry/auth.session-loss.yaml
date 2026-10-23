@@ -1,0 +1,169 @@
+feature: auth.session-loss
+title: Потеря доступа в столе и продолжение вступления с того же шага
+
+# Случай 16.10.2026 (стенд 5). Узел пересоздан, браузер хранит токен CoopID
+# пайщика прежней базы: подпись верная, срок длинный. Сервер отвечал
+# AUTH_JWT_USER_NOT_FOUND, SDK этого потерей доступа не считал — кабинет падал по
+# кругу. Регистрация нового пайщика выставляла свой токен, но SDK ставил старый
+# поверх него: первое же чтение аккаунта падало, шаг пароля обрывался до
+# установки пароля, и войти было нечем ни здесь, ни на другом устройстве.
+#
+# Правило после правки: потеря доступа опознаётся по коду отказа; при потере доступа
+# и при «Выйти» стол забывает устройство целиком, включая серверную cookie (решение
+# владельца 16.10.2026); вошедший пайщик с созданной учёткой продолжает вступление с
+# шага пароля (без пароля) либо с заявления (вошёл паролем).
+
+sources:
+  backend:
+    - components/sdk/src/index.ts
+    - components/auth/src/oidc/tokens.ts
+  ui:
+    - components/desktop/src/boot/coopid.ts
+    - components/desktop/src/entities/Session/model/store.ts
+    - components/desktop/src/entities/Registrator/model/store.ts
+    - components/desktop/src/entities/Registrator/lib/registration-resume.ts
+    - components/desktop/src/entities/Session/lib/auth-loss.ts
+    - components/desktop/src/entities/Session/lib/serverLogout.ts
+    - components/desktop/src/features/User/Logout/model/index.ts
+    - components/desktop/src/features/User/CreateUser/model/index.ts
+    - components/desktop/src/features/User/LoginUser/model/index.ts
+    - components/desktop/src/pages/Registrator/SignUp/**
+
+cases:
+  - id: auth.loss.break.01
+    level: backend
+    kind: break
+    scenario: >
+      Запрос с токеном получил отказ AUTH_JWT_USER_NOT_FOUND — пользователя токена
+      на узле нет.
+    expect: >
+      SDK зовёт обработчик потери доступа и называет источник токена: token для
+      выставленного вручную, session для токена CoopID
+    test: components/sdk/test/auth-loss.test.ts
+    external: unreachable
+    external_reason: "случай описывает поведение клиентского SDK и стола при отказе сервера (обработчик потери доступа, хранение токенов); API стенда это поведение не наблюдает"
+    status: written   # прогон — CI на полигоне ci/tests
+
+  - id: auth.loss.side.01
+    level: backend
+    kind: side
+    scenario: >
+      Отказ AUTH_SESSION_TERMINATED без русского текста (другая локаль ответа).
+    expect: потеря доступа опознана по коду
+    test: components/sdk/test/auth-loss.test.ts
+    external: unreachable
+    external_reason: "случай описывает поведение клиентского SDK и стола при отказе сервера (обработчик потери доступа, хранение токенов); API стенда это поведение не наблюдает"
+    status: written   # прогон — CI на полигоне ci/tests
+
+  - id: auth.loss.side.02
+    level: backend
+    kind: side
+    scenario: >
+      Гость (запрос без токена) либо пайщик с токеном получил другой отказ —
+      недостаточно прав.
+    expect: обработчик потери доступа не вызывается
+    test: components/sdk/test/auth-loss.test.ts
+    external: unreachable
+    external_reason: "случай описывает поведение клиентского SDK и стола при отказе сервера (обработчик потери доступа, хранение токенов); API стенда это поведение не наблюдает"
+    status: written   # прогон — CI на полигоне ci/tests
+
+  - id: auth.loss.break.02
+    level: backend
+    kind: break
+    scenario: >
+      Провайдер CoopID однажды отдал токен, затем отказал (сессии больше нет), а
+      регистрация выставила свой токен.
+    expect: >
+      запрос уходит с токеном регистрации; без выставленного токена — без
+      заголовка; отвязка провайдера тоже возвращает выставленный токен
+    test: components/sdk/test/auth-loss.test.ts
+    external: unreachable
+    external_reason: "случай описывает поведение клиентского SDK и стола при отказе сервера (обработчик потери доступа, хранение токенов); API стенда это поведение не наблюдает"
+    status: written   # прогон — CI на полигоне ci/tests
+
+  - id: auth.loss.break.03
+    level: backend
+    kind: break
+    scenario: >
+      Стол забывает сессию CoopID и сразу перезагружает страницу.
+    expect: >
+      clearSession завершается только после удаления сохранённой копии токенов —
+      перезагрузка не поднимает непризнанную сессию снова
+    test: components/auth/test/oidc-tokens.test.ts
+    external: unreachable
+    external_reason: "случай описывает поведение клиентского SDK и стола при отказе сервера (обработчик потери доступа, хранение токенов); API стенда это поведение не наблюдает"
+    status: written   # прогон — CI на полигоне ci/tests
+
+  - id: auth.loss.side.03
+    level: ui
+    kind: side
+    scenario: >
+      Сервер перестал признавать токен вошедшего (узел пересоздан, сессия отозвана).
+    expect: >
+      стол забывает устройство целиком — серверную cookie, оба входа, PIN-кэш,
+      аккаунт и состояние вступления — и перезагружается; гостя не трогает;
+      повторные отказы запросов в полёте второй сброс не запускают
+    test: components/desktop/test/unit/auth-loss.test.ts
+    status: written   # прогон — CI на полигоне ci/tests
+
+  - id: auth.loss.side.04
+    level: ui
+    kind: side
+    scenario: >
+      Пайщик нажимает «Выйти».
+    expect: >
+      токены отозваны на сервере до очистки браузера (это снимает cookie сессии),
+      пары CoopID и входа по ключу — обе; сервер не ответил — браузер очищается всё
+      равно; состояние вступления стёрто
+    test: components/desktop/test/unit/reset-device.test.ts
+    status: written   # прогон — CI на полигоне ci/tests
+
+  - id: auth.loss.break.05
+    level: ui
+    kind: break
+    scenario: >
+      Серверный рендер узнал по cookie принятого пайщика, а ключей его в браузере
+      нет; в этом браузере регистрируется новый пайщик.
+    expect: >
+      стол забывает аккаунт сервера и снимает cookie; после создания учётки меню
+      кабинета не появляется
+    test: ''
+    status: missing   # проверяется владельцем на стенде; сценарий harness не заведён
+
+
+  - id: auth.loss.happy.01
+    level: ui
+    kind: happy
+    scenario: >
+      Сбой оборвал шаг пароля после создания учётки; пайщик открывает регистрацию
+      на том же устройстве.
+    expect: >
+      шаг пароля с ключом созданной учётки, без повторного createUser; после
+      пароля — заявление
+    test: components/desktop/test/unit/create-user.test.ts
+    status: written   # прогон — CI на полигоне ci/tests
+
+  - id: auth.loss.happy.02
+    level: ui
+    kind: happy
+    scenario: >
+      Пайщик поставил пароль на одном устройстве и вошёл им на другом до подачи
+      заявления.
+    expect: >
+      регистрация открывается на заявлении (или выборе участка), документы
+      подписываются ключом сессии
+    test: components/desktop/test/unit/registration-resume.test.ts
+    status: written   # прогон — CI на полигоне ci/tests
+
+  - id: auth.loss.break.04
+    level: ui
+    kind: break
+    scenario: >
+      Учётка создана, пароля у неё нет (сервер: has_password = false), а вход —
+      по ключу с серверной cookie сессии.
+    expect: >
+      регистрация открывается на шаге пароля; «Далее» с анкеты не перепрыгивает
+      шаг пароля; после установки пароля аккаунт перечитан и шаг больше не
+      возвращается
+    test: components/desktop/test/unit/registration-resume.test.ts
+    status: written   # прогон — CI на полигоне ci/tests

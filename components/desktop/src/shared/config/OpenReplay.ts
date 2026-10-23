@@ -39,6 +39,11 @@ export function updateOpenReplayUser(config: OpenReplayTrackerConfig): void {
 /**
  * Инициализирует OpenReplay tracker с конфигурацией для захвата сетевых запросов
  * и санитаризацией чувствительных данных
+ *
+ * Пустой OPENREPLAY_PROJECT_KEY штатно выключает трекер — это и есть рубильник:
+ * сессии пишутся с телами запросов, поэтому приёмник должен стоять в нашем
+ * контуре, а состав данных — совпадать с опубликованной политикой обработки.
+ * Пока приёмник не развёрнут у нас, ключ на прод-контуре держится пустым.
  */
 export async function initOpenReplayTracker(config: OpenReplayTrackerConfig = {}): Promise<void> {
   // Проверяем условия для инициализации

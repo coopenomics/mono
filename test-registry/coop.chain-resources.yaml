@@ -1,0 +1,207 @@
+feature: coop.chain-resources
+title: Аренда вычислительных ресурсов кооператива и отказы узла цепи
+
+# Цепь берёт плату ресурсами (процессорное время, полоса, оперативная память) за
+# каждое действие. Расширение «Аренда ресурсов» раз в минуту сверяет
+# использование с порогом и, когда порог превышен, покупает дневную квоту за
+# системный токен кооператива. Журнал аренды показывает пайщику эти пополнения.
+#
+# Инцидент 16–18.09.2026. На аккаунте `voskhod` кончился системный токен, и
+# транзакция `eosio::powerup` начала падать с «overdrawn balance». Отказ
+# проглатывался уровнем `info`, наружу не выходил, поэтому:
+#   — в журнал аренды ложилась запись о пополнении, которого не было;
+#   — ежедневная задача отмечала пополнение выполненным и сутки не повторяла;
+#   — попытка повторялась каждую минуту: 3 235 одинаковых отказов за двое суток.
+# Отдельно: ответ узла на отказ нигде не сохранялся, и отказ 500 при подписи
+# решения совета 17.09.2026 разобрать было нечем — `session.transact` оставляет
+# от ответа цепи одну строку подробностей без кода исключения.
+#
+# Теперь: запись в журнале появляется только после принятой транзакции и несёт
+# её идентификатор; отказ поднимается наверх и отодвигает следующую попытку;
+# ответ узла разбирается единым перехватчиком в точке отправки и уходит в журнал
+# ошибок целиком; ресурсы и остаток токена отдаются метриками.
+
+# Правка 25.09.2026 (C28-80): отказ контракта, пришедший из отправки в цепь,
+# уходит пайщику отказом с кодом (код контракта или CHAIN_ASSERT, статус 400), а
+# не ответом 500: клиент цепи превращал его в простую ошибку. Повтор при
+# нехватке ресурсов цепи прежний.
+
+sources:
+  backend:
+    - components/controller/src/extensions/powerup/powerup-extension.module.ts
+    - components/controller/src/extensions/powerup/powerup.ports.ts
+    - components/controller/src/infrastructure/innercoop/provider-tariff-innercoop.adapter.ts
+    - components/innercoop/src/core-ports/provider-tariff.port.ts
+    - components/controller/src/infrastructure/blockchain/blockchain.service.ts
+    - components/controller/src/application/metrics/platform-metrics.service.ts
+    - components/sdk/src/utils/chainFetch.ts
+  ui:
+    - components/desktop/extensions/powerup/widgets/PowerupLogItem/**
+    - components/desktop/src/shared/lib/chain/**
+
+cases:
+  - id: coop.res.happy.01
+    level: backend
+    kind: happy
+    scenario: >
+      использование ресурсов выше порога, на аккаунте есть системный токен —
+      расширение покупает дневную квоту
+    expect: >
+      в журнале аренды одна запись с суммой квоты и идентификатором транзакции;
+      ресурсы в записи — состояние ПОСЛЕ пополнения
+    test: components/controller/tests/unit/extension/powerup-extension.test.ts
+    external: unreachable
+    external_reason: "пополнение ресурсов идёт по расписанию расширения и зависит от расхода ресурсов аккаунта в цепи; через API ни расход, ни тик не задать"
+    status: passing
+
+  - id: coop.res.break.01
+    level: backend
+    kind: break
+    scenario: цепь отклонила пополнение («overdrawn balance»)
+    expect: >
+      записи в журнале аренды нет, отказ виден уровнем `error`. Прежде журнал
+      рапортовал об успехе на каждую неудачную попытку
+    test: components/controller/tests/unit/extension/powerup-extension.test.ts
+    external: unreachable
+    external_reason: "пополнение ресурсов идёт по расписанию расширения и зависит от расхода ресурсов аккаунта в цепи; через API ни расход, ни тик не задать"
+    status: passing
+
+  - id: coop.res.side.01
+    level: backend
+    kind: side
+    scenario: причина отказа не устранена, минутная проверка идёт дальше
+    expect: >
+      следующая попытка отодвигается (пауза удваивается до часа), цепь не
+      получает одинаковую транзакцию каждую минуту, ошибка пишется один раз
+    test: components/controller/tests/unit/extension/powerup-extension.test.ts
+    external: unreachable
+    external_reason: "пополнение ресурсов идёт по расписанию расширения и зависит от расхода ресурсов аккаунта в цепи; через API ни расход, ни тик не задать"
+    status: passing
+
+  - id: coop.res.side.02
+    level: backend
+    kind: side
+    scenario: ежедневное пополнение не прошло
+    expect: >
+      дата последнего пополнения не обновляется — иначе сутки никто не повторит
+      попытку, а журнал расширения покажет пополнение, которого не было
+    test: components/controller/tests/unit/extension/powerup-extension.test.ts
+    external: unreachable
+    external_reason: "пополнение ресурсов идёт по расписанию расширения и зависит от расхода ресурсов аккаунта в цепи; через API ни расход, ни тик не задать"
+    status: passing
+
+  - id: coop.res.side.03
+    level: backend
+    kind: side
+    scenario: использование ресурсов ниже порога
+    expect: пополнения нет, записи в журнале нет
+    test: components/controller/tests/unit/extension/powerup-extension.test.ts
+    external: unreachable
+    external_reason: "пополнение ресурсов идёт по расписанию расширения и зависит от расхода ресурсов аккаунта в цепи; через API ни расход, ни тик не задать"
+    status: passing
+
+  - id: coop.res.side.04
+    level: backend
+    kind: side
+    scenario: >
+      узел ответил отказом на отправку транзакции (ассерт контракта, нехватка
+      средств, отклонение)
+    expect: >
+      в журнал уходит разобранный ответ узла целиком — путь, код HTTP, код и имя
+      исключения цепи, подробности и тело; событие заводится в журнале ошибок
+    test: ~
+    status: missing
+    decision_needed: false
+    external: unreachable
+    external_reason: "проверяется содержимое журнала контроллера, через API оно не отдаётся"
+
+  - id: coop.res.side.05
+    level: backend
+    kind: side
+    scenario: >
+      узел срезал транзакцию лимитом процессорного времени (3080004 и соседние
+      коды группы) — она повторяется сама
+    expect: >
+      отказ виден в журнале уровнем `warn` и НЕ заводит событие в журнале ошибок:
+      иначе каждый пик нагрузки выглядел бы поломкой кабинета
+    test: ~
+    status: missing
+    decision_needed: false
+    external: unreachable
+    external_reason: "срез транзакции лимитом процессорного времени на стенде с одним узлом и свободными ресурсами не воспроизвести"
+
+  - id: coop.res.side.06
+    level: backend
+    kind: side
+    scenario: метрики ресурсов аккаунта кооператива
+    expect: >
+      отдаются занятая и доступная память, процессорное время, полоса и остаток
+      системного токена; недоступный узел не обнуляет остальные показатели тика
+    test: components/api-tests/src/platform/metrics.test.ts
+    status: written
+    decision_needed: false
+
+  - id: coop.res.side.09
+    level: backend
+    kind: side
+    scenario: мониторинг читает метрики состава кооператива и чтения цепи
+    expect: число пайщиков и участников цепи положительно, головной и прочитанный блоки отданы, узел помечен синхронизированным
+    test: components/api-tests/src/platform/metrics.test.ts
+    status: written
+
+  - id: coop.res.side.07
+    level: ui
+    kind: side
+    scenario: карточка записи журнала аренды
+    expect: >
+      процессорное время показано временем, полоса — байтами (прежде обе
+      величины печатались байтами, и час процессорного времени выглядел как
+      «36 ГБ»); видна транзакция пополнения
+    test: ~
+    status: missing
+    decision_needed: false
+
+# 2026-09-23 (EEA-6…EEA-9): тексты интерфейса, отказов и уведомлений фичи вынесены из
+# кода в словари i18n, отказы бэкенда переведены на DomainError с кодом — текст
+# и HTTP-статус ответа прежние. Сценарии фичи и её проверки не менялись.
+
+  # Права по таблице прав расширения (C28-87, кусок 3, 05.10.2026): операции
+  # стоят под общим гардом каркаса вместо `@AuthRoles`, состав исполнителей прежний.
+  - id: coop.res.side.10
+    level: backend
+    kind: side
+    scenario: операции расширения зовут пайщик, член совета, председатель и кандидат
+    expect: право есть у названных в таблице прав расширения, остальным отказ KIT_INSUFFICIENT_RIGHTS; кандидат прав пайщика не имеет
+    test: components/controller/tests/unit/rights/extension-rights-tables.test.ts
+    api: components/api-tests/src/rights/matrix.test.ts
+    status: written
+
+  # 15.10.2026 (B2D-17): слияние с биллингом провайдера — пакетная докупка AXON
+  # (PowerupPlugin, Epic 13) пишет id транзакции в журнал оплат.
+  - id: coop.res.side.11
+    level: backend
+    kind: side
+    scenario: >
+      powerup принят узлом, но в ответе нет идентификатора транзакции (ни
+      response.transaction_id, ни resolved.transaction.id).
+    expect: >
+      powerUp бросает ошибку, а не возвращает пустую строку: пустой id ушёл бы
+      в журнал вместо настоящего, и сверка с историей цепи не нашла бы платёж
+    status: missing
+
+  # Суточная аренда на D тарифа (B2D-32, @ant 17.10.2026): объём месяца сгорает к дате оплаты.
+  - id: coop.res.side.12
+    level: backend
+    kind: side
+    scenario: >
+      Ежедневная аренда у кооператива с тарифом провайдера; у кооператива без
+      тарифа; аренда при загрузке 70 %.
+    expect: >
+      суточная аренда идёт на D тарифа из порта PROVIDER_TARIFF_PORT (объём месяца /
+      число дней месяца, дробное и меньше 5 допустимо, контракт принимает от 0,0001);
+      без тарифа или без ответа — на сумму настройки расширения; аренда при 70 % —
+      по-прежнему на сумму настройки
+    test: components/controller/tests/unit/extension/powerup-extension.test.ts
+    external: unreachable
+    external_reason: "суточная аренда идёт по расписанию раз в сутки и берёт D у провайдера; внешний слой стенда провайдера не поднимает и сутки не ждёт"
+    status: passing

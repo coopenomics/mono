@@ -1,4 +1,5 @@
 import { marketplaceLineCost } from './line-cost';
+import { t } from 'src/shared/i18n';
 
 /**
  * Группировка актов приёмки (АПП) в сводную «поставку» для подписи одним
@@ -46,7 +47,7 @@ export interface ReceptionGroupLine {
   key: string;
   productName: string;
   unit: string;
-  /** null, если позиции с разным package_size попали в одну группу товара (не должно случаться — гвард). */
+  /** Содержимое упаковки в базовой единице; null — отпуск по мере. */
   packageSize: number | null;
   quantity: number;
   amount: number;
@@ -118,7 +119,12 @@ export function groupAplReceptions<T extends GroupableReception>(
     for (const r of g.receptions) {
       total += Number.parseFloat(r.total_amount) || 0;
       for (const f of r.fact_quantity_per_order) {
-        const lk = `${f.product_name ?? ''}|${f.unit_of_measure ?? ''}`;
+        // Тара — часть ключа строки: принимают, подписывают и приходуют
+        // упаковками, поэтому «10 упак. 0,5 л» и «10 упак. 1 л» обязаны остаться
+        // разными строками. Слитые в одну, они давали безликое «15 л» — по нему
+        // ни поставщик не знает, что привёз, ни оператор, что кладёт на полку
+        // (жалоба 2026-09-09).
+        const lk = `${f.product_name ?? ''}|${f.unit_of_measure ?? ''}|${f.package_size ?? 0}`;
         const qty = Number(f.fact_quantity) || 0;
         const price = Number.parseFloat(f.fact_unit_price ?? '0') || 0;
         const packageSize = f.package_size ?? null;
@@ -128,11 +134,10 @@ export function groupAplReceptions<T extends GroupableReception>(
           ex.quantity += qty;
           ex.amount += lineAmount;
           if (!ex.orderIds.includes(f.order_id)) ex.orderIds.push(f.order_id);
-          if (ex.packageSize !== packageSize) ex.packageSize = null;
         } else {
           lineMap.set(lk, {
             key: lk,
-            productName: f.product_name || 'Товар по предложению',
+            productName: f.product_name || t('marketplace.receptionGrouping.productByOfferLabel'),
             unit: f.unit_of_measure ?? '',
             packageSize,
             quantity: qty,
@@ -142,7 +147,11 @@ export function groupAplReceptions<T extends GroupableReception>(
         }
       }
     }
-    g.lines = [...lineMap.values()];
+    // Крупная тара выше мелкой, товары — в порядке появления: строки читаются
+    // как накладная, а не вразнобой.
+    g.lines = [...lineMap.values()].sort((a, b) =>
+      a.productName === b.productName ? (b.packageSize ?? 0) - (a.packageSize ?? 0) : 0,
+    );
     g.totalAmount = total.toFixed(4);
   }
   return [...map.values()];

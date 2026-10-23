@@ -14,3 +14,4 @@
 #include "src/writeoff/complete.cpp"
 #include "src/writeoff/decline.cpp"
 #include "src/migrate/migrate.cpp"
+#include "src/migrate/cleanup.cpp"

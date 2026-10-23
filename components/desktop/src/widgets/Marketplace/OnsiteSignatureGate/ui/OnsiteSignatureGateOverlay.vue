@@ -1,16 +1,21 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
 import { BaseButton, BaseCard, BaseChip, BaseDialog } from 'src/shared/ui/base';
+import { VerticalStepper, type StepperStep } from 'src/shared/ui/domain';
 import { useSystemStore } from 'src/entities/System/model';
+import { useSessionStore } from 'src/entities/Session';
 import { useMarketplaceKUDetailsStore } from 'src/entities/MarketplaceKUDetails';
-import { type ReceptionGroup, getMembershipFeePercent, applyMembershipFee } from 'src/shared/lib/marketplace';
 import {
-  marketplaceOrderSaleUnit,
-  marketplaceSaleUnitLabel,
-} from 'src/shared/lib/consts/marketplace-units';
+  type ReceptionGroup,
+  getMembershipFeePercent,
+  applyMembershipFee,
+  computeIssuanceDiff,
+} from 'src/shared/lib/marketplace';
+import { marketplaceOrderSaleUnitLabel, marketplaceSaleUnitLabel } from 'src/shared/lib/consts/marketplace-units';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import type { MarketplaceAplReceptionView } from 'src/entities/MarketplaceAplReception';
 import { useOnsiteSignatureGate } from '../model/useOnsiteSignatureGate';
+import { t } from 'src/shared/i18n';
 
 /**
  * Глобальный оверлей подписи на месте — монтируется один раз в App.vue рядом с
@@ -29,12 +34,88 @@ const {
   signingKey,
   supplierTasks,
   proposalTasks,
+  sagaTasks,
   refresh,
   signSupplier,
   cancelSupplier,
   signProposal,
+  signSaga,
+  proposalConverts,
   declineProposal,
+  activeFlow,
 } = useOnsiteSignatureGate();
+
+// ─── Ход получения ───
+// Пока идёт поток (заявления → совет → акт), карточки с кнопками не нужны:
+// пайщик нажал одну кнопку и смотрит, как дело движется. Карточка акта с
+// кнопкой вернётся только там, где подпись сама не прошла.
+const FLOW_STEPS: StepperStep[] = [
+  { key: 'statements', label: t('marketplace.onsiteSignatureGateOverlay.stepStatementsLabel'), description: t('marketplace.onsiteSignatureGateOverlay.stepStatementsDescription') },
+  { key: 'council', label: t('marketplace.onsiteSignatureGateOverlay.stepCouncilLabel'), description: t('marketplace.onsiteSignatureGateOverlay.stepCouncilDescription') },
+  { key: 'act', label: t('marketplace.onsiteSignatureGateOverlay.actLabel'), description: t('marketplace.onsiteSignatureGateOverlay.stepActDescription') },
+];
+const flowStep = computed(() => activeFlow.value?.step ?? null);
+const flowActiveKey = computed(() => {
+  const step = flowStep.value;
+  if (step === 'done') return 'act';
+  if (step === 'pending' || step === 'declined') return 'council';
+  return step ?? 'statements';
+});
+const flowCompleted = computed<string[]>(() => {
+  switch (flowStep.value) {
+    case 'council':
+    case 'pending':
+    case 'declined':
+      return ['statements'];
+    case 'act':
+      return ['statements', 'council'];
+    case 'done':
+      return ['statements', 'council', 'act'];
+    default:
+      return [];
+  }
+});
+const flowErrored = computed<string[]>(() => (flowStep.value === 'declined' ? ['council'] : []));
+/** Поток ещё идёт — под активным шагом бежит полоса. */
+const flowRunning = computed(() =>
+  flowStep.value === 'statements' ||
+  flowStep.value === 'council' ||
+  flowStep.value === 'act',
+);
+const flowTitle = computed(() => {
+  switch (flowStep.value) {
+    case 'done':
+      return t('marketplace.onsiteSignatureGateOverlay.flowTitle.done');
+    case 'pending':
+      return t('marketplace.onsiteSignatureGateOverlay.flowTitle.pending');
+    case 'declined':
+      return t('marketplace.onsiteSignatureGateOverlay.flowTitle.declined');
+    default:
+      return t('marketplace.onsiteSignatureGateOverlay.pickupPointLabel');
+  }
+});
+const flowSub = computed(() => {
+  const flow = activeFlow.value;
+  switch (flow?.step) {
+    case 'statements':
+      return t('marketplace.onsiteSignatureGateOverlay.flowSubtitle.statements');
+    case 'council':
+      return t('marketplace.onsiteSignatureGateOverlay.flowSubtitle.council');
+    case 'act':
+      return flow.total > 1
+        ? t('marketplace.onsiteSignatureGateOverlay.flowSubtitle.actProgress', { signed: flow.signedActs, total: flow.total })
+        : t('marketplace.onsiteSignatureGateOverlay.flowSubtitle.actSingle');
+    case 'done':
+      return t('marketplace.onsiteSignatureGateOverlay.flowSubtitle.done');
+    case 'pending':
+      return t('marketplace.onsiteSignatureGateOverlay.flowSubtitle.pending');
+    case 'declined':
+      return t('marketplace.onsiteSignatureGateOverlay.flowSubtitle.declined');
+    default:
+      return '';
+  }
+});
+const dialogTitle = computed(() => (activeFlow.value ? t('marketplace.onsiteSignatureGateOverlay.dialogTitleActive') : t('marketplace.onsiteSignatureGateOverlay.dialogTitleIdle')));
 
 const systemStore = useSystemStore();
 const kuStore = useMarketplaceKUDetailsStore();
@@ -77,9 +158,39 @@ function proposalTotalWithFee(p: { total_cost: string }): string {
   return applyMembershipFee(Number(p.total_cost), feePercent.value).toFixed(4);
 }
 
+/**
+ * Что станет с зарезервированными деньгами: разница между суммой заказа
+ * (резерв) и фактом к выдаче. Меньше факта — остаток вернётся в кошелёк
+ * «Стола заказов», больше — разницу доберут с паевого. Считается только по
+ * строкам существующих заказов: у докладки со склада резерва ещё нет, заказ
+ * родится на этой же подписи.
+ */
+function proposalDiff(p: {
+  items: Array<{
+    quantity: number;
+    unit_price: string;
+    order_id?: string | null;
+    ordered_total_cost?: string | null;
+  }>;
+}): { refund: number; surcharge: number } {
+  const lines = p.items
+    .filter((i) => i.order_id && i.ordered_total_cost != null)
+    .map((i) => ({
+      orderedTotal: Number(i.ordered_total_cost),
+      factTotal: Number(proposalLineCost(i)),
+    }));
+  return computeIssuanceDiff(lines, feePercent.value);
+}
+
+/** Разница по каждому бандлу — считаем один раз на отрисовку, а не в разметке. */
+const proposalDiffs = computed<Record<string, { refund: number; surcharge: number }>>(() => {
+  const out: Record<string, { refund: number; surcharge: number }> = {};
+  for (const p of proposalTasks.value) out[p.id] = proposalDiff(p);
+  return out;
+});
+
 function receptionLineQuantity(l: { quantity: number; unit: string; packageSize: number | null }): string {
-  const saleUnit = marketplaceOrderSaleUnit(l.quantity, l.unit, l.packageSize);
-  return `${saleUnit.units}×${saleUnit.unitLabel}`;
+  return marketplaceOrderSaleUnitLabel(l.quantity, l.unit, l.packageSize);
 }
 
 // Единица измерения у позиции предложения необязательна (услуги её не имеют),
@@ -95,37 +206,100 @@ function proposalItemQuantity(i: {
   unit_of_measure?: string | null;
   package_size?: number | null;
 }): string {
-  return `${i.quantity}×${marketplaceSaleUnitLabel(i.unit_of_measure ?? null, i.package_size ?? null)}`;
+  return `${i.quantity} ${marketplaceSaleUnitLabel(i.unit_of_measure ?? null, i.package_size ?? null)}`;
 }
 
 const supplierBusy = (g: ReceptionGroup<MarketplaceAplReceptionView>) => signingKey.value === g.key;
 const proposalBusy = (id: string) => signingKey.value === id;
 const anySigning = computed(() => signingKey.value !== null);
 
+/** Сага вне бандла: что именно подписываем — заявление или акт. */
+function sagaTaskTitle(s: { stage: string }): string {
+  return s.stage === 'FACT_FIXED' ? t('marketplace.onsiteSignatureGateOverlay.sagaTaskTitleStatement') : t('marketplace.onsiteSignatureGateOverlay.actLabel');
+}
+/** Надпись на кнопке саги: заявление — то же «подписать и получить», что и в бандле. */
+function sagaTaskAction(s: { stage: string }): string {
+  return s.stage === 'FACT_FIXED' ? t('marketplace.onsiteSignatureGateOverlay.signAndReceiveButton') : t('marketplace.onsiteSignatureGateOverlay.signActButton');
+}
+function sagaTaskSub(s: { stage: string }): string {
+  return s.stage === 'FACT_FIXED'
+    ? t('marketplace.onsiteSignatureGateOverlay.sagaTaskSubStatement')
+    : t('marketplace.onsiteSignatureGateOverlay.sagaTaskSubAct');
+}
+
 // Первичная загрузка состояния при монтировании оверлея (он живёт всё время
-// работы приложения). Дальше гейт обновляется realtime-подпиской + catch-up'ом
-// канала ядра — поллинга больше нет (Фаза 2).
+// работы приложения). Дальше гейт обновляется по общей ленте изменений.
+// realtime: нет источника в оверлее — гейт живёт по ленте для всего приложения (registerOnsiteGateLive при установке расширения), здесь только первая загрузка.
 onMounted(() => {
   void refresh();
-  getMembershipFeePercent()
-    .then((p) => (feePercent.value = p))
-    .catch(() => undefined); // нет ставки — сумму покажем без взноса
 });
+
+// Ставка взноса открыта только действующему пайщику, а оверлей смонтирован на
+// всех страницах с первой секунды, включая вход и регистрацию: гость получал
+// на этот запрос отказ 401, не принятый ещё пайщик — 403, и так при каждом
+// открытии приложения. Запрашиваем ставку, когда пайщик действительно активен,
+// один раз; неудачу повторим при следующей смене статуса.
+const session = useSessionStore();
+let feeRequested = false;
+watch(
+  () => session.isFullyActive,
+  (active) => {
+    if (!active || feeRequested) return;
+    feeRequested = true;
+    getMembershipFeePercent()
+      .then((p) => (feePercent.value = p))
+      .catch(() => {
+        feeRequested = false; // нет ставки — сумму покажем без взноса
+      });
+  },
+  { immediate: true },
+);
 </script>
 
 <template lang="pug">
 BaseDialog(
   :model-value='isVisible',
-  title='Подпишите документ',
+  :title='dialogTitle',
   :maximized='true',
   :hide-close-button='true',
   :close-on-backdrop='false',
   :close-on-escape='false'
 )
-  .onsite-gate
+  //- Идёт получение: одна панель с ходом дела, без карточек и кнопок.
+  .onsite-gate(v-if='activeFlow')
     p.onsite-gate__lead
-      | Чтобы завершить операцию на пункте, подтвердите документ своей подписью.
-      | Окно закроется само, как только подпись будет принята.
+      | {{ $t('marketplace.onsiteSignatureGateOverlay.leadTextActive') }}
+
+    BaseCard.onsite-gate__card
+      template(#head)
+        .onsite-gate__head
+          q-icon(v-if='flowStep === "done"', name='task_alt', size='28px')
+          q-icon(v-else-if='flowStep === "declined"', name='block', size='28px')
+          q-icon(v-else, name='inventory_2', size='28px')
+          .onsite-gate__ident
+            span.onsite-gate__name {{ flowTitle }}
+            span.onsite-gate__sub {{ flowSub }}
+
+      VerticalStepper(
+        :steps='FLOW_STEPS',
+        :active-key='flowActiveKey',
+        :completed='flowCompleted',
+        :errored='flowErrored'
+      )
+        template(#active)
+          q-linear-progress.onsite-gate__bar(
+            v-if='flowRunning',
+            indeterminate,
+            color='primary',
+            track-color='grey-9',
+            size='4px',
+            rounded
+          )
+
+  .onsite-gate(v-else)
+    p.onsite-gate__lead
+      | {{ $t('marketplace.onsiteSignatureGateOverlay.leadTextIdleLine1') }}
+      | {{ $t('marketplace.onsiteSignatureGateOverlay.leadTextIdleLine2') }}
 
     //- Поставщик: первая подпись акта приёмки (только очная доставка).
     BaseCard.onsite-gate__card(v-for='g in supplierTasks', :key='g.key')
@@ -133,21 +307,21 @@ BaseDialog(
         .onsite-gate__head
           q-icon(name='local_shipping', size='28px')
           .onsite-gate__ident
-            span.onsite-gate__name Поставка на {{ kuName(g.braname) }}
+            span.onsite-gate__name {{ $t('marketplace.onsiteSignatureGateOverlay.supplyToKuLabel', { kuName: kuName(g.braname) }) }}
             span.onsite-gate__addr(v-if='kuAddr(g.braname)')
               q-icon(name='place', size='14px')
               | {{ kuAddr(g.braname) }}
-            span.onsite-gate__sub Подтвердите факт приёмки — это ваша подпись поставщика
+            span.onsite-gate__sub {{ $t('marketplace.onsiteSignatureGateOverlay.confirmReceptionHint') }}
       template(#actions)
         BaseChip(v-if='g.ttnNumbers.length', variant='neutral', size='sm')
-          | {{ g.ttnNumbers.length > 1 ? 'ТТН: ' + g.ttnNumbers.length : g.ttnNumbers[0] }}
+          | {{ g.ttnNumbers.length > 1 ? $t('marketplace.onsiteSignatureGateOverlay.ttnLabel') + g.ttnNumbers.length : g.ttnNumbers[0] }}
 
       table.onsite-gate__table
         thead
           tr
-            th Товар
-            th.num Кол-во
-            th.num Сумма
+            th {{ $t('marketplace.onsiteSignatureGateOverlay.column.product') }}
+            th.num {{ $t('marketplace.onsiteSignatureGateOverlay.column.quantity') }}
+            th.num {{ $t('marketplace.onsiteSignatureGateOverlay.column.amount') }}
         tbody
           tr(v-for='l in g.lines', :key='l.key')
             td {{ l.productName }}
@@ -155,7 +329,7 @@ BaseDialog(
             td.num {{ formatAsset2Digits(l.amount.toFixed(4)) }} ₽
         tfoot
           tr
-            td Итого к приёмке
+            td {{ $t('marketplace.onsiteSignatureGateOverlay.totalToReceiveLabel') }}
             td.num
             td.num {{ formatAsset2Digits(g.totalAmount) }} ₽
 
@@ -166,7 +340,7 @@ BaseDialog(
           variant='ghost',
           :disabled='anySigning',
           @click='cancelSupplier(g)'
-        ) Отменить
+        ) {{ $t('marketplace.onsiteSignatureGateOverlay.cancelButton') }}
         BaseButton(
           variant='primary',
           :loading='supplierBusy(g)',
@@ -175,25 +349,30 @@ BaseDialog(
         )
           template(#icon-left)
             q-icon(name='draw', size='18px')
-          | {{ g.lines.some((l) => l.quantity > 0) ? 'Подписать поставку' : 'Подтвердить отмену' }}
+          | {{ g.lines.some((l) => l.quantity > 0) ? $t('marketplace.onsiteSignatureGateOverlay.signSupplyButton') : $t('marketplace.onsiteSignatureGateOverlay.confirmCancelButton') }}
 
-    //- Бандл выдачи: оператор уже подписал акт передачи (по заказам и/или
-    //- докладке со склада) — пайщику остаётся одна подпись получения; до неё на
-    //- цепи ничего нет, поэтому «Отменить» = отказ от бандла (оператор повторит).
+    //- Бандл выдачи: оператор зафиксировал факт (по заказам и/или докладке со
+    //- склада) — пайщик одним нажатием подписывает заявления о возврате паевого
+    //- взноса имуществом; до подписи на цепи ничего нет, поэтому «Отменить» =
+    //- отказ от бандла (оператор повторит).
     BaseCard.onsite-gate__card(v-for='p in proposalTasks', :key='p.id')
       template(#head)
         .onsite-gate__head
           q-icon(name='inventory_2', size='28px')
           .onsite-gate__ident
-            span.onsite-gate__name Получение в пункте выдачи
-            span.onsite-gate__sub Подтвердите получение имущества — ваша подпись акта
+            span.onsite-gate__name {{ $t('marketplace.onsiteSignatureGateOverlay.pickupPointLabel') }}
+            span.onsite-gate__sub {{ $t('marketplace.onsiteSignatureGateOverlay.pickupPointHint') }}
+
+      p.onsite-gate__hint
+        | {{ $t('marketplace.onsiteSignatureGateOverlay.reservedFundsHintLine1') }}
+        |  {{ $t('marketplace.onsiteSignatureGateOverlay.reservedFundsHintLine2') }}
 
       table.onsite-gate__table
         thead
           tr
-            th Товар
-            th.num Кол-во
-            th.num Сумма
+            th {{ $t('marketplace.onsiteSignatureGateOverlay.column.product') }}
+            th.num {{ $t('marketplace.onsiteSignatureGateOverlay.column.quantity') }}
+            th.num {{ $t('marketplace.onsiteSignatureGateOverlay.column.amount') }}
         tbody
           tr(v-for='i in p.items', :key='i.offer_id')
             td {{ i.product_name }}
@@ -201,24 +380,44 @@ BaseDialog(
             td.num {{ formatAsset2Digits(proposalLineCost(i)) }} ₽
         tfoot
           tr(v-if='feePercent > 0')
-            td Себестоимость
+            td {{ $t('marketplace.onsiteSignatureGateOverlay.receivedCostLabel') }}
             td.num
             td.num {{ formatAsset2Digits(p.total_cost) }} ₽
           tr(v-if='feePercent > 0')
-            td Наценка ({{ feePercent }}%)
+            td {{ $t('marketplace.onsiteSignatureGateOverlay.membershipFeeLabel', { percent: feePercent }) }}
             td.num
             td.num {{ formatAsset2Digits(proposalFeeAmount(p)) }} ₽
           tr
-            td К оплате
+            td {{ $t('marketplace.onsiteSignatureGateOverlay.totalReceivedLabel') }}
             td.num
             td.num {{ formatAsset2Digits(proposalTotalWithFee(p)) }} ₽
+          //- Недополученное возвращается пайщику, перебор добирается с паевого —
+          //- те же суммы, что оператор видит в окне открытия выдачи.
+          tr(v-if='proposalDiffs[p.id]?.refund')
+            td {{ $t('marketplace.onsiteSignatureGateOverlay.refundToWalletLabel') }}
+            td.num
+            td.num {{ formatAsset2Digits(proposalDiffs[p.id].refund.toFixed(4)) }} ₽
+          tr(v-if='proposalDiffs[p.id]?.surcharge')
+            td {{ $t('marketplace.onsiteSignatureGateOverlay.surchargeFromShareLabel') }}
+            td.num
+            td.num {{ formatAsset2Digits(proposalDiffs[p.id].surcharge.toFixed(4)) }} ₽
+          //- Членский взнос покрывается остатком внутреннего членского кошелька;
+          //- недостающее — по заявлению о переводе, которое подписывается тем же нажатием.
+          tr(v-if='proposalConverts[p.id]')
+            td {{ $t('marketplace.onsiteSignatureGateOverlay.feeAboveWalletLabel') }}
+            td.num
+            td.num {{ formatAsset2Digits(proposalConverts[p.id]?.membership_fee) }} ₽
+          tr(v-else)
+            td {{ $t('marketplace.onsiteSignatureGateOverlay.feeCoveredByWalletLabel') }}
+            td.num
+            td.num {{ formatAsset2Digits(proposalFeeAmount(p)) }} ₽
 
       .onsite-gate__foot
         BaseButton(
           variant='ghost',
           :disabled='anySigning',
           @click='declineProposal(p)'
-        ) Отменить
+        ) {{ $t('marketplace.onsiteSignatureGateOverlay.cancelButton') }}
         BaseButton(
           variant='primary',
           :loading='proposalBusy(p.id)',
@@ -227,7 +426,35 @@ BaseDialog(
         )
           template(#icon-left)
             q-icon(name='draw', size='18px')
-          | Подписать и получить
+          | {{ $t('marketplace.onsiteSignatureGateOverlay.signAndReceiveButton') }}
+
+    //- Сага вне бандла: заявление (факт зафиксирован) либо акт после решения
+    //- совета, пришедшего когда пайщик уже ушёл. Подписывается где угодно.
+    BaseCard.onsite-gate__card(v-for='s in sagaTasks', :key='String(s.id)')
+      template(#head)
+        .onsite-gate__head
+          q-icon(name='assignment_turned_in', size='28px')
+          .onsite-gate__ident
+            span.onsite-gate__name {{ sagaTaskTitle(s) }}
+            span.onsite-gate__sub {{ sagaTaskSub(s) }}
+
+      table.onsite-gate__table
+        tbody
+          tr
+            td {{ $t('marketplace.onsiteSignatureGateOverlay.orderNumberLabel', { orderId: s.order_id.slice(0, 8) }) }}
+            td.num {{ s.fact.actual_quantity }}
+            td.num {{ formatAsset2Digits(s.fact.fact_cost) }} ₽
+
+      .onsite-gate__foot
+        BaseButton(
+          variant='primary',
+          :loading='proposalBusy(String(s.id))',
+          :disabled='anySigning && !proposalBusy(String(s.id))',
+          @click='signSaga(s)'
+        )
+          template(#icon-left)
+            q-icon(name='draw', size='18px')
+          | {{ sagaTaskAction(s) }}
 </template>
 
 <style scoped lang="scss">
@@ -300,6 +527,13 @@ BaseDialog(
     color: var(--p-ink-3);
   }
 
+  &__hint {
+    margin: 0 0 var(--p-2, 8px);
+    font-size: var(--p-fs-body-sm, 13px);
+    line-height: var(--p-lh-body-sm, 1.5);
+    color: var(--p-ink-2);
+  }
+
   &__table {
     width: 100%;
     border-collapse: collapse;
@@ -334,6 +568,12 @@ BaseDialog(
     justify-content: flex-end;
     align-items: center;
     gap: var(--p-3, 12px);
+  }
+
+  // Полоса под активным шагом: дело движется, даже если ответ идёт секунды.
+  &__bar {
+    margin-top: var(--p-2, 8px);
+    max-width: 320px;
   }
 }
 </style>

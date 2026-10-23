@@ -1,9 +1,11 @@
 import type { TransactResult } from '@wharfkit/session'
 import type { BlockchainConfig, IndexPosition } from '../../types/blockchain/blockchain.types'
+import { lt } from '@coopenomics/i18n'
 import { Action, type API, APIClient, PrivateKey } from '@wharfkit/antelope'
 import { ContractKit, Table } from '@wharfkit/contract'
 import { Session } from '@wharfkit/session'
 import { WalletPluginPrivateKey } from '@wharfkit/wallet-plugin-privatekey'
+import { createChainFetch } from '../../utils/chainFetch'
 
 /**
  * Класс Blockchain для взаимодействия с блокчейном COOPOS.
@@ -40,15 +42,21 @@ export class Blockchain {
    * @returns Текущий экземпляр Blockchain для цепочного вызова.
    */
   public setWif(username: string, wif: string, permission = 'active'): this {
-    this.session = new Session({
-      actor: username,
-      permission,
-      chain: {
-        id: this.config.chain_id,
-        url: this.config.chain_url,
+    const onFailure = this.config.onChainFailure
+    this.session = new Session(
+      {
+        actor: username,
+        permission,
+        chain: {
+          id: this.config.chain_id,
+          url: this.config.chain_url,
+        },
+        walletPlugin: new WalletPluginPrivateKey(PrivateKey.fromString(wif)),
       },
-      walletPlugin: new WalletPluginPrivateKey(PrivateKey.fromString(wif)),
-    })
+      // Ответ узла виден только здесь: `session.transact` оставляет от него
+      // первую строку подробностей без кода исключения и без тела.
+      onFailure ? { fetch: createChainFetch(onFailure) } : undefined,
+    )
 
     return this
   }
@@ -62,7 +70,7 @@ export class Blockchain {
    */
   public async transact(actionOrActions: any | any[], broadcast = true): Promise<TransactResult> {
     if (!this.session)
-      throw new Error('Сессия не инициализирована.')
+      throw new Error(lt('sdkClient.error.sessionNotInitialized'))
 
     const actions = Array.isArray(actionOrActions)
       ? await Promise.all(actionOrActions.map(action => this.formActionFromAbi(action)))
@@ -165,7 +173,7 @@ export class Blockchain {
   private async getAbi(account: string): Promise<any> {
     const { abi } = await this.apiClient.v1.chain.get_abi(account)
     if (!abi)
-      throw new Error(`ABI для аккаунта "${account}" не найден.`)
+      throw new Error(lt('sdkClient.error.abiNotFound', { account }))
     return abi
   }
 

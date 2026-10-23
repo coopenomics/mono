@@ -28,7 +28,7 @@ void soviet::cancelreg(eosio::name coopname, eosio::name username, std::string m
   if (participant != participants.end()) {
     
     //обнуляем кошелёк
-    participants.modify(participant, _soviet, [&](auto &w){
+    participants.modify(participant, RamPayer::of(participants, coopname), [&](auto &w){
       w.minimum_amount = asset(0, participant -> minimum_amount -> symbol);
       w.initial_amount = asset(0, participant -> initial_amount -> symbol);
       w.has_vote = false;

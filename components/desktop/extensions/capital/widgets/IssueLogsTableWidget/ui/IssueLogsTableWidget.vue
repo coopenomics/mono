@@ -21,8 +21,8 @@
 
     EmptyState(
       v-if='!logs.length && !loading',
-      title='История пуста',
-      body='Здесь появятся изменения задачи, коммиты и связанные действия.'
+      :title='$t("capital.issueLogsTableWidget.emptyTitle")',
+      :body='$t("capital.issueLogsTableWidget.emptyBody")'
     )
       template(#icon)
         q-icon(name='history', size='40px')
@@ -35,6 +35,7 @@ import { ActivityTimeline } from 'src/shared/ui/domain/ActivityTimeline';
 import { EmptyState } from 'src/shared/ui/base/EmptyState';
 import { FailAlert } from 'src/shared/api';
 import { mapCapitalLogToActivity } from 'app/extensions/capital/shared/lib/mapCapitalLogToActivity';
+import { t } from '../../../i18n';
 
 interface Props {
   issueHash: string;
@@ -79,7 +80,7 @@ async function loadLogs(page = 1, append = false) {
     hasMorePages.value = result.items.length === pageSize;
   } catch (error) {
     console.error('Ошибка при загрузке логов задачи:', error);
-    FailAlert('Не удалось загрузить историю задачи');
+    FailAlert(t('capital.issueLogsTableWidget.loadError'));
   } finally {
     loading.value = false;
     initialLoading.value = false;
@@ -108,7 +109,7 @@ watch(
   () => props.refreshTrigger,
   async (newValue, oldValue) => {
     if (newValue !== oldValue && newValue !== undefined) {
-      await new Promise((resolve) => setTimeout(resolve, 3000));
+      // Изменение задачи отвечает, когда запись уже в базе, — журнал читаем сразу.
       currentPage.value = 1;
       hasMorePages.value = true;
       await loadLogs(1, false);
@@ -116,6 +117,7 @@ watch(
   },
 );
 
+// realtime: нет источника — журнал мутаций пишется на каждое действие в системе, в ленту его не отдаём; перечитывается по refreshTrigger карточки задачи.
 onMounted(async () => {
   await loadLogs(1, false);
 });

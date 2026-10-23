@@ -1,0 +1,59 @@
+import { Selector, type ValueTypes } from '../../zeus/index'
+import type { MakeAllFieldsRequired } from '../../utils/MakeAllFieldsRequired'
+
+const rawMemberRowSelector = { username: true, display_name: true, learners_count: true, active_enrollments: true, attention_count: true }
+const _validateMemberRow: MakeAllFieldsRequired<ValueTypes['EduMemberRow']> = rawMemberRowSelector
+export const eduMemberRowSelector = Selector('EduMemberRow')(rawMemberRowSelector)
+
+const rawTaskSelector = {
+  id: true,
+  enrollment_id: true,
+  kind: true,
+  carrier: true,
+  status: true,
+  attempts: true,
+  next_attempt_at: true,
+  last_error: true,
+  last_result: true,
+  done_at: true,
+  created_at: true,
+  updated_at: true,
+}
+const _validateTask: MakeAllFieldsRequired<ValueTypes['EduAccessTask']> = rawTaskSelector
+export const eduAccessTaskSelector = Selector('EduAccessTask')(rawTaskSelector)
+
+const rawLearnerSelector = { id: true, display_name: true, recipient_type: true, recipient_value: true, is_self: true, created_at: true }
+const rawEnrollmentSelector = {
+  id: true,
+  learner_id: true,
+  course_id: true,
+  course_title: true,
+  period: true,
+  paid_until: true,
+  status: true,
+  access_state: true,
+  carrier: true,
+  renewable: true,
+  sub_hash: true,
+  group_id: true,
+  close_pending: true,
+  close_error: true,
+  paid_amount: true,
+  refunded_amount: true,
+  refund_reason: true,
+  cancelled_at: true,
+}
+const rawLearnerAccountSelector = { learner_id: true, carriers: true, active_enrollments: true, removed_at: true }
+const _validateLearnerAccount: MakeAllFieldsRequired<ValueTypes['EduLearnerAccount']> = rawLearnerAccountSelector
+export const eduLearnerAccountSelector = Selector('EduLearnerAccount')(rawLearnerAccountSelector)
+
+const rawMemberCardSelector = { username: true, display_name: true, learners: rawLearnerSelector, learner_accounts: rawLearnerAccountSelector, enrollments: rawEnrollmentSelector, tasks: rawTaskSelector }
+const _validateMemberCard: MakeAllFieldsRequired<ValueTypes['EduMemberCard']> = rawMemberCardSelector
+export const eduMemberCardSelector = Selector('EduMemberCard')(rawMemberCardSelector)
+
+const rawCredentialFieldSelector = { key: true, label: true, secret: true, note: true, is_set: true }
+const _validateCredentialField: MakeAllFieldsRequired<ValueTypes['EduConnectorCredentialField']> = rawCredentialFieldSelector
+const rawBindingSelector = { carrier: true, enabled: true, configured: true, credential_fields: rawCredentialFieldSelector, health: true, last_check_at: true, last_check_message: true }
+const _validateBinding: MakeAllFieldsRequired<ValueTypes['EduConnectorBinding']> = rawBindingSelector
+export const eduConnectorBindingSelector = Selector('EduConnectorBinding')(rawBindingSelector)
+

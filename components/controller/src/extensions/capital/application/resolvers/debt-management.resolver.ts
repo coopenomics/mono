@@ -1,7 +1,19 @@
 import { Resolver, Mutation, Args, Query } from '@nestjs/graphql';
 import { DebtManagementService } from '../services/debt-management.service';
 import { CreateDebtInputDTO } from '../dto/debt_management/create-debt-input.dto';
-import { GqlJwtAuthGuard, RolesGuard, AuthRoles, createPaginationResult, PaginationInputDTO, PaginationResult, GeneratedDocumentDTO, GenerateDocumentOptionsInputDTO, TransactionDTO, GenerateDocumentInputDTO } from '@coopenomics/extension-kit';
+import {
+  GqlJwtAuthGuard,
+  createPaginationResult,
+  PaginationInputDTO,
+  PaginationResult,
+  GeneratedDocumentDTO,
+  GenerateDocumentOptionsInputDTO,
+  TransactionDTO,
+  GenerateDocumentInputDTO,
+  RequireRight,
+  RightsGuard,
+  DOCUMENT_GENERATION_THROTTLE,
+} from '@coopenomics/extension-kit';
 import { UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { DebtOutputDTO } from '../dto/debt_management/debt.dto';
@@ -24,8 +36,8 @@ export class DebtManagementResolver {
     name: 'capitalCreateDebt',
     description: 'Получение ссуды в CAPITAL контракте',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['participant'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Debt', 'create:own', { owner: 'data.username' })
   async createCapitalDebt(
     @Args('data', { type: () => CreateDebtInputDTO }) data: CreateDebtInputDTO
   ): Promise<TransactionDTO> {
@@ -42,6 +54,8 @@ export class DebtManagementResolver {
     name: 'capitalDebts',
     description: 'Получение списка долгов кооператива с фильтрацией',
   })
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Debt', ['read:own', 'read'], { owner: 'filter.username' })
   async getDebts(
     @Args('filter', { nullable: true }) filter?: DebtFilterInputDTO,
     @Args('options', { nullable: true }) options?: PaginationInputDTO
@@ -57,6 +71,8 @@ export class DebtManagementResolver {
     description: 'Получение долга по внутреннему ID базы данных',
     nullable: true,
   })
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Debt', 'read')
   async getDebt(@Args('data') data: GetDebtInputDTO): Promise<DebtOutputDTO | null> {
     return await this.debtManagementService.getDebtById(data._id);
   }
@@ -70,9 +86,9 @@ export class DebtManagementResolver {
     name: 'capitalGenerateGetLoanStatement',
     description: 'Сгенерировать заявление о получении займа',
   })
-  @Throttle({ default: { limit: 3, ttl: 60000 } })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @Throttle(DOCUMENT_GENERATION_THROTTLE)
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Debt', ['generate:own', 'generate'], { owner: 'data.username' })
   async generateGetLoanStatement(
     @Args('data', { type: () => GenerateDocumentInputDTO })
     data: GenerateDocumentInputDTO,
@@ -89,9 +105,9 @@ export class DebtManagementResolver {
     name: 'capitalGenerateGetLoanDecision',
     description: 'Сгенерировать решение о получении займа',
   })
-  @Throttle({ default: { limit: 3, ttl: 60000 } })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @Throttle(DOCUMENT_GENERATION_THROTTLE)
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Debt', ['generate:own', 'generate'], { owner: 'data.username' })
   async generateGetLoanDecision(
     @Args('data', { type: () => GenerateDocumentInputDTO })
     data: GenerateDocumentInputDTO,

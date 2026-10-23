@@ -2,13 +2,19 @@ import { Inject, Injectable } from '@nestjs/common';
 import { REGISTRATION_AGREEMENTS_CONFIG } from '../config/registration-agreements.config';
 import type {
   IAgreementConfigItem,
+  IRegistrationIntakeForm,
   IRegistrationProgram,
 } from '../config/agreement-config.interface';
 import { AccountType } from '~/application/account/enum/account-type.enum';
-import { AgreementRegistryService, AGREEMENT_REGISTRY_SERVICE } from './agreement-registry.service';
+import {
+  AgreementRegistryService,
+  AGREEMENT_REGISTRY_SERVICE,
+  type RegisteredIntakeForm,
+} from './agreement-registry.service';
 import type { AgreementRegistrationSpec } from '../dto/agreement-registration-spec.dto';
 import type { ProgramRegistrationSpec } from '../dto/program-registration-spec.dto';
 import { CooperativeConfigService } from './cooperative-config.service';
+import { ExtensionOfferFilterRegistry } from './extension-offer-filter.registry';
 
 export const AGREEMENT_CONFIGURATION_SERVICE = Symbol('AgreementConfigurationService');
 
@@ -31,7 +37,8 @@ export class AgreementConfigurationService {
   constructor(
     private readonly cooperativeConfigService: CooperativeConfigService,
     @Inject(AGREEMENT_REGISTRY_SERVICE)
-    private readonly agreementRegistry: AgreementRegistryService
+    private readonly agreementRegistry: AgreementRegistryService,
+    private readonly offerFilters: ExtensionOfferFilterRegistry
   ) {}
 
   /**
@@ -63,7 +70,20 @@ export class AgreementConfigurationService {
       requirements: spec.requirements,
       applicable_account_types: spec.applicable_account_types,
       agreement_ids: spec.agreement_ids,
+      intake_forms: this.agreementRegistry
+        .listIntakeFormsForProgram(spec.key)
+        .map((form) => this.intakeFormToConfig(form)),
       order: spec.order,
+    };
+  }
+
+  private intakeFormToConfig(form: RegisteredIntakeForm): IRegistrationIntakeForm {
+    return {
+      id: form.id,
+      title: form.title,
+      description: form.description,
+      schema: form.json_schema,
+      order: form.order,
     };
   }
 
@@ -103,7 +123,7 @@ export class AgreementConfigurationService {
     const defaultAgreements = this.getDefaultAgreementsForCooperative(accountType, coopname);
 
     if (programKey) {
-      const programAgreements = this.getAgreementsForProgram(programKey);
+      const programAgreements = this.getAgreementsForProgram(programKey, coopname);
       return [...defaultAgreements, ...programAgreements].sort((a, b) => a.order - b.order);
     }
 
@@ -183,18 +203,48 @@ export class AgreementConfigurationService {
    * одной инсталляции), но сохранён в сигнатуре ради совместимости
    * с GraphQL-резолвером и для будущего coop-scoping.
    */
-  getAvailablePrograms(_coopname: string, accountType: AccountType): IRegistrationProgram[] {
-    return this.agreementRegistry
-      .listProgramsForAccountType(accountType)
-      .map((spec) => this.programSpecToConfig(spec));
+  getAvailablePrograms(coopname: string, accountType: AccountType): IRegistrationProgram[] {
+    // Сужающие политики других расширений (канон IRegistrationOfferFilterHook):
+    // витрина вступления показывает пересечение реестра со всеми фильтрами.
+    const programs = this.offerFilters.narrowPrograms(this.agreementRegistry.listProgramsForAccountType(accountType), {
+      coopname,
+      accountType,
+    });
+    return programs.map((spec) => this.programSpecToConfig(spec));
   }
 
   /**
    * Соглашения, привязанные к программе через её agreement_ids.
    */
-  getAgreementsForProgram(programKey: string): IAgreementConfigItem[] {
+  getAgreementsForProgram(programKey: string, coopname?: string): IAgreementConfigItem[] {
+    const agreements = this.offerFilters.narrowAgreements(this.agreementRegistry.listAgreementsForProgram(programKey), {
+      coopname,
+    });
+    return agreements.map((spec) => this.specToConfigItem(spec));
+  }
+
+  /**
+   * Анкеты, которые обязан заполнить заявитель: общие для его типа аккаунта
+   * плюс анкеты выбранной программы. Возвращает записи реестра вместе со
+   * схемой — по ней же интерактор проверяет ответы.
+   */
+  getRequiredIntakeForms(accountType: AccountType, programKey?: string): RegisteredIntakeForm[] {
+    const forms = new Map<string, RegisteredIntakeForm>();
+    for (const form of this.agreementRegistry.listIntakeFormsForAccountType(accountType)) {
+      forms.set(form.id, form);
+    }
+    if (programKey) {
+      for (const form of this.agreementRegistry.listIntakeFormsForProgram(programKey)) {
+        forms.set(form.id, form);
+      }
+    }
+    return Array.from(forms.values()).sort((a, b) => a.order - b.order);
+  }
+
+  /** Анкеты, общие для типа аккаунта, — в форме для показа заявителю. */
+  getIntakeFormsForAccountType(accountType: AccountType): IRegistrationIntakeForm[] {
     return this.agreementRegistry
-      .listAgreementsForProgram(programKey)
-      .map((spec) => this.specToConfigItem(spec));
+      .listIntakeFormsForAccountType(accountType)
+      .map((form) => this.intakeFormToConfig(form));
   }
 }

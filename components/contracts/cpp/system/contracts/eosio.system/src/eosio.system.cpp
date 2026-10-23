@@ -673,12 +673,14 @@ void native::setabi( const name& acnt, const std::vector<char>& abi,
 
   /**
    * @brief Инжектирует токены из фонда eosio.saving на кооператив.
-   * Требует подписи _soviet для выполнения операции.
+   * Epic 13 v5.1: требует подписи _billing (единственный вызывающий —
+   * billing::converttoaxn). Эмиссия AXON экономически обеспечена сжиганием
+   * членского взноса на стороне billing (BURN w.wal.bill).
    * @param coopname Имя кооператива-получателя
    * @param quantity Сумма для перевода
    */
   void system_contract::injection(const name& coopname, const asset& quantity) {
-    require_auth(_soviet);
+    require_auth(_billing);
 
     eosio::check(quantity.amount > 0, "Сумма должна быть положительной");
     eosio::check(quantity.symbol == core_symbol(), "Символ должен соответствовать основному символу");

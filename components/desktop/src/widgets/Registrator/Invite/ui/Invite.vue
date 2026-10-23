@@ -1,121 +1,133 @@
 <template lang="pug">
-AuthCard.invite(
-  v-if='token',
-  :max-width='480',
-  title='Сохраните ключ',
-  subtitle='Новый приватный ключ доступа и цифровой подписи сгенерирован для вас'
+//- Приглашение члена совета или пайщика: человек задаёт пароль и сразу входит.
+//- Ключ подписи создаётся в браузере, шифруется этим паролем и хранится в
+//- кооперативе — на руки его не выдаём, как и при регистрации.
+AuthSplit.invite(
+  :eyebrow='coopTitle',
+  :title='$t("registrator.invite.title")',
+  :lead='$t("registrator.invite.lead")',
+  :quote='$t("registrator.invite.quote")',
+  :step-eyebrow='$t("registrator.invite.title")',
+  :heading='token ? $t("registrator.invite.passwordHeading") : $t("registrator.invite.linkHeading")',
+  :text='headingText'
 )
-  p.invite__instruction
-    | Подтвердите, что надёжно сохранили ключ. Рекомендуем хранить его в
-    | бесплатном менеджере паролей, например
-    a.q-ml-xs.invite__link(href='https://bitwarden.com/download', target='_blank') Bitwarden
-    | .
+  template(#actions)
+    AuthActions
 
-  BaseBanner.invite__hint(variant='info')
-    | При первом входе по этому ключу мы предложим задать пароль — дальше будете
-    | входить им, а ключ останется запасным способом восстановления доступа.
-
-  .invite__key(v-if='account && account.private_key')
-    .invite__key-head
-      span.invite__key-label Приватный ключ
-      q-btn(
-        flat,
-        dense,
-        round,
-        size='sm',
-        color='primary',
-        icon='content_copy',
-        aria-label='Скопировать ключ',
-        @click='copyMnemonic'
+  template(v-if='token')
+    BaseBanner(v-if='tokenError', variant='neg') {{ tokenError }}
+    template(v-else)
+      BaseInput(
+        v-model='password',
+        :label='$t("registrator.invite.passwordLabel")',
+        type='password',
+        autocomplete='new-password',
+        :hint='PASSWORD_POLICY_HINT',
+        :error='passwordError',
+        required,
+        @keydown.enter.prevent='repeatRef?.focus()'
       )
-        q-tooltip Скопировать
-    code.invite__key-value {{ account.private_key }}
+      BaseInput(
+        ref='repeatRef',
+        v-model='repeat',
+        :label='$t("registrator.invite.repeatPasswordLabel")',
+        type='password',
+        autocomplete='new-password',
+        :error='repeatError',
+        required,
+        @keydown.enter.prevent='finish'
+      )
+      BaseButton(
+        variant='primary',
+        block,
+        :disabled='!isValid || !email',
+        :loading='loading',
+        @click='finish'
+      ) {{ $t('registrator.invite.submit') }}
 
-  q-checkbox.invite__confirm(v-model='i_save', label='Я сохранил ключ', dense)
+  p.invite__instruction(v-else) {{ $t('registrator.invite.noToken') }}
 
-  BaseButton.invite__submit(
-    variant='primary',
-    block,
-    :disabled='!i_save',
-    :loading='loading',
-    @click='finish'
-  ) Установить ключ
-
-AuthCard.invite(
-  v-else,
-  :max-width='480',
-  title='Приглашение',
-  subtitle='Вы получили приглашение на подключение к кооперативу'
-)
-  p.invite__instruction
-    | Чтобы продолжить, перейдите по персональной ссылке из письма-приглашения.
-    | В ней содержится одноразовый код, по которому для вас будет выпущен ключ
-    | доступа.
-  .invite__actions
-    BaseButton(variant='ghost', @click='goToSignin') Перейти ко входу
+  template(#foot)
+    a.auth-link(href='#', @click.prevent='goToSignin') {{ $t('registrator.invite.goToSignIn') }}
 </template>
 
 <script lang="ts" setup>
-import { copyToClipboard } from 'quasar';
+import { computed, onMounted, ref } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+import { PASSWORD_POLICY_HINT } from '@coopenomics/auth';
 import { useCreateUser } from 'src/features/User/CreateUser';
 import { useResetKey } from 'src/features/User/ResetKey/model';
-import { FailAlert, SuccessAlert } from 'src/shared/api';
-import { type IGeneratedAccount } from 'src/shared/lib/types/user';
-import { AuthCard } from 'src/shared/ui/domain/AuthCard';
+import { useEnterDesktop, useLoginUser } from 'src/features/User/LoginUser';
+import { useNewPasswordForm } from 'src/features/Security/SetPassword';
+import { FailAlert, SuccessAlert, extractGraphQLErrorMessages } from 'src/shared/api';
+import { AuthSplit } from 'src/shared/ui/layout/AuthSplit';
+import { AuthActions } from 'src/widgets/Registrator/AuthActions';
 import { BaseBanner } from 'src/shared/ui/base/BaseBanner';
 import { BaseButton } from 'src/shared/ui/base/BaseButton';
-import { ref } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { BaseInput } from 'src/shared/ui/base/BaseInput';
+import { useSystemStore } from 'src/entities/System/model';
+import { t } from 'src/shared/i18n';
 
 const route = useRoute();
 const router = useRouter();
+const systemStore = useSystemStore();
+const coopTitle = computed(() => systemStore.cooperativeDisplayName);
 
 const { generateAccount } = useCreateUser();
-const account = ref<IGeneratedAccount | undefined>();
+const { resetKey, inviteRecipient } = useResetKey();
+const { migrateAndLogin } = useLoginUser();
+const { enterDesktop } = useEnterDesktop();
+const { password, repeat, passwordError, repeatError, isValid } = useNewPasswordForm();
 
-const i_save = ref(false);
-const token = ref(route.query.token);
+const token = computed(() => (typeof route.query.token === 'string' ? route.query.token : ''));
+const email = ref('');
+const tokenError = ref('');
 const loading = ref(false);
+const repeatRef = ref<{ focus: () => void } | null>(null);
 
-const { resetKey } = useResetKey();
+// Ключ создаётся один раз на страницу: при повторе после сбоя он уже стоит в
+// цепи, и повтор только доводит пароль (migrate идемпотентен).
+const account = generateAccount();
+let keyInChain = false;
 
-account.value = generateAccount();
+const headingText = computed(() => {
+  if (!token.value) return t('registrator.invite.linkText');
+  return email.value ? t('registrator.invite.passwordText', { email: email.value, coop: coopTitle.value }) : '';
+});
 
-const copyMnemonic = () => {
-  const toCopy = `${account.value?.private_key}`;
-
-  copyToClipboard(toCopy)
-    .then(() => {
-      SuccessAlert('Ключ был скопирован в буфер обмена');
-    })
-    .catch((e) => {
-      console.log(e);
-    });
-};
+onMounted(async () => {
+  if (!token.value) return;
+  try {
+    email.value = await inviteRecipient({ token: token.value });
+  } catch (e) {
+    tokenError.value = extractGraphQLErrorMessages(e);
+  }
+});
 
 const goToSignin = () => {
   router.push({ name: 'signin' });
 };
 
 const finish = async () => {
+  if (!isValid.value || !email.value || loading.value) return;
+  loading.value = true;
   try {
-    if (!account.value) {
-      FailAlert('Возникла ошибка при генерации приватного ключа');
-      return;
+    if (!keyInChain) {
+      await resetKey({ token: token.value, public_key: account.public_key });
+      keyInChain = true;
     }
-    loading.value = true;
-    await resetKey({
-      token: token.value as string,
-      public_key: account.value.public_key,
+    await migrateAndLogin({
+      email: email.value,
+      privateKey: account.private_key,
+      newPassword: password.value,
+      rotate: false,
     });
-
-    SuccessAlert('Ключ доступа успешно установлен');
-    loading.value = false;
-
-    router.push({ name: 'signin' });
+    SuccessAlert(t('registrator.invite.passwordSetSuccess'));
+    await enterDesktop();
   } catch (e: any) {
-    loading.value = false;
     FailAlert(e);
+  } finally {
+    loading.value = false;
   }
 };
 </script>
@@ -125,53 +137,6 @@ const finish = async () => {
   color: var(--p-ink-2);
   font-size: var(--p-fs-body-sm, 13px);
   line-height: var(--p-lh-body, 1.55);
-  margin: 0 0 var(--p-4, 16px);
-}
-.invite__link {
-  color: var(--p-primary);
-  text-decoration: none;
-  font-weight: 500;
-}
-.invite__link:hover {
-  text-decoration: underline;
-}
-/* Ключ — выделенная панель, а не readonly-инпут (у того dashed-рамка
-   и обрезка значения). Панель показывает ключ целиком и даёт ему вес. */
-.invite__key {
-  margin-bottom: var(--p-4, 16px);
-  padding: var(--p-3, 12px) var(--p-4, 16px);
-  background: var(--p-surface-2);
-  border: 1px solid var(--p-line);
-  border-radius: var(--p-r-md, 12px);
-}
-.invite__key-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--p-2, 8px);
-  margin-bottom: var(--p-1, 4px);
-}
-.invite__key-label {
-  font-size: var(--p-fs-meta, 12px);
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--p-ink-3);
-}
-.invite__key-value {
-  display: block;
-  font-family: var(--p-mono);
-  font-size: var(--p-fs-mono, 13px);
-  line-height: 1.5;
-  color: var(--p-ink);
-  word-break: break-all;
-}
-.invite__confirm {
-  display: flex;
-  margin-bottom: var(--p-4, 16px);
-}
-.invite__actions {
-  display: flex;
-  justify-content: center;
+  margin: 0;
 }
 </style>

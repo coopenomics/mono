@@ -33,6 +33,7 @@ export class PolicyRegistry implements OnModuleInit {
       const name = this.reflector.get<string>(POLICY_HANDLER_NAME, instance.constructor);
       if (!name) continue;
       if (this.handlers.has(name))
+        // i18n-ignore: внутренняя ошибка регистрации политики при старте, до пайщика не доходит
         throw new Error(`Дубль политики Layer 3: '${name}' зарегистрирована дважды`);
       this.handlers.set(name, instance);
     }
@@ -47,6 +48,7 @@ export class PolicyRegistry implements OnModuleInit {
   /** Политика по имени; бросает, если не зарегистрирована (fail-closed). */
   get(name: string): IPolicyHandler {
     const handler = this.handlers.get(name);
+    // i18n-ignore: внутренняя ошибка конфигурации политики, до пайщика не доходит
     if (!handler) throw new Error(`Политика Layer 3 не зарегистрирована: '${name}'`);
     return handler;
   }

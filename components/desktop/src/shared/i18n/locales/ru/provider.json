@@ -1,0 +1,14 @@
+{
+  "provider": {
+    "catalog": {
+      "ramGb": "{ram} ГБ RAM",
+      "unavailable": "Каталог тарифов временно недоступен"
+    },
+    "providerModel": {
+      "convertError": "Не удалось выполнить конвертацию",
+      "convertSuccess": "Конвертация успешно выполнена",
+      "loadSubscriptionsError": "Ошибка загрузки подписок",
+      "notAvailableError": "Функционал провайдера не доступен"
+    }
+  }
+}

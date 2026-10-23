@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import { isMigrationFile, parseMigrationFilename } from '~/migrator/migration-filename';
 
 /**
  * Гейт против коллизии номеров миграций.
@@ -17,11 +18,15 @@ import path from 'path';
 describe('файлы миграций', () => {
   const migrationsDir = path.resolve(__dirname, '../../../migrations');
 
-  const versions = fs
-    .readdirSync(migrationsDir)
-    .map((file) => ({ file, match: /^V(\d+(?:\.\d+)*)__.+\.[tj]s$/.exec(file) }))
-    .filter((entry): entry is { file: string; match: RegExpExecArray } => entry.match !== null)
-    .map(({ file, match }) => ({ file, version: match[1] }));
+  const files = fs.readdirSync(migrationsDir).filter((file) => /\.[tj]s$/.test(file));
+  const versions = files
+    .filter(isMigrationFile)
+    .map((file) => ({ file, version: parseMigrationFilename(file).version }));
+
+  it('каждый файл каталога — миграция с разборчивым именем', () => {
+    // Файл с опечаткой в имени мигратор пропустил бы молча — как будто его нет.
+    expect(files.filter((file) => !isMigrationFile(file))).toEqual([]);
+  });
 
   it('каталог миграций не пуст (иначе тест зелёный впустую)', () => {
     expect(versions.length).toBeGreaterThan(10);

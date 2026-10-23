@@ -6,7 +6,7 @@
  *  1) каждая операция резолвера модерации объявляет требование доступа —
  *     операция без декоратора проходит guard молча (см. сам guard: «ни одного
  *     декоратора → разрешаю»), то есть новая мутация, добавленная без
- *     `@RequireMarketplaceAccess`, открылась бы любому пайщику;
+ *     `@RequireRight`, открылась бы любому пайщику;
  *  2) право `Offer:moderate` в матрице есть только у роли председателя —
  *     иначе декоратор на месте, но пропускает кого не надо.
  *
@@ -40,7 +40,7 @@ describe('резолвер модерации: каждая операция з�
     // требование упомянуто прозой) не должно попадать в счёт, иначе тест
     // «сходится» за счёт комментария.
     const operations = [...src.matchAll(/^[ \t]*@(?:Query|Mutation)\(/gm)].length;
-    const guarded = [...src.matchAll(/^[ \t]*@RequireMarketplaceAccess\('Offer', 'moderate'\)/gm)].length;
+    const guarded = [...src.matchAll(/^[ \t]*@RequireRight\('Offer', 'moderate'\)/gm)].length;
 
     expect(operations).toBeGreaterThan(0);
     expect(guarded).toBe(operations);
@@ -56,7 +56,7 @@ describe('право модерации выдаётся только предс
     expect(rolesWithModerate).toEqual(['admin']);
   });
 
-  it.each(['orderer', 'offerer', 'operator', 'board_readonly', 'board'] as MarketplaceRole[])(
+  it.each(['orderer', 'offerer', 'operator', 'board_readonly'] as MarketplaceRole[])(
     'роль %s модерировать не может',
     (role) => {
       expect(canAccess([role], 'Offer', 'moderate')).toBe(false);

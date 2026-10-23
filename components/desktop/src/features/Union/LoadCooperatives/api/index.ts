@@ -1,5 +1,7 @@
 import { RegistratorContract } from 'cooptypes';
 import { fetchTable } from 'src/shared/api';
+import { client } from 'src/shared/api/client';
+import { Queries } from '@coopenomics/sdk';
 
 async function loadCoopByUsername(coopname: string): Promise<RegistratorContract.Tables.Cooperatives.ICooperative> {
   const coop = (await fetchTable(
@@ -16,15 +18,17 @@ async function loadCoopByUsername(coopname: string): Promise<RegistratorContract
 }
 
 
-async function loadCoops(): Promise<RegistratorContract.Tables.Cooperatives.ICooperative[]> {
-  const requests = (await fetchTable(
-    RegistratorContract.contractName.production,
-    RegistratorContract.contractName.production,
-    RegistratorContract.Tables.Cooperatives.tableName
-  )) as RegistratorContract.Tables.Cooperatives.ICooperative[];
+/**
+ * Реестр кооперативов оператора грузится через бэкенд (coopback GraphQL),
+ * а не напрямую из блокчейна: бэкенд сводит on-chain список кооперативов
+ * с данными провайдера (подписки / инстанс / биллинг по coopname).
+ */
+async function loadCoops(): Promise<Queries.System.GetCooperativesRegistry.IOutput['getCooperativesRegistry']> {
+  const { [Queries.System.GetCooperativesRegistry.name]: result } = await client.Query(
+    Queries.System.GetCooperativesRegistry.query
+  );
 
-
-  return requests;
+  return result;
 }
 
 export const api = {

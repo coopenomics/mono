@@ -1,17 +1,20 @@
-import { BadRequestException, Inject, Injectable, NotFoundException, UseGuards } from '@nestjs/common';
+import { Inject, Injectable, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { Cooperative } from 'cooptypes';
-import { GqlJwtAuthGuard, PaginationInputDTO, platformSettings, GeneratedDocumentDTO, DocumentAggregateDTO } from '@coopenomics/extension-kit';
-import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
-import { RequireMarketplaceAccess } from '../decorators/marketplace-access.decorator';
-import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
-import { MarketplaceRoleGuard } from '../guards/marketplace-role.guard';
-import { canAccess } from '../access/marketplace-access-matrix';
-import type { MarketplaceRole } from '../membership/marketplace-roles.mapper';
 import {
-  MARKETPLACE_KU_CHAIRMAN_SERVICE,
-  type MarketplaceKuChairmanService,
-} from '../services/marketplace-ku-chairman.service';
+  GqlJwtAuthGuard,
+  PaginationInputDTO,
+  platformSettings,
+  GeneratedDocumentDTO,
+  DocumentAggregateDTO,
+  DomainError,
+  GrantedScope,
+  RequireRight,
+  RightsGuard,
+  type IGrantedScope,
+} from '@coopenomics/extension-kit';
+import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
+import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
 import type { IMarketplaceCurrentMember } from '../dto/marketplace-current-member.dto';
 import {
   MarketplaceConfirmWriteoffInputDTO,
@@ -65,9 +68,7 @@ function toGeneratedDocumentDTO(e: InnerGeneratedDocument): GeneratedDocumentDTO
 export class MarketplaceWriteoffResolver {
   constructor(
     private readonly service: MarketplaceWriteoffService,
-    @Inject(DOCUMENT_PORT) private readonly documentPort: IDocumentPort,
-    @Inject(MARKETPLACE_KU_CHAIRMAN_SERVICE)
-    private readonly kuChairmanService: MarketplaceKuChairmanService
+    @Inject(DOCUMENT_PORT) private readonly documentPort: IDocumentPort
   ) {}
 
   @Query(() => MarketplaceWriteoffProposalDTO, {
@@ -75,8 +76,8 @@ export class MarketplaceWriteoffResolver {
     name: 'marketplaceOpenWriteoffDraft',
     description: 'Открытый черновик проекта списания (если есть). Один на кооператив.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('Writeoff', 'read:all')
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
+  @RequireRight('Writeoff', 'read:all')
   async marketplaceOpenWriteoffDraft(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember
   ): Promise<MarketplaceWriteoffProposalDTO | null> {
@@ -91,8 +92,8 @@ export class MarketplaceWriteoffResolver {
     name: 'marketplaceListWriteoffProposals',
     description: 'Лента всех проектов списания кооператива с фильтром по статусу.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('Writeoff', 'read:all')
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
+  @RequireRight('Writeoff', 'read:all')
   async marketplaceListWriteoffProposals(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceListWriteoffProposalsInputDTO,
@@ -120,8 +121,8 @@ export class MarketplaceWriteoffResolver {
     name: 'marketplaceWriteoffProposal',
     description: 'Детали одного проекта списания: items, decision_log, протокол.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('Writeoff', 'read:all')
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
+  @RequireRight('Writeoff', 'read:all')
   async marketplaceWriteoffProposal(
     @Args('id') id: string
   ): Promise<MarketplaceWriteoffProposalDTO> {
@@ -136,8 +137,8 @@ export class MarketplaceWriteoffResolver {
     description:
       'Создаёт ручной черновик проекта списания. На кооператив может быть только один открытый черновик и один проект, отправленный в совет.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('Writeoff', 'manage_draft')
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
+  @RequireRight('Writeoff', 'manage_draft')
   async marketplaceCreateWriteoffDraft(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceCreateWriteoffDraftInputDTO
@@ -156,8 +157,8 @@ export class MarketplaceWriteoffResolver {
     name: 'marketplaceUpdateWriteoffDraft',
     description: 'Изменить состав черновика — добавить, удалить или поправить позиции.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('Writeoff', 'manage_draft')
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
+  @RequireRight('Writeoff', 'manage_draft')
   async marketplaceUpdateWriteoffDraft(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceUpdateWriteoffDraftInputDTO
@@ -174,8 +175,8 @@ export class MarketplaceWriteoffResolver {
     name: 'marketplaceCancelWriteoffDraft',
     description: 'Удалить черновик. Доступно только пока проект в статусе DRAFT.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('Writeoff', 'manage_draft')
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
+  @RequireRight('Writeoff', 'manage_draft')
   async marketplaceCancelWriteoffDraft(
     @Args('id') id: string
   ): Promise<boolean> {
@@ -186,17 +187,17 @@ export class MarketplaceWriteoffResolver {
   @Query(() => GeneratedDocumentDTO, {
     name: 'marketplaceWriteoffStatementSignablePayload',
     description:
-      'Превью Заявления о списании скоропорта (registry 1106) для подписания председателем.',
+      'Превью Заявления о списании скоропорта для подписания председателем.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('Writeoff', 'propose')
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
+  @RequireRight('Writeoff', 'propose')
   async marketplaceWriteoffStatementSignablePayload(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceWriteoffStatementSignablePayloadInputDTO
   ): Promise<GeneratedDocumentDTO> {
     const draft = await this.service.getProposal(data.draft_id);
     if (!draft.is_draft) {
-      throw new BadRequestException('Подписать Заявление можно только для черновика (DRAFT)');
+      throw DomainError.badRequest('MARKETPLACE_WRITEOFF_SIGN_NOT_DRAFT');
     }
     const proposalHash = this.service.computeProposalHash({
       coopname: draft.coopname,
@@ -235,10 +236,10 @@ export class MarketplaceWriteoffResolver {
   @Mutation(() => MarketplaceWriteoffProposalDTO, {
     name: 'marketplaceSubmitWriteoffDraft',
     description:
-      'Отправить черновик в совет. Принимает подписанное председателем Заявление 1106. После успешного приёма выполняются propwroff и soviet::createagenda(mktwroff).',
+      'Отправить черновик в совет. Принимает подписанное председателем Заявление о списании скоропорта. После успешного приёма выполняются propwroff и soviet::createagenda(mktwroff).',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('Writeoff', 'propose')
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
+  @RequireRight('Writeoff', 'propose')
   async marketplaceSubmitWriteoffDraft(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceSubmitWriteoffDraftInputDTO
@@ -258,8 +259,8 @@ export class MarketplaceWriteoffResolver {
     description:
       'Кандидаты на списание скоропорта: просроченные позиции на складах кооператива. Председатель выделяет нужные и создаёт из них черновик проекта списания.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('Writeoff', 'read:all')
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
+  @RequireRight('Writeoff', 'read:all')
   async marketplaceListWriteoffCandidates(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember
   ): Promise<MarketplaceWriteoffCandidateDTO[]> {
@@ -273,22 +274,17 @@ export class MarketplaceWriteoffResolver {
     description:
       'Группы списаний, ожидающих подтверждения складом: по проекту, одобренному советом, — отдельная строка на каждый кооперативный участок. Председатель КУ видит только свои участки.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('Writeoff', 'read:own-KU')
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
+  @RequireRight('Writeoff', 'read:own-KU', { list: null })
   async marketplaceWriteoffPendingConfirmations(
-    @CurrentMarketplaceMember() member: IMarketplaceCurrentMember
+    @GrantedScope() scope: IGrantedScope
   ): Promise<MarketplaceWriteoffConfirmationGroupDTO[]> {
-    const coopname = platformSettings().coopname;
-    const roles = member.marketplace_roles as MarketplaceRole[];
-    // Совет/админ (read:all) видят все участки; председатель КУ — только свои.
-    let branames: string[] | null = null;
-    if (!canAccess(roles, 'Writeoff', 'read:all')) {
-      branames = await this.kuChairmanService.listBranamesForMember(coopname, member.username);
-      if (branames.length === 0) return [];
-    }
+    // Участки отбора отдаёт гард: совет и администратор видят все участки
+    // (отбора нет), председатель и доверенные участка — свои.
+    if (scope.kus && scope.kus.length === 0) return [];
     return (await this.service.listPendingConfirmations(
-      coopname,
-      branames
+      platformSettings().coopname,
+      scope.kus ?? null
     )) as MarketplaceWriteoffConfirmationGroupDTO[];
   }
 
@@ -297,13 +293,12 @@ export class MarketplaceWriteoffResolver {
     description:
       'Превью Служебной записки о списании (registry 1111) по одному участку проекта — для подписания председателем КУ.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('Writeoff', 'confirm:own-KU')
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
+  @RequireRight('Writeoff', 'confirm:own-KU', { ku: 'data.braname' })
   async marketplaceWriteoffServiceMemoSignablePayload(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceWriteoffServiceMemoSignablePayloadInputDTO
   ): Promise<GeneratedDocumentDTO> {
-    await this.assertBranchAuthorized(member, data.braname);
     const memo = await this.service.getServiceMemoData(data.proposal_id, data.braname);
     const action: Cooperative.Registry.MarketplaceWriteoffServiceMemo.Action = {
       registry_id: Cooperative.Registry.MarketplaceWriteoffServiceMemo.registry_id,
@@ -329,18 +324,19 @@ export class MarketplaceWriteoffResolver {
     description:
       'Протокол совета об одобрении списания — подписанный документ (агрегат) для просмотра председателем КУ.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('Writeoff', 'confirm:own-KU')
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
+  @RequireRight('Writeoff', 'confirm:own-KU', { of: 'WriteoffProposal', id: 'data.proposal_id', match: 'any' })
   async marketplaceWriteoffProtocolDocument(
-    @CurrentMarketplaceMember() _member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceWriteoffProtocolDocumentInputDTO
   ): Promise<DocumentAggregateDTO> {
+    // Протокол читает оператор участка, чьи позиции есть в проекте списания:
+    // участки проекта сверяет гард.
     // Протокол уже подписан советом и лежит в реестре документов: собираем
     // агрегат из подписанного документа по doc_hash (тело + подписи), НЕ
     // регенерируем. Канон — issuance/return-claim.
     const aggregate = await this.service.getProtocolDocumentAggregate(data.proposal_id);
     if (!aggregate) {
-      throw new NotFoundException('Протокол совета по этому проекту недоступен');
+      throw DomainError.notFound('MARKETPLACE_WRITEOFF_PROTOCOL_NOT_FOUND');
     }
     return new DocumentAggregateDTO(aggregate);
   }
@@ -350,13 +346,12 @@ export class MarketplaceWriteoffResolver {
     description:
       'Подтвердить фактическое списание со склада участка подписанной председателем КУ Служебной запиской (registry 1111). Запускает on-chain confirmwroff по всем позициям этого участка.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('Writeoff', 'confirm:own-KU')
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
+  @RequireRight('Writeoff', 'confirm:own-KU', { ku: 'data.braname' })
   async marketplaceConfirmWriteoff(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceConfirmWriteoffInputDTO
   ): Promise<MarketplaceWriteoffProposalDTO> {
-    await this.assertBranchAuthorized(member, data.braname);
     const updated = await this.service.confirmWriteoff({
       id: data.proposal_id,
       braname: data.braname,
@@ -403,23 +398,5 @@ export class MarketplaceWriteoffResolver {
     const dd = String(d.getUTCDate()).padStart(2, '0');
     const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
     return `${dd}.${mm}.${d.getUTCFullYear()}`;
-  }
-
-  /**
-   * Гард ownership: председатель КУ может подтверждать списание только по
-   * своим участкам. Админ/совет (read:all) — по любому.
-   */
-  private async assertBranchAuthorized(
-    member: IMarketplaceCurrentMember,
-    braname: string
-  ): Promise<void> {
-    const roles = member.marketplace_roles as MarketplaceRole[];
-    if (canAccess(roles, 'Writeoff', 'read:all')) return;
-    const own = await this.kuChairmanService.listBranamesForMember(platformSettings().coopname, member.username);
-    if (!own.includes(braname)) {
-      throw new BadRequestException(
-        'Подтвердить списание можно только по участку, на котором вы являетесь председателем или доверенным лицом.'
-      );
-    }
   }
 }

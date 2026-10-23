@@ -20,15 +20,17 @@
     q-skeleton(v-else type="rect" height="200px")
 
   .ku-map-with-list__map(ref="mapContainer" v-if="apiKey" :style="mapMinHeight ? { minHeight: mapMinHeight } : undefined")
-  q-banner.bg-warning.text-white(v-else)
-    | Карта недоступна: не задан YANDEX_MAPS_API_KEY.
+  BaseBanner(v-else, variant='warn')
+    | {{ $t('kUMapWithList.kUMapWithList.mapUnavailableBanner') }}
 </template>
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { env } from 'src/shared/config'
+import { BaseBanner } from 'src/shared/ui/base'
 import { loadYandexMaps } from 'src/shared/lib/yandexMaps'
 import type { IMarketplaceKUDetails } from 'src/entities/MarketplaceKUDetails'
+import { t } from 'src/shared/i18n';
 
 const props = withDefaults(
   defineProps<{
@@ -44,7 +46,7 @@ const props = withDefaults(
   {
     loading: false,
     selectedBraname: null,
-    ariaLabel: 'Список пунктов выдачи Стола заказов',
+    ariaLabel: t('kUMapWithList.kUMapWithList.defaultAriaLabel'),
     mapMinHeight: undefined,
   }
 )
@@ -71,7 +73,7 @@ const visibleItems = computed(() =>
 // Человеческое имя КУ для показа: braname (служебный account-id) пользователю
 // не показываем НИКОГДА — только настоящее имя участка, затем адрес как фолбэк.
 function displayName(pvz: IMarketplaceKUDetails): string {
-  return pvz.name || pvz.addressFull || 'Кооперативный участок'
+  return pvz.name || pvz.addressFull || t('kUMapWithList.kUMapWithList.fallbackBranchName')
 }
 
 function cardClass(pvz: IMarketplaceKUDetails): string {
@@ -84,11 +86,11 @@ function geocodeWarnClass(pvz: IMarketplaceKUDetails): string {
 }
 
 function geocodeWarnText(pvz: IMarketplaceKUDetails): string {
-  if (pvz.geocodeStatus === 'PENDING') return 'Координаты не определены — повторите позже'
+  if (pvz.geocodeStatus === 'PENDING') return t('kUMapWithList.kUMapWithList.geocodePendingWarning')
   if (pvz.geocodeStatus === 'FAILED') {
     return pvz.geocodeErrorMessage
-      ? `Ошибка геокодинга: ${pvz.geocodeErrorMessage}`
-      : 'Ошибка геокодинга'
+      ? t('kUMapWithList.kUMapWithList.geocodeErrorWithMessage', { errorMessage: pvz.geocodeErrorMessage })
+      : t('kUMapWithList.kUMapWithList.geocodeErrorGeneric')
   }
   return ''
 }
@@ -133,6 +135,22 @@ async function initMap() {
   }
 }
 
+/**
+ * Вид метки на карте. Выбранный участок — крупная зелёная «капля», остальные —
+ * маленькие синие точки, недействующие — серые. Раньше вид не менялся вовсе:
+ * человек нажимал точку, внизу подставлялось название, а какая из точек
+ * выбрана, на карте видно не было.
+ */
+function placemarkPreset(pvz: IMarketplaceKUDetails): string {
+  if (pvz.coreBraname === props.selectedBraname) return 'islands#darkGreenIcon'
+  return pvz.status === 'INACTIVE' ? 'islands#grayDotIcon' : 'islands#blueDotIcon'
+}
+
+/** Выбранная метка идёт поверх соседних — иначе крупная «капля» прячется за точками. */
+function placemarkZIndex(pvz: IMarketplaceKUDetails): number {
+  return pvz.coreBraname === props.selectedBraname ? 1000 : 100
+}
+
 function syncPlacemarks(ymaps: any) {
   if (!mapInstance) return
   placemarks.forEach((pm) => mapInstance.geoObjects.remove(pm))
@@ -144,7 +162,7 @@ function syncPlacemarks(ymaps: any) {
         balloonContent: `<strong>${displayName(pvz)}</strong><br>${pvz.addressFull ?? ''}`,
         hintContent: displayName(pvz),
       },
-      { preset: pvz.status === 'INACTIVE' ? 'islands#grayDotIcon' : 'islands#blueDotIcon' }
+      { preset: placemarkPreset(pvz), zIndex: placemarkZIndex(pvz) }
     )
     pm.events.add('click', () => emit('select', pvz))
     mapInstance.geoObjects.add(pm)
@@ -169,6 +187,21 @@ watch(
   { deep: true }
 )
 
+// Смена выбора перекрашивает метки на месте, без пересоздания: полная
+// пересборка сбрасывала бы открытый балун и дёргала карту.
+watch(
+  () => props.selectedBraname,
+  () => {
+    for (const pvz of visibleItems.value) {
+      const pm = placemarks.get(pvz.coreBraname)
+      if (!pm) continue
+      pm.options.set('preset', placemarkPreset(pvz))
+      pm.options.set('zIndex', placemarkZIndex(pvz))
+    }
+  }
+)
+
+// realtime: нет источника — виджет получает пункты выдачи свойством (у родителя они живут по ленте), при открытии грузит только скрипт карты.
 onMounted(() => {
   void initMap()
 })
@@ -209,9 +242,15 @@ onBeforeUnmount(() => {
   @media (max-width: $breakpoint-sm-max) {
     grid-template-columns: 1fr;
 
+    // Список идёт первым, карта под ним: на узком экране карта сверху занимала
+    // весь первый экран, и человек не догадывался, что участок можно просто
+    // выбрать из списка — искал по карте, хотя участков всего несколько.
+    &__list {
+      max-height: 45vh;
+    }
+
     &__map {
       min-height: 320px;
-      order: -1;
     }
   }
 }

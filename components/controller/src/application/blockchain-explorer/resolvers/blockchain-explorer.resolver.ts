@@ -1,6 +1,13 @@
 import { Args, Query, Resolver } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
-import { GqlJwtAuthGuard, RolesGuard, AuthRoles, createPaginationResult, PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
+import {
+  GqlJwtAuthGuard,
+  createPaginationResult,
+  PaginationInputDTO,
+  PaginationResult,
+  RequireRight,
+  RightsGuard,
+} from '@coopenomics/extension-kit';
 import { DeltaService } from '../services/delta.service';
 import { ActionService } from '../services/action.service';
 import { CurrentTableStatesService } from '../services/current-table-states.service';
@@ -34,8 +41,8 @@ export class BlockchainExplorerResolver {
     description:
       'Получить список дельт блокчейна с возможностью фильтрации по контракту, таблице, блоку и другим параметрам.',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Chain', 'read')
   async getDeltas(
     @Args('filters', { nullable: true }) filters: DeltaFiltersInputDTO = {},
     @Args('pagination', { nullable: true }) pagination: PaginationInputDTO = { page: 1, limit: 10, sortOrder: 'DESC' }
@@ -51,8 +58,8 @@ export class BlockchainExplorerResolver {
     description:
       'Получить список действий блокчейна с возможностью фильтрации по аккаунту, имени действия, блоку и другим параметрам.',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Chain', 'read')
   async getActions(
     @Args('filters', { nullable: true }) filters: ActionFiltersInputDTO = {},
     @Args('pagination', { nullable: true }) pagination: PaginationInputDTO = { page: 1, limit: 10, sortOrder: 'DESC' }
@@ -67,8 +74,8 @@ export class BlockchainExplorerResolver {
     name: 'getCurrentTableStates',
     description: 'Получить текущие состояния таблиц блокчейна с фильтрацией по контракту, области и таблице.',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Chain', 'read')
   async getCurrentTableStates(
     @Args('filters', { nullable: true }) filters: CurrentTableStatesFiltersInputDTO = {},
     @Args('pagination', { nullable: true }) pagination: PaginationInputDTO = { page: 1, limit: 10, sortOrder: 'DESC' }

@@ -1,6 +1,6 @@
 import { Args, Int, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
-import { AuthRoles, GqlJwtAuthGuard, RolesGuard, platformSettings } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, platformSettings, RequireRight, RightsGuard } from '@coopenomics/extension-kit';
 import {
   PayWithheldTaxInputDTO,
   WithheldTaxPaymentPageDTO,
@@ -26,8 +26,8 @@ export class WithheldTaxResolver {
     name: 'getWithheldTaxState',
     description: 'Удержанный налог: сколько должны бюджету и что уже отправлено кассиру',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('WithheldTax', 'read')
   async getWithheldTaxState(): Promise<WithheldTaxStateDTO> {
     return this.withheldTaxService.getState(platformSettings().coopname);
   }
@@ -36,8 +36,8 @@ export class WithheldTaxResolver {
     name: 'getWithheldTaxPayments',
     description: 'История перечислений удержанного налога — от новых к старым',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('WithheldTax', 'read')
   async getWithheldTaxPayments(
     @Args('page', { type: () => Int, nullable: true }) page?: number,
     @Args('limit', { type: () => Int, nullable: true }) limit?: number
@@ -54,8 +54,8 @@ export class WithheldTaxResolver {
     description:
       'Отправить удержанный налог на оплату кассиру. Возвращает отправленную сумму',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('WithheldTax', 'pay')
   async payWithheldTax(
     @Args('data', { type: () => PayWithheldTaxInputDTO }) data: PayWithheldTaxInputDTO
   ): Promise<string> {

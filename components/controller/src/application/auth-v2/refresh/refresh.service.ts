@@ -1,7 +1,8 @@
-import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { TokenApplicationService } from '~/application/token/services/token-application.service';
 import { USER_DOMAIN_SERVICE, UserDomainService } from '~/domain/user/services/user-domain.service';
 import { tokenTypes } from '~/types/token.types';
+import { DomainError } from '@coopenomics/extension-kit';
 
 export interface RefreshResult {
   access_token: string;
@@ -34,12 +35,12 @@ export class RefreshService {
       userId = doc.userId;
       sessionId = doc.id;
     } catch {
-      throw new UnauthorizedException('refresh_token недействителен или отозван');
+      throw DomainError.unauthorized('AUTH_V2_REFRESH_TOKEN_INVALID');
     }
 
     // UUID (новые пользователи) либо legacy MongoDB ObjectId (старые) — как в legacy refresh.
     const user = (await this.userDomainService.findUserById(userId)) ?? (await this.userDomainService.findUserByLegacyMongoId(userId));
-    if (!user) throw new UnauthorizedException('Пользователь не найден');
+    if (!user) throw DomainError.unauthorized('AUTH_V2_USER_NOT_FOUND');
 
     // Ротация: старый refresh «сгорает», выпускается новая пара. Строку токена при
     // этом переиспользуем — её id и есть id сессии, он стоит в выданных access-токенах

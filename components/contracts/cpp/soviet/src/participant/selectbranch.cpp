@@ -15,6 +15,8 @@
   require_auth(coopname);
   
   verify_document_or_fail(document);
+  // Заявление о выборе участка подписывает сам пайщик.
+  verify_signer_keys_or_fail(document, username);
   auto target_branch = get_branch_or_fail(coopname, braname);
 
   // приватный кооперативный участок может выбрать только аккаунт из белого списка участка;
@@ -35,7 +37,7 @@
   auto participant = participants.find(username.value);
   eosio::check(participant != participants.end(), "Пайщик не найден");
   
-  participants.modify(participant, coopname, [&](auto &row){
+  participants.modify(participant, RamPayer::of(participants, coopname), [&](auto &row){
     row.braname = braname;
   });
     
@@ -50,7 +52,8 @@
     username,
     "selectbranch"_n,
     hash,
-    document
+    document,
+    uint64_t(0)
   );
   
   // отправляем документ в принятый реестр

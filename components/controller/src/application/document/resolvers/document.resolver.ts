@@ -1,23 +1,60 @@
 import { Resolver, Query, Mutation, Args } from '@nestjs/graphql';
 import { GetDocumentsInputDTO } from '../dto/get-documents-input.dto';
-import { createPaginationResult, AuthRoles, GqlJwtAuthGuard, RolesGuard, CurrentUser, GeneratedDocumentDTO } from '@coopenomics/extension-kit';
+import {
+  createPaginationResult,
+  GqlJwtAuthGuard,
+  CurrentUser,
+  GeneratedDocumentDTO,
+  DomainError,
+  RequireRight,
+  RightsGuard,
+} from '@coopenomics/extension-kit';
 import { DocumentPackageAggregateDTO } from '~/application/agenda/dto/document-package-aggregate.dto';
 import { DocumentService } from '../services/document.service';
 import type { PaginationResultDomainInterface } from '~/domain/common/interfaces/pagination.interface';
 import type { DocumentPackageAggregateDomainInterface } from '~/domain/document/interfaces/document-package-aggregate-domain.interface';
-import { UseGuards, UnauthorizedException } from '@nestjs/common';
+import { UseGuards } from '@nestjs/common';
 import { GenerateAnyDocumentInputDTO } from '../dto/generate-any-document-input.dto';
+import { GetPublicProvisionInputDTO, PublicProvisionDTO } from '../dto/public-provision.dto';
+import { PublicProvisionService } from '../services/public-provision.service';
 import type { IMonoAccount } from '@coopenomics/innercoop';
+import { isCouncilRole } from '~/shared/utils/council-roles';
+import { Cooperative } from 'cooptypes';
+
+/**
+ * Протоколы решений совета: их собирает председатель (или член совета) на имя
+ * заявителя, чьё заявление рассматривает совет. Список — из единого реестра
+ * решений (decisionTypesRegistry), отдельно его нигде не ведём.
+ */
+const DECISION_PROTOCOL_REGISTRY_IDS = new Set<number>(
+  Object.values(Cooperative.Document.decisionTypesRegistry).map((info) => Number(info.protocol_registry_id))
+);
 
 const paginationResultAggregate = createPaginationResult(DocumentPackageAggregateDTO, 'DocumentsAggregate');
 
 @Resolver()
 export class DocumentResolver {
-  constructor(private readonly documentService: DocumentService) {}
+  constructor(
+    private readonly documentService: DocumentService,
+    private readonly publicProvisionService: PublicProvisionService
+  ) {}
+
+  @Query(() => PublicProvisionDTO, {
+    name: 'getPublicProvision',
+    description:
+      'Получить текст публичного положения кооператива (политика обработки персональных данных и другие положения, не зависящие от субъекта)',
+  })
+  async getPublicProvision(
+    @Args('data', { type: () => GetPublicProvisionInputDTO }) data: GetPublicProvisionInputDTO
+  ): Promise<PublicProvisionDTO> {
+    return this.publicProvisionService.getProvisionHtml(data.registry_id);
+  }
 
   @Query(() => paginationResultAggregate)
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  // Совет читает документы любого пайщика, остальные — свои: имя в запросе
+  // сверяется с вошедшим.
+  @RequireRight('Document', ['read:own', 'read:all'], { owner: 'data.username' })
   async getDocuments(
     @Args('data', { type: () => GetDocumentsInputDTO }) data: GetDocumentsInputDTO
   ): Promise<PaginationResultDomainInterface<DocumentPackageAggregateDomainInterface>> {
@@ -26,21 +63,29 @@ export class DocumentResolver {
 
   @Mutation(() => GeneratedDocumentDTO, {
     name: 'generateDocument',
-    description: 'Универсальная генерация документа с произвольными данными (только для председателя)',
+    description: 'Собрать документ на себя. Протокол решения совета председатель и члены совета собирают на имя заявителя.',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @UseGuards(GqlJwtAuthGuard)
   async generateDocument(
     @Args('input', { type: () => GenerateAnyDocumentInputDTO }) input: GenerateAnyDocumentInputDTO,
     @CurrentUser() currentUser: IMonoAccount
   ): Promise<GeneratedDocumentDTO> {
     // Проверяем, что пользователь авторизован
     if (!currentUser?.username) {
-      throw new UnauthorizedException('Пользователь не авторизован');
+      throw DomainError.unauthorized('DOCUMENT_USER_NOT_AUTHORIZED');
     }
 
-    // Проверяем, что username в input.data соответствует текущему пользователю
-    if (!input.data.username || input.data.username !== currentUser.username) {
-      throw new UnauthorizedException('Недостаточно прав доступа для генерации документа');
+    // Документ собирается на себя. Исключение — протокол решения совета: его
+    // председатель и члены совета собирают на имя заявителя. Без исключения
+    // (ужесточение 17.09.2026) рабочий стол не мог утвердить вручную ни одно
+    // решение по чужому заявлению — например, материальную помощь (до 25.09.2026).
+    const forSelf = !!input.data.username && input.data.username === currentUser.username;
+    const councilProtocol =
+      !!input.data.username &&
+      isCouncilRole(currentUser.role) &&
+      DECISION_PROTOCOL_REGISTRY_IDS.has(Number(input.data.registry_id));
+    if (!forSelf && !councilProtocol) {
+      throw DomainError.unauthorized('DOCUMENT_GENERATION_FORBIDDEN');
     }
 
     return this.documentService.generateAnyDocument(input);

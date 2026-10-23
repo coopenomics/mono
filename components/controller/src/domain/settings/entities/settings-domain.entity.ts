@@ -12,6 +12,7 @@ export class SettingsDomainEntity implements SettingsDomainInterface {
   non_authorized_default_workspace: string;
   non_authorized_default_route: string;
   extra_settings?: Record<string, any>;
+  onboarding_completed_at?: Date | null;
   created_at: Date;
   updated_at: Date;
 
@@ -22,6 +23,7 @@ export class SettingsDomainEntity implements SettingsDomainInterface {
     this.authorized_default_route = data.authorized_default_route;
     this.non_authorized_default_workspace = data.non_authorized_default_workspace;
     this.non_authorized_default_route = data.non_authorized_default_route;
+    this.onboarding_completed_at = data.onboarding_completed_at ?? null;
     this.created_at = data.created_at;
     this.updated_at = data.updated_at;
   }
@@ -31,6 +33,9 @@ export class SettingsDomainEntity implements SettingsDomainInterface {
    * @param updates - объект с полями для обновления
    */
   update(updates: Partial<Omit<SettingsDomainInterface, 'coopname' | 'created_at' | 'updated_at'>>): void {
+    if (updates.onboarding_completed_at !== undefined) {
+      this.onboarding_completed_at = updates.onboarding_completed_at;
+    }
     if (updates.provider_name !== undefined) {
       this.provider_name = updates.provider_name;
     }

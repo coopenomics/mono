@@ -3,7 +3,7 @@ q-toggle(
   :readonly='!project?.permissions?.can_edit_project || !currentProject?.is_planed'
   v-model='isProjectOpened',
   :color='isProjectOpened ? "green" : "grey"',
-  :label='"Принимает инвестиции"',
+  :label='$t("capital.openCloseToggle.acceptingLabel")',
   :loading='loading',
   size="lg"
   checked-icon="check"
@@ -21,6 +21,7 @@ import { useOpenCloseProject } from '../model';
 import { useProjectStore } from 'app/extensions/capital/entities/Project/model';
 import { FailAlert } from 'src/shared/api/alerts';
 import type { IProject } from 'app/extensions/capital/entities/Project/model';
+import { t } from '../../../../i18n';
 
 const props = defineProps<{ project: IProject }>();
 
@@ -48,13 +49,13 @@ const tooltipText = computed(() => {
   if (!currentProject.value?.permissions?.can_edit_project) {
     // Если прием инвестиций открыт, подсказываем про остановку
     if (currentProject.value?.is_opened) {
-      return 'у вас недостаточно прав для остановки приёма инвестиций';
+      return t('capital.openCloseToggle.stopPermissionError');
     }
     // Если прием инвестиций закрыт, подсказываем про старт
-    return 'у вас недостаточно прав для объявления старта приёма инвестиций';
+    return t('capital.openCloseToggle.startPermissionError');
   }
   if (!currentProject.value?.is_planed) {
-    return 'для объявления старта приёма инвестиций сперва установите план';
+    return t('capital.openCloseToggle.planRequiredError');
   }
   return '';
 });

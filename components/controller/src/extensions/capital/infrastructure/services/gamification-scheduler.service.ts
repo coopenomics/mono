@@ -75,14 +75,24 @@ export class GamificationSchedulerService implements OnModuleInit, OnModuleDestr
       const allContributors = await this.contributorRepository.findAll();
       const coopContributors = allContributors.filter((c) => c.coopname === coopname);
 
-      // Фильтруем участников, исключая тех, кто имеет статус INACTIVE или UNDEFINED
+      // Энергию обновляет действие цепи, а оно требует ровно активного договора
+      // УХД (`capital`: «Договор УХД с пайщиком не активен»). Любой другой
+      // статус — import, approved, pending — цепь отклонит ассертом, поэтому
+      // такие записи сюда не берём: планировщик каждые сутки бился бы в
+      // закрытую дверь и писал ошибку на одного и того же пайщика.
       const contributorsToUpdate = coopContributors.filter(
-        (contributor) =>
-          contributor.status !== ContributorStatus.INACTIVE && contributor.status !== ContributorStatus.UNDEFINED && contributor.status !== ContributorStatus.PENDING
+        (contributor) => contributor.blockchain_status === ContributorStatus.ACTIVE
       );
 
+      const skipped = coopContributors.length - contributorsToUpdate.length;
+      if (skipped > 0) {
+        this.logger.debug(
+          `Пропускаем ${skipped} участников кооператива ${coopname}: договор УХД не активен в цепи`
+        );
+      }
+
       if (contributorsToUpdate.length === 0) {
-        this.logger.debug(`Нет участников кооператива ${coopname} для обновления энергии (все неактивны или неопределены)`);
+        this.logger.debug(`Нет участников кооператива ${coopname} с активным договором УХД для обновления энергии`);
         return;
       }
 
@@ -91,12 +101,6 @@ export class GamificationSchedulerService implements OnModuleInit, OnModuleDestr
       // Обновляем каждого участника
       for (const contributor of contributorsToUpdate) {
         try {
-          // Проверяем, подписал ли участник договор УХД
-          if (!contributor.contract || !contributor.blockchain_status) {
-            this.logger.debug(`Пропускаем обновление энергии для участника ${contributor.username} - договор УХД не подписан`);
-            continue;
-          }
-
           await this.blockchainPort.refreshContributor({
             coopname,
             username: contributor.username,

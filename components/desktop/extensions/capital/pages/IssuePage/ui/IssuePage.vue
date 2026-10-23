@@ -1,5 +1,5 @@
 <template lang="pug">
-.issue-page-shell.column.flex-1.min-h-0.min-w-0.no-wrap
+.issue-page-shell.page-shell.column.flex-1.min-h-0.min-w-0.no-wrap
   PageTabs(
     v-if="issue"
     :tabs="issueTabs"
@@ -10,14 +10,22 @@
         v-if="isRequirementsTab && canCreateRequirement"
         variant="primary"
         size="sm"
-        aria-label="Создать артефакт"
+        :aria-label="$t('capital.issuePage.createArtifactAriaLabel')"
         @click="openCreateRequirementDialog"
       )
         template(#icon-left)
           q-icon(name="add", size="18px")
-        | Артефакт
+        | {{ $t('capital.issuePage.artifactLabel') }}
 
-  .issue-page-skeleton(v-if="!issue")
+  .issue-page-missing(v-if="issueNotFound")
+    EmptyState(
+      :title="$t('capital.issuePage.unavailableTitle')"
+      :body="$t('capital.issuePage.unavailableBody')"
+    )
+      template(#icon)
+        q-icon(name="assignment_late" size="32px")
+
+  .issue-page-skeleton(v-else-if="!issue")
     .issue-page-skeleton__side(v-if="showSidebar")
       .skel(v-for="i in 4", :key="i")
     .issue-page-skeleton__main
@@ -37,6 +45,7 @@
           :issue="issue"
           @field-change="handleFieldChange"
           @update:title="handleTitleUpdate"
+          @save="handleTitleUpdate"
         ).full-width
           template(#prepend-icon)
             q-icon(name="task", size="24px", color="primary")
@@ -70,6 +79,7 @@
         :issue="issue"
         @field-change="handleFieldChange"
         @update:title="handleTitleUpdate"
+        @save="handleTitleUpdate"
       ).full-width
         template(#prepend-icon)
           q-icon(name="task", size="24px", color="primary")
@@ -114,6 +124,7 @@
     :filter="createRequirementFilter"
     @success="handleRequirementCreated"
   )
+  ConflictDialog(v-model="conflictOpen" :conflict="conflict" @resolve="applyConflictResolution")
 </template>
 
 <script lang="ts" setup>
@@ -124,13 +135,15 @@ import { FailAlert } from 'src/shared/api'
 import { api as IssueApi } from 'app/extensions/capital/entities/Issue/api'
 import { api as ProjectApi } from 'app/extensions/capital/entities/Project/api'
 import type { IIssue } from 'app/extensions/capital/entities/Issue/model'
+import { withLabels } from 'app/extensions/capital/entities/Issue/model'
 import type { IProject } from 'app/extensions/capital/entities/Project/model'
 import { EMPTY_HASH } from 'src/shared/lib/consts'
-import { useBackButton } from 'src/shared/lib/navigation'
+import { goBackOr, useBackButton } from 'src/shared/lib/navigation'
 import { PageTabs } from 'src/shared/ui/layout'
-import { BaseButton } from 'src/shared/ui/base'
+import { BaseButton, EmptyState } from 'src/shared/ui/base'
 import { toMarkdown } from 'src/shared/lib/utils'
-import { useUpdateIssue } from 'app/extensions/capital/features/Issue/UpdateIssue'
+import { useIssueContentSave } from 'app/extensions/capital/features/Issue/UpdateIssue'
+import { ConflictDialog } from 'app/extensions/capital/features/ContentRevisions'
 import { IssueSidebarWidget } from 'app/extensions/capital/widgets'
 import { IssueTitleEditor } from 'app/extensions/capital/widgets/IssueTitleEditor'
 import { ProjectPathWidget } from 'app/extensions/capital/widgets/ProjectPathWidget'
@@ -141,6 +154,7 @@ import {
   isMyProjectsWorkspace,
   capitalRouteName,
 } from 'app/extensions/capital/shared/lib/capitalWorkspaceRoutes'
+import { t, t as i18nT } from '../../../i18n';
 
 const route = useRoute()
 const router = useRouter()
@@ -169,7 +183,7 @@ const saveSidebarWidth = (width: number) => {
 }
 
 const isMobileLayout = isMobile
-const { debounceSave, isAutoSaving, autoSaveError } = useUpdateIssue()
+
 
 const issueHash = computed(() => route.params.issue_hash as string)
 const isMyTaskContext = computed(() =>
@@ -245,14 +259,12 @@ const issueTabs = computed(() => {
         project_hash: projectHash.value,
         issue_hash: issueHash.value,
       }
-  const currentBackRoute = route.query._backRoute as string
-  const query = currentBackRoute ? { _backRoute: currentBackRoute } : {}
 
   return [
-    { key: `${prefix}-description`, label: 'Описание', route: { name: `${prefix}-description`, params, query } },
-    { key: `${prefix}-requirements`, label: 'Артефакты', route: { name: `${prefix}-requirements`, params, query } },
-    { key: `${prefix}-commits`, label: 'Коммиты', route: { name: `${prefix}-commits`, params, query } },
-    { key: `${prefix}-history`, label: 'История', route: { name: `${prefix}-history`, params, query } },
+    { key: `${prefix}-description`, label: t('capital.issuePage.descriptionTabLabel'), route: { name: `${prefix}-description`, params } },
+    { key: `${prefix}-requirements`, label: t('capital.issuePage.artifactsTabLabel'), route: { name: `${prefix}-requirements`, params } },
+    { key: `${prefix}-commits`, label: t('capital.issuePage.commitsTabLabel'), route: { name: `${prefix}-commits`, params } },
+    { key: `${prefix}-history`, label: t('capital.issuePage.historyTabLabel'), route: { name: `${prefix}-history`, params } },
   ]
 })
 
@@ -287,72 +299,54 @@ const loadParentInfo = async () => {
 
 const handleFieldChange = () => {}
 
+// Автосохранение с редакциями — общий composable: та же машина работает в
+// оверлее задачи, поведение правки обязано совпадать
+const {
+  isAutoSaving,
+  autoSaveError,
+  conflict,
+  conflictOpen,
+  saveIssueContent,
+  applyConflictResolution,
+} = useIssueContentSave(issue, projectHash, {
+  onSaved: () => {
+    logsRefreshTrigger.value++
+  },
+})
+
 const handleTitleUpdate = async (value: string) => {
   if (!issue.value) return
   issue.value.title = value
-  try {
-    await debounceSave({ issue_hash: issue.value.issue_hash, title: value }, projectHash.value || '')
-    logsRefreshTrigger.value++
-  } catch (error) {
-    console.error('Failed to update title:', error)
-  }
+  await saveIssueContent({ title: value })
 }
 
 const handleDescriptionChange = async () => {
   if (!issue.value) return
-  try {
-    await debounceSave(
-      { issue_hash: issue.value.issue_hash, description: issue.value.description },
-      projectHash.value || '',
-    )
-    logsRefreshTrigger.value++
-  } catch (error) {
-    console.error('Failed to update description:', error)
-  }
+  await saveIssueContent({ description: issue.value.description ?? '' })
 }
 
+// Назад — туда, откуда пришли (см. smartBack.ts); при прямом заходе по
+// ссылке — на список задач компонента-владельца или в свой контекст my-*
 useBackButton({
-  text: 'Назад',
+  text: i18nT('common.action.back'),
   componentId: 'issue-page-' + issueHash.value,
   onClick: () => {
-    if (isMyTaskContext.value) {
-      router.push({ name: 'capital-my-tasks', params: { coopname: route.params.coopname } })
-      return
-    }
-    if (isMyProjectsContext.value) {
-      if (projectHash.value) {
-        router.push({
-          name: capitalRouteName('component-tasks', route),
-          params: { coopname: route.params.coopname, project_hash: projectHash.value },
-        })
-        return
-      }
-      router.push({ name: 'capital-my-projects', params: { coopname: route.params.coopname } })
-      return
-    }
-    const backRoute = route.query._backRoute as string
-    if (backRoute) {
-      const storedRoute = sessionStorage.getItem(backRoute)
-      if (storedRoute) {
-        try {
-          const routeData = JSON.parse(storedRoute)
-          router.push({
-            name: routeData.name,
-            params: routeData.params,
-            query: routeData.query,
-          })
-          sessionStorage.removeItem(backRoute)
-          return
-        } catch (error) {
-          console.warn('Failed to parse stored route:', error)
-        }
-      }
-      router.push({ name: backRoute })
-    } else {
-      router.back()
-    }
+    const fallback = isMyTaskContext.value
+      ? { name: 'capital-my-tasks', params: { coopname: route.params.coopname } }
+      : projectHash.value
+        ? {
+            name: capitalRouteName('component-tasks', route),
+            params: { coopname: route.params.coopname, project_hash: projectHash.value },
+          }
+        : { name: 'capital-my-projects', params: { coopname: route.params.coopname } }
+    goBackOr(router, fallback)
   },
 })
+
+// Попытка загрузки завершилась, а задачи нет — она удалена или недоступна.
+// Без этого признака страница не отличает «ещё грузится» от «уже никогда
+// не загрузится» и крутит скелетон бесконечно.
+const issueNotFound = ref(false)
 
 const loadIssue = async () => {
   try {
@@ -361,9 +355,11 @@ const loadIssue = async () => {
     if (issue.value?.description) {
       issue.value.description = ensureMarkdownFormat(issue.value.description)
     }
+    issueNotFound.value = !issue.value
   } catch (error) {
     console.error('Ошибка при загрузке задачи:', error)
-    FailAlert('Не удалось загрузить задачу')
+    FailAlert(t('capital.issuePage.loadError'))
+    issueNotFound.value = true
   }
 }
 
@@ -390,13 +386,7 @@ const handleEstimateUpdate = (value: number) => {
 
 const handleLabelsUpdate = (value: string[]) => {
   if (!issue.value) return
-  const prev = issue.value.metadata
-  const base: Record<string, unknown> =
-    prev && typeof prev === 'object' && prev !== null && !Array.isArray(prev)
-      ? { ...(prev as Record<string, unknown>) }
-      : {}
-  base.labels = value
-  issue.value.metadata = base as IIssue['metadata']
+  issue.value.metadata = withLabels(issue.value.metadata, value)
   logsRefreshTrigger.value++
 }
 
@@ -441,11 +431,6 @@ const handleIssueMoved = ({
       project_hash: toProjectHash,
       issue_hash: updatedIssue.issue_hash,
     },
-    query: isMyTaskContext.value
-      ? { _backRoute: 'capital-my-tasks' }
-      : isMyProjectsContext.value
-        ? {}
-        : { ...route.query },
   })
 }
 
@@ -462,10 +447,12 @@ provide(ISSUE_PAGE_KEY, {
   linkedGitCommits,
   handleDescriptionChange,
   openCreateRequirementDialog,
+  reloadIssue: loadIssue,
 })
 
 watch(routeIssueKey, async (_key, prev) => {
   if (prev === undefined) return
+  issueNotFound.value = false
   await loadIssue()
   await loadParentInfo()
 })
@@ -493,6 +480,7 @@ watch(
   { immediate: true },
 )
 
+// realtime: нет источника — карточка с редакторами и разрешением конфликтов правок (content_rev): живое перечитывание подменило бы редактируемый объект; чужие правки ловит проверка версии при сохранении.
 onMounted(async () => {
   loadSidebarWidth()
   await loadIssue()
@@ -501,13 +489,6 @@ onMounted(async () => {
 </script>
 
 <style lang="scss" scoped>
-// Оболочка заполняет вьюпорт под топбаром — единая высота surface на всех вкладках
-.issue-page-shell {
-  height: calc(100vh - var(--p-topbar-h));
-  max-height: calc(100vh - var(--p-topbar-h));
-  overflow: hidden;
-}
-
 // Рабочая плоскость: контент на --p-surface, табы на --p-canvas
 .page-surface {
   background: var(--p-surface);
@@ -530,6 +511,16 @@ onMounted(async () => {
   min-height: 0;
   min-width: 0;
   width: 100%;
+}
+
+.issue-page-missing {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  align-items: center;
+  justify-content: center;
+  padding: var(--p-6);
+  background: var(--p-surface);
 }
 
 .issue-page-skeleton {

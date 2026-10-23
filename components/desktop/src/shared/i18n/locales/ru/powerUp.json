@@ -1,0 +1,36 @@
+{
+  "powerUp": {
+    "resourceMonitor": {
+      "loadError": "Ошибка загрузки ресурсов: {error}",
+      "loading": "Загрузка данных...",
+      "subtitle": "CPU / NET / RAM текущего кооператива (последний срез PowerupPlugin)",
+      "title": "Использование ресурсов"
+    },
+    "resourceMonitorPage": {
+      "boughtThisMonth": "Докуплено в этом месяце",
+      "configLoadError": "Не удалось загрузить config расширения",
+      "currentPeriod": "Текущий период",
+      "monthlyCap": "Потолок месяца",
+      "packagesToday": "Сделано пакетов сегодня",
+      "saveError": "Не удалось сохранить настройки",
+      "saved": "Настройки PowerUp сохранены",
+      "summaryTitle": "Сводка пакета"
+    },
+    "settingsForm": {
+      "cooldownLabel": "Cooldown между арендой ресурсов (мин)",
+      "cpuLabel": "Порог CPU (%)",
+      "dailyAxonCapLabel": "Суточный потолок {symbol}",
+      "dailyPackageCapLabel": "Суточный лимит аренд (шт.)",
+      "monthlyCapLabel": "Месячный потолок взносов ({symbol})",
+      "netLabel": "Порог NET (%)",
+      "nonNegativeRule": "Не отрицательное",
+      "percentRule": "От 0 до 100",
+      "quotaHint": "Минимум 5 {symbol}. Каждое срабатывание триггера арендует столько вычислительных ресурсов ({resourceSymbol})",
+      "quotaLabel": "Размер минимальной квоты",
+      "quotaRule": "Минимум 5 {symbol}",
+      "ramLabel": "Порог RAM (%)",
+      "subtitle": "Размер квоты, пороги CPU/NET/RAM, лимиты аренды",
+      "title": "Аренда вычислительных ресурсов"
+    }
+  }
+}

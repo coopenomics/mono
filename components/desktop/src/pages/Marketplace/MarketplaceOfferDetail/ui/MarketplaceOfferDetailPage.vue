@@ -1,15 +1,25 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { uiLocale, t } from 'src/shared/i18n';
+import { useFirstLoad } from 'src/shared/lib/composables';
 import { debounce } from 'quasar';
 import { useRoute, useRouter } from 'vue-router';
 import { FailAlert } from 'src/shared/api';
 import { useSystemStore } from 'src/entities/System/model';
 import { BaseButton, BaseBadge, EmptyState } from 'src/shared/ui/base';
+import { DataRow } from 'src/shared/ui/domain';
 import { OfferGallery } from 'src/widgets/Marketplace/OfferGallery';
-import { CartHeaderButton } from 'src/widgets/Marketplace/CartHeaderButton';
 import { marketplaceOrderUnitLabel } from 'src/shared/lib/consts';
+import { MarketplaceSaleForm } from 'src/shared/lib/consts/marketplace-units';
 import { marketplaceOfferImageUrls } from 'src/shared/lib/utils';
-import { useMarketplaceRealtime, getMembershipFeePercent, applyMembershipFee } from 'src/shared/lib/marketplace';
+import {
+  marketLiveTables,
+  getMembershipFeePercent,
+  applyMembershipFee,
+  marketplaceAvailablePackages,
+  marketplacePackageStockLabel,
+} from 'src/shared/lib/marketplace';
 import { useMarketplaceCartStore } from 'src/entities/MarketplaceCart';
 import { useOfferModeration } from 'src/features/Marketplace/OfferModeration';
 import { fetchCategories } from '../../MarketplaceCatalog/api';
@@ -38,19 +48,25 @@ const offerId = computed(() => String(route.params.offerId ?? ''));
 const readonly = computed(() => route.meta?.readonly === true);
 
 // Откуда пришли (query `from`) — чтобы «назад» называлась и вела туда же, где
-// заказчик был: из корзины → «В корзину», из модерации → «К модерации», иначе
-// дефолт «К каталогу». Реальный переход — router.back() (история совпадает с
-// реферрером), это лишь корректные подпись и fallback-маршрут.
+// человек был. Карточку открывают с пяти экранов: корзина заказчика и четыре
+// реестра стола администратора (предложения, заказы, модерация, склад).
+// Реальный переход — router.back() (история совпадает с реферрером), это
+// корректные подпись и запасной маршрут.
+const BACK_TARGETS: Record<string, { label: string; name: string }> = {
+  cart: { label: t('marketplace.marketplaceOfferDetailPage.cartAction'), name: 'marketplace-cart' },
+  orders: { label: t('marketplace.marketplaceOfferDetailPage.backToOrders'), name: 'marketplace-admin-orders' },
+  offers: { label: t('marketplace.marketplaceOfferDetailPage.backToOffers'), name: 'marketplace-admin-offers' },
+  moderation: { label: t('marketplace.marketplaceOfferDetailPage.backToModeration'), name: 'marketplace-moderation' },
+  warehouse: { label: t('marketplace.marketplaceOfferDetailPage.backToWarehouse'), name: 'marketplace-warehouse-summary' },
+};
+
 const backTarget = computed<{ label: string; name: string }>(() => {
-  if (route.query.from === 'cart') return { label: 'В корзину', name: 'marketplace-cart' };
-  // Стол администратора: карточку открывают из разных реестров — подпись и
-  // fallback-маршрут «назад» зависят от того, откуда пришли (query `from`).
-  if (route.query.from === 'orders')
-    return { label: 'К реестру заказов', name: 'marketplace-admin-orders' };
-  if (route.query.from === 'offers')
-    return { label: 'К реестру предложений', name: 'marketplace-admin-offers' };
-  if (readonly.value) return { label: 'К модерации', name: 'marketplace-moderation' };
-  return { label: 'К каталогу', name: 'marketplace-catalog' };
+  const from = BACK_TARGETS[String(route.query.from ?? '')];
+  if (from) return from;
+  // Без пометки: на столе администратора карточку исторически открывала
+  // только модерация, у заказчика — каталог.
+  if (readonly.value) return { label: t('marketplace.marketplaceOfferDetailPage.backToModeration'), name: 'marketplace-moderation' };
+  return { label: t('marketplace.marketplaceOfferDetailPage.backToCatalog'), name: 'marketplace-catalog' };
 });
 
 // Модерация прямо на странице: показываем «Одобрить»/«Отклонить», только если
@@ -65,13 +81,33 @@ function backToModeration(): void {
 
 // Диалоги + мутации модерации — общий feature-композабл (DRY с лентой
 // «Модерация»). После решения возвращаемся в очередь модерации.
-const { isApproving, isRejecting, confirmApprove, confirmReject } = useOfferModeration({
-  onApproved: backToModeration,
-  onRejected: backToModeration,
-});
+const { isApproving, isRejecting, isSettingWarranty, confirmApprove, confirmReject, confirmSetWarranty } =
+  useOfferModeration({
+    onApproved: backToModeration,
+    onRejected: backToModeration,
+    onWarrantyChanged: () => void load(),
+  });
+
+/**
+ * Гарантийный срок возврата задаёт модератор — здесь же, на карточке
+ * предложения. В реестре он жил отдельной кнопкой в строке и мешал ей
+ * открываться (решение владельца 14.09.2026).
+ */
+function editWarranty(): void {
+  const o = offer.value;
+  if (!o) return;
+  confirmSetWarranty(
+    { id: o.id, product_name: o.product_name, shelf_life_days: o.shelf_life_days },
+    o.warranty_days ?? 0,
+  );
+}
 
 const offer = ref<MarketplaceOfferDetailView | null>(null);
-const loading = ref(false);
+// true до первого запроса: иначе первый кадр до загрузки показывает пустое
+// состояние вместо скелетона, и первая загрузка неотличима от пустого списка.
+const loading = ref(true);
+/** Каркас и пустое состояние — по первой загрузке; дочитка обновляет молча. */
+const firstLoad = useFirstLoad(loading);
 const categoryNames = ref<Record<number, string>>({});
 
 const cartDialogOpen = ref(false);
@@ -90,30 +126,86 @@ const categoryLabel = computed(() => {
   return id != null ? categoryNames.value[id] ?? null : null;
 });
 
+/** Отпуск упаковкой: заказчик берёт целые упаковки, цена — за упаковку. */
+const isPackaged = computed(
+  () => offer.value?.sale_form === MarketplaceSaleForm.PACKAGED && !!offer.value?.packages?.length,
+);
 const isEmpty = computed(
   () => !!offer.value && !offer.value.unlimited_flag && offer.value.quantity_available <= 0,
 );
-const canOrder = computed(
-  () => !!offer.value && (offer.value.unlimited_flag || offer.value.quantity_available > 0),
-);
+const canOrder = computed(() => {
+  const o = offer.value;
+  if (!o) return false;
+  if (o.unlimited_flag) return true;
+  if (o.quantity_available <= 0) return false;
+  // Отпуск упаковкой: пока нет свободной тары, брать нечего — общий остаток
+  // в литрах тут ничего не решает.
+  if (o.packages?.length) return marketplaceAvailablePackages(o.packages, false).length > 0;
+  return true;
+});
 const stockLabel = computed(() => {
   if (!offer.value) return '';
-  if (offer.value.unlimited_flag) return 'Без ограничения остатка';
-  return isEmpty.value
-    ? 'Нет в наличии'
-    : `В наличии: ${offer.value.quantity_available}×${unitShort.value}`;
+  if (offer.value.unlimited_flag) return t('marketplace.marketplaceOfferDetailPage.stockUnlimited');
+  if (isEmpty.value) return t('marketplace.marketplaceOfferDetailPage.stockEmpty');
+  // Остаток при отпуске упаковкой ведётся на каждой упаковке — показываем
+  // по упаковкам, а не одним числом литров.
+  if (isPackaged.value) {
+    return t('marketplace.marketplaceOfferDetailPage.stockAvailablePackaged', { stock: marketplacePackageStockLabel(offer.value.packages, offer.value.unit_of_measure) });
+  }
+  return t('marketplace.marketplaceOfferDetailPage.stockAvailableSimple', { quantity: offer.value.quantity_available, unit: unitShort.value });
 });
 
 // requirement b6: единая ставка членского взноса входит в цену для всех,
 // кроме стола поставщика (там — своя цена + строка «для заказчика»).
 const feePercent = ref(0);
-const priceWithFee = computed(() =>
-  offer.value ? applyMembershipFee(Number(offer.value.price_per_unit), feePercent.value) : 0,
+// Цена — за единицу отпуска: при отпуске упаковкой это цена за упаковку, а
+// не за литр. Основная упаковка задаёт цену, которую заказчик видит первой.
+// Цену показываем по той таре, которую можно взять: иначе страница называет
+// цену литровой бутылки, которой на складе нет (жалоба 2026-09-14).
+const availablePackages = computed(() =>
+  marketplaceAvailablePackages(offer.value?.packages, Boolean(offer.value?.unlimited_flag)),
 );
-const priceLabel = computed(() =>
-  offer.value
-    ? `${priceWithFee.value.toLocaleString('ru-RU')} ${system.governSymbol} / ${unitShort.value}`
-    : '',
+const defaultPackage = computed(() => {
+  const list = availablePackages.value.length
+    ? availablePackages.value
+    : offer.value?.packages ?? [];
+  return list.find((p) => p.is_default) ?? list[0] ?? null;
+});
+const saleUnitLabel = computed(() => {
+  const pkg = defaultPackage.value;
+  if (!isPackaged.value || !pkg) return unitShort.value;
+  return t('marketplace.marketplaceOfferDetailPage.packageSizeLabel', { size: formatSize(pkg.size), unit: unitShort.value });
+});
+const priceLabel = computed(() => {
+  if (!offer.value) return '';
+  const base = isPackaged.value && defaultPackage.value
+    ? Number(defaultPackage.value.price)
+    : Number(offer.value.price_per_unit);
+  const withFee = applyMembershipFee(base, feePercent.value);
+  return `${withFee.toLocaleString(uiLocale())} ${system.governSymbol} / ${saleUnitLabel.value}`;
+});
+
+/** Компактная запись объёма: 0.5 → «0,5». */
+function formatSize(size: number): string {
+  return String(size).replace('.', ',');
+}
+
+/**
+ * Упаковки предложения: что заказчик реально берёт. Без этого блока карточка
+ * молчит о том, в чём приедет товар и сколько какой упаковки осталось —
+ * заказчику и модератору видна была только цена за литр.
+ */
+const packageRows = computed(() =>
+  (offer.value?.packages ?? []).map((p) => ({
+    key: p.id,
+    name: [`${formatSize(p.size)} ${unitShort.value}`, p.package_type].filter(Boolean).join(', '),
+    price: `${applyMembershipFee(Number(p.price), feePercent.value).toLocaleString(uiLocale())} ${system.governSymbol}`,
+    stock: offer.value?.unlimited_flag
+      ? t('marketplace.marketplaceOfferDetailPage.packageStockUnlimited')
+      : p.quantity_available > 0
+        ? t('marketplace.marketplaceOfferDetailPage.packageStockQuantity', { quantity: p.quantity_available })
+        : t('marketplace.marketplaceOfferDetailPage.packageStockEmpty'),
+  })),
 );
 // Цена всегда задаётся за базовую единицу (Эпик 17) — справочный пересчёт из
 // фасовки больше не нужен.
@@ -123,7 +215,7 @@ const deliveryPoints = computed(() =>
   (offer.value?.delivery_points ?? []).map((p) => ({
     key: p.braname,
     name: p.name ?? p.braname,
-    volume: `от ${p.min_supply_volume}×${unitShort.value}`,
+    volume: t('marketplace.marketplaceOfferDetailPage.minSupplyVolumeLabel', { minVolume: p.min_supply_volume, unit: unitShort.value }),
   })),
 );
 
@@ -155,14 +247,7 @@ const reloadLive = debounce(() => {
   if (loading.value) return;
   void load();
 }, 400);
-useMarketplaceRealtime(
-  {
-    MarketplaceOfferStockChangedEvent: (event) => {
-      if (event.offer_id === offerId.value) reloadLive();
-    },
-  },
-  { onResync: () => reloadLive() },
-);
+useLiveReload(marketLiveTables('offer'), () => reloadLive());
 
 onMounted(async () => {
   try {
@@ -183,9 +268,8 @@ onMounted(async () => {
 </script>
 
 <template lang="pug">
-q-page.offer-detail(role="region", aria-label="Описание предложения")
+q-page.offer-detail(role="region", :aria-label="$t('marketplace.marketplaceOfferDetailPage.ariaLabel')")
   //- Корзина в шапке — тот же header-виджет, что в каталоге (вне режима модерации).
-  CartHeaderButton(v-if="!readonly", :coopname="coopname")
 
   .offer-detail__back
     BaseButton(variant="ghost", size="sm", @click="goBack")
@@ -193,13 +277,13 @@ q-page.offer-detail(role="region", aria-label="Описание предложе
         q-icon(name="arrow_back", size="16px")
       | {{ backTarget.label }}
 
-  q-inner-loading(:showing="loading")
+  q-inner-loading(:showing="firstLoad")
     q-spinner(color="primary", size="2em")
 
   EmptyState(
-    v-if="!loading && !offer",
-    title="Предложение не найдено",
-    body="Возможно, оно снято с публикации."
+    v-if="!firstLoad && !offer",
+    :title="$t('marketplace.marketplaceOfferDetailPage.notFoundTitle')",
+    :body="$t('marketplace.marketplaceOfferDetailPage.notFoundBody')"
   )
     template(#icon)
       q-icon(name="search_off", size="48px")
@@ -224,14 +308,49 @@ q-page.offer-detail(role="region", aria-label="Описание предложе
       .offer-detail__price {{ priceLabel }}
       .offer-detail__fee-note(v-if="referenceNote") {{ referenceNote }}
 
+      //- Условия сделки стоят рядом с ценой, до кнопки: куда привезут, сколько
+      //- живёт товар и сколько есть на возврат — это решается до «В корзину»,
+      //- а не после описания в подвале страницы (решение владельца 14.09.2026).
+      .offer-detail__facts
+        //- Один участок читается строкой «Участок поставки — РОМАШКА, от 10 кг».
+        //- Несколько — списком под общим заголовком, иначе непонятно, что за
+        //- названия идут подряд.
+        .offer-detail__facts-head(v-if="deliveryPoints.length > 1") {{ $t('marketplace.marketplaceOfferDetailPage.supplyPointsTitle') }}
+        DataRow(
+          v-for="p in deliveryPoints",
+          :key="p.key",
+          :label="deliveryPoints.length > 1 ? p.name : $t('marketplace.marketplaceOfferDetailPage.supplyPointLabel')",
+          :value="deliveryPoints.length > 1 ? p.volume : `${p.name} — ${p.volume}`"
+        )
+        DataRow(
+          :label="$t('marketplace.marketplaceOfferDetailPage.shelfLifeLabel')",
+          :value="offer.shelf_life_days > 0 ? $t(`marketplace.marketplaceOfferDetailPage.daysCount`, { days: offer.shelf_life_days }) : $t('marketplace.marketplaceOfferDetailPage.noShelfLifeLabel')"
+        )
+        DataRow(:label="$t('marketplace.marketplaceOfferDetailPage.warrantyPeriodLabel')")
+          template(#value-override)
+            .offer-detail__warranty
+              span {{ offer.warranty_days > 0 ? $t(`marketplace.marketplaceOfferDetailPage.daysCount`, { days: offer.warranty_days }) : $t('marketplace.marketplaceOfferDetailPage.noWarrantyLabel') }}
+              //- Правка срока — только на столе администратора: у заказчика
+              //- карточка читающая.
+              BaseButton(
+                v-if="readonly",
+                variant="secondary",
+                size="sm",
+                :loading="isSettingWarranty(offer.id)",
+                @click="editWarranty"
+              )
+                template(#icon-left)
+                  q-icon(name="event_repeat", size="16px")
+                | {{ $t('marketplace.marketplaceOfferDetailPage.editAction') }}
+
       BaseButton(
         v-if="!readonly",
         variant="primary",
         :disabled="!canOrder || noKU",
         @click="cartDialogOpen = true"
-      ) В корзину
+      ) {{ $t('marketplace.marketplaceOfferDetailPage.cartAction') }}
       .offer-detail__noku-hint(v-if="!readonly && noKU")
-        | Выберите пункт выдачи в каталоге, чтобы заказывать.
+        | {{ $t('marketplace.marketplaceOfferDetailPage.selectPvzHint') }}
 
       //- Модерация прямо на странице (стол администратора, статус «на модерации»).
       .offer-detail__moderation(v-if="canModerate")
@@ -242,7 +361,7 @@ q-page.offer-detail(role="region", aria-label="Описание предложе
         )
           template(#icon-left)
             q-icon(name="close", size="16px")
-          | Отклонить
+          | {{ $t('marketplace.marketplaceOfferDetailPage.rejectAction') }}
         BaseButton(
           variant="primary",
           :loading="isApproving(offer.id)",
@@ -250,27 +369,20 @@ q-page.offer-detail(role="region", aria-label="Описание предложе
         )
           template(#icon-left)
             q-icon(name="check", size="16px")
-          | Одобрить
+          | {{ $t('marketplace.marketplaceOfferDetailPage.approveAction') }}
 
   .offer-detail__sections(v-if="offer")
     section.offer-detail__section(v-if="offer.description")
-      .offer-detail__section-head Описание
+      .offer-detail__section-head {{ $t('marketplace.marketplaceOfferDetailPage.descriptionTitle') }}
       .offer-detail__desc {{ offer.description }}
 
-    section.offer-detail__section(v-if="deliveryPoints.length")
-      .offer-detail__section-head Участки поставки
+    section.offer-detail__section(v-if="packageRows.length")
+      .offer-detail__section-head {{ $t('marketplace.marketplaceOfferDetailPage.packagesTitle') }}
       ul.offer-detail__points
-        li.offer-detail__point(v-for="p in deliveryPoints", :key="p.key")
-          span.offer-detail__point-name {{ p.name }}
-          span.offer-detail__point-vol {{ p.volume }}
+        li.offer-detail__point(v-for="row in packageRows", :key="row.key")
+          span.offer-detail__point-name {{ row.name }}
+          span.offer-detail__point-vol {{ row.price }} · {{ row.stock }}
 
-    section.offer-detail__section
-      .offer-detail__section-head Срок годности
-      .offer-detail__desc {{ offer.shelf_life_days > 0 ? `${offer.shelf_life_days} дн.` : 'Без срока годности' }}
-
-    section.offer-detail__section
-      .offer-detail__section-head Гарантийный срок возврата
-      .offer-detail__desc {{ offer.warranty_days > 0 ? `${offer.warranty_days} дн.` : 'Без гарантийного срока возврата' }}
 
   AddToCartDialog(
     v-if="!readonly",
@@ -286,6 +398,30 @@ q-page.offer-detail(role="region", aria-label="Описание предложе
   display: flex;
   flex-direction: column;
   gap: var(--p-4, 16px);
+
+  // Срок и кнопка правки — одной строкой: кнопка относится к сроку.
+  &__facts {
+    display: flex;
+    flex-direction: column;
+    border-top: 1px solid var(--p-line);
+    border-bottom: 1px solid var(--p-line);
+    margin: var(--p-2, 8px) 0;
+  }
+
+  &__facts-head {
+    font-size: var(--p-fs-meta, 12px);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--p-ink-3);
+    padding: var(--p-3, 12px) 0 0;
+  }
+
+  &__warranty {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--p-3, 12px);
+  }
 
   &__noku-hint {
     margin-top: var(--p-2, 8px);
@@ -401,11 +537,13 @@ q-page.offer-detail(role="region", aria-label="Описание предложе
   }
 
   &__point-name {
-    color: var(--p-ink-1);
+    color: var(--p-ink);
   }
 
   &__point-vol {
-    color: var(--p-ink-3);
+    // Цена и остаток — такие же данные, как название тары, а не сноска:
+    // на тёмной теме самый бледный оттенок читался с трудом.
+    color: var(--p-ink-2);
     flex-shrink: 0;
   }
 }

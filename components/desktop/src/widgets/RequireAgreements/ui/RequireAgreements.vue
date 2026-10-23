@@ -14,6 +14,8 @@ import { computed, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { AgreementReader } from 'src/features/Agreementer/GenerateAgreement';
 import { useWalletStore } from 'src/entities/Wallet';
+import { DraftContract, SovietContract } from 'cooptypes';
+import { useLiveReload, liveTable } from 'src/shared/lib/realtime';
 import { useSessionStore } from 'src/entities/Session';
 
 const route = useRoute()
@@ -59,8 +61,15 @@ const hasVarsForAgreement = (type: string) => {
 }
 
 const required_agreements = computed(() => {
-  // Получаем подписанные соглашения
-  if (!session.loadComplete)
+  /**
+   * Требовать подпись можно только тогда, когда уже известно, что пайщик
+   * подписал. session.loadComplete об этом не говорит: он выставляется и по
+   * таймауту инициализации, и в обработчике ошибки — то есть в том числе
+   * когда подписи не загрузились. Спрашивать здесь именно у кошелька: пока он
+   * не получил подписи с сервера, любой документ выглядел бы неподписанным, и
+   * пайщику снова показали бы то, что он уже подписал.
+   */
+  if (!session.loadComplete || !wallet.agreementsLoaded)
     return []
 
   // Фильтруем соглашения, которые необходимы пользователю
@@ -105,6 +114,21 @@ watch(() => session.isAuth, (newValue) => {
   if(newValue)
     init()
 })
+
+// Обязательные соглашения кооператива и их утверждённые редакции живут по
+// ленте изменений: новое соглашение или новая редакция приходят сигналом, и
+// пайщика просят подписать без перезагрузки. Подписи пайщика приходят через
+// кошелёк (registerWalletLive).
+useLiveReload(
+  [
+    liveTable(SovietContract, SovietContract.Tables.CoopAgreements),
+    liveTable(DraftContract, DraftContract.Tables.Drafts),
+    liveTable(DraftContract, DraftContract.Tables.Approvals),
+  ],
+  () => {
+    if (session.isAuth && info.coopname) init()
+  },
+)
 
 // Без этого watch'а init() в setup стартует пока system.loadSystemInfo() ещё не завершён,
 // info.coopname=undefined → GraphQL валится на required $coopname.

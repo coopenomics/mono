@@ -1,11 +1,13 @@
 import type { Router } from 'vue-router';
 import { useDesktopStore } from 'src/entities/Desktop/model';
+import { useCommandStore } from 'src/entities/Command';
 import type { IWorkspaceConfig } from 'src/shared/lib/types/workspace';
 import { extensionsRegistry, getAvailableExtensions } from './extensions-registry';
 import { installRemoteExtensions } from './remote-loader';
 
 export async function useInitExtensionsProcess(router: Router) {
   const store = useDesktopStore();
+  const commandStore = useCommandStore();
 
   // Получаем список всех доступных расширений
   const availableExtensions = getAvailableExtensions();
@@ -23,22 +25,14 @@ export async function useInitExtensionsProcess(router: Router) {
       for (const config of workspaceConfigs) {
         if (config?.workspace && config?.routes?.length) {
 
-          // Записываем маршруты в соответствующий workspace.
-          // ВАЖНО: setRoutes привязывает маршруты только к workspace, который
-          // backend объявил в AppRegistry (см. desktop.interactor). Если фронт
-          // вернул workspace, которого нет в desktop'е с бэкенда, маршруты
-          // молча потеряются — поэтому предупреждаем явно.
-          const workspaceExists = store.workspaceMenus.some(
-            (w) => w.workspaceName === config.workspace,
-          );
-          if (!workspaceExists) {
-            console.warn(
-              `📦 [InitExtensions] Расширение "${extensionName}" вернуло workspace ` +
-              `"${config.workspace}", которого нет в desktop с бэкенда (AppRegistry). ` +
-              'Маршруты этого стола не будут отображены — добавьте стол в extensions.registry.ts.',
-            );
-          }
-          store.setRoutes(config.workspace, config.routes as any);
+          // Записываем маршруты в соответствующий workspace. setRoutes
+          // привязывает их только к столу, который бэкенд отдал для этого
+          // кооператива (см. desktop.interactor): он отдаёт столы установленных
+          // расширений, а здесь грузятся все расширения сборки. Стола нет —
+          // значит расширение в кооперативе не установлено, это штатно, и
+          // предупреждать не о чем (раньше шло 57 тыс. строк в неделю на узел).
+          store.setRoutes(config.workspace, config.routes as any, config.defaultRoute);
+          commandStore.register(config.workspace, config.commands);
 
           // Регистрируем маршруты в router, добавляя их в базовый родительский маршрут
           const baseRoute = router.getRoutes().find((r) => r.name === 'base');
@@ -120,6 +114,7 @@ export async function loadExtensionRoutes(
   router: Router,
 ): Promise<IWorkspaceConfig[]> {
   const store = useDesktopStore();
+  const commandStore = useCommandStore();
 
   try {
 
@@ -139,7 +134,10 @@ export async function loadExtensionRoutes(
     for (const config of workspaceConfigs) {
       if (config?.workspace && config?.routes?.length) {
         // Записываем маршруты в соответствующий workspace
-        store.setRoutes(config.workspace, config.routes as any);
+        store.setRoutes(config.workspace, config.routes as any, config.defaultRoute);
+        // Команды стола — вместе с маршрутами, чтобы новое приложение сразу
+        // появилось в окне столов и отвечало на свои сочетания клавиш.
+        commandStore.register(config.workspace, config.commands);
 
         // Регистрируем маршруты в router
         const baseRoute = router.getRoutes().find((r) => r.name === 'base');

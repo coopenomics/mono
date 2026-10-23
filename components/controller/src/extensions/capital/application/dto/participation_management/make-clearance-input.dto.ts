@@ -1,7 +1,7 @@
 import { Field, InputType } from '@nestjs/graphql';
 import { IsNotEmpty, IsString } from 'class-validator';
 import { Type } from 'class-transformer';
-import { SignedDigitalDocumentInputDTO } from '@coopenomics/extension-kit';
+import { SignedDigitalDocumentInputDTO, validationMessage } from '@coopenomics/extension-kit';
 
 /**
  * GraphQL DTO для подписания приложения CAPITAL контракта
@@ -10,18 +10,18 @@ import { SignedDigitalDocumentInputDTO } from '@coopenomics/extension-kit';
 @InputType('MakeClearanceInput')
 export class MakeClearanceInputDTO {
   @Field(() => String, { description: 'Имя аккаунта кооператива' })
-  @IsNotEmpty({ message: 'Имя аккаунта кооператива не должно быть пустым' })
-  @IsString({ message: 'Имя аккаунта кооператива должно быть строкой' })
+  @IsNotEmpty({ message: validationMessage('capital.makeClearanceInput.coopname.required') })
+  @IsString({ message: validationMessage('capital.makeClearanceInput.coopname.string') })
   coopname!: string;
 
   @Field(() => String, { description: 'Имя пользователя' })
-  @IsNotEmpty({ message: 'Имя пользователя не должно быть пустым' })
-  @IsString({ message: 'Имя пользователя должно быть строкой' })
+  @IsNotEmpty({ message: validationMessage('capital.makeClearanceInput.username.required') })
+  @IsString({ message: validationMessage('capital.makeClearanceInput.username.string') })
   username!: string;
 
   @Field(() => String, { description: 'Хэш проекта' })
-  @IsNotEmpty({ message: 'Хэш проекта не должен быть пустым' })
-  @IsString({ message: 'Хэш проекта должен быть строкой' })
+  @IsNotEmpty({ message: validationMessage('capital.makeClearanceInput.projectHash.required') })
+  @IsString({ message: validationMessage('capital.makeClearanceInput.projectHash.string') })
   project_hash!: string;
 
   @Field(() => SignedDigitalDocumentInputDTO, { description: 'Подписанный документ' })
@@ -29,6 +29,6 @@ export class MakeClearanceInputDTO {
   document!: SignedDigitalDocumentInputDTO;
 
   @Field(() => String, { description: 'Вклад участника (текстовое описание)', nullable: true })
-  @IsString({ message: 'Вклад участника должен быть строкой' })
+  @IsString({ message: validationMessage('capital.makeClearanceInput.contribution.string') })
   contribution?: string;
 }

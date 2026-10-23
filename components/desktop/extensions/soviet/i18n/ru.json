@@ -1,0 +1,19 @@
+{
+  "soviet": {
+    "install": {
+      "agendaQuestionTitle": "Вопрос повестки",
+      "agendaTitle": "Повестка совета",
+      "cooperativeDetailTitle": "Кооператив",
+      "cooperativesRegistryTitle": "Реестр кооперативов",
+      "documentTemplatesTitle": "Шаблоны документов",
+      "documentTitle": "Документ",
+      "documentsRegistryTitle": "Реестр документов",
+      "expensesRegistryTitle": "Реестр расходов",
+      "meetsRegistryTitle": "Реестр собраний",
+      "participantTitle": "Пайщик",
+      "participantsRegistryTitle": "Реестр пайщиков",
+      "paymentsRegistryTitle": "Реестр платежей",
+      "title": "Стол совета"
+    }
+  }
+}

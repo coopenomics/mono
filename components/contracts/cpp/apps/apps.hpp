@@ -1,5 +1,7 @@
 #pragma once
 
+
+#include "../lib/core/ram_payer.hpp"
 #include <eosio/asset.hpp>
 #include <eosio/contract.hpp>
 #include <eosio/crypto.hpp>
@@ -43,8 +45,8 @@ using namespace Apps;
 *  - Разделение прав на `@billing`, `@subnet-operator` и т.п. — TODO,
 *    введём через `eosio.msig` миграцию когда биллинг отделится от
 *    провайдера каталога.
-*  - `cleanup` — без auth: операция идемпотентна и удаляет только
-*    TTL-просроченные `superseded` записи.
+*  - `cleanup` — `apps@active`: общая очистка всех контрактов, удаляет
+*    TTL-просроченные `superseded` записи по всем пакетам.
 *
 * \see /home/admin/apps-catalog/docs/architecture.md
 * \see epics.md Story 6.x (KE bootstrap)
@@ -73,7 +75,7 @@ using namespace Apps;
 namespace Apps {
 /**
  * Окно retention для `superseded`-релизов: 90 дней. Записи старше
- * этого окна удаляются inline в `setrelease` или явным `cleanup`.
+ * этого окна удаляются inline в `setrelease` или общим `cleanup`.
  * `withdrawn` под TTL не подпадают — отзыв делается сознательно
  * и должен быть видим до явного purge.
  */
@@ -82,19 +84,21 @@ static constexpr uint64_t RELEASE_RETENTION_SECS = 90 * 86400;
 /**
  * Бюджет cleanup'а внутри одного вызова `setrelease`: не удалять
  * больше N записей за раз, чтобы не упереться в CPU-limit транзакции.
- * Остаток подметёт следующий `setrelease` или явный `cleanup(package_id)`.
+ * Остаток подметёт следующий `setrelease` или общий `cleanup`.
  */
 static constexpr uint64_t CLEANUP_BUDGET_PER_CALL = 50;
 } // namespace Apps
 
-class [[eosio::contract(APPS)]] apps : public eosio::contract {
+class [[eosio::contract(APPS)]] apps : public coop_contract {
 
 public:
   apps(eosio::name receiver, eosio::name code,
        eosio::datastream<const char *> ds)
-      : eosio::contract(receiver, code, ds) {}
+      : coop_contract(receiver, code, ds) {}
 
   [[eosio::action]] void migrate();
+  /// Очистка отработавших записей по правилам контракта (lib/core/cleanup.hpp); плейбук вызывает её на каждом деплое.
+  [[eosio::action]] void cleanup();
 
   // ─── packages ───────────────────────────────────────────────────────
 
@@ -171,15 +175,6 @@ public:
                                   std::string version,
                                   std::string reason);
 
-  /**
-   * \brief Ручной cleanup TTL-просроченных `superseded`-записей пакета.
-   * \details Удаляет до `CLEANUP_BUDGET_PER_CALL` записей с
-   *          `superseded_at < now - RELEASE_RETENTION_SECS`. Идемпотентен.
-   * \note Без авторизации: операция доброкачественная, удаляет только
-   *       уже невидимые в продакшене записи. Любой может вызвать
-   *       (и заплатить за CPU).
-   */
-  [[eosio::action]] void cleanup(eosio::name package_id);
 
   // ─── subscriptions ──────────────────────────────────────────────────
 
@@ -374,3 +369,6 @@ public:
 
   struct [[eosio::table, eosio::contract(APPS)]] counts : counts_base {};
 };
+
+// Плательщик за оперативную память строк таблицы — правило в lib/core/ram_payer.hpp.
+RAM_PAYER_CLASS(apps::counts, contract);

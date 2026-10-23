@@ -1,6 +1,6 @@
 import { Args, Int, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
-import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, CurrentUser, RequireRight, RightsGuard } from '@coopenomics/extension-kit';
 import type { IMonoAccount } from '@coopenomics/innercoop';
 import { PaymentFilesService } from '../services/payment-files.service';
 import { UploadPaymentProofInputDTO } from '../dto/upload-payment-proof.input';
@@ -20,8 +20,8 @@ export class PaymentFilesResolver {
     name: 'uploadPaymentProof',
     description: 'Приложить чек об оплате к платежу (бакет gateway:files).',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('PaymentFile', 'upload')
   async uploadPaymentProof(
     @Args('data', { type: () => UploadPaymentProofInputDTO }) data: UploadPaymentProofInputDTO,
     @CurrentUser() user: IMonoAccount
@@ -34,9 +34,11 @@ export class PaymentFilesResolver {
     name: 'paymentFile',
     description: 'Получить запись о файле платежа + свежий короткоживущий read-URL.',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
-  async getPaymentFile(@Args('id', { type: () => Int }) id: number): Promise<PaymentFileOutputDTO> {
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('PaymentFile', ['read:own', 'read:all'], { of: 'PaymentFile', id: 'id' })
+  async getPaymentFile(
+    @Args('id', { type: () => Int }) id: number
+  ): Promise<PaymentFileOutputDTO> {
     const { data, readUrl } = await this.paymentFiles.getReadUrl(id);
     return PaymentFileOutputDTO.fromDomain(data, readUrl);
   }
@@ -45,8 +47,8 @@ export class PaymentFilesResolver {
     name: 'paymentProofs',
     description: 'Список чеков об оплате платежа (без read-URL — запрос отдельно по id).',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('PaymentFile', ['read:own', 'read:all'], { of: 'Payment', id: 'payment_hash' })
   async listByPayment(
     @Args('coopname', { type: () => String }) coopname: string,
     @Args('payment_hash', { type: () => String }) paymentHash: string

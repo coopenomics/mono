@@ -47,8 +47,10 @@ void capital::approvecmmt(eosio::name coopname, eosio::name master, checksum256 
   // Распределяем премии участников между всеми участниками проекта через CRPS
   Capital::Core::increment_contributors_crps_in_project(coopname, project.id, commit.amounts.contributors_bonus_pool);
 
-  // Коммит РИД (Dr 08 / Cr 80) — возникает обязательство паевого взноса
-  // имуществом на полную стоимость одобренного коммита.
+  // Коммит РИД на ответственное хранение (Dr 08 / Cr 76) — кооператив принял
+  // результат как объект и принял обязательство перед пайщиком-владельцем
+  // коммита на полную стоимость. Паевым взносом результат становится позже:
+  // по заявлению пайщика, решению совета и акту-2 (SETTLE_RID, Dr 76 / Cr 80).
   //
   // На GENERATOR_FUND (w.cap.gen) кладём ПОЛНУЮ стоимость коммита
   // `commit.amounts.total_contribution` — это сумма всех начислений по

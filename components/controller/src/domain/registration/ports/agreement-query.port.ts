@@ -1,6 +1,7 @@
 import type { AccountType } from '~/application/account/enum/account-type.enum';
 import type {
   IAgreementConfigItem,
+  IRegistrationIntakeForm,
   IRegistrationProgram,
 } from '../config/agreement-config.interface';
 
@@ -45,12 +46,18 @@ export interface AgreementQueryPort {
   /**
    * Все оферты, привязанные к программе через её agreement_ids.
    */
-  getAgreementsForProgram(programKey: string): IAgreementConfigItem[];
+  getAgreementsForProgram(programKey: string, coopname?: string): IAgreementConfigItem[];
 
   /**
    * Программы, применимые к типу аккаунта в заданном кооперативе.
    */
   getAvailablePrograms(coopname: string, accountType: AccountType): IRegistrationProgram[];
+
+  /**
+   * Анкеты вступления, общие для типа аккаунта (анкеты программ приходят
+   * внутри самих программ).
+   */
+  getIntakeFormsForAccountType(accountType: AccountType): IRegistrationIntakeForm[];
 }
 
 /** DI-токен для AgreementQueryPort при использовании через @Inject(). */

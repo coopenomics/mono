@@ -1,5 +1,7 @@
 #pragma once
 
+
+#include "../../../lib/core/ram_payer.hpp"
 #include <eosio/eosio.hpp>
 #include <eosio/asset.hpp>
 
@@ -117,7 +119,7 @@ namespace Capital::Expenses {
     Capital::expense_index expenses(_capital, coopname.value);
     uint64_t expense_id = get_global_id_in_scope(_capital, coopname, "expenses"_n);
     
-    expenses.emplace(coopname, [&](auto &e) {
+    expenses.emplace(RamPayer::of(expenses, coopname), [&](auto &e) {
       e.id = expense_id;
       e.coopname = coopname;
       e.username = username;
@@ -145,7 +147,7 @@ namespace Capital::Expenses {
     
     eosio::check(expense != expenses.end(), "Расход не найден");
     
-    expenses.modify(expense, coopname, [&](auto &e) {
+    expenses.modify(expense, RamPayer::of(expenses, coopname), [&](auto &e) {
       e.status = Expenses::Status::APPROVED;
       e.approved_statement = approved_statement;
     });
@@ -163,7 +165,7 @@ namespace Capital::Expenses {
     auto expense = expenses.find(expense_id);
     eosio::check(expense != expenses.end(), "Расход не найден");
     
-    expenses.modify(expense, coopname, [&](auto &e) {
+    expenses.modify(expense, RamPayer::of(expenses, coopname), [&](auto &e) {
       e.status = Expenses::Status::AUTHORIZED;
       e.authorization = authorization;
     });
@@ -249,7 +251,7 @@ namespace Capital::Expenses {
     Capital::program_expense_index t(_capital, coopname.value);
     uint64_t id = get_global_id_in_scope(_capital, coopname, "progexpenses"_n);
 
-    t.emplace(coopname, [&](auto &e) {
+    t.emplace(RamPayer::of(t, coopname), [&](auto &e) {
       e.id = id;
       e.coopname = coopname;
       e.username = username;
@@ -271,3 +273,7 @@ namespace Capital::Expenses {
   }
 
 } // namespace Capital::Expenses
+
+// Плательщик за оперативную память строк таблицы — правило в lib/core/ram_payer.hpp.
+RAM_PAYER_CLASS(Capital::expense, cooperative);
+RAM_PAYER_CLASS(Capital::program_expense, cooperative);

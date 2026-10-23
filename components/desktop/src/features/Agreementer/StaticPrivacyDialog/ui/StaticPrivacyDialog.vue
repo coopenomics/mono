@@ -14,8 +14,8 @@ span.agreement-link(@click.stop='(event) => showDialog(event)').q-ml-xs {{text}}
           :is-submitting="isSubmitting"
           :showSubmit="true"
           :showCancel="true"
-          button-cancel-text="Отменить"
-          button-submit-txt="Подтвердить"
+          :button-cancel-text="$t('agreementer.staticPrivacyDialog.cancel')"
+          :button-submit-txt="$t('common.action.confirm')"
           @cancel="clear"
         )
           StaticPrivacyPolicy

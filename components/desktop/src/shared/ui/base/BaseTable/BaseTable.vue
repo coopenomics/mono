@@ -3,6 +3,7 @@
     v-model:pagination="pagination"
     v-model:selected="selectedRows"
     flat
+    wrap-cells
     :rows="displayRows"
     :columns="quasarColumns"
     :row-key="rowKeyName"
@@ -12,12 +13,14 @@
     binary-state-sort
     class="base-table"
     :class="{
-      'base-table--hover': hover && !skeleton,
       'base-table--sticky': stickyHeader,
       'base-table--skeleton': skeleton,
       'base-table--selectable': selectionMode !== 'none',
     }"
+    :table-row-class-fn="rowClassFn"
+    :sort-method="serverSort ? keepServerOrder : undefined"
     :style="tableStyle"
+    @row-click="onRowClick"
   >
     <template
       v-for="col in columns"
@@ -52,6 +55,7 @@
 import { computed, ref, watch } from 'vue';
 import type { QTableProps } from 'quasar';
 import type { BaseTableProps } from './BaseTable.types';
+import { useFirstLoad } from 'src/shared/lib/composables';
 
 /**
  * Канон-таблица платформы: единственный способ показать реестр в
@@ -75,17 +79,83 @@ const props = withDefaults(defineProps<BaseTableProps<T>>(), {
 
 const emit = defineEmits<{
   'update:selected': [rows: T[]];
+  'row-click': [row: T];
+  /** Только при `serverSort`: пользователь сменил сортировку по заголовку. */
+  sort: [sort: { sortBy: string; descending: boolean }];
 }>();
 
-const rowKeyName = computed(() => (props.rowKey as string | undefined) ?? 'id');
+/** При серверной сортировке строки уже пришли в нужном порядке. */
+const keepServerOrder = (rows: readonly T[]): readonly T[] => rows;
+
+/**
+ * Нажатие по строке. Каркас не кликается (там пустышки), и без признака
+ * `clickableRows` событие не уходит: половина реестров строкой ничего не
+ * открывает, и случайный переход там был бы сюрпризом.
+ */
+/** Элементы строки, у которых своё действие: нажатие по ним сущность не открывает. */
+const OWN_ACTION_SELECTOR =
+  '.q-checkbox, .q-btn, .q-menu, .q-toggle, .q-field, a, input, .q-table--col-auto-width';
+
+/**
+ * Открывается ли эта строка. Признак бывает общим на таблицу (реестр, где
+ * каждая строка ведёт на свою сущность) и построчным (лента, где переход есть
+ * только у части записей).
+ */
+function isRowClickable(row: T): boolean {
+  if (skeleton.value) return false;
+  const rule = props.clickableRows;
+  return typeof rule === 'function' ? rule(row) : rule === true;
+}
+
+/** Курсор-указатель достаётся только тем строкам, которые действительно открываются. */
+function rowClassFn(row: T): string {
+  return isRowClickable(row) ? 'base-table__row--click' : '';
+}
+
+function onRowClick(evt: Event, row: T): void {
+  if (!isRowClickable(row)) return;
+  // Галочка выбора, кнопка действий и всплывающее меню внутри строки — сами по
+  // себе действия. Открывать по ним ещё и сущность значит делать два дела на
+  // одно нажатие: отметил бокс к печати — и получил панель поверх списка.
+  const target = evt.target as Element | null;
+  if (target?.closest?.(OWN_ACTION_SELECTOR)) return;
+  emit('row-click', row);
+}
+
+/**
+ * Ключ строки в том виде, в каком его ждёт q-table: имя поля строкой либо
+ * функция. `keyof T` шире (символы и числа тоже ключи), поэтому имя приводим
+ * к строке явно — иначе типы обёртки и Quasar не сходятся.
+ */
+type QTableRowKey = NonNullable<QTableProps['rowKey']>;
+
+const rowKeyName = computed<QTableRowKey>(() => {
+  // На каркасе ключ берём по имени поля-пустышки: функция ключа экрана ждёт
+  // настоящую строку и на пустышке падает.
+  if (skeleton.value) return skeletonKeyName.value;
+  const key = props.rowKey;
+  if (typeof key === 'function') return key as QTableRowKey;
+  return key === undefined ? 'id' : String(key);
+});
+
+/** Имя поля-ключа для строк-пустышек каркаса: функции там подставлять нечего. */
+const skeletonKeyName = computed(() =>
+  typeof props.rowKey === 'string' ? props.rowKey : 'id',
+);
 
 const selectedRows = computed<T[]>({
   get: () => props.selected ?? [],
   set: (rows) => emit('update:selected', rows),
 });
 
-/** Каркас показываем, только пока показывать нечего: обновление идёт молча. */
-const skeleton = computed(() => Boolean(props.loading) && props.rows.length === 0);
+/**
+ * Каркас — только на первой загрузке, пока показывать нечего. Повторные
+ * загрузки (дочитка, поллинг) идут молча: на пустой таблице «loading и пусто»
+ * снова истинно, и без признака завершённой первой загрузки строки каждый раз
+ * сносило в каркас — таблица мерцала.
+ */
+const firstLoad = useFirstLoad(() => props.loading);
+const skeleton = computed(() => firstLoad.value && props.rows.length === 0);
 
 /** На каркасе выбирать нечего — галочки на пустышках только сбивают с толку. */
 const selectionMode = computed(() => (skeleton.value ? 'none' : props.selection));
@@ -98,7 +168,7 @@ const selectionMode = computed(() => (skeleton.value ? 'none' : props.selection)
 const skeletonPlaceholders = computed(
   () =>
     Array.from({ length: props.skeletonRows }, (_, i) => ({
-      [rowKeyName.value]: `__skel-${i}`,
+      [skeletonKeyName.value]: `__skel-${i}`,
     })) as unknown as T[],
 );
 
@@ -114,6 +184,16 @@ const pagination = ref({
   // не нарезкой уже полученного списка.
   rowsPerPage: 0,
 });
+
+// Смена сортировки по заголовку при серверной сортировке уходит экрану.
+watch(
+  () => [pagination.value.sortBy, pagination.value.descending] as const,
+  ([sortBy, descending], [prevSortBy, prevDescending]) => {
+    if (!props.serverSort) return;
+    if (sortBy === prevSortBy && descending === prevDescending) return;
+    emit('sort', { sortBy: sortBy ?? '', descending: Boolean(descending) });
+  },
+);
 
 watch(
   () => [props.sortBy, props.descending],
@@ -133,8 +213,12 @@ const quasarColumns = computed<QTableProps['columns']>(() =>
       name: col.key,
       label: col.label,
       align: col.align ?? (col.numeric ? 'right' : 'left'),
-      field:
-        typeof col.field === 'function'
+      // На каркасе значения не считаем: строки там — пустышки без доменных
+      // полей, а функция колонки лезет в них как в настоящие данные и роняет
+      // экран целиком (белый экран «Пунктов выдачи», 14.09.2026).
+      field: skeleton.value
+        ? () => ''
+        : typeof col.field === 'function'
           ? (col.field as (row: unknown) => unknown)
           : ((col.field as string) ?? col.key),
       // Каркас не сортируется: сортировать пустышки бессмысленно.
@@ -162,6 +246,12 @@ const tableStyle = computed(() => ({
 
 <style scoped lang="scss">
 .base-table {
+  // Канон flat-карточек: тонкая рамка и радиус, как у `.table-wrap` прежних
+  // реестров — без них таблица выглядела белым пятном без границ.
+  border: 1px solid var(--p-line);
+  border-radius: var(--p-r-md);
+  overflow: hidden;
+
   // Фиксированная раскладка: колонки держат заданную ширину, а не пляшут от
   // содержимого. Ниже min-width включается горизонтальная прокрутка внутри
   // собственного контейнера q-table — страница вбок не едет.
@@ -174,21 +264,39 @@ const tableStyle = computed(() => ({
     max-height: var(--base-table-max-height, none);
   }
 
+  // Числа и суммы не переносим: разорванная посередине сумма читается как две.
   :deep(.col-num) {
     font-variant-numeric: tabular-nums;
+    white-space: nowrap;
   }
 
   :deep(.col-nowrap) {
     white-space: nowrap;
   }
 
+  // Заголовок сортируемой колонки не переносится: стрелка сортировки стоит
+  // сбоку от подписи, а не уезжает на отдельную строку и не сбивает шапку.
+  :deep(thead th.sortable) {
+    white-space: nowrap;
+  }
+
   // Длинные наименования и адреса переносим, а не растягиваем колонку.
+  // Сам перенос включает `wrap-cells` у q-table: без него Quasar ставит
+  // `white-space: nowrap`, и длинный текст вылезает поверх соседних колонок.
   :deep(td) {
     overflow-wrap: anywhere;
   }
 
-  &--hover :deep(tbody tr:hover) {
-    background: var(--p-surface-2);
+  // Значок состояния в ячейке переносится по словам в пределах своей колонки,
+  // даже в колонке без переноса: в одну строку длинный статус («Ожидает
+  // передачи материалов») выходил на соседнюю колонку. Цвет значка остаётся,
+  // углы мягче — на две строки «таблетка» не ложится.
+  :deep(td .base-badge) {
+    white-space: normal;
+    overflow-wrap: normal;
+    text-align: left;
+    line-height: var(--p-lh-h2);
+    border-radius: var(--p-r-sm);
   }
 
   &--sticky :deep(thead tr th) {
@@ -203,12 +311,30 @@ const tableStyle = computed(() => ({
     pointer-events: none;
   }
 
+  // Строка открывает сущность — курсор показывает это до нажатия. Подсветка
+  // строки под курсором одна на все таблицы платформы и живёт в каноне
+  // (`quasar-canon.css`): иначе одни реестры выделяются зелёным, другие серым,
+  // и разница читается как разница в поведении, которой нет.
+  :deep(tbody tr.base-table__row--click) {
+    cursor: pointer;
+  }
+
   // Колонка галочек. При `table-layout: fixed` колонка без явной ширины
   // забрала бы весь остаток и отжала данные вправо, поэтому ширину задаём
-  // здесь — ровно под галочку.
+  // здесь. Ширина считается по галочке: сам переключатель Quasar занимает
+  // 40px вместе с областью нажатия, плюс отступ от края таблицы. С прежними
+  // 44px при штатном отступе ячейки в 16px галочка не помещалась и обрезалась
+  // справа (жалоба 2026-09-09).
   &--selectable :deep(.q-table--col-auto-width) {
-    width: 44px;
+    width: 56px;
+    padding-left: var(--p-3, 12px);
     padding-right: 0;
+  }
+
+  // Галочка занимает свою ячейку целиком, без собственных отступов — иначе
+  // сдвигается относительно колонки и снова упирается в край.
+  &--selectable :deep(.q-table--col-auto-width .q-checkbox) {
+    margin: 0;
   }
 
   &__skel {

@@ -1,25 +1,26 @@
 import { Zeus } from '@coopenomics/sdk'
+import { t } from 'src/shared/i18n';
 
 // Описания расширенных статусов собрания
 export const EXTENDED_STATUS_MAP: Record<Zeus.ExtendedMeetStatus, string> = {
-  'NONE': 'Неопределенное состояние',
-  'CREATED': 'Собрание создано. Ожидаем утверждения даты проведения.',
-  'AUTHORIZED': 'Дата общего собрания утверждена. Ожидаем начала собрания.',
-  'ONRESTART': 'Получено предложение новой даты общего собрания. Ожидаем утверждения.',
-  'PRECLOSED': 'Получена подпись секретаря собрания на протоколе. Ожидаем подписи председателя.',
-  'CLOSED': 'Собрание успешно завершено',
-  'WAITING_FOR_OPENING': 'Собрание открывается',
-  'VOTING_IN_PROGRESS': 'Собрание идет и завершится',
-  'EXPIRED_NO_QUORUM': 'Кворум собрания не собран. Ожидаем предложения даты нового собрания.',
-  'VOTING_COMPLETED': 'Собрание успешно завершено. Ожидаем подписи секретаря на протоколе.'
+  'NONE': t('meet.status.none'),
+  'CREATED': t('meet.status.created'),
+  'AUTHORIZED': t('meet.status.authorized'),
+  'ONRESTART': t('meet.status.onrestart'),
+  'PRECLOSED': t('meet.status.preclosed'),
+  'CLOSED': t('meet.status.closed'),
+  'WAITING_FOR_OPENING': t('meet.status.waitingForOpening'),
+  'VOTING_IN_PROGRESS': t('meet.status.votingInProgress'),
+  'EXPIRED_NO_QUORUM': t('meet.status.expiredNoQuorum'),
+  'VOTING_COMPLETED': t('meet.status.votingCompleted')
 }
 
 // Описания базовых статусов собрания
 export const BASIC_STATUS_MAP: Record<string, string> = {
-  'created': 'Ожидание решения совета',
-  'authorized': 'Утверждено',
-  'preclosed': 'На закрытии',
-  'closed': 'Закрыто'
+  'created': t('meet.basicStatus.created'),
+  'authorized': t('meet.basicStatus.authorized'),
+  'preclosed': t('meet.basicStatus.preclosed'),
+  'closed': t('meet.basicStatus.closed')
 }
 
 // Статусы, требующие специальной обработки времени

@@ -2,11 +2,18 @@
 // Первым — предусловие: расширения читают настройки контура уже при построении
 // своих схем конфига, то есть раньше, чем выполнится любой код приложения.
 import './config/platform-bootstrap';
-import { Module } from '@nestjs/common';
+// Словари ядра регистрируются до загрузки модулей: отказы и надписи
+// переводятся уже при построении графа.
+import './i18n';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
+import { LocaleMiddleware } from './i18n/locale.middleware';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerModule } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
+import { GqlThrottlerGuard } from './infrastructure/graphql/gql-throttler.guard';
 import { PrometheusModule } from '@willsoto/nestjs-prometheus';
+import { PlatformMetricsModule } from '~/application/metrics/platform-metrics.module';
 
 // Infrastructure modules
 import { DatabaseModule } from './infrastructure/database/database.module';
@@ -45,6 +52,7 @@ import { ParserDomainModule } from './domain/parser/parser-domain.module';
 import { SettingsInfrastructureModule } from './infrastructure/settings/settings-infrastructure.module';
 import { RegistrationDomainModule } from './domain/registration/registration-domain.module';
 import { OnboardingDomainModule } from './domain/onboarding/onboarding-domain.module';
+import { DocumentApprovalDomainModule } from './domain/document-approval/document-approval-domain.module';
 import { TokenDomainModule } from './domain/token/token-domain.module';
 import { MutationLogDomainModule } from './domain/mutation-log/mutation-log-domain.module';
 
@@ -65,14 +73,20 @@ import { AgreementModule } from './application/agreement/agreement.module';
 import { ParticipantModule } from './application/participant/participant.module';
 import { AgendaModule } from './application/agenda/agenda.module';
 import { DesktopModule } from './application/desktop/desktop.module';
+import { SsrContextModule } from './application/ssr-context/ssr-context.module';
 import { ExtensionGrantsModule } from './application/desktop/extension-grants.registry';
+import { ExtensionGrantsFilterModule } from './application/desktop/extension-grants-filter.registry';
+import { RoleAssignmentsRegistryModule } from './application/access-roles/role-assignments.registry';
+import { AccessRolesModule } from './application/access-roles/access-roles.module';
 import { MeetModule } from './application/meet/meet.module';
 import { GatewayModule } from './application/gateway/gateway.module';
 import { WalletModule } from './application/wallet/wallet.module';
+import { ChainChangesModule } from './application/chain-changes/chain-changes.module';
 import { NotificationModule } from './application/notification/notification.module';
 import { NotificationCenterModule } from './application/notification-center/notification-center.module';
 import { LedgerModule } from './application/ledger/ledger.module';
 import { Ledger2Module } from './application/ledger2/ledger2.module';
+import { BillingModule } from './application/billing/billing.module';
 import { ProcessRegistryModule } from './application/process-registry/process-registry.module';
 import { BlockchainExplorerModule } from './application/blockchain-explorer/blockchain-explorer.module';
 import { ProviderModule } from './application/provider/provider.module';
@@ -82,11 +96,14 @@ import { SettingsApplicationModule } from './application/settings/settings.modul
 import { RegistrationModule } from './application/registration/registration.module';
 import { MembershipExitModule } from './application/membership-exit/membership-exit.module';
 import { OnboardingApplicationModule } from './application/onboarding/onboarding-application.module';
+import { DocumentApprovalApplicationModule } from './application/document-approval/document-approval-application.module';
 import { SearchModule } from './application/search/search.module';
+import { GlobalSearchRegistryModule } from './application/search/global-search.registry';
+import { OrganizationLookupRegistryModule } from './application/organization-lookup/organization-lookup.registry';
+import { OrganizationLookupModule } from './application/organization-lookup/organization-lookup.module';
 import { SignedDocumentsModule } from './application/signed-documents/signed-documents.module';
 import { MutationLoggingInterceptor } from './application/common/interceptors/mutation-logging.interceptor';
 import { MarketplaceExtensionModule } from './extensions/marketplace/marketplace-extension.module';
-import { MarketplaceCardsModule } from './extensions/marketplace-cards/marketplace-cards.module';
 
 @Module({
   imports: [
@@ -103,9 +120,21 @@ import { MarketplaceCardsModule } from './extensions/marketplace-cards/marketpla
     ScheduleModule.forRoot(), // @Interval/@Cron — нужен outbox-worker'у Центра уведомлений
     // Prometheus pull-метрики (Story 9.11, NFR28): GET /metrics в Prometheus
     // exposition format + процессные метрики Node на глобальном реестре prom-client
-    // (туда же пишут доменные счётчики AuthMetricsService). Доступ снаружи режет
-    // edge (Caddy, Story 9.2) — как и нативный /metrics authentik.
+    // (туда же пишут доменные счётчики AuthMetricsService и PlatformMetricsService).
+    //
+    // ВНИМАНИЕ ПРО ДОСТУП. Здесь раньше стояло, что доступ снаружи режет edge.
+    // Это было неверно: 29.08.2026 проверено снаружи — https://<домен>/backend/metrics
+    // отдавал 200 на всех четырёх активных кооперативах. Само приложение путь
+    // никак не закрывает и закрывать не пытается; ограничение живёт в конфигурации
+    // L7-маршрутизатора (playbooks: mono/templates/nginx/l7-external.conf,
+    // mono/l7-metrics-guard.yaml — allow только адресу мониторинга и mesh-сети).
+    // Если добавляете сюда метрику с данными кооператива — сначала убедитесь, что
+    // на контуре этот локейшн раскатан.
     PrometheusModule.register({ defaultMetrics: { enabled: true } }),
+    // Прикладные метрики кооператива: пайщики, кандидаты, заходы, очередь
+    // уведомлений, состояние парсера. Модуль глобальный — его зовут точка
+    // проверки JWT и тик NodeSyncHealthService.
+    PlatformMetricsModule,
     // Infrastructure modules
     MongooseModule.forRoot(config.mongoose.url),
     DatabaseModule,
@@ -130,6 +159,7 @@ import { MarketplaceCardsModule } from './extensions/marketplace-cards/marketpla
     AuthV2Module,
     RegistrationDomainModule,
     OnboardingDomainModule,
+    DocumentApprovalDomainModule,
     AgendaDomainModule,
     AccountDomainModule,
     AccountInfrastructureModule,
@@ -158,7 +188,13 @@ import { MarketplaceCardsModule } from './extensions/marketplace-cards/marketpla
     AppStoreModule,
     AuthModule,
     ExtensionGrantsModule,
+    ExtensionGrantsFilterModule,
+    RoleAssignmentsRegistryModule,
+    AccessRolesModule,
+    GlobalSearchRegistryModule,
+    OrganizationLookupRegistryModule,
     DesktopModule,
+    SsrContextModule,
     BranchModule,
     LoggerModule,
     PaymentMethodModule,
@@ -171,10 +207,15 @@ import { MarketplaceCardsModule } from './extensions/marketplace-cards/marketpla
     MeetModule,
     GatewayModule,
     WalletModule,
+    ChainChangesModule,
     NotificationModule,
     NotificationCenterModule,
     LedgerModule,
     Ledger2Module,
+    // Single-Hub v5: BillingModule подключается ТОЛЬКО на Восходе-хабе
+    // (BILLING_HUB_MODE=true). На спицах модуль не регистрируется —
+    // ни GraphQL Billing.*, ни крон-сервис, ни provider-client.
+    ...(process.env.BILLING_HUB_MODE === 'true' ? [BillingModule] : []),
     ProcessRegistryModule,
     BlockchainExplorerModule,
     ProviderModule,
@@ -184,18 +225,31 @@ import { MarketplaceCardsModule } from './extensions/marketplace-cards/marketpla
     RegistrationModule,
     MembershipExitModule,
     OnboardingApplicationModule,
+    DocumentApprovalApplicationModule,
     SearchModule,
+    OrganizationLookupModule,
     SignedDocumentsModule,
     // Marketplace extensions
     MarketplaceExtensionModule,
-    MarketplaceCardsModule,
   ],
   providers: [
     {
       provide: 'MutationLoggingInterceptor',
       useClass: MutationLoggingInterceptor,
     },
+    // Ограничитель частоты для операций с `@Throttle`. Глобально — иначе его
+    // пришлось бы вписывать в два десятка резолверов и забывать в новых; сам
+    // guard пропускает всё, где лимит не объявлен явно.
+    {
+      provide: APP_GUARD,
+      useClass: GqlThrottlerGuard,
+    },
   ],
   exports: [],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  // Язык запроса — на весь запрос, до резолверов и валидации.
+  configure(consumer: MiddlewareConsumer): void {
+    consumer.apply(LocaleMiddleware).forRoutes('*');
+  }
+}

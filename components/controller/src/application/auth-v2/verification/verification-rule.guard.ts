@@ -5,6 +5,7 @@ import { AuthV2Error, AuthV2ErrorCode } from '~/domain/auth-v2/errors/auth-v2.er
 import { VerificationTypesService } from './verification-types.service';
 import { VerificationRulesService } from './verification-rules.service';
 import { REQUIRE_VERIFICATION_METADATA } from './require-verification.decorator';
+import { t as i18nT } from '~/i18n';
 
 interface AuthedRequest extends Request {
   user?: { id: string; username: string };
@@ -50,7 +51,7 @@ export class VerificationRuleGuard implements CanActivate {
     if (missing.length) {
       throw new AuthV2Error(
         AuthV2ErrorCode.InsufficientVerification,
-        `Недостаточный уровень верификации для действия «${actionCode}»: требуется ${missing.join(', ')}`,
+        i18nT('authV2.verificationRuleGuard.insufficientLevelMessage', { actionCode, missingLevels: missing.join(', ') }),
       );
     }
     return true;

@@ -1,0 +1,14 @@
+{
+  "errors": {
+    "YOOKASSA_CONFIG_NOT_FOUND": "Конфиг не найден",
+    "YOOKASSA_NOTICE_MISSING_PAYMENT_ID": "Уведомление ЮKassa без идентификатора платежа",
+    "YOOKASSA_PAYMENT_NOT_CONFIRMED": "ЮKassa не подтвердила платёж {id}",
+    "YOOKASSA_PAYMENT_NOT_FOUND": "Платеж с hash {hash} не найден",
+    "YOOKASSA_PAYMENT_SECRET_MISSING": "У платежа {hash} отсутствует secret"
+  },
+  "yookassa": {
+    "payment": {
+      "defaultDescription": "Платеж для {username}"
+    }
+  }
+}

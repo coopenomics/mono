@@ -21,7 +21,7 @@ void draft::editdraft(eosio::name scope, eosio::name username, uint64_t registry
   
   eosio::check(exist != drafts.end(), "Шаблон не найден");
 
-  drafts.modify(exist, payer, [&](auto &d){
+  drafts.modify(exist, RamPayer::of(drafts, scope), [&](auto &d){
     d.title = title;
     d.description = description;
     d.context = context;

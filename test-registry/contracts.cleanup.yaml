@@ -1,0 +1,81 @@
+feature: contracts.cleanup
+title: Очистка отработавших записей в памяти цепи
+
+# В памяти цепи живёт только рабочее состояние. Процессы удаляют свою запись на
+# терминальном шаге сами, а действие cleanup без аргументов у каждого
+# прикладного контракта подметает то, что осталось от прежних версий и от
+# путей, где удаление забыли (C28-78, исследование 22.09.2026).
+#
+# Правило очистки — таблица, условие и причина; условие обязано означать, что
+# строку не прочитает ни действие, ни контроллер как живую запись. Удаление
+# молчаливое: если записи для завершения нужен колбэк, это не очистка. За вызов
+# удаляется не больше 100 строк; если осталось ещё, контракт пишет «бюджет
+# исчерпан». Раскатка контрактов (playbooks, contracts/deploy-contract.yml)
+# вызывает cleanup на каждом деплое после migrate и повторяет его, пока
+# контракт не перестанет писать эту фразу (не больше 20 раз).
+#
+# Правила на 23.09.2026:
+# - soviet: прежние соглашения, перенесённые в agreements3; заявки joincoops без
+#   решения; отметки автоподписи удалённых решений; мёртвая таблица changes;
+# - capital: голоса финализированного или удалённого проекта (новые удаляются
+#   сами в finalizeproj и delproject); коммиты удалённого проекта;
+# - meet: вопросы удалённого собрания; branch: заявки и веса удалённого участка;
+# - draft: переводы удалённого шаблона; registrator: прежние orgs, перенесённые
+#   в coops; ledger: оплаченные списания; ledger2: строка meta разовой миграции;
+# - fund: завершённые выводы после expired_at; marketplace: признанные
+#   претензии; apps: вытесненные релизы старше срока хранения по всем пакетам
+#   (прежний cleanup(package_id) снят: вызовов не было ни в mono, ни в apps-catalog).
+# ano, gateway, wallet, loan, expense, contributor — cleanup без правил.
+
+sources:
+  contract:
+    - components/contracts/cpp/lib/core/cleanup.hpp
+    - components/contracts/cpp/*/src/**/cleanup.cpp
+    - components/contracts/cpp/capital/app/contract_managment/cleanup/cleanup.cpp
+
+cases:
+  - id: cleanup.happy.01
+    level: contract
+    kind: happy
+    scenario: раскатка вызывает cleanup у каждого прикладного контракта на чистой цепи
+    expect: вызов проходит у всех, чистить нечего — ничего не меняется
+    test: components/boot/src/tests/contracts-cleanup.test.ts
+    status: passing
+
+  - id: cleanup.happy.02
+    level: contract
+    kind: happy
+    scenario: шаблон удалён, его перевод остался в реестре
+    expect: cleanup шаблонов удаляет перевод-сироту
+    test: components/boot/src/tests/contracts-cleanup.test.ts
+    status: passing
+
+  - id: cleanup.side.01
+    level: contract
+    kind: side
+    scenario: cleanup вызывается повторно, когда чистить уже нечего
+    expect: таблица не меняется
+    test: components/boot/src/tests/contracts-cleanup.test.ts
+    status: passing
+
+  - id: cleanup.break.01
+    level: contract
+    kind: break
+    scenario: cleanup подписывает кооператив, а не сам контракт
+    expect: цепь отказывает — missing authority
+    test: components/boot/src/tests/contracts-cleanup.test.ts
+    status: passing
+
+  - id: cleanup.side.02
+    level: contract
+    kind: side
+    scenario: проект Благороста финализирован или удалён, голоса по нему лежат
+    expect: голоса удаляются при финализации и удалении, накопленные — cleanup
+    status: missing
+
+  - id: cleanup.side.03
+    level: contract
+    kind: side
+    scenario: строк под условием больше, чем бюджет одного вызова
+    expect: вызов удаляет 100 строк и пишет «бюджет исчерпан», остаток — следующий вызов
+    status: missing

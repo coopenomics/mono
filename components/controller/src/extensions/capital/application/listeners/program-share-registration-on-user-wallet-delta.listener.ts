@@ -37,10 +37,15 @@ export class ProgramShareRegistrationOnUserWalletDeltaListener {
     if (!value.username) return;
 
     const username = String(value.username);
+    // Баланс — из самой дельты: зеркало кошельков пишет её параллельно с этим
+    // слушателем и в момент чтения ещё хранит баланс до взноса (C28-80).
+    const shares = this.programShareRegistrationService.sumShares(username, String(value.available), String(value.blocked));
+    if (!shares) return;
     try {
       await this.programShareRegistrationService.syncProgramSharesForUser(
         delta.scope,
-        username
+        username,
+        shares
       );
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);

@@ -31,4 +31,10 @@ export interface IMonoAccount {
   initial_order?: string;
   subscriber_id: string;
   subscriber_hash: string;
+  /**
+   * Когда запись о человеке появилась на узле кооператива: заявку подали или
+   * её завёл председатель. Есть у всех, в отличие от даты вступления, которую
+   * ставит решение совета.
+   */
+  created_at?: string;
 }

@@ -172,14 +172,6 @@ export class MarketplacePersonalEconomyDTO {
   personal_balance!: string;
 }
 
-@InputType('MarketplaceConvertBranchFundsInput')
-export class MarketplaceConvertBranchFundsInputDTO {
-  @Field(() => Float, { description: 'Сумма перевода в членский кошелёк «Стола заказов».' })
-  @IsNumber()
-  @Min(0.0001)
-  amount!: number;
-}
-
 @InputType('MarketplaceAidStatementSignablePayloadInput')
 export class MarketplaceAidStatementSignablePayloadInputDTO {
   @Field({ description: 'Кооперативный участок, средства которого распределены получателю.' })

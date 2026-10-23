@@ -5,26 +5,26 @@ div
     variant='danger'
     size='sm'
     block
-    aria-label='Удалить задачу'
+    :aria-label='$t("capital.deleteIssueButton.ariaLabel")'
     :loading='isSubmitting'
     @click='showDialog = true'
   ) {{ label }}
 
   BaseDialog(
     v-model='showDialog',
-    title='Удаление задачи',
+    :title='$t("capital.deleteIssueButton.dialogTitle")',
     size='sm',
     @update:model-value='(v) => !v && close()'
   )
     Form.q-pa-sm(
       :handler-submit='confirmDelete'
       :is-submitting='isSubmitting'
-      :button-cancel-txt='"Отменить"'
-      :button-submit-txt='"Удалить"'
+      :button-cancel-txt='$t("capital.deleteIssueButton.cancel")'
+      :button-submit-txt='$t("common.action.delete")'
       @cancel='close'
     )
       div(style='max-width: 360px')
-        p Вы уверены, что хотите удалить задачу?
+        p {{ $t('capital.deleteIssueButton.confirmText') }}
 </template>
 
 <script lang="ts" setup>
@@ -34,6 +34,7 @@ import { BaseButton } from 'src/shared/ui/base';
 import { BaseDialog } from 'src/shared/ui/base/BaseDialog';
 import { Form } from 'src/shared/ui/Form';
 import { useDeleteIssue } from '../model';
+import { t, t as i18nT } from '../../../../i18n';
 
 interface Props {
   issueHash: string;
@@ -46,7 +47,7 @@ interface Props {
 const props = withDefaults(defineProps<Props>(), {
   projectHash: '',
   canDelete: false,
-  label: 'Удалить',
+  label: i18nT('common.action.delete'),
 });
 
 const emit = defineEmits<{
@@ -70,11 +71,11 @@ const confirmDelete = async () => {
       { issue_hash: props.issueHash },
       props.projectHash,
     );
-    SuccessAlert('Задача удалена');
+    SuccessAlert(t('capital.deleteIssueButton.success'));
     emit('deleted');
     close();
   } catch (e: unknown) {
-    FailAlert(e, 'Возникла ошибка при удалении');
+    FailAlert(e, t('capital.deleteIssueButton.error'));
     close();
   } finally {
     isSubmitting.value = false;

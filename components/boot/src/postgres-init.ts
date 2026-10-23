@@ -1,5 +1,20 @@
 /* eslint-disable node/prefer-global/process */
 import { Client } from 'pg'
+import { subscriberIdentity } from './subscriber-identity'
+
+/**
+ * Таблицу создают миграции схемы контроллера, а не boot: засев только пишет
+ * строки. Скрипты перезапуска стенда накатывают схему до boot
+ * (`stack_migrate_schema`); запущенный отдельно boot без схемы говорит, что делать.
+ */
+async function requireTable(client: Client, table: string): Promise<void> {
+  const result = await client.query('SELECT to_regclass($1) AS relation', [`public.${table}`])
+  if (!result.rows[0]?.relation) {
+    throw new Error(
+      `Таблицы ${table} нет — сначала примените миграции схемы: pnpm -F @coopenomics/controller run schema:migrate`,
+    )
+  }
+}
 
 export async function initSystemStatus() {
   console.log('Инициализация статуса системы для coopname: voskhod')
@@ -16,30 +31,7 @@ export async function initSystemStatus() {
     await client.connect()
     console.log('Подключение к PostgreSQL установлено для initSystemStatus')
 
-    // Создаем enum тип для статуса системы
-    try {
-      await client.query(`
-        CREATE TYPE public.system_status_status_enum AS ENUM ('install', 'initialized', 'active', 'maintenance')
-      `)
-    }
-    catch (error) {
-      // Тип уже существует, продолжаем
-      console.log('Enum тип system_status_status_enum уже существует, пропускаем создание')
-    }
-
-    // Создаем таблицу system_status правильно, как в TypeORM entity
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS public.system_status (
-        coopname varchar(12) NOT NULL,
-        install_code varchar(255) NULL,
-        install_code_expires_at timestamp NULL,
-        init_by_server bool NOT NULL DEFAULT false,
-        created_at timestamp NOT NULL DEFAULT now(),
-        updated_at timestamp NOT NULL DEFAULT now(),
-        status public.system_status_status_enum NOT NULL DEFAULT 'install'::system_status_status_enum,
-        CONSTRAINT system_status_pkey PRIMARY KEY (coopname)
-      )
-    `)
+    await requireTable(client, 'system_status')
 
     try {
     // Устанавливаем начальный статус для voskhod (active - система готова к работе)
@@ -82,6 +74,7 @@ export async function initUsersInPostgres(
     status: string
     is_registered: boolean
   }>,
+  coopname: string,
 ) {
   const client = new Client({
     host: process.env.POSTGRES_HOST,
@@ -95,28 +88,7 @@ export async function initUsersInPostgres(
     await client.connect()
     console.log('Подключение к PostgreSQL установлено для инициализации пользователей')
 
-    // Создаем таблицу users, если она не существует
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS "users" (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        username VARCHAR(50) UNIQUE NOT NULL,
-        status VARCHAR(20) DEFAULT 'created',
-        message TEXT DEFAULT '',
-        is_registered BOOLEAN DEFAULT FALSE,
-        has_account BOOLEAN DEFAULT FALSE,
-        type VARCHAR(20) NOT NULL,
-        public_key TEXT DEFAULT '',
-        referer VARCHAR(100) DEFAULT '',
-        email VARCHAR(255),
-        role VARCHAR(20) DEFAULT 'user',
-        is_email_verified BOOLEAN DEFAULT FALSE,
-        subscriber_id VARCHAR(100) DEFAULT '',
-        subscriber_hash VARCHAR(255) DEFAULT '',
-        legacy_mongo_id VARCHAR(50),
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `)
+    await requireTable(client, 'users')
 
     // Создаем пользователей
     for (const user of users) {
@@ -126,12 +98,13 @@ export async function initUsersInPostgres(
         continue
       }
 
+      const subscriber = subscriberIdentity(coopname)
       await client.query(`
         INSERT INTO "users" (
           username, email, type, role, status, is_registered,
-          has_account, is_email_verified, created_at, updated_at
+          has_account, is_email_verified, subscriber_id, subscriber_hash, created_at, updated_at
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
         ON CONFLICT (username) DO NOTHING
       `, [
         user.username,
@@ -142,6 +115,8 @@ export async function initUsersInPostgres(
         user.is_registered,
         false, // has_account
         true, // is_email_verified
+        subscriber.subscriber_id,
+        subscriber.subscriber_hash,
       ])
     }
 
@@ -256,22 +231,7 @@ export async function initVaultInPostgres() {
     await client.connect()
     console.log('Подключение к PostgreSQL установлено для инициализации vault')
 
-    // Создаем таблицу vaults, если она не существует
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS "vaults" (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        username VARCHAR(50) NOT NULL,
-        permission VARCHAR(20) DEFAULT 'active',
-        wif TEXT NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE(username, permission)
-      )
-    `)
-
-    // Создаем индексы
-    await client.query(`CREATE INDEX IF NOT EXISTS idx_vaults_username ON "vaults"(username)`)
-    await client.query(`CREATE INDEX IF NOT EXISTS idx_vaults_username_permission ON "vaults"(username, permission)`)
+    await requireTable(client, 'vaults')
 
     // Сохраняем зашифрованный ключ в vault
     await client.query(`
@@ -295,6 +255,52 @@ export async function initVaultInPostgres() {
   }
 }
 
+/**
+ * dadata — анкета организации по ИНН (C28-92). Ключи платного доступа DaData в
+ * репозиторий не кладутся: сид ставит расширение включённым только на
+ * dev-стенде, где ключи лежат в .env сида (DADATA_API_KEY, DADATA_SECRET_KEY).
+ * Без ключей запись не трогается — расширение остаётся в каталоге, и
+ * председатель ставит его сам, вписав ключ. В боевых кооперативах сид не
+ * запускается. Зовётся и при обычном перезапуске стенда, и при `reboot:extra`:
+ * до 18.10.2026 он шёл только с `extra`, и после обычного `reboot` анкета по
+ * ИНН не работала.
+ */
+async function seedDadata(client: Client): Promise<void> {
+  const dadataApiKey = (process.env.DADATA_API_KEY ?? '').trim()
+  if (!dadataApiKey)
+    return
+  await client.query(`
+    INSERT INTO "extensions" (name, enabled, config, schema_version)
+    VALUES ($1, $2, $3, $4)
+    ON CONFLICT (name) DO UPDATE SET
+      enabled = EXCLUDED.enabled,
+      config = EXCLUDED.config,
+      updated_at = CURRENT_TIMESTAMP
+  `, ['dadata', true, JSON.stringify({
+    api_key: dadataApiKey,
+    secret_key: (process.env.DADATA_SECRET_KEY ?? '').trim(),
+  }), 1])
+  console.log('dadata: расширение включено с ключами из окружения сида')
+}
+
+/** Сид DaData отдельным подключением — для обычного перезапуска стенда без `extra`. */
+export async function initDadataInPostgres(): Promise<void> {
+  const client = new Client({
+    host: process.env.POSTGRES_HOST,
+    port: Number.parseInt(process.env.POSTGRES_PORT || '5432'),
+    user: process.env.POSTGRES_USERNAME,
+    password: process.env.POSTGRES_PASSWORD,
+    database: process.env.POSTGRES_DATABASE,
+  })
+  try {
+    await client.connect()
+    await seedDadata(client)
+  }
+  finally {
+    await client.end()
+  }
+}
+
 export async function initExtensionsInPostgres() {
   const client = new Client({
     host: process.env.POSTGRES_HOST,
@@ -308,21 +314,7 @@ export async function initExtensionsInPostgres() {
     await client.connect()
     console.log('Подключение к PostgreSQL установлено для инициализации extensions')
 
-    // Создаем таблицу extensions по аналогии с ExtensionEntity
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS "extensions" (
-        name VARCHAR(12) PRIMARY KEY,
-        enabled BOOLEAN DEFAULT true,
-        config JSONB DEFAULT '{}',
-        schema_version INTEGER DEFAULT 1,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `)
-
-    // Создаем индексы
-    await client.query(`CREATE INDEX IF NOT EXISTS idx_extensions_name ON "extensions"(name)`)
-    await client.query(`CREATE INDEX IF NOT EXISTS idx_extensions_enabled ON "extensions"(enabled)`)
+    await requireTable(client, 'extensions')
 
     // Вставляем запись для capital extension
     const capitalConfig = {
@@ -406,6 +398,8 @@ export async function initExtensionsInPostgres() {
       VALUES ($1, $2, $3, $4)
       ON CONFLICT (name) DO NOTHING
     `, ['market', true, JSON.stringify(marketConfig), 0])
+
+    await seedDadata(client)
 
     console.log('Extensions инициализированы в PostgreSQL')
   }

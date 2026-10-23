@@ -1,5 +1,7 @@
 #pragma once
 
+
+#include "../core/ram_payer.hpp"
 #include <eosio/asset.hpp>
 #include <eosio/eosio.hpp>
 #include <string>
@@ -37,3 +39,6 @@ typedef eosio::multi_index<
     eosio::indexed_by<"bystatus"_n, eosio::const_mem_fun<fwithdraw, uint64_t, &fwithdraw::by_status>>,
     eosio::indexed_by<"byexpired"_n, eosio::const_mem_fun<fwithdraw, uint64_t, &fwithdraw::by_expired>>>
     fundwithdraws_index;
+
+// Плательщик за оперативную память строк таблицы — правило в lib/core/ram_payer.hpp.
+RAM_PAYER_CLASS(fwithdraw, cooperative);

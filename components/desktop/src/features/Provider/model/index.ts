@@ -1,11 +1,10 @@
 import { ref, computed } from 'vue';
-import { loadProviderSubscriptions, generateConvertToAxonStatement, processConvertToAxonStatement } from '../api';
+import { loadProviderSubscriptions } from '../api';
 import { useSystemStore } from 'src/entities/System/model';
 import { useSessionStore } from 'src/entities/Session';
-import { useAccountStore } from 'src/entities/Account/model';
-import { Queries, Mutations } from '@coopenomics/sdk';
-import { useSignDocument } from 'src/shared/lib/document/model/entity';
-import { SuccessAlert, FailAlert } from 'src/shared/api';
+import { Queries } from '@coopenomics/sdk';
+import { t } from 'src/shared/i18n';
+import { connectorZone } from 'src/shared/lib/utils';
 
 /**
  * Специфичные данные для подписки на хостинг
@@ -30,17 +29,28 @@ export type ProviderSubscription = Queries.System.GetProviderSubscriptions.IOutp
 // Курс конвертации AXON в валюту системы (RUB)
 export const AXON_GOVERN_RATE = 10; // 1 AXON = 10 RUB
 
+// Один стейт на процесс подключения: реестр подписок и карточка просрочки
+// показывают одни и те же услуги, и вторая загрузка тех же данных приводила бы
+// к расхождению сумм на одном экране.
+const subscriptions = ref<ProviderSubscription[]>([]);
+const isLoading = ref(false);
+const error = ref<string | null>(null);
+
 /**
  * Composable для работы с подписками провайдера
  */
 export function useProviderSubscriptions() {
   const system = useSystemStore();
-  const subscriptions = ref<ProviderSubscription[]>([]);
-  const isLoading = ref(false);
-  const error = ref<string | null>(null);
+  const session = useSessionStore();
 
-  // IP адрес сервера для делегирования домена
-  const SERVER_IP = '51.250.114.13';
+  // Имя точки входа кооператива для CNAME-записи домена кабинета:
+  // `<учётное имя подключаемого кооператива>.<зона контура>`. Запись-шаблон
+  // зоны отвечает адресами L7-прокси контура, поэтому имя существует для
+  // любого кооператива заранее, а куда ведёт кабинет, решается на стороне
+  // сети без участия кооператива. Имя — подключаемого кооператива (он вошёл
+  // на стол союза своим аккаунтом), а не союза: до 19.10.2026 здесь стояло
+  // имя союза, и всем кооперативам подсказывался один `voskhod.connector`.
+  const CONNECTOR_HOST = computed(() => `${session.username}.${connectorZone()}`);
 
   // Получить подписку на хостинг (id=1)
   const hostingSubscription = computed(() =>
@@ -71,7 +81,7 @@ export function useProviderSubscriptions() {
     // Проверяем доступность провайдера
     console.log('system.info', system.info);
     if (!system.info.is_providered) {
-      error.value = 'Функционал провайдера не доступен';
+      error.value = t('provider.providerModel.notAvailableError');
       return;
     }
 
@@ -81,7 +91,7 @@ export function useProviderSubscriptions() {
       subscriptions.value = await loadProviderSubscriptions();
       console.log('subscriptions', subscriptions.value);
     } catch (err: any) {
-      error.value = err.message || 'Ошибка загрузки подписок';
+      error.value = err.message || t('provider.providerModel.loadSubscriptionsError');
       console.error('Error loading provider subscriptions:', err);
     } finally {
       isLoading.value = false;
@@ -94,6 +104,7 @@ export function useProviderSubscriptions() {
   const startAutoRefresh = (intervalMs = 60000) => { // 1 минута по умолчанию
     loadSubscriptions(); // Первая загрузка
 
+    // timing: schedule — подписки кооператива ведёт сервер провайдера (другой узел), сигнала в ленте кооператива нет
     const interval = setInterval(() => {
       loadSubscriptions();
     }, intervalMs);
@@ -114,72 +125,9 @@ export function useProviderSubscriptions() {
     instanceStatus,
     loadSubscriptions,
     startAutoRefresh,
-    SERVER_IP,
+    CONNECTOR_HOST,
   };
 }
 
-export type IGenerateConvertToAxonStatementInput = Mutations.Provider.GenerateConvertToAxonStatement.IInput['data'];
-export type IGenerateConvertToAxonStatementResult = Mutations.Provider.GenerateConvertToAxonStatement.IOutput[typeof Mutations.Provider.GenerateConvertToAxonStatement.name];
-
-export type IProcessConvertToAxonStatementInput = Mutations.Provider.ProcessConvertToAxonStatement.IInput;
-export type IProcessConvertToAxonStatementResult = Mutations.Provider.ProcessConvertToAxonStatement.IOutput[typeof Mutations.Provider.ProcessConvertToAxonStatement.name];
-
-/**
- * Composable для конвертации валюты в AXON
- */
-export function useProviderAxonConvert() {
-  const loading = ref(false);
-
-  /**
-   * Конвертирует указанную сумму в AXON
-   */
-  const convertToAxon = async (params: {
-    convertAmount: string;
-    username: string;
-    coopname: string;
-  }) => {
-    try {
-      loading.value = true;
-
-      // Генерируем документ конвертации
-      const generatedDocument = await generateConvertToAxonStatement({
-        convert_amount: params.convertAmount,
-        username: params.username,
-        coopname: params.coopname
-      });
-
-      // Подписываем документ
-      const { signDocument } = useSignDocument();
-      const signedDocument = await signDocument(generatedDocument, params.username);
-
-
-      // Обрабатываем подписанный документ
-      await processConvertToAxonStatement({
-        signedDocument,
-        convertAmount: params.convertAmount,
-        username: params.username
-      });
-
-      // Обновляем баланс AXON после успешной конвертации
-      const session = useSessionStore();
-      const accountStore = useAccountStore();
-      const updatedAccount = await accountStore.getAccount(params.username);
-      if (updatedAccount) {
-        session.setCurrentUserAccount(updatedAccount);
-      }
-
-      SuccessAlert('Конвертация успешно выполнена');
-      return true;
-    } catch (error: any) {
-      FailAlert(error || 'Не удалось выполнить конвертацию');
-      return false;
-    } finally {
-      loading.value = false;
-    }
-  };
-
-  return {
-    loading,
-    convertToAxon
-  };
-}
+export * from './catalog';
+export * from './billing-summary';

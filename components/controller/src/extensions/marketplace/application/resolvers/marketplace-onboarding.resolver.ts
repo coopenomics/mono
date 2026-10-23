@@ -1,9 +1,7 @@
 import { Injectable, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 
-import { GqlJwtAuthGuard,
-  platformSettings,
-} from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, platformSettings, RequireRight, SELF, RightsGuard } from '@coopenomics/extension-kit';
 
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
 import type { IMarketplaceCurrentMember } from '../dto/marketplace-current-member.dto';
@@ -32,7 +30,8 @@ export class MarketplaceOnboardingResolver {
     description:
       'Состояние онбординга пайщика в Столе заказов: показывать ли gate или пропускать на стол',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
+  @RequireRight('Onboarding', 'read:own', SELF)
   marketplaceOnboardingState(
     @CurrentMarketplaceMember() currentMember: IMarketplaceCurrentMember
   ): Promise<MarketplaceOnboardingStateDTO> {
@@ -57,7 +56,8 @@ export class MarketplaceOnboardingResolver {
     description:
       'L3-подпись оферты ЦПП «Стол заказов» пайщиком после gate-диалога: on-chain wallet::signagree + ответ в виде обновлённого состояния онбординга',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
+  @RequireRight('Onboarding', 'sign:own', SELF)
   async marketplaceSignOnboardingOffer(
     @CurrentMarketplaceMember() currentMember: IMarketplaceCurrentMember,
     @Args('input', { type: () => MarketplaceSignOnboardingOfferInputDTO })

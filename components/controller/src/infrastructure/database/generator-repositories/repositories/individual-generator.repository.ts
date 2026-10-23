@@ -6,7 +6,7 @@ import { IndividualDomainEntity } from '~/domain/branch/entities/individual-doma
 import type { IndividualDomainInterface } from '~/domain/common/interfaces/individual-domain.interface';
 import type { IndividualRepository } from '~/domain/common/repositories/individual.repository';
 import { GENERATOR_PORT, GeneratorPort } from '~/domain/document/ports/generator.port';
-import { HttpApiError } from '@coopenomics/extension-kit';
+import { DomainError } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class IndividualRepositoryImplementation implements IndividualRepository {
@@ -15,7 +15,7 @@ export class IndividualRepositoryImplementation implements IndividualRepository 
   async findByUsername(username: string): Promise<IndividualDomainEntity> {
     // Используем генератор для извлечения данных из базы
     const individual = (await this.generatorPort.get('individual', { username })) as Cooperative.Users.IIndividualData;
-    if (!individual) throw new HttpApiError(httpStatus.BAD_REQUEST, `Пользователь ${username} не найден`);
+    if (!individual) throw DomainError.badRequest('DATABASE_INDIVIDUAL_NOT_FOUND', { username });
     else return new IndividualDomainEntity(individual);
   }
 

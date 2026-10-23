@@ -5,6 +5,7 @@
  */
 
 import type { MatrixChatRoomPreset } from './matrix-chat-room-preset.types';
+import { t } from '../../i18n';
 
 /**
  * Те же права, что у комнаты проекта Capital: модераторы (50) почти по всем настройкам;
@@ -61,7 +62,7 @@ function buildPowerLevels(adminUserId: string): Record<string, unknown> {
  * `encrypt` всегда false — иначе секретарь не сможет читать сообщения и транскрибировать.
  */
 export const SECRETARY_ROOM_MATRIX: MatrixChatRoomPreset = {
-  label: 'Комната секретаря',
+  label: t('chatcoop.room.status.secretary'),
   isPrivate: true,
   encrypt: false,
   roomType: undefined,

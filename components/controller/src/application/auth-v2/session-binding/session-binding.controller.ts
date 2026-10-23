@@ -18,6 +18,8 @@ import { AuthRateLimit } from '../rate-limit/auth-rate-limit.decorator';
 import { AuthRateLimitGuard } from '../rate-limit/auth-rate-limit.guard';
 import { LOGIN_IP_RULE } from '../rate-limit/auth-rate-limit.types';
 import { SessionBindingService } from './session-binding.service';
+import { HttpJwtAuthGuard } from '@coopenomics/extension-kit';
+import { setSessionCookieBySid } from '../session-cookie/session-cookie';
 
 /** Тело ответа bind: session_binding_token + TTL в секундах. */
 interface BindResult {
@@ -45,6 +47,24 @@ export class SessionBindingController {
     @Inject(AUTHN_SESSION_PORT) private readonly authnSession: IAuthnSessionPort,
     private readonly binding: SessionBindingService,
   ) {}
+
+  /**
+   * Cookie сессии для уже вошедшего пайщика. Нужна на переходе: у действующих
+   * сессий cookie нет, а access-токен живёт сотни дней — обновления, которое
+   * поставило бы её, можно не дождаться. Клиент зовёт эту точку один раз, когда
+   * серверный рендер его не узнал, а сессия в браузере есть. Токен без `sid`
+   * (выпущен до появления идентификатора сессии) cookie дать не может — клиенту
+   * сообщается, что нужно обновление токенов.
+   */
+  @Post('cookie')
+  @HttpCode(200)
+  @UseGuards(HttpJwtAuthGuard)
+  ensureCookie(@Req() req: Request, @Res({ passthrough: true }) res: Response): { status: 'ok' | 'refresh_required' } {
+    const sid = (req as Request & { user?: { session_id?: string | null } }).user?.session_id ?? null;
+    if (!sid) return { status: 'refresh_required' };
+    setSessionCookieBySid(req, res, sid);
+    return { status: 'ok' };
+  }
 
   @Post('bind')
   @HttpCode(200)

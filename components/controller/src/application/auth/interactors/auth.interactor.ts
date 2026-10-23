@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, Inject, Logger } from '@nestjs/common';
+import { Injectable, Inject, Logger } from '@nestjs/common';
 import type { RegisteredAccountDomainInterface } from '~/domain/account/interfaces/registeted-account.interface';
 import { AccountDomainService } from '~/domain/account/services/account-domain.service';
 import { AuthDomainService } from '~/domain/auth/services/auth-domain.service';
@@ -17,6 +17,8 @@ import { Workflows } from '@coopenomics/notifications';
 import { normalizeUserEmail } from '~/utils/normalize-user-email';
 import { LoginTwoFactorService } from '~/application/auth-v2/login-2fa/login-two-factor.service';
 import { VaultService } from '~/application/auth-v2/vault/vault.service';
+import { KeyRevocationService } from '~/application/auth-v2/key-revocation/key-revocation.service';
+import { DomainError } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class AuthInteractor {
@@ -30,11 +32,15 @@ export class AuthInteractor {
     @Inject(BLOCKCHAIN_PORT) private readonly blockchainPort: BlockchainPort,
     @Inject(USER_DOMAIN_SERVICE) private readonly userDomainService: UserDomainService,
     private readonly loginTwoFactor: LoginTwoFactorService,
-    private readonly vault: VaultService
+    private readonly vault: VaultService,
+    private readonly keyRevocation: KeyRevocationService
   ) {}
 
   async login(data: LoginInputDomainInterface): Promise<RegisteredAccountDomainInterface> {
     const user = await this.authDomainService.loginUserWithSignature(data.email, data.now, data.signature);
+
+    // Ключ, отозванный председателем, вход не открывает: пайщик сначала восстанавливает доступ.
+    await this.keyRevocation.assertNotRevoked(user.username);
 
     // Гейт миграции: пайщик с установленным паролем (vault-блоб существует)
     // входит только новым контуром. Иначе «вход только по паролю» держался бы
@@ -43,18 +49,14 @@ export class AuthInteractor {
     // этим гейтом не задеваются — у них строки vault нет.
     const migrated = await this.vault.retrieve({ subject_type: 'participant', subject_id: user.username });
     if (migrated) {
-      throw new UnauthorizedException(
-        'Для аккаунта установлен пароль — вход по подписи ключа отключён, войдите по email и паролю.'
-      );
+      throw DomainError.unauthorized('AUTH_PASSWORD_SET_KEY_LOGIN_DISABLED');
     }
 
     // 2FA-гейт: легаси-вход по подписи не умеет второй фактор, а выпуск токенов
     // мимо него обесценил бы защиту (пароль → расшифровка ключа → подпись).
     // Пайщик с включённым подтверждением входа входит только новым контуром.
     if (await this.loginTwoFactor.hasEnabledFactorSettings(user.id)) {
-      throw new UnauthorizedException(
-        'Для аккаунта включено подтверждение входа (2FA) — вход по подписи недоступен, войдите по паролю.'
-      );
+      throw DomainError.unauthorized('AUTH_2FA_ENABLED_KEY_LOGIN_DISABLED');
     }
 
     const tokens = await this.tokenApplicationService.generateAuthTokens(user.id);
@@ -95,14 +97,18 @@ export class AuthInteractor {
     await this.notificationSenderService.sendNotificationToUser(user.username, Workflows.ResetKey.id, { resetUrl });
   }
 
-  async sendVerificationEmail(username: string): Promise<void> {
-    const user = await this.userDomainService.getUserByUsername(username);
-    const verifyEmailToken = await this.tokenApplicationService.generateVerifyEmailToken(user.id);
-    const verificationUrl = `${config.frontend_url}/${config.coopname}/auth/verify-email?token=${verifyEmailToken}`;
-
-    await this.notificationSenderService.sendNotificationToUser(user.username, Workflows.EmailVerification.id, {
-      verificationUrl,
-    });
+  /** Почта приглашённого по токену приглашения; токен не расходуется. */
+  async inviteRecipient(token: string): Promise<{ email: string }> {
+    try {
+      const tokenDoc = await this.tokenApplicationService.verifyToken({ token, types: [tokenTypes.INVITE] });
+      const user =
+        (await this.userDomainService.findUserById(tokenDoc.userId)) ??
+        (await this.userDomainService.findUserByLegacyMongoId(tokenDoc.userId));
+      if (!user?.email) throw new Error('user not found');
+      return { email: user.email };
+    } catch {
+      throw DomainError.unauthorized('AUTH_INVITE_TOKEN_INVALID');
+    }
   }
 
   async resetKey(data: ResetKeyInputDomainInterface): Promise<void> {
@@ -121,7 +127,7 @@ export class AuthInteractor {
       }
 
       if (!user) {
-        throw new UnauthorizedException('Пользователь не найден');
+        throw DomainError.unauthorized('AUTH_USER_NOT_FOUND');
       }
 
       await this.blockchainPort.changeKey({
@@ -131,12 +137,21 @@ export class AuthInteractor {
         public_key: data.public_key,
       });
 
-      await this.userDomainService.updateUserById(user.id, { public_key: data.public_key });
+      // Ссылка приглашения и сброса ключа приходит письмом: переход по ней
+      // доказывает владение ящиком, и просить подтвердить почту ещё раз незачем.
+      await this.userDomainService.updateUserById(user.id, { public_key: data.public_key, is_email_verified: true });
 
-      await this.tokenApplicationService.deleteTokens({ userId: user.id, type: tokenTypes.RESET_KEY });
+      // Ключ сменён — отзыв прежнего ключа закрыт, вход новым открыт.
+      await this.keyRevocation.markRecovered(user.username);
+
+      // Гасится токен того вида, по которому пришли. До 19.10.2026 удалялись
+      // только токены сброса, и ссылка из письма-приглашения оставалась живой
+      // до истечения срока: по ней можно было ещё раз сменить ключ — после
+      // установки пароля это рассогласовывало ключ с его хранилищем.
+      await this.tokenApplicationService.deleteTokens({ userId: user.id, type: resetKeyTokenDoc.type });
     } catch (error: any) {
       this.logger.error(`Ошибка сброса ключа: ${error.message}`, error.stack);
-      throw new UnauthorizedException('Возникла ошибка при сбросе ключа');
+      throw DomainError.unauthorized('AUTH_KEY_RESET_ERROR');
     }
   }
 
@@ -155,7 +170,7 @@ export class AuthInteractor {
       }
 
       if (!user) {
-        throw new UnauthorizedException('Пользователь не найден');
+        throw DomainError.unauthorized('AUTH_USER_NOT_FOUND');
       }
 
       await this.tokenApplicationService.findOneAndDelete(data.refresh_token, tokenTypes.REFRESH);
@@ -168,7 +183,7 @@ export class AuthInteractor {
         tokens,
       };
     } catch (error) {
-      throw new UnauthorizedException('Возникла неизвестная ошибка при обновлении');
+      throw DomainError.unauthorized('AUTH_UPDATE_UNKNOWN_ERROR');
     }
   }
 

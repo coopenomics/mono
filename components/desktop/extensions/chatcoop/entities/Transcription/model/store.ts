@@ -2,6 +2,7 @@ import { defineStore } from 'pinia';
 import { ref, Ref } from 'vue';
 import { api } from '../api';
 import type { ITranscription, ITranscriptionWithSegments } from './types';
+import { t as i18nT } from '../../../i18n';
 
 const namespace = 'transcriptionStore';
 
@@ -43,7 +44,7 @@ export const useTranscriptionStore = defineStore(
         return result;
       } catch (err) {
         console.error('Failed to load transcriptions:', err);
-        error.value = 'Не удалось загрузить транскрипции. Попробуйте обновить страницу.';
+        error.value = i18nT('chatcoop.transcriptionStore.loadListError');
         return [];
       } finally {
         isLoading.value = false;
@@ -60,7 +61,7 @@ export const useTranscriptionStore = defineStore(
         return result;
       } catch (err) {
         console.error('Failed to load transcription:', err);
-        error.value = 'Не удалось загрузить транскрипцию. Попробуйте обновить страницу.';
+        error.value = i18nT('chatcoop.transcriptionStore.loadOneError');
         return null;
       } finally {
         isLoadingDetail.value = false;

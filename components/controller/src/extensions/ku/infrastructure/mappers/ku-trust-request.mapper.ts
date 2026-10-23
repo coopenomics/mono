@@ -1,5 +1,5 @@
 import { KuTrustRequestDomainEntity } from '../../domain/entities/ku-trust-request.entity';
-import type { KuTrustRequestTypeormEntity } from '../entities/ku-trust-request.typeorm-entity';
+import type { KuTrustRequestRecord } from '../entities/ku-trust-request.record';
 import type {
   IKuTrustRequestBlockchainData,
   IKuTrustRequestDatabaseData,
@@ -9,7 +9,7 @@ import type {
  * Маппер между доменной сущностью заявки доверенного и TypeORM-сущностью
  */
 export class KuTrustRequestMapper {
-  static toDomain(entity: KuTrustRequestTypeormEntity): KuTrustRequestDomainEntity {
+  static toDomain(entity: KuTrustRequestRecord): KuTrustRequestDomainEntity {
     const databaseData: IKuTrustRequestDatabaseData = {
       _id: entity._id,
       block_num: entity.block_num,
@@ -36,7 +36,7 @@ export class KuTrustRequestMapper {
     return new KuTrustRequestDomainEntity(databaseData, blockchainData);
   }
 
-  static toEntity(domain: KuTrustRequestDomainEntity): Partial<KuTrustRequestTypeormEntity> {
+  static toEntity(domain: KuTrustRequestDomainEntity): Partial<KuTrustRequestRecord> {
     return {
       _id: domain._id,
       block_num: domain.block_num ?? 0,
@@ -54,8 +54,8 @@ export class KuTrustRequestMapper {
     };
   }
 
-  static toUpdateEntity(domain: Partial<KuTrustRequestDomainEntity>): Partial<KuTrustRequestTypeormEntity> {
-    const updateData: Partial<KuTrustRequestTypeormEntity> = {};
+  static toUpdateEntity(domain: Partial<KuTrustRequestDomainEntity>): Partial<KuTrustRequestRecord> {
+    const updateData: Partial<KuTrustRequestRecord> = {};
 
     if (domain.block_num !== undefined) updateData.block_num = domain.block_num;
     if (domain.present !== undefined) updateData.present = domain.present;

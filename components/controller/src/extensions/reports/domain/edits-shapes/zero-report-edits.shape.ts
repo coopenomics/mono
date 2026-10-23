@@ -51,6 +51,8 @@ export interface ZeroReportSignerShape {
   repDoc: string | null;
   /** СНИЛС — обязателен для ПСВ (ПерсСвФЛ @СНИЛС). */
   snils: string | null;
+  /** ИНН подписанта-физлица (12 цифр) — ПСВ ПерсСвФЛ @ИННФЛ. */
+  inn: string | null;
   /** Регистрационный номер в СФР — обязателен для ЕФС-1. */
   sfrRegNumber: string | null;
   /**

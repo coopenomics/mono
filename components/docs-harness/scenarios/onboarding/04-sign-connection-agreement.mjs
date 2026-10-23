@@ -6,7 +6,7 @@
 //   ├── isLoading        → WindowLoader
 //   ├── !is_providered   → «обратитесь в ПК ВОСХОД» (заглушка)
 //   └── is_providered    → ConnectionAgreementStepper (7 шагов):
-//                          0 UnionMembership (опц.) → 1 Intro → 2 Form
+//                          1 Intro → 2 Form (шаг союза снят 20.10.2026)
 //                          → 3 Agreement → 4 DomainValidation
 //                          → 5 ApprovalWaiting → 6 Installation
 //
@@ -124,8 +124,7 @@ export default async ({ page, shot }) => {
 
   // --- 3. Если виден стэппер — пытаемся пройти по шагам и снимать каждый. ---
   if (pageState.hasStepper) {
-    // Шаг 0 (опционально) — UnionMembership. На большинстве конфигов is_unioned=false,
-    // и Vue стартует с шага 1 (Intro). Если активен 0 — снимаем и пробуем «Продолжить».
+    // Мастер начинается с шага 1 (Intro): шаг союза снят 20.10.2026.
     for (let i = 0; i < 7; i++) {
       const stepInfo = await page.evaluate(() => {
         const active = document.querySelector('.q-stepper__tab--active');

@@ -13,10 +13,14 @@ q-page.participants-page
       v-model='filterValues'
     )
     ParticipantsTable(
-      :accounts='filteredAccounts',
+      :accounts='accountStore.accounts.items',
       :loading='onLoading',
+      :pagination='pagination',
+      :sort-by='sortBy',
+      :sort-descending='sortDescending',
+      @update:page='goToPage',
+      @sort='changeSort',
       :naming='verificationNaming',
-      @toggle-expand='toggleExpand',
       @update='update',
       @verification-changed='onVerificationChanged'
     )
@@ -30,18 +34,15 @@ q-page.participants-page
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { FilterBar, type FilterDefinition, type FilterValues } from 'src/shared/ui/domain/FilterBar';
-import { participantVerificationView, type VerificationNaming } from 'src/shared/lib/verification';
-import { useBranchStore } from 'src/entities/Branch/model';
-import { useSystemStore } from 'src/entities/System/model';
-import { getName } from 'src/shared/lib/utils';
 import { FailAlert } from 'src/shared/api';
 import { useAccountStore } from 'src/entities/Account/model';
 import { useSessionStore } from 'src/entities/Session';
 import { AddUserButton } from 'src/features/User/AddUser/ui';
+import { useDesktopStore } from 'src/entities/Desktop';
 import { ImportParticipantsButton } from 'src/features/User/ImportParticipants';
-import { ParticipantsTable } from 'src/widgets/Participants';
+import { ParticipantsTable, PARTICIPANT_LIVE_TABLES, useVerificationNaming } from 'src/widgets/Participants';
 import { VerificationsJournal } from 'src/widgets/Verifications';
 import { PageTabs, type PageTab } from 'src/shared/ui/layout/PageTabs';
 import { useHeaderActions } from 'src/shared/hooks';
@@ -51,60 +52,58 @@ import {
   type IIndividualData,
   type IOrganizationData,
   type IEntrepreneurData,
+  type IGetAccounts,
 } from 'src/entities/Account/types';
+import { t } from 'src/shared/i18n';
+import { useLiveReload } from 'src/shared/lib/realtime';
 
 const accountStore = useAccountStore();
 const session = useSessionStore();
-const branchStore = useBranchStore();
-const systemStore = useSystemStore();
 const onLoading = ref(false);
 
-// Подписи уровней верификации — человеческими именами: кто сверил личность
-// и на каком участке. Служебные account-id и имена участков в цепи остаются
-// запасным вариантом, когда человеческого имени нет.
-const verificationNaming = computed((): VerificationNaming => {
-  const names = new Map(accountStore.accounts.items.map((account) => [account.username, getName(account)]));
-  const branches = new Map(
-    branchStore.publicBranches.map((branch) => [
-      branch.braname,
-      branch.short_name || branch.full_name || branch.braname,
-    ]),
-  );
-  return {
-    attestorName: (username: string) => names.get(username) || '',
-    branchName: (braname: string) => branches.get(braname) || '',
-  };
-});
+// Подписи уровней верификации: имена берём из загруженной страницы реестра,
+// недостающих сверявших composable дочитывает сам.
+const verificationNaming = useVerificationNaming(() => accountStore.accounts.items);
 
 // Фильтр по уровню верификации: совету важно видеть, кого ещё предстоит
 // верифицировать на кооперативных участках (без базового уровня — нужен паспорт).
 const verificationFilterDefs: FilterDefinition[] = [
   {
     key: 'verification',
-    label: 'Верификация',
+    label: t('cooperative.listOfParticipantsPage.verificationFilterLabel'),
     type: 'select',
     options: [
-      { label: 'Все', value: '' },
-      { label: 'Без базовой — нужен паспорт', value: 'no_passport' },
-      { label: 'С базовой — паспорт проверен', value: 'passport' },
-      { label: 'Не верифицированные', value: 'none' },
+      { label: t('cooperative.listOfParticipantsPage.filterAll'), value: '' },
+      { label: t('cooperative.listOfParticipantsPage.filterNoPassport'), value: 'no_passport' },
+      { label: t('cooperative.listOfParticipantsPage.filterPassportVerified'), value: 'passport' },
+      { label: t('cooperative.listOfParticipantsPage.filterNotVerified'), value: 'none' },
     ],
   },
 ];
 const filterValues = ref<FilterValues>({});
-const filteredAccounts = computed(() => {
-  const selected = filterValues.value.verification;
-  const items = accountStore.accounts.items;
-  if (!selected) return items;
-  return items.filter((account) => {
-    const types = participantVerificationView(account).map((level) => level.type);
-    if (selected === 'no_passport') return !types.includes('passport_onsite');
-    if (selected === 'passport') return types.includes('passport_onsite');
-    if (selected === 'none') return types.length === 0;
-    return true;
-  });
-});
-const expanded = reactive(new Map<string, boolean>());
+
+// Отбор по верификации и постраничность делает сервер: уровни верификации
+// живут в цепи, и отбирать их на одной загруженной странице было бы неверно.
+const VERIFICATION_FILTER = {
+  no_passport: 'NO_PASSPORT',
+  passport: 'PASSPORT',
+  none: 'NONE',
+} as const;
+type AccountsInput = NonNullable<IGetAccounts['data']>;
+
+const PAGE_SIZE = 20;
+const page = ref(1);
+// Сортировка на сервере. По умолчанию — по дате добавления записи: она есть у
+// каждого, в отличие от даты вступления, которую ставит решение совета. Реестр
+// сортируется только по датам: остальные поля в базе узла не лежат.
+const SORT_FIELDS: Record<string, string> = { created_at: 'created_at', joined_at: 'joined_at' };
+const sortBy = ref('created_at');
+const sortDescending = ref(true);
+const pagination = computed(() => ({
+  page: page.value,
+  rowsPerPage: PAGE_SIZE,
+  rowsNumber: accountStore.accounts.totalCount,
+}));
 
 // Вторая вкладка — журнал верификаций: что, когда и кем сверено. Совету он
 // нужен как рабочая очередь: сверки с участков ждут его решения.
@@ -113,8 +112,8 @@ const journalRef = ref<InstanceType<typeof VerificationsJournal> | null>(null);
 // Журнал верификаций читает и решает только председатель совета — остальным
 // сервер откажет, и вкладка была бы кнопкой в никуда.
 const tabs = computed((): PageTab[] => [
-  { key: 'participants', label: 'Пайщики', count: accountStore.accounts.items.length },
-  ...(session.isChairman ? [{ key: 'verifications', label: 'Верификации' }] : []),
+  { key: 'participants', label: t('cooperative.listOfParticipantsPage.participantsTab'), count: accountStore.accounts.totalCount },
+  ...(session.isChairman ? [{ key: 'verifications', label: t('cooperative.listOfParticipantsPage.verificationsTab') }] : []),
 ]);
 
 // Сверка из реестра сразу попадает в журнал — перечитываем оба списка, чтобы
@@ -126,8 +125,11 @@ const onVerificationChanged = async () => {
 
 // Инжектим кнопку добавления пользователя в заголовок
 const { registerAction } = useHeaderActions();
+const desktop = useDesktopStore();
 
 onMounted(() => {
+  // Добавление и импорт пайщиков — действия совета; тем, кто реестр только читает, кнопки не показываются.
+  if (!desktop.hasGrant('soviet', 'Participant:create')) return;
   registerAction({
     id: 'add-user',
     component: AddUserButton,
@@ -140,27 +142,53 @@ onMounted(() => {
   });
 });
 
-const toggleExpand = (id: string) => {
-  expanded.set(id, !expanded.get(id));
-};
-
-const loadParticipants = async () => {
+const loadParticipants = async (silent = false) => {
   try {
-    onLoading.value = true;
+    if (!silent) onLoading.value = true;
+    const selected = filterValues.value.verification as keyof typeof VERIFICATION_FILTER | undefined;
+    const verification = selected ? VERIFICATION_FILTER[selected] : undefined;
     await accountStore.getAccounts({
-      options: { page: 1, limit: 1000, sortOrder: 'DESC' },
+      data: (verification ? { verification } : {}) as AccountsInput,
+      options: {
+        page: page.value,
+        limit: PAGE_SIZE,
+        sortBy: `${SORT_FIELDS[sortBy.value] ?? 'created_at'}:${sortDescending.value ? 'desc' : 'asc'}`,
+        sortOrder: sortDescending.value ? 'DESC' : 'ASC',
+      },
     });
-    // Названия участков нужны только для подписи «где сверили» — грузим их
-    // один раз и не роняем реестр, если участков в кооперативе нет.
-    if (!branchStore.publicBranches.length) {
-      await branchStore.loadPublicBranches({ coopname: systemStore.info.coopname }).catch(() => undefined);
-    }
   } catch (e: any) {
-    FailAlert(e);
+    // Фоновое перечитывание не пугает отказом: следующий сигнал повторит.
+    if (!silent) FailAlert(e);
   } finally {
     onLoading.value = false;
   }
 };
+
+// Живой реестр: вступление, регистрационный взнос, блокировка, выход и сверка
+// личности меняют эти таблицы — страница перечитывается сама, без скелетона.
+useLiveReload(PARTICIPANT_LIVE_TABLES, () => loadParticipants(true));
+
+const changeSort = (sort: { sortBy: string; descending: boolean }) => {
+  sortBy.value = SORT_FIELDS[sort.sortBy] ? sort.sortBy : 'created_at';
+  sortDescending.value = sort.descending;
+  page.value = 1;
+  void loadParticipants();
+};
+
+const goToPage = (next: number) => {
+  page.value = next;
+  void loadParticipants();
+};
+
+// Сменили отбор — показываем его с первой страницы.
+watch(
+  () => filterValues.value.verification,
+  () => {
+    page.value = 1;
+    void loadParticipants();
+  },
+);
+
 loadParticipants();
 
 const update = (
@@ -181,6 +209,9 @@ const update = (
       account.private_account.organization_data = newData as IOrganizationData;
       break;
   }
+  // Смена паспорта снимает сверку на сервере — перечитываем реестр и журнал,
+  // чтобы бейдж верификации не показывал прежний уровень.
+  void onVerificationChanged();
 };
 </script>
 
@@ -189,12 +220,6 @@ const update = (
   /* Сверху отступа нет: полоса вкладок примыкает к шапке, как ей и положено —
      её собственная высота и нижняя линия и создают разделение. */
   padding: 0 var(--p-6, 24px) var(--p-6, 24px);
-}
-
-/* Полоса вкладок тянется во всю ширину страницы: её нижняя линия отделяет
-   вкладки от содержимого, а обрезанная по бокам линия читается как ошибка. */
-.participants-page__tabs {
-  margin: 0 calc(-1 * var(--p-6, 24px)) var(--p-4, 16px);
 }
 
 /* Таблица реестра в обрамлённой канон-поверхности */
@@ -214,9 +239,6 @@ const update = (
     padding: 0 var(--p-4, 16px) var(--p-4, 16px);
   }
 
-  .participants-page__tabs {
-    margin: 0 calc(-1 * var(--p-4, 16px)) var(--p-3, 12px);
-  }
   .participants-page__card {
     background: transparent;
     border: none;

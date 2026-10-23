@@ -1,0 +1,612 @@
+feature: edubridge.enrollment
+title: Образовательный мост — обучающиеся, подписки, «Получить доступ»
+
+# E6 (задача 7DD-7). Прямого платежа как членского взноса нет: паевой пополняется
+# средствами ядра, затем по кнопке «Получить доступ» пайщик подписывает
+# заявление о конвертации (3011), кооператив одной транзакцией проводит
+# convert (w.wal.share → w.edu.member) и opensub/extendsub. Период ведётся
+# раздельно по связке «обучающийся + курс» (sub_hash детерминирован парой).
+
+sources:
+  backend:
+    - components/controller/src/extensions/edubridge/application/services/edubridge-enrollment.service.ts
+    - components/controller/src/extensions/edubridge/application/services/edubridge-learner.service.ts
+    - components/controller/src/extensions/edubridge/application/resolvers/edubridge-member.resolver.ts
+    - components/controller/src/extensions/edubridge/infrastructure/adapters/edubridge-chain.adapter.ts
+    - components/controller/src/extensions/edubridge/infrastructure/repositories/edubridge-enrollment.kysely-repository.ts
+    - components/controller/src/extensions/edubridge/infrastructure/repositories/edubridge-learner.kysely-repository.ts
+    - components/controller/src/extensions/edubridge/application/services/edubridge-return.service.ts
+    - components/controller/src/extensions/edubridge/application/services/edubridge-funds.service.ts
+    - components/controller/src/extensions/edubridge/application/services/edubridge-refund.ts
+    - components/controller/src/extensions/edubridge/domain/economy/guarantee.ts
+    - components/controller/src/extensions/edubridge/domain/economy/time-scale.ts
+    - components/controller/src/extensions/edubridge/application/services/edubridge-settlement.service.ts
+    - components/controller/src/extensions/edubridge/application/services/edubridge-guarantee.service.ts
+    - components/controller/src/extensions/edubridge/application/resolvers/edubridge-guarantee.resolver.ts
+    - components/controller/src/extensions/edubridge/infrastructure/repositories/edubridge-guarantee-claim.kysely-repository.ts
+    - components/controller/src/extensions/edubridge/application/services/edubridge-exit-blockers.service.ts
+    - components/controller/src/extensions/edubridge/domain/economy/refund.calculator.ts
+    - components/controller/src/extensions/edubridge/application/services/edubridge-group.service.ts
+    - components/controller/src/extensions/edubridge/application/resolvers/edubridge-group.resolver.ts
+    - components/controller/src/extensions/edubridge/infrastructure/repositories/edubridge-group.kysely-repository.ts
+    - components/controller/src/extensions/edubridge/application/services/edubridge-chain-terms.service.ts
+    - components/controller/src/extensions/edubridge/application/resolvers/edubridge-return.resolver.ts
+    - components/controller/src/extensions/edubridge/application/dto/edu-return.dto.ts
+  ui:
+    - components/desktop/extensions/edubridge/pages/MemberLearnersPage/**
+    - components/desktop/extensions/edubridge/pages/MemberSubscriptionsPage/**
+    - components/desktop/extensions/edubridge/pages/CourseCardPage/**
+    - components/desktop/extensions/edubridge/features/Subscribe/**
+    - components/desktop/extensions/edubridge/features/ReturnToShare/**
+    - components/desktop/extensions/edubridge/widgets/LearnerForm/**
+    - components/desktop/extensions/edubridge/entities/Learner/**
+
+cases:
+  - id: edu.enr.happy.01
+    level: backend
+    kind: happy
+    scenario: Котировка по периоду; паевого не хватает.
+    expect: amount по взносу за период, месяцев оплачено — один, enough=false, shortfall = разница, sub_hash детерминирован.
+    test: components/controller/tests/unit/edubridge/enrollment.service.test.ts
+    api: components/api-tests/src/edubridge/enrollment.test.ts
+    status: passing
+  - id: edu.enr.break.01
+    level: backend
+    kind: break
+    scenario: Подписка при нехватке паевого.
+    expect: BadRequest с подсказкой пополнить главный кошелёк; транзакции нет.
+    test: components/controller/tests/unit/edubridge/enrollment.service.test.ts
+    api: components/api-tests/src/edubridge/enrollment.test.ts
+    status: passing
+  - id: edu.enr.happy.02
+    level: backend
+    kind: happy
+    scenario: Новая подписка.
+    expect: convert + opensub одной транзакцией, статус ACTIVE, доступ PENDING, событие enrollment.opened с trx_id.
+    test: components/controller/tests/unit/edubridge/enrollment.service.test.ts
+    api: components/api-tests/src/edubridge/enrollment.test.ts
+    status: passing
+  - id: edu.enr.happy.03
+    level: backend
+    kind: happy
+    scenario: Продление действующей подписки.
+    expect: extendsub от текущего paid_until, доступ не трогается, событие enrollment.extended.
+    test: components/controller/tests/unit/edubridge/enrollment.service.test.ts
+    api: components/api-tests/src/edubridge/subscriptions.test.ts
+    status: passing
+  - id: edu.enr.side.01
+    level: backend
+    kind: side
+    scenario: Повторный вызов subscribe с тем же заявлением после успеха.
+    expect: Цепь отклоняет повторную конвертацию/opensub (sub_hash занят); запись не дублируется.
+    test: ~
+    status: missing
+  - id: edu.enr.side.02
+    level: backend
+    kind: side
+    scenario: Правка почты обучающегося при активной подписке.
+    expect: Событие learner.recipient_changed → очередь переоформляет доступ без повторной оплаты.
+    test: ~
+    status: missing
+  - id: edu.enr.break.02
+    level: backend
+    kind: break
+    scenario: Пайщик правит чужого обучающегося / удаляет обучающегося с активной подпиской.
+    expect: Forbidden / BadRequest.
+    test: components/api-tests/src/edubridge/enrollment.test.ts
+    api: components/api-tests/src/edubridge/enrollment.test.ts
+    status: passing
+  - id: edu.enr.happy.04
+    level: ui
+    kind: happy
+    scenario: Пайщик добавляет обучающегося, нажимает «Получить доступ», видит котировку; при нехватке — ссылка на пополнение; при достатке — подписывает заявление.
+    expect: После подписи строка подписки появляется в таблице со статусом «Действует» и доступом «Выдаётся».
+    test: ~
+    status: missing
+  - id: edu.enr.ui.01
+    level: ui
+    kind: happy
+    scenario: "Подписка оформляется в карточке курса: «Получить доступ» открывает диалог на месте, курс закреплён, обучающийся по умолчанию — сам пайщик (is_self); плюсик у поля заводит нового обучающегося прямо в диалоге, и он сразу выбран."
+    expect: "Со стола ученика кнопка «Получить доступ» убрана; после подписи человек уходит на «Мои подписки», новый обучающийся виден и на странице «Обучающиеся»."
+    test: ~
+    status: missing
+  - id: edu.enr.ui.02
+    level: ui
+    kind: side
+    scenario: "Пайщик без подписанной оферты ученика жмёт «Получить доступ» в карточке курса (право Onboarding:learner ещё выдано)."
+    expect: "Уводится на страницу подключения, а не в диалог подписки, который бэкенд всё равно отклонит; после подписи оферты гейт возвращает в каталог."
+    test: ~
+    status: missing
+  - id: edu.enr.ui.03
+    level: ui
+    kind: happy
+    scenario: "Стол ученика разделён: «Обучающиеся» — состав и адреса доставки, «Мои подписки» — курс, период, оплачено до, состояние доступа и «Продлить»."
+    expect: "Пустые подписки предлагают перейти в каталог; продление открывает тот же диалог с закреплённым курсом."
+    test: ~
+    status: missing
+  - id: edu.enr.ui.04
+    level: ui
+    kind: happy
+    scenario: "Диалог «Получить доступ» без галочки согласия и без показа бланка: человек видит сумму, доступный паевой и срок, жмёт зелёную кнопку — заявление генерируется и подписывается под капотом."
+    expect: "Одно нажатие = заявление 3011 + convert + opensub|extendsub; отдельного шага «прочитать и согласиться» нет."
+    test: ~
+    status: missing
+  - id: edu.enr.side.05
+    level: backend
+    kind: side
+    scenario: "Текст заявления о конвертации (3011): сумма и название программы, без курса и периода; сумма приведена канонным formatAsset."
+    expect: "«Прошу конвертировать мой паевой взнос в размере 1000.00 RUB в членский взнос по Целевой Потребительской Программе «Образование».» — 1-в-1 с 1110; в цепь по-прежнему уходит сырой asset 1000.0000 RUB."
+    test: ~
+    status: missing
+
+  - id: edu.enroll.happy.06
+    level: backend
+    kind: happy
+    scenario: Ученик отменяет подписку до даты активации курса.
+    expect: Полная стоимость возвращается на кошелёк программы, подписка закрывается, доступ отзывается.
+    test: components/controller/tests/unit/edubridge/enrollment.service.test.ts
+    api: components/api-tests/src/edubridge/enrollment.test.ts
+    status: passing
+  - id: edu.enroll.break.03
+    level: backend
+    kind: break
+    scenario: Отмена чужой подписки и повторная отмена уже отменённой.
+    expect: Отказ до обращения в цепь в обоих случаях.
+    test: components/controller/tests/unit/edubridge/enrollment.service.test.ts
+    api: components/api-tests/src/edubridge/enrollment.test.ts
+    status: passing
+  - id: edu.enroll.happy.07
+    level: backend
+    kind: happy
+    scenario: Администратор отменяет курс по недобору.
+    expect: Подписки участников закрываются, взносы возвращаются сразу на паевой без заявлений.
+    test: components/controller/tests/unit/edubridge/enrollment.service.test.ts
+    api: components/api-tests/src/edubridge/subscriptions.test.ts
+    status: passing
+  - id: edu.enroll.side.05
+    level: backend
+    kind: side
+    scenario: Отмена по недобору после начала занятий.
+    expect: Отказ — есть отказ от подписки, а не отмена набора.
+    test: components/controller/tests/unit/edubridge/enrollment.service.test.ts
+    api: components/api-tests/src/edubridge/subscriptions.test.ts
+    status: passing
+  - id: edu.enroll.happy.08
+    level: backend
+    kind: happy
+    scenario: Отказ в ходе подписки — половина остаточной стоимости по числу проведённых занятий.
+    expect: Граница проходит по дате активации; после последнего занятия возврат нулевой.
+    test: components/controller/tests/unit/edubridge/refund.test.ts
+    api: components/api-tests/src/edubridge/enrollment.test.ts
+    status: passing
+  - id: edu.enroll.ui.03
+    level: ui
+    kind: happy
+    scenario: Ученик видит сумму возврата до отмены; администратор отменяет курс по недобору со страницы курса.
+    expect: Суммы через форматтер, основание возврата подписано словами.
+    test: ~
+    status: missing
+  - id: edu.enroll.happy.09
+    level: backend
+    kind: happy
+    scenario: Взнос за весь курс разом до начала занятий.
+    expect: "Одной транзакцией convert + opensub(period=course) + chargefee на сумму помесячных со скидкой; у подписки сохранено число оплаченных месяцев."
+    test: components/controller/tests/unit/edubridge/enrollment.service.test.ts
+    api: components/api-tests/src/edubridge/subscriptions.test.ts
+    status: passing
+  - id: edu.enroll.side.06
+    level: backend
+    kind: side
+    scenario: Участник приходит в середине курса либо переходит с помесячного взноса на взнос за курс.
+    expect: Взнос — за оставшиеся месяцы с той же скидкой, оплаченный месяц засчитан, срок — до конца курса.
+    test: components/controller/tests/unit/edubridge/enrollment.service.test.ts
+    api: components/api-tests/src/edubridge/subscriptions.test.ts
+    status: passing
+  - id: edu.enroll.break.05
+    level: backend
+    kind: break
+    scenario: "Взнос за курс: курс оплачен до конца, кооператив принимает только помесячный, у курса нет программы, выбран год."
+    expect: Отказ с понятной причиной в каждом случае; год для новых подписок закрыт.
+    test: components/controller/tests/unit/edubridge/enrollment.service.test.ts
+    api: components/api-tests/src/edubridge/subscriptions.test.ts
+    status: passing
+  - id: edu.enroll.side.07
+    level: backend
+    kind: side
+    scenario: Отказ от подписки у пришедшего в середине курса.
+    expect: Занятия до его взноса не засчитываются — возврат считается от начала оплаченного срока.
+    test: components/controller/tests/unit/edubridge/refund.test.ts
+    api: components/api-tests/src/edubridge/enrollment.test.ts
+    status: passing
+  - id: edu.enroll.happy.10
+    level: backend
+    kind: happy
+    scenario: Остаток кошелька членских взносов программы покрывает взнос целиком.
+    expect: Конвертации с паевого нет, в фонд программы уходит полная стоимость подписки.
+    test: components/controller/tests/unit/edubridge/enrollment.service.test.ts
+    api: components/api-tests/src/edubridge/enrollment.test.ts
+    status: passing
+  - id: edu.enroll.happy.11
+    level: backend
+    kind: happy
+    scenario: Остаток кошелька программы покрывает часть взноса.
+    expect: С паевого конвертируется только недостача; заявление 3011 называет зачёт, конвертацию и полную стоимость.
+    test: components/controller/tests/unit/edubridge/enrollment.service.test.ts
+    api: components/api-tests/src/edubridge/subscriptions.test.ts
+    status: passing
+  - id: edu.enroll.ui.04
+    level: ui
+    kind: happy
+    scenario: "Диалог подписки при ненулевом остатке кошелька программы."
+    expect: Показаны обе части взноса — зачёт с кошелька программы и конвертация с паевого.
+    test: ~
+    status: missing
+  - id: edu.enroll.side.08
+    level: backend
+    kind: side
+    scenario: "Продление до конца оплаченного срока, затем отмена либо недобор."
+    expect: "Взносы складываются: возврат считается от всего оплаченного, при недоборе возвращаются оба взноса."
+    test: components/controller/tests/unit/edubridge/enrollment.service.test.ts
+    api: components/api-tests/src/edubridge/subscriptions.test.ts
+    status: passing
+  - id: edu.enroll.side.09
+    level: backend
+    kind: side
+    scenario: "Оплата после истечения срока, пока подписка ещё числится действующей."
+    expect: "Взнос принимается по той же подписке; оплаченный срок считается от сегодняшнего дня."
+    test: components/controller/tests/unit/edubridge/enrollment.service.test.ts
+    external: unreachable
+    external_reason: "перемотка времени: оплаченный срок должен истечь, а подписка — остаться действующей до прохода очереди; время на стенде не перематывается"
+    status: passing
+  - id: edu.enroll.break.04
+    level: backend
+    kind: break
+    scenario: "Заявление 3011 подписано при другой раскладке оплаты либо по другой подписке."
+    expect: "Отказ с просьбой сформировать заявление заново, в цепь не ходим."
+    test: components/controller/tests/unit/edubridge/enrollment.service.test.ts
+    api: components/api-tests/src/edubridge/subscriptions.test.ts
+    status: passing
+  - id: edu.enroll.side.10
+    level: backend
+    kind: side
+    scenario: "Курс снят с публикации при действующих подписках."
+    expect: "Действующая подписка продлевается, новая не открывается."
+    test: components/controller/tests/unit/edubridge/enrollment.service.test.ts
+    api: components/api-tests/src/edubridge/subscriptions.test.ts
+    status: passing
+  - id: edu.enroll.side.11
+    level: backend
+    kind: side
+    scenario: "Отмена курса по недобору: сбой по одной из подписок."
+    expect: "Курс снимается с публикации первым; остальные подписки отменяются; ответ называет, сколько возвращено и сколько осталось."
+    test: components/controller/tests/unit/edubridge/enrollment.service.test.ts
+    external: unreachable
+    external_reason: "сбой цепи по одной из подписок курса снаружи не создать: остановка цепи роняет отмену по всем подпискам сразу"
+    status: passing
+  - id: edu.enroll.contract.05
+    level: contract
+    kind: break
+    scenario: "Заявление о конвертации либо об аннулировании соглашения подписано чужим ключом."
+    expect: "convert и retshare отклоняются."
+    test: ~
+    status: missing
+  - id: edu.enroll.side.13
+    level: backend
+    kind: side
+    scenario: "Взнос целиком покрыт кошельком программы."
+    expect: "Конвертации нет, заявление 3011 публикуется отдельным действием той же транзакции."
+    test: components/controller/tests/unit/edubridge/enrollment.service.test.ts
+    api: components/api-tests/src/edubridge/enrollment.test.ts
+    status: passing
+  - id: edu.enroll.happy.13
+    level: backend
+    kind: happy
+    scenario: "Состав транзакций оплаты и отмены в цепи."
+    expect: "convert|regstatement → opensub (для новой подписки) → chargefee с ожидаемой суммой из заявления; освобождение удержанного — unlockfee по одной подписке; отмена — cancelsub одним действием, суммы считает контракт."
+    test: components/controller/tests/unit/edubridge/chain.adapter.test.ts
+    external: unreachable
+    external_reason: "состав действий одной транзакции оплаты и отмены клиенту не виден; исход транзакций (списание, удержание, возврат) проверен наборами подписок"
+    status: passing
+  - id: edu.enroll.contract.06
+    level: contract
+    kind: break
+    scenario: "cancelsub с возвратом больше собранного по подписке; allotfee больше собранного; freereserve больше зарезервированного."
+    expect: "Все три действия отклоняются."
+    test: ~
+    status: missing
+  - id: edu.enroll.side.14
+    level: backend
+    kind: side
+    scenario: "Остаток кошелька программы: сколько вернётся в паевой при выходе из кооператива сегодня."
+    expect: "Остаток плюс возврат по действующим подпискам; кошелька и подписок нет — нули."
+    test: components/controller/tests/unit/edubridge/return.service.test.ts
+    api: components/api-tests/src/edubridge/exit.test.ts
+    status: passing
+  - id: edu.enroll.happy.15
+    level: backend
+    kind: happy
+    scenario: "Заявление 190 о прекращении участия в одной программе формируется фабрикой документов."
+    expect: "В таблице одна программа, итог — её возврат; сумма перевода — на день согласования заявления Обществом, связи с выходом из кооператива в тексте нет."
+    test: components/factory/test/program-agreements-annulment.test.ts
+    api: components/api-tests/src/edubridge/subscriptions.test.ts
+    status: passing
+  - id: edu.enroll.ui.05
+    level: ui
+    kind: happy
+    scenario: "Стол пайщика — карточка «Кошелёк программы» на странице подписок."
+    expect: "Показан остаток кошелька программы; пустой кошелёк показан пустым; остаток обновляется после взноса и возврата."
+    test: ~
+    status: missing
+  - id: edu.enroll.contract.07
+    level: contract
+    kind: break
+    scenario: "lockfee больше собранного; unlockfee больше удержанного; cancelsub и expiresub с удержанным взносом; allotfee и freereserve по закрытой подписке."
+    expect: "Превышения отклоняются; отмена и закрытие возвращают удержанное в фонд (o.edu.unlock) до возврата участнику."
+    test: ~
+    status: missing
+  - id: edu.enroll.happy.18
+    level: backend
+    kind: happy
+    scenario: "Удержание по гарантии считает контракт; приложение вызывает его по одной подписке."
+    expect: "Пока идёт гарантийный срок участника (и у неактивированного курса), контракт не вызывается; срок вышел — уходит unlockfee без суммы, удержанное в записи берётся из цепи; подписка с закрытым сроком и подписка без учёта занятий повторно не вызываются."
+    test: components/controller/tests/unit/edubridge/funds.service.test.ts
+    api: components/api-tests/src/edubridge/subscriptions.test.ts
+    status: passing
+  - id: edu.enroll.happy.19
+    level: backend
+    kind: happy
+    scenario: "Учёт курса в записи приложения берётся из цепи."
+    expect: "Резерв преподавателям и выплаченное по курсу читаются из учёта курса в цепи; сбой по одной подписке остальные не держит."
+    test: components/controller/tests/unit/edubridge/funds.service.test.ts
+    external: unreachable
+    external_reason: "тик расписания и перемотка времени: гарантийный срок участника закрывает очередь после его окончания"
+    status: passing
+  - id: edu.enroll.side.17
+    level: backend
+    kind: side
+    scenario: "Предварительная сумма возврата по строке подписки из цепи: до начала занятий, недобор, отказ в ходе подписки, все занятия проведены."
+    expect: "До начала занятий и при недоборе — весь взнос; при отказе — половина остаточной стоимости от полного взноса по занятиям, по которым расчёт не прошёл; деление нацело, как в контракте."
+    test: components/controller/tests/unit/edubridge/refund.test.ts
+    api: components/api-tests/src/edubridge/groups.test.ts
+    status: passing
+  - id: edu.enroll.side.18
+    level: backend
+    kind: side
+    scenario: "Участник отменил либо подписка истекла с удержанным остатком."
+    expect: "Удержанное цепь возвращает сама; резерв по курсу возвращает лишнее в фонд либо добирается из освобождённого остатка."
+    test: components/controller/tests/unit/edubridge/funds.service.test.ts
+    api: components/api-tests/src/edubridge/subscriptions.test.ts
+    status: passing
+  - id: edu.enroll.side.19
+    level: backend
+    kind: side
+    scenario: "Ученик вписался в идущий курс после конца гарантийного срока курса."
+    expect: "Свой гарантийный срок от дня вступления: пока он идёт, взнос удержан целиком; после него удержание тает по Положению."
+    test: components/controller/tests/unit/edubridge/funds.service.test.ts
+    external: unreachable
+    external_reason: "перемотка времени: нужен курс, чей гарантийный срок кончился, и проход очереди освобождения после конца срока ученика"
+    status: passing
+  - id: edu.enroll.side.20
+    level: backend
+    kind: side
+    scenario: "Выход из кооператива при действующих подписках на курсы."
+    expect: "Возврат по подпискам на сегодня попадает в заявление 190 строкой кошелька программы; нет подписок либо возврата — строки нет."
+    test: components/controller/tests/unit/edubridge/exit-blockers.test.ts
+    api: components/api-tests/src/edubridge/exit.test.ts
+    status: passing
+  - id: edu.enroll.contract.08
+    level: contract
+    kind: break
+    scenario: "retshare при действующей подписке; retshare на часть остатка кошелька программы; retshare с пустым кошельком."
+    expect: "Первые два отклоняются; пустой кошелёк — участие прекращается без перевода; соглашение о программе «Обучение» аннулируется."
+    test: ~
+    status: missing
+  - id: edu.enroll.break.08
+    level: backend
+    kind: break
+    scenario: "Сбой цепи при освобождении удержанного; сбой выравнивания резерва; сбой учёта резерва при приёме результата."
+    expect: "Взнос остаётся удержанным до следующего прохода; закрытие подписки и приём результата сбоем не отменяются."
+    test: components/controller/tests/unit/edubridge/funds.service.test.ts
+    external: unreachable
+    external_reason: "сбой цепи посреди прохода очереди освобождения удержанного снаружи не создать"
+    status: passing
+  - id: edu.enroll.break.09
+    level: backend
+    kind: break
+    scenario: "Пайщик выходит из кооператива, цепь или площадка отказала при закрытии одной из его подписок."
+    expect: "Выход не падает; подписка помечается как не закрытая с причиной и остаётся действующей; остальные подписки закрываются."
+    test: components/controller/tests/unit/edubridge/exit-close-pending.test.ts
+    external: unreachable
+    external_reason: "отказ цепи или площадки по одной подписке при выходе пайщика снаружи не создать: остановка цепи не даёт подать и само заявление на выход"
+    status: passing
+  - id: edu.enroll.side.21
+    level: backend
+    kind: side
+    scenario: "Повтор закрытия помеченной подписки: по расписанию и по слову администратора; повтор при том же сбое; подписка успела закрыться другим путём; повтор без отметки."
+    expect: "Удачный повтор закрывает подписку и снимает отметку; неудачный сохраняет дату отметки и обновляет причину; закрытая другим путём теряет отметку без обращения к цепи; повтор без отметки отклоняется; администратору отдаётся отказ цепи как есть."
+    test: components/controller/tests/unit/edubridge/exit-close-pending.test.ts
+    external: unreachable
+    external_reason: "отметка о несостоявшемся закрытии появляется только при отказе цепи по одной подписке; снаружи проверен отказ повтора без отметки (subscriptions.test.ts)"
+    status: passing
+  - id: edu.enroll.side.22
+    level: backend
+    kind: side
+    scenario: "Счётчик дел администратора на пункте «Ученики» при подписках, не закрывшихся при выходе пайщика."
+    expect: "Число складывается из задач выдачи доступа, которым нужен человек, и не закрытых подписок."
+    test: components/controller/tests/unit/edubridge/attention.service.test.ts
+    external: unreachable
+    external_reason: "счётчик складывается из подписок, не закрывшихся при выходе, — такая подписка появляется только при отказе цепи по одной подписке"
+    status: passing
+  - id: edu.enroll.happy.20
+    level: backend
+    kind: happy
+    scenario: "Участник в гарантийный срок подаёт заявление об аннулировании подписки с причиной; совет удовлетворяет заявление."
+    expect: "Заявление публикуется в цепи и выносится на совет; по решению совета подписка закрывается с возвратом всей стоимости на паевой, протокол уходит в реестр, заявление получает статус «удовлетворено»."
+    test: components/controller/tests/unit/edubridge/guarantee.service.test.ts
+    api: components/api-tests/src/edubridge/guarantee.test.ts
+    status: written
+  - id: edu.enroll.break.10
+    level: backend
+    kind: break
+    scenario: "Заявление по гарантии: срок истёк, гарантии у курса нет, подписка закрыта, чужая подписка, пустая причина, нет подписи участника, повторное заявление по той же подписке."
+    expect: "Каждый случай — отказ со своим кодом; в цепь и на совет ничего не уходит."
+    test: components/controller/tests/unit/edubridge/guarantee.service.test.ts
+    api: components/api-tests/src/edubridge/guarantee.test.ts
+    status: written
+  - id: edu.enroll.side.23
+    level: backend
+    kind: side
+    scenario: "Совет отклонил вопрос либо не решил в срок; сбой при вынесении вопроса на совет; решение совета по чужому вопросу и повторное решение."
+    expect: "Отклонение и истечение срока закрывают заявление, подписка остаётся; сбой оставляет заявление поданным, очередь довыносит вопрос; чужое и повторное решение заявление не трогают."
+    test: components/controller/tests/unit/edubridge/guarantee.service.test.ts
+    api: components/api-tests/src/edubridge/guarantee.test.ts
+    status: written
+  - id: edu.enroll.side.24
+    level: backend
+    kind: side
+    scenario: "Участник отменяет подписку обычным отказом, пока его заявление по гарантии на рассмотрении совета."
+    expect: "Отказ отклоняется: два возврата по одной подписке невозможны."
+    test: components/api-tests/src/edubridge/guarantee.test.ts
+    api: components/api-tests/src/edubridge/guarantee.test.ts
+    status: passing
+  - id: edu.enroll.happy.21
+    level: backend
+    kind: happy
+    scenario: "Новая группа курса: условия снимком с курса, свой номер в цепи, привязка к группе площадки."
+    expect: "Группа берёт взнос, ставку, расписание, скидку и гарантийный срок курса на день открытия и уходит в цепь под своим номером; первая группа наследует дату начала и привязку курса."
+    test: components/controller/tests/unit/edubridge/group.service.test.ts
+    api: components/api-tests/src/edubridge/groups.test.ts
+    status: written
+  - id: edu.enroll.side.25
+    level: backend
+    kind: side
+    scenario: "Запись в группу: единственная группа с открытым набором, несколько открытых групп, закрытый набор."
+    expect: "Участник записывается в единственную открытую группу; при нескольких группу выбирают; закрытый набор отклоняется."
+    test: components/controller/tests/unit/edubridge/group.service.test.ts
+    api: components/api-tests/src/edubridge/groups.test.ts
+    status: written
+  - id: edu.enroll.side.26
+    level: backend
+    kind: side
+    scenario: "Условия курса изменены при действующих группах; дата начала группы после первого занятия."
+    expect: "Группа без взносов и занятий берёт новые условия, группа с участниками остаётся на прежних; дата начала после первого занятия не меняется."
+    test: components/controller/tests/unit/edubridge/group.service.test.ts
+    api: components/api-tests/src/edubridge/groups.test.ts
+    status: written
+  - id: edu.enroll.side.27
+    level: backend
+    kind: side
+    scenario: "Заявление по гарантийным условиям на рассмотрении совета, гарантийный срок группы истёк."
+    expect: "Взнос заморожен: очередь гарантийный срок по подписке не закрывает, преподавателям он не выделяется."
+    test: components/controller/tests/unit/edubridge/funds.service.test.ts
+    api: components/api-tests/src/edubridge/guarantee-term.test.ts
+    status: written
+  - id: edu.enroll.side.28
+    level: backend
+    kind: side
+    scenario: "Совет отклонил заявление по гарантийным условиям либо не решил в срок."
+    expect: "Заморозка взноса снимается действием контракта, подписка продолжает действовать; сбой снятия заявление на рассмотрение не возвращает."
+    test: components/controller/tests/unit/edubridge/guarantee.service.test.ts
+    api: components/api-tests/src/edubridge/guarantee.test.ts
+    status: written
+  - id: edu.enroll.side.29
+    level: backend
+    kind: side
+    scenario: "Заявление по гарантийным условиям удовлетворено после проведённых занятий."
+    expect: "Ученику возвращается весь взнос на главный паевой; в сумму преподавателя за гарантийный срок его занятия не входят."
+    test: components/controller/tests/unit/edubridge/guarantee.service.test.ts
+    api: components/api-tests/src/edubridge/guarantee-term.test.ts
+    status: written
+  - id: edu.enroll.side.30
+    level: backend
+    kind: side
+    scenario: "День начала занятий группы наступил; участник записывается в неё. Затем администратор открывает набор снова либо переносит начало на будущий день."
+    expect: "Набор в группу закрыт сам, запись отклоняется с кодом EDUBRIDGE_GROUP_ENROLLMENT_CLOSED. После открытия администратором участник записывается, и сам набор больше не закрывается; после переноса начала набор открыт до нового дня начала."
+    test: components/controller/tests/unit/edubridge/group.service.test.ts
+    api: components/api-tests/src/edubridge/groups.test.ts
+    status: written
+  - id: edu.enroll.side.31
+    level: backend
+    kind: side
+    scenario: "Срок программы группы вышел: от дня начала прошли все её месяцы."
+    expect: "Группа без действующих подписок завершена сама, записи в неё нет; с действующей подпиской она идёт дальше; группа без конечной программы не заканчивается."
+    test: components/controller/tests/unit/edubridge/group.service.test.ts
+    api: components/api-tests/src/edubridge/groups.test.ts
+    status: written
+  - id: edu.enroll.side.32
+    level: backend
+    kind: side
+    scenario: "У курса несколько групп; дата начала группы перенесена либо набор в группу закрыт. Курс правится после того, как группе в её панели назначена группа площадки."
+    expect: "Дата начала у курса — день ближайшей группы с открытым набором, без набора — самая поздняя дата идущих групп. Группа площадки, заданная у группы, правкой курса не затирается; смена курса площадки привязку меняет."
+    test: components/controller/tests/unit/edubridge/group.service.test.ts
+    api: components/api-tests/src/edubridge/groups.test.ts
+    status: written
+  - id: edu.enroll.side.33
+    level: backend
+    kind: side
+    scenario: "Узел запущен в работе, на стенде разработки и с переменными длины суток и месяца. На стенде администратор называет начало занятий группы через несколько минут, затем датой."
+    expect: "В работе сутки и месяцы настоящие, переменные не действуют, начало в минутах отклоняется с кодом EDUBRIDGE_START_IN_MINUTES_STAND_ONLY. На стенде разработки сутки — минута, месяц — десять минут, очереди ходят каждую минуту; момент начала с минутами уходит в условия группы, набор закрывается по нему, дата его сбрасывает."
+    test: components/controller/tests/unit/edubridge/time-scale.test.ts
+    external: unreachable
+    external_reason: "сжатое время действует только в режиме разработки; полигон идёт на календарных месяцах, чтобы наборы сверяли оплаченный период с календарём"
+    status: written
+  - id: edu.enroll.side.34
+    level: backend
+    kind: side
+    scenario: "Программа группы в один месяц; программа длиннее месяца оплачена до конца либо на часть; группа завершена; программа без конечного числа занятий."
+    expect: "Признак «можно продлить» выключен у программы в один месяц, у подписки, оплаченной до конца программы, и у завершённой группы: кнопки продления, напоминания и уведомления по ней нет. У программы, которая идёт дальше, и у программы без конца он включён."
+    test: components/controller/tests/unit/edubridge/group.service.test.ts
+    external: unreachable
+    external_reason: "конец программы на полигоне наступает через календарные месяцы; правило проверяется модульно на датах группы"
+    status: written
+  - id: edu.enroll.side.35
+    level: backend
+    kind: side
+    scenario: "Помесячный взнос внесён до начала занятий, после начала, за последний месяц программы и по программе, оплаченной до конца. Взнос в цепи прошёл, а запись на узле не сохранилась, участник записывается повторно."
+    expect: "Месяц отсчитывается от начала занятий, если запись сделана раньше, и за конец программы не выходит; оплаченная до конца программа взнос не принимает. Повторная запись при подписке в цепи без записи на узле второй взнос не берёт: запись заводится по данным цепи, доступ выдаётся."
+    test: components/controller/tests/unit/edubridge/course-period.test.ts
+    external: unreachable
+    external_reason: "конец программы и сбой базы после транзакции на полигоне не воспроизводятся; расчёт срока проверяется модульно и повторяет расчёт контракта"
+    status: written
+  - id: edu.enroll.side.36
+    level: backend
+    kind: side
+    scenario: "Оплаченный срок подписки вышел. Преподаватель отчитывается о занятии этого срока позже. Участник опоздал с взносом и продлевает подписку. Преподаватель отчитался обо всех занятиях программы. Администратор завершает группу."
+    expect: "Доступ отзывается в конце оплаченного срока, подписка в цепи живёт без срока: занятие оплаченного срока по ней рассчитывается, опоздавший участник её продлевает и получает доступ заново. Пока расчёты открыты, группа идёт. Подписка закрывается в цепи, когда отчитаны все занятия программы группы, либо когда администратор завершает группу; с действующими подписками группа не завершается; резерв за занятия без отчёта уходит на кошелёк программы. Идущий расчёт занятия закрытие откладывает."
+    test: components/controller/tests/unit/edubridge/settlement.service.test.ts
+    external: unreachable
+    external_reason: "окончание оплаченного месяца на полигоне не наступает: месяцы там календарные"
+    status: written
+  - id: edu.enroll.side.37
+    level: backend
+    kind: side
+    scenario: "Неполный последний месяц программы: участник записан в середине программы в один месяц либо вносит взнос за остаток длинной программы. У участника действующая подписка в одной группе курса, он записывается в другую."
+    expect: "Взнос за неполный последний месяц — доля месячного взноса за занятия, которые в группе ещё впереди; когда все занятия проведены, взнос не принимается. Запись в другую группу того же курса — новая подписка, подписку в первой группе она не продлевает."
+    test: components/controller/tests/unit/edubridge/enrollment.service.test.ts
+    external: unreachable
+    external_reason: "середина программы и её конец на полигоне не наступают: месяцы там календарные; расчёт по остатку повторяет расчёт контракта и проверяется модульно"
+    status: written
+  - id: edu.enroll.side.38
+    level: backend
+    kind: side
+    scenario: "Подписка отменена, оформлена снова в той же группе и отменена второй раз."
+    expect: "Каждая отмена ставит отзыв доступа под номером своей транзакции; без номера ключ собирается из хэша подписки и момента отмены. Вторая отмена — новая задача, доступ на площадке закрыт."
+    test: components/controller/tests/unit/edubridge/enrollment.service.test.ts
+    api: components/api-tests/src/edubridge/platforms.test.ts
+    status: passing
+  - id: edu.enroll.side.39
+    level: backend
+    kind: side
+    scenario: "Служба и слушатель цепи ставят задачу доступа по одной транзакции."
+    expect: "Номер транзакции у обоих в одном виде (нижний регистр, из ответа узла) — защита от повтора оставляет одну задачу."
+    test: components/controller/tests/unit/edubridge/trx-id.test.ts
+    api: components/api-tests/src/edubridge/platforms.test.ts
+    status: passing
+  - id: edu.enroll.ui.06
+    level: ui
+    kind: happy
+    scenario: "Участник открывает карточку курса, на который подписан, в гарантийный срок."
+    expect: "Виден блок «Гарантийные условия» со сроком и кнопкой «Вернуть взнос по гарантии»; после подачи — номер заявления и статус «На рассмотрении совета»."
+    test: ~
+    status: missing
+

@@ -33,6 +33,40 @@ export const SIGNIFICANT_ROOTS = [
   'components/desktop/src/entities/Marketplace',
 ];
 
+// Внешний слой тестов (C28-80): тесты, которые разговаривают с платформой
+// только через API поднятого стенда, как интерфейс или посторонний клиент.
+// От языка сервера и от ORM они не зависят — поэтому именно они страхуют
+// уход с TypeORM и возможную смену бэкенда. Юнит-тесты при этом остаются:
+// они проверяют правила изнутри, внешний слой — что правила доходят до клиента.
+// Новое пишется в components/api-tests (общий каркас: роли, вход, свежие
+// пайщики, цепь); components/boot/src/tests — прежние наборы.
+export const EXTERNAL_TEST_ROOTS = ['components/boot/src/tests/', 'components/api-tests/src/'];
+
+export function isExternalTest(path) {
+  return !!path && EXTERNAL_TEST_ROOTS.some((root) => path.startsWith(root));
+}
+
+/** Случай закрыт внешним тестом: поле `api` или сам `test` лежит во внешнем слое. */
+export function hasExternalTest(c) {
+  return isExternalTest(c?.api) || isExternalTest(c?.test);
+}
+
+/**
+ * Случай снаружи недостижим: его условие нельзя создать через API поднятого
+ * стенда — отказ инфраструктуры (база или цепь недоступны), сбой посреди
+ * операции, состояние, которого у настроенного кооператива не бывает
+ * (расширение не установлено, программа не открыта), свойство самого кода.
+ * Такой случай остаётся за юнит-тестом осознанно: в поле `external` стоит
+ * `unreachable`, в `external_reason` — почему. Отметка — не лазейка: без
+ * причины реестр не проходит валидацию, а число таких случаев гейт печатает
+ * отдельной строкой.
+ */
+export const EXTERNAL_UNREACHABLE = 'unreachable';
+
+export function isExternallyUnreachable(c) {
+  return c?.external === EXTERNAL_UNREACHABLE;
+}
+
 const FEATURE_RE = /^[a-z0-9]+(\.[a-z0-9-]+)+$/;
 
 /** glob → RegExp. Поддерживаются `**` (любая глубина) и `*` (в пределах сегмента). */
@@ -121,6 +155,24 @@ export function loadRegistry(repoRoot) {
       if (c?.status !== 'missing') {
         if (!hasTest) errors.push(`${where}: status=${c?.status} требует ссылки на тест в поле test`);
         else if (!existsSync(join(repoRoot, c.test))) errors.push(`${where}: тест '${c.test}' не существует`);
+      }
+      if (c?.api) {
+        if (!isExternalTest(c.api)) {
+          errors.push(`${where}: api='${c.api}' — внешний тест живёт в ${EXTERNAL_TEST_ROOTS.join(' | ')}`);
+        } else if (!existsSync(join(repoRoot, c.api))) {
+          errors.push(`${where}: внешний тест '${c.api}' не существует`);
+        }
+      }
+      if (c?.external !== undefined) {
+        if (c.external !== EXTERNAL_UNREACHABLE) {
+          errors.push(`${where}: external='${c.external}' — допустимо только ${EXTERNAL_UNREACHABLE}`);
+        } else if (!String(c.external_reason ?? '').trim()) {
+          errors.push(`${where}: external=${EXTERNAL_UNREACHABLE} требует причины в поле external_reason`);
+        } else if (hasExternalTest(c)) {
+          errors.push(`${where}: случай закрыт внешним тестом и помечен недостижимым — одно из двух`);
+        } else if (c.level !== 'backend') {
+          errors.push(`${where}: external относится только к случаям уровня backend`);
+        }
       }
       list.push({ ...c, __file: rel });
     }

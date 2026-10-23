@@ -13,7 +13,7 @@ q-form(ref="form")
     dense
     v-model="data.last_name"
     standout="bg-teal text-white"
-    label="Фамилия"
+    :label="$t('ui.editableEntrepreneurCard.lastNameLabel')"
     :readonly="readonly"
     :rules="[val => notEmpty(val), val => validatePersonalName(val)]"
     autocomplete="off"
@@ -22,7 +22,7 @@ q-form(ref="form")
     dense
     v-model="data.first_name"
     standout="bg-teal text-white"
-    label="Имя"
+    :label="$t('ui.editableEntrepreneurCard.firstNameLabel')"
     :readonly="readonly"
     :rules="[val => notEmpty(val), val => validatePersonalName(val)]"
     autocomplete="off"
@@ -31,7 +31,7 @@ q-form(ref="form")
     dense
     v-model="data.middle_name"
     standout="bg-teal text-white"
-    label="Отчество"
+    :label="$t('ui.editableEntrepreneurCard.middleNameLabel')"
     :readonly="readonly"
     :rules="[val => validatePersonalName(val)]"
     autocomplete="off"
@@ -42,8 +42,8 @@ q-form(ref="form")
     v-model="data.birthdate"
     standout="bg-teal text-white"
     mask="date"
-    label="Дата рождения"
-    placeholder="Формат: год/месяц/день"
+    :label="$t('ui.editableEntrepreneurCard.birthDateLabel')"
+    :placeholder="$t('ui.editableEntrepreneurCard.birthDatePlaceholder')"
     :readonly="readonly"
     :rules="['date', val => notEmpty(val)]"
     autocomplete="off"
@@ -53,13 +53,13 @@ q-form(ref="form")
         q-popup-proxy(cover transition-show="scale" transition-hide="scale")
           q-date(v-model="data.birthdate")
             .row.items-center.justify-end
-              q-btn(v-close-popup label="Закрыть" color="primary" flat)
+              q-btn(v-close-popup :label="$t('common.action.close')" color="primary" flat)
 
   q-input(
     dense
     v-model="data.phone"
     standout="bg-teal text-white"
-    label="Номер телефона"
+    :label="$t('ui.editableEntrepreneurCard.phoneLabel')"
     mask="+7 (###) ###-##-##"
     fill-mask
     :readonly="readonly"
@@ -71,8 +71,8 @@ q-form(ref="form")
     dense
     v-model="data.country"
     standout="bg-teal text-white"
-    label="Страна"
-    :options="[{ label: 'Российская Федерация', value: 'Российская Федерация' }]"
+    :label="$t('ui.editableEntrepreneurCard.countryLabel')"
+    :options="[{ label: $t('ui.editableEntrepreneurCard.russiaOptionLabel'), value: $t('ui.editableEntrepreneurCard.russiaOptionLabel') }]"
     map-options
     emit-value
     :readonly="readonly"
@@ -83,7 +83,7 @@ q-form(ref="form")
     dense
     v-model="data.city"
     standout="bg-teal text-white"
-    label="Город"
+    :label="$t('ui.editableEntrepreneurCard.cityLabel')"
     :readonly="readonly"
     :rules="[val => notEmpty(val)]"
     autocomplete="off"
@@ -93,7 +93,7 @@ q-form(ref="form")
     dense
     v-model="data.full_address"
     standout="bg-teal text-white"
-    label="Адрес регистрации"
+    :label="$t('ui.editableEntrepreneurCard.addressLabel')"
     :readonly="readonly"
     :rules="[val => notEmpty(val)]"
     autocomplete="off"
@@ -104,9 +104,9 @@ q-form(ref="form")
     v-model="data.details.inn"
     standout="bg-teal text-white"
     mask="############"
-    label="ИНН предпринимателя"
+    :label="$t('ui.editableEntrepreneurCard.innLabel')"
     :readonly="readonly"
-    :rules="[val => notEmpty(val), val => (val.length === 10 || val.length === 12) || 'ИНН должен содержать 10 или 12 цифр']"
+    :rules="[val => notEmpty(val), val => (val.length === 10 || val.length === 12) || $t('ui.editableEntrepreneurCard.innError')]"
     autocomplete="off"
   )
 
@@ -115,9 +115,9 @@ q-form(ref="form")
     v-model="data.details.ogrn"
     standout="bg-teal text-white"
     mask="###############"
-    label="ОГРНИП"
+    :label="$t('ui.editableEntrepreneurCard.ogrnipLabel')"
     :readonly="readonly"
-    :rules="[val => notEmpty(val), val => (val.length === 13 || val.length === 15) || 'ОГРНИП должен содержать 13 или 15 цифр']"
+    :rules="[val => notEmpty(val), val => (val.length === 13 || val.length === 15) || $t('ui.editableEntrepreneurCard.ogrnipError')]"
     autocomplete="off"
   )
 
@@ -139,6 +139,7 @@ q-form(ref="form")
   import { EditableActions } from 'src/shared/ui/EditableActions';
   import { type IUpdateAccountInput, useUpdateAccount } from 'src/features/Account/UpdateAccount/model';
   import { type IEntrepreneurData } from 'src/entities/Account/types';
+import { t } from 'src/shared/i18n';
 
   const emit = defineEmits(['update']);
   const { updateAccount } = useUpdateAccount();
@@ -165,7 +166,7 @@ q-form(ref="form")
       };
       await updateAccount(account_data);
       emit('update', JSON.parse(JSON.stringify(data.value)));
-      SuccessAlert('Данные аккаунта обновлены');
+      SuccessAlert(t('ui.editableEntrepreneurCard.updatedText'));
     } catch (e) {
       console.log(e);
       FailAlert(e);

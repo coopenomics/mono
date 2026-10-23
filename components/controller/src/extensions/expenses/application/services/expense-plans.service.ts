@@ -1,16 +1,20 @@
-import { Inject, BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { TableStore, lessOrEqual, notEqual } from '@coopenomics/extension-kit';
+import { EXPENSES_PLAN_STORE } from '../../infrastructure/database/expenses-stores';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Interval } from '@nestjs/schedule';
 import { OnEvent } from '@nestjs/event-emitter';
-import { InjectRepository } from '@nestjs/typeorm';
-import { LessThanOrEqual, Not, Repository } from 'typeorm';
 import { BranchContract } from 'cooptypes';
-import { platformSettings } from '@coopenomics/extension-kit';
+import { platformSettings, DomainError } from '@coopenomics/extension-kit';
 import { ExpensePlanEntity } from '../../infrastructure/entities/expense-plan.entity';
 import { ExpensePlanRecurrence, nextRecurrenceDate } from '../../domain/expense-plan.types';
 import { ExpenseProposalStatus } from '../../domain/enums/expense-proposal-status.enum';
-import { CHAIN_PORT, type IChainPort } from '@coopenomics/innercoop';
+import { CHAIN_PORT, type IChainPort, type IMonoAccount } from '@coopenomics/innercoop';
 
 export const EXPENSE_PLANS_SERVICE = Symbol('EXPENSE_PLANS_SERVICE');
+
+function isBranchOperator(branch: BranchContract.Tables.Branches.IBranch, username: string): boolean {
+  return branch.trustee === username || branch.trusted.includes(username);
+}
 
 /**
  * Горизонт планового резерва расходов, дни. Жёсткая константа (решение
@@ -68,17 +72,32 @@ export class ExpensePlansService {
   private isSpawning = false;
 
   constructor(
-    @InjectRepository(ExpensePlanEntity)
-    private readonly planRepo: Repository<ExpensePlanEntity>,
+    @Inject(EXPENSES_PLAN_STORE)
+    private readonly planRepo: TableStore<ExpensePlanEntity>,
     @Inject(CHAIN_PORT) private readonly blockchainService: IChainPort
   ) {}
 
   async listPlans(coopname: string, braname?: string | null): Promise<ExpensePlanView[]> {
-    const rows = await this.planRepo.find({
-      where: braname ? { coopname, braname } : { coopname },
-      order: { dueDate: 'ASC', id: 'ASC' },
-    });
+    const rows = await this.planRepo.find(braname ? { coopname, braname } : { coopname }, { order: { dueDate: 'ASC', id: 'ASC' } });
     return rows.map((r) => this.toView(r));
+  }
+
+  /**
+   * Реестр глазами того, кто спрашивает. В записях — реквизиты получателей
+   * платежей, поэтому целиком реестр видит совет, а операторы участка
+   * (председатель и доверенные лица — все, у кого есть доступ к участку) —
+   * планы своего участка. Прочим пайщикам реестр закрыт до надобности:
+   * до 25.09.2026 он был открыт любому (решение владельца 25.09, C28-80).
+   */
+  async listPlansFor(coopname: string, viewer: IMonoAccount, braname?: string | null): Promise<ExpensePlanView[]> {
+    if (viewer.role === 'chairman' || viewer.role === 'member') return this.listPlans(coopname, braname);
+    const own = await this.operatedBranches(coopname, viewer.username);
+    if (braname) {
+      if (!own.includes(braname)) throw DomainError.forbidden('EXPENSES_PLAN_BRANCH_READ_FORBIDDEN');
+      return this.listPlans(coopname, braname);
+    }
+    if (own.length === 0) throw DomainError.forbidden('EXPENSES_PLAN_BRANCH_READ_FORBIDDEN');
+    return (await this.listPlans(coopname)).filter((p) => p.braname !== null && own.includes(p.braname));
   }
 
   async createPlan(
@@ -95,10 +114,10 @@ export class ExpensePlansService {
   ): Promise<ExpensePlanView> {
     await this.assertCanManage(coopname, initiator, input.braname ?? null);
     if (!Number.isFinite(input.amount) || input.amount <= 0) {
-      throw new BadRequestException('Сумма планового расхода должна быть больше нуля');
+      throw DomainError.badRequest('EXPENSES_PLAN_AMOUNT_NOT_POSITIVE');
     }
     if (!input.due_date) {
-      throw new BadRequestException('Укажите дату, к которой расход должен быть оплачен');
+      throw DomainError.badRequest('EXPENSES_PLAN_DUE_DATE_REQUIRED');
     }
     const row = await this.planRepo.save(
       this.planRepo.create({
@@ -117,9 +136,9 @@ export class ExpensePlansService {
   }
 
   async deletePlan(coopname: string, initiator: string, planId: number): Promise<void> {
-    const row = await this.planRepo.findOne({ where: { id: planId, coopname } });
+    const row = await this.planRepo.findOne({ id: planId, coopname });
     if (!row) {
-      throw new NotFoundException('Плановый расход не найден');
+      throw DomainError.notFound('EXPENSES_PLAN_NOT_FOUND');
     }
     await this.assertCanManage(coopname, initiator, row.braname ?? null);
     await this.planRepo.delete({ id: planId });
@@ -147,12 +166,12 @@ export class ExpensePlansService {
    * запущена, и повторно её не запустить.
    */
   async attachProposal(coopname: string, planId: number, proposalHash: string): Promise<void> {
-    const row = await this.planRepo.findOne({ where: { id: planId, coopname } });
+    const row = await this.planRepo.findOne({ id: planId, coopname });
     if (!row) {
-      throw new NotFoundException('Плановый расход не найден');
+      throw DomainError.notFound('EXPENSES_PLAN_NOT_FOUND');
     }
     if (row.proposalHash && row.proposalHash !== proposalHash.toLowerCase()) {
-      throw new BadRequestException('По этому плановому расходу оплата уже запущена');
+      throw DomainError.badRequest('EXPENSES_PLAN_PAYMENT_ALREADY_STARTED');
     }
     await this.planRepo.update({ id: planId }, { proposalHash: proposalHash.toLowerCase() });
   }
@@ -170,7 +189,7 @@ export class ExpensePlansService {
     if (status !== ExpenseProposalStatus.CLOSED && status !== ExpenseProposalStatus.DECLINED) return;
 
     const hash = proposal_hash.toLowerCase();
-    const row = await this.planRepo.findOne({ where: { coopname, proposalHash: hash } });
+    const row = await this.planRepo.findOne({ coopname, proposalHash: hash });
     if (!row) return;
 
     if (status === ExpenseProposalStatus.CLOSED) {
@@ -196,13 +215,10 @@ export class ExpensePlansService {
     this.isSpawning = true;
     try {
       const due = await this.planRepo.find({
-        where: {
-          recurrence: Not(ExpensePlanRecurrence.NONE),
+          recurrence: notEqual(ExpensePlanRecurrence.NONE),
           nextSpawned: false,
-          dueDate: LessThanOrEqual(new Date()),
-        },
-        order: { id: 'ASC' },
-      });
+          dueDate: lessOrEqual(new Date()),
+        }, { order: { id: 'ASC' } });
 
       for (const row of due) {
         try {
@@ -275,25 +291,28 @@ export class ExpensePlansService {
     braname: string | null
   ): Promise<void> {
     if (!braname) {
-      throw new ForbiddenException(
-        'Плановые расходы уровня кооператива появятся вместе с общесистемным учётом расходов'
-      );
+      throw DomainError.forbidden('EXPENSES_PLAN_COOP_LEVEL_NOT_SUPPORTED');
     }
-    const branches = (await this.blockchainService.getAllRows(
+    const branch = (await this.branches(coopname)).find((b) => b.braname === braname);
+    if (!branch) {
+      throw DomainError.notFound('EXPENSES_BRANCH_NOT_FOUND');
+    }
+    if (!isBranchOperator(branch, initiator)) {
+      throw DomainError.forbidden('EXPENSES_PLAN_BRANCH_MANAGE_FORBIDDEN');
+    }
+  }
+
+  /** Участки, где пайщик — председатель или доверенное лицо. */
+  private async operatedBranches(coopname: string, username: string): Promise<string[]> {
+    return (await this.branches(coopname)).filter((b) => isBranchOperator(b, username)).map((b) => b.braname);
+  }
+
+  private async branches(coopname: string): Promise<BranchContract.Tables.Branches.IBranch[]> {
+    return (await this.blockchainService.getAllRows(
       BranchContract.contractName.production,
       coopname,
       BranchContract.Tables.Branches.tableName
     )) as BranchContract.Tables.Branches.IBranch[];
-    const branch = branches.find((b) => b.braname === braname);
-    if (!branch) {
-      throw new NotFoundException('Кооперативный участок не найден');
-    }
-    const isOperator = branch.trustee === initiator || branch.trusted.includes(initiator);
-    if (!isOperator) {
-      throw new ForbiddenException(
-        'Плановые расходы участка ведут председатель участка и его доверенные лица'
-      );
-    }
   }
 
   private toView(row: ExpensePlanEntity): ExpensePlanView {

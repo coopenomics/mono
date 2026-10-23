@@ -1,5 +1,5 @@
 import { client } from 'src/shared/api/client';
-import { Queries, Mutations } from '@coopenomics/sdk';
+import { Mutations, Queries } from '@coopenomics/sdk';
 
 /**
  * Получить подписки пользователя у провайдера
@@ -11,35 +11,16 @@ export async function loadProviderSubscriptions() {
   return subscriptions;
 }
 
-/**
- * Генерирует документ для конвертации в AXON
- */
-export async function generateConvertToAxonStatement(data: Mutations.Provider.GenerateConvertToAxonStatement.IInput['data'], options?: Mutations.Provider.GenerateConvertToAxonStatement.IInput['options']) {
-  const { [Mutations.Provider.GenerateConvertToAxonStatement.name]: generatedDocument } = await client.Mutation(
-    Mutations.Provider.GenerateConvertToAxonStatement.mutation,
-    {
-      variables: {
-        data,
-        options
-      }
-    }
-  );
-
-  return generatedDocument;
-}
+export type ISelectProviderTariffInput = Mutations.System.SelectProviderTariff.IInput['data'];
 
 /**
- * Обрабатывает подписанный документ конвертации в AXON
+ * Передать провайдеру тариф, выбранный в мастере подключения: по нему
+ * провайдер заказывает сервер и заводит подписки тарифа.
  */
-export async function processConvertToAxonStatement(data: Mutations.Provider.ProcessConvertToAxonStatement.IInput['data']) {
-  const { [Mutations.Provider.ProcessConvertToAxonStatement.name]: result } = await client.Mutation(
-    Mutations.Provider.ProcessConvertToAxonStatement.mutation,
-    {
-      variables: {
-        data
-      }
-    }
+export async function selectProviderTariff(data: ISelectProviderTariffInput) {
+  const { [Mutations.System.SelectProviderTariff.name]: result } = await client.Mutation(
+    Mutations.System.SelectProviderTariff.mutation,
+    { variables: { data } },
   );
-
   return result;
 }

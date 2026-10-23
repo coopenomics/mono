@@ -1,8 +1,8 @@
 import { WorkflowDefinition, type BaseWorkflowPayload } from '../../types';
 import { WorkflowBuilder } from '../../base/workflow-builder';
 import { createEmailStep } from '../../base/defaults';
+import { nt } from '../../i18n';
 import { z } from 'zod';
-import { slugify } from '../../utils';
 
 // Схема для invite воркфлоу
 export const invitePayloadSchema = z.object({
@@ -13,22 +13,24 @@ export type IPayload = z.infer<typeof invitePayloadSchema>;
 
 export interface IWorkflow extends BaseWorkflowPayload, IPayload {}
 
-export const name = 'Приглашение в кооператив';
-export const id = slugify(name);
+export const name = nt('invite.name');
+// Идентификатор закреплён: раньше он вычислялся из названия, и правка
+// или перевод названия меняли бы его. Не менять — на него ссылаются подписки.
+export const id = 'priglashenie-v-kooperativ';
 
 export const workflow: WorkflowDefinition<IWorkflow> = WorkflowBuilder
   .create<IWorkflow>()
   .name(name)
   .workflowId(id)
-  .description('Приглашение на подключение к цифровому кооперативу')
+  .i18nKey('invite')
+  .description(nt('invite.description'))
   .payloadSchema(invitePayloadSchema)
   .tags(['auth'])
   .addSteps([
     createEmailStep(
       'invite-email',
-      'Приглашение в Цифровой Кооператив',
-      'Вам отправлено приглашение на подключение к Цифровому Кооперативу в качестве действующего пайщика.<br><br>' +
-      'Для того, чтобы воспользоваться приглашением и получить ключ доступа, пожалуйста, перейдите по ссылке: <a href="{{payload.inviteUrl}}">{{payload.inviteUrl}}</a>'
+      nt('invite.email.subject'),
+      nt('invite.email.body')
     ),
   ])
   .build();

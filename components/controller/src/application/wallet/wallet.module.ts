@@ -5,18 +5,21 @@ import { WalletInteractor } from './interactors/wallet.interactor';
 import { WalletNotificationService } from './services/wallet-notification.service';
 import { ProgramWalletSyncService } from './services/program-wallet-sync.service';
 import { ProgramWalletInitService } from './services/program-wallet-init.service';
+import { WalletEventsService } from './services/wallet-events.service';
 import { UserDomainModule } from '~/domain/user/user-domain.module';
 import { AccountInfrastructureModule } from '~/infrastructure/account/account-infrastructure.module';
 import { GatewayModule } from '~/application/gateway/gateway.module';
 import { UserInfrastructureModule } from '~/infrastructure/user/user-infrastructure.module';
 import { WalletDomainAdapter } from '~/infrastructure/wallet/adapters/wallet-domain.adapter';
 import { WALLET_DOMAIN_PORT } from '~/domain/wallet/ports/wallet-domain.port';
+import { CoreRightsModule } from '../rights/core-rights.module';
 
 /**
  * Модуль wallet для управления выводом средств, депозитными платежами, генерацией документов и программными кошельками
  */
 @Module({
   imports: [
+    CoreRightsModule,
     // Сценарии платежей (GATEWAY_INTERACTOR_PORT) раздаёт приложение шлюза.
     GatewayModule,
     UserInfrastructureModule,
@@ -30,6 +33,7 @@ import { WALLET_DOMAIN_PORT } from '~/domain/wallet/ports/wallet-domain.port';
     WalletNotificationService,
     ProgramWalletSyncService,
     ProgramWalletInitService,
+    WalletEventsService,
     {
       provide: WALLET_DOMAIN_PORT,
       useClass: WalletDomainAdapter,

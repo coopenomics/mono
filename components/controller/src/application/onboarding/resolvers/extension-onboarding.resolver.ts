@@ -1,6 +1,6 @@
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
-import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, CurrentUser, RequireRight, RightsGuard } from '@coopenomics/extension-kit';
 import type { IMonoAccount } from '@coopenomics/innercoop';
 import { ExtensionOnboardingService } from '~/domain/onboarding/services/extension-onboarding.service';
 import { ExtensionOnboardingStateDTO } from '../dto/extension-onboarding-state.dto';
@@ -25,8 +25,8 @@ export class ExtensionOnboardingResolver {
     name: 'getExtensionOnboardingState',
     description: 'Получить состояние онбординга кооператива на расширение',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('ExtensionOnboarding', 'read')
   async getState(
     @Args('extension_name', { type: () => String }) extension_name: string
   ): Promise<ExtensionOnboardingStateDTO> {
@@ -39,8 +39,8 @@ export class ExtensionOnboardingResolver {
     description:
       'Выполнить шаг онбординга кооператива на расширение (решение совета или общее собрание)',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('ExtensionOnboarding', 'manage')
   async completeStep(
     @Args('data', { type: () => CompleteExtensionOnboardingStepInputDTO })
     data: CompleteExtensionOnboardingStepInputDTO,

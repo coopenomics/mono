@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import type { IChainPort, InnerChainAction, InnerTransactResult } from '@coopenomics/innercoop';
+import { Checksum256 } from '@wharfkit/session';
 import { BlockchainService } from '~/infrastructure/blockchain/blockchain.service';
 
 /**
@@ -46,7 +47,9 @@ export class ChainInnercoopAdapter implements IChainPort {
       code,
       scope,
       tableName,
-      primaryKey as Parameters<BlockchainService['getSingleRow']>[3],
+      // Ключ индекса-хэша расширение передаёт строкой: узел принимает его только
+      // типизированной контрольной суммой, иначе чтение падает отказом узла.
+      (keyType === 'sha256' && typeof primaryKey === 'string' ? Checksum256.from(primaryKey) : primaryKey) as Parameters<BlockchainService['getSingleRow']>[3],
       indexPosition as Parameters<BlockchainService['getSingleRow']>[4],
       keyType as Parameters<BlockchainService['getSingleRow']>[5]
     );

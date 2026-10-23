@@ -1,0 +1,156 @@
+feature: edubridge.catalog
+title: Образовательный мост — каталог курсов и карточка
+
+# E4 (задача 7DD-5). Каталог открыт гостю: витрина показывает только
+# опубликованные курсы и не раскрывает внутренние признаки (тип направления,
+# привязку к площадке, состояние). Управление курсами — владелец/администратор
+# (EduCourse:manage), enforcement — EdubridgeAccessGuard по матрице.
+
+# Правка 14.10.2026: форма курса держит окна редактора и длительность программы отдельно
+# от ввода курса — поведение прежнее, исправлена ошибка проверки типов выпуска в testnet.
+sources:
+  backend:
+    - components/controller/src/extensions/edubridge/application/resolvers/edubridge-catalog.resolver.ts
+    - components/controller/src/extensions/edubridge/application/resolvers/edubridge-course-admin.resolver.ts
+    - components/controller/src/extensions/edubridge/application/services/edubridge-course.service.ts
+    - components/controller/src/extensions/edubridge/infrastructure/repositories/edubridge-course.kysely-repository.ts
+    - components/controller/src/extensions/edubridge/application/dto/edu-course.dto.ts
+    - components/controller/src/extensions/edubridge/application/guards/**
+  ui:
+    - components/desktop/extensions/edubridge/pages/CatalogPage/**
+    - components/desktop/extensions/edubridge/pages/AdminCoursesPage/**
+    - components/desktop/extensions/edubridge/pages/CourseCardPage/**
+    - components/desktop/extensions/edubridge/widgets/CourseForm/**
+    - components/desktop/extensions/edubridge/pages/AdminCourseEditPage/**
+    - components/desktop/extensions/edubridge/entities/Course/**
+
+cases:
+  - id: edu.catalog.happy.01
+    level: backend
+    kind: happy
+    scenario: Гость запрашивает каталог и карточку опубликованного курса.
+    expect: Список только published; в карточке нет direction/external_ref/status.
+    test: components/api-tests/src/edubridge/rights.test.ts
+    api: components/api-tests/src/edubridge/rights.test.ts
+    status: passing
+  - id: edu.catalog.side.01
+    level: backend
+    kind: side
+    scenario: Гость запрашивает карточку черновика по прямому id.
+    expect: NotFound — черновик для витрины не существует.
+    test: components/api-tests/src/edubridge/rights.test.ts
+    api: components/api-tests/src/edubridge/rights.test.ts
+    status: passing
+  - id: edu.catalog.break.01
+    level: backend
+    kind: break
+    scenario: Пайщик без EduCourse:manage вызывает edubridgeCreateCourse.
+    expect: Forbidden от EdubridgeAccessGuard.
+    test: components/api-tests/src/edubridge/rights.test.ts
+    api: components/api-tests/src/edubridge/rights.test.ts
+    status: passing
+  - id: edu.catalog.side.02
+    level: backend
+    kind: side
+    scenario: Владелец меняет external_ref курса.
+    expect: external_title_seen сбрасывается — прежняя сверка с площадкой недействительна.
+    test: ~
+    status: missing
+  - id: edu.catalog.happy.02
+    level: ui
+    kind: happy
+    scenario: Каталог по иерархии предмет → класс, карточка с расписанием, преподавателем, взносом и программой.
+    expect: Суммы через форматтер, тип направления не показан.
+    test: ~
+    status: missing
+  - id: edu.catalog.side.03
+    level: backend
+    kind: side
+    scenario: Носитель доступа не соответствует направлению (онлайн-платформа + Telegram, очное + GetCourse и т.п.).
+    expect: BadRequest; допустимые пары — ONLINE_PLATFORM→Skillspace/GetCourse, CLOSED_COMMUNITY→Telegram/VK, ONSITE→очно.
+    test: components/controller/tests/unit/edubridge/course.service.test.ts
+    api: components/api-tests/src/edubridge/catalog.test.ts
+    status: written
+  - id: edu.catalog.side.04
+    level: backend
+    kind: side
+    scenario: Площадка (Skillspace/GetCourse) без идентификатора курса; очный курс с лишним идентификатором.
+    expect: Площадка без идентификатора — BadRequest; у очного и сообществ идентификатор не сохраняется.
+    test: components/controller/tests/unit/edubridge/course.service.test.ts
+    api: components/api-tests/src/edubridge/catalog.test.ts
+    status: written
+  - id: edu.catalog.side.05
+    level: backend
+    kind: side
+    scenario: В преподаватели курса записан пайщик без договора УХД; несколько преподавателей с договорами.
+    expect: Без договора — BadRequest с учётным именем; с договорами — все сохраняются; edubridgeTeacherOptions отдаёт только пайщиков с договором.
+    test: components/controller/tests/unit/edubridge/course.service.test.ts
+    api: components/api-tests/src/edubridge/teacher.test.ts
+    status: written
+  - id: edu.catalog.happy.03
+    level: ui
+    kind: happy
+    scenario: Конструктор курса — смена направления сужает носители, идентификатор площадки виден только у Skillspace/GetCourse, преподаватели выбираются из списка с договорами (несколько).
+    expect: Носитель вне направления недоступен и сбрасывается; поле идентификатора появляется только для площадок; выбранные преподаватели показаны списком и снимаются по одному.
+    test: ~
+    status: missing
+  - id: edu.catalog.side.06
+    level: backend
+    kind: side
+    scenario: "Привязка к Skillspace: в external_ref не UUID курса (числовой номер из адреса конструктора, UUID модуля с опечаткой, группа не UUID); список курсов площадки для конструктора."
+    expect: "BadRequest с подсказкой про реестр школы; edubridgePlatformCourses отдаёт курсы школы с их группами (для GetCourse/очного — пусто). Прецедент 2026-09-02: владелец вписал UUID из адреса конструктора модуля, выдача ушла в needs_attention."
+    test: components/controller/tests/unit/edubridge/course.service.test.ts
+    api: components/api-tests/src/edubridge/catalog.test.ts
+    status: written
+  - id: edu.catalog.side.07
+    level: backend
+    kind: side
+    scenario: "Обложка курса в мутации: base64 декодируется и кладётся в bucket, в курсе остаётся ключ; без поля image обложка не меняется; null убирает и удаляет старый объект; bucket_key чужого курса и пустой base64 — отказ до bucket'а; отказ bucket'а по MIME → 400 с его текстом."
+    expect: "Изображение уходит в FILE_STORAGE_PORT (edubridge:images), URL считается лениво резолвером image_url."
+    test: components/controller/tests/unit/edubridge/course.service.test.ts
+    api: components/api-tests/src/edubridge/catalog.test.ts
+    status: written
+  - id: edu.catalog.ui.02
+    level: ui
+    kind: happy
+    scenario: "Стол ученика: каталог с фильтрами предмет/класс, карточки с обложкой или заглушкой; страница курса с обложкой и условиями участия; конструктор курса (стол администратора) загружает обложку через FileUploader с превью и снятием; таблица курсов с миниатюрой без наезжающих колонок."
+    expect: "Столы называются «Стол администратора», «Стол ученика», «Стол преподавателя»; каталог — в столе ученика."
+    test: ~
+    status: missing
+  - id: edu.catalog.ui.03
+    level: ui
+    kind: side
+    scenario: "Администратор заполняет новый курс (название, предмет, экономику, привязку Skillspace с группой), уходит со страницы или перезагружает её и возвращается на «Новый курс»."
+    expect: "Поля, привязка с группой, шаг и обложка (до 1,5 млн символов base64) на месте; обложка крупнее не сохраняется, поля при этом не теряются; после «Добавить курс» черновик стирается, правка существующего курса черновик не пишет."
+    test: ~
+    status: missing
+  - id: edu.catalog.side.08
+    level: backend
+    kind: side
+    scenario: "Курс заводится без уровня (раздел «Духовные практики», уровень пуст); каталог собирает фильтр по разделам, где у части курсов уровня нет."
+    expect: "Курс сохраняется с пустым уровнем; в фильтре уровней раздела пустого пункта нет, курсы без уровня видны в разделе."
+    test: components/controller/tests/unit/edubridge/course.service.test.ts
+    api: components/api-tests/src/edubridge/sections.test.ts
+    status: passing
+  - id: edu.catalog.side.09
+    level: backend
+    kind: side
+    scenario: "Каталог открыт на всех разделах, ученик выбирает уровень; уровни с одним названием есть в нескольких разделах."
+    expect: "Отбор по названию уровня без раздела возвращает опубликованные курсы этого уровня из всех разделов; курсы других уровней не попадают; регистр названия не важен."
+    test: components/controller/tests/unit/edubridge/course.service.test.ts
+    api: components/api-tests/src/edubridge/sections.test.ts
+    status: written
+  - id: edu.catalog.ui.04
+    level: ui
+    kind: side
+    scenario: "Конструктор курса: раздел и уровень выбираются из разделов курсов кооператива, новый добавляется вводом; ввод «математика» при существующей «Математика»; пояснения полей — значком «?»."
+    expect: "Совпадение без учёта регистра выбирает существующий раздел, двойник не заводится; уровни предлагаются внутри выбранного раздела; под полями только ошибки ввода."
+    test: ~
+    status: missing
+  - id: edu.catalog.side.10
+    level: ui
+    kind: side
+    scenario: "Курс создаётся после 22.10.2026: закрытое сообщество и очное обучение скрыты — у Telegram и ВКонтакте нет коннектора выдачи, очный пропуск не выстроен. Форма обучающегося и страница площадок; курс прошлых лет со скрытым направлением открыт на правку."
+    expect: "Форма курса не показывает выбор направления, носители — Skillspace и GetCourse; форма обучающегося предлагает только электронную почту; на странице площадок нет карточки «Очно». Курс со скрытым направлением и обучающийся со скрытым способом сохраняют своё значение в списке."
+    test: ~
+    status: missing

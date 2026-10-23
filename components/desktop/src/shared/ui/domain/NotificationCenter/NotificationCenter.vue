@@ -1,13 +1,13 @@
 <template lang="pug">
-.notification-center(role='dialog', aria-label='Уведомления')
+.notification-center(role='dialog', :aria-label='$t("ui.notificationCenter.ariaLabel")')
   header.notification-center__header
-    h3.notification-center__title Уведомления
+    h3.notification-center__title {{ $t('ui.notificationCenter.title') }}
       span.notification-center__count(v-if='unreadCount') {{ unreadCount }}
     button.notification-center__mark-all(
       v-if='unreadCount',
       type='button',
       @click="emit('markAllRead')"
-    ) Прочитать все
+    ) {{ $t('ui.notificationCenter.markAllReadLabel') }}
 
   .notification-center__body
     template(v-if='loading')
@@ -21,7 +21,7 @@
 
     template(v-else-if='!notifications.length')
       .notification-center__empty
-        EmptyState(title='Нет уведомлений', body='Здесь появятся системные и финансовые события')
+        EmptyState(:title='$t("ui.notificationCenter.emptyTitle")', :body='$t("ui.notificationCenter.emptyBody")')
 
     template(v-else)
       ul.notification-center__list
@@ -38,11 +38,9 @@
               @keydown.enter.prevent="emit('open', n.id)",
               @keydown.space.prevent="emit('open', n.id)"
             )
-              BaseBadge.notification-center__item-bullet(
-                v-if='!n.read',
-                variant='accent',
-                :dot='true'
-              )
+              //- Маркер непрочитанного — канон-точка `.status__dot` (components.css),
+              //- окрашенная токеном темы.
+              span.status__dot.notification-center__item-bullet(v-if='!n.read', aria-hidden='true')
               span.notification-center__item-bullet-spacer(v-else)
               .notification-center__item-body
                 .notification-center__item-title {{ n.title }}
@@ -55,13 +53,14 @@
     a.notification-center__view-all(
       :href='viewAllHref ?? "/notifications"',
       @click.prevent="emit('viewAll')"
-    ) {{ viewAllLabel ?? 'Показать все' }}
+    ) {{ viewAllLabel ?? $t('ui.notificationCenter.showAllLabel') }}
       q-icon.notification-center__view-all-icon(name='arrow_forward', size='16px')
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue';
-import { BaseBadge } from 'src/shared/ui/base/BaseBadge';
+import { intlLocale } from '@coopenomics/i18n';
+import { currentLocale, t, t as i18nT } from 'src/shared/i18n';
 import { EmptyState } from 'src/shared/ui/base/EmptyState';
 import type {
   NotificationCategory,
@@ -83,10 +82,10 @@ const emit = defineEmits<{
 const CATEGORY_ORDER: NotificationCategory[] = ['system', 'financial', 'voting', 'message'];
 
 const categoryLabels: Record<NotificationCategory, string> = {
-  system: 'Системные',
-  financial: 'Финансовые',
-  voting: 'Голосования',
-  message: 'Сообщения',
+  system: i18nT('ui.notificationCenter.categorySystem'),
+  financial: i18nT('ui.notificationCenter.categoryFinance'),
+  voting: i18nT('ui.notificationCenter.categoryVoting'),
+  message: i18nT('ui.notificationCenter.categoryMessages'),
 };
 
 const unreadCount = computed(() => props.notifications.filter((n) => !n.read).length);
@@ -119,29 +118,20 @@ function formatRelative(value: string | Date): string {
   const d = toDate(value);
   if (!Number.isFinite(d.getTime())) return '';
   const diff = (Date.now() - d.getTime()) / 1000;
-  if (diff < 60) return 'только что';
+  if (diff < 60) return t('ui.notificationCenter.justNow');
   if (diff < 3600) {
     const m = Math.floor(diff / 60);
-    return `${m} ${plural(m, 'мин', 'мин', 'мин')} назад`;
+    return t('ui.notificationCenter.minutesAgo', m);
   }
   if (diff < 86400) {
     const h = Math.floor(diff / 3600);
-    return `${h} ${plural(h, 'час', 'часа', 'часов')} назад`;
+    return t('ui.notificationCenter.hoursAgo', h);
   }
   if (diff < 7 * 86400) {
     const days = Math.floor(diff / 86400);
-    return `${days} ${plural(days, 'день', 'дня', 'дней')} назад`;
+    return t('ui.notificationCenter.daysAgo', days);
   }
-  return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
-}
-
-function plural(n: number, one: string, few: string, many: string): string {
-  const mod10 = n % 10;
-  const mod100 = n % 100;
-  if (mod100 >= 11 && mod100 <= 14) return many;
-  if (mod10 === 1) return one;
-  if (mod10 >= 2 && mod10 <= 4) return few;
-  return many;
+  return d.toLocaleDateString(intlLocale(currentLocale()), { day: 'numeric', month: 'short' });
 }
 </script>
 
@@ -221,6 +211,30 @@ function plural(n: number, one: string, few: string, many: string): string {
   height: 340px;
   max-height: 60vh;
   overflow-y: auto;
+  overscroll-behavior: contain;
+  /* Системный скроллбар широкий и светлый: он ложился поверх строки и срезал
+     правый край текста — список выглядел обрезанным справа. Тонкая полоса в
+     цвете темы плюс постоянный жёлоб (панель не дёргается, когда уведомлений
+     мало и прокрутки нет). */
+  scrollbar-width: thin;
+  scrollbar-color: var(--p-line-2) transparent;
+  scrollbar-gutter: stable;
+}
+.notification-center__body::-webkit-scrollbar {
+  width: 8px;
+}
+.notification-center__body::-webkit-scrollbar-track {
+  background: transparent;
+}
+.notification-center__body::-webkit-scrollbar-thumb {
+  background: var(--p-line-2);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  border-radius: var(--p-r-pill, 999px);
+}
+.notification-center__body:hover::-webkit-scrollbar-thumb {
+  background: var(--p-ink-4);
+  background-clip: padding-box;
 }
 
 .notification-center__empty {
@@ -269,7 +283,13 @@ function plural(n: number, one: string, few: string, many: string): string {
   border-top: 1px solid var(--p-line);
 }
 
+/* Заголовок категории липнет к верху списка: при прокрутке видно, к чему
+   относится строка, и он не наезжает на неё прозрачным фоном. */
 .notification-center__group-title {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--p-surface);
   padding: var(--p-2, 8px) var(--p-4, 16px) var(--p-1, 4px);
   font-size: var(--p-fs-caption, 12px);
   font-weight: 600;
@@ -307,21 +327,22 @@ function plural(n: number, one: string, few: string, many: string): string {
   border-top: 1px solid var(--p-line-1);
 }
 
-/* Непрочитанные выделяем подложкой + левым акцент-баром: на тёмной теме одна
-   разница в цвете текста + точка тонули в фоне панели. primary-soft/-line дают
-   видимый тон в обеих темах, не ухудшая светлую. */
+/* Непрочитанные выделяем мягкой заливкой: она видна в обеих темах и не
+   ухудшает светлую. Цветного рельса слева нет — канон запрещает полосу на
+   карточке (решение владельца 03.09.2026): смысл несут заливка и цвет точки. */
 .notification-center__item.is-unread {
   background: var(--p-primary-soft);
-  box-shadow: inset 3px 0 0 var(--p-primary);
 }
 .notification-center__item.is-unread:hover,
 .notification-center__item.is-unread:focus-visible {
   background: var(--p-primary-line);
 }
 
+/* Размеры/форму точка берёт у канон-класса .status__dot, здесь — только цвет
+   и посадка по первой строке заголовка. */
 .notification-center__item-bullet {
   margin-top: 6px;
-  flex: 0 0 auto;
+  background: var(--p-primary);
 }
 .notification-center__item-bullet-spacer {
   display: inline-block;
@@ -375,9 +396,11 @@ function plural(n: number, one: string, few: string, many: string): string {
   color: var(--p-ink-3);
 }
 
-/* Шеврон deep-link'а: приглушён, прижат к правому краю по центру строки. */
+/* Шеврон deep-link'а: приглушён, прижат к правому краю на уровне заголовка —
+   у длинного уведомления он висел посреди текста. */
 .notification-center__item-go {
-  align-self: center;
+  align-self: flex-start;
+  margin-top: 2px;
   margin-left: auto;
   color: var(--p-ink-3);
   flex-shrink: 0;

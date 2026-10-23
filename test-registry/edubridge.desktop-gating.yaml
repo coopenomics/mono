@@ -1,0 +1,167 @@
+feature: edubridge.desktop-gating
+title: Образовательный мост — столы, права и шлюзы онбординга
+
+# Каркас приложения (E1, задача 7DD-2 проекта «Платформа образования»).
+# Три стола: «Обучение» (edubridge), «Моё обучение» (edubridge-member),
+# «Преподавание» (edubridge-teacher). Видимость — канон грантов:
+# EdubridgeDesktopGrantsProvider выдаёт права, фронт сверяет `meta.requires`.
+# Особенность приложения: каталог открыт гостю — право `EduCatalog:read`
+# получает даже неавторизованный посетитель.
+
+sources:
+  backend:
+    - components/controller/src/extensions/edubridge/application/desktop/**
+    - components/controller/src/extensions/edubridge/application/access/**
+    - components/controller/src/extensions/edubridge/application/membership/**
+    - components/controller/src/extensions/edubridge/application/policies/**
+    - components/controller/src/extensions/edubridge/application/config/**
+  ui:
+    - components/desktop/extensions/edubridge/install.ts
+
+cases:
+  - id: edu.gating.happy.01
+    level: backend
+    kind: happy
+    scenario: Гость (без username) запрашивает стол; ЦПП подключена.
+    expect: Гранты edubridge = ['EduCatalog:read']; столы member/teacher скрыты. До подключения ЦПП у гостя грантов нет вовсе.
+    test: components/controller/tests/unit/edubridge/edubridge-rights.desktop.test.ts
+    api: components/api-tests/src/edubridge/rights.test.ts
+    status: passing
+  - id: edu.gating.happy.02
+    level: backend
+    kind: happy
+    scenario: Председатель активного кооператива, ЦПП ещё не принята советом.
+    expect: Гранты = только 'Extension:configure' — ни каталога, ни рабочих прав; рядовой пайщик до подключения не получает ничего.
+    test: components/controller/tests/unit/edubridge/edubridge-rights.desktop.test.ts
+    external: unreachable
+    external_reason: "состояние до принятия программы советом есть только до первого подключения на стенде; порядок файлов прогона не контракт, первый же набор образования программу принимает"
+    status: passing
+  - id: edu.gating.happy.03
+    level: backend
+    kind: happy
+    scenario: ЦПП принята; пайщик без подписанных оферт.
+    expect: Гранты содержат 'Onboarding:learner' и 'Onboarding:teacher', рабочих прав learner/teacher нет.
+    test: components/controller/tests/unit/edubridge/edubridge-rights.desktop.test.ts
+    api: components/api-tests/src/edubridge/rights.test.ts
+    status: passing
+  - id: edu.gating.side.02
+    level: backend
+    kind: side
+    scenario: Оферта преподавателя подписана, договор УХД преподавателем ещё не подписан (или отклонён председателем).
+    expect: Роли teacher нет, права стола преподавания не выданы, маркер 'Onboarding:teacher' остаётся — шлюз ведёт ко второму шагу (договор). Договор ждёт председателя или действует → роль teacher и стол.
+    test: components/controller/tests/unit/edubridge/edubridge-rights.desktop.test.ts
+    api: components/api-tests/src/edubridge/teacher.test.ts
+    status: written
+  - id: edu.gating.side.01
+    level: backend
+    kind: side
+    scenario: Пайщик со статусом, отличным от active.
+    expect: Только гостевые гранты.
+    test: components/controller/tests/unit/edubridge/edubridge-rights.desktop.test.ts
+    api: components/api-tests/src/edubridge/admin.test.ts
+    status: passing
+  - id: edu.gating.happy.04
+    level: ui
+    kind: happy
+    scenario: Имена workspace в install.ts совпадают с AppRegistry.desktops.
+    expect: Все три стола получают маршруты, предупреждений «стол не объявлен» нет.
+    test: ~
+    status: missing
+  - id: edu.gating.happy.05
+    level: backend
+    kind: happy
+    scenario: Связка с Благоростом включена; рядовой пайщик, преподаватель, совет, гость.
+    expect: Столы capital — преподавателю и совету; рядовому и гостю — нет; оферты/программы capital при вступлении скрыты; при выключенной связке ничего не сужается.
+    test: components/controller/tests/unit/edubridge/capital-narrowing.policy.test.ts
+    api: components/api-tests/src/edubridge/admin.test.ts
+    status: passing
+  - id: edu.gating.happy.06
+    level: backend
+    kind: happy
+    scenario: Матрица доступа — гость, член совета, администратор, председатель; столу права отдаются как записаны.
+    expect: Гость только EduCatalog:read; член совета стол администратора читает и ничего не меняет; администратор ведёт курсы, допуски и очередь; деньги, отклонение взноса, контакты и площадки только у председателя; охват :all в :own для стола не разворачивается.
+    test: components/controller/tests/unit/edubridge/edubridge-access.test.ts
+    api: components/api-tests/src/edubridge/rights.test.ts
+    status: passing
+  - id: edu.gating.break.03
+    level: backend
+    kind: break
+    scenario: Председатель (владелец программы) без договора преподавателя открывает стол преподавателя.
+    expect: Из прав стола преподавателя выдан только маркер подключения; права профиля, назначений, отчётов, взносов и расчёта не выданы — должность личный стол не открывает.
+    test: components/controller/tests/unit/edubridge/edubridge-rights.desktop.test.ts
+    api: components/api-tests/src/edubridge/rights.test.ts
+    status: passing
+  - id: edu.gating.side.07
+    level: backend
+    kind: side
+    scenario: Председатель без оферты ученика открывает стол ученика.
+    expect: Каталог курсов и маркер подключения выданы, права страниц «Обучающиеся» и «Подписки» — нет.
+    test: components/controller/tests/unit/edubridge/edubridge-rights.desktop.test.ts
+    api: components/api-tests/src/edubridge/rights.test.ts
+    status: passing
+  - id: edu.gating.side.08
+    level: ui
+    kind: side
+    scenario: Пайщик без оферты ученика переходит на стол ученика; без договора преподавателя — на стол преподавателя.
+    expect: Стол ученика открывается на каталоге курсов, «Подключение» остаётся в меню; стол преподавателя открывается на «Подключении», других пунктов в меню нет.
+    test: ~
+    status: missing
+  - id: edu.gating.side.09
+    level: backend
+    kind: side
+    scenario: "Образование в кооперативе не установлено либо выключено; пайщик открывает столы Благороста, кандидат — витрину вступления."
+    expect: "Правило сужения молчит: права столов Благороста, его программы и оферты остаются как были."
+    test: components/controller/tests/unit/edubridge/capital-narrowing.policy.test.ts
+    api: components/api-tests/src/edubridge/admin.test.ts
+    status: written
+
+  # Права образования на общем гарде (C28-87, 06.10.2026): собственные гард,
+  # декоратор и поставщик прав стола заменены описанием прав `EdubridgeRights`
+  # над той же матрицей; операции стоят под `RightsGuard` + `@RequireRight`.
+  # Каталог открыт гостю (роли гостя у таблицы), членство кладётся в запрос для
+  # `@CurrentEduMember` и у операций без требования, код отказа прежний.
+  - id: edu.rights.happy.01
+    level: backend
+    kind: happy
+    scenario: гость, посторонний пайщик и учащийся читают каталог
+    expect: проход по праву гостя EduCatalog:read
+    test: components/controller/tests/unit/edubridge/edubridge-rights.guard.test.ts
+    api: components/api-tests/src/edubridge/rights.test.ts
+    status: written
+
+  - id: edu.rights.happy.02
+    level: backend
+    kind: happy
+    scenario: операция без требования права читает членство запросившего через @CurrentEduMember
+    expect: членство посчитано описанием прав на запрос и лежит в запросе; у гостя — роли гостя
+    test: components/controller/tests/unit/edubridge/edubridge-rights.guard.test.ts
+    external: unreachable
+    external_reason: "членство — внутреннее состояние запроса; снаружи видно только через операции, их проверяют наборы образования"
+    status: written
+
+  - id: edu.rights.side.01
+    level: backend
+    kind: side
+    scenario: посторонний пайщик и гость зовут операции учащегося
+    expect: отказ EDUBRIDGE_INSUFFICIENT_RIGHTS — код отказа прежний, его ждут внешние наборы
+    test: components/controller/tests/unit/edubridge/edubridge-rights.guard.test.ts
+    api: components/api-tests/src/edubridge/rights.test.ts
+    status: written
+
+  - id: edu.rights.side.02
+    level: backend
+    kind: side
+    scenario: учащийся зовёт операции преподавателя и администратора, преподаватель — все назначения
+    expect: отказ EDUBRIDGE_INSUFFICIENT_RIGHTS; администратор и владелец все назначения читают
+    test: components/controller/tests/unit/edubridge/edubridge-rights.guard.test.ts
+    api: components/api-tests/src/rights/matrix.test.ts
+    status: written
+
+  - id: edu.rights.side.03
+    level: backend
+    kind: side
+    scenario: администратор зовёт соединители и назначение администраторов
+    expect: отказ EDUBRIDGE_INSUFFICIENT_RIGHTS — это права владельца
+    test: components/controller/tests/unit/edubridge/edubridge-rights.guard.test.ts
+    api: components/api-tests/src/rights/matrix.test.ts
+    status: written

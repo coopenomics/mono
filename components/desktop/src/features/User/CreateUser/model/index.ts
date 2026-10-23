@@ -1,5 +1,6 @@
 import { api } from '../api';
 import emailRegex from 'email-regex';
+import { t } from 'src/shared/i18n';
 const emailValidator = emailRegex({ exact: true });
 
 import { IGeneratedAccount } from 'src/shared/lib/types/user';
@@ -19,7 +20,7 @@ import {
   type IRegisterAccount,
 } from 'src/shared/lib/types/user/IUserData';
 import { client } from 'src/shared/api/client';
-import { Mutations, Zeus } from '@coopenomics/sdk';
+import { Mutations, Queries, Zeus } from '@coopenomics/sdk';
 import { DigitalDocument } from 'src/shared/lib/document';
 import { IDocument } from 'src/shared/lib/types/document';
 import { useAccountStore } from 'src/entities/Account/model';
@@ -42,6 +43,7 @@ export type ISendStatement =
   Mutations.Participants.RegisterParticipant.IInput['data'];
 export type ISendStatementResult =
   Mutations.Participants.RegisterParticipant.IOutput[typeof Mutations.Participants.RegisterParticipant.name];
+export type IEmailRegistrationCheckInput = Queries.Auth.IsEmailRegistered.IInput['data'];
 
 export function useCreateUser() {
   const registratorStore = useRegistratorStore();
@@ -64,7 +66,7 @@ export function useCreateUser() {
 
     const accountType = store.userData.type;
     if (!accountType) {
-      throw new Error('Тип аккаунта не определён');
+      throw new Error(t('user.error.accountTypeMissing'));
     }
 
     // Преобразуем строковый тип в Zeus.AccountType
@@ -76,7 +78,7 @@ export function useCreateUser() {
     } else if (accountType === Zeus.AccountType.entrepreneur) {
       zeusAccountType = Zeus.AccountType.entrepreneur;
     } else {
-      throw new Error(`Неизвестный тип аккаунта: ${accountType}`);
+      throw new Error(t('user.error.unknownAccountType', { accountType }));
     }
 
     // Загружаем документы через Registration store (использует SDK внутри)
@@ -99,7 +101,7 @@ export function useCreateUser() {
 
     for (const doc of docs) {
       if (onProgress) {
-        onProgress(`Подписываем ${doc.title}`);
+        onProgress(t('user.createUser.signingProgress', { docTitle: doc.title }));
       }
 
       const digitalDocument = new DigitalDocument(doc.document);
@@ -170,6 +172,12 @@ export function useCreateUser() {
     // Добавляем marketplace_offer (ЦПП «Стол заказов») если есть
     if (marketplaceDoc?.signed_document) {
       data.marketplace_offer = marketplaceDoc.signed_document;
+    }
+
+    // Ответы на анкеты вступления — только по анкетам, положенным этому
+    // заявителю; сервер сверит их со своим реестром и схемами расширений.
+    if (registratorStore.requiresIntake) {
+      data.intake_answers = registratorStore.intakeAnswersForSubmit;
     }
 
     await api.sendStatement(data);
@@ -345,23 +353,41 @@ export function useCreateUser() {
       public_key: generatedAccount.public_key,
     };
 
-    const { account, tokens } = await api.createUser(data);
-
     const globalStore = useGlobalStore();
     const sessionStore = useSessionStore();
 
+    // Сессия CoopID, оставшаяся в браузере, к новому пайщику отношения не имеет.
+    // Её токен SDK ставит поверх токена регистрации, и первое же чтение аккаунта
+    // уходило от имени прежнего пайщика: на пересозданном стенде — с отказом
+    // «Пользователь с указанным JWT не найден», и вступление обрывалось.
+    await sessionStore.dropCoopIdSession();
+
+    // Ключ — в сохранённое состояние вступления ДО запроса: иначе сбой после
+    // создания учётки оставлял её без ключа, а повтор на шаге генерировал новый.
+    store.account = generatedAccount;
+    const { account, tokens } = await api.createUser(data);
+    // С этого момента шаг пароля createUser не повторяет (почта уже занята).
+    store.account.username = account.username;
+    store.accountCreated = true;
+
     await globalStore.setTokens(tokens);
     await globalStore.setWif(account.username, generatedAccount.private_key);
+    // Токен регистрации — сразу в SDK: `setTokens` пишет только в браузерное
+    // хранилище, а `session.init()` при уже открытой легаси-сессии его не перечитает.
+    client.setToken(tokens.access.token);
+    client.setWif(account.username, generatedAccount.private_key);
 
-    await sessionStore.init();
+    // Пайщик уже создан на узле. Сбой чтения ниже не делает регистрацию
+    // несостоявшейся: шаг пароля и дальнейшие шаги перечитают аккаунт сами, а
+    // повторный createUser упёрся бы в занятую почту.
+    try {
+      await sessionStore.init();
 
-    const accountStore = useAccountStore();
-    // После создания пользователя обновляем данные в сессии
-    const updatedAccount = await accountStore.getAccount(account.username);
-    if (updatedAccount) {
-      console.log('updatedAccount: ', updatedAccount);
-
-      sessionStore.setCurrentUserAccount(updatedAccount);
+      const accountStore = useAccountStore();
+      const updatedAccount = await accountStore.getAccount(account.username);
+      if (updatedAccount) sessionStore.setCurrentUserAccount(updatedAccount);
+    } catch (e) {
+      console.warn('Аккаунт создан, но не перечитан после регистрации', e);
     }
   }
 
@@ -370,7 +396,7 @@ export function useCreateUser() {
   }
 
   async function emailIsExist(email: string): Promise<boolean> {
-    return await api.emailIsExist(email);
+    return await api.emailIsExist({ email });
   }
 
   function generateAccount(): IGeneratedAccount {

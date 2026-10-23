@@ -1,21 +1,18 @@
-// Сценарий: перехват invite-token председателя из БД partner1, генерация
-// нового WIF и финальный signin под председателем.
+// Сценарий: перехват invite-токена председателя из БД partner1, установка
+// пароля на странице приглашения и вход в кабинет.
 //
 // Поток после 08-chairman-install-on-partner-dev:
-//   1. install.interactor.ts на partner1 успешно отработал installSoviet():
-//      создан совет on-chain, в `tokens` (Postgres partner1) появилась
-//      запись type='invite' для chairman'а.
-//   2. Параллельно Novu пытается отправить email с инвайт-ссылкой —
-//      на chairman.partner1@example.com он не дойдёт, но token уже в БД.
-//   3. Этот сценарий через SSH к partner1 (sudo docker exec partner1-postgres
-//      psql) забирает свежий invite-токен и подменяет email-перехват.
-//   4. Открывает `${BASE_URL}/${COOPNAME}/auth/invite?token=<token>` —
-//      виджет Invite генерирует новый WIF клиентски (`generateAccount()`).
-//   5. WIF извлекается из q-input в page.evaluate, сохраняется в
-//      state/cooperatives/partner1-chairman.json для следующих сценариев.
-//   6. Чекбокс «Я сохранил ключ» + клик «Установить ключ» → resetKey
-//      шлёт on-chain ChangeKey, редирект на signin.
-//   7. Финальный signin под новым WIF chairman'а — Эпик 0 закрыт.
+//   1. install.interactor.ts на partner1 отработал installSoviet(): совет
+//      создан on-chain, в `tokens` (Postgres partner1) появилась запись
+//      type='invite' для председателя.
+//   2. Письмо с приглашением на chairman.partner1@example.com не дойдёт, но
+//      токен уже в базе — забираем его по SSH (psql в контейнере partner1).
+//   3. Открываем `${BASE_URL}/${COOPNAME}/auth/invite?token=<token>`.
+//      Страница показывает почту приглашённого и просит задать пароль; ключ
+//      подписи создаётся в браузере, шифруется паролем и уходит в хранилище
+//      кооператива — на экране его нет (19.10.2026).
+//   4. Пароль дважды → «Задать пароль и войти» → кабинет председателя.
+//      Пароль сохраняется в state/cooperatives/partner1-chairman.json.
 
 import { env } from '../../lib/harness.mjs';
 import { execSync } from 'node:child_process';
@@ -37,7 +34,7 @@ const PARTNER_PG_USER = process.env.PARTNER_PG_USER || 'root';
 const CHAIRMAN_EMAIL = process.env.CHAIRMAN_EMAIL_NEW || 'chairman.partner1@example.com';
 
 export const meta = {
-  title: 'Председатель Партнёра-1 получает ключ доступа через invite-токен',
+  title: 'Председатель Партнёра-1 задаёт пароль по приглашению',
   docPath: 'new/onboarding/09-chairman-key-and-login.md',
   assetsDir: 'assets/new/onboarding/09-chairman-key-and-login',
   role: 'partner-chairman',
@@ -53,6 +50,8 @@ function fetchLatestInviteToken() {
   return out;
 }
 
+const CHAIRMAN_PASSWORD = process.env.CHAIRMAN_PASSWORD_NEW || 'Partner1-Chairman-2026!';
+
 export default async ({ page, shot }) => {
   // ---- 1. Достаём токен ---------------------------------------------------
   console.log(`[09] fetching invite token from ${PARTNER_PG_CONTAINER}…`);
@@ -63,90 +62,38 @@ export default async ({ page, shot }) => {
   const inviteUrl = `${env.APP_PREFIX}/${env.COOPNAME}/auth/invite?token=${token}`;
   await page.goto(inviteUrl, { waitUntil: 'domcontentloaded', timeout: 60_000 });
   await page.waitForLoadState('networkidle', { timeout: 30_000 }).catch(() => {});
-  await page.waitForSelector('.invite-title:has-text("СОХРАНИТЕ КЛЮЧ")', { timeout: 30_000 });
-  await page.waitForTimeout(800);
+  await page.waitForSelector(`text=${CHAIRMAN_EMAIL}`, { timeout: 30_000 });
 
   await shot(
     page,
-    '01-invite-key-generated',
-    'Страница /auth/invite — клиент сгенерировал новый WIF чрез generateAccount(). Поле «Приватный ключ» содержит WIF, который мы извлечём для signin.',
+    '01-invite-password',
+    'Страница приглашения: почта приглашённого и два поля пароля. Ключ подписи создан в браузере и на экран не выводится.',
   );
 
-  // ---- 3. Извлекаем приватный ключ ---------------------------------------
-  const newWif = await page.evaluate(() => {
-    const labels = Array.from(document.querySelectorAll('label'));
-    const wifInput = labels
-      .find((l) => /Приватный ключ/i.test(l.textContent || ''))
-      ?.closest('.q-field')
-      ?.querySelector('input, textarea');
-    return wifInput?.value || null;
-  });
-  if (!newWif) throw new Error('Не удалось извлечь приватный ключ из формы invite');
-  console.log(`[09] new chairman WIF (head): ${newWif.slice(0, 8)}…${newWif.slice(-6)}`);
+  // ---- 3. Пароль и вход ----------------------------------------------------
+  const fields = page.locator('input[type="password"]');
+  await fields.nth(0).fill(CHAIRMAN_PASSWORD);
+  await fields.nth(1).fill(CHAIRMAN_PASSWORD);
+  await page.locator('button:has-text("Задать пароль и войти")').click();
 
-  // Сохраняем в фикстуру, чтобы следующие сценарии могли логиниться
-  // под chairman'ом без переуказания.
-  const chairmanFixture = {
-    username: '__will-be-derived-from-chain__',
-    coopname: PARTNER_FIXTURE.username,
-    email: CHAIRMAN_EMAIL,
-    wif: newWif,
-    role: 'chairman',
-  };
-  writeFileSync(CHAIRMAN_FIXTURE_PATH, JSON.stringify(chairmanFixture, null, 2), 'utf-8');
+  try {
+    await page.waitForURL(/\/(chairman|participant|soviet|user)/, { timeout: 90_000 });
+  } catch (e) {
+    await shot(page, '02-invite-stuck', 'Пароль не довёл до кабинета за 90с');
+    throw e;
+  }
+  await page.waitForLoadState('networkidle', { timeout: 30_000 }).catch(() => {});
+
+  writeFileSync(
+    CHAIRMAN_FIXTURE_PATH,
+    JSON.stringify({ coopname: PARTNER_FIXTURE.username, email: CHAIRMAN_EMAIL, password: CHAIRMAN_PASSWORD, role: 'chairman' }, null, 2),
+    'utf-8',
+  );
   console.log(`[09] saved fixture → ${CHAIRMAN_FIXTURE_PATH}`);
 
-  // ---- 4. Чекбокс «Я сохранил ключ» + submit -----------------------------
-  // Quasar q-checkbox рендерит label в <div class="q-checkbox__label">, не <label>.
-  // Кликаем по самому q-checkbox по тексту его лейбла.
-  await page.locator('.q-checkbox:has-text("Я сохранил ключ")').click();
-  await page.waitForTimeout(300);
-
   await shot(
     page,
-    '02-key-saved-checkbox',
-    'Председатель отметил «Я сохранил ключ» — кнопка «Установить ключ» активна.',
-  );
-
-  await page.locator('button:has-text("Установить ключ")').click();
-
-  // resetKey → on-chain ChangeKey + редирект на signin
-  try {
-    await page.waitForURL(/\/auth\/signin/, { timeout: 60_000 });
-  } catch (e) {
-    // Алерт мог не пустить редирект — снимаем что есть и валимся
-    await shot(page, '03-resetkey-stuck', 'resetKey не вызвал редирект на signin за 60с');
-    throw e;
-  }
-  await page.waitForLoadState('networkidle', { timeout: 30_000 }).catch(() => {});
-  await page.waitForTimeout(1500);
-  await shot(
-    page,
-    '03-redirect-signin',
-    'После «Установить ключ» on-chain ChangeKey прошёл — фронт редиректит на /auth/signin под новым ключом председателя.',
-  );
-
-  // ---- 5. Signin под новым WIF -------------------------------------------
-  await page.waitForSelector('button:has-text("Войти")', { timeout: 30_000 });
-  await page.locator('input[type="email"]').first().fill(CHAIRMAN_EMAIL);
-  await page.locator('input[type="password"]').first().fill(newWif);
-  await page.locator('button:has-text("Войти")').click();
-
-  // На корректном signin переходим на /chairman/ или /participant/ или
-  // /soviet/ — точное место зависит от того, видит ли front роль chairman'а
-  // (она пришла из soviet::boards[partner1] = создан в сценарии 08).
-  try {
-    await page.waitForURL(/\/(chairman|participant|soviet|user)/, { timeout: 45_000 });
-  } catch (e) {
-    await shot(page, '04-signin-stuck', 'Signin не дошёл до chairman/participant за 45с');
-    throw e;
-  }
-  await page.waitForLoadState('networkidle', { timeout: 30_000 }).catch(() => {});
-  await page.waitForTimeout(2000);
-
-  await shot(
-    page,
-    '04-chairman-dashboard',
-    'Эпик 0 закрыт: председатель Партнёра-1 авторизован в собственной системе на partner-dev. Совет on-chain создан, ключ председателя установлен через invite-flow, signin прошёл.',
+    '02-chairman-dashboard',
+    'Председатель Партнёра-1 задал пароль по приглашению и сразу вошёл в кабинет своего кооператива.',
   );
 };

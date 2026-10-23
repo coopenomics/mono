@@ -1,7 +1,7 @@
 <template lang="pug">
 .time-issues
   .time-issues__empty.t-sm.t-muted(v-if='!loading && !rows.length')
-    | Нет задач с учётом времени в этом компоненте
+    | {{ $t('capital.timeIssuesWidget.emptyText') }}
 
   .time-issues__list(v-else)
     .time-issues__item(v-for='row in rows', :key='row.issue_hash')
@@ -21,10 +21,10 @@
           .time-issues__title(@click.stop='goToIssue(row)') {{ row.issue_title }}
           .time-issues__sub.t-sm.t-muted(v-if='showName') {{ row.contributor_name }}
         .time-issues__meta.t-sm
-          span.time-issues__metric(v-if='row.available_hours') {{ formatHours(row.available_hours) }} доступно
-          span.time-issues__metric.time-issues__metric--warn(v-if='row.pending_hours') {{ formatHours(row.pending_hours) }} ожидание
-          span.time-issues__metric.time-issues__metric--info(v-if='row.committed_hours') {{ formatHours(row.committed_hours) }} подтверждено
-          span.time-issues__metric.t-muted(v-if='!row.available_hours && !row.pending_hours && !row.committed_hours') 0 ч
+          span.time-issues__metric(v-if='row.available_hours') {{ $t('capital.timeIssuesWidget.availableLabel', { hours: formatHours(row.available_hours) }) }}
+          span.time-issues__metric.time-issues__metric--warn(v-if='row.pending_hours') {{ $t('capital.timeIssuesWidget.pendingLabel', { hours: formatHours(row.pending_hours) }) }}
+          span.time-issues__metric.time-issues__metric--info(v-if='row.committed_hours') {{ $t('capital.timeIssuesWidget.committedLabel', { hours: formatHours(row.committed_hours) }) }}
+          span.time-issues__metric.t-muted(v-if='!row.available_hours && !row.pending_hours && !row.committed_hours') {{ $t('capital.timeIssuesWidget.zeroHoursLabel') }}
 
       .time-issues__children(v-if='expanded[row.issue_hash]')
         slot(name='issue-content', :issue='row')
@@ -35,6 +35,8 @@
 
 <script lang="ts" setup>
 import { ref, onMounted, watch, computed } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { CAPITAL_LIVE_TABLES } from 'app/extensions/capital/shared/lib/live';
 import { useRouter } from 'vue-router';
 import { useSystemStore } from 'src/entities/System/model';
 import { FailAlert } from 'src/shared/api';
@@ -42,6 +44,7 @@ import { ExpandToggleButton } from 'src/shared/ui/ExpandToggleButton';
 import { useTimeIssuesStore } from 'app/extensions/capital/entities/TimeIssues/model';
 import type { ITimeIssuesPagination } from 'app/extensions/capital/entities/TimeIssues/model/types'
 import { formatHours } from 'src/shared/lib/utils';
+import { t } from '../../i18n';
 
 const props = defineProps<{
   projectHash: string;
@@ -93,7 +96,7 @@ const loadTimeIssues = async () => {
     emit('dataLoaded', issueHashes);
   } catch (error) {
     console.error('Ошибка при загрузке задач проекта:', error);
-    FailAlert('Не удалось загрузить задачи проекта');
+    FailAlert(t('capital.timeIssuesWidget.loadError'));
   } finally {
     loading.value = false;
   }
@@ -116,6 +119,9 @@ const goToIssue = (row: { project_hash: string; issue_hash: string }) => {
     },
   });
 };
+
+// Виджет живёт по ленте изменений Благороста.
+useLiveReload(CAPITAL_LIVE_TABLES, () => loadTimeIssues());
 
 onMounted(() => {
   loadTimeIssues();

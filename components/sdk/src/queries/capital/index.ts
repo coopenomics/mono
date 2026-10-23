@@ -9,6 +9,8 @@ export * as GetComponentMetrics from './getComponentMetrics'
 export * as GetMeasures from './getMeasures'
 
 export * as GetCommits from './getCommits'
+export * as GetContentRevision from './getContentRevision'
+export * as GetContentRevisions from './getContentRevisions'
 
 export * as GetContributor from './getContributor'
 
@@ -31,6 +33,8 @@ export * as GetProgramExpenses from './getProgramExpenses'
 export * as GetInvest from './getInvest'
 
 export * as GetInvests from './getInvests'
+export * as GetShareTransferState from './getShareTransferState'
+export * as GetShareTransfers from './getShareTransfers'
 
 export * as GetIssue from './getIssue'
 

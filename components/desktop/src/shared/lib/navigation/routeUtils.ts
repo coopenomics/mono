@@ -1,4 +1,5 @@
 import { RouteLocationNormalizedLoaded } from 'vue-router'
+import { t } from 'src/shared/i18n';
 
 /**
  * Получает глубину текущего маршрута
@@ -42,7 +43,7 @@ export function hasParentRoute(route: RouteLocationNormalizedLoaded): boolean {
  * @param defaultTitle Заголовок по умолчанию, если в маршруте не указан
  * @returns Заголовок маршрута
  */
-export function getRouteTitle(route: RouteLocationNormalizedLoaded | null, defaultTitle = 'Назад'): string {
+export function getRouteTitle(route: RouteLocationNormalizedLoaded | null, defaultTitle = t('common.action.back')): string {
   if (!route || !route.meta || !route.meta.title) {
     return defaultTitle
   }

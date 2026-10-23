@@ -11,8 +11,8 @@ q-btn(
   unelevated
 )
   q-icon(name='fa-solid fa-arrow-right-arrow-left', :size='isMobile ? "14px" : "15px"')
-  span.q-ml-sm(v-if='!isMobile') Перевести
-  q-tooltip Корректировка: перевод между кошельками одного бух.счёта
+  span.q-ml-sm(v-if='!isMobile') {{ $t('reports.transferWalletsButton.label') }}
+  q-tooltip {{ $t('reports.transferWalletsButton.tooltip') }}
 </template>
 
 <script setup lang="ts">

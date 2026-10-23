@@ -4,7 +4,7 @@
     v-if='onLoading && !items.length',
     :columns='skeletonColumns',
     :rows='6',
-    :min-width='hideActions ? "940px" : "1000px"'
+    :min-width='hideActions ? "660px" : "790px"'
   )
   template(v-else-if='items.length')
     //- Десктоп: канон-таблица. На мобиле скрыта — таблица из 7–8 колонок
@@ -16,35 +16,33 @@
           thead
             tr
               th.col-toggle
-              th.col-sort(@click='onSort("username")') Пайщик {{ sortMark('username') }}
-              th.col-sort.col-date(@click='onSort("created_at")') Дата создания {{ sortMark('created_at') }}
-              th.col-sort.col-num(@click='onSort("quantity")') Сумма {{ sortMark('quantity') }}
-              th Тип платежа
-              //- «Направление» — относительно того, чей это стол: на столе совета
-              //- относительно кооператива (в/из кооператива), на личном столе
-              //- пайщика относительно пайщика (поступление/списание) — см. displayDirection.
-              th Направление
-              th.col-sort(@click='onSort("status")') Статус {{ sortMark('status') }}
-              th.col-action(v-if='!hideActions') Действия
+              th.col-sort(@click='onSort("username")') {{ $t('cooperative.listOfPaymentsWidget.usernameHeader', { sortMark: sortMark('username') }) }}
+              th.col-sort.col-date(@click='onSort("created_at")') {{ $t('cooperative.listOfPaymentsWidget.createdAtHeader', { sortMark: sortMark('created_at') }) }}
+              th.col-sort.col-num(@click='onSort("quantity")') {{ $t('cooperative.listOfPaymentsWidget.amountHeader', { sortMark: sortMark('quantity') }) }}
+              th.col-type {{ $t('cooperative.listOfPaymentsWidget.typeHeader') }}
+              th.col-sort.col-status(@click='onSort("status")') {{ $t('cooperative.listOfPaymentsWidget.statusHeader', { sortMark: sortMark('status') }) }}
+              th.col-action(v-if='!hideActions') {{ $t('cooperative.listOfPaymentsWidget.actionsHeader') }}
           tbody
             template(v-for='row in items', :key='row.id')
               tr.data-row(:id='`pay-row-${row.id}`', @click='toggleExpand(row.id)')
                 td.col-toggle
                   button.icon-btn(
                     type='button',
-                    :aria-label='expanded.get(row.id) ? "Свернуть" : "Развернуть"',
+                    :aria-label='expanded.get(row.id) ? $t("cooperative.listOfPaymentsWidget.collapseAriaLabel") : $t("cooperative.listOfPaymentsWidget.expandAriaLabel")',
                     @click.stop='toggleExpand(row.id)'
                   )
                     q-icon(:name='expanded.get(row.id) ? "expand_more" : "chevron_right"')
                 td.cell-name {{ getShortNameFromCertificate(row.username_certificate) || row.username }}
-                td {{ formatDateToHumanDateTime(row.created_at) }}
-                td.col-num {{ amountLabel(row) }}
-                td {{ row.type_label }}
-                td
+                td.col-date {{ formatDateToHumanDateTime(row.created_at) }}
+                //- Направление — стрелкой у суммы, всегда относительно
+                //- кооператива: взнос пайщика входящий, выплата пайщику
+                //- исходящая (см. displayDirection); словами — в подсказке.
+                td.col-num
                   span.dir(:class='isIncoming(displayDirection(row)) ? "dir--in" : "dir--out"')
                     q-icon.q-mr-xs(:name='getDirectionIcon(displayDirection(row))', size='16px')
-                    span {{ directionLabel(row) }}
-                    q-tooltip {{ directionHint(row) }}
+                    span.dir__amount {{ amountLabel(row) }}
+                    q-tooltip {{ directionLabel(row) }} · {{ directionHint(row) }}
+                td {{ row.type_label }}
                 td
                   .cell-status
                     BaseBadge(:variant='getStatusVariant(row.status)') {{ row.status_label }}
@@ -54,11 +52,11 @@
                     //- Кассирская отметка «чек об оплате приложен» — только на столе совета
                     //- (пайщику чужая бухгалтерия не показывается).
                     q-icon.proof-icon.proof-icon--ok(v-if='!hideActions && proofState(row) === "attached"', name='receipt_long', size='16px')
-                      q-tooltip Чек об оплате приложен
+                      q-tooltip {{ $t('cooperative.listOfPaymentsWidget.proofAttachedTooltip') }}
                     q-icon.proof-icon.proof-icon--missing(v-else-if='!hideActions && proofState(row) === "missing"', name='receipt_long', size='16px')
-                      q-tooltip Чек об оплате не приложен
+                      q-tooltip {{ $t('cooperative.listOfPaymentsWidget.proofMissingTooltip') }}
                 td.col-action(v-if='!hideActions', @click.stop)
-                  .cell-actions(v-if='["EXPIRED", "PENDING", "FAILED"].includes(row.status)')
+                  .cell-actions(v-if='!readOnly && ["EXPIRED", "PENDING", "FAILED"].includes(row.status)')
                     SetOrderPaidStatusButton(:id='row.id')
                     //- Там, где решение уже принято советом (возврат взноса, расход
                     //- по СЗ, материальная помощь), кассир не отклоняет — прячем
@@ -67,13 +65,14 @@
                   span.no-actions(v-else) —
 
               tr.expand-row(v-if='expanded.get(row.id)')
-                td(:colspan='hideActions ? 7 : 8')
+                td(:colspan='hideActions ? 6 : 7')
                   PaymentDetails(:payment='row')
                   //- Чек об оплате — ядро, для любого исходящего платежа (стол кассира).
                   .q-mt-sm(v-if='!hideActions && paymentProofHash(row)')
                     AttachPaymentProofPanel(
                       :payment-hash='paymentProofHash(row) ?? ""',
-                      :step='expenseProofRef(row) ? { number: 1, title: "Подтвердите оплату" } : undefined',
+                      :readonly='readOnly',
+                      :step='expenseProofRef(row) ? { number: 1, title: $t("cooperative.listOfPaymentsWidget.confirmPaymentStep") } : undefined',
                       @uploaded='onProofUploaded(row)'
                     )
                   //- Расход: закрывающие документы (DIRECT, панель сама скрывается)
@@ -81,15 +80,17 @@
                   .expense-flow.q-mt-sm(v-if='!hideActions && expenseProofRef(row)')
                     AttachExpenseProofPanel(
                       :proposal-hash='expenseProofRef(row)?.proposal_hash ?? ""',
-                      :item-hash='expenseProofRef(row)?.item_hash ?? ""'
+                      :item-hash='expenseProofRef(row)?.item_hash ?? ""',
+                      :readonly='readOnly'
                     )
                     ReportExpenseAdvancePanel(
                       :proposal-hash='expenseProofRef(row)?.proposal_hash ?? ""',
                       :item-hash='expenseProofRef(row)?.item_hash ?? ""',
                       :on-behalf='true',
+                      :readonly='readOnly',
                       :report-state='advanceReportState(row)',
                       :reported-amount='advanceReportedAmount(row)',
-                      :step='{ number: 2, title: "Отчёт пайщика" }',
+                      :step='{ number: 2, title: $t("cooperative.listOfPaymentsWidget.reportStep") }',
                       @reported='onReported'
                     )
                   //- Личный стол: пайщик-получатель отчитывается чеком по своей строке.
@@ -121,7 +122,7 @@
           size='sm',
           :loading='onLoading',
           @click='loadMore'
-        ) Загрузить ещё
+        ) {{ $t('cooperative.listOfPaymentsWidget.loadMoreLabel') }}
 
     //- Мобайл: карточки вместо таблицы. Видны только на узких экранах.
     .payments-cards.pmt-mobile
@@ -133,9 +134,9 @@
               BaseBadge(:variant='getStatusVariant(row.status)') {{ row.status_label }}
               BaseBadge(v-if='reportBadge(row)', :variant='reportBadge(row)?.variant') {{ reportBadge(row)?.label }}
               q-icon.proof-icon.proof-icon--ok(v-if='!hideActions && proofState(row) === "attached"', name='receipt_long', size='16px')
-                q-tooltip Чек об оплате приложен
+                q-tooltip {{ $t('cooperative.listOfPaymentsWidget.proofAttachedTooltip') }}
               q-icon.proof-icon.proof-icon--missing(v-else-if='!hideActions && proofState(row) === "missing"', name='receipt_long', size='16px')
-                q-tooltip Чек об оплате не приложен
+                q-tooltip {{ $t('cooperative.listOfPaymentsWidget.proofMissingTooltip') }}
           .pay-card__row
             span.pay-card__amount
               q-icon.q-mr-xs(
@@ -149,7 +150,7 @@
             span {{ directionLabel(row) }}
             span {{ formatDateToHumanDateTime(row.created_at) }}
         .pay-card__actions(
-          v-if='!hideActions && ["EXPIRED", "PENDING", "FAILED"].includes(row.status)',
+          v-if='!hideActions && !readOnly && ["EXPIRED", "PENDING", "FAILED"].includes(row.status)',
           @click.stop
         )
           SetOrderPaidStatusButton(:id='row.id')
@@ -160,21 +161,24 @@
           .q-mt-sm(v-if='!hideActions && paymentProofHash(row)')
             AttachPaymentProofPanel(
               :payment-hash='paymentProofHash(row) ?? ""',
-              :step='expenseProofRef(row) ? { number: 1, title: "Подтвердите оплату" } : undefined',
+              :readonly='readOnly',
+              :step='expenseProofRef(row) ? { number: 1, title: $t("cooperative.listOfPaymentsWidget.confirmPaymentStep") } : undefined',
               @uploaded='onProofUploaded(row)'
             )
           .expense-flow.q-mt-sm(v-if='!hideActions && expenseProofRef(row)')
             AttachExpenseProofPanel(
               :proposal-hash='expenseProofRef(row)?.proposal_hash ?? ""',
-              :item-hash='expenseProofRef(row)?.item_hash ?? ""'
+              :item-hash='expenseProofRef(row)?.item_hash ?? ""',
+              :readonly='readOnly'
             )
             ReportExpenseAdvancePanel(
               :proposal-hash='expenseProofRef(row)?.proposal_hash ?? ""',
               :item-hash='expenseProofRef(row)?.item_hash ?? ""',
               :on-behalf='true',
+              :readonly='readOnly',
               :report-state='advanceReportState(row)',
               :reported-amount='advanceReportedAmount(row)',
-              :step='{ number: 2, title: "Отчёт пайщика" }',
+              :step='{ number: 2, title: $t("cooperative.listOfPaymentsWidget.reportStep") }',
               @reported='onReported'
             )
           ReportExpenseAdvancePanel.q-mt-sm(
@@ -203,12 +207,12 @@
           size='sm',
           :loading='onLoading',
           @click='loadMore'
-        ) Загрузить ещё
+        ) {{ $t('cooperative.listOfPaymentsWidget.loadMoreLabel') }}
 
   EmptyState(
     v-else,
-    title='Платежи не найдены',
-    body='Здесь появятся ваши платежи и взносы.'
+    :title='$t("cooperative.listOfPaymentsWidget.emptyTitle")',
+    :body='$t("cooperative.listOfPaymentsWidget.emptyBody")'
   )
     template(#icon)
       q-icon(name='receipt_long', size='48px')
@@ -244,6 +248,8 @@ import {
 } from 'src/shared/lib/expenses';
 import { paymentStatusVariant } from 'src/shared/lib/payment';
 import { Zeus } from '@coopenomics/sdk';
+import { t } from 'src/shared/i18n';
+import { useLiveReload } from 'src/shared/lib/realtime';
 
 const props = defineProps({
   username: {
@@ -252,6 +258,12 @@ const props = defineProps({
     default: null,
   },
   hideActions: {
+    type: Boolean,
+    default: false,
+  },
+  // Реестр без права подтверждать оплату: платежи и документы об оплате
+  // видны, кнопки подтверждения и загрузка документа скрыты.
+  readOnly: {
     type: Boolean,
     default: false,
   },
@@ -278,21 +290,20 @@ const getStatusVariant = paymentStatusVariant;
 const isIncoming = (direction?: string | null): boolean =>
   direction === Zeus.PaymentDirection.INCOMING;
 
-// Направление показываем относительно того, чей это стол. on-chain `direction` —
-// всегда относительно кооператива (INCOMING = деньги в кооператив). Совет
-// (!hideActions) так и видит; на личном столе пайщика (hideActions) перспектива
-// обратная (исходящий из кооператива = поступление пайщику), поэтому инвертируем.
-const displayDirection = (row: IPaymentRow): string | null | undefined =>
-  props.hideActions
-    ? (isIncoming(row.direction) ? Zeus.PaymentDirection.OUTGOING : Zeus.PaymentDirection.INCOMING)
-    : row.direction;
+// Направление читается одинаково на всех столах — относительно кооператива,
+// как оно и записано в цепи: взнос пайщика входящий, выплата пайщику
+// исходящая. Раньше на личном столе направление переворачивалось «от лица
+// пайщика», и собственный паевой взнос показывался исходящим — читалось как
+// списание, хотя пайщик деньги внёс. Один платёж не может называться в
+// кабинете двумя разными словами в зависимости от того, кто на него смотрит.
+const displayDirection = (row: IPaymentRow): string | null | undefined => row.direction;
 const directionLabel = (row: IPaymentRow): string =>
-  isIncoming(displayDirection(row)) ? 'Входящий' : 'Исходящий';
+  isIncoming(displayDirection(row)) ? t('cooperative.listOfPaymentsWidget.directionIncoming') : t('cooperative.listOfPaymentsWidget.directionOutgoing');
 const directionHint = (row: IPaymentRow): string => {
   const incoming = isIncoming(displayDirection(row));
   return props.hideActions
-    ? incoming ? 'Поступление вам' : 'Списание с вас'
-    : incoming ? 'В кооператив' : 'Из кооператива';
+    ? incoming ? t('cooperative.listOfPaymentsWidget.hintIncomingSelf') : t('cooperative.listOfPaymentsWidget.hintOutgoingSelf')
+    : incoming ? t('cooperative.listOfPaymentsWidget.hintIncomingOther') : t('cooperative.listOfPaymentsWidget.hintOutgoingOther');
 };
 
 // Сумма — всегда 2 знака после запятой (не сырой on-chain precision=4).
@@ -413,16 +424,15 @@ const onProofUploaded = (row: IPaymentRow): void => {
 const skeletonColumns = computed<TableSkeletonColumn[]>(() => {
   const cols: TableSkeletonColumn[] = [
     { class: 'col-toggle', cell: 'icon' },
-    { label: 'Пайщик', cell: 'text' },
-    { label: 'Дата создания', cell: 'text', cellWidth: '120px' },
-    { label: 'Сумма', class: 'col-num', cell: 'text', cellWidth: '64px' },
-    { label: 'Тип платежа', cell: 'text' },
-    { label: 'Направление', cell: 'text', cellWidth: '90px' },
-    { label: 'Статус', cell: 'badge' },
+    { label: t('cooperative.listOfPaymentsWidget.column.username'), cell: 'text' },
+    { label: t('cooperative.listOfPaymentsWidget.column.createdAt'), cell: 'text', cellWidth: '120px' },
+    { label: t('cooperative.listOfPaymentsWidget.column.amount'), class: 'col-num', cell: 'text', cellWidth: '64px' },
+    { label: t('cooperative.listOfPaymentsWidget.typeHeader'), class: 'col-type', cell: 'text' },
+    { label: t('cooperative.listOfPaymentsWidget.statusColumnLabel'), class: 'col-status', cell: 'badge' },
   ];
   // «Действия» — только на столе совета (не на личном столе пайщика).
   if (!props.hideActions) {
-    cols.push({ label: 'Действия', class: 'col-action', cell: 'icon' });
+    cols.push({ label: t('cooperative.listOfPaymentsWidget.actionsHeader'), class: 'col-action', cell: 'icon' });
   }
   return cols;
 });
@@ -446,19 +456,20 @@ const onSort = (col: string): void => {
   loadPayments(1);
 };
 
+const PAGE_SIZE = 25;
+
+const paymentsFilter = () => (props.username ? { username: props.username } : undefined);
+const sortOptions = () => ({
+  sortBy: sortState.sortBy || undefined,
+  sortOrder: sortState.sortDir
+    ? (sortState.sortDir.toUpperCase() as 'ASC' | 'DESC')
+    : ('ASC' as const),
+});
+
 const loadPayments = async (page = 1): Promise<void> => {
   try {
     onLoading.value = true;
-    const data = props.username ? { username: props.username } : undefined;
-    const options = {
-      page,
-      limit: 25,
-      sortBy: sortState.sortBy || undefined,
-      sortOrder: sortState.sortDir
-        ? (sortState.sortDir.toUpperCase() as 'ASC' | 'DESC')
-        : 'ASC',
-    };
-    await paymentStore.loadPayments(data, options);
+    await paymentStore.loadPayments(paymentsFilter(), { page, limit: PAGE_SIZE, ...sortOptions() });
 
     // Платежи с ошибкой разворачиваем сразу — пользователю важна причина.
     items.value.forEach((p) => {
@@ -471,6 +482,23 @@ const loadPayments = async (page = 1): Promise<void> => {
   }
 };
 
+// Живой список: новый платёж, смена статуса, зачисление и отмена приходят по
+// ленте изменений (таблица payments; пайщику — его строки, совету — все).
+// Перечитываются все показанные страницы одним запросом, без скелетона.
+useLiveReload(
+  [
+    { code: 'core', table: 'payments' },
+    { code: 'core', table: 'payment_files' },
+  ],
+  async () => {
+    try {
+      await paymentStore.reloadLoaded(paymentsFilter(), sortOptions(), PAGE_SIZE);
+    } catch (e) {
+      console.warn('[payments] фоновое перечитывание не удалось', e);
+    }
+  },
+);
+
 const hasMore = computed(
   () => (payments.value?.currentPage ?? 1) < (payments.value?.totalPages ?? 1),
 );
@@ -478,7 +506,7 @@ const hasMore = computed(
 const rangeLabel = computed(() => {
   const total = payments.value?.totalCount ?? items.value.length;
   const shown = items.value.length;
-  return shown ? `1–${shown} из ${total}` : `0 из ${total}`;
+  return shown ? t('cooperative.listOfPaymentsWidget.rangeLabel', { shown, total }) : t('cooperative.listOfPaymentsWidget.rangeEmptyLabel', { total });
 });
 
 const loadMore = (): void => {
@@ -511,7 +539,7 @@ const openSourcePayment = async (itemHash: string): Promise<void> => {
     (p) => p.hash?.toLowerCase() === itemHash.toLowerCase(),
   );
   if (!target) {
-    FailAlert('Платёж выдачи аванса не найден на текущей странице реестра');
+    FailAlert(t('cooperative.listOfPaymentsWidget.advancePaymentNotFoundError'));
     return;
   }
   expanded.set(target.id, true);
@@ -654,27 +682,46 @@ onMounted(async () => {
 /* Глобальный канон снимает min-width (.table{min-width:0!important}) — без
    него колонки сжимаются уже контента и кнопки действий наезжают на статус.
    Перебиваем !important: при нехватке ширины таблица скроллится в
-   .table-scroll, а не схлопывает колонки (как журнал уведомлений). */
+   .table-scroll, а не схлопывает колонки (как журнал уведомлений).
+   Ширины колонок вместе с колонкой пайщика укладываются в min-width (790px с
+   действиями, 660px без), а она — в страницу на окне 1120px с меню (1120 −
+   248 − поля): таблица помещается целиком, раскрытая строка не шире её.
+   Поля ячеек поджаты до --p-3, иначе восемь колонок по 40px полей не влезают. */
 .table {
   table-layout: fixed !important;
-  min-width: 860px !important;
+  min-width: 660px !important;
 }
 .table--actions {
-  min-width: 980px !important;
+  min-width: 790px !important;
+}
+
+.table thead th,
+.table tbody td {
+  padding-left: var(--p-3);
+  padding-right: var(--p-3);
 }
 
 .col-toggle {
-  width: 44px;
+  width: 40px;
   text-align: center;
 }
 .col-date {
+  width: 100px;
+}
+.col-num {
   width: 132px;
-  white-space: nowrap;
+}
+.col-type {
+  width: 112px;
+}
+.col-status {
+  width: 168px;
 }
 .col-action {
-  width: 168px;
+  width: 136px;
   text-align: right;
 }
+
 
 .col-sort {
   cursor: pointer;
@@ -698,10 +745,16 @@ onMounted(async () => {
 .dir {
   display: inline-flex;
   align-items: center;
+  white-space: nowrap;
+}
+
+.dir__amount {
+  color: var(--p-ink-1);
 }
 
 .cell-status {
   display: inline-flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--p-2, 8px);
 }
@@ -727,9 +780,14 @@ onMounted(async () => {
   cursor: pointer;
 }
 
-.expand-row td {
-  padding: 0 20px 16px;
+/* Раскрытая строка живёт в ширине таблицы (max-width: 0 у ячейки во всю
+   ширину при fixed-раскладке): длинные реквизиты переносятся, а не распирают
+   таблицу вбок. */
+.table tbody .expand-row td {
+  padding: 0 var(--p-4) var(--p-4);
   background: var(--p-surface-2);
+  max-width: 0;
+  overflow-wrap: anywhere;
 }
 
 /* Последовательные этапы кассира (подтверждение оплаты → отчёт пайщика):

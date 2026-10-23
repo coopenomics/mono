@@ -6,7 +6,7 @@
       v-if="isEditing"
       @click="$emit('save')"
       color="primary"
-      label="Сохранить"
+      :label="$t('common.action.save')"
     )
     q-btn(
       size="sm"
@@ -14,7 +14,7 @@
       v-if="isEditing"
       @click="$emit('cancel')"
       color="negative"
-      label="Отменить"
+      :label="$t('ui.editableActions.cancelLabel')"
     )
   </template>
 

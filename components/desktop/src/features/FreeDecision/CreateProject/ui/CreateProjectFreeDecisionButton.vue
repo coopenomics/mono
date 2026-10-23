@@ -1,10 +1,10 @@
 <template lang="pug">
 div
-  q-btn(@click="show = true" color="primary" size="sm" icon="add") предложить повестку
+  q-btn(@click="show = true" color="primary" size="sm" icon="add") {{ $t('freeDecision.createProjectFreeDecisionButton.openButton') }}
 
   BaseDialog(
     v-model='show',
-    title='Предложить повестку',
+    :title='$t("freeDecision.createProjectFreeDecisionButton.title")',
     size='md',
     :close-on-backdrop='false',
     :close-on-escape='false'
@@ -14,7 +14,7 @@ div
       :is-submitting="isSubmitting"
       :showSubmit="!isLoading"
       :showCancel="true"
-      :button-submit-txt="'Создать'"
+      :button-submit-txt="$t('common.action.create')"
       @cancel="clear"
     )
       q-input(
@@ -22,7 +22,7 @@ div
         v-model="createProjectInput.question"
         standout="bg-teal text-white"
         placeholder=""
-        label="Вопрос на повестку дня"
+        :label="$t('freeDecision.createProjectFreeDecisionButton.questionLabel')"
         :rules="[val => notEmpty(val)]"
         autocomplete="off"
         type="textarea"
@@ -32,7 +32,7 @@ div
         v-model="createProjectInput.decision"
         standout="bg-teal text-white"
         placeholder=""
-        label="Предлагаемое решение вопроса для голосования"
+        :label="$t('freeDecision.createProjectFreeDecisionButton.decisionLabel')"
         :rules="[val => notEmpty(val)]"
         autocomplete="off"
         type="textarea"
@@ -48,6 +48,7 @@ import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { notEmpty } from 'src/shared/lib/utils';
 import { useSessionStore } from 'src/entities/Session';
 import { useSystemStore } from 'src/entities/System/model';
+import { t } from 'src/shared/i18n';
 
 const show = ref(false)
 const isSubmitting = ref(false)
@@ -62,7 +63,7 @@ const create = async () => {
     await createProject(system.info.coopname, session.username)
     isSubmitting.value = false
     show.value = false
-    SuccessAlert('Вопрос добавлен на повестку для голосования')
+    SuccessAlert(t('freeDecision.createProjectFreeDecisionButton.success'))
     createProjectInput.value.question = ''
     createProjectInput.value.decision = ''
   } catch(e){

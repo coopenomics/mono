@@ -10,6 +10,7 @@ import { ITokens } from '../lib/types/user';
 import { getFromIndexedDB, setToIndexedDB } from '../api/indexDB';
 import { client } from '../api/client';
 import { useSystemStore } from 'src/entities/System/model';
+import { t } from 'src/shared/i18n';
 
 interface IGlobalStore {
   hasCreditials: Ref<boolean>;
@@ -105,7 +106,7 @@ export const useGlobalStore = defineStore('global', (): IGlobalStore => {
       await setToIndexedDB(info.coopname, 'store', 'encryptedKey', '');
       await setToIndexedDB(info.coopname, 'store', 'encryptedUsername', '');
       await setToIndexedDB(info.coopname, 'store', 'encryptedTokens', '');
-      throw new Error('Ошибка авторизации. Войдите повторно.');
+      throw new Error(t('app.error.authErrorRelogin'));
     }
   };
 
@@ -169,12 +170,24 @@ export const useGlobalStore = defineStore('global', (): IGlobalStore => {
    * PIN-код. Отпирание попутно продлевает получасовой отсчёт — как и любая другая
    * подпись.
    */
+  // Отпирание, которое идёт прямо сейчас. Акты подписываются параллельно, и
+  // без общего промиса каждая подпись поднимала бы своё окно PIN-кода, а
+  // ответ доставался последнему — остальные зависали.
+  let unlockInFlight: Promise<void> | null = null;
+
   const ensureSigningKey = async (): Promise<string> => {
     // Одним условием, а не ранним `return` на заполненном ключе: после раннего
     // выхода TypeScript считает ключ навсегда пустым и не верит, что отпирание
     // его вернуло (тип схлопывается в never).
-    if (!wif.value && unlockProvider) await unlockProvider();
-    if (!wif.value) throw new Error('Приватный ключ не установлен');
+    if (!wif.value && unlockProvider) {
+      if (!unlockInFlight) {
+        unlockInFlight = unlockProvider().finally(() => {
+          unlockInFlight = null;
+        });
+      }
+      await unlockInFlight;
+    }
+    if (!wif.value) throw new Error(t('app.error.privateKeyNotSet'));
     return wif.value.toString();
   };
 
@@ -206,12 +219,12 @@ export const useGlobalStore = defineStore('global', (): IGlobalStore => {
   };
 
   const signDigest = (digest: string): IMessageSignature => {
-    if (!wif.value) throw new Error('ключ не найден');
+    if (!wif.value) throw new Error(t('app.error.signingKeyNotFound'));
 
     const signed = wif.value.signDigest(digest);
     const verified = signed.verifyDigest(digest, wif.value.toPublic());
 
-    if (!verified) throw new Error('Подпись не верифицирована');
+    if (!verified) throw new Error(t('app.error.signatureNotVerified'));
 
     const result: IMessageSignature = {
       message: digest,

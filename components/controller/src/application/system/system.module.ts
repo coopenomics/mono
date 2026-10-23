@@ -19,10 +19,13 @@ import { SettingsInfrastructureModule } from '~/infrastructure/settings/settings
 import { VaultDomainModule } from '~/domain/vault/vault-domain.module';
 import { RedisModule } from '~/infrastructure/redis/redis.module';
 import { NodeSyncHealthService } from './services/node-sync-health.service';
+import { PlatformKeyMigrationService } from './services/platform-key-migration.service';
 import { NodeSyncResolver } from './resolvers/node-sync.resolver';
+import { CoreRightsModule } from '../rights/core-rights.module';
 
 @Module({
   imports: [
+    CoreRightsModule,
     SystemDomainModule,
     RedisModule,
     ProviderModule,
@@ -38,6 +41,7 @@ import { NodeSyncResolver } from './resolvers/node-sync.resolver';
     SystemService,
     SystemResolver,
     NodeSyncHealthService,
+    PlatformKeyMigrationService,
     NodeSyncResolver,
     SystemInteractor,
     LoadContactsInteractor,

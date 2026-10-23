@@ -1,5 +1,4 @@
 import { BadRequestException } from '@nestjs/common';
-import type { InnerTransactResult } from '@coopenomics/innercoop';
 
 /**
  * Извлекает tx_hash из ответа цепи (ответ wharfkit).
@@ -30,4 +29,15 @@ export function normalizeChainTxHash(tx: unknown, txHashMissingMessage: string):
     throw new BadRequestException(txHashMissingMessage);
   }
   return hash;
+}
+
+/**
+ * Хэш и номер блока транзакции из ответа цепи. Номер блока лежит только в
+ * `response.processed.block_num` (wharfkit @1.6.x); без него — 0, как и
+ * раньше у снимка транзакции заказа.
+ */
+export function normalizeChainTx(tx: unknown, txHashMissingMessage: string): { tx_hash: string; block_num: number } {
+  const tx_hash = normalizeChainTxHash(tx, txHashMissingMessage);
+  const t = tx as { response?: { processed?: { block_num?: number } } };
+  return { tx_hash, block_num: t?.response?.processed?.block_num ?? 0 };
 }

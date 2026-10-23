@@ -18,6 +18,11 @@ exports[`ledger2 wallets registry (generated from C++) > LEDGER2_USER_SHARED_PRO
     "wallet_name": "w.wal.member",
   },
   {
+    "program_label": "ЦК — биллинг (USER_SHARED в леджере оператора, решение @ant 2026-06-11)",
+    "required_program_id": 1,
+    "wallet_name": "w.wal.bill",
+  },
+  {
     "program_label": "Благорост",
     "required_program_id": 4,
     "wallet_name": "w.cap.blago",
@@ -40,7 +45,27 @@ exports[`ledger2 wallets registry (generated from C++) > LEDGER2_USER_SHARED_PRO
   {
     "program_label": "Marketplace",
     "required_program_id": 2,
+    "wallet_name": "w.mkt.share",
+  },
+  {
+    "program_label": "Marketplace",
+    "required_program_id": 2,
     "wallet_name": "w.mkt.member",
+  },
+  {
+    "program_label": null,
+    "required_program_id": 0,
+    "wallet_name": "w.mkt.claim",
+  },
+  {
+    "program_label": null,
+    "required_program_id": 0,
+    "wallet_name": "w.mkt.debt",
+  },
+  {
+    "program_label": null,
+    "required_program_id": 0,
+    "wallet_name": "w.mkt.topay",
   },
   {
     "program_label": null,
@@ -61,6 +86,21 @@ exports[`ledger2 wallets registry (generated from C++) > LEDGER2_USER_SHARED_PRO
     "program_label": null,
     "required_program_id": 0,
     "wallet_name": "w.reg.pend",
+  },
+  {
+    "program_label": "Образование",
+    "required_program_id": 5,
+    "wallet_name": "w.edu.member",
+  },
+  {
+    "program_label": "Образование-преподавание",
+    "required_program_id": 6,
+    "wallet_name": "w.edu.hold",
+  },
+  {
+    "program_label": "Образование-преподавание",
+    "required_program_id": 6,
+    "wallet_name": "w.edu.share",
   },
 ]
 `;
@@ -83,6 +123,11 @@ exports[`ledger2 wallets registry (generated from C++) > LEDGER2_WALLET_REGISTRY
     "name": "w.wal.member",
   },
   {
+    "human_name": "ЦК — биллинг пайщика (в леджере оператора)",
+    "kind": "USER_SHARED",
+    "name": "w.wal.bill",
+  },
+  {
     "human_name": "ЦПП «Благорост» — единый кошелёк программы у пайщика",
     "kind": "USER_SHARED",
     "name": "w.cap.blago",
@@ -93,14 +138,34 @@ exports[`ledger2 wallets registry (generated from C++) > LEDGER2_WALLET_REGISTRY
     "name": "w.cap.preimp",
   },
   {
-    "human_name": "ЦПП «Стол Заказов» — резерв под заказ у пайщика",
+    "human_name": "ЦПП «Стол Заказов» — паевой резерв под заказ у пайщика",
     "kind": "USER_SHARED",
     "name": "w.mkt.order",
   },
   {
-    "human_name": "ЦПП «Стол Заказов» — членский кошелёк пайщика программы",
+    "human_name": "ЦПП «Стол Заказов» — свободный паевой пайщика в программе",
+    "kind": "USER_SHARED",
+    "name": "w.mkt.share",
+  },
+  {
+    "human_name": "ЦПП «Стол Заказов» — членский взнос пайщика в программе",
     "kind": "USER_SHARED",
     "name": "w.mkt.member",
+  },
+  {
+    "human_name": "ЦПП «Стол Заказов» — непризнанные гарантийные претензии поставщику",
+    "kind": "USER_SHARED",
+    "name": "w.mkt.claim",
+  },
+  {
+    "human_name": "ЦПП «Стол Заказов» — признанный гарантийный долг поставщика к удержанию",
+    "kind": "USER_SHARED",
+    "name": "w.mkt.debt",
+  },
+  {
+    "human_name": "ЦПП «Стол Заказов» — к оплате поставщику за принятое имущество",
+    "kind": "USER_SHARED",
+    "name": "w.mkt.topay",
   },
   {
     "human_name": "Персональный кошелёк доверенного кооперативного участка",
@@ -121,6 +186,41 @@ exports[`ledger2 wallets registry (generated from C++) > LEDGER2_WALLET_REGISTRY
     "human_name": "Регистрационный взнос в ожидании решения совета",
     "kind": "USER_SHARED",
     "name": "w.reg.pend",
+  },
+  {
+    "human_name": "Пул расходов ЦПП «Образование»",
+    "kind": "COOPERATIVE",
+    "name": "w.edu.expns",
+  },
+  {
+    "human_name": "Фонд ЦПП «Образование»",
+    "kind": "COOPERATIVE",
+    "name": "w.edu.fund",
+  },
+  {
+    "human_name": "Взносы ЦПП «Образование», удержанные до конца гарантийного срока",
+    "kind": "COOPERATIVE",
+    "name": "w.edu.escrow",
+  },
+  {
+    "human_name": "Резерв выплат преподавателям ЦПП «Образование»",
+    "kind": "COOPERATIVE",
+    "name": "w.edu.teach",
+  },
+  {
+    "human_name": "ЦПП «Образование» — членский взнос пайщика за доступ к курсу",
+    "kind": "USER_SHARED",
+    "name": "w.edu.member",
+  },
+  {
+    "human_name": "ЦПП «Образование» — материалы преподавателя на ответственном хранении",
+    "kind": "USER_SHARED",
+    "name": "w.edu.hold",
+  },
+  {
+    "human_name": "ЦПП «Образование» — паевой взнос преподавателя по договору",
+    "kind": "USER_SHARED",
+    "name": "w.edu.share",
   },
   {
     "human_name": "ЦПП «Генератор» — единый кошелёк программы",

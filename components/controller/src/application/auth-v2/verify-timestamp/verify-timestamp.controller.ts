@@ -1,20 +1,13 @@
-import {
-  BadRequestException,
-  Body,
-  Controller,
-  HttpCode,
-  Post,
-  Req,
-  UseFilters,
-  UseGuards,
-} from '@nestjs/common';
-import type { Request } from 'express';
+import { Body, Controller, HttpCode, Post, Req, UseFilters, UseGuards, Res } from '@nestjs/common';
+import type { Request, Response } from 'express';
 import { AuthV2ExceptionFilter } from '../exceptions/auth-v2-exception.filter';
 import { AuthRateLimit } from '../rate-limit/auth-rate-limit.decorator';
 import { AuthRateLimitGuard } from '../rate-limit/auth-rate-limit.guard';
 import { LOGIN_IP_RULE } from '../rate-limit/auth-rate-limit.types';
 import { VerifyTimestampService } from './verify-timestamp.service';
 import type { VerifyTimestampOutcome } from './verify-timestamp.service';
+import { setSessionCookie } from '../session-cookie/session-cookie';
+import { DomainError } from '@coopenomics/extension-kit';
 
 const BINDING_COOKIE_NAME = 'coop_session_binding';
 
@@ -43,17 +36,21 @@ export class VerifyTimestampController {
   @UseGuards(AuthRateLimitGuard)
   // per-IP: аккаунт зашит в подписанном binding_token, до хендлера не извлекаем.
   @AuthRateLimit({ ip: LOGIN_IP_RULE })
-  async verifyTimestamp(@Body() body: VerifyTimestampBody, @Req() req: Request): Promise<VerifyTimestampOutcome> {
+  async verifyTimestamp(
+    @Body() body: VerifyTimestampBody,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response
+  ): Promise<VerifyTimestampOutcome> {
     const signature = body?.signature;
     const timestamp = body?.timestamp;
     const bindingToken = body?.binding_token ?? this.readBindingCookie(req);
 
     if (!signature || !timestamp || !bindingToken)
-      throw new BadRequestException('Требуются signature, timestamp и binding_token');
+      throw DomainError.badRequest('AUTH_V2_VERIFY_TIMESTAMP_FIELDS_REQUIRED');
 
     // AuthV2Error из сервиса пробрасывается контурному AuthV2ExceptionFilter
     // (Story 1.11) — единый маппинг код→HTTP/OAuth2.
-    return this.verifyService.verify({
+    const outcome = await this.verifyService.verify({
       signature,
       timestamp,
       bindingToken,
@@ -61,6 +58,9 @@ export class VerifyTimestampController {
       userAgent: req.headers['user-agent'] ?? null,
       acceptLanguage: req.headers['accept-language'] ?? null,
     });
+    // Вход состоялся (не вызов второго фактора) — cookie сессии для серверного рендера.
+    setSessionCookie(req, res, (outcome as { access_token?: string }).access_token);
+    return outcome;
   }
 
   private readBindingCookie(req: Request): string | undefined {

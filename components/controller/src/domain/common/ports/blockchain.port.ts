@@ -47,6 +47,14 @@ export interface ServedCooperative {
   status: string;
 }
 
+/** Итог самомиграции ключа узла. */
+export type OwnPlatformKeyResult =
+  | 'issued' // platform выпущен своим ключом
+  | 'exists' // platform уже есть
+  | 'no-key' // в хранилище узла нет активного ключа (установка не завершена)
+  | 'key-not-active' // ключ хранилища больше не подписывает как active — нужен новый ключ установки
+  | 'shared-active'; // в active не только ключ узла — закреплять без участия пайщика нельзя
+
 export interface BlockchainPort {
   initialize(username: string, wif: string): void;
   transact(actionOrActions: any | any[], broadcast?: boolean): Promise<any>;
@@ -81,6 +89,19 @@ export interface BlockchainPort {
   // Authentication related methods
   hasActiveKey(account: any, publicKey: string): boolean;
   /**
+   * Подписывает ли ключ как `active` аккаунта: ключ стоит в `active` напрямую
+   * либо в разрешении `platform`, которое входит в `active` вторым входом
+   * (ключ узла кооператива, registrator::setplatform). Только для приёма ключа
+   * узлом; вход пайщика сверяет ключ через hasActiveKey.
+   */
+  canSignAsActive(account: any, publicKey: string): boolean;
+  /**
+   * Самомиграция узла: закрепить свой активный ключ разрешением platform
+   * (registrator::setplatform своей подписью), чтобы смена ключа пайщика при
+   * восстановлении доступа не остановила узел. Идемпотентно.
+   */
+  ensureOwnPlatformKey(): Promise<OwnPlatformKeyResult>;
+  /**
    * Восстановить публичный ключ из COOPOS-native recoverable подписи (`SIG_K1_…`)
    * над utf8-сообщением. Зеркало клиентского `signMessage` (SDK signTimestamp,
    * Story 2.4): сервер собирает то же каноническое сообщение и восстанавливает
@@ -95,6 +116,12 @@ export interface BlockchainPort {
    * или он не single-key. Используется при сборке claim `coop_chain` сертификата.
    */
   getCertPublicKey(accountName: string): Promise<string | null>;
+  /**
+   * Единственный ключ именованного разрешения аккаунта — тем же строгим правилом,
+   * что и право заверения: один ключ, без делегирования. Так читаются служебные
+   * ключи сети — например, ключ подписи уведомлений card.coop на аккаунте АНО.
+   */
+  getPermissionPublicKey(accountName: string, permission: string): Promise<string | null>;
   /**
    * Публикует право заверения `cert` кооператива — строго один ключ без делегирования.
    * Подписывает сам кооператив своим действующим ключом. Вызывается при старте, когда
@@ -117,6 +144,21 @@ export interface BlockchainPort {
    * АНО, не владея её ключами).
    */
   publishEndorsement(endorsement: EndorsementRecord, signer?: string): Promise<void>;
+
+  /**
+   * Назначить кооперативу обслуживающего оператора (`registrator::setoperator`).
+   * Подписывает оператор — провайдер платформы, которому контракт разрешает это
+   * одному. Без оператора кооператив не попадает в обход заверений и остаётся с
+   * «Удостоверение не утверждено».
+   */
+  assignOperator(coopname: string, operator: string): Promise<void>;
+
+  /**
+   * Активные кооперативы реестра без оператора (пустой `parent_username`), кроме
+   * самого провайдера. Из них провайдер добирает тех, чьё событие активации
+   * прошло мимо назначения оператора.
+   */
+  getUnservedActiveCooperatives(provider: string): Promise<string[]>;
   /**
    * Вправе ли `steward` распоряжаться аккаунтом `account` — то есть указан ли он в
    * его распорядительных правах как аккаунт (делегирование по имени, не по ключу).
@@ -127,7 +169,14 @@ export interface BlockchainPort {
   changeKey(data: RegistratorContract.Actions.ChangeKey.IChangeKey): Promise<void>;
 
   // Powerup related methods
-  powerUp(username: string, quantity: string): Promise<void>;
+  /**
+   * Аренда вычислительных ресурсов из ликвидного AXON-баланса кооператива
+   * (подпись coopname@active). Возвращает on-chain transaction_id; бросает
+   * исключение при отказе — в т.ч. при нехватке AXON: тогда пакет докупит
+   * hub-cron Восхода через billing::converttoaxn подписью _provider
+   * (Epic 13 v5.1, решение @ant 2026-06-11).
+   */
+  powerUp(username: string, quantity: string): Promise<string>;
 
   // System installation methods
   addUser(data: RegistratorContract.Actions.AddUser.IAddUser): Promise<void>;

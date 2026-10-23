@@ -24,7 +24,7 @@ void soviet::editprog(eosio::name coopname, eosio::name username, uint64_t progr
   auto existing_program = programs.find(program_id);
   eosio::check(existing_program != programs.end(), "Программа не найдена.");
 
-  programs.modify(existing_program, coopname, [&](auto& pr) {
+  programs.modify(existing_program, RamPayer::of(programs, coopname), [&](auto& pr) {
     pr.draft_id = draft_id;
     pr.title = title;
     pr.announce = announce;

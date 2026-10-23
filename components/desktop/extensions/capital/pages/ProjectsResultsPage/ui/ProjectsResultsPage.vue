@@ -1,7 +1,7 @@
 <template lang="pug">
 //- Родитель «Результаты»: список на корне, деталь — child через router-view
 router-view(v-if='!isResultsRoot')
-.results-page-shell.column.flex-1.min-h-0.min-w-0.no-wrap(v-else)
+.results-page-shell.page-shell.column.flex-1.min-h-0.min-w-0.no-wrap(v-else)
   PageTabs(
     :tabs='tabs',
     :active-key='activeTab',
@@ -16,8 +16,8 @@ router-view(v-if='!isResultsRoot')
         :coopname='info.coopname',
         :current-username='username',
         :loading='isSegmentsLoading',
-        empty-title='Сейчас от вас ничего не требуется',
-        empty-body='Здесь появятся результаты, по которым идёт голосование или приёмка с вашим участием.',
+        :empty-title='$t("capital.projectsResultsPage.actionEmptyTitle")',
+        :empty-body='$t("capital.projectsResultsPage.actionEmptyBody")',
         @updated='reloadMySegments'
       )
 
@@ -28,8 +28,8 @@ router-view(v-if='!isResultsRoot')
         :coopname='info.coopname',
         :current-username='username',
         :loading='isSegmentsLoading',
-        empty-title='Результатов пока нет',
-        empty-body='Доли в объектах авторских прав появятся здесь после завершения работ по компонентам.',
+        :empty-title='$t("capital.projectsResultsPage.myResultsEmptyTitle")',
+        :empty-body='$t("capital.projectsResultsPage.myResultsEmptyBody")',
         @updated='reloadMySegments'
       )
 
@@ -41,8 +41,8 @@ router-view(v-if='!isResultsRoot')
         :current-username='username',
         :loading='isToSignLoading',
         show-owner,
-        empty-title='Актов на подпись нет',
-        empty-body='Здесь появятся акты приёма-передачи, подписанные пайщиками и ожидающие вашей подписи.',
+        :empty-title='$t("capital.projectsResultsPage.signEmptyTitle")',
+        :empty-body='$t("capital.projectsResultsPage.signEmptyBody")',
         @updated='reloadSegmentsToSign'
       )
 
@@ -54,22 +54,22 @@ router-view(v-if='!isResultsRoot')
         :current-username='username',
         :loading='isAllLoading',
         show-owner,
-        empty-title='Результатов пока нет',
-        empty-body='Здесь появятся доли участников в объектах авторских прав по всем компонентам кооператива.',
+        :empty-title='$t("capital.projectsResultsPage.allResultsEmptyTitle")',
+        :empty-body='$t("capital.projectsResultsPage.allResultsEmptyBody")',
         @updated='reloadAllSegments'
       )
 </template>
 
 <script lang="ts" setup>
-import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { CAPITAL_LIVE_TABLES } from 'app/extensions/capital/shared/lib/live';
 import { useRouter, useRoute } from 'vue-router';
 import { Zeus } from '@coopenomics/sdk';
 import { useSystemStore } from 'src/entities/System/model';
 import { useSessionStore } from 'src/entities/Session';
 import { PageTabs } from 'src/shared/ui/layout';
 import type { PageTab } from 'src/shared/ui/layout/PageTabs';
-import { useDataPoller } from 'src/shared/lib/composables';
-import { POLL_INTERVALS } from 'src/shared/lib/consts';
 import { ContributorResultsListWidget } from 'app/extensions/capital/widgets';
 import { api as SegmentApi } from 'app/extensions/capital/entities/Segment/api';
 import type { ISegment } from 'app/extensions/capital/entities/Segment/model';
@@ -77,6 +77,7 @@ import {
   getSegmentOwnerAction,
   isSegmentOnAcceptance,
 } from 'app/extensions/capital/shared/lib/segmentStatus';
+import { t } from '../../../i18n';
 
 type ResultsTab = 'pending' | 'mine' | 'sign' | 'all';
 
@@ -168,22 +169,22 @@ const tabs = computed<PageTab[]>(() => {
   const list: PageTab[] = [
     {
       key: 'pending',
-      label: 'На приёмке',
+      label: t('capital.projectsResultsPage.actionTabLabel'),
       count: pendingActionCount.value || undefined,
     },
-    { key: 'mine', label: 'Мои результаты' },
+    { key: 'mine', label: t('capital.projectsResultsPage.myResultsTabLabel') },
   ];
 
   if (isChairman.value) {
     list.push({
       key: 'sign',
-      label: 'На подпись',
+      label: t('capital.projectsResultsPage.signTabLabel'),
       count: segmentsToSign.value.length || undefined,
     });
   }
 
   if (canSeeAll.value) {
-    list.push({ key: 'all', label: 'Все результаты' });
+    list.push({ key: 'all', label: t('capital.projectsResultsPage.allResultsTabLabel') });
   }
 
   return list;
@@ -288,10 +289,9 @@ const reloadAll = async () => {
   ]);
 };
 
-const { start: startPoll, stop: stopPoll } = useDataPoller(reloadAll, {
-  interval: POLL_INTERVALS.MEDIUM,
-  immediate: false,
-});
+// Живой экран: перечитывается по ленте изменений Благороста вместо опроса по
+// таймеру (набор таблиц — shared/lib/live).
+useLiveReload(CAPITAL_LIVE_TABLES, reloadAll);
 
 onMounted(async () => {
   await reloadAll();
@@ -300,22 +300,10 @@ onMounted(async () => {
   if (!route.query.tab && !mySegments.value.length && canSeeAll.value) {
     selectTab('all');
   }
-  startPoll();
-});
-
-onBeforeUnmount(() => {
-  stopPoll();
 });
 </script>
 
 <style lang="scss" scoped>
-// Оболочка: табы на --p-canvas (глобальный .tabbar), контент на --p-surface
-.results-page-shell {
-  height: calc(100vh - var(--p-topbar-h));
-  max-height: calc(100vh - var(--p-topbar-h));
-  overflow: hidden;
-}
-
 .page-surface {
   background: var(--p-surface);
   overflow: auto;

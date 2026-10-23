@@ -1,0 +1,260 @@
+feature: cardcoop.registry-connect
+title: Подключение кооператива к сети карт (карта кооператора, Story 7.6)
+
+# Подключение кооператива к card.coop разложено на два акта по владению данными,
+# а не по церемонии (решение ant 31.08.2026: юридику обслуживает контур оператора
+# в mono, провайдер — только техника).
+#
+# Оператор сети знает юридический факт — кооператив принят решением в цепи
+# (`registrator::stcoopstatus → active`) — и объявляет card.coop допуск: имя и
+# наименование из записи цепи. Параметры установки (issuer, клиент, адреса)
+# существуют только у самого кооператива, и доносит их он сам при старте, когда
+# они изменились.
+#
+# Ключей доступа нет ни у одной из сторон: оба документа подписываются ключом
+# заверения и проверяются цепочкой признания до корня АНО. Секреты никто не
+# переносит руками.
+#
+# Живучесть — критерий приёмки story 7.6: недоступность card.coop не блокирует
+# ни активацию кооператива, ни старт контроллера. Недоставленное записывается и
+# повторяется.
+
+# Правка 24.09.2026 (C28-83): таймеры этой фичи помечены назначением
+# (// timing: backoff | schedule | timeout | debounce | throttle | ui) — это
+# законные повторы, расписания и пределы ожидания, а не паузы перед чтением.
+# Поведение и набор случаев прежние.
+
+# Правка 25.09.2026 (C28-80): повтор подключения к сети берёт адрес на момент
+# прохода, а не адрес первого старта — после смены адреса председателем повтор
+# больше не бьёт в старый до перезапуска узла.
+
+sources:
+  backend:
+    - components/controller/src/extensions/cardcoop/infrastructure/database/cardcoop-stores.ts
+    - components/controller/src/extensions/cardcoop/registry/**
+    - components/controller/src/extensions/cardcoop/infrastructure/records/cardcoop-connect-state.record.ts
+    - components/controller/src/extensions/cardcoop/infrastructure/records/cardcoop-operator-announcement.record.ts
+
+# Правка 2026-09-08 (прод): оператор догоняет допуски — на старте он объявляет их не только
+# по недоставленным записям журнала, но и всем активным кооперативам цепи. Причина: допуск
+# рождается из события `stcoopstatus`, а сеть активирована задолго до расширения, и у старых
+# кооперативов события не будет никогда; их подключение сеть отвергала с 403 «не допущен
+# оператором сети». Доставленное не повторяется, случаи ниже действительны как есть.
+#
+cases:
+  - id: cardcoop.registry.admission.side.backfill-active
+    level: backend
+    kind: side
+    scenario: >
+      Оператор запускается в сети, где кооперативы активированы задолго до появления
+      расширения: события `stcoopstatus` по ним уже прошли и не повторятся
+    expect: >
+      Допуск объявляется каждому активному кооперативу цепи, у которого в журнале нет
+      доставленной записи; заблокированные и ожидающие пропускаются, доставленное повторно
+      не отправляется, а недоступность цепи не мешает разобрать журнал
+    test: components/controller/tests/unit/cardcoop/cardcoop-registry.test.ts
+    api: components/api-tests/src/cardcoop/entry.test.ts
+    status: passing
+
+  - id: cc.connect.happy.01
+    level: backend
+    kind: happy
+    scenario: >
+      Установка кооператива с заданными реквизитами клиента card.coop стартует.
+    expect: >
+      на сеть уходит подписанный документ coop_connect с issuer, клиентом и
+      адресами приёмников расширения (уведомления и выдача анкеты)
+    test: components/controller/tests/unit/cardcoop/cardcoop-registry.test.ts
+    api: components/api-tests/src/cardcoop/entry.test.ts
+    status: passing
+
+  - id: cc.connect.happy.02
+    level: backend
+    kind: happy
+    scenario: >
+      Секрет клиента ротирован в развёртывании; контроллер перезапущен.
+    expect: >
+      изменившийся состав уезжает сам — ротация не требует участия людей;
+      неизменившийся состав повторно не отправляется
+    test: components/controller/tests/unit/cardcoop/cardcoop-registry.test.ts
+    external: unreachable
+    external_reason: "ротация секрета клиента — смена окружения узла и его перезапуск; через API не выполнить"
+    status: passing
+
+  - id: cc.connect.side.01
+    level: backend
+    kind: side
+    scenario: >
+      Реквизиты клиента card.coop не заданы (кооператив не подключается к сети).
+    expect: >
+      самоподключение честно пропускается с записью в журнал — пустой секрет в
+      реестр не уходит, старт кооператива не затронут
+    test: components/controller/tests/unit/cardcoop/cardcoop-registry.test.ts
+    external: unreachable
+    external_reason: "реквизиты клиента card.coop заданы окружением стенда: с ними проверяется подключение и вход по карте; узел без реквизитов в том же прогоне не получить"
+    status: passing
+
+  - id: cc.connect.break.01
+    level: backend
+    kind: break
+    scenario: >
+      card.coop недоступен в момент старта.
+    expect: >
+      старт кооператива не падает (NFR-3); неудача записана и следующий старт
+      повторяет доставку — она не запоминается как успех
+    test: components/controller/tests/unit/cardcoop/cardcoop-registry.test.ts
+    api: components/api-tests/src/cardcoop/entry.test.ts
+    status: passing
+
+  - id: cc.connect.happy.03
+    level: backend
+    kind: happy
+    scenario: >
+      Установка подключается к сети, зная собственное наименование из реквизитов.
+    expect: >
+      в coop_connect уезжает display_name; пустое или совпадающее с именем аккаунта
+      не отправляется — сеть оставляет имя, которое у неё уже есть (в цепи названия нет)
+    test: components/controller/tests/unit/cardcoop/cardcoop-registry.test.ts
+    api: components/api-tests/src/cardcoop/entry.test.ts
+    status: passing
+
+  - id: cc.connect.side.02
+    level: backend
+    kind: side
+    scenario: >
+      Сеть карт недоступна или не приняла подключение на старте.
+    expect: >
+      подключение повторяется по расписанию раз в четверть часа, пока не принято;
+      принятое с реквизитами клиента повторно не отправляется
+    test: components/controller/tests/unit/cardcoop/cardcoop-registry.test.ts
+    api: components/api-tests/src/cardcoop/entry.test.ts
+    status: passing
+
+  - id: cc.announce.happy.02
+    level: backend
+    kind: happy
+    scenario: >
+      Установка с флагом «я — оператор сети» стартует.
+    expect: >
+      оператор объявляет допуск самому себе (события активации у boot-кооператива не
+      бывает), доставленное второй раз не объявляется; без флага самодопуска нет.
+      Порядок на старте: допуски → подключение → повторы подключения
+    test: components/controller/tests/unit/cardcoop/cardcoop-registry.test.ts
+    api: components/api-tests/src/cardcoop/entry.test.ts
+    status: passing
+
+  - id: cc.announce.side.02
+    level: backend
+    kind: side
+    scenario: >
+      Установка кооператива voskhod без флага «я — оператор» в настройках.
+    expect: >
+      оператор сети определяется именем кооператива (NETWORK_OPERATOR_COOPNAME),
+      допуски объявляются без флага; поле скрыто из формы настроек (visible: false),
+      остаётся для тестового контура; чужой кооператив без флага молчит
+    test: components/controller/tests/unit/cardcoop/cardcoop-registry.test.ts
+    api: components/api-tests/src/cardcoop/entry.test.ts
+    status: passing
+
+  - id: cc.webhook-key.happy.01
+    level: backend
+    kind: happy
+    scenario: >
+      Установка оператора стартует; ключ уведомлений сети в цепи отсутствует или не тот (3B5-51).
+    expect: >
+      оператор берёт открытый ключ с GET /v1/webhooks/public-key сети и публикует его
+      updateauth разрешением cardcoop у ano (полномочие ano@active, подпись оператора по
+      делегированным правам) — до самоподключения; после pnpm run reboot ключ доезжает сам
+    test: components/controller/tests/unit/cardcoop/cardcoop-registry.test.ts
+    api: components/api-tests/src/cardcoop/entry.test.ts
+    status: passing
+
+  - id: cc.webhook-key.side.01
+    level: backend
+    kind: side
+    scenario: >
+      Ключ в цепи совпадает (в другом написании), установка не оператор, сеть не ответила,
+      ключа оператора нет.
+    expect: >
+      совпадающий ключ не переписывается; не оператор в цепь и в сеть не ходит; отказ сети и
+      отсутствие ключа — предупреждение в журнале, старт не падает
+    test: components/controller/tests/unit/cardcoop/cardcoop-registry.test.ts
+    api: components/api-tests/src/cardcoop/entry.test.ts
+    status: passing
+
+  - id: cc.announce.happy.01
+    level: backend
+    kind: happy
+    scenario: >
+      На установке оператора включён флаг «Я — оператор сети»; цепь записала
+      активацию кооператива.
+    expect: >
+      уходит подписанное объявление допуска с наименованием из записи цепи;
+      исход виден в журнале объявлений
+    test: components/controller/tests/unit/cardcoop/cardcoop-registry.test.ts
+    external: unreachable
+    external_reason: "активация и блокировка другого кооператива в цепи: на стенде один кооператив, второй через API не зарегистрировать"
+    status: passing
+
+  - id: cc.announce.side.01
+    level: backend
+    kind: side
+    scenario: >
+      Флаг оператора выключен; либо статус в событии — blocked или pending.
+    expect: >
+      установка молчит: событие цепи видят все, объявляет один, а блокировка —
+      рычаг оператора АНО в card.coop, не автоматика
+    test: components/controller/tests/unit/cardcoop/cardcoop-registry.test.ts
+    external: unreachable
+    external_reason: "активация и блокировка другого кооператива в цепи: на стенде один кооператив, второй через API не зарегистрировать"
+    status: passing
+
+  - id: cc.announce.break.01
+    level: backend
+    kind: break
+    scenario: >
+      card.coop лежал в момент активации кооператива; запись цепи о кооперативе
+      не прочиталась.
+    expect: >
+      активация не блокируется; недоставленное объявление повторяется на старте;
+      непрочитанное наименование заменяется именем аккаунта, а не задерживает
+      допуск
+    test: components/controller/tests/unit/cardcoop/cardcoop-registry.test.ts
+    external: unreachable
+    external_reason: "активация и блокировка другого кооператива в цепи: на стенде один кооператив, второй через API не зарегистрировать"
+    status: passing
+
+  - id: cc.connect.ui.01
+    level: ui
+    kind: happy
+    scenario: >
+      Два стенда: активация кооператива в ВОСХОДе доводит его до реестра
+      card.coop без ручных действий в АНО (критерий приёмки story 7.6).
+    expect: >
+      допуск объявлен оператором, параметры донесены кооперативом, вход через
+      кооператив работает
+    status: missing
+
+  - id: cc.reg.side.05
+    level: backend
+    kind: side
+    scenario: >
+      Параметры установки не менялись, но реквизиты клиента «Входа с CardCOOP» у
+      кооператива не осели (ответ потерялся либо запись заведена до story 9.2).
+    expect: >
+      подключение повторяется, несмотря на совпадение отпечатка: иначе вход по
+      карте молча не работал бы до следующей правки параметров
+    test: components/api-tests/src/cardcoop/entry.test.ts
+    status: written
+    note: >
+      Проверяется снаружи отдельным набором карты (02.10.2026, C28-85): подставная
+      сеть принимает подключение без реквизитов клиента, перезапуск расширения при
+      тех же параметрах шлёт подключение снова.
+
+# 2026-09-23 (EEA-6…EEA-9): тексты интерфейса, отказов и уведомлений фичи вынесены из
+# кода в словари i18n, отказы бэкенда переведены на DomainError с кодом — текст
+# и HTTP-статус ответа прежние. Сценарии фичи и её проверки не менялись.
+
+# 2026-10-02: внешние случаи карты кооператора идут отдельным набором (`stack.sh cardcoop`,
+# ветка-полигон ci/blackbox-cardcoop) против подставной сети карт и в общий прогон не
+# входят — решение владельца; интеграции с настоящей сетью карт нужен свой стенд.

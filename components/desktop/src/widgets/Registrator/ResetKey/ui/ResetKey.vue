@@ -4,7 +4,14 @@
     :account="account"
     :loading="loading"
     @submit="onSubmit"
-  />
+  >
+    <template #actions>
+      <AuthActions />
+    </template>
+    <template #footer>
+      <a class="auth-link" href="#" @click.prevent="goToSignIn">{{ $t('registrator.resetKey.backToSignIn') }}</a>
+    </template>
+  </ResetKeyForm>
 </template>
 
 <script setup lang="ts">
@@ -15,6 +22,8 @@ import { useResetKey } from 'src/features/User/ResetKey/model';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import type { IGeneratedAccount } from 'src/shared/lib/types/user';
 import ResetKeyForm from './ResetKeyForm.vue';
+import { AuthActions } from 'src/widgets/Registrator/AuthActions';
+import { t } from 'src/shared/i18n';
 
 const route = useRoute();
 const router = useRouter();
@@ -34,12 +43,16 @@ const account = ref<IGeneratedAccount | null>(
 
 const loading = ref(false);
 
+function goToSignIn(): void {
+  void router.push({ name: 'signin' });
+}
+
 async function onSubmit(): Promise<void> {
   if (!account.value || !token.value) return;
   loading.value = true;
   try {
     await resetKey({ token: token.value, public_key: account.value.public_key });
-    SuccessAlert('Ключ доступа успешно установлен');
+    SuccessAlert(t('registrator.resetKey.successMessage'));
     void router.push({ name: 'signin' });
   } catch (e) {
     FailAlert(e);

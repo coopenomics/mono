@@ -11,15 +11,21 @@
  * Необязательные могут отсутствовать: без них часть возможностей выключена.
  */
 import {
+  DESKTOP_GRANTS_REGISTRY_PORT,
   CHAIN_RESOURCES_PORT,
   LOGGER_PORT,
+  PROVIDER_TARIFF_PORT,
 } from '@coopenomics/innercoop';
 
 export const powerupPorts = {
   required: [
     CHAIN_RESOURCES_PORT,
+    DESKTOP_GRANTS_REGISTRY_PORT,
     LOGGER_PORT,
   ],
   optional: [
+    // Тариф у провайдера: суточная аренда на D тарифа. Без порта — на
+    // настройку расширения.
+    PROVIDER_TARIFF_PORT,
   ],
 };

@@ -13,6 +13,7 @@ import { ISSUE_PAGE_KEY } from '../../IssuePage/model/context'
 
 const ctx = inject(ISSUE_PAGE_KEY)
 if (!ctx) {
+  // i18n-ignore: внутренняя проверка контекста компонента — видит только разработчик
   throw new Error('IssueHistoryPage: отсутствует контекст IssuePage')
 }
 

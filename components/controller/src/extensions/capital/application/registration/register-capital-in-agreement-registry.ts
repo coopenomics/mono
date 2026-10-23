@@ -6,12 +6,65 @@ import {
   CAPITALIZATION_PROGRAM_KEY,
   GENERATION_PROGRAM_KEY,
   GENERATOR_AGREEMENT_TYPE,
+  GENERATOR_INTAKE_FORM_ID,
   GENERATOR_OFFER_AGREEMENT_ID,
 } from '../../constants/capital-agreement-ids';
+import {
+  GENERATOR_INTAKE_DESCRIPTION,
+  GENERATOR_INTAKE_TITLE,
+  generatorIntakeJsonSchema,
+} from './generator-intake.schema';
 import type { IConfig } from '../../capital-extension.module';
+import { isCapitalL1Complete } from '../onboarding/capital-l1';
 import { type IRegistrationRegistryPort,
   InnerAccountType,
 } from '@coopenomics/innercoop';
+import { t } from '../../i18n';
+
+/**
+ * Анкета «Генератора»: без сопроводительного письма заявку в программу ядро не
+ * примет. У «Благороста» анкеты нет — там участие имущественное.
+ *
+ * Через порт уходят данные, а не Zod-объект: JSON Schema с теми же описаниями
+ * полей, по которой ядро и форму построит, и ответ проверит.
+ */
+function registerGeneratorIntakeForm(port: IRegistrationRegistryPort): void {
+  port.registerIntakeForm({
+    id: GENERATOR_INTAKE_FORM_ID,
+    extension_name: CAPITAL_EXTENSION_NAME,
+    title: GENERATOR_INTAKE_TITLE,
+    description: GENERATOR_INTAKE_DESCRIPTION,
+    schema: generatorIntakeJsonSchema(),
+    applicable_account_types: [],
+    order: 1,
+  });
+}
+
+/** Программы участия capital: «Генерация» (с анкетой) и «Благорост». */
+function registerCapitalPrograms(port: IRegistrationRegistryPort): void {
+  port.registerProgram({
+    key: GENERATION_PROGRAM_KEY,
+    title: t('capital.agreementRegistry.generationProgram.title'),
+    description:
+      t('capital.agreementRegistry.generationProgram.description'),
+    applicable_account_types: [InnerAccountType.individual, InnerAccountType.entrepreneur],
+    agreement_ids: [GENERATOR_OFFER_AGREEMENT_ID],
+    intake_form_ids: [GENERATOR_INTAKE_FORM_ID],
+    order: 1,
+    extension_name: CAPITAL_EXTENSION_NAME,
+  });
+
+  port.registerProgram({
+    key: CAPITALIZATION_PROGRAM_KEY,
+    title: t('capital.agreementRegistry.capitalizationProgram.title'),
+    description:
+      t('capital.agreementRegistry.capitalizationProgram.description'),
+    applicable_account_types: [InnerAccountType.individual, InnerAccountType.entrepreneur],
+    agreement_ids: [BLAGOROST_OFFER_AGREEMENT_ID],
+    order: 2,
+    extension_name: CAPITAL_EXTENSION_NAME,
+  });
+}
 
 /**
  * Регистрация оферт и программ Capital в платформенном AgreementRegistry.
@@ -24,8 +77,9 @@ import { type IRegistrationRegistryPort,
  * Логика — Эпик 1.2 плана C28-10:
  *   • если L1-онбординг ещё не завершён (любой из 5 _done = false) —
  *     port не вызывается, реестр остаётся пустым для capital;
- *   • при завершённом L1 — две оферты (generator/blagorost) и две
- *     программы (generation/capitalization);
+ *   • при завершённом L1 — две оферты (generator/blagorost), анкета
+ *     «Генератора» (сопроводительное письмо) и две программы
+ *     (generation/capitalization);
  *   • идемпотентность гарантируется AgreementRegistryService.
  *
  * `resolveDocDataHash` — резолвер hash'а PrivateData параметров ЦПП,
@@ -39,14 +93,8 @@ export function registerCapitalInAgreementRegistry(
   extensionConfig: IConfig,
   resolveDocDataHash?: () => Promise<string | undefined>
 ): boolean {
-  const onboardingDone =
-    extensionConfig.onboarding_generator_program_template_done &&
-    extensionConfig.onboarding_generation_contract_template_done &&
-    extensionConfig.onboarding_generator_offer_template_done &&
-    extensionConfig.onboarding_blagorost_provision_done &&
-    extensionConfig.onboarding_blagorost_offer_template_done;
-
-  if (!onboardingDone) {
+  // Без параметров положений оферту вступающему не собрать — ждём и их.
+  if (!isCapitalL1Complete(extensionConfig)) {
     return false;
   }
 
@@ -54,9 +102,9 @@ export function registerCapitalInAgreementRegistry(
     id: GENERATOR_OFFER_AGREEMENT_ID,
     registry_id: Cooperative.Registry.GeneratorOffer.registry_id,
     agreement_type: GENERATOR_AGREEMENT_TYPE,
-    title: 'Оферта по целевой потребительской программе "Генератор"',
-    checkbox_text: 'Я прочитал и принимаю',
-    link_text: 'оферту по целевой потребительской программе "Генератор"',
+    title: t('capital.agreementRegistry.generatorOffer.title'),
+    checkbox_text: t('capital.agreementRegistry.generatorOffer.checkboxText'),
+    link_text: t('capital.agreementRegistry.generatorOffer.linkText'),
     applicable_account_types: [],
     order: 6,
     extension_name: CAPITAL_EXTENSION_NAME,
@@ -67,9 +115,9 @@ export function registerCapitalInAgreementRegistry(
     id: BLAGOROST_OFFER_AGREEMENT_ID,
     registry_id: Cooperative.Registry.BlagorostOffer.registry_id,
     agreement_type: BLAGOROST_AGREEMENT_TYPE,
-    title: 'Оферта по целевой потребительской программе "Благорост"',
-    checkbox_text: 'Я прочитал и принимаю',
-    link_text: 'оферту по целевой потребительской программе "Благорост"',
+    title: t('capital.agreementRegistry.blagorostOffer.title'),
+    checkbox_text: t('capital.agreementRegistry.blagorostOffer.checkboxText'),
+    link_text: t('capital.agreementRegistry.blagorostOffer.linkText'),
     // applicable_account_types: пусто — оферта подтягивается ТОЛЬКО через
     // программу CAPITALIZATION (agreement_ids ниже), не как дефолтная
     // для individual. Иначе при выборе GENERATION бэк попытался бы
@@ -82,27 +130,9 @@ export function registerCapitalInAgreementRegistry(
     resolve_doc_data_hash: resolveDocDataHash,
   });
 
-  port.registerProgram({
-    key: GENERATION_PROGRAM_KEY,
-    title: 'Программа Генерация',
-    description:
-      'Участвовать в производстве Кооперативной Экономики через паевой взнос временем, имуществом или деньгами в конкретные проекты.',
-    applicable_account_types: [InnerAccountType.individual, InnerAccountType.entrepreneur],
-    agreement_ids: [GENERATOR_OFFER_AGREEMENT_ID],
-    order: 1,
-    extension_name: CAPITAL_EXTENSION_NAME,
-  });
+  registerGeneratorIntakeForm(port);
 
-  port.registerProgram({
-    key: CAPITALIZATION_PROGRAM_KEY,
-    title: 'Программа Благорост',
-    description:
-      'Участвовать в производстве Кооперативной Экономики через паевой взнос имуществом или денег в систему. Минимальный паевой взнос 100 000 руб в течение 14 дней.',
-    applicable_account_types: [InnerAccountType.individual, InnerAccountType.entrepreneur],
-    agreement_ids: [BLAGOROST_OFFER_AGREEMENT_ID],
-    order: 2,
-    extension_name: CAPITAL_EXTENSION_NAME,
-  });
+  registerCapitalPrograms(port);
 
   return true;
 }

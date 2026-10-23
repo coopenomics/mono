@@ -2,13 +2,12 @@ import { Inject, Injectable } from '@nestjs/common';
 import { DistributionManagementInteractor } from '../use-cases/distribution-management.interactor';
 import type { FundProgramInputDTO } from '../dto/distribution_management/fund-program-input.dto';
 import type { RefreshProgramInputDTO } from '../dto/distribution_management/refresh-program-input.dto';
-import { GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO, GenerateDocumentInputDTO } from '@coopenomics/extension-kit';
+import { CurrencyValidationUtil, GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO } from '@coopenomics/extension-kit';
 import { GenerationConvertStatementGenerateDocumentInputDTO } from '../documents-dto/generation-convert-statement-document.dto';
+import type { ShareTransferStatementGenerateDocumentInputDTO } from '../documents-dto/share-transfer-statement-document.dto';
 import { Cooperative } from 'cooptypes';
-import type { IMonoAccount } from '@coopenomics/innercoop';
-import { DOCUMENT_PORT, type IDocumentPort,
-  type InnerTransactResult,
-} from '@coopenomics/innercoop';
+import { t } from '../../i18n';
+import { DOCUMENT_PORT, type IDocumentPort, type IMonoAccount, type InnerTransactResult } from '@coopenomics/innercoop';
 
 /**
  * Сервис уровня приложения для управления распределением в CAPITAL
@@ -60,12 +59,15 @@ export class DistributionManagementService {
   }
 
   /**
-   * Генерация заявления о конвертации из благороста в основной кошелек
+   * Генерация заявления о трансляции паевого взноса из Благороста в Цифровой
+   * Кошелёк (1090) на сумму, которую назвал пайщик. Генерация денег не
+   * двигает: трансляцию проводит `capitalTransferShare` под правом доступа.
    */
   async generateCapitalizationToMainWalletConvertStatement(
-    data: GenerateDocumentInputDTO,
+    data: ShareTransferStatementGenerateDocumentInputDTO,
     options: GenerateDocumentOptionsInputDTO
   ): Promise<GeneratedDocumentDTO> {
+    CurrencyValidationUtil.validateCurrencySymbol(data.amount, t('capital.currencyField.shareTransferAmount'));
     const document = await this.documentPort.generate({
       data: {
         ...data,

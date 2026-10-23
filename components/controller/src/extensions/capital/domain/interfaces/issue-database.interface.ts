@@ -15,6 +15,8 @@ export interface IIssueDatabaseData extends IBaseDatabaseData {
   status: IssueStatus; // Статус задачи
   estimate: number; // Оценка в story points или часах
   sort_order: number; // Порядок сортировки
+  /** Редакция содержимого (title/description). */
+  content_rev?: number;
   created_by: string; // Имя пользователя, создавшего задачу
   creators: string[]; // Массив имен пользователей создателей (contributors)
   submaster?: string; // Имя пользователя ответственного (contributor)

@@ -3,18 +3,19 @@ import type { IMeet } from 'src/entities/Meet'
 import moment from 'src/shared/lib/utils/dates/moment'
 import { BASIC_STATUS_MAP, EXTENDED_STATUS_MAP, SPECIAL_STATUSES } from 'src/shared/lib/consts'
 import { formatDateToLocalTimezone, formatDateFromNow } from 'src/shared/lib/utils/dates/timezone'
+import { t } from 'src/shared/i18n';
 
 export function useMeetStatus(meet: IMeet | null) {
   // Базовый статус собрания
   const basicStatus = computed(() => {
-    if (!meet?.processing?.meet?.status) return 'Неизвестный статус'
-    return BASIC_STATUS_MAP[meet.processing.meet.status] || 'Неизвестный статус'
+    if (!meet?.processing?.meet?.status) return t('composables.useMeetStatus.unknownStatus')
+    return BASIC_STATUS_MAP[meet.processing.meet.status] || t('composables.useMeetStatus.unknownStatus')
   })
 
   // Расширенный статус собрания
   const extendedStatus = computed(() => {
-    if (!meet?.processing?.extendedStatus) return 'Неизвестный статус'
-    return EXTENDED_STATUS_MAP[meet.processing.extendedStatus] || 'Неизвестный статус'
+    if (!meet?.processing?.extendedStatus) return t('composables.useMeetStatus.unknownStatus')
+    return EXTENDED_STATUS_MAP[meet.processing.extendedStatus] || t('composables.useMeetStatus.unknownStatus')
   })
 
   // Даты собрания в локальном часовом поясе
@@ -58,13 +59,13 @@ export function useMeetStatus(meet: IMeet | null) {
     const now = moment()
 
     if (now.isBefore(openMoment)) {
-      return `Собрание начнется ${formatDateFromNow(meet.processing.meet.open_at)}`
+      return t('composables.useMeetStatus.willStart', { startsAt: formatDateFromNow(meet.processing.meet.open_at) })
     } else {
       // Проверяем, закончилось ли уже собрание
       if (isVotingEnded.value) {
         return relativeCloseTime.value
       }
-      return `Собрание началось ${formatDateFromNow(meet.processing.meet.open_at)}`
+      return t('composables.useMeetStatus.started', { startedAt: formatDateFromNow(meet.processing.meet.open_at) })
     }
   })
 
@@ -75,9 +76,9 @@ export function useMeetStatus(meet: IMeet | null) {
     const now = moment()
 
     if (now.isBefore(closeMoment)) {
-      return `Собрание завершится ${formatDateFromNow(meet.processing.meet.close_at)}`
+      return t('composables.useMeetStatus.willClose', { closesAt: formatDateFromNow(meet.processing.meet.close_at) })
     } else {
-      return `Собрание завершилось ${formatDateFromNow(meet.processing.meet.close_at)}`
+      return t('composables.useMeetStatus.closed', { closedAt: formatDateFromNow(meet.processing.meet.close_at) })
     }
   })
 

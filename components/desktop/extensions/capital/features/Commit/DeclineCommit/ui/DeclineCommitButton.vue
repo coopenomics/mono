@@ -5,28 +5,28 @@ div
     :size='mini || isMobile ? "sm" : "md"',
     :loading='loading',
     @click.stop='showDialog = true'
-  ) Отклонить
+  ) {{ $t('capital.declineCommitButton.title') }}
 
   BaseDialog(
     v-model='showDialog',
-    title='Отклонить коммит',
+    :title='$t("capital.declineCommitButton.buttonTitle")',
     size='md',
     @update:model-value='(v) => !v && clear()'
   )
     Form.q-pa-md(
       :handler-submit='handleDeclineCommit',
       :is-submitting='isSubmitting',
-      :button-submit-txt='"Отклонить"',
-      :button-cancel-txt='"Отмена"',
+      :button-submit-txt='$t("capital.declineCommitButton.title")',
+      :button-cancel-txt='$t("common.action.cancel")',
       @cancel='clear'
     )
       q-input(
         v-model='reason',
         outline
-        label='Причина отклонения',
-        :rules='[(val) => !!val || "Причина обязательна"]',
+        :label='$t("capital.declineCommitButton.reasonLabel")',
+        :rules='[(val) => !!val || $t("capital.declineCommitButton.reasonRequired")]',
         autocomplete='off'
-        placeholder='Укажите причину отклонения...'
+        :placeholder='$t("capital.declineCommitButton.reasonPlaceholder")'
         type='textarea'
         rows='3'
       )
@@ -41,6 +41,7 @@ import { BaseDialog } from 'src/shared/ui/base/BaseDialog';
 import { BaseButton } from 'src/shared/ui/base';
 import { Form } from 'src/shared/ui/Form';
 import { useWindowSize } from 'src/shared/hooks';
+import { t } from '../../../../i18n';
 
 const { isMobile } = useWindowSize();
 const props = defineProps<{
@@ -72,7 +73,7 @@ const handleDeclineCommit = async () => {
     };
 
     await declineCommit(declineData);
-    SuccessAlert('Коммит успешно отклонен');
+    SuccessAlert(t('capital.declineCommitButton.success'));
     clear();
   } catch (error) {
     FailAlert(error);

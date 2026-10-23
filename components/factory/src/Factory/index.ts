@@ -5,8 +5,9 @@ import { DraftContract, SovietContract } from 'cooptypes'
 import type { IBankAccount, ICombinedData, IGeneratedDocument, IMetaDocument, IMetaDocumentPartial, ITemplate, ITranslations, externalDataTypes } from '../Interfaces'
 import type { MongoDBConnector } from '../Services/Databazor'
 import { type ExternalEntrepreneurData, type ExternalIndividualData, type ExternalOrganizationData, type IVars, Individual, type InternalProjectData, Organization, PaymentMethod, Project, Vars } from '../Models'
-import type { IGenerate, IGenerationOptions } from '../Interfaces/Documents'
+import type { IGenerate, IGenerateBlank, IGeneratedBlank, IGenerationOptions } from '../Interfaces/Documents'
 import { PDFService } from '../Services/Generator'
+import { BLANK_PLACEHOLDER } from '../Services/Templator'
 import { DocDataService } from '../Services/DocData'
 import packageJson from '../../package.json'
 import { Validator } from '../Services/Validator'
@@ -14,6 +15,7 @@ import type { CooperativeData } from '../Models/Cooperative'
 import { Cooperative as CooperativeModel } from '../Models/Cooperative'
 import { Entrepreneur } from '../Models/Entrepreneur'
 import { getCurrentBlock } from '../Utils/getCurrentBlock'
+import { DEFAULT_DOCUMENT_TIMEZONE, formatCreatedAt, nowCreatedAt, parseCreatedAt, splitCreatedAt } from '../Utils/documentCreatedAt'
 import type { IOrganizationData } from '..'
 import { formatDateTime } from '../Utils'
 import type { IChainDataSource } from '../DataSource'
@@ -84,6 +86,50 @@ export abstract class DocFactory<T extends IGenerate> {
       result[key as keyof T] = values[index]
     })
     return result
+  }
+
+  /**
+   * Бланк документа: шаблон из цепи с реквизитами кооператива, а всё, что
+   * известно только в момент события (пайщик, суммы, платёжные данные), —
+   * прочерком. Совет утверждает форму документа, а не его экземпляр, и форма
+   * любого документа реестра собирается одним и тем же путём — без данных,
+   * которых у совета нет. Дата бланка тоже прочерк: форма не зависит от дня,
+   * когда её открыли, и отпечаток её текста устойчив.
+   */
+  async generateBlank(data: IGenerateBlank): Promise<IGeneratedBlank> {
+    const { template, coop, vars, docData } = await this.resolveParallel({
+      template: () => this.getTemplate<unknown>(DraftContract.contractName.production, data.registry_id, data.block_num),
+      coop: () => this.getCooperative(data.coopname, data.block_num),
+      vars: () => this.getVars(data.coopname, data.block_num),
+      docData: () => this.loadDocData<Record<string, unknown>>(data),
+    })
+
+    const meta: IMetaDocument = await this.getMeta({
+      title: template.title,
+      coopname: data.coopname,
+      username: data.coopname,
+      registry_id: data.registry_id,
+      ...(data.block_num ? { block_num: data.block_num } : {}),
+      ...(data.lang ? { lang: data.lang } : {}),
+    })
+    const blankMeta: IMetaDocument = { ...meta, created_at: BLANK_PLACEHOLDER }
+
+    const model = template.model as unknown as { properties?: Record<string, unknown> } | undefined
+    const knownKeys = Object.keys(model?.properties ?? {})
+    const translation = template.translations[blankMeta.lang]
+    if (!translation)
+      throw new Error(`Перевод шаблона ${data.registry_id} на язык ${blankMeta.lang} не найден`)
+
+    // Форма заявления ветвится по типу пайщика: физлицо, ИП, организация —
+    // отличаются только реквизиты подписанта. Бланк собирается для физлица:
+    // это основная форма, иначе документ с ветвлением остался бы пустым.
+    const subject = knownKeys.includes('type') ? { type: 'individual' } : {}
+    // Параметры программы (условия ЦПП) совет утверждает вместе с текстом:
+    // по хэшу они подставляются в бланк, без хэша остаются прочерком.
+    const params = docData ? { doc_data: docData } : {}
+    const html = new PDFService().renderBlankHtml(template.context, { ...subject, ...params, meta: blankMeta, created_at: BLANK_PLACEHOLDER, coop, vars }, translation, knownKeys)
+
+    return { title: template.title, html, meta: blankMeta }
   }
 
   async validate(combinedData: ICombinedData, schema: any) {
@@ -229,7 +275,7 @@ export abstract class DocFactory<T extends IGenerate> {
     }
   }
 
-  async getGeneralMeetingDecision(meet: Interfaces.Meet.IMeet, created_at: string): Promise<Cooperative.Document.IDecisionData> {
+  async getGeneralMeetingDecision(meet: Interfaces.Meet.IMeet, created_at: string, timezone: string): Promise<Cooperative.Document.IDecisionData> {
     /**
      * Создаем данные решения общего собрания на основе данных собрания.
      * В отличие от getDecision (для решений совета), здесь используются данные кворума из IMeet.
@@ -243,7 +289,7 @@ export abstract class DocFactory<T extends IGenerate> {
     const votes_against = 0 // Будет заполнено в questions
     const votes_abstained = 0 // Будет заполнено в questions
 
-    const [date, time] = created_at.split(' ')
+    const { date, time } = splitCreatedAt(created_at, timezone)
 
     return {
       id: Number(meet.id),
@@ -256,7 +302,7 @@ export abstract class DocFactory<T extends IGenerate> {
     }
   }
 
-  async getDecision(coop: CooperativeData, coopname: string, decision_id: number, created_at: string): Promise<Cooperative.Document.IDecisionData> {
+  async getDecision(coop: CooperativeData, coopname: string, decision_id: number, created_at: string, timezone: string): Promise<Cooperative.Document.IDecisionData> {
     /**
      * Мы здесь извлекаем голоса из действий, а не из дельт таблиц т.к. в случае использования дельт возможна исключительная ситуация,
      * когда за решение принимаются голоса и происходит утверждение из дальнейшим удалением объекта из памяти в одном блоке, то
@@ -293,9 +339,12 @@ export abstract class DocFactory<T extends IGenerate> {
     const total_voters = votes_for + votes_against
     const votes_abstained = total_members - total_voters
 
-    const voters_percent: number = Number.parseFloat((total_voters / total_members * 100).toFixed(0))
+    // Заседание совета заочное: повестку получают все члены совета, и все они участвуют в заседании. Кто не проголосовал,
+    // записан воздержавшимся, поэтому участников столько же, сколько членов совета, и кворум составляет 100 %.
+    const participants = total_voters + votes_abstained
+    const voters_percent: number = Number.parseFloat((participants / total_members * 100).toFixed(0))
 
-    const [date, time] = created_at.split(' ')
+    const { date, time } = splitCreatedAt(created_at, timezone)
 
     return {
       id: decision_id,
@@ -333,9 +382,11 @@ export abstract class DocFactory<T extends IGenerate> {
 
     // Парсим мета-данные и извлекаем created_at
     let decisionCreatedAt: string
+    let decisionTimezone: string
     try {
       const meta = JSON.parse(authorizationDoc.meta || '{}')
       decisionCreatedAt = meta.created_at
+      decisionTimezone = meta.timezone || DEFAULT_DOCUMENT_TIMEZONE
 
       if (!decisionCreatedAt) {
         throw new Error('Поле created_at не найдено в мета-данных авторизации')
@@ -346,7 +397,7 @@ export abstract class DocFactory<T extends IGenerate> {
     }
 
     // Используем обычный метод getDecision с правильной датой создания решения
-    return this.getDecision(coop, coopname, decision_id, decisionCreatedAt)
+    return this.getDecision(coop, coopname, decision_id, decisionCreatedAt, decisionTimezone)
   }
 
   async getMeet(coopname: string, meet_hash: string, block_num?: number): Promise<Cooperative.Model.IMeetExtended> {
@@ -519,12 +570,36 @@ export abstract class DocFactory<T extends IGenerate> {
     translation: ITranslations,
     meta: IMetaDocument,
     skip_save: boolean = false,
+    skip_pdf: boolean = false,
   ): Promise<IGeneratedDocument> {
     const pdfService = new PDFService()
-    const document: IGeneratedDocument = await pdfService.generateDocument(context, vars, translation, meta)
+
+    // Шаблон показывает дату человеку переменной `created_at`, а мета хранит
+    // момент генерации в ISO: вид для человека собирается только здесь.
+    const displayCreatedAt = formatCreatedAt(meta.created_at, meta.timezone)
+    const renderVars: ICombinedData = { ...vars, created_at: displayCreatedAt }
+    // Редакция, утверждённая советом до 28.09.2026, собирается текстом того
+    // времени и выводит дату как `meta.created_at`. Только ей мета для показа
+    // даётся с датой в виде для человека; сохраняется и подписывается мета с ISO.
+    if (context.includes('meta.created_at'))
+      renderVars.meta = { ...meta, created_at: displayCreatedAt }
+
+    /**
+     * skip_pdf — документ нужен только для показа на экране. Собираем HTML тем
+     * же движком подстановки и пропускаем weasyprint: без PDF нет и хэша,
+     * поэтому такой документ не сохраняется ни при каком skip_save — сохранить
+     * его значило бы завести в базе черновик, который нечем подписать.
+     */
+    if (skip_pdf) {
+      const html = pdfService.renderHtml(context, renderVars, translation)
+
+      return { full_title: '', html, hash: '', binary: new Uint8Array(), meta }
+    }
+
+    const document: IGeneratedDocument = await pdfService.generateDocument(context, renderVars, translation, meta)
     const full_name = this.getFullName(data)
 
-    document.full_title = `${document.meta.title} - ${full_name} - ${document.meta.created_at}.pdf`
+    document.full_title = `${document.meta.title} - ${full_name} - ${displayCreatedAt}.pdf`
 
     if (!skip_save)
       await this.saveDraft(document)
@@ -596,7 +671,7 @@ export abstract class DocFactory<T extends IGenerate> {
 
   parseDateForAgreements(created_at: string, timezone: string): { day: string, month: string, year: string } {
     const dateWithTimezone = created_at
-      ? moment.tz(created_at, 'DD.MM.YYYY HH:mm', timezone)
+      ? parseCreatedAt(created_at, timezone)
       : moment.tz(timezone)
 
     return {
@@ -663,21 +738,21 @@ export abstract class DocFactory<T extends IGenerate> {
     version = packageVersion, // TODO перенести в .env
     created_at,
     block_num,
-    timezone = 'Europe/Moscow', // TODO перенести в .env
+    timezone = DEFAULT_DOCUMENT_TIMEZONE, // TODO перенести в .env
     ...restParams
   }: T): Promise<IMetaDocument> {
-    let dateWithTimezone
-
     if (!title)
       throw new Error('Заголовок документа должен быть установлен')
 
     if (!registry_id)
       throw new Error('Параметр номера документа в реестре должен быть передан')
 
+    // Дата приходит снаружи только при перегенерации документа — она берётся
+    // как есть, чтобы мета и хэш совпали с исходными; непонятную дату разбор
+    // отвергает. Новая генерация пишет момент в ISO до миллисекунд.
     if (created_at)
-      dateWithTimezone = moment.tz(created_at, 'DD.MM.YYYY HH:mm', timezone).format('DD.MM.YYYY HH:mm').toString()
-    else
-      dateWithTimezone = moment.tz(timezone).format('DD.MM.YYYY HH:mm').toString()
+      parseCreatedAt(created_at, timezone)
+    const createdAt = created_at || nowCreatedAt()
 
     if (!block_num)
       block_num = await getCurrentBlock()
@@ -691,7 +766,7 @@ export abstract class DocFactory<T extends IGenerate> {
       version,
       coopname,
       username,
-      created_at: dateWithTimezone,
+      created_at: createdAt,
       block_num,
       timezone,
       ...restParams,
@@ -721,14 +796,23 @@ export abstract class DocFactory<T extends IGenerate> {
     return this.truncateDecimal(parsed.toFixed(precision + 4), precision)
   }
 
-  public formatAsset(asset: string, precision: number = 2): string {
-    if (!asset)
+  /**
+   * Сумма для текста документа — единственный способ писать деньги: два знака
+   * после точки, остальное отсекается. Принимает сумму с символом валюты
+   * («300.0000 RUB» → «300.00 RUB») и голое число («300.0000» → «300.00») —
+   * второе нужно шаблонам, где валюта стоит в подписи колонки. Строку иного
+   * вида (уже оформленную человеком) отдаёт как есть.
+   */
+  public formatAsset(asset: string | number, precision: number = 2): string {
+    if (asset === undefined || asset === null || asset === '')
       return ''
-    const match = asset.match(/^(\d+\.\d+)\s+([A-Z]+)$/)
+    const text = String(asset).trim()
+    const match = text.match(/^(-?\d+(?:\.\d+)?)(?:\s+([A-Z]+))?$/)
     if (!match)
-      return asset
+      return text
     const [, amount, symbol] = match
-    return `${this.truncateDecimal(amount, precision)} ${symbol}`
+    const value = this.truncateDecimal(amount, precision)
+    return symbol ? `${value} ${symbol}` : value
   }
 
   public formatPaymentDetails(paymentMethod: any, recipientName: string): string {

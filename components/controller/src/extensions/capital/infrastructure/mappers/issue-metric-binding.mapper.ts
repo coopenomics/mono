@@ -1,9 +1,9 @@
 import { IssueMetricBindingDomainEntity } from '../../domain/entities/issue-metric-binding.entity';
 import type { IIssueMetricBindingDatabaseData } from '../../domain/interfaces/issue-metric-binding-database.interface';
-import { IssueMetricBindingTypeormEntity } from '../entities/issue-metric-binding.typeorm-entity';
+import { IssueMetricBindingRecord } from '../entities/issue-metric-binding.record';
 
 export class IssueMetricBindingMapper {
-  static toDomain(entity: IssueMetricBindingTypeormEntity): IssueMetricBindingDomainEntity {
+  static toDomain(entity: IssueMetricBindingRecord): IssueMetricBindingDomainEntity {
     const databaseData: IIssueMetricBindingDatabaseData = {
       _id: entity._id,
       issue_hash: entity.issue_hash,
@@ -18,7 +18,7 @@ export class IssueMetricBindingMapper {
     return new IssueMetricBindingDomainEntity(databaseData);
   }
 
-  static toEntity(domain: IssueMetricBindingDomainEntity): Partial<IssueMetricBindingTypeormEntity> {
+  static toEntity(domain: IssueMetricBindingDomainEntity): Partial<IssueMetricBindingRecord> {
     return {
       _id: domain._id,
       issue_hash: domain.issue_hash,

@@ -8,6 +8,8 @@ import { AppStoreModule } from '~/application/appstore/appstore-app.module';
   imports: [AppStoreModule],
   controllers: [],
   providers: [DesktopDomainInteractor, DesktopService, DesktopResolver],
-  exports: [],
+  // DesktopService нужен серверному рендеру (SsrContextModule): стол пайщика
+  // собирается на сервере по cookie сессии, без обращения через GraphQL.
+  exports: [DesktopService],
 })
 export class DesktopModule {}

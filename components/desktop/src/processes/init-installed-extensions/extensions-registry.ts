@@ -2,6 +2,7 @@ import type { IWorkspaceConfig } from 'src/shared/lib/types/workspace';
 
 // Импортируем все функции установки расширений
 import capitalInstall from '../../../extensions/capital/install';
+import cashierInstall from '../../../extensions/cashier/install';
 import chairmanInstall from '../../../extensions/chairman/install';
 import chatcoopInstall from '../../../extensions/chatcoop/install';
 import expensesInstall from '../../../extensions/expenses/install';
@@ -16,6 +17,8 @@ import reportsInstall from '../../../extensions/reports/install';
 import developerInstall from '../../../extensions/developer/install';
 import publisherInstall from '../../../extensions/publisher/install';
 import marketInstall from '../../../extensions/market/install';
+import edubridgeInstall from '../../../extensions/edubridge/install';
+import robotInstall from '../../../extensions/robot/install';
 
 /**
  * Единый регистр всех доступных расширений
@@ -23,6 +26,7 @@ import marketInstall from '../../../extensions/market/install';
  */
 export const extensionsRegistry: Record<string, () => Promise<IWorkspaceConfig[]>> = {
   capital: capitalInstall,
+  cashier: cashierInstall,
   chairman: chairmanInstall,
   chatcoop: chatcoopInstall,
   expenses: expensesInstall,
@@ -34,6 +38,8 @@ export const extensionsRegistry: Record<string, () => Promise<IWorkspaceConfig[]
   developer: developerInstall,
   publisher: publisherInstall,
   market: marketInstall,
+  edubridge: edubridgeInstall,
+  robot: robotInstall,
 };
 
 /**

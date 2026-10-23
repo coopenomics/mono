@@ -4,7 +4,7 @@
 //- (AttachPaymentProofPanel по payment_hash) — здесь остаётся expense-специфика.
 .attach-proof(v-if='isDirect')
   .attach-proof__section
-    .t-sm.t-muted Закрывающие документы (акт, счёт-фактура, накладная)
+    .t-sm.t-muted {{ $t('payment.attachExpenseProofPanel.sectionTitle') }}
     .files(v-if='closingFiles.length')
       button.file-link(
         v-for='file in closingFiles',
@@ -16,18 +16,22 @@
         q-icon(name='attach_file', size='16px')
         span {{ fileLabel(file) }}
         q-spinner(v-if='openingId === file.id', size='14px')
+    //- Без права правки (совет, ревизор) — только просмотр приложенного.
     FileUploader(
+      v-if='!readonly',
       v-model='pendingClosing',
       accept='image/jpeg,image/png,image/webp,image/heic,application/pdf',
       :max-size='20 * 1024 * 1024',
-      title='Приложите закрывающий документ',
-      hint='Можно несколько — каждый отправится сразу',
+      :title='$t("payment.attachExpenseProofPanel.uploadTitle")',
+      :hint='$t("payment.attachExpenseProofPanel.uploadHint")',
       :disabled='uploading'
     )
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { uiLocale, t } from 'src/shared/i18n';
 import { readFileForUpload } from 'src/shared/lib/utils';
 import { Zeus } from '@coopenomics/sdk';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
@@ -38,6 +42,8 @@ import { api, type IExpenseFile } from '../api';
 const props = defineProps<{
   proposalHash: string;
   itemHash: string;
+  /** Только просмотр: загрузка документов скрыта. */
+  readonly?: boolean;
 }>();
 
 const system = useSystemStore();
@@ -65,8 +71,8 @@ async function refresh(): Promise<void> {
 
 function fileLabel(file: IExpenseFile): string {
   if (file.original_filename) return file.original_filename;
-  const date = file.uploaded_at ? new Date(String(file.uploaded_at)).toLocaleString('ru-RU') : '';
-  return `Документ от ${date}`;
+  const date = file.uploaded_at ? new Date(String(file.uploaded_at)).toLocaleString(uiLocale()) : '';
+  return t('payment.attachExpenseProofPanel.documentFromLabel', { date });
 }
 
 const openingId = ref<number | null>(null);
@@ -74,7 +80,7 @@ async function openFile(file: IExpenseFile): Promise<void> {
   try {
     openingId.value = file.id;
     const url = await api.getExpenseFileReadUrl(file.id);
-    if (!url) throw new Error('Не удалось получить ссылку на файл');
+    if (!url) throw new Error(t('payment.error.fileLinkError'));
     window.open(url, '_blank', 'noopener');
   } catch (e) {
     FailAlert(e);
@@ -93,7 +99,7 @@ async function upload(file: File): Promise<void> {
       kind: Zeus.ExpenseFileKind.CLOSING_DOC,
       ...(await readFileForUpload(file)),
     });
-    SuccessAlert('Закрывающий документ приложен');
+    SuccessAlert(t('payment.attachExpenseProofPanel.attachSuccess'));
     await refresh();
   } catch (e) {
     FailAlert(e);
@@ -117,6 +123,10 @@ onMounted(async () => {
     mechanics.value = null;
   }
 });
+
+// Подтверждения расхода живут по ленте: файл, приложенный с другого
+// устройства, и смена статуса служебной записки видны сразу.
+useLiveReload([{ code: 'expenses', table: 'expense_proposals' }, { code: 'expenses', table: 'expense_files' }], refresh);
 </script>
 
 <style lang="scss" scoped>

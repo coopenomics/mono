@@ -58,7 +58,7 @@ th {  width: 30%; }
 <div class="digital-document">
   <h1>{% trans 'protocol_number', decision.id %}</h1>
   <p style="text-align:center" class="subheader">{% trans 'council_meeting_name' %} {{ vars.full_abbr_genitive }} "{{ vars.name }}"</p>
-  <p style="text-align: right">{{ meta.created_at }}, {{ coop.city }}</p>
+  <p style="text-align: right">{{ created_at }}, {{ coop.city }}</p>
 
   <table>
     <tbody>

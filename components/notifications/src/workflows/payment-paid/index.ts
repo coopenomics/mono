@@ -4,7 +4,7 @@ import { WorkflowBuilder } from '../../base/workflow-builder';
 import { z } from 'zod';
 import { BaseWorkflowPayload } from '../../types';
 import { createEmailStep, createInAppStep, createPushStep } from '../../base/defaults';
-import { slugify } from '../../utils';
+import { nt } from '../../i18n';
 
 // Схема для payment-completed воркфлоу
 export const paymentCompletedPayloadSchema = z.object({
@@ -19,31 +19,34 @@ export type IPayload = z.infer<typeof paymentCompletedPayloadSchema>;
 
 export interface IWorkflow extends BaseWorkflowPayload, IPayload {}
 
-export const name = 'Платеж принят';
-export const id = slugify(name);
+export const name = nt('paymentPaid.name');
+// Идентификатор закреплён: раньше он вычислялся из названия, и правка
+// или перевод названия меняли бы его. Не менять — на него ссылаются подписки.
+export const id = 'platezh-prinyat';
 
 export const workflow: WorkflowDefinition<IWorkflow> = WorkflowBuilder
   .create<IWorkflow>()
   .name(name)
   .workflowId(id)
-  .description('Уведомление о успешном приёме платежа')
+  .i18nKey('paymentPaid')
+  .description(nt('paymentPaid.description'))
   .payloadSchema(paymentCompletedPayloadSchema)
   .tags(['user']) // Для всех пользователей
   .addSteps([
     createEmailStep(
       'payment-completed-email',
-      'Платеж успешно принят',
-      'Уважаемый {{payload.userName}}!<br><br>Ваш платеж успешно принят и отправлен в обработку.<br><br>Сумма: <strong>{{payload.paymentAmount}} {{payload.paymentCurrency}}</strong><br><br>Дата: {{payload.paymentDate}}<br><br>Подробная информация доступна по ссылке: {{payload.paymentUrl}}'
+      nt('paymentPaid.email.subject'),
+      nt('paymentPaid.email.body')
     ),
     createInAppStep(
       'payment-completed-notification',
-      'Платеж принят',
-      'Платеж на сумму {{payload.paymentAmount}} {{payload.paymentCurrency}} успешно завершен'
+      nt('paymentPaid.inApp.subject'),
+      nt('paymentPaid.inApp.body')
     ),
     createPushStep(
       'payment-completed-push',
-      'Платеж принят',
-      'Платеж {{payload.paymentAmount}} {{payload.paymentCurrency}} завершен'
+      nt('paymentPaid.push.subject'),
+      nt('paymentPaid.push.body')
     ),
   ])
   .build();

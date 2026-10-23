@@ -1,0 +1,30 @@
+{
+  "errors": {
+    "KU_ACTION_BRANCH_CHAIRMAN_ONLY": "Действие доступно только председателю кооперативного участка",
+    "KU_ACTION_CHAIRMAN_ONLY": "Действие доступно только председателю собрания",
+    "KU_ACTION_INITIATOR_ONLY": "Действие доступно только инициатору собрания",
+    "KU_ACTION_SELF_ONLY": "Действие доступно только от своего имени",
+    "KU_BRANCH_CHAIRMAN_MUST_BE_INDIVIDUAL": "Председателем кооперативного участка может быть только физическое лицо",
+    "KU_BRANCH_CONTACTS_REQUIRED": "Укажите email и телефон кооперативного участка",
+    "KU_BRANCH_NAME_REQUIRED": "Укажите наименование кооперативного участка",
+    "KU_BRANCH_NOT_FOUND": "Кооперативный участок не найден",
+    "KU_CHAIRMAN_MUST_BE_PARTICIPANT": "Председатель должен быть участником собрания",
+    "KU_DECISION_NOT_FOUND": "Решение собрания участка не найдено",
+    "KU_PRIVATE_KEY_NOT_FOUND": "Не найден приватный ключ для совершения операции",
+    "KU_TRUST_REQUEST_NOT_FOUND": "Заявка доверенного не найдена"
+  },
+  "ku": {
+    "branch": {
+      "basedOnTemplate": "Протокол собрания пайщиков кооперативного участка от {date}",
+      "chairmanPosition": "председатель кооперативного участка",
+      "fullNameTemplate": "Кооперативный Участок «{branchName}»",
+      "shortNameTemplate": "КУ «{branchName}»"
+    },
+    "trustedRequest": {
+      "status": {
+        "approved": "одобрена",
+        "declined": "отклонена"
+      }
+    }
+  }
+}

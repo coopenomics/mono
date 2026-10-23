@@ -1,31 +1,20 @@
 import { computed, reactive, ref } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRouter } from 'vue-router';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
-import { useSessionStore } from 'src/entities/Session';
 import { useSystemStore } from 'src/entities/System/model';
-import type { CreateMeetPreset } from 'src/features/Meet/CreateMeet/ui/types';
-import { createMeetWithAgenda, type ICreateMeetWithAgendaInput } from 'src/features/Meet/CreateMeet/model';
+import { useDesktopStore } from 'src/entities/Desktop/model';
 import {
   buildAgendaStepPresets,
-  buildGeneralMeetPreset,
   formatExpireCountdown,
-  generalMeetStepPreset,
   type AgendaStepKey,
 } from 'app/extensions/chairman/shared/lib';
 import { api, type OnboardingState } from '../api';
+import { t } from '../../../i18n';
 
 type AgendaStep =
   | {
       key: AgendaStepKey;
       type: 'agenda';
-      title: string;
-      description: string;
-      done: boolean;
-      pending: boolean;
-    }
-  | {
-      key: 'general_meet';
-      type: 'meet';
       title: string;
       description: string;
       done: boolean;
@@ -50,14 +39,12 @@ const initialAgendaDialog = {
 
 export const useOnboardingFlow = () => {
   const systemStore = useSystemStore();
-  const sessionStore = useSessionStore();
-  const route = useRoute();
+  const desktopStore = useDesktopStore();
+  const router = useRouter();
 
   const onboardingState = ref<OnboardingState | null>(null);
   const loadingAction = ref(false);
   const loadingState = ref(false);
-  const meetDialog = ref(false);
-  const meetPreset = ref<CreateMeetPreset | undefined>();
   const agendaDialog = reactive({ ...initialAgendaDialog });
 
   const isAgendaStepDone = (key: AgendaStepKey) => {
@@ -106,22 +93,16 @@ export const useOnboardingFlow = () => {
     const importStep: AgendaStep = {
       key: 'import_participants',
       type: 'import',
-      title: 'Импорт пайщиков (опционально)',
-      description: 'Необязательный шаг. Если у вас уже есть пайщики кооператива — загрузите их списком через CSV-файл. Если нет — просто двигайтесь дальше.',
+      title: t('chairman.onboarding.importMembersTitle'),
+      description: t('chairman.onboarding.importMembersHint'),
       done: false,
       pending: false,
     };
 
-    const generalMeetStep: AgendaStep = {
-      key: 'general_meet',
-      type: 'meet',
-      title: generalMeetStepPreset.title,
-      description: generalMeetStepPreset.description,
-      done: !!onboardingState.value?.general_meet_done,
-      pending: !!onboardingState.value?.onboarding_general_meet_hash && !onboardingState.value?.general_meet_done,
-    };
-
-    return [...agendaSteps, importStep, generalMeetStep];
+    // Общее собрание о вступлении в союз из онбординга снято (19.10.2026):
+    // вступление в союз необязательно. Последний шаг — импорт пайщиков, на нём
+    // председатель сам завершает онбординг.
+    return [...agendaSteps, importStep];
   });
 
   const expireAt = computed(() => {
@@ -141,10 +122,23 @@ export const useOnboardingFlow = () => {
   const expireAtText = computed(() => formatExpireCountdown(expireAt.value));
   const countdownLabel = computed(() => expireAtText.value || '');
 
-  // Проверка завершения онбординга - проведено общее собрание
-  const isOnboardingCompleted = computed(() => {
-    return !!onboardingState.value?.general_meet_done;
-  });
+  // Онбординг завершает председатель кнопкой на последнем шаге; отметка
+  // хранится в настройках кооператива и убирает пункт меню на всех устройствах.
+  const isOnboardingCompleted = computed(() => !!systemStore.info?.settings?.onboarding_completed_at);
+
+  const completeOnboarding = async () => {
+    try {
+      loadingAction.value = true;
+      await api.completeOnboarding();
+      await systemStore.loadSystemInfo();
+      SuccessAlert(t('chairman.onboarding.completedMessage'));
+      desktopStore.goToDefaultPage(router);
+    } catch (error) {
+      FailAlert(error);
+    } finally {
+      loadingAction.value = false;
+    }
+  };
 
   const loadState = async () => {
     try {
@@ -194,50 +188,10 @@ export const useOnboardingFlow = () => {
         decision: agendaDialog.decision,
       });
       onboardingState.value = state;
-      SuccessAlert('Предложение создано и шаг отмечен.');
+      SuccessAlert(t('chairman.onboarding.proposalCreatedMessage'));
       closeAgendaDialog();
     } catch (error) {
       FailAlert(error);
-    } finally {
-      loadingAction.value = false;
-    }
-  };
-
-  const openMeetDialog = () => {
-    meetPreset.value = buildGeneralMeetPreset(sessionStore.username);
-    meetDialog.value = true;
-  };
-
-  const handleCreateMeet = async (data: ICreateMeetWithAgendaInput) => {
-    try {
-      loadingAction.value = true;
-      const coopname = route.params.coopname as string;
-
-      const result = await createMeetWithAgenda({
-        coopname: data.coopname || coopname,
-        initiator: data.initiator || sessionStore.username,
-        presider: data.presider || sessionStore.username,
-        secretary: data.secretary || sessionStore.username,
-        open_at: data.open_at,
-        close_at: data.close_at,
-        username: sessionStore.username,
-        type: data.type,
-        agenda_points: data.agenda_points,
-      });
-
-      const meetHash = result?.hash || result?.processing?.meet?.hash || '';
-
-      const state = await api.completeGeneralMeetStep({
-        proposal_hash: meetHash,
-      });
-
-      onboardingState.value = state;
-      SuccessAlert('Общее собрание создано и шаг отмечен.');
-      meetDialog.value = false;
-      return true;
-    } catch (error) {
-      FailAlert(error);
-      return false;
     } finally {
       loadingAction.value = false;
     }
@@ -250,15 +204,12 @@ export const useOnboardingFlow = () => {
     isOnboardingCompleted,
     loadingAction,
     loadingState,
-    meetDialog,
-    meetPreset,
     agendaDialog,
     init,
     loadState,
     openAgendaDialog,
     closeAgendaDialog,
     submitAgenda,
-    openMeetDialog,
-    handleCreateMeet,
+    completeOnboarding,
   };
 };

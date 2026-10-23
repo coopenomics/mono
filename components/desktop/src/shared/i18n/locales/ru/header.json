@@ -1,0 +1,13 @@
+{
+  "header": {
+    "header": {
+      "installStatus": "УСТАНОВКА",
+      "loginButton": "Вход",
+      "signupButton": "Регистрация"
+    },
+    "settingsDropdown": {
+      "coopSettingsMenu": "НАСТРОЙКИ КООПЕРАТИВА",
+      "extensionStoreMenu": "МАГАЗИН РАСШИРЕНИЙ"
+    }
+  }
+}

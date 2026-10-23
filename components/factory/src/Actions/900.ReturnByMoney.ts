@@ -32,7 +32,6 @@ export class Factory extends DocFactory<ReturnByMoney.Action> {
       }),
     })
 
-    console.log(data)
     const meta: IMetaDocument = await this.getMeta({ title: template.title, ...data }) // зависит от template.title
 
     const commonUser = this.getCommonUser(user)
@@ -47,7 +46,8 @@ export class Factory extends DocFactory<ReturnByMoney.Action> {
       vars,
       user: commonUser,
       payment_details: this.formatPaymentDetails(paymentMethod, commonUser.full_name_or_short_name),
-      quantity: data.quantity,
+      // Сумма в тексте документа — только через formatAsset: два знака, как во всех документах.
+      quantity: this.formatAsset(data.quantity),
       currency: data.currency,
       payment_hash: data.payment_hash,
     }

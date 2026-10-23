@@ -1,10 +1,11 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { TokenApplicationService } from '~/application/token/services/token-application.service';
 import { tokenTypes } from '~/types/token.types';
 import { SESSION_METADATA_PORT } from '~/domain/auth-v2/ports/session-metadata.port';
 import type { ISessionMetadataStore } from '~/domain/auth-v2/ports/session-metadata.port';
 import { ActiveSession, SESSION_DEVICE_UNKNOWN, SESSION_IP_UNKNOWN } from '~/domain/auth-v2/sessions/session.types';
 import { AuditService } from '../audit/audit.service';
+import { DomainError } from '@coopenomics/extension-kit';
 
 export interface RevokeAllResult {
   /** Сколько сессий (refresh-токенов) отозвано. */
@@ -67,7 +68,7 @@ export class SessionsService {
   async revoke(userId: string, sessionId: string, ip: string | null): Promise<void> {
     const rows = await this.tokens.findActiveByUser(userId, tokenTypes.REFRESH);
     const target = rows.find((r) => r.id === sessionId);
-    if (!target) throw new NotFoundException('Сессия не найдена');
+    if (!target) throw DomainError.notFound('AUTH_V2_SESSION_NOT_FOUND');
 
     await this.tokens.deleteById(sessionId);
     await this.safeDeleteMeta(target.token);

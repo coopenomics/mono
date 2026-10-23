@@ -1,8 +1,4 @@
 import { Global, Module } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { NotificationOutboxTypeormEntity } from '~/infrastructure/database/typeorm/entities/notification-outbox.typeorm-entity';
-import { NotificationDeliveryTypeormEntity } from '~/infrastructure/database/typeorm/entities/notification-delivery.typeorm-entity';
-import { NotificationInboxTypeormEntity } from '~/infrastructure/database/typeorm/entities/notification-inbox.typeorm-entity';
 import {
   EMAIL_CHANNEL_PORT,
   IN_APP_CHANNEL_PORT,
@@ -18,6 +14,7 @@ import { NotificationInboxResolver } from './notification-inbox.resolver';
 import { EmailChannelAdapter } from './channels/email-channel.adapter';
 import { InAppChannelAdapter } from './channels/in-app-channel.adapter';
 import { WebPushChannelAdapter } from './channels/web-push-channel.adapter';
+import { CoreRightsModule } from '../rights/core-rights.module';
 
 /**
  * Центр уведомлений (DC v3) — единый вход уведомлений кооператива.
@@ -32,11 +29,7 @@ import { WebPushChannelAdapter } from './channels/web-push-channel.adapter';
 @Global()
 @Module({
   imports: [
-    TypeOrmModule.forFeature([
-      NotificationOutboxTypeormEntity,
-      NotificationDeliveryTypeormEntity,
-      NotificationInboxTypeormEntity,
-    ]),
+    CoreRightsModule,
     NotificationModule, // WebPushService для web-push канала
   ],
   providers: [

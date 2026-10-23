@@ -6,7 +6,7 @@
 //- каркас, пока данных ещё нет. Раньше идиома `.skel`-карточек копировалась в
 //- OffererIncomingOrders / OffererMyOffers / Cart / SupplyPreparation — здесь
 //- единый компонент на все витрины-списки.
-.card-skel-list(aria-busy='true', aria-label='Загрузка данных')
+.card-skel-list(aria-busy='true', :aria-label='$t("ui.cardListSkeleton.loadingLabel")')
   .card-skel(v-for='n in count', :key='n')
     .skel.skel--title.card-skel__line.card-skel__line--head
     .skel.skel--text.card-skel__line.card-skel__line--title

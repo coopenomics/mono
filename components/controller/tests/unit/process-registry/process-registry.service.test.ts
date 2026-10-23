@@ -25,24 +25,13 @@
  */
 
 import { ProcessRegistryService } from '../../../src/domain/process-registry/services/process-registry.service';
-import type { DeltaEntity } from '../../../src/infrastructure/database/typeorm/entities/delta.entity';
-import type { ActionEntity } from '../../../src/infrastructure/database/typeorm/entities/action.entity';
+import type { DeltaDomainInterface as DeltaEntity } from '../../../src/domain/parser/interfaces/delta-domain.interface';
+import type { ActionDomainInterface as ActionEntity } from '../../../src/domain/parser/interfaces/action-domain.interface';
+import type { ProcessDocumentActionsQuery } from '../../../src/domain/process-registry/ports/process-journal.port';
 import type { PaginationInputDTO } from '@coopenomics/extension-kit';
-
-type AnyQB = any;
+import { Cooperative } from 'cooptypes';
 
 // ---------- helpers ----------
-
-function mockQB(rows: any[]): AnyQB {
-  const qb: AnyQB = {
-    where: jest.fn(() => qb),
-    andWhere: jest.fn(() => qb),
-    orderBy: jest.fn(() => qb),
-    addOrderBy: jest.fn(() => qb),
-    getMany: jest.fn(async () => rows),
-  };
-  return qb;
-}
 
 function makeDelta(partial: Partial<DeltaEntity>): DeltaEntity {
   return {
@@ -86,31 +75,39 @@ function makeAction(partial: Partial<ActionEntity>): ActionEntity {
 }
 
 /**
- * Phase A теперь по `actionRepository.createQueryBuilder` — Phase B по
- * `deltaRepository.createQueryBuilder` для каждой HashLocation.
+ * Якорные действия процесса читает `findActionsByProcess`, изменения сущностных
+ * таблиц — `findEntityDeltas` на каждую локацию, действия с документами вне
+ * таблиц — `findDocumentActions`.
  */
 function makeService({
   actions,
   entityDeltasPerLocation,
+  linkedActions = [],
+  documentQueries = [],
 }: {
   actions: ActionEntity[];
   // Дельты по порядку локаций из PROCESS_HASH_LOCATOR[processType] —
   // порядок определяется конфигом, не тестом. Для одиночной локации (большинство
   // процессов) достаточно одного массива.
   entityDeltasPerLocation: DeltaEntity[][];
+  // Действия с хэшем процесса в данных (документы вне сущностных таблиц).
+  linkedActions?: ActionEntity[];
+  // Сюда складываются запросы действий с документами — для проверки условий.
+  documentQueries?: ProcessDocumentActionsQuery[];
 }): ProcessRegistryService {
   let deltaCallIdx = 0;
-  const deltaRepo: any = {
-    createQueryBuilder: jest.fn(() => {
+  const journal: any = {
+    findActionsByProcess: jest.fn(async () => actions),
+    findEntityDeltas: jest.fn(async () => {
       const rows = entityDeltasPerLocation[deltaCallIdx] ?? [];
       deltaCallIdx += 1;
-      return mockQB(rows);
+      return rows;
     }),
-    manager: { query: jest.fn(async () => [{ cnt: '0' }]) },
-  };
-  const actionRepo: any = {
-    createQueryBuilder: jest.fn(() => mockQB(actions)),
-    manager: { query: jest.fn(async () => [{ cnt: '0' }]) },
+    findDocumentActions: jest.fn(async (query: ProcessDocumentActionsQuery) => {
+      documentQueries.push(query);
+      return linkedActions;
+    }),
+    query: jest.fn(async () => [{ cnt: '0' }]),
   };
 
   const aggregator: any = {
@@ -135,7 +132,7 @@ function makeService({
     error: jest.fn(),
   };
 
-  return new ProcessRegistryService(deltaRepo, actionRepo, aggregator, redisClient, logger);
+  return new ProcessRegistryService(journal, aggregator, redisClient, logger);
 }
 
 // ---------- тесты ----------
@@ -270,6 +267,155 @@ describe('ProcessRegistryService.getProcess', () => {
     expect(view.actions).toHaveLength(2);
     expect(view.delta_history).toHaveLength(1);
     expect(view.delta_history[0].table).toBe('candidates2');
+  });
+
+  describe('документы из параметров действий', () => {
+    const signedDoc = (docHash: string, signatures: number) => ({
+      version: '1.0.0',
+      hash: docHash,
+      doc_hash: docHash,
+      meta_hash: 'm'.repeat(64),
+      meta: JSON.stringify({ registry_id: Cooperative.Registry.MarketplaceConvertStatement.registry_id }),
+      signatures: Array.from({ length: signatures }, (_, i) => ({ id: i + 1, signer: `signer${i}` })),
+    });
+
+    const supplyAnchor = () =>
+      makeAction({
+        account: 'ledger2',
+        name: 'apply',
+        data: { operation_code: 'o.mkt.lock', process_hash: HASH, coopname: COOP, username: 'orderer' },
+        block_num: 100 as any,
+        global_sequence: '10',
+      });
+
+    test(`(h1) заявление ${Cooperative.Registry.MarketplaceConvertStatement.registry_id} из marketplace::convert попадает в документы поставки`, async () => {
+      // Заявление о переводе паевого взноса в Стол заказов живёт только в
+      // параметре convert: в строку заказа оно не пишется, а хэш заказа лежит
+      // в targets. Раньше бухгалтер видел перевод, но не видел заявления.
+      const convert = makeAction({
+        account: 'marketplace',
+        name: 'convert',
+        data: {
+          coopname: COOP,
+          orderer: 'orderer',
+          targets: [{ order_hash: HASH.toUpperCase(), amount: '10.0000 RUB' }],
+          convert_statement: signedDoc('c'.repeat(64), 1),
+        },
+        block_num: 99 as any,
+        global_sequence: '9',
+      });
+      const order = makeDelta({ code: 'marketplace', table: 'orders', value: { hash: HASH, coopname: COOP }, block_num: 120 as any });
+
+      const svc = makeService({
+        actions: [supplyAnchor()],
+        entityDeltasPerLocation: [[order]],
+        linkedActions: [convert],
+      });
+      const view = await svc.getProcess(HASH, COOP);
+
+      expect(view.documents).toHaveLength(1);
+      expect(view.documents[0].source).toEqual({
+        code: 'marketplace',
+        table: 'convert',
+        field: 'convert_statement',
+        primary_key: '9',
+      });
+      expect(view.documents[0].hash).toBe('c'.repeat(64));
+    });
+
+    test('(h1e) заявление из edubridge::convert и edubridge::regstatement попадает в документы доступа к курсу', async () => {
+      // Конвертация и публикация заявления несут хэш подписки параметром `sub_hash`:
+      // по нему реестр находит действие, а заявление берёт из его поля `statement`.
+      const feeAnchor = makeAction({
+        account: 'ledger2',
+        name: 'apply',
+        data: { operation_code: 'o.edu.fee', process_hash: HASH, coopname: COOP, username: 'learner' },
+        block_num: 100 as any,
+        global_sequence: '12',
+      });
+      const subscription = makeDelta({ code: 'edubridge', table: 'edusubs', value: { sub_hash: HASH, coopname: COOP }, block_num: 100 as any });
+      for (const name of ['convert', 'regstatement']) {
+        const publish = makeAction({
+          account: 'edubridge',
+          name,
+          data: { coopname: COOP, username: 'learner', sub_hash: HASH.toUpperCase(), statement: signedDoc('e'.repeat(64), 1) },
+          block_num: 100 as any,
+          global_sequence: '11',
+        });
+        const queries: ProcessDocumentActionsQuery[] = [];
+        const svc = makeService({ actions: [feeAnchor], entityDeltasPerLocation: [[subscription]], linkedActions: [publish], documentQueries: queries });
+        const view = await svc.getProcess(HASH, COOP);
+
+        expect(view.process_type).toBe('p.edu.access');
+        expect(view.documents).toHaveLength(1);
+        expect(view.documents[0].source).toEqual({ code: 'edubridge', table: name, field: 'statement', primary_key: '11' });
+        // Действие ищется в блоке самой подписки: конвертация, взнос и заявление — одна транзакция.
+        expect(queries[0]).toMatchObject({ hash: HASH, coopname: COOP, fromBlock: 100, toBlock: 100 });
+      }
+    });
+
+    test('(h2) один документ из дельты и из действия — одна запись с максимумом подписей', async () => {
+      const docHash = 'd'.repeat(64);
+      const order = makeDelta({
+        code: 'marketplace',
+        table: 'orders',
+        value: { hash: HASH, coopname: COOP, acceptance_act: signedDoc(docHash, 1) },
+        block_num: 110 as any,
+      });
+      const signchair = makeAction({
+        account: 'marketplace',
+        name: 'signchair',
+        data: { coopname: COOP, hash: HASH, act: signedDoc(docHash, 2) },
+        block_num: 111 as any,
+        global_sequence: '20',
+      });
+
+      const svc = makeService({
+        actions: [supplyAnchor()],
+        entityDeltasPerLocation: [[order]],
+        linkedActions: [signchair],
+      });
+      const view = await svc.getProcess(HASH, COOP);
+
+      expect(view.documents).toHaveLength(1);
+      expect(view.documents[0].document.signatures).toHaveLength(2);
+      expect(view.documents[0].source.table).toBe('signchair');
+    });
+
+    test('(h3) действие с хэшем процесса, но без документа, записи не даёт', async () => {
+      const payconfirm = makeAction({
+        account: 'marketplace',
+        name: 'payconfirm',
+        data: { coopname: COOP, hash: HASH, amount: '10.0000 RUB', memo: { note: 'без подписи' } },
+        block_num: 130 as any,
+        global_sequence: '30',
+      });
+
+      const svc = makeService({
+        actions: [supplyAnchor()],
+        entityDeltasPerLocation: [[]],
+        linkedActions: [payconfirm],
+      });
+      const view = await svc.getProcess(HASH, COOP);
+
+      expect(view.documents).toHaveLength(0);
+    });
+
+    test('(h4) поиск действий ограничен окном процесса, кооперативом и хэшем, ledger2 исключён', async () => {
+      const order = makeDelta({ code: 'marketplace', table: 'orders', value: { hash: HASH, coopname: COOP }, block_num: 250 as any });
+      const documentQueries: ProcessDocumentActionsQuery[] = [];
+      const svc = makeService({
+        actions: [supplyAnchor()],
+        entityDeltasPerLocation: [[order]],
+        documentQueries,
+      });
+      await svc.getProcess(HASH, COOP);
+
+      // Сами условия запроса (окно блоков, кооператив, хэш без учёта регистра) собирает хранилище журнала.
+      expect(documentQueries).toEqual([
+        { hash: HASH.toLowerCase(), coopname: COOP, fromBlock: 100, toBlock: 250, excludeAccount: 'ledger2' },
+      ]);
+    });
   });
 
   test('(e) p.mig.trans: только migration-actions, entity-дельт нет', async () => {
@@ -499,7 +645,7 @@ describe('ProcessRegistryService.getProcess', () => {
 // ---------- listProcesses ----------
 
 /**
- * `listProcesses` идёт через raw SQL (`manager.query`): первый вызов — COUNT,
+ * `listProcesses` идёт сводными запросами журнала (`journal.query`): первый вызов — COUNT,
  * второй — страница строк. Мок отдаёт готовые строки агрегата и запоминает
  * запросы, чтобы проверить условия фильтра.
  */
@@ -508,7 +654,7 @@ function makeListService(rows: any[]): { svc: ProcessRegistryService; query: jes
     if (/COUNT\(/i.test(sql)) return [{ cnt: String(rows.length) }];
     return rows;
   });
-  const repo: any = { createQueryBuilder: jest.fn(() => mockQB([])), manager: { query } };
+  const journal: any = { query };
   const aggregator: any = { buildDocumentAggregate: jest.fn() };
   const redisClient: any = {
     publisher: { status: 'not-ready', get: jest.fn(), set: jest.fn() },
@@ -523,7 +669,7 @@ function makeListService(rows: any[]): { svc: ProcessRegistryService; query: jes
     error: jest.fn(),
   };
   return {
-    svc: new ProcessRegistryService(repo, repo, aggregator, redisClient, logger),
+    svc: new ProcessRegistryService(journal, aggregator, redisClient, logger),
     query,
   };
 }
@@ -532,12 +678,16 @@ function makeRow(partial: {
   operationCodes: (string | null)[];
   processTypes?: (string | null)[];
   usernames?: (string | null)[];
+  amounts?: (string | null)[];
+  memos?: (string | null)[];
   processHash?: string;
 }) {
   return {
     operationCodes: partial.operationCodes,
     processTypes: partial.processTypes ?? partial.operationCodes.map(() => null),
     usernames: partial.usernames ?? partial.operationCodes.map(() => null),
+    amounts: partial.amounts ?? partial.operationCodes.map(() => null),
+    memos: partial.memos ?? partial.operationCodes.map(() => null),
     processHash: partial.processHash ?? HASH,
     coopname: COOP,
     firstSeenAt: '2026-08-10T19:11:00Z',
@@ -562,6 +712,50 @@ describe('ProcessRegistryService.listProcesses', () => {
     expect(page.items).toHaveLength(1);
     expect(page.items[0].processType).toBe('p.mkt.supply');
     expect(page.items[0].username).toBe('orderer');
+  });
+
+  test('строка несёт сумму и назначение главной операции — у поставки это тело заказа', async () => {
+    // Два заказа одного пайщика иначе неразличимы: тип, пайщик и даты совпадают.
+    const { svc } = makeListService([
+      makeRow({
+        operationCodes: ['o.mkt.conv', 'o.mkt.fee', 'o.mkt.lock'],
+        processTypes: ['p.mkt.supply', 'p.mkt.supply', 'p.mkt.supply'],
+        amounts: ['300.0000 RUB', '300.0000 RUB', '1000.0000 RUB'],
+        memos: [
+          'Перевод паевого взноса в членский кошелёк Стола заказов по заявлению пайщика',
+          'Членский взнос по заказу имущества № 0 в Столе заказов',
+          'Паевой резерв под заказ имущества № 0 в Столе заказов',
+        ],
+      }),
+    ]);
+
+    const page = await svc.listProcesses({ coopname: COOP }, PAGE);
+
+    expect(page.items[0].amount).toBe('1000.0000 RUB');
+    expect(page.items[0].memo).toBe('Паевой резерв под заказ имущества № 0 в Столе заказов');
+  });
+
+  test('при равных суммах главной считается первая операция нитки', async () => {
+    const { svc } = makeListService([
+      makeRow({
+        operationCodes: ['o.wal.depcpl', 'o.wal.depcpl'],
+        amounts: ['100.0000 RUB', '100.0000 RUB'],
+        memos: ['первая', 'вторая'],
+      }),
+    ]);
+
+    const page = await svc.listProcesses({ coopname: COOP }, PAGE);
+
+    expect(page.items[0].memo).toBe('первая');
+  });
+
+  test('нитка без сумм показывается без суммы и назначения', async () => {
+    const { svc } = makeListService([makeRow({ operationCodes: ['o.adj.walmove'] })]);
+
+    const page = await svc.listProcesses({ coopname: COOP }, PAGE);
+
+    expect(page.items[0].amount).toBeNull();
+    expect(page.items[0].memo).toBeNull();
   });
 
   test('список и деталь называют один процесс одинаково', async () => {

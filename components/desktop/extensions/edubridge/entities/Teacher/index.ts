@@ -1,0 +1,256 @@
+import type { IDocumentAggregate } from 'src/entities/Document/model';
+import { Cooperative } from 'cooptypes';
+import { Mutations, Queries, Zeus } from '@coopenomics/sdk';
+import { client } from 'src/shared/api/client';
+import { useSessionStore } from 'src/entities/Session';
+import { useSystemStore } from 'src/entities/System/model';
+import { DigitalDocument } from 'src/shared/lib/document';
+import { generateUniqueHash } from 'src/shared/lib/utils/generateUniqueHash';
+import { t } from '../../i18n';
+
+export type IContract = NonNullable<Queries.Edubridge.MyContract.IOutput['edubridgeMyContract']>;
+export type ITeacherProfile = Queries.Edubridge.MyTeacherProfile.IOutput['edubridgeMyTeacherProfile'];
+export type ITeacherProfileInput = Mutations.Edubridge.SaveTeacherProfile.IInput['data'];
+export type ITeacher = Queries.Edubridge.Teachers.IOutput['edubridgeTeachers'][number];
+export type ITeacherApproval = Queries.Edubridge.TeacherApprovals.IOutput['edubridgeTeacherApprovals'][number];
+export type IAssignment = Queries.Edubridge.MyAssignments.IOutput['edubridgeMyAssignments'][number];
+export type IContribution = Queries.Edubridge.MyContributions.IOutput['edubridgeMyContributions'][number];
+export type ISettlement = Queries.Edubridge.MySettlement.IOutput['edubridgeMySettlement'];
+export type ILesson = Queries.Edubridge.MyLessons.IOutput['edubridgeMyLessons'][number];
+/** Документ взноса на одном из шагов его пути: заявление, акт хранения, акт приёма-передачи. */
+export type IContributionDocument = Queries.Edubridge.ContributionDocuments.IOutput['edubridgeContributionDocuments'][number];
+/** Сведения о взносе для вопроса совета: курс, группа, занятие, материалы и сумма. */
+export type IContributionBrief = NonNullable<Queries.Edubridge.ContributionBrief.IOutput['edubridgeContributionBrief']>;
+export type ILessonReportInput = Mutations.Edubridge.ReportLesson.IInput['data'];
+export type IAssignmentInput = Mutations.Edubridge.CreateAssignment.IInput['data'];
+
+// Ключи — имена enum'ов схемы (`Zeus.*`): именно их отдаёт и принимает GraphQL.
+export const RID_TYPE_LABELS: Record<string, string> = {
+  [Zeus.EduRidType.LESSON_RECORDING]: t('edubridge.rid.type.LESSON_RECORDING'),
+  [Zeus.EduRidType.METHODICAL_MATERIAL]: t('edubridge.rid.type.METHODICAL_MATERIAL'),
+  [Zeus.EduRidType.COURSE_PROGRAM]: t('edubridge.rid.type.COURSE_PROGRAM'),
+  [Zeus.EduRidType.ASSESSMENT_MATERIAL]: t('edubridge.rid.type.ASSESSMENT_MATERIAL'),
+  [Zeus.EduRidType.OTHER]: t('edubridge.rid.type.OTHER'),
+};
+
+export const CONTRIBUTION_STATUS_LABELS: Record<string, { label: string; variant: 'pos' | 'neg' | 'warn' | 'info' | 'neutral' }> = {
+  [Zeus.EduContributionStatus.DRAFT]: { label: t('edubridge.contribution.status.DRAFT'), variant: 'neutral' },
+  [Zeus.EduContributionStatus.HELD]: { label: t('edubridge.contribution.status.HELD'), variant: 'warn' },
+  [Zeus.EduContributionStatus.SUBMITTED]: { label: t('edubridge.contribution.status.SUBMITTED'), variant: 'info' },
+  [Zeus.EduContributionStatus.COUNCIL_APPROVED]: { label: t('edubridge.contribution.status.COUNCIL_APPROVED'), variant: 'warn' },
+  [Zeus.EduContributionStatus.ACT_SIGNED]: { label: t('edubridge.contribution.status.ACT_SIGNED'), variant: 'info' },
+  [Zeus.EduContributionStatus.ACCEPTED]: { label: t('edubridge.contribution.status.ACCEPTED'), variant: 'pos' },
+  [Zeus.EduContributionStatus.DECLINED]: { label: t('edubridge.contribution.status.DECLINED'), variant: 'neg' },
+};
+
+export const ASSIGNMENT_STATUS_LABELS: Record<string, { label: string; variant: 'pos' | 'neg' | 'warn' | 'info' | 'neutral' }> = {
+  [Zeus.EduAssignmentStatus.ACTIVE]: { label: t('edubridge.assignment.status.ACTIVE'), variant: 'pos' },
+  [Zeus.EduAssignmentStatus.CLOSED]: { label: t('edubridge.assignment.status.CLOSED'), variant: 'neutral' },
+};
+
+/** Договор УХД: первая подпись — преподаватель, вторая — председатель совета со стола «Запросы одобрений». */
+export const CONTRACT_STATUS_LABELS: Record<string, { label: string; variant: 'pos' | 'neg' | 'info' }> = {
+  [Zeus.EduContractStatus.PENDING_APPROVAL]: { label: t('edubridge.contract.status.PENDING_APPROVAL'), variant: 'info' },
+  [Zeus.EduContractStatus.ACTIVE]: { label: t('edubridge.contract.status.ACTIVE'), variant: 'pos' },
+  [Zeus.EduContractStatus.DECLINED]: { label: t('edubridge.contract.status.DECLINED'), variant: 'neg' },
+  [Zeus.EduContractStatus.TERMINATED]: { label: t('edubridge.contract.status.TERMINATED'), variant: 'neg' },
+};
+
+async function q<T>(query: any, name: string, variables?: Record<string, unknown>): Promise<T> {
+  const res = await client.Query(query, variables ? { variables } : undefined);
+  return (res as Record<string, T>)[name] as T;
+}
+async function m<T>(mutation: any, name: string, variables: Record<string, unknown>): Promise<T> {
+  const res = await client.Mutation(mutation, { variables });
+  return (res as Record<string, T>)[name] as T;
+}
+
+export const fetchMyContract = () => q<IContract | null>(Queries.Edubridge.MyContract.query, Queries.Edubridge.MyContract.name);
+/** Профиль преподавателя: рассказ о себе и ставка часа. */
+export const fetchMyTeacherProfile = () => q<ITeacherProfile>(Queries.Edubridge.MyTeacherProfile.query, Queries.Edubridge.MyTeacherProfile.name);
+export const saveTeacherProfile = (data: ITeacherProfileInput) =>
+  m<ITeacherProfile>(Mutations.Edubridge.SaveTeacherProfile.mutation, Mutations.Edubridge.SaveTeacherProfile.name, { data });
+export const fetchMyAssignments = () => q<IAssignment[]>(Queries.Edubridge.MyAssignments.query, Queries.Edubridge.MyAssignments.name);
+export const fetchMyContributions = () => q<IContribution[]>(Queries.Edubridge.MyContributions.query, Queries.Edubridge.MyContributions.name);
+/** Сведения о взносе по его ключу из заявления; взноса нет — `null`. */
+export async function fetchContributionBrief(rid_hash: string): Promise<IContributionBrief | null> {
+  const { [Queries.Edubridge.ContributionBrief.name]: result } = await client.Query(Queries.Edubridge.ContributionBrief.query, { variables: { rid_hash } });
+  return result ?? null;
+}
+export const fetchMyLessons = () => q<ILesson[]>(Queries.Edubridge.MyLessons.query, Queries.Edubridge.MyLessons.name);
+export const reportLesson = (data: ILessonReportInput) => m<ILesson>(Mutations.Edubridge.ReportLesson.mutation, Mutations.Edubridge.ReportLesson.name, { data });
+export const fetchMySettlement = () => q<ISettlement>(Queries.Edubridge.MySettlement.query, Queries.Edubridge.MySettlement.name);
+/** Строка моей выписки: зачисление по принятому результату или возврат с его состоянием. */
+export type ISettlementEntry = Queries.Edubridge.MySettlementJournal.IOutput['edubridgeMySettlementJournal'][number];
+export const fetchMySettlementJournal = () => q<ISettlementEntry[]>(Queries.Edubridge.MySettlementJournal.query, Queries.Edubridge.MySettlementJournal.name);
+/** Строка выписки — зачисление; иначе это возврат. */
+export const isIncomingEntry = (e: ISettlementEntry) => e.kind === Zeus.EduSettlementEntryKind.IN;
+/** Заявления возврата: о трансляции в Цифровой Кошелёк и о возврате деньгами. */
+export type IShareReturnDocument = Queries.Edubridge.MyShareReturnDocuments.IOutput['edubridgeMyShareReturnDocuments'][number];
+export const fetchMyShareReturnDocuments = (return_id: string) =>
+  q<IShareReturnDocument[]>(Queries.Edubridge.MyShareReturnDocuments.query, Queries.Edubridge.MyShareReturnDocuments.name, { return_id });
+
+export const SETTLEMENT_STATUS_LABELS: Record<string, { label: string; variant: 'pos' | 'neg' | 'warn' | 'info' | 'neutral' }> = {
+  [Zeus.EduSettlementEntryStatus.ACCEPTED]: { label: t('edubridge.settlement.status.ACCEPTED'), variant: 'pos' },
+  [Zeus.EduSettlementEntryStatus.COUNCIL_REVIEW]: { label: t('edubridge.settlement.status.COUNCIL_REVIEW'), variant: 'info' },
+  [Zeus.EduSettlementEntryStatus.AWAITING_PAYOUT]: { label: t('edubridge.settlement.status.AWAITING_PAYOUT'), variant: 'warn' },
+  [Zeus.EduSettlementEntryStatus.PAID]: { label: t('edubridge.settlement.status.PAID'), variant: 'pos' },
+  [Zeus.EduSettlementEntryStatus.DECLINED]: { label: t('edubridge.settlement.status.DECLINED'), variant: 'neg' },
+};
+
+type IGeneratedStatement = { hash: string; html: string; full_title: string; binary: string };
+
+/**
+ * Возврат паевого взноса одной кнопкой: заявление о трансляции в Цифровой
+ * Кошелёк (3015) и заявление о возврате деньгами (900) подписываются разом
+ * и уходят одной мутацией. Хэш платежа рождается здесь: им помечено
+ * заявление о возврате, по нему совет и кассир находят платёж.
+ */
+export async function requestShareReturn(amount: string, method_id: string): Promise<ISettlement> {
+  const { username, coopname } = who();
+  const payment_hash = await generateUniqueHash();
+  const [quantity, currency] = amount.split(' ');
+  const transferInput: Mutations.Edubridge.ShareWithdrawStatement.IInput['data'] = { amount };
+  const returnInput: Mutations.Wallet.GenerateReturnByMoneyStatementDocument.IInput['data'] = {
+    coopname,
+    username,
+    method_id,
+    quantity: quantity ?? '0',
+    currency: currency ?? '',
+    payment_hash,
+  };
+  const [transferGenerated, returnGenerated] = await Promise.all([
+    m<IGeneratedStatement>(Mutations.Edubridge.ShareWithdrawStatement.mutation, Mutations.Edubridge.ShareWithdrawStatement.name, { data: transferInput }),
+    m<IGeneratedStatement>(Mutations.Wallet.GenerateReturnByMoneyStatementDocument.mutation, Mutations.Wallet.GenerateReturnByMoneyStatementDocument.name, {
+      data: returnInput,
+    }),
+  ]);
+  const transfer = new DigitalDocument(transferGenerated as never);
+  await transfer.sign(username);
+  const ret = new DigitalDocument(returnGenerated as never);
+  await ret.sign(username);
+  if (!transfer.signedDocument || !ret.signedDocument) throw new Error(t('edubridge.error.statementSignFailed'));
+  const data: Mutations.Edubridge.RequestShareReturn.IInput['data'] = {
+    amount,
+    method_id,
+    payment_hash,
+    transfer_statement: transfer.signedDocument,
+    return_statement: ret.signedDocument,
+  };
+  return m<ISettlement>(Mutations.Edubridge.RequestShareReturn.mutation, Mutations.Edubridge.RequestShareReturn.name, { data });
+}
+export const fetchAssignments = () => q<IAssignment[]>(Queries.Edubridge.Assignments.query, Queries.Edubridge.Assignments.name);
+/** Подписанный договор преподавателя для просмотра; `null` — документ у договора не сохранён. */
+export const fetchTeacherContractDocument = (username: string) =>
+  q<IDocumentAggregate | null>(Queries.Edubridge.TeacherContractDocument.query, Queries.Edubridge.TeacherContractDocument.name, { username });
+export const fetchTeachers = () => q<ITeacher[]>(Queries.Edubridge.Teachers.query, Queries.Edubridge.Teachers.name);
+/** Договор и приложения преподавателя, которые ждут подписи председателя. */
+export const fetchTeacherApprovals = (username: string) =>
+  q<ITeacherApproval[]>(Queries.Edubridge.TeacherApprovals.query, Queries.Edubridge.TeacherApprovals.name, { username });
+export const fetchContributions = () => q<IContribution[]>(Queries.Edubridge.Contributions.query, Queries.Edubridge.Contributions.name);
+/** Документы взноса — администратору по любому взносу, преподавателю по своему. */
+export const fetchContributionDocuments = (contribution_id: string) =>
+  q<IContributionDocument[]>(Queries.Edubridge.ContributionDocuments.query, Queries.Edubridge.ContributionDocuments.name, { contribution_id });
+export const fetchMyContributionDocuments = (contribution_id: string) =>
+  q<IContributionDocument[]>(Queries.Edubridge.MyContributionDocuments.query, Queries.Edubridge.MyContributionDocuments.name, { contribution_id });
+export const createAssignment = (data: IAssignmentInput) => m<IAssignment>(Mutations.Edubridge.CreateAssignment.mutation, Mutations.Edubridge.CreateAssignment.name, { data });
+/** Ставка часа преподавателя на курсе: в пределах плановой ставки курса. */
+export const setAssignmentRate = (assignment_id: string, hourly_rate: string) =>
+  m<IAssignment>(Mutations.Edubridge.SetAssignmentRate.mutation, Mutations.Edubridge.SetAssignmentRate.name, { data: { assignment_id, hourly_rate } });
+export const closeAssignment = (id: string) => m<IAssignment>(Mutations.Edubridge.CloseAssignment.mutation, Mutations.Edubridge.CloseAssignment.name, { id });
+/** Прекращение договора по соглашению сторон; вернётся null, когда прекращать нечего. */
+export const terminateContract = (username: string, reason: string) =>
+  m<IContract | null>(Mutations.Edubridge.TerminateContract.mutation, Mutations.Edubridge.TerminateContract.name, { username, reason });
+
+function who() {
+  const session = useSessionStore();
+  const system = useSystemStore();
+  if (!session.username) throw new Error(t('edubridge.error.notAuthorized'));
+  return { username: session.username, coopname: system.info.coopname };
+}
+
+function number16(): string {
+  const rnd = new Uint8Array(8);
+  crypto.getRandomValues(rnd);
+  return Array.from(rnd).map((b) => b.toString(16).padStart(2, '0')).join('').toUpperCase();
+}
+function today(): string {
+  const d = new Date();
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()}`;
+}
+
+/** Экземпляр договора УХД с номером и датой — сначала для прочтения, потом тот же на подпись. */
+export interface IContractDraft {
+  document: DigitalDocument;
+  contract_number: string;
+}
+
+/**
+ * Договор УХД (3006): генерация с номером/датой. Преподаватель читает документ
+ * целиком на шлюзе подключения, и подписывается ровно прочитанный экземпляр.
+ */
+export async function buildContractDocument(): Promise<IContractDraft> {
+  const { username, coopname } = who();
+  const contract_number = number16();
+  const document = new DigitalDocument();
+  await document.generate({ registry_id: Cooperative.Registry.EducationParticipationContract.registry_id, coopname, username, contract_number, contract_created_at: today() });
+  return { document, contract_number };
+}
+
+/**
+ * Первая подпись договора — преподавателя; вторую ставит председатель со стола
+ * «Запросы одобрений». Ставку часа преподаватель назвал первым шагом
+ * подключения — сервер берёт её из профиля: в документ она не входит, но по
+ * ней считаются и стоимость курса, и его взнос за проведённое занятие.
+ */
+export async function signContract(prepared?: IContractDraft): Promise<IContract> {
+  const { username } = who();
+  const { document, contract_number } = prepared ?? (await buildContractDocument());
+  await document.sign(username);
+  if (!document.signedDocument) throw new Error(t('edubridge.error.contractSignFailed'));
+  return m<IContract>(Mutations.Edubridge.SignContract.mutation, Mutations.Edubridge.SignContract.name, {
+    data: { document: document.signedDocument, contract_number },
+  });
+}
+
+/**
+ * Передача материалов занятия кооперативу: акт ответственного хранения (3012)
+ * и заявление о паевом взносе (3008) подписываются подряд одним действием.
+ * По акту материалы сразу встают на хранение, а заявление ждёт конца
+ * гарантийного срока курса и уходит в совет само.
+ */
+export async function commitLessonMaterials(c: IContribution): Promise<IContribution> {
+  const held = await holdContribution(c);
+  return submitContribution(held);
+}
+
+/** Акт ответственного хранения (3012): подписывается сразу после отчёта о занятии. */
+export async function holdContribution(c: IContribution): Promise<IContribution> {
+  const { username } = who();
+  const generated = await m<{ hash: string; html: string; full_title: string; binary: string }>(Mutations.Edubridge.RidStorageAct.mutation, Mutations.Edubridge.RidStorageAct.name, { contribution_id: c.id });
+  const doc = new DigitalDocument(generated as never);
+  await doc.sign(username);
+  if (!doc.signedDocument) throw new Error(t('edubridge.error.materialsTransferActSignFailed'));
+  return m<IContribution>(Mutations.Edubridge.HoldContribution.mutation, Mutations.Edubridge.HoldContribution.name, { data: { contribution_id: c.id, document: doc.signedDocument } });
+}
+
+/** Заявление (3008): генерируется бэкендом по черновику, подписывается здесь, подаётся. */
+export async function submitContribution(c: IContribution): Promise<IContribution> {
+  const { username } = who();
+  const generated = await m<{ hash: string; html: string; full_title: string; binary: string }>(Mutations.Edubridge.RidStatement.mutation, Mutations.Edubridge.RidStatement.name, { contribution_id: c.id });
+  const doc = new DigitalDocument(generated as never);
+  await doc.sign(username);
+  if (!doc.signedDocument) throw new Error(t('edubridge.error.statementSignFailed'));
+  return m<IContribution>(Mutations.Edubridge.SubmitContribution.mutation, Mutations.Edubridge.SubmitContribution.name, { data: { contribution_id: c.id, document: doc.signedDocument } });
+}
+
+/** Акт приёма-передачи (3010) после решения совета. */
+export async function signAct(c: IContribution): Promise<IContribution> {
+  const { username } = who();
+  const generated = await m<{ hash: string; html: string; full_title: string; binary: string }>(Mutations.Edubridge.RidAct.mutation, Mutations.Edubridge.RidAct.name, { contribution_id: c.id });
+  const doc = new DigitalDocument(generated as never);
+  await doc.sign(username);
+  if (!doc.signedDocument) throw new Error(t('edubridge.error.actSignFailed'));
+  return m<IContribution>(Mutations.Edubridge.SignAct.mutation, Mutations.Edubridge.SignAct.name, { data: { contribution_id: c.id, document: doc.signedDocument } });
+}

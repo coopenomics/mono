@@ -1,10 +1,4 @@
-import {
-  BadRequestException,
-  ConflictException,
-  Inject,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { createHash } from 'crypto';
 import type { InnerFileStorageBucket } from '@coopenomics/innercoop';
 import { InjectBucket, UseBucket } from '~/infrastructure/file-storage';
@@ -17,6 +11,7 @@ import type { IPaymentFileDatabaseData } from '~/domain/gateway/interfaces/payme
 import { PaymentFileKind } from '~/domain/gateway/enums/payment-file-kind.enum';
 import { GATEWAY_BUCKET } from '~/domain/gateway/constants/gateway-bucket';
 import { UploadPaymentProofInputDTO } from '../dto/upload-payment-proof.input';
+import { DomainError } from '@coopenomics/extension-kit';
 
 const EXTENSION_BY_MIME: Record<string, string> = {
   'image/jpeg': 'jpg',
@@ -55,25 +50,21 @@ export class PaymentFilesService {
   ): Promise<{ data: IPaymentFileDatabaseData; readUrl: string }> {
     const body = Buffer.from(input.content_base64, 'base64');
     if (body.byteLength !== input.size_bytes) {
-      throw new BadRequestException(
-        `size_bytes (${input.size_bytes}) не совпадает с фактическим размером base64-контента (${body.byteLength}).`
-      );
+      throw DomainError.badRequest('GATEWAY_PAYMENT_FILE_SIZE_MISMATCH', { declaredSize: input.size_bytes, actualSize: body.byteLength });
     }
     const actualChecksum = createHash('sha256').update(body).digest('hex');
     if (actualChecksum !== input.checksum_sha256.toLowerCase()) {
-      throw new BadRequestException(`checksum_sha256 не совпадает с реальным SHA-256 содержимого.`);
+      throw DomainError.badRequest('GATEWAY_PAYMENT_FILE_CHECKSUM_MISMATCH');
     }
 
     const payment = await this.payments.findByHash(input.payment_hash);
     if (!payment) {
-      throw new NotFoundException(`Платёж ${input.payment_hash} не найден.`);
+      throw DomainError.notFound('GATEWAY_PAYMENT_NOT_FOUND_BY_HASH', { hash: input.payment_hash });
     }
 
     const existing = await this.files.findByChecksum(input.coopname, actualChecksum);
     if (existing) {
-      throw new ConflictException(
-        `Файл с таким SHA-256 уже зарегистрирован в этом кооперативе (id=${existing.id}).`
-      );
+      throw DomainError.conflict('GATEWAY_PAYMENT_FILE_DUPLICATE', { id: existing.id });
     }
 
     const storageKey = this.buildKey({
@@ -105,9 +96,11 @@ export class PaymentFilesService {
     return { data: saved, readUrl };
   }
 
+  // Чек платежа читают совет и сам плательщик: сверку ведёт гард операции по
+  // таблице прав ядра (`PaymentFile:read`, владелец — плательщик платежа).
   async getReadUrl(fileId: number): Promise<{ data: IPaymentFileDatabaseData; readUrl: string }> {
     const file = await this.files.findById(fileId);
-    if (!file) throw new NotFoundException(`Файл платежа #${fileId} не найден.`);
+    if (!file) throw DomainError.notFound('GATEWAY_PAYMENT_FILE_NOT_FOUND', { fileId });
     const readUrl = await this.bucket.getReadUrl(file.storage_key);
     return { data: file, readUrl };
   }
@@ -118,7 +111,7 @@ export class PaymentFilesService {
 
   async deleteFile(fileId: number): Promise<void> {
     const file = await this.files.findById(fileId);
-    if (!file) throw new NotFoundException(`Файл платежа #${fileId} не найден.`);
+    if (!file) throw DomainError.notFound('GATEWAY_PAYMENT_FILE_NOT_FOUND', { fileId });
     await this.bucket.delete(file.storage_key);
     await this.files.delete(fileId);
     await this.syncProofMark(file.coopname, file.payment_hash);

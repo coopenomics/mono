@@ -27,10 +27,27 @@ describe('Доступность расширений по сети', () => {
       }
     });
 
+    it('Карта кооператора открыта везде, включая основную сеть (решение владельца 08.09.2026)', () => {
+      expect(AppRegistry.cardcoop.availability).toBe(ExtensionAvailability.EVERYWHERE);
+      expect(isExtensionAvailable(AppRegistry.cardcoop.availability, true)).toBe(true);
+      expect(isExtensionAvailable(AppRegistry.cardcoop.availability, false)).toBe(true);
+    });
+
+    it('Образовательный мост открыт везде, включая основную сеть (решение владельца 15.10.2026)', () => {
+      expect(AppRegistry.edubridge.availability).toBe(ExtensionAvailability.EVERYWHERE);
+      expect(isExtensionAvailable(AppRegistry.edubridge.availability, true)).toBe(true);
+      expect(isExtensionAvailable(AppRegistry.edubridge.availability, false)).toBe(true);
+    });
+
     it('Стол заказов открыт только вне основной сети', () => {
       expect(AppRegistry.market.availability).toBe(ExtensionAvailability.NON_MAINNET_ONLY);
       expect(isExtensionAvailable(AppRegistry.market.availability, true)).toBe(false);
       expect(isExtensionAvailable(AppRegistry.market.availability, false)).toBe(true);
+    });
+
+    // 20.10.2026: DaData приезжала в каждый кооператив установленной и выключенной.
+    it('DaData не ставится по умолчанию — её ставит председатель из каталога с ключом', () => {
+      expect(AppRegistry.dadata.defaults).toBeUndefined();
     });
   });
 });

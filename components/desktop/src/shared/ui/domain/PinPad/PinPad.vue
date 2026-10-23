@@ -19,13 +19,13 @@
   //- планшета цифры набирают пальцем, а сидящему за столом привычнее клавиши.
   //- Работают оба сразу: кнопка не забирает курсор из ячейки (mousedown.prevent),
   //- поэтому набор можно продолжить с клавиатуры, не целясь в поле мышью.
-  .pin-pad__keys(role='group', aria-label='Клавиатура PIN-кода')
+  .pin-pad__keys(role='group', :aria-label='$t("ui.pinPad.keypadAriaLabel")')
     button.pin-pad__key(
       v-for='key in KEYS',
       :key='key',
       type='button',
       :disabled='disabled',
-      :aria-label='`Цифра ${key}`',
+      :aria-label='$t(`ui.pinPad.digitAriaLabel`, { key })',
       @mousedown.prevent,
       @click='append(key)'
     ) {{ key }}
@@ -35,7 +35,7 @@
     button.pin-pad__key(
       type='button',
       :disabled='disabled',
-      aria-label='Цифра 0',
+      :aria-label='$t("ui.pinPad.digitZeroAriaLabel")',
       @mousedown.prevent,
       @click="append('0')"
     ) 0
@@ -43,7 +43,7 @@
     button.pin-pad__key.pin-pad__key--action(
       type='button',
       :disabled='disabled || !value.length',
-      aria-label='Стереть последнюю цифру',
+      :aria-label='$t("ui.pinPad.backspaceAriaLabel")',
       @mousedown.prevent,
       @click='backspace'
     )

@@ -30,6 +30,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
+import { uiLocale, t as i18nT } from 'src/shared/i18n';
 import type { ActivityEvent, ActivityEventType, ActivityTimelineProps } from './ActivityTimeline.types';
 
 const props = withDefaults(defineProps<ActivityTimelineProps>(), {
@@ -62,15 +63,15 @@ function humanDate(iso: string): string {
   const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000);
   const yKey = yesterday.toISOString().slice(0, 10);
   const eKey = d.toISOString().slice(0, 10);
-  if (eKey === todayKey) return 'Сегодня';
-  if (eKey === yKey) return 'Вчера';
-  return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
+  if (eKey === todayKey) return i18nT('ui.activityTimeline.todayLabel');
+  if (eKey === yKey) return i18nT('ui.activityTimeline.yesterdayLabel');
+  return d.toLocaleDateString(uiLocale(), { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
 function timeOf(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+  return d.toLocaleTimeString(uiLocale(), { hour: '2-digit', minute: '2-digit' });
 }
 
 const grouped = computed(() => {

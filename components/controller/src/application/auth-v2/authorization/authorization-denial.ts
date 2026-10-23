@@ -1,4 +1,5 @@
 import { ForbiddenException } from '@nestjs/common';
+import { t } from '~/i18n';
 
 /**
  * Внутренняя причина отказа авторизации (для лога/диагностики). Наружу НЕ уходит:
@@ -24,6 +25,6 @@ export const AUTHORIZATION_DENIED_CODE = 'authorization_denied';
 export function authorizationDenied(): ForbiddenException {
   return new ForbiddenException({
     error: AUTHORIZATION_DENIED_CODE,
-    error_description: 'Недостаточно прав для выполнения операции',
+    error_description: t('authV2.authorizationDenial.insufficientRightsMessage'),
   });
 }

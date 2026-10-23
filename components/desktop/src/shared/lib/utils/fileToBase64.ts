@@ -1,3 +1,4 @@
+import { t } from 'src/shared/i18n';
 /**
  * Читает File и возвращает его содержимое в base64 БЕЗ data-URL префикса
  * (`data:<mime>;base64,`). Тот же контракт ожидают marketplace-мутации
@@ -10,13 +11,13 @@ export function fileToBase64(file: File): Promise<string> {
     reader.onload = () => {
       const value = reader.result;
       if (typeof value !== 'string') {
-        reject(new Error('Не удалось прочитать файл'));
+        reject(new Error(t('utils.error.fileReadFailed')));
         return;
       }
       const commaAt = value.indexOf(',');
       resolve(commaAt === -1 ? value : value.slice(commaAt + 1));
     };
-    reader.onerror = () => reject(reader.error ?? new Error('Ошибка чтения файла'));
+    reader.onerror = () => reject(reader.error ?? new Error(t('utils.error.fileReadError')));
     reader.readAsDataURL(file);
   });
 }

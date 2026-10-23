@@ -22,7 +22,7 @@ BaseDialog(
         variant='ghost',
         :disabled='loading',
         @click='emit("update:modelValue", false)'
-      ) Отмена
+      ) {{ $t('common.action.cancel') }}
       BaseButton(
         variant='primary',
         :loading='loading',
@@ -39,10 +39,11 @@ import { BaseButton } from 'src/shared/ui/base/BaseButton';
 import { BaseDialog } from 'src/shared/ui/base/BaseDialog';
 import { AccountBadge } from 'src/shared/ui/domain/AccountBadge';
 import type { VerificationConfirmDialogProps } from './VerificationConfirmDialog.types';
+import { t } from 'src/shared/i18n';
 
 withDefaults(defineProps<VerificationConfirmDialogProps>(), {
-  title: 'Проверка личности',
-  confirmLabel: 'Личность подтверждена',
+  title: t('ui.verificationConfirmDialog.title'),
+  confirmLabel: t('ui.verificationConfirmDialog.confirmedText'),
   loading: false,
   confirmDisabled: false,
   size: 'sm',

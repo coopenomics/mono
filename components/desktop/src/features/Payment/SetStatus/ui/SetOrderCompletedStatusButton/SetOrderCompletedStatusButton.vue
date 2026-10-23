@@ -2,22 +2,22 @@
 q-item(clickable flat size="sm" @click="showDialog=true").full-width
   div.q-pa-sm
     q-icon(name="fa-solid fa-square-check").q-mr-xs
-    span обработан
+    span {{ $t('payment.setOrderCompletedStatusButton.processedBadge') }}
 
 BaseDialog(
   v-model='showDialog',
-  title='Отметить обработанным',
+  :title='$t("payment.setOrderCompletedStatusButton.title")',
   size='sm',
   @update:model-value='(v) => !v && close()'
 )
   Form(
     :handler-submit="setCompleted"
     :is-submitting="isSubmitting"
-    :button-cancel-txt="'Отменить'"
-    :button-submit-txt="'Продолжить'"
+    :button-cancel-txt="$t('payment.setOrderCompletedStatusButton.cancel')"
+    :button-submit-txt="$t('payment.setOrderCompletedStatusButton.confirm')"
     @cancel="close"
   )
-    p Вы уверены, что хотите отметить платеж обработанным? Отметка НЕ приводит к изменению лицевых счетов и не выполняет никаких действий по обработке платежа, а только заменяет статус платежа.
+    p {{ $t('payment.setOrderCompletedStatusButton.confirmText') }}
 </template>
 <script lang="ts" setup>
 import { FailAlert, SuccessAlert } from 'src/shared/api';
@@ -25,6 +25,7 @@ import { useSetStatus } from '../../model';
 import { ref } from 'vue';
 import { BaseDialog } from 'src/shared/ui/base/BaseDialog';
 import { Form } from 'src/shared/ui/Form';
+import { t } from 'src/shared/i18n';
 const {setCompletedStatus} = useSetStatus()
 const isSubmitting = ref(false)
 const showDialog = ref(false)
@@ -46,10 +47,10 @@ const close = () => {
 const setCompleted = async() => {
   try {
     await setCompletedStatus(props.id)
-    SuccessAlert('Статус ордера обновлён')
+    SuccessAlert(t('payment.setOrderCompletedStatusButton.updateSuccess'))
     close()
   } catch(e: any) {
-    FailAlert(`Возникла ошибка: ${e.message}`)
+    FailAlert(t('payment.setOrderCompletedStatusButton.updateError', { message: e.message }))
     close()
   }
 }

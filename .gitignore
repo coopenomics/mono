@@ -9,6 +9,11 @@ scripts/release-info.md
 components/docs/docs/sdk
 dist/
 .env
+# Ручные бэкапы .env: 03.09.2026 такой файл уехал в коммит вместе с ключами
+# и GitHub push protection заблокировал зеркалирование целиком — вместе с ним
+# встал деплой прода.
+.env.bak*
+.env.*.bak
 .DS_Store
 _blago/
 blago/
@@ -28,3 +33,8 @@ schema.gql
 
 # CoopID: file-based Docker Secrets (генерируются scripts/coopid-gen-secrets.sh)
 infra/coopid/secrets/
+
+# Внешний слой тестов (scripts/blackbox/stack.sh): логи и отчёты прогона
+.blackbox/
+# Код провайдера, который кладёт прогон Billing E2E (scripts/blackbox/billing-e2e.sh)
+_provider/

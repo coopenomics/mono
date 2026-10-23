@@ -16,6 +16,54 @@ title: Онбординг Стола заказов — приём ЦПП коо
 # Переименование 2026-08-09 (FC1-3): `MarketplacePlugin`/`MarketplacePluginModule`
 # стали `MarketplaceExtension`/`MarketplaceExtensionModule`, локальные `plugin*`
 # — `extension*`. Только имена; поведение и набор случаев не менялись.
+#
+# Фабрика утверждений документов 2026-09-16 (A3D-3, компонент 66 проекта 13):
+# рядом с шагами онбординга расширение объявляет свои документы в реестре
+# шаблонов кооператива (`register-marketplace-documents.ts`). Шаги и их
+# случаи не менялись; случаи деклараций — в реестре documents.approvals.
+#
+# Правка 2026-09-23 (7DD-22): номера документов шагов (Положение, оферта)
+# desktop берёт из реестра cooptypes по имени, а не числами. Поведение и
+# набор случаев прежние.
+
+# Правка 24.09.2026 (C28-83): экраны Стола заказов живут по общей ленте
+# изменений (chainChanges), отдельная подписка marketplaceEvents снята вместе с
+# серверным мостом и резолвером. Таблицы расширения объявлены в ленте через
+# CHAIN_CHANGES_PORT (MarketplaceLiveFeedSubscriber на базе marketplace), стол
+# перечитывает экран по сигналу их изменений (useLiveReload + marketLiveTables).
+# Серверные сценарии и их случаи не менялись.
+# Гейт подписи на месте перечитывает ожидающие подписи по ленте (onsiteGateLive.ts).
+
+# Правка 24.09.2026 (C28-83, второй проход): на ленту переведены и экраны
+# Стола заказов, которые раньше не слушали marketplaceEvents, — реестры
+# председателя, экономика стола и участка, выплаты, претензии поставщику,
+# склад участка, онбординг кооператива и поставщика, пункты выдачи, карточки
+# реестров и виджеты процессов. Сбор с оборота (marketplace::config) объявлен в
+# ленте таблицей цепи. Онбординг пайщика ждёт подписи по ленте, а не циклом с
+# паузой. Серверные сценарии и набор случаев прежние.
+# Правка 29.09.2026 (C28-86): в install.ts стол поставщика объявляет команду
+# «Создать предложение» (окно столов и сочетание N O). Команда ведёт на ту же
+# страницу создания предложения и закрыта тем же правом Offer:create:own —
+# шлюз онбординга и его случаи не меняются.
+# Правка 29.09.2026 (C28-86, второй проход): стол ПВЗ объявляет команду
+# «Сканировать QR» (G Q) с тем же правом Warehouse:read:own-KU и тем же
+# действием сканера, что у пункта меню. Команды видны только после шлюза стола.
+
+# Правка 2026-10-04 (C28-87): права операций сверяются с единой таблицей прав
+# Стола заказов вместе с условием строки (кооператив подключён, заказчик
+# подключён, хранение включено); декоратор операции — общий `@RequireRight` из
+# каркаса расширений. Случаи про условия — в marketplace.rights-table; набор
+# случаев этой фичи прежний.
+
+# Правка 2026-10-05 (C28-87, пункт 1а): операции подключения названы источником
+# «сам пайщик» (`SELF`) в `@RequireRight`: объекта сверки у них нет, имя берётся
+# из входа. Поведение и набор случаев прежние.
+
+# Правка 2026-10-05 (C28-87, общий гард): права операций сверяет общий гард
+# каркаса расширений (`RightsGuard`) над описанием прав Стола заказов;
+# собственный гард стола, декоратор роли и ручной провайдер прав рабочего стола
+# убраны. Отказ «право не положено» отвечает кодом KIT_INSUFFICIENT_RIGHTS (был
+# отказ без кода). Набор случаев прежний.
 
 sources:
   backend:
@@ -63,6 +111,7 @@ cases:
     expect: >
       статус ЦПП становится «принята», в конфигурации расширения сохраняются решение совета и дата принятия
     test: components/controller/tests/unit/marketplace/marketplace-coop-acceptance-service.test.ts
+    api: components/api-tests/src/marketplace/onboarding.test.ts
     status: passing
 
   # Самоинициализация программы ЦПП в цепи. Механика общая с Благоростом —
@@ -75,6 +124,7 @@ cases:
     expect: >
       программа открывается автоматически ключом кооператива; шаблон оферты назначает контракт, а не вызывающая сторона
     test: components/controller/tests/unit/blockchain/soviet-ensure-program.test.ts
+    api: components/api-tests/src/marketplace/onboarding.test.ts
     status: passing
 
   - id: mkt.onb.side.13
@@ -83,6 +133,8 @@ cases:
     scenario: Повторный старт расширения, когда программа ЦПП уже открыта
     expect: транзакция не отправляется, ключ кооператива не запрашивается, старт продолжается
     test: components/controller/tests/unit/blockchain/soviet-ensure-program.test.ts
+    external: unreachable
+    external_reason: "повторный старт расширения снаружи виден только отсутствием транзакции — наблюдать нечем; правило проверяет юнит-тест"
     status: passing
 
   - id: mkt.onb.side.14
@@ -91,6 +143,8 @@ cases:
     scenario: В кооперативе открыта другая ЦПП, своей нет
     expect: чужая программа не засчитывается за свою — открывается собственная
     test: components/controller/tests/unit/blockchain/soviet-ensure-program.test.ts
+    external: unreachable
+    external_reason: "в кооперативе стенда своя программа открыта при загрузке; состояние «открыта только чужая ЦПП» через API не создать"
     status: passing
 
   - id: mkt.onb.break.04
@@ -100,6 +154,7 @@ cases:
     expect: >
       расширение всё равно поднимается, ошибка уходит в лог, следующий старт повторяет попытку; на столе пайщик видит, что подключение ЦПП не завершено
     test: components/controller/tests/unit/blockchain/soviet-ensure-program.test.ts
+    api: components/api-tests/src/faults/chain-down.test.ts
     status: passing
 
   - id: mkt.onb.side.01
@@ -108,6 +163,8 @@ cases:
     scenario: Запрос статуса ЦПП, когда расширение не установлено в кооперативе
     expect: NotFound с указанием, что расширение не установлено
     test: components/controller/tests/unit/marketplace/marketplace-coop-acceptance-service.test.ts
+    external: unreachable
+    external_reason: "расширение Стола заказов на стенде установлено и нужно остальным наборам; состояние «не установлено» не воспроизводится"
     status: passing
 
   - id: mkt.onb.side.02
@@ -116,6 +173,8 @@ cases:
     scenario: Приём ЦПП с датой принятия в будущем (более чем на минуту вперёд)
     expect: BadRequest, приём не выполняется
     test: components/controller/tests/unit/marketplace/marketplace-coop-acceptance-service.test.ts
+    external: unreachable
+    external_reason: "дата принятия ЦПП во вход API не входит — её ставит сервер; неверную дату через API не передать"
     status: passing
 
   - id: mkt.onb.side.03
@@ -124,6 +183,8 @@ cases:
     scenario: Приём ЦПП с неразбираемой датой принятия
     expect: BadRequest, приём не выполняется
     test: components/controller/tests/unit/marketplace/marketplace-coop-acceptance-service.test.ts
+    external: unreachable
+    external_reason: "дата принятия ЦПП во вход API не входит — её ставит сервер; неверную дату через API не передать"
     status: passing
 
   - id: mkt.onb.side.04
@@ -133,6 +194,7 @@ cases:
     expect: >
       не отказ: ЦПП остаётся принятой, реквизиты нового решения совета перезаписывают прежние, дубликата записи не появляется
     test: components/controller/tests/unit/marketplace/marketplace-coop-acceptance-service.test.ts
+    api: components/api-tests/src/marketplace/onboarding.test.ts
     status: passing
     # Решение заказчика (2026-08-08): текущее поведение (перезапись) устраивает.
     # Из кода не выводится: повторный accept не отбивается явной проверкой.
@@ -156,6 +218,7 @@ cases:
     scenario: Пайщик уже подписал программную оферту ЦПП
     expect: гейт не требуется, источник «подписано», проставлена дата подписи
     test: components/controller/tests/unit/marketplace/marketplace-onboarding-service.test.ts
+    api: components/api-tests/src/marketplace/onboarding.test.ts
     status: passing
 
   - id: mkt.onb.side.06
@@ -165,6 +228,8 @@ cases:
     expect: >
       чтение состояния — гейт не требуется, источник «не настроено»; попытка подписать — BadRequest
     test: components/controller/tests/unit/marketplace/marketplace-onboarding-service.test.ts
+    external: unreachable
+    external_reason: "стенд загружается с настроенным соглашением, программой, кошельком и шаблоном оферты; сломанную настройку ЦПП через API не создать"
     status: passing
 
   - id: mkt.onb.side.07
@@ -173,6 +238,8 @@ cases:
     scenario: Соглашение ЦПП настроено, но у него нет программного кошелька
     expect: подписание отклоняется с BadRequest, on-chain действие не отправляется
     test: components/controller/tests/unit/marketplace/marketplace-onboarding-service.test.ts
+    external: unreachable
+    external_reason: "стенд загружается с настроенным соглашением, программой, кошельком и шаблоном оферты; сломанную настройку ЦПП через API не создать"
     status: passing
 
   - id: mkt.onb.side.08
@@ -182,6 +249,8 @@ cases:
     expect: >
       чтение состояния — гейт не требуется, источник «не настроено»; попытка подписать — BadRequest
     test: components/controller/tests/unit/marketplace/marketplace-onboarding-service.test.ts
+    external: unreachable
+    external_reason: "стенд загружается с настроенным соглашением, программой, кошельком и шаблоном оферты; сломанную настройку ЦПП через API не создать"
     status: passing
 
   - id: mkt.onb.side.09
@@ -191,6 +260,8 @@ cases:
       Запись пайщика в кошельке помечена как отсутствующая (удалена в цепи), хотя программа в ней когда-то была.
     expect: гейт снова требуется — подпись не засчитывается
     test: components/controller/tests/unit/marketplace/marketplace-onboarding-service.test.ts
+    external: unreachable
+    external_reason: "запись пайщика в кошельке помечается отсутствующей только удалением строки в цепи контрактом; действия для этого у стенда нет"
     status: passing
 
   - id: mkt.onb.side.10
@@ -199,6 +270,7 @@ cases:
     scenario: Подпись оферты запрашивается не пайщиком этого кооператива
     expect: отказ доступа, on-chain действие не отправляется
     test: components/controller/tests/unit/marketplace/marketplace-onboarding-offer-access.test.ts
+    api: components/api-tests/src/marketplace/onboarding.test.ts
     status: passing
 
   - id: mkt.onb.break.01
@@ -208,6 +280,7 @@ cases:
     expect: >
       пайщику показывается ошибка, состояние не считается подписанным, повторная попытка возможна
     test: components/controller/tests/unit/marketplace/marketplace-onboarding-service.test.ts
+    api: components/api-tests/src/faults/chain-down.test.ts
     status: passing
 
   # ── Незавершённое подключение ЦПП кооперативом (инцидент 2026-08-10) ──────
@@ -222,6 +295,8 @@ cases:
     expect: >
       права заказчика НЕ выдаются — остаётся страница подключения; выбор пункта выдачи сам по себе стол не открывает
     test: components/controller/tests/unit/marketplace/marketplace-desktop-grants-provider.test.ts
+    external: unreachable
+    external_reason: "стенд загружается с настроенным соглашением, программой, кошельком и шаблоном оферты; сломанную настройку ЦПП через API не создать"
     status: passing
 
   - id: mkt.onb.break.03
@@ -232,6 +307,8 @@ cases:
     expect: >
       отказ с указанием, чего не хватает; подпись на цепь не отправляется и оферта не объявляется подписанной
     test: components/controller/tests/unit/marketplace/marketplace-onboarding-service.test.ts
+    external: unreachable
+    external_reason: "стенд загружается с настроенным соглашением, программой, кошельком и шаблоном оферты; сломанную настройку ЦПП через API не создать"
     status: passing
     # Переведён с ui на backend по той же причине, что и mkt.onb.happy.02:
     # фазы подготовки принимают ЦПП один раз до всех сценариев, поэтому
@@ -249,6 +326,8 @@ cases:
     expect: >
       подписывается шаблон программы — иначе цепь отклоняет подпись как несовпадающую с программой
     test: components/controller/tests/unit/marketplace/marketplace-onboarding-service.test.ts
+    external: unreachable
+    external_reason: "стенд загружается с настроенным соглашением, программой, кошельком и шаблоном оферты; сломанную настройку ЦПП через API не создать"
     status: passing
 
   - id: mkt.onb.side.12
@@ -257,7 +336,23 @@ cases:
     scenario: Соглашение ЦПП есть, но самой программы в кооперативе не существует
     expect: подписание отклоняется с BadRequest, on-chain действие не отправляется
     test: components/controller/tests/unit/marketplace/marketplace-onboarding-service.test.ts
+    external: unreachable
+    external_reason: "стенд загружается с настроенным соглашением, программой, кошельком и шаблоном оферты; сломанную настройку ЦПП через API не создать"
     status: passing
+
+  - id: mkt.onb.side.20
+    level: backend
+    kind: side
+    scenario: член совета или председатель со статусом учётной записи «зарегистрирован» открывает Стол заказов
+    expect: >
+      гард стола пропускает его по роли, права стола выдаются — то же правило,
+      что в ядре: совет проходит по роли в любом статусе (C28-87, решение
+      владельца от 17.09.2026 для RolesGuard). Пайщик без статуса «принят»
+      по-прежнему получает отказ и пустой набор прав
+    test: components/controller/tests/unit/marketplace/marketplace-membership-guard.test.ts
+    external: unreachable
+    external_reason: "совет стенда заводится сразу со статусом «принят»; учётную запись совета в статусе «зарегистрирован» через API не создать"
+    status: written
 
   - id: mkt.onb.ui.01
     level: ui
@@ -278,3 +373,28 @@ cases:
       до утверждения статус «Не подключено» и шаги участков/ПВЗ заблокированы; после — «ЦПП подключена», шаги разблокированы
     test: components/docs-harness/scenarios/marketplace/onboarding/coop-accept-cpp.mjs
     status: passing
+
+# 2026-09-06 (паевая модель, компонент 68): карточка кошелька расширения market —
+# свободный паевой `w.mkt.share` вместо членского. Онбординг не менялся.
+
+  - id: mkt.onb.show.01
+    level: ui
+    kind: break
+    scenario: >
+      Оферта ЦПП открыта пайщиком при подключении к столу, а в анкетных данных пайщика
+      или в названии организации есть разметка.
+    expect: >
+      разметка показывается как текст и не выполняется. Документ собирается с
+      выключенным автоэкранированием намеренно, поэтому очистка стоит при
+      показе; вид документа (таблицы, выравнивание, собственный <style>) не
+      меняется. Общее описание — desktop.document-html-display, задача C28-74
+    test: ~
+    status: missing
+
+# 2026-09-23 (EEA-6…EEA-9): тексты интерфейса, отказов и уведомлений фичи вынесены из
+# кода в словари i18n, отказы бэкенда переведены на DomainError с кодом — текст
+# и HTTP-статус ответа прежние. Сценарии фичи и её проверки не менялись.
+
+# 2026-10-05 (C28-81): файлы и классы хранилищ переименованы после ухода с TypeORM
+# (typeorm-repository → kysely-repository, typeorm-entity → record); частичная правка
+# полей собрана помощником pickDefined. Сценарии фичи и её проверки не менялись.

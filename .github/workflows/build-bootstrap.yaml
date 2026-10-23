@@ -21,7 +21,11 @@ name: Build bootstrap container
 
 on:
   push:
-    branches: [dev, testnet, main]
+    # ⚠ ВРЕМЕННО (Epic 29, B2D-27): feat/provider-billing-stack в триггере,
+    # чтобы собрать dicoop/bootcoop:subnet-dev с командой create-coop ДО merge
+    # в dev (dev у оператора сразу летит в testnet/production нарезкой релиза).
+    # ПЕРЕД MERGE В DEV: убрать ветку из списка и case-ветку subnet-dev ниже.
+    branches: [dev, testnet, main, feat/provider-billing-stack]
     paths:
       - 'components/boot/**'
       # Образ несёт реестр шаблонов документов (`drafts:sync` вкатывает его
@@ -54,6 +58,13 @@ jobs:
               echo "DOCKER_TAG=dev"    >> $GITHUB_ENV
               echo "EXTRA_TAG="        >> $GITHUB_ENV
               ;;
+            feat/provider-billing-stack)
+              # ⚠ ВРЕМЕННО (см. шапку триггера): docker-тег не может нести
+              # слеш, поэтому ветка мапится в subnet-dev; контракты — от dev.
+              echo "DOCKER_TAG=subnet-dev" >> $GITHUB_ENV
+              echo "CONTRACTS_TAG=dev"     >> $GITHUB_ENV
+              echo "EXTRA_TAG="            >> $GITHUB_ENV
+              ;;
             *)
               echo "Unsupported branch ${{ github.ref_name }}" >&2
               exit 1
@@ -67,13 +78,13 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Pull contracts image
-        run: docker pull dicoop/contracts:${{ env.DOCKER_TAG }}
+        run: docker pull dicoop/contracts:${{ env.CONTRACTS_TAG || env.DOCKER_TAG }}
 
       - name: Build and push image
         run: |
           IMAGE="dicoop/bootcoop"
           docker build \
-            --build-arg CONTRACTS_TAG=${{ env.DOCKER_TAG }} \
+            --build-arg CONTRACTS_TAG=${{ env.CONTRACTS_TAG || env.DOCKER_TAG }} \
             --label "org.opencontainers.image.revision=${{ github.sha }}" \
             --label "org.opencontainers.image.created=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
             -f components/boot/Dockerfile \

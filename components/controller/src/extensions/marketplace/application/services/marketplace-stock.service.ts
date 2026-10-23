@@ -1,19 +1,20 @@
-import { rethrowChainError } from '@coopenomics/extension-kit';
-import {
-  BadRequestException,
-  ConflictException,
-  ForbiddenException,
-  Inject,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { rethrowChainError, DomainError } from '@coopenomics/extension-kit';
+import { Inject, Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { createHash } from 'crypto';
-import type { MarketContract } from 'cooptypes';
 import { computeStockOrderHash } from '../shared/order-hash.util';
 import { toQuantityAsset } from '../shared/quantity.util';
-import { resolveSaleUnit } from '../shared/packaging.util';
+import {
+  packageDeltaOfOrder,
+  packageDeltaOfSaleUnit,
+  releasePackagesForPositions,
+  resolveSaleUnit,
+  saleUnitShortfall,
+  type OfferPackageDelta,
+  type ResolvedSaleUnit,
+} from '../shared/packaging.util';
 import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
+import type { MarketContract } from 'cooptypes';
 import {
   MARKETPLACE_ASSET_CONFIG,
   type MarketplaceAssetConfig,
@@ -52,6 +53,7 @@ import type { MarketplaceOrderDomainEntity } from '../../domain/entities/marketp
 import { normalizeChainTxHash } from '../shared/chain-tx.util';
 
 import { MARKETPLACE_OFFER_APPROVED_EVENT } from '../events/marketplace-notification.events';
+import { t } from '../../i18n';
 
 export interface MarketplaceStockPublishInput {
   coopname: string;
@@ -92,28 +94,32 @@ export interface MarketplaceStockOrderCreateInput {
   package_id?: string | null;
   /** Грань «заказ заказчика» — общий id строк одного оформления/предложения. */
   checkout_id?: string | null;
-  /** Предвычисленный order_hash из заявления о конвертации (см. order-create). */
+  /** Предвычисленный order_hash из превью оформления / бандла (см. order-create). */
   order_hash?: string;
-  /**
-   * Подписанное заказчиком заявление о конвертации паевого взноса в членский
-   * (registry 1110). Заказ из остатка фондируется из членских средств; если
-   * членских не хватает, перед заказом выполняется отдельное действие `convert`
-   * на сумму `convert_amount` с этим заявлением. Опционально: при замене
-   * непоставленного высвобожденные средства уже в членском — конвертация не
-   * нужна, заявление не передаётся.
-   */
-  convert_statement?: MarketContract.Actions.Convert.IConvert['convert_statement'] | null;
-  /**
-   * Сумма конвертации (asset «X.XXXX RUB», тело + членский взнос строки) —
-   * обязательна вместе с `convert_statement`; столько паевого переводится в
-   * членский кошелёк перед заказом из остатка.
-   */
-  convert_amount?: string | null;
 }
 
 export interface MarketplaceStockOrderCreateResult {
   order: MarketplaceOrderDomainEntity;
   tx_hash: string;
+}
+
+/**
+ * Строка заказа из остатка после проверок и брони счётчика, до проводки цепью.
+ * `action` — параметры `marketplace::stockorder`.
+ */
+export interface MarketplaceStockOrderPreparedLine {
+  input: MarketplaceStockOrderCreateInput;
+  offer: MarketplaceOfferDomainEntity;
+  /** Участок, на складе которого лежит остаток, — он же участок выдачи. */
+  stock_braname: string;
+  resolved: ResolvedSaleUnit;
+  packageDelta: OfferPackageDelta | undefined;
+  order_hash: string;
+  offer_hash: string;
+  /** Сумма заказа без валюты. */
+  total_cost: string;
+  warranty_period_secs: number;
+  action: MarketContract.Actions.StockOrder.IStockOrder;
 }
 
 /**
@@ -178,12 +184,12 @@ export class MarketplaceStockService {
   async publishStock(input: MarketplaceStockPublishInput): Promise<MarketplaceOfferDomainEntity[]> {
     const positions = await this.loadFreeStockPositions(input.coopname, input.inventory_ids);
     if (positions.some((p) => p.published_offer_id !== null)) {
-      throw new ConflictException('Часть позиций уже опубликована — снимите с публикации перед изменением.');
+      throw DomainError.conflict('MARKETPLACE_STOCK_PARTIALLY_PUBLISHED');
     }
     if (input.price_per_unit !== undefined && input.price_per_unit !== null) {
       const price = Number.parseFloat(input.price_per_unit);
       if (Number.isNaN(price) || price <= 0) {
-        throw new BadRequestException('Цена публикации должна быть больше нуля.');
+        throw DomainError.badRequest('MARKETPLACE_STOCK_PUBLISH_PRICE_MUST_BE_POSITIVE');
       }
       // Только уценка (requirement 76, решение 12): продажа выше цены прибытия
       // потребовала бы доходной проводки, которой в модели нет; уценка же
@@ -201,16 +207,14 @@ export class MarketplaceStockService {
       if (tooHigh) {
         const perSaleUnit =
           tooHigh.package_size > 0
-            ? ` за упаковку ${tooHigh.package_size} ед.`
-            : ' за единицу';
-        throw new BadRequestException(
-          `Цена публикации выше цены прибытия позиции «${tooHigh.product_name_snapshot}» (${tooHigh.arrival_price}${perSaleUnit}) — допускается только уценка.`
-        );
+            ? t('marketplace.stock.perPackageUnitLabel', { packageSize: tooHigh.package_size })
+            : t('marketplace.stock.perUnitLabel');
+        throw DomainError.badRequest('MARKETPLACE_STOCK_PUBLISH_PRICE_ABOVE_ARRIVAL', { productName: tooHigh.product_name_snapshot, arrivalPrice: tooHigh.arrival_price, perSaleUnit });
       }
     }
     const braname = positions[0].braname;
     if (positions.some((p) => p.braname !== braname)) {
-      throw new BadRequestException('Публикация выполняется по одному КУ за раз.');
+      throw DomainError.badRequest('MARKETPLACE_STOCK_PUBLISH_SINGLE_KU_ONLY');
     }
 
     // Группа по исходному товару: order → offer поставщика (происхождение).
@@ -243,6 +247,10 @@ export class MarketplaceStockService {
         : [];
       const receivedPackageSizes = this.resolveReceivedPackageSizes([...group, ...alreadyPublished]);
       const availablePackages = this.filterReceivedPackages(origin.packages, receivedPackageSizes);
+      // Остаток по упаковкам: сколько упаковок каждого содержимого лежит в
+      // этой публикации — позиции склада знают размер упаковки, а не её
+      // идентификатор в каталоге.
+      const packageCounts = MarketplaceStockService.packageCountsBySize(group);
 
       if (!coopOffer) {
         const normalizedPrice = this.normalizePrice(price);
@@ -265,7 +273,11 @@ export class MarketplaceStockService {
           // (считает исключительно из packages[].price) молча игнорирует
           // уценку кооператива.
           sale_form: origin.sale_form,
-          packages: this.scalePackagePrices(availablePackages, origin.price_per_unit, normalizedPrice),
+          packages: MarketplaceStockService.withStockCounts(
+            this.scalePackagePrices(availablePackages, origin.price_per_unit, normalizedPrice),
+            packageCounts,
+            []
+          ),
           quantity_available: qty,
           unlimited_flag: false,
           // Исполнение мгновенное со склада этого КУ — доставка только сюда.
@@ -294,7 +306,11 @@ export class MarketplaceStockService {
           // позиции), повторная публикация должна ЛЕЧИТЬ устаревший
           // sale_form/packages, а не консервировать его навсегда.
           sale_form: origin.sale_form,
-          packages: this.scalePackagePrices(availablePackages, origin.price_per_unit, targetPrice),
+          packages: MarketplaceStockService.withStockCounts(
+            this.scalePackagePrices(availablePackages, origin.price_per_unit, targetPrice),
+            packageCounts,
+            coopOffer.packages ?? []
+          ),
           ...(input.price_per_unit ? { price_per_unit: targetPrice } : {}),
           ...(input.warranty_days !== undefined && input.warranty_days !== null
             ? { warranty_days: input.warranty_days }
@@ -321,6 +337,41 @@ export class MarketplaceStockService {
       );
     }
     return touched;
+  }
+
+  /** Число упаковок каждого содержимого среди позиций: остаток упаковок кооператива. */
+  private static packageCountsBySize(positions: MarketplaceInventoryDomainEntity[]): Map<number, number> {
+    const counts = new Map<number, number>();
+    for (const p of positions) {
+      const size = p.package_size ?? 0;
+      if (!(size > 0)) continue;
+      counts.set(size, (counts.get(size) ?? 0) + Math.round(p.quantity_per_label / size));
+    }
+    return counts;
+  }
+
+  /**
+   * Остаток упаковок предложения кооператива: к уже опубликованному (по
+   * идентификатору упаковки) прибавляются упаковки этой публикации по
+   * содержимому. Счётчики упаковок исходного предложения поставщика сюда не
+   * переносятся — это его остаток, не кооператива; заблокированное и
+   * выданное берутся из уже опубликованного предложения остатка.
+   */
+  private static withStockCounts(
+    packages: MarketplaceOfferPackage[],
+    counts: Map<number, number>,
+    existing: MarketplaceOfferPackage[]
+  ): MarketplaceOfferPackage[] {
+    return packages.map((p) => {
+      const prev = existing.find((e) => e.id === p.id);
+      const added = [...counts.entries()].find(([size]) => Math.abs(size - p.size) < 1e-9)?.[1] ?? 0;
+      return {
+        ...p,
+        quantity_available: (prev?.quantity_available ?? 0) + added,
+        quantity_blocked: prev?.quantity_blocked ?? 0,
+        quantity_consumed: prev?.quantity_consumed ?? 0,
+      };
+    });
   }
 
   /**
@@ -378,20 +429,22 @@ export class MarketplaceStockService {
     if (published.length === 0) return 0;
 
     // Сначала уменьшаем счётчики офферов, затем отвязываем позиции.
-    const byOffer = new Map<string, number>();
+    const byOffer = new Map<string, MarketplaceInventoryDomainEntity[]>();
     for (const p of published) {
-      byOffer.set(p.published_offer_id!, (byOffer.get(p.published_offer_id!) ?? 0) + p.quantity_per_label);
+      byOffer.set(p.published_offer_id!, [...(byOffer.get(p.published_offer_id!) ?? []), p]);
     }
     const affected = await this.inventoryRepo.setPublication(
       input.coopname,
       published.map((p) => p.id),
       null
     );
-    for (const [offer_id, qty] of byOffer) {
+    for (const [offer_id, rows] of byOffer) {
       const offer = await this.offerRepo.findById(offer_id);
       if (!offer) continue;
+      const qty = rows.reduce((sum, p) => sum + p.quantity_per_label, 0);
       await this.offerRepo.applyUpdate(offer_id, {
         quantity_available: Math.max(0, offer.quantity_available - qty),
+        packages: releasePackagesForPositions(offer.packages ?? [], rows),
       });
       this.eventBus.emit(MARKETPLACE_OFFER_APPROVED_EVENT, {
         offer_id,
@@ -407,56 +460,64 @@ export class MarketplaceStockService {
   }
 
   /**
-   * Конвертация паевого взноса в членский кошелёк «Стола заказов» (chain
-   * `convert`). Пополняет членские средства под заказы из остатка — одним
-   * действием на весь дефицит принятия. Заявление о конвертации публикуется в
-   * реестр документов контрактом.
-   */
-  async convertToMember(input: {
-    coopname: string;
-    orderer: string;
-    amount: string;
-    convert_statement: MarketContract.Actions.Convert.IConvert['convert_statement'];
-  }): Promise<void> {
-    try {
-      await this.chainPort.convert({
-        coopname: input.coopname,
-        orderer: input.orderer,
-        amount: input.amount,
-        convert_statement: input.convert_statement,
-      });
-    } catch (error: any) {
-      rethrowChainError(error);
-    }
-  }
-
-  /**
    * Заказ из остатка кооператива: chain `stockorder` (Order сразу acceptcoop,
    * средства блокируются из членского кошелька на акцепте) + резерв позиций.
+   */
+  /**
+   * Одиночный заказ из остатка: подготовка, своя транзакция, завершение.
+   * Оформление корзины пользуется теми же шагами, отправляя строки одной
+   * транзакцией (см. `MarketplaceCheckoutService`).
    */
   async createStockOrder(
     input: MarketplaceStockOrderCreateInput
   ): Promise<MarketplaceStockOrderCreateResult> {
+    const prepared = await this.prepareStockOrder(input);
+
+    let txHash: string;
+    try {
+      const tx = await this.chainPort.stockOrder(prepared.action);
+      txHash = normalizeChainTxHash(
+        tx,
+        t('marketplace.stock.orderTxHashMissing')
+      );
+    } catch (error: any) {
+      this.logger.error(
+        `createStockOrder: chain stockorder fail (rollback counter) — ${error.message}`,
+        error.stack
+      );
+      await this.rollbackStockOrder(prepared);
+      rethrowChainError(error);
+    }
+
+    return this.finalizeStockOrder(prepared, txHash!);
+  }
+
+  /**
+   * Шаги до цепи: проверки предложения остатка и количества, производные поля
+   * и бронь счётчика. Дальше строка либо завершается `finalizeStockOrder`,
+   * либо откатывается `rollbackStockOrder`.
+   */
+  async prepareStockOrder(input: MarketplaceStockOrderCreateInput): Promise<MarketplaceStockOrderPreparedLine> {
     if (!(input.quantity > 0)) {
-      throw new BadRequestException('Количество должно быть больше нуля.');
+      throw DomainError.badRequest('MARKETPLACE_QUANTITY_MUST_BE_POSITIVE');
     }
     const offer = await this.offerRepo.findById(input.offer_id);
     if (!offer || offer.coopname !== input.coopname) {
-      throw new NotFoundException('Предложение не найдено.');
+      throw DomainError.notFound('MARKETPLACE_STOCK_OFFER_NOT_FOUND');
     }
     if (!offer.stock_braname) {
-      throw new BadRequestException('Это предложение поставщика — оформите обычный заказ.');
+      throw DomainError.badRequest('MARKETPLACE_STOCK_OFFER_IS_SUPPLIER_OFFER');
     }
     if (offer.status !== MarketplaceOfferStatuses.ACTIVE) {
-      throw new BadRequestException(`Предложение не активно (статус «${offer.status}»).`);
+      throw DomainError.badRequest('MARKETPLACE_STOCK_OFFER_NOT_ACTIVE', { offerStatus: offer.status });
     }
     // Эпик 18: способ отпуска → базовое количество/цена/упаковка (как в order-create).
     const resolved = resolveSaleUnit(offer, input.quantity, input.package_id);
-    if (offer.quantity_available < resolved.baseQuantity) {
-      throw new BadRequestException(
-        `На складе доступно только ${offer.quantity_available} ед.; нельзя заказать ${resolved.baseQuantity}.`
-      );
+    const shortfall = saleUnitShortfall(offer, resolved);
+    if (shortfall) {
+      throw DomainError.badRequest('MARKETPLACE_STOCK_INSUFFICIENT_AVAILABLE', { available: shortfall.available, unitLabel: shortfall.unitLabel, requested: shortfall.requested });
     }
+    const packageDelta = packageDeltaOfSaleUnit(resolved);
 
     const order_hash =
       input.order_hash ?? computeStockOrderHash(input.coopname, input.orderer_account, offer.id);
@@ -468,30 +529,24 @@ export class MarketplaceStockService {
     const package_size_asset = toQuantityAsset(resolved.packageSize, offer.unit_of_measure);
     const warranty_period_secs = offer.warranty_days * 86_400;
 
-    // Заказ из остатка фондируется из членского кошелька. Если передано
-    // Заявление о конвертации — сперва пополняем членский с паевого на сумму
-    // строки (тело + взнос) отдельным действием `convert`; иначе средства уже
-    // в членском (замена непоставленного — высвобождены отменой), конвертации нет.
-    if (input.convert_statement) {
-      if (!input.convert_amount) {
-        throw new BadRequestException(
-          'Не указана сумма конвертации для заказа из остатка с паевого.'
-        );
-      }
-      await this.chainPort.convert({
-        coopname: input.coopname,
-        orderer: input.orderer_account,
-        amount: input.convert_amount,
-        convert_statement: input.convert_statement,
-      });
-    }
+    // Паевая модель: внутренний членский кошелёк первым (взнос и тело), остаток
+    // тела — со свободного паевого «Стола заказов»; недостающее пайщик переводит
+    // действием convert в той же транзакции. При нехватке контракт откажет с суммами.
 
     // Optimistic counter ДО chain submit (как в createOrder поставщика).
-    await this.offerCounters.onOrderBlocked(offer.id, resolved.baseQuantity);
+    await this.offerCounters.onOrderBlocked(offer.id, resolved.baseQuantity, packageDelta);
 
-    let txHash: string;
-    try {
-      const tx = await this.chainPort.stockOrder({
+    return {
+      input,
+      offer,
+      stock_braname: offer.stock_braname,
+      resolved,
+      packageDelta,
+      order_hash,
+      offer_hash,
+      total_cost,
+      warranty_period_secs,
+      action: {
         coopname: input.coopname,
         orderer: input.orderer_account,
         order_hash,
@@ -502,28 +557,29 @@ export class MarketplaceStockService {
         package_size: package_size_asset,
         warranty_period_secs,
         batch_hash: MarketplaceStockService.ZERO_HASH,
-      });
-      txHash = normalizeChainTxHash(
-        tx,
-        'Заказ из остатка: цепь не вернула tx_hash. Повторите попытку.'
-      );
-    } catch (error: any) {
-      this.logger.error(
-        `createStockOrder: chain stockorder fail (rollback counter) — ${error.message}`,
-        error.stack
-      );
-      try {
-        await this.offerCounters.onOrderRolledBack(offer.id, resolved.baseQuantity);
-      } catch (compErr: any) {
-        this.logger.error(
-          `createStockOrder: compensating onOrderRolledBack упал (offer=${offer.id}): ${compErr.message}. РУЧНОЙ ФИКС counter!`
-        );
-      }
-      rethrowChainError(error);
-    }
+      },
+    };
+  }
 
+  /** Цепь отказала — бронь счётчика возвращается в каталог. */
+  async rollbackStockOrder(prepared: MarketplaceStockOrderPreparedLine): Promise<void> {
+    try {
+      await this.offerCounters.onOrderRolledBack(prepared.offer.id, prepared.resolved.baseQuantity, prepared.packageDelta);
+    } catch (compErr: any) {
+      this.logger.error(
+        `createStockOrder: compensating onOrderRolledBack упал (offer=${prepared.offer.id}): ${compErr.message}. РУЧНОЙ ФИКС counter!`
+      );
+    }
+  }
+
+  /** Цепь провела заказ — запись в базу и резерв позиций склада под него. */
+  async finalizeStockOrder(
+    prepared: MarketplaceStockOrderPreparedLine,
+    txHash: string
+  ): Promise<MarketplaceStockOrderCreateResult> {
+    const { input, offer, resolved, packageDelta, order_hash, offer_hash, total_cost, warranty_period_secs } = prepared;
     const create_tx: MarketplaceOrderCreateTxSnapshot = {
-      tx_hash: txHash!,
+      tx_hash: txHash,
       block_num: 0,
       locked_amount: total_cost,
       signed_at: new Date().toISOString(),
@@ -536,11 +592,12 @@ export class MarketplaceStockService {
       offer_id: offer.id,
       offer_hash,
       supplier_account: input.coopname, // продавец — кооператив (маркер stock-ордера)
-      delivery_braname: offer.stock_braname,
+      delivery_braname: prepared.stock_braname,
       quantity: resolved.baseQuantity,
       unit_of_measure: offer.unit_of_measure,
       price_per_unit: resolved.unitPrice,
       package_size: resolved.packageSize,
+      package_id: resolved.packageId,
       total_cost,
       cycle_id: null,
       checkout_id: input.checkout_id ?? null,
@@ -566,22 +623,20 @@ export class MarketplaceStockService {
           orderer: input.orderer_account,
           order_hash,
         });
-        await this.offerCounters.onOrderUnblocked(offer.id, resolved.baseQuantity);
-        await this.orderRepo.applyStatusTransition(order.id, 'CANCELLED_BY_ORDERER', 'Недостаточно свободного остатка на складе');
+        await this.offerCounters.onOrderUnblocked(offer.id, resolved.baseQuantity, packageDelta);
+        await this.orderRepo.applyStatusTransition(order.id, 'CANCELLED_BY_ORDERER', t('marketplace.stock.orderCancelledInsufficientStockReason'));
       } catch (compErr: any) {
         this.logger.error(
           `createStockOrder: компенсация тоже упала (order=${order.id}): ${compErr.message}. РУЧНАЯ СВЕРКА!`
         );
       }
-      throw new ConflictException(
-        'Свободного остатка на складе не хватило — заказ отменён, средства разблокированы.'
-      );
+      throw DomainError.conflict('MARKETPLACE_STOCK_INSUFFICIENT_STOCK_ORDER_CANCELLED');
     }
 
     this.logger.log(
-      `Stock-order ${order.id} (hash=${order_hash}) создан для ${input.orderer_account}: «${offer.product_name}» ×${input.quantity} со склада КУ ${offer.stock_braname}; tx=${txHash!}`
+      `Stock-order ${order.id} (hash=${order_hash}) создан для ${input.orderer_account}: «${offer.product_name}» ×${input.quantity} со склада КУ ${prepared.stock_braname}; tx=${txHash}`
     );
-    return { order, tx_hash: txHash! };
+    return { order, tx_hash: txHash };
   }
 
   /**
@@ -596,15 +651,13 @@ export class MarketplaceStockService {
   ): Promise<MarketplaceOrderDomainEntity> {
     const order = await this.orderRepo.findById(order_id);
     if (!order || order.coopname !== coopname) {
-      throw new NotFoundException('Заказ не найден.');
+      throw DomainError.notFound('MARKETPLACE_ORDER_NOT_FOUND_PLAIN');
     }
     if (order.supplier_account !== coopname) {
-      throw new BadRequestException('Это не заказ из остатка кооператива.');
+      throw DomainError.badRequest('MARKETPLACE_STOCK_NOT_STOCK_ORDER');
     }
     if (order.status !== MarketplaceOrderStatuses.ACCEPTED_TO_COOP) {
-      throw new ConflictException(
-        `Заказ в статусе «${order.status}» — отмена доступна только до открытия выдачи.`
-      );
+      throw DomainError.conflict('MARKETPLACE_STOCK_ORDER_CANCEL_WINDOW_CLOSED', { orderStatus: order.status });
     }
 
     try {
@@ -619,7 +672,7 @@ export class MarketplaceStockService {
     }
 
     try {
-      await this.offerCounters.onOrderUnblocked(order.offer_id, order.quantity);
+      await this.offerCounters.onOrderUnblocked(order.offer_id, order.quantity, packageDeltaOfOrder(order));
     } catch (counterErr: any) {
       this.logger.warn(
         `cancelStockOrder: counter onOrderUnblocked упал (offer=${order.offer_id}): ${counterErr.message} — продолжаю`
@@ -644,29 +697,25 @@ export class MarketplaceStockService {
     inventory_ids: string[]
   ): Promise<MarketplaceInventoryDomainEntity[]> {
     if (inventory_ids.length === 0) {
-      throw new BadRequestException('Не выбраны позиции остатка.');
+      throw DomainError.badRequest('MARKETPLACE_STOCK_NO_ITEMS_SELECTED');
     }
     const positions = await Promise.all(inventory_ids.map((id) => this.inventoryRepo.findById(id)));
     const found = positions.filter(Boolean) as MarketplaceInventoryDomainEntity[];
     if (found.length !== inventory_ids.length) {
-      throw new NotFoundException('Часть позиций остатка не найдена.');
+      throw DomainError.notFound('MARKETPLACE_STOCK_ITEMS_NOT_FOUND');
     }
     for (const p of found) {
       if (p.coopname !== coopname) {
-        throw new ForbiddenException('Позиция принадлежит другому кооперативу.');
+        throw DomainError.forbidden('MARKETPLACE_STOCK_ITEM_WRONG_COOP');
       }
       if (p.ownership !== MarketplaceInventoryOwnerships.COOP) {
-        throw new BadRequestException(
-          `Позиция «${p.product_name_snapshot}» — адресная (под заказ), к остатку не относится.`
-        );
+        throw DomainError.badRequest('MARKETPLACE_STOCK_ITEM_IS_ADDRESSED', { productName: p.product_name_snapshot });
       }
       if (p.reserved_order_id !== null) {
-        throw new ConflictException(
-          `Позиция «${p.product_name_snapshot}» зарезервирована под заказ из остатка.`
-        );
+        throw DomainError.conflict('MARKETPLACE_STOCK_ITEM_RESERVED', { productName: p.product_name_snapshot });
       }
       if (p.status !== 'RECEIVED' && p.status !== 'LABELED') {
-        throw new ConflictException(`Позиция «${p.product_name_snapshot}» уже не на складе.`);
+        throw DomainError.conflict('MARKETPLACE_STOCK_ITEM_NOT_IN_STOCK', { productName: p.product_name_snapshot });
       }
     }
     return found;
@@ -691,9 +740,7 @@ export class MarketplaceStockService {
       const offerId = offerIdByOrderId.get(p.order_id);
       const origin = offerId ? offerById.get(offerId) : undefined;
       if (!origin) {
-        throw new ConflictException(
-          `Не удалось определить товар позиции «${p.product_name_snapshot}» — публикация невозможна.`
-        );
+        throw DomainError.conflict('MARKETPLACE_STOCK_ITEM_PRODUCT_UNRESOLVED', { productName: p.product_name_snapshot });
       }
       // Если исходник сам — оффер кооператива (остаток перепубликуется после
       // отмены stock-ордера), группируем по его первоисточнику.

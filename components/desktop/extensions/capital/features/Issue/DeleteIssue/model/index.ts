@@ -3,10 +3,12 @@ import {
   type IDeleteIssueInput,
   type IDeleteIssueOutput,
 } from 'app/extensions/capital/entities/Issue/model';
+import { useFavoritesStore } from 'app/extensions/capital/entities/Favorite';
 import { api } from '../api';
 
 export function useDeleteIssue() {
   const store = useIssueStore();
+  const favoritesStore = useFavoritesStore();
 
   async function deleteIssue(
     data: IDeleteIssueInput,
@@ -16,6 +18,7 @@ export function useDeleteIssue() {
 
     if (result) {
       store.removeIssue(projectHash, data.issue_hash);
+      favoritesStore.dropTarget(data.issue_hash);
     }
 
     return result;

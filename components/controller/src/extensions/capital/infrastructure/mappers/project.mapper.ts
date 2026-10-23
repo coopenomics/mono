@@ -1,5 +1,5 @@
 import { ProjectDomainEntity } from '../../domain/entities/project.entity';
-import { ProjectTypeormEntity } from '../entities/project.typeorm-entity';
+import { ProjectRecord } from '../entities/project.record';
 import type { IProjectDomainInterfaceDatabaseData } from '../../domain/interfaces/project-database.interface';
 import type { IProjectDomainInterfaceBlockchainData } from '../../domain/interfaces/project-blockchain.interface';
 import type { ProjectStatus } from '../../domain/enums/project-status.enum';
@@ -14,8 +14,8 @@ import {
 } from '../../domain/utils/empty-project-blockchain-pools';
 import type { RequireFields } from '@coopenomics/extension-kit';
 
-type toEntityDatabasePart = RequireFields<Partial<ProjectTypeormEntity>, keyof IProjectDomainInterfaceDatabaseData>;
-type toEntityBlockchainPart = RequireFields<Partial<ProjectTypeormEntity>, keyof IProjectDomainInterfaceBlockchainData>;
+type toEntityDatabasePart = RequireFields<Partial<ProjectRecord>, keyof IProjectDomainInterfaceDatabaseData>;
+type toEntityBlockchainPart = RequireFields<Partial<ProjectRecord>, keyof IProjectDomainInterfaceBlockchainData>;
 
 type toDomainDatabasePart = RequireFields<Partial<ProjectDomainEntity>, keyof IProjectDomainInterfaceDatabaseData>;
 type toDomainBlockchainPart = RequireFields<Partial<ProjectDomainEntity>, keyof IProjectDomainInterfaceBlockchainData>;
@@ -27,7 +27,7 @@ export class ProjectMapper {
   /**
    * Преобразование TypeORM сущности в доменную сущность
    */
-  static toDomain(entity: ProjectTypeormEntity): ProjectDomainEntity {
+  static toDomain(entity: ProjectRecord): ProjectDomainEntity {
     const databaseData: toDomainDatabasePart = {
       _id: entity._id,
       block_num: entity.block_num,
@@ -42,6 +42,7 @@ export class ProjectMapper {
       matrix_component_announcement_events: entity.matrix_component_announcement_events ?? [],
       development_repository_url: entity.development_repository_url ?? null,
       priority: entity.priority ?? ProjectPriority.MEDIUM,
+      content_rev: entity.content_rev ?? 0,
       origin: entity.origin ?? ProjectOrigin.BLOCKCHAIN,
       local_owner: entity.local_owner ?? null,
       _created_at: entity._created_at,
@@ -90,7 +91,7 @@ export class ProjectMapper {
   /**
    * Преобразование доменной сущности в TypeORM сущность для создания
    */
-  static toEntity(domain: ProjectDomainEntity): Partial<ProjectTypeormEntity> {
+  static toEntity(domain: ProjectDomainEntity): Partial<ProjectRecord> {
     const dbPart: toEntityDatabasePart = {
       _id: domain._id,
       block_num: domain.block_num ?? 0,
@@ -105,6 +106,8 @@ export class ProjectMapper {
       matrix_component_announcement_events: domain.matrix_component_announcement_events ?? null,
       development_repository_url: domain.development_repository_url ?? null,
       priority: domain.priority ?? ProjectPriority.MEDIUM,
+      // 0 не пишем (undefined TypeORM пропускает): номер редакции двигает только ContentRevisionService
+      content_rev: (domain.content_rev || undefined) as number,
       origin: domain.origin ?? ProjectOrigin.BLOCKCHAIN,
       local_owner: domain.local_owner ?? null,
       _created_at: domain._created_at as Date,
@@ -148,8 +151,8 @@ export class ProjectMapper {
    * Преобразование доменной сущности в данные для обновления TypeORM сущности
    * Обновляет только локальные поля базы данных, поля из блокчейна обновляются через синхронизацию
    */
-  static toUpdateEntity(domain: Partial<ProjectDomainEntity>): Partial<ProjectTypeormEntity> {
-    const updateData: Partial<ProjectTypeormEntity> = {};
+  static toUpdateEntity(domain: Partial<ProjectDomainEntity>): Partial<ProjectRecord> {
+    const updateData: Partial<ProjectRecord> = {};
 
     // Поля из базы данных (локальные)
     if (domain._id !== undefined) updateData._id = domain._id;

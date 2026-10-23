@@ -1,0 +1,367 @@
+feature: realtime.chain-changes
+title: Лента изменений цепи — живое обновление экранов по факту из цепи
+
+# Решение владельца 23.09.2026 (7DD-22). У каждого экрана, который загружает
+# данные при открытии, — ws-зеркало: узел после разбора дельты шлёт сигнал «в
+# таблице изменилась строка», экран перечитывает свои данные. Данных строки в
+# сигнале нет. В ленту попадают только объявленные таблицы (ядро — свои,
+# расширения — через CHAIN_CHANGES_PORT). Личные таблицы (кошельки, пайщики
+# программ) доставляются только владельцу строки и совету.
+#
+# До этого живое обновление было у трёх подписок, а экраны держались на
+# загрузке при открытии, опросах по таймеру и паузах после мутаций.
+#
+# Правка 23.09.2026 (7DD-22): в ленту идут и таблицы базы узла — данные
+# расширений вне цепи. Расширение объявляет их (declareLocalTables), подписчик
+# TypeORM публикует сигнал после фиксации записи — вызовы после каждого
+# сохранения не нужны. Личные и служебные таблицы получает персонал: совет и
+# назначенные расширением (setStaff — список, не проверка). Первым переведён
+# стол образования целиком: администратор, ученик, преподаватель, бейджи меню,
+# одобрения председателя; подключение ЦПП — в общем composable ядра.
+#
+# Правка 24.09.2026 (C28-83): в ленте ядра объявлены таблицы стола совета —
+# soviet::decisions (личная по username: вопрос пайщика ему и совету) и
+# soviet::boards (служебная). Повестка живёт по ним; маршрутизация сигналов
+# и набор случаев прежние.
+#
+# Правка 24.09.2026 (C28-83): Стол заказов переведён на ленту целиком, его
+# отдельная подписка marketplaceEvents снята. У расширения своя база, поэтому
+# общая часть подписчика TypeORM вынесена в каркас (LocalChangesCollector), а
+# расширение наблюдает свою базу само и публикует через порт (publishLocal).
+# Сырой UPDATE счётчиков предложения публикует его репозиторий.
+
+# Правка 24.09.2026 (C28-83, второй проход): подписчик Стола заказов объявляет
+# и таблицу цепи marketplace::config (сбор с оборота); расширение расходов —
+# плановые расходы (expense_plans, открыто). Снимок процесса перечитывается по
+# таблицам шагов процесса (useLiveProcessSnapshot): у журнала действий своего
+# сигнала нет.
+
+# Правка 24.09.2026 (C28-83, третий проход): таблица extensions открыта всем
+# пайщикам — установка и подключение расширения меняют рабочий стол каждого
+# (сигнал данных строки не несёт); рабочий стол, столы и гранты живут по ленте
+# (desktopLive). В ленте ядра — план счетов ledger2::accounts (совету);
+# стол бухгалтера объявляет свои таблицы и soviet::taxes (служебные).
+
+# Правка 24.09.2026 (C28-83, четвёртый проход): у строки может быть несколько
+# владельцев — поле владельца со списком имён, сигнал каждому. Так живёт чат
+# кооператива: транскрипцию получают участники звонка (идентификаторы Matrix
+# переводятся в имена пайщиков в ChatcoopLiveFeedService), календарь — все,
+# комнаты секретаря — совет, учётную запись Matrix — владелец. В ленте ядра —
+# назначения наборов прав (participant_capability_sets) и журнал расширений.
+
+# Правка 24.09.2026 (C28-83, пятый проход): закрыты записи мимо ленты.
+# patchConfig расширений (шаги онбординга) пишет сырым SQL — сигнал по
+# extensions шлёт репозиторий. Личные данные пайщика, способы оплаты,
+# пользовательские данные и переменные кооператива живут в генераторе
+# (MongoDB) — сигнал шлёт его сервис после save/del (private_accounts,
+# payment_methods, user_data — владельцу и совету; coop_vars — всем).
+
+#
+# Правка 2026-09-25 (C28-85): корзина Стола заказов сохраняется целой строкой —
+# сигнал ленты приходит заказчику с ключом строки; индексер публикует контракт
+# gateway — лента по приходам и выплатам шлюза больше не молчит.
+sources:
+  backend:
+    - components/controller/src/infrastructure/blockchain/chain-changes.service.ts
+    - components/controller/src/application/chain-changes/**
+    - components/innercoop/src/core-ports/chain-changes.port.ts
+    - components/controller/src/infrastructure/blockchain/local-changes.subscriber.ts
+    - components/controller/src/infrastructure/database/kysely/local-changes.plugin.ts
+    - components/controller/src/infrastructure/database/kysely/kysely.provider.ts
+    - components/controller/src/infrastructure/generator/generator.service.ts
+    - components/controller/src/infrastructure/database/kysely/repositories/extension.kysely-repository.ts
+    - components/controller/src/extensions/edubridge/application/services/edubridge-live-feed.service.ts
+    - components/extension-kit/src/utils/local-changes-collector.ts
+    - components/controller/src/extensions/marketplace/infrastructure/realtime/marketplace-live-feed.subscriber.ts
+    - components/controller/src/extensions/expenses/application/services/expenses-live-feed.service.ts
+    - components/controller/src/extensions/reports/application/services/reports-live-feed.service.ts
+    - components/controller/src/extensions/chatcoop/infrastructure/realtime/chatcoop-live-feed.service.ts
+  ui:
+    - components/desktop/src/shared/lib/realtime/live-reload.ts
+    - components/desktop/src/entities/System/model/chainChangesSubscription.ts
+    - components/sdk/src/subscriptions/chain/**
+    - components/desktop/extensions/edubridge/shared/lib/live.ts
+    - components/desktop/src/shared/lib/marketplace/marketplace-live.ts
+    - components/desktop/src/entities/Process/model/useLiveProcessSnapshot.ts
+    - components/desktop/src/processes/init-installed-extensions/desktopLive.ts
+    - components/desktop/extensions/reports/shared/lib/live.ts
+
+cases:
+  - id: rt.cc.happy.01
+    level: backend
+    kind: happy
+    scenario: Изменилась строка таблицы, открытой всем пайщикам.
+    expect: сигнал в общий канал кооператива, без данных строки
+    test: components/controller/src/infrastructure/blockchain/chain-changes.service.spec.ts
+    api: components/api-tests/src/platform/realtime.chain-changes.test.ts
+    status: passing
+
+  - id: rt.cc.happy.02
+    level: backend
+    kind: happy
+    scenario: Изменилась строка личной таблицы (кошелёк, пайщик программы).
+    expect: сигнал владельцу строки и совету; в общий канал — нет
+    test: components/controller/src/infrastructure/blockchain/chain-changes.service.spec.ts
+    api: components/api-tests/src/platform/realtime.chain-changes.test.ts
+    status: passing
+
+  - id: rt.cc.side.01
+    level: backend
+    kind: side
+    scenario: Строка личной таблицы снята (present = false), владельца в ней нет.
+    expect: сигнал только совету
+    test: components/controller/src/infrastructure/blockchain/chain-changes.service.spec.ts
+    api: components/api-tests/src/platform/realtime.chain-changes.test.ts
+    status: passing
+
+  - id: rt.cc.side.02
+    level: backend
+    kind: side
+    scenario: Дельта необъявленной таблицы или чужого кооператива.
+    expect: сигнала нет
+    test: components/controller/src/infrastructure/blockchain/chain-changes.service.spec.ts
+    api: components/api-tests/src/platform/realtime.chain-changes.test.ts
+    status: passing
+
+  - id: rt.cc.side.03
+    level: backend
+    kind: side
+    scenario: Шина сигналов отказала при публикации.
+    expect: предупреждение в журнал, разбор цепи продолжается
+    test: components/controller/src/infrastructure/blockchain/chain-changes.service.spec.ts
+    external: unreachable
+    external_reason: "отказ шины сигналов через API и паузой сервиса не вызвать: шина живёт внутри узла"
+    status: passing
+
+  - id: rt.cc.side.04
+    level: backend
+    kind: side
+    scenario: Потребитель разобрал дельту объявленной таблицы.
+    expect: >
+      сигнал уходит после слушателей дельты и после пробуждения мутаций — по нему
+      читается уже записанное
+    test: components/controller/tests/unit/blockchain/blockchain-consumer.processFork.test.ts
+    api: components/api-tests/src/platform/realtime.chain-changes.test.ts
+    status: passing
+
+  - id: rt.cc.happy.03
+    level: backend
+    kind: happy
+    scenario: Пайщик и член совета открывают подписку на ленту.
+    expect: >
+      каналы выбирает сервер: пайщику — общие таблицы и свои строки личных,
+      совету — все строки личных; перечень таблиц сужает каналы
+    test: components/controller/tests/unit/chain-changes/chain-changes.resolver.test.ts
+    api: components/api-tests/src/platform/realtime.chain-changes.test.ts
+    status: passing
+
+  - id: rt.cc.break.01
+    level: backend
+    kind: break
+    scenario: Подписка на необъявленную таблицу, чужой кооператив, соединение без пайщика.
+    expect: отказ по праву
+    test: components/controller/tests/unit/chain-changes/chain-changes.resolver.test.ts
+    api: components/api-tests/src/platform/realtime.chain-changes.test.ts
+    status: passing
+
+  - id: rt.cc.ui.01
+    level: ui
+    kind: happy
+    scenario: >
+      Пайщик на профиле Благороста совершает взнос; профиль открыт у него и у
+      председателя в другой вкладке.
+    expect: >
+      у обоих суммы профиля обновляются сами, без перезагрузки и без опроса по
+      таймеру
+    status: missing
+
+  - id: rt.cc.ui.02
+    level: ui
+    kind: side
+    scenario: >
+      За время полёта перечитывания пришли ещё сигналы того же и следующего
+      блока; экран сам перечитал после мутации.
+    expect: >
+      одно перечитывание в полёте, повторы сливаются в одно хвостовое; сигнал
+      блока, уже прочитанного завершённым перечитыванием, пропускается
+    decision_needed: false
+    status: missing
+
+  - id: rt.cc.ui.03
+    level: ui
+    kind: side
+    scenario: Канал жив, срабатывает страховочная дочитка раз в минуту.
+    expect: >
+      экраны не перечитываются — страховка нужна только мёртвому каналу; при
+      переподключении и возврате вкладки перечитываются
+    decision_needed: false
+    status: missing
+
+  - id: rt.cc.happy.04
+    level: backend
+    kind: happy
+    scenario: Запись в объявленную таблицу базы узла внутри транзакции.
+    expect: >
+      сигнал с блоком 0 уходит после фиксации — со строкой (владелец) и ключом;
+      откат транзакции сигнала не даёт; запись вне транзакции — сигнал сразу
+    test: components/controller/tests/unit/chain-changes/kysely-local-changes.plugin.test.ts
+    api: components/api-tests/src/platform/realtime.chain-changes.test.ts
+    status: passing
+
+  - id: rt.cc.happy.09
+    level: backend
+    kind: happy
+    scenario: Запись в объявленную таблицу базы узла через Kysely (вставка, правка, удаление).
+    expect: >
+      сигнал несёт ключ строки и саму строку: запросу без RETURNING он добавляется,
+      свой RETURNING не подменяется; составной ключ — через двоеточие; чтение и
+      ненаблюдаемая таблица сигнала не дают
+    test: components/controller/tests/unit/chain-changes/kysely-local-changes.plugin.test.ts
+    api: components/api-tests/src/membership/membership.exit.test.ts
+    status: written
+
+  - id: rt.cc.happy.05
+    level: backend
+    kind: happy
+    scenario: Личная и служебная таблица базы узла расширения.
+    expect: >
+      личная — владельцу строки и персоналу; служебная — только персоналу;
+      персонал — совет всегда и назначенные расширением только в своём расширении;
+      несколько владельцев строки (участники звонка) — сигнал каждому, повторы и
+      пустые имена отброшены
+    test: components/controller/src/infrastructure/blockchain/chain-changes.service.spec.ts
+    external: unreachable
+    external_reason: "служебные таблицы и назначенный персонал есть только у расширения образования; в ветке dev оно не установлено"
+    status: written   # прогон — CI на полигоне ci/tests
+
+  - id: rt.cc.side.05
+    level: backend
+    kind: side
+    scenario: Подписку открывает администратор образования вне совета и обычный пайщик.
+    expect: >
+      администратору — канал персонала служебной таблицы, пайщику — ничего
+    test: components/controller/tests/unit/chain-changes/chain-changes.resolver.test.ts
+    external: unreachable
+    external_reason: "служебные таблицы и назначенный персонал есть только у расширения образования; в ветке dev оно не установлено"
+    status: passing
+
+  - id: rt.cc.side.06
+    level: backend
+    kind: side
+    scenario: >
+      Образование объявляет свои таблицы в ленте, а стол слушает их по имени;
+      в одном из трёх мест (сущность, объявление, стол) имя или поле владельца
+      разошлось.
+    expect: >
+      объявленная таблица — таблица сущности образования, поле владельца —
+      её колонка, стол слушает только объявленное сервером; расхождение
+      роняет тест, а не выключает молча живое обновление экрана
+    test: components/controller/tests/unit/edubridge/live-feed.test.ts
+    api: components/api-tests/src/edubridge/links.test.ts
+    status: passing
+
+  - id: rt.cc.ui.04
+    level: ui
+    kind: happy
+    scenario: >
+      Председатель подписывает договор преподавателя; у администратора открыт
+      реестр преподавателей, у преподавателя — профиль; ученик записывается на
+      курс, выдача доступа отрабатывает в фоне.
+    expect: >
+      карточка преподавателя, список одобрений, бейджи меню, профиль
+      преподавателя, реестр учеников и подписки ученика обновляются сами, без
+      перезагрузки и опросов
+    status: missing
+
+  - id: rt.cc.happy.06
+    level: backend
+    kind: happy
+    scenario: Запись в таблицу Стола заказов — в его собственной базе и сырым UPDATE счётчиков предложения.
+    expect: >
+      подписчик базы расширения объявляет таблицы (корзина — личная по заказчику)
+      и шлёт сигнал через порт после фиксации; таблица вне списка и узел без порта —
+      тишина без ошибки; сырой UPDATE даёт сигнал по предложению, только если строка изменилась
+    test: components/controller/tests/unit/marketplace/marketplace-live-feed.test.ts
+    api: components/api-tests/src/platform/realtime.chain-changes.test.ts
+    status: passing
+    # До 25.09.2026 корзина менялась частичным update: сигнал терял владельца
+    # и заказчику не приходил (тест единицы — cart-live-feed-owner.test.ts).
+
+  - id: rt.cc.happy.07
+    level: backend
+    kind: happy
+    scenario: Запись мимо подписчика базы узла — patchConfig расширения и запись в генератор (MongoDB).
+    expect: >
+      patchConfig — сигнал по extensions с именем расширения; личные данные, способы
+      оплаты и пользовательские данные — сигнал по своей таблице владельцу и совету,
+      переменные кооператива — всем; прочие коллекции и узел без ленты — тишина без ошибок
+    test: components/controller/tests/unit/chain-changes/raw-writes-feed.test.ts
+    api: components/api-tests/src/platform/realtime.chain-changes.test.ts
+    status: written   # прогон — CI на полигоне ci/tests
+
+  - id: rt.cc.happy.08
+    level: backend
+    kind: happy
+    scenario: >
+      Выплата через шлюз ждёт кассира — например, председатель отправил
+      удержанный налог на перечисление.
+    expect: >
+      сигнал ленты по таблице выплат шлюза приходит совету с ключом строки;
+      индексер публикует контракт gateway (parser2.config.yaml, в том числе в
+      шаблоне раскатки). Приход шлюза создаётся и закрывается в одном блоке,
+      дельты по нему нет — сигнал о нём несёт кошелёк пайщика
+    test: components/api-tests/src/reports/withheld-tax.test.ts
+    api: components/api-tests/src/reports/withheld-tax.test.ts
+    status: passing
+
+  - id: rt.cc.side.15
+    level: backend
+    kind: side
+    scenario: >
+      личная таблица расширения, переведённого на Kysely: учётная запись Matrix
+      пайщика; транскрипция звонка с участниками по идентификаторам чата
+    expect: >
+      владелец строки объявлен по имени колонки базы (`coop_username`), иначе
+      сигнал ушёл бы только совету; сигнал о транскрипции уходит участникам по
+      именам пайщиков; сбой ленты запись расшифровки не роняет
+    test: components/controller/tests/unit/chatcoop/chatcoop-live-feed.test.ts
+    external: unreachable
+    external_reason: "на стенде нет сервера чата с настоящими учётными записями Matrix: подставной узел отвечает за него, а строки matrix_users заводит только живой вход"
+    status: written
+
+  - id: rt.cc.side.16
+    level: backend
+    kind: side
+    scenario: >
+      транзакция каркаса расширения с записью в таблицу ленты: транзакция
+      завершается; транзакция откатывается; запись вне транзакции
+    expect: >
+      сигнал уходит только после фиксации; откаченная запись сигнала не даёт;
+      вне транзакции изменение публикуется сразу
+    test: components/controller/tests/unit/chain-changes/kysely-local-changes.plugin.test.ts
+    external: unreachable
+    external_reason: "момент публикации сигнала относительно фиксации снаружи не различить; живое обновление столов покрыто случаями rt.cc.happy.*"
+    status: written
+
+  - id: rt.cc.side.17
+    level: backend
+    kind: side
+    scenario: >
+      Стол заказов объявляет свои таблицы в ленте, а сигналы о записи шлёт слой
+      базы: состав объявленных таблиц, узел без порта ленты, резерв счётчиков
+      предложения готовым запросом
+    expect: >
+      каждая объявленная таблица — таблица расширения (слой базы знает её ключ),
+      корзина личная; без порта объявление молчит; после состоявшегося резерва
+      сигнал публикует хранилище, после несостоявшегося сигнала нет
+    test: components/controller/tests/unit/marketplace/marketplace-live-feed.test.ts
+    external: unreachable
+    external_reason: "состав объявления и момент сигнала снаружи не видны; живое обновление стола заказов покрыто случаями rt.cc.happy.*"
+    status: written
+
+# 2026-10-05 (C28-81): файлы и классы хранилищ переименованы после ухода с TypeORM
+# (typeorm-repository → kysely-repository, typeorm-entity → record); частичная правка
+# полей собрана помощником pickDefined. Сценарии фичи и её проверки не менялись.
+
+# 2026-10-18 (B2D-32): в ленту объявлена registrator::platforms (ключ установки)
+# с owner_field username — карточка «Ключ установки» обновляется по ленте.

@@ -1,8 +1,6 @@
 <template>
   <div class="mp-egb">
-    <div class="mp-egb__hint">
-      Перетаскивайте заявки между колонками. Для оптом-переноса используйте «Переместить всё».
-    </div>
+    <div class="mp-egb__hint"> {{ $t('marketplace.expeditorGroupingBoard.hintText') }} </div>
 
     <div class="row q-col-gutter-md no-wrap mp-egb__board">
       <div
@@ -34,13 +32,13 @@
             <div class="mp-egb__item-id">№ {{ item.shortId }}</div>
             <div class="mp-egb__item-title">{{ item.title }}</div>
             <div class="mp-egb__item-meta">
-              {{ item.units }}×{{ item.unitLabel ?? 'ед.' }} · {{ item.pvz }}
+              {{ item.units }} {{ item.unitLabel ?? $t('marketplace.expeditorGroupingBoard.unitShort') }} · {{ item.pvz }}
             </div>
           </div>
 
           <div v-if="!col.items.length" class="mp-egb__empty">
             <q-icon name="fa-solid fa-inbox" size="28px" class="mp-egb__empty-icon" />
-            <div class="mp-egb__empty-text">Перетащите сюда</div>
+            <div class="mp-egb__empty-text">{{ $t('marketplace.expeditorGroupingBoard.dropHint') }}</div>
           </div>
         </div>
 
@@ -54,7 +52,7 @@
             dense
             no-caps
             class="mp-egb__bulk-btn"
-            :label="`Переместить всё (${src.items.length}) из «${src.title}»`"
+            :label="$t(`marketplace.expeditorGroupingBoard.moveAllButton`, { count: src.items.length, columnTitle: src.title })"
             @click="moveAll(src.id, col.id)"
           />
         </div>
@@ -65,22 +63,7 @@
 
 <script setup lang="ts">
 import { ref, type PropType } from 'vue'
-
-export interface GroupingItem {
-  id: string | number
-  shortId: string
-  title: string
-  units: number
-  unitLabel?: string
-  pvz: string
-}
-
-export interface GroupingColumn {
-  id: string
-  title: string
-  meta?: string
-  items: GroupingItem[]
-}
+import type { GroupingColumn } from './ExpeditorGroupingBoard.types'
 
 const props = defineProps({
   columns: { type: Array as PropType<GroupingColumn[]>, required: true },

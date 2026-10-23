@@ -1,0 +1,247 @@
+name: Blackbox
+
+# Внешний слой тестов (C28-80): поднимает стенд целиком — цепь, индексер,
+# контроллер, базы, файловое хранилище, CoopID — и гоняет тесты, которые
+# разговаривают с платформой только через API (components/boot/src/tests и
+# components/api-tests).
+# Он дополняет юнит-тесты, а не заменяет их: юнит-тесты проверяют правила
+# изнутри, этот слой — что правила доходят до клиента и что сценарии проходят
+# целиком. От языка сервера он не зависит, поэтому переживёт и уход с TypeORM,
+# и смену бэкенда.
+#
+# Расписания нет намеренно. Прогон по ночам запускает агент: пушит проверяемый
+# код в ветку-полигон ci/blackbox, разбирает падения, чинит и развивает тесты,
+# утром отчитывается. Полигон — не история, пуш туда форсированный.
+#
+# Как поднимается стенд — scripts/blackbox/stack.sh, по фазе на шаг, чтобы в
+# сводке было видно время каждой.
+on:
+  push:
+    # ci/blackbox — полный прогон. ci/blackbox-fast-<имя> — быстрый полигон
+    # для параллельной работы над API-тестами: стенд целиком, но без прежних
+    # наборов boot и без матрицы прав (их гоняет полный прогон). Имя после
+    # префикса — чья это работа, у каждой ветки свой прогон.
+    # ci/blackbox-cardcoop — отдельный набор карты кооператора: стенд целиком и
+    # только наборы src/cardcoop против подставной сети карт. В общий прогон
+    # они не входят (решение владельца 02.10.2026): интеграции с сетью карт
+    # нужен свой стенд, до него набор гоняется отдельно.
+    branches: [ci/blackbox, 'ci/blackbox-fast-*', ci/blackbox-cardcoop]
+  workflow_dispatch:
+
+# Прогоны не отменяют друг друга: полигоны ci/tests и ci/blackbox общие для
+# нескольких агентов, и отмена прежнего прогона новым пушем обрывала чужую
+# проверку. Каждый пуш доводится до исхода.
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  blackbox:
+    # 22.04 — как на dev-машинах: node_modules с нативными модулями ставятся на
+    # хосте и монтируются в контейнер node:22-slim (bookworm, glibc 2.36).
+    # Собранное под glibc 2.39 (24.04) в нём могло бы не загрузиться.
+    runs-on: ubuntu-22.04
+    timeout-minutes: 180
+
+    env:
+      COMPOSE_FILE: ${{ github.workspace }}/docker-compose.yaml:${{ github.workspace }}/scripts/blackbox/docker-compose.blackbox.yml
+      BLACKBOX_OUT: ${{ github.workspace }}/.blackbox
+      # Режим сборки контрактов тот же, что у dev-стендов и релизов dev/testnet.
+      CONTRACTS_MODE: test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install workspace
+        run: pnpm install --frozen-lockfile
+
+      # Контракты — около одиннадцати минут с нуля. Кешируется весь каталог
+      # build (объектники + манифест хэшей исходников), а не готовые wasm:
+      # build_contracts_cdt.sh сверяет исходники с манифестом и отдаёт make
+      # только изменившиеся, так что правка одного контракта пересобирает его
+      # (и зависящих по общим заголовкам), а не все. Ключ — хэш исходников;
+      # промах откатывается на последний сохранённый build (restore-keys).
+      - name: Контракты — кеш
+        id: contracts
+        uses: actions/cache/restore@v4
+        with:
+          path: components/contracts/build
+          key: blackbox-contracts-build-${{ env.CONTRACTS_MODE }}-${{ hashFiles('components/contracts/**', '!components/contracts/build/**', '!components/contracts/docs/**') }}
+          restore-keys: blackbox-contracts-build-${{ env.CONTRACTS_MODE }}-
+
+      # Как в release.yaml: CDT из .deb, /cdt/build — симлинк на его каталог.
+      - name: Контракты — CDT
+        if: steps.contracts.outputs.cache-hit != 'true'
+        timeout-minutes: 10
+        run: |
+          sudo apt-get -o Acquire::Retries=3 update
+          sudo apt-get -o Acquire::Retries=3 install -y --no-install-recommends \
+            curl ca-certificates cmake make build-essential \
+            libz3-4 libtinfo6 libxml2 zlib1g
+          curl -fsSL -o /tmp/cdt.deb \
+            https://git.coopenomics.world/C9S/cdt/releases/download/v4.2.0/cdt_4.2.0-1_amd64.deb
+          sudo apt-get install -y /tmp/cdt.deb
+          sudo mkdir -p /cdt
+          sudo ln -sfn /usr/opt/cdt/4.2.0 /cdt/build
+
+      # checkout ставит всем исходникам время «сейчас», и восстановленные
+      # объектники оказались бы старше каждого — make пересобрал бы всё.
+      # Делаем build свежее исходников; изменившиеся исходники скрипт затем
+      # сам пометит по манифесту, и make возьмёт только их.
+      - name: Контракты — компиляция
+        if: steps.contracts.outputs.cache-hit != 'true'
+        working-directory: components/contracts
+        env:
+          MAKEFLAGS: -j4
+        run: |
+          if [ -d build ]; then find build -type f -exec touch {} +; fi
+          ./build_contracts_cdt.sh "$CONTRACTS_MODE"
+
+      - name: Контракты — сохранить в кеш
+        if: steps.contracts.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: components/contracts/build
+          key: ${{ steps.contracts.outputs.cache-primary-key }}
+
+      - name: Build all workspace packages
+        run: pnpm lerna run build
+
+      - name: Стенд — окружение и секреты
+        run: bash scripts/blackbox/stack.sh env
+
+      - name: Стенд — образ контроллера
+        run: bash scripts/blackbox/stack.sh image
+
+      - name: Стенд — базы, хранилище, CoopID, миграции
+        run: bash scripts/blackbox/stack.sh infra
+
+      - name: Стенд — цепь, контракты, совет и пайщики (boot:extra)
+        timeout-minutes: 30
+        run: bash scripts/blackbox/stack.sh boot
+
+      - name: Стенд — индексер и контроллер
+        id: app
+        timeout-minutes: 20
+        run: bash scripts/blackbox/stack.sh app
+
+      # Засев нужен только наборам Стола заказов: если он упал, остальные наборы
+      # всё равно должны пройти, а маркетплейс покажет понятное «нет фикстуры».
+      - name: Стенд — засев Стола заказов
+        id: seed
+        timeout-minutes: 20
+        continue-on-error: true
+        run: bash scripts/blackbox/stack.sh seed
+
+      # Журнал запросов к базе снимается по фазам тестов: после прогона видно,
+      # какие таблицы внешний слой читал и писал (карта готовности к уходу с
+      # TypeORM, C28-81). Сбой журнала тесты не останавливает.
+      - name: База — журнал запросов
+        continue-on-error: true
+        run: bash scripts/blackbox/stack.sh dbcov start
+
+      - name: Внешние тесты
+        id: tests
+        if: ${{ !startsWith(github.ref_name, 'ci/blackbox-fast-') && github.ref_name != 'ci/blackbox-cardcoop' }}
+        timeout-minutes: 60
+        run: bash scripts/blackbox/stack.sh tests
+
+      # Следующие наборы идут и после красного предыдущего: падение одного
+      # набора не должно прятать состояние другого. Условие — живой стенд.
+      - name: База — снимок после boot
+        if: ${{ !cancelled() && steps.app.outcome == 'success' }}
+        continue-on-error: true
+        run: bash scripts/blackbox/stack.sh dbcov snap boot
+
+      - name: API-тесты (components/api-tests)
+        id: apitests
+        if: ${{ !cancelled() && steps.app.outcome == 'success' && github.ref_name != 'ci/blackbox-cardcoop' }}
+        # Наборы «Образования» ждут конца короткого гарантийного срока и прохода очереди раз в десять минут.
+        # 18.10.2026 набор вырос до предела 90 минут (14.10 шёл 85) — поднято до 120, задание целиком до 180.
+        timeout-minutes: 120
+        run: bash scripts/blackbox/stack.sh apitests
+
+      - name: Карта кооператора (отдельный набор, подставная сеть карт)
+        id: cardcoop
+        if: ${{ !cancelled() && steps.app.outcome == 'success' && github.ref_name == 'ci/blackbox-cardcoop' }}
+        timeout-minutes: 30
+        run: bash scripts/blackbox/stack.sh cardcoop
+
+      - name: База — снимок после API-тестов
+        if: ${{ !cancelled() && steps.app.outcome == 'success' }}
+        continue-on-error: true
+        run: bash scripts/blackbox/stack.sh dbcov snap api
+
+      # Отказы стенда — после всех сценариев, но до матрицы прав: наборы ставят
+      # чтение цепи на паузу и останавливают цепь, под что не должен попасть ни
+      # один другой сценарий, а матрица прав зовёт мутации с чужими аргументами
+      # и оставляет стенд непригодным для сценариев Стола заказов.
+      - name: Отказы стенда (пауза чтения цепи, остановка цепи)
+        id: faults
+        if: ${{ !cancelled() && steps.app.outcome == 'success' && github.ref_name != 'ci/blackbox-cardcoop' }}
+        timeout-minutes: 25
+        run: bash scripts/blackbox/stack.sh faults
+
+      # Отдельный снимок: иначе запросы фазы отказов попадают в снимок матрицы
+      # прав и в карте покрытия считаются «только матрицей».
+      - name: База — снимок после отказов стенда
+        if: ${{ !cancelled() && steps.app.outcome == 'success' && github.ref_name != 'ci/blackbox-cardcoop' }}
+        continue-on-error: true
+        run: bash scripts/blackbox/stack.sh dbcov snap faults
+
+      # Матрица прав сверяется с утверждённым снимком
+      # (components/api-tests/src/rights/snapshot.json, утверждён владельцем
+      # 25.09.2026): новая операция без утверждённых прав или изменившееся
+      # право роняет прогон. Меняешь права намеренно — правь снимок в том же
+      # коммите.
+      - name: Матрица прав
+        id: rights
+        if: ${{ !cancelled() && steps.app.outcome == 'success' && !startsWith(github.ref_name, 'ci/blackbox-fast-') && github.ref_name != 'ci/blackbox-cardcoop' }}
+        timeout-minutes: 30
+        run: bash scripts/blackbox/stack.sh rights
+
+      - name: База — снимок после матрицы прав
+        if: ${{ !cancelled() && steps.app.outcome == 'success' }}
+        continue-on-error: true
+        run: bash scripts/blackbox/stack.sh dbcov snap rights
+
+      - name: Логи стенда
+        if: always()
+        run: bash scripts/blackbox/stack.sh collect
+
+      # Карта собирается до выгрузки: db-coverage.md и db-coverage.json едут в
+      # артефакт, а не только в сводку прогона.
+      - name: База — карта покрытия таблиц
+        if: always()
+        continue-on-error: true
+        run: |
+          if [ -d .blackbox/dbcov ]; then node scripts/blackbox/db-coverage.mjs .blackbox > /dev/null; fi
+
+      - name: Артефакты
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: blackbox-${{ github.run_id }}
+          path: .blackbox
+          # Каталог скрытый, а upload-artifact@v4 скрытое по умолчанию пропускает.
+          include-hidden-files: true
+          retention-days: 14
+
+      # continue-on-error красит упавший засев зелёным (conclusion=success),
+      # настоящий исход — steps.seed.outcome; сводка выносит его наверх.
+      - name: Сводка
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SEED_OUTCOME: ${{ steps.seed.outcome }}
+        run: bash scripts/blackbox/stack.sh summary

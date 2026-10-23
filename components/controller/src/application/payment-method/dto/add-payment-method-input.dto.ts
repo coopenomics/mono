@@ -1,3 +1,4 @@
+import { Type } from 'class-transformer';
 // add-payment-method-input.dto.ts
 import {
   IsNotEmpty,
@@ -8,9 +9,11 @@ import {
   registerDecorator,
   ValidationOptions,
 } from 'class-validator';
+import { validationMessage } from '@coopenomics/extension-kit';
 import { Field, InputType } from '@nestjs/graphql';
 import { BankAccountInputDTO } from './bank-account-input.dto';
 import { SBPDataInputDTO } from './sbp-account.input.dto';
+import { t } from '~/i18n';
 
 function IsOnlyOnePaymentMethod(validationOptions?: ValidationOptions) {
   return function (object: any, propertyName: string) {
@@ -29,7 +32,7 @@ function IsOnlyOnePaymentMethod(validationOptions?: ValidationOptions) {
           return (hasBankTransfer && !hasSbp) || (!hasBankTransfer && hasSbp);
         },
         defaultMessage() {
-          return 'Необходимо указать ровно один метод оплаты: либо банковский перевод, либо СБП';
+          return t('paymentMethod.addPaymentMethodInput.exactlyOneMethodRequired');
         },
       },
     });
@@ -39,7 +42,7 @@ function IsOnlyOnePaymentMethod(validationOptions?: ValidationOptions) {
 @InputType('AddPaymentMethodInput')
 export class AddPaymentMethodInputDTO {
   @Field(() => String, { description: 'Имя аккаунта пользователя' })
-  @IsNotEmpty({ message: 'Имя аккаунта пользователя обязательно' })
+  @IsNotEmpty({ message: validationMessage('paymentMethod.addPaymentMethodInput.usernameRequired') })
   @IsString()
   username!: string;
 
@@ -56,6 +59,7 @@ export class AddPaymentMethodInputDTO {
   })
   @IsOptional()
   @ValidateNested()
+  @Type(() => BankAccountInputDTO)
   bank_transfer_data?: BankAccountInputDTO;
 
   @Field(() => SBPDataInputDTO, {
@@ -64,6 +68,7 @@ export class AddPaymentMethodInputDTO {
   })
   @IsOptional()
   @ValidateNested()
+  @Type(() => SBPDataInputDTO)
   sbp_data?: SBPDataInputDTO;
 
   @IsOnlyOnePaymentMethod()

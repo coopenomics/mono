@@ -1,11 +1,21 @@
 <script lang="ts" setup>
 import { onMounted, ref, watch } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { useFirstLoad } from 'src/shared/lib/composables';
 import { debounce } from 'quasar';
 import { FailAlert } from 'src/shared/api';
-import { useMarketplaceRealtime } from 'src/shared/lib/marketplace';
+import { marketLiveTables } from 'src/shared/lib/marketplace';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
-import { marketplaceOrderSaleUnit } from 'src/shared/lib/consts/marketplace-units';
-import { BaseBadge, BaseButton, BaseCard, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
+import { marketplaceOrderSaleUnitLabel } from 'src/shared/lib/consts/marketplace-units';
+import {
+  BaseBadge,
+  BaseButton,
+  BaseCard,
+  BaseTable,
+  CardListSkeleton,
+  EmptyState,
+} from 'src/shared/ui/base';
+import type { BaseTableColumn } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
 import { DocumentViewerDialog } from 'src/shared/ui/domain/DocumentViewerDialog';
 import type { IDocumentAggregate } from 'src/entities/Document/model';
@@ -15,6 +25,7 @@ import {
   type MarketplaceWriteoffConfirmationGroupView,
 } from '../api';
 import ConfirmWriteoffDialog from './ConfirmWriteoffDialog.vue';
+import { t } from 'src/shared/i18n';
 
 /**
  * Эпик 8: стол ПВЗ — подтверждение списания со склада. Совет одобрил проект
@@ -33,7 +44,11 @@ const groups = ref<MarketplaceWriteoffConfirmationGroupView[]>([]);
 // странице-обёртке: председателю видно, что от него ждут действия, даже когда
 // он стоит на другом разделе.
 watch(groups, (list) => emit('count', list.length), { immediate: true });
-const loading = ref(false);
+// true до первого запроса: иначе первый кадр до загрузки показывает пустое
+// состояние вместо скелетона, и первая загрузка неотличима от пустого списка.
+const loading = ref(true);
+/** Скелетон — только на первой загрузке; дочитка обновляет молча. */
+const firstLoad = useFirstLoad(loading);
 const confirmOpen = ref(false);
 const selectedGroup = ref<MarketplaceWriteoffConfirmationGroupView | null>(null);
 
@@ -42,11 +57,13 @@ const selectedGroup = ref<MarketplaceWriteoffConfirmationGroupView | null>(null)
 const protocolOpen = ref(false);
 const protocolDoc = ref<IDocumentAggregate | null>(null);
 
-const itemColumns = [
-  { name: 'asset_title', align: 'left' as const, label: 'Наименование', field: 'asset_title' },
-  { name: 'quantity', align: 'right' as const, label: 'Кол-во', field: 'quantity' },
-  { name: 'amount', align: 'right' as const, label: 'Сумма', field: 'amount' },
-  { name: 'reason', align: 'left' as const, label: 'Причина', field: 'reason' },
+type WriteoffItem = MarketplaceWriteoffConfirmationGroupView['items'][number];
+
+const itemColumns: BaseTableColumn<WriteoffItem>[] = [
+  { key: 'asset_title', label: t('marketplace.pvzWriteoffsSection.column.name'), width: '260px', field: 'asset_title' },
+  { key: 'quantity', label: t('marketplace.pvzWriteoffsSection.column.quantity'), width: '130px', numeric: true },
+  { key: 'amount', label: t('marketplace.pvzWriteoffsSection.column.amount'), width: '130px', numeric: true },
+  { key: 'reason', label: t('marketplace.pvzWriteoffsSection.column.reason'), width: '260px', field: 'reason' },
 ];
 
 function groupKey(g: MarketplaceWriteoffConfirmationGroupView): string {
@@ -55,8 +72,7 @@ function groupKey(g: MarketplaceWriteoffConfirmationGroupView): string {
 
 // Позиция-агрегат несёт список партий; стабильный ключ строки — наименование+состояние.
 function itemQuantityLabel(it: { quantity: string; unit_of_measure?: string | null; package_size?: number | null }): string {
-  const saleUnit = marketplaceOrderSaleUnit(Number.parseFloat(it.quantity) || 0, it.unit_of_measure, it.package_size);
-  return `${saleUnit.units}×${saleUnit.unitLabel}`;
+  return marketplaceOrderSaleUnitLabel(Number.parseFloat(it.quantity) || 0, it.unit_of_measure, it.package_size);
 }
 
 function itemRowKey(it: { asset_title: string; reason: string }): string {
@@ -68,7 +84,7 @@ async function load(): Promise<void> {
   try {
     groups.value = await listWriteoffPendingConfirmations();
   } catch (e) {
-    FailAlert(e, 'Не удалось загрузить списания на подтверждение');
+    FailAlert(e, t('marketplace.pvzWriteoffsSection.loadError'));
   } finally {
     loading.value = false;
   }
@@ -87,7 +103,7 @@ async function openProtocol(g: MarketplaceWriteoffConfirmationGroupView): Promis
     })) as unknown as IDocumentAggregate;
     protocolOpen.value = true;
   } catch (e) {
-    FailAlert(e, 'Не удалось загрузить Протокол совета');
+    FailAlert(e, t('marketplace.pvzWriteoffsSection.protocolLoadError'));
   }
 }
 
@@ -99,10 +115,7 @@ const reloadLive = debounce(() => {
   if (loading.value) return;
   void load();
 }, 400);
-useMarketplaceRealtime(
-  { MarketplaceWriteoffStatusChangedEvent: () => reloadLive() },
-  { onResync: () => reloadLive() },
-);
+useLiveReload(marketLiveTables('writeoff'), () => reloadLive());
 
 onMounted(() => {
   void load();
@@ -111,16 +124,16 @@ onMounted(() => {
 
 <template lang="pug">
 //- Секция стола «Склад»: шапка участка и полоса разделов — на странице-обёртке.
-.pvz-writeoffs(role="region", aria-label="Списание со склада")
+.pvz-writeoffs(role="region", :aria-label="$t('marketplace.pvzWriteoffsSection.sectionAriaLabel')")
   PageHint(storage-key="mp:pvz-writeoffs:banner-dismissed")
-    | Совет одобрил списание имущества со складов. Подтвердите фактическое списание со склада своего участка — для этого подпишите Служебную записку о списании. Только после вашей подписи имущество выбывает со склада.
+    | {{ $t('marketplace.pvzWriteoffsSection.introText') }}
 
-  CardListSkeleton(v-if="loading && !groups.length", :count="2")
+  CardListSkeleton(v-if="firstLoad", :count="2")
 
-  .pvz-writeoffs__empty(v-if="!loading && groups.length === 0")
+  .pvz-writeoffs__empty(v-if="!firstLoad && groups.length === 0")
     EmptyState(
-      title="Нет списаний на подтверждение",
-      body="Когда совет одобрит проект списания по вашему участку, он появится здесь."
+      :title="$t('marketplace.pvzWriteoffsSection.emptyTitle')",
+      :body="$t('marketplace.pvzWriteoffsSection.emptyBody')"
     )
       template(#icon)
         q-icon(name="inventory_2", size="48px")
@@ -130,32 +143,30 @@ onMounted(() => {
       .pvz-writeoffs__head
         div
           .t-h3 {{ g.branch_name }}
-          .t-muted {{ g.items.length }} позиций · {{ formatAsset2Digits(g.total_amount) }}
-        BaseBadge(variant="info") Ожидает подтверждения
+          .t-muted {{ $t('marketplace.pvzWriteoffsSection.groupSummary', { count: g.items.length, amount: formatAsset2Digits(g.total_amount) }) }}
+        BaseBadge(variant="info") {{ $t('marketplace.pvzWriteoffsSection.pendingLabel') }}
 
-      q-table.full-width.q-mt-sm(
-        flat,
-        :rows="g.items",
+      BaseTable.q-mt-sm(
         :columns="itemColumns",
+        :rows="g.items",
         :row-key="itemRowKey",
-        hide-bottom,
-        :rows-per-page-options="[0]"
+        min-width="780px"
       )
-        template(#body-cell-quantity="props")
-          q-td.text-right(:props="props") {{ itemQuantityLabel(props.row) }}
-        template(#body-cell-amount="props")
-          q-td.text-right(:props="props") {{ formatAsset2Digits(props.row.amount) }}
+        template(#cell-quantity="{ row }")
+          | {{ itemQuantityLabel(row) }}
+        template(#cell-amount="{ row }")
+          | {{ formatAsset2Digits(row.amount) }}
 
       .pvz-writeoffs__actions
         BaseButton(variant="ghost", size="sm", @click="openProtocol(g)")
           template(#icon-left)
             q-icon(name="gavel", size="16px")
-          | Протокол совета
+          | {{ $t('marketplace.pvzWriteoffsSection.protocolLabel') }}
         q-space
         BaseButton(variant="primary", @click="openConfirm(g)")
           template(#icon-left)
             q-icon(name="task_alt", size="16px")
-          | Подтвердить списание
+          | {{ $t('marketplace.pvzWriteoffsSection.confirmButton') }}
 
   ConfirmWriteoffDialog(
     v-model="confirmOpen",
@@ -167,7 +178,7 @@ onMounted(() => {
   DocumentViewerDialog(
     v-model="protocolOpen",
     :document-aggregate="protocolDoc",
-    title="Протокол совета о списании"
+    :title="$t('marketplace.pvzWriteoffsSection.protocolDialogTitle')"
   )
 </template>
 

@@ -40,7 +40,7 @@ void registrator::declinereg(name coopname, checksum256 registration_hash, std::
     // Новый путь: переводим кандидата в возврат и создаём исходящий платёж в
     // gateway с коллбэком после подтверждения кассой. Деньги остаются на счёте 76
     // вплоть до фактического проведения возврата кассой (refundpay).
-    candidates.modify(it, _registrator, [&](auto &c){
+    candidates.modify(it, RamPayer::of(candidates, coopname), [&](auto &c){
       c.status = "refunding"_n;
     });
 

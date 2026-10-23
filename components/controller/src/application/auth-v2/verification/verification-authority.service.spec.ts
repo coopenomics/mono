@@ -42,6 +42,18 @@ describe('VerificationAuthorityService', () => {
     ).rejects.toBeInstanceOf(ForbiddenException);
   });
 
+  it('на участке свою личность не сверяют — ни председатель участка, ни доверенное лицо', async () => {
+    await expect(
+      service.assertMayVerify({ username: 'kuchair', role: 'user', braname: 'bra1' }, 'kuchair'),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(
+      service.assertMayVerify({ username: 'helper1', role: 'user', braname: 'bra1' }, 'helper1'),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(
+      service.assertMayVerify({ username: 'kuchair', role: 'user', braname: 'bra1' }, 'someone'),
+    ).resolves.toBeUndefined();
+  });
+
   it('несуществующий участок — отказ', async () => {
     branchPort.getBranch.mockResolvedValue(null);
     await expect(

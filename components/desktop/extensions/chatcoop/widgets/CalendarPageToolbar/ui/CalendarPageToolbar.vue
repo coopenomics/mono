@@ -8,7 +8,7 @@ div
       @click="onRefresh"
     )
       q-icon(name="fa-solid fa-rotate").q-mr-sm
-      span Обновить
+      span {{ $t('chatcoop.calendarPageToolbar.refreshLabel') }}
     q-btn.q-mr-sm(
       color="primary",
       outline,
@@ -16,16 +16,16 @@ div
       @click="toggleIcsPanel"
     )
       q-icon(name="fa-solid fa-link").q-mr-sm
-      span Установить
+      span {{ $t('chatcoop.calendarPageToolbar.installLabel') }}
     q-btn(
       v-if="canManageCalendarEvents",
       color="primary",
       icon="fa-solid fa-plus",
       @click="onRequestCreate"
-    ) Новое событие
+    ) {{ $t('chatcoop.calendarPageToolbar.newEventLabel') }}
   q-card(v-if="icsPanelOpen && icsUrl", flat, class="q-mb-md")
     q-card-section
-      .text-subtitle2.q-mb-sm Скопируйте ссылку и импортируйте в ваш календарь для синхронизации событий
+      .text-subtitle2.q-mb-sm {{ $t('chatcoop.calendarPageToolbar.subscribeHint') }}
       CopyableInput(:model-value="icsUrl", label="URL", standout)
 </template>
 

@@ -17,6 +17,7 @@ import {
 } from '../../domain/repositories/ku-trust-request.repository';
 import { PAYMENT_METHOD_PORT, type IPaymentMethodPort } from '@coopenomics/innercoop';
 import { ORGANIZATION_PORT, INDIVIDUAL_PORT, type IOrganizationPort, type IIndividualPort } from '@coopenomics/innercoop';
+import { t } from '../../i18n';
 
 /**
  * Событийные реакции собраний кооперативных участков:
@@ -173,12 +174,12 @@ export class KuEventsService {
 
   @OnEvent(`action::${BranchContract.contractName.production}::apprtrusted`)
   async handleTrustedApproved(actionData: InnerChainActionRecord): Promise<void> {
-    await this.notifyTrustedResolved(actionData, 'одобрена');
+    await this.notifyTrustedResolved(actionData, t('ku.trustedRequest.status.approved'));
   }
 
   @OnEvent(`action::${BranchContract.contractName.production}::decltrusted`)
   async handleTrustedDeclined(actionData: InnerChainActionRecord): Promise<void> {
-    await this.notifyTrustedResolved(actionData, 'отклонена');
+    await this.notifyTrustedResolved(actionData, t('ku.trustedRequest.status.declined'));
   }
 
   /** Решение председателя по заявке доверенного → уведомление заявителю */
@@ -210,8 +211,14 @@ export class KuEventsService {
   @OnEvent(`action::${BranchContract.contractName.production}::confirmdec`)
   async handleBranchEstablished(actionData: InnerChainActionRecord): Promise<void> {
     try {
-      const action = actionData.data as { coopname: string; hash: string };
+      const action = actionData.data as { coopname: string; hash: string; authorization?: { signatures?: unknown[] } };
       if (action.coopname !== platformSettings().coopname) return;
+
+      // Решение совета показывается на странице собрания: контракт стирает запись
+      // собрания, не записав в неё документ решения, — сохраняем его из действия.
+      if (action.authorization?.signatures?.length) {
+        await this.decisionRepository.saveAuthorization(action.hash, action.authorization);
+      }
 
       const decision = await this.decisionRepository.findByHash(action.hash);
       if (!decision?.braname || !decision.chairman) {
@@ -231,17 +238,22 @@ export class KuEventsService {
       const trustee = await this.individualRepository.findByUsername(decision.chairman);
       const branchName = decision.branch_name || decision.braname;
 
+      // Карточка участка наследует реквизиты кооператива, а имя, адрес и контакты
+      // берёт из решения собрания: почту и телефон участка задал учредитель при
+      // открытии голосования, и именно их показывает страница участка.
       const combinedData = {
         ...cooperative,
-        short_name: `КУ «${branchName}»`,
-        full_name: `Кооперативный Участок «${branchName}»`,
+        short_name: t('ku.branch.shortNameTemplate', { branchName }),
+        full_name: t('ku.branch.fullNameTemplate', { branchName }),
         fact_address: decision.address || '',
+        email: decision.branch_email || cooperative.email,
+        phone: decision.branch_phone || cooperative.phone,
         represented_by: {
           first_name: trustee.first_name,
           last_name: trustee.last_name,
           middle_name: trustee.middle_name,
-          based_on: `Протокол собрания пайщиков кооперативного участка от ${new Date().toLocaleDateString('ru-RU')}`,
-          position: 'председатель кооперативного участка',
+          based_on: t('ku.branch.basedOnTemplate', { date: new Date().toLocaleDateString('ru-RU') }),
+          position: t('ku.branch.chairmanPosition'),
         },
         username: decision.braname,
       };

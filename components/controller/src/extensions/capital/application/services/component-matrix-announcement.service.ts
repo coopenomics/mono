@@ -10,6 +10,7 @@ import {
 import { PROJECT_REPOSITORY, ProjectRepository } from '../../domain/repositories/project.repository';
 import { ProjectDomainEntity } from '../../domain/entities/project.entity';
 import type { IProjectMatrixComponentAnnouncementEvent } from '../../domain/interfaces/project-database.interface';
+import { t } from '../../i18n';
 
 /**
  * Публикация в Matrix обычных сообщений об анонсе компонента (проекты с parent_hash)
@@ -156,7 +157,7 @@ export class ComponentMatrixAnnouncementService {
     const baseUrl = platformSettings().frontendUrl.replace(/\/$/, '');
     const path = `/${encodeURIComponent(coopname)}/capital/components/${encodeURIComponent(component.project_hash)}/description`;
     const desktopUrl = `${baseUrl}/#${path}`;
-    return `${ComponentMatrixAnnouncementService.COMPONENT_ANNOUNCE_ICON} Создан новый компонент "${nameInQuotes}": ${desktopUrl}`;
+    return t('capital.componentMatrixAnnouncement.newComponentMessage', { icon: ComponentMatrixAnnouncementService.COMPONENT_ANNOUNCE_ICON, name: nameInQuotes, url: desktopUrl });
   }
 
   private async publishNewComponent(
@@ -189,6 +190,7 @@ export class ComponentMatrixAnnouncementService {
     for (let i = 0; i < rooms.length; i++) {
       const room = rooms[i];
       if (i > 0) {
+        // timing: throttle — объявления в комнаты Matrix не чаще, чем принимает сервер
         await new Promise((r) => setTimeout(r, 400));
       }
       const eventId = await this.matrixRoomMessaging.sendTextMessage({

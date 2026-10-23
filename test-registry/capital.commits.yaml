@@ -1,0 +1,45 @@
+feature: capital.commits
+title: Коммит часов участника Благороста
+
+# Участник фиксирует часы по выполненным задачам проекта взносом: контроллер
+# считает доступное время, собирает хэш коммита и отправляет его в цепь
+# (capital::createcmmt). Мастер проекта взнос принимает или отклоняет. Данные
+# коммита (снимок задач, отзыв, изменения из Git) хранятся только в базе
+# контроллера, в цепь уходят часы и хэш.
+#
+# Правка 25.09.2026 (C28-80): строка коммита сохраняется до отправки в цепь.
+# Транзакция с 23.09 ждёт свой блок, и синхронизатор по дельте успевал завести
+# строку сам — контроллер после транзакции вставлял вторую с тем же хэшем, а
+# приёмка и отклонение брали любую из двух. Цепь отказала — строка удаляется.
+# После транзакции коммит перечитывается из базы, чтение цепи убрано.
+
+sources:
+  backend:
+    - components/controller/src/extensions/capital/application/use-cases/generation.interactor.ts
+    - components/controller/src/extensions/capital/application/syncers/commit-sync.service.ts
+
+cases:
+  - id: cap.commit.side.01
+    level: backend
+    kind: side
+    scenario: >
+      Участник фиксирует часы по выполненной задаче; стол сразу после ответа
+      показывает коммит.
+    expect: >
+      у коммита одна строка в зеркале, с данными цепи и снимком задач, чьи
+      часы в него вошли
+    test: components/controller/tests/unit/capital/commit-row-before-transact.test.ts
+    api: components/api-tests/src/capital/commits.test.ts
+    status: passing
+
+  - id: cap.commit.side.02
+    level: backend
+    kind: side
+    scenario: >
+      Цепь отказала в коммите — например, проект ещё не запущен.
+    expect: >
+      строки коммита в зеркале не остаётся, часы не списаны, повтор упирается
+      в тот же отказ цепи
+    test: components/controller/tests/unit/capital/commit-row-before-transact.test.ts
+    api: components/api-tests/src/capital/commits.test.ts
+    status: passing

@@ -1,5 +1,6 @@
-import { ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { BRANCH_PORT, type IBranchPort } from '@coopenomics/innercoop';
+import { DomainError } from '@coopenomics/extension-kit';
 
 export const MARKETPLACE_BRANCH_OWNERSHIP_SERVICE = Symbol(
   'MarketplaceBranchOwnershipService'
@@ -36,14 +37,12 @@ export class MarketplaceBranchOwnershipService {
   ): Promise<void> {
     const branch = await this.branchPort.getBranch(coopname, braname);
     if (!branch) {
-      throw new NotFoundException(`Кооперативный участок ${braname} не найден.`);
+      throw DomainError.notFound('MARKETPLACE_BRANCH_NOT_FOUND_BY_NAME', { braname });
     }
     const allowed =
       branch.trustee === account || (branch.trusted?.includes(account) ?? false);
     if (!allowed) {
-      throw new ForbiddenException(
-        'Действие доступно только председателю кооперативного участка или его доверенному лицу.'
-      );
+      throw DomainError.forbidden('MARKETPLACE_BRANCH_ACTION_NOT_TRUSTEE');
     }
   }
 }

@@ -10,8 +10,8 @@ q-btn(
   :disable='disable',
   no-wrap
 )
-  span.q-ml-sm(v-if='!isMobile') Импорт
-  q-tooltip(v-if='isMobile') Импорт пайщиков
+  span.q-ml-sm(v-if='!isMobile') {{ $t('user.importButton.label') }}
+  q-tooltip(v-if='isMobile') {{ $t('user.importButton.tooltip') }}
 
 ParticipantsImportDialog(v-model='show')
 </template>

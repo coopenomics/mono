@@ -12,7 +12,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { cleanViteOverlays, env, loginAs, pickBranchIfAsked } from '../../../lib/harness.mjs';
+import { SHOT_SCALE, SHOT_VIEWPORT, cleanViteOverlays, env, loginAs, loginAsChairman, pickBranchIfAsked } from '../../../lib/harness.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const loadFixture = (username) =>
@@ -41,54 +41,81 @@ export default async ({ page, shot, expect }) => {
   await pickBranchIfAsked(page);
 
   // ── Типы боксов ──
-  await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/market-pvz/warehouse/types`, {
-    waitUntil: 'domcontentloaded',
-    timeout: 45000,
+  // Тип тары общий на весь кооператив: его заводит председатель на столе
+  // администратора в разделе «Боксы кооператива», вкладка «Типы боксов».
+  // Оператор участка свою партию боксов заводит уже выбранного типа.
+  const chairmanContext = await page.context().browser().newContext({
+    viewport: SHOT_VIEWPORT,
+    deviceScaleFactor: SHOT_SCALE,
+    locale: 'ru-RU',
+    // Время на кадрах — московское, как у кооператива: в CI браузер иначе живёт в UTC.
+    timezoneId: 'Europe/Moscow',
   });
-  await pickBranchIfAsked(page);
-  await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
-  await page.waitForTimeout(1500);
-  await cleanViteOverlays(page);
+  const admin = await chairmanContext.newPage();
+  // Строка реестра типов: имя типа совпадает с подсказкой поля «Название» в
+  // окне, поэтому ищем именно в таблице, а не по всей странице.
+  const typeRow = admin.locator('tbody tr').filter({ hasText: 'Ящик 60×40×30' }).first();
+  try {
+    await admin.addInitScript(() => { window.print = () => {}; });
+    await loginAsChairman(admin, chairmanContext);
+    await pickBranchIfAsked(admin);
+    await admin.goto(`${env.APP_PREFIX}/${env.COOPNAME}/market-admin/containers`, {
+      waitUntil: 'domcontentloaded',
+      timeout: 45000,
+    });
+    await pickBranchIfAsked(admin);
+    await admin.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+    await admin.locator('text=Типы боксов').first().click();
+    await admin.waitForTimeout(1200);
+    await cleanViteOverlays(admin);
 
-  const hasType = await page.locator('text=Ящик 60×40×30').count();
-  if (!hasType) {
+    const hasType = await typeRow.count();
+    if (!hasType) {
+      await shot(
+        admin,
+        '01-types-empty',
+        'Стол администратора, «Боксы кооператива», вкладка «Типы боксов» до заведения первого типа. Тип задаёт габариты и объём тары, а не отдельный бокс: коробки закупают одинаковыми партиями, а объём нужен агрегатом — по нему считается перевозка боксов между участками.',
+      );
+
+      await admin.locator('button:has-text("Тип боксов")').first().click();
+      await admin.waitForSelector('.q-dialog', { timeout: 10000 });
+      await admin.locator('.q-dialog .q-field:has-text("Название") input').first().fill('Ящик 60×40×30');
+      await admin.locator('.q-dialog .q-field:has-text("Длина") input').first().fill('60');
+      await admin.locator('.q-dialog .q-field:has-text("Ширина") input').first().fill('40');
+      await admin.locator('.q-dialog .q-field:has-text("Высота") input').first().fill('30');
+      await admin.locator('.q-dialog .q-field:has-text("Предельный вес") input').first().fill('25');
+      await admin.waitForTimeout(600);
+
+      await shot(
+        admin,
+        '02-type-dialog',
+        'Заведение типа боксов: название и габариты в сантиметрах — так тару меряют на месте. Полезный объём в кубометрах считается сам; предельный вес — необязательное ограничение.',
+      );
+
+      await admin.locator('.q-dialog button:has-text("Завести")').last().click();
+      await admin.waitForTimeout(2500);
+      await admin.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+    }
+
     await shot(
-      page,
-      '01-types-empty',
-      'Вкладка «Типы боксов» до заведения первого типа. Тип задаёт габариты и объём тары, а не отдельный бокс: коробки закупают одинаковыми партиями, а объём нужен агрегатом — по нему считается перевозка боксов между участками.',
+      admin,
+      '03-types-list',
+      'Реестр типов боксов кооператива: габариты, объём и предельный вес. Дальше участки заводят боксы партиями выбранного типа.',
+      {
+        expect: async () => {
+          await expect(typeRow).toBeVisible({ timeout: 15000 });
+        },
+      },
     );
-
-    await page.locator('button:has-text("Тип боксов")').first().click();
-    await page.waitForSelector('.q-dialog', { timeout: 10000 });
-    await page.locator('.q-dialog .q-field:has-text("Название") input').first().fill('Ящик 60×40×30');
-    await page.locator('.q-dialog .q-field:has-text("Длина") input').first().fill('60');
-    await page.locator('.q-dialog .q-field:has-text("Ширина") input').first().fill('40');
-    await page.locator('.q-dialog .q-field:has-text("Высота") input').first().fill('30');
-    await page.locator('.q-dialog .q-field:has-text("Предельный вес") input').first().fill('25');
-    await page.waitForTimeout(600);
-
-    await shot(
-      page,
-      '02-type-dialog',
-      'Заведение типа боксов: название и габариты в сантиметрах — так тару меряют на месте. Полезный объём в кубометрах считается сам; предельный вес — необязательное ограничение.',
-    );
-
-    await page.locator('.q-dialog button:has-text("Завести")').last().click();
-    await page.waitForTimeout(2500);
+  } catch (e) {
+    // Кадр поломки сюита снимает с основной страницы; стол администратора
+    // открыт во втором контексте — снимаем его сами, иначе причина не видна.
+    await shot(admin, '00-admin-fail', 'Стол администратора в момент поломки сценария.', { allowError: true }).catch(() => {});
+    throw e;
+  } finally {
+    await chairmanContext.close();
   }
 
-  await shot(
-    page,
-    '03-types-list',
-    'Реестр типов боксов участка: габариты, объём и предельный вес. Дальше боксы заводятся партиями выбранного типа.',
-    {
-      expect: async (p) => {
-        await expect(p.locator('text=Ящик 60×40×30').first()).toBeVisible({ timeout: 15000 });
-      },
-    },
-  );
-
-  // ── Боксы ──
   await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/market-pvz/warehouse/containers`, {
     waitUntil: 'domcontentloaded',
     timeout: 45000,
@@ -101,6 +128,15 @@ export default async ({ page, shot, expect }) => {
   if (!hasBoxes) {
     await page.locator('button:has-text("Завести боксы")').first().click();
     await page.waitForSelector('.q-dialog', { timeout: 10000 });
+    // Тип боксов — из общего реестра кооператива; при одном типе он уже выбран.
+    const typeField = page.locator('.q-dialog .q-field:has-text("Тип боксов")').first();
+    if (await typeField.count()) {
+      await typeField.click();
+      const opt = page.locator('.q-menu .q-item:has-text("Ящик 60×40×30")').first();
+      if (await opt.waitFor({ state: 'visible', timeout: 5000 }).then(() => true).catch(() => false)) await opt.click();
+      else await page.keyboard.press('Escape');
+      await page.waitForTimeout(300);
+    }
     await page.locator('.q-dialog .q-field:has-text("Сколько завести") input').first().fill('6');
     await page.locator('.q-dialog .q-field:has-text("Подпись партии") input').first().fill('Молочная тара');
     await page.waitForTimeout(600);

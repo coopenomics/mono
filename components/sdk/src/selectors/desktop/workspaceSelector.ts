@@ -3,6 +3,7 @@ import { type ModelTypes, Selector, type ValueTypes } from '../../zeus/index'
 
 const rawWorkspaceSelector = {
   extension_name: true,
+  extension_title: true,
   name: true,
   title: true,
   icon: true,

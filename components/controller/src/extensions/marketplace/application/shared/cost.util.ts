@@ -1,6 +1,7 @@
-import { BadRequestException } from '@nestjs/common';
 import type { MarketplaceUnitOfMeasure } from '../../domain/entities/marketplace-offer.types';
 import { MARKETPLACE_UNIT_PRECISION } from './quantity.util';
+import { t } from '../../i18n';
+import { DomainError } from '@coopenomics/extension-kit';
 
 /**
  * Денежная арифметика «Стола заказов» — зеркало контрактной.
@@ -22,14 +23,12 @@ import { MARKETPLACE_UNIT_PRECISION } from './quantity.util';
 export function decimalStringToMinor(raw: string, decimals: number): bigint {
   const matched = /^\s*(-?)(\d+)(?:[.,](\d*))?\s*$/.exec(raw);
   if (!matched) {
-    throw new BadRequestException(`Некорректная десятичная величина: "${raw}"`);
+    throw DomainError.badRequest('MARKETPLACE_COST_INVALID_DECIMAL', { raw });
   }
   const [, sign, intPart, fracRaw = ''] = matched;
   const dropped = fracRaw.slice(decimals);
   if (dropped.replace(/0/g, '').length > 0) {
-    throw new BadRequestException(
-      `Величина "${raw}" точнее ${decimals} знаков после запятой — округление изменило бы сумму`
-    );
+    throw DomainError.badRequest('MARKETPLACE_COST_DECIMAL_TOO_PRECISE', { raw, decimals });
   }
   const frac = `${fracRaw}${'0'.repeat(decimals)}`.slice(0, decimals);
   const value = BigInt(`${intPart}${frac}`);
@@ -42,16 +41,14 @@ export function decimalStringToMinor(raw: string, decimals: number): bigint {
  * половины младшей единицы; всё, что точнее заявленной точности, — ошибка
  * ввода, а не погрешность представления.
  */
-export function numberToMinor(value: number, scale: number, what = 'величина'): bigint {
+export function numberToMinor(value: number, scale: number, what = t('marketplace.cost.defaultValueLabel')): bigint {
   if (!Number.isFinite(value)) {
-    throw new BadRequestException(`Некорректная ${what}: "${value}"`);
+    throw DomainError.badRequest('MARKETPLACE_COST_INVALID_VALUE', { what, value });
   }
   const scaled = value * 10 ** scale;
   const rounded = Math.round(scaled);
   if (Math.abs(scaled - rounded) > 1e-6) {
-    throw new BadRequestException(
-      `Значение «${value}» точнее ${scale} знаков после запятой — ${what} так не задаётся`
-    );
+    throw DomainError.badRequest('MARKETPLACE_COST_VALUE_TOO_PRECISE', { value, scale, what });
   }
   return BigInt(rounded);
 }
@@ -69,24 +66,22 @@ export function minorToDecimalString(minor: bigint, decimals: number): string {
 export function moneyToMinor(value: string | number, decimals: number): bigint {
   return typeof value === 'string'
     ? decimalStringToMinor(value, decimals)
-    : numberToMinor(value, decimals, 'сумма');
+    : numberToMinor(value, decimals, t('marketplace.cost.amountLabel'));
 }
 
 /** Витринное количество в базовой единице → младшие единицы измерения. */
 export function quantityToMinor(quantity: number, unit: MarketplaceUnitOfMeasure): bigint {
   const precision = MARKETPLACE_UNIT_PRECISION[unit];
   if (precision === undefined) {
-    throw new BadRequestException(
-      `Неизвестная единица измерения «${unit}» — количество не пересчитать в сумму`
-    );
+    throw DomainError.badRequest('MARKETPLACE_COST_UNKNOWN_UNIT', { unit });
   }
-  return numberToMinor(quantity, precision, 'количество');
+  return numberToMinor(quantity, precision, t('marketplace.cost.quantityLabel'));
 }
 
 /** Деление с округлением половины вверх — как в контракте. */
 function divideHalfUp(numerator: bigint, denominator: bigint): bigint {
   if (denominator <= 0n) {
-    throw new BadRequestException('Некорректная база для расчёта доли суммы');
+    throw DomainError.badRequest('MARKETPLACE_COST_INVALID_SHARE_BASE');
   }
   return (numerator + denominator / 2n) / denominator;
 }
@@ -113,7 +108,7 @@ export function calcCostMinor(params: {
   if (packageSize && packageSize > 0) {
     const packageMinor = quantityToMinor(packageSize, unit);
     if (quantityMinor % packageMinor !== 0n) {
-      throw new BadRequestException('Количество должно быть кратно размеру упаковки.');
+      throw DomainError.badRequest('MARKETPLACE_COST_QUANTITY_MUST_BE_PACKAGE_MULTIPLE');
     }
     return (quantityMinor / packageMinor) * priceMinor;
   }

@@ -18,7 +18,7 @@
 | `CorrectionTable`      | DR13  | Story 10.2.7 | Таблица корректировки факт vs план                  |
 | `ExpeditorGroupingBoard` | DR14 | Story 10.2.8 | Доска группировки заявок (drag-n-drop)              |
 | `TTNPrintPreview`      | DR15  | Story 10.2.9 | Печатная ТТН А5 со штрих-кодом                      |
-| `WarehouseSummaryGrid` | DR16  | Story 10.2.10| Сводный склад admin-стола                           |
+| `WarehouseSummaryGrid` | DR16  | Story 10.2.10| Склад кооператива на admin-столе                    |
 | `OnboardingCPPGate`    | DR17  | Story 10.2.11| L3-gate онбординга со списком документов            |
 | `MultiChannelStatus`   | DR18  | Story 10.2.12| Статус push/email/SMS                               |
 | `KUMapWithList`        | Эпик 2.3 | Story 10.2.13 | Карта ПВЗ + список (canon из widgets/KUMapWithList) |

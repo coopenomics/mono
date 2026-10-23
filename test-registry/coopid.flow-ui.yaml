@@ -1,0 +1,84 @@
+feature: coopid.flow-ui
+title: Экраны потоков CoopID в столе — вход, согласие, код, отказ (105-30)
+# Стол рисует стадии authentik сам (как card.coop, ADR-0003): authentik остаётся
+# исполнителем, /if/flow/<slug>/ возвращается nginx стенда на /flow/<slug>.
+sources:
+  ui:
+    - components/desktop/src/shared/api/authentik-flow.ts
+    - components/desktop/src/features/CoopidFlow/**
+    - components/desktop/src/pages/Registrator/CoopidFlow/**
+    - infra/coopid/nginx/dev.conf
+cases:
+  - id: coopid.flow.happy.01
+    level: ui
+    kind: happy
+    scenario: >
+      Сторонний сервис (card.coop) просит согласие пайщика на передачу данных.
+    expect: >
+      экран согласия в карточке стола: заголовок «<сервис> запрашивает доступ», права
+      по-русски (стандартные переведены, безымянные скрыты), «Разрешить» отвечает
+      меткой token; после согласия поток уводит по адресу из xak-flow-redirect
+    test: ''
+    status: missing
+
+  - id: coopid.flow.happy.02
+    level: ui
+    kind: happy
+    scenario: >
+      Вход в CoopID: опознание → пароль → (код) → вход.
+    expect: >
+      опознание и пароль — одной формой (блюпринт назначает стадии опознания стадию пароля
+      и снимает отдельную привязку пароля с потока; стол показывает поле пароля по
+      password_fields), кнопка «Войти», а не английское primary_action; стадии password
+      (в других потоках), authenticator-validate показаны своими экранами; user-login
+      проходится молча; успешный POST исполнителя (302 на себя) идёт с redirect: follow
+    test: ''
+    status: missing
+
+  - id: coopid.flow.side.01
+    level: ui
+    kind: side
+    scenario: >
+      Родной адрес потока /if/flow/<slug>/?next=… открыт в браузере.
+    expect: >
+      nginx стенда возвращает 302 на /flow/<slug> с той же строкой запроса; /if/admin и
+      прочее под /if/ по-прежнему у authentik
+    test: ''
+    status: missing
+
+  - id: coopid.flow.break.01
+    level: ui
+    kind: break
+    scenario: >
+      Поток отказал (access-denied / flow-error) либо стадия столу неизвестна.
+    expect: >
+      отказ показан баннером с причиной из потока; вошедшему — «вы уже вошли» и кнопка в
+      стол; неизвестная стадия — понятный экран с «Начать заново», не тупик
+    test: ''
+    status: missing
+
+  - id: coopid.flow.side.03
+    level: ui
+    kind: side
+    scenario: >
+      Пайщик открывает экран входа CoopID, куда его привела карта (03.09.2026).
+    expect: >
+      у карточки есть подзаголовок «Вход по карте кооператора · <кооператив>» — без него экран
+      читался как бедная копия входа стола; на согласии подзаголовка нет. Поле почты
+      подписано как в форме стола («Электронная почта»). Вторые дороги есть всегда: поток
+      отдаёт свои адреса регистрации и восстановления, а без них ведут страницы стола
+      signup и recover — прежде забывший пароль упирался в тупик
+    test: ''
+    status: missing
+
+  - id: coopid.flow.side.02
+    level: ui
+    kind: side
+    scenario: >
+      На шаге пароля человек нажимает «Это не я» (03.09.2026).
+    expect: >
+      стол отменяет план потока у authentik (flow_info.cancel_url, /flows/-/cancel/ на nginx
+      стенда) и открывает первый шаг заново; без отмены authentik возвращал тот же шаг, и
+      кнопка ничего не делала. Строка «Входите как <почта>» — в один ряд с кнопкой
+    test: ''
+    status: missing

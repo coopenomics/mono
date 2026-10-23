@@ -1,6 +1,7 @@
 import { ref } from 'vue';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { api, type IVerificationPhotoInput } from '../api';
+import { t } from 'src/shared/i18n';
 
 /**
  * Управление верификацией личности пайщика. Участок передаёт оператор
@@ -24,8 +25,8 @@ export function useVerifyIdentity() {
       });
       SuccessAlert(
         braname
-          ? 'Личность подтверждена. Сверку проверит совет кооператива'
-          : 'Личность пайщика подтверждена',
+          ? t('user.verifyIdentity.verifiedPendingReview')
+          : t('user.verifyIdentity.verified'),
       );
       return true;
     } catch (error: any) {
@@ -40,7 +41,7 @@ export function useVerifyIdentity() {
     try {
       loading.value = true;
       await api.unverifyParticipant({ username });
-      SuccessAlert('Верификация личности отозвана');
+      SuccessAlert(t('user.verifyIdentity.revoked'));
       return true;
     } catch (error: any) {
       FailAlert(error);

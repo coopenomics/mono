@@ -57,7 +57,7 @@
   fundwithdraws_index fundwithdraws(_fund, coopname.value);
   uint64_t fundwithdraw_id = get_global_id(_fund, "fundwithdraw"_n);
 
-  fundwithdraws.emplace(payer, [&](auto &s) {
+  fundwithdraws.emplace(RamPayer::of(fundwithdraws, coopname), [&](auto &s) {
     s.id = fundwithdraw_id;
     s.type = type;
     s.status = "pending"_n;

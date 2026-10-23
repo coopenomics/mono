@@ -27,7 +27,7 @@ void soviet::addpartcpnt(eosio::name coopname, eosio::name username, eosio::name
   
   participants_index participants(_soviet, coopname.value);
   
-  participants.emplace(_soviet, [&](auto &m){
+  participants.emplace(RamPayer::of(participants, coopname), [&](auto &m){
     m.username = username;
     m.braname = braname;
     m.created_at = created_at;

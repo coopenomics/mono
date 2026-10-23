@@ -1,4 +1,5 @@
-import { isFailoverWorthy, rpcBackoffMs, RpcPool } from './rpc-pool.service';
+import { DomainError } from '@coopenomics/extension-kit';
+import { isChainUnreachable, isFailoverWorthy, rpcBackoffMs, RpcPool } from './rpc-pool.service';
 
 const logger = { warn: jest.fn(), info: jest.fn(), log: jest.fn(), error: jest.fn() } as any;
 
@@ -83,6 +84,22 @@ describe('RpcPool.read — sticky primary + failover', () => {
     await expect(pool.read((c: any) => c.read())).rejects.toMatchObject({ response: { status: 404 } });
     expect(ep1.client.read).not.toHaveBeenCalled();
     expect(ep0.healthy).toBe(true);
+  });
+
+  // До 02.10.2026 недостижимая цепь доходила до пайщика внутренней ошибкой «fetch failed»
+  // без кода (C28-85, находка 52).
+  it('все узлы недостижимы по сети → отказ с кодом BLOCKCHAIN_UNAVAILABLE и статусом 503', async () => {
+    const refused = Object.assign(new TypeError('fetch failed'), { cause: { code: 'ECONNREFUSED' } });
+    const ep0 = makeEp('u0', { read: jest.fn().mockRejectedValue(refused) });
+    const ep1 = makeEp('u1', { read: jest.fn().mockRejectedValue(new TypeError('fetch failed')) });
+    const pool = poolWith([ep0, ep1]);
+
+    const error = await pool.read((c: any) => c.read()).catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(DomainError);
+    expect((error as DomainError).code).toBe('BLOCKCHAIN_UNAVAILABLE');
+    expect((error as DomainError).getStatus()).toBe(503);
+    expect(ep0.healthy).toBe(false);
+    expect(ep1.healthy).toBe(false);
   });
 
   it('все узлы недоступны → бросает последнюю ошибку', async () => {
@@ -171,5 +188,20 @@ describe('RpcPool.probeAll — health-check по get_info с учётом backof
 
     expect(ep1.healthy).toBe(true);
     expect(ep1.failures).toBe(0);
+  });
+});
+
+describe('isChainUnreachable — недостижимость узла против его ответа', () => {
+  it('обрыв соединения, отказ в соединении и таймаут — недостижим', () => {
+    expect(isChainUnreachable(new TypeError('fetch failed'))).toBe(true);
+    expect(isChainUnreachable(Object.assign(new Error('connect'), { code: 'ECONNREFUSED' }))).toBe(true);
+    expect(isChainUnreachable(Object.assign(new TypeError('fetch failed'), { cause: { code: 'UND_ERR_SOCKET' } }))).toBe(true);
+    expect(isChainUnreachable(DomainError.internal('BLOCKCHAIN_RPC_TIMEOUT', { ms: 5 }))).toBe(true);
+  });
+
+  it('узел ответил статусом, отказ контракта, прочая ошибка — достижим', () => {
+    expect(isChainUnreachable({ response: { status: 500 } })).toBe(false);
+    expect(isChainUnreachable(DomainError.badRequest('CHAIN_ASSERT', { message: 'x' }))).toBe(false);
+    expect(isChainUnreachable(new Error('down1'))).toBe(false);
   });
 });

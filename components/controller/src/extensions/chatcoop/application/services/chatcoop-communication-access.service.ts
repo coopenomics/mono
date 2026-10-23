@@ -1,4 +1,4 @@
-import { ForbiddenException, Inject, Injectable, Optional } from '@nestjs/common';
+import { Inject, Injectable, Optional } from '@nestjs/common';
 import { PROJECT_CAPITAL_CLEARANCE_PORT, type IProjectCapitalClearancePort } from '@coopenomics/innercoop';
 import type { IMonoAccount } from '@coopenomics/innercoop';
 import {
@@ -6,6 +6,7 @@ import {
   type ChatcoopManagedMatrixRoomRepository,
 } from '../../domain/repositories/managed-matrix-room.repository';
 import type { ManagedMatrixRoomDomainEntity } from '../../domain/entities/managed-matrix-room.entity';
+import { DomainError } from '@coopenomics/extension-kit';
 
 /**
  * Кто вправе читать переписку и записи звонков.
@@ -83,9 +84,7 @@ export class ChatcoopCommunicationAccessService {
     matrixRoomId: string
   ): Promise<void> {
     if (!(await this.canReadRoom(user, matrixRoomId))) {
-      throw new ForbiddenException(
-        'Нет доступа к переписке этой комнаты: её читают совет и ведущий проекта'
-      );
+      throw DomainError.forbidden('CHATCOOP_ROOM_ACCESS_DENIED');
     }
   }
 

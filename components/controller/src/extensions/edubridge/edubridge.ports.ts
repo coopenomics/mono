@@ -1,0 +1,98 @@
+/**
+ * Порты контура, которые запрашивает расширение «Образовательный мост».
+ *
+ * Это его capability-заявка (ADR-16): что расширению вообще позволено просить
+ * у кооператива. Права пайщика тут ни при чём — они проверяются на границе API
+ * самого расширения; здесь речь о другом вопросе: какие данные и действия
+ * контура доступны этому расширению как таковому.
+ *
+ * Обязательные порты проверяются при запуске расширения: отсутствие любого —
+ * отказ с внятной причиной, а не молчаливое падение на первом вызове.
+ * Необязательные могут отсутствовать: без них часть возможностей выключена.
+ */
+import {
+  CHAIN_CHANGES_PORT,
+  CHAIRMAN_APPROVALS_PORT,
+  CHAIN_PORT,
+  COUNCIL_PORT,
+  EXPENSE_CHASSIS_PORT,
+  DOCUMENT_DECLARATION_PORT,
+  DOCUMENT_PORT,
+  DESKTOP_GRANTS_FILTER_REGISTRY_PORT,
+  DESKTOP_GRANTS_REGISTRY_PORT,
+  EXTENSION_CONFIG_PORT,
+  FILE_STORAGE_PORT,
+  GLOBAL_SEARCH_REGISTRY_PORT,
+  LEDGER2_HISTORY_PORT,
+  LOGGER_PORT,
+  MEMBER_EXIT_REGISTRY_PORT,
+  NOTIFICATION_PORT,
+  ONBOARDING_STEP_REGISTRY_PORT,
+  PROGRAM_AGREEMENT_PORT,
+  REGISTRATION_DOCUMENT_PARAMETERS_REGISTRY_PORT,
+  REGISTRATION_OFFER_FILTER_REGISTRY_PORT,
+  REGISTRATION_REGISTRY_PORT,
+  ROLE_ASSIGNMENTS_PORT,
+  SECRET_CIPHER_PORT,
+  USER_AVATAR_PORT,
+  USER_CERTIFICATE_PORT,
+  USER_DATA_PORT,
+  USER_DIRECTORY_PORT,
+  USER_WALLET_PORT,
+  WALLET_WITHDRAW_PORT,
+  PAYMENT_PORT,
+  VAULT_PORT,
+} from '@coopenomics/innercoop';
+
+export const edubridgePorts = {
+  required: [
+    // Администратора образования назначает председатель на общей странице управления доступом.
+    ROLE_ASSIGNMENTS_PORT,
+    CHAIN_PORT,
+    COUNCIL_PORT,
+    // Документы ЦПП в реестре шаблонов кооператива: без объявления совет их не утверждает.
+    DOCUMENT_DECLARATION_PORT,
+    DOCUMENT_PORT,
+    DESKTOP_GRANTS_FILTER_REGISTRY_PORT,
+    DESKTOP_GRANTS_REGISTRY_PORT,
+    // Расходы программы ведёт общее шасси расходов: своего у расширения нет.
+    EXPENSE_CHASSIS_PORT,
+    EXTENSION_CONFIG_PORT,
+    FILE_STORAGE_PORT,
+    // Ученики и преподаватели в едином поиске окна столов и страниц.
+    GLOBAL_SEARCH_REGISTRY_PORT,
+    // Лента движения средств программы в разделе «Экономика» — журнал ledger2.
+    LEDGER2_HISTORY_PORT,
+    LOGGER_PORT,
+    // Почему преподавателю рано выходить из кооператива: курсы на руках, незакрытый расчёт.
+    MEMBER_EXIT_REGISTRY_PORT,
+    NOTIFICATION_PORT,
+    ONBOARDING_STEP_REGISTRY_PORT,
+    PROGRAM_AGREEMENT_PORT,
+    REGISTRATION_DOCUMENT_PARAMETERS_REGISTRY_PORT,
+    REGISTRATION_OFFER_FILTER_REGISTRY_PORT,
+    SECRET_CIPHER_PORT,
+    // Фотография пайщика в списке преподавателей — снимок хранит ядро.
+    USER_AVATAR_PORT,
+    USER_CERTIFICATE_PORT,
+    USER_DATA_PORT,
+    USER_DIRECTORY_PORT,
+    USER_WALLET_PORT,
+    // Возврат паевого взноса со стола расчёта: платёж и заявка в кошельке — ядром.
+    WALLET_WITHDRAW_PORT,
+    // Состояние возврата живёт у платежа шлюза.
+    PAYMENT_PORT,
+    VAULT_PORT,
+  ],
+  optional: [
+    // Без реестра оферт расширение ставится, но свои программы и оферты
+    // вступающему не предлагает.
+    REGISTRATION_REGISTRY_PORT,
+    // Договоры и приложения преподавателей, ждущие подписи председателя, —
+    // в карточке преподавателя. Без расширения председателя список пуст.
+    CHAIRMAN_APPROVALS_PORT,
+    // Лента изменений для живого обновления столов; без неё столы дочитывают
+    // данные только при открытии.
+    CHAIN_CHANGES_PORT,
+  ],
+};

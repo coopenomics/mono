@@ -1,3 +1,5 @@
+import type { EncryptedVaultBlob, VaultSubject } from '../vault'
+import { lt } from '@coopenomics/i18n'
 /**
  * Миграция действующего пайщика «ключ → пароль» (Story 11.4), клиентская сторона.
  *
@@ -24,9 +26,8 @@
  */
 import { AuthV2Error, AuthV2ErrorCode } from '../errors'
 import { coopIdApiUrl } from '../oidc/client'
-import type { EncryptedVaultBlob, VaultSubject } from '../vault'
 import { encryptPrivateKey } from '../vault'
-import { saveLocalVault, saveToVault, type StorageAdapter } from '../wallet'
+import { saveLocalVault, type StorageAdapter } from '../wallet'
 
 export interface MigrateParams {
   email: string
@@ -124,17 +125,16 @@ async function migrateOnce(
     signature = PrivateKey.from(params.privateKey).signMessage(new TextEncoder().encode(message)).toString()
   }
   catch {
-    throw new AuthV2Error(AuthV2ErrorCode.InvalidCredentials, 'Некорректный приватный ключ')
+    throw new AuthV2Error(AuthV2ErrorCode.InvalidCredentials, lt('authClient.migration.invalidPrivateKey'))
   }
 
-  // При ротации блоб с НОВЫМ ключом едет в самом запросе: сервер сохранит его ДО
-  // `changekey` (новый приватный ключ существует только в блобе — сначала укрытие,
-  // потом переключение). AAD не зависит от account (см. vault/encrypt.ts).
-  let vaultBlob: EncryptedVaultBlob | null = null
-  if (rotation) {
-    const subject: VaultSubject = { subject_type: 'participant', subject_id: '' }
-    vaultBlob = await encryptPrivateKey(rotation.newWif, params.newPassword, subject)
-  }
+  // Блоб едет в самом запросе всегда: сервер кладёт его только после проверки
+  // подписи ключом, отдельной записи vault без такой проверки нет. При ротации в
+  // нём НОВЫЙ ключ — сервер сохранит его ДО `changekey` (сначала укрытие, потом
+  // переключение); без ротации — текущий. AAD не зависит от account (см.
+  // vault/encrypt.ts), поэтому username для шифрования не нужен.
+  const subject: VaultSubject = { subject_type: 'participant', subject_id: '' }
+  const vaultBlob: EncryptedVaultBlob = await encryptPrivateKey(rotation ? rotation.newWif : params.privateKey, params.newPassword, subject)
 
   let res: Response
   try {
@@ -146,32 +146,32 @@ async function migrateOnce(
         timestamp: ts,
         signature,
         new_password: params.newPassword,
-        ...(rotation ? { new_public_key: rotation.newPublicKey, vault: vaultBlob } : {}),
+        vault: vaultBlob,
+        ...(rotation ? { new_public_key: rotation.newPublicKey } : {}),
       }),
     })
   }
   catch (e) {
-    throw new AuthV2Error(AuthV2ErrorCode.NetworkError, `Сеть недоступна при миграции: ${e instanceof Error ? e.message : String(e)}`)
+    throw new AuthV2Error(AuthV2ErrorCode.NetworkError, lt('authClient.migration.networkError', { error: e instanceof Error ? e.message : String(e) }))
   }
   if (!res.ok)
-    throw await authErrorFromResponse(res, AuthV2ErrorCode.InvalidCredentials, `Миграция отклонена (HTTP ${res.status})`)
+    throw await authErrorFromResponse(res, AuthV2ErrorCode.InvalidCredentials, lt('authClient.migration.rejected', { status: res.status }))
 
   const body = (await res.json()) as { username?: string, rotated?: boolean }
   if (!body?.username)
-    throw new AuthV2Error(AuthV2ErrorCode.ChainVerificationFailed, 'Миграция не вернула username')
+    throw new AuthV2Error(AuthV2ErrorCode.ChainVerificationFailed, lt('authClient.migration.noUsername'))
 
   if (rotation) {
     // Сервер обязан был подтвердить ротацию: без подтверждения старый ключ жив,
     // а в vault лежал бы новый — рассинхрон, при котором вход по паролю невозможен.
     if (!body.rotated)
-      throw new AuthV2Error(AuthV2ErrorCode.ChainVerificationFailed, 'Сервер не подтвердил ротацию ключа — обновите платформу кооператива')
-    if (params.storage)
-      await saveLocalVault(params.storage, body.username, vaultBlob as EncryptedVaultBlob)
-    return { username: body.username, rotated: true, privateKey: rotation.newWif }
+      throw new AuthV2Error(AuthV2ErrorCode.ChainVerificationFailed, lt('authClient.migration.rotationNotConfirmed'))
   }
 
-  // Без ротации: зашифровать ТЕКУЩИЙ WIF новым паролём → server vault (обязательно)
-  // + локальная копия. Ключ на сервер не уходит — только шифр.
-  await saveToVault({ apiUrl, account: body.username, privateKey: params.privateKey, password: params.newPassword, storage: params.storage })
+  // Сервер уже сохранил блоб; локальная копия — под вернувшимся username.
+  if (params.storage)
+    await saveLocalVault(params.storage, body.username, vaultBlob)
+  if (rotation)
+    return { username: body.username, rotated: true, privateKey: rotation.newWif }
   return { username: body.username, rotated: false, privateKey: params.privateKey }
 }

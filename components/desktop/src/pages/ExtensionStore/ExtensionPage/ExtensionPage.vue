@@ -2,7 +2,7 @@
 .extension-page(v-if='extension')
   button.extension-page__back(type='button', @click='goBack')
     q-icon(name='fa-solid fa-chevron-left' size='13px')
-    span Назад
+    span {{ $t('common.action.back') }}
 
   .extension-page__panel
     .extension-page__grid
@@ -25,6 +25,10 @@
 
       .extension-page__main
         ExtensionInfo(v-if='isMain', :extension='extension')
+        //- Настройки — под названием приложения: видно, какое приложение настраивается.
+        .extension-page__heading(v-if='isSettings')
+          h2.extension-page__title {{ extension.title }}
+          .extension-page__subtitle {{ $t('extensionSettings.extensionSettings.subtitle') }}
         ExtensionSettings(
           v-if='isSettings && extension.schema',
           :schema='extension.schema',
@@ -68,6 +72,7 @@ const goBack = () => {
   }
 };
 
+// realtime: нет источника — страница расширения держит форму его настроек: живое перечитывание затёрло бы ввод; каталог и список установленных живут по ленте.
 onMounted(async () => {
   if (route.params.name) {
     await extStore.loadExtensions({ name: route.params.name as string });
@@ -159,6 +164,21 @@ const ringPalette = ['5b9aa0', '6f8fae', '74a08c', '9a8fb0', '8aa0a8', 'a8967e']
 
 .extension-page__main {
   min-width: 0;
+}
+.extension-page__heading {
+  margin-bottom: var(--p-5, 20px);
+}
+.extension-page__title {
+  margin: 0;
+  font-size: var(--p-fs-h1, 24px);
+  font-weight: 700;
+  letter-spacing: var(--p-ls-h1, -0.01em);
+  color: var(--p-ink);
+}
+.extension-page__subtitle {
+  margin-top: var(--p-1, 4px);
+  font-size: var(--p-fs-body-sm, 13px);
+  color: var(--p-ink-2);
 }
 </style>
 

@@ -6,7 +6,7 @@ import { ExtensionGraphQLInput } from '../dto/extension-graphql-input.dto';
 import { ExtensionLogDTO } from '../dto/extension-log.dto';
 import { GetExtensionLogsInputDTO } from '../dto/get-extension-logs-input.dto';
 import { UseGuards } from '@nestjs/common';
-import { GqlJwtAuthGuard, RolesGuard, AuthRoles, createPaginationResult, PaginationInputDTO } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, createPaginationResult, PaginationInputDTO, RequireRight, RightsGuard } from '@coopenomics/extension-kit';
 import { GetExtensionsGraphQLInput } from '../dto/get-extensions-input.dto';
 import { UninstallExtensionGraphQLInput } from '../dto/uninstall-extension-input.dto';
 const ExtensionLogsPaginationResult = createPaginationResult(ExtensionLogDTO, 'ExtensionLogs');
@@ -16,8 +16,8 @@ export class AppStoreResolver<TConfig = any> {
   constructor(private readonly appManagementService: AppManagementService<TConfig>) {}
 
   @Query(() => [ExtensionDTO], { name: 'getExtensions', description: 'Получить список расширений' })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Extension', 'manage')
   async getAppList(
     @Args('data', { type: () => GetExtensionsGraphQLInput, nullable: true }) data?: GetExtensionsGraphQLInput
   ): Promise<ExtensionDTO<TConfig>[]> {
@@ -28,8 +28,8 @@ export class AppStoreResolver<TConfig = any> {
     name: 'getExtensionLogs',
     description: 'Получить логи расширений с фильтрацией и пагинацией',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Extension', 'read')
   async getExtensionLogs(
     @Args('data', { type: () => GetExtensionLogsInputDTO, nullable: true }) data?: GetExtensionLogsInputDTO,
     @Args('options', { type: () => PaginationInputDTO, nullable: true }) options?: PaginationInputDTO
@@ -38,8 +38,8 @@ export class AppStoreResolver<TConfig = any> {
   }
 
   @Mutation(() => ExtensionDTO, { name: 'installExtension', description: 'Установить расширение' })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Extension', 'manage')
   async installApp(
     @Args('data', { type: () => ExtensionGraphQLInput }) data: ExtensionGraphQLInput<TConfig>
   ): Promise<ExtensionDTO<TConfig>> {
@@ -47,8 +47,8 @@ export class AppStoreResolver<TConfig = any> {
   }
 
   @Mutation(() => ExtensionDTO, { name: 'updateExtension', description: 'Обновить расширение' })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Extension', 'manage')
   async updateExtension(
     @Args('data', { type: () => ExtensionGraphQLInput }) data: ExtensionGraphQLInput<TConfig>
   ): Promise<ExtensionDTO<TConfig>> {
@@ -56,8 +56,8 @@ export class AppStoreResolver<TConfig = any> {
   }
 
   @Mutation(() => Boolean, { name: 'uninstallExtension', description: 'Удалить расширение' })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Extension', 'manage')
   async uninstallApp(
     @Args('data', { type: () => UninstallExtensionGraphQLInput }) data: UninstallExtensionGraphQLInput
   ): Promise<boolean> {

@@ -13,6 +13,7 @@
 // Конфигурация контракта
 #include "app/contract_managment/set_config/setconfig.cpp"
 #include "app/contract_managment/migrate/migrate.cpp"
+#include "app/contract_managment/cleanup/cleanup.cpp"
 
 // Управление участниками
 #include "app/participation_management/register_contributor/approvereg.cpp"
@@ -118,3 +119,4 @@
 #include "app/distribution_managment/distribution_in_program/withdraw_from_program/capauthwthd3.cpp"
 #include "app/distribution_managment/distribution_in_program/withdraw_from_program/capdeclwthd3.cpp"
 #include "app/distribution_managment/distribution_in_program/withdraw_from_program/createwthd3.cpp"
+#include "app/distribution_managment/distribution_in_program/transfer_share/wthshare.cpp"

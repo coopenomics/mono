@@ -1,9 +1,9 @@
 import { Controller, Post, Req, Body, Logger, Inject } from '@nestjs/common';
+import { createHash } from 'crypto';
+import { TokenVerifier } from 'livekit-server-sdk';
+import { INTEGRATION_SETTINGS_PORT, type IIntegrationSettingsPort } from '@coopenomics/innercoop';
 import { SecretaryAgentService } from '../services/secretary-agent.service';
-import {
-  ExtensionDomainRepository,
-  EXTENSION_REPOSITORY,
-} from '@coopenomics/extension-kit';
+import { ExtensionDomainRepository, EXTENSION_REPOSITORY, DomainError } from '@coopenomics/extension-kit';
 import { matchLivekitRoomToSecretaryEligibleRooms } from '../utils/livekit-room-mapping.util';
 import { CHATCOOP_MANAGED_MATRIX_ROOM_REPOSITORY } from '../../domain/repositories/managed-matrix-room.repository';
 import type { ChatcoopManagedMatrixRoomRepository } from '../../domain/repositories/managed-matrix-room.repository';
@@ -53,14 +53,49 @@ export class LiveKitWebhookController {
     @Inject(EXTENSION_REPOSITORY) private readonly extensionRepository: ExtensionDomainRepository,
     @Inject(CHATCOOP_STATE_REPOSITORY) private readonly chatcoopState: ChatcoopStateRepository,
     @Inject(CHATCOOP_MANAGED_MATRIX_ROOM_REPOSITORY)
-    private readonly managedMatrixRooms: ChatcoopManagedMatrixRoomRepository
+    private readonly managedMatrixRooms: ChatcoopManagedMatrixRoomRepository,
+    @Inject(INTEGRATION_SETTINGS_PORT) private readonly integrations: IIntegrationSettingsPort
   ) {}
+
+  /**
+   * Событие подписано LiveKit: JWT в `Authorization` выпущен ключом сервера
+   * LiveKit (тем же, которым секретарь входит в комнаты) и несёт sha256 тела.
+   * Без ключей секретарь всё равно не работает — такие события не принимаем.
+   *
+   * chatcoop-proxy проверяет подпись у себя и пересылает заголовок как есть,
+   * но до обновления пересылал тело пересобранным JSON — хэш тогда не сходится.
+   * Подпись и срок токена обязательны; расхождение хэша пока только в журнал.
+   */
+  private async assertSignedByLiveKit(req: any): Promise<void> {
+    const livekit = this.integrations.get<{ api_key?: string; api_secret?: string }>('chatcoop', 'livekit');
+    if (!livekit?.api_key || !livekit.api_secret) {
+      throw DomainError.unauthorized('CHATCOOP_LIVEKIT_WEBHOOK_NOT_CONFIGURED');
+    }
+    const token = req.get?.('Authorization') ?? req.headers?.authorization;
+    if (!token) throw DomainError.unauthorized('CHATCOOP_LIVEKIT_WEBHOOK_UNSIGNED');
+
+    let claims: { sha256?: string };
+    try {
+      claims = await new TokenVerifier(livekit.api_key, livekit.api_secret).verify(token);
+    } catch {
+      throw DomainError.unauthorized('CHATCOOP_LIVEKIT_WEBHOOK_SIGNATURE_INVALID');
+    }
+
+    const raw: string = typeof req.rawBody === 'string' ? req.rawBody : JSON.stringify(req.body ?? {});
+    const hash = createHash('sha256').update(raw, 'utf8').digest('base64');
+    if (claims.sha256 !== hash) {
+      this.logger.warn('Хэш тела вебхука LiveKit не совпал с подписью — тело изменено при пересылке (обновите chatcoop-proxy)');
+    }
+  }
 
   @Post('livekit-webhook')
   async handleWebhook(
     @Req() req: any,
     @Body() body: LiveKitWebhookEvent
   ): Promise<{ status: string }> {
+    // Подпись проверяем вне try: отказ должен уйти отправителю как 401, а не
+    // превратиться в «ignored».
+    await this.assertSignedByLiveKit(req);
     try {
       const event = body;
       this.logger.log(`Получен LiveKit webhook: event=${event.event}, room=${event.room?.name}`);

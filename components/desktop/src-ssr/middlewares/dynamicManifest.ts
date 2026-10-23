@@ -1,4 +1,5 @@
 import { ssrMiddleware } from 'quasar/wrappers';
+import { DEFAULT_LOCALE } from '@coopenomics/i18n';
 
 // Динамический web app manifest: имя берётся из process.env коопа в РАНТАЙМЕ.
 // Образ desktop generic, кооп задаётся env контейнера → статический manifest
@@ -11,9 +12,11 @@ import { ssrMiddleware } from 'quasar/wrappers';
 // переписывается на этот путь в generateConfig.ts.
 export default ssrMiddleware(({ app }) => {
   app.get('/manifest.webmanifest', (req, res) => {
+    // i18n-ignore: брендовое имя по умолчанию, кооператив задаёт своё через COOP_SHORT_NAME
     const name = process.env.COOP_SHORT_NAME || 'Цифровой Кооператив';
     const description =
       process.env.SITE_DESCRIPTION ||
+      // i18n-ignore: описание по умолчанию, кооператив задаёт своё через SITE_DESCRIPTION
       'кооперативная экономика для сообществ и бизнеса';
 
     const manifest = {
@@ -26,7 +29,7 @@ export default ssrMiddleware(({ app }) => {
       background_color: '#ffffff',
       theme_color: '#ffffff',
       categories: ['business', 'finance', 'productivity'],
-      lang: 'ru',
+      lang: DEFAULT_LOCALE,
       dir: 'ltr',
       icons: [
         { src: '/logo.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any maskable' },

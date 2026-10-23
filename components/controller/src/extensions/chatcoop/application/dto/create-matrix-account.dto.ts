@@ -1,19 +1,20 @@
 import { Field, InputType } from '@nestjs/graphql';
+import { validationMessage } from '@coopenomics/extension-kit';
 import { IsString, MinLength, Matches } from 'class-validator';
 
 @InputType()
 export class CreateMatrixAccountInputDTO {
   @Field()
   @IsString()
-  @MinLength(3, { message: 'Имя пользователя должно содержать минимум 3 символа' })
+  @MinLength(3, { message: validationMessage('chatcoop.createMatrixAccount.usernameMinLength') })
   @Matches(/^[a-zA-Z0-9_-]+$/, {
-    message: 'Имя пользователя может содержать только буквы, цифры, подчеркивания и дефисы',
+    message: validationMessage('chatcoop.createMatrixAccount.usernamePattern'),
   })
   username!: string;
 
   @Field()
   @IsString()
-  @MinLength(6, { message: 'Пароль должен содержать минимум 6 символов' })
+  @MinLength(6, { message: validationMessage('chatcoop.createMatrixAccount.passwordMinLength') })
   password!: string;
 }
 
@@ -21,9 +22,9 @@ export class CreateMatrixAccountInputDTO {
 export class CheckMatrixUsernameInput {
   @Field()
   @IsString()
-  @MinLength(3, { message: 'Имя пользователя должно содержать минимум 3 символа' })
+  @MinLength(3, { message: validationMessage('chatcoop.createMatrixAccount.usernameMinLength') })
   @Matches(/^[a-zA-Z0-9_-]+$/, {
-    message: 'Имя пользователя может содержать только буквы, цифры, подчеркивания и дефисы',
+    message: validationMessage('chatcoop.createMatrixAccount.usernamePattern'),
   })
   username!: string;
 }

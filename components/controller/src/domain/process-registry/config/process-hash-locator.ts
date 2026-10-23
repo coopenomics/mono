@@ -107,6 +107,14 @@ export const PROCESS_HASH_LOCATOR: Readonly<Record<string, HashLocation[]>> = Ob
   // Одним process_hash (= registration_hash) связаны: reguser/confirmpay/confirmreg +
   // inline ledger2::apply приёма и признания взноса (o.reg.inpay на confirmpay,
   // o.reg.setmin + o.reg.setent на confirmreg).
+  // p.bil.fund / p.bil.pay — биллинг инфраструктурных подписок (контракт billing,
+  // Epic 12). Одноактовые процессы без сущностной таблицы в цепи: якорь
+  // (convert_hash = хэш заявления; payment_hash из журнала провайдера) живёт
+  // в ledger2-записи и в реестре документов совета, у billing таблиц нет —
+  // как у p.sov.axncnv, локатор пустой.
+  'p.bil.fund': [],
+  'p.bil.pay': [],
+
   'p.reg.accept': [{ code: 'registrator', table: 'candidates2', field: 'registration_hash' }],
 
   // p.reg.refund — возврат регистрационного взноса при отказе совета.
@@ -120,7 +128,7 @@ export const PROCESS_HASH_LOCATOR: Readonly<Record<string, HashLocation[]>> = Ob
   // и o.cap.repay (при возврате через акт-2).
   'p.cap.debt': [{ code: 'capital', table: 'debts', field: 'debt_hash' }],
 
-  // p.cap.commit — backend-only: одобрение коммита мастером (Dr 08 / Cr 80).
+  // p.cap.commit — backend-only: одобрение коммита мастером (Dr 08 / Cr 76).
   // `o.cap.commit` эмитится на каждом `capital::approvecmmt`. process_hash =
   // project_hash (commit-entity удаляется сразу после одобрения, project —
   // долгоживущий якорь; все коммиты проекта группируются в один процесс).
@@ -171,6 +179,25 @@ export const PROCESS_HASH_LOCATOR: Readonly<Record<string, HashLocation[]>> = Ob
   'p.mkt.supply': [{ code: 'marketplace', table: 'orders',      field: 'hash' }],
   'p.mkt.return': [{ code: 'marketplace', table: 'retrequests', field: 'hash' }],
   'p.mkt.wroff':  [{ code: 'marketplace', table: 'wroffprops',  field: 'hash' }],
+  'p.mkt.claim':  [{ code: 'marketplace', table: 'claims',      field: 'hash' }],
+
+  // edubridge — ЦПП «Образование». Две entity-таблицы из
+  // contracts/cpp/lib/domain/table_edubridge_*.hpp:
+  //   - `edusubs.sub_hash` — подписка на курс (конвертация членского взноса
+  //     o.edu.conv + opensub/extendsub; запись стирается на expiresub).
+  //   - `edurids.rid_hash` — заявление преподавателя о паевом взносе РИД
+  //     (живёт до решения совета; acceptrid/declinerid стирают запись).
+  'p.edu.access': [{ code: 'edubridge', table: 'edusubs', field: 'sub_hash' }],
+  'p.edu.rid':    [{ code: 'edubridge', table: 'edurids', field: 'rid_hash' }],
+  //   - `educontracts.contract_hash` — договор УХД преподавателя.
+  'p.edu.teach':  [{ code: 'edubridge', table: 'educontracts', field: 'contract_hash' }],
+  //   - `expenses.hash` — расход программы, поданный в шасси расходов
+  //     (живёт до завершения расхода; onexpdone стирает запись).
+  'p.edu.spend':  [{ code: 'edubridge', table: 'expenses', field: 'hash' }],
+  // Возврат на паевой и перевод паевого преподавателя — процессы из одного
+  // действия по заявлению: записи сущности в цепи нет, хэш процесса — хэш заявления.
+  'p.edu.retshr': [],
+  'p.edu.wthshr': [],
 
   // requirement b6 «Экономика КУ».
   // p.brn.fees — распределение членских взносов КУ: ручное распределение
@@ -256,8 +283,10 @@ export const KNOWN_PROCESS_TYPES: ReadonlySet<string> = new Set(Object.keys(PROC
   }
   if (missing.length > 0) {
     throw new Error(
+      // i18n-ignore: ошибка конфигурации локатора процессов при старте — разработческая, до пайщика не доходит
       `[process-hash-locator] PROCESS_HASH_LOCATOR не содержит process_type: ` +
         `${[...new Set(missing)].join(', ')}. ` +
+        // i18n-ignore: продолжение технического сообщения о конфигурации локатора процессов, до пайщика не доходит
         `Обнови локатор или cooptypes/src/ledger2/.`,
     );
   }

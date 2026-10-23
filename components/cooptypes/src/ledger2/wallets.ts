@@ -19,10 +19,13 @@ import type { IName } from '../interfaces/ledger2'
 
 export {
   LEDGER2_EXIT_REFUND_WALLETS,
+  LEDGER2_EXIT_WALLET_POLICY,
   LEDGER2_USER_SHARED_PROGRAM_MAPPING,
   LEDGER2_WALLET_REGISTRY,
 } from './wallets.generated'
 export type {
+  ExitWalletPolicy,
+  ExitWalletRule,
   ProgramWalletMapping,
   WalletKind,
   WalletMeta,
@@ -30,10 +33,11 @@ export type {
 
 import {
   LEDGER2_EXIT_REFUND_WALLETS,
+  LEDGER2_EXIT_WALLET_POLICY,
   LEDGER2_USER_SHARED_PROGRAM_MAPPING,
   LEDGER2_WALLET_REGISTRY,
 } from './wallets.generated'
-import type { WalletKind } from './wallets.generated'
+import type { ExitWalletRule, WalletKind } from './wallets.generated'
 
 const walletHumanByName = new Map<string, string>(
   LEDGER2_WALLET_REGISTRY.map(w => [w.name, w.human_name]),
@@ -72,19 +76,40 @@ export const MEMBERSHIP_WALLET_NAME = 'w.wal.member'
 export const SHARE_WALLET_NAME = 'w.wal.share'
 
 /**
+ * Биллинг-кошелёк пайщика (`w.wal.bill`, USER_SHARED в леджере оператора):
+ * сюда `billing::convert` зачисляет членский взнос пайщика (o.bil.fund), с него
+ * оплачиваются подписки (o.bil.pay). Относится к той же программе ЦК, что и
+ * паевой с членским, но это ТРЕТИЙ кошелёк — не путать ни с одним из них.
+ */
+export const BILLING_WALLET_NAME = 'w.wal.bill'
+
+/**
  * wallet_name минимального паевого взноса пайщика (required_program_id=0 —
  * вне программ, заполняется при регистрации). Возвращается пайщику при выходе.
  */
 export const MIN_SHARE_WALLET_NAME = 'w.reg.minshr'
 
 /**
- * Сет паевых («боевых») кошельков, возвращаемых пайщику при выходе из кооператива
- * (`w.reg.minshr` + `w.wal.share` + `w.cap.blago`). Источник истины — контракт
- * (`LEDGER2_EXIT_REFUND_WALLETS` в wallets.hpp), сгенерирован в wallets.generated.
- * Контракт `confirmexit` пылесосит эти кошельки на возврат; backend-preview
- * суммирует их же — расчёт всегда совпадает с тем, что вернёт контракт.
+ * Кошельки, остатки которых возвращаются пайщику при выходе из кооператива.
+ * Источник истины — таблица `EXIT_WALLET_POLICY` контракта (exit_policy.hpp),
+ * сгенерирована в wallets.generated. Контракт `confirmexit` собирает эти
+ * кошельки на возврат; предрасчёт на столе суммирует их же — расчёт всегда
+ * совпадает с тем, что вернёт контракт.
  */
 export const EXIT_REFUND_WALLET_NAMES: readonly string[] = LEDGER2_EXIT_REFUND_WALLETS
+
+/**
+ * Кошельки, ненулевой остаток которых держит выход: сначала завершить
+ * обязательство. В `note` — причина, которую показывают пайщику.
+ */
+export const EXIT_BLOCKER_WALLET_RULES: readonly ExitWalletRule[] = LEDGER2_EXIT_WALLET_POLICY
+  .filter(r => r.policy === 'BLOCKER')
+
+/** Что выход делает с кошельком; `undefined` — кошелёк не пользовательский. */
+export function exitRuleForWallet(wallet_name: string | null | undefined): ExitWalletRule | undefined {
+  if (!wallet_name) return undefined
+  return LEDGER2_EXIT_WALLET_POLICY.find(r => r.wallet_name === wallet_name)
+}
 
 /**
  * Все wallet_name'ы, привязанные к какой-либо программе (program_id > 0).

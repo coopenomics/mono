@@ -1,4 +1,5 @@
 import type { MarketplaceUnitOfMeasure } from './marketplace-offer.types';
+import { t } from '../../i18n';
 
 /**
  * Story 5.5: типы инвентарной записи — внутренний штрих-код имущества на КУ.
@@ -53,6 +54,14 @@ export const MarketplaceInventoryStatuses = {
   RETURNED: 'RETURNED',
   WRITTEN_OFF: 'WRITTEN_OFF',
 } as const satisfies Record<string, MarketplaceInventoryStatus>;
+
+/** Происхождение позиции склада: приёмка от поставщика либо гарантийный возврат пайщика (99D-13). */
+export type MarketplaceInventoryOrigin = 'RECEPTION' | 'WARRANTY_RETURN';
+
+export const MarketplaceInventoryOrigins = {
+  RECEPTION: 'RECEPTION',
+  WARRANTY_RETURN: 'WARRANTY_RETURN',
+} as const satisfies Record<string, MarketplaceInventoryOrigin>;
 
 /** Статусы «физически на складе КУ» — для фильтра склада и крон-сканера. */
 export const MarketplaceInventoryOnWarehouseStatuses: readonly MarketplaceInventoryStatus[] = [
@@ -156,6 +165,15 @@ export interface MarketplaceInventoryProps {
    */
   ownership: MarketplaceInventoryOwnership;
   /**
+   * Происхождение позиции (99D-13): приёмка от поставщика (`RECEPTION`) либо
+   * гарантийный возврат пайщика, принятый по решению совета (`WARRANTY_RETURN`).
+   * Возвращённое лежит в остатке как обычное имущество — списывается и
+   * переопубликовывается так же, но оператор видит пометку и ссылку на рекламацию.
+   */
+  origin: MarketplaceInventoryOrigin;
+  /** Заявление на гарантийный возврат, по которому позиция вернулась на склад; NULL для приёмки. */
+  return_claim_id: string | null;
+  /**
    * Цена прибытия за единицу (закупочная из акта приёмки, numeric-строка).
    * База цены при публикации остатка; nullable для записей до введения остатка.
    */
@@ -197,9 +215,9 @@ export interface MarketplaceInventoryLocation {
 /** Человекочитаемый адрес: «Бокс BX-0007 · A-02», «Ячейка A-02». */
 export function formatInventoryLocation(location: MarketplaceInventoryLocation): string {
   if (location.container_code && location.cell_code) {
-    return `Бокс ${location.container_code} · ${location.cell_code}`;
+    return t('marketplace.inventoryTypes.boxWithCell', { containerCode: location.container_code, cellCode: location.cell_code });
   }
-  if (location.container_code) return `Бокс ${location.container_code}`;
-  if (location.cell_code) return `Ячейка ${location.cell_code}`;
-  return 'Без места';
+  if (location.container_code) return t('marketplace.inventoryTypes.boxOnly', { containerCode: location.container_code });
+  if (location.cell_code) return t('marketplace.inventoryTypes.cellOnly', { cellCode: location.cell_code });
+  return t('marketplace.inventoryTypes.noLocation');
 }

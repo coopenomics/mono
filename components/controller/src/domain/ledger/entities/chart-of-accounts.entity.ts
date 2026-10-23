@@ -1,5 +1,6 @@
 import type { ChartOfAccountsItemDomainInterface } from '../interfaces/chart-of-accounts-item-domain.interface';
 import type { LedgerAccountDomainInterface } from '../interfaces/ledger-account-domain.interface';
+import { t } from '~/i18n';
 
 /**
  * Доменная сущность для плана счетов кооператива
@@ -84,16 +85,16 @@ export class ChartOfAccountsEntity {
     // [ChartOfAccountsEntity.ACCOUNTS.NON_PROFIT_ACTIVITY, 'Некоммерческая деятельность'],
     // [ChartOfAccountsEntity.ACCOUNTS.GENERAL_EXPENSES, 'Общехозяйственные расходы'],
     // [ChartOfAccountsEntity.ACCOUNTS.CASH, 'Касса'],
-    [ChartOfAccountsEntity.ACCOUNTS.BANK_ACCOUNT, 'Расчетный счет'],
+    [ChartOfAccountsEntity.ACCOUNTS.BANK_ACCOUNT, t('ledger.chartOfAccounts.account.checkingAccount')],
     // [ChartOfAccountsEntity.ACCOUNTS.RESERVES, 'Резервы по сомнительным долгам'],
     // [ChartOfAccountsEntity.ACCOUNTS.TAXES_FEES, 'Расчеты с бюджетом по налогам и сборам'],
     // [ChartOfAccountsEntity.ACCOUNTS.SOCIAL_INSURANCE, 'Расчеты по социальному страхованию и обеспечению'],
     // [ChartOfAccountsEntity.ACCOUNTS.SALARY, 'Заработная плата'],
     // [ChartOfAccountsEntity.ACCOUNTS.ACCOUNTABLE_PERSONS, 'Расчеты с подотчетными лицами'],
     // [ChartOfAccountsEntity.ACCOUNTS.MEMBER_SETTLEMENTS, 'Расчеты с пайщиками по внесению/возврату паевых взносов'],
-    [ChartOfAccountsEntity.ACCOUNTS.SHARE_FUND, 'Паевой фонд (складочный капитал)'],
+    [ChartOfAccountsEntity.ACCOUNTS.SHARE_FUND, t('ledger.chartOfAccounts.account.shareFund')],
     // [ChartOfAccountsEntity.ACCOUNTS.ADDITIONAL_CAPITAL, 'Добавочный капитал'],
-    [ChartOfAccountsEntity.ACCOUNTS.TARGET_RECEIPTS, 'Целевые поступления'],
+    [ChartOfAccountsEntity.ACCOUNTS.TARGET_RECEIPTS, t('ledger.chartOfAccounts.account.targetedContributions')],
     // [ChartOfAccountsEntity.ACCOUNTS.OTHER_INCOME_EXPENSES, 'Прочие доходы и расходы'],
     // [ChartOfAccountsEntity.ACCOUNTS.FUTURE_EXPENSES_RESERVE, 'Резерв предстоящих расходов'],
     // [ChartOfAccountsEntity.ACCOUNTS.FUTURE_INCOME, 'Доходы будущих периодов'],
@@ -106,17 +107,17 @@ export class ChartOfAccountsEntity {
     // [ChartOfAccountsEntity.ACCOUNTS.PROPERTY_TRANSFER, 'По передаче имущества для некоммерческой деятельности'],
     // [ChartOfAccountsEntity.ACCOUNTS.OTHER_SETTLEMENTS, 'Другие расчеты'],
     // [ChartOfAccountsEntity.ACCOUNTS.DEBTORS_CREDITORS, 'Расчеты с дебиторами и кредиторами'],
-    [ChartOfAccountsEntity.ACCOUNTS.ENTRANCE_FEES, 'Вступительные взносы'],
+    [ChartOfAccountsEntity.ACCOUNTS.ENTRANCE_FEES, t('ledger.chartOfAccounts.account.entryFees')],
     // [ChartOfAccountsEntity.ACCOUNTS.FUNDS_PO_1, 'Фонды ПО (вариант пополнения фондов ПО)'],
     // [ChartOfAccountsEntity.ACCOUNTS.CURRENT_YEAR_PROFIT, 'Нераспределенная прибыль (убыток) отчетного года'],
     // [ChartOfAccountsEntity.ACCOUNTS.PREVIOUS_YEARS_PROFIT, 'Нераспределенная прибыль (непокрытый убыток) прошлых лет'],
     // [ChartOfAccountsEntity.ACCOUNTS.FUNDS_PO_2, 'Фонды ПО (вариант пополнения фондов ПО)'],
     // [ChartOfAccountsEntity.ACCOUNTS.UNDISTRIBUTED_PROFIT, 'Нераспределенная прибыль (непокрытый убыток)'],
-    [ChartOfAccountsEntity.ACCOUNTS.RESERVE_FUND, 'Резервный фонд'],
-    [ChartOfAccountsEntity.ACCOUNTS.INDIVISIBLE_FUND, 'Неделимый фонд'],
-    [ChartOfAccountsEntity.ACCOUNTS.ECONOMIC_ACTIVITY_FUND, 'Фонд обеспечения хозяйственной деятельности'],
-    [ChartOfAccountsEntity.ACCOUNTS.MUTUAL_SECURITY_FUND, 'Фонд взаимного обеспечения'],
-    [ChartOfAccountsEntity.ACCOUNTS.DEVELOPMENT_FUND, 'Фонд развития потребительской кооперации'],
+    [ChartOfAccountsEntity.ACCOUNTS.RESERVE_FUND, t('ledger.chartOfAccounts.account.reserveFund')],
+    [ChartOfAccountsEntity.ACCOUNTS.INDIVISIBLE_FUND, t('ledger.chartOfAccounts.account.indivisibleFund')],
+    [ChartOfAccountsEntity.ACCOUNTS.ECONOMIC_ACTIVITY_FUND, t('ledger.chartOfAccounts.account.operatingFund')],
+    [ChartOfAccountsEntity.ACCOUNTS.MUTUAL_SECURITY_FUND, t('ledger.chartOfAccounts.account.mutualAidFund')],
+    [ChartOfAccountsEntity.ACCOUNTS.DEVELOPMENT_FUND, t('ledger.chartOfAccounts.account.cooperationDevelopmentFund')],
     // [ChartOfAccountsEntity.ACCOUNTS.LOAN_INTEREST, 'Внесение процентов за пользование займами'],
     // [ChartOfAccountsEntity.ACCOUNTS.FINANCIAL_INVESTMENTS, 'Финансовые вложения из средств ПО'],
     // [ChartOfAccountsEntity.ACCOUNTS.FREE_RECEIPT, 'Безвозмездное получение имущества'],
@@ -189,7 +190,7 @@ export class ChartOfAccountsEntity {
    * Получить название счета по его ID
    */
   public static getAccountName(id: number): string {
-    return this.ACCOUNT_NAMES.get(id) || 'Неизвестный счет';
+    return this.ACCOUNT_NAMES.get(id) || t('ledger.chartOfAccounts.account.unknownAccount');
   }
 
   /**

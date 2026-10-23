@@ -1,5 +1,5 @@
 import { KuDetailsDomainEntity } from '~/extensions/marketplace/domain/entities/ku-details-domain.entity';
-import { KuDetailsTypeormEntity } from '~/extensions/marketplace/infrastructure/entities/ku-details.entity';
+import { KuDetailsRecord } from '~/extensions/marketplace/infrastructure/entities/ku-details.entity';
 import { KuDetailsMapper } from '~/extensions/marketplace/infrastructure/mappers/ku-details.mapper';
 
 /**
@@ -66,7 +66,7 @@ describe('KuDetailsMapper', () => {
   });
 
   it('toDomain переводит nullable поля entity в undefined в domain', () => {
-    const entity = new KuDetailsTypeormEntity();
+    const entity = new KuDetailsRecord();
     entity.id = 1;
     entity.coopname = 'voskhod';
     entity.coreBraname = 'voskhod2';

@@ -7,10 +7,10 @@
       q-spinner.q-mr-xs(v-if='isSaving' size='12px')
       span.project-status-chip__label {{ label }}
       q-icon.q-ml-xs(v-if='!isReadonly' name='arrow_drop_down' size='xs')
-    q-tooltip(anchor='bottom middle' self='top middle') Статус: {{ label }}
+    q-tooltip(anchor='bottom middle' self='top middle') {{ $t('capital.projectStatusChip.tooltip', { statusLabel: label }) }}
     InlineSelectMenu(
       v-if='!isReadonly'
-      title='Сменить статус'
+      :title='$t("capital.projectStatusChip.changeTitle")'
       :options='menuOptions'
       :current='displayStatus'
       @select='onSelect'

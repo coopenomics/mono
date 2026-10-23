@@ -14,6 +14,8 @@ const rawStorySelector = {
   issue_hash: true,
   created_by: true,
   sort_order: true,
+  /** Редакция содержимого — передаётся как base_rev при сохранении */
+  content_rev: true,
 }
 
 // Проверка валидности

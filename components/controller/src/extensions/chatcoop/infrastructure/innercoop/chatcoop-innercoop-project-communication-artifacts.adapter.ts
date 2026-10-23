@@ -26,6 +26,7 @@ import {
   type CallTranscriptionRepository,
 } from '../../domain/repositories/call-transcription.repository';
 import { canonicalizeMatrixUserId } from '../../domain/utils/matrix-user-id.util';
+import { t as i18nT } from '../../i18n';
 
 @Injectable()
 export class ChatcoopInnercoopProjectCommunicationArtifactsAdapter implements IProjectCommunicationArtifactsPort {
@@ -156,12 +157,12 @@ export class ChatcoopInnercoopProjectCommunicationArtifactsAdapter implements IP
       })
     );
     const header = [
-      `# Транскрипция звонка`,
+      i18nT('chatcoop.callTranscriptDocument.heading'),
       ``,
       `- Matrix room: \`${transcription.matrixRoomId}\``,
       `- LiveKit room: \`${transcription.roomId}\``,
-      `- Начало: ${transcription.startedAt.toISOString()}`,
-      `- Окончание: ${transcription.endedAt?.toISOString() ?? '—'}`,
+      i18nT('chatcoop.callTranscriptDocument.startedLine', { startedAt: transcription.startedAt.toISOString() }),
+      i18nT('chatcoop.callTranscriptDocument.endedLine', { endedAt: transcription.endedAt?.toISOString() ?? '—' }),
       ``,
     ].join('\n');
     return `${header}\n${lines.join('\n\n---\n\n')}\n`;

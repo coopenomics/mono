@@ -14,6 +14,11 @@ title: Приём результата интеллектуальной деят
 # Вызовы ledger2::apply в этих операциях передают имя нитки процесса
 # (см. test-registry/ledger2.process-naming.yaml) — поведение самой фичи
 # не меняется.
+# Правка 24.09.2026 (C28-83), экраны: страницы, виджеты и панели фичи живут по
+# ленте изменений Благороста (CAPITAL_LIVE_TABLES); формы, диалоги выбора и
+# редакторы помечены «realtime: нет источника» с причиной. Поведение и набор
+# случаев не менялись.
+
 sources:
   contract:
     - components/contracts/cpp/capital/p.cap.rid.standard.yaml
@@ -29,6 +34,9 @@ sources:
     - components/desktop/extensions/capital/features/Project/ConvertSegment/**
     - components/desktop/extensions/capital/widgets/ResultSubmissionActionsWidget/**
 
+# Правка 25.09.2026 (C28-80): признак «доля завершена» читается из базы —
+# конструктор доли его терял, и стол всегда видел долю незавершённой.
+
 cases:
   # ── Уровень контракта ─────────────────────────────────────────────────────
   # Источник — p.cap.rid.standard.yaml (секции 3 и 4) и eosio::check в
@@ -42,8 +50,9 @@ cases:
       акт-1, председатель — акт-2, участник конвертирует сегмент.
     expect: >
       Статусы результата authorized → act1 → act2, сегмент authorized → act1 →
-      contributed; применены o.cap.accept и (o.cap.cnvshr + o.cap.cnvbl);
-      сегмент и результат удалены.
+      contributed; применены o.cap.accept (Дт 04 / Кт 08), o.cap.ridshr
+      (Дт 76 / Кт 80) и (o.cap.cnvshr + o.cap.cnvbl); сегмент и результат
+      удалены.
     test: ~
     status: missing
 
@@ -99,7 +108,21 @@ cases:
     level: contract
     kind: side
     scenario: signact2 при segment.available_for_program == 0
-    expect: ACCEPT_RID не применяется, статусы всё равно переходят в act2/contributed
+    expect: ACCEPT_RID и SETTLE_RID не применяются, статусы всё равно переходят в act2/contributed
+    test: ~
+    status: missing
+
+  - id: cap.rid.happy.04
+    level: contract
+    kind: happy
+    scenario: >
+      Одобрение коммита мастером и приём результата по акту-2: коммит идёт на
+      ответственное хранение, акт-2 признаёт паевой взнос пайщика.
+    expect: >
+      approvecmmt применяет o.cap.commit (Дт 08 / Кт 76) — обязательство перед
+      владельцем коммита; signact2 применяет o.cap.accept (Дт 04 / Кт 08) и
+      o.cap.ridshr (Дт 76 / Кт 80) на ту же сумму, так что счета 08 и 76 по
+      программе закрываются в ноль.
     test: ~
     status: missing
 
@@ -205,6 +228,7 @@ cases:
       в домен уходят суммы из сегмента (intellectual_cost, debt_amount) и
       result_hash из БД, а не из клиентского ввода
     test: components/controller/tests/unit/capital/result-submission.service.test.ts
+    api: components/api-tests/src/capital/result-submission.test.ts
     status: passing
 
   - id: cap.rid.side.23
@@ -213,6 +237,7 @@ cases:
     scenario: pushResult с чужим data.username
     expect: отказ «Вы можете вносить результаты только для себя»
     test: components/controller/tests/unit/capital/result-submission.service.test.ts
+    api: components/api-tests/src/capital/result-submission.test.ts
     status: passing
 
   - id: cap.rid.side.24
@@ -221,6 +246,7 @@ cases:
     scenario: pushResult, когда результат по проекту и пользователю ещё не создан
     expect: отказ с указанием сначала сгенерировать заявление
     test: components/controller/tests/unit/capital/result-submission.service.test.ts
+    api: components/api-tests/src/capital/result-submission.test.ts
     status: passing
 
   - id: cap.rid.side.25
@@ -229,6 +255,7 @@ cases:
     scenario: pushResult с doc_hash, которого нет в репозитории документов
     expect: отказ — подписан документ, который сервер не генерировал
     test: components/controller/tests/unit/capital/result-submission.service.test.ts
+    api: components/api-tests/src/capital/result-submission.test.ts
     status: passing
 
   - id: cap.rid.side.26
@@ -239,6 +266,7 @@ cases:
       отказ с перечислением расхождений по полям и указанием на возможную
       подмену документа
     test: components/controller/tests/unit/capital/result-submission.service.test.ts
+    api: components/api-tests/src/capital/result-submission.test.ts
     status: passing
 
   - id: cap.rid.side.27
@@ -247,6 +275,8 @@ cases:
     scenario: pushResult при отсутствующем сегменте пользователя по проекту
     expect: отказ с именем пользователя и хэшем проекта
     test: components/controller/tests/unit/capital/result-submission.service.test.ts
+    external: unreachable
+    external_reason: "результат заводится только по сегменту проекта из цепи; запрос без результата отклоняется раньше этой проверки (cap.rid.side.24)"
     status: passing
 
   - id: cap.rid.side.28
@@ -255,6 +285,8 @@ cases:
     scenario: pushResult по проекту, не заведённому в блокчейне
     expect: assertBlockchainProject отклоняет до обращения к цепи
     test: components/controller/tests/unit/capital/result-submission.interactor.test.ts
+    external: unreachable
+    external_reason: "результат заводится только по сегменту проекта из цепи; запрос без результата отклоняется раньше этой проверки (cap.rid.side.24)"
     status: passing
 
   - id: cap.rid.side.29
@@ -266,6 +298,8 @@ cases:
       Прежде подставлялось '0' — не валидный ассет, запрос падал на разборе ABI
       вместо внятного отказа
     test: components/controller/tests/unit/capital/result-submission.service.test.ts
+    external: unreachable
+    external_reason: "сегмент или результат с пустыми полями — рассинхронизация зеркала; через API такую строку не завести"
     status: passing
 
   # Случай cap.rid.side.30 (молчаливый пропуск события result.updated) снят:
@@ -281,6 +315,7 @@ cases:
       username в доменный вход берётся из сессии, а не из DTO (в DTO поля нет);
       цепь отвергнет чужой result_hash по result.username == username
     test: components/controller/tests/unit/capital/result-submission.service.test.ts
+    api: components/api-tests/src/capital/result-submission.test.ts
     status: passing
 
   - id: cap.rid.side.32
@@ -289,6 +324,7 @@ cases:
     scenario: signActAsContributor по result_hash, которого нет в БД
     expect: отказ «Результат с хэшем … не найден или не содержит project_hash»
     test: components/controller/tests/unit/capital/result-submission.interactor.test.ts
+    api: components/api-tests/src/capital/result-submission.test.ts
     status: passing
 
   - id: cap.rid.side.33
@@ -297,6 +333,7 @@ cases:
     scenario: signActAsContributor с актом, подписанным не тем пользователем
     expect: assertDocumentSignatures вызывается со списком [username из сессии] и отклоняет
     test: components/controller/tests/unit/capital/result-submission.interactor.test.ts
+    api: components/api-tests/src/capital/result-submission.test.ts
     status: passing
 
   - id: cap.rid.side.34
@@ -307,6 +344,7 @@ cases:
       chairman в доменный вход подставляется из currentUser, в DTO поля нет;
       цепь сверит его с реальным председателем совета
     test: components/controller/tests/unit/capital/result-submission.service.test.ts
+    api: components/api-tests/src/capital/result-submission.test.ts
     status: passing
 
   - id: cap.rid.side.35
@@ -315,6 +353,7 @@ cases:
     scenario: signActAsChairman с актом без подписи участника
     expect: assertDocumentSignatures вызывается с [result.username, chairman] и отклоняет
     test: components/controller/tests/unit/capital/result-submission.interactor.test.ts
+    api: components/api-tests/src/capital/result-submission.test.ts
     status: passing
 
   - id: cap.rid.side.36
@@ -323,6 +362,7 @@ cases:
     scenario: signActAsChairman по результату без username
     expect: отказ «Результат с хэшем … не найден или не содержит username»
     test: components/controller/tests/unit/capital/result-submission.interactor.test.ts
+    api: components/api-tests/src/capital/result-submission.test.ts
     status: passing
 
   - id: cap.rid.side.37
@@ -333,6 +373,8 @@ cases:
       отказ до обращения к цепи; прежде project_hash подставлялся пустой
       строкой и синхронизация сегмента молча уходила в никуда
     test: components/controller/tests/unit/capital/result-submission.interactor.test.ts
+    external: unreachable
+    external_reason: "сегмент или результат с пустыми полями — рассинхронизация зеркала; через API такую строку не завести"
     status: passing
 
   - id: cap.rid.side.38
@@ -346,6 +388,7 @@ cases:
       Прежде сверялось data.username, не влияющее на содержимое документа,
       и чужие суммы с долей попадали в сгенерированный акт
     test: components/controller/tests/unit/capital/result-submission.service.test.ts
+    api: components/api-tests/src/capital/result-submission.test.ts
     status: passing
 
   - id: cap.rid.side.39
@@ -356,6 +399,7 @@ cases:
       отказ по каждому из полей component_name, project_name, total_amount,
       percent_of_result, result_hash
     test: components/controller/tests/unit/capital/result-submission.service.test.ts
+    api: components/api-tests/src/capital/result-submission.test.ts
     status: passing
 
   - id: cap.rid.side.40
@@ -364,6 +408,7 @@ cases:
     scenario: generateResultContributionAct — вычисление result_act_hash
     expect: sha256(result_hash + decision_id), детерминирован при тех же входных
     test: components/controller/tests/unit/capital/result-submission.service.test.ts
+    api: components/api-tests/src/capital/result-submission.test.ts
     status: passing
 
   - id: cap.rid.side.41
@@ -376,6 +421,8 @@ cases:
       отказ со сверкой statement.meta и текущих данных — решение совета не
       выпускается на устаревшие цифры
     test: components/controller/tests/unit/capital/result-submission.service.test.ts
+    external: unreachable
+    external_reason: "после внесения результата цепь долю и сумму сегмента не меняет; расхождение с заявлением через API не создать"
     status: passing
 
   - id: cap.rid.side.42
@@ -384,6 +431,7 @@ cases:
     scenario: generateResultContributionStatement при project.fact.total ≤ 0
     expect: отказ «Сумма проекта не может быть меньше или равна 0» — иначе доля неисчислима
     test: components/controller/tests/unit/capital/result-submission.service.test.ts
+    api: components/api-tests/src/capital/result-submission.test.ts
     status: passing
 
   - id: cap.rid.side.43
@@ -392,6 +440,8 @@ cases:
     scenario: generateResultContributionStatement без segment.share_percent
     expect: отказ — доля участника не выводится
     test: components/controller/tests/unit/capital/result-submission.service.test.ts
+    external: unreachable
+    external_reason: "сегмент или результат с пустыми полями — рассинхронизация зеркала; через API такую строку не завести"
     status: passing
 
   # Ветви ниже вскрыты мутационным прогоном: guard'ы «не найдено» в генерации
@@ -404,6 +454,7 @@ cases:
     scenario: generateResultContributionStatement по несуществующему проекту или проекту без родителя
     expect: отказ с хэшем проекта; название проекта берётся у родителя и обязательно
     test: components/controller/tests/unit/capital/result-submission.service.test.ts
+    api: components/api-tests/src/capital/result-submission.test.ts
     status: passing
 
   - id: cap.rid.side.49
@@ -414,6 +465,7 @@ cases:
       отказ; сегмент ищется по проекту из запроса и пайщику из сессии, а не по
       присланному имени
     test: components/controller/tests/unit/capital/result-submission.service.test.ts
+    api: components/api-tests/src/capital/result-submission.test.ts
     status: passing
 
   - id: cap.rid.side.50
@@ -424,6 +476,7 @@ cases:
       отказ с хэшем результата; сегмент для сверки ищется по данным результата,
       а не по данным запроса
     test: components/controller/tests/unit/capital/result-submission.service.test.ts
+    api: components/api-tests/src/capital/result-submission.test.ts
     status: passing
 
   - id: cap.rid.side.51
@@ -434,6 +487,7 @@ cases:
       или мета-данные заявления либо решения
     expect: отказ на каждом из трёх звеньев до обращения к генератору документов
     test: components/controller/tests/unit/capital/result-submission.service.test.ts
+    api: components/api-tests/src/capital/result-submission.test.ts
     status: passing
 
   - id: cap.rid.side.52
@@ -448,6 +502,8 @@ cases:
       написаны, но порча любого из условий не роняет ни один тест
       (выявлено мутационным прогоном, покрытая часть сервиса 91.3%)
     test: components/controller/tests/unit/capital/result-submission.service.test.ts
+    external: unreachable
+    external_reason: "сегмент или результат с пустыми полями — рассинхронизация зеркала; через API такую строку не завести"
     status: passing
 
   - id: cap.rid.side.53
@@ -460,6 +516,19 @@ cases:
       (checksum256 регистр не различает), а markAsCompleted искал по исходному
       регистру и не находил — пайщик получал ошибку на успешной операции
     test: components/controller/tests/unit/capital/result-submission.interactor.test.ts
+    api: components/api-tests/src/capital/result-submission.test.ts
+    status: passing
+
+  - id: cap.rid.side.92
+    level: backend
+    kind: side
+    scenario: доля конвертирована и отмечена завершённой; пайщик открывает её снова
+    expect: >
+      доля отдаётся с is_completed=true — признак читается из базы (до
+      25.09.2026 конструктор доли его терял, и доля всегда выглядела
+      незавершённой)
+    test: components/controller/tests/unit/capital/segment-mapper-context.test.ts
+    api: components/api-tests/src/capital/result-submission.test.ts
     status: passing
 
   - id: cap.rid.side.54
@@ -481,6 +550,8 @@ cases:
     scenario: pushResult — цепь приняла, но синхронизация сегмента вернула пусто
     expect: исключение с хэшем проекта и именем пользователя, а не молчаливый null
     test: components/controller/tests/unit/capital/result-submission.interactor.test.ts
+    external: unreachable
+    external_reason: "сбой синхронизации сегмента после принятой цепью транзакции через API не вызвать"
     status: passing
 
   - id: cap.rid.break.02
@@ -497,6 +568,8 @@ cases:
       is_completed=true (segment.entity.ts:268). Потери состояния нет.
       Неудачен только текст ошибки: пайщик считает, что конвертация не прошла
     test: components/controller/tests/unit/capital/result-submission.interactor.test.ts
+    external: unreachable
+    external_reason: "сбой синхронизации сегмента после принятой цепью транзакции через API не вызвать"
     status: passing
 
   # ── Уровень UI ────────────────────────────────────────────────────────────
@@ -568,4 +641,80 @@ cases:
       строку. Прежде кнопки только обновляли общее хранилище — экран со своим
       списком долей оставался с прежней стоимостью и прежним статусом
     test: ~
+    status: missing
+
+# 2026-09-10: подпись акта результата и конвертации сегмента идёт через
+# центральный `signDocument` (PIN запрашивается сам, до подписи). Сменился только
+# способ получения ключа; поведение и набор случаев не менялись.
+
+  - id: cap.rslt.sign.01
+    level: contract
+    kind: break
+    scenario: >
+      Документ подан с подписью, где рядом с именем пайщика стоит чужой ключ
+      (приём результата и подписание актов).
+    expect: >
+      отказ «Public key does not belong to account»: подпись сверяется с ключом
+      аккаунта подписанта. Транзакции шлёт кооператив, поэтому до 17.09.2026
+      любой ключ рядом с чужим именем проходил как подпись этого человека.
+      Механизм общий для всех контрактов (`verify_signer_keys_or_fail`) и
+      проверен на самом коротком пути — заявлении о вступлении
+    test: components/boot/src/tests/document-signature.test.ts
+    status: passing
+
+  - id: cap.rid.show.01
+    level: ui
+    kind: break
+    scenario: >
+      Документ результата открыт в кабинете, а в описании проекта или задачи,
+      из которых он собран, есть исполняемая разметка.
+    expect: >
+      разметка не выполняется; вид документа (таблицы, выравнивание,
+      собственный стиль) сохраняется. Общее описание —
+      desktop.document-html-display, задача C28-74
+    test: ~
+    status: missing
+
+  - id: cap.rid.side.93
+    level: backend
+    kind: side
+    scenario: >
+      хранилища зеркал Благороста после перевода на Kysely: условия правки и
+      удаления записей времени, выборка коммитов и историй проекта, чтение
+      проекта и адресов репозиториев; создание записи из дельты и версии перед
+      изменением
+    expect: >
+      условия запросов прежние: правятся и удаляются только подходящие записи,
+      хэши ищутся в нижнем регистре, удалённые в цепи проекты не отдаются;
+      устаревшая дельта запись не затирает, прежнее состояние перед изменением
+      уходит в версии
+    test: components/controller/tests/unit/capital/capital-chain-mirrors.test.ts
+    external: unreachable
+    external_reason: "проверяются условия запросов к базе и порядок работы с версиями — снаружи они не видны; поведение фичи через API покрыто её случаями во внешнем слое"
+    status: written
+
+# 2026-09-23 (EEA-6…EEA-9): тексты интерфейса, отказов и уведомлений фичи вынесены из
+# кода в словари i18n, отказы бэкенда переведены на DomainError с кодом — текст
+# и HTTP-статус ответа прежние. Сценарии фичи и её проверки не менялись.
+
+  # Права по таблице прав Благороста (C28-87, кусок 4, 05.10.2026): операции
+  # стоят под общим гардом каркаса вместо `@AuthRoles`; прежние списки ролей и
+  # проход «на своё имя» перенесены один в один, роль в проекте по-прежнему
+  # ведёт таблица ролей проекта.
+  - id: cap.rid.side.94
+    level: backend
+    kind: side
+    scenario: операции раздела зовут кандидат, пайщик, член совета и председатель с чужим именем в запросе и со своим
+    expect: "исход прежнего правила операции: по роли проходит названный в таблице прав, на своё имя — каждый вошедший, остальным отказ KIT_INSUFFICIENT_RIGHTS либо KIT_RIGHT_SCOPE_OWN"
+    test: components/controller/tests/unit/capital/capital-rights.test.ts
+    api: components/api-tests/src/rights/matrix.test.ts
+    status: written
+
+  # 19.10.2026: предел сборки документов — 60 в минуту на пайщика (общая
+  # константа DOCUMENT_GENERATION_THROTTLE), было 3: совет упирался в «Слишком часто».
+  - id: cap.rid.side.95
+    level: backend
+    kind: side
+    scenario: пайщик или совет подряд собирают документы этого процесса
+    expect: до 60 сборок в минуту на пайщика проходят, сверх — отказ GRAPHQL_RATE_LIMITED
     status: missing

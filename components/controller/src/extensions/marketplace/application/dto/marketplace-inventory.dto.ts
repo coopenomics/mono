@@ -1,4 +1,4 @@
-import { Field, Float, InputType, ObjectType, registerEnumType } from '@nestjs/graphql';
+import { Field, Float, Int, InputType, ObjectType, registerEnumType } from '@nestjs/graphql';
 import { Type } from 'class-transformer';
 import {
   IsArray,
@@ -45,6 +45,17 @@ registerEnumType(MarketplaceInventoryOwnershipEnum, {
   name: 'MarketplaceInventoryOwnership',
   description:
     'Принадлежность позиции склада: адресная под заказ пайщика (ORDER) либо обезличенный остаток кооператива (COOP).',
+});
+
+export enum MarketplaceInventoryOriginEnum {
+  RECEPTION = 'RECEPTION',
+  WARRANTY_RETURN = 'WARRANTY_RETURN',
+}
+
+registerEnumType(MarketplaceInventoryOriginEnum, {
+  name: 'MarketplaceInventoryOrigin',
+  description:
+    'Происхождение позиции склада: приёмка от поставщика либо гарантийный возврат пайщика, принятый по решению совета.',
 });
 
 export enum MarketplaceInventoryStatusEnum {
@@ -131,6 +142,19 @@ export class MarketplaceInventoryItemDTO {
 
   @Field(() => String, {
     nullable: true,
+    description:
+      'Предложение, по которому имущество попало на склад (из заказа). По нему открывается карточка предложения со склада.',
+  })
+  offer_id!: string | null;
+
+  @Field(() => Int, {
+    nullable: true,
+    description: 'Категория предложения — для фильтра склада по разделам каталога.',
+  })
+  category_id!: number | null;
+
+  @Field(() => String, {
+    nullable: true,
     description: 'Бокс, в котором лежит позиция. Пусто — позиция лежит в ячейке либо без места.',
   })
   container_id!: string | null;
@@ -167,6 +191,17 @@ export class MarketplaceInventoryItemDTO {
     description: 'Принадлежность: адресная позиция заказа или обезличенный остаток кооператива.',
   })
   ownership!: MarketplaceInventoryOwnershipEnum;
+
+  @Field(() => MarketplaceInventoryOriginEnum, {
+    description: 'Происхождение позиции: приёмка от поставщика либо гарантийный возврат пайщика.',
+  })
+  origin!: MarketplaceInventoryOriginEnum;
+
+  @Field(() => String, {
+    nullable: true,
+    description: 'Заявление на гарантийный возврат, по которому имущество вернулось на склад.',
+  })
+  return_claim_id!: string | null;
 
   @Field(() => String, {
     nullable: true,
@@ -355,6 +390,8 @@ export function toMarketplaceInventoryItemDTO(
   dto.package_size = null;
   dto.delivery_point_name = null;
   dto.delivery_point_address = null;
+  dto.offer_id = null;
+  dto.category_id = null;
   dto.container_id = e.container_id;
   dto.cell_id = e.cell_id;
   dto.received_at = e.received_at;
@@ -363,6 +400,8 @@ export function toMarketplaceInventoryItemDTO(
   dto.labeled_at = e.labeled_at;
   dto.labeled_by_operator_account = e.labeled_by_operator_account;
   dto.ownership = e.ownership as MarketplaceInventoryOwnershipEnum;
+  dto.origin = e.origin as MarketplaceInventoryOriginEnum;
+  dto.return_claim_id = e.return_claim_id;
   dto.arrival_price = e.arrival_price;
   dto.published_offer_id = e.published_offer_id;
   dto.reserved_order_id = e.reserved_order_id;

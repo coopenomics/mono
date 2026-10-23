@@ -1,4 +1,4 @@
-import { isValidEan13 } from './marketplace-inventory.types';
+import { isValidEan13, type MarketplaceInventoryOrigin } from './marketplace-inventory.types';
 import type {
   MarketplaceBarcodeFormat,
   MarketplaceInventoryOwnership,
@@ -38,6 +38,8 @@ export class MarketplaceInventoryDomainEntity {
   public readonly labeled_by_operator_account: string | null;
   public readonly expiry_date: Date | null;
   public readonly ownership: MarketplaceInventoryOwnership;
+  public readonly origin: MarketplaceInventoryOrigin;
+  public readonly return_claim_id: string | null;
   public readonly arrival_price: string | null;
   /** Фасовка приёмки: 0 — по мере, >0 — упаковкой (см. `arrival_price`). */
   public readonly package_size: number;
@@ -51,10 +53,12 @@ export class MarketplaceInventoryDomainEntity {
   constructor(props: MarketplaceInventoryProps) {
     if (props.barcode_value && props.barcode_format === 'EAN13' && !isValidEan13(props.barcode_value)) {
       throw new Error(
+        // i18n-ignore: внутренний инвариант сущности, до пайщика не доходит
         `MarketplaceInventoryDomainEntity: EAN-13 должен быть 13-значным числом (получено: "${props.barcode_value}")`
       );
     }
     if (props.quantity_per_label <= 0) {
+      // i18n-ignore: внутренний инвариант сущности, до пайщика не доходит
       throw new Error('MarketplaceInventoryDomainEntity: quantity_per_label должен быть положительным.');
     }
     this.id = props.id;
@@ -77,6 +81,8 @@ export class MarketplaceInventoryDomainEntity {
     this.labeled_by_operator_account = props.labeled_by_operator_account ?? null;
     this.expiry_date = props.expiry_date ?? null;
     this.ownership = props.ownership;
+    this.origin = props.origin;
+    this.return_claim_id = props.return_claim_id;
     this.arrival_price = props.arrival_price ?? null;
     this.package_size = props.package_size ?? 0;
     this.unit_of_measure = props.unit_of_measure ?? MarketplaceUnitsOfMeasure.PIECE;

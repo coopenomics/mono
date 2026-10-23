@@ -3,19 +3,31 @@
   .op-header.q-mb-md(:style='{ borderLeftColor: processAccentColor(processType) }')
     .text-h6.text-weight-medium {{ processTypeLabel(processType) }}
     .row.items-center.q-gutter-sm.q-mb-xs
-      .text-caption.text-grey-7 ID процесса:
+      .text-caption.text-grey-7 {{ $t('process.processDetailCard.processIdLabel') }}
       EntityIdBadge(:rawId='processHash' copy-on-click)
 
+  //- Загрузка: каркас на местах документов, операций и проводок. Спиннер
+  //- крутился у левого края под шапкой — по нему не видно ни что грузится, ни
+  //- сколько там будет содержимого (канон: скелетон, не спиннер).
   template(v-if='loading')
-    q-spinner(size='sm')
+    BaseCard.q-mb-md(variant='flat', :title='$t("process.processDetailCard.documentsTitle")')
+      CardListSkeleton(:count='2')
+
+    .row.q-col-gutter-md
+      .col-12
+        BaseCard(variant='flat', :title='$t("process.processDetailCard.operationsTitle")')
+          TableSkeleton(:columns='OP_SKELETON_COLUMNS', :rows='4')
+      .col-12
+        BaseCard(variant='flat', :title='$t("process.processDetailCard.postingsTitle")')
+          TableSkeleton(:columns='PST_SKELETON_COLUMNS', :rows='3')
   template(v-else)
     //- Документы процесса (наименование / дата / подписанты). Открываются во
     //- всплывающем окне без переадресации — агрегат уже загружен в getProcess.
     q-card.q-mb-md(flat bordered)
       q-card-section.q-pb-none
-        .text-subtitle2 Документы
+        .text-subtitle2 {{ $t('process.processDetailCard.documentsTitle') }}
       q-card-section.q-pt-sm
-        .text-body2.text-grey-7(v-if='!documents.length') Документы не приложены
+        .text-body2.text-grey-7(v-if='!documents.length') {{ $t('process.processDetailCard.documentsEmpty') }}
         .column.q-gutter-xs(v-else)
           DocumentRow(
             v-for='d in documents'
@@ -24,14 +36,17 @@
             @open='openDoc(d)'
           )
 
+    //- Операции и проводки — каждая на всю ширину, одна под другой: рядом в две
+    //- колонки обе таблицы обрезались по горизонтали, и ни номер операции, ни
+    //- пара счетов целиком не читались (особенно в оверлее заказа).
     .row.q-col-gutter-md
       //- Операции процесса (apply + корректировки)
-      .col-12.col-md-6
+      .col-12
         q-card(flat bordered)
           q-card-section.q-pb-none
-            .text-subtitle2 Операции
+            .text-subtitle2 {{ $t('process.processDetailCard.operationsTitle') }}
           q-card-section.q-pt-sm
-            .text-body2.text-grey-7(v-if='!operations.length') Операций нет
+            .text-body2.text-grey-7(v-if='!operations.length') {{ $t('process.processDetailCard.operationsEmpty') }}
             q-table(
               v-else
               flat dense
@@ -50,7 +65,7 @@
                     :rawId='cp.row.globalSequence'
                     @click='goToOperation(cp.row.globalSequence)'
                   )
-                    q-tooltip Открыть в реестре операций
+                    q-tooltip {{ $t('process.processDetailCard.openInOperationsRegistry') }}
                   EntityIdBadge(v-else :rawId='cp.row.globalSequence' copy-on-click)
               template(#body-cell-label='cp')
                 q-td(:props='cp')
@@ -63,12 +78,12 @@
                 q-td.text-right.font-monospace(:props='cp') {{ formatProcessAmount(cp.row.quantity) }}
 
       //- Проводки процесса (Дт → Кт парами)
-      .col-12.col-md-6
+      .col-12
         q-card(flat bordered)
           q-card-section.q-pb-none
-            .text-subtitle2 Проводки
+            .text-subtitle2 {{ $t('process.processDetailCard.postingsTitle') }}
           q-card-section.q-pt-sm
-            .text-body2.text-grey-7(v-if='!postings.length') Проводок нет
+            .text-body2.text-grey-7(v-if='!postings.length') {{ $t('process.processDetailCard.postingsEmpty') }}
             q-table(
               v-else
               flat dense
@@ -87,7 +102,7 @@
                     :rawId='cp.row.debitGlobalSequence'
                     @click='goToPosting(cp.row.debitGlobalSequence)'
                   )
-                    q-tooltip Открыть в реестре проводок
+                    q-tooltip {{ $t('process.processDetailCard.openInPostingsRegistry') }}
                   EntityIdBadge(
                     v-else-if='cp.row.debitGlobalSequence'
                     :rawId='cp.row.debitGlobalSequence'
@@ -113,11 +128,17 @@
 </template>
 
 <script setup lang="ts">
+import type { RegistrySource } from 'src/shared/lib/registry-source'
 import { onMounted, ref } from 'vue'
+import { Ledger2Contract, SovietContract } from 'cooptypes'
+import { liveTable, useLiveReload } from 'src/shared/lib/realtime'
+import { uiLocale, t } from 'src/shared/i18n';
 import { useRouter } from 'vue-router'
 import { copyToClipboard } from 'quasar'
 import { FailAlert, SuccessAlert } from 'src/shared/api'
 import { EntityIdBadge } from 'src/shared/ui'
+import { BaseCard, CardListSkeleton, TableSkeleton } from 'src/shared/ui/base'
+import type { TableSkeletonColumn } from 'src/shared/ui/base'
 import { DocumentRow, type DocumentRowDoc } from 'src/shared/ui/domain/DocumentRow'
 import { DocumentViewerDialog } from 'src/shared/ui/domain/DocumentViewerDialog'
 import type { IDocumentAggregate } from 'src/entities/Document/model'
@@ -131,6 +152,7 @@ import {
   type ILedger2Posting,
 } from 'src/entities/Ledger2'
 import { getShortNameFromCertificate } from 'src/shared/lib/utils/getNameFromCertificate'
+import { formatDocumentCreatedAt } from 'src/shared/lib/utils/dates'
 import {
   processAccentColor,
   processChipBg,
@@ -153,6 +175,8 @@ const props = defineProps<{
   operationRouteName?: string
   /** Имя маршрута реестра проводок. Задан → клик по № проводки ведёт туда; не задан → копирование. */
   postingRouteName?: string
+  /** Откуда брать процесс, операции и проводки: общие операции ядра либо операции стола бухгалтера. */
+  source?: RegistrySource
 }>()
 
 const router = useRouter()
@@ -169,23 +193,40 @@ const viewerDoc = ref<IDocumentAggregate | null>(null)
 const viewerTitle = ref('')
 
 const opColumns = [
-  { name: 'date', align: 'left' as const, label: 'Дата', field: 'createdAt' },
-  { name: 'op', align: 'left' as const, label: '№ операции', field: 'globalSequence' },
-  { name: 'label', align: 'left' as const, label: 'Операция', field: 'operationCode' },
-  { name: 'amount', align: 'right' as const, label: 'Сумма', field: 'quantity' },
+  { name: 'date', align: 'left' as const, label: t('process.processDetailCard.dateColumn'), field: 'createdAt' },
+  { name: 'op', align: 'left' as const, label: t('process.processDetailCard.opNumberColumn'), field: 'globalSequence' },
+  { name: 'label', align: 'left' as const, label: t('process.processDetailCard.operationColumn'), field: 'operationCode' },
+  { name: 'amount', align: 'right' as const, label: t('process.processDetailCard.amountColumn'), field: 'quantity' },
 ]
 
 const pstColumns = [
-  { name: 'date', align: 'left' as const, label: 'Дата', field: 'createdAt' },
-  { name: 'posting', align: 'left' as const, label: '№ проводки', field: 'debitGlobalSequence' },
-  { name: 'debit', align: 'center' as const, label: 'Дебет', field: 'debitAccountId' },
-  { name: 'credit', align: 'center' as const, label: 'Кредит', field: 'creditAccountId' },
-  { name: 'amount', align: 'right' as const, label: 'Сумма', field: 'quantity' },
+  { name: 'date', align: 'left' as const, label: t('process.processDetailCard.dateColumn'), field: 'createdAt' },
+  { name: 'posting', align: 'left' as const, label: t('process.processDetailCard.postingNumberColumn'), field: 'debitGlobalSequence' },
+  { name: 'debit', align: 'center' as const, label: t('process.processDetailCard.debitColumn'), field: 'debitAccountId' },
+  { name: 'credit', align: 'center' as const, label: t('process.processDetailCard.creditColumn'), field: 'creditAccountId' },
+  { name: 'amount', align: 'right' as const, label: t('process.processDetailCard.amountColumn'), field: 'quantity' },
+]
+
+// Каркас повторяет шапки тех же таблиц: при подстановке данных заголовки и
+// колонки остаются на месте, содержимое просто заполняет готовую сетку.
+const OP_SKELETON_COLUMNS: TableSkeletonColumn[] = [
+  { label: t('process.processDetailCard.dateColumn'), width: '150px' },
+  { label: t('process.processDetailCard.opNumberColumn'), width: '120px', cell: 'badge' },
+  { label: t('process.processDetailCard.operationColumn'), cell: 'badge' },
+  { label: t('process.processDetailCard.amountColumn'), width: '120px', class: 'col-num' },
+]
+
+const PST_SKELETON_COLUMNS: TableSkeletonColumn[] = [
+  { label: t('process.processDetailCard.dateColumn'), width: '150px' },
+  { label: t('process.processDetailCard.postingNumberColumn'), width: '120px', cell: 'badge' },
+  { label: t('process.processDetailCard.debitColumn'), width: '90px', cell: 'badge' },
+  { label: t('process.processDetailCard.creditColumn'), width: '90px', cell: 'badge' },
+  { label: t('process.processDetailCard.amountColumn'), width: '120px', class: 'col-num' },
 ]
 
 function formatDate(d: string | Date | null | undefined): string {
   if (!d) return '—'
-  return new Date(d).toLocaleString('ru-RU', {
+  return new Date(d).toLocaleString(uiLocale(), {
     day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
   })
 }
@@ -207,8 +248,8 @@ function toDocRow(d: IProcessDocument): DocumentRowDoc {
     : []
   return {
     type: 'pdf',
-    title: doc?.meta?.title || raw?.full_title || 'Документ',
-    date: doc?.meta?.created_at || undefined,
+    title: doc?.meta?.title || raw?.full_title || t('process.processDetailCard.documentFallbackTitle'),
+    date: formatDocumentCreatedAt(doc?.meta) || undefined,
     author: signers.length ? signers.join(', ') : undefined,
   }
 }
@@ -218,7 +259,7 @@ function toDocRow(d: IProcessDocument): DocumentRowDoc {
 function openDoc(d: IProcessDocument) {
   const doc = d.document as any
   viewerDoc.value = { document: d.document, rawDocument: d.raw } as unknown as IDocumentAggregate
-  viewerTitle.value = doc?.meta?.title || (d.raw as any)?.full_title || 'Документ'
+  viewerTitle.value = doc?.meta?.title || (d.raw as any)?.full_title || t('process.processDetailCard.documentFallbackTitle')
   viewerOpen.value = true
 }
 
@@ -235,32 +276,32 @@ async function copyText(text: string | null | undefined) {
   if (!text) return
   try {
     await copyToClipboard(text)
-    SuccessAlert('Скопировано')
+    SuccessAlert(t('process.processDetailCard.copied'))
   } catch {
-    FailAlert('Не удалось скопировать')
+    FailAlert(t('process.processDetailCard.copyFailed'))
   }
 }
 // Утилита доступна для расширения (копирование произвольных значений детали).
 void copyText
 
-onMounted(async () => {
+async function load(): Promise<void> {
   try {
     // Документы + операции + проводки одного процесса грузим параллельно.
     const [view, history, post] = await Promise.all([
-      processStore.loadProcess({ coopname: props.coopname, hash: props.processHash }),
+      processStore.loadProcess({ coopname: props.coopname, hash: props.processHash }, props.source),
       ledger2Store.loadHistory({
         coopname: props.coopname,
         processHash: props.processHash,
         actionNames: ['apply', 'walmove', 'revert'],
         limit: 100,
         sortOrder: 'ASC',
-      }),
+      }, props.source),
       ledger2Store.loadPostings({
         coopname: props.coopname,
         processHash: props.processHash,
         limit: 100,
         sortOrder: 'ASC',
-      }),
+      }, props.source),
     ])
     documents.value = view?.documents ?? []
     operations.value = history?.items ?? []
@@ -270,7 +311,22 @@ onMounted(async () => {
   } finally {
     loading.value = false
   }
-})
+}
+
+onMounted(load)
+
+// Процесс живёт по ленте: новый документ, решение совета, операция и проводка
+// учёта появляются в карточке сами.
+useLiveReload(
+  [
+    liveTable(Ledger2Contract, Ledger2Contract.Tables.Accounts),
+    liveTable(Ledger2Contract, Ledger2Contract.Tables.Wallets),
+    liveTable(Ledger2Contract, Ledger2Contract.Tables.UserWallets),
+    liveTable(SovietContract, SovietContract.Tables.Decisions),
+    { code: 'core', table: 'signed_documents' },
+  ],
+  load,
+)
 </script>
 
 <style scoped>

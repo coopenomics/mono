@@ -15,7 +15,7 @@ import { FavoritesService } from '~/extensions/capital/application/services/favo
 import { FavoritesResolver } from '~/extensions/capital/application/resolvers/favorites.resolver';
 import { FavoriteTargetType } from '~/extensions/capital/domain/enums/favorite-target-type.enum';
 import type { FavoriteRepository } from '~/extensions/capital/domain/repositories/favorite.repository';
-import { FavoriteTypeormRepository } from '~/extensions/capital/infrastructure/repositories/favorite.typeorm-repository';
+import { FavoriteKyselyRepository } from '~/extensions/capital/infrastructure/repositories/favorite.kysely-repository';
 
 const CREATED_AT = new Date('2026-08-18T00:00:00Z');
 
@@ -25,8 +25,23 @@ function makeRepository(overrides: Partial<FavoriteRepository> = {}): FavoriteRe
     remove: jest.fn().mockResolvedValue(undefined),
     findByUserWithTargets: jest.fn().mockResolvedValue([]),
     targetExists: jest.fn().mockResolvedValue(true),
+    removeAllByTargetHash: jest.fn().mockResolvedValue(undefined),
     ...overrides,
   };
+}
+
+const user = { username: 'ant', role: 'chairman' } as any;
+
+/** Репозиторий проектов: по умолчанию цель — кооперативный проект, виден всем. */
+function projects(project: any = { origin: 'blockchain', master: 'someone', local_owner: null }) {
+  return { findByHash: jest.fn().mockResolvedValue(project) } as any;
+}
+
+function generation(issue: any = {}, story: any = {}) {
+  return {
+    getIssueByHash: jest.fn().mockResolvedValue(issue),
+    getStoryByHash: jest.fn().mockResolvedValue(story),
+  } as any;
 }
 
 const input = {
@@ -43,33 +58,54 @@ describe('FavoritesService', () => {
         { ...input, title: 'Проект 1', parent_hash: null, created_at: CREATED_AT },
       ]),
     });
-    const service = new FavoritesService(repo);
+    const service = new FavoritesService(repo, projects(), generation());
 
-    const result = await service.addFavorite(input);
+    const result = await service.addFavorite(input, user);
 
     expect(repo.add).toHaveBeenCalledWith(input);
     expect(result).toHaveLength(1);
     expect(result[0].title).toBe('Проект 1');
   });
 
+  it('чужой личный проект — «не найдено»: название через избранное не читается', async () => {
+    // До 25.09.2026 проверялось только существование цели.
+    const repo = makeRepository();
+    const service = new FavoritesService(
+      repo,
+      projects({ origin: 'local', master: 'owner', local_owner: 'owner' }),
+      generation(),
+    );
+    await expect(service.addFavorite(input, { username: 'stranger', role: 'user' } as any)).rejects.toBeInstanceOf(BadRequestException);
+    expect(repo.add).not.toHaveBeenCalled();
+  });
+
+  it('невидимая задача или требование — тоже «не найдено»', async () => {
+    const repo = makeRepository();
+    const service = new FavoritesService(repo, projects(), generation(null, null));
+    for (const target_type of [FavoriteTargetType.ISSUE, FavoriteTargetType.ARTIFACT]) {
+      await expect(service.addFavorite({ ...input, target_type }, user)).rejects.toBeInstanceOf(BadRequestException);
+    }
+    expect(repo.add).not.toHaveBeenCalled();
+  });
+
   it('отклоняет добавление несуществующей цели и ничего не пишет', async () => {
     const repo = makeRepository({ targetExists: jest.fn().mockResolvedValue(false) });
-    const service = new FavoritesService(repo);
+    const service = new FavoritesService(repo, projects(), generation());
 
-    await expect(service.addFavorite(input)).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.addFavorite(input, user)).rejects.toBeInstanceOf(BadRequestException);
     expect(repo.add).not.toHaveBeenCalled();
   });
 
   it('удаление не проверяет существование цели — снять звёздочку можно всегда', async () => {
     const repo = makeRepository({ targetExists: jest.fn().mockResolvedValue(false) });
-    const service = new FavoritesService(repo);
+    const service = new FavoritesService(repo, projects(), generation());
 
     await expect(service.removeFavorite(input)).resolves.toEqual([]);
     expect(repo.remove).toHaveBeenCalledWith(input);
   });
 });
 
-describe('FavoriteTypeormRepository — выдача с живыми целями', () => {
+describe('FavoriteKyselyRepository — выдача с живыми целями', () => {
   it('запись с удалённой целью выпадает из выдачи, живая — с актуальным title и родителем', async () => {
     const favoritesRepo = {
       find: jest.fn().mockResolvedValue([
@@ -98,7 +134,7 @@ describe('FavoriteTypeormRepository — выдача с живыми целям�
     const issueRepo = { find: jest.fn().mockResolvedValue([]) };
     const storyRepo = { find: jest.fn().mockResolvedValue([]) };
 
-    const repository = new FavoriteTypeormRepository(
+    const repository = new FavoriteKyselyRepository(
       favoritesRepo as never,
       projectRepo as never,
       issueRepo as never,
@@ -109,6 +145,102 @@ describe('FavoriteTypeormRepository — выдача с живыми целям�
 
     expect(result).toHaveLength(1);
     expect(result[0]).toMatchObject({ target_hash: 'live00', title: 'Живой проект' });
+  });
+
+  // cap.fav.side.05
+  it('за целями ходит только за живыми: удалённая сущность остаётся строкой в проекции с present=false', async () => {
+    const favoritesRepo = {
+      find: jest.fn().mockResolvedValue([
+        {
+          coopname: 'voskhod',
+          username: 'ant',
+          target_type: FavoriteTargetType.COMPONENT,
+          target_hash: 'dead00',
+          created_at: CREATED_AT,
+        },
+      ]),
+    };
+    // Проекция удалённого компонента никуда не делась — её отсекает условие present
+    const projectRepo = { find: jest.fn().mockResolvedValue([]) };
+    const issueRepo = { find: jest.fn().mockResolvedValue([]) };
+    const storyRepo = { find: jest.fn().mockResolvedValue([]) };
+
+    const repository = new FavoriteKyselyRepository(
+      favoritesRepo as never,
+      projectRepo as never,
+      issueRepo as never,
+      storyRepo as never
+    );
+
+    const result = await repository.findByUserWithTargets('voskhod', 'ant');
+
+    expect(result).toEqual([]);
+    expect(projectRepo.find).toHaveBeenCalledWith(expect.objectContaining({ present: true }));
+  });
+
+  // cap.fav.side.09
+  it('задача и артефакт живут офчейн: их не отсекает present, иначе избранное пишется и не читается', async () => {
+    const favoritesRepo = {
+      find: jest.fn().mockResolvedValue([
+        {
+          coopname: 'voskhod',
+          username: 'ant',
+          target_type: FavoriteTargetType.ISSUE,
+          target_hash: 'issue1',
+          created_at: CREATED_AT,
+        },
+        {
+          coopname: 'voskhod',
+          username: 'ant',
+          target_type: FavoriteTargetType.ARTIFACT,
+          target_hash: 'story1',
+          created_at: CREATED_AT,
+        },
+      ]),
+    };
+    const projectRepo = { find: jest.fn().mockResolvedValue([]) };
+    // У офчейн-сущностей present остаётся дефолтным false: флаг ведёт только блокчейн-проекция
+    const issueRepo = {
+      find: jest.fn().mockResolvedValue([
+        { issue_hash: 'issue1', title: 'Задача', project_hash: 'proj1', present: false },
+      ]),
+    };
+    const storyRepo = {
+      find: jest.fn().mockResolvedValue([
+        { story_hash: 'story1', title: 'Артефакт', issue_hash: 'issue1', present: false },
+      ]),
+    };
+
+    const repository = new FavoriteKyselyRepository(
+      favoritesRepo as never,
+      projectRepo as never,
+      issueRepo as never,
+      storyRepo as never
+    );
+
+    const result = await repository.findByUserWithTargets('voskhod', 'ant');
+
+    expect(result).toHaveLength(2);
+    expect(result[0]).toMatchObject({ target_hash: 'issue1', title: 'Задача' });
+    expect(result[1]).toMatchObject({ target_hash: 'story1', title: 'Артефакт' });
+    expect(issueRepo.find).toHaveBeenCalledWith(expect.not.objectContaining({ present: true }));
+    expect(storyRepo.find).toHaveBeenCalledWith(expect.not.objectContaining({ present: true }));
+  });
+
+  // cap.fav.side.06
+  it('снятие цели с избранного у всех пайщиков идёт по хэшу в нижнем регистре', async () => {
+    const favoritesRepo = { delete: jest.fn().mockResolvedValue(undefined) };
+
+    const repository = new FavoriteKyselyRepository(
+      favoritesRepo as never,
+      { find: jest.fn() } as never,
+      { find: jest.fn() } as never,
+      { find: jest.fn() } as never
+    );
+
+    await repository.removeAllByTargetHash('ABC123');
+
+    expect(favoritesRepo.delete).toHaveBeenCalledWith({ target_hash: 'abc123' });
   });
 });
 

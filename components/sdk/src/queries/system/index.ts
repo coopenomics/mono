@@ -1,3 +1,9 @@
+/** История оплат кооператива (списания подписок из журнала биллинга) */
+export * as GetCooperativePayments from './getCooperativePayments'
+
+/** Реестр кооперативов оператора (список из блокчейна + данные провайдера) */
+export * as GetCooperativesRegistry from './getCooperativesRegistry'
+
 /** Получить текущий инстанс пользователя */
 export * as GetCurrentInstance from './getCurrentInstance'
 
@@ -15,3 +21,9 @@ export * as GetRegistrationConfig from './getRegistrationConfig'
 
 /** Получить сводную публичную информацию о системе */
 export * as GetSystemInfo from './getSystemInfo'
+
+/** Последний устав кооператива со свежей ссылкой на скачивание */
+export * as GetCooperativeCharter from './getCooperativeCharter'
+
+/** Каталог витрины подключения: услуги и конфигурации сервера провайдера */
+export * as GetProviderConnectionCatalog from './getProviderConnectionCatalog'

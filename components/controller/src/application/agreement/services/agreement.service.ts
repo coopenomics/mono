@@ -22,10 +22,31 @@ import { AgreementTemplateDTO } from '../dto/agreement-template.dto';
 import { CooperativeProgramDTO } from '../dto/cooperative-program.dto';
 import { PaginationInputDomainInterface } from '~/domain/common/interfaces/pagination.interface';
 import { DocumentAggregationService } from '~/domain/document/services/document-aggregation.service';
+import { DocumentApprovalStateService } from '~/domain/document-approval/services/document-approval-state.service';
 import { SendAgreementInputDTO } from '../dto/send-agreement-input.dto';
 import { ConfirmAgreementInputDTO } from '../dto/confirm-agreement-input.dto';
 import { DeclineAgreementInputDTO } from '../dto/decline-agreement-input.dto';
 import { config } from '~/config';
+
+/** Условие статусов фильтра соглашений. */
+function matchesStatus(dto: AgreementDTO, filter: AgreementFilterInput): boolean {
+  return !filter.statuses?.length || filter.statuses.includes(dto.status);
+}
+
+/** Условие типа фильтра соглашений. */
+function matchesType(dto: AgreementDTO, filter: AgreementFilterInput): boolean {
+  return !filter.type || dto.type === filter.type;
+}
+
+/** Условие дат: соглашение без даты подписи в заданный диапазон не попадает. */
+function matchesDates(dto: AgreementDTO, filter: AgreementFilterInput): boolean {
+  if (!filter.created_from && !filter.created_to) return true;
+  const at = dto.updated_at?.getTime();
+  if (at === undefined) return false;
+  const from = filter.created_from ? new Date(filter.created_from).getTime() : -Infinity;
+  const to = filter.created_to ? new Date(filter.created_to).getTime() : Infinity;
+  return at >= from && at <= to;
+}
 
 @Injectable()
 export class AgreementService {
@@ -39,7 +60,8 @@ export class AgreementService {
     private readonly sovietBlockchainPort: SovietBlockchainPort,
     @Inject(BLOCKCHAIN_PORT)
     private readonly blockchainPort: BlockchainPort,
-    private readonly documentAggregationService: DocumentAggregationService
+    private readonly documentAggregationService: DocumentAggregationService,
+    private readonly documentApprovalState: DocumentApprovalStateService
   ) {}
 
   /**
@@ -80,7 +102,7 @@ export class AgreementService {
    * сравнения версии подписи пайщика с актуальной версией шаблона.
    */
   async getAgreementTemplates(coopname: string): Promise<AgreementTemplateDTO[]> {
-    const [globalRows, coopRows] = await Promise.all([
+    const [globalRows, coopRows, effectiveVersions] = await Promise.all([
       this.blockchainPort.getAllRows(
         DraftContract.contractName.production,
         DraftContract.contractName.production,
@@ -91,10 +113,14 @@ export class AgreementService {
         coopname,
         DraftContract.Tables.Drafts.tableName
       ),
+      this.documentApprovalState.getEffectiveVersions(coopname),
     ]);
+    // Версия шаблона для кооператива — утверждённая его советом, а не текущая
+    // в сети: рабочий стол сравнивает её с версией подписи пайщика и просит
+    // переподписать только после решения совета.
     return [...globalRows, ...coopRows].map((r: any) => ({
       registry_id: Number(r.registry_id),
-      version: Number(r.version),
+      version: effectiveVersions.get(Number(r.registry_id)) ?? Number(r.version),
       default_translation_id: Number(r.default_translation_id),
       title: String(r.title ?? ''),
       description: String(r.description ?? ''),
@@ -206,8 +232,16 @@ export class AgreementService {
         flat.push(this.programAgreementToDTO(owner, program, typeByProgramId));
       }
     }
-    return flat;
+    // Остальные условия фильтра действуют и на программные соглашения: до
+    // 25.09.2026 они игнорировались, и запрос «отклонённые» или «тип privacy»
+    // получал в ответ ещё и подтверждённое соглашение программы.
+    return flat.filter((dto) => this.matchesProgrammatic(dto, filter));
   }
+
+  private matchesProgrammatic(dto: AgreementDTO, filter: AgreementFilterInput): boolean {
+    return matchesStatus(dto, filter) && matchesType(dto, filter) && matchesDates(dto, filter);
+  }
+
 
   private programAgreementToDTO(
     owner: UserAgreementDomainEntity,
@@ -262,8 +296,8 @@ export class AgreementService {
     return await this.agreementInteractor.generateUserAgreement(data, options);
   }
 
-  public async sendAgreement(data: SendAgreementInputDTO): Promise<TransactionDTO> {
-    const result = await this.agreementInteractor.sendAgreement(data);
+  public async sendAgreement(data: SendAgreementInputDTO, actor: { username: string; role: string }): Promise<TransactionDTO> {
+    const result = await this.agreementInteractor.sendAgreement(data, actor);
     return result as TransactionDTO;
   }
 

@@ -2,6 +2,8 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Octokit } from '@octokit/rest';
 import { resolveCapitalGithubApiPlainToken } from '../../application/utils/capital-github-token';
 import { SECRET_CIPHER_PORT, type ISecretCipherPort, INTEGRATION_SETTINGS_PORT, type IIntegrationSettingsPort } from '@coopenomics/innercoop';
+import { t } from '../../i18n';
+import { DomainError } from '@coopenomics/extension-kit';
 
 /**
  * Интерфейс для измененного файла
@@ -26,6 +28,15 @@ export class GitHubService {
     };
   }
 
+  /**
+   * Адрес GitHub API из окружения узла (GITHUB_API_URL). Не задан — Octokit
+   * ходит на api.github.com; на стенде внешних тестов здесь подставной узел.
+   */
+  private get apiUrl(): string | undefined {
+    const url = this.integrations.get<{ api_url?: string }>('capital', 'github')?.api_url?.trim();
+    return url ? url.replace(/\/+$/, '') : undefined;
+  }
+
   private readonly logger = new Logger(GitHubService.name);
   private octokit: Octokit | null = null;
 
@@ -42,7 +53,8 @@ export class GitHubService {
   reconfigureWithCapitalExtensionEncrypted(githubApiTokenEncrypted: string | undefined): void {
     const plain = resolveCapitalGithubApiPlainToken(githubApiTokenEncrypted, this.tokenSources);
     if (plain) {
-      this.octokit = new Octokit({ auth: plain });
+      const baseUrl = this.apiUrl;
+      this.octokit = new Octokit(baseUrl ? { auth: plain, baseUrl } : { auth: plain });
       this.logger.log('GitHub API инициализирован');
     } else {
       this.octokit = null;
@@ -61,7 +73,7 @@ export class GitHubService {
    * Проверить существование ветки
    */
   async branchExists(owner: string, repo: string, branch = 'main'): Promise<boolean> {
-    if (!this.octokit) throw new Error('GitHub API недоступен');
+    if (!this.octokit) throw DomainError.internal('CAPITAL_GITHUB_API_UNAVAILABLE');
 
     try {
       await this.octokit.repos.getBranch({
@@ -82,7 +94,7 @@ export class GitHubService {
    * Получить SHA последнего коммита ветки (только чтение; репозиторий не изменяем).
    */
   async getLatestCommit(owner: string, repo: string, branch = 'main'): Promise<string> {
-    if (!this.octokit) throw new Error('GitHub API недоступен');
+    if (!this.octokit) throw DomainError.internal('CAPITAL_GITHUB_API_UNAVAILABLE');
 
     try {
       const { data } = await this.octokit.repos.getBranch({
@@ -94,7 +106,7 @@ export class GitHubService {
     } catch (error: unknown) {
       const err = error as { status?: number; message?: string };
       if (err.status === 404) {
-        const msg = `Ветка «${branch}» не найдена в ${owner}/${repo}. Укажите существующую ветку; токен используется только на чтение, репозиторий не создаётся и не изменяется.`;
+        const msg = t('capital.github.branchNotFoundMessage', { branch, owner, repo });
         this.logger.warn(msg);
         throw new Error(msg);
       }
@@ -104,13 +116,15 @@ export class GitHubService {
   }
 
   /**
-   * Имена всех веток репозитория (только чтение; пагинация по 100).
+   * Ветки репозитория вместе с их HEAD-SHA (только чтение; пагинация по 100).
+   * Листинг уже возвращает SHA каждой ветки, поэтому отдельный запрос на ветку не нужен:
+   * на репозитории в 236 веток это разница между ~239 и 3 запросами за один опрос.
    */
-  async listBranches(owner: string, repo: string): Promise<string[]> {
+  async listBranchHeads(owner: string, repo: string): Promise<{ name: string; sha: string }[]> {
     const octokit = this.octokit;
-    if (!octokit) throw new Error('GitHub API недоступен');
+    if (!octokit) throw DomainError.internal('CAPITAL_GITHUB_API_UNAVAILABLE');
 
-    const names: string[] = [];
+    const heads: { name: string; sha: string }[] = [];
     let page = 1;
     const perPage = 100;
     for (;;) {
@@ -118,20 +132,63 @@ export class GitHubService {
         const { data } = await octokit.repos.listBranches({ owner, repo, per_page: perPage, page });
         return data;
       });
-      names.push(...rows.map((b) => b.name));
+      heads.push(...rows.map((b) => ({ name: b.name, sha: b.commit.sha })));
       if (rows.length < perPage) {
         break;
       }
       page += 1;
     }
-    return names;
+    return heads;
+  }
+
+  /**
+   * Имена всех веток репозитория (только чтение; пагинация по 100).
+   */
+  async listBranches(owner: string, repo: string): Promise<string[]> {
+    const heads = await this.listBranchHeads(owner, repo);
+    return heads.map((b) => b.name);
+  }
+
+  /**
+   * Ветка репозитория по умолчанию (только чтение).
+   */
+  async getDefaultBranch(owner: string, repo: string): Promise<string | null> {
+    if (!this.octokit) throw DomainError.internal('CAPITAL_GITHUB_API_UNAVAILABLE');
+
+    const { data } = await this.withGithubRetry(async () => this.octokit!.repos.get({ owner, repo }));
+    return data.default_branch || null;
+  }
+
+  /**
+   * Базовая ветка обхода для конкретного репозитория: настроенная в Capital, если она в нём есть,
+   * иначе ветка репозитория по умолчанию. Настройка «Ветка GitHub для синхронизации» одна на кооператив,
+   * а репозитории проектов живут с разными канонами (`dev` у mono, `main` у отдельных продуктов), —
+   * без фолбэка репозиторий без такой ветки не синхронизируется вовсе.
+   * @returns имя ветки либо null, если подходящей ветки в репозитории нет.
+   */
+  async resolveExistingBaseBranch(
+    owner: string,
+    repo: string,
+    configuredBranch: string,
+    knownBranchNames?: string[]
+  ): Promise<string | null> {
+    const names = knownBranchNames ?? (await this.listBranches(owner, repo));
+    if (names.includes(configuredBranch)) {
+      return configuredBranch;
+    }
+
+    const fallback = await this.getDefaultBranch(owner, repo);
+    if (fallback && names.includes(fallback)) {
+      return fallback;
+    }
+    return null;
   }
 
   /**
    * Получить содержимое файла
    */
   async getFileContent(owner: string, repo: string, path: string, ref?: string): Promise<string> {
-    if (!this.octokit) throw new Error('GitHub API недоступен');
+    if (!this.octokit) throw DomainError.internal('CAPITAL_GITHUB_API_UNAVAILABLE');
 
     try {
       const { data } = await this.octokit.repos.getContent({
@@ -142,11 +199,11 @@ export class GitHubService {
       });
 
       if (Array.isArray(data)) {
-        throw new Error(`Путь ${path} является директорией`);
+        throw DomainError.internal('CAPITAL_GITHUB_PATH_IS_DIRECTORY', { path });
       }
 
       if (data.type !== 'file') {
-        throw new Error(`Путь ${path} не является файлом`);
+        throw DomainError.internal('CAPITAL_GITHUB_PATH_NOT_FILE', { path });
       }
 
       // Декодируем содержимое из base64
@@ -162,7 +219,7 @@ export class GitHubService {
    * Получить список изменённых файлов между коммитами
    */
   async getChangedFiles(owner: string, repo: string, baseSha: string, headSha: string): Promise<ChangedFile[]> {
-    if (!this.octokit) throw new Error('GitHub API недоступен');
+    if (!this.octokit) throw DomainError.internal('CAPITAL_GITHUB_API_UNAVAILABLE');
 
     try {
       const { data } = await this.octokit.repos.compareCommits({
@@ -222,7 +279,7 @@ export class GitHubService {
     branch = 'main',
     retryOnConflict = true
   ): Promise<string> {
-    if (!this.octokit) throw new Error('GitHub API недоступен');
+    if (!this.octokit) throw DomainError.internal('CAPITAL_GITHUB_API_UNAVAILABLE');
 
     try {
       const contentEncoded = Buffer.from(content, 'utf-8').toString('base64');
@@ -265,7 +322,7 @@ export class GitHubService {
    * Удалить файл
    */
   async deleteFile(owner: string, repo: string, path: string, message: string, sha: string, branch = 'main'): Promise<void> {
-    if (!this.octokit) throw new Error('GitHub API недоступен');
+    if (!this.octokit) throw DomainError.internal('CAPITAL_GITHUB_API_UNAVAILABLE');
 
     try {
       await this.octokit.repos.deleteFile({
@@ -286,7 +343,7 @@ export class GitHubService {
    * Получить дерево файлов
    */
   async getTree(owner: string, repo: string, sha: string): Promise<any[]> {
-    if (!this.octokit) throw new Error('GitHub API недоступен');
+    if (!this.octokit) throw DomainError.internal('CAPITAL_GITHUB_API_UNAVAILABLE');
 
     try {
       const { data } = await this.octokit.git.getTree({
@@ -312,7 +369,7 @@ export class GitHubService {
    * оставлено для будущего GitHub App и привязки логина к пользователю кооператива.
    */
   async getCommitAuthorLogin(owner: string, repo: string, commitSha: string): Promise<string | null> {
-    if (!this.octokit) throw new Error('GitHub API недоступен');
+    if (!this.octokit) throw DomainError.internal('CAPITAL_GITHUB_API_UNAVAILABLE');
 
     try {
       const { data } = await this.octokit.repos.getCommit({
@@ -332,7 +389,7 @@ export class GitHubService {
    * Получить SHA файла для обновления
    */
   async getFileSha(owner: string, repo: string, path: string, branch = 'main'): Promise<string | null> {
-    if (!this.octokit) throw new Error('GitHub API недоступен');
+    if (!this.octokit) throw DomainError.internal('CAPITAL_GITHUB_API_UNAVAILABLE');
 
     try {
       const { data } = await this.octokit.repos.getContent({
@@ -368,7 +425,7 @@ export class GitHubService {
     signal?: AbortSignal
   ): Promise<{ sha: string; parents: string[]; commit: { message: string; author: { date?: string } | null } }[]> {
     const octokit = this.octokit;
-    if (!octokit) throw new Error('GitHub API недоступен');
+    if (!octokit) throw DomainError.internal('CAPITAL_GITHUB_API_UNAVAILABLE');
 
     const newestFirst: { sha: string; parents: string[]; commit: { message: string; author: { date?: string } | null } }[] = [];
     let page = 1;
@@ -376,7 +433,7 @@ export class GitHubService {
 
     for (;;) {
       if (signal?.aborted) {
-        const err = new Error('Синхронизация Git прервана');
+        const err = DomainError.internal('CAPITAL_GITHUB_SYNC_ABORTED');
         err.name = 'AbortError';
         throw err;
       }
@@ -425,7 +482,7 @@ export class GitHubService {
     baseSha: string,
     headSha: string
   ): Promise<{ sha: string; parents: string[]; commit: { message: string; author: { date?: string } | null } }[]> {
-    if (!this.octokit) throw new Error('GitHub API недоступен');
+    if (!this.octokit) throw DomainError.internal('CAPITAL_GITHUB_API_UNAVAILABLE');
     return this.withGithubRetry(async () => {
       const { data } = await this.octokit!.repos.compareCommitsWithBasehead({
         owner,
@@ -446,7 +503,7 @@ export class GitHubService {
 
   /** Текстовая склейка patch-фрагментов файлов коммита (для RID / взноса). */
   async getCommitPatchesConcat(owner: string, repo: string, commitSha: string): Promise<string> {
-    if (!this.octokit) throw new Error('GitHub API недоступен');
+    if (!this.octokit) throw DomainError.internal('CAPITAL_GITHUB_API_UNAVAILABLE');
     return this.withGithubRetry(async () => {
       const { data } = await this.octokit!.repos.getCommit({
         owner,
@@ -485,5 +542,6 @@ export class GitHubService {
 }
 
 function sleepMs(ms: number): Promise<void> {
+  // timing: backoff — повтор запроса к GitHub после 429/5xx с растущей паузой
   return new Promise((r) => setTimeout(r, ms));
 }

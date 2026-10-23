@@ -39,7 +39,7 @@
 
   eosio::check(initial.amount > 0 && org_initial.amount > 0 && minimum.amount > 0 && org_minimum.amount > 0, "Вступительный и минимальный паевые взносы должны быть положительными");
 
-  coops.modify(org, _registrator, [&](auto &o){
+  coops.modify(org, RamPayer::of(coops, coopname), [&](auto &o){
     o.initial = initial;
     o.minimum = minimum;
     o.registration = initial + minimum;

@@ -1,40 +1,20 @@
 <template lang="pug">
-.approvals-page
-  q-card(flat)
-
-    // Фильтры
-    q-card-section
-      .row.q-gutter-md
-        q-select(
-          v-model='filters.statuses'
-          :options='statusOptions'
-          label='Статус'
-          placeholder='без фильтра'
-          dense
-          outlined
-          color="primary"
-          @update:model-value='onFiltersChange'
-          style="width: 250px"
-        )
-
-    // Таблица одобрений
-    ApprovalsTableWidget(
-      :approvals='approvalStore.approvals?.items || []',
-      :loading='loading',
-      :pagination='pagination',
-      @request='onRequest'
+.q-pa-md
+  FilterBar.q-mb-md
+    BaseSelect(
+      v-model="statusFilter"
+      :label="$t('chairman.approvalsPage.statusFilterLabel')"
+      :options="statusOptions"
+      style="width: 240px"
+      @update:model-value="onFiltersChange"
     )
 
-    // Пагинация
-    q-card-actions(align='center')
-      q-pagination(
-        v-model='pagination.page',
-        :max='Math.ceil((approvalStore.approvals?.totalCount || 0) / pagination.rowsPerPage)',
-        :max-pages='5',
-        direction-links,
-        boundary-links,
-        @update:model-value='onPageChange'
-      )
+  ApprovalsTableWidget(
+    :approvals="approvalStore.approvals?.items || []"
+    :loading="loading"
+    :pagination="pagination"
+    @update:page="onPageChange"
+  )
 </template>
 
 <script lang="ts" setup>
@@ -42,26 +22,27 @@ import { ref, onMounted, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { FailAlert } from 'src/shared/api';
 import { ApprovalsTableWidget } from 'app/extensions/chairman/widgets/ApprovalsTableWidget/ui';
+import { BaseSelect } from 'src/shared/ui/base';
+import { FilterBar } from 'src/shared/ui/domain';
 import { useApprovalStore } from 'app/extensions/chairman/entities/Approval/model';
 
 import { Zeus } from '@coopenomics/sdk';
+import { t } from '../../../i18n';
+import { useLiveReload, type ChainTableRef } from 'src/shared/lib/realtime';
 
 const approvalStore = useApprovalStore();
 const route = useRoute();
 
 const loading = ref(false);
 
-// Фильтры
-const filters = ref({
-  statuses: { label: 'Ожидает', value: Zeus.ApprovalStatus.PENDING },
-});
+// Фильтр по состоянию: по умолчанию показываем то, что ждёт решения.
+const statusFilter = ref<string>(Zeus.ApprovalStatus.PENDING);
 
-// Опции статусов
 const statusOptions = [
-  { label: 'Все статусы', value: null},
-  { label: 'Ожидает', value: Zeus.ApprovalStatus.PENDING},
-  { label: 'Одобрено', value: Zeus.ApprovalStatus.APPROVED},
-  { label: 'Отклонено', value: Zeus.ApprovalStatus.DECLINED},
+  { label: t('chairman.approvalsPage.allStatusesOption'), value: '' },
+  { label: t('chairman.approval.status.pending'), value: Zeus.ApprovalStatus.PENDING },
+  { label: t('chairman.approval.status.approved'), value: Zeus.ApprovalStatus.APPROVED },
+  { label: t('chairman.approval.status.declined'), value: Zeus.ApprovalStatus.DECLINED },
 ];
 
 // Пагинация
@@ -73,17 +54,18 @@ const pagination = ref({
   rowsNumber: 0,
 });
 
-// Загрузка одобрений
-const loadApprovals = async () => {
+// Загрузка одобрений. Тихая — без оверлея загрузки: так перечитывает лента,
+// чтобы таблица не мигала на каждом решении председателя.
+const loadApprovals = async (silent = false) => {
   try {
-    loading.value = true;
+    if (!silent) loading.value = true;
 
     const coopname = route.params.coopname as string;
 
     const data = {
       filter: {
         coopname,
-        statuses: filters.value.statuses.value !== null ? [filters.value.statuses.value] : undefined,
+        statuses: statusFilter.value ? [statusFilter.value as Zeus.ApprovalStatus] : undefined,
       },
       options: {
         page: pagination.value.page,
@@ -94,9 +76,13 @@ const loadApprovals = async () => {
     };
 
     await approvalStore.loadApprovals(data);
+    // Общее число — в пагинацию таблицы: её подвал и листание работают от него,
+    // отдельный пагинатор под таблицей больше не нужен.
+    pagination.value.rowsNumber = approvalStore.approvals?.totalCount || 0;
   } catch (error) {
     console.error('Ошибка загрузки одобрений:', error);
-    FailAlert('Ошибка загрузки одобрений');
+    // Фоновое перечитывание не пугает отказом: следующий сигнал повторит.
+    if (!silent) FailAlert(t('chairman.approvalsPage.loadError'));
   } finally {
     loading.value = false;
   }
@@ -108,14 +94,9 @@ const onFiltersChange = () => {
   loadApprovals();
 };
 
-// Обработчик изменения страницы
-const onPageChange = () => {
-  loadApprovals();
-};
-
-// Обработчик запроса пагинации
-const onRequest = (props: { pagination: any }) => {
-  pagination.value = props.pagination;
+// Листание: страницы считает сервер, экран только просит нужную.
+const onPageChange = (page: number) => {
+  pagination.value.page = page;
   loadApprovals();
 };
 
@@ -123,6 +104,11 @@ const onRequest = (props: { pagination: any }) => {
 onMounted(() => {
   loadApprovals();
 });
+
+// Одобрения — таблица базы узла расширения председателя: новое одобрение,
+// подпись и отказ приходят по ленте изменений, список перечитывается сам.
+const APPROVALS_TABLE: ChainTableRef = { code: 'chairman', table: 'chairman_approvals' };
+useLiveReload([APPROVALS_TABLE], () => loadApprovals(true));
 
 // Следим за изменением параметров маршрута
 watch(() => route.params.coopname, () => {

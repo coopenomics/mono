@@ -1,6 +1,6 @@
 # Запуск mono dev-стека на macOS
 
-Полная пошаговая инструкция, как поднять backend (`coopback`) + parser (`cooparser`) + блокчейн-ноду + БД на macOS через Docker Desktop. Прошёл — отметь, ниже разобраны типичные грабли.
+Полная пошаговая инструкция, как поднять backend (`coopback`) + индексатор цепи (`parser2`) + блокчейн-ноду + БД на macOS через Docker Desktop. Прошёл — отметь, ниже разобраны типичные грабли.
 
 ## TL;DR
 
@@ -20,7 +20,7 @@ docker compose up -d                                                    # 1. п�
 docker compose up -d
 ```
 
-Поднимутся: `node` (NodeOS), `mongo`, `monoredis`, `postgres`, `coopback`, `cooparser`. **MinIO** входит в дефолт. **OpenSearch** — нет (тяжёлый, см. опц. сервисы).
+Поднимутся: `node` (NodeOS), `mongo`, `monoredis`, `postgres`, `coopback`, `parser2`. **MinIO** входит в дефолт. **OpenSearch** — нет (тяжёлый, см. опц. сервисы).
 
 ### 2. Проверить чтоб .env'ы указывали на service-имена, а не localhost
 
@@ -29,15 +29,10 @@ docker compose up -d
 - `REDIS_HOST=monoredis`
 - `POSTGRES_HOST=postgres`, `POSTGRES_PASSWORD=postgres!23!23`
 - `BLOCKCHAIN_RPC=http://node:8888`
-- `SIMPLE_EXPLORER_API=http://cooparser:4000`
 - `MINIO_ENDPOINT=minio:9000`
 - `CHAIN_ID=<реальный chain_id, см. ниже>`
 
-`components/parser/.env`:
-- `MONGO_EXPLORER_URI=mongodb://mongo:27017/cooperative-x`
-- `REDIS_HOST=monoredis`
-- `API=http://node:8888`
-- `SHIP=ws://node:8080`
+`parser2.config.yaml` в корне репозитория — адрес SHiP ноды и Redis.
 
 **Почему service-имена:** все контейнеры в bridge-сети `monocoop_default`. Внутри контейнера `127.0.0.1` = сам контейнер, не host. На macOS `network_mode: host` в Docker Desktop работает плохо — используем bridge + service names.
 
@@ -52,7 +47,7 @@ curl -s http://localhost:8888/v1/chain/get_info | jq -r .chain_id
 ### 4. Если правил .env — пересоздать контейнер (не restart!)
 
 ```bash
-docker compose up -d --force-recreate --no-deps coopback cooparser
+docker compose up -d --force-recreate --no-deps coopback parser2
 ```
 
 `docker restart` **не перечитывает** `env_file`. `--no-deps` — чтобы не пересоздавать БД (потеряются данные).

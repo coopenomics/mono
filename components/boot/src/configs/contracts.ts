@@ -64,6 +64,11 @@ export default [
     target: 'marketplace',
   },
   {
+    name: 'edubridge',
+    path: path.join(userBase, 'edubridge'),
+    target: 'edubridge',
+  },
+  {
     name: 'draft',
     path: path.join(userBase, 'draft'),
     target: 'draft',
@@ -137,5 +142,10 @@ export default [
     name: 'ano',
     path: path.join(userBase, 'ano'),
     target: 'ano',
+  },
+  {
+    name: 'billing',
+    path: path.join(userBase, 'billing'),
+    target: 'billing',
   },
 ]

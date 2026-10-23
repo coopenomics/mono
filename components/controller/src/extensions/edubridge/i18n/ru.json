@@ -1,0 +1,378 @@
+{
+  "edubridge": {
+    "search": {
+      "membersGroup": "Ученики",
+      "teachersGroup": "Преподаватели",
+      "learnerOf": "обучающийся · {payer}"
+    },
+    "accessOutbox": {
+      "reason": {
+        "attemptsExhausted": "Исчерпаны попытки ({attempts}): {message}",
+        "carrierUnsupported": "Носитель доступа {carrier} не поддерживается",
+        "courseNotFoundOnPlatform": "Курс не найден на площадке",
+        "courseRenamed": "Курс на площадке переименован: «{seenTitle}» → «{currentTitle}»",
+        "learnerOrCourseNotFound": "Обучающийся или курс не найдены",
+        "paidByAnotherSubscription": "Доступ получателя к курсу площадки оплачен другой подпиской — отзыв не исполнен",
+        "platformRejected": "Отказ площадки",
+        "platformUnavailable": "Площадка недоступна",
+        "subscriptionNotFound": "Подписка не найдена"
+      }
+    },
+    "agreementRegistry": {
+      "learningProgram": {
+        "description": "Курсы кооператива для вас и тех, кого вы записываете: членский взнос за выбранный период, доступ на образовательной площадке.",
+        "title": "Обучение"
+      },
+      "parentOffer": {
+        "checkboxText": "Я прочитал и принимаю",
+        "linkText": "оферту ученика по ЦПП «Образование»",
+        "title": "Оферта ученика по целевой потребительской программе «Образование»"
+      },
+      "teacherOffer": {
+        "checkboxText": "Я прочитал и принимаю",
+        "linkText": "оферту преподавателя по ЦПП «Образование»",
+        "title": "Оферта преподавателя по целевой потребительской программе «Образование»"
+      },
+      "teachingProgram": {
+        "description": "Вести курсы кооператива и вносить паевой взнос результатами интеллектуальной деятельности по договору участия в хозяйственной деятельности.",
+        "title": "Преподавание"
+      }
+    },
+    "approvals": {
+      "title": {
+        "apprvcontr": "Договор участия в хозяйственной деятельности",
+        "apprvridact": "Акт приёма-передачи результата интеллектуальной деятельности"
+      }
+    },
+    "economy": {
+      "settlement": {
+        "accepted": "Результат принят, взнос зачислен",
+        "return": "Возврат паевого взноса"
+      },
+      "movement": {
+        "allot": "Оплата занятий выделена в резерв выплат преподавателям",
+        "conv": "Ученик внёс членский взнос",
+        "fallback": "Движение средств",
+        "fee": "Взнос за курс списан на кошелёк программы",
+        "free": "Резерв возвращён на кошелёк программы",
+        "lock": "Взнос удержан по гарантии",
+        "refund": "Взнос возвращён ученику",
+        "settle": "Расчёт с преподавателем за счёт резерва",
+        "unlock": "Удержанный взнос освобождён"
+      },
+      "wallet": {
+        "escrow": {
+          "hint": "В течение гарантийного срока взнос ученика удержан полностью; после срока удержана сумма возврата по Положению. На расходы эти средства не направляются.",
+          "name": "Удержано до конца гарантийного срока",
+          "summary": "Взносы, которые ученики могут вернуть"
+        },
+        "fund": {
+          "hint": "С кошелька программы оплачиваются расходы программы. На него поступают взносы, по которым истёк срок возврата, за вычетом обязательства перед преподавателями.",
+          "name": "Кошелёк ЦПП «Образование»",
+          "summary": "Свободные средства программы"
+        },
+        "members": {
+          "hint": "Внесено учениками и ещё не списано на кошелёк программы: возвраты по отменённым подпискам и взносы до подключения подписки. Направляются на новые подписки; в паевой взнос возвращаются только с прекращением участия в программе.",
+          "name": "Членские взносы учеников",
+          "summary": "Остатки на кошельках программы учеников"
+        },
+        "reserve": {
+          "hint": "Стоимость часов курсов по плановой ставке за оплаченное учениками время, за вычетом уже выплаченного. Наполняется из освобождённых взносов, уменьшается, когда результат преподавателя принят. На расходы программы не направляется.",
+          "name": "Резерв выплат преподавателям",
+          "summary": "Обязательство перед преподавателями"
+        }
+      }
+    },
+    "eduCourseEconomyInput": {
+      "plannedHourlyRate": {
+        "format": "Ставка должна быть в формате «1000.0000 RUB»"
+      }
+    },
+    "eduCourseInput": {
+      "plannedHourlyRate": {
+        "format": "Ставка должна быть в формате «1000.0000 RUB»"
+      }
+    },
+    "eduSetTeacherRateInput": {
+      "hourlyRate": {
+        "format": "Ставка должна быть в формате «1000.0000 RUB»"
+      }
+    },
+    "eduSignContractInput": {
+      "hourlyRate": {
+        "format": "Ставка должна быть в формате «1000.0000 RUB»"
+      }
+    },
+    "eduTeacherProfileInput": {
+      "about": {
+        "length": "Рассказ о себе — от 1 до 2000 знаков"
+      }
+    },
+    "edubridgeExtension": {
+      "field": {
+        "capitalIntegration": {
+          "hint": "Если включено и Благорост установлен: его столы видят только преподаватели, его оферты при вступлении не предлагаются.",
+          "label": "Связать с Благоростом"
+        }
+      },
+      "program": {
+        "learningTitle": "ЦПП «Образование» — обучение",
+        "teachingTitle": "ЦПП «Образование» — преподавание"
+      }
+    },
+    "exitBlockers": {
+      "courseFallbackTitle": "курс",
+      "pendingReturnName": "Возврат членских взносов по действующим подпискам на курсы ({subscriptions}) по Положению программы",
+      "statementsInWork": "по вашим занятиям не закрыт расчёт: заявлений в работе — {count}, дождитесь их прохождения",
+      "teachingCourse": "вы ведёте курс «{title}» — передайте его другому преподавателю либо дождитесь окончания программы",
+      "unsignedStatements": "материалы ваших занятий на ответственном хранении без заявления о паевом взносе — {count}: подпишите заявление на столе преподавателя"
+    },
+    "getcourseConnector": {
+      "emailOnly": "GetCourse принимает только почту обучающегося",
+      "field": {
+        "account": {
+          "label": "Аккаунт GetCourse",
+          "note": "Имя аккаунта (school — для school.getcourse.ru) либо домен школы"
+        },
+        "apiKey": {
+          "label": "API-ключ",
+          "note": "Настройки → Интеграции → API"
+        }
+      },
+      "groupNotFound": "Группа с таким названием не найдена в аккаунте GetCourse",
+      "notConfigured": "GetCourse не настроен",
+      "unreachable": "Школа GetCourse по адресу {host} не отвечает: {message}. Проверьте поле «Аккаунт»",
+      "notConfiguredFull": "GetCourse не настроен: укажите аккаунт и API-ключ",
+      "pingOk": "Ключ принят, групп в аккаунте — {count}"
+    },
+    "httpCarrier": {
+      "platformUnavailable": "Площадка недоступна: {message}"
+    },
+    "membershipExitListener": {
+      "teacherExitReason": "выход преподавателя из кооператива"
+    },
+    "onboarding": {
+      "offerKind": {
+        "parent": "ученика",
+        "teacher": "преподавателя"
+      }
+    },
+    "onboardingSteps": {
+      "contractTemplate": {
+        "title": "Утверждение шаблона договора участия в хозяйственной деятельности"
+      },
+      "parentOfferTemplate": {
+        "title": "Утверждение шаблона оферты ученика"
+      },
+      "provision": {
+        "title": "Утверждение Положения ЦПП «Образование»"
+      },
+      "teacherOfferTemplate": {
+        "title": "Утверждение шаблона оферты преподавателя"
+      }
+    },
+    "onsiteConnector": {
+      "pingOk": "Очным занятиям ключи не нужны"
+    },
+    "sections": {
+      "reorderItems": {
+        "levels": "уровни раздела",
+        "sections": "разделы"
+      }
+    },
+    "skillspaceConnector": {
+      "courseGone": "Курс удалён из школы",
+      "courseIdNotInSchool": "В школе Skillspace нет курса с идентификатором {courseId} — выберите курс из списка школы в карточке курса",
+      "courseNotFound": "Skillspace: курс не найден в школе",
+      "courseRefMissing": "У курса не задан идентификатор курса Skillspace",
+      "emailOnly": "Skillspace принимает только почту обучающегося",
+      "employeeEmail": "Skillspace: этот адрес принадлежит сотруднику школы — сотрудника нельзя записать учеником. Укажите обучающемуся другой адрес.",
+      "field": {
+        "apiKey": {
+          "label": "API-ключ школы",
+          "note": "Настройки школы Skillspace → Интеграции → Open API"
+        }
+      },
+      "forbidden": "Skillspace: доступ запрещён для этого ключа",
+      "groupNotFound": "Группа {groupId} не найдена в школе Skillspace",
+      "groupOfOtherCourse": "Группа «{groupName}» принадлежит другому курсу",
+      "invalidApiKey": "Skillspace: неверный API-ключ школы",
+      "notConfigured": "Skillspace не настроен",
+      "notConfiguredFull": "Skillspace не настроен: укажите API-ключ школы",
+      "pingOk": "Ключ принят, курсов в школе — {count}"
+    },
+    "guarantee": {
+      "untilCourseStart": "начала занятий курса"
+    },
+    "teacher": {
+      "assignmentExpectedResult": "Проведение занятий курса «{courseTitle}» по его учебной программе",
+      "lessonContributionDescription": "Занятие № {lessonNumber} курса «{courseTitle}»",
+      "guaranteePackDescription": "Занятия № {from}–{to} курса «{courseTitle}» за гарантийный срок",
+      "guaranteePackTopic": "по № {to} включительно, занятия гарантийного срока",
+      "ridRecallReason": "совет не принял решение о приёме: {reason}",
+      "councilDeclinedReason": "совет отказал в приёме",
+      "actDeclinedReason": "председатель отказал в подписи акта приёма-передачи"
+    },
+    "group": {
+      "defaultTitle": "Группа {number}"
+    },
+    "schedule": {
+      "reserveLine": "резерв {minutes} мин в неделю",
+      "weekday": {
+        "1": "Пн",
+        "2": "Вт",
+        "3": "Ср",
+        "4": "Чт",
+        "5": "Пт",
+        "6": "Сб",
+        "7": "Вс"
+      }
+    },
+    "roles": {
+      "admin": {
+        "title": "Администратор образования",
+        "description": "Управляет курсами, группами, допуском преподавателей и очередью доступа приложения образования.",
+        "permissions": {
+          "courses": "Курсы, группы и экономика курса",
+          "members": "Ученики приложения и карточка пайщика",
+          "teachers": "Преподаватели, их допуски к курсам и взносы результатами работы",
+          "queue": "Очередь выдачи доступа",
+          "economy": "Деньги программы, расходы и настройки взноса",
+          "coursesManage": "Курсы, разделы, уровни и группы: создание, изменение, публикация, архив",
+          "assignmentsManage": "Допуск преподавателей к курсам",
+          "queueManage": "Повтор задач очереди доступа и отметка удалённых аккаунтов"
+        }
+      }
+    }
+  },
+  "errors": {
+    "EDUBRIDGE_ACCESS_TASK_NOT_FOUND": "Задача не найдена",
+    "EDUBRIDGE_ACT_BEFORE_COUNCIL_DECISION": "Акт доступен после решения совета",
+    "EDUBRIDGE_ACT_HASH_MISMATCH": "Подписан другой документ: хэш акта не совпадает",
+    "EDUBRIDGE_ACT_NOT_IN_REGISTRY": "Акт не найден в реестре документов",
+    "EDUBRIDGE_ACT_NOT_SIGNED_BY_TEACHER": "Акт не подписан преподавателем",
+    "EDUBRIDGE_ACT_NOT_YET_SIGNED_BY_TEACHER": "Акт ещё не подписан преподавателем",
+    "EDUBRIDGE_ACT_SIGNATURES_REQUIRED": "На акте должны быть подписи преподавателя и председателя",
+    "EDUBRIDGE_ASSIGNMENT_NOT_ACTIVE": "Допуск к курсу снят — отчитаться по занятию нельзя",
+    "EDUBRIDGE_ASSIGNMENT_NOT_FOUND": "Назначение не найдено",
+    "EDUBRIDGE_ASSIGNMENT_PERIOD_INVALID": "Конец периода раньше начала",
+    "EDUBRIDGE_ASSIGNMENT_PERIOD_OVERLAP": "Преподаватель уже допущен к этому курсу на этот период. Измените действующий допуск либо назовите другой период",
+    "EDUBRIDGE_CARRIER_NOT_SUPPORTED": "Носитель не поддерживается",
+    "EDUBRIDGE_CONNECTOR_NOT_CONFIGURED": "Площадка не настроена: сначала задайте ключи подключения",
+    "EDUBRIDGE_CONNECTOR_UNKNOWN_FIELDS": "Неизвестные поля подключения: {fields}",
+    "EDUBRIDGE_CONTRACT_DECLINED": "Договор отклонён председателем — подпишите его заново",
+    "EDUBRIDGE_CONTRACT_NOT_APPROVED": "Договор ещё не подписан председателем совета",
+    "EDUBRIDGE_CONTRACT_NOT_SIGNED_BY_TEACHER": "Договор не подписан преподавателем",
+    "EDUBRIDGE_CONTRACT_PENDING_APPROVAL_TERMINATE": "Договор ожидает подписи председателя. Прекратить можно только действующий договор",
+    "EDUBRIDGE_CONTRACT_REQUIRED": "Сначала подпишите договор участия в хозяйственной деятельности",
+    "EDUBRIDGE_CONTRACT_TERMINATED": "Договор прекращён — подпишите его заново",
+    "EDUBRIDGE_CONTRACT_TERMINATION_REASON_REQUIRED": "Укажите основание прекращения договора",
+    "EDUBRIDGE_CONTRIBUTION_ALREADY_HELD": "Материалы занятия уже приняты на ответственное хранение",
+    "EDUBRIDGE_CONTRIBUTION_ALREADY_SUBMITTED": "Взнос уже подан",
+    "EDUBRIDGE_CONTRIBUTION_FOREIGN": "Взнос принадлежит другому преподавателю",
+    "EDUBRIDGE_CONTRIBUTION_NOT_FOUND": "Взнос не найден",
+    "EDUBRIDGE_CONTRIBUTION_NOT_HELD": "Материалы занятия ещё не приняты на ответственное хранение",
+    "EDUBRIDGE_CONTRIBUTION_WITHOUT_LESSON": "Взнос оформлен вне журнала занятий",
+    "EDUBRIDGE_COOP_PRIVATE_KEY_NOT_FOUND": "Не найден приватный ключ кооператива для действий edubridge",
+    "EDUBRIDGE_COURSE_CARRIER_NOT_ALLOWED": "Носитель «{carrier}» недопустим для направления «{direction}»",
+    "EDUBRIDGE_COURSE_DELETE_HAS_LESSONS": "По курсу проведены занятия: курс не удаляется. Снимите его с публикации",
+    "EDUBRIDGE_COURSE_DELETE_HAS_SUBSCRIPTIONS": "По курсу есть подписки: курс не удаляется. Снимите его с публикации",
+    "EDUBRIDGE_COURSE_DISCOUNT_TOO_HIGH": "Скидка {discount}% больше предельной. Предельная скидка — {limit}%",
+    "EDUBRIDGE_COURSE_IMAGE_DECODE_FAILED": "Не удалось декодировать изображение",
+    "EDUBRIDGE_COURSE_IMAGE_EMPTY": "Пустое изображение: нет содержимого файла или его типа",
+    "EDUBRIDGE_COURSE_IMAGE_EMPTY_FILE": "Пустой файл изображения — загружать нечего.",
+    "EDUBRIDGE_COURSE_FEE_LOCKED_BY_SUBSCRIPTIONS": "По курсу есть действующие подписки: плановая ставка, способ расчёта с преподавателем, расписание и программа занятий, скидка за взнос разом и гарантийный срок не изменяются",
+    "EDUBRIDGE_GUARANTEE_CLAIM_NOT_FOUND": "Заявление по гарантийным условиям не найдено",
+    "EDUBRIDGE_GROUP_FINISH_LIVE_SUBSCRIPTIONS": "В группе есть действующие подписки. Группа завершается после их окончания",
+    "EDUBRIDGE_GROUP_NOT_ACTIVE": "Группа завершена либо отменена: занятия по ней не отчитываются",
+    "EDUBRIDGE_GROUP_SETTLEMENT_LESSON_PENDING": "По группе идёт расчёт открытого занятия. Завершите группу после его окончания",
+    "EDUBRIDGE_START_IN_MINUTES_STAND_ONLY": "Начало занятий в минутах называется только на стенде разработки. Назовите дату начала занятий",
+    "EDUBRIDGE_COURSE_START_LOCKED_BY_LESSONS": "По курсу проведены занятия: дата начала занятий не изменяется",
+    "EDUBRIDGE_COURSE_IMAGE_KEY_FOREIGN": "Ключ изображения не принадлежит этому курсу",
+    "EDUBRIDGE_COURSE_IMAGE_SAVE_FAILED": "Не удалось сохранить изображение",
+    "EDUBRIDGE_COURSE_IMAGE_TYPE_UNSUPPORTED": "Поддерживаются только изображения JPEG, PNG и WEBP; получен {contentType}.",
+    "EDUBRIDGE_COURSE_LESSONS_TOTAL_REQUIRED": "Взнос за весь курс считается от программы — укажите, сколько в ней занятий",
+    "EDUBRIDGE_COURSE_NOT_FOUND": "Курс не найден",
+    "EDUBRIDGE_COURSE_NOT_FOUND_OR_UNPUBLISHED": "Курс не найден или не опубликован",
+    "EDUBRIDGE_COURSE_PLATFORM_REF_REQUIRED": "Для площадки нужен идентификатор курса на площадке",
+    "EDUBRIDGE_COURSE_SKILLSPACE_REF_INVALID": "Для Skillspace нужен UUID курса из реестра школы (и UUID группы, если она есть) — числовой номер из адреса конструктора площадка не знает",
+    "EDUBRIDGE_COURSE_START_ONLY_FORWARD": "Занятия уже начались: дату активации можно только сдвинуть вперёд",
+    "EDUBRIDGE_COURSE_TEACHERS_WITHOUT_CONTRACT": "Нет договора участия в хозяйственной деятельности: {teachers}",
+    "EDUBRIDGE_ENROLLMENT_COURSE_FULLY_PAID": "Курс уже оплачен до конца программы",
+    "EDUBRIDGE_ENROLLMENT_COURSE_PAYMENT_DISABLED": "Взнос за весь курс разом по этому курсу не принимается — доступен помесячный взнос",
+    "EDUBRIDGE_ENROLLMENT_STATEMENT_STALE": "Условия оплаты изменились с момента формирования заявления — сформируйте и подпишите его заново",
+    "EDUBRIDGE_ENROLLMENT_YEAR_PERIOD_DISABLED": "Взнос за год больше не принимается: выберите взнос помесячно или за весь курс",
+    "EDUBRIDGE_EXTENSION_CONFIG_NOT_FOUND": "Конфиг расширения edubridge не найден",
+    "EDUBRIDGE_INSUFFICIENT_FUNDS": "Недостаточно средств: нужно {amount}, на кошельке программы {programBalance}, на главном паевом {mainBalance}. Пополните главный кошелёк.",
+    "EDUBRIDGE_INSUFFICIENT_RIGHTS": "Недостаточно прав доступа",
+    "EDUBRIDGE_LEARNER_CONTACT_DUPLICATE": "У вас уже есть обучающийся с таким контактом — у каждого обучающегося свой адрес",
+    "EDUBRIDGE_LEARNER_FOREIGN": "Обучающийся принадлежит другому пайщику",
+    "EDUBRIDGE_LEARNER_HAS_ACTIVE_SUBSCRIPTIONS": "У обучающегося есть действующие подписки — дождитесь окончания периода",
+    "EDUBRIDGE_LEARNER_NOT_FOUND": "Обучающийся не найден",
+    "EDUBRIDGE_LEARNER_SELF_ALREADY_ADDED": "Вы уже добавлены как обучающийся",
+    "EDUBRIDGE_LESSON_NOT_FOUND": "Занятие не найдено",
+    "EDUBRIDGE_LESSON_OTHER_TEACHER": "Занятие закреплено за другим преподавателем",
+    "EDUBRIDGE_LESSON_CANCELLED": "Занятие № {lessonNumber} отменено: отчёт по нему не принимается",
+    "EDUBRIDGE_LESSON_NOT_PLANNED": "Занятие № {lessonNumber} уже проведено либо отменено: перенос и отмена доступны только запланированному",
+    "EDUBRIDGE_LESSON_DATE_INVALID": "Момент занятия не распознан",
+    "EDUBRIDGE_PROGRAM_FULL": "Программа заполнена: в ней {minutesTotal} минут занятий, свободных минут для занятия нет",
+    "EDUBRIDGE_RESERVE_EMPTY": "Резерв расписания исчерпан: свободно {minutesLeft} мин. Внеочередное занятие берётся только из резерва",
+    "EDUBRIDGE_SCHEDULE_RATE_INVALID": "Стоимость часа преподавателя в окне — сумма с символом, например «1000.0000 RUB»",
+    "EDUBRIDGE_SCHEDULE_REQUIRED": "Задайте хотя бы одно окно расписания: из окон считаются минуты занятий и взнос",
+    "EDUBRIDGE_SCHEDULE_WEEKDAY_INVALID": "День недели окна расписания: от 1 (понедельник) до 7 (воскресенье)",
+    "EDUBRIDGE_SCHEDULE_TIME_INVALID": "Время начала окна расписания — «ЧЧ:ММ»",
+    "EDUBRIDGE_PROGRAM_MONTHS_INVALID": "Длительность программы задаётся с шагом в неделю, это четверть месяца. Например, 3,5 — три месяца и две недели",
+    "EDUBRIDGE_SCHEDULE_MINUTES_INVALID": "Длительность занятия — от 5 минут до суток",
+    "EDUBRIDGE_SCHEDULE_TEACHER_NOT_ASSIGNED": "Преподаватель не допущен к курсу этой группы",
+    "EDUBRIDGE_REPORT_DAYS_INVALID": "Срок на отчёт — от 0 до 365 дней",
+    "EDUBRIDGE_LESSON_NOT_PAID_BY_LEARNERS": "По курсу «{courseTitle}» нет оплаченных учениками часов: отчёт о занятии не принимается",
+    "EDUBRIDGE_GROUP_NOT_FOUND": "Группа курса не найдена",
+    "EDUBRIDGE_UNDERFILL_CANCEL_GROUP_STARTED": "Занятия группы уже начались: отмена по недобору недоступна",
+    "EDUBRIDGE_GROUP_ENROLLMENT_CLOSED": "Набор в группу закрыт",
+    "EDUBRIDGE_LEARNER_HAS_SUBSCRIPTIONS": "У обучающегося есть действующая подписка: аккаунт на площадке ему нужен",
+    "EDUBRIDGE_GROUP_CHOICE_REQUIRED": "У курса несколько идущих групп: выберите группу",
+    "EDUBRIDGE_LESSON_REPORT_ALREADY_SUBMITTED": "Отчёт по занятию № {lessonNumber} уже подан",
+    "EDUBRIDGE_LESSON_REPORT_TOO_EARLY": "Отчёт подаётся после занятия: занятие ещё не закончилось",
+    "EDUBRIDGE_LEVEL_ALREADY_EXISTS": "Уровень «{title}» в разделе «{sectionTitle}» уже есть",
+    "EDUBRIDGE_LEVEL_ARCHIVED": "Уровень «{title}» в архиве",
+    "EDUBRIDGE_LEVEL_NOT_FOUND": "Уровень не найден",
+    "EDUBRIDGE_LEVEL_NOT_IN_SECTION": "Уровень не принадлежит разделу",
+    "EDUBRIDGE_LEVEL_TITLE_EMPTY": "Название уровня пустое",
+    "EDUBRIDGE_MEMBER_CONTEXT_NOT_INITIALIZED": "Контекст edubridge не инициализирован — поставьте EdubridgeAccessGuard в {'@'}UseGuards",
+    "EDUBRIDGE_MEMBER_NOT_FOUND": "Пайщик в приложении не найден",
+    "EDUBRIDGE_PROGRAM_NOT_ACCEPTED": "ЦПП «Образование» ещё не принята советом кооператива: подписание оферты невозможно",
+    "EDUBRIDGE_PROGRAM_NOT_FOUND_IN_COOP": "Программа {programId} не найдена в кооперативе {coopname}",
+    "EDUBRIDGE_PROGRAM_NOT_OPENED": "Программа ЦПП «Образование» ({offerKind}) не открыта в кооперативе",
+    "EDUBRIDGE_REORDER_INCOMPLETE": "Новый порядок должен перечислять все {items} ровно по разу",
+    "EDUBRIDGE_SECTION_ALREADY_EXISTS": "Раздел «{title}» уже есть",
+    "EDUBRIDGE_SECTION_ARCHIVED": "Раздел «{title}» в архиве",
+    "EDUBRIDGE_SECTION_NOT_FOUND": "Раздел не найден",
+    "EDUBRIDGE_SECTION_NOT_IN_CATALOG": "Раздел не найден в справочнике",
+    "EDUBRIDGE_SECTION_TITLE_EMPTY": "Название раздела пустое",
+    "EDUBRIDGE_SHARE_WITHDRAW_AMOUNT_INVALID": "Укажите сумму перевода больше нуля",
+    "EDUBRIDGE_SHARE_WITHDRAW_INSUFFICIENT": "Сумма превышает паевой взнос по программе",
+    "EDUBRIDGE_SHARE_WITHDRAW_STATEMENT_STALE": "Сумма изменилась после формирования заявления. Сформируйте заявление заново",
+    "EDUBRIDGE_SHARE_RETURN_STATEMENT_STALE": "Заявление о возврате подписано под другую сумму или другой платёж. Сформируйте заявление заново",
+    "EDUBRIDGE_SHARE_RETURN_NOT_FOUND": "Возврат не найден",
+    "EDUBRIDGE_SHARE_RETURN_FOREIGN": "Это возврат другого преподавателя",
+    "EDUBRIDGE_STATEMENT_ALREADY_IN_COUNCIL": "Заявление на рассмотрении совета. Отозвать его нельзя",
+    "EDUBRIDGE_STATEMENT_ALREADY_SIGNED": "Заявление по этим материалам уже подписано",
+    "EDUBRIDGE_SUBSCRIPTION_ALREADY_CLOSED": "Подписка уже отменена или закрыта",
+    "EDUBRIDGE_SUBSCRIPTION_GUARANTEE_UNDER_REVIEW": "По подписке подано заявление по гарантийным условиям — оно на рассмотрении совета",
+    "EDUBRIDGE_GUARANTEE_ALREADY_CLAIMED": "Заявление по гарантийным условиям по этой подписке уже подано",
+    "EDUBRIDGE_GUARANTEE_NOT_AVAILABLE": "Срок действия гарантийных условий по подписке истёк либо гарантийные условия для курса не объявлены",
+    "EDUBRIDGE_GUARANTEE_NOT_SIGNED": "Заявление не подписано участником",
+    "EDUBRIDGE_GUARANTEE_REASON_REQUIRED": "Укажите причину аннулирования подписки",
+    "EDUBRIDGE_SUBSCRIPTION_CLOSE_NOT_PENDING": "У подписки нет незавершённого закрытия",
+    "EDUBRIDGE_SUBSCRIPTION_NOT_FOUND": "Подписка не найдена",
+    "EDUBRIDGE_TEACHER_CONTRACT_NOT_FOUND": "У преподавателя нет договора участия в хозяйственной деятельности",
+    "EDUBRIDGE_TEACHER_HAS_OPEN_ASSIGNMENTS": "Преподаватель ведёт курсы — сначала снимите его допуски к курсам",
+    "EDUBRIDGE_TEACHER_HAS_OPEN_CONTRIBUTIONS": "По занятиям преподавателя не закрыт расчёт — договор прекращается после него",
+    "EDUBRIDGE_TEACHER_OFFER_REQUIRED": "Сначала подпишите оферту преподавателя по ЦПП «Образование»",
+    "EDUBRIDGE_TEACHER_ABOUT_REQUIRED": "Расскажите о себе",
+    "EDUBRIDGE_TEACHER_RATE_NOT_ASSIGNED": "Преподавателю не назначена ставка за час ({teachers}). Назначьте ставку в карточке преподавателя, затем добавьте его в курс",
+    "EDUBRIDGE_TEACHER_RATE_REQUIRED": "Укажите ставку за час",
+    "EDUBRIDGE_TRANSFER_ACT_STALE": "Акт передачи материалов устарел — сформируйте и подпишите его заново",
+    "EDUBRIDGE_UNDERFILL_CANCEL_PARTIAL": "Возвращено подписок: {cancelled}, не удалось: {failed}. Повторите отмену."
+  }
+}

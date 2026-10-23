@@ -50,8 +50,10 @@
   eosio::check(amount.symbol == _root_govern_symbol,
                "Некорректный символ валюты в сумме материальной помощи");
 
-  get_participant_or_fail(coopname, username);
+  get_active_participant_or_fail(coopname, username);
   verify_document_or_fail(statement, { username });
+  // Заявление о помощи подписывает сам пайщик.
+  verify_signer_keys_or_fail(statement, username);
 
   // Материальная помощь выплачивается из средств, распределённых на участнике
   // реестра распределения участка, — получателем может быть только доверенное
@@ -65,7 +67,7 @@
   eosio::check(byhash.find(aid_hash) == byhash.end(),
                "Заявление на материальную помощь с таким идентификатором уже подано");
 
-  aids.emplace(coopname, [&](auto& a) {
+  aids.emplace(RamPayer::of(aids, coopname), [&](auto& a) {
     a.id        = aids.available_primary_key();
     a.hash      = aid_hash;
     a.username  = username;

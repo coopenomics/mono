@@ -1,3 +1,4 @@
+import { t } from '../../i18n';
 /**
  * Человекочитаемая подпись базовой единицы измерения товара (Эпик 17):
  * количество ведётся в базовых единицах (кг/л/шт), поэтому ярлык — это сама
@@ -8,7 +9,7 @@
  * Phase 2.
  */
 export function marketplaceOrderUnitLabel(unit: string | null | undefined): string {
-  if (unit === 'kg') return 'кг';
-  if (unit === 'liter') return 'л';
-  return 'шт';
+  if (unit === 'kg') return t('marketplace.unitLabel.kg');
+  if (unit === 'liter') return t('marketplace.unitLabel.l');
+  return t('marketplace.unitLabel.pcs');
 }

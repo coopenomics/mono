@@ -5,20 +5,20 @@ div
     .row.q-col-gutter-md
       .col-12.col-md-6
         BaseCard(:title='branchTitle')
-          DataRow(label='Адрес участка', :value='branch.fact_address || "—"')
+          DataRow(:label='$t("ku.kuBranchDetailsWidget.branchAddressLabel")', :value='branch.fact_address || "—"')
           DataRow(label='Email', :value='branch.email || "—"')
-          DataRow(label='Телефон', :value='branch.phone || "—"')
-        BaseCard.q-mt-md(title='Председатель участка')
+          DataRow(:label='$t("ku.kuBranchDetailsWidget.branchPhoneLabel")', :value='branch.phone || "—"')
+        BaseCard.q-mt-md(:title='$t("ku.kuBranchDetailsWidget.chairmanCardTitle")')
           .q-pa-sm
             PersonCard(:person='chairmanPerson', density='compact')
       .col-12.col-md-6
-        BaseCard(title='Пайщики участка')
+        BaseCard(:title='$t("ku.kuBranchDetailsWidget.membersCardTitle")')
           .ku-members
             q-icon.ku-members__icon(name='groups', size='28px')
             .ku-members__body
               .ku-members__count.t-num {{ participantsCount }}
-              .ku-members__hint делегировали председателю кооперативного участка свой голос на общих собраниях пайщиков
-        BaseCard.q-mt-md(title='Доверенные лица')
+              .ku-members__hint {{ $t('ku.kuBranchDetailsWidget.membersHint') }}
+        BaseCard.q-mt-md(:title='$t("ku.kuBranchDetailsWidget.trustedCardTitle")')
           template(v-if='trustedPersons.length')
             .q-pa-sm.column.q-gutter-sm
               PersonCard(
@@ -28,27 +28,27 @@ div
                 density='compact'
               )
           .q-pa-sm.t-sm.t-muted(v-else)
-            | Доверенных лиц пока нет. Пайщик участка становится доверенным по заявлению
-            | с договором о полной материальной ответственности — председатель одобряет
-            | его встречной подписью (не более трёх доверенных).
+            | {{ $t('ku.kuBranchDetailsWidget.trustedEmptyLine1') }}
+            | {{ $t('ku.kuBranchDetailsWidget.trustedEmptyLine2') }}
+            | {{ $t('ku.kuBranchDetailsWidget.trustedEmptyLine3') }}
           .q-pa-sm(v-if='canRequest')
             BaseButton(
               variant='secondary',
               :loading='isSubmitting',
               @click='onRequest'
-            ) Стать доверенным лицом
+            ) {{ $t('ku.kuBranchDetailsWidget.trustedRequestButton') }}
 
     //- Заявки пайщиков на приём доверенными лицами этого участка
-    BaseCard.q-mt-md(v-if='branchRequests.length', title='Заявки на доверенных')
+    BaseCard.q-mt-md(v-if='branchRequests.length', :title='$t("ku.kuBranchDetailsWidget.requestsCardTitle")')
       .table-wrap
         .table-scroll
           table.table
             thead
               tr
-                th Заявитель
-                th Статус
-                th Документы
-                th.col-action Действия
+                th {{ $t('ku.kuBranchDetailsWidget.requestsApplicantColumn') }}
+                th {{ $t('ku.kuBranchDetailsWidget.requestsStatusColumn') }}
+                th {{ $t('ku.kuBranchDetailsWidget.requestsDocumentsColumn') }}
+                th.col-action {{ $t('ku.kuBranchDetailsWidget.requestsActionsColumn') }}
             tbody
               tr(v-for='request in branchRequests', :key='request.hash')
                 td
@@ -56,7 +56,7 @@ div
                   .t-sm.t-muted {{ request.username }}
                 td
                   BaseBadge(:variant='request.present ? "warn" : "neutral"')
-                    | {{ request.present ? 'На рассмотрении' : 'Рассмотрена' }}
+                    | {{ request.present ? $t('ku.kuBranchDetailsWidget.status.pending') : $t('ku.kuBranchDetailsWidget.status.reviewed') }}
                 td
                   .ku-doc-links
                     button.ku-doc-link(
@@ -65,14 +65,14 @@ div
                       @click='openDocument(request)'
                     )
                       q-icon(name='description', size='16px')
-                      span Договор
+                      span {{ $t('ku.kuBranchDetailsWidget.requestsContractLink') }}
                     button.ku-doc-link(
                       v-if='request.authority_document?.rawDocument',
                       type='button',
                       @click='openAuthority(request)'
                     )
                       q-icon(name='description', size='16px')
-                      span Доверенность
+                      span {{ $t('ku.kuBranchDetailsWidget.requestsAuthorityLink') }}
                     span.t-sm.t-muted(
                       v-if='!request.document?.rawDocument && !request.authority_document?.rawDocument'
                     ) —
@@ -83,43 +83,43 @@ div
                       size='sm',
                       :loading='isSubmitting',
                       @click='onApprove(request)'
-                    ) Одобрить
+                    ) {{ $t('ku.kuBranchDetailsWidget.requestsApprove') }}
                     BaseButton(
                       variant='secondary',
                       size='sm',
                       :loading='isSubmitting',
                       @click='openDecline(request)'
-                    ) Отклонить
-  EmptyState(v-else, title='Участок не найден')
+                    ) {{ $t('ku.kuBranchDetailsWidget.requestsDecline') }}
+  EmptyState(v-else, :title='$t("ku.kuBranchDetailsWidget.branchNotFound")')
 
 //- Просмотр договора заявителя
-BaseDialog(v-model='isDocumentOpen', title='Договор о полной материальной ответственности', size='lg')
+BaseDialog(v-model='isDocumentOpen', :title='$t("ku.kuBranchDetailsWidget.contractDialogTitle")', size='lg')
   BaseDocument(v-if='documentTarget', :document-aggregate='documentTarget')
 
 //- Просмотр доверенности заявителя
-BaseDialog(v-model='isAuthorityOpen', title='Доверенность доверенному лицу', size='lg')
+BaseDialog(v-model='isAuthorityOpen', :title='$t("ku.kuBranchDetailsWidget.authorityDialogTitle")', size='lg')
   BaseDocument(v-if='authorityTarget', :document-aggregate='authorityTarget')
 
 //- Предпросмотр документов заявителя с подставленными данными перед подписанием и подачей
-BaseDialog(v-model='trustedPreviewOpen', title='Проверьте документы перед подписанием', size='lg')
+BaseDialog(v-model='trustedPreviewOpen', :title='$t("ku.kuBranchDetailsWidget.trustedPreviewTitle")', size='lg')
   .t-sm.t-muted.q-mb-md
-    | Ознакомьтесь с документами — в них уже подставлены ваши данные. После подписания
-    | договор и доверенность будут направлены председателю участка на одобрение.
+    | {{ $t('ku.kuBranchDetailsWidget.trustedPreviewNoticeLine1') }}
+    | {{ $t('ku.kuBranchDetailsWidget.trustedPreviewNoticeLine2') }}
   .column.q-gutter-md
     .ku-preview-doc(v-for='item in trustedPreviewDocs', :key='item.title')
       .ku-preview-doc__title {{ item.title }}
       BaseDocument(:document-aggregate='item.aggregate')
   .row.justify-end.q-gutter-sm.q-mt-md
-    BaseButton(variant='secondary', type='button', @click='trustedPreviewOpen = false') Назад
-    BaseButton(variant='primary', :loading='isSubmitting', @click='confirmRequest') Подписать и подать заявку
+    BaseButton(variant='secondary', type='button', @click='trustedPreviewOpen = false') {{ $t('common.action.back') }}
+    BaseButton(variant='primary', :loading='isSubmitting', @click='confirmRequest') {{ $t('ku.kuBranchDetailsWidget.trustedPreviewSubmit') }}
 
 //- Отклонение заявки доверенного
-BaseDialog(v-model='isDeclineOpen', title='Отклонить заявку', size='sm')
+BaseDialog(v-model='isDeclineOpen', :title='$t("ku.kuBranchDetailsWidget.declineDialogTitle")', size='sm')
   BaseForm(@submit='onDecline')
-    BaseInput(v-model='declineReason', label='Причина отклонения', required)
+    BaseInput(v-model='declineReason', :label='$t("ku.kuBranchDetailsWidget.declineReasonLabel")', required)
     .row.justify-end.q-gutter-sm.q-mt-md
-      BaseButton(variant='secondary', type='button', @click='isDeclineOpen = false') Назад
-      BaseButton(variant='primary', type='submit', :loading='isSubmitting') Отклонить
+      BaseButton(variant='secondary', type='button', @click='isDeclineOpen = false') {{ $t('common.action.back') }}
+      BaseButton(variant='primary', type='submit', :loading='isSubmitting') {{ $t('ku.kuBranchDetailsWidget.requestsDecline') }}
 
 //- Сбор паспорта доверенного лица перед подачей заявки (если паспорта ещё нет)
 CollectPassportDialog(v-model='passportDialogOpen', @saved='onPassportSaved')
@@ -128,7 +128,8 @@ CollectPassportDialog(v-model='passportDialogOpen', @saved='onPassportSaved')
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
 import { useBranchStore } from 'src/entities/Branch/model';
-import { useKuStore } from 'src/entities/Ku/model';
+import { useKuStore, KU_LIVE_TABLES } from 'src/entities/Ku/model';
+import { useLiveReload } from 'src/shared/lib/realtime';
 import type { IKuTrustRequest } from 'src/entities/Ku/model';
 import type { IDocumentAggregate } from 'src/entities/Document/model';
 import { useKuTrustedFlow } from 'src/features/Ku/TrustedFlow/model';
@@ -150,13 +151,14 @@ import type { TableSkeletonColumn } from 'src/shared/ui/base';
 import { DataRow, PersonCard } from 'src/shared/ui/domain';
 import { BaseDocument } from 'src/shared/ui/BaseDocument';
 import type { Person } from 'src/shared/ui/domain/PersonCard';
+import { t } from 'src/shared/i18n';
 
 const props = defineProps<{ braname: string }>();
 
 const skeletonColumns: TableSkeletonColumn[] = [
-  { label: 'Участок' },
-  { label: 'Председатель' },
-  { label: 'Доверенные' },
+  { label: t('ku.kuBranchDetailsWidget.skeletonBranchColumn') },
+  { label: t('ku.kuBranchDetailsWidget.skeletonChairmanColumn') },
+  { label: t('ku.kuBranchDetailsWidget.skeletonTrustedColumn') },
 ];
 
 const branchStore = useBranchStore();
@@ -187,7 +189,7 @@ const branch = computed(
 );
 
 const branchTitle = computed(
-  () => branch.value?.short_name || branch.value?.full_name || 'Кооперативный участок',
+  () => branch.value?.short_name || branch.value?.full_name || t('ku.kuBranchDetailsWidget.defaultBranchTitle'),
 );
 
 // число пайщиков участка приходит в публичном payload ветки (participants_count)
@@ -200,14 +202,14 @@ function fullName(person?: { last_name?: string; first_name?: string; middle_nam
 
 const chairmanPerson = computed<Person>(() => ({
   fullName: fullName(branch.value?.trustee_certificate),
-  role: 'Председатель кооперативного участка',
+  role: t('ku.kuBranchDetailsWidget.chairmanRoleLabel'),
   accountName: branch.value?.trustee_certificate?.username,
 }));
 
 const trustedPersons = computed<Person[]>(() =>
   (branch.value?.trusted_certificates ?? []).map((person: any) => ({
     fullName: fullName(person),
-    role: 'Доверенное лицо',
+    role: t('ku.kuBranchDetailsWidget.trustedRoleLabel'),
     accountName: person?.username,
   })),
 );
@@ -243,17 +245,6 @@ const canRequest = computed(() => {
   return !isTrusted && !hasActiveRequest && trusted.length < 3;
 });
 
-/**
- * Проекции наполняются из блокчейна асинхронно (parser → PG) —
- * после транзакции опрашиваем данные до выполнения предиката.
- */
-async function poll(predicate: () => boolean, attempts = 8): Promise<void> {
-  for (let attempt = 0; attempt < attempts; attempt++) {
-    await load();
-    if (predicate()) return;
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-  }
-}
 
 // доверенное лицо подписывает договор матответственности (327) и доверенность (330) —
 // если паспорта в реестре ещё нет, сначала собираем его; затем генерируем документы с
@@ -280,10 +271,9 @@ async function confirmRequest() {
   trustedPreviewOpen.value = false;
   try {
     await flow.requestTrusted({ braname: trustedInput.value.braname }, trustedPrepared.value);
-    SuccessAlert('Заявка подана');
-    await poll(() =>
-      branchRequests.value.some((request) => request.username === session.username && request.present),
-    );
+    SuccessAlert(t('ku.kuBranchDetailsWidget.successRequestSubmitted'));
+    // Заявка отвечает после разбора своего блока — перечитываем сразу.
+    await load(true);
   } catch (e: unknown) {
     FailAlert(e);
   } finally {
@@ -302,16 +292,16 @@ const trustedPreviewDocs = computed(() => {
     aggregate: { rawDocument: gen, document: { doc_hash: '', signatures: [] } } as unknown as IDocumentAggregate,
   });
   return [
-    wrap(d.application, 'Договор о полной материальной ответственности'),
-    wrap(d.authority, 'Доверенность доверенному лицу'),
+    wrap(d.application, t('ku.kuBranchDetailsWidget.contractDialogTitle')),
+    wrap(d.authority, t('ku.kuBranchDetailsWidget.authorityDialogTitle')),
   ];
 });
 
 async function onApprove(request: IKuTrustRequest) {
   try {
     await flow.approveTrusted(request);
-    SuccessAlert('Доверенное лицо принято');
-    await poll(() => !branchRequests.value.some((item) => item.hash === request.hash && item.present));
+    SuccessAlert(t('ku.kuBranchDetailsWidget.successTrustedApproved'));
+    await load(true);
   } catch (e: unknown) {
     FailAlert(e);
   }
@@ -329,14 +319,14 @@ async function onDecline() {
   try {
     await flow.declineTrusted(target, declineReason.value);
     isDeclineOpen.value = false;
-    SuccessAlert('Заявка отклонена');
-    await poll(() => !branchRequests.value.some((item) => item.hash === target.hash && item.present));
+    SuccessAlert(t('ku.kuBranchDetailsWidget.successRequestDeclined'));
+    await load(true);
   } catch (e: unknown) {
     FailAlert(e);
   }
 }
 
-async function load() {
+async function load(silent = false) {
   try {
     await Promise.all([
       branchStore.loadPublicBranches({ coopname: system.info.coopname }),
@@ -346,11 +336,15 @@ async function load() {
       }),
     ]);
   } catch (e: unknown) {
-    FailAlert(e);
+    if (!silent) FailAlert(e);
   } finally {
     loading.value = false;
   }
 }
+
+// Участок и заявки на доверенность живут по ленте изменений — подача, одобрение
+// и отказ видны сразу у заявителя и у председателя участка.
+useLiveReload(KU_LIVE_TABLES, () => load(true));
 
 watch(
   () => props.braname,
@@ -360,7 +354,7 @@ watch(
   },
 );
 
-onMounted(load);
+onMounted(() => load());
 </script>
 
 <style scoped>

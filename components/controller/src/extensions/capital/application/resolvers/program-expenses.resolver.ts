@@ -1,6 +1,14 @@
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
-import { GqlJwtAuthGuard, RolesGuard, AuthRoles, createPaginationResult, PaginationInputDTO, PaginationResult, TransactionDTO } from '@coopenomics/extension-kit';
+import {
+  GqlJwtAuthGuard,
+  createPaginationResult,
+  PaginationInputDTO,
+  PaginationResult,
+  TransactionDTO,
+  RequireRight,
+  RightsGuard,
+} from '@coopenomics/extension-kit';
 import { ProgramExpensesManagementService } from '../services/program-expenses-management.service';
 import { CreateProgramExpenseInputDTO } from '../dto/program_expenses/create-program-expense.input';
 import { TopupProgramExpenseInputDTO } from '../dto/program_expenses/topup-program-expense.input';
@@ -23,8 +31,8 @@ export class ProgramExpensesResolver {
     name: 'capitalCreateProgramExpense',
     description: 'Создание программного расхода капитала через шасси expense.',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('ProgramExpense', 'create')
   async createProgramExpense(
     @Args('data', { type: () => CreateProgramExpenseInputDTO }) data: CreateProgramExpenseInputDTO,
   ): Promise<TransactionDTO> {
@@ -35,8 +43,8 @@ export class ProgramExpensesResolver {
     name: 'capitalTopupProgramExpensePool',
     description: 'Пополнение пула программных расходов капитала из инвестиционного пула.',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('ProgramExpense', 'pay')
   async topupProgramExpense(
     @Args('data', { type: () => TopupProgramExpenseInputDTO }) data: TopupProgramExpenseInputDTO,
   ): Promise<TransactionDTO> {
@@ -47,8 +55,8 @@ export class ProgramExpensesResolver {
     name: 'capitalProgramExpenses',
     description: 'Список программных расходов капитала (через шасси expense).',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('ProgramExpense', 'read')
   async listProgramExpenses(
     @Args('coopname', { type: () => String }) coopname: string,
     @Args('options', { type: () => PaginationInputDTO, nullable: true }) options?: PaginationInputDTO,
@@ -61,8 +69,8 @@ export class ProgramExpensesResolver {
     description: 'Программный расход по expense_hash.',
     nullable: true,
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('ProgramExpense', 'read')
   async getProgramExpense(
     @Args('coopname') coopname: string,
     @Args('expense_hash') expenseHash: string,

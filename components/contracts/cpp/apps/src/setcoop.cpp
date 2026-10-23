@@ -38,7 +38,7 @@ void apps::setcoop(eosio::name coopname,
   eosio::check(!nothing_to_change, "Нет полей для обновления");
 
   auto now_tps = eosio::time_point_sec(eosio::current_time_point().sec_since_epoch());
-  coops.modify(it, coopname, [&](auto &c) {
+  coops.modify(it, RamPayer::of(coops, coopname), [&](auto &c) {
     if (chain_id.has_value())     c.chain_id     = *chain_id;
     if (subnet_label.has_value()) {
       eosio::check(subnet_label->value != 0, "subnet_label не может быть пустым");

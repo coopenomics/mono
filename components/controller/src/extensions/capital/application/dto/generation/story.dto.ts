@@ -62,4 +62,9 @@ export class StoryOutputDTO extends BaseOutputDTO {
     description: 'Порядок сортировки',
   })
   sort_order!: number;
+
+  @Field(() => Int, {
+    description: 'Редакция содержимого (title/description); передаётся как base_rev при сохранении',
+  })
+  content_rev!: number;
 }

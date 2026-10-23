@@ -29,6 +29,8 @@ export class MarketplaceInventoryMapper {
       labeled_by_operator_account: row.labeled_by_operator_account,
       expiry_date: row.expiry_date,
       ownership: row.ownership,
+      origin: row.origin ?? 'RECEPTION',
+      return_claim_id: row.return_claim_id ?? null,
       arrival_price: row.arrival_price,
       package_size: row.package_size,
       unit_of_measure: row.unit_of_measure,

@@ -15,9 +15,13 @@ import { fileURLToPath } from 'node:url'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const HPP_PATH = resolve(__dirname, '../../contracts/cpp/lib/core/ledger2/wallets.hpp')
+const EXIT_HPP_PATH = resolve(__dirname, '../../contracts/cpp/lib/core/ledger2/exit_policy.hpp')
+const OPS_HPP_PATH = resolve(__dirname, '../../contracts/cpp/lib/core/ledger2/operations.hpp')
 const OUT_PATH = resolve(__dirname, '../src/ledger2/wallets.generated.ts')
 
 const hpp = readFileSync(HPP_PATH, 'utf8')
+const exitHpp = readFileSync(EXIT_HPP_PATH, 'utf8')
+const opsHpp = readFileSync(OPS_HPP_PATH, 'utf8')
 
 // ── 1. ledger2_wallets:: NAME = "w.x.y"_n; ─────────────────────────────
 const nameMap = new Map<string, string>()
@@ -106,28 +110,56 @@ const programMapping: ProgramMappingEntry[] = []
   }
 }
 
-// ── 5b. LEDGER2_EXIT_REFUND_WALLETS ──────────────────────────────────────
-// Сет паевых кошельков, возвращаемых пайщику при выходе. Простой массив имён
-// `ledger2_wallets::NAME` — единый источник для контракта (confirmexit) и
-// backend-preview.
-const exitRefundWallets: string[] = []
+// ── 5b. EXIT_WALLET_POLICY (exit_policy.hpp) ─────────────────────────────
+// Что выход делает с кошельком пайщика: MAIN — цель сбора, RETURN_TO_MAIN —
+// возвращается (с операцией переноса), FORFEIT — остаётся кооперативу,
+// BLOCKER — ненулевой остаток держит выход, UNTOUCHED — выход не трогает.
+// Единый источник для контракта (confirmexit) и backend-preview.
+type ExitPolicy = 'MAIN' | 'RETURN_TO_MAIN' | 'FORFEIT' | 'BLOCKER' | 'UNTOUCHED'
+interface ExitRuleEntry { wallet_name: string, policy: ExitPolicy, transfer_op: string | null, note: string }
+const exitPolicy: ExitRuleEntry[] = []
 {
-  const body = extractArrayBody('LEDGER2_EXIT_REFUND_WALLETS')
-  const re = /ledger2_wallets::(\w+)/g
-  for (const m of body.matchAll(re)) {
-    const wallet_name = nameMap.get(m[1]!)
-    if (!wallet_name) throw new Error(`gen-from-cpp: ledger2_wallets::${m[1]} не найден среди имён`)
-    exitRefundWallets.push(wallet_name)
+  // operations::<contract>::NAME = "o.x.y"_n — нужны коды операций переноса.
+  const opMap = new Map<string, string>()
+  for (const m of opsHpp.matchAll(/inline\s+constexpr\s+eosio::name\s+(\w+)\s*=\s*"([^"]+)"_n\s*;/g)) {
+    opMap.set(m[1]!, m[2]!)
   }
-  if (exitRefundWallets.length === 0) throw new Error('gen-from-cpp: LEDGER2_EXIT_REFUND_WALLETS пуст')
-  const sizeMatch = /std::array<eosio::name,\s*(\d+)>\s+LEDGER2_EXIT_REFUND_WALLETS/.exec(hpp)
-  if (sizeMatch && Number(sizeMatch[1]) !== exitRefundWallets.length)
-    throw new Error(`gen-from-cpp: распарсено ${exitRefundWallets.length} exit-refund-кошельков, объявлено ${sizeMatch[1]}`)
+  const open = 'EXIT_WALLET_POLICY[] = {'
+  const start = exitHpp.indexOf(open)
+  if (start === -1) throw new Error('gen-from-cpp: EXIT_WALLET_POLICY[] = { ... } не найдено')
+  const end = exitHpp.indexOf('\n};', start)
+  if (end === -1) throw new Error('gen-from-cpp: закрывающее }; для EXIT_WALLET_POLICY не найдено')
+  const body = exitHpp.slice(start + open.length, end)
+  const re = /\{\s*ledger2_wallets::(\w+)\s*,\s*ExitWalletPolicy::(\w+)\s*,\s*(eosio::name\{\}|operations::\w+::(\w+))\s*,\s*"([^"]*)"\s*\}/g
+  const allowed: ExitPolicy[] = ['MAIN', 'RETURN_TO_MAIN', 'FORFEIT', 'BLOCKER', 'UNTOUCHED']
+  for (const m of body.matchAll(re)) {
+    const [, ident, policy, opExpr, opIdent, note] = m
+    const wallet_name = nameMap.get(ident!)
+    if (!wallet_name) throw new Error(`gen-from-cpp: ledger2_wallets::${ident} не найден среди имён`)
+    if (!allowed.includes(policy as ExitPolicy)) throw new Error(`gen-from-cpp: неизвестная ExitWalletPolicy::${policy}`)
+    let transfer_op: string | null = null
+    if (opExpr !== 'eosio::name{}') {
+      transfer_op = opMap.get(opIdent!) ?? null
+      if (!transfer_op) throw new Error(`gen-from-cpp: операция ${opExpr} не найдена в operations.hpp`)
+    }
+    exitPolicy.push({ wallet_name, policy: policy as ExitPolicy, transfer_op, note: note! })
+  }
+  if (exitPolicy.length === 0) throw new Error('gen-from-cpp: EXIT_WALLET_POLICY пуст')
+  // Каждый USER_SHARED-кошелёк реестра обязан иметь строку — как в C++ static_assert.
   const known = new Set(walletRegistry.map(w => w.name))
-  for (const w of exitRefundWallets) {
-    if (!known.has(w)) throw new Error(`gen-from-cpp: exit-refund ссылается на отсутствующий в реестре кошелёк "${w}"`)
+  for (const r of exitPolicy) {
+    if (!known.has(r.wallet_name))
+      throw new Error(`gen-from-cpp: политика выхода ссылается на отсутствующий в реестре кошелёк "${r.wallet_name}"`)
+  }
+  const covered = new Set(exitPolicy.map(r => r.wallet_name))
+  for (const w of walletRegistry) {
+    if (w.kind === 'USER_SHARED' && !covered.has(w.name))
+      throw new Error(`gen-from-cpp: у кошелька "${w.name}" нет политики выхода в EXIT_WALLET_POLICY`)
   }
 }
+const exitRefundWallets = exitPolicy
+  .filter(r => r.policy === 'MAIN' || r.policy === 'RETURN_TO_MAIN')
+  .map(r => r.wallet_name)
 
 // ── 6. emit TS ───────────────────────────────────────────────────────────
 const lines: string[] = []
@@ -176,11 +208,35 @@ for (const m of programMapping) {
 }
 lines.push('] as const')
 lines.push('')
+lines.push('/** Что выход из кооператива делает с кошельком пайщика. */')
+lines.push("export type ExitWalletPolicy = 'MAIN' | 'RETURN_TO_MAIN' | 'FORFEIT' | 'BLOCKER' | 'UNTOUCHED'")
+lines.push('')
+lines.push('export interface ExitWalletRule {')
+lines.push('  /** Машинный идентификатор кошелька. */')
+lines.push('  wallet_name: IName')
+lines.push('  /** MAIN — главный паевой, цель сбора; RETURN_TO_MAIN — возвращается пайщику; FORFEIT — остаётся кооперативу; BLOCKER — ненулевой остаток держит выход; UNTOUCHED — выход не трогает. */')
+lines.push('  policy: ExitWalletPolicy')
+lines.push('  /** Операция переноса на главный паевой; null у всех политик, кроме RETURN_TO_MAIN. */')
+lines.push('  transfer_op: IName | null')
+lines.push('  /** Для BLOCKER — причина отказа пайщику; для остальных — пояснение к решению. */')
+lines.push('  note: string')
+lines.push('}')
+lines.push('')
 lines.push('/**')
-lines.push(' * Сет паевых («боевых») кошельков пайщика, возвращаемых при выходе из кооператива.')
-lines.push(' * Точная копия `LEDGER2_EXIT_REFUND_WALLETS` из C++. Контракт `confirmexit` обходит')
-lines.push(' * этот сет, собирает доступные балансы и ставит их на возврат; backend-preview')
-lines.push(' * считает по нему же — расчёт на фронте всегда совпадает с тем, что вернёт контракт.')
+lines.push(' * Что выход делает с каждым кошельком пайщика — точная копия `EXIT_WALLET_POLICY`')
+lines.push(' * из C++ (lib/core/ledger2/exit_policy.hpp). Контракт `confirmexit` обходит эту')
+lines.push(' * таблицу, собирает доступные балансы возвращаемых кошельков и ставит их на')
+lines.push(' * возврат; предрасчёт на столе считает по ней же — суммы совпадают.')
+lines.push(' */')
+lines.push('export const LEDGER2_EXIT_WALLET_POLICY: readonly ExitWalletRule[] = [')
+for (const r of exitPolicy) {
+  lines.push(`  { wallet_name: ${JSON.stringify(r.wallet_name)}, policy: ${JSON.stringify(r.policy)}, transfer_op: ${r.transfer_op === null ? 'null' : JSON.stringify(r.transfer_op)}, note: ${JSON.stringify(r.note)} },`)
+}
+lines.push('] as const')
+lines.push('')
+lines.push('/**')
+lines.push(' * Кошельки, остатки которых возвращаются пайщику при выходе, — выведено из')
+lines.push(' * таблицы политики (MAIN + RETURN_TO_MAIN).')
 lines.push(' */')
 lines.push('export const LEDGER2_EXIT_REFUND_WALLETS: readonly IName[] = [')
 for (const w of exitRefundWallets) {
@@ -190,4 +246,4 @@ lines.push('] as const')
 lines.push('')
 
 writeFileSync(OUT_PATH, lines.join('\n'), 'utf8')
-console.log(`gen-from-cpp: записано ${OUT_PATH} (wallets=${walletRegistry.length}, mapping=${programMapping.length}, exitRefund=${exitRefundWallets.length})`)
+console.log(`gen-from-cpp: записано ${OUT_PATH} (wallets=${walletRegistry.length}, mapping=${programMapping.length}, exitPolicy=${exitPolicy.length}, exitRefund=${exitRefundWallets.length})`)

@@ -1,0 +1,118 @@
+feature: marketplace.branch-scope
+title: Стол заказов — оператор распоряжается только своим участком
+
+# Право оператора в таблице ролей Стола заказов значит «председатель или
+# доверенный какого-то участка». Чей это склад, чья партия и чьё заявление,
+# сверяет резолвер: оператор участка работает со своим участком, администратор
+# с правом на все участки — с любым.
+#
+# До 03.10.2026 сверки не было в шести местах (паспорт прав, задача C28-87):
+# оператор чужого участка открывал акт приёмки по партии, перекладывал и
+# маркировал позиции склада, публиковал и снимал остаток, отменял заказ со
+# склада, отзывал бандл выдачи; в решениях по гарантийному возврату участок
+# оператора проверяла только цепь, а протокол совета о списании читал
+# оператор любого участка. Сверка добавлена в резолверы; сервисы отдают
+# участок объекта отдельным чтением.
+
+# Правка 2026-10-04 (C28-87): права операций сверяются с единой таблицей прав
+# Стола заказов вместе с условием строки (кооператив подключён, заказчик
+# подключён, хранение включено); декоратор операции — общий `@RequireRight` из
+# каркаса расширений. Случаи про условия — в marketplace.rights-table; набор
+# случаев этой фичи прежний.
+
+# Правка 2026-10-05 (C28-87): чтение предложений докладки отвечает заказчику
+# своим и оператору своим участком, требование операции называет оба охвата
+# (`StockProposal: read:own | read:own-KU`). С одним охватом заказчика оператор
+# без подключения заказчиком получал отказ на странице выдачи. Сверка участка в
+# резолвере прежняя; случай — mkt.rights.side.10 в marketplace.rights-table.
+
+# Правка 2026-10-05, вторая (C28-87, пункт 1а): сверку участка ведёт общий гард.
+# Операция называет источник объекта третьим аргументом `@RequireRight` (участок
+# из запроса либо объект по номеру), справочник объектов отдаёт участок, правило
+# охвата записано в каркасе расширений. Частные сверки в резолверах убраны,
+# отказ приходит до входа в операцию общим кодом KIT_RIGHT_SCOPE_OWN_KU. Набор
+# случаев прежний; правило охвата целиком — случаи mkt.scopes.* в
+# marketplace.rights-table.
+
+# Правка 2026-10-05 (C28-87, общий гард): права операций сверяет общий гард
+# каркаса расширений (`RightsGuard`) над описанием прав Стола заказов;
+# собственный гард стола, декоратор роли и ручной провайдер прав рабочего стола
+# убраны. Отказ «право не положено» отвечает кодом KIT_INSUFFICIENT_RIGHTS (был
+# отказ без кода). Набор случаев прежний.
+
+sources:
+  backend:
+    - components/controller/src/extensions/marketplace/application/resolvers/marketplace-inventory.resolver.ts
+    - components/controller/src/extensions/marketplace/application/resolvers/marketplace-stock.resolver.ts
+    - components/controller/src/extensions/marketplace/application/resolvers/marketplace-apl-reception.resolver.ts
+    - components/controller/src/extensions/marketplace/application/resolvers/marketplace-return-claim.resolver.ts
+    - components/controller/src/extensions/marketplace/application/resolvers/marketplace-writeoff.resolver.ts
+
+cases:
+  - id: mkt.scope.side.01
+    level: backend
+    kind: side
+    scenario: председатель участка odn формирует акт приёмки по партии, которая ждёт приёмки на участке krg
+    expect: отказ KIT_RIGHT_SCOPE_OWN_KU, акт не создан, партия свободна; председатель krg открывает акт по той же партии
+    test: components/api-tests/src/marketplace/branch-scope.test.ts
+    api: components/api-tests/src/marketplace/branch-scope.test.ts
+    status: written
+
+  - id: mkt.scope.side.02
+    level: backend
+    kind: side
+    scenario: председатель участка odn маркирует, перекладывает и делит позицию склада участка krg
+    expect: пять отказов KIT_RIGHT_SCOPE_OWN_KU, позиция не изменилась; председатель krg маркирует её
+    test: components/api-tests/src/marketplace/branch-scope.test.ts
+    api: components/api-tests/src/marketplace/branch-scope.test.ts
+    status: written
+
+  - id: mkt.scope.side.03
+    level: backend
+    kind: side
+    scenario: председатель участка odn публикует позицию склада krg в каталог и снимает её с публикации
+    expect: отказ KIT_RIGHT_SCOPE_OWN_KU на оба действия, позиция не опубликована
+    test: components/api-tests/src/marketplace/branch-scope.test.ts
+    api: components/api-tests/src/marketplace/branch-scope.test.ts
+    status: written
+
+  - id: mkt.scope.side.04
+    level: backend
+    kind: side
+    scenario: председатель участка odn отменяет заказ, который выдаёт участок krg
+    expect: отказ KIT_RIGHT_SCOPE_OWN_KU, статус заказа не изменился
+    test: components/api-tests/src/marketplace/branch-scope.test.ts
+    api: components/api-tests/src/marketplace/branch-scope.test.ts
+    status: written
+
+  - id: mkt.scope.side.05
+    level: backend
+    kind: side
+    scenario: председатель участка odn отзывает бандл выдачи, собранный у стойки участка krg
+    expect: отказ KIT_RIGHT_SCOPE_OWN_KU, бандл ждёт пайщика; председатель krg отзывает его
+    test: components/api-tests/src/marketplace/branch-scope.test.ts
+    api: components/api-tests/src/marketplace/branch-scope.test.ts
+    status: written
+
+  - id: mkt.scope.side.06
+    level: backend
+    kind: side
+    scenario: председатель участка odn принимает решение по гарантийному возврату, назвав участок krg
+    expect: отказ 403 на приглашение, оба отказа и выдачу обратно — раньше поиска заявления; председатель krg сверку участка проходит
+    test: components/api-tests/src/marketplace/branch-scope.test.ts
+    api: components/api-tests/src/marketplace/branch-scope.test.ts
+    status: written
+
+  - id: mkt.scope.side.07
+    level: backend
+    kind: side
+    scenario: оператор участка читает протокол совета по проекту списания, в котором нет позиций его участка
+    expect: отказ KIT_RIGHT_SCOPE_OWN_KU; оператор участка с позициями в проекте протокол читает
+    test: components/controller/tests/unit/marketplace/marketplace-right-scopes.test.ts
+    status: written
+    external: unreachable
+    external_reason: проект списания с протоколом совета заводит только набор списания со своим просроченным остатком; случай добавляется в него отдельной правкой
+
+# 2026-10-05 (7DD-22): описания запросов списания в GraphQL названы по документу
+# («Заявление о списании скоропорта») без номера реестра. Сценарии фичи и её
+# проверки не менялись.

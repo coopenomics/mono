@@ -1,8 +1,8 @@
 <template lang="pug">
 CreateDialog(
   ref="dialogRef"
-  title="Добавить соавторов"
-  submit-text="Добавить"
+  :title="$t('capital.addAuthorDialog.title')"
+  :submit-text="$t('common.action.add')"
   dialog-style="width: 400px; max-width: 100% !important;"
   :is-submitting="isSubmitting"
   @submit="handleSubmit"
@@ -11,7 +11,7 @@ CreateDialog(
   template(#form-fields)
     div(style='max-width: 400px')
       .text-body2.q-mb-sm
-        | ⚠️ После добавления соавторов их удаление будет невозможно. Для добавления соавторов они должны предварительно получить допуск на участие в проекте.
+        | {{ $t('capital.addAuthorDialog.warningText') }}
 
       ContributorSelector(
         v-model='selectedAuthors'
@@ -19,13 +19,13 @@ CreateDialog(
         :dense='true'
         :disable='isSubmitting'
         :project-hash='props.project?.project_hash'
-        placeholder='Выберите соавторов...'
-        label='Соавторы'
+        :placeholder='$t("capital.addAuthorDialog.selectPlaceholder")'
+        :label='$t("capital.addAuthorDialog.selectLabel")'
         class='authors-selector'
       )
 
       .text-caption.text-grey-6.q-mt-sm(v-if='selectedAuthors.length > 0')
-        | Выбрано соавторов: {{ selectedAuthors.length }}
+        | {{ $t('capital.addAuthorDialog.selectedCount', { count: selectedAuthors.length }) }}
 </template>
 
 <script setup lang="ts">
@@ -36,6 +36,7 @@ import { ContributorSelector } from '../../../../../entities/Contributor';
 import { CreateDialog } from 'src/shared/ui/CreateDialog';
 import type { IProject } from '../../../../../entities/Project/model';
 import type { IContributor } from '../../../../../entities/Contributor/model';
+import { t } from '../../../../../i18n';
 
 const props = defineProps<{ project: IProject | null | undefined }>();
 
@@ -67,14 +68,14 @@ const clear = () => {
 
 const handleSubmit = async () => {
   if (selectedAuthors.value.length === 0) {
-    FailAlert('Выберите хотя бы одного соавтора');
+    FailAlert(t('capital.addAuthorDialog.selectAtLeastOneError'));
     return;
   }
 
   // Проверяем, что у всех выбранных участников есть username
   const invalidContributors = selectedAuthors.value.filter(c => !c?.username);
   if (invalidContributors.length > 0) {
-    FailAlert('У некоторых выбранных участников отсутствует имя пользователя');
+    FailAlert(t('capital.addAuthorDialog.missingUsernameError'));
     return;
   }
 
@@ -97,8 +98,8 @@ const handleSubmit = async () => {
 
     const count = authorUsernames.length;
     const message = count === 1
-      ? 'Соавтор добавлен'
-      : `Добавлено соавторов: ${count}`;
+      ? t('capital.addAuthorDialog.singleAddedSuccess')
+      : t('capital.addAuthorDialog.addedCountSuccess', { count });
 
     SuccessAlert(message);
 

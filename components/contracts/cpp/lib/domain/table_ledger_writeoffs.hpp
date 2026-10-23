@@ -1,5 +1,7 @@
 #pragma once
 
+
+#include "../core/ram_payer.hpp"
 #include <eosio/asset.hpp>
 #include <eosio/crypto.hpp>
 #include <eosio/eosio.hpp>
@@ -34,3 +36,6 @@ typedef eosio::multi_index<
     eosio::indexed_by<"bycoop"_n, eosio::const_mem_fun<writeoff_op, uint64_t, &writeoff_op::by_coop>>,
     eosio::indexed_by<"byhash"_n, eosio::const_mem_fun<writeoff_op, checksum256, &writeoff_op::by_hash>>>
     writeoffs_index;
+
+// Плательщик за оперативную память строк таблицы — правило в lib/core/ram_payer.hpp.
+RAM_PAYER_CLASS(writeoff_op, cooperative);

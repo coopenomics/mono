@@ -4,7 +4,7 @@
 // Вложенный compact — без --fill, белое-на-белом визуально невидимо.
 .list-surface(:class="{ 'list-surface--fill': !compact }")
   //- Полноэкранный режим с виртуальным скроллом (для отдельных страниц)
-  .issues-scroll-area(v-if='!compact')
+  .issues-scroll-area(v-if='!compact', ref='scrollAreaRef')
     // Полоска-добавлялка — только мастеру (can_manage_issues)
     CreateIssueButton(
       v-if='canManageIssues',
@@ -43,7 +43,7 @@
       template(#no-data)
         .list-empty
           q-icon(name='inbox', size='20px')
-          span Нет задач
+          span {{ $t('capital.issuesListWidget.emptyText') }}
 
   //- Компактный режим без фиксированной высоты (для вложенного использования)
   template(v-else)
@@ -79,11 +79,13 @@
       template(#no-data)
         .list-empty
           q-icon(name='inbox', size='20px')
-          span Нет задач
+          span {{ $t('capital.issuesListWidget.emptyText') }}
 
 </template>
 <script lang="ts" setup>
-import { ref, onMounted, computed, watch, nextTick } from 'vue';
+import { ref, onMounted, onBeforeUnmount, computed, watch, nextTick } from 'vue';
+import { useLiveReload, liveWindow, type LiveWindow } from 'src/shared/lib/realtime';
+import { CAPITAL_LIVE_TABLES } from 'app/extensions/capital/shared/lib/live';
 import {
   type IIssue,
   useIssueStore,
@@ -92,6 +94,13 @@ import { useSystemStore } from 'src/entities/System/model';
 import { FailAlert } from 'src/shared/api';
 import { CreateIssueButton } from 'app/extensions/capital/features/Issue/CreateIssue';
 import IssueListRow from './IssueListRow.vue';
+import { t } from '../../../i18n';
+
+// Память списка между заходами: скролл и ключ фильтра (данные ленты — в
+// сторе, per-project). Возврат «назад» с задачи восстанавливает позицию и
+// пагинацию без перезагрузки; чужой фильтр — сброс. См. тот же приём в
+// ProjectsListWidget (listMemory).
+const listMemory = { filterKey: '', scrollTop: 0 };
 
 const props = defineProps<{
   projectHash: string;
@@ -122,6 +131,22 @@ const onLoading = ref(false);
 const tableRef = ref(null);
 const nextPage = ref(1);
 const lastPage = ref(0);
+const scrollAreaRef = ref<HTMLElement | null>(null);
+
+const pageSize = computed(() => (props.compact ? 50 : 5));
+
+const filterKey = computed(() =>
+  JSON.stringify([
+    props.projectHash,
+    props.statuses,
+    props.priorities,
+    props.creators,
+    props.master,
+    props.sortBy,
+    props.sortOrder,
+    props.compact,
+  ]),
+);
 
 // Пагинация для виртуального скролла (полноэкранный режим)
 const pagination = ref({
@@ -157,6 +182,13 @@ watch([() => props.statuses, () => props.priorities, () => props.creators, () =>
   loadIssues(1, false);
 }, { deep: true });
 
+// Живой список задач: создание, смена статуса, исполнителя и оценки приходят
+// по ленте изменений Благороста — показанное перечитывается тихо.
+useLiveReload(CAPITAL_LIVE_TABLES, () => {
+  if (!props.projectHash || !issues.value) return;
+  return loadIssues(1, false, liveWindow(nextPage.value - 1, pageSize.value));
+});
+
 // Функция обработки виртуального скролла
 const onScroll = ({ to, ref }) => {
   if (!issues.value) {
@@ -176,6 +208,7 @@ const onScroll = ({ to, ref }) => {
     nextPage.value += 1;
     onLoading.value = true;
 
+    // timing: ui — подгрузка следующей страницы после остановки виртуальной прокрутки.
     setTimeout(() => {
       if (pageToLoad > lastPage.value || loading.value) {
         nextPage.value -= 1;
@@ -219,8 +252,12 @@ const columns = [
 ];
 
 // Загрузка задач компонента
-const loadIssues = async (page = 1, append = false) => {
-  if (!append) {
+// `window` — перечитывание по ленте изменений: все уже загруженные страницы
+// одним запросом, тихо, с сохранением позиции ленты.
+const loadIssues = async (page = 1, append = false, window?: LiveWindow) => {
+  if (window) {
+    // тихо: индикаторы не трогаем
+  } else if (!append) {
     loading.value = true;
   } else {
     onLoading.value = true;
@@ -249,24 +286,28 @@ const loadIssues = async (page = 1, append = false) => {
     await issueStore.loadIssues({
       filter,
       options: {
-        page,
-        limit: props.compact ? 50 : 5, // В компактном режиме загружаем больше, в полноэкранном - постранично
+        page: window ? 1 : page,
+        limit: window ? window.options.limit : pageSize.value, // В компактном режиме загружаем больше, в полноэкранном — постранично
         sortBy: props.sortBy || '_created_at',
         sortOrder: props.sortOrder || 'DESC',
       },
     }, props.projectHash, append); // Передаем projectHash и флаг append для объединения результатов
 
     if (issues.value) {
-      lastPage.value = issues.value.totalPages || 1;
+      lastPage.value = window
+        ? Math.max(1, Math.ceil(issues.value.totalCount / pageSize.value))
+        : issues.value.totalPages || 1;
       pagination.value.rowsNumber = issues.value.totalCount;
 
-      if (!append) {
+      if (window) {
+        nextPage.value = window.pages + 1;
+      } else if (!append) {
         nextPage.value = 2;
       }
     }
   } catch (error) {
     console.error('Ошибка при загрузке задач компонента:', error);
-    FailAlert('Не удалось загрузить задачи компонента');
+    if (!window) FailAlert(t('capital.issuesListWidget.loadError'));
   } finally {
     loading.value = false;
     onLoading.value = false;
@@ -279,9 +320,24 @@ const handleIssueClick = (issue: IIssue) => {
   emit('issueClick', issue);
 };
 
-// Инициализация
+// Инициализация: возврат на список восстанавливает ленту из стора,
+// пагинацию и прокрутку — без перезагрузки и сетевого запроса
 onMounted(async () => {
+  const cached = issues.value;
+  if (listMemory.filterKey === filterKey.value && (cached?.items.length ?? 0) > 0) {
+    nextPage.value = Math.floor(cached!.items.length / pageSize.value) + 1;
+    lastPage.value = cached!.totalPages || 1;
+    pagination.value.rowsNumber = cached!.totalCount;
+    await nextTick();
+    if (scrollAreaRef.value) scrollAreaRef.value.scrollTop = listMemory.scrollTop;
+    return;
+  }
   await loadIssues(1, false);
+});
+
+onBeforeUnmount(() => {
+  listMemory.scrollTop = scrollAreaRef.value?.scrollTop ?? 0;
+  listMemory.filterKey = filterKey.value;
 });
 
 </script>

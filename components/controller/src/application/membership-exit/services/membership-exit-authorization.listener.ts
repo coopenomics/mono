@@ -13,6 +13,7 @@ import type {
 } from '~/domain/gateway/interfaces/payment-domain.interface';
 import type { ActionDomainInterface } from '~/domain/parser/interfaces/action-domain.interface';
 import { generateUniqueHash } from '~/utils/generate-hash.util';
+import { t } from '~/i18n';
 
 // confirmexit — callback-экшен совета (одобрение повестки leavecoop). В cooptypes
 // SDK-обёртки нет (не подаётся клиентом), поэтому имя экшена — как в контракте.
@@ -134,7 +135,7 @@ export class MembershipExitAuthorizationListener {
       provider: settings.provider_name,
       payment_method_id: method.method_id,
       payment_details: paymentDetails,
-      memo: `Возврат паевого взноса при выходе из кооператива №${exitHash.slice(0, 8)}. ${VAT_EXEMPT_NOTE}`,
+      memo: t('membershipExit.membershipExitAuthorizationListener.refundMemo', { hashPrefix: exitHash.slice(0, 8), vatExemptNote: VAT_EXEMPT_NOTE }),
       secret: generateUniqueHash(),
       // hash = exit_hash = outcome_hash on-chain объекта (createoutpay в confirmexit),
       // чтобы completeOutcome при подтверждении кассой вызвал completexit.

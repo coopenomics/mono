@@ -1,5 +1,7 @@
 #pragma once
 
+
+#include "../core/ram_payer.hpp"
 #include <eosio/eosio.hpp>
 #include <eosio/crypto.hpp>
 #include <string>
@@ -93,3 +95,6 @@ typedef eosio::multi_index<
     releases_index;
 
 } // namespace Apps
+
+// Плательщик за оперативную память строк таблицы — правило в lib/core/ram_payer.hpp.
+RAM_PAYER_CLASS(Apps::release, contract);

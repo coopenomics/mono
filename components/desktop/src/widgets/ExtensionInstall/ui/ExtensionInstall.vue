@@ -1,15 +1,15 @@
 <template lang="pug">
 .extension-install
   q-form(ref='formRef')
-    BaseCard(v-if='schema && !isEmpty', title='Настройки')
+    BaseCard(v-if='schema && !isEmpty', :title='$t("extensionInstall.extensionInstall.settingsTitle")')
       ZodForm(
         :schema='schema',
         :model-value='config',
         :install-mode='true',
         @update:model-value='$emit("update:config", $event)'
       )
-    BaseCard(v-else, title='Установка расширения')
-      p.extension-install__note Расширение не требует дополнительной настройки. Нажмите «Включить» для завершения установки и активации расширения.
+    BaseCard(v-else, :title='$t("extensionInstall.extensionInstall.installTitle")')
+      p.extension-install__note {{ $t('extensionInstall.extensionInstall.noSettingsNote') }}
 </template>
 
 <script lang="ts" setup>

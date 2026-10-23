@@ -11,6 +11,12 @@ export interface ExitCoopDomainInterface {
   username: string;
   exit_hash: string;
   statement: ISignedDocument;
+  /**
+   * Заявление об аннулировании соглашений ЦПП (registry 190). Уходит в цепь
+   * действием exitagree в одной транзакции с exitcoop. Пусто у пайщика без
+   * программных соглашений — тогда аннулировать нечего.
+   */
+  annulment?: ISignedDocument;
 }
 
 export interface AccountBlockchainPort {
@@ -28,7 +34,8 @@ export interface AccountBlockchainPort {
   verifyAccount(data: RegistratorContract.Actions.VerifyAccount.IVerifyAccount): Promise<void>;
   // Отзыв верификации личности председателем кооператива (registrator::unverifyacc)
   unverifyAccount(data: RegistratorContract.Actions.UnverifyAccount.IUnverifyAccount): Promise<void>;
-  // Подача заявления на выход пайщика из кооператива (registrator::exitcoop)
+  // Подача заявления на выход (registrator::exitcoop) и, при наличии программных
+  // соглашений, заявления об их аннулировании (registrator::exitagree) — одной транзакцией
   exitCoop(data: ExitCoopDomainInterface): Promise<void>;
   // Текущий процесс выхода пайщика (registrator::exits), либо null
   getExit(coopname: string, username: string): Promise<RegistratorContract.Tables.Exits.IExit | null>;

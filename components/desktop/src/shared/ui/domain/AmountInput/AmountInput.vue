@@ -20,6 +20,7 @@
     :suffix='symbol',
     input-class='amount-input__native',
     @update:model-value='onInput',
+    @focus='onFocus',
     @blur='onBlur'
   )
     template(v-if='showMax && balance != null' #after)
@@ -27,9 +28,9 @@
         type='button',
         :disabled='disabled || readonly',
         @click='applyMax'
-      ) макс
+      ) {{ $t('ui.amountInput.maxLabel') }}
   .amount-input__balance(v-if='showBalance && balance != null')
-    span.amount-input__balance-label Баланс:
+    span.amount-input__balance-label {{ $t('ui.amountInput.balanceLabel') }}
     span.amount-input__balance-value {{ formatNumber(toNumber(balance)) }}
     span.amount-input__balance-symbol(v-if='symbol') {{ symbol }}
 </template>
@@ -126,6 +127,19 @@ function clamp(n: number | null): number | null {
   return n;
 }
 
+/**
+ * При входе в поле введённое выделяется целиком: первая набранная цифра
+ * заменяет значение, а не дописывается к нему — иначе к нулю по умолчанию
+ * «1» превращалась в «10». Выделение откладывается на кадр: сразу при фокусе
+ * его снимает отпускание кнопки мыши после клика, ставя курсор.
+ */
+function onFocus(event: Event): void {
+  if (props.readonly || props.disabled) return;
+  const input = event.target;
+  if (!(input instanceof HTMLInputElement)) return;
+  requestAnimationFrame(() => input.select());
+}
+
 function onBlur(): void {
   const parsed = parseEditing(displayValue.value);
   displayValue.value = formatForDisplay(parsed);
@@ -195,7 +209,10 @@ function applyMax(): void {
   font-size: var(--p-fs-body-sm, 13px);
   line-height: var(--p-lh-body-sm, 1.5);
   color: var(--p-ink-2);
-  margin-top: calc(-1 * var(--p-2, 8px));
+  /* Под полем зарезервировано место подсказки (reserve-hint-space). Баланс
+     раньше подтягивался в него отрицательным отступом и наезжал на текст
+     ошибки суммы — теперь стоит ниже с собственным отступом. */
+  margin-top: var(--p-1, 4px);
 }
 .amount-input__balance-value {
   color: var(--p-ink);

@@ -1,0 +1,515 @@
+#pragma once
+
+#include <algorithm>
+#include <string>
+
+#include <eosio/asset.hpp>
+#include <eosio/eosio.hpp>
+#include <eosio/time.hpp>
+
+#include "edubridge.hpp"
+
+/**
+ * @file economy.hpp
+ * @brief Денежная математика ЦПП «Образование».
+ *
+ * Все суммы процесса считает контракт: взнос участника и оплаченный срок,
+ * удержание по гарантии, резерв преподавателям по подписке, взнос
+ * преподавателя за занятие, возврат при отмене. Приложение сумм не передаёт —
+ * оно вызывает действие, а расчёт идёт здесь по условиям курса (`eduterms`).
+ *
+ * Одно действие считает одну подписку. Перебора таблиц нет: порядок обхода
+ * подписок ведёт приложение, полноту обеспечивает учёт в самой подписке
+ * (остаток резерва и номер последнего рассчитанного занятия).
+ */
+namespace Edubridge {
+
+using namespace eosio;
+
+inline constexpr uint32_t SECONDS_IN_DAY = 24 * 60 * 60;
+inline constexpr uint32_t BP_IN_WHOLE = 10000;
+
+// ── Календарь ────────────────────────────────────────────────────────────
+
+/// Месяц сроков и программ — четыре недели: в 28 днях каждого дня недели ровно четыре, занятия по окнам и оплаченные минуты сходятся.
+inline constexpr uint32_t SECONDS_IN_MONTH = 28 * SECONDS_IN_DAY;
+
+/**
+ * @brief Дата плюс месяцы по четыре недели; время суток сохраняется.
+ *
+ * Календарная длина месяца не учитывается: оплаченный срок и программа
+ * считаются неделями, как и расписание.
+ */
+inline eosio::time_point_sec add_months(eosio::time_point_sec from, uint32_t months, uint32_t month_secs = 0) {
+  // Стенд разработки со сжатым временем: месяц — заданное число секунд.
+  const uint32_t len = month_secs > 0 ? month_secs : SECONDS_IN_MONTH;
+  return eosio::time_point_sec(from.sec_since_epoch() + months * len);
+}
+
+/**
+ * @brief Конец программы группы от дня начала занятий.
+ *
+ * Программа длится столько, сколько занимают её минуты по расписанию: месяцы
+ * могут быть неполными — три месяца и две недели. Целое число месяцев даёт то
+ * же, что `add_months`.
+ */
+template <typename Terms>
+inline eosio::time_point_sec program_end(const Terms& terms, eosio::time_point_sec start) {
+  const uint64_t len = terms.month_len() > 0 ? terms.month_len() : SECONDS_IN_MONTH;
+  const uint64_t span = static_cast<uint64_t>(terms.minutes_total) * len / terms.minutes_per_month;
+  return eosio::time_point_sec(start.sec_since_epoch() + static_cast<uint32_t>(span));
+}
+
+// ── Условия курса ────────────────────────────────────────────────────────
+
+/// Условия курса; бросает, если администратор их ещё не задал.
+inline edu_terms get_terms_or_fail(eosio::name coopname, uint64_t course_id) {
+  edu_terms_index terms(_edubridge, coopname.value);
+  auto it = terms.find(course_id);
+  eosio::check(it != terms.end(), "EDUBRIDGE_COURSE_TERMS_NOT_SET: Условия курса не заданы");
+  return *it;
+}
+
+template <typename Fn>
+inline void update_terms(eosio::name coopname, uint64_t course_id, Fn&& change) {
+  edu_terms_index terms(_edubridge, coopname.value);
+  auto it = terms.find(course_id);
+  eosio::check(it != terms.end(), "EDUBRIDGE_COURSE_TERMS_NOT_SET: Условия курса не заданы");
+  terms.modify(it, RamPayer::of(terms, coopname), [&](auto& t) { change(t); });
+}
+
+// ── Гарантийный срок ─────────────────────────────────────────────────────
+
+/**
+ * @brief Идёт ли гарантийный срок группы.
+ *
+ * Срок один на группу и отсчитывается от начала занятий: участник, пришедший
+ * после его окончания, гарантийных условий не имеет. У неактивированной группы
+ * с объявленной гарантией срок ещё впереди.
+ */
+inline bool is_guarantee_running(const edu_terms& terms, eosio::time_point_sec now) {
+  if (terms.guarantee_secs == 0) return false;
+  if (!terms.is_started()) return true;
+  return now.sec_since_epoch() < terms.starts_at.sec_since_epoch() + terms.guarantee_secs;
+}
+
+/// До какой даты материалы занятия лежат на ответственном хранении — гарантийный срок курса от начала занятий.
+inline eosio::time_point_sec lesson_hold_until(const edu_terms& terms, eosio::time_point_sec held_at) {
+  if (terms.guarantee_secs == 0 || !terms.is_started()) return held_at;
+  return eosio::time_point_sec(terms.starts_at.sec_since_epoch() + terms.guarantee_secs);
+}
+
+// ── Занятие и оплаченный срок ─────────────────────────────────────────────
+
+/// Начало суток (UTC), на которые приходится момент.
+inline eosio::time_point_sec day_start(eosio::time_point_sec at) {
+  return eosio::time_point_sec(at.sec_since_epoch() / SECONDS_IN_DAY * SECONDS_IN_DAY);
+}
+
+/**
+ * @brief Оплачено ли занятие подпиской.
+ *
+ * Дату занятия преподаватель называет днём, без времени. Поэтому начало
+ * оплаченного срока сравнивается по дням: участник, записавшийся утром,
+ * оплатил занятие вечера того же дня. Конец срока — как есть: занятие в день,
+ * когда срок ещё не вышел, оплачено.
+ */
+inline bool lesson_covered(const edu_subscription& sub, eosio::time_point_sec held_at) {
+  return day_start(sub.plan.value().paid_from) <= held_at && held_at < sub.paid_until;
+}
+
+// ── Взнос участника ──────────────────────────────────────────────────────
+
+/// Что оплачивает один взнос — считает контракт по условиям курса.
+struct FeeQuote {
+  uint32_t months = 0;               ///< месяцев оплачивает взнос
+  uint32_t minutes = 0;              ///< минут занятий оплачивает взнос
+  eosio::asset amount;               ///< взнос к уплате
+  eosio::asset teach;                ///< из него оплата занятий по плановой ставке — резерв подписки
+  eosio::time_point_sec paid_from;   ///< с какого дня идёт новый оплаченный срок
+  eosio::time_point_sec paid_until;  ///< до какого дня оплачено
+};
+
+/**
+ * @brief Расчёт взноса участника.
+ *
+ * Помесячный взнос оплачивает месяц от конца уже оплаченного срока либо от
+ * сегодняшнего дня, но не раньше начала занятий: записавшийся заранее
+ * оплачивает месяц занятий, а не дни ожидания. За конец программы оплаченный
+ * срок не выходит, и взнос за оплаченную до конца программу не принимается.
+ * Неполный последний месяц оплачивается по остатку: за минуты занятий,
+ * которые в группе ещё не проведены, долей месячного взноса. Программа может
+ * длиться неполное число месяцев (три месяца и две недели): её конец считается
+ * по минутам программы, взнос — по оплаченным минутам.
+ * Взнос разом оплачивает месяцы до конца программы со скидкой курса:
+ * пришедший в середине вносит за остаток.
+ */
+inline FeeQuote quote_fee(const edu_terms& terms, const edu_subscription& sub, eosio::name period, eosio::time_point_sec now) {
+  eosio::check(terms.minutes_per_month > 0 && !terms.slots.empty(),
+               "EDUBRIDGE_COURSE_TERMS_NOT_SET: Условия курса не заданы");
+  const bool paid = sub.has_plan() && sub.plan.value().minutes_paid > 0;
+  const eosio::time_point_sec from = paid && sub.paid_until > now ? sub.paid_until : now;
+
+  FeeQuote q;
+  uint32_t discount_bp = 0;
+  // Сколько минут занятий оплачивает помесячный взнос; меньше месячного числа — взнос по остатку.
+  uint32_t month_minutes = terms.minutes_per_month;
+  if (period == SubscriptionPeriod::MONTH) {
+    const eosio::time_point_sec start = terms.is_started() ? terms.starts_at : from;
+    const eosio::time_point_sec base = from > start ? from : start;
+    q.months = 1;
+    q.paid_from = base;
+    q.paid_until = add_months(base, 1, terms.month_len());
+    const uint32_t total = terms.months_total();
+    if (terms.is_started() && total > 0) {
+      const eosio::time_point_sec end = program_end(terms, start);
+      eosio::check(base < end, "EDUBRIDGE_COURSE_FULLY_PAID: Курс оплачен до конца программы");
+      if (q.paid_until > end) {
+        // Последний неполный месяц: оплачиваются минуты занятий, которые в группе ещё впереди.
+        q.paid_until = end;
+        const uint32_t ahead = terms.minutes_total > terms.minutes_opened ? terms.minutes_total - terms.minutes_opened : 0;
+        eosio::check(ahead > 0, "EDUBRIDGE_COURSE_FULLY_PAID: Все занятия программы проведены");
+        if (ahead < month_minutes) month_minutes = ahead;
+      }
+    }
+  } else {
+    eosio::check(period == SubscriptionPeriod::COURSE, "EDUBRIDGE_PERIOD_INVALID: Недопустимый период оплаты: ожидается month либо course");
+    const uint32_t total = terms.months_total();
+    eosio::check(terms.course_payment && total > 0, "EDUBRIDGE_COURSE_PAYMENT_DISABLED: Взнос за весь курс по этому курсу не принимается");
+    const eosio::time_point_sec start = terms.is_started() ? terms.starts_at : from;
+    const eosio::time_point_sec end = program_end(terms, start);
+    const eosio::time_point_sec base = from > start ? from : start;
+    eosio::check(base < end, "EDUBRIDGE_COURSE_FULLY_PAID: Курс оплачен до конца программы");
+    uint32_t months = 1;
+    while (months < total && add_months(base, months, terms.month_len()) < end) months += 1;
+    q.months = months;
+    q.paid_from = base;
+    q.paid_until = end;
+    discount_bp = terms.discount_bp;
+  }
+
+  // Минут не больше, чем осталось в программе курса.
+  uint32_t minutes = period == SubscriptionPeriod::MONTH ? month_minutes : terms.minutes_per_month * q.months;
+  if (terms.minutes_total > 0) {
+    const uint32_t already = sub.has_plan() ? sub.plan.value().minutes_paid : 0;
+    const uint32_t left = terms.minutes_total > already ? terms.minutes_total - already : 0;
+    eosio::check(left > 0, "EDUBRIDGE_COURSE_FULLY_PAID: Курс оплачен до конца программы");
+    if (minutes > left) minutes = left;
+  }
+  q.minutes = minutes;
+
+  // Взнос идёт за оплаченные минуты: полные месяцы — месячным взносом, неполный
+  // месяц и остаток программы — долей месячного взноса по минутам.
+  eosio::asset base_amount = terms.fee_month() * static_cast<int64_t>(q.months);
+  if (minutes < terms.minutes_per_month * q.months) {
+    base_amount = eosio::asset(
+        static_cast<int64_t>(static_cast<__int128>(terms.fee_month().amount) * minutes / terms.minutes_per_month),
+        base_amount.symbol);
+  }
+  const eosio::asset discount(base_amount.amount * discount_bp / BP_IN_WHOLE, base_amount.symbol);
+  q.amount = base_amount - discount;
+  q.teach = terms.teach_for_minutes(minutes);
+  eosio::check(q.teach <= q.amount, "EDUBRIDGE_DISCOUNT_ABOVE_TARGET_FEE: Скидка курса больше целевого членского взноса");
+  return q;
+}
+
+// ── Возврат ──────────────────────────────────────────────────────────────
+
+/**
+ * @brief Возврат участнику при отказе после начала занятий.
+ *
+ * Половина остаточной стоимости подписки (Положение ЦПП «Образование»).
+ * Остаточная стоимость — доля всего внесённого взноса, вместе с целевым
+ * членским взносом, приходящаяся на занятия, по которым расчёт ещё не прошёл.
+ * Проведённые занятия считает контракт по каждой подписке (`chargelesson`),
+ * поэтому сумма возврата в любой момент точная.
+ */
+inline eosio::asset refusal_refund(const edu_subscription& sub) {
+  const auto& plan = sub.plan.value();
+  const eosio::asset charged = sub.charged_or_zero();
+  if (plan.minutes_paid == 0 || plan.minutes_done >= plan.minutes_paid) return eosio::asset(0, charged.symbol);
+  const int64_t residual = static_cast<int64_t>(
+      static_cast<__int128>(charged.amount) * (plan.minutes_paid - plan.minutes_done) / plan.minutes_paid);
+  return eosio::asset(residual / 2, charged.symbol);
+}
+
+/**
+ * @brief Сколько по подписке удерживается после гарантийного срока.
+ *
+ * Участник вправе отказаться и получить возврат, поэтому сумма возможного
+ * возврата на расходы программы не идёт. Её обеспечивают резерв за
+ * непроведённые занятия (при отказе он высвобождается) и удержание: держится
+ * только то, чего в резерве не хватает. С каждым проведённым занятием возврат
+ * уменьшается, и удержание освобождается.
+ */
+inline eosio::asset required_lock(const edu_subscription& sub) {
+  const eosio::asset refund = refusal_refund(sub);
+  const eosio::asset reserve = sub.plan.value().reserve;
+  return refund > reserve ? refund - reserve : eosio::asset(0, refund.symbol);
+}
+
+// ── Движения средств по подписке ─────────────────────────────────────────
+
+/// Проверка учёта курса: резерв и выплаты преподавателям не превышают собранного по курсу.
+inline void check_course_covered(const edu_course& c) {
+  eosio::check(c.reserve + c.settled <= c.collected,
+               std::string{"EDUBRIDGE_COURSE_FUNDS_INSUFFICIENT: Средств курса недостаточно: собрано "} + c.collected.to_string() +
+                 ", в резерве преподавателям " + c.reserve.to_string() + ", выплачено " + c.settled.to_string());
+}
+
+/**
+ * @brief Удержание по подписке приводится к сумме возможного возврата.
+ *
+ * Для подписки с закрытым гарантийным сроком. Удержано больше нужного —
+ * лишнее возвращается на кошелёк программы (`o.edu.unlock`); меньше — после
+ * нового взноса — недостающее удерживается (`o.edu.lock`).
+ */
+inline void rebalance_lock(eosio::name coopname, edu_subscription& s) {
+  const eosio::asset locked = s.locked_or_zero();
+  const eosio::asset required = required_lock(s);
+  if (locked > required) {
+    Ledger2::apply(_edubridge, coopname,
+                   operations::edubridge::UNLOCK_FEE,
+                   processes::edubridge::ACCESS,
+                   locked - required, coopname, s.sub_hash,
+                   Memo::get_unlock_fee_memo());
+  } else if (locked < required) {
+    Ledger2::apply(_edubridge, coopname,
+                   operations::edubridge::LOCK_FEE,
+                   processes::edubridge::ACCESS,
+                   required - locked, coopname, s.sub_hash,
+                   Memo::get_lock_fee_memo());
+  }
+  s.set_amounts(s.charged_or_zero(), s.reserved_or_zero(), required);
+}
+
+/**
+ * @brief Взнос преподавателей за занятия гарантийного срока по подписке — в суммы их допусков.
+ *
+ * Пока срок шёл, документов с суммой у преподавателя не было. Подписка закрыла
+ * срок — её часть переходит в сумму допуска, на которую преподаватель подпишет
+ * акт и заявление за весь гарантийный период. Допусков у группы единицы:
+ * перебор идёт по списку внутри строки подписки, не по таблице.
+ */
+inline void credit_dues(eosio::name coopname, edu_sub_plan& plan) {
+  edu_assignments_index assigns(_edubridge, coopname.value);
+  for (const auto& d : plan.dues) {
+    auto it = assigns.find(d.assignment_id);
+    if (it == assigns.end() || d.amount.amount <= 0) continue;
+    assigns.modify(it, RamPayer::of(assigns, coopname), [&](auto& a) {
+      a.deferred = (a.deferred.symbol == d.amount.symbol ? a.deferred : eosio::asset(0, d.amount.symbol)) + d.amount;
+    });
+  }
+  plan.drop_dues();
+}
+
+/// Подписка закрыла гарантийный срок либо закрыта до его конца — счётчик группы уменьшается.
+inline void unlock_subscription(eosio::name coopname, uint64_t course_id) {
+  update_terms(coopname, course_id, [&](auto& t) {
+    if (t.subs_locked > 0) t.subs_locked -= 1;
+  });
+}
+
+/**
+ * @brief Гарантийный срок группы истёк — взнос перестаёт удерживаться целиком.
+ *
+ * Весь взнос был удержан: возврат по гарантии — полный. Срок истёк, и
+ * остаётся только возврат при отказе. Оплата занятий выделяется в резерв
+ * преподавателям — остаток за непроведённые и взнос преподавателей за уже
+ * проведённые (`o.edu.allot`); удержание уменьшается до суммы возможного
+ * возврата (`o.edu.unlock`), остальное остаётся на кошельке программы.
+ *
+ * Пока срок идёт либо он уже закрыт, ничего не делает.
+ *
+ * @return true, если гарантийный срок закрыт этим вызовом.
+ */
+inline bool close_guarantee(eosio::name coopname, const edu_terms& terms, edu_subscription& s, eosio::time_point_sec now) {
+  auto& plan = s.plan.value();
+  // Заявление по гарантийным условиям на рассмотрении совета: взнос заморожен.
+  if (plan.released || plan.claimed || is_guarantee_running(terms, now)) return false;
+
+  const eosio::asset locked = s.locked_or_zero();
+  const eosio::asset required = required_lock(s);
+  // Сначала освобождается удержанное сверх возможного возврата: из него выделяется резерв.
+  if (locked > required) {
+    Ledger2::apply(_edubridge, coopname,
+                   operations::edubridge::UNLOCK_FEE,
+                   processes::edubridge::ACCESS,
+                   locked - required, coopname, s.sub_hash,
+                   Memo::get_unlock_fee_memo());
+  }
+
+  const eosio::asset allot = plan.reserve + plan.due;
+  if (allot.amount > 0) {
+    Ledger2::apply(_edubridge, coopname,
+                   operations::edubridge::ALLOT_TEACHER_RESERVE,
+                   processes::edubridge::ACCESS,
+                   allot, coopname, s.sub_hash,
+                   Memo::get_allot_reserve_memo());
+    update_course(coopname, s.course_id, [&](auto& c) {
+      c.reserve += allot;
+      check_course_covered(c);
+    });
+  }
+
+  s.set_amounts(s.charged_or_zero(), plan.reserve, locked > required ? required : locked);
+  credit_dues(coopname, plan);
+  plan.released = true;
+  unlock_subscription(coopname, s.course_id);
+  return true;
+}
+
+/**
+ * @brief Закрытие подписки: расчёт по её остаткам и возврат участнику.
+ *
+ * Удержанное возвращается на кошелёк программы. Резерв за непроведённые
+ * занятия высвобождается туда же (`o.edu.free`). Взнос преподавателей за
+ * проведённые занятия, ещё не выделенный в резерв, выделяется (`o.edu.allot`)
+ * — преподаватель получает за проведённое при любом исходе подписки. Возврат
+ * участнику идёт с кошелька программы и уменьшает собранное по курсу.
+ *
+ * Строку подписки стирает вызывающее действие.
+ */
+inline void settle_closing(eosio::name coopname, const edu_subscription& sub, eosio::asset refund, bool to_share, bool drop_due = false) {
+  const eosio::asset zero(0, _root_govern_symbol);
+  const eosio::asset locked = sub.locked_or_zero();
+  const eosio::asset allotted = sub.reserved_or_zero();
+  // Возврат по гарантийным условиям: участник забирает взнос целиком, в суммы
+  // преподавателей за гарантийный период его занятия не входят.
+  eosio::asset due = sub.has_plan() && !drop_due ? sub.plan.value().due : zero;
+
+  // Возврат участнику обеспечен всегда: его взнос удержан либо лежит в резерве
+  // подписки. Взнос преподавателей за уже проведённые занятия выделяется из
+  // того, что по курсу остаётся после возврата. При полном возврате по
+  // гарантии этого может не хватить — тогда выделяется сколько есть, возврат
+  // не задерживается, а результат преподавателя ждёт средств курса при приёме
+  // (`acceptrid` проверяет резерв курса).
+  if (due.amount > 0) {
+    edu_courses_index courses(_edubridge, coopname.value);
+    auto course = courses.find(sub.course_id);
+    eosio::asset free_after = zero;
+    if (course != courses.end()) {
+      free_after = course->collected - refund - (course->reserve - allotted) - course->settled;
+    }
+    if (free_after.amount < 0) free_after = zero;
+    if (due > free_after) due = free_after;
+  }
+
+  eosio::check(refund.amount >= 0 && refund <= sub.charged_or_zero(), "EDUBRIDGE_REFUND_ABOVE_CHARGED: Возврат больше собранного по подписке");
+
+  if (locked.amount > 0) {
+    Ledger2::apply(_edubridge, coopname,
+                   operations::edubridge::UNLOCK_FEE,
+                   processes::edubridge::ACCESS,
+                   locked, coopname, sub.sub_hash,
+                   Memo::get_unlock_fee_memo());
+  }
+  if (allotted.amount > 0) {
+    Ledger2::apply(_edubridge, coopname,
+                   operations::edubridge::FREE_TEACHER_RESERVE,
+                   processes::edubridge::ACCESS,
+                   allotted, coopname, sub.sub_hash,
+                   Memo::get_free_reserve_memo());
+  }
+  if (due.amount > 0) {
+    Ledger2::apply(_edubridge, coopname,
+                   operations::edubridge::ALLOT_TEACHER_RESERVE,
+                   processes::edubridge::ACCESS,
+                   due, coopname, sub.sub_hash,
+                   Memo::get_allot_reserve_memo());
+  }
+  if (refund.amount > 0) {
+    Ledger2::apply(_edubridge, coopname,
+                   operations::edubridge::REFUND_FEE,
+                   processes::edubridge::ACCESS,
+                   refund, sub.username, sub.sub_hash,
+                   Memo::get_refund_memo());
+    if (to_share) {
+      Ledger2::apply(_edubridge, coopname,
+                     operations::edubridge::RETURN_TO_SHARE,
+                     processes::edubridge::ACCESS,
+                     refund, sub.username, sub.sub_hash,
+                     Memo::get_return_to_share_memo());
+    }
+  }
+
+  if (allotted.amount > 0 || due.amount > 0 || refund.amount > 0) {
+    update_course(coopname, sub.course_id, [&](auto& c) {
+      eosio::check(allotted <= c.reserve, "EDUBRIDGE_COURSE_RESERVE_INSUFFICIENT: Резерв преподавателям по курсу меньше резерва подписки");
+      c.reserve -= allotted;
+      c.reserve += due;
+      eosio::check(refund <= c.collected, "EDUBRIDGE_REFUND_ABOVE_COLLECTED: Возврат больше собранного по курсу");
+      c.collected -= refund;
+      check_course_covered(c);
+    });
+  }
+
+  if (sub.has_plan()) {
+    const auto& closing = sub.plan.value();
+    if (!closing.released) {
+      // Подписка закрыта до конца гарантийного срока: выделенное за проведённые
+      // занятия переходит в суммы допусков в той доле, какую удалось выделить.
+      if (due.amount > 0) {
+        edu_sub_plan settled = closing;
+        if (due < closing.due) {
+          for (auto& d : settled.dues) {
+            d.amount = eosio::asset(static_cast<int64_t>(static_cast<__int128>(d.amount.amount) * due.amount / closing.due.amount), d.amount.symbol);
+          }
+        }
+        credit_dues(coopname, settled);
+      }
+      unlock_subscription(coopname, sub.course_id);
+    }
+    update_terms(coopname, sub.course_id, [&](auto& t) {
+      if (t.subs_active > 0) t.subs_active -= 1;
+    });
+  }
+}
+
+/**
+ * @brief По группе нет занятия в окне расчёта.
+ *
+ * Пока приложение рассчитывает отчитанное занятие по подпискам, подписка
+ * группы не закрывается: оплата занятия ушла бы мимо преподавателя. Окно
+ * живёт один проход приложения и закрывается действием `closecharge`.
+ */
+inline void check_no_charging(const edu_terms& terms) {
+  eosio::check(terms.charging == 0,
+               "EDUBRIDGE_LESSON_CHARGING: По группе идёт расчёт за занятие: закрытие подписки повторяется после него");
+}
+
+// ── Заявление по гарантийным условиям ─────────────────────────────────────
+
+/**
+ * Отказ по заявлению об аннулировании подписки: заморозка взноса снимается,
+ * подписка продолжает действовать. Гарантийный срок группы уже вышел — оплата
+ * занятий периода остаётся на кошельке программы, оплата непроведённых занятий
+ * выделяется в резерв преподавателям, удержание уменьшается до суммы
+ * возможного возврата.
+ */
+inline void decline_guarantee(eosio::name coopname, edu_subscriptions_index& subs, edu_subscriptions_index::const_iterator sub) {
+  const auto now = eosio::time_point_sec(eosio::current_time_point());
+  const edu_terms terms = get_terms_or_fail(coopname, sub->course_id);
+  subs.modify(sub, RamPayer::of(subs, coopname), [&](auto& s) {
+    auto& plan = s.plan.value();
+    plan.claimed = false;
+    if (!is_guarantee_running(terms, now)) {
+      plan.drop_dues();
+      close_guarantee(coopname, terms, s, now);
+    }
+  });
+}
+
+/**
+ * Заявление удовлетворено: участник забирает взнос по подписке целиком, его
+ * занятия в суммы преподавателей за гарантийный период не входят, подписка
+ * закрывается.
+ */
+inline void grant_guarantee(eosio::name coopname, edu_subscriptions_index& subs, edu_subscriptions_index::const_iterator sub) {
+  const edu_terms terms = get_terms_or_fail(coopname, sub->course_id);
+  check_no_charging(terms);
+  settle_closing(coopname, *sub, sub->charged_or_zero(), true, true);
+  subs.erase(sub);
+}
+
+} // namespace Edubridge

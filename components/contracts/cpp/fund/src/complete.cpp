@@ -28,7 +28,7 @@
   auto withdraw = fundwithdraws.find(withdraw_id);
   eosio::check(withdraw != fundwithdraws.end(), "Вывод не найден");
 
-  fundwithdraws.modify(withdraw, _soviet, [&](auto &s) {
+  fundwithdraws.modify(withdraw, RamPayer::of(fundwithdraws, coopname), [&](auto &s) {
     s.status = "completed"_n;
     s.expired_at = eosio::time_point_sec(
         eosio::current_time_point().sec_since_epoch() + 30 * 86400);

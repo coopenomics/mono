@@ -2,8 +2,8 @@ import { z } from 'zod';
 import { WorkflowDefinition } from '../../types';
 import { WorkflowBuilder } from '../../base/workflow-builder';
 import { createEmailStep, createInAppStep } from '../../base/defaults';
+import { nt } from '../../i18n';
 import { BaseWorkflowPayload } from '../../types';
-import { slugify } from '../../utils';
 
 // Одна строка-аванс в дайджесте напоминания.
 const advanceItemSchema = z.object({
@@ -26,33 +26,29 @@ export const expenseAdvanceReportReminderPayloadSchema = z.object({
 export type IPayload = z.infer<typeof expenseAdvanceReportReminderPayloadSchema>;
 export interface IWorkflow extends BaseWorkflowPayload, IPayload {}
 
-export const name = 'Напоминание об отчёте по авансу';
-export const id = slugify(name);
+export const name = nt('expenseAdvanceReportReminder.name');
+// Идентификатор закреплён: раньше он вычислялся из названия, и правка
+// или перевод названия меняли бы его. Не менять — на него ссылаются подписки.
+export const id = 'napominanie-ob-otchyote-po-avansu';
 
 export const workflow: WorkflowDefinition<IWorkflow> = WorkflowBuilder
   .create<IWorkflow>()
   .name(name)
   .workflowId(id)
-  .description('Еженедельное напоминание пайщику предоставить отчёт по выданному авансу под отчёт')
+  .i18nKey('expenseAdvanceReportReminder')
+  .description(nt('expenseAdvanceReportReminder.description'))
   .payloadSchema(expenseAdvanceReportReminderPayloadSchema)
   .tags(['expense', 'financial'])
   .addSteps([
     createEmailStep(
       'expense-advance-report-reminder-email',
-      'Ожидается отчёт по авансу под отчёт — {{payload.coopName}}',
-      'Уважаемый пайщик!<br><br>' +
-        'По {% if payload.count > 1 %}следующим авансам под отчёт{% else %}авансу под отчёт{% endif %}, ' +
-        'полученным в кооперативе «{{payload.coopName}}», ещё не предоставлен отчёт:<br><br>' +
-        '{% for advance in payload.advances %}• {{advance.description}} — {{advance.amount}} — ' +
-        '<a href="{{advance.url}}">открыть расход</a><br>{% endfor %}' +
-        '<br>Пожалуйста, приложите подтверждающие документы (чек, акт) на странице расхода в личном ' +
-        'кабинете — после этого отчёт будет подан автоматически.<br><br>' +
-        '<a href="{{payload.link}}">Перейти к моим авансам</a>'
+      nt('expenseAdvanceReportReminder.email.subject'),
+      nt('expenseAdvanceReportReminder.email.body')
     ),
     createInAppStep(
       'expense-advance-report-reminder-inapp',
-      'Ожидается отчёт по авансу под отчёт',
-      'По вашим авансам под отчёт ещё не предоставлен отчёт. Приложите подтверждающие документы в личном кабинете.'
+      nt('expenseAdvanceReportReminder.inApp.subject'),
+      nt('expenseAdvanceReportReminder.inApp.body')
     ),
   ])
   .build();

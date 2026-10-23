@@ -1,9 +1,21 @@
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
-import { GqlJwtAuthGuard, RolesGuard, AuthRoles, createPaginationResult, PaginationInputDTO, PaginationResult, CurrentUser, GeneratedDocumentDTO, GenerateDocumentOptionsInputDTO } from '@coopenomics/extension-kit';
+import {
+  GqlJwtAuthGuard,
+  createPaginationResult,
+  PaginationInputDTO,
+  PaginationResult,
+  CurrentUser,
+  GeneratedDocumentDTO,
+  GenerateDocumentOptionsInputDTO,
+  RequireRight,
+  RightsGuard,
+  DOCUMENT_GENERATION_THROTTLE,
+} from '@coopenomics/extension-kit';
 import { Throttle } from '@nestjs/throttler';
 import { CandidateOutputDTO } from '../dto/candidate.dto';
 import { CandidateFilterInputDTO } from '../dto/candidate-filter.dto';
+import { CandidateIntakeDTO } from '../dto/candidate-intake.dto';
 import { RegistrationService } from '../services/registration.service';
 import { GenerateRegistrationDocumentsInputDTO } from '../dto/generate-registration-documents-input.dto';
 import { GenerateRegistrationDocumentsOutputDTO } from '../dto/generate-registration-documents-output.dto';
@@ -44,6 +56,23 @@ export class RegistrationResolver {
   }
 
   /**
+   * Сведения заявителя о себе. Читает их тот, кто решает о приёме и ведёт
+   * реестр пайщиков, — председатель и члены совета.
+   */
+  @Query(() => CandidateIntakeDTO, {
+    name: 'getCandidateIntake',
+    description:
+      'Программа вступления и ответы заявителя на анкеты, объявленные расширениями. Доступно председателю и членам совета.',
+  })
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Registration', ['read:own', 'read:all'], { owner: 'username' })
+  async getCandidateIntake(
+    @Args('username', { type: () => String }) username: string
+  ): Promise<CandidateIntakeDTO> {
+    return this.registrationService.getCandidateIntake(username);
+  }
+
+  /**
    * Список оферт, требуемых при регистрации для данного типа аккаунта
    * (и опционально программы). Сливает платформенные + extension-
    * зарегистрированные через AgreementRegistry.
@@ -67,8 +96,8 @@ export class RegistrationResolver {
       'Генерирует пакет документов для регистрации пайщика. Возвращает список документов с метаданными для отображения на фронтенде.',
   })
   @Throttle({ default: { limit: 5, ttl: 60000 } })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Registration', 'generate:own', { owner: 'data.username' })
   async generateRegistrationDocuments(
     @Args('data', { type: () => GenerateRegistrationDocumentsInputDTO })
     data: GenerateRegistrationDocumentsInputDTO
@@ -80,9 +109,9 @@ export class RegistrationResolver {
     name: 'generateParticipantApplication',
     description: 'Сгенерировать документ заявления о вступлении в кооператив.',
   })
-  @Throttle({ default: { limit: 3, ttl: 60000 } })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @Throttle(DOCUMENT_GENERATION_THROTTLE)
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Registration', 'generate:own', { owner: 'data.username' })
   async generateParticipantApplication(
     @Args('data', { type: () => ParticipantApplicationGenerateDocumentInputDTO })
     data: ParticipantApplicationGenerateDocumentInputDTO,
@@ -96,9 +125,9 @@ export class RegistrationResolver {
     name: 'generateParticipantApplicationDecision',
     description: 'Сгенерировать документ протокол решения собрания совета',
   })
-  @Throttle({ default: { limit: 3, ttl: 60000 } })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @Throttle(DOCUMENT_GENERATION_THROTTLE)
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('DecisionDocument', 'generate')
   async generateParticipantApplicationDecision(
     @Args('data', { type: () => ParticipantApplicationDecisionGenerateDocumentInputDTO })
     data: ParticipantApplicationDecisionGenerateDocumentInputDTO,
@@ -113,8 +142,8 @@ export class RegistrationResolver {
     description:
       'Зарегистрировать заявление и подписанные положения, подготовив пакет документов к отправке в совет на голосование после поступления оплаты.',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Registration', 'submit:own', { owner: 'data.username' })
   async registerParticipant(
     @Args('data', { type: () => RegisterParticipantInputDTO })
     data: RegisterParticipantInputDTO
@@ -127,8 +156,8 @@ export class RegistrationResolver {
     description:
       'Создание объекта регистрационного платежа производится мутацией createInitialPayment. Выполнение мутации возвращает идентификатор платежа и данные для его совершения в зависимости от выбранного платежного провайдера.',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Registration', 'pay:own', { owner: 'data.username' })
   async createInitialPayment(
     @Args('data', { type: () => CreateInitialPaymentInputDTO }) data: CreateInitialPaymentInputDTO
   ): Promise<GatewayPaymentDTO> {

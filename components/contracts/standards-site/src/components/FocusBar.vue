@@ -188,6 +188,18 @@ const rejectedInfo = computed<RejectedInfo | null>(() => {
 });
 
 // ── Данные для «конца процесса» ─────────────────────────────────────────
+// Процесс завершается либо финальным статусом, либо удалением записи
+// (переход в «∅») действием основного пути сценария.
+const endingActions = computed<ContractAction[]>(() => {
+  const main = new Set((props.standard.scenario?.steps ?? []).map((st) => st.action).filter(Boolean));
+  const names = new Set(
+    props.standard.transitions
+      .filter((t) => t.to === INITIAL_MARKER && t.from !== INITIAL_MARKER && (main.size === 0 || main.has(t.action)))
+      .map((t) => t.action),
+  );
+  return props.standard.actions.filter((a) => names.has(a.name));
+});
+
 const terminalStates = computed(() => {
   const vset = virtualStates.value;
   return props.standard.states.filter((s) => {
@@ -327,6 +339,12 @@ function getL3Movements(op: Ledger2Operation) {
           </template>
           <span class="focus-bar__badge">финал</span>
         </div>
+        <p v-if="endingActions.length" class="focus-bar__desc focus-bar__desc--lead">
+          Процесс завершается, и запись закрывается действием
+          <template v-for="(a, i) in endingActions" :key="a.name">
+            <template v-if="i > 0">, </template>«{{ a.human ?? actionShort(a.name) }}»
+          </template>.
+        </p>
       </div>
     </template>
 

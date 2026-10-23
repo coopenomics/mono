@@ -1,0 +1,8 @@
+{
+  "initInstalledExtensions": {
+    "walletCardsRegistry": {
+      "shareWalletDescription": "Цифровой кошелёк",
+      "shareWalletLabel": "Главный паевой кошелёк"
+    }
+  }
+}

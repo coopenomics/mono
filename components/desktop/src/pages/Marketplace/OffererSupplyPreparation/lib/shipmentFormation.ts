@@ -1,5 +1,6 @@
 import { marketplaceOrderSaleUnit, marketplaceOrderUnitLabel } from 'src/shared/lib/consts/marketplace-units';
 import type { MarketplaceOrderView } from '../../MyOrders/types';
+import { t } from 'src/shared/i18n';
 
 /**
  * Story 14.1 / 14.5: группировка принятых (ACCEPTED) заказов поставщика в
@@ -76,7 +77,7 @@ export function groupAcceptedByKu(orders: MarketplaceOrderView[]): ShipmentKuBuc
     bucket.lines.push({
       id: o.id,
       cycle_id: o.cycle_id,
-      title: o.product_name || 'Товар по предложению',
+      title: o.product_name || t('marketplace.shipmentFormation.fallbackProductTitle'),
       quantity: o.quantity,
       units: saleUnit.units,
       unitLabel: saleUnit.unitLabel,
@@ -118,7 +119,7 @@ export function groupAcceptedOrders(orders: MarketplaceOrderView[]): ShipmentFor
     }
 
     const first = cycleOrders[0];
-    const productName = first.product_name || 'Заявка';
+    const productName = first.product_name || t('marketplace.shipmentFormation.fallbackCycleTitle');
     const unit = marketplaceOrderUnitLabel(first.unit_of_measure);
     cycles.push({
       cycle_id,

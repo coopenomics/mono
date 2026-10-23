@@ -6,18 +6,9 @@ import type { MarketplaceOfferDomainRepository } from '../../domain/repositories
 import type { MarketplaceOrderDomainRepository } from '../../domain/repositories/marketplace-order.repository';
 import type { MarketplaceOfferCountersService } from './marketplace-offer-counters.service';
 import type { MarketplaceCanonicalBlockchainPort } from '../../domain/ports/marketplace-canonical-blockchain.port';
-import type { MarketContract } from 'cooptypes';
 
 // Подписанное заявление о конвертации (обязательный параметр createorder);
 // подпись верифицирует контракт, сервис передаёт документ как есть.
-const CONVERT_STATEMENT = {
-  version: '1.0.0',
-  hash: 'a'.repeat(64),
-  doc_hash: 'b'.repeat(64),
-  meta_hash: 'c'.repeat(64),
-  meta: '{}',
-  signatures: [],
-} as unknown as MarketContract.Actions.CreateOrder.ICreateOrder['convert_statement'];
 import {
   MarketplaceOfferStatuses,
   MarketplaceSaleForms,
@@ -110,7 +101,6 @@ describe('MarketplaceOrderCreateService', () => {
         offer_id: 'no-such-offer',
         quantity: 1,
         delivery_braname: 'ku.krasn.1',
-        convert_statement: CONVERT_STATEMENT,
       })
     ).rejects.toThrow(NotFoundException);
     expect(mocks.counters.onOrderBlocked).not.toHaveBeenCalled();
@@ -126,7 +116,6 @@ describe('MarketplaceOrderCreateService', () => {
         offer_id: 'offer-1',
         quantity: 1,
         delivery_braname: 'ku.krasn.1',
-        convert_statement: CONVERT_STATEMENT,
       })
     ).rejects.toThrow(ForbiddenException);
   });
@@ -140,7 +129,6 @@ describe('MarketplaceOrderCreateService', () => {
         offer_id: 'offer-1',
         quantity: 1,
         delivery_braname: 'ku.krasn.1',
-        convert_statement: CONVERT_STATEMENT,
       })
     ).rejects.toThrow(BadRequestException);
   });
@@ -154,7 +142,6 @@ describe('MarketplaceOrderCreateService', () => {
         offer_id: 'offer-1',
         quantity: 5,
         delivery_braname: 'ku.krasn.1',
-        convert_statement: CONVERT_STATEMENT,
       })
     ).rejects.toThrow(/Доступно только 2 ед./);
   });
@@ -167,7 +154,6 @@ describe('MarketplaceOrderCreateService', () => {
         offer_id: 'offer-1',
         quantity: 0,
         delivery_braname: 'ku.krasn.1',
-        convert_statement: CONVERT_STATEMENT,
       })
     ).rejects.toThrow(/Количество должно быть больше нуля/);
   });
@@ -182,7 +168,6 @@ describe('MarketplaceOrderCreateService', () => {
         offer_id: 'offer-1',
         quantity: 1,
         delivery_braname: '',
-        convert_statement: CONVERT_STATEMENT,
       })
     ).rejects.toThrow('Не указан ПВЗ получения.');
     expect(mocks.offerRepo.findById).not.toHaveBeenCalled();
@@ -212,10 +197,9 @@ describe('MarketplaceOrderCreateService', () => {
         offer_id: 'offer-1',
         quantity: 999,
         delivery_braname: 'ku.krasn.1',
-        convert_statement: CONVERT_STATEMENT,
       })
     ).rejects.toThrow('chain stop');
-    expect(mocks.counters.onOrderBlocked).toHaveBeenCalledWith('offer-1', 999);
+    expect(mocks.counters.onOrderBlocked).toHaveBeenCalledWith('offer-1', 999, undefined);
   });
 
   /**
@@ -240,7 +224,6 @@ describe('MarketplaceOrderCreateService', () => {
           offer_id: 'offer-1',
           quantity: 1,
           delivery_braname: 'ku.krasn.1',
-          convert_statement: CONVERT_STATEMENT,
         })
       ).rejects.toThrow(/Некорректная цена за единицу|нулевой/);
 
@@ -267,7 +250,6 @@ describe('MarketplaceOrderCreateService', () => {
           offer_id: 'offer-1',
           quantity: 0.001,
           delivery_braname: 'ku.krasn.1',
-          convert_statement: CONVERT_STATEMENT,
         })
       ).rejects.toThrow('Итоговая сумма заказа получилась нулевой');
 
@@ -287,7 +269,6 @@ describe('MarketplaceOrderCreateService', () => {
           offer_id: 'offer-1',
           quantity: 1,
           delivery_braname: 'ku.krasn.1',
-          convert_statement: CONVERT_STATEMENT,
         })
       ).rejects.toThrow('Некорректная цена за единицу');
 
@@ -314,12 +295,11 @@ describe('MarketplaceOrderCreateService', () => {
         offer_id: 'offer-1',
         quantity: 3,
         delivery_braname: 'ku.krasn.1',
-        convert_statement: CONVERT_STATEMENT,
       })
     ).rejects.toThrow(/Недостаточно средств/);
 
-    expect(mocks.counters.onOrderBlocked).toHaveBeenCalledWith('offer-1', 3);
-    expect(mocks.counters.onOrderRolledBack).toHaveBeenCalledWith('offer-1', 3);
+    expect(mocks.counters.onOrderBlocked).toHaveBeenCalledWith('offer-1', 3, undefined);
+    expect(mocks.counters.onOrderRolledBack).toHaveBeenCalledWith('offer-1', 3, undefined);
     expect(mocks.orderRepo.persistAfterBlock).not.toHaveBeenCalled();
   });
 
@@ -353,10 +333,9 @@ describe('MarketplaceOrderCreateService', () => {
       offer_id: 'offer-1',
       quantity: 2,
       delivery_braname: 'ku.krasn.1',
-      convert_statement: CONVERT_STATEMENT,
     });
 
-    expect(mocks.counters.onOrderBlocked).toHaveBeenCalledWith('offer-1', 2);
+    expect(mocks.counters.onOrderBlocked).toHaveBeenCalledWith('offer-1', 2, undefined);
     expect(mocks.chainPort.createOrder).toHaveBeenCalledTimes(1);
     expect(mocks.counters.onOrderRolledBack).not.toHaveBeenCalled();
     expect(mocks.orderRepo.persistAfterBlock).toHaveBeenCalledTimes(1);
@@ -402,6 +381,9 @@ describe('MarketplaceOrderCreateService', () => {
             package_type: 'пластиковая бутылка',
             sort_order: 0,
             is_default: true,
+            quantity_available: 100,
+            quantity_blocked: 0,
+            quantity_consumed: 0,
           },
         ],
         quantity_available: 10,
@@ -435,7 +417,6 @@ describe('MarketplaceOrderCreateService', () => {
       quantity: 10, // 10 упаковок, не 10 литров
       package_id: 'pkg-0.1l',
       delivery_braname: 'ku.krasn.1',
-      convert_statement: CONVERT_STATEMENT,
     });
 
     // Именно тот баг, который списал 100 ₽ вместо 1000 ₽ на реальном заказе:
@@ -450,8 +431,66 @@ describe('MarketplaceOrderCreateService', () => {
     expect(chainArgs.unit_price).toBe('100.0000 RUB'); // цена за упаковку, не за литр
     expect(chainArgs.package_size).toBe('0.100 LTR');
 
-    // Блокировка остатка оффера — тоже в базовом количестве (1 л), не в числе упаковок.
-    expect(mocks.counters.onOrderBlocked).toHaveBeenCalledWith('offer-1', 1);
+    // Блокировка остатка оффера — в базовом количестве (1 л), а упаковка —
+    // своим числом упаковок: остаток ведётся на каждой упаковке.
+    expect(mocks.counters.onOrderBlocked).toHaveBeenCalledWith('offer-1', 1, { id: 'pkg-0.1l', count: 10 });
     expect(result.order.id).toBe('order-uuid-pkg');
+    const persisted = mocks.orderRepo.persistAfterBlock.mock.calls[0][0];
+    expect(persisted.package_id).toBe('pkg-0.1l');
+  });
+
+  /**
+   * Остаток по упаковкам (решение владельца 08.09.2026): литров может хватать,
+   * а бутылок нужного объёма — нет. Раньше остаток был общим котлом в базовых
+   * единицах, и десять литров продавались бы двадцатью бутылками по 0,5,
+   * которых поставщик не привозил.
+   */
+  it('остаток по упаковкам: упаковок не хватает, хотя базовых единиц достаточно → отказ до счётчиков и цепи', async () => {
+    mocks.offerRepo.findById.mockResolvedValue(
+      buildOffer({
+        sale_form: MarketplaceSaleForms.PACKAGED,
+        unit_of_measure: MarketplaceUnitsOfMeasure.LITER,
+        packages: [
+          {
+            id: 'pkg-0.5l',
+            size: 0.5,
+            price: '70.0000',
+            label: null,
+            package_type: 'стекло',
+            sort_order: 0,
+            is_default: true,
+            quantity_available: 3,
+            quantity_blocked: 0,
+            quantity_consumed: 0,
+          },
+          {
+            id: 'pkg-1l',
+            size: 1,
+            price: '120.0000',
+            label: null,
+            package_type: 'пластик',
+            sort_order: 1,
+            is_default: false,
+            quantity_available: 8,
+            quantity_blocked: 0,
+            quantity_consumed: 0,
+          },
+        ],
+        quantity_available: 9.5,
+      })
+    );
+
+    await expect(
+      service.execute({
+        coopname: 'voskhod',
+        orderer_account: 'orderer1',
+        offer_id: 'offer-1',
+        quantity: 5, // 5 бутылок по 0,5 л = 2,5 л — литров хватает, бутылок только 3
+        package_id: 'pkg-0.5l',
+        delivery_braname: 'ku.krasn.1',
+      })
+    ).rejects.toThrow(/Доступно только 3 упак\./);
+    expect(mocks.counters.onOrderBlocked).not.toHaveBeenCalled();
+    expect(mocks.chainPort.createOrder).not.toHaveBeenCalled();
   });
 });

@@ -1,0 +1,8 @@
+{
+  "name": "dadata",
+  "version": "1.0.0",
+  "description": "Заполнение анкеты организации по ИНН из DaData",
+  "private": true,
+  "main": "index.js",
+  "license": "ISC"
+}

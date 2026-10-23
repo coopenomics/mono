@@ -1,5 +1,7 @@
 #pragma once
 
+
+#include "../core/ram_payer.hpp"
 #include <optional>
 
 #include <eosio/asset.hpp>
@@ -59,3 +61,6 @@ inline uint64_t get_active_participants_count(name coopname) {
 }
 
 } // namespace Registrator
+
+// Плательщик за оперативную память строк таблицы — правило в lib/core/ram_payer.hpp.
+RAM_PAYER_CLASS(Registrator::candidate, cooperative);

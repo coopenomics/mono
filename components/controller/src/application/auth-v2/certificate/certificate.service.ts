@@ -17,6 +17,7 @@ import { CertSettingsService } from '~/application/auth-v2/certificate/cert-sett
 import { CertKeyService, TRUST_ANCHOR_ACCOUNT } from '~/application/auth-v2/certificate/cert-key.service';
 import { DATA_RETENTION_CONTRACT, RETENTION_PERIOD_SECONDS } from '~/application/auth-v2/certificate/retention-policy';
 import { CURRENT_SCHEMA_VERSION } from '~/application/auth-v2/certificate/schema-policy';
+import { t } from '~/i18n';
 
 /**
  * Насколько долго держится цепочка заверений, прочитанная из цепи. Заверения
@@ -113,7 +114,7 @@ export class CertificateService {
 
     const size = Buffer.byteLength(jws, 'utf8');
     if (size > MAX_CERT_BYTES)
-      throw new AuthV2Error(AuthV2ErrorCode.ChainVerificationFailed, `participant_certificate превышает ${MAX_CERT_BYTES} байт (${size})`);
+      throw new AuthV2Error(AuthV2ErrorCode.ChainVerificationFailed, t('authV2.certificateService.certTooLargeMessage', { maxBytes: MAX_CERT_BYTES, size }));
 
     return jws;
   }
@@ -172,7 +173,7 @@ export class CertificateService {
     try {
       return await this.blockchainPort.getEndorsement(subject);
     } catch {
-      throw new AuthV2Error(AuthV2ErrorCode.CooposDegraded, `COOPOS недоступен: заверение ${subject} не получено`);
+      throw new AuthV2Error(AuthV2ErrorCode.CooposDegraded, t('authV2.certificateService.endorsementUnavailableMessage', { subject }));
     }
   }
 

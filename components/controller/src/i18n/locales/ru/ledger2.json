@@ -1,0 +1,19 @@
+{
+  "errors": {
+    "LEDGER2_WALMOVE_ACCOUNT_UNRESOLVED": "walmove: не удалось определить account_id для кошельков {fromWallet} / {toWallet}",
+    "LEDGER2_WALMOVE_SAME_WALLET": "walmove: from_wallet и to_wallet не должны совпадать"
+  },
+  "ledger2": {
+    "getLedger2HistoryInput": {
+      "processHashInvalidFormat": "process_hash должен быть hex-строкой длиной 64 символа"
+    },
+    "ledger2Service": {
+      "manualAdjustmentRequiredMessage": "Перевод между разными счетами требует Manual-корректировки через решение совета (отложено).",
+      "walmoveDifferentAccountsMessage": "walmove: from_wallet и to_wallet принадлежат разным бух.счетам ({fromAccountId} ≠ {toAccountId}). "
+    },
+    "walmoveInput": {
+      "amountFormatHint": "Формат \"<amount> <SYMBOL>\", например \"100.0000 RUB\"",
+      "memoRequired": "memo обязателен — укажите обоснование корректировки"
+    }
+  }
+}

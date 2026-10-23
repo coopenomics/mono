@@ -6,6 +6,7 @@ import {
   MarketplaceWriteoffProposalTriggers,
 } from '../../domain/entities/marketplace-writeoff-proposal.types';
 import { MarketplaceUnitOfMeasureEnum } from './marketplace-offer.dto';
+import { MarketplaceInventoryOriginEnum } from './marketplace-inventory.dto';
 
 export enum MarketplaceWriteoffProposalStatusEnum {
   DRAFT = 'DRAFT',
@@ -180,7 +181,7 @@ export class MarketplaceSubmitWriteoffDraftInputDTO {
   @Field()
   draft_id!: string;
   @Field(() => SignedDigitalDocumentInputDTO, {
-    description: 'Подписанное председателем Заявление о списании скоропорта (registry_id=1106).',
+    description: 'Подписанное председателем Заявление о списании скоропорта.',
   })
   signed_statement!: SignedDigitalDocumentInputDTO;
 }
@@ -205,6 +206,10 @@ export class MarketplaceWriteoffCandidateDTO {
   branch_name!: string;
   @Field({ description: 'Наименование позиции (из карточки имущества).' })
   asset_title!: string;
+  @Field(() => MarketplaceInventoryOriginEnum, {
+    description: 'Происхождение партий строки: приёмка от поставщика либо гарантийный возврат пайщика.',
+  })
+  origin!: MarketplaceInventoryOriginEnum;
   @Field(() => MarketplaceUnitOfMeasureEnum, { nullable: true, description: 'Базовая единица измерения товара (штука, килограмм, литр).' })
   unit_of_measure?: MarketplaceUnitOfMeasureEnum | null;
   @Field(() => Float, {

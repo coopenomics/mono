@@ -6,7 +6,7 @@
  * из `UserAgreementRepository` (НЕ из `agreements3`/`AgreementRepository`).
  *
  * Покрывают:
- *   (a) MARKETPLACE_OFFER_TEMPLATE_REGISTRY_ID = 0 → not_configured;
+ *   (a) MARKETPLACE_OFFER_INSTANCE_REGISTRY_ID = 0 → not_configured;
  *   (b) ЦПП не настроена как программа (нет коагримента / program_id<=0)
  *       → not_configured (гейтить нечем);
  *   (c) пайщик подписал программу → requires_gate=false, source=agreement_signed,
@@ -16,6 +16,9 @@
  */
 
 import { MarketplaceOnboardingSource } from '~/extensions/marketplace/application/dto/marketplace-onboarding-state.dto';
+import { Cooperative } from 'cooptypes';
+
+const R = Cooperative.Registry;
 
 const PROGRAM_ID = 2;
 
@@ -23,7 +26,7 @@ const makeProgram = (overrides: any = {}) => ({
   program_id: PROGRAM_ID,
   doc_hash: 'abc',
   version: 1,
-  draft_id: 1100,
+  draft_id: R.MarketplaceProgramTemplate.registry_id,
   signed_at: '2026-05-14T12:00:00Z',
   ...overrides,
 });
@@ -52,7 +55,7 @@ const makeLogger = () =>
     debug: jest.fn(),
   } as any);
 
-const COAGREEMENT = { program_id: PROGRAM_ID, draft_id: 1100, type: 'marketplace' };
+const COAGREEMENT = { program_id: PROGRAM_ID, draft_id: R.MarketplaceProgramTemplate.registry_id, type: 'marketplace' };
 
 import { configurePlatformSettingsForTest } from '../../mocks/platform-settings';
 
@@ -71,7 +74,7 @@ describe('MarketplaceOnboardingService.getOnboardingState', () => {
       MARKETPLACE_EXTENSION_NAME: 'market',
       MARKETPLACE_OFFER_AGREEMENT_ID: 'marketplace_offer',
       MARKETPLACE_AGREEMENT_TYPE: 'marketplace',
-      MARKETPLACE_OFFER_TEMPLATE_REGISTRY_ID: 0,
+      MARKETPLACE_OFFER_INSTANCE_REGISTRY_ID: 0,
     }));
     const { MarketplaceOnboardingService } = await import(
       '~/extensions/marketplace/application/onboarding/marketplace-onboarding.service'
@@ -172,7 +175,7 @@ describe('MarketplaceOnboardingService.signOnboardingOffer', () => {
   async function loadService(
     coagreement: unknown,
     wallet = makeProgramAgreements(null),
-    programs: any[] = [{ id: PROGRAM_ID, draft_id: 1102 }]
+    programs: any[] = [{ id: PROGRAM_ID, draft_id: R.MarketplaceOffer.registry_id }]
   ) {
     jest.dontMock('~/extensions/marketplace/constants/marketplace-agreement-ids');
     const { MarketplaceOnboardingService } = await import(
@@ -224,7 +227,7 @@ describe('MarketplaceOnboardingService.signOnboardingOffer', () => {
     const wallet = {
       signProgramAgreement: jest.fn().mockResolvedValue({ transaction_id: 'tx-1' }),
     } as never as ReturnType<typeof makeProgramAgreements>;
-    const { service } = await loadService({ ...COAGREEMENT, draft_id: 699 }, wallet);
+    const { service } = await loadService({ ...COAGREEMENT, draft_id: R.SosediAgreement.registry_id }, wallet);
 
     await service.signOnboardingOffer({
       coopname: 'voskhod',
@@ -237,7 +240,7 @@ describe('MarketplaceOnboardingService.signOnboardingOffer', () => {
         coopname: 'voskhod',
         username: 'alice',
         program_id: PROGRAM_ID,
-        draft_id: 1102,
+        draft_id: R.MarketplaceOffer.registry_id,
       })
     );
   });

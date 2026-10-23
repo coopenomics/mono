@@ -24,8 +24,9 @@ export class AuthService {
     await this.authInteractor.startResetKey(data);
   }
 
-  async sendVerificationEmail(username: string): Promise<void> {
-    await this.authInteractor.sendVerificationEmail(username);
+
+  async inviteRecipient(token: string): Promise<{ email: string }> {
+    return this.authInteractor.inviteRecipient(token);
   }
 
   async resetKey(data: ResetKeyInputDTO): Promise<void> {

@@ -39,6 +39,12 @@ export * as SovietContract from './soviet'
 export * as MarketContract from './marketplace'
 
 /**
+ * Смарт-контракт «Образовательного моста»: подписки на курсы по членскому кошельку
+ * w.edu.member (p.edu.access) и приём РИД преподавателей в паевой фонд (p.edu.rid).
+ */
+export * as EdubridgeContract from './edubridge'
+
+/**
  * Смарт-контракт для мульти-подписей транзакций.
  */
 export * as MsigContract from './msig'
@@ -115,3 +121,11 @@ export * as ExpenseContract from './expense'
  * вопрос — вправе ли он вообще их выпускать.
  */
 export * as AnoContract from './ano'
+
+/**
+ * Смарт-контракт оплаты инфраструктурных подписок членскими взносами пайщика
+ * (Epic 12). Ровно два действия: `convert` (паевой → членский на `w.wal.bill`
+ * по подписанному заявлению) и `pay` (списание стоимости подписок, идемпотентно
+ * по `payment_hash`). Состав и цены подписок on-chain не хранятся.
+ */
+export * as BillingContract from './billing'

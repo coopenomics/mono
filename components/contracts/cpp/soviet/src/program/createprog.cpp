@@ -60,7 +60,7 @@ void soviet::createprog(eosio::name coopname, eosio::name username, eosio::name 
 
   cooperative.check_symbol_or_fail(fixed_membership_contribution);
   
-  programs.emplace(username, [&](auto &pr) {
+  programs.emplace(RamPayer::of(programs, coopname), [&](auto &pr) {
     pr.id = program_id;
     pr.is_active = true;
     pr.program_type = type;
@@ -87,7 +87,7 @@ void soviet::createprog(eosio::name coopname, eosio::name username, eosio::name 
   
   coagreements_index coagreements(_soviet, coopname.value);
   
-  coagreements.emplace(_soviet, [&](auto &row){
+  coagreements.emplace(RamPayer::of(coagreements, coopname), [&](auto &row){
     row.type = type;
     row.coopname = coopname;
     row.program_id = program_id;

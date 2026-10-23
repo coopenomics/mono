@@ -5,11 +5,11 @@
     size='sm',
     :loading='loading || isSubmitting',
     @click.stop='showDialog = true'
-  ) Внести результат
+  ) {{ $t('capital.pushResultButton.label') }}
 
   BaseDialog(
     v-model='showDialog',
-    title='Внесение результата',
+    :title='$t("capital.pushResultButton.dialogTitle")',
     size='md',
     @update:model-value='(v) => !v && clear()'
   )
@@ -18,31 +18,31 @@
         WalletCard(
           compact,
           neutral,
-          title='Паевой взнос',
+          :title='$t("capital.pushResultButton.shareContributionTitle")',
           :balance='contributionBalance',
           :symbol='governSymbol',
-          balance-label='сумма',
+          :balance-label='$t("capital.pushResultButton.amountBalanceLabel")',
           icon='account_balance'
         )
         WalletCard(
           v-if='hasDebt',
           compact,
           neutral,
-          title='Погашаемая ссуда',
+          :title='$t("capital.pushResultButton.loanRepaymentTitle")',
           :balance='debtBalance',
           :symbol='governSymbol',
-          balance-label='ссуда',
+          :balance-label='$t("capital.pushResultButton.loanBalanceLabel")',
           icon='payments'
         )
 
       template(#footer)
         BaseButton(variant='ghost', :disabled='isSubmitting', @click='clear')
-          | Отмена
+          | {{ $t('common.action.cancel') }}
         BaseButton(
           variant='primary',
           type='submit',
           :loading='isSubmitting'
-        ) Подтвердить
+        ) {{ $t('common.action.confirm') }}
 </template>
 
 <script setup lang="ts">
@@ -54,6 +54,7 @@ import { WalletCard } from 'src/shared/ui/domain/WalletCard';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { useSystemStore } from 'src/entities/System/model';
 import type { ISegment } from 'app/extensions/capital/entities/Segment/model';
+import { t } from '../../../../i18n';
 
 interface Props {
   segment: ISegment;
@@ -108,7 +109,7 @@ const handlePushResult = async () => {
       props.segment.project_hash,
       props.segment.username,
     );
-    SuccessAlert('Заявление отправлено в совет на рассмотрение');
+    SuccessAlert(t('capital.pushResultButton.success'));
     emit('submitted');
     clear();
   } catch (error) {

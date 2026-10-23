@@ -3,6 +3,7 @@
 #include <eosio/eosio.hpp>
 
 #include "../core/utils.hpp"
+#include "../core/ram_payer.hpp"
 
 struct counts_base {
   eosio::name key;
@@ -19,19 +20,22 @@ typedef eosio::multi_index<
     eosio::indexed_by<"keyskey"_n, eosio::const_mem_fun<counts_base, uint128_t, &counts_base::keyskey>>>
     counts_index;
 
+// Счётчики идентификаторов — служебное хранение: платит контракт-владелец.
+RAM_PAYER_CLASS(counts_base, contract);
+
 uint64_t get_id(eosio::name code, eosio::name scope, eosio::name key) {
   counts_index counts(code, scope.value);
   auto count = counts.find(key.value);
   uint64_t id = 1;
 
   if (count == counts.end()) {
-    counts.emplace(code, [&](auto &c) {
+    counts.emplace(RamPayer::of(counts), [&](auto &c) {
       c.key = key;
       c.value = id;
     });
   } else {
     id = count->value + 1;
-    counts.modify(count, code, [&](auto &c) { c.value = id; });
+    counts.modify(count, RamPayer::of(counts), [&](auto &c) { c.value = id; });
   }
 
   return id;
@@ -43,13 +47,13 @@ uint64_t get_global_id(eosio::name _me, eosio::name key) {
   uint64_t id = 1;
 
   if (count == counts.end()) {
-    counts.emplace(_me, [&](auto &c) {
+    counts.emplace(RamPayer::of(counts), [&](auto &c) {
       c.key = key;
       c.value = id;
     });
   } else {
     id = count->value + 1;
-    counts.modify(count, _me, [&](auto &c) { c.value = id; });
+    counts.modify(count, RamPayer::of(counts), [&](auto &c) { c.value = id; });
   }
 
   return id;
@@ -61,13 +65,13 @@ uint64_t get_global_id_in_scope(eosio::name _me, eosio::name scope, eosio::name 
   uint64_t id = 1;
 
   if (count == counts.end()) {
-    counts.emplace(_me, [&](auto &c) {
+    counts.emplace(RamPayer::of(counts), [&](auto &c) {
       c.key = key;
       c.value = id;
     });
   } else {
     id = count->value + 1;
-    counts.modify(count, _me, [&](auto &c) { c.value = id; });
+    counts.modify(count, RamPayer::of(counts), [&](auto &c) { c.value = id; });
   }
 
   return id;

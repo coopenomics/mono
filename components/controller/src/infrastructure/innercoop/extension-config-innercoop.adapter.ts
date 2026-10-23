@@ -26,6 +26,13 @@ export class ExtensionConfigInnercoopAdapter implements IExtensionConfigPort {
     return (extension?.config as T | undefined) ?? null;
   }
 
+  async isEnabled(extensionName: string): Promise<boolean> {
+    const service = this.service();
+    if (!service) return false;
+    const extension = await service.getAppByName(extensionName);
+    return extension?.enabled === true;
+  }
+
   private service(): ExtensionDomainService | null {
     if (this.resolved) return this.resolved;
     try {

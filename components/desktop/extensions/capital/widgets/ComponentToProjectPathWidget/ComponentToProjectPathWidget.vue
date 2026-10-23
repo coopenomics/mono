@@ -12,7 +12,7 @@
   // Или сообщение, если проект не загружен
   .breadcrumb-loading(v-else-if="project?.parent_hash && !parentProject")
     q-icon(name="folder", size="14px", color="grey-5")
-    span.text-grey-6 Загрузка проекта...
+    span.text-grey-6 {{ $t('capital.componentToProjectPathWidget.loadingText') }}
 
 
 </template>
@@ -58,25 +58,13 @@ const loadParentProject = async () => {
   }
 };
 
-// Переход к родительскому проекту
+// Переход к родительскому проекту — обычный push: «назад» с проекта вернёт
+// сюда штатной историей (см. smartBack.ts), снимки в sessionStorage не нужны
 const goToParentProject = () => {
   if (!props.project?.parent_hash) return;
-
-  // Сохраняем текущие параметры маршрута для возможности возврата
-  const backRouteKey = `backroute_${Date.now()}`;
-  sessionStorage.setItem(backRouteKey, JSON.stringify({
-    name: route.name,
-    params: route.params,
-    query: { ...route.query, _backRoute: undefined, _useHistoryBack: undefined }
-  }));
-
-  // Переходим на страницу описания проекта
   router.push({
     name: capitalRouteName('project-description', route),
     params: { project_hash: props.project.parent_hash },
-    query: {
-      _backRoute: backRouteKey
-    }
   });
 };
 
@@ -90,6 +78,7 @@ watch(() => props.project, async (newProject) => {
 }, { immediate: true });
 
 // Инициализация
+// realtime: нет источника — данные приходят свойством от живого родителя и перечитываются здесь по watch.
 onMounted(async () => {
   if (props.project?.parent_hash) {
     await loadParentProject();

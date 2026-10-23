@@ -1,7 +1,7 @@
 import { StoryDomainEntity } from '../../domain/entities/story.entity';
 import { StoryContentFormat } from '../../domain/enums/story-content-format.enum';
 import { normalizeBpmnStoryDescription } from '../../domain/utils/bpmn-story-description.util';
-import { StoryTypeormEntity } from '../entities/story.typeorm-entity';
+import { StoryRecord } from '../entities/story.record';
 import type { IStoryDatabaseData } from '../../domain/interfaces/story-database.interface';
 
 /**
@@ -11,7 +11,7 @@ export class StoryMapper {
   /**
    * Преобразование TypeORM сущности в доменную сущность
    */
-  static toDomain(entity: StoryTypeormEntity): StoryDomainEntity {
+  static toDomain(entity: StoryRecord): StoryDomainEntity {
     const contentFormat = entity.content_format ?? StoryContentFormat.MARKDOWN;
     const databaseData: IStoryDatabaseData = {
       _id: entity._id,
@@ -26,6 +26,7 @@ export class StoryMapper {
       issue_hash: entity.issue_hash && entity.issue_hash.trim() !== '' ? entity.issue_hash : undefined,
       created_by: entity.created_by,
       sort_order: entity.sort_order,
+      content_rev: entity.content_rev ?? 0,
       block_num: entity.block_num,
       present: entity.present,
       _created_at: entity._created_at,
@@ -39,8 +40,8 @@ export class StoryMapper {
   /**
    * Преобразование доменной сущности в TypeORM сущность
    */
-  static toEntity(domain: StoryDomainEntity): Partial<StoryTypeormEntity> {
-    const entity: Partial<StoryTypeormEntity> = {
+  static toEntity(domain: StoryDomainEntity): Partial<StoryRecord> {
+    const entity: Partial<StoryRecord> = {
       _id: domain._id,
       story_hash: domain.story_hash,
       coopname: domain.coopname,
@@ -53,6 +54,8 @@ export class StoryMapper {
       issue_hash: domain.issue_hash && domain.issue_hash.trim() !== '' ? domain.issue_hash : undefined,
       created_by: domain.created_by,
       sort_order: domain.sort_order,
+      // 0 не пишем: номер редакции двигает только ContentRevisionService
+      content_rev: domain.content_rev || undefined,
       block_num: domain.block_num,
       present: domain.present,
       _created_at: domain._created_at,

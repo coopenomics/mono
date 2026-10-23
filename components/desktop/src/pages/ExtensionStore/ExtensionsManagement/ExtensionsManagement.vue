@@ -2,7 +2,7 @@
 .catalog-shell
   //- На карточке расширения (one-extension) табы каталога не показываем —
   //- видна только подстраница приложения с кнопкой «Назад» в топбаре.
-  SecondLevelTabs(v-if='showTabs', :tabs='tabs')
+  PageTabs(v-if='showTabs', :tabs='tabs')
   .catalog-shell__content
     router-view
 </template>
@@ -10,13 +10,14 @@
 <script lang="ts" setup>
 import { computed } from 'vue';
 import { useRoute } from 'vue-router';
-import { SecondLevelTabs } from 'src/shared/ui/SecondLevelTabs';
+import { PageTabs } from 'src/shared/ui/layout';
+import { t } from 'src/shared/i18n';
 
 // Shell-страница «Каталог приложений»: канон-меню второго уровня
 // (Витрина / Установленные) вместо кнопок в топбаре.
 const tabs = [
-  { routeName: 'extstore-showcase', label: 'Витрина', icon: 'fa-solid fa-store' },
-  { routeName: 'appstore-installed', label: 'Установленные', icon: 'fa-solid fa-circle-check' },
+  { key: 'extstore-showcase', routeName: 'extstore-showcase', label: t('extensionStore.extensionsManagement.showcaseTab'), icon: 'storefront' },
+  { key: 'appstore-installed', routeName: 'appstore-installed', label: t('extensionStore.extensionsManagement.installedTab'), icon: 'check_circle' },
 ];
 
 const route = useRoute();

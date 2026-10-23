@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { marketplaceOrderSaleUnit } from 'src/shared/lib/consts/marketplace-units';
+import { marketplaceOrderSaleUnitLabel } from 'src/shared/lib/consts/marketplace-units';
 import { marketplaceLineCost } from 'src/shared/lib/marketplace';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
+import type { ReceptionLineRow } from './ReceptionLinesTable.types';
 
 /**
  * Read-only таблица сверки позиций акта приёмки: что и сколько фактически
@@ -11,28 +12,12 @@ import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
  * подписью (у председателя — строго на чтение, факт уже зафиксирован).
  */
 
-export interface ReceptionLineRow {
-  product_name: string | null;
-  /** Количество в базовой единице; к показу приводится к единицам отпуска. */
-  fact_quantity: number;
-  unit_of_measure: string | null;
-  /** Цена за единицу отпуска: за упаковку при `package_size` > 0. */
-  fact_unit_price: string | null;
-  /** Содержимое упаковки; null/0 — отпуск по мере. */
-  package_size?: number | null;
-}
-
 const props = defineProps<{
   rows: ReceptionLineRow[];
 }>();
 
 function qtyLabel(row: ReceptionLineRow): string {
-  const saleUnit = marketplaceOrderSaleUnit(
-    row.fact_quantity,
-    row.unit_of_measure,
-    row.package_size ?? null,
-  );
-  return `${saleUnit.units}×${saleUnit.unitLabel}`;
+  return marketplaceOrderSaleUnitLabel(row.fact_quantity, row.unit_of_measure, row.package_size ?? null,);
 }
 
 function lineSum(row: ReceptionLineRow): number {
@@ -45,19 +30,19 @@ const total = computed(() => props.rows.reduce((acc, r) => acc + lineSum(r), 0))
 <template lang="pug">
 .mp-reception-lines
   .mp-reception-lines__head
-    .mp-reception-lines__cell.mp-reception-lines__cell--title Позиция
-    .mp-reception-lines__cell.mp-reception-lines__cell--num Кол-во
-    .mp-reception-lines__cell.mp-reception-lines__cell--num Цена/ед.
-    .mp-reception-lines__cell.mp-reception-lines__cell--num Сумма
+    .mp-reception-lines__cell.mp-reception-lines__cell--title {{ $t('marketplace.receptionLinesTable.column.item') }}
+    .mp-reception-lines__cell.mp-reception-lines__cell--num {{ $t('marketplace.receptionLinesTable.column.quantity') }}
+    .mp-reception-lines__cell.mp-reception-lines__cell--num {{ $t('marketplace.receptionLinesTable.column.unitPrice') }}
+    .mp-reception-lines__cell.mp-reception-lines__cell--num {{ $t('marketplace.receptionLinesTable.column.amount') }}
 
   .mp-reception-lines__row(v-for='(row, i) in rows', :key='i')
-    .mp-reception-lines__cell.mp-reception-lines__cell--title {{ row.product_name || 'Товар по предложению' }}
+    .mp-reception-lines__cell.mp-reception-lines__cell--title {{ row.product_name || $t('marketplace.receptionLinesTable.productFallback') }}
     .mp-reception-lines__cell.mp-reception-lines__cell--num {{ qtyLabel(row) }}
     .mp-reception-lines__cell.mp-reception-lines__cell--num {{ formatAsset2Digits(row.fact_unit_price ?? '0') }} ₽
     .mp-reception-lines__cell.mp-reception-lines__cell--num {{ formatAsset2Digits(String(lineSum(row))) }} ₽
 
   .mp-reception-lines__total
-    .mp-reception-lines__cell.mp-reception-lines__cell--title Итого
+    .mp-reception-lines__cell.mp-reception-lines__cell--title {{ $t('marketplace.receptionLinesTable.totalLabel') }}
     .mp-reception-lines__cell.mp-reception-lines__cell--num.mp-reception-lines__cell--strong {{ formatAsset2Digits(String(total)) }} ₽
 </template>
 

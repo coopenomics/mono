@@ -88,14 +88,14 @@
 |:---|:---|:---:|:---|:---|
 | `cap.import` | ISSUE | 51/80 | BLAGOROST_INVEST 9001 | Импорт пайщика Благорост (offline) |
 | `cap.invest` | WALLET_ONLY | — | 2001 → 9001 | Инвестиция в ЦПП Благорост |
-| `cap.commit` | ISSUE | **08/80** | GENERATOR_COMMIT 10001 | **Коммит РИД** — эмитится на `capital::approvecmmt` (одобрение коммита мастером), по дельте `segment.available_for_program`. Собирает 08 частями. |
+| `cap.commit` | ISSUE | **08/76** | GENERATOR_COMMIT 10001 | **Коммит РИД на ответственное хранение** — эмитится на `capital::approvecmmt` (одобрение коммита мастером), по дельте `segment.available_for_program`. Собирает 08 частями; паевой фонд признаётся на акте-2 (`cap.ridshr`, 76/80). |
 | `cap.accept` | TRANSFER | **04/08** | 10001 → BLAGOROST_RID 9002 | **Приём РИД в НМА** — эмитится на `capital::signact2` на полный накопленный `available_for_program`. Закрывает 08 в ноль. |
 | `cap.act2prp` | ISSUE | 51/80 | BLAGOROST_PROPERTY 9003 | Акт-2 имущественный паевой взнос |
 | `cap.lnissue` | ISSUE | 58/51 | LOAN_ISSUED 4051 | Выдача пайщику беспроцентного займа |
 | `cap.lnrepay` | TRANSFER | 80/58 | 4051 → SHARE_FUND_PAY 2001 | Возврат займа через акт-2 |
 
 **Коммит РИД** (process_type `cap.apprvcmmt`) — одобрение коммита мастером в `capital::approvecmmt`:
-- `cap.commit` (Dr 08 / Cr 80) эмитится на дельту `segment.available_for_program`
+- `cap.commit` (Dr 08 / Cr 76) эмитится на дельту `segment.available_for_program`
   (intellectual_cost − debt_amount) с `process_hash = project_hash`.
 - У одного проекта может быть множество одобренных коммитов — все группируются в один процесс.
 

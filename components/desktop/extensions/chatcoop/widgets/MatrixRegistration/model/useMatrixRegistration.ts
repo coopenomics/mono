@@ -1,6 +1,7 @@
 import { ref, computed } from 'vue';
 import { client } from 'src/shared/api/client';
 import { Queries } from '@coopenomics/sdk';
+import { t } from '../../../i18n';
 
 export function useMatrixRegistration() {
   const username = ref('');
@@ -14,17 +15,17 @@ export function useMatrixRegistration() {
 
   const validateForm = (): boolean => {
     if (!username.value || !password.value || !confirmPassword.value) {
-      error.value = 'Заполните все поля';
+      error.value = t('chatcoop.matrixRegistrationValidation.fillAllFieldsError');
       return false;
     }
 
     if (usernameAvailable.value === false) {
-      error.value = 'Пользователь с таким именем уже существует';
+      error.value = t('chatcoop.matrixRegistrationValidation.usernameTakenError');
       return false;
     }
 
     if (password.value !== confirmPassword.value) {
-      error.value = 'Пароли не совпадают';
+      error.value = t('chatcoop.matrixRegistrationValidation.passwordMismatchError');
       return false;
     }
 
@@ -69,21 +70,21 @@ export function useMatrixRegistration() {
   const validateUsernameAsync = async (val: string): Promise<string | boolean> => {
     if (!val) {
       usernameAvailable.value = null;
-      return 'Введите имя пользователя';
+      return t('chatcoop.matrixRegistrationValidation.usernameRequiredError');
     }
 
     if (val.length < 3) {
       usernameAvailable.value = null;
-      return 'Имя пользователя должно содержать минимум 3 символа';
+      return t('chatcoop.matrixRegistrationValidation.usernameMinLengthError');
     }
 
     if (!/^[a-zA-Z0-9_-]+$/.test(val)) {
       usernameAvailable.value = null;
-      return 'Имя пользователя может содержать только буквы, цифры, подчеркивания и дефисы';
+      return t('chatcoop.matrixRegistrationValidation.usernameCharsError');
     }
 
     const available = await checkUsernameAvailability(val);
-    return available || 'Пользователь с таким именем уже существует';
+    return available || t('chatcoop.matrixRegistrationValidation.usernameTakenError');
   };
 
   return {

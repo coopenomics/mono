@@ -3,7 +3,7 @@ import { WorkflowBuilder } from '../../base/workflow-builder';
 import { z } from 'zod';
 import { BaseWorkflowPayload } from '../../types';
 import { createEmailStep, createInAppStep, createPushStep } from '../../base/defaults';
-import { slugify } from '../../utils';
+import { nt } from '../../i18n';
 
 // Схема для approval-response воркфлоу
 export const approvalResponsePayloadSchema = z.object({
@@ -27,37 +27,34 @@ export type IPayload = z.infer<typeof approvalResponsePayloadSchema>;
 
 export interface IWorkflow extends BaseWorkflowPayload, IPayload {}
 
-export const name = 'Ответ на запрос одобрения';
-export const id = slugify(name);
+export const name = nt('approvalResponse.name');
+// Идентификатор закреплён: раньше он вычислялся из названия, и правка
+// или перевод названия меняли бы его. Не менять — на него ссылаются подписки.
+export const id = 'otvet-na-zapros-odobreniya';
 
 export const workflow: WorkflowDefinition<IWorkflow> = WorkflowBuilder
   .create<IWorkflow>()
   .name(name)
   .workflowId(id)
-  .description('Уведомление пользователю об одобрении или отклонении его запроса председателем')
+  .i18nKey('approvalResponse')
+  .description(nt('approvalResponse.description'))
   .payloadSchema(approvalResponsePayloadSchema)
   .tags(['user']) // Для всех пользователей
   .addSteps([
     createEmailStep(
       'approval-response-email',
-      'Ваш запрос {{payload.approvalStatusText}} председателем совета',
-      `Уважаемый {{payload.userName}}!
-
-Ваш запрос {{payload.approvalStatusText}} председателем совета {{payload.coopShortName}}.
-
-Предмет запроса: {{payload.requestTitle}}
-
-Подробнее по ссылке: {{payload.approvalUrl}}`
+      nt('approvalResponse.email.subject'),
+      nt('approvalResponse.email.body')
     ),
     createInAppStep(
       'approval-response-notification',
-      'Ответ на запрос одобрения',
-      '{{payload.requestTitle}}\nВаш запрос {{payload.approvalStatusText}} председателем совета {{payload.coopShortName}}'
+      nt('approvalResponse.inApp.subject'),
+      nt('approvalResponse.inApp.body')
     ),
     createPushStep(
       'approval-response-push',
-      'Ответ на запрос одобрения',
-      'Запрос {{payload.approvalStatusText}}: {{payload.requestTitle}}'
+      nt('approvalResponse.push.subject'),
+      nt('approvalResponse.push.body')
     ),
   ])
   .build();

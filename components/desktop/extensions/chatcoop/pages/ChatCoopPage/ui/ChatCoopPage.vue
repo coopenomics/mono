@@ -1,12 +1,12 @@
 <template lang="pug">
 div
   // Лоадер пока получаем статус аккаунта
-  WindowLoader(v-if="chatcoopStore.isLoading", text="Проверка статуса аккаунта...")
+  WindowLoader(v-if="chatcoopStore.isLoading", :text="$t('chatcoop.chatCoopPage.checkingStatusText')")
 
   // Сообщение об ошибке
   div(v-else-if="chatcoopStore.error", class="error-message")
     p {{ chatcoopStore.error }}
-    button(@click="retryLoadStatus", class="retry-button") Повторить попытку
+    button(@click="retryLoadStatus", class="retry-button") {{ $t('chatcoop.chatCoopPage.retryLabel') }}
 
   // Виджет регистрации Matrix аккаунта
   MatrixRegistration(
@@ -17,7 +17,7 @@ div
   // Лоадер пока загружается iframe Matrix клиента
   WindowLoader(
     v-else-if="iframeSrc && isIframeLoading",
-    text="Загрузка клиента..."
+    :text="$t('chatcoop.chatCoopPage.loadingClientText')"
   )
 
   // Заглушка для мобильных устройств
@@ -25,11 +25,11 @@ div
     div.mobile-stub-content
       div.mobile-icon
         i.fas.fa-mobile-alt
-      h2 Мобильный клиент доступен
-      p На мобильных устройствах кооперативный мессенджер работает только через мобильное приложение Element X.
-      p Перейдите на страницу с инструкциями по подключению.
+      h2 {{ $t('chatcoop.chatCoopPage.mobileAvailableTitle') }}
+      p {{ $t('chatcoop.chatCoopPage.mobileAvailableHint') }}
+      p {{ $t('chatcoop.chatCoopPage.mobileInstructionsHint') }}
       q-btn(@click="goToMobileClient", class="mobile-button", color="primary", icon="fa-mobile-alt")
-        | Перейти к мобильному клиенту
+        | {{ $t('chatcoop.chatCoopPage.goToMobileClientLabel') }}
 
   // Iframe с Matrix клиентом после полной загрузки
   iframe(
@@ -47,6 +47,8 @@ div
 
 <script lang="ts" setup>
 import { computed, ref, onMounted, watch } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { CHAT_ACCOUNT_LIVE_TABLES } from 'app/extensions/chatcoop/shared/lib/live';
 import { useRoute, useRouter } from 'vue-router';
 import { WindowLoader } from 'src/shared/ui/Loader';
 import { useChatCoopChatStore } from '../../../entities/ChatCoopChat/model';
@@ -83,7 +85,7 @@ function startIframeLoading() {
     clearTimeout(iframeLoadTimeout);
   }
 
-  // Устанавливаем таймаут на 5 секунд как fallback
+  // timing: timeout — запасной срок: iframe Matrix не всегда шлёт load, спиннер снимаем через 5 с
   iframeLoadTimeout = window.setTimeout(() => {
     isIframeLoading.value = false;
   }, 5000);
@@ -122,6 +124,10 @@ onMounted(async () => {
   // Инициализируем загрузку iframe после получения статуса аккаунта
   startIframeLoading();
 });
+
+// Учётная запись в Matrix живёт по ленте: созданная или пересозданная запись
+// сразу меняет состояние экрана (iframe перезагружается только при смене адреса).
+useLiveReload(CHAT_ACCOUNT_LIVE_TABLES, () => chatcoopStore.loadAccountStatus());
 </script>
 
 <style scoped>

@@ -24,3 +24,16 @@ using namespace eosio;
 void gateway::migrate(){
   require_auth(_gateway);
 };
+
+/**
+ * @brief Очистка отработавших записей (lib/core/cleanup.hpp).
+ *
+ * Правил нет: входящие и исходящие платежи удаляются при подтверждении или отклонении. Зависший платёж закрывается отклонением с колбэками кошелька и регистратора, это не очистка.
+ *
+ * @note Авторизация требуется от аккаунта контракта.
+ */
+void gateway::cleanup() {
+  require_auth(get_self());
+  Cleanup::budget budget;
+  Cleanup::report(get_self(), budget);
+}

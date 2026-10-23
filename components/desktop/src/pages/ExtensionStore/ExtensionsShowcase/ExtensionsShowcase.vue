@@ -93,6 +93,7 @@ import { useExtensionStore } from 'src/entities/Extension/model';
 import { useSystemStore } from 'src/entities/System/model';
 import { api as extensionApi } from 'src/entities/Extension/api';
 import { onMounted, computed, ref } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
 import { ExtensionCard } from 'src/widgets/ExtensionCard';
 import { Queries, Zeus } from '@coopenomics/sdk';
 import { BaseBadge, BaseBanner, BaseButton, BaseDialog, EmptyState } from 'src/shared/ui/base';
@@ -216,6 +217,10 @@ async function loadRemote() {
     remoteLoading.value = false;
   }
 }
+
+// Каталог живёт по ленте изменений: установка, удаление и включение
+// расширений (таблица узла extensions) приходят сигналом.
+useLiveReload([{ code: 'core', table: 'extensions' }], () => extStore.loadExtensions());
 
 onMounted(async () => {
   extStore.loadExtensions();

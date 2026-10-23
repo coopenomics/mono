@@ -17,3 +17,17 @@ export async function getSegment(blockchain: Blockchain, coopname: string, proje
 
   return rows[0]
 }
+
+/** Все сегменты проекта — по индексу byproject. */
+export async function getProjectSegments(blockchain: Blockchain, coopname: string, project_hash: string): Promise<CapitalContract.Tables.Segments.ISegment[]> {
+  return blockchain.getTableRows(
+    CapitalContract.contractName.production,
+    coopname,
+    CapitalContract.Tables.Segments.tableName,
+    1000,
+    project_hash,
+    project_hash,
+    2,
+    'sha256',
+  )
+}

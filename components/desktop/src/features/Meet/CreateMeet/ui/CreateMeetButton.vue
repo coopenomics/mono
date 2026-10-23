@@ -8,8 +8,8 @@ q-btn(
   no-wrap
 )
   q-icon(name='fa-solid fa-plus')
-  span.q-ml-sm(v-if='!micro') Созвать собрание
-  q-tooltip(v-if='micro') Созвать собрание
+  span.q-ml-sm(v-if='!micro') {{ $t('meet.createMeetButton.label') }}
+  q-tooltip(v-if='micro') {{ $t('meet.createMeetButton.label') }}
 
 CreateMeetForm(
   v-model='showCreateMeetDialog',
@@ -27,6 +27,7 @@ import { useSessionStore } from 'src/entities/Session';
 import { useMeetStore } from 'src/entities/Meet';
 import { useRoute } from 'vue-router';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
+import { t } from 'src/shared/i18n';
 
 // Определяем пропсы
 withDefaults(
@@ -61,7 +62,7 @@ const handleCreate = async (formData: any) => {
       details: formData.details,
     });
 
-    SuccessAlert('Собрание успешно создано');
+    SuccessAlert(t('meet.createMeetButton.success'));
 
     // Закрываем диалог
     showCreateMeetDialog.value = false;

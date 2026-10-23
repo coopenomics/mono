@@ -1,0 +1,255 @@
+import { Type } from 'class-transformer';
+import { EduScheduleSlotInputDTO } from './edu-schedule.dto';
+import { Field, Float, InputType, Int, ObjectType } from '@nestjs/graphql';
+import { IsBoolean, IsInt, IsNumber, IsOptional, IsString, Length, Matches, Max, Min, IsArray, ValidateNested } from 'class-validator';
+import { validationMessage } from '@coopenomics/extension-kit';
+
+/** Сумма в формате цепи: «1000.0000 RUB». */
+const ASSET_PATTERN = /^\d+\.\d{4} [A-Z]{1,7}$/;
+
+/** Настройки экономики программы — одни на кооператив. */
+@ObjectType('EduEconomySettings')
+export class EduEconomySettingsDTO {
+  @Field(() => Float, { description: 'Целевой членский взнос, проценты' })
+  markup_percent!: number;
+
+  @Field(() => Float, { description: 'Предельная скидка за взнос разом за весь курс при этом целевом членском взносе, проценты' })
+  max_course_discount_percent!: number;
+
+  @Field(() => Boolean, { description: 'Время сжато (стенд разработки): сутки и месяцы укорочены, начало занятий называется в минутах' })
+  time_compressed!: boolean;
+
+  @Field(() => Int, { description: 'Длина суток, секунд' })
+  day_seconds!: number;
+
+  @Field(() => Int, { description: 'Длина месяца, секунд; 0 — месяц в четыре недели (28 дней)' })
+  month_seconds!: number;
+}
+
+@InputType('EduSetEconomySettingsInput')
+export class EduSetEconomySettingsInputDTO {
+  @Field(() => Float, { description: 'Целевой членский взнос, проценты' })
+  @IsNumber()
+  @Min(0)
+  @Max(500)
+  markup_percent!: number;
+}
+
+@InputType('EduSetTeacherRateInput')
+export class EduSetTeacherRateInputDTO {
+  @Field(() => String, { description: 'Преподаватель (учётное имя)' })
+  @IsString()
+  @Length(1, 13)
+  username!: string;
+
+  @Field(() => String, { description: 'Ставка часа («1000.0000 RUB»)' })
+  @Matches(ASSET_PATTERN, { message: validationMessage('edubridge.eduSetTeacherRateInput.hourlyRate.format') })
+  hourly_rate!: string;
+}
+
+/** Параметры, из которых складывается взнос за курс. */
+@InputType('EduCourseEconomyInput')
+export class EduCourseEconomyInputDTO {
+  @Field(() => [EduScheduleSlotInputDTO], { description: 'Окна расписания: по их минутам считается взнос' })
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => EduScheduleSlotInputDTO)
+  schedule_slots!: EduScheduleSlotInputDTO[];
+
+  @Field(() => Float, { description: 'Длительность программы, месяцев, с шагом в неделю (0,25): 3,5 — три месяца и две недели; ноль — программа без конца' })
+  @IsNumber()
+  @Min(0)
+  @Max(120)
+  program_months!: number;
+
+
+  @Field(() => Boolean, { nullable: true, description: 'Принимать взнос за весь курс разом; иначе взнос только помесячный' })
+  @IsOptional()
+  @IsBoolean()
+  course_payment_enabled?: boolean;
+
+  @Field(() => Float, { nullable: true, description: 'Скидка за взнос разом за весь курс, проценты' })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(100)
+  course_discount_percent?: number;
+}
+
+/** Расчёт взноса: себестоимость, целевой членский взнос, взнос за месяц и за весь курс разом. */
+@ObjectType('EduCourseFee')
+export class EduCourseFeeDTO {
+  @Field(() => Float, { description: 'Занятий в месяц по окнам расписания: окон недели на четыре' })
+  lessons_per_month!: number;
+
+  @Field(() => Float, { description: 'Часов занятий в месяц' })
+  hours_per_month!: number;
+
+  @Field(() => Float, { description: 'Из них часов резерва для внеочередных занятий в месяц' })
+  reserve_hours_per_month!: number;
+
+  @Field(() => String, { description: 'Себестоимость месяца — часы по ставке' })
+  cost_month!: string;
+
+  @Field(() => String, { description: 'Целевой членский взнос кооператива в сумме за месяц' })
+  markup_month!: string;
+
+  @Field(() => String, { description: 'Членский взнос за месяц' })
+  fee_month!: string;
+
+  @Field(() => Float, { description: 'Длительность курса в месяцах, с шагом в неделю (0,25); ноль — у курса нет конечной программы' })
+  course_months!: number;
+
+  @Field(() => String, { description: 'Сумма помесячных взносов за весь курс' })
+  fee_course_base!: string;
+
+  @Field(() => String, { description: 'Скидка за взнос разом в сумме' })
+  course_discount_amount!: string;
+
+  @Field(() => String, { description: 'Членский взнос за весь курс разом' })
+  fee_course!: string;
+
+  @Field(() => String, { description: 'Себестоимость курса' })
+  cost_course!: string;
+
+  @Field(() => Float, { description: 'Предельная скидка при текущем целевом членском взносе, проценты' })
+  max_course_discount_percent!: number;
+
+  @Field(() => Float, { description: 'Целевой членский взнос кооператива, проценты' })
+  markup_percent!: number;
+}
+
+/** Нагрузка преподавателя на курсе и её стоимость по его ставке. */
+@ObjectType('EduCourseTeacherLoad')
+export class EduCourseTeacherLoadDTO {
+  @Field(() => String, { description: 'Учётное имя' })
+  username!: string;
+
+  @Field(() => String, { description: 'Фамилия, имя и отчество' })
+  display_name!: string;
+
+  @Field(() => String, { description: 'Ставка часа преподавателя' })
+  hourly_rate!: string;
+
+  @Field(() => Float, { description: 'Нагрузка, часов в месяц' })
+  hours_per_month!: number;
+
+  @Field(() => String, { description: 'Стоимость нагрузки за месяц' })
+  cost_month!: string;
+}
+
+/** Экономика курса: плановый расчёт и факт по назначенным преподавателям. */
+@ObjectType('EduCourseEconomy')
+export class EduCourseEconomyDTO {
+  @Field(() => EduCourseFeeDTO, { description: 'Плановый расчёт взноса' })
+  plan!: EduCourseFeeDTO;
+
+  @Field(() => [EduCourseTeacherLoadDTO], { description: 'Нагрузка назначенных преподавателей' })
+  teachers!: EduCourseTeacherLoadDTO[];
+
+  @Field(() => String, { description: 'Себестоимость месяца по ставкам назначенных преподавателей' })
+  actual_cost_month!: string;
+
+  @Field(() => Float, { description: 'Часов в месяц, распределённых между преподавателями' })
+  actual_hours_per_month!: number;
+
+  @Field(() => Boolean, { description: 'Обязательства перед преподавателями превысили собранный взнос' })
+  over_fee!: boolean;
+
+  @Field(() => String, { nullable: true, description: 'Группа курса, по которой посчитан месяц' })
+  group_id!: string | null;
+
+  @Field(() => Boolean, { description: 'Взнос преподавателя за занятие в группе считается за каждого участника; иначе фиксированный за занятие' })
+  pay_per_learner!: boolean;
+
+  @Field(() => Int, { description: 'Участников группы с оплаченным доступом на сегодня' })
+  learners_active!: number;
+
+  @Field(() => String, { description: 'Взносы участников за месяц при нынешнем числе участников' })
+  group_fee_month!: string;
+
+  @Field(() => String, { description: 'Взнос преподавателей за месяц при нынешнем числе участников' })
+  group_teachers_month!: string;
+
+  @Field(() => String, { description: 'Остаётся программе за месяц при нынешнем числе участников' })
+  group_program_month!: string;
+
+  @Field(() => Boolean, { description: 'В группу вносили взнос: её условия закреплены, правка условий курса действует для новых групп' })
+  terms_locked!: boolean;
+
+  @Field(() => Boolean, { description: 'В группе проведены занятия: дата начала занятий группы не изменяется' })
+  start_locked!: boolean;
+}
+
+@InputType('EduSetAssignmentLoadInput')
+export class EduSetAssignmentLoadInputDTO {
+  @Field(() => String, { description: 'Назначение' })
+  @IsString()
+  assignment_id!: string;
+
+  @Field(() => Int, { description: 'Нагрузка преподавателя по курсу, минут в месяц' })
+  @IsInt()
+  @Min(0)
+  @Max(20_000)
+  minutes_per_month!: number;
+}
+
+/** Кошелёк программы с остатком. */
+@ObjectType('EduProgramWallet')
+export class EduProgramWalletDTO {
+  @Field(() => String, { description: 'Идентификатор кошелька' })
+  id!: string;
+
+  @Field(() => String, { description: 'Название кошелька' })
+  name!: string;
+
+  @Field(() => String, { description: 'Остаток' })
+  available!: string;
+
+  @Field(() => String, { description: 'Короткая подпись: что это за средства' })
+  summary!: string;
+
+  @Field(() => String, { description: 'Подробно: откуда средства берутся, куда уходят и на что их можно тратить' })
+  hint!: string;
+}
+
+/** Движение средств программы — одна строка ленты. */
+@ObjectType('EduFundMovement')
+export class EduFundMovementDTO {
+  @Field(() => String, { description: 'Номер движения' })
+  id!: string;
+
+  @Field(() => Date, { description: 'Когда' })
+  at!: Date;
+
+  @Field(() => String, { description: 'Что произошло' })
+  title!: string;
+
+  @Field(() => String, { description: 'Сумма' })
+  amount!: string;
+
+  @Field(() => String, { nullable: true, description: 'Пайщик, к которому относится движение' })
+  username!: string | null;
+
+  @Field(() => String, { nullable: true, description: 'ФИО пайщика (у организации — наименование)' })
+  display_name!: string | null;
+
+  @Field(() => String, { description: 'Направление: приход в фонд или расход из него' })
+  direction!: string;
+}
+
+/** Деньги программы: кошельки и лента движения. */
+@ObjectType('EduProgramFund')
+export class EduProgramFundDTO {
+  @Field(() => [EduProgramWalletDTO], { description: 'Кошельки программы с остатками' })
+  wallets!: EduProgramWalletDTO[];
+
+  @Field(() => String, { description: 'Остаток фонда программы' })
+  fund_balance!: string;
+
+  @Field(() => String, { description: 'Членские взносы на кошельках учеников — ещё не списаны в фонд' })
+  members_balance!: string;
+
+  @Field(() => [EduFundMovementDTO], { description: 'Последние движения средств программы' })
+  movements!: EduFundMovementDTO[];
+}

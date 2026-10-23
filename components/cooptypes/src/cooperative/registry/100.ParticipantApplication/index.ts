@@ -56,7 +56,7 @@ padding-bottom: 20px;
 {% if type == 'individual' %}
 <h1 class="header">{% trans 'application_individual' %}</h1>
 <p style="text-align: center" class="subheader">{% trans 'in' %} {{ coop.full_name }}<p>
-<p style="text-align: right">{{ meta.created_at }}, {{coop.city}}</p>
+<p style="text-align: right">{{ created_at }}, {{coop.city}}</p>
 <p>{% trans 'to_council_of' %} {{ coop.short_name }} {% trans 'from' %} {{ individual.last_name }} {{ individual.first_name }} {{ individual.middle_name }}, {% trans 'birthdate' %} {{ individual.birthdate }}, {% trans 'registration_address' %} {{ individual.full_address }}, {% trans 'phone_and_email_notice', individual.phone, individual.email %}{% if vars.passport_request == 'yes' %} {% trans 'passport' %} № {{individual.passport.series}} {{individual.passport.number}}, 
 {% trans 'passport_code' %} {{individual.passport.code}}, {% trans 'passport_issued' %} {{individual.passport.issued_by}} {% trans 'passport_from' %} {{individual.passport.issued_at}}. {% endif %}</p>
 <p>{% trans 'request_to_join' %} {{ coop.full_name }}. {% trans 'acknowledge_documents_individual' %} {% if coop.is_branched %}</p> 
@@ -72,7 +72,7 @@ padding-bottom: 20px;
 {% elif type == 'entrepreneur' %}
 <h1 class="header">{% trans 'application_entrepreneur' %}</h1>
 <p style="text-align: center">{% trans 'in' %} {{ coop.full_name }}<p>
-<p style="text-align: right">{{ meta.created_at }}, {{coop.city}}</p>  <p>{% trans 'to_council_of' %} {{ coop.short_name }} {% trans 'from_entrepreneur' %} {{ entrepreneur.last_name }} {{ entrepreneur.first_name }} {{ entrepreneur.middle_name }}, {% trans 'birthdate' %} {{ entrepreneur.birthdate }}, {% trans 'registration_address' %} {{ entrepreneur.full_address }}, {% trans 'entrepreneur_details', entrepreneur.details.inn, entrepreneur.details.ogrn, entrepreneur.bank_account.account_number, entrepreneur.bank_account.details.corr, entrepreneur.bank_account.details.bik, entrepreneur.bank_account.bank_name %}, {% trans 'phone_and_email_notice', entrepreneur.phone, entrepreneur.email %}</p>
+<p style="text-align: right">{{ created_at }}, {{coop.city}}</p>  <p>{% trans 'to_council_of' %} {{ coop.short_name }} {% trans 'from_entrepreneur' %} {{ entrepreneur.last_name }} {{ entrepreneur.first_name }} {{ entrepreneur.middle_name }}, {% trans 'birthdate' %} {{ entrepreneur.birthdate }}, {% trans 'registration_address' %} {{ entrepreneur.full_address }}, {% trans 'entrepreneur_details', entrepreneur.details.inn, entrepreneur.details.ogrn, entrepreneur.bank_account.account_number, entrepreneur.bank_account.details.corr, entrepreneur.bank_account.details.bik, entrepreneur.bank_account.bank_name %}, {% trans 'phone_and_email_notice', entrepreneur.phone, entrepreneur.email %}</p>
 <p>{% trans 'request_to_join' %} {{ coop.full_name }}. {% trans 'acknowledge_documents_entrepreneur' %}</p> 
 <p>{% if coop.is_branched %}{% trans 'authorize_chairman_branch', branch.short_name %} {% endif %} </p>
 <p>{% trans 'obligation_to_pay_entrepreneur', initial, minimum %} </p>
@@ -86,7 +86,7 @@ padding-bottom: 20px;
 {% elif type == 'organization' %}
 <h1 class="header">{% trans 'application_legal_entity' %}</h1>
 <p style="text-align: center">{% trans 'in' %} {{ coop.full_name }}<p>
-<p style="text-align: right">{{ meta.created_at }}, {{coop.city}}</p>
+<p style="text-align: right">{{ created_at }}, {{coop.city}}</p>
 <p>{% trans 'to_council_of' %} «{{ coop.full_name }}» {% trans 'from_legal_entity' %} {{ organization.full_name }}, {% trans 'legal_address' %}: {{ organization.full_address }}, {% trans 'fact_address' %}: {{organization.fact_address}}, {% trans 'legal_entity_details', organization.details.inn, organization.details.ogrn, organization.bank_account.account_number, organization.bank_account.details.corr, organization.bank_account.details.bik, organization.bank_account.bank_name %}, {% trans 'phone_and_email_notice', organization.phone, organization.email %}</p>
 <p>{% trans 'request_to_join_legal_entity', organization.represented_by.position, organization.represented_by.last_name, organization.represented_by.first_name, organization.represented_by.middle_name, organization.represented_by.based_on %} {{ coop.full_name }}.</p>
 <p>{% trans 'acknowledge_documents_legal_entity' %}</p> 

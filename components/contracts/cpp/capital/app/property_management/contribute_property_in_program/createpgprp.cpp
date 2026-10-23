@@ -24,6 +24,8 @@ void capital::createpgprp(eosio::name coopname, eosio::name username,
   
   // Проверяем документ-заявление
   verify_document_or_fail(statement);
+  // Заявление о передаче имущества подписывает сам пайщик. Транзакцию шлёт кооператив, поэтому ключ сверяется с аккаунтом.
+  verify_signer_keys_or_fail(statement, username);
   
   // Проверяем основной договор УХД
   auto contributor = Capital::Contributors::get_contributor(coopname, username);

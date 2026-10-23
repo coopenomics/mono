@@ -1,5 +1,7 @@
 #pragma once
 
+
+#include "../core/ram_payer.hpp"
 #include <eosio/asset.hpp>
 #include <eosio/binary_extension.hpp>
 #include <eosio/eosio.hpp>
@@ -80,3 +82,6 @@ cooperative2 get_cooperative_or_fail(eosio::name coopname) {
 
   return *org;
 }
+
+// Плательщик за оперативную память строк таблицы — правило в lib/core/ram_payer.hpp.
+RAM_PAYER_CLASS(cooperative2, contract);

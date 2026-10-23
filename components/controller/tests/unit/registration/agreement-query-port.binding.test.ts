@@ -15,6 +15,7 @@
  */
 
 import { AgreementConfigurationService } from '~/domain/registration/services/agreement-configuration.service';
+import { ExtensionOfferFilterRegistry } from '~/domain/registration/services/extension-offer-filter.registry';
 import { AgreementRegistryService } from '~/domain/registration/services/agreement-registry.service';
 import { CooperativeConfigService } from '~/domain/registration/services/cooperative-config.service';
 import type { AgreementQueryPort } from '~/domain/registration/ports/agreement-query.port';
@@ -33,7 +34,8 @@ function makeLoggerStub() {
 function makeService() {
   const cooperativeConfig = new CooperativeConfigService();
   const registry = new AgreementRegistryService(makeLoggerStub());
-  return new AgreementConfigurationService(cooperativeConfig, registry);
+  const offerFilters = new ExtensionOfferFilterRegistry(makeLoggerStub() as any);
+  return new AgreementConfigurationService(cooperativeConfig, registry, offerFilters);
 }
 
 describe('AgreementQueryPort contract', () => {

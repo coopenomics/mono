@@ -1,5 +1,6 @@
 import type { VaultSubject } from '../vault/types'
 import type { StorageAdapter } from '../wallet'
+import { lt } from '@coopenomics/i18n'
 /**
  * OIDC-слой: вход через authentik (password + timestamp-signature),
  * magic-link, recovery и работа с токенами (oidc-client-ts).
@@ -16,10 +17,10 @@ export { authenticateWithFlowExecutor, DEFAULT_AUTHENTICATION_FLOW } from './flo
 export type { FlowExecutorParams } from './flow-executor'
 export type { HandshakeResult, LoginFactorKind, SecondFactorChallenge } from './handshake'
 export { performTimestampHandshake } from './handshake'
-export type { ConfirmLoginFactorParams, ConfirmLoginFactorResult, LoginFactorCompleted, LoginFactorProgress } from './two-factor'
-export { confirmLoginFactor, resendLoginEmailCode } from './two-factor'
 export type { SessionTokens } from './tokens'
 export { clearSession, configureTokenStorage, currentTokens, restoreSession } from './tokens'
+export type { ConfirmLoginFactorParams, ConfirmLoginFactorResult, LoginFactorCompleted, LoginFactorProgress } from './two-factor'
+export { confirmLoginFactor, resendLoginEmailCode } from './two-factor'
 
 export interface LoginParams {
   /** Issuer кооператива, например `https://coop.example/application/o/coopid/` */
@@ -45,7 +46,7 @@ export interface LoginResult {
 /**
  * Двухэтапный вход (Story 1.7, обновлён Story 11.2): (1) password через authentik —
  * встроенная форма гонит email+password в flow-executor (сессия), затем
- * `authorization_code`+PKCE молча (`signinSilent`); (2) расшифровка ключа паролём;
+ * `authorization_code`+PKCE молча (prompt=none, обычным запросом); (2) расшифровка ключа паролём;
  * (3) timestamp-signature handshake против controller'а (bind → подпись ключом из
  * keystore → verify).
  *
@@ -69,7 +70,7 @@ export async function login(params: LoginParams): Promise<LoginResult> {
   if (!account) {
     throw new AuthV2Error(
       AuthV2ErrorCode.InvalidCredentials,
-      'authentik не вернул имя пайщика — без него нельзя забрать зашифрованный ключ',
+      lt('authClient.oidc.noUsernameFromAuthentik'),
     )
   }
   await unlockWallet({ apiUrl, account, password: params.password })
@@ -96,8 +97,11 @@ export interface LoginWithMagicLinkParams {
   email: string
   /** Magic-link токен из ссылки восстановления (или `recovery_token` offline-канала, Story 3.4). */
   token: string
-  /** TOTP-код из приложения-аутентификатора — второй фактор подтверждения (Story 3.2/3.6). */
-  totp: string
+  /**
+   * TOTP-код из приложения-аутентификатора — второй фактор подтверждения (Story 3.2/3.6).
+   *  Не передаётся, если пайщик 2FA не подключал: тогда ссылка из почты — единственный фактор.
+   */
+  totp?: string
   /** Новый пароль: им шифруется новый vault и он же ставится в authentik (Story 12.1). */
   newPassword: string
   /** Slug flow аутентификации authentik (по умолчанию `default-authentication-flow`). */
@@ -148,22 +152,22 @@ export async function loginWithMagicLink(params: LoginWithMagicLinkParams): Prom
     res = await fetch(`${apiUrl}/coop/recovery/confirm`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ token: params.token, code: params.totp, public_key: newPublicKey, vault: vaultBlob, password: params.newPassword }),
+      body: JSON.stringify({ token: params.token, ...(params.totp ? { code: params.totp } : {}), public_key: newPublicKey, vault: vaultBlob, password: params.newPassword }),
     })
   }
   catch (e) {
-    throw new AuthV2Error(AuthV2ErrorCode.NetworkError, `Сеть недоступна при подтверждении восстановления: ${e instanceof Error ? e.message : String(e)}`)
+    throw new AuthV2Error(AuthV2ErrorCode.NetworkError, lt('authClient.oidc.confirmRecoveryNetworkError', { error: e instanceof Error ? e.message : String(e) }))
   }
   if (res.status === 429)
-    throw new AuthV2Error(AuthV2ErrorCode.TooManyRecoveryAttempts, 'Слишком много попыток подтверждения, попробуйте позже')
+    throw new AuthV2Error(AuthV2ErrorCode.TooManyRecoveryAttempts, lt('authClient.oidc.confirmRecoveryTooManyAttempts'))
   if (!res.ok)
-    throw await authErrorFromResponse(res, AuthV2ErrorCode.InvalidRecoveryToken, `Подтверждение восстановления отклонено (HTTP ${res.status})`)
+    throw await authErrorFromResponse(res, AuthV2ErrorCode.InvalidRecoveryToken, lt('authClient.oidc.confirmRecoveryRejected', { status: res.status }))
 
   // confirm вернул account пайщика (резолвнут из токена) — по нему скачаем и
   // расшифруем только что сохранённый сервером блоб при повторном входе.
   const confirmed = (await res.json().catch(() => null)) as { username?: string } | null
   if (!confirmed?.username)
-    throw new AuthV2Error(AuthV2ErrorCode.InvalidRecoveryToken, 'Подтверждение восстановления не вернуло аккаунт')
+    throw new AuthV2Error(AuthV2ErrorCode.InvalidRecoveryToken, lt('authClient.oidc.confirmRecoveryNoAccount'))
   const account = confirmed.username
 
   // 4. Локальная копия нового блоба (best-effort на устройстве восстановления).
@@ -172,14 +176,64 @@ export async function loginWithMagicLink(params: LoginWithMagicLinkParams): Prom
 
   // 5. Повторный вход новым контуром. unlockWallet забирает только что сохранённый
   //    серверный блоб и расшифровывает новым паролём — заодно round-trip-проверка vault'а.
-  const user = await authenticateWithAuthentik({ issuer: params.issuer, email: params.email, password: params.newPassword, flowSlug: params.flowSlug })
-  await unlockWallet({ apiUrl, account, password: params.newPassword })
-  const handshake = await performTimestampHandshake(apiUrl)
-  return {
-    accessToken: handshake.accessToken,
-    idToken: user.id_token ?? '',
-    participantCertificate: handshake.participantCertificate ?? '',
+  //
+  //    Отсюда и до конца точка невозврата уже пройдена: пароль в authentik сменён,
+  //    ключ ротирован on-chain, одноразовая ссылка сожжена. Если вход сорвётся
+  //    (упал authentik, лаг узла, сеть), повторять восстановление НЕЧЕМ — поэтому
+  //    отдаём отдельный код, по которому экран уводит на обычный вход новым паролём,
+  //    а не оставляет пайщика на мёртвой форме с непонятной ошибкой.
+  try {
+    const user = await authenticateWithAuthentik({ issuer: params.issuer, email: params.email, password: params.newPassword, flowSlug: params.flowSlug })
+    await unlockWallet({ apiUrl, account, password: params.newPassword })
+    const handshake = await performTimestampHandshake(apiUrl)
+    return {
+      accessToken: handshake.accessToken,
+      idToken: user.id_token ?? '',
+      participantCertificate: handshake.participantCertificate ?? '',
+    }
   }
+  catch (e) {
+    const reason = e instanceof Error ? e.message : String(e)
+    throw new AuthV2Error(
+      AuthV2ErrorCode.RecoveryDoneLoginFailed,
+      lt('authClient.oidc.autoLoginFailedWithReason', { reason }),
+    )
+  }
+}
+
+/** Что нужно экрану подтверждения восстановления: кому выдана ссылка и нужен ли код. */
+export interface RecoveryContext {
+  /** Почта, на которую пришла ссылка. Экран её показывает, но не спрашивает. */
+  email: string
+  /** Подключён ли у пайщика второй фактор — только тогда просим код. */
+  twoFactorRequired: boolean
+}
+
+/**
+ * Контекст ссылки восстановления, `GET /coop/recovery/context/:token` (Эпик 3).
+ *
+ * Токен не потребляется — открыть страницу ещё не значит подтвердить. Нужен, чтобы
+ * экран не спрашивал почту (сервер знает её по токену) и не просил код у того, кто
+ * 2FA не подключал: раньше он просил безусловно, и восстановление упиралось в тупик.
+ */
+export async function recoveryContext(token: string): Promise<RecoveryContext> {
+  const base = coopIdApiUrl()
+  let res: Response
+  try {
+    res = await fetch(`${base}/coop/recovery/context/${encodeURIComponent(token)}`, {
+      method: 'GET',
+      headers: { 'content-type': 'application/json' },
+    })
+  }
+  catch (e) {
+    throw new AuthV2Error(AuthV2ErrorCode.NetworkError, lt('authClient.oidc.openRecoveryLinkNetworkError', { error: e instanceof Error ? e.message : String(e) }))
+  }
+  if (res.status === 429)
+    throw new AuthV2Error(AuthV2ErrorCode.TooManyRecoveryAttempts, lt('authClient.oidc.openRecoveryLinkTooManyAttempts'))
+  if (!res.ok)
+    throw await authErrorFromResponse(res, AuthV2ErrorCode.InvalidRecoveryToken, lt('authClient.oidc.recoveryLinkInvalid'))
+  const body = (await res.json().catch(() => null)) as { email?: string, two_factor_required?: boolean } | null
+  return { email: body?.email ?? '', twoFactorRequired: Boolean(body?.two_factor_required) }
 }
 
 /**
@@ -198,13 +252,13 @@ export async function recover(email: string): Promise<void> {
     })
   }
   catch (e) {
-    throw new AuthV2Error(AuthV2ErrorCode.NetworkError, `Сеть недоступна при запросе восстановления: ${e instanceof Error ? e.message : String(e)}`)
+    throw new AuthV2Error(AuthV2ErrorCode.NetworkError, lt('authClient.oidc.requestRecoveryNetworkError', { error: e instanceof Error ? e.message : String(e) }))
   }
   // 202 — нормальный путь; иные коды (кроме rate-limit) — ошибка конфигурации/сети.
   if (res.status === 429)
-    throw new AuthV2Error(AuthV2ErrorCode.TooManyRecoveryAttempts, 'Слишком много попыток восстановления, попробуйте позже')
+    throw new AuthV2Error(AuthV2ErrorCode.TooManyRecoveryAttempts, lt('authClient.oidc.requestRecoveryTooManyAttempts'))
   if (!res.ok && res.status !== 202)
-    throw new AuthV2Error(AuthV2ErrorCode.NetworkError, `Запрос восстановления отклонён (HTTP ${res.status})`)
+    throw new AuthV2Error(AuthV2ErrorCode.NetworkError, lt('authClient.oidc.requestRecoveryRejected', { status: res.status }))
 }
 
 /** Текущий access_token (с автообновлением через refresh). Story 1.7. */
@@ -225,10 +279,10 @@ export async function getParticipantCertificate(apiUrl: string, accessToken: str
     })
   }
   catch (e) {
-    throw new AuthV2Error(AuthV2ErrorCode.NetworkError, `Сеть недоступна при запросе удостоверения: ${e instanceof Error ? e.message : String(e)}`)
+    throw new AuthV2Error(AuthV2ErrorCode.NetworkError, lt('authClient.oidc.certificateRequestNetworkError', { error: e instanceof Error ? e.message : String(e) }))
   }
   if (!res.ok)
-    throw new AuthV2Error(AuthV2ErrorCode.NetworkError, `Не удалось получить удостоверение (HTTP ${res.status})`)
+    throw new AuthV2Error(AuthV2ErrorCode.NetworkError, lt('authClient.oidc.certificateRequestFailed', { status: res.status }))
   const body = (await res.json()) as { participant_certificate: string }
   return body.participant_certificate
 }
@@ -263,6 +317,6 @@ export async function logout(params: LogoutParams): Promise<void> {
   }
   finally {
     lockWallet()
-    clearSession()
+    void clearSession()
   }
 }

@@ -1,0 +1,272 @@
+feature: coopid.email-verification
+title: Подтверждение электронной почты кодом из письма
+
+# Почту в кооперативе не подтверждал никто: механизм существовал (ссылка +
+# мутация verifyEmail), но ссылку никто не выпускал, а сама мутация искала
+# пайщика ТОЛЬКО по legacy mongo id — у всех, кто зарегистрировался после
+# переезда на PostgreSQL, подтверждение падало всегда. Следствие вскрылось
+# 03.09.2026 на разборе восстановления доступа: адреса с опечатками обнаруживались
+# только когда человек не мог вернуть доступ, а письмо уходило в никуда.
+#
+# Решение владельца 04.09.2026: подтверждать КОДОМ, а не ссылкой, и спрашивать
+# его прямо на шаге ввода почты при регистрации — до того, как пайщик пойдёт
+# дальше. Отсюда главное свойство механизма: состояние привязано к АДРЕСУ, а не
+# к учётной записи, потому что на том шаге записи ещё нет (она создаётся сильно
+# позже). Факт подтверждения кладётся отметкой, которую читает создание аккаунта.
+#
+# Идущие регистрации ломать нельзя (владелец: «задеть действующие регистрации мы
+# не должны»): подтверждение сделано ВТОРОЙ ФАЗОЙ внутри шага EmailInput, а не
+# новым шагом — номера шагов лежат в persist'е стора у всех, кто сейчас в пути.
+# И создание учётной записи при отсутствии отметки НЕ блокируется: иначе пайщик
+# со старой вкладкой упёрся бы в отказ на последнем шаге.
+#
+# 15.10.2026 (C28-91): пайщик пытался зарегистрироваться повторно на свой же
+# адрес. Проверка «адрес занят» на шаге ввода почты была заглушкой, код уходил,
+# а отказ ждал его только на шаге пароля, после анкеты. Решение владельца:
+# занятость адреса проверяется при вводе, и код регистрации на занятый адрес
+# сервер не отправляет. Занятым считается адрес учётной записи дальше
+# начального статуса — так же решает создание аккаунта.
+
+sources:
+  backend:
+    - components/controller/src/application/auth/email-verification/**
+    - components/controller/src/infrastructure/auth-v2/redis-email-verification.store.ts
+    - components/controller/src/domain/auth-v2/ports/email-verification-store.port.ts
+    - components/controller/src/application/auth/dto/email-verification.dto.ts
+    - components/controller/src/domain/user/entities/user-domain.entity*.ts
+    - components/controller/src/domain/user/services/user-domain.service.ts
+  ui:
+    - components/desktop/src/features/User/VerifyEmail/**
+    - components/desktop/src/pages/Registrator/SignUp/EmailInput.vue
+    - components/desktop/src/features/User/CreateUser/api/index.ts
+
+cases:
+  - id: cid.ev.happy.01
+    level: backend
+    kind: happy
+    scenario: пайщик просит код на свой адрес
+    expect: >
+      письмо с шестизначным кодом поставлено в очередь на нормализованный адрес,
+      в ответе окно повторной отправки (60 с) и срок жизни кода (900 с)
+    test: components/controller/src/application/auth/email-verification/email-verification.service.spec.ts
+    api: components/api-tests/src/coopid/email-verification.test.ts
+    status: passing
+
+  - id: cid.ev.happy.02
+    level: backend
+    kind: happy
+    scenario: верный код от существующего пайщика
+    expect: у пайщика проставлен is_email_verified, код сожжён, отметка адреса поставлена
+    test: components/controller/src/application/auth/email-verification/email-verification.service.spec.ts
+    api: components/api-tests/src/coopid/email-verification.test.ts
+    status: passing
+
+  - id: cid.ev.happy.03
+    level: backend
+    kind: happy
+    scenario: верный код на адрес, у которого учётной записи ещё нет (шаг регистрации)
+    expect: >
+      подтверждение принято, обновлять некого — кладётся только отметка адреса,
+      которую позже прочитает создание учётной записи
+    test: components/controller/src/application/auth/email-verification/email-verification.service.spec.ts
+    api: components/api-tests/src/coopid/email-verification.test.ts
+    status: passing
+
+  - id: cid.ev.side.01
+    level: backend
+    kind: side
+    scenario: код спрашивают повторно, не дождавшись окна троттла
+    expect: второе письмо НЕ уходит, в ответе остаток окна для обратного отсчёта
+    test: components/controller/src/application/auth/email-verification/email-verification.service.spec.ts
+    api: components/api-tests/src/coopid/email-verification.test.ts
+    status: passing
+
+  - id: cid.ev.side.02
+    level: backend
+    kind: side
+    scenario: неверный код
+    expect: отказ, счётчик попыток растёт, флаг подтверждения НЕ ставится
+    test: components/controller/src/application/auth/email-verification/email-verification.service.spec.ts
+    api: components/api-tests/src/coopid/email-verification.test.ts
+    status: passing
+
+  - id: cid.ev.break.01
+    level: backend
+    kind: break
+    scenario: перебор кода — пятая неверная попытка
+    expect: код сжигается целиком, пайщику предлагается запросить новый
+    test: components/controller/src/application/auth/email-verification/email-verification.service.spec.ts
+    api: components/api-tests/src/coopid/email-verification.test.ts
+    status: passing
+
+  - id: cid.ev.break.02
+    level: backend
+    kind: break
+    scenario: один IP запрашивает коды на множество адресов
+    expect: после 20 запросов за час отказ ДО отправки письма
+    test: components/controller/src/application/auth/email-verification/email-verification.service.spec.ts
+    api: components/api-tests/src/coopid/email-verification.test.ts
+    status: passing
+
+  - id: cid.ev.break.03
+    level: backend
+    kind: break
+    scenario: почтовая инфраструктура недоступна в момент запроса кода
+    expect: >
+      ошибка отправки, действующий прежний код НЕ затирается неотправленным
+      (иначе сбой почты обесценивал бы уже полученное пайщиком письмо)
+    test: components/controller/src/application/auth/email-verification/email-verification.service.spec.ts
+    external: unreachable
+    external_reason: "письмо ставится в очередь уведомлений внутри узла; отказ постановки ни через API, ни остановкой почтового сервиса не вызвать"
+    status: passing
+
+  - id: cid.ev.break.04
+    level: backend
+    kind: break
+    scenario: повторное использование уже принятого кода
+    expect: отказ «код не запрашивался или недействителен» — код одноразовый
+    test: components/controller/src/application/auth/email-verification/email-verification.service.spec.ts
+    api: components/api-tests/src/coopid/email-verification.test.ts
+    status: passing
+
+  - id: cid.ev.side.03
+    level: backend
+    kind: side
+    scenario: код запрашивают на строку без @
+    expect: отказ до обращения к почте
+    test: components/controller/src/application/auth/email-verification/email-verification.service.spec.ts
+    api: components/api-tests/src/coopid/email-verification.test.ts
+    status: passing
+
+  - id: cid.ev.side.04
+    level: ui
+    kind: side
+    scenario: >
+      пайщик ошибся в адресе и на шаге подтверждения нажимает «Изменить адрес»
+    expect: >
+      возврат к полю ввода в том же шаге, прежнее подтверждение снимается —
+      следующий «Продолжить» снова требует код
+    test: null
+    status: missing
+
+  - id: cid.ev.side.05
+    level: ui
+    kind: side
+    scenario: пайщик обновил страницу после подтверждения адреса, но до конца регистрации
+    expect: >
+      код повторно не спрашивается (признак лежит в persist'е стора), шаг
+      проходится сразу
+    test: null
+    status: missing
+
+  - id: cid.ev.break.05
+    level: ui
+    kind: break
+    scenario: >
+      регистрация, начатая до появления подтверждения (в persist'е нет признака,
+      шаг ввода почты уже пройден)
+    expect: >
+      пайщика НЕ возвращают назад и создание учётной записи не блокируется;
+      аккаунт остаётся с неподтверждённой почтой и подтверждает её из кабинета
+    test: null
+    status: missing
+
+  - id: cid.ev.side.06
+    level: backend
+    kind: side
+    scenario: код для регистрации просят на адрес, за которым уже есть учётная запись
+    expect: >
+      отказ «адрес уже зарегистрирован — войдите или восстановите доступ»,
+      письмо не уходит, состояние кода не создаётся
+    test: components/controller/src/application/auth/email-verification/email-verification.service.spec.ts
+    api: components/api-tests/src/coopid/email-verification.test.ts
+    status: passing
+
+  - id: cid.ev.side.07
+    level: backend
+    kind: side
+    scenario: пайщик подтверждает свой адрес из кабинета
+    expect: код уходит владельцу учётной записи, занятость адреса не спрашивается
+    test: components/controller/src/application/auth/email-verification/email-verification.service.spec.ts
+    api: components/api-tests/src/coopid/email-verification.test.ts
+    status: passing
+
+  - id: cid.ev.side.08
+    level: backend
+    kind: side
+    scenario: шаг ввода почты спрашивает, зарегистрирован ли адрес
+    expect: >
+      зарегистрированный адрес — «да» (регистр букв не важен), незнакомый — «нет»;
+      проверки с одного IP считаются отдельно от писем, запас 120 в час
+    test: components/controller/src/application/auth/email-verification/email-verification.service.spec.ts
+    api: components/api-tests/src/coopid/email-verification.test.ts
+    status: passing
+
+  - id: cid.ev.side.09
+    level: backend
+    kind: side
+    scenario: адрес незавершённой регистрации (учётная запись в начальном статусе)
+    expect: >
+      адрес считается свободным, код регистрации уходит — регистрацию можно
+      начать заново, как и раньше при создании аккаунта
+    test: components/controller/src/domain/user/entities/user-domain.entity.spec.ts
+    api: components/api-tests/src/coopid/email-verification.test.ts
+    status: passing
+
+  - id: cid.ev.break.06
+    level: backend
+    kind: break
+    scenario: перебор адресов с одного IP через проверку занятости
+    expect: после 120 проверок за час отказ до обращения к базе
+    test: components/controller/src/application/auth/email-verification/email-verification.service.spec.ts
+    api: components/api-tests/src/coopid/email-verification.test.ts
+    status: passing
+
+  - id: cid.ev.side.10
+    level: ui
+    kind: side
+    scenario: человек вводит на шаге регистрации адрес, который уже зарегистрирован
+    expect: >
+      под полем сразу «адрес уже зарегистрирован»; «Продолжить» остаётся на месте
+      неактивной, ниже — «Войти» и «Восстановить доступ» (кнопка не подменяется под
+      курсором); письмо с кодом не запрашивается
+    test: null
+    status: missing
+
+  - id: cid.ev.break.07
+    level: ui
+    kind: break
+    scenario: >
+      человек нажимает «Продолжить» или Enter до ответа проверки адреса; во время
+      проверки приходит ещё одно событие ввода (автозаполнение шлёт их по два)
+    expect: >
+      «Продолжить» неактивна, пока сервер не ответил «свободен» именно для адреса в
+      поле; на шаг кода занятый адрес не проходит; спиннер на кнопке — только если
+      проверка дольше 400 мс
+    test: null
+    status: missing   # продакшен 17.10.2026; сценарий harness не заведён
+
+  - id: cid.ev.side.11
+    level: ui
+    kind: side
+    scenario: >
+      поле почты заполнено при открытии шага — сохранённым адресом или
+      автозаполнением браузера, в том числе когда адрес когда-то был подтверждён
+    expect: >
+      проверка занятости идёт сразу при открытии и по автозаполнению (change,
+      уход фокуса, анимация :-webkit-autofill); собственная созданная учётка
+      занятой не считается
+    test: null
+    status: missing   # продакшен 17.10.2026; сценарий harness не заведён
+
+  # 21.10.2026: почта ведётся и в CoopID — подробности в coopid.identity-email.
+  - id: cid.ev.side.12
+    level: backend
+    kind: side
+    scenario: смена почты пайщика (UserDomainService) на контуре с CoopID
+    expect: занятость почты проверяется в базе узла и в CoopID; смена идёт сначала в CoopID
+    test: components/controller/tests/unit/user/user-domain-email-identity.test.ts
+    external: unreachable
+    external_reason: "запись в authentik стенда через API не наблюдается"
+    status: passing
+

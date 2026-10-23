@@ -7,16 +7,28 @@
  * стола. Строка открывает страницу заказа этого же стола.
  */
 import { onMounted, ref } from 'vue';
-import { useRouter } from 'vue-router';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { marketLiveTables } from 'src/shared/lib/marketplace';
 import { FailAlert } from 'src/shared/api';
 import { useSystemStore } from 'src/entities/System/model';
-import { PageHint } from 'src/shared/ui/domain';
-import { OrdersRegistryTable, type OrderRegistryStatusView } from 'src/widgets/Marketplace/OrdersRegistryTable';
+import { PageHint, StatusFilterButton } from 'src/shared/ui/domain';
+import {
+  ORDER_REGISTRY_FILTERS,
+  OrdersRegistryTable,
+  type OrderRegistryStatusView,
+} from 'src/widgets/Marketplace/OrdersRegistryTable';
+import { useHeaderActions } from 'src/shared/hooks';
+import { OrderRegistryOverlay } from 'src/widgets/Marketplace/OrderRegistryOverlay';
+import { OfferRegistryOverlay } from 'src/widgets/Marketplace/OfferRegistryOverlay';
+import { useQueryOverlay } from 'src/shared/lib/navigation';
 import { fetchAllOrders } from '../api';
 import type { AdminOrderView } from '../types';
+import { t } from 'src/shared/i18n';
 
 const { info } = useSystemStore();
-const router = useRouter();
+const { registerAction } = useHeaderActions();
+const orderOverlay = useQueryOverlay('order');
+const offerOverlay = useQueryOverlay('offer');
 
 const items = ref<AdminOrderView[]>([]);
 const loading = ref(false);
@@ -44,7 +56,7 @@ async function load(): Promise<void> {
     items.value = resp.items ?? [];
     pagination.value.rowsNumber = resp.totalCount ?? 0;
   } catch (e) {
-    if (myId === lastRequestId) FailAlert(e, 'Не удалось загрузить реестр заказов');
+    if (myId === lastRequestId) FailAlert(e, t('marketplace.orders.loadFailedError'));
   } finally {
     if (myId === lastRequestId) loading.value = false;
   }
@@ -64,43 +76,60 @@ function onRequest(props: { pagination: { page: number; rowsPerPage: number; row
   void load();
 }
 
+// Заказ открывается оверлеем поверх реестра: страница пагинации и фильтр
+// статусов остаются на месте, полная страница — по кнопке в оверлее
 function goToOrder(orderId: string): void {
-  void router.push({
-    name: 'marketplace-admin-order-detail',
-    params: { coopname: info.coopname, orderId },
-  });
+  orderOverlay.open(orderId);
 }
 
-// Переход на карточку предложения (имущества) на столе администратора —
-// readonly-карточка, без перехода в каталог/на стол заказчика.
+// Предложение (имущество) открывается таким же оверлеем, как и заказ:
+// readonly-карточка поверх реестра, без ухода со страницы.
 function goToOffer(offerId: string): void {
-  void router.push({
-    name: 'marketplace-admin-offer-detail',
-    params: { coopname: info.coopname, offerId },
-    query: { from: 'orders' },
-  });
+  offerOverlay.open(offerId);
 }
 
 onMounted(() => {
+  // Фильтр по состоянию — кнопкой в шапке (канон: действия страницы в топбаре).
+  // Раньше четырнадцать чипов лежали над таблицей и занимали половину экрана.
+  registerAction({
+    id: 'mp-admin-orders-filter',
+    component: StatusFilterButton,
+    props: {
+      options: ORDER_REGISTRY_FILTERS,
+      selected: statusFilter,
+      onChange: onStatusFilterUpdate,
+    },
+    order: 1,
+  });
   void load();
 });
+
+// Реестр заказов живёт по ленте: смена состояния заказа перечитывает
+// показанную страницу.
+useLiveReload(marketLiveTables('order'), load);
 </script>
 
 <template lang="pug">
 q-page.admin-orders
   PageHint(storage-key="mp:admin-orders:banner-dismissed")
-    | Реестр всех заказов кооператива с текущими статусами. Откройте заказ, чтобы увидеть его состояние, документы, операции и проводки процесса.
+    | {{ $t('marketplace.orders.pageHint') }}
 
   OrdersRegistryTable(
     :items="items",
     :loading="loading",
     :pagination="pagination",
-    :status-filter="statusFilter",
-    @update:status-filter="onStatusFilterUpdate",
     @request="onRequest",
     @order-click="goToOrder",
     @offer-click="goToOffer"
   )
+
+  OrderRegistryOverlay(
+    :coopname="info.coopname",
+    full-page-route-name="marketplace-admin-order-detail",
+    @offer-click="goToOffer"
+  )
+
+  OfferRegistryOverlay(:coopname="info.coopname", from="orders")
 </template>
 
 <style scoped lang="scss">

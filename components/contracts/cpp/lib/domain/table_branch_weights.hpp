@@ -1,5 +1,7 @@
 #pragma once
 
+
+#include "../core/ram_payer.hpp"
 #include <eosio/asset.hpp>
 #include <eosio/eosio.hpp>
 
@@ -84,7 +86,7 @@ void apply_weight_total_delta(eosio::name coopname, eosio::name braname,
 
   if (it == idx.end()) {
     eosio::check(delta > 0, "Системная ошибка: агрегат весов распределения отсутствует");
-    totals.emplace(coopname, [&](auto& t) {
+    totals.emplace(RamPayer::of(totals, coopname), [&](auto& t) {
       t.id           = totals.available_primary_key();
       t.braname      = braname;
       t.contract     = contract;
@@ -102,7 +104,7 @@ void apply_weight_total_delta(eosio::name coopname, eosio::name braname,
   if (new_total == 0) {
     idx.erase(it);
   } else {
-    idx.modify(it, coopname, [&](auto& t) { t.total_weight = new_total; });
+    idx.modify(it, RamPayer::of(idx, coopname), [&](auto& t) { t.total_weight = new_total; });
   }
 }
 
@@ -115,3 +117,7 @@ uint64_t get_weight_total(eosio::name coopname, eosio::name braname, eosio::name
   auto it  = idx.find(combine_ids(contract.value, braname.value));
   return it == idx.end() ? 0 : it->total_weight;
 }
+
+// Плательщик за оперативную память строк таблицы — правило в lib/core/ram_payer.hpp.
+RAM_PAYER_CLASS(branch_weight, contract);
+RAM_PAYER_CLASS(branch_weight_total, contract);

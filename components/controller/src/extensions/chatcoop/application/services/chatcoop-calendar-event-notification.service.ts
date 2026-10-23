@@ -5,11 +5,12 @@ import type {
   IProjectCapitalClearancePort,
 } from '@coopenomics/innercoop';
 import { PROJECT_CAPITAL_CLEARANCE_PORT, LOGGER_PORT, type ILoggerPort, ACCOUNT_PORT, type IAccountPort,
-  isEligibleForActiveCoopCalendarBroadcast,
+  isEligibleForParticipantMassNotification,
 } from '@coopenomics/innercoop';
 import { Workflows } from '@coopenomics/notifications';
 import { platformSettings, DateUtils } from '@coopenomics/extension-kit';
 import { NOTIFICATION_PORT, INotificationPort } from '@coopenomics/innercoop';
+import { t } from '../../i18n';
 
 type CalendarRecipient = { username: string; email: string; subscriberId: string };
 
@@ -33,7 +34,7 @@ export class ChatcoopCalendarEventNotificationService implements ICoopCalendarEv
   }
 
   private getTimezoneLabel(): string {
-    return platformSettings().timezone === 'Europe/Moscow' ? 'Мск' : platformSettings().timezone;
+    return platformSettings().timezone === 'Europe/Moscow' ? t('chatcoop.calendarEventNotification.timezoneMsk') : platformSettings().timezone;
   }
 
   private async getCoopShortName(): Promise<string> {
@@ -49,7 +50,7 @@ export class ChatcoopCalendarEventNotificationService implements ICoopCalendarEv
 
   private formatEndParts(endsAt: Date | null): { endDate: string; endTime: string } {
     if (!endsAt) {
-      return { endDate: 'не указано', endTime: 'не указано' };
+      return { endDate: t('chatcoop.calendarEventNotification.notSpecified'), endTime: t('chatcoop.calendarEventNotification.notSpecified') };
     }
     return {
       endDate: DateUtils.formatLocalDate(endsAt),
@@ -71,7 +72,7 @@ export class ChatcoopCalendarEventNotificationService implements ICoopCalendarEv
       );
 
       const mappings = accountsPage.items
-        .filter(isEligibleForActiveCoopCalendarBroadcast)
+        .filter(isEligibleForParticipantMassNotification)
         .map((account) => ({
           username: account.username,
           email: account.provider_account?.email?.trim() ?? '',
@@ -105,7 +106,7 @@ export class ChatcoopCalendarEventNotificationService implements ICoopCalendarEv
       seen.add(uname);
       try {
         const account = await this.accountPort.getAccount(uname);
-        if (!isEligibleForActiveCoopCalendarBroadcast(account)) {
+        if (!isEligibleForParticipantMassNotification(account)) {
           continue;
         }
         const email = account.provider_account?.email?.trim() ?? '';

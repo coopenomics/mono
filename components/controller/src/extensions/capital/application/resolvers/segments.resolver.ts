@@ -3,9 +3,18 @@ import { SegmentsService } from '../services/segments.service';
 import { SegmentOutputDTO } from '../dto/segments/segment.dto';
 import { SegmentFilterInputDTO } from '../dto/segments/segment-filter.input';
 import { RefreshSegmentInputDTO } from '../dto/segments/refresh-segment-input.dto';
-import { createPaginationResult, PaginationInputDTO, PaginationResult, GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser } from '@coopenomics/extension-kit';
+import {
+  createPaginationResult,
+  PaginationInputDTO,
+  PaginationResult,
+  GqlJwtAuthGuard,
+  CurrentUser,
+  DomainError,
+  RequireRight,
+  RightsGuard,
+} from '@coopenomics/extension-kit';
 import type { IMonoAccount } from '@coopenomics/innercoop';
-import { ForbiddenException, UseGuards } from '@nestjs/common';
+import { UseGuards } from '@nestjs/common';
 // Пагинированные результаты
 const paginatedSegmentsResult = createPaginationResult(SegmentOutputDTO, 'PaginatedCapitalSegments');
 
@@ -23,7 +32,8 @@ export class SegmentsResolver {
     name: 'capitalSegments',
     description: 'Получение списка сегментов кооператива с фильтрацией и пагинацией',
   })
-  @UseGuards(GqlJwtAuthGuard)
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Segment', ['read:own', 'read'], { owner: 'filter.username' })
   async getSegments(
     @CurrentUser() currentUser: IMonoAccount,
     @Args('filter', { nullable: true }) filter?: SegmentFilterInputDTO,
@@ -36,11 +46,14 @@ export class SegmentsResolver {
     // Запрос ПО КОНКРЕТНОМУ ПРОЕКТУ не трогаем: на нём стоят все рабочие
     // виджеты (голосование, состав участников, подача результата), и они
     // должны работать у любого участника проекта.
+    //
+    // Свои доли по всем проектам — тоже не сводный список: их показывает
+    // пайщику страница результатов («мои доли»), и отказ на неё приходил
+    // каждому рядовому участнику, открывшему страницу.
     const isBoardMember = currentUser?.role === 'chairman' || currentUser?.role === 'member';
-    if (!filter?.project_hash && !isBoardMember) {
-      throw new ForbiddenException(
-        'Сводный список долей кооператива доступен только совету. Укажите проект в фильтре.'
-      );
+    const isOwnShares = Boolean(filter?.username) && filter?.username === currentUser?.username;
+    if (!filter?.project_hash && !isBoardMember && !isOwnShares) {
+      throw DomainError.forbidden('CAPITAL_SEGMENTS_SUMMARY_FORBIDDEN');
     }
 
     return await this.segmentsService.getSegments(filter, options);
@@ -54,7 +67,8 @@ export class SegmentsResolver {
     description: 'Получение одного сегмента кооператива по фильтрам',
     nullable: true,
   })
-  @UseGuards(GqlJwtAuthGuard)
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Segment', ['read:own', 'read'], { owner: 'filter.username' })
   async getSegment(@Args('filter', { nullable: true }) filter?: SegmentFilterInputDTO): Promise<SegmentOutputDTO | null> {
     return await this.segmentsService.getSegment(filter);
   }
@@ -67,8 +81,8 @@ export class SegmentsResolver {
     description: 'Обновление сегмента в CAPITAL контракте',
     nullable: true,
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Segment', ['refresh:own', 'refresh'], { owner: 'data.username' })
   async refreshCapitalSegment(
     @Args('data', { type: () => RefreshSegmentInputDTO }) data: RefreshSegmentInputDTO
   ): Promise<SegmentOutputDTO | null> {

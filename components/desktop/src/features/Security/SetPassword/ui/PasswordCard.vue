@@ -1,27 +1,27 @@
 <template lang="pug">
 BaseCard(
-  title='Пароль для входа',
-  subtitle='Удобный вход по паролю вместо ключа доступа.'
+  :title='$t("security.passwordCard.title")',
+  :subtitle='$t("security.passwordCard.subtitle")'
 )
   template(v-if='showOffer')
     BaseBanner(variant='info')
-      | Сейчас вы входите по ключу доступа. Задайте пароль — входить станет проще,
-      | а доступ восстанавливается по почте даже при утере ключа.
+      | {{ $t('security.passwordCard.introLine1') }}
+      | {{ $t('security.passwordCard.introLine2') }}
     .pwd__actions
       BaseButton(variant='primary', @click='open = true')
         template(#icon-left)
           q-icon(name='password', size='18px')
-        | Задать пароль
+        | {{ $t('security.passwordCard.setPassword') }}
 
   template(v-else-if='passwordReady')
     .pwd__done
       q-icon.pwd__done-ico(name='check_circle', size='20px')
-      span Вход по паролю настроен.
+      span {{ $t('security.passwordCard.configuredNote') }}
     .pwd__actions
       BaseButton(variant='secondary', @click='changeOpen = true')
         template(#icon-left)
           q-icon(name='password', size='18px')
-        | Сменить пароль
+        | {{ $t('security.passwordCard.changePassword') }}
 
   //- Аккаунт ещё грузится — состояние пароля неизвестно, каркас вместо ответа.
   template(v-else)
@@ -31,14 +31,14 @@ BaseCard(
   //- дальше — конвейер миграции (новый пароль + перевыпуск ключа + отзыв сессий).
   ChangePasswordDialog(v-model='changeOpen')
 
-  BaseDialog(v-model='open', title='Установка пароля', size='sm')
+  BaseDialog(v-model='open', :title='$t("security.passwordCard.dialogTitle")', size='sm')
     .pwd__form
       BaseBanner(variant='info')
-        | Пароль шифрует ваш ключ доступа. После установки вход в систему —
-        | только по email и паролю; текущая сессия продолжит работать.
+        | {{ $t('security.passwordCard.dialogLine1') }}
+        | {{ $t('security.passwordCard.dialogLine2') }}
       BaseInput(
         v-model='password',
-        label='Новый пароль',
+        :label='$t("security.passwordCard.newPasswordLabel")',
         type='password',
         autocomplete='new-password',
         :hint='PASSWORD_POLICY_HINT',
@@ -46,32 +46,31 @@ BaseCard(
       )
       BaseInput(
         v-model='repeat',
-        label='Повторите пароль',
+        :label='$t("security.passwordCard.repeatPasswordLabel")',
         type='password',
         autocomplete='new-password',
         :error='repeatError'
       )
     template(#footer)
-      BaseButton(variant='secondary', @click='open = false') Отмена
+      BaseButton(variant='secondary', @click='open = false') {{ $t('common.action.cancel') }}
       BaseButton(
         variant='primary',
         :loading='saving',
         :disabled='!isValid',
         @click='onSave'
-      ) Сохранить пароль
+      ) {{ $t('security.passwordCard.submit') }}
 </template>
 
 <script lang="ts" setup>
 import { computed, ref } from 'vue';
 import { BaseBanner, BaseButton, BaseCard, BaseDialog, BaseInput } from 'src/shared/ui/base';
-import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useSessionStore } from 'src/entities/Session';
 import { PASSWORD_POLICY_HINT } from '@coopenomics/auth';
 import { ChangePasswordDialog } from 'src/features/Security/ChangePassword';
 import { useNewPasswordForm, useSetPassword } from '../model';
 
 const session = useSessionStore();
-const { setPassword } = useSetPassword();
+const { setPasswordFromScreen } = useSetPassword();
 
 const open = ref(false);
 const changeOpen = ref(false);
@@ -88,11 +87,7 @@ async function onSave(): Promise<void> {
   if (!isValid.value) return;
   saving.value = true;
   try {
-    await setPassword(password.value);
-    SuccessAlert('Пароль установлен — вы уже вошли по нему, работайте дальше.');
-    open.value = false;
-  } catch (e) {
-    FailAlert(e);
+    if (await setPasswordFromScreen(password.value)) open.value = false;
   } finally {
     saving.value = false;
   }

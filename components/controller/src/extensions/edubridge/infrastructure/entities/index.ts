@@ -1,0 +1,15 @@
+export { EdubridgeCourseRecord } from './edubridge-course.record';
+export { EdubridgeLearnerRecord } from './edubridge-learner.record';
+export { EdubridgeEnrollmentRecord } from './edubridge-enrollment.record';
+export { EdubridgeAccessTaskRecord } from './edubridge-access-task.record';
+export { EdubridgeConnectorBindingRecord } from './edubridge-connector-binding.record';
+export { EdubridgeTeacherAssignmentRecord } from './edubridge-teacher-assignment.record';
+export { EdubridgeContributionRecord } from './edubridge-contribution.record';
+export { EdubridgeLessonRecord } from './edubridge-lesson.record';
+export { EdubridgeGroupRecord } from './edubridge-group.record';
+export { EdubridgeTeacherContractRecord } from './edubridge-teacher-contract.record';
+export { EdubridgeTeacherProfileRecord } from './edubridge-teacher-profile.record';
+export { EdubridgeSectionRecord } from './edubridge-section.record';
+export { EdubridgeGuaranteeClaimRecord } from './edubridge-guarantee-claim.record';
+export { EdubridgeLevelRecord } from './edubridge-level.record';
+export { EdubridgeShareReturnRecord } from './edubridge-share-return.record';

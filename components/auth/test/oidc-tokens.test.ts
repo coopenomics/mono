@@ -131,4 +131,31 @@ describe('персистентность токенов (паритет с ле�
     clearSession()
     expect(Object.keys(storage.dump())).toHaveLength(0)
   })
+
+  it('clearSession завершается только после удаления копии — перезагрузка следом её не поднимет', async () => {
+    const storage = memoryStorage()
+    let finishRemove: () => void = () => undefined
+    const slowStorage: StorageAdapter = {
+      ...storage,
+      remove: k => new Promise<void>((resolve) => {
+        finishRemove = () => {
+          void storage.remove(k).then(resolve)
+        }
+      }),
+    }
+    const access = await jwtExpIn(3600)
+    configureTokenStorage(slowStorage)
+    setSession('https://coop.example', { accessToken: access, refreshToken: 'r' })
+
+    let cleared = false
+    const pending = clearSession().then(() => {
+      cleared = true
+    })
+    await Promise.resolve()
+    expect(cleared).toBe(false)
+
+    finishRemove()
+    await pending
+    expect(Object.keys(storage.dump())).toHaveLength(0)
+  })
 })

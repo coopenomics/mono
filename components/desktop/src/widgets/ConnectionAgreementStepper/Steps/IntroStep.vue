@@ -1,77 +1,98 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { IStepProps } from '../model/types'
 import { TariffSelector, type ITariff } from '../Tariffs'
-import { useConnectionAgreementStore } from 'src/entities/ConnectionAgreement'
-import { useSystemStore } from 'src/entities/System/model'
+import { useConnectionAgreementStore, CONNECTION_STEP } from 'src/entities/ConnectionAgreement'
+import { useConnectionCatalog } from 'src/features/Provider/model'
+import StepFrame from '../ui/StepFrame.vue'
 
-const props = withDefaults(defineProps<IStepProps & {
+const props = defineProps<{
   selectedTariff?: ITariff | null
-}>(), {})
+}>()
 
 const connectionAgreement = useConnectionAgreementStore()
-const system = useSystemStore()
-
-const isActive = computed(() => props.isActive)
-const isDone = computed(() => props.isDone)
 
 const selectedTariff = computed({
   get: () => props.selectedTariff || connectionAgreement.selectedTariff,
-  set: (value) => connectionAgreement.setSelectedTariff(value)
+  set: (value) => connectionAgreement.setSelectedTariff(value),
 })
 
 const canContinue = computed(() => selectedTariff.value !== null)
+
+// Итог за месяц — тариф плюс обязательные услуги. Каталог общий с выбором
+// тарифа: TariffSelector его загружает, здесь только читаем.
+const { monthlyTotal, trialDays, formatPrice } = useConnectionCatalog()
+// Тариф сетки несёт цену целиком; конфигурация сервера старого провайдера —
+// сервер плюс обязательные услуги.
+const yearly = computed(() => selectedTariff.value?.billingPeriod === 'year' && selectedTariff.value?.annualTotal != null)
+const total = computed(() => {
+  const tariff = selectedTariff.value
+  if (!tariff) return null
+  if (yearly.value) return tariff.annualTotal ?? null
+  if (tariff.monthlyTotal != null) return tariff.monthlyTotal
+  return monthlyTotal(tariff.instanceTypeId ?? null)
+})
 
 const handleTariffSelected = (tariff: ITariff) => {
   selectedTariff.value = tariff
 }
 
-const handleTariffDeselected = () => {
-  selectedTariff.value = null
-}
-
-const handleBack = () => {
-  if (system.info.is_unioned) {
-    connectionAgreement.setCurrentStep(0)
-  }
-}
-
 const handleContinue = () => {
-  if (canContinue.value && connectionAgreement.currentStep < 5) {
-    connectionAgreement.setCurrentStep(connectionAgreement.currentStep + 1)
-  }
+  if (canContinue.value) connectionAgreement.setCurrentStep(CONNECTION_STEP.profile)
 }
 </script>
 
 <template lang="pug">
-q-step(
-  :name="1"
-  title="Выбор тарифа подключения"
-  icon="info"
-  :done="isDone"
+StepFrame(
+  :title="$t('connectionAgreementStepper.introStep.stepTitle')"
+  :lead="$t('connectionAgreementStepper.introStep.lead')"
+  :can-back="false"
+  :next-disabled="!canContinue"
+  @next="handleContinue"
 )
-  .q-pa-md
+  TariffSelector(
+    :selected-tariff="selectedTariff"
+    @tariff-selected="handleTariffSelected"
+  )
 
-    TariffSelector(
-      :disabled="!isActive"
-      :selected-tariff="selectedTariff"
-      @tariff-selected="handleTariffSelected"
-      @tariff-deselected="handleTariffDeselected"
-    )
-
-  q-stepper-navigation.q-gutter-sm
-    q-btn(
-      v-if="isActive && system.info.is_unioned"
-      color="grey-6"
-      flat
-      label="Назад"
-      @click="handleBack"
-    )
-    q-btn(
-      v-if="isActive"
-      color="primary"
-      :disable="!canContinue"
-      label="Продолжить"
-      @click="handleContinue"
-    )
+  template(#aside)
+    .intro-total(v-if="total != null")
+      .intro-total__sum
+        span.intro-total__label {{ $t('connectionAgreementStepper.introStep.totalLabel') }}
+        span.intro-total__amount {{ formatPrice(total) }} ₽
+        span.intro-total__period {{ yearly ? $t('connectionAgreementStepper.tariffSelector.perYear') : $t('connectionAgreementStepper.tariffSelector.perMonth') }}
+      .intro-total__note
+        template(v-if="trialDays") {{ $t('connectionAgreementStepper.introStep.trialNote', { days: trialDays }) }} ·&nbsp;
+        | {{ $t('connectionAgreementStepper.introStep.paymentNote') }}
 </template>
+
+<style scoped>
+.intro-total {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--p-1);
+}
+.intro-total__sum {
+  display: flex;
+  align-items: baseline;
+  gap: var(--p-2);
+}
+.intro-total__label {
+  font-size: var(--p-fs-body-sm);
+  color: var(--p-ink-2);
+}
+.intro-total__amount {
+  font-size: var(--p-fs-h3);
+  font-weight: 600;
+  color: var(--p-ink);
+  font-feature-settings: 'tnum' 1;
+}
+.intro-total__period {
+  font-size: var(--p-fs-body-sm);
+  color: var(--p-ink-2);
+}
+.intro-total__note {
+  font-size: var(--p-fs-meta);
+  color: var(--p-ink-3);
+}
+</style>

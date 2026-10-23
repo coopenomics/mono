@@ -1,12 +1,15 @@
 import { createHash } from 'node:crypto';
 import { type CanActivate, type ExecutionContext, Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+import { GqlExecutionContext } from '@nestjs/graphql';
 import type { ThrottlerStorage } from '@nestjs/throttler';
 import type { Request } from 'express';
+import appConfig from '~/config/config';
 import { AuthV2Error, AuthV2ErrorCode } from '~/domain/auth-v2/errors/auth-v2.error';
 import { RATE_LIMIT_STORAGE, type IEscalatingRateLimitStorage } from '~/domain/auth-v2/ports/rate-limit-storage.port';
 import { AuditService } from '../audit/audit.service';
 import { AUTH_RATE_LIMIT_METADATA, type AuthRateLimitConfig, type RateLimitRule } from './auth-rate-limit.types';
+import { t } from '~/i18n';
 
 /** Переход в блок, замеченный этим запросом — для одноразовой audit-записи. */
 interface LockoutEvent {
@@ -50,16 +53,28 @@ export class AuthRateLimitGuard implements CanActivate {
     ]);
     if (!config) return true;
 
-    const req = context.switchToHttp().getRequest<Request>();
-    const ip = req.ip ?? 'unknown';
+    // Dev-контур: счётчик попыток здесь только мешает. Разработчик открывает один и
+    // тот же экран десятки раз подряд и запирает сам себя на час — вместо формы видит
+    // «слишком много попыток» (владелец 03.09.2026). На проде и в testnet лимит
+    // работает как прежде; `test` тоже не трогаем — на нём стоят юнит-тесты guard'а.
+    if (appConfig.env === 'development') return true;
+
+    // Guard стоит и на REST-ручках, и на GraphQL-мутациях (регистрация): у
+    // GraphQL запрос лежит в контексте резолвера, `switchToHttp` отдал бы root.
+    const req =
+      context.getType?.<'http' | 'graphql'>() === 'graphql'
+        ? GqlExecutionContext.create(context).getContext<{ req: Request }>().req
+        : context.switchToHttp().getRequest<Request>();
+    const ip = req?.ip ?? 'unknown';
 
     // Собираем активные ключи: per-IP всегда; per-account — только если извлекаем.
+    const scoped = (name: string) => (config.scope ? `${config.scope}:${name}` : name);
     const checks: Array<{ name: string; tracker: string; rule: RateLimitRule }> = [
-      { name: 'ip', tracker: ip, rule: config.ip },
+      { name: scoped('ip'), tracker: ip, rule: config.ip },
     ];
     if (config.account) {
       const accountId = config.account.key(req);
-      if (accountId) checks.push({ name: 'account', tracker: accountId, rule: config.account });
+      if (accountId) checks.push({ name: scoped('account'), tracker: accountId, rule: config.account });
     }
 
     let exceeded = false;
@@ -91,7 +106,7 @@ export class AuthRateLimitGuard implements CanActivate {
       // Кастомный код эндпоинта (напр. recovery → TooManyRecoveryAttempts) либо дефолт.
       throw new AuthV2Error(
         config.error?.code ?? AuthV2ErrorCode.TooManyAttempts,
-        config.error?.message ?? 'Слишком много попыток. Подождите и повторите позже.',
+        config.error?.message ?? t('authV2.authRateLimitGuard.tooManyAttemptsMessage'),
       );
     }
     return true;

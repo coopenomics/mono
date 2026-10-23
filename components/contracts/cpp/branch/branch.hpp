@@ -51,16 +51,18 @@
  *
  *  @brief  Класс `branch` управляет кооперативными участками.
  */
-class [[eosio::contract(BRANCH)]] branch : public eosio::contract
+class [[eosio::contract(BRANCH)]] branch : public coop_contract
 {
 
 public:
   branch(eosio::name receiver, eosio::name code,
               eosio::datastream<const char *> ds)
-      : eosio::contract(receiver, code, ds) {}
+      : coop_contract(receiver, code, ds) {}
 
   [[eosio::action]] void init();
   [[eosio::action]] void migrate();
+  /// Очистка отработавших записей по правилам контракта (lib/core/cleanup.hpp); плейбук вызывает её на каждом деплое.
+  [[eosio::action]] void cleanup();
   
   [[eosio::action]] void createbranch(eosio::name coopname, eosio::name braname, eosio::name trustee);
   [[eosio::action]] void editbranch(eosio::name coopname, eosio::name braname, eosio::name trustee);
@@ -165,14 +167,6 @@ public:
                                      eosio::asset amount,
                                      std::string memo);
 
-  /**
-   * @brief Перевод персональных средств доверенного в членский кошелёк
-   * «Стола заказов» (o.brn.conv) — для заказов как обычный пайщик.
-   * @ingroup public_branch_actions
-   */
-  [[eosio::action]] void convert(eosio::name coopname, eosio::name username,
-                                  eosio::checksum256 convert_hash,
-                                  eosio::asset amount);
 
   /**
    * @brief Заявление на материальную помощь доверенного из его персонального

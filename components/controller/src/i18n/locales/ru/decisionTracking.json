@@ -1,0 +1,5 @@
+{
+  "errors": {
+    "DECISION_TRACKING_RULE_NOT_FOUND": "Правило {id} не найдено"
+  }
+}

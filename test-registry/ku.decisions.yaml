@@ -1,0 +1,282 @@
+feature: ku.decisions
+title: Кооперативный участок — собрания пайщиков участка и заявки доверенных лиц
+
+# Действия уходят в контракт branch подписью кооператива; таблицы узла
+# ku_decisions, ku_decision_questions и ku_trust_requests заполняет разбор
+# дельт цепи, приватные данные собрания (место, время, признак отмены) пишет
+# сервис. Внешний тест проходит собрание от объявления до отмены и заявку
+# доверенного через отказ и одобрение встречной подписью.
+
+#
+# Правка 25.09.2026 (C28-80): список заявок в доверенные лица больше не
+# отдаётся любому пайщику — в заявке договор с паспортом, адресом и телефоном.
+# Совет и председатель кооператива видят все, председатель участка — своего
+# участка, пайщик — свои.
+# Правка 25.09.2026 (C28-80): версия черновика различается по meta. Две
+# генерации договора 327 одного пайщика за минуту совпадали телом и блоком,
+# вторая затирала первую, и встречная подпись падала на сверке meta_hash.
+
+sources:
+  backend:
+    - components/controller/src/extensions/ku/**
+
+cases:
+  - id: ku.dec.happy.01
+    level: backend
+    kind: happy
+    scenario: Пайщик генерирует предложение повестки, подписывает и объявляет собрание участка
+    expect: собрание открыто, организатор — единственный участник, место и время сохранены, вопросы по порядку; собрание находится в списке по организатору
+    test: components/api-tests/src/ku/decisions.test.ts
+    api: components/api-tests/src/ku/decisions.test.ts
+    status: passing
+
+  - id: ku.dec.happy.02
+    level: backend
+    kind: happy
+    scenario: Пайщик присоединяется к собранию; присоединяет другого
+    expect: участник добавлен; за другого — KU_ACTION_SELF_ONLY
+    test: components/api-tests/src/ku/decisions.test.ts
+    api: components/api-tests/src/ku/decisions.test.ts
+    status: passing
+
+  - id: ku.dec.happy.03
+    level: backend
+    kind: happy
+    scenario: Организатор отменяет собрание
+    expect: собрание остаётся в истории со статусом CANCELLED и без вопросов повестки
+    test: components/api-tests/src/ku/decisions.test.ts
+    api: components/api-tests/src/ku/decisions.test.ts
+    status: passing
+
+  - id: ku.dec.side.01
+    level: backend
+    kind: side
+    scenario: Пайщик объявляет собрание от имени другого пайщика
+    expect: KU_ACTION_SELF_ONLY, собрания нет (KU_DECISION_NOT_FOUND)
+    test: components/api-tests/src/ku/decisions.test.ts
+    api: components/api-tests/src/ku/decisions.test.ts
+    status: passing
+
+  - id: ku.dec.side.02
+    level: backend
+    kind: side
+    scenario: Участник, не организатор, открывает голосование или отменяет; организатор назначает председателем не участника; гость читает
+    expect: KU_ACTION_INITIATOR_ONLY, KU_CHAIRMAN_MUST_BE_PARTICIPANT, отказ входа гостю; собрание остаётся открытым
+    test: components/api-tests/src/ku/decisions.test.ts
+    api: components/api-tests/src/ku/decisions.test.ts
+    status: passing
+
+  - id: ku.dec.side.03
+    level: backend
+    kind: side
+    scenario: Повторное присоединение к собранию, повторная отмена собрания, повторное отклонение заявки доверенного
+    expect: отказ с кодом (отказ цепи CHAIN_ASSERT либо правило узла), не внутренняя ошибка; состояние не меняется
+    # До 02.10.2026 отказ цепи приходил без кода (code 500): транзакции шли через
+    # @wharfkit/session, фильтр GraphQL узнавал только RpcError eosjs. Отказ контракта
+    # теперь уходит с кодом — случай проверяется снаружи.
+    test: components/api-tests/src/ku/decisions.test.ts
+    status: written
+
+  - id: ku.dec.happy.04
+    level: backend
+    kind: happy
+    scenario: Собрание об учреждении участка проходит голосование и утверждает протокол
+    expect: >
+      счётчики голосов в вопросах; после протокола собрание не завершается, а
+      ждёт заявления в совет; протокол виден на странице собрания
+    # 02.10.2026 (C28-85): путь учреждения заведён во внешнем слое целиком. Прежнее
+    # ожидание «протокол и решение совета на странице собрания» разнесено по трём
+    # случаям: протокол — здесь и в ku.dec.happy.09, заявление и решение совета —
+    # ku.dec.happy.08, решение совета на странице собрания — ku.dec.happy.10.
+    test: components/api-tests/src/ku/decisions.test.ts
+    status: written
+
+  - id: ku.dec.side.04
+    level: backend
+    kind: side
+    scenario: организатор открывает голосование, когда участников собрания меньше трёх
+    expect: отказ, собрание остаётся открытым для присоединения
+    test: components/api-tests/src/ku/decisions.test.ts
+    status: written
+
+  - id: ku.dec.happy.05
+    level: backend
+    kind: happy
+    scenario: организатор открывает голосование на собрании из трёх участников
+    expect: >
+      собрание в голосовании, председатель назначен, окно голосования отмерено,
+      бюллетеней нет; присоединиться к начатому голосованию нельзя
+    test: components/api-tests/src/ku/decisions.test.ts
+    status: written
+
+  - id: ku.dec.happy.06
+    level: backend
+    kind: happy
+    scenario: участники подают подписанные бюллетени с голосами по каждому вопросу
+    expect: >
+      голоса «за», «против» и «воздержался» считаются по вопросам с именами
+      голосовавших; повторный бюллетень, бюллетень за другого и бюллетень
+      пайщика вне собрания не принимаются
+    test: components/api-tests/src/ku/decisions.test.ts
+    status: written
+
+  - id: ku.dec.happy.07
+    level: backend
+    kind: happy
+    scenario: председатель собрания утверждает протокол после того, как проголосовали все
+    expect: >
+      собрание завершено; закрыть его может только организатор, повторное
+      закрытие не проходит
+    test: components/api-tests/src/ku/decisions.test.ts
+    status: written
+
+  - id: ku.dec.happy.08
+    level: backend
+    kind: happy
+    scenario: >
+      избранный председатель участка подаёт в совет заявление об учреждении с
+      договором о материальной ответственности и доверенностью; совет утверждает
+    expect: >
+      вопрос об учреждении появляется в повестке совета от имени председателя
+      участка, собрание ждёт решения; после решения совета участок появляется
+      с избранным председателем, наименованием и адресом из собрания, собрание
+      завершено; повторное заявление и отмена учреждённого собрания не проходят
+    test: components/api-tests/src/ku/decisions.test.ts
+    status: written
+
+  - id: ku.dec.happy.09
+    level: backend
+    kind: happy
+    scenario: пайщик открывает страницу собрания, по которому совет учредил участок
+    expect: протокол собрания остаётся на странице собрания
+    test: components/api-tests/src/ku/decisions.test.ts
+    status: written
+
+  - id: ku.dec.happy.10
+    level: backend
+    kind: happy
+    scenario: пайщик открывает страницу собрания, по которому совет учредил участок
+    expect: на странице собрания видно решение совета об учреждении
+    # До 02.10.2026 решения на странице не было (C28-85, находка 66): действие совета
+    # стирает запись собрания, не записав в неё документ решения. Теперь его сохраняет узел.
+    test: components/api-tests/src/ku/decisions.test.ts
+    status: written
+
+  - id: ku.dec.side.05
+    level: backend
+    kind: side
+    scenario: организатор открывает голосование об учреждении без наименования участка, без почты или телефона участка
+    expect: отказ KU_BRANCH_NAME_REQUIRED и KU_BRANCH_CONTACTS_REQUIRED, собрание остаётся открытым
+    test: components/api-tests/src/ku/decisions.test.ts
+    status: written
+
+  - id: ku.dec.side.06
+    level: backend
+    kind: side
+    scenario: заявление в совет подаёт участник собрания, не избранный председателем участка; гость
+    expect: отказ KU_ACTION_CHAIRMAN_ONLY, гостю отказ входа; вопрос в совет не уходит, собрание ждёт заявления
+    test: components/api-tests/src/ku/decisions.test.ts
+    status: written
+
+  - id: ku.trust.happy.01
+    level: backend
+    kind: happy
+    scenario: Пайщик подаёт заявку в доверенные лица участка с подписанными договором и доверенностью
+    expect: председатель участка видит заявку с документами (исходник и подпись заявителя) для встречной подписи
+    test: components/api-tests/src/ku/decisions.test.ts
+    api: components/api-tests/src/ku/decisions.test.ts
+    status: passing
+
+  - id: ku.trust.happy.02
+    level: backend
+    kind: happy
+    scenario: Председатель участка отклоняет заявку
+    expect: заявка закрыта, пайщик не в доверенных
+    test: components/api-tests/src/ku/decisions.test.ts
+    api: components/api-tests/src/ku/decisions.test.ts
+    status: passing
+
+  - id: ku.trust.happy.03
+    level: backend
+    kind: happy
+    scenario: Заявка одобряется встречной подписью председателя участка
+    expect: заявка закрыта, пайщик в доверенных лицах участка
+    test: components/api-tests/src/ku/decisions.test.ts
+    api: components/api-tests/src/ku/decisions.test.ts
+    status: passing
+
+  - id: ku.trust.side.01
+    level: backend
+    kind: side
+    scenario: Пайщик подаёт заявку от имени другого
+    expect: KU_ACTION_SELF_ONLY, заявки нет
+    test: components/api-tests/src/ku/decisions.test.ts
+    api: components/api-tests/src/ku/decisions.test.ts
+    status: passing
+
+  - id: ku.trust.side.02
+    level: backend
+    kind: side
+    scenario: По заявке решает председатель чужого участка, сам заявитель, гость; заявки нет
+    expect: KU_ACTION_BRANCH_CHAIRMAN_ONLY, отказ входа гостю, KU_TRUST_REQUEST_NOT_FOUND; заявка остаётся открытой
+    test: components/api-tests/src/ku/decisions.test.ts
+    api: components/api-tests/src/ku/decisions.test.ts
+    status: passing
+
+  - id: ku.trust.side.03
+    level: backend
+    kind: side
+    scenario: Гость читает список заявок
+    expect: отказ входа
+    test: components/api-tests/src/ku/decisions.test.ts
+    api: components/api-tests/src/ku/decisions.test.ts
+    status: passing
+
+  - id: ku.trust.side.04
+    level: backend
+    kind: side
+    scenario: Посторонний пайщик читает список заявок доверенных лиц
+    expect: договор о материальной ответственности и доверенность заявителя (паспорт, адрес, телефон) видят только заявитель, председатель участка и совет
+    # До 25.09.2026 kuTrustRequests отдавал список любому пайщику целиком;
+    # владелец подтвердил починку, выборка сужается по роли и участку.
+    test: components/controller/tests/unit/ku/ku.service.test.ts
+    api: components/api-tests/src/ku/decisions.test.ts
+    status: passing
+
+  - id: ku.trust.side.05
+    level: backend
+    kind: side
+    scenario: Пайщик подаёт две заявки (или пакет перегенерирован) в одну и ту же минуту, председатель одобряет вторую
+    expect: встречная подпись ложится на документ именно этой заявки
+    test: components/controller/tests/unit/document/document-version-by-meta.test.ts
+    api: components/api-tests/src/ku/decisions.test.ts
+    status: passing
+
+  - id: ku.dec.side.11
+    level: backend
+    kind: side
+    scenario: >
+      зеркала решений и заявок участка на новом каркасе синхронизации: новая
+      запись из цепи, устаревшая дельта, блок из базы строкой
+    expect: >
+      новой записи ключ выдаёт база; устаревшая дельта запись не затирает; блоки
+      сравниваются числами
+    test: components/controller/tests/unit/sync/base-chain-repository.test.ts
+    external: unreachable
+    external_reason: "порядок дельт снаружи не виден; решения и заявки участка через API покрыты случаями ku.*"
+    status: written
+
+# 2026-10-05 (C28-81): файлы и классы хранилищ переименованы после ухода с TypeORM
+# (typeorm-repository → kysely-repository, typeorm-entity → record); частичная правка
+# полей собрана помощником pickDefined. Сценарии фичи и её проверки не менялись.
+
+  # Права по таблице прав расширения (C28-87, кусок 3, 05.10.2026): операции
+  # стоят под общим гардом каркаса вместо `@AuthRoles`, состав исполнителей прежний.
+  - id: ku.dec.side.12
+    level: backend
+    kind: side
+    scenario: операции расширения зовут пайщик, член совета, председатель и кандидат
+    expect: право есть у названных в таблице прав расширения, остальным отказ KIT_INSUFFICIENT_RIGHTS; кандидат прав пайщика не имеет
+    test: components/controller/tests/unit/rights/extension-rights-tables.test.ts
+    api: components/api-tests/src/rights/matrix.test.ts
+    status: written

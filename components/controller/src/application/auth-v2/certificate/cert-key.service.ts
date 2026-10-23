@@ -8,6 +8,7 @@ import { CERT_KEY_CRYPTO_PORT } from '~/domain/auth-v2/ports/cert-key-crypto.por
 import type { ICertKeyCrypto } from '~/domain/auth-v2/ports/cert-key-crypto.port';
 import { VAULT_DOMAIN_SERVICE, VaultDomainService } from '~/domain/vault/services/vault-domain.service';
 import { wifPermissions } from '~/domain/vault/types/vault.types';
+import { DomainError } from '@coopenomics/extension-kit';
 
 /**
  * Аккаунт АНО — якорь доверия всей сети: он заверяет кооперативы, а те заверяют
@@ -73,6 +74,16 @@ export class CertKeyService implements OnApplicationBootstrap {
    * останется пустой — а вот упавший из-за криптографии бэкенд не работает совсем.
    */
   async onApplicationBootstrap(): Promise<void> {
+    await this.publishSafely();
+  }
+
+  /**
+   * Опубликовать право заверения (и ключ якоря, если узел его ведёт), не роняя
+   * вызывающего. Зовётся при старте и сразу после ввода ключа установки
+   * (EndorsementService.onCoopKeyInstalled): узел, поднятый провайдером до ввода
+   * ключа, при старте публиковать было нечем (тестнет, 20.10.2026).
+   */
+  async publishSafely(): Promise<void> {
     try {
       await this.ensurePublished();
       await this.ensureAnchorPublished();
@@ -205,9 +216,7 @@ export class CertKeyService implements OnApplicationBootstrap {
    */
   async reissue(): Promise<{ publicKey: string }> {
     if (config.authV2.certKey) {
-      throw new Error(
-        'Ключ заверения задан секретом поставки — перевыпустить его можно только там, где этот секрет заводится',
-      );
+      throw DomainError.internal('AUTH_V2_CERT_KEY_FIXED_BY_SUPPLY_SECRET');
     }
     const wif = await this.issueAndStore();
     const publicKey = this.crypto.publicKeyOf(wif);
@@ -223,7 +232,7 @@ export class CertKeyService implements OnApplicationBootstrap {
 
     const wif = await this.loadStoredKey();
     if (!wif)
-      throw new Error('Ключ заверения не найден: ни секрета поставки, ни собственного выпуска');
+      throw DomainError.internal('AUTH_V2_CERT_KEY_NOT_FOUND');
     this.signingKey = this.crypto.toSigningKey(wif);
     return this.signingKey;
   }
@@ -236,8 +245,27 @@ export class CertKeyService implements OnApplicationBootstrap {
   async getSigningKeyFor(account: string): Promise<KeyObject> {
     if (account === config.coopname) return this.getSigningKey();
     const wif = await this.vault.getWif(account, wifPermissions.Cert);
-    if (!wif) throw new Error(`Ключа заверения ${account} нет — подписать нечем`);
+    if (!wif) throw DomainError.internal('AUTH_V2_CERT_KEY_MISSING_FOR_ACCOUNT', { account });
     return this.crypto.toSigningKey(wif);
+  }
+
+  /**
+   * Подписывает байты ключом заверения в формате цепи (`SIG_K1_…`).
+   *
+   * Ключ при этом наружу не отдаётся: подписывает сервис, а вызывающий получает
+   * только подпись. Так подписываются документы, которые кооператив выпускает во
+   * внешнюю сеть и которые проверяются по его признанному ключу из
+   * `ano::endorsements` — например, подтверждение членства для карты кооператора.
+   *
+   * @param message — канонический байтовый образ документа; подпись накрывает
+   *   ровно эти байты, канонизация — забота вызывающего.
+   * @returns Подпись `SIG_K1_…`.
+   * @throws Error Если ключа заверения нет ни в секрете поставки, ни в хранилище.
+   */
+  async signChainMessage(message: Uint8Array): Promise<string> {
+    const wif = await this.loadStoredKey();
+    if (!wif) throw DomainError.internal('AUTH_V2_CERT_KEY_NOT_FOUND');
+    return this.crypto.signChainMessage(wif, message);
   }
 
   /** Публичная часть ключа заверения — для витрины в кабинете. `null`, если ключа нет. */
@@ -261,7 +289,7 @@ export class CertKeyService implements OnApplicationBootstrap {
       wif,
       permission: wifPermissions.Cert,
     });
-    if (!saved) throw new Error('Не удалось сохранить ключ заверения');
+    if (!saved) throw DomainError.internal('AUTH_V2_CERT_KEY_SAVE_FAILED');
     this.signingKey = null;
     return wif;
   }

@@ -2,8 +2,8 @@
 .time-stats
   EmptyState(
     v-if='!loading && !rows.length',
-    title='Нет статистики времени',
-    body='Когда вы учтёте часы по задачам компонентов, они появятся здесь.'
+    :title='$t("capital.timeStatsWidget.emptyTitle")',
+    :body='$t("capital.timeStatsWidget.emptyBody")'
   )
     template(#icon)
       q-icon(name='schedule')
@@ -31,9 +31,9 @@
               @click.stop='goToComponent(row.project_hash)'
             ) {{ row.project_name }}
             .time-stats__hours.t-sm
-              BaseBadge(variant='pos') {{ shortHours(row.available_hours) }} доступно
-              BaseBadge(variant='warn') {{ shortHours(row.pending_hours) }} ожидание
-              BaseBadge(variant='info') {{ shortHours(row.total_committed_hours) }} подтверждено
+              BaseBadge(variant='pos') {{ $t('capital.timeStatsWidget.availableLabel', { hours: shortHours(row.available_hours) }) }}
+              BaseBadge(variant='warn') {{ $t('capital.timeStatsWidget.pendingLabel', { hours: shortHours(row.pending_hours) }) }}
+              BaseBadge(variant='info') {{ $t('capital.timeStatsWidget.committedLabel', { hours: shortHours(row.total_committed_hours) }) }}
           .time-stats__actions(v-if='canOpenCommitDialog(row.available_hours)', @click.stop)
             CreateCommitButton(
               :project-hash='row.project_hash',
@@ -51,17 +51,19 @@
         size='sm',
         :disabled='pagination.page <= 1',
         @click='goToPage(pagination.page - 1)'
-      ) Назад
+      ) {{ $t('common.action.back') }}
       BaseButton(
         variant='ghost',
         size='sm',
         :disabled='pagination.page * pagination.rowsPerPage >= pagination.rowsNumber',
         @click='goToPage(pagination.page + 1)'
-      ) Ещё
+      ) {{ $t('capital.timeStatsWidget.moreButton') }}
 </template>
 
 <script lang="ts" setup>
 import { ref, onMounted, watch, computed } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { CAPITAL_LIVE_TABLES } from 'app/extensions/capital/shared/lib/live';
 import { useRouter } from 'vue-router';
 import { FailAlert } from 'src/shared/api';
 import { useTimeStatsStore } from 'app/extensions/capital/entities/TimeStats/model';
@@ -70,6 +72,7 @@ import { useSystemStore } from 'src/entities/System/model';
 import { CreateCommitButton } from 'app/extensions/capital/features/Commit/CreateCommit/ui';
 import { ExpandToggleButton } from 'src/shared/ui/ExpandToggleButton';
 import { EmptyState, BaseBadge, BaseButton } from 'src/shared/ui/base';
+import { t } from '../../i18n';
 
 const HOURS_EPS = 1e-9;
 
@@ -84,7 +87,7 @@ function canOpenCommitDialog(available: number): boolean {
 function shortHours(hours: number): string {
   const n = hours || 0;
   const formatted = n % 1 === 0 ? String(n) : String(parseFloat(n.toFixed(1)));
-  return `${formatted} ч`;
+  return t('capital.timeStatsWidget.hoursValue', { hours: formatted });
 }
 
 const props = defineProps<{
@@ -127,7 +130,7 @@ const rangeLabel = computed(() => {
   if (!rowsNumber) return '';
   const from = (page - 1) * rowsPerPage + 1;
   const to = Math.min(page * rowsPerPage, rowsNumber);
-  return `${from}-${to} из ${rowsNumber}`;
+  return t('capital.timeStatsWidget.paginationLabel', { from, to, total: rowsNumber });
 });
 
 watch(
@@ -167,7 +170,7 @@ const loadTimeStats = async (paginationData?: typeof pagination.value) => {
     emit('dataLoaded', projectHashes);
   } catch (error) {
     console.error('Ошибка при загрузке статистики времени:', error);
-    FailAlert('Не удалось загрузить статистику времени');
+    FailAlert(t('capital.timeStatsWidget.loadError'));
   } finally {
     loading.value = false;
   }
@@ -190,9 +193,11 @@ const goToComponent = (projectHash: string) => {
   router.push({
     name: 'component-description',
     params: { project_hash: projectHash },
-    query: { _useHistoryBack: 'true' },
   });
 };
+
+// Виджет живёт по ленте изменений Благороста.
+useLiveReload(CAPITAL_LIVE_TABLES, () => loadTimeStats());
 
 onMounted(async () => {
   await loadTimeStats();

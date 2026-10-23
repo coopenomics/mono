@@ -4,27 +4,27 @@ div
     slot(name='top')
 
     .user-data-form__type(v-if='showTypeButtons')
-      p.user-data-form__type-title Выберите тип аккаунта
+      p.user-data-form__type-title {{ $t('ui.userDataForm.chooseAccountTypeTitle') }}
       .user-data-form__type-list
         BaseRadioCard(
           :model-value='userData.type ?? null',
           value='individual',
-          title='Физлицо',
-          description='Гражданин — частное лицо',
+          :title='$t("ui.userDataForm.individualTitle")',
+          :description='$t("ui.userDataForm.individualDescription")',
           @update:model-value='selectType("individual")'
         )
         BaseRadioCard(
           :model-value='userData.type ?? null',
           value='entrepreneur',
-          title='ИП',
-          description='Индивидуальный предприниматель',
+          :title='$t("ui.userDataForm.entrepreneurTitle")',
+          :description='$t("ui.userDataForm.entrepreneurDescription")',
           @update:model-value='selectType("entrepreneur")'
         )
         BaseRadioCard(
           :model-value='userData.type ?? null',
           value='organization',
-          title='Организация',
-          description='Юридическое лицо (ООО, кооператив и др.)',
+          :title='$t("ui.userDataForm.organizationTitle")',
+          :description='$t("ui.userDataForm.organizationDescription")',
           @update:model-value='selectType("organization")'
         )
 
@@ -37,22 +37,23 @@ div
       IndividualDataForm(v-model:userData='userData')
 
     div(v-if='userData.type === "organization"')
-      OrganizationDataForm(v-model:userData='userData')
+      OrganizationDataForm(v-model:userData='userData', @details-shown='organizationDetailsShown = $event')
 
     div(v-if='userData.type === "entrepreneur"')
-      EntrepreneurDataForm(v-model:userData='userData')
+      EntrepreneurDataForm(v-model:userData='userData', @details-shown='entrepreneurDetailsShown = $event')
 
-    slot(name='bottom', :userDataForm='localUserDataForm')
+    slot(name='bottom', :userDataForm='localUserDataForm', :detailsShown='detailsShown')
 </template>
 
 <script lang="ts" setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import type { IUserData } from 'src/shared/lib/types/user/IUserData';
 import { IndividualDataForm } from '../IndividualDataForm';
 import { OrganizationDataForm } from '../OrganizationDataForm';
 import { EntrepreneurDataForm } from '../EntrepreneurDataForm';
 import { BaseButton } from 'src/shared/ui/base/BaseButton';
 import { BaseRadioCard } from 'src/shared/ui/base/BaseRadioCard';
+import { t } from 'src/shared/i18n';
 
 const props = defineProps<{ userData: IUserData }>();
 const emit = defineEmits<{
@@ -80,17 +81,27 @@ const changeAccountType = () => {
 const getSelectedTypeLabel = () => {
   switch (userData.value.type) {
     case 'individual':
-      return 'Физлицо';
+      return t('ui.userDataForm.individualTitle');
     case 'entrepreneur':
-      return 'Предприниматель';
+      return t('ui.userDataForm.entrepreneurLabel');
     case 'organization':
-      return 'Организация';
+      return t('ui.userDataForm.organizationTitle');
     default:
-      return 'Выбрать тип';
+      return t('ui.userDataForm.selectTypeLabel');
   }
 };
 
 const localUserDataForm = ref(null);
+
+// Анкеты организации и ИП в режиме поиска по ИНН раскрываются после ввода
+// ИНН; до этого шаг не показывает то, что идёт после анкеты (согласие).
+const organizationDetailsShown = ref(true);
+const entrepreneurDetailsShown = ref(true);
+const detailsShown = computed(() => {
+  if (userData.value.type === 'organization') return organizationDetailsShown.value;
+  if (userData.value.type === 'entrepreneur') return entrepreneurDetailsShown.value;
+  return true;
+});
 </script>
 
 <style scoped>

@@ -16,6 +16,8 @@ export interface IssuePageContext {
   linkedGitCommits: ComputedRef<unknown[]>
   handleDescriptionChange: () => Promise<void>
   openCreateRequirementDialog: () => void
+  /** Перечитать задачу с сервера (после отката к редакции) */
+  reloadIssue: () => Promise<void>
 }
 
 export const ISSUE_PAGE_KEY: InjectionKey<IssuePageContext> = Symbol('issuePage')

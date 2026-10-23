@@ -1,0 +1,137 @@
+{
+  "expenses": {
+    "error": {
+      "fileLinkFailed": "Не удалось получить ссылку на файл"
+    },
+    "expenseDetailPage": {
+      "accountLabel": "Аккаунт",
+      "amountFactLabel": "Сумма (факт)",
+      "amountPlanLabel": "Сумма (план)",
+      "backLabel": "К реестру расходов",
+      "closeExpenseHint": "Отчёты по всем строкам приняты — расход закрывается, фактическая сумма учитывается в кошельке-источнике.",
+      "closeExpenseLabel": "Закрыть расход",
+      "closedMessage": "Расход закрыт",
+      "column": {
+        "fact": "Факт",
+        "method": "Способ",
+        "plan": "План",
+        "recipient": "Получатель",
+        "status": "Статус"
+      },
+      "coopLabel": "Кооператив",
+      "createdLabel": "Создана",
+      "documentDatedLabel": "документ от {date}",
+      "documentsTitle": "Документы",
+      "hashLabel": "Хеш",
+      "history": {
+        "applicationSigned": "Заявление на расход подписано",
+        "closed": "Расход закрыт — фактическая сумма капитализирована",
+        "councilApproved": "Совет утвердил расход — протокол решения подписан",
+        "councilDeclined": "Совет отклонил расход",
+        "documentAttached": "Приложен документ",
+        "memoCreated": "Служебная записка создана",
+        "reportSubmitted": "Отчёт по смете подан — ожидает закрытия расхода"
+      },
+      "historyTitle": "История состояний",
+      "linesTitle": "Строки расходов",
+      "memberLabel": "Пайщик",
+      "noDocumentsHint": "Здесь появятся служебная записка и протокол решения совета.",
+      "noDocumentsTitle": "Документы не сформированы",
+      "noLinesHint": "У этой служебной записки нет позиций.",
+      "noLinesTitle": "Нет строк",
+      "notFoundHint": "Возможно, ссылка устарела или у вас нет доступа.",
+      "notFoundTitle": "Расход не найден",
+      "openInPaymentsRegistryLabel": "Открыть в реестре платежей",
+      "paymentCreatedStatus": "{label} — создан, ожидает кассу",
+      "paymentDeclinedStatus": "{label} — отклонён",
+      "paymentErrorStatus": "{label} — ошибка",
+      "paymentExecutedStatus": "{label} — исполнен",
+      "paymentLabel": "Платёж",
+      "paymentPaidAwaitingConfirmStatus": "{label} — оплачен кассой, ждём подтверждения",
+      "paymentsLoadingText": "Загрузка платежей…",
+      "paymentsTitle": "Платежи по расходу",
+      "receiptsTitle": "Чеки и подтверждения",
+      "summaryTitle": "Сводка",
+      "updatedLabel": "Обновлена",
+      "walletLabel": "Кошелёк (пул)"
+    },
+    "expenseItem": {
+      "status": {
+        "advance": "Аванс",
+        "approved": "Одобрена",
+        "directPayment": "Прямая оплата",
+        "overspend": "Перерасход",
+        "paid": "Оплачена",
+        "refund": "Возврат",
+        "reportSubmitted": "Отчёт подан",
+        "undefined": "Не определена"
+      }
+    },
+    "expenseProposal": {
+      "status": {
+        "approvedByCouncil": "Утверждён советом",
+        "closed": "Закрыт",
+        "declined": "Отклонён",
+        "partiallyPaid": "Частично оплачен",
+        "reportSubmitted": "Отчёт подан",
+        "submitted": "Подан",
+        "undefined": "Не определён"
+      }
+    },
+    "expenseProposalCreateDialog": {
+      "addLineLabel": "Добавить позицию",
+      "amountPlanLabel": "Сумма (план)",
+      "deadlineLabel": "Срок исполнения (в срок до)",
+      "dialogTitle": "Создание служебной записки",
+      "linePositionLabel": "Позиция №{index}",
+      "linesTitle": "Строки расходов",
+      "methodAdvanceOption": "Аванс под отчёт",
+      "methodInvoiceOption": "Оплата по счету",
+      "methodLabel": "Способ",
+      "noLinesHint": "Добавьте хотя бы одну строку расхода: получатель + способ + сумма.",
+      "noLinesTitle": "Нет позиций",
+      "paymentPurposeLabel": "Назначение платежа",
+      "paymentPurposePlaceholder": "Например: «Оплата по счёту № 814 от 01.06.2026 за аренду серверов»",
+      "purposeDetailLabel": "Что оплачиваем",
+      "purposeDetailPlaceholder": "Своими словами: что это за расход и зачем",
+      "purposeLabel": "Цель расходов",
+      "purposePlaceholder": "Например: «Закупка хостинга и канцелярии на июнь»",
+      "recipientAccountLabel": "Аккаунт получателя в кооперативе",
+      "recipientDetailsLabel": "Реквизиты получателя",
+      "recipientDetailsPlaceholder": "ИНН, р/с, БИК",
+      "recipientNameLabel": "Получатель (имя/название)",
+      "recipientNamePlaceholder": "ФИО или название организации",
+      "recipientTypeLabel": "Тип получателя",
+      "recipientTypeMemberOption": "Пайщик",
+      "recipientTypeOrgOption": "Организация/ИП",
+      "recipientTypeSelfOption": "Я сам",
+      "sectionPurposeTitle": "Цель и параметры",
+      "submitLabel": "Подать на одобрение",
+      "submittedMessage": "Служебная записка подана — заявление подписано и передано в совет",
+      "walletLabel": "Источник средств (кошелёк)"
+    },
+    "expensesRegistryPage": {
+      "column": {
+        "amountFact": "Сумма (факт)",
+        "amountPlan": "Сумма (план)",
+        "createdAt": "Дата создания",
+        "member": "Пайщик",
+        "purpose": "Назначение",
+        "status": "Статус"
+      },
+      "copiedMessage": "Имя аккаунта скопировано",
+      "copyAccountTitle": "Скопировать имя аккаунта",
+      "emptyHint": "Здесь появятся служебные записки по расходам кооператива.",
+      "emptyTitle": "Расходов пока нет",
+      "loadMoreLabel": "Загрузить ещё",
+      "noDescriptionLabel": "— без описания —",
+      "rangeSummary": "1–{shown} из {total}",
+      "zeroRangeSummary": "0 из {total}"
+    },
+    "install": {
+      "extensionName": "Расходы",
+      "registryNavTitle": "Реестр расходов",
+      "singleExpenseNavTitle": "Расход"
+    }
+  }
+}

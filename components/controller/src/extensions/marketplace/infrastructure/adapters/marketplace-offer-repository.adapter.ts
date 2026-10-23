@@ -1,6 +1,8 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { In, MoreThanOrEqual, Repository } from 'typeorm';
+import { TableStore, moreOrEqual, oneOf, rawQuery, sortColumn, sortDirection } from '@coopenomics/extension-kit';
+import { sql, type Expression, type ExpressionBuilder, type SqlBool } from 'kysely';
+import { MARKETPLACE_OFFER_STORE } from '../../infrastructure/database/marketplace-stores';
+import { Inject, Injectable, Optional } from '@nestjs/common';
+import { CHAIN_CHANGES_PORT, type IChainChangesPort } from '@coopenomics/innercoop';
 import type {
   MarketplaceOfferDomainRepository,
   OfferCountersDeltaResult,
@@ -12,27 +14,104 @@ import type { MarketplaceOfferDomainEntity } from '../../domain/entities/marketp
 import {
   MarketplaceOfferStatuses,
   type MarketplaceOfferStatus,
+  type OfferPackageDelta,
 } from '../../domain/entities/marketplace-offer.types';
 import { MarketplaceOfferEntity } from '../entities/marketplace-offer.entity';
 import { MarketplaceOfferMapper } from '../mappers/marketplace-offer.mapper';
 import type { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
 
+/** Одно из четырёх движений счётчиков предложения и упаковки. */
+type OfferCounterOp = 'block' | 'unblock' | 'consume' | 'rollback';
+
+/** Счётчик упаковки в jsonb; у упаковок, заведённых до учёта по упаковкам, его нет — считаем нулём. */
+const pv = (alias: string, field: string): string => `COALESCE((${alias}->>'${field}')::numeric, 0)`;
+
+/**
+ * SET и WHERE каждого движения. Предложение считается в базовых единицах ($2),
+ * упаковка — в упаковках ($4) по своему идентификатору ($3); при безлимите
+ * свободное не трогается ни там, ни там.
+ */
+const OFFER_COUNTER_SQL: Record<OfferCounterOp, { offer: string; pkg: string; where: string }> = {
+  block: {
+    offer: `quantity_blocked = o.quantity_blocked + $2,
+            quantity_available = CASE WHEN o.unlimited_flag THEN o.quantity_available ELSE o.quantity_available - $2 END`,
+    pkg: `'quantity_blocked', ${pv('p', 'quantity_blocked')} + $4,
+          'quantity_available', CASE WHEN o.unlimited_flag THEN ${pv('p', 'quantity_available')} ELSE ${pv('p', 'quantity_available')} - $4 END`,
+    where: `o.status = 'ACTIVE' AND (o.unlimited_flag = true OR o.quantity_available >= $2)`,
+  },
+  unblock: {
+    offer: `quantity_blocked = o.quantity_blocked - $2,
+            quantity_available = CASE WHEN o.unlimited_flag THEN o.quantity_available ELSE o.quantity_available + $2 END`,
+    pkg: `'quantity_blocked', ${pv('p', 'quantity_blocked')} - $4,
+          'quantity_available', CASE WHEN o.unlimited_flag THEN ${pv('p', 'quantity_available')} ELSE ${pv('p', 'quantity_available')} + $4 END`,
+    where: 'o.quantity_blocked >= $2',
+  },
+  consume: {
+    offer: `quantity_blocked = o.quantity_blocked - $2,
+            quantity_consumed = o.quantity_consumed + $2`,
+    pkg: `'quantity_blocked', ${pv('p', 'quantity_blocked')} - $4,
+          'quantity_consumed', ${pv('p', 'quantity_consumed')} + $4`,
+    where: 'o.quantity_blocked >= $2',
+  },
+  rollback: {
+    offer: `quantity_blocked = o.quantity_blocked - $2,
+            quantity_available = CASE WHEN o.unlimited_flag THEN o.quantity_available ELSE o.quantity_available + $2 END`,
+    pkg: `'quantity_blocked', ${pv('p', 'quantity_blocked')} - $4,
+          'quantity_available', CASE WHEN o.unlimited_flag THEN ${pv('p', 'quantity_available')} ELSE ${pv('p', 'quantity_available')} + $4 END`,
+    where: '',
+  },
+};
+
+/** Каталог упаковок с переписанными счётчиками одной упаковки ($3); порядок сохраняется. */
+const packageRewriteSql = (fields: string): string =>
+  `SELECT COALESCE(jsonb_agg(CASE WHEN p->>'id' = $3 THEN p || jsonb_build_object(${fields}) ELSE p END ORDER BY ord), '[]'::jsonb)
+     FROM jsonb_array_elements(o.packages) WITH ORDINALITY AS t(p, ord)`;
+
+/** Блокировка проходит, только если свободных упаковок именно этого вида хватает. */
+const PACKAGE_AVAILABLE_GUARD_SQL = `(o.unlimited_flag = true OR EXISTS (
+  SELECT 1 FROM jsonb_array_elements(o.packages) q
+   WHERE q->>'id' = $3 AND ${pv('q', 'quantity_available')} >= $4))`;
+
+type OfferConditionFilter = Pick<OfferListFilter, 'coopname' | 'supplier_account' | 'status' | 'category_id' | 'available_only'> & {
+  delivery_braname?: string | null;
+};
+
+/**
+ * Условия отбора предложений. Доступность на пункте выдачи: предложение видно
+ * на участке, если его `delivery_points` содержит объект с этим участком.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function offerConditions(eb: ExpressionBuilder<any, any>, filter: OfferConditionFilter): Expression<SqlBool>[] {
+  const conditions: Expression<SqlBool>[] = [eb('coopname', '=', filter.coopname)];
+  if (filter.supplier_account) conditions.push(eb('supplier_account', '=', filter.supplier_account));
+  if (filter.status) conditions.push(eb('status', 'in', Array.isArray(filter.status) ? filter.status : [filter.status]));
+  if (filter.category_id !== undefined) conditions.push(eb('category_id', '=', filter.category_id));
+  if (filter.available_only) conditions.push(sql<boolean>`(unlimited_flag = true OR quantity_available > 0)`);
+  if (filter.delivery_braname) {
+    conditions.push(sql<boolean>`delivery_points @> ${JSON.stringify([{ braname: filter.delivery_braname }])}::jsonb`);
+  }
+  return conditions;
+}
+
 @Injectable()
 export class MarketplaceOfferRepositoryAdapter implements MarketplaceOfferDomainRepository {
   constructor(
-    @InjectRepository(MarketplaceOfferEntity, 'marketplace')
-    private readonly repo: Repository<MarketplaceOfferEntity>,
-    private readonly mapper: MarketplaceOfferMapper
+    @Inject(MARKETPLACE_OFFER_STORE)
+private readonly repo: TableStore<MarketplaceOfferEntity>,
+    private readonly mapper: MarketplaceOfferMapper,
+    // Счётчики оферты меняются сырым SQL (атомарный резерв), мимо подписчика
+    // ленты изменений, — сигнал публикуем сами после записи.
+    @Optional() @Inject(CHAIN_CHANGES_PORT) private readonly chainChanges: IChainChangesPort | null = null
   ) {}
 
   async findById(id: string): Promise<MarketplaceOfferDomainEntity | null> {
-    const row = await this.repo.findOne({ where: { id } });
+    const row = await this.repo.findOne({ id });
     return row ? this.mapper.toDomain(row) : null;
   }
 
   async findByIds(ids: string[]): Promise<MarketplaceOfferDomainEntity[]> {
     if (ids.length === 0) return [];
-    const rows = await this.repo.find({ where: { id: In(ids) } });
+    const rows = await this.repo.find({ id: oneOf(ids) });
     return rows.map((r) => this.mapper.toDomain(r));
   }
 
@@ -40,89 +119,49 @@ export class MarketplaceOfferRepositoryAdapter implements MarketplaceOfferDomain
     filter: OfferListFilter,
     pagination: PaginationInputDTO
   ): Promise<PaginationResult<MarketplaceOfferDomainEntity>> {
-    const qb = this.repo
-      .createQueryBuilder('o')
-      .where('o.coopname = :coop', { coop: filter.coopname });
+    const query = this.repo.kysely.selectFrom('marketplace_offer').where((eb) => eb.and(offerConditions(eb, filter)));
 
-    if (filter.supplier_account) {
-      qb.andWhere('o.supplier_account = :supplier', { supplier: filter.supplier_account });
-    }
-
-    if (filter.status) {
-      const statuses = Array.isArray(filter.status) ? filter.status : [filter.status];
-      qb.andWhere('o.status IN (:...statuses)', { statuses });
-    }
-
-    if (filter.category_id !== undefined) {
-      qb.andWhere('o.category_id = :cat', { cat: filter.category_id });
-    }
-
-    if (filter.available_only) {
-      qb.andWhere('(o.unlimited_flag = true OR o.quantity_available > 0)');
-    }
-
-    // Story 16.3: КУ-доступность — оффер виден на КУ, если его delivery_points
-    // содержит объект с этим braname (jsonb containment @>).
-    if (filter.delivery_braname) {
-      qb.andWhere('o.delivery_points @> :dp', {
-        dp: JSON.stringify([{ braname: filter.delivery_braname }]),
-      });
-    }
-
-    const sortColumn = MarketplaceOfferRepositoryAdapter.resolveSortColumn(pagination.sortBy);
-    qb.orderBy(sortColumn, pagination.sortOrder);
-    if (sortColumn !== 'o.created_at') {
-      qb.addOrderBy('o.created_at', 'DESC');
-    }
-
+    const column = MarketplaceOfferRepositoryAdapter.resolveSortColumn(pagination.sortBy);
+    const direction = sortDirection(pagination.sortOrder, 'asc');
     const { page, limit } = pagination;
-    qb.skip((page - 1) * limit).take(limit);
+    let ordered = query.selectAll().orderBy(column, direction);
+    if (column !== 'created_at') ordered = ordered.orderBy('created_at', 'desc');
 
-    const [rows, totalCount] = await qb.getManyAndCount();
+    const rows = await ordered
+      .offset((page - 1) * limit)
+      .limit(limit)
+      .execute();
+    const total = await query.select((eb) => eb.fn.countAll<string>().as('count')).executeTakeFirstOrThrow();
+    const totalCount = Number(total.count);
     return {
-      items: rows.map((r) => this.mapper.toDomain(r)),
+      items: this.repo.records(rows).map((r) => this.mapper.toDomain(r)),
       totalCount,
       totalPages: Math.ceil(totalCount / limit),
       currentPage: page,
     };
   }
 
-  private static resolveSortColumn(sortBy: string | undefined): string {
-    switch (sortBy) {
-      case 'price_per_unit':
-      case 'price':
-        return 'o.price_per_unit';
-      case 'product_name':
-        return 'o.product_name';
-      case 'created_at':
-      default:
-        return 'o.created_at';
-    }
+  /** Колонка сортировки витрины: только из своего перечня, иначе — по дате создания. */
+  private static resolveSortColumn(sortBy: string | undefined): 'price_per_unit' | 'product_name' | 'created_at' {
+    if (sortBy === 'price') return 'price_per_unit';
+    return sortColumn(['price_per_unit', 'product_name', 'created_at'] as const, sortBy, 'created_at');
   }
 
   async countByCategory(
     coopname: string,
     delivery_braname?: string | null
   ): Promise<Map<number, number>> {
-    const qb = this.repo
-      .createQueryBuilder('o')
-      .select('o.category_id', 'category_id')
-      .addSelect('COUNT(*)', 'cnt')
-      .where('o.coopname = :coop', { coop: coopname })
-      .andWhere('o.status = :s', { s: MarketplaceOfferStatuses.ACTIVE })
-      .andWhere('(o.unlimited_flag = true OR o.quantity_available > 0)');
-
-    // КУ-доступность: счётчики скоупим тем же jsonb-containment, что и витрина
+    // Счётчики сужаются до пункта выдачи тем же условием, что и витрина
     // (см. list), иначе категория «есть» по кооперативу, но пуста на пункте.
-    if (delivery_braname) {
-      qb.andWhere('o.delivery_points @> :dp', {
-        dp: JSON.stringify([{ braname: delivery_braname }]),
-      });
-    }
-
-    const rows = await qb
-      .groupBy('o.category_id')
-      .getRawMany<{ category_id: string; cnt: string }>();
+    const rows = await this.repo.kysely
+      .selectFrom('marketplace_offer')
+      .select('category_id')
+      .select((eb) => eb.fn.countAll<string>().as('cnt'))
+      .where((eb) =>
+        eb.and(offerConditions(eb, { coopname, status: MarketplaceOfferStatuses.ACTIVE, available_only: true, delivery_braname }))
+      )
+      .groupBy('category_id')
+      .execute();
 
     const result = new Map<number, number>();
     for (const r of rows) {
@@ -133,9 +172,7 @@ export class MarketplaceOfferRepositoryAdapter implements MarketplaceOfferDomain
 
   async countRecentCreatedBy(supplier_account: string, sinceMs: number): Promise<number> {
     const since = new Date(Date.now() - sinceMs);
-    return this.repo.count({
-      where: { supplier_account, created_at: MoreThanOrEqual(since) },
-    });
+    return this.repo.count({ supplier_account, created_at: moreOrEqual(since) });
   }
 
   async create(input: OfferCreateInput): Promise<MarketplaceOfferDomainEntity> {
@@ -186,97 +223,73 @@ export class MarketplaceOfferRepositoryAdapter implements MarketplaceOfferDomain
     }
   ): Promise<MarketplaceOfferDomainEntity> {
     await this.repo.update({ id }, patch as Record<string, unknown>);
-    const row = await this.repo.findOneOrFail({ where: { id } });
+    const row = await this.repo.findOneOrFail({ id });
     return this.mapper.toDomain(row);
   }
 
-  async applyBlockDelta(offer_id: string, qty: number): Promise<OfferCountersDeltaResult> {
-    if (qty <= 0) return { ok: false, reason: 'insufficient_available' };
-    const result = await this.repo.query(
-      `UPDATE marketplace_offer
-         SET quantity_blocked = quantity_blocked + $2,
-             quantity_available = CASE
-               WHEN unlimited_flag THEN quantity_available
-               ELSE quantity_available - $2
-             END,
-             updated_at = NOW()
-       WHERE id = $1
-         AND status = 'ACTIVE'
-         AND (unlimited_flag = true OR quantity_available >= $2)
-       RETURNING *`,
-      [offer_id, qty]
-    );
-    return this.interpretDelta(result, offer_id, 'insufficient_available');
+  async applyBlockDelta(offer_id: string, qty: number, pkg?: OfferPackageDelta): Promise<OfferCountersDeltaResult> {
+    return this.applyCounterDelta('block', offer_id, qty, pkg);
   }
 
-  async applyUnblockDelta(offer_id: string, qty: number): Promise<OfferCountersDeltaResult> {
-    if (qty <= 0) return { ok: false, reason: 'insufficient_blocked' };
-    const result = await this.repo.query(
-      `UPDATE marketplace_offer
-         SET quantity_blocked = quantity_blocked - $2,
-             quantity_available = CASE
-               WHEN unlimited_flag THEN quantity_available
-               ELSE quantity_available + $2
-             END,
-             updated_at = NOW()
-       WHERE id = $1
-         AND quantity_blocked >= $2
-       RETURNING *`,
-      [offer_id, qty]
-    );
-    return this.interpretDelta(result, offer_id, 'insufficient_blocked');
+  async applyUnblockDelta(offer_id: string, qty: number, pkg?: OfferPackageDelta): Promise<OfferCountersDeltaResult> {
+    return this.applyCounterDelta('unblock', offer_id, qty, pkg);
   }
 
-  async applyConsumeDelta(offer_id: string, qty: number): Promise<OfferCountersDeltaResult> {
-    if (qty <= 0) return { ok: false, reason: 'insufficient_blocked' };
-    const result = await this.repo.query(
-      `UPDATE marketplace_offer
-         SET quantity_blocked = quantity_blocked - $2,
-             quantity_consumed = quantity_consumed + $2,
-             updated_at = NOW()
-       WHERE id = $1
-         AND quantity_blocked >= $2
-       RETURNING *`,
-      [offer_id, qty]
-    );
-    return this.interpretDelta(result, offer_id, 'insufficient_blocked');
+  async applyConsumeDelta(offer_id: string, qty: number, pkg?: OfferPackageDelta): Promise<OfferCountersDeltaResult> {
+    return this.applyCounterDelta('consume', offer_id, qty, pkg);
   }
 
-  async applyRollbackDelta(offer_id: string, qty: number): Promise<OfferCountersDeltaResult> {
-    if (qty <= 0) return { ok: false, reason: 'insufficient_blocked' };
+  async applyRollbackDelta(offer_id: string, qty: number, pkg?: OfferPackageDelta): Promise<OfferCountersDeltaResult> {
     // ADR-005: rollback без CAS — counter может уйти в отрицательное
     // значение при rollback Order'а, который уже перешёл в consumed.
     // Это ожидаемо при катастрофе fork-вне-Rollback-Horizon; fix через
     // manual reconciliation (FR12 ARCH-sync).
-    const result = await this.repo.query(
-      `UPDATE marketplace_offer
-         SET quantity_blocked = quantity_blocked - $2,
-             quantity_available = CASE
-               WHEN unlimited_flag THEN quantity_available
-               ELSE quantity_available + $2
-             END,
-             updated_at = NOW()
-       WHERE id = $1
-       RETURNING *`,
-      [offer_id, qty]
-    );
-    return this.interpretDelta(result, offer_id, 'insufficient_blocked');
+    return this.applyCounterDelta('rollback', offer_id, qty, pkg);
   }
 
   /**
-   * pg native driver через TypeORM возвращает результат `query` для UPDATE
-   * RETURNING как `[rows, count]` массив — нормализуем.
+   * Одна атомарная команда на все четыре движения. Счётчики предложения (в
+   * базовых единицах) и счётчик заказанной упаковки (в упаковках, внутри
+   * jsonb `packages`) меняются одним UPDATE, поэтому гонка параллельных
+   * заказов их не разводит, а нехватка проверяется в WHERE по той упаковке,
+   * что заказана: литров может хватать, а бутылок нужного объёма — нет.
    */
+  private async applyCounterDelta(
+    op: OfferCounterOp,
+    offer_id: string,
+    qty: number,
+    pkg?: OfferPackageDelta
+  ): Promise<OfferCountersDeltaResult> {
+    const failure = op === 'block' ? 'insufficient_available' : 'insufficient_blocked';
+    if (qty <= 0 || (pkg && pkg.count <= 0)) return { ok: false, reason: failure };
+
+    const spec = OFFER_COUNTER_SQL[op];
+    const params: unknown[] = [offer_id, qty];
+    const sets = [spec.offer, 'updated_at = NOW()'];
+    const where = ['o.id = $1', spec.where];
+    if (pkg) {
+      params.push(pkg.id, pkg.count);
+      sets.push(`packages = (${packageRewriteSql(spec.pkg)})`);
+      if (op === 'block') where.push(PACKAGE_AVAILABLE_GUARD_SQL);
+    }
+    const rows = await rawQuery(
+      this.repo.kysely,
+      `UPDATE marketplace_offer o SET ${sets.join(', ')} WHERE ${where.filter(Boolean).join(' AND ')} RETURNING *`,
+      params
+    );
+    return this.interpretDelta(rows, offer_id, failure);
+  }
+
+  /** Исход правки счётчиков: правка без строки — нет предложения, оно не активно либо не хватило остатка. */
   private async interpretDelta(
-    result: unknown,
+    rows: unknown[],
     offer_id: string,
     failureReason: 'insufficient_available' | 'insufficient_blocked'
   ): Promise<OfferCountersDeltaResult> {
-    const rows = Array.isArray(result) ? (result[0] ?? result) : [];
-    const updatedRow = Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
+    const updatedRow = rows.length > 0 ? rows[0] : null;
 
     if (!updatedRow) {
-      const existing = await this.repo.findOne({ where: { id: offer_id } });
+      const existing = await this.repo.findOne({ id: offer_id });
       if (!existing) return { ok: false, reason: 'offer_not_found' };
       if (failureReason === 'insufficient_available' && existing.status !== MarketplaceOfferStatuses.ACTIVE) {
         return { ok: false, reason: 'offer_not_active' };
@@ -284,9 +297,11 @@ export class MarketplaceOfferRepositoryAdapter implements MarketplaceOfferDomain
       return { ok: false, reason: failureReason };
     }
 
+    void this.chainChanges?.publishLocal('marketplace_offer', offer_id);
+
     // pg возвращает column-by-column как plain object; нормализуем через
     // повторный findOne для прохода mapper (timestamp coercion, типизация).
-    const offer = await this.repo.findOneOrFail({ where: { id: offer_id } });
+    const offer = await this.repo.findOneOrFail({ id: offer_id });
     return { ok: true, offer: this.mapper.toDomain(offer) };
   }
 }

@@ -65,13 +65,12 @@ registerRoute(
   }),
 );
 
-// Cache Google Fonts with a Cache First strategy
+// Шрифты хостятся на своём домене (/fonts) — Cache First на год
 registerRoute(
-  ({ request }) =>
-    request.url.includes('fonts.googleapis.com') ||
-    request.url.includes('fonts.gstatic.com'),
+  ({ request, url }) =>
+    request.destination === 'font' || url.pathname.startsWith('/fonts/'),
   new CacheFirst({
-    cacheName: 'google-fonts',
+    cacheName: 'self-hosted-fonts',
     plugins: [
       new ExpirationPlugin({
         maxEntries: 30,
@@ -130,7 +129,9 @@ self.addEventListener('push', (event: PushEvent) => {
       console.log('Нет данных в push событии, используем fallback');
       // Fallback уведомление
       notificationData = {
+        // i18n-ignore: сервис-воркер собирается отдельно, без словарей приложения
         title: 'Новое уведомление',
+        // i18n-ignore: сервис-воркер собирается отдельно, без словарей приложения
         body: 'У вас есть новое уведомление',
         icon: '/icons/icon-192x192.png',
         badge: '/icons/icon-192x192.png',
@@ -139,7 +140,9 @@ self.addEventListener('push', (event: PushEvent) => {
   } catch (error) {
     console.error('Ошибка парсинга push данных:', error);
     notificationData = {
+      // i18n-ignore: сервис-воркер собирается отдельно, без словарей приложения
       title: 'Новое уведомление',
+      // i18n-ignore: сервис-воркер собирается отдельно, без словарей приложения
       body: 'У вас есть новое уведомление',
       icon: '/icons/icon-192x192.png',
       badge: '/icons/icon-192x192.png',

@@ -1,0 +1,13 @@
+{
+  "notificationCenter": {
+    "notificationCenter": {
+      "ariaLabel": "Уведомления",
+      "blockedInBrowser": "Уведомления заблокированы в браузере",
+      "browserUnsupported": "Браузер не поддерживает push-уведомления",
+      "disabledOnDevice": "Push не включён на этом устройстве",
+      "enableOnDevice": "Включить на устройстве",
+      "enabledOnDevice": "Push включён на этом устройстве",
+      "resubscribe": "Переподписать"
+    }
+  }
+}

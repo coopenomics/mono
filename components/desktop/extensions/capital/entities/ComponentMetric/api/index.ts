@@ -5,8 +5,6 @@ import type {
   IMeasure,
   IGetComponentMetricsInput,
   IGetMeasuresInput,
-  ICreateMeasureInput,
-  ICreateMeasureOutput,
   IUpdateMeasureInput,
   IUpdateMeasureOutput,
   ICreateComponentMetricInput,
@@ -47,14 +45,6 @@ async function getMeasures(data: IGetMeasuresInput): Promise<IMeasure[]> {
     { variables: { data } },
   );
   return result as IMeasure[];
-}
-
-async function createMeasure(data: ICreateMeasureInput): Promise<ICreateMeasureOutput> {
-  const { [Mutations.Capital.CreateMeasure.name]: result } = await client.Mutation(
-    Mutations.Capital.CreateMeasure.mutation,
-    { variables: { data } },
-  );
-  return result;
 }
 
 async function updateMeasure(data: IUpdateMeasureInput): Promise<IUpdateMeasureOutput> {
@@ -168,7 +158,6 @@ async function getMetricSuperpositionHistory(
 export const api = {
   getComponentMetrics,
   getMeasures,
-  createMeasure,
   updateMeasure,
   createComponentMetric,
   updateComponentMetric,

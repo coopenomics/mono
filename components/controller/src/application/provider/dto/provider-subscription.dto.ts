@@ -29,6 +29,12 @@ export class ProviderSubscriptionDTO {
   @Field(() => String, { description: 'Название типа подписки' })
   subscription_type_name: string;
 
+  @Field(() => String, {
+    nullable: true,
+    description: 'Машинный код типа подписки (hosting, support, app, docflow…): по нему строка тарифа связывается с подпиской',
+  })
+  subscription_type_code?: string | null;
+
   @Field(() => String, { nullable: true, description: 'Описание типа подписки' })
   subscription_type_description?: string;
 
@@ -40,6 +46,12 @@ export class ProviderSubscriptionDTO {
 
   @Field(() => String, { nullable: true, description: 'Имя пользователя инстанса' })
   instance_username: string | null;
+
+  @Field(() => Number, {
+    nullable: true,
+    description: 'Конфигурация сервера, на которой работает подписка хостинга',
+  })
+  instance_type_id?: number | null;
 
   @Field(() => String, { description: 'Статус подписки' })
   status: string;
@@ -75,12 +87,35 @@ export class ProviderSubscriptionDTO {
   @Field(() => GraphQLJSON, { nullable: true, description: 'Специфичные данные подписки' })
   specific_data?: Record<string, any> | null;
 
+  // Epic 13 v5.1 — пакетная модель подписки. Эти поля нужны desktop'у
+  // (`SubscriptionsCard.isPackage`, `ResourceMonitorPage`), чтобы отличать
+  // time-подписку от package-подписки и показывать расход месяца. Месячного
+  // потолка среди них больше нет (@ant 2026-08-26): расход ограничивает баланс
+  // кошелька членских взносов — списать больше, чем на нём есть, нельзя.
+  @Field(() => String, { nullable: true, description: 'Тип подписки: time или package' })
+  kind?: string | null;
+
+  @Field(() => Number, { nullable: true, description: 'Сумма RUB, докупленная в текущем месячном периоде' })
+  packages_current_period_amount?: number | null;
+
+  // Порог докупки: пакет покупается не по календарю, а когда ликвидный остаток
+  // AXON падает ниже этого числа. Кооперативу его нужно видеть — иначе списание
+  // «раз в сколько-то» выглядит необъяснимым (@ant 2026-08-27). Значение живёт
+  // на хабе (BILLING_PACKAGE_LOW_WATER_AXON), поэтому проставляется сервисом,
+  // а не приходит от провайдера.
+  @Field(() => Number, {
+    nullable: true,
+    description: 'Остаток AXON, ниже которого автоматически докупается следующий пакет',
+  })
+  package_low_water_axon?: number | null;
+
   constructor(subscription: ProviderSubscriptionType) {
     this.id = subscription.id;
     this.subscriber_id = subscription.subscriber_id;
     this.subscriber_username = subscription.subscriber_username;
     this.subscription_type_id = subscription.subscription_type_id;
     this.subscription_type_name = subscription.subscription_type_name;
+    this.subscription_type_code = (subscription as { subscription_type_code?: string | null }).subscription_type_code ?? null;
     this.subscription_type_description = subscription.subscription_type_description;
     this.price = subscription.price;
     this.period_days = subscription.period_days;
@@ -93,6 +128,22 @@ export class ProviderSubscriptionDTO {
     this.created_at = subscription.created_at;
     this.updated_at = subscription.updated_at;
     this.specific_data = subscription.specific_data;
+
+    // Epic 13 v5.1: пакетные поля приходят опциональными от provider'а
+    // (старые time-подписки оставляют их null/undefined).
+    const sub = subscription as ProviderSubscriptionType & {
+      // instance_type_id провайдер отдаёт, но опубликованный provider-client
+      // его ещё не описывает — читаем тем же расширением типа, что и пакетные
+      // поля. Рабочему столу он нужен, чтобы назвать текущий тариф сервера
+      // словом («Мощный»), а не оставлять кооператив гадать по цене.
+      instance_type_id?: number | null;
+      kind?: string | null;
+      packages_current_period_amount?: number | string | null;
+    };
+    this.instance_type_id = typeof sub.instance_type_id === 'number' ? sub.instance_type_id : null;
+    this.kind = sub.kind ?? null;
+    this.packages_current_period_amount =
+      sub.packages_current_period_amount != null ? Number(sub.packages_current_period_amount) : null;
 
     // Для хостинг подписки (id=1) добавляем данные инстанса из specific_data
     if (subscription.subscription_type_id === 1 && subscription.specific_data) {

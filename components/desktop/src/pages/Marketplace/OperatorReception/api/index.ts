@@ -1,9 +1,11 @@
-import { Classes, Mutations, Queries } from '@coopenomics/sdk';
+import { Mutations, Queries } from '@coopenomics/sdk';
+import { signDocument } from 'src/shared/lib/document';
 import { client } from 'src/shared/api/client';
 import type {
   MarketplaceAplReceptionView,
   SignedDocumentInput,
 } from 'src/entities/MarketplaceAplReception';
+import { t } from 'src/shared/i18n';
 
 export type { MarketplaceAplReceptionView, SignedDocumentInput } from 'src/entities/MarketplaceAplReception';
 
@@ -130,12 +132,10 @@ export interface ChairmanPlacement {
  */
 export async function signReceptionGroupAsChairman(
   receptions: Pick<MarketplaceAplReceptionView, 'id' | 'fact_quantity_per_order'>[],
-  wif: string,
   username: string,
   onProgress?: (done: number) => void,
   placements: ChairmanPlacement[] = [],
 ): Promise<SignReceptionsChairmanResult> {
-  const signer = new Classes.Document(wif);
   let done = 0;
   const errors: { receptionId: string; error: unknown }[] = [];
   await Promise.all(
@@ -143,11 +143,11 @@ export async function signReceptionGroupAsChairman(
       try {
         const aggregates = await fetchChairmanSignablePayloads({ apl_reception_id: r.id });
         if (aggregates.length === 0) {
-          throw new Error('Backend не вернул ни одного акта для закрывающей подписи.');
+          throw new Error(t('marketplace.error.receptionNoActs'));
         }
         const signed_documents: SignedDocumentInput[] = [];
         for (const aggregate of aggregates) {
-          const signed = await signer.signDocument(aggregate.rawDocument, username, 2, [
+          const signed = await signDocument(aggregate.rawDocument, username, 2, [
             aggregate.document,
           ]);
           signed_documents.push(signed);

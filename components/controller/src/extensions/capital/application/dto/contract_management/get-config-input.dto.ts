@@ -1,4 +1,5 @@
 import { Field, InputType } from '@nestjs/graphql';
+import { validationMessage } from '@coopenomics/extension-kit';
 import { IsNotEmpty, IsString } from 'class-validator';
 
 /**
@@ -9,7 +10,7 @@ export class GetCapitalConfigInputDTO {
   @Field(() => String, {
     description: 'Название кооператива',
   })
-  @IsNotEmpty({ message: 'Название кооператива не должно быть пустым' })
-  @IsString({ message: 'Название кооператива должно быть строкой' })
+  @IsNotEmpty({ message: validationMessage('capital.getConfigInput.coopname.required') })
+  @IsString({ message: validationMessage('capital.getConfigInput.coopname.string') })
   coopname!: string;
 }

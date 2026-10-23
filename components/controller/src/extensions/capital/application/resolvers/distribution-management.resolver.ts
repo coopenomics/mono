@@ -2,11 +2,21 @@ import { Resolver, Mutation, Args } from '@nestjs/graphql';
 import { DistributionManagementService } from '../services/distribution-management.service';
 import { FundProgramInputDTO } from '../dto/distribution_management/fund-program-input.dto';
 import { RefreshProgramInputDTO } from '../dto/distribution_management/refresh-program-input.dto';
-import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser, GeneratedDocumentDTO, GenerateDocumentOptionsInputDTO, TransactionDTO, GenerateDocumentInputDTO } from '@coopenomics/extension-kit';
+import {
+  GqlJwtAuthGuard,
+  CurrentUser,
+  GeneratedDocumentDTO,
+  GenerateDocumentOptionsInputDTO,
+  TransactionDTO,
+  RequireRight,
+  RightsGuard,
+  DOCUMENT_GENERATION_THROTTLE,
+} from '@coopenomics/extension-kit';
 import { UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import type { IMonoAccount } from '@coopenomics/innercoop';
 import { GenerationConvertStatementGenerateDocumentInputDTO } from '../documents-dto/generation-convert-statement-document.dto';
+import { ShareTransferStatementGenerateDocumentInputDTO } from '../documents-dto/share-transfer-statement-document.dto';
 
 /**
  * GraphQL резолвер для действий распределения средств CAPITAL контракта
@@ -22,8 +32,8 @@ export class DistributionManagementResolver {
     name: 'capitalFundProgram',
     description: 'Финансирование программы CAPITAL контракта',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('CapitalProgram', 'fund')
   async fundCapitalProgram(
     @Args('data', { type: () => FundProgramInputDTO }) data: FundProgramInputDTO
   ): Promise<TransactionDTO> {
@@ -39,8 +49,8 @@ export class DistributionManagementResolver {
     name: 'capitalRefreshProgram',
     description: 'Обновление CRPS пайщика в программе CAPITAL контракта',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('CapitalProgram', ['refresh:own', 'refresh'], { owner: 'data.username' })
   async refreshCapitalProgram(
     @Args('data', { type: () => RefreshProgramInputDTO }) data: RefreshProgramInputDTO
   ): Promise<TransactionDTO> {
@@ -59,9 +69,9 @@ export class DistributionManagementResolver {
     name: 'capitalGenerateGenerationConvertStatement',
     description: 'Сгенерировать заявление о конвертации целевого паевого взноса (в Цифровой Кошелёк и/или в программу «Благорост»)',
   })
-  @Throttle({ default: { limit: 3, ttl: 60000 } })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @Throttle(DOCUMENT_GENERATION_THROTTLE)
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('CapitalProgram', ['generate:own', 'generate'], { owner: 'data.username' })
   async generateGenerationConvertStatement(
     @Args('data', { type: () => GenerationConvertStatementGenerateDocumentInputDTO })
     data: GenerationConvertStatementGenerateDocumentInputDTO,
@@ -73,18 +83,18 @@ export class DistributionManagementResolver {
   }
 
   /**
-   * Мутация для генерации заявления о конвертации из благороста в основной кошелек
+   * Мутация для генерации заявления о трансляции паевого взноса из Благороста в Цифровой Кошелёк (1090)
    */
   @Mutation(() => GeneratedDocumentDTO, {
     name: 'capitalGenerateCapitalizationToMainWalletConvertStatement',
-    description: 'Сгенерировать заявление о конвертации из благороста в основной кошелек',
+    description: 'Сгенерировать заявление о трансляции паевого взноса из Благороста в Цифровой Кошелёк на указанную сумму',
   })
-  @Throttle({ default: { limit: 3, ttl: 60000 } })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @Throttle(DOCUMENT_GENERATION_THROTTLE)
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('CapitalProgram', ['generate:own', 'generate'], { owner: 'data.username' })
   async generateCapitalizationToMainWalletConvertStatement(
-    @Args('data', { type: () => GenerateDocumentInputDTO })
-    data: GenerateDocumentInputDTO,
+    @Args('data', { type: () => ShareTransferStatementGenerateDocumentInputDTO })
+    data: ShareTransferStatementGenerateDocumentInputDTO,
     @Args('options', { type: () => GenerateDocumentOptionsInputDTO, nullable: true })
     options: GenerateDocumentOptionsInputDTO
   ): Promise<GeneratedDocumentDTO> {

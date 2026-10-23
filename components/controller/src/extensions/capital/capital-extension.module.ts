@@ -1,7 +1,7 @@
-import { Module, Injectable, Inject } from '@nestjs/common';
-import { BaseExtensionModule, EXTENSION_REPOSITORY, type ExtensionDomainRepository,
-  platformSettings,
-} from '@coopenomics/extension-kit';
+import './i18n';
+import { Module, Injectable, Inject, Optional } from '@nestjs/common';
+import { CapitalContract } from 'cooptypes';
+import { BaseExtensionModule, EXTENSION_REPOSITORY, type ExtensionDomainRepository, platformSettings, DomainError } from '@coopenomics/extension-kit';
 import { CapitalDatabaseModule } from './infrastructure/database/capital-database.module';
 import { LOGGER_PORT, type ILoggerPort,
   COUNCIL_PORT,
@@ -14,13 +14,10 @@ import { LOGGER_PORT, type ILoggerPort,
   type IIntegrationSettingsPort,
 } from '@coopenomics/innercoop';
 import { z } from 'zod';
-import { ONBOARDING_STEP_REGISTRY_PORT, type IOnboardingStepRegistryPort } from '@coopenomics/innercoop';
-import { type DeserializedDescriptionOfExtension } from '@coopenomics/extension-kit';
+import { ONBOARDING_STEP_REGISTRY_PORT, type IOnboardingStepRegistryPort, DOCUMENT_DECLARATION_PORT, type IDocumentDeclarationPort, CHAIN_CHANGES_PORT, type IChainChangesPort } from '@coopenomics/innercoop';
+import { describeConfigField } from '@coopenomics/extension-kit';
+import { t } from './i18n';
 
-// Функция для проверки и сериализации FieldDescription
-function describeField(description: DeserializedDescriptionOfExtension): string {
-  return JSON.stringify(description);
-}
 
 // Дефолтные параметры конфигурации
 export const defaultConfig = {
@@ -59,12 +56,12 @@ export const defaultConfig = {
 export const Schema = z.object({
   github_sync_branch: z
     .string()
-    .min(1, 'Имя ветки не может быть пустым')
+    .min(1, t('capital.capitalExtension.field.githubSyncBranch.validationRequired'))
     .default(defaultConfig.github_sync_branch)
     .describe(
-      describeField({
-        label: 'Ветка GitHub для синхронизации',
-        note: 'Ветка в указанном репозитории (по умолчанию dev). Используется при обходе истории коммитов.',
+      describeConfigField({
+        label: t('capital.capitalExtension.field.githubSyncBranch.label'),
+        note: t('capital.capitalExtension.field.githubSyncBranch.hint'),
         rules: ['val.length >= 1'],
       })
     ),
@@ -83,20 +80,20 @@ export const Schema = z.object({
     },
     z.number().int().min(0).max(60).default(0),
   ).describe(
-    describeField({
-      label: 'Интервал опроса GitHub (мин)',
-      note: 'Периодичность задачи синхронизации GitHub ↔ БД. 0 — опрос по расписанию отключён. Иначе: от 1 до 60 минут.',
+    describeConfigField({
+      label: t('capital.capitalExtension.field.githubPollInterval.label'),
+      note: t('capital.capitalExtension.field.githubPollInterval.hint'),
       rules: ['val >= 0', 'val <= 60'],
-      append: 'мин',
+      append: t('capital.capitalExtension.field.githubPollInterval.unit'),
     })
   ).default(0),
   github_api_token_encrypted: z
     .string()
     .default(defaultConfig.github_api_token_encrypted)
     .describe(
-      describeField({
-        label: 'Токен GitHub API (read-only)',
-        note: 'Токен GitHub API с доступом к репозиториям.',
+      describeConfigField({
+        label: t('capital.capitalExtension.field.githubToken.label'),
+        note: t('capital.capitalExtension.field.githubToken.hint'),
         password: true,
       })
     ),
@@ -104,19 +101,19 @@ export const Schema = z.object({
     .boolean()
     .default(defaultConfig.github_sync_all_branches)
     .describe(
-      describeField({
-        label: 'Синхронизировать все ветки',
-        note: 'Индексировать коммиты со всех веток репозитория, а не только с базовой: работа видна и учитывается сразу, не дожидаясь вливания. Переписанные версии уже учтённых коммитов распознаются по содержимому правки и не задваиваются.',
+      describeConfigField({
+        label: t('capital.capitalExtension.field.githubSyncAllBranches.label'),
+        note: t('capital.capitalExtension.field.githubSyncAllBranches.hint'),
       })
     ),
   github_sync_branch_filter: z
     .string()
-    .min(1, 'Фильтр веток не может быть пустым')
+    .min(1, t('capital.capitalExtension.field.githubBranchFilter.validationRequired'))
     .default(defaultConfig.github_sync_branch_filter)
     .describe(
-      describeField({
-        label: 'Фильтр веток',
-        note: 'Какие небазовые ветки индексировать: glob-шаблоны через запятую (например «feat/*,fix/*»). «*» — все ветки.',
+      describeConfigField({
+        label: t('capital.capitalExtension.field.githubBranchFilter.label'),
+        note: t('capital.capitalExtension.field.githubBranchFilter.hint'),
         rules: ['val.length >= 1'],
       })
     ),
@@ -137,11 +134,11 @@ export const Schema = z.object({
       z.number().int().min(0).max(525600).default(defaultConfig.program_share_registration_interval_minutes)
     )
     .describe(
-      describeField({
-        label: 'Интервал синхронизации баланса Благороста с проектами (мин)',
-        note: 'Периодичность сверки баланса программы Благорост в кошельке участника с проектами и вызова regshare. 0 — отключено.',
+      describeConfigField({
+        label: t('capital.capitalExtension.field.blagorostSyncInterval.label'),
+        note: t('capital.capitalExtension.field.blagorostSyncInterval.hint'),
         rules: ['val >= 0', 'val <= 525600'],
-        append: 'мин',
+        append: t('capital.capitalExtension.field.blagorostSyncInterval.unit'),
       })
     )
     .default(defaultConfig.program_share_registration_interval_minutes),
@@ -149,9 +146,9 @@ export const Schema = z.object({
     .number()
     .default(defaultConfig.creators_voting_percent)
     .describe(
-      describeField({
-        label: 'Пул голосования исполнителей',
-        note: 'Процент от пула премий исполнителей для распределения голосованием по методу Водянова.',
+      describeConfigField({
+        label: t('capital.capitalExtension.field.creatorsVotingPercent.label'),
+        note: t('capital.capitalExtension.field.creatorsVotingPercent.hint'),
         rules: ['val >= 0', 'val <= 100'],
         prepend: '%',
       })
@@ -160,9 +157,9 @@ export const Schema = z.object({
     .number()
     .default(defaultConfig.authors_voting_percent)
     .describe(
-      describeField({
-        label: 'Пул голосований соавторов',
-        note: 'Процент от пула премий соавторов для распределения голосованием по методу Водянова.',
+      describeConfigField({
+        label: t('capital.capitalExtension.field.authorsVotingPercent.label'),
+        note: t('capital.capitalExtension.field.authorsVotingPercent.hint'),
         rules: ['val >= 0', 'val <= 100'],
         prepend: '%',
       })
@@ -171,9 +168,9 @@ export const Schema = z.object({
     .number()
     .default(defaultConfig.coordinator_bonus_percent)
     .describe(
-      describeField({
-        label: 'Премия координатора',
-        note: 'Процент от суммы взноса инвестора, на который дополнительно увеличивается стоимость результата интеллектуальной деятельности. По факту внесения суммы инвестором, координатор вносит паевым взносом выполненный финансовый план и получает долю в результате.',
+      describeConfigField({
+        label: t('capital.capitalExtension.field.coordinatorBonusPercent.label'),
+        note: t('capital.capitalExtension.field.coordinatorBonusPercent.hint'),
         rules: ['val >= 0', 'val <= 100'],
         prepend: '%',
       })
@@ -182,20 +179,20 @@ export const Schema = z.object({
     .number()
     .default(defaultConfig.coordinator_invite_validity_days)
     .describe(
-      describeField({
-        label: 'Срок действия приглашения координатора',
-        note: 'Продолжительность периода действия приглашений, по ходу которых координатор получает премию от взноса инвестора по его финплану. После истечения этого срока премия координатору при взносах приглашенного инвестора не начисляется.',
+      describeConfigField({
+        label: t('capital.capitalExtension.field.coordinatorInviteValidityDays.label'),
+        note: t('capital.capitalExtension.field.coordinatorInviteValidityDays.hint'),
         rules: ['val >= 1'],
-        append: 'дней',
+        append: t('capital.capitalExtension.field.coordinatorInviteValidityDays.unit'),
       })
     ),
   expense_pool_percent: z
     .number()
     .default(defaultConfig.expense_pool_percent)
     .describe(
-      describeField({
-        label: 'Процент пула расходов',
-        note: 'Процент от суммы инвестиций, который направляется в пул расходов.',
+      describeConfigField({
+        label: t('capital.capitalExtension.field.expensePoolPercent.label'),
+        note: t('capital.capitalExtension.field.expensePoolPercent.hint'),
         rules: ['val >= 0', 'val <= 100'],
         prepend: '%',
       })
@@ -204,23 +201,23 @@ export const Schema = z.object({
     .number()
     .default(defaultConfig.voting_period_in_days)
     .describe(
-      describeField({
-        label: 'Период голосования',
-        note: 'Продолжительность периода голосования по методу Водянова в днях.',
+      describeConfigField({
+        label: t('capital.capitalExtension.field.votingPeriodInDays.label'),
+        note: t('capital.capitalExtension.field.votingPeriodInDays.hint'),
         rules: ['val >= 1'],
-        append: 'дней',
+        append: t('capital.capitalExtension.field.votingPeriodInDays.unit'),
       })
     ),
   energy_decay_rate_per_day: z
     .number()
     .default(defaultConfig.energy_decay_rate_per_day)
     .describe(
-      describeField({
-        label: 'Скорость убывания энергии в день',
-        note: 'Процент энергии, которое теряет участник ежедневно. Это мотивирует к активному участию в проектах для поддержания уровня энергии.',
+      describeConfigField({
+        label: t('capital.capitalExtension.field.energyDecayRate.label'),
+        note: t('capital.capitalExtension.field.energyDecayRate.hint'),
         rules: ['val >= 0', 'val <= 1'],
         prepend: '%',
-        append: '/день',
+        append: t('capital.capitalExtension.field.energyDecayRate.unit'),
         visible: false,
       })
     ),
@@ -228,9 +225,9 @@ export const Schema = z.object({
     .number()
     .default(defaultConfig.level_depth_base)
     .describe(
-      describeField({
-        label: 'Базовая глубина уровня',
-        note: 'Базовое количество опыта, необходимое для достижения следующего уровня. Используется в расчете прогрессии уровней участников.',
+      describeConfigField({
+        label: t('capital.capitalExtension.field.levelDepthBase.label'),
+        note: t('capital.capitalExtension.field.levelDepthBase.hint'),
         rules: ['val >= 1'],
         visible: false,
       })
@@ -239,9 +236,9 @@ export const Schema = z.object({
     .number()
     .default(defaultConfig.level_growth_coefficient)
     .describe(
-      describeField({
-        label: 'Коэффициент роста уровня',
-        note: 'Множитель, определяющий, насколько сложнее становится достичь следующего уровня. Высокий коэффициент делает прогресс более медленным.',
+      describeConfigField({
+        label: t('capital.capitalExtension.field.levelGrowthCoefficient.label'),
+        note: t('capital.capitalExtension.field.levelGrowthCoefficient.hint'),
         rules: ['val >= 1'],
         visible: false,
       })
@@ -250,9 +247,9 @@ export const Schema = z.object({
     .number()
     .default(defaultConfig.energy_gain_coefficient)
     .describe(
-      describeField({
-        label: 'Коэффициент получения энергии',
-        note: 'Множитель, определяющий количество энергии, получаемое за выполнение задач. Влияет на скорость восстановления энергии участников.',
+      describeConfigField({
+        label: t('capital.capitalExtension.field.energyGainCoefficient.label'),
+        note: t('capital.capitalExtension.field.energyGainCoefficient.hint'),
         rules: ['val >= 0'],
         visible: false,
       })
@@ -261,27 +258,33 @@ export const Schema = z.object({
   onboarding_generator_program_template_done: z
     .boolean()
     .default(defaultConfig.onboarding_generator_program_template_done)
-    .describe(describeField({ label: 'Шаг положения о программе ГЕНЕРАТОР выполнен', visible: false })),
+    // i18n-ignore: скрытое служебное поле конфигурации (visible: false), пайщику не показывается
+    .describe(describeConfigField({ label: 'Шаг положения о программе ГЕНЕРАТОР выполнен', visible: false })),
   onboarding_generation_contract_template_done: z
     .boolean()
     .default(defaultConfig.onboarding_generation_contract_template_done)
-    .describe(describeField({ label: 'Шаг соглашения о генерации выполнен', visible: false })),
+    // i18n-ignore: скрытое служебное поле конфигурации (visible: false), пайщику не показывается
+    .describe(describeConfigField({ label: 'Шаг соглашения о генерации выполнен', visible: false })),
   onboarding_generator_offer_template_done: z
     .boolean()
     .default(defaultConfig.onboarding_generator_offer_template_done)
-    .describe(describeField({ label: 'Шаг шаблона оферты генератора выполнен', visible: false })),
+    // i18n-ignore: скрытое служебное поле конфигурации (visible: false), пайщику не показывается
+    .describe(describeConfigField({ label: 'Шаг шаблона оферты генератора выполнен', visible: false })),
   onboarding_blagorost_provision_done: z
     .boolean()
     .default(defaultConfig.onboarding_blagorost_provision_done)
-    .describe(describeField({ label: 'Шаг положения Благорост выполнен', visible: false })),
+    // i18n-ignore: скрытое служебное поле конфигурации (visible: false), пайщику не показывается
+    .describe(describeConfigField({ label: 'Шаг положения Благорост выполнен', visible: false })),
   onboarding_blagorost_offer_template_done: z
     .boolean()
     .default(defaultConfig.onboarding_blagorost_offer_template_done)
-    .describe(describeField({ label: 'Шаг предложения Благорост выполнен', visible: false })),
+    // i18n-ignore: скрытое служебное поле конфигурации (visible: false), пайщику не показывается
+    .describe(describeConfigField({ label: 'Шаг предложения Благорост выполнен', visible: false })),
   capital_program_doc_data_hash: z
     .string()
     .default(defaultConfig.capital_program_doc_data_hash)
-    .describe(describeField({ label: 'PrivateData документов ЦПП', visible: false })),
+    // i18n-ignore: скрытое служебное поле конфигурации (visible: false), пайщику не показывается
+    .describe(describeConfigField({ label: 'PrivateData документов ЦПП', visible: false })),
 
 });
 
@@ -301,39 +304,40 @@ import {
   GENERATOR_AGREEMENT_TYPE,
 } from './constants/capital-agreement-ids';
 import { registerCapitalOnboardingSteps } from './application/onboarding/register-capital-onboarding-steps';
+import { registerCapitalDocuments } from './application/onboarding/register-capital-documents';
 
 // Репозитории
-import { ProjectTypeormRepository } from './infrastructure/repositories/project.typeorm-repository';
-import { ContributorTypeormRepository } from './infrastructure/repositories/contributor.typeorm-repository';
-import { AppendixTypeormRepository } from './infrastructure/repositories/appendix.typeorm-repository';
-import { InvestTypeormRepository } from './infrastructure/repositories/invest.typeorm-repository';
-import { ProgramPropertyTypeormRepository } from './infrastructure/repositories/program-property.typeorm-repository';
-import { ProgramWithdrawTypeormRepository } from './infrastructure/repositories/program-withdraw.typeorm-repository';
-import { ProjectPropertyTypeormRepository } from './infrastructure/repositories/project-property.typeorm-repository';
-import { ProgramWalletTypeormRepository } from './infrastructure/repositories/program-wallet.typeorm-repository';
-import { CycleTypeormRepository } from './infrastructure/repositories/cycle.typeorm-repository';
-import { IssueTypeormRepository } from './infrastructure/repositories/issue.typeorm-repository';
-import { ProcessTemplateTypeormRepository } from './infrastructure/repositories/process-template.typeorm-repository';
-import { ProcessInstanceTypeormRepository } from './infrastructure/repositories/process-instance.typeorm-repository';
+import { ProjectKyselyRepository } from './infrastructure/repositories/project.kysely-repository';
+import { ContributorKyselyRepository } from './infrastructure/repositories/contributor.kysely-repository';
+import { AppendixKyselyRepository } from './infrastructure/repositories/appendix.kysely-repository';
+import { InvestKyselyRepository } from './infrastructure/repositories/invest.kysely-repository';
+import { ProgramPropertyKyselyRepository } from './infrastructure/repositories/program-property.kysely-repository';
+import { ProgramWithdrawKyselyRepository } from './infrastructure/repositories/program-withdraw.kysely-repository';
+import { ProjectPropertyKyselyRepository } from './infrastructure/repositories/project-property.kysely-repository';
+import { ProgramWalletKyselyRepository } from './infrastructure/repositories/program-wallet.kysely-repository';
+import { CycleKyselyRepository } from './infrastructure/repositories/cycle.kysely-repository';
+import { IssueKyselyRepository } from './infrastructure/repositories/issue.kysely-repository';
+import { ProcessTemplateKyselyRepository } from './infrastructure/repositories/process-template.kysely-repository';
+import { ProcessInstanceKyselyRepository } from './infrastructure/repositories/process-instance.kysely-repository';
 import { PROCESS_TEMPLATE_REPOSITORY, PROCESS_INSTANCE_REPOSITORY } from './domain/repositories/process.repository';
 import { ProcessService } from './application/services/process.service';
 import { ProcessResolver } from './application/resolvers/process.resolver';
-import { CommentTypeormRepository } from './infrastructure/repositories/comment.typeorm-repository';
-import { StoryTypeormRepository } from './infrastructure/repositories/story.typeorm-repository';
-import { ComponentMetricTypeormRepository } from './infrastructure/repositories/component-metric.typeorm-repository';
-import { MeasureTypeormRepository } from './infrastructure/repositories/measure.typeorm-repository';
-import { IssueMetricBindingTypeormRepository } from './infrastructure/repositories/issue-metric-binding.typeorm-repository';
-import { MetricContributionTypeormRepository } from './infrastructure/repositories/metric-contribution.typeorm-repository';
-import { VoteTypeormRepository } from './infrastructure/repositories/vote.typeorm-repository';
-import { DebtTypeormRepository } from './infrastructure/repositories/debt.typeorm-repository';
-import { ResultTypeormRepository } from './infrastructure/repositories/result.typeorm-repository';
-import { ExpenseTypeormRepository } from './infrastructure/repositories/expense.typeorm-repository';
-import { CommitTypeormRepository } from './infrastructure/repositories/commit.typeorm-repository';
-import { StateTypeormRepository } from './infrastructure/repositories/state.typeorm-repository';
-import { TimeEntryTypeormRepository } from './infrastructure/repositories/time-entry.typeorm-repository';
-import { TimerSessionTypeormRepository } from './infrastructure/repositories/timer-session.typeorm-repository';
-import { FavoriteTypeormRepository } from './infrastructure/repositories/favorite.typeorm-repository';
-import { SegmentTypeormRepository } from './infrastructure/repositories/segment.typeorm-repository';
+import { CommentKyselyRepository } from './infrastructure/repositories/comment.kysely-repository';
+import { StoryKyselyRepository } from './infrastructure/repositories/story.kysely-repository';
+import { ComponentMetricKyselyRepository } from './infrastructure/repositories/component-metric.kysely-repository';
+import { MeasureKyselyRepository } from './infrastructure/repositories/measure.kysely-repository';
+import { IssueMetricBindingKyselyRepository } from './infrastructure/repositories/issue-metric-binding.kysely-repository';
+import { MetricContributionKyselyRepository } from './infrastructure/repositories/metric-contribution.kysely-repository';
+import { VoteKyselyRepository } from './infrastructure/repositories/vote.kysely-repository';
+import { DebtKyselyRepository } from './infrastructure/repositories/debt.kysely-repository';
+import { ResultKyselyRepository } from './infrastructure/repositories/result.kysely-repository';
+import { ExpenseKyselyRepository } from './infrastructure/repositories/expense.kysely-repository';
+import { CommitKyselyRepository } from './infrastructure/repositories/commit.kysely-repository';
+import { StateKyselyRepository } from './infrastructure/repositories/state.kysely-repository';
+import { TimeEntryKyselyRepository } from './infrastructure/repositories/time-entry.kysely-repository';
+import { TimerSessionKyselyRepository } from './infrastructure/repositories/timer-session.kysely-repository';
+import { FavoriteKyselyRepository } from './infrastructure/repositories/favorite.kysely-repository';
+import { SegmentKyselyRepository } from './infrastructure/repositories/segment.kysely-repository';
 
 // GitHub (маркеры коммитов)
 import { GitHubService } from './infrastructure/services/github.service';
@@ -346,8 +350,8 @@ import { CapitalDevelopmentRepositoryGitSyncService } from './application/servic
 import { CapitalGithubExtensionLifecycleListener } from './application/listeners/capital-github-extension-lifecycle.listener';
 import { GitCommitMarkersSyncService } from './application/services/git-commit-markers-sync.service';
 import { GitLinkedCommitPatchIdBackfillService } from './application/services/git-linked-commit-patch-id-backfill.service';
-import { IssueLinkedGitCommitTypeormRepository } from './infrastructure/repositories/issue-linked-git-commit.typeorm-repository';
-import { GithubBranchCommitSyncStateTypeormRepository } from './infrastructure/repositories/github-branch-commit-sync-state.typeorm-repository';
+import { IssueLinkedGitCommitKyselyRepository } from './infrastructure/repositories/issue-linked-git-commit.kysely-repository';
+import { GithubBranchCommitSyncStateKyselyRepository } from './infrastructure/repositories/github-branch-commit-sync-state.kysely-repository';
 import { ISSUE_LINKED_GIT_COMMIT_REPOSITORY } from './domain/repositories/issue-linked-git-commit.repository';
 import { GITHUB_BRANCH_COMMIT_SYNC_STATE_REPOSITORY } from './domain/repositories/github-branch-commit-sync-state.repository';
 // Blockchain синхронизация
@@ -394,6 +398,8 @@ import { ProjectMapperService } from './application/services/project-mapper.serv
 import { CommitMapperService } from './application/services/commit-mapper.service';
 import { GitService } from './application/services/git.service';
 import { GenerationService } from './application/services/generation.service';
+import { ContentRevisionService } from './application/services/content-revision.service';
+import { ContentRevisionApiService } from './application/services/content-revision-api.service';
 import { ComponentMetricService } from './application/services/component-metric.service';
 import { ComponentMatrixAnnouncementService } from './application/services/component-matrix-announcement.service';
 import { IssuePermissionsService } from './application/services/issue-permissions.service';
@@ -401,6 +407,8 @@ import { ProjectPermissionsService } from './application/services/project-permis
 import { IssueAccessPolicyService } from './domain/services/access-policy.service';
 import { PermissionsService } from './application/services/permissions.service';
 import { InvestsManagementService } from './application/services/invests-management.service';
+import { ShareTransferService } from './application/services/share-transfer.service';
+import { ShareTransferKyselyRepository } from './infrastructure/repositories/share-transfer.kysely-repository';
 import { DebtManagementService } from './application/services/debt-management.service';
 import { PropertyManagementService } from './application/services/property-management.service';
 import { VotingService } from './application/services/voting.service';
@@ -457,8 +465,10 @@ import { ContractManagementResolver } from './application/resolvers/contract-man
 import { ParticipationManagementResolver } from './application/resolvers/participation-management.resolver';
 import { ProjectManagementResolver } from './application/resolvers/project-management.resolver';
 import { GenerationResolver } from './application/resolvers/generation.resolver';
+import { ContentRevisionResolver } from './application/resolvers/content-revision.resolver';
 import { ComponentMetricResolver } from './application/resolvers/component-metric.resolver';
 import { InvestsManagementResolver } from './application/resolvers/invests-management.resolver';
+import { ShareTransferResolver } from './application/resolvers/share-transfer.resolver';
 import { DebtManagementResolver } from './application/resolvers/debt-management.resolver';
 import { PropertyManagementResolver } from './application/resolvers/property-management.resolver';
 import { TimeTrackerResolver } from './application/resolvers/time-tracker.resolver';
@@ -493,6 +503,8 @@ import { SegmentsInteractor } from './application/use-cases/segments.interactor'
 import { LogInteractor } from './application/use-cases/log.interactor';
 import type { ExtensionDomainEntity } from '@coopenomics/extension-kit';
 import { resolveCapitalGithubApiPlainToken } from './application/utils/capital-github-token';
+import { APP_RIGHTS, RightsGuard } from '@coopenomics/extension-kit';
+import { CapitalRights } from './application/access/capital-rights';
 // Конфигурация модуля теперь использует IConfig из схемы
 // EventEmitter: глобальный EventsInfrastructureModule (forRoot один раз в app)
 
@@ -514,7 +526,12 @@ export class CapitalExtension extends BaseExtensionModule {
     @Inject(INTEGRATION_SETTINGS_PORT) private readonly integrations: IIntegrationSettingsPort,
     @Inject(ONBOARDING_STEP_REGISTRY_PORT)
     private readonly onboardingStepRegistration: IOnboardingStepRegistryPort,
-    @Inject(COUNCIL_PORT) private readonly council: ICouncilPort
+    @Inject(DOCUMENT_DECLARATION_PORT)
+    private readonly documentDeclarations: IDocumentDeclarationPort,
+    @Inject(COUNCIL_PORT) private readonly council: ICouncilPort,
+    private readonly onboardingService: CapitalOnboardingService,
+    // Лента изменений цепи для столов; без неё столы Благороста живут дочиткой.
+    @Optional() @Inject(CHAIN_CHANGES_PORT) private readonly chainChanges: IChainChangesPort | null = null
   ) {
     super();
     this.logger.setContext(CapitalExtension.name);
@@ -534,8 +551,8 @@ export class CapitalExtension extends BaseExtensionModule {
    */
   private async ensureCppPrograms(): Promise<void> {
     const programs = [
-      { type: BLAGOROST_AGREEMENT_TYPE, title: 'Целевая потребительская программа «Благорост»' },
-      { type: GENERATOR_AGREEMENT_TYPE, title: 'Целевая потребительская программа «Генератор»' },
+      { type: BLAGOROST_AGREEMENT_TYPE, title: t('capital.capitalExtension.program.blagorostTitle') },
+      { type: GENERATOR_AGREEMENT_TYPE, title: t('capital.capitalExtension.program.generatorTitle') },
     ];
 
     for (const program of programs) {
@@ -646,6 +663,8 @@ export class CapitalExtension extends BaseExtensionModule {
         Number(contractConfig.energy_gain_coefficient || 0) !== finalConfig.energy_gain_coefficient;
 
       if (needsUpdate) {
+        // i18n-ignore: текст логов (logger.log), до пайщика не доходит
+        // i18n-ignore: текст логов (logger.log), до пайщика не доходит
         const action = contractConfig ? 'обновление' : 'установка начальной';
         this.logger.log(`Выполняем ${action} конфигурации контракта CAPITAL`);
 
@@ -728,7 +747,42 @@ export class CapitalExtension extends BaseExtensionModule {
     // Регистрация шагов онбординга capital в платформенном реестре
     try {
       registerCapitalOnboardingSteps(this.onboardingStepRegistration);
-      this.logger.log('[CAPITAL.ONBOARDING] зарегистрировано 5 шагов онбординга capital');
+      await registerCapitalDocuments(this.documentDeclarations);
+      // Столы Благороста живут по ленте изменений (C28-83). Проекты, сегменты,
+      // голоса, результаты и коммиты — общая работа участников, их видят все
+      // (сигнал данных строки не несёт); личные финансы — владельцу и совету.
+      const code = CapitalContract.contractName.production;
+      const T = CapitalContract.Tables;
+      this.chainChanges?.declareTables([
+        { code, table: T.Contributors.tableName, owner_field: 'username' },
+        ...[T.Projects, T.ProjectProperties, T.ProgramProperties, T.Segments, T.Votes, T.Results, T.Commits, T.Appendixes, T.State].map(
+          (t) => ({ code, table: t.tableName })
+        ),
+        ...[T.Invests, T.ProgramInvests, T.Debts, T.ProgramWithdraws, T.ProgramWallets, T.Expenses, T.ProgramExpenses].map(
+          (t) => ({ code, table: t.tableName, owner_field: 'username' })
+        ),
+      ]);
+      // Оффчейн-работа Благороста в базе узла: задачи, истории, обсуждения,
+      // учёт времени, метрики. Избранное — личное.
+      this.chainChanges?.declareLocalTables([
+        ...[
+          'capital_issues',
+          'capital_stories',
+          'capital_comments',
+          'capital_cycles',
+          'capital_time_entries',
+          'capital_timer_sessions',
+          'capital_component_metrics',
+          'capital_measures',
+          'capital_metric_contributions',
+          'capital_issue_metric_bindings',
+          'capital_issue_linked_git_commits',
+        ].map((table) => ({ code, table })),
+        { code, table: 'capital_favorites', owner_field: 'username' },
+        // История трансляций паевого взноса в Цифровой Кошелёк — личная.
+        { code, table: 'capital_share_transfers', owner_field: 'username' },
+      ]);
+      this.logger.log('[CAPITAL.ONBOARDING] зарегистрировано 5 шагов онбординга capital и документы реестра шаблонов');
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
       const stack = error instanceof Error ? error.stack : undefined;
@@ -749,16 +803,26 @@ export class CapitalExtension extends BaseExtensionModule {
         const ext = await this.extensionRepository.findByName(this.name);
         const hash = ext?.config?.capital_program_doc_data_hash?.trim();
         if (!hash) {
-          throw new Error(
-            'Параметры документов ЦПП не заполнены: отсутствует capital_program_doc_data_hash в конфигурации capital'
-          );
+          throw DomainError.internal('CAPITAL_PROGRAM_DOC_DATA_HASH_MISSING');
         }
         return hash;
       };
 
+      // Отметки шагов сверяем с утверждениями в цепи до проверки: решение совета
+      // могло пройти мимо приёмника (контроллер не работал, документ утвердили со
+      // вкладки «Шаблоны документов»). Иначе подключение выглядит завершённым, а
+      // программ во вступлении нет.
+      let registryConfig = extensionConfig as IConfig;
+      try {
+        registryConfig = (await this.onboardingService.reconcileFlags()) as IConfig;
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        this.logger.warn(`[CAPITAL.REGISTRY] не удалось сверить отметки шагов с цепью: ${message}`);
+      }
+
       const registered = registerCapitalInAgreementRegistry(
         this.agreementRegistrationPort,
-        extensionConfig as IConfig,
+        registryConfig,
         resolveCapitalProgramDocDataHash
       );
       if (registered) {
@@ -779,6 +843,11 @@ export class CapitalExtension extends BaseExtensionModule {
 @Module({
   imports: [CapitalDatabaseModule],
   providers: [
+    // Права стола: описание для общего гарда операций и прав страниц
+    CapitalRights,
+    { provide: APP_RIGHTS, useExisting: CapitalRights },
+    RightsGuard,
+
     // Extension
     CapitalExtension,
     CapitalRegistrationService,
@@ -803,6 +872,8 @@ IssueIdGenerationService,
     CommitMapperService,
     GitService,
     GenerationService,
+    ContentRevisionService,
+    ContentRevisionApiService,
     ComponentMetricService,
     ComponentMatrixAnnouncementService,
     IssuePermissionsService,
@@ -810,6 +881,8 @@ IssueIdGenerationService,
     IssueAccessPolicyService,
     PermissionsService,
     InvestsManagementService,
+    ShareTransferService,
+    ShareTransferKyselyRepository,
     DebtManagementService,
     PropertyManagementService,
     VotingService,
@@ -869,8 +942,10 @@ IssueIdGenerationService,
     ParticipationManagementResolver,
     ProjectManagementResolver,
     GenerationResolver,
+    ContentRevisionResolver,
     ComponentMetricResolver,
     InvestsManagementResolver,
+    ShareTransferResolver,
     DebtManagementResolver,
     PropertyManagementResolver,
     VotingResolver,
@@ -886,117 +961,117 @@ IssueIdGenerationService,
     // Repositories
     {
       provide: PROJECT_REPOSITORY,
-      useClass: ProjectTypeormRepository,
+      useClass: ProjectKyselyRepository,
     },
     {
       provide: CONTRIBUTOR_REPOSITORY,
-      useClass: ContributorTypeormRepository,
+      useClass: ContributorKyselyRepository,
     },
     {
       provide: APPENDIX_REPOSITORY,
-      useClass: AppendixTypeormRepository,
+      useClass: AppendixKyselyRepository,
     },
     {
       provide: INVEST_REPOSITORY,
-      useClass: InvestTypeormRepository,
+      useClass: InvestKyselyRepository,
     },
     {
       provide: PROGRAM_PROPERTY_REPOSITORY,
-      useClass: ProgramPropertyTypeormRepository,
+      useClass: ProgramPropertyKyselyRepository,
     },
     {
       provide: PROGRAM_WITHDRAW_REPOSITORY,
-      useClass: ProgramWithdrawTypeormRepository,
+      useClass: ProgramWithdrawKyselyRepository,
     },
     {
       provide: PROJECT_PROPERTY_REPOSITORY,
-      useClass: ProjectPropertyTypeormRepository,
+      useClass: ProjectPropertyKyselyRepository,
     },
     {
       provide: PROGRAM_WALLET_REPOSITORY,
-      useClass: ProgramWalletTypeormRepository,
+      useClass: ProgramWalletKyselyRepository,
     },
     {
       provide: CYCLE_REPOSITORY,
-      useClass: CycleTypeormRepository,
+      useClass: CycleKyselyRepository,
     },
     {
       provide: ISSUE_REPOSITORY,
-      useClass: IssueTypeormRepository,
+      useClass: IssueKyselyRepository,
     },
     {
       provide: PROCESS_TEMPLATE_REPOSITORY,
-      useClass: ProcessTemplateTypeormRepository,
+      useClass: ProcessTemplateKyselyRepository,
     },
     {
       provide: PROCESS_INSTANCE_REPOSITORY,
-      useClass: ProcessInstanceTypeormRepository,
+      useClass: ProcessInstanceKyselyRepository,
     },
     ProcessService,
     ProcessResolver,
     {
       provide: COMMENT_REPOSITORY,
-      useClass: CommentTypeormRepository,
+      useClass: CommentKyselyRepository,
     },
     {
       provide: STORY_REPOSITORY,
-      useClass: StoryTypeormRepository,
+      useClass: StoryKyselyRepository,
     },
     {
       provide: COMPONENT_METRIC_REPOSITORY,
-      useClass: ComponentMetricTypeormRepository,
+      useClass: ComponentMetricKyselyRepository,
     },
     {
       provide: MEASURE_REPOSITORY,
-      useClass: MeasureTypeormRepository,
+      useClass: MeasureKyselyRepository,
     },
     {
       provide: ISSUE_METRIC_BINDING_REPOSITORY,
-      useClass: IssueMetricBindingTypeormRepository,
+      useClass: IssueMetricBindingKyselyRepository,
     },
     {
       provide: METRIC_CONTRIBUTION_REPOSITORY,
-      useClass: MetricContributionTypeormRepository,
+      useClass: MetricContributionKyselyRepository,
     },
     {
       provide: VOTE_REPOSITORY,
-      useClass: VoteTypeormRepository,
+      useClass: VoteKyselyRepository,
     },
     {
       provide: DEBT_REPOSITORY,
-      useClass: DebtTypeormRepository,
+      useClass: DebtKyselyRepository,
     },
     {
       provide: RESULT_REPOSITORY,
-      useClass: ResultTypeormRepository,
+      useClass: ResultKyselyRepository,
     },
     {
       provide: EXPENSE_REPOSITORY,
-      useClass: ExpenseTypeormRepository,
+      useClass: ExpenseKyselyRepository,
     },
     {
       provide: COMMIT_REPOSITORY,
-      useClass: CommitTypeormRepository,
+      useClass: CommitKyselyRepository,
     },
     {
       provide: STATE_REPOSITORY,
-      useClass: StateTypeormRepository,
+      useClass: StateKyselyRepository,
     },
     {
       provide: TIME_ENTRY_REPOSITORY,
-      useClass: TimeEntryTypeormRepository,
+      useClass: TimeEntryKyselyRepository,
     },
     {
       provide: TIMER_SESSION_REPOSITORY,
-      useClass: TimerSessionTypeormRepository,
+      useClass: TimerSessionKyselyRepository,
     },
     {
       provide: FAVORITE_REPOSITORY,
-      useClass: FavoriteTypeormRepository,
+      useClass: FavoriteKyselyRepository,
     },
     {
       provide: SEGMENT_REPOSITORY,
-      useClass: SegmentTypeormRepository,
+      useClass: SegmentKyselyRepository,
     },
 
     // GitHub (маркеры коммитов)
@@ -1010,11 +1085,11 @@ IssueIdGenerationService,
     GitLinkedCommitPatchIdBackfillService,
     {
       provide: ISSUE_LINKED_GIT_COMMIT_REPOSITORY,
-      useClass: IssueLinkedGitCommitTypeormRepository,
+      useClass: IssueLinkedGitCommitKyselyRepository,
     },
     {
       provide: GITHUB_BRANCH_COMMIT_SYNC_STATE_REPOSITORY,
-      useClass: GithubBranchCommitSyncStateTypeormRepository,
+      useClass: GithubBranchCommitSyncStateKyselyRepository,
     },
 
     // Services that depend on repositories

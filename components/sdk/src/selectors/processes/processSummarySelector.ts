@@ -2,9 +2,11 @@ import { Selector, type ValueTypes } from '../../zeus/index'
 import type { MakeAllFieldsRequired } from '../../utils/MakeAllFieldsRequired'
 
 const rawProcessSummarySelector = {
+  amount: true,
   coopname: true,
   firstSeenAt: true,
   lastSeenAt: true,
+  memo: true,
   processHash: true,
   processType: true,
   username: true,

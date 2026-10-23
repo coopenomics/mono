@@ -22,6 +22,8 @@ export interface IStoryDatabaseData extends IBaseDatabaseData {
   issue_hash?: string; // Хеш задачи (если история привязана к задаче)
   created_by: string; // Имя пользователя, создавшего историю
   sort_order: number; // Порядок сортировки
+  /** Редакция содержимого (title/description). */
+  content_rev?: number;
   /** Публикации анонса требования в Matrix по комнатам (после успешной отправки). */
   matrix_requirement_announcement_events?: IStoryMatrixRequirementAnnouncementEvent[];
 }

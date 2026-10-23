@@ -4,7 +4,7 @@ div
     v-if='issue'
     :model-value='issue.status'
     :issue-hash='issue.issue_hash'
-    label='Статус'
+    :label='$t("capital.issueControls.statusLabel")'
     :readonly='!permissions?.can_change_status'
     :allowed-transitions='(permissions)?.allowed_status_transitions'
     @update:modelValue='handleStatusUpdate'
@@ -23,7 +23,7 @@ div
     v-if='issue'
     :model-value='issue.priority'
     :issue-hash='issue.issue_hash'
-    label='Приоритет'
+    :label='$t("capital.issueControls.priorityLabel")'
     :readonly='!permissions?.can_set_priority'
     @update:modelValue='handlePriorityUpdate'
   ).full-width.q-mb-sm
@@ -32,7 +32,7 @@ div
     UpdateEstimate(
       :model-value='issue.estimate'
       :issue-hash='issue.issue_hash'
-      label='План (ч)'
+      :label='$t("capital.issueControls.planHoursLabel")'
       :readonly='!permissions?.can_set_estimate'
       @update:modelValue='handleEstimateUpdate'
     )
@@ -40,7 +40,7 @@ div
       :key='`fact-${factHours}`'
       :model-value='factHours'
       :issue-hash='issue.issue_hash'
-      label='Факт (ч)'
+      :label='$t("capital.issueControls.factHoursLabel")'
       readonly
     )
 
@@ -48,7 +48,7 @@ div
     v-if='issue'
     :model-value='issueLabels'
     :issue-hash='issue.issue_hash'
-    label='Метки'
+    :label='$t("capital.issueControls.labelsLabel")'
     :readonly='!permissions?.can_edit_issue'
     @update:modelValue='handleLabelsUpdate'
   ).full-width.q-mb-sm

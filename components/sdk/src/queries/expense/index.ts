@@ -1,6 +1,7 @@
 export * as ExpenseProposal from './expenseProposal'
 export * as ExpenseProposalsByCooperative from './expenseProposalsByCooperative'
 export * as ExpenseProposalsByMember from './expenseProposalsByMember'
+export * as ExpenseAdvancesByCooperative from './expenseAdvancesByCooperative'
 export * as ExpenseFile from './expenseFile'
 export * as ExpenseFilesByItem from './expenseFilesByItem'
 export * as ExpenseFilesByProposal from './expenseFilesByProposal'

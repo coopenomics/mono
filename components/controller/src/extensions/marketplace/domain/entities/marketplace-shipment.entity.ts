@@ -34,9 +34,11 @@ export class MarketplaceShipmentDomainEntity {
 
   constructor(props: MarketplaceShipmentProps) {
     if (!props.id) {
+      // i18n-ignore: внутренний инвариант сущности, до пайщика не доходит
       throw new Error('MarketplaceShipmentDomainEntity: id обязателен.');
     }
     if (!props.coopname || !props.cycle_id || !props.braname || !props.offerer_account) {
+      // i18n-ignore: внутренний инвариант сущности, до пайщика не доходит
       throw new Error('MarketplaceShipmentDomainEntity: coopname/cycle_id/braname/offerer_account обязательны.');
     }
     if (
@@ -44,6 +46,7 @@ export class MarketplaceShipmentDomainEntity {
       (!props.ttn_number || !props.ttn_data)
     ) {
       throw new Error(
+        // i18n-ignore: внутренний инвариант сущности, до пайщика не доходит
         'MarketplaceShipmentDomainEntity: для Варианта Б обязательны ttn_number и ttn_data.'
       );
     }

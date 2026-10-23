@@ -1,141 +1,239 @@
 <template lang="pug">
-  div
-    q-table(
-      v-if="coops"
-      ref="tableRef" v-model:expanded="expanded"
-      flat
-      :rows="coops"
-      :columns="columns"
-      :table-colspan="9"
-      row-key="username"
-      :pagination="pagination"
-      virtual-scroll
-      :virtual-scroll-item-size="48"
-      :rows-per-page-options="[10]"
-      :loading="onLoading"
-      :no-data-label="'Нет кооперативов'"
-    ).full-height
-      template(#top)
+.coop-registry.q-pa-md
+  .banner
+    q-icon.banner__icon(name="info" size="18px")
+    .banner__body
+      | {{ $t('union.cooperativesRegistry.bannerLine1') }}
+      | {{ $t('union.cooperativesRegistry.bannerLine2') }}
 
+  Loader(v-if="onLoading" :text="$t('union.cooperativesRegistry.loading')")
 
-      template(#header="props")
+  EmptyState(
+    v-else-if="!coops || !coops.length"
+    :title="$t('union.cooperativesRegistry.emptyTitle')"
+    :body="$t('union.cooperativesRegistry.emptyBody')"
+  )
+    template(#icon)
+      q-icon(name="handshake" size="28px")
 
-        q-tr(:props="props")
-          q-th(auto-width)
+  //- Решения совета живут внутри карточки кооператива, а не в реестре:
+  //- заблокировать «мимоходом», не открыв заявку, нельзя. Сама карточка —
+  //- вход в неё, отдельная кнопка «Открыть заявку» для этого не нужна.
+  .coop-registry__list(v-else)
+    BaseCard.coop-registry__card(
+      v-for="row in coops"
+      :key="row.coopname"
+      @click="openDetail(row.coopname)"
+    )
+      .coop-registry__head
+        .coop-registry__title
+          .coop-registry__name {{ row.name || row.coopname }}
+          .t-meta.t-muted {{ cardSubtitle(row) }}
+          //- Домен — часть удостоверения кооператива: совет узнаёт заявку
+          //- по адресу не хуже, чем по названию, и открывает сайт отсюда же.
+          a.coop-registry__domain(
+            v-if="row.announce"
+            :href="resolveSiteUrl(row.announce)"
+            target="_blank"
+            rel="noopener"
+            @click.stop
+          )
+            q-icon(name="language" size="14px")
+            span.t-mono {{ row.announce }}
+        BaseChip(:variant="registryStatusVariant(row.status)" size="sm")
+          span {{ registryStatusLabel(row.status) }}
 
-          q-th(
-            v-for="col in props.cols"
-            :key="col.name"
-            :props="props"
-          ) {{ col.label }}
+      //- Первое, что нужно совету на строке заявки: чем кооператив занимается
+      //- и приложен ли устав. Полный текст и сам файл — в карточке кооператива.
+      p.coop-registry__about(v-if="row.description") {{ row.description }}
+      p.coop-registry__about.t-muted(v-else) {{ $t('union.cooperativesRegistry.noDescription') }}
 
-      template(#body="props")
-        q-tr(:key="`m_${props.row.username}`" :props="props")
-          q-td(auto-width)
-            q-btn(size="sm" color="primary" round dense :icon="props.expand ? 'remove' : 'add'" @click="props.expand = !props.expand")
-          q-td {{ props.row.username }}
-          q-td {{ props.row.announce }}
+      .coop-registry__summary
+        .coop-registry__metric
+          .coop-registry__metric-label {{ $t('union.cooperativesRegistry.charterLabel') }}
+          .coop-registry__metric-value
+            BaseChip(:variant="row.charter ? 'pos' : 'warn'" size="sm")
+              q-icon(v-if="row.charter" name="check" size="12px").q-mr-xs
+              span {{ row.charter ? $t('union.cooperativesRegistry.charterAttached') : $t('union.cooperativesRegistry.charterMissing') }}
+        //- Тариф заявки — вместо числа подписок: до решения совета заведён
+        //- только документооборот, и «1 подписка, 1 500 ₽» сбивала с толку.
+        .coop-registry__metric
+          .coop-registry__metric-label {{ $t('union.cooperativesRegistry.tariffLabel') }}
+          template(v-if="row.tariff")
+            .coop-registry__metric-value {{ row.tariff.name }}
+            .coop-registry__metric-sub {{ tariffPriceLabel(row) }}
+          .coop-registry__metric-value.t-muted(v-else) {{ $t('union.cooperativesRegistry.tariffNotChosen') }}
+        .coop-registry__metric
+          .coop-registry__metric-label {{ $t('union.cooperativesRegistry.nextPaymentLabel') }}
+          .coop-registry__metric-value.t-mono {{ nextPaymentLabel(row) }}
+        .coop-registry__metric
+          .coop-registry__metric-label {{ $t('union.cooperativesRegistry.hostingLabel') }}
+          .coop-registry__metric-value
+            BaseChip(v-if="hostingStatus(row)" :variant="instanceStatusVariant(hostingStatus(row))" size="sm")
+              span {{ instanceStatusLabel(hostingStatus(row)) }}
+            span.t-muted(v-else) {{ hostingPendingLabel(row) }}
+</template>
 
-          q-td
-            q-badge(v-if="props.row.status === 'active'" color="teal") активен
-            q-badge(v-if="props.row.status === 'pending'" color="orange") на рассмотрении
-            q-badge(v-if="props.row.status === 'blocked'" color="red") заблокирован
+<script setup lang="ts">
+import { computed, ref } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import moment from 'src/shared/lib/utils/dates/moment'
+import { BaseCard, BaseChip, EmptyState } from 'src/shared/ui/base'
+import Loader from 'src/shared/ui/Loader/Loader.vue'
+import { useLoadCooperatives } from 'src/features/Union/LoadCooperatives'
+import { useUnionStore } from 'src/entities/Union/model'
+import type { ICooperativeRegistryItem } from 'src/entities/Union/model'
+import { tariffPriceLabel } from 'src/entities/Union'
+import {
+  instanceStatusLabel,
+  instanceStatusVariant,
+  registryStatusLabel,
+  registryStatusVariant,
+} from 'src/entities/Union'
+import { FailAlert } from 'src/shared/api/alerts'
+import { t } from 'src/shared/i18n';
 
-          q-td {{ moment(props.row.created_at).format('DD.MM.YY HH:mm:ss') }}
+type ICooperativeSubscription = ICooperativeRegistryItem['subscriptions'][number]
 
-          q-td
-            q-btn-dropdown( label="действия" flat size="sm")
-              q-list
-                q-item(v-if="props.row.status !== 'active'" clickable v-close-popup @click="activate(props.row.username)")
-                  q-item-section
-                    q-item-label Активировать
-                q-item(v-if="props.row.status !== 'blocked'" clickable v-close-popup @click="block(props.row.username)")
-                  q-item-section
-                    q-item-label Заблокировать
-                //- q-item(clickable v-close-popup @click="deleteCoop(props.row.username)")
-                //-   q-item-section
-                //-     q-item-label Удалить
+const router = useRouter()
+const route = useRoute()
+const union = useUnionStore()
+const { loadCooperatives } = useLoadCooperatives()
 
-        q-tr(v-show="props.expand" :key="`e_${props.row.username}`" :props="props" class="q-virtual-scroll--with-prev")
-          q-td(colspan="100%")
-            slot(:expand="props.expand" :receiver="props.row.username")
-            ListOfDocumentsWidget(
-              :username="props.row.username"
-              :filter="{data: getDataFilter(props.row.document.hash)}"
-              :expand="true"
-              :documentType="'newsubmitted'"
-            )
+const coops = computed(() => union.coops)
 
-  </template>
-  <script setup lang="ts">
-  import { useLoadCooperatives } from 'src/features/Union/LoadCooperatives';
-  const {loadCooperatives} = useLoadCooperatives()
-  import { useUnionStore } from 'src/entities/Union/model';
-  import { computed, ref } from 'vue';
-  import moment from 'src/shared/lib/utils/dates/moment'
-  import { useActivateCooperative } from 'src/features/Union/ActivateCooperative';
-  import { FailAlert, SuccessAlert } from 'src/shared/api/alerts';
-  import { useBlockCooperative } from 'src/features/Union/BlockCooperative';
-  const union = useUnionStore()
+const onLoading = ref(false)
 
-  import { ListOfDocumentsWidget } from 'src/widgets/Cooperative/Documents/ListOfDocuments';
-  const getDataFilter = (hash: string) => {
-    return {
-      document: {
-        hash: hash.toUpperCase()
-      }
-    }
+const load = async () => {
+  onLoading.value = true
+  try {
+    await loadCooperatives()
+  } catch (e: any) {
+    FailAlert(e)
+  } finally {
+    onLoading.value = false
   }
+}
 
-  const coops = computed(() => union.coops)
+// realtime: нет источника — реестр собирает сервер из цепи и данных провайдера (другой узел), а узел хранит и сигналит только строку своего кооператива; список обновляется после своих действий.
+load()
 
-  loadCooperatives()
+const hostingSubscription = (row: ICooperativeRegistryItem): ICooperativeSubscription | undefined =>
+  row.subscriptions?.find((s) => !!s.instance_status)
 
-  const activate = async (coopname: string) => {
-    const {activateCooperative} = useActivateCooperative()
+const hostingStatus = (row: ICooperativeRegistryItem): string | null =>
+  hostingSubscription(row)?.instance_status ?? null
 
-    try {
-      await activateCooperative(coopname)
-      loadCooperatives()
-      SuccessAlert('Кооператив активирован')
-    } catch(e: any) {
-      FailAlert(e)
-    }
-  }
+// Сервера ещё нет: до решения совета поставка не начиналась, после — ждёт аренды.
+const hostingPendingLabel = (row: ICooperativeRegistryItem): string =>
+  String(row.status).toLowerCase() === 'pending'
+    ? t('union.cooperativesRegistry.awaitingDecision')
+    : t('union.cooperativesRegistry.awaitingDelivery')
 
-  const block = async (coopname: string) => {
-    const {blockCooperative} = useBlockCooperative()
+const nextPaymentDate = (row: ICooperativeRegistryItem): string | null => {
+  const dates = (row.subscriptions ?? [])
+    .map((s) => s.next_payment_due)
+    .filter(Boolean) as string[]
+  if (!dates.length) return null
+  return dates.sort()[0]
+}
 
-    try {
-      await blockCooperative(coopname)
-      loadCooperatives()
-      SuccessAlert('Кооператив заблокирован')
-    } catch(e: any) {
-      FailAlert(e)
-    }
-  }
+const nextPaymentLabel = (row: ICooperativeRegistryItem): string => {
+  const d = nextPaymentDate(row)
+  return d ? moment(d).format('DD.MM.YYYY') : '—'
+}
 
-
-  const onLoading = ref(false)
-
-  const columns = [
-    { name: 'username', align: 'left', label: 'Аккаунт', field: 'username', sortable: true },
-    { name: 'announce', align: 'left', label: 'Сайт', field: 'announce', sortable: false },
-
-    { name: 'status', align: 'left', label: 'Статус', field: 'status', sortable: true },
-    {
-      name: 'created_at',
-      align: 'left',
-      label: 'Дата заявки',
-      field: 'created_at',
-      sortable: true,
-    },
-    { name: 'actions', align: 'center', label: '', field: 'actions', sortable: false },
-  ] as any
-
-  const expanded = ref([])
-  const tableRef = ref(null)
-  const pagination = ref({ rowsPerPage: 0 })
+const formatDateTime = (value: string): string => moment(value).format('DD.MM.YY HH:mm')
 
 
-  </script>
+const cardSubtitle = (row: ICooperativeRegistryItem): string => {
+  const parts: string[] = [row.coopname]
+  if (row.created_at) parts.push(t('union.cooperativesRegistry.applicationFrom', { date: formatDateTime(row.created_at) }))
+  return parts.join(' · ')
+}
+
+const resolveSiteUrl = (announce: string): string =>
+  /^https?:\/\//.test(announce) ? announce : `https://${announce}`
+
+const openDetail = (coopname: string) => {
+  const params = { ...route.params, detailCoopname: coopname }
+  router.push({ name: 'union-cooperative-detail', params })
+}
+
+</script>
+
+<style scoped>
+.coop-registry__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-4);
+  margin-top: var(--p-4);
+}
+.coop-registry__card {
+  cursor: pointer;
+  transition: border-color var(--p-dur-fast) var(--p-ease-standard);
+}
+.coop-registry__card:hover {
+  border-color: var(--p-primary);
+}
+.coop-registry__head {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--p-3);
+}
+.coop-registry__title {
+  flex: 1;
+  min-width: 0;
+}
+.coop-registry__name {
+  font-size: var(--p-fs-h3);
+  line-height: var(--p-lh-h3);
+  font-weight: 600;
+  color: var(--p-ink);
+}
+.coop-registry__domain {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--p-1);
+  margin-top: var(--p-2);
+  color: var(--p-primary);
+  text-decoration: none;
+  font-size: var(--p-fs-body-sm);
+}
+.coop-registry__domain:hover {
+  text-decoration: underline;
+}
+.coop-registry__about {
+  margin: var(--p-3) 0 0;
+  color: var(--p-ink-1);
+  font-size: var(--p-fs-body-sm);
+  line-height: var(--p-lh-body-sm);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.coop-registry__summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--p-4);
+  margin-top: var(--p-4);
+  padding-top: var(--p-4);
+  border-top: 1px solid var(--p-line);
+}
+.coop-registry__metric-sub {
+  margin-top: var(--p-1);
+  font-size: var(--p-fs-meta);
+  color: var(--p-ink-2);
+}
+.coop-registry__metric-label {
+  font-size: var(--p-fs-meta);
+  color: var(--p-ink-2);
+  margin-bottom: var(--p-1);
+}
+.coop-registry__metric-value {
+  font-size: var(--p-fs-body);
+  font-weight: 600;
+  color: var(--p-ink);
+}
+</style>

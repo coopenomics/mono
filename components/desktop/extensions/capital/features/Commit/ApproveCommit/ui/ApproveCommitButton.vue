@@ -4,7 +4,7 @@ BaseButton(
   :size='mini || isMobile ? "sm" : "md"',
   :loading='loading',
   @click.stop='handleApproveCommit'
-) Одобрить
+) {{ $t('capital.approveCommitButton.approve') }}
 </template>
 
 <script setup lang="ts">
@@ -14,6 +14,7 @@ import { useSystemStore } from 'src/entities/System/model';
 import { FailAlert, SuccessAlert } from 'src/shared/api/alerts';
 import { BaseButton } from 'src/shared/ui/base';
 import { useWindowSize } from 'src/shared/hooks';
+import { t } from '../../../../i18n';
 
 const { isMobile } = useWindowSize();
 const props = defineProps<{
@@ -36,7 +37,7 @@ const handleApproveCommit = async () => {
     };
 
     await approveCommit(approveData);
-    SuccessAlert('Коммит успешно одобрен');
+    SuccessAlert(t('capital.approveCommitButton.success'));
   } catch (error) {
     FailAlert(error);
   } finally {
