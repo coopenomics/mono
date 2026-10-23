@@ -141,6 +141,20 @@ describe('ChainRpcAppsEventStream', () => {
     expect((await collect(s)).map((e) => e.kind)).toEqual(['subscription-activated']);
   });
 
+  it('установка упала → следующий опрос повторяет subscription-activated', async () => {
+    const s = build();
+    await collect(s);
+    s.tables.subs = [
+      { id: 1, coopname: 'voskhod', package_id: 'demoapp', active: true, end_at: FUTURE },
+    ];
+    await s.poll(async () => {
+      throw new Error('catalog-delivery → 403');
+    });
+    expect((await collect(s)).map((e) => e.kind)).toEqual(['subscription-activated']);
+    // после успешной установки событие больше не повторяется
+    expect(await collect(s)).toEqual([]);
+  });
+
   it('подписка истекла по часам (без изменения row) → subscription-expired', async () => {
     const s = build();
     const endAt = '2000-01-01T00:00:00';

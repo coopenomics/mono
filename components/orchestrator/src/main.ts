@@ -28,9 +28,39 @@ async function prepareDatabase(cfg: ReturnType<typeof loadAppConfig>) {
   }
 }
 
+/**
+ * Ждём, пока ядро начнёт отвечать. Apollo Gateway при создании модуля один
+ * раз опрашивает субграф ядра и при отказе роняет запуск. Ядро стартует
+ * дольше оркестратора и перезапускается отдельно; под `nest start --watch`
+ * упавший процесс сам не поднимается, и шлюз молча пропадает, пока nginx
+ * отправляет запросы мимо него в ядро.
+ */
+async function waitForCore(url: string): Promise<void> {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: '{ __typename }' }),
+      });
+      if (res.ok) return;
+    } catch {
+      // ядро ещё не слушает порт — пробуем снова
+    }
+    const delayMs = Math.min(1000 * attempt, 10_000);
+    if (attempt === 1 || attempt % 10 === 0) {
+      // eslint-disable-next-line no-console
+      console.log(`[orchestrator] ядро ${url} не отвечает, жду (попытка ${attempt})`);
+    }
+    // timing: backoff — повтор опроса ядра до его готовности при запуске
+    await new Promise((resolve) => setTimeout(resolve, delayMs));
+  }
+}
+
 async function bootstrap() {
   const cfg = loadAppConfig();
   await prepareDatabase(cfg);
+  await waitForCore(cfg.coreSubgraphUrl);
 
   const app = await NestFactory.create(AppModule);
   await app.listen(cfg.port);

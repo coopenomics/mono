@@ -163,6 +163,9 @@ export class ChainRpcAppsEventStream implements AppsContractEventStreamPort {
     this.knownReleases = nextReleases;
 
     const nextSubs = new Map<number, { live: boolean; endAtSec: number }>();
+    // Событие активации → id строки subs: при сбое установки строку забываем,
+    // и следующий опрос выдаёт событие снова.
+    const subIdOfEvent = new Map<AppsContractEvent, number>();
     for (const s of subs) {
       const active = s.active === true || s.active === 1;
       const endAtSec = Date.parse(`${s.end_at}Z`) / 1000 || 0;
@@ -181,6 +184,7 @@ export class ChainRpcAppsEventStream implements AppsContractEventStreamPort {
             expiresAtUnix: endAtSec,
             blockNum: headBlockNum,
           });
+          subIdOfEvent.set(events[events.length - 1], s.id);
         }
         continue;
       }
@@ -194,6 +198,7 @@ export class ChainRpcAppsEventStream implements AppsContractEventStreamPort {
           expiresAtUnix: endAtSec,
           blockNum: headBlockNum,
         });
+        subIdOfEvent.set(events[events.length - 1], s.id);
       }
       if (wasLive && !isLive) {
         events.push({
@@ -214,6 +219,10 @@ export class ChainRpcAppsEventStream implements AppsContractEventStreamPort {
         this.logger.error(
           `handler failed on ${e.kind} ${'packageId' in e ? e.packageId : ''}: ${err instanceof Error ? err.message : String(err)}`,
         );
+        // Снимок уже считает подписку известной; без этого неудавшаяся
+        // установка повторится только при продлении подписки или рестарте.
+        const subId = subIdOfEvent.get(e);
+        if (subId !== undefined) this.knownSubs.delete(subId);
       }
     }
   }

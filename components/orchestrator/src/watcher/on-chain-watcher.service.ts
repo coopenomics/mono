@@ -132,7 +132,12 @@ export class OnChainWatcherService implements OnApplicationBootstrap, OnApplicat
       version: '',
     });
     if (spec === null) {
-      this.logger.warn(`subscription-activated ${e.packageId}: active release not found`);
+      // Пакет только с фронт-частью спеки бэкенда не имеет: его установка —
+      // кэш install.js выше. Пустая спека у пакета с бэкендом означает, что
+      // активного выпуска в каталоге нет.
+      this.logger.log(
+        `subscription-activated ${e.packageId}: спеки бэкенда нет — установлена только фронт-часть`,
+      );
       return;
     }
     // Так как реальной версии в event'е нет, оставим version пустой —
