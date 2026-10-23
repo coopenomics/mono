@@ -45,6 +45,11 @@ title: Доступность расширений в зависимости о�
 # (`MarketplaceRightsService`), отдельного провайдера больше нет. Логика
 # доступности расширений прежняя.
 
+# Правка 2026-10-23 (487-20): в реестр добавлена запись «Стол разработчика»
+# (`developer`, availability EVERYWHERE, `defaults` включён) — прокси к внешнему
+# каталогу приложений, столы `developer` и `publisher`. Логика доступности не
+# менялась, случаи те же.
+
 sources:
   backend:
     - components/controller/src/extensions/extensions.registry.ts

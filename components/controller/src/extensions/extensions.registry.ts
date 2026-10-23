@@ -31,6 +31,8 @@ import { sovietRobotDatabaseMigrations } from './soviet-robot/soviet-robot.datab
 import { reportsDatabaseMigrations } from './reports/reports.database-migrations';
 import { AppsCatalogProxyModule } from './apps-catalog-proxy/apps-catalog-proxy.module';
 import { DeveloperExtension, Schema as DeveloperSchema, defaultConfig as developerDefaultConfig } from './apps-catalog-proxy/developer-extension';
+import { appsCatalogProxyDatabaseMigrations } from './apps-catalog-proxy/apps-catalog-proxy.database-migrations';
+import { appsCatalogProxyPorts } from './apps-catalog-proxy/apps-catalog-proxy.ports';
 
 import { chatcoopMigrations } from './chatcoop/chatcoop.migrations';
 import { marketplaceMigrations } from './marketplace/marketplace.migrations';
@@ -205,30 +207,30 @@ export const AppRegistry: INamedExtension = {
     },
   },
   developer: {
-    is_builtin: true,
     is_internal: true,
     availability: ExtensionAvailability.EVERYWHERE,
     desktops: [
       {
         name: 'developer',
-        title: 'Стол разработчика',
-        icon: 'fa-solid fa-code',
+        title: t('app.extensionsRegistry.developer.windowTitle'),
+        icon: 'code',
       },
       {
         name: 'publisher',
-        title: 'Мои приложения',
-        icon: 'fa-solid fa-key',
+        title: t('app.extensionsRegistry.developer.publisherWindowTitle'),
+        icon: 'key',
       },
     ],
-    title: 'Стол разработчика',
-    description:
-      'Публикация приложений в каталог: пакеты, релизы, модерация, назначение издателей (председатель) и ключи издателя на свои приложения (пайщик-разработчик).',
+    title: t('app.extensionsRegistry.developer.title'),
+    description: t('app.extensionsRegistry.developer.description'),
     image: 'https://i.ibb.co/HRW1nFY/Chat-GPT-Image-10-2025-20-40-57.png',
     class: AppsCatalogProxyModule,
     extensionClass: DeveloperExtension,
     defaults: { enabled: true, config: developerDefaultConfig },
+    databaseMigrations: appsCatalogProxyDatabaseMigrations,
+    ports: appsCatalogProxyPorts,
     schema: DeveloperSchema,
-    tags: ['стол', 'разработка'],
+    tags: [t('app.extensionsRegistry.developer.tagDesk'), t('app.extensionsRegistry.developer.tagDevelopment')],
     readme: getReadmeContent('./apps-catalog-proxy'),
     instructions: getInstructionsContent('./apps-catalog-proxy'),
     get is_desktop() {

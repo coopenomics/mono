@@ -7,11 +7,10 @@
  * {@link AppsCatalogHttpService}; mono здесь — фильтр «можно ли этому
  * аккаунту этот пакет».
  */
-import { ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { platformSettings } from '@coopenomics/extension-kit';
-import { Repository } from 'typeorm';
-import { AppsPublisherTypeormEntity } from '../../infrastructure/entities/apps-publisher.typeorm-entity';
+import { ForbiddenException, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { platformSettings, type TableStore } from '@coopenomics/extension-kit';
+import { APPS_PUBLISHER_STORE } from '../../infrastructure/database/apps-catalog-proxy-stores';
+import { AppsPublisherRecord } from '../../infrastructure/records/apps-publisher.record';
 import {
   AppsCatalogHttpService,
   type CreatePublisherTokenOutcome,
@@ -25,8 +24,8 @@ export class AppsPublishersService {
   private readonly logger = new Logger(AppsPublishersService.name);
 
   constructor(
-    @InjectRepository(AppsPublisherTypeormEntity)
-    private readonly repo: Repository<AppsPublisherTypeormEntity>,
+    @Inject(APPS_PUBLISHER_STORE)
+    private readonly store: TableStore<AppsPublisherRecord>,
     private readonly catalog: AppsCatalogHttpService,
   ) {}
 
@@ -35,46 +34,38 @@ export class AppsPublishersService {
   }
 
   /** Все назначения кооператива (для председателя). */
-  list(): Promise<AppsPublisherTypeormEntity[]> {
-    return this.repo.find({ where: { coopname: this.coopname }, order: { created_at: 'DESC' } });
+  list(): Promise<AppsPublisherRecord[]> {
+    return this.store.find({ coopname: this.coopname }, { order: { createdAt: 'DESC' } });
   }
 
   /** Пакеты, на которые назначен аккаунт (для самого издателя). */
-  listFor(username: string): Promise<AppsPublisherTypeormEntity[]> {
-    return this.repo.find({
-      where: { coopname: this.coopname, username },
-      order: { created_at: 'DESC' },
-    });
+  listFor(username: string): Promise<AppsPublisherRecord[]> {
+    return this.store.find({ coopname: this.coopname, username }, { order: { createdAt: 'DESC' } });
   }
 
   /** Назначить издателя. Пакет обязан быть в scope кооператива. */
-  async add(input: { username: string; packageId: string; addedBy: string }): Promise<AppsPublisherTypeormEntity> {
+  async add(input: { username: string; packageId: string; addedBy: string }): Promise<AppsPublisherRecord> {
     if (!PACKAGE_ID_RE.test(input.packageId) || !input.packageId.startsWith(`@${this.coopname}/`)) {
       throw new ForbiddenException(`Пакет должен быть в scope @${this.coopname}/`);
     }
-    const existing = await this.repo.findOne({
-      where: { coopname: this.coopname, username: input.username, package_id: input.packageId },
-    });
+    const existing = await this.store.findOne({ coopname: this.coopname, username: input.username, packageId: input.packageId });
     if (existing) return existing;
-    const row = this.repo.create({
+    const saved = await this.store.insert({
       coopname: this.coopname,
       username: input.username,
-      package_id: input.packageId,
-      added_by: input.addedBy,
+      packageId: input.packageId,
+      addedBy: input.addedBy,
     });
-    const saved = await this.repo.save(row);
     this.logger.log(`publisher added: ${input.username} → ${input.packageId} by ${input.addedBy}`);
     return saved;
   }
 
   /** Снять издателя: назначение удаляется, все его ключи на пакет отзываются в каталоге. */
   async remove(input: { username: string; packageId: string; removedBy: string }): Promise<boolean> {
-    const row = await this.repo.findOne({
-      where: { coopname: this.coopname, username: input.username, package_id: input.packageId },
-    });
+    const row = await this.store.findOne({ coopname: this.coopname, username: input.username, packageId: input.packageId });
     if (!row) return false;
     const revoked = await this.catalog.revokePublisherAccess(input.username, input.packageId);
-    await this.repo.remove(row);
+    await this.store.delete({ id: row.id });
     this.logger.log(
       `publisher removed: ${input.username} → ${input.packageId} by ${input.removedBy} (tokens revoked: ${revoked})`,
     );
@@ -82,9 +73,7 @@ export class AppsPublishersService {
   }
 
   private async assertAssigned(username: string, packageId: string): Promise<void> {
-    const row = await this.repo.findOne({
-      where: { coopname: this.coopname, username, package_id: packageId },
-    });
+    const row = await this.store.findOne({ coopname: this.coopname, username, packageId });
     if (!row) {
       throw new ForbiddenException(`Аккаунт ${username} не назначен издателем пакета ${packageId}`);
     }
@@ -95,7 +84,7 @@ export class AppsPublishersService {
     const mine = await this.listFor(username);
     if (mine.length === 0) return [];
     const all = await this.catalog.listPublisherTokens({ username });
-    const allowed = new Set(mine.map((m) => m.package_id));
+    const allowed = new Set(mine.map((m) => m.packageId));
     return all.filter((t) => allowed.has(t.package_id));
   }
 

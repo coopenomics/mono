@@ -10,7 +10,7 @@
     "dev": "ts-node-dev --respawn src/main.ts"
   },
   "dependencies": {
-    "@apollo/subgraph": "^2.9.0",
+    "@apollo/subgraph": "~2.14.4",
     "@coopenomics/extension-sdk": "workspace:*",
     "@nestjs/apollo": "^12.2.1",
     "@nestjs/common": "^10.4.0",

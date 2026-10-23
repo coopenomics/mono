@@ -494,10 +494,12 @@ const envVarsSchema = z.object({
   APPS_CATALOG_URL: z
     .string()
     .optional()
+    // i18n-ignore: описание переменной окружения для схемы конфигурации при старте, до пайщика не доходит
     .describe('Base URL ca-admin (apps-catalog). Пусто = резолвер вернёт пустой список (degraded mode).'),
   APPS_CATALOG_API_KEY: z
     .string()
     .optional()
+    // i18n-ignore: описание переменной окружения для схемы конфигурации при старте, до пайщика не доходит
     .describe('Admin API ключ для apps-catalog. Пусто = degraded mode.'),
 
   // Subscription proxy (Story 9.3.b-sub). Активация подписки идёт через
@@ -507,22 +509,18 @@ const envVarsSchema = z.object({
   APPS_CATALOG_AUTH_URL: z
     .string()
     .optional()
+    // i18n-ignore: описание переменной окружения для схемы конфигурации при старте, до пайщика не доходит
     .describe('Base URL ca-auth (apps-catalog tenant API). Пусто = subscribe mutation в degraded mode.'),
   APPS_CATALOG_TENANT_JWT: z
     .string()
     .optional()
-    .describe(
-      'Статический tenant JWT (только отладка: ca-auth выписывает их на 30 минут). ' +
-        'В production использовать COOPERATIVE_WIF — coopback сам выпускает и обновляет JWT.'
-    ),
+    // i18n-ignore: описание переменной окружения для схемы конфигурации при старте, до пайщика не доходит
+    .describe('Статический tenant JWT (только отладка: ca-auth выписывает их на 30 минут). В production использовать COOPERATIVE_WIF — coopback сам выпускает и обновляет JWT.'),
   COOPERATIVE_WIF: z
     .string()
     .optional()
-    .describe(
-      'Приватный ключ coopname@active. Coopback выпускает tenant JWT сам через ' +
-        'challenge→verify ca-auth и обновляет его по истечении. Пусто и без ' +
-        'APPS_CATALOG_TENANT_JWT = subscribe mutation в degraded mode.'
-    ),
+    // i18n-ignore: описание переменной окружения для схемы конфигурации при старте, до пайщика не доходит
+    .describe('Приватный ключ coopname@active. Coopback выпускает tenant JWT сам через challenge→verify ca-auth и обновляет его по истечении. Пусто и без APPS_CATALOG_TENANT_JWT = subscribe mutation в degraded mode.'),
 
   // E12-3: доставка фронт-частей расширений. install.js берётся из
   // volume-кэша orchestrator'а (только реально установленные у кооператива
@@ -530,9 +528,8 @@ const envVarsSchema = z.object({
   ORCHESTRATOR_URL: z
     .string()
     .optional()
-    .describe(
-      'Base URL orchestrator-сервиса контура (http://orchestrator:4000). Пусто = fallback на прямой ca-admin путь (degraded, без фильтра установленности).',
-    ),
+    // i18n-ignore: описание переменной окружения для схемы конфигурации при старте, до пайщика не доходит
+    .describe('Base URL orchestrator-сервиса контура (http://orchestrator:4000). Пусто = fallback на прямой ca-admin путь (degraded, без фильтра установленности).'),
   MIN_SOVIET_MEMBERS_COUNT: z
     .string()
     .optional()

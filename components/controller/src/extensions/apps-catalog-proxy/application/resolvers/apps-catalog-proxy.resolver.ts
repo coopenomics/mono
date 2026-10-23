@@ -1,6 +1,6 @@
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { BadRequestException, Logger, UseGuards } from '@nestjs/common';
-import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, RightsGuard, RequireRight, CurrentUser } from '@coopenomics/extension-kit';
 import type { IMonoAccount } from '@coopenomics/innercoop';
 import {
   AppsCatalogHttpService,
@@ -27,7 +27,7 @@ import {
   IssueMyPublisherTokenInputDTO,
 } from '../dto/apps-publisher.dto';
 import { AppsPublishersService } from '../services/apps-publishers.service';
-import type { AppsPublisherTypeormEntity } from '../../infrastructure/entities/apps-publisher.typeorm-entity';
+import type { AppsPublisherRecord } from '../../infrastructure/records/apps-publisher.record';
 import {
   CreatePublisherTokenResultDTO,
   CreatePublisherTokenStatus,
@@ -93,12 +93,12 @@ const toReleaseScope = (dto: ReleaseScopeInputDTO): ReleaseScopeInput => {
  * desktop по сравнению `publisher` и текущего coopname.
  */
 /** Назначение издателя → GraphQL (487-27). */
-function toPublisherDTO(r: AppsPublisherTypeormEntity): AppsPublisherDTO {
+function toPublisherDTO(r: AppsPublisherRecord): AppsPublisherDTO {
   return {
     username: r.username,
-    packageId: r.package_id,
-    addedBy: r.added_by,
-    createdAt: r.created_at.toISOString(),
+    packageId: r.packageId,
+    addedBy: r.addedBy,
+    createdAt: new Date(r.createdAt).toISOString(),
   };
 }
 
@@ -181,8 +181,8 @@ export class AppsCatalogProxyResolver {
       'Подписывает chairman кооператива-оператора каталога. Доступно ' +
       'только chairman\'у (стол разработчика).',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Developer', 'manage')
   async publishPackage(
     @Args('data', { type: () => PublishPackageInputDTO })
     data: PublishPackageInputDTO,
@@ -228,8 +228,8 @@ export class AppsCatalogProxyResolver {
       'Подписывает chairman кооператива-оператора каталога. Доступно ' +
       'только chairman\'у (стол разработчика).',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Developer', 'manage')
   async publishRelease(
     @Args('data', { type: () => PublishReleaseInputDTO })
     data: PublishReleaseInputDTO,
@@ -271,8 +271,8 @@ export class AppsCatalogProxyResolver {
     name: 'appsPublishers',
     description: 'Назначения издателей «аккаунт → пакет». Только chairman.',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Developer', 'manage')
   async appsPublishers(): Promise<AppsPublisherDTO[]> {
     const rows = await this.publishers.list();
     return rows.map(toPublisherDTO);
@@ -284,8 +284,8 @@ export class AppsCatalogProxyResolver {
       'Назначить пайщика издателем пакета. Дальше он сам выпускает ключ ' +
       'каталога на этот пакет со своего стола. Только chairman.',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Developer', 'manage')
   async addAppsPublisher(
     @Args('data', { type: () => AppsPublisherAssignmentInputDTO })
     data: AppsPublisherAssignmentInputDTO,
@@ -303,8 +303,8 @@ export class AppsCatalogProxyResolver {
     name: 'removeAppsPublisher',
     description: 'Снять издателя с пакета; все его ключи на пакет отзываются. Только chairman.',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Developer', 'manage')
   async removeAppsPublisher(
     @Args('data', { type: () => AppsPublisherAssignmentInputDTO })
     data: AppsPublisherAssignmentInputDTO,
@@ -405,8 +405,8 @@ export class AppsCatalogProxyResolver {
       'Заявки на модерацию пакетов в каталоге восхода. По умолчанию ' +
       'SUBMITTED (ждут approve/reject). Только chairman.',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Developer', 'manage')
   async appsCatalogPendingModerations(
     @Args('status', {
       type: () => ModerationStatusEnum,
@@ -451,8 +451,8 @@ export class AppsCatalogProxyResolver {
     description:
       'Одобряет заявку на модерацию в каталоге восхода. Только chairman.',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Developer', 'manage')
   async approveModeration(
     @Args('data', { type: () => ApproveModerationInputDTO })
     data: ApproveModerationInputDTO,
@@ -512,8 +512,8 @@ export class AppsCatalogProxyResolver {
     description:
       'Отклоняет заявку на модерацию с причиной. Только chairman.',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Developer', 'manage')
   async rejectModeration(
     @Args('data', { type: () => RejectModerationInputDTO })
     data: RejectModerationInputDTO,
@@ -568,8 +568,8 @@ export class AppsCatalogProxyResolver {
       'Tenant читается из server-side JWT, body не может его переопределить. ' +
       'Только chairman кооператива-партнёра.',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Developer', 'manage')
   async subscribePackage(
     @Args('data', { type: () => SubscribePackageInputDTO })
     data: SubscribePackageInputDTO,
