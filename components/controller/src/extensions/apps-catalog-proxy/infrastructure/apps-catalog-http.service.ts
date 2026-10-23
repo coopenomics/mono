@@ -475,12 +475,12 @@ export class AppsCatalogHttpService implements OnApplicationBootstrap {
    * Story 9.3.b-pub: первичная регистрация пакета в каталоге.
    *
    * Прокидывает входной DTO на catalog-operator `POST /v1/admin/package`. catalog-operator
-   * сам подписывает on-chain action `apps::regpkg` от имени chairman'а
+   * сам записывает пакет в базу каталога от имени chairman'а
    * кооператива-оператора каталога (voskhod на dev) — поэтому здесь не
    * требуется session-key пайщика.
    *
    * Discriminated outcome (vs. throw):
-   *  - `applied` — HTTP 200, on-chain transaction подтверждён;
+   *  - `applied` — HTTP 200, пакет записан;
    *  - `conflict` — HTTP 409 (пакет уже зарегистрирован или дубликат
    *    `request_id`); resolver мапит на `status: 'conflict'`;
    *  - `failed` — любое прочее (network, 400, 401, degraded-mode без
@@ -525,13 +525,13 @@ export class AppsCatalogHttpService implements OnApplicationBootstrap {
   }
 
   /**
-   * Story 9.3.b-rel: создание нового релиза пакета (action `apps::setrelease`).
+   * Story 9.3.b-rel: создание нового релиза пакета в базе каталога.
    *
    * Прокидывает manifest + версию на catalog-operator `POST /v1/admin/releases`.
-   * catalog-operator сам валидирует manifest Zod-схемой и подписывает on-chain.
+   * catalog-operator сам валидирует manifest Zod-схемой и записывает выпуск.
    *
    * Discriminated outcome:
-   *  - `applied` — HTTP 200, on-chain прошёл; в payload может быть
+   *  - `applied` — HTTP 200, выпуск записан; в payload может быть
    *    `transaction_id` (если адаптер не stub'овый);
    *  - `invalidManifest` — HTTP 422 INVALID_MANIFEST (manifest не прошёл
    *    Zod-валидацию на стороне catalog-operator); `error` содержит детали
@@ -703,12 +703,12 @@ export class AppsCatalogHttpService implements OnApplicationBootstrap {
    * Дёргает catalog-operator `POST /v1/admin/moderation/:id/approve`. catalog-operator
    * атомарно переводит moderation в APPROVED, активирует release и
    * выкладывает outbox-event `release.activated` (он же триггер для
-   * on-chain `apps::setrelease` и orchestrator'а install pipeline).
+   * записи выпуска в базе каталога и установки оркестратором).
    *
    * Discriminated outcome:
    *  - `applied` — HTTP 200, release ACTIVE, package_id/version в payload;
    *  - `pendingChain` — HTTP 423 APPROVED_PENDING_CHAIN: moderation
-   *    одобрена, но on-chain провалился; recovery worker повторит;
+   *    одобрена, но запись выпуска не удалась;
    *  - `conflict` — HTTP 409: заявка не в SUBMITTED (уже approved /
    *    withdrawn);
    *  - `requiresOverride` — HTTP 403: scan_report критичен, нужен

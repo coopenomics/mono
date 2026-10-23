@@ -3,8 +3,8 @@ import { Field, ObjectType, registerEnumType } from '@nestjs/graphql';
 /**
  * Статусы результата `Mutation.approveModeration`.
  *
- *  - `applied` — release ACTIVE, on-chain `apps::setrelease` прошёл;
- *  - `pendingChain` — moderation одобрена, но on-chain провалился
+ *  - `applied` — release ACTIVE, выпуск записан в базе каталога;
+ *  - `pendingChain` — moderation одобрена, но запись выпуска не удалась
  *    (HTTP 423); recovery worker повторит позже;
  *  - `conflict` — заявка не в SUBMITTED (HTTP 409);
  *  - `requiresOverride` — нужен явный override:true (HTTP 403);

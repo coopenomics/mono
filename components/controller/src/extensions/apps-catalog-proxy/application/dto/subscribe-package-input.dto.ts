@@ -3,13 +3,10 @@ import { Field, InputType } from '@nestjs/graphql';
 /**
  * Входные данные `Mutation.subscribePackage` (story 9.3.b-sub).
  *
- * Chairman кооператива-партнёра подписывает свой кооператив на пакет
- * из каталога восхода. Прокидывается на catalog-delivery
- * `POST /v1/subscriptions/activate` с tenant JWT кооператива; on-chain
- * `apps::regsub` подписывает catalog-delivery от имени каталога-оператора.
- *
- * Tenant читается catalog-delivery'ом ТОЛЬКО из JWT — клиент не может
- * переопределить кооператива в body.
+ * Председатель подписывает свой кооператив на пакет каталога. Подписку
+ * оформляет провайдер подключения: она входит в общий счёт кооператива,
+ * копию провайдер передаёт каталогу (Архитектура v5, 487-34). Кооператив —
+ * кооператив узла; клиент не может подставить другой.
  */
 @InputType()
 export class SubscribePackageInputDTO {

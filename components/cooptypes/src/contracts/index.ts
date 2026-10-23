@@ -92,14 +92,6 @@ export * as Ledger2Contract from './ledger2'
  */
 export * as MeetContract from './meet'
 
-/**
- * Смарт-контракт каталога приложений ВОСХОД (`apps-catalog`).
- *
- * Координационная плоскость: реестр пакетов, релизы (active/superseded/withdrawn),
- * подписки кооперативов на пакеты, реестр коопов с subnet-signing-key.
- * Деплоится на корневой KE-цепи и обслуживает несколько подсетей одновременно.
- */
-export * as AppsContract from './apps'
 
 /**
  * Смарт-контракт шасси расходов цифрового кооператива (MVP — Благорост).

@@ -94,14 +94,6 @@
 #include "table_edubridge_rids.hpp"
 #include "table_edubridge_contracts.hpp"
 
-// apps (каталог приложений)
-#include "table_apps_packages.hpp"
-#include "table_apps_releases.hpp"
-#include "table_apps_subs.hpp"
-#include "table_apps_coops.hpp"
-#include "table_apps_pricings.hpp"
-#include "table_apps_globals.hpp"
-#include "table_apps_clients.hpp"
 
 // ano (цепочка доверия)
 #include "table_ano_endorsements.hpp"

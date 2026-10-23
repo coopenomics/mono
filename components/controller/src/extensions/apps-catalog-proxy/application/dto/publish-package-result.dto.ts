@@ -3,7 +3,7 @@ import { Field, ObjectType, registerEnumType } from '@nestjs/graphql';
 /**
  * Статусы результата `Mutation.publishPackage` (story 9.3.b-pub).
  *
- *  - `applied` — catalog-operator вернул 200 (on-chain `apps::regpkg` улетел
+ *  - `applied` — catalog-operator вернул 200 (пакет записан в базе каталога
  *    и подтверждён);
  *  - `conflict` — пакет уже зарегистрирован (HTTP 409);
  *  - `failed` — прочие ошибки (включая degraded-mode, когда

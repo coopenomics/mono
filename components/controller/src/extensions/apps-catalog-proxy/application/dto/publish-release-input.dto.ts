@@ -6,7 +6,7 @@ import { GraphQLJSON } from 'graphql-type-json';
  *
  * Эта мутация регистрирует новый релиз ранее зарегистрированного
  * пакета (см. `publishPackage`/9.3.b-pub). Прокидывается на catalog-operator
- * `POST /v1/admin/releases` (action `apps::setrelease` on-chain), который
+ * `POST /v1/admin/releases` (запись выпуска в базе каталога), который
  * сам подписывает от имени chairman'а кооператива-оператора.
  *
  * `manifest` под архитектуру E10 содержит ссылки на артефакты в Nexus:

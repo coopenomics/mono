@@ -23,8 +23,8 @@
 #        → ./out/<name>/{wasm,abi} + manifest.json
 #
 #   3) Точечно один контракт:
-#        docker run --rm -v $PWD/out:/out dicoop/contracts:testnet copy apps
-#        → ./out/apps/{wasm,abi}
+#        docker run --rm -v $PWD/out:/out dicoop/contracts:testnet copy capital
+#        → ./out/capital/{wasm,abi}
 #
 # Сборка артефактов идёт в CI до docker build через CDT-образ
 # `dicoop/blockchain_v5.1.1:dev` (см. components/contracts/build-all.sh).

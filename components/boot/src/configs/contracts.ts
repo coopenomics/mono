@@ -129,11 +129,6 @@ export default [
     target: 'meet',
   },
   {
-    name: 'apps',
-    path: path.join(userBase, 'apps'),
-    target: 'apps',
-  },
-  {
     name: 'expense',
     path: path.join(userBase, 'expense'),
     target: 'expense',

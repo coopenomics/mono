@@ -16226,7 +16226,7 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 	requestId?:boolean | `@${string}`,
 	/** Discriminator */
 	status?:boolean | `@${string}`,
-	/** Устарело: on-chain tx теперь ставит catalog-operator при одобрении */
+	/** Устарело: выпуск записывает catalog-operator при одобрении */
 	transactionId?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on PublishReleaseResultDTO']?: Omit<ValueTypes["PublishReleaseResultDTO"], "...on PublishReleaseResultDTO">
@@ -33791,7 +33791,7 @@ walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputType
 	requestId?:boolean | `@${string}`,
 	/** Discriminator */
 	status?:boolean | `@${string}`,
-	/** Устарело: on-chain tx теперь ставит catalog-operator при одобрении */
+	/** Устарело: выпуск записывает catalog-operator при одобрении */
 	transactionId?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
@@ -49314,11 +49314,11 @@ export type ModelTypes = {
 	payWithheldTax: string,
 	/** Вынести редакцию документа или пакет документов на утверждение совета: проект решения с текстом редакции публикуется в повестку */
 	proposeDocumentApproval: Array<ModelTypes["DocumentTemplate"]>,
-	/** Регистрирует пакет on-chain (action apps::regpkg) через catalog-operator. Подписывает chairman кооператива-оператора каталога. Доступно только chairman'у (стол разработчика). */
+	/** Регистрирует пакет в каталоге приложений через catalog-operator. Подписывает chairman кооператива-оператора каталога. Доступно только chairman'у (стол разработчика). */
 	publishPackage: ModelTypes["PublishPackageResultDTO"],
 	/** Опубликовать предложенную повестку и проект решения для голосования совета. Возвращает созданный пункт повестки (или null, если он ещё не проиндексирован) для немедленного отображения на фронте. */
 	publishProjectOfFreeDecision?: ModelTypes["AgendaWithDocuments"] | undefined | null,
-	/** Создаёт новый релиз пакета (action apps::setrelease) через catalog-operator. Подписывает chairman кооператива-оператора каталога. Доступно только chairman'у (стол разработчика). */
+	/** Создаёт новый релиз пакета в каталоге приложений через catalog-operator. Подписывает chairman кооператива-оператора каталога. Доступно только chairman'у (стол разработчика). */
 	publishRelease: ModelTypes["PublishReleaseResultDTO"],
 	/** Обновить токен доступа аккаунта */
 	refresh: ModelTypes["RegisteredAccount"],
@@ -49406,7 +49406,7 @@ export type ModelTypes = {
 	startResetKey: boolean,
 	/** Финализировать СЗ-отчёт по смете расхода (все items закрыты — оплата/чек/возврат). */
 	submitExpenseReport: ModelTypes["Transaction"],
-	/** Подписывает кооператив-партнёр на пакет из каталога восхода. Tenant читается из server-side JWT, body не может его переопределить. Только chairman кооператива-партнёра. */
+	/** Оформляет подписку кооператива на приложение из каталога. Подписка входит в общий счёт кооператива у провайдера подключения. Только председатель. */
 	subscribePackage: ModelTypes["SubscribePackageResultDTO"],
 	/** Запустить воркфлоу уведомлений (только для председателя или server-secret) */
 	triggerNotificationWorkflow: boolean,
@@ -51095,7 +51095,7 @@ export type ModelTypes = {
 	requestId: string,
 	/** Discriminator */
 	status: ModelTypes["PublishReleaseStatus"],
-	/** Устарело: on-chain tx теперь ставит catalog-operator при одобрении */
+	/** Устарело: выпуск записывает catalog-operator при одобрении */
 	transactionId?: string | undefined | null
 };
 	["PublishReleaseStatus"]:PublishReleaseStatus;
@@ -67581,11 +67581,11 @@ export type GraphQLTypes = {
 	payWithheldTax: string,
 	/** Вынести редакцию документа или пакет документов на утверждение совета: проект решения с текстом редакции публикуется в повестку */
 	proposeDocumentApproval: Array<GraphQLTypes["DocumentTemplate"]>,
-	/** Регистрирует пакет on-chain (action apps::regpkg) через catalog-operator. Подписывает chairman кооператива-оператора каталога. Доступно только chairman'у (стол разработчика). */
+	/** Регистрирует пакет в каталоге приложений через catalog-operator. Подписывает chairman кооператива-оператора каталога. Доступно только chairman'у (стол разработчика). */
 	publishPackage: GraphQLTypes["PublishPackageResultDTO"],
 	/** Опубликовать предложенную повестку и проект решения для голосования совета. Возвращает созданный пункт повестки (или null, если он ещё не проиндексирован) для немедленного отображения на фронте. */
 	publishProjectOfFreeDecision?: GraphQLTypes["AgendaWithDocuments"] | undefined | null,
-	/** Создаёт новый релиз пакета (action apps::setrelease) через catalog-operator. Подписывает chairman кооператива-оператора каталога. Доступно только chairman'у (стол разработчика). */
+	/** Создаёт новый релиз пакета в каталоге приложений через catalog-operator. Подписывает chairman кооператива-оператора каталога. Доступно только chairman'у (стол разработчика). */
 	publishRelease: GraphQLTypes["PublishReleaseResultDTO"],
 	/** Обновить токен доступа аккаунта */
 	refresh: GraphQLTypes["RegisteredAccount"],
@@ -67673,7 +67673,7 @@ export type GraphQLTypes = {
 	startResetKey: boolean,
 	/** Финализировать СЗ-отчёт по смете расхода (все items закрыты — оплата/чек/возврат). */
 	submitExpenseReport: GraphQLTypes["Transaction"],
-	/** Подписывает кооператив-партнёр на пакет из каталога восхода. Tenant читается из server-side JWT, body не может его переопределить. Только chairman кооператива-партнёра. */
+	/** Оформляет подписку кооператива на приложение из каталога. Подписка входит в общий счёт кооператива у провайдера подключения. Только председатель. */
 	subscribePackage: GraphQLTypes["SubscribePackageResultDTO"],
 	/** Запустить воркфлоу уведомлений (только для председателя или server-secret) */
 	triggerNotificationWorkflow: boolean,
@@ -69574,7 +69574,7 @@ export type GraphQLTypes = {
 	requestId: string,
 	/** Discriminator */
 	status: GraphQLTypes["PublishReleaseStatus"],
-	/** Устарело: on-chain tx теперь ставит catalog-operator при одобрении */
+	/** Устарело: выпуск записывает catalog-operator при одобрении */
 	transactionId?: string | undefined | null,
 	['...on PublishReleaseResultDTO']: Omit<GraphQLTypes["PublishReleaseResultDTO"], "...on PublishReleaseResultDTO">
 };

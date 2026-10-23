@@ -5,7 +5,7 @@ import { Field, InputType } from '@nestjs/graphql';
  *
  * Эта мутация — первичная регистрация пакета в каталоге восхода. Она
  * прокидывается на catalog-operator `POST /v1/admin/package` (action
- * `apps::regpkg` на blockchain), а catalog-operator сам подписывает on-chain от
+ * регистрация пакета в каталоге), а catalog-operator сам записывает его от
  * имени chairman'а кооператива-оператора (voskhod). Поэтому здесь нет
  * никаких ключей пайщика — только координаты пакета.
  *
@@ -13,7 +13,7 @@ import { Field, InputType } from '@nestjs/graphql';
  * расширение публикуется как npm-package + docker-image в Nexus, а
  * developer пушит их отдельной процедурой (`npm publish` + `docker
  * push`) через catalog-delivery scoped JWT. Story 9.3.b-pub оставляет только
- * on-chain регистрацию; релизы с manifest'ом — story 9.3.b-rel.
+ * регистрацию в каталоге; релизы с manifest'ом — story 9.3.b-rel.
  */
 @InputType()
 export class PublishPackageInputDTO {

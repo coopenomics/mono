@@ -155,10 +155,6 @@ export default {
       code_permissions_to: ['contributor'],
     },
     {
-      name: 'apps',
-      code_permissions_to: ['apps'],
-    },
-    {
       name: 'expense',
       code_permissions_to: ['expense'],
     },

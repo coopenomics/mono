@@ -170,7 +170,6 @@ static constexpr uint64_t _eduteacher_program_id = 6;
 #define MEET "meet"
 #define LEDGER "ledger"
 #define LEDGER2 "ledger2"
-#define APPS "apps"
 #define BILLING "billing"
 #define EDUBRIDGE "edubridge"
 
@@ -197,7 +196,6 @@ static constexpr uint64_t _eduteacher_program_id = 6;
     static constexpr eosio::name _meet = "meet"_n;
     static constexpr eosio::name _ledger = "ledger"_n;
     static constexpr eosio::name _ledger2 = "ledger2"_n;
-    static constexpr eosio::name _apps = "apps"_n;
     static constexpr eosio::name _edubridge = "edubridge"_n;
     static constexpr eosio::name _expense = "expense"_n;
     static constexpr eosio::name _billing = "billing"_n;
@@ -229,7 +227,6 @@ static constexpr uint64_t _eduteacher_program_id = 6;
         "ledger"_n,
         "ledger2"_n,
         "capital"_n,
-        "apps"_n,
         "expense"_n,
         "billing"_n,
         "edubridge"_n

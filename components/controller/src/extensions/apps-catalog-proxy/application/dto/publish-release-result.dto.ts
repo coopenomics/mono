@@ -3,7 +3,7 @@ import { Field, ObjectType, registerEnumType } from '@nestjs/graphql';
 /**
  * Статусы результата `Mutation.publishRelease` (story 9.3.b-rel).
  *
- *  - `applied` — catalog-operator вернул 200, on-chain `apps::setrelease` улетел;
+ *  - `applied` — catalog-operator вернул 200, выпуск записан в базе каталога;
  *  - `invalidManifest` — HTTP 422 INVALID_MANIFEST (Zod-валидация
  *    manifest'а провалилась на стороне catalog-operator); UI должен показать
  *    `error` как валидационное сообщение;
@@ -41,7 +41,7 @@ export class PublishReleaseResultDTO {
 
   @Field({
     nullable: true,
-    description: 'Устарело: on-chain tx теперь ставит catalog-operator при одобрении',
+    description: 'Устарело: выпуск записывает catalog-operator при одобрении',
   })
   transactionId?: string;
 
