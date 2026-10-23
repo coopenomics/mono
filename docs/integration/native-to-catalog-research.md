@@ -1,6 +1,6 @@
 # Native extensions → Apps Catalog: research-доклад
 
-Документ выполнен на ветке `apps-catalog` от `dev` в mono. Цель — спроектировать **гармоничную** интеграцию каталога приложений (apps-catalog: ca-auth/ca-admin/Nexus + on-chain контракт `apps`) в существующий монолит, **не ломая** сегодняшнюю модель native-extensions (capital/chairman/chatcoop/participant/powerup/reports/soviet).
+Документ выполнен на ветке `apps-catalog` от `dev` в mono. Цель — спроектировать **гармоничную** интеграцию каталога приложений (apps-catalog: catalog-delivery/catalog-operator/Nexus + on-chain контракт `apps`) в существующий монолит, **не ломая** сегодняшнюю модель native-extensions (capital/chairman/chatcoop/participant/powerup/reports/soviet).
 
 Документ — план, не реализация. Stories 1.3–1.12 продолжатся в apps-catalog репозитории отдельно.
 
@@ -48,8 +48,8 @@ components/desktop/extensions/
 
 ### 1.4. Apps-catalog (внешний сервис)
 
-- Репозиторий `C9S/apps-catalog`, ветка `dev`. ca-auth (npm-pull-proxy) + ca-admin (publisher control) + Nexus + Postgres. Связь с mono — через `KE_RPC_URL=node:8888` и `MONO_BACKEND_URL=coopback:2998` (docker DNS `mono-shared` сеть).
-- Концепция: tenant-кооператив (`romashka`, `voskhod`) → подключается → подписывается на пакет → ca-auth раздаёт tarballs из Nexus только когда on-chain `subs[tenant][package]` активна.
+- Репозиторий `C9S/apps-catalog`, ветка `dev`. catalog-delivery (npm-pull-proxy) + catalog-operator (publisher control) + Nexus + Postgres. Связь с mono — через `CHAIN_RPC_URL=node:8888` и `MONO_BACKEND_URL=coopback:2998` (docker DNS `mono-shared` сеть).
+- Концепция: tenant-кооператив (`romashka`, `voskhod`) → подключается → подписывается на пакет → catalog-delivery раздаёт tarballs из Nexus только когда on-chain `subs[tenant][package]` активна.
 
 ## 2. To-be: целевая модель
 
@@ -58,7 +58,7 @@ components/desktop/extensions/
 | Класс | Доставка | Жизненный цикл | Примеры |
 |---|---|---|---|
 | **bundle** | Компилируется в SSR-bundle desktop'а / NestJS-модуль coopback'а. Не качается из Nexus. | Версия = версия mono. Обновляется через `git pull && pnpm build`. | Сегодняшние 7 native: soviet, chairman, capital, … |
-| **remote** | tarball в Nexus → ca-auth pull-proxy → dynamic import. NestJS-модуль динамически грузится в coopback. | Версия = `setrelease` on-chain. Обновляется без передеплоя mono. | Будущие: новые специализированные столы, форки текущих, частные пакеты кооперативов. |
+| **remote** | tarball в Nexus → catalog-delivery pull-proxy → dynamic import. NestJS-модуль динамически грузится в coopback. | Версия = `setrelease` on-chain. Обновляется без передеплоя mono. | Будущие: новые специализированные столы, форки текущих, частные пакеты кооперативов. |
 
 **Каталог отображает оба класса одинаково** в UI (`ExtensionStore`); внутри строки пакета — поле `kind: bundle | remote`. Для `bundle` кнопка «Установить» скрыта/заменена на «Уже установлено», для `remote` — реальный install-flow через подписку + pull.
 
@@ -67,12 +67,12 @@ components/desktop/extensions/
 ### 3.1. Регистрация bundle-пакетов в каталоге как «pre-installed»
 
 **Минимальный шов** на стороне apps-catalog:
-- Добавить на on-chain контракт `apps` (или в admin-проекцию ca-admin) **флаг bundle** или отдельную таблицу `bundled_packages[coopname, package_id, mono_version]`. Запись означает: «этот кооператив получает пакет в составе bundle Mono, в каталоге показываем как already-installed, подписки не требуем».
-- ca-auth при запросе на pull проверяет: bundle → отказ с понятной ошибкой (или редирект на «уже встроено»).
+- Добавить на on-chain контракт `apps` (или в admin-проекцию catalog-operator) **флаг bundle** или отдельную таблицу `bundled_packages[coopname, package_id, mono_version]`. Запись означает: «этот кооператив получает пакет в составе bundle Mono, в каталоге показываем как already-installed, подписки не требуем».
+- catalog-delivery при запросе на pull проверяет: bundle → отказ с понятной ошибкой (или редирект на «уже встроено»).
 
 **Источник истинности — каталог**, не Mono:
-- Mono при старте `useInitExtensionsProcess` помимо bundle-загрузки **посылает в ca-admin** список своих bundled-пакетов (POST `/v1/admin/bundled-packages/sync` с api-key или mTLS).
-- ca-admin записывает их с `kind='bundle'` и `compatible_subnets=[mono.chain_id]`.
+- Mono при старте `useInitExtensionsProcess` помимо bundle-загрузки **посылает в catalog-operator** список своих bundled-пакетов (POST `/v1/admin/bundled-packages/sync` с api-key или mTLS).
+- catalog-operator записывает их с `kind='bundle'` и `compatible_subnets=[mono.chain_id]`.
 
 **Регистрация bundle-пакетов в каталоге** — однократная (idempotent на mono_version + chain_id), не требует Nexus-репозитория.
 
@@ -96,18 +96,18 @@ components/desktop/extensions/
 }
 ```
 
-Скрипт `tools/sync-bundled-packages.ts` собирает все 7 manifest'ов + chain_id + mono version → POST в ca-admin.
+Скрипт `tools/sync-bundled-packages.ts` собирает все 7 manifest'ов + chain_id + mono version → POST в catalog-operator.
 
 ### 3.3. Динамическая загрузка (для remote-класса)
 
 **Frontend:**
-- Расширить `extensionsRegistry` чтобы значения могли быть `() => Promise<IWorkspaceConfig[]>` (как сейчас, bundle) **или** `{ kind: 'remote', tarballUrl, version }` — резолвер сам качает tarball через ca-auth proxy, распаковывает в Quasar Boot-script хранилище, dynamic-import'ит `install.ts` из распакованного бандла, кэширует.
+- Расширить `extensionsRegistry` чтобы значения могли быть `() => Promise<IWorkspaceConfig[]>` (как сейчас, bundle) **или** `{ kind: 'remote', tarballUrl, version }` — резолвер сам качает tarball через catalog-delivery proxy, распаковывает в Quasar Boot-script хранилище, dynamic-import'ит `install.ts` из распакованного бандла, кэширует.
 - Vue Router добавление routes остаётся то же (`router.addRoute('base', r)`).
 
 **Backend (coopback):**
 - Аналогично — `extensions.registry.ts` принимает динамические записи. При первом запросе кооператива на remote-package coopback:
-  1. Через `MonoBackendPort` (либо прямой HTTP к ca-auth) проверяет подписку on-chain.
-  2. Качает tarball через ca-auth (с JWT кооперативного backend'а).
+  1. Через `MonoBackendPort` (либо прямой HTTP к catalog-delivery) проверяет подписку on-chain.
+  2. Качает tarball через catalog-delivery (с JWT кооперативного backend'а).
   3. Распаковывает в `/var/lib/coopback/extensions/<package>@<version>/`.
   4. `dynamic import` ESM-модуля; регистрирует Module через NestJS dynamic module pattern (тот же паттерн, что у текущих PluginModule).
 
@@ -138,7 +138,7 @@ components/desktop/extensions/
 - Сегодня уже зарегистрирован через POST `/v1/admin/package` (smoke-стенд, request_id `98b1d8ac-…`).
 - В рамках Bootstrap-стори:
   - Сгенерировать минимальный tarball (1 page, 1 route) с `package.json` манифестом.
-  - `npm publish --registry=http://ca-auth:3001/v1/registry/` (с tenant JWT кооператива voskhod).
+  - `npm publish --registry=http://catalog-delivery:3001/v1/registry/` (с tenant JWT кооператива voskhod).
   - `apps::setrelease` on-chain.
   - Проверить, что desktop'у через `loadExtensionRoutes('@voskhod/test-app')` action раздаёт routes из remote tarball.
 
@@ -150,7 +150,7 @@ Bootstrap не претендует на «настоящий» сценарий
 2. **Можно ли остановить bundle-загрузку extension'а в Mono per кооператив?** Сегодня bundle грузится всегда; видимость регулируется backend grants. То есть мы можем ВЫПИЛИВАТЬ extension из bundle и заменить на remote — но не для одного кооператива из десяти. Возможный путь — feature-flag через ENV на инстансе mono (один Mono = один кооператив сегодня).
 3. **Sandbox для remote-модулей.** Без изоляции remote-extension с правами NestJS-модуля = админ-доступ к coopback. Нужен или подписанный паблишер (allowlist on-chain `apps::pubpub`), или VM2-sandbox, или статический анализ tarball'а перед запуском.
 4. **Миграции схемы БД для remote-extension.** Сегодня `pluginClass.runMigrations(schema)` запускается на старте монолита. Для remote — нужен hook на «новый extension установлен» с автоматическим прогоном миграций. Open question: что если миграция падает? Откат subscription on-chain невозможен (releases immutable).
-5. **Версия Mono ↔ совместимость extension'а.** `catalog.mono_min_version` в манифесте; ca-admin при `setrelease` проверяет совместимость с активной mono_version подсетей `compatible_subnets`.
+5. **Версия Mono ↔ совместимость extension'а.** `catalog.mono_min_version` в манифесте; catalog-operator при `setrelease` проверяет совместимость с активной mono_version подсетей `compatible_subnets`.
 6. **UX миграции для уже-установленных native.** Когда extension переезжает bundle → remote, пользователь должен:
    - Увидеть в каталоге, что обновлена доставка (info badge «теперь обновляется отдельно»).
    - НЕ потерять данные / config (миграция identifiers in БД).
@@ -161,7 +161,7 @@ Bootstrap не претендует на «настоящий» сценарий
 - Конкретный код миграции какого-либо extension'а (это будут отдельные stories).
 - Решение об IDE/sandbox/изоляции — это отдельное исследование безопасности.
 - Дизайн UI «магазина» в ExtensionStore (мы переиспользуем существующие страницы, только добавляем kind/version поля).
-- Pricing / биллинг внутри Mono — каталог уже это решает (контракт apps + ca-admin).
+- Pricing / биллинг внутри Mono — каталог уже это решает (контракт apps + catalog-operator).
 
 ## 8. Решение V1: не мигрируем, делаем демо-пилот
 
@@ -217,12 +217,12 @@ Bootstrap не претендует на «настоящий» сценарий
 - Backend модуль `controller/src/extensions/developer/`:
   - Поднимается в `AppRegistry` как `is_internal=true, is_available=true`.
   - GraphQL: `myPackages`, `publishPackage`, `setReleasePricing`, `packageSubscribers`.
-  - Делегирует в ca-admin через HTTP с админ-ключом.
+  - Делегирует в catalog-operator через HTTP с админ-ключом.
 - Self-sub bypass: «У вас уже доступ как разработчику» (без отдельной кнопки).
 
 **9.4 Remote-loader в `processes/init-installed-extensions`**
 - После bundle-pass — запрос в coopback `getInstalledRemotePackages(coopname) → [{package_id, version, tarballUrl}]`.
-- Для каждого: pull tarball через ca-auth pull-proxy с JWT кооператива.
+- Для каждого: pull tarball через catalog-delivery pull-proxy с JWT кооператива.
 - Распаковка в памяти (не на диск — без кэша).
 - `Function('return ' + installSource)()` или dynamic `eval` install.ts → `IWorkspaceConfig[]` → `router.addRoute('base', ...)`.
 - Ошибка на одном extension'е не валит остальные (try-catch вокруг каждого).
@@ -233,10 +233,10 @@ Bootstrap не претендует на «настоящий» сценарий
 - `kind=remote && isSelfOwned` → «Доступно как разработчику» (без оплаты).
 - `kind=remote && !isSelfOwned && !subscribed` → «Подписаться 1000 RUB/мес».
 - `kind=remote && subscribed` → «Активная подписка до DD.MM».
-- Резолвер дёргает coopback'овский новый endpoint, который ходит в ca-auth `GET /v1/registry/packages`.
+- Резолвер дёргает coopback'овский новый endpoint, который ходит в catalog-delivery `GET /v1/registry/packages`.
 
 **9.6 Self-subscription bypass в pricing-watcher**
-- В `apps-catalog/apps/ca-admin/src/modules/pricing-watcher/application/request-charge.use-case.ts`:
+- В `apps-catalog/apps/catalog-operator/src/modules/pricing-watcher/application/request-charge.use-case.ts`:
   - Перед cadence-check — проверка `tenantCoopname === packageOwnerCoopname`.
   - Если match → outcome=`'skip-self-subscription'`, sub продлевается через `extendsub` без charge.
   - Audit-log: `pricing.self_subscription_skipped` с `package_id` + `coopname`.
@@ -263,7 +263,7 @@ Bootstrap не претендует на «настоящий» сценарий
 ```
 9.1 (examples/demo-app)            ──┐
 9.2 (partner1 overlay)              ─├─→ 9.7 (dev-seed) ─→ 9.8 (E2E smoke)
-9.6 (self-sub bypass в ca-admin)   ──┘                       ↑
+9.6 (self-sub bypass в catalog-operator)   ──┘                       ↑
                                                               │
 mono-сторона:                                                 │
 9.3 (стол разработчика) ─→ 9.5 (ExtensionStore) ─→ 9.4 (remote-loader) ─┘

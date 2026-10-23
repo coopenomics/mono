@@ -2,7 +2,7 @@ import { Field, ObjectType } from '@nestjs/graphql';
 
 /**
  * GraphQL-проекция одного remote-пакета в публичном каталоге apps-catalog
- * (Story 9.5.b). Источник — `GET /v1/public/packages` на ca-admin, который
+ * (Story 9.5.b). Источник — `GET /v1/public/packages` на catalog-operator, который
  * controller проксирует через `Query.appsCatalogRemotePackages`. На фронте
  * подписи витрины строятся из этих полей; фильтр self/чужое и self-sub
  * bypass делает desktop по `publisher === coopname`.

@@ -1,10 +1,10 @@
 /**
  * @fileoverview Реальный импл {@link FrontendInstallSourcePort} — E12-2.
  *
- * Бьёт в ca-admin `GET /v1/public/packages/:scope/:name/install.js`
+ * Бьёт в catalog-operator `GET /v1/public/packages/:scope/:name/install.js`
  * (E12-1: источник — npm-tarball активного релиза) с admin API key
  * контура — те же env-имена, что у coopback-прокси
- * (`APPS_CATALOG_URL` / `APPS_CATALOG_API_KEY`).
+ * (`APPS_CATALOG_OPERATOR_URL` / `APPS_CATALOG_OPERATOR_API_KEY`).
  *
  * Маппинг ответов:
  *  - 200 → ok + заголовки X-Install-Script-Sha256 / X-Package-Version;
@@ -16,15 +16,15 @@ import type { FrontendInstallFetchOutcome, FrontendInstallSourcePort } from './p
 
 const REQUEST_TIMEOUT_MS = 15_000;
 
-export interface CaAdminInstallSourceConfig {
+export interface CatalogOperatorInstallSourceConfig {
   baseUrl: string;
   apiKey: string;
 }
 
-export class CaAdminInstallSource implements FrontendInstallSourcePort {
-  private readonly logger = new Logger(CaAdminInstallSource.name);
+export class CatalogOperatorInstallSource implements FrontendInstallSourcePort {
+  private readonly logger = new Logger(CatalogOperatorInstallSource.name);
 
-  constructor(private readonly cfg: CaAdminInstallSourceConfig) {}
+  constructor(private readonly cfg: CatalogOperatorInstallSourceConfig) {}
 
   async fetchInstallScript(
     scope: string,
@@ -40,10 +40,10 @@ export class CaAdminInstallSource implements FrontendInstallSourcePort {
         signal: ctrl.signal,
       });
       if (resp.status === 404) {
-        return { status: 'notFound', reason: `ca-admin ${path} → 404` };
+        return { status: 'notFound', reason: `catalog-operator ${path} → 404` };
       }
       if (!resp.ok) {
-        return { status: 'unavailable', reason: `ca-admin ${path} → HTTP ${resp.status}` };
+        return { status: 'unavailable', reason: `catalog-operator ${path} → HTTP ${resp.status}` };
       }
       const content = Buffer.from(await resp.arrayBuffer());
       return {
@@ -76,7 +76,7 @@ export class NoopInstallSource implements FrontendInstallSourcePort {
   async fetchInstallScript(): Promise<FrontendInstallFetchOutcome> {
     return {
       status: 'unavailable',
-      reason: 'APPS_CATALOG_URL/APPS_CATALOG_API_KEY не заданы — источник install.js отключён',
+      reason: 'APPS_CATALOG_OPERATOR_URL/APPS_CATALOG_OPERATOR_API_KEY не заданы — источник install.js отключён',
     };
   }
 }

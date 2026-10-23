@@ -1,9 +1,9 @@
 /**
- * @fileoverview Юнит-тесты CaAuthReleaseMetadata (Story 10.5b): получение
- * install-spec из npm-манифеста CA-auth registry. Сеть подменена mock'ом
+ * @fileoverview Юнит-тесты CatalogDeliveryReleaseMetadata (Story 10.5b): получение
+ * install-spec из npm-манифеста catalog-delivery registry. Сеть подменена mock'ом
  * global.fetch; подпись signed-request проверяется на форму заголовков.
  */
-import { CaAuthReleaseMetadata, splitPackageId } from './ca-auth-release-metadata.impl';
+import { CatalogDeliveryReleaseMetadata, splitPackageId } from './catalog-delivery-release-metadata.impl';
 import { wifToPrivateKey } from './signed-request.client';
 
 // Известный dev-WIF voskhod (boot config.ini) — валиден как тестовая фикстура.
@@ -46,7 +46,7 @@ describe('wifToPrivateKey', () => {
   });
 });
 
-describe('CaAuthReleaseMetadata', () => {
+describe('CatalogDeliveryReleaseMetadata', () => {
   const calls: Array<{ url: string; method: string; headers: Record<string, string> }> = [];
 
   const buildFetch =
@@ -65,8 +65,8 @@ describe('CaAuthReleaseMetadata', () => {
     };
 
   const build = () =>
-    new CaAuthReleaseMetadata({
-      caAuthBaseUrl: 'http://ca-auth:3001',
+    new CatalogDeliveryReleaseMetadata({
+      catalogDeliveryBaseUrl: 'http://catalog-delivery:3001',
       coopname: 'voskhod',
       cooperativeWif: TEST_WIF,
       jwtSecret: 'stand-secret',

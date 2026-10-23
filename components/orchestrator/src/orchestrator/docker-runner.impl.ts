@@ -23,7 +23,7 @@ const DOCKER_TIMEOUT_MS = 120_000;
 /**
  * Хост registry из OCI image ref: `registry.host/scope/name:tag` →
  * `registry.host`. Если первый сегмент не похож на хост (нет `.`/`:`),
- * ref указывает на Docker Hub — логиниться в наш CA-контур бессмысленно.
+ * ref указывает на Docker Hub — логиниться в наш catalog-контур бессмысленно.
  */
 export function registryHostOf(imageRef: string): string | null {
   const first = imageRef.split('/')[0] ?? '';
@@ -39,7 +39,7 @@ export class ShellDockerRunner implements DockerRunnerPort {
      * Авторизация — через изолированный DOCKER_CONFIG (временный каталог),
      * чтобы не трогать host-level ~/.docker/config.json. `docker login`
      * кладёт туда Basic-credentials; на pull docker получает 401 +
-     * WWW-Authenticate от registry (ca-auth), идёт в его token endpoint
+     * WWW-Authenticate от registry (catalog-delivery), идёт в его token endpoint
      * с этими credentials и дальше пуллит с Bearer'ом — стандартный
      * OCI Distribution token flow.
      */

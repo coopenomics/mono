@@ -84,7 +84,7 @@ export const APPS_CONTRACT_EVENT_STREAM = Symbol('AppsContractEventStreamPort');
  * `composeService`, `subgraphUrl` — они лежат в `coopenomics`-секции
  * package manifest'а в apps-catalog (Story 10.7a/b).
  *
- * Реальный impl бьёт по `GET /v1/package/:scope/:name/metadata` ca-auth'а
+ * Реальный impl бьёт по `GET /v1/package/:scope/:name/metadata` catalog-delivery'а
  * (Story 9.4.c) или по `/v1/registry/...` напрямую.
  */
 export interface ReleaseMetadataPort {
@@ -112,7 +112,7 @@ export interface ReleaseInstallSpec {
   /** URL healthcheck'а (default — origin url + /_health). */
   healthUrl?: string;
   /**
-   * Per-package JWT, полученный по подписке через signed-request к CA-auth.
+   * Per-package JWT, полученный по подписке через signed-request к catalog-delivery.
    * Идёт в docker login для pull'а из приватного registry.
    */
   pullJwt?: string;

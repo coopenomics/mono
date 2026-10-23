@@ -3,7 +3,7 @@
  * shell-out импленты Docker/Health/OCI портов.
  *
  * Story 10.4: добавлены InstallOrchestratorService + порты + shell-out
- * импленты. CA-auth base URL берётся из ENV (CA_AUTH_BASE_URL).
+ * импленты. catalog-delivery base URL берётся из ENV (CATALOG_DELIVERY_BASE_URL).
  */
 import { Module } from '@nestjs/common';
 import { GatewayModule } from '../gateway/gateway.module';
@@ -13,7 +13,7 @@ import { InstallOrchestratorService } from './install-orchestrator.service';
 import { DOCKER_RUNNER, HEALTH_PROBE, OCI_TOKEN_CLIENT } from './ports';
 import { ShellDockerRunner } from './docker-runner.impl';
 import { HttpHealthProbe } from './health-probe.impl';
-import { CaAuthOciTokenClient } from './oci-token-client.impl';
+import { CatalogDeliveryOciTokenClient } from './oci-token-client.impl';
 
 @Module({
   imports: [GatewayModule],
@@ -24,7 +24,7 @@ import { CaAuthOciTokenClient } from './oci-token-client.impl';
     { provide: HEALTH_PROBE, useClass: HttpHealthProbe },
     {
       provide: OCI_TOKEN_CLIENT,
-      useFactory: () => new CaAuthOciTokenClient(process.env.CA_AUTH_BASE_URL ?? 'http://ca-auth:3000'),
+      useFactory: () => new CatalogDeliveryOciTokenClient(process.env.CATALOG_DELIVERY_BASE_URL ?? 'http://catalog-delivery:3000'),
     },
   ],
   // WatcherModule инжектит install-pipeline в on-chain watcher.

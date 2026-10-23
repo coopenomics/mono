@@ -1,18 +1,18 @@
 /**
- * @fileoverview Юнит-тесты CaAdminInstallSource (E12-2) — транспорт
+ * @fileoverview Юнит-тесты CatalogOperatorInstallSource (E12-2) — транспорт
  * подменяется fetch-стабом, сети нет.
  */
-import { CaAdminInstallSource, NoopInstallSource } from './ca-admin-install-source.impl';
+import { CatalogOperatorInstallSource, NoopInstallSource } from './catalog-operator-install-source.impl';
 
 interface RecordedRequest {
   url: string;
   init: RequestInit;
 }
 
-class StubbedSource extends CaAdminInstallSource {
+class StubbedSource extends CatalogOperatorInstallSource {
   requests: RecordedRequest[] = [];
   constructor(private readonly handler: () => Promise<Response>) {
-    super({ baseUrl: 'http://ca-admin:3000', apiKey: 'admin-key' });
+    super({ baseUrl: 'http://catalog-operator:3000', apiKey: 'admin-key' });
   }
   protected override fetch(url: string, init: RequestInit): Promise<Response> {
     this.requests.push({ url, init });
@@ -20,7 +20,7 @@ class StubbedSource extends CaAdminInstallSource {
   }
 }
 
-describe('CaAdminInstallSource', () => {
+describe('CatalogOperatorInstallSource', () => {
   it('200 → ok с телом и заголовками sha256/version; путь и Bearer корректны', async () => {
     const source = new StubbedSource(async () =>
       new Response('module.exports = 1;', {
@@ -39,7 +39,7 @@ describe('CaAdminInstallSource', () => {
       expect(outcome.version).toBe('1.2.0');
     }
     expect(source.requests[0]?.url).toBe(
-      'http://ca-admin:3000/v1/public/packages/voskhod/demo-app/install.js',
+      'http://catalog-operator:3000/v1/public/packages/voskhod/demo-app/install.js',
     );
     expect(
       (source.requests[0]?.init.headers as Record<string, string>).Authorization,
@@ -73,7 +73,7 @@ describe('CaAdminInstallSource', () => {
     const outcome = await new NoopInstallSource().fetchInstallScript();
     expect(outcome.status).toBe('unavailable');
     if (outcome.status === 'unavailable') {
-      expect(outcome.reason).toMatch(/APPS_CATALOG_URL/);
+      expect(outcome.reason).toMatch(/APPS_CATALOG_OPERATOR_URL/);
     }
   });
 });

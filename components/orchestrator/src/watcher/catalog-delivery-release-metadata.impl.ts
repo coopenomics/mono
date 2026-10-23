@@ -1,7 +1,7 @@
 /**
  * @fileoverview Реальный импл {@link ReleaseMetadataPort} — Story 10.5b.
  *
- * Откуда берётся install-spec: npm-манифест пакета в CA-auth pull-registry
+ * Откуда берётся install-spec: npm-манифест пакета в catalog-delivery pull-registry
  * (`GET /registry/:scope/:name`) содержит package.json каждой версии, а в
  * нём — секцию `coopenomics.backend` (image, subgraphPort, healthcheck;
  * Story 10.7a). Доступ к registry — по per-package JWT, который выдаётся
@@ -22,10 +22,10 @@ import { SignedRequestSigner } from './signed-request.client';
 
 const REQUEST_TIMEOUT_MS = 10_000;
 
-export interface CaAuthReleaseMetadataConfig {
-  caAuthBaseUrl: string;
+export interface CatalogDeliveryReleaseMetadataConfig {
+  catalogDeliveryBaseUrl: string;
   coopname: string;
-  /** WIF приватного ключа кооператива — для signed-request к CA-auth. */
+  /** WIF приватного ключа кооператива — для signed-request к catalog-delivery. */
   cooperativeWif: string;
   /** JWT_SECRET стенда — прокидывается в контейнер расширения. */
   jwtSecret: string;
@@ -53,13 +53,13 @@ interface NpmPackumentLike {
   versions?: Record<string, NpmVersionManifest>;
 }
 
-export class CaAuthReleaseMetadata
+export class CatalogDeliveryReleaseMetadata
   implements ReleaseMetadataPort, FrontendManifestVerifierPort
 {
-  private readonly logger = new Logger(CaAuthReleaseMetadata.name);
+  private readonly logger = new Logger(CatalogDeliveryReleaseMetadata.name);
   private readonly signer: SignedRequestSigner;
 
-  constructor(private readonly cfg: CaAuthReleaseMetadataConfig) {
+  constructor(private readonly cfg: CatalogDeliveryReleaseMetadataConfig) {
     this.signer = new SignedRequestSigner(cfg.coopname, cfg.cooperativeWif);
   }
 
@@ -117,7 +117,7 @@ export class CaAuthReleaseMetadata
   /**
    * Декларированный sha256 install.js версии (E12-2,
    * {@link FrontendManifestVerifierPort}): `coopenomics.frontend.installSha256`
-   * из npm-манифеста в ca-auth registry. `null` — пакет/версия не
+   * из npm-манифеста в catalog-delivery registry. `null` — пакет/версия не
    * декларирует sha (поле опционально). Транспортная ошибка — throw:
    * кэш фронт-частей обязан fail-closed.
    */
@@ -136,7 +136,7 @@ export class CaAuthReleaseMetadata
       ...headers,
     })) as { token?: string };
     if (typeof body.token !== 'string' || body.token.length === 0) {
-      throw new Error(`CA-auth ${path}: пустой token`);
+      throw new Error(`catalog-delivery ${path}: пустой token`);
     }
     return body.token;
   }
@@ -159,13 +159,13 @@ export class CaAuthReleaseMetadata
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), REQUEST_TIMEOUT_MS);
     try {
-      const resp = await fetch(`${this.cfg.caAuthBaseUrl}${path}`, {
+      const resp = await fetch(`${this.cfg.catalogDeliveryBaseUrl}${path}`, {
         method,
         headers,
         signal: ctrl.signal,
       });
       if (!resp.ok) {
-        throw new Error(`CA-auth ${method} ${path} → HTTP ${resp.status}`);
+        throw new Error(`catalog-delivery ${method} ${path} → HTTP ${resp.status}`);
       }
       return await resp.json();
     } finally {

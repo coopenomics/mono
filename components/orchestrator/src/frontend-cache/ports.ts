@@ -1,7 +1,7 @@
 /**
  * @fileoverview Порты кэша фронт-частей расширений (E12-2).
  *
- * Откуда берётся install.js: ca-admin отдаёт его из npm-tarball'а
+ * Откуда берётся install.js: catalog-operator отдаёт его из npm-tarball'а
  * АКТИВНОГО релиза (`GET /v1/public/packages/:scope/:name/install.js`,
  * E12-1) с заголовками `X-Install-Script-Sha256` / `X-Package-Version`.
  * Orchestrator скачивает скрипт при установке/обновлении пакета,
@@ -9,13 +9,13 @@
  * через coopback из этого кэша, а не напрямую из каталога.
  *
  * Зачем два порта:
- *  - {@link FrontendInstallSourcePort} — транспорт до ca-admin
+ *  - {@link FrontendInstallSourcePort} — транспорт до catalog-operator
  *    (admin API key контура); тесты подменяют fetch-стабом;
  *  - {@link FrontendManifestVerifierPort} — независимая сверка с
  *    декларацией `coopenomics.frontend.installSha256` из npm-манифеста
- *    в ca-auth registry (per-package JWT по подписке). Это другой
- *    контур и другой auth-канал, чем admin-key путь до ca-admin —
- *    подмена install.js на стороне ca-admin не пройдёт сверку.
+ *    в catalog-delivery registry (per-package JWT по подписке). Это другой
+ *    контур и другой auth-канал, чем admin-key путь до catalog-operator —
+ *    подмена install.js на стороне catalog-operator не пройдёт сверку.
  */
 
 /** Результат скачивания install.js из каталога. */
@@ -24,7 +24,7 @@ export type FrontendInstallFetchOutcome =
       status: 'ok';
       /** Сырые байты install.js. */
       content: Buffer;
-      /** sha256 из заголовка `X-Install-Script-Sha256` (или null, если ca-admin его не прислал). */
+      /** sha256 из заголовка `X-Install-Script-Sha256` (или null, если catalog-operator его не прислал). */
       declaredSha256: string | null;
       /** Версия активного релиза из `X-Package-Version` (или null). */
       version: string | null;
@@ -34,7 +34,7 @@ export type FrontendInstallFetchOutcome =
   /** Каталог недоступен/5xx/сеть — кэш не трогаем, живём на старом. */
   | { status: 'unavailable'; reason: string };
 
-/** Порт скачивания install.js активного релиза из ca-admin. */
+/** Порт скачивания install.js активного релиза из catalog-operator. */
 export interface FrontendInstallSourcePort {
   fetchInstallScript(scope: string, name: string): Promise<FrontendInstallFetchOutcome>;
 }
@@ -45,7 +45,7 @@ export const FRONTEND_INSTALL_SOURCE = Symbol('FrontendInstallSourcePort');
  * Порт независимой сверки sha256 install.js с декларацией пакета.
  *
  * Возвращает `installSha256` из `coopenomics.frontend` манифеста данной
- * версии в ca-auth registry, либо `null`, если пакет её не декларирует
+ * версии в catalog-delivery registry, либо `null`, если пакет её не декларирует
  * (поле опционально в manifest-схеме каталога). Ошибка транспорта —
  * throw: вызывающий обязан fail-closed (не кэшировать непроверенное).
  */

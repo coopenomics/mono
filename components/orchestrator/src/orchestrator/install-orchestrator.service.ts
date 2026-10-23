@@ -2,7 +2,7 @@
  * @fileoverview Сценарий установки subgraph-расширения (Story 10.4).
  *
  * Шаги pipeline'а:
- *  1. (опционально) issue OCI token у CA-auth и docker pull образа;
+ *  1. (опционально) issue OCI token у catalog-delivery и docker pull образа;
  *  2. (опционально) docker compose up сервиса в проекте orchestrator'а;
  *  3. healthcheck по URL — ждём пока subgraph внутри контейнера
  *     прогреется и начнёт отвечать 200;
@@ -60,12 +60,12 @@ export interface InstallExtensionInput {
    */
   composeFile?: string;
   /**
-   * Per-package JWT от CA-auth для docker pull. Нужен только
+   * Per-package JWT от catalog-delivery для docker pull. Нужен только
    * если задан `imageRef`.
    */
   cooperativeJwt?: string;
   /**
-   * Имя кооператива — username для docker login (CA-auth ожидает
+   * Имя кооператива — username для docker login (catalog-delivery ожидает
    * совпадение с `sub`-claim'ом JWT). Нужен только если задан `imageRef`.
    */
   coopname?: string;

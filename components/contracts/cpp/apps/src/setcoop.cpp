@@ -6,12 +6,12 @@
  * использования:
  *  - Ротация подписи: `setcoop(coopname, signing_key=<new>)`. Меняет
  *    `signing_key` и `key_rotated_at=now`.
- *  - Деактивация: `setcoop(coopname, active=false)`. CA-auth перестанет
+ *  - Деактивация: `setcoop(coopname, active=false)`. catalog-delivery перестанет
  *    отвечать на запросы от этого коопа.
  *  - Миграция между подсетями: `setcoop(coopname, chain_id=<new>, subnet_label=<new>)`.
  *  - Обновление human-label: `setcoop(coopname, subnet_label=<new>)`.
  *
- * \note Ранее выпущенные JWT (TTL 14 дней в CA-auth) остаются валидны
+ * \note Ранее выпущенные JWT (TTL 14 дней в catalog-delivery) остаются валидны
  *       после ротации `signing_key`. Только новые signed-request'ы должны
  *       идти от нового приват-ключа. Это даёт zero-downtime ротации.
  *

@@ -26,7 +26,7 @@ using namespace eosio;
  *                    `targets` — список `coopname`.
  *
  * Контракт scope-resolver не делает: он хранит scope как есть, а правило
- * приоритизации `canary > subnet > all` применяется на стороне `CA-auth`
+ * приоритизации `canary > subnet > all` применяется на стороне `catalog-delivery`
  * при выпуске JWT.
  */
 struct scope_t {
@@ -56,7 +56,7 @@ struct scope_t {
  *
  * Indexing strategy:
  *  - PK `id` — auto-inc через `get_global_id(_apps, "release"_n)`.
- *  - `bypackage` — выборка всех релизов пакета (`CA` для scope-resolver).
+ *  - `bypackage` — выборка всех релизов пакета (`catalog` для scope-resolver).
  *  - `bypkgstat` — выборка active/superseded/withdrawn внутри пакета
  *    (composite `package_id<<8 | status_code`); удобно для cleanup
  *    «найти все superseded для пакета X».
@@ -64,7 +64,7 @@ struct scope_t {
  *    для нахождения самых старых записей под удаление.
  *
  * \note `tarball_sha256` — содержательный хэш артефакта, нужен для
- *       integrity-check при скачивании. Сама проверка — на `CA-auth`,
+ *       integrity-check при скачивании. Сама проверка — на `catalog-delivery`,
  *       контракт хэш только хранит.
  *
  * \see lib/domain/table_apps_packages.hpp

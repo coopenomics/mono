@@ -20,8 +20,8 @@ using namespace Apps;
 
 * Смарт-контракт каталога приложений `apps` — координационная плоскость
 * для платформы Каталога приложений ВОСХОД (`apps-catalog`). Контракт
-* деплоится на корневой KE-цепи и обслуживает несколько подсетей
-* (одна установка `CA-auth` → N подсетей кооперативов).
+* деплоится на корневой chain-цепи и обслуживает несколько подсетей
+* (одна установка `catalog-delivery` → N подсетей кооперативов).
 *
 * Что хранит:
 *  - `packages` — реестр зарегистрированных пакетов (PK = `name`).
@@ -31,13 +31,13 @@ using namespace Apps;
 *    subnet-signing-key и chain_id подсети.
 *
 * Чего контракт НЕ делает (намеренно):
-*  - Не проверяет ECDSA-подписи `signed-request`'ов от DC — это off-chain
-*    в `CA-auth`, который читает `coops.signing_key` через RPC.
-*  - Не выпускает JWT — это HS256 в `CA-auth`.
+*  - Не проверяет ECDSA-подписи `signed-request`'ов от coop-node — это off-chain
+*    в `catalog-delivery`, который читает `coops.signing_key` через RPC.
+*  - Не выпускает JWT — это HS256 в `catalog-delivery`.
 *  - Не валидирует tarball — `tarball_sha256` хранится для аудита.
 *  - Не считает биллинг — биллинг живёт в кабинете ВОСХОД и `pay.coopenomics`,
 *    сюда приходит уже факт «подписка активна».
-*  - Не пишет audit-log — Antelope сам пишет в trace; `CA` ведёт свой
+*  - Не пишет audit-log — Antelope сам пишет в trace; `catalog` ведёт свой
 *    `audit_log_admin` для off-chain событий.
 *
 * Authorization model (MVP, упрощённая):
@@ -49,7 +49,7 @@ using namespace Apps;
 *    TTL-просроченные `superseded` записи по всем пакетам.
 *
 * \see /home/admin/apps-catalog/docs/architecture.md
-* \see epics.md Story 6.x (KE bootstrap)
+* \see epics.md Story 6.x (chain bootstrap)
 */
 
 /**
@@ -261,8 +261,8 @@ public:
    * \param plan        имя плана, PK (в MVP всегда `default`).
    * \param hourly_rate ставка за час (общая валюта экосистемы — RUB,4).
    * \note Авторизация: `require_auth(get_self())` — действие выполняется
-   *       контрактом от своего имени по запросу из `CA-admin` через
-   *       `KE write-adapter` (Story v2.1.3).
+   *       контрактом от своего имени по запросу из `catalog-operator` через
+   *       `chain write-adapter` (Story v2.1.3).
    */
   [[eosio::action]] void setpricing(eosio::name package_id,
                                     eosio::name plan,
@@ -303,7 +303,7 @@ public:
    * \brief Отозвать кооператив-клиента каталога (FR8, D3).
    * \details Удаляет row по PK; row нет → `eosio_assert("client not found")`
    *          (не идемпотентно сознательно — отличаем «уже отзывали» от
-   *          «никогда не регистрировали»). Эффекты на CA-стороне:
+   *          «никогда не регистрировали»). Эффекты на catalog-стороне:
    *          инвалидация membership-cache (D9 hybrid TTL) + добавление
    *          активных JWT в `JwtRevokeList` (FR15) живут off-chain.
    * \note Авторизация: `require_auth(catalog_operator)`.
@@ -319,7 +319,7 @@ public:
    *          что `last_charge_intent_id != charge_intent_id`. Иначе —
    *          `eosio_assert("already extended")` (это **ok-сигнал** для
    *          recovery-worker'а: дубль ack'а из кабинета или повтор после
-   *          CA-crash). На успешном пути:
+   *          catalog-crash). На успешном пути:
    *            - `end_at += period_seconds` (extend от текущей границы,
    *              не от now — important для непрерывности подписки),
    *            - `last_charge_intent_id = charge_intent_id`,
@@ -347,7 +347,7 @@ public:
   /**
    * \brief Установить `attempt`-счётчик для подписки (D4 retry-management).
    * \details Простая запись uint8 в существующую `regsub`-row. Используется
-   *          pricing-watcher'ом CA, когда `ack=declined` или charge провалился
+   *          pricing-watcher'ом catalog, когда `ack=declined` или charge провалился
    *          (типичный путь: `setattempt(coopname, package_id, current+1)`).
    *          Каскад с `extendsub` не нужен — последний сам сбросит attempt
    *          в 0 при успехе.

@@ -18,7 +18,7 @@ function failureOf(err: unknown): { status: number | undefined; detail: string }
 
 /**
  * Достать `exp` (мс) из JWT без проверки подписи — нужен только для
- * планирования обновления токена, доверие к содержимому даёт ca-auth.
+ * планирования обновления токена, доверие к содержимому даёт catalog-delivery.
  * `null`, если токен не разбирается или `exp` отсутствует.
  */
 function decodeJwtExpMs(token: string): number | null {
@@ -70,7 +70,7 @@ export interface CreateReleaseInput {
 }
 
 /**
- * 487-27: релиз подаётся tenant-путём ca-auth `POST /v1/releases`.
+ * 487-27: релиз подаётся tenant-путём catalog-delivery `POST /v1/releases`.
  * `applied` — пакет доверенный, релиз активирован сразу; `queued` —
  * первый релиз пакета, ждёт модератора; `notPublished` — версии нет в
  * реестре (сначала `npm publish`); `conflict` — версия уже подана.
@@ -83,7 +83,7 @@ export type CreateReleaseOutcome =
   | { status: 'invalidManifest'; requestId: string; error: string }
   | { status: 'failed'; requestId: string; error: string };
 
-/** Publisher-токен издателя-пайщика (487-27), как отдаёт ca-auth. */
+/** Publisher-токен издателя-пайщика (487-27), как отдаёт catalog-delivery. */
 export interface PublisherTokenWire {
   id: string;
   username: string;
@@ -251,11 +251,11 @@ export interface InstalledInstallScript {
 }
 
 /**
- * HTTP-клиент к ca-admin (apps-catalog) для Story 9.5.b. Защищён admin-API
- * ключом из env (APPS_CATALOG_API_KEY). Используется только сервером —
+ * HTTP-клиент к catalog-operator (apps-catalog) для Story 9.5.b. Защищён admin-API
+ * ключом из env (APPS_CATALOG_OPERATOR_API_KEY). Используется только сервером —
  * ключ в браузер не утекает.
  *
- * Degraded mode: если APPS_CATALOG_URL / APPS_CATALOG_API_KEY не заданы —
+ * Degraded mode: если APPS_CATALOG_OPERATOR_URL / APPS_CATALOG_OPERATOR_API_KEY не заданы —
  * возвращает пустой список вместо ошибки, чтобы dev-окружение без
  * apps-catalog (или CI без сети) не валило desktop boot.
  */
@@ -264,10 +264,10 @@ export class AppsCatalogHttpService {
   private readonly logger = new Logger(AppsCatalogHttpService.name);
   private readonly client: AxiosInstance | null;
   /**
-   * Отдельный клиент для ca-auth (tenant-scoped endpoints). Базовый URL
-   * и tenant JWT отличаются от ca-admin: ca-admin — admin API key
-   * кооператива-оператора (voskhod); ca-auth — JWT кооператива-партнёра,
-   * выписанный ca-admin'ом отдельно.
+   * Отдельный клиент для catalog-delivery (tenant-scoped endpoints). Базовый URL
+   * и tenant JWT отличаются от catalog-operator: catalog-operator — admin API key
+   * кооператива-оператора (voskhod); catalog-delivery — JWT кооператива-партнёра,
+   * выписанный catalog-operator'ом отдельно.
    */
   private readonly authClient: AxiosInstance | null;
   /**
@@ -278,7 +278,7 @@ export class AppsCatalogHttpService {
   private readonly orchestratorClient: AxiosInstance | null;
 
   /**
-   * Кэш авто-выпущенного tenant JWT (ca-auth выдаёт их на 30 минут) и
+   * Кэш авто-выпущенного tenant JWT (catalog-delivery выдаёт их на 30 минут) и
    * его `exp` в миллисекундах. Обновляется лениво в
    * {@link ensureTenantJwt} с минутным запасом до истечения.
    */
@@ -305,9 +305,9 @@ export class AppsCatalogHttpService {
       return value === undefined || value === '' ? undefined : value;
     };
     this.settings = {
-      catalogUrl: env('APPS_CATALOG_URL'),
-      catalogApiKey: env('APPS_CATALOG_API_KEY'),
-      authUrl: env('APPS_CATALOG_AUTH_URL'),
+      catalogUrl: env('APPS_CATALOG_OPERATOR_URL'),
+      catalogApiKey: env('APPS_CATALOG_OPERATOR_API_KEY'),
+      authUrl: env('APPS_CATALOG_DELIVERY_URL'),
       tenantJwt: env('APPS_CATALOG_TENANT_JWT'),
       cooperativeWif: env('COOPERATIVE_WIF'),
       orchestratorUrl: env('ORCHESTRATOR_URL'),
@@ -317,7 +317,7 @@ export class AppsCatalogHttpService {
     this.orchestratorClient = this.createOrchestratorClient();
   }
 
-  /** Клиент ca-admin под admin API-ключом; без адреса и ключа — режим деградации. */
+  /** Клиент catalog-operator под admin API-ключом; без адреса и ключа — режим деградации. */
   private createAdminClient(): AxiosInstance | null {
     const { catalogUrl, catalogApiKey } = this.settings;
     if (catalogUrl && catalogApiKey) {
@@ -328,17 +328,17 @@ export class AppsCatalogHttpService {
       });
     }
     this.logger.warn(
-      'APPS_CATALOG_URL/APPS_CATALOG_API_KEY не заданы — apps-catalog-proxy в degraded mode (пустой каталог)',
+      'APPS_CATALOG_OPERATOR_URL/APPS_CATALOG_OPERATOR_API_KEY не заданы — apps-catalog-proxy в degraded mode (пустой каталог)',
     );
     return null;
   }
 
-  /** Клиент ca-auth под tenant JWT кооператива; без адреса и ключа — режим деградации. */
+  /** Клиент catalog-delivery под tenant JWT кооператива; без адреса и ключа — режим деградации. */
   private createAuthClient(): AxiosInstance | null {
     const { authUrl, tenantJwt, cooperativeWif } = this.settings;
     if (!authUrl || !(tenantJwt || cooperativeWif)) {
       this.logger.warn(
-        'APPS_CATALOG_AUTH_URL + (COOPERATIVE_WIF или APPS_CATALOG_TENANT_JWT) не заданы — subscribe mutation в degraded mode',
+        'APPS_CATALOG_DELIVERY_URL + (COOPERATIVE_WIF или APPS_CATALOG_TENANT_JWT) не заданы — subscribe mutation в degraded mode',
       );
       return null;
     }
@@ -356,13 +356,13 @@ export class AppsCatalogHttpService {
     return authClient;
   }
 
-  /** Клиент оркестратора контура; без адреса install.js отдаётся напрямую из ca-admin. */
+  /** Клиент оркестратора контура; без адреса install.js отдаётся напрямую из catalog-operator. */
   private createOrchestratorClient(): AxiosInstance | null {
     if (this.settings.orchestratorUrl) {
       return axios.create({ baseURL: this.settings.orchestratorUrl, timeout: 5000 });
     }
     this.logger.warn(
-      'ORCHESTRATOR_URL не задан — install.js отдаётся напрямую из ca-admin без фильтра установленности (degraded)',
+      'ORCHESTRATOR_URL не задан — install.js отдаётся напрямую из catalog-operator без фильтра установленности (degraded)',
     );
     return null;
   }
@@ -396,7 +396,7 @@ export class AppsCatalogHttpService {
    * вместе с заголовками целостности (sha256 + версия) — desktop сверяет
    * sha256 перед eval. `null` — фронт не установлен / orchestrator
    * недоступен; вызывающий контроллер решает, падать в 404 или в
-   * fallback на прямой ca-admin путь (degraded dev-стенд).
+   * fallback на прямой catalog-operator путь (degraded dev-стенд).
    */
   async fetchInstalledInstallScript(
     scope: string,
@@ -453,9 +453,9 @@ export class AppsCatalogHttpService {
   /**
    * Story 9.4.b: получить install.js пакета remote-расширения.
    *
-   * Возвращает plain CJS-текст из ca-admin endpoint'а
+   * Возвращает plain CJS-текст из catalog-operator endpoint'а
    * `GET /v1/public/packages/:scope/:name/install.js`. На degraded mode
-   * (без env-config'а apps-catalog'а) либо если ca-admin отвечает 404
+   * (без env-config'а apps-catalog'а) либо если catalog-operator отвечает 404
    * — возвращает `null`, чтобы desktop'у было ясно «нет такого пакета /
    * каталог недоступен» вместо ошибки 500 в браузере.
    *
@@ -465,7 +465,7 @@ export class AppsCatalogHttpService {
   /**
    * Story 9.3.b-pub: первичная регистрация пакета в каталоге.
    *
-   * Прокидывает входной DTO на ca-admin `POST /v1/admin/package`. ca-admin
+   * Прокидывает входной DTO на catalog-operator `POST /v1/admin/package`. catalog-operator
    * сам подписывает on-chain action `apps::regpkg` от имени chairman'а
    * кооператива-оператора каталога (voskhod на dev) — поэтому здесь не
    * требуется session-key пайщика.
@@ -475,7 +475,7 @@ export class AppsCatalogHttpService {
    *  - `conflict` — HTTP 409 (пакет уже зарегистрирован или дубликат
    *    `request_id`); resolver мапит на `status: 'conflict'`;
    *  - `failed` — любое прочее (network, 400, 401, degraded-mode без
-   *    APPS_CATALOG_API_KEY); resolver мапит на `status: 'failed'`.
+   *    APPS_CATALOG_OPERATOR_API_KEY); resolver мапит на `status: 'failed'`.
    *
    * Degraded mode (нет client'а) — возвращает `failed` с явным сообщением:
    * mutation в degraded-стенде не делает silent no-op, чтобы UI не
@@ -518,14 +518,14 @@ export class AppsCatalogHttpService {
   /**
    * Story 9.3.b-rel: создание нового релиза пакета (action `apps::setrelease`).
    *
-   * Прокидывает manifest + версию на ca-admin `POST /v1/admin/releases`.
-   * ca-admin сам валидирует manifest Zod-схемой и подписывает on-chain.
+   * Прокидывает manifest + версию на catalog-operator `POST /v1/admin/releases`.
+   * catalog-operator сам валидирует manifest Zod-схемой и подписывает on-chain.
    *
    * Discriminated outcome:
    *  - `applied` — HTTP 200, on-chain прошёл; в payload может быть
    *    `transaction_id` (если адаптер не stub'овый);
    *  - `invalidManifest` — HTTP 422 INVALID_MANIFEST (manifest не прошёл
-   *    Zod-валидацию на стороне ca-admin); `error` содержит детали
+   *    Zod-валидацию на стороне catalog-operator); `error` содержит детали
    *    валидации в стабильном формате;
    *  - `failed` — прочие ошибки (network, 401, 503, degraded-mode).
    */
@@ -576,7 +576,7 @@ export class AppsCatalogHttpService {
   }
 
   /**
-   * 487-27: список publisher-токенов кооператива (ca-auth
+   * 487-27: список publisher-токенов кооператива (catalog-delivery
    * `GET /v1/publisher-tokens`, tenant-JWT). Degraded → пустой список.
    */
   async listPublisherTokens(
@@ -650,11 +650,11 @@ export class AppsCatalogHttpService {
   /**
    * Story 9.9: список заявок на модерацию по статусу.
    *
-   * Дёргает ca-admin `GET /v1/admin/moderation?status=...&limit=...`.
+   * Дёргает catalog-operator `GET /v1/admin/moderation?status=...&limit=...`.
    * Используется столом восхода (chairman voskhod) для просмотра pending
    * заявок и принятия решения (approve/reject).
    *
-   * Degraded mode (нет ca-admin client'а) → пустой массив, чтобы UI
+   * Degraded mode (нет catalog-operator client'а) → пустой массив, чтобы UI
    * нормально показал «pending пусто» вместо ошибки.
    */
   async listSubmittedModerations(
@@ -691,7 +691,7 @@ export class AppsCatalogHttpService {
   /**
    * Story 9.9: chairman восхода одобряет заявку на модерацию.
    *
-   * Дёргает ca-admin `POST /v1/admin/moderation/:id/approve`. ca-admin
+   * Дёргает catalog-operator `POST /v1/admin/moderation/:id/approve`. catalog-operator
    * атомарно переводит moderation в APPROVED, активирует release и
    * выкладывает outbox-event `release.activated` (он же триггер для
    * on-chain `apps::setrelease` и orchestrator'а install pipeline).
@@ -765,8 +765,8 @@ export class AppsCatalogHttpService {
   /**
    * Story 9.9: chairman восхода отклоняет заявку на модерацию.
    *
-   * Дёргает ca-admin `POST /v1/admin/moderation/:id/reject` с `reason`.
-   * ca-admin переводит moderation в REJECTED (compare-and-set из
+   * Дёргает catalog-operator `POST /v1/admin/moderation/:id/reject` с `reason`.
+   * catalog-operator переводит moderation в REJECTED (compare-and-set из
    * SUBMITTED) и пишет аудит-запись.
    *
    * Discriminated outcome:
@@ -813,10 +813,10 @@ export class AppsCatalogHttpService {
   /**
    * Story 9.3.b-sub: активация подписки кооператива-партнёра на пакет.
    *
-   * Дёргает ca-auth `POST /v1/subscriptions/activate` с tenant JWT
+   * Дёргает catalog-delivery `POST /v1/subscriptions/activate` с tenant JWT
    * кооператива. На первой попытке создаётся trial-подписка
    * (free_trial_period_seconds), на повторной активации после expired —
-   * pay (min_payment_period_seconds). tenant читается ca-auth'ом только
+   * pay (min_payment_period_seconds). tenant читается catalog-delivery'ом только
    * из JWT — body не может переопределить кооператива.
    *
    * Discriminated outcome:
@@ -824,7 +824,7 @@ export class AppsCatalogHttpService {
    *  - `alreadyActive` — HTTP 409 SUBSCRIPTION_ALREADY_ACTIVE;
    *  - `clientNotRegistered` — HTTP 403 CLIENT_NOT_REGISTERED: кооператив
    *    не зарегистрирован в каталоге восхода (нужен onboarding);
-   *  - `unavailable` — HTTP 423 KE_UNAVAILABLE (катаклиз с key-escrow);
+   *  - `unavailable` — HTTP 423 CHAIN_UNAVAILABLE (катаклиз с key-escrow);
    *  - `failed` — прочие ошибки (network, 400, 401, degraded mode).
    */
   /**

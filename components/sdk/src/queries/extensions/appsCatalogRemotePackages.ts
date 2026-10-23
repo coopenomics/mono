@@ -6,7 +6,7 @@ export const name = 'appsCatalogRemotePackages'
 /**
  * Публичный каталог remote-пакетов из apps-catalog (Story 9.5.b).
  *
- * Прокси-резолвер на mono controller'е дергает ca-admin
+ * Прокси-резолвер на mono controller'е дергает catalog-operator
  * `GET /v1/public/packages` и возвращает список с UI-полями
  * (title / description / rubPerMonth — на MVP из дефолтов, в будущем из manifest).
  */

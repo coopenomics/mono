@@ -19,15 +19,15 @@ using namespace eosio;
  *
  *  1. Кооператив проходит onboarding в кабинете ВОСХОД.
  *  2. Кабинет генерирует/принимает выделенный subnet-signing-keypair.
- *     Приватная часть остаётся у DC-оркестратора кооператива.
+ *     Приватная часть остаётся у coop-node-оркестратора кооператива.
  *  3. Кабинет вызывает `regcoop(coopname, chain_id, subnet_label, signing_key)`
  *     с публичной частью.
  *
  * Поле `signing_key` — это **отдельный** ключ, не равный `eosio::active`-ключу
  * аккаунта. Семантика:
  *
- *  - Используется только off-chain в `CA-auth` для проверки подписи
- *    `signed-request`-ов от DC-оркестратора (заголовок `X-Signature`).
+ *  - Используется только off-chain в `catalog-delivery` для проверки подписи
+ *    `signed-request`-ов от coop-node-оркестратора (заголовок `X-Signature`).
  *  - НЕ имеет on-chain прав (`active` остаётся отдельно).
  *  - Ротация — отдельным action `setcoop(signing_key=new)`. Компрометация
  *    `active` не лопает signed-request-цепочку и наоборот.
@@ -40,7 +40,7 @@ using namespace eosio;
  * для UI, scope-фильтрации в `releases`, и логирования.
  *
  * Контракт сам подпись не проверяет — он только хранит публичный ключ.
- * Проверка ECDSA secp256k1 — на стороне `CA-auth` через RPC
+ * Проверка ECDSA secp256k1 — на стороне `catalog-delivery` через RPC
  * `get_table_rows apps coops`.
  */
 struct [[eosio::table, eosio::contract(APPS)]] coop {

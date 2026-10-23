@@ -173,7 +173,7 @@ services:
       COOPNAME: ${COOPNAME:-voskhod}
       JWT_SECRET: ${JWT_SECRET:-secret}
       COMPOSITION_POLL_INTERVAL_MS: ${COMPOSITION_POLL_INTERVAL_MS:-10000}
-      CA_AUTH_BASE_URL: ${CA_AUTH_BASE_URL:-http://ca-auth:3001}
+      CATALOG_DELIVERY_BASE_URL: ${CATALOG_DELIVERY_BASE_URL:-http://catalog-delivery:3001}
       COOPERATIVE_JWT: ${COOPERATIVE_JWT:-}
       # On-chain watcher (auto-install по таблицам apps-контракта).
       # Без CHAIN_RPC_URL watcher молчит (Noop); без COOPERATIVE_WIF
@@ -184,11 +184,11 @@ services:
       COOPERATIVE_WIF: ${COOPERATIVE_WIF:-}
       EXTENSIONS_DOCKER_NETWORK: ${EXTENSIONS_DOCKER_NETWORK:-}
       # E12-2: кэш фронт-частей. install.js активного релиза качается из
-      # ca-admin (admin API key контура — те же env-имена, что у coopback),
+      # catalog-operator (admin API key контура — те же env-имена, что у coopback),
       # сверяется по sha256 и складывается в volume; coopback раздаёт его
       # desktop'у через JWT-gated proxy.
-      APPS_CATALOG_URL: ${APPS_CATALOG_URL:-}
-      APPS_CATALOG_API_KEY: ${APPS_CATALOG_API_KEY:-}
+      APPS_CATALOG_OPERATOR_URL: ${APPS_CATALOG_OPERATOR_URL:-}
+      APPS_CATALOG_OPERATOR_API_KEY: ${APPS_CATALOG_OPERATOR_API_KEY:-}
       FRONTEND_CACHE_DIR: /var/orchestrator/frontend-cache
     volumes:
       - ./:/app

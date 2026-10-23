@@ -5,8 +5,8 @@ import { ReleaseScopeInputDTO } from './release-scope-input.dto';
  * Входные данные `Mutation.approveModeration` (story 9.9).
  *
  * Chairman восхода одобряет заявку на модерацию из стола восхода.
- * Прокидывается на ca-admin `POST /v1/admin/moderation/:id/approve`,
- * где ca-admin атомарно переводит заявку в APPROVED и активирует
+ * Прокидывается на catalog-operator `POST /v1/admin/moderation/:id/approve`,
+ * где catalog-operator атомарно переводит заявку в APPROVED и активирует
  * релиз.
  */
 @InputType()

@@ -5,7 +5,7 @@ import { GraphQLJSON } from 'graphql-type-json';
  * Входные данные `Mutation.publishRelease` (story 9.3.b-rel).
  *
  * Эта мутация регистрирует новый релиз ранее зарегистрированного
- * пакета (см. `publishPackage`/9.3.b-pub). Прокидывается на ca-admin
+ * пакета (см. `publishPackage`/9.3.b-pub). Прокидывается на catalog-operator
  * `POST /v1/admin/releases` (action `apps::setrelease` on-chain), который
  * сам подписывает от имени chairman'а кооператива-оператора.
  *
@@ -13,7 +13,7 @@ import { GraphQLJSON } from 'graphql-type-json';
  * `coopenomics.backend.image` — docker-image (для subgraph'а
  * расширения), `coopenomics.frontend.tarball` — npm tarball (для
  * desktop-bundle). Сам manifest валидируется Zod-схемой
- * `PackageManifestSchema` на стороне ca-admin (HTTP 422 → resolver
+ * `PackageManifestSchema` на стороне catalog-operator (HTTP 422 → resolver
  * мапит в `failed`).
  */
 @InputType()

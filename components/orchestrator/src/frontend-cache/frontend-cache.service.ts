@@ -13,10 +13,10 @@
  *     <dir>/<scope>__<name>/meta.json   ({@link CachedFrontendMeta})
  *
  * Цепочка проверки целостности перед записью в кэш:
- *  1. sha256 содержимого == `X-Install-Script-Sha256` ca-admin
+ *  1. sha256 содержимого == `X-Install-Script-Sha256` catalog-operator
  *     (транспорт не побился) — расхождение → reject;
  *  2. sha256 == `coopenomics.frontend.installSha256` из npm-манифеста
- *     версии в ca-auth registry (независимый канал по подписке) —
+ *     версии в catalog-delivery registry (независимый канал по подписке) —
  *     декларация есть и не совпала → reject; verifier недоступен →
  *     fail-closed reject (непроверенный код не кэшируем); пакет не
  *     декларирует sha — принимаем по п.1.

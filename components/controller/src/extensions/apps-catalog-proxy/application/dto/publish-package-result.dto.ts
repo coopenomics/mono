@@ -3,11 +3,11 @@ import { Field, ObjectType, registerEnumType } from '@nestjs/graphql';
 /**
  * Статусы результата `Mutation.publishPackage` (story 9.3.b-pub).
  *
- *  - `applied` — ca-admin вернул 200 (on-chain `apps::regpkg` улетел
+ *  - `applied` — catalog-operator вернул 200 (on-chain `apps::regpkg` улетел
  *    и подтверждён);
  *  - `conflict` — пакет уже зарегистрирован (HTTP 409);
  *  - `failed` — прочие ошибки (включая degraded-mode, когда
- *    APPS_CATALOG_API_KEY не задан).
+ *    APPS_CATALOG_OPERATOR_API_KEY не задан).
  */
 export enum PublishPackageStatus {
   APPLIED = 'applied',
@@ -27,7 +27,7 @@ export class PublishPackageResultDTO {
 
   @Field({
     description:
-      'Идентификатор запроса (UUIDv4), который ca-admin использовал для идемпотентности',
+      'Идентификатор запроса (UUIDv4), который catalog-operator использовал для идемпотентности',
   })
   requestId!: string;
 

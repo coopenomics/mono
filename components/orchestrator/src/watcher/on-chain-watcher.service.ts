@@ -148,7 +148,7 @@ export class OnChainWatcherService implements OnApplicationBootstrap, OnApplicat
   ): Promise<void> {
     await this.registry.deactivate(e.packageId);
     // E12-2: syncPackage сам разрулит исход — есть другой активный релиз
-    // → фронт обновится на него; активных не осталось → ca-admin отдаст
+    // → фронт обновится на него; активных не осталось → catalog-operator отдаст
     // 404 и кэш-запись будет убрана.
     if (await this.frontendCache.isCached(e.packageId)) {
       await this.frontendCache.syncPackage(e.packageId);

@@ -7,7 +7,7 @@
 // Страницы: мои пакеты, публикация пакета/релиза, модерация заявок
 // (операторский approve восхода), подписчики, pricing. Все реальные
 // действия идут GraphQL-мутациями apps-catalog-proxy controller'а,
-// который проксирует их в ca-admin/ca-auth каталога.
+// который проксирует их в catalog-operator/catalog-delivery каталога.
 
 import './i18n';
 import { markRaw } from 'vue';

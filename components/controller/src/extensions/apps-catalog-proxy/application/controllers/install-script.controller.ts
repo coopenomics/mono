@@ -31,7 +31,7 @@ const NAME_REGEX = /^[a-z0-9][a-z0-9-]{0,63}$/;
  * не утекают.
  *
  * Degraded fallback: без ORCHESTRATOR_URL (dev-стенд без federation-профиля)
- * install.js берётся по-старому напрямую из ca-admin — без фильтра
+ * install.js берётся по-старому напрямую из catalog-operator — без фильтра
  * установленности и без sha-заголовков.
  *
  * Endpoints:
@@ -82,7 +82,7 @@ export class AppsCatalogInstallScriptController {
       res.status(HttpStatus.OK);
       return installed.code;
     }
-    // Degraded: прямой ca-admin путь — без гарантий установленности.
+    // Degraded: прямой catalog-operator путь — без гарантий установленности.
     const code = await this.catalog.fetchInstallScript(scope, name);
     if (code === null) {
       throw new HttpException(

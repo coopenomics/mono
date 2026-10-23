@@ -83,7 +83,7 @@ const toReleaseScope = (dto: ReleaseScopeInputDTO): ReleaseScopeInput => {
 /**
  * Story 9.5.b — публичный каталог remote-пакетов на desktop'е магазина.
  *
- * Прокси-резолвер: controller ходит к ca-admin /v1/public/packages, маппит
+ * Прокси-резолвер: controller ходит к catalog-operator /v1/public/packages, маппит
  * snake_case wire-формат в camelCase GraphQL-проекцию, добавляет UI-поля
  * (title/description/rubPerMonth) для витрины. В V1 description и
  * rubPerMonth — заглушки; в V2 будут читаться из package manifest и
@@ -103,7 +103,7 @@ function toPublisherDTO(r: AppsPublisherRecord): AppsPublisherDTO {
   };
 }
 
-/** ca-auth snake_case → GraphQL camelCase (487-27). */
+/** catalog-delivery snake_case → GraphQL camelCase (487-27). */
 function toPublisherTokenDTO(w: PublisherTokenWire): PublisherTokenDTO {
   return {
     id: w.id,
@@ -133,7 +133,7 @@ export class AppsCatalogProxyResolver {
     description:
       'Список remote-пакетов из публичного каталога apps-catalog. ' +
       'Защищён JWT (видят только авторизованные пайщики). ' +
-      'Источник — ca-admin /v1/public/packages; controller проксирует.',
+      'Источник — catalog-operator /v1/public/packages; controller проксирует.',
   })
   @UseGuards(GqlJwtAuthGuard)
   async appsCatalogRemotePackages(
@@ -165,20 +165,20 @@ export class AppsCatalogProxyResolver {
    * Story 9.3.b-pub — стол разработчика публикует пакет в каталоге восхода.
    *
    * Защита: только chairman кооператива-оператора (`voskhod` на dev).
-   * Сама подпись on-chain `apps::regpkg` делает ca-admin от имени chairman'а
+   * Сама подпись on-chain `apps::regpkg` делает catalog-operator от имени chairman'а
    * восхода — controller только проксирует HTTP-запрос и возвращает
    * discriminated outcome (`applied | conflict | failed`).
    *
    * Multipart upload install.js здесь НЕ делается. Под архитектуру E10
    * расширения публикуются как npm-package + docker-image в Nexus
    * отдельной процедурой (`npm publish` / `docker push`) через scoped
-   * JWT от CA-auth. Эта мутация — только on-chain маркер «такой
+   * JWT от catalog-delivery. Эта мутация — только on-chain маркер «такой
    * пакет существует».
    */
   @Mutation(() => PublishPackageResultDTO, {
     name: 'publishPackage',
     description:
-      'Регистрирует пакет on-chain (action apps::regpkg) через ca-admin. ' +
+      'Регистрирует пакет on-chain (action apps::regpkg) через catalog-operator. ' +
       'Подписывает chairman кооператива-оператора каталога. Доступно ' +
       'только chairman\'у (стол разработчика).',
   })
@@ -216,8 +216,8 @@ export class AppsCatalogProxyResolver {
   /**
    * Story 9.3.b-rel — стол разработчика выкладывает новый релиз пакета.
    *
-   * Прокидывает manifest + версию на ca-admin `POST /v1/admin/releases`.
-   * ca-admin валидирует manifest Zod-схемой и подписывает on-chain
+   * Прокидывает manifest + версию на catalog-operator `POST /v1/admin/releases`.
+   * catalog-operator валидирует manifest Zod-схемой и подписывает on-chain
    * `apps::setrelease` от имени chairman'а кооператива-оператора. Под
    * архитектуру E10 manifest должен содержать ссылки на артефакты в
    * Nexus (`coopenomics.backend.image` + `coopenomics.frontend.tarball`).
@@ -225,7 +225,7 @@ export class AppsCatalogProxyResolver {
   @Mutation(() => PublishReleaseResultDTO, {
     name: 'publishRelease',
     description:
-      'Создаёт новый релиз пакета (action apps::setrelease) через ca-admin. ' +
+      'Создаёт новый релиз пакета (action apps::setrelease) через catalog-operator. ' +
       'Подписывает chairman кооператива-оператора каталога. Доступно ' +
       'только chairman\'у (стол разработчика).',
   })
@@ -397,7 +397,7 @@ export class AppsCatalogProxyResolver {
    * в указанном статусе (по умолчанию SUBMITTED), отсортированные
    * `updatedAt` ASC (старшие — первыми).
    *
-   * На degraded-mode (без APPS_CATALOG_API_KEY) — пустой массив, чтобы
+   * На degraded-mode (без APPS_CATALOG_OPERATOR_API_KEY) — пустой массив, чтобы
    * UI стола восхода нормально показал «pending пусто».
    */
   @Query(() => [ModerationRequestDTO], {
@@ -440,7 +440,7 @@ export class AppsCatalogProxyResolver {
   /**
    * Story 9.9-approve — chairman восхода одобряет заявку на модерацию.
    *
-   * Защита: только chairman кооператива-оператора (voskhod). ca-admin
+   * Защита: только chairman кооператива-оператора (voskhod). catalog-operator
    * атомарно переводит moderation в APPROVED + активирует release +
    * выкладывает outbox-event `release.activated` (он же триггер для
    * on-chain `apps::setrelease` и orchestrator'а install pipeline).
@@ -549,9 +549,9 @@ export class AppsCatalogProxyResolver {
   /**
    * Story 9.3.b-sub — пайщик подписывает свой кооператив на пакет.
    *
-   * Защита: только chairman кооператива-партнёра. ca-auth активирует
+   * Защита: только chairman кооператива-партнёра. catalog-delivery активирует
    * подписку tenant'а (кооператива пайщика читается из tenant JWT, не
-   * из body), on-chain `apps::regsub` подписывает ca-auth от имени
+   * из body), on-chain `apps::regsub` подписывает catalog-delivery от имени
    * каталога-оператора. После активации pricing-watcher на coopback
    * партнёра подхватит подписку и начнёт списания (см. story 9.6).
    *

@@ -91,7 +91,7 @@ describe('FrontendCacheService', () => {
     expect(read?.meta.sha256).toBe(SHA);
   });
 
-  it('sha256 ≠ заголовку ca-admin → rejected, в кэш ничего не пишется', async () => {
+  it('sha256 ≠ заголовку catalog-operator → rejected, в кэш ничего не пишется', async () => {
     source.outcome = {
       status: 'ok',
       content: CODE,
@@ -123,7 +123,7 @@ describe('FrontendCacheService', () => {
 
   it('verifier бросил → fail-closed rejected, старый кэш жив', async () => {
     await service.syncPackage(PKG);
-    verifier.error = new Error('ECONNREFUSED ca-auth');
+    verifier.error = new Error('ECONNREFUSED catalog-delivery');
     const outcome = await service.syncPackage(PKG);
     expect(outcome.status).toBe('rejected');
     expect((await service.read('voskhod', 'demo-app'))?.meta.version).toBe('1.2.0');

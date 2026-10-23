@@ -4,7 +4,7 @@ export const name = 'subscribePackage'
 
 /**
  * Активация подписки кооператива на пакет каталога (Story 9.3.b-sub).
- * Backend-прокси зовёт ca-auth `POST /v1/subscriptions/activate` —
+ * Backend-прокси зовёт catalog-delivery `POST /v1/subscriptions/activate` —
  * первый раз подписка trial (если доступен), дальше платная.
  */
 export const mutation = Selector('Mutation')({

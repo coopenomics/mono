@@ -6,8 +6,8 @@
  *  - `CHAIN_RPC_URL` задан → {@link ChainRpcAppsEventStream} поллит таблицы
  *    apps-контракта (releases/subs/packages) через nodeos get_table_rows
  *    и синтезирует события; иначе — Noop (watcher молчит).
- *  - `COOPERATIVE_WIF` + `CA_AUTH_BASE_URL` заданы → {@link CaAuthReleaseMetadata}
- *    достаёт install-spec из npm-манифеста в CA-auth registry по
+ *  - `COOPERATIVE_WIF` + `CATALOG_DELIVERY_BASE_URL` заданы → {@link CatalogDeliveryReleaseMetadata}
+ *    достаёт install-spec из npm-манифеста в catalog-delivery registry по
  *    signed-request + per-package JWT; иначе — Noop (install-spec взять
  *    неоткуда, auto-install отключён).
  *
@@ -30,7 +30,7 @@ import {
 } from './ports';
 import { loadAppConfig } from '../config/app-config';
 import { ChainRpcAppsEventStream } from './chain-rpc-event-stream.impl';
-import { CaAuthReleaseMetadata } from './ca-auth-release-metadata.impl';
+import { CatalogDeliveryReleaseMetadata } from './catalog-delivery-release-metadata.impl';
 
 class NoopEventStream implements AppsContractEventStreamPort {
   async subscribe(_handler: (e: AppsContractEvent) => Promise<void>): Promise<{ unsubscribe(): void }> {
@@ -66,11 +66,11 @@ class NoopReleaseMetadata implements ReleaseMetadataPort {
       provide: RELEASE_METADATA_PORT,
       useFactory: (): ReleaseMetadataPort => {
         const wif = process.env.COOPERATIVE_WIF;
-        const caAuthBaseUrl = process.env.CA_AUTH_BASE_URL;
-        if (!wif || !caAuthBaseUrl) return new NoopReleaseMetadata();
+        const catalogDeliveryBaseUrl = process.env.CATALOG_DELIVERY_BASE_URL;
+        if (!wif || !catalogDeliveryBaseUrl) return new NoopReleaseMetadata();
         const cfg = loadAppConfig();
-        return new CaAuthReleaseMetadata({
-          caAuthBaseUrl,
+        return new CatalogDeliveryReleaseMetadata({
+          catalogDeliveryBaseUrl,
           coopname: cfg.coopname,
           cooperativeWif: wif,
           jwtSecret: cfg.jwtSecret,

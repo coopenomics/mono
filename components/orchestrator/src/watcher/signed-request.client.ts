@@ -1,7 +1,7 @@
 /**
- * @fileoverview Клиент signed-request поверхности CA-auth (Story 2.2 на их
+ * @fileoverview Клиент signed-request поверхности catalog-delivery (Story 2.2 на их
  * стороне). Подписывает HTTP-запросы приватным ключом кооператива в том же
- * каноне, который проверяет `SignedRequestMiddleware` ca-auth:
+ * каноне, который проверяет `SignedRequestMiddleware` catalog-delivery:
  *
  *   canonical = UPPERCASE(method) \n path \n body \n timestamp \n nonce
  *   подпись   = ECDSA secp256k1 (canonical recoverable) над SHA256(canonical)

@@ -30,7 +30,7 @@ registerEnumType(ReleaseScopeType, {
  * массивы игнорируются.
  *
  * Резолвер сам валидирует соответствие type → массив и нормализует
- * перед отправкой на ca-admin.
+ * перед отправкой на catalog-operator.
  */
 @InputType()
 export class ReleaseScopeInputDTO {

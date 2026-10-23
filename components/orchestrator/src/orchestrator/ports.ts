@@ -19,7 +19,7 @@ export interface DockerRunnerPort {
    * Подтянуть образ из приватного registry.
    *
    * `username`/`password` — credentials для `docker login` (password —
-   * per-package JWT от CA-auth; docker сам обменяет его на Bearer через
+   * per-package JWT от catalog-delivery; docker сам обменяет его на Bearer через
    * OCI token endpoint `GET /v2/auth/token` по `WWW-Authenticate`-flow).
    */
   pullImage(opts: { imageRef: string; username: string; password: string }): Promise<void>;
@@ -67,13 +67,13 @@ export type HealthOutcome =
 export const HEALTH_PROBE = Symbol('HealthProbePort');
 
 /**
- * Порт preflight-проверки docker pull у CA-auth: обмен per-package JWT
+ * Порт preflight-проверки docker pull у catalog-delivery: обмен per-package JWT
  * на OCI access_token через `GET /v2/auth/token` (Basic-auth, JWT в
  * password). Реальный pull делает `docker login` тем же JWT — этот порт
  * нужен, чтобы провалить install быстро и с внятной причиной (нет
  * подписки / scope mismatch), не дожидаясь невнятного 403 от docker CLI.
  *
- * @see ca-auth/src/modules/registry/web/oci-token.controller.ts (Story 10.6)
+ * @see catalog-delivery/src/modules/registry/web/oci-token.controller.ts (Story 10.6)
  */
 export interface OciTokenClientPort {
   issueToken(opts: { packageId: string; coopname: string; jwt: string }): Promise<string>;

@@ -1,6 +1,6 @@
 /**
  * @fileoverview DTO publisher-токенов издателей-пайщиков (487-27).
- * Источник — ca-auth `/v1/publisher-tokens` (tenant-JWT кооператива).
+ * Источник — catalog-delivery `/v1/publisher-tokens` (tenant-JWT кооператива).
  */
 import { Field, InputType, ObjectType, registerEnumType } from '@nestjs/graphql';
 

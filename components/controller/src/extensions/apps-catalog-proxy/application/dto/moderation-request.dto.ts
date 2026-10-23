@@ -2,7 +2,7 @@ import { Field, ObjectType, registerEnumType } from '@nestjs/graphql';
 import GraphQLJSON from 'graphql-type-json';
 
 /**
- * Статусы заявки на модерацию (зеркало `ModerationStatus` из ca-admin).
+ * Статусы заявки на модерацию (зеркало `ModerationStatus` из catalog-operator).
  */
 export enum ModerationStatusEnum {
   SUBMITTED = 'SUBMITTED',

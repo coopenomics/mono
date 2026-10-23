@@ -15,7 +15,7 @@ import { AppsCatalogProxyResolver } from './application/resolvers/apps-catalog-p
  *
  * GraphQL `Query.appsCatalogRemotePackages` (9.5.b) + REST
  * `GET /v1/apps-catalog/install/:scope/:name` (9.4.b) + HTTP-клиент к
- * ca-admin. Своя таблица — назначения издателей (`apps_publishers`).
+ * catalog-operator. Своя таблица — назначения издателей (`apps_publishers`).
  * Включается в `ExtensionsModule` в общий imports/exports список.
  */
 @Module({

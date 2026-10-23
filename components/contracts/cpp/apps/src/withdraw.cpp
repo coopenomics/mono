@@ -3,7 +3,7 @@
  * \ingroup public_apps_actions
  *
  * Семантика отзыва:
- *  - Релиз становится `withdrawn` и НЕ может быть установлен через CA-auth.
+ *  - Релиз становится `withdrawn` и НЕ может быть установлен через catalog-delivery.
  *  - Запись остаётся в таблице — TTL на withdrawn не действует.
  *  - Если withdrawn-релиз был active со scope=all, `last_active_version`
  *    обнуляется ("") — UI должен показать «нет активной версии», пока
