@@ -143,6 +143,7 @@ import { BaseCard, BaseInput, BaseBadge, EmptyState } from 'src/shared/ui/base'
 import { AmountInput } from 'src/shared/ui/domain'
 import type { Ndfl6Edits, Ndfl6Certificate } from './ndfl6-edits'
 import { t } from '../../i18n';
+import { cloneEdits } from 'app/extensions/reports/shared/lib/clone-edits'
 
 /**
  * Разделы 6-НДФЛ с суммами и справки о доходах. Остальные секции формы
@@ -220,7 +221,7 @@ function toMoney(value: unknown): number {
  */
 function update(path: string, value: number | string): void {
   if (!props.edits) return
-  const next = structuredClone(props.edits) as unknown as Record<string, unknown>
+  const next = cloneEdits(props.edits) as unknown as Record<string, unknown>
   const segments = path.split('.')
   let cursor = next
   for (const segment of segments.slice(0, -1)) {

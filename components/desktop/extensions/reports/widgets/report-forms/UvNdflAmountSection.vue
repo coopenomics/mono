@@ -24,6 +24,7 @@ import { computed } from 'vue'
 import { BaseCard, BaseInput } from 'src/shared/ui/base'
 import { uvNdflPeriodTitle } from './uv-ndfl-edits'
 import type { UvNdflEdits } from './uv-ndfl-edits'
+import { cloneEdits } from 'app/extensions/reports/shared/lib/clone-edits'
 
 /**
  * Сумма уведомления об исчисленных суммах НДФЛ.
@@ -59,7 +60,7 @@ function toInt(value: unknown): number {
 
 function update(amount: number): void {
   if (!props.edits) return
-  const next = structuredClone(props.edits)
+  const next = cloneEdits(props.edits)
   next.payment.amount = amount
   emit('update:edits', next)
   emit('dirty', 'payment.amount')
