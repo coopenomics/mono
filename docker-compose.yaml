@@ -153,16 +153,16 @@ services:
     working_dir: /app
     command: pnpm --filter @coopenomics/desktop run dev
 
-  # Per-tenant Apollo Federation Gateway + install pipeline расширений (E10).
-  # Под профилем `federation`: обычный `docker compose up -d` его НЕ поднимает —
-  # нужен явный `docker compose --profile federation up -d orchestrator`.
-  # Доступ к docker daemon — через socket-mount; от root (socket требует прав).
+  # Оркестратор кооператива: шлюз федерации (общая схема GraphQL ядра и
+  # установленных приложений), установка приложений из каталога, кэш их фронтов.
+  # Часть стенда наравне с coopback: POST /backend/v1/graphql идёт через него
+  # (infra/coopid/nginx/dev.conf). Доступ к docker daemon — через socket-mount;
+  # от root (socket требует прав).
   orchestrator:
     build:
       context: ./
       dockerfile: components/orchestrator/Dockerfile
     image: orchestrator
-    profiles: ["federation"]
     restart: unless-stopped
     environment:
       HOME: /tmp
