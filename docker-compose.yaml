@@ -176,12 +176,14 @@ services:
       CATALOG_DELIVERY_BASE_URL: ${CATALOG_DELIVERY_BASE_URL:-http://catalog-delivery:3001}
       COOPERATIVE_JWT: ${COOPERATIVE_JWT:-}
       # On-chain watcher (auto-install по таблицам apps-контракта).
-      # Без CHAIN_RPC_URL watcher молчит (Noop); без COOPERATIVE_WIF
+      # Без CHAIN_RPC_URL watcher молчит (Noop); без CATALOG_SIGNING_KEY
       # auto-install отключён (install-spec берётся по signed-request).
+      # CATALOG_SIGNING_KEY — ключ подписи каталога (apps::coops.signing_key),
+      # отдельный от разрешений аккаунта; ключ active/owner отклоняется.
       CHAIN_RPC_URL: ${CHAIN_RPC_URL:-http://node:8888}
       APPS_CONTRACT_ACCOUNT: ${APPS_CONTRACT_ACCOUNT:-apps}
       WATCHER_POLL_INTERVAL_MS: ${WATCHER_POLL_INTERVAL_MS:-15000}
-      COOPERATIVE_WIF: ${COOPERATIVE_WIF:-}
+      CATALOG_SIGNING_KEY: ${CATALOG_SIGNING_KEY:-}
       EXTENSIONS_DOCKER_NETWORK: ${EXTENSIONS_DOCKER_NETWORK:-}
       # E12-2: кэш фронт-частей. install.js активного релиза качается из
       # catalog-operator (admin API key контура — те же env-имена, что у coopback),

@@ -6,7 +6,7 @@
  *  - `CHAIN_RPC_URL` задан → {@link ChainRpcAppsEventStream} поллит таблицы
  *    apps-контракта (releases/subs/packages) через nodeos get_table_rows
  *    и синтезирует события; иначе — Noop (watcher молчит).
- *  - `COOPERATIVE_WIF` + `CATALOG_DELIVERY_BASE_URL` заданы → {@link CatalogDeliveryReleaseMetadata}
+ *  - `CATALOG_SIGNING_KEY` + `CATALOG_DELIVERY_BASE_URL` заданы → {@link CatalogDeliveryReleaseMetadata}
  *    достаёт install-spec из npm-манифеста в catalog-delivery registry по
  *    signed-request + per-package JWT; иначе — Noop (install-spec взять
  *    неоткуда, auto-install отключён).
@@ -31,6 +31,7 @@ import {
 import { loadAppConfig } from '../config/app-config';
 import { ChainRpcAppsEventStream } from './chain-rpc-event-stream.impl';
 import { CatalogDeliveryReleaseMetadata } from './catalog-delivery-release-metadata.impl';
+import { catalogSigningKeyOrNull } from './signed-request.client';
 
 class NoopEventStream implements AppsContractEventStreamPort {
   async subscribe(_handler: (e: AppsContractEvent) => Promise<void>): Promise<{ unsubscribe(): void }> {
@@ -64,15 +65,15 @@ class NoopReleaseMetadata implements ReleaseMetadataPort {
     },
     {
       provide: RELEASE_METADATA_PORT,
-      useFactory: (): ReleaseMetadataPort => {
-        const wif = process.env.COOPERATIVE_WIF;
+      useFactory: async (): Promise<ReleaseMetadataPort> => {
         const catalogDeliveryBaseUrl = process.env.CATALOG_DELIVERY_BASE_URL;
-        if (!wif || !catalogDeliveryBaseUrl) return new NoopReleaseMetadata();
         const cfg = loadAppConfig();
+        const signingKey = await catalogSigningKeyOrNull(cfg.coopname);
+        if (!signingKey || !catalogDeliveryBaseUrl) return new NoopReleaseMetadata();
         return new CatalogDeliveryReleaseMetadata({
           catalogDeliveryBaseUrl,
           coopname: cfg.coopname,
-          cooperativeWif: wif,
+          catalogSigningKey: signingKey,
           jwtSecret: cfg.jwtSecret,
           extensionsNetwork: process.env.EXTENSIONS_DOCKER_NETWORK,
         });

@@ -25,8 +25,11 @@ const REQUEST_TIMEOUT_MS = 10_000;
 export interface CatalogDeliveryReleaseMetadataConfig {
   catalogDeliveryBaseUrl: string;
   coopname: string;
-  /** WIF приватного ключа кооператива — для signed-request к catalog-delivery. */
-  cooperativeWif: string;
+  /**
+   * Ключ подписи каталога (`apps::coops.signing_key`) — для signed-request к
+   * catalog-delivery. Отдельный от разрешений аккаунта кооператива.
+   */
+  catalogSigningKey: string;
   /** JWT_SECRET стенда — прокидывается в контейнер расширения. */
   jwtSecret: string;
   /** Docker-сеть, в которой поднимаются расширения (для containerEnv/DNS). */
@@ -60,7 +63,7 @@ export class CatalogDeliveryReleaseMetadata
   private readonly signer: SignedRequestSigner;
 
   constructor(private readonly cfg: CatalogDeliveryReleaseMetadataConfig) {
-    this.signer = new SignedRequestSigner(cfg.coopname, cfg.cooperativeWif);
+    this.signer = new SignedRequestSigner(cfg.coopname, cfg.catalogSigningKey);
   }
 
   async fetchInstallSpec(opts: {

@@ -11,6 +11,7 @@
  * Канон зафиксирован контрактом (apps-catalog libs/shared/src/auth/
  * canonicalize.ts + k1-signature.parser.ts) — менять только синхронно.
  */
+import { Logger } from '@nestjs/common';
 import { createHash, randomUUID } from 'crypto';
 import { ec as EC } from 'elliptic';
 import bs58 from 'bs58';
@@ -37,6 +38,71 @@ export function wifToPrivateKey(wif: string): Buffer {
   }
   // 33 байта payload = version + key; 34 = version + key + compression-флаг.
   return Buffer.from(payload.subarray(1, 33));
+}
+
+/** Открытый ключ цепи (`EOS…` или `PUB_K1_…`) → 33 байта сжатой точки; иные типы — null. */
+function chainPublicKeyBytes(key: string): Buffer | null {
+  const body = key.startsWith('PUB_K1_') ? key.slice(7) : key.startsWith('EOS') ? key.slice(3) : null;
+  if (body === null) return null;
+  return Buffer.from(bs58.decode(body).subarray(0, 33));
+}
+
+/**
+ * Ключ подписи каталога из `CATALOG_SIGNING_KEY`; `null`, если не задан.
+ *
+ * Каталог сверяет подпись с `apps::coops.signing_key` — ключом, отдельным от
+ * разрешений аккаунта кооператива, поэтому его допустимо держать в окружении:
+ * утечка даёт только вход в каталог и закрывается сменой ключа (`setcoop`).
+ * Если в переменную положили ключ разрешения аккаунта (`active`, `owner`),
+ * открытая копия позволила бы подписывать транзакции кооператива — такой
+ * ключ отклоняется. Без адреса цепи сверка пропускается.
+ */
+export async function loadCatalogSigningKey(
+  rpcUrl: string | undefined,
+  coopname: string,
+): Promise<string | null> {
+  const signingKey = process.env.CATALOG_SIGNING_KEY;
+  if (!signingKey) return null;
+  if (!rpcUrl) return signingKey;
+  const res = await fetch(`${rpcUrl}/v1/chain/get_account`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ account_name: coopname }),
+  });
+  if (!res.ok) {
+    throw new Error(`проверка ключа подписи каталога: get_account ${coopname} → HTTP ${res.status}`);
+  }
+  const account = (await res.json()) as {
+    permissions?: { perm_name: string; required_auth?: { keys?: { key: string }[] } }[];
+  };
+  const signingPublic = Buffer.from(
+    secp256k1.keyFromPrivate(wifToPrivateKey(signingKey)).getPublic(true, 'array'),
+  );
+  for (const permission of account.permissions ?? []) {
+    for (const { key } of permission.required_auth?.keys ?? []) {
+      if (chainPublicKeyBytes(key)?.equals(signingPublic)) {
+        throw new Error(
+          `CATALOG_SIGNING_KEY совпадает с ключом разрешения ${permission.perm_name} аккаунта ${coopname}: ` +
+            'заведите отдельный ключ и зарегистрируйте его в каталоге действием setcoop',
+        );
+      }
+    }
+  }
+  return signingKey;
+}
+
+/**
+ * {@link loadCatalogSigningKey} для фабрик модулей: адрес цепи из
+ * `CHAIN_RPC_URL`, отказ проверки пишется в журнал, и модуль работает без
+ * каталога — неверный ключ не роняет шлюз.
+ */
+export async function catalogSigningKeyOrNull(coopname: string): Promise<string | null> {
+  try {
+    return await loadCatalogSigningKey(process.env.CHAIN_RPC_URL, coopname);
+  } catch (err) {
+    new Logger('CatalogSigningKey').error(err instanceof Error ? err.message : String(err));
+    return null;
+  }
 }
 
 export interface SignedHeaders {

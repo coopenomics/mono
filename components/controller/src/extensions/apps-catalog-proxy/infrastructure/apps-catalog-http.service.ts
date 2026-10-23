@@ -5,6 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { ConfigService } from '@nestjs/config';
 import { platformSettings } from '@coopenomics/extension-kit';
 import { t } from '../i18n';
+import { accountPermissionHoldingKey, type ChainAccountPermission } from './catalog-signing-key';
 
 /** Код HTTP и текст отказа каталога: тело ответа, если оно есть, иначе сообщение ошибки. */
 function failureOf(err: unknown): { status: number | undefined; detail: string } {
@@ -284,6 +285,8 @@ export class AppsCatalogHttpService {
    */
   private tenantJwt: string | null = null;
   private tenantJwtExpMs = 0;
+  /** Проверка ключа подписи каталога выполняется один раз на процесс. */
+  private signingKeyChecked: Promise<void> | null = null;
 
   /**
    * Настройки расширения — из env через ConfigService (как у chatcoop), а не
@@ -295,7 +298,8 @@ export class AppsCatalogHttpService {
     catalogApiKey: string | undefined;
     authUrl: string | undefined;
     tenantJwt: string | undefined;
-    cooperativeWif: string | undefined;
+    catalogSigningKey: string | undefined;
+    chainRpcUrl: string | undefined;
     orchestratorUrl: string | undefined;
   };
 
@@ -309,7 +313,8 @@ export class AppsCatalogHttpService {
       catalogApiKey: env('APPS_CATALOG_OPERATOR_API_KEY'),
       authUrl: env('APPS_CATALOG_DELIVERY_URL'),
       tenantJwt: env('APPS_CATALOG_TENANT_JWT'),
-      cooperativeWif: env('COOPERATIVE_WIF'),
+      catalogSigningKey: env('CATALOG_SIGNING_KEY'),
+      chainRpcUrl: env('BLOCKCHAIN_RPC'),
       orchestratorUrl: env('ORCHESTRATOR_URL'),
     };
     this.client = this.createAdminClient();
@@ -335,10 +340,10 @@ export class AppsCatalogHttpService {
 
   /** Клиент catalog-delivery под tenant JWT кооператива; без адреса и ключа — режим деградации. */
   private createAuthClient(): AxiosInstance | null {
-    const { authUrl, tenantJwt, cooperativeWif } = this.settings;
-    if (!authUrl || !(tenantJwt || cooperativeWif)) {
+    const { authUrl, tenantJwt, catalogSigningKey } = this.settings;
+    if (!authUrl || !(tenantJwt || catalogSigningKey)) {
       this.logger.warn(
-        'APPS_CATALOG_DELIVERY_URL + (COOPERATIVE_WIF или APPS_CATALOG_TENANT_JWT) не заданы — subscribe mutation в degraded mode',
+        'APPS_CATALOG_DELIVERY_URL + (CATALOG_SIGNING_KEY или APPS_CATALOG_TENANT_JWT) не заданы — subscribe mutation в degraded mode',
       );
       return null;
     }
@@ -347,7 +352,8 @@ export class AppsCatalogHttpService {
     // через полчаса после деплоя. Поэтому заголовок ставится
     // interceptor'ом: статический APPS_CATALOG_TENANT_JWT (если задан —
     // отладочный режим) или авто-выпущенный через challenge→verify
-    // подписью COOPERATIVE_WIF, с кэшем и обновлением по истечении.
+    // подписью ключа каталога CATALOG_SIGNING_KEY, с кэшем и обновлением
+    // по истечении.
     authClient.interceptors.request.use(async (req) => {
       const jwt = tenantJwt ?? (await this.ensureTenantJwt());
       req.headers.Authorization = `Bearer ${jwt}`;
@@ -830,7 +836,9 @@ export class AppsCatalogHttpService {
   /**
    * Вернуть валидный tenant JWT кооператива, выпустив новый при
    * необходимости: `POST /v1/auth/challenge` → подпись challenge-строки
-   * ключом `coopname@active` (COOPERATIVE_WIF) → `POST /v1/auth/verify`.
+   * ключом подписи каталога (CATALOG_SIGNING_KEY) → `POST /v1/auth/verify`.
+   * Каталог сверяет подпись с `apps::coops.signing_key`, отдельным от
+   * разрешений аккаунта: этим ключом нельзя подписать транзакцию.
    * Токен кэшируется до `exp` с минутным запасом — при штатной работе
    * выпуск происходит раз в ~29 минут, а не на каждый запрос.
    *
@@ -842,10 +850,12 @@ export class AppsCatalogHttpService {
     if (this.tenantJwt && Date.now() + REFRESH_MARGIN_MS < this.tenantJwtExpMs) {
       return this.tenantJwt;
     }
-    const wif = this.settings.cooperativeWif;
-    if (!wif) {
+    const signingKey = this.settings.catalogSigningKey;
+    if (!signingKey) {
       throw new Error(t('appsCatalogProxy.catalog.noCooperativeKey'));
     }
+    this.signingKeyChecked ??= this.assertNotAccountKey(signingKey);
+    await this.signingKeyChecked;
     const base = this.settings.authUrl;
     const challengeRes = await axios.post<{ challenge_string?: string }>(
       `${base}/v1/auth/challenge`,
@@ -856,7 +866,7 @@ export class AppsCatalogHttpService {
     if (typeof challenge !== 'string' || challenge.length === 0) {
       throw new Error(t('appsCatalogProxy.catalog.emptyChallenge'));
     }
-    const signature = PrivateKey.from(wif).signMessage(Buffer.from(challenge)).toString();
+    const signature = PrivateKey.from(signingKey).signMessage(Buffer.from(challenge)).toString();
     const verifyRes = await axios.post<{ token?: string }>(
       `${base}/v1/auth/verify`,
       { coopname: platformSettings().coopname, challenge_string: challenge, signature },
@@ -872,6 +882,29 @@ export class AppsCatalogHttpService {
       `tenant JWT обновлён (exp ${new Date(this.tenantJwtExpMs).toISOString()})`,
     );
     return token;
+  }
+
+  /**
+   * Отказ, если ключ подписи каталога совпадает с ключом разрешения аккаунта
+   * кооператива. Каталогу нужен отдельный ключ, зарегистрированный в
+   * `apps::coops.signing_key`: такой ключ хранится в окружении открыто, и
+   * его утечка даёт только вход в каталог. Активный или владельческий ключ в
+   * окружении позволил бы подписывать транзакции кооператива. Без адреса цепи
+   * проверка пропускается.
+   */
+  private async assertNotAccountKey(signingKey: string): Promise<void> {
+    const rpc = this.settings.chainRpcUrl;
+    if (!rpc) return;
+    const res = await axios.post<{ permissions?: ChainAccountPermission[] }>(
+      `${rpc}/v1/chain/get_account`,
+      { account_name: platformSettings().coopname },
+      { timeout: 5000 },
+    );
+    const permission = accountPermissionHoldingKey(res.data.permissions ?? [], signingKey);
+    if (permission) {
+      this.signingKeyChecked = null;
+      throw new Error(t('appsCatalogProxy.catalog.signingKeyIsAccountKey', { permission }));
+    }
   }
 
   async activateSubscription(

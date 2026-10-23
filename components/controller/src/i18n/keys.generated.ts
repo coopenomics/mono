@@ -195,6 +195,7 @@ export type MessageKey =
   | 'appsCatalogProxy.catalog.emptyChallenge'
   | 'appsCatalogProxy.catalog.emptyToken'
   | 'appsCatalogProxy.catalog.noCooperativeKey'
+  | 'appsCatalogProxy.catalog.signingKeyIsAccountKey'
   | 'appsCatalogProxy.catalog.tenantJwtNotConfigured'
   | 'appsCatalogProxy.publishers.notAssigned'
   | 'appsCatalogProxy.publishers.packageOutOfScope'

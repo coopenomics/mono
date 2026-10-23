@@ -15,6 +15,8 @@ declare module 'elliptic' {
         s: { toArrayLike(type: typeof Buffer, endian: 'be', length: number): Buffer };
         recoveryParam: number | null;
       };
+      /** Сжатая точка (33 байта) — сверка ключа подписи каталога с ключами аккаунта. */
+      getPublic(compact: true, enc: 'array'): number[];
     };
   }
 }

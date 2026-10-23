@@ -68,7 +68,7 @@ describe('CatalogDeliveryReleaseMetadata', () => {
     new CatalogDeliveryReleaseMetadata({
       catalogDeliveryBaseUrl: 'http://catalog-delivery:3001',
       coopname: 'voskhod',
-      cooperativeWif: TEST_WIF,
+      catalogSigningKey: TEST_WIF,
       jwtSecret: 'stand-secret',
     });
 
