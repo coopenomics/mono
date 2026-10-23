@@ -1,8 +1,23 @@
 // infrastructure/graphql/graphql.module.ts
-import { Global, Module } from '@nestjs/common';
-import { GraphQLModule } from '@nestjs/graphql';
+//
+// Epic 10 / Story 10.1 — coopback переключён с ApolloDriver на
+// ApolloFederationDriver. Локальная core-схема становится первым subgraph'ом
+// федерации; gateway-режим зайдёт отдельным процессом (10.1b / 10.3 orchestrator),
+// когда появится первый внешний subgraph (chatcoop и т.д.).
+//
+// На MVP клиенты не должны заметить переключения: subgraph endpoint на том же
+// `/v1/graphql`, federation v2 добавляет лишь служебные `_service { sdl }` и
+// `_entities` query. Старые desktop-сессии продолжают работать.
+import { Global, Injectable, Module, type OnApplicationBootstrap, type OnModuleDestroy } from '@nestjs/common';
+import { HttpAdapterHost } from '@nestjs/core';
+import {
+  GqlSubscriptionService,
+  GraphQLModule,
+  GraphQLSchemaHost,
+  type GraphQLWsSubscriptionsConfig,
+} from '@nestjs/graphql';
 import config from '~/config/config';
-import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
+import { ApolloFederationDriver, ApolloFederationDriverConfig } from '@nestjs/apollo';
 import { docDirectiveTransformer } from './directives/doc.directive';
 import {
   DirectiveLocation,
@@ -16,6 +31,8 @@ import {
 import { fieldAuthDirectiveTransformer } from './directives/fieldAuth.directive';
 import logger from '~/config/logger';
 import { authenticateWsConnection, buildWsContext } from './ws-auth.registry';
+
+const GRAPHQL_PATH = '/v1/graphql';
 
 /**
  * Объявление директивы `@auth`, которую ставит на поле объекта декоратор `CouncilField`.
@@ -55,36 +72,88 @@ function describeOperation(error: unknown): { operation: string | null; operatio
   return { operationType: match[1], operation: name || null };
 }
 
+/**
+ * Realtime-подписки поверх graphql-ws на том же пути `/v1/graphql`.
+ *
+ * Почему не через `subscriptions:` драйвера: `ApolloFederationDriver`
+ * отвергает эту опцию («No support for subscriptions yet when using Apollo
+ * Federation»), а core-схема с E10 — subgraph федерации. Поэтому тот же
+ * `GqlSubscriptionService`, который `ApolloDriver` поднимал бы сам, поднимается
+ * вручную на готовой (после transformSchema) схеме — см.
+ * {@link GraphqlWsSubscriptionsBootstrap}. Соединение опознаётся однократно в
+ * onConnect тем же путём, что HTTP-запрос (JwtAuthStrategy), а контекст
+ * операции подписки повторяет форму HTTP-запроса — см. ws-auth.registry.ts.
+ */
+const graphqlWsSubscriptions: GraphQLWsSubscriptionsConfig = {
+  path: GRAPHQL_PATH,
+  onConnect: authenticateWsConnection,
+};
+
+/** Единый context для HTTP и WS: для ws — форма HTTP-запроса, для HTTP — { req, res } как есть. */
+const graphqlContext = (ctx: any) => {
+  if (ctx && typeof ctx === 'object' && 'extra' in ctx) {
+    return buildWsContext(ctx);
+  }
+  return ctx;
+};
+
+/**
+ * Поднимает graphql-ws сервер после сборки федеративной схемы и гасит его при
+ * остановке приложения. Повторяет то, что `ApolloDriver.start()` делает при
+ * `subscriptions:` — federation-драйвер этого не умеет.
+ */
+@Injectable()
+class GraphqlWsSubscriptionsBootstrap implements OnApplicationBootstrap, OnModuleDestroy {
+  private service: GqlSubscriptionService | null = null;
+
+  constructor(
+    private readonly httpAdapterHost: HttpAdapterHost,
+    private readonly schemaHost: GraphQLSchemaHost
+  ) {}
+
+  onApplicationBootstrap(): void {
+    const httpServer = this.httpAdapterHost.httpAdapter?.getHttpServer();
+    if (!httpServer) {
+      logger.warn('[ws] http-сервер недоступен — graphql-ws подписки не подняты');
+      return;
+    }
+    this.service = new GqlSubscriptionService(
+      {
+        schema: this.schemaHost.schema,
+        path: GRAPHQL_PATH,
+        context: graphqlContext,
+        'graphql-ws': graphqlWsSubscriptions,
+      },
+      httpServer
+    );
+    logger.info(`[ws] graphql-ws подписки подняты на ${GRAPHQL_PATH} поверх federation-схемы`);
+  }
+
+  async onModuleDestroy(): Promise<void> {
+    await this.service?.stop();
+  }
+}
+
 @Global()
 @Module({
   imports: [
-    GraphQLModule.forRoot<ApolloDriverConfig>({
-      driver: ApolloDriver,
+    GraphQLModule.forRoot<ApolloFederationDriverConfig>({
+      driver: ApolloFederationDriver,
       introspection: true,
-      autoSchemaFile: 'schema.gql',
+      autoSchemaFile: {
+        path: 'schema.gql',
+        federation: 2,
+      },
+      // buildSubgraphSchema (federation v2) валидирует SDL строго: директива
+      // @auth должна быть ОБЪЯВЛЕНА в схеме (полное объявление — authDirective
+      // выше), иначе композиция падает «Unknown directive "@auth"» ещё до
+      // transformSchema.
       buildSchemaOptions: { directives: [authDirective] },
       sortSchema: true,
       debug: config.env !== 'production',
-      // context: ({ req }) => req,
-      playground: { endpoint: '/v1/graphql', settings: { 'request.credentials': 'same-origin' } },
-      path: '/v1/graphql', // здесь можно задать другой путь, когда потребуется,
-      // Realtime-подписки поверх graphql-ws на том же пути. Соединение
-      // опознаётся однократно в onConnect тем же путём, что HTTP-запрос
-      // (JwtAuthStrategy), а контекст операции подписки повторяет форму
-      // HTTP-запроса — см. ws-auth.registry.ts. Для HTTP context — { req, res }
-      // как есть.
-      subscriptions: {
-        'graphql-ws': {
-          path: '/v1/graphql',
-          onConnect: authenticateWsConnection,
-        },
-      },
-      context: (ctx: any) => {
-        if (ctx && typeof ctx === 'object' && 'extra' in ctx) {
-          return buildWsContext(ctx);
-        }
-        return ctx;
-      },
+      playground: { endpoint: GRAPHQL_PATH, settings: { 'request.credentials': 'same-origin' } },
+      path: GRAPHQL_PATH,
+      context: graphqlContext,
       transformSchema: (schema) => {
         schema = docDirectiveTransformer(schema, 'auth');
         schema = fieldAuthDirectiveTransformer(schema, 'auth');
@@ -143,7 +212,7 @@ function describeOperation(error: unknown): { operation: string | null; operatio
       },
     }),
   ],
-  providers: [],
+  providers: [GraphqlWsSubscriptionsBootstrap],
   exports: [GraphQLModule],
 })
 export class GraphqlModule {}

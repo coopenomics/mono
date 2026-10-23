@@ -11,6 +11,7 @@ import { BuiltinExtensionModule } from './builtin/builtin-extension.module';
 import { ParticipantExtensionModule } from './participant/participant-extension.module';
 import { ChatCoopExtensionModule } from './chatcoop/chatcoop-extension.module';
 import { ReportsExtensionModule } from './reports/reports-extension.module';
+import { AppsCatalogProxyModule } from './apps-catalog-proxy/apps-catalog-proxy.module';
 import { MarketplaceExtensionModule } from './marketplace/marketplace-extension.module';
 import { EdubridgeExtensionModule } from './edubridge/edubridge-extension.module';
 import { ExpensesExtensionModule } from './expenses/expenses-extension.module';
@@ -38,6 +39,7 @@ export class ExtensionsModule {
         ChatCoopExtensionModule,
         InnercoopBridgeModule,
         ReportsExtensionModule,
+        AppsCatalogProxyModule,
         MarketplaceExtensionModule,
         EdubridgeExtensionModule,
         ExpensesExtensionModule,
@@ -61,6 +63,7 @@ export class ExtensionsModule {
         ChatCoopExtensionModule,
         InnercoopBridgeModule,
         ReportsExtensionModule,
+        AppsCatalogProxyModule,
         MarketplaceExtensionModule,
         EdubridgeExtensionModule,
         ExpensesExtensionModule,

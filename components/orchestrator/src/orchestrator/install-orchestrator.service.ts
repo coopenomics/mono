@@ -1,0 +1,235 @@
+/**
+ * @fileoverview Сценарий установки subgraph-расширения (Story 10.4).
+ *
+ * Шаги pipeline'а:
+ *  1. (опционально) issue OCI token у CA-auth и docker pull образа;
+ *  2. (опционально) docker compose up сервиса в проекте orchestrator'а;
+ *  3. healthcheck по URL — ждём пока subgraph внутри контейнера
+ *     прогреется и начнёт отвечать 200;
+ *  4. upsert записи в `subgraph_registry` (active=true, healthStatus='ok');
+ *  5. Apollo Gateway за ≤10 сек подтянет новую запись polling'ом и
+ *     добавит subgraph в supergraph — клиенты увидят его без рестарта.
+ *
+ * Discriminated outcome `applied | failed` — клиент должен switch'ить
+ * на `status`. На любом failure делаем rollback (compose down + deactivate
+ * в registry), чтобы не оставить «висящий» сервис, в который никто не
+ * маршрутизируется.
+ *
+ * Сервис намеренно не знает про docker socket / OCI / HTTP напрямую —
+ * это всё за портами {@link DockerRunnerPort}, {@link HealthProbePort},
+ * {@link OciTokenClientPort}. Тесты гоняют сценарий через моки портов
+ * без реального docker daemon'а.
+ */
+import { Inject, Injectable, Logger } from '@nestjs/common';
+import { SubgraphRegistryService } from '../gateway/subgraph-registry.service';
+import {
+  DOCKER_RUNNER,
+  DockerRunnerPort,
+  HEALTH_PROBE,
+  HealthProbePort,
+  OCI_TOKEN_CLIENT,
+  OciTokenClientPort,
+} from './ports';
+
+export interface InstallExtensionInput {
+  /** `@scope/name` пакета в каталоге. */
+  packageId: string;
+  /** Семантическая версия релиза. */
+  version: string;
+  /**
+   * Внутренний URL subgraph'а внутри docker-сети
+   * (например `http://chatcoop:3000/graphql`). Используется и для
+   * healthcheck'а, и как `url` в registry.
+   */
+  url: string;
+  /**
+   * OCI-ссылка образа `registry.host/scope/name:version`. Если задана —
+   * orchestrator делает docker pull. Если пусто — считается, что
+   * контейнер уже поднят сторонним образом (например core-subgraph).
+   */
+  imageRef?: string;
+  /**
+   * Имя сервиса в docker-compose файле orchestrator'а. Если задано
+   * вместе с `composeFile` — orchestrator делает `compose up -d <svc>`.
+   */
+  composeService?: string;
+  /**
+   * Путь к docker-compose файлу, описывающему extension-сервисы.
+   * Опциональный — если расширения деплоятся другим механизмом
+   * (k8s, swarm) — orchestrator только healthcheck'ает.
+   */
+  composeFile?: string;
+  /**
+   * Per-package JWT от CA-auth для docker pull. Нужен только
+   * если задан `imageRef`.
+   */
+  cooperativeJwt?: string;
+  /**
+   * Имя кооператива — username для docker login (CA-auth ожидает
+   * совпадение с `sub`-claim'ом JWT). Нужен только если задан `imageRef`.
+   */
+  coopname?: string;
+  /**
+   * URL healthcheck'а. Если не задан — выводится из `url`:
+   * origin субграфа + `/_health` (канон @coopenomics/extension-sdk).
+   */
+  healthUrl?: string;
+  /** Healthcheck timeout. По умолчанию 60 сек — Nest-приложение успевает прогреться. */
+  healthcheckTimeoutMs?: number;
+  /**
+   * Имя контейнера для прямого `docker run` — альтернатива compose-пути,
+   * когда extension-сервис не описан заранее в compose-файле (auto-install
+   * watcher'ом). Требует `imageRef`.
+   */
+  containerName?: string;
+  /** Docker-сеть контейнера расширения (DNS-видимость для gateway/coopback). */
+  containerNetwork?: string;
+  /** Env контейнера расширения (SUBGRAPH_PORT, JWT_SECRET, COOPNAME). */
+  containerEnv?: Record<string, string>;
+}
+
+/**
+ * `GET <subgraph-origin>/_health` — канонический healthcheck расширения
+ * (HealthController в extension-sdk). GraphQL-endpoint для GET-probe
+ * не годится: Apollo отвечает 400/405 на GET без query.
+ */
+export function deriveHealthUrl(subgraphUrl: string): string {
+  try {
+    return `${new URL(subgraphUrl).origin}/_health`;
+  } catch {
+    return subgraphUrl;
+  }
+}
+
+export type InstallOutcome =
+  | { status: 'applied'; packageId: string; healthAfterMs: number }
+  | { status: 'failed'; packageId: string; reason: InstallFailureReason; error: string };
+
+export type InstallFailureReason =
+  | 'oci-token'
+  | 'docker-pull'
+  | 'compose-up'
+  | 'healthcheck'
+  | 'registry-write';
+
+@Injectable()
+export class InstallOrchestratorService {
+  private readonly logger = new Logger(InstallOrchestratorService.name);
+
+  constructor(
+    @Inject(DOCKER_RUNNER) private readonly docker: DockerRunnerPort,
+    @Inject(HEALTH_PROBE) private readonly health: HealthProbePort,
+    @Inject(OCI_TOKEN_CLIENT) private readonly oci: OciTokenClientPort,
+    private readonly registry: SubgraphRegistryService,
+  ) {}
+
+  async install(input: InstallExtensionInput): Promise<InstallOutcome> {
+    const timeoutMs = input.healthcheckTimeoutMs ?? 60_000;
+    this.logger.log(`install start: ${input.packageId}@${input.version} → ${input.url}`);
+
+    // 1. (опц.) docker pull: preflight-обмен JWT на OCI token (валидация
+    //    подписки/scope с внятной ошибкой), затем docker login+pull тем же JWT.
+    if (input.imageRef !== undefined) {
+      if (input.cooperativeJwt === undefined || input.coopname === undefined) {
+        return this.failed(
+          input.packageId,
+          'oci-token',
+          'cooperativeJwt и coopname обязательны при заданном imageRef',
+        );
+      }
+      try {
+        await this.oci.issueToken({
+          packageId: input.packageId,
+          coopname: input.coopname,
+          jwt: input.cooperativeJwt,
+        });
+        await this.docker.pullImage({
+          imageRef: input.imageRef,
+          username: input.coopname,
+          password: input.cooperativeJwt,
+        });
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        const reason: InstallFailureReason = msg.includes('docker') ? 'docker-pull' : 'oci-token';
+        return this.failed(input.packageId, reason, msg);
+      }
+    }
+
+    // 2. (опц.) запуск контейнера: compose-сервис, если описан заранее,
+    //    иначе прямой docker run по containerName (путь auto-install'а).
+    if (input.composeService !== undefined && input.composeFile !== undefined) {
+      try {
+        await this.docker.composeUp({
+          composeFile: input.composeFile,
+          serviceName: input.composeService,
+        });
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        return this.failed(input.packageId, 'compose-up', msg);
+      }
+    } else if (input.containerName !== undefined && input.imageRef !== undefined) {
+      try {
+        await this.docker.runContainer({
+          imageRef: input.imageRef,
+          name: input.containerName,
+          network: input.containerNetwork,
+          env: input.containerEnv,
+        });
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        return this.failed(input.packageId, 'compose-up', msg);
+      }
+    }
+
+    // 3. healthcheck poll по /_health subgraph'а (не по GraphQL-endpoint'у).
+    const healthUrl = input.healthUrl ?? deriveHealthUrl(input.url);
+    const health = await this.health.waitUntilHealthy({ url: healthUrl, timeoutMs });
+    if (!health.ok) {
+      await this.rollbackComposeIfAny(input);
+      return this.failed(
+        input.packageId,
+        'healthcheck',
+        `${health.reason}${health.lastError ? `: ${health.lastError}` : ''}`,
+      );
+    }
+
+    // 4. upsert в subgraph_registry — Apollo Gateway за ≤10 сек подхватит.
+    try {
+      await this.registry.upsert(input.packageId, input.version, input.url);
+      await this.registry.setHealthStatus(input.packageId, 'ok');
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      await this.rollbackComposeIfAny(input);
+      return this.failed(input.packageId, 'registry-write', msg);
+    }
+
+    this.logger.log(`install applied: ${input.packageId}@${input.version} (health ${health.elapsedMs}ms)`);
+    return { status: 'applied', packageId: input.packageId, healthAfterMs: health.elapsedMs };
+  }
+
+  private async rollbackComposeIfAny(input: InstallExtensionInput): Promise<void> {
+    try {
+      if (input.composeService !== undefined && input.composeFile !== undefined) {
+        await this.docker.composeDown({
+          composeFile: input.composeFile,
+          serviceName: input.composeService,
+        });
+      } else if (input.containerName !== undefined && input.imageRef !== undefined) {
+        await this.docker.removeContainer(input.containerName);
+      }
+    } catch (e) {
+      this.logger.error(
+        `rollback failed for ${input.packageId}: ${e instanceof Error ? e.message : String(e)}`,
+      );
+    }
+  }
+
+  private failed(
+    packageId: string,
+    reason: InstallFailureReason,
+    error: string,
+  ): InstallOutcome {
+    this.logger.error(`install failed (${reason}) ${packageId}: ${error}`);
+    return { status: 'failed', packageId, reason, error };
+  }
+}

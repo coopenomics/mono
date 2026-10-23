@@ -3,6 +3,7 @@ import { useDesktopStore } from 'src/entities/Desktop/model';
 import { useCommandStore } from 'src/entities/Command';
 import type { IWorkspaceConfig } from 'src/shared/lib/types/workspace';
 import { extensionsRegistry, getAvailableExtensions } from './extensions-registry';
+import { installRemoteExtensions } from './remote-loader';
 
 export async function useInitExtensionsProcess(router: Router) {
   const store = useDesktopStore();
@@ -58,7 +59,50 @@ export async function useInitExtensionsProcess(router: Router) {
     }
   }
 
+  // Epic 9 story 9.4 — remote-loader pass: fetch + eval install.js
+  // пакетов из apps-catalog (см. remote-loader.ts).
+  await runRemotePass(router);
 
+  // Architecture v3, шаг 18: «workspace появляется без F5». WS-канала
+  // extensions.composed на MVP нет, поэтому новые пакеты подхватываются
+  // периодическим повтором pass'а (он идемпотентен — уже установленные
+  // пакеты пропускаются по packageId@version). Только в браузере:
+  // в SSR-процессе интервал не нужен и утёк бы.
+  if (typeof window !== 'undefined') {
+    // timing: schedule — фронты внешних пакетов ставит оркестратор кооператива, лента цепи кооператива об установке не сообщает
+    setInterval(() => {
+      void runRemotePass(router);
+    }, REMOTE_REFRESH_INTERVAL_MS);
+  }
+}
+
+const REMOTE_REFRESH_INTERVAL_MS = 60_000;
+
+async function runRemotePass(router: Router): Promise<void> {
+  const store = useDesktopStore();
+  try {
+    const coopname = (store as any).currentCoopname ?? '';
+    const remoteConfigs: IWorkspaceConfig[] = await installRemoteExtensions(
+      coopname,
+      router,
+    );
+    for (const config of remoteConfigs) {
+      if (config?.workspace && config?.routes?.length) {
+        store.setRoutes(config.workspace, config.routes as any);
+        const baseRoute = router.getRoutes().find((r) => r.name === 'base');
+        if (baseRoute) {
+          config.routes.forEach((r: any) => {
+            const existing = router.getRoutes().find((x) => x.name === r.name);
+            if (!existing) {
+              router.addRoute('base', r);
+            }
+          });
+        }
+      }
+    }
+  } catch (err) {
+    console.error('[init-installed-extensions] remote pass failed:', err);
+  }
 }
 
 // Функция для динамической загрузки маршрутов конкретного расширения.

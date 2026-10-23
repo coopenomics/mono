@@ -17,6 +17,17 @@ describe('Доступность расширений по сети', () => {
       expect(isExtensionAvailable(ExtensionAvailability.NOWHERE, true)).toBe(false);
       expect(isExtensionAvailable(ExtensionAvailability.NOWHERE, false)).toBe(false);
     });
+
+    it('DEVELOPMENT_ONLY открыто только в контуре разработки, в любой сети', () => {
+      expect(isExtensionAvailable(ExtensionAvailability.DEVELOPMENT_ONLY, false, true)).toBe(true);
+      expect(isExtensionAvailable(ExtensionAvailability.DEVELOPMENT_ONLY, true, true)).toBe(true);
+      expect(isExtensionAvailable(ExtensionAvailability.DEVELOPMENT_ONLY, false, false)).toBe(false);
+      expect(isExtensionAvailable(ExtensionAvailability.DEVELOPMENT_ONLY, true, false)).toBe(false);
+    });
+
+    it('без признака разработки DEVELOPMENT_ONLY закрыто — по умолчанию узел считается выпускным', () => {
+      expect(isExtensionAvailable(ExtensionAvailability.DEVELOPMENT_ONLY, false)).toBe(false);
+    });
   });
 
   describe('AppRegistry', () => {
@@ -43,6 +54,13 @@ describe('Доступность расширений по сети', () => {
       expect(AppRegistry.market.availability).toBe(ExtensionAvailability.NON_MAINNET_ONLY);
       expect(isExtensionAvailable(AppRegistry.market.availability, true)).toBe(false);
       expect(isExtensionAvailable(AppRegistry.market.availability, false)).toBe(true);
+    });
+
+    it('Стол разработчика открыт только в контуре разработки и не ставится сам (решение владельца 23.10.2026)', () => {
+      expect(AppRegistry.developer.availability).toBe(ExtensionAvailability.DEVELOPMENT_ONLY);
+      expect(AppRegistry.developer.defaults).toBeUndefined();
+      expect(isExtensionAvailable(AppRegistry.developer.availability, false, false)).toBe(false);
+      expect(isExtensionAvailable(AppRegistry.developer.availability, true, false)).toBe(false);
     });
 
     // 20.10.2026: DaData приезжала в каждый кооператив установленной и выключенной.

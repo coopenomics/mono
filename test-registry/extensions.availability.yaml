@@ -45,6 +45,12 @@ title: Доступность расширений в зависимости о�
 # (`MarketplaceRightsService`), отдельного провайдера больше нет. Логика
 # доступности расширений прежняя.
 
+# Правка 2026-10-23 (487-20): в реестр добавлена запись «Стол разработчика»
+# (`developer`, availability EVERYWHERE, без `defaults` — его ставит председатель
+# кооператива-оператора из витрины) — прокси к внешнему каталогу приложений,
+# столы `developer` и `publisher`. Логика доступности не
+# менялась, случаи те же.
+
 sources:
   backend:
     - components/controller/src/extensions/extensions.registry.ts
@@ -219,3 +225,29 @@ cases:
     external: unreachable
     external_reason: "состав по умолчанию ставится при первом старте узла; стенд внешнего слоя уже поднят, свежий узел снаружи не создать"
     status: written   # прогон — CI на полигоне ci/tests
+
+  # 23.10.2026 (487-28): стол разработчика не выпускается — значение
+  # доступности DEVELOPMENT_ONLY открывает расширение только на узле с
+  # NODE_ENV, отличным от production (локальные стенды). Узлы тестнета и
+  # основной сети запускаются в production.
+  - id: ext.avail.side.09
+    level: backend
+    kind: side
+    scenario: расширение помечено «только контур разработки», узел — локальный стенд
+    expect: расширение доступно к установке в любой сети
+    test: components/controller/tests/unit/extension/extension-availability.test.ts
+    external: unreachable
+    external_reason: "стенд внешнего слоя запускается в production; контур разработки снаружи не задать"
+    status: passing
+
+  - id: ext.avail.side.10
+    level: backend
+    kind: side
+    scenario: то же расширение на узле тестнета или основной сети (NODE_ENV=production)
+    expect: >
+      установка отклоняется, в состав по умолчанию расширение не входит, витрина
+      его не показывает вовсе — ни карточкой «недоступно», ни рабочим столом
+    test: components/controller/tests/unit/extension/extension-availability.test.ts
+    external: unreachable
+    external_reason: "смену реестра расширений через API не задать; витрина выпускного узла проверяется только на нём"
+    status: passing

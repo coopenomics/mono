@@ -1,0 +1,30 @@
+# Snippet, который orchestrator добавляет в общий docker-compose.yaml DC.
+#
+# Имя service'а = `ext-<packageId-без-scope>` (например `ext-chatcoop`).
+# Image берётся из manifest пакета (`coopenomics.backend.image`).
+# Порт subgraph'а внутри docker-network проброшен НЕ на хост — gateway
+# обращается к нему через service name + internal port.
+
+services:
+  ext-${EXT_NAME}:
+    image: ${EXT_IMAGE}
+    container_name: ext-${EXT_NAME}
+    restart: unless-stopped
+    environment:
+      SUBGRAPH_PORT: ${EXT_PORT}
+      JWT_SECRET: ${JWT_SECRET}
+      COOPNAME: ${COOPNAME}
+      DATABASE_URL: ${EXT_DATABASE_URL}
+      CORE_GRAPHQL_URL: http://coopback:3000/v1/graphql
+    networks:
+      - coopnet
+    healthcheck:
+      test: ['CMD', 'wget', '--quiet', '--tries=1', '--spider', 'http://localhost:${EXT_PORT}/_health']
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 20s
+
+networks:
+  coopnet:
+    external: true

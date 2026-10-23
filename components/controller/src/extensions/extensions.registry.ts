@@ -29,6 +29,10 @@ import { kuDatabaseMigrations } from './ku/ku.database-migrations';
 import { marketplaceDatabaseMigrations } from './marketplace/marketplace.database-migrations';
 import { sovietRobotDatabaseMigrations } from './soviet-robot/soviet-robot.database-migrations';
 import { reportsDatabaseMigrations } from './reports/reports.database-migrations';
+import { AppsCatalogProxyModule } from './apps-catalog-proxy/apps-catalog-proxy.module';
+import { DeveloperExtension, Schema as DeveloperSchema } from './apps-catalog-proxy/developer-extension';
+import { appsCatalogProxyDatabaseMigrations } from './apps-catalog-proxy/apps-catalog-proxy.database-migrations';
+import { appsCatalogProxyPorts } from './apps-catalog-proxy/apps-catalog-proxy.ports';
 
 import { chatcoopMigrations } from './chatcoop/chatcoop.migrations';
 import { marketplaceMigrations } from './marketplace/marketplace.migrations';
@@ -198,6 +202,39 @@ export const AppRegistry: INamedExtension = {
     tags: [t('app.extensionsRegistry.capital.tagDesk'), t('app.extensionsRegistry.capital.tagManagement')],
     readme: getReadmeContent('./capital'),
     instructions: getInstructionsContent('./capital'),
+    get is_desktop() {
+      return !!this.desktops && this.desktops.length > 0;
+    },
+  },
+  developer: {
+    is_internal: true,
+    // Стол разработчика пока не выпускается: на тестнете и в основной сети его
+    // нет вовсе, работа с ним идёт на локальных стендах (решение владельца 23.10.2026).
+    availability: ExtensionAvailability.DEVELOPMENT_ONLY,
+    desktops: [
+      {
+        name: 'developer',
+        title: t('app.extensionsRegistry.developer.windowTitle'),
+        icon: 'code',
+      },
+      {
+        name: 'publisher',
+        title: t('app.extensionsRegistry.developer.publisherWindowTitle'),
+        icon: 'key',
+      },
+    ],
+    title: t('app.extensionsRegistry.developer.title'),
+    description: t('app.extensionsRegistry.developer.description'),
+    image: 'https://i.ibb.co/HRW1nFY/Chat-GPT-Image-10-2025-20-40-57.png',
+    class: AppsCatalogProxyModule,
+    extensionClass: DeveloperExtension,
+    // Без defaults: на стенде разработки стол ставят из витрины вручную.
+    databaseMigrations: appsCatalogProxyDatabaseMigrations,
+    ports: appsCatalogProxyPorts,
+    schema: DeveloperSchema,
+    tags: [t('app.extensionsRegistry.developer.tagDesk'), t('app.extensionsRegistry.developer.tagDevelopment')],
+    readme: getReadmeContent('./apps-catalog-proxy'),
+    instructions: getInstructionsContent('./apps-catalog-proxy'),
     get is_desktop() {
       return !!this.desktops && this.desktops.length > 0;
     },

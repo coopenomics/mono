@@ -1,0 +1,24 @@
+{
+  "appsCatalogProxy": {
+    "catalog": {
+      "adminNotConfigured": "Каталог приложений не подключён: не заданы APPS_CATALOG_URL и APPS_CATALOG_API_KEY",
+      "authNotConfigured": "Подписка через каталог не настроена: не заданы APPS_CATALOG_AUTH_URL и COOPERATIVE_WIF",
+      "emptyChallenge": "Каталог не выдал строку для подписи при входе кооператива",
+      "emptyToken": "Каталог не выдал токен входа кооператива",
+      "noCooperativeKey": "Не задан COOPERATIVE_WIF: кооперативу нечем войти в каталог",
+      "tenantJwtNotConfigured": "Подписка через каталог не настроена: не заданы APPS_CATALOG_AUTH_URL и APPS_CATALOG_TENANT_JWT"
+    },
+    "publishers": {
+      "notAssigned": "Аккаунт {username} не назначен издателем пакета {packageId}",
+      "packageOutOfScope": "Пакет должен входить в пространство {'@'}{coopname}/",
+      "tokenNotFound": "Ключ не найден среди ваших ключей"
+    },
+    "remotePackage": {
+      "description": "Приложение издателя {publisher} из каталога. Ставится без перезапуска сервера."
+    },
+    "scope": {
+      "cooperativesRequired": "Для охвата «кооперативы» укажите хотя бы один кооператив",
+      "subnetsRequired": "Для охвата «подсети» укажите хотя бы одну подсеть"
+    }
+  }
+}

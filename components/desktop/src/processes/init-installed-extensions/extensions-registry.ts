@@ -11,6 +11,11 @@ import powerupInstall from '../../../extensions/powerup/install';
 import sovietInstall from '../../../extensions/soviet/install';
 import kuInstall from '../../../extensions/ku/install';
 import reportsInstall from '../../../extensions/reports/install';
+// Epic 9 story 9.3: «Стол разработчика» — виден только chairman'у
+// кооператива-оператора каталога. Видимость регулируется meta.roles
+// в install.ts и (V2) grants от controller'а через DesktopWorkspace.
+import developerInstall from '../../../extensions/developer/install';
+import publisherInstall from '../../../extensions/publisher/install';
 import marketInstall from '../../../extensions/market/install';
 import edubridgeInstall from '../../../extensions/edubridge/install';
 import robotInstall from '../../../extensions/robot/install';
@@ -30,6 +35,8 @@ export const extensionsRegistry: Record<string, () => Promise<IWorkspaceConfig[]
   soviet: sovietInstall,
   trustee: kuInstall,
   reports: reportsInstall,
+  developer: developerInstall,
+  publisher: publisherInstall,
   market: marketInstall,
   edubridge: edubridgeInstall,
   robot: robotInstall,

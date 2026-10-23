@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ExtensionDomainService } from './extension-domain.service';
-import { ExtensionDomainEntity, isExtensionAvailable, mergeSecretConfig, type IResolvedRegistryExtension, DomainError } from '@coopenomics/extension-kit';
+import { ExtensionAvailability, ExtensionDomainEntity, isExtensionAvailable, mergeSecretConfig, type IResolvedRegistryExtension, DomainError } from '@coopenomics/extension-kit';
 import { ExtensionDTO } from '~/application/appstore/dto/extension-graphql.dto';
 import { AppRegistry } from '~/extensions/extensions.registry';
 import zodToJsonSchema from 'zod-to-json-schema';
@@ -77,7 +77,7 @@ export class ExtensionDomainListingService<TConfig = any> {
   assertInstallable(name: string): void {
     const ext = AppRegistry[name];
     if (!ext) throw DomainError.notFound('EXTENSION_NOT_FOUND', { name });
-    if (!isExtensionAvailable(ext.availability, appConfig.blockchain.is_mainnet)) {
+    if (!isExtensionAvailable(ext.availability, appConfig.blockchain.is_mainnet, appConfig.env !== 'production')) {
       throw DomainError.internal('EXTENSION_NOT_AVAILABLE_FOR_INSTALL', { name });
     }
   }
@@ -138,11 +138,15 @@ export class ExtensionDomainListingService<TConfig = any> {
   private async extractRegistryData(): Promise<Record<string, IResolvedRegistryExtension>> {
     const map: Record<string, IResolvedRegistryExtension> = {};
 
+    const isDevelopment = appConfig.env !== 'production';
     for (const [key, ext] of Object.entries(AppRegistry)) {
       const { schema, availability, ...rest } = ext;
+      // Расширение для разработки вне её контура витрина не показывает вовсе,
+      // а не карточкой «недоступно»: в выпуске его не должно быть видно.
+      if (availability === ExtensionAvailability.DEVELOPMENT_ONLY && !isDevelopment) continue;
       map[key] = {
         ...rest,
-        is_available: isExtensionAvailable(availability, appConfig.blockchain.is_mainnet),
+        is_available: isExtensionAvailable(availability, appConfig.blockchain.is_mainnet, isDevelopment),
         schema: zodToJsonSchema(schema),
       };
     }
