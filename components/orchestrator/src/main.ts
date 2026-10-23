@@ -1,42 +1,36 @@
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
-import { DataSource } from 'typeorm';
 import { AppModule } from './app.module';
 import { loadAppConfig } from './config/app-config';
-import { SubgraphRegistryEntity } from './gateway/subgraph-registry.entity';
+import { createOrchestratorDb } from './database/database.module';
+import { runOrchestratorMigrations } from './database/migrations';
+import { upsertSubgraph } from './gateway/subgraph-registry.service';
 
 /**
- * Перед стартом Apollo Gateway seed'им запись core-subgraph'а в registry,
- * иначе IntrospectAndCompose упадёт с "пустой registry".
+ * Перед стартом Apollo Gateway применяем миграции схемы и записываем
+ * core-subgraph в реестр, иначе IntrospectAndCompose упадёт с «пустой
+ * registry».
  *
- * Bootstrap делается в отдельной DataSource (минуя Nest DI), чтобы быть
- * уверенным что seed произошёл ДО запуска GraphQLModule.forRootAsync.
+ * Делается отдельным соединением (минуя Nest DI), чтобы схема и запись
+ * ядра точно были готовы ДО запуска GraphQLModule.forRootAsync.
  */
-async function seedCoreSubgraph(cfg: ReturnType<typeof loadAppConfig>) {
-  const ds = new DataSource({
-    type: 'postgres',
-    url: cfg.postgresUrl,
-    entities: [SubgraphRegistryEntity],
-    synchronize: true,
-  });
-  await ds.initialize();
-  const repo = ds.getRepository(SubgraphRegistryEntity);
-  await repo.upsert(
-    {
-      packageId: 'core@coopback',
-      version: 'monolith',
-      url: cfg.coreSubgraphUrl,
-      active: true,
-      healthStatus: 'unknown',
-    },
-    ['packageId'],
-  );
-  await ds.destroy();
+async function prepareDatabase(cfg: ReturnType<typeof loadAppConfig>) {
+  const db = createOrchestratorDb(cfg.postgresUrl);
+  try {
+    const applied = await runOrchestratorMigrations(db);
+    if (applied.length) {
+      // eslint-disable-next-line no-console
+      console.log(`[orchestrator] миграции схемы применены: ${applied.join(', ')}`);
+    }
+    await upsertSubgraph(db, 'core@coopback', 'monolith', cfg.coreSubgraphUrl);
+  } finally {
+    await db.destroy();
+  }
 }
 
 async function bootstrap() {
   const cfg = loadAppConfig();
-  await seedCoreSubgraph(cfg);
+  await prepareDatabase(cfg);
 
   const app = await NestFactory.create(AppModule);
   await app.listen(cfg.port);

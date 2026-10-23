@@ -29,7 +29,14 @@ import { fileURLToPath } from 'node:url';
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const BASELINE = join(REPO_ROOT, 'scripts/lib/typeorm-baseline.json');
 
-const ROOTS = ['components/controller/src', 'components/extension-kit/src'];
+// Сервисы рядом с контроллером (оркестратор, шаблон субграфа) ходят в ту же
+// базу кооператива и подчиняются тому же правилу.
+const ROOTS = [
+  'components/controller/src',
+  'components/extension-kit/src',
+  'components/orchestrator/src',
+  'components/extension-sdk/src',
+];
 const source = (rel) => rel.endsWith('.ts') && !rel.endsWith('.spec.ts') && !rel.endsWith('.d.ts');
 const IMPORT = /from '(?:typeorm|@nestjs\/typeorm)(?:\/[^']*)?'/g;
 

@@ -8,14 +8,11 @@
  * refresh-мост), должно жить в отдельном импортируемом модуле.
  */
 import { Module } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { SubgraphRegistryEntity } from './subgraph-registry.entity';
 import { SubgraphRegistryService } from './subgraph-registry.service';
 import { SupergraphRefreshService } from './supergraph-refresh.service';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([SubgraphRegistryEntity])],
   providers: [SubgraphRegistryService, SupergraphRefreshService],
-  exports: [SubgraphRegistryService, SupergraphRefreshService, TypeOrmModule],
+  exports: [SubgraphRegistryService, SupergraphRefreshService],
 })
 export class SubgraphRegistryModule {}

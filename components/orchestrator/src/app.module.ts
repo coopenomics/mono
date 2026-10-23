@@ -1,24 +1,12 @@
 import { Module } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
 import { GatewayModule } from './gateway/gateway.module';
 import { OrchestratorModule } from './orchestrator/orchestrator.module';
 import { WatcherModule } from './watcher/watcher.module';
-import { loadAppConfig } from './config/app-config';
-import { SubgraphRegistryEntity } from './gateway/subgraph-registry.entity';
-
-const cfg = loadAppConfig();
+import { DatabaseModule } from './database/database.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forRoot({
-      type: 'postgres',
-      url: cfg.postgresUrl,
-      entities: [SubgraphRegistryEntity],
-      // На bootstrap безопасно создаём таблицу — registry — единственный
-      // объект, который реально нужен gateway. Прод схему мигрирует
-      // отдельная миграция при PR на интеграцию с deploy-pipeline.
-      synchronize: true,
-    }),
+    DatabaseModule,
     GatewayModule,
     OrchestratorModule,
     WatcherModule,

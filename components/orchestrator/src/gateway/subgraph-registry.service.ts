@@ -1,7 +1,7 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { SubgraphRegistryEntity } from './subgraph-registry.entity';
+import { Inject, Injectable } from '@nestjs/common';
+import type { Kysely } from 'kysely';
+import { ORCHESTRATOR_DB } from '../database/database.module';
+import type { OrchestratorDB } from '../database/database.types';
 
 export interface SubgraphDescriptor {
   name: string;
@@ -24,10 +24,7 @@ export function toSubgraphName(packageId: string): string {
  */
 @Injectable()
 export class SubgraphRegistryService {
-  constructor(
-    @InjectRepository(SubgraphRegistryEntity)
-    private readonly repo: Repository<SubgraphRegistryEntity>,
-  ) {}
+  constructor(@Inject(ORCHESTRATOR_DB) private readonly db: Kysely<OrchestratorDB>) {}
 
   /**
    * Список active subgraph'ов в формате который ждёт Apollo Gateway's
@@ -35,10 +32,15 @@ export class SubgraphRegistryService {
    * минимум одна запись (core), иначе gateway не скомпонует ничего.
    */
   async listForCompose(): Promise<SubgraphDescriptor[]> {
-    const rows = await this.repo.find({ where: { active: true } });
+    const rows = await this.db
+      .selectFrom('subgraph_registry')
+      .select(['package_id', 'url'])
+      .where('active', '=', true)
+      .orderBy('created_at')
+      .execute();
     const seen = new Map<string, number>();
     return rows.map((r) => {
-      let name = toSubgraphName(r.packageId);
+      let name = toSubgraphName(r.package_id);
       const dup = seen.get(name) ?? 0;
       seen.set(name, dup + 1);
       if (dup > 0) name = `${name}-${dup + 1}`;
@@ -47,23 +49,47 @@ export class SubgraphRegistryService {
   }
 
   async upsert(packageId: string, version: string, url: string): Promise<void> {
-    await this.repo.upsert(
-      {
-        packageId,
-        version,
-        url,
-        active: true,
-        healthStatus: 'unknown',
-      },
-      ['packageId'],
-    );
+    await upsertSubgraph(this.db, packageId, version, url);
   }
 
   async deactivate(packageId: string): Promise<void> {
-    await this.repo.update({ packageId }, { active: false });
+    await this.db
+      .updateTable('subgraph_registry')
+      .set({ active: false, updated_at: new Date() })
+      .where('package_id', '=', packageId)
+      .execute();
   }
 
   async setHealthStatus(packageId: string, healthStatus: string): Promise<void> {
-    await this.repo.update({ packageId }, { healthStatus });
+    await this.db
+      .updateTable('subgraph_registry')
+      .set({ health_status: healthStatus, updated_at: new Date() })
+      .where('package_id', '=', packageId)
+      .execute();
   }
+}
+
+/**
+ * Записать субграф активным; повторная запись того же пакета обновляет
+ * версию и адрес. Нужна и сервису, и стартовому засеву ядра в `main.ts`.
+ */
+export async function upsertSubgraph(
+  db: Kysely<OrchestratorDB>,
+  packageId: string,
+  version: string,
+  url: string,
+): Promise<void> {
+  await db
+    .insertInto('subgraph_registry')
+    .values({ package_id: packageId, version, url, active: true, health_status: 'unknown' })
+    .onConflict((oc) =>
+      oc.column('package_id').doUpdateSet({
+        version,
+        url,
+        active: true,
+        health_status: 'unknown',
+        updated_at: new Date(),
+      }),
+    )
+    .execute();
 }
