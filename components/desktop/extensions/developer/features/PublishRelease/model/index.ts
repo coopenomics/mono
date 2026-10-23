@@ -1,6 +1,7 @@
 import { ref } from 'vue';
 import { Zeus, type Mutations } from '@coopenomics/sdk';
 import { api } from '../api';
+import { t } from '../../../i18n';
 
 export type IPublishReleaseInput = Mutations.Extensions.PublishRelease.IInput['data'];
 export type IPublishReleaseOutput = Mutations.Extensions.PublishRelease.IOutput['publishRelease'];
@@ -22,7 +23,7 @@ export function usePublishRelease() {
         result.status === Zeus.PublishReleaseStatus.NOT_PUBLISHED ||
         result.status === Zeus.PublishReleaseStatus.CONFLICT
       ) {
-        lastError.value = result.error || 'Не удалось опубликовать релиз';
+        lastError.value = result.error || t('developer.publishRelease.failed');
       }
       return result;
     } catch (e) {

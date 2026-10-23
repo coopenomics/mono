@@ -1,7 +1,7 @@
 // Стол разработчика — Epic 9, story 9.3.
 //
-// Виден по grant'у `Developer:manage`, который контроллер выдаёт председателю
-// (DeveloperDesktopGrantsProvider, расширение `developer`). Стол издателя —
+// Виден по праву `Developer:manage`, которое контроллер выдаёт председателю
+// (таблица прав DeveloperRights, расширение `developer`). Стол издателя —
 // отдельное расширение `publisher` («Мои приложения»).
 //
 // Страницы: мои пакеты, публикация пакета/релиза, модерация заявок
@@ -9,7 +9,9 @@
 // действия идут GraphQL-мутациями apps-catalog-proxy controller'а,
 // который проксирует их в ca-admin/ca-auth каталога.
 
+import './i18n';
 import { markRaw } from 'vue';
+import { t } from './i18n';
 import type { IWorkspaceConfig } from 'src/shared/lib/types/workspace';
 import { DeveloperMyPackagesPage } from './pages/DeveloperMyPackagesPage';
 import { DeveloperPublishReleasePage } from './pages/DeveloperPublishReleasePage';
@@ -18,84 +20,36 @@ import { DeveloperSubscribersPage } from './pages/DeveloperSubscribersPage';
 import { DeveloperPricingPage } from './pages/DeveloperPricingPage';
 import { DeveloperPublishersPage } from './pages/DeveloperPublishersPage';
 
+/** Страницы стола: путь, имя маршрута, компонент, ключ заголовка, иконка. */
+const PAGES = [
+  { path: 'packages', name: 'developer-my-packages', component: DeveloperMyPackagesPage, title: 'developer.install.myPackages', icon: 'inventory_2' },
+  { path: 'publish', name: 'developer-publish-release', component: DeveloperPublishReleasePage, title: 'developer.install.publishRelease', icon: 'upload' },
+  { path: 'moderation', name: 'developer-moderation', component: DeveloperModerationPage, title: 'developer.install.moderation', icon: 'fact_check' },
+  { path: 'publishers', name: 'developer-publishers', component: DeveloperPublishersPage, title: 'developer.install.publishers', icon: 'key' },
+  { path: 'subscribers', name: 'developer-subscribers', component: DeveloperSubscribersPage, title: 'developer.install.subscribers', icon: 'group' },
+  { path: 'pricing', name: 'developer-pricing', component: DeveloperPricingPage, title: 'developer.install.pricing', icon: 'currency_ruble' },
+] as const;
+
+const REQUIRES = 'Developer:manage';
+
 export default async function (): Promise<IWorkspaceConfig[]> {
   return [{
     workspace: 'developer',
     extension_name: 'developer',
-    title: 'Стол разработчика',
+    title: t('developer.install.title'),
     icon: 'code',
     defaultRoute: 'developer-my-packages',
     routes: [
       {
-        meta: {
-          title: 'Стол разработчика',
-          icon: 'code',
-          requires: 'Developer:manage',
-        },
+        meta: { title: t('developer.install.title'), icon: 'code', requires: REQUIRES },
         path: '/:coopname/developer',
         name: 'developer',
-        children: [
-          {
-            path: 'packages',
-            name: 'developer-my-packages',
-            component: markRaw(DeveloperMyPackagesPage),
-            meta: {
-              title: 'Мои пакеты',
-              icon: 'inventory_2',
-              requires: 'Developer:manage',
-            },
-          },
-          {
-            path: 'publish',
-            name: 'developer-publish-release',
-            component: markRaw(DeveloperPublishReleasePage),
-            meta: {
-              title: 'Опубликовать релиз',
-              icon: 'upload',
-              requires: 'Developer:manage',
-            },
-          },
-          {
-            path: 'moderation',
-            name: 'developer-moderation',
-            component: markRaw(DeveloperModerationPage),
-            meta: {
-              title: 'Модерация',
-              icon: 'fact_check',
-              requires: 'Developer:manage',
-            },
-          },
-          {
-            path: 'publishers',
-            name: 'developer-publishers',
-            component: markRaw(DeveloperPublishersPage),
-            meta: {
-              title: 'Издатели',
-              icon: 'key',
-              requires: 'Developer:manage',
-            },
-          },
-          {
-            path: 'subscribers',
-            name: 'developer-subscribers',
-            component: markRaw(DeveloperSubscribersPage),
-            meta: {
-              title: 'Подписчики',
-              icon: 'group',
-              requires: 'Developer:manage',
-            },
-          },
-          {
-            path: 'pricing',
-            name: 'developer-pricing',
-            component: markRaw(DeveloperPricingPage),
-            meta: {
-              title: 'Pricing',
-              icon: 'currency_ruble',
-              requires: 'Developer:manage',
-            },
-          },
-        ],
+        children: PAGES.map((page) => ({
+          path: page.path,
+          name: page.name,
+          component: markRaw(page.component),
+          meta: { title: t(page.title), icon: page.icon, requires: REQUIRES },
+        })),
       },
     ],
   }];

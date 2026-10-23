@@ -1,177 +1,146 @@
-<template>
-  <q-page padding>
-    <div class="q-pa-md" style="max-width: 720px">
-      <BaseBanner v-if="!isChairman" variant="warn" class="q-mb-md">
-        Публикация пакетов и релизов — председательская операция.
-        Сейчас вы не председатель кооператива-разработчика.
-      </BaseBanner>
-      <BaseBanner v-else variant="info" class="q-mb-md">
-        Регистрация пакета (шаг 1) нужна только для ручного пути — CI
-        издателя регистрирует пакет сам при первом релизе. Релиз (шаг 2)
-        подаётся на версию, уже залитую в реестр каталога
-        (<span class="t-mono">npm publish</span>): первый релиз пакета
-        уходит на модерацию, следующие принимаются автоматически.
-        Токены для CI — на странице «Издатели».
-      </BaseBanner>
+<template lang="pug">
+q-page(padding)
+  .q-pa-md(style='max-width: 720px')
+    BaseBanner.q-mb-md(v-if='!isChairman', variant='warn')
+      | {{ $t('developer.publish.notChairman') }}
+    BaseBanner.q-mb-md(v-else, variant='info')
+      | {{ $t('developer.publish.introBefore') }} (
+      span.t-mono npm publish
+      | ). {{ $t('developer.publish.introAfter') }}
 
-      <h3 class="publish-section__title">Шаг 1. Регистрация пакета</h3>
-      <BaseCard variant="default" class="q-mb-lg">
-        <BaseForm :loading="isSubmitting" :error="lastError ?? undefined" @submit="onSubmit">
-            <BaseInput
-              v-model="packageId"
-              label="Идентификатор пакета"
-              placeholder="@voskhod/demoapp"
-              hint="Формат @scope/name. scope — Antelope-имя кооператива-разработчика."
-              :error="errors.packageId"
-              required
-              mono
-            />
+    h3.publish-section__title {{ $t('developer.publish.step1Title') }}
+    BaseCard.q-mb-lg(variant='default')
+      BaseForm(:loading='isSubmitting', :error='lastError ?? undefined', @submit='onSubmit')
+        BaseInput(
+          v-model='packageId',
+          :label="$t('developer.publish.packageIdLabel')",
+          placeholder='@voskhod/demoapp',
+          :hint="$t('developer.publish.packageIdHint')",
+          :error='errors.packageId',
+          required,
+          mono
+        )
 
-            <BaseInput
-              v-model="ownerUsername"
-              label="Antelope-аккаунт владельца"
-              placeholder="voskhod"
-              hint="1..12 символов: [a-z], [1-5], точка."
-              :error="errors.ownerUsername"
-              required
-              mono
-            />
+        BaseInput(
+          v-model='ownerUsername',
+          :label="$t('developer.publish.ownerLabel')",
+          placeholder='voskhod',
+          :hint="$t('developer.publish.ownerHint')",
+          :error='errors.ownerUsername',
+          required,
+          mono
+        )
 
-            <div>
-              <div class="t-fs-14 t-fw-500 q-mb-xs">Совместимые подсети</div>
-              <div class="t-fs-13 text-grey q-mb-sm">
-                По одному chain_id (64 hex-символа) на строку.
-              </div>
-              <q-input
-                v-model="compatibleSubnetsRaw"
-                type="textarea"
-                outlined
-                dense
-                autogrow
-                :error="!!errors.compatibleSubnets"
-                :error-message="errors.compatibleSubnets"
-                placeholder="db79c8409645082749ca50640d6f4ee511575acf26c4e2c8e4748e6bf6a01ed4"
-                input-class="t-mono t-fs-13"
-              />
-            </div>
+        BaseInput(
+          v-model='compatibleSubnetsRaw',
+          type='textarea',
+          autogrow,
+          mono,
+          :label="$t('developer.publish.subnetsLabel')",
+          :hint="$t('developer.publish.subnetsHint')",
+          :error='errors.compatibleSubnets',
+          placeholder='db79c8409645082749ca50640d6f4ee511575acf26c4e2c8e4748e6bf6a01ed4'
+        )
 
-            <template #footer="{ loading }">
-              <BaseButton
-                variant="primary"
-                type="submit"
-                :loading="loading"
-                :disabled="!isChairman"
-              >
-                Зарегистрировать пакет on-chain
-              </BaseButton>
-            </template>
-        </BaseForm>
-      </BaseCard>
+        template(#footer='{ loading }')
+          BaseButton(
+            variant='primary',
+            type='submit',
+            :loading='loading',
+            :disabled='!isChairman'
+          ) {{ $t('developer.publish.registerSubmit') }}
 
-      <BaseBanner
-        v-if="lastResult && lastResult.status === PublishPackageStatus.APPLIED"
-        variant="pos"
-        class="q-mb-lg"
-      >
-        Пакет зарегистрирован. Request: <span class="t-mono">{{ lastResult.requestId }}</span>.
-      </BaseBanner>
-      <BaseBanner
-        v-else-if="lastResult && lastResult.status === PublishPackageStatus.CONFLICT"
-        variant="warn"
-        class="q-mb-lg"
-      >
-        Пакет с таким packageId уже зарегистрирован. Опубликуйте новую версию
-        в шаге 2.
-      </BaseBanner>
+    BaseBanner.q-mb-lg(
+      v-if='lastResult && lastResult.status === PublishPackageStatus.APPLIED',
+      variant='pos'
+    )
+      | {{ $t('developer.publish.registered') }}
+      |
+      span.t-mono {{ lastResult.requestId }}
+      | .
+    BaseBanner.q-mb-lg(
+      v-else-if='lastResult && lastResult.status === PublishPackageStatus.CONFLICT',
+      variant='warn'
+    )
+      | {{ $t('developer.publish.packageConflict') }}
 
-      <h3 class="publish-section__title">Шаг 2. Публикация релиза</h3>
-      <BaseCard variant="default">
-        <BaseForm
-          :loading="releaseSubmitting"
-          :error="releaseError ?? undefined"
-          @submit="onSubmitRelease"
-        >
-          <BaseInput
-            v-model="releasePackageId"
-            label="Идентификатор пакета"
-            placeholder="@voskhod/demoapp"
-            hint="Версия уже должна быть залита npm publish в реестр каталога."
-            :error="releaseErrors.packageId"
-            required
-            mono
-          />
+    h3.publish-section__title {{ $t('developer.publish.step2Title') }}
+    BaseCard(variant='default')
+      BaseForm(
+        :loading='releaseSubmitting',
+        :error='releaseError ?? undefined',
+        @submit='onSubmitRelease'
+      )
+        BaseInput(
+          v-model='releasePackageId',
+          :label="$t('developer.publish.packageIdLabel')",
+          placeholder='@voskhod/demoapp',
+          :hint="$t('developer.publish.releasePackageHint')",
+          :error='releaseErrors.packageId',
+          required,
+          mono
+        )
 
-          <BaseInput
-            v-model="releaseVersion"
-            label="Версия релиза"
-            placeholder="1.0.0"
-            hint="Semver: major.minor.patch."
-            :error="releaseErrors.version"
-            required
-            mono
-          />
+        BaseInput(
+          v-model='releaseVersion',
+          :label="$t('developer.publish.versionLabel')",
+          placeholder='1.0.0',
+          :hint="$t('developer.publish.versionHint')",
+          :error='releaseErrors.version',
+          required,
+          mono
+        )
 
-          <BaseInput
-            v-model="releaseBrief"
-            label="Что изменилось"
-            hint="Кратко для модератора. Необязательно."
-            :error="releaseErrors.brief"
-          />
+        BaseInput(
+          v-model='releaseBrief',
+          :label="$t('developer.publish.briefLabel')",
+          :hint="$t('developer.publish.briefHint')",
+          :error='releaseErrors.brief'
+        )
 
-          <template #footer="{ loading }">
-            <BaseButton
-              variant="primary"
-              type="submit"
-              :loading="loading"
-              :disabled="!isChairman"
-            >
-              Опубликовать релиз
-            </BaseButton>
-          </template>
-        </BaseForm>
-      </BaseCard>
+        template(#footer='{ loading }')
+          BaseButton(
+            variant='primary',
+            type='submit',
+            :loading='loading',
+            :disabled='!isChairman'
+          ) {{ $t('developer.install.publishRelease') }}
 
-      <BaseBanner
-        v-if="releaseResult && releaseResult.status === PublishReleaseStatus.APPLIED"
-        variant="pos"
-        class="q-mt-md"
-      >
-        Релиз активирован: пакет уже проходил модерацию, подписчики получат
-        версию автоматически. Request: <span class="t-mono">{{ releaseResult.requestId }}</span>.
-      </BaseBanner>
-      <BaseBanner
-        v-else-if="releaseResult && releaseResult.status === PublishReleaseStatus.QUEUED"
-        variant="info"
-        class="q-mt-md"
-      >
-        Первый релиз пакета — отправлен на модерацию (заявка
-        <span class="t-mono">{{ releaseResult.moderationId }}</span>).
-        После одобрения следующие версии будут приниматься автоматически.
-      </BaseBanner>
-      <BaseBanner
-        v-else-if="releaseResult && releaseResult.status === PublishReleaseStatus.NOT_PUBLISHED"
-        variant="warn"
-        class="q-mt-md"
-      >
-        Версии нет в реестре каталога. Сначала выполните
-        <span class="t-mono">npm publish</span> (или CI издателя), затем подайте релиз.
-      </BaseBanner>
-      <BaseBanner
-        v-else-if="releaseResult && releaseResult.status === PublishReleaseStatus.CONFLICT"
-        variant="warn"
-        class="q-mt-md"
-      >
-        Эта версия уже подана или выпущена.
-      </BaseBanner>
-      <BaseBanner
-        v-else-if="releaseResult && releaseResult.status === PublishReleaseStatus.INVALID_MANIFEST"
-        variant="neg"
-        class="q-mt-md"
-      >
-        Манифест не прошёл валидацию каталога: {{ releaseResult.error }}
-      </BaseBanner>
-    </div>
-  </q-page>
+    BaseBanner.q-mt-md(
+      v-if='releaseResult && releaseResult.status === PublishReleaseStatus.APPLIED',
+      variant='pos'
+    )
+      | {{ $t('developer.publish.applied') }}
+      |
+      span.t-mono {{ releaseResult.requestId }}
+      | .
+    BaseBanner.q-mt-md(
+      v-else-if='releaseResult && releaseResult.status === PublishReleaseStatus.QUEUED',
+      variant='info'
+    )
+      | {{ $t('developer.publish.queuedBefore') }}
+      |
+      span.t-mono {{ releaseResult.moderationId }}
+      | . {{ $t('developer.publish.queuedAfter') }}
+    BaseBanner.q-mt-md(
+      v-else-if='releaseResult && releaseResult.status === PublishReleaseStatus.NOT_PUBLISHED',
+      variant='warn'
+    )
+      | {{ $t('developer.publish.notPublishedBefore') }}
+      |
+      span.t-mono npm publish
+      |
+      | {{ $t('developer.publish.notPublishedAfter') }}
+    BaseBanner.q-mt-md(
+      v-else-if='releaseResult && releaseResult.status === PublishReleaseStatus.CONFLICT',
+      variant='warn'
+    )
+      | {{ $t('developer.publish.releaseConflict') }}
+    BaseBanner.q-mt-md(
+      v-else-if='releaseResult && releaseResult.status === PublishReleaseStatus.INVALID_MANIFEST',
+      variant='neg'
+    )
+      | {{ $t('developer.publish.invalidManifest', { error: releaseResult.error }) }}
 </template>
 
 <script setup lang="ts">
@@ -193,6 +162,7 @@ import {
   usePublishRelease,
   type IPublishReleaseInput,
 } from '../features/PublishRelease/model';
+import { t } from '../i18n';
 
 const PublishPackageStatus = Zeus.PublishPackageStatus;
 const PublishReleaseStatus = Zeus.PublishReleaseStatus;
@@ -226,10 +196,10 @@ function validate(): IPublishPackageInput | null {
   errors.compatibleSubnets = '';
 
   if (!PACKAGE_ID_RE.test(packageId.value.trim())) {
-    errors.packageId = 'Ожидается @scope/name из [a-z0-9-].';
+    errors.packageId = t('developer.publish.validation.packageIdFormat');
   }
   if (!ANTELOPE_NAME_RE.test(ownerUsername.value.trim())) {
-    errors.ownerUsername = 'Antelope-имя: 1..12 символов из [a-z1-5.].';
+    errors.ownerUsername = t('developer.publish.validation.ownerFormat');
   }
 
   const subnets = compatibleSubnetsRaw.value
@@ -238,10 +208,10 @@ function validate(): IPublishPackageInput | null {
     .filter(Boolean);
 
   if (subnets.length === 0) {
-    errors.compatibleSubnets = 'Нужен минимум один chain_id.';
+    errors.compatibleSubnets = t('developer.publish.validation.subnetsRequired');
   } else {
     const bad = subnets.find((s) => !CHAIN_ID_RE.test(s));
-    if (bad) errors.compatibleSubnets = `Неверный chain_id: ${bad}`;
+    if (bad) errors.compatibleSubnets = t('developer.publish.validation.subnetInvalid', { value: bad });
   }
 
   if (errors.packageId || errors.ownerUsername || errors.compatibleSubnets) return null;
@@ -289,13 +259,13 @@ function validateRelease(): IPublishReleaseInput | null {
   releaseErrors.brief = '';
 
   if (!PACKAGE_ID_RE.test(releasePackageId.value.trim())) {
-    releaseErrors.packageId = 'Ожидается @scope/name из [a-z0-9-].';
+    releaseErrors.packageId = t('developer.publish.validation.packageIdFormat');
   }
   if (!SEMVER_RE.test(releaseVersion.value.trim())) {
-    releaseErrors.version = 'Semver: например 1.0.0.';
+    releaseErrors.version = t('developer.publish.validation.versionFormat');
   }
   if (releaseBrief.value.length > 2000) {
-    releaseErrors.brief = 'До 2000 символов.';
+    releaseErrors.brief = t('developer.publish.validation.briefTooLong');
   }
 
   if (releaseErrors.packageId || releaseErrors.version || releaseErrors.brief) {

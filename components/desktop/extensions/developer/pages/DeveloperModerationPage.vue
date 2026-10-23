@@ -1,138 +1,103 @@
-<template>
-  <q-page padding>
-    <div class="q-pa-md">
-      <BaseBanner variant="info" class="q-mb-md">
-        Заявки разработчиков на публикацию релизов. Одобрение активирует
-        релиз on-chain и делает пакет доступным кооперативам по подписке;
-        отказ возвращается разработчику с причиной.
-      </BaseBanner>
+<template lang="pug">
+q-page(padding)
+  .q-pa-md
+    BaseBanner.q-mb-md(variant='info')
+      | {{ $t('developer.moderation.intro') }}
 
-      <TableSkeleton
-        v-if="loading && !items.length"
-        :columns="skeletonColumns"
-        :rows="3"
-      />
+    TableSkeleton(
+      v-if='loading && !items.length',
+      :columns='skeletonColumns',
+      :rows='3'
+    )
 
-      <BaseBanner v-else-if="error" variant="neg" class="q-mb-md">
-        {{ error }}
-      </BaseBanner>
+    BaseBanner.q-mb-md(v-else-if='error', variant='neg')
+      | {{ error }}
 
-      <EmptyState
-        v-else-if="!items.length"
-        title="Заявок на модерацию нет"
-        body="Когда разработчик опубликует релиз, заявка появится здесь."
-      >
-        <template #icon>
-          <q-icon name="fact_check" size="28px" />
-        </template>
-      </EmptyState>
+    EmptyState(
+      v-else-if='!items.length',
+      :title="$t('developer.moderation.emptyTitle')",
+      :body="$t('developer.moderation.emptyBody')"
+    )
+      template(#icon)
+        q-icon(name='fact_check', size='28px')
 
-      <div v-else class="table-wrap">
-        <div class="table-scroll">
-          <table class="table">
-            <thead>
-              <tr>
-                <th>Пакет</th>
-                <th>Версия</th>
-                <th>Описание</th>
-                <th>Статус</th>
-                <th class="col-action">Действия</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="m in items" :key="m.id">
-                <td>
-                  <div class="t-mono">{{ m.packageId }}</div>
-                  <div class="t-sm t-muted">{{ m.submittedBy }} · {{ formatDate(m.submittedAt) }}</div>
-                </td>
-                <td><span class="t-mono">{{ m.version }}</span></td>
-                <td class="moderation__brief">{{ m.brief }}</td>
-                <td>
-                  <BaseBadge :variant="statusMap[m.status]?.variant ?? 'neutral'">
-                    {{ statusMap[m.status]?.label ?? m.status }}
-                  </BaseBadge>
-                  <BaseBadge
-                    v-if="m.requiresOverride"
-                    variant="neg"
-                    class="q-ml-xs"
-                  >
-                    уязвимость
-                  </BaseBadge>
-                </td>
-                <td class="col-action">
-                  <div class="moderation__actions">
-                    <BaseButton
-                      variant="primary"
-                      size="sm"
-                      :disabled="m.status !== 'SUBMITTED'"
-                      @click="openApprove(m)"
-                    >
-                      Одобрить
-                    </BaseButton>
-                    <BaseButton
-                      variant="danger"
-                      size="sm"
-                      :disabled="m.status !== 'SUBMITTED'"
-                      @click="openReject(m)"
-                    >
-                      Отклонить
-                    </BaseButton>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
+    .table-wrap(v-else)
+      .table-scroll
+        table.table
+          thead
+            tr
+              th {{ $t('developer.column.package') }}
+              th {{ $t('developer.column.version') }}
+              th {{ $t('developer.column.description') }}
+              th {{ $t('developer.column.status') }}
+              th.col-action {{ $t('developer.column.actions') }}
+          tbody
+            tr(v-for='m in items', :key='m.id')
+              td
+                .t-mono {{ m.packageId }}
+                .t-sm.t-muted {{ m.submittedBy }} · {{ formatDate(m.submittedAt) }}
+              td
+                span.t-mono {{ m.version }}
+              td.moderation__brief {{ m.brief }}
+              td
+                BaseBadge(:variant="statusMap[m.status]?.variant ?? 'neutral'")
+                  | {{ statusMap[m.status]?.label ?? m.status }}
+                BaseBadge.q-ml-xs(v-if='m.requiresOverride', variant='neg')
+                  | {{ $t('developer.moderation.vulnerability') }}
+              td.col-action
+                .moderation__actions
+                  BaseButton(
+                    variant='primary',
+                    size='sm',
+                    :disabled="m.status !== 'SUBMITTED'",
+                    @click='openApprove(m)'
+                  ) {{ $t('developer.moderation.approve') }}
+                  BaseButton(
+                    variant='danger',
+                    size='sm',
+                    :disabled="m.status !== 'SUBMITTED'",
+                    @click='openReject(m)'
+                  ) {{ $t('developer.moderation.reject') }}
 
-    <BaseDialog v-model="approveDialog" title="Одобрение релиза" size="sm">
-      <p class="t-sm t-muted q-mb-sm">
-        Релиз <span class="t-mono">{{ selected?.packageId }}@{{ selected?.version }}</span>
-        будет активирован для всех кооперативов.
-      </p>
-      <BaseCheckbox
-        v-if="selected?.requiresOverride"
-        v-model="approveOverride"
-        label="Подтверждаю одобрение пакета с критической уязвимостью"
-      />
-      <BaseBanner v-if="actionError" variant="neg" class="q-mt-sm">
-        {{ actionError }}
-      </BaseBanner>
-      <template #footer>
-        <BaseButton variant="ghost" :disabled="actionLoading" @click="approveDialog = false">
-          Отмена
-        </BaseButton>
-        <BaseButton variant="primary" :loading="actionLoading" @click="confirmApprove">
-          Одобрить
-        </BaseButton>
-      </template>
-    </BaseDialog>
+  BaseDialog(v-model='approveDialog', :title="$t('developer.moderation.approveTitle')", size='sm')
+    p.t-sm.t-muted.q-mb-sm
+      | {{ $t('developer.moderation.releaseLabel') }}
+      |
+      span.t-mono {{ selected?.packageId }}@{{ selected?.version }}
+      |
+      | {{ $t('developer.moderation.approveForAll') }}
+    BaseCheckbox(
+      v-if='selected?.requiresOverride',
+      v-model='approveOverride',
+      :label="$t('developer.moderation.overrideLabel')"
+    )
+    BaseBanner.q-mt-sm(v-if='actionError', variant='neg')
+      | {{ actionError }}
+    template(#footer)
+      BaseButton(variant='ghost', :disabled='actionLoading', @click='approveDialog = false')
+        | {{ $t('common.action.cancel') }}
+      BaseButton(variant='primary', :loading='actionLoading', @click='confirmApprove')
+        | {{ $t('developer.moderation.approve') }}
 
-    <BaseDialog v-model="rejectDialog" title="Отказ в публикации" size="sm">
-      <p class="t-sm t-muted q-mb-sm">
-        Причину увидит разработчик пакета
-        <span class="t-mono">{{ selected?.packageId }}</span>.
-      </p>
-      <BaseInput
-        v-model="rejectReason"
-        label="Причина отказа"
-        :error="rejectReasonError"
-        required
-      />
-      <BaseBanner v-if="actionError" variant="neg" class="q-mt-sm">
-        {{ actionError }}
-      </BaseBanner>
-      <template #footer>
-        <BaseButton variant="ghost" :disabled="actionLoading" @click="rejectDialog = false">
-          Отмена
-        </BaseButton>
-        <BaseButton variant="danger" :loading="actionLoading" @click="confirmReject">
-          Отклонить
-        </BaseButton>
-      </template>
-    </BaseDialog>
-  </q-page>
+  BaseDialog(v-model='rejectDialog', :title="$t('developer.moderation.rejectTitle')", size='sm')
+    p.t-sm.t-muted.q-mb-sm
+      | {{ $t('developer.moderation.rejectText') }}
+      |
+      span.t-mono {{ selected?.packageId }}
+      | .
+    BaseInput(
+      v-model='rejectReason',
+      :label="$t('developer.moderation.rejectReason')",
+      :error='rejectReasonError',
+      required
+    )
+    BaseBanner.q-mt-sm(v-if='actionError', variant='neg')
+      | {{ actionError }}
+    template(#footer)
+      BaseButton(variant='ghost', :disabled='actionLoading', @click='rejectDialog = false')
+        | {{ $t('common.action.cancel') }}
+      BaseButton(variant='danger', :loading='actionLoading', @click='confirmReject')
+        | {{ $t('developer.moderation.reject') }}
 </template>
 
 <script setup lang="ts">
@@ -151,6 +116,7 @@ import type { TableSkeletonColumn } from 'src/shared/ui/base/TableSkeleton/Table
 import type { BaseBadgeVariant } from 'src/shared/ui/base/BaseBadge/BaseBadge.types';
 import { api as extensionApi } from 'src/entities/Extension/api';
 import { Zeus, type Queries } from '@coopenomics/sdk';
+import { t } from '../i18n';
 
 type ModerationRow = Queries.Extensions.AppsCatalogPendingModerations.IOutput[
   typeof Queries.Extensions.AppsCatalogPendingModerations.name
@@ -161,19 +127,19 @@ const loading = ref(false);
 const error = ref<string | null>(null);
 
 const skeletonColumns: TableSkeletonColumn[] = [
-  { label: 'Пакет' },
-  { label: 'Версия', width: '100px' },
-  { label: 'Описание' },
-  { label: 'Статус', cell: 'badge' },
-  { label: 'Действия', cell: 'icon', class: 'col-action' },
+  { label: t('developer.column.package') },
+  { label: t('developer.column.version'), width: '100px' },
+  { label: t('developer.column.description') },
+  { label: t('developer.column.status'), cell: 'badge' },
+  { label: t('developer.column.actions'), cell: 'icon', class: 'col-action' },
 ];
 
 const statusMap: Record<string, { label: string; variant: BaseBadgeVariant }> = {
-  SUBMITTED: { label: 'На модерации', variant: 'warn' },
-  APPROVED: { label: 'Одобрена', variant: 'pos' },
-  APPROVED_PENDING_CHAIN: { label: 'Одобрена, ждёт блокчейн', variant: 'info' },
-  REJECTED: { label: 'Отклонена', variant: 'neg' },
-  WITHDRAWN: { label: 'Отозвана', variant: 'neutral' },
+  SUBMITTED: { label: t('developer.moderation.status.submitted'), variant: 'warn' },
+  APPROVED: { label: t('developer.moderation.status.approved'), variant: 'pos' },
+  APPROVED_PENDING_CHAIN: { label: t('developer.moderation.status.approvedPendingChain'), variant: 'info' },
+  REJECTED: { label: t('developer.moderation.status.rejected'), variant: 'neg' },
+  WITHDRAWN: { label: t('developer.moderation.status.withdrawn'), variant: 'neutral' },
 };
 
 function formatDate(iso?: string | null): string {
@@ -235,10 +201,9 @@ async function confirmApprove() {
       approveDialog.value = false;
       await load();
     } else if (result.status === Zeus.ApproveModerationStatus.REQUIRES_OVERRIDE) {
-      actionError.value =
-        'Пакет с критической уязвимостью: подтвердите одобрение галочкой.';
+      actionError.value = t('developer.moderation.overrideRequired');
     } else {
-      actionError.value = result.error || 'Не удалось одобрить заявку';
+      actionError.value = result.error || t('developer.moderation.approveFailed');
     }
   } catch (e) {
     actionError.value = e instanceof Error ? e.message : String(e);
@@ -252,7 +217,7 @@ async function confirmReject() {
   rejectReasonError.value = '';
   const reason = rejectReason.value.trim();
   if (reason.length < 3) {
-    rejectReasonError.value = 'Минимум 3 символа.';
+    rejectReasonError.value = t('developer.moderation.reasonTooShort');
     return;
   }
   actionLoading.value = true;
@@ -266,7 +231,7 @@ async function confirmReject() {
       rejectDialog.value = false;
       await load();
     } else {
-      actionError.value = result.error || 'Не удалось отклонить заявку';
+      actionError.value = result.error || t('developer.moderation.rejectFailed');
     }
   } catch (e) {
     actionError.value = e instanceof Error ? e.message : String(e);
@@ -275,6 +240,7 @@ async function confirmReject() {
   }
 }
 
+// realtime: нет источника — заявки живут во внешнем каталоге, лента цепи кооператива о них не сообщает.
 onMounted(load);
 </script>
 

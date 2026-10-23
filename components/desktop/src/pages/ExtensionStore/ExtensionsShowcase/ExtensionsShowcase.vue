@@ -1,11 +1,9 @@
 <template lang="pug">
 BaseBanner.q-mb-md(variant='info')
-  | Нативные расширения встроены в платформу и не требуют оплаты.
-  | Удалённые пакеты публикуются в каталоге приложений и подключаются
-  | по подписке кооператива.
+  | {{ $t('extensionStore.showcase.intro') }}
 
 section.catalog-section
-  h3.catalog-section__title Нативные расширения
+  h3.catalog-section__title {{ $t('extensionStore.showcase.nativeTitle') }}
   .catalog-grid
     ExtensionCard(
       v-for='extension in filteredExtensions',
@@ -15,9 +13,9 @@ section.catalog-section
 
 section.catalog-section.catalog-section--remote
   .catalog-section__head
-    h3.catalog-section__title Удалённые пакеты
+    h3.catalog-section__title {{ $t('extensionStore.showcase.remoteTitle') }}
     span.catalog-section__hint(v-if='!remoteLoading && !remoteError && remoteExtensions.length')
-      | Каталог приложений · {{ remoteExtensions.length }} {{ packagesWord }}
+      | {{ $t('extensionStore.showcase.remoteCount', remoteExtensions.length) }}
 
   .catalog-grid(v-if='remoteLoading && !remoteExtensions.length')
     article.remote-card(v-for='n in 3', :key='n')
@@ -32,15 +30,15 @@ section.catalog-section.catalog-section--remote
   .catalog-state.catalog-state--error(v-else-if='remoteError')
     q-icon.catalog-state__icon(name='warning', size='28px')
     .catalog-state__body
-      h4.catalog-state__title Не удалось загрузить удалённые пакеты
+      h4.catalog-state__title {{ $t('extensionStore.showcase.loadFailed') }}
       p.catalog-state__text {{ remoteError }}
       div
-        BaseButton(variant='secondary', size='sm', @click='loadRemote') Повторить
+        BaseButton(variant='secondary', size='sm', @click='loadRemote') {{ $t('common.action.retry') }}
 
   EmptyState(
     v-else-if='!remoteExtensions.length',
-    title='Каталог пока пуст',
-    body='В каталоге приложений ещё не опубликован ни один пакет. Зайдите позже или соберите свой пакет в столе разработчика.'
+    :title="$t('extensionStore.showcase.emptyTitle')",
+    :body="$t('extensionStore.showcase.emptyBody')"
   )
     template(#icon)
       q-icon(name='inventory_2', size='28px')
@@ -55,7 +53,7 @@ section.catalog-section.catalog-section--remote
           q-icon(name='extension', size='22px')
         .remote-card__heading
           h3.remote-card__title {{ pkg.title }}
-          BaseBadge(variant='info') Удалённый
+          BaseBadge(variant='info') {{ $t('extensionStore.showcase.remoteBadge') }}
       p.remote-card__desc {{ pkg.description }}
       .remote-card__meta
         span.remote-card__publisher
@@ -63,29 +61,29 @@ section.catalog-section.catalog-section--remote
           | {{ pkg.publisher }}
         span.remote-card__version(
           v-if='pkg.lastActiveVersion',
-          title='Последняя активная версия'
+          :title="$t('extensionStore.showcase.lastActiveVersion')"
         )
           q-icon(name='commit', size='12px')
           | {{ pkg.lastActiveVersion }}
-        span.remote-card__price {{ formatPrice(pkg.rubPerMonth) }} ₽/мес
+        span.remote-card__price {{ $t('extensionStore.showcase.perMonth', { amount: formatPrice(pkg.rubPerMonth) }) }}
       .remote-card__foot
-        BaseButton(variant='primary', size='sm', @click='openSubscribe(pkg)') Подписаться
+        BaseButton(variant='primary', size='sm', @click='openSubscribe(pkg)') {{ $t('extensionStore.showcase.subscribe') }}
 
 BaseDialog(v-model='subscribeDialog', :title='subscribeTitle', size='sm')
   .subscribe-dialog__body
     p.q-mb-sm
-      | Стоимость: {{ pendingPkg ? formatPrice(pendingPkg.rubPerMonth) : '—' }} ₽/мес.
-      | Первый период может быть пробным — это определяет каталог приложений.
+      | {{ $t('extensionStore.showcase.price', { amount: pendingPkg ? formatPrice(pendingPkg.rubPerMonth) : '—' }) }}
+      | {{ $t('extensionStore.showcase.trialNote') }}
     BaseBanner.q-mb-sm(v-if='subscribeResultBanner', :variant='subscribeResultBanner.variant')
       | {{ subscribeResultBanner.text }}
   template(#footer)
-    BaseButton(variant='ghost', :disabled='subscribing', @click='closeSubscribe') Закрыть
+    BaseButton(variant='ghost', :disabled='subscribing', @click='closeSubscribe') {{ $t('common.action.close') }}
     BaseButton(
       v-if='!subscribeDone',
       variant='primary',
       :loading='subscribing',
       @click='confirmSubscribe'
-    ) Подписаться
+    ) {{ $t('extensionStore.showcase.subscribe') }}
 </template>
 
 <script lang="ts" setup>
@@ -94,6 +92,7 @@ import { useSystemStore } from 'src/entities/System/model';
 import { api as extensionApi } from 'src/entities/Extension/api';
 import { onMounted, computed, ref } from 'vue';
 import { useLiveReload } from 'src/shared/lib/realtime';
+import { t } from 'src/shared/i18n';
 import { ExtensionCard } from 'src/widgets/ExtensionCard';
 import { Queries, Zeus } from '@coopenomics/sdk';
 import { BaseBadge, BaseBanner, BaseButton, BaseDialog, EmptyState } from 'src/shared/ui/base';
@@ -115,16 +114,6 @@ const remoteExtensions = ref<RemotePackage[]>([]);
 const remoteLoading = ref(false);
 const remoteError = ref<string | null>(null);
 
-const packagesWord = computed(() => {
-  const n = remoteExtensions.value.length;
-  const lastTwo = n % 100;
-  const last = n % 10;
-  if (lastTwo >= 11 && lastTwo <= 14) return 'пакетов';
-  if (last === 1) return 'пакет';
-  if (last >= 2 && last <= 4) return 'пакета';
-  return 'пакетов';
-});
-
 function formatPrice(rub: number): string {
   return new Intl.NumberFormat('ru-RU').format(rub);
 }
@@ -136,7 +125,7 @@ const subscribeDone = ref(false);
 const subscribeResultBanner = ref<{ variant: 'pos' | 'warn' | 'neg'; text: string } | null>(null);
 
 const subscribeTitle = computed(() =>
-  pendingPkg.value ? `Подписка на ${pendingPkg.value.title}` : 'Подписка на пакет',
+  pendingPkg.value ? t('extensionStore.showcase.subscribeTitle', { title: pendingPkg.value.title }) : t('extensionStore.showcase.subscribeTitleDefault'),
 );
 
 function openSubscribe(pkg: RemotePackage) {
@@ -164,27 +153,27 @@ async function confirmSubscribe() {
         subscribeResultBanner.value = {
           variant: 'pos',
           text: result.state === Zeus.SubscriptionStateEnum.TRIAL
-            ? `Пробная подписка активна до ${formatDate(result.endAt)}.`
-            : `Подписка активна до ${formatDate(result.endAt)}.`,
+            ? t('extensionStore.showcase.trialActive', { date: formatDate(result.endAt) })
+            : t('extensionStore.showcase.active', { date: formatDate(result.endAt) }),
         };
         break;
       case Zeus.SubscribePackageStatus.ALREADY_ACTIVE:
         subscribeDone.value = true;
         subscribeResultBanner.value = {
           variant: 'warn',
-          text: 'Подписка на этот пакет уже активна.',
+          text: t('extensionStore.showcase.alreadyActive'),
         };
         break;
       case Zeus.SubscribePackageStatus.CLIENT_NOT_REGISTERED:
         subscribeResultBanner.value = {
           variant: 'neg',
-          text: 'Кооператив не подключён к каталогу приложений. Обратитесь к оператору каталога.',
+          text: t('extensionStore.showcase.notRegistered'),
         };
         break;
       default:
         subscribeResultBanner.value = {
           variant: 'neg',
-          text: result.error || 'Каталог приложений недоступен. Попробуйте позже.',
+          text: result.error || t('extensionStore.showcase.unavailableRetry'),
         };
     }
   } catch (e) {
@@ -211,7 +200,7 @@ async function loadRemote() {
     remoteExtensions.value = list;
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
-    remoteError.value = msg || 'Каталог приложений недоступен';
+    remoteError.value = msg || t('extensionStore.showcase.unavailable');
     remoteExtensions.value = [];
   } finally {
     remoteLoading.value = false;

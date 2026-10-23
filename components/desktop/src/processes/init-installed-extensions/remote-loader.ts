@@ -78,6 +78,8 @@ export async function fetchInstalledRemotePackages(
   // привязан к нему; параметр сохранён в сигнатуре для совместимости.
   void coopname;
   const { tokens } = useGlobalStore();
+  // Без входа список закрыт сервером (401): опрос не идёт, пока пайщик не вошёл.
+  if (!tokens?.access?.token) return [];
   try {
     const response = await axios.get<{ items: InstalledFrontendMeta[] }>(
       `${env.BACKEND_URL}/v1/apps-catalog/installed-frontends`,
@@ -131,18 +133,10 @@ async function computeSha256Hex(code: string): Promise<string | null> {
     .join('');
 }
 
-/**
- * Скачать install.js пакета и eval'нуть его в plain CJS-обёртке.
- * Возвращает массив workspace'ов, который install() пакета вернул.
- *
- * E12-3: перед eval тело сверяется с `X-Install-Script-Sha256` —
- * заголовок едет из volume-кэша orchestrator'а, где sha уже проверен
- * против декларации манифеста. Расхождение = повреждение/подмена по
- * дороге → пакет не устанавливается.
- */
-export async function loadRemoteExtension(
+/** Тело install.js пакета и заявленный кэшем оркестратора sha256. */
+async function fetchInstallScript(
   desc: RemoteExtensionDescriptor,
-): Promise<IWorkspaceConfig[]> {
+): Promise<{ code: string; declaredSha: unknown }> {
   const { tokens } = useGlobalStore();
   const url = `${env.BACKEND_URL}/v1/apps-catalog/install/${encodeURIComponent(
     desc.scope,
@@ -159,26 +153,48 @@ export async function loadRemoteExtension(
   if (typeof code !== 'string' || code.length === 0) {
     throw new Error('empty install.js response');
   }
+  return {
+    code,
+    declaredSha: (response.headers as Record<string, unknown>)['x-install-script-sha256'],
+  };
+}
 
-  const declaredSha = (
-    response.headers as Record<string, unknown>
-  )['x-install-script-sha256'];
-  if (typeof declaredSha === 'string' && declaredSha.length === 64) {
-    const actualSha = await computeSha256Hex(code);
-    if (actualSha === null) {
-      console.warn(
-        `[remote-loader] crypto.subtle недоступен — sha256 install.js пакета ${desc.packageId} не сверен`,
-      );
-    } else if (actualSha !== declaredSha) {
-      throw new Error(
-        `sha256 install.js пакета ${desc.packageId} не совпал: ожидался ${declaredSha}, получен ${actualSha}`,
-      );
-    }
+/**
+ * E12-3: перед eval тело сверяется с `X-Install-Script-Sha256` —
+ * заголовок едет из volume-кэша orchestrator'а, где sha уже проверен
+ * против декларации манифеста. Расхождение = повреждение/подмена по
+ * дороге → пакет не устанавливается.
+ */
+async function verifyInstallScript(
+  code: string,
+  declaredSha: unknown,
+  desc: RemoteExtensionDescriptor,
+): Promise<void> {
+  if (typeof declaredSha !== 'string' || declaredSha.length !== 64) return;
+  const actualSha = await computeSha256Hex(code);
+  if (actualSha === null) {
+    console.warn(
+      `[remote-loader] crypto.subtle недоступен — sha256 install.js пакета ${desc.packageId} не сверен`,
+    );
+    return;
   }
+  if (actualSha !== declaredSha) {
+    throw new Error(
+      // i18n-ignore: ошибка загрузки пакета для журнала разработчика — installRemoteExtensions ловит её и пишет в консоль, пайщику текст не показывается
+      `sha256 install.js пакета ${desc.packageId} не совпал: ожидался ${declaredSha}, получен ${actualSha}`,
+    );
+  }
+}
 
+/** Исполнить install.js в CJS-обёртке и получить workspace'ы, которые вернул install() пакета. */
+async function evalInstallScript(
+  code: string,
+  desc: RemoteExtensionDescriptor,
+): Promise<IWorkspaceConfig[]> {
   const module: { exports: RemoteInstallModule } = { exports: {} };
   const requireNotSupported = (id: string) => {
     throw new Error(
+      // i18n-ignore: ошибка загрузки пакета для журнала разработчика — installRemoteExtensions ловит её и пишет в консоль, пайщику текст не показывается
       `require("${id}") не поддерживается в remote-loader; пакет ${desc.packageId} должен быть CJS без внешних зависимостей`,
     );
   };
@@ -198,16 +214,27 @@ export async function loadRemoteExtension(
   const installFn = module.exports.install ?? module.exports.default;
   if (typeof installFn !== 'function') {
     throw new Error(
+    // i18n-ignore: ошибка загрузки пакета для журнала разработчика — installRemoteExtensions ловит её и пишет в консоль, пайщику текст не показывается
       `пакет ${desc.packageId} не экспортирует install() — ${typeof installFn}`,
     );
   }
   const cfgs = await installFn();
   if (!Array.isArray(cfgs)) {
     throw new Error(
+    // i18n-ignore: ошибка загрузки пакета для журнала разработчика — installRemoteExtensions ловит её и пишет в консоль, пайщику текст не показывается
       `install() пакета ${desc.packageId} вернул не массив: ${typeof cfgs}`,
     );
   }
   return cfgs;
+}
+
+/** Скачать install.js пакета, сверить sha256 и исполнить: workspace'ы, которые вернул install() пакета. */
+export async function loadRemoteExtension(
+  desc: RemoteExtensionDescriptor,
+): Promise<IWorkspaceConfig[]> {
+  const { code, declaredSha } = await fetchInstallScript(desc);
+  await verifyInstallScript(code, declaredSha, desc);
+  return evalInstallScript(code, desc);
 }
 
 /**

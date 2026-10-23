@@ -2,6 +2,7 @@ import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { BadRequestException, Logger, UseGuards } from '@nestjs/common';
 import { GqlJwtAuthGuard, RightsGuard, RequireRight, CurrentUser } from '@coopenomics/extension-kit';
 import type { IMonoAccount } from '@coopenomics/innercoop';
+import { t } from '../../i18n';
 import {
   AppsCatalogHttpService,
   type PublisherTokenWire,
@@ -62,7 +63,7 @@ const toReleaseScope = (dto: ReleaseScopeInputDTO): ReleaseScopeInput => {
       const subnets = dto.subnets ?? [];
       if (subnets.length === 0) {
         throw new BadRequestException(
-          'scope.type=subnets требует непустой subnets',
+          t('appsCatalogProxy.scope.subnetsRequired'),
         );
       }
       return { type: 'subnets', subnets };
@@ -71,7 +72,7 @@ const toReleaseScope = (dto: ReleaseScopeInputDTO): ReleaseScopeInput => {
       const coopnames = dto.coopnames ?? [];
       if (coopnames.length === 0) {
         throw new BadRequestException(
-          'scope.type=cooperatives требует непустой coopnames',
+          t('appsCatalogProxy.scope.cooperativesRequired'),
         );
       }
       return { type: 'cooperatives', coopnames };
@@ -157,7 +158,7 @@ export class AppsCatalogProxyResolver {
   }
 
   private buildDescription(publisher: string): string {
-    return `Удалённое расширение от ${publisher} — устанавливается без перезагрузки сервера.`;
+    return t('appsCatalogProxy.remotePackage.description', { publisher });
   }
 
   /**

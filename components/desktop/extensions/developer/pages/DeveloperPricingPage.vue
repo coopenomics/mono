@@ -1,50 +1,38 @@
-<template>
-  <q-page padding>
-    <div class="q-pa-md">
-      <BaseBanner variant="info" class="q-mb-md">
-        Тарифы пакетов задаёт оператор каталога on-chain (почасовая ставка,
-        план «default»). Здесь появится управление ставками ваших пакетов,
-        когда каталог откроет операцию изменения тарифа разработчику.
-      </BaseBanner>
+<template lang="pug">
+q-page(padding)
+  .q-pa-md
+    BaseBanner.q-mb-md(variant='info')
+      | {{ $t('developer.pricing.intro') }}
 
-      <TableSkeleton
-        v-if="loading && !packages.length"
-        :columns="skeletonColumns"
-        :rows="3"
-      />
+    TableSkeleton(
+      v-if='loading && !packages.length',
+      :columns='skeletonColumns',
+      :rows='3'
+    )
 
-      <EmptyState
-        v-else-if="!packages.length"
-        title="Тарифов пока нет"
-        body="Опубликуйте пакет — каталог назначит ставку по плану «default»."
-      >
-        <template #icon>
-          <q-icon name="currency_ruble" size="28px" />
-        </template>
-      </EmptyState>
+    EmptyState(
+      v-else-if='!packages.length',
+      :title="$t('developer.pricing.emptyTitle')",
+      :body="$t('developer.pricing.emptyBody')"
+    )
+      template(#icon)
+        q-icon(name='currency_ruble', size='28px')
 
-      <div v-else class="table-wrap">
-        <div class="table-scroll">
-          <table class="table">
-            <thead>
-              <tr>
-                <th>Пакет</th>
-                <th>План</th>
-                <th>Ставка</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="pkg in packages" :key="pkg.packageId">
-                <td><span class="t-mono">{{ pkg.packageId }}</span></td>
-                <td><BaseBadge variant="neutral">default</BaseBadge></td>
-                <td>{{ formatPrice(pkg.rubPerMonth) }} ₽/мес</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  </q-page>
+    .table-wrap(v-else)
+      .table-scroll
+        table.table
+          thead
+            tr
+              th {{ $t('developer.column.package') }}
+              th {{ $t('developer.column.plan') }}
+              th {{ $t('developer.column.rate') }}
+          tbody
+            tr(v-for='pkg in packages', :key='pkg.packageId')
+              td
+                span.t-mono {{ pkg.packageId }}
+              td
+                BaseBadge(variant='neutral') default
+              td {{ $t('developer.perMonth', { amount: formatPrice(pkg.rubPerMonth) }) }}
 </template>
 
 <script setup lang="ts">
@@ -55,6 +43,7 @@ import { useSessionStore } from 'src/entities/Session';
 import { useSystemStore } from 'src/entities/System/model';
 import { api as extensionApi } from 'src/entities/Extension/api';
 import type { Queries } from '@coopenomics/sdk';
+import { t } from '../i18n';
 
 type RemotePackage = Queries.Extensions.AppsCatalogRemotePackages.IOutput[
   typeof Queries.Extensions.AppsCatalogRemotePackages.name
@@ -67,9 +56,9 @@ const allPackages = ref<RemotePackage[]>([]);
 const loading = ref(false);
 
 const skeletonColumns: TableSkeletonColumn[] = [
-  { label: 'Пакет' },
-  { label: 'План', cell: 'badge' },
-  { label: 'Ставка', width: '140px' },
+  { label: t('developer.column.package') },
+  { label: t('developer.column.plan'), cell: 'badge' },
+  { label: t('developer.column.rate'), width: '140px' },
 ];
 
 const packages = computed(() => {
@@ -85,6 +74,7 @@ function formatPrice(rub: number): string {
   return new Intl.NumberFormat('ru-RU').format(rub);
 }
 
+// realtime: нет источника — тарифы живут во внешнем каталоге, лента цепи кооператива о них не сообщает.
 onMounted(async () => {
   loading.value = true;
   try {

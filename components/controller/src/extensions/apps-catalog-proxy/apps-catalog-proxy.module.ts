@@ -1,3 +1,4 @@
+import './i18n';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_RIGHTS, RightsGuard } from '@coopenomics/extension-kit';

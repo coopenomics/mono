@@ -4,6 +4,17 @@ import axios, { type AxiosInstance, AxiosError } from 'axios';
 import { v4 as uuidv4 } from 'uuid';
 import { ConfigService } from '@nestjs/config';
 import { platformSettings } from '@coopenomics/extension-kit';
+import { t } from '../i18n';
+
+/** Код HTTP и текст отказа каталога: тело ответа, если оно есть, иначе сообщение ошибки. */
+function failureOf(err: unknown): { status: number | undefined; detail: string } {
+  const response = (err as AxiosError).response;
+  const data = response?.data;
+  let detail: string;
+  if (typeof data === 'object' && data) detail = JSON.stringify(data);
+  else detail = err instanceof Error ? err.message : String(err);
+  return { status: response?.status, detail };
+}
 
 /**
  * Достать `exp` (мс) из JWT без проверки подписи — нужен только для
@@ -301,65 +312,59 @@ export class AppsCatalogHttpService {
       cooperativeWif: env('COOPERATIVE_WIF'),
       orchestratorUrl: env('ORCHESTRATOR_URL'),
     };
-    const config = {
-      apps_catalog: { url: this.settings.catalogUrl, api_key: this.settings.catalogApiKey },
-      apps_catalog_auth: {
-        url: this.settings.authUrl,
-        tenant_jwt: this.settings.tenantJwt,
-        cooperative_wif: this.settings.cooperativeWif,
-      },
-      orchestrator: { url: this.settings.orchestratorUrl },
-    };
-    if (config.apps_catalog.url && config.apps_catalog.api_key) {
-      this.client = axios.create({
-        baseURL: config.apps_catalog.url,
+    this.client = this.createAdminClient();
+    this.authClient = this.createAuthClient();
+    this.orchestratorClient = this.createOrchestratorClient();
+  }
+
+  /** Клиент ca-admin под admin API-ключом; без адреса и ключа — режим деградации. */
+  private createAdminClient(): AxiosInstance | null {
+    const { catalogUrl, catalogApiKey } = this.settings;
+    if (catalogUrl && catalogApiKey) {
+      return axios.create({
+        baseURL: catalogUrl,
         timeout: 5000,
-        headers: {
-          Authorization: `Bearer ${config.apps_catalog.api_key}`,
-        },
+        headers: { Authorization: `Bearer ${catalogApiKey}` },
       });
-    } else {
-      this.client = null;
-      this.logger.warn(
-        'APPS_CATALOG_URL/APPS_CATALOG_API_KEY не заданы — apps-catalog-proxy в degraded mode (пустой каталог)',
-      );
     }
-    if (
-      config.apps_catalog_auth.url &&
-      (config.apps_catalog_auth.tenant_jwt || config.apps_catalog_auth.cooperative_wif)
-    ) {
-      this.authClient = axios.create({
-        baseURL: config.apps_catalog_auth.url,
-        timeout: 5000,
-      });
-      // Tenant JWT живёт 30 минут — статический токен из env умирает
-      // через полчаса после деплоя. Поэтому заголовок ставится
-      // interceptor'ом: статический APPS_CATALOG_TENANT_JWT (если задан —
-      // отладочный режим) или авто-выпущенный через challenge→verify
-      // подписью COOPERATIVE_WIF, с кэшем и обновлением по истечении.
-      this.authClient.interceptors.request.use(async (req) => {
-        const jwt =
-          config.apps_catalog_auth.tenant_jwt ?? (await this.ensureTenantJwt());
-        req.headers.Authorization = `Bearer ${jwt}`;
-        return req;
-      });
-    } else {
-      this.authClient = null;
+    this.logger.warn(
+      'APPS_CATALOG_URL/APPS_CATALOG_API_KEY не заданы — apps-catalog-proxy в degraded mode (пустой каталог)',
+    );
+    return null;
+  }
+
+  /** Клиент ca-auth под tenant JWT кооператива; без адреса и ключа — режим деградации. */
+  private createAuthClient(): AxiosInstance | null {
+    const { authUrl, tenantJwt, cooperativeWif } = this.settings;
+    if (!authUrl || !(tenantJwt || cooperativeWif)) {
       this.logger.warn(
         'APPS_CATALOG_AUTH_URL + (COOPERATIVE_WIF или APPS_CATALOG_TENANT_JWT) не заданы — subscribe mutation в degraded mode',
       );
+      return null;
     }
-    if (config.orchestrator.url) {
-      this.orchestratorClient = axios.create({
-        baseURL: config.orchestrator.url,
-        timeout: 5000,
-      });
-    } else {
-      this.orchestratorClient = null;
-      this.logger.warn(
-        'ORCHESTRATOR_URL не задан — install.js отдаётся напрямую из ca-admin без фильтра установленности (degraded)',
-      );
+    const authClient = axios.create({ baseURL: authUrl, timeout: 5000 });
+    // Tenant JWT живёт 30 минут — статический токен из env умирает
+    // через полчаса после деплоя. Поэтому заголовок ставится
+    // interceptor'ом: статический APPS_CATALOG_TENANT_JWT (если задан —
+    // отладочный режим) или авто-выпущенный через challenge→verify
+    // подписью COOPERATIVE_WIF, с кэшем и обновлением по истечении.
+    authClient.interceptors.request.use(async (req) => {
+      const jwt = tenantJwt ?? (await this.ensureTenantJwt());
+      req.headers.Authorization = `Bearer ${jwt}`;
+      return req;
+    });
+    return authClient;
+  }
+
+  /** Клиент оркестратора контура; без адреса install.js отдаётся напрямую из ca-admin. */
+  private createOrchestratorClient(): AxiosInstance | null {
+    if (this.settings.orchestratorUrl) {
+      return axios.create({ baseURL: this.settings.orchestratorUrl, timeout: 5000 });
     }
+    this.logger.warn(
+      'ORCHESTRATOR_URL не задан — install.js отдаётся напрямую из ca-admin без фильтра установленности (degraded)',
+    );
+    return null;
   }
 
   /** Сконфигурирован ли orchestrator-источник (E12-3 fallback-решение в контроллере). */
@@ -481,7 +486,7 @@ export class AppsCatalogHttpService {
   ): Promise<RegisterPackageOutcome> {
     const requestId = input.requestId ?? uuidv4();
     if (!this.client) {
-      const error = 'APPS_CATALOG_URL/APPS_CATALOG_API_KEY не заданы';
+      const error = t('appsCatalogProxy.catalog.adminNotConfigured');
       this.logger.warn(
         `registerPackage refused (degraded mode): ${input.packageId}`,
       );
@@ -496,14 +501,7 @@ export class AppsCatalogHttpService {
       });
       return { status: 'applied', requestId };
     } catch (err) {
-      const status = (err as AxiosError).response?.status;
-      const responseData = (err as AxiosError).response?.data;
-      const detail =
-        typeof responseData === 'object' && responseData
-          ? JSON.stringify(responseData)
-          : err instanceof Error
-            ? err.message
-            : String(err);
+      const { status, detail } = failureOf(err);
       if (status === 409) {
         this.logger.warn(
           `registerPackage conflict для ${input.packageId}: ${detail}`,
@@ -534,7 +532,7 @@ export class AppsCatalogHttpService {
   async createRelease(input: CreateReleaseInput): Promise<CreateReleaseOutcome> {
     const requestId = input.requestId ?? uuidv4();
     if (!this.authClient) {
-      const error = 'APPS_CATALOG_AUTH_URL/COOPERATIVE_WIF не заданы';
+      const error = t('appsCatalogProxy.catalog.authNotConfigured');
       this.logger.warn(
         `createRelease refused (degraded mode): ${input.packageId}@${input.version}`,
       );
@@ -557,14 +555,7 @@ export class AppsCatalogHttpService {
         moderationId: res.data.moderation_id,
       };
     } catch (err) {
-      const status = (err as AxiosError).response?.status;
-      const responseData = (err as AxiosError).response?.data;
-      const detail =
-        typeof responseData === 'object' && responseData
-          ? JSON.stringify(responseData)
-          : err instanceof Error
-            ? err.message
-            : String(err);
+      const { status, detail } = failureOf(err);
       if (status === 404) {
         return { status: 'notPublished', requestId, error: detail };
       }
@@ -622,7 +613,7 @@ export class AppsCatalogHttpService {
     input: CreatePublisherTokenInput,
   ): Promise<CreatePublisherTokenOutcome> {
     if (!this.authClient) {
-      return { status: 'failed', error: 'APPS_CATALOG_AUTH_URL/COOPERATIVE_WIF не заданы' };
+      return { status: 'failed', error: t('appsCatalogProxy.catalog.authNotConfigured') };
     }
     try {
       const res = await this.authClient.post<PublisherTokenWire & { token: string }>(
@@ -638,13 +629,7 @@ export class AppsCatalogHttpService {
       const { token, ...record } = res.data;
       return { status: 'created', token, record };
     } catch (err) {
-      const responseData = (err as AxiosError).response?.data;
-      const detail =
-        typeof responseData === 'object' && responseData
-          ? JSON.stringify(responseData)
-          : err instanceof Error
-            ? err.message
-            : String(err);
+      const { detail } = failureOf(err);
       this.logger.error(`createPublisherToken failed для ${input.username}: ${detail}`);
       return { status: 'failed', error: detail };
     }
@@ -726,7 +711,7 @@ export class AppsCatalogHttpService {
   ): Promise<ApproveModerationOutcome> {
     const requestId = input.requestId ?? uuidv4();
     if (!this.client) {
-      const error = 'APPS_CATALOG_URL/APPS_CATALOG_API_KEY не заданы';
+      const error = t('appsCatalogProxy.catalog.adminNotConfigured');
       this.logger.warn(
         `approveModeration refused (degraded mode): ${input.moderationId}`,
       );
@@ -751,13 +736,7 @@ export class AppsCatalogHttpService {
       };
     } catch (err) {
       const httpStatus = (err as AxiosError).response?.status;
-      const responseData = (err as AxiosError).response?.data;
-      const detail =
-        typeof responseData === 'object' && responseData
-          ? JSON.stringify(responseData)
-          : err instanceof Error
-            ? err.message
-            : String(err);
+      const { detail } = failureOf(err);
       if (httpStatus === 423) {
         this.logger.warn(
           `approveModeration pendingChain ${input.moderationId}: ${detail}`,
@@ -800,7 +779,7 @@ export class AppsCatalogHttpService {
   ): Promise<RejectModerationOutcome> {
     const requestId = input.requestId ?? uuidv4();
     if (!this.client) {
-      const error = 'APPS_CATALOG_URL/APPS_CATALOG_API_KEY не заданы';
+      const error = t('appsCatalogProxy.catalog.adminNotConfigured');
       this.logger.warn(
         `rejectModeration refused (degraded mode): ${input.moderationId}`,
       );
@@ -817,13 +796,7 @@ export class AppsCatalogHttpService {
       return { status: 'applied', requestId };
     } catch (err) {
       const httpStatus = (err as AxiosError).response?.status;
-      const responseData = (err as AxiosError).response?.data;
-      const detail =
-        typeof responseData === 'object' && responseData
-          ? JSON.stringify(responseData)
-          : err instanceof Error
-            ? err.message
-            : String(err);
+      const { detail } = failureOf(err);
       if (httpStatus === 409) {
         this.logger.warn(
           `rejectModeration conflict ${input.moderationId}: ${detail}`,
@@ -871,7 +844,7 @@ export class AppsCatalogHttpService {
     }
     const wif = this.settings.cooperativeWif;
     if (!wif) {
-      throw new Error('COOPERATIVE_WIF не задан — tenant JWT выпустить нечем');
+      throw new Error(t('appsCatalogProxy.catalog.noCooperativeKey'));
     }
     const base = this.settings.authUrl;
     const challengeRes = await axios.post<{ challenge_string?: string }>(
@@ -881,7 +854,7 @@ export class AppsCatalogHttpService {
     );
     const challenge = challengeRes.data?.challenge_string;
     if (typeof challenge !== 'string' || challenge.length === 0) {
-      throw new Error('ca-auth /v1/auth/challenge: пустой challenge_string');
+      throw new Error(t('appsCatalogProxy.catalog.emptyChallenge'));
     }
     const signature = PrivateKey.from(wif).signMessage(Buffer.from(challenge)).toString();
     const verifyRes = await axios.post<{ token?: string }>(
@@ -891,7 +864,7 @@ export class AppsCatalogHttpService {
     );
     const token = verifyRes.data?.token;
     if (typeof token !== 'string' || token.length === 0) {
-      throw new Error('ca-auth /v1/auth/verify: пустой token');
+      throw new Error(t('appsCatalogProxy.catalog.emptyToken'));
     }
     this.tenantJwt = token;
     this.tenantJwtExpMs = decodeJwtExpMs(token) ?? Date.now() + 5 * 60_000;
@@ -906,7 +879,7 @@ export class AppsCatalogHttpService {
   ): Promise<ActivateSubscriptionOutcome> {
     if (!this.authClient) {
       const error =
-        'APPS_CATALOG_AUTH_URL/APPS_CATALOG_TENANT_JWT не заданы';
+        t('appsCatalogProxy.catalog.tenantJwtNotConfigured');
       this.logger.warn(
         `activateSubscription refused (degraded mode): ${input.packageId}`,
       );
@@ -931,13 +904,7 @@ export class AppsCatalogHttpService {
       };
     } catch (err) {
       const httpStatus = (err as AxiosError).response?.status;
-      const responseData = (err as AxiosError).response?.data;
-      const detail =
-        typeof responseData === 'object' && responseData
-          ? JSON.stringify(responseData)
-          : err instanceof Error
-            ? err.message
-            : String(err);
+      const { detail } = failureOf(err);
       if (httpStatus === 409) {
         this.logger.warn(
           `activateSubscription alreadyActive ${input.packageId}: ${detail}`,

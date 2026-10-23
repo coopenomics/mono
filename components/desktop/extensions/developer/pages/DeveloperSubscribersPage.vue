@@ -1,21 +1,14 @@
-<template>
-  <q-page padding>
-    <div class="q-pa-md">
-      <BaseBanner variant="info" class="q-mb-md">
-        Здесь появится список кооперативов-подписчиков ваших пакетов:
-        статус подписки, биллинг-период и сумма списания. Данные придут
-        из каталога приложений после подключения отчётов по подпискам.
-      </BaseBanner>
-      <EmptyState
-        title="Отчёт по подписчикам пока недоступен"
-        body="Каталог приложений ещё не отдаёт список подписчиков по пакетам разработчика."
-      >
-        <template #icon>
-          <q-icon name="group" size="28px" />
-        </template>
-      </EmptyState>
-    </div>
-  </q-page>
+<template lang="pug">
+q-page(padding)
+  .q-pa-md
+    BaseBanner.q-mb-md(variant='info')
+      | {{ $t('developer.subscribers.intro') }}
+    EmptyState(
+      :title="$t('developer.subscribers.emptyTitle')",
+      :body="$t('developer.subscribers.emptyBody')"
+    )
+      template(#icon)
+        q-icon(name='group', size='28px')
 </template>
 
 <script setup lang="ts">

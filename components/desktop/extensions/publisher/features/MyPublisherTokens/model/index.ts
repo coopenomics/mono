@@ -2,6 +2,7 @@
 import { ref } from 'vue';
 import { Zeus } from '@coopenomics/sdk';
 import { api, type IIssueInput, type IMyPackage, type IMyToken } from '../api';
+import { t } from '../../../i18n';
 
 export type { IIssueInput, IMyPackage, IMyToken };
 
@@ -34,7 +35,7 @@ export function useMyPublisherTokens() {
     try {
       const result = await api.issueToken(input);
       if (result.status !== Zeus.CreatePublisherTokenStatus.CREATED || !result.token) {
-        actionError.value = result.error || 'Не удалось выпустить ключ';
+        actionError.value = result.error || t('publisher.tokens.issueFailed');
         return false;
       }
       issuedToken.value = result.token;
@@ -53,7 +54,7 @@ export function useMyPublisherTokens() {
     actionError.value = null;
     try {
       const ok = await api.revokeToken(id);
-      if (!ok) actionError.value = 'Ключ не найден или уже отозван';
+      if (!ok) actionError.value = t('publisher.tokens.notFound');
       await load();
       return ok;
     } catch (e) {

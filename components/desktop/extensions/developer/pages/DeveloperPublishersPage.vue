@@ -1,95 +1,74 @@
-<template>
-  <q-page padding>
-    <div class="q-pa-md">
-      <BaseBanner variant="info" class="q-mb-md">
-        Издатель — пайщик, которому кооператив доверяет публиковать одно
-        конкретное приложение. Назначенный издатель сам выпускает ключ на
-        свой пакет в столе «Мои приложения», кладёт его в репозиторий и
-        публикует обычным <span class="t-mono">npm publish</span>. Снятие
-        издателя отзывает все его ключи на пакет.
-      </BaseBanner>
+<template lang="pug">
+q-page(padding)
+  .q-pa-md
+    BaseBanner.q-mb-md(variant='info')
+      | {{ $t('developer.publishers.intro') }}
 
-      <div class="publishers__toolbar q-mb-md">
-        <BaseButton variant="primary" @click="openAdd">Назначить издателя</BaseButton>
-      </div>
+    .publishers__toolbar.q-mb-md
+      BaseButton(variant='primary', @click='openAdd') {{ $t('developer.publishers.add') }}
 
-      <TableSkeleton v-if="loading && !items.length" :columns="skeletonColumns" :rows="3" />
+    TableSkeleton(v-if='loading && !items.length', :columns='skeletonColumns', :rows='3')
 
-      <BaseBanner v-else-if="error" variant="neg" class="q-mb-md">{{ error }}</BaseBanner>
+    BaseBanner.q-mb-md(v-else-if='error', variant='neg') {{ error }}
 
-      <EmptyState
-        v-else-if="!items.length"
-        title="Издателей пока нет"
-        body="Назначьте пайщика издателем пакета — он получит стол «Мои приложения» и выпустит ключ сам."
-      >
-        <template #icon><q-icon name="key" size="28px" /></template>
-      </EmptyState>
+    EmptyState(
+      v-else-if='!items.length',
+      :title="$t('developer.publishers.emptyTitle')",
+      :body="$t('developer.publishers.emptyBody')"
+    )
+      template(#icon)
+        q-icon(name='key', size='28px')
 
-      <div v-else class="table-wrap">
-        <div class="table-scroll">
-          <table class="table">
-            <thead>
-              <tr>
-                <th>Пайщик</th>
-                <th>Пакет</th>
-                <th>Назначен</th>
-                <th class="col-action">Действия</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="p in items" :key="`${p.username}:${p.packageId}`">
-                <td><span class="t-mono">{{ p.username }}</span></td>
-                <td><span class="t-mono">{{ p.packageId }}</span></td>
-                <td>
-                  <div>{{ formatDate(p.createdAt) }}</div>
-                  <div class="t-sm t-muted">{{ p.addedBy }}</div>
-                </td>
-                <td class="col-action">
-                  <BaseButton variant="danger" size="sm" @click="openRemove(p)">Снять</BaseButton>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
+    .table-wrap(v-else)
+      .table-scroll
+        table.table
+          thead
+            tr
+              th {{ $t('developer.column.member') }}
+              th {{ $t('developer.column.package') }}
+              th {{ $t('developer.column.assigned') }}
+              th.col-action {{ $t('developer.column.actions') }}
+          tbody
+            tr(v-for='p in items', :key="`${p.username}:${p.packageId}`")
+              td
+                span.t-mono {{ p.username }}
+              td
+                span.t-mono {{ p.packageId }}
+              td
+                div {{ formatDate(p.createdAt) }}
+                .t-sm.t-muted {{ p.addedBy }}
+              td.col-action
+                BaseButton(variant='danger', size='sm', @click='openRemove(p)') {{ $t('developer.publishers.remove') }}
 
-    <BaseDialog v-model="addDialog" title="Назначить издателя" size="sm">
-      <BaseInput
-        v-model="form.username"
-        label="Аккаунт пайщика"
-        placeholder="developer1"
-        hint="1..12 символов: [a-z], [1-5], точка."
-        :error="formErrors.username"
-        required
-      />
-      <BaseInput
-        v-model="form.packageId"
-        label="Пакет"
-        placeholder="@voskhod/demoapp"
-        hint="Формат @scope/name; scope — ваш кооператив."
-        :error="formErrors.packageId"
-        required
-      />
-      <BaseBanner v-if="actionError" variant="neg" class="q-mt-sm">{{ actionError }}</BaseBanner>
-      <template #footer>
-        <BaseButton variant="ghost" :disabled="isSubmitting" @click="addDialog = false">Отмена</BaseButton>
-        <BaseButton variant="primary" :loading="isSubmitting" @click="confirmAdd">Назначить</BaseButton>
-      </template>
-    </BaseDialog>
+  BaseDialog(v-model='addDialog', :title="$t('developer.publishers.add')", size='sm')
+    BaseInput(
+      v-model='form.username',
+      :label="$t('developer.publishers.usernameLabel')",
+      placeholder='developer1',
+      :hint="$t('developer.publishers.usernameHint')",
+      :error='formErrors.username',
+      required
+    )
+    BaseInput(
+      v-model='form.packageId',
+      :label="$t('developer.publishers.packageLabel')",
+      placeholder='@voskhod/demoapp',
+      :hint="$t('developer.publishers.packageHint')",
+      :error='formErrors.packageId',
+      required
+    )
+    BaseBanner.q-mt-sm(v-if='actionError', variant='neg') {{ actionError }}
+    template(#footer)
+      BaseButton(variant='ghost', :disabled='isSubmitting', @click='addDialog = false') {{ $t('common.action.cancel') }}
+      BaseButton(variant='primary', :loading='isSubmitting', @click='confirmAdd') {{ $t('developer.publishers.assign') }}
 
-    <BaseDialog v-model="removeDialog" title="Снять издателя" size="sm">
-      <p class="t-sm t-muted q-mb-sm">
-        <span class="t-mono">{{ selected?.username }}</span> больше не сможет публиковать
-        <span class="t-mono">{{ selected?.packageId }}</span>; все его ключи на пакет будут отозваны.
-      </p>
-      <BaseBanner v-if="actionError" variant="neg" class="q-mt-sm">{{ actionError }}</BaseBanner>
-      <template #footer>
-        <BaseButton variant="ghost" :disabled="isSubmitting" @click="removeDialog = false">Отмена</BaseButton>
-        <BaseButton variant="danger" :loading="isSubmitting" @click="confirmRemove">Снять</BaseButton>
-      </template>
-    </BaseDialog>
-  </q-page>
+  BaseDialog(v-model='removeDialog', :title="$t('developer.publishers.removeTitle')", size='sm')
+    p.t-sm.t-muted.q-mb-sm
+      | {{ $t('developer.publishers.removeText', { username: selected?.username, packageId: selected?.packageId }) }}
+    BaseBanner.q-mt-sm(v-if='actionError', variant='neg') {{ actionError }}
+    template(#footer)
+      BaseButton(variant='ghost', :disabled='isSubmitting', @click='removeDialog = false') {{ $t('common.action.cancel') }}
+      BaseButton(variant='danger', :loading='isSubmitting', @click='confirmRemove') {{ $t('developer.publishers.remove') }}
 </template>
 
 <script setup lang="ts">
@@ -97,14 +76,15 @@ import { onMounted, reactive, ref } from 'vue';
 import { BaseBanner, BaseButton, BaseDialog, BaseInput, EmptyState, TableSkeleton } from 'src/shared/ui/base';
 import type { TableSkeletonColumn } from 'src/shared/ui/base/TableSkeleton/TableSkeleton.types';
 import { useAppsPublishers, type IAppsPublisher } from '../features/AppsPublishers/model';
+import { t } from '../i18n';
 
 const { items, loading, error, isSubmitting, actionError, load, add, remove } = useAppsPublishers();
 
 const skeletonColumns: TableSkeletonColumn[] = [
-  { label: 'Пайщик', width: '140px' },
-  { label: 'Пакет' },
-  { label: 'Назначен', width: '140px' },
-  { label: 'Действия', cell: 'icon', class: 'col-action' },
+  { label: t('developer.column.member'), width: '140px' },
+  { label: t('developer.column.package') },
+  { label: t('developer.column.assigned'), width: '140px' },
+  { label: t('developer.column.actions'), cell: 'icon', class: 'col-action' },
 ];
 
 const ANTELOPE_NAME_RE = /^[a-z1-5.]{1,12}$/;
@@ -132,8 +112,8 @@ function openAdd() {
 }
 
 async function confirmAdd() {
-  formErrors.username = ANTELOPE_NAME_RE.test(form.username.trim()) ? '' : '1..12 символов: [a-z], [1-5], точка.';
-  formErrors.packageId = PACKAGE_ID_RE.test(form.packageId.trim()) ? '' : 'Ожидается @scope/name.';
+  formErrors.username = ANTELOPE_NAME_RE.test(form.username.trim()) ? '' : t('developer.publishers.usernameHint');
+  formErrors.packageId = PACKAGE_ID_RE.test(form.packageId.trim()) ? '' : t('developer.publishers.packageIdFormat');
   if (formErrors.username || formErrors.packageId) return;
   const ok = await add({ username: form.username.trim(), packageId: form.packageId.trim() });
   if (ok) addDialog.value = false;
@@ -151,6 +131,7 @@ async function confirmRemove() {
   if (ok) removeDialog.value = false;
 }
 
+// realtime: нет источника — назначения издателей хранятся в базе кооператива вне ленты цепи; список перечитывается после каждого действия на странице.
 onMounted(load);
 </script>
 

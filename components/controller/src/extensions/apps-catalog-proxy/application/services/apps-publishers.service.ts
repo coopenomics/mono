@@ -11,6 +11,7 @@ import { ForbiddenException, Inject, Injectable, Logger, NotFoundException } fro
 import { platformSettings, type TableStore } from '@coopenomics/extension-kit';
 import { APPS_PUBLISHER_STORE } from '../../infrastructure/database/apps-catalog-proxy-stores';
 import { AppsPublisherRecord } from '../../infrastructure/records/apps-publisher.record';
+import { t } from '../../i18n';
 import {
   AppsCatalogHttpService,
   type CreatePublisherTokenOutcome,
@@ -46,7 +47,7 @@ export class AppsPublishersService {
   /** Назначить издателя. Пакет обязан быть в scope кооператива. */
   async add(input: { username: string; packageId: string; addedBy: string }): Promise<AppsPublisherRecord> {
     if (!PACKAGE_ID_RE.test(input.packageId) || !input.packageId.startsWith(`@${this.coopname}/`)) {
-      throw new ForbiddenException(`Пакет должен быть в scope @${this.coopname}/`);
+      throw new ForbiddenException(t('appsCatalogProxy.publishers.packageOutOfScope', { coopname: this.coopname }));
     }
     const existing = await this.store.findOne({ coopname: this.coopname, username: input.username, packageId: input.packageId });
     if (existing) return existing;
@@ -75,7 +76,7 @@ export class AppsPublishersService {
   private async assertAssigned(username: string, packageId: string): Promise<void> {
     const row = await this.store.findOne({ coopname: this.coopname, username, packageId });
     if (!row) {
-      throw new ForbiddenException(`Аккаунт ${username} не назначен издателем пакета ${packageId}`);
+      throw new ForbiddenException(t('appsCatalogProxy.publishers.notAssigned', { username, packageId }));
     }
   }
 
@@ -109,7 +110,7 @@ export class AppsPublishersService {
   async revokeToken(username: string, id: string): Promise<boolean> {
     const mine = await this.myTokens(username);
     const target = mine.find((t) => t.id === id);
-    if (!target) throw new NotFoundException('Ключ не найден среди ваших');
+    if (!target) throw new NotFoundException(t('appsCatalogProxy.publishers.tokenNotFound'));
     return this.catalog.revokePublisherToken(id);
   }
 }

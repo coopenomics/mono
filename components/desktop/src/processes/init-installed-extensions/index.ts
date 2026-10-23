@@ -69,6 +69,7 @@ export async function useInitExtensionsProcess(router: Router) {
   // пакеты пропускаются по packageId@version). Только в браузере:
   // в SSR-процессе интервал не нужен и утёк бы.
   if (typeof window !== 'undefined') {
+    // timing: schedule — фронты внешних пакетов ставит оркестратор кооператива, лента цепи кооператива об установке не сообщает
     setInterval(() => {
       void runRemotePass(router);
     }, REMOTE_REFRESH_INTERVAL_MS);

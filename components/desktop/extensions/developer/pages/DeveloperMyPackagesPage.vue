@@ -1,60 +1,43 @@
-<template>
-  <q-page padding>
-    <div class="q-pa-md">
-      <BaseBanner variant="info" class="q-mb-md">
-        Пакеты вашего кооператива, опубликованные в каталоге приложений.
-        Новые версии публикуются на странице «Опубликовать релиз» и проходят
-        модерацию оператора каталога.
-      </BaseBanner>
+<template lang="pug">
+q-page(padding)
+  .q-pa-md
+    BaseBanner.q-mb-md(variant='info')
+      | {{ $t('developer.myPackages.intro') }}
 
-      <TableSkeleton
-        v-if="loading && !packages.length"
-        :columns="skeletonColumns"
-        :rows="3"
-      />
+    TableSkeleton(
+      v-if='loading && !packages.length',
+      :columns='skeletonColumns',
+      :rows='3'
+    )
 
-      <BaseBanner v-else-if="error" variant="neg" class="q-mb-md">
-        {{ error }}
-      </BaseBanner>
+    BaseBanner.q-mb-md(v-else-if='error', variant='neg')
+      | {{ error }}
 
-      <EmptyState
-        v-else-if="!packages.length"
-        title="Пакетов пока нет"
-        body="Зарегистрируйте пакет и опубликуйте первый релиз на странице «Опубликовать релиз»."
-      >
-        <template #icon>
-          <q-icon name="inventory_2" size="28px" />
-        </template>
-      </EmptyState>
+    EmptyState(
+      v-else-if='!packages.length',
+      :title="$t('developer.myPackages.emptyTitle')",
+      :body="$t('developer.myPackages.emptyBody')"
+    )
+      template(#icon)
+        q-icon(name='inventory_2', size='28px')
 
-      <div v-else class="table-wrap">
-        <div class="table-scroll">
-          <table class="table">
-            <thead>
-              <tr>
-                <th>Пакет</th>
-                <th>Активная версия</th>
-                <th>Цена</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="pkg in packages" :key="pkg.packageId">
-                <td>
-                  <div class="t-mono">{{ pkg.packageId }}</div>
-                  <div class="t-sm t-muted">{{ pkg.title }}</div>
-                </td>
-                <td>
-                  <span v-if="pkg.lastActiveVersion" class="t-mono">{{ pkg.lastActiveVersion }}</span>
-                  <BaseBadge v-else variant="neutral">нет релиза</BaseBadge>
-                </td>
-                <td>{{ formatPrice(pkg.rubPerMonth) }} ₽/мес</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  </q-page>
+    .table-wrap(v-else)
+      .table-scroll
+        table.table
+          thead
+            tr
+              th {{ $t('developer.column.package') }}
+              th {{ $t('developer.column.activeVersion') }}
+              th {{ $t('developer.column.price') }}
+          tbody
+            tr(v-for='pkg in packages', :key='pkg.packageId')
+              td
+                .t-mono {{ pkg.packageId }}
+                .t-sm.t-muted {{ pkg.title }}
+              td
+                span.t-mono(v-if='pkg.lastActiveVersion') {{ pkg.lastActiveVersion }}
+                BaseBadge(v-else, variant='neutral') {{ $t('developer.myPackages.noRelease') }}
+              td {{ $t('developer.perMonth', { amount: formatPrice(pkg.rubPerMonth) }) }}
 </template>
 
 <script setup lang="ts">
@@ -65,6 +48,7 @@ import { useSessionStore } from 'src/entities/Session';
 import { useSystemStore } from 'src/entities/System/model';
 import { api as extensionApi } from 'src/entities/Extension/api';
 import type { Queries } from '@coopenomics/sdk';
+import { t } from '../i18n';
 
 type RemotePackage = Queries.Extensions.AppsCatalogRemotePackages.IOutput[
   typeof Queries.Extensions.AppsCatalogRemotePackages.name
@@ -78,9 +62,9 @@ const loading = ref(false);
 const error = ref<string | null>(null);
 
 const skeletonColumns: TableSkeletonColumn[] = [
-  { label: 'Пакет' },
-  { label: 'Активная версия', cell: 'badge' },
-  { label: 'Цена', width: '120px' },
+  { label: t('developer.column.package') },
+  { label: t('developer.column.activeVersion'), cell: 'badge' },
+  { label: t('developer.column.price'), width: '120px' },
 ];
 
 /**
@@ -100,6 +84,7 @@ function formatPrice(rub: number): string {
   return new Intl.NumberFormat('ru-RU').format(rub);
 }
 
+// realtime: нет источника — пакеты живут во внешнем каталоге, лента цепи кооператива о них не сообщает.
 onMounted(async () => {
   loading.value = true;
   error.value = null;
