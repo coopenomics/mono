@@ -30,12 +30,17 @@ type IResumedPrivateAccount = NonNullable<
 
 const namespace = 'registrator';
 
+// Начальные состояния — фабрики: каждый вызов даёт новый объект, и сброс формы
+// не делит вложенные блоки между прежней и новой анкетой. structuredClone здесь
+// был нельзя: сборка объявляет Chrome 87 / Safari 13.1, а функция появилась в
+// Chrome 98 / Safari 15.4 — на таких браузерах страница регистрации не
+// монтировалась (GlitchTip #75, C28-94).
 // Начальное состояние для account
-const initialAccountState: IGeneratedAccount = {
+const initialAccountState = (): IGeneratedAccount => ({
   username: '',
   private_key: '',
   public_key: '',
-};
+});
 
 /**
  * Форма ведёт все три анкеты сразу: переключение типа субъекта не должно
@@ -48,7 +53,7 @@ type IUserDataState = IUserData &
   Required<Pick<IUserData, 'entrepreneur_data' | 'individual_data' | 'organization_data'>>;
 
 // Начальное состояние для userData
-const initialUserDataState: IUserDataState = {
+const initialUserDataState = (): IUserDataState => ({
   type: null,
   individual_data: {
     first_name: '',
@@ -114,30 +119,30 @@ const initialUserDataState: IUserDataState = {
       },
     },
   },
-};
+});
 
 // Начальное состояние для любого документа
-const initialDocumentState: IDocument = {
+const initialDocumentState = (): IDocument => ({
   hash: '',
   meta: {} as Cooperative.Document.IMetaDocument,
   meta_hash: '',
   version: '',
   doc_hash: '',
   signatures: [] as ISignatureInfo[],
-};
+});
 
 // Начальное состояние для payment
 const initialPaymentState: IInitialPaymentOrder | null = null;
 
 // Начальное состояние для agreements
-const initialAgreementsState = {
+const initialAgreementsState = () => ({
   condidential: false,
   digital_signature: false,
   wallet: false,
   ustav: false,
   user: false,
   self_paid: false,
-};
+});
 /** Строка из значения профиля карты кооператора: не строка — пустая строка. */
 const cardcoopText = (value: unknown): string => (typeof value === 'string' ? value : '');
 
@@ -228,16 +233,16 @@ export const useRegistratorStore = defineStore(
       programAutoSelected: false,
       // Ответы на анкеты вступления: идентификатор анкеты → значения полей.
       intakeAnswers: {} as Record<string, Record<string, unknown>>,
-      account: structuredClone(initialAccountState),
-      userData: structuredClone(initialUserDataState),
+      account: initialAccountState(),
+      userData: initialUserDataState(),
       signature: '',
       inLoading: false,
-      agreements: structuredClone(initialAgreementsState),
-      statement: structuredClone(initialDocumentState),
-      walletAgreement: structuredClone(initialDocumentState),
-      privacyAgreement: structuredClone(initialDocumentState),
-      signatureAgreement: structuredClone(initialDocumentState),
-      userAgreement: structuredClone(initialDocumentState),
+      agreements: initialAgreementsState(),
+      statement: initialDocumentState(),
+      walletAgreement: initialDocumentState(),
+      privacyAgreement: initialDocumentState(),
+      signatureAgreement: initialDocumentState(),
+      userAgreement: initialDocumentState(),
       payment: initialPaymentState as IInitialPaymentOrder | null,
       is_paid: false,
       // Почта подтверждена кодом на шаге EmailInput. Флаг живёт в persist'е стора,
@@ -447,13 +452,13 @@ export const useRegistratorStore = defineStore(
     // после отклонённого платежа: галочки «прочитал устав / согласие на ПД» и
     // подписи должны быть проставлены заново на повторном проходе.
     const resetConsents = () => {
-      state.agreements = structuredClone(initialAgreementsState);
+      state.agreements = initialAgreementsState();
       state.signature = '';
-      state.statement = structuredClone(initialDocumentState);
-      state.walletAgreement = structuredClone(initialDocumentState);
-      state.privacyAgreement = structuredClone(initialDocumentState);
-      state.signatureAgreement = structuredClone(initialDocumentState);
-      state.userAgreement = structuredClone(initialDocumentState);
+      state.statement = initialDocumentState();
+      state.walletAgreement = initialDocumentState();
+      state.privacyAgreement = initialDocumentState();
+      state.signatureAgreement = initialDocumentState();
+      state.userAgreement = initialDocumentState();
     };
 
     /**
@@ -563,17 +568,17 @@ export const useRegistratorStore = defineStore(
       commonIntakeForms.value = [];
       state.email = '';
       state.emailVerified = false;
-      state.account = structuredClone(initialAccountState);
-      state.agreements = structuredClone(initialAgreementsState);
-      state.userData = structuredClone(initialUserDataState);
+      state.account = initialAccountState();
+      state.agreements = initialAgreementsState();
+      state.userData = initialUserDataState();
       state.payment = initialPaymentState;
       state.is_paid = false;
       state.accountCreated = false;
-      state.statement = structuredClone(initialDocumentState);
-      state.walletAgreement = structuredClone(initialDocumentState);
-      state.privacyAgreement = structuredClone(initialDocumentState);
-      state.signatureAgreement = structuredClone(initialDocumentState);
-      state.userAgreement = structuredClone(initialDocumentState);
+      state.statement = initialDocumentState();
+      state.walletAgreement = initialDocumentState();
+      state.privacyAgreement = initialDocumentState();
+      state.signatureAgreement = initialDocumentState();
+      state.userAgreement = initialDocumentState();
     };
 
     /**

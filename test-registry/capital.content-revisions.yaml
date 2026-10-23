@@ -24,6 +24,8 @@ title: История редакций и серверное слияние — 
 sources:
   backend:
     - components/controller/src/extensions/capital/application/services/content-revision.service.ts
+    # Правка проекта: редакция до editproj и откат при отказе цепи (C28-94).
+    - components/controller/src/extensions/capital/application/use-cases/project-management.interactor.ts
     - components/controller/src/extensions/capital/application/services/content-revision-api.service.ts
     - components/controller/src/extensions/capital/application/resolvers/content-revision.resolver.ts
     - components/controller/src/extensions/capital/domain/utils/content-merge.util.ts
@@ -101,6 +103,65 @@ cases:
     scenario: блокчейн-проект — транзакция editproj упала после подготовки редакции
     expect: rollbackWrite возвращает текст и content_rev к предыдущей редакции, снимок удалён
     test: components/controller/tests/unit/capital/content-revision.service.test.ts
+    api: components/api-tests/src/capital/content-revisions.test.ts
+    status: written
+
+  # Откат по содержимому строки, а не по снимку (C28-94, 23.10.2026): правка
+  # завершённого проекта, отклонённая цепью, оставляла в базе текст старой
+  # редакции — строку к тому времени стёрла дельта мимо сервиса редакций.
+  - id: cap.rev.break.02
+    level: backend
+    kind: break
+    scenario: цепь отклонила правку, а строка в базе до записи расходилась со снимком последней редакции
+    expect: откат возвращает строке то, что лежало в ней до записи; текст старой редакции в базу не попадает
+    test: components/controller/tests/unit/capital/content-revision.service.test.ts
+    external: unreachable
+    external_reason: строка расходится со снимком, только если её переписали мимо сервиса редакций; после C28-80 через API такую строку не создать
+    status: written
+
+  - id: cap.rev.side.10
+    level: backend
+    kind: side
+    scenario: цепь отклонила правку, которая совпала с текущим текстом (редакция не создавалась)
+    expect: откат строку и редакции не трогает
+    test: components/controller/tests/unit/capital/content-revision.service.test.ts
+    api: components/api-tests/src/capital/content-revisions.test.ts
+    status: written
+
+  - id: cap.rev.side.11
+    level: backend
+    kind: side
+    scenario: пока цепь отвечала, поверх записал другой автор
+    expect: откат пропускается, чужая редакция остаётся
+    test: components/controller/tests/unit/capital/content-revision.service.test.ts
+    external: unreachable
+    external_reason: чужая запись должна лечь ровно между подготовкой редакции и отказом цепи; через API это окно не поймать
+    status: written
+
+  - id: cap.rev.break.03
+    level: backend
+    kind: break
+    scenario: правка завершённого проекта (статус result), который контракт редактировать не даёт
+    expect: отказ CAPITAL_PROJECT_EDIT_COMPLETED до записи — ни редакции, ни транзакции editproj
+    test: components/controller/tests/unit/capital/edit-project-chain-refusal.test.ts
+    api: components/api-tests/src/capital/result-submission.test.ts
+    status: written
+
+  - id: cap.rev.break.04
+    level: backend
+    kind: break
+    scenario: цепь отклонила editproj после подготовки редакции
+    expect: откат получает подготовленную запись целиком, синхронизации нет, вызывающий получает ошибку цепи
+    test: components/controller/tests/unit/capital/edit-project-chain-refusal.test.ts
+    api: components/api-tests/src/capital/content-revisions.test.ts
+    status: written
+
+  - id: cap.rev.happy.03
+    level: backend
+    kind: happy
+    scenario: цепь приняла правку проекта
+    expect: отката нет, проект синхронизируется из цепи
+    test: components/controller/tests/unit/capital/edit-project-chain-refusal.test.ts
     api: components/api-tests/src/capital/content-revisions.test.ts
     status: written
 

@@ -154,5 +154,17 @@ module.exports = {
     // allow debugger during development only
     'no-debugger': process.env.NODE_ENV === 'production' ? 'error' : 'off',
     'vue/multi-word-component-names': 'off',
+
+    // Сборка объявляет Chrome 87 / Safari 13.1 (quasar.config.cjs, build.target),
+    // а esbuild глобальные функции не подставляет. structuredClone появился в
+    // Chrome 98 / Safari 15.4 и уже ронял страницу регистрации (C28-94).
+    'no-restricted-globals': [
+      'error',
+      {
+        name: 'structuredClone',
+        message:
+          'Нет в браузерах, которые объявляет сборка (Chrome 87, Safari 13.1). Копию собирайте фабрикой или через JSON.',
+      },
+    ],
   },
 };

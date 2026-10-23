@@ -270,6 +270,7 @@ import { computed } from 'vue'
 import { Selectors } from '@coopenomics/sdk'
 import BalanceRowEditor from './BalanceRowEditor.vue'
 import { t } from '../../i18n';
+import { cloneEdits } from 'app/extensions/reports/shared/lib/clone-edits'
 
 const { reportRules } = Selectors
 
@@ -371,10 +372,7 @@ function setByPath(obj: Record<string, unknown>, path: string, value: unknown): 
 function updateField(path: string, value: unknown): void {
   const current = editsModel.value
   if (!current) return
-  // JSON-clone (не structuredClone): гарантированно выкидывает любые
-  // Vue-proxy-обёртки/символы, оставляет только валидный JSON — такой же
-  // POJO, каким он был при исходной сборке edits (buildInitialReportEdits).
-  const next = JSON.parse(JSON.stringify(current)) as Record<string, unknown>
+  const next = cloneEdits(current) as unknown as Record<string, unknown>
   setByPath(next, path, value)
   editsModel.value = next as unknown as BuhotchEdits
   emit('dirty', path)

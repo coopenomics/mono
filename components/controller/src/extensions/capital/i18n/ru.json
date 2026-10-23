@@ -1494,6 +1494,7 @@
     "CAPITAL_PROJECT_AUTHORS_FORBIDDEN": "Недостаточно прав для управления соавторами проекта",
     "CAPITAL_PROJECT_BY_HASH_NOT_FOUND": "Проект с хэшем {hash} не найден",
     "CAPITAL_PROJECT_DELETE_FORBIDDEN": "Недостаточно прав для удаления проекта",
+    "CAPITAL_PROJECT_EDIT_COMPLETED": "Проект {hash} завершён — его описание и название больше не меняются",
     "CAPITAL_PROJECT_EDIT_FORBIDDEN": "Недостаточно прав для редактирования проекта",
     "CAPITAL_PROJECT_FACT_TOTAL_MISSING": "Общая сумма проекта (project.fact.total) не найдена",
     "CAPITAL_PROJECT_HASH_NOT_FOUND": "Проект с хэшем {hash} не найден",
