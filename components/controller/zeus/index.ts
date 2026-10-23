@@ -16186,7 +16186,7 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 	["PublishPackageResultDTO"]: AliasType<{
 	/** Человекочитаемое сообщение об ошибке */
 	error?:boolean | `@${string}`,
-	/** Идентификатор запроса (UUIDv4), который ca-admin использовал для идемпотентности */
+	/** Идентификатор запроса (UUIDv4), который catalog-operator использовал для идемпотентности */
 	requestId?:boolean | `@${string}`,
 	/** Discriminator */
 	status?:boolean | `@${string}`,
@@ -16222,11 +16222,11 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 	error?:boolean | `@${string}`,
 	/** Идентификатор заявки на модерацию (487-27) */
 	moderationId?:boolean | `@${string}`,
-	/** Идентификатор запроса (UUIDv4), который ca-admin использовал для идемпотентности */
+	/** Идентификатор запроса (UUIDv4), который catalog-operator использовал для идемпотентности */
 	requestId?:boolean | `@${string}`,
 	/** Discriminator */
 	status?:boolean | `@${string}`,
-	/** Устарело: on-chain tx теперь ставит ca-admin при одобрении */
+	/** Устарело: on-chain tx теперь ставит catalog-operator при одобрении */
 	transactionId?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on PublishReleaseResultDTO']?: Omit<ValueTypes["PublishReleaseResultDTO"], "...on PublishReleaseResultDTO">
@@ -33752,7 +33752,7 @@ walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputType
 	["PublishPackageResultDTO"]: AliasType<{
 	/** Человекочитаемое сообщение об ошибке */
 	error?:boolean | `@${string}`,
-	/** Идентификатор запроса (UUIDv4), который ca-admin использовал для идемпотентности */
+	/** Идентификатор запроса (UUIDv4), который catalog-operator использовал для идемпотентности */
 	requestId?:boolean | `@${string}`,
 	/** Discriminator */
 	status?:boolean | `@${string}`,
@@ -33787,11 +33787,11 @@ walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputType
 	error?:boolean | `@${string}`,
 	/** Идентификатор заявки на модерацию (487-27) */
 	moderationId?:boolean | `@${string}`,
-	/** Идентификатор запроса (UUIDv4), который ca-admin использовал для идемпотентности */
+	/** Идентификатор запроса (UUIDv4), который catalog-operator использовал для идемпотентности */
 	requestId?:boolean | `@${string}`,
 	/** Discriminator */
 	status?:boolean | `@${string}`,
-	/** Устарело: on-chain tx теперь ставит ca-admin при одобрении */
+	/** Устарело: on-chain tx теперь ставит catalog-operator при одобрении */
 	transactionId?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
@@ -49314,11 +49314,11 @@ export type ModelTypes = {
 	payWithheldTax: string,
 	/** Вынести редакцию документа или пакет документов на утверждение совета: проект решения с текстом редакции публикуется в повестку */
 	proposeDocumentApproval: Array<ModelTypes["DocumentTemplate"]>,
-	/** Регистрирует пакет on-chain (action apps::regpkg) через ca-admin. Подписывает chairman кооператива-оператора каталога. Доступно только chairman'у (стол разработчика). */
+	/** Регистрирует пакет on-chain (action apps::regpkg) через catalog-operator. Подписывает chairman кооператива-оператора каталога. Доступно только chairman'у (стол разработчика). */
 	publishPackage: ModelTypes["PublishPackageResultDTO"],
 	/** Опубликовать предложенную повестку и проект решения для голосования совета. Возвращает созданный пункт повестки (или null, если он ещё не проиндексирован) для немедленного отображения на фронте. */
 	publishProjectOfFreeDecision?: ModelTypes["AgendaWithDocuments"] | undefined | null,
-	/** Создаёт новый релиз пакета (action apps::setrelease) через ca-admin. Подписывает chairman кооператива-оператора каталога. Доступно только chairman'у (стол разработчика). */
+	/** Создаёт новый релиз пакета (action apps::setrelease) через catalog-operator. Подписывает chairman кооператива-оператора каталога. Доступно только chairman'у (стол разработчика). */
 	publishRelease: ModelTypes["PublishReleaseResultDTO"],
 	/** Обновить токен доступа аккаунта */
 	refresh: ModelTypes["RegisteredAccount"],
@@ -51058,7 +51058,7 @@ export type ModelTypes = {
 	["PublishPackageResultDTO"]: {
 		/** Человекочитаемое сообщение об ошибке */
 	error?: string | undefined | null,
-	/** Идентификатор запроса (UUIDv4), который ca-admin использовал для идемпотентности */
+	/** Идентификатор запроса (UUIDv4), который catalog-operator использовал для идемпотентности */
 	requestId: string,
 	/** Discriminator */
 	status: ModelTypes["PublishPackageStatus"]
@@ -51091,11 +51091,11 @@ export type ModelTypes = {
 	error?: string | undefined | null,
 	/** Идентификатор заявки на модерацию (487-27) */
 	moderationId?: string | undefined | null,
-	/** Идентификатор запроса (UUIDv4), который ca-admin использовал для идемпотентности */
+	/** Идентификатор запроса (UUIDv4), который catalog-operator использовал для идемпотентности */
 	requestId: string,
 	/** Discriminator */
 	status: ModelTypes["PublishReleaseStatus"],
-	/** Устарело: on-chain tx теперь ставит ca-admin при одобрении */
+	/** Устарело: on-chain tx теперь ставит catalog-operator при одобрении */
 	transactionId?: string | undefined | null
 };
 	["PublishReleaseStatus"]:PublishReleaseStatus;
@@ -51114,7 +51114,7 @@ export type ModelTypes = {
 	agreements: ModelTypes["PaginatedAgreementsPaginationResult"],
 	/** Заявки на модерацию пакетов в каталоге восхода. По умолчанию SUBMITTED (ждут approve/reject). Только chairman. */
 	appsCatalogPendingModerations: Array<ModelTypes["ModerationRequestDTO"]>,
-	/** Список remote-пакетов из публичного каталога apps-catalog. Защищён JWT (видят только авторизованные пайщики). Источник — ca-admin /v1/public/packages; controller проксирует. */
+	/** Список remote-пакетов из публичного каталога apps-catalog. Защищён JWT (видят только авторизованные пайщики). Источник — catalog-operator /v1/public/packages; controller проксирует. */
 	appsCatalogRemotePackages: Array<ModelTypes["AppsCatalogRemotePackageDTO"]>,
 	/** Назначения издателей «аккаунт → пакет». Только chairman. */
 	appsPublishers: Array<ModelTypes["AppsPublisher"]>,
@@ -67581,11 +67581,11 @@ export type GraphQLTypes = {
 	payWithheldTax: string,
 	/** Вынести редакцию документа или пакет документов на утверждение совета: проект решения с текстом редакции публикуется в повестку */
 	proposeDocumentApproval: Array<GraphQLTypes["DocumentTemplate"]>,
-	/** Регистрирует пакет on-chain (action apps::regpkg) через ca-admin. Подписывает chairman кооператива-оператора каталога. Доступно только chairman'у (стол разработчика). */
+	/** Регистрирует пакет on-chain (action apps::regpkg) через catalog-operator. Подписывает chairman кооператива-оператора каталога. Доступно только chairman'у (стол разработчика). */
 	publishPackage: GraphQLTypes["PublishPackageResultDTO"],
 	/** Опубликовать предложенную повестку и проект решения для голосования совета. Возвращает созданный пункт повестки (или null, если он ещё не проиндексирован) для немедленного отображения на фронте. */
 	publishProjectOfFreeDecision?: GraphQLTypes["AgendaWithDocuments"] | undefined | null,
-	/** Создаёт новый релиз пакета (action apps::setrelease) через ca-admin. Подписывает chairman кооператива-оператора каталога. Доступно только chairman'у (стол разработчика). */
+	/** Создаёт новый релиз пакета (action apps::setrelease) через catalog-operator. Подписывает chairman кооператива-оператора каталога. Доступно только chairman'у (стол разработчика). */
 	publishRelease: GraphQLTypes["PublishReleaseResultDTO"],
 	/** Обновить токен доступа аккаунта */
 	refresh: GraphQLTypes["RegisteredAccount"],
@@ -69534,7 +69534,7 @@ export type GraphQLTypes = {
 	__typename: "PublishPackageResultDTO",
 	/** Человекочитаемое сообщение об ошибке */
 	error?: string | undefined | null,
-	/** Идентификатор запроса (UUIDv4), который ca-admin использовал для идемпотентности */
+	/** Идентификатор запроса (UUIDv4), который catalog-operator использовал для идемпотентности */
 	requestId: string,
 	/** Discriminator */
 	status: GraphQLTypes["PublishPackageStatus"],
@@ -69570,11 +69570,11 @@ export type GraphQLTypes = {
 	error?: string | undefined | null,
 	/** Идентификатор заявки на модерацию (487-27) */
 	moderationId?: string | undefined | null,
-	/** Идентификатор запроса (UUIDv4), который ca-admin использовал для идемпотентности */
+	/** Идентификатор запроса (UUIDv4), который catalog-operator использовал для идемпотентности */
 	requestId: string,
 	/** Discriminator */
 	status: GraphQLTypes["PublishReleaseStatus"],
-	/** Устарело: on-chain tx теперь ставит ca-admin при одобрении */
+	/** Устарело: on-chain tx теперь ставит catalog-operator при одобрении */
 	transactionId?: string | undefined | null,
 	['...on PublishReleaseResultDTO']: Omit<GraphQLTypes["PublishReleaseResultDTO"], "...on PublishReleaseResultDTO">
 };
@@ -69596,7 +69596,7 @@ export type GraphQLTypes = {
 	agreements: GraphQLTypes["PaginatedAgreementsPaginationResult"],
 	/** Заявки на модерацию пакетов в каталоге восхода. По умолчанию SUBMITTED (ждут approve/reject). Только chairman. */
 	appsCatalogPendingModerations: Array<GraphQLTypes["ModerationRequestDTO"]>,
-	/** Список remote-пакетов из публичного каталога apps-catalog. Защищён JWT (видят только авторизованные пайщики). Источник — ca-admin /v1/public/packages; controller проксирует. */
+	/** Список remote-пакетов из публичного каталога apps-catalog. Защищён JWT (видят только авторизованные пайщики). Источник — catalog-operator /v1/public/packages; controller проксирует. */
 	appsCatalogRemotePackages: Array<GraphQLTypes["AppsCatalogRemotePackageDTO"]>,
 	/** Назначения издателей «аккаунт → пакет». Только chairman. */
 	appsPublishers: Array<GraphQLTypes["AppsPublisher"]>,
