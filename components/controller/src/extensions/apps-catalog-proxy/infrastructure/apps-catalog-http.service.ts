@@ -199,38 +199,6 @@ export type RejectModerationOutcome =
   | { status: 'conflict'; requestId: string; error: string }
   | { status: 'failed'; requestId: string; error: string };
 
-export type SubscriptionState = 'trial' | 'active' | 'expired';
-
-export interface ActivateSubscriptionInput {
-  packageId: string;
-  /** eosio::name плана; в MVP `'default'`. */
-  plan?: string;
-}
-
-export type ActivateSubscriptionOutcome =
-  | {
-      status: 'activated';
-      state: SubscriptionState;
-      packageId: string;
-      plan: string;
-      startAt: string;
-      endAt: string;
-      freeTrialUsed: boolean;
-    }
-  | { status: 'alreadyActive'; error: string }
-  | { status: 'clientNotRegistered'; error: string }
-  | { status: 'unavailable'; error: string }
-  | { status: 'failed'; error: string };
-
-interface ActivateSubscriptionWireFormat {
-  state: SubscriptionState;
-  package_id: string;
-  plan: string;
-  start_at: string;
-  end_at: string;
-  free_trial_used: boolean;
-}
-
 /**
  * Метаданные фронт-части из volume-кэша orchestrator'а (E12-2):
  * только пакеты, реально установленные у кооператива, sha256 проверен
@@ -852,23 +820,6 @@ export class AppsCatalogHttpService implements OnApplicationBootstrap {
   }
 
   /**
-   * Story 9.3.b-sub: активация подписки кооператива-партнёра на пакет.
-   *
-   * Дёргает catalog-delivery `POST /v1/subscriptions/activate` с tenant JWT
-   * кооператива. На первой попытке создаётся trial-подписка
-   * (free_trial_period_seconds), на повторной активации после expired —
-   * pay (min_payment_period_seconds). tenant читается catalog-delivery'ом только
-   * из JWT — body не может переопределить кооператива.
-   *
-   * Discriminated outcome:
-   *  - `activated` — HTTP 201, подписка ACTIVE/trial;
-   *  - `alreadyActive` — HTTP 409 SUBSCRIPTION_ALREADY_ACTIVE;
-   *  - `clientNotRegistered` — HTTP 403 CLIENT_NOT_REGISTERED: кооператив
-   *    не зарегистрирован в каталоге восхода (нужен onboarding);
-   *  - `unavailable` — HTTP 423 CHAIN_UNAVAILABLE (катаклиз с key-escrow);
-   *  - `failed` — прочие ошибки (network, 400, 401, degraded mode).
-   */
-  /**
    * Вернуть валидный tenant JWT кооператива, выпустив новый при
    * необходимости: `POST /v1/auth/challenge` → подпись challenge-строки
    * ключом входа в каталог → `POST /v1/auth/verify`. Ключ выпускает и
@@ -918,61 +869,7 @@ export class AppsCatalogHttpService implements OnApplicationBootstrap {
     return token;
   }
 
-  async activateSubscription(
-    input: ActivateSubscriptionInput,
-  ): Promise<ActivateSubscriptionOutcome> {
-    if (!this.authClient) {
-      const error =
-        t('appsCatalogProxy.catalog.tenantJwtNotConfigured');
-      this.logger.warn(
-        `activateSubscription refused (degraded mode): ${input.packageId}`,
-      );
-      return { status: 'failed', error };
-    }
-    try {
-      const res = await this.authClient.post<ActivateSubscriptionWireFormat>(
-        '/v1/subscriptions/activate',
-        {
-          package_id: input.packageId,
-          ...(input.plan ? { plan: input.plan } : {}),
-        },
-      );
-      return {
-        status: 'activated',
-        state: res.data.state,
-        packageId: res.data.package_id,
-        plan: res.data.plan,
-        startAt: res.data.start_at,
-        endAt: res.data.end_at,
-        freeTrialUsed: res.data.free_trial_used,
-      };
-    } catch (err) {
-      const httpStatus = (err as AxiosError).response?.status;
-      const { detail } = failureOf(err);
-      if (httpStatus === 409) {
-        this.logger.warn(
-          `activateSubscription alreadyActive ${input.packageId}: ${detail}`,
-        );
-        return { status: 'alreadyActive', error: detail };
-      }
-      if (httpStatus === 403) {
-        this.logger.warn(
-          `activateSubscription clientNotRegistered ${input.packageId}: ${detail}`,
-        );
-        return { status: 'clientNotRegistered', error: detail };
-      }
-      if (httpStatus === 423) {
-        this.logger.warn(
-          `activateSubscription unavailable ${input.packageId}: ${detail}`,
-        );
-        return { status: 'unavailable', error: detail };
-      }
-      this.logger.error(
-        `activateSubscription failed ${input.packageId}: ${detail}`,
-      );
-      return { status: 'failed', error: detail };
-    }
-  }
+
 
   async fetchInstallScript(scope: string, name: string): Promise<string | null> {
     if (!this.client) return null;

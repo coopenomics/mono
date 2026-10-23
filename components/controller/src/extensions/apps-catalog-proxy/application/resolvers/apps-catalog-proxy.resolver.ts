@@ -1,7 +1,7 @@
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
-import { BadRequestException, Logger, UseGuards } from '@nestjs/common';
-import { GqlJwtAuthGuard, RightsGuard, RequireRight, CurrentUser } from '@coopenomics/extension-kit';
-import type { IMonoAccount } from '@coopenomics/innercoop';
+import { BadRequestException, Inject, Logger, Optional, UseGuards } from '@nestjs/common';
+import { GqlJwtAuthGuard, RightsGuard, RequireRight, CurrentUser, platformSettings } from '@coopenomics/extension-kit';
+import { InnerAppSubscriptionStatus, PROVIDER_APPS_PORT, type IMonoAccount, type IProviderAppsPort } from '@coopenomics/innercoop';
 import { t } from '../../i18n';
 import {
   AppsCatalogHttpService,
@@ -126,6 +126,7 @@ export class AppsCatalogProxyResolver {
   constructor(
     private readonly client: AppsCatalogHttpService,
     private readonly publishers: AppsPublishersService,
+    @Optional() @Inject(PROVIDER_APPS_PORT) private readonly providerApps?: IProviderAppsPort,
   ) {}
 
   @Query(() => [AppsCatalogRemotePackageDTO], {
@@ -547,27 +548,25 @@ export class AppsCatalogProxyResolver {
   }
 
   /**
-   * Story 9.3.b-sub — пайщик подписывает свой кооператив на пакет.
+   * Подписка кооператива на пакет каталога (Архитектура v5, 487-34).
    *
-   * Защита: только chairman кооператива-партнёра. catalog-delivery активирует
-   * подписку tenant'а (кооператива пайщика читается из tenant JWT, не
-   * из body), on-chain `apps::regsub` подписывает catalog-delivery от имени
-   * каталога-оператора. После активации pricing-watcher на coopback
-   * партнёра подхватит подписку и начнёт списания (см. story 9.6).
+   * Подписка на приложение — строка общего счёта кооператива у провайдера:
+   * провайдер заводит её, включает в счёт и сам передаёт каталогу. Оформить
+   * её может только узел оператора — у него канал к провайдеру. На узле без
+   * провайдера ответ `unavailable` с подсказкой: подписка оформляется на
+   * столе подключения у оператора.
    *
    * Discriminated outcome:
-   *  - `activated` — подписка ACTIVE/trial;
-   *  - `alreadyActive` — у кооператива уже есть подписка;
-   *  - `clientNotRegistered` — кооператив не в каталоге (нужен onboarding);
-   *  - `unavailable` — каталог временно недоступен;
-   *  - `failed` — прочие ошибки.
+   *  - `activated` — подписка оформлена;
+   *  - `alreadyActive` — у кооператива уже есть действующая подписка;
+   *  - `unavailable` — узел не связан с провайдером;
+   *  - `failed` — пакет не предлагается или провайдер отказал.
    */
   @Mutation(() => SubscribePackageResultDTO, {
     name: 'subscribePackage',
     description:
-      'Подписывает кооператив-партнёр на пакет из каталога восхода. ' +
-      'Tenant читается из server-side JWT, body не может его переопределить. ' +
-      'Только chairman кооператива-партнёра.',
+      'Оформляет подписку кооператива на приложение из каталога. Подписка входит в общий счёт ' +
+      'кооператива у провайдера подключения. Только председатель.',
   })
   @UseGuards(GqlJwtAuthGuard, RightsGuard)
   @RequireRight('Developer', 'manage')
@@ -575,45 +574,31 @@ export class AppsCatalogProxyResolver {
     @Args('data', { type: () => SubscribePackageInputDTO })
     data: SubscribePackageInputDTO,
   ): Promise<SubscribePackageResultDTO> {
-    const outcome = await this.client.activateSubscription({
-      packageId: data.packageId,
-      plan: data.plan,
-    });
-    if (outcome.status === 'activated') {
-      this.logger.log(
-        `subscribePackage activated: ${outcome.packageId} (state ${outcome.state}, до ${outcome.endAt})`,
-      );
-      return {
-        status: SubscribePackageStatus.ACTIVATED,
-        state: outcome.state as unknown as SubscriptionStateEnum,
-        packageId: outcome.packageId,
-        plan: outcome.plan,
-        startAt: outcome.startAt,
-        endAt: outcome.endAt,
-        freeTrialUsed: outcome.freeTrialUsed,
-      };
+    if (!this.providerApps) {
+      return { status: SubscribePackageStatus.UNAVAILABLE, error: t('appsCatalogProxy.catalog.subscribeAtConnectionDesk') };
     }
-    if (outcome.status === 'alreadyActive') {
-      return {
-        status: SubscribePackageStatus.ALREADY_ACTIVE,
-        error: outcome.error,
-      };
+    const outcome = await this.providerApps.subscribe(platformSettings().coopname, data.packageId);
+    switch (outcome.status) {
+      case 'subscribed': {
+        const s = outcome.subscription;
+        if (!outcome.created) {
+          return { status: SubscribePackageStatus.ALREADY_ACTIVE, packageId: s.package_id };
+        }
+        this.logger.log(`subscribePackage: ${s.package_id} оформлена у провайдера до ${s.expires_at}`);
+        return {
+          status: SubscribePackageStatus.ACTIVATED,
+          state: s.status === InnerAppSubscriptionStatus.TRIAL ? SubscriptionStateEnum.TRIAL : SubscriptionStateEnum.ACTIVE,
+          packageId: s.package_id,
+          plan: 'default',
+          startAt: s.started_at,
+          endAt: s.expires_at,
+          freeTrialUsed: false,
+        };
+      }
+      case 'unavailable':
+        return { status: SubscribePackageStatus.UNAVAILABLE, error: t('appsCatalogProxy.catalog.subscribeAtConnectionDesk') };
+      default:
+        return { status: SubscribePackageStatus.FAILED, error: outcome.error };
     }
-    if (outcome.status === 'clientNotRegistered') {
-      return {
-        status: SubscribePackageStatus.CLIENT_NOT_REGISTERED,
-        error: outcome.error,
-      };
-    }
-    if (outcome.status === 'unavailable') {
-      return {
-        status: SubscribePackageStatus.UNAVAILABLE,
-        error: outcome.error,
-      };
-    }
-    return {
-      status: SubscribePackageStatus.FAILED,
-      error: outcome.error,
-    };
   }
 }

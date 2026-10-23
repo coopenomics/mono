@@ -9,7 +9,7 @@
 экспорта, исчезнувший метод, новый обязательный параметр требуют major, а
 снятое старое — периода устаревания не меньше одного minor (INV-009).
 
-Всего экспортов: 336.
+Всего экспортов: 341.
 
 ## ACCOUNT_PORT
 
@@ -698,6 +698,31 @@
 - `order: number`
 - `extension_name: string`
 - `resolve_doc_data_hash?: () => Promise<string | undefined>`
+
+## InnerAppSubscribeOutcome
+
+`type` · core-ports
+
+- `| { status: 'subscribed'`
+
+## InnerAppSubscription
+
+`interface` · core-ports
+
+- `package_id: string`
+- `status: InnerAppSubscriptionStatus`
+- `amount_per_period: number`
+- `started_at: string`
+- `expires_at: string`
+
+## InnerAppSubscriptionStatus
+
+`enum` · core-ports
+
+- `ACTIVE = 'ACTIVE',`
+- `TRIAL = 'TRIAL',`
+- `EXPIRED = 'EXPIRED',`
+- `CANCELLED = 'CANCELLED',`
 
 ## InnerAssignableRole
 
@@ -2405,6 +2430,12 @@
 - `getMaxCompletedEndedAtForRooms(matrixRoomIds: string[]): Promise<Date | null>`
 - `renderCompletedCallTranscriptionMarkdown(transcriptionId: string): Promise<string | null>`
 
+## IProviderAppsPort
+
+`interface` · core-ports
+
+- `subscribe(coopname: string, packageId: string): Promise<InnerAppSubscribeOutcome>`
+
 ## IProviderTariffPort
 
 `interface` · core-ports
@@ -2775,6 +2806,12 @@
 `const` · cross-plugin-ports
 
 - `Symbol.for('Innercoop.CrossPlugin.ProjectCommunicationArtifacts')`
+
+## PROVIDER_APPS_PORT
+
+`const` · core-ports
+
+- `Symbol.for('Innercoop.CorePort.ProviderApps')`
 
 ## PROVIDER_TARIFF_PORT
 

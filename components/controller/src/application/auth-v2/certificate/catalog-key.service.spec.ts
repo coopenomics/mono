@@ -1,7 +1,13 @@
+import config from '~/config/config';
 import { CATALOG_PERMISSION, CatalogKeyService } from './catalog-key.service';
 
-const mockConfig = { coopname: 'romashka', apps_catalog_auth: { url: 'http://catalog-delivery:3001' as string | undefined } };
-jest.mock('~/config/config', () => ({ __esModule: true, default: mockConfig }));
+// Фабрика мока поднимается выше импортов: объект конфигурации создаётся в ней,
+// а тесты меняют его через импорт.
+jest.mock('~/config/config', () => ({
+  __esModule: true,
+  default: { coopname: 'romashka', apps_catalog_auth: { url: 'http://catalog-delivery:3001' } },
+}));
+const mockConfig = config as unknown as { apps_catalog_auth: { url: string | undefined } };
 
 /**
  * Ключ входа в каталог приложений (487-34): узел выпускает его сам, хранит в

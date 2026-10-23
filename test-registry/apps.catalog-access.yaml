@@ -89,3 +89,27 @@ cases:
       оркестратора, sha256 сверен по манифесту через tenant JWT; снятие — не проверено
     test: null
     status: missing
+
+  - id: apps.access.happy.03
+    level: backend
+    kind: happy
+    scenario: председатель узла оператора оформляет подписку на приложение (subscribePackage)
+    expect: >
+      подписка оформлена у провайдера на кооператив узла и входит в общий счёт; ответ activated
+      с датами; при действующей подписке — alreadyActive без новой строки счёта
+    test: components/controller/tests/unit/apps-catalog-proxy/subscribe-package.test.ts
+    status: written
+    external: unreachable
+    external_reason: "у стенда внешнего слоя нет провайдера; проверено вручную на mono-ai-5 23.10.2026 (activated, alreadyActive, failed)"
+
+  - id: apps.access.break.03
+    level: backend
+    kind: break
+    scenario: пакет не предлагается каталогом; узел без провайдера (узел партнёра)
+    expect: >
+      failed с причиной от провайдера; на узле без провайдера — unavailable с подсказкой оформить
+      подписку на столе подключения у оператора, в каталог узел не идёт
+    test: components/controller/tests/unit/apps-catalog-proxy/subscribe-package.test.ts
+    status: written
+    external: unreachable
+    external_reason: "у стенда внешнего слоя нет провайдера и узла партнёра"

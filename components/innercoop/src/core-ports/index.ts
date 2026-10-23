@@ -35,6 +35,7 @@ export * from './registration.port';
 export * from './chain.port';
 export * from './chain-resources.port';
 export * from './provider-tariff.port';
+export * from './provider-apps.port';
 export * from './chain-delta-wait.port';
 export * from './chain-changes.port';
 export * from './extension-config.port';

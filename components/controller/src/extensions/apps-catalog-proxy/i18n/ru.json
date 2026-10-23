@@ -6,7 +6,7 @@
       "emptyChallenge": "Каталог не выдал строку для подписи при входе кооператива",
       "emptyToken": "Каталог не выдал токен входа кооператива",
       "noCooperativeKey": "Ключ входа в каталог ещё не выпущен: узел выпускает его после ввода ключа кооператива",
-      "tenantJwtNotConfigured": "Подписка через каталог не настроена: не заданы APPS_CATALOG_DELIVERY_URL и APPS_CATALOG_TENANT_JWT"
+      "subscribeAtConnectionDesk": "Подписка на приложение оформляется на столе подключения у оператора: там же она входит в общий счёт кооператива"
     },
     "publishers": {
       "notAssigned": "Аккаунт {username} не назначен издателем пакета {packageId}",

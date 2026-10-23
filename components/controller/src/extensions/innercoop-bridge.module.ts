@@ -4,6 +4,7 @@ import {
   CHAIN_PORT,
   CHAIN_RESOURCES_PORT,
   PROVIDER_TARIFF_PORT,
+  PROVIDER_APPS_PORT,
   CHAIRMAN_APPROVALS_PORT,
   CHAIN_DELTA_WAIT_PORT,
   CHAIN_CHANGES_PORT,
@@ -119,6 +120,7 @@ import { AgreementCatalogInnercoopAdapter } from '~/infrastructure/innercoop/agr
 import { ExtensionConfigInnercoopAdapter } from '~/infrastructure/innercoop/extension-config-innercoop.adapter';
 import { ChainResourcesInnercoopAdapter } from '~/infrastructure/innercoop/chain-resources-innercoop.adapter';
 import { ProviderTariffInnercoopAdapter } from '~/infrastructure/innercoop/provider-tariff-innercoop.adapter';
+import { ProviderAppsInnercoopAdapter } from '~/infrastructure/innercoop/provider-apps-innercoop.adapter';
 import { ProviderModule } from '~/application/provider/provider.module';
 import { UserModule } from '~/application/user/user.module';
 import { RegistrationModule } from '~/application/registration/registration.module';
@@ -248,6 +250,7 @@ import { ProcessRegistryDomainModule } from '~/domain/process-registry/process-r
     ExtensionConfigInnercoopAdapter,
     ChainResourcesInnercoopAdapter,
     ProviderTariffInnercoopAdapter,
+    ProviderAppsInnercoopAdapter,
     OrganizationInnercoopAdapter,
     CoopCredentialInnercoopAdapter,
     IndividualInnercoopAdapter,
@@ -469,6 +472,11 @@ import { ProcessRegistryDomainModule } from '~/domain/process-registry/process-r
       useExisting: ProviderTariffInnercoopAdapter,
     },
     {
+      // Подписка на приложение каталога у провайдера (узел оператора).
+      provide: PROVIDER_APPS_PORT,
+      useExisting: ProviderAppsInnercoopAdapter,
+    },
+    {
       // Реестр ядра совпадает с портом по форме: расширение только кладёт себя.
       provide: DESKTOP_GRANTS_REGISTRY_PORT,
       useExisting: ExtensionGrantsRegistry,
@@ -602,6 +610,7 @@ import { ProcessRegistryDomainModule } from '~/domain/process-registry/process-r
     EXTENSION_CONFIG_PORT,
     CHAIN_RESOURCES_PORT,
     PROVIDER_TARIFF_PORT,
+    PROVIDER_APPS_PORT,
     DESKTOP_GRANTS_REGISTRY_PORT,
     DESKTOP_GRANTS_FILTER_REGISTRY_PORT,
     REGISTRATION_OFFER_FILTER_REGISTRY_PORT,

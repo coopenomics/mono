@@ -1,4 +1,5 @@
 import { Injectable, Logger, Inject } from '@nestjs/common';
+import type { InnerAppSubscription } from '@coopenomics/innercoop';
 import { DomainError } from '@coopenomics/extension-kit';
 import axios from 'axios';
 import { RegistratorContract } from 'cooptypes';
@@ -55,6 +56,9 @@ function describeProviderError(error: any): string {
   const reason = cause ? cause.code || cause.message || String(cause) : '';
   return reason ? `${message} (${reason})` : message;
 }
+
+/** Подписка кооператива на приложение каталога в ответе провайдера (`/apps/:coopname/subscriptions`). */
+export type ProviderAppSubscription = InnerAppSubscription & { subscription_id: number; subscription_type_id: number };
 
 @Injectable()
 export class ProviderService {
@@ -320,6 +324,71 @@ export class ProviderService {
       const message = error?.response?.data?.message || error?.message || t('provider.hostingPlan.unknownError');
       this.logger.error(`Выбор тарифа ${tariffCode} для ${username} не принят: ${message}`);
       throw DomainError.badRequest('PROVIDER_TARIFF_SELECT_FAILED', { reason: message });
+    }
+  }
+
+  /**
+   * Подписки кооператива на приложения каталога (487-34): строки общего счёта
+   * у провайдера. Тот же server-secret канал, что и выбор тарифа.
+   */
+  async listAppSubscriptions(username: string): Promise<ProviderAppSubscription[]> {
+    if (!this.isProviderAvailable()) {
+      throw DomainError.badRequest('PROVIDER_BASE_URL_MISSING');
+    }
+    const response = await axios.get(`${config.provider_base_url}/apps/${username}/subscriptions`, {
+      headers: { 'server-secret': config.server_secret },
+      timeout: 10_000,
+    });
+    return (response.data ?? []) as ProviderAppSubscription[];
+  }
+
+  /**
+   * Оформить подписку кооператива на приложение каталога. Провайдер заводит
+   * строку счёта и сам передаёт подписку каталогу. Повтор возвращает
+   * действующую подписку с `created = false`.
+   */
+  async subscribeApp(
+    username: string,
+    packageId: string,
+  ): Promise<{ subscription: ProviderAppSubscription; created: boolean }> {
+    if (!this.isProviderAvailable()) {
+      throw DomainError.badRequest('PROVIDER_BASE_URL_MISSING');
+    }
+    try {
+      const response = await axios.post(
+        `${config.provider_base_url}/apps/${username}/subscriptions`,
+        { package_id: packageId },
+        { headers: { 'server-secret': config.server_secret }, timeout: 15_000 },
+      );
+      return response.data;
+    } catch (error: any) {
+      if (error?.response?.status === 400) {
+        throw DomainError.badRequest('PROVIDER_APP_NOT_OFFERED', { package_id: packageId });
+      }
+      const message = error?.response?.data?.message || error?.message || t('provider.hostingPlan.unknownError');
+      this.logger.error(`Подписка ${username} на ${packageId} не оформлена: ${message}`);
+      throw DomainError.badRequest('PROVIDER_APP_SUBSCRIBE_FAILED', { reason: message });
+    }
+  }
+
+  /** Отменить подписку кооператива на приложение: каталог закрывает доступ. */
+  async cancelApp(username: string, packageId: string): Promise<ProviderAppSubscription> {
+    if (!this.isProviderAvailable()) {
+      throw DomainError.badRequest('PROVIDER_BASE_URL_MISSING');
+    }
+    try {
+      const response = await axios.delete(
+        `${config.provider_base_url}/apps/${username}/subscriptions/${packageId.replace(/^@/, '')}`,
+        { headers: { 'server-secret': config.server_secret }, timeout: 15_000 },
+      );
+      return response.data;
+    } catch (error: any) {
+      if (error?.response?.status === 404) {
+        throw DomainError.badRequest('PROVIDER_APP_NOT_SUBSCRIBED', { package_id: packageId });
+      }
+      const message = error?.response?.data?.message || error?.message || t('provider.hostingPlan.unknownError');
+      this.logger.error(`Подписка ${username} на ${packageId} не отменена: ${message}`);
+      throw DomainError.badRequest('PROVIDER_APP_CANCEL_FAILED', { reason: message });
     }
   }
 

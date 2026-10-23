@@ -1,5 +1,9 @@
 {
   "errors": {
+    "PROVIDER_APP_CANCEL_FAILED": "Провайдер не отменил подписку на приложение: {reason}",
+    "PROVIDER_APP_NOT_OFFERED": "Приложение {package_id} не предлагается каталогом",
+    "PROVIDER_APP_NOT_SUBSCRIBED": "Действующей подписки на приложение {package_id} нет",
+    "PROVIDER_APP_SUBSCRIBE_FAILED": "Провайдер не оформил подписку на приложение: {reason}",
     "PROVIDER_BASE_URL_MISSING": "Провайдер не настроен (PROVIDER_BASE_URL)",
     "PROVIDER_CATALOG_TOKEN_MISSING": "Витрина провайдера не настроена (PROVIDER_BEARER_TOKEN)",
     "PROVIDER_CATALOG_UNAVAILABLE": "Каталог тарифов провайдера временно недоступен, попробуйте позже",
