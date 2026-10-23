@@ -208,7 +208,9 @@ export const AppRegistry: INamedExtension = {
   },
   developer: {
     is_internal: true,
-    availability: ExtensionAvailability.EVERYWHERE,
+    // Стол разработчика пока не выпускается: на тестнете и в основной сети его
+    // нет вовсе, работа с ним идёт на локальных стендах (решение владельца 23.10.2026).
+    availability: ExtensionAvailability.DEVELOPMENT_ONLY,
     desktops: [
       {
         name: 'developer',
@@ -226,9 +228,7 @@ export const AppRegistry: INamedExtension = {
     image: 'https://i.ibb.co/HRW1nFY/Chat-GPT-Image-10-2025-20-40-57.png',
     class: AppsCatalogProxyModule,
     extensionClass: DeveloperExtension,
-    // Без defaults: стол нужен только кооперативу-оператору каталога, его
-    // председатель ставит расширение из витрины сам; в остальные кооперативы
-    // оно не попадает.
+    // Без defaults: на стенде разработки стол ставят из витрины вручную.
     databaseMigrations: appsCatalogProxyDatabaseMigrations,
     ports: appsCatalogProxyPorts,
     schema: DeveloperSchema,

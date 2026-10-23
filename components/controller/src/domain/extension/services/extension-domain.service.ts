@@ -65,7 +65,7 @@ export class ExtensionDomainService<TConfig = any> {
       // (`assertInstallable`), а состав по умолчанию шёл мимо неё: расширение, не открытое
       // для основной сети, приезжало бы в неё само и включённым — то есть запрет обходился
       // бы ровно тем механизмом, который должен ему подчиняться.
-      .filter(([, extension]) => isExtensionAvailable(extension.availability, appConfig.blockchain.is_mainnet))
+      .filter(([, extension]) => isExtensionAvailable(extension.availability, appConfig.blockchain.is_mainnet, appConfig.env !== 'production'))
       .map(([name, extension]) => ({
         name,
         enabled: extension.defaults!.enabled,

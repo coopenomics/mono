@@ -30,10 +30,20 @@ export enum ExtensionAvailability {
   NON_MAINNET_ONLY = 'non_mainnet_only',
   /** Недоступно нигде — расширение ещё не открыто для установки. */
   NOWHERE = 'nowhere',
+  /**
+   * Только контур разработки — узел с `NODE_ENV`, отличным от `production`
+   * (локальные стенды). Узлы тестнета и основной сети запускаются в
+   * `production`, и там расширение не ставится и в витрине не показывается.
+   */
+  DEVELOPMENT_ONLY = 'development_only',
 }
 
 /** Вычисляет доступность расширения для сети, в которой работает узел. */
-export function isExtensionAvailable(availability: ExtensionAvailability, isMainnet: boolean): boolean {
+export function isExtensionAvailable(
+  availability: ExtensionAvailability,
+  isMainnet: boolean,
+  isDevelopment = false
+): boolean {
   switch (availability) {
     case ExtensionAvailability.EVERYWHERE:
       return true;
@@ -41,6 +51,8 @@ export function isExtensionAvailable(availability: ExtensionAvailability, isMain
       return !isMainnet;
     case ExtensionAvailability.NOWHERE:
       return false;
+    case ExtensionAvailability.DEVELOPMENT_ONLY:
+      return isDevelopment;
   }
 }
 
