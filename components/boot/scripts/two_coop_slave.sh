@@ -39,10 +39,11 @@ fi
 
 master_env() { grep -E "^$1=" "$MASTER_DIR/.env" 2>/dev/null | tail -1 | cut -d= -f2-; }
 MASTER_NODE_HTTP_PORT="$(master_env NODE_HTTP_PORT)"
-MASTER_NODE_HISTORY_PORT="$(master_env NODE_HISTORY_PORT)"
+MASTER_PROJECT="$(master_env COMPOSE_PROJECT_NAME)"
+MASTER_PROJECT="${MASTER_PROJECT:-$(basename "$MASTER_DIR")}"
 MASTER_CHAIN_ID="$(grep -E '^CHAIN_ID=' "$MASTER_DIR/components/controller/.env" | tail -1 | cut -d= -f2-)"
-if [ -z "$MASTER_NODE_HTTP_PORT" ] || [ -z "$MASTER_NODE_HISTORY_PORT" ] || [ -z "$MASTER_CHAIN_ID" ]; then
-  echo "✗ Не прочитать порты цепи и CHAIN_ID ведущего из $MASTER_DIR"
+if [ -z "$MASTER_NODE_HTTP_PORT" ] || [ -z "$MASTER_CHAIN_ID" ]; then
+  echo "✗ Не прочитать порт цепи и CHAIN_ID ведущего из $MASTER_DIR"
   exit 1
 fi
 if ! curl -sf -m 5 "http://127.0.0.1:${MASTER_NODE_HTTP_PORT}/v1/chain/get_info" >/dev/null; then
@@ -58,12 +59,29 @@ PROVIDER_URL="${PROVIDER_URL:-http://127.0.0.1:3005}"
 
 # ── Конфигурация ведомого ────────────────────────────────────────────────────
 mkdir -p "$STACK_ROOT/.two-coop"
+# Ретранслятор ходит в чужие сети по именам контейнеров; имена резолвятся при
+# каждом соединении (resolver docker), поэтому ещё не поднятый контейнер не
+# роняет ретранслятор.
 cat > "$STACK_ROOT/.two-coop/node-relay.conf" <<EOF
 # Сгенерировано two_coop_slave.sh: цепь ведомого — цепь ведущего ($MASTER_DIR).
 events {}
 stream {
-  server { listen 8888; proxy_pass host.docker.internal:${MASTER_NODE_HTTP_PORT}; }
-  server { listen 8070; proxy_pass host.docker.internal:${MASTER_NODE_HISTORY_PORT}; }
+  resolver 127.0.0.11 valid=10s ipv6=off;
+  map \$server_port \$relay_upstream {
+    8888 ${MASTER_PROJECT}-node-1:8888;
+    8070 ${MASTER_PROJECT}-node-1:8070;
+    3001 apps-catalog-delivery:3001;
+    3002 apps-catalog-operator:3002;
+    8080 ${STACK_PROJECT}-nginx-1:80;
+  }
+  server {
+    listen 8888;
+    listen 8070;
+    listen 3001;
+    listen 3002;
+    listen 8080;
+    proxy_pass \$relay_upstream;
+  }
 }
 EOF
 
@@ -71,10 +89,9 @@ export COMPOSE_FILE="docker-compose.yaml:docker-compose.slave.yaml"
 export COOPNAME="$SLAVE_COOPNAME"
 export CHAIN_ID="$MASTER_CHAIN_ID"
 export SLAVE_SERVER_SECRET="$PROVIDER_SECRET"
-export MASTER_CATALOG_OPERATOR_URL="${MASTER_CATALOG_OPERATOR_URL:-http://host.docker.internal:3002}"
-export MASTER_CATALOG_DELIVERY_URL="${MASTER_CATALOG_DELIVERY_URL:-http://host.docker.internal:3001}"
-export CATALOG_DELIVERY_BASE_URL="$MASTER_CATALOG_DELIVERY_URL"
-export APPS_CATALOG_OPERATOR_URL="$MASTER_CATALOG_OPERATOR_URL"
+export MASTER_NETWORK="${MASTER_PROJECT}_default"
+export CATALOG_DELIVERY_BASE_URL="http://node:3001"
+export APPS_CATALOG_OPERATOR_URL="http://node:3002"
 export APPS_CATALOG_OPERATOR_API_KEY="${APPS_CATALOG_OPERATOR_API_KEY:-$(grep -E '^APPS_CATALOG_OPERATOR_API_KEY=' "$MASTER_DIR/components/controller/.env" | tail -1 | cut -d= -f2-)}"
 
 cd "$STACK_ROOT"
@@ -94,7 +111,7 @@ docker compose up -d orchestrator
 
 # ── Узел готов? ──────────────────────────────────────────────────────────────
 SLAVE_ORIGIN_HOST="http://127.0.0.1:${NGINX_HOST_PORT:-8108}"
-SLAVE_ORIGIN_FOR_PROVIDER="http://host.docker.internal:${NGINX_HOST_PORT:-8108}"
+SLAVE_ORIGIN_FOR_PROVIDER="http://${COOPNAME}-node:8080"
 graphql_up() {
   curl -sf -m 5 -H 'content-type: application/json' \
     -d '{"query":"{ getSystemInfo { system_status } }"}' \

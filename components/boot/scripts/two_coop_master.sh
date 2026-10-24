@@ -41,6 +41,11 @@ echo "══ Ведущий кооператив связки: ${STACK_PROJECT} 
 # статус), а не кандидатом: провайдер подхватывает его синком и подключает узел.
 EXTRA_RENT=1 bash "$SCRIPT_DIR/extra_reboot.sh" || exit 1
 
+echo "▸ Разрешение voskhod@provider: им провайдер подписывает канал оператора каталога..."
+(cd "$STACK_ROOT/components/boot" && \
+  CATALOG_PROVIDER_KEY="$(provider_env CATALOG_PROVIDER_KEY)" pnpm exec esno src/two-coop/provider-permission.ts) \
+  || echo "  ⚠ разрешение не опубликовано — каталог не примет кооперативы и подписки от провайдера"
+
 echo "▸ Сбрасываем у провайдера и в каталоге состояние $SLAVE_COOPNAME прошлой цепи..."
 # Провайдер на время очистки остановлен: синк с цепью раз в минуту успел бы
 # пересоздать инстанс со старыми флагами между удалениями.
