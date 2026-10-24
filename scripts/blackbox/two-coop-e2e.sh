@@ -130,18 +130,19 @@ cmd_fixture() {
   fi
   echo "✓ Nexus: репозиторий ${NEXUS_REPO}"
 
-  local app="$CATALOG_DIR/examples/demo-app" version registry npmrc
+  local app="$CATALOG_DIR/examples/demo-app" version tgz
   version="$(node -p "require('$app/package.json').version")"
-  registry="http://127.0.0.1:${NEXUS_PORT}/repository/${NEXUS_REPO}/"
-  npmrc="$(mktemp)"
-  {
-    echo "@voskhod:registry=${registry}"
-    echo "//127.0.0.1:${NEXUS_PORT}/repository/${NEXUS_REPO}/:_auth=$(printf 'admin:%s' "$NEXUS_PASSWORD" | base64 -w0)"
-    echo "always-auth=true"
-  } > "$npmrc"
-  (cd "$app" && NPM_CONFIG_USERCONFIG="$npmrc" npm publish --registry "$registry" --ignore-scripts) \
-    || echo "  (повтор публикации — версия уже в Nexus)"
-  rm -f "$npmrc"
+  # Архив — npm pack, загрузка — REST API компонентов Nexus с паролем
+  # администратора: npm publish по базовой авторизации Nexus отвергает (403).
+  tgz="$(cd "$app" && npm pack --silent --pack-destination "$OUT")"
+  if ! curl -sf -o /dev/null -u "admin:${NEXUS_PASSWORD}" \
+      "http://127.0.0.1:${NEXUS_PORT}/repository/${NEXUS_REPO}/${PACKAGE}"; then
+    curl -sf -u "admin:${NEXUS_PASSWORD}" -X POST \
+      -F "npm.asset=@${OUT}/${tgz};type=application/x-compressed" \
+      "http://127.0.0.1:${NEXUS_PORT}/service/rest/v1/components?repository=${NEXUS_REPO}"
+  fi
+  wait_for "${PACKAGE} в репозитории Nexus" 60 3 \
+    curl -sf -o /dev/null -u "admin:${NEXUS_PASSWORD}" "http://127.0.0.1:${NEXUS_PORT}/repository/${NEXUS_REPO}/${PACKAGE}"
   echo "✓ ${PACKAGE}@${version} в Nexus"
 
   local subnet
