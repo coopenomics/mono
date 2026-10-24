@@ -19,6 +19,10 @@ sources:
     - components/controller/src/application/auth-v2/certificate/catalog-key.service.ts
     - components/controller/src/extensions/apps-catalog-proxy/infrastructure/apps-catalog-http.service.ts
     - components/orchestrator/src/watcher/**
+    - components/controller/src/application/provider/dto/provider-app.dto.ts
+  ui:
+    - components/desktop/src/widgets/ConnectionDashboard/ui/AppsCard.vue
+    - components/desktop/src/features/Provider/model/apps.ts
 
 cases:
   - id: apps.access.happy.01
@@ -109,6 +113,31 @@ cases:
     expect: >
       failed с причиной от провайдера; на узле без провайдера — unavailable с подсказкой оформить
       подписку на столе подключения у оператора, в каталог узел не идёт
+    test: components/controller/tests/unit/apps-catalog-proxy/subscribe-package.test.ts
+    status: written
+    external: unreachable
+    external_reason: "у стенда внешнего слоя нет провайдера и узла партнёра"
+
+  - id: apps.access.happy.04
+    level: backend
+    kind: happy
+    scenario: >
+      Кооператив-партнёр на столе подключения оператора видит приложения каталога
+      (getProviderApps), подключает (subscribeProviderApp) и отключает (cancelProviderApp)
+    expect: >
+      цена — от провайдера; подключённое приложение — строка общего счёта кооператива, копия
+      попадает в каталог, оркестратор узла partner1 ставит приложение; после оплаты хабом срок
+      продлён на месяц; после отключения приложение снято с узла
+    test: components/boot/src/tests/catalog-apps-two-coop.test.ts
+    status: written
+
+  - id: apps.access.side.02
+    level: backend
+    kind: side
+    scenario: витрина приложений на узле без провайдера (узел партнёра)
+    expect: >
+      цена не выдумывается: поле пусто, витрина пишет «цена — на столе подключения»; на узле
+      оператора цена — от провайдера, а не постоянная 1000
     test: components/controller/tests/unit/apps-catalog-proxy/subscribe-package.test.ts
     status: written
     external: unreachable

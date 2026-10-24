@@ -22,3 +22,4 @@ export * from './currency-validation.utils';
 export * from './user-text.utils';
 export * from './safe-markup.decorator';
 export * from './pick-defined';
+export * from './catalog-app-title';

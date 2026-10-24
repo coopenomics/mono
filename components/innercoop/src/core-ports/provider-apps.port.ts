@@ -30,6 +30,16 @@ export interface InnerAppSubscription {
   expires_at: string;
 }
 
+/** Предложение приложения у провайдера: цена за период оплаты. */
+export interface InnerAppOffer {
+  /** Пакет каталога, `@scope/name`. */
+  package_id: string;
+  /** Цена за период, рубли. */
+  price: number;
+  /** Период оплаты, дней. */
+  period_days: number;
+}
+
 export type InnerAppSubscribeOutcome =
   | { status: 'subscribed'; created: boolean; subscription: InnerAppSubscription }
   | { status: 'notOffered'; error: string }
@@ -39,6 +49,11 @@ export type InnerAppSubscribeOutcome =
 export interface IProviderAppsPort {
   /** Оформить подписку кооператива на пакет. Повтор возвращает действующую подписку. */
   subscribe(coopname: string, packageId: string): Promise<InnerAppSubscribeOutcome>;
+  /**
+   * Приложения, которые провайдер предлагает кооперативу, с ценой; `null` —
+   * узел не связан с провайдером, цена известна только на столе подключения.
+   */
+  listOffers(coopname: string): Promise<InnerAppOffer[] | null>;
 }
 
 export const PROVIDER_APPS_PORT = Symbol.for('Innercoop.CorePort.ProviderApps');

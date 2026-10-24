@@ -1,6 +1,7 @@
 import { Injectable, Logger, Inject } from '@nestjs/common';
 import type { InnerAppSubscription } from '@coopenomics/innercoop';
-import { DomainError } from '@coopenomics/extension-kit';
+import { DomainError, catalogAppTitle } from '@coopenomics/extension-kit';
+import type { ProviderAppDTO } from '../dto/provider-app.dto';
 import axios from 'axios';
 import { RegistratorContract } from 'cooptypes';
 import { ProviderSubscriptionDTO } from '../dto/provider-subscription.dto';
@@ -55,6 +56,31 @@ function describeProviderError(error: any): string {
   const cause = error?.cause;
   const reason = cause ? cause.code || cause.message || String(cause) : '';
   return reason ? `${message} (${reason})` : message;
+}
+
+/** Предложение приложения у провайдера: пакет каталога, цена и период. */
+export interface ProviderAppOffer {
+  package_id: string;
+  price: number;
+  period_days: number;
+}
+
+/** Строка карточки «Приложения»: предложение и действующая подписка, если есть. */
+export function toProviderApp(offer: ProviderAppOffer, subscription: ProviderAppSubscription | null): ProviderAppDTO {
+  return {
+    package_id: offer.package_id,
+    title: catalogAppTitle(offer.package_id),
+    price: offer.price,
+    period_days: offer.period_days,
+    subscription: subscription
+      ? {
+          status: subscription.status,
+          amount_per_period: Number(subscription.amount_per_period),
+          started_at: subscription.started_at,
+          expires_at: subscription.expires_at,
+        }
+      : null,
+  };
 }
 
 /** Подписка кооператива на приложение каталога в ответе провайдера (`/apps/:coopname/subscriptions`). */
@@ -340,6 +366,35 @@ export class ProviderService {
       timeout: 10_000,
     });
     return (response.data ?? []) as ProviderAppSubscription[];
+  }
+
+  /**
+   * Приложения каталога, которые провайдер предлагает кооперативу: типы
+   * подписок с пакетом каталога и их цена (487-34). Провайдер заводит такие
+   * типы сам по списку пакетов каталога и выключает снятые.
+   */
+  async listAppOffers(username: string): Promise<ProviderAppOffer[]> {
+    const catalog = await this.getConnectionCatalog(username);
+    return (catalog.types as any[])
+      .filter((type) => type?.catalog_package_id && type.is_active !== false)
+      .map((type) => ({
+        package_id: String(type.catalog_package_id),
+        price: Number(type.price ?? 0),
+        period_days: Number(type.period_days ?? 30),
+      }));
+  }
+
+  /**
+   * Карточка «Приложения» стола подключения: предложения провайдера и
+   * действующие подписки кооператива на них одним списком.
+   */
+  async listApps(username: string): Promise<ProviderAppDTO[]> {
+    const [offers, subscriptions] = await Promise.all([
+      this.listAppOffers(username),
+      this.listAppSubscriptions(username),
+    ]);
+    const byPackage = new Map(subscriptions.map((s) => [s.package_id, s]));
+    return offers.map((offer) => toProviderApp(offer, byPackage.get(offer.package_id) ?? null));
   }
 
   /**

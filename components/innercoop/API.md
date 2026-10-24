@@ -9,7 +9,7 @@
 экспорта, исчезнувший метод, новый обязательный параметр требуют major, а
 снятое старое — периода устаревания не меньше одного minor (INV-009).
 
-Всего экспортов: 341.
+Всего экспортов: 342.
 
 ## ACCOUNT_PORT
 
@@ -698,6 +698,14 @@
 - `order: number`
 - `extension_name: string`
 - `resolve_doc_data_hash?: () => Promise<string | undefined>`
+
+## InnerAppOffer
+
+`interface` · core-ports
+
+- `package_id: string`
+- `price: number`
+- `period_days: number`
 
 ## InnerAppSubscribeOutcome
 
@@ -2435,6 +2443,7 @@
 `interface` · core-ports
 
 - `subscribe(coopname: string, packageId: string): Promise<InnerAppSubscribeOutcome>`
+- `listOffers(coopname: string): Promise<InnerAppOffer[] | null>`
 
 ## IProviderTariffPort
 

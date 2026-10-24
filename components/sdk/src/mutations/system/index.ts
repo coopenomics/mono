@@ -33,3 +33,5 @@ export * as UpdateSystem from './updateSystem'
 
 /** Приложить устав кооператива к заявке на подключение */
 export * as UploadCooperativeCharter from './uploadCooperativeCharter'
+export * as SubscribeProviderApp from './subscribeProviderApp'
+export * as CancelProviderApp from './cancelProviderApp'

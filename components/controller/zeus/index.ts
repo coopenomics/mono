@@ -1858,7 +1858,7 @@ export type ValueTypes = {
 	packageId?:boolean | `@${string}`,
 	/** Имя владельца пакета (кооператив-разработчик) */
 	publisher?:boolean | `@${string}`,
-	/** Стоимость подписки, RUB/месяц (в MVP — фиксированно из dev-pricing seed) */
+	/** Стоимость подписки, ₽ в месяц, у провайдера подключения; пусто — цену показывает стол подключения оператора */
 	rubPerMonth?:boolean | `@${string}`,
 	/** Заголовок пакета для UI (в MVP — packageId, в будущем из manifest) */
 	title?:boolean | `@${string}`,
@@ -13954,6 +13954,7 @@ authorizeForceRecovery?: [{	data: ValueTypes["AuthorizeForceRecoveryInput"] | Va
 billingConvert?: [{	input: ValueTypes["BillingConvertInput"] | Variable<any, string>},ValueTypes["BillingResult"]],
 billingPay?: [{	input: ValueTypes["BillingPayInput"] | Variable<any, string>},ValueTypes["BillingResult"]],
 cancelMembershipExit?: [{	coopname: string | Variable<any, string>,	username: string | Variable<any, string>},boolean | `@${string}`],
+cancelProviderApp?: [{	data: ValueTypes["ProviderAppInput"] | Variable<any, string>},ValueTypes["ProviderApp"]],
 capitalAddAuthor?: [{	data: ValueTypes["AddAuthorInput"] | Variable<any, string>},ValueTypes["CapitalProject"]],
 capitalAddFavorite?: [{	data: ValueTypes["CapitalFavoriteInput"] | Variable<any, string>},ValueTypes["CapitalFavorite"]],
 capitalAddWorklog?: [{	data: ValueTypes["CapitalAddWorklogInput"] | Variable<any, string>},ValueTypes["CapitalTimeEntry"]],
@@ -14346,6 +14347,7 @@ startInstall?: [{	data: ValueTypes["StartInstallInput"] | Variable<any, string>}
 startResetKey?: [{	data: ValueTypes["StartResetKeyInput"] | Variable<any, string>},boolean | `@${string}`],
 submitExpenseReport?: [{	data: ValueTypes["SubmitExpenseReportInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 subscribePackage?: [{	data: ValueTypes["SubscribePackageInputDTO"] | Variable<any, string>},ValueTypes["SubscribePackageResultDTO"]],
+subscribeProviderApp?: [{	data: ValueTypes["ProviderAppInput"] | Variable<any, string>},ValueTypes["ProviderApp"]],
 triggerNotificationWorkflow?: [{	data: ValueTypes["TriggerNotificationWorkflowInput"] | Variable<any, string>},boolean | `@${string}`],
 uninstallExtension?: [{	data: ValueTypes["UninstallExtensionInput"] | Variable<any, string>},boolean | `@${string}`],
 unverifyParticipant?: [{	data: ValueTypes["UnverifyParticipantInput"] | Variable<any, string>},ValueTypes["ParticipantVerification"]],
@@ -15977,6 +15979,40 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 		__typename?: boolean | `@${string}`,
 	['...on ProviderAnnualBilling']?: Omit<ValueTypes["ProviderAnnualBilling"], "...on ProviderAnnualBilling">
 }>;
+	/** Приложение каталога, которое кооператив может подключить */
+["ProviderApp"]: AliasType<{
+	/** Пакет каталога, например @voskhod/demoapp */
+	package_id?:boolean | `@${string}`,
+	/** Период оплаты, дней */
+	period_days?:boolean | `@${string}`,
+	/** Цена за период, ₽ */
+	price?:boolean | `@${string}`,
+	/** Действующая подписка кооператива; пусто — приложение не подключено */
+	subscription?:ValueTypes["ProviderAppSubscription"],
+	/** Название приложения */
+	title?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on ProviderApp']?: Omit<ValueTypes["ProviderApp"], "...on ProviderApp">
+}>;
+	["ProviderAppInput"]: {
+	/** Пакет каталога, например @voskhod/demoapp */
+	package_id: string | Variable<any, string>
+};
+	/** Подписка кооператива на приложение каталога */
+["ProviderAppSubscription"]: AliasType<{
+	/** Цена за период, ₽ — зафиксирована при оформлении */
+	amount_per_period?:boolean | `@${string}`,
+	/** Оплачено по */
+	expires_at?:boolean | `@${string}`,
+	/** Начало подписки */
+	started_at?:boolean | `@${string}`,
+	/** Состояние подписки */
+	status?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on ProviderAppSubscription']?: Omit<ValueTypes["ProviderAppSubscription"], "...on ProviderAppSubscription">
+}>;
+	/** Состояние подписки на приложение у провайдера подключения */
+["ProviderAppSubscriptionStatus"]:ProviderAppSubscriptionStatus;
 	/** Период оплаты тарифа подключения */
 ["ProviderBillingPeriod"]:ProviderBillingPeriod;
 	/** Конфигурация сервера на выбор (блок «Сервер» витрины подключения) */
@@ -16471,6 +16507,8 @@ getPaymentMethods?: [{	data?: ValueTypes["GetPaymentMethodsInput"] | undefined |
 getPayments?: [{	data?: ValueTypes["PaymentFiltersInput"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedGatewayPaymentsPaginationResult"]],
 getProgramWallet?: [{	filter: ValueTypes["ProgramWalletFilterInput"] | Variable<any, string>},ValueTypes["ProgramWallet"]],
 getProgramWallets?: [{	filter?: ValueTypes["ProgramWalletFilterInput"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["ProgramWalletsPaginationResult"]],
+	/** Приложения каталога, которые кооператив может подключить, и его подписки на них */
+	getProviderApps?:ValueTypes["ProviderApp"],
 getProviderConnectionCatalog?: [{	coopname?: string | undefined | null | Variable<any, string>},ValueTypes["ProviderConnectionCatalog"]],
 getProviderSubscriptionById?: [{	id: number | Variable<any, string>},ValueTypes["ProviderSubscription"]],
 	/** Получить подписки пользователя у провайдера */
@@ -19852,7 +19890,7 @@ export type ResolverInputTypes = {
 	packageId?:boolean | `@${string}`,
 	/** Имя владельца пакета (кооператив-разработчик) */
 	publisher?:boolean | `@${string}`,
-	/** Стоимость подписки, RUB/месяц (в MVP — фиксированно из dev-pricing seed) */
+	/** Стоимость подписки, ₽ в месяц, у провайдера подключения; пусто — цену показывает стол подключения оператора */
 	rubPerMonth?:boolean | `@${string}`,
 	/** Заголовок пакета для UI (в MVP — packageId, в будущем из manifest) */
 	title?:boolean | `@${string}`,
@@ -31608,6 +31646,7 @@ authorizeForceRecovery?: [{	data: ResolverInputTypes["AuthorizeForceRecoveryInpu
 billingConvert?: [{	input: ResolverInputTypes["BillingConvertInput"]},ResolverInputTypes["BillingResult"]],
 billingPay?: [{	input: ResolverInputTypes["BillingPayInput"]},ResolverInputTypes["BillingResult"]],
 cancelMembershipExit?: [{	coopname: string,	username: string},boolean | `@${string}`],
+cancelProviderApp?: [{	data: ResolverInputTypes["ProviderAppInput"]},ResolverInputTypes["ProviderApp"]],
 capitalAddAuthor?: [{	data: ResolverInputTypes["AddAuthorInput"]},ResolverInputTypes["CapitalProject"]],
 capitalAddFavorite?: [{	data: ResolverInputTypes["CapitalFavoriteInput"]},ResolverInputTypes["CapitalFavorite"]],
 capitalAddWorklog?: [{	data: ResolverInputTypes["CapitalAddWorklogInput"]},ResolverInputTypes["CapitalTimeEntry"]],
@@ -32000,6 +32039,7 @@ startInstall?: [{	data: ResolverInputTypes["StartInstallInput"]},ResolverInputTy
 startResetKey?: [{	data: ResolverInputTypes["StartResetKeyInput"]},boolean | `@${string}`],
 submitExpenseReport?: [{	data: ResolverInputTypes["SubmitExpenseReportInput"]},ResolverInputTypes["Transaction"]],
 subscribePackage?: [{	data: ResolverInputTypes["SubscribePackageInputDTO"]},ResolverInputTypes["SubscribePackageResultDTO"]],
+subscribeProviderApp?: [{	data: ResolverInputTypes["ProviderAppInput"]},ResolverInputTypes["ProviderApp"]],
 triggerNotificationWorkflow?: [{	data: ResolverInputTypes["TriggerNotificationWorkflowInput"]},boolean | `@${string}`],
 uninstallExtension?: [{	data: ResolverInputTypes["UninstallExtensionInput"]},boolean | `@${string}`],
 unverifyParticipant?: [{	data: ResolverInputTypes["UnverifyParticipantInput"]},ResolverInputTypes["ParticipantVerification"]],
@@ -33553,6 +33593,38 @@ walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputType
 	enabled?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	/** Приложение каталога, которое кооператив может подключить */
+["ProviderApp"]: AliasType<{
+	/** Пакет каталога, например @voskhod/demoapp */
+	package_id?:boolean | `@${string}`,
+	/** Период оплаты, дней */
+	period_days?:boolean | `@${string}`,
+	/** Цена за период, ₽ */
+	price?:boolean | `@${string}`,
+	/** Действующая подписка кооператива; пусто — приложение не подключено */
+	subscription?:ResolverInputTypes["ProviderAppSubscription"],
+	/** Название приложения */
+	title?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["ProviderAppInput"]: {
+	/** Пакет каталога, например @voskhod/demoapp */
+	package_id: string
+};
+	/** Подписка кооператива на приложение каталога */
+["ProviderAppSubscription"]: AliasType<{
+	/** Цена за период, ₽ — зафиксирована при оформлении */
+	amount_per_period?:boolean | `@${string}`,
+	/** Оплачено по */
+	expires_at?:boolean | `@${string}`,
+	/** Начало подписки */
+	started_at?:boolean | `@${string}`,
+	/** Состояние подписки */
+	status?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Состояние подписки на приложение у провайдера подключения */
+["ProviderAppSubscriptionStatus"]:ProviderAppSubscriptionStatus;
 	/** Период оплаты тарифа подключения */
 ["ProviderBillingPeriod"]:ProviderBillingPeriod;
 	/** Конфигурация сервера на выбор (блок «Сервер» витрины подключения) */
@@ -34035,6 +34107,8 @@ getPaymentMethods?: [{	data?: ResolverInputTypes["GetPaymentMethodsInput"] | und
 getPayments?: [{	data?: ResolverInputTypes["PaymentFiltersInput"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedGatewayPaymentsPaginationResult"]],
 getProgramWallet?: [{	filter: ResolverInputTypes["ProgramWalletFilterInput"]},ResolverInputTypes["ProgramWallet"]],
 getProgramWallets?: [{	filter?: ResolverInputTypes["ProgramWalletFilterInput"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["ProgramWalletsPaginationResult"]],
+	/** Приложения каталога, которые кооператив может подключить, и его подписки на них */
+	getProviderApps?:ResolverInputTypes["ProviderApp"],
 getProviderConnectionCatalog?: [{	coopname?: string | undefined | null},ResolverInputTypes["ProviderConnectionCatalog"]],
 getProviderSubscriptionById?: [{	id: number},ResolverInputTypes["ProviderSubscription"]],
 	/** Получить подписки пользователя у провайдера */
@@ -37319,8 +37393,8 @@ export type ModelTypes = {
 	packageId: string,
 	/** Имя владельца пакета (кооператив-разработчик) */
 	publisher: string,
-	/** Стоимость подписки, RUB/месяц (в MVP — фиксированно из dev-pricing seed) */
-	rubPerMonth: number,
+	/** Стоимость подписки, ₽ в месяц, у провайдера подключения; пусто — цену показывает стол подключения оператора */
+	rubPerMonth?: number | undefined | null,
 	/** Заголовок пакета для UI (в MVP — packageId, в будущем из manifest) */
 	title: string
 };
@@ -48642,6 +48716,8 @@ export type ModelTypes = {
 	billingPay: ModelTypes["BillingResult"],
 	/** Отменить заявление на выход до подтверждения по email. */
 	cancelMembershipExit: boolean,
+	/** Отключить приложение каталога: подписка отменяется, приложение снимается с узла кооператива */
+	cancelProviderApp: ModelTypes["ProviderApp"],
 	/** Добавление автора проекта в CAPITAL контракте */
 	capitalAddAuthor: ModelTypes["CapitalProject"],
 	/** Добавить сущность в личное избранное */
@@ -49408,6 +49484,8 @@ export type ModelTypes = {
 	submitExpenseReport: ModelTypes["Transaction"],
 	/** Оформляет подписку кооператива на приложение из каталога. Подписка входит в общий счёт кооператива у провайдера подключения. Только председатель. */
 	subscribePackage: ModelTypes["SubscribePackageResultDTO"],
+	/** Подключить приложение каталога: подписка входит в общий счёт кооператива у провайдера */
+	subscribeProviderApp: ModelTypes["ProviderApp"],
 	/** Запустить воркфлоу уведомлений (только для председателя или server-secret) */
 	triggerNotificationWorkflow: boolean,
 	/** Удалить расширение */
@@ -50871,6 +50949,35 @@ export type ModelTypes = {
 	/** Годовая оплата доступна */
 	enabled: boolean
 };
+	/** Приложение каталога, которое кооператив может подключить */
+["ProviderApp"]: {
+		/** Пакет каталога, например @voskhod/demoapp */
+	package_id: string,
+	/** Период оплаты, дней */
+	period_days: number,
+	/** Цена за период, ₽ */
+	price: number,
+	/** Действующая подписка кооператива; пусто — приложение не подключено */
+	subscription?: ModelTypes["ProviderAppSubscription"] | undefined | null,
+	/** Название приложения */
+	title: string
+};
+	["ProviderAppInput"]: {
+	/** Пакет каталога, например @voskhod/demoapp */
+	package_id: string
+};
+	/** Подписка кооператива на приложение каталога */
+["ProviderAppSubscription"]: {
+		/** Цена за период, ₽ — зафиксирована при оформлении */
+	amount_per_period: number,
+	/** Оплачено по */
+	expires_at: string,
+	/** Начало подписки */
+	started_at: string,
+	/** Состояние подписки */
+	status: ModelTypes["ProviderAppSubscriptionStatus"]
+};
+	["ProviderAppSubscriptionStatus"]:ProviderAppSubscriptionStatus;
 	["ProviderBillingPeriod"]:ProviderBillingPeriod;
 	/** Конфигурация сервера на выбор (блок «Сервер» витрины подключения) */
 ["ProviderCatalogServerOption"]: {
@@ -51475,6 +51582,8 @@ export type ModelTypes = {
 	getProgramWallet?: ModelTypes["ProgramWallet"] | undefined | null,
 	/** Получить список программных кошельков с фильтрацией и пагинацией */
 	getProgramWallets: ModelTypes["ProgramWalletsPaginationResult"],
+	/** Приложения каталога, которые кооператив может подключить, и его подписки на них */
+	getProviderApps: Array<ModelTypes["ProviderApp"]>,
 	/** Каталог витрины подключения (Epic 28): услуги и конфигурации сервера с живыми ценами провайдера */
 	getProviderConnectionCatalog: ModelTypes["ProviderConnectionCatalog"],
 	/** Получить подписку провайдера по ID */
@@ -54797,8 +54906,8 @@ export type GraphQLTypes = {
 	packageId: string,
 	/** Имя владельца пакета (кооператив-разработчик) */
 	publisher: string,
-	/** Стоимость подписки, RUB/месяц (в MVP — фиксированно из dev-pricing seed) */
-	rubPerMonth: number,
+	/** Стоимость подписки, ₽ в месяц, у провайдера подключения; пусто — цену показывает стол подключения оператора */
+	rubPerMonth?: number | undefined | null,
 	/** Заголовок пакета для UI (в MVP — packageId, в будущем из manifest) */
 	title: string,
 	['...on AppsCatalogRemotePackageDTO']: Omit<GraphQLTypes["AppsCatalogRemotePackageDTO"], "...on AppsCatalogRemotePackageDTO">
@@ -66909,6 +67018,8 @@ export type GraphQLTypes = {
 	billingPay: GraphQLTypes["BillingResult"],
 	/** Отменить заявление на выход до подтверждения по email. */
 	cancelMembershipExit: boolean,
+	/** Отключить приложение каталога: подписка отменяется, приложение снимается с узла кооператива */
+	cancelProviderApp: GraphQLTypes["ProviderApp"],
 	/** Добавление автора проекта в CAPITAL контракте */
 	capitalAddAuthor: GraphQLTypes["CapitalProject"],
 	/** Добавить сущность в личное избранное */
@@ -67675,6 +67786,8 @@ export type GraphQLTypes = {
 	submitExpenseReport: GraphQLTypes["Transaction"],
 	/** Оформляет подписку кооператива на приложение из каталога. Подписка входит в общий счёт кооператива у провайдера подключения. Только председатель. */
 	subscribePackage: GraphQLTypes["SubscribePackageResultDTO"],
+	/** Подключить приложение каталога: подписка входит в общий счёт кооператива у провайдера */
+	subscribeProviderApp: GraphQLTypes["ProviderApp"],
 	/** Запустить воркфлоу уведомлений (только для председателя или server-secret) */
 	triggerNotificationWorkflow: boolean,
 	/** Удалить расширение */
@@ -69324,6 +69437,40 @@ export type GraphQLTypes = {
 	enabled: boolean,
 	['...on ProviderAnnualBilling']: Omit<GraphQLTypes["ProviderAnnualBilling"], "...on ProviderAnnualBilling">
 };
+	/** Приложение каталога, которое кооператив может подключить */
+["ProviderApp"]: {
+	__typename: "ProviderApp",
+	/** Пакет каталога, например @voskhod/demoapp */
+	package_id: string,
+	/** Период оплаты, дней */
+	period_days: number,
+	/** Цена за период, ₽ */
+	price: number,
+	/** Действующая подписка кооператива; пусто — приложение не подключено */
+	subscription?: GraphQLTypes["ProviderAppSubscription"] | undefined | null,
+	/** Название приложения */
+	title: string,
+	['...on ProviderApp']: Omit<GraphQLTypes["ProviderApp"], "...on ProviderApp">
+};
+	["ProviderAppInput"]: {
+		/** Пакет каталога, например @voskhod/demoapp */
+	package_id: string
+};
+	/** Подписка кооператива на приложение каталога */
+["ProviderAppSubscription"]: {
+	__typename: "ProviderAppSubscription",
+	/** Цена за период, ₽ — зафиксирована при оформлении */
+	amount_per_period: number,
+	/** Оплачено по */
+	expires_at: string,
+	/** Начало подписки */
+	started_at: string,
+	/** Состояние подписки */
+	status: GraphQLTypes["ProviderAppSubscriptionStatus"],
+	['...on ProviderAppSubscription']: Omit<GraphQLTypes["ProviderAppSubscription"], "...on ProviderAppSubscription">
+};
+	/** Состояние подписки на приложение у провайдера подключения */
+["ProviderAppSubscriptionStatus"]: ProviderAppSubscriptionStatus;
 	/** Период оплаты тарифа подключения */
 ["ProviderBillingPeriod"]: ProviderBillingPeriod;
 	/** Конфигурация сервера на выбор (блок «Сервер» витрины подключения) */
@@ -69957,6 +70104,8 @@ export type GraphQLTypes = {
 	getProgramWallet?: GraphQLTypes["ProgramWallet"] | undefined | null,
 	/** Получить список программных кошельков с фильтрацией и пагинацией */
 	getProgramWallets: GraphQLTypes["ProgramWalletsPaginationResult"],
+	/** Приложения каталога, которые кооператив может подключить, и его подписки на них */
+	getProviderApps: Array<GraphQLTypes["ProviderApp"]>,
 	/** Каталог витрины подключения (Epic 28): услуги и конфигурации сервера с живыми ценами провайдера */
 	getProviderConnectionCatalog: GraphQLTypes["ProviderConnectionCatalog"],
 	/** Получить подписку провайдера по ID */
@@ -73689,6 +73838,13 @@ export enum ProjectStatus {
 	UNDEFINED = "UNDEFINED",
 	VOTING = "VOTING"
 }
+/** Состояние подписки на приложение у провайдера подключения */
+export enum ProviderAppSubscriptionStatus {
+	ACTIVE = "ACTIVE",
+	CANCELLED = "CANCELLED",
+	EXPIRED = "EXPIRED",
+	TRIAL = "TRIAL"
+}
 /** Период оплаты тарифа подключения */
 export enum ProviderBillingPeriod {
 	month = "month",
@@ -74528,6 +74684,8 @@ type ZEUS_VARIABLES = {
 	["ProjectPriority"]: ValueTypes["ProjectPriority"];
 	["ProjectStatus"]: ValueTypes["ProjectStatus"];
 	["ProposeDocumentApprovalInput"]: ValueTypes["ProposeDocumentApprovalInput"];
+	["ProviderAppInput"]: ValueTypes["ProviderAppInput"];
+	["ProviderAppSubscriptionStatus"]: ValueTypes["ProviderAppSubscriptionStatus"];
 	["ProviderBillingPeriod"]: ValueTypes["ProviderBillingPeriod"];
 	["ProviderSubscriptionStatus"]: ValueTypes["ProviderSubscriptionStatus"];
 	["PublishPackageInputDTO"]: ValueTypes["PublishPackageInputDTO"];

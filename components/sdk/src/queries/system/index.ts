@@ -27,3 +27,6 @@ export * as GetCooperativeCharter from './getCooperativeCharter'
 
 /** Каталог витрины подключения: услуги и конфигурации сервера провайдера */
 export * as GetProviderConnectionCatalog from './getProviderConnectionCatalog'
+
+/** Приложения каталога на столе подключения и подписки кооператива на них */
+export * as GetProviderApps from './getProviderApps'

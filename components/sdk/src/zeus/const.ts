@@ -1687,6 +1687,9 @@ export const AllTypesProps: Record<string,any> = {
 		cancelMembershipExit:{
 
 		},
+		cancelProviderApp:{
+			data:"ProviderAppInput"
+		},
 		capitalAddAuthor:{
 			data:"AddAuthorInput"
 		},
@@ -2863,6 +2866,9 @@ export const AllTypesProps: Record<string,any> = {
 		subscribePackage:{
 			data:"SubscribePackageInputDTO"
 		},
+		subscribeProviderApp:{
+			data:"ProviderAppInput"
+		},
 		triggerNotificationWorkflow:{
 			data:"TriggerNotificationWorkflowInput"
 		},
@@ -3045,6 +3051,10 @@ export const AllTypesProps: Record<string,any> = {
 	ProposeDocumentApprovalInput:{
 
 	},
+	ProviderAppInput:{
+
+	},
+	ProviderAppSubscriptionStatus: "enum" as const,
 	ProviderBillingPeriod: "enum" as const,
 	ProviderSubscriptionStatus: "enum" as const,
 	PublishPackageInputDTO:{
@@ -8095,6 +8105,7 @@ export const ReturnTypes: Record<string,any> = {
 		billingConvert:"BillingResult",
 		billingPay:"BillingResult",
 		cancelMembershipExit:"Boolean",
+		cancelProviderApp:"ProviderApp",
 		capitalAddAuthor:"CapitalProject",
 		capitalAddFavorite:"CapitalFavorite",
 		capitalAddWorklog:"CapitalTimeEntry",
@@ -8478,6 +8489,7 @@ export const ReturnTypes: Record<string,any> = {
 		startResetKey:"Boolean",
 		submitExpenseReport:"Transaction",
 		subscribePackage:"SubscribePackageResultDTO",
+		subscribeProviderApp:"ProviderApp",
 		triggerNotificationWorkflow:"Boolean",
 		uninstallExtension:"Boolean",
 		unverifyParticipant:"ParticipantVerification",
@@ -9077,6 +9089,19 @@ export const ReturnTypes: Record<string,any> = {
 		discount_percent:"Float",
 		enabled:"Boolean"
 	},
+	ProviderApp:{
+		package_id:"String",
+		period_days:"Int",
+		price:"Float",
+		subscription:"ProviderAppSubscription",
+		title:"String"
+	},
+	ProviderAppSubscription:{
+		amount_per_period:"Float",
+		expires_at:"String",
+		started_at:"String",
+		status:"ProviderAppSubscriptionStatus"
+	},
 	ProviderCatalogServerOption:{
 		description:"String",
 		instance_type_id:"Int",
@@ -9369,6 +9394,7 @@ export const ReturnTypes: Record<string,any> = {
 		getPayments:"PaginatedGatewayPaymentsPaginationResult",
 		getProgramWallet:"ProgramWallet",
 		getProgramWallets:"ProgramWalletsPaginationResult",
+		getProviderApps:"ProviderApp",
 		getProviderConnectionCatalog:"ProviderConnectionCatalog",
 		getProviderSubscriptionById:"ProviderSubscription",
 		getProviderSubscriptions:"ProviderSubscription",

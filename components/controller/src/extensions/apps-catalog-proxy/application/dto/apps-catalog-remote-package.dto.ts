@@ -36,8 +36,10 @@ export class AppsCatalogRemotePackageDTO {
   })
   description!: string;
 
-  @Field({
-    description: 'Стоимость подписки, RUB/месяц (в MVP — фиксированно из dev-pricing seed)',
+  @Field(() => Number, {
+    nullable: true,
+    description:
+      'Стоимость подписки, ₽ в месяц, у провайдера подключения; пусто — цену показывает стол подключения оператора',
   })
-  rubPerMonth!: number;
+  rubPerMonth!: number | null;
 }

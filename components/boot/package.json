@@ -35,6 +35,7 @@
     "stop": "./scripts/stop.sh",
     "test": "vitest run src/tests/capital.test.ts --testTimeout=240000",
     "test:all": "vitest run --testTimeout=240000",
+    "test:two-coop": "vitest run src/tests/catalog-apps-two-coop.test.ts --testTimeout=600000",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

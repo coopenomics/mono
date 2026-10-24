@@ -1,6 +1,6 @@
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { BadRequestException, Inject, Logger, Optional, UseGuards } from '@nestjs/common';
-import { GqlJwtAuthGuard, RightsGuard, RequireRight, CurrentUser, platformSettings } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, RightsGuard, RequireRight, CurrentUser, catalogAppTitle, platformSettings } from '@coopenomics/extension-kit';
 import { InnerAppSubscriptionStatus, PROVIDER_APPS_PORT, type IMonoAccount, type IProviderAppsPort } from '@coopenomics/innercoop';
 import { t } from '../../i18n';
 import {
@@ -141,21 +141,25 @@ export class AppsCatalogProxyResolver {
     @Args('page', { type: () => Number, defaultValue: 1 }) page: number,
     @Args('pageSize', { type: () => Number, defaultValue: 50 }) pageSize: number,
   ): Promise<AppsCatalogRemotePackageDTO[]> {
-    const packages = await this.client.listPublicPackages(page, pageSize);
-    return packages.map((p) => ({
-      packageId: p.packageId,
-      publisher: p.publisher,
-      compatibleSubnets: p.compatibleSubnets,
-      lastActiveVersion: p.lastActiveVersion,
-      title: this.buildTitle(p.packageId),
-      description: this.buildDescription(p.publisher),
-      rubPerMonth: 1000,
-    }));
-  }
-
-  private buildTitle(packageId: string): string {
-    const tail = packageId.split('/').pop() ?? packageId;
-    return tail.charAt(0).toUpperCase() + tail.slice(1);
+    const [packages, offers] = await Promise.all([
+      this.client.listPublicPackages(page, pageSize),
+      this.providerApps?.listOffers(platformSettings().coopname) ?? Promise.resolve(null),
+    ]);
+    // Цена — у провайдера: подписка входит в общий счёт кооператива. Узел без
+    // провайдера цены не знает, её показывает стол подключения оператора.
+    const priceOf = new Map((offers ?? []).map((o) => [o.package_id, o]));
+    return packages.map((p) => {
+      const offer = priceOf.get(p.packageId);
+      return {
+        packageId: p.packageId,
+        publisher: p.publisher,
+        compatibleSubnets: p.compatibleSubnets,
+        lastActiveVersion: p.lastActiveVersion,
+        title: catalogAppTitle(p.packageId),
+        description: this.buildDescription(p.publisher),
+        rubPerMonth: offer && offer.period_days > 0 ? Math.round((offer.price * 30) / offer.period_days) : null,
+      };
+    });
   }
 
   private buildDescription(publisher: string): string {

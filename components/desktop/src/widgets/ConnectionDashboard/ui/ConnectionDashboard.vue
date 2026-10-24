@@ -23,6 +23,9 @@
 
   SubscriptionsCard
 
+  //- Приложения каталога: подключение добавляет строку в счёт выше.
+  AppsCard
+
   //- Журнал списаний за подписки: тот же виджет, что видит совет в карточке
   //- кооператива — здесь он отвечает на вопрос «за что и когда списали».
   PaymentsHistory(
@@ -45,7 +48,7 @@ import { PageHint } from 'src/shared/ui/domain'
 import { PaymentsHistory } from 'src/widgets/Billing/PaymentsHistory'
 import { useSystemStore } from 'src/entities/System/model'
 import { useCooperativeStore } from 'src/entities/Cooperative'
-import { AxonWallet, MembershipWallet, DomainCard, SubscriptionsCard, BillingDueCard, PlatformKeyCard } from './index'
+import { AxonWallet, MembershipWallet, DomainCard, SubscriptionsCard, AppsCard, BillingDueCard, PlatformKeyCard } from './index'
 
 const { info } = useSystemStore()
 const coopname = computed(() => info.coopname || '')

@@ -62,3 +62,24 @@ describe('subscribePackage → провайдер', () => {
     expect(r.status).toBe(SubscribePackageStatus.UNAVAILABLE);
   });
 });
+
+describe('витрина приложений: цена от провайдера', () => {
+  const pkg = { packageId: PKG, publisher: 'voskhod', compatibleSubnets: [], lastActiveVersion: '0.1.2' }
+  const client = { listPublicPackages: jest.fn(async () => [pkg]) }
+
+  it('happy: цена месяца — из предложения провайдера, название — из имени пакета', async () => {
+    const listOffers = jest.fn(async () => [{ package_id: PKG, price: 360, period_days: 30 }])
+    const r = new AppsCatalogProxyResolver(client as any, {} as any, { listOffers } as any)
+    const [item] = await r.appsCatalogRemotePackages(1, 50)
+    expect(listOffers).toHaveBeenCalledWith('romashka')
+    expect(item.rubPerMonth).toBe(360)
+    expect(item.title).toBe('Demoapp')
+  })
+
+  it('break: узел без провайдера — цена пуста, а не выдумана', async () => {
+    const none = await new AppsCatalogProxyResolver(client as any, {} as any, undefined).appsCatalogRemotePackages(1, 50)
+    expect(none[0].rubPerMonth).toBeNull()
+    const unavailable = await new AppsCatalogProxyResolver(client as any, {} as any, { listOffers: async () => null } as any).appsCatalogRemotePackages(1, 50)
+    expect(unavailable[0].rubPerMonth).toBeNull()
+  })
+})

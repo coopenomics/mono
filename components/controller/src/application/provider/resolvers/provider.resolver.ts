@@ -1,9 +1,10 @@
 import { Resolver, Query, Args, Mutation, Int } from '@nestjs/graphql';
+import { ProviderAppDTO, ProviderAppInputDTO } from '../dto/provider-app.dto';
 import { UseGuards } from '@nestjs/common';
 import { ProviderService } from '../services/provider.service';
 import { ProviderSubscriptionDTO } from '../dto/provider-subscription.dto';
 import { CurrentInstanceDTO } from '../dto/current-instance.dto';
-import { GqlJwtAuthGuard, CurrentUser, OptionalCurrentUser, RequireRight, RightsGuard, SELF } from '@coopenomics/extension-kit';
+import { DomainError, GqlJwtAuthGuard, CurrentUser, OptionalCurrentUser, RequireRight, RightsGuard, SELF } from '@coopenomics/extension-kit';
 import type { IMonoAccount } from '@coopenomics/innercoop';
 import { CooperativeRegistryItemDTO } from '../dto/cooperative-registry-item.dto';
 import { ProviderConnectionCatalogDTO } from '../dto/provider-catalog.dto';
@@ -138,6 +139,52 @@ export class ProviderResolver {
     // Только свой кооператив: имя берётся из сессии, а не из аргументов —
     // председатель не может сменить тариф соседу.
     return this.providerService.changeHostingPlan(currentUser.username, instanceTypeId);
+  }
+
+  @Query(() => [ProviderAppDTO], {
+    name: 'getProviderApps',
+    description: 'Приложения каталога, которые кооператив может подключить, и его подписки на них',
+  })
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('ProviderApp', 'read:own', SELF)
+  async getProviderApps(@CurrentUser() currentUser: IMonoAccount): Promise<ProviderAppDTO[]> {
+    return this.providerService.listApps(currentUser.username);
+  }
+
+  @Mutation(() => ProviderAppDTO, {
+    name: 'subscribeProviderApp',
+    description: 'Подключить приложение каталога: подписка входит в общий счёт кооператива у провайдера',
+  })
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('ProviderApp', 'subscribe:own', SELF)
+  async subscribeProviderApp(
+    @CurrentUser() currentUser: IMonoAccount,
+    @Args('data', { type: () => ProviderAppInputDTO }) data: ProviderAppInputDTO,
+  ): Promise<ProviderAppDTO> {
+    // Только за себя: имя кооператива из сессии.
+    await this.providerService.subscribeApp(currentUser.username, data.package_id);
+    return this.appOf(currentUser.username, data.package_id);
+  }
+
+  @Mutation(() => ProviderAppDTO, {
+    name: 'cancelProviderApp',
+    description: 'Отключить приложение каталога: подписка отменяется, приложение снимается с узла кооператива',
+  })
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('ProviderApp', 'subscribe:own', SELF)
+  async cancelProviderApp(
+    @CurrentUser() currentUser: IMonoAccount,
+    @Args('data', { type: () => ProviderAppInputDTO }) data: ProviderAppInputDTO,
+  ): Promise<ProviderAppDTO> {
+    await this.providerService.cancelApp(currentUser.username, data.package_id);
+    return this.appOf(currentUser.username, data.package_id);
+  }
+
+  /** Строка карточки после действия — тем же чтением, что и список. */
+  private async appOf(username: string, packageId: string): Promise<ProviderAppDTO> {
+    const app = (await this.providerService.listApps(username)).find((a) => a.package_id === packageId);
+    if (!app) throw DomainError.badRequest('PROVIDER_APP_NOT_OFFERED', { package_id: packageId });
+    return app;
   }
 
   @Query(() => [ProviderSubscriptionDTO], {

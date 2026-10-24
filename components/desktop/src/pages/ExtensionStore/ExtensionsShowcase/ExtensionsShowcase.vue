@@ -65,15 +65,19 @@ section.catalog-section.catalog-section--remote
         )
           q-icon(name='commit', size='12px')
           | {{ pkg.lastActiveVersion }}
-        span.remote-card__price {{ $t('extensionStore.showcase.perMonth', { amount: formatPrice(pkg.rubPerMonth) }) }}
+        span.remote-card__price(v-if='pkg.rubPerMonth != null') {{ $t('extensionStore.showcase.perMonth', { amount: formatPrice(pkg.rubPerMonth) }) }}
+        span.remote-card__price(v-else) {{ $t('extensionStore.showcase.priceAtConnectionDesk') }}
       .remote-card__foot
         BaseButton(variant='primary', size='sm', @click='openSubscribe(pkg)') {{ $t('extensionStore.showcase.subscribe') }}
 
 BaseDialog(v-model='subscribeDialog', :title='subscribeTitle', size='sm')
   .subscribe-dialog__body
     p.q-mb-sm
-      | {{ $t('extensionStore.showcase.price', { amount: pendingPkg ? formatPrice(pendingPkg.rubPerMonth) : '—' }) }}
-      | {{ $t('extensionStore.showcase.trialNote') }}
+      template(v-if='pendingPkg?.rubPerMonth != null')
+        | {{ $t('extensionStore.showcase.price', { amount: formatPrice(pendingPkg.rubPerMonth) }) }}
+      template(v-else)
+        | {{ $t('extensionStore.showcase.priceUnknown') }}
+      | {{ $t('extensionStore.showcase.billingNote') }}
     BaseBanner.q-mb-sm(v-if='subscribeResultBanner', :variant='subscribeResultBanner.variant')
       | {{ subscribeResultBanner.text }}
   template(#footer)

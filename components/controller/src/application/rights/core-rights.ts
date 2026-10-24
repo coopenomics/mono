@@ -82,6 +82,9 @@ export const coreRightsTable: RightsTable<CoreRightsRole, never> = {
         // Журнал списаний за свои подписки и пополнение биллинг-кошелька.
         ProviderPayment: ['read:own'],
         ProviderSubscription: ['read:own'],
+        // Приложения каталога на столе подключения: подписка кооператива —
+        // строка его общего счёта у провайдера, оформляет и отменяет он сам.
+        ProviderApp: ['read:own', 'subscribe:own'],
         Billing: ['convert'],
         PushSubscription: ['manage:own'],
         ExtensionOnboarding: ['read'],

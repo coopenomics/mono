@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import type { IProviderAppsPort, InnerAppSubscribeOutcome } from '@coopenomics/innercoop';
+import type { IProviderAppsPort, InnerAppOffer, InnerAppSubscribeOutcome } from '@coopenomics/innercoop';
 import { DomainError } from '@coopenomics/extension-kit';
 import { ProviderService } from '~/application/provider/services/provider.service';
 
@@ -14,6 +14,18 @@ export class ProviderAppsInnercoopAdapter implements IProviderAppsPort {
   private readonly logger = new Logger(ProviderAppsInnercoopAdapter.name);
 
   constructor(private readonly providerService: ProviderService) {}
+
+  async listOffers(coopname: string): Promise<InnerAppOffer[] | null> {
+    if (!this.providerService.isProviderAvailable()) return null;
+    try {
+      return await this.providerService.listAppOffers(coopname);
+    }
+    catch (error: any) {
+      // Витрина без цены лучше, чем витрина, упавшая из-за провайдера.
+      this.logger.warn(`Цены приложений для ${coopname} не получены: ${error?.message ?? error}`);
+      return null;
+    }
+  }
 
   async subscribe(coopname: string, packageId: string): Promise<InnerAppSubscribeOutcome> {
     if (!this.providerService.isProviderAvailable()) return { status: 'unavailable' };
