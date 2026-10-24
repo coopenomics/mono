@@ -1,0 +1,30 @@
+# Каталог приложений в CI-прогоне двух кооперативов (scripts/blackbox/two-coop-e2e.sh).
+# Накладывается на docker-compose.yml каталога из $CATALOG_DIR:
+#   - catalog-operator входит и в сеть ведущего стенда: там узел цепи `node`
+#     (по нему канал оператора проверяет ключ провайдера) и провайдер, который
+#     зовёт каталог по имени контейнера apps-catalog-operator;
+#   - порты сервисов и Nexus открыты на хосте: фикстура публикует архив
+#     демо-приложения и засевает цену, тест опрашивает здоровье;
+#   - Nexus получает меньше памяти — раннер держит ещё два стенда mono.
+# Узел partner1 ходит в каталог через свой ретранслятор по сети apps-catalog-net.
+
+services:
+  nexus:
+    environment:
+      INSTALL4J_ADD_VM_PARAMS: '-Xms512m -Xmx768m -XX:MaxDirectMemorySize=512m'
+    ports:
+      - '127.0.0.1:8081:8081'
+
+  catalog-delivery:
+    ports:
+      - '127.0.0.1:3001:3001'
+
+  catalog-operator:
+    ports:
+      - '127.0.0.1:3002:3002'
+    networks: [apps-catalog-net, master]
+
+networks:
+  master:
+    external: true
+    name: ${MASTER_NETWORK}

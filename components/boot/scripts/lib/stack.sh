@@ -230,7 +230,10 @@ stack_up_app() {
   docker compose up -d --force-recreate coopback || true
   # Фронт могли запустить с хоста через `quasar dev` — тогда контейнер лишь
   # отобрал бы у него порт. Поднимаем контейнер, только если порт молчит.
-  if curl -sf -o /dev/null --max-time 2 "http://127.0.0.1:${DESKTOP_HOST_PORT:-2999}"; then
+  # STACK_SKIP_DESKTOP=1 — стенд только для API (ведомый узел в CI).
+  if [ "${STACK_SKIP_DESKTOP:-}" = "1" ]; then
+    echo "  рабочий стол не поднимаем (STACK_SKIP_DESKTOP=1)"
+  elif curl -sf -o /dev/null --max-time 2 "http://127.0.0.1:${DESKTOP_HOST_PORT:-2999}"; then
     echo "  фронт уже отвечает на ${DESKTOP_HOST_PORT:-2999} — оставляем как есть"
   else
     docker compose up -d desktop

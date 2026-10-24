@@ -108,6 +108,11 @@ SUBSCRIPTION_POLICY_CRON="*/15 * * * * *"
 SUBSCRIPTION_POLICY_AUTO_TERMINATION=false
 HOSTKEY_TERMINATION_DRY_RUN=true
 EOF
+  # Дополнительные строки окружения от соседнего прогона (two-coop-e2e.sh:
+  # каталог приложений и собственная установка partner1).
+  if [ -n "${PROVIDER_EXTRA_ENV:-}" ]; then
+    printf '%s\n' "$PROVIDER_EXTRA_ENV" >> "$PROVIDER_DIR/.env.dev-stack"
+  fi
   provider_compose up -d --build backend
   if ! wait_for "провайдер отвечает" 900 10 provider_ready; then
     provider_compose logs --tail 200 backend || true

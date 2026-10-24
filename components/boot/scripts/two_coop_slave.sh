@@ -85,7 +85,9 @@ stream {
 }
 EOF
 
-export COMPOSE_FILE="docker-compose.yaml:docker-compose.slave.yaml"
+# SLAVE_COMPOSE_EXTRA — оверлей между базовым и ведомым (в CI —
+# scripts/blackbox/docker-compose.blackbox.yml: контроллер из dist под uid раннера).
+export COMPOSE_FILE="docker-compose.yaml${SLAVE_COMPOSE_EXTRA:+:$SLAVE_COMPOSE_EXTRA}:docker-compose.slave.yaml"
 export COOPNAME="$SLAVE_COOPNAME"
 export CHAIN_ID="$MASTER_CHAIN_ID"
 export SLAVE_SERVER_SECRET="$PROVIDER_SECRET"
