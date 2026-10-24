@@ -232,9 +232,13 @@ export interface InstalledInstallScript {
 /**
  * Как часто ядро передаёт оркестратору tenant JWT каталога. Каталог выдаёт
  * токен на 30 минут; раз в 10 минут оркестратор получает свежий задолго до
- * истечения прежнего.
+ * истечения прежнего. Пока передача не удалась (кооператив ещё не
+ * зарегистрирован в каталоге — провайдер регистрирует его с первой
+ * подпиской), ядро пробует каждую минуту: приложение должно встать на узел
+ * вскоре после подключения, а не через десять минут.
  */
 const ORCHESTRATOR_TOKEN_PUSH_MS = 10 * 60_000;
+const ORCHESTRATOR_TOKEN_RETRY_MS = 60_000;
 
 @Injectable()
 export class AppsCatalogHttpService implements OnApplicationBootstrap {
@@ -261,6 +265,8 @@ export class AppsCatalogHttpService implements OnApplicationBootstrap {
    */
   private tenantJwt: string | null = null;
   private tenantJwtExpMs = 0;
+  /** Когда оркестратор последний раз получил токен; 0 — ещё не получил. */
+  private tokenPushedAt = 0;
 
   /**
    * Настройки расширения — из env через ConfigService (как у chatcoop), а не
@@ -364,12 +370,14 @@ export class AppsCatalogHttpService implements OnApplicationBootstrap {
    * Сбой не роняет ядро: оркестратор доработает на прежнем токене, следующий
    * такт повторит передачу.
    */
-  @Interval(ORCHESTRATOR_TOKEN_PUSH_MS) // timing: schedule — токен каталога живёт 30 минут
+  @Interval(ORCHESTRATOR_TOKEN_RETRY_MS) // timing: schedule — повтор до первой удачной передачи, затем раз в 10 минут
   async pushCatalogTokenToOrchestrator(): Promise<void> {
     if (!this.orchestratorClient || !this.settings.authUrl) return;
+    if (Date.now() - this.tokenPushedAt < ORCHESTRATOR_TOKEN_PUSH_MS) return;
     try {
       const token = this.settings.tenantJwt ?? (await this.ensureTenantJwt());
       await this.orchestratorClient.put('/v1/internal/catalog/tenant-token', { token });
+      this.tokenPushedAt = Date.now();
     }
     catch (err) {
       this.logger.warn(`tenant JWT каталога оркестратору не передан: ${failureOf(err).detail}`);

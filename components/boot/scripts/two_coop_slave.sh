@@ -137,6 +137,13 @@ fi
 
 # ── Совет и ключ входа в каталог ─────────────────────────────────────────────
 echo "▸ Установка совета $COOPNAME..."
+# Ключ partner1 — тот, которым ведущий завёл аккаунт в цепи: его фикстура
+# лежит в чекауте ведущего (state не в git), у ведомого её может не быть.
+MASTER_PARTNER_FIXTURE="$MASTER_DIR/components/docs-harness/state/cooperatives/$COOPNAME.json"
+if [ -z "${PARTNER1_WIF:-}" ] && [ -f "$MASTER_PARTNER_FIXTURE" ]; then
+  PARTNER1_WIF="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1])).get("wif",""))' "$MASTER_PARTNER_FIXTURE")"
+  export PARTNER1_WIF
+fi
 (cd "$STACK_ROOT/components/boot" && \
   SLAVE_API_URL="$SLAVE_ORIGIN_HOST/backend/v1/graphql" \
   SLAVE_CHAIN_URL="http://127.0.0.1:${MASTER_NODE_HTTP_PORT}" \
