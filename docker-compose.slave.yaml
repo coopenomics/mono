@@ -1,0 +1,57 @@
+# Ведомый кооператив связки двух локальных стендов (487-34).
+#
+# Связка: ведущий стенд — кооператив-оператор (voskhod) со своей цепью,
+# провайдером и каталогом приложений; ведомый — узел подключённого кооператива
+# (partner1) на ДРУГОМ чекауте, без своей цепи. Так на одной машине работает
+# пара «хаб + подключённый кооператив», и полный путь (подписка у провайдера →
+# общий счёт → оплата → установка приложения на узле) проверяется без аренды
+# сервера в Hostkey.
+#
+# Файл накладывается поверх docker-compose.yaml (COMPOSE_FILE ставит
+# components/boot/scripts/two_coop_slave.sh) и меняет только то, чем ведомый
+# отличается:
+#   - вместо цепи — ретранслятор `node` на порты цепи ведущего: всё, что ходит
+#     на node:8888 и ws://node:8070 (контроллер, индексер, nginx), попадает в
+#     цепь ведущего без правок конфигураций;
+#   - контроллер и оркестратор — кооператив partner1, каталог и провайдер
+#     ведущего через порты хоста. Общих docker-сетей со стендом ведущего нет:
+#     одинаковые имена сервисов (postgres, coopback) двух стендов перепутались бы.
+#
+# Значения ${…} готовит скрипт ведомого (.two-coop/slave.env).
+
+services:
+  node:
+    image: nginx:alpine
+    command: !reset null
+    volumes: !override
+      - ./.two-coop/node-relay.conf:/etc/nginx/nginx.conf:ro
+    extra_hosts:
+      - host.docker.internal:host-gateway
+
+  coopback:
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    environment:
+      COOPNAME: ${COOPNAME}
+      CHAIN_ID: ${CHAIN_ID}
+      # Провайдер вызывает initSystem узла своим секретом — как после поставки.
+      SERVER_SECRET: ${SLAVE_SERVER_SECRET}
+      # Канала к провайдеру у подключённого кооператива нет: подписки и счёт —
+      # на столе подключения у оператора.
+      PROVIDER_BASE_URL: ""
+      PROVIDER_BEARER_TOKEN: ""
+      BILLING_HUB_MODE: "false"
+      APPS_CATALOG_OPERATOR_URL: ${MASTER_CATALOG_OPERATOR_URL}
+      APPS_CATALOG_DELIVERY_URL: ${MASTER_CATALOG_DELIVERY_URL}
+
+  parser2:
+    extra_hosts:
+      - host.docker.internal:host-gateway
+
+  orchestrator:
+    extra_hosts:
+      - host.docker.internal:host-gateway
+
+  desktop:
+    environment:
+      CHAIN_ID: ${CHAIN_ID}

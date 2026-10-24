@@ -56,6 +56,8 @@
     "stop": "cd components/boot/scripts && bash down.sh",
     "reboot:clean": "cd components/boot/scripts && bash clean_reboot.sh",
     "reboot:extra": "cd components/boot/scripts && bash extra_reboot.sh",
+    "reboot:extra2coop:master": "cd components/boot/scripts && bash two_coop_master.sh",
+    "reboot:extra2coop:slave": "cd components/boot/scripts && bash two_coop_slave.sh",
     "reboot:blago": "cd components/boot/scripts && bash blago_reboot.sh",
     "deploy": "lerna run deploy --scope @coopenomics/boot --",
     "clear": "lerna run clear --scope @coopenomics/boot",
