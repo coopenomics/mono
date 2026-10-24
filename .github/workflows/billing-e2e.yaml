@@ -360,12 +360,12 @@ jobs:
         timeout-minutes: 20
         run: bash scripts/blackbox/two-coop-e2e.sh fixture
 
+      - name: Разрешение voskhod@provider в цепи
+        run: bash scripts/blackbox/two-coop-e2e.sh permission
+
       - name: Провайдер подключения с каналом каталога
         timeout-minutes: 20
         run: bash scripts/blackbox/two-coop-e2e.sh provider
-
-      - name: Разрешение voskhod@provider в цепи
-        run: bash scripts/blackbox/two-coop-e2e.sh permission
 
       - name: Узел partner1 (второй стенд без своей цепи)
         timeout-minutes: 30

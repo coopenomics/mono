@@ -14,10 +14,10 @@
 #   fixture   демо-приложение @voskhod/demoapp: архив в Nexus, пакет, активный
 #             выпуск, цена плана default. Путь издателя (подпись, модерация)
 #             сценарий не проверяет — пакет кладётся фикстурой
+#   permission разрешение voskhod@provider в цепи — им провайдер подписывает
+#             канал оператора каталога; до провайдера
 #   provider  провайдер (billing-e2e.sh provider) с каналом каталога и
 #             собственной установкой partner1 (SELF_HOSTED_COOPS)
-#   permission разрешение voskhod@provider в цепи — им провайдер подписывает
-#             канал оператора каталога
 #   slave     узел partner1 — копия рабочей папки в $SLAVE_DIR (исходники из git,
 #             node_modules и сборки — жёсткими ссылками), свой .env с другими
 #             портами, components/boot/scripts/two_coop_slave.sh
@@ -182,21 +182,29 @@ SQL
 }
 
 # ── провайдер ────────────────────────────────────────────────────────────────
-cmd_provider() {
+provider_key() {
   if [ ! -s "$PROVIDER_KEY_FILE" ]; then
-    (cd components/boot && node -e "require('eosjs-ecc').randomKey().then(k => process.stdout.write(k))") > "$PROVIDER_KEY_FILE"
+    (cd "$ROOT/components/boot" && node -e "require('eosjs-ecc').randomKey().then(k => process.stdout.write(k))") > "$PROVIDER_KEY_FILE"
   fi
+  cat "$PROVIDER_KEY_FILE"
+}
+
+# Разрешение — до старта провайдера: провайдер сразу запрашивает у каталога
+# перечень пакетов, и без разрешения каталог отвечает «cooperative not registered».
+cmd_provider() {
   PROVIDER_EXTRA_ENV="$(cat <<EOF
 SELF_HOSTED_COOPS=partner1
 CATALOG_OPERATOR_URL=http://apps-catalog-operator:3002
 CATALOG_OPERATOR_ACCOUNT=voskhod
-CATALOG_PROVIDER_KEY=$(cat "$PROVIDER_KEY_FILE")
+CATALOG_PROVIDER_KEY=$(provider_key)
 EOF
 )" bash scripts/blackbox/billing-e2e.sh provider
 }
 
 cmd_permission() {
-  (cd components/boot && CATALOG_PROVIDER_KEY="$(cat "$PROVIDER_KEY_FILE")" pnpm exec esno src/two-coop/provider-permission.ts)
+  local key
+  key="$(provider_key)"
+  (cd components/boot && CATALOG_PROVIDER_KEY="$key" pnpm exec esno src/two-coop/provider-permission.ts)
 }
 
 # ── ведомый узел partner1 ───────────────────────────────────────────────────
