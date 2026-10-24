@@ -138,6 +138,15 @@ if ! stack_wait_for "подключение узла провайдером" 30 
 fi
 
 # ── Совет и ключ входа в каталог ─────────────────────────────────────────────
+# Установка совета заводит учётные записи в authentik: на свежем стенде он
+# прогревается минуты, и запрос раньше времени обрывает установку.
+authentik_users() {
+  curl -sf -m 5 -o /dev/null \
+    -H "Authorization: Bearer $(cat "$STACK_ROOT/infra/coopid/secrets/authentik_bootstrap_token")" \
+    "http://127.0.0.1:${AUTHENTIK_HOST_PORT:-9008}/api/v3/core/users/?page_size=1"
+}
+# timing: timeout — authentik применяет схемы при первом старте
+stack_wait_for "authentik принимает запросы" 120 5 authentik_users || exit 1
 echo "▸ Установка совета $COOPNAME..."
 # Ключ partner1 — тот, которым ведущий завёл аккаунт в цепи: его фикстура
 # лежит в чекауте ведущего (state не в git), у ведомого её может не быть.
