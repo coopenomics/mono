@@ -2,7 +2,7 @@ import { Inject, Injectable, Logger, type OnApplicationBootstrap } from '@nestjs
 import { Interval } from '@nestjs/schedule';
 import { InnerKeyPermission, VAULT_PORT, type IVaultPort } from '@coopenomics/innercoop';
 import { PrivateKey } from '@wharfkit/antelope';
-import axios, { type AxiosInstance, AxiosError } from 'axios';
+import axios, { type AxiosInstance, AxiosError, type InternalAxiosRequestConfig } from 'axios';
 import { v4 as uuidv4 } from 'uuid';
 import { ConfigService } from '@nestjs/config';
 import { platformSettings } from '@coopenomics/extension-kit';
@@ -337,6 +337,20 @@ export class AppsCatalogHttpService implements OnApplicationBootstrap {
       const jwt = tenantJwt ?? (await this.ensureTenantJwt());
       req.headers.Authorization = `Bearer ${jwt}`;
       return req;
+    });
+    // 401 на выпущенный токен: каталог сменил ключ подписи или отозвал токены
+    // кооператива. Кэш сбрасывается, запрос повторяется один раз со свежим
+    // токеном, а оркестратор получает новый токен на ближайшем такте — иначе
+    // узел до получаса ходил бы с мёртвым токеном.
+    authClient.interceptors.response.use(undefined, async (error: unknown) => {
+      const failed = error as { response?: { status?: number }; config?: InternalAxiosRequestConfig & { tenantRetried?: boolean } };
+      const req = failed.config;
+      if (failed.response?.status !== 401 || tenantJwt || !req || req.tenantRetried) throw error;
+      req.tenantRetried = true;
+      this.tenantJwt = null;
+      this.tenantJwtExpMs = 0;
+      this.tokenPushedAt = 0;
+      return authClient.request(req);
     });
     return authClient;
   }

@@ -142,3 +142,18 @@ cases:
     status: written
     external: unreachable
     external_reason: "у стенда внешнего слоя нет провайдера и узла партнёра"
+
+  - id: apps.access.side.03
+    level: backend
+    kind: side
+    scenario: >-
+      каталог сменил ключ подписи JWT или отозвал токены кооператива — запрос с выпущенным
+      раньше токеном получает 401
+    expect: >-
+      ядро сбрасывает кэш токена, выпускает новый подписью ключа coop@catalog и повторяет
+      запрос один раз; повторный 401 — отказ без цикла; оркестратор получает свежий токен
+      на ближайшем такте
+    test: components/controller/tests/unit/apps-catalog-proxy/tenant-token-refresh.test.ts
+    status: written
+    external: unreachable
+    external_reason: "у стенда внешнего слоя нет каталога приложений"
