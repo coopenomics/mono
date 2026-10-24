@@ -52,6 +52,10 @@ services:
       BILLING_HUB_MODE: "false"
       APPS_CATALOG_OPERATOR_URL: http://node:3002
       APPS_CATALOG_DELIVERY_URL: http://node:3001
+      APPS_CATALOG_OPERATOR_API_KEY: ${APPS_CATALOG_OPERATOR_API_KEY}
+      # Оркестратор своего стенда: ядро передаёт ему токен каталога, он ставит
+      # приложения на узел. В .env контроллера ведомого этой строки может не быть.
+      ORCHESTRATOR_URL: http://orchestrator:4000
 
   desktop:
     environment:

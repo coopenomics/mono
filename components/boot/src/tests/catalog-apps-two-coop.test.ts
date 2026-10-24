@@ -29,6 +29,7 @@
 import { execSync } from 'node:child_process'
 import process from 'node:process'
 import { beforeAll, describe, expect, it } from 'vitest'
+import { partner1Keys } from '../init/partner1-key'
 import { ensureShareFunds, gqlAs, loginAs, signAs } from './marketplace/chainHelpers'
 import { paymentsOf, provider, subscriptionsOf, waitFor } from './shared/stand'
 
@@ -36,8 +37,9 @@ const COOP = 'partner1'
 const OPERATOR = 'voskhod'
 const PACKAGE = process.env.CATALOG_PACKAGE || '@voskhod/demoapp'
 const SLAVE_ORCHESTRATOR_URL = process.env.SLAVE_ORCHESTRATOR_URL || 'http://127.0.0.1:4000'
-const PARTNER1_WIF = process.env.PARTNER1_WIF || '5KQwrPbwdL6PhXujxW37FSSQZ1JiwsST4cqQzDeyXtP79zkvFD3'
-const PARTNER1 = { email: process.env.PARTNER1_EMAIL || `chairman.${COOP}@example.com`, wif: PARTNER1_WIF, account: COOP }
+const PARTNER1_EMAIL = process.env.PARTNER1_EMAIL || `chairman.${COOP}@example.com`
+// Ключ partner1 — тот, которым boot завёл аккаунт в цепи ведущего.
+let PARTNER1_WIF = ''
 /** Длина биллингового дня стенда, мс: месяц в 30 минут → день в минуту. */
 const DAY_MS = Number(process.env.BILLING_PERIOD_MINUTES || 30) * 60_000 / 30
 
@@ -62,7 +64,8 @@ describe('приложение каталога на связке двух ко�
   let token: string
 
   beforeAll(async () => {
-    token = await loginAs(PARTNER1)
+    PARTNER1_WIF = (await partner1Keys()).privateKey
+    token = await loginAs({ email: PARTNER1_EMAIL, wif: PARTNER1_WIF, account: COOP })
     // Прогон повторяем: подключённое прошлым прогоном приложение отключаем.
     const apps: any = await gqlAs(token, `{ getProviderApps { ${APP_FIELDS} } }`)
     const left = apps.getProviderApps.find((a: any) => a.package_id === PACKAGE)
@@ -114,6 +117,12 @@ describe('приложение каталога на связке двух ко�
       'mutation($i:BillingConvertInput!){ billingConvert(input:$i){ transactionId } }',
       { i: { coopname: OPERATOR, username: COOP, amount: `${amountRub} RUB`, document } },
     )
+
+    // Хаб платит счёт целиком: чужая наступившая строка (например, хостинг,
+    // которого у узла вне провайдера быть не должно) съела бы пополнение.
+    const bill = await provider<any>('GET', `/subscriptions/billing-summary/${COOP}`)
+    const otherDue = bill.items.filter((i: any) => i.is_due && i.subscription_type_name !== PACKAGE)
+    expect(otherDue, 'в счёте partner1 нет других наступивших строк').toEqual([])
 
     // Срок оплаты — сейчас: ждать месяц стенда незачем. Остальные строки счёта
     // кооператива срок не меняют — хаб платит только наступившее.
