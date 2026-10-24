@@ -238,7 +238,12 @@ stack_up_app() {
   else
     docker compose up -d desktop
   fi
-  docker compose up -d nginx
+  if [ "${STACK_SKIP_DESKTOP:-}" = "1" ]; then
+    # nginx зависит от desktop в компоузе — без рабочего стола поднимаем отдельно.
+    docker compose up -d --no-deps nginx
+  else
+    docker compose up -d nginx
+  fi
   # Контроллер и рабочий стол дальше прогреваются сами, и скрипт их не караулит.
   # Оба поднимаются через компиляцию (ts-node типизирует проект, quasar собирает
   # маршруты) и на занятой машине занимают минуты — караулить их значило держать

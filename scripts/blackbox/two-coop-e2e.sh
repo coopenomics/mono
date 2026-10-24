@@ -216,6 +216,8 @@ make_slave_dir() {
   cp -a infra/coopid/secrets "$SLAVE_DIR/infra/coopid/" 2>/dev/null || true
   cp "$CTL_ENV" "$SLAVE_DIR/$CTL_ENV"
   cp components/boot/.env "$SLAVE_DIR/components/boot/.env"
+  # Рабочий стол ведомому не нужен, но компоуз читает env_file всех сервисов.
+  cp components/desktop/.env-example "$SLAVE_DIR/components/desktop/.env"
   # Свой проект компоуза и свои порты хоста: ведущий уже занял стандартные.
   sed -e 's/^COMPOSE_PROJECT_NAME=.*/COMPOSE_PROJECT_NAME=slave/' \
       -e '/^\(NODE_HTTP_PORT\|COOPBACK_HOST_PORT\|POSTGRES_PORT\|DESKTOP_HOST_PORT\|NGINX_HOST_PORT\|API_URL\)=/d' \
