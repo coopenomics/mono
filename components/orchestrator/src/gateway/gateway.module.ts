@@ -60,6 +60,10 @@ import { loadAppConfig } from '../config/app-config';
               return { supergraphSdl: manager.initialSdl, cleanup: manager.cleanup };
             },
             buildService({ url }: { url?: string }) {
+              // Межсервисный секрет (провайдер вызывает initSystem узла,
+              // хаб — служебные мутации) получает только ядро: подграф
+              // приложения — чужой код, секрет ему не передаётся.
+              const isCore = url === loadAppConfig().coreSubgraphUrl;
               return new RemoteGraphQLDataSource({
                 url,
                 willSendRequest({ request, context }) {
@@ -67,6 +71,10 @@ import { loadAppConfig } from '../config/app-config';
                   const auth = incoming.authorization ?? incoming.Authorization;
                   if (auth && request.http) {
                     request.http.headers.set('authorization', auth);
+                  }
+                  const secret = incoming['server-secret'];
+                  if (isCore && secret && request.http) {
+                    request.http.headers.set('server-secret', secret);
                   }
                 },
               });

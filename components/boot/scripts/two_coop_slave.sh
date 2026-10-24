@@ -110,7 +110,8 @@ stack_up_app
 docker compose up -d orchestrator
 
 # ── Узел готов? ──────────────────────────────────────────────────────────────
-SLAVE_ORIGIN_HOST="http://127.0.0.1:${NGINX_HOST_PORT:-8108}"
+# localhost, а не 127.0.0.1: nginx стенда переадресует 127.0.0.1 на localhost.
+SLAVE_ORIGIN_HOST="http://localhost:${NGINX_HOST_PORT:-8108}"
 SLAVE_ORIGIN_FOR_PROVIDER="http://${COOPNAME}-node:8080"
 graphql_up() {
   curl -sf -m 5 -H 'content-type: application/json' \
