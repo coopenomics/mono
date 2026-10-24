@@ -56,6 +56,7 @@
     "stop": "cd components/boot/scripts && bash down.sh",
     "reboot:clean": "cd components/boot/scripts && bash clean_reboot.sh",
     "reboot:extra": "cd components/boot/scripts && bash extra_reboot.sh",
+    "reboot:extra2coop": "cd components/boot/scripts && bash two_coop.sh",
     "reboot:extra2coop:master": "cd components/boot/scripts && bash two_coop_master.sh",
     "reboot:extra2coop:slave": "cd components/boot/scripts && bash two_coop_slave.sh",
     "test:two-coop": "pnpm -F @coopenomics/boot run test:two-coop",

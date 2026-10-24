@@ -37,7 +37,9 @@ for key in CATALOG_OPERATOR_URL CATALOG_PROVIDER_KEY; do
 done
 
 echo "══ Ведущий кооператив связки: ${STACK_PROJECT} ══"
-bash "$SCRIPT_DIR/extra_reboot.sh" || exit 1
+# EXTRA_RENT=1 — boot заводит partner1 кооперативом в цепи (regcoop, активный
+# статус), а не кандидатом: провайдер подхватывает его синком и подключает узел.
+EXTRA_RENT=1 bash "$SCRIPT_DIR/extra_reboot.sh" || exit 1
 
 echo "▸ Сбрасываем у провайдера и в каталоге состояние $SLAVE_COOPNAME прошлой цепи..."
 # Провайдер на время очистки остановлен: синк с цепью раз в минуту успел бы
