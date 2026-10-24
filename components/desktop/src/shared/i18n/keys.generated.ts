@@ -2934,6 +2934,7 @@ export type MessageKey =
   | 'developer.myPackages.intro'
   | 'developer.myPackages.noRelease'
   | 'developer.perMonth'
+  | 'developer.priceNotSet'
   | 'developer.pricing.emptyBody'
   | 'developer.pricing.emptyTitle'
   | 'developer.pricing.intro'

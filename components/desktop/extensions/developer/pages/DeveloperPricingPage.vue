@@ -32,7 +32,7 @@ q-page(padding)
                 span.t-mono {{ pkg.packageId }}
               td
                 BaseBadge(variant='neutral') default
-              td {{ $t('developer.perMonth', { amount: formatPrice(pkg.rubPerMonth) }) }}
+              td {{ pkg.rubPerMonth == null ? $t('developer.priceNotSet') : $t('developer.perMonth', { amount: formatPrice(pkg.rubPerMonth) }) }}
 </template>
 
 <script setup lang="ts">

@@ -37,7 +37,7 @@ q-page(padding)
               td
                 span.t-mono(v-if='pkg.lastActiveVersion') {{ pkg.lastActiveVersion }}
                 BaseBadge(v-else, variant='neutral') {{ $t('developer.myPackages.noRelease') }}
-              td {{ $t('developer.perMonth', { amount: formatPrice(pkg.rubPerMonth) }) }}
+              td {{ pkg.rubPerMonth == null ? $t('developer.priceNotSet') : $t('developer.perMonth', { amount: formatPrice(pkg.rubPerMonth) }) }}
 </template>
 
 <script setup lang="ts">

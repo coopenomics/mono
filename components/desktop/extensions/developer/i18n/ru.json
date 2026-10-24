@@ -55,6 +55,7 @@
       "noRelease": "нет релиза"
     },
     "perMonth": "{amount} ₽/мес",
+    "priceNotSet": "Цена не задана",
     "pricing": {
       "emptyBody": "Опубликуйте пакет, и каталог назначит ставку по плану «default».",
       "emptyTitle": "Тарифов пока нет",
