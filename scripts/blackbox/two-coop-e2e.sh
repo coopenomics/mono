@@ -129,6 +129,16 @@ cmd_fixture() {
       -d "{\"name\":\"${NEXUS_REPO}\",\"online\":true,\"storage\":{\"blobStoreName\":\"default\",\"strictContentTypeValidation\":true,\"writePolicy\":\"ALLOW\"}}"
   fi
   echo "✓ Nexus: репозиторий ${NEXUS_REPO}"
+  # Community Edition с 3.77 не пускает запись, пока не принято соглашение:
+  # без этого и загрузка архива, и npm publish отвечают 403.
+  local eula
+  eula="$(curl -sf -u "admin:${NEXUS_PASSWORD}" "http://127.0.0.1:${NEXUS_PORT}/service/rest/v1/system/eula" || true)"
+  if [ -n "$eula" ] && echo "$eula" | grep -q '"accepted" *: *false'; then
+    echo "$eula" | python3 -c 'import json,sys; d=json.load(sys.stdin); d["accepted"]=True; print(json.dumps(d))' \
+      | curl -sf -u "admin:${NEXUS_PASSWORD}" -X POST -H 'Content-Type: application/json' --data @- \
+        "http://127.0.0.1:${NEXUS_PORT}/service/rest/v1/system/eula"
+    echo "✓ Nexus: соглашение Community Edition принято"
+  fi
 
   local app="$CATALOG_DIR/examples/demo-app" version tgz
   version="$(node -p "require('$app/package.json').version")"
@@ -137,9 +147,15 @@ cmd_fixture() {
   tgz="$(cd "$app" && npm pack --silent --pack-destination "$OUT")"
   if ! curl -sf -o /dev/null -u "admin:${NEXUS_PASSWORD}" \
       "http://127.0.0.1:${NEXUS_PORT}/repository/${NEXUS_REPO}/${PACKAGE}"; then
-    curl -sf -u "admin:${NEXUS_PASSWORD}" -X POST \
+    local code
+    code="$(curl -sS -o "$OUT/nexus-upload.txt" -w '%{http_code}' -u "admin:${NEXUS_PASSWORD}" -X POST \
       -F "npm.asset=@${OUT}/${tgz};type=application/x-compressed" \
-      "http://127.0.0.1:${NEXUS_PORT}/service/rest/v1/components?repository=${NEXUS_REPO}"
+      "http://127.0.0.1:${NEXUS_PORT}/service/rest/v1/components?repository=${NEXUS_REPO}")"
+    if [ "${code:0:1}" != "2" ]; then
+      echo "✗ загрузка архива в Nexus: HTTP $code" >&2
+      cat "$OUT/nexus-upload.txt" >&2
+      exit 1
+    fi
   fi
   wait_for "${PACKAGE} в репозитории Nexus" 60 3 \
     curl -sf -o /dev/null -u "admin:${NEXUS_PASSWORD}" "http://127.0.0.1:${NEXUS_PORT}/repository/${NEXUS_REPO}/${PACKAGE}"
