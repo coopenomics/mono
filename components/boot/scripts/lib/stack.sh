@@ -220,6 +220,28 @@ stack_up_authentik() {
   echo "  authentik прогревается в фоне"
 }
 
+# Каталог приложений dev-стенда (~/apps-catalog, scripts/dev-stack/up.sh) живёт
+# в общей сети mono-shared и подключает к ней контроллер, оркестратор и цепь
+# стенда. Пересозданный контейнер это подключение теряет — ядро перестаёт
+# находить catalog-delivery (EAI_AGAIN), витрина приложений пустеет. Поэтому
+# после подъёма стенд подключается к сети сам, если она есть.
+stack_attach_catalog_net() {
+  # Ведомый кооператив связки (two_coop_slave.sh) ходит в каталог своим
+  # ретранслятором: второй `coopback` в общей сети сделал бы имя неоднозначным.
+  [ "${STACK_CATALOG_NET:-1}" = "1" ] || return 0
+  docker network inspect mono-shared >/dev/null 2>&1 || return 0
+  local svc container
+  for svc in coopback orchestrator node; do
+    container="$(docker compose ps -q "$svc" 2>/dev/null | head -1)"
+    [ -n "$container" ] || continue
+    docker network inspect mono-shared --format '{{range .Containers}}{{.Name}}|{{end}}' \
+      | tr '|' '\n' | grep -qx "$(docker inspect -f '{{.Name}}' "$container" | sed 's#^/##')" && continue
+    docker network connect --alias "$svc" mono-shared "$container" >/dev/null 2>&1 \
+      && echo "  + ${svc} → mono-shared (каталог приложений)"
+  done
+  return 0
+}
+
 stack_up_app() {
   echo "▸ Поднимаем индексер, бэкенд, рабочий стол и единый вход..."
   # Индексер parser2 — источник событий для контроллера, поднимается ДО него:
@@ -250,6 +272,7 @@ stack_up_app() {
   # человека у экрана ради строчки «готов». Свои миграции контроллер теперь
   # накатывает сам при старте (AUTO_MIGRATE в компоузе), отдельный заход по
   # живому контейнеру не нужен.
+  stack_attach_catalog_net
   echo "  контроллер и рабочий стол прогреваются в фоне"
   echo "    смотреть: docker compose logs -f coopback"
 }

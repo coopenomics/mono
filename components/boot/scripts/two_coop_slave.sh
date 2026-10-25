@@ -89,6 +89,8 @@ EOF
 # scripts/blackbox/docker-compose.blackbox.yml: контроллер из dist под uid раннера).
 export COMPOSE_FILE="docker-compose.yaml${SLAVE_COMPOSE_EXTRA:+:$SLAVE_COMPOSE_EXTRA}:docker-compose.slave.yaml"
 export COOPNAME="$SLAVE_COOPNAME"
+# Каталог — через ретранслятор `node`, в общую сеть каталога dev-стенда не входим.
+export STACK_CATALOG_NET=0
 export CHAIN_ID="$MASTER_CHAIN_ID"
 export SLAVE_SERVER_SECRET="$PROVIDER_SECRET"
 export MASTER_NETWORK="${MASTER_PROJECT}_default"

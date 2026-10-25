@@ -389,7 +389,11 @@ export class AppsCatalogHttpService implements OnApplicationBootstrap {
     if (!this.orchestratorClient || !this.settings.authUrl) return;
     if (Date.now() - this.tokenPushedAt < ORCHESTRATOR_TOKEN_PUSH_MS) return;
     try {
-      const token = this.settings.tenantJwt ?? (await this.ensureTenantJwt());
+      // Оркестратор держит переданный токен до следующей передачи: токен
+      // обязан прожить этот промежуток, иначе опрос каталога получает 401.
+      const token =
+        this.settings.tenantJwt ??
+        (await this.ensureTenantJwt(ORCHESTRATOR_TOKEN_PUSH_MS + ORCHESTRATOR_TOKEN_RETRY_MS));
       await this.orchestratorClient.put('/v1/internal/catalog/tenant-token', { token });
       this.tokenPushedAt = Date.now();
     }
@@ -854,9 +858,8 @@ export class AppsCatalogHttpService implements OnApplicationBootstrap {
    * Запросы идут чистым axios, не через `authClient`, — иначе
    * interceptor зациклится на самом себе.
    */
-  private async ensureTenantJwt(): Promise<string> {
-    const REFRESH_MARGIN_MS = 60_000;
-    if (this.tenantJwt && Date.now() + REFRESH_MARGIN_MS < this.tenantJwtExpMs) {
+  private async ensureTenantJwt(minValidityMs = 60_000): Promise<string> {
+    if (this.tenantJwt && Date.now() + minValidityMs < this.tenantJwtExpMs) {
       return this.tenantJwt;
     }
     const signingKey = await this.vault.getWif(platformSettings().coopname, InnerKeyPermission.CATALOG);
