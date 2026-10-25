@@ -8,7 +8,7 @@ import { Field, ObjectType, registerEnumType } from '@nestjs/graphql';
  *    на этот пакет (HTTP 409);
  *  - `clientNotRegistered` — кооператив не зарегистрирован в каталоге
  *    восхода (HTTP 403), сначала нужен onboarding;
- *  - `unavailable` — узел не связан с провайдером — подписка оформляется на столе подключения;
+ *  - `unavailable` — провайдер подключения не ответил, подписка не оформлена;
  *  - `failed` — прочие ошибки.
  */
 export enum SubscribePackageStatus {

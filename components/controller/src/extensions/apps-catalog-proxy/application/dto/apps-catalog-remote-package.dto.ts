@@ -37,9 +37,7 @@ export class AppsCatalogRemotePackageDTO {
   description!: string;
 
   @Field(() => Number, {
-    nullable: true,
-    description:
-      'Стоимость подписки, ₽ в месяц, у провайдера подключения; пусто — цену показывает стол подключения оператора',
+    description: 'Стоимость подписки у провайдера подключения, ₽ в месяц',
   })
-  rubPerMonth!: number | null;
+  rubPerMonth!: number;
 }

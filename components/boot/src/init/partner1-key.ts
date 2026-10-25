@@ -1,10 +1,5 @@
-import { existsSync, readFileSync } from 'node:fs'
-import { dirname, resolve } from 'node:path'
-import { fileURLToPath } from 'node:url'
 import process from 'node:process'
 import ecc from 'eosjs-ecc'
-
-const __dirname = dirname(fileURLToPath(import.meta.url))
 
 /**
  * Ключ аккаунта partner1 — подключённого кооператива dev-стенда. Нужен в двух
@@ -12,8 +7,10 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
  * (two_coop_slave.sh) ставит им узел ведомого кооператива.
  */
 export async function partner1Keys(): Promise<{ privateKey: string, publicKey: string }> {
-  // Источники WIF (по приоритету): env PARTNER1_WIF → фикстура
-  // docs-harness/state/cooperatives/partner1.json → DEFAULT_PARTNER1_WIF.
+  // Источник WIF: env PARTNER1_WIF, иначе стандартный ключ dev-сети.
+  // Фикстура docs-harness/state/cooperatives/partner1.json больше не читается
+  // (решение владельца 25.10.2026): у стенда один стандартный ключ на всех,
+  // вход без поиска «какой ключ у этого кооператива».
   //
   // DEFAULT_PARTNER1_WIF — общеизвестный test-ключ EOSIO (тот же, что у root
   // системного eosio в boot/configs/config.ini). На dev-стенде использовать
@@ -31,26 +28,6 @@ export async function partner1Keys(): Promise<{ privateKey: string, publicKey: s
     }
     catch (e: any) {
       console.warn(`⚠ PARTNER1_WIF недопустим (${e.message}) — пробуем фикстуру`)
-    }
-  }
-  if (!seededKeys) {
-    try {
-      const fixturePath = resolve(
-        __dirname,
-        '../../../docs-harness/state/cooperatives/partner1.json',
-      )
-      if (existsSync(fixturePath)) {
-        const fx = JSON.parse(readFileSync(fixturePath, 'utf-8'))
-        if (fx?.wif) {
-          // publicKey не хранится в фикстуре — деривим из приватного.
-          const pub = fx.publicKey || await ecc.privateToPublic(fx.wif)
-          seededKeys = { privateKey: fx.wif, publicKey: pub }
-          console.log(`✓ partner1: используем seeded WIF из фикстуры (pub=${pub.slice(0, 12)}…)`)
-        }
-      }
-    }
-    catch (e: any) {
-      console.warn(`⚠ partner1 fixture read failed (${e.message}) — пробуем дефолт`)
     }
   }
   if (!seededKeys) {

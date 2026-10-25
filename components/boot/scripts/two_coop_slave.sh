@@ -56,6 +56,8 @@ fi
 PROVIDER_SECRET="$(grep -E '^SERVER_SECRET=' "$PROVIDER_DIR/.env.dev-stack" 2>/dev/null | tail -1 | cut -d= -f2- | tr -d '"')"
 PROVIDER_SECRET="${PROVIDER_SECRET:-SECRET}"
 PROVIDER_URL="${PROVIDER_URL:-http://127.0.0.1:3005}"
+# Токен чтения провайдера — узел берёт им цены приложений (как на боевом контуре).
+PROVIDER_BEARER="$(grep -E '^PROVIDER_BEARER_TOKEN=' "$PROVIDER_DIR/.env.dev-stack" 2>/dev/null | tail -1 | cut -d= -f2- | tr -d '"')"
 
 # ── Конфигурация ведомого ────────────────────────────────────────────────────
 mkdir -p "$STACK_ROOT/.two-coop"
@@ -73,6 +75,7 @@ stream {
     3001 apps-catalog-delivery:3001;
     3002 apps-catalog-operator:3002;
     8080 ${STACK_PROJECT}-nginx-1:80;
+    3005 provider-backend:3000;
   }
   server {
     listen 8888;
@@ -80,6 +83,7 @@ stream {
     listen 3001;
     listen 3002;
     listen 8080;
+    listen 3005;
     proxy_pass \$relay_upstream;
   }
 }
@@ -93,6 +97,7 @@ export COOPNAME="$SLAVE_COOPNAME"
 export STACK_CATALOG_NET=0
 export CHAIN_ID="$MASTER_CHAIN_ID"
 export SLAVE_SERVER_SECRET="$PROVIDER_SECRET"
+export SLAVE_PROVIDER_BEARER="$PROVIDER_BEARER"
 export MASTER_NETWORK="${MASTER_PROJECT}_default"
 export CATALOG_DELIVERY_BASE_URL="http://node:3001"
 export APPS_CATALOG_OPERATOR_URL="http://node:3002"
@@ -150,13 +155,6 @@ authentik_users() {
 # timing: timeout — authentik применяет схемы при первом старте
 stack_wait_for "authentik принимает запросы" 120 5 authentik_users || exit 1
 echo "▸ Установка совета $COOPNAME..."
-# Ключ partner1 — тот, которым ведущий завёл аккаунт в цепи: его фикстура
-# лежит в чекауте ведущего (state не в git), у ведомого её может не быть.
-MASTER_PARTNER_FIXTURE="$MASTER_DIR/components/docs-harness/state/cooperatives/$COOPNAME.json"
-if [ -z "${PARTNER1_WIF:-}" ] && [ -f "$MASTER_PARTNER_FIXTURE" ]; then
-  PARTNER1_WIF="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1])).get("wif",""))' "$MASTER_PARTNER_FIXTURE")"
-  export PARTNER1_WIF
-fi
 (cd "$STACK_ROOT/components/boot" && \
   SLAVE_API_URL="$SLAVE_ORIGIN_HOST/backend/v1/graphql" \
   SLAVE_CHAIN_URL="http://127.0.0.1:${MASTER_NODE_HTTP_PORT}" \

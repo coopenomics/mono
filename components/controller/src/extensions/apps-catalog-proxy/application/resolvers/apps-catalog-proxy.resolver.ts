@@ -1,5 +1,5 @@
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
-import { BadRequestException, Inject, Logger, Optional, UseGuards } from '@nestjs/common';
+import { BadRequestException, Inject, Logger, Optional, ServiceUnavailableException, UseGuards } from '@nestjs/common';
 import { GqlJwtAuthGuard, RightsGuard, RequireRight, CurrentUser, catalogAppTitle, platformSettings } from '@coopenomics/extension-kit';
 import { InnerAppSubscriptionStatus, PROVIDER_APPS_PORT, type IMonoAccount, type IProviderAppsPort } from '@coopenomics/innercoop';
 import { t } from '../../i18n';
@@ -145,25 +145,27 @@ export class AppsCatalogProxyResolver {
       this.client.listPublicPackages(page, pageSize),
       this.providerApps?.listOffers(platformSettings().coopname) ?? Promise.resolve(null),
     ]);
-    // Цена — у провайдера: подписка входит в общий счёт кооператива. Узел без
-    // провайдера цены не знает, её показывает стол подключения оператора.
-    const priceOf = new Map((offers ?? []).map((o) => [o.package_id, o]));
-    return packages.map((p) => {
+    // Цена — у провайдера: подписка входит в общий счёт кооператива. Без цены
+    // витрина не показывается вовсе — председатель подписывается, видя сумму.
+    if (offers === null) {
+      throw new ServiceUnavailableException(t('appsCatalogProxy.catalog.pricesUnavailable'));
+    }
+    // Пакет, который провайдер кооперативу не предлагает, оформить нельзя —
+    // в витрину он не попадает.
+    const priceOf = new Map(offers.map((o) => [o.package_id, o]));
+    return packages.flatMap((p) => {
       const offer = priceOf.get(p.packageId);
-      return {
+      if (!offer || offer.period_days <= 0) return [];
+      return [{
         packageId: p.packageId,
         publisher: p.publisher,
         compatibleSubnets: p.compatibleSubnets,
         lastActiveVersion: p.lastActiveVersion,
         title: catalogAppTitle(p.packageId),
-        description: this.buildDescription(p.publisher),
-        rubPerMonth: offer && offer.period_days > 0 ? Math.round((offer.price * 30) / offer.period_days) : null,
-      };
+        description: t('appsCatalogProxy.remotePackage.description'),
+        rubPerMonth: Math.round((offer.price * 30) / offer.period_days),
+      }];
     });
-  }
-
-  private buildDescription(publisher: string): string {
-    return t('appsCatalogProxy.remotePackage.description', { publisher });
   }
 
   /**
@@ -555,15 +557,14 @@ export class AppsCatalogProxyResolver {
    * Подписка кооператива на пакет каталога (Архитектура v5, 487-34).
    *
    * Подписка на приложение — строка общего счёта кооператива у провайдера:
-   * провайдер заводит её, включает в счёт и сам передаёт каталогу. Оформить
-   * её может только узел оператора — у него канал к провайдеру. На узле без
-   * провайдера ответ `unavailable` с подсказкой: подписка оформляется на
-   * столе подключения у оператора.
+   * провайдер заводит её, включает в счёт и сам передаёт каталогу. Канал к
+   * провайдеру есть у каждого узла контура; не ответил — `unavailable` с
+   * причиной, подписка не оформлена.
    *
    * Discriminated outcome:
    *  - `activated` — подписка оформлена;
    *  - `alreadyActive` — у кооператива уже есть действующая подписка;
-   *  - `unavailable` — узел не связан с провайдером;
+   *  - `unavailable` — провайдер не ответил;
    *  - `failed` — пакет не предлагается или провайдер отказал.
    */
   @Mutation(() => SubscribePackageResultDTO, {
@@ -579,7 +580,7 @@ export class AppsCatalogProxyResolver {
     data: SubscribePackageInputDTO,
   ): Promise<SubscribePackageResultDTO> {
     if (!this.providerApps) {
-      return { status: SubscribePackageStatus.UNAVAILABLE, error: t('appsCatalogProxy.catalog.subscribeAtConnectionDesk') };
+      return { status: SubscribePackageStatus.UNAVAILABLE, error: t('appsCatalogProxy.catalog.providerUnavailable') };
     }
     const outcome = await this.providerApps.subscribe(platformSettings().coopname, data.packageId);
     switch (outcome.status) {
@@ -600,7 +601,7 @@ export class AppsCatalogProxyResolver {
         };
       }
       case 'unavailable':
-        return { status: SubscribePackageStatus.UNAVAILABLE, error: t('appsCatalogProxy.catalog.subscribeAtConnectionDesk') };
+        return { status: SubscribePackageStatus.UNAVAILABLE, error: t('appsCatalogProxy.catalog.providerUnavailable') };
       default:
         return { status: SubscribePackageStatus.FAILED, error: outcome.error };
     }

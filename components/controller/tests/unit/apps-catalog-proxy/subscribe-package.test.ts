@@ -53,10 +53,10 @@ describe('subscribePackage → провайдер', () => {
     expect(r).toEqual(expect.objectContaining({ status: SubscribePackageStatus.FAILED, error: 'не предлагается' }));
   });
 
-  it('break: узел без провайдера (порт не подключён или unavailable) — подсказка про стол подключения', async () => {
+  it('break: провайдер не подключён или не ответил — unavailable с причиной, без отсылки куда-либо', async () => {
     const none = await resolverWith(undefined).subscribePackage({ packageId: PKG } as any);
     expect(none.status).toBe(SubscribePackageStatus.UNAVAILABLE);
-    expect(none.error).toMatch(/стол/);
+    expect(none.error).toMatch(/Провайдер подключения не ответил/);
     const subscribe = jest.fn(async () => ({ status: 'unavailable' as const }));
     const r = await resolverWith({ subscribe }).subscribePackage({ packageId: PKG } as any);
     expect(r.status).toBe(SubscribePackageStatus.UNAVAILABLE);
@@ -76,10 +76,24 @@ describe('витрина приложений: цена от провайдер�
     expect(item.title).toBe('Demoapp')
   })
 
-  it('break: узел без провайдера — цена пуста, а не выдумана', async () => {
-    const none = await new AppsCatalogProxyResolver(client as any, {} as any, undefined).appsCatalogRemotePackages(1, 50)
-    expect(none[0].rubPerMonth).toBeNull()
-    const unavailable = await new AppsCatalogProxyResolver(client as any, {} as any, { listOffers: async () => null } as any).appsCatalogRemotePackages(1, 50)
-    expect(unavailable[0].rubPerMonth).toBeNull()
+  it('happy: описание без имени издателя', async () => {
+    const listOffers = jest.fn(async () => [{ package_id: PKG, price: 360, period_days: 30 }])
+    const [item] = await new AppsCatalogProxyResolver(client as any, {} as any, { listOffers } as any).appsCatalogRemotePackages(1, 50)
+    expect(item.description).not.toContain('voskhod')
+  })
+
+  it('break: провайдер не ответил или не подключён — ошибка, витрина без цен не отдаётся', async () => {
+    await expect(
+      new AppsCatalogProxyResolver(client as any, {} as any, undefined).appsCatalogRemotePackages(1, 50),
+    ).rejects.toThrow(/Провайдер подключения не ответил/)
+    await expect(
+      new AppsCatalogProxyResolver(client as any, {} as any, { listOffers: async () => null } as any).appsCatalogRemotePackages(1, 50),
+    ).rejects.toThrow(/Провайдер подключения не ответил/)
+  })
+
+  it('side: пакет, который провайдер кооперативу не предлагает, в витрину не попадает', async () => {
+    const listOffers = jest.fn(async () => [])
+    const items = await new AppsCatalogProxyResolver(client as any, {} as any, { listOffers } as any).appsCatalogRemotePackages(1, 50)
+    expect(items).toEqual([])
   })
 })
