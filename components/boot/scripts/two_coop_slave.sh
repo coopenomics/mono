@@ -169,7 +169,7 @@ INVITE="$(docker compose exec -T postgres psql -U "${POSTGRES_USERNAME:-postgres
 # стенда (решение владельца 25.10.2026): приглашение принимается здесь же —
 # ключ председателя ставится мутацией resetKey по токену приглашения. Пароль
 # владелец задаёт сам на рабочем столе.
-STANDARD_PUB="$(cd "$STACK_ROOT/components/boot" && node -e "require('eosjs-ecc').privateToPublic('${PARTNER1_WIF:-5KQwrPbwdL6PhXujxW37FSSQZ1JiwsST4cqQzDeyXtP79zkvFD3}').then(k => process.stdout.write(k))")"
+STANDARD_PUB="$(cd "$STACK_ROOT/components/boot" && node -e "process.stdout.write(require('eosjs-ecc').privateToPublic('${PARTNER1_WIF:-5KQwrPbwdL6PhXujxW37FSSQZ1JiwsST4cqQzDeyXtP79zkvFD3}'))")"
 if [ -n "$INVITE" ] && [ -n "$STANDARD_PUB" ]; then
   RESET="$(curl -s -m 60 -H 'content-type: application/json' \
     -d "{\"query\":\"mutation(\$d: ResetKeyInput!){ resetKey(data: \$d) }\",\"variables\":{\"d\":{\"public_key\":\"$STANDARD_PUB\",\"token\":\"$INVITE\"}}}" \
