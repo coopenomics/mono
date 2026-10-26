@@ -34,9 +34,9 @@
         :disabled='!canManage || !!busy',
         @click='unsubscribe'
       ) {{ $t('catalogApp.actions.unsubscribe') }}
-    //- Фронт ещё не получен оркестратором: стол появится, как только пакет
-    //- приедет — обычно в течение минуты после подписки.
-    p.catalog-app-actions__hint(v-if='app.enabled && !app.installed') {{ $t('catalogApp.actions.installing') }}
+    //- Установка идёт на узле: шаги и опрос — в карточке хода установки,
+    //- пока стол пакета не появится в меню.
+    CatalogAppInstallProgress(v-if='app.enabled && !deskReady', :app='app')
 
   BaseDialog(v-model='subscribeOpen', :title="$t('catalogApp.subscribe.title', { title: app.title })", size='sm')
     .catalog-app-actions__dialog
@@ -68,6 +68,7 @@ import { api as extensionApi } from 'src/entities/Extension/api';
 import { type CatalogApp, isLiveSubscription, useCatalogAppStore } from 'src/entities/CatalogApp';
 import { runRemotePass } from 'src/processes/init-installed-extensions';
 import { formatDay, formatRub } from '../lib/presentation';
+import CatalogAppInstallProgress from './CatalogAppInstallProgress.vue';
 
 const props = defineProps<{ app: CatalogApp }>();
 
@@ -77,6 +78,11 @@ const desktop = useDesktopStore();
 const { confirm } = useConfirm();
 
 const live = computed(() => isLiveSubscription(props.app.subscription));
+/** Стол пакета уже в меню: установка завершена, ход показывать незачем. */
+const deskReady = computed(() =>
+  props.app.installed &&
+  (desktop.currentDesktop?.workspaces ?? []).some((w) => (w as { extension_name?: string }).extension_name === props.app.packageId),
+);
 // Действия — по праву `Apps:manage`; совет видит страницу, но кнопки закрыты.
 const canManage = computed(() => desktop.hasGrant('apps', 'Apps:manage'));
 
@@ -119,14 +125,13 @@ async function confirmSubscribe(): Promise<void> {
     const result = await store.subscribe(props.app.packageId);
     switch (result.status) {
       case Zeus.SubscribePackageStatus.ACTIVATED:
-        subscribeDone.value = true;
-        resultBanner.value = {
-          variant: 'pos',
-          text: result.state === Zeus.SubscriptionStateEnum.TRIAL
+        // Окно закрывается сразу: ход установки виден на странице приложения.
+        closeSubscribe();
+        SuccessAlert(
+          result.state === Zeus.SubscriptionStateEnum.TRIAL
             ? t('catalogApp.subscribe.doneTrial', { date: formatDay(result.endAt) })
             : t('catalogApp.subscribe.donePaid', { date: formatDay(result.endAt) }),
-        };
-        // Стол приложения появляется сразу, как только оркестратор отдал фронт.
+        );
         void runRemotePass(router);
         break;
       case Zeus.SubscribePackageStatus.ALREADY_ACTIVE:
