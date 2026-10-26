@@ -42,6 +42,7 @@ function harness(opts: { port?: Partial<IProviderAppsPort> | null; installed?: s
   const state = {
     disabledPackageIds: jest.fn(async () => new Set(opts.disabled ?? [])),
     markSubscribed: jest.fn(async (packageId: string) => ({ packageId, enabled: true, config: {}, updatedAt: new Date() })),
+    markUnsubscribed: jest.fn(async () => undefined),
     setEnabled: jest.fn(async (packageId: string, enabled: boolean) => ({ packageId, enabled, config: {}, updatedAt: new Date() })),
   };
   const chain = {
@@ -111,11 +112,15 @@ describe('subscribePackage → провайдер', () => {
 
 describe('unsubscribePackage и переключатель', () => {
   it('happy: отмена у провайдера — cancelled; подписки не было — notSubscribed', async () => {
-    const { service, port } = harness();
+    const { service, port, state } = harness();
     expect((await service.unsubscribe(PKG)).status).toBe(UnsubscribePackageStatus.CANCELLED);
     expect(port!.cancel).toHaveBeenCalledWith('romashka', PKG);
+    // Стол пакета снимается в момент отписки: приложение выключается на узле сразу.
+    expect(state.markUnsubscribed).toHaveBeenCalledWith(PKG);
     const cancel = jest.fn(async () => ({ status: 'notSubscribed' as const }));
-    expect((await harness({ port: { cancel } }).service.unsubscribe(PKG)).status).toBe(UnsubscribePackageStatus.NOT_SUBSCRIBED);
+    const second = harness({ port: { cancel } });
+    expect((await second.service.unsubscribe(PKG)).status).toBe(UnsubscribePackageStatus.NOT_SUBSCRIBED);
+    expect(second.state.markUnsubscribed).toHaveBeenCalledWith(PKG);
   });
 
   it('break: провайдер не подключён — unavailable', async () => {
