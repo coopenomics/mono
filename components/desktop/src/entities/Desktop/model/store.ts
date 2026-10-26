@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
-import { computed, ref } from 'vue';
-import { RouteRecordRaw, type RouteMeta, type Router } from 'vue-router';
+import { computed, defineComponent, h, markRaw, ref } from 'vue';
+import { RouteRecordRaw, RouterView, type RouteMeta, type Router } from 'vue-router';
 import type {
   IBackNavigationButton,
   IDesktop,
@@ -433,6 +433,50 @@ export const useDesktopStore = defineStore(namespace, () => {
   const REMOTE_GRANT = 'App:use';
   const remoteWorkspaces = ref<Record<string, IDesktop['workspaces'][number]>>({});
 
+  /** Проходной компонент маршрута-родителя стола пакета: только вложенный router-view. */
+  const RemoteWorkspaceShell = defineComponent({
+    name: 'RemoteWorkspaceShell',
+    render: () => h(RouterView),
+  });
+
+  /**
+   * Маршруты стола пакета в каноне платформы: один маршрут-родитель, названный
+   * именем стола, с дочерними страницами. По родителю меню решает, виден ли
+   * стол (isWorkspaceVisible смотрит на children), и куда вести при входе.
+   * install.js пакета волен вернуть плоский список страниц — так у demoapp —
+   * и без обёртки стол ставился, но в меню не появлялся (26.10.2026).
+   * Страница без права скрыта всегда; у пакета своих прав нет — ставим служебное.
+   */
+  function canonicalRemoteRoutes(entry: {
+    name: string;
+    title: string;
+    icon?: string | null;
+    defaultRoute?: string;
+    routes: RouteRecordRaw[];
+  }): RouteRecordRaw[] {
+    const withGrant = (r: RouteRecordRaw): RouteRecordRaw => ({
+      ...r,
+      meta: { requires: REMOTE_GRANT, ...(r.meta ?? {}) },
+      children: (r.children ?? []).map(withGrant),
+    });
+    const first = entry.routes[0];
+    const alreadyCanonical =
+      entry.routes.length === 1 && first?.name === entry.name && (first.children?.length ?? 0) > 0;
+    if (alreadyCanonical) return entry.routes.map(withGrant);
+    const children = entry.routes.map((r) => withGrant({ ...r, path: String(r.path ?? '').replace(/^\/+/, '') }));
+    const startName = entry.defaultRoute ?? (children[0]?.name as string | undefined);
+    return [
+      {
+        path: `/:coopname/${entry.name}`,
+        name: entry.name,
+        component: markRaw(RemoteWorkspaceShell),
+        redirect: startName ? { name: startName } : undefined,
+        meta: { title: entry.title, icon: entry.icon ?? 'extension', requires: REMOTE_GRANT, requiresAuth: true },
+        children,
+      } as RouteRecordRaw,
+    ];
+  }
+
   function ensureRemoteWorkspace(entry: {
     name: string;
     title: string;
@@ -440,13 +484,8 @@ export const useDesktopStore = defineStore(namespace, () => {
     icon?: string | null;
     defaultRoute?: string;
     routes: RouteRecordRaw[];
-  }): void {
-    // Страница без права скрыта всегда; у пакета своих прав нет — ставим служебное.
-    const routes = entry.routes.map((r) => ({
-      ...r,
-      meta: { requires: REMOTE_GRANT, ...(r.meta ?? {}) },
-      children: (r.children ?? []).map((c) => ({ ...c, meta: { requires: REMOTE_GRANT, ...(c.meta ?? {}) } })),
-    }));
+  }): RouteRecordRaw[] {
+    const routes = canonicalRemoteRoutes(entry);
     const ws = {
       name: entry.name,
       title: entry.title,
@@ -459,6 +498,7 @@ export const useDesktopStore = defineStore(namespace, () => {
     } as unknown as IDesktop['workspaces'][number];
     remoteWorkspaces.value = { ...remoteWorkspaces.value, [entry.name]: ws };
     mergeRemoteWorkspaces();
+    return routes;
   }
 
   /** Столы пакетов, которых больше нет среди установленных, снимаются с рабочего стола. */
@@ -474,8 +514,18 @@ export const useDesktopStore = defineStore(namespace, () => {
   function mergeRemoteWorkspaces(): void {
     if (!currentDesktop.value) return;
     for (const ws of Object.values(remoteWorkspaces.value)) {
-      const existing = currentDesktop.value.workspaces.find((w) => w.name === ws.name);
-      if (!existing) currentDesktop.value.workspaces = [...currentDesktop.value.workspaces, ws];
+      const list = currentDesktop.value.workspaces;
+      const idx = list.findIndex((w) => w.name === ws.name);
+      if (idx === -1) {
+        currentDesktop.value.workspaces = [...list, ws];
+        continue;
+      }
+      // Повторная регистрация того же стола (обновление пакета, новый канон
+      // маршрутов) заменяет прежнюю запись; встроенный стол с тем же именем не трогаем.
+      const isRemote = (((list[idx] as any).grants as string[] | null) ?? []).includes(REMOTE_GRANT);
+      if (isRemote && list[idx] !== ws) {
+        currentDesktop.value.workspaces = [...list.slice(0, idx), ws, ...list.slice(idx + 1)];
+      }
     }
   }
 

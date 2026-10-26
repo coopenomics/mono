@@ -25,7 +25,9 @@ export async function runRemotePass(router: Router): Promise<void> {
         // `extension_name` — берём первое, что есть, иначе имя пакета.
         const name = String(config.workspace || config.extension_name || pkg.packageId);
         names.add(name);
-        store.ensureRemoteWorkspace({
+        // Стол возвращает маршруты в каноне платформы (родитель с дочерними
+        // страницами) — в роутер встают именно они, а не сырой список пакета.
+        const routes = store.ensureRemoteWorkspace({
           name,
           title: String(config.title || name),
           extension_name: pkg.packageId,
@@ -35,7 +37,7 @@ export async function runRemotePass(router: Router): Promise<void> {
         });
         const baseRoute = router.getRoutes().find((r) => r.name === 'base');
         if (baseRoute) {
-          config.routes.forEach((r: any) => {
+          routes.forEach((r) => {
             const existing = router.getRoutes().find((x) => x.name === r.name);
             if (!existing) {
               router.addRoute('base', r);

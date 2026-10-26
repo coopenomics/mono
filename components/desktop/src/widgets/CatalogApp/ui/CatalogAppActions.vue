@@ -37,6 +37,8 @@
     //- Установка идёт на узле: шаги и опрос — в карточке хода установки,
     //- пока стол пакета не появится в меню.
     CatalogAppInstallProgress(v-if='app.enabled && !deskReady', :app='app')
+    //- Столы пакета — тем же блоком, что у встроенного приложения.
+    DesktopsList(v-if='deskReady', :desktops='packageDesktops')
 
   BaseDialog(v-model='subscribeOpen', :title="$t('catalogApp.subscribe.title', { title: app.title })", size='sm')
     .catalog-app-actions__dialog
@@ -69,6 +71,7 @@ import { type CatalogApp, isLiveSubscription, useCatalogAppStore } from 'src/ent
 import { runRemotePass } from 'src/processes/init-installed-extensions/remote-pass';
 import { formatDay, formatRub } from '../lib/presentation';
 import CatalogAppInstallProgress from './CatalogAppInstallProgress.vue';
+import { DesktopsList, type IDesktopConfig } from 'src/widgets/ExtensionDesktopsList';
 
 const props = defineProps<{ app: CatalogApp }>();
 
@@ -82,6 +85,12 @@ const live = computed(() => isLiveSubscription(props.app.subscription));
 const deskReady = computed(() =>
   props.app.installed &&
   (desktop.currentDesktop?.workspaces ?? []).some((w) => (w as { extension_name?: string }).extension_name === props.app.packageId),
+);
+/** Столы пакета на рабочем столе — для блока «Рабочие столы», как у встроенных. */
+const packageDesktops = computed<IDesktopConfig[]>(() =>
+  (desktop.currentDesktop?.workspaces ?? [])
+    .filter((w) => (w as { extension_name?: string }).extension_name === props.app.packageId)
+    .map((w) => ({ name: w.name, title: w.title, icon: (w as { icon?: string }).icon ?? 'extension' }) as IDesktopConfig),
 );
 // Действия — по праву `Apps:manage`; совет видит страницу, но кнопки закрыты.
 const canManage = computed(() => desktop.hasGrant('apps', 'Apps:manage'));
