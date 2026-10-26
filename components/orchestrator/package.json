@@ -7,7 +7,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "start": "node dist/main.js",
-    "dev": "ts-node-dev --respawn src/main.ts",
+    "dev": "ts-node-dev src/main.ts",
     "test": "jest --config jest.config.js"
   },
   "dependencies": {

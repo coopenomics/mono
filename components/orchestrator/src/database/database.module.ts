@@ -8,9 +8,18 @@ import type { OrchestratorDB } from './database.types';
 export const ORCHESTRATOR_DB = Symbol('Orchestrator.Database');
 
 export function createOrchestratorDb(postgresUrl: string): Kysely<OrchestratorDB> {
-  return new Kysely<OrchestratorDB>({
-    dialect: new PostgresDialect({ pool: new Pool({ connectionString: postgresUrl, max: 5 }) }),
+  const pool = new Pool({ connectionString: postgresUrl, max: 5 });
+  // Обрыв простаивающего соединения (перезапуск PostgreSQL, «terminating
+  // connection due to administrator command») приходит событием error.
+  // Без слушателя Node роняет процесс, а ts-node-dev в dev-режиме держит
+  // контейнер «живым» без слушающего порта (25.10.2026: оркестратор хаба
+  // сутки не принимал tenant JWT и не ставил приложения). Соединение
+  // пересоздаст сам pool при следующем запросе.
+  pool.on('error', (error) => {
+    // eslint-disable-next-line no-console
+    console.warn(`[orchestrator] postgres idle connection error: ${error.message}`);
   });
+  return new Kysely<OrchestratorDB>({ dialect: new PostgresDialect({ pool }) });
 }
 
 /**
