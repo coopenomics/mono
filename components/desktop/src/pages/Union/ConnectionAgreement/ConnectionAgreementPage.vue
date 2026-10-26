@@ -11,10 +11,12 @@ div.row.q-pa-md
     // Основной контент после загрузки (не показываем при технических работах у провайдера)
     div(v-else-if="!connectionAgreement.isBadGateway")
       div(v-if="system.info.is_providered")
-        //- Установка завершена: здесь счёт, просрочка и кошельки. Подписки и
-        //- узел — соседними пунктами меню стола пайщика (26.10.2026): девять
-        //- карточек одной страницей не читались.
-        ConnectionOverviewPage(v-if="isInstallationCompleted && !isOnCompletionRoute")
+        //- Установка завершена: разделы подключения — вкладками по канону
+        //- (поднятые в каркас под заголовком): подключение, подписки, ключ
+        //- установки. Девять карточек одной страницей не читались (26.10.2026).
+        template(v-if="isInstallationCompleted && !isOnCompletionRoute")
+          PageTabs(:tabs="tabs", hoist)
+          router-view
 
         //- Показываем степпер если идет процесс подключения
         ConnectionAgreementStepper(v-else-if="!isOnCompletionRoute")
@@ -43,7 +45,7 @@ div.row.q-pa-md
 </template>
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { useSystemStore } from 'src/entities/System/model';
 import {
   useConnectionAgreementStore,
@@ -52,13 +54,23 @@ import {
 } from 'src/entities/ConnectionAgreement';
 import { ConnectionAgreementStepper } from 'src/widgets/ConnectionAgreementStepper';
 import { BaseButton, BaseCard, EmptyState } from 'src/shared/ui/base';
+import { PageTabs, type PageTab } from 'src/shared/ui/layout/PageTabs';
 import { WindowLoader } from 'src/shared/ui/Loader';
 import { Zeus } from '@coopenomics/sdk';
-import ConnectionOverviewPage from './ConnectionOverviewPage.vue';
+import { t } from 'src/shared/i18n';
 
 const router = useRouter();
+const route = useRoute();
 const system = useSystemStore();
 const connectionAgreement = useConnectionAgreementStore();
+
+// Разделы подключённого кооператива. Приложения здесь не подключаются: на них
+// кооператив подписывается на своём узле, у оператора они видны строками в подписках.
+const tabs: PageTab[] = [
+  { key: 'connect-overview', routeName: 'connect-overview', label: t('union.connectionAgreementPage.tabs.connection'), icon: 'link' },
+  { key: 'connect-subscriptions', routeName: 'connect-subscriptions', label: t('union.connectionAgreementPage.tabs.subscriptions'), icon: 'receipt_long' },
+  { key: 'connect-key', routeName: 'connect-key', label: t('union.connectionAgreementPage.tabs.key'), icon: 'key' },
+];
 
 // Лоадер состояния
 const isLoading = ref(true);
@@ -82,6 +94,17 @@ const isInstallationCompleted = computed(() => {
 const isOnCompletionRoute = computed(() => {
   return router.currentRoute.value.name === 'installation-completed';
 });
+
+// Вход по адресу раздела без вкладки открывает первую — подключение.
+watch(
+  [isInstallationCompleted, () => route.name],
+  ([completed, name]) => {
+    if (completed && name === 'connect') {
+      void router.replace({ name: 'connect-overview', params: route.params });
+    }
+  },
+  { immediate: true },
+);
 
 // Переменная для отслеживания предыдущего состояния завершения установки
 let wasInstallationCompleted = false;

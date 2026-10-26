@@ -18,7 +18,7 @@
       "title": "Стол пайщика",
       "walletTitle": "Кошелёк",
       "connectionSubscriptionsTitle": "Подписки",
-      "connectionNodeTitle": "Узел"
+      "connectionKeyTitle": "Ключ установки"
     }
   }
 }

@@ -1,6 +1,9 @@
 <template lang="pug">
-//- Счёт кооператива у оператора: долг первым экраном, затем кошельки.
+//- Вкладка «Подключение» подключённого кооператива: адрес кооператива
+//- первым, затем долг и кошельки.
 .conn-overview
+  DomainCard
+
   //- Одна подсказка на раздел (канон): вся денежная механика подключения.
   PageHint(storage-key="connection:dashboard:banner-dismissed")
     | {{ $t('connectionDashboard.dashboard.paymentNoteLine1') }}
@@ -8,7 +11,7 @@
     | {{ $t('connectionDashboard.dashboard.paymentNoteLine3') }}
     | {{ $t('connectionDashboard.dashboard.paymentNoteLine4') }}
 
-  //- Просрочка и приостановка — первым экраном: пока долг не закрыт, всё
+  //- Просрочка и приостановка — до кошельков: пока долг не закрыт, всё
   //- остальное вторично.
   BillingDueCard
 
@@ -21,7 +24,7 @@
 
 <script setup lang="ts">
 import { PageHint } from 'src/shared/ui/domain'
-import { AxonWallet, MembershipWallet, BillingDueCard } from 'src/widgets/ConnectionDashboard'
+import { AxonWallet, MembershipWallet, BillingDueCard, DomainCard } from 'src/widgets/ConnectionDashboard'
 </script>
 
 <style scoped>
