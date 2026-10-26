@@ -143,7 +143,7 @@ describe('приложение каталога на связке двух ко�
       'mutation($d:SubscribePackageInputDTO!){ subscribePackage(data:$d){ status state packageId endAt error } }',
       { d: { packageId: PACKAGE } },
     )
-    expect(res.subscribePackage.status, res.subscribePackage.error ?? '').toBe('activated')
+    expect(res.subscribePackage.status, res.subscribePackage.error ?? '').toBe('ACTIVATED')
     expect(res.subscribePackage.packageId).toBe(PACKAGE)
 
     const summary = await provider<any>('GET', `/subscriptions/billing-summary/${COOP}`)
@@ -234,7 +234,7 @@ describe('приложение каталога на связке двух ко�
       'mutation($d:SubscribePackageInputDTO!){ unsubscribePackage(data:$d){ status packageId error } }',
       { d: { packageId: PACKAGE } },
     )
-    expect(res.unsubscribePackage.status, res.unsubscribePackage.error ?? '').toBe('cancelled')
+    expect(res.unsubscribePackage.status, res.unsubscribePackage.error ?? '').toBe('CANCELLED')
     expect(await appSubscription()).toBeNull()
     expect((await catalogRow(nodeToken)).subscription).toBeNull()
 
