@@ -24,7 +24,7 @@
 import axios from 'axios';
 import type { Router } from 'vue-router';
 import { env } from 'src/shared/config';
-import { useGlobalStore } from 'src/shared/store';
+import { resolveAccessToken } from 'src/shared/api/access-token';
 import type { IWorkspaceConfig } from 'src/shared/lib/types/workspace';
 
 export interface RemoteExtensionDescriptor {
@@ -77,17 +77,14 @@ export async function fetchInstalledRemotePackages(
   // coopname в запрос не передаётся: контур кооператива один, JWT и так
   // привязан к нему; параметр сохранён в сигнатуре для совместимости.
   void coopname;
-  const { tokens } = useGlobalStore();
-  // Без входа список закрыт сервером (401): опрос не идёт, пока пайщик не вошёл.
-  if (!tokens?.access?.token) return [];
+  // Токен — общим источником (CoopID или легаси-ключ). Без входа список закрыт
+  // сервером (401): опрос не идёт, пока пайщик не вошёл.
+  const token = await resolveAccessToken();
+  if (!token) return [];
   try {
     const response = await axios.get<{ items: InstalledFrontendMeta[] }>(
       `${env.BACKEND_URL}/v1/apps-catalog/installed-frontends`,
-      {
-        headers: tokens?.access?.token
-          ? { Authorization: `Bearer ${tokens.access.token}` }
-          : {},
-      },
+      { headers: { Authorization: `Bearer ${token}` } },
     );
     const result: RemoteExtensionDescriptor[] = [];
     for (const item of response.data.items ?? []) {
@@ -137,7 +134,7 @@ async function computeSha256Hex(code: string): Promise<string | null> {
 async function fetchInstallScript(
   desc: RemoteExtensionDescriptor,
 ): Promise<{ code: string; declaredSha: unknown }> {
-  const { tokens } = useGlobalStore();
+  const token = await resolveAccessToken();
   const url = `${env.BACKEND_URL}/v1/apps-catalog/install/${encodeURIComponent(
     desc.scope,
   )}/${encodeURIComponent(desc.name)}`;
@@ -145,9 +142,7 @@ async function fetchInstallScript(
     responseType: 'text',
     transformResponse: (data: unknown) =>
       typeof data === 'string' ? data : String(data),
-    headers: tokens?.access?.token
-      ? { Authorization: `Bearer ${tokens.access.token}` }
-      : {},
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
   const code: string = response.data;
   if (typeof code !== 'string' || code.length === 0) {

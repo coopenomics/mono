@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { useGlobalStore } from '../store';
+import { resolveAccessToken } from './access-token';
 import { env } from 'src/shared/config';
 
 export async function sendGET(
@@ -9,15 +9,12 @@ export async function sendGET(
 ): Promise<any> {
   try {
     if (!skip_auth) {
-      const { tokens } = useGlobalStore();
-
-      // if (!tokens || !tokens.access || !tokens.access.token)
-      //   throw new Error('Ошибка авторизации: токен доступа не найден');
+      const token = await resolveAccessToken();
 
       const response = await axios.get(env.BACKEND_URL + url, {
         params,
         headers: {
-          Authorization: `Bearer ${tokens?.access?.token}`,
+          Authorization: `Bearer ${token}`,
         },
       });
       return response.data;
@@ -45,14 +42,11 @@ export async function sendPOST(
 ): Promise<any> {
   try {
     if (!skip_auth) {
-      const { tokens } = useGlobalStore();
-
-      // if (!tokens || !tokens.access || !tokens.access.token)
-      //   throw new Error('Ошибка авторизации: токен доступа не найден');
+      const token = await resolveAccessToken();
 
       const response = await axios.post(env.BACKEND_URL + url, data, {
         headers: {
-          Authorization: `Bearer ${tokens?.access?.token}`,
+          Authorization: `Bearer ${token}`,
         },
       });
       return response.data;

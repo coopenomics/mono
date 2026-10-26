@@ -23,7 +23,7 @@ import { BaseButton, BaseCard } from 'src/shared/ui/base';
 import { VerticalStepper, type StepperStep } from 'src/shared/ui/domain';
 import { useDesktopStore } from 'src/entities/Desktop/model';
 import { type CatalogApp, isLiveSubscription, useCatalogAppStore } from 'src/entities/CatalogApp';
-import { runRemotePass } from 'src/processes/init-installed-extensions';
+import { runRemotePass } from 'src/processes/init-installed-extensions/remote-pass';
 import { t } from 'src/shared/i18n';
 
 const props = defineProps<{ app: CatalogApp }>();

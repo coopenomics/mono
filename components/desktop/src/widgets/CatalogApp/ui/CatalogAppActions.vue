@@ -66,7 +66,7 @@ import { t } from 'src/shared/i18n';
 import { useDesktopStore } from 'src/entities/Desktop/model';
 import { api as extensionApi } from 'src/entities/Extension/api';
 import { type CatalogApp, isLiveSubscription, useCatalogAppStore } from 'src/entities/CatalogApp';
-import { runRemotePass } from 'src/processes/init-installed-extensions';
+import { runRemotePass } from 'src/processes/init-installed-extensions/remote-pass';
 import { formatDay, formatRub } from '../lib/presentation';
 import CatalogAppInstallProgress from './CatalogAppInstallProgress.vue';
 
