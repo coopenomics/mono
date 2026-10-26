@@ -1850,8 +1850,12 @@ export type ValueTypes = {
 	["AppsCatalogRemotePackageDTO"]: AliasType<{
 	/** Совместимые subnet (chain_id блокчейна ЦК) */
 	compatibleSubnets?:boolean | `@${string}`,
-	/** Краткое описание (в MVP — заглушка, в будущем из manifest) */
+	/** Краткое описание */
 	description?:boolean | `@${string}`,
+	/** Приложение включено на рабочем столе узла */
+	enabled?:boolean | `@${string}`,
+	/** Фронт приложения получен оркестратором и готов к показу */
+	installed?:boolean | `@${string}`,
 	/** Последняя активная версия (semver). null = релизов ещё нет. */
 	lastActiveVersion?:boolean | `@${string}`,
 	/** Идентификатор пакета (например, @voskhod/demoapp) */
@@ -1860,10 +1864,88 @@ export type ValueTypes = {
 	publisher?:boolean | `@${string}`,
 	/** Стоимость подписки у провайдера подключения, ₽ в месяц */
 	rubPerMonth?:boolean | `@${string}`,
-	/** Заголовок пакета для UI (в MVP — packageId, в будущем из manifest) */
+	/** Действующая подписка кооператива; пусто — приложение не подключено */
+	subscription?:ValueTypes["AppsCatalogSubscription"],
+	/** Название приложения */
 	title?:boolean | `@${string}`,
+	/** Пробный срок из публикации пакета, дней; 0 — оплата с первого дня */
+	trialDays?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on AppsCatalogRemotePackageDTO']?: Omit<ValueTypes["AppsCatalogRemotePackageDTO"], "...on AppsCatalogRemotePackageDTO">
+}>;
+	/** Подписка кооператива на приложение каталога */
+["AppsCatalogSubscription"]: AliasType<{
+	/** Цена за период, ₽ — зафиксирована при оформлении */
+	amountPerPeriod?:boolean | `@${string}`,
+	/** Оплачено по */
+	expiresAt?:boolean | `@${string}`,
+	/** Идёт пробный срок: до его конца оплата не списывается */
+	isTrial?:boolean | `@${string}`,
+	/** Ближайшее списание с кошелька членских взносов у оператора */
+	nextPaymentDue?:boolean | `@${string}`,
+	/** Начало подписки */
+	startedAt?:boolean | `@${string}`,
+	/** Состояние подписки у провайдера */
+	status?:boolean | `@${string}`,
+	/** Конец пробного срока; пусто — подписка платная */
+	trialEndsAt?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on AppsCatalogSubscription']?: Omit<ValueTypes["AppsCatalogSubscription"], "...on AppsCatalogSubscription">
+}>;
+	/** Подписки, счёт и кошелёк кооператива у провайдера подключения */
+["AppsNodeBilling"]: AliasType<{
+	/** Узел связан с провайдером подключения */
+	available?:boolean | `@${string}`,
+	/** К оплате сейчас: позиции с наступившим сроком, ₽ */
+	dueAmount?:boolean | `@${string}`,
+	/** Сумма всех действующих подписок за месяц, ₽ */
+	monthlyTotal?:boolean | `@${string}`,
+	/** Ближайшее списание */
+	nextPaymentDue?:boolean | `@${string}`,
+	/** Имя аккаунта оператора, у которого ведётся кошелёк */
+	operator?:boolean | `@${string}`,
+	/** Подписки кооператива, без отменённых */
+	subscriptions?:ValueTypes["AppsNodeSubscription"],
+	/** Кошелёк у оператора; пусто — узел не прочитал цепь */
+	wallet?:ValueTypes["AppsNodeWallet"],
+		__typename?: boolean | `@${string}`,
+	['...on AppsNodeBilling']?: Omit<ValueTypes["AppsNodeBilling"], "...on AppsNodeBilling">
+}>;
+	/** Подписка кооператива у провайдера подключения */
+["AppsNodeSubscription"]: AliasType<{
+	/** Код типа: hosting, docflow, catalog:@scope/name */
+	code?:boolean | `@${string}`,
+	/** Оплачено по */
+	expiresAt?:boolean | `@${string}`,
+	id?:boolean | `@${string}`,
+	/** Идёт пробный срок */
+	isTrial?:boolean | `@${string}`,
+	/** time — повременная, package — пакетная */
+	kind?:boolean | `@${string}`,
+	/** Название подписки */
+	name?:boolean | `@${string}`,
+	/** Ближайшее списание */
+	nextPaymentDue?:boolean | `@${string}`,
+	/** Пакет каталога, если подписка на приложение */
+	packageId?:boolean | `@${string}`,
+	/** Период оплаты, дней */
+	periodDays?:boolean | `@${string}`,
+	/** Цена за период, ₽ */
+	price?:boolean | `@${string}`,
+	startedAt?:boolean | `@${string}`,
+	/** Состояние подписки */
+	status?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on AppsNodeSubscription']?: Omit<ValueTypes["AppsNodeSubscription"], "...on AppsNodeSubscription">
+}>;
+	/** Кошелёк кооператива у оператора, из которого списываются подписки */
+["AppsNodeWallet"]: AliasType<{
+	/** Остаток AXON кооператива, с символом */
+	axonAvailable?:boolean | `@${string}`,
+	/** Остаток членских взносов на оплату подписок, с символом */
+	membershipAvailable?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on AppsNodeWallet']?: Omit<ValueTypes["AppsNodeWallet"], "...on AppsNodeWallet">
 }>;
 	["AppsPublisher"]: AliasType<{
 	/** Кто назначил */
@@ -2399,17 +2481,23 @@ export type ValueTypes = {
 	represented_by?:ValueTypes["RepresentedBy"],
 	/** Краткое название организации */
 	short_name?:boolean | `@${string}`,
-	/** Доверенные аккаунты; пусто, если состав участка недоступен запрашивающему */
+	/** Доверенные аккаунты; пусто, если состав участка недоступен запрашивающему
+
+Требуемые роли: chairman, member.  */
 	trusted?:ValueTypes["Individual"],
 	/** Сертификаты доверенных лиц участка (ФИО) */
 	trusted_certificates?:ValueTypes["IndividualCertificate"],
-	/** Председатель кооперативного участка; пусто, если состав участка недоступен запрашивающему */
+	/** Председатель кооперативного участка; пусто, если состав участка недоступен запрашивающему
+
+Требуемые роли: chairman, member.  */
 	trustee?:ValueTypes["Individual"],
 	/** Сертификат председателя кооперативного участка (ФИО) */
 	trustee_certificate?:ValueTypes["IndividualCertificate"],
 	/** Тип организации */
 	type?:boolean | `@${string}`,
-	/** Пайщики в белом списке приватного участка (ФИО); пусто, если участок не свой */
+	/** Пайщики в белом списке приватного участка (ФИО); пусто, если участок не свой
+
+Требуемые роли: chairman, member.  */
 	whitelist_certificates?:ValueTypes["IndividualCertificate"],
 		__typename?: boolean | `@${string}`,
 	['...on Branch']?: Omit<ValueTypes["Branch"], "...on Branch">
@@ -3554,7 +3642,9 @@ export type ValueTypes = {
 	block_num?:boolean | `@${string}`,
 	/** Статус из блокчейна */
 	blockchain_status?:boolean | `@${string}`,
-	/** Контракт участника */
+	/** Контракт участника
+
+Требуемые роли: chairman, member.  */
 	contract?:ValueTypes["DocumentAggregate"],
 	/** Вклад как автор */
 	contributed_as_author?:boolean | `@${string}`,
@@ -3725,9 +3815,13 @@ export type ValueTypes = {
 	_updated_at?:boolean | `@${string}`,
 	/** Сумма долга */
 	amount?:boolean | `@${string}`,
-	/** Одобренное заявление */
+	/** Одобренное заявление
+
+Требуемые роли: chairman, member.  */
 	approved_statement?:ValueTypes["DocumentAggregate"],
-	/** Протокол решения совета */
+	/** Протокол решения совета
+
+Требуемые роли: chairman, member.  */
 	authorization?:ValueTypes["DocumentAggregate"],
 	/** Номер блока последнего обновления */
 	block_num?:boolean | `@${string}`,
@@ -3747,7 +3841,9 @@ export type ValueTypes = {
 	project_hash?:boolean | `@${string}`,
 	/** Дата погашения */
 	repaid_at?:boolean | `@${string}`,
-	/** Заявление на получение ссуды */
+	/** Заявление на получение ссуды
+
+Требуемые роли: chairman, member.  */
 	statement?:ValueTypes["DocumentAggregate"],
 	/** Статус долга */
 	status?:boolean | `@${string}`,
@@ -3766,9 +3862,13 @@ export type ValueTypes = {
 	_updated_at?:boolean | `@${string}`,
 	/** Сумма расхода */
 	amount?:boolean | `@${string}`,
-	/** Одобренная записка */
+	/** Одобренная записка
+
+Требуемые роли: chairman, member.  */
 	approved_statement?:ValueTypes["DocumentAggregate"],
-	/** Авторизация расхода */
+	/** Авторизация расхода
+
+Требуемые роли: chairman, member.  */
 	authorization?:ValueTypes["DocumentAggregate"],
 	/** Номер блока последнего обновления */
 	block_num?:boolean | `@${string}`,
@@ -3780,7 +3880,9 @@ export type ValueTypes = {
 	description?:boolean | `@${string}`,
 	/** Хеш расхода */
 	expense_hash?:boolean | `@${string}`,
-	/** Служебная записка о расходе */
+	/** Служебная записка о расходе
+
+Требуемые роли: chairman, member.  */
 	expense_statement?:ValueTypes["DocumentAggregate"],
 	/** ID фонда */
 	fund_id?:boolean | `@${string}`,
@@ -14313,6 +14415,7 @@ selectBranch?: [{	data: ValueTypes["SelectBranchInput"] | Variable<any, string>}
 selectProviderTariff?: [{	data: ValueTypes["SelectProviderTariffInput"] | Variable<any, string>},ValueTypes["SelectProviderTariffResult"]],
 sendAgreement?: [{	data: ValueTypes["SendAgreementInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 setBranchPrivate?: [{	data: ValueTypes["SetBranchPrivateInput"] | Variable<any, string>},ValueTypes["Branch"]],
+setCatalogAppEnabled?: [{	data: ValueTypes["SetCatalogAppEnabledInput"] | Variable<any, string>},boolean | `@${string}`],
 setLoginFactors?: [{	data: ValueTypes["SetLoginFactorsInput"] | Variable<any, string>},ValueTypes["LoginFactors"]],
 setPaymentStatus?: [{	data: ValueTypes["SetPaymentStatusInput"] | Variable<any, string>},ValueTypes["GatewayPayment"]],
 setRecoveryStrategy?: [{	data: ValueTypes["SetRecoveryStrategyInput"] | Variable<any, string>},boolean | `@${string}`],
@@ -14330,6 +14433,7 @@ subscribePackage?: [{	data: ValueTypes["SubscribePackageInputDTO"] | Variable<an
 subscribeProviderApp?: [{	data: ValueTypes["ProviderAppInput"] | Variable<any, string>},ValueTypes["ProviderApp"]],
 triggerNotificationWorkflow?: [{	data: ValueTypes["TriggerNotificationWorkflowInput"] | Variable<any, string>},boolean | `@${string}`],
 uninstallExtension?: [{	data: ValueTypes["UninstallExtensionInput"] | Variable<any, string>},boolean | `@${string}`],
+unsubscribePackage?: [{	data: ValueTypes["SubscribePackageInputDTO"] | Variable<any, string>},ValueTypes["UnsubscribePackageResultDTO"]],
 unverifyParticipant?: [{	data: ValueTypes["UnverifyParticipantInput"] | Variable<any, string>},ValueTypes["ParticipantVerification"]],
 updateAccount?: [{	data: ValueTypes["UpdateAccountInput"] | Variable<any, string>},ValueTypes["Account"]],
 updateBankAccount?: [{	data: ValueTypes["UpdateBankAccountInput"] | Variable<any, string>},ValueTypes["PaymentMethod"]],
@@ -15971,6 +16075,8 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 	subscription?:ValueTypes["ProviderAppSubscription"],
 	/** Название приложения */
 	title?:boolean | `@${string}`,
+	/** Пробный срок из публикации пакета, дней; 0 — оплата с первого дня */
+	trial_days?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on ProviderApp']?: Omit<ValueTypes["ProviderApp"], "...on ProviderApp">
 }>;
@@ -15984,10 +16090,16 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 	amount_per_period?:boolean | `@${string}`,
 	/** Оплачено по */
 	expires_at?:boolean | `@${string}`,
+	/** Идёт пробный срок: до его конца оплата не списывается */
+	is_trial?:boolean | `@${string}`,
+	/** Ближайшее списание с кошелька членских взносов */
+	next_payment_due?:boolean | `@${string}`,
 	/** Начало подписки */
 	started_at?:boolean | `@${string}`,
 	/** Состояние подписки */
 	status?:boolean | `@${string}`,
+	/** Конец пробного срока; пусто — подписка платная */
+	trial_ends_at?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on ProviderAppSubscription']?: Omit<ValueTypes["ProviderAppSubscription"], "...on ProviderAppSubscription">
 }>;
@@ -16262,6 +16374,8 @@ agreementTemplates?: [{	coopname: string | Variable<any, string>},ValueTypes["Ag
 agreements?: [{	filter?: ValueTypes["AgreementFilter"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedAgreementsPaginationResult"]],
 appsCatalogPendingModerations?: [{	limit?: number | undefined | null | Variable<any, string>,	status?: ValueTypes["ModerationStatusEnum"] | undefined | null | Variable<any, string>},ValueTypes["ModerationRequestDTO"]],
 appsCatalogRemotePackages?: [{	page: number | Variable<any, string>,	pageSize: number | Variable<any, string>},ValueTypes["AppsCatalogRemotePackageDTO"]],
+	/** Подписки кооператива у провайдера подключения, сумма к оплате и кошелёк у оператора — только для показа. Пополнение и смена тарифа — на столе пайщика у оператора. */
+	appsNodeBilling?:ValueTypes["AppsNodeBilling"],
 	/** Назначения издателей «аккаунт → пакет». Только chairman. */
 	appsPublishers?:ValueTypes["AppsPublisher"],
 buildInitialReportEdits?: [{	period?: number | undefined | null | Variable<any, string>,	reportType: ValueTypes["ReportType"] | Variable<any, string>,	year: number | Variable<any, string>},ValueTypes["BuildInitialReportEdits"]],
@@ -17812,6 +17926,12 @@ verificationReviews?: [{	data?: ValueTypes["VerificationReviewsInput"] | undefin
 	/** Хэш проекта или компонента */
 	project_hash: string | Variable<any, string>
 };
+	["SetCatalogAppEnabledInput"]: {
+	/** true — включить на рабочем столе, false — выключить */
+	enabled: boolean | Variable<any, string>,
+	/** Пакет каталога, например @voskhod/demoapp */
+	packageId: string | Variable<any, string>
+};
 	["SetConfigInput"]: {
 	/** Конфигурация контракта */
 	config: ValueTypes["ConfigInput"] | Variable<any, string>,
@@ -18365,6 +18485,18 @@ walletEvents?: [{	input: ValueTypes["WalletEventsInput"] | Variable<any, string>
 		__typename?: boolean | `@${string}`,
 	['...on UnreadNotificationsCount']?: Omit<ValueTypes["UnreadNotificationsCount"], "...on UnreadNotificationsCount">
 }>;
+	["UnsubscribePackageResultDTO"]: AliasType<{
+	/** Причина отказа */
+	error?:boolean | `@${string}`,
+	/** Пакет каталога */
+	packageId?:boolean | `@${string}`,
+	/** Исход */
+	status?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on UnsubscribePackageResultDTO']?: Omit<ValueTypes["UnsubscribePackageResultDTO"], "...on UnsubscribePackageResultDTO">
+}>;
+	/** Исход отмены подписки на приложение */
+["UnsubscribePackageStatus"]:UnsubscribePackageStatus;
 	/** Отзыв верификации личности пайщика председателем кооператива */
 ["UnverifyParticipantInput"]: {
 	/** Имя аккаунта пайщика */
@@ -19862,8 +19994,12 @@ export type ResolverInputTypes = {
 	["AppsCatalogRemotePackageDTO"]: AliasType<{
 	/** Совместимые subnet (chain_id блокчейна ЦК) */
 	compatibleSubnets?:boolean | `@${string}`,
-	/** Краткое описание (в MVP — заглушка, в будущем из manifest) */
+	/** Краткое описание */
 	description?:boolean | `@${string}`,
+	/** Приложение включено на рабочем столе узла */
+	enabled?:boolean | `@${string}`,
+	/** Фронт приложения получен оркестратором и готов к показу */
+	installed?:boolean | `@${string}`,
 	/** Последняя активная версия (semver). null = релизов ещё нет. */
 	lastActiveVersion?:boolean | `@${string}`,
 	/** Идентификатор пакета (например, @voskhod/demoapp) */
@@ -19872,8 +20008,82 @@ export type ResolverInputTypes = {
 	publisher?:boolean | `@${string}`,
 	/** Стоимость подписки у провайдера подключения, ₽ в месяц */
 	rubPerMonth?:boolean | `@${string}`,
-	/** Заголовок пакета для UI (в MVP — packageId, в будущем из manifest) */
+	/** Действующая подписка кооператива; пусто — приложение не подключено */
+	subscription?:ResolverInputTypes["AppsCatalogSubscription"],
+	/** Название приложения */
 	title?:boolean | `@${string}`,
+	/** Пробный срок из публикации пакета, дней; 0 — оплата с первого дня */
+	trialDays?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Подписка кооператива на приложение каталога */
+["AppsCatalogSubscription"]: AliasType<{
+	/** Цена за период, ₽ — зафиксирована при оформлении */
+	amountPerPeriod?:boolean | `@${string}`,
+	/** Оплачено по */
+	expiresAt?:boolean | `@${string}`,
+	/** Идёт пробный срок: до его конца оплата не списывается */
+	isTrial?:boolean | `@${string}`,
+	/** Ближайшее списание с кошелька членских взносов у оператора */
+	nextPaymentDue?:boolean | `@${string}`,
+	/** Начало подписки */
+	startedAt?:boolean | `@${string}`,
+	/** Состояние подписки у провайдера */
+	status?:boolean | `@${string}`,
+	/** Конец пробного срока; пусто — подписка платная */
+	trialEndsAt?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Подписки, счёт и кошелёк кооператива у провайдера подключения */
+["AppsNodeBilling"]: AliasType<{
+	/** Узел связан с провайдером подключения */
+	available?:boolean | `@${string}`,
+	/** К оплате сейчас: позиции с наступившим сроком, ₽ */
+	dueAmount?:boolean | `@${string}`,
+	/** Сумма всех действующих подписок за месяц, ₽ */
+	monthlyTotal?:boolean | `@${string}`,
+	/** Ближайшее списание */
+	nextPaymentDue?:boolean | `@${string}`,
+	/** Имя аккаунта оператора, у которого ведётся кошелёк */
+	operator?:boolean | `@${string}`,
+	/** Подписки кооператива, без отменённых */
+	subscriptions?:ResolverInputTypes["AppsNodeSubscription"],
+	/** Кошелёк у оператора; пусто — узел не прочитал цепь */
+	wallet?:ResolverInputTypes["AppsNodeWallet"],
+		__typename?: boolean | `@${string}`
+}>;
+	/** Подписка кооператива у провайдера подключения */
+["AppsNodeSubscription"]: AliasType<{
+	/** Код типа: hosting, docflow, catalog:@scope/name */
+	code?:boolean | `@${string}`,
+	/** Оплачено по */
+	expiresAt?:boolean | `@${string}`,
+	id?:boolean | `@${string}`,
+	/** Идёт пробный срок */
+	isTrial?:boolean | `@${string}`,
+	/** time — повременная, package — пакетная */
+	kind?:boolean | `@${string}`,
+	/** Название подписки */
+	name?:boolean | `@${string}`,
+	/** Ближайшее списание */
+	nextPaymentDue?:boolean | `@${string}`,
+	/** Пакет каталога, если подписка на приложение */
+	packageId?:boolean | `@${string}`,
+	/** Период оплаты, дней */
+	periodDays?:boolean | `@${string}`,
+	/** Цена за период, ₽ */
+	price?:boolean | `@${string}`,
+	startedAt?:boolean | `@${string}`,
+	/** Состояние подписки */
+	status?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Кошелёк кооператива у оператора, из которого списываются подписки */
+["AppsNodeWallet"]: AliasType<{
+	/** Остаток AXON кооператива, с символом */
+	axonAvailable?:boolean | `@${string}`,
+	/** Остаток членских взносов на оплату подписок, с символом */
+	membershipAvailable?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
 	["AppsPublisher"]: AliasType<{
@@ -20392,17 +20602,23 @@ export type ResolverInputTypes = {
 	represented_by?:ResolverInputTypes["RepresentedBy"],
 	/** Краткое название организации */
 	short_name?:boolean | `@${string}`,
-	/** Доверенные аккаунты; пусто, если состав участка недоступен запрашивающему */
+	/** Доверенные аккаунты; пусто, если состав участка недоступен запрашивающему
+
+Требуемые роли: chairman, member.  */
 	trusted?:ResolverInputTypes["Individual"],
 	/** Сертификаты доверенных лиц участка (ФИО) */
 	trusted_certificates?:ResolverInputTypes["IndividualCertificate"],
-	/** Председатель кооперативного участка; пусто, если состав участка недоступен запрашивающему */
+	/** Председатель кооперативного участка; пусто, если состав участка недоступен запрашивающему
+
+Требуемые роли: chairman, member.  */
 	trustee?:ResolverInputTypes["Individual"],
 	/** Сертификат председателя кооперативного участка (ФИО) */
 	trustee_certificate?:ResolverInputTypes["IndividualCertificate"],
 	/** Тип организации */
 	type?:boolean | `@${string}`,
-	/** Пайщики в белом списке приватного участка (ФИО); пусто, если участок не свой */
+	/** Пайщики в белом списке приватного участка (ФИО); пусто, если участок не свой
+
+Требуемые роли: chairman, member.  */
 	whitelist_certificates?:ResolverInputTypes["IndividualCertificate"],
 		__typename?: boolean | `@${string}`
 }>;
@@ -21526,7 +21742,9 @@ export type ResolverInputTypes = {
 	block_num?:boolean | `@${string}`,
 	/** Статус из блокчейна */
 	blockchain_status?:boolean | `@${string}`,
-	/** Контракт участника */
+	/** Контракт участника
+
+Требуемые роли: chairman, member.  */
 	contract?:ResolverInputTypes["DocumentAggregate"],
 	/** Вклад как автор */
 	contributed_as_author?:boolean | `@${string}`,
@@ -21694,9 +21912,13 @@ export type ResolverInputTypes = {
 	_updated_at?:boolean | `@${string}`,
 	/** Сумма долга */
 	amount?:boolean | `@${string}`,
-	/** Одобренное заявление */
+	/** Одобренное заявление
+
+Требуемые роли: chairman, member.  */
 	approved_statement?:ResolverInputTypes["DocumentAggregate"],
-	/** Протокол решения совета */
+	/** Протокол решения совета
+
+Требуемые роли: chairman, member.  */
 	authorization?:ResolverInputTypes["DocumentAggregate"],
 	/** Номер блока последнего обновления */
 	block_num?:boolean | `@${string}`,
@@ -21716,7 +21938,9 @@ export type ResolverInputTypes = {
 	project_hash?:boolean | `@${string}`,
 	/** Дата погашения */
 	repaid_at?:boolean | `@${string}`,
-	/** Заявление на получение ссуды */
+	/** Заявление на получение ссуды
+
+Требуемые роли: chairman, member.  */
 	statement?:ResolverInputTypes["DocumentAggregate"],
 	/** Статус долга */
 	status?:boolean | `@${string}`,
@@ -21734,9 +21958,13 @@ export type ResolverInputTypes = {
 	_updated_at?:boolean | `@${string}`,
 	/** Сумма расхода */
 	amount?:boolean | `@${string}`,
-	/** Одобренная записка */
+	/** Одобренная записка
+
+Требуемые роли: chairman, member.  */
 	approved_statement?:ResolverInputTypes["DocumentAggregate"],
-	/** Авторизация расхода */
+	/** Авторизация расхода
+
+Требуемые роли: chairman, member.  */
 	authorization?:ResolverInputTypes["DocumentAggregate"],
 	/** Номер блока последнего обновления */
 	block_num?:boolean | `@${string}`,
@@ -21748,7 +21976,9 @@ export type ResolverInputTypes = {
 	description?:boolean | `@${string}`,
 	/** Хеш расхода */
 	expense_hash?:boolean | `@${string}`,
-	/** Служебная записка о расходе */
+	/** Служебная записка о расходе
+
+Требуемые роли: chairman, member.  */
 	expense_statement?:ResolverInputTypes["DocumentAggregate"],
 	/** ID фонда */
 	fund_id?:boolean | `@${string}`,
@@ -31985,6 +32215,7 @@ selectBranch?: [{	data: ResolverInputTypes["SelectBranchInput"]},boolean | `@${s
 selectProviderTariff?: [{	data: ResolverInputTypes["SelectProviderTariffInput"]},ResolverInputTypes["SelectProviderTariffResult"]],
 sendAgreement?: [{	data: ResolverInputTypes["SendAgreementInput"]},ResolverInputTypes["Transaction"]],
 setBranchPrivate?: [{	data: ResolverInputTypes["SetBranchPrivateInput"]},ResolverInputTypes["Branch"]],
+setCatalogAppEnabled?: [{	data: ResolverInputTypes["SetCatalogAppEnabledInput"]},boolean | `@${string}`],
 setLoginFactors?: [{	data: ResolverInputTypes["SetLoginFactorsInput"]},ResolverInputTypes["LoginFactors"]],
 setPaymentStatus?: [{	data: ResolverInputTypes["SetPaymentStatusInput"]},ResolverInputTypes["GatewayPayment"]],
 setRecoveryStrategy?: [{	data: ResolverInputTypes["SetRecoveryStrategyInput"]},boolean | `@${string}`],
@@ -32002,6 +32233,7 @@ subscribePackage?: [{	data: ResolverInputTypes["SubscribePackageInputDTO"]},Reso
 subscribeProviderApp?: [{	data: ResolverInputTypes["ProviderAppInput"]},ResolverInputTypes["ProviderApp"]],
 triggerNotificationWorkflow?: [{	data: ResolverInputTypes["TriggerNotificationWorkflowInput"]},boolean | `@${string}`],
 uninstallExtension?: [{	data: ResolverInputTypes["UninstallExtensionInput"]},boolean | `@${string}`],
+unsubscribePackage?: [{	data: ResolverInputTypes["SubscribePackageInputDTO"]},ResolverInputTypes["UnsubscribePackageResultDTO"]],
 unverifyParticipant?: [{	data: ResolverInputTypes["UnverifyParticipantInput"]},ResolverInputTypes["ParticipantVerification"]],
 updateAccount?: [{	data: ResolverInputTypes["UpdateAccountInput"]},ResolverInputTypes["Account"]],
 updateBankAccount?: [{	data: ResolverInputTypes["UpdateBankAccountInput"]},ResolverInputTypes["PaymentMethod"]],
@@ -33565,6 +33797,8 @@ walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputType
 	subscription?:ResolverInputTypes["ProviderAppSubscription"],
 	/** Название приложения */
 	title?:boolean | `@${string}`,
+	/** Пробный срок из публикации пакета, дней; 0 — оплата с первого дня */
+	trial_days?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
 	["ProviderAppInput"]: {
@@ -33577,10 +33811,16 @@ walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputType
 	amount_per_period?:boolean | `@${string}`,
 	/** Оплачено по */
 	expires_at?:boolean | `@${string}`,
+	/** Идёт пробный срок: до его конца оплата не списывается */
+	is_trial?:boolean | `@${string}`,
+	/** Ближайшее списание с кошелька членских взносов */
+	next_payment_due?:boolean | `@${string}`,
 	/** Начало подписки */
 	started_at?:boolean | `@${string}`,
 	/** Состояние подписки */
 	status?:boolean | `@${string}`,
+	/** Конец пробного срока; пусто — подписка платная */
+	trial_ends_at?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
 	/** Состояние подписки на приложение у провайдера подключения */
@@ -33842,6 +34082,8 @@ agreementTemplates?: [{	coopname: string},ResolverInputTypes["AgreementTemplate"
 agreements?: [{	filter?: ResolverInputTypes["AgreementFilter"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedAgreementsPaginationResult"]],
 appsCatalogPendingModerations?: [{	limit?: number | undefined | null,	status?: ResolverInputTypes["ModerationStatusEnum"] | undefined | null},ResolverInputTypes["ModerationRequestDTO"]],
 appsCatalogRemotePackages?: [{	page: number,	pageSize: number},ResolverInputTypes["AppsCatalogRemotePackageDTO"]],
+	/** Подписки кооператива у провайдера подключения, сумма к оплате и кошелёк у оператора — только для показа. Пополнение и смена тарифа — на столе пайщика у оператора. */
+	appsNodeBilling?:ResolverInputTypes["AppsNodeBilling"],
 	/** Назначения издателей «аккаунт → пакет». Только chairman. */
 	appsPublishers?:ResolverInputTypes["AppsPublisher"],
 buildInitialReportEdits?: [{	period?: number | undefined | null,	reportType: ResolverInputTypes["ReportType"],	year: number},ResolverInputTypes["BuildInitialReportEdits"]],
@@ -35348,6 +35590,12 @@ verificationReviews?: [{	data?: ResolverInputTypes["VerificationReviewsInput"] |
 	/** Хэш проекта или компонента */
 	project_hash: string
 };
+	["SetCatalogAppEnabledInput"]: {
+	/** true — включить на рабочем столе, false — выключить */
+	enabled: boolean,
+	/** Пакет каталога, например @voskhod/demoapp */
+	packageId: string
+};
 	["SetConfigInput"]: {
 	/** Конфигурация контракта */
 	config: ResolverInputTypes["ConfigInput"],
@@ -35883,6 +36131,17 @@ walletEvents?: [{	input: ResolverInputTypes["WalletEventsInput"]},ResolverInputT
 	count?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	["UnsubscribePackageResultDTO"]: AliasType<{
+	/** Причина отказа */
+	error?:boolean | `@${string}`,
+	/** Пакет каталога */
+	packageId?:boolean | `@${string}`,
+	/** Исход */
+	status?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Исход отмены подписки на приложение */
+["UnsubscribePackageStatus"]:UnsubscribePackageStatus;
 	/** Отзыв верификации личности пайщика председателем кооператива */
 ["UnverifyParticipantInput"]: {
 	/** Имя аккаунта пайщика */
@@ -37345,8 +37604,12 @@ export type ModelTypes = {
 	["AppsCatalogRemotePackageDTO"]: {
 		/** Совместимые subnet (chain_id блокчейна ЦК) */
 	compatibleSubnets: Array<string>,
-	/** Краткое описание (в MVP — заглушка, в будущем из manifest) */
+	/** Краткое описание */
 	description: string,
+	/** Приложение включено на рабочем столе узла */
+	enabled: boolean,
+	/** Фронт приложения получен оркестратором и готов к показу */
+	installed: boolean,
 	/** Последняя активная версия (semver). null = релизов ещё нет. */
 	lastActiveVersion?: string | undefined | null,
 	/** Идентификатор пакета (например, @voskhod/demoapp) */
@@ -37355,8 +37618,78 @@ export type ModelTypes = {
 	publisher: string,
 	/** Стоимость подписки у провайдера подключения, ₽ в месяц */
 	rubPerMonth: number,
-	/** Заголовок пакета для UI (в MVP — packageId, в будущем из manifest) */
-	title: string
+	/** Действующая подписка кооператива; пусто — приложение не подключено */
+	subscription?: ModelTypes["AppsCatalogSubscription"] | undefined | null,
+	/** Название приложения */
+	title: string,
+	/** Пробный срок из публикации пакета, дней; 0 — оплата с первого дня */
+	trialDays: number
+};
+	/** Подписка кооператива на приложение каталога */
+["AppsCatalogSubscription"]: {
+		/** Цена за период, ₽ — зафиксирована при оформлении */
+	amountPerPeriod: number,
+	/** Оплачено по */
+	expiresAt: string,
+	/** Идёт пробный срок: до его конца оплата не списывается */
+	isTrial: boolean,
+	/** Ближайшее списание с кошелька членских взносов у оператора */
+	nextPaymentDue?: string | undefined | null,
+	/** Начало подписки */
+	startedAt: string,
+	/** Состояние подписки у провайдера */
+	status: ModelTypes["ProviderAppSubscriptionStatus"],
+	/** Конец пробного срока; пусто — подписка платная */
+	trialEndsAt?: string | undefined | null
+};
+	/** Подписки, счёт и кошелёк кооператива у провайдера подключения */
+["AppsNodeBilling"]: {
+		/** Узел связан с провайдером подключения */
+	available: boolean,
+	/** К оплате сейчас: позиции с наступившим сроком, ₽ */
+	dueAmount: number,
+	/** Сумма всех действующих подписок за месяц, ₽ */
+	monthlyTotal: number,
+	/** Ближайшее списание */
+	nextPaymentDue?: string | undefined | null,
+	/** Имя аккаунта оператора, у которого ведётся кошелёк */
+	operator?: string | undefined | null,
+	/** Подписки кооператива, без отменённых */
+	subscriptions: Array<ModelTypes["AppsNodeSubscription"]>,
+	/** Кошелёк у оператора; пусто — узел не прочитал цепь */
+	wallet?: ModelTypes["AppsNodeWallet"] | undefined | null
+};
+	/** Подписка кооператива у провайдера подключения */
+["AppsNodeSubscription"]: {
+		/** Код типа: hosting, docflow, catalog:@scope/name */
+	code?: string | undefined | null,
+	/** Оплачено по */
+	expiresAt: string,
+	id: number,
+	/** Идёт пробный срок */
+	isTrial: boolean,
+	/** time — повременная, package — пакетная */
+	kind?: string | undefined | null,
+	/** Название подписки */
+	name: string,
+	/** Ближайшее списание */
+	nextPaymentDue?: string | undefined | null,
+	/** Пакет каталога, если подписка на приложение */
+	packageId?: string | undefined | null,
+	/** Период оплаты, дней */
+	periodDays: number,
+	/** Цена за период, ₽ */
+	price: number,
+	startedAt: string,
+	/** Состояние подписки */
+	status: ModelTypes["ProviderAppSubscriptionStatus"]
+};
+	/** Кошелёк кооператива у оператора, из которого списываются подписки */
+["AppsNodeWallet"]: {
+		/** Остаток AXON кооператива, с символом */
+	axonAvailable?: string | undefined | null,
+	/** Остаток членских взносов на оплату подписок, с символом */
+	membershipAvailable: string
 };
 	["AppsPublisher"]: {
 		/** Кто назначил */
@@ -37856,17 +38189,23 @@ export type ModelTypes = {
 	represented_by: ModelTypes["RepresentedBy"],
 	/** Краткое название организации */
 	short_name: string,
-	/** Доверенные аккаунты; пусто, если состав участка недоступен запрашивающему */
+	/** Доверенные аккаунты; пусто, если состав участка недоступен запрашивающему
+
+Требуемые роли: chairman, member.  */
 	trusted?: Array<ModelTypes["Individual"]> | undefined | null,
 	/** Сертификаты доверенных лиц участка (ФИО) */
 	trusted_certificates: Array<ModelTypes["IndividualCertificate"]>,
-	/** Председатель кооперативного участка; пусто, если состав участка недоступен запрашивающему */
+	/** Председатель кооперативного участка; пусто, если состав участка недоступен запрашивающему
+
+Требуемые роли: chairman, member.  */
 	trustee?: ModelTypes["Individual"] | undefined | null,
 	/** Сертификат председателя кооперативного участка (ФИО) */
 	trustee_certificate: ModelTypes["IndividualCertificate"],
 	/** Тип организации */
 	type: string,
-	/** Пайщики в белом списке приватного участка (ФИО); пусто, если участок не свой */
+	/** Пайщики в белом списке приватного участка (ФИО); пусто, если участок не свой
+
+Требуемые роли: chairman, member.  */
 	whitelist_certificates?: Array<ModelTypes["IndividualCertificate"]> | undefined | null
 };
 	["BranchEstablishmentDecisionGenerateDocumentInput"]: {
@@ -38965,7 +39304,9 @@ export type ModelTypes = {
 	block_num?: number | undefined | null,
 	/** Статус из блокчейна */
 	blockchain_status?: string | undefined | null,
-	/** Контракт участника */
+	/** Контракт участника
+
+Требуемые роли: chairman, member.  */
 	contract?: ModelTypes["DocumentAggregate"] | undefined | null,
 	/** Вклад как автор */
 	contributed_as_author?: string | undefined | null,
@@ -39130,9 +39471,13 @@ export type ModelTypes = {
 	_updated_at: ModelTypes["DateTime"],
 	/** Сумма долга */
 	amount?: string | undefined | null,
-	/** Одобренное заявление */
+	/** Одобренное заявление
+
+Требуемые роли: chairman, member.  */
 	approved_statement?: ModelTypes["DocumentAggregate"] | undefined | null,
-	/** Протокол решения совета */
+	/** Протокол решения совета
+
+Требуемые роли: chairman, member.  */
 	authorization?: ModelTypes["DocumentAggregate"] | undefined | null,
 	/** Номер блока последнего обновления */
 	block_num?: number | undefined | null,
@@ -39152,7 +39497,9 @@ export type ModelTypes = {
 	project_hash?: string | undefined | null,
 	/** Дата погашения */
 	repaid_at?: string | undefined | null,
-	/** Заявление на получение ссуды */
+	/** Заявление на получение ссуды
+
+Требуемые роли: chairman, member.  */
 	statement?: ModelTypes["DocumentAggregate"] | undefined | null,
 	/** Статус долга */
 	status: ModelTypes["DebtStatus"],
@@ -39169,9 +39516,13 @@ export type ModelTypes = {
 	_updated_at: ModelTypes["DateTime"],
 	/** Сумма расхода */
 	amount?: string | undefined | null,
-	/** Одобренная записка */
+	/** Одобренная записка
+
+Требуемые роли: chairman, member.  */
 	approved_statement?: ModelTypes["DocumentAggregate"] | undefined | null,
-	/** Авторизация расхода */
+	/** Авторизация расхода
+
+Требуемые роли: chairman, member.  */
 	authorization?: ModelTypes["DocumentAggregate"] | undefined | null,
 	/** Номер блока последнего обновления */
 	block_num?: number | undefined | null,
@@ -39183,7 +39534,9 @@ export type ModelTypes = {
 	description?: string | undefined | null,
 	/** Хеш расхода */
 	expense_hash: string,
-	/** Служебная записка о расходе */
+	/** Служебная записка о расходе
+
+Требуемые роли: chairman, member.  */
 	expense_statement?: ModelTypes["DocumentAggregate"] | undefined | null,
 	/** ID фонда */
 	fund_id?: number | undefined | null,
@@ -49398,6 +49751,8 @@ export type ModelTypes = {
 	sendAgreement: ModelTypes["Transaction"],
 	/** Установить приватность кооперативного участка (выбор только из белого списка) */
 	setBranchPrivate: ModelTypes["Branch"],
+	/** Включает или выключает приложение каталога на рабочем столе; подписка при этом не меняется. */
+	setCatalogAppEnabled: boolean,
 	/** Изменить настройки подтверждения входа (изменение фактора приложения требует TOTP-код) */
 	setLoginFactors: ModelTypes["LoginFactors"],
 	/** Управление статусом платежа осущствляется мутацией setPaymentStatus. При переходе платежа в статус PAID вызывается эффект в блокчейне, который завершает операцию автоматическим переводом платежа в статус COMPLETED. При установке статуса REFUNDED запускается процесс отмены платежа в блокчейне. Остальные статусы не приводят к эффектам в блокчейне. */
@@ -49422,7 +49777,7 @@ export type ModelTypes = {
 	startResetKey: boolean,
 	/** Финализировать СЗ-отчёт по смете расхода (все items закрыты — оплата/чек/возврат). */
 	submitExpenseReport: ModelTypes["Transaction"],
-	/** Оформляет подписку кооператива на приложение из каталога. Подписка входит в общий счёт кооператива у провайдера подключения. Только председатель. */
+	/** Оформляет подписку кооператива на приложение из каталога у провайдера подключения. С пробным сроком из публикации подписка стартует пробной. Только председатель. */
 	subscribePackage: ModelTypes["SubscribePackageResultDTO"],
 	/** Подключить приложение каталога: подписка входит в общий счёт кооператива у провайдера */
 	subscribeProviderApp: ModelTypes["ProviderApp"],
@@ -49430,6 +49785,8 @@ export type ModelTypes = {
 	triggerNotificationWorkflow: boolean,
 	/** Удалить расширение */
 	uninstallExtension: boolean,
+	/** Отменяет подписку кооператива на приложение: строка счёта снимается, доступ к пакету закрывается. */
+	unsubscribePackage: ModelTypes["UnsubscribePackageResultDTO"],
 	/** Отозвать верификацию личности пайщика */
 	unverifyParticipant: Array<ModelTypes["ParticipantVerification"]>,
 	/** Обновить аккаунт в системе провайдера. Обновление аккаунта пользователя производится по username. Мутация позволяет изменить приватные данные пользователя, а также, адрес электронной почты в MONO. Использовать мутацию может только председатель совета. */
@@ -50900,7 +51257,9 @@ export type ModelTypes = {
 	/** Действующая подписка кооператива; пусто — приложение не подключено */
 	subscription?: ModelTypes["ProviderAppSubscription"] | undefined | null,
 	/** Название приложения */
-	title: string
+	title: string,
+	/** Пробный срок из публикации пакета, дней; 0 — оплата с первого дня */
+	trial_days: number
 };
 	["ProviderAppInput"]: {
 	/** Пакет каталога, например @voskhod/demoapp */
@@ -50912,10 +51271,16 @@ export type ModelTypes = {
 	amount_per_period: number,
 	/** Оплачено по */
 	expires_at: string,
+	/** Идёт пробный срок: до его конца оплата не списывается */
+	is_trial: boolean,
+	/** Ближайшее списание с кошелька членских взносов */
+	next_payment_due?: string | undefined | null,
 	/** Начало подписки */
 	started_at: string,
 	/** Состояние подписки */
-	status: ModelTypes["ProviderAppSubscriptionStatus"]
+	status: ModelTypes["ProviderAppSubscriptionStatus"],
+	/** Конец пробного срока; пусто — подписка платная */
+	trial_ends_at?: string | undefined | null
 };
 	["ProviderAppSubscriptionStatus"]:ProviderAppSubscriptionStatus;
 	["ProviderBillingPeriod"]:ProviderBillingPeriod;
@@ -51161,8 +51526,10 @@ export type ModelTypes = {
 	agreements: ModelTypes["PaginatedAgreementsPaginationResult"],
 	/** Заявки на модерацию пакетов в каталоге восхода. По умолчанию SUBMITTED (ждут approve/reject). Только chairman. */
 	appsCatalogPendingModerations: Array<ModelTypes["ModerationRequestDTO"]>,
-	/** Список remote-пакетов из публичного каталога apps-catalog. Защищён JWT (видят только авторизованные пайщики). Источник — catalog-operator /v1/public/packages; controller проксирует. */
+	/** Приложения каталога для этого узла: цена и пробный срок у провайдера подключения, подписка кооператива, получен ли фронт и включено ли приложение. Пакет без цены у провайдера не показывается. */
 	appsCatalogRemotePackages: Array<ModelTypes["AppsCatalogRemotePackageDTO"]>,
+	/** Подписки кооператива у провайдера подключения, сумма к оплате и кошелёк у оператора — только для показа. Пополнение и смена тарифа — на столе пайщика у оператора. */
+	appsNodeBilling: ModelTypes["AppsNodeBilling"],
 	/** Назначения издателей «аккаунт → пакет». Только chairman. */
 	appsPublishers: Array<ModelTypes["AppsPublisher"]>,
 	/** Построить предзаполненные edits для формы: дефолты (ledger2 + реквизиты + корректировки), с наложением dirty-полей существующего черновика (если он есть). */
@@ -52848,6 +53215,12 @@ export type ModelTypes = {
 	/** Хэш проекта или компонента */
 	project_hash: string
 };
+	["SetCatalogAppEnabledInput"]: {
+	/** true — включить на рабочем столе, false — выключить */
+	enabled: boolean,
+	/** Пакет каталога, например @voskhod/demoapp */
+	packageId: string
+};
 	["SetConfigInput"]: {
 	/** Конфигурация контракта */
 	config: ModelTypes["ConfigInput"],
@@ -53362,6 +53735,15 @@ export type ModelTypes = {
 		/** Число непрочитанных уведомлений */
 	count: number
 };
+	["UnsubscribePackageResultDTO"]: {
+		/** Причина отказа */
+	error?: string | undefined | null,
+	/** Пакет каталога */
+	packageId?: string | undefined | null,
+	/** Исход */
+	status: ModelTypes["UnsubscribePackageStatus"]
+};
+	["UnsubscribePackageStatus"]:UnsubscribePackageStatus;
 	/** Отзыв верификации личности пайщика председателем кооператива */
 ["UnverifyParticipantInput"]: {
 	/** Имя аккаунта пайщика */
@@ -54838,8 +55220,12 @@ export type GraphQLTypes = {
 	__typename: "AppsCatalogRemotePackageDTO",
 	/** Совместимые subnet (chain_id блокчейна ЦК) */
 	compatibleSubnets: Array<string>,
-	/** Краткое описание (в MVP — заглушка, в будущем из manifest) */
+	/** Краткое описание */
 	description: string,
+	/** Приложение включено на рабочем столе узла */
+	enabled: boolean,
+	/** Фронт приложения получен оркестратором и готов к показу */
+	installed: boolean,
 	/** Последняя активная версия (semver). null = релизов ещё нет. */
 	lastActiveVersion?: string | undefined | null,
 	/** Идентификатор пакета (например, @voskhod/demoapp) */
@@ -54848,9 +55234,87 @@ export type GraphQLTypes = {
 	publisher: string,
 	/** Стоимость подписки у провайдера подключения, ₽ в месяц */
 	rubPerMonth: number,
-	/** Заголовок пакета для UI (в MVP — packageId, в будущем из manifest) */
+	/** Действующая подписка кооператива; пусто — приложение не подключено */
+	subscription?: GraphQLTypes["AppsCatalogSubscription"] | undefined | null,
+	/** Название приложения */
 	title: string,
+	/** Пробный срок из публикации пакета, дней; 0 — оплата с первого дня */
+	trialDays: number,
 	['...on AppsCatalogRemotePackageDTO']: Omit<GraphQLTypes["AppsCatalogRemotePackageDTO"], "...on AppsCatalogRemotePackageDTO">
+};
+	/** Подписка кооператива на приложение каталога */
+["AppsCatalogSubscription"]: {
+	__typename: "AppsCatalogSubscription",
+	/** Цена за период, ₽ — зафиксирована при оформлении */
+	amountPerPeriod: number,
+	/** Оплачено по */
+	expiresAt: string,
+	/** Идёт пробный срок: до его конца оплата не списывается */
+	isTrial: boolean,
+	/** Ближайшее списание с кошелька членских взносов у оператора */
+	nextPaymentDue?: string | undefined | null,
+	/** Начало подписки */
+	startedAt: string,
+	/** Состояние подписки у провайдера */
+	status: GraphQLTypes["ProviderAppSubscriptionStatus"],
+	/** Конец пробного срока; пусто — подписка платная */
+	trialEndsAt?: string | undefined | null,
+	['...on AppsCatalogSubscription']: Omit<GraphQLTypes["AppsCatalogSubscription"], "...on AppsCatalogSubscription">
+};
+	/** Подписки, счёт и кошелёк кооператива у провайдера подключения */
+["AppsNodeBilling"]: {
+	__typename: "AppsNodeBilling",
+	/** Узел связан с провайдером подключения */
+	available: boolean,
+	/** К оплате сейчас: позиции с наступившим сроком, ₽ */
+	dueAmount: number,
+	/** Сумма всех действующих подписок за месяц, ₽ */
+	monthlyTotal: number,
+	/** Ближайшее списание */
+	nextPaymentDue?: string | undefined | null,
+	/** Имя аккаунта оператора, у которого ведётся кошелёк */
+	operator?: string | undefined | null,
+	/** Подписки кооператива, без отменённых */
+	subscriptions: Array<GraphQLTypes["AppsNodeSubscription"]>,
+	/** Кошелёк у оператора; пусто — узел не прочитал цепь */
+	wallet?: GraphQLTypes["AppsNodeWallet"] | undefined | null,
+	['...on AppsNodeBilling']: Omit<GraphQLTypes["AppsNodeBilling"], "...on AppsNodeBilling">
+};
+	/** Подписка кооператива у провайдера подключения */
+["AppsNodeSubscription"]: {
+	__typename: "AppsNodeSubscription",
+	/** Код типа: hosting, docflow, catalog:@scope/name */
+	code?: string | undefined | null,
+	/** Оплачено по */
+	expiresAt: string,
+	id: number,
+	/** Идёт пробный срок */
+	isTrial: boolean,
+	/** time — повременная, package — пакетная */
+	kind?: string | undefined | null,
+	/** Название подписки */
+	name: string,
+	/** Ближайшее списание */
+	nextPaymentDue?: string | undefined | null,
+	/** Пакет каталога, если подписка на приложение */
+	packageId?: string | undefined | null,
+	/** Период оплаты, дней */
+	periodDays: number,
+	/** Цена за период, ₽ */
+	price: number,
+	startedAt: string,
+	/** Состояние подписки */
+	status: GraphQLTypes["ProviderAppSubscriptionStatus"],
+	['...on AppsNodeSubscription']: Omit<GraphQLTypes["AppsNodeSubscription"], "...on AppsNodeSubscription">
+};
+	/** Кошелёк кооператива у оператора, из которого списываются подписки */
+["AppsNodeWallet"]: {
+	__typename: "AppsNodeWallet",
+	/** Остаток AXON кооператива, с символом */
+	axonAvailable?: string | undefined | null,
+	/** Остаток членских взносов на оплату подписок, с символом */
+	membershipAvailable: string,
+	['...on AppsNodeWallet']: Omit<GraphQLTypes["AppsNodeWallet"], "...on AppsNodeWallet">
 };
 	["AppsPublisher"]: {
 	__typename: "AppsPublisher",
@@ -55387,17 +55851,23 @@ export type GraphQLTypes = {
 	represented_by: GraphQLTypes["RepresentedBy"],
 	/** Краткое название организации */
 	short_name: string,
-	/** Доверенные аккаунты; пусто, если состав участка недоступен запрашивающему */
+	/** Доверенные аккаунты; пусто, если состав участка недоступен запрашивающему
+
+Требуемые роли: chairman, member.  */
 	trusted?: Array<GraphQLTypes["Individual"]> | undefined | null,
 	/** Сертификаты доверенных лиц участка (ФИО) */
 	trusted_certificates: Array<GraphQLTypes["IndividualCertificate"]>,
-	/** Председатель кооперативного участка; пусто, если состав участка недоступен запрашивающему */
+	/** Председатель кооперативного участка; пусто, если состав участка недоступен запрашивающему
+
+Требуемые роли: chairman, member.  */
 	trustee?: GraphQLTypes["Individual"] | undefined | null,
 	/** Сертификат председателя кооперативного участка (ФИО) */
 	trustee_certificate: GraphQLTypes["IndividualCertificate"],
 	/** Тип организации */
 	type: string,
-	/** Пайщики в белом списке приватного участка (ФИО); пусто, если участок не свой */
+	/** Пайщики в белом списке приватного участка (ФИО); пусто, если участок не свой
+
+Требуемые роли: chairman, member.  */
 	whitelist_certificates?: Array<GraphQLTypes["IndividualCertificate"]> | undefined | null,
 	['...on Branch']: Omit<GraphQLTypes["Branch"], "...on Branch">
 };
@@ -56542,7 +57012,9 @@ export type GraphQLTypes = {
 	block_num?: number | undefined | null,
 	/** Статус из блокчейна */
 	blockchain_status?: string | undefined | null,
-	/** Контракт участника */
+	/** Контракт участника
+
+Требуемые роли: chairman, member.  */
 	contract?: GraphQLTypes["DocumentAggregate"] | undefined | null,
 	/** Вклад как автор */
 	contributed_as_author?: string | undefined | null,
@@ -56713,9 +57185,13 @@ export type GraphQLTypes = {
 	_updated_at: GraphQLTypes["DateTime"],
 	/** Сумма долга */
 	amount?: string | undefined | null,
-	/** Одобренное заявление */
+	/** Одобренное заявление
+
+Требуемые роли: chairman, member.  */
 	approved_statement?: GraphQLTypes["DocumentAggregate"] | undefined | null,
-	/** Протокол решения совета */
+	/** Протокол решения совета
+
+Требуемые роли: chairman, member.  */
 	authorization?: GraphQLTypes["DocumentAggregate"] | undefined | null,
 	/** Номер блока последнего обновления */
 	block_num?: number | undefined | null,
@@ -56735,7 +57211,9 @@ export type GraphQLTypes = {
 	project_hash?: string | undefined | null,
 	/** Дата погашения */
 	repaid_at?: string | undefined | null,
-	/** Заявление на получение ссуды */
+	/** Заявление на получение ссуды
+
+Требуемые роли: chairman, member.  */
 	statement?: GraphQLTypes["DocumentAggregate"] | undefined | null,
 	/** Статус долга */
 	status: GraphQLTypes["DebtStatus"],
@@ -56754,9 +57232,13 @@ export type GraphQLTypes = {
 	_updated_at: GraphQLTypes["DateTime"],
 	/** Сумма расхода */
 	amount?: string | undefined | null,
-	/** Одобренная записка */
+	/** Одобренная записка
+
+Требуемые роли: chairman, member.  */
 	approved_statement?: GraphQLTypes["DocumentAggregate"] | undefined | null,
-	/** Авторизация расхода */
+	/** Авторизация расхода
+
+Требуемые роли: chairman, member.  */
 	authorization?: GraphQLTypes["DocumentAggregate"] | undefined | null,
 	/** Номер блока последнего обновления */
 	block_num?: number | undefined | null,
@@ -56768,7 +57250,9 @@ export type GraphQLTypes = {
 	description?: string | undefined | null,
 	/** Хеш расхода */
 	expense_hash: string,
-	/** Служебная записка о расходе */
+	/** Служебная записка о расходе
+
+Требуемые роли: chairman, member.  */
 	expense_statement?: GraphQLTypes["DocumentAggregate"] | undefined | null,
 	/** ID фонда */
 	fund_id?: number | undefined | null,
@@ -67680,6 +68164,8 @@ export type GraphQLTypes = {
 	sendAgreement: GraphQLTypes["Transaction"],
 	/** Установить приватность кооперативного участка (выбор только из белого списка) */
 	setBranchPrivate: GraphQLTypes["Branch"],
+	/** Включает или выключает приложение каталога на рабочем столе; подписка при этом не меняется. */
+	setCatalogAppEnabled: boolean,
 	/** Изменить настройки подтверждения входа (изменение фактора приложения требует TOTP-код) */
 	setLoginFactors: GraphQLTypes["LoginFactors"],
 	/** Управление статусом платежа осущствляется мутацией setPaymentStatus. При переходе платежа в статус PAID вызывается эффект в блокчейне, который завершает операцию автоматическим переводом платежа в статус COMPLETED. При установке статуса REFUNDED запускается процесс отмены платежа в блокчейне. Остальные статусы не приводят к эффектам в блокчейне. */
@@ -67704,7 +68190,7 @@ export type GraphQLTypes = {
 	startResetKey: boolean,
 	/** Финализировать СЗ-отчёт по смете расхода (все items закрыты — оплата/чек/возврат). */
 	submitExpenseReport: GraphQLTypes["Transaction"],
-	/** Оформляет подписку кооператива на приложение из каталога. Подписка входит в общий счёт кооператива у провайдера подключения. Только председатель. */
+	/** Оформляет подписку кооператива на приложение из каталога у провайдера подключения. С пробным сроком из публикации подписка стартует пробной. Только председатель. */
 	subscribePackage: GraphQLTypes["SubscribePackageResultDTO"],
 	/** Подключить приложение каталога: подписка входит в общий счёт кооператива у провайдера */
 	subscribeProviderApp: GraphQLTypes["ProviderApp"],
@@ -67712,6 +68198,8 @@ export type GraphQLTypes = {
 	triggerNotificationWorkflow: boolean,
 	/** Удалить расширение */
 	uninstallExtension: boolean,
+	/** Отменяет подписку кооператива на приложение: строка счёта снимается, доступ к пакету закрывается. */
+	unsubscribePackage: GraphQLTypes["UnsubscribePackageResultDTO"],
 	/** Отозвать верификацию личности пайщика */
 	unverifyParticipant: Array<GraphQLTypes["ParticipantVerification"]>,
 	/** Обновить аккаунт в системе провайдера. Обновление аккаунта пользователя производится по username. Мутация позволяет изменить приватные данные пользователя, а также, адрес электронной почты в MONO. Использовать мутацию может только председатель совета. */
@@ -69370,6 +69858,8 @@ export type GraphQLTypes = {
 	subscription?: GraphQLTypes["ProviderAppSubscription"] | undefined | null,
 	/** Название приложения */
 	title: string,
+	/** Пробный срок из публикации пакета, дней; 0 — оплата с первого дня */
+	trial_days: number,
 	['...on ProviderApp']: Omit<GraphQLTypes["ProviderApp"], "...on ProviderApp">
 };
 	["ProviderAppInput"]: {
@@ -69383,10 +69873,16 @@ export type GraphQLTypes = {
 	amount_per_period: number,
 	/** Оплачено по */
 	expires_at: string,
+	/** Идёт пробный срок: до его конца оплата не списывается */
+	is_trial: boolean,
+	/** Ближайшее списание с кошелька членских взносов */
+	next_payment_due?: string | undefined | null,
 	/** Начало подписки */
 	started_at: string,
 	/** Состояние подписки */
 	status: GraphQLTypes["ProviderAppSubscriptionStatus"],
+	/** Конец пробного срока; пусто — подписка платная */
+	trial_ends_at?: string | undefined | null,
 	['...on ProviderAppSubscription']: Omit<GraphQLTypes["ProviderAppSubscription"], "...on ProviderAppSubscription">
 };
 	/** Состояние подписки на приложение у провайдера подключения */
@@ -69663,8 +70159,10 @@ export type GraphQLTypes = {
 	agreements: GraphQLTypes["PaginatedAgreementsPaginationResult"],
 	/** Заявки на модерацию пакетов в каталоге восхода. По умолчанию SUBMITTED (ждут approve/reject). Только chairman. */
 	appsCatalogPendingModerations: Array<GraphQLTypes["ModerationRequestDTO"]>,
-	/** Список remote-пакетов из публичного каталога apps-catalog. Защищён JWT (видят только авторизованные пайщики). Источник — catalog-operator /v1/public/packages; controller проксирует. */
+	/** Приложения каталога для этого узла: цена и пробный срок у провайдера подключения, подписка кооператива, получен ли фронт и включено ли приложение. Пакет без цены у провайдера не показывается. */
 	appsCatalogRemotePackages: Array<GraphQLTypes["AppsCatalogRemotePackageDTO"]>,
+	/** Подписки кооператива у провайдера подключения, сумма к оплате и кошелёк у оператора — только для показа. Пополнение и смена тарифа — на столе пайщика у оператора. */
+	appsNodeBilling: GraphQLTypes["AppsNodeBilling"],
 	/** Назначения издателей «аккаунт → пакет». Только chairman. */
 	appsPublishers: Array<GraphQLTypes["AppsPublisher"]>,
 	/** Построить предзаполненные edits для формы: дефолты (ledger2 + реквизиты + корректировки), с наложением dirty-полей существующего черновика (если он есть). */
@@ -71448,6 +71946,12 @@ export type GraphQLTypes = {
 	/** Хэш проекта или компонента */
 	project_hash: string
 };
+	["SetCatalogAppEnabledInput"]: {
+		/** true — включить на рабочем столе, false — выключить */
+	enabled: boolean,
+	/** Пакет каталога, например @voskhod/demoapp */
+	packageId: string
+};
 	["SetConfigInput"]: {
 		/** Конфигурация контракта */
 	config: GraphQLTypes["ConfigInput"],
@@ -72003,6 +72507,18 @@ export type GraphQLTypes = {
 	count: number,
 	['...on UnreadNotificationsCount']: Omit<GraphQLTypes["UnreadNotificationsCount"], "...on UnreadNotificationsCount">
 };
+	["UnsubscribePackageResultDTO"]: {
+	__typename: "UnsubscribePackageResultDTO",
+	/** Причина отказа */
+	error?: string | undefined | null,
+	/** Пакет каталога */
+	packageId?: string | undefined | null,
+	/** Исход */
+	status: GraphQLTypes["UnsubscribePackageStatus"],
+	['...on UnsubscribePackageResultDTO']: Omit<GraphQLTypes["UnsubscribePackageResultDTO"], "...on UnsubscribePackageResultDTO">
+};
+	/** Исход отмены подписки на приложение */
+["UnsubscribePackageStatus"]: UnsubscribePackageStatus;
 	/** Отзыв верификации личности пайщика председателем кооператива */
 ["UnverifyParticipantInput"]: {
 		/** Имя аккаунта пайщика */
@@ -73921,6 +74437,13 @@ export enum TranscriptionStatus {
 	COMPLETED = "COMPLETED",
 	FAILED = "FAILED"
 }
+/** Исход отмены подписки на приложение */
+export enum UnsubscribePackageStatus {
+	CANCELLED = "CANCELLED",
+	FAILED = "FAILED",
+	NOT_SUBSCRIBED = "NOT_SUBSCRIBED",
+	UNAVAILABLE = "UNAVAILABLE"
+}
 /** Статус пользователя */
 export enum UserStatus {
 	Active = "Active",
@@ -74682,6 +75205,7 @@ type ZEUS_VARIABLES = {
 	["SetBranchPrivateInput"]: ValueTypes["SetBranchPrivateInput"];
 	["SetCapitalProjectDevelopmentRepositoryUrlInput"]: ValueTypes["SetCapitalProjectDevelopmentRepositoryUrlInput"];
 	["SetCapitalProjectPriorityInput"]: ValueTypes["SetCapitalProjectPriorityInput"];
+	["SetCatalogAppEnabledInput"]: ValueTypes["SetCatalogAppEnabledInput"];
 	["SetConfigInput"]: ValueTypes["SetConfigInput"];
 	["SetIssueMetricBindingsInput"]: ValueTypes["SetIssueMetricBindingsInput"];
 	["SetLoginFactorsInput"]: ValueTypes["SetLoginFactorsInput"];
@@ -74719,6 +75243,7 @@ type ZEUS_VARIABLES = {
 	["TriggerNotificationWorkflowInput"]: ValueTypes["TriggerNotificationWorkflowInput"];
 	["TwoFactorCodeInput"]: ValueTypes["TwoFactorCodeInput"];
 	["UninstallExtensionInput"]: ValueTypes["UninstallExtensionInput"];
+	["UnsubscribePackageStatus"]: ValueTypes["UnsubscribePackageStatus"];
 	["UnverifyParticipantInput"]: ValueTypes["UnverifyParticipantInput"];
 	["Update"]: ValueTypes["Update"];
 	["UpdateAccountInput"]: ValueTypes["UpdateAccountInput"];

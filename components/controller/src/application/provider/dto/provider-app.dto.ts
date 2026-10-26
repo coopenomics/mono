@@ -20,6 +20,15 @@ export class ProviderAppSubscriptionDTO {
 
   @Field(() => String, { description: 'Оплачено по' })
   expires_at!: string;
+
+  @Field(() => Boolean, { description: 'Идёт пробный срок: до его конца оплата не списывается' })
+  is_trial!: boolean;
+
+  @Field(() => String, { nullable: true, description: 'Конец пробного срока; пусто — подписка платная' })
+  trial_ends_at!: string | null;
+
+  @Field(() => String, { nullable: true, description: 'Ближайшее списание с кошелька членских взносов' })
+  next_payment_due!: string | null;
 }
 
 @ObjectType('ProviderApp', { description: 'Приложение каталога, которое кооператив может подключить' })
@@ -35,6 +44,9 @@ export class ProviderAppDTO {
 
   @Field(() => Int, { description: 'Период оплаты, дней' })
   period_days!: number;
+
+  @Field(() => Int, { description: 'Пробный срок из публикации пакета, дней; 0 — оплата с первого дня' })
+  trial_days!: number;
 
   @Field(() => ProviderAppSubscriptionDTO, {
     nullable: true,

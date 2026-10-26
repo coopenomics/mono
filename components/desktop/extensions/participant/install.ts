@@ -3,7 +3,6 @@ import { ProfilePage } from 'src/pages/User/ProfilePage';
 import { CardcoopPage } from 'src/pages/User/CardcoopPage';
 import { WalletPage } from 'src/pages/User/WalletPage';
 import { MembershipExitConfirmPage } from 'src/pages/User/MembershipExitConfirmPage';
-import { ConnectionAgreementPage, InstallationCompletedPage } from 'src/pages/Union/ConnectionAgreement';
 import { UserPaymentMethodsPage } from 'src/pages/User/PaymentMethodsPage';
 import { UserSettingsPage } from 'src/pages/User/SettingsPage';
 import { ContactsPage } from 'src/pages/Contacts';
@@ -96,39 +95,12 @@ export default async function (): Promise<IWorkspaceConfig[]> {
           },
           {
             meta: {
-              title: t('participant.install.connectionTitle'),
-              icon: 'link',
-              requires: 'ProviderSubscription:read:own',
-              conditions: 'isCoop === true && coopname === "voskhod"',
-              requiresAuth: true,
-            },
-            path: '/:coopname/connect',
-            name: 'connect',
-            component: markRaw(ConnectionAgreementPage),
-            children: [
-              {
-                path: 'completed',
-                name: 'installation-completed',
-                component: markRaw(InstallationCompletedPage),
-                meta: {
-                  title: t('participant.install.installationCompletedTitle'),
-                  icon: 'fas fa-check-circle',
-                  requires: 'ProviderSubscription:read:own',
-                  conditions: 'isCoop === true && coopname === "voskhod"',
-                  requiresAuth: true,
-                  hidden: true,
-                },
-              },
-            ],
-          },
-          {
-            meta: {
               title: t('participant.install.requisitesTitle'),
               icon: 'account_balance',
               requires: 'PaymentMethod:manage:own',
               requiresAuth: true,
             },
-            path: '/:coopname/connect',
+            path: 'requisites',
             name: 'payment-methods',
             component: markRaw(UserPaymentMethodsPage),
           },

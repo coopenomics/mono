@@ -3,10 +3,8 @@
     "extensionCard": {
       "inDevelopmentBadge": "В разработке",
       "installedBadge": "Установлено",
-      "moreLink": "Подробнее",
-      "free": "Бесплатно",
-      "originBuiltin": "Встроенное",
-      "originCatalog": "Из каталога"
+      "disabledBadge": "Выключено",
+      "free": "Бесплатно"
     }
   }
 }

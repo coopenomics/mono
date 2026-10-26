@@ -99,11 +99,42 @@ async function rejectModeration(
   return output;
 }
 
+async function unsubscribePackage(
+  data: Mutations.Extensions.UnsubscribePackage.IInput['data'],
+): Promise<Mutations.Extensions.UnsubscribePackage.IOutput[typeof Mutations.Extensions.UnsubscribePackage.name]> {
+  const { [Mutations.Extensions.UnsubscribePackage.name]: output } = await client.Mutation(
+    Mutations.Extensions.UnsubscribePackage.mutation,
+    { variables: { data } },
+  );
+  return output;
+}
+
+async function setCatalogAppEnabled(
+  data: Mutations.Extensions.SetCatalogAppEnabled.IInput['data'],
+): Promise<boolean> {
+  const { [Mutations.Extensions.SetCatalogAppEnabled.name]: output } = await client.Mutation(
+    Mutations.Extensions.SetCatalogAppEnabled.mutation,
+    { variables: { data } },
+  );
+  return output;
+}
+
+async function loadAppsNodeBilling(): Promise<Queries.Extensions.AppsNodeBilling.IOutput[typeof Queries.Extensions.AppsNodeBilling.name]> {
+  const { [Queries.Extensions.AppsNodeBilling.name]: output } = await client.Query(
+    Queries.Extensions.AppsNodeBilling.query,
+    { variables: {} },
+  );
+  return output;
+}
+
 export const api ={
   loadExtensions,
   loadExtensionLogs,
   loadAppsCatalogRemotePackages,
   subscribePackage,
+  unsubscribePackage,
+  setCatalogAppEnabled,
+  loadAppsNodeBilling,
   loadPendingModerations,
   approveModeration,
   rejectModeration

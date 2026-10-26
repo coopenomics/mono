@@ -1,14 +1,18 @@
 <template lang="pug">
-.extension-page(v-if='extension')
+//- Страница приложения — одна для встроенного расширения и приложения из
+//- каталога: знак и действия слева, описание, настройки или шаг установки
+//- справа. Путь один: открыл, прочитал, подписался или установил,
+//- настроил, включил.
+.extension-page(v-if='extension || catalogApp')
   button.extension-page__back(type='button', @click='goBack')
-    q-icon(name='fa-solid fa-chevron-left' size='13px')
+    q-icon(name='chevron_left' size='16px')
     span {{ $t('common.action.back') }}
 
   .extension-page__panel
     .extension-page__grid
       aside.extension-page__side
         AutoAvatar.extension-page__logo(
-          :username='extension.name || extension.title || ""',
+          :username='seed',
           :size='96',
           radius='var(--p-r-lg, 14px)',
           background='var(--p-surface-2)',
@@ -16,72 +20,95 @@
           animated
         )
         ExtensionActions(
+          v-if='extension',
           :extension='extension',
           :mode='currentMode',
           :config='data',
           :form-ref='myFormRef',
           :is-empty='isEmpty'
         )
+        CatalogAppActions(v-else-if='catalogApp', :app='catalogApp')
 
       .extension-page__main
-        ExtensionInfo(v-if='isMain', :extension='extension')
-        //- Настройки — под названием приложения: видно, какое приложение настраивается.
-        .extension-page__heading(v-if='isSettings')
-          h2.extension-page__title {{ extension.title }}
-          .extension-page__subtitle {{ $t('extensionSettings.extensionSettings.subtitle') }}
-        ExtensionSettings(
-          v-if='isSettings && extension.schema',
-          :schema='extension.schema',
-          v-model:config='data',
-          :form-ref='myFormRef'
-        )
-        ExtensionInstall(
-          v-if='isInstall',
-          :extension-name='extension.name',
-          :schema='extension.schema',
-          v-model:config='data',
-          :form-ref='myFormRef'
-        )
+        template(v-if='extension')
+          ExtensionInfo(v-if='isMain', :extension='extension')
+          //- Настройки — под названием приложения: видно, какое приложение настраивается.
+          .extension-page__heading(v-if='isSettings')
+            h2.extension-page__title {{ extension.title }}
+            .extension-page__subtitle {{ $t('extensionSettings.extensionSettings.subtitle') }}
+          ExtensionSettings(
+            v-if='isSettings && extension.schema',
+            :schema='extension.schema',
+            v-model:config='data',
+            :form-ref='myFormRef'
+          )
+          ExtensionInstall(
+            v-if='isInstall',
+            :extension-name='extension.name',
+            :schema='extension.schema',
+            v-model:config='data',
+            :form-ref='myFormRef'
+          )
+        template(v-else-if='catalogApp')
+          CatalogAppInfo(v-if='isMain', :app='catalogApp')
+          //- Настроек у пакетов каталога пока нет: страница есть, чтобы путь
+          //- был тем же, что у встроенных; схема появится вместе с манифестом.
+          template(v-if='isSettings || isInstall')
+            .extension-page__heading
+              h2.extension-page__title {{ catalogApp.title }}
+              .extension-page__subtitle {{ $t('extensionSettings.extensionSettings.subtitle') }}
+            BaseCard(:title="$t('extensionInstall.extensionInstall.settingsTitle')")
+              p.extension-page__note {{ $t('catalogApp.settings.none') }}
 </template>
 <script lang="ts" setup>
 import { useExtensionStore } from 'src/entities/Extension/model';
+import { isCatalogAppName, useCatalogAppStore } from 'src/entities/CatalogApp';
 import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { isExtensionSchemaEmpty } from 'src/shared/lib/utils';
 import { AutoAvatar } from 'src/shared/ui/domain/AutoAvatar';
+import { BaseCard } from 'src/shared/ui/base';
 import { ExtensionActions } from 'src/widgets/ExtensionActions';
 import { ExtensionInfo } from 'src/widgets/ExtensionInfo';
 import { ExtensionSettings } from 'src/widgets/ExtensionSettings';
 import { ExtensionInstall } from 'src/widgets/ExtensionInstall';
+import { CatalogAppActions, CatalogAppInfo } from 'src/widgets/CatalogApp';
 
 const route = useRoute();
 const router = useRouter();
 const extStore = useExtensionStore();
+const catalog = useCatalogAppStore();
 const data = ref({});
 const myFormRef = ref();
 
+const routeName = computed(() => String(route.params.name ?? ''));
+const isCatalog = computed(() => isCatalogAppName(routeName.value));
 
 // Кнопка «Назад» живёт на самой странице (под шапкой), а не в топбаре.
 const goBack = () => {
   if (route.name === 'one-extension') {
-    // На главной странице расширения - возвращаемся к списку расширений
-    router.push({ name: 'extensions' });
+    router.push({ name: 'extstore-showcase' });
   } else if (route.name === 'extension-install' || route.name === 'extension-settings') {
-    // На страницах установки/настроек - возвращаемся на главную страницу расширения
     router.push({ name: 'one-extension', params: { name: route.params.name } });
   }
 };
 
 // realtime: нет источника — страница расширения держит форму его настроек: живое перечитывание затёрло бы ввод; каталог и список установленных живут по ленте.
 onMounted(async () => {
-  if (route.params.name) {
-    await extStore.loadExtensions({ name: route.params.name as string });
+  if (!routeName.value) return;
+  if (isCatalog.value) {
+    if (!catalog.loaded) await catalog.load();
+  } else {
+    await extStore.loadExtensions({ name: routeName.value });
   }
 });
 
 const extension = computed(() =>
-  extStore.extensions.find((el) => el.name == route.params.name),
+  isCatalog.value ? undefined : extStore.extensions.find((el) => el.name == routeName.value),
 );
+const catalogApp = computed(() => (isCatalog.value ? catalog.find(routeName.value) : undefined));
+
+const seed = computed(() => extension.value?.name || catalogApp.value?.packageId || routeName.value);
 
 watch(extension, (newValue) => {
   if (newValue) data.value = newValue.config;
@@ -130,7 +157,7 @@ const ringPalette = ['5b9aa0', '6f8fae', '74a08c', '9a8fb0', '8aa0a8', 'a8967e']
 }
 
 .extension-page__panel {
-  background: var(--p-surface, #fff);
+  background: var(--p-surface);
   border: 1px solid var(--p-line);
   border-radius: var(--p-r-lg, 14px);
   padding: var(--p-6, 24px);
@@ -178,6 +205,12 @@ const ringPalette = ['5b9aa0', '6f8fae', '74a08c', '9a8fb0', '8aa0a8', 'a8967e']
 .extension-page__subtitle {
   margin-top: var(--p-1, 4px);
   font-size: var(--p-fs-body-sm, 13px);
+  color: var(--p-ink-2);
+}
+.extension-page__note {
+  margin: 0;
+  font-size: var(--p-fs-body);
+  line-height: 1.6;
   color: var(--p-ink-2);
 }
 </style>

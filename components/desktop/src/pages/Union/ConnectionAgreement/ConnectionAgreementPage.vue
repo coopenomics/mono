@@ -11,9 +11,13 @@ div.row.q-pa-md
     // Основной контент после загрузки (не показываем при технических работах у провайдера)
     div(v-else-if="!connectionAgreement.isBadGateway")
       div(v-if="system.info.is_providered")
-        //- Показываем дашборд если установка завершена и мы на основной странице
-        div(v-if="isInstallationCompleted && !isOnCompletionRoute").relative
-          ConnectionDashboard
+        //- Установка завершена: разделы подключения — вкладками (счёт, подписки,
+        //- списания, узел). Девять карточек одной страницей не читались:
+        //- долг, кошельки, адрес, ключ и журнал спорили за внимание (26.10.2026).
+        div(v-if="isInstallationCompleted && !isOnCompletionRoute").conn-page
+          PageTabs(:tabs="tabs")
+          .conn-page__content
+            router-view
 
         //- Показываем степпер если идет процесс подключения
         ConnectionAgreementStepper(v-else-if="!isOnCompletionRoute")
@@ -42,7 +46,7 @@ div.row.q-pa-md
 </template>
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { useSystemStore } from 'src/entities/System/model';
 import {
   useConnectionAgreementStore,
@@ -50,14 +54,26 @@ import {
   FIRST_ONBOARDING_STEP,
 } from 'src/entities/ConnectionAgreement';
 import { ConnectionAgreementStepper } from 'src/widgets/ConnectionAgreementStepper';
-import { ConnectionDashboard } from 'src/widgets/ConnectionDashboard';
 import { BaseButton, BaseCard, EmptyState } from 'src/shared/ui/base';
+import { PageTabs } from 'src/shared/ui/layout';
 import { WindowLoader } from 'src/shared/ui/Loader';
 import { Zeus } from '@coopenomics/sdk';
+import { t } from 'src/shared/i18n';
 
 const router = useRouter();
+const route = useRoute();
 const system = useSystemStore();
 const connectionAgreement = useConnectionAgreementStore();
+
+// Разделы подключения после установки. Раздел «Приложения» здесь не нужен:
+// на приложения кооператив подписывается на своём узле, у оператора они
+// видны строками в подписках.
+const tabs = [
+  { key: 'connect-overview', routeName: 'connect-overview', label: t('union.connectionAgreementPage.tabs.overview'), icon: 'account_balance_wallet' },
+  { key: 'connect-subscriptions', routeName: 'connect-subscriptions', label: t('union.connectionAgreementPage.tabs.subscriptions'), icon: 'receipt_long' },
+  { key: 'connect-payments', routeName: 'connect-payments', label: t('union.connectionAgreementPage.tabs.payments'), icon: 'history' },
+  { key: 'connect-node', routeName: 'connect-node', label: t('union.connectionAgreementPage.tabs.node'), icon: 'dns' },
+];
 
 // Лоадер состояния
 const isLoading = ref(true);
@@ -81,6 +97,17 @@ const isInstallationCompleted = computed(() => {
 const isOnCompletionRoute = computed(() => {
   return router.currentRoute.value.name === 'installation-completed';
 });
+
+// Вход по адресу раздела без вкладки открывает первую — счёт.
+watch(
+  [isInstallationCompleted, () => route.name],
+  ([completed, name]) => {
+    if (completed && name === 'connect') {
+      void router.replace({ name: 'connect-overview', params: route.params });
+    }
+  },
+  { immediate: true },
+);
 
 // Переменная для отслеживания предыдущего состояния завершения установки
 let wasInstallationCompleted = false;
@@ -243,3 +270,16 @@ onUnmounted(() => {
   }
 });
 </script>
+
+<style scoped>
+.conn-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-5);
+}
+.conn-page__content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-5);
+}
+</style>

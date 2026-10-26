@@ -5,10 +5,6 @@ import { refreshMenuBadges, registerMenuBadge } from 'src/shared/lib/menuBadges'
 import { registerLiveReload, type ChainTableRef } from 'src/shared/lib/realtime';
 import { useSystemStore } from 'src/entities/System/model';
 import { api as approvalsApi } from 'app/extensions/chairman/entities/Approval/api';
-import { ExtensionsShowcase } from 'src/pages/ExtensionStore/ExtensionsShowcase';
-import { InstalledExtensions } from 'src/pages/ExtensionStore/InstalledExtensions';
-import { ExtensionPage } from 'src/pages/ExtensionStore/ExtensionPage';
-import { ExtensionsManagement } from 'src/pages/ExtensionStore/ExtensionsManagement';
 import { MemberBranchList } from 'src/pages/Cooperative/MemberBranchList';
 import { ChangeRegisterPaymentsPage } from 'src/pages/Cooperative/ChangeRegisterPayments';
 import { ChangeCooperativeContacts } from 'src/pages/Cooperative/ChangeContacts';
@@ -124,78 +120,6 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               requiresAuth: true,
             },
             children: [],
-          },
-          {
-            path: 'extensions',
-            name: 'extensions',
-            component: markRaw(ExtensionsManagement),
-            meta: {
-              title: t('chairman.install.appCatalogNavTitle'),
-              icon: 'fa-solid fa-puzzle-piece',
-              requires: 'Extension:manage',
-              agreements: agreementsBase,
-              requiresAuth: true,
-            },
-            redirect: { name: 'extstore-showcase' },
-            children: [
-              {
-                path: 'showcase',
-                name: 'extstore-showcase',
-                component: markRaw(ExtensionsShowcase),
-                meta: {
-                  title: t('chairman.install.marketplaceNavTitle'),
-                  icon: 'fa-solid fa-store',
-                  requires: 'Extension:manage',
-                  requiresAuth: true,
-                },
-              },
-              {
-                path: 'installed',
-                name: 'appstore-installed',
-                component: markRaw(InstalledExtensions),
-                meta: {
-                  title: t('chairman.install.installedAppsNavTitle'),
-                  icon: 'fa-solid fa-download',
-                  requires: 'Extension:manage',
-                  requiresAuth: true,
-                },
-              },
-              {
-                path: 'extension/:name',
-                name: 'one-extension',
-                component: markRaw(ExtensionPage),
-                meta: {
-                  title: t('chairman.install.extensionNavTitle'),
-                  icon: 'fa-solid fa-cog',
-                  requires: 'Extension:manage',
-                  requiresAuth: true,
-                },
-                children: [
-                  {
-                    path: 'settings',
-                    name: 'extension-settings',
-                    component: markRaw(ExtensionPage),
-                    meta: {
-                      title: t('chairman.install.appSettingsNavTitle'),
-                      icon: 'fa-solid fa-cog',
-                      requires: 'Extension:manage',
-                      requiresAuth: true,
-                    },
-                  },
-                  {
-                    path: 'install',
-                    name: 'extension-install',
-                    component: markRaw(ExtensionPage),
-                    meta: {
-                      title: t('chairman.install.appInstallNavTitle'),
-                      icon: 'fa-solid fa-download',
-                      requires: 'Extension:manage',
-                      requiresAuth: true,
-                    },
-                  },
-                ],
-              },
-            ],
           },
           {
             path: 'system-settings',

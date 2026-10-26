@@ -3,6 +3,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_RIGHTS, RightsGuard } from '@coopenomics/extension-kit';
 import { AppsPublishersService } from './application/services/apps-publishers.service';
+import { CatalogAppsStateService } from './application/services/catalog-apps-state.service';
 import { DeveloperExtension } from './developer-extension';
 import { DeveloperRights } from './application/access/developer-rights';
 import { appsCatalogProxyStoreProviders } from './infrastructure/database/apps-catalog-proxy-stores';
@@ -25,13 +26,14 @@ import { AppsCatalogProxyResolver } from './application/resolvers/apps-catalog-p
     AppsCatalogHttpService,
     AppsCatalogProxyResolver,
     AppsPublishersService,
+    CatalogAppsStateService,
     DeveloperExtension,
     ...appsCatalogProxyStoreProviders,
     DeveloperRights,
     { provide: APP_RIGHTS, useExisting: DeveloperRights },
     RightsGuard,
   ],
-  exports: [AppsCatalogHttpService, DeveloperExtension],
+  exports: [AppsCatalogHttpService, CatalogAppsStateService, DeveloperExtension],
 })
 export class AppsCatalogProxyModule {
   constructor(private readonly developerExtension: DeveloperExtension) {}

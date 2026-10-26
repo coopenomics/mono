@@ -4,6 +4,8 @@ import type { IWorkspaceConfig } from 'src/shared/lib/types/workspace';
 import capitalInstall from '../../../extensions/capital/install';
 import cashierInstall from '../../../extensions/cashier/install';
 import chairmanInstall from '../../../extensions/chairman/install';
+// Стол «Приложения» (26.10.2026): каталог, установленные, подписки и подключение.
+import appsInstall from '../../../extensions/apps/install';
 import chatcoopInstall from '../../../extensions/chatcoop/install';
 import expensesInstall from '../../../extensions/expenses/install';
 import participantInstall from '../../../extensions/participant/install';
@@ -28,6 +30,7 @@ export const extensionsRegistry: Record<string, () => Promise<IWorkspaceConfig[]
   capital: capitalInstall,
   cashier: cashierInstall,
   chairman: chairmanInstall,
+  apps: appsInstall,
   chatcoop: chatcoopInstall,
   expenses: expensesInstall,
   participant: participantInstall,

@@ -1,5 +1,5 @@
 import { Injectable, Logger, Inject } from '@nestjs/common';
-import type { InnerAppSubscription } from '@coopenomics/innercoop';
+import { InnerAppSubscriptionStatus, type InnerAppSubscription } from '@coopenomics/innercoop';
 import { DomainError, catalogAppTitle } from '@coopenomics/extension-kit';
 import type { ProviderAppDTO } from '../dto/provider-app.dto';
 import axios from 'axios';
@@ -63,6 +63,8 @@ export interface ProviderAppOffer {
   package_id: string;
   price: number;
   period_days: number;
+  /** Пробный срок из публикации пакета, дней; 0 — оплата с первого дня. */
+  trial_days: number;
 }
 
 /** Строка карточки «Приложения»: предложение и действующая подписка, если есть. */
@@ -72,15 +74,37 @@ export function toProviderApp(offer: ProviderAppOffer, subscription: ProviderApp
     title: catalogAppTitle(offer.package_id),
     price: offer.price,
     period_days: offer.period_days,
+    trial_days: offer.trial_days,
     subscription: subscription
       ? {
           status: subscription.status,
           amount_per_period: Number(subscription.amount_per_period),
           started_at: subscription.started_at,
           expires_at: subscription.expires_at,
+          is_trial: Boolean(subscription.is_trial),
+          trial_ends_at: subscription.trial_ends_at ?? null,
+          next_payment_due: subscription.next_payment_due ?? null,
         }
       : null,
   };
+}
+
+/** Сводка счёта кооператива у провайдера (`GET /subscriptions/billing-summary/:coopname`). */
+export interface ProviderBillingSummaryWire {
+  coopname: string;
+  period_days: number;
+  total_amount: number;
+  currency: string;
+  next_payment_due: string | null;
+  items: Array<{
+    subscription_id: number;
+    subscription_type_id: number;
+    subscription_type_name: string;
+    status: InnerAppSubscriptionStatus;
+    amount: number;
+    is_free: boolean;
+    is_due?: boolean;
+  }>;
 }
 
 /** Подписка кооператива на приложение каталога в ответе провайдера (`/apps/:coopname/subscriptions`). */
@@ -381,7 +405,26 @@ export class ProviderService {
         package_id: String(type.catalog_package_id),
         price: Number(type.price ?? 0),
         period_days: Number(type.period_days ?? 30),
+        trial_days: Math.max(0, Number(type.trial_days ?? 0)),
       }));
+  }
+
+  /**
+   * Сводка счёта кооператива у провайдера: сумма за период, ближайшее
+   * списание, строки. Тот же server-secret канал, что и подписки; узел
+   * кооператива читает ей свою сводку только для показа — пополнение и
+   * смена тарифа остаются на столе пайщика у оператора.
+   */
+  async getBillingSummary(username: string, periodDays = 30): Promise<ProviderBillingSummaryWire> {
+    if (!this.isProviderAvailable()) {
+      throw DomainError.badRequest('PROVIDER_BASE_URL_MISSING');
+    }
+    const response = await axios.get(`${config.provider_base_url}/subscriptions/billing-summary/${username}`, {
+      params: { period: periodDays },
+      headers: { 'server-secret': config.server_secret },
+      timeout: 10_000,
+    });
+    return response.data as ProviderBillingSummaryWire;
   }
 
   /**

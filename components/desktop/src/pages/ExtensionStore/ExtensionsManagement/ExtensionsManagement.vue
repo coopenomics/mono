@@ -1,7 +1,8 @@
 <template lang="pug">
 .catalog-shell
-  //- На карточке расширения (one-extension) табы каталога не показываем —
-  //- видна только подстраница приложения с кнопкой «Назад» в топбаре.
+  //- На странице приложения (one-extension) табы не показываем — видна
+  //- только она сама с кнопкой «Назад». На страницах подключения у оператора
+  //- свои вкладки.
   PageTabs(v-if='showTabs', :tabs='tabs')
   .catalog-shell__content
     router-view
@@ -13,17 +14,17 @@ import { useRoute } from 'vue-router';
 import { PageTabs } from 'src/shared/ui/layout';
 import { t } from 'src/shared/i18n';
 
-// Shell-страница «Каталог приложений»: канон-меню второго уровня
-// (Витрина / Установленные) вместо кнопок в топбаре.
+// Оболочка стола «Приложения»: канон-меню второго уровня
+// (Каталог / Установленные / Подписки) вместо кнопок в топбаре.
 const tabs = [
   { key: 'extstore-showcase', routeName: 'extstore-showcase', label: t('extensionStore.extensionsManagement.showcaseTab'), icon: 'storefront' },
   { key: 'appstore-installed', routeName: 'appstore-installed', label: t('extensionStore.extensionsManagement.installedTab'), icon: 'check_circle' },
+  { key: 'apps-subscriptions', routeName: 'apps-subscriptions', label: t('extensionStore.extensionsManagement.subscriptionsTab'), icon: 'receipt_long' },
 ];
 
 const route = useRoute();
-// На странице конкретного приложения и его подстраницах табы каталога прячем.
 const showTabs = computed(() =>
-  !route.matched.some((m) => m.name === 'one-extension'),
+  !route.matched.some((m) => m.name === 'one-extension' || m.name === 'connect'),
 );
 </script>
 

@@ -4,11 +4,8 @@ import { $, type GraphQLTypes, type InputType, Selector } from '../../zeus/index
 export const name = 'appsCatalogRemotePackages'
 
 /**
- * Публичный каталог remote-пакетов из apps-catalog (Story 9.5.b).
- *
- * Прокси-резолвер на mono controller'е дергает catalog-operator
- * `GET /v1/public/packages` и возвращает список с UI-полями
- * (title / description / rubPerMonth — на MVP из дефолтов, в будущем из manifest).
+ * Приложения каталога для узла: цена и пробный срок у провайдера подключения,
+ * подписка кооператива, получен ли фронт и включено ли приложение.
  */
 export const query = Selector('Query')({
   [name]: [

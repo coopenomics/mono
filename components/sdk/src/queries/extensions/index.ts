@@ -1,6 +1,9 @@
 /** Публичный каталог remote-пакетов apps-catalog (Story 9.5.b) */
 export * as AppsCatalogRemotePackages from './appsCatalogRemotePackages'
 
+/** Подписки, счёт и кошелёк кооператива у провайдера подключения — для показа на узле */
+export * as AppsNodeBilling from './appsNodeBilling'
+
 /** Заявки на модерацию пакетов — операторский стол ВОСХОДА (Story 9.9) */
 export * as AppsCatalogPendingModerations from './appsCatalogPendingModerations'
 

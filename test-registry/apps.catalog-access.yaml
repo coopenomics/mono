@@ -14,15 +14,30 @@ title: Вход узла кооператива в каталог приложе
 # передаёт его оркестратору (раз в 10 минут, токен живёт 30). Оркестратор
 # опрашивает catalog-delivery: действующие подписки → установка/снятие,
 # версии выпусков → обновление.
+#
+# Правка 26.10.2026 (487-34, решение владельца): подписку на приложение
+# оформляет узел кооператива сам, на столе «Приложения» (расширение `apps`);
+# оператор подписку только показывает. Витрина сводит каталог, провайдера
+# (цена, пробный срок из публикации, подписка), оркестратор (фронт получен)
+# и состояние узла (включено/выключено, таблица apps_catalog_apps). Подписки
+# и кошелёк кооператива у оператора узел читает для показа: подписки — у
+# провайдера, остаток — из цепи по области оператора.
 sources:
   backend:
     - components/controller/src/application/auth-v2/certificate/catalog-key.service.ts
     - components/controller/src/extensions/apps-catalog-proxy/infrastructure/apps-catalog-http.service.ts
     - components/orchestrator/src/watcher/**
     - components/controller/src/application/provider/dto/provider-app.dto.ts
+    - components/controller/src/extensions/apps-catalog-proxy/application/services/node-apps.service.ts
+    - components/controller/src/extensions/apps-catalog-proxy/application/services/catalog-apps-state.service.ts
+    - components/controller/src/extensions/apps-catalog-proxy/application/resolvers/apps.resolver.ts
+    - components/controller/src/extensions/apps-catalog-proxy/application/access/apps-rights.ts
+    - components/controller/src/infrastructure/innercoop/provider-apps-innercoop.adapter.ts
   ui:
-    - components/desktop/src/widgets/ConnectionDashboard/ui/AppsCard.vue
-    - components/desktop/src/features/Provider/model/apps.ts
+    - components/desktop/src/widgets/CatalogApp/**
+    - components/desktop/src/entities/CatalogApp/**
+    - components/desktop/src/pages/ExtensionStore/**
+    - components/desktop/src/processes/init-installed-extensions/**
 
 cases:
   - id: apps.access.happy.01
@@ -101,7 +116,7 @@ cases:
     expect: >
       подписка оформлена у провайдера на кооператив узла и входит в общий счёт; ответ activated
       с датами; при действующей подписке — alreadyActive без новой строки счёта
-    test: components/controller/tests/unit/apps-catalog-proxy/subscribe-package.test.ts
+    test: components/controller/tests/unit/apps-catalog-proxy/node-apps.test.ts
     status: written
     external: unreachable
     external_reason: "у стенда внешнего слоя нет провайдера; проверено вручную на mono-ai-5 23.10.2026 (activated, alreadyActive, failed)"
@@ -113,7 +128,7 @@ cases:
     expect: >
       failed с причиной от провайдера; на узле без провайдера — unavailable с подсказкой оформить
       подписку на столе подключения у оператора, в каталог узел не идёт
-    test: components/controller/tests/unit/apps-catalog-proxy/subscribe-package.test.ts
+    test: components/controller/tests/unit/apps-catalog-proxy/node-apps.test.ts
     status: written
     external: unreachable
     external_reason: "у стенда внешнего слоя нет провайдера и узла партнёра"
@@ -140,7 +155,7 @@ cases:
     expect: >-
       цена не выдумывается и никуда не отсылает: витрина отдаёт ошибку «провайдер не
       ответил»; непредложенный пакет в витрину не попадает; описание без имени издателя
-    test: components/controller/tests/unit/apps-catalog-proxy/subscribe-package.test.ts
+    test: components/controller/tests/unit/apps-catalog-proxy/node-apps.test.ts
     status: written
     external: unreachable
     external_reason: "у стенда внешнего слоя нет провайдера и каталога"
@@ -159,3 +174,43 @@ cases:
     status: written
     external: unreachable
     external_reason: "у стенда внешнего слоя нет каталога приложений"
+
+  - id: apps.access.happy.05
+    level: backend
+    kind: happy
+    scenario: >
+      Витрина узла: пакет каталога с ценой и пробным сроком у провайдера, подписка кооператива
+      (платная или пробная), фронт в кэше оркестратора, переключатель узла.
+    expect: >
+      Строка витрины несёт цену месяца, trialDays, подписку с isTrial/trialEndsAt/nextPaymentDue,
+      installed по кэшу оркестратора и enabled по таблице узла; выключенное приложение и пакет
+      без фронта помечены так; провайдер не ответил — витрина не отдаётся
+    test: components/controller/tests/unit/apps-catalog-proxy/node-apps.test.ts
+    status: written
+    api: components/boot/src/tests/catalog-apps-two-coop.test.ts
+
+  - id: apps.access.happy.06
+    level: backend
+    kind: happy
+    scenario: >
+      Председатель отменяет подписку, выключает и включает приложение на узле.
+    expect: >
+      Отмена идёт провайдеру (cancelled / notSubscribed / unavailable); переключатель пишется в
+      состояние узла и подписку не трогает; выключенный пакет не попадает в installed-frontends
+    test: components/controller/tests/unit/apps-catalog-proxy/node-apps.test.ts
+    status: written
+    api: components/boot/src/tests/catalog-apps-two-coop.test.ts
+
+  - id: apps.access.happy.07
+    level: backend
+    kind: happy
+    scenario: >
+      Совет открывает «Подписки» на узле кооператива.
+    expect: >
+      Подписки у провайдера без отменённых, итог в месяц, долг по позициям с наступившим сроком,
+      ближайшее списание; оператор — родительский аккаунт из реестра сети, кошелёк членских
+      взносов — строка userwallets по области оператора, AXON — остаток счёта; цепь не ответила —
+      подписки есть, кошелька нет; узел без провайдера — available=false
+    test: components/controller/tests/unit/apps-catalog-proxy/node-apps.test.ts
+    status: written
+    api: components/boot/src/tests/catalog-apps-two-coop.test.ts

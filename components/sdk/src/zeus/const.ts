@@ -2830,6 +2830,9 @@ export const AllTypesProps: Record<string,any> = {
 		setBranchPrivate:{
 			data:"SetBranchPrivateInput"
 		},
+		setCatalogAppEnabled:{
+			data:"SetCatalogAppEnabledInput"
+		},
 		setLoginFactors:{
 			data:"SetLoginFactorsInput"
 		},
@@ -2874,6 +2877,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		uninstallExtension:{
 			data:"UninstallExtensionInput"
+		},
+		unsubscribePackage:{
+			data:"SubscribePackageInputDTO"
 		},
 		unverifyParticipant:{
 			data:"UnverifyParticipantInput"
@@ -4037,6 +4043,9 @@ export const AllTypesProps: Record<string,any> = {
 	SetCapitalProjectPriorityInput:{
 		priority:"ProjectPriority"
 	},
+	SetCatalogAppEnabledInput:{
+
+	},
 	SetConfigInput:{
 		config:"ConfigInput"
 	},
@@ -4154,6 +4163,7 @@ export const AllTypesProps: Record<string,any> = {
 	UninstallExtensionInput:{
 
 	},
+	UnsubscribePackageStatus: "enum" as const,
 	UnverifyParticipantInput:{
 
 	},
@@ -4304,10 +4314,6 @@ export const AllTypesProps: Record<string,any> = {
 }
 
 export const ReturnTypes: Record<string,any> = {
-	auth:{
-		roles:"String",
-		self:"String"
-	},
 	AccessGrant:{
 		action:"String",
 		resource:"String"
@@ -4447,11 +4453,51 @@ export const ReturnTypes: Record<string,any> = {
 	AppsCatalogRemotePackageDTO:{
 		compatibleSubnets:"String",
 		description:"String",
+		enabled:"Boolean",
+		installed:"Boolean",
 		lastActiveVersion:"String",
 		packageId:"String",
 		publisher:"String",
 		rubPerMonth:"Float",
-		title:"String"
+		subscription:"AppsCatalogSubscription",
+		title:"String",
+		trialDays:"Int"
+	},
+	AppsCatalogSubscription:{
+		amountPerPeriod:"Float",
+		expiresAt:"String",
+		isTrial:"Boolean",
+		nextPaymentDue:"String",
+		startedAt:"String",
+		status:"ProviderAppSubscriptionStatus",
+		trialEndsAt:"String"
+	},
+	AppsNodeBilling:{
+		available:"Boolean",
+		dueAmount:"Float",
+		monthlyTotal:"Float",
+		nextPaymentDue:"String",
+		operator:"String",
+		subscriptions:"AppsNodeSubscription",
+		wallet:"AppsNodeWallet"
+	},
+	AppsNodeSubscription:{
+		code:"String",
+		expiresAt:"String",
+		id:"Int",
+		isTrial:"Boolean",
+		kind:"String",
+		name:"String",
+		nextPaymentDue:"String",
+		packageId:"String",
+		periodDays:"Int",
+		price:"Float",
+		startedAt:"String",
+		status:"ProviderAppSubscriptionStatus"
+	},
+	AppsNodeWallet:{
+		axonAvailable:"String",
+		membershipAvailable:"String"
 	},
 	AppsPublisher:{
 		addedBy:"String",
@@ -8480,6 +8526,7 @@ export const ReturnTypes: Record<string,any> = {
 		selectProviderTariff:"SelectProviderTariffResult",
 		sendAgreement:"Transaction",
 		setBranchPrivate:"Branch",
+		setCatalogAppEnabled:"Boolean",
 		setLoginFactors:"LoginFactors",
 		setPaymentStatus:"GatewayPayment",
 		setRecoveryStrategy:"Boolean",
@@ -8496,6 +8543,7 @@ export const ReturnTypes: Record<string,any> = {
 		subscribeProviderApp:"ProviderApp",
 		triggerNotificationWorkflow:"Boolean",
 		uninstallExtension:"Boolean",
+		unsubscribePackage:"UnsubscribePackageResultDTO",
 		unverifyParticipant:"ParticipantVerification",
 		updateAccount:"Account",
 		updateBankAccount:"PaymentMethod",
@@ -9098,13 +9146,17 @@ export const ReturnTypes: Record<string,any> = {
 		period_days:"Int",
 		price:"Float",
 		subscription:"ProviderAppSubscription",
-		title:"String"
+		title:"String",
+		trial_days:"Int"
 	},
 	ProviderAppSubscription:{
 		amount_per_period:"Float",
 		expires_at:"String",
+		is_trial:"Boolean",
+		next_payment_due:"String",
 		started_at:"String",
-		status:"ProviderAppSubscriptionStatus"
+		status:"ProviderAppSubscriptionStatus",
+		trial_ends_at:"String"
 	},
 	ProviderCatalogServerOption:{
 		description:"String",
@@ -9218,6 +9270,7 @@ export const ReturnTypes: Record<string,any> = {
 		agreements:"PaginatedAgreementsPaginationResult",
 		appsCatalogPendingModerations:"ModerationRequestDTO",
 		appsCatalogRemotePackages:"AppsCatalogRemotePackageDTO",
+		appsNodeBilling:"AppsNodeBilling",
 		appsPublishers:"AppsPublisher",
 		buildInitialReportEdits:"BuildInitialReportEdits",
 		candidates:"PaginatedCandidatesPaginationResult",
@@ -9982,6 +10035,11 @@ export const ReturnTypes: Record<string,any> = {
 	},
 	UnreadNotificationsCount:{
 		count:"Int"
+	},
+	UnsubscribePackageResultDTO:{
+		error:"String",
+		packageId:"String",
+		status:"UnsubscribePackageStatus"
 	},
 	UserAccount:{
 		meta:"String",

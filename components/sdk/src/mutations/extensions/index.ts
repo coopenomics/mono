@@ -8,8 +8,12 @@ export * as UpdateExtension from './updateExtension'
 export * as PublishPackage from './publishPackage'
 /** Опубликовать релиз пакета с manifest'ом (Story 9.3.b-rel) */
 export * as PublishRelease from './publishRelease'
-/** Активировать подписку кооператива на пакет каталога (Story 9.3.b-sub) */
+/** Оформить подписку кооператива на приложение каталога у провайдера подключения */
 export * as SubscribePackage from './subscribePackage'
+/** Отменить подписку кооператива на приложение каталога */
+export * as UnsubscribePackage from './unsubscribePackage'
+/** Включить или выключить приложение каталога на рабочем столе */
+export * as SetCatalogAppEnabled from './setCatalogAppEnabled'
 /** Approve заявки на модерацию — операторский стол ВОСХОДА (Story 9.9) */
 export * as ApproveModeration from './approveModeration'
 /** Reject заявки на модерацию с причиной (Story 9.9) */

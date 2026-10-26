@@ -9,6 +9,13 @@ BaseCard(v-if="visible")
       BaseBadge(variant="neg") {{ badgeLabel }}
       span.due-card__head-note(v-if="isReleased") {{ $t('connectionDashboard.billingDueCard.backupNote') }}
 
+    //- Что именно просрочено и с какой даты: без этого «к оплате 3 500»
+    //- выглядело произвольным числом (26.10.2026).
+    p.due-card__intro(v-if="summary.overdue.length") {{ $t('connectionDashboard.billingDueCard.overdueIntro') }}
+    ul.due-card__list(v-if="summary.overdue.length")
+      li(v-for="sub in summary.overdue" :key="sub.id")
+        | {{ $t('connectionDashboard.billingDueCard.overdueSince', { name: overdueName(sub), date: overdueDate(sub) }) }}
+
     .due-card__rows
       .due-card__row
         span {{ $t('connectionDashboard.billingDueCard.dueLabel') }}
@@ -42,6 +49,7 @@ import { useSystemStore } from 'src/entities/System/model'
 import { useConvertToBillingVisibility } from 'src/features/Billing/ConvertToBilling'
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits'
 import { t } from 'src/shared/i18n';
+import { formatDateToLocalTimezone } from 'src/shared/lib/utils/dates/timezone'
 
 const session = useSessionStore()
 const system = useSystemStore()
@@ -84,6 +92,18 @@ const { isVisible } = useConvertToBillingVisibility()
 const openConvert = () => {
   isVisible.value = true
 }
+
+/** Название просроченной подписки; у приложения каталога — имя пакета. */
+const overdueName = (sub: any): string => {
+  const code = String(sub?.subscription_type_code ?? '')
+  if (!code.startsWith('catalog:')) return String(sub?.subscription_type_name ?? '')
+  const tail = code.split('/').pop() ?? ''
+  return tail.charAt(0).toUpperCase() + tail.slice(1)
+}
+
+/** Дата, с которой подписка не оплачена: конец оплаченного срока. */
+const overdueDate = (sub: any): string =>
+  sub?.expires_at ? formatDateToLocalTimezone(sub.expires_at, 'DD.MM.YYYY') : '—'
 </script>
 
 <style scoped>
@@ -101,6 +121,19 @@ const openConvert = () => {
 .due-card__head-note {
   font-size: var(--p-fs-meta);
   color: var(--p-ink-2);
+}
+.due-card__intro {
+  margin: 0;
+  font-size: var(--p-fs-body-sm);
+  line-height: var(--p-lh-body-sm);
+  color: var(--p-ink-2);
+}
+.due-card__list {
+  margin: 0;
+  padding-left: var(--p-5);
+  font-size: var(--p-fs-body-sm);
+  line-height: var(--p-lh-body-sm);
+  color: var(--p-ink);
 }
 .due-card__rows {
   display: flex;

@@ -33,6 +33,9 @@ import { AppsCatalogProxyModule } from './apps-catalog-proxy/apps-catalog-proxy.
 import { DeveloperExtension, Schema as DeveloperSchema } from './apps-catalog-proxy/developer-extension';
 import { appsCatalogProxyDatabaseMigrations } from './apps-catalog-proxy/apps-catalog-proxy.database-migrations';
 import { appsCatalogProxyPorts } from './apps-catalog-proxy/apps-catalog-proxy.ports';
+import { AppsExtensionModule } from './apps-catalog-proxy/apps-extension.module';
+import { AppsExtension, Schema as AppsSchema, defaultConfig as appsDefaultConfig } from './apps-catalog-proxy/apps-extension';
+import { appsPorts } from './apps-catalog-proxy/apps.ports';
 
 import { chatcoopMigrations } from './chatcoop/chatcoop.migrations';
 import { marketplaceMigrations } from './marketplace/marketplace.migrations';
@@ -202,6 +205,34 @@ export const AppRegistry: INamedExtension = {
     tags: [t('app.extensionsRegistry.capital.tagDesk'), t('app.extensionsRegistry.capital.tagManagement')],
     readme: getReadmeContent('./capital'),
     instructions: getInstructionsContent('./capital'),
+    get is_desktop() {
+      return !!this.desktops && this.desktops.length > 0;
+    },
+  },
+  apps: {
+    is_internal: true,
+    availability: ExtensionAvailability.EVERYWHERE,
+    desktops: [
+      {
+        name: 'apps',
+        title: t('app.extensionsRegistry.apps.windowTitle'),
+        icon: 'apps',
+      },
+    ],
+    title: t('app.extensionsRegistry.apps.title'),
+    description: t('app.extensionsRegistry.apps.description'),
+    image: 'https://i.ibb.co/HRW1nFY/Chat-GPT-Image-10-2025-20-40-57.png',
+    class: AppsExtensionModule,
+    extensionClass: AppsExtension,
+    // Стол «Приложения» нужен каждому кооперативу: в нём живут каталог
+    // встроенных расширений и подключение у оператора (26.10.2026).
+    defaults: { enabled: true, config: appsDefaultConfig },
+    databaseMigrations: appsCatalogProxyDatabaseMigrations,
+    ports: appsPorts,
+    schema: AppsSchema,
+    tags: [t('app.extensionsRegistry.apps.tagDesk'), t('app.extensionsRegistry.apps.tagManagement')],
+    readme: getReadmeContent('./apps-catalog-proxy'),
+    instructions: getInstructionsContent('./apps-catalog-proxy'),
     get is_desktop() {
       return !!this.desktops && this.desktops.length > 0;
     },

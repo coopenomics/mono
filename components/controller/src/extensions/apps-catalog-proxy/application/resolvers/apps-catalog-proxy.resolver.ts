@@ -1,7 +1,7 @@
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
-import { BadRequestException, Inject, Logger, Optional, ServiceUnavailableException, UseGuards } from '@nestjs/common';
-import { GqlJwtAuthGuard, RightsGuard, RequireRight, CurrentUser, catalogAppTitle, platformSettings } from '@coopenomics/extension-kit';
-import { InnerAppSubscriptionStatus, PROVIDER_APPS_PORT, type IMonoAccount, type IProviderAppsPort } from '@coopenomics/innercoop';
+import { BadRequestException, Logger, UseGuards } from '@nestjs/common';
+import { GqlJwtAuthGuard, RightsGuard, RequireRight, CurrentUser } from '@coopenomics/extension-kit';
+import { type IMonoAccount } from '@coopenomics/innercoop';
 import { t } from '../../i18n';
 import {
   AppsCatalogHttpService,
@@ -9,7 +9,6 @@ import {
   type ModerationStatus,
   type ReleaseScopeInput,
 } from '../../infrastructure/apps-catalog-http.service';
-import { AppsCatalogRemotePackageDTO } from '../dto/apps-catalog-remote-package.dto';
 import { ApproveModerationInputDTO } from '../dto/approve-moderation-input.dto';
 import {
   ApproveModerationResultDTO,
@@ -46,12 +45,6 @@ import {
   RejectModerationResultDTO,
   RejectModerationStatus,
 } from '../dto/reject-moderation-result.dto';
-import { SubscribePackageInputDTO } from '../dto/subscribe-package-input.dto';
-import {
-  SubscribePackageResultDTO,
-  SubscribePackageStatus,
-  SubscriptionStateEnum,
-} from '../dto/subscribe-package-result.dto';
 
 const toReleaseScope = (dto: ReleaseScopeInputDTO): ReleaseScopeInput => {
   switch (dto.type) {
@@ -126,47 +119,7 @@ export class AppsCatalogProxyResolver {
   constructor(
     private readonly client: AppsCatalogHttpService,
     private readonly publishers: AppsPublishersService,
-    @Optional() @Inject(PROVIDER_APPS_PORT) private readonly providerApps?: IProviderAppsPort,
   ) {}
-
-  @Query(() => [AppsCatalogRemotePackageDTO], {
-    name: 'appsCatalogRemotePackages',
-    description:
-      'Список remote-пакетов из публичного каталога apps-catalog. ' +
-      'Защищён JWT (видят только авторизованные пайщики). ' +
-      'Источник — catalog-operator /v1/public/packages; controller проксирует.',
-  })
-  @UseGuards(GqlJwtAuthGuard)
-  async appsCatalogRemotePackages(
-    @Args('page', { type: () => Number, defaultValue: 1 }) page: number,
-    @Args('pageSize', { type: () => Number, defaultValue: 50 }) pageSize: number,
-  ): Promise<AppsCatalogRemotePackageDTO[]> {
-    const [packages, offers] = await Promise.all([
-      this.client.listPublicPackages(page, pageSize),
-      this.providerApps?.listOffers(platformSettings().coopname) ?? Promise.resolve(null),
-    ]);
-    // Цена — у провайдера: подписка входит в общий счёт кооператива. Без цены
-    // витрина не показывается вовсе — председатель подписывается, видя сумму.
-    if (offers === null) {
-      throw new ServiceUnavailableException(t('appsCatalogProxy.catalog.pricesUnavailable'));
-    }
-    // Пакет, который провайдер кооперативу не предлагает, оформить нельзя —
-    // в витрину он не попадает.
-    const priceOf = new Map(offers.map((o) => [o.package_id, o]));
-    return packages.flatMap((p) => {
-      const offer = priceOf.get(p.packageId);
-      if (!offer || offer.period_days <= 0) return [];
-      return [{
-        packageId: p.packageId,
-        publisher: p.publisher,
-        compatibleSubnets: p.compatibleSubnets,
-        lastActiveVersion: p.lastActiveVersion,
-        title: catalogAppTitle(p.packageId),
-        description: t('appsCatalogProxy.remotePackage.description'),
-        rubPerMonth: Math.round((offer.price * 30) / offer.period_days),
-      }];
-    });
-  }
 
   /**
    * Story 9.3.b-pub — стол разработчика публикует пакет в каталоге восхода.
@@ -553,57 +506,4 @@ export class AppsCatalogProxyResolver {
     };
   }
 
-  /**
-   * Подписка кооператива на пакет каталога (Архитектура v5, 487-34).
-   *
-   * Подписка на приложение — строка общего счёта кооператива у провайдера:
-   * провайдер заводит её, включает в счёт и сам передаёт каталогу. Канал к
-   * провайдеру есть у каждого узла контура; не ответил — `unavailable` с
-   * причиной, подписка не оформлена.
-   *
-   * Discriminated outcome:
-   *  - `activated` — подписка оформлена;
-   *  - `alreadyActive` — у кооператива уже есть действующая подписка;
-   *  - `unavailable` — провайдер не ответил;
-   *  - `failed` — пакет не предлагается или провайдер отказал.
-   */
-  @Mutation(() => SubscribePackageResultDTO, {
-    name: 'subscribePackage',
-    description:
-      'Оформляет подписку кооператива на приложение из каталога. Подписка входит в общий счёт ' +
-      'кооператива у провайдера подключения. Только председатель.',
-  })
-  @UseGuards(GqlJwtAuthGuard, RightsGuard)
-  @RequireRight('Developer', 'manage')
-  async subscribePackage(
-    @Args('data', { type: () => SubscribePackageInputDTO })
-    data: SubscribePackageInputDTO,
-  ): Promise<SubscribePackageResultDTO> {
-    if (!this.providerApps) {
-      return { status: SubscribePackageStatus.UNAVAILABLE, error: t('appsCatalogProxy.catalog.providerUnavailable') };
-    }
-    const outcome = await this.providerApps.subscribe(platformSettings().coopname, data.packageId);
-    switch (outcome.status) {
-      case 'subscribed': {
-        const s = outcome.subscription;
-        if (!outcome.created) {
-          return { status: SubscribePackageStatus.ALREADY_ACTIVE, packageId: s.package_id };
-        }
-        this.logger.log(`subscribePackage: ${s.package_id} оформлена у провайдера до ${s.expires_at}`);
-        return {
-          status: SubscribePackageStatus.ACTIVATED,
-          state: s.status === InnerAppSubscriptionStatus.TRIAL ? SubscriptionStateEnum.TRIAL : SubscriptionStateEnum.ACTIVE,
-          packageId: s.package_id,
-          plan: 'default',
-          startAt: s.started_at,
-          endAt: s.expires_at,
-          freeTrialUsed: false,
-        };
-      }
-      case 'unavailable':
-        return { status: SubscribePackageStatus.UNAVAILABLE, error: t('appsCatalogProxy.catalog.providerUnavailable') };
-      default:
-        return { status: SubscribePackageStatus.FAILED, error: outcome.error };
-    }
-  }
 }

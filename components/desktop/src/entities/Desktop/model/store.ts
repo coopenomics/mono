@@ -3,6 +3,7 @@ import { computed, ref } from 'vue';
 import { RouteRecordRaw, type RouteMeta, type Router } from 'vue-router';
 import type {
   IBackNavigationButton,
+  IDesktop,
   IDesktopWithNavigation,
 } from './types';
 import { api } from '../api';
@@ -108,6 +109,8 @@ export const useDesktopStore = defineStore(namespace, () => {
       ...newDesktop,
       backNavigationButton: currentDesktop.value?.backNavigationButton || null,
     };
+    // Столы приложений из каталога сервер не знает — возвращаем их на место.
+    mergeRemoteWorkspaces();
 
     console.log('🏠 [DesktopStore] Desktop updated, active workspace:', activeWorkspaceName.value);
     // Сбрасываем состояние загрузки после загрузки рабочего стола
@@ -421,6 +424,61 @@ export const useDesktopStore = defineStore(namespace, () => {
     }
   }
 
+  // ─────────────── Столы приложений из каталога (26.10.2026) ───────────────
+  // Сервер отдаёт столы только встроенных расширений: о столах пакета каталога
+  // знает лишь его install.js, который выполняет рабочий стол. Поэтому такие
+  // столы регистрирует сам стол, помнит их отдельно и возвращает на место после
+  // каждой перезагрузки списка столов с сервера. Прав у пакета нет — его
+  // страницы открыты всем вошедшим пайщикам узла под служебным правом.
+  const REMOTE_GRANT = 'App:use';
+  const remoteWorkspaces = ref<Record<string, IDesktop['workspaces'][number]>>({});
+
+  function ensureRemoteWorkspace(entry: {
+    name: string;
+    title: string;
+    extension_name: string;
+    icon?: string | null;
+    defaultRoute?: string;
+    routes: RouteRecordRaw[];
+  }): void {
+    // Страница без права скрыта всегда; у пакета своих прав нет — ставим служебное.
+    const routes = entry.routes.map((r) => ({
+      ...r,
+      meta: { requires: REMOTE_GRANT, ...(r.meta ?? {}) },
+      children: (r.children ?? []).map((c) => ({ ...c, meta: { requires: REMOTE_GRANT, ...(c.meta ?? {}) } })),
+    }));
+    const ws = {
+      name: entry.name,
+      title: entry.title,
+      extension_name: entry.extension_name,
+      extension_title: entry.title,
+      icon: entry.icon ?? 'extension',
+      defaultRoute: entry.defaultRoute,
+      grants: [REMOTE_GRANT],
+      routes,
+    } as unknown as IDesktop['workspaces'][number];
+    remoteWorkspaces.value = { ...remoteWorkspaces.value, [entry.name]: ws };
+    mergeRemoteWorkspaces();
+  }
+
+  /** Столы пакетов, которых больше нет среди установленных, снимаются с рабочего стола. */
+  function keepRemoteWorkspaces(names: Set<string>): void {
+    const next: Record<string, IDesktop['workspaces'][number]> = {};
+    for (const [name, ws] of Object.entries(remoteWorkspaces.value)) {
+      if (names.has(name)) next[name] = ws;
+      else removeWorkspace(name);
+    }
+    remoteWorkspaces.value = next;
+  }
+
+  function mergeRemoteWorkspaces(): void {
+    if (!currentDesktop.value) return;
+    for (const ws of Object.values(remoteWorkspaces.value)) {
+      const existing = currentDesktop.value.workspaces.find((w) => w.name === ws.name);
+      if (!existing) currentDesktop.value.workspaces = [...currentDesktop.value.workspaces, ws];
+    }
+  }
+
   // Методы для управления навигацией
   function setBackNavigationButton(button: IBackNavigationButton) {
     if (!currentDesktop.value) return;
@@ -647,6 +705,8 @@ export const useDesktopStore = defineStore(namespace, () => {
     activeSecondLevelRoutes,
     registerWorkspaceMenus,
     removeWorkspace,
+    ensureRemoteWorkspace,
+    keepRemoteWorkspaces,
     getDefaultPageRoute,
     goToDefaultPage,
     setWorkspaceChanging,

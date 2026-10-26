@@ -238,14 +238,22 @@ export async function loadRemoteExtension(
 }
 
 /**
- * Память pass'а: какие пакеты уже eval'нуты в этой SPA-сессии.
+ * Память pass'а: столы уже eval'нутых в этой SPA-сессии пакетов.
  * Ключ — `packageId@version`: новая версия пакета считается новым
- * кандидатом на установку (повторный eval того же кода не делаем).
+ * кандидатом на установку (повторный eval того же кода не делаем), а
+ * столы прежних остаются в памяти — выключенное и снова включённое
+ * приложение возвращается на стол без повторного eval.
  */
-const installedRemoteKeys = new Set<string>();
+const installedRemoteConfigs = new Map<string, IWorkspaceConfig[]>();
 
 function remoteKeyOf(desc: RemoteExtensionDescriptor): string {
   return `${desc.packageId}@${desc.version ?? 'unversioned'}`;
+}
+
+/** Столы одного пакета каталога вместе с его именем. */
+export interface RemotePackageWorkspaces {
+  packageId: string;
+  configs: IWorkspaceConfig[];
 }
 
 /**
@@ -262,20 +270,24 @@ function remoteKeyOf(desc: RemoteExtensionDescriptor): string {
 export async function installRemoteExtensions(
   coopname: string,
   router: Router,
-): Promise<IWorkspaceConfig[]> {
+): Promise<RemotePackageWorkspaces[]> {
   // router зарезервирован для будущей story 11.x (sandbox-аутоинъекция
   // роутов из install.js без возврата в caller); сейчас caller сам
   // вписывает routes в `router.addRoute('base', ...)`.
   void router;
   const descriptors = await fetchInstalledRemotePackages(coopname);
-  const all: IWorkspaceConfig[] = [];
+  const all: RemotePackageWorkspaces[] = [];
   for (const desc of descriptors) {
     const key = remoteKeyOf(desc);
-    if (installedRemoteKeys.has(key)) continue;
+    const cached = installedRemoteConfigs.get(key);
+    if (cached) {
+      all.push({ packageId: desc.packageId, configs: cached });
+      continue;
+    }
     try {
       const cfgs = await loadRemoteExtension(desc);
-      installedRemoteKeys.add(key);
-      all.push(...cfgs);
+      installedRemoteConfigs.set(key, cfgs);
+      all.push({ packageId: desc.packageId, configs: cfgs });
       console.log(
         `[remote-loader] установлен ${desc.packageId}${desc.version ? '@' + desc.version : ''} (${cfgs.length} workspace[ов])`,
       );

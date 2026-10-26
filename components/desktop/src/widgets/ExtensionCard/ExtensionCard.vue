@@ -4,48 +4,37 @@ AppCard(
   :seed='extension.name || extension.title || ""',
   :title='extension.title',
   :description='extension.description',
-  origin='builtin',
   :price="$t('extensionCard.extensionCard.free')",
+  :state='state',
   :clickable='extension.is_available',
+  :muted='!extension.is_available',
   @open='open'
 )
-  template(#badges)
-    BaseBadge(v-if='isInstalled', variant='pos') {{ $t('extensionCard.extensionCard.installedBadge') }}
-    BaseBadge(v-else-if='!extension.is_available', variant='warn') {{ $t('extensionCard.extensionCard.inDevelopmentBadge') }}
-  template(#foot, v-if='extension.is_available')
-    span.app-card-more
-      | {{ $t('extensionCard.extensionCard.moreLink') }}
-      q-icon(name='arrow_forward', size='14px')
 </template>
 
 <script lang="ts" setup>
 import type { IExtension } from 'src/entities/Extension/model/types';
 import { computed } from 'vue';
 import { useRouter } from 'vue-router';
-import { BaseBadge } from 'src/shared/ui/base';
-import AppCard from './AppCard.vue';
+import { t } from 'src/shared/i18n';
+import AppCard, { type AppCardState } from './AppCard.vue';
 
 const props = defineProps<{ extension: IExtension }>();
 
 const router = useRouter();
 
-const isInstalled = computed(
-  () => props.extension.is_installed && props.extension.is_available,
-);
+// Одна пометка: установлено, выключено или ещё в разработке. Не установленное
+// и готовое приложение пометки не носит — пустота читается яснее слова.
+const state = computed<AppCardState | null>(() => {
+  const ext = props.extension;
+  if (!ext.is_available) return { label: t('extensionCard.extensionCard.inDevelopmentBadge'), variant: 'neutral' };
+  if (ext.is_installed && ext.enabled) return { label: t('extensionCard.extensionCard.installedBadge'), variant: 'pos' };
+  if (ext.is_installed) return { label: t('extensionCard.extensionCard.disabledBadge'), variant: 'warn' };
+  return null;
+});
 
 const open = () => {
   if (props.extension.is_available)
     router.push({ name: 'one-extension', params: { name: props.extension.name } });
 };
 </script>
-
-<style scoped lang="scss">
-.app-card-more {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--p-1, 4px);
-  font-size: var(--p-fs-body-sm);
-  font-weight: 600;
-  color: var(--p-primary);
-}
-</style>

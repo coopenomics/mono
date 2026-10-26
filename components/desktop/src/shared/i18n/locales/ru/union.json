@@ -19,7 +19,13 @@
       "goToSiteLabel": "Перейти на сайт",
       "loadingText": "Загрузка данных подключения...",
       "maintenanceText": "технические работы...",
-      "title": "Подключение к Кооперативной Экономике"
+      "title": "Подключение к Кооперативной Экономике",
+      "tabs": {
+        "overview": "Счёт",
+        "subscriptions": "Подписки",
+        "payments": "Списания",
+        "node": "Узел"
+      }
     },
     "cooperativeCharter": {
       "uploadError": "Не удалось загрузить устав"

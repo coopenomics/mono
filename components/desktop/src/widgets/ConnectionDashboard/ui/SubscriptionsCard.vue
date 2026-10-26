@@ -21,7 +21,9 @@
       min-width="520px"
     )
       template(#cell-name="{ row }")
-        .subs-card__name {{ row.subscription_type_name }}
+        .subs-card__name {{ rowTitle(row) }}
+        //- Приложение каталога — такая же подписка; пакет под названием.
+        .subs-card__desc.t-mono(v-if="isCatalogApp(row)") {{ row.subscription_type_code.slice('catalog:'.length) }}
         //- Описание и правило объёма документооборота — одним абзацем
         //- (21.10.2026): двумя абзацами строка читалась как два разных текста.
         .subs-card__desc(v-if="rowDescription(row)") {{ rowDescription(row) }}
@@ -193,9 +195,23 @@ const columns: BaseTableColumn<ProviderSubscription>[] = [
 // Порядок услуг в реестре: документооборот — основа участия и платится
 // каждым, поэтому он первый; хостинг идёт следом, остальные услуги — за ними
 // в том порядке, в каком их отдал провайдер.
+// Отменённые подписки в реестре не показываются (26.10.2026): кооператив
+// видит только то, за что платит; история списаний — отдельной вкладкой.
 const orderedSubscriptions = computed(() =>
-  [...subscriptions.value].sort((a: any, b: any) => serviceRank(a) - serviceRank(b)),
+  subscriptions.value
+    .filter((s: any) => !String(s?.status ?? '').toLowerCase().startsWith('cancel'))
+    .sort((a: any, b: any) => serviceRank(a) - serviceRank(b)),
 )
+
+/** Подписка на приложение каталога: код типа `catalog:@scope/name`. */
+const isCatalogApp = (sub: any): boolean => String(sub?.subscription_type_code ?? '').startsWith('catalog:')
+
+/** Название строки: у приложения — имя пакета с прописной, у услуг — название типа. */
+const rowTitle = (sub: any): string => {
+  if (!isCatalogApp(sub)) return String(sub?.subscription_type_name ?? '')
+  const tail = String(sub.subscription_type_code).split('/').pop() ?? ''
+  return tail.charAt(0).toUpperCase() + tail.slice(1)
+}
 
 // Плата за месяц по всем платным услугам — считает общий helper, тот же, что
 // показывает сумму к оплате при просрочке.
@@ -290,7 +306,9 @@ const formatAxonCount = (value: number): string =>
 
 /** Описание услуги, у документооборота — вместе с правилом объёма. */
 const rowDescription = (sub: any): string =>
-  [sub?.subscription_type_description, packageRule(sub)].filter(Boolean).join(' ')
+  isCatalogApp(sub)
+    ? t('connectionDashboard.subscriptionsCard.appFromCatalog')
+    : [sub?.subscription_type_description, packageRule(sub)].filter(Boolean).join(' ')
 
 /**
  * Дата окончания пробного периода. У пробной подписки провайдер ставит

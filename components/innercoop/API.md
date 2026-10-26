@@ -9,7 +9,7 @@
 экспорта, исчезнувший метод, новый обязательный параметр требуют major, а
 снятое старое — периода устаревания не меньше одного minor (INV-009).
 
-Всего экспортов: 342.
+Всего экспортов: 345.
 
 ## ACCOUNT_PORT
 
@@ -699,6 +699,12 @@
 - `extension_name: string`
 - `resolve_doc_data_hash?: () => Promise<string | undefined>`
 
+## InnerAppCancelOutcome
+
+`type` · core-ports
+
+- `| { status: 'cancelled'`
+
 ## InnerAppOffer
 
 `interface` · core-ports
@@ -706,6 +712,7 @@
 - `package_id: string`
 - `price: number`
 - `period_days: number`
+- `trial_days: number`
 
 ## InnerAppSubscribeOutcome
 
@@ -722,6 +729,9 @@
 - `amount_per_period: number`
 - `started_at: string`
 - `expires_at: string`
+- `is_trial?: boolean`
+- `trial_ends_at?: string | null`
+- `next_payment_due?: string | null`
 
 ## InnerAppSubscriptionStatus
 
@@ -760,6 +770,21 @@
 - `bik: string`
 - `corr: string`
 - `}`
+
+## InnerBillingSummary
+
+`interface` · core-ports
+
+- `total_amount: number`
+- `currency: string`
+- `next_payment_due: string | null`
+- `items: Array<{`
+- `subscription_id: number`
+- `name: string`
+- `status: InnerAppSubscriptionStatus`
+- `amount: number`
+- `is_due: boolean`
+- `}>`
 
 ## InnerBranch
 
@@ -2071,6 +2096,23 @@
 - `title?: string`
 - `doc_data_hash?: string`
 
+## InnerProviderSubscription
+
+`interface` · core-ports
+
+- `id: number`
+- `name: string`
+- `code: string | null`
+- `kind: string | null`
+- `package_id: string | null`
+- `status: InnerAppSubscriptionStatus`
+- `is_trial: boolean`
+- `price: number`
+- `period_days: number`
+- `started_at: string`
+- `expires_at: string`
+- `next_payment_due: string | null`
+
 ## InnerProviderTariff
 
 `interface` · core-ports
@@ -2443,7 +2485,11 @@
 `interface` · core-ports
 
 - `subscribe(coopname: string, packageId: string): Promise<InnerAppSubscribeOutcome>`
+- `cancel(coopname: string, packageId: string): Promise<InnerAppCancelOutcome>`
 - `listOffers(coopname: string): Promise<InnerAppOffer[] | null>`
+- `listAppSubscriptions(coopname: string): Promise<InnerAppSubscription[] | null>`
+- `listSubscriptions(coopname: string): Promise<InnerProviderSubscription[] | null>`
+- `billingSummary(coopname: string): Promise<InnerBillingSummary | null>`
 
 ## IProviderTariffPort
 

@@ -14,6 +14,7 @@ import {
   AppsCatalogHttpService,
   type InstalledFrontendMeta,
 } from '../../infrastructure/apps-catalog-http.service';
+import { CatalogAppsStateService } from '../services/catalog-apps-state.service';
 
 const NAME_REGEX = /^[a-z0-9][a-z0-9-]{0,63}$/;
 
@@ -41,11 +42,20 @@ const NAME_REGEX = /^[a-z0-9][a-z0-9-]{0,63}$/;
 @Controller('v1/apps-catalog')
 @UseGuards(HttpJwtAuthGuard)
 export class AppsCatalogInstallScriptController {
-  constructor(private readonly catalog: AppsCatalogHttpService) {}
+  constructor(
+    private readonly catalog: AppsCatalogHttpService,
+    private readonly state: CatalogAppsStateService,
+  ) {}
 
+  /**
+   * Фронты, которые рабочий стол грузит: получены оркестратором и не
+   * выключены на узле. Выключенное приложение остаётся в кэше и в подписке,
+   * но на стол не попадает — как выключенное встроенное расширение.
+   */
   @Get('installed-frontends')
   async installedFrontends(): Promise<{ items: InstalledFrontendMeta[] }> {
-    return { items: await this.catalog.listInstalledFrontends() };
+    const [items, disabled] = await Promise.all([this.catalog.listInstalledFrontends(), this.state.disabledPackageIds()]);
+    return { items: items.filter((item) => !disabled.has(item.packageId)) };
   }
 
   @Get('install/:scope/:name')

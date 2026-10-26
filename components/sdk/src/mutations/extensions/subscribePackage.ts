@@ -3,9 +3,8 @@ import { $, type GraphQLTypes, type InputType, type ModelTypes, Selector } from 
 export const name = 'subscribePackage'
 
 /**
- * Активация подписки кооператива на пакет каталога (Story 9.3.b-sub).
- * Backend-прокси зовёт catalog-delivery `POST /v1/subscriptions/activate` —
- * первый раз подписка trial (если доступен), дальше платная.
+ * Подписка кооператива на приложение каталога у провайдера подключения:
+ * с пробным сроком из публикации стартует пробной, иначе платной.
  */
 export const mutation = Selector('Mutation')({
   [name]: [

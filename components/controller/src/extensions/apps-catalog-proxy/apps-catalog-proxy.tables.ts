@@ -1,2 +1,1 @@
-/** Таблицы расширения в базе кооператива: по ним собираются типы запросов (`pnpm schema:types`). */
-export default ['apps_publishers'] as const;
+export default ['apps_publishers', 'apps_catalog_apps'] as const;
