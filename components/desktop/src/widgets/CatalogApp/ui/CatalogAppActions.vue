@@ -182,6 +182,8 @@ async function unsubscribe(): Promise<void> {
   try {
     const result = await store.unsubscribe(props.app.packageId);
     if (result.status === Zeus.UnsubscribePackageStatus.CANCELLED || result.status === Zeus.UnsubscribePackageStatus.NOT_SUBSCRIBED) {
+      // Стол пакета снимается в момент отписки; проход по пакетам затем сверяет список с узлом.
+      desktop.dropRemoteWorkspacesOf(props.app.packageId);
       await runRemotePass(router);
       SuccessAlert(t('catalogApp.unsubscribe.done', { title: props.app.title }));
     } else {

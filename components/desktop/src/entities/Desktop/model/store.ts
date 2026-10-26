@@ -503,6 +503,20 @@ export const useDesktopStore = defineStore(namespace, () => {
     return routes;
   }
 
+  /**
+   * Столы одного пакета снимаются сразу — в момент отписки, не дожидаясь, пока
+   * узел перестанет отдавать его фронт (27.10.2026: стол висел в меню до
+   * полуминуты после «Подписка отменена»).
+   */
+  function dropRemoteWorkspacesOf(packageId: string): void {
+    const next: Record<string, IDesktop['workspaces'][number]> = {};
+    for (const [name, ws] of Object.entries(remoteWorkspaces.value)) {
+      if ((ws as any).extension_name === packageId) removeWorkspace(name);
+      else next[name] = ws;
+    }
+    remoteWorkspaces.value = next;
+  }
+
   /** Столы пакетов, которых больше нет среди установленных, снимаются с рабочего стола. */
   function keepRemoteWorkspaces(names: Set<string>): void {
     const next: Record<string, IDesktop['workspaces'][number]> = {};
@@ -758,6 +772,7 @@ export const useDesktopStore = defineStore(namespace, () => {
     registerWorkspaceMenus,
     removeWorkspace,
     ensureRemoteWorkspace,
+    dropRemoteWorkspacesOf,
     keepRemoteWorkspaces,
     getDefaultPageRoute,
     goToDefaultPage,

@@ -49,6 +49,18 @@ export class CatalogAppsStateService {
     return this.store.insert({ packageId, enabled: true, config: {}, updatedAt: new Date() });
   }
 
+  /**
+   * Подписка отменена — приложение выключено сразу, не дожидаясь, пока
+   * оркестратор снимет фронт пакета (его сторож опрашивает подписки раз в
+   * несколько секунд). Список установленных фронтов отфильтровывает выключенные,
+   * и стол пакета снимается с рабочего стола в момент отписки (27.10.2026).
+   * Повторная подписка включает приложение через markSubscribed.
+   */
+  async markUnsubscribed(packageId: string): Promise<void> {
+    const existing = await this.store.findOne({ packageId });
+    if (existing && existing.enabled) await this.store.update({ packageId }, { enabled: false, updatedAt: new Date() });
+  }
+
   async setEnabled(packageId: string, enabled: boolean): Promise<CatalogAppRecord> {
     const existing = await this.store.findOne({ packageId });
     if (!existing) return this.store.insert({ packageId, enabled, config: {}, updatedAt: new Date() });

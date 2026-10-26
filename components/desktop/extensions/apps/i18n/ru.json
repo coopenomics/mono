@@ -1,7 +1,7 @@
 {
   "apps": {
     "install": {
-      "title": "Приложения",
+      "title": "Каталог приложений",
       "catalogTitle": "Каталог",
       "installedTitle": "Установленные",
       "subscriptionsTitle": "Подписки",

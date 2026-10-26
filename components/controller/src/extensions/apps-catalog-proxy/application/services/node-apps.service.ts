@@ -141,9 +141,13 @@ export class NodeAppsService {
     const outcome = await this.providerApps.cancel(this.coopname, packageId);
     switch (outcome.status) {
       case 'cancelled':
+        // Стол пакета снимается сразу: приложение выключается на узле до того,
+        // как оркестратор уберёт фронт.
+        await this.state.markUnsubscribed(packageId);
         this.logger.log(`unsubscribePackage: ${packageId} отменена у провайдера`);
         return { status: UnsubscribePackageStatus.CANCELLED, packageId };
       case 'notSubscribed':
+        await this.state.markUnsubscribed(packageId);
         return { status: UnsubscribePackageStatus.NOT_SUBSCRIBED, packageId };
       case 'unavailable':
         return { status: UnsubscribePackageStatus.UNAVAILABLE, error: t('appsCatalogProxy.catalog.providerUnavailable') };
