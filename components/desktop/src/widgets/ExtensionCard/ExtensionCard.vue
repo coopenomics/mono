@@ -2,7 +2,7 @@
 //- Встроенное приложение платформы: бесплатно, открывается своей страницей.
 AppCard(
   :seed='extension.name || extension.title || ""',
-  :title='extension.title',
+  :title='extension.title || extension.name',
   :description='extension.description',
   :price="$t('extensionCard.extensionCard.free')",
   :state='state',
