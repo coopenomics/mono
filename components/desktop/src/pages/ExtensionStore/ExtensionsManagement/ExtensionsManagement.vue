@@ -1,31 +1,14 @@
 <template lang="pug">
+//- Оболочка стола «Приложения»: разделы (Каталог / Установленные / Подписки)
+//- называет вертикальное меню стола, второго меню на странице нет
+//- (решение владельца 26.10.2026). Страница приложения живёт под той же
+//- оболочкой со своей кнопкой «Назад».
 .catalog-shell
-  //- На странице приложения (one-extension) табы не показываем — видна
-  //- только она сама с кнопкой «Назад». На страницах подключения у оператора
-  //- свои вкладки.
-  PageTabs(v-if='showTabs', :tabs='tabs')
   .catalog-shell__content
     router-view
 </template>
 
 <script lang="ts" setup>
-import { computed } from 'vue';
-import { useRoute } from 'vue-router';
-import { PageTabs } from 'src/shared/ui/layout';
-import { t } from 'src/shared/i18n';
-
-// Оболочка стола «Приложения»: канон-меню второго уровня
-// (Каталог / Установленные / Подписки) вместо кнопок в топбаре.
-const tabs = [
-  { key: 'extstore-showcase', routeName: 'extstore-showcase', label: t('extensionStore.extensionsManagement.showcaseTab'), icon: 'storefront' },
-  { key: 'appstore-installed', routeName: 'appstore-installed', label: t('extensionStore.extensionsManagement.installedTab'), icon: 'check_circle' },
-  { key: 'apps-subscriptions', routeName: 'apps-subscriptions', label: t('extensionStore.extensionsManagement.subscriptionsTab'), icon: 'receipt_long' },
-];
-
-const route = useRoute();
-const showTabs = computed(() =>
-  !route.matched.some((m) => m.name === 'one-extension' || m.name === 'connect'),
-);
 </script>
 
 <style scoped lang="scss">

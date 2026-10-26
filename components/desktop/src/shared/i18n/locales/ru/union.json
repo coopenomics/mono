@@ -19,13 +19,12 @@
       "goToSiteLabel": "Перейти на сайт",
       "loadingText": "Загрузка данных подключения...",
       "maintenanceText": "технические работы...",
-      "title": "Подключение к Кооперативной Экономике",
-      "tabs": {
-        "overview": "Счёт",
-        "subscriptions": "Подписки",
-        "payments": "Списания",
-        "node": "Узел"
-      }
+      "title": "Подключение к Кооперативной Экономике"
+    },
+    "connectionSectionGate": {
+      "title": "Кооператив ещё не подключён",
+      "body": "Подписки и узел появятся после завершения установки. Пройдите подключение.",
+      "action": "К подключению"
     },
     "cooperativeCharter": {
       "uploadError": "Не удалось загрузить устав"
@@ -174,23 +173,6 @@
         "trial": "пробный период"
       }
     },
-    "unionPageListOfCooperatives": {
-      "actionsLabel": "действия",
-      "activateAction": "Активировать",
-      "activateSuccess": "Кооператив активирован",
-      "blockAction": "Заблокировать",
-      "blockSuccess": "Кооператив заблокирован",
-      "column": {
-        "announce": "Сайт",
-        "createdAt": "Дата заявки",
-        "status": "Статус",
-        "username": "Аккаунт"
-      },
-      "noDataLabel": "Нет кооперативов",
-      "statusActive": "активен",
-      "statusBlocked": "заблокирован",
-      "statusPending": "на рассмотрении"
-    },
     "tariff": {
       "app": "Приложение на выбор",
       "column": {
@@ -209,6 +191,23 @@
       "serverDetail": "{cpu} CPU · {ram} ГБ",
       "support": "Поддержка платформы",
       "supportDetail": "Ответ {response}"
+    },
+    "unionPageListOfCooperatives": {
+      "actionsLabel": "действия",
+      "activateAction": "Активировать",
+      "activateSuccess": "Кооператив активирован",
+      "blockAction": "Заблокировать",
+      "blockSuccess": "Кооператив заблокирован",
+      "column": {
+        "announce": "Сайт",
+        "createdAt": "Дата заявки",
+        "status": "Статус",
+        "username": "Аккаунт"
+      },
+      "noDataLabel": "Нет кооперативов",
+      "statusActive": "активен",
+      "statusBlocked": "заблокирован",
+      "statusPending": "на рассмотрении"
     }
   }
 }

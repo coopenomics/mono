@@ -1,10 +1,5 @@
 {
   "extensionStore": {
-    "extensionsManagement": {
-      "installedTab": "Установленные",
-      "showcaseTab": "Каталог",
-      "subscriptionsTab": "Подписки"
-    },
     "showcase": {
       "loadFailed": "Приложения каталога не загружены"
     },

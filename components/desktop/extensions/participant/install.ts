@@ -3,6 +3,7 @@ import { ProfilePage } from 'src/pages/User/ProfilePage';
 import { CardcoopPage } from 'src/pages/User/CardcoopPage';
 import { WalletPage } from 'src/pages/User/WalletPage';
 import { MembershipExitConfirmPage } from 'src/pages/User/MembershipExitConfirmPage';
+import { ConnectionAgreementPage, ConnectionNodePage, ConnectionSubscriptionsPage, InstallationCompletedPage } from 'src/pages/Union/ConnectionAgreement';
 import { UserPaymentMethodsPage } from 'src/pages/User/PaymentMethodsPage';
 import { UserSettingsPage } from 'src/pages/User/SettingsPage';
 import { ContactsPage } from 'src/pages/Contacts';
@@ -92,6 +93,61 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             name: 'user-cardcoop',
             component: markRaw(CardcoopPage),
             children: [],
+          },
+          // Подключение к платформе у оператора — только учётной записи
+          // кооператива (26.10.2026): «Подключение» — мастер, а после установки
+          // счёт и кошельки; «Подписки» и «Узел» — соседними пунктами, чтобы
+          // одна страница не держала девять карточек.
+          {
+            meta: {
+              title: t('participant.install.connectionTitle'),
+              icon: 'link',
+              requires: 'ProviderSubscription:read:own',
+              conditions: 'isCoop === true && coopname === "voskhod"',
+              requiresAuth: true,
+            },
+            path: '/:coopname/connect',
+            name: 'connect',
+            component: markRaw(ConnectionAgreementPage),
+            children: [
+              {
+                path: 'completed',
+                name: 'installation-completed',
+                component: markRaw(InstallationCompletedPage),
+                meta: {
+                  title: t('participant.install.installationCompletedTitle'),
+                  icon: 'check_circle',
+                  requires: 'ProviderSubscription:read:own',
+                  conditions: 'isCoop === true && coopname === "voskhod"',
+                  requiresAuth: true,
+                  hidden: true,
+                },
+              },
+            ],
+          },
+          {
+            meta: {
+              title: t('participant.install.connectionSubscriptionsTitle'),
+              icon: 'receipt_long',
+              requires: 'ProviderSubscription:read:own',
+              conditions: 'isCoop === true && coopname === "voskhod"',
+              requiresAuth: true,
+            },
+            path: '/:coopname/connect/subscriptions',
+            name: 'connect-subscriptions',
+            component: markRaw(ConnectionSubscriptionsPage),
+          },
+          {
+            meta: {
+              title: t('participant.install.connectionNodeTitle'),
+              icon: 'dns',
+              requires: 'ProviderSubscription:read:own',
+              conditions: 'isCoop === true && coopname === "voskhod"',
+              requiresAuth: true,
+            },
+            path: '/:coopname/connect/node',
+            name: 'connect-node',
+            component: markRaw(ConnectionNodePage),
           },
           {
             meta: {

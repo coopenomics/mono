@@ -1,15 +1,19 @@
 <template lang="pug">
 //- Узел кооператива: адрес и ключ установки. Нужны один раз, при установке,
-//- поэтому живут отдельной вкладкой, а не над счётом, которым пользуются каждый день.
-.conn-node
-  DomainCard
-  PlatformKeyCard(:site-url="siteUrl")
+//- поэтому живут отдельным пунктом меню, а не над счётом, которым пользуются каждый день.
+div.row.q-pa-md
+  div.col-md-12.col-xs-12
+    ConnectionSectionGate
+      .conn-node
+        DomainCard
+        PlatformKeyCard(:site-url="siteUrl")
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useCooperativeStore } from 'src/entities/Cooperative'
 import { DomainCard, PlatformKeyCard } from 'src/widgets/ConnectionDashboard'
+import ConnectionSectionGate from './ConnectionSectionGate.vue'
 
 // Адрес кооператива грузит DomainCard из реестра сети; карточка ключа ссылается на сайт кооператива.
 const coop = useCooperativeStore()

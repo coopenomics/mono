@@ -16,7 +16,9 @@
       "settingsTitle": "Настройки",
       "supportTitle": "Поддержка",
       "title": "Стол пайщика",
-      "walletTitle": "Кошелёк"
+      "walletTitle": "Кошелёк",
+      "connectionSubscriptionsTitle": "Подписки",
+      "connectionNodeTitle": "Узел"
     }
   }
 }

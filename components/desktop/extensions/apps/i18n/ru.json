@@ -7,13 +7,7 @@
       "subscriptionsTitle": "Подписки",
       "appTitle": "Приложение",
       "appSettingsTitle": "Настройки приложения",
-      "appInstallTitle": "Установка приложения",
-      "connectionTitle": "Подключение",
-      "connectionOverviewTitle": "Счёт",
-      "connectionSubscriptionsTitle": "Подписки",
-      "connectionPaymentsTitle": "Списания",
-      "connectionNodeTitle": "Узел",
-      "installationCompletedTitle": "Установка завершена"
+      "appInstallTitle": "Установка приложения"
     }
   }
 }
