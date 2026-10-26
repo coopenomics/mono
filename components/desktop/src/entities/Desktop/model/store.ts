@@ -454,9 +454,11 @@ export const useDesktopStore = defineStore(namespace, () => {
     defaultRoute?: string;
     routes: RouteRecordRaw[];
   }): RouteRecordRaw[] {
+    // Расширенный RouteMeta проекта объявляет поля без undefined (exactOptionalPropertyTypes),
+    // а spread даёт `string | undefined` — поэтому результат приводится явно.
     const withGrant = (r: RouteRecordRaw): RouteRecordRaw => ({
       ...r,
-      meta: { requires: REMOTE_GRANT, ...(r.meta ?? {}) },
+      meta: { requires: REMOTE_GRANT, ...(r.meta ?? {}) } as RouteMeta,
       children: (r.children ?? []).map(withGrant),
     });
     const first = entry.routes[0];
