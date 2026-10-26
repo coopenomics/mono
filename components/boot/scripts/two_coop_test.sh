@@ -22,8 +22,11 @@ export CHAIN_URL="${CHAIN_URL:-http://127.0.0.1:${NODE_HTTP_PORT:-8888}}"
 export API_URL="${API_URL:-http://localhost:${NGINX_HOST_PORT:-8108}/backend/v1/graphql}"
 SLAVE_ORCH_PORT="$(slave_env ORCHESTRATOR_HOST_PORT)"
 export SLAVE_ORCHESTRATOR_URL="${SLAVE_ORCHESTRATOR_URL:-http://127.0.0.1:${SLAVE_ORCH_PORT:-4000}}"
+# GraphQL узла partner1 — через его nginx: подписку оформляет узел кооператива сам.
+SLAVE_NGINX_PORT="$(slave_env NGINX_HOST_PORT)"
+export SLAVE_API_URL="${SLAVE_API_URL:-http://localhost:${SLAVE_NGINX_PORT:-8104}/backend/v1/graphql}"
 export SERVER_SECRET="${SERVER_SECRET:-$(grep -E '^SERVER_SECRET=' "$STACK_ROOT/components/controller/.env" | tail -1 | cut -d= -f2-)}"
 
-echo "▸ цепь $CHAIN_URL · GraphQL $API_URL · оркестратор ведомого $SLAVE_ORCHESTRATOR_URL"
+echo "▸ цепь $CHAIN_URL · GraphQL $API_URL · узел partner1 $SLAVE_API_URL · оркестратор ведомого $SLAVE_ORCHESTRATOR_URL"
 cd "$STACK_ROOT/components/boot" && \
   exec pnpm exec vitest run src/tests/catalog-apps-two-coop.test.ts --testTimeout=600000 "$@"

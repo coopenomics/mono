@@ -101,7 +101,7 @@ nav:
   - Лицензия: new/installation/index.md          # Главная страница раздела
   - Облачная поставка: new/connection/index.md
   - Установка: new/installation/chairman.md
-  - Дашборд подключения: new/connection/dashboard.md
+  - Подключение у оператора: new/connection/dashboard.md
   - Разработчикам:
     - new/installation/dev.md
     - Быстрый старт: new/installation/dev/quick-start.md
@@ -166,7 +166,7 @@ nav:
     - Управление доступом: new/chairman/access-roles.md
     - Пресеты предложений: new/chairman/agenda-presets.md
     - Журнал уведомлений: new/chairman/notifications-journal.md
-    - Каталог приложений: new/chairman/app-store.md
+    - Приложения: new/chairman/app-store.md
     - Стартовые страницы: new/chairman/start-pages.md
     - Члены совета: new/chairman/board-members.md
     - Кооперативные участки: new/chairman/cooperative-branches.md

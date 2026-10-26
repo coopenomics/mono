@@ -267,7 +267,8 @@ cmd_test() {
   SERVER_SECRET="$(cd "$ROOT" && server_secret)" \
   PROVIDER_BEARER_TOKEN="$BEARER" \
   BILLING_PERIOD_MINUTES="$PERIOD_MINUTES" \
-  SLAVE_ORCHESTRATOR_URL="http://127.0.0.1:${SLAVE_ORCH_PORT}" \
+  SLAVE_ORCHESTRATOR_URL="http://127.0.0.1:" \
+  SLAVE_API_URL="http://127.0.0.1:3998/v1/graphql" \
     pnpm exec vitest run src/tests/catalog-apps-two-coop.test.ts \
       --testTimeout=600000 --hookTimeout=300000 \
       --reporter=default --reporter=junit --outputFile="$OUT/two-coop.junit.xml"
