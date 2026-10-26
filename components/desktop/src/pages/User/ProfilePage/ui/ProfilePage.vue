@@ -270,10 +270,14 @@ const TRUST_ANCHOR_ACCOUNT = 'ano';
 const CHAIN_LABELS: Record<string, string> = {
   [TRUST_ANCHOR_ACCOUNT]: t('user.profilePage.trustAnchorLabel'),
 };
-function chainLabel(account: string): string {
+// Публичные названия звеньев берутся из самих заверений: заверивший называет
+// и себя, и заверённого при подписи. Так имя оператора («ПК «Восход»») видно на
+// узле кооператива, который о реквизитах оператора ничего не знает. Заверения
+// без имён (выпущенные до 26.10.2026) показывают имя аккаунта.
+function chainLabel(account: string, names: Map<string, string>): string {
   if (CHAIN_LABELS[account]) return CHAIN_LABELS[account];
-  if (account === system.info.coopname) return system.cooperativeDisplayName || account;
-  return account;
+  if (account === system.info.coopname) return system.cooperativeDisplayName || names.get(account) || account;
+  return names.get(account) || account;
 }
 /**
  * Утверждено ли удостоверение корнем доверия. Цепочка обязана начинаться с АНО: она
@@ -300,7 +304,12 @@ const chainSteps = computed<{ label: string; variant: BaseChipVariant }[]>(() =>
   // Первое звено называет и заверяющего, и заверённого; дальше каждое добавляет
   // только заверённого — иначе имена шли бы парами и повторялись.
   const names = links.length ? [links[0].issuer, ...links.map((l) => l.subject)] : [];
-  return [...names.map((n) => ({ label: chainLabel(n), variant })), { label: t('user.profilePage.selfChainLabel'), variant }];
+  const publicNames = new Map<string, string>();
+  for (const link of links) {
+    if (link.issuerName) publicNames.set(link.issuer, link.issuerName);
+    if (link.subjectName) publicNames.set(link.subject, link.subjectName);
+  }
+  return [...names.map((n) => ({ label: chainLabel(n, publicNames), variant })), { label: t('user.profilePage.selfChainLabel'), variant }];
 });
 
 // Уровень верификации в удостоверении: один чип — тот, до которого пайщик

@@ -9,8 +9,9 @@ import { RegistratorContract } from 'cooptypes';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import { BLOCKCHAIN_PORT } from '~/domain/common/ports/blockchain.port';
 import type { BlockchainPort, EndorsementRecord, ServedCooperative } from '~/domain/common/ports/blockchain.port';
-import { NOTIFICATION_PORT } from '@coopenomics/innercoop';
-import type { INotificationPort } from '@coopenomics/innercoop';
+import { COOPERATIVE_VARS_PORT, NOTIFICATION_PORT, ORGANIZATION_PORT } from '@coopenomics/innercoop';
+import type { ICooperativeVarsPort, INotificationPort, IOrganizationPort } from '@coopenomics/innercoop';
+import { decodeJwt } from 'jose';
 import { ACCOUNT_DATA_PORT } from '~/domain/account/ports/account-data.port';
 import type { AccountDataPort } from '~/domain/account/ports/account-data.port';
 import { CERT_KEY_CRYPTO_PORT } from '~/domain/auth-v2/ports/cert-key-crypto.port';
@@ -27,6 +28,16 @@ import {
  * цепочки удалось бы подсунуть вместо самого удостоверения.
  */
 const ENDORSEMENT_TYP = 'coop-endorsement+jws';
+
+/** Несёт ли заверение публичное название заверённого (поле `sub_name`). */
+function hasPublicNames(credential: string): boolean {
+  try {
+    const claims = decodeJwt(credential) as Record<string, unknown>;
+    return typeof claims.sub_name === 'string' && claims.sub_name.length > 0;
+  } catch {
+    return false;
+  }
+}
 
 /** Срок корневого заверения — пять лет. Столько же допускает контракт. */
 const ROOT_ENDORSEMENT_SECONDS = 5 * 365 * 24 * 3600 - 3600;
@@ -101,6 +112,10 @@ export class EndorsementService implements OnApplicationBootstrap {
     @Inject(NOTIFICATION_PORT) private readonly notificationPort: INotificationPort,
     @Inject(ACCOUNT_DATA_PORT) private readonly accountPort: AccountDataPort,
     private readonly logger: WinstonLoggerService,
+    // Публичные названия звеньев цепочки: своё — из реквизитов кооператива,
+    // заверяемого — из его анкеты организации у оператора. Порты глобальные.
+    @Inject(COOPERATIVE_VARS_PORT) private readonly varsPort?: ICooperativeVarsPort,
+    @Inject(ORGANIZATION_PORT) private readonly organizationPort?: IOrganizationPort,
   ) {}
 
   /**
@@ -400,7 +415,12 @@ export class EndorsementService implements OnApplicationBootstrap {
     if (!coopKey) return false;
 
     const existing = await this.blockchainPort.getEndorsement(coop.username);
-    if (existing && this.isFresh(existing, coopKey, SPOKE_RENEW_BEFORE_SECONDS)) return false;
+    // Заверение без публичных названий (выпущено до 26.10.2026) перевыпускается,
+    // как только оператор знает название кооператива: иначе на узле кооператива
+    // цепочка подписей показывала бы имя аккаунта оператора вместо названия.
+    if (existing && this.isFresh(existing, coopKey, SPOKE_RENEW_BEFORE_SECONDS)) {
+      if (hasPublicNames(existing.credential) || !(await this.displayNameOf(coop.username))) return false;
+    }
 
     await this.issue({
       issuer: operator,
@@ -501,7 +521,19 @@ export class EndorsementService implements OnApplicationBootstrap {
     const now = Math.floor(Date.now() / 1000);
     const expiresAt = now + params.lifetimeSeconds;
 
-    const credential = await new SignJWT({ chain_id: chainId, cert: params.subjectKey })
+    // Публичные названия сторон — для показа цепочки человеку. Проверяющий на них
+    // не опирается: подлинность доказывают аккаунты, ключи и подпись.
+    const [issuerName, subjectName] = await Promise.all([
+      this.displayNameOf(params.issuer),
+      this.displayNameOf(params.subject),
+    ]);
+
+    const credential = await new SignJWT({
+      chain_id: chainId,
+      cert: params.subjectKey,
+      ...(issuerName ? { iss_name: issuerName } : {}),
+      ...(subjectName ? { sub_name: subjectName } : {}),
+    })
       .setProtectedHeader({ alg: 'ES256K', typ: ENDORSEMENT_TYP, kid: params.issuerKey })
       .setIssuer(params.issuer)
       .setSubject(params.subject)
@@ -521,6 +553,26 @@ export class EndorsementService implements OnApplicationBootstrap {
 
     await this.blockchainPort.publishEndorsement(record, params.signer);
     return record;
+  }
+
+  /**
+   * Публичное название кооператива для звена цепочки. Свой кооператив — из
+   * реквизитов («ПК» + название), чужой — из анкеты организации у оператора
+   * (краткое или полное наименование). Нет сведений — звено остаётся без имени.
+   */
+  private async displayNameOf(username: string): Promise<string | undefined> {
+    try {
+      if (username === config.coopname) {
+        const vars = await this.varsPort?.get();
+        const own = [vars?.shortAbbr, vars?.name].filter(Boolean).join(' ').trim();
+        if (own) return own;
+      }
+      const organization = await this.organizationPort?.findByUsername(username);
+      const name = organization?.short_name || organization?.full_name;
+      return name ? String(name).trim() || undefined : undefined;
+    } catch {
+      return undefined;
+    }
   }
 
   /**

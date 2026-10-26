@@ -120,6 +120,13 @@ export interface Agreements {
   version: number;
 }
 
+export interface AppsCatalogApps {
+  config: Generated<Json>;
+  enabled: Generated<boolean>;
+  package_id: string;
+  updated_at: Generated<Timestamp>;
+}
+
 export interface AppsPublishers {
   added_by: string;
   coopname: string;
@@ -2664,6 +2671,7 @@ export interface WebPushSubscriptions {
 
 export interface DB {
   agreements: Agreements;
+  apps_catalog_apps: AppsCatalogApps;
   apps_publishers: AppsPublishers;
   available_categories: AvailableCategories;
   balance_corrections: BalanceCorrections;

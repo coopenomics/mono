@@ -24,6 +24,13 @@ export interface TrustChainLink {
   cert: string
   /** До какого момента действует признание, unix-секунды. */
   expiresAt: number
+  /**
+   * Публичное название заверившего, как он назвал себя при подписи
+   * («ПК «Восход»»). Заверения, выпущенные до 26.10.2026, имени не несут.
+   */
+  issuerName?: string
+  /** Публичное название заверённого, как его назвал заверивший. */
+  subjectName?: string
 }
 
 /**
@@ -347,6 +354,9 @@ export function decodeTrustChain(chain: string[]): TrustChainLink[] {
         subject: claims.sub,
         cert: typeof claims.cert === 'string' ? claims.cert : '',
         expiresAt: typeof claims.exp === 'number' ? claims.exp : 0,
+        // Имена — для показа человеку; проверяющий сверяет аккаунты и ключи.
+        ...(typeof claims.iss_name === 'string' && claims.iss_name ? { issuerName: claims.iss_name } : {}),
+        ...(typeof claims.sub_name === 'string' && claims.sub_name ? { subjectName: claims.sub_name } : {}),
       })
     }
     catch {
