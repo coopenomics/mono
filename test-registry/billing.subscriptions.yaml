@@ -30,8 +30,8 @@ sources:
     - components/desktop/src/widgets/Billing/**
     - components/desktop/src/entities/Billing/**
     - components/desktop/src/entities/Wallet/model/useCooperativeMainWallet.ts
-    - components/desktop/src/widgets/ConnectionDashboard/ui/AxonWallet.vue
-    - components/desktop/src/widgets/ConnectionDashboard/ui/MembershipWallet.vue
+    - components/desktop/src/widgets/ConnectionDashboard/ui/MembershipCard.vue
+    - components/desktop/src/widgets/ConnectionDashboard/ui/DocflowCard.vue
 
 cases:
   # ── Хаб-крон: оплата подписок ───────────────────────────────────────────

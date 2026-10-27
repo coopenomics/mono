@@ -1,8 +1,5 @@
 {
   "connectionDashboard": {
-    "axonWallet": {
-      "subtitle": "Ресурс документооборота"
-    },
     "billingDueCard": {
       "backupNote": "данные сохранены в резервной копии",
       "dueLabel": "К оплате",
@@ -15,10 +12,6 @@
       "overdueIntro": "Срок оплаты прошёл, списание не состоялось: на кошельке не хватило средств. После пополнения оплата проходит в течение минуты."
     },
     "dashboard": {
-      "paymentNoteLine1": "Подписки оплачиваются членскими взносами: пайщик переводит в них свой",
-      "paymentNoteLine2": "паевой взнос. AXON для документооборота оператор приобретает сам — по факту",
-      "paymentNoteLine3": "работы, но не меньше 5 AXON в день; напрямую паевым взносом он не",
-      "paymentNoteLine4": "пополняется.",
       "paymentsSubtitle": "Оплаты подписок членскими взносами кооператива",
       "paymentsTitle": "История списаний"
     },
@@ -116,6 +109,19 @@
       "upgradeDoneLine1": "Переход оформлен: новая цена {price} в месяц уже действует, ",
       "upgradeDoneLine2": "система переедет на новый сервер в течение часа",
       "appFromCatalog": "Приложение из каталога"
+    },
+    "membershipCard": {
+      "nextCharge": "Ближайшее списание",
+      "nextChargeLine": "{date} · {name}"
+    },
+    "docflowCard": {
+      "title": "Документооборот",
+      "volume": "Объём месяца",
+      "remaining": "Остаток месяца",
+      "fee": "Плата",
+      "overLimit": "Сверх объёма",
+      "capacity": "{members} пайщиков или {operations} пакетов документов · {axon} AXON",
+      "overLimitLine": "{price} за {quant} AXON, когда остаток ниже {threshold} AXON"
     }
   }
 }
