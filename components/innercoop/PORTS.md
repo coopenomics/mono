@@ -17,7 +17,7 @@
 
 | Порт | Контракт | Реализует | Потребители | Назначение |
 |---|---|---|---|---|
-| `ACCOUNT_PORT` | `IAccountPort` (4)<br><sub>core-ports/account.port.ts</sub> | `AccountInnercoopAdapter` | apps-catalog-proxy, capital, cardcoop, chairman, chatcoop, expenses, ku, marketplace, participant, reports, soviet-robot | Учётные записи пайщиков кооператива: найти по имени, перечислить с пагинацией, получить человеческое имя для показа. |
+| `ACCOUNT_PORT` | `IAccountPort` (4)<br><sub>core-ports/account.port.ts</sub> | `AccountInnercoopAdapter` | capital, cardcoop, chairman, chatcoop, expenses, ku, marketplace, participant, reports, soviet-robot | Учётные записи пайщиков кооператива: найти по имени, перечислить с пагинацией, получить человеческое имя для показа. |
 | `ACCOUNTING_REGISTRY_PORT` | `IAccountingRegistryPort` (6)<br><sub>core-ports/accounting-registry.port.ts</sub> | `AccountingRegistryInnercoopAdapter` | reports | Реестры бухгалтерии и процессов для приложения, которое показывает их на своём столе. |
 | `AGREEMENT_CATALOG_PORT` | `IAgreementCatalogPort` (1)<br><sub>core-ports/agreement-catalog.port.ts</sub> | `AgreementCatalogInnercoopAdapter` | marketplace | Справочник оферт кооператива — что вообще предлагается подписать. |
 | `BRANCH_PORT` | `IBranchPort` (2)<br><sub>core-ports/branch.port.ts</sub> | `BranchInnercoopAdapter` | ku, marketplace | Кооперативные участки — территориальные подразделения кооператива. |
