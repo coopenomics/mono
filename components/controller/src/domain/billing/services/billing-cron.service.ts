@@ -172,14 +172,21 @@ export class BillingCronService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
+  /**
+   * Позиции счёта, подошедшие к оплате: платные подписки с наступившим сроком.
+   * Пусто — платить нечего (всё free, нет подписок, срок не подошёл).
+   */
+  private dueItems(summary: ProviderBillingSummary | null): Array<{ subscription_id: number; period_days: number }> {
+    if (!summary || summary.total_amount <= 0 || !this.isDue(summary.next_payment_due)) {
+      return [];
+    }
+    return this.payableItems(summary);
+  }
+
   private async processCoop(coopname: string): Promise<void> {
     try {
       const summary = await this.providerClient.getBillingSummary(coopname);
-      // всё free / нет подписок / срок не подошёл — пустые транзакции не гоняем
-      if (!summary || summary.total_amount <= 0 || !this.isDue(summary.next_payment_due)) {
-        return;
-      }
-      const payableItems = this.payableItems(summary);
+      const payableItems = this.dueItems(summary);
       if (!payableItems.length) {
         return;
       }
@@ -248,6 +255,15 @@ export class BillingCronService implements OnModuleInit, OnModuleDestroy {
    */
   private async processPackageTopup(coopname: string): Promise<void> {
     try {
+      // Сначала счёт за подписки, потом бак (слово владельца 27.10.2026):
+      // оба такта идут раз в минуту, и бак забирал пополнение первым — счёт
+      // оставался неоплаченным, хотя кооператив внёс ровно столько, сколько
+      // просил экран. Пока счёт к оплате есть, бак ждёт.
+      const summary = await this.providerClient.getBillingSummary(coopname);
+      if (this.dueItems(summary).length) {
+        this.logger.log(`Бак ${coopname} ждёт: есть неоплаченный счёт за подписки`);
+        return;
+      }
       // Решает провайдер — у него тариф, дата оплаты и размер кванта. Хаб
       // передаёт ему честный сигнал: баланс бака, который узел жжёт сам.
       const balance = await this.blockchainPort.getAxonBalance(coopname);

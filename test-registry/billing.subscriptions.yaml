@@ -383,6 +383,20 @@ cases:
     external_reason: "каталог и выбор тарифа coopback проксирует к провайдеру; внешний слой стенда провайдера не поднимает, а Billing E2E выбирает тариф прямо у провайдера"
     status: passing
 
+  - id: bill.break.19
+    level: backend
+    kind: break
+    scenario: >
+      Такт бака застал неоплаченный счёт за подписки (срок подошёл, позиции
+      платные), на кошельке членских взносов денег ровно на счёт.
+    expect: >
+      бак ждёт: провайдер о пакете не спрашивается, конвертации и записи журнала
+      нет; сначала списывается счёт за подписки (слово владельца 27.10.2026),
+      бак пополняется следующим тактом после оплаты счёта
+    test: components/controller/tests/unit/billing/billing-cron.service.test.ts
+    api: components/boot/src/tests/billing-tank.test.ts
+    status: passing
+
   # Сквозной прогон бака на стенде (B2D-32): хаб и провайдер вместе, сжатое время.
   - id: bill.happy.20
     level: backend

@@ -323,6 +323,14 @@ describe('BillingCronService — бак AXON: объём месяца и ква�
     expect(full.paymentLog.begin).not.toHaveBeenCalled();
   });
 
+  it('break: есть неоплаченный счёт за подписки → бак ждёт: провайдер о пакете не спрашивается, конвертации нет (сначала счёт, слово владельца 27.10.2026)', async () => {
+    const h = build({ summary: summary(), axon: 3, packageInvoice: { status: 'PENDING', kind: 'monthly', payment_hash: HASH, coopname: 'partner1', total_amount: 1500, expires_at: '' } });
+    await h.svc.tickPackages();
+    expect(h.providerClient.createPackageInvoice).not.toHaveBeenCalled();
+    expect(h.blockchainPort.convertToAxn).not.toHaveBeenCalled();
+    expect(h.paymentLog.begin).not.toHaveBeenCalled();
+  });
+
   it('side: такт оплат бак не трогает — у бака свой такт', async () => {
     const h = build({ summary: summary({ total_amount: 0 }), axon: 3, packageInvoice: { status: 'PENDING', kind: 'quant', payment_hash: HASH, coopname: 'partner1', total_amount: 50, expires_at: '' } });
     await h.svc.tick();
