@@ -61,6 +61,9 @@ export class AppsNodeBillingDTO {
   @Field(() => String, { nullable: true, description: 'Имя аккаунта оператора, у которого ведётся кошелёк' })
   operator!: string | null;
 
+  @Field(() => String, { nullable: true, description: 'Адрес сайта оператора: на нём кооператив пополняет кошелёк и меняет тариф' })
+  operatorSite!: string | null;
+
   @Field(() => [AppsNodeSubscriptionDTO], { description: 'Подписки кооператива, без отменённых' })
   subscriptions!: AppsNodeSubscriptionDTO[];
 

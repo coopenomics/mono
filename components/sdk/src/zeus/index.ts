@@ -1904,6 +1904,8 @@ export type ValueTypes = {
 	nextPaymentDue?:boolean | `@${string}`,
 	/** Имя аккаунта оператора, у которого ведётся кошелёк */
 	operator?:boolean | `@${string}`,
+	/** Адрес сайта оператора: на нём кооператив пополняет кошелёк и меняет тариф */
+	operatorSite?:boolean | `@${string}`,
 	/** Подписки кооператива, без отменённых */
 	subscriptions?:ValueTypes["AppsNodeSubscription"],
 	/** Кошелёк у оператора; пусто — узел не прочитал цепь */
@@ -20046,6 +20048,8 @@ export type ResolverInputTypes = {
 	nextPaymentDue?:boolean | `@${string}`,
 	/** Имя аккаунта оператора, у которого ведётся кошелёк */
 	operator?:boolean | `@${string}`,
+	/** Адрес сайта оператора: на нём кооператив пополняет кошелёк и меняет тариф */
+	operatorSite?:boolean | `@${string}`,
 	/** Подписки кооператива, без отменённых */
 	subscriptions?:ResolverInputTypes["AppsNodeSubscription"],
 	/** Кошелёк у оператора; пусто — узел не прочитал цепь */
@@ -37654,6 +37658,8 @@ export type ModelTypes = {
 	nextPaymentDue?: string | undefined | null,
 	/** Имя аккаунта оператора, у которого ведётся кошелёк */
 	operator?: string | undefined | null,
+	/** Адрес сайта оператора: на нём кооператив пополняет кошелёк и меняет тариф */
+	operatorSite?: string | undefined | null,
 	/** Подписки кооператива, без отменённых */
 	subscriptions: Array<ModelTypes["AppsNodeSubscription"]>,
 	/** Кошелёк у оператора; пусто — узел не прочитал цепь */
@@ -55274,6 +55280,8 @@ export type GraphQLTypes = {
 	nextPaymentDue?: string | undefined | null,
 	/** Имя аккаунта оператора, у которого ведётся кошелёк */
 	operator?: string | undefined | null,
+	/** Адрес сайта оператора: на нём кооператив пополняет кошелёк и меняет тариф */
+	operatorSite?: string | undefined | null,
 	/** Подписки кооператива, без отменённых */
 	subscriptions: Array<GraphQLTypes["AppsNodeSubscription"]>,
 	/** Кошелёк у оператора; пусто — узел не прочитал цепь */

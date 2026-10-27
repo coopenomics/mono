@@ -4478,6 +4478,7 @@ export const ReturnTypes: Record<string,any> = {
 		monthlyTotal:"Float",
 		nextPaymentDue:"String",
 		operator:"String",
+		operatorSite:"String",
 		subscriptions:"AppsNodeSubscription",
 		wallet:"AppsNodeWallet"
 	},

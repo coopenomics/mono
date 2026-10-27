@@ -1,8 +1,7 @@
 <template lang="pug">
 //- Подписки кооператива у провайдера подключения — только для чтения.
 //- Зоны сверху вниз: кошелёк у оператора (сколько есть) → счёт (сколько и
-//- когда спишется) → подписки (за что). Пополнение и смена тарифа остаются
-//- на столе пайщика у оператора — об этом говорит одна строка под счётом.
+//- когда спишется) → подписки (за что). Пополнение — кнопкой на сайт оператора.
 .node-subs
   BaseBanner(v-if='error', variant='neg') {{ $t('nodeSubscriptions.loadError', { error }) }}
     template(#action)
@@ -27,23 +26,22 @@
           :symbol='membership.symbol || symbol',
           :loading='firstLoad'
         )
+          //- Пополняют кошелёк на сайте оператора: на узле денег оператора нет.
+          template(v-if='topUpUrl', #actions)
+            BaseButton(variant='primary', size='md', type='button', @click='openTopUp')
+              q-icon(name='add', size='16px').q-mr-xs
+              | {{ $t('nodeSubscriptions.wallet.topUp') }}
+              q-icon(name='open_in_new', size='14px').q-ml-xs
       .col-12.col-md-6
-        WalletCard(
-          neutral,
-          icon='bolt',
-          title='AXON',
-          :subtitle="$t('nodeSubscriptions.wallet.axonSubtitle')",
-          :balance='axon.amount',
-          :symbol='axon.symbol || "AXON"',
-          :loading='firstLoad'
-        )
+        //- Тот же кошелёк AXON, что и у оператора: остаток и запас в днях,
+        //- пайщиках или пакетах документов.
+        AxonWallet(:balance='billing?.wallet?.axonAvailable ?? "0 AXON"')
 
     BaseCard(:title="$t('nodeSubscriptions.bill.title')")
       .node-subs__rows
         DataRow(:label="$t('nodeSubscriptions.bill.monthly')", :value='formatPrice(billing?.monthlyTotal ?? 0)', align='spread', mono)
         DataRow(:label="$t('nodeSubscriptions.bill.due')", :value='formatPrice(billing?.dueAmount ?? 0)', align='spread', mono)
         DataRow(:label="$t('nodeSubscriptions.bill.nextCharge')", :value='formatDay(billing?.nextPaymentDue)', align='spread')
-      p.node-subs__note {{ $t('nodeSubscriptions.bill.note', { operator: operatorLabel }) }}
 
     BaseTable(
       :columns='columns',
@@ -70,6 +68,7 @@ import type { Queries } from '@coopenomics/sdk';
 import { BaseBadge, BaseBanner, BaseButton, BaseCard, BaseTable, EmptyState } from 'src/shared/ui/base';
 import type { BaseTableColumn } from 'src/shared/ui/base';
 import { DataRow, WalletCard } from 'src/shared/ui/domain';
+import { AxonWallet } from 'src/widgets/ConnectionDashboard';
 import { useFirstLoad } from 'src/shared/lib/composables';
 import { useSystemStore } from 'src/entities/System/model';
 import { api as extensionApi } from 'src/entities/Extension/api';
@@ -106,7 +105,15 @@ onMounted(load);
 const symbol = computed(() => info.symbols?.root_govern_symbol || 'RUB');
 
 const membership = computed(() => splitAsset2Digits(billing.value?.wallet?.membershipAvailable || `0 ${symbol.value}`));
-const axon = computed(() => splitAsset2Digits(billing.value?.wallet?.axonAvailable || '0 AXON'));
+/** Пополнение — на столе пайщика у оператора, вкладка «Кошельки». */
+const topUpUrl = computed(() => {
+  const site = billing.value?.operatorSite;
+  const operator = billing.value?.operator;
+  return site && operator ? `https://${site}/${operator}/connect` : null;
+});
+const openTopUp = () => {
+  if (topUpUrl.value) window.open(topUpUrl.value, '_blank', 'noopener');
+};
 
 const operatorLabel = computed(() => billing.value?.operator || t('nodeSubscriptions.operatorFallback'));
 const walletSubtitle = computed(() => t('nodeSubscriptions.wallet.subtitle', { operator: operatorLabel.value }));
@@ -146,12 +153,6 @@ const periodLine = (row: NodeSubscription): string => {
   display: flex;
   flex-direction: column;
   gap: var(--p-2);
-}
-.node-subs__note {
-  margin: var(--p-4) 0 0;
-  font-size: var(--p-fs-body-sm);
-  line-height: 1.5;
-  color: var(--p-ink-2);
 }
 .node-subs__name {
   font-size: var(--p-fs-body);

@@ -1,5 +1,4 @@
 import {
-  ACCOUNT_PORT,
   CHAIN_PORT,
   DESKTOP_GRANTS_REGISTRY_PORT,
   LOGGER_PORT,
@@ -9,8 +8,8 @@ import {
 
 /**
  * Заявка папки apps-catalog-proxy: два расширения — «developer» (стол
- * разработчика) и «apps» («Приложения»). Цепь и учётные записи нужны
- * столу «Приложения»: оператор кооператива и его кошелёк у оператора
+ * разработчика) и «apps» («Приложения»). Цепь нужна столу «Приложения»:
+ * оператор кооператива, его кошелёк у оператора и остаток AXON
  * читаются из цепи. Канал к провайдеру необязателен — без него витрина
  * показывает только встроенные расширения.
  */
@@ -20,7 +19,6 @@ export const appsCatalogProxyPorts = {
     LOGGER_PORT,
     VAULT_PORT,
     CHAIN_PORT,
-    ACCOUNT_PORT,
   ],
   optional: [
     PROVIDER_APPS_PORT,

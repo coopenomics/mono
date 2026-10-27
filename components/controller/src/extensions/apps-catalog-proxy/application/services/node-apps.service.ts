@@ -15,16 +15,14 @@
 import { Inject, Injectable, Logger, Optional, ServiceUnavailableException } from '@nestjs/common';
 import { catalogAppTitle, platformSettings } from '@coopenomics/extension-kit';
 import {
-  ACCOUNT_PORT,
   CHAIN_PORT,
   InnerAppSubscriptionStatus,
   PROVIDER_APPS_PORT,
-  type IAccountPort,
   type IChainPort,
   type IProviderAppsPort,
   type InnerAppSubscription,
 } from '@coopenomics/innercoop';
-import { Ledger2, Ledger2Contract, RegistratorContract } from 'cooptypes';
+import { Ledger2, Ledger2Contract, RegistratorContract, TokenContract } from 'cooptypes';
 import { t } from '../../i18n';
 import { AppsCatalogHttpService } from '../../infrastructure/apps-catalog-http.service';
 import { CatalogAppsStateService } from './catalog-apps-state.service';
@@ -58,7 +56,6 @@ export class NodeAppsService {
     private readonly catalog: AppsCatalogHttpService,
     private readonly state: CatalogAppsStateService,
     @Inject(CHAIN_PORT) private readonly chain: IChainPort,
-    @Inject(ACCOUNT_PORT) private readonly accounts: IAccountPort,
     @Optional() @Inject(PROVIDER_APPS_PORT) private readonly providerApps?: IProviderAppsPort,
   ) {}
 
@@ -170,6 +167,7 @@ export class NodeAppsService {
     const empty: AppsNodeBillingDTO = {
       available: false,
       operator: null,
+      operatorSite: null,
       subscriptions: [],
       monthlyTotal: 0,
       dueAmount: 0,
@@ -209,6 +207,7 @@ export class NodeAppsService {
     return {
       available: true,
       operator,
+      operatorSite: operator ? await this.siteOf(operator) : null,
       subscriptions,
       monthlyTotal: Math.round(monthlyTotal * 100) / 100,
       dueAmount: Math.round(dueAmount * 100) / 100,
@@ -234,6 +233,26 @@ export class NodeAppsService {
     }
   }
 
+  /**
+   * Адрес сайта оператора из его записи в реестре сети: на этом сайте
+   * кооператив пополняет кошелёк членских взносов и меняет тариф.
+   */
+  private async siteOf(operator: string): Promise<string | null> {
+    try {
+      const row = await this.chain.getSingleRow<{ announce?: string }>(
+        RegistratorContract.contractName.production,
+        RegistratorContract.contractName.production,
+        RegistratorContract.Tables.Cooperatives.tableName,
+        operator,
+      );
+      return row?.announce || null;
+    }
+    catch (error: any) {
+      this.logger.warn(`Адрес оператора ${operator} не прочитан из цепи: ${error?.message ?? error}`);
+      return null;
+    }
+  }
+
   /** Остатки кооператива у оператора: членские взносы на подписки и AXON. */
   private async walletOf(operator: string, coopname: string): Promise<AppsNodeBillingDTO['wallet']> {
     try {
@@ -245,10 +264,19 @@ export class NodeAppsService {
         Ledger2Contract.Tables.UserWallets.tableName,
       );
       const billing = rows.find((r) => r.username === coopname && r.wallet_name === Ledger2.BILLING_WALLET_NAME);
-      const account = await this.accounts.getChainAccount(coopname).catch(() => null);
+      // AXON — остаток токена на счёте кооператива в цепи (таблица accounts
+      // контракта токена). Запись реестра кооператива остатка не содержит:
+      // по этой записи узел показывал ноль при 2 089 AXON в цепи (27.10.2026).
+      const balances = await this.chain.getAllRows<TokenContract.Tables.AccountBalance.IAccountBalance>(
+        TokenContract.contractName.production,
+        coopname,
+        TokenContract.Tables.AccountBalance.tableName,
+      );
+      const axonSymbol = TokenContract.Tables.CurrencyStats.scope;
+      const axon = balances.find((b) => String(b.balance).endsWith(` ${axonSymbol}`));
       return {
         membershipAvailable: billing?.available ?? '0.0000 RUB',
-        axonAvailable: (account?.core_liquid_balance as string | undefined) ?? null,
+        axonAvailable: axon?.balance ?? `0.0000 ${axonSymbol}`,
       };
     }
     catch (error: any) {

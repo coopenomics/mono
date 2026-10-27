@@ -39,15 +39,18 @@ import { AXON_CAPACITY_HINT, axonCapacityMetrics } from 'src/shared/lib/axon';
  */
 const session = useSessionStore();
 
-const axon = computed(() =>
-  splitAsset2Digits(`${session.blockchainAccount?.core_liquid_balance || '0'} AXON`),
-);
+/**
+ * Остаток AXON с символом. Без него берётся счёт вошедшего пайщика — так на
+ * сайте оператора, где вошёл сам кооператив. Узел кооператива передаёт остаток
+ * кооператива из цепи: вошедший на узле — председатель, не кооператив.
+ */
+const props = defineProps<{ balance?: string | null }>();
+const raw = computed(() => props.balance ?? session.blockchainAccount?.core_liquid_balance ?? '0');
+
+const axon = computed(() => splitAsset2Digits(`${String(raw.value).split(' ')[0] || '0'} AXON`));
 
 /** Числовой баланс для прикидки запаса: в строке цепи есть символ и разделители. */
-const axonBalance = computed(() => {
-  const raw = session.blockchainAccount?.core_liquid_balance || '0';
-  return Number.parseFloat(String(raw).replace(/[^\d.-]/g, '')) || 0;
-});
+const axonBalance = computed(() => Number.parseFloat(String(raw.value).replace(/[^\d.-]/g, '')) || 0);
 
 const metrics = computed(() => axonCapacityMetrics(axonBalance.value));
 const capacityHint = AXON_CAPACITY_HINT;

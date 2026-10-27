@@ -46,13 +46,18 @@ function harness(opts: { port?: Partial<IProviderAppsPort> | null; installed?: s
     setEnabled: jest.fn(async (packageId: string, enabled: boolean) => ({ packageId, enabled, config: {}, updatedAt: new Date() })),
   };
   const chain = {
-    getSingleRow: jest.fn(async () => ({ parent_username: 'voskhod' })),
-    getAllRows: jest.fn(async () => [
-      { username: 'other', wallet_name: 'w.wal.bill', available: '9.0000 RUB' },
-      { username: 'romashka', wallet_name: 'w.wal.bill', available: '1500.0000 RUB' },
-    ]),
+    // Запись кооператива в реестре: оператор и адрес сайта (у оператора).
+    getSingleRow: jest.fn(async () => ({ parent_username: 'voskhod', announce: 'voskhod.coop' })),
+    // Кошельки оператора (ledger2) и остатки токена кооператива (accounts).
+    getAllRows: jest.fn(async (code: string) =>
+      code === 'eosio.token'
+        ? [{ balance: '144.0000 AXON' }]
+        : [
+            { username: 'other', wallet_name: 'w.wal.bill', available: '9.0000 RUB' },
+            { username: 'romashka', wallet_name: 'w.wal.bill', available: '1500.0000 RUB' },
+          ],
+    ),
   };
-  const accounts = { getChainAccount: jest.fn(async () => ({ core_liquid_balance: '144.0000 AXON' })) };
   const port = opts.port === null ? undefined : ({
     listOffers: jest.fn(async () => [{ package_id: PKG, price: 360, period_days: 30, trial_days: 14 }]),
     listAppSubscriptions: jest.fn(async () => [SUB]),
@@ -62,8 +67,8 @@ function harness(opts: { port?: Partial<IProviderAppsPort> | null; installed?: s
     billingSummary: jest.fn(async () => null),
     ...(opts.port ?? {}),
   } as IProviderAppsPort);
-  const service = new NodeAppsService(catalog as any, state as any, chain as any, accounts as any, port);
-  return { service, catalog, state, chain, accounts, port };
+  const service = new NodeAppsService(catalog as any, state as any, chain as any, port);
+  return { service, catalog, state, chain, port };
 }
 
 describe('subscribePackage → провайдер', () => {
@@ -210,7 +215,10 @@ describe('подписки и кошелёк узла у провайдера', 
     expect(billing.dueAmount).toBe(3500);
     expect(billing.nextPaymentDue).toBe(summary.next_payment_due);
     expect(billing.operator).toBe('voskhod');
+    expect(billing.operatorSite).toBe('voskhod.coop');
     expect(chain.getAllRows).toHaveBeenCalledWith('ledger2', 'voskhod', 'userwallets');
+    // AXON — из таблицы остатков токена кооператива, не из записи реестра.
+    expect(chain.getAllRows).toHaveBeenCalledWith('eosio.token', 'romashka', 'accounts');
     expect(billing.wallet).toEqual({ membershipAvailable: '1500.0000 RUB', axonAvailable: '144.0000 AXON' });
   });
 

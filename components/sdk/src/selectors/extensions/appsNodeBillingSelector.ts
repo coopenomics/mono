@@ -30,6 +30,7 @@ const _validateWallet: MakeAllFieldsRequired<ValueTypes['AppsNodeWallet']> = raw
 const rawAppsNodeBillingSelector = {
   available: true,
   operator: true,
+  operatorSite: true,
   subscriptions: rawAppsNodeSubscriptionSelector,
   monthlyTotal: true,
   dueAmount: true,
