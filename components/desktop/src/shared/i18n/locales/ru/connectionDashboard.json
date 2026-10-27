@@ -40,12 +40,15 @@
       "editTooltip": "Редактировать домен",
       "reloadWarning": "Обновление перезагрузит цифровой кооператив; данные сохранятся.",
       "title": "Подключение",
-      "updatingStatus": "Обновляем"
+      "updatingStatus": "Обновляем",
+      "subtitle": "По этому адресу кооператив находят пайщики",
+      "domainRow": "Домен",
+      "stateRow": "Состояние"
     },
     "membershipWallet": {
       "subtitle": "Оплата подписок кооператива",
       "title": "Членские взносы",
-      "topUp": "Пополнить"
+      "topUp": "Пополнить из паевого"
     },
     "platformKeyCard": {
       "cancel": "Отменить",
@@ -76,7 +79,6 @@
         "status": "Состояние"
       },
       "confirmUpgrade": "Перейти на новый тариф",
-      "docflowQuantNote": "сверх объёма документооборота — {price} за {quant} AXON",
       "downtimeIfServerChanges": "Если новому тарифу нужен сервер мощнее, система переедет на него и около часа будет недоступна.",
       "downtimeLine1": "Во время переезда система кооператива будет недоступна примерно час —",
       "downtimeLine2": "идут технические работы. После этого она откроется уже на новом сервере.",
@@ -95,7 +97,6 @@
       "trialUntil": "до {date}",
       "perYear": "в год",
       "planName": "Тариф «{name}»",
-      "planUnknown": "Тариф не определён",
       "pricePerMonth": "{price} в месяц",
       "pricePerYear": "{price} в год",
       "quantsThisMonth": "в месяц + {quants} квантов сверх объёма: {price}",
@@ -109,14 +110,32 @@
       "upgradeDoneLine1": "Переход оформлен: новая цена {price} в месяц уже действует, ",
       "upgradeDoneLine2": "система переедет на новый сервер в течение часа",
       "appFromCatalog": "Приложение из каталога",
-      "packageVolume": "{axon} AXON в месяц · {members} пайщиков или {operations} пакетов документов"
+      "packageVolume": "{axon} AXON в месяц · {members} пайщиков или {operations} пакетов документов",
+      "dueOn": "срок оплаты {date}",
+      "drawer": {
+        "package": "Пакет",
+        "plan": "Тариф",
+        "specs": "Конфигурация сервера",
+        "volume": "Объём месяца",
+        "overLimit": "Сверх объёма",
+        "period": "Период оплаты",
+        "periodMonth": "месяц",
+        "periodYear": "год",
+        "startedAt": "Начало",
+        "trialEnds": "Пробный период до",
+        "dueOn": "Срок оплаты",
+        "paidUntil": "Оплачено по",
+        "nextPayment": "Ближайшее списание"
+      }
     },
     "membershipCard": {
       "topUpBy": "пополните на {amount}",
-      "nextChargeLine": "Ближайшее списание {amount} · {date}"
+      "nextChargeLine": "Ближайшее списание {amount} · {date}",
+      "settling": "Оплата пройдёт в течение минуты"
     },
     "axonWallet": {
-      "subtitle": "Ресурс документооборота"
+      "subtitle": "Ресурс документооборота",
+      "or": "или"
     }
   }
 }

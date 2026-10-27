@@ -13,9 +13,12 @@ WalletCard(
   //- объясняет подсказка, в строку такое пояснение не помещается.
   template(v-if="metrics.length" #actions)
     .axon-capacity
-      .axon-capacity__item(v-for="metric in metrics" :key="metric.key")
-        .axon-capacity__value.t-mono.t-num {{ metric.value }}
-        .axon-capacity__label.t-meta {{ metric.label }}
+      template(v-for="(metric, i) in metrics" :key="metric.key")
+        //- Союз между показателями: они делят один остаток, а не складываются.
+        .axon-capacity__or.t-meta(v-if="i > 0") {{ $t('connectionDashboard.axonWallet.or') }}
+        .axon-capacity__item
+          .axon-capacity__value.t-mono.t-num {{ metric.value }}
+          .axon-capacity__label.t-meta {{ metric.label }}
       q-tooltip {{ capacityHint }}
 </template>
 
@@ -54,7 +57,13 @@ const capacityHint = AXON_CAPACITY_HINT;
 .axon-capacity {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--p-2) var(--p-6);
+  align-items: flex-start;
+  gap: var(--p-2) var(--p-4);
+}
+.axon-capacity__or {
+  color: var(--p-ink-3);
+  line-height: 1.2;
+  padding-top: 2px;
 }
 
 .axon-capacity__value {

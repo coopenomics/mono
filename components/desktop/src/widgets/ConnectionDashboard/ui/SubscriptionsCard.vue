@@ -13,6 +13,8 @@
     template(#icon)
       q-icon(name="receipt_long" size="28px")
 
+  //- Строка открывает правую панель с полным составом подписки (канон):
+  //- в таблице — название, мета и состояние, подробности и действия — в панели.
   BaseTable(
     v-else
     :columns="columns"
@@ -21,6 +23,8 @@
     :loading="firstLoad"
     :skeleton-rows="3"
     min-width="720px"
+    clickable-rows
+    @row-click="openDetails"
   )
     //- Опознание: название, мета-строка (пакет; тариф и конфигурация), описание.
     template(#cell-name="{ row }")
@@ -30,15 +34,12 @@
           span.subs-row__sep(v-if="i > 0" aria-hidden="true") ·
           span(:class="{ 't-mono': isCatalogApp(row) && i === 0 }") {{ part }}
       .subs-row__desc(v-if="rowDescription(row)") {{ rowDescription(row) }}
-      //- Смена тарифа относится к серверу и стоит в его строке: отдельная
-      //- колонка действия держала бы пустое место у всех остальных подписок.
-      .subs-row__action(v-if="isHosting(row)")
-        BaseButton(variant="secondary" size="sm" type="button" @click="openUpgrade(row)") {{ $t('connectionDashboard.subscriptionsCard.changePlan') }}
 
     //- Состояние: бейдж один раз, под ним только новое — срок пробного периода.
     template(#cell-status="{ row }")
-      BaseBadge(:variant="subscriptionStatusVariant(row.status)") {{ subscriptionStatusLabel(row.status) }}
+      BaseBadge(:variant="subscriptionStatusVariant(row.status)") {{ subscriptionStatusLabel(row.status, Boolean(row.is_trial)) }}
       .subs-row__period(v-if="trialEndsOn(row)") {{ $t('connectionDashboard.subscriptionsCard.trialUntil', { date: trialEndsOn(row) }) }}
+      .subs-row__period(v-else-if="dueDate(row)") {{ $t('connectionDashboard.subscriptionsCard.dueOn', { date: dueDate(row) }) }}
 
     //- Деньги: сумма, под ней период, «включено оператором» или кванты сверх объёма.
     template(#cell-price="{ row }")
@@ -50,12 +51,36 @@
     //- кошелёк наполненным.
     template(#footer)
       .subs-card__total
-        .subs-card__total-label
-          | {{ $t('connectionDashboard.subscriptionsCard.totalPerMonth') }}
-          .subs-row__period(v-if="hasPackage") {{ $t('connectionDashboard.subscriptionsCard.docflowQuantNote', { price: formatPrice(QUANT_PRICE_RUB), quant: AXON_QUANT }) }}
+        .subs-card__total-label {{ $t('connectionDashboard.subscriptionsCard.totalPerMonth') }}
         .subs-card__total-value
           .subs-row__sum.t-mono.t-num {{ formatPrice(summary.monthlyTotal) }}
           .subs-row__period {{ $t('connectionDashboard.subscriptionsCard.perMonth') }}
+
+  //- Подробности подписки: описание, правило объёма, сроки, плата и действия.
+  DetailsDrawer(
+    :model-value="detailsOpen"
+    :width="520"
+    :title="selected ? rowTitle(selected) : ''"
+    @update:model-value="(v) => { if (!v) detailsOpen = false }"
+  )
+    .subs-details(v-if="selected")
+      .subs-details__head
+        BaseBadge(:variant="subscriptionStatusVariant(selected.status)") {{ subscriptionStatusLabel(selected.status, Boolean(selected.is_trial)) }}
+        .subs-details__sum.t-mono.t-num {{ formatPrice(isFree(selected) ? 0 : selected.price) }}
+        .subs-row__period {{ priceNote(selected) }}
+      p.subs-details__desc(v-if="rowDescription(selected)") {{ rowDescription(selected) }}
+      .subs-details__rows
+        DataRow(v-if="isCatalogApp(selected)" :label="$t('connectionDashboard.subscriptionsCard.drawer.package')" :value="String(selected.subscription_type_code).slice('catalog:'.length)" mono copyable align="spread")
+        DataRow(v-if="isHosting(selected) && planName(selected)" :label="$t('connectionDashboard.subscriptionsCard.drawer.plan')" :value="planName(selected)" align="spread")
+        DataRow(v-if="isHosting(selected) && planSpecs(selected)" :label="$t('connectionDashboard.subscriptionsCard.drawer.specs')" :value="planSpecs(selected)" align="spread")
+        DataRow(v-if="isPackage(selected)" :label="$t('connectionDashboard.subscriptionsCard.drawer.volume')" :value="rowMeta(selected)[0]" align="vertical")
+        DataRow(v-if="packageRule(selected)" :label="$t('connectionDashboard.subscriptionsCard.drawer.overLimit')" :value="packageRule(selected)" align="vertical")
+        DataRow(:label="$t('connectionDashboard.subscriptionsCard.drawer.period')" :value="isYearlySubscription(selected) ? $t('connectionDashboard.subscriptionsCard.drawer.periodYear') : $t('connectionDashboard.subscriptionsCard.drawer.periodMonth')" align="spread")
+        DataRow(v-if="selected.started_at" :label="$t('connectionDashboard.subscriptionsCard.drawer.startedAt')" :value="formatDay(selected.started_at)" align="spread")
+        DataRow(v-if="selected.expires_at" :label="trialEndsOn(selected) ? $t('connectionDashboard.subscriptionsCard.drawer.trialEnds') : (dueDate(selected) ? $t('connectionDashboard.subscriptionsCard.drawer.dueOn') : $t('connectionDashboard.subscriptionsCard.drawer.paidUntil'))" :value="formatDay(selected.expires_at)" align="spread")
+        DataRow(v-if="selected.next_payment_due" :label="$t('connectionDashboard.subscriptionsCard.drawer.nextPayment')" :value="formatDay(selected.next_payment_due)" align="spread")
+    template(v-if="selected && isHosting(selected)" #footer)
+      BaseButton(variant="secondary" type="button" @click="openUpgrade(selected)") {{ $t('connectionDashboard.subscriptionsCard.changePlan') }}
 
   //- Апгрейд сервера: конфигурация выбирается здесь, дальше провайдер сам
   //- переносит систему. Даунгрейд намеренно не предлагается — диск нового
@@ -123,6 +148,7 @@ import {
   useProviderSubscriptions,
   useConnectionCatalog,
   summarizeSubscriptions,
+  isOverdueSubscription,
   isYearlySubscription,
 } from 'src/features/Provider/model'
 import { useSessionStore } from 'src/entities/Session'
@@ -140,6 +166,7 @@ import {
   EmptyState,
 } from 'src/shared/ui/base'
 import type { BaseTableColumn } from 'src/shared/ui/base'
+import { DataRow, DetailsDrawer } from 'src/shared/ui/domain'
 import { useFirstLoad } from 'src/shared/lib/composables'
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits'
 import { client } from 'src/shared/api/client'
@@ -164,6 +191,15 @@ onMounted(async () => {
   await loadCatalog(true, session.username)
 })
 
+
+// ── Правая панель с составом подписки ────────────────────────────────────
+const detailsOpen = ref(false)
+const selected = ref<any>(null)
+const openDetails = (row: any) => {
+  selected.value = row
+  detailsOpen.value = true
+}
+const formatDay = (value: string): string => formatDateToLocalTimezone(value, 'DD.MM.YYYY')
 
 // Порядок услуг в реестре: документооборот — основа участия и платится
 // каждым, поэтому он первый; хостинг идёт следом, остальные услуги — за ними
@@ -190,7 +226,7 @@ const rowTitle = (sub: any): string => {
 // колонкой строка в строку, название забирает остаток.
 const columns: BaseTableColumn<any>[] = [
   { key: 'name', label: t('connectionDashboard.subscriptionsCard.column.service') },
-  { key: 'status', label: t('connectionDashboard.subscriptionsCard.column.status'), width: '150px', nowrap: true },
+  { key: 'status', label: t('connectionDashboard.subscriptionsCard.column.status'), width: '200px', nowrap: true },
   { key: 'price', label: t('connectionDashboard.subscriptionsCard.column.price'), numeric: true, width: '170px' },
 ]
 
@@ -225,8 +261,6 @@ const priceNote = (sub: any): string => {
 // показывает сумму к оплате при просрочке.
 const summary = computed(() => summarizeSubscriptions(subscriptions.value))
 
-const hasPackage = computed(() => subscriptions.value.some((s: any) => isPackage(s)))
-
 const serviceRank = (sub: any): number => {
   if (isPackage(sub)) return 0
   if (isHosting(sub)) return 1
@@ -246,7 +280,8 @@ const planOption = (sub: any): any =>
 const planName = (sub: any): string => {
   if (currentTariff.value) return t('connectionDashboard.subscriptionsCard.planName', { name: currentTariff.value.name })
   const option = planOption(sub)
-  return option?.name ? t('connectionDashboard.subscriptionsCard.planName', { name: option.name }) : t('connectionDashboard.subscriptionsCard.planUnknown')
+  // Тариф неизвестен (старая запись без конфигурации) — строка тарифа не показывается.
+  return option?.name ? t('connectionDashboard.subscriptionsCard.planName', { name: option.name }) : ''
 }
 
 /** Характеристики текущей конфигурации — «4 CPU · 8 ГБ RAM · 120 GB». */
@@ -314,9 +349,7 @@ const formatAxonCount = (value: number): string =>
 
 /** Описание услуги, у документооборота — вместе с правилом объёма. */
 const rowDescription = (sub: any): string =>
-  isCatalogApp(sub)
-    ? t('connectionDashboard.subscriptionsCard.appFromCatalog')
-    : [sub?.subscription_type_description, packageRule(sub)].filter(Boolean).join(' ')
+  isCatalogApp(sub) ? t('connectionDashboard.subscriptionsCard.appFromCatalog') : String(sub?.subscription_type_description ?? '')
 
 /**
  * Дата окончания пробного периода. У пробной подписки провайдер ставит
@@ -324,6 +357,12 @@ const rowDescription = (sub: any): string =>
  */
 const trialEndsOn = (sub: any): string => {
   if (!sub?.is_trial || !sub?.expires_at) return ''
+  return formatDateToLocalTimezone(sub.expires_at, 'DD.MM.YYYY')
+}
+
+/** Срок оплаты неоплаченной подписки: конец оплаченного периода. */
+const dueDate = (sub: any): string => {
+  if (!isOverdueSubscription(sub) || !sub?.expires_at) return ''
   return formatDateToLocalTimezone(sub.expires_at, 'DD.MM.YYYY')
 }
 
@@ -483,8 +522,33 @@ const formatPrice = (price: number | string): string => {
   white-space: normal;
   max-width: 60ch;
 }
-.subs-row__action {
+.subs-details {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-4);
+}
+.subs-details__head {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--p-1);
+}
+.subs-details__sum {
+  font-size: var(--p-fs-h2);
+  font-weight: 700;
+  color: var(--p-ink);
   margin-top: var(--p-2);
+}
+.subs-details__desc {
+  margin: 0;
+  font-size: var(--p-fs-body-sm);
+  line-height: var(--p-lh-body-sm);
+  color: var(--p-ink-2);
+}
+.subs-details__rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-2);
 }
 .subs-row__sum {
   font-size: var(--p-fs-h3);

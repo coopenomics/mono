@@ -14,9 +14,12 @@ export type IConvertToBillingOutput =
 // Видимость диалога — синглтон на уровне модуля (кнопка-триггер и сам диалог
 // должны делить один ref, как useSelectBranch().isVisible).
 const isVisible = ref(false)
+// Сумма — тоже общая: кошелёк членских взносов подставляет недостающую при
+// просрочке, пайщику остаётся подписать (27.10.2026).
+const amountRub = ref<number | null>(null)
 
 export function useConvertToBillingVisibility() {
-  return { isVisible }
+  return { isVisible, amountRub }
 }
 
 /**
@@ -34,7 +37,6 @@ export function useConvertToBillingVisibility() {
  */
 export function useConvertToBilling() {
   const isSubmitting = ref(false)
-  const amountRub = ref<number | null>(null)
 
   const system = useSystemStore()
   const session = useSessionStore()

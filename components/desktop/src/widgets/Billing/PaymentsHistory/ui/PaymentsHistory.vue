@@ -18,6 +18,8 @@
       :loading="loading"
       row-key="payment_hash"
       min-width="560px"
+      clickable-rows
+      @row-click="openDetails"
     )
       template(#cell-date="{ row: payment }")
         span.t-mono {{ formatDateTime(payment.created_at) }}
@@ -37,12 +39,33 @@
           //- превращает объяснение в загадку. Отладочный ответ узла сюда не
           //- попадает — он остаётся в журнале, читать его пайщику незачем.
           .payments-history__error.t-meta(v-if="payment.reason") {{ payment.reason }}
+
+  //- Состав списания: сумма, состояние, причина отказа и идентификаторы —
+  //- в таблице они только съедали бы ширину.
+  DetailsDrawer(
+    :model-value="detailsOpen"
+    :width="480"
+    :title="$t('billing.paymentsHistory.drawer.title')"
+    @update:model-value="(v) => { if (!v) detailsOpen = false }"
+  )
+    .payments-details(v-if="selected")
+      .payments-details__head
+        BaseChip(:variant="paymentStatusVariant(selected.status, Boolean(selected.reason))" size="sm")
+          span {{ paymentStatusLabel(selected.status, Boolean(selected.reason)) }}
+        .payments-details__sum.t-mono.t-num {{ formatAsset2Digits(selected.quantity) }}
+      .payments-details__rows
+        DataRow(:label="$t('billing.paymentsHistory.column.date')" :value="formatDateTime(selected.created_at)" align="spread")
+        DataRow(:label="$t('billing.paymentsHistory.column.subject')" :value="selected.subject || '—'" align="vertical")
+        DataRow(v-if="selected.reason" :label="$t('billing.paymentsHistory.drawer.reason')" :value="selected.reason" align="vertical")
+        DataRow(:label="$t('billing.paymentsHistory.drawer.paymentHash')" :value="selected.payment_hash" mono copyable align="vertical")
+        DataRow(v-if="selected.tx_id" :label="$t('billing.paymentsHistory.drawer.txId')" :value="selected.tx_id" mono copyable align="vertical")
 </template>
 
 <script setup lang="ts">
-import { onMounted, watch } from 'vue'
+import { onMounted, ref, watch } from 'vue'
 import moment from 'src/shared/lib/utils/dates/moment'
 import { BaseBanner, BaseCard, BaseChip, BaseTable, EmptyState } from 'src/shared/ui/base'
+import { DataRow, DetailsDrawer } from 'src/shared/ui/domain'
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits'
 import { paymentStatusLabel, paymentStatusVariant } from 'src/entities/Union'
 import { useLoadCooperativePayments } from 'src/features/Union/LoadCooperativePayments'
@@ -83,6 +106,13 @@ const columns = [
 
 const formatDateTime = (d: string) => moment(d).format('DD.MM.YY HH:mm')
 
+const detailsOpen = ref(false)
+const selected = ref<any>(null)
+const openDetails = (row: any) => {
+  selected.value = row
+  detailsOpen.value = true
+}
+
 const load = () => {
   if (props.coopname) void loadPayments(props.coopname, props.limit)
 }
@@ -94,6 +124,27 @@ useLiveReload([{ code: 'core', table: 'billing_payment_log' }], async () => load
 </script>
 
 <style scoped>
+.payments-details {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-4);
+}
+.payments-details__head {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--p-2);
+}
+.payments-details__sum {
+  font-size: var(--p-fs-h2);
+  font-weight: 700;
+  color: var(--p-ink);
+}
+.payments-details__rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-2);
+}
 .payments-history__status {
   display: flex;
   flex-direction: column;

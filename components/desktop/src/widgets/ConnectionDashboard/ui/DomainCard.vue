@@ -1,22 +1,33 @@
 <template lang="pug">
 .domain-card
-  BaseCard(:title="$t('connectionDashboard.domainCard.addressEyebrow')")
-    //- Адрес, состояние домена и «Изменить» одной строкой: по адресу
-    //- кооператив находят пайщики, менять его приходится редко.
-    .domain-card__top
-      .domain-card__host.t-mono(:class="{ 't-muted': isEditing }") {{ announce || '—' }}
-      .domain-card__actions
-        BaseBadge(:variant="delegationVariant") {{ delegationLabel }}
-        BaseButton(
-          v-if="!isEditing"
-          variant="secondary"
-          size="sm"
-          type="button"
-          :aria-label="$t('connectionDashboard.domainCard.editAria')"
-          @click="startEdit"
-        )
-          q-icon(name="edit" size="14px").q-mr-xs
-          | {{ $t('connectionDashboard.domainCard.edit') }}
+  BaseCard(
+    :title="$t('connectionDashboard.domainCard.addressEyebrow')"
+    :subtitle="$t('connectionDashboard.domainCard.subtitle')"
+  )
+    //- Действие — в шапке карточки (канон): менять адрес приходится редко.
+    template(#actions)
+      BaseButton(
+        v-if="!isEditing"
+        variant="secondary"
+        size="sm"
+        type="button"
+        :aria-label="$t('connectionDashboard.domainCard.editAria')"
+        @click="startEdit"
+      )
+        q-icon(name="edit" size="14px").q-mr-xs
+        | {{ $t('connectionDashboard.domainCard.edit') }}
+
+    template(v-if="!isEditing")
+      DataRow(
+        :label="$t('connectionDashboard.domainCard.domainRow')"
+        :value="announce || '—'"
+        mono
+        copyable
+        align="spread"
+      )
+      DataRow(:label="$t('connectionDashboard.domainCard.stateRow')" align="spread")
+        template(#value-override)
+          BaseBadge(:variant="delegationVariant") {{ delegationLabel }}
 
     template(v-if="isEditing")
       BaseBanner(variant="warn").q-mb-md
@@ -67,6 +78,7 @@ import {
   BaseCard,
   BaseInput,
 } from 'src/shared/ui/base'
+import { DataRow } from 'src/shared/ui/domain'
 import { useProviderSubscriptions } from 'src/features/Provider/model'
 import { t, t as i18nT } from 'src/shared/i18n';
 
@@ -144,32 +156,9 @@ const saveDomain = async () => {
 </script>
 
 <style scoped>
-.domain-card__top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--p-4);
-  flex-wrap: wrap;
-}
-.domain-card__host {
-  font-size: var(--p-fs-h3);
-  font-weight: 600;
-  color: var(--p-ink);
-  word-break: break-all;
-  min-width: 0;
-}
-.domain-card__actions {
-  display: flex;
-  align-items: center;
-  gap: var(--p-2);
-  flex-shrink: 0;
-}
 .domain-card__edit-actions {
   display: flex;
   gap: var(--p-2);
   margin-top: var(--p-3);
-}
-.domain-card__top + * {
-  margin-top: var(--p-4);
 }
 </style>

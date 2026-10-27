@@ -89,7 +89,13 @@ export const instanceStatusVariant = (status: string | null | undefined): UnionC
 }
 
 /** Статус подписки провайдера — тот же словарь, что у инстанса, плюс отмена. */
-export const subscriptionStatusLabel = (status: string | null | undefined): string => {
+/**
+ * Подпись состояния подписки. Для неоплаченной подписки провайдер отдаёт
+ * EXPIRED; пайщику это «не оплачена», а если кончился пробный период —
+ * «пробный период закончился» (второй аргумент).
+ */
+export const subscriptionStatusLabel = (status: string | null | undefined, isTrial = false): string => {
+  if (normalize(status) === 'expired' && isTrial) return t('union.subscription.status.trialEnded')
   switch (normalize(status)) {
     case 'active':
       return t('union.subscription.status.active')

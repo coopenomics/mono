@@ -16,7 +16,12 @@
         BaseButton(variant="primary" size="md" type="button" @click="openConvert")
           q-icon(name="add" size="16px").q-mr-xs
           | {{ $t('connectionDashboard.membershipWallet.topUp') }}
-        .membership-card__state(v-if="summary.hasDue || isSuspended")
+        //- После пополнения оплату проводит сторож провайдера в течение минуты:
+        //- пока долг не закрыт, строка говорит об этом, а не о просрочке.
+        .membership-card__state(v-if="settling")
+          q-spinner(size="16px" color="primary")
+          span {{ $t('connectionDashboard.membershipCard.settling') }}
+        .membership-card__state(v-else-if="summary.hasDue || isSuspended")
           BaseBadge(variant="neg") {{ badgeLabel }}
           span(v-if="shortfall > 0") {{ $t('connectionDashboard.membershipCard.topUpBy', { amount: formatPrice(shortfall) }) }}
         .membership-card__state(v-else-if="nextCharge")
@@ -26,7 +31,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { Ledger2Contract } from 'cooptypes'
 import { BaseBadge, BaseButton } from 'src/shared/ui/base'
 import { WalletCard } from 'src/shared/ui/domain'
@@ -97,13 +102,44 @@ const subscriptionDate = (sub: ProviderSubscription): string => {
 const formatPrice = (price: number | string): string =>
   formatAsset2Digits(`${String(price)} ${fallbackSymbol.value}`)
 
-const { isVisible } = useConvertToBillingVisibility()
+const { isVisible, amountRub } = useConvertToBillingVisibility()
 const openConvert = () => {
+  // При просрочке сумма подставляется: пайщику остаётся подписать.
+  if (shortfall.value > 0) amountRub.value = Math.ceil(shortfall.value)
   isVisible.value = true
 }
-// После закрытия диалога пополнения остаток перечитывается один раз.
+
+// Оплату после пополнения проводит сторож провайдера (другой узел) по своему
+// расписанию, лента цепи кооператива об этом не сообщает: пока долг числится,
+// подписки перечитываются, и строка состояния говорит «оплата пройдёт».
+const settling = ref(false)
+let settleTimer: ReturnType<typeof setInterval> | null = null
+let settleStarted = 0
+const SETTLE_POLL_MS = 10_000
+const SETTLE_MAX_MS = 120_000
+function stopSettling(): void {
+  if (settleTimer) clearInterval(settleTimer)
+  settleTimer = null
+  settling.value = false
+}
+function startSettling(): void {
+  settling.value = true
+  settleStarted = Date.now()
+  // timing: schedule — оплату проводит сторож провайдера по расписанию, лента цепи кооператива о ней не сообщает
+  settleTimer = setInterval(async () => {
+    await loadSubscriptions()
+    if (!summary.value.hasDue || Date.now() - settleStarted > SETTLE_MAX_MS) stopSettling()
+  }, SETTLE_POLL_MS)
+}
+onBeforeUnmount(stopSettling)
+
+// После закрытия диалога пополнения остаток перечитывается один раз; при
+// долге начинается ожидание оплаты.
 watch(isVisible, (open, wasOpen) => {
-  if (wasOpen && !open) void live.refresh()
+  if (wasOpen && !open) {
+    void live.refresh()
+    if (summary.value.hasDue) startSettling()
+  }
 })
 </script>
 
