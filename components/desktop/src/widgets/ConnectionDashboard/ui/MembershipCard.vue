@@ -18,10 +18,13 @@
           | {{ $t('connectionDashboard.membershipWallet.topUp') }}
         //- Долг: бейдж и сумма. Пока на кошельке не хватает — сколько пополнить;
         //- когда хватает — сколько спишется (списание проводит провайдер).
+        //- Счёт провайдера оплачивается целиком, поэтому рядом с бейджем обе
+        //- суммы: сколько по счёту и сколько не хватает на кошельке.
         .membership-card__state(v-if="summary.hasDue || isSuspended")
           BaseBadge(variant="neg") {{ badgeLabel }}
-          span(v-if="shortfall > 0") {{ $t('connectionDashboard.membershipCard.topUpBy', { amount: formatPrice(shortfall) }) }}
-          span(v-else-if="summary.dueTotal > 0") {{ $t('connectionDashboard.membershipCard.dueCharge', { amount: formatPrice(summary.dueTotal) }) }}
+          span(v-if="summary.dueTotal > 0") {{ $t('connectionDashboard.membershipCard.dueCharge', { amount: formatPrice(summary.dueTotal) }) }}
+          span.membership-card__sep(v-if="summary.dueTotal > 0 && shortfall > 0" aria-hidden="true") ·
+          span.membership-card__short(v-if="shortfall > 0") {{ $t('connectionDashboard.membershipCard.shortBy', { amount: formatPrice(shortfall) }) }}
         .membership-card__state(v-else-if="nextCharge")
           span {{ $t('connectionDashboard.membershipCard.nextChargeLine', { amount: formatPrice(nextCharge.price), date: subscriptionDate(nextCharge.sub) }) }}
 
@@ -156,5 +159,13 @@ watch(convertedCount, () => {
   font-size: var(--p-fs-body-sm);
   color: var(--p-ink-2);
   min-width: 0;
+  flex-wrap: wrap;
+}
+.membership-card__sep {
+  color: var(--p-ink-3);
+}
+.membership-card__short {
+  color: var(--p-ink);
+  font-weight: 600;
 }
 </style>

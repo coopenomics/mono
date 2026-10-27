@@ -129,9 +129,9 @@
       }
     },
     "membershipCard": {
-      "topUpBy": "пополните на {amount}",
       "nextChargeLine": "Ближайшее списание {amount} · {date}",
-      "dueCharge": "к списанию {amount}"
+      "dueCharge": "к оплате {amount}",
+      "shortBy": "не хватает {amount}"
     },
     "axonWallet": {
       "subtitle": "Ресурс документооборота",

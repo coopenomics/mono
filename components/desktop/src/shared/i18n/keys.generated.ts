@@ -2402,7 +2402,7 @@ export type MessageKey =
   | 'connectionDashboard.domainCard.updatingStatus'
   | 'connectionDashboard.membershipCard.dueCharge'
   | 'connectionDashboard.membershipCard.nextChargeLine'
-  | 'connectionDashboard.membershipCard.topUpBy'
+  | 'connectionDashboard.membershipCard.shortBy'
   | 'connectionDashboard.membershipWallet.subtitle'
   | 'connectionDashboard.membershipWallet.title'
   | 'connectionDashboard.membershipWallet.topUp'
