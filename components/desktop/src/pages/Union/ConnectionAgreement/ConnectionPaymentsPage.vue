@@ -3,13 +3,11 @@
 //- Заголовок страницы — в шапке, поэтому таблица лежит на странице без
 //- карточки-дубля.
 .conn-payments
-  PageHint(storage-key="connection:payments:hint") {{ $t('connectionDashboard.dashboard.paymentsSubtitle') }}
   PaymentsHistory(v-if="coopname" :coopname="coopname" :limit="50")
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { PageHint } from 'src/shared/ui/domain'
 import { PaymentsHistory } from 'src/widgets/Billing/PaymentsHistory'
 import { useSystemStore } from 'src/entities/System/model'
 

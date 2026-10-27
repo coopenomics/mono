@@ -4,13 +4,6 @@
 .conn-overview
   DomainCard
 
-  //- Одна подсказка на раздел (канон): вся денежная механика подключения.
-  PageHint(storage-key="connection:dashboard:banner-dismissed")
-    | {{ $t('connectionDashboard.dashboard.paymentNoteLine1') }}
-    | {{ $t('connectionDashboard.dashboard.paymentNoteLine2') }}
-    | {{ $t('connectionDashboard.dashboard.paymentNoteLine3') }}
-    | {{ $t('connectionDashboard.dashboard.paymentNoteLine4') }}
-
   //- Просрочка и приостановка — до кошельков: пока долг не закрыт, всё
   //- остальное вторично.
   BillingDueCard
@@ -23,7 +16,6 @@
 </template>
 
 <script setup lang="ts">
-import { PageHint } from 'src/shared/ui/domain'
 import { AxonWallet, MembershipWallet, BillingDueCard, DomainCard } from 'src/widgets/ConnectionDashboard'
 </script>
 

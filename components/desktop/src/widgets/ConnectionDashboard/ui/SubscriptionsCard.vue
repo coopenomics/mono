@@ -3,8 +3,6 @@
 //- (состояние над состоянием, сумма над суммой), поэтому это таблица, и она
 //- лежит на странице сама: рамки в рамке и заголовка-дубля нет (27.10.2026).
 .subs-card
-  PageHint(storage-key="connection:subscriptions:hint") {{ $t('connectionDashboard.subscriptionsCard.subtitle') }}
-
   BaseBanner(v-if="error" variant="neg") {{ $t('connectionDashboard.subscriptionsCard.loadErrorWithReason', { error }) }}
 
   EmptyState(
@@ -142,7 +140,6 @@ import {
   EmptyState,
 } from 'src/shared/ui/base'
 import type { BaseTableColumn } from 'src/shared/ui/base'
-import { PageHint } from 'src/shared/ui/domain'
 import { useFirstLoad } from 'src/shared/lib/composables'
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits'
 import { client } from 'src/shared/api/client'
