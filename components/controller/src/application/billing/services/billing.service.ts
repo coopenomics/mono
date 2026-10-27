@@ -4,6 +4,7 @@ import {
   type BillingBlockchainPort,
 } from '~/domain/billing/ports/billing-blockchain.port';
 import { BillingProviderClient } from '~/infrastructure/billing/billing-provider.client';
+import { BillingCronService } from '~/domain/billing/services/billing-cron.service';
 import { DocumentDomainService } from '~/domain/document/services/document-domain.service';
 import { AmountFormatterUtils, DomainToBlockchainUtils, GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO } from '@coopenomics/extension-kit';
 import { TransactionUtils } from '~/shared/utils/transaction.utils';
@@ -27,6 +28,7 @@ export class BillingService {
     private readonly providerClient: BillingProviderClient,
     private readonly documentDomainService: DocumentDomainService,
     private readonly domainToBlockchainUtils: DomainToBlockchainUtils,
+    private readonly cron: BillingCronService,
   ) {}
 
   /**
@@ -75,6 +77,9 @@ export class BillingService {
       quantity: input.amount,
       document: this.domainToBlockchainUtils.convertSignedDocumentToBlockchainFormat(input.document),
     });
+    // Пополнение зачислено — счёт за подписки списывается сразу, не дожидаясь
+    // такта: ответ пайщику приходит уже с закрытой просрочкой.
+    await this.cron.settleCoop(input.username);
     return { transactionId: TransactionUtils.extractTransactionId(result) };
   }
 

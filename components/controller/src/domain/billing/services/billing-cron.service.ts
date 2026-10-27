@@ -149,6 +149,23 @@ export class BillingCronService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
+   * Списание сразу после пополнения кошелька членских взносов (27.10.2026):
+   * ждать такта — до минуты, и всё это время пайщик видел «деньги есть, а
+   * просрочка не закрыта». Идёт тем же путём, что и такт, под тем же флагом
+   * наложения: если такт уже идёт, он и спишет. Отказы остаются внутри
+   * processCoop — пополнение не должно падать из-за списания.
+   */
+  async settleCoop(coopname: string): Promise<void> {
+    if (this.running) return;
+    this.running = true;
+    try {
+      await this.processCoop(coopname);
+    } finally {
+      this.running = false;
+    }
+  }
+
+  /**
    * Один тик бака: для каждого активного коопа читает баланс AXON и спрашивает
    * провайдера, чем пополнить бак. Свой флаг наложения — такты оплат и бака
    * идут независимо.

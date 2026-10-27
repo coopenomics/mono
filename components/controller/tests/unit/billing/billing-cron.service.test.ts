@@ -170,6 +170,33 @@ describe('BillingCronService — тик хаба', () => {
   });
 });
 
+describe('BillingCronService — списание сразу после пополнения (27.10.2026)', () => {
+  it('happy: settleCoop после пополнения списывает счёт тем же путём, что и такт: invoice → журнал → billing::pay → confirmPayment', async () => {
+    const h = build();
+    await h.svc.settleCoop('partner1');
+    expect(h.providerClient.createInvoice).toHaveBeenCalledWith('partner1', [{ subscription_id: 1, period_days: 30 }]);
+    expect(h.blockchainPort.pay).toHaveBeenCalledTimes(1);
+    expect(h.providerClient.confirmPayment).toHaveBeenCalledWith({ paymentHash: HASH, blockchainTransactionId: 'tx-pay' });
+  });
+
+  it('side: такт уже идёт → settleCoop уступает ему, второго списания нет', async () => {
+    const h = build();
+    let release!: () => void;
+    h.providerService.getCooperativesRegistry.mockImplementationOnce(() => new Promise((r) => { release = () => r([{ coopname: 'partner1', status: 'active' }]); }));
+    const tick = h.svc.tick();
+    await h.svc.settleCoop('partner1');
+    expect(h.blockchainPort.pay).not.toHaveBeenCalled();
+    release();
+    await tick;
+    expect(h.blockchainPort.pay).toHaveBeenCalledTimes(1);
+  });
+
+  it('break: нет средств на кошельке → settleCoop не бросает: пополнение не падает из-за списания', async () => {
+    const h = build({ payError: Object.assign(new Error('assertion failure with message: недостаточно средств'), { json: { error: { what: 'assertion failure' } } }) });
+    await expect(h.svc.settleCoop('partner1')).resolves.toBeUndefined();
+  });
+});
+
 describe('BillingCronService — идентификатор транзакции', () => {
   it('break: id лежит в ответе ноды (response.transaction_id), а не в корне — иначе провайдер получает подтверждение без ссылки на цепь', async () => {
     const h = build();

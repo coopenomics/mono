@@ -18,13 +18,18 @@
           | {{ $t('connectionDashboard.membershipWallet.topUp') }}
         //- Долг: бейдж и сумма. Пока на кошельке не хватает — сколько пополнить;
         //- когда хватает — сколько спишется (списание проводит провайдер).
-        //- Счёт провайдера оплачивается целиком, поэтому рядом с бейджем обе
-        //- суммы: сколько по счёту и сколько не хватает на кошельке.
-        .membership-card__state(v-if="summary.hasDue || isSuspended")
+        //- Красный бейдж — только когда нужно действие пайщика: на кошельке не
+        //- хватает на счёт. Счёт провайдера оплачивается целиком, поэтому рядом
+        //- обе суммы: сколько по счёту и сколько не хватает.
+        .membership-card__state(v-if="shortfall > 0 || isSuspended")
           BaseBadge(variant="neg") {{ badgeLabel }}
           span(v-if="summary.dueTotal > 0") {{ $t('connectionDashboard.membershipCard.dueCharge', { amount: formatPrice(summary.dueTotal) }) }}
           span.membership-card__sep(v-if="summary.dueTotal > 0 && shortfall > 0" aria-hidden="true") ·
           span.membership-card__short(v-if="shortfall > 0") {{ $t('connectionDashboard.membershipCard.shortBy', { amount: formatPrice(shortfall) }) }}
+        //- Срок подошёл и денег хватает: списание проведёт провайдер, пайщику
+        //- делать ничего не нужно — без красного.
+        .membership-card__state(v-else-if="summary.hasDue")
+          span {{ $t('connectionDashboard.membershipCard.chargeSoon', { amount: formatPrice(summary.dueTotal) }) }}
         .membership-card__state(v-else-if="nextCharge")
           span {{ $t('connectionDashboard.membershipCard.nextChargeLine', { amount: formatPrice(nextCharge.price), date: subscriptionDate(nextCharge.sub) }) }}
 

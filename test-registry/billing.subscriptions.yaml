@@ -397,6 +397,21 @@ cases:
     api: components/boot/src/tests/billing-tank.test.ts
     status: passing
 
+  - id: bill.happy.21
+    level: backend
+    kind: happy
+    scenario: >
+      Кооператив пополнил кошелёк членских взносов (billing::convert) при
+      неоплаченном счёте за подписки.
+    expect: >
+      счёт списывается сразу после пополнения тем же путём, что и такт
+      (invoice → журнал → billing::pay → confirmPayment), не дожидаясь крона;
+      если такт уже идёт — списывает он, второго списания нет; отказ списания
+      не роняет пополнение
+    test: components/controller/tests/unit/billing/billing-cron.service.test.ts
+    api: components/boot/src/tests/billing-tank.test.ts
+    status: passing
+
   # Сквозной прогон бака на стенде (B2D-32): хаб и провайдер вместе, сжатое время.
   - id: bill.happy.20
     level: backend
