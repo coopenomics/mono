@@ -17,9 +17,12 @@ const isVisible = ref(false)
 // Сумма — тоже общая: кошелёк членских взносов подставляет недостающую при
 // просрочке, пайщику остаётся подписать (27.10.2026).
 const amountRub = ref<number | null>(null)
+// Счётчик состоявшихся пополнений: кошелёк начинает ждать оплату только по
+// нему, а не по закрытию окна — «Отмена» ничего не пополняет (27.10.2026).
+const convertedCount = ref(0)
 
 export function useConvertToBillingVisibility() {
-  return { isVisible, amountRub }
+  return { isVisible, amountRub, convertedCount }
 }
 
 /**
@@ -67,6 +70,7 @@ export function useConvertToBilling() {
 
       isVisible.value = false
       amountRub.value = null
+      convertedCount.value += 1
       return result
     } finally {
       isSubmitting.value = false

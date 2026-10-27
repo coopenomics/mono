@@ -102,7 +102,7 @@ const subscriptionDate = (sub: ProviderSubscription): string => {
 const formatPrice = (price: number | string): string =>
   formatAsset2Digits(`${String(price)} ${fallbackSymbol.value}`)
 
-const { isVisible, amountRub } = useConvertToBillingVisibility()
+const { isVisible, amountRub, convertedCount } = useConvertToBillingVisibility()
 const openConvert = () => {
   // При просрочке сумма подставляется: пайщику остаётся подписать.
   if (shortfall.value > 0) amountRub.value = Math.ceil(shortfall.value)
@@ -133,13 +133,11 @@ function startSettling(): void {
 }
 onBeforeUnmount(stopSettling)
 
-// После закрытия диалога пополнения остаток перечитывается один раз; при
-// долге начинается ожидание оплаты.
-watch(isVisible, (open, wasOpen) => {
-  if (wasOpen && !open) {
-    void live.refresh()
-    if (summary.value.hasDue) startSettling()
-  }
+// После состоявшегося пополнения остаток перечитывается один раз; при долге
+// начинается ожидание оплаты. Закрытие окна без пополнения ничего не меняет.
+watch(convertedCount, () => {
+  void live.refresh()
+  if (summary.value.hasDue) startSettling()
 })
 </script>
 
