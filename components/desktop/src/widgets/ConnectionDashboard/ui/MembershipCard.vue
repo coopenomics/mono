@@ -32,7 +32,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, watch } from 'vue'
+import { computed, onBeforeUnmount, watch } from 'vue'
 import { Ledger2Contract } from 'cooptypes'
 import { BaseBadge, BaseButton } from 'src/shared/ui/base'
 import { WalletCard } from 'src/shared/ui/domain'
@@ -58,11 +58,17 @@ const system = useSystemStore()
 const connection = useConnectionAgreementStore()
 const { subscriptions, loadSubscriptions } = useProviderSubscriptions()
 
-// Подписки нужны строке состояния: просрочка и ближайшее списание.
+// Подписки нужны строке состояния: просрочка и ближайшее списание. Загрузка
+// ждёт признака подключения к провайдеру: после полной перезагрузки сведения о
+// системе приходят позже монтирования, и запрос без признака молча отказывал.
 // realtime: нет источника — подписки ведёт сервер провайдера (другой узел), в ленте кооператива их нет.
-onMounted(() => {
-  void loadSubscriptions()
-})
+watch(
+  () => system.info.is_providered,
+  (providered) => {
+    if (providered) void loadSubscriptions()
+  },
+  { immediate: true },
+)
 
 // Биллинг-кошелёк (`w.wal.bill`): на него ложится пополнение, с него провайдер
 // списывает подписки. Остаток живёт по ленте цепи.

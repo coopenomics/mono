@@ -142,7 +142,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { Mutations } from '@coopenomics/sdk'
 import {
   useProviderSubscriptions,
@@ -182,14 +182,20 @@ const { catalog, load: loadCatalog, connectionTariffs, currentTariff } = useConn
 const session = useSessionStore()
 const { info } = useSystemStore()
 
-// Загружаем подписки при монтировании
+// Загрузка ждёт признака подключения к провайдеру: после полной перезагрузки
+// сведения о системе приходят позже монтирования, и запрос без признака молча
+// отказывал. Каталог нужен не только диалогу: по нему подписывается текущий
+// тариф, с именем кооператива провайдер отдаёт и его тариф сетки.
 // realtime: нет источника — подписки кооператива ведёт сервер провайдера (другой узел), в ленте кооператива их нет.
-onMounted(async () => {
-  await loadSubscriptions()
-  // Каталог нужен не только диалогу: по нему подписывается текущий тариф.
-  // С именем кооператива провайдер отдаёт и его тариф сетки.
-  await loadCatalog(true, session.username)
-})
+watch(
+  () => info.is_providered,
+  async (providered) => {
+    if (!providered) return
+    await loadSubscriptions()
+    await loadCatalog(true, session.username)
+  },
+  { immediate: true },
+)
 
 
 // ── Правая панель с составом подписки ────────────────────────────────────
