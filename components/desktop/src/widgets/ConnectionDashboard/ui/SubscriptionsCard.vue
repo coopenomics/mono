@@ -1,8 +1,7 @@
 <template lang="pug">
-//- Реестр подписок кооператива у провайдера — строками-карточками по канону
-//- (образец — OrderCard, layout="row"). Зоны слева направо: опознание (что за
-//- услуга), деньги (сколько), состояние (бейдж и срок), действия. Рамки в
-//- рамке и заголовка-дубля нет: заголовок страницы — в шапке (27.10.2026).
+//- Реестр подписок кооператива у провайдера. Записи сравнивают по колонкам
+//- (состояние над состоянием, сумма над суммой), поэтому это таблица, и она
+//- лежит на странице сама: рамки в рамке и заголовка-дубля нет (27.10.2026).
 .subs-card
   PageHint(storage-key="connection:subscriptions:hint") {{ $t('connectionDashboard.subscriptionsCard.subtitle') }}
 
@@ -16,51 +15,47 @@
     template(#icon)
       q-icon(name="receipt_long" size="28px")
 
-  template(v-else)
-    //- Каркас загрузки повторяет строку: название, сумма, бейдж.
-    .subs-card__list(v-if="firstLoad")
-      .subs-row(v-for="n in 3" :key="n")
-        .subs-row__ident
-          q-skeleton(type="text" width="40%")
-          q-skeleton(type="text" width="70%")
-        .subs-row__money
-          q-skeleton(type="text" width="90px")
-        .subs-row__state
-          q-skeleton(type="QChip" width="80px")
+  BaseTable(
+    v-else
+    :columns="columns"
+    :rows="orderedSubscriptions"
+    row-key="id"
+    :loading="firstLoad"
+    :skeleton-rows="3"
+    min-width="720px"
+  )
+    //- Опознание: название, мета-строка (пакет; тариф и конфигурация), описание.
+    template(#cell-name="{ row }")
+      .subs-row__title {{ rowTitle(row) }}
+      .subs-row__meta(v-if="rowMeta(row).length")
+        template(v-for="(part, i) in rowMeta(row)" :key="i")
+          span.subs-row__sep(v-if="i > 0" aria-hidden="true") ·
+          span(:class="{ 't-mono': isCatalogApp(row) && i === 0 }") {{ part }}
+      .subs-row__desc(v-if="rowDescription(row)") {{ rowDescription(row) }}
 
-    .subs-card__list(v-else)
-      .subs-row(v-for="row in orderedSubscriptions" :key="row.id")
-        //- Опознание: название, мета-строка (пакет, тариф, конфигурация), описание.
-        .subs-row__ident
-          .subs-row__title {{ rowTitle(row) }}
-          .subs-row__meta(v-if="rowMeta(row).length")
-            template(v-for="(part, i) in rowMeta(row)" :key="i")
-              span.subs-row__sep(v-if="i > 0" aria-hidden="true") ·
-              span(:class="{ 't-mono': isCatalogApp(row) && i === 0 }") {{ part }}
-          .subs-row__desc(v-if="rowDescription(row)") {{ rowDescription(row) }}
+    //- Состояние: бейдж один раз, под ним только новое — срок пробного периода.
+    template(#cell-status="{ row }")
+      BaseBadge(:variant="subscriptionStatusVariant(row.status)") {{ subscriptionStatusLabel(row.status) }}
+      .subs-row__period(v-if="trialEndsOn(row)") {{ $t('connectionDashboard.subscriptionsCard.trialUntil', { date: trialEndsOn(row) }) }}
 
-        //- Деньги: сумма крупно, под ней период или кванты сверх объёма.
-        .subs-row__money
-          .subs-row__sum.t-mono.t-num {{ formatPrice(isFree(row) ? 0 : row.price) }}
-          .subs-row__period {{ priceNote(row) }}
+    //- Деньги: сумма, под ней период, «включено оператором» или кванты сверх объёма.
+    template(#cell-price="{ row }")
+      .subs-row__sum.t-mono.t-num {{ formatPrice(isFree(row) ? 0 : row.price) }}
+      .subs-row__period {{ priceNote(row) }}
 
-        //- Состояние: бейдж один раз, под ним только новое — срок пробного периода.
-        .subs-row__state
-          BaseBadge(:variant="subscriptionStatusVariant(row.status)") {{ subscriptionStatusLabel(row.status) }}
-          .subs-row__period(v-if="trialEndsOn(row)") {{ $t('connectionDashboard.subscriptionsCard.trialUntil', { date: trialEndsOn(row) }) }}
+    //- Действие: смена тарифа относится к серверу, у других строк действий нет.
+    template(#cell-actions="{ row }")
+      BaseButton(v-if="isHosting(row)" variant="secondary" size="sm" type="button" @click="openUpgrade(row)") {{ $t('connectionDashboard.subscriptionsCard.changePlan') }}
 
-        //- Действия: смена тарифа относится к серверу, у других строк действий нет.
-        .subs-row__actions(v-if="isHosting(row)")
-          BaseButton(variant="secondary" size="sm" type="button" @click="openUpgrade(row)") {{ $t('connectionDashboard.subscriptionsCard.changePlan') }}
-
-      //- Итог: сколько кооператив платит за платформу в месяц. По строкам это
-      //- не складывалось в голове, а именно эта сумма нужна, чтобы держать
-      //- кошелёк наполненным.
-      .subs-row.subs-row--total
-        .subs-row__ident
-          .subs-row__title {{ $t('connectionDashboard.subscriptionsCard.totalPerMonth') }}
-          .subs-row__desc(v-if="hasPackage") {{ $t('connectionDashboard.subscriptionsCard.docflowQuantNote', { price: formatPrice(QUANT_PRICE_RUB), quant: AXON_QUANT }) }}
-        .subs-row__money
+    //- Итог: сколько кооператив платит за платформу в месяц. По строкам это
+    //- не складывалось в голове, а именно эта сумма нужна, чтобы держать
+    //- кошелёк наполненным.
+    template(#footer)
+      .subs-card__total
+        .subs-card__total-label
+          | {{ $t('connectionDashboard.subscriptionsCard.totalPerMonth') }}
+          .subs-row__period(v-if="hasPackage") {{ $t('connectionDashboard.subscriptionsCard.docflowQuantNote', { price: formatPrice(QUANT_PRICE_RUB), quant: AXON_QUANT }) }}
+        .subs-card__total-value
           .subs-row__sum.t-mono.t-num {{ formatPrice(summary.monthlyTotal) }}
           .subs-row__period {{ $t('connectionDashboard.subscriptionsCard.perMonth') }}
 
@@ -143,8 +138,10 @@ import {
   BaseButton,
   BaseDialog,
   BaseRadioCard,
+  BaseTable,
   EmptyState,
 } from 'src/shared/ui/base'
+import type { BaseTableColumn } from 'src/shared/ui/base'
 import { PageHint } from 'src/shared/ui/domain'
 import { useFirstLoad } from 'src/shared/lib/composables'
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits'
@@ -191,6 +188,15 @@ const rowTitle = (sub: any): string => {
   const tail = String(sub.subscription_type_code).split('/').pop() ?? ''
   return tail.charAt(0).toUpperCase() + tail.slice(1)
 }
+
+// Ширины колонок фиксированы: состояние, сумма и действие держат правый край
+// и стоят колонкой строка в строку, название забирает остаток.
+const columns: BaseTableColumn<any>[] = [
+  { key: 'name', label: t('connectionDashboard.subscriptionsCard.column.service') },
+  { key: 'status', label: t('connectionDashboard.subscriptionsCard.column.status'), width: '150px', nowrap: true },
+  { key: 'price', label: t('connectionDashboard.subscriptionsCard.column.price'), numeric: true, width: '170px' },
+  { key: 'actions', label: '', width: '150px', align: 'right' },
+]
 
 /**
  * Мета-строка под названием: у приложения — имя пакета, у сервера — тариф и
@@ -445,123 +451,65 @@ const formatPrice = (price: number | string): string => {
   flex-direction: column;
   gap: var(--p-4);
 }
-.subs-card__list {
+
+// Ячейка названия: заголовок, мета-строка, описание — переносятся по словам,
+// q-table сам держит ячейки в одну строку.
+.subs-row__title {
+  font-size: var(--p-fs-body);
+  font-weight: 600;
+  color: var(--p-ink);
+  white-space: normal;
+}
+.subs-row__meta {
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
+  gap: 2px var(--p-2);
+  margin-top: 2px;
+  font-size: var(--p-fs-meta);
+  color: var(--p-ink-2);
+  white-space: normal;
+}
+.subs-row__sep {
+  color: var(--p-ink-3);
+}
+.subs-row__desc {
+  margin-top: var(--p-1);
+  font-size: var(--p-fs-meta);
+  line-height: var(--p-lh-meta);
+  color: var(--p-ink-2);
+  white-space: normal;
+  max-width: 60ch;
+}
+.subs-row__sum {
+  font-size: var(--p-fs-h3);
+  font-weight: 600;
+  color: var(--p-ink);
+  // Сумму не ломаем: «3 660,00» в две строки читается как две суммы.
+  white-space: nowrap;
+}
+.subs-row__period {
+  margin-top: 2px;
+  font-size: var(--p-fs-meta);
+  line-height: var(--p-lh-tight, 1.3);
+  color: var(--p-ink-2);
+  white-space: normal;
+}
+.subs-card__total {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
   gap: var(--p-3);
+  width: 100%;
+  padding: var(--p-2) 0;
 }
-
-// Строка подписки: опознание тянется, деньги, состояние и действия прижаты
-// вправо и держат колонность списка (сумма над суммой, бейдж над бейджем).
-.subs-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto auto;
-  grid-template-areas: 'ident money state actions';
-  column-gap: var(--p-6);
-  align-items: start;
-  padding: var(--p-4) var(--p-5);
-  border: 1px solid var(--p-line);
-  border-radius: var(--p-r-md);
-  background: var(--p-surface);
-
-  &--total {
-    grid-template-columns: minmax(0, 1fr) auto;
-    grid-template-areas: 'ident money';
-    background: var(--p-surface-2);
-  }
-
-  &__ident {
-    grid-area: ident;
-    min-width: 0;
-  }
-  &__title {
-    font-size: var(--p-fs-h3);
-    font-weight: 600;
-    color: var(--p-ink);
-    line-height: var(--p-lh-tight, 1.3);
-  }
-  &__meta {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 2px var(--p-2);
-    margin-top: 2px;
-    font-size: var(--p-fs-body-sm);
-    color: var(--p-ink-2);
-  }
-  &__sep {
-    color: var(--p-ink-3);
-  }
-  &__desc {
-    margin-top: var(--p-1);
-    font-size: var(--p-fs-body-sm);
-    line-height: var(--p-lh-meta);
-    color: var(--p-ink-2);
-    max-width: 64ch;
-  }
-
-  &__money {
-    grid-area: money;
-    text-align: right;
-    min-width: 150px;
-  }
-  &__sum {
-    font-size: var(--p-fs-h2);
-    font-weight: 700;
-    color: var(--p-ink);
-    // Сумму не ломаем: «3 660,00» в две строки читается как две суммы.
-    white-space: nowrap;
-  }
-  &__period {
-    margin-top: 2px;
-    font-size: var(--p-fs-meta);
-    line-height: var(--p-lh-tight, 1.3);
-    color: var(--p-ink-2);
-  }
-
-  &__state {
-    grid-area: state;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    min-width: 130px;
-  }
-
-  &__actions {
-    grid-area: actions;
-    display: flex;
-    justify-content: flex-end;
-  }
-
-  // Узкий экран: два яруса — название и состояние вверху, сумма и действие
-  // строкой-чеком внизу.
-  @media (max-width: 760px) {
-    grid-template-columns: minmax(0, 1fr) auto;
-    grid-template-areas:
-      'ident state'
-      'money actions';
-    column-gap: var(--p-4);
-    padding: var(--p-4);
-
-    &--total {
-      grid-template-areas: 'ident money';
-    }
-    &__money {
-      text-align: left;
-      min-width: 0;
-      margin-top: var(--p-3);
-      padding-top: var(--p-3);
-      border-top: 1px solid var(--p-line);
-    }
-    &__state {
-      min-width: 0;
-    }
-    &__actions {
-      align-self: end;
-      margin-top: var(--p-3);
-    }
-  }
+.subs-card__total-label {
+  font-size: var(--p-fs-body);
+  font-weight: 600;
+  color: var(--p-ink);
 }
-
+.subs-card__total-value {
+  text-align: right;
+}
 .subs-card__dlg-text {
   margin: 0 0 var(--p-3);
 }
