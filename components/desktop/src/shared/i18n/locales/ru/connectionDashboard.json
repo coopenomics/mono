@@ -108,20 +108,15 @@
       "totalPerMonth": "Итого в месяц",
       "upgradeDoneLine1": "Переход оформлен: новая цена {price} в месяц уже действует, ",
       "upgradeDoneLine2": "система переедет на новый сервер в течение часа",
-      "appFromCatalog": "Приложение из каталога"
+      "appFromCatalog": "Приложение из каталога",
+      "packageVolume": "{axon} AXON в месяц · {members} пайщиков или {operations} пакетов документов"
     },
     "membershipCard": {
-      "nextCharge": "Ближайшее списание",
-      "nextChargeLine": "{date} · {name}"
+      "topUpBy": "пополните на {amount}",
+      "nextChargeLine": "Ближайшее списание {amount} · {date}"
     },
-    "docflowCard": {
-      "title": "Документооборот",
-      "volume": "Объём месяца",
-      "remaining": "Остаток месяца",
-      "fee": "Плата",
-      "overLimit": "Сверх объёма",
-      "capacity": "{members} пайщиков или {operations} пакетов документов · {axon} AXON",
-      "overLimitLine": "{price} за {quant} AXON, когда остаток ниже {threshold} AXON"
+    "axonWallet": {
+      "subtitle": "Ресурс документооборота"
     }
   }
 }

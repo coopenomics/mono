@@ -3,7 +3,7 @@ import { ProfilePage } from 'src/pages/User/ProfilePage';
 import { CardcoopPage } from 'src/pages/User/CardcoopPage';
 import { WalletPage } from 'src/pages/User/WalletPage';
 import { MembershipExitConfirmPage } from 'src/pages/User/MembershipExitConfirmPage';
-import { ConnectionAgreementPage, ConnectionKeyPage, ConnectionOverviewPage, ConnectionPaymentsPage, ConnectionSubscriptionsPage, InstallationCompletedPage } from 'src/pages/Union/ConnectionAgreement';
+import { ConnectionAgreementPage, ConnectionOverviewPage, ConnectionPaymentsPage, ConnectionSettingsPage, ConnectionSubscriptionsPage, InstallationCompletedPage } from 'src/pages/Union/ConnectionAgreement';
 import { UserPaymentMethodsPage } from 'src/pages/User/PaymentMethodsPage';
 import { UserSettingsPage } from 'src/pages/User/SettingsPage';
 import { ContactsPage } from 'src/pages/Contacts';
@@ -152,12 +152,12 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                 },
               },
               {
-                path: 'key',
-                name: 'connect-key',
-                component: markRaw(ConnectionKeyPage),
+                path: 'settings',
+                name: 'connect-settings',
+                component: markRaw(ConnectionSettingsPage),
                 meta: {
-                  title: t('participant.install.connectionKeyTitle'),
-                  icon: 'key',
+                  title: t('participant.install.connectionSettingsTitle'),
+                  icon: 'tune',
                   requires: 'ProviderSubscription:read:own',
                   conditions: 'isCoop === true && coopname === "voskhod"',
                   requiresAuth: true,

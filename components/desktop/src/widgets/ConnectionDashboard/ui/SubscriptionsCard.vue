@@ -202,6 +202,13 @@ const columns: BaseTableColumn<any>[] = [
 const rowMeta = (sub: any): string[] => {
   if (isCatalogApp(sub)) return [String(sub.subscription_type_code).slice('catalog:'.length)]
   if (isHosting(sub)) return [planName(sub), planSpecs(sub)].filter(Boolean)
+  if (isPackage(sub)) {
+    // Объём месяца — в пайщиках и пакетах документов: число AXON само по себе
+    // кооперативу ничего не говорит.
+    const axon = Number(sub?.price ?? 0) / AXON_PRICE_RUB
+    const { members, operations } = tariffVolumeBreakdown(axon)
+    return [t('connectionDashboard.subscriptionsCard.packageVolume', { axon: formatAxonCount(axon), members, operations })]
+  }
   return []
 }
 

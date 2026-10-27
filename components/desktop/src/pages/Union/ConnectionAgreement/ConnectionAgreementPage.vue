@@ -67,10 +67,10 @@ const connectionAgreement = useConnectionAgreementStore();
 // Разделы подключённого кооператива. Приложения здесь не подключаются: на них
 // кооператив подписывается на своём узле, у оператора они видны строками в подписках.
 const tabs: PageTab[] = [
-  { key: 'connect-overview', routeName: 'connect-overview', label: t('union.connectionAgreementPage.tabs.connection'), icon: 'link' },
+  { key: 'connect-overview', routeName: 'connect-overview', label: t('union.connectionAgreementPage.tabs.wallets'), icon: 'account_balance_wallet' },
   { key: 'connect-subscriptions', routeName: 'connect-subscriptions', label: t('union.connectionAgreementPage.tabs.subscriptions'), icon: 'receipt_long' },
   { key: 'connect-payments', routeName: 'connect-payments', label: t('union.connectionAgreementPage.tabs.payments'), icon: 'history' },
-  { key: 'connect-key', routeName: 'connect-key', label: t('union.connectionAgreementPage.tabs.key'), icon: 'key' },
+  { key: 'connect-settings', routeName: 'connect-settings', label: t('union.connectionAgreementPage.tabs.settings'), icon: 'tune' },
 ];
 
 // Лоадер состояния

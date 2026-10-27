@@ -1,20 +1,25 @@
 <template lang="pug">
-//- Вкладка «Подключение»: три блока сверху вниз — членские взносы с остатком,
-//- состоянием оплаты и «Пополнить»; документооборот словами; адрес кооператива.
-.conn-overview
-  MembershipCard
-  DocflowCard
-  DomainCard
+//- Вкладка «Кошельки» подключённого кооператива: членские взносы (ими платятся
+//- подписки) и AXON (ресурс документооборота). Подписки, списания и настройки
+//- подключения — соседними вкладками.
+.conn-wallets.row.q-col-gutter-md
+  .col-12.col-md-6
+    MembershipCard
+  .col-12.col-md-6
+    AxonWallet
 </template>
 
 <script setup lang="ts">
-import { DocflowCard, DomainCard, MembershipCard } from 'src/widgets/ConnectionDashboard'
+import { AxonWallet, MembershipCard } from 'src/widgets/ConnectionDashboard'
 </script>
 
 <style scoped>
-.conn-overview {
+/* Кошельки — одной высоты: подвалы у них разные, без растяжения плитки
+   стояли бы ступенькой. */
+.conn-wallets > [class^='col'] {
   display: flex;
-  flex-direction: column;
-  gap: var(--p-5);
+}
+.conn-wallets :deep(.wallet) {
+  flex: 1;
 }
 </style>

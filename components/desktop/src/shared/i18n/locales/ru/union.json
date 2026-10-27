@@ -21,10 +21,10 @@
       "maintenanceText": "технические работы...",
       "title": "Подключение к Кооперативной Экономике",
       "tabs": {
-        "connection": "Подключение",
         "subscriptions": "Подписки",
-        "key": "Ключ установки",
-        "payments": "История списаний"
+        "payments": "История списаний",
+        "wallets": "Кошельки",
+        "settings": "Настройки"
       }
     },
     "cooperativeCharter": {

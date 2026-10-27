@@ -1,5 +1,5 @@
 export { default as MembershipCard } from './MembershipCard.vue'
-export { default as DocflowCard } from './DocflowCard.vue'
+export { default as AxonWallet } from './AxonWallet.vue'
 export { default as DomainCard } from './DomainCard.vue'
 export { default as SubscriptionsCard } from './SubscriptionsCard.vue'
 export { default as PlatformKeyCard } from './PlatformKeyCard.vue'

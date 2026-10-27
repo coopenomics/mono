@@ -1,14 +1,10 @@
 <template lang="pug">
 .domain-card
-  BaseCard
-    //- Адрес — самое крупное на странице: это «шильдик» кооператива, по нему
-    //- его находят пайщики. Поэтому название карточки уходит в eyebrow, а
-    //- место заголовка занимает сам домен. Шапка BaseCard не используется:
-    //- вне режима правки тело карточки было бы пустым и давало лишний отступ.
+  BaseCard(:title="$t('connectionDashboard.domainCard.addressEyebrow')")
+    //- Адрес, состояние домена и «Изменить» одной строкой: по адресу
+    //- кооператив находят пайщики, менять его приходится редко.
     .domain-card__top
-      .domain-card__head
-        .t-eyebrow.t-muted {{ $t('connectionDashboard.domainCard.addressEyebrow') }}
-        .domain-card__host.t-mono(:class="{ 't-muted': isEditing }") {{ announce || '—' }}
+      .domain-card__host.t-mono(:class="{ 't-muted': isEditing }") {{ announce || '—' }}
       .domain-card__actions
         BaseBadge(:variant="delegationVariant") {{ delegationLabel }}
         BaseButton(
@@ -150,23 +146,17 @@ const saveDomain = async () => {
 <style scoped>
 .domain-card__top {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: var(--p-4);
-}
-.domain-card__head {
-  display: flex;
-  flex-direction: column;
-  gap: var(--p-1);
-  min-width: 0;
+  flex-wrap: wrap;
 }
 .domain-card__host {
-  font-size: var(--p-fs-h1);
-  line-height: var(--p-lh-h1);
-  letter-spacing: var(--p-ls-h1);
+  font-size: var(--p-fs-h3);
   font-weight: 600;
   color: var(--p-ink);
   word-break: break-all;
+  min-width: 0;
 }
 .domain-card__actions {
   display: flex;

@@ -1,8 +1,7 @@
 <template lang="pug">
-//- Главный блок подключения: остаток членских взносов и «Пополнить». Под
-//- остатком — одна строка состояния оплаты: просрочка с суммой к пополнению,
-//- приостановка, либо ближайшее списание. Отдельной карточки долга нет:
-//- долг — состояние этого же кошелька (27.10.2026).
+//- Кошелёк членских взносов: остаток, «Пополнить» и одна строка состояния
+//- оплаты — просрочка с суммой к пополнению, приостановка либо ближайшее
+//- списание. Подробности о подписках — на вкладке «Подписки» (27.10.2026).
 .membership-card
   WalletCard(
     program="wallet"
@@ -14,27 +13,14 @@
   )
     template(#actions)
       .membership-card__foot
-        .membership-card__state
-          //- Долг: бейдж, сумма к пополнению, затем что именно просрочено.
-          template(v-if="summary.hasDue || isSuspended")
-            .membership-card__state-head
-              BaseBadge(variant="neg") {{ badgeLabel }}
-              span.membership-card__state-sum(v-if="shortfall > 0")
-                | {{ $t('connectionDashboard.billingDueCard.topUpNeeded') }}
-                |
-                span.t-mono.t-num {{ formatPrice(shortfall) }}
-            .membership-card__state-note(v-if="isReleased") {{ $t('connectionDashboard.billingDueCard.backupNote') }}
-            .membership-card__state-note(v-for="sub in summary.overdue" :key="sub.id")
-              | {{ $t('connectionDashboard.billingDueCard.overdueSince', { name: subscriptionName(sub), date: subscriptionDate(sub) }) }}
-          //- Долга нет: ближайшее списание — чтобы остаток читался относительно него.
-          template(v-else-if="nextCharge")
-            .membership-card__state-head
-              span.membership-card__state-label {{ $t('connectionDashboard.membershipCard.nextCharge') }}
-              span.t-mono.t-num {{ formatPrice(nextCharge.price) }}
-            .membership-card__state-note {{ $t('connectionDashboard.membershipCard.nextChargeLine', { date: subscriptionDate(nextCharge.sub), name: subscriptionName(nextCharge.sub) }) }}
         BaseButton(variant="primary" size="md" type="button" @click="openConvert")
           q-icon(name="add" size="16px").q-mr-xs
           | {{ $t('connectionDashboard.membershipWallet.topUp') }}
+        .membership-card__state(v-if="summary.hasDue || isSuspended")
+          BaseBadge(variant="neg") {{ badgeLabel }}
+          span(v-if="shortfall > 0") {{ $t('connectionDashboard.membershipCard.topUpBy', { amount: formatPrice(shortfall) }) }}
+        .membership-card__state(v-else-if="nextCharge")
+          span {{ $t('connectionDashboard.membershipCard.nextChargeLine', { amount: formatPrice(nextCharge.price), date: subscriptionDate(nextCharge.sub) }) }}
 
   ConvertToBillingDialog
 </template>
@@ -88,7 +74,6 @@ const summary = computed(() => summarizeSubscriptions(subscriptions.value))
 const shortfall = computed(() => Math.max(0, summary.value.dueTotal - walletAvailable.value))
 
 const instance = computed(() => connection.currentInstance)
-const isReleased = computed(() => instance.value?.is_released === true)
 const isSuspended = computed(() => instance.value?.maintenance_mode === true)
 const badgeLabel = computed(() =>
   isSuspended.value ? t('connectionDashboard.billingDueCard.suspended') : t('connectionDashboard.billingDueCard.overdue'),
@@ -104,13 +89,6 @@ const nextCharge = computed<{ sub: ProviderSubscription; price: number } | null>
   return upcoming ? { sub: upcoming.sub, price: subscriptionPeriodPrice(upcoming.sub) } : null
 })
 
-/** Название подписки; у приложения каталога — имя пакета с прописной. */
-const subscriptionName = (sub: ProviderSubscription): string => {
-  const code = String((sub as { subscription_type_code?: string }).subscription_type_code ?? '')
-  if (!code.startsWith('catalog:')) return String((sub as { subscription_type_name?: string }).subscription_type_name ?? '')
-  const tail = code.split('/').pop() ?? ''
-  return tail.charAt(0).toUpperCase() + tail.slice(1)
-}
 const subscriptionDate = (sub: ProviderSubscription): string => {
   const expires = (sub as { expires_at?: string }).expires_at
   return expires ? formatDateToLocalTimezone(expires, 'DD.MM.YYYY') : '—'
@@ -133,39 +111,20 @@ watch(isVisible, (open, wasOpen) => {
 .membership-card {
   display: contents;
 }
-/* Подвал кошелька: состояние слева тянется, кнопка прижата вправо. */
+/* Подвал кошелька: кнопка слева, состояние оплаты одной строкой рядом. */
 .membership-card__foot {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: var(--p-4);
   width: 100%;
   flex-wrap: wrap;
 }
 .membership-card__state {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-  flex: 1 1 240px;
-}
-.membership-card__state-head {
-  display: flex;
   align-items: center;
-  gap: var(--p-3);
-  flex-wrap: wrap;
-  font-size: var(--p-fs-body);
-  color: var(--p-ink);
-}
-.membership-card__state-sum {
-  font-weight: 600;
-}
-.membership-card__state-label {
+  gap: var(--p-2);
+  font-size: var(--p-fs-body-sm);
   color: var(--p-ink-2);
-}
-.membership-card__state-note {
-  font-size: var(--p-fs-meta);
-  line-height: var(--p-lh-meta);
-  color: var(--p-ink-2);
+  min-width: 0;
 }
 </style>

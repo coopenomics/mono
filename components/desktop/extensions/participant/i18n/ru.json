@@ -18,8 +18,8 @@
       "title": "Стол пайщика",
       "walletTitle": "Кошелёк",
       "connectionSubscriptionsTitle": "Подписки",
-      "connectionKeyTitle": "Ключ установки",
-      "connectionPaymentsTitle": "История списаний"
+      "connectionPaymentsTitle": "История списаний",
+      "connectionSettingsTitle": "Настройки подключения"
     }
   }
 }
