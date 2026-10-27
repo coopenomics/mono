@@ -2400,7 +2400,6 @@ export type MessageKey =
   | 'connectionDashboard.domainCard.subtitle'
   | 'connectionDashboard.domainCard.title'
   | 'connectionDashboard.domainCard.updatingStatus'
-  | 'connectionDashboard.membershipCard.chargeSoon'
   | 'connectionDashboard.membershipCard.dueCharge'
   | 'connectionDashboard.membershipCard.nextChargeLine'
   | 'connectionDashboard.membershipCard.shortBy'

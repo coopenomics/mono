@@ -26,11 +26,9 @@
           span(v-if="summary.dueTotal > 0") {{ $t('connectionDashboard.membershipCard.dueCharge', { amount: formatPrice(summary.dueTotal) }) }}
           span.membership-card__sep(v-if="summary.dueTotal > 0 && shortfall > 0" aria-hidden="true") ·
           span.membership-card__short(v-if="shortfall > 0") {{ $t('connectionDashboard.membershipCard.shortBy', { amount: formatPrice(shortfall) }) }}
-        //- Срок подошёл и денег хватает: списание проведёт провайдер, пайщику
-        //- делать ничего не нужно — без красного.
-        .membership-card__state(v-else-if="summary.hasDue")
-          span {{ $t('connectionDashboard.membershipCard.chargeSoon', { amount: formatPrice(summary.dueTotal) }) }}
-        .membership-card__state(v-else-if="nextCharge")
+        //- Срок подошёл и денег хватает — строки нет: списание проводит
+        //- провайдер, пайщику делать нечего (слово владельца 27.10.2026).
+        .membership-card__state(v-else-if="nextCharge && !summary.hasDue")
           span {{ $t('connectionDashboard.membershipCard.nextChargeLine', { amount: formatPrice(nextCharge.price), date: subscriptionDate(nextCharge.sub) }) }}
 
   ConvertToBillingDialog
@@ -101,7 +99,8 @@ const nextCharge = computed<{ sub: ProviderSubscription; price: number } | null>
   const upcoming = subscriptions.value
     .filter((s) => !isFreeSubscription(s) && !String((s as { status?: string }).status ?? '').toLowerCase().startsWith('cancel'))
     .map((s) => ({ sub: s, at: new Date(String((s as { expires_at?: string }).expires_at ?? '')).getTime() }))
-    .filter((x) => Number.isFinite(x.at))
+    // Только будущие даты: прошедший срок — не «ближайшее списание».
+    .filter((x) => Number.isFinite(x.at) && x.at > Date.now())
     .sort((a, b) => a.at - b.at)[0]
   return upcoming ? { sub: upcoming.sub, price: subscriptionPeriodPrice(upcoming.sub) } : null
 })

@@ -131,8 +131,7 @@
     "membershipCard": {
       "nextChargeLine": "Ближайшее списание {amount} · {date}",
       "dueCharge": "к оплате {amount}",
-      "shortBy": "не хватает {amount}",
-      "chargeSoon": "Списание {amount} — сейчас"
+      "shortBy": "не хватает {amount}"
     },
     "axonWallet": {
       "subtitle": "Ресурс документооборота",
