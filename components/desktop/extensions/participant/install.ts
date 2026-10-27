@@ -3,7 +3,7 @@ import { ProfilePage } from 'src/pages/User/ProfilePage';
 import { CardcoopPage } from 'src/pages/User/CardcoopPage';
 import { WalletPage } from 'src/pages/User/WalletPage';
 import { MembershipExitConfirmPage } from 'src/pages/User/MembershipExitConfirmPage';
-import { ConnectionAgreementPage, ConnectionKeyPage, ConnectionOverviewPage, ConnectionSubscriptionsPage, InstallationCompletedPage } from 'src/pages/Union/ConnectionAgreement';
+import { ConnectionAgreementPage, ConnectionKeyPage, ConnectionOverviewPage, ConnectionPaymentsPage, ConnectionSubscriptionsPage, InstallationCompletedPage } from 'src/pages/Union/ConnectionAgreement';
 import { UserPaymentMethodsPage } from 'src/pages/User/PaymentMethodsPage';
 import { UserSettingsPage } from 'src/pages/User/SettingsPage';
 import { ContactsPage } from 'src/pages/Contacts';
@@ -130,6 +130,20 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                 meta: {
                   title: t('participant.install.connectionSubscriptionsTitle'),
                   icon: 'receipt_long',
+                  requires: 'ProviderSubscription:read:own',
+                  conditions: 'isCoop === true && coopname === "voskhod"',
+                  requiresAuth: true,
+                  hidden: true,
+                  menuKey: 'connect',
+                },
+              },
+              {
+                path: 'payments',
+                name: 'connect-payments',
+                component: markRaw(ConnectionPaymentsPage),
+                meta: {
+                  title: t('participant.install.connectionPaymentsTitle'),
+                  icon: 'history',
                   requires: 'ProviderSubscription:read:own',
                   conditions: 'isCoop === true && coopname === "voskhod"',
                   requiresAuth: true,

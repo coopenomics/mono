@@ -23,7 +23,8 @@
       "tabs": {
         "connection": "Подключение",
         "subscriptions": "Подписки",
-        "key": "Ключ установки"
+        "key": "Ключ установки",
+        "payments": "История списаний"
       }
     },
     "cooperativeCharter": {

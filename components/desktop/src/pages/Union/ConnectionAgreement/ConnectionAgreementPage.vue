@@ -69,6 +69,7 @@ const connectionAgreement = useConnectionAgreementStore();
 const tabs: PageTab[] = [
   { key: 'connect-overview', routeName: 'connect-overview', label: t('union.connectionAgreementPage.tabs.connection'), icon: 'link' },
   { key: 'connect-subscriptions', routeName: 'connect-subscriptions', label: t('union.connectionAgreementPage.tabs.subscriptions'), icon: 'receipt_long' },
+  { key: 'connect-payments', routeName: 'connect-payments', label: t('union.connectionAgreementPage.tabs.payments'), icon: 'history' },
   { key: 'connect-key', routeName: 'connect-key', label: t('union.connectionAgreementPage.tabs.key'), icon: 'key' },
 ];
 

@@ -2,4 +2,5 @@ export { default as ConnectionAgreementPage } from './ConnectionAgreementPage.vu
 export { default as InstallationCompletedPage } from './InstallationCompletedPage.vue'
 export { default as ConnectionOverviewPage } from './ConnectionOverviewPage.vue'
 export { default as ConnectionSubscriptionsPage } from './ConnectionSubscriptionsPage.vue'
+export { default as ConnectionPaymentsPage } from './ConnectionPaymentsPage.vue'
 export { default as ConnectionKeyPage } from './ConnectionKeyPage.vue'
