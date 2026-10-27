@@ -16,14 +16,12 @@
         BaseButton(variant="primary" size="md" type="button" @click="openConvert")
           q-icon(name="add" size="16px").q-mr-xs
           | {{ $t('connectionDashboard.membershipWallet.topUp') }}
-        //- После пополнения оплату проводит сторож провайдера в течение минуты:
-        //- пока долг не закрыт, строка говорит об этом, а не о просрочке.
-        .membership-card__state(v-if="settling")
-          q-spinner(size="16px" color="primary")
-          span {{ $t('connectionDashboard.membershipCard.settling') }}
-        .membership-card__state(v-else-if="summary.hasDue || isSuspended")
+        //- Долг: бейдж и сумма. Пока на кошельке не хватает — сколько пополнить;
+        //- когда хватает — сколько спишется (списание проводит провайдер).
+        .membership-card__state(v-if="summary.hasDue || isSuspended")
           BaseBadge(variant="neg") {{ badgeLabel }}
           span(v-if="shortfall > 0") {{ $t('connectionDashboard.membershipCard.topUpBy', { amount: formatPrice(shortfall) }) }}
+          span(v-else-if="summary.dueTotal > 0") {{ $t('connectionDashboard.membershipCard.dueCharge', { amount: formatPrice(summary.dueTotal) }) }}
         .membership-card__state(v-else-if="nextCharge")
           span {{ $t('connectionDashboard.membershipCard.nextChargeLine', { amount: formatPrice(nextCharge.price), date: subscriptionDate(nextCharge.sub) }) }}
 
@@ -31,7 +29,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, watch } from 'vue'
 import { Ledger2Contract } from 'cooptypes'
 import { BaseBadge, BaseButton } from 'src/shared/ui/base'
 import { WalletCard } from 'src/shared/ui/domain'
@@ -109,10 +107,9 @@ const openConvert = () => {
   isVisible.value = true
 }
 
-// Оплату после пополнения проводит сторож провайдера (другой узел) по своему
+// Списание после пополнения проводит сторож провайдера (другой узел) по своему
 // расписанию, лента цепи кооператива об этом не сообщает: пока долг числится,
-// подписки перечитываются, и строка состояния говорит «оплата пройдёт».
-const settling = ref(false)
+// подписки перечитываются молча, и строка сменится сама.
 let settleTimer: ReturnType<typeof setInterval> | null = null
 let settleStarted = 0
 const SETTLE_POLL_MS = 10_000
@@ -120,10 +117,9 @@ const SETTLE_MAX_MS = 120_000
 function stopSettling(): void {
   if (settleTimer) clearInterval(settleTimer)
   settleTimer = null
-  settling.value = false
 }
 function startSettling(): void {
-  settling.value = true
+  stopSettling()
   settleStarted = Date.now()
   // timing: schedule — оплату проводит сторож провайдера по расписанию, лента цепи кооператива о ней не сообщает
   settleTimer = setInterval(async () => {

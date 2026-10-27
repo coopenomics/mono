@@ -131,7 +131,7 @@
     "membershipCard": {
       "topUpBy": "пополните на {amount}",
       "nextChargeLine": "Ближайшее списание {amount} · {date}",
-      "settling": "Оплата пройдёт в течение минуты"
+      "dueCharge": "к списанию {amount}"
     },
     "axonWallet": {
       "subtitle": "Ресурс документооборота",
