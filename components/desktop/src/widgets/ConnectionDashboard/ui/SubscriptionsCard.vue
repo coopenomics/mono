@@ -32,6 +32,10 @@
           span.subs-row__sep(v-if="i > 0" aria-hidden="true") ·
           span(:class="{ 't-mono': isCatalogApp(row) && i === 0 }") {{ part }}
       .subs-row__desc(v-if="rowDescription(row)") {{ rowDescription(row) }}
+      //- Смена тарифа относится к серверу и стоит в его строке: отдельная
+      //- колонка действия держала бы пустое место у всех остальных подписок.
+      .subs-row__action(v-if="isHosting(row)")
+        BaseButton(variant="secondary" size="sm" type="button" @click="openUpgrade(row)") {{ $t('connectionDashboard.subscriptionsCard.changePlan') }}
 
     //- Состояние: бейдж один раз, под ним только новое — срок пробного периода.
     template(#cell-status="{ row }")
@@ -42,10 +46,6 @@
     template(#cell-price="{ row }")
       .subs-row__sum.t-mono.t-num {{ formatPrice(isFree(row) ? 0 : row.price) }}
       .subs-row__period {{ priceNote(row) }}
-
-    //- Действие: смена тарифа относится к серверу, у других строк действий нет.
-    template(#cell-actions="{ row }")
-      BaseButton(v-if="isHosting(row)" variant="secondary" size="sm" type="button" @click="openUpgrade(row)") {{ $t('connectionDashboard.subscriptionsCard.changePlan') }}
 
     //- Итог: сколько кооператив платит за платформу в месяц. По строкам это
     //- не складывалось в голове, а именно эта сумма нужна, чтобы держать
@@ -189,13 +189,12 @@ const rowTitle = (sub: any): string => {
   return tail.charAt(0).toUpperCase() + tail.slice(1)
 }
 
-// Ширины колонок фиксированы: состояние, сумма и действие держат правый край
-// и стоят колонкой строка в строку, название забирает остаток.
+// Ширины колонок фиксированы: состояние и сумма держат правый край и стоят
+// колонкой строка в строку, название забирает остаток.
 const columns: BaseTableColumn<any>[] = [
   { key: 'name', label: t('connectionDashboard.subscriptionsCard.column.service') },
   { key: 'status', label: t('connectionDashboard.subscriptionsCard.column.status'), width: '150px', nowrap: true },
   { key: 'price', label: t('connectionDashboard.subscriptionsCard.column.price'), numeric: true, width: '170px' },
-  { key: 'actions', label: '', width: '150px', align: 'right' },
 ]
 
 /**
@@ -479,6 +478,9 @@ const formatPrice = (price: number | string): string => {
   color: var(--p-ink-2);
   white-space: normal;
   max-width: 60ch;
+}
+.subs-row__action {
+  margin-top: var(--p-2);
 }
 .subs-row__sum {
   font-size: var(--p-fs-h3);
