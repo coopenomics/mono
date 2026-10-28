@@ -1,4 +1,30 @@
 import { defineConfig } from 'vitest/config'
+import { BaseSequencer } from 'vitest/node'
+import type { WorkspaceSpec } from 'vitest/node'
+
+/** Путь файла из описания набора: кортеж [проект, путь] либо объект с moduleId. */
+function specPath(spec: WorkspaceSpec): string {
+  if (Array.isArray(spec))
+    return String(spec[1])
+  return String((spec as unknown as { moduleId?: string }).moduleId ?? spec)
+}
+
+/**
+ * Файлы набора идут по имени, всегда в одном порядке.
+ *
+ * Тесты делят одну MongoDB: `udata.test.ts` стирает коллекцию udata,
+ * `index.test.ts` и тесты «Образования» переписывают переменные кооператива,
+ * `documents-1000-plus.test.ts` — номера договоров. Порядок файлов по
+ * умолчанию у vitest не закреплён, и два прогона CI 28.10.2026 собрали
+ * документы Благороста с разными номерами договора при одинаковом коде.
+ * Эталоны (test/golden) требуют одного и того же состояния перед каждым
+ * файлом, поэтому порядок задаётся явно.
+ */
+class AlphabeticalSequencer extends BaseSequencer {
+  async sort(files: WorkspaceSpec[]): Promise<WorkspaceSpec[]> {
+    return [...files].sort((a, b) => specPath(a).localeCompare(specPath(b)))
+  }
+}
 
 export default defineConfig({
   test: {
@@ -19,6 +45,7 @@ export default defineConfig({
       DOCUMENTS_DIR: './documents',
     },
     globalSetup: './test/setup.ts',
+    sequence: { sequencer: AlphabeticalSequencer },
     testTimeout: 120000,
     fileParallelism: false,
   },
