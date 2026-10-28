@@ -4,7 +4,8 @@
  * выход — строка или модель для шаблона.
  */
 import type { Cooperative } from 'cooptypes'
-import type { ExternalEntrepreneurData, ExternalIndividualData, ExternalOrganizationData, externalDataTypes } from '../Models'
+import type { ExternalEntrepreneurData, ExternalIndividualData, ExternalOrganizationData } from '../Models'
+import type { externalDataTypes } from '../Interfaces'
 import type { IUserAt } from '../Sources'
 
 /** «Фамилия Имя Отчество» физлица или представителя организации; строка — как есть. */

@@ -1,48 +1,24 @@
-import { DraftContract } from 'cooptypes'
+import { defineBuilder } from '../Builder'
+import * as Format from '../Format'
 import { BranchTrustedStatement } from '../Templates'
-import { DocFactory } from '../Factory'
-import type { IGeneratedDocument, IGenerationOptions, IMetaDocument } from '../Interfaces'
-import type { MongoDBConnector } from '../Services/Databazor'
 
 export { BranchTrustedStatement as Template } from '../Templates'
 
-export class Factory extends DocFactory<BranchTrustedStatement.Action> {
-  constructor(storage: MongoDBConnector) {
-    super(storage)
-  }
-
-  async generateDocument(data: BranchTrustedStatement.Action, options?: IGenerationOptions): Promise<IGeneratedDocument> {
-    const { template, coop, vars, userData } = await this.resolveParallel({
-      template: () => this.getTemplate<BranchTrustedStatement.Model>(DraftContract.contractName.production, BranchTrustedStatement.registry_id, data.block_num),
-      coop: () => super.getCooperative(data.coopname, data.block_num),
-      vars: () => super.getVars(data.coopname, data.block_num),
-      userData: () => super.getUser(data.username, data.block_num),
-    })
-
-    const meta: IMetaDocument = await super.getMeta({ title: template.title, ...data })
-    const user = super.getCommonUser(userData)
-
-    const combinedData: BranchTrustedStatement.Model = {
-      meta,
-      coop,
-      vars,
-      user,
-      braname: data.braname,
-    }
-
-    await super.validate(combinedData, template.model)
-
-    const translation = template.translations[meta.lang]
-
-    const document: IGeneratedDocument = await super.generatePDF(
-      user.full_name_or_short_name,
-      template.context,
-      combinedData,
-      translation,
-      meta,
-      options?.skip_save,
-    )
-
-    return document
-  }
-}
+/** Заявление доверенного лица участка: пайщик и участок. */
+export const Factory = defineBuilder<BranchTrustedStatement.Action, BranchTrustedStatement.Model>()({
+  registry_id: BranchTrustedStatement.registry_id,
+  version: 1,
+  reads: ({ data, f }) => ({
+    coop: () => f.getCooperative(data.coopname, data.block_num),
+    vars: () => f.getVars(data.coopname, data.block_num),
+    userData: () => f.getUser(data.username, data.block_num),
+  }),
+  assemble: ({ data, meta, reads: { coop, vars, userData } }) => ({
+    meta,
+    coop,
+    vars,
+    user: Format.commonUser(userData),
+    braname: data.braname,
+  }),
+  signer: ({ reads: { userData } }) => Format.commonUser(userData).full_name_or_short_name,
+})

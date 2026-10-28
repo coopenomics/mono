@@ -67,6 +67,13 @@ jobs:
       - name: Build factory with dependencies
         run: pnpm lerna run build --scope @coopenomics/factory --include-dependencies
 
+      # Сборка unbuild типы не проверяет, а prebuild через lerna не гарантирован:
+      # 28.10.2026 сборка прошла с ошибкой импорта, которую поймал только
+      # workflow Typecheck. Проверка типов фабрики — отдельным шагом.
+      - name: Проверка типов фабрики
+        working-directory: components/factory
+        run: pnpm run typecheck
+
       # Генератор спавнит `/venv/bin/python3` и импортирует weasyprint —
       # повторяем образ контроллера (components/controller/Dockerfile),
       # включая системный шрифт Arial: он влияет на PDF и его хэш.
