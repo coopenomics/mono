@@ -217,9 +217,13 @@ class WeasyPool {
     this.inited = true
   }
 
+  // Воркеры выдаются по кругу (очередь, не стек): последовательные рендеры
+  // попадают в разные процессы Python. Так сборка и пересборка документа в
+  // тестах идут через разные процессы и ловят всё, что зависит от процесса
+  // (см. PYTHONHASHSEED у воркера). Для узла разницы нет: воркеры равнозначны.
   private static acquire(): Promise<WeasyWorker> {
     this.init()
-    const w = this.free.pop()
+    const w = this.free.shift()
     if (w)
       return Promise.resolve(w)
     return new Promise(resolve => this.waiters.push(resolve))

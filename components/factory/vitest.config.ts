@@ -43,6 +43,14 @@ export default defineConfig({
     env: {
       SIMPLE_EXPLORER_API: 'http://127.0.0.1:4000',
       DOCUMENTS_DIR: './documents',
+      /**
+       * Два воркера WeasyPrint, выдача по кругу: сборка документа и его
+       * пересборка по мете в `testDocumentGeneration` идут через разные
+       * процессы Python. Хэш PDF обязан совпасть и так — это проверка, что
+       * вывод не зависит от процесса (PYTHONHASHSEED=0 у воркера). С одним
+       * воркером расхождение между процессами в наборе не видно.
+       */
+      WEASY_POOL_SIZE: '2',
     },
     globalSetup: './test/setup.ts',
     sequence: { sequencer: AlphabeticalSequencer },

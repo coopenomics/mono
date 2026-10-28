@@ -31,6 +31,9 @@ export async function testDocumentGeneration<T extends IGenerate = IGenerate>(
   const uniqueDocFilename = path.join('__unique_docs__', `${params.registry_id}.${document.meta.title}-${document.meta.username}.pdf`)
   await saveBufferToDisk(document.binary, uniqueDocFilename)
 
+  // Пересборка по мете идёт через другой воркер WeasyPrint (пул из двух,
+  // выдача по кругу — WEASY_POOL_SIZE в конфиге набора): хэш PDF обязан
+  // совпасть между процессами, а не только внутри одного.
   const regenerated_document: IGeneratedDocument = await generator.generate({
     ...document.meta,
   })
