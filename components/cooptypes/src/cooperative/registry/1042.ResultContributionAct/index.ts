@@ -7,6 +7,8 @@ export const registry_id = 1042
 export interface Action extends IGenerate {
   registry_id: number
   result_act_hash: string
+  /** Хэш результата, по которому составлен акт; модель документа его требует. */
+  result_hash: string
   percent_of_result: string
   total_amount: string
   decision_id: number
