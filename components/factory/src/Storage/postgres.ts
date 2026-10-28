@@ -33,6 +33,17 @@ const DOC_DATA = 'factory_doc_private_data'
 /** Поля-колонки; всё остальное — внутри payload. */
 const COLUMN_FIELDS = new Set(['block_num', 'deleted'])
 
+/**
+ * Текстовое значение поля payload по пути через точку: `details.inn` →
+ * `payload #>> '{details,inn}'`. Оператор `->>` с таким именем искал бы
+ * ключ «details.inn» верхнего уровня и не находил ничего — так поиск по ИНН
+ * и ОГРН возвращал пустоту. JSON null и отсутствие поля дают SQL NULL, как
+ * отбор `{ поле: null }` в MongoDB.
+ */
+function payloadText(field: string) {
+  return sql`("payload" #>> ${sql.lit(`{${field.split('.').join(',')}}`)})`
+}
+
 export class PostgresFactoryStorage implements IFactoryStorage {
   readonly db: Db
   /** Соединение создано здесь — закрываем его в `disconnect`. */
@@ -84,7 +95,7 @@ export class PostgresFactoryStorage implements IFactoryStorage {
   private fieldCondition(eb: Eb, field: string, condition: FieldCondition): Cond {
     if (condition === undefined) return eb.lit(true)
     if (COLUMN_FIELDS.has(field)) return this.columnCondition(eb, field, condition)
-    if (condition === null) return sql<SqlBool>`("payload"->${sql.lit(field)}) IS NULL`
+    if (condition === null) return sql<SqlBool>`${payloadText(field)} IS NULL`
     if (typeof condition === 'object') return this.payloadOperator(field, condition)
     return this.payloadEquals(field, condition)
   }
@@ -98,9 +109,9 @@ export class PostgresFactoryStorage implements IFactoryStorage {
 
   /** Граница по числу и образец текста над полем payload. */
   private payloadOperator(field: string, condition: { $lte: number } | { $regex: string; $options?: string }): Cond {
-    if ('$lte' in condition) return sql<SqlBool>`("payload"->>${sql.lit(field)})::numeric <= ${condition.$lte}`
+    if ('$lte' in condition) return sql<SqlBool>`${payloadText(field)}::numeric <= ${condition.$lte}`
     const op = (condition.$options ?? '').includes('i') ? '~*' : '~'
-    return sql<SqlBool>`("payload"->>${sql.lit(field)}) ${sql.raw(op)} ${condition.$regex}`
+    return sql<SqlBool>`${payloadText(field)} ${sql.raw(op)} ${condition.$regex}`
   }
 
   /** Равенство через вхождение jsonb: точный тип значения и вложенные пути. */
@@ -134,7 +145,7 @@ export class PostgresFactoryStorage implements IFactoryStorage {
   async findLatestPerGroup<T extends StoredRecord>(collection: RecordCollection, where: Where, groupBy: string[], page: number, limit: number): Promise<Cooperative.Document.IGetResponse<T>> {
     // Текущая версия каждой группы: DISTINCT ON по полям группировки в порядке
     // «новее первым», затем страница по той же сортировке.
-    const groupExprs = groupBy.map((f) => sql`("payload"->>${sql.lit(f)})`)
+    const groupExprs = groupBy.map(f => payloadText(f))
     const distinctOn = sql.join(groupExprs, sql`, `)
     const filter = this.condition(expressionBuilder<any, any>(), where) // eslint-disable-line ts/no-explicit-any
     const base = sql`
