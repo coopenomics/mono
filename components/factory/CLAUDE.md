@@ -66,3 +66,20 @@ fontconfig + `fc-cache`), а НЕ через `@font-face data:base64` в html. b
 `Services/Generator/index.ts` ставит только `font-family: 'Arial'`. Не
 возвращать base64-встраивание. `.gitattributes` держит `*.ttf binary` —
 не убирать, иначе EOL-нормализация (`* text eol=lf`) испортит шрифт.
+- Версия пакета впечатывается в PDF (Creator и отпечаток меты в Keywords), и
+  каждый выпуск менял бы хэши снимков. В наборе версия меты закреплена
+  (`GOLDEN_VERSION` в `test/utils/golden.ts`), дата — `GOLDEN_CREATED_AT`.
+- Пул WeasyPrint выдаёт воркеры по кругу; в наборе их два (`WEASY_POOL_SIZE`),
+  поэтому сборка и пересборка идут через разные процессы Python и сверяются.
+- Проба детерминизма между процессами — `scripts/pdf-determinism-probe.mjs`,
+  шаг workflow `Factory`; печатает место первого отличия байтов PDF.
+
+## Слой источников (фабрика v2, шаг 1)
+
+Все чтения — в `src/Sources` (`FactorySources`): шаблон на блок (в том числе
+локальный при `SOURCE=local`), субъекты, кооператив, переменные, реквизиты,
+udata, приватные данные, подписи, собрания, голоса. `DocFactory` только
+делегирует (`getTemplate`, `getUser`, `getUdata`, `getPaymentMethod`, …).
+В `Actions/*` обращений к `this.storage`, `new Udata(...)` и ветки
+`process.env.SOURCE` нет и не должно появляться: новое чтение добавляется
+методом `FactorySources`, затем фасадом в `DocFactory`.
