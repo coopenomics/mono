@@ -22,6 +22,7 @@ import { Entrepreneur, Organization, Vars } from './Models'
 import { Cooperative, type CooperativeData } from './Models/Cooperative'
 
 import type { DocFactory } from './Factory'
+import { buildFactories } from './Builder/registry'
 import type { PaymentData } from './Models/PaymentMethod'
 import { PaymentMethod } from './Models/PaymentMethod'
 import { type ExternalProjectData, Project } from './Models/Project'
@@ -143,132 +144,9 @@ export class Generator implements IGenerator {
     // Инициализация сервиса приватных данных документов
     this.docDataService = new DocDataService(this.storage)
 
-    // Инициализация фабрик документов
-    this.factories = {
-      [Actions.WalletAgreement.Template.registry_id]: new Actions.WalletAgreement.Factory(this.storage), // 1
-      [Actions.RegulationElectronicSignature.Template.registry_id]: new Actions.RegulationElectronicSignature.Factory(this.storage), // 2
-      [Actions.PrivacyPolicy.Template.registry_id]: new Actions.PrivacyPolicy.Factory(this.storage), // 3
-      [Actions.UserAgreement.Template.registry_id]: new Actions.UserAgreement.Factory(this.storage), // 4
-      [Actions.CoopenomicsAgreement.Template.registry_id]: new Actions.CoopenomicsAgreement.Factory(this.storage), // 50
-      [Actions.ConvertToAxonStatement.Template.registry_id]: new Actions.ConvertToAxonStatement.Factory(this.storage), // 51
-      [Actions.BillingConversionStatement.Template.registry_id]: new Actions.BillingConversionStatement.Factory(this.storage), // 1095
-      [Actions.ParticipantApplication.Template.registry_id]: new Actions.ParticipantApplication.Factory(this.storage), // 100
-      [Actions.ProgramAgreementsAnnulmentStatement.Template.registry_id]: new Actions.ProgramAgreementsAnnulmentStatement.Factory(this.storage), // 190
-      [Actions.ParticipantExitApplication.Template.registry_id]: new Actions.ParticipantExitApplication.Factory(this.storage), // 200
-      [Actions.DecisionOfParticipantExit.Template.registry_id]: new Actions.DecisionOfParticipantExit.Factory(this.storage), // 201
-      [Actions.SelectBranchStatement.Template.registry_id]: new Actions.SelectBranchStatement.Factory(this.storage), // 101
-
-      // общее собрание
-      [Actions.AnnualGeneralMeetingAgenda.Template.registry_id]: new Actions.AnnualGeneralMeetingAgenda.Factory(this.storage), // 300
-      [Actions.AnnualGeneralMeetingSovietDecision.Template.registry_id]: new Actions.AnnualGeneralMeetingSovietDecision.Factory(this.storage), // 301
-      [Actions.AnnualGeneralMeetingNotification.Template.registry_id]: new Actions.AnnualGeneralMeetingNotification.Factory(this.storage), // 302
-      [Actions.AnnualGeneralMeetingVotingBallot.Template.registry_id]: new Actions.AnnualGeneralMeetingVotingBallot.Factory(this.storage), // 303
-      [Actions.AnnualGeneralMeetingDecision.Template.registry_id]: new Actions.AnnualGeneralMeetingDecision.Factory(this.storage), // 304
-
-      // самоорганизация кооперативных участков
-      [Actions.BranchMeetingProposal.Template.registry_id]: new Actions.BranchMeetingProposal.Factory(this.storage), // 320
-      [Actions.BranchMeetingBallot.Template.registry_id]: new Actions.BranchMeetingBallot.Factory(this.storage), // 322
-      [Actions.BranchMeetingDecision.Template.registry_id]: new Actions.BranchMeetingDecision.Factory(this.storage), // 323
-      [Actions.BranchEstablishmentPetition.Template.registry_id]: new Actions.BranchEstablishmentPetition.Factory(this.storage), // 324
-      [Actions.BranchEstablishmentSovietDecision.Template.registry_id]: new Actions.BranchEstablishmentSovietDecision.Factory(this.storage), // 325
-      [Actions.BranchTrustedStatement.Template.registry_id]: new Actions.BranchTrustedStatement.Factory(this.storage), // 326
-      [Actions.BranchTrustedLiabilityAgreement.Template.registry_id]: new Actions.BranchTrustedLiabilityAgreement.Factory(this.storage), // 327
-      [Actions.BranchTrusteeLiabilityAgreement.Template.registry_id]: new Actions.BranchTrusteeLiabilityAgreement.Factory(this.storage), // 328
-      [Actions.BranchTrusteePowerOfAttorney.Template.registry_id]: new Actions.BranchTrusteePowerOfAttorney.Factory(this.storage), // 329
-      [Actions.BranchTrustedPowerOfAttorney.Template.registry_id]: new Actions.BranchTrustedPowerOfAttorney.Factory(this.storage), // 330
-
-      [Actions.DecisionOfParticipantApplication.Template.registry_id]: new Actions.DecisionOfParticipantApplication.Factory(this.storage), // 501
-      [Actions.ProjectFreeDecision.Template.registry_id]: new Actions.ProjectFreeDecision.Factory(this.storage), // 599
-      [Actions.FreeDecision.Template.registry_id]: new Actions.FreeDecision.Factory(this.storage), // 600
-
-      [Actions.SosediAgreement.Template.registry_id]: new Actions.SosediAgreement.Factory(this.storage), // 699
-      [Actions.ReturnByMoney.Template.registry_id]: new Actions.ReturnByMoney.Factory(this.storage), // 900
-      [Actions.ReturnByMoneyDecision.Template.registry_id]: new Actions.ReturnByMoneyDecision.Factory(this.storage), // 901
-
-      // ЦПП ГЕНЕРАТОР
-      [Actions.GeneratorProgramTemplate.Template.registry_id]: new Actions.GeneratorProgramTemplate.Factory(this.storage), // 994
-      [Actions.GeneratorOffer.Template.registry_id]: new Actions.GeneratorOffer.Factory(this.storage), // 996
-
-      // ЦПП БЛАГОРОСТ
-      [Actions.BlagorostProgramTemplate.Template.registry_id]: new Actions.BlagorostProgramTemplate.Factory(this.storage), // 998
-      [Actions.BlagorostOffer.Template.registry_id]: new Actions.BlagorostOffer.Factory(this.storage), // 1000
-
-      [Actions.GenerationContract.Template.registry_id]: new Actions.GenerationContract.Factory(this.storage), // 1001
-      [Actions.ProjectGenerationContract.Template.registry_id]: new Actions.ProjectGenerationContract.Factory(this.storage), // 1002
-      [Actions.ComponentGenerationContract.Template.registry_id]: new Actions.ComponentGenerationContract.Factory(this.storage), // 1003
-      [Actions.StorageAgreement.Template.registry_id]: new Actions.StorageAgreement.Factory(this.storage), // 1004
-      [Actions.BlagorostAgreement.Template.registry_id]: new Actions.BlagorostAgreement.Factory(this.storage), // 1007
-      [Actions.InitProjectStatement.Template.registry_id]: new Actions.InitProjectStatement.Factory(this.storage), // 1005
-      [Actions.InitProjectDecision.Template.registry_id]: new Actions.InitProjectDecision.Factory(this.storage), // 1006
-
-      [Actions.ExpenseStatement.Template.registry_id]: new Actions.ExpenseStatement.Factory(this.storage), // 1010
-      [Actions.ExpenseDecision.Template.registry_id]: new Actions.ExpenseDecision.Factory(this.storage), // 1011
-
-      // Шасси расходов — программные расходы (служебные записки)
-      [Actions.ExpenseProposalStatement.Template.registry_id]: new Actions.ExpenseProposalStatement.Factory(this.storage), // 2010
-      [Actions.ExpenseProposalDecision.Template.registry_id]: new Actions.ExpenseProposalDecision.Factory(this.storage), // 2011
-
-      [Actions.GenerationMoneyInvestStatement.Template.registry_id]: new Actions.GenerationMoneyInvestStatement.Factory(this.storage), // 1020
-      [Actions.GenerationMoneyReturnUnusedStatement.Template.registry_id]: new Actions.GenerationMoneyReturnUnusedStatement.Factory(this.storage), // 1025
-
-      [Actions.CapitalizationMoneyInvestStatement.Template.registry_id]: new Actions.CapitalizationMoneyInvestStatement.Factory(this.storage), // 1030
-
-      [Actions.ResultContributionStatement.Template.registry_id]: new Actions.ResultContributionStatement.Factory(this.storage), // 1040
-      [Actions.ResultContributionDecision.Template.registry_id]: new Actions.ResultContributionDecision.Factory(this.storage), // 1041
-      [Actions.ResultContributionAct.Template.registry_id]: new Actions.ResultContributionAct.Factory(this.storage), // 1042
-
-      [Actions.GetLoanStatement.Template.registry_id]: new Actions.GetLoanStatement.Factory(this.storage), // 1050
-      [Actions.GetLoanDecision.Template.registry_id]: new Actions.GetLoanDecision.Factory(this.storage), // 1051
-
-      [Actions.GenerationPropertyInvestStatement.Template.registry_id]: new Actions.GenerationPropertyInvestStatement.Factory(this.storage), // 1060
-      [Actions.GenerationPropertyInvestDecision.Template.registry_id]: new Actions.GenerationPropertyInvestDecision.Factory(this.storage), // 1061
-      [Actions.GenerationPropertyInvestAct.Template.registry_id]: new Actions.GenerationPropertyInvestAct.Factory(this.storage), // 1062
-
-      [Actions.CapitalizationPropertyInvestStatement.Template.registry_id]: new Actions.CapitalizationPropertyInvestStatement.Factory(this.storage), // 1070
-      [Actions.CapitalizationPropertyInvestDecision.Template.registry_id]: new Actions.CapitalizationPropertyInvestDecision.Factory(this.storage), // 1071
-      [Actions.CapitalizationPropertyInvestAct.Template.registry_id]: new Actions.CapitalizationPropertyInvestAct.Factory(this.storage), // 1072
-
-      [Actions.GenerationConvertStatement.Template.registry_id]: new Actions.GenerationConvertStatement.Factory(this.storage), // 1080
-
-      [Actions.CapitalizationToMainWalletConvertStatement.Template.registry_id]: new Actions.CapitalizationToMainWalletConvertStatement.Factory(this.storage), // 1090
-
-      // Marketplace (Стол заказов) — Эпик 1: онбординг ЦПП
-      [Actions.MarketplaceProgramTemplate.Template.registry_id]: new Actions.MarketplaceProgramTemplate.Factory(this.storage), // 1100 — Положение ЦПП
-      [Actions.MarketplaceOffer.Template.registry_id]: new Actions.MarketplaceOffer.Factory(this.storage), // 1102
-
-      // Marketplace (Стол заказов) — Эпик 5
-      [Actions.MarketplaceTransportNote.Template.registry_id]: new Actions.MarketplaceTransportNote.Factory(this.storage), // 1103
-      [Actions.MarketplaceAplReception.Template.registry_id]: new Actions.MarketplaceAplReception.Factory(this.storage), // 1104 — приёмка (поставщик → кооператив)
-      [Actions.MarketplaceReturnStatement.Template.registry_id]: new Actions.MarketplaceReturnStatement.Factory(this.storage), // 1106 — рекламация пайщика (гарантийный возврат)
-
-      // Marketplace (Стол заказов) — Эпик 8: списание скоропорта
-      [Actions.MarketplaceWriteoffProtocol.Template.registry_id]: new Actions.MarketplaceWriteoffProtocol.Factory(this.storage), // 1107
-      [Actions.MarketplaceWriteoffStatement.Template.registry_id]: new Actions.MarketplaceWriteoffStatement.Factory(this.storage), // 1108
-      [Actions.BranchFinancialAidStatement.Template.registry_id]: new Actions.BranchFinancialAidStatement.Factory(this.storage), // 1109
-      [Actions.MarketplaceConvertStatement.Template.registry_id]: new Actions.MarketplaceConvertStatement.Factory(this.storage), // 1110
-      [Actions.MarketplaceWriteoffServiceMemo.Template.registry_id]: new Actions.MarketplaceWriteoffServiceMemo.Factory(this.storage), // 1111
-      [Actions.BranchFinancialAidProtocol.Template.registry_id]: new Actions.BranchFinancialAidProtocol.Factory(this.storage), // 1112
-
-      // Edubridge — ЦПП «Образование»
-      [Actions.EducationProgramTemplate.Template.registry_id]: new Actions.EducationProgramTemplate.Factory(this.storage), // 3000 — Положение ЦПП
-      [Actions.EducationParentOffer.Template.registry_id]: new Actions.EducationParentOffer.Factory(this.storage), // 3002
-      [Actions.EducationTeacherOffer.Template.registry_id]: new Actions.EducationTeacherOffer.Factory(this.storage), // 3004
-      [Actions.EducationParticipationContract.Template.registry_id]: new Actions.EducationParticipationContract.Factory(this.storage), // 3006
-      [Actions.EducationRidStatement.Template.registry_id]: new Actions.EducationRidStatement.Factory(this.storage), // 3008
-      [Actions.EducationRidDecision.Template.registry_id]: new Actions.EducationRidDecision.Factory(this.storage), // 3009
-      [Actions.EducationRidAct.Template.registry_id]: new Actions.EducationRidAct.Factory(this.storage), // 3010 — двухподписный акт
-      [Actions.EducationRidStorageAct.Template.registry_id]: new Actions.EducationRidStorageAct.Factory(this.storage), // 3012 — акт ответственного хранения материалов занятия
-      [Actions.EducationConvertStatement.Template.registry_id]: new Actions.EducationConvertStatement.Factory(this.storage), // 3011
-      [Actions.EducationGuaranteeStatement.Template.registry_id]: new Actions.EducationGuaranteeStatement.Factory(this.storage), // 3013 — заявление об аннулировании Подписки по Гарантийным условиям
-      [Actions.EducationGuaranteeDecision.Template.registry_id]: new Actions.EducationGuaranteeDecision.Factory(this.storage), // 3014 — протокол совета по заявлению 3013
-      [Actions.EducationShareWithdrawStatement.Template.registry_id]: new Actions.EducationShareWithdrawStatement.Factory(this.storage), // 3015 — заявление о трансляции паевого взноса в Цифровой Кошелёк
-      // Marketplace (Стол заказов) — паевая модель (компонент 68): выдача и гарантийный возврат
-      [Actions.MarketplaceShareReturnStatement.Template.registry_id]: new Actions.MarketplaceShareReturnStatement.Factory(this.storage), // 1113
-      [Actions.MarketplaceShareReturnDecision.Template.registry_id]: new Actions.MarketplaceShareReturnDecision.Factory(this.storage), // 1114
-      [Actions.MarketplaceShareReturnAct.Template.registry_id]: new Actions.MarketplaceShareReturnAct.Factory(this.storage), // 1115
-      [Actions.MarketplaceReturnCancelStatement.Template.registry_id]: new Actions.MarketplaceReturnCancelStatement.Factory(this.storage), // 1116
-      [Actions.MarketplaceReturnCancelDecision.Template.registry_id]: new Actions.MarketplaceReturnCancelDecision.Factory(this.storage), // 1117
-    }
+    // Реестр сборщиков собирается из экспортов Actions по номеру реестра
+    // шаблона; расхождения с реестром шаблонов — ошибка здесь, при старте.
+    this.factories = buildFactories(Actions as Record<string, unknown>, this.storage) as Generator['factories']
 
     // Источник данных раздаётся фабрикам одним местом — иначе его пришлось бы
     // тянуть через конструктор каждой из десятков фабрик выше.

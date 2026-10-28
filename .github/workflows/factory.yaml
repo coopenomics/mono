@@ -135,6 +135,13 @@ jobs:
           echo "=== короткий документ 1090, PYTHONHASHSEED=0"; node scripts/pdf-determinism-probe.mjs "$short" || true
           echo "=== короткий документ 1090, без seed"; node scripts/pdf-determinism-probe.mjs "$short" --no-seed || true
 
+      # Реестр сборщиков собирается из экспортов src/Actions/index.ts:
+      # файл без строки экспорта в реестр не попадёт.
+      - name: Полнота экспорта сборщиков
+        if: always()
+        working-directory: components/factory
+        run: node scripts/actions-index-check.mjs
+
       - name: Полнота эталонов
         if: always()
         working-directory: components/factory

@@ -33,6 +33,13 @@ import type { FactorySources } from '../Sources'
 /** Объявление чтений: ключ → отложенное чтение; каркас запускает их разом. */
 export type Thunks<R> = { [K in keyof R]: () => Promise<R[K]> }
 
+/**
+ * Данные действия без индексной сигнатуры. `IGenerate` из cooptypes
+ * допускает любое поле (`[key: string]: any`), и опечатка в имени поля
+ * проходила проверку типов. Сборщик видит только объявленные поля действия.
+ */
+export type Known<T> = { [K in keyof T as string extends K ? never : number extends K ? never : K]: T[K] }
+
 /** Составные чтения фабрики, доступные сборщику. Только чтение. */
 export type IReadFacade = Pick<
   DocFactory<IGenerate>,
@@ -54,7 +61,7 @@ export type IReadFacade = Pick<
 
 /** Что видит сборщик до меты: данные действия, фасад чтений и слой источников. */
 export interface IReadContext<A> {
-  data: A
+  data: Known<A>
   f: IReadFacade
   s: FactorySources
   /** Параметры сборки: бланк без подписанта, показ без PDF, без сохранения. */
@@ -70,7 +77,7 @@ export interface IDeriveContext<A, M, R> extends IReadContext<A> {
 
 /** Что видит сборка модели: всё прочитанное; записи и источников здесь нет. */
 export interface IAssembleContext<A, M, R, D> {
-  data: A
+  data: Known<A>
   meta: IMetaDocument
   template: ITemplate<M>
   reads: R
@@ -86,7 +93,7 @@ export interface IBuilderSpec<A extends IGenerate, M extends ICombinedData, R ex
   /** Вторая волна: чтения, которым нужна мета или первая волна. Параллельно между собой. */
   derive?: (ctx: IDeriveContext<A, M, R>) => Thunks<D>
   /** Поля меты сверх данных действия; по умолчанию `{ title: template.title, ...data }`. Первая волна уже прочитана. */
-  meta?: (ctx: { data: A, template: ITemplate<M>, reads: R }) => IMetaDocumentPartial
+  meta?: (ctx: { data: Known<A>, template: ITemplate<M>, reads: R }) => IMetaDocumentPartial
   /** Чистая сборка модели документа. */
   assemble: (ctx: IAssembleContext<A, M, R, D>) => M
   /** Подписант для названия файла PDF; по умолчанию пусто. */
