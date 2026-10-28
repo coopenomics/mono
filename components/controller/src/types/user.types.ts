@@ -1,5 +1,4 @@
 import type { Cooperative } from 'cooptypes';
-import type mongoose from 'mongoose';
 
 export enum userStatus {
   '1_Created' = 'created',
@@ -25,7 +24,7 @@ export interface IUser {
   email: string;
   role: string;
   is_email_verified: boolean;
-  initial_order?: mongoose.Types.ObjectId;
+  initial_order?: string;
   subscriber_id: string;
   subscriber_hash: string;
   // Временное поле для хранения private_data

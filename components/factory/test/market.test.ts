@@ -1,10 +1,10 @@
 import { beforeAll, describe, it } from 'vitest'
 import { Cooperative } from 'cooptypes'
-import { generator, mongoUri } from './utils'
+import { generator, testStorage } from './utils'
 import { testDocumentGeneration } from './utils/testDocument'
 
 beforeAll(async () => {
-  generator.connect(mongoUri)
+  generator.connect(testStorage())
 })
 
 /**

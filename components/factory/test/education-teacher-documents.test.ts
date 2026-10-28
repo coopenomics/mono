@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, it } from 'vitest'
 import { Cooperative } from 'cooptypes'
 import { testDocumentGeneration } from './utils/testDocument'
-import { generator, mongoUri } from './utils'
+import { generator, testStorage } from './utils'
 
 /**
  * Документы преподавателя по договору УХД ЦПП «Образование» — заявление
@@ -28,7 +28,7 @@ const ACT = { registry_id: R.EducationRidAct.registry_id, rid_hash: RID, amount:
 
 describe('документы преподавателя по договору УХД', async () => {
   beforeAll(async () => {
-    await generator.connect(mongoUri)
+    await generator.connect(testStorage())
     for (const [key, value] of [
       [Cooperative.Model.UdataKey.EDUCATION_CONTRACT_NUMBER, 'УХД-0007'],
       [Cooperative.Model.UdataKey.EDUCATION_CONTRACT_CREATED_AT, '15.09.2026'],

@@ -1,17 +1,4 @@
-import { MongoClient } from 'mongodb'
-
-let mongoClient: MongoClient | null = null
-let deltasCollection: any = null
-
-async function getMongoConnection() {
-  if (!mongoClient) {
-    const uri = process.env.MONGO_URI || `mongodb://${process.env.MONGO_HOST || '127.0.0.1'}:27017/cooperative-x`
-    mongoClient = new MongoClient(uri)
-    await mongoClient.connect()
-    deltasCollection = mongoClient.db().collection('deltas')
-  }
-  return deltasCollection
-}
+import { chainFixtures, findFixtures } from '../store'
 
 export const draftTableMock = {
   code: 'draft',
@@ -29,10 +16,9 @@ export const draftTableMock = {
   },
   async resolve(url: string, params?: URLSearchParams): Promise<any> {
     const filter = params ? JSON.parse(params.get('filter') || '{}') : {}
-    const deltas = await getMongoConnection()
     const query: any = { code: 'draft', table: 'drafts' }
     if (filter['value.registry_id']) query['value.registry_id'] = filter['value.registry_id']
-    const results = await deltas.find(query).sort({ block_num: -1 }).toArray()
+    const results = findFixtures(chainFixtures.deltas, query)
     return { results }
   },
 }
@@ -53,13 +39,13 @@ export const draftTranslationsMock = {
   },
   async resolve(url: string, params?: URLSearchParams): Promise<any> {
     const filter = params ? JSON.parse(params.get('filter') || '{}') : {}
-    const deltas = await getMongoConnection()
-
     let draftId = filter['value.draft_id']
 
     if (draftId) {
-      const draft = await deltas.findOne({
-        code: 'draft', table: 'drafts', 'value.registry_id': draftId,
+      const [draft] = findFixtures(chainFixtures.deltas, {
+        'code': 'draft',
+        'table': 'drafts',
+        'value.registry_id': draftId,
       })
       if (draft?.value?.id) {
         draftId = String(draft.value.id)
@@ -68,15 +54,7 @@ export const draftTranslationsMock = {
 
     const query: any = { code: 'draft', table: 'translations' }
     if (draftId) query['value.draft_id'] = draftId
-    const results = await deltas.find(query).sort({ block_num: -1 }).toArray()
+    const results = findFixtures(chainFixtures.deltas, query)
     return { results }
   },
-}
-
-export async function closeDraftMockConnection() {
-  if (mongoClient) {
-    await mongoClient.close()
-    mongoClient = null
-    deltasCollection = null
-  }
 }

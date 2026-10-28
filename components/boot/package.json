@@ -52,7 +52,6 @@
     "eosjs-ecc": "^4.0.7",
     "execa": "^9.5.2",
     "mocha": "^10.7.3",
-    "mongoose": "^9.2.2",
     "pg": "^8.16.3"
   },
   "devDependencies": {

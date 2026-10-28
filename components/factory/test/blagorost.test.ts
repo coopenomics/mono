@@ -2,14 +2,14 @@ import { beforeAll, describe, expect, it } from 'vitest'
 import { Cooperative } from 'cooptypes'
 import { Generator } from '../src'
 import { testDocumentGeneration } from './utils/testDocument'
-import { generator, mongoUri } from './utils'
+import { generator, testStorage } from './utils'
 import { capitalProgramPrivateData } from './utils/capitalProgramPrivateData'
 
 let capitalProgramDocDataHash = ''
 
 describe('тест генератора документов ЦПП БЛАГОРОСТ', async () => {
   beforeAll(async () => {
-    await generator.connect(mongoUri)
+    await generator.connect(testStorage())
 
     // Документы 998-1000 требуют приватные данные программы через
     // doc_data_hash (cooptypes: requireCapitalProgramPrivateData). Без него

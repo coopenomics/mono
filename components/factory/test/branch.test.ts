@@ -1,6 +1,6 @@
 import { beforeAll, describe, it } from 'vitest'
 import { Cooperative } from 'cooptypes'
-import { generator, mongoUri } from './utils'
+import { generator, testStorage } from './utils'
 import { testDocumentGeneration } from './utils/testDocument'
 
 const branchName = 'РОМАШКА'
@@ -69,7 +69,7 @@ const branchProtocolQuestions = [
 ]
 
 beforeAll(async () => {
-  await generator.connect(mongoUri)
+  await generator.connect(testStorage())
 })
 
 describe('тест генератора документов кооперативных участков', () => {

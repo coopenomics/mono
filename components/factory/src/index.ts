@@ -12,7 +12,7 @@ import type { IGenerate, IGenerateBlank, IGeneratedBlank, IGenerationOptions } f
 import * as Actions from './Actions'
 
 import { DocDataService, type ISearchResult, SearchService } from './Services/Databazor'
-import { type DocumentPage, type IFactoryStorage, MongoFactoryStorage, type StoredDocument, type Where } from './Storage'
+import type { DocumentPage, IFactoryStorage, StoredDocument, Where } from './Storage'
 import type { ExternalIndividualData } from './Models/Individual'
 import { Individual } from './Models/Individual'
 import type { IChainDataSource } from './DataSource'
@@ -42,8 +42,8 @@ export type { ExternalUdata as IUdata } from './Models'
 export type { ISearchResult } from './Services/Databazor'
 
 export interface IGenerator {
-  /** Хранилище фабрики: реализация порта либо адрес MongoDB (до вывода MongoDB). */
-  connect: (storage: IFactoryStorage | string) => Promise<void>
+  /** Хранилище фабрики — реализация порта (PostgreSQL узла либо память). */
+  connect: (storage: IFactoryStorage) => Promise<void>
   disconnect: () => Promise<void>
   generate: (data: IGenerate, options?: IGenerationOptions) => Promise<IGeneratedDocument>
   /** Бланк документа без данных события: поля, для которых нет данных, — прочерком. */
@@ -137,8 +137,8 @@ export class Generator implements IGenerator {
   private docDataService!: DocDataService
 
   // Метод подключения к хранилищу
-  async connect(storage: IFactoryStorage | string): Promise<void> {
-    this.storage = typeof storage === 'string' ? new MongoFactoryStorage(storage) : storage
+  async connect(storage: IFactoryStorage): Promise<void> {
+    this.storage = storage
 
     // Инициализация сервиса поиска
     this.searchService = new SearchService(this.storage)

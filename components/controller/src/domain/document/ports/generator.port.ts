@@ -2,7 +2,6 @@ import type { IGenerateBlank, IGeneratedBlank, ISearchResult } from '@coopenomic
 import type { Cooperative } from 'cooptypes';
 
 export interface GeneratorPort {
-  connect(url: string): Promise<void>;
   disconnect(): Promise<void>;
   generate(
     data: Cooperative.Document.IGenerate,

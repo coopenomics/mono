@@ -20,7 +20,6 @@ export const PLACEHOLDER_ENV_DEFAULTS: Record<string, string> = {
   BACKEND_URL: 'http://127.0.0.1:2998',
   FRONTEND_URL: 'http://127.0.0.1:2999',
   SERVER_SECRET: 'schema-gen-server-secret',
-  MONGODB_URL: 'mongodb://127.0.0.1:27017/schema-gen',
   JWT_SECRET: 'schema-gen-jwt-secret-min-length-placeholder-32',
   POSTGRES_USERNAME: 'postgres',
   POSTGRES_PASSWORD: 'postgres',

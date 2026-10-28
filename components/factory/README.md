@@ -51,9 +51,9 @@ pnpm run test:component  # Компонентные тесты factory
 
 ## Конфигурация
 
-Для тестирования и локальной работы необходимо подключение к MongoDB. Переменные окружения:
+Хранилище фабрики — порт `IFactoryStorage`; реализации — PostgreSQL (`PostgresFactoryStorage`) и память. Для набора тестов нужен PostgreSQL. Переменные окружения:
 
-- `MONGO_URI` — строка подключения к MongoDB
+- `POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGRES_USERNAME`, `POSTGRES_PASSWORD`, `POSTGRES_DATABASE` — база набора тестов
 - `SOURCE` — источник данных (`local` для тестов)
 
 Подробное описание переменных — в файле `.env-example`.

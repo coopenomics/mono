@@ -1,21 +1,7 @@
 import 'reflect-metadata';
-import mongoose from 'mongoose';
 import logger from '~/config/logger';
-import config from '~/config/config';
 import { MigrationManager } from './migrationManager';
 import { runDatabaseMigrations } from './database-migrations';
-
-// Настройка подключения к MongoDB
-const mongoConnect = async () => {
-  try {
-    logger.info('Подключение к MongoDB...');
-    await mongoose.connect(config.mongoose.url);
-    logger.info('Успешное подключение к MongoDB для миграции');
-  } catch (error) {
-    logger.error('Ошибка подключения к MongoDB:', error);
-    throw error;
-  }
-};
 
 /**
  * Запуск миграций данных
@@ -28,11 +14,6 @@ export const migrateData = async (): Promise<void> => {
 
     // Сначала схема: миграции данных работают с таблицами, которые она создаёт.
     await runDatabaseMigrations();
-
-    // MongoDB — только пока хранилище фабрики на ней: замороженные миграции
-    // V1.x/V2.x читали её, и все они уже применены на живых узлах. В режиме
-    // postgres мигратор к MongoDB не подключается.
-    if (config.factory.storage === 'mongo') await mongoConnect();
 
     logger.info('Инициализация менеджера миграций...');
 
@@ -64,12 +45,6 @@ export const migrateData = async (): Promise<void> => {
       } catch (closeError) {
         logger.error('Ошибка при закрытии соединения с PostgreSQL:', closeError);
       }
-    }
-    try {
-      await mongoose.disconnect();
-      logger.info('Соединение с MongoDB закрыто');
-    } catch (mongoCloseError) {
-      logger.error('Ошибка при закрытии соединения с MongoDB:', mongoCloseError);
     }
     logger.info('===== Процесс миграции данных завершен =====');
   }

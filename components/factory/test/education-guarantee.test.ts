@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, it } from 'vitest'
 import { Cooperative } from 'cooptypes'
 import { testDocumentGeneration } from './utils/testDocument'
-import { generator, mongoUri } from './utils'
+import { generator, testStorage } from './utils'
 
 /**
  * Документы аннулирования Подписки по Гарантийным условиям ЦПП «Образование» —
@@ -44,7 +44,7 @@ const DECISION = {
 
 describe('документы аннулирования Подписки по Гарантийным условиям', async () => {
   beforeAll(async () => {
-    await generator.connect(mongoUri)
+    await generator.connect(testStorage())
     await generator.update('vars', { coopname: 'voskhod' }, { education_provision: PROTOCOL })
   })
 

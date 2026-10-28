@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, it } from 'vitest'
 import type { IGeneratedDocument } from '../src'
 import { testDocumentGeneration } from './utils/testDocument'
-import { generator, mongoUri } from './utils'
+import { generator, testStorage } from './utils'
 
 /**
  * Положение о ЦПП «Образование» (3000) — текст, утверждённый кооперативом.
@@ -19,7 +19,7 @@ async function generate(): Promise<IGeneratedDocument> {
 
 describe('Положение о ЦПП «Образование»', async () => {
   beforeAll(async () => {
-    await generator.connect(mongoUri)
+    await generator.connect(testStorage())
   })
 
   it('генерируется и воспроизводится с тем же хэшем', async () => {

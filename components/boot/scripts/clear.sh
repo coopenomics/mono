@@ -11,7 +11,7 @@ fi
 
 # Останавливаем и удаляем контейнеры вместе с volumes
 echo "Останавливаем и удаляем контейнеры с volumes..."
-docker compose down -v mongo postgres parser2 || true
+docker compose down -v postgres parser2 || true
 
 # Останавливаем blockchain контейнер перед удалением данных
 echo "Останавливаем blockchain контейнер..."
@@ -24,15 +24,7 @@ sudo rm -rf ../blockchain-data/
 
 # Пересоздаем и запускаем базы данных
 echo "Пересоздаем и запускаем базы данных..."
-docker compose up -d mongo postgres
-
-# Ждем готовности MongoDB
-echo "Ждем готовности MongoDB..."
-until docker compose exec -T mongo mongosh --eval "db.adminCommand('ping')" --quiet > /dev/null 2>&1; do
-  echo "MongoDB еще не готов, ждем..."
-  sleep 2
-done
-echo "MongoDB готов!"
+docker compose up -d postgres
 
 # Ждем готовности PostgreSQL
 echo "Ждем готовности PostgreSQL..."

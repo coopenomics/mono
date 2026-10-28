@@ -5,7 +5,7 @@ name: Tests
 #
 # Разделение на два job'а намеренное:
 #  - unit  — ничему внешнему не нужен, быстрая обратная связь;
-#  - component — нужен MongoDB, поэтому отдельно: падение сервиса не должно
+#  - component — нужен PostgreSQL, поэтому отдельно: падение сервиса не должно
 #    выглядеть как падение unit-тестов.
 #
 # test:integration (sdk + boot) сюда НЕ входит: ему нужен поднятый стек —
@@ -56,7 +56,7 @@ jobs:
     runs-on: ubuntu-latest
 
     # Postgres — для гейта схемы: база собирается одними миграциями и
-    # сверяется с сущностями (scripts/schema-check.ts). Как и mongo ниже,
+    # сверяется с сущностями (scripts/schema-check.ts). Как и у component ниже,
     # сервис доступен по проброшенному порту на 127.0.0.1.
     services:
       postgres:
@@ -126,24 +126,24 @@ jobs:
   component:
     runs-on: ubuntu-latest
 
-    # Тесты factory пишут документы в MongoDB (test/utils/index.ts →
-    # MongoDBConnector), хост берётся из MONGO_HOST.
+    # Тесты factory держат хранилище в PostgreSQL (test/utils/index.ts,
+    # testStorage), хост берётся из POSTGRES_HOST.
     #
-    # Обращаться к сервису ПО ИМЕНИ (`mongo`) нельзя: job выполняется прямо на
-    # VM раннера, а не в контейнере, поэтому DNS-имени сервиса не существует —
-    # получаем `getaddrinfo EAI_AGAIN mongo`. Имя резолвится только у job'ов
-    # с `container:`. Здесь сервис доступен по проброшенному порту на
-    # 127.0.0.1, поэтому MONGO_HOST оставляем локальным.
+    # Обращаться к сервису ПО ИМЕНИ (`postgres`) нельзя: job выполняется прямо
+    # на VM раннера, а не в контейнере, поэтому DNS-имени сервиса не
+    # существует. Сервис доступен по проброшенному порту на 127.0.0.1.
     #
-    # health-опции обязательны: без них шаг стартует раньше, чем mongo примет
+    # health-опции обязательны: без них шаг стартует раньше, чем база примет
     # соединения, и падение выглядит как ошибка тестов.
     services:
-      mongo:
-        image: mongo:6
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_PASSWORD: postgres
         ports:
-          - 27017:27017
+          - 5432:5432
         options: >-
-          --health-cmd "mongosh --quiet --eval 'db.runCommand({ ping: 1 }).ok'"
+          --health-cmd "pg_isready -U postgres"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 10
@@ -200,5 +200,5 @@ jobs:
       # (src/Utils/getCurrentBlock.ts) — без него набор требовал бы живую ноду.
       - name: Component-тесты (factory)
         env:
-          MONGO_HOST: 127.0.0.1
+          POSTGRES_HOST: 127.0.0.1
         run: pnpm run test:component

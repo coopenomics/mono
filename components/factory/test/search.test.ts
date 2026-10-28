@@ -1,13 +1,13 @@
 import { beforeAll, describe, expect, it } from 'vitest'
 import { Generator } from '../src'
 import type { ExternalEntrepreneurData, ExternalIndividualData, ExternalOrganizationData } from '../src/Models'
-import { mongoUri } from './utils'
+import { testStorage } from './utils'
 import { TestChainDataSource } from './utils/chain-data-source'
 
 const generator = new Generator(new TestChainDataSource())
 
 beforeAll(async () => {
-  await generator.connect(mongoUri)
+  await generator.connect(testStorage())
 })
 
 describe('тест поиска в фабрике документов', () => {
