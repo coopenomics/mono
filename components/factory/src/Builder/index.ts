@@ -27,7 +27,7 @@ import { DraftContract } from 'cooptypes'
 import { DocFactory } from '../Factory'
 import type { ICombinedData, IGeneratedDocument, IMetaDocument, IMetaDocumentPartial, ITemplate, externalDataTypes } from '../Interfaces'
 import type { IGenerate, IGenerationOptions } from '../Interfaces/Documents'
-import type { MongoDBConnector } from '../Services/Databazor'
+import type { IFactoryStorage } from '../Storage'
 import type { FactorySources } from '../Sources'
 
 /** Объявление чтений: ключ → отложенное чтение; каркас запускает их разом. */
@@ -112,7 +112,7 @@ async function resolveThunks<R extends Record<string, unknown>>(thunks: Thunks<R
 
 /** Каркас, выполняющий объявление сборщика. */
 export class DeclaredFactory<A extends IGenerate, M extends ICombinedData, R extends Record<string, unknown>, D extends Record<string, unknown>> extends DocFactory<A> {
-  constructor(storage: MongoDBConnector, public readonly spec: IBuilderSpec<A, M, R, D>) {
+  constructor(storage: IFactoryStorage, public readonly spec: IBuilderSpec<A, M, R, D>) {
     super(storage)
   }
 
@@ -159,7 +159,7 @@ export class DeclaredFactory<A extends IGenerate, M extends ICombinedData, R ext
 export function defineBuilder<A extends IGenerate, M extends ICombinedData>() {
   return <R extends Record<string, unknown>, D extends Record<string, unknown> = Record<string, never>>(spec: IBuilderSpec<A, M, R, D>) =>
     class extends DeclaredFactory<A, M, R, D> {
-      constructor(storage: MongoDBConnector) {
+      constructor(storage: IFactoryStorage) {
         super(storage, spec)
       }
     }

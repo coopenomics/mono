@@ -1,7 +1,6 @@
-import type { Filter } from 'mongodb'
 import type { ExternalEntrepreneurData, ExternalIndividualData, ExternalOrganizationData } from '../../Models'
 import { Entrepreneur, Individual, Organization } from '../../Models'
-import type { MongoDBConnector } from './MongoDBConnector'
+import type { IFactoryStorage, Where } from '../../Storage'
 
 export interface ISearchResult {
   type: 'individual' | 'entrepreneur' | 'organization'
@@ -11,9 +10,9 @@ export interface ISearchResult {
 }
 
 export class SearchService {
-  private storage: MongoDBConnector
+  private storage: IFactoryStorage
 
-  constructor(storage: MongoDBConnector) {
+  constructor(storage: IFactoryStorage) {
     this.storage = storage
   }
 

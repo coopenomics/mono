@@ -128,26 +128,12 @@ export class GeneratorInfrastructureService implements GeneratorPort, OnModuleIn
   async listStoredDocuments(query: { registry_id?: number; offset: number; limit: number }): Promise<
     Array<Pick<Cooperative.Document.IGeneratedDocument, 'hash' | 'meta' | 'html'>>
   > {
-    const filter: Record<string, unknown> = {};
-    if (query.registry_id !== undefined && query.registry_id !== null) {
-      filter['meta.registry_id'] = query.registry_id;
-    }
-    const collection = this.generator.storage.getCollection('documents');
-    return (await collection
-      .find(filter as never, { projection: { hash: 1, meta: 1, html: 1 } })
-      .sort({ _id: 1 })
-      .skip(query.offset)
-      .limit(query.limit)
-      .toArray()) as never;
+    return this.generator.listDocuments({ registry_id: query.registry_id ?? undefined, offset: query.offset, limit: query.limit });
   }
 
   /** Число сохранённых документов под тем же отбором, что и `listStoredDocuments`. */
   async countStoredDocuments(registry_id?: number): Promise<number> {
-    const filter: Record<string, unknown> = {};
-    if (registry_id !== undefined && registry_id !== null) {
-      filter['meta.registry_id'] = registry_id;
-    }
-    return await this.generator.storage.getCollection('documents').countDocuments(filter as never);
+    return this.generator.countDocuments(registry_id ?? undefined);
   }
 
   async constructCooperative(username: string, block_num?: number): Promise<Cooperative.Model.ICooperativeData | null> {

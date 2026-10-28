@@ -19,7 +19,7 @@ import type { Cooperative, MeetContract } from 'cooptypes'
 import { DraftContract, SovietContract } from 'cooptypes'
 import type { JSONSchemaType } from 'ajv'
 import type { IBankAccount, ITemplate, ITranslations, externalDataTypes } from '../Interfaces'
-import type { MongoDBConnector } from '../Services/Databazor'
+import type { IFactoryStorage } from '../Storage'
 import type { IChainDataSource } from '../DataSource'
 import {
   type ExternalUdata,
@@ -82,7 +82,7 @@ export class FactorySources {
    * тот источник, который задан на момент чтения.
    */
   constructor(
-    private readonly storage: MongoDBConnector,
+    private readonly storage: IFactoryStorage,
     private readonly chainSource: () => IChainDataSource,
   ) {
     this.docData = new DocDataService(storage)

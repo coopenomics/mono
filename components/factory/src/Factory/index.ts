@@ -1,7 +1,8 @@
 import type { Cooperative, Interfaces, MeetContract } from 'cooptypes'
 import { DraftContract } from 'cooptypes'
 import type { IBankAccount, ICombinedData, IGeneratedDocument, IMetaDocument, IMetaDocumentPartial, ITemplate, ITranslations, externalDataTypes } from '../Interfaces'
-import type { MongoDBConnector } from '../Services/Databazor'
+import type { IFactoryStorage } from '../Storage'
+import { documentMetaKey } from '../Utils/documentMetaKey'
 import type { ExternalEntrepreneurData, ExternalIndividualData, ExternalOrganizationData, ExternalUdata, IVars, InternalProjectData, PaymentData } from '../Models'
 import type { IGenerate, IGenerateBlank, IGeneratedBlank, IGenerationOptions } from '../Interfaces/Documents'
 import packageJson from '../../package.json'
@@ -24,7 +25,7 @@ export type InternalGetUserResult = IUserAt
 export abstract class DocFactory<T extends IGenerate> {
   abstract generateDocument(data: T, options?: IGenerationOptions): Promise<IGeneratedDocument>
 
-  public storage: MongoDBConnector
+  public storage: IFactoryStorage
 
   /**
    * Все чтения данных — через слой источников (шаг 1 фабрики v2). Методы
@@ -40,7 +41,7 @@ export abstract class DocFactory<T extends IGenerate> {
    */
   private dataSource?: IChainDataSource
 
-  constructor(storage: MongoDBConnector) {
+  constructor(storage: IFactoryStorage) {
     this.storage = storage
     this.sources = new FactorySources(storage, () => this.chain)
   }
@@ -322,7 +323,7 @@ export abstract class DocFactory<T extends IGenerate> {
   }
 
   async saveDraft(document: IGeneratedDocument): Promise<void> {
-    await this.storage.saveDraft(document)
+    await this.storage.saveDocument({ ...document, meta_key: documentMetaKey(document.meta) })
   }
 
   async getMeta<T extends IMetaDocumentPartial>(input: T): Promise<IMetaDocument> {

@@ -14,12 +14,12 @@
  */
 import type { DocFactory } from '../Factory'
 import type { IGenerate } from '../Interfaces/Documents'
-import type { MongoDBConnector } from '../Services/Databazor'
+import type { IFactoryStorage } from '../Storage'
 import { Registry as Templates } from '../Templates/registry'
 
 /** Модуль сборщика: класс фабрики и пространство шаблона с номером реестра. */
 export interface IBuilderModule {
-  Factory: new (storage: MongoDBConnector) => DocFactory<IGenerate>
+  Factory: new (storage: IFactoryStorage) => DocFactory<IGenerate>
   Template: { registry_id: number }
 }
 
@@ -34,7 +34,7 @@ function isBuilderModule(value: unknown): value is IBuilderModule {
  * Собирает фабрики по номеру реестра из модулей `Actions`.
  * Бросает ошибку с перечнем всех расхождений сразу, чтобы чинить за один раз.
  */
-export function buildFactories(modules: Record<string, unknown>, storage: MongoDBConnector): Record<number, DocFactory<IGenerate>> {
+export function buildFactories(modules: Record<string, unknown>, storage: IFactoryStorage): Record<number, DocFactory<IGenerate>> {
   const factories: Record<number, DocFactory<IGenerate>> = {}
   const problems: string[] = []
 

@@ -1,9 +1,8 @@
-import type { Filter, InsertOneResult, UpdateResult } from 'mongodb'
 import type { Cooperative } from 'cooptypes'
 import type { ValidateResult } from '../Services/Validator'
 import { Validator } from '../Services/Validator'
-import type { MongoDBConnector } from '../Services/Databazor'
 import DataService from '../Services/Databazor/DataService'
+import type { IFactoryStorage, Where } from '../Storage'
 import { udataSchema } from '../Schema/UdataSchema'
 import { getCurrentBlock } from '../Utils/getCurrentBlock'
 
@@ -16,7 +15,7 @@ export class Udata {
   udata?: ExternalUdata
   private data_service: DataService<InternalUdata>
 
-  constructor(storage: MongoDBConnector, data?: ExternalUdata) {
+  constructor(storage: IFactoryStorage, data?: ExternalUdata) {
     this.udata = data
     this.data_service = new DataService<InternalUdata>(storage, 'udatas')
   }
@@ -25,7 +24,7 @@ export class Udata {
     return new Validator(udataSchema, this.udata).validate()
   }
 
-  async save(): Promise<InsertOneResult<InternalUdata>> {
+  async save(): Promise<{ insertedId: string }> {
     await this.validate()
 
     if (!this.udata)
@@ -42,7 +41,7 @@ export class Udata {
     return await this.data_service.save(udata)
   }
 
-  async getOne(filter: Filter<InternalUdata>): Promise<ExternalUdata | null> {
+  async getOne(filter: Where): Promise<ExternalUdata | null> {
     // Поддержка логики с block_num - если в фильтре есть block_num,
     // ищем записи с block_num <= указанного значения
     const block_filter = ('block_num' in filter && typeof filter.block_num === 'number')
@@ -55,15 +54,15 @@ export class Udata {
     return this.data_service.getOne(finalFilter)
   }
 
-  async getMany(filter: Filter<InternalUdata>): Promise<Cooperative.Document.IGetResponse<ExternalUdata>> {
+  async getMany(filter: Where): Promise<Cooperative.Document.IGetResponse<ExternalUdata>> {
     return this.data_service.getMany(filter, ['coopname', 'username', 'key'])
   }
 
-  async getHistory(filter: Filter<InternalUdata>): Promise<ExternalUdata[]> {
+  async getHistory(filter: Where): Promise<ExternalUdata[]> {
     return this.data_service.getHistory(filter)
   }
 
-  async del(filter: Filter<InternalUdata>): Promise<UpdateResult> {
+  async del(filter: Where): Promise<{ modifiedCount: number }> {
     return this.data_service.updateMany(filter, { deleted: true })
   }
 }

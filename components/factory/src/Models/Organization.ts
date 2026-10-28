@@ -1,9 +1,8 @@
-import type { Filter, InsertOneResult, UpdateResult } from 'mongodb'
 import type { Cooperative } from 'cooptypes'
 import type { ValidateResult } from '../Services/Validator'
 import { Validator } from '../Services/Validator'
 import DataService from '../Services/Databazor/DataService'
-import type { MongoDBConnector } from '../Services/Databazor'
+import type { IFactoryStorage, Where } from '../Storage'
 import { organizationSchema } from '../Schema'
 import { getCurrentBlock } from '../Utils/getCurrentBlock'
 
@@ -15,11 +14,11 @@ export type InternalOrganizationData = Cooperative.Users.IOrganizationData
 // }
 
 export class Organization {
-  db: MongoDBConnector
+  db: IFactoryStorage
   organization?: ExternalOrganizationData
   private data_service: DataService<InternalOrganizationData>
 
-  constructor(storage: MongoDBConnector, data?: ExternalOrganizationData) {
+  constructor(storage: IFactoryStorage, data?: ExternalOrganizationData) {
     this.db = storage
     this.organization = data
     this.data_service = new DataService<InternalOrganizationData>(storage, 'organizations')
@@ -29,7 +28,7 @@ export class Organization {
     return new Validator(organizationSchema, this.organization as ExternalOrganizationData).validate()
   }
 
-  async save(): Promise<InsertOneResult<InternalOrganizationData>> {
+  async save(): Promise<{ insertedId: string }> {
     await this.validate()
 
     if (!this.organization)
@@ -47,13 +46,13 @@ export class Organization {
     return await this.data_service.save(orgForSave)
   }
 
-  async getOne(filter: Filter<InternalOrganizationData>): Promise<ExternalOrganizationData | null> {
+  async getOne(filter: Where): Promise<ExternalOrganizationData | null> {
     const org = await this.data_service.getOne(filter)
 
     return org as ExternalOrganizationData
   }
 
-  async getMany(filter: Filter<InternalOrganizationData>): Promise<Cooperative.Document.IGetResponse<ExternalOrganizationData>> {
+  async getMany(filter: Where): Promise<Cooperative.Document.IGetResponse<ExternalOrganizationData>> {
     const response = (await this.data_service.getMany({ deleted: false, ...filter }, 'username'))
     const orgs = response.results
 
@@ -68,13 +67,13 @@ export class Organization {
     return result
   }
 
-  async getHistory(filter: Filter<InternalOrganizationData>): Promise<ExternalOrganizationData[]> {
+  async getHistory(filter: Where): Promise<ExternalOrganizationData[]> {
     const orgs = await this.data_service.getHistory(filter)
 
     return orgs as ExternalOrganizationData[]
   }
 
-  async del(filter: Filter<InternalOrganizationData>): Promise<UpdateResult> {
+  async del(filter: Where): Promise<{ modifiedCount: number }> {
     return this.data_service.updateMany({ ...filter }, { deleted: true })
   }
 }

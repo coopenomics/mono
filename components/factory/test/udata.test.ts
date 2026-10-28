@@ -1,3 +1,4 @@
+import { MongoFactoryStorage } from '../src/Storage'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { Cooperative } from 'cooptypes'
 import { Generator } from '../src'
@@ -9,9 +10,9 @@ beforeAll(async () => {
 
 beforeEach(async () => {
   // Очистка коллекции udatas перед каждым тестом
-  const storage = generator.storage
+  const storage = generator.storage as MongoFactoryStorage
   if (storage) {
-    const collection = storage.getCollection('udatas')
+    const collection = storage.collection('udatas')
     await collection.deleteMany({})
   }
 })
@@ -163,11 +164,11 @@ describe('тест модели пользовательских данных (u
   })
 
   it('тестирование версионности данных по блокам', async () => {
-    const storage = generator.storage
+    const storage = generator.storage as MongoFactoryStorage
     if (!storage)
       throw new Error('Storage not connected')
 
-    const collection = storage.getCollection('udatas')
+    const collection = storage.collection('udatas')
 
     const baseUdata = {
       coopname: 'voskhod',

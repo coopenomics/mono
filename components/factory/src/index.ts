@@ -2,16 +2,17 @@ export * from './Interfaces'
 export * from './DataSource'
 export * from './Templates'
 export * from './Schema'
+export * from './Storage'
 export { documentMetaKey } from './Utils/documentMetaKey'
 export { formatCreatedAt, isIsoCreatedAt, isLegacyCreatedAt, nowCreatedAt, parseCreatedAt, splitCreatedAt } from './Utils/documentCreatedAt'
 
-import type { Filter, InsertOneResult, UpdateResult } from 'mongodb'
 import type { Cooperative as CooperativeModel } from 'cooptypes'
-import type { IFilterDocuments, IGeneratedDocument, Numbers, externalDataTypes, externalDataTypesArrays, internalFilterTypes } from './Interfaces'
+import type { IDocumentFilter, IGeneratedDocument, Numbers, externalDataTypes, externalDataTypesArrays, internalFilterTypes } from './Interfaces'
 import type { IGenerate, IGenerateBlank, IGeneratedBlank, IGenerationOptions } from './Interfaces/Documents'
 import * as Actions from './Actions'
 
-import { DocDataService, type ISearchResult, MongoDBConnector, SearchService } from './Services/Databazor'
+import { DocDataService, type ISearchResult, SearchService } from './Services/Databazor'
+import { type DocumentPage, type IFactoryStorage, MongoFactoryStorage, type StoredDocument, type Where } from './Storage'
 import type { ExternalIndividualData } from './Models/Individual'
 import { Individual } from './Models/Individual'
 import type { IChainDataSource } from './DataSource'
@@ -41,12 +42,13 @@ export type { ExternalUdata as IUdata } from './Models'
 export type { ISearchResult } from './Services/Databazor'
 
 export interface IGenerator {
-  connect: (mongoUri: string) => Promise<void>
+  /** Хранилище фабрики: реализация порта либо адрес MongoDB (до вывода MongoDB). */
+  connect: (storage: IFactoryStorage | string) => Promise<void>
   disconnect: () => Promise<void>
   generate: (data: IGenerate, options?: IGenerationOptions) => Promise<IGeneratedDocument>
   /** Бланк документа без данных события: поля, для которых нет данных, — прочерком. */
   generateBlank: (data: IGenerateBlank) => Promise<IGeneratedBlank>
-  getDocument: (filter: Filter<IFilterDocuments>) => Promise<IGeneratedDocument>
+  getDocument: (filter: IDocumentFilter) => Promise<IGeneratedDocument>
 
   /**
    * Сохранить приватные данные документа off-chain; возвращает hash для
@@ -59,13 +61,13 @@ export interface IGenerator {
   getDocData: <P = Record<string, unknown>>(hash: string) => Promise<P | null>
 
   constructCooperative: (username: string, block_num?: number) => Promise<CooperativeData | null>
-  save: ((type: 'individual', data: ExternalIndividualData) => Promise<InsertOneResult>) & ((type: 'entrepreneur', data: ExternalEntrepreneurData) => Promise<InsertOneResult>) & ((type: 'organization', data: ExternalOrganizationData) => Promise<InsertOneResult>) & ((type: 'paymentMethod', data: PaymentData) => Promise<InsertOneResult>) & ((type: 'vars', data: IVars) => Promise<InsertOneResult>) & ((type: 'project', data: ExternalProjectData) => Promise<InsertOneResult>) & ((type: 'udata', data: ExternalUdata) => Promise<InsertOneResult>)
-  get: (type: dataTypes, filter: Filter<internalFilterTypes>) => Promise<externalDataTypes | null>
-  del: (type: dataTypes, filter: Filter<internalFilterTypes>) => Promise<UpdateResult>
+  save: ((type: 'individual', data: ExternalIndividualData) => Promise<{ insertedId: string }>) & ((type: 'entrepreneur', data: ExternalEntrepreneurData) => Promise<{ insertedId: string }>) & ((type: 'organization', data: ExternalOrganizationData) => Promise<{ insertedId: string }>) & ((type: 'paymentMethod', data: PaymentData) => Promise<{ insertedId: string }>) & ((type: 'vars', data: IVars) => Promise<{ insertedId: string }>) & ((type: 'project', data: ExternalProjectData) => Promise<{ insertedId: string }>) & ((type: 'udata', data: ExternalUdata) => Promise<{ insertedId: string }>)
+  get: (type: dataTypes, filter: Where) => Promise<externalDataTypes | null>
+  del: (type: dataTypes, filter: Where) => Promise<{ modifiedCount: number }>
 
-  list: (type: dataTypes, filter: Filter<internalFilterTypes>) => Promise<CooperativeModel.Document.IGetResponse<internalFilterTypes>>
+  list: (type: dataTypes, filter: Where) => Promise<CooperativeModel.Document.IGetResponse<internalFilterTypes>>
 
-  getHistory: (type: 'individual' | 'entrepreneur' | 'organization' | 'paymentMethod' | 'vars' | 'project' | 'udata', filter: Filter<internalFilterTypes>) => Promise<externalDataTypesArrays>
+  getHistory: (type: 'individual' | 'entrepreneur' | 'organization' | 'paymentMethod' | 'vars' | 'project' | 'udata', filter: Where) => Promise<externalDataTypesArrays>
 
   // Новый метод поиска
   search: (query: string) => Promise<ISearchResult[]>
@@ -126,7 +128,7 @@ export class Generator implements IGenerator {
   }
 
   // Определение хранилища
-  public storage!: MongoDBConnector
+  public storage!: IFactoryStorage
 
   // Сервис поиска
   private searchService!: SearchService
@@ -135,8 +137,8 @@ export class Generator implements IGenerator {
   private docDataService!: DocDataService
 
   // Метод подключения к хранилищу
-  async connect(mongoUri: string): Promise<void> {
-    this.storage = new MongoDBConnector(mongoUri)
+  async connect(storage: IFactoryStorage | string): Promise<void> {
+    this.storage = typeof storage === 'string' ? new MongoFactoryStorage(storage) : storage
 
     // Инициализация сервиса поиска
     this.searchService = new SearchService(this.storage)
@@ -181,8 +183,18 @@ export class Generator implements IGenerator {
     return await factory.generateBlank(data)
   }
 
-  async getDocument(filter: Filter<IFilterDocuments>): Promise<IGeneratedDocument> {
-    return await this.storage.getDocument(filter)
+  async getDocument(filter: IDocumentFilter): Promise<IGeneratedDocument> {
+    const document = await this.storage.findDocument({ hash: filter.hash, meta_key: filter.meta_key, block_num: filter['meta.block_num'] })
+    return document as IGeneratedDocument
+  }
+
+  /** Сохранённые документы узла порцией — для аудита пересборки. */
+  async listDocuments(page: DocumentPage): Promise<Array<Pick<StoredDocument, 'hash' | 'meta' | 'html'>>> {
+    return this.storage.listDocuments(page)
+  }
+
+  async countDocuments(registry_id?: number): Promise<number> {
+    return this.storage.countDocuments(registry_id)
   }
 
   async saveDocData<P extends Record<string, unknown>>(payload: P, registry_id: number): Promise<{ hash: string }> {
@@ -193,43 +205,43 @@ export class Generator implements IGenerator {
     return this.docDataService.get<P>(hash)
   }
 
-  async save(type: 'individual', data: ExternalIndividualData): Promise<InsertOneResult>
-  async save(type: 'entrepreneur', data: ExternalEntrepreneurData): Promise<InsertOneResult>
-  async save(type: 'organization', data: ExternalOrganizationData): Promise<InsertOneResult>
-  async save(type: 'paymentMethod', data: PaymentData): Promise<InsertOneResult>
-  async save(type: 'vars', data: IVars): Promise<InsertOneResult>
-  async save(type: 'project', data: ExternalProjectData): Promise<InsertOneResult>
-  async save(type: 'udata', data: ExternalUdata): Promise<InsertOneResult>
+  async save(type: 'individual', data: ExternalIndividualData): Promise<{ insertedId: string }>
+  async save(type: 'entrepreneur', data: ExternalEntrepreneurData): Promise<{ insertedId: string }>
+  async save(type: 'organization', data: ExternalOrganizationData): Promise<{ insertedId: string }>
+  async save(type: 'paymentMethod', data: PaymentData): Promise<{ insertedId: string }>
+  async save(type: 'vars', data: IVars): Promise<{ insertedId: string }>
+  async save(type: 'project', data: ExternalProjectData): Promise<{ insertedId: string }>
+  async save(type: 'udata', data: ExternalUdata): Promise<{ insertedId: string }>
 
-  async save(type: dataTypes, data: externalDataTypes): Promise<InsertOneResult> {
+  async save(type: dataTypes, data: externalDataTypes): Promise<{ insertedId: string }> {
     const model = this.getModel(type, data)
     return model.save()
   }
 
-  async update(type: 'vars', filter: Filter<IVars>, data: Partial<IVars>): Promise<UpdateResult> {
+  async update(type: 'vars', filter: Where, data: Partial<IVars>): Promise<{ modifiedCount: number }> {
     const model = this.getModel(type) as Vars
     return model.update(filter, data)
   }
 
-  async del(type: dataTypes, filter: Filter<internalFilterTypes>): Promise<UpdateResult> {
+  async del(type: dataTypes, filter: Where): Promise<{ modifiedCount: number }> {
     const model = this.getModel(type)
     return model.del(filter)
   }
 
   // Универсальные методы получения одного объекта
-  async get(type: dataTypes, filter: Filter<internalFilterTypes>): Promise<externalDataTypes | null> {
+  async get(type: dataTypes, filter: Where): Promise<externalDataTypes | null> {
     const model = this.getModel(type)
     return model.getOne(filter)
   }
 
   // Универсальные методы получения списка объектов
-  async list(type: dataTypes, filter: Filter<internalFilterTypes>): Promise<CooperativeModel.Document.IGetResponse<externalDataTypes>> {
+  async list(type: dataTypes, filter: Where): Promise<CooperativeModel.Document.IGetResponse<externalDataTypes>> {
     const model = this.getModel(type)
     return model.getMany(filter)
   }
 
   // // Универсальные методы получения истории
-  async getHistory(type: 'individual' | 'entrepreneur' | 'organization' | 'paymentMethod' | 'vars' | 'project' | 'udata', filter: Filter<internalFilterTypes>): Promise<externalDataTypesArrays> {
+  async getHistory(type: 'individual' | 'entrepreneur' | 'organization' | 'paymentMethod' | 'vars' | 'project' | 'udata', filter: Where): Promise<externalDataTypesArrays> {
     const model = this.getModel(type)
     return model.getHistory(filter)
   }
