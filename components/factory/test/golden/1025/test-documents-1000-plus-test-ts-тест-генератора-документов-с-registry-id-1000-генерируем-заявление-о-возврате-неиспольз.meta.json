@@ -1,0 +1,15 @@
+{
+  "title": "Заявление о возврате неиспользованных средств генерации",
+  "lang": "ru",
+  "registry_id": 1025,
+  "generator": "coopjs",
+  "links": [],
+  "version": "<package-version>",
+  "coopname": "voskhod",
+  "username": "ant",
+  "created_at": "2026-10-28T09:00:00.000Z",
+  "block_num": 0,
+  "timezone": "Europe/Moscow",
+  "project_hash": "B2C3D4E5F6789ABC",
+  "amount": "5000.00 RUB"
+}

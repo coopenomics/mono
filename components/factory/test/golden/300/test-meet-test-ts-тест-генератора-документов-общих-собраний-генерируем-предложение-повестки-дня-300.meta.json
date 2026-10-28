@@ -1,0 +1,33 @@
+{
+  "title": "Предложение повестки дня общего собрания",
+  "lang": "ru",
+  "registry_id": 300,
+  "generator": "coopjs",
+  "links": [],
+  "version": "<package-version>",
+  "coopname": "voskhod",
+  "username": "individual",
+  "created_at": "2026-10-28T09:00:00.000Z",
+  "block_num": 0,
+  "timezone": "Europe/Moscow",
+  "meet": {
+    "type": "regular",
+    "open_at_datetime": "20.12.2024 10:00 (Мск)",
+    "close_at_datetime": "21.12.2024 18:00 (Мск)"
+  },
+  "questions": [
+    {
+      "number": "1",
+      "title": "Утверждение годового отчёта",
+      "context": "О деятельности кооператива за 2024 год",
+      "decision": "Утвердить годовой отчёт кооператива за 2024 год"
+    },
+    {
+      "number": "2",
+      "title": "Избрание совета кооператива",
+      "decision": "Избрать новый состав совета кооператива",
+      "context": "Тут дополнительная информация о вопросе"
+    }
+  ],
+  "is_repeated": false
+}

@@ -1,0 +1,18 @@
+{
+  "title": "Акт приема-передачи результата интеллектуальной деятельности",
+  "lang": "ru",
+  "registry_id": 1042,
+  "generator": "coopjs",
+  "links": [],
+  "version": "<package-version>",
+  "coopname": "voskhod",
+  "username": "ant",
+  "created_at": "2026-10-28T09:00:00.000Z",
+  "block_num": 0,
+  "timezone": "Europe/Moscow",
+  "result_act_hash": "ACT1234567890ABCDEF",
+  "result_hash": "a3b64ceaa3c5ba840eb34f5f603bd03de6b431c2c2f2244ea83a373b2cde01c2c2f2244ea83a373b2cde01c2c2f2244ea83a373b2cde0",
+  "percent_of_result": "25.00000000",
+  "total_amount": "50000.00 RUB",
+  "decision_id": 1
+}

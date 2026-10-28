@@ -4,7 +4,7 @@ import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import axios from 'axios'
 import ecc from 'eosjs-ecc'
-import { Generator } from '@coopenomics/factory'
+import { connectGenerator, factoryOnPostgres } from './factory-storage'
 import type { Cooperative } from 'cooptypes'
 import mongoose, { Types } from 'mongoose'
 import type { Account, Contract } from '../types'
@@ -221,9 +221,7 @@ export async function installInitialData(blockchain: Blockchain, isExtended = fa
 
   }
 
-  const generator = new Generator()
-  // eslint-disable-next-line node/prefer-global/process
-  await generator.connect(process.env.MONGO_URI as string)
+  const generator = await connectGenerator()
 
   await generator.save('organization', organizationData)
   console.log('Провайдер добавлен: ', organizationData)
@@ -322,57 +320,52 @@ export async function installInitialData(blockchain: Blockchain, isExtended = fa
     block_num: 1,
   }
 
-  // Сохраняем vars с указанием конкретного _id и _created_at
-  // eslint-disable-next-line node/prefer-global/process
-  await mongoose.connect(process.env.MONGO_URI as string)
-
-  try {
-    await mongoose.connection.collection('vars').insertOne({
-      _id: new Types.ObjectId('69898c7d996550b4db4b1a36'),
-      _created_at: new Date('2026-02-08T13:29:12.423Z'),
-      ...vars,
-    })
-    console.log('Vars сохранены с указанным _id и _created_at')
+  // Переменные кооператива: в PostgreSQL — обычной записью фабрики; в MongoDB —
+  // с закреплёнными _id и _created_at, как было до переноса хранилища.
+  if (factoryOnPostgres()) {
+    await generator.save('vars', vars)
+    console.log('Vars сохранены в PostgreSQL')
   }
-  catch (e) {
-    console.log('Vars уже существуют, обновляем...')
-    await mongoose.connection.collection('vars').updateOne(
-      { coopname: 'voskhod' },
-      {
-        $set: {
-          ...vars,
-          _created_at: new Date('2026-02-08T13:29:12.423Z'),
+  else {
+    // eslint-disable-next-line node/prefer-global/process
+    await mongoose.connect(process.env.MONGO_URI as string)
+    try {
+      await mongoose.connection.collection('vars').insertOne({
+        _id: new Types.ObjectId('69898c7d996550b4db4b1a36'),
+        _created_at: new Date('2026-02-08T13:29:12.423Z'),
+        ...vars,
+      })
+      console.log('Vars сохранены с указанным _id и _created_at')
+    }
+    catch (e) {
+      console.log('Vars уже существуют, обновляем...')
+      await mongoose.connection.collection('vars').updateOne(
+        { coopname: 'voskhod' },
+        {
+          $set: {
+            ...vars,
+            _created_at: new Date('2026-02-08T13:29:12.423Z'),
+          },
         },
-      },
-    )
+      )
+    }
   }
 
   // Совет локального кооператива «утвердил» документы с реквизитами из vars —
   // иначе фабрика утверждений не предъявит пайщикам ни одного соглашения.
   await seedDocumentApprovals(blockchain, 'voskhod', vars)
 
-  try {
-    await mongoose.connection.collection('sync').deleteMany({})
-    console.log('Все документы удалены из коллекции sync')
-  }
-  catch (e) {
-    console.error('Ошибка при удалении:', e)
-  }
-
-  try {
-    await mongoose.connection.collection('actions').deleteMany({})
-    console.log('Все документы удалены из коллекции actions')
-  }
-  catch (e) {
-    console.error('Ошибка при удалении:', e)
-  }
-
-  try {
-    await mongoose.connection.collection('deltas').deleteMany({})
-    console.log('Все документы удалены из коллекции deltas')
-  }
-  catch (e) {
-    console.error('Ошибка при удалении:', e)
+  // Коллекции прежнего парсера живут только в MongoDB.
+  if (!factoryOnPostgres()) {
+    for (const name of ['sync', 'actions', 'deltas']) {
+      try {
+        await mongoose.connection.collection(name).deleteMany({})
+        console.log(`Все документы удалены из коллекции ${name}`)
+      }
+      catch (e) {
+        console.error('Ошибка при удалении:', e)
+      }
+    }
   }
 
   // Собираем пользователей для инициализации в PostgreSQL
@@ -786,8 +779,7 @@ export async function installExtraData(
 
   const partnerEmail = `chairman.${account.username}@example.com`
 
-  const generator = new Generator()
-  await generator.connect(process.env.MONGO_URI as string)
+  const generator = await connectGenerator()
 
   await generator.save('organization', {
     username: account.username,

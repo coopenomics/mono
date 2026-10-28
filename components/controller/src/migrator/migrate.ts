@@ -29,8 +29,10 @@ export const migrateData = async (): Promise<void> => {
     // Сначала схема: миграции данных работают с таблицами, которые она создаёт.
     await runDatabaseMigrations();
 
-    // Подключаемся к MongoDB
-    await mongoConnect();
+    // MongoDB — только пока хранилище фабрики на ней: замороженные миграции
+    // V1.x/V2.x читали её, и все они уже применены на живых узлах. В режиме
+    // postgres мигратор к MongoDB не подключается.
+    if (config.factory.storage === 'mongo') await mongoConnect();
 
     logger.info('Инициализация менеджера миграций...');
 

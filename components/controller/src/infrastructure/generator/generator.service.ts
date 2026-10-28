@@ -4,12 +4,13 @@ import httpStatus from 'http-status';
 import { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
 import type { GenerateDocumentDomainInterfaceWithOptions } from '~/domain/document/interfaces/generate-document-domain-with-options.interface';
 import { GeneratorPort } from '~/domain/document/ports/generator.port';
-import { DocumentNotApprovedError, Generator, UnknownDocumentFactoryError, documentMetaKey, type IGenerateBlank, type IGeneratedBlank, type ISearchResult } from '@coopenomics/factory';
+import { DocumentNotApprovedError, Generator, MongoFactoryStorage, UnknownDocumentFactoryError, documentMetaKey, type IGenerateBlank, type IGeneratedBlank, type ISearchResult } from '@coopenomics/factory';
 import type { Cooperative } from 'cooptypes';
 import config from '~/config/config';
 import { DomainError } from '@coopenomics/extension-kit';
 import { ControllerChainDataSource } from './controller-chain-data.source';
 import { ChainChangesService } from '~/infrastructure/blockchain/chain-changes.service';
+import { PgFactoryStorage } from './pg-factory-storage';
 
 /**
  * Коллекции генератора (MongoDB) и их имена в ленте изменений. Личные данные
@@ -35,6 +36,7 @@ export class GeneratorInfrastructureService implements GeneratorPort, OnModuleIn
 
   constructor(
     private readonly chainDataSource: ControllerChainDataSource,
+    private readonly pgStorage: PgFactoryStorage,
     @Optional() @Inject(ChainChangesService) private readonly feed: ChainChangesService | null = null
   ) {
     this.generator = new Generator(this.chainDataSource);
@@ -48,7 +50,40 @@ export class GeneratorInfrastructureService implements GeneratorPort, OnModuleIn
   }
 
   async onModuleInit() {
-    await this.connect(config.mongoose.url);
+    // Хранилище фабрики выбирается настройкой: PostgreSQL контроллера либо
+    // MongoDB до прогона переноса (шаг 5 фабрики v2, решение владельца 28.10.2026).
+    if (config.factory.storage === 'postgres') {
+      await this.assertMigrated();
+      await this.generator.connect(this.pgStorage);
+    } else {
+      await this.connect(config.mongoose.url);
+    }
+  }
+
+  /**
+   * Страховка переключения: режим postgres с пустыми таблицами фабрики при
+   * живой MongoDB с документами означает, что перенос (`pnpm factory:migrate`)
+   * не выполнен — документы пайщиков «пропали бы» молча. Недоступная MongoDB
+   * страховку не роняет: после её вывода из развёртывания проверять нечего.
+   */
+  private async assertMigrated(): Promise<void> {
+    if ((await this.pgStorage.countDocuments()) > 0) return;
+    const url = config.mongoose.url;
+    if (!url) return;
+    const probe = new MongoFactoryStorage(url + (url.includes('?') ? '&' : '?') + 'serverSelectionTimeoutMS=3000');
+    let inMongo = 0;
+    try {
+      await probe.connect();
+      inMongo = await probe.collection('documents').countDocuments();
+    } catch {
+      return;
+    } finally {
+      await probe.disconnect().catch(() => undefined);
+    }
+    if (inMongo > 0) {
+      // i18n-ignore: отказ при старте читает оператор узла в журнале
+      throw new Error(`FACTORY_STORAGE=postgres, но таблицы фабрики пусты, а в MongoDB ${inMongo} документов: сначала перенос — pnpm factory:migrate`);
+    }
   }
 
   async connect(url: string): Promise<void> {
@@ -118,6 +153,22 @@ export class GeneratorInfrastructureService implements GeneratorPort, OnModuleIn
 
   async getHistory<T = any>(collection: string, filter: Record<string, any>): Promise<T[]> {
     return await (this.generator as any).getHistory(collection as any, filter);
+  }
+
+  /**
+   * Сохранённые документы узла порцией — для аудита пересборки (фабрика v2,
+   * шаг 0). Отдаёт только хэш, мету и HTML: PDF не нужен, он сверяется по
+   * хэшу. Порядок по `_id`, устойчив между порциями.
+   */
+  async listStoredDocuments(query: { registry_id?: number; offset: number; limit: number }): Promise<
+    Array<Pick<Cooperative.Document.IGeneratedDocument, 'hash' | 'meta' | 'html'>>
+  > {
+    return this.generator.listDocuments({ registry_id: query.registry_id ?? undefined, offset: query.offset, limit: query.limit });
+  }
+
+  /** Число сохранённых документов под тем же отбором, что и `listStoredDocuments`. */
+  async countStoredDocuments(registry_id?: number): Promise<number> {
+    return this.generator.countDocuments(registry_id ?? undefined);
   }
 
   async constructCooperative(username: string, block_num?: number): Promise<Cooperative.Model.ICooperativeData | null> {

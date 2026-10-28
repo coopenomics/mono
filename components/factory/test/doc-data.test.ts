@@ -1,17 +1,17 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { MongoDBConnector } from '../src/Services/Databazor'
+import { MongoFactoryStorage } from '../src/Storage'
 import { DocDataService } from '../src/Services/DocData'
 import { generator, mongoUri } from './utils'
 
 describe('DocDataService — приватные данные документов', () => {
-  let storage: MongoDBConnector
+  let storage: MongoFactoryStorage
   let service: DocDataService
 
   beforeAll(async () => {
-    storage = new MongoDBConnector(mongoUri)
+    storage = new MongoFactoryStorage(mongoUri)
     await storage.connect()
     service = new DocDataService(storage)
-    await storage.getCollection('doc_private_data').deleteMany({})
+    await storage.collection('doc_private_data').deleteMany({})
   })
 
   afterAll(async () => {
@@ -40,7 +40,7 @@ describe('DocDataService — приватные данные документо�
     const r2 = await service.save(payload, 1102)
     expect(r1.hash).toEqual(r2.hash)
 
-    const count = await storage.getCollection('doc_private_data').countDocuments({ hash: r1.hash })
+    const count = await storage.collection('doc_private_data').countDocuments({ hash: r1.hash })
     expect(count).toBe(1)
   })
 
@@ -52,7 +52,7 @@ describe('DocDataService — приватные данные документо�
 
   it('get → null если запись удалена (graceful degradation)', async () => {
     const { hash } = await service.save({ tmp: 'будет удалён' }, 1102)
-    await storage.getCollection('doc_private_data').deleteOne({ hash })
+    await storage.collection('doc_private_data').deleteOne({ hash })
 
     const restored = await service.get(hash)
     expect(restored).toBeNull()

@@ -37,7 +37,7 @@ describe('тест генератора документов', async () => {
       expect(paymentMethod[field]).toBeDefined()
     })
 
-    expect(paymentMethod._id).toEqual(saved.insertedId)
+    expect(String(paymentMethod._id)).toEqual(saved.insertedId)
 
     const paymentList = await generator.list('paymentMethod', { username: 'ant', method_id: paymentData.method_id })
 
@@ -81,7 +81,7 @@ describe('тест генератора документов', async () => {
       expect(retrivedData[field]).toBeDefined()
     })
 
-    expect(retrivedData._id).toEqual(saved.insertedId)
+    expect(String(retrivedData._id)).toEqual(saved.insertedId)
   })
 
   it('генерируем проект свободного решения', async () => {

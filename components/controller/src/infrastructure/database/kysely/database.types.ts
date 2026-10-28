@@ -1614,6 +1614,45 @@ export interface ExtensionsLogs {
   updated_at: Generated<Timestamp>;
 }
 
+export interface FactoryDocPrivateData {
+  created_at: Generated<Timestamp>;
+  hash: string;
+  payload: Json;
+  registry_id: number;
+}
+
+export interface FactoryDocuments {
+  binary: Buffer;
+  block_num: Int8 | null;
+  created_at: Generated<Timestamp>;
+  full_title: string | null;
+  hash: string;
+  html: string;
+  id: Generated<Int8>;
+  meta: Json;
+  meta_key: string;
+  registry_id: number;
+  updated_at: Generated<Timestamp>;
+}
+
+export interface FactoryRecords {
+  /**
+   * Блок цепи на момент записи; текущая версия — последняя по блоку
+   */
+  block_num: Int8 | null;
+  /**
+   * Коллекция записи: individuals, organizations, entrepreneurs, paymentMethods, vars, projects, udatas, signatures
+   */
+  collection: string;
+  created_at: Generated<Timestamp>;
+  /**
+   * Пометка удаления: ставится на все версии, строки не стираются
+   */
+  deleted: Generated<boolean>;
+  id: Generated<Int8>;
+  payload: Json;
+}
+
 export interface GeneratedReports {
   coopname: string;
   corrections_snapshot: Json | null;
@@ -2751,6 +2790,9 @@ export interface DB {
   expense_requisite_snapshots: ExpenseRequisiteSnapshots;
   extensions: Extensions;
   extensions_logs: ExtensionsLogs;
+  factory_doc_private_data: FactoryDocPrivateData;
+  factory_documents: FactoryDocuments;
+  factory_records: FactoryRecords;
   generated_reports: GeneratedReports;
   invalidated_entities: InvalidatedEntities;
   invalidated_entity_versions: InvalidatedEntityVersions;

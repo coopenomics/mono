@@ -1,109 +1,53 @@
-import { Cooperative, DraftContract } from 'cooptypes'
+import { Cooperative } from 'cooptypes'
+import { defineBuilder } from '../Builder'
+import * as Format from '../Format'
 import { ResultContributionAct } from '../Templates'
-import { DocFactory } from '../Factory'
-import { Udata } from '../Models/Udata'
-import type { IGeneratedDocument, IGenerationOptions, IMetaDocument, ITemplate } from '../Interfaces'
-import type { MongoDBConnector } from '../Services/Databazor'
 
 export { ResultContributionAct as Template } from '../Templates'
 
-export class Factory extends DocFactory<ResultContributionAct.Action> {
-  constructor(storage: MongoDBConnector) {
-    super(storage)
-  }
-
-  async generateDocument(data: ResultContributionAct.Action, options?: IGenerationOptions): Promise<IGeneratedDocument> {
-    // Извлечение данных из Udata репозитория
-    const udataService = new Udata(this.storage)
-
-    // Независимые источники тянем параллельно (см. resolveParallel в DocFactory)
-    const {
-      template,
-      coop,
-      vars,
-      userData,
-      contributorContractUdata,
-      contributorContractCreatedAtUdata,
-      blagorostAgreementUdata,
-      blagorostAgreementCreatedAtUdata,
-    } = await this.resolveParallel({
-      template: () => process.env.SOURCE === 'local'
-        ? Promise.resolve(ResultContributionAct.Template as ITemplate<ResultContributionAct.Model>)
-        : this.getTemplate<ResultContributionAct.Model>(DraftContract.contractName.production, ResultContributionAct.registry_id, data.block_num),
-      coop: () => super.getCooperative(data.coopname, data.block_num),
-      vars: () => super.getVars(data.coopname, data.block_num),
-      userData: () => super.getUser(data.username, data.block_num),
-      contributorContractUdata: () => udataService.getOne({
-        coopname: data.coopname,
-        username: data.username,
-        key: Cooperative.Model.UdataKey.BLAGOROST_CONTRIBUTOR_CONTRACT_NUMBER,
-        block_num: data.block_num,
-      }),
-      contributorContractCreatedAtUdata: () => udataService.getOne({
-        coopname: data.coopname,
-        username: data.username,
-        key: Cooperative.Model.UdataKey.BLAGOROST_CONTRIBUTOR_CONTRACT_CREATED_AT,
-        block_num: data.block_num,
-      }),
-      blagorostAgreementUdata: () => udataService.getOne({
-        coopname: data.coopname,
-        username: data.username,
-        key: Cooperative.Model.UdataKey.BLAGOROST_AGREEMENT_NUMBER,
-        block_num: data.block_num,
-      }),
-      blagorostAgreementCreatedAtUdata: () => udataService.getOne({
-        coopname: data.coopname,
-        username: data.username,
-        key: Cooperative.Model.UdataKey.BLAGOROST_AGREEMENT_CREATED_AT,
-        block_num: data.block_num,
-      }),
-    })
-
-    // meta зависит от template.title — считаем после батча
-    const meta: IMetaDocument = await this.getMeta({ title: template.title, ...data })
-    const common_user = super.getCommonUser(userData)
-
-    // decision зависит от coop — после батча
-    const decision = await this.getApprovedDecision(coop, data.coopname, data.decision_id)
-
-    if (!contributorContractUdata?.value) {
+/** Акт о взносе результата: реквизиты из udata и принятое советом решение. */
+export const Factory = defineBuilder<ResultContributionAct.Action, ResultContributionAct.Model>()({
+  registry_id: ResultContributionAct.registry_id,
+  version: 1,
+  reads: ({ data, f }) => {
+    const udata = (key: Cooperative.Model.UdataKey) => () => f.getUdata({ coopname: data.coopname, username: data.username, key, block_num: data.block_num })
+    return {
+      coop: () => f.getCooperative(data.coopname, data.block_num),
+      vars: () => f.getVars(data.coopname, data.block_num),
+      userData: () => f.getUser(data.username, data.block_num),
+      contributorContractUdata: udata(Cooperative.Model.UdataKey.BLAGOROST_CONTRIBUTOR_CONTRACT_NUMBER),
+      contributorContractCreatedAtUdata: udata(Cooperative.Model.UdataKey.BLAGOROST_CONTRIBUTOR_CONTRACT_CREATED_AT),
+      blagorostAgreementUdata: udata(Cooperative.Model.UdataKey.BLAGOROST_AGREEMENT_NUMBER),
+      blagorostAgreementCreatedAtUdata: udata(Cooperative.Model.UdataKey.BLAGOROST_AGREEMENT_CREATED_AT),
+    }
+  },
+  derive: ({ data, f, reads: { coop } }) => ({
+    decision: () => f.getApprovedDecision(coop, data.coopname, data.decision_id),
+  }),
+  assemble: ({ data, meta, reads: { coop, vars, userData, contributorContractUdata, contributorContractCreatedAtUdata, blagorostAgreementUdata, blagorostAgreementCreatedAtUdata }, derived: { decision } }) => {
+    if (!contributorContractUdata?.value)
       throw new Error('Данные договора УХД участника не найдены в Udata')
-    }
-
-    if (!contributorContractCreatedAtUdata?.value) {
+    if (!contributorContractCreatedAtUdata?.value)
       throw new Error('Дата создания договора УХД участника не найдена в Udata')
-    }
-
-    if (!blagorostAgreementUdata?.value) {
+    if (!blagorostAgreementUdata?.value)
       throw new Error('Данные соглашения благороста не найдены в Udata')
-    }
-
-    if (!blagorostAgreementCreatedAtUdata?.value) {
+    if (!blagorostAgreementCreatedAtUdata?.value)
       throw new Error('Дата создания соглашения благороста не найдена в Udata')
-    }
-
-    const combinedData: ResultContributionAct.Model = {
+    return {
       meta,
       coop,
       vars,
       decision,
-      common_user,
+      common_user: Format.commonUser(userData),
       contributor_contract_number: String(contributorContractUdata.value),
       contributor_contract_created_at: String(contributorContractCreatedAtUdata.value),
       blagorost_agreement_number: String(blagorostAgreementUdata.value),
       blagorost_agreement_created_at: String(blagorostAgreementCreatedAtUdata.value),
       result_act_hash: data.result_act_hash,
-      result_act_short_hash: this.getShortHash(data.result_act_hash),
+      result_act_short_hash: Format.shortHash(data.result_act_hash),
       result_hash: data.result_hash,
       percent_of_result: data.percent_of_result,
-      total_amount: this.formatAsset(data.total_amount),
+      total_amount: Format.formatAsset(data.total_amount),
     }
-
-    await this.validate(combinedData, template.model)
-
-    const translation = template.translations[meta.lang]
-    const document: IGeneratedDocument = await this.generatePDF('', template.context, combinedData, translation, meta, options?.skip_save)
-
-    return document
-  }
-}
+  },
+})

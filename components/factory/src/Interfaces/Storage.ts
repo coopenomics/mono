@@ -1,4 +1,3 @@
-import type { Document } from 'mongodb'
 import type { ExternalEntrepreneurData, ExternalIndividualData, ExternalOrganizationData, ExternalProjectData, IVars, InternalEntrepreneurData, InternalIndividualData, InternalOrganizationData, InternalProjectData, ExternalUdata, InternalUdata } from '../Models'
 import type { PaymentData } from '../Models/PaymentMethod'
 import type { IGeneratedDocument } from './Documents'
@@ -31,7 +30,11 @@ export interface IBCState {
   block_num: number
 }
 
-export interface IFilterDocuments extends Document, IGeneratedDocument {
+/** Отбор сохранённого документа: по хэшу, при необходимости по ключу меты или блоку. */
+export interface IDocumentFilter {
+  hash: string
+  meta_key?: string
+  'meta.block_num'?: number
 }
 
 export type internalFilterTypes = InternalIndividualData | InternalEntrepreneurData | InternalOrganizationData | IPaymentData | IVars | InternalProjectData | InternalUdata

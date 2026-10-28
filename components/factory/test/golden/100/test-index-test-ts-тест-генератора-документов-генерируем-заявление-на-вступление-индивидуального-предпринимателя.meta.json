@@ -1,0 +1,13 @@
+{
+  "title": "Заявление на вступление в кооператив",
+  "lang": "ru",
+  "registry_id": 100,
+  "generator": "coopjs",
+  "links": [],
+  "version": "<package-version>",
+  "coopname": "voskhod",
+  "username": "entrepreneur",
+  "created_at": "2026-10-28T09:00:00.000Z",
+  "block_num": 1,
+  "timezone": "Europe/Moscow"
+}

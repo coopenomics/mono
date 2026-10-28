@@ -1,35 +1,12 @@
-import { DraftContract } from 'cooptypes'
+import { defineBuilder } from '../Builder'
 import { CapitalizationPropertyInvestStatement } from '../Templates'
-import { DocFactory } from '../Factory'
-import type { IGeneratedDocument, IGenerationOptions, IMetaDocument, ITemplate } from '../Interfaces'
-import type { MongoDBConnector } from '../Services/Databazor'
 
 export { CapitalizationPropertyInvestStatement as Template } from '../Templates'
 
-export class Factory extends DocFactory<CapitalizationPropertyInvestStatement.Action> {
-  constructor(storage: MongoDBConnector) {
-    super(storage)
-  }
-
-  async generateDocument(data: CapitalizationPropertyInvestStatement.Action, options?: IGenerationOptions): Promise<IGeneratedDocument> {
-    let template: ITemplate<CapitalizationPropertyInvestStatement.Model>
-
-    if (process.env.SOURCE === 'local') {
-      template = CapitalizationPropertyInvestStatement.Template
-    }
-    else {
-      template = await this.getTemplate(DraftContract.contractName.production, CapitalizationPropertyInvestStatement.registry_id, data.block_num)
-    }
-
-    const meta: IMetaDocument = await this.getMeta({ title: template.title, ...data })
-
-    const combinedData: CapitalizationPropertyInvestStatement.Model = {meta}
-
-    await this.validate(combinedData, template.model)
-
-    const translation = template.translations[meta.lang]
-    const document: IGeneratedDocument = await this.generatePDF('', template.context, combinedData, translation, meta, options?.skip_save)
-
-    return document
-  }
-}
+/** Заявление об имущественном взносе в капитализацию: только мета, остальное в тексте шаблона. */
+export const Factory = defineBuilder<CapitalizationPropertyInvestStatement.Action, CapitalizationPropertyInvestStatement.Model>()({
+  registry_id: CapitalizationPropertyInvestStatement.registry_id,
+  version: 1,
+  reads: () => ({}),
+  assemble: ({ meta }) => ({ meta }),
+})

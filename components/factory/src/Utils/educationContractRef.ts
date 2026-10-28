@@ -1,6 +1,5 @@
 import { Cooperative } from 'cooptypes'
-import { Udata } from '../Models/Udata'
-import type { MongoDBConnector } from '../Services/Databazor'
+import type { FactorySources } from '../Sources'
 
 export interface EducationContractRef {
   contract_number: string
@@ -13,13 +12,12 @@ export interface EducationContractRef {
  * бэкенд edubridge пишет их в Udata при подписании договора.
  */
 export async function getEducationContractRef(
-  storage: MongoDBConnector,
+  sources: FactorySources,
   data: { coopname: string, username: string, block_num?: number },
 ): Promise<EducationContractRef> {
-  const udata = new Udata(storage)
   const [number, createdAt] = await Promise.all([
-    udata.getOne({ coopname: data.coopname, username: data.username, key: Cooperative.Model.UdataKey.EDUCATION_CONTRACT_NUMBER, block_num: data.block_num }),
-    udata.getOne({ coopname: data.coopname, username: data.username, key: Cooperative.Model.UdataKey.EDUCATION_CONTRACT_CREATED_AT, block_num: data.block_num }),
+    sources.udata({ coopname: data.coopname, username: data.username, key: Cooperative.Model.UdataKey.EDUCATION_CONTRACT_NUMBER, block_num: data.block_num }),
+    sources.udata({ coopname: data.coopname, username: data.username, key: Cooperative.Model.UdataKey.EDUCATION_CONTRACT_CREATED_AT, block_num: data.block_num }),
   ])
   if (!number?.value || !createdAt?.value)
     throw new Error('Номер и дата договора участия в хозяйственной деятельности преподавателя не найдены в Udata')

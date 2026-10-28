@@ -2,7 +2,7 @@ import path from 'node:path'
 import type { RegistratorContract, SovietContract } from 'cooptypes'
 import { Generator, Registry } from '../../src'
 import type { ExternalEntrepreneurData, ExternalIndividualData, ExternalOrganizationData, IVars, PaymentData } from '../../src/Models'
-import { MongoDBConnector } from '../../src/Services/Databazor'
+import { MongoFactoryStorage } from '../../src/Storage'
 import { TestChainDataSource } from './chain-data-source'
 // eslint-disable-next-line ts/no-require-imports
 const fs = require('node:fs').promises
@@ -36,7 +36,7 @@ export async function deleteAllFiles(folderPath: string) {
 export async function preLoading() {
   await deleteAllFiles('./documents')
 
-  const storage = new MongoDBConnector(mongoUri)
+  const storage = new MongoFactoryStorage(mongoUri)
   await storage.connect()
 
   const collectionsToClear = [
@@ -53,12 +53,12 @@ export async function preLoading() {
   ]
 
   for (const collectionName of collectionsToClear) {
-    const collection = storage.getCollection(collectionName)
+    const collection = storage.collection(collectionName)
     await collection.deleteMany({})
   }
 
-  const deltas = storage.getCollection('deltas')
-  const actions = storage.getCollection('actions')
+  const deltas = storage.collection('deltas')
+  const actions = storage.collection('actions')
 
   const draft = await deltas.findOne({ code: 'draft', scope: 'draft', table: 'drafts' })
   const translation = await deltas.findOne({ code: 'draft', scope: 'draft', table: 'translation' })
@@ -747,7 +747,7 @@ export async function preLoading() {
   })
 
   // Добавляем signatures для тестов заявлений на вступление (100)
-  const signatures = storage.getCollection('signatures')
+  const signatures = storage.collection('signatures')
   for (const username of ['ant', 'individual', 'entrepreneur', 'exampleorg']) {
     await signatures.insertOne({
       username,
@@ -768,7 +768,7 @@ export async function preLoading() {
     { key: 'blagorost_storage_agreement_created_at', value: '2024-06-15T10:00:00.000Z' },
   ]
 
-  const udatas = storage.getCollection('udatas')
+  const udatas = storage.collection('udatas')
   for (const rec of udataRecords) {
     await udatas.insertOne({
       coopname: 'voskhod',

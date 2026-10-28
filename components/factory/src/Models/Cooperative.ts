@@ -1,8 +1,7 @@
 import { RegistratorContract, SovietContract } from 'cooptypes'
 import type { Cooperative as CooperativeApi } from 'cooptypes'
 import { type ValidateResult, Validator } from '../Services/Validator'
-import DataService from '../Services/Databazor/DataService'
-import type { MongoDBConnector } from '../Services/Databazor'
+import type { IFactoryStorage } from '../Storage'
 import type { IBankAccount } from '../Interfaces/BankAccounts'
 import { getFetch } from '../Utils/getFetch'
 import { getEnvVar } from '../config'
@@ -18,18 +17,16 @@ export type MembersData = CooperativeApi.Model.MembersData
 
 export class Cooperative {
   cooperative: CooperativeData | null
-  db: MongoDBConnector
+  db: IFactoryStorage
 
-  private data_service: DataService<CooperativeData>
 
   /**
    * Источник данных цепи передаётся снаружи: модель не должна знать, откуда
    * читаются реквизиты кооператива — из базы узла или прямыми запросами.
    */
-  constructor(storage: MongoDBConnector, private readonly chain: IChainDataSource) {
+  constructor(storage: IFactoryStorage, private readonly chain: IChainDataSource) {
     this.db = storage
     this.cooperative = null
-    this.data_service = new DataService<CooperativeData>(storage, 'cooperatives')
   }
 
   async getOne(username: string, block_num?: number): Promise<CooperativeData> {

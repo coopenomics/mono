@@ -31,6 +31,8 @@
     "prettier": "prettier --check **/*.js",
     "analyze:modules": "ts-node -r tsconfig-paths/register scripts/analyze-modules.ts",
     "migration:generate": "ts-node -r tsconfig-paths/register src/scripts/generate-migration.ts",
+    "factory:migrate": "cross-env TS_NODE_PROJECT=tsconfig.runtime.json node -r tsconfig-paths/register dist/src/scripts/factory-storage-migrate.js",
+    "factory:migrate:dev": "ts-node -r tsconfig-paths/register src/scripts/factory-storage-migrate.ts",
     "migration:run": "cross-env TS_NODE_PROJECT=tsconfig.runtime.json node -r tsconfig-paths/register dist/src/scripts/migration-cli.js run",
     "migration:run-specific": "cross-env TS_NODE_PROJECT=tsconfig.runtime.json node -r tsconfig-paths/register dist/src/scripts/migration-cli.js run-specific",
     "migration:rollback": "cross-env TS_NODE_PROJECT=tsconfig.runtime.json node -r tsconfig-paths/register dist/src/scripts/migration-cli.js rollback",

@@ -1,34 +1,38 @@
-import type { JSONSchemaType } from 'ajv'
-import moment from 'moment-timezone'
 import type { Cooperative, Interfaces, MeetContract } from 'cooptypes'
-import { DraftContract, SovietContract } from 'cooptypes'
+import { DraftContract } from 'cooptypes'
 import type { IBankAccount, ICombinedData, IGeneratedDocument, IMetaDocument, IMetaDocumentPartial, ITemplate, ITranslations, externalDataTypes } from '../Interfaces'
-import type { MongoDBConnector } from '../Services/Databazor'
-import { type ExternalEntrepreneurData, type ExternalIndividualData, type ExternalOrganizationData, type IVars, Individual, type InternalProjectData, Organization, PaymentMethod, Project, Vars } from '../Models'
+import type { IFactoryStorage } from '../Storage'
+import { documentMetaKey } from '../Utils/documentMetaKey'
+import type { ExternalEntrepreneurData, ExternalIndividualData, ExternalOrganizationData, ExternalUdata, IVars, InternalProjectData, PaymentData } from '../Models'
 import type { IGenerate, IGenerateBlank, IGeneratedBlank, IGenerationOptions } from '../Interfaces/Documents'
-import { PDFService } from '../Services/Generator'
-import { BLANK_PLACEHOLDER } from '../Services/Templator'
-import { DocDataService } from '../Services/DocData'
 import packageJson from '../../package.json'
 import { Validator } from '../Services/Validator'
 import type { CooperativeData } from '../Models/Cooperative'
-import { Cooperative as CooperativeModel } from '../Models/Cooperative'
-import { Entrepreneur } from '../Models/Entrepreneur'
 import { getCurrentBlock } from '../Utils/getCurrentBlock'
-import { DEFAULT_DOCUMENT_TIMEZONE, formatCreatedAt, nowCreatedAt, parseCreatedAt, splitCreatedAt } from '../Utils/documentCreatedAt'
+import { FactorySources, type IPaymentMethodFilter, type IUdataFilter, type IUserAt } from '../Sources'
+import * as Format from '../Format'
+import { buildMeta } from '../Meta'
+import { renderBlank, renderDocument } from '../Render'
+import { BLANK_PLACEHOLDER } from '../Services/Templator'
+import { DEFAULT_DOCUMENT_TIMEZONE, nowCreatedAt } from '../Utils/documentCreatedAt'
 import type { IOrganizationData } from '..'
-import { formatDateTime } from '../Utils'
 import type { IChainDataSource } from '../DataSource'
 
 const packageVersion = packageJson.version
 
-export interface InternalGetUserResult { type: string, data: externalDataTypes }
+export type InternalGetUserResult = IUserAt
 
 export abstract class DocFactory<T extends IGenerate> {
   abstract generateDocument(data: T, options?: IGenerationOptions): Promise<IGeneratedDocument>
 
-  public storage: MongoDBConnector
-  public docData: DocDataService
+  public storage: IFactoryStorage
+
+  /**
+   * Все чтения данных — через слой источников (шаг 1 фабрики v2). Методы
+   * `getX` ниже остались как фасад для сборщиков: их сигнатуры не менялись,
+   * чтобы 92 действия переехали без правок.
+   */
+  protected readonly sources: FactorySources
 
   /**
    * Откуда брать данные цепи. Проставляется Generator'ом сразу после создания
@@ -37,9 +41,9 @@ export abstract class DocFactory<T extends IGenerate> {
    */
   private dataSource?: IChainDataSource
 
-  constructor(storage: MongoDBConnector) {
+  constructor(storage: IFactoryStorage) {
     this.storage = storage
-    this.docData = new DocDataService(storage)
+    this.sources = new FactorySources(storage, () => this.chain)
   }
 
   setDataSource(dataSource: IChainDataSource): void {
@@ -71,7 +75,6 @@ export abstract class DocFactory<T extends IGenerate> {
    *   - getFullName(user.data) / getCommonUser(user) — зависят от user;
    *   - getDecision(coop, …, meta.created_at) — зависит от coop и meta;
    *   - getMeetQuestions(coopname, meet.id) / getGeneralMeetingDecision(meet) — от meet;
-   *   - getProgram(request.program_id) — от request;
    *   - getMeta({ title: project.title }) — если title выводится из project/coop.
    *
    * Ключи объекта-результата соответствуют ключам переданных задач.
@@ -112,13 +115,11 @@ export abstract class DocFactory<T extends IGenerate> {
       ...(data.block_num ? { block_num: data.block_num } : {}),
       ...(data.lang ? { lang: data.lang } : {}),
     })
-    const blankMeta: IMetaDocument = { ...meta, created_at: BLANK_PLACEHOLDER }
-
     const model = template.model as unknown as { properties?: Record<string, unknown> } | undefined
     const knownKeys = Object.keys(model?.properties ?? {})
-    const translation = template.translations[blankMeta.lang]
+    const translation = template.translations[meta.lang]
     if (!translation)
-      throw new Error(`Перевод шаблона ${data.registry_id} на язык ${blankMeta.lang} не найден`)
+      throw new Error(`Перевод шаблона ${data.registry_id} на язык ${meta.lang} не найден`)
 
     // Форма заявления ветвится по типу пайщика: физлицо, ИП, организация —
     // отличаются только реквизиты подписанта. Бланк собирается для физлица:
@@ -127,9 +128,9 @@ export abstract class DocFactory<T extends IGenerate> {
     // Параметры программы (условия ЦПП) совет утверждает вместе с текстом:
     // по хэшу они подставляются в бланк, без хэша остаются прочерком.
     const params = docData ? { doc_data: docData } : {}
-    const html = new PDFService().renderBlankHtml(template.context, { ...subject, ...params, meta: blankMeta, created_at: BLANK_PLACEHOLDER, coop, vars }, translation, knownKeys)
+    const html = renderBlank({ context: template.context, vars: { ...subject, ...params, coop, vars }, translation, meta, knownKeys })
 
-    return { title: template.title, html, meta: blankMeta }
+    return { title: template.title, html, meta: { ...meta, created_at: BLANK_PLACEHOLDER } }
   }
 
   async validate(combinedData: ICombinedData, schema: any) {
@@ -143,7 +144,7 @@ export abstract class DocFactory<T extends IGenerate> {
    * См. раздел «Document Generation Pattern: doc_data» в архитектуре.
    */
   async saveDocData<P extends Record<string, unknown>>(payload: P, registry_id: number): Promise<{ hash: string }> {
-    return this.docData.save(payload, registry_id)
+    return this.sources.saveDocData(payload, registry_id)
   }
 
   /**
@@ -152,7 +153,7 @@ export abstract class DocFactory<T extends IGenerate> {
    * по хэшу подписи, но не регенерируется — graceful degradation).
    */
   async getDocData<P = Record<string, unknown>>(hash: string): Promise<P | null> {
-    return this.docData.get<P>(hash)
+    return this.sources.docDataByHash<P>(hash)
   }
 
   /**
@@ -168,219 +169,62 @@ export abstract class DocFactory<T extends IGenerate> {
   }
 
   async getOrganization(username: string, block_num?: number): Promise<IOrganizationData> {
-    const block_filter = block_num ? { block_num: { $lte: block_num } } : {}
-
-    const organization = await new Organization(this.storage).getOne({ username, ...block_filter })
-    if (!organization)
-      throw new Error('Организация не найдена')
-
-    return organization
+    return this.sources.organization(username, block_num)
   }
 
   async getBankAccount(username: string, block_num?: number): Promise<IBankAccount> {
-    const block_filter = block_num ? { block_num: { $lte: block_num } } : {}
+    return this.sources.bankAccount(username, block_num)
+  }
 
-    const method = (await new PaymentMethod(this.storage).getOne({ username, ...block_filter, method_type: 'bank_transfer', is_default: true }))?.data as IBankAccount
+  /** Способ оплаты по отбору (номер способа, вид, основной); нет записи — null. */
+  async getPaymentMethod(filter: IPaymentMethodFilter): Promise<PaymentData | null> {
+    return this.sources.paymentMethod(filter)
+  }
 
-    if (!method)
-      throw new Error('Банковский счёт не найден')
-
-    return method
+  /** Запись udata пайщика по ключу на блок; нет записи — null. */
+  async getUdata(filter: IUdataFilter): Promise<ExternalUdata | null> {
+    return this.sources.udata(filter)
   }
 
   async getUser(username: string, block_num?: number): Promise<InternalGetUserResult> {
-    const block_filter = block_num ? { block_num: { $lte: block_num } } : {}
-
-    const individual = await new Individual(this.storage).getOne({ username, ...block_filter })
-    const organization = await new Organization(this.storage).getOne({ username, ...block_filter })
-    const entrepreneur = await new Entrepreneur(this.storage).getOne({ username, ...block_filter })
-
-    const userData: { type: string, data: externalDataTypes } = {
-      type: '',
-      data: {} as externalDataTypes,
-    }
-
-    if (individual) {
-      userData.type = 'individual'
-      userData.data = individual
-    }
-
-    if (organization) {
-      if (userData.type !== '')
-        throw new Error('Найдено более одного типа данных')
-
-      userData.type = 'organization'
-      userData.data = organization
-    }
-
-    if (entrepreneur) {
-      if (userData.type !== '')
-        throw new Error('Найдено более одного типа данных')
-
-      userData.type = 'entrepreneur'
-      userData.data = entrepreneur
-    }
-
-    if (userData.type === '')
-      throw new Error('Пользователь не найден')
-
-    return userData
+    return this.sources.user(username, block_num)
   }
 
   async getCooperative(username: string, block_num?: number): Promise<CooperativeData> {
-    const coop = await new CooperativeModel(this.storage, this.chain).getOne(username, block_num)
-
-    if (!coop)
-      throw new Error('Кооператив не найден')
-    return coop
+    return this.sources.cooperative(username, block_num)
   }
 
   async getProject(id: string, block_num?: number): Promise<InternalProjectData> {
-    const block_filter = block_num ? { block_num: { $lte: block_num } } : {}
-
-    const project = await new Project(this.storage).getOne({ id, ...block_filter })
-
-    if (!project)
-      throw new Error('Проект решения не найден')
-    return project
+    return this.sources.project(id, block_num)
   }
 
   async getVars(coopname: string, block_num?: number): Promise<IVars> {
-    const block_filter = block_num ? { block_num: { $lte: block_num } } : {}
-
-    const vars = await new Vars(this.storage).getOne({ coopname, ...block_filter })
-
-    if (!vars)
-      throw new Error('Переменные кооператива не найдены')
-    return vars
-  }
-
-  async getRequest(_request_id: number, _block_num?: number): Promise<Cooperative.Model.ICommonRequest> {
-    return {
-      hash: '1234567890',
-      title: 'Молоко Бурёнка',
-      unit_of_measurement: 'литры',
-      units: 100,
-      unit_cost: '1000',
-      total_cost: '100000',
-      currency: 'RUB',
-      type: 'receive',
-      program_id: 1,
-    }
-  }
-
-  async getProgram(_program_id: number): Promise<Cooperative.Model.ICommonProgram> {
-    return {
-      name: 'СОСЕДИ',
-    }
+    return this.sources.vars(coopname, block_num)
   }
 
   async getGeneralMeetingDecision(meet: Interfaces.Meet.IMeet, created_at: string, timezone: string): Promise<Cooperative.Document.IDecisionData> {
-    /**
-     * Создаем данные решения общего собрания на основе данных собрания.
-     * В отличие от getDecision (для решений совета), здесь используются данные кворума из IMeet.
-     */
-
-    const quorum_percent = Number(meet.current_quorum_percent) // Текущий процент кворума
-
-    // Для общего собрания у нас есть общая информация о кворуме,
-    // но конкретные голоса "за/против" есть в каждом вопросе отдельно
-    const votes_for = 0 // Будет заполнено в questions
-    const votes_against = 0 // Будет заполнено в questions
-    const votes_abstained = 0 // Будет заполнено в questions
-
-    const { date, time } = splitCreatedAt(created_at, timezone)
-
-    return {
-      id: Number(meet.id),
-      date,
-      time,
-      votes_for,
-      votes_against,
-      votes_abstained,
-      voters_percent: quorum_percent,
-    }
+    return Format.generalMeetingDecisionData(meet, created_at, timezone)
   }
 
   async getDecision(coop: CooperativeData, coopname: string, decision_id: number, created_at: string, timezone: string): Promise<Cooperative.Document.IDecisionData> {
-    /**
-     * Мы здесь извлекаем голоса из действий, а не из дельт таблиц т.к. в случае использования дельт возможна исключительная ситуация,
-     * когда за решение принимаются голоса и происходит утверждение из дальнейшим удалением объекта из памяти в одном блоке, то
-     * промежуточные дельты не фиксируются, а мы сможем увидеть только результат - удаление, т.е. пустой объект.
-     * Позже перепроверить еще раз.
-     */
-    const votes_for_actions = await this.chain.getActions({
-      account: SovietContract.contractName.production,
-      name: SovietContract.Actions.Decisions.VoteFor.actionName,
-      data: { 'decision_id': String(decision_id), 'coopname': coopname },
-    })
-    const paramsss = JSON.stringify({
-      'account': SovietContract.contractName.production,
-      'name': SovietContract.Actions.Decisions.VoteFor.actionName,
-      'receiver': SovietContract.contractName.production,
-      'data.decision_id': String(decision_id),
-      'data.coopname': coopname,
-    })
-
-    if (!votes_for_actions || votes_for_actions.length === 0) {
-      throw new Error(`Голоса за решение не найдены ${paramsss}`)
-    }
-
-    const votes_against_actions = await this.chain.getActions({
-      account: SovietContract.contractName.production,
-      name: SovietContract.Actions.Decisions.VoteAgainst.actionName,
-      data: { 'decision_id': String(decision_id), 'coopname': coopname },
-    })
-
-    const votes_against = votes_against_actions ? votes_against_actions.length : 0
-    const votes_for = votes_for_actions.length
-
-    const total_members = coop.totalMembers
-    const total_voters = votes_for + votes_against
-    const votes_abstained = total_members - total_voters
-
-    // Заседание совета заочное: повестку получают все члены совета, и все они участвуют в заседании. Кто не проголосовал,
-    // записан воздержавшимся, поэтому участников столько же, сколько членов совета, и кворум составляет 100 %.
-    const participants = total_voters + votes_abstained
-    const voters_percent: number = Number.parseFloat((participants / total_members * 100).toFixed(0))
-
-    const { date, time } = splitCreatedAt(created_at, timezone)
-
-    return {
-      id: decision_id,
-      date,
-      time,
-      votes_for,
-      votes_against,
-      votes_abstained,
-      voters_percent,
-      // decision,
-    }
+    const votes = await this.sources.decisionVotes(coopname, decision_id)
+    return Format.decisionData(votes, coop.totalMembers, decision_id, created_at, timezone)
   }
 
   async getApprovedDecision(coop: CooperativeData, coopname: string, decision_id: number): Promise<Cooperative.Document.IDecisionData> {
-    /**
-     * Получаем уже принятое решение из действия authorize.
-     */
-    const decision = (await this.chain.getActions({
-      account: SovietContract.contractName.production,
-      name: SovietContract.Actions.Decisions.Authorize.actionName,
-      data: { 'decision_id': String(decision_id), 'coopname': coopname },
-      limit: 1,
-    }))[0]?.data as SovietContract.Actions.Decisions.Authorize.IAuthorize
+    // Принятое решение — из действия authorize: в нём мета документа решения с датой.
+    const decision = await this.sources.authorizedDecision(coopname, decision_id)
 
     if (!decision) {
       throw new Error(`Принятое решение не найдено в действиях authorize: decision_id=${decision_id}, coopname=${coopname}`)
     }
 
-    // Извлекаем документ авторизации из поля authorization
     const authorizationDoc = decision.document
 
     if (!authorizationDoc) {
       throw new Error(`Документ авторизации не найден в решении: decision_id=${decision_id}`)
     }
 
-    // Парсим мета-данные и извлекаем created_at
     let decisionCreatedAt: string
     let decisionTimezone: string
     try {
@@ -396,98 +240,18 @@ export abstract class DocFactory<T extends IGenerate> {
       throw new Error(`Ошибка парсинга мета-данных авторизации решения ${decision_id}: ${error}`)
     }
 
-    // Используем обычный метод getDecision с правильной датой создания решения
     return this.getDecision(coop, coopname, decision_id, decisionCreatedAt, decisionTimezone)
   }
 
   async getMeet(coopname: string, meet_hash: string, block_num?: number): Promise<Cooperative.Model.IMeetExtended> {
-    const block_filter = block_num ? { block_num: { $lte: block_num } } : {}
-
-    const meetRows = await this.chain.getTableRows<MeetContract.Tables.Meets.IOutput>({
-      code: 'meet',
-      scope: coopname,
-      table: 'meets',
-      filter: { hash: meet_hash.toUpperCase() },
-      ...(block_num ? { block_num } : {}),
-      limit: 1,
-    })
-
-    const meet = meetRows[0]
-
-    if (!meet)
-      throw new Error('Собрание не найдено')
-
-    // Получаем данные о председателе и секретаре собрания
-    const presiderData = await this.getUser(meet.presider, block_num)
-    const secretaryData = await this.getUser(meet.secretary, block_num)
-
-    // Получаем полные имена
-    const presiderFullName = this.getFullParticipantName(presiderData.data)
-    const secretaryFullName = this.getFullParticipantName(secretaryData.data)
-
-    // Преобразуем формат даты для шаблона
-    const meetExtended: Cooperative.Model.IMeetExtended = {
-      ...meet,
-      current_quorum_percent: Number(Number(meet.current_quorum_percent).toFixed(1)),
-      close_at_datetime: formatDateTime(meet.close_at),
-      open_at_datetime: formatDateTime(meet.open_at),
-      presider_full_name: presiderFullName,
-      secretary_full_name: secretaryFullName,
-    }
-
-    return meetExtended
+    const meet = await this.sources.meetRow(coopname, meet_hash, block_num)
+    const presider = await this.getUser(meet.presider, block_num)
+    const secretary = await this.getUser(meet.secretary, block_num)
+    return Format.extendMeet(meet, Format.fullParticipantName(presider.data), Format.fullParticipantName(secretary.data))
   }
 
   async getMeetQuestions(coopname: string, meet_id: number, block_num?: number): Promise<Cooperative.Model.IQuestionExtended[]> {
-    const block_filter = block_num ? { block_num: { $lte: block_num } } : {}
-
-    const questions = await this.chain.getTableRows<MeetContract.Tables.Questions.IOutput>({
-      code: 'meet',
-      scope: coopname,
-      table: 'questions',
-      filter: { meet_id: String(meet_id) },
-      ...(block_num ? { block_num } : {}),
-    })
-
-    // Сортировка вопросов по номеру (с учетом, что number может быть строкой)
-    questions.sort((a, b) => {
-      // Преобразуем в числа для корректного сравнения
-      const numA = Number.parseInt(a.number.toString(), 10)
-      const numB = Number.parseInt(b.number.toString(), 10)
-      return numA - numB
-    })
-
-    // Преобразуем вопросы в расширенную модель с вычисленными результатами
-    const extendedQuestions = questions.map((question) => {
-      // Преобразуем значения голосов в числа
-      const votesFor = Number(question.counter_votes_for)
-      const votesAgainst = Number(question.counter_votes_against)
-      const votesAbstained = Number(question.counter_votes_abstained)
-
-      // Вычисляем общее количество голосов
-      const votesTotal = votesFor + votesAgainst + votesAbstained
-
-      // Вычисляем проценты (защита от деления на ноль)
-      const calculatePercent = (value: number): number => {
-        if (votesTotal === 0)
-          return 0
-        return Math.round((value / votesTotal) * 100)
-      }
-
-      // Определяем, принято ли решение (более 50% голосов "за")
-      const isAccepted = votesTotal > 0 && votesFor > votesTotal / 2
-      // Возвращаем расширенный объект вопроса
-      return {
-        ...question,
-        votes_total: votesTotal,
-        votes_for_percent: calculatePercent(votesFor),
-        votes_against_percent: calculatePercent(votesAgainst),
-        votes_abstained_percent: calculatePercent(votesAbstained),
-        is_accepted: isAccepted,
-      } as Cooperative.Model.IQuestionExtended
-    })
-
-    return extendedQuestions
+    return Format.extendQuestions(await this.sources.meetQuestionRows(coopname, meet_id, block_num))
   }
 
   /**
@@ -497,70 +261,11 @@ export abstract class DocFactory<T extends IGenerate> {
    * @returns 'for', 'against' или 'abstained'
    */
   getUserVote(question: MeetContract.Tables.Questions.IOutput, username: string): 'for' | 'against' | 'abstained' {
-    // Проверяем, есть ли пользователь в списке проголосовавших "За"
-    if (question.voters_for && question.voters_for.includes(username)) {
-      return 'for'
-    }
-
-    // Проверяем, есть ли пользователь в списке проголосовавших "Против"
-    if (question.voters_against && question.voters_against.includes(username)) {
-      return 'against'
-    }
-
-    // Проверяем, есть ли пользователь в списке воздержавшихся
-    if (question.voters_abstained && question.voters_abstained.includes(username)) {
-      return 'abstained'
-    }
-
-    // Если пользователь не найден ни в одном из списков, считаем, что он воздержался
-    return 'abstained'
+    return Format.userVote(question, username)
   }
 
   async getTemplate<T>(scope: string, registry_id: number, block_num?: number): Promise<ITemplate<T>> {
-    const draft = (await this.chain.getTableRows<DraftContract.Tables.Drafts.IDraft>({
-      code: DraftContract.contractName.production,
-      scope,
-      table: DraftContract.Tables.Drafts.tableName,
-      filter: { registry_id: String(registry_id) },
-      ...(block_num ? { block_num } : {}),
-      limit: 1,
-    }))[0]
-
-    if (!draft)
-      throw new Error(`Шаблон ${registry_id} не найден${block_num ? ` на блоке ${block_num}` : ''}`)
-
-    const translations = await this.chain.getTableRows<DraftContract.Tables.Translations.ITranslation>({
-      code: DraftContract.contractName.production,
-      scope,
-      table: DraftContract.Tables.Translations.tableName,
-      filter: { draft_id: String(draft.registry_id) },
-      ...(block_num ? { block_num } : {}),
-    })
-
-    if (!translations.length)
-      throw new Error(`Ни один перевод шаблона ${registry_id} не найден${block_num ? ` на блоке ${block_num}` : ''}`)
-
-    /**
-     * На один язык может прийти несколько записей — перевод могли завести
-     * заново под другим идентификатором. Источник отдаёт строки от свежих
-     * блоков к старым, поэтому первая встреченная запись языка и есть
-     * актуальная: иначе документ собрался бы по устаревшей редакции текста.
-     */
-    const byLang = new Map<string, any>()
-    for (const translation of translations as any[]) {
-      if (!byLang.has(translation.lang))
-        byLang.set(translation.lang, JSON.parse(translation.data))
-    }
-
-    const translationsObj = Object.fromEntries(byLang.entries())
-
-    return {
-      title: draft.title,
-      description: draft.description,
-      model: JSON.parse(draft.model) as JSONSchemaType<T>,
-      context: draft.context,
-      translations: translationsObj as ITranslations,
-    }
+    return this.sources.template<T>(scope, registry_id, block_num)
   }
 
   async generatePDF(
@@ -572,228 +277,61 @@ export abstract class DocFactory<T extends IGenerate> {
     skip_save: boolean = false,
     skip_pdf: boolean = false,
   ): Promise<IGeneratedDocument> {
-    const pdfService = new PDFService()
+    const document = await renderDocument({ context, vars, translation, meta, signerName: Format.fullName(data), skip_pdf })
 
-    // Шаблон показывает дату человеку переменной `created_at`, а мета хранит
-    // момент генерации в ISO: вид для человека собирается только здесь.
-    const displayCreatedAt = formatCreatedAt(meta.created_at, meta.timezone)
-    const renderVars: ICombinedData = { ...vars, created_at: displayCreatedAt }
-    // Редакция, утверждённая советом до 28.09.2026, собирается текстом того
-    // времени и выводит дату как `meta.created_at`. Только ей мета для показа
-    // даётся с датой в виде для человека; сохраняется и подписывается мета с ISO.
-    if (context.includes('meta.created_at'))
-      renderVars.meta = { ...meta, created_at: displayCreatedAt }
-
-    /**
-     * skip_pdf — документ нужен только для показа на экране. Собираем HTML тем
-     * же движком подстановки и пропускаем weasyprint: без PDF нет и хэша,
-     * поэтому такой документ не сохраняется ни при каком skip_save — сохранить
-     * его значило бы завести в базе черновик, который нечем подписать.
-     */
-    if (skip_pdf) {
-      const html = pdfService.renderHtml(context, renderVars, translation)
-
-      return { full_title: '', html, hash: '', binary: new Uint8Array(), meta }
-    }
-
-    const document: IGeneratedDocument = await pdfService.generateDocument(context, renderVars, translation, meta)
-    const full_name = this.getFullName(data)
-
-    document.full_title = `${document.meta.title} - ${full_name} - ${displayCreatedAt}.pdf`
-
-    if (!skip_save)
+    // Документ без PDF (только показ) не сохраняется: его нечем подписать.
+    if (!skip_pdf && !skip_save)
       await this.saveDraft(document)
 
     return document
   }
 
   getFullName(data: externalDataTypes | string): string {
-    if (typeof data === 'string') {
-      return data // Если data — строка, вернуть как есть
-    }
-
-    if ('first_name' in data) {
-      return `${data.last_name} ${data.first_name} ${data.middle_name}`
-    }
-
-    if ('represented_by' in data) {
-      return `${data.represented_by.last_name} ${data.represented_by.first_name} ${data.represented_by.middle_name}`
-    }
-
-    return ''
+    return Format.fullName(data)
   }
 
   getFullParticipantName(data: externalDataTypes): string {
-    if ('first_name' in data) {
-      return `${data.last_name} ${data.first_name} ${data.middle_name}`
-    }
-    else if ('short_name' in data) {
-      return data.short_name
-    }
-
-    return ''
+    return Format.fullParticipantName(data)
   }
 
   getFirstLastMiddleName(data: externalDataTypes): Cooperative.Model.IFirstLastMiddleName {
-    return {
-      first_name: 'first_name' in data ? data.first_name : '',
-      last_name: 'last_name' in data ? data.last_name : '',
-      middle_name: 'middle_name' in data ? data.middle_name : '',
-    }
+    return Format.firstLastMiddleName(data)
   }
 
   extractOrganizationName(input: ExternalOrganizationData): string {
-    // Регулярное выражение для извлечения названия организации
-
-    const regex = /["'«»]([^"'«»]+)["'«»]/
-
-    const match = input.short_name.match(regex)
-
-    if (match) {
-      // Если найдены кавычки, извлекаем содержимое
-      return match[1].trim().toUpperCase()
-    }
-
-    // Если кавычек нет, берем последнее слово
-    const words = input.short_name.trim().split(/\s+/)
-    const lastWord = words[words.length - 1]
-
-    if (!lastWord) {
-      throw new Error(`Не удалось извлечь имя организации из: "${input.short_name}"`)
-    }
-
-    return lastWord.toUpperCase()
+    return Format.organizationAbbreviatedName(input)
   }
 
   extractPersonalAbbreviatedName(input: ExternalIndividualData | ExternalEntrepreneurData): string {
-    return `${input.first_name[0]}${input.middle_name[0]}${input.last_name[0]}`.toUpperCase()
+    return Format.personalAbbreviatedName(input)
   }
 
   parseDateForAgreements(created_at: string, timezone: string): { day: string, month: string, year: string } {
-    const dateWithTimezone = created_at
-      ? parseCreatedAt(created_at, timezone)
-      : moment.tz(timezone)
-
-    return {
-      day: dateWithTimezone.format('DD'),
-      month: dateWithTimezone.format('MM'),
-      year: dateWithTimezone.format('YY'),
-    }
+    return Format.dateForAgreements(created_at, timezone)
   }
 
   constructUHDContractNumber(contributor_hash: string): string {
-    return `УХД-${this.getShortHash(contributor_hash)}`
+    return Format.uhdContractNumber(contributor_hash)
   }
 
   getCommonUser(input: InternalGetUserResult): Cooperative.Model.ICommonUser {
-    switch (input.type) {
-      case 'individual':
-      case 'entrepreneur': {
-        const data = input.data as ExternalEntrepreneurData | ExternalIndividualData
-        return {
-          abbr_full_name: this.extractPersonalAbbreviatedName(data),
-          full_name_or_short_name: this.getFullParticipantName(data),
-          birthdate_or_ogrn: data.birthdate,
-          email: data.email,
-          phone: data.phone,
-        }
-      }
-
-      case 'organization': {
-        const data = input.data as ExternalOrganizationData
-        return {
-          abbr_full_name: this.extractOrganizationName(data),
-          full_name_or_short_name: this.getFullParticipantName(data),
-          birthdate_or_ogrn: data.details.ogrn,
-          email: data.email,
-          phone: data.phone,
-        }
-      }
-
-      default:
-        throw new Error(`cant extract common user data`)
-    }
+    return Format.commonUser(input)
   }
 
   getShortHash(hash: string, length: number = 16): string {
-    // Если строка содержит дефисы или пробелы, значит это уже номер договора, не обрезаем
-    if (hash.includes('-') || hash.includes(' ')) {
-      return hash
-    }
-    return hash.substring(0, length).toUpperCase()
+    return Format.shortHash(hash, length)
   }
 
   async saveDraft(document: IGeneratedDocument): Promise<void> {
-    await this.storage.saveDraft(document)
+    await this.storage.saveDocument({ ...document, meta_key: documentMetaKey(document.meta) })
   }
 
-  async getMeta<T extends IMetaDocumentPartial>({
-    title,
-    username,
-    coopname,
-    registry_id,
-    links = [],
-    lang = 'ru',
-    generator = 'coopjs',
-    version = packageVersion, // TODO перенести в .env
-    created_at,
-    block_num,
-    timezone = DEFAULT_DOCUMENT_TIMEZONE, // TODO перенести в .env
-    ...restParams
-  }: T): Promise<IMetaDocument> {
-    if (!title)
-      throw new Error('Заголовок документа должен быть установлен')
-
-    if (!registry_id)
-      throw new Error('Параметр номера документа в реестре должен быть передан')
-
-    // Дата приходит снаружи только при перегенерации документа — она берётся
-    // как есть, чтобы мета и хэш совпали с исходными; непонятную дату разбор
-    // отвергает. Новая генерация пишет момент в ISO до миллисекунд.
-    if (created_at)
-      parseCreatedAt(created_at, timezone)
-    const createdAt = created_at || nowCreatedAt()
-
-    if (!block_num)
-      block_num = await getCurrentBlock()
-
-    return {
-      title,
-      lang,
-      registry_id,
-      generator,
-      links,
-      version,
-      coopname,
-      username,
-      created_at: createdAt,
-      block_num,
-      timezone,
-      ...restParams,
-    }
-  }
-
-  /**
-   * Truncate (toward-zero) числовой строки до displayPrecision знаков
-   * на уровне строки — без FP-погрешности (0.29 * 100 = 28.999... в IEEE 754).
-   * Принцип: «никогда не показать в документе сумму больше реальной».
-   */
-  private truncateDecimal(numericStr: string, displayPrecision: number): string {
-    const negative = numericStr.startsWith('-')
-    const abs = negative ? numericStr.slice(1) : numericStr
-    const [intPartRaw, decPartRaw = ''] = abs.split('.')
-    const intPart = intPartRaw || '0'
-    const decPart = decPartRaw.padEnd(displayPrecision, '0').slice(0, displayPrecision)
-    const result = displayPrecision > 0 ? `${intPart}.${decPart}` : intPart
-    return negative ? `-${result}` : result
+  async getMeta<T extends IMetaDocumentPartial>(input: T): Promise<IMetaDocument> {
+    return buildMeta(input, { version: packageVersion, now: nowCreatedAt, currentBlock: getCurrentBlock })
   }
 
   public formatShare(value: string | number, precision: number = 2): string {
-    const str = typeof value === 'string' ? value : value.toString()
-    const parsed = Number.parseFloat(str)
-    if (Number.isNaN(parsed))
-      return typeof value === 'string' ? value : value.toString()
-    return this.truncateDecimal(parsed.toFixed(precision + 4), precision)
+    return Format.formatShare(value, precision)
   }
 
   /**
@@ -804,29 +342,10 @@ export abstract class DocFactory<T extends IGenerate> {
    * вида (уже оформленную человеком) отдаёт как есть.
    */
   public formatAsset(asset: string | number, precision: number = 2): string {
-    if (asset === undefined || asset === null || asset === '')
-      return ''
-    const text = String(asset).trim()
-    const match = text.match(/^(-?\d+(?:\.\d+)?)(?:\s+([A-Z]+))?$/)
-    if (!match)
-      return text
-    const [, amount, symbol] = match
-    const value = this.truncateDecimal(amount, precision)
-    return symbol ? `${value} ${symbol}` : value
+    return Format.formatAsset(asset, precision)
   }
 
   public formatPaymentDetails(paymentMethod: any, recipientName: string): string {
-    switch (paymentMethod.method_type) {
-      case 'bank_transfer': {
-        const bankData = paymentMethod.data as any // IBankAccount из cooptypes
-        return `№ счета получателя: ${bankData.account_number}\nБанк получателя: ${bankData.bank_name}\nКорр. счет банка: ${bankData.details?.corr || ''}\nБИК ${bankData.details?.bik || ''}\nПолучатель: ${recipientName}`
-      }
-      case 'sbp': {
-        const sbpData = paymentMethod.data as any // ISbpDetails из cooptypes
-        return `СБП\nТелефон получателя: ${sbpData.phone}`
-      }
-      default:
-        return JSON.stringify(paymentMethod.data)
-    }
+    return Format.paymentDetails(paymentMethod, recipientName)
   }
 }

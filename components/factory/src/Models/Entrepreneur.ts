@@ -1,9 +1,8 @@
-import type { Filter, InsertOneResult, UpdateResult } from 'mongodb'
 import type { Cooperative } from 'cooptypes'
 import type { ValidateResult } from '../Services/Validator'
 import { Validator } from '../Services/Validator'
-import type { MongoDBConnector } from '../Services/Databazor'
 import DataService from '../Services/Databazor/DataService'
+import type { IFactoryStorage, Where } from '../Storage'
 import { entrepreneurSchema } from '../Schema/EntrepreneurSchema'
 import { getCurrentBlock } from '../Utils/getCurrentBlock'
 
@@ -14,11 +13,11 @@ export type InternalEntrepreneurData = Omit<ExternalEntrepreneurData, 'bank_acco
 }
 
 export class Entrepreneur {
-  db: MongoDBConnector
+  db: IFactoryStorage
   entrepreneur?: ExternalEntrepreneurData
   private data_service: DataService<InternalEntrepreneurData>
 
-  constructor(storage: MongoDBConnector, data?: ExternalEntrepreneurData) {
+  constructor(storage: IFactoryStorage, data?: ExternalEntrepreneurData) {
     this.db = storage
     this.entrepreneur = data
     this.data_service = new DataService<InternalEntrepreneurData>(storage, 'entrepreneurs')
@@ -28,7 +27,7 @@ export class Entrepreneur {
     return new Validator(entrepreneurSchema, this.entrepreneur).validate()
   }
 
-  async save(): Promise<InsertOneResult<InternalEntrepreneurData>> {
+  async save(): Promise<{ insertedId: string }> {
     await this.validate()
 
     if (!this.entrepreneur)
@@ -47,12 +46,12 @@ export class Entrepreneur {
     return await this.data_service.save(entrForSave)
   }
 
-  async getOne(filter: Filter<InternalEntrepreneurData>): Promise<ExternalEntrepreneurData | null> {
+  async getOne(filter: Where): Promise<ExternalEntrepreneurData | null> {
     const entr = await this.data_service.getOne(filter)
     return entr as ExternalEntrepreneurData
   }
 
-  async getMany(filter: Filter<InternalEntrepreneurData>): Promise<Cooperative.Document.IGetResponse<ExternalEntrepreneurData>> {
+  async getMany(filter: Where): Promise<Cooperative.Document.IGetResponse<ExternalEntrepreneurData>> {
     const response = await this.data_service.getMany({ deleted: false, ...filter }, 'username')
     const entrepreneurs = response.results
 
@@ -67,13 +66,13 @@ export class Entrepreneur {
     return result
   }
 
-  async getHistory(filter: Filter<InternalEntrepreneurData>): Promise<ExternalEntrepreneurData[]> {
+  async getHistory(filter: Where): Promise<ExternalEntrepreneurData[]> {
     const history = await this.data_service.getHistory(filter)
 
     return history as ExternalEntrepreneurData[]
   }
 
-  async del(filter: Filter<InternalEntrepreneurData>): Promise<UpdateResult> {
+  async del(filter: Where): Promise<{ modifiedCount: number }> {
     return this.data_service.updateMany({ ...filter, deleted: false }, { deleted: true })
   }
 }

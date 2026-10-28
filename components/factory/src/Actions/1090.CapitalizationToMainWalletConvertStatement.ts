@@ -1,65 +1,24 @@
-import { DraftContract } from 'cooptypes'
+import { defineBuilder } from '../Builder'
+import * as Format from '../Format'
 import { CapitalizationToMainWalletConvertStatement } from '../Templates'
-import { DocFactory } from '../Factory'
-import type { IGeneratedDocument, IGenerationOptions, IMetaDocument, ITemplate } from '../Interfaces'
-import type { MongoDBConnector } from '../Services/Databazor'
 
 export { CapitalizationToMainWalletConvertStatement as Template } from '../Templates'
 
-/**
- * Factory для Заявления о трансляции паевого взноса из ЦПП «Благорост» в
- * ЦПП «Цифровой Кошелёк» (процесс p.cap.wthcap). Генерируется по запросу
- * пайщика на сумму, которую он назвал, и подписывается им (`data.username`)
- * перед `capital::wthshare`.
- */
-export class Factory extends DocFactory<CapitalizationToMainWalletConvertStatement.Action> {
-  constructor(storage: MongoDBConnector) {
-    super(storage)
-  }
-
-  async generateDocument(
-    data: CapitalizationToMainWalletConvertStatement.Action,
-    options?: IGenerationOptions,
-  ): Promise<IGeneratedDocument> {
-    let template: ITemplate<CapitalizationToMainWalletConvertStatement.Model>
-
-    if (process.env.SOURCE === 'local') {
-      template = CapitalizationToMainWalletConvertStatement.Template
-    }
-    else {
-      template = await this.getTemplate(
-        DraftContract.contractName.production,
-        CapitalizationToMainWalletConvertStatement.registry_id,
-        data.block_num,
-      )
-    }
-
-    const meta: IMetaDocument = await this.getMeta({ title: template.title, ...data })
-    const coop = await this.getCooperative(data.coopname, data.block_num)
-    const vars = await this.getVars(data.coopname, data.block_num)
-
-    const userData = await this.getUser(data.username, data.block_num)
-    const user = this.getCommonUser(userData)
-
-    const combinedData: CapitalizationToMainWalletConvertStatement.Model = {
-      meta,
-      coop,
-      vars,
-      user,
-      // В документ сумма идёт человеку, а не цепи: «1000.0000 RUB» → «1000.00 RUB».
-      amount: this.formatAsset(data.amount),
-    }
-
-    await this.validate(combinedData, template.model)
-    const translation = template.translations[meta.lang]
-    const document: IGeneratedDocument = await this.generatePDF(
-      user.full_name_or_short_name,
-      template.context,
-      combinedData,
-      translation,
-      meta,
-      options?.skip_save,
-    )
-    return document
-  }
-}
+/** Заявление о трансляции паевого взноса в Цифровой Кошелёк: пайщик и сумма. */
+export const Factory = defineBuilder<CapitalizationToMainWalletConvertStatement.Action, CapitalizationToMainWalletConvertStatement.Model>()({
+  registry_id: CapitalizationToMainWalletConvertStatement.registry_id,
+  version: 1,
+  reads: ({ data, f }) => ({
+    coop: () => f.getCooperative(data.coopname, data.block_num),
+    vars: () => f.getVars(data.coopname, data.block_num),
+    userData: () => f.getUser(data.username, data.block_num),
+  }),
+  assemble: ({ data, meta, reads: { coop, vars, userData } }) => ({
+    meta,
+    coop,
+    vars,
+    user: Format.commonUser(userData),
+    amount: Format.formatAsset(data.amount),
+  }),
+  signer: ({ reads: { userData } }) => Format.commonUser(userData).full_name_or_short_name,
+})

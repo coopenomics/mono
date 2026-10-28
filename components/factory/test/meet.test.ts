@@ -2,7 +2,6 @@ import { beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { Cooperative } from 'cooptypes'
 import { Generator } from '../src'
 import type { IGenerate, IGeneratedDocument } from '../src/Interfaces/Documents'
-import { MongoDBConnector } from '../src/Services/Databazor'
 import { coopname, deleteAllFiles, generator, mongoUri } from './utils'
 import { testDocumentGeneration } from './utils/testDocument'
 
