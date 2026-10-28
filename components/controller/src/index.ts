@@ -143,9 +143,12 @@ async function bootstrap() {
     }
   }
 
-  // Подключение к MongoDB
-  await mongoose.connect(config.mongoose.url);
-  logger.info('Connected to MongoDB');
+  // MongoDB нужна только пока хранилище фабрики на ней (FACTORY_STORAGE=mongo);
+  // в режиме postgres контроллер к ней не подключается и работает без неё.
+  if (config.factory.storage === 'mongo') {
+    await mongoose.connect(config.mongoose.url);
+    logger.info('Connected to MongoDB');
+  }
 
   // IP пайщика приходит из заголовка X-Forwarded-For: до контроллера запрос
   // проходит через три nginx, и без этой строки Express видит адрес последнего

@@ -6,3 +6,4 @@
 export * from './port'
 export { MongoFactoryStorage } from './mongo'
 export { MemoryFactoryStorage, matchesWhere } from './memory'
+export { PostgresFactoryStorage } from './postgres'

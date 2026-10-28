@@ -56,10 +56,12 @@
     "handlebars": "^4.7.8",
     "inline-css": "^4.0.2",
     "json-schema": "^0.4.0",
+    "kysely": "0.28.17",
     "moment-timezone": "^0.5.45",
     "mongodb": "^7.1.0",
     "nunjucks": "^3.2.4",
     "pdf-lib": "^1.17.1",
+    "pg": "^8.16.3",
     "uuid": "^11.0.0"
   },
   "devDependencies": {
@@ -69,6 +71,7 @@
     "@types/inline-css": "^3.0.3",
     "@types/node": "^20.12.11",
     "@types/nunjucks": "^3.2.6",
+    "@types/pg": "^8.15.6",
     "bumpp": "^9.4.1",
     "concurrently": "^8.2.2",
     "eslint": "^8.57.0",

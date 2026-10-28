@@ -17,8 +17,7 @@
 import ecc from 'eosjs-ecc'
 import { subscriberIdentity } from '../subscriber-identity'
 import { Client } from 'pg'
-import mongoose from 'mongoose'
-import { Generator } from '@coopenomics/factory'
+import { connectGenerator } from '../init/factory-storage'
 import { RegistratorContract, type Cooperative } from 'cooptypes'
 import Blockchain from '../blockchain'
 import config from '../configs'
@@ -138,11 +137,8 @@ export async function addPlainParticipant(args: Args) {
     log('wallet::signagree OK')
   }
 
-  // === 5. Mongo: individual запись (upsert) ===
-  const mongoUri = process.env.MONGO_URI
-  if (!mongoUri) throw new Error('MONGO_URI не задан в env')
-  const generator = new Generator()
-  await generator.connect(mongoUri)
+  // === 5. Хранилище фабрики: individual запись ===
+  const generator = await connectGenerator()
 
   const individual: Cooperative.Users.IIndividualData = {
     username,
@@ -162,9 +158,9 @@ export async function addPlainParticipant(args: Args) {
     },
   }
   await generator.save('individual', individual)
-  log('mongo individual upserted')
+  log('individual записан в хранилище фабрики')
 
-  await mongoose.disconnect().catch(() => {})
+  await generator.disconnect().catch(() => {})
 
   // === 6. Postgres: users запись ===
   const pg = new Client({

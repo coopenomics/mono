@@ -18,7 +18,6 @@ import { PlatformMetricsModule } from '~/application/metrics/platform-metrics.mo
 // Infrastructure modules
 import { DatabaseModule } from './infrastructure/database/database.module';
 import { GraphqlModule } from './infrastructure/graphql/graphql.module';
-import { MongooseModule } from '@nestjs/mongoose';
 import config from '~/config/config';
 import { BlockchainModule } from './infrastructure/blockchain/blockchain.module';
 import { ForkRegistryModule } from './shared/sync/fork';
@@ -136,7 +135,6 @@ import { MarketplaceExtensionModule } from './extensions/marketplace/marketplace
     // проверки JWT и тик NodeSyncHealthService.
     PlatformMetricsModule,
     // Infrastructure modules
-    MongooseModule.forRoot(config.mongoose.url),
     DatabaseModule,
     GraphqlModule,
     ForkRegistryModule,

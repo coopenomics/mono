@@ -4,7 +4,7 @@ import httpStatus from 'http-status';
 import { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
 import type { GenerateDocumentDomainInterfaceWithOptions } from '~/domain/document/interfaces/generate-document-domain-with-options.interface';
 import { GeneratorPort } from '~/domain/document/ports/generator.port';
-import { DocumentNotApprovedError, Generator, UnknownDocumentFactoryError, documentMetaKey, type IGenerateBlank, type IGeneratedBlank, type ISearchResult } from '@coopenomics/factory';
+import { DocumentNotApprovedError, Generator, MongoFactoryStorage, UnknownDocumentFactoryError, documentMetaKey, type IGenerateBlank, type IGeneratedBlank, type ISearchResult } from '@coopenomics/factory';
 import type { Cooperative } from 'cooptypes';
 import config from '~/config/config';
 import { DomainError } from '@coopenomics/extension-kit';
@@ -52,8 +52,38 @@ export class GeneratorInfrastructureService implements GeneratorPort, OnModuleIn
   async onModuleInit() {
     // Хранилище фабрики выбирается настройкой: PostgreSQL контроллера либо
     // MongoDB до прогона переноса (шаг 5 фабрики v2, решение владельца 28.10.2026).
-    if (config.factory.storage === 'postgres') await this.generator.connect(this.pgStorage);
-    else await this.connect(config.mongoose.url);
+    if (config.factory.storage === 'postgres') {
+      await this.assertMigrated();
+      await this.generator.connect(this.pgStorage);
+    } else {
+      await this.connect(config.mongoose.url);
+    }
+  }
+
+  /**
+   * Страховка переключения: режим postgres с пустыми таблицами фабрики при
+   * живой MongoDB с документами означает, что перенос (`pnpm factory:migrate`)
+   * не выполнен — документы пайщиков «пропали бы» молча. Недоступная MongoDB
+   * страховку не роняет: после её вывода из развёртывания проверять нечего.
+   */
+  private async assertMigrated(): Promise<void> {
+    if ((await this.pgStorage.countDocuments()) > 0) return;
+    const url = config.mongoose.url;
+    if (!url) return;
+    const probe = new MongoFactoryStorage(url + (url.includes('?') ? '&' : '?') + 'serverSelectionTimeoutMS=3000');
+    let inMongo = 0;
+    try {
+      await probe.connect();
+      inMongo = await probe.collection('documents').countDocuments();
+    } catch {
+      return;
+    } finally {
+      await probe.disconnect().catch(() => undefined);
+    }
+    if (inMongo > 0) {
+      // i18n-ignore: отказ при старте читает оператор узла в журнале
+      throw new Error(`FACTORY_STORAGE=postgres, но таблицы фабрики пусты, а в MongoDB ${inMongo} документов: сначала перенос — pnpm factory:migrate`);
+    }
   }
 
   async connect(url: string): Promise<void> {
