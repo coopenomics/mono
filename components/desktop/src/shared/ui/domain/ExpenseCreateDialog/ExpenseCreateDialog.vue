@@ -448,6 +448,10 @@ async function submitForm(): Promise<void> {
       mechanics: it.mechanics,
       recipient_type: it.recipient_type,
       recipient: resolveRecipient(it, session.username),
+      recipient_name:
+        it.recipient_type === Zeus.ExpenseRecipientType.ORG
+          ? it.recipient_name?.trim() || undefined
+          : undefined,
       description: it.description,
       planned_amount: formatToAsset(it.amount, assetSymbol, assetPrecision),
       payment_method_id: it.payment_method_id ?? undefined,

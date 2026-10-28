@@ -101,6 +101,9 @@ export function createInput(draft: Draft, statement: any, over: Record<string, u
       mechanics: it.mechanics,
       recipient_type: it.recipient_type,
       recipient: it.recipient,
+      // Название едет только у организации — как с рабочего стола: у пайщика
+      // получателя называет его аккаунт.
+      recipient_name: it.recipient_type === 'ORG' ? it.recipient_name : undefined,
       description: it.description,
       planned_amount: it.planned_amount,
       payment_method_id: it.payment_method_id,

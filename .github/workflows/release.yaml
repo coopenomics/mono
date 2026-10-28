@@ -63,7 +63,11 @@ jobs:
 
   release:
     needs: tests
-    runs-on: ubuntu-latest
+    # Образ закреплён, как у остальных задач со сборкой CDT (blackbox, ui-docs,
+    # billing-e2e). ubuntu-latest 28.10.2026 стал ubuntu-26.04: пакета libxml2
+    # (libxml2.so.2) там нет, а бинарники CDT 4.2.0 (clang-9, ld.lld) слинкованы
+    # с ним — выпуск 2026.10.28 упал на установке CDT.
+    runs-on: ubuntu-22.04
     outputs:
       tag_name: ${{ steps.resolve.outputs.tag_name }}
       branch: ${{ steps.resolve.outputs.branch }}

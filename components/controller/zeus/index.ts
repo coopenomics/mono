@@ -2542,6 +2542,8 @@ export type ValueTypes = {
 	planned_amount: string | Variable<any, string>,
 	/** Пайщик-получатель; для организации — пустая строка. */
 	recipient: string | Variable<any, string>,
+	/** Название организации-получателя (для оплаты по счёту) — показывается в реестре расходов и в поручении кассиру. */
+	recipient_name?: string | undefined | null | Variable<any, string>,
 	/** Получатель платежа: сам заявитель, другой пайщик или организация. */
 	recipient_type: ValueTypes["ExpenseRecipientType"] | Variable<any, string>,
 	/** Реквизиты организации-получателя (вводятся вручную). */
@@ -3834,6 +3836,8 @@ export type ValueTypes = {
 	planned_amount: string | Variable<any, string>,
 	/** Получатель: username пайщика; для организации — пустая строка (аккаунта в кооперативе нет). */
 	recipient: string | Variable<any, string>,
+	/** Название организации-получателя (для оплаты по счёту) — показывается в реестре расходов и в поручении кассиру. */
+	recipient_name?: string | undefined | null | Variable<any, string>,
 	/** Тип получателя. */
 	recipient_type: ValueTypes["ExpenseRecipientType"] | Variable<any, string>,
 	/** Реквизиты получателя-организации (вводятся вручную). */
@@ -7678,6 +7682,8 @@ export type ValueTypes = {
 	planned_amount: string | Variable<any, string>,
 	/** Пайщик-получатель; для организации — пустая строка */
 	recipient: string | Variable<any, string>,
+	/** Название организации-получателя (для оплаты по счёту) — показывается в реестре расходов и в поручении кассиру. */
+	recipient_name?: string | undefined | null | Variable<any, string>,
 	/** Получатель платежа: сам заявитель, другой пайщик или организация */
 	recipient_type: ValueTypes["ExpenseRecipientType"] | Variable<any, string>,
 	/** Реквизиты организации-получателя */
@@ -8720,6 +8726,8 @@ export type ValueTypes = {
 	planned_amount: string | Variable<any, string>,
 	/** Получатель: username пайщика; для организации — пустая строка (аккаунта в кооперативе нет). */
 	recipient: string | Variable<any, string>,
+	/** Название организации-получателя (для оплаты по счёту) — показывается в реестре расходов и в поручении кассиру. */
+	recipient_name?: string | undefined | null | Variable<any, string>,
 	/** Тип получателя. */
 	recipient_type: ValueTypes["ExpenseRecipientType"] | Variable<any, string>,
 	/** Реквизиты получателя-организации (вводятся вручную). */
@@ -20516,6 +20524,8 @@ export type ResolverInputTypes = {
 	planned_amount: string,
 	/** Пайщик-получатель; для организации — пустая строка. */
 	recipient: string,
+	/** Название организации-получателя (для оплаты по счёту) — показывается в реестре расходов и в поручении кассиру. */
+	recipient_name?: string | undefined | null,
 	/** Получатель платежа: сам заявитель, другой пайщик или организация. */
 	recipient_type: ResolverInputTypes["ExpenseRecipientType"],
 	/** Реквизиты организации-получателя (вводятся вручную). */
@@ -21783,6 +21793,8 @@ export type ResolverInputTypes = {
 	planned_amount: string,
 	/** Получатель: username пайщика; для организации — пустая строка (аккаунта в кооперативе нет). */
 	recipient: string,
+	/** Название организации-получателя (для оплаты по счёту) — показывается в реестре расходов и в поручении кассиру. */
+	recipient_name?: string | undefined | null,
 	/** Тип получателя. */
 	recipient_type: ResolverInputTypes["ExpenseRecipientType"],
 	/** Реквизиты получателя-организации (вводятся вручную). */
@@ -25520,6 +25532,8 @@ export type ResolverInputTypes = {
 	planned_amount: string,
 	/** Пайщик-получатель; для организации — пустая строка */
 	recipient: string,
+	/** Название организации-получателя (для оплаты по счёту) — показывается в реестре расходов и в поручении кассиру. */
+	recipient_name?: string | undefined | null,
 	/** Получатель платежа: сам заявитель, другой пайщик или организация */
 	recipient_type: ResolverInputTypes["ExpenseRecipientType"],
 	/** Реквизиты организации-получателя */
@@ -26525,6 +26539,8 @@ export type ResolverInputTypes = {
 	planned_amount: string,
 	/** Получатель: username пайщика; для организации — пустая строка (аккаунта в кооперативе нет). */
 	recipient: string,
+	/** Название организации-получателя (для оплаты по счёту) — показывается в реестре расходов и в поручении кассиру. */
+	recipient_name?: string | undefined | null,
 	/** Тип получателя. */
 	recipient_type: ResolverInputTypes["ExpenseRecipientType"],
 	/** Реквизиты получателя-организации (вводятся вручную). */
@@ -37963,6 +37979,8 @@ export type ModelTypes = {
 	planned_amount: string,
 	/** Пайщик-получатель; для организации — пустая строка. */
 	recipient: string,
+	/** Название организации-получателя (для оплаты по счёту) — показывается в реестре расходов и в поручении кассиру. */
+	recipient_name?: string | undefined | null,
 	/** Получатель платежа: сам заявитель, другой пайщик или организация. */
 	recipient_type: ModelTypes["ExpenseRecipientType"],
 	/** Реквизиты организации-получателя (вводятся вручную). */
@@ -39201,6 +39219,8 @@ export type ModelTypes = {
 	planned_amount: string,
 	/** Получатель: username пайщика; для организации — пустая строка (аккаунта в кооперативе нет). */
 	recipient: string,
+	/** Название организации-получателя (для оплаты по счёту) — показывается в реестре расходов и в поручении кассиру. */
+	recipient_name?: string | undefined | null,
 	/** Тип получателя. */
 	recipient_type: ModelTypes["ExpenseRecipientType"],
 	/** Реквизиты получателя-организации (вводятся вручную). */
@@ -42799,6 +42819,8 @@ export type ModelTypes = {
 	planned_amount: string,
 	/** Пайщик-получатель; для организации — пустая строка */
 	recipient: string,
+	/** Название организации-получателя (для оплаты по счёту) — показывается в реестре расходов и в поручении кассиру. */
+	recipient_name?: string | undefined | null,
 	/** Получатель платежа: сам заявитель, другой пайщик или организация */
 	recipient_type: ModelTypes["ExpenseRecipientType"],
 	/** Реквизиты организации-получателя */
@@ -43753,6 +43775,8 @@ export type ModelTypes = {
 	planned_amount: string,
 	/** Получатель: username пайщика; для организации — пустая строка (аккаунта в кооперативе нет). */
 	recipient: string,
+	/** Название организации-получателя (для оплаты по счёту) — показывается в реестре расходов и в поручении кассиру. */
+	recipient_name?: string | undefined | null,
 	/** Тип получателя. */
 	recipient_type: ModelTypes["ExpenseRecipientType"],
 	/** Реквизиты получателя-организации (вводятся вручную). */
@@ -55480,6 +55504,8 @@ export type GraphQLTypes = {
 	planned_amount: string,
 	/** Пайщик-получатель; для организации — пустая строка. */
 	recipient: string,
+	/** Название организации-получателя (для оплаты по счёту) — показывается в реестре расходов и в поручении кассиру. */
+	recipient_name?: string | undefined | null,
 	/** Получатель платежа: сам заявитель, другой пайщик или организация. */
 	recipient_type: GraphQLTypes["ExpenseRecipientType"],
 	/** Реквизиты организации-получателя (вводятся вручную). */
@@ -56772,6 +56798,8 @@ export type GraphQLTypes = {
 	planned_amount: string,
 	/** Получатель: username пайщика; для организации — пустая строка (аккаунта в кооперативе нет). */
 	recipient: string,
+	/** Название организации-получателя (для оплаты по счёту) — показывается в реестре расходов и в поручении кассиру. */
+	recipient_name?: string | undefined | null,
 	/** Тип получателя. */
 	recipient_type: GraphQLTypes["ExpenseRecipientType"],
 	/** Реквизиты получателя-организации (вводятся вручную). */
@@ -60616,6 +60644,8 @@ export type GraphQLTypes = {
 	planned_amount: string,
 	/** Пайщик-получатель; для организации — пустая строка */
 	recipient: string,
+	/** Название организации-получателя (для оплаты по счёту) — показывается в реестре расходов и в поручении кассиру. */
+	recipient_name?: string | undefined | null,
 	/** Получатель платежа: сам заявитель, другой пайщик или организация */
 	recipient_type: GraphQLTypes["ExpenseRecipientType"],
 	/** Реквизиты организации-получателя */
@@ -61658,6 +61688,8 @@ export type GraphQLTypes = {
 	planned_amount: string,
 	/** Получатель: username пайщика; для организации — пустая строка (аккаунта в кооперативе нет). */
 	recipient: string,
+	/** Название организации-получателя (для оплаты по счёту) — показывается в реестре расходов и в поручении кассиру. */
+	recipient_name?: string | undefined | null,
 	/** Тип получателя. */
 	recipient_type: GraphQLTypes["ExpenseRecipientType"],
 	/** Реквизиты получателя-организации (вводятся вручную). */

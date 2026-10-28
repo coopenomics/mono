@@ -57,6 +57,7 @@ export class EdubridgeExpenseService {
       paymentMethodId: item.payment_method_id,
       requisites: item.requisites,
       paymentPurpose: item.payment_purpose,
+      recipientName: item.recipient_name,
     }));
     await this.expenses.validateRequisites(coopname, requisiteItems);
 

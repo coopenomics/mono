@@ -9,6 +9,16 @@ import { PAYMENT_METHOD_PORT, type IPaymentMethodPort } from '@coopenomics/inner
 import { DomainError } from '@coopenomics/extension-kit';
 
 /**
+ * Получатель в снимке. У организации аккаунта нет (recipient пуст) — её
+ * называет введённое при подаче название; без него реестр и кассир видят
+ * прочерк. Старый клиент названия не шлёт — тогда получатель прежний.
+ */
+function snapshotRecipient(it: InnerExpenseRequisiteItemInput): string {
+  if (!it.isOrganization) return it.recipient
+  return it.recipientName?.trim() || it.recipient
+}
+
+/**
  * Снимки реквизитов получателей по строкам СЗ. Канон gateway prepareWithdraw →
  * persistWithdraw: `validate` зовётся ДО on-chain заявки (метод существует),
  * `snapshot` — ПОСЛЕ (данные метода копируются на момент создания СЗ).
@@ -108,7 +118,7 @@ export class ExpenseRequisiteSnapshotsService {
           coopname,
           proposal_hash: it.proposalHash.toLowerCase(),
           item_hash: it.itemHash.toLowerCase(),
-          recipient: it.recipient,
+          recipient: snapshotRecipient(it),
           method_id: null,
           method_type: null,
           data: null,

@@ -2,6 +2,8 @@ import type { Cooperative } from 'cooptypes';
 import { decisionFactory } from 'src/shared/lib/decision-factory';
 import { useSystemStore } from 'src/entities/System/model';
 import { useSessionStore } from 'src/entities/Session';
+import { proposalHeaderOf } from 'src/shared/lib/expenses';
+import { ExpenseProposalDecisionInfo } from 'src/shared/ui/domain/ExpenseProposalDecisionInfo';
 import { generateExpenseProposalDecisionDocument } from 'app/extensions/expenses/api';
 import { useGenerateResultContributionDecision } from '../features/Result/GenerateResultContributionDecision/model';
 import { CreateResultDecisionInfoWidget } from '../widgets/CreateResultDecisionInfoWidget';
@@ -78,5 +80,10 @@ export function registerCapitalDecisionHandlers() {
 
       return (generated as any).generateExpenseProposalDecisionDocument;
     },
+    // Сводка записки над документами вопроса: цель, сумма, срок, позиции с получателями.
+    infoComponent: ExpenseProposalDecisionInfo,
+    // Все записки называются одинаково («Служебная записка-смета о расходах»),
+    // в повестке их различает цель расходов из заявления.
+    titleDetail: (agenda) => proposalHeaderOf(agenda.table?.statement?.meta)?.description,
   });
 }

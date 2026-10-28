@@ -23,6 +23,8 @@ export interface ExpenseCreateChainItem {
   mechanics: Zeus.ExpenseMechanics;
   recipient_type: Zeus.ExpenseRecipientType;
   recipient: string;
+  /** Название организации-получателя: аккаунта у неё нет, реестр и кассир видят её по имени. */
+  recipient_name?: string;
   description: string;
   planned_amount: string;
   payment_method_id?: string;

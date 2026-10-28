@@ -661,7 +661,22 @@
       "secretSetPlaceholder": "Задано — введите новое значение, чтобы заменить",
       "urlError": "Нужна ссылка вида https://…"
     },
+    "expenseProposalDecisionInfo": {
+      "purposeLabel": "Цель расходов",
+      "totalLabel": "Сумма по смете",
+      "deadlineLabel": "Срок исполнения",
+      "fundLabel": "Списание затрат по",
+      "itemsTitle": "Позиции расхода",
+      "itemTitle": "Позиция №{number} — {description}",
+      "amountLabel": "Сумма",
+      "mechanicsLabel": "Способ оплаты",
+      "recipientLabel": "Получатель",
+      "requisitesLabel": "Реквизиты получателя",
+      "paymentPurposeLabel": "Назначение платежа"
+    },
     "expenseProposalDetails": {
+      "purposeLabel": "Цель расходов",
+      "deadlineLabel": "Срок исполнения",
       "memoNumberLabel": "№ служебной записки",
       "initiatorLabel": "Инициатор",
       "createdLabel": "Создан",

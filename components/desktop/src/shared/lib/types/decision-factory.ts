@@ -28,6 +28,12 @@ export interface IDecisionHandler {
   generateHandler: GenerateDecisionHandler
   /** Компонент для дополнительной информации (опционально) */
   infoComponent?: DecisionInfoComponent
+  /**
+   * Уточнение к названию вопроса (опционально). Название вопроса — заголовок
+   * шаблона заявления, у разных вопросов одного типа оно совпадает; уточнение
+   * встаёт в скобках и отличает вопросы друг от друга в повестке.
+   */
+  titleDetail?: (agenda: IAgenda) => string | null | undefined
 }
 
 /**
