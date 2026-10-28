@@ -2,7 +2,7 @@ import { beforeAll, describe, expect, it } from 'vitest'
 import { Cooperative } from 'cooptypes'
 import type { IGeneratedDocument } from '../src'
 import { testDocumentGeneration } from './utils/testDocument'
-import { generator, mongoUri } from './utils'
+import { generator, testStorage } from './utils'
 
 /**
  * Договор УХД преподавателя по ЦПП «Образование». Совет утверждает его в бланке
@@ -37,7 +37,7 @@ async function blank(): Promise<{ html: string }> {
 
 describe('договор УХД преподавателя по ЦПП «Образование»', async () => {
   beforeAll(async () => {
-    await generator.connect(mongoUri)
+    await generator.connect(testStorage())
     await generator.update('vars', { coopname: 'voskhod' }, { education_contract_template: PROTOCOL })
     for (const [key, value] of [
       [Cooperative.Model.UdataKey.EDUCATION_CONTRACT_NUMBER, CONTRACT_NUMBER],

@@ -1,7 +1,6 @@
 import { Catch, HttpException, HttpStatus, ExecutionContext } from '@nestjs/common';
 import { GqlExceptionFilter, GqlExecutionContext } from '@nestjs/graphql';
 import { GraphQLError } from 'graphql';
-import mongoose from 'mongoose';
 import { RpcError } from 'eosjs';
 import { postgresErrorCode, PG_INVALID_TEXT_REPRESENTATION } from '~/infrastructure/database/postgres-error';
 import { AuthV2Error, authV2HttpStatus } from '~/domain/auth-v2/errors/auth-v2.error';
@@ -166,9 +165,6 @@ export class GraphQLExceptionFilter implements GqlExceptionFilter {
       // 25.09.2026 уходил ответом 500 (C28-80).
       statusCode = authV2HttpStatus(exception.code);
       errorCode = exception.code;
-      message = exception.message;
-    } else if (exception instanceof mongoose.Error) {
-      statusCode = HttpStatus.BAD_REQUEST;
       message = exception.message;
     } else if (exception instanceof Error) {
       message = exception.message;

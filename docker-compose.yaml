@@ -18,19 +18,6 @@ services:
       /bin/bash -c "/usr/local/bin/nodeos -d /mnt/dev/data --config-dir /mnt/dev/config --genesis-json /mnt/dev/config/genesis.json"
     restart: unless-stopped
 
-  mongo:
-    image: mongo:latest
-    restart: always
-    volumes:
-      - mongo_data:/data/db
-    ports:
-      - "127.0.0.1:${MONGO_HOST_PORT:-27017}:27017"
-    # Локально гоняем mongo как standalone. Раньше был --replSet rs0 + rs.initiate
-    # в entrypoint, но проект не использует transactions / change streams /
-    # readConcern:'majority' — replica-set не нужен. Бонус: rs.initiate race
-    # на arm64 (sleep 5 не успевал, см. инцидент 2026-05-23) уходит.
-    command: ["mongod", "--bind_ip_all"]
-
   monoredis:
     image: redis:latest
     restart: always
@@ -333,7 +320,6 @@ secrets:
     file: ./infra/coopid/secrets/coop_vault_key
 
 volumes:
-  mongo_data:
   postgres_data:
   minio_data:
   orchestrator_frontend_cache:

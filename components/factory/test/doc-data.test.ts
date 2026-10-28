@@ -1,17 +1,17 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { MongoFactoryStorage } from '../src/Storage'
+import type { PostgresFactoryStorage } from '../src/Storage'
 import { DocDataService } from '../src/Services/DocData'
-import { generator, mongoUri } from './utils'
+import { generator, testStorage } from './utils'
 
 describe('DocDataService — приватные данные документов', () => {
-  let storage: MongoFactoryStorage
+  let storage: PostgresFactoryStorage
   let service: DocDataService
 
   beforeAll(async () => {
-    storage = new MongoFactoryStorage(mongoUri)
+    storage = testStorage()
     await storage.connect()
     service = new DocDataService(storage)
-    await storage.collection('doc_private_data').deleteMany({})
+    await storage.db.deleteFrom('factory_doc_private_data').execute()
   })
 
   afterAll(async () => {
@@ -40,8 +40,8 @@ describe('DocDataService — приватные данные документо�
     const r2 = await service.save(payload, 1102)
     expect(r1.hash).toEqual(r2.hash)
 
-    const count = await storage.collection('doc_private_data').countDocuments({ hash: r1.hash })
-    expect(count).toBe(1)
+    const rows = await storage.db.selectFrom('factory_doc_private_data').select('hash').where('hash', '=', r1.hash).execute()
+    expect(rows.length).toBe(1)
   })
 
   it('save стабилен по порядку ключей: {a,b} и {b,a} → один и тот же hash', async () => {
@@ -52,14 +52,14 @@ describe('DocDataService — приватные данные документо�
 
   it('get → null если запись удалена (graceful degradation)', async () => {
     const { hash } = await service.save({ tmp: 'будет удалён' }, 1102)
-    await storage.collection('doc_private_data').deleteOne({ hash })
+    await storage.db.deleteFrom('factory_doc_private_data').where('hash', '=', hash).execute()
 
     const restored = await service.get(hash)
     expect(restored).toBeNull()
   })
 
   it('Generator-фасад: saveDocData / getDocData делегируются', async () => {
-    await generator.connect(mongoUri)
+    await generator.connect(testStorage())
     try {
       const payload = { signer_full_name: 'Петров Пётр Петрович' }
       const { hash } = await generator.saveDocData(payload, 1102)

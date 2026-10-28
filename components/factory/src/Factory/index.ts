@@ -65,7 +65,7 @@ export abstract class DocFactory<T extends IGenerate> {
   /**
    * Параллельно резолвит ВЗАИМНО НЕЗАВИСИМЫЕ источники данных документа.
    *
-   * Локальные чтения (mongo: getUser/getCooperative/getProject/getVars) дёшевы,
+   * Локальные чтения (хранилище: getUser/getCooperative/getProject/getVars) дёшевы,
    * но сетевые (getTemplate → explorer get-tables ×2, getMeta → getCurrentBlock
    * → get_info) шли строго последовательно и складывались в заметную задержку
    * сборки. Здесь они стартуют разом через Promise.all.

@@ -58,7 +58,6 @@
     "json-schema": "^0.4.0",
     "kysely": "0.28.17",
     "moment-timezone": "^0.5.45",
-    "mongodb": "^7.1.0",
     "nunjucks": "^3.2.4",
     "pdf-lib": "^1.17.1",
     "pg": "^8.16.3",

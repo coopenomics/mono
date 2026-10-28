@@ -2,11 +2,11 @@ import { beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { Cooperative } from 'cooptypes'
 import { Generator } from '../src'
 import type { IGenerate, IGeneratedDocument } from '../src/Interfaces/Documents'
-import { coopname, deleteAllFiles, generator, mongoUri } from './utils'
+import { coopname, deleteAllFiles, generator, testStorage } from './utils'
 import { testDocumentGeneration } from './utils/testDocument'
 
 beforeAll(async () => {
-  await generator.connect(mongoUri)
+  await generator.connect(testStorage())
 })
 
 beforeEach(async () => {

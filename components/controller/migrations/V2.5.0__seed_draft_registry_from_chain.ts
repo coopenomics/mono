@@ -1,6 +1,4 @@
 import type { DataSource } from '../src/infrastructure/database/postgres/postgres-connection';
-import mongoose from 'mongoose';
-import config from '~/config/config';
 
 type MigrationLogger = {
   info: (message: string) => void;
@@ -20,9 +18,6 @@ interface ChainTranslation {
   lang: string;
   [key: string]: unknown;
 }
-
-/** База, куда писал парсер прежней версии. */
-const PARSER_DB = process.env.PARSER_MONGO_DB || '!parser';
 
 /**
  * Блок, которым помечается состояние, взятое из цепи в обход истории.
@@ -72,12 +67,9 @@ export default {
         return true;
       }
 
-      const fromHistory = await seedFromParserMongo(dataSource, logger);
-      if (fromHistory > 0) {
-        logger.info(`Реестр восстановлен из истории парсера: ${fromHistory} версий`);
-        return true;
-      }
-
+      // Источник «история прежнего парсера в MongoDB» снят вместе с MongoDB
+      // (фабрика v2, 10.2026): все живые узлы миграцию уже прошли, новые
+      // узлы этой истории не имеют.
       return await seedFromChain(dataSource, logger);
     } catch (error: any) {
       logger.error(`Ошибка заполнения реестра шаблонов: ${error?.message}`);
@@ -134,77 +126,6 @@ async function ensureRegistryTables(dataSource: DataSource): Promise<void> {
   await dataSource.query(
     'CREATE INDEX IF NOT EXISTS "IDX_b2c91a60be5f9567b9559fcda9" ON draft_translations (draft_id, lang, block_num)'
   );
-}
-
-/**
- * Переносит историю реестра из mongo прежнего парсера — с её номерами блоков.
- * Возвращает количество перенесённых версий; ноль означает «истории нет».
- */
-async function seedFromParserMongo(dataSource: DataSource, logger: MigrationLogger): Promise<number> {
-  let mongo: mongoose.Connection | null = null;
-
-  try {
-    mongo = await mongoose.createConnection(config.mongoose.url).asPromise();
-    const db = mongo.useDb(PARSER_DB).db;
-    if (!db) return 0;
-
-    const collections = await db.listCollections({}, { nameOnly: true }).toArray();
-    if (!collections.some((c: { name: string }) => c.name === 'deltas')) {
-      logger.info(`База ${PARSER_DB} без коллекции дельт — истории реестра нет`);
-      return 0;
-    }
-
-    let migrated = 0;
-
-    const templates = db.collection('deltas').find({ code: 'draft', table: 'drafts' });
-    for await (const delta of templates) {
-      const registryId = (delta as any)?.value?.registry_id;
-      if (registryId === undefined || registryId === null) continue;
-
-      await dataSource.query(
-        `INSERT INTO draft_templates (registry_id, block_num, value, present)
-         VALUES ($1::bigint, $2::bigint, $3::jsonb, $4::boolean)
-         ON CONFLICT (registry_id, block_num) DO UPDATE SET value = EXCLUDED.value, present = EXCLUDED.present`,
-        [
-          String(registryId),
-          Number((delta as any).block_num ?? BACKFILL_BLOCK),
-          JSON.stringify((delta as any).value),
-          (delta as any).present !== false,
-        ]
-      );
-      migrated++;
-    }
-
-    const translations = db.collection('deltas').find({ code: 'draft', table: 'translations' });
-    for await (const delta of translations) {
-      const draftId = (delta as any)?.value?.draft_id;
-      const lang = (delta as any)?.value?.lang;
-      if (draftId === undefined || draftId === null || !lang) continue;
-
-      await dataSource.query(
-        `INSERT INTO draft_translations (draft_id, lang, block_num, value, present)
-         VALUES ($1::bigint, $2::varchar, $3::bigint, $4::jsonb, $5::boolean)
-         ON CONFLICT (draft_id, lang, block_num) DO UPDATE SET value = EXCLUDED.value, present = EXCLUDED.present`,
-        [
-          String(draftId),
-          String(lang),
-          Number((delta as any).block_num ?? BACKFILL_BLOCK),
-          JSON.stringify((delta as any).value),
-          (delta as any).present !== false,
-        ]
-      );
-      migrated++;
-    }
-
-    return migrated;
-  } catch (error: any) {
-    // Недоступная база прежнего парсера — не повод валить деплой: ниже сработает
-    // заполнение из цепи.
-    logger.warn(`История реестра из ${PARSER_DB} недоступна (${error?.message}) — беру состояние из цепи`);
-    return 0;
-  } finally {
-    if (mongo) await mongo.close();
-  }
 }
 
 /** Резервный путь: актуальное состояние цепи, помеченное первым блоком. */

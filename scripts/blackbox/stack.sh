@@ -69,8 +69,6 @@ NODE_HTTP_PORT=${CHAIN_PORT}
 COOPBACK_HOST_PORT=${API_PORT}
 CHAIN_URL=http://127.0.0.1:${CHAIN_PORT}
 API_URL=http://127.0.0.1:${API_PORT}/v1/graphql
-MONGODB_URL=mongodb://127.0.0.1:27017/?directConnection=true
-MONGO_URI=mongodb://127.0.0.1:27017/cooperative-x?directConnection=true
 POSTGRES_HOST=127.0.0.1
 POSTGRES_PORT=5532
 POSTGRES_USERNAME=postgres
@@ -96,7 +94,6 @@ EOF
   local ctl_env=components/controller/.env
   cp components/controller/.env-example "$ctl_env"
   set_env "$ctl_env" BACKEND_URL "http://127.0.0.1:${API_PORT}"
-  set_env "$ctl_env" MONGODB_URL "mongodb://mongo:27017/cooperative-x"
   set_env "$ctl_env" BLOCKCHAIN_RPC "http://node:8888"
   set_env "$ctl_env" REDIS_HOST monoredis
   set_env "$ctl_env" POSTGRES_HOST postgres
@@ -355,7 +352,7 @@ cmd_collect() {
   mkdir -p "$OUT/logs"
   docker compose ps -a > "$OUT/logs/ps.txt" 2>&1 || true
   local svc
-  for svc in node parser2 coopback postgres mongo monoredis minio mailpit stub authentik-server authentik-worker desktop nginx; do
+  for svc in node parser2 coopback postgres monoredis minio mailpit stub authentik-server authentik-worker desktop nginx; do
     docker compose logs --no-color --timestamps "$svc" > "$OUT/logs/$svc.log" 2>&1 || true
   done
   docker stats --no-stream > "$OUT/logs/stats.txt" 2>&1 || true

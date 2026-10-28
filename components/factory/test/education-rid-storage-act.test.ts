@@ -2,7 +2,7 @@ import { beforeAll, describe, expect, it } from 'vitest'
 import { Cooperative } from 'cooptypes'
 import type { IGeneratedDocument } from '../src'
 import { testDocumentGeneration } from './utils/testDocument'
-import { generator, mongoUri } from './utils'
+import { generator, testStorage } from './utils'
 
 /**
  * Акт передачи материалов занятия на ответственное хранение (3012) — приложение
@@ -37,7 +37,7 @@ async function generate(data: Record<string, unknown> = {}): Promise<IGeneratedD
 
 describe('Акт передачи материалов занятия на ответственное хранение', async () => {
   beforeAll(async () => {
-    await generator.connect(mongoUri)
+    await generator.connect(testStorage())
     for (const [key, value] of [
       [Cooperative.Model.UdataKey.EDUCATION_CONTRACT_NUMBER, 'УХД-0007'],
       [Cooperative.Model.UdataKey.EDUCATION_CONTRACT_CREATED_AT, '15.09.2026'],

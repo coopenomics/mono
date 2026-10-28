@@ -2,12 +2,26 @@ import path from 'node:path'
 import type { RegistratorContract, SovietContract } from 'cooptypes'
 import { Generator, Registry } from '../../src'
 import type { ExternalEntrepreneurData, ExternalIndividualData, ExternalOrganizationData, IVars, PaymentData } from '../../src/Models'
-import { MongoFactoryStorage } from '../../src/Storage'
+import { PostgresFactoryStorage } from '../../src/Storage'
+import { chainFixtures, findFixtures, resetChainFixtures } from '../../src/Utils/mocks/store'
 import { TestChainDataSource } from './chain-data-source'
 // eslint-disable-next-line ts/no-require-imports
 const fs = require('node:fs').promises
 
-export const mongoUri = process.env.MONGO_URI || `mongodb://${process.env.MONGO_HOST || '127.0.0.1'}:27017/cooperative-x`
+/**
+ * Хранилище набора — PostgreSQL (в CI сервис workflow на 127.0.0.1:5432).
+ * Каждый вызов — своё соединение: `generator.disconnect()` в конце файла
+ * закрывает пул, следующий файл подключается заново.
+ */
+export function testStorage(): PostgresFactoryStorage {
+  return new PostgresFactoryStorage({
+    host: process.env.POSTGRES_HOST || '127.0.0.1',
+    port: Number(process.env.POSTGRES_PORT || '5432'),
+    user: process.env.POSTGRES_USERNAME || 'postgres',
+    password: process.env.POSTGRES_PASSWORD || 'postgres',
+    database: process.env.POSTGRES_DATABASE || 'postgres',
+  })
+}
 export const coopname = 'voskhod'
 
 export const generator = new Generator(new TestChainDataSource())
@@ -33,44 +47,19 @@ export async function deleteAllFiles(folderPath: string) {
   }
 }
 
-export async function preLoading() {
-  await deleteAllFiles('./documents')
-
-  const storage = new MongoFactoryStorage(mongoUri)
-  await storage.connect()
-
-  const collectionsToClear = [
-    'vars',
-    'paymentMethods',
-    'individuals',
-    'organizations',
-    'entrepreneurs',
-    'projects',
-    'udatas',
-    'deltas',
-    'actions',
-    'doc_private_data',
-  ]
-
-  for (const collectionName of collectionsToClear) {
-    const collection = storage.collection(collectionName)
-    await collection.deleteMany({})
-  }
-
-  const deltas = storage.collection('deltas')
-  const actions = storage.collection('actions')
-
-  const draft = await deltas.findOne({ code: 'draft', scope: 'draft', table: 'drafts' })
-  const translation = await deltas.findOne({ code: 'draft', scope: 'draft', table: 'translation' })
-
-  // устанавливаем только если нет
-  if (draft && translation)
-    return
+/**
+ * Фикстуры цепи (строки таблиц и действия) — в памяти процесса, по файлу
+ * набора: `test/setup-file.ts` зовёт перед каждым файлом. Состав и порядок
+ * те же, что прежде лежали в MongoDB набора, включая повторы голосов по
+ * каждой записи реестра: эталоны собраны на этом наборе.
+ */
+export function seedChainFixtures(): void {
+  resetChainFixtures()
 
   let i = 0
   for (const [key, value] of Object.entries(Registry)) {
     i++
-    await deltas.insertOne({
+    chainFixtures.deltas.push({
       block_num: 0,
       present: true,
       code: 'draft',
@@ -89,7 +78,7 @@ export async function preLoading() {
       },
     })
 
-    await deltas.insertOne({
+    chainFixtures.deltas.push({
       block_num: 0,
       present: true,
       code: 'draft',
@@ -104,12 +93,12 @@ export async function preLoading() {
       },
     })
 
-    const cooperative_is_exist = await deltas.findOne({
+    const cooperative_is_exist = findFixtures(chainFixtures.deltas, {
       'block_num': 0,
       'value.username': 'voskhod',
-    })
+    })[0]
 
-    await actions.insertOne({
+    chainFixtures.actions.push({
       block_num: 0,
       account: 'soviet',
       name: 'votefor',
@@ -126,7 +115,7 @@ export async function preLoading() {
       } as SovietContract.Actions.Decisions.VoteFor.IVoteForDecision,
     })
 
-    await actions.insertOne({
+    chainFixtures.actions.push({
       block_num: 0,
       account: 'soviet',
       name: 'votefor',
@@ -143,7 +132,7 @@ export async function preLoading() {
       } as SovietContract.Actions.Decisions.VoteFor.IVoteForDecision,
     })
 
-    await actions.insertOne({
+    chainFixtures.actions.push({
       block_num: 0,
       account: 'soviet',
       name: 'votefor',
@@ -160,7 +149,7 @@ export async function preLoading() {
       } as SovietContract.Actions.Decisions.VoteFor.IVoteForDecision,
     })
 
-    await actions.insertOne({
+    chainFixtures.actions.push({
       block_num: 0,
       account: 'soviet',
       name: 'votefor',
@@ -177,7 +166,7 @@ export async function preLoading() {
       } as SovietContract.Actions.Decisions.VoteFor.IVoteForDecision,
     })
 
-    await actions.insertOne({
+    chainFixtures.actions.push({
       block_num: 0,
       account: 'soviet',
       name: 'votefor',
@@ -195,7 +184,7 @@ export async function preLoading() {
     })
 
     if (!cooperative_is_exist) {
-      await deltas.insertOne({
+      chainFixtures.deltas.push({
         block_num: 0,
         present: true,
         code: 'registrator',
@@ -219,7 +208,7 @@ export async function preLoading() {
         } as RegistratorContract.Tables.Cooperatives.ICooperative,
       })
 
-      await deltas.insertOne({
+      chainFixtures.deltas.push({
         block_num: 0,
         present: true,
         code: 'soviet',
@@ -246,6 +235,238 @@ export async function preLoading() {
       })
     }
   }
+
+  // Добавляем данные для тестирования собраний
+  const testMeetHash = ('test_meet_hash_12345').toUpperCase()
+  const testMeetId = '1'
+
+  // Добавляем данные собрания в таблицу meets
+  chainFixtures.deltas.push({
+    block_num: 0,
+    present: true,
+    code: 'meet',
+    scope: 'voskhod',
+    table: 'meets',
+    primary_key: testMeetId,
+    value: {
+      id: testMeetId,
+      hash: testMeetHash,
+      coopname: 'voskhod',
+      type: 'regular',
+      initiator: 'individual',
+      presider: 'individual',
+      secretary: 'ant',
+      status: 'active',
+      created_at: '2024-12-15T00:00:00.000',
+      open_at: '2024-12-20T10:00:00.000',
+      close_at: '2024-12-21T18:00:00.000',
+      quorum_percent: 51,
+      signed_ballots: '0',
+      current_quorum_percent: '0',
+      cycle: '1',
+      quorum_passed: false,
+      proposal: {
+        version: '1.0.0',
+        hash: 'proposal_hash',
+        doc_hash: 'doc_hash',
+        meta_hash: 'meta_hash',
+        meta: '{}',
+        signatures: [],
+      },
+      authorization: {
+        version: '1.0.0',
+        hash: 'auth_hash',
+        doc_hash: 'auth_doc_hash',
+        meta_hash: 'auth_meta_hash',
+        meta: '{}',
+        signatures: [],
+      },
+      decision1: {
+        version: '1.0.0',
+        hash: 'decision1_hash',
+        doc_hash: 'decision1_doc_hash',
+        meta_hash: 'decision1_meta_hash',
+        meta: '{}',
+        signatures: [],
+      },
+      decision2: {
+        version: '1.0.0',
+        hash: 'decision2_hash',
+        doc_hash: 'decision2_doc_hash',
+        meta_hash: 'decision2_meta_hash',
+        meta: '{}',
+        signatures: [],
+      },
+    },
+  })
+
+  // Добавляем вопросы собрания в таблицу questions
+  chainFixtures.deltas.push({
+    block_num: 0,
+    present: true,
+    code: 'meet',
+    scope: 'voskhod',
+    table: 'questions',
+    primary_key: '1',
+    value: {
+      id: '1',
+      number: '1',
+      coopname: 'voskhod',
+      meet_id: testMeetId,
+      title: 'Утверждение годового отчёта',
+      context: 'О деятельности кооператива за 2024 год',
+      decision: 'Утвердить годовой отчёт кооператива за 2024 год',
+      counter_votes_for: '0',
+      counter_votes_against: '1',
+      counter_votes_abstained: '0',
+      voters_for: [],
+      voters_against: ['individual'],
+      voters_abstained: [],
+    },
+  })
+
+  chainFixtures.deltas.push({
+    block_num: 0,
+    present: true,
+    code: 'meet',
+    scope: 'voskhod',
+    table: 'questions',
+    primary_key: '2',
+    value: {
+      id: '2',
+      number: '2',
+      coopname: 'voskhod',
+      meet_id: testMeetId,
+      title: 'Избрание совета кооператива',
+      context: '',
+      decision: 'Избрать новый состав совета кооператива',
+      counter_votes_for: '1',
+      counter_votes_against: '0',
+      counter_votes_abstained: '0',
+      voters_for: ['individual'],
+      voters_against: [],
+      voters_abstained: [],
+    },
+  })
+
+  // Добавляем данные решения совета в таблицу decisions для тестирования документов 301 и 304
+  chainFixtures.deltas.push({
+    block_num: 0,
+    present: true,
+    code: 'soviet',
+    scope: 'voskhod',
+    table: 'decisions',
+    primary_key: '1',
+    value: {
+      id: '1',
+      coopname: 'voskhod',
+      type: 'general_meeting',
+      title: 'О созыве очередного общего собрания пайщиков',
+      description: 'Решение о созыве очередного общего собрания пайщиков кооператива ВОСХОД',
+      statement: {
+        version: '1.0.0',
+        hash: 'statement_hash',
+        doc_hash: 'statement_doc_hash',
+        meta_hash: 'statement_meta_hash',
+        meta: '{}',
+        signatures: [],
+      },
+      decision: {
+        version: '1.0.0',
+        hash: 'decision_hash',
+        doc_hash: 'decision_doc_hash',
+        meta_hash: 'decision_meta_hash',
+        meta: '{}',
+        signatures: [],
+      },
+      batch_id: '0',
+      expiration: '2024-12-31T23:59:59.000',
+      created_at: '2024-12-15T00:00:00.000',
+      created_by: 'ant',
+      question_type: 'general_meeting',
+      status: 'active',
+    },
+  })
+
+  // Добавляем authorize actions для decisions (нужны для meet 301, market актов)
+  for (const decId of ['1', '2', '5']) {
+    chainFixtures.actions.push({
+      block_num: 0,
+      account: 'soviet',
+      name: 'authorize',
+      receiver: 'soviet',
+      data: {
+        coopname: 'voskhod',
+        decision_id: decId,
+        chairman: 'ant',
+        document: {
+          version: '1.0.0',
+          hash: `DECISION_${decId}_AUTH_HASH`,
+          doc_hash: `DECISION_${decId}_AUTH_DOC_HASH`,
+          meta_hash: `DECISION_${decId}_AUTH_META_HASH`,
+          meta: JSON.stringify({
+            title: `Протокол решения совета №${decId}`,
+            registry_id: 301,
+            lang: 'ru',
+            generator: 'coopjs',
+            version: '2025.1.1',
+            coopname: 'voskhod',
+            username: 'ant',
+            created_at: '15.12.2024 12:00',
+            block_num: 0,
+            timezone: 'Europe/Moscow',
+            links: [],
+          }),
+          signatures: [{
+            id: 1,
+            signed_hash: `DECISION_${decId}_SIGNED_HASH`,
+            signer: 'ant',
+            public_key: 'PUB_K1_6MRyAjQq8ud7hVNYcfnVPJqcVpscN5So8BhtHuGYqET5BoDq63',
+            signature: 'SIG_K1_test_signature',
+            signed_at: '2024-12-15T12:00:00.000',
+            meta: '{}',
+          }],
+        },
+      },
+    })
+  }
+
+  // Добавляем decision с accepted статусом для тестов 301/акты
+  chainFixtures.deltas.push({
+    block_num: 0,
+    present: true,
+    code: 'soviet',
+    scope: 'voskhod',
+    table: 'decisions',
+    primary_key: '2',
+    value: {
+      id: '2',
+      coopname: 'voskhod',
+      type: 'general_meeting',
+      title: 'О созыве внеочередного общего собрания пайщиков',
+      description: '',
+      statement: { version: '1.0.0', hash: 'h', doc_hash: 'dh', meta_hash: 'mh', meta: '{}', signatures: [] },
+      decision: { version: '1.0.0', hash: 'h2', doc_hash: 'dh2', meta_hash: 'mh2', meta: '{}', signatures: [] },
+      batch_id: '0',
+      expiration: '2026-12-31T23:59:59.000',
+      created_at: '2024-12-15T00:00:00.000',
+      created_by: 'ant',
+      question_type: 'general_meeting',
+      status: 'accepted',
+    },
+  })
+}
+
+export async function preLoading() {
+  await deleteAllFiles('./documents')
+
+  // Записи и приватные данные — с чистого листа; собранные документы и
+  // подписи остаются, как и прежде.
+  const storage = testStorage()
+  await storage.db.deleteFrom('factory_records')
+    .where('collection', 'in', ['vars', 'paymentMethods', 'individuals', 'organizations', 'entrepreneurs', 'projects', 'udatas'])
+    .execute()
+  await storage.db.deleteFrom('factory_doc_private_data').execute()
 
   const vars: IVars = {
     coopname: 'voskhod',
@@ -526,230 +747,9 @@ export async function preLoading() {
 
   await generator.save('paymentMethod', paymentData4)
 
-  // Добавляем данные для тестирования собраний
-  const testMeetHash = ('test_meet_hash_12345').toUpperCase()
-  const testMeetId = '1'
-
-  // Добавляем данные собрания в таблицу meets
-  await deltas.insertOne({
-    block_num: 0,
-    present: true,
-    code: 'meet',
-    scope: 'voskhod',
-    table: 'meets',
-    primary_key: testMeetId,
-    value: {
-      id: testMeetId,
-      hash: testMeetHash,
-      coopname: 'voskhod',
-      type: 'regular',
-      initiator: 'individual',
-      presider: 'individual',
-      secretary: 'ant',
-      status: 'active',
-      created_at: '2024-12-15T00:00:00.000',
-      open_at: '2024-12-20T10:00:00.000',
-      close_at: '2024-12-21T18:00:00.000',
-      quorum_percent: 51,
-      signed_ballots: '0',
-      current_quorum_percent: '0',
-      cycle: '1',
-      quorum_passed: false,
-      proposal: {
-        version: '1.0.0',
-        hash: 'proposal_hash',
-        doc_hash: 'doc_hash',
-        meta_hash: 'meta_hash',
-        meta: '{}',
-        signatures: [],
-      },
-      authorization: {
-        version: '1.0.0',
-        hash: 'auth_hash',
-        doc_hash: 'auth_doc_hash',
-        meta_hash: 'auth_meta_hash',
-        meta: '{}',
-        signatures: [],
-      },
-      decision1: {
-        version: '1.0.0',
-        hash: 'decision1_hash',
-        doc_hash: 'decision1_doc_hash',
-        meta_hash: 'decision1_meta_hash',
-        meta: '{}',
-        signatures: [],
-      },
-      decision2: {
-        version: '1.0.0',
-        hash: 'decision2_hash',
-        doc_hash: 'decision2_doc_hash',
-        meta_hash: 'decision2_meta_hash',
-        meta: '{}',
-        signatures: [],
-      },
-    },
-  })
-
-  // Добавляем вопросы собрания в таблицу questions
-  await deltas.insertOne({
-    block_num: 0,
-    present: true,
-    code: 'meet',
-    scope: 'voskhod',
-    table: 'questions',
-    primary_key: '1',
-    value: {
-      id: '1',
-      number: '1',
-      coopname: 'voskhod',
-      meet_id: testMeetId,
-      title: 'Утверждение годового отчёта',
-      context: 'О деятельности кооператива за 2024 год',
-      decision: 'Утвердить годовой отчёт кооператива за 2024 год',
-      counter_votes_for: '0',
-      counter_votes_against: '1',
-      counter_votes_abstained: '0',
-      voters_for: [],
-      voters_against: ['individual'],
-      voters_abstained: [],
-    },
-  })
-
-  await deltas.insertOne({
-    block_num: 0,
-    present: true,
-    code: 'meet',
-    scope: 'voskhod',
-    table: 'questions',
-    primary_key: '2',
-    value: {
-      id: '2',
-      number: '2',
-      coopname: 'voskhod',
-      meet_id: testMeetId,
-      title: 'Избрание совета кооператива',
-      context: '',
-      decision: 'Избрать новый состав совета кооператива',
-      counter_votes_for: '1',
-      counter_votes_against: '0',
-      counter_votes_abstained: '0',
-      voters_for: ['individual'],
-      voters_against: [],
-      voters_abstained: [],
-    },
-  })
-
-  // Добавляем данные решения совета в таблицу decisions для тестирования документов 301 и 304
-  await deltas.insertOne({
-    block_num: 0,
-    present: true,
-    code: 'soviet',
-    scope: 'voskhod',
-    table: 'decisions',
-    primary_key: '1',
-    value: {
-      id: '1',
-      coopname: 'voskhod',
-      type: 'general_meeting',
-      title: 'О созыве очередного общего собрания пайщиков',
-      description: 'Решение о созыве очередного общего собрания пайщиков кооператива ВОСХОД',
-      statement: {
-        version: '1.0.0',
-        hash: 'statement_hash',
-        doc_hash: 'statement_doc_hash',
-        meta_hash: 'statement_meta_hash',
-        meta: '{}',
-        signatures: [],
-      },
-      decision: {
-        version: '1.0.0',
-        hash: 'decision_hash',
-        doc_hash: 'decision_doc_hash',
-        meta_hash: 'decision_meta_hash',
-        meta: '{}',
-        signatures: [],
-      },
-      batch_id: '0',
-      expiration: '2024-12-31T23:59:59.000',
-      created_at: '2024-12-15T00:00:00.000',
-      created_by: 'ant',
-      question_type: 'general_meeting',
-      status: 'active',
-    },
-  })
-
-  // Добавляем authorize actions для decisions (нужны для meet 301, market актов)
-  for (const decId of ['1', '2', '5']) {
-    await actions.insertOne({
-      block_num: 0,
-      account: 'soviet',
-      name: 'authorize',
-      receiver: 'soviet',
-      data: {
-        coopname: 'voskhod',
-        decision_id: decId,
-        chairman: 'ant',
-        document: {
-          version: '1.0.0',
-          hash: `DECISION_${decId}_AUTH_HASH`,
-          doc_hash: `DECISION_${decId}_AUTH_DOC_HASH`,
-          meta_hash: `DECISION_${decId}_AUTH_META_HASH`,
-          meta: JSON.stringify({
-            title: `Протокол решения совета №${decId}`,
-            registry_id: 301,
-            lang: 'ru',
-            generator: 'coopjs',
-            version: '2025.1.1',
-            coopname: 'voskhod',
-            username: 'ant',
-            created_at: '15.12.2024 12:00',
-            block_num: 0,
-            timezone: 'Europe/Moscow',
-            links: [],
-          }),
-          signatures: [{
-            id: 1,
-            signed_hash: `DECISION_${decId}_SIGNED_HASH`,
-            signer: 'ant',
-            public_key: 'PUB_K1_6MRyAjQq8ud7hVNYcfnVPJqcVpscN5So8BhtHuGYqET5BoDq63',
-            signature: 'SIG_K1_test_signature',
-            signed_at: '2024-12-15T12:00:00.000',
-            meta: '{}',
-          }],
-        },
-      },
-    })
-  }
-
-  // Добавляем decision с accepted статусом для тестов 301/акты
-  await deltas.insertOne({
-    block_num: 0,
-    present: true,
-    code: 'soviet',
-    scope: 'voskhod',
-    table: 'decisions',
-    primary_key: '2',
-    value: {
-      id: '2',
-      coopname: 'voskhod',
-      type: 'general_meeting',
-      title: 'О созыве внеочередного общего собрания пайщиков',
-      description: '',
-      statement: { version: '1.0.0', hash: 'h', doc_hash: 'dh', meta_hash: 'mh', meta: '{}', signatures: [] },
-      decision: { version: '1.0.0', hash: 'h2', doc_hash: 'dh2', meta_hash: 'mh2', meta: '{}', signatures: [] },
-      batch_id: '0',
-      expiration: '2026-12-31T23:59:59.000',
-      created_at: '2024-12-15T00:00:00.000',
-      created_by: 'ant',
-      question_type: 'general_meeting',
-      status: 'accepted',
-    },
-  })
-
   // Добавляем signatures для тестов заявлений на вступление (100)
-  const signatures = storage.collection('signatures')
   for (const username of ['ant', 'individual', 'entrepreneur', 'exampleorg']) {
-    await signatures.insertOne({
+    await storage.insert('signatures', {
       username,
       block_num: 0,
       signature: 'SIG_K1_test_signature_placeholder',
@@ -768,9 +768,8 @@ export async function preLoading() {
     { key: 'blagorost_storage_agreement_created_at', value: '2024-06-15T10:00:00.000Z' },
   ]
 
-  const udatas = storage.collection('udatas')
   for (const rec of udataRecords) {
-    await udatas.insertOne({
+    await storage.insert('udatas', {
       coopname: 'voskhod',
       username: 'ant',
       key: rec.key,

@@ -1,20 +1,18 @@
-import { MongoFactoryStorage } from '../src/Storage'
+import type { PostgresFactoryStorage } from '../src/Storage'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { Cooperative } from 'cooptypes'
 import { Generator } from '../src'
-import { coopname, generator, mongoUri } from './utils'
+import { coopname, generator, testStorage } from './utils'
 
 beforeAll(async () => {
-  await generator.connect(mongoUri)
+  await generator.connect(testStorage())
 })
 
 beforeEach(async () => {
-  // Очистка коллекции udatas перед каждым тестом
-  const storage = generator.storage as MongoFactoryStorage
-  if (storage) {
-    const collection = storage.collection('udatas')
-    await collection.deleteMany({})
-  }
+  // Очистка записей udata перед каждым тестом
+  const storage = generator.storage as PostgresFactoryStorage
+  if (storage)
+    await storage.db.deleteFrom('factory_records').where('collection', '=', 'udatas').execute()
 })
 
 describe('тест модели пользовательских данных (udata)', () => {
@@ -164,11 +162,9 @@ describe('тест модели пользовательских данных (u
   })
 
   it('тестирование версионности данных по блокам', async () => {
-    const storage = generator.storage as MongoFactoryStorage
+    const storage = generator.storage as PostgresFactoryStorage
     if (!storage)
       throw new Error('Storage not connected')
-
-    const collection = storage.collection('udatas')
 
     const baseUdata = {
       coopname: 'voskhod',
@@ -177,8 +173,7 @@ describe('тест модели пользовательских данных (u
       deleted: false,
     }
 
-    const saved1 = await collection.insertOne({
-      _created_at: new Date(),
+    const saved1 = await storage.insert('udatas', {
       ...baseUdata,
       value: 'version 1',
       metadata: { version: 1 },
@@ -186,8 +181,7 @@ describe('тест модели пользовательских данных (u
     })
     expect(saved1.insertedId).toBeDefined()
 
-    const saved2 = await collection.insertOne({
-      _created_at: new Date(),
+    const saved2 = await storage.insert('udatas', {
       ...baseUdata,
       value: 'version 2',
       metadata: { version: 2 },
@@ -196,8 +190,7 @@ describe('тест модели пользовательских данных (u
     expect(saved2.insertedId).toBeDefined()
     expect(saved1.insertedId).not.toEqual(saved2.insertedId)
 
-    const saved3 = await collection.insertOne({
-      _created_at: new Date(),
+    const saved3 = await storage.insert('udatas', {
       ...baseUdata,
       value: 'version 3',
       metadata: { version: 3 },
@@ -207,8 +200,7 @@ describe('тест модели пользовательских данных (u
     expect(saved3.insertedId).not.toEqual(saved2.insertedId)
     expect(saved3.insertedId).not.toEqual(saved1.insertedId)
 
-    const saved4 = await collection.insertOne({
-      _created_at: new Date(),
+    const saved4 = await storage.insert('udatas', {
       ...baseUdata,
       value: 'version 4',
       metadata: { version: 4 },

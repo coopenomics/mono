@@ -6,7 +6,7 @@ name: Factory
 # контроллера; при работе над фабрикой это лишние минуты раннера на каждый
 # пуш. Здесь — ровно job `component` из test.yaml плюс эталоны:
 #
-#  - тесты фабрики (MongoDB + WeasyPrint, как в образе контроллера);
+#  - тесты фабрики (PostgreSQL + WeasyPrint, как в образе контроллера);
 #  - сверка эталонов `test/golden/*` (GOLDEN_PDF=1: хэш PDF тоже сверяется,
 #    шрифт и WeasyPrint здесь закреплены);
 #  - полнота эталонов: у каждого вида документа есть снимок
@@ -33,16 +33,19 @@ jobs:
   factory:
     runs-on: ubuntu-latest
 
-    # Тесты фабрики пишут документы в MongoDB; сервис доступен по
-    # проброшенному порту на 127.0.0.1 (job идёт на VM раннера, не в
-    # контейнере, поэтому имя `mongo` не резолвится).
+    # Хранилище фабрики в наборе — PostgreSQL (как на узлах); сервис доступен
+    # по проброшенному порту на 127.0.0.1 (job идёт на VM раннера, не в
+    # контейнере, поэтому имя `postgres` не резолвится). Таблицы создаёт
+    # глобальная подготовка набора (`ensureSchema`).
     services:
-      mongo:
-        image: mongo:6
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_PASSWORD: postgres
         ports:
-          - 27017:27017
+          - 5432:5432
         options: >-
-          --health-cmd "mongosh --quiet --eval 'db.runCommand({ ping: 1 }).ok'"
+          --health-cmd "pg_isready -U postgres"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 10
@@ -115,7 +118,7 @@ jobs:
           SOURCE: local
           NODE_ENV: test
           SKIP_BLOCK_FETCH: 'TRUE'
-          MONGO_HOST: 127.0.0.1
+          POSTGRES_HOST: 127.0.0.1
           GOLDEN_PDF: '1'
           GOLDEN_TIMING_FILE: ${{ runner.temp }}/golden-timing.jsonl
         run: pnpm run test ${{ steps.mode.outputs.update }}

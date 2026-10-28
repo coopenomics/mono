@@ -5,11 +5,11 @@ import type { PaymentData } from '../src/Models/PaymentMethod'
 import type { CoopenomicsAgreement } from '../src/Templates'
 import { PrivacyPolicy, RegulationElectronicSignature, UserAgreement, WalletAgreement } from '../src/Templates'
 import { signatureExample } from './signatureExample'
-import { coopname, generator, mongoUri } from './utils'
+import { coopname, generator, testStorage } from './utils'
 import { testDocumentGeneration } from './utils/testDocument'
 
 beforeAll(async () => {
-  await generator.connect(mongoUri)
+  await generator.connect(testStorage())
 })
 
 beforeEach(async () => {

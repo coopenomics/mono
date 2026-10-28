@@ -2,7 +2,7 @@ import { beforeAll, describe, expect, it } from 'vitest'
 import { Cooperative } from 'cooptypes'
 import type { IGeneratedDocument } from '../src'
 import { testDocumentGeneration } from './utils/testDocument'
-import { generator, mongoUri } from './utils'
+import { generator, testStorage } from './utils'
 
 /**
  * Оферты ученика (3002) и преподавателя (3004) по ЦПП «Образование» строятся
@@ -28,7 +28,7 @@ async function generate(offer: typeof OFFERS[number]): Promise<IGeneratedDocumen
 
 describe('оферты ЦПП «Образование»', async () => {
   beforeAll(async () => {
-    await generator.connect(mongoUri)
+    await generator.connect(testStorage())
     await generator.update('vars', { coopname: 'voskhod' }, {
       education_provision: PROTOCOL,
       education_parent_offer_template: OFFER_PROTOCOL,

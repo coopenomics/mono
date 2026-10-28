@@ -6,7 +6,7 @@
 ## Параллелизация сборки документа (resolveParallel)
 
 В `generateDocument` каждого `Actions/*.ts` чтения источников шли строго
-последовательно (`getTemplate` → `getMeta` → mongo → udata/meet/request), и
+последовательно (`getTemplate` → `getMeta` → хранилище → udata/meet/request), и
 сетевые запросы складывались в задержку (~1.5 с). Хелпер
 `DocFactory.resolveParallel({...})` (`src/Factory/index.ts`) стартует
 **взаимно независимые** чтения разом через `Promise.all`.
@@ -82,7 +82,10 @@ fontconfig + `fc-cache`), а НЕ через `@font-face data:base64` в html. b
 - `scripts/golden-coverage.mjs` падает, если у вида документа из `src/Actions`
   нет ни одного снимка. Новый документ — новый тест с `testDocumentGeneration`.
 - Файлы набора идут по имени в закреплённом порядке (`AlphabeticalSequencer`):
-  тесты делят одну MongoDB и переписывают udata и переменные кооператива.
+  тесты делят одну базу PostgreSQL и переписывают udata и переменные кооператива.
+- Хранилище набора — PostgreSQL (`testStorage()` в `test/utils`), фикстуры
+  цепи — в памяти (`seedChainFixtures`, `src/Utils/mocks/store.ts`), кладутся
+  перед каждым файлом.
 - Время сборки пишется в `GOLDEN_TIMING_FILE`, сводка —
   `scripts/golden-timing-report.mjs`: исходный уровень скорости (NFR5).
 - Версия пакета впечатывается в PDF (Creator и отпечаток меты в Keywords), и

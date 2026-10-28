@@ -66,12 +66,12 @@ pnpm run reboot
 
 ### Запуск тестов
 
-- **Factory** (`components/factory`): нужен только MongoDB. Запуск:
+- **Factory** (`components/factory`): нужен только PostgreSQL (таблицы набор создаёт сам). Запуск — в CI, workflow `Factory`:
   ```
-  NODE_ENV=test SOURCE=local MONGO_URI=$MONGO_URI SKIP_BLOCK_FETCH=TRUE pnpm --filter @coopenomics/factory test
+  NODE_ENV=test SOURCE=local SKIP_BLOCK_FETCH=TRUE POSTGRES_HOST=127.0.0.1 pnpm --filter @coopenomics/factory test
   ```
-  `MONGO_URI` по умолчанию: `mongodb://<host>:27017/cooperative-x`.
-- **Boot** (`components/boot`): требует полный EOSIO blockchain + MongoDB + PG. Запуск после `pnpm run reboot`:
+  Адрес базы — `POSTGRES_HOST/PORT/USERNAME/PASSWORD/DATABASE`, по умолчанию `postgres:postgres@127.0.0.1:5432/postgres`.
+- **Boot** (`components/boot`): требует полный EOSIO blockchain + PG. Запуск после `pnpm run reboot`:
   ```
   pnpm --filter @coopenomics/boot test
   ```

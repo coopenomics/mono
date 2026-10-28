@@ -1,5 +1,4 @@
 import type { DataSource } from '../src/infrastructure/database/postgres/postgres-connection';
-import mongoose from 'mongoose';
 import config from '~/config/config';
 
 type MigrationLogger = {
@@ -7,9 +6,6 @@ type MigrationLogger = {
   error: (message: string) => void;
   warn: (message: string) => void;
 };
-
-/** База, куда писал парсер прежней версии. */
-const PARSER_DB = process.env.PARSER_MONGO_DB || '!parser';
 
 const CODE = 'registrator';
 const SCOPE = 'registrator';
@@ -36,9 +32,8 @@ const BACKFILL_BLOCK = 1;
  * остался бы без реквизитов на неопределённый срок, и генерация документов
  * падала бы с «информация о кооперативе не обнаружена».
  *
- * Источники по убыванию точности — те же, что в V2.5.0: история из mongo
- * прежнего парсера, а при её отсутствии текущее состояние цепи, помеченное
- * первым блоком.
+ * Источник — текущее состояние цепи, помеченное первым блоком (история из
+ * MongoDB прежнего парсера снята вместе с MongoDB в 10.2026).
  *
  * Идемпотентна: строка вставляется только если такой ещё нет.
  */
@@ -58,12 +53,8 @@ export default {
         return true;
       }
 
-      const fromHistory = await seedFromParserMongo(dataSource, coopname, logger);
-      if (fromHistory > 0) {
-        logger.info(`Реквизиты кооператива восстановлены из истории парсера: ${fromHistory} дельт`);
-        return true;
-      }
-
+      // Источник «история прежнего парсера в MongoDB» снят вместе с MongoDB
+      // (фабрика v2, 10.2026): все живые узлы миграцию уже прошли.
       return await seedFromChain(dataSource, coopname, logger);
     } catch (error: any) {
       logger.error(`Ошибка заполнения реквизитов кооператива: ${error?.message}`);
@@ -71,52 +62,6 @@ export default {
     }
   },
 };
-
-/** История изменений строки своего кооператива — с настоящими номерами блоков. */
-async function seedFromParserMongo(
-  dataSource: DataSource,
-  coopname: string,
-  logger: MigrationLogger
-): Promise<number> {
-  let mongo: mongoose.Connection | null = null;
-
-  try {
-    mongo = await mongoose.createConnection(config.mongoose.url).asPromise();
-    const db = mongo.useDb(PARSER_DB).db;
-    if (!db) return 0;
-
-    const collections = await db.listCollections({}, { nameOnly: true }).toArray();
-    if (!collections.some((c: { name: string }) => c.name === 'deltas')) {
-      logger.info(`База ${PARSER_DB} без коллекции дельт — истории реквизитов нет`);
-      return 0;
-    }
-
-    const cursor = db
-      .collection('deltas')
-      .find({ code: CODE, table: TABLE, 'value.username': coopname })
-      .sort({ block_num: 1 });
-
-    let inserted = 0;
-    for await (const delta of cursor) {
-      const d = delta as any;
-      inserted += await insertDelta(dataSource, {
-        chain_id: d.chain_id ?? config.blockchain.id ?? '',
-        block_num: Number(d.block_num ?? BACKFILL_BLOCK),
-        block_id: d.block_id ?? '',
-        present: d.present !== false,
-        primary_key: String(d.primary_key ?? nameToUint64(coopname)),
-        value: d.value ?? null,
-      });
-    }
-
-    return inserted;
-  } catch (error: any) {
-    logger.warn(`История реквизитов из ${PARSER_DB} недоступна (${error?.message}) — беру состояние из цепи`);
-    return 0;
-  } finally {
-    if (mongo) await mongo.close();
-  }
-}
 
 /** Резервный путь: текущая строка реестра, помеченная первым блоком. */
 async function seedFromChain(dataSource: DataSource, coopname: string, logger: MigrationLogger): Promise<boolean> {

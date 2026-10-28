@@ -3,13 +3,13 @@ import { Cooperative } from 'cooptypes'
 import { Generator } from '../src'
 import type { Numbers } from '../src'
 import { testDocumentGeneration } from './utils/testDocument'
-import { generator, mongoUri } from './utils'
+import { generator, testStorage } from './utils'
 import { capitalProgramPrivateData } from './utils/capitalProgramPrivateData'
 
 let capitalProgramDocDataHash = ''
 
 beforeAll(async () => {
-  await generator.connect(mongoUri)
+  await generator.connect(testStorage())
 
   // Подменяем метод getApprovedDecision для фабрики акта взноса результатов (1042)
   // Это позволит тесту найти "принятое решение" без обращения к реальному API

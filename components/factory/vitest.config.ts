@@ -12,7 +12,7 @@ function specPath(spec: WorkspaceSpec): string {
 /**
  * Файлы набора идут по имени, всегда в одном порядке.
  *
- * Тесты делят одну MongoDB: `udata.test.ts` стирает коллекцию udata,
+ * Тесты делят одну базу PostgreSQL: `udata.test.ts` стирает записи udata,
  * `index.test.ts` и тесты «Образования» переписывают переменные кооператива,
  * `documents-1000-plus.test.ts` — номера договоров. Порядок файлов по
  * умолчанию у vitest не закреплён, и два прогона CI 28.10.2026 собрали
@@ -53,6 +53,7 @@ export default defineConfig({
       WEASY_POOL_SIZE: '2',
     },
     globalSetup: './test/setup.ts',
+    setupFiles: ['./test/setup-file.ts'],
     sequence: { sequencer: AlphabeticalSequencer },
     testTimeout: 120000,
     fileParallelism: false,

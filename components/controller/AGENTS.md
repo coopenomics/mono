@@ -317,12 +317,11 @@ application/account/
 | `MutationLogEntity` | mutation_logs | Логи мутаций |
 | `ProgramWalletTypeormEntity` | program_wallets | Программные кошельки |
 
-**MongoDB (Mongoose)**:
-- Подключается через `MongooseModule.forRoot(config.mongoose.url)`
-- Используется для:
-  - Хранения и генерации документов (`@coopenomics/factory`)
-  - Хранения переменных кооператива (`vars`)
-  - Генератор-репозитории (`generator-repositories/`)
+**Хранилище фабрики документов** (PostgreSQL, таблицы `factory_records`, `factory_documents`, `factory_doc_private_data`):
+- Реализация порта — `PostgresFactoryStorage` из `@coopenomics/factory`, в контроллере обёртка `PgFactoryStorage` на соединении `KYSELY`
+- Хранит данные пайщиков и переменные кооператива (`vars`), собранные документы с телом PDF, приватные данные документов
+- Генератор-репозитории (`generator-repositories/`) читают и пишут через фабрику
+- MongoDB выведена из контроллера в 10.2026 (фабрика v2, шаг 5)
 
 **DI-паттерн для репозиториев**:
 ```typescript

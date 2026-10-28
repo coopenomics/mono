@@ -67,11 +67,6 @@ const envVarsSchema = z.object({
     .string()
     .default('3000')
     .transform((val) => parseInt(val, 10)),
-  MONGODB_URL: z.string().describe('Mongo DB url'),
-  FACTORY_STORAGE: z
-    .enum(['mongo', 'postgres'])
-    .default('mongo')
-    .describe('Document factory storage: mongo until the migration run, postgres after it'),
   JWT_SECRET: z.string().describe('JWT secret key'),
   JWT_ACCESS_EXPIRATION_MINUTES: z
     .string()
@@ -677,17 +672,6 @@ export default {
     sync_healthy_lag_blocks: envVars.data.BLOCKCHAIN_SYNC_HEALTHY_LAG_BLOCKS,
     sync_healthy_ticks: envVars.data.BLOCKCHAIN_SYNC_HEALTHY_TICKS,
     sync_stale_cursor_seconds: envVars.data.BLOCKCHAIN_SYNC_STALE_CURSOR_SECONDS,
-  },
-  factory: {
-    storage: envVars.data.FACTORY_STORAGE,
-  },
-  mongoose: {
-    url: envVars.data.MONGODB_URL + (envVars.data.NODE_ENV === 'test' ? '-test' : ''),
-    options: {
-      // useCreateIndex: true,
-      // useNewUrlParser: true,
-      // useUnifiedTopology: true,
-    },
   },
   document_approval: {
     reminder_enabled: envVars.data.DOCUMENT_APPROVAL_REMINDER_ENABLED,

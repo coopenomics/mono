@@ -11,11 +11,11 @@
  */
 import { beforeAll, describe, it } from 'vitest'
 import { Cooperative } from 'cooptypes'
-import { generator, mongoUri } from './utils'
+import { generator, testStorage } from './utils'
 import { testDocumentGeneration } from './utils/testDocument'
 
 beforeAll(async () => {
-  await generator.connect(mongoUri)
+  await generator.connect(testStorage())
   // Протокол 3009 ссылается на договор УХД преподавателя из Udata — те же
   // значения, что в education-teacher-documents.test.ts: порядок файлов в
   // наборе не гарантирован, поэтому каждый файл задаёт их сам.

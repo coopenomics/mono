@@ -3,10 +3,10 @@ import { Cooperative } from 'cooptypes'
 import { Generator } from '../src'
 import { PaymentMethod } from '../src/Models/PaymentMethod'
 import { testDocumentGeneration } from './utils/testDocument'
-import { generator, mongoUri } from './utils'
+import { generator, testStorage } from './utils'
 
 beforeAll(async () => {
-  await generator.connect(mongoUri)
+  await generator.connect(testStorage())
 })
 
 describe('тестируем цифровой кошелёк', () => {

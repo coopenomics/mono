@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, it } from 'vitest'
 import type { IGeneratedDocument } from '../src'
 import { testDocumentGeneration } from './utils/testDocument'
-import { generator, mongoUri } from './utils'
+import { generator, testStorage } from './utils'
 
 /**
  * Заявление об аннулировании соглашений ЦПП (190) — один документ на все
@@ -53,7 +53,7 @@ async function generate(data: Record<string, unknown> = {}): Promise<IGeneratedD
 
 describe('Заявление об аннулировании соглашений ЦПП', async () => {
   beforeAll(async () => {
-    await generator.connect(mongoUri)
+    await generator.connect(testStorage())
   })
 
   it('генерируется и воспроизводится с тем же хэшем', async () => {

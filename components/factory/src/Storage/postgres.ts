@@ -18,6 +18,7 @@ import { Pool } from 'pg'
 import type { PoolConfig } from 'pg'
 import type { Cooperative } from 'cooptypes'
 import type { DocDataRecord, DocumentPage, DocumentWhere, FieldCondition, IFactoryStorage, RecordCollection, StoredDocument, StoredRecord, Where } from './port'
+import { FACTORY_STORAGE_DDL } from './schema'
 
 // eslint-disable-next-line ts/no-explicit-any
 type Db = Kysely<any>
@@ -54,6 +55,12 @@ export class PostgresFactoryStorage implements IFactoryStorage {
   async disconnect(): Promise<void> {
     if (this.ownsConnection)
       await this.db.destroy()
+  }
+
+  /** Создать таблицы, если их нет: набор тестов и стенды без мигратора контроллера. */
+  async ensureSchema(): Promise<void> {
+    for (const statement of FACTORY_STORAGE_DDL)
+      await sql.raw(statement).execute(this.db)
   }
 
   /** Условие порта → выражение Kysely над строкой `factory_records`. */

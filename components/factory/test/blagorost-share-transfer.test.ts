@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, it } from 'vitest'
 import { Cooperative } from 'cooptypes'
 import { testDocumentGeneration } from './utils/testDocument'
-import { generator, mongoUri } from './utils'
+import { generator, testStorage } from './utils'
 
 /**
  * Заявление пайщика о трансляции паевого взноса из ЦПП «Благорост» в
@@ -18,7 +18,7 @@ function plainText(html: string): string {
 
 describe('заявление о трансляции паевого взноса в Цифровой Кошелёк', async () => {
   beforeAll(async () => {
-    await generator.connect(mongoUri)
+    await generator.connect(testStorage())
   })
 
   it(`заявление ${STATEMENT.registry_id} генерируется и воспроизводится с тем же хэшем`, async () => {

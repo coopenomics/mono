@@ -1,5 +1,4 @@
 // index.ts
-import mongoose from 'mongoose';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import config from './config/config';
@@ -143,13 +142,6 @@ async function bootstrap() {
     }
   }
 
-  // MongoDB нужна только пока хранилище фабрики на ней (FACTORY_STORAGE=mongo);
-  // в режиме postgres контроллер к ней не подключается и работает без неё.
-  if (config.factory.storage === 'mongo') {
-    await mongoose.connect(config.mongoose.url);
-    logger.info('Connected to MongoDB');
-  }
-
   // IP пайщика приходит из заголовка X-Forwarded-For: до контроллера запрос
   // проходит через три nginx, и без этой строки Express видит адрес последнего
   // из них — один и тот же для всех пайщиков. Лимит попыток входа тогда общий
@@ -234,14 +226,12 @@ async function bootstrap() {
 
   // Завершение работы приложения при неожиданных ошибках
   const exitHandler = async () => {
-    await mongoose.disconnect();
     logger.info('Server closed');
     process.exit(1);
   };
 
   const unexpectedErrorHandler = async (error: any) => {
     console.error(error);
-    await mongoose.disconnect();
     logger.error(error, { source: 'unexpectedErrorHandler' });
     await exitHandler();
   };
@@ -251,7 +241,6 @@ async function bootstrap() {
 
   process.on('SIGTERM', async () => {
     logger.info('SIGTERM received');
-    await mongoose.disconnect();
     await nestApp.close();
   });
 }

@@ -80,7 +80,7 @@ src/
 NODE_ENV=test SOURCE=local SKIP_BLOCK_FETCH=TRUE pnpm --filter @coopenomics/factory test
 ```
 
-Переменная `MONGO_URI` указывает на строку подключения к MongoDB. По умолчанию берётся из `.env` или строится из `MONGO_HOST`.
+Набор держит хранилище фабрики в PostgreSQL: адрес — `POSTGRES_HOST/PORT/USERNAME/PASSWORD/DATABASE` (по умолчанию `postgres:postgres@127.0.0.1:5432/postgres`), таблицы создаёт глобальная подготовка (`ensureSchema`). Фикстуры цепи — в памяти (`src/Utils/mocks/store.ts`).
 
 ## Скрипты package.json
 
