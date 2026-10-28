@@ -26,6 +26,7 @@
   "expenses": {
     "chassisConfig": {
       "advancePaymentPurpose": "Аванс под отчёт",
+      "advancePaymentMemo": "Аванс под отчёт №{hashPrefix}. {vatExemptNote}",
       "fundNameDative": "Фонду хозяйственной деятельности"
     },
     "expenseMutations": {
