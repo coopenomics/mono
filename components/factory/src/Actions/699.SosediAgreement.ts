@@ -1,37 +1,15 @@
-import { DraftContract } from 'cooptypes'
+import { defineBuilder } from '../Builder'
 import { SosediAgreement } from '../Templates'
-import { DocFactory } from '../Factory'
-import type { IGeneratedDocument, IGenerationOptions, IMetaDocument } from '../Interfaces'
-import type { MongoDBConnector } from '../Services/Databazor'
 
 export { SosediAgreement as Template } from '../Templates'
 
-export class Factory extends DocFactory<SosediAgreement.Action> {
-  constructor(storage: MongoDBConnector) {
-    super(storage)
-  }
-
-  async generateDocument(data: SosediAgreement.Action, options?: IGenerationOptions): Promise<IGeneratedDocument> {
-    // Независимые источники тянем параллельно (см. resolveParallel в DocFactory)
-    const { template, coop, vars } = await this.resolveParallel({
-      template: () => this.getTemplate<SosediAgreement.Model>(DraftContract.contractName.production, SosediAgreement.registry_id, data.block_num),
-      coop: () => super.getCooperative(data.coopname, data.block_num),
-      vars: () => super.getVars(data.coopname, data.block_num),
-    })
-
-    // meta зависит от template.title — резолвим после батча
-    const meta: IMetaDocument = await super.getMeta({ title: template.title, ...data })
-
-    const combinedData: SosediAgreement.Model = {
-      meta,
-      coop,
-      vars,
-    }
-
-    await super.validate(combinedData, template.model)
-    const translation = template.translations[meta.lang]
-    const document: IGeneratedDocument = await super.generatePDF('', template.context, combinedData, translation, meta, options?.skip_save)
-
-    return document
-  }
-}
+/** Соглашение ЦПП «Соседи»: только реквизиты кооператива и его переменные. */
+export const Factory = defineBuilder<SosediAgreement.Action, SosediAgreement.Model>()({
+  registry_id: SosediAgreement.registry_id,
+  version: 1,
+  reads: ({ data, f }) => ({
+    coop: () => f.getCooperative(data.coopname, data.block_num),
+    vars: () => f.getVars(data.coopname, data.block_num),
+  }),
+  assemble: ({ meta, reads: { coop, vars } }) => ({ meta, coop, vars }),
+})

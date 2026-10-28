@@ -1,56 +1,32 @@
-import { DraftContract } from 'cooptypes'
+import { defineBuilder } from '../Builder'
 import { AnnualGeneralMeetingDecision } from '../Templates'
-import { DocFactory } from '../Factory'
-import type { IGeneratedDocument, IGenerationOptions, IMetaDocument } from '../Interfaces'
-import type { MongoDBConnector } from '../Services/Databazor'
 
 export { AnnualGeneralMeetingDecision as Template } from '../Templates'
 
-export class Factory extends DocFactory<AnnualGeneralMeetingDecision.Action> {
-  constructor(storage: MongoDBConnector) {
-    super(storage)
-  }
-
-  async generateDocument(data: AnnualGeneralMeetingDecision.Action, options?: IGenerationOptions): Promise<IGeneratedDocument> {
-    const { template, coop, vars, meet } = await this.resolveParallel({
-      template: () => this.getTemplate<AnnualGeneralMeetingDecision.Model>(DraftContract.contractName.production, AnnualGeneralMeetingDecision.registry_id, data.block_num),
-      coop: () => super.getCooperative(data.coopname, data.block_num),
-      vars: () => super.getVars(data.coopname, data.block_num),
-      // Собрание по хэшу — аргументы из data, не зависит от coop/vars
-      meet: () => super.getMeet(data.coopname, data.meet_hash, data.block_num),
-    })
-
-    const meta: IMetaDocument = await super.getMeta({ title: template.title, ...data })
-    const questions = await super.getMeetQuestions(data.coopname, Number(meet.id), data.block_num)
-
-    // Данные уже приходят отформатированными из метода getMeet,
-    // дополнительная обработка времени не требуется
-
-    // Создаем данные решения общего собрания (НЕ решения совета!)
-    const decision = await super.getGeneralMeetingDecision(meet, meta.created_at, meta.timezone)
-
-    const combinedData: AnnualGeneralMeetingDecision.Model = {
-      meta,
-      coop,
-      vars,
-      decision,
-      meet,
-      questions,
-    }
-
-    await super.validate(combinedData, template.model)
-
-    const translation = template.translations[meta.lang]
-
-    const document: IGeneratedDocument = await super.generatePDF(
-      `${meet.presider} / ${meet.secretary}`,
-      template.context,
-      combinedData,
-      translation,
-      meta,
-      options?.skip_save,
-    )
-
-    return document
-  }
-}
+/**
+ * Протокол решения общего собрания: собрание по хэшу с именами председателя
+ * и секретаря, вопросы повестки с итогами и решение собрания (кворум из
+ * собрания, дата из меты).
+ */
+export const Factory = defineBuilder<AnnualGeneralMeetingDecision.Action, AnnualGeneralMeetingDecision.Model>()({
+  registry_id: AnnualGeneralMeetingDecision.registry_id,
+  version: 1,
+  reads: ({ data, f }) => ({
+    coop: () => f.getCooperative(data.coopname, data.block_num),
+    vars: () => f.getVars(data.coopname, data.block_num),
+    meet: () => f.getMeet(data.coopname, data.meet_hash, data.block_num),
+  }),
+  derive: ({ data, f, meta, reads: { meet } }) => ({
+    questions: () => f.getMeetQuestions(data.coopname, Number(meet.id), data.block_num),
+    decision: () => f.getGeneralMeetingDecision(meet, meta.created_at, meta.timezone),
+  }),
+  assemble: ({ meta, reads: { coop, vars, meet }, derived: { questions, decision } }) => ({
+    meta,
+    coop,
+    vars,
+    decision,
+    meet,
+    questions,
+  }),
+  signer: ({ reads: { meet } }) => `${meet.presider} / ${meet.secretary}`,
+})
