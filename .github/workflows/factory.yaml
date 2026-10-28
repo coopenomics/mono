@@ -1,0 +1,141 @@
+name: Factory
+
+# Укороченный прогон только фабрики документов (компонент 71, фабрика v2).
+#
+# Полный набор `test.yaml` собирает все пакеты и гоняет юнит-тесты
+# контроллера; при работе над фабрикой это лишние минуты раннера на каждый
+# пуш. Здесь — ровно job `component` из test.yaml плюс эталоны:
+#
+#  - тесты фабрики (MongoDB + WeasyPrint, как в образе контроллера);
+#  - сверка эталонов `test/golden/*` (GOLDEN_PDF=1: хэш PDF тоже сверяется,
+#    шрифт и WeasyPrint здесь закреплены);
+#  - полнота эталонов: у каждого вида документа есть снимок
+#    (scripts/golden-coverage.mjs);
+#  - замер времени сборки (scripts/golden-timing-report.mjs) — исходный
+#    уровень, с которым сравнивается каждый шаг рефакторинга.
+#
+# Режим обновления эталонов: ветка `ci/factory-update` или ручной запуск с
+# `update=true`. Тогда vitest идёт с `-u`, снимки пересоздаются и
+# выкладываются артефактом `factory-golden`; их забирают в ветку и коммитят.
+# Локально набор не запускается: тесты фабрики — только в CI (решение
+# владельца, 28.10.2026).
+on:
+  push:
+    branches: [ci/factory, 'ci/factory-*']
+  workflow_dispatch:
+    inputs:
+      update:
+        description: 'Пересоздать эталоны (vitest -u)'
+        type: boolean
+        default: false
+
+jobs:
+  factory:
+    runs-on: ubuntu-latest
+
+    # Тесты фабрики пишут документы в MongoDB; сервис доступен по
+    # проброшенному порту на 127.0.0.1 (job идёт на VM раннера, не в
+    # контейнере, поэтому имя `mongo` не резолвится).
+    services:
+      mongo:
+        image: mongo:6
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.runCommand({ ping: 1 }).ok'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install workspace
+        run: pnpm install --frozen-lockfile
+
+      # Фабрика берёт типы и рантайм соседей (cooptypes и др.) из их dist/,
+      # поэтому собираем её вместе с зависимостями, но не весь монорепозиторий.
+      - name: Build factory with dependencies
+        run: pnpm lerna run build --scope @coopenomics/factory --include-dependencies
+
+      # Генератор спавнит `/venv/bin/python3` и импортирует weasyprint —
+      # повторяем образ контроллера (components/controller/Dockerfile),
+      # включая системный шрифт Arial: он влияет на PDF и его хэш.
+      - name: WeasyPrint и шрифт Arial (как в образе controller)
+        timeout-minutes: 8
+        run: |
+          sudo apt-get -o Acquire::Retries=3 update
+          sudo apt-get -o Acquire::Retries=3 install -y --no-install-recommends \
+            python3-venv \
+            libpango-1.0-0 \
+            libpangoft2-1.0-0 \
+            libjpeg-dev \
+            libopenjp2-7-dev \
+            libffi-dev \
+            libharfbuzz-dev \
+            libcairo2 \
+            fontconfig
+          sudo python3 -m venv /venv
+          sudo /venv/bin/pip install --no-cache-dir --retries 3 --timeout 60 WeasyPrint==67
+          sudo install -D components/controller/assets/fonts/arial.ttf \
+            /usr/share/fonts/truetype/arial/arial.ttf
+          sudo fc-cache -f
+
+      - name: Режим обновления эталонов
+        id: mode
+        run: |
+          if [ "${{ github.event.inputs.update }}" = "true" ] || [ "${{ github.ref_name }}" = "ci/factory-update" ]; then
+            echo "update=-u" >> "$GITHUB_OUTPUT"
+            echo "Эталоны будут пересозданы (vitest -u)"
+          else
+            echo "update=" >> "$GITHUB_OUTPUT"
+          fi
+
+      # SKIP_BLOCK_FETCH=TRUE: без похода в цепь за номером блока.
+      # SOURCE=local: тексты шаблонов из пакета, а не из цепи.
+      - name: Тесты фабрики и эталоны
+        working-directory: components/factory
+        env:
+          SOURCE: local
+          NODE_ENV: test
+          SKIP_BLOCK_FETCH: 'TRUE'
+          MONGO_HOST: 127.0.0.1
+          GOLDEN_PDF: '1'
+          GOLDEN_TIMING_FILE: ${{ runner.temp }}/golden-timing.jsonl
+        run: pnpm run test ${{ steps.mode.outputs.update }}
+
+      - name: Полнота эталонов
+        if: always()
+        working-directory: components/factory
+        run: node scripts/golden-coverage.mjs --report "${{ runner.temp }}/golden-coverage.json"
+
+      - name: Время сборки документов
+        if: always()
+        working-directory: components/factory
+        run: |
+          if [ -f "${{ runner.temp }}/golden-timing.jsonl" ]; then
+            node scripts/golden-timing-report.mjs "${{ runner.temp }}/golden-timing.jsonl" --json "${{ runner.temp }}/golden-timing.json"
+          else
+            echo "Замеров нет: набор не дошёл до сборки документов"
+          fi
+
+      - name: Артефакт эталонов и отчётов
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: factory-golden
+          if-no-files-found: ignore
+          path: |
+            components/factory/test/golden
+            ${{ runner.temp }}/golden-timing.jsonl
+            ${{ runner.temp }}/golden-timing.json
+            ${{ runner.temp }}/golden-coverage.json

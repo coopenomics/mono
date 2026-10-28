@@ -120,6 +120,36 @@ export class GeneratorInfrastructureService implements GeneratorPort, OnModuleIn
     return await (this.generator as any).getHistory(collection as any, filter);
   }
 
+  /**
+   * Сохранённые документы узла порцией — для аудита пересборки (фабрика v2,
+   * шаг 0). Отдаёт только хэш, мету и HTML: PDF не нужен, он сверяется по
+   * хэшу. Порядок по `_id`, устойчив между порциями.
+   */
+  async listStoredDocuments(query: { registry_id?: number; offset: number; limit: number }): Promise<
+    Array<Pick<Cooperative.Document.IGeneratedDocument, 'hash' | 'meta' | 'html'>>
+  > {
+    const filter: Record<string, unknown> = {};
+    if (query.registry_id !== undefined && query.registry_id !== null) {
+      filter['meta.registry_id'] = query.registry_id;
+    }
+    const collection = this.generator.storage.getCollection('documents');
+    return (await collection
+      .find(filter as never, { projection: { hash: 1, meta: 1, html: 1 } })
+      .sort({ _id: 1 })
+      .skip(query.offset)
+      .limit(query.limit)
+      .toArray()) as never;
+  }
+
+  /** Число сохранённых документов под тем же отбором, что и `listStoredDocuments`. */
+  async countStoredDocuments(registry_id?: number): Promise<number> {
+    const filter: Record<string, unknown> = {};
+    if (registry_id !== undefined && registry_id !== null) {
+      filter['meta.registry_id'] = registry_id;
+    }
+    return await this.generator.storage.getCollection('documents').countDocuments(filter as never);
+  }
+
   async constructCooperative(username: string, block_num?: number): Promise<Cooperative.Model.ICooperativeData | null> {
     return await this.generator.constructCooperative(username, block_num);
   }
