@@ -1,0 +1,21 @@
+{
+  "title": "Транспортная накладная (ТТН)",
+  "lang": "ru",
+  "registry_id": 1103,
+  "generator": "coopjs",
+  "links": [],
+  "version": "<package-version>",
+  "coopname": "voskhod",
+  "username": "exampleorg",
+  "created_at": "2026-10-28T09:00:00.000Z",
+  "block_num": 0,
+  "timezone": "Europe/Moscow",
+  "ttn_number": "ТТН-0001",
+  "cycle_id": "1",
+  "shipment_id": "1",
+  "accept_braname": "branch",
+  "supplier_account": "exampleorg",
+  "total_amount": "1000.0000",
+  "currency": "RUB",
+  "doc_data_hash": "8556B09DEBB43DAA817C2C57A4DCE6D47621179FC15845D4D94374CE7184FAA1"
+}

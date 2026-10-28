@@ -1,0 +1,18 @@
+{
+  "title": "Протокол совета о списании скоропорта",
+  "lang": "ru",
+  "registry_id": 1107,
+  "generator": "coopjs",
+  "links": [],
+  "version": "<package-version>",
+  "coopname": "voskhod",
+  "username": "ant",
+  "created_at": "2026-10-28T09:00:00.000Z",
+  "block_num": 0,
+  "timezone": "Europe/Moscow",
+  "decision_id": 1,
+  "proposal_hash": "0000abcd1234567890abcdef0000abcd1234567890abcdef00001234567890ab",
+  "cycle_started_at": "2026-06-01",
+  "total_amount": "1505.0000 RUB",
+  "items_count": 2
+}

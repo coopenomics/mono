@@ -1,0 +1,16 @@
+{
+  "title": "Доверенность председателю кооперативного участка",
+  "lang": "ru",
+  "registry_id": 329,
+  "generator": "coopjs",
+  "links": [],
+  "version": "<package-version>",
+  "coopname": "voskhod",
+  "username": "ant",
+  "created_at": "2026-10-28T09:00:00.000Z",
+  "block_num": 0,
+  "timezone": "Europe/Moscow",
+  "hash": "BRANCH_MEETING_HASH_TEST",
+  "branch_name": "РОМАШКА",
+  "branch_address": "г. Красногорск, ул. Ленина, д. 1"
+}

@@ -1,0 +1,16 @@
+{
+  "title": "Заявление на выплату материальной помощи",
+  "lang": "ru",
+  "registry_id": 1109,
+  "generator": "coopjs",
+  "links": [],
+  "version": "<package-version>",
+  "coopname": "voskhod",
+  "username": "ant",
+  "created_at": "2026-10-28T09:00:00.000Z",
+  "block_num": 0,
+  "timezone": "Europe/Moscow",
+  "aid_hash": "917f7443a115d495574dbe73405b7b6be3fed929526ba736228f3ff234ad7fce",
+  "braname": "branch",
+  "amount": "5000.0000 RUB"
+}

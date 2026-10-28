@@ -16,9 +16,20 @@ import { testDocumentGeneration } from './utils/testDocument'
 
 beforeAll(async () => {
   await generator.connect(mongoUri)
+  // Протокол 3009 ссылается на договор УХД преподавателя из Udata — те же
+  // значения, что в education-teacher-documents.test.ts: порядок файлов в
+  // наборе не гарантирован, поэтому каждый файл задаёт их сам.
+  for (const [key, value] of [
+    [Cooperative.Model.UdataKey.EDUCATION_CONTRACT_NUMBER, 'УХД-0007'],
+    [Cooperative.Model.UdataKey.EDUCATION_CONTRACT_CREATED_AT, '15.09.2026'],
+  ] as const) {
+    await generator.save('udata', { coopname: 'voskhod', username: 'ant', key, value })
+  }
 })
 
 const ORDER_HASH = '917f7443a115d495574dbe73405b7b6be3fed929526ba736228f3ff234ad7fce'
+/** Хэш результата и претензии из тестов «Образования» — те же входы, что там. */
+const EDU_HASH = '55c470039a8c53ce1b4b6e842fe8063ab3d5b85ba2ba8ab0ae6e30be3ad328b7'
 
 describe('эталоны документов, которых не было в наборе', () => {
   it('699 соглашение ЦПП «Соседи»', async () => {
@@ -153,6 +164,34 @@ describe('эталоны документов, которых не было в �
       receiver: 'ant',
       braname: 'branch',
       amount: '5000.0000 RUB',
+    })
+  })
+
+  // 3009 и 3014 остальные тесты собирают напрямую через generator.generate
+  // ради проверки текста, поэтому эталон им даёт этот файл.
+  it('3009 протокол совета о приёме результата преподавателя', async () => {
+    await testDocumentGeneration<Cooperative.Registry.EducationRidDecision.Action>({
+      registry_id: Cooperative.Registry.EducationRidDecision.registry_id,
+      coopname: 'voskhod',
+      username: 'ant',
+      lang: 'ru',
+      decision_id: 1,
+      rid_hash: EDU_HASH,
+      rid_type: 'lesson_recording',
+      amount: '1500.0000 RUB',
+    })
+  })
+
+  it('3014 протокол совета об аннулировании Подписки по Гарантийным условиям', async () => {
+    await testDocumentGeneration<Cooperative.Registry.EducationGuaranteeDecision.Action>({
+      registry_id: Cooperative.Registry.EducationGuaranteeDecision.registry_id,
+      coopname: 'voskhod',
+      username: 'ant',
+      lang: 'ru',
+      decision_id: 1,
+      claim_hash: EDU_HASH,
+      course_title: 'Основы программирования',
+      amount: '1000.0000 RUB',
     })
   })
 
