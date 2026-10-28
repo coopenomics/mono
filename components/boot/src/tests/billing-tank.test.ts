@@ -30,7 +30,7 @@
  */
 import { execSync } from 'node:child_process'
 import { beforeAll, describe, expect, it } from 'vitest'
-import { CHAIN_URL, amount, ensureShareFunds, gqlAs, loginAs, signAs } from './marketplace/chainHelpers'
+import { CHAIN_URL, CHAIRMAN, amount, ensureShareFunds, gqlAs, loginAs, signAs } from './marketplace/chainHelpers'
 import { paymentsOf, provider, subscriptionsOf, waitFor } from './shared/stand'
 
 const COOP = 'partner1'
@@ -235,5 +235,53 @@ describe('бак AXON: пробный период → объём месяца �
 
   it('квант стоит по курсу 10 ₽ за AXON: 5 AXON = 50 ₽', () => {
     expect(QUANT_AXON * AXON_PRICE_RUB).toBe(QUANT_RUB)
+  })
+
+  /**
+   * Индивидуальная цена услуги (решение @ant 28.10.2026): председатель
+   * оператора назначает её из реестра кооперативов; провайдер подставляет её
+   * в витрину и переоценивает живую подписку сразу, объём AXON остаётся по
+   * тарифу. Снятие возвращает строку тарифа.
+   */
+  it('индивидуальная цена поддержки: витрина и живая подписка по ней сразу, AXON по тарифу; снятие возвращает тариф', async () => {
+    const operator = await loginAs(CHAIRMAN)
+    const set: any = await gqlAs(
+      operator,
+      'mutation($d:SetCoopPriceInput!){ setCoopPrice(data:$d){ subscription_type_id code amount_per_month list_price_per_month } }',
+      { d: { coopname: COOP, subscription_type_id: typeByCode.support, amount_per_month: 1000, reason: 'прогон бака' } },
+    )
+    expect(set.setCoopPrice).toMatchObject({ code: 'support', amount_per_month: 1000, list_price_per_month: 2000 })
+
+    const listed: any = await gqlAs(operator, 'query($c:String!){ getCoopPrices(coopname:$c){ code amount_per_month } }', { c: COOP })
+    expect(listed.getCoopPrices).toEqual([{ code: 'support', amount_per_month: 1000 }])
+
+    // Витрина кооператива: строка тарифа по индивидуальной цене, итог пересчитан, объём AXON прежний.
+    const catalog: any = await gqlAs(
+      token,
+      'query($c:String){ getProviderConnectionCatalog(coopname:$c){ tariffs{ code support{ price } monthly_total docflow_axon } individual_prices{ code amount_per_month } } }',
+      { c: COOP },
+    )
+    const standard = catalog.getProviderConnectionCatalog.tariffs.find((t: any) => t.code === 'standard')
+    expect(standard).toMatchObject({ support: { price: 1000 }, monthly_total: 16300, docflow_axon: 480 })
+    expect(catalog.getProviderConnectionCatalog.individual_prices).toEqual([{ code: 'support', amount_per_month: 1000 }])
+
+    const support = (await subscriptionsOf(COOP)).find(s => s.subscription_type_code === 'support')
+    expect(Number(support.price), 'живая подписка переоценена сразу').toBe(1000)
+    expect(support.price_locked).toBe(true)
+
+    // Кооператив цену соседу не назначит и чужие цены не видит.
+    await expect(
+      gqlAs(token, 'mutation($d:SetCoopPriceInput!){ setCoopPrice(data:$d){ code } }', {
+        d: { coopname: COOP, subscription_type_id: typeByCode.support, amount_per_month: 0 },
+      }),
+    ).rejects.toThrow()
+
+    const removed: any = await gqlAs(operator, 'mutation($d:RemoveCoopPriceInput!){ removeCoopPrice(data:$d) }', {
+      d: { coopname: COOP, subscription_type_id: typeByCode.support },
+    })
+    expect(removed.removeCoopPrice).toBe(true)
+    const restored = (await subscriptionsOf(COOP)).find(s => s.subscription_type_code === 'support')
+    expect(Number(restored.price), 'снятие возвращает строку тарифа').toBe(2000)
+    expect((await gqlAs(operator, 'query($c:String!){ getCoopPrices(coopname:$c){ code } }', { c: COOP })).getCoopPrices).toEqual([])
   })
 })

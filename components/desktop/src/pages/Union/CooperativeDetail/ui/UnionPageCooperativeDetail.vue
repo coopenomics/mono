@@ -55,6 +55,16 @@
       :active-key="activeTab"
       @select="(tab) => (activeTab = tab.key)"
     )
+      template(#actions)
+        BaseButton(
+          v-if="activeTab === 'prices'"
+          variant="primary"
+          size="sm"
+          type="button"
+          @click="pricesCard?.openCreate()"
+        )
+          q-icon(name="add" size="16px").q-mr-xs
+          | {{ $t('union.coopPrices.assign') }}
 
     //- ─────────────── Описание ───────────────
     .coop-detail__section(v-if="activeTab === 'about'")
@@ -92,7 +102,12 @@
           .coop-detail__sub-name {{ line.label }}
           .t-meta.t-muted(v-if="line.detail") {{ line.detail }}
         template(#cell-price="{ row: line }")
-          span.t-mono {{ formatRub(line.monthlyPrice) }}
+          //- Индивидуальная цена кооператива главнее строки тарифа: показываем
+          //- её, прейскурант остаётся рядом зачёркнутым.
+          template(v-if="individualPriceOf(line.code) != null")
+            span.t-mono {{ individualPriceOf(line.code) === 0 ? $t('union.coopPrices.free') : formatRub(individualPriceOf(line.code) ?? 0) }}
+            span.t-meta.t-muted.coop-detail__list-price {{ formatRub(line.monthlyPrice) }}
+          span.t-mono(v-else) {{ formatRub(line.monthlyPrice) }}
         template(#cell-status="{ row: line }")
           BaseChip(v-if="line.subscription" :variant="subscriptionStatusVariant(line.subscription.status)" size="sm")
             span {{ subscriptionStatusLabel(line.subscription.status) }}
@@ -150,6 +165,12 @@
               | {{ formatAmount(walletMembership) }} {{ walletDisplaySymbol }}
             .coop-detail__wallet-hint {{ $t('union.cooperativeDetail.billingWalletHint') }}
 
+    //- ─────────────── Индивидуальные цены ───────────────
+    //- Оператор назначает кооперативу свою цену услуги до подписки: витрина
+    //- и новые подписки кооператива берут её сразу (28.10.2026).
+    .coop-detail__section(v-else-if="activeTab === 'prices'")
+      CoopPricesCard(ref="pricesCard" :coopname="coopname" @changed="load")
+
     //- ─────────────── История оплат ───────────────
     //- Та же таблица журнала списаний, что и у кооператива на дашборде
     //- подключения, — общий виджет, а не копия разметки.
@@ -175,6 +196,8 @@ import { DocumentRow } from 'src/shared/ui/domain'
 import { PageTabs, type PageTab } from 'src/shared/ui/layout'
 import { CooperativeDecisionActions } from 'src/widgets/CooperativeDecision'
 import { PaymentsHistory } from 'src/widgets/Billing/PaymentsHistory'
+import { CoopPricesCard } from 'src/widgets/Union/CoopPricesCard'
+import { useCoopPrices } from 'src/features/Union/CoopPrices'
 import { useLoadCooperatives } from 'src/features/Union/LoadCooperatives'
 import { cooperativeCharterApi } from 'src/features/Union/UploadCooperativeCharter'
 import { useUnionStore } from 'src/entities/Union/model'
@@ -231,6 +254,7 @@ const load = async () => {
   loading.value = true
   try {
     await loadCooperatives()
+    await pricesCard.value?.reload?.()
   } catch (e: any) {
     FailAlert(e)
   } finally {
@@ -316,9 +340,17 @@ const subscriptionsCount = computed(() => row.value?.subscriptions?.length || 0)
 const tabs = computed<PageTab[]>(() => [
   { key: 'about', label: t('union.cooperativeDetail.tab.description') },
   { key: 'subscriptions', label: t('union.cooperativeDetail.tab.subscriptions'), count: row.value?.tariff ? undefined : subscriptionsCount.value || undefined },
+  { key: 'prices', label: t('union.cooperativeDetail.tab.prices'), count: coopPrices.value.length || undefined },
   { key: 'wallets', label: t('union.cooperativeDetail.tab.wallets') },
   { key: 'payments', label: t('union.cooperativeDetail.tab.payments') },
 ])
+
+// Индивидуальные цены кооператива: счётчик вкладки и отметка строк тарифа.
+// Список ведёт провайдер; после назначения на вкладке карточка перечитывается.
+const pricesCard = ref<InstanceType<typeof CoopPricesCard> | null>(null)
+const { prices: coopPrices } = useCoopPrices(() => coopname.value)
+const individualPriceOf = (code: string): number | null =>
+  coopPrices.value.find((p) => p.code === code)?.amount_per_month ?? null
 
 /** Тип документа берём из расширения файла — иконку рисует канон-компонент. */
 const charterDocument = computed(() => {
@@ -384,6 +416,10 @@ const goBack = () => {
 }
 .coop-detail__tariff .q-icon {
   color: var(--p-ink-3);
+}
+.coop-detail__list-price {
+  margin-left: var(--p-2);
+  text-decoration: line-through;
 }
 .coop-detail__tariff-note {
   margin: var(--p-2) 0 var(--p-4);

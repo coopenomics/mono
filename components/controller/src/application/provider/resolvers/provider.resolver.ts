@@ -19,6 +19,7 @@ import {
   SelectProviderTariffResultDTO,
 } from '../dto/select-provider-tariff.dto';
 import { BillingPaymentLogService } from '~/infrastructure/billing/billing-payment-log.service';
+import { CoopPriceDTO, RemoveCoopPriceInputDTO, SetCoopPriceInputDTO } from '../dto/coop-price.dto';
 import { humanizeBillingError } from '~/domain/billing/utils/billing-error.utils';
 
 @Resolver()
@@ -59,6 +60,38 @@ export class ProviderResolver {
     return this.providerService.getCooperativesRegistry();
   }
 
+
+  @Query(() => [CoopPriceDTO], {
+    name: 'getCoopPrices',
+    description: 'Индивидуальные цены услуг кооператива у оператора: назначены заранее, действуют на витрину и подписки',
+  })
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('CoopPrice', 'read')
+  async getCoopPrices(@Args('coopname', { type: () => String }) coopname: string): Promise<CoopPriceDTO[]> {
+    return this.providerService.listCoopPrices(coopname);
+  }
+
+  @Mutation(() => CoopPriceDTO, {
+    name: 'setCoopPrice',
+    description:
+      'Назначить кооперативу индивидуальную цену услуги в месяц (0 — бесплатно): витрина, новые и живые подписки кооператива берут её сразу',
+  })
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('CoopPrice', 'manage')
+  async setCoopPrice(@Args('data', { type: () => SetCoopPriceInputDTO }) data: SetCoopPriceInputDTO): Promise<CoopPriceDTO> {
+    return this.providerService.setCoopPrice(data.coopname, data.subscription_type_id, data.amount_per_month, data.reason ?? null);
+  }
+
+  @Mutation(() => Boolean, {
+    name: 'removeCoopPrice',
+    description: 'Снять индивидуальную цену услуги: кооператив платит по тарифу или прейскуранту',
+  })
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('CoopPrice', 'manage')
+  async removeCoopPrice(@Args('data', { type: () => RemoveCoopPriceInputDTO }) data: RemoveCoopPriceInputDTO): Promise<boolean> {
+    await this.providerService.removeCoopPrice(data.coopname, data.subscription_type_id);
+    return true;
+  }
 
   @Query(() => [CooperativePaymentDTO], {
     name: 'getCooperativePayments',

@@ -6014,6 +6014,27 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on CoopAgreement']?: Omit<ValueTypes["CoopAgreement"], "...on CoopAgreement">
 }>;
+	/** Индивидуальная цена услуги для кооператива у оператора */
+["CoopPrice"]: AliasType<{
+	/** Цена кооператива, ₽ в месяц; 0 — бесплатно */
+	amount_per_month?:boolean | `@${string}`,
+	/** Машинный код услуги */
+	code?:boolean | `@${string}`,
+	/** Кто назначил */
+	created_by?:boolean | `@${string}`,
+	/** Цена по прейскуранту сейчас, ₽ в месяц */
+	list_price_per_month?:boolean | `@${string}`,
+	/** Название услуги */
+	name?:boolean | `@${string}`,
+	/** Основание */
+	reason?:boolean | `@${string}`,
+	/** ID услуги (типа подписки) у провайдера */
+	subscription_type_id?:boolean | `@${string}`,
+	/** Когда назначена или изменена */
+	updated_at?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on CoopPrice']?: Omit<ValueTypes["CoopPrice"], "...on CoopPrice">
+}>;
 	/** Статус кооператива в блокчейне: pending | active | blocked */
 ["CooperativeChainStatus"]:CooperativeChainStatus;
 	/** Устав кооператива, приложенный к заявке на подключение. */
@@ -14391,6 +14412,7 @@ rejectVerification?: [{	data: ValueTypes["RejectVerificationInput"] | Variable<a
 removeAppsPublisher?: [{	data: ValueTypes["AppsPublisherAssignmentInputDTO"] | Variable<any, string>},boolean | `@${string}`],
 	/** Снять фотографию пайщика — в удостоверении снова будут инициалы. */
 	removeAvatar?:boolean | `@${string}`,
+removeCoopPrice?: [{	data: ValueTypes["RemoveCoopPriceInput"] | Variable<any, string>},boolean | `@${string}`],
 reportExpenseItem?: [{	data: ValueTypes["ReportExpenseItemInput"] | Variable<any, string>},ValueTypes["ExpenseReportResult"]],
 reportNotMe?: [{	data: ValueTypes["ReportNotMeInput"] | Variable<any, string>},ValueTypes["RevokedSessionsResult"]],
 requestCooperativeEndorsement?: [{	data: ValueTypes["RequestCooperativeEndorsementInput"] | Variable<any, string>},boolean | `@${string}`],
@@ -14418,6 +14440,7 @@ selectProviderTariff?: [{	data: ValueTypes["SelectProviderTariffInput"] | Variab
 sendAgreement?: [{	data: ValueTypes["SendAgreementInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 setBranchPrivate?: [{	data: ValueTypes["SetBranchPrivateInput"] | Variable<any, string>},ValueTypes["Branch"]],
 setCatalogAppEnabled?: [{	data: ValueTypes["SetCatalogAppEnabledInput"] | Variable<any, string>},boolean | `@${string}`],
+setCoopPrice?: [{	data: ValueTypes["SetCoopPriceInput"] | Variable<any, string>},ValueTypes["CoopPrice"]],
 setLoginFactors?: [{	data: ValueTypes["SetLoginFactorsInput"] | Variable<any, string>},ValueTypes["LoginFactors"]],
 setPaymentStatus?: [{	data: ValueTypes["SetPaymentStatusInput"] | Variable<any, string>},ValueTypes["GatewayPayment"]],
 setRecoveryStrategy?: [{	data: ValueTypes["SetRecoveryStrategyInput"] | Variable<any, string>},boolean | `@${string}`],
@@ -16161,6 +16184,8 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 	annual_billing?:ValueTypes["ProviderAnnualBilling"],
 	/** Тариф кооператива из запроса; пусто — тариф не выбран или кооператив чужой */
 	current_tariff?:ValueTypes["ProviderCurrentTariff"],
+	/** Индивидуальные цены кооператива из запроса: цены услуг, конфигураций и строк тарифов выше уже подставлены; без кооператива — пусто */
+	individual_prices?:ValueTypes["ProviderIndividualPrice"],
 	/** Конфигурации сервера на выбор */
 	server_options?:ValueTypes["ProviderCatalogServerOption"],
 	/** Тарифная сетка подключения */
@@ -16184,6 +16209,17 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 	trial_days?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on ProviderCurrentTariff']?: Omit<ValueTypes["ProviderCurrentTariff"], "...on ProviderCurrentTariff">
+}>;
+	/** Индивидуальная цена услуги для кооператива */
+["ProviderIndividualPrice"]: AliasType<{
+	/** Цена кооператива, ₽ в месяц; 0 — бесплатно */
+	amount_per_month?:boolean | `@${string}`,
+	/** Машинный код услуги */
+	code?:boolean | `@${string}`,
+	/** ID услуги (типа подписки) у провайдера */
+	subscription_type_id?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on ProviderIndividualPrice']?: Omit<ValueTypes["ProviderIndividualPrice"], "...on ProviderIndividualPrice">
 }>;
 	["ProviderSubscription"]: AliasType<{
 	/** Дата создания */
@@ -16561,6 +16597,7 @@ getCapitalIssueLogs?: [{	data: ValueTypes["GetCapitalIssueLogsInput"] | Variable
 getCapitalProjectLogs?: [{	data: ValueTypes["GetCapitalLogsInput"] | Variable<any, string>},ValueTypes["PaginatedCapitalLogsPaginationResult"]],
 	/** Получить состояние онбординга председателя */
 	getChairmanOnboardingState?:ValueTypes["ChairmanOnboardingState"],
+getCoopPrices?: [{	coopname: string | Variable<any, string>},ValueTypes["CoopPrice"]],
 getCooperativeCharter?: [{	coopname: string | Variable<any, string>,	username: string | Variable<any, string>},ValueTypes["CooperativeCharter"]],
 getCooperativePayments?: [{	coopname: string | Variable<any, string>,	limit?: number | undefined | null | Variable<any, string>},ValueTypes["CooperativePayment"]],
 	/** Реестр кооперативов оператора: список кооперативов из блокчейна с данными провайдера (подписки, инстанс, биллинг) */
@@ -17054,6 +17091,13 @@ verificationReviews?: [{	data?: ValueTypes["VerificationReviewsInput"] | undefin
 	["RemoveAvailableCategoryTypesInput"]: {
 	/** Типы товаров для удаления */
 	categoryTypes: Array<ValueTypes["CategoryTypeInput"]> | Variable<any, string>
+};
+	/** Снять индивидуальную цену услуги: кооператив на общих основаниях */
+["RemoveCoopPriceInput"]: {
+	/** Кооператив */
+	coopname: string | Variable<any, string>,
+	/** ID услуги (типа подписки) у провайдера */
+	subscription_type_id: number | Variable<any, string>
 };
 	["RemoveSecretaryRoomInput"]: {
 	/** Идентификатор комнаты в реестре, которую нужно удалить */
@@ -17939,6 +17983,17 @@ verificationReviews?: [{	data?: ValueTypes["VerificationReviewsInput"] | undefin
 	config: ValueTypes["ConfigInput"] | Variable<any, string>,
 	/** Имя аккаунта кооператива */
 	coopname: string | Variable<any, string>
+};
+	/** Назначить кооперативу индивидуальную цену услуги */
+["SetCoopPriceInput"]: {
+	/** Цена кооператива, ₽ в месяц; 0 — бесплатно */
+	amount_per_month: number | Variable<any, string>,
+	/** Кооператив */
+	coopname: string | Variable<any, string>,
+	/** Основание */
+	reason?: string | undefined | null | Variable<any, string>,
+	/** ID услуги (типа подписки) у провайдера */
+	subscription_type_id: number | Variable<any, string>
 };
 	["SetIssueMetricBindingsInput"]: {
 	/** Полный список привязок задачи к метрикам */
@@ -24043,6 +24098,26 @@ export type ResolverInputTypes = {
 	program_id?:boolean | `@${string}`,
 	/** Тип соглашения (wallet, privacy, signature, user, blagorost, generator, marketplace) */
 	type?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Индивидуальная цена услуги для кооператива у оператора */
+["CoopPrice"]: AliasType<{
+	/** Цена кооператива, ₽ в месяц; 0 — бесплатно */
+	amount_per_month?:boolean | `@${string}`,
+	/** Машинный код услуги */
+	code?:boolean | `@${string}`,
+	/** Кто назначил */
+	created_by?:boolean | `@${string}`,
+	/** Цена по прейскуранту сейчас, ₽ в месяц */
+	list_price_per_month?:boolean | `@${string}`,
+	/** Название услуги */
+	name?:boolean | `@${string}`,
+	/** Основание */
+	reason?:boolean | `@${string}`,
+	/** ID услуги (типа подписки) у провайдера */
+	subscription_type_id?:boolean | `@${string}`,
+	/** Когда назначена или изменена */
+	updated_at?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
 	/** Статус кооператива в блокчейне: pending | active | blocked */
@@ -32193,6 +32268,7 @@ rejectVerification?: [{	data: ResolverInputTypes["RejectVerificationInput"]},Res
 removeAppsPublisher?: [{	data: ResolverInputTypes["AppsPublisherAssignmentInputDTO"]},boolean | `@${string}`],
 	/** Снять фотографию пайщика — в удостоверении снова будут инициалы. */
 	removeAvatar?:boolean | `@${string}`,
+removeCoopPrice?: [{	data: ResolverInputTypes["RemoveCoopPriceInput"]},boolean | `@${string}`],
 reportExpenseItem?: [{	data: ResolverInputTypes["ReportExpenseItemInput"]},ResolverInputTypes["ExpenseReportResult"]],
 reportNotMe?: [{	data: ResolverInputTypes["ReportNotMeInput"]},ResolverInputTypes["RevokedSessionsResult"]],
 requestCooperativeEndorsement?: [{	data: ResolverInputTypes["RequestCooperativeEndorsementInput"]},boolean | `@${string}`],
@@ -32220,6 +32296,7 @@ selectProviderTariff?: [{	data: ResolverInputTypes["SelectProviderTariffInput"]}
 sendAgreement?: [{	data: ResolverInputTypes["SendAgreementInput"]},ResolverInputTypes["Transaction"]],
 setBranchPrivate?: [{	data: ResolverInputTypes["SetBranchPrivateInput"]},ResolverInputTypes["Branch"]],
 setCatalogAppEnabled?: [{	data: ResolverInputTypes["SetCatalogAppEnabledInput"]},boolean | `@${string}`],
+setCoopPrice?: [{	data: ResolverInputTypes["SetCoopPriceInput"]},ResolverInputTypes["CoopPrice"]],
 setLoginFactors?: [{	data: ResolverInputTypes["SetLoginFactorsInput"]},ResolverInputTypes["LoginFactors"]],
 setPaymentStatus?: [{	data: ResolverInputTypes["SetPaymentStatusInput"]},ResolverInputTypes["GatewayPayment"]],
 setRecoveryStrategy?: [{	data: ResolverInputTypes["SetRecoveryStrategyInput"]},boolean | `@${string}`],
@@ -33881,6 +33958,8 @@ walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputType
 	annual_billing?:ResolverInputTypes["ProviderAnnualBilling"],
 	/** Тариф кооператива из запроса; пусто — тариф не выбран или кооператив чужой */
 	current_tariff?:ResolverInputTypes["ProviderCurrentTariff"],
+	/** Индивидуальные цены кооператива из запроса: цены услуг, конфигураций и строк тарифов выше уже подставлены; без кооператива — пусто */
+	individual_prices?:ResolverInputTypes["ProviderIndividualPrice"],
 	/** Конфигурации сервера на выбор */
 	server_options?:ResolverInputTypes["ProviderCatalogServerOption"],
 	/** Тарифная сетка подключения */
@@ -33901,6 +33980,16 @@ walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputType
 	docflow_axon?:boolean | `@${string}`,
 	/** Пробный период тарифа, дней */
 	trial_days?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Индивидуальная цена услуги для кооператива */
+["ProviderIndividualPrice"]: AliasType<{
+	/** Цена кооператива, ₽ в месяц; 0 — бесплатно */
+	amount_per_month?:boolean | `@${string}`,
+	/** Машинный код услуги */
+	code?:boolean | `@${string}`,
+	/** ID услуги (типа подписки) у провайдера */
+	subscription_type_id?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
 	["ProviderSubscription"]: AliasType<{
@@ -34271,6 +34360,7 @@ getCapitalIssueLogs?: [{	data: ResolverInputTypes["GetCapitalIssueLogsInput"],	o
 getCapitalProjectLogs?: [{	data: ResolverInputTypes["GetCapitalLogsInput"]},ResolverInputTypes["PaginatedCapitalLogsPaginationResult"]],
 	/** Получить состояние онбординга председателя */
 	getChairmanOnboardingState?:ResolverInputTypes["ChairmanOnboardingState"],
+getCoopPrices?: [{	coopname: string},ResolverInputTypes["CoopPrice"]],
 getCooperativeCharter?: [{	coopname: string,	username: string},ResolverInputTypes["CooperativeCharter"]],
 getCooperativePayments?: [{	coopname: string,	limit?: number | undefined | null},ResolverInputTypes["CooperativePayment"]],
 	/** Реестр кооперативов оператора: список кооперативов из блокчейна с данными провайдера (подписки, инстанс, биллинг) */
@@ -34754,6 +34844,13 @@ verificationReviews?: [{	data?: ResolverInputTypes["VerificationReviewsInput"] |
 	["RemoveAvailableCategoryTypesInput"]: {
 	/** Типы товаров для удаления */
 	categoryTypes: Array<ResolverInputTypes["CategoryTypeInput"]>
+};
+	/** Снять индивидуальную цену услуги: кооператив на общих основаниях */
+["RemoveCoopPriceInput"]: {
+	/** Кооператив */
+	coopname: string,
+	/** ID услуги (типа подписки) у провайдера */
+	subscription_type_id: number
 };
 	["RemoveSecretaryRoomInput"]: {
 	/** Идентификатор комнаты в реестре, которую нужно удалить */
@@ -35605,6 +35702,17 @@ verificationReviews?: [{	data?: ResolverInputTypes["VerificationReviewsInput"] |
 	config: ResolverInputTypes["ConfigInput"],
 	/** Имя аккаунта кооператива */
 	coopname: string
+};
+	/** Назначить кооперативу индивидуальную цену услуги */
+["SetCoopPriceInput"]: {
+	/** Цена кооператива, ₽ в месяц; 0 — бесплатно */
+	amount_per_month: number,
+	/** Кооператив */
+	coopname: string,
+	/** Основание */
+	reason?: string | undefined | null,
+	/** ID услуги (типа подписки) у провайдера */
+	subscription_type_id: number
 };
 	["SetIssueMetricBindingsInput"]: {
 	/** Полный список привязок задачи к метрикам */
@@ -41530,6 +41638,25 @@ export type ModelTypes = {
 	program_id: number,
 	/** Тип соглашения (wallet, privacy, signature, user, blagorost, generator, marketplace) */
 	type: string
+};
+	/** Индивидуальная цена услуги для кооператива у оператора */
+["CoopPrice"]: {
+		/** Цена кооператива, ₽ в месяц; 0 — бесплатно */
+	amount_per_month: number,
+	/** Машинный код услуги */
+	code?: string | undefined | null,
+	/** Кто назначил */
+	created_by?: string | undefined | null,
+	/** Цена по прейскуранту сейчас, ₽ в месяц */
+	list_price_per_month: number,
+	/** Название услуги */
+	name: string,
+	/** Основание */
+	reason?: string | undefined | null,
+	/** ID услуги (типа подписки) у провайдера */
+	subscription_type_id: number,
+	/** Когда назначена или изменена */
+	updated_at: string
 };
 	["CooperativeChainStatus"]:CooperativeChainStatus;
 	/** Устав кооператива, приложенный к заявке на подключение. */
@@ -49709,6 +49836,8 @@ export type ModelTypes = {
 	removeAppsPublisher: boolean,
 	/** Снять фотографию пайщика — в удостоверении снова будут инициалы. */
 	removeAvatar: boolean,
+	/** Снять индивидуальную цену услуги: кооператив платит по тарифу или прейскуранту */
+	removeCoopPrice: boolean,
 	/** Отчитаться по строке-авансу: при совпадении факта с авансом — закрыть позицию; при недо-/перерасходе — завести платёжку расчёта разницы. */
 	reportExpenseItem: ModelTypes["ExpenseReportResult"],
 	/** Сигнал «Это не я»: немедленно завершить все сессии пайщика */
@@ -49759,6 +49888,8 @@ export type ModelTypes = {
 	setBranchPrivate: ModelTypes["Branch"],
 	/** Включает или выключает приложение каталога на рабочем столе; подписка при этом не меняется. */
 	setCatalogAppEnabled: boolean,
+	/** Назначить кооперативу индивидуальную цену услуги в месяц (0 — бесплатно): витрина, новые и живые подписки кооператива берут её сразу */
+	setCoopPrice: ModelTypes["CoopPrice"],
 	/** Изменить настройки подтверждения входа (изменение фактора приложения требует TOTP-код) */
 	setLoginFactors: ModelTypes["LoginFactors"],
 	/** Управление статусом платежа осущствляется мутацией setPaymentStatus. При переходе платежа в статус PAID вызывается эффект в блокчейне, который завершает операцию автоматическим переводом платежа в статус COMPLETED. При установке статуса REFUNDED запускается процесс отмены платежа в блокчейне. Остальные статусы не приводят к эффектам в блокчейне. */
@@ -51338,6 +51469,8 @@ export type ModelTypes = {
 	annual_billing: ModelTypes["ProviderAnnualBilling"],
 	/** Тариф кооператива из запроса; пусто — тариф не выбран или кооператив чужой */
 	current_tariff?: ModelTypes["ProviderCurrentTariff"] | undefined | null,
+	/** Индивидуальные цены кооператива из запроса: цены услуг, конфигураций и строк тарифов выше уже подставлены; без кооператива — пусто */
+	individual_prices: Array<ModelTypes["ProviderIndividualPrice"]>,
 	/** Конфигурации сервера на выбор */
 	server_options: Array<ModelTypes["ProviderCatalogServerOption"]>,
 	/** Тарифная сетка подключения */
@@ -51357,6 +51490,15 @@ export type ModelTypes = {
 	docflow_axon: number,
 	/** Пробный период тарифа, дней */
 	trial_days: number
+};
+	/** Индивидуальная цена услуги для кооператива */
+["ProviderIndividualPrice"]: {
+		/** Цена кооператива, ₽ в месяц; 0 — бесплатно */
+	amount_per_month: number,
+	/** Машинный код услуги */
+	code?: string | undefined | null,
+	/** ID услуги (типа подписки) у провайдера */
+	subscription_type_id: number
 };
 	["ProviderSubscription"]: {
 		/** Дата создания */
@@ -51828,6 +51970,8 @@ export type ModelTypes = {
 	getCapitalProjectLogs: ModelTypes["PaginatedCapitalLogsPaginationResult"],
 	/** Получить состояние онбординга председателя */
 	getChairmanOnboardingState: ModelTypes["ChairmanOnboardingState"],
+	/** Индивидуальные цены услуг кооператива у оператора: назначены заранее, действуют на витрину и подписки */
+	getCoopPrices: Array<ModelTypes["CoopPrice"]>,
 	/** Последний устав кооператива со свежей ссылкой на скачивание. */
 	getCooperativeCharter?: ModelTypes["CooperativeCharter"] | undefined | null,
 	/** История оплат кооператива: списания подписок из журнала биллинга хаба, свежие сверху */
@@ -52422,6 +52566,13 @@ export type ModelTypes = {
 	["RemoveAvailableCategoryTypesInput"]: {
 	/** Типы товаров для удаления */
 	categoryTypes: Array<ModelTypes["CategoryTypeInput"]>
+};
+	/** Снять индивидуальную цену услуги: кооператив на общих основаниях */
+["RemoveCoopPriceInput"]: {
+	/** Кооператив */
+	coopname: string,
+	/** ID услуги (типа подписки) у провайдера */
+	subscription_type_id: number
 };
 	["RemoveSecretaryRoomInput"]: {
 	/** Идентификатор комнаты в реестре, которую нужно удалить */
@@ -53232,6 +53383,17 @@ export type ModelTypes = {
 	config: ModelTypes["ConfigInput"],
 	/** Имя аккаунта кооператива */
 	coopname: string
+};
+	/** Назначить кооперативу индивидуальную цену услуги */
+["SetCoopPriceInput"]: {
+	/** Цена кооператива, ₽ в месяц; 0 — бесплатно */
+	amount_per_month: number,
+	/** Кооператив */
+	coopname: string,
+	/** Основание */
+	reason?: string | undefined | null,
+	/** ID услуги (типа подписки) у провайдера */
+	subscription_type_id: number
 };
 	["SetIssueMetricBindingsInput"]: {
 	/** Полный список привязок задачи к метрикам */
@@ -59388,6 +59550,27 @@ export type GraphQLTypes = {
 	/** Тип соглашения (wallet, privacy, signature, user, blagorost, generator, marketplace) */
 	type: string,
 	['...on CoopAgreement']: Omit<GraphQLTypes["CoopAgreement"], "...on CoopAgreement">
+};
+	/** Индивидуальная цена услуги для кооператива у оператора */
+["CoopPrice"]: {
+	__typename: "CoopPrice",
+	/** Цена кооператива, ₽ в месяц; 0 — бесплатно */
+	amount_per_month: number,
+	/** Машинный код услуги */
+	code?: string | undefined | null,
+	/** Кто назначил */
+	created_by?: string | undefined | null,
+	/** Цена по прейскуранту сейчас, ₽ в месяц */
+	list_price_per_month: number,
+	/** Название услуги */
+	name: string,
+	/** Основание */
+	reason?: string | undefined | null,
+	/** ID услуги (типа подписки) у провайдера */
+	subscription_type_id: number,
+	/** Когда назначена или изменена */
+	updated_at: string,
+	['...on CoopPrice']: Omit<GraphQLTypes["CoopPrice"], "...on CoopPrice">
 };
 	/** Статус кооператива в блокчейне: pending | active | blocked */
 ["CooperativeChainStatus"]: CooperativeChainStatus;
@@ -68124,6 +68307,8 @@ export type GraphQLTypes = {
 	removeAppsPublisher: boolean,
 	/** Снять фотографию пайщика — в удостоверении снова будут инициалы. */
 	removeAvatar: boolean,
+	/** Снять индивидуальную цену услуги: кооператив платит по тарифу или прейскуранту */
+	removeCoopPrice: boolean,
 	/** Отчитаться по строке-авансу: при совпадении факта с авансом — закрыть позицию; при недо-/перерасходе — завести платёжку расчёта разницы. */
 	reportExpenseItem: GraphQLTypes["ExpenseReportResult"],
 	/** Сигнал «Это не я»: немедленно завершить все сессии пайщика */
@@ -68174,6 +68359,8 @@ export type GraphQLTypes = {
 	setBranchPrivate: GraphQLTypes["Branch"],
 	/** Включает или выключает приложение каталога на рабочем столе; подписка при этом не меняется. */
 	setCatalogAppEnabled: boolean,
+	/** Назначить кооперативу индивидуальную цену услуги в месяц (0 — бесплатно): витрина, новые и живые подписки кооператива берут её сразу */
+	setCoopPrice: GraphQLTypes["CoopPrice"],
 	/** Изменить настройки подтверждения входа (изменение фактора приложения требует TOTP-код) */
 	setLoginFactors: GraphQLTypes["LoginFactors"],
 	/** Управление статусом платежа осущствляется мутацией setPaymentStatus. При переходе платежа в статус PAID вызывается эффект в блокчейне, который завершает операцию автоматическим переводом платежа в статус COMPLETED. При установке статуса REFUNDED запускается процесс отмены платежа в блокчейне. Остальные статусы не приводят к эффектам в блокчейне. */
@@ -69950,6 +70137,8 @@ export type GraphQLTypes = {
 	annual_billing: GraphQLTypes["ProviderAnnualBilling"],
 	/** Тариф кооператива из запроса; пусто — тариф не выбран или кооператив чужой */
 	current_tariff?: GraphQLTypes["ProviderCurrentTariff"] | undefined | null,
+	/** Индивидуальные цены кооператива из запроса: цены услуг, конфигураций и строк тарифов выше уже подставлены; без кооператива — пусто */
+	individual_prices: Array<GraphQLTypes["ProviderIndividualPrice"]>,
 	/** Конфигурации сервера на выбор */
 	server_options: Array<GraphQLTypes["ProviderCatalogServerOption"]>,
 	/** Тарифная сетка подключения */
@@ -69972,6 +70161,17 @@ export type GraphQLTypes = {
 	/** Пробный период тарифа, дней */
 	trial_days: number,
 	['...on ProviderCurrentTariff']: Omit<GraphQLTypes["ProviderCurrentTariff"], "...on ProviderCurrentTariff">
+};
+	/** Индивидуальная цена услуги для кооператива */
+["ProviderIndividualPrice"]: {
+	__typename: "ProviderIndividualPrice",
+	/** Цена кооператива, ₽ в месяц; 0 — бесплатно */
+	amount_per_month: number,
+	/** Машинный код услуги */
+	code?: string | undefined | null,
+	/** ID услуги (типа подписки) у провайдера */
+	subscription_type_id: number,
+	['...on ProviderIndividualPrice']: Omit<GraphQLTypes["ProviderIndividualPrice"], "...on ProviderIndividualPrice">
 };
 	["ProviderSubscription"]: {
 	__typename: "ProviderSubscription",
@@ -70463,6 +70663,8 @@ export type GraphQLTypes = {
 	getCapitalProjectLogs: GraphQLTypes["PaginatedCapitalLogsPaginationResult"],
 	/** Получить состояние онбординга председателя */
 	getChairmanOnboardingState: GraphQLTypes["ChairmanOnboardingState"],
+	/** Индивидуальные цены услуг кооператива у оператора: назначены заранее, действуют на витрину и подписки */
+	getCoopPrices: Array<GraphQLTypes["CoopPrice"]>,
 	/** Последний устав кооператива со свежей ссылкой на скачивание. */
 	getCooperativeCharter?: GraphQLTypes["CooperativeCharter"] | undefined | null,
 	/** История оплат кооператива: списания подписок из журнала биллинга хаба, свежие сверху */
@@ -71080,6 +71282,13 @@ export type GraphQLTypes = {
 	["RemoveAvailableCategoryTypesInput"]: {
 		/** Типы товаров для удаления */
 	categoryTypes: Array<GraphQLTypes["CategoryTypeInput"]>
+};
+	/** Снять индивидуальную цену услуги: кооператив на общих основаниях */
+["RemoveCoopPriceInput"]: {
+		/** Кооператив */
+	coopname: string,
+	/** ID услуги (типа подписки) у провайдера */
+	subscription_type_id: number
 };
 	["RemoveSecretaryRoomInput"]: {
 		/** Идентификатор комнаты в реестре, которую нужно удалить */
@@ -71965,6 +72174,17 @@ export type GraphQLTypes = {
 	config: GraphQLTypes["ConfigInput"],
 	/** Имя аккаунта кооператива */
 	coopname: string
+};
+	/** Назначить кооперативу индивидуальную цену услуги */
+["SetCoopPriceInput"]: {
+		/** Цена кооператива, ₽ в месяц; 0 — бесплатно */
+	amount_per_month: number,
+	/** Кооператив */
+	coopname: string,
+	/** Основание */
+	reason?: string | undefined | null,
+	/** ID услуги (типа подписки) у провайдера */
+	subscription_type_id: number
 };
 	["SetIssueMetricBindingsInput"]: {
 		/** Полный список привязок задачи к метрикам */
@@ -75160,6 +75380,7 @@ type ZEUS_VARIABLES = {
 	["ReleaseTypeEnum"]: ValueTypes["ReleaseTypeEnum"];
 	["RemoveAvailableCategoriesInput"]: ValueTypes["RemoveAvailableCategoriesInput"];
 	["RemoveAvailableCategoryTypesInput"]: ValueTypes["RemoveAvailableCategoryTypesInput"];
+	["RemoveCoopPriceInput"]: ValueTypes["RemoveCoopPriceInput"];
 	["RemoveSecretaryRoomInput"]: ValueTypes["RemoveSecretaryRoomInput"];
 	["ReplaceAvailableItemsInput"]: ValueTypes["ReplaceAvailableItemsInput"];
 	["ReportExpenseItemInput"]: ValueTypes["ReportExpenseItemInput"];
@@ -75215,6 +75436,7 @@ type ZEUS_VARIABLES = {
 	["SetCapitalProjectPriorityInput"]: ValueTypes["SetCapitalProjectPriorityInput"];
 	["SetCatalogAppEnabledInput"]: ValueTypes["SetCatalogAppEnabledInput"];
 	["SetConfigInput"]: ValueTypes["SetConfigInput"];
+	["SetCoopPriceInput"]: ValueTypes["SetCoopPriceInput"];
 	["SetIssueMetricBindingsInput"]: ValueTypes["SetIssueMetricBindingsInput"];
 	["SetLoginFactorsInput"]: ValueTypes["SetLoginFactorsInput"];
 	["SetMasterInput"]: ValueTypes["SetMasterInput"];

@@ -56,6 +56,7 @@ describe('ProviderService.getConnectionCatalog (Epic 28)', () => {
       tariffs: [],
       annual_billing: { enabled: false, discount_percent: 0 },
       current_tariff: null,
+      individual_prices: [],
     });
   });
 
@@ -198,3 +199,75 @@ describe('ProviderService.getCooperativesRegistry — тариф заявки', 
   });
 });
 
+/**
+ * Индивидуальные цены кооперативов у оператора (решение владельца 28.10.2026).
+ * Реестр: test-registry/billing.subscriptions.yaml.
+ */
+describe('ProviderService — индивидуальные цены кооператива', () => {
+  const build = () => new ProviderService({} as any, {} as any, { listLatestFor: jest.fn() } as any);
+
+  beforeEach(() => {
+    (config as any).provider_base_url = 'http://provider:3000';
+    (config as any).provider_bearer_token = 'tok-123';
+    (config as any).server_secret = 'secret-1';
+  });
+  afterEach(() => jest.clearAllMocks());
+
+  it('happy: каталог отдаёт individual_prices как есть; провайдер без них — пустой список', async () => {
+    mockedAxios.get.mockResolvedValueOnce({
+      data: { types: [], individual_prices: [{ subscription_type_id: 3, code: 'docflow', amount_per_month: 900 }] },
+    });
+    expect((await build().getConnectionCatalog('partner1')).individual_prices).toEqual([
+      { subscription_type_id: 3, code: 'docflow', amount_per_month: 900 },
+    ]);
+
+    mockedAxios.get.mockResolvedValueOnce({ data: { types: [] } });
+    expect((await build().getConnectionCatalog('partner1')).individual_prices).toEqual([]);
+  });
+
+  it('happy: назначение идёт PUT /coop-prices/:coopname/:typeId с server-secret, ответ провайдера возвращается', async () => {
+    const row = { subscription_type_id: 3, code: 'docflow', name: 'ЭДО', amount_per_month: 0, list_price_per_month: 1500, reason: 'пилот', created_by: 'service', updated_at: '2026-10-28T10:00:00.000Z' };
+    mockedAxios.put.mockResolvedValueOnce({ data: row });
+
+    const res = await build().setCoopPrice('partner1', 3, 0, 'пилот');
+
+    expect(mockedAxios.put).toHaveBeenCalledWith(
+      'http://provider:3000/coop-prices/partner1/3',
+      { amount_per_month: 0, reason: 'пилот' },
+      expect.objectContaining({ headers: { 'server-secret': 'secret-1' } }),
+    );
+    expect(res).toEqual(row);
+  });
+
+  it('happy: снятие идёт DELETE; список — GET тем же каналом', async () => {
+    mockedAxios.delete.mockResolvedValueOnce({ data: '' });
+    mockedAxios.get.mockResolvedValueOnce({ data: [{ subscription_type_id: 3 }] });
+
+    await build().removeCoopPrice('partner1', 3);
+    const list = await build().listCoopPrices('partner1');
+
+    expect(mockedAxios.delete).toHaveBeenCalledWith(
+      'http://provider:3000/coop-prices/partner1/3',
+      expect.objectContaining({ headers: { 'server-secret': 'secret-1' } }),
+    );
+    expect(mockedAxios.get).toHaveBeenCalledWith(
+      'http://provider:3000/coop-prices/partner1',
+      expect.objectContaining({ headers: { 'server-secret': 'secret-1' } }),
+    );
+    expect(list).toEqual([{ subscription_type_id: 3 }]);
+  });
+
+  it('break: отказ провайдера (услуга не найдена) — понятная ошибка с причиной, не сырой axios', async () => {
+    mockedAxios.put.mockRejectedValueOnce({ response: { data: { message: 'Услуга #777 не найдена' } } });
+
+    await expect(build().setCoopPrice('partner1', 777, 10, null)).rejects.toMatchObject({
+      message: expect.stringContaining('Услуга #777 не найдена'),
+    });
+  });
+
+  it('break: провайдер не настроен — отказ до запроса', async () => {
+    (config as any).provider_base_url = '';
+    await expect(build().listCoopPrices('partner1')).rejects.toBeInstanceOf(BadRequestException);
+    expect(mockedAxios.get).not.toHaveBeenCalled();
+  });
+});

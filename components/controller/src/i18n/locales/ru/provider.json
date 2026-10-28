@@ -7,6 +7,7 @@
     "PROVIDER_BASE_URL_MISSING": "Провайдер не настроен (PROVIDER_BASE_URL)",
     "PROVIDER_CATALOG_TOKEN_MISSING": "Витрина провайдера не настроена (PROVIDER_BEARER_TOKEN)",
     "PROVIDER_CATALOG_UNAVAILABLE": "Каталог тарифов провайдера временно недоступен, попробуйте позже",
+    "PROVIDER_COOP_PRICE_FAILED": "Провайдер не принял индивидуальную цену: {reason}",
     "PROVIDER_CHARTER_CHECKSUM_MISMATCH": "checksum_sha256 не совпадает с реальным SHA-256 содержимого.",
     "PROVIDER_CHARTER_DUPLICATE": "Этот же файл устава уже приложен к заявке.",
     "PROVIDER_CHARTER_NOT_FOUND": "Устав #{id} не найден.",

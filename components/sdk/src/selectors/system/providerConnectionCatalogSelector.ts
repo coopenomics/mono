@@ -54,6 +54,13 @@ export const rawProviderConnectionCatalogSelector = {
     daily_axon: true,
     trial_days: true,
   },
+  // Индивидуальные цены кооператива из запроса (28.10.2026): цены выше уже
+  // подставлены, список показывает, какие строки индивидуальны.
+  individual_prices: {
+    subscription_type_id: true,
+    code: true,
+    amount_per_month: true,
+  },
 }
 
 // Проверка валидности

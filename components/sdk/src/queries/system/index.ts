@@ -3,6 +3,7 @@ export * as GetCooperativePayments from './getCooperativePayments'
 
 /** Реестр кооперативов оператора (список из блокчейна + данные провайдера) */
 export * as GetCooperativesRegistry from './getCooperativesRegistry'
+export * as GetCoopPrices from './getCoopPrices'
 
 /** Получить текущий инстанс пользователя */
 export * as GetCurrentInstance from './getCurrentInstance'

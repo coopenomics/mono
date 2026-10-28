@@ -163,6 +163,18 @@ export class ProviderCurrentTariffDTO {
   trial_days!: number;
 }
 
+@ObjectType('ProviderIndividualPrice', { description: 'Индивидуальная цена услуги для кооператива' })
+export class ProviderIndividualPriceDTO {
+  @Field(() => Int, { description: 'ID услуги (типа подписки) у провайдера' })
+  subscription_type_id!: number;
+
+  @Field(() => String, { nullable: true, description: 'Машинный код услуги' })
+  code!: string | null;
+
+  @Field(() => Float, { description: 'Цена кооператива, ₽ в месяц; 0 — бесплатно' })
+  amount_per_month!: number;
+}
+
 @ObjectType('ProviderConnectionCatalog', {
   description: 'Каталог витрины подключения: услуги и конфигурации сервера',
 })
@@ -188,4 +200,10 @@ export class ProviderConnectionCatalogDTO {
     description: 'Тариф кооператива из запроса; пусто — тариф не выбран или кооператив чужой',
   })
   current_tariff!: ProviderCurrentTariffDTO | null;
+
+  @Field(() => [ProviderIndividualPriceDTO], {
+    description:
+      'Индивидуальные цены кооператива из запроса: цены услуг, конфигураций и строк тарифов выше уже подставлены; без кооператива — пусто',
+  })
+  individual_prices!: ProviderIndividualPriceDTO[];
 }

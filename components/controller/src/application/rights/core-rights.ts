@@ -135,6 +135,8 @@ export const coreRightsTable: RightsTable<CoreRightsRole, never> = {
         // приложениями (расходы, кооперативы союза).
         Expense: ['read:all'],
         Union: ['read'],
+        // Индивидуальные цены услуг кооперативов у оператора: совет видит.
+        CoopPrice: ['read'],
       },
     },
   ],
@@ -162,6 +164,8 @@ export const coreRightsTable: RightsTable<CoreRightsRole, never> = {
         // Тариф сервера своего кооператива и оплата подписок с биллинг-кошелька.
         ProviderHostingPlan: ['change:own'],
         Billing: ['pay'],
+        // Индивидуальные цены услуг кооперативов назначает председатель оператора.
+        CoopPrice: ['manage'],
       },
     },
   ],

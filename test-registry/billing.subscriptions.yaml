@@ -32,6 +32,8 @@ sources:
     - components/desktop/src/entities/Wallet/model/useCooperativeMainWallet.ts
     - components/desktop/src/widgets/ConnectionDashboard/ui/MembershipCard.vue
     - components/desktop/src/widgets/ConnectionDashboard/ui/AxonWallet.vue
+    - components/desktop/src/features/Union/CoopPrices/**
+    - components/desktop/src/widgets/Union/CoopPricesCard/**
 
 cases:
   # ── Хаб-крон: оплата подписок ───────────────────────────────────────────
@@ -443,4 +445,33 @@ cases:
       под меткой «пробный период» — «до ДД.ММ.ГГГГ» (expires_at); описание документооборота и
       правило объёма одним абзацем, число AXON без «RUB», слова «членский взнос» и
       «приобретается» вместо «докупается»
+    status: missing
+
+  # ── Индивидуальные цены кооперативов (решение владельца 28.10.2026) ──────
+  # Оператор назначает кооперативу цену услуги до подписки: витрина и новые
+  # подписки кооператива берут её сразу, живые подписки провайдер
+  # переоценивает сам. Хранит провайдер; узел оператора только передаёт.
+  - id: bill.happy.22
+    level: backend
+    kind: happy
+    scenario: Оператор назначает и снимает индивидуальную цену (setCoopPrice / removeCoopPrice / getCoopPrices)
+    expect: запросы идут к провайдеру PUT/DELETE/GET /coop-prices тем же каналом server-secret; ответ провайдера возвращается как есть; каталог витрины отдаёт individual_prices, у старого провайдера — пустой список
+    test: components/controller/src/application/provider/services/provider-catalog.spec.ts
+    api: components/boot/src/tests/billing-tank.test.ts
+    status: passing
+
+  - id: bill.break.20
+    level: backend
+    kind: break
+    scenario: Провайдер отказал (услуга не найдена, цена отрицательная) или не настроен
+    expect: понятная ошибка с причиной отказа провайдера; без адреса провайдера запрос не отправляется
+    test: components/controller/src/application/provider/services/provider-catalog.spec.ts
+    api: components/boot/src/tests/billing-tank.test.ts
+    status: passing
+
+  - id: bill.ui.09
+    level: ui
+    kind: happy
+    scenario: Вкладка «Индивидуальные цены» карточки кооператива в реестре оператора
+    expect: реестр цен услуга — прейскурант — цена кооператива; «Назначить цену» открывает правую панель с выбором услуги и суммой в месяц; строка открывает панель с фактами, «Изменить» и «Снять»; на вкладке «Подписки» строка тарифа с индивидуальной ценой показывает её, прейскурант зачёркнут
     status: missing

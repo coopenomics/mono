@@ -2764,6 +2764,9 @@ export const AllTypesProps: Record<string,any> = {
 		removeAppsPublisher:{
 			data:"AppsPublisherAssignmentInputDTO"
 		},
+		removeCoopPrice:{
+			data:"RemoveCoopPriceInput"
+		},
 		reportExpenseItem:{
 			data:"ReportExpenseItemInput"
 		},
@@ -2832,6 +2835,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		setCatalogAppEnabled:{
 			data:"SetCatalogAppEnabledInput"
+		},
+		setCoopPrice:{
+			data:"SetCoopPriceInput"
 		},
 		setLoginFactors:{
 			data:"SetLoginFactorsInput"
@@ -3447,6 +3453,9 @@ export const AllTypesProps: Record<string,any> = {
 		getCapitalProjectLogs:{
 			data:"GetCapitalLogsInput"
 		},
+		getCoopPrices:{
+
+		},
 		getCooperativeCharter:{
 
 		},
@@ -3897,6 +3906,9 @@ export const AllTypesProps: Record<string,any> = {
 	RemoveAvailableCategoryTypesInput:{
 		categoryTypes:"CategoryTypeInput"
 	},
+	RemoveCoopPriceInput:{
+
+	},
 	RemoveSecretaryRoomInput:{
 
 	},
@@ -4048,6 +4060,9 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	SetConfigInput:{
 		config:"ConfigInput"
+	},
+	SetCoopPriceInput:{
+
 	},
 	SetIssueMetricBindingsInput:{
 		bindings:"IssueMetricBindingItemInput"
@@ -5873,6 +5888,16 @@ export const ReturnTypes: Record<string,any> = {
 		draft_id:"Int",
 		program_id:"Int",
 		type:"String"
+	},
+	CoopPrice:{
+		amount_per_month:"Float",
+		code:"String",
+		created_by:"String",
+		list_price_per_month:"Float",
+		name:"String",
+		reason:"String",
+		subscription_type_id:"Int",
+		updated_at:"String"
 	},
 	CooperativeCharter:{
 		checksum_sha256:"String",
@@ -8503,6 +8528,7 @@ export const ReturnTypes: Record<string,any> = {
 		rejectVerification:"VerificationReview",
 		removeAppsPublisher:"Boolean",
 		removeAvatar:"Boolean",
+		removeCoopPrice:"Boolean",
 		reportExpenseItem:"ExpenseReportResult",
 		reportNotMe:"RevokedSessionsResult",
 		requestCooperativeEndorsement:"Boolean",
@@ -8528,6 +8554,7 @@ export const ReturnTypes: Record<string,any> = {
 		sendAgreement:"Transaction",
 		setBranchPrivate:"Branch",
 		setCatalogAppEnabled:"Boolean",
+		setCoopPrice:"CoopPrice",
 		setLoginFactors:"LoginFactors",
 		setPaymentStatus:"GatewayPayment",
 		setRecoveryStrategy:"Boolean",
@@ -9184,6 +9211,7 @@ export const ReturnTypes: Record<string,any> = {
 	ProviderConnectionCatalog:{
 		annual_billing:"ProviderAnnualBilling",
 		current_tariff:"ProviderCurrentTariff",
+		individual_prices:"ProviderIndividualPrice",
 		server_options:"ProviderCatalogServerOption",
 		tariffs:"ProviderTariff",
 		types:"ProviderCatalogSubscriptionType"
@@ -9194,6 +9222,11 @@ export const ReturnTypes: Record<string,any> = {
 		daily_axon:"Float",
 		docflow_axon:"Float",
 		trial_days:"Int"
+	},
+	ProviderIndividualPrice:{
+		amount_per_month:"Float",
+		code:"String",
+		subscription_type_id:"Int"
 	},
 	ProviderSubscription:{
 		created_at:"String",
@@ -9418,6 +9451,7 @@ export const ReturnTypes: Record<string,any> = {
 		getCapitalOnboardingState:"CapitalOnboardingState",
 		getCapitalProjectLogs:"PaginatedCapitalLogsPaginationResult",
 		getChairmanOnboardingState:"ChairmanOnboardingState",
+		getCoopPrices:"CoopPrice",
 		getCooperativeCharter:"CooperativeCharter",
 		getCooperativePayments:"CooperativePayment",
 		getCooperativesRegistry:"CooperativeRegistryItem",

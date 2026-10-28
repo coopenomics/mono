@@ -21,6 +21,7 @@ import { BLOCKCHAIN_PORT, type BlockchainPort } from '~/domain/common/ports/bloc
 import { ORGANIZATION_REPOSITORY, type OrganizationRepository } from '~/domain/common/repositories/organization.repository';
 import { CooperativeCharterService } from './cooperative-charter.service';
 import { CooperativeCharterOutputDTO } from '../dto/cooperative-charter.output';
+import { CoopPriceDTO } from '../dto/coop-price.dto';
 import { t } from '~/i18n';
 
 const listOf = <T>(value: unknown): T[] => (Array.isArray(value) ? (value as T[]) : []);
@@ -36,6 +37,9 @@ function toConnectionCatalog(data: any): ProviderConnectionCatalogDTO {
     server_options: listOf(data.server_options),
     tariffs: listOf(data.tariffs),
     current_tariff: data.current_tariff ?? null,
+    // Индивидуальные цены кооператива (28.10.2026): провайдер до них
+    // отдаёт только прейскурант — пустой список.
+    individual_prices: listOf(data.individual_prices),
     annual_billing: {
       enabled: data.annual_billing?.enabled === true,
       discount_percent: Number(data.annual_billing?.discount_percent ?? 0),
@@ -343,6 +347,66 @@ export class ProviderService {
       const message = error?.response?.data?.message || error?.message || t('provider.hostingPlan.unknownError');
       this.logger.error(`Смена тарифа для ${username} не прошла: ${message}`);
       throw DomainError.badRequest('PROVIDER_HOSTING_PLAN_CHANGE_FAILED', { reason: message });
+    }
+  }
+
+  /**
+   * Индивидуальные цены услуг кооператива у провайдера (28.10.2026):
+   * оператор ведёт их из реестра кооперативов. Канал — server-secret, как у
+   * остальных команд оператора.
+   */
+  async listCoopPrices(coopname: string): Promise<CoopPriceDTO[]> {
+    if (!this.isProviderAvailable()) {
+      throw DomainError.badRequest('PROVIDER_BASE_URL_MISSING');
+    }
+    const response = await axios.get(`${config.provider_base_url}/coop-prices/${coopname}`, {
+      headers: { 'server-secret': config.server_secret },
+      timeout: 10_000,
+    });
+    return listOf<CoopPriceDTO>(response.data);
+  }
+
+  /**
+   * Назначить кооперативу цену услуги в месяц (0 — бесплатно). Провайдер
+   * применяет её к витрине, новым и живым подпискам сразу.
+   */
+  async setCoopPrice(
+    coopname: string,
+    subscriptionTypeId: number,
+    amountPerMonth: number,
+    reason: string | null,
+  ): Promise<CoopPriceDTO> {
+    if (!this.isProviderAvailable()) {
+      throw DomainError.badRequest('PROVIDER_BASE_URL_MISSING');
+    }
+    try {
+      const response = await axios.put(
+        `${config.provider_base_url}/coop-prices/${coopname}/${subscriptionTypeId}`,
+        { amount_per_month: amountPerMonth, reason: reason ?? undefined },
+        { headers: { 'server-secret': config.server_secret }, timeout: 30_000 },
+      );
+      return response.data as CoopPriceDTO;
+    } catch (error: any) {
+      const message = error?.response?.data?.message || describeProviderError(error);
+      this.logger.error(`Индивидуальная цена ${coopname} / услуга #${subscriptionTypeId} не назначена: ${message}`);
+      throw DomainError.badRequest('PROVIDER_COOP_PRICE_FAILED', { reason: message });
+    }
+  }
+
+  /** Снять индивидуальную цену: кооператив на общих основаниях. */
+  async removeCoopPrice(coopname: string, subscriptionTypeId: number): Promise<void> {
+    if (!this.isProviderAvailable()) {
+      throw DomainError.badRequest('PROVIDER_BASE_URL_MISSING');
+    }
+    try {
+      await axios.delete(`${config.provider_base_url}/coop-prices/${coopname}/${subscriptionTypeId}`, {
+        headers: { 'server-secret': config.server_secret },
+        timeout: 30_000,
+      });
+    } catch (error: any) {
+      const message = error?.response?.data?.message || describeProviderError(error);
+      this.logger.error(`Индивидуальная цена ${coopname} / услуга #${subscriptionTypeId} не снята: ${message}`);
+      throw DomainError.badRequest('PROVIDER_COOP_PRICE_FAILED', { reason: message });
     }
   }
 

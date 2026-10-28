@@ -9,6 +9,8 @@ export * as ChangeProviderTariff from './changeProviderTariff'
 
 /** Выбрать тариф подключения: провайдер заказывает сервер и заводит подписки тарифа */
 export * as SelectProviderTariff from './selectProviderTariff'
+export * as SetCoopPrice from './setCoopPrice'
+export * as RemoveCoopPrice from './removeCoopPrice'
 
 /** Произвести инициализацию программного обеспечения перед установкой совета методом install */
 export * as InitSystem from './initSystem'
