@@ -22,6 +22,7 @@ import {
   type IProviderAppsPort,
   type InnerAppSubscription,
 } from '@coopenomics/innercoop';
+import { Name, UInt128 } from '@wharfkit/session';
 import { Ledger2, Ledger2Contract, RegistratorContract, TokenContract } from 'cooptypes';
 import { t } from '../../i18n';
 import { AppsCatalogHttpService } from '../../infrastructure/apps-catalog-http.service';
@@ -256,14 +257,19 @@ export class NodeAppsService {
   /** Остатки кооператива у оператора: членские взносы на подписки и AXON. */
   private async walletOf(operator: string, coopname: string): Promise<AppsNodeBillingDTO['wallet']> {
     try {
-      // Срез кошельков оператора — полный, как в «Столе заказов»; при росте —
-      // запрос по индексу byuserwallet (i128).
-      const rows = await this.chain.getAllRows<Ledger2Contract.Tables.UserWallets.IUserWallet>(
+      // Одна строка кошелька кооператива в леджере оператора — по индексу
+      // byuserwallet (combine_ids(wallet_name, username), как в контракте), без
+      // чтения всей таблицы оператора: она растёт с каждым кооперативом
+      // (слово владельца 28.10.2026). Строки нет — контракт стирает кошелёк при
+      // нулевом остатке, значит, остаток ноль.
+      const billing = await this.chain.getSingleRow<Ledger2Contract.Tables.UserWallets.IUserWallet>(
         Ledger2Contract.contractName.production,
         operator,
         Ledger2Contract.Tables.UserWallets.tableName,
+        UInt128.from(userWalletKey(Ledger2.BILLING_WALLET_NAME, coopname).toString()),
+        'secondary',
+        'i128',
       );
-      const billing = rows.find((r) => r.username === coopname && r.wallet_name === Ledger2.BILLING_WALLET_NAME);
       // AXON — остаток токена на счёте кооператива в цепи (таблица accounts
       // контракта токена). Запись реестра кооператива остатка не содержит:
       // по этой записи узел показывал ноль при 2 089 AXON в цепи (27.10.2026).
@@ -284,4 +290,12 @@ export class NodeAppsService {
       return null;
     }
   }
+}
+
+/**
+ * Ключ индекса byuserwallet кошелька ledger2: combine_ids(wallet_name, username)
+ * = (wallet_name << 64) | username, числовые значения имён — как в цепи.
+ */
+export function userWalletKey(walletName: string, username: string): bigint {
+  return (BigInt(Name.from(walletName).value.toString()) << 64n) | BigInt(Name.from(username).value.toString());
 }

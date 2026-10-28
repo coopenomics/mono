@@ -5,7 +5,7 @@
  */
 import { configurePlatformSettings } from '@coopenomics/extension-kit';
 import { InnerAppSubscriptionStatus, type IProviderAppsPort } from '@coopenomics/innercoop';
-import { NodeAppsService } from '~/extensions/apps-catalog-proxy/application/services/node-apps.service';
+import { NodeAppsService, userWalletKey } from '~/extensions/apps-catalog-proxy/application/services/node-apps.service';
 import {
   SubscribePackageStatus,
   SubscriptionStateEnum,
@@ -46,17 +46,15 @@ function harness(opts: { port?: Partial<IProviderAppsPort> | null; installed?: s
     setEnabled: jest.fn(async (packageId: string, enabled: boolean) => ({ packageId, enabled, config: {}, updatedAt: new Date() })),
   };
   const chain = {
-    // Запись кооператива в реестре: оператор и адрес сайта (у оператора).
-    getSingleRow: jest.fn(async () => ({ parent_username: 'voskhod', announce: 'voskhod.coop' })),
-    // Кошельки оператора (ledger2) и остатки токена кооператива (accounts).
-    getAllRows: jest.fn(async (code: string) =>
-      code === 'eosio.token'
-        ? [{ balance: '144.0000 AXON' }]
-        : [
-            { username: 'other', wallet_name: 'w.wal.bill', available: '9.0000 RUB' },
-            { username: 'romashka', wallet_name: 'w.wal.bill', available: '1500.0000 RUB' },
-          ],
+    // Запись кооператива в реестре (оператор и адрес сайта) и одна строка
+    // кошелька кооператива в леджере оператора — по индексу.
+    getSingleRow: jest.fn(async (code: string): Promise<any> =>
+      code === 'ledger2'
+        ? { username: 'romashka', wallet_name: 'w.wal.bill', available: '1500.0000 RUB' }
+        : { parent_username: 'voskhod', announce: 'voskhod.coop' },
     ),
+    // Остатки токена кооператива (accounts).
+    getAllRows: jest.fn(async () => [{ balance: '144.0000 AXON' }]),
   };
   const port = opts.port === null ? undefined : ({
     listOffers: jest.fn(async () => [{ package_id: PKG, price: 360, period_days: 30, trial_days: 14 }]),
@@ -216,10 +214,30 @@ describe('подписки и кошелёк узла у провайдера', 
     expect(billing.nextPaymentDue).toBe(summary.next_payment_due);
     expect(billing.operator).toBe('voskhod');
     expect(billing.operatorSite).toBe('voskhod.coop');
-    expect(chain.getAllRows).toHaveBeenCalledWith('ledger2', 'voskhod', 'userwallets');
+    // Кошелёк — одной строкой по индексу byuserwallet, без чтения всей таблицы оператора.
+    expect(chain.getSingleRow).toHaveBeenCalledWith(
+      'ledger2', 'voskhod', 'userwallets', expect.anything(), 'secondary', 'i128',
+    );
+    expect(chain.getAllRows).not.toHaveBeenCalledWith('ledger2', expect.anything(), expect.anything());
     // AXON — из таблицы остатков токена кооператива, не из записи реестра.
     expect(chain.getAllRows).toHaveBeenCalledWith('eosio.token', 'romashka', 'accounts');
     expect(billing.wallet).toEqual({ membershipAvailable: '1500.0000 RUB', axonAvailable: '144.0000 AXON' });
+  });
+
+  it('side: кошелька у оператора нет (контракт стёр его при нулевом остатке) — остаток ноль', async () => {
+    const { service, chain } = harness({ port: { listSubscriptions: async () => [] } });
+    chain.getSingleRow.mockImplementation(async (code: string) =>
+      code === 'ledger2' ? null : { parent_username: 'voskhod', announce: 'voskhod.coop' },
+    );
+    const billing = await service.nodeBilling();
+    expect(billing.wallet?.membershipAvailable).toBe('0.0000 RUB');
+  });
+
+  it('happy: ключ индекса byuserwallet считается как combine_ids контракта', () => {
+    // Ключ этой формулой нашёл строку w.wal.share / partner1 в цепи стенда (28.10.2026).
+    expect(userWalletKey('w.wal.bill', 'partner1').toString()).toBe('298039959265529671673118030355775881216');
+    // Старшие 64 бита — кошелёк, младшие — пайщик: перестановка дала бы другой ключ.
+    expect(userWalletKey('partner1', 'w.wal.bill')).not.toBe(userWalletKey('w.wal.bill', 'partner1'));
   });
 
   it('side: цепь не ответила — подписки есть, кошелька нет', async () => {
