@@ -132,8 +132,14 @@ class WeasyWorker {
     this.ready = false
     this.stderr = ''
 
+    // PYTHONHASHSEED=0: без него каждый процесс Python получает случайный
+    // seed хэширования строк, и порядок обхода множеств (глифы шрифта при
+    // встраивании в PDF) меняется от воркера к воркеру. Два прогона CI
+    // 28.10.2026 дали разные хэши PDF у 10 длинных документов при побайтно
+    // равном HTML; внутри одного процесса это не видно, потому что пул отдаёт
+    // тот же воркер. С закреплённым seed PDF одинаков в любом процессе.
     const proc = spawn(WeasyWorker.pythonBin(), ['-u', '-c', PY_WORKER_LOOP], {
-      env: { ...process.env, SOURCE_DATE_EPOCH: '0', PYTHONUNBUFFERED: '1' },
+      env: { ...process.env, SOURCE_DATE_EPOCH: '0', PYTHONHASHSEED: '0', PYTHONUNBUFFERED: '1' },
     })
     this.proc = proc
     this.rl = readline.createInterface({ input: proc.stdout })

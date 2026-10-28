@@ -1,638 +1,652 @@
 {
-  "samples": 105,
-  "kinds": 90,
-  "median_ms": 126,
-  "p95_ms": 753,
+  "samples": 107,
+  "kinds": 92,
+  "median_ms": 68,
+  "p95_ms": 429,
   "rows": [
     {
       "registry_id": 1,
-      "samples": 1,
-      "median_ms": 260,
-      "p95_ms": 260,
-      "max_ms": 260
-    },
-    {
-      "registry_id": 2,
-      "samples": 1,
-      "median_ms": 180,
-      "p95_ms": 180,
-      "max_ms": 180
-    },
-    {
-      "registry_id": 3,
-      "samples": 1,
-      "median_ms": 168,
-      "p95_ms": 168,
-      "max_ms": 168
-    },
-    {
-      "registry_id": 4,
-      "samples": 1,
-      "median_ms": 137,
-      "p95_ms": 137,
-      "max_ms": 137
-    },
-    {
-      "registry_id": 50,
-      "samples": 1,
-      "median_ms": 316,
-      "p95_ms": 316,
-      "max_ms": 316
-    },
-    {
-      "registry_id": 51,
-      "samples": 1,
-      "median_ms": 60,
-      "p95_ms": 60,
-      "max_ms": 60
-    },
-    {
-      "registry_id": 100,
-      "samples": 3,
-      "median_ms": 72,
-      "p95_ms": 148,
-      "max_ms": 148
-    },
-    {
-      "registry_id": 101,
-      "samples": 3,
-      "median_ms": 52,
-      "p95_ms": 89,
-      "max_ms": 89
-    },
-    {
-      "registry_id": 190,
-      "samples": 1,
-      "median_ms": 602,
-      "p95_ms": 602,
-      "max_ms": 602
-    },
-    {
-      "registry_id": 200,
-      "samples": 3,
-      "median_ms": 43,
-      "p95_ms": 75,
-      "max_ms": 75
-    },
-    {
-      "registry_id": 201,
-      "samples": 1,
-      "median_ms": 132,
-      "p95_ms": 132,
-      "max_ms": 132
-    },
-    {
-      "registry_id": 300,
-      "samples": 2,
-      "median_ms": 90,
-      "p95_ms": 641,
-      "max_ms": 641
-    },
-    {
-      "registry_id": 301,
-      "samples": 2,
-      "median_ms": 99,
-      "p95_ms": 163,
-      "max_ms": 163
-    },
-    {
-      "registry_id": 302,
-      "samples": 1,
-      "median_ms": 128,
-      "p95_ms": 128,
-      "max_ms": 128
-    },
-    {
-      "registry_id": 303,
-      "samples": 1,
-      "median_ms": 140,
-      "p95_ms": 140,
-      "max_ms": 140
-    },
-    {
-      "registry_id": 304,
-      "samples": 1,
-      "median_ms": 132,
-      "p95_ms": 132,
-      "max_ms": 132
-    },
-    {
-      "registry_id": 320,
-      "samples": 1,
-      "median_ms": 635,
-      "p95_ms": 635,
-      "max_ms": 635
-    },
-    {
-      "registry_id": 322,
-      "samples": 1,
-      "median_ms": 146,
-      "p95_ms": 146,
-      "max_ms": 146
-    },
-    {
-      "registry_id": 323,
-      "samples": 1,
-      "median_ms": 137,
-      "p95_ms": 137,
-      "max_ms": 137
-    },
-    {
-      "registry_id": 324,
-      "samples": 1,
-      "median_ms": 81,
-      "p95_ms": 81,
-      "max_ms": 81
-    },
-    {
-      "registry_id": 325,
-      "samples": 1,
-      "median_ms": 291,
-      "p95_ms": 291,
-      "max_ms": 291
-    },
-    {
-      "registry_id": 326,
-      "samples": 1,
-      "median_ms": 58,
-      "p95_ms": 58,
-      "max_ms": 58
-    },
-    {
-      "registry_id": 327,
       "samples": 1,
       "median_ms": 129,
       "p95_ms": 129,
       "max_ms": 129
     },
     {
-      "registry_id": 328,
+      "registry_id": 2,
       "samples": 1,
-      "median_ms": 122,
-      "p95_ms": 122,
-      "max_ms": 122
+      "median_ms": 93,
+      "p95_ms": 93,
+      "max_ms": 93
     },
     {
-      "registry_id": 329,
-      "samples": 1,
-      "median_ms": 120,
-      "p95_ms": 120,
-      "max_ms": 120
-    },
-    {
-      "registry_id": 330,
-      "samples": 1,
-      "median_ms": 95,
-      "p95_ms": 95,
-      "max_ms": 95
-    },
-    {
-      "registry_id": 501,
-      "samples": 3,
-      "median_ms": 107,
-      "p95_ms": 164,
-      "max_ms": 164
-    },
-    {
-      "registry_id": 599,
-      "samples": 1,
-      "median_ms": 555,
-      "p95_ms": 555,
-      "max_ms": 555
-    },
-    {
-      "registry_id": 600,
-      "samples": 1,
-      "median_ms": 149,
-      "p95_ms": 149,
-      "max_ms": 149
-    },
-    {
-      "registry_id": 699,
-      "samples": 1,
-      "median_ms": 557,
-      "p95_ms": 557,
-      "max_ms": 557
-    },
-    {
-      "registry_id": 900,
-      "samples": 1,
-      "median_ms": 592,
-      "p95_ms": 592,
-      "max_ms": 592
-    },
-    {
-      "registry_id": 901,
-      "samples": 1,
-      "median_ms": 111,
-      "p95_ms": 111,
-      "max_ms": 111
-    },
-    {
-      "registry_id": 994,
-      "samples": 1,
-      "median_ms": 1305,
-      "p95_ms": 1305,
-      "max_ms": 1305
-    },
-    {
-      "registry_id": 996,
-      "samples": 1,
-      "median_ms": 764,
-      "p95_ms": 764,
-      "max_ms": 764
-    },
-    {
-      "registry_id": 998,
-      "samples": 2,
-      "median_ms": 257,
-      "p95_ms": 753,
-      "max_ms": 753
-    },
-    {
-      "registry_id": 1000,
-      "samples": 2,
-      "median_ms": 270,
-      "p95_ms": 290,
-      "max_ms": 290
-    },
-    {
-      "registry_id": 1001,
-      "samples": 1,
-      "median_ms": 326,
-      "p95_ms": 326,
-      "max_ms": 326
-    },
-    {
-      "registry_id": 1002,
+      "registry_id": 3,
       "samples": 1,
       "median_ms": 84,
       "p95_ms": 84,
       "max_ms": 84
     },
     {
-      "registry_id": 1003,
-      "samples": 1,
-      "median_ms": 87,
-      "p95_ms": 87,
-      "max_ms": 87
-    },
-    {
-      "registry_id": 1004,
-      "samples": 1,
-      "median_ms": 114,
-      "p95_ms": 114,
-      "max_ms": 114
-    },
-    {
-      "registry_id": 1005,
-      "samples": 1,
-      "median_ms": 85,
-      "p95_ms": 85,
-      "max_ms": 85
-    },
-    {
-      "registry_id": 1006,
-      "samples": 1,
-      "median_ms": 170,
-      "p95_ms": 170,
-      "max_ms": 170
-    },
-    {
-      "registry_id": 1007,
-      "samples": 1,
-      "median_ms": 97,
-      "p95_ms": 97,
-      "max_ms": 97
-    },
-    {
-      "registry_id": 1010,
-      "samples": 1,
-      "median_ms": 30,
-      "p95_ms": 30,
-      "max_ms": 30
-    },
-    {
-      "registry_id": 1011,
-      "samples": 1,
-      "median_ms": 28,
-      "p95_ms": 28,
-      "max_ms": 28
-    },
-    {
-      "registry_id": 1020,
+      "registry_id": 4,
       "samples": 1,
       "median_ms": 71,
       "p95_ms": 71,
       "max_ms": 71
     },
     {
-      "registry_id": 1025,
+      "registry_id": 50,
       "samples": 1,
-      "median_ms": 46,
-      "p95_ms": 46,
-      "max_ms": 46
+      "median_ms": 147,
+      "p95_ms": 147,
+      "max_ms": 147
     },
     {
-      "registry_id": 1030,
+      "registry_id": 51,
       "samples": 1,
-      "median_ms": 43,
-      "p95_ms": 43,
-      "max_ms": 43
+      "median_ms": 36,
+      "p95_ms": 36,
+      "max_ms": 36
     },
     {
-      "registry_id": 1040,
-      "samples": 1,
-      "median_ms": 456,
-      "p95_ms": 456,
-      "max_ms": 456
+      "registry_id": 100,
+      "samples": 3,
+      "median_ms": 58,
+      "p95_ms": 81,
+      "max_ms": 81
     },
     {
-      "registry_id": 1041,
-      "samples": 1,
-      "median_ms": 740,
-      "p95_ms": 740,
-      "max_ms": 740
+      "registry_id": 101,
+      "samples": 3,
+      "median_ms": 26,
+      "p95_ms": 52,
+      "max_ms": 52
     },
     {
-      "registry_id": 1042,
+      "registry_id": 190,
+      "samples": 1,
+      "median_ms": 374,
+      "p95_ms": 374,
+      "max_ms": 374
+    },
+    {
+      "registry_id": 200,
+      "samples": 3,
+      "median_ms": 26,
+      "p95_ms": 42,
+      "max_ms": 42
+    },
+    {
+      "registry_id": 201,
+      "samples": 1,
+      "median_ms": 74,
+      "p95_ms": 74,
+      "max_ms": 74
+    },
+    {
+      "registry_id": 300,
+      "samples": 2,
+      "median_ms": 52,
+      "p95_ms": 387,
+      "max_ms": 387
+    },
+    {
+      "registry_id": 301,
+      "samples": 2,
+      "median_ms": 52,
+      "p95_ms": 89,
+      "max_ms": 89
+    },
+    {
+      "registry_id": 302,
+      "samples": 1,
+      "median_ms": 70,
+      "p95_ms": 70,
+      "max_ms": 70
+    },
+    {
+      "registry_id": 303,
+      "samples": 1,
+      "median_ms": 78,
+      "p95_ms": 78,
+      "max_ms": 78
+    },
+    {
+      "registry_id": 304,
+      "samples": 1,
+      "median_ms": 75,
+      "p95_ms": 75,
+      "max_ms": 75
+    },
+    {
+      "registry_id": 320,
+      "samples": 1,
+      "median_ms": 424,
+      "p95_ms": 424,
+      "max_ms": 424
+    },
+    {
+      "registry_id": 322,
+      "samples": 1,
+      "median_ms": 86,
+      "p95_ms": 86,
+      "max_ms": 86
+    },
+    {
+      "registry_id": 323,
+      "samples": 1,
+      "median_ms": 72,
+      "p95_ms": 72,
+      "max_ms": 72
+    },
+    {
+      "registry_id": 324,
+      "samples": 1,
+      "median_ms": 48,
+      "p95_ms": 48,
+      "max_ms": 48
+    },
+    {
+      "registry_id": 325,
+      "samples": 1,
+      "median_ms": 157,
+      "p95_ms": 157,
+      "max_ms": 157
+    },
+    {
+      "registry_id": 326,
+      "samples": 1,
+      "median_ms": 37,
+      "p95_ms": 37,
+      "max_ms": 37
+    },
+    {
+      "registry_id": 327,
+      "samples": 1,
+      "median_ms": 59,
+      "p95_ms": 59,
+      "max_ms": 59
+    },
+    {
+      "registry_id": 328,
+      "samples": 1,
+      "median_ms": 59,
+      "p95_ms": 59,
+      "max_ms": 59
+    },
+    {
+      "registry_id": 329,
+      "samples": 1,
+      "median_ms": 49,
+      "p95_ms": 49,
+      "max_ms": 49
+    },
+    {
+      "registry_id": 330,
+      "samples": 1,
+      "median_ms": 48,
+      "p95_ms": 48,
+      "max_ms": 48
+    },
+    {
+      "registry_id": 501,
+      "samples": 3,
+      "median_ms": 58,
+      "p95_ms": 76,
+      "max_ms": 76
+    },
+    {
+      "registry_id": 599,
       "samples": 1,
       "median_ms": 334,
       "p95_ms": 334,
       "max_ms": 334
     },
     {
-      "registry_id": 1050,
+      "registry_id": 600,
       "samples": 1,
-      "median_ms": 27,
-      "p95_ms": 27,
-      "max_ms": 27
+      "median_ms": 81,
+      "p95_ms": 81,
+      "max_ms": 81
     },
     {
-      "registry_id": 1051,
-      "samples": 1,
-      "median_ms": 23,
-      "p95_ms": 23,
-      "max_ms": 23
-    },
-    {
-      "registry_id": 1060,
-      "samples": 1,
-      "median_ms": 29,
-      "p95_ms": 29,
-      "max_ms": 29
-    },
-    {
-      "registry_id": 1061,
-      "samples": 1,
-      "median_ms": 25,
-      "p95_ms": 25,
-      "max_ms": 25
-    },
-    {
-      "registry_id": 1062,
-      "samples": 1,
-      "median_ms": 23,
-      "p95_ms": 23,
-      "max_ms": 23
-    },
-    {
-      "registry_id": 1070,
-      "samples": 1,
-      "median_ms": 29,
-      "p95_ms": 29,
-      "max_ms": 29
-    },
-    {
-      "registry_id": 1071,
-      "samples": 1,
-      "median_ms": 24,
-      "p95_ms": 24,
-      "max_ms": 24
-    },
-    {
-      "registry_id": 1072,
-      "samples": 1,
-      "median_ms": 26,
-      "p95_ms": 26,
-      "max_ms": 26
-    },
-    {
-      "registry_id": 1080,
-      "samples": 1,
-      "median_ms": 64,
-      "p95_ms": 64,
-      "max_ms": 64
-    },
-    {
-      "registry_id": 1090,
-      "samples": 2,
-      "median_ms": 53,
-      "p95_ms": 588,
-      "max_ms": 588
-    },
-    {
-      "registry_id": 1095,
-      "samples": 1,
-      "median_ms": 85,
-      "p95_ms": 85,
-      "max_ms": 85
-    },
-    {
-      "registry_id": 1100,
+      "registry_id": 699,
       "samples": 1,
       "median_ms": 317,
       "p95_ms": 317,
       "max_ms": 317
     },
     {
-      "registry_id": 1102,
+      "registry_id": 900,
       "samples": 1,
-      "median_ms": 319,
-      "p95_ms": 319,
-      "max_ms": 319
+      "median_ms": 406,
+      "p95_ms": 406,
+      "max_ms": 406
     },
     {
-      "registry_id": 1103,
-      "samples": 1,
-      "median_ms": 155,
-      "p95_ms": 155,
-      "max_ms": 155
-    },
-    {
-      "registry_id": 1104,
-      "samples": 1,
-      "median_ms": 104,
-      "p95_ms": 104,
-      "max_ms": 104
-    },
-    {
-      "registry_id": 1106,
-      "samples": 1,
-      "median_ms": 102,
-      "p95_ms": 102,
-      "max_ms": 102
-    },
-    {
-      "registry_id": 1107,
-      "samples": 1,
-      "median_ms": 115,
-      "p95_ms": 115,
-      "max_ms": 115
-    },
-    {
-      "registry_id": 1108,
-      "samples": 1,
-      "median_ms": 95,
-      "p95_ms": 95,
-      "max_ms": 95
-    },
-    {
-      "registry_id": 1109,
-      "samples": 1,
-      "median_ms": 68,
-      "p95_ms": 68,
-      "max_ms": 68
-    },
-    {
-      "registry_id": 1110,
-      "samples": 1,
-      "median_ms": 64,
-      "p95_ms": 64,
-      "max_ms": 64
-    },
-    {
-      "registry_id": 1111,
-      "samples": 1,
-      "median_ms": 94,
-      "p95_ms": 94,
-      "max_ms": 94
-    },
-    {
-      "registry_id": 1112,
-      "samples": 1,
-      "median_ms": 129,
-      "p95_ms": 129,
-      "max_ms": 129
-    },
-    {
-      "registry_id": 1113,
-      "samples": 1,
-      "median_ms": 633,
-      "p95_ms": 633,
-      "max_ms": 633
-    },
-    {
-      "registry_id": 1114,
-      "samples": 1,
-      "median_ms": 177,
-      "p95_ms": 177,
-      "max_ms": 177
-    },
-    {
-      "registry_id": 1115,
-      "samples": 1,
-      "median_ms": 136,
-      "p95_ms": 136,
-      "max_ms": 136
-    },
-    {
-      "registry_id": 1116,
-      "samples": 1,
-      "median_ms": 118,
-      "p95_ms": 118,
-      "max_ms": 118
-    },
-    {
-      "registry_id": 1117,
-      "samples": 1,
-      "median_ms": 194,
-      "p95_ms": 194,
-      "max_ms": 194
-    },
-    {
-      "registry_id": 2010,
+      "registry_id": 901,
       "samples": 1,
       "median_ms": 66,
       "p95_ms": 66,
       "max_ms": 66
     },
     {
-      "registry_id": 2011,
+      "registry_id": 994,
+      "samples": 1,
+      "median_ms": 777,
+      "p95_ms": 777,
+      "max_ms": 777
+    },
+    {
+      "registry_id": 996,
+      "samples": 1,
+      "median_ms": 410,
+      "p95_ms": 410,
+      "max_ms": 410
+    },
+    {
+      "registry_id": 998,
       "samples": 2,
-      "median_ms": 99,
-      "p95_ms": 126,
-      "max_ms": 126
+      "median_ms": 145,
+      "p95_ms": 445,
+      "max_ms": 445
     },
     {
-      "registry_id": 3000,
+      "registry_id": 1000,
+      "samples": 2,
+      "median_ms": 132,
+      "p95_ms": 148,
+      "max_ms": 148
+    },
+    {
+      "registry_id": 1001,
       "samples": 1,
-      "median_ms": 790,
-      "p95_ms": 790,
-      "max_ms": 790
+      "median_ms": 173,
+      "p95_ms": 173,
+      "max_ms": 173
     },
     {
-      "registry_id": 3002,
+      "registry_id": 1002,
       "samples": 1,
-      "median_ms": 796,
-      "p95_ms": 796,
-      "max_ms": 796
+      "median_ms": 48,
+      "p95_ms": 48,
+      "max_ms": 48
     },
     {
-      "registry_id": 3004,
+      "registry_id": 1003,
       "samples": 1,
-      "median_ms": 301,
-      "p95_ms": 301,
-      "max_ms": 301
+      "median_ms": 48,
+      "p95_ms": 48,
+      "max_ms": 48
     },
     {
-      "registry_id": 3006,
+      "registry_id": 1004,
       "samples": 1,
-      "median_ms": 981,
-      "p95_ms": 981,
-      "max_ms": 981
+      "median_ms": 61,
+      "p95_ms": 61,
+      "max_ms": 61
     },
     {
-      "registry_id": 3008,
+      "registry_id": 1005,
       "samples": 1,
-      "median_ms": 646,
-      "p95_ms": 646,
-      "max_ms": 646
+      "median_ms": 47,
+      "p95_ms": 47,
+      "max_ms": 47
     },
     {
-      "registry_id": 3010,
+      "registry_id": 1006,
       "samples": 1,
-      "median_ms": 138,
-      "p95_ms": 138,
-      "max_ms": 138
+      "median_ms": 89,
+      "p95_ms": 89,
+      "max_ms": 89
     },
     {
-      "registry_id": 3011,
+      "registry_id": 1007,
+      "samples": 1,
+      "median_ms": 48,
+      "p95_ms": 48,
+      "max_ms": 48
+    },
+    {
+      "registry_id": 1010,
+      "samples": 1,
+      "median_ms": 17,
+      "p95_ms": 17,
+      "max_ms": 17
+    },
+    {
+      "registry_id": 1011,
+      "samples": 1,
+      "median_ms": 15,
+      "p95_ms": 15,
+      "max_ms": 15
+    },
+    {
+      "registry_id": 1020,
+      "samples": 1,
+      "median_ms": 45,
+      "p95_ms": 45,
+      "max_ms": 45
+    },
+    {
+      "registry_id": 1025,
+      "samples": 1,
+      "median_ms": 29,
+      "p95_ms": 29,
+      "max_ms": 29
+    },
+    {
+      "registry_id": 1030,
+      "samples": 1,
+      "median_ms": 23,
+      "p95_ms": 23,
+      "max_ms": 23
+    },
+    {
+      "registry_id": 1040,
+      "samples": 1,
+      "median_ms": 220,
+      "p95_ms": 220,
+      "max_ms": 220
+    },
+    {
+      "registry_id": 1041,
+      "samples": 1,
+      "median_ms": 389,
+      "p95_ms": 389,
+      "max_ms": 389
+    },
+    {
+      "registry_id": 1042,
+      "samples": 1,
+      "median_ms": 149,
+      "p95_ms": 149,
+      "max_ms": 149
+    },
+    {
+      "registry_id": 1050,
+      "samples": 1,
+      "median_ms": 16,
+      "p95_ms": 16,
+      "max_ms": 16
+    },
+    {
+      "registry_id": 1051,
+      "samples": 1,
+      "median_ms": 14,
+      "p95_ms": 14,
+      "max_ms": 14
+    },
+    {
+      "registry_id": 1060,
+      "samples": 1,
+      "median_ms": 16,
+      "p95_ms": 16,
+      "max_ms": 16
+    },
+    {
+      "registry_id": 1061,
+      "samples": 1,
+      "median_ms": 15,
+      "p95_ms": 15,
+      "max_ms": 15
+    },
+    {
+      "registry_id": 1062,
+      "samples": 1,
+      "median_ms": 15,
+      "p95_ms": 15,
+      "max_ms": 15
+    },
+    {
+      "registry_id": 1070,
+      "samples": 1,
+      "median_ms": 18,
+      "p95_ms": 18,
+      "max_ms": 18
+    },
+    {
+      "registry_id": 1071,
+      "samples": 1,
+      "median_ms": 15,
+      "p95_ms": 15,
+      "max_ms": 15
+    },
+    {
+      "registry_id": 1072,
+      "samples": 1,
+      "median_ms": 15,
+      "p95_ms": 15,
+      "max_ms": 15
+    },
+    {
+      "registry_id": 1080,
+      "samples": 1,
+      "median_ms": 36,
+      "p95_ms": 36,
+      "max_ms": 36
+    },
+    {
+      "registry_id": 1090,
+      "samples": 2,
+      "median_ms": 33,
+      "p95_ms": 364,
+      "max_ms": 364
+    },
+    {
+      "registry_id": 1095,
+      "samples": 1,
+      "median_ms": 50,
+      "p95_ms": 50,
+      "max_ms": 50
+    },
+    {
+      "registry_id": 1100,
+      "samples": 1,
+      "median_ms": 161,
+      "p95_ms": 161,
+      "max_ms": 161
+    },
+    {
+      "registry_id": 1102,
+      "samples": 1,
+      "median_ms": 156,
+      "p95_ms": 156,
+      "max_ms": 156
+    },
+    {
+      "registry_id": 1103,
+      "samples": 1,
+      "median_ms": 70,
+      "p95_ms": 70,
+      "max_ms": 70
+    },
+    {
+      "registry_id": 1104,
+      "samples": 1,
+      "median_ms": 58,
+      "p95_ms": 58,
+      "max_ms": 58
+    },
+    {
+      "registry_id": 1106,
       "samples": 1,
       "median_ms": 56,
       "p95_ms": 56,
       "max_ms": 56
     },
     {
+      "registry_id": 1107,
+      "samples": 1,
+      "median_ms": 59,
+      "p95_ms": 59,
+      "max_ms": 59
+    },
+    {
+      "registry_id": 1108,
+      "samples": 1,
+      "median_ms": 55,
+      "p95_ms": 55,
+      "max_ms": 55
+    },
+    {
+      "registry_id": 1109,
+      "samples": 1,
+      "median_ms": 42,
+      "p95_ms": 42,
+      "max_ms": 42
+    },
+    {
+      "registry_id": 1110,
+      "samples": 1,
+      "median_ms": 36,
+      "p95_ms": 36,
+      "max_ms": 36
+    },
+    {
+      "registry_id": 1111,
+      "samples": 1,
+      "median_ms": 74,
+      "p95_ms": 74,
+      "max_ms": 74
+    },
+    {
+      "registry_id": 1112,
+      "samples": 1,
+      "median_ms": 70,
+      "p95_ms": 70,
+      "max_ms": 70
+    },
+    {
+      "registry_id": 1113,
+      "samples": 1,
+      "median_ms": 429,
+      "p95_ms": 429,
+      "max_ms": 429
+    },
+    {
+      "registry_id": 1114,
+      "samples": 1,
+      "median_ms": 126,
+      "p95_ms": 126,
+      "max_ms": 126
+    },
+    {
+      "registry_id": 1115,
+      "samples": 1,
+      "median_ms": 68,
+      "p95_ms": 68,
+      "max_ms": 68
+    },
+    {
+      "registry_id": 1116,
+      "samples": 1,
+      "median_ms": 66,
+      "p95_ms": 66,
+      "max_ms": 66
+    },
+    {
+      "registry_id": 1117,
+      "samples": 1,
+      "median_ms": 98,
+      "p95_ms": 98,
+      "max_ms": 98
+    },
+    {
+      "registry_id": 2010,
+      "samples": 1,
+      "median_ms": 38,
+      "p95_ms": 38,
+      "max_ms": 38
+    },
+    {
+      "registry_id": 2011,
+      "samples": 2,
+      "median_ms": 54,
+      "p95_ms": 74,
+      "max_ms": 74
+    },
+    {
+      "registry_id": 3000,
+      "samples": 1,
+      "median_ms": 475,
+      "p95_ms": 475,
+      "max_ms": 475
+    },
+    {
+      "registry_id": 3002,
+      "samples": 1,
+      "median_ms": 472,
+      "p95_ms": 472,
+      "max_ms": 472
+    },
+    {
+      "registry_id": 3004,
+      "samples": 1,
+      "median_ms": 146,
+      "p95_ms": 146,
+      "max_ms": 146
+    },
+    {
+      "registry_id": 3006,
+      "samples": 1,
+      "median_ms": 573,
+      "p95_ms": 573,
+      "max_ms": 573
+    },
+    {
+      "registry_id": 3008,
+      "samples": 1,
+      "median_ms": 375,
+      "p95_ms": 375,
+      "max_ms": 375
+    },
+    {
+      "registry_id": 3009,
+      "samples": 1,
+      "median_ms": 74,
+      "p95_ms": 74,
+      "max_ms": 74
+    },
+    {
+      "registry_id": 3010,
+      "samples": 1,
+      "median_ms": 71,
+      "p95_ms": 71,
+      "max_ms": 71
+    },
+    {
+      "registry_id": 3011,
+      "samples": 1,
+      "median_ms": 34,
+      "p95_ms": 34,
+      "max_ms": 34
+    },
+    {
       "registry_id": 3012,
       "samples": 1,
-      "median_ms": 632,
-      "p95_ms": 632,
-      "max_ms": 632
+      "median_ms": 417,
+      "p95_ms": 417,
+      "max_ms": 417
     },
     {
       "registry_id": 3013,
       "samples": 2,
-      "median_ms": 74,
-      "p95_ms": 607,
-      "max_ms": 607
+      "median_ms": 34,
+      "p95_ms": 417,
+      "max_ms": 417
+    },
+    {
+      "registry_id": 3014,
+      "samples": 1,
+      "median_ms": 62,
+      "p95_ms": 62,
+      "max_ms": 62
     },
     {
       "registry_id": 3015,
       "samples": 1,
-      "median_ms": 579,
-      "p95_ms": 579,
-      "max_ms": 579
+      "median_ms": 370,
+      "p95_ms": 370,
+      "max_ms": 370
     }
   ]
 }
