@@ -1,73 +1,38 @@
-import { Cooperative, DraftContract } from 'cooptypes'
+import { Cooperative } from 'cooptypes'
+import { defineBuilder } from '../Builder'
+import * as Format from '../Format'
 import { GenerationMoneyReturnUnusedStatement } from '../Templates'
-import { DocFactory } from '../Factory'
-import type { IGeneratedDocument, IGenerationOptions, IMetaDocument } from '../Interfaces'
-import type { MongoDBConnector } from '../Services/Databazor'
 
 export { GenerationMoneyReturnUnusedStatement as Template } from '../Templates'
 
-export class Factory extends DocFactory<GenerationMoneyReturnUnusedStatement.Action> {
-  constructor(storage: MongoDBConnector) {
-    super(storage)
-  }
-
-  async generateDocument(data: GenerationMoneyReturnUnusedStatement.Action, options?: IGenerationOptions): Promise<IGeneratedDocument> {
-    // Независимые источники тянем параллельно (см. resolveParallel в DocFactory)
-    const { template, vars, userData, contributorContractUdata, contributorContractCreatedAtUdata, generatorAgreementUdata, generatorAgreementCreatedAtUdata } = await this.resolveParallel({
-      template: () => this.getTemplate<GenerationMoneyReturnUnusedStatement.Model>(DraftContract.contractName.production, GenerationMoneyReturnUnusedStatement.registry_id, data.block_num),
-      vars: () => super.getVars(data.coopname, data.block_num),
-      userData: () => super.getUser(data.username, data.block_num),
-      contributorContractUdata: () => this.getUdata({
-        coopname: data.coopname,
-        username: data.username,
-        key: Cooperative.Model.UdataKey.BLAGOROST_CONTRIBUTOR_CONTRACT_NUMBER,
-        block_num: data.block_num,
-      }),
-      contributorContractCreatedAtUdata: () => this.getUdata({
-        coopname: data.coopname,
-        username: data.username,
-        key: Cooperative.Model.UdataKey.BLAGOROST_CONTRIBUTOR_CONTRACT_CREATED_AT,
-        block_num: data.block_num,
-      }),
-      generatorAgreementUdata: () => this.getUdata({
-        coopname: data.coopname,
-        username: data.username,
-        key: Cooperative.Model.UdataKey.GENERATOR_AGREEMENT_NUMBER,
-        block_num: data.block_num,
-      }),
-      generatorAgreementCreatedAtUdata: () => this.getUdata({
-        coopname: data.coopname,
-        username: data.username,
-        key: Cooperative.Model.UdataKey.GENERATOR_AGREEMENT_CREATED_AT,
-        block_num: data.block_num,
-      }),
-    })
-
-    // meta зависит от template.title — считаем после батча
-    const meta: IMetaDocument = await this.getMeta({ title: template.title, ...data })
-
-    const common_user = super.getCommonUser(userData)
-
-    if (!contributorContractUdata?.value) {
+/** Заявление о возврате неиспользованных денег генерации: пайщик и реквизиты договоров из udata. */
+export const Factory = defineBuilder<GenerationMoneyReturnUnusedStatement.Action, GenerationMoneyReturnUnusedStatement.Model>()({
+  registry_id: GenerationMoneyReturnUnusedStatement.registry_id,
+  version: 1,
+  reads: ({ data, f }) => {
+    const udata = (key: Cooperative.Model.UdataKey) => () => f.getUdata({ coopname: data.coopname, username: data.username, key, block_num: data.block_num })
+    return {
+      vars: () => f.getVars(data.coopname, data.block_num),
+      userData: () => f.getUser(data.username, data.block_num),
+      contributorContractUdata: udata(Cooperative.Model.UdataKey.BLAGOROST_CONTRIBUTOR_CONTRACT_NUMBER),
+      contributorContractCreatedAtUdata: udata(Cooperative.Model.UdataKey.BLAGOROST_CONTRIBUTOR_CONTRACT_CREATED_AT),
+      generatorAgreementUdata: udata(Cooperative.Model.UdataKey.GENERATOR_AGREEMENT_NUMBER),
+      generatorAgreementCreatedAtUdata: udata(Cooperative.Model.UdataKey.GENERATOR_AGREEMENT_CREATED_AT),
+    }
+  },
+  assemble: ({ data, meta, reads: { vars, userData, contributorContractUdata, contributorContractCreatedAtUdata, generatorAgreementUdata, generatorAgreementCreatedAtUdata } }) => {
+    if (!contributorContractUdata?.value)
       throw new Error('Данные договора УХД участника не найдены в Udata')
-    }
-
-    if (!contributorContractCreatedAtUdata?.value) {
+    if (!contributorContractCreatedAtUdata?.value)
       throw new Error('Дата создания договора УХД участника не найдена в Udata')
-    }
-
-    if (!generatorAgreementUdata?.value) {
+    if (!generatorAgreementUdata?.value)
       throw new Error('Данные генерационного соглашения не найдены в Udata')
-    }
-
-    if (!generatorAgreementCreatedAtUdata?.value) {
+    if (!generatorAgreementCreatedAtUdata?.value)
       throw new Error('Дата создания генерационного соглашения не найдена в Udata')
-    }
-
-    const combinedData: GenerationMoneyReturnUnusedStatement.Model = {
+    return {
       meta,
       vars,
-      common_user,
+      common_user: Format.commonUser(userData),
       contributor_contract_number: String(contributorContractUdata.value),
       contributor_contract_created_at: String(contributorContractCreatedAtUdata.value),
       generator_agreement_number: String(generatorAgreementUdata.value),
@@ -75,12 +40,5 @@ export class Factory extends DocFactory<GenerationMoneyReturnUnusedStatement.Act
       project_hash: data.project_hash,
       amount: data.amount,
     }
-
-    await this.validate(combinedData, template.model)
-
-    const translation = template.translations[meta.lang]
-    const document: IGeneratedDocument = await this.generatePDF('', template.context, combinedData, translation, meta, options?.skip_save)
-
-    return document
-  }
-}
+  },
+})

@@ -1,45 +1,27 @@
-import { DraftContract } from 'cooptypes'
+import { defineBuilder } from '../Builder'
+import * as Format from '../Format'
 import { InitProjectStatement } from '../Templates'
-import { DocFactory } from '../Factory'
-import type { IGeneratedDocument, IGenerationOptions, IMetaDocument } from '../Interfaces'
-import type { MongoDBConnector } from '../Services/Databazor'
 
 export { InitProjectStatement as Template } from '../Templates'
 
-export class Factory extends DocFactory<InitProjectStatement.Action> {
-  constructor(storage: MongoDBConnector) {
-    super(storage)
-  }
-
-  async generateDocument(data: InitProjectStatement.Action, options?: IGenerationOptions): Promise<IGeneratedDocument> {
-    // Независимые источники тянем параллельно (см. resolveParallel в DocFactory)
-    const { template, coop, vars, userData } = await this.resolveParallel({
-      template: () => this.getTemplate<InitProjectStatement.Model>(DraftContract.contractName.production, InitProjectStatement.registry_id, data.block_num),
-      coop: () => super.getCooperative(data.coopname, data.block_num),
-      vars: () => super.getVars(data.coopname, data.block_num),
-      userData: () => super.getUser(data.username, data.block_num),
-    })
-
-    const meta: IMetaDocument = await this.getMeta({ title: template.title, ...data }) // зависит от template.title
-    const user = super.getCommonUser(userData)
-
-    const combinedData: InitProjectStatement.Model = {
-      meta,
-      coop,
-      vars,
-      user,
-      project_name: data.project_name,
-      project_hash: data.project_hash,
-      component_name: data.component_name,
-      component_hash: data.component_hash,
-      is_component: data.is_component,
-    }
-
-    await this.validate(combinedData, template.model)
-
-    const translation = template.translations[meta.lang]
-    const document: IGeneratedDocument = await this.generatePDF('', template.context, combinedData, translation, meta, options?.skip_save)
-
-    return document
-  }
-}
+/** Заявление об инициализации проекта или компонента: пайщик и данные проекта. */
+export const Factory = defineBuilder<InitProjectStatement.Action, InitProjectStatement.Model>()({
+  registry_id: InitProjectStatement.registry_id,
+  version: 1,
+  reads: ({ data, f }) => ({
+    coop: () => f.getCooperative(data.coopname, data.block_num),
+    vars: () => f.getVars(data.coopname, data.block_num),
+    userData: () => f.getUser(data.username, data.block_num),
+  }),
+  assemble: ({ data, meta, reads: { coop, vars, userData } }) => ({
+    meta,
+    coop,
+    vars,
+    user: Format.commonUser(userData),
+    project_name: data.project_name,
+    project_hash: data.project_hash,
+    component_name: data.component_name,
+    component_hash: data.component_hash,
+    is_component: data.is_component,
+  }),
+})

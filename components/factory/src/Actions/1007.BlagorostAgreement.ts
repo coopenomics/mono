@@ -1,79 +1,45 @@
-import { Cooperative, DraftContract } from 'cooptypes'
+import { Cooperative } from 'cooptypes'
+import { defineBuilder } from '../Builder'
+import * as Format from '../Format'
 import { BlagorostAgreement } from '../Templates'
-import { DocFactory } from '../Factory'
-import type { IGeneratedDocument, IGenerationOptions, IMetaDocument } from '../Interfaces'
-import type { MongoDBConnector } from '../Services/Databazor'
 
 export { BlagorostAgreement as Template } from '../Templates'
 
-export class Factory extends DocFactory<BlagorostAgreement.Action> {
-  constructor(storage: MongoDBConnector) {
-    super(storage)
-  }
-
-  async generateDocument(data: BlagorostAgreement.Action, options?: IGenerationOptions): Promise<IGeneratedDocument> {
-    // Независимые источники тянем параллельно (см. resolveParallel в DocFactory)
-    const { template, coop, vars, userData, blagorostAgreementUdata, contributorContractUdata, contributorContractCreatedAtUdata } = await this.resolveParallel({
-      template: () => this.getTemplate<BlagorostAgreement.Model>(DraftContract.contractName.production, BlagorostAgreement.registry_id, data.block_num),
-      coop: () => super.getCooperative(data.coopname, data.block_num),
-      vars: () => super.getVars(data.coopname, data.block_num),
-      userData: () => super.getUser(data.username, data.block_num),
-      blagorostAgreementUdata: () => this.getUdata({
-        coopname: data.coopname,
-        username: data.username,
-        key: Cooperative.Model.UdataKey.BLAGOROST_AGREEMENT_NUMBER,
-        block_num: data.block_num,
-      }),
-      contributorContractUdata: () => this.getUdata({
-        coopname: data.coopname,
-        username: data.username,
-        key: Cooperative.Model.UdataKey.BLAGOROST_CONTRIBUTOR_CONTRACT_NUMBER,
-        block_num: data.block_num,
-      }),
-      contributorContractCreatedAtUdata: () => this.getUdata({
-        coopname: data.coopname,
-        username: data.username,
-        key: Cooperative.Model.UdataKey.BLAGOROST_CONTRIBUTOR_CONTRACT_CREATED_AT,
-        block_num: data.block_num,
-      }),
-    })
-
-    // meta зависит от template.title — считаем после батча
-    const meta: IMetaDocument = await this.getMeta({ title: template.title, ...data })
-
-    const common_user = super.getCommonUser(userData)
-
-    // Проверка наличия необходимых параметров
-    // blagorost_agreement_number может отсутствовать если это путь Генератора (параметры генерируются на бэкенде)
-    // contributor_contract_number обязателен
+/** Соглашение Благороста: пайщик и реквизиты соглашения и договора УХД из udata. */
+export const Factory = defineBuilder<BlagorostAgreement.Action, BlagorostAgreement.Model>()({
+  registry_id: BlagorostAgreement.registry_id,
+  version: 1,
+  reads: ({ data, f }) => {
+    const udata = (key: Cooperative.Model.UdataKey) => () => f.getUdata({ coopname: data.coopname, username: data.username, key, block_num: data.block_num })
+    return {
+      coop: () => f.getCooperative(data.coopname, data.block_num),
+      vars: () => f.getVars(data.coopname, data.block_num),
+      userData: () => f.getUser(data.username, data.block_num),
+      blagorostAgreementUdata: udata(Cooperative.Model.UdataKey.BLAGOROST_AGREEMENT_NUMBER),
+      contributorContractUdata: udata(Cooperative.Model.UdataKey.BLAGOROST_CONTRIBUTOR_CONTRACT_NUMBER),
+      contributorContractCreatedAtUdata: udata(Cooperative.Model.UdataKey.BLAGOROST_CONTRIBUTOR_CONTRACT_CREATED_AT),
+    }
+  },
+  assemble: ({ data, meta, reads: { coop, vars, userData, blagorostAgreementUdata, contributorContractUdata, contributorContractCreatedAtUdata } }) => {
     const missingParams: string[] = []
     if (!contributorContractUdata?.value)
       missingParams.push('BLAGOROST_CONTRIBUTOR_CONTRACT_NUMBER')
     if (!contributorContractCreatedAtUdata?.value)
       missingParams.push('BLAGOROST_CONTRIBUTOR_CONTRACT_CREATED_AT')
-
     if (missingParams.length > 0) {
       throw new Error(
         `Отсутствуют необходимые параметры в Udata для пользователя ${data.username}: ${missingParams.join(', ')}. `
         + `Необходимо сначала сгенерировать параметры документов через UdataDocumentParametersService.`,
       )
     }
-
-    const combinedData: BlagorostAgreement.Model = {
+    return {
       meta,
       coop,
       vars,
-      common_user,
+      common_user: Format.commonUser(userData),
       blagorost_agreement_number: String(blagorostAgreementUdata?.value || ''),
       contributor_contract_number: String(contributorContractUdata?.value || ''),
       contributor_contract_created_at: String(contributorContractCreatedAtUdata?.value || ''),
     }
-
-    await this.validate(combinedData, template.model)
-
-    const translation = template.translations[meta.lang]
-    const document: IGeneratedDocument = await this.generatePDF('', template.context, combinedData, translation, meta, options?.skip_save)
-
-    return document
-  }
-}
+  },
+})
