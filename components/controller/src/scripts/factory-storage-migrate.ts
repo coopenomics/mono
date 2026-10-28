@@ -24,7 +24,7 @@ import 'reflect-metadata';
 import { createHash } from 'node:crypto';
 import { Kysely, PostgresDialect, sql } from 'kysely';
 import { Pool } from 'pg';
-import { MongoFactoryStorage, RECORD_COLLECTIONS, type RecordCollection } from '@coopenomics/factory';
+import { MongoFactoryStorage, RECORD_COLLECTIONS, documentMetaKey, type RecordCollection } from '@coopenomics/factory';
 import config from '../config/config';
 
 const WIPE = process.argv.includes('--wipe');
@@ -131,14 +131,26 @@ async function copyRecords(db: Db, mongo: MongoFactoryStorage, collection: Recor
   }
 }
 
+/**
+ * Документ MongoDB в виде строки PostgreSQL. Документы, сохранённые до
+ * появления ключа меты, поля `meta_key` не имеют: ключ считается из меты
+ * той же функцией, что у фабрики при сохранении. Мета старых записей бывает
+ * строкой JSON — разбирается в объект.
+ */
+function normalizeDocument(d: Raw): { hash: string; meta_key: string; meta: Raw & { registry_id: number; block_num?: number } } {
+  const meta = (typeof d.meta === 'string' ? JSON.parse(d.meta) : d.meta) as Raw & { registry_id: number; block_num?: number };
+  const meta_key = typeof d.meta_key === 'string' && d.meta_key.length > 0 ? d.meta_key : documentMetaKey(meta);
+  return { hash: String(d.hash), meta_key, meta };
+}
+
 async function copyDocuments(db: Db, docs: Raw[]): Promise<void> {
   for (const d of docs) {
-    const meta = d.meta as { registry_id: number; block_num?: number };
+    const { hash, meta_key, meta } = normalizeDocument(d);
     await db
       .insertInto('factory_documents')
       .values({
-        hash: d.hash,
-        meta_key: d.meta_key,
+        hash,
+        meta_key,
         registry_id: meta.registry_id,
         block_num: meta.block_num ?? null,
         full_title: (d.full_title as string | undefined) ?? null,
@@ -181,11 +193,45 @@ async function verifyRecords(db: Db, mongo: MongoFactoryStorage, collection: Rec
   return { collection, mongo: a.length, postgres: b.length, ...sameMultiset(a, b) };
 }
 
+/**
+ * Сверка документов по ключу «хэш + ключ меты». Повтор одного документа в
+ * MongoDB (тот же хэш и та же мета) в PostgreSQL ложится одной строкой —
+ * первая по вставке, как при переносе; такие повторы сверка считает отдельно и
+ * печатает. Повтор с другим содержимым — расхождение.
+ */
 async function verifyDocuments(db: Db, docs: Raw[]): Promise<Report> {
   const pgRows = await db.selectFrom('factory_documents').select(['hash', 'meta_key', 'html', 'meta', 'binary']).execute();
-  const a = docs.map((d) => fingerprint({ hash: d.hash, meta_key: d.meta_key, html: d.html, meta: d.meta, pdf: sha256(toBuffer(d.binary)) }));
+  const firstByKey = new Map<string, string>();
+  let collapsed = 0;
+  let conflicting = 0;
+  for (const d of docs) {
+    const { hash, meta_key, meta } = normalizeDocument(d);
+    const key = `${hash}:${meta_key}`;
+    const print = fingerprint({ hash, meta_key, html: d.html, meta, pdf: sha256(toBuffer(d.binary)) });
+    const seen = firstByKey.get(key);
+    if (seen === undefined) firstByKey.set(key, print);
+    else if (seen === print) collapsed++;
+    else conflicting++;
+  }
+  const a = [...firstByKey.values()];
   const b = pgRows.map((r) => fingerprint({ hash: r.hash, meta_key: r.meta_key, html: r.html, meta: r.meta, pdf: sha256(r.binary as Buffer) }));
-  return { collection: 'documents', mongo: a.length, postgres: b.length, ...sameMultiset(a, b) };
+  const result = sameMultiset(a, b);
+  if (collapsed > 0) {
+    // i18n-ignore: вывод скрипта оператора узла, до пайщика не доходит
+    console.log(`documents: в MongoDB ${collapsed} точных повторов (тот же хэш, мета и тело) — в PostgreSQL по одной строке`);
+  }
+  if (conflicting > 0) {
+    // i18n-ignore: вывод скрипта оператора узла, до пайщика не доходит
+    console.log(`documents: в MongoDB ${conflicting} повторов ключа с другим содержимым — перенесён первый по вставке`);
+  }
+  return {
+    collection: 'documents',
+    mongo: docs.length,
+    postgres: b.length,
+    ok: result.ok && conflicting === 0,
+    onlyInMongo: result.onlyInMongo + conflicting,
+    onlyInPostgres: result.onlyInPostgres,
+  };
 }
 
 async function verifyDocData(db: Db, privs: Raw[]): Promise<Report> {
