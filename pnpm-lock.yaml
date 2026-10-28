@@ -1442,6 +1442,9 @@ importers:
       json-schema:
         specifier: ^0.4.0
         version: 0.4.0
+      kysely:
+        specifier: 0.28.17
+        version: 0.28.17
       moment-timezone:
         specifier: ^0.5.45
         version: 0.5.48
@@ -1454,6 +1457,9 @@ importers:
       pdf-lib:
         specifier: ^1.17.1
         version: 1.17.1
+      pg:
+        specifier: ^8.16.3
+        version: 8.20.0
       uuid:
         specifier: ^11.0.0
         version: 11.1.0
@@ -1476,6 +1482,9 @@ importers:
       '@types/nunjucks':
         specifier: ^3.2.6
         version: 3.2.6
+      '@types/pg':
+        specifier: ^8.15.6
+        version: 8.20.0
       bumpp:
         specifier: ^9.4.1
         version: 9.11.1
