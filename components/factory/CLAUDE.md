@@ -66,6 +66,25 @@ fontconfig + `fc-cache`), а НЕ через `@font-face data:base64` в html. b
 `Services/Generator/index.ts` ставит только `font-family: 'Arial'`. Не
 возвращать base64-встраивание. `.gitattributes` держит `*.ttf binary` —
 не убирать, иначе EOL-нормализация (`* text eol=lf`) испортит шрифт.
+## Эталоны сборки (фабрика v2, шаг 0)
+
+Каждая сборка документа в наборе тестов сверяется со снимком в
+`test/golden/<registry_id>/<имя случая>.{html,meta.json,pdf.sha256}`
+(`test/utils/golden.ts`, вызывается из `testDocumentGeneration`). Снимок —
+поведение фабрики до рефакторинга: расхождение означает, что вывод старого
+документа изменился, и это ошибка, а не повод обновить снимок.
+
+- Набор запускается только в CI: workflow `Factory` (`.github/workflows/factory.yaml`),
+  пуш в `ci/factory` или `ci/factory-*`. Локально тесты фабрики не гонять.
+- Пересоздать снимки: пуш в `ci/factory-update` (режим `-u`), забрать артефакт
+  `factory-golden`, положить в `test/golden/` и закоммитить. Делается только
+  при осознанной смене вывода.
+- `scripts/golden-coverage.mjs` падает, если у вида документа из `src/Actions`
+  нет ни одного снимка. Новый документ — новый тест с `testDocumentGeneration`.
+- Файлы набора идут по имени в закреплённом порядке (`AlphabeticalSequencer`):
+  тесты делят одну MongoDB и переписывают udata и переменные кооператива.
+- Время сборки пишется в `GOLDEN_TIMING_FILE`, сводка —
+  `scripts/golden-timing-report.mjs`: исходный уровень скорости (NFR5).
 - Версия пакета впечатывается в PDF (Creator и отпечаток меты в Keywords), и
   каждый выпуск менял бы хэши снимков. В наборе версия меты закреплена
   (`GOLDEN_VERSION` в `test/utils/golden.ts`), дата — `GOLDEN_CREATED_AT`.
@@ -73,6 +92,7 @@ fontconfig + `fc-cache`), а НЕ через `@font-face data:base64` в html. b
   поэтому сборка и пересборка идут через разные процессы Python и сверяются.
 - Проба детерминизма между процессами — `scripts/pdf-determinism-probe.mjs`,
   шаг workflow `Factory`; печатает место первого отличия байтов PDF.
+
 
 ## Слой источников (фабрика v2, шаг 1)
 
