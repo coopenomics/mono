@@ -1,0 +1,253 @@
+import { Inject, Injectable } from '@nestjs/common';
+import { expressionBuilder, sql, type Kysely, type ExpressionBuilder, type ExpressionWrapper, type SqlBool } from 'kysely';
+import type { Cooperative } from 'cooptypes';
+import type {
+  DocDataRecord,
+  DocumentPage,
+  DocumentWhere,
+  FieldCondition,
+  IFactoryStorage,
+  RecordCollection,
+  StoredDocument,
+  StoredRecord,
+  Where,
+} from '@coopenomics/factory';
+import { KYSELY } from '@coopenomics/extension-kit';
+
+/**
+ * Реализация порта хранилища фабрики на PostgreSQL контроллера (шаг 5
+ * фабрики v2). Таблицы — миграция `CoreFactoryStorage1793204380830`.
+ *
+ * Правила версий те же, что были в MongoDB: текущая запись — последняя по
+ * блоку, при равном блоке последняя по `id`; удаление ставит флаг на все
+ * версии. Поля записи лежат в `payload` (jsonb), отбор порта переводится в
+ * выражения над ним: равенство — через вхождение jsonb (`@>`), граница по
+ * блоку и флаг удаления — по колонкам, образец текста — `~*` над текстовым
+ * значением поля. Возвращаемая запись собирается из `payload` и колонок, как
+ * отдавала MongoDB (`_id` — текстовый `id` строки).
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Db = Kysely<any>;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Eb = ExpressionBuilder<any, any>;
+type Cond = ExpressionWrapper<any, any, SqlBool>; // eslint-disable-line @typescript-eslint/no-explicit-any
+
+const RECORDS = 'factory_records';
+const DOCUMENTS = 'factory_documents';
+const DOC_DATA = 'factory_doc_private_data';
+
+/** Поля-колонки; всё остальное — внутри payload. */
+const COLUMN_FIELDS = new Set(['block_num', 'deleted']);
+
+@Injectable()
+export class PgFactoryStorage implements IFactoryStorage {
+  constructor(@Inject(KYSELY) private readonly db: Db) {}
+
+  async connect(): Promise<void> {}
+  async disconnect(): Promise<void> {}
+
+  /** Условие порта → выражение Kysely над строкой `factory_records`. */
+  private condition(eb: Eb, where: Where): Cond {
+    const parts: Cond[] = [];
+    for (const [field, raw] of Object.entries(where)) {
+      if (raw === undefined) continue;
+      if (field === '$or') {
+        parts.push(eb.or((raw as Where[]).map((w) => this.condition(eb, w))));
+        continue;
+      }
+      if (field === '$and') {
+        parts.push(eb.and((raw as Where[]).map((w) => this.condition(eb, w))));
+        continue;
+      }
+      parts.push(this.fieldCondition(eb, field, raw as FieldCondition));
+    }
+    return parts.length === 0 ? eb.lit(true) : eb.and(parts);
+  }
+
+  private fieldCondition(eb: Eb, field: string, condition: FieldCondition): Cond {
+    if (COLUMN_FIELDS.has(field)) {
+      if (condition !== null && typeof condition === 'object' && '$lte' in condition) {
+        return eb(field, '<=', condition.$lte);
+      }
+      return condition === null ? eb(field, 'is', null) : eb(field, '=', condition as string | number | boolean);
+    }
+    if (condition !== null && typeof condition === 'object') {
+      if ('$lte' in condition) {
+        return eb(sql`("payload"->>${sql.lit(field)})::numeric`, '<=', condition.$lte);
+      }
+      if ('$regex' in condition) {
+        const op = (condition.$options ?? '').includes('i') ? '~*' : '~';
+        return sql<SqlBool>`("payload"->>${sql.lit(field)}) ${sql.raw(op)} ${condition.$regex}`;
+      }
+    }
+    if (condition === null) {
+      return sql<SqlBool>`("payload"->${sql.lit(field)}) IS NULL`;
+    }
+    // Равенство через вхождение jsonb: точный тип значения и вложенные пути.
+    const nested = field.split('.').reduceRight<unknown>((acc, key) => ({ [key]: acc }), condition);
+    return sql<SqlBool>`"payload" @> ${JSON.stringify(nested)}::jsonb`;
+  }
+
+  private toRecord<T extends StoredRecord>(row: { id: string | number; block_num: string | number | null; deleted: boolean; payload: unknown }): T {
+    const record = { ...(row.payload as Record<string, unknown>) } as Record<string, unknown>;
+    record._id = String(row.id);
+    if (row.block_num !== null && row.block_num !== undefined) record.block_num = Number(row.block_num);
+    record.deleted = row.deleted;
+    return record as T;
+  }
+
+  async findOne<T extends StoredRecord>(collection: RecordCollection, where: Where): Promise<T | null> {
+    const row = await this.db
+      .selectFrom(RECORDS)
+      .selectAll()
+      .where('collection', '=', collection)
+      .where((eb) => this.condition(eb, where))
+      .orderBy('block_num', 'desc')
+      .orderBy('id', 'desc')
+      .limit(1)
+      .executeTakeFirst();
+    return row ? this.toRecord<T>(row) : null;
+  }
+
+  async findLatestPerGroup<T extends StoredRecord>(collection: RecordCollection, where: Where, groupBy: string[], page: number, limit: number): Promise<Cooperative.Document.IGetResponse<T>> {
+    // Текущая версия каждой группы: DISTINCT ON по полям группировки в порядке
+    // «новее первым», затем страница по той же сортировке.
+    const groupExprs = groupBy.map((f) => sql`("payload"->>${sql.lit(f)})`);
+    const distinctOn = sql.join(groupExprs, sql`, `);
+    const filter = this.condition(expressionBuilder<any, any>(), where); // eslint-disable-line @typescript-eslint/no-explicit-any
+    const base = sql`
+      SELECT DISTINCT ON (${distinctOn}) *
+      FROM "factory_records"
+      WHERE "collection" = ${collection} AND ${filter}
+      ORDER BY ${distinctOn}, "block_num" DESC NULLS LAST, "id" DESC
+    `;
+    const countRes = await sql<{ total: string }>`SELECT count(*)::text AS total FROM (${base}) AS latest`.execute(this.db);
+    const totalResults = Number(countRes.rows[0]?.total ?? 0);
+    const rowsRes = await sql<{ id: string; block_num: string | null; deleted: boolean; payload: unknown }>`
+      SELECT * FROM (${base}) AS latest
+      ORDER BY "block_num" DESC NULLS LAST, "id" DESC
+      OFFSET ${(page - 1) * limit} LIMIT ${limit}
+    `.execute(this.db);
+    return {
+      results: rowsRes.rows.map((r) => this.toRecord<T>(r)),
+      page,
+      limit,
+      totalPages: Math.ceil(totalResults / limit),
+      totalResults,
+    };
+  }
+
+  async findAll<T extends StoredRecord>(collection: RecordCollection, where: Where): Promise<T[]> {
+    const rows = await this.db
+      .selectFrom(RECORDS)
+      .selectAll()
+      .where('collection', '=', collection)
+      .where((eb) => this.condition(eb, where))
+      .orderBy('block_num', 'desc')
+      .orderBy('id', 'desc')
+      .execute();
+    return rows.map((r) => this.toRecord<T>(r));
+  }
+
+  async insert<T extends StoredRecord>(collection: RecordCollection, record: T): Promise<{ insertedId: string }> {
+    const { block_num, deleted, _id: _ignored, _created_at: _ignoredAt, ...payload } = record as StoredRecord & { _id?: unknown; _created_at?: unknown };
+    const row = await this.db
+      .insertInto(RECORDS)
+      .values({
+        collection,
+        block_num: block_num ?? null,
+        deleted: deleted ?? false,
+        payload: JSON.stringify(payload),
+      })
+      .returning('id')
+      .executeTakeFirstOrThrow();
+    return { insertedId: String(row.id) };
+  }
+
+  async updateMany(collection: RecordCollection, where: Where, set: Partial<StoredRecord>): Promise<{ modifiedCount: number }> {
+    const { block_num, deleted, ...payloadPatch } = set;
+    let query = this.db.updateTable(RECORDS).where('collection', '=', collection).where((eb) => this.condition(eb, where));
+    const values: Record<string, unknown> = {};
+    if (block_num !== undefined) values.block_num = block_num;
+    if (deleted !== undefined) values.deleted = deleted;
+    if (Object.keys(payloadPatch).length > 0) values.payload = sql`"payload" || ${JSON.stringify(payloadPatch)}::jsonb`;
+    if (Object.keys(values).length === 0) return { modifiedCount: 0 };
+    query = query.set(values);
+    const result = await query.executeTakeFirst();
+    return { modifiedCount: Number(result.numUpdatedRows ?? 0) };
+  }
+
+  async saveDocument(document: StoredDocument): Promise<void> {
+    const binary = Buffer.from(document.binary);
+    await this.db
+      .insertInto(DOCUMENTS)
+      .values({
+        hash: document.hash,
+        meta_key: document.meta_key,
+        registry_id: document.meta.registry_id,
+        block_num: document.meta.block_num ?? null,
+        full_title: document.full_title ?? null,
+        html: document.html,
+        meta: JSON.stringify(document.meta),
+        binary,
+      })
+      .onConflict((oc) =>
+        oc.columns(['hash', 'meta_key']).doUpdateSet({
+          registry_id: document.meta.registry_id,
+          block_num: document.meta.block_num ?? null,
+          full_title: document.full_title ?? null,
+          html: document.html,
+          meta: JSON.stringify(document.meta),
+          binary,
+          updated_at: sql`now()`,
+        })
+      )
+      .execute();
+  }
+
+  private toDocument(row: { hash: string; meta_key: string; full_title: string | null; html: string; meta: unknown; binary: Buffer }): StoredDocument {
+    return {
+      hash: row.hash,
+      meta_key: row.meta_key,
+      full_title: row.full_title ?? '',
+      html: row.html,
+      meta: row.meta as StoredDocument['meta'],
+      binary: new Uint8Array(row.binary),
+    };
+  }
+
+  async findDocument(where: DocumentWhere): Promise<StoredDocument | null> {
+    let query = this.db.selectFrom(DOCUMENTS).selectAll().where('hash', '=', where.hash);
+    if (where.meta_key !== undefined) query = query.where('meta_key', '=', where.meta_key);
+    if (where.block_num !== undefined) query = query.where('block_num', '=', where.block_num);
+    const row = await query.orderBy('id', 'asc').limit(1).executeTakeFirst();
+    return row ? this.toDocument(row) : null;
+  }
+
+  async listDocuments(page: DocumentPage): Promise<Array<Pick<StoredDocument, 'hash' | 'meta' | 'html'>>> {
+    let query = this.db.selectFrom(DOCUMENTS).select(['hash', 'meta', 'html']);
+    if (page.registry_id !== undefined) query = query.where('registry_id', '=', page.registry_id);
+    const rows = await query.orderBy('id', 'asc').offset(page.offset).limit(page.limit).execute();
+    return rows.map((r) => ({ hash: r.hash, meta: r.meta as StoredDocument['meta'], html: r.html }));
+  }
+
+  async countDocuments(registry_id?: number): Promise<number> {
+    let query = this.db.selectFrom(DOCUMENTS).select((eb) => eb.fn.countAll<string>().as('total'));
+    if (registry_id !== undefined) query = query.where('registry_id', '=', registry_id);
+    const row = await query.executeTakeFirst();
+    return Number(row?.total ?? 0);
+  }
+
+  async saveDocData(record: DocDataRecord): Promise<void> {
+    await this.db
+      .insertInto(DOC_DATA)
+      .values({ hash: record.hash, registry_id: record.registry_id, payload: JSON.stringify(record.payload) })
+      .onConflict((oc) => oc.column('hash').doNothing())
+      .execute();
+  }
+
+  async getDocData<P = Record<string, unknown>>(hash: string): Promise<P | null> {
+    const row = await this.db.selectFrom(DOC_DATA).select('payload').where('hash', '=', hash).executeTakeFirst();
+    return row ? (row.payload as P) : null;
+  }
+}

@@ -10,6 +10,7 @@ import config from '~/config/config';
 import { DomainError } from '@coopenomics/extension-kit';
 import { ControllerChainDataSource } from './controller-chain-data.source';
 import { ChainChangesService } from '~/infrastructure/blockchain/chain-changes.service';
+import { PgFactoryStorage } from './pg-factory-storage';
 
 /**
  * Коллекции генератора (MongoDB) и их имена в ленте изменений. Личные данные
@@ -35,6 +36,7 @@ export class GeneratorInfrastructureService implements GeneratorPort, OnModuleIn
 
   constructor(
     private readonly chainDataSource: ControllerChainDataSource,
+    private readonly pgStorage: PgFactoryStorage,
     @Optional() @Inject(ChainChangesService) private readonly feed: ChainChangesService | null = null
   ) {
     this.generator = new Generator(this.chainDataSource);
@@ -48,7 +50,10 @@ export class GeneratorInfrastructureService implements GeneratorPort, OnModuleIn
   }
 
   async onModuleInit() {
-    await this.connect(config.mongoose.url);
+    // Хранилище фабрики выбирается настройкой: PostgreSQL контроллера либо
+    // MongoDB до прогона переноса (шаг 5 фабрики v2, решение владельца 28.10.2026).
+    if (config.factory.storage === 'postgres') await this.generator.connect(this.pgStorage);
+    else await this.connect(config.mongoose.url);
   }
 
   async connect(url: string): Promise<void> {
