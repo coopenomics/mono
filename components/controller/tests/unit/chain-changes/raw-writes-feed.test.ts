@@ -14,9 +14,10 @@ function feed() {
   return { publishLocal: jest.fn().mockResolvedValue(undefined) } as any;
 }
 
-describe('Генератор: записи в MongoDB', () => {
+describe('Генератор: записи в хранилище фабрики', () => {
   function build(chainChanges: any) {
-    const service = new GeneratorInfrastructureService({} as any, chainChanges);
+    // Аргументы: источник данных цепи, хранилище PostgreSQL, лента изменений.
+    const service = new GeneratorInfrastructureService({} as any, {} as any, chainChanges);
     (service as any).generator = { save: jest.fn().mockResolvedValue(undefined), del: jest.fn().mockResolvedValue(undefined) };
     return service;
   }
