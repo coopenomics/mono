@@ -71,7 +71,7 @@ const envVarsSchema = z.object({
   FACTORY_STORAGE: z
     .enum(['mongo', 'postgres'])
     .default('mongo')
-    .describe('Хранилище фабрики документов: mongo до прогона переноса, postgres после (шаг 5 фабрики v2)'),
+    .describe('Document factory storage: mongo until the migration run, postgres after it'),
   JWT_SECRET: z.string().describe('JWT secret key'),
   JWT_ACCESS_EXPIRATION_MINUTES: z
     .string()

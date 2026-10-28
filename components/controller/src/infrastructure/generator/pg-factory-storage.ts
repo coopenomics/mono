@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { expressionBuilder, sql, type Kysely, type ExpressionBuilder, type ExpressionWrapper, type SqlBool } from 'kysely';
+import { expressionBuilder, sql, type Expression, type Kysely, type ExpressionBuilder, type SqlBool } from 'kysely';
 import type { Cooperative } from 'cooptypes';
 import type {
   DocDataRecord,
@@ -30,7 +30,7 @@ import { KYSELY } from '@coopenomics/extension-kit';
 type Db = Kysely<any>;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Eb = ExpressionBuilder<any, any>;
-type Cond = ExpressionWrapper<any, any, SqlBool>; // eslint-disable-line @typescript-eslint/no-explicit-any
+type Cond = Expression<SqlBool>;
 
 const RECORDS = 'factory_records';
 const DOCUMENTS = 'factory_documents';
@@ -65,30 +65,34 @@ export class PgFactoryStorage implements IFactoryStorage {
   }
 
   private fieldCondition(eb: Eb, field: string, condition: FieldCondition): Cond {
-    if (COLUMN_FIELDS.has(field)) {
-      if (condition !== null && typeof condition === 'object' && '$lte' in condition) {
-        return eb(field, '<=', condition.$lte);
-      }
-      return condition === null ? eb(field, 'is', null) : eb(field, '=', condition as string | number | boolean);
-    }
-    if (condition !== null && typeof condition === 'object') {
-      if ('$lte' in condition) {
-        return eb(sql`("payload"->>${sql.lit(field)})::numeric`, '<=', condition.$lte);
-      }
-      if ('$regex' in condition) {
-        const op = (condition.$options ?? '').includes('i') ? '~*' : '~';
-        return sql<SqlBool>`("payload"->>${sql.lit(field)}) ${sql.raw(op)} ${condition.$regex}`;
-      }
-    }
-    if (condition === null) {
-      return sql<SqlBool>`("payload"->${sql.lit(field)}) IS NULL`;
-    }
-    // Равенство через вхождение jsonb: точный тип значения и вложенные пути.
-    const nested = field.split('.').reduceRight<unknown>((acc, key) => ({ [key]: acc }), condition);
+    if (COLUMN_FIELDS.has(field)) return this.columnCondition(eb, field, condition);
+    if (condition === null) return sql<SqlBool>`("payload"->${sql.lit(field)}) IS NULL`;
+    if (typeof condition === 'object') return this.payloadOperator(field, condition);
+    return this.payloadEquals(field, condition);
+  }
+
+  /** Колонки `block_num` и `deleted`: сравнение по столбцу. */
+  private columnCondition(eb: Eb, field: string, condition: FieldCondition): Cond {
+    if (condition !== null && typeof condition === 'object' && '$lte' in condition) return eb(field, '<=', condition.$lte);
+    if (condition === null) return eb(field, 'is', null);
+    return eb(field, '=', condition as string | number | boolean);
+  }
+
+  /** Граница по числу и образец текста над полем payload. */
+  private payloadOperator(field: string, condition: { $lte: number } | { $regex: string; $options?: string }): Cond {
+    if ('$lte' in condition) return sql<SqlBool>`("payload"->>${sql.lit(field)})::numeric <= ${condition.$lte}`;
+    const op = (condition.$options ?? '').includes('i') ? '~*' : '~';
+    return sql<SqlBool>`("payload"->>${sql.lit(field)}) ${sql.raw(op)} ${condition.$regex}`;
+  }
+
+  /** Равенство через вхождение jsonb: точный тип значения и вложенные пути. */
+  private payloadEquals(field: string, value: string | number | boolean): Cond {
+    const nested = field.split('.').reduceRight<unknown>((acc, key) => ({ [key]: acc }), value);
     return sql<SqlBool>`"payload" @> ${JSON.stringify(nested)}::jsonb`;
   }
 
-  private toRecord<T extends StoredRecord>(row: { id: string | number; block_num: string | number | null; deleted: boolean; payload: unknown }): T {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private toRecord<T extends StoredRecord>(row: Record<string, any>): T {
     const record = { ...(row.payload as Record<string, unknown>) } as Record<string, unknown>;
     record._id = String(row.id);
     if (row.block_num !== null && row.block_num !== undefined) record.block_num = Number(row.block_num);
@@ -205,7 +209,8 @@ export class PgFactoryStorage implements IFactoryStorage {
       .execute();
   }
 
-  private toDocument(row: { hash: string; meta_key: string; full_title: string | null; html: string; meta: unknown; binary: Buffer }): StoredDocument {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private toDocument(row: Record<string, any>): StoredDocument {
     return {
       hash: row.hash,
       meta_key: row.meta_key,

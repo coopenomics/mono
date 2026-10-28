@@ -76,19 +76,19 @@ describe('тест модели пользовательских данных (u
     expect(retrieved1.metadata.additional).toEqual('data1')
     expect(retrieved1.deleted).toEqual(false)
     expect(retrieved1.block_num).toBeDefined()
-    expect(retrieved1._id).toEqual(saved1.insertedId)
+    expect(String(retrieved1._id)).toEqual(saved1.insertedId)
 
     expect(retrieved2.value).toEqual('test value 2')
     expect(retrieved2.metadata.additional).toEqual('data2')
     expect(retrieved2.deleted).toEqual(false)
     expect(retrieved2.block_num).toBeDefined()
-    expect(retrieved2._id).toEqual(saved2.insertedId)
+    expect(String(retrieved2._id)).toEqual(saved2.insertedId)
 
     expect(retrieved3.value).toEqual('test value 3')
     expect(retrieved3.metadata.additional).toEqual('data3')
     expect(retrieved3.deleted).toEqual(false)
     expect(retrieved3.block_num).toBeDefined()
-    expect(retrieved3._id).toEqual(saved3.insertedId)
+    expect(String(retrieved3._id)).toEqual(saved3.insertedId)
 
     // Проверяем получение списка данных
     const udataList1 = await generator.list('udata', { coopname: 'voskhod', username: 'testuser1' })
