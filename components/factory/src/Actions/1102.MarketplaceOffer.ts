@@ -1,7 +1,6 @@
 import { Cooperative, DraftContract } from 'cooptypes'
 import { MarketplaceOffer } from '../Templates'
 import { DocFactory } from '../Factory'
-import { Udata } from '../Models/Udata'
 import type { IGeneratedDocument, IGenerationOptions, IMetaDocument, ITemplate } from '../Interfaces'
 import type { MongoDBConnector } from '../Services/Databazor'
 
@@ -13,14 +12,7 @@ export class Factory extends DocFactory<MarketplaceOffer.Action> {
   }
 
   async generateDocument(data: MarketplaceOffer.Action, options?: IGenerationOptions): Promise<IGeneratedDocument> {
-    let template: ITemplate<MarketplaceOffer.Model>
-
-    if (process.env.SOURCE === 'local') {
-      template = MarketplaceOffer.Template
-    }
-    else {
-      template = await this.getTemplate(DraftContract.contractName.production, MarketplaceOffer.registry_id, data.block_num)
-    }
+    const template: ITemplate<MarketplaceOffer.Model> = await this.getTemplate(DraftContract.contractName.production, MarketplaceOffer.registry_id, data.block_num)
 
     const meta: IMetaDocument = await this.getMeta({ title: template.title, ...data })
     const coop = await this.getCooperative(data.coopname, data.block_num)
@@ -33,11 +25,10 @@ export class Factory extends DocFactory<MarketplaceOffer.Action> {
     // фабрика читает оттуда — так повторный рендер даёт тот же хэш, что подписал
     // пайщик. Явная передача в `data` имеет приоритет (L3-подпись со стола, где
     // backend вычисляет их в момент подписи).
-    const udataService = new Udata(this.storage)
 
     let marketplace_agreement_number = data.marketplace_agreement_number
     if (!marketplace_agreement_number) {
-      const numberUdata = await udataService.getOne({
+      const numberUdata = await this.getUdata({
         coopname: data.coopname,
         username: data.username,
         key: Cooperative.Model.UdataKey.MARKETPLACE_AGREEMENT_NUMBER,
@@ -48,7 +39,7 @@ export class Factory extends DocFactory<MarketplaceOffer.Action> {
 
     let marketplace_agreement_created_at = data.marketplace_agreement_created_at
     if (!marketplace_agreement_created_at) {
-      const createdAtUdata = await udataService.getOne({
+      const createdAtUdata = await this.getUdata({
         coopname: data.coopname,
         username: data.username,
         key: Cooperative.Model.UdataKey.MARKETPLACE_AGREEMENT_CREATED_AT,

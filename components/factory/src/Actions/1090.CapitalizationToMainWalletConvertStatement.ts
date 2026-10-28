@@ -21,18 +21,11 @@ export class Factory extends DocFactory<CapitalizationToMainWalletConvertStateme
     data: CapitalizationToMainWalletConvertStatement.Action,
     options?: IGenerationOptions,
   ): Promise<IGeneratedDocument> {
-    let template: ITemplate<CapitalizationToMainWalletConvertStatement.Model>
-
-    if (process.env.SOURCE === 'local') {
-      template = CapitalizationToMainWalletConvertStatement.Template
-    }
-    else {
-      template = await this.getTemplate(
+    const template: ITemplate<CapitalizationToMainWalletConvertStatement.Model> = await this.getTemplate(
         DraftContract.contractName.production,
         CapitalizationToMainWalletConvertStatement.registry_id,
         data.block_num,
       )
-    }
 
     const meta: IMetaDocument = await this.getMeta({ title: template.title, ...data })
     const coop = await this.getCooperative(data.coopname, data.block_num)

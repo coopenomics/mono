@@ -2,7 +2,7 @@ import { DraftContract } from 'cooptypes'
 import type { Cooperative } from 'cooptypes'
 import { EducationGuaranteeDecision } from '../Templates'
 import { DocFactory } from '../Factory'
-import type { IGeneratedDocument, IGenerationOptions, IMetaDocument, ITemplate } from '../Interfaces'
+import type { IGeneratedDocument, IGenerationOptions, IMetaDocument } from '../Interfaces'
 import type { MongoDBConnector } from '../Services/Databazor'
 
 export { EducationGuaranteeDecision as Template } from '../Templates'
@@ -23,9 +23,7 @@ export class Factory extends DocFactory<EducationGuaranteeDecision.Action> {
     options?: IGenerationOptions,
   ): Promise<IGeneratedDocument> {
     const { template, coop, vars, userData } = await this.resolveParallel({
-      template: () => process.env.SOURCE === 'local'
-        ? Promise.resolve(EducationGuaranteeDecision.Template as ITemplate<EducationGuaranteeDecision.Model>)
-        : this.getTemplate<EducationGuaranteeDecision.Model>(
+      template: () => this.getTemplate<EducationGuaranteeDecision.Model>(
             DraftContract.contractName.production,
             EducationGuaranteeDecision.registry_id,
             data.block_num,

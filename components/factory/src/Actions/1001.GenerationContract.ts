@@ -1,8 +1,7 @@
 import { Cooperative, DraftContract } from 'cooptypes'
 import { GenerationContract } from '../Templates'
 import { DocFactory } from '../Factory'
-import { Udata } from '../Models/Udata'
-import type { IGeneratedDocument, IGenerationOptions, IMetaDocument, ITemplate } from '../Interfaces'
+import type { IGeneratedDocument, IGenerationOptions, IMetaDocument } from '../Interfaces'
 import type { MongoDBConnector } from '../Services/Databazor'
 
 export { GenerationContract as Template } from '../Templates'
@@ -13,18 +12,13 @@ export class Factory extends DocFactory<GenerationContract.Action> {
   }
 
   async generateDocument(data: GenerationContract.Action, options?: IGenerationOptions): Promise<IGeneratedDocument> {
-    // Извлечение данных из Udata репозитория
-    const udataService = new Udata(this.storage)
-
     // Независимые источники тянем параллельно (см. resolveParallel в DocFactory)
     const { template, coop, vars, userData, contributorContractUdata } = await this.resolveParallel({
-      template: () => process.env.SOURCE === 'local'
-        ? Promise.resolve(GenerationContract.Template as ITemplate<GenerationContract.Model>)
-        : this.getTemplate<GenerationContract.Model>(DraftContract.contractName.production, GenerationContract.registry_id, data.block_num),
+      template: () => this.getTemplate<GenerationContract.Model>(DraftContract.contractName.production, GenerationContract.registry_id, data.block_num),
       coop: () => super.getCooperative(data.coopname, data.block_num),
       vars: () => super.getVars(data.coopname, data.block_num),
       userData: () => super.getUser(data.username, data.block_num),
-      contributorContractUdata: () => udataService.getOne({
+      contributorContractUdata: () => this.getUdata({
         coopname: data.coopname,
         username: data.username,
         key: Cooperative.Model.UdataKey.BLAGOROST_CONTRIBUTOR_CONTRACT_NUMBER,

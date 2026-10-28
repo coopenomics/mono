@@ -21,18 +21,11 @@ export class Factory extends DocFactory<EducationConvertStatement.Action> {
     data: EducationConvertStatement.Action,
     options?: IGenerationOptions,
   ): Promise<IGeneratedDocument> {
-    let template: ITemplate<EducationConvertStatement.Model>
-
-    if (process.env.SOURCE === 'local') {
-      template = EducationConvertStatement.Template
-    }
-    else {
-      template = await this.getTemplate(
+    const template: ITemplate<EducationConvertStatement.Model> = await this.getTemplate(
         DraftContract.contractName.production,
         EducationConvertStatement.registry_id,
         data.block_num,
       )
-    }
 
     const meta: IMetaDocument = await this.getMeta({ title: template.title, ...data })
     const coop = await this.getCooperative(data.coopname, data.block_num)

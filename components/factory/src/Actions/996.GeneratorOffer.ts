@@ -1,8 +1,7 @@
 import { Cooperative, DraftContract } from 'cooptypes'
 import { GeneratorOffer } from '../Templates'
 import { DocFactory } from '../Factory'
-import { Udata } from '../Models/Udata'
-import type { IGeneratedDocument, IGenerationOptions, IMetaDocument, ITemplate } from '../Interfaces'
+import type { IGeneratedDocument, IGenerationOptions, IMetaDocument } from '../Interfaces'
 import type { MongoDBConnector } from '../Services/Databazor'
 
 export { GeneratorOffer as Template } from '../Templates'
@@ -13,24 +12,19 @@ export class Factory extends DocFactory<GeneratorOffer.Action> {
   }
 
   async generateDocument(data: GeneratorOffer.Action, options?: IGenerationOptions): Promise<IGeneratedDocument> {
-    // Извлечение данных из Udata репозитория
-    const udataService = new Udata(this.storage)
-
     // Независимые источники тянем параллельно (см. resolveParallel в DocFactory)
     const { template, vars, coop, user, generatorAgreementUdata, generatorAgreementCreatedAtUdata, docData } = await this.resolveParallel({
-      template: () => process.env.SOURCE === 'local'
-        ? Promise.resolve(GeneratorOffer.Template as ITemplate<GeneratorOffer.Model>)
-        : this.getTemplate<GeneratorOffer.Model>(DraftContract.contractName.production, GeneratorOffer.registry_id, data.block_num),
+      template: () => this.getTemplate<GeneratorOffer.Model>(DraftContract.contractName.production, GeneratorOffer.registry_id, data.block_num),
       vars: () => this.getVars(data.coopname),
       coop: () => this.getCooperative(data.coopname),
       user: () => this.getUser(data.username, data.block_num),
-      generatorAgreementUdata: () => udataService.getOne({
+      generatorAgreementUdata: () => this.getUdata({
         coopname: data.coopname,
         username: data.username,
         key: Cooperative.Model.UdataKey.GENERATOR_AGREEMENT_NUMBER,
         block_num: data.block_num,
       }),
-      generatorAgreementCreatedAtUdata: () => udataService.getOne({
+      generatorAgreementCreatedAtUdata: () => this.getUdata({
         coopname: data.coopname,
         username: data.username,
         key: Cooperative.Model.UdataKey.GENERATOR_AGREEMENT_CREATED_AT,

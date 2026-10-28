@@ -12,14 +12,7 @@ export class Factory extends DocFactory<CapitalizationPropertyInvestDecision.Act
   }
 
   async generateDocument(data: CapitalizationPropertyInvestDecision.Action, options?: IGenerationOptions): Promise<IGeneratedDocument> {
-    let template: ITemplate<CapitalizationPropertyInvestDecision.Model>
-
-    if (process.env.SOURCE === 'local') {
-      template = CapitalizationPropertyInvestDecision.Template
-    }
-    else {
-      template = await this.getTemplate(DraftContract.contractName.production, CapitalizationPropertyInvestDecision.registry_id, data.block_num)
-    }
+    const template: ITemplate<CapitalizationPropertyInvestDecision.Model> = await this.getTemplate(DraftContract.contractName.production, CapitalizationPropertyInvestDecision.registry_id, data.block_num)
 
     const meta: IMetaDocument = await this.getMeta({ title: template.title, ...data })
 

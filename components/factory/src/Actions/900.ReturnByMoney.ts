@@ -1,9 +1,8 @@
 import { DraftContract } from 'cooptypes'
 import { ReturnByMoney } from '../Templates'
 import { DocFactory } from '../Factory'
-import type { IGeneratedDocument, IGenerationOptions, IMetaDocument, ITemplate } from '../Interfaces'
+import type { IGeneratedDocument, IGenerationOptions, IMetaDocument } from '../Interfaces'
 import type { MongoDBConnector } from '../Services/Databazor'
-import { PaymentMethod } from '../Models/PaymentMethod'
 
 export { ReturnByMoney as Template } from '../Templates'
 
@@ -14,18 +13,15 @@ export class Factory extends DocFactory<ReturnByMoney.Action> {
 
   async generateDocument(data: ReturnByMoney.Action, options?: IGenerationOptions): Promise<IGeneratedDocument> {
     // Сервис платёжных методов нужен в батче (создаём до параллельного резолва)
-    const paymentMethodService = new PaymentMethod(this.storage)
 
     // Независимые источники тянем параллельно (см. resolveParallel в DocFactory)
     // paymentMethod независим: getOne читает только data.method_id/data.username
     const { template, coop, vars, user, paymentMethod } = await this.resolveParallel({
-      template: () => process.env.SOURCE === 'local'
-        ? Promise.resolve(ReturnByMoney.Template as ITemplate<ReturnByMoney.Model>)
-        : this.getTemplate<ReturnByMoney.Model>(DraftContract.contractName.production, ReturnByMoney.registry_id, data.block_num),
+      template: () => this.getTemplate<ReturnByMoney.Model>(DraftContract.contractName.production, ReturnByMoney.registry_id, data.block_num),
       coop: () => this.getCooperative(data.coopname, data.block_num),
       vars: () => this.getVars(data.coopname, data.block_num),
       user: () => this.getUser(data.username, data.block_num),
-      paymentMethod: () => paymentMethodService.getOne({
+      paymentMethod: () => this.getPaymentMethod({
         method_id: data.method_id,
         username: data.username,
         deleted: false,

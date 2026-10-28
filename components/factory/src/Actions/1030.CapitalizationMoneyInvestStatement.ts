@@ -1,7 +1,7 @@
 import { DraftContract } from 'cooptypes'
 import { CapitalizationMoneyInvestStatement } from '../Templates'
 import { DocFactory } from '../Factory'
-import type { IGeneratedDocument, IGenerationOptions, IMetaDocument, ITemplate } from '../Interfaces'
+import type { IGeneratedDocument, IGenerationOptions, IMetaDocument } from '../Interfaces'
 import type { MongoDBConnector } from '../Services/Databazor'
 
 export { CapitalizationMoneyInvestStatement as Template } from '../Templates'
@@ -14,9 +14,7 @@ export class Factory extends DocFactory<CapitalizationMoneyInvestStatement.Actio
   async generateDocument(data: CapitalizationMoneyInvestStatement.Action, options?: IGenerationOptions): Promise<IGeneratedDocument> {
     // Независимые источники тянем параллельно (см. resolveParallel в DocFactory)
     const { template, vars, userData } = await this.resolveParallel({
-      template: () => process.env.SOURCE === 'local'
-        ? Promise.resolve(CapitalizationMoneyInvestStatement.Template as ITemplate<CapitalizationMoneyInvestStatement.Model>)
-        : this.getTemplate<CapitalizationMoneyInvestStatement.Model>(DraftContract.contractName.production, CapitalizationMoneyInvestStatement.registry_id, data.block_num),
+      template: () => this.getTemplate<CapitalizationMoneyInvestStatement.Model>(DraftContract.contractName.production, CapitalizationMoneyInvestStatement.registry_id, data.block_num),
       vars: () => super.getVars(data.coopname, data.block_num),
       userData: () => super.getUser(data.username, data.block_num),
     })

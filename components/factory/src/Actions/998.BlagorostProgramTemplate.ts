@@ -1,7 +1,7 @@
 import { Cooperative, DraftContract } from 'cooptypes'
 import { BlagorostProgramTemplate } from '../Templates'
 import { DocFactory } from '../Factory'
-import type { IGeneratedDocument, IGenerationOptions, IMetaDocument, ITemplate } from '../Interfaces'
+import type { IGeneratedDocument, IGenerationOptions, IMetaDocument } from '../Interfaces'
 import type { MongoDBConnector } from '../Services/Databazor'
 
 export { BlagorostProgramTemplate as Template } from '../Templates'
@@ -13,9 +13,7 @@ export class Factory extends DocFactory<BlagorostProgramTemplate.Action> {
 
   async generateDocument(data: BlagorostProgramTemplate.Action, options?: IGenerationOptions): Promise<IGeneratedDocument> {
     const { template, vars, coop, docData } = await this.resolveParallel({
-      template: () => process.env.SOURCE === 'local'
-        ? Promise.resolve(BlagorostProgramTemplate.Template as ITemplate<BlagorostProgramTemplate.Model>)
-        : this.getTemplate<BlagorostProgramTemplate.Model>(DraftContract.contractName.production, BlagorostProgramTemplate.registry_id, data.block_num),
+      template: () => this.getTemplate<BlagorostProgramTemplate.Model>(DraftContract.contractName.production, BlagorostProgramTemplate.registry_id, data.block_num),
       vars: () => this.getVars(data.coopname),
       coop: () => this.getCooperative(data.coopname),
       docData: () => this.loadDocData<BlagorostProgramTemplate.Model['doc_data']>(data),

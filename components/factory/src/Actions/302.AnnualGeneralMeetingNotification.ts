@@ -1,7 +1,7 @@
 import { DraftContract } from 'cooptypes'
 import { AnnualGeneralMeetingNotification } from '../Templates'
 import { DocFactory } from '../Factory'
-import type { IGeneratedDocument, IGenerationOptions, IMetaDocument, ITemplate } from '../Interfaces'
+import type { IGeneratedDocument, IGenerationOptions, IMetaDocument } from '../Interfaces'
 import type { MongoDBConnector } from '../Services/Databazor'
 
 export { AnnualGeneralMeetingNotification as Template } from '../Templates'
@@ -13,9 +13,7 @@ export class Factory extends DocFactory<AnnualGeneralMeetingNotification.Action>
 
   async generateDocument(data: AnnualGeneralMeetingNotification.Action, options?: IGenerationOptions): Promise<IGeneratedDocument> {
     const { template, coop, vars, meet } = await this.resolveParallel({
-      template: () => process.env.SOURCE === 'local'
-        ? Promise.resolve(AnnualGeneralMeetingNotification.Template as ITemplate<AnnualGeneralMeetingNotification.Model>)
-        : this.getTemplate<AnnualGeneralMeetingNotification.Model>(DraftContract.contractName.production, AnnualGeneralMeetingNotification.registry_id, data.block_num),
+      template: () => this.getTemplate<AnnualGeneralMeetingNotification.Model>(DraftContract.contractName.production, AnnualGeneralMeetingNotification.registry_id, data.block_num),
       coop: () => super.getCooperative(data.coopname, data.block_num),
       vars: () => super.getVars(data.coopname, data.block_num),
       // Собрание по хэшу — аргументы из data, не зависит от coop/vars

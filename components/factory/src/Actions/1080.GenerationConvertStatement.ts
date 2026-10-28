@@ -1,8 +1,7 @@
 import { Cooperative, DraftContract } from 'cooptypes'
 import { GenerationConvertStatement } from '../Templates'
 import { DocFactory } from '../Factory'
-import { Udata } from '../Models/Udata'
-import type { IGeneratedDocument, IGenerationOptions, IMetaDocument, ITemplate } from '../Interfaces'
+import type { IGeneratedDocument, IGenerationOptions, IMetaDocument } from '../Interfaces'
 import type { MongoDBConnector } from '../Services/Databazor'
 
 export { GenerationConvertStatement as Template } from '../Templates'
@@ -13,24 +12,19 @@ export class Factory extends DocFactory<GenerationConvertStatement.Action> {
   }
 
   async generateDocument(data: GenerationConvertStatement.Action, options?: IGenerationOptions): Promise<IGeneratedDocument> {
-    // Извлечение данных из Udata репозитория
-    const udataService = new Udata(this.storage)
-
     // Независимые источники тянем параллельно (см. resolveParallel в DocFactory)
     const { template, coop, vars, userData, contributorContractUdata, contributorContractCreatedAtUdata } = await this.resolveParallel({
-      template: () => process.env.SOURCE === 'local'
-        ? Promise.resolve(GenerationConvertStatement.Template as ITemplate<GenerationConvertStatement.Model>)
-        : this.getTemplate<GenerationConvertStatement.Model>(DraftContract.contractName.production, GenerationConvertStatement.registry_id, data.block_num),
+      template: () => this.getTemplate<GenerationConvertStatement.Model>(DraftContract.contractName.production, GenerationConvertStatement.registry_id, data.block_num),
       coop: () => super.getCooperative(data.coopname, data.block_num),
       vars: () => super.getVars(data.coopname, data.block_num),
       userData: () => super.getUser(data.username, data.block_num),
-      contributorContractUdata: () => udataService.getOne({
+      contributorContractUdata: () => this.getUdata({
         coopname: data.coopname,
         username: data.username,
         key: Cooperative.Model.UdataKey.BLAGOROST_CONTRIBUTOR_CONTRACT_NUMBER,
         block_num: data.block_num,
       }),
-      contributorContractCreatedAtUdata: () => udataService.getOne({
+      contributorContractCreatedAtUdata: () => this.getUdata({
         coopname: data.coopname,
         username: data.username,
         key: Cooperative.Model.UdataKey.BLAGOROST_CONTRIBUTOR_CONTRACT_CREATED_AT,

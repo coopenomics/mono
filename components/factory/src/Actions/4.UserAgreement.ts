@@ -1,7 +1,7 @@
 import { DraftContract } from 'cooptypes'
 import { UserAgreement } from '../Templates'
 import { DocFactory } from '../Factory'
-import type { IGeneratedDocument, IGenerationOptions, IMetaDocument, ITemplate } from '../Interfaces'
+import type { IGeneratedDocument, IGenerationOptions, IMetaDocument } from '../Interfaces'
 import type { MongoDBConnector } from '../Services/Databazor'
 import { isEmpty } from '../Utils'
 
@@ -24,9 +24,7 @@ export class Factory extends DocFactory<UserAgreement.Action> {
 
     // Независимые источники тянем параллельно (см. resolveParallel в DocFactory)
     const { template, coop, vars, user } = await this.resolveParallel({
-      template: () => process.env.SOURCE === 'local'
-        ? Promise.resolve(UserAgreement.Template as ITemplate<UserAgreement.Model>)
-        : this.getTemplate<UserAgreement.Model>(DraftContract.contractName.production, UserAgreement.registry_id, data.block_num),
+      template: () => this.getTemplate<UserAgreement.Model>(DraftContract.contractName.production, UserAgreement.registry_id, data.block_num),
       coop: () => super.getCooperative(data.coopname, data.block_num),
       vars: () => super.getVars(data.coopname, data.block_num),
       user: () => isBlank ? Promise.resolve(null) : super.getUser(data.username, data.block_num),

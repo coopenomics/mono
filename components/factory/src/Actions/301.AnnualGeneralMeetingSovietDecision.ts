@@ -1,7 +1,7 @@
 import { DraftContract } from 'cooptypes'
 import { AnnualGeneralMeetingSovietDecision } from '../Templates'
 import { DocFactory } from '../Factory'
-import type { IGeneratedDocument, IGenerationOptions, IMetaDocument, ITemplate } from '../Interfaces'
+import type { IGeneratedDocument, IGenerationOptions, IMetaDocument } from '../Interfaces'
 import type { MongoDBConnector } from '../Services/Databazor'
 
 export { AnnualGeneralMeetingSovietDecision as Template } from '../Templates'
@@ -14,9 +14,7 @@ export class Factory extends DocFactory<AnnualGeneralMeetingSovietDecision.Actio
   async generateDocument(data: AnnualGeneralMeetingSovietDecision.Action, options?: IGenerationOptions): Promise<IGeneratedDocument> {
     // Независимые источники тянем параллельно (см. resolveParallel в DocFactory)
     const { template, coop, vars } = await this.resolveParallel({
-      template: () => process.env.SOURCE === 'local'
-        ? Promise.resolve(AnnualGeneralMeetingSovietDecision.Template as ITemplate<AnnualGeneralMeetingSovietDecision.Model>)
-        : this.getTemplate<AnnualGeneralMeetingSovietDecision.Model>(DraftContract.contractName.production, AnnualGeneralMeetingSovietDecision.registry_id, data.block_num),
+      template: () => this.getTemplate<AnnualGeneralMeetingSovietDecision.Model>(DraftContract.contractName.production, AnnualGeneralMeetingSovietDecision.registry_id, data.block_num),
       coop: () => super.getCooperative(data.coopname, data.block_num),
       vars: () => super.getVars(data.coopname, data.block_num),
     })

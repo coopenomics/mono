@@ -22,18 +22,11 @@ export class Factory extends DocFactory<EducationRidAct.Action> {
     data: EducationRidAct.Action,
     options?: IGenerationOptions,
   ): Promise<IGeneratedDocument> {
-    let template: ITemplate<EducationRidAct.Model>
-
-    if (process.env.SOURCE === 'local') {
-      template = EducationRidAct.Template
-    }
-    else {
-      template = await this.getTemplate(
+    const template: ITemplate<EducationRidAct.Model> = await this.getTemplate(
         DraftContract.contractName.production,
         EducationRidAct.registry_id,
         data.block_num,
       )
-    }
 
     const meta: IMetaDocument = await this.getMeta({ title: template.title, ...data })
     const coop = await this.getCooperative(data.coopname, data.block_num)
@@ -41,7 +34,7 @@ export class Factory extends DocFactory<EducationRidAct.Action> {
 
     const userData = await this.getUser(data.username, data.block_num)
     const user = this.getCommonUser(userData)
-    const contract = await getEducationContractRef(this.storage, data)
+    const contract = await getEducationContractRef(this.sources, data)
 
     // Имя ЦПП фиксировано (как в 1110).
     const program: EducationRidAct.Model['program'] = { name: 'Образование' }

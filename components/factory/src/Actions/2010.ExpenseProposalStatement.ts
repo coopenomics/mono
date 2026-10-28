@@ -1,7 +1,7 @@
 import { DraftContract } from 'cooptypes'
 import { ExpenseProposalStatement } from '../Templates'
 import { DocFactory } from '../Factory'
-import type { IGeneratedDocument, IGenerationOptions, IMetaDocument, ITemplate } from '../Interfaces'
+import type { IGeneratedDocument, IGenerationOptions, IMetaDocument } from '../Interfaces'
 import type { MongoDBConnector } from '../Services/Databazor'
 
 export { ExpenseProposalStatement as Template } from '../Templates'
@@ -17,9 +17,7 @@ export class Factory extends DocFactory<ExpenseProposalStatement.Action> {
     // по `doc_data_hash`; в meta документа эти данные НЕ попадают. См. раздел
     // «Document Generation Pattern: doc_data» в архитектуре.
     const { template, coop, vars, userData, priv } = await this.resolveParallel({
-      template: () => process.env.SOURCE === 'local'
-        ? Promise.resolve(ExpenseProposalStatement.Template as ITemplate<ExpenseProposalStatement.Model>)
-        : this.getTemplate<ExpenseProposalStatement.Model>(DraftContract.contractName.production, ExpenseProposalStatement.registry_id, data.block_num),
+      template: () => this.getTemplate<ExpenseProposalStatement.Model>(DraftContract.contractName.production, ExpenseProposalStatement.registry_id, data.block_num),
       coop: () => super.getCooperative(data.coopname, data.block_num),
       vars: () => super.getVars(data.coopname, data.block_num),
       userData: () => super.getUser(data.username, data.block_num),

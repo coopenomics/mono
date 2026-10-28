@@ -1,7 +1,7 @@
 import { DraftContract } from 'cooptypes'
 import { BranchTrusteePowerOfAttorney } from '../Templates'
 import { DocFactory } from '../Factory'
-import type { IGeneratedDocument, IGenerationOptions, IMetaDocument, ITemplate } from '../Interfaces'
+import type { IGeneratedDocument, IGenerationOptions, IMetaDocument } from '../Interfaces'
 import type { MongoDBConnector } from '../Services/Databazor'
 
 export { BranchTrusteePowerOfAttorney as Template } from '../Templates'
@@ -13,9 +13,7 @@ export class Factory extends DocFactory<BranchTrusteePowerOfAttorney.Action> {
 
   async generateDocument(data: BranchTrusteePowerOfAttorney.Action, options?: IGenerationOptions): Promise<IGeneratedDocument> {
     const { template, coop, vars, userData } = await this.resolveParallel({
-      template: () => process.env.SOURCE === 'local'
-        ? Promise.resolve(BranchTrusteePowerOfAttorney.Template as ITemplate<BranchTrusteePowerOfAttorney.Model>)
-        : this.getTemplate<BranchTrusteePowerOfAttorney.Model>(DraftContract.contractName.production, BranchTrusteePowerOfAttorney.registry_id, data.block_num),
+      template: () => this.getTemplate<BranchTrusteePowerOfAttorney.Model>(DraftContract.contractName.production, BranchTrusteePowerOfAttorney.registry_id, data.block_num),
       coop: () => super.getCooperative(data.coopname, data.block_num),
       vars: () => super.getVars(data.coopname, data.block_num),
       userData: () => super.getUser(data.username, data.block_num),

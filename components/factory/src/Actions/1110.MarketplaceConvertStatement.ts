@@ -22,18 +22,11 @@ export class Factory extends DocFactory<MarketplaceConvertStatement.Action> {
     data: MarketplaceConvertStatement.Action,
     options?: IGenerationOptions,
   ): Promise<IGeneratedDocument> {
-    let template: ITemplate<MarketplaceConvertStatement.Model>
-
-    if (process.env.SOURCE === 'local') {
-      template = MarketplaceConvertStatement.Template
-    }
-    else {
-      template = await this.getTemplate(
+    const template: ITemplate<MarketplaceConvertStatement.Model> = await this.getTemplate(
         DraftContract.contractName.production,
         MarketplaceConvertStatement.registry_id,
         data.block_num,
       )
-    }
 
     const meta: IMetaDocument = await this.getMeta({ title: template.title, ...data })
     const coop = await this.getCooperative(data.coopname, data.block_num)

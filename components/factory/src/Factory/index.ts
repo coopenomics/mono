@@ -1,20 +1,17 @@
-import type { JSONSchemaType } from 'ajv'
 import moment from 'moment-timezone'
 import type { Cooperative, Interfaces, MeetContract } from 'cooptypes'
-import { DraftContract, SovietContract } from 'cooptypes'
+import { DraftContract } from 'cooptypes'
 import type { IBankAccount, ICombinedData, IGeneratedDocument, IMetaDocument, IMetaDocumentPartial, ITemplate, ITranslations, externalDataTypes } from '../Interfaces'
 import type { MongoDBConnector } from '../Services/Databazor'
-import { type ExternalEntrepreneurData, type ExternalIndividualData, type ExternalOrganizationData, type IVars, Individual, type InternalProjectData, Organization, PaymentMethod, Project, Vars } from '../Models'
+import type { ExternalEntrepreneurData, ExternalIndividualData, ExternalOrganizationData, ExternalUdata, IVars, InternalProjectData, PaymentData } from '../Models'
 import type { IGenerate, IGenerateBlank, IGeneratedBlank, IGenerationOptions } from '../Interfaces/Documents'
 import { PDFService } from '../Services/Generator'
 import { BLANK_PLACEHOLDER } from '../Services/Templator'
-import { DocDataService } from '../Services/DocData'
 import packageJson from '../../package.json'
 import { Validator } from '../Services/Validator'
 import type { CooperativeData } from '../Models/Cooperative'
-import { Cooperative as CooperativeModel } from '../Models/Cooperative'
-import { Entrepreneur } from '../Models/Entrepreneur'
 import { getCurrentBlock } from '../Utils/getCurrentBlock'
+import { FactorySources, type IPaymentMethodFilter, type IUdataFilter, type IUserAt } from '../Sources'
 import { DEFAULT_DOCUMENT_TIMEZONE, formatCreatedAt, nowCreatedAt, parseCreatedAt, splitCreatedAt } from '../Utils/documentCreatedAt'
 import type { IOrganizationData } from '..'
 import { formatDateTime } from '../Utils'
@@ -22,13 +19,19 @@ import type { IChainDataSource } from '../DataSource'
 
 const packageVersion = packageJson.version
 
-export interface InternalGetUserResult { type: string, data: externalDataTypes }
+export type InternalGetUserResult = IUserAt
 
 export abstract class DocFactory<T extends IGenerate> {
   abstract generateDocument(data: T, options?: IGenerationOptions): Promise<IGeneratedDocument>
 
   public storage: MongoDBConnector
-  public docData: DocDataService
+
+  /**
+   * Все чтения данных — через слой источников (шаг 1 фабрики v2). Методы
+   * `getX` ниже остались как фасад для сборщиков: их сигнатуры не менялись,
+   * чтобы 92 действия переехали без правок.
+   */
+  protected readonly sources: FactorySources
 
   /**
    * Откуда брать данные цепи. Проставляется Generator'ом сразу после создания
@@ -39,7 +42,7 @@ export abstract class DocFactory<T extends IGenerate> {
 
   constructor(storage: MongoDBConnector) {
     this.storage = storage
-    this.docData = new DocDataService(storage)
+    this.sources = new FactorySources(storage, () => this.chain)
   }
 
   setDataSource(dataSource: IChainDataSource): void {
@@ -143,7 +146,7 @@ export abstract class DocFactory<T extends IGenerate> {
    * См. раздел «Document Generation Pattern: doc_data» в архитектуре.
    */
   async saveDocData<P extends Record<string, unknown>>(payload: P, registry_id: number): Promise<{ hash: string }> {
-    return this.docData.save(payload, registry_id)
+    return this.sources.saveDocData(payload, registry_id)
   }
 
   /**
@@ -152,7 +155,7 @@ export abstract class DocFactory<T extends IGenerate> {
    * по хэшу подписи, но не регенерируется — graceful degradation).
    */
   async getDocData<P = Record<string, unknown>>(hash: string): Promise<P | null> {
-    return this.docData.get<P>(hash)
+    return this.sources.docDataByHash<P>(hash)
   }
 
   /**
@@ -168,91 +171,37 @@ export abstract class DocFactory<T extends IGenerate> {
   }
 
   async getOrganization(username: string, block_num?: number): Promise<IOrganizationData> {
-    const block_filter = block_num ? { block_num: { $lte: block_num } } : {}
-
-    const organization = await new Organization(this.storage).getOne({ username, ...block_filter })
-    if (!organization)
-      throw new Error('Организация не найдена')
-
-    return organization
+    return this.sources.organization(username, block_num)
   }
 
   async getBankAccount(username: string, block_num?: number): Promise<IBankAccount> {
-    const block_filter = block_num ? { block_num: { $lte: block_num } } : {}
+    return this.sources.bankAccount(username, block_num)
+  }
 
-    const method = (await new PaymentMethod(this.storage).getOne({ username, ...block_filter, method_type: 'bank_transfer', is_default: true }))?.data as IBankAccount
+  /** Способ оплаты по отбору (номер способа, вид, основной); нет записи — null. */
+  async getPaymentMethod(filter: IPaymentMethodFilter): Promise<PaymentData | null> {
+    return this.sources.paymentMethod(filter)
+  }
 
-    if (!method)
-      throw new Error('Банковский счёт не найден')
-
-    return method
+  /** Запись udata пайщика по ключу на блок; нет записи — null. */
+  async getUdata(filter: IUdataFilter): Promise<ExternalUdata | null> {
+    return this.sources.udata(filter)
   }
 
   async getUser(username: string, block_num?: number): Promise<InternalGetUserResult> {
-    const block_filter = block_num ? { block_num: { $lte: block_num } } : {}
-
-    const individual = await new Individual(this.storage).getOne({ username, ...block_filter })
-    const organization = await new Organization(this.storage).getOne({ username, ...block_filter })
-    const entrepreneur = await new Entrepreneur(this.storage).getOne({ username, ...block_filter })
-
-    const userData: { type: string, data: externalDataTypes } = {
-      type: '',
-      data: {} as externalDataTypes,
-    }
-
-    if (individual) {
-      userData.type = 'individual'
-      userData.data = individual
-    }
-
-    if (organization) {
-      if (userData.type !== '')
-        throw new Error('Найдено более одного типа данных')
-
-      userData.type = 'organization'
-      userData.data = organization
-    }
-
-    if (entrepreneur) {
-      if (userData.type !== '')
-        throw new Error('Найдено более одного типа данных')
-
-      userData.type = 'entrepreneur'
-      userData.data = entrepreneur
-    }
-
-    if (userData.type === '')
-      throw new Error('Пользователь не найден')
-
-    return userData
+    return this.sources.user(username, block_num)
   }
 
   async getCooperative(username: string, block_num?: number): Promise<CooperativeData> {
-    const coop = await new CooperativeModel(this.storage, this.chain).getOne(username, block_num)
-
-    if (!coop)
-      throw new Error('Кооператив не найден')
-    return coop
+    return this.sources.cooperative(username, block_num)
   }
 
   async getProject(id: string, block_num?: number): Promise<InternalProjectData> {
-    const block_filter = block_num ? { block_num: { $lte: block_num } } : {}
-
-    const project = await new Project(this.storage).getOne({ id, ...block_filter })
-
-    if (!project)
-      throw new Error('Проект решения не найден')
-    return project
+    return this.sources.project(id, block_num)
   }
 
   async getVars(coopname: string, block_num?: number): Promise<IVars> {
-    const block_filter = block_num ? { block_num: { $lte: block_num } } : {}
-
-    const vars = await new Vars(this.storage).getOne({ coopname, ...block_filter })
-
-    if (!vars)
-      throw new Error('Переменные кооператива не найдены')
-    return vars
+    return this.sources.vars(coopname, block_num)
   }
 
   async getRequest(_request_id: number, _block_num?: number): Promise<Cooperative.Model.ICommonRequest> {
@@ -303,37 +252,7 @@ export abstract class DocFactory<T extends IGenerate> {
   }
 
   async getDecision(coop: CooperativeData, coopname: string, decision_id: number, created_at: string, timezone: string): Promise<Cooperative.Document.IDecisionData> {
-    /**
-     * Мы здесь извлекаем голоса из действий, а не из дельт таблиц т.к. в случае использования дельт возможна исключительная ситуация,
-     * когда за решение принимаются голоса и происходит утверждение из дальнейшим удалением объекта из памяти в одном блоке, то
-     * промежуточные дельты не фиксируются, а мы сможем увидеть только результат - удаление, т.е. пустой объект.
-     * Позже перепроверить еще раз.
-     */
-    const votes_for_actions = await this.chain.getActions({
-      account: SovietContract.contractName.production,
-      name: SovietContract.Actions.Decisions.VoteFor.actionName,
-      data: { 'decision_id': String(decision_id), 'coopname': coopname },
-    })
-    const paramsss = JSON.stringify({
-      'account': SovietContract.contractName.production,
-      'name': SovietContract.Actions.Decisions.VoteFor.actionName,
-      'receiver': SovietContract.contractName.production,
-      'data.decision_id': String(decision_id),
-      'data.coopname': coopname,
-    })
-
-    if (!votes_for_actions || votes_for_actions.length === 0) {
-      throw new Error(`Голоса за решение не найдены ${paramsss}`)
-    }
-
-    const votes_against_actions = await this.chain.getActions({
-      account: SovietContract.contractName.production,
-      name: SovietContract.Actions.Decisions.VoteAgainst.actionName,
-      data: { 'decision_id': String(decision_id), 'coopname': coopname },
-    })
-
-    const votes_against = votes_against_actions ? votes_against_actions.length : 0
-    const votes_for = votes_for_actions.length
+    const { votes_for, votes_against } = await this.sources.decisionVotes(coopname, decision_id)
 
     const total_members = coop.totalMembers
     const total_voters = votes_for + votes_against
@@ -354,33 +273,23 @@ export abstract class DocFactory<T extends IGenerate> {
       votes_against,
       votes_abstained,
       voters_percent,
-      // decision,
     }
   }
 
   async getApprovedDecision(coop: CooperativeData, coopname: string, decision_id: number): Promise<Cooperative.Document.IDecisionData> {
-    /**
-     * Получаем уже принятое решение из действия authorize.
-     */
-    const decision = (await this.chain.getActions({
-      account: SovietContract.contractName.production,
-      name: SovietContract.Actions.Decisions.Authorize.actionName,
-      data: { 'decision_id': String(decision_id), 'coopname': coopname },
-      limit: 1,
-    }))[0]?.data as SovietContract.Actions.Decisions.Authorize.IAuthorize
+    // Принятое решение — из действия authorize: в нём мета документа решения с датой.
+    const decision = await this.sources.authorizedDecision(coopname, decision_id)
 
     if (!decision) {
       throw new Error(`Принятое решение не найдено в действиях authorize: decision_id=${decision_id}, coopname=${coopname}`)
     }
 
-    // Извлекаем документ авторизации из поля authorization
     const authorizationDoc = decision.document
 
     if (!authorizationDoc) {
       throw new Error(`Документ авторизации не найден в решении: decision_id=${decision_id}`)
     }
 
-    // Парсим мета-данные и извлекаем created_at
     let decisionCreatedAt: string
     let decisionTimezone: string
     try {
@@ -396,87 +305,45 @@ export abstract class DocFactory<T extends IGenerate> {
       throw new Error(`Ошибка парсинга мета-данных авторизации решения ${decision_id}: ${error}`)
     }
 
-    // Используем обычный метод getDecision с правильной датой создания решения
     return this.getDecision(coop, coopname, decision_id, decisionCreatedAt, decisionTimezone)
   }
 
   async getMeet(coopname: string, meet_hash: string, block_num?: number): Promise<Cooperative.Model.IMeetExtended> {
-    const block_filter = block_num ? { block_num: { $lte: block_num } } : {}
+    const meet = await this.sources.meetRow(coopname, meet_hash, block_num)
 
-    const meetRows = await this.chain.getTableRows<MeetContract.Tables.Meets.IOutput>({
-      code: 'meet',
-      scope: coopname,
-      table: 'meets',
-      filter: { hash: meet_hash.toUpperCase() },
-      ...(block_num ? { block_num } : {}),
-      limit: 1,
-    })
-
-    const meet = meetRows[0]
-
-    if (!meet)
-      throw new Error('Собрание не найдено')
-
-    // Получаем данные о председателе и секретаре собрания
+    // Председатель и секретарь собрания — полными именами для шаблона.
     const presiderData = await this.getUser(meet.presider, block_num)
     const secretaryData = await this.getUser(meet.secretary, block_num)
 
-    // Получаем полные имена
-    const presiderFullName = this.getFullParticipantName(presiderData.data)
-    const secretaryFullName = this.getFullParticipantName(secretaryData.data)
-
-    // Преобразуем формат даты для шаблона
-    const meetExtended: Cooperative.Model.IMeetExtended = {
+    return {
       ...meet,
       current_quorum_percent: Number(Number(meet.current_quorum_percent).toFixed(1)),
       close_at_datetime: formatDateTime(meet.close_at),
       open_at_datetime: formatDateTime(meet.open_at),
-      presider_full_name: presiderFullName,
-      secretary_full_name: secretaryFullName,
+      presider_full_name: this.getFullParticipantName(presiderData.data),
+      secretary_full_name: this.getFullParticipantName(secretaryData.data),
     }
-
-    return meetExtended
   }
 
   async getMeetQuestions(coopname: string, meet_id: number, block_num?: number): Promise<Cooperative.Model.IQuestionExtended[]> {
-    const block_filter = block_num ? { block_num: { $lte: block_num } } : {}
+    const questions = await this.sources.meetQuestionRows(coopname, meet_id, block_num)
 
-    const questions = await this.chain.getTableRows<MeetContract.Tables.Questions.IOutput>({
-      code: 'meet',
-      scope: coopname,
-      table: 'questions',
-      filter: { meet_id: String(meet_id) },
-      ...(block_num ? { block_num } : {}),
-    })
-
-    // Сортировка вопросов по номеру (с учетом, что number может быть строкой)
-    questions.sort((a, b) => {
-      // Преобразуем в числа для корректного сравнения
-      const numA = Number.parseInt(a.number.toString(), 10)
-      const numB = Number.parseInt(b.number.toString(), 10)
-      return numA - numB
-    })
-
-    // Преобразуем вопросы в расширенную модель с вычисленными результатами
-    const extendedQuestions = questions.map((question) => {
-      // Преобразуем значения голосов в числа
+    // Вопросы с вычисленными итогами голосования.
+    return questions.map((question) => {
       const votesFor = Number(question.counter_votes_for)
       const votesAgainst = Number(question.counter_votes_against)
       const votesAbstained = Number(question.counter_votes_abstained)
-
-      // Вычисляем общее количество голосов
       const votesTotal = votesFor + votesAgainst + votesAbstained
 
-      // Вычисляем проценты (защита от деления на ноль)
+      // Защита от деления на ноль: без голосов все доли нулевые.
       const calculatePercent = (value: number): number => {
         if (votesTotal === 0)
           return 0
         return Math.round((value / votesTotal) * 100)
       }
 
-      // Определяем, принято ли решение (более 50% голосов "за")
+      // Решение принято, если «за» больше половины голосов.
       const isAccepted = votesTotal > 0 && votesFor > votesTotal / 2
-      // Возвращаем расширенный объект вопроса
       return {
         ...question,
         votes_total: votesTotal,
@@ -486,8 +353,6 @@ export abstract class DocFactory<T extends IGenerate> {
         is_accepted: isAccepted,
       } as Cooperative.Model.IQuestionExtended
     })
-
-    return extendedQuestions
   }
 
   /**
@@ -517,50 +382,7 @@ export abstract class DocFactory<T extends IGenerate> {
   }
 
   async getTemplate<T>(scope: string, registry_id: number, block_num?: number): Promise<ITemplate<T>> {
-    const draft = (await this.chain.getTableRows<DraftContract.Tables.Drafts.IDraft>({
-      code: DraftContract.contractName.production,
-      scope,
-      table: DraftContract.Tables.Drafts.tableName,
-      filter: { registry_id: String(registry_id) },
-      ...(block_num ? { block_num } : {}),
-      limit: 1,
-    }))[0]
-
-    if (!draft)
-      throw new Error(`Шаблон ${registry_id} не найден${block_num ? ` на блоке ${block_num}` : ''}`)
-
-    const translations = await this.chain.getTableRows<DraftContract.Tables.Translations.ITranslation>({
-      code: DraftContract.contractName.production,
-      scope,
-      table: DraftContract.Tables.Translations.tableName,
-      filter: { draft_id: String(draft.registry_id) },
-      ...(block_num ? { block_num } : {}),
-    })
-
-    if (!translations.length)
-      throw new Error(`Ни один перевод шаблона ${registry_id} не найден${block_num ? ` на блоке ${block_num}` : ''}`)
-
-    /**
-     * На один язык может прийти несколько записей — перевод могли завести
-     * заново под другим идентификатором. Источник отдаёт строки от свежих
-     * блоков к старым, поэтому первая встреченная запись языка и есть
-     * актуальная: иначе документ собрался бы по устаревшей редакции текста.
-     */
-    const byLang = new Map<string, any>()
-    for (const translation of translations as any[]) {
-      if (!byLang.has(translation.lang))
-        byLang.set(translation.lang, JSON.parse(translation.data))
-    }
-
-    const translationsObj = Object.fromEntries(byLang.entries())
-
-    return {
-      title: draft.title,
-      description: draft.description,
-      model: JSON.parse(draft.model) as JSONSchemaType<T>,
-      context: draft.context,
-      translations: translationsObj as ITranslations,
-    }
+    return this.sources.template<T>(scope, registry_id, block_num)
   }
 
   async generatePDF(

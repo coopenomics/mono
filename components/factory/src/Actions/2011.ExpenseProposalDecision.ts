@@ -1,7 +1,7 @@
 import { type Cooperative, DraftContract } from 'cooptypes'
 import { ExpenseProposalDecision } from '../Templates'
 import { DocFactory } from '../Factory'
-import type { IGeneratedDocument, IGenerationOptions, IMetaDocument, ITemplate } from '../Interfaces'
+import type { IGeneratedDocument, IGenerationOptions, IMetaDocument } from '../Interfaces'
 import type { MongoDBConnector } from '../Services/Databazor'
 
 export { ExpenseProposalDecision as Template } from '../Templates'
@@ -17,9 +17,7 @@ export class Factory extends DocFactory<ExpenseProposalDecision.Action> {
 
     // Независимые источники тянем параллельно (см. resolveParallel в DocFactory)
     const { template, coop, vars } = await this.resolveParallel({
-      template: () => process.env.SOURCE === 'local'
-        ? Promise.resolve(ExpenseProposalDecision.Template as ITemplate<ExpenseProposalDecision.Model>)
-        : this.getTemplate<ExpenseProposalDecision.Model>(DraftContract.contractName.production, ExpenseProposalDecision.registry_id, data.block_num),
+      template: () => this.getTemplate<ExpenseProposalDecision.Model>(DraftContract.contractName.production, ExpenseProposalDecision.registry_id, data.block_num),
       coop: () => super.getCooperative(data.coopname, data.block_num),
       vars: () => super.getVars(data.coopname, data.block_num),
     })

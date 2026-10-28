@@ -22,18 +22,11 @@ export class Factory extends DocFactory<MarketplaceWriteoffProtocol.Action> {
     data: MarketplaceWriteoffProtocol.Action,
     options?: IGenerationOptions,
   ): Promise<IGeneratedDocument> {
-    let template: ITemplate<MarketplaceWriteoffProtocol.Model>
-
-    if (process.env.SOURCE === 'local') {
-      template = MarketplaceWriteoffProtocol.Template
-    }
-    else {
-      template = await this.getTemplate(
+    const template: ITemplate<MarketplaceWriteoffProtocol.Model> = await this.getTemplate(
         DraftContract.contractName.production,
         MarketplaceWriteoffProtocol.registry_id,
         data.block_num,
       )
-    }
 
     const meta: IMetaDocument = await this.getMeta({ title: template.title, ...data })
     const coop = await super.getCooperative(data.coopname, data.block_num)

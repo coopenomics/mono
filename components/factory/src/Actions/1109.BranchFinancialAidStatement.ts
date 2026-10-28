@@ -21,18 +21,11 @@ export class Factory extends DocFactory<BranchFinancialAidStatement.Action> {
     data: BranchFinancialAidStatement.Action,
     options?: IGenerationOptions,
   ): Promise<IGeneratedDocument> {
-    let template: ITemplate<BranchFinancialAidStatement.Model>
-
-    if (process.env.SOURCE === 'local') {
-      template = BranchFinancialAidStatement.Template
-    }
-    else {
-      template = await this.getTemplate(
+    const template: ITemplate<BranchFinancialAidStatement.Model> = await this.getTemplate(
         DraftContract.contractName.production,
         BranchFinancialAidStatement.registry_id,
         data.block_num,
       )
-    }
 
     const meta: IMetaDocument = await this.getMeta({ title: template.title, ...data })
     const coop = await this.getCooperative(data.coopname, data.block_num)

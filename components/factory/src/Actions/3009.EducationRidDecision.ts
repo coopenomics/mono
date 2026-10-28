@@ -1,7 +1,7 @@
 import { Cooperative, DraftContract } from 'cooptypes'
 import { EducationRidDecision } from '../Templates'
 import { DocFactory } from '../Factory'
-import type { IGeneratedDocument, IGenerationOptions, IMetaDocument, ITemplate } from '../Interfaces'
+import type { IGeneratedDocument, IGenerationOptions, IMetaDocument } from '../Interfaces'
 import type { MongoDBConnector } from '../Services/Databazor'
 import { getEducationContractRef } from '../Utils/educationContractRef'
 
@@ -24,9 +24,7 @@ export class Factory extends DocFactory<EducationRidDecision.Action> {
     options?: IGenerationOptions,
   ): Promise<IGeneratedDocument> {
     const { template, coop, vars, userData } = await this.resolveParallel({
-      template: () => process.env.SOURCE === 'local'
-        ? Promise.resolve(EducationRidDecision.Template as ITemplate<EducationRidDecision.Model>)
-        : this.getTemplate<EducationRidDecision.Model>(
+      template: () => this.getTemplate<EducationRidDecision.Model>(
             DraftContract.contractName.production,
             EducationRidDecision.registry_id,
             data.block_num,
@@ -37,7 +35,7 @@ export class Factory extends DocFactory<EducationRidDecision.Action> {
     })
 
     const user = this.getCommonUser(userData)
-    const contract = await getEducationContractRef(this.storage, data)
+    const contract = await getEducationContractRef(this.sources, data)
     const program: EducationRidDecision.Model['program'] = { name: 'Образование' }
 
     const meta: IMetaDocument = await this.getMeta({ title: template.title, ...data })

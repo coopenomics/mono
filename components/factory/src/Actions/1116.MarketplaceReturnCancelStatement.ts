@@ -18,14 +18,7 @@ export class Factory extends DocFactory<MarketplaceReturnCancelStatement.Action>
   }
 
   async generateDocument(data: MarketplaceReturnCancelStatement.Action, options?: IGenerationOptions): Promise<IGeneratedDocument> {
-    let template: ITemplate<MarketplaceReturnCancelStatement.Model>
-
-    if (process.env.SOURCE === 'local') {
-      template = MarketplaceReturnCancelStatement.Template
-    }
-    else {
-      template = await this.getTemplate(DraftContract.contractName.production, MarketplaceReturnCancelStatement.registry_id, data.block_num)
-    }
+    const template: ITemplate<MarketplaceReturnCancelStatement.Model> = await this.getTemplate(DraftContract.contractName.production, MarketplaceReturnCancelStatement.registry_id, data.block_num)
 
     const meta: IMetaDocument = await this.getMeta({ title: template.title, ...data })
     const coop = await this.getCooperative(data.coopname, data.block_num)

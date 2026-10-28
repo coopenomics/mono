@@ -21,18 +21,11 @@ export class Factory extends DocFactory<EducationShareWithdrawStatement.Action> 
     data: EducationShareWithdrawStatement.Action,
     options?: IGenerationOptions,
   ): Promise<IGeneratedDocument> {
-    let template: ITemplate<EducationShareWithdrawStatement.Model>
-
-    if (process.env.SOURCE === 'local') {
-      template = EducationShareWithdrawStatement.Template
-    }
-    else {
-      template = await this.getTemplate(
+    const template: ITemplate<EducationShareWithdrawStatement.Model> = await this.getTemplate(
         DraftContract.contractName.production,
         EducationShareWithdrawStatement.registry_id,
         data.block_num,
       )
-    }
 
     const meta: IMetaDocument = await this.getMeta({ title: template.title, ...data })
     const coop = await this.getCooperative(data.coopname, data.block_num)

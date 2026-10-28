@@ -2,7 +2,7 @@ import { DraftContract } from 'cooptypes'
 import { isEmpty } from '../Utils'
 import { CoopenomicsAgreement } from '../Templates'
 import { DocFactory } from '../Factory'
-import type { IGeneratedDocument, IGenerationOptions, IMetaDocument, ITemplate } from '../Interfaces'
+import type { IGeneratedDocument, IGenerationOptions, IMetaDocument } from '../Interfaces'
 import type { MongoDBConnector } from '../Services/Databazor'
 import { DocumentNotApprovedError } from '../errors'
 
@@ -16,9 +16,7 @@ export class Factory extends DocFactory<CoopenomicsAgreement.Action> {
   async generateDocument(data: CoopenomicsAgreement.Action, options?: IGenerationOptions): Promise<IGeneratedDocument> {
     // Независимые источники тянем параллельно (см. resolveParallel в DocFactory)
     const { template, coop, vars, partner } = await this.resolveParallel({
-      template: () => process.env.SOURCE === 'local'
-        ? Promise.resolve(CoopenomicsAgreement.Template as ITemplate<CoopenomicsAgreement.Model>)
-        : this.getTemplate<CoopenomicsAgreement.Model>(DraftContract.contractName.production, CoopenomicsAgreement.registry_id, data.block_num),
+      template: () => this.getTemplate<CoopenomicsAgreement.Model>(DraftContract.contractName.production, CoopenomicsAgreement.registry_id, data.block_num),
       coop: () => super.getCooperative(data.coopname, data.block_num),
       vars: () => super.getVars(data.coopname, data.block_num),
       partner: () => super.getOrganization(data.username, data.block_num),

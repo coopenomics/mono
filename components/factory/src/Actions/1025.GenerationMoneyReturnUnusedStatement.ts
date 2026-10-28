@@ -1,8 +1,7 @@
 import { Cooperative, DraftContract } from 'cooptypes'
 import { GenerationMoneyReturnUnusedStatement } from '../Templates'
 import { DocFactory } from '../Factory'
-import { Udata } from '../Models/Udata'
-import type { IGeneratedDocument, IGenerationOptions, IMetaDocument, ITemplate } from '../Interfaces'
+import type { IGeneratedDocument, IGenerationOptions, IMetaDocument } from '../Interfaces'
 import type { MongoDBConnector } from '../Services/Databazor'
 
 export { GenerationMoneyReturnUnusedStatement as Template } from '../Templates'
@@ -13,35 +12,30 @@ export class Factory extends DocFactory<GenerationMoneyReturnUnusedStatement.Act
   }
 
   async generateDocument(data: GenerationMoneyReturnUnusedStatement.Action, options?: IGenerationOptions): Promise<IGeneratedDocument> {
-    // Извлечение данных из Udata репозитория
-    const udataService = new Udata(this.storage)
-
     // Независимые источники тянем параллельно (см. resolveParallel в DocFactory)
     const { template, vars, userData, contributorContractUdata, contributorContractCreatedAtUdata, generatorAgreementUdata, generatorAgreementCreatedAtUdata } = await this.resolveParallel({
-      template: () => process.env.SOURCE === 'local'
-        ? Promise.resolve(GenerationMoneyReturnUnusedStatement.Template as ITemplate<GenerationMoneyReturnUnusedStatement.Model>)
-        : this.getTemplate<GenerationMoneyReturnUnusedStatement.Model>(DraftContract.contractName.production, GenerationMoneyReturnUnusedStatement.registry_id, data.block_num),
+      template: () => this.getTemplate<GenerationMoneyReturnUnusedStatement.Model>(DraftContract.contractName.production, GenerationMoneyReturnUnusedStatement.registry_id, data.block_num),
       vars: () => super.getVars(data.coopname, data.block_num),
       userData: () => super.getUser(data.username, data.block_num),
-      contributorContractUdata: () => udataService.getOne({
+      contributorContractUdata: () => this.getUdata({
         coopname: data.coopname,
         username: data.username,
         key: Cooperative.Model.UdataKey.BLAGOROST_CONTRIBUTOR_CONTRACT_NUMBER,
         block_num: data.block_num,
       }),
-      contributorContractCreatedAtUdata: () => udataService.getOne({
+      contributorContractCreatedAtUdata: () => this.getUdata({
         coopname: data.coopname,
         username: data.username,
         key: Cooperative.Model.UdataKey.BLAGOROST_CONTRIBUTOR_CONTRACT_CREATED_AT,
         block_num: data.block_num,
       }),
-      generatorAgreementUdata: () => udataService.getOne({
+      generatorAgreementUdata: () => this.getUdata({
         coopname: data.coopname,
         username: data.username,
         key: Cooperative.Model.UdataKey.GENERATOR_AGREEMENT_NUMBER,
         block_num: data.block_num,
       }),
-      generatorAgreementCreatedAtUdata: () => udataService.getOne({
+      generatorAgreementCreatedAtUdata: () => this.getUdata({
         coopname: data.coopname,
         username: data.username,
         key: Cooperative.Model.UdataKey.GENERATOR_AGREEMENT_CREATED_AT,

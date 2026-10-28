@@ -1,7 +1,7 @@
 import { DraftContract } from 'cooptypes'
 import { ProgramAgreementsAnnulmentStatement } from '../Templates'
 import { DocFactory } from '../Factory'
-import type { IGeneratedDocument, IGenerationOptions, IMetaDocument, ITemplate } from '../Interfaces'
+import type { IGeneratedDocument, IGenerationOptions, IMetaDocument } from '../Interfaces'
 import type { MongoDBConnector } from '../Services/Databazor'
 
 export { ProgramAgreementsAnnulmentStatement as Template } from '../Templates'
@@ -18,9 +18,7 @@ export class Factory extends DocFactory<ProgramAgreementsAnnulmentStatement.Acti
 
   async generateDocument(data: ProgramAgreementsAnnulmentStatement.Action, _options?: IGenerationOptions): Promise<IGeneratedDocument> {
     const { template, coop, vars, userData } = await this.resolveParallel({
-      template: () => process.env.SOURCE === 'local'
-        ? Promise.resolve(ProgramAgreementsAnnulmentStatement.Template as ITemplate<ProgramAgreementsAnnulmentStatement.Model>)
-        : this.getTemplate<ProgramAgreementsAnnulmentStatement.Model>(DraftContract.contractName.production, ProgramAgreementsAnnulmentStatement.registry_id, data.block_num),
+      template: () => this.getTemplate<ProgramAgreementsAnnulmentStatement.Model>(DraftContract.contractName.production, ProgramAgreementsAnnulmentStatement.registry_id, data.block_num),
       coop: () => super.getCooperative(data.coopname, data.block_num),
       vars: () => super.getVars(data.coopname, data.block_num),
       userData: () => super.getUser(data.username, data.block_num),

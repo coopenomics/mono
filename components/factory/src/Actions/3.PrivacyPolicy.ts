@@ -1,7 +1,7 @@
 import { DraftContract } from 'cooptypes'
 import { PrivacyPolicy } from '../Templates'
 import { DocFactory } from '../Factory'
-import type { IGeneratedDocument, IGenerationOptions, IMetaDocument, ITemplate } from '../Interfaces'
+import type { IGeneratedDocument, IGenerationOptions, IMetaDocument } from '../Interfaces'
 import type { MongoDBConnector } from '../Services/Databazor'
 import { isEmpty } from '../Utils'
 
@@ -15,9 +15,7 @@ export class Factory extends DocFactory<PrivacyPolicy.Action> {
   async generateDocument(data: PrivacyPolicy.Action, options?: IGenerationOptions): Promise<IGeneratedDocument> {
     // Независимые источники тянем параллельно (см. resolveParallel в DocFactory)
     const { template, coop, vars } = await this.resolveParallel({
-      template: () => process.env.SOURCE === 'local'
-        ? Promise.resolve(PrivacyPolicy.Template as ITemplate<PrivacyPolicy.Model>)
-        : this.getTemplate<PrivacyPolicy.Model>(DraftContract.contractName.production, PrivacyPolicy.registry_id, data.block_num),
+      template: () => this.getTemplate<PrivacyPolicy.Model>(DraftContract.contractName.production, PrivacyPolicy.registry_id, data.block_num),
       coop: () => super.getCooperative(data.coopname, data.block_num),
       vars: () => super.getVars(data.coopname, data.block_num),
     })

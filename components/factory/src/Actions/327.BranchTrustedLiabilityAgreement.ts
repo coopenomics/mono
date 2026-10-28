@@ -1,7 +1,7 @@
 import { DraftContract } from 'cooptypes'
 import { BranchTrustedLiabilityAgreement } from '../Templates'
 import { DocFactory } from '../Factory'
-import type { IGeneratedDocument, IGenerationOptions, IMetaDocument, ITemplate } from '../Interfaces'
+import type { IGeneratedDocument, IGenerationOptions, IMetaDocument } from '../Interfaces'
 import type { MongoDBConnector } from '../Services/Databazor'
 
 export { BranchTrustedLiabilityAgreement as Template } from '../Templates'
@@ -13,9 +13,7 @@ export class Factory extends DocFactory<BranchTrustedLiabilityAgreement.Action> 
 
   async generateDocument(data: BranchTrustedLiabilityAgreement.Action, options?: IGenerationOptions): Promise<IGeneratedDocument> {
     const { template, coop, vars, userData, trusteeUser } = await this.resolveParallel({
-      template: () => process.env.SOURCE === 'local'
-        ? Promise.resolve(BranchTrustedLiabilityAgreement.Template as ITemplate<BranchTrustedLiabilityAgreement.Model>)
-        : this.getTemplate<BranchTrustedLiabilityAgreement.Model>(DraftContract.contractName.production, BranchTrustedLiabilityAgreement.registry_id, data.block_num),
+      template: () => this.getTemplate<BranchTrustedLiabilityAgreement.Model>(DraftContract.contractName.production, BranchTrustedLiabilityAgreement.registry_id, data.block_num),
       coop: () => super.getCooperative(data.coopname, data.block_num),
       vars: () => super.getVars(data.coopname, data.block_num),
       userData: () => super.getUser(data.username, data.block_num),

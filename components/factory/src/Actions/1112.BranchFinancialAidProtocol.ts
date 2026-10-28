@@ -1,7 +1,7 @@
 import { Cooperative, DraftContract } from 'cooptypes'
 import { BranchFinancialAidProtocol } from '../Templates'
 import { DocFactory } from '../Factory'
-import type { IGeneratedDocument, IGenerationOptions, IMetaDocument, ITemplate } from '../Interfaces'
+import type { IGeneratedDocument, IGenerationOptions, IMetaDocument } from '../Interfaces'
 import type { MongoDBConnector } from '../Services/Databazor'
 
 export { BranchFinancialAidProtocol as Template } from '../Templates'
@@ -24,9 +24,7 @@ export class Factory extends DocFactory<BranchFinancialAidProtocol.Action> {
     options?: IGenerationOptions,
   ): Promise<IGeneratedDocument> {
     const { template, coop, vars, receiverData } = await this.resolveParallel({
-      template: () => process.env.SOURCE === 'local'
-        ? Promise.resolve(BranchFinancialAidProtocol.Template as ITemplate<BranchFinancialAidProtocol.Model>)
-        : this.getTemplate<BranchFinancialAidProtocol.Model>(
+      template: () => this.getTemplate<BranchFinancialAidProtocol.Model>(
             DraftContract.contractName.production,
             BranchFinancialAidProtocol.registry_id,
             data.block_num,

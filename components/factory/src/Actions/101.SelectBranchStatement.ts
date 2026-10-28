@@ -1,6 +1,6 @@
 import { DraftContract } from 'cooptypes'
 import { DocFactory } from '../Factory'
-import type { IGeneratedDocument, IGenerationOptions, IMetaDocument, ITemplate } from '../Interfaces'
+import type { IGeneratedDocument, IGenerationOptions, IMetaDocument } from '../Interfaces'
 import type { MongoDBConnector } from '../Services/Databazor'
 import { SelectBranchStatement } from '../Templates'
 import { isEmpty } from '../Utils'
@@ -14,9 +14,7 @@ export class Factory extends DocFactory<SelectBranchStatement.Action> {
 
   async generateDocument(data: SelectBranchStatement.Action, _options?: IGenerationOptions): Promise<IGeneratedDocument> {
     const { template, user, coop, vars } = await this.resolveParallel({
-      template: () => process.env.SOURCE === 'local'
-        ? Promise.resolve(SelectBranchStatement.Template as ITemplate<SelectBranchStatement.Model>)
-        : this.getTemplate<SelectBranchStatement.Model>(DraftContract.contractName.production, SelectBranchStatement.registry_id, data.block_num),
+      template: () => this.getTemplate<SelectBranchStatement.Model>(DraftContract.contractName.production, SelectBranchStatement.registry_id, data.block_num),
       user: () => super.getUser(data.username, data.block_num),
       coop: () => super.getCooperative(data.coopname, data.block_num),
       vars: () => super.getVars(data.coopname, data.block_num),

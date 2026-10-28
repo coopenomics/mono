@@ -37,6 +37,7 @@ import type { CooperativeData } from '../Models/Cooperative'
 import { Cooperative as CooperativeModel } from '../Models/Cooperative'
 import { Entrepreneur } from '../Models/Entrepreneur'
 import { DocDataService } from '../Services/DocData'
+import DataService from '../Services/Databazor/DataService'
 import { Registry } from '../Templates/registry'
 import type { IOrganizationData } from '..'
 
@@ -55,6 +56,13 @@ export interface IPaymentMethodFilter {
   method_type?: string
   is_default?: boolean
   block_num?: number
+}
+
+/** Подпись пайщика под заявлением на вступление, коллекция `signatures`. */
+export interface ISignatureRecord {
+  username: string
+  block_num: number
+  signature: string
 }
 
 /** Голоса по решению совета, посчитанные по действиям цепи. */
@@ -295,6 +303,18 @@ export class FactorySources {
     })
 
     return { votes_for: votesFor.length, votes_against: votesAgainst ? votesAgainst.length : 0 }
+  }
+
+  /**
+   * Подпись пайщика (картинка) из заявления на вступление: сохраняется при
+   * первой сборке и читается при пересборке на блок.
+   */
+  async signature(username: string, block_num?: number): Promise<ISignatureRecord | null> {
+    return new DataService<ISignatureRecord>(this.storage, 'signatures').getOne({ username, ...upTo(block_num) })
+  }
+
+  async saveSignature(record: ISignatureRecord): Promise<void> {
+    await new DataService<ISignatureRecord>(this.storage, 'signatures').save(record)
   }
 
   /** Действие утверждения решения советом; нет — undefined. */

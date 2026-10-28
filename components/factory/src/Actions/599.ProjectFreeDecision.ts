@@ -23,9 +23,7 @@ export class Factory extends DocFactory<ProjectFreeDecision.Action> {
   ): Promise<IGeneratedDocument> {
     // Независимые источники тянем параллельно (см. resolveParallel в DocFactory)
     const { template, user, coop, project, vars } = await this.resolveParallel({
-      template: () => process.env.SOURCE === 'local'
-        ? Promise.resolve(ProjectFreeDecision.Template as ITemplate<ProjectFreeDecision.Model>)
-        : this.getTemplate<ProjectFreeDecision.Model>(DraftContract.contractName.production, ProjectFreeDecision.registry_id, data.block_num),
+      template: () => this.getTemplate<ProjectFreeDecision.Model>(DraftContract.contractName.production, ProjectFreeDecision.registry_id, data.block_num),
       user: () => this.getUser(data.username, data.block_num),
       coop: () => this.getCooperative(data.coopname, data.block_num),
       project: () => this.getProject(data.project_id, data.block_num) as Promise<Cooperative.Document.IProjectData>,

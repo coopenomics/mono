@@ -18,14 +18,7 @@ export class Factory extends DocFactory<EducationParentOffer.Action> {
   }
 
   async generateDocument(data: EducationParentOffer.Action, options?: IGenerationOptions): Promise<IGeneratedDocument> {
-    let template: ITemplate<EducationParentOffer.Model>
-
-    if (process.env.SOURCE === 'local') {
-      template = EducationParentOffer.Template
-    }
-    else {
-      template = await this.getTemplate(DraftContract.contractName.production, EducationParentOffer.registry_id, data.block_num)
-    }
+    const template: ITemplate<EducationParentOffer.Model> = await this.getTemplate(DraftContract.contractName.production, EducationParentOffer.registry_id, data.block_num)
 
     const meta: IMetaDocument = await this.getMeta({ title: template.title, ...data })
     const coop = await this.getCooperative(data.coopname, data.block_num)
@@ -36,15 +29,14 @@ export class Factory extends DocFactory<EducationParentOffer.Action> {
     // Персональные номер и дата. Бэкенд edubridge пишет их в Udata ДО генерации,
     // фабрика читает оттуда — повторный рендер даёт тот же хэш, что подписал
     // пайщик. Явная передача в `data` имеет приоритет (подпись со стола).
-    const udataService = new Udata(this.storage)
     let agreement_number = data.agreement_number
     if (!agreement_number) {
-      const row = await udataService.getOne({ coopname: data.coopname, username: data.username, key: Cooperative.Model.UdataKey.EDUCATION_PARENT_AGREEMENT_NUMBER, block_num: data.block_num })
+      const row = await this.getUdata({ coopname: data.coopname, username: data.username, key: Cooperative.Model.UdataKey.EDUCATION_PARENT_AGREEMENT_NUMBER, block_num: data.block_num })
       agreement_number = row?.value ? String(row.value) : ''
     }
     let agreement_created_at = data.agreement_created_at
     if (!agreement_created_at) {
-      const row = await udataService.getOne({ coopname: data.coopname, username: data.username, key: Cooperative.Model.UdataKey.EDUCATION_PARENT_AGREEMENT_CREATED_AT, block_num: data.block_num })
+      const row = await this.getUdata({ coopname: data.coopname, username: data.username, key: Cooperative.Model.UdataKey.EDUCATION_PARENT_AGREEMENT_CREATED_AT, block_num: data.block_num })
       agreement_created_at = row?.value ? String(row.value) : ''
     }
     if (!agreement_number || !agreement_created_at) {

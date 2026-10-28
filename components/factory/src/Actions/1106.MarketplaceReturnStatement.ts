@@ -13,14 +13,7 @@ export class Factory extends DocFactory<MarketplaceReturnStatement.Action> {
   }
 
   async generateDocument(data: MarketplaceReturnStatement.Action, options?: IGenerationOptions): Promise<IGeneratedDocument> {
-    let template: ITemplate<MarketplaceReturnStatement.Model>
-
-    if (process.env.SOURCE === 'local') {
-      template = MarketplaceReturnStatement.Template
-    }
-    else {
-      template = await this.getTemplate(DraftContract.contractName.production, MarketplaceReturnStatement.registry_id, data.block_num)
-    }
+    const template: ITemplate<MarketplaceReturnStatement.Model> = await this.getTemplate(DraftContract.contractName.production, MarketplaceReturnStatement.registry_id, data.block_num)
 
     const meta: IMetaDocument = await this.getMeta({ title: template.title, ...data })
     const coop = await this.getCooperative(data.coopname, data.block_num)
