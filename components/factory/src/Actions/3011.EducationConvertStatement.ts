@@ -1,77 +1,36 @@
-import { DraftContract } from 'cooptypes'
+import { defineBuilder } from '../Builder'
+import * as Format from '../Format'
 import { EducationConvertStatement } from '../Templates'
-import { DocFactory } from '../Factory'
-import type { IGeneratedDocument, IGenerationOptions, IMetaDocument, ITemplate } from '../Interfaces'
-import type { MongoDBConnector } from '../Services/Databazor'
 
 export { EducationConvertStatement as Template } from '../Templates'
 
-/**
- * Factory для Заявления о конвертации паевого взноса в членский взнос по
- * ЦПП «Образование» (процесс p.edu.access). Генерируется при открытии или
- * продлении подписки и подписывается пайщиком (`data.username`) перед
- * `edubridge::convert`. Зеркало 1110.MarketplaceConvertStatement.
- */
-export class Factory extends DocFactory<EducationConvertStatement.Action> {
-  constructor(storage: MongoDBConnector) {
-    super(storage)
-  }
+/** Период подписки словами для текста заявления. */
+const PERIOD_HUMAN: Record<string, string> = { month: 'один месяц', course: 'весь курс', year: 'один год' }
 
-  async generateDocument(
-    data: EducationConvertStatement.Action,
-    options?: IGenerationOptions,
-  ): Promise<IGeneratedDocument> {
-    const template: ITemplate<EducationConvertStatement.Model> = await this.getTemplate(
-        DraftContract.contractName.production,
-        EducationConvertStatement.registry_id,
-        data.block_num,
-      )
-
-    const meta: IMetaDocument = await this.getMeta({ title: template.title, ...data })
-    const coop = await this.getCooperative(data.coopname, data.block_num)
-    const vars = await this.getVars(data.coopname, data.block_num)
-
-    const userData = await this.getUser(data.username, data.block_num)
-    const user = this.getCommonUser(userData)
-
-    // Имя ЦПП фиксировано (как в 1110).
-    const program: EducationConvertStatement.Model['program'] = { name: 'Образование' }
-
-    // Период подписки on-chain хранится как eosio::name (month|course);
-    // в документ идёт человекочитаемая форма.
-    const periodHuman: Record<string, string> = { month: 'один месяц', course: 'весь курс', year: 'один год' }
-    const period_human = periodHuman[data.period] ?? data.period
-
-    const combinedData: EducationConvertStatement.Model = {
-      meta,
-      coop,
-      vars,
-      user,
-      program,
-      sub_hash: data.sub_hash,
-      // В документ сумма идёт человеку, а не цепи: «1000.0000 RUB» → «1000.00 RUB».
-      amount: this.formatAsset(data.amount),
-      from_program: this.formatAsset(data.from_program ?? '0.0000 RUB'),
-      total: this.formatAsset(data.total ?? data.amount),
-      // Остаток кошелька программы засчитывается первым, с паевого идёт лишь
-      // недостача — заявление называет обе части.
-      from_program_used: parseFloat(String(data.from_program ?? '0')) > 0,
-      convert_used: parseFloat(String(data.amount ?? '0')) > 0,
-      course_title: data.course_title,
-      period: data.period,
-      period_human,
-    }
-
-    await this.validate(combinedData, template.model)
-    const translation = template.translations[meta.lang]
-    const document: IGeneratedDocument = await this.generatePDF(
-      user.full_name_or_short_name,
-      template.context,
-      combinedData,
-      translation,
-      meta,
-      options?.skip_save,
-    )
-    return document
-  }
-}
+/** Заявление о конвертации паевого взноса (Образование): пайщик, подписка, суммы и период. */
+export const Factory = defineBuilder<EducationConvertStatement.Action, EducationConvertStatement.Model>()({
+  registry_id: EducationConvertStatement.registry_id,
+  version: 1,
+  reads: ({ data, f }) => ({
+    coop: () => f.getCooperative(data.coopname, data.block_num),
+    vars: () => f.getVars(data.coopname, data.block_num),
+    userData: () => f.getUser(data.username, data.block_num),
+  }),
+  assemble: ({ data, meta, reads: { coop, vars, userData } }) => ({
+    meta,
+    coop,
+    vars,
+    user: Format.commonUser(userData),
+    program: { name: 'Образование' },
+    sub_hash: data.sub_hash,
+    amount: Format.formatAsset(data.amount),
+    from_program: Format.formatAsset(data.from_program ?? '0.0000 RUB'),
+    total: Format.formatAsset(data.total ?? data.amount),
+    from_program_used: Number.parseFloat(String(data.from_program ?? '0')) > 0,
+    convert_used: Number.parseFloat(String(data.amount ?? '0')) > 0,
+    course_title: data.course_title,
+    period: data.period,
+    period_human: PERIOD_HUMAN[data.period] ?? data.period,
+  }),
+  signer: ({ reads: { userData } }) => Format.commonUser(userData).full_name_or_short_name,
+})

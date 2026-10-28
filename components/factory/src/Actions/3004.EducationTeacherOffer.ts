@@ -1,61 +1,40 @@
-import { Cooperative, DraftContract } from 'cooptypes'
+import { Cooperative } from 'cooptypes'
+import { defineBuilder } from '../Builder'
+import * as Format from '../Format'
 import { EducationTeacherOffer } from '../Templates'
-import { DocFactory } from '../Factory'
-import type { IGeneratedDocument, IGenerationOptions, IMetaDocument, ITemplate } from '../Interfaces'
-import type { MongoDBConnector } from '../Services/Databazor'
-import { Udata } from '../Models'
 
 export { EducationTeacherOffer as Template } from '../Templates'
 
 /**
- * Factory для экземпляра оферты преподавателя ЦПП «Образование».
- * Подписывает пайщик-преподаватель (`data.username`); номер и дату
- * соглашения передаёт бэкенд edubridge явно.
+ * Оферта преподавателя ЦПП «Образование»: пайщик, номер и дата оферты. Номер и дата приходят в данных, иначе читаются из udata,
+ * куда бэкенд пишет их до первой сборки.
  */
-export class Factory extends DocFactory<EducationTeacherOffer.Action> {
-  constructor(storage: MongoDBConnector) {
-    super(storage)
-  }
-
-  async generateDocument(data: EducationTeacherOffer.Action, options?: IGenerationOptions): Promise<IGeneratedDocument> {
-    const template: ITemplate<EducationTeacherOffer.Model> = await this.getTemplate(DraftContract.contractName.production, EducationTeacherOffer.registry_id, data.block_num)
-
-    const meta: IMetaDocument = await this.getMeta({ title: template.title, ...data })
-    const coop = await this.getCooperative(data.coopname, data.block_num)
-    const vars = await this.getVars(data.coopname, data.block_num)
-    const userData = await this.getUser(data.username, data.block_num)
-    const common_user = this.getCommonUser(userData)
-
-    // Персональные номер и дата. Бэкенд edubridge пишет их в Udata ДО генерации,
-    // фабрика читает оттуда — повторный рендер даёт тот же хэш, что подписал
-    // пайщик. Явная передача в `data` имеет приоритет (подпись со стола).
-    let agreement_number = data.agreement_number
-    if (!agreement_number) {
-      const row = await this.getUdata({ coopname: data.coopname, username: data.username, key: Cooperative.Model.UdataKey.EDUCATION_TEACHER_AGREEMENT_NUMBER, block_num: data.block_num })
-      agreement_number = row?.value ? String(row.value) : ''
+export const Factory = defineBuilder<EducationTeacherOffer.Action, EducationTeacherOffer.Model>()({
+  registry_id: EducationTeacherOffer.registry_id,
+  version: 1,
+  reads: ({ data, f }) => {
+    const udata = (key: Cooperative.Model.UdataKey) => f.getUdata({ coopname: data.coopname, username: data.username, key, block_num: data.block_num })
+    return {
+      coop: () => f.getCooperative(data.coopname, data.block_num),
+      vars: () => f.getVars(data.coopname, data.block_num),
+      userData: () => f.getUser(data.username, data.block_num),
+      numberRow: () => (data.agreement_number ? Promise.resolve(null) : udata(Cooperative.Model.UdataKey.EDUCATION_TEACHER_AGREEMENT_NUMBER)),
+      createdAtRow: () => (data.agreement_created_at ? Promise.resolve(null) : udata(Cooperative.Model.UdataKey.EDUCATION_TEACHER_AGREEMENT_CREATED_AT)),
     }
-    let agreement_created_at = data.agreement_created_at
-    if (!agreement_created_at) {
-      const row = await this.getUdata({ coopname: data.coopname, username: data.username, key: Cooperative.Model.UdataKey.EDUCATION_TEACHER_AGREEMENT_CREATED_AT, block_num: data.block_num })
-      agreement_created_at = row?.value ? String(row.value) : ''
-    }
-    if (!agreement_number || !agreement_created_at) {
+  },
+  assemble: ({ data, meta, reads: { coop, vars, userData, numberRow, createdAtRow } }) => {
+    const agreement_number = data.agreement_number || (numberRow?.value ? String(numberRow.value) : '')
+    const agreement_created_at = data.agreement_created_at || (createdAtRow?.value ? String(createdAtRow.value) : '')
+    if (!agreement_number || !agreement_created_at)
       throw new Error('Номер и дата оферты преподавателя ЦПП «Образование» обязательны (не переданы и не найдены в Udata)')
-    }
-
-    const combinedData: EducationTeacherOffer.Model = {
+    return {
       meta,
       coop,
       vars,
-      common_user,
+      common_user: Format.commonUser(userData),
       agreement_number,
       agreement_created_at,
     }
-
-    await this.validate(combinedData, template.model)
-    const translation = template.translations[meta.lang]
-    const document: IGeneratedDocument = await this.generatePDF(common_user.full_name_or_short_name, template.context, combinedData, translation, meta, options?.skip_save)
-
-    return document
-  }
-}
+  },
+  signer: ({ reads: { userData } }) => Format.commonUser(userData).full_name_or_short_name,
+})
