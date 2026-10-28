@@ -28,7 +28,7 @@ export class Factory extends DocFactory<MarketplaceReturnCancelStatement.Action>
     const ordererUser = this.getCommonUser(await this.getUser(data.orderer, data.block_num))
 
     // Артикул/наименование/единица/цена — из Action (заказ и оферта на стороне
-    // controller'а), а не из заглушки getRequest().
+    // controller'а), а не из общей заглушки заказа (удалена шагом 2 фабрики v2).
     const request: MarketplaceReturnCancelStatement.Model['request'] = {
       hash: data.sku,
       title: data.product_title,

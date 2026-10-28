@@ -28,7 +28,7 @@ export class Factory extends DocFactory<MarketplaceShareReturnAct.Action> {
     const transmitter = await this.getUser(data.transmitter, data.block_num)
 
     // request строится напрямую из данных заказа в Action (а не из заглушки
-    // getRequest): акт выдачи несёт ИМЕННО заказ заказчика — артикул (СКУ),
+    // общей заглушки заказа, удалённой шагом 2 фабрики v2): акт выдачи несёт ИМЕННО заказ заказчика — артикул (СКУ),
     // наименование, фактическое количество и его стоимость, а не агрегат партии.
     const cleanNum = (s: string): string => {
       const n = Number.parseFloat(s)

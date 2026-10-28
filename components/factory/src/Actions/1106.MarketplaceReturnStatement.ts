@@ -23,7 +23,7 @@ export class Factory extends DocFactory<MarketplaceReturnStatement.Action> {
     const commonUser = this.getCommonUser(user)
 
     // Артикул/наименование/единица/цена — напрямую из Action (заказ+оферта на
-    // стороне controller'а), а не из getRequest(): та заглушка возвращает
+    // стороне controller'а), а не из общей заглушки заказа (удалена шагом 2 фабрики v2): та заглушка возвращает
     // фиксированные тестовые данные независимо от order_id (см. review
     // 2026-07-27 — во всех заявлениях показывало «Молоко Бурёнка» и цену 1000).
     const request: MarketplaceReturnStatement.Model['request'] = {
