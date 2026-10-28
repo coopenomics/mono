@@ -40,7 +40,35 @@ for line in sys.stdin:
 
 const pythonBin = process.env.WEASY_PYTHON || '/venv/bin/python3'
 const dir = mkdtempSync(join(tmpdir(), 'pdf-probe-'))
-const html = readFileSync(htmlFile, 'utf8')
+// Та же шапка стилей, что ставит фабрика перед рендером (src/Services/Generator):
+// без неё документ верстался бы шрифтом по умолчанию, а расхождения между
+// процессами ищутся именно во встраивании системного Arial.
+const FONT_STYLE = `
+      <style>
+        @page {
+          size: A4;
+          margin: 20mm 18mm;
+        }
+        * {
+          font-family: 'Arial', sans-serif;
+        }
+        body {
+          font-size: 11pt;
+          line-height: 1.5;
+        }
+        p, li, td, th {
+          line-height: 1.5;
+        }
+        h1 {
+          line-height: 1.6;
+        }
+        h2, h3 {
+          line-height: 1.5;
+        }
+      </style>
+      <meta charset="UTF-8">
+    `
+const html = FONT_STYLE + readFileSync(htmlFile, 'utf8')
 const inPath = join(dir, 'doc.html')
 writeFileSync(inPath, html)
 

@@ -39,6 +39,13 @@ export const GOLDEN_DIR = join(__dirname, '..', 'golden')
  */
 export const GOLDEN_CREATED_AT = '2026-10-28T09:00:00.000Z'
 
+/**
+ * Версия генератора в мете снимков. По умолчанию это версия пакета, она
+ * впечатывается в PDF и меняется каждым выпуском монорепозитория; 28.10.2026
+ * выпуск сдвинул хэши PDF у 103 снимков из 107 при равном HTML.
+ */
+export const GOLDEN_VERSION = 'golden'
+
 /** Версия пакета в мете заменяется меткой: выпуск не меняет сборку. */
 const VERSION_PLACEHOLDER = '<package-version>'
 

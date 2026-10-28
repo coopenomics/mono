@@ -5,7 +5,7 @@ import { loadBufferFromDisk } from '../../src/Utils/loadBufferFromDisk'
 import { saveBufferToDisk } from '../../src/Utils/saveBufferToDisk'
 import type { IGenerate, IGeneratedDocument } from '../../src'
 import { calculateSha256 } from '../../src/Utils/calculateSHA'
-import { GOLDEN_CREATED_AT, matchGolden } from './golden'
+import { GOLDEN_CREATED_AT, GOLDEN_VERSION, matchGolden } from './golden'
 import { generator } from '.'
 
 export async function testDocumentGeneration<T extends IGenerate = IGenerate>(
@@ -13,7 +13,14 @@ export async function testDocumentGeneration<T extends IGenerate = IGenerate>(
 ) {
   // Дата сборки фиксируется, иначе эталон менялся бы каждым прогоном
   // (см. test/utils/golden.ts). Тест, которому нужна своя дата, задаёт её сам.
-  const input: T = { ...params, created_at: params.created_at ?? GOLDEN_CREATED_AT }
+  // Версия генератора в мете по умолчанию равна версии пакета и меняется
+  // каждым выпуском; она впечатывается в PDF (Creator и отпечаток меты), и
+  // хэш PDF плыл бы от релиза к релизу. В наборе версия закреплена.
+  const input: T = {
+    ...params,
+    created_at: params.created_at ?? GOLDEN_CREATED_AT,
+    version: params.version ?? GOLDEN_VERSION,
+  }
 
   const startedAt = Date.now()
   const document: IGeneratedDocument = await generator.generate(input)
