@@ -46,17 +46,14 @@ export interface IUserAt { type: string, data: externalDataTypes }
 export interface IUdataFilter {
   coopname: string
   username: string
-  key: string
+  key: Cooperative.Model.UdataKey
   block_num?: number
 }
 
-export interface IPaymentMethodFilter {
-  username: string
-  method_id?: string
-  method_type?: string
-  is_default?: boolean
-  block_num?: number
-}
+/** Отбор способа оплаты: поля записи плюс граница по блоку. */
+export type IPaymentMethodFilter = Pick<PaymentData, 'username'>
+  & Partial<Pick<PaymentData, 'method_id' | 'method_type' | 'is_default' | 'deleted'>>
+  & { block_num?: number }
 
 /** Подпись пайщика под заявлением на вступление, коллекция `signatures`. */
 export interface ISignatureRecord {
@@ -72,7 +69,7 @@ export interface IDecisionVotes {
 }
 
 /** Отбор «не новее блока» для хранилища: без блока — последнее состояние. */
-function upTo(block_num?: number): { block_num?: { $lte: number } } {
+function upTo(block_num?: number): { block_num: { $lte: number } } | Record<string, never> {
   return block_num ? { block_num: { $lte: block_num } } : {}
 }
 
@@ -232,7 +229,8 @@ export class FactorySources {
 
   /** Запись udata по ключу; нет записи — null, решает вызывающий. */
   async udata(filter: IUdataFilter): Promise<ExternalUdata | null> {
-    return new Udata(this.storage).getOne(filter)
+    const { block_num, ...rest } = filter
+    return new Udata(this.storage).getOne(block_num ? { ...rest, block_num } : rest)
   }
 
   /** Приватные данные документа по хэшу; запись могла быть удалена. */
