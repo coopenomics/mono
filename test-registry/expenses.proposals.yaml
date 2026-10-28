@@ -513,6 +513,7 @@ cases:
       получатель в снимке — название без пробелов по краям; без названия —
       прежний пустой получатель, подача не падает; у пайщика — его аккаунт
     test: components/controller/tests/unit/expenses/expense-requisite-recipient.test.ts
+    api: components/api-tests/src/expenses/proposals.test.ts
     status: written   # прогон — CI на полигоне ci/tests
 
   - id: exp.prop.side.advance-memo
@@ -527,6 +528,7 @@ cases:
       нижнем регистре>. НДС не облагается.»; выплата организации — с введённым
       назначением и названием получателя из снимка
     test: components/controller/tests/unit/expenses/expense-requisite-recipient.test.ts
+    api: components/api-tests/src/expenses/proposals.test.ts
     status: written   # прогон — CI на полигоне ci/tests
 
 # 2026-10-16 (7DD-25): выданные авансы под отчёт по кооперативу

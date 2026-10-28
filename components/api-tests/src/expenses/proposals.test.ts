@@ -185,6 +185,20 @@ describe('expenses: служебная записка на расход', () => 
     expect(String(adv?.payment_purpose)).toMatch(/аванс/i)
   })
 
+  // 28.10.2026: строка организации несла пустого получателя — реестр и касса
+  // показывали прочерк; название из формы подачи теперь в снимке.
+  it(caseName('exp.prop.side.recipient-org', 'получатель строки организации в снимке — её название из формы подачи'), async () => {
+    const rows = (await gql<any>(council, REQUISITES, { c: COOP, h: draft.proposal_hash })).expenseRequisitesByProposal as any[]
+    expect(rows.find(r => r.item_hash === orgItem)?.recipient).toBe('ООО «Поставщик-Тест»')
+    expect(rows.find(r => r.item_hash === memberItem)?.recipient).toBe(recipient.account)
+  })
+
+  it(caseName('exp.prop.side.advance-memo', 'назначение аванса пайщику — «Аванс под отчёт №<8 знаков хэша позиции>. НДС не облагается.»'), async () => {
+    const rows = (await gql<any>(council, REQUISITES, { c: COOP, h: draft.proposal_hash })).expenseRequisitesByProposal as any[]
+    expect(rows.find(r => r.item_hash === memberItem)?.payment_purpose).toBe(`Аванс под отчёт №${memberItem.slice(0, 8)}. НДС не облагается.`)
+    expect(rows.find(r => r.item_hash === orgItem)?.payment_purpose).toBe(ORG_PURPOSE)
+  })
+
   // До 25.09.2026 отказ контракта в мутации приходил ответом 500 без кода:
   // клиент цепи превращал его в простую ошибку (C28-80).
   it(caseName('exp.prop.side.02', 'повторная подача записки с тем же хэшем — отказ цепи с кодом, снимков реквизитов по-прежнему два'), async () => {
