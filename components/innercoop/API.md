@@ -1145,6 +1145,7 @@
 - `mechanics: InnerExpenseMechanics`
 - `recipient_type: InnerExpenseRecipientType`
 - `recipient: string`
+- `recipient_name?: string`
 - `description: string`
 - `planned_amount: string`
 - `payment_method_id?: string`
@@ -1241,6 +1242,7 @@
 - `proposalHash: string`
 - `itemHash: string`
 - `recipient: string`
+- `recipientName?: string`
 - `isOrganization: boolean`
 - `mechanics: 'ADVANCE' | 'DIRECT'`
 - `paymentMethodId?: string`

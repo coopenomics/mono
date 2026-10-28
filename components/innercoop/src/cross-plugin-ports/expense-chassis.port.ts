@@ -97,6 +97,8 @@ export interface InnerExpenseItemInput {
   recipient_type: InnerExpenseRecipientType;
   /** Получатель: имя пайщика; у организации аккаунта в кооперативе нет — пустая строка. */
   recipient: string;
+  /** Название организации-получателя — у организации аккаунта нет, её называют по имени. */
+  recipient_name?: string;
   description: string;
   /** Планируемая сумма, например `1000.0000 RUB`. */
   planned_amount: string;
@@ -114,6 +116,12 @@ export interface InnerExpenseRequisiteItemInput {
   itemHash: string;
   /** Получатель: username пайщика (владелец платёжного метода) либо пусто для организации. */
   recipient: string;
+  /**
+   * Название организации-получателя (оплата по счёту). Аккаунта в кооперативе у
+   * организации нет, поэтому реестр и поручение кассиру показывают получателя по
+   * этому названию. Для пайщика не используется.
+   */
+  recipientName?: string;
   /** true — получатель-организация: реквизиты приходят строкой `requisites`. */
   isOrganization: boolean;
   /**

@@ -2,6 +2,7 @@ import type { Cooperative } from 'cooptypes';
 import type { IAgenda } from 'src/entities/Agenda/model';
 import { getShortNameFromCertificate } from 'src/shared/lib/utils/getNameFromCertificate';
 import { t } from 'src/shared/i18n';
+import { decisionFactory } from 'src/shared/lib/decision-factory';
 
 /** Имя маршрута отдельной страницы вопроса повестки. */
 export const AGENDA_QUESTION_ROUTE = 'agenda-question';
@@ -17,10 +18,17 @@ function titleFromTableMeta(meta: unknown): string | null {
   }
 }
 
-/** Заголовок вопроса: название заявления из пакета документов, иначе из таблицы решений. */
+/**
+ * Заголовок вопроса: название заявления из пакета документов, иначе из таблицы
+ * решений. Уточнение от приложения (например, цель расходов служебной записки)
+ * встаёт в скобках — иначе вопросы одного типа в повестке не различить.
+ */
 export function questionTitleOf(agenda: IAgenda): string {
   const meta = agenda.documents?.statement?.documentAggregate?.rawDocument?.meta as Cooperative.Document.IMetaDocument | undefined;
-  return meta?.title || titleFromTableMeta(agenda.table?.statement?.meta) || t('questions.questionCard.untitledQuestion');
+  const title = meta?.title || titleFromTableMeta(agenda.table?.statement?.meta) || t('questions.questionCard.untitledQuestion');
+  const type = agenda.table?.type;
+  const detail = type ? decisionFactory.getTitleDetail(type, agenda) : null;
+  return detail ? `${title} (${detail})` : title;
 }
 
 /** Заявитель: фамилия с инициалами по сертификату, иначе учётное имя. */

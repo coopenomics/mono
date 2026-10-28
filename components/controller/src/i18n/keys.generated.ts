@@ -2504,6 +2504,7 @@ export type MessageKey =
   | 'errors.YOOKASSA_PAYMENT_NOT_CONFIRMED'
   | 'errors.YOOKASSA_PAYMENT_NOT_FOUND'
   | 'errors.YOOKASSA_PAYMENT_SECRET_MISSING'
+  | 'expenses.chassisConfig.advancePaymentMemo'
   | 'expenses.chassisConfig.advancePaymentPurpose'
   | 'expenses.chassisConfig.fundNameDative'
   | 'expenses.expenseMutations.reportOwnerOnlyMessage'

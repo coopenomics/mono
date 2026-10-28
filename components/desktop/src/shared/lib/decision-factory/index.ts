@@ -1,4 +1,5 @@
 import type { DecisionHandlersRegistry, IDecisionHandler, IGenerateDecisionData } from '../types/decision-factory'
+import type { IAgenda } from 'src/entities/Agenda/model'
 import { t, t as i18nT } from 'src/shared/i18n';
 
 /**
@@ -65,6 +66,17 @@ class DecisionFactory {
   getInfoComponent(decisionType: string): IDecisionHandler['infoComponent'] {
     const handler = this.getHandler(decisionType)
     return handler?.infoComponent
+  }
+
+  /**
+   * Уточнение к названию вопроса от обработчика типа решения
+   * @param decisionType - тип решения
+   * @param agenda - вопрос повестки
+   * @returns уточнение без скобок либо null, если обработчик его не задаёт
+   */
+  getTitleDetail(decisionType: string, agenda: IAgenda): string | null {
+    const detail = this.getHandler(decisionType)?.titleDetail?.(agenda)
+    return detail?.trim() || null
   }
 
   /**

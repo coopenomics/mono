@@ -2,6 +2,7 @@
  * Подписи строки служебной записки в списках: автор, сумма, дата, назначение.
  * Одни и те же на реестре расходов, кассе и в авансах пайщика.
  */
+import type { Cooperative } from 'cooptypes';
 import { uiLocale } from 'src/shared/i18n';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { getNameFromCertificate } from 'src/shared/lib/utils/getNameFromCertificate';
@@ -50,7 +51,32 @@ function formatWith(value: unknown, style: Intl.DateTimeFormatOptions): string {
   return date.toLocaleString(uiLocale(), style);
 }
 
-/** Назначение записки — описание первой строки расхода; без описания — `null`. */
-export function proposalPurpose(row: { items?: { description?: string | null }[] | null }): string | null {
-  return row.items?.[0]?.description || null;
+/** Шапка служебной записки: цель расходов, общая сумма, срок «в срок до». */
+export type IProposalHeader = Cooperative.Registry.ExpenseProposalStatement.IExpenseProposalHeader;
+
+/**
+ * Шапка записки из метаданных заявления 2010. Цели и срока нет в таблице цепи:
+ * их несёт только подписанное заявление, поэтому читаем его мету. Мета
+ * приходит объектом (агрегат документа) либо строкой JSON (таблица решений).
+ */
+export function proposalHeaderOf(meta: unknown): IProposalHeader | null {
+  if (!meta) return null;
+  try {
+    const parsed = (typeof meta === 'string' ? JSON.parse(meta) : meta) as { proposal?: IProposalHeader };
+    return parsed?.proposal ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Назначение записки для списков — цель расходов, которую автор ввёл при
+ * создании. У записок без меты заявления — описание первой строки; без
+ * описания — `null`.
+ */
+export function proposalPurpose(row: {
+  items?: { description?: string | null }[] | null;
+  statement_doc?: { rawDocument?: { meta?: unknown } | null } | null;
+}): string | null {
+  return proposalHeaderOf(row.statement_doc?.rawDocument?.meta)?.description?.trim() || row.items?.[0]?.description || null;
 }

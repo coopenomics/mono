@@ -33,6 +33,14 @@ export class EduExpenseItemInputDTO {
   @IsString()
   recipient!: string;
 
+  @Field(() => String, {
+    nullable: true,
+    description: 'Название организации-получателя (для оплаты по счёту) — показывается в реестре расходов и в поручении кассиру.',
+  })
+  @IsOptional()
+  @IsString()
+  recipient_name?: string;
+
   @Field(() => String, { description: 'Назначение расхода по этой позиции' })
   @IsString()
   description!: string;

@@ -12,6 +12,7 @@ export * from './DocumentPreview';
 export * from './DocumentRow';
 export * from './DocumentSignatures';
 export * from './ExpenseCreateDialog';
+export * from './ExpenseProposalDecisionInfo';
 export * from './ExpenseProposalDetails';
 export * from './ExpenseProposalDocuments';
 export * from './ExpenseProposalList';

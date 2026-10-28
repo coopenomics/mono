@@ -108,7 +108,9 @@ export class ExpenseRequisiteSnapshotsService {
           coopname,
           proposal_hash: it.proposalHash.toLowerCase(),
           item_hash: it.itemHash.toLowerCase(),
-          recipient: it.recipient,
+          // У организации аккаунта нет (recipient пуст) — получателя называет
+          // введённое название; без него реестр и кассир видят прочерк.
+          recipient: it.isOrganization ? it.recipientName?.trim() || it.recipient : it.recipient,
           method_id: null,
           method_type: null,
           data: null,
