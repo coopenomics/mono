@@ -65,6 +65,7 @@ export class PgFactoryStorage implements IFactoryStorage {
   }
 
   private fieldCondition(eb: Eb, field: string, condition: FieldCondition): Cond {
+    if (condition === undefined) return eb.lit(true);
     if (COLUMN_FIELDS.has(field)) return this.columnCondition(eb, field, condition);
     if (condition === null) return sql<SqlBool>`("payload"->${sql.lit(field)}) IS NULL`;
     if (typeof condition === 'object') return this.payloadOperator(field, condition);
