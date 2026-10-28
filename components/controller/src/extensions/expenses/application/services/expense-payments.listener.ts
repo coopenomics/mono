@@ -8,7 +8,7 @@ import { ExpenseProposalStatus } from '../../domain/enums/expense-proposal-statu
 import { ExpenseProposalRecord } from '../../infrastructure/entities/expense-proposal.record';
 import { ExpenseProposalMapper } from '../../infrastructure/mappers/expense-proposal.mapper';
 import { ExpenseRequisiteSnapshotRecord } from '../../infrastructure/entities/expense-requisite-snapshot.record';
-import { EXPENSES_CHASSIS_CONFIG } from '../../domain/expenses-chassis.config';
+import { advancePaymentMemo, EXPENSES_CHASSIS_CONFIG } from '../../domain/expenses-chassis.config';
 
 /** Зеркало ExpenseDomain::RecipientType контракта expense. */
 const RECIPIENT_ORG = 2;
@@ -113,9 +113,14 @@ export class ExpensePaymentsListener implements OnModuleInit {
         direction: PaymentDirection.OUTGOING,
         // Совет уже решил — платёж сразу готов к выплате кассиром.
         status: PaymentStatus.PENDING,
-        // Назначение платежа из снимка: пайщику — всегда «Аванс под отчёт»,
-        // организации — введённый при создании СЗ текст. Кассир копирует as-is.
-        memo: snapshot.payment_purpose ?? EXPENSES_CHASSIS_CONFIG.advancePaymentPurpose,
+        // Назначение платежа: организации — введённый при создании СЗ текст из
+        // снимка; пайщику — «Аванс под отчёт №… НДС не облагается.» по хэшу
+        // позиции. Пайщику текст собирается здесь, а не берётся из снимка:
+        // снимки СЗ, поданных до введения номера, хранят голое «Аванс под отчёт».
+        // Кассир копирует назначение as-is.
+        memo: isOrganization
+          ? snapshot.payment_purpose ?? EXPENSES_CHASSIS_CONFIG.advancePaymentPurpose
+          : advancePaymentMemo(itemHash),
         secret: generateUniqueHash(),
         payment_method_id: snapshot.method_id ?? undefined,
         payment_details: {

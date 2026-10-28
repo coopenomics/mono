@@ -2,7 +2,7 @@ import { TableStore } from '@coopenomics/extension-kit';
 import { EXPENSES_REQUISITE_SNAPSHOT_STORE } from '../../infrastructure/database/expenses-stores';
 import { Inject, Injectable, Logger } from '@nestjs/common'
 import type { InnerExpenseRequisiteItemInput } from '@coopenomics/innercoop'
-import { EXPENSES_CHASSIS_CONFIG } from '../../domain/expenses-chassis.config'
+import { advancePaymentMemo } from '../../domain/expenses-chassis.config'
 import { ExpenseRequisiteSnapshotRecord } from '../../infrastructure/entities/expense-requisite-snapshot.record'
 import { formatPaymentMethodRequisites } from '../../domain/utils/format-requisites.util'
 import { PAYMENT_METHOD_PORT, type IPaymentMethodPort } from '@coopenomics/innercoop';
@@ -121,8 +121,9 @@ export class ExpenseRequisiteSnapshotsService {
         }
 
         // Пайщику назначение платежа фиксированное — кассир в платёжке всегда
-        // указывает «Аванс под отчёт» (суть расхода — в описании позиции)
-        snapshot.payment_purpose = EXPENSES_CHASSIS_CONFIG.advancePaymentPurpose
+        // указывает «Аванс под отчёт №… НДС не облагается.» (суть расхода — в
+        // описании позиции); то же назначение показывают детали служебной записки
+        snapshot.payment_purpose = advancePaymentMemo(snapshot.item_hash)
 
         if (!it.paymentMethodId) {
           throw DomainError.badRequest('EXPENSES_RECIPIENT_REQUISITES_MISSING', { recipient: it.recipient })

@@ -1,3 +1,4 @@
+import { VAT_EXEMPT_NOTE } from '@coopenomics/innercoop';
 import { t } from '../i18n';
 /**
  * Параметры шасси расходов.
@@ -18,3 +19,16 @@ export const EXPENSES_CHASSIS_CONFIG = {
    */
   advancePaymentPurpose: t('expenses.chassisConfig.advancePaymentPurpose'),
 };
+
+/**
+ * Назначение платежа аванса под отчёт для кассира: «Аванс под отчёт №… НДС не
+ * облагается.». Номер — первые 8 знаков хэша позиции: он же хэш платежа в
+ * реестре, по нему кассир и пайщик находят платёж. Формат — как у взносов и
+ * возвратов ядра; налоговая оговорка — общая константа innercoop.
+ */
+export function advancePaymentMemo(itemHash: string): string {
+  return t('expenses.chassisConfig.advancePaymentMemo', {
+    hashPrefix: itemHash.toLowerCase().slice(0, 8),
+    vatExemptNote: VAT_EXEMPT_NOTE,
+  });
+}
