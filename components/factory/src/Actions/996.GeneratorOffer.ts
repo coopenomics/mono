@@ -7,8 +7,7 @@ export { GeneratorOffer as Template } from '../Templates'
 
 /**
  * Оферта ЦПП «Генератор»: пайщик, параметры программы из приватных данных,
- * номер и дата генерационного соглашения из udata. Переменные и кооператив
- * читаются без границы блока, как у прежнего сборщика.
+ * номер и дата генерационного соглашения из udata.
  */
 export const Factory = defineBuilder<GeneratorOffer.Action, GeneratorOffer.Model>()({
   registry_id: GeneratorOffer.registry_id,
@@ -16,8 +15,8 @@ export const Factory = defineBuilder<GeneratorOffer.Action, GeneratorOffer.Model
   reads: ({ data, f }) => {
     const udata = (key: Cooperative.Model.UdataKey) => () => f.getUdata({ coopname: data.coopname, username: data.username, key, block_num: data.block_num })
     return {
-      vars: () => f.getVars(data.coopname),
-      coop: () => f.getCooperative(data.coopname),
+      vars: () => f.getVars(data.coopname, data.block_num),
+      coop: () => f.getCooperative(data.coopname, data.block_num),
       user: () => f.getUser(data.username, data.block_num),
       generatorAgreementUdata: udata(Cooperative.Model.UdataKey.GENERATOR_AGREEMENT_NUMBER),
       generatorAgreementCreatedAtUdata: udata(Cooperative.Model.UdataKey.GENERATOR_AGREEMENT_CREATED_AT),

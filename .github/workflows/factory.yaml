@@ -142,6 +142,13 @@ jobs:
         working-directory: components/factory
         run: node scripts/actions-index-check.mjs
 
+      # Каждое чтение сборщика идёт на блок документа (правило владельца,
+      # 28.10.2026): пересборка обязана брать состояние на момент документа.
+      - name: Чтения сборщиков на блок
+        if: always()
+        working-directory: components/factory
+        run: node scripts/reads-on-block-check.mjs
+
       - name: Полнота эталонов
         if: always()
         working-directory: components/factory

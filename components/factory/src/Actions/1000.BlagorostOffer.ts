@@ -8,8 +8,7 @@ export { BlagorostOffer as Template } from '../Templates'
 
 /**
  * Оферта ЦПП «Благорост»: пайщик, параметры программы из приватных данных,
- * номер и дата соглашения из udata. Переменные и кооператив читаются без
- * границы блока, как у прежнего сборщика.
+ * номер и дата соглашения из udata.
  */
 export const Factory = defineBuilder<BlagorostOffer.Action, BlagorostOffer.Model>()({
   registry_id: BlagorostOffer.registry_id,
@@ -17,8 +16,8 @@ export const Factory = defineBuilder<BlagorostOffer.Action, BlagorostOffer.Model
   reads: ({ data, f }) => {
     const udata = (key: Cooperative.Model.UdataKey) => () => f.getUdata({ coopname: data.coopname, username: data.username, key, block_num: data.block_num })
     return {
-      vars: () => f.getVars(data.coopname),
-      coop: () => f.getCooperative(data.coopname),
+      vars: () => f.getVars(data.coopname, data.block_num),
+      coop: () => f.getCooperative(data.coopname, data.block_num),
       userData: () => f.getUser(data.username, data.block_num),
       blagorostAgreementUdata: udata(Cooperative.Model.UdataKey.BLAGOROST_AGREEMENT_NUMBER),
       blagorostAgreementCreatedAtUdata: udata(Cooperative.Model.UdataKey.BLAGOROST_AGREEMENT_CREATED_AT),
