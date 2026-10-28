@@ -1,6 +1,6 @@
 {
   "name": "@coopenomics/orchestrator",
-  "version": "2026.10.28-3",
+  "version": "2026.10.28-4",
   "description": "Per-tenant сервис: Apollo Federation Gateway + orchestrator расширений (docker compose + on-chain auto-update). Epic 10.",
   "private": true,
   "main": "dist/main.js",
