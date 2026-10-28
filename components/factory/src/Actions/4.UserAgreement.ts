@@ -1,57 +1,36 @@
-import { DraftContract } from 'cooptypes'
+import { defineBuilder } from '../Builder'
+import * as Format from '../Format'
 import { UserAgreement } from '../Templates'
-import { DocFactory } from '../Factory'
-import type { IGeneratedDocument, IGenerationOptions, IMetaDocument } from '../Interfaces'
-import type { MongoDBConnector } from '../Services/Databazor'
 import { isEmpty } from '../Utils'
 
 export { UserAgreement as Template } from '../Templates'
 
-/**
- * Соглашение показывают публично — до того, как известен пайщик, который его
- * подпишет. Тогда место подписанта остаётся прочерком под рукописное
- * заполнение, а документ собирается из тех же шаблона, реквизитов и переводов.
- */
+/** Место подписанта в бланке и в публичном показе: имя неизвестно. */
 const BLANK_SIGNER_NAME = '____________________'
 
-export class Factory extends DocFactory<UserAgreement.Action> {
-  constructor(storage: MongoDBConnector) {
-    super(storage)
-  }
-
-  async generateDocument(data: UserAgreement.Action, options?: IGenerationOptions): Promise<IGeneratedDocument> {
-    const isBlank = options?.blank_signer === true || isEmpty(data.username)
-
-    // Независимые источники тянем параллельно (см. resolveParallel в DocFactory)
-    const { template, coop, vars, user } = await this.resolveParallel({
-      template: () => this.getTemplate<UserAgreement.Model>(DraftContract.contractName.production, UserAgreement.registry_id, data.block_num),
-      coop: () => super.getCooperative(data.coopname, data.block_num),
-      vars: () => super.getVars(data.coopname, data.block_num),
-      user: () => isBlank ? Promise.resolve(null) : super.getUser(data.username, data.block_num),
-    })
-
-    // meta зависит от template.title, full_name зависит от user — резолвим после батча
-    const meta: IMetaDocument = await super.getMeta({ title: template.title, ...data })
-    const full_name = user ? super.getFullName(user.data) : BLANK_SIGNER_NAME
-
+/**
+ * Пользовательское соглашение: реквизиты кооператива, протокол утверждения и
+ * имя подписанта. Для бланка и публичного показа подписанта нет — прочерк.
+ */
+export const Factory = defineBuilder<UserAgreement.Action, UserAgreement.Model>()({
+  registry_id: UserAgreement.registry_id,
+  version: 1,
+  reads: ({ data, f, options }) => {
+    const isBlank = options.blank_signer === true || isEmpty(data.username)
+    return {
+      coop: () => f.getCooperative(data.coopname, data.block_num),
+      vars: () => f.getVars(data.coopname, data.block_num),
+      user: () => (isBlank ? Promise.resolve(null) : f.getUser(data.username, data.block_num)),
+    }
+  },
+  assemble: ({ meta, reads: { coop, vars, user } }) => {
     if (!vars?.user_agreement || isEmpty(vars.user_agreement.protocol_number) || isEmpty(vars.user_agreement.protocol_day_month_year))
       throw new Error('Реквизиты протокола по пользовательскому соглашению не заполнены. Укажите номер и дату протокола в настройках кооператива.')
-
-    const combinedData: UserAgreement.Model = {
+    return {
       meta,
       coop,
       vars,
-      user: {
-        full_name,
-      },
+      user: { full_name: user ? Format.fullName(user.data) : BLANK_SIGNER_NAME },
     }
-
-    await super.validate(combinedData, template.model)
-
-    const translation = template.translations[meta.lang]
-
-    const document: IGeneratedDocument = await super.generatePDF('', template.context, combinedData, translation, meta, options?.skip_save, options?.skip_pdf)
-
-    return document
-  }
-}
+  },
+})

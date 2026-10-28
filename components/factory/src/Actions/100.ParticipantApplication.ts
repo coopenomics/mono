@@ -1,99 +1,74 @@
-import { DraftContract } from 'cooptypes'
-import { DocFactory } from '../Factory'
-import type { IGeneratedDocument, IGenerationOptions, IMetaDocument } from '../Interfaces'
-import type { MongoDBConnector } from '../Services/Databazor'
+import { defineBuilder } from '../Builder'
+import * as Format from '../Format'
 import { ParticipantApplication } from '../Templates'
 import { isEmpty } from '../Utils'
 import { DocumentNotApprovedError } from '../errors'
 
 export { ParticipantApplication as Template } from '../Templates'
 
-export class Factory extends DocFactory<ParticipantApplication.Action> {
-  constructor(storage: MongoDBConnector) {
-    super(storage)
-  }
-
-  async generateDocument(data: ParticipantApplication.Action, _options?: IGenerationOptions): Promise<IGeneratedDocument> {
-    // TODO надо использовать skip_save из options вместо skip_save из data, для этого на фронте внести соответствующие правки
-    const { template, user, coop, coop_bank_account, vars } = await this.resolveParallel({
-      template: () => this.getTemplate<ParticipantApplication.Model>(DraftContract.contractName.production, ParticipantApplication.registry_id, data.block_num),
-      user: () => super.getUser(data.username, data.block_num),
-      coop: () => super.getCooperative(data.coopname, data.block_num),
-      coop_bank_account: () => super.getBankAccount(data.coopname, data.block_num),
-      vars: () => super.getVars(data.coopname, data.block_num),
-    })
-
-    let bank_account = {} as any
-
-    if (user.type === 'organization' || user.type === 'entrepreneur')
-      bank_account = await super.getBankAccount(data.username, data.block_num)
-
-    const userData = {
-      [user.type]: {
-        ...user.data,
-        bank_account,
-      },
-    }
-
-    // добавлено для обратной совместимости с осенними версия 2024
-    const extended_coop = { ...coop, bank_account: coop_bank_account }
-
-    if (coop.is_branched && !data.braname)
-      throw new Error('Кооперативный участок должен быть указан')
-
-    let branch
-
-    if (data.braname)
-      branch = await super.getOrganization(data.braname, data.block_num)
-
-    let { signature, ...modifieddata } = data
-    const meta: IMetaDocument = await super.getMeta({ title: template.title, ...modifieddata }) // Генерируем мета-данные
-
-    // пропуск сохранения необходим при вступлении для того, чтобы подготовить документ только для отображения без сохранения
-    if (!data.skip_save) {
-      // если подпись не указана, то проверяем на наличие в базе данных
-      if (!signature) {
-        if (data.block_num) {
-          const db_signature = await this.sources.signature(data.username, data.block_num)
-
-          if (db_signature)
-            signature = db_signature.signature
-          else throw new Error('Не указана подпись пользователя')
-        }
-        else { throw new Error('Не указана подпись пользователя') }
+/**
+ * Заявление на вступление: пайщик любого вида с банковским счётом (организация
+ * и ИП), кооператив со счётом, участок по выбору и картинка подписи.
+ *
+ * Подпись — единственное чтение с записью: при первой сборке она приходит в
+ * данных и сохраняется на блок меты, при пересборке читается на блок. В мету
+ * подпись не попадает.
+ */
+export const Factory = defineBuilder<ParticipantApplication.Action, ParticipantApplication.Model>()({
+  registry_id: ParticipantApplication.registry_id,
+  version: 1,
+  reads: ({ data, f }) => ({
+    user: () => f.getUser(data.username, data.block_num),
+    coop: () => f.getCooperative(data.coopname, data.block_num),
+    coop_bank_account: () => f.getBankAccount(data.coopname, data.block_num),
+    vars: () => f.getVars(data.coopname, data.block_num),
+  }),
+  meta: ({ data, template }) => {
+    const { signature: _signature, ...withoutSignature } = data
+    return { title: template.title, ...withoutSignature }
+  },
+  derive: ({ data, f, s, meta, reads: { user, coop } }) => ({
+    bank_account: async () => (user.type === 'organization' || user.type === 'entrepreneur'
+      ? f.getBankAccount(data.username, data.block_num)
+      : ({} as never)),
+    branch: async () => {
+      if (coop.is_branched && !data.braname)
+        throw new Error('Кооперативный участок должен быть указан')
+      return data.braname ? f.getOrganization(data.braname, data.block_num) : undefined
+    },
+    signature: async () => {
+      let signature = data.signature
+      // пропуск сохранения нужен при вступлении: документ только для показа
+      if (data.skip_save)
+        return signature
+      if (signature) {
+        await s.saveSignature({ username: data.username, block_num: meta.block_num, signature })
+        return signature
       }
-      else {
-        // если подпись указана - сохраняем в хранилище
-        await this.sources.saveSignature({ username: data.username, block_num: meta.block_num, signature })
-      }
-    }
-
+      if (!data.block_num)
+        throw new Error('Не указана подпись пользователя')
+      const stored = await s.signature(data.username, data.block_num)
+      if (!stored)
+        throw new Error('Не указана подпись пользователя')
+      signature = stored.signature
+      return signature
+    },
+  }),
+  assemble: ({ meta, reads: { user, coop, coop_bank_account, vars }, derived: { bank_account, branch, signature } }) => {
     if (!vars?.participant_application || isEmpty(vars.participant_application.protocol_number) || isEmpty(vars.participant_application.protocol_day_month_year))
       throw new DocumentNotApprovedError('Реквизиты протокола для заявления на вступление не заполнены. Заполните номер и дату протокола в настройках кооператива.')
-
-    const combinedData: ParticipantApplication.Model = {
-      ...userData,
+    return {
+      [user.type]: { ...user.data, bank_account },
       meta,
-      coop: extended_coop,
+      coop: { ...coop, bank_account: coop_bank_account },
       branch,
       type: user.type,
       vars,
       signature,
-      initial: super.formatAsset(coop.initial),
-      minimum: super.formatAsset(coop.minimum),
-      org_initial: super.formatAsset(coop.org_initial),
-      org_minimum: super.formatAsset(coop.org_minimum),
+      initial: Format.formatAsset(coop.initial),
+      minimum: Format.formatAsset(coop.minimum),
+      org_initial: Format.formatAsset(coop.org_initial),
+      org_minimum: Format.formatAsset(coop.org_minimum),
     }
-
-    // валидируем скомбинированные данные
-    await super.validate(combinedData, template.model)
-
-    // получаем комплекс перевода
-    const translation = template.translations[meta.lang]
-
-    // генерируем документ
-    const document: IGeneratedDocument = await super.generatePDF('', template.context, combinedData, translation, meta, data.skip_save)
-
-    return document
-  }
-}
+  },
+})

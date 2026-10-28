@@ -57,6 +57,8 @@ export interface IReadContext<A> {
   data: A
   f: IReadFacade
   s: FactorySources
+  /** Параметры сборки: бланк без подписанта, показ без PDF, без сохранения. */
+  options: IGenerationOptions
 }
 
 /** Что видит вторая волна: плюс мета, текст шаблона и первая волна. */
@@ -64,7 +66,6 @@ export interface IDeriveContext<A, M, R> extends IReadContext<A> {
   meta: IMetaDocument
   template: ITemplate<M>
   reads: R
-  options: IGenerationOptions
 }
 
 /** Что видит сборка модели: всё прочитанное; записи и источников здесь нет. */
@@ -84,8 +85,8 @@ export interface IBuilderSpec<A extends IGenerate, M extends ICombinedData, R ex
   reads: (ctx: IReadContext<A>) => Thunks<R>
   /** Вторая волна: чтения, которым нужна мета или первая волна. Параллельно между собой. */
   derive?: (ctx: IDeriveContext<A, M, R>) => Thunks<D>
-  /** Поля меты сверх данных действия; по умолчанию `{ title: template.title, ...data }`. */
-  meta?: (ctx: { data: A, template: ITemplate<M> }) => IMetaDocumentPartial
+  /** Поля меты сверх данных действия; по умолчанию `{ title: template.title, ...data }`. Первая волна уже прочитана. */
+  meta?: (ctx: { data: A, template: ITemplate<M>, reads: R }) => IMetaDocumentPartial
   /** Чистая сборка модели документа. */
   assemble: (ctx: IAssembleContext<A, M, R, D>) => M
   /** Подписант для названия файла PDF; по умолчанию пусто. */
@@ -110,7 +111,7 @@ export class DeclaredFactory<A extends IGenerate, M extends ICombinedData, R ext
 
   async generateDocument(data: A, options: IGenerationOptions = {}): Promise<IGeneratedDocument> {
     const { spec } = this
-    const readCtx: IReadContext<A> = { data, f: this as unknown as IReadFacade, s: this.sources }
+    const readCtx: IReadContext<A> = { data, f: this as unknown as IReadFacade, s: this.sources, options }
 
     // Текст шаблона читается всегда и вместе с первой волной.
     const [template, reads] = await Promise.all([
@@ -118,11 +119,11 @@ export class DeclaredFactory<A extends IGenerate, M extends ICombinedData, R ext
       resolveThunks(spec.reads(readCtx)),
     ])
 
-    const metaInput: IMetaDocumentPartial = spec.meta ? spec.meta({ data, template }) : { title: template.title, ...data }
+    const metaInput: IMetaDocumentPartial = spec.meta ? spec.meta({ data, template, reads }) : { title: template.title, ...data }
     const meta: IMetaDocument = await this.getMeta(metaInput)
 
     const derived = spec.derive
-      ? await resolveThunks(spec.derive({ ...readCtx, meta, template, reads, options }))
+      ? await resolveThunks(spec.derive({ ...readCtx, meta, template, reads }))
       : ({} as D)
 
     const assembleCtx: IAssembleContext<A, M, R, D> = { data, meta, template, reads, derived }
@@ -133,7 +134,13 @@ export class DeclaredFactory<A extends IGenerate, M extends ICombinedData, R ext
     const translation = template.translations[meta.lang]
     const signer = spec.signer ? spec.signer(assembleCtx) : ''
 
-    return this.generatePDF(signer, template.context, model, translation, meta, options.skip_save, options.skip_pdf)
+    // Запрет сохранения приходит двумя путями: параметрами сборки от
+    // контроллера и полем `skip_save` в данных действия от рабочего стола
+    // (вступление, отгрузка). Прежние сборщики читали один из них, каждый
+    // свой; каркас уважает оба.
+    const skipSave = options.skip_save ?? (data as { skip_save?: boolean }).skip_save
+
+    return this.generatePDF(signer, template.context, model, translation, meta, skipSave, options.skip_pdf)
   }
 }
 

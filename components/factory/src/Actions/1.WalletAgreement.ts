@@ -1,42 +1,21 @@
-import { DraftContract } from 'cooptypes'
+import { defineBuilder } from '../Builder'
 import { WalletAgreement } from '../Templates'
-import { DocFactory } from '../Factory'
-import type { IGeneratedDocument, IGenerationOptions, IMetaDocument } from '../Interfaces'
-import type { MongoDBConnector } from '../Services/Databazor'
 import { isEmpty } from '../Utils'
 import { DocumentNotApprovedError } from '../errors'
 
 export { WalletAgreement as Template } from '../Templates'
 
-export class Factory extends DocFactory<WalletAgreement.Action> {
-  constructor(storage: MongoDBConnector) {
-    super(storage)
-  }
-
-  async generateDocument(data: WalletAgreement.Action, options?: IGenerationOptions): Promise<IGeneratedDocument> {
-    // Независимые источники тянем параллельно (см. resolveParallel в DocFactory)
-    const { template, coop, vars } = await this.resolveParallel({
-      template: () => this.getTemplate<WalletAgreement.Model>(DraftContract.contractName.production, WalletAgreement.registry_id, data.block_num),
-      coop: () => super.getCooperative(data.coopname, data.block_num),
-      vars: () => super.getVars(data.coopname, data.block_num),
-    })
-
-    // meta зависит от template.title — резолвим после батча
-    const meta: IMetaDocument = await super.getMeta({ title: template.title, ...data })
-
+/** Соглашение ЦПП «Цифровой Кошелёк»: реквизиты кооператива и протокол утверждения из переменных. */
+export const Factory = defineBuilder<WalletAgreement.Action, WalletAgreement.Model>()({
+  registry_id: WalletAgreement.registry_id,
+  version: 1,
+  reads: ({ data, f }) => ({
+    coop: () => f.getCooperative(data.coopname, data.block_num),
+    vars: () => f.getVars(data.coopname, data.block_num),
+  }),
+  assemble: ({ meta, reads: { coop, vars } }) => {
     if (!vars?.wallet_agreement || isEmpty(vars.wallet_agreement.protocol_number) || isEmpty(vars.wallet_agreement.protocol_day_month_year))
       throw new DocumentNotApprovedError('Реквизиты протокола для соглашения о ЦПП не заполнены. Укажите их в настройках кооператива и повторите генерацию.')
-
-    const combinedData: WalletAgreement.Model = {
-      meta,
-      coop,
-      vars,
-    }
-
-    await super.validate(combinedData, template.model)
-    const translation = template.translations[meta.lang]
-    const document: IGeneratedDocument = await super.generatePDF('', template.context, combinedData, translation, meta, options?.skip_save, options?.skip_pdf)
-
-    return document
-  }
-}
+    return { meta, coop, vars }
+  },
+})
