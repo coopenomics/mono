@@ -52,9 +52,9 @@ sources:
     - components/contracts/cpp/wallet/src/agreement/signagree.cpp
   backend:
     - components/controller/src/infrastructure/decision-tracking/**
-    - components/factory/src/Templates/registry.ts
-    - components/factory/src/Factory/index.ts
-    - components/factory/src/Services/Templator/index.ts
+    - C9S/docs-factory:src/Templates/registry.ts
+    - C9S/docs-factory:src/Factory/index.ts
+    - C9S/docs-factory:src/Services/Templator/index.ts
     - components/controller/src/domain/document-approval/**
     - components/controller/src/application/document-approval/**
     - components/controller/src/domain/common/ports/draft-blockchain.port.ts
@@ -432,7 +432,7 @@ cases:
     kind: happy
     scenario: Бланк оферты ЦПП (Благорост, Генератор) для совета с хэшем параметров программы
     expect: параметры программы подставлены из приватных данных по хэшу, поля пайщика и дата — прочерк; без хэша параметры остаются прочерком
-    test: components/factory/test/blagorost.test.ts
+    test: C9S/docs-factory:test/blagorost.test.ts
     api: components/api-tests/src/documents/approvals.test.ts
     status: written
 
@@ -441,7 +441,7 @@ cases:
     kind: side
     scenario: Шаблоны-двойники «для утверждения» (995, 997, 999, 1101) выведены из реестра
     expect: генератор их не знает, синхронизатор шаблонов записи в сети не трогает и сообщает о них как «в сети, но не в реестре»; рабочие документы 996, 1000, 1001, 1102 собираются как прежде
-    test: components/factory/test/documents-1000-plus.test.ts
+    test: C9S/docs-factory:test/documents-1000-plus.test.ts
     api: components/api-tests/src/documents/approvals.test.ts
     status: written
   - id: doc.appr.side.21
@@ -460,7 +460,7 @@ cases:
     kind: happy
     scenario: Заявление об аннулировании соглашений ЦПП (190) объявлено формой рядом с заявлением на выход (200)
     expect: документ входит в набор core_forms и предлагается к подписи вместе с заявлением на выход; порядковые номера форм ядра не пересекаются
-    test: components/factory/test/program-agreements-annulment.test.ts
+    test: C9S/docs-factory:test/program-agreements-annulment.test.ts
     api: components/api-tests/src/membership/exit-annulment.test.ts
     status: written
 # 2026-09-23 (EEA-6…EEA-9): тексты интерфейса, отказов и уведомлений фичи вынесены из

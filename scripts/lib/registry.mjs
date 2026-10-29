@@ -10,6 +10,31 @@ import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { join, basename } from 'node:path';
 import YAML from 'yaml';
 
+/**
+ * Тест в соседнем репозитории — ссылка вида `C9S/docs-factory:test/<файл>`
+ * (фабрика документов вынесена из монорепы 29.10.2026, шаг 6а). Файл
+ * проверяется в соседнем чекауте, если он есть (`~/docs-factory` либо
+ * DOCS_FACTORY_DIR); в CI монорепы чекаута нет — ссылка принимается без
+ * проверки, тесты идут в CI того репозитория.
+ */
+const SIBLING_REPOS = {
+  'C9S/docs-factory': () => process.env.DOCS_FACTORY_DIR || join(process.env.HOME || '', 'docs-factory'),
+};
+
+export function siblingRef(ref) {
+  const m = /^([\w.-]+\/[\w.-]+):(.+)$/.exec(ref ?? '');
+  if (!m || !SIBLING_REPOS[m[1]]) return null;
+  return { repo: m[1], path: m[2], dir: SIBLING_REPOS[m[1]]() };
+}
+
+function testExists(repoRoot, ref) {
+  const sib = siblingRef(ref);
+  if (!sib) return existsSync(join(repoRoot, ref));
+  if (!existsSync(sib.dir)) return true;
+  return existsSync(join(sib.dir, sib.path));
+}
+
+
 export const LEVELS = ['contract', 'backend', 'ui'];
 export const KINDS = ['happy', 'side', 'break'];
 export const STATUSES = ['missing', 'written', 'passing'];
@@ -154,7 +179,7 @@ export function loadRegistry(repoRoot) {
       }
       if (c?.status !== 'missing') {
         if (!hasTest) errors.push(`${where}: status=${c?.status} требует ссылки на тест в поле test`);
-        else if (!existsSync(join(repoRoot, c.test))) errors.push(`${where}: тест '${c.test}' не существует`);
+        else if (!testExists(repoRoot, c.test)) errors.push(`${where}: тест '${c.test}' не существует`);
       }
       if (c?.api) {
         if (!isExternalTest(c.api)) {

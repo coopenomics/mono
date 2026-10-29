@@ -327,7 +327,7 @@ cases:
     kind: happy
     scenario: "Заявление 190 о прекращении участия в одной программе формируется фабрикой документов."
     expect: "В таблице одна программа, итог — её возврат; сумма перевода — на день согласования заявления Обществом, связи с выходом из кооператива в тексте нет."
-    test: components/factory/test/program-agreements-annulment.test.ts
+    test: C9S/docs-factory:test/program-agreements-annulment.test.ts
     api: components/api-tests/src/edubridge/subscriptions.test.ts
     status: passing
   - id: edu.enroll.ui.05
