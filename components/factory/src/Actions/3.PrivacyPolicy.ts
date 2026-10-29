@@ -7,7 +7,7 @@ export { PrivacyPolicy as Template } from '../Templates'
 /** Политика конфиденциальности: реквизиты кооператива и протокол утверждения. */
 export const Factory = defineBuilder<PrivacyPolicy.Action, PrivacyPolicy.Model>()({
   registry_id: PrivacyPolicy.registry_id,
-  version: 1,
+  version: '1.0',
   reads: ({ data, f }) => ({
     coop: () => f.getCooperative(data.coopname, data.block_num),
     vars: () => f.getVars(data.coopname, data.block_num),

@@ -7,7 +7,7 @@ export { MarketplaceReturnCancelStatement as Template } from '../Templates'
 /** Заявление оператора участка об отмене сделки по гарантийному возврату: оператор, заказчик, имущество, участок. */
 export const Factory = defineBuilder<MarketplaceReturnCancelStatement.Action, MarketplaceReturnCancelStatement.Model>()({
   registry_id: MarketplaceReturnCancelStatement.registry_id,
-  version: 1,
+  version: '1.0',
   reads: ({ data, f }) => ({
     coop: () => f.getCooperative(data.coopname, data.block_num),
     vars: () => f.getVars(data.coopname, data.block_num),

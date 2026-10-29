@@ -7,7 +7,7 @@ export { MarketplaceWriteoffStatement as Template } from '../Templates'
 /** Заявление председателя о списании: позиции списания из данных. */
 export const Factory = defineBuilder<MarketplaceWriteoffStatement.Action, MarketplaceWriteoffStatement.Model>()({
   registry_id: MarketplaceWriteoffStatement.registry_id,
-  version: 1,
+  version: '1.0',
   reads: ({ data, f }) => ({
     coop: () => f.getCooperative(data.coopname, data.block_num),
     vars: () => f.getVars(data.coopname, data.block_num),

@@ -7,7 +7,7 @@ export { AnnualGeneralMeetingVotingBallot as Template } from '../Templates'
 /** Бюллетень голосования: пайщик, собрание, вопросы повестки и ответы из данных. */
 export const Factory = defineBuilder<AnnualGeneralMeetingVotingBallot.Action, AnnualGeneralMeetingVotingBallot.Model>()({
   registry_id: AnnualGeneralMeetingVotingBallot.registry_id,
-  version: 1,
+  version: '1.0',
   reads: ({ data, f }) => ({
     coop: () => f.getCooperative(data.coopname, data.block_num),
     vars: () => f.getVars(data.coopname, data.block_num),

@@ -10,7 +10,7 @@ export { AnnualGeneralMeetingDecision as Template } from '../Templates'
  */
 export const Factory = defineBuilder<AnnualGeneralMeetingDecision.Action, AnnualGeneralMeetingDecision.Model>()({
   registry_id: AnnualGeneralMeetingDecision.registry_id,
-  version: 1,
+  version: '1.0',
   reads: ({ data, f }) => ({
     coop: () => f.getCooperative(data.coopname, data.block_num),
     vars: () => f.getVars(data.coopname, data.block_num),

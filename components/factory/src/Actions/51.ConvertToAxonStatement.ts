@@ -7,7 +7,7 @@ export { ConvertToAxonStatement as Template } from '../Templates'
 /** Заявление о конвертации в AXON: пайщик, кооператив, переменные. */
 export const Factory = defineBuilder<ConvertToAxonStatement.Action, ConvertToAxonStatement.Model>()({
   registry_id: ConvertToAxonStatement.registry_id,
-  version: 1,
+  version: '1.0',
   reads: ({ data, f }) => ({
     coop: () => f.getCooperative(data.coopname, data.block_num),
     vars: () => f.getVars(data.coopname, data.block_num),

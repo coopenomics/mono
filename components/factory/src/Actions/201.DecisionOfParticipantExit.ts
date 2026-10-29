@@ -6,7 +6,7 @@ export { DecisionOfParticipantExit as Template } from '../Templates'
 /** Решение совета о выходе пайщика: пайщик, кооператив и голоса по решению. */
 export const Factory = defineBuilder<DecisionOfParticipantExit.Action, DecisionOfParticipantExit.Model>()({
   registry_id: DecisionOfParticipantExit.registry_id,
-  version: 1,
+  version: '1.0',
   reads: ({ data, f }) => ({
     user: () => f.getUser(data.username, data.block_num),
     coop: () => f.getCooperative(data.coopname, data.block_num),

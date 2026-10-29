@@ -629,6 +629,9 @@ export const AllTypesProps: Record<string,any> = {
 	DocumentApprovalRequirement: "enum" as const,
 	DocumentApprovalState: "enum" as const,
 	DocumentKind: "enum" as const,
+	DocumentReproducibilityAuditInput:{
+
+	},
 	DocumentTemplateEdition: "enum" as const,
 	EditBranchInput:{
 
@@ -3074,6 +3077,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		appsCatalogRemotePackages:{
 
+		},
+		auditDocumentReproducibility:{
+			data:"DocumentReproducibilityAuditInput"
 		},
 		buildInitialReportEdits:{
 			reportType:"ReportType"
@@ -5993,6 +5999,29 @@ export const ReturnTypes: Record<string,any> = {
 		decision:"DecisionDetailAggregate",
 		links:"DocumentAggregate",
 		statement:"StatementDetailAggregate"
+	},
+	DocumentReproducibilityAudit:{
+		checked:"Int",
+		mismatches:"DocumentReproducibilityAuditMismatch",
+		next_offset:"Int",
+		rows:"DocumentReproducibilityAuditRow",
+		stored:"Int"
+	},
+	DocumentReproducibilityAuditMismatch:{
+		block_num:"Int",
+		hash:"String",
+		reason:"String",
+		registry_id:"Int",
+		version:"String"
+	},
+	DocumentReproducibilityAuditRow:{
+		failed:"Int",
+		html_mismatch:"Int",
+		pdf_mismatch:"Int",
+		registry_id:"Int",
+		reproduced:"Int",
+		total:"Int",
+		version:"String"
 	},
 	DocumentTemplate:{
 		approval:"DocumentApprovalRequirement",
@@ -9190,6 +9219,7 @@ export const ReturnTypes: Record<string,any> = {
 		appsCatalogPendingModerations:"ModerationRequestDTO",
 		appsCatalogRemotePackages:"AppsCatalogRemotePackageDTO",
 		appsPublishers:"AppsPublisher",
+		auditDocumentReproducibility:"DocumentReproducibilityAudit",
 		buildInitialReportEdits:"BuildInitialReportEdits",
 		candidates:"PaginatedCandidatesPaginationResult",
 		capitalCandidates:"PaginatedCapitalCandidatesPaginationResult",

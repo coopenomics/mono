@@ -9,7 +9,7 @@ export { EducationRidStorageAct as Template } from '../Templates'
 /** Акт передачи результата на хранение: реквизиты договора УХД, результат и занятие. */
 export const Factory = defineBuilder<EducationRidStorageAct.Action, EducationRidStorageAct.Model>()({
   registry_id: EducationRidStorageAct.registry_id,
-  version: 1,
+  version: '1.0',
   reads: ({ data, f, s }) => ({
     coop: () => f.getCooperative(data.coopname, data.block_num),
     vars: () => f.getVars(data.coopname, data.block_num),

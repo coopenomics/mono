@@ -1,6 +1,12 @@
 import type { JSONSchemaType } from 'ajv'
 import type { IMetaDocument } from '../Interfaces'
 
+/**
+ * Схема меты, которую шаблоны вшивают в свою `model`. Поле `builder` (версия
+ * сборщика, шаг 7) в схему намеренно не добавлено: схема — часть текста
+ * редакции в цепи, и новое поле переписало бы модели всех шаблонов через
+ * `drafts:sync`. Лишние поля схема и так пропускает (`additionalProperties`).
+ */
 export const IMetaJSONSchema: JSONSchemaType<IMetaDocument> = {
   type: 'object',
   properties: {
@@ -29,4 +35,4 @@ export const IMetaJSONSchema: JSONSchemaType<IMetaDocument> = {
     'timezone',
   ],
   additionalProperties: true,
-}
+} as JSONSchemaType<Omit<IMetaDocument, 'builder'>> as unknown as JSONSchemaType<IMetaDocument>

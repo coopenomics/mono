@@ -14,7 +14,7 @@ const BLANK_SIGNER_NAME = '____________________'
  */
 export const Factory = defineBuilder<UserAgreement.Action, UserAgreement.Model>()({
   registry_id: UserAgreement.registry_id,
-  version: 1,
+  version: '1.0',
   reads: ({ data, f, options }) => {
     const isBlank = options.blank_signer === true || isEmpty(data.username)
     return {

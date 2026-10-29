@@ -7,7 +7,7 @@ export { BranchFinancialAidStatement as Template } from '../Templates'
 /** Заявление о финансовой помощи участку: пайщик, участок и сумма. */
 export const Factory = defineBuilder<BranchFinancialAidStatement.Action, BranchFinancialAidStatement.Model>()({
   registry_id: BranchFinancialAidStatement.registry_id,
-  version: 1,
+  version: '1.0',
   reads: ({ data, f }) => ({
     coop: () => f.getCooperative(data.coopname, data.block_num),
     vars: () => f.getVars(data.coopname, data.block_num),

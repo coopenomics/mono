@@ -7,7 +7,7 @@ export { BranchFinancialAidProtocol as Template } from '../Templates'
 /** Протокол совета о финансовой помощи участку: получатель, участок, сумма и голоса по решению. */
 export const Factory = defineBuilder<BranchFinancialAidProtocol.Action, BranchFinancialAidProtocol.Model>()({
   registry_id: BranchFinancialAidProtocol.registry_id,
-  version: 1,
+  version: '1.0',
   reads: ({ data, f }) => ({
     coop: () => f.getCooperative(data.coopname, data.block_num),
     vars: () => f.getVars(data.coopname, data.block_num),

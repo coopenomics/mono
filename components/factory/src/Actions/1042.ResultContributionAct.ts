@@ -8,7 +8,7 @@ export { ResultContributionAct as Template } from '../Templates'
 /** Акт о взносе результата: реквизиты из udata и принятое советом решение. */
 export const Factory = defineBuilder<ResultContributionAct.Action, ResultContributionAct.Model>()({
   registry_id: ResultContributionAct.registry_id,
-  version: 1,
+  version: '1.0',
   reads: ({ data, f }) => {
     const udata = (key: Cooperative.Model.UdataKey) => () => f.getUdata({ coopname: data.coopname, username: data.username, key, block_num: data.block_num })
     return {

@@ -6,7 +6,7 @@ export { MarketplaceWriteoffProtocol as Template } from '../Templates'
 /** Протокол решения совета о списании: голоса по решению и итоги списания из данных. */
 export const Factory = defineBuilder<MarketplaceWriteoffProtocol.Action, MarketplaceWriteoffProtocol.Model>()({
   registry_id: MarketplaceWriteoffProtocol.registry_id,
-  version: 1,
+  version: '1.0',
   reads: ({ data, f }) => ({
     coop: () => f.getCooperative(data.coopname, data.block_num),
     vars: () => f.getVars(data.coopname, data.block_num),

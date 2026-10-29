@@ -7,7 +7,7 @@ export { FreeDecision as Template } from '../Templates'
 /** Свободное решение совета: автор, кооператив, проект решения и голоса. */
 export const Factory = defineBuilder<FreeDecision.Action, FreeDecision.Model>()({
   registry_id: FreeDecision.registry_id,
-  version: 1,
+  version: '1.0',
   reads: ({ data, f }) => {
     if (!data.project_id)
       throw new Error('Идентификатор проекта не установлен')

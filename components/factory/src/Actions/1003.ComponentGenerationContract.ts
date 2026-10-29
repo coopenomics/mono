@@ -8,7 +8,7 @@ export { ComponentGenerationContract as Template } from '../Templates'
 /** Компонентное генерационное соглашение: пайщик, реквизиты соглашения и договора УХД из udata. */
 export const Factory = defineBuilder<ComponentGenerationContract.Action, ComponentGenerationContract.Model>()({
   registry_id: ComponentGenerationContract.registry_id,
-  version: 1,
+  version: '1.0',
   reads: ({ data, f }) => {
     const udata = (key: Cooperative.Model.UdataKey) => () => f.getUdata({ coopname: data.coopname, username: data.username, key, block_num: data.block_num })
     return {

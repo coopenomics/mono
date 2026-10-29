@@ -10,7 +10,7 @@ export { BlagorostProgramTemplate as Template } from '../Templates'
  */
 export const Factory = defineBuilder<BlagorostProgramTemplate.Action, BlagorostProgramTemplate.Model>()({
   registry_id: BlagorostProgramTemplate.registry_id,
-  version: 1,
+  version: '1.0',
   reads: ({ data, f }) => ({
     vars: () => f.getVars(data.coopname, data.block_num),
     coop: () => f.getCooperative(data.coopname, data.block_num),

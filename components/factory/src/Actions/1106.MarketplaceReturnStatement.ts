@@ -7,7 +7,7 @@ export { MarketplaceReturnStatement as Template } from '../Templates'
 /** Рекламация пайщика о гарантийном возврате имущества: пайщик, имущество из данных заказа, участок. */
 export const Factory = defineBuilder<MarketplaceReturnStatement.Action, MarketplaceReturnStatement.Model>()({
   registry_id: MarketplaceReturnStatement.registry_id,
-  version: 1,
+  version: '1.0',
   reads: ({ data, f }) => ({
     coop: () => f.getCooperative(data.coopname, data.block_num),
     vars: () => f.getVars(data.coopname, data.block_num),

@@ -1,0 +1,370 @@
+{
+  "1": {
+    "edition": 3,
+    "major": 1
+  },
+  "2": {
+    "edition": 3,
+    "major": 1
+  },
+  "3": {
+    "edition": 3,
+    "major": 1
+  },
+  "4": {
+    "edition": 3,
+    "major": 1
+  },
+  "50": {
+    "edition": 3,
+    "major": 1
+  },
+  "51": {
+    "edition": 1,
+    "major": 1
+  },
+  "100": {
+    "edition": 7,
+    "major": 1
+  },
+  "101": {
+    "edition": 4,
+    "major": 1
+  },
+  "190": {
+    "edition": 1,
+    "major": 1
+  },
+  "200": {
+    "edition": 1,
+    "major": 1
+  },
+  "201": {
+    "edition": 2,
+    "major": 1
+  },
+  "300": {
+    "edition": 1,
+    "major": 1
+  },
+  "301": {
+    "edition": 1,
+    "major": 1
+  },
+  "302": {
+    "edition": 1,
+    "major": 1
+  },
+  "303": {
+    "edition": 1,
+    "major": 1
+  },
+  "304": {
+    "edition": 1,
+    "major": 1
+  },
+  "320": {
+    "edition": 1,
+    "major": 1
+  },
+  "322": {
+    "edition": 1,
+    "major": 1
+  },
+  "323": {
+    "edition": 1,
+    "major": 1
+  },
+  "324": {
+    "edition": 1,
+    "major": 1
+  },
+  "325": {
+    "edition": 1,
+    "major": 1
+  },
+  "326": {
+    "edition": 1,
+    "major": 1
+  },
+  "327": {
+    "edition": 1,
+    "major": 1
+  },
+  "328": {
+    "edition": 1,
+    "major": 1
+  },
+  "329": {
+    "edition": 1,
+    "major": 1
+  },
+  "330": {
+    "edition": 1,
+    "major": 1
+  },
+  "501": {
+    "edition": 3,
+    "major": 1
+  },
+  "599": {
+    "edition": 3,
+    "major": 1
+  },
+  "600": {
+    "edition": 2,
+    "major": 1
+  },
+  "699": {
+    "edition": 1,
+    "major": 1
+  },
+  "900": {
+    "edition": 1,
+    "major": 1
+  },
+  "901": {
+    "edition": 1,
+    "major": 1
+  },
+  "994": {
+    "edition": 1,
+    "major": 1
+  },
+  "996": {
+    "edition": 1,
+    "major": 1
+  },
+  "998": {
+    "edition": 1,
+    "major": 1
+  },
+  "1000": {
+    "edition": 1,
+    "major": 1
+  },
+  "1001": {
+    "edition": 1,
+    "major": 1
+  },
+  "1002": {
+    "edition": 1,
+    "major": 1
+  },
+  "1003": {
+    "edition": 1,
+    "major": 1
+  },
+  "1004": {
+    "edition": 1,
+    "major": 1
+  },
+  "1005": {
+    "edition": 1,
+    "major": 1
+  },
+  "1006": {
+    "edition": 1,
+    "major": 1
+  },
+  "1007": {
+    "edition": 1,
+    "major": 1
+  },
+  "1010": {
+    "edition": 1,
+    "major": 1
+  },
+  "1011": {
+    "edition": 1,
+    "major": 1
+  },
+  "1020": {
+    "edition": 1,
+    "major": 1
+  },
+  "1025": {
+    "edition": 1,
+    "major": 1
+  },
+  "1030": {
+    "edition": 1,
+    "major": 1
+  },
+  "1040": {
+    "edition": 1,
+    "major": 1
+  },
+  "1041": {
+    "edition": 1,
+    "major": 1
+  },
+  "1042": {
+    "edition": 1,
+    "major": 1
+  },
+  "1050": {
+    "edition": 1,
+    "major": 1
+  },
+  "1051": {
+    "edition": 1,
+    "major": 1
+  },
+  "1060": {
+    "edition": 1,
+    "major": 1
+  },
+  "1061": {
+    "edition": 1,
+    "major": 1
+  },
+  "1062": {
+    "edition": 1,
+    "major": 1
+  },
+  "1070": {
+    "edition": 1,
+    "major": 1
+  },
+  "1071": {
+    "edition": 1,
+    "major": 1
+  },
+  "1072": {
+    "edition": 1,
+    "major": 1
+  },
+  "1080": {
+    "edition": 1,
+    "major": 1
+  },
+  "1090": {
+    "edition": 1,
+    "major": 1
+  },
+  "1095": {
+    "edition": 1,
+    "major": 1
+  },
+  "1100": {
+    "edition": 1,
+    "major": 1
+  },
+  "1102": {
+    "edition": 1,
+    "major": 1
+  },
+  "1103": {
+    "edition": 1,
+    "major": 1
+  },
+  "1104": {
+    "edition": 1,
+    "major": 1
+  },
+  "1106": {
+    "edition": 1,
+    "major": 1
+  },
+  "1107": {
+    "edition": 1,
+    "major": 1
+  },
+  "1108": {
+    "edition": 1,
+    "major": 1
+  },
+  "1109": {
+    "edition": 1,
+    "major": 1
+  },
+  "1110": {
+    "edition": 1,
+    "major": 1
+  },
+  "1111": {
+    "edition": 1,
+    "major": 1
+  },
+  "1112": {
+    "edition": 1,
+    "major": 1
+  },
+  "1113": {
+    "edition": 1,
+    "major": 1
+  },
+  "1114": {
+    "edition": 1,
+    "major": 1
+  },
+  "1115": {
+    "edition": 1,
+    "major": 1
+  },
+  "1116": {
+    "edition": 1,
+    "major": 1
+  },
+  "1117": {
+    "edition": 1,
+    "major": 1
+  },
+  "2010": {
+    "edition": 1,
+    "major": 1
+  },
+  "2011": {
+    "edition": 1,
+    "major": 1
+  },
+  "3000": {
+    "edition": 1,
+    "major": 1
+  },
+  "3002": {
+    "edition": 1,
+    "major": 1
+  },
+  "3004": {
+    "edition": 1,
+    "major": 1
+  },
+  "3006": {
+    "edition": 1,
+    "major": 1
+  },
+  "3008": {
+    "edition": 1,
+    "major": 1
+  },
+  "3009": {
+    "edition": 1,
+    "major": 1
+  },
+  "3010": {
+    "edition": 1,
+    "major": 1
+  },
+  "3011": {
+    "edition": 1,
+    "major": 1
+  },
+  "3012": {
+    "edition": 1,
+    "major": 1
+  },
+  "3013": {
+    "edition": 1,
+    "major": 1
+  },
+  "3014": {
+    "edition": 1,
+    "major": 1
+  },
+  "3015": {
+    "edition": 1,
+    "major": 1
+  }
+}

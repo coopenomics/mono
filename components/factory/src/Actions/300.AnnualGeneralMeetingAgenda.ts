@@ -7,7 +7,7 @@ export { AnnualGeneralMeetingAgenda as Template } from '../Templates'
 /** Предложение повестки общего собрания: автор, кооператив, собрание и вопросы из данных. */
 export const Factory = defineBuilder<AnnualGeneralMeetingAgenda.Action, AnnualGeneralMeetingAgenda.Model>()({
   registry_id: AnnualGeneralMeetingAgenda.registry_id,
-  version: 1,
+  version: '1.0',
   reads: ({ data, f }) => ({
     coop: () => f.getCooperative(data.coopname, data.block_num),
     vars: () => f.getVars(data.coopname, data.block_num),

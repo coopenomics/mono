@@ -7,7 +7,7 @@ export { ProgramAgreementsAnnulmentStatement as Template } from '../Templates'
 /** Заявление об аннулировании соглашений ЦПП: пайщик, кооператив, программы с кошельками и возвратами. */
 export const Factory = defineBuilder<ProgramAgreementsAnnulmentStatement.Action, ProgramAgreementsAnnulmentStatement.Model>()({
   registry_id: ProgramAgreementsAnnulmentStatement.registry_id,
-  version: 1,
+  version: '1.0',
   reads: ({ data, f }) => ({
     coop: () => f.getCooperative(data.coopname, data.block_num),
     vars: () => f.getVars(data.coopname, data.block_num),

@@ -7,7 +7,7 @@ export { ExpenseProposalStatement as Template } from '../Templates'
 /** Служебная записка-смета о расходах: автор, позиции и их приватные реквизиты по номеру. */
 export const Factory = defineBuilder<ExpenseProposalStatement.Action, ExpenseProposalStatement.Model>()({
   registry_id: ExpenseProposalStatement.registry_id,
-  version: 1,
+  version: '1.0',
   reads: ({ data, f }) => ({
     coop: () => f.getCooperative(data.coopname, data.block_num),
     vars: () => f.getVars(data.coopname, data.block_num),

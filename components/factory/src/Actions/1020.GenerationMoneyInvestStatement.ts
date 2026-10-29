@@ -9,7 +9,7 @@ export { GenerationMoneyInvestStatement as Template } from '../Templates'
 /** Заявление о денежном взносе в генерацию: пайщик, реквизиты договора УХД и соглашения из udata. */
 export const Factory = defineBuilder<GenerationMoneyInvestStatement.Action, GenerationMoneyInvestStatement.Model>()({
   registry_id: GenerationMoneyInvestStatement.registry_id,
-  version: 1,
+  version: '1.0',
   reads: ({ data, f }) => {
     const udata = (key: Cooperative.Model.UdataKey) => () => f.getUdata({ coopname: data.coopname, username: data.username, key, block_num: data.block_num })
     return {

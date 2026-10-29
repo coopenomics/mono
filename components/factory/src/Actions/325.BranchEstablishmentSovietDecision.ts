@@ -7,7 +7,7 @@ export { BranchEstablishmentSovietDecision as Template } from '../Templates'
 /** Решение совета о создании участка: голоса по решению (иначе по утверждению) и председатель участка. */
 export const Factory = defineBuilder<BranchEstablishmentSovietDecision.Action, BranchEstablishmentSovietDecision.Model>()({
   registry_id: BranchEstablishmentSovietDecision.registry_id,
-  version: 1,
+  version: '1.0',
   reads: ({ data, f }) => ({
     coop: () => f.getCooperative(data.coopname, data.block_num),
     vars: () => f.getVars(data.coopname, data.block_num),

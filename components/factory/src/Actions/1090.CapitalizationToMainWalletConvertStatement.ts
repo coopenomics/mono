@@ -7,7 +7,7 @@ export { CapitalizationToMainWalletConvertStatement as Template } from '../Templ
 /** Заявление о трансляции паевого взноса в Цифровой Кошелёк: пайщик и сумма. */
 export const Factory = defineBuilder<CapitalizationToMainWalletConvertStatement.Action, CapitalizationToMainWalletConvertStatement.Model>()({
   registry_id: CapitalizationToMainWalletConvertStatement.registry_id,
-  version: 1,
+  version: '1.0',
   reads: ({ data, f }) => ({
     coop: () => f.getCooperative(data.coopname, data.block_num),
     vars: () => f.getVars(data.coopname, data.block_num),

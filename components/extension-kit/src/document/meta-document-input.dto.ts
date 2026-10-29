@@ -9,7 +9,7 @@
  * У каждого поля явный thunk `@Field(() => T)`: каркас собирается esbuild'ом
  * без `emitDecoratorMetadata`, и `@Field({ description })` дал бы поле без типа.
  */
-import { IsString, IsNumber, IsArray, IsInt, IsEnum } from 'class-validator';
+import { IsString, IsNumber, IsArray, IsInt, IsEnum, IsOptional } from 'class-validator';
 import { InputType, Field, Int } from '@nestjs/graphql';
 import { LangType } from './lang-type.enum';
 import type { Cooperative } from 'cooptypes';
@@ -60,4 +60,12 @@ export class MetaDocumentInputDTO implements Cooperative.Document.IMetaDocument 
   @IsArray()
   @IsString({ each: true })
   links!: string[];
+
+  @Field(() => String, {
+    nullable: true,
+    description: 'Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана',
+  })
+  @IsOptional()
+  @IsString()
+  builder?: string;
 }

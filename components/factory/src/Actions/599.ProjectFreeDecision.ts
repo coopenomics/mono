@@ -11,7 +11,7 @@ export { ProjectFreeDecision as Template } from '../Templates'
  */
 export const Factory = defineBuilder<ProjectFreeDecision.Action, ProjectFreeDecision.Model>()({
   registry_id: ProjectFreeDecision.registry_id,
-  version: 1,
+  version: '1.0',
   reads: ({ data, f }) => ({
     user: () => f.getUser(data.username, data.block_num),
     coop: () => f.getCooperative(data.coopname, data.block_num),

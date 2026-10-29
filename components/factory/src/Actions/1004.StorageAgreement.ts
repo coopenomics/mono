@@ -8,7 +8,7 @@ export { StorageAgreement as Template } from '../Templates'
 /** Договор хранения Благороста: пайщик и реквизиты договоров из udata. */
 export const Factory = defineBuilder<StorageAgreement.Action, StorageAgreement.Model>()({
   registry_id: StorageAgreement.registry_id,
-  version: 1,
+  version: '1.0',
   reads: ({ data, f }) => {
     const udata = (key: Cooperative.Model.UdataKey) => () => f.getUdata({ coopname: data.coopname, username: data.username, key, block_num: data.block_num })
     return {

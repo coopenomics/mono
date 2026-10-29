@@ -7,7 +7,7 @@ export { SelectBranchStatement as Template } from '../Templates'
 /** Заявление о выборе кооперативного участка: пайщик, кооператив, участок. */
 export const Factory = defineBuilder<SelectBranchStatement.Action, SelectBranchStatement.Model>()({
   registry_id: SelectBranchStatement.registry_id,
-  version: 1,
+  version: '1.0',
   reads: ({ data, f }) => ({
     user: () => f.getUser(data.username, data.block_num),
     coop: () => f.getCooperative(data.coopname, data.block_num),

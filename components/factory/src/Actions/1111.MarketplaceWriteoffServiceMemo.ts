@@ -7,7 +7,7 @@ export { MarketplaceWriteoffServiceMemo as Template } from '../Templates'
 /** Служебная записка о списании на участке: председатель участка и позиции из данных. */
 export const Factory = defineBuilder<MarketplaceWriteoffServiceMemo.Action, MarketplaceWriteoffServiceMemo.Model>()({
   registry_id: MarketplaceWriteoffServiceMemo.registry_id,
-  version: 1,
+  version: '1.0',
   reads: ({ data, f }) => ({
     coop: () => f.getCooperative(data.coopname, data.block_num),
     vars: () => f.getVars(data.coopname, data.block_num),

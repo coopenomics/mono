@@ -7,7 +7,7 @@ export { BranchTrustedLiabilityAgreement as Template } from '../Templates'
 /** Договор материальной ответственности доверенного лица участка: физлицо и председатель участка. */
 export const Factory = defineBuilder<BranchTrustedLiabilityAgreement.Action, BranchTrustedLiabilityAgreement.Model>()({
   registry_id: BranchTrustedLiabilityAgreement.registry_id,
-  version: 1,
+  version: '1.0',
   reads: ({ data, f }) => ({
     coop: () => f.getCooperative(data.coopname, data.block_num),
     vars: () => f.getVars(data.coopname, data.block_num),

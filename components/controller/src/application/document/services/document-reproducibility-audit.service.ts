@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { FIRST_BUILDER_VERSION } from '@coopenomics/factory';
 import { GeneratorInfrastructureService } from '~/infrastructure/generator/generator.service';
 import type {
   DocumentReproducibilityAuditDTO,
@@ -21,7 +22,8 @@ enum AuditOutcome {
  * Каждый сохранённый документ пересобирается по своим метаданным без
  * сохранения и сравнивается с тем, что лежит в хранилище: сначала HTML,
  * затем хэш PDF. Отчёт считается по виду документа и версии сборщика
- * (`meta.version`) и не содержит содержимого документов — только номера,
+ * (`meta.builder`; документ до оси версий — `1.0`, шаг 7) и не содержит
+ * содержимого документов — только номера,
  * версии и причину расхождения.
  *
  * Первый прогон до рефакторинга даёт исходный долг воспроизводимости;
@@ -42,12 +44,13 @@ export class DocumentReproducibilityAuditService {
     const mismatches: DocumentReproducibilityAuditMismatchDTO[] = [];
 
     for (const document of documents) {
-      const key = `${document.meta.registry_id}:${document.meta.version}`;
+      const builder = document.meta.builder ?? FIRST_BUILDER_VERSION;
+      const key = `${document.meta.registry_id}:${builder}`;
       let row = rows.get(key);
       if (!row) {
         row = {
           registry_id: document.meta.registry_id,
-          version: document.meta.version,
+          version: builder,
           total: 0,
           reproduced: 0,
           pdf_mismatch: 0,
@@ -77,7 +80,7 @@ export class DocumentReproducibilityAuditService {
         mismatches.push({
           hash: document.hash,
           registry_id: document.meta.registry_id,
-          version: document.meta.version,
+          version: builder,
           block_num: document.meta.block_num,
           reason,
         });

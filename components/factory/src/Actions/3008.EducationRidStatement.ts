@@ -9,7 +9,7 @@ export { EducationRidStatement as Template } from '../Templates'
 /** Заявление преподавателя о взносе результата: пайщик, реквизиты договора УХД из udata, результат. */
 export const Factory = defineBuilder<EducationRidStatement.Action, EducationRidStatement.Model>()({
   registry_id: EducationRidStatement.registry_id,
-  version: 1,
+  version: '1.0',
   reads: ({ data, f, s }) => ({
     coop: () => f.getCooperative(data.coopname, data.block_num),
     vars: () => f.getVars(data.coopname, data.block_num),

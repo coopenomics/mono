@@ -8,7 +8,7 @@ export { WalletAgreement as Template } from '../Templates'
 /** Соглашение ЦПП «Цифровой Кошелёк»: реквизиты кооператива и протокол утверждения из переменных. */
 export const Factory = defineBuilder<WalletAgreement.Action, WalletAgreement.Model>()({
   registry_id: WalletAgreement.registry_id,
-  version: 1,
+  version: '1.0',
   reads: ({ data, f }) => ({
     coop: () => f.getCooperative(data.coopname, data.block_num),
     vars: () => f.getVars(data.coopname, data.block_num),

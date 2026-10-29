@@ -8,7 +8,7 @@ export { ResultContributionStatement as Template } from '../Templates'
 /** Заявление о взносе результата: пайщик, реквизиты договоров из udata, результат и доля. */
 export const Factory = defineBuilder<ResultContributionStatement.Action, ResultContributionStatement.Model>()({
   registry_id: ResultContributionStatement.registry_id,
-  version: 1,
+  version: '1.0',
   reads: ({ data, f }) => {
     const udata = (key: Cooperative.Model.UdataKey) => () => f.getUdata({ coopname: data.coopname, username: data.username, key, block_num: data.block_num })
     return {

@@ -50,6 +50,12 @@ export interface IMetaDocument {
   block_num: number
   timezone: string
   links: string[]
+  /**
+   * Версия сборщика документа `major.minor` (фабрика v2, шаг 7). Пишется в
+   * каждый новый документ; пересборка берёт сборщик ровно этой версии.
+   * Документы до 29.10.2026 поля не имеют — их пересобирает версия `1.0`.
+   */
+  builder?: string
 }
 
 export interface ISignedDocument<T = any> {

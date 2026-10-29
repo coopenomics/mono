@@ -7,7 +7,7 @@ export { InitProjectStatement as Template } from '../Templates'
 /** Заявление об инициализации проекта или компонента: пайщик и данные проекта. */
 export const Factory = defineBuilder<InitProjectStatement.Action, InitProjectStatement.Model>()({
   registry_id: InitProjectStatement.registry_id,
-  version: 1,
+  version: '1.0',
   reads: ({ data, f }) => ({
     coop: () => f.getCooperative(data.coopname, data.block_num),
     vars: () => f.getVars(data.coopname, data.block_num),

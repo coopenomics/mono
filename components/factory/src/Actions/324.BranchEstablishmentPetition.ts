@@ -7,7 +7,7 @@ export { BranchEstablishmentPetition as Template } from '../Templates'
 /** Ходатайство о создании участка: автор, название, адрес и председатель участка. */
 export const Factory = defineBuilder<BranchEstablishmentPetition.Action, BranchEstablishmentPetition.Model>()({
   registry_id: BranchEstablishmentPetition.registry_id,
-  version: 1,
+  version: '1.0',
   reads: ({ data, f }) => ({
     coop: () => f.getCooperative(data.coopname, data.block_num),
     vars: () => f.getVars(data.coopname, data.block_num),
