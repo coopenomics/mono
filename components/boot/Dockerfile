@@ -44,12 +44,12 @@ COPY . .
 RUN pnpm install --frozen-lockfile --filter "@coopenomics/boot..." --ignore-scripts \
  && pnpm rebuild --filter "@coopenomics/boot..."
 
-# Билд графа: cooptypes/factory собирают свои dist/, boot собирает
-# свой bundle с inlined workspace-deps.
+# Билд графа: cooptypes собирает свой dist/, boot собирает свой bundle с
+# inlined cooptypes и @coopenomics/docs-factory (фабрика — из npm, C9S/docs-factory).
 RUN pnpm --filter "@coopenomics/boot..." build
 
-# Workspace-deps inline'ятся в bundle, их транзитивные npm-deps (handlebars/
-# ajv/mongodb у factory, wharfkit/graphql/ws у sdk) мерджим в boot.deps —
+# Inline-зависимости bundle'а тянут свои npm-deps (handlebars/ajv/kysely/pg у
+# фабрики — из её package.json в node_modules, wharfkit/graphql/ws у sdk) — мерджим в boot.deps —
 # нужны в runtime. Cooptypes type-only — его @typescript-eslint/parser в
 # runtime не нужен и конфликтует с eslint v9 в boot.devDeps по peer-spec'ам.
 # Сами workspace-spec'и снимаем ПО ПРИЗНАКУ, а не по списку имён: npm не
@@ -59,7 +59,7 @@ RUN pnpm --filter "@coopenomics/boot..." build
 RUN node -e "const fs=require('fs'); \
   const read=(p)=>JSON.parse(fs.readFileSync(p,'utf8')); \
   const boot=read('components/boot/package.json'); \
-  const factory=read('components/factory/package.json'); \
+  const factory=read('components/boot/node_modules/@coopenomics/docs-factory/package.json'); \
   const sdk=read('components/sdk/package.json'); \
   boot.dependencies = { ...factory.dependencies, ...sdk.dependencies, ...boot.dependencies }; \
   for (const name of Object.keys(boot.dependencies)) { \
