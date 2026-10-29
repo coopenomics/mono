@@ -16,7 +16,7 @@ export class VarsRepositoryImplementation implements VarsRepository {
   }
 
   async create(data: VarsDomainInterface): Promise<void> {
-    // Очищаем MongoDB-специфичные поля для создания новой версии
+    // Служебные поля записи хранилища фабрики — не данные кооператива; новая версия без них
     const { _id, block_num: _block_num, deleted: _deleted, ...cleanData } = data as any;
     //TODO исключить приведение типов здесь после нормальной типизации генератора
     await this.generatorPort.save('vars', cleanData as Cooperative.Model.IVars);

@@ -209,7 +209,7 @@ export class ProviderService {
 
   /**
    * Извлечь человеко-читаемое наименование кооператива из organization-записи
-   * в Mongo (short_name → full_name); если её ещё нет — undefined, и фронт
+   * хранилища фабрики (short_name → full_name); если её ещё нет — undefined, и фронт
    * отрисует coopname.
    *
    * On-chain `description` в качестве запасного имени больше не годится: с

@@ -3,17 +3,17 @@ export function toDotNotation(obj, prefix = '') {
     const value = obj[key];
     const newKey = prefix ? `${prefix}.${key}` : key;
 
-    // Если ключ начинается с $, это MongoDB оператор - не преобразовываем
+    // Ключ с $ — оператор языка отбора хранилища фабрики ($or, $regex…), не преобразовываем
     if (key.startsWith('$')) {
       acc[newKey] = value;
       return acc;
     }
 
     if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-      // Проверяем, содержит ли объект MongoDB операторы
-      const hasMongoOperators = Object.keys(value).some((k) => k.startsWith('$'));
+      // Объект с операторами отбора — условие на поле, сохраняем как есть
+      const hasOperators = Object.keys(value).some((k) => k.startsWith('$'));
 
-      if (hasMongoOperators) {
+      if (hasOperators) {
         // Если содержит операторы, сохраняем как есть с новым ключом
         acc[newKey] = value;
       } else {

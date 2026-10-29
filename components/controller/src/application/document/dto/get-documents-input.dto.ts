@@ -34,7 +34,7 @@ export class GetDocumentsInputDTO {
   /**
    * Массив типов действий для фильтрации первичных документов.
    * Например: [DocumentAction.REGCOOP, DocumentAction.JOINCOOP] - извлечёт только документы с этими действиями.
-   * Используется для фильтрации по полю data.action в MongoDB.
+   * Отбор идёт по действию, которым документ поступил в цепь.
    */
   @Field(() => [DocumentAction], { nullable: true })
   actions?: DocumentAction[];

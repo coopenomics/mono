@@ -84,17 +84,13 @@ export class GeneratorInfrastructureService implements GeneratorPort, OnModuleIn
     // Точная версия по meta подписанного документа: у двух генераций в одном
     // блоке совпадают и тело, и block_num (C28-80).
     if (query.meta !== undefined && query.meta !== null) {
-      const exact = await this.generator.getDocument({ hash: query.hash, meta_key: documentMetaKey(query.meta) } as never);
+      const exact = await this.generator.getDocument({ hash: query.hash, meta_key: documentMetaKey(query.meta) });
       if (exact) return exact;
     }
-    // Черновики версионируются по (hash + meta.block_num). При наличии
-    // block_num тянем точную версию через dot-path mongo-фильтр, иначе —
-    // любую версию с этим hash (легаси/превью).
-    const filter: Record<string, unknown> = { hash: query.hash };
-    if (query.block_num !== undefined && query.block_num !== null) {
-      filter['meta.block_num'] = query.block_num;
-    }
-    return await this.generator.getDocument(filter as never);
+    // Без меты — версия по (hash + блок черновика), без блока — первая
+    // сохранённая версия с этим hash (документы до ключа меты, превью).
+    const block_num = query.block_num ?? undefined;
+    return await this.generator.getDocument({ hash: query.hash, block_num });
   }
 
   async get<T = any>(collection: string, query: Record<string, any>): Promise<T | null> {
