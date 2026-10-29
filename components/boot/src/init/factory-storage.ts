@@ -3,7 +3,7 @@
  * PostgreSQL узла по POSTGRES_*. Один путь на все сидеры boot: данные
  * кооператива лежат в той базе, которую читает контроллер.
  */
-import { Generator, PostgresFactoryStorage } from '@coopenomics/factory'
+import { Generator, PostgresFactoryStorage } from '@coopenomics/docs-factory'
 
 /* eslint-disable node/prefer-global/process */
 export async function connectGenerator(): Promise<Generator> {

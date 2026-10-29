@@ -102,7 +102,7 @@ src/
 │   ├── gateway/               #   Инфраструктура платёжного шлюза
 │   ├── account/               #   Инфраструктура аккаунтов
 │   ├── document/              #   Инфраструктура документов
-│   ├── generator/             #   Генератор документов (обёртка над @coopenomics/factory)
+│   ├── generator/             #   Генератор документов (обёртка над @coopenomics/docs-factory)
 │   ├── registration/          #   Инфраструктура регистрации
 │   ├── meet/                  #   Инфраструктура собраний
 │   ├── settings/              #   Инфраструктура настроек
@@ -318,7 +318,7 @@ application/account/
 | `ProgramWalletTypeormEntity` | program_wallets | Программные кошельки |
 
 **Хранилище фабрики документов** (PostgreSQL, таблицы `factory_records`, `factory_documents`, `factory_doc_private_data`):
-- Реализация порта — `PostgresFactoryStorage` из `@coopenomics/factory`, в контроллере обёртка `PgFactoryStorage` на соединении `KYSELY`
+- Реализация порта — `PostgresFactoryStorage` из `@coopenomics/docs-factory`, в контроллере обёртка `PgFactoryStorage` на соединении `KYSELY`
 - Хранит данные пайщиков и переменные кооператива (`vars`), собранные документы с телом PDF, приватные данные документов
 - Генератор-репозитории (`generator-repositories/`) читают и пишут через фабрику
 - MongoDB выведена из контроллера в 10.2026 (фабрика v2, шаг 5)
@@ -339,7 +339,7 @@ export class TypeOrmPaymentRepository implements PaymentRepository { ... }
 
 ### Генератор документов (infrastructure/generator/)
 
-`GeneratorInfrastructureService` — обёртка над `@coopenomics/factory`:
+`GeneratorInfrastructureService` — обёртка над `@coopenomics/docs-factory`:
 - `generate(data, options)` → генерация PDF-документа
 - `constructCooperative(username)` → построение модели кооператива
 - `search(query)` → поиск документов
@@ -537,7 +537,7 @@ BaseExtensionModule
 ### `qrpay` — QR-оплата
 - **Файл**: `qrpay/qrpay-extension.module.ts`
 - **Назначение**: Генерация QR-кода для оплаты через любое банковское приложение. Реализует `PaymentProvider`
-- **Метод**: `createPayment(hash)` — формирует URL оплаты с реквизитами кооператива из `@coopenomics/factory`
+- **Метод**: `createPayment(hash)` — формирует URL оплаты с реквизитами кооператива из `@coopenomics/docs-factory`
 - **Комиссия**: `fee_percent: 0%`
 - **Конфигурация**: Пустая (использует реквизиты из `constructCooperative`)
 
@@ -646,7 +646,7 @@ BaseExtensionModule
 ### Поток
 
 1. **Запрос** → Резолвер → Сервис → `GeneratorPort.generateDocument(data, options)`
-2. **Инфраструктура** → `GeneratorInfrastructureService` → `@coopenomics/factory` (Generator)
+2. **Инфраструктура** → `GeneratorInfrastructureService` → `@coopenomics/docs-factory` (Generator)
 3. **Factory** подключается к MongoDB, генерирует PDF по шаблону с данными кооператива
 4. Документ сохраняется в MongoDB с хэшем
 5. Хэш документа используется для подписания в блокчейне
@@ -721,7 +721,7 @@ this.providerPort.registerProvider(this.name, this);
 | `typeorm` | 0.3.20 | Реляционный ORM (PG) |
 | `@wharfkit/*` | ^1 | Взаимодействие с блокчейном EOSIO |
 | `cooptypes` | workspace:* | Типы смарт-контрактов |
-| `@coopenomics/factory` | workspace:* | Генератор документов |
+| `@coopenomics/docs-factory` | точная версия из npm (C9S/docs-factory) | Фабрика документов |
 | `@coopenomics/notifications` | workspace:* | Уведомления |
 | `@coopenomics/sdk` | workspace:* | SDK |
 | `ioredis` | ^5 | Redis-клиент |

@@ -1,4 +1,4 @@
-import { IEntrepreneurData, IGeneratedDocument, IIndividualData, IOrganizationData } from '@coopenomics/factory';
+import { IEntrepreneurData, IGeneratedDocument, IIndividualData, IOrganizationData } from '@coopenomics/docs-factory';
 import { Cooperative, SovietContract } from 'cooptypes';
 import type { IDelta } from '@coopenomics/extension-kit/sync';
 import type { InnerChainActionRecord as IAction } from '@coopenomics/innercoop';

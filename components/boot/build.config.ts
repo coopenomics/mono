@@ -1,6 +1,6 @@
 import { defineBuildConfig } from 'unbuild'
 
-// Bundle workspace-deps (cooptypes, @coopenomics/factory) внутрь
+// Bundle cooptypes и @coopenomics/docs-factory внутрь
 // dist/index.cjs, чтобы в docker-образе не нужно было их пробрасывать
 // через workspace-context. NPM-deps оставляем external — nativе
 // binaries (cpu-features через dockerode→ssh2) не bundling-friendly,
@@ -30,7 +30,7 @@ export default defineBuildConfig({
     'rollup:options'(_ctx, options) {
       const prev = options.external
       options.external = (id: string, importer?: string, isResolved?: boolean) => {
-        if (id === 'cooptypes' || id.startsWith('@coopenomics/factory'))
+        if (id === 'cooptypes' || id.startsWith('@coopenomics/docs-factory'))
           return false
         if (typeof prev === 'function')
           return (prev as any)(id, importer, isResolved)

@@ -4,12 +4,13 @@ import httpStatus from 'http-status';
 import { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
 import type { GenerateDocumentDomainInterfaceWithOptions } from '~/domain/document/interfaces/generate-document-domain-with-options.interface';
 import { GeneratorPort } from '~/domain/document/ports/generator.port';
-import { DocumentNotApprovedError, Generator, UnknownDocumentFactoryError, documentMetaKey, type IGenerateBlank, type IGeneratedBlank, type ISearchResult } from '@coopenomics/factory';
+import { DocumentNotApprovedError, Generator, UnknownDocumentFactoryError, documentMetaKey, type IGenerateBlank, type IGeneratedBlank, type ISearchResult } from '@coopenomics/docs-factory';
 import type { Cooperative } from 'cooptypes';
 import { DomainError } from '@coopenomics/extension-kit';
 import { ControllerChainDataSource } from './controller-chain-data.source';
 import { ChainChangesService } from '~/infrastructure/blockchain/chain-changes.service';
 import { PgFactoryStorage } from './pg-factory-storage';
+import { assertDocsFactoryVersion } from './docs-factory-version';
 
 /**
  * Коллекции генератора и их имена в ленте изменений. Личные данные пайщика,
@@ -50,6 +51,7 @@ export class GeneratorInfrastructureService implements GeneratorPort, OnModuleIn
   }
 
   async onModuleInit() {
+    assertDocsFactoryVersion();
     // Хранилище фабрики — PostgreSQL контроллера (шаг 5 фабрики v2).
     await this.generator.connect(this.pgStorage);
   }

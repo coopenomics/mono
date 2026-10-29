@@ -20,9 +20,6 @@
       "path": "./components/notifications"
     },
     {
-      "path": "./components/factory"
-    },
-    {
       "path": "./components/boot"
     },
     {

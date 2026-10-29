@@ -28,7 +28,7 @@
  */
 import { mkdir, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import { Registry, getTemplateVersion } from '@coopenomics/factory'
+import { Registry, getTemplateVersion } from '@coopenomics/docs-factory'
 import { DraftContract } from 'cooptypes'
 import type Blockchain from '../blockchain'
 import { sleep } from '../utils'
