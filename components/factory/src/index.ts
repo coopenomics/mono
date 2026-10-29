@@ -184,7 +184,7 @@ export class Generator implements IGenerator {
   }
 
   async getDocument(filter: IDocumentFilter): Promise<IGeneratedDocument> {
-    const document = await this.storage.findDocument({ hash: filter.hash, meta_key: filter.meta_key, block_num: filter['meta.block_num'] })
+    const document = await this.storage.findDocument({ hash: filter.hash, meta_key: filter.meta_key, block_num: filter.block_num })
     return document as IGeneratedDocument
   }
 

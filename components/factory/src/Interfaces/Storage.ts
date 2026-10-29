@@ -34,7 +34,8 @@ export interface IBCState {
 export interface IDocumentFilter {
   hash: string
   meta_key?: string
-  'meta.block_num'?: number
+  /** Блок черновика (`meta.block_num`): версия документа одного хэша. */
+  block_num?: number
 }
 
 export type internalFilterTypes = InternalIndividualData | InternalEntrepreneurData | InternalOrganizationData | IPaymentData | IVars | InternalProjectData | InternalUdata

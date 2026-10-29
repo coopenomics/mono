@@ -277,7 +277,6 @@ export class AccountInteractor {
   }
 
   async registerAccount(data: RegisterAccountDomainInterface): Promise<RegisteredAccountDomainInterface> {
-    //TODO refactor after migrate from mongo
     const user = await this.createUser({ ...data, role: 'user' });
 
     // Почту подтверждают кодом на первом шаге регистрации — учётной записи тогда
