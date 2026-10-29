@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { FIRST_BUILDER_VERSION } from '@coopenomics/factory';
+import { FIRST_BUILDER_VERSION } from '@coopenomics/docs-factory';
 import { GeneratorInfrastructureService } from '~/infrastructure/generator/generator.service';
 import type {
   DocumentReproducibilityAuditDTO,

@@ -170,6 +170,10 @@ gate_typeorm() {
   node "$REPO_ROOT/scripts/check-typeorm-ratchet.mjs"
 }
 
+gate_docs_factory_version() {
+  node "$REPO_ROOT/scripts/check-docs-factory-version.mjs"
+}
+
 gate_vue_pug() {
   node "$REPO_ROOT/scripts/check-vue-pug.mjs"
 }
@@ -201,6 +205,7 @@ case "$MODE" in
     run_gate "команды столов" gate_desk_commands
     run_gate "права на ролях" gate_legacy_rights
     run_gate "шаблоны только на pug" gate_vue_pug
+    run_gate "версия фабрики документов" gate_docs_factory_version
     ;;
   ledger2)
     run_gate "реестры процессов ledger2" gate_ledger2_processes
@@ -239,6 +244,7 @@ case "$MODE" in
     run_gate "команды столов" gate_desk_commands
     run_gate "права на ролях" gate_legacy_rights
     run_gate "шаблоны только на pug" gate_vue_pug
+    run_gate "версия фабрики документов" gate_docs_factory_version
     run_gate "TypeORM только вниз" gate_typeorm
     run_gate "канон: изменённые файлы" gate_changed
     run_gate "реестр тестов" gate_registry

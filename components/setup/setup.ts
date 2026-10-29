@@ -118,7 +118,6 @@ async function setupDevelopment(): Promise<void> {
   // 2. Сборка shared-библиотек
   step('Сборка shared-библиотек')
   await run(`pnpm --filter cooptypes run build`, 'cooptypes')
-  await run(`pnpm --filter @coopenomics/factory run build`, 'factory')
   await run(`pnpm --filter @coopenomics/sdk run build`, 'sdk')
   await run(`pnpm --filter @coopenomics/notifications run build`, 'notifications')
   ok('Shared-библиотеки собраны')
@@ -163,7 +162,6 @@ async function setupTestnet(): Promise<void> {
   // 2. Сборка библиотек
   step('Сборка shared-библиотек')
   await run(`pnpm --filter cooptypes run build`, 'cooptypes')
-  await run(`pnpm --filter @coopenomics/factory run build`, 'factory')
   await run(`pnpm --filter @coopenomics/sdk run build`, 'sdk')
   await run(`pnpm --filter @coopenomics/notifications run build`, 'notifications')
   ok('Shared-библиотеки собраны')
@@ -317,7 +315,6 @@ POSTGRES_DATABASE=${answers.coopname}
   // 2. Сборка
   step('Сборка shared-библиотек')
   await run(`pnpm --filter cooptypes run build`, 'cooptypes')
-  await run(`pnpm --filter @coopenomics/factory run build`, 'factory')
   await run(`pnpm --filter @coopenomics/sdk run build`, 'sdk')
   await run(`pnpm --filter @coopenomics/notifications run build`, 'notifications')
   ok('Shared-библиотеки собраны')

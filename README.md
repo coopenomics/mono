@@ -19,7 +19,7 @@
 | [controller](components/controller) | `@coopenomics/controller` | GraphQL API сервер (NestJS) |
 | [cooptypes](components/cooptypes) | `cooptypes` | Общие типы и интерфейсы блокчейн-контрактов |
 | [desktop](components/desktop) | `@coopenomics/desktop` | Рабочий стол кооператива (Vue 3 + Quasar) |
-| [factory](components/factory) | `@coopenomics/factory` | Генератор юридических документов |
+| [docs-factory](https://git.coopenomics.world/C9S/docs-factory) | `@coopenomics/docs-factory` | Фабрика документов — отдельный репозиторий, ставится из npm |
 | [migrator](components/migrator) | `migrator` | Утилита миграции данных |
 | [notifications](components/notifications) | `@coopenomics/notifications` | Библиотека уведомлений на основе Novu |
 | [sdk](components/sdk) | `@coopenomics/sdk` | TypeScript SDK для GraphQL API |

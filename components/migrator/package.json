@@ -14,7 +14,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@coopenomics/factory": "workspace:*",
+    "@coopenomics/docs-factory": "1.0.0",
     "@wharfkit/antelope": "^1.1.1",
     "@wharfkit/session": "^1.4.0",
     "@wharfkit/wallet-plugin-privatekey": "^1.1.0",

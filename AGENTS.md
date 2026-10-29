@@ -49,7 +49,6 @@ pnpm run reboot
 4. **Shared-библиотеки** (порядок важен):
    ```
    pnpm --filter cooptypes run build
-   pnpm --filter @coopenomics/factory run build
    pnpm --filter @coopenomics/sdk run build
    pnpm --filter @coopenomics/notifications run build
    ```
@@ -66,11 +65,7 @@ pnpm run reboot
 
 ### Запуск тестов
 
-- **Factory** (`components/factory`): нужен только PostgreSQL (таблицы набор создаёт сам). Запуск — в CI, workflow `Factory`:
-  ```
-  NODE_ENV=test SOURCE=local SKIP_BLOCK_FETCH=TRUE POSTGRES_HOST=127.0.0.1 pnpm --filter @coopenomics/factory test
-  ```
-  Адрес базы — `POSTGRES_HOST/PORT/USERNAME/PASSWORD/DATABASE`, по умолчанию `postgres:postgres@127.0.0.1:5432/postgres`.
+- **Фабрика документов** — отдельный репозиторий `C9S/docs-factory` (пакет `@coopenomics/docs-factory`); её тесты и эталоны — в CI того репозитория. Совместная правка — `pnpm factory:link` / `pnpm factory:unlink`.
 - **Boot** (`components/boot`): требует полный EOSIO blockchain + PG. Запуск после `pnpm run reboot`:
   ```
   pnpm --filter @coopenomics/boot test

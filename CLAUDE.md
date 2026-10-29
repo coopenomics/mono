@@ -368,7 +368,7 @@ Marketplace в монорепе живёт в **двух контурах**:
 
 Для нового документа Marketplace-членские-взносы: завести новый registry_id рядом с актами/ТТН и проложить цепочку `cooptypes → factory → controller → desktop`:
 1. `@coopenomics/cooptypes`: новый тип документа + регистрация в registry.
-2. `@coopenomics/factory`: generator (preview-структура + meta).
+2. `@coopenomics/docs-factory` (репозиторий C9S/docs-factory): сборщик документа, шаблон, реестр; новая версия пакета приходит в монорепу PR-ом робота.
 3. `@coopenomics/controller`: signed-document DTO + verify в сервисе.
 4. `@coopenomics/desktop`: подпись через `Classes.Document` с новым registry_id.
 
@@ -517,10 +517,27 @@ curl -s "http://127.0.0.1:<DESKTOP_PORT>/config.js?t=$(date +%s)" | grep -i <К�
 
 Эталоны: `p.mkt.return.standard.yaml`, `p.cap.rid.standard.yaml`, `reg.coop.standard.yaml`. Антипример — `p.mkt.wroff.standard.yaml` в PR #399 review 2026-05-18 (был забит callback-описаниями и «type=mktwroff»).
 
+## Фабрика документов — отдельный репозиторий C9S/docs-factory (с 29.10.2026)
+
+Пакет `@coopenomics/docs-factory` ставится из npm точной версией (контроллер,
+`boot`, мигратор). Каталога `components/factory` в монорепе нет.
+
+- **Версию поднимает робот.** Тег `vX.Y.Z` в C9S/docs-factory → эталоны → npm →
+  PR в `dev` с новой версией во всех `package.json` и lock-файле. Руками версию
+  не правят; гейт `pnpm check` (`scripts/check-docs-factory-version.mjs`) держит
+  точную и одну версию.
+- **Переустановка не забывается.** Git-хук после `pull`/`checkout` сам делает
+  `pnpm install`, если менялся `pnpm-lock.yaml`; контроллер при старте падает с
+  подсказкой, если установленная фабрика не совпадает с объявленной.
+- **Совместная правка.** `pnpm factory:link` подключает чекаут `~/docs-factory`
+  (после правки — `pnpm build` в нём), `pnpm factory:unlink` возвращает npm.
+  Подключённый чекаут гейт закоммитить не даст.
+- **Тесты и эталоны фабрики** — в CI репозитория фабрики, не здесь.
+
 ## Реестр документов раскатывается релизом, не миграциями
 
 Шаблоны документов больше **не правятся миграциями мигратора**. Локальный реестр
-(`components/factory/src/Templates/registry.ts`) — источник истины; команда
+(`src/Templates/registry.ts` репозитория C9S/docs-factory, пакет `@coopenomics/docs-factory`) — источник истины; команда
 `pnpm -F @coopenomics/boot run drafts:sync` сверяет его с `draft::drafts` /
 `draft::translations` и доливает недостающее, переписывает разошедшееся,
 поднимает версию по объявлению. Playbook деплоя контрактов
@@ -534,7 +551,7 @@ curl -s "http://127.0.0.1:<DESKTOP_PORT>/config.js?t=$(date +%s)" | grep -i <К�
 - правка текста/вёрстки/опечатки — просто меняем шаблон, `editdraft` версию не
   трогает, переподписей нет;
 - смысловое изменение — дополнительно поднимаем число в
-  `components/factory/src/Templates/versions.ts`, синхронизатор вызовет
+  `src/Templates/versions.ts` репозитория C9S/docs-factory, синхронизатор вызовет
   `upversion`.
 
 Синхронизатор ничего не удаляет, версию не понижает и идемпотентен. Проверить

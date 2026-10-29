@@ -128,9 +128,6 @@ jobs:
       - name: tsc --noEmit (cooptypes)
         run: pnpm --filter cooptypes run typecheck
 
-      - name: tsc --noEmit (factory)
-        run: pnpm --filter @coopenomics/factory run typecheck
-
       - name: tsc --noEmit (sdk)
         run: pnpm --filter @coopenomics/sdk run typecheck
 

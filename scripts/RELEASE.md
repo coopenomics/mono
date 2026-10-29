@@ -91,7 +91,7 @@ pnpm run testnet                # её же HEAD → testnet, деплой по�
 `"publishConfig": {"access": "public"}` в его `package.json` падает с
 `E402 You must sign up for private packages`. Сообщение сбивает: дело не в
 подписке, а в том, что npm по умолчанию считает новый scoped-пакет приватным.
-Уже существующие публичные пакеты (`@coopenomics/sdk`, `@coopenomics/factory`)
+Уже существующие публичные пакеты (`@coopenomics/sdk`, `@coopenomics/docs-factory`)
 публикуются и без этого поля, поэтому пропуск замечается только на новом
 пакете — и роняет весь job `publish-packages`, когда остальные пакеты версии
 уже ушли в реестр.

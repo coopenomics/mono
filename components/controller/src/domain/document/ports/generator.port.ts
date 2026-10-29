@@ -1,4 +1,4 @@
-import type { IGenerateBlank, IGeneratedBlank, ISearchResult } from '@coopenomics/factory';
+import type { IGenerateBlank, IGeneratedBlank, ISearchResult } from '@coopenomics/docs-factory';
 import type { Cooperative } from 'cooptypes';
 
 export interface GeneratorPort {

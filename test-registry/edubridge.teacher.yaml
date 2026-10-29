@@ -56,11 +56,11 @@ sources:
     - components/controller/src/extensions/edubridge/infrastructure/entities/edubridge-teacher-profile.record.ts
     - components/controller/src/extensions/edubridge/application/resolvers/edubridge-teacher.resolver.ts
     - components/controller/src/extensions/edubridge/application/dto/edu-teacher.dto.ts
-    - components/factory/test/education-contract.test.ts
+    - C9S/docs-factory:test/education-contract.test.ts
     - components/cooptypes/src/cooperative/registry/3006.EducationParticipationContract/**
-    - components/factory/src/Actions/3006.EducationParticipationContract.ts
+    - C9S/docs-factory:src/Actions/3006.EducationParticipationContract.ts
     - components/cooptypes/src/cooperative/registry/3012.EducationRidStorageAct/**
-    - components/factory/src/Actions/3012.EducationRidStorageAct.ts
+    - C9S/docs-factory:src/Actions/3012.EducationRidStorageAct.ts
     - components/controller/src/extensions/edubridge/domain/lib/lesson-dates.ts
     - components/controller/src/extensions/edubridge/application/onboarding/register-edubridge-documents.ts
     - components/controller/src/extensions/edubridge/application/listeners/edubridge-membership-exit.listener.ts
@@ -183,7 +183,7 @@ cases:
     kind: happy
     scenario: Фабрика собирает заявление о трансляции паевого взноса (3015) на названную сумму.
     expect: В тексте одна просьба с суммой в виде для человека, без ссылок на договор и приложений; документ воспроизводится с тем же хэшем.
-    test: components/factory/test/education-share-withdraw.test.ts
+    test: C9S/docs-factory:test/education-share-withdraw.test.ts
     api: components/api-tests/src/edubridge/lessons.test.ts
     status: written   # прогон — CI на полигоне ci/tests
   - id: edu.teach.happy.wth-03
@@ -265,7 +265,7 @@ cases:
     kind: happy
     scenario: "Бланк договора УХД для совета и экземпляр для пайщика (3006) генерируются фабрикой по редакции владельца «Договор УХД_Преподаватели_ПВ»: 9 разделов, 12 терминов, реквизиты сторон и Дополнительные условия по ответственному хранению Имущества."
     expect: "Текст разделов 1–9 и Дополнительных условий в бланке и экземпляре совпадает дословно; экземпляр подставляет номер, дату, протокол утверждения и пайщика без незаполненных мест; бланк — прочерками; повторная генерация даёт тот же хэш."
-    test: components/factory/test/education-contract.test.ts
+    test: C9S/docs-factory:test/education-contract.test.ts
     api: components/api-tests/src/edubridge/teacher-contract.test.ts
     status: written
 
@@ -330,7 +330,7 @@ cases:
     kind: happy
     scenario: Акт передачи материалов на ответственное хранение (3012) формируется по отчёту о занятии.
     expect: В акте названы курс, номер и тема занятия, состав материалов, оценка и дата окончания срока хранения; сказано, что паевым взносом материалы становятся по решению совета.
-    test: components/factory/test/education-rid-storage-act.test.ts
+    test: C9S/docs-factory:test/education-rid-storage-act.test.ts
     api: components/api-tests/src/edubridge/lessons.test.ts
     status: passing
   - id: edu.teach.ui.03

@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { Kysely } from 'kysely';
-import { PostgresFactoryStorage } from '@coopenomics/factory';
+import { PostgresFactoryStorage } from '@coopenomics/docs-factory';
 import { KYSELY } from '@coopenomics/extension-kit';
 
 /**

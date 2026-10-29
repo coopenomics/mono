@@ -10,7 +10,7 @@ import type { VarsDomainInterface } from '~/domain/system/interfaces/vars-domain
 import { TrackingRuleRepository } from '../repositories/tracking-rule.repository';
 import { IDecisionTrackingPort, CreateTrackingRuleInput, DecisionEventType, DecisionProcessedResult, TrackingRule, DecisionTrackedEvent } from '@coopenomics/innercoop';
 import { DomainError } from '@coopenomics/extension-kit';
-import { formatCreatedAt } from '@coopenomics/factory';
+import { formatCreatedAt } from '@coopenomics/docs-factory';
 
 /** Пояс документа, если мета решения его не называет. */
 const DEFAULT_PROTOCOL_TIMEZONE = 'Europe/Moscow';

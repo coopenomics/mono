@@ -32,9 +32,9 @@
     "@coopenomics/contracts": "workspace:*",
     "@coopenomics/controller": "workspace:*",
     "@coopenomics/desktop": "workspace:*",
-    "@coopenomics/factory": "workspace:*",
-    "@coopenomics/i18n": "workspace:*",
+    "@coopenomics/docs-factory": "1.0.0",
     "@coopenomics/extension-kit": "workspace:*",
+    "@coopenomics/i18n": "workspace:*",
     "@coopenomics/innercoop": "workspace:*",
     "@coopenomics/notifications": "workspace:*",
     "@coopenomics/sdk": "workspace:*",
@@ -48,7 +48,7 @@
     "migrator": "workspace:*"
   },
   "scripts": {
-    "postinstall": "node scripts/install-native-prebuilds.mjs",
+    "postinstall": "node scripts/install-native-prebuilds.mjs && (simple-git-hooks >/dev/null 2>&1 || true)",
     "setup": "lerna run setup --scope @coopenomics/setup",
     "boot": "lerna run boot --scope @coopenomics/boot",
     "reboot": "cd components/boot/scripts && bash reboot.sh",
@@ -85,23 +85,29 @@
     "typecheck:all": "TYPECHECK_ALL=1 bash scripts/typecheck-changed.sh",
     "registry:audit": "node scripts/registry-audit.mjs",
     "mutate:changed": "bash scripts/mutate-changed.sh",
-    "test": "pnpm run test:unit && pnpm run test:component && pnpm run test:integration",
-    "test:ci": "pnpm run test:unit && pnpm run test:component",
+    "test": "pnpm run test:unit && pnpm run test:integration",
+    "test:ci": "pnpm run test:unit",
     "test:unit": "pnpm --filter cooptypes run test && pnpm --filter @coopenomics/jurisdictions run test && pnpm --filter @coopenomics/i18n run test && pnpm --filter @coopenomics/notifications run test && pnpm --filter @coopenomics/controller run test",
-    "test:component": "SOURCE=local NODE_ENV=test SKIP_BLOCK_FETCH=TRUE pnpm --filter @coopenomics/factory run test",
     "test:integration": "bash scripts/run-integration-tests.sh",
     "test:cross-runtime": "pnpm --filter @coopenomics/auth run test:cross-runtime",
     "test:ui:marketplace": "node components/docs-harness/bin/run-marketplace-all.mjs",
     "test:ui:edubridge": "node components/docs-harness/bin/run-edubridge-all.mjs",
     "registry:sync": "node components/docs-harness/bin/registry-sync.mjs",
     "docs:pull": "node components/docs-harness/bin/pull-run.mjs",
-    "docs:diff": "node components/docs-harness/bin/diff-shots.mjs"
+    "docs:diff": "node components/docs-harness/bin/diff-shots.mjs",
+    "factory:link": "node scripts/factory-link.mjs link",
+    "factory:unlink": "node scripts/factory-link.mjs unlink"
   },
   "devDependencies": {
     "@intlify/message-compiler": "^11.4.12",
     "@vue/compiler-sfc": "^3.4.18",
     "pug-lexer": "^5.0.1",
     "typescript": "^5.9.3",
-    "yaml": "^2.9.0"
+    "yaml": "^2.9.0",
+    "simple-git-hooks": "^2.11.1"
+  },
+  "simple-git-hooks": {
+    "post-merge": "bash scripts/after-pull-install.sh",
+    "post-checkout": "bash scripts/after-pull-install.sh \"$@\""
   }
 }

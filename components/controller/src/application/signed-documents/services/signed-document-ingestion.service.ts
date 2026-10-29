@@ -11,7 +11,7 @@ import { SignedDocumentStatus } from '~/domain/document/enums/signed-document-st
 import type { DocumentPackageAggregateDomainInterface } from '~/domain/document/interfaces/document-package-aggregate-domain.interface';
 import config from '~/config/config';
 import type { IAction } from '~/types/common';
-import { parseCreatedAt } from '@coopenomics/factory';
+import { parseCreatedAt } from '@coopenomics/docs-factory';
 
 const SOVIET = SovietContract.contractName.production;
 const Registry = SovietContract.Actions.Registry;
