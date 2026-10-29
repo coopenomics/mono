@@ -16,11 +16,13 @@ export async function testDocumentGeneration<T extends IGenerate = IGenerate>(
   // Версия генератора в мете по умолчанию равна версии пакета и меняется
   // каждым выпуском; она впечатывается в PDF (Creator и отпечаток меты), и
   // хэш PDF плыл бы от релиза к релизу. В наборе версия закреплена.
-  const input: T = {
-    ...params,
-    created_at: params.created_at ?? GOLDEN_CREATED_AT,
-    version: params.version ?? GOLDEN_VERSION,
-  }
+  //
+  // Закрепляются они часами и версией генератора, а не полями данных: дата в
+  // данных означает пересборку по мете (шаг 7), и документ собрался бы как
+  // старый — без версии сборщика в мете.
+  const { created_at, version, ...rest } = params as T & { created_at?: string, version?: string }
+  generator.setMetaDeps({ now: () => created_at ?? GOLDEN_CREATED_AT, version: version ?? GOLDEN_VERSION })
+  const input = rest as T
 
   const startedAt = Date.now()
   const document: IGeneratedDocument = await generator.generate(input)

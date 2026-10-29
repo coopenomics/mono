@@ -26,6 +26,7 @@ import { Entrepreneur, Organization, Vars } from './Models'
 import { Cooperative, type CooperativeData } from './Models/Cooperative'
 
 import type { DocFactory } from './Factory'
+import type { IMetaDeps } from './Meta'
 import type { PaymentData } from './Models/PaymentMethod'
 import { PaymentMethod } from './Models/PaymentMethod'
 import { type ExternalProjectData, Project } from './Models/Project'
@@ -138,6 +139,18 @@ export class Generator implements IGenerator {
   // Сборщики по номеру реестра и версии (шаг 7: у вида несколько версий)
   private builders!: Record<number, BuilderSet>
 
+  // Часы и версия генератора для меты новых документов (см. DocFactory.setMetaDeps)
+  private metaDeps: Partial<IMetaDeps> = {}
+
+  /** Закрепить часы и версию генератора в мете новых документов (набор тестов). */
+  setMetaDeps(deps: Partial<IMetaDeps>): void {
+    this.metaDeps = deps
+    for (const set of Object.values(this.builders ?? {})) {
+      for (const factory of set.values())
+        factory.setMetaDeps(deps)
+    }
+  }
+
   // Определение хранилища
   public storage!: IFactoryStorage
 
@@ -164,8 +177,10 @@ export class Generator implements IGenerator {
     // Источник данных раздаётся фабрикам одним местом — иначе его пришлось бы
     // тянуть через конструктор каждой из десятков фабрик выше.
     for (const set of Object.values(this.builders)) {
-      for (const factory of set.values())
+      for (const factory of set.values()) {
         factory.setDataSource(this.dataSource)
+        factory.setMetaDeps(this.metaDeps)
+      }
     }
 
     await this.storage.connect()
