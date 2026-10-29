@@ -13,5 +13,6 @@
   "method_id": "test-method-123",
   "quantity": "50 000",
   "currency": "RUB",
-  "payment_hash": "test-payment-hash-123"
+  "payment_hash": "test-payment-hash-123",
+  "builder": "1.0"
 }

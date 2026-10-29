@@ -5,6 +5,11 @@ import localize_ru from 'ajv-i18n/localize/ru'
 const ajv = new Ajv()
 addFormats(ajv)
 
+// Ключ редакции шаблона «под какой major сборщика написан текст» (шаг 7).
+// Это пометка, а не правило проверки данных; без объявления строгий режим Ajv
+// отверг бы схему с ним как с неизвестным ключевым словом.
+ajv.addKeyword({ keyword: 'x-builder', schemaType: 'number' })
+
 ajv.addFormat('phone', {
   type: 'string',
   validate: () => true,

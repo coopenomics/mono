@@ -22,5 +22,6 @@
     "https://cloud.example/lesson-3.mp4",
     "https://cloud.example/lesson-3.pdf"
   ],
-  "hold_until": "26.06.2026"
+  "hold_until": "26.06.2026",
+  "builder": "1.0"
 }

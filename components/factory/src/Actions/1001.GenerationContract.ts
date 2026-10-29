@@ -8,7 +8,7 @@ export { GenerationContract as Template } from '../Templates'
 /** Генерационное соглашение: пайщик и номер договора УХД из udata. */
 export const Factory = defineBuilder<GenerationContract.Action, GenerationContract.Model>()({
   registry_id: GenerationContract.registry_id,
-  version: 1,
+  version: '1.0',
   reads: ({ data, f }) => ({
     coop: () => f.getCooperative(data.coopname, data.block_num),
     vars: () => f.getVars(data.coopname, data.block_num),

@@ -9,7 +9,7 @@ export { EducationRidAct as Template } from '../Templates'
 /** Акт приёма-передачи результата преподавателя: реквизиты договора УХД, результат, решение совета из данных. */
 export const Factory = defineBuilder<EducationRidAct.Action, EducationRidAct.Model>()({
   registry_id: EducationRidAct.registry_id,
-  version: 1,
+  version: '1.0',
   reads: ({ data, f, s }) => ({
     coop: () => f.getCooperative(data.coopname, data.block_num),
     vars: () => f.getVars(data.coopname, data.block_num),

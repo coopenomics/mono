@@ -7,7 +7,7 @@ export { BranchTrustedStatement as Template } from '../Templates'
 /** Заявление доверенного лица участка: пайщик и участок. */
 export const Factory = defineBuilder<BranchTrustedStatement.Action, BranchTrustedStatement.Model>()({
   registry_id: BranchTrustedStatement.registry_id,
-  version: 1,
+  version: '1.0',
   reads: ({ data, f }) => ({
     coop: () => f.getCooperative(data.coopname, data.block_num),
     vars: () => f.getVars(data.coopname, data.block_num),

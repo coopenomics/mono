@@ -13,7 +13,7 @@ function cleanNum(s: string): string {
 /** Заявление на выдачу товара паевым взносом: пайщик, имущество из данных заказа, участок. */
 export const Factory = defineBuilder<MarketplaceShareReturnStatement.Action, MarketplaceShareReturnStatement.Model>()({
   registry_id: MarketplaceShareReturnStatement.registry_id,
-  version: 1,
+  version: '1.0',
   reads: ({ data, f }) => ({
     coop: () => f.getCooperative(data.coopname, data.block_num),
     vars: () => f.getVars(data.coopname, data.block_num),

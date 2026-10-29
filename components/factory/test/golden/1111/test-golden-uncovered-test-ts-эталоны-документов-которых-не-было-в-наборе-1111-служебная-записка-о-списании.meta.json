@@ -30,5 +30,6 @@
       "reason": "порча"
     }
   ],
-  "total_amount": "260.0000"
+  "total_amount": "260.0000",
+  "builder": "1.0"
 }

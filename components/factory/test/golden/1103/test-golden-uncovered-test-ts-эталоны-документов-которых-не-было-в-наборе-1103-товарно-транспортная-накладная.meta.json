@@ -17,5 +17,6 @@
   "supplier_account": "exampleorg",
   "total_amount": "1000.0000",
   "currency": "RUB",
-  "doc_data_hash": "8556B09DEBB43DAA817C2C57A4DCE6D47621179FC15845D4D94374CE7184FAA1"
+  "doc_data_hash": "8556B09DEBB43DAA817C2C57A4DCE6D47621179FC15845D4D94374CE7184FAA1",
+  "builder": "1.0"
 }

@@ -13,5 +13,6 @@
   "decision_id": 1,
   "branch_name": "РОМАШКА",
   "address": "г. Красногорск, ул. Ленина, д. 1",
-  "chairman": "ant"
+  "chairman": "ant",
+  "builder": "1.0"
 }

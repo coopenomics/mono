@@ -11,5 +11,6 @@
   "block_num": 0,
   "timezone": "Europe/Moscow",
   "project_id": "123",
-  "decision_id": 5
+  "decision_id": 5,
+  "builder": "1.0"
 }

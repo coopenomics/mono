@@ -12,5 +12,6 @@
   "timezone": "Europe/Moscow",
   "decision_id": 2,
   "meet_hash": "TEST_MEET_HASH_12345",
-  "is_repeated": true
+  "is_repeated": true,
+  "builder": "1.0"
 }

@@ -36,5 +36,6 @@
   ],
   "resolution": {
     "kind": "approve"
-  }
+  },
+  "builder": "1.0"
 }

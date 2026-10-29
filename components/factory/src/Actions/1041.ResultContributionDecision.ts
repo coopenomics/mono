@@ -8,7 +8,7 @@ export { ResultContributionDecision as Template } from '../Templates'
 /** Решение совета о приёме взноса результата: реквизиты из udata и голоса по решению. */
 export const Factory = defineBuilder<ResultContributionDecision.Action, ResultContributionDecision.Model>()({
   registry_id: ResultContributionDecision.registry_id,
-  version: 1,
+  version: '1.0',
   reads: ({ data, f }) => {
     const udata = (key: Cooperative.Model.UdataKey) => () => f.getUdata({ coopname: data.coopname, username: data.username, key, block_num: data.block_num })
     return {

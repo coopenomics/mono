@@ -7,7 +7,7 @@ export { BranchMeetingProposal as Template } from '../Templates'
 /** Предложение о проведении собрания участка: автор, вид и вопросы из данных. */
 export const Factory = defineBuilder<BranchMeetingProposal.Action, BranchMeetingProposal.Model>()({
   registry_id: BranchMeetingProposal.registry_id,
-  version: 1,
+  version: '1.0',
   reads: ({ data, f }) => ({
     coop: () => f.getCooperative(data.coopname, data.block_num),
     vars: () => f.getVars(data.coopname, data.block_num),

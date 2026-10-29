@@ -12,5 +12,6 @@
   "timezone": "Europe/Moscow",
   "hash": "BRANCH_MEETING_HASH_TEST",
   "branch_name": "РОМАШКА",
-  "branch_address": "г. Красногорск, ул. Ленина, д. 1"
+  "branch_address": "г. Красногорск, ул. Ленина, д. 1",
+  "builder": "1.0"
 }

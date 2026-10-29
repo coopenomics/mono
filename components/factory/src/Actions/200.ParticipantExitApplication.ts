@@ -6,7 +6,7 @@ export { ParticipantExitApplication as Template } from '../Templates'
 /** Заявление о выходе из кооператива: пайщик любого вида, кооператив, переменные. */
 export const Factory = defineBuilder<ParticipantExitApplication.Action, ParticipantExitApplication.Model>()({
   registry_id: ParticipantExitApplication.registry_id,
-  version: 1,
+  version: '1.0',
   reads: ({ data, f }) => ({
     user: () => f.getUser(data.username, data.block_num),
     coop: () => f.getCooperative(data.coopname, data.block_num),

@@ -7,7 +7,7 @@ export { ReturnByMoney as Template } from '../Templates'
 /** Заявление на возврат паевого взноса деньгами: пайщик и его способ оплаты. */
 export const Factory = defineBuilder<ReturnByMoney.Action, ReturnByMoney.Model>()({
   registry_id: ReturnByMoney.registry_id,
-  version: 1,
+  version: '1.0',
   reads: ({ data, f }) => ({
     coop: () => f.getCooperative(data.coopname, data.block_num),
     vars: () => f.getVars(data.coopname, data.block_num),

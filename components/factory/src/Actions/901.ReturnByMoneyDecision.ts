@@ -7,7 +7,7 @@ export { ReturnByMoneyDecision as Template } from '../Templates'
 /** Решение совета о возврате паевого взноса деньгами: пайщик и голоса по решению. */
 export const Factory = defineBuilder<ReturnByMoneyDecision.Action, ReturnByMoneyDecision.Model>()({
   registry_id: ReturnByMoneyDecision.registry_id,
-  version: 1,
+  version: '1.0',
   reads: ({ data, f }) => ({
     user: () => f.getUser(data.username, data.block_num),
     coop: () => f.getCooperative(data.coopname, data.block_num),

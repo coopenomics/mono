@@ -8,7 +8,7 @@ export { GenerationConvertStatement as Template } from '../Templates'
 /** Заявление о конвертации в генерации: пайщик, реквизиты договора УХД из udata, суммы по кошелькам. */
 export const Factory = defineBuilder<GenerationConvertStatement.Action, GenerationConvertStatement.Model>()({
   registry_id: GenerationConvertStatement.registry_id,
-  version: 1,
+  version: '1.0',
   reads: ({ data, f }) => {
     const udata = (key: Cooperative.Model.UdataKey) => () => f.getUdata({ coopname: data.coopname, username: data.username, key, block_num: data.block_num })
     return {

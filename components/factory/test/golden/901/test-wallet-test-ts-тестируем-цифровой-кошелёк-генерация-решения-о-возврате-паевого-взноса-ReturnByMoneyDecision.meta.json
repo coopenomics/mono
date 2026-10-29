@@ -13,5 +13,6 @@
   "decision_id": 9001,
   "payment_hash": "abc123def456hash789",
   "quantity": "50000",
-  "currency": "руб."
+  "currency": "руб.",
+  "builder": "1.0"
 }

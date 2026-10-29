@@ -7,7 +7,7 @@ export { ExpenseProposalDecision as Template } from '../Templates'
 /** Протокол решения совета по смете расходов: голоса по решению, позиции и резолюция. */
 export const Factory = defineBuilder<ExpenseProposalDecision.Action, ExpenseProposalDecision.Model>()({
   registry_id: ExpenseProposalDecision.registry_id,
-  version: 1,
+  version: '1.0',
   reads: ({ data, f }) => {
     if (!data.decision_id)
       throw new Error('Идентификатор решения совета не установлен')

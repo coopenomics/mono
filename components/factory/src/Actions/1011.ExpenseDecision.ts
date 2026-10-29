@@ -6,7 +6,7 @@ export { ExpenseDecision as Template } from '../Templates'
 /** Решение о расходах: только мета, остальное в тексте шаблона. */
 export const Factory = defineBuilder<ExpenseDecision.Action, ExpenseDecision.Model>()({
   registry_id: ExpenseDecision.registry_id,
-  version: 1,
+  version: '1.0',
   reads: () => ({}),
   assemble: ({ meta }) => ({ meta }),
 })

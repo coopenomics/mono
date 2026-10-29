@@ -7,7 +7,7 @@ export { AnnualGeneralMeetingNotification as Template } from '../Templates'
 /** Уведомление о проведении общего собрания: собрание, вопросы и председатель собрания. */
 export const Factory = defineBuilder<AnnualGeneralMeetingNotification.Action, AnnualGeneralMeetingNotification.Model>()({
   registry_id: AnnualGeneralMeetingNotification.registry_id,
-  version: 1,
+  version: '1.0',
   reads: ({ data, f }) => ({
     coop: () => f.getCooperative(data.coopname, data.block_num),
     vars: () => f.getVars(data.coopname, data.block_num),

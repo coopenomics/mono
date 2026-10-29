@@ -12,5 +12,6 @@
   "timezone": "Europe/Moscow",
   "aid_hash": "917f7443a115d495574dbe73405b7b6be3fed929526ba736228f3ff234ad7fce",
   "braname": "branch",
-  "amount": "5000.0000 RUB"
+  "amount": "5000.0000 RUB",
+  "builder": "1.0"
 }

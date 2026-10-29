@@ -8,7 +8,7 @@ export { GenerationMoneyReturnUnusedStatement as Template } from '../Templates'
 /** Заявление о возврате неиспользованных денег генерации: пайщик и реквизиты договоров из udata. */
 export const Factory = defineBuilder<GenerationMoneyReturnUnusedStatement.Action, GenerationMoneyReturnUnusedStatement.Model>()({
   registry_id: GenerationMoneyReturnUnusedStatement.registry_id,
-  version: 1,
+  version: '1.0',
   reads: ({ data, f }) => {
     const udata = (key: Cooperative.Model.UdataKey) => () => f.getUdata({ coopname: data.coopname, username: data.username, key, block_num: data.block_num })
     return {

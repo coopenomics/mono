@@ -13,7 +13,7 @@ function cleanNum(s: string): string {
 /** Решение совета о выдаче товара паевым взносом: пайщик, имущество и голоса по решению. */
 export const Factory = defineBuilder<MarketplaceShareReturnDecision.Action, MarketplaceShareReturnDecision.Model>()({
   registry_id: MarketplaceShareReturnDecision.registry_id,
-  version: 1,
+  version: '1.0',
   reads: ({ data, f }) => ({
     coop: () => f.getCooperative(data.coopname, data.block_num),
     vars: () => f.getVars(data.coopname, data.block_num),

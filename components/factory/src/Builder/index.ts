@@ -29,6 +29,9 @@ import type { ICombinedData, IGeneratedDocument, IMetaDocument, IMetaDocumentPar
 import type { IGenerate, IGenerationOptions } from '../Interfaces/Documents'
 import type { IFactoryStorage } from '../Storage'
 import type { FactorySources } from '../Sources'
+import type { BuilderVersion } from './version'
+
+export * from './version'
 
 /** Объявление чтений: ключ → отложенное чтение; каркас запускает их разом. */
 export type Thunks<R> = { [K in keyof R]: () => Promise<R[K]> }
@@ -86,8 +89,11 @@ export interface IAssembleContext<A, M, R, D> {
 
 export interface IBuilderSpec<A extends IGenerate, M extends ICombinedData, R extends Record<string, unknown>, D extends Record<string, unknown>> {
   registry_id: number
-  /** Версия сборщика; ось версий (шаг 7) запишет её в `meta.builder`. */
-  version: number
+  /**
+   * Версия сборщика `major.minor` (шаг 7, `./version.ts`). Каркас пишет её в
+   * `meta.builder` каждого нового документа; пересборка берёт версию из меты.
+   */
+  version: BuilderVersion
   /** Первая волна: независимые чтения, параллельно. */
   reads: (ctx: IReadContext<A>) => Thunks<R>
   /** Вторая волна: чтения, которым нужна мета или первая волна. Параллельно между собой. */
@@ -126,7 +132,14 @@ export class DeclaredFactory<A extends IGenerate, M extends ICombinedData, R ext
       resolveThunks(spec.reads(readCtx)),
     ])
 
-    const metaInput: IMetaDocumentPartial = spec.meta ? spec.meta({ data, template, reads }) : { title: template.title, ...data }
+    // Версия сборщика в мете. Новая сборка (даты в данных нет) получает версию
+    // этого сборщика. Пересборка несёт мету исходного документа: версия
+    // берётся из неё как есть, а документ до оси версий остаётся без поля —
+    // иначе мета и её хэш разошлись бы с подписанными.
+    const isRebuild = Boolean((data as { created_at?: string }).created_at)
+    const builder = isRebuild ? (data as { builder?: string }).builder : spec.version
+    const baseMeta: IMetaDocumentPartial = spec.meta ? spec.meta({ data, template, reads }) : { title: template.title, ...data }
+    const metaInput: IMetaDocumentPartial = builder ? { ...baseMeta, builder } : baseMeta
     const meta: IMetaDocument = await this.getMeta(metaInput)
 
     const derived = spec.derive

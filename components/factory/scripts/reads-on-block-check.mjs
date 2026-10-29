@@ -27,7 +27,7 @@ const SINGLE_ARG = /\bf\.get(Vars|Cooperative|User|Organization|BankAccount|Proj
 const UDATA = /\bf\.getUdata\(\{([^}]*)\}\)/g
 
 const problems = []
-for (const name of readdirSync(dir).filter(n => /^\d+\.[A-Za-z]+\.ts$/.test(n))) {
+for (const name of readdirSync(dir).filter(n => /^\d+\.[A-Za-z0-9_]+\.ts$/.test(n))) {
   const text = readFileSync(join(dir, name), 'utf8')
   const lines = text.split('\n')
   lines.forEach((line, i) => {

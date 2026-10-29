@@ -8,7 +8,7 @@ export { EducationGuaranteeStatement as Template } from '../Templates'
 /** Заявление об аннулировании Подписки по Гарантийным условиям: пайщик, Подписка и причина. */
 export const Factory = defineBuilder<EducationGuaranteeStatement.Action, EducationGuaranteeStatement.Model>()({
   registry_id: EducationGuaranteeStatement.registry_id,
-  version: 1,
+  version: '1.0',
   reads: ({ data, f }) => ({
     coop: () => f.getCooperative(data.coopname, data.block_num),
     vars: () => f.getVars(data.coopname, data.block_num),

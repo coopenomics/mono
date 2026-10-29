@@ -13,5 +13,6 @@
   "decision_id": 1,
   "claim_hash": "55c470039a8c53ce1b4b6e842fe8063ab3d5b85ba2ba8ab0ae6e30be3ad328b7",
   "course_title": "Основы программирования",
-  "amount": "1000.0000 RUB"
+  "amount": "1000.0000 RUB",
+  "builder": "1.0"
 }

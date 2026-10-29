@@ -9,7 +9,7 @@ export { EducationRidDecision as Template } from '../Templates'
 /** Протокол совета о приёме результата преподавателя: реквизиты договора УХД, результат и голоса по решению. */
 export const Factory = defineBuilder<EducationRidDecision.Action, EducationRidDecision.Model>()({
   registry_id: EducationRidDecision.registry_id,
-  version: 1,
+  version: '1.0',
   reads: ({ data, f, s }) => ({
     coop: () => f.getCooperative(data.coopname, data.block_num),
     vars: () => f.getVars(data.coopname, data.block_num),

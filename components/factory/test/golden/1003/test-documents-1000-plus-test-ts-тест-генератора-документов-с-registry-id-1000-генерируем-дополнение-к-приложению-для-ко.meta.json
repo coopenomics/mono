@@ -15,5 +15,6 @@
   "component_name": "Компонент разработки",
   "component_hash": "A1B2C3D4E5F6789A",
   "project_name": "Проект цифровой платформы",
-  "project_hash": "B2C3D4E5F6789ABC"
+  "project_hash": "B2C3D4E5F6789ABC",
+  "builder": "1.0"
 }

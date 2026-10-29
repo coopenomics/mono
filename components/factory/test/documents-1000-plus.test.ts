@@ -1,7 +1,6 @@
 import { beforeAll, describe, it, vi } from 'vitest'
 import { Cooperative } from 'cooptypes'
 import { Generator } from '../src'
-import type { Numbers } from '../src'
 import { testDocumentGeneration } from './utils/testDocument'
 import { generator, testStorage } from './utils'
 import { capitalProgramPrivateData } from './utils/capitalProgramPrivateData'
@@ -13,7 +12,7 @@ beforeAll(async () => {
 
   // Подменяем метод getApprovedDecision для фабрики акта взноса результатов (1042)
   // Это позволит тесту найти "принятое решение" без обращения к реальному API
-  const factory1042 = generator.factories[1042 as Numbers]
+  const factory1042 = generator.factoryFor(1042)
   if (factory1042) {
     vi.spyOn(factory1042, 'getApprovedDecision').mockImplementation(async () => {
       return {
@@ -31,7 +30,7 @@ beforeAll(async () => {
   // Подменяем метод getDecision для фабрики Протокола списания скоропорта
   // (1107) — голоса совета приходят из SIMPLE_EXPLORER_API, в тесте
   // обращений к нему нет.
-  const factory1107 = (generator as any).factories['1107']
+  const factory1107 = generator.factoryFor(1107)
   if (factory1107) {
     vi.spyOn(factory1107, 'getDecision').mockImplementation(async () => {
       return {

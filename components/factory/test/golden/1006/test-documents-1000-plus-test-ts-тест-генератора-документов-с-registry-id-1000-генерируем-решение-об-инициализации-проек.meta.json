@@ -15,5 +15,6 @@
   "project_hash": "B2C3D4E5F6789ABC",
   "component_name": "Компонент разработки",
   "component_hash": "A1B2C3D4E5F6789A",
-  "is_component": true
+  "is_component": true,
+  "builder": "1.0"
 }

@@ -1470,6 +1470,8 @@ export type ValueTypes = {
 	["AnnualGeneralMeetingAgendaSignedMetaDocumentInput"]: {
 	/** Номер блока, на котором был создан документ */
 	block_num: number | Variable<any, string>,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null | Variable<any, string>,
 	/** Название кооператива, связанное с документом */
 	coopname: string | Variable<any, string>,
 	/** Дата и время создания документа */
@@ -1536,6 +1538,8 @@ export type ValueTypes = {
 	["AnnualGeneralMeetingDecisionSignedMetaDocumentInput"]: {
 	/** Номер блока, на котором был создан документ */
 	block_num: number | Variable<any, string>,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null | Variable<any, string>,
 	/** Название кооператива, связанное с документом */
 	coopname: string | Variable<any, string>,
 	/** Дата и время создания документа */
@@ -1600,6 +1604,8 @@ export type ValueTypes = {
 	["AnnualGeneralMeetingNotificationSignedMetaDocumentInput"]: {
 	/** Номер блока, на котором был создан документ */
 	block_num: number | Variable<any, string>,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null | Variable<any, string>,
 	/** Название кооператива, связанное с документом */
 	coopname: string | Variable<any, string>,
 	/** Дата и время создания документа */
@@ -1696,6 +1702,8 @@ export type ValueTypes = {
 	answers: Array<ValueTypes["AnswerInput"]> | Variable<any, string>,
 	/** Номер блока, на котором был создан документ */
 	block_num: number | Variable<any, string>,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null | Variable<any, string>,
 	/** Название кооператива, связанное с документом */
 	coopname: string | Variable<any, string>,
 	/** Дата и время создания документа */
@@ -2145,6 +2153,8 @@ export type ValueTypes = {
 	["BillingConversionStatementSignedMetaDocumentInput"]: {
 	/** Номер блока, на котором был создан документ */
 	block_num: number | Variable<any, string>,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null | Variable<any, string>,
 	/** Сумма к конвертации паевого в членский на биллинг-кошелёк */
 	convert_amount: string | Variable<any, string>,
 	/** Название кооператива, связанное с документом */
@@ -2501,6 +2511,8 @@ export type ValueTypes = {
 	block_num: number | Variable<any, string>,
 	/** Наименование кооперативного участка */
 	branch_name: string | Variable<any, string>,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null | Variable<any, string>,
 	/** Имя аккаунта (username) избранного председателя кооперативного участка */
 	chairman: string | Variable<any, string>,
 	/** Название кооператива, связанное с документом */
@@ -2596,6 +2608,8 @@ export type ValueTypes = {
 	answers: Array<ValueTypes["KuBallotAnswerInput"]> | Variable<any, string>,
 	/** Номер блока, на котором был создан документ */
 	block_num: number | Variable<any, string>,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null | Variable<any, string>,
 	/** Название кооператива, связанное с документом */
 	coopname: string | Variable<any, string>,
 	/** Дата и время создания документа */
@@ -2674,6 +2688,8 @@ export type ValueTypes = {
 	["BranchMeetingDecisionSignedMetaDocumentInput"]: {
 	/** Номер блока, на котором был создан документ */
 	block_num: number | Variable<any, string>,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null | Variable<any, string>,
 	/** Имя аккаунта (username) председателя собрания */
 	chairman: string | Variable<any, string>,
 	/** Дата и время закрытия собрания */
@@ -2764,6 +2780,8 @@ export type ValueTypes = {
 	block_num: number | Variable<any, string>,
 	/** Наименование кооперативного участка */
 	braname?: string | undefined | null | Variable<any, string>,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null | Variable<any, string>,
 	/** Кандидат в председатели кооперативного участка */
 	chairman_candidate?: string | undefined | null | Variable<any, string>,
 	/** Название кооператива, связанное с документом */
@@ -2840,6 +2858,8 @@ export type ValueTypes = {
 	block_num: number | Variable<any, string>,
 	/** Наименование кооперативного участка */
 	branch_name: string | Variable<any, string>,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null | Variable<any, string>,
 	/** Название кооператива, связанное с документом */
 	coopname: string | Variable<any, string>,
 	/** Дата и время создания документа */
@@ -2912,6 +2932,8 @@ export type ValueTypes = {
 	block_num: number | Variable<any, string>,
 	/** Наименование кооперативного участка */
 	branch_name: string | Variable<any, string>,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null | Variable<any, string>,
 	/** Название кооператива, связанное с документом */
 	coopname: string | Variable<any, string>,
 	/** Дата и время создания документа */
@@ -3008,6 +3030,8 @@ export type ValueTypes = {
 	block_num: number | Variable<any, string>,
 	/** Наименование кооперативного участка */
 	branch_name: string | Variable<any, string>,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null | Variable<any, string>,
 	/** Название кооператива, связанное с документом */
 	coopname: string | Variable<any, string>,
 	/** Дата и время создания документа */
@@ -3080,6 +3104,8 @@ export type ValueTypes = {
 	branch_address: string | Variable<any, string>,
 	/** Наименование кооперативного участка */
 	branch_name: string | Variable<any, string>,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null | Variable<any, string>,
 	/** Название кооператива, связанное с документом */
 	coopname: string | Variable<any, string>,
 	/** Дата и время создания документа */
@@ -6916,6 +6942,60 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on DocumentPackageAggregate']?: Omit<ValueTypes["DocumentPackageAggregate"], "...on DocumentPackageAggregate">
 }>;
+	["DocumentReproducibilityAudit"]: AliasType<{
+	/** Проверено в этом вызове */
+	checked?:boolean | `@${string}`,
+	/** Документы, которые не пересобрались; без содержимого */
+	mismatches?:ValueTypes["DocumentReproducibilityAuditMismatch"],
+	/** Смещение для следующего вызова; равно stored, когда проверено всё */
+	next_offset?:boolean | `@${string}`,
+	/** Итоги по видам документов и версиям сборщика */
+	rows?:ValueTypes["DocumentReproducibilityAuditRow"],
+	/** Всего сохранённых документов под отбором */
+	stored?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on DocumentReproducibilityAudit']?: Omit<ValueTypes["DocumentReproducibilityAudit"], "...on DocumentReproducibilityAudit">
+}>;
+	["DocumentReproducibilityAuditInput"]: {
+	/** Сколько документов проверить за один вызов (не больше 500) */
+	limit?: number | undefined | null | Variable<any, string>,
+	/** Сколько сохранённых документов пропустить от начала */
+	offset?: number | undefined | null | Variable<any, string>,
+	/** Номер вида документа в реестре; без него проверяются все виды */
+	registry_id?: number | undefined | null | Variable<any, string>
+};
+	["DocumentReproducibilityAuditMismatch"]: AliasType<{
+	/** Блок документа */
+	block_num?:boolean | `@${string}`,
+	/** Хэш сохранённого документа */
+	hash?:boolean | `@${string}`,
+	/** Что разошлось: html, pdf или текст ошибки пересборки */
+	reason?:boolean | `@${string}`,
+	/** Номер вида документа в реестре */
+	registry_id?:boolean | `@${string}`,
+	/** Версия сборщика, записанная в документе */
+	version?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on DocumentReproducibilityAuditMismatch']?: Omit<ValueTypes["DocumentReproducibilityAuditMismatch"], "...on DocumentReproducibilityAuditMismatch">
+}>;
+	["DocumentReproducibilityAuditRow"]: AliasType<{
+	/** Пересборка завершилась ошибкой */
+	failed?:boolean | `@${string}`,
+	/** HTML разошёлся */
+	html_mismatch?:boolean | `@${string}`,
+	/** HTML совпал, хэш PDF разошёлся */
+	pdf_mismatch?:boolean | `@${string}`,
+	/** Номер вида документа в реестре */
+	registry_id?:boolean | `@${string}`,
+	/** Пересобрались с тем же HTML и тем же хэшем PDF */
+	reproduced?:boolean | `@${string}`,
+	/** Проверено документов */
+	total?:boolean | `@${string}`,
+	/** Версия сборщика, записанная в документе */
+	version?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on DocumentReproducibilityAuditRow']?: Omit<ValueTypes["DocumentReproducibilityAuditRow"], "...on DocumentReproducibilityAuditRow">
+}>;
 	["DocumentTemplate"]: AliasType<{
 	/** Требуется ли утверждение советом */
 	approval?:boolean | `@${string}`,
@@ -8955,6 +9035,8 @@ export type ValueTypes = {
 	["ExpenseProposalStatementSignedMetaDocumentInput"]: {
 	/** Номер блока, на котором был создан документ */
 	block_num: number | Variable<any, string>,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null | Variable<any, string>,
 	/** Название кооператива, связанное с документом */
 	coopname: string | Variable<any, string>,
 	/** Дата и время создания документа */
@@ -9452,6 +9534,8 @@ export type ValueTypes = {
 	["GenerationContractSignedMetaDocumentInput"]: {
 	/** Номер блока, на котором был создан документ */
 	block_num: number | Variable<any, string>,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null | Variable<any, string>,
 	/** Хэш участника для генерации соглашения */
 	contributor_hash: string | Variable<any, string>,
 	/** Название кооператива, связанное с документом */
@@ -9556,6 +9640,8 @@ export type ValueTypes = {
 	appendix_hash: string | Variable<any, string>,
 	/** Номер блока, на котором был создан документ */
 	block_num: number | Variable<any, string>,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null | Variable<any, string>,
 	/** Дата создания участника */
 	contributor_created_at: string | Variable<any, string>,
 	/** Хэш участника */
@@ -10721,6 +10807,8 @@ export type ValueTypes = {
 	block_num: number | Variable<any, string>,
 	/** Имя кооперативного участка, выдающего имущество. */
 	braname?: string | undefined | null | Variable<any, string>,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null | Variable<any, string>,
 	/** Учётная запись председателя — подписанта закрывающей подписи (если уже известен). */
 	chairman_account?: string | undefined | null | Variable<any, string>,
 	/** Название кооператива, связанное с документом */
@@ -11200,6 +11288,8 @@ export type ValueTypes = {
 	amount: string | Variable<any, string>,
 	/** Номер блока, на котором был создан документ */
 	block_num: number | Variable<any, string>,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null | Variable<any, string>,
 	/** Название кооператива, связанное с документом */
 	coopname: string | Variable<any, string>,
 	/** Дата и время создания документа */
@@ -12436,6 +12526,8 @@ export type ValueTypes = {
 	block_num: number | Variable<any, string>,
 	/** Кооперативный участок, на котором принято имущество. */
 	braname: string | Variable<any, string>,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null | Variable<any, string>,
 	/** Название кооператива, связанное с документом */
 	coopname: string | Variable<any, string>,
 	/** Дата и время создания документа */
@@ -12665,6 +12757,8 @@ export type ValueTypes = {
 	block_num: number | Variable<any, string>,
 	/** Имя кооперативного участка доставки (braname) исходного заказа. */
 	braname?: string | undefined | null | Variable<any, string>,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null | Variable<any, string>,
 	/** Название кооператива, связанное с документом */
 	coopname: string | Variable<any, string>,
 	/** Дата и время создания документа */
@@ -12765,6 +12859,8 @@ export type ValueTypes = {
 	block_num: number | Variable<any, string>,
 	/** Кооперативный участок выдачи. */
 	braname?: string | undefined | null | Variable<any, string>,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null | Variable<any, string>,
 	/** Название кооператива, связанное с документом */
 	coopname: string | Variable<any, string>,
 	/** Дата и время создания документа */
@@ -12831,6 +12927,8 @@ export type ValueTypes = {
 	block_num: number | Variable<any, string>,
 	/** Кооперативный участок выдачи. */
 	braname?: string | undefined | null | Variable<any, string>,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null | Variable<any, string>,
 	/** Название кооператива, связанное с документом */
 	coopname: string | Variable<any, string>,
 	/** Дата и время создания документа */
@@ -13760,6 +13858,8 @@ export type ValueTypes = {
 	["MembershipExitApplicationSignedMetaDocumentInput"]: {
 	/** Номер блока, на котором был создан документ */
 	block_num: number | Variable<any, string>,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null | Variable<any, string>,
 	/** Название кооператива, связанное с документом */
 	coopname: string | Variable<any, string>,
 	/** Дата и время создания документа */
@@ -15197,6 +15297,8 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 	block_num: number | Variable<any, string>,
 	/** Имя аккаунта кооперативного участка */
 	braname: string | Variable<any, string>,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null | Variable<any, string>,
 	/** Название кооператива, связанное с документом */
 	coopname: string | Variable<any, string>,
 	/** Дата и время создания документа */
@@ -15735,6 +15837,8 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 	["ProgramAgreementsAnnulmentSignedMetaDocumentInput"]: {
 	/** Номер блока, на котором был создан документ */
 	block_num: number | Variable<any, string>,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null | Variable<any, string>,
 	/** Название кооператива, связанное с документом */
 	coopname: string | Variable<any, string>,
 	/** Дата и время создания документа */
@@ -15807,6 +15911,8 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 	amount: string | Variable<any, string>,
 	/** Номер блока, на котором был создан документ */
 	block_num: number | Variable<any, string>,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null | Variable<any, string>,
 	/** Название кооператива, связанное с документом */
 	coopname: string | Variable<any, string>,
 	/** Дата и время создания документа */
@@ -15917,6 +16023,8 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 	["ProjectFreeDecisionSignedMetaDocumentInput"]: {
 	/** Номер блока, на котором был создан документ */
 	block_num: number | Variable<any, string>,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null | Variable<any, string>,
 	/** Название кооператива, связанное с документом */
 	coopname: string | Variable<any, string>,
 	/** Дата и время создания документа */
@@ -16256,6 +16364,7 @@ appsCatalogPendingModerations?: [{	limit?: number | undefined | null | Variable<
 appsCatalogRemotePackages?: [{	page: number | Variable<any, string>,	pageSize: number | Variable<any, string>},ValueTypes["AppsCatalogRemotePackageDTO"]],
 	/** Назначения издателей «аккаунт → пакет». Только chairman. */
 	appsPublishers?:ValueTypes["AppsPublisher"],
+auditDocumentReproducibility?: [{	data?: ValueTypes["DocumentReproducibilityAuditInput"] | undefined | null | Variable<any, string>},ValueTypes["DocumentReproducibilityAudit"]],
 buildInitialReportEdits?: [{	period?: number | undefined | null | Variable<any, string>,	reportType: ValueTypes["ReportType"] | Variable<any, string>,	year: number | Variable<any, string>},ValueTypes["BuildInitialReportEdits"]],
 candidates?: [{	filter?: ValueTypes["CandidateFilterInput"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedCandidatesPaginationResult"]],
 capitalCandidates?: [{	filter?: ValueTypes["CandidateFilterInput"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedCapitalCandidatesPaginationResult"]],
@@ -17320,6 +17429,8 @@ verificationReviews?: [{	data?: ValueTypes["VerificationReviewsInput"] | undefin
 	["ReturnByMoneySignedMetaDocumentInput"]: {
 	/** Номер блока, на котором был создан документ */
 	block_num: number | Variable<any, string>,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null | Variable<any, string>,
 	/** Название кооператива, связанное с документом */
 	coopname: string | Variable<any, string>,
 	/** Дата и время создания документа */
@@ -17734,6 +17845,8 @@ verificationReviews?: [{	data?: ValueTypes["VerificationReviewsInput"] | undefin
 	block_num: number | Variable<any, string>,
 	/** Идентификатор имени аккаунта кооперативного участка */
 	braname: string | Variable<any, string>,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null | Variable<any, string>,
 	/** Название кооператива, связанное с документом */
 	coopname: string | Variable<any, string>,
 	/** Дата и время создания документа */
@@ -17953,6 +18066,8 @@ verificationReviews?: [{	data?: ValueTypes["VerificationReviewsInput"] | undefin
 	amount: string | Variable<any, string>,
 	/** Номер блока, на котором был создан документ */
 	block_num: number | Variable<any, string>,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null | Variable<any, string>,
 	/** Название кооператива, связанное с документом */
 	coopname: string | Variable<any, string>,
 	/** Дата и время создания документа */
@@ -19475,6 +19590,8 @@ export type ResolverInputTypes = {
 	["AnnualGeneralMeetingAgendaSignedMetaDocumentInput"]: {
 	/** Номер блока, на котором был создан документ */
 	block_num: number,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
 	/** Название кооператива, связанное с документом */
 	coopname: string,
 	/** Дата и время создания документа */
@@ -19541,6 +19658,8 @@ export type ResolverInputTypes = {
 	["AnnualGeneralMeetingDecisionSignedMetaDocumentInput"]: {
 	/** Номер блока, на котором был создан документ */
 	block_num: number,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
 	/** Название кооператива, связанное с документом */
 	coopname: string,
 	/** Дата и время создания документа */
@@ -19605,6 +19724,8 @@ export type ResolverInputTypes = {
 	["AnnualGeneralMeetingNotificationSignedMetaDocumentInput"]: {
 	/** Номер блока, на котором был создан документ */
 	block_num: number,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
 	/** Название кооператива, связанное с документом */
 	coopname: string,
 	/** Дата и время создания документа */
@@ -19701,6 +19822,8 @@ export type ResolverInputTypes = {
 	answers: Array<ResolverInputTypes["AnswerInput"]>,
 	/** Номер блока, на котором был создан документ */
 	block_num: number,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
 	/** Название кооператива, связанное с документом */
 	coopname: string,
 	/** Дата и время создания документа */
@@ -20136,6 +20259,8 @@ export type ResolverInputTypes = {
 	["BillingConversionStatementSignedMetaDocumentInput"]: {
 	/** Номер блока, на котором был создан документ */
 	block_num: number,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
 	/** Сумма к конвертации паевого в членский на биллинг-кошелёк */
 	convert_amount: string,
 	/** Название кооператива, связанное с документом */
@@ -20483,6 +20608,8 @@ export type ResolverInputTypes = {
 	block_num: number,
 	/** Наименование кооперативного участка */
 	branch_name: string,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
 	/** Имя аккаунта (username) избранного председателя кооперативного участка */
 	chairman: string,
 	/** Название кооператива, связанное с документом */
@@ -20578,6 +20705,8 @@ export type ResolverInputTypes = {
 	answers: Array<ResolverInputTypes["KuBallotAnswerInput"]>,
 	/** Номер блока, на котором был создан документ */
 	block_num: number,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
 	/** Название кооператива, связанное с документом */
 	coopname: string,
 	/** Дата и время создания документа */
@@ -20656,6 +20785,8 @@ export type ResolverInputTypes = {
 	["BranchMeetingDecisionSignedMetaDocumentInput"]: {
 	/** Номер блока, на котором был создан документ */
 	block_num: number,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
 	/** Имя аккаунта (username) председателя собрания */
 	chairman: string,
 	/** Дата и время закрытия собрания */
@@ -20746,6 +20877,8 @@ export type ResolverInputTypes = {
 	block_num: number,
 	/** Наименование кооперативного участка */
 	braname?: string | undefined | null,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
 	/** Кандидат в председатели кооперативного участка */
 	chairman_candidate?: string | undefined | null,
 	/** Название кооператива, связанное с документом */
@@ -20822,6 +20955,8 @@ export type ResolverInputTypes = {
 	block_num: number,
 	/** Наименование кооперативного участка */
 	branch_name: string,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
 	/** Название кооператива, связанное с документом */
 	coopname: string,
 	/** Дата и время создания документа */
@@ -20894,6 +21029,8 @@ export type ResolverInputTypes = {
 	block_num: number,
 	/** Наименование кооперативного участка */
 	branch_name: string,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
 	/** Название кооператива, связанное с документом */
 	coopname: string,
 	/** Дата и время создания документа */
@@ -20990,6 +21127,8 @@ export type ResolverInputTypes = {
 	block_num: number,
 	/** Наименование кооперативного участка */
 	branch_name: string,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
 	/** Название кооператива, связанное с документом */
 	coopname: string,
 	/** Дата и время создания документа */
@@ -21062,6 +21201,8 @@ export type ResolverInputTypes = {
 	branch_address: string,
 	/** Наименование кооперативного участка */
 	branch_name: string,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
 	/** Название кооператива, связанное с документом */
 	coopname: string,
 	/** Дата и время создания документа */
@@ -24787,6 +24928,57 @@ export type ResolverInputTypes = {
 	statement?:ResolverInputTypes["StatementDetailAggregate"],
 		__typename?: boolean | `@${string}`
 }>;
+	["DocumentReproducibilityAudit"]: AliasType<{
+	/** Проверено в этом вызове */
+	checked?:boolean | `@${string}`,
+	/** Документы, которые не пересобрались; без содержимого */
+	mismatches?:ResolverInputTypes["DocumentReproducibilityAuditMismatch"],
+	/** Смещение для следующего вызова; равно stored, когда проверено всё */
+	next_offset?:boolean | `@${string}`,
+	/** Итоги по видам документов и версиям сборщика */
+	rows?:ResolverInputTypes["DocumentReproducibilityAuditRow"],
+	/** Всего сохранённых документов под отбором */
+	stored?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["DocumentReproducibilityAuditInput"]: {
+	/** Сколько документов проверить за один вызов (не больше 500) */
+	limit?: number | undefined | null,
+	/** Сколько сохранённых документов пропустить от начала */
+	offset?: number | undefined | null,
+	/** Номер вида документа в реестре; без него проверяются все виды */
+	registry_id?: number | undefined | null
+};
+	["DocumentReproducibilityAuditMismatch"]: AliasType<{
+	/** Блок документа */
+	block_num?:boolean | `@${string}`,
+	/** Хэш сохранённого документа */
+	hash?:boolean | `@${string}`,
+	/** Что разошлось: html, pdf или текст ошибки пересборки */
+	reason?:boolean | `@${string}`,
+	/** Номер вида документа в реестре */
+	registry_id?:boolean | `@${string}`,
+	/** Версия сборщика, записанная в документе */
+	version?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["DocumentReproducibilityAuditRow"]: AliasType<{
+	/** Пересборка завершилась ошибкой */
+	failed?:boolean | `@${string}`,
+	/** HTML разошёлся */
+	html_mismatch?:boolean | `@${string}`,
+	/** HTML совпал, хэш PDF разошёлся */
+	pdf_mismatch?:boolean | `@${string}`,
+	/** Номер вида документа в реестре */
+	registry_id?:boolean | `@${string}`,
+	/** Пересобрались с тем же HTML и тем же хэшем PDF */
+	reproduced?:boolean | `@${string}`,
+	/** Проверено документов */
+	total?:boolean | `@${string}`,
+	/** Версия сборщика, записанная в документе */
+	version?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	["DocumentTemplate"]: AliasType<{
 	/** Требуется ли утверждение советом */
 	approval?:boolean | `@${string}`,
@@ -26766,6 +26958,8 @@ export type ResolverInputTypes = {
 	["ExpenseProposalStatementSignedMetaDocumentInput"]: {
 	/** Номер блока, на котором был создан документ */
 	block_num: number,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
 	/** Название кооператива, связанное с документом */
 	coopname: string,
 	/** Дата и время создания документа */
@@ -27246,6 +27440,8 @@ export type ResolverInputTypes = {
 	["GenerationContractSignedMetaDocumentInput"]: {
 	/** Номер блока, на котором был создан документ */
 	block_num: number,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
 	/** Хэш участника для генерации соглашения */
 	contributor_hash: string,
 	/** Название кооператива, связанное с документом */
@@ -27350,6 +27546,8 @@ export type ResolverInputTypes = {
 	appendix_hash: string,
 	/** Номер блока, на котором был создан документ */
 	block_num: number,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
 	/** Дата создания участника */
 	contributor_created_at: string,
 	/** Хэш участника */
@@ -28486,6 +28684,8 @@ export type ResolverInputTypes = {
 	block_num: number,
 	/** Имя кооперативного участка, выдающего имущество. */
 	braname?: string | undefined | null,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
 	/** Учётная запись председателя — подписанта закрывающей подписи (если уже известен). */
 	chairman_account?: string | undefined | null,
 	/** Название кооператива, связанное с документом */
@@ -28945,6 +29145,8 @@ export type ResolverInputTypes = {
 	amount: string,
 	/** Номер блока, на котором был создан документ */
 	block_num: number,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
 	/** Название кооператива, связанное с документом */
 	coopname: string,
 	/** Дата и время создания документа */
@@ -30146,6 +30348,8 @@ export type ResolverInputTypes = {
 	block_num: number,
 	/** Кооперативный участок, на котором принято имущество. */
 	braname: string,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
 	/** Название кооператива, связанное с документом */
 	coopname: string,
 	/** Дата и время создания документа */
@@ -30369,6 +30573,8 @@ export type ResolverInputTypes = {
 	block_num: number,
 	/** Имя кооперативного участка доставки (braname) исходного заказа. */
 	braname?: string | undefined | null,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
 	/** Название кооператива, связанное с документом */
 	coopname: string,
 	/** Дата и время создания документа */
@@ -30469,6 +30675,8 @@ export type ResolverInputTypes = {
 	block_num: number,
 	/** Кооперативный участок выдачи. */
 	braname?: string | undefined | null,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
 	/** Название кооператива, связанное с документом */
 	coopname: string,
 	/** Дата и время создания документа */
@@ -30535,6 +30743,8 @@ export type ResolverInputTypes = {
 	block_num: number,
 	/** Кооперативный участок выдачи. */
 	braname?: string | undefined | null,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
 	/** Название кооператива, связанное с документом */
 	coopname: string,
 	/** Дата и время создания документа */
@@ -31429,6 +31639,8 @@ export type ResolverInputTypes = {
 	["MembershipExitApplicationSignedMetaDocumentInput"]: {
 	/** Номер блока, на котором был создан документ */
 	block_num: number,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
 	/** Название кооператива, связанное с документом */
 	coopname: string,
 	/** Дата и время создания документа */
@@ -32809,6 +33021,8 @@ walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputType
 	block_num: number,
 	/** Имя аккаунта кооперативного участка */
 	braname: string,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
 	/** Название кооператива, связанное с документом */
 	coopname: string,
 	/** Дата и время создания документа */
@@ -33322,6 +33536,8 @@ walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputType
 	["ProgramAgreementsAnnulmentSignedMetaDocumentInput"]: {
 	/** Номер блока, на котором был создан документ */
 	block_num: number,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
 	/** Название кооператива, связанное с документом */
 	coopname: string,
 	/** Дата и время создания документа */
@@ -33394,6 +33610,8 @@ walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputType
 	amount: string,
 	/** Номер блока, на котором был создан документ */
 	block_num: number,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
 	/** Название кооператива, связанное с документом */
 	coopname: string,
 	/** Дата и время создания документа */
@@ -33502,6 +33720,8 @@ walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputType
 	["ProjectFreeDecisionSignedMetaDocumentInput"]: {
 	/** Номер блока, на котором был создан документ */
 	block_num: number,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
 	/** Название кооператива, связанное с документом */
 	coopname: string,
 	/** Дата и время создания документа */
@@ -33828,6 +34048,7 @@ appsCatalogPendingModerations?: [{	limit?: number | undefined | null,	status?: R
 appsCatalogRemotePackages?: [{	page: number,	pageSize: number},ResolverInputTypes["AppsCatalogRemotePackageDTO"]],
 	/** Назначения издателей «аккаунт → пакет». Только chairman. */
 	appsPublishers?:ResolverInputTypes["AppsPublisher"],
+auditDocumentReproducibility?: [{	data?: ResolverInputTypes["DocumentReproducibilityAuditInput"] | undefined | null},ResolverInputTypes["DocumentReproducibilityAudit"]],
 buildInitialReportEdits?: [{	period?: number | undefined | null,	reportType: ResolverInputTypes["ReportType"],	year: number},ResolverInputTypes["BuildInitialReportEdits"]],
 candidates?: [{	filter?: ResolverInputTypes["CandidateFilterInput"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedCandidatesPaginationResult"]],
 capitalCandidates?: [{	filter?: ResolverInputTypes["CandidateFilterInput"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedCapitalCandidatesPaginationResult"]],
@@ -34865,6 +35086,8 @@ verificationReviews?: [{	data?: ResolverInputTypes["VerificationReviewsInput"] |
 	["ReturnByMoneySignedMetaDocumentInput"]: {
 	/** Номер блока, на котором был создан документ */
 	block_num: number,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
 	/** Название кооператива, связанное с документом */
 	coopname: string,
 	/** Дата и время создания документа */
@@ -35263,6 +35486,8 @@ verificationReviews?: [{	data?: ResolverInputTypes["VerificationReviewsInput"] |
 	block_num: number,
 	/** Идентификатор имени аккаунта кооперативного участка */
 	braname: string,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
 	/** Название кооператива, связанное с документом */
 	coopname: string,
 	/** Дата и время создания документа */
@@ -35480,6 +35705,8 @@ verificationReviews?: [{	data?: ResolverInputTypes["VerificationReviewsInput"] |
 	amount: string,
 	/** Номер блока, на котором был создан документ */
 	block_num: number,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
 	/** Название кооператива, связанное с документом */
 	coopname: string,
 	/** Дата и время создания документа */
@@ -36955,6 +37182,8 @@ export type ModelTypes = {
 	["AnnualGeneralMeetingAgendaSignedMetaDocumentInput"]: {
 	/** Номер блока, на котором был создан документ */
 	block_num: number,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
 	/** Название кооператива, связанное с документом */
 	coopname: string,
 	/** Дата и время создания документа */
@@ -37021,6 +37250,8 @@ export type ModelTypes = {
 	["AnnualGeneralMeetingDecisionSignedMetaDocumentInput"]: {
 	/** Номер блока, на котором был создан документ */
 	block_num: number,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
 	/** Название кооператива, связанное с документом */
 	coopname: string,
 	/** Дата и время создания документа */
@@ -37085,6 +37316,8 @@ export type ModelTypes = {
 	["AnnualGeneralMeetingNotificationSignedMetaDocumentInput"]: {
 	/** Номер блока, на котором был создан документ */
 	block_num: number,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
 	/** Название кооператива, связанное с документом */
 	coopname: string,
 	/** Дата и время создания документа */
@@ -37181,6 +37414,8 @@ export type ModelTypes = {
 	answers: Array<ModelTypes["AnswerInput"]>,
 	/** Номер блока, на котором был создан документ */
 	block_num: number,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
 	/** Название кооператива, связанное с документом */
 	coopname: string,
 	/** Дата и время создания документа */
@@ -37600,6 +37835,8 @@ export type ModelTypes = {
 	["BillingConversionStatementSignedMetaDocumentInput"]: {
 	/** Номер блока, на котором был создан документ */
 	block_num: number,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
 	/** Сумма к конвертации паевого в членский на биллинг-кошелёк */
 	convert_amount: string,
 	/** Название кооператива, связанное с документом */
@@ -37938,6 +38175,8 @@ export type ModelTypes = {
 	block_num: number,
 	/** Наименование кооперативного участка */
 	branch_name: string,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
 	/** Имя аккаунта (username) избранного председателя кооперативного участка */
 	chairman: string,
 	/** Название кооператива, связанное с документом */
@@ -38033,6 +38272,8 @@ export type ModelTypes = {
 	answers: Array<ModelTypes["KuBallotAnswerInput"]>,
 	/** Номер блока, на котором был создан документ */
 	block_num: number,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
 	/** Название кооператива, связанное с документом */
 	coopname: string,
 	/** Дата и время создания документа */
@@ -38111,6 +38352,8 @@ export type ModelTypes = {
 	["BranchMeetingDecisionSignedMetaDocumentInput"]: {
 	/** Номер блока, на котором был создан документ */
 	block_num: number,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
 	/** Имя аккаунта (username) председателя собрания */
 	chairman: string,
 	/** Дата и время закрытия собрания */
@@ -38201,6 +38444,8 @@ export type ModelTypes = {
 	block_num: number,
 	/** Наименование кооперативного участка */
 	braname?: string | undefined | null,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
 	/** Кандидат в председатели кооперативного участка */
 	chairman_candidate?: string | undefined | null,
 	/** Название кооператива, связанное с документом */
@@ -38277,6 +38522,8 @@ export type ModelTypes = {
 	block_num: number,
 	/** Наименование кооперативного участка */
 	branch_name: string,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
 	/** Название кооператива, связанное с документом */
 	coopname: string,
 	/** Дата и время создания документа */
@@ -38349,6 +38596,8 @@ export type ModelTypes = {
 	block_num: number,
 	/** Наименование кооперативного участка */
 	branch_name: string,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
 	/** Название кооператива, связанное с документом */
 	coopname: string,
 	/** Дата и время создания документа */
@@ -38445,6 +38694,8 @@ export type ModelTypes = {
 	block_num: number,
 	/** Наименование кооперативного участка */
 	branch_name: string,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
 	/** Название кооператива, связанное с документом */
 	coopname: string,
 	/** Дата и время создания документа */
@@ -38517,6 +38768,8 @@ export type ModelTypes = {
 	branch_address: string,
 	/** Наименование кооперативного участка */
 	branch_name: string,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
 	/** Название кооператива, связанное с документом */
 	coopname: string,
 	/** Дата и время создания документа */
@@ -42110,6 +42363,54 @@ export type ModelTypes = {
 	/** Объект цифрового документа заявления с агрегатом */
 	statement?: ModelTypes["StatementDetailAggregate"] | undefined | null
 };
+	["DocumentReproducibilityAudit"]: {
+		/** Проверено в этом вызове */
+	checked: number,
+	/** Документы, которые не пересобрались; без содержимого */
+	mismatches: Array<ModelTypes["DocumentReproducibilityAuditMismatch"]>,
+	/** Смещение для следующего вызова; равно stored, когда проверено всё */
+	next_offset: number,
+	/** Итоги по видам документов и версиям сборщика */
+	rows: Array<ModelTypes["DocumentReproducibilityAuditRow"]>,
+	/** Всего сохранённых документов под отбором */
+	stored: number
+};
+	["DocumentReproducibilityAuditInput"]: {
+	/** Сколько документов проверить за один вызов (не больше 500) */
+	limit?: number | undefined | null,
+	/** Сколько сохранённых документов пропустить от начала */
+	offset?: number | undefined | null,
+	/** Номер вида документа в реестре; без него проверяются все виды */
+	registry_id?: number | undefined | null
+};
+	["DocumentReproducibilityAuditMismatch"]: {
+		/** Блок документа */
+	block_num: number,
+	/** Хэш сохранённого документа */
+	hash: string,
+	/** Что разошлось: html, pdf или текст ошибки пересборки */
+	reason: string,
+	/** Номер вида документа в реестре */
+	registry_id: number,
+	/** Версия сборщика, записанная в документе */
+	version: string
+};
+	["DocumentReproducibilityAuditRow"]: {
+		/** Пересборка завершилась ошибкой */
+	failed: number,
+	/** HTML разошёлся */
+	html_mismatch: number,
+	/** HTML совпал, хэш PDF разошёлся */
+	pdf_mismatch: number,
+	/** Номер вида документа в реестре */
+	registry_id: number,
+	/** Пересобрались с тем же HTML и тем же хэшем PDF */
+	reproduced: number,
+	/** Проверено документов */
+	total: number,
+	/** Версия сборщика, записанная в документе */
+	version: string
+};
 	["DocumentTemplate"]: {
 		/** Требуется ли утверждение советом */
 	approval: ModelTypes["DocumentApprovalRequirement"],
@@ -43997,6 +44298,8 @@ export type ModelTypes = {
 	["ExpenseProposalStatementSignedMetaDocumentInput"]: {
 	/** Номер блока, на котором был создан документ */
 	block_num: number,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
 	/** Название кооператива, связанное с документом */
 	coopname: string,
 	/** Дата и время создания документа */
@@ -44454,6 +44757,8 @@ export type ModelTypes = {
 	["GenerationContractSignedMetaDocumentInput"]: {
 	/** Номер блока, на котором был создан документ */
 	block_num: number,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
 	/** Хэш участника для генерации соглашения */
 	contributor_hash: string,
 	/** Название кооператива, связанное с документом */
@@ -44558,6 +44863,8 @@ export type ModelTypes = {
 	appendix_hash: string,
 	/** Номер блока, на котором был создан документ */
 	block_num: number,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
 	/** Дата создания участника */
 	contributor_created_at: string,
 	/** Хэш участника */
@@ -45653,6 +45960,8 @@ export type ModelTypes = {
 	block_num: number,
 	/** Имя кооперативного участка, выдающего имущество. */
 	braname?: string | undefined | null,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
 	/** Учётная запись председателя — подписанта закрывающей подписи (если уже известен). */
 	chairman_account?: string | undefined | null,
 	/** Название кооператива, связанное с документом */
@@ -46086,6 +46395,8 @@ export type ModelTypes = {
 	amount: string,
 	/** Номер блока, на котором был создан документ */
 	block_num: number,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
 	/** Название кооператива, связанное с документом */
 	coopname: string,
 	/** Дата и время создания документа */
@@ -47240,6 +47551,8 @@ export type ModelTypes = {
 	block_num: number,
 	/** Кооперативный участок, на котором принято имущество. */
 	braname: string,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
 	/** Название кооператива, связанное с документом */
 	coopname: string,
 	/** Дата и время создания документа */
@@ -47453,6 +47766,8 @@ export type ModelTypes = {
 	block_num: number,
 	/** Имя кооперативного участка доставки (braname) исходного заказа. */
 	braname?: string | undefined | null,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
 	/** Название кооператива, связанное с документом */
 	coopname: string,
 	/** Дата и время создания документа */
@@ -47552,6 +47867,8 @@ export type ModelTypes = {
 	block_num: number,
 	/** Кооперативный участок выдачи. */
 	braname?: string | undefined | null,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
 	/** Название кооператива, связанное с документом */
 	coopname: string,
 	/** Дата и время создания документа */
@@ -47618,6 +47935,8 @@ export type ModelTypes = {
 	block_num: number,
 	/** Кооперативный участок выдачи. */
 	braname?: string | undefined | null,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
 	/** Название кооператива, связанное с документом */
 	coopname: string,
 	/** Дата и время создания документа */
@@ -48468,6 +48787,8 @@ export type ModelTypes = {
 	["MembershipExitApplicationSignedMetaDocumentInput"]: {
 	/** Номер блока, на котором был создан документ */
 	block_num: number,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
 	/** Название кооператива, связанное с документом */
 	coopname: string,
 	/** Дата и время создания документа */
@@ -50185,6 +50506,8 @@ export type ModelTypes = {
 	block_num: number,
 	/** Имя аккаунта кооперативного участка */
 	braname: string,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
 	/** Название кооператива, связанное с документом */
 	coopname: string,
 	/** Дата и время создания документа */
@@ -50655,6 +50978,8 @@ export type ModelTypes = {
 	["ProgramAgreementsAnnulmentSignedMetaDocumentInput"]: {
 	/** Номер блока, на котором был создан документ */
 	block_num: number,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
 	/** Название кооператива, связанное с документом */
 	coopname: string,
 	/** Дата и время создания документа */
@@ -50727,6 +51052,8 @@ export type ModelTypes = {
 	amount: string,
 	/** Номер блока, на котором был создан документ */
 	block_num: number,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
 	/** Название кооператива, связанное с документом */
 	coopname: string,
 	/** Дата и время создания документа */
@@ -50831,6 +51158,8 @@ export type ModelTypes = {
 	["ProjectFreeDecisionSignedMetaDocumentInput"]: {
 	/** Номер блока, на котором был создан документ */
 	block_num: number,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
 	/** Название кооператива, связанное с документом */
 	coopname: string,
 	/** Дата и время создания документа */
@@ -51142,6 +51471,8 @@ export type ModelTypes = {
 	appsCatalogRemotePackages: Array<ModelTypes["AppsCatalogRemotePackageDTO"]>,
 	/** Назначения издателей «аккаунт → пакет». Только chairman. */
 	appsPublishers: Array<ModelTypes["AppsPublisher"]>,
+	/** Пересобрать сохранённые документы узла по их метаданным и сравнить с хранилищем. Отчёт по видам документов и версиям сборщика, без содержимого документов. */
+	auditDocumentReproducibility: ModelTypes["DocumentReproducibilityAudit"],
 	/** Построить предзаполненные edits для формы: дефолты (ledger2 + реквизиты + корректировки), с наложением dirty-полей существующего черновика (если он есть). */
 	buildInitialReportEdits: ModelTypes["BuildInitialReportEdits"],
 	/** Получение списка кандидатов с пагинацией, отсортированных по дате регистрации */
@@ -52380,6 +52711,8 @@ export type ModelTypes = {
 	["ReturnByMoneySignedMetaDocumentInput"]: {
 	/** Номер блока, на котором был создан документ */
 	block_num: number,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
 	/** Название кооператива, связанное с документом */
 	coopname: string,
 	/** Дата и время создания документа */
@@ -52757,6 +53090,8 @@ export type ModelTypes = {
 	block_num: number,
 	/** Идентификатор имени аккаунта кооперативного участка */
 	braname: string,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
 	/** Название кооператива, связанное с документом */
 	coopname: string,
 	/** Дата и время создания документа */
@@ -52972,6 +53307,8 @@ export type ModelTypes = {
 	amount: string,
 	/** Номер блока, на котором был создан документ */
 	block_num: number,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
 	/** Название кооператива, связанное с документом */
 	coopname: string,
 	/** Дата и время создания документа */
@@ -54432,6 +54769,8 @@ export type GraphQLTypes = {
 	["AnnualGeneralMeetingAgendaSignedMetaDocumentInput"]: {
 		/** Номер блока, на котором был создан документ */
 	block_num: number,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
 	/** Название кооператива, связанное с документом */
 	coopname: string,
 	/** Дата и время создания документа */
@@ -54498,6 +54837,8 @@ export type GraphQLTypes = {
 	["AnnualGeneralMeetingDecisionSignedMetaDocumentInput"]: {
 		/** Номер блока, на котором был создан документ */
 	block_num: number,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
 	/** Название кооператива, связанное с документом */
 	coopname: string,
 	/** Дата и время создания документа */
@@ -54562,6 +54903,8 @@ export type GraphQLTypes = {
 	["AnnualGeneralMeetingNotificationSignedMetaDocumentInput"]: {
 		/** Номер блока, на котором был создан документ */
 	block_num: number,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
 	/** Название кооператива, связанное с документом */
 	coopname: string,
 	/** Дата и время создания документа */
@@ -54658,6 +55001,8 @@ export type GraphQLTypes = {
 	answers: Array<GraphQLTypes["AnswerInput"]>,
 	/** Номер блока, на котором был создан документ */
 	block_num: number,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
 	/** Название кооператива, связанное с документом */
 	coopname: string,
 	/** Дата и время создания документа */
@@ -55107,6 +55452,8 @@ export type GraphQLTypes = {
 	["BillingConversionStatementSignedMetaDocumentInput"]: {
 		/** Номер блока, на котором был создан документ */
 	block_num: number,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
 	/** Сумма к конвертации паевого в членский на биллинг-кошелёк */
 	convert_amount: string,
 	/** Название кооператива, связанное с документом */
@@ -55463,6 +55810,8 @@ export type GraphQLTypes = {
 	block_num: number,
 	/** Наименование кооперативного участка */
 	branch_name: string,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
 	/** Имя аккаунта (username) избранного председателя кооперативного участка */
 	chairman: string,
 	/** Название кооператива, связанное с документом */
@@ -55558,6 +55907,8 @@ export type GraphQLTypes = {
 	answers: Array<GraphQLTypes["KuBallotAnswerInput"]>,
 	/** Номер блока, на котором был создан документ */
 	block_num: number,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
 	/** Название кооператива, связанное с документом */
 	coopname: string,
 	/** Дата и время создания документа */
@@ -55636,6 +55987,8 @@ export type GraphQLTypes = {
 	["BranchMeetingDecisionSignedMetaDocumentInput"]: {
 		/** Номер блока, на котором был создан документ */
 	block_num: number,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
 	/** Имя аккаунта (username) председателя собрания */
 	chairman: string,
 	/** Дата и время закрытия собрания */
@@ -55726,6 +56079,8 @@ export type GraphQLTypes = {
 	block_num: number,
 	/** Наименование кооперативного участка */
 	braname?: string | undefined | null,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
 	/** Кандидат в председатели кооперативного участка */
 	chairman_candidate?: string | undefined | null,
 	/** Название кооператива, связанное с документом */
@@ -55802,6 +56157,8 @@ export type GraphQLTypes = {
 	block_num: number,
 	/** Наименование кооперативного участка */
 	branch_name: string,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
 	/** Название кооператива, связанное с документом */
 	coopname: string,
 	/** Дата и время создания документа */
@@ -55874,6 +56231,8 @@ export type GraphQLTypes = {
 	block_num: number,
 	/** Наименование кооперативного участка */
 	branch_name: string,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
 	/** Название кооператива, связанное с документом */
 	coopname: string,
 	/** Дата и время создания документа */
@@ -55970,6 +56329,8 @@ export type GraphQLTypes = {
 	block_num: number,
 	/** Наименование кооперативного участка */
 	branch_name: string,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
 	/** Название кооператива, связанное с документом */
 	coopname: string,
 	/** Дата и время создания документа */
@@ -56042,6 +56403,8 @@ export type GraphQLTypes = {
 	branch_address: string,
 	/** Наименование кооперативного участка */
 	branch_name: string,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
 	/** Название кооператива, связанное с документом */
 	coopname: string,
 	/** Дата и время создания документа */
@@ -59878,6 +60241,60 @@ export type GraphQLTypes = {
 	statement?: GraphQLTypes["StatementDetailAggregate"] | undefined | null,
 	['...on DocumentPackageAggregate']: Omit<GraphQLTypes["DocumentPackageAggregate"], "...on DocumentPackageAggregate">
 };
+	["DocumentReproducibilityAudit"]: {
+	__typename: "DocumentReproducibilityAudit",
+	/** Проверено в этом вызове */
+	checked: number,
+	/** Документы, которые не пересобрались; без содержимого */
+	mismatches: Array<GraphQLTypes["DocumentReproducibilityAuditMismatch"]>,
+	/** Смещение для следующего вызова; равно stored, когда проверено всё */
+	next_offset: number,
+	/** Итоги по видам документов и версиям сборщика */
+	rows: Array<GraphQLTypes["DocumentReproducibilityAuditRow"]>,
+	/** Всего сохранённых документов под отбором */
+	stored: number,
+	['...on DocumentReproducibilityAudit']: Omit<GraphQLTypes["DocumentReproducibilityAudit"], "...on DocumentReproducibilityAudit">
+};
+	["DocumentReproducibilityAuditInput"]: {
+		/** Сколько документов проверить за один вызов (не больше 500) */
+	limit?: number | undefined | null,
+	/** Сколько сохранённых документов пропустить от начала */
+	offset?: number | undefined | null,
+	/** Номер вида документа в реестре; без него проверяются все виды */
+	registry_id?: number | undefined | null
+};
+	["DocumentReproducibilityAuditMismatch"]: {
+	__typename: "DocumentReproducibilityAuditMismatch",
+	/** Блок документа */
+	block_num: number,
+	/** Хэш сохранённого документа */
+	hash: string,
+	/** Что разошлось: html, pdf или текст ошибки пересборки */
+	reason: string,
+	/** Номер вида документа в реестре */
+	registry_id: number,
+	/** Версия сборщика, записанная в документе */
+	version: string,
+	['...on DocumentReproducibilityAuditMismatch']: Omit<GraphQLTypes["DocumentReproducibilityAuditMismatch"], "...on DocumentReproducibilityAuditMismatch">
+};
+	["DocumentReproducibilityAuditRow"]: {
+	__typename: "DocumentReproducibilityAuditRow",
+	/** Пересборка завершилась ошибкой */
+	failed: number,
+	/** HTML разошёлся */
+	html_mismatch: number,
+	/** HTML совпал, хэш PDF разошёлся */
+	pdf_mismatch: number,
+	/** Номер вида документа в реестре */
+	registry_id: number,
+	/** Пересобрались с тем же HTML и тем же хэшем PDF */
+	reproduced: number,
+	/** Проверено документов */
+	total: number,
+	/** Версия сборщика, записанная в документе */
+	version: string,
+	['...on DocumentReproducibilityAuditRow']: Omit<GraphQLTypes["DocumentReproducibilityAuditRow"], "...on DocumentReproducibilityAuditRow">
+};
 	["DocumentTemplate"]: {
 	__typename: "DocumentTemplate",
 	/** Требуется ли утверждение советом */
@@ -61917,6 +62334,8 @@ export type GraphQLTypes = {
 	["ExpenseProposalStatementSignedMetaDocumentInput"]: {
 		/** Номер блока, на котором был создан документ */
 	block_num: number,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
 	/** Название кооператива, связанное с документом */
 	coopname: string,
 	/** Дата и время создания документа */
@@ -62414,6 +62833,8 @@ export type GraphQLTypes = {
 	["GenerationContractSignedMetaDocumentInput"]: {
 		/** Номер блока, на котором был создан документ */
 	block_num: number,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
 	/** Хэш участника для генерации соглашения */
 	contributor_hash: string,
 	/** Название кооператива, связанное с документом */
@@ -62518,6 +62939,8 @@ export type GraphQLTypes = {
 	appendix_hash: string,
 	/** Номер блока, на котором был создан документ */
 	block_num: number,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
 	/** Дата создания участника */
 	contributor_created_at: string,
 	/** Хэш участника */
@@ -63683,6 +64106,8 @@ export type GraphQLTypes = {
 	block_num: number,
 	/** Имя кооперативного участка, выдающего имущество. */
 	braname?: string | undefined | null,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
 	/** Учётная запись председателя — подписанта закрывающей подписи (если уже известен). */
 	chairman_account?: string | undefined | null,
 	/** Название кооператива, связанное с документом */
@@ -64162,6 +64587,8 @@ export type GraphQLTypes = {
 	amount: string,
 	/** Номер блока, на котором был создан документ */
 	block_num: number,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
 	/** Название кооператива, связанное с документом */
 	coopname: string,
 	/** Дата и время создания документа */
@@ -65398,6 +65825,8 @@ export type GraphQLTypes = {
 	block_num: number,
 	/** Кооперативный участок, на котором принято имущество. */
 	braname: string,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
 	/** Название кооператива, связанное с документом */
 	coopname: string,
 	/** Дата и время создания документа */
@@ -65627,6 +66056,8 @@ export type GraphQLTypes = {
 	block_num: number,
 	/** Имя кооперативного участка доставки (braname) исходного заказа. */
 	braname?: string | undefined | null,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
 	/** Название кооператива, связанное с документом */
 	coopname: string,
 	/** Дата и время создания документа */
@@ -65727,6 +66158,8 @@ export type GraphQLTypes = {
 	block_num: number,
 	/** Кооперативный участок выдачи. */
 	braname?: string | undefined | null,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
 	/** Название кооператива, связанное с документом */
 	coopname: string,
 	/** Дата и время создания документа */
@@ -65793,6 +66226,8 @@ export type GraphQLTypes = {
 	block_num: number,
 	/** Кооперативный участок выдачи. */
 	braname?: string | undefined | null,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
 	/** Название кооператива, связанное с документом */
 	coopname: string,
 	/** Дата и время создания документа */
@@ -66722,6 +67157,8 @@ export type GraphQLTypes = {
 	["MembershipExitApplicationSignedMetaDocumentInput"]: {
 		/** Номер блока, на котором был создан документ */
 	block_num: number,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
 	/** Название кооператива, связанное с документом */
 	coopname: string,
 	/** Дата и время создания документа */
@@ -68566,6 +69003,8 @@ export type GraphQLTypes = {
 	block_num: number,
 	/** Имя аккаунта кооперативного участка */
 	braname: string,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
 	/** Название кооператива, связанное с документом */
 	coopname: string,
 	/** Дата и время создания документа */
@@ -69106,6 +69545,8 @@ export type GraphQLTypes = {
 	["ProgramAgreementsAnnulmentSignedMetaDocumentInput"]: {
 		/** Номер блока, на котором был создан документ */
 	block_num: number,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
 	/** Название кооператива, связанное с документом */
 	coopname: string,
 	/** Дата и время создания документа */
@@ -69178,6 +69619,8 @@ export type GraphQLTypes = {
 	amount: string,
 	/** Номер блока, на котором был создан документ */
 	block_num: number,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
 	/** Название кооператива, связанное с документом */
 	coopname: string,
 	/** Дата и время создания документа */
@@ -69288,6 +69731,8 @@ export type GraphQLTypes = {
 	["ProjectFreeDecisionSignedMetaDocumentInput"]: {
 		/** Номер блока, на котором был создан документ */
 	block_num: number,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
 	/** Название кооператива, связанное с документом */
 	coopname: string,
 	/** Дата и время создания документа */
@@ -69632,6 +70077,8 @@ export type GraphQLTypes = {
 	appsCatalogRemotePackages: Array<GraphQLTypes["AppsCatalogRemotePackageDTO"]>,
 	/** Назначения издателей «аккаунт → пакет». Только chairman. */
 	appsPublishers: Array<GraphQLTypes["AppsPublisher"]>,
+	/** Пересобрать сохранённые документы узла по их метаданным и сравнить с хранилищем. Отчёт по видам документов и версиям сборщика, без содержимого документов. */
+	auditDocumentReproducibility: GraphQLTypes["DocumentReproducibilityAudit"],
 	/** Построить предзаполненные edits для формы: дефолты (ledger2 + реквизиты + корректировки), с наложением dirty-полей существующего черновика (если он есть). */
 	buildInitialReportEdits: GraphQLTypes["BuildInitialReportEdits"],
 	/** Получение списка кандидатов с пагинацией, отсортированных по дате регистрации */
@@ -70929,6 +71376,8 @@ export type GraphQLTypes = {
 	["ReturnByMoneySignedMetaDocumentInput"]: {
 		/** Номер блока, на котором был создан документ */
 	block_num: number,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
 	/** Название кооператива, связанное с документом */
 	coopname: string,
 	/** Дата и время создания документа */
@@ -71343,6 +71792,8 @@ export type GraphQLTypes = {
 	block_num: number,
 	/** Идентификатор имени аккаунта кооперативного участка */
 	braname: string,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
 	/** Название кооператива, связанное с документом */
 	coopname: string,
 	/** Дата и время создания документа */
@@ -71562,6 +72013,8 @@ export type GraphQLTypes = {
 	amount: string,
 	/** Номер блока, на котором был создан документ */
 	block_num: number,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
 	/** Название кооператива, связанное с документом */
 	coopname: string,
 	/** Дата и время создания документа */
@@ -74129,6 +74582,7 @@ type ZEUS_VARIABLES = {
 	["DocumentApprovalRequirement"]: ValueTypes["DocumentApprovalRequirement"];
 	["DocumentApprovalState"]: ValueTypes["DocumentApprovalState"];
 	["DocumentKind"]: ValueTypes["DocumentKind"];
+	["DocumentReproducibilityAuditInput"]: ValueTypes["DocumentReproducibilityAuditInput"];
 	["DocumentTemplateEdition"]: ValueTypes["DocumentTemplateEdition"];
 	["EditBranchInput"]: ValueTypes["EditBranchInput"];
 	["EditContributorInput"]: ValueTypes["EditContributorInput"];

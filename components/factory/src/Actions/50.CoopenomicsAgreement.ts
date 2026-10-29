@@ -8,7 +8,7 @@ export { CoopenomicsAgreement as Template } from '../Templates'
 /** Соглашение о подключении к кооперативной экономике: кооператив и организация-партнёр. */
 export const Factory = defineBuilder<CoopenomicsAgreement.Action, CoopenomicsAgreement.Model>()({
   registry_id: CoopenomicsAgreement.registry_id,
-  version: 1,
+  version: '1.0',
   reads: ({ data, f }) => ({
     coop: () => f.getCooperative(data.coopname, data.block_num),
     vars: () => f.getVars(data.coopname, data.block_num),

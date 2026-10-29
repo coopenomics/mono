@@ -11,5 +11,6 @@
   "block_num": 0,
   "timezone": "Europe/Moscow",
   "agreement_number": "ОБР-П-0001",
-  "agreement_created_at": "29.09.2026"
+  "agreement_created_at": "29.09.2026",
+  "builder": "1.0"
 }

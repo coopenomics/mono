@@ -12,7 +12,7 @@ export { MarketplaceOffer as Template } from '../Templates'
  */
 export const Factory = defineBuilder<MarketplaceOffer.Action, MarketplaceOffer.Model>()({
   registry_id: MarketplaceOffer.registry_id,
-  version: 1,
+  version: '1.0',
   reads: ({ data, f }) => {
     const udata = (key: Cooperative.Model.UdataKey) => f.getUdata({ coopname: data.coopname, username: data.username, key, block_num: data.block_num })
     return {

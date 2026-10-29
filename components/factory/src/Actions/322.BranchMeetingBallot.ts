@@ -7,7 +7,7 @@ export { BranchMeetingBallot as Template } from '../Templates'
 /** Бюллетень собрания участка: пайщик, вопросы и ответы из данных. */
 export const Factory = defineBuilder<BranchMeetingBallot.Action, BranchMeetingBallot.Model>()({
   registry_id: BranchMeetingBallot.registry_id,
-  version: 1,
+  version: '1.0',
   reads: ({ data, f }) => ({
     coop: () => f.getCooperative(data.coopname, data.block_num),
     vars: () => f.getVars(data.coopname, data.block_num),

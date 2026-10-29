@@ -7,7 +7,7 @@ export { MarketplaceConvertStatement as Template } from '../Templates'
 /** Заявление о конвертации паевого взноса в членский (Стол заказов): пайщик, заказ и суммы. */
 export const Factory = defineBuilder<MarketplaceConvertStatement.Action, MarketplaceConvertStatement.Model>()({
   registry_id: MarketplaceConvertStatement.registry_id,
-  version: 1,
+  version: '1.0',
   reads: ({ data, f }) => ({
     coop: () => f.getCooperative(data.coopname, data.block_num),
     vars: () => f.getVars(data.coopname, data.block_num),

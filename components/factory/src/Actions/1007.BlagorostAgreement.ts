@@ -8,7 +8,7 @@ export { BlagorostAgreement as Template } from '../Templates'
 /** Соглашение Благороста: пайщик и реквизиты соглашения и договора УХД из udata. */
 export const Factory = defineBuilder<BlagorostAgreement.Action, BlagorostAgreement.Model>()({
   registry_id: BlagorostAgreement.registry_id,
-  version: 1,
+  version: '1.0',
   reads: ({ data, f }) => {
     const udata = (key: Cooperative.Model.UdataKey) => () => f.getUdata({ coopname: data.coopname, username: data.username, key, block_num: data.block_num })
     return {

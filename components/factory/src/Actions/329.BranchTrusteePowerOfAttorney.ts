@@ -6,7 +6,7 @@ export { BranchTrusteePowerOfAttorney as Template } from '../Templates'
 /** Доверенность председателю участка: физлицо, название и адрес участка. */
 export const Factory = defineBuilder<BranchTrusteePowerOfAttorney.Action, BranchTrusteePowerOfAttorney.Model>()({
   registry_id: BranchTrusteePowerOfAttorney.registry_id,
-  version: 1,
+  version: '1.0',
   reads: ({ data, f }) => ({
     coop: () => f.getCooperative(data.coopname, data.block_num),
     vars: () => f.getVars(data.coopname, data.block_num),

@@ -13,7 +13,7 @@ function cleanNum(s: string): string {
 /** Протокол совета об отмене сделки по гарантийному возврату: заказчик, оператор, имущество, голоса, участок. */
 export const Factory = defineBuilder<MarketplaceReturnCancelDecision.Action, MarketplaceReturnCancelDecision.Model>()({
   registry_id: MarketplaceReturnCancelDecision.registry_id,
-  version: 1,
+  version: '1.0',
   reads: ({ data, f }) => ({
     coop: () => f.getCooperative(data.coopname, data.block_num),
     vars: () => f.getVars(data.coopname, data.block_num),

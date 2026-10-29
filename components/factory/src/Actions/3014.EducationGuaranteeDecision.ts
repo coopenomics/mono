@@ -7,7 +7,7 @@ export { EducationGuaranteeDecision as Template } from '../Templates'
 /** Протокол совета об аннулировании Подписки по Гарантийным условиям: пайщик, Подписка и голоса по решению. */
 export const Factory = defineBuilder<EducationGuaranteeDecision.Action, EducationGuaranteeDecision.Model>()({
   registry_id: EducationGuaranteeDecision.registry_id,
-  version: 1,
+  version: '1.0',
   reads: ({ data, f }) => ({
     coop: () => f.getCooperative(data.coopname, data.block_num),
     vars: () => f.getVars(data.coopname, data.block_num),

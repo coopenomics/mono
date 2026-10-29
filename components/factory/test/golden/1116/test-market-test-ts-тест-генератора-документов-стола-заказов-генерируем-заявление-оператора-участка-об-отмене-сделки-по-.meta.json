@@ -27,5 +27,6 @@
   "product_title": "Молоко \"Бурёнка\"",
   "unit_of_measurement": "Литр",
   "unit_cost": "100.0000",
-  "currency": "RUB"
+  "currency": "RUB",
+  "builder": "1.0"
 }

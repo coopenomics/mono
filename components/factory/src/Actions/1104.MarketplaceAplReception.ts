@@ -17,7 +17,7 @@ function cleanNum(s: string): string {
  */
 export const Factory = defineBuilder<MarketplaceAplReception.Action, MarketplaceAplReception.Model>()({
   registry_id: MarketplaceAplReception.registry_id,
-  version: 1,
+  version: '1.0',
   reads: ({ data, f }) => ({
     coop: () => f.getCooperative(data.coopname, data.block_num),
     vars: () => f.getVars(data.coopname, data.block_num),

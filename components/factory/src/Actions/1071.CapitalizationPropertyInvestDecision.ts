@@ -6,7 +6,7 @@ export { CapitalizationPropertyInvestDecision as Template } from '../Templates'
 /** Решение об имущественном взносе в капитализацию: только мета, остальное в тексте шаблона. */
 export const Factory = defineBuilder<CapitalizationPropertyInvestDecision.Action, CapitalizationPropertyInvestDecision.Model>()({
   registry_id: CapitalizationPropertyInvestDecision.registry_id,
-  version: 1,
+  version: '1.0',
   reads: () => ({}),
   assemble: ({ meta }) => ({ meta }),
 })

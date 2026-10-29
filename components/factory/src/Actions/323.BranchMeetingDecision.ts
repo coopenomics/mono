@@ -7,7 +7,7 @@ export { BranchMeetingDecision as Template } from '../Templates'
 /** Протокол собрания участка: председатель собрания и итоги из данных. */
 export const Factory = defineBuilder<BranchMeetingDecision.Action, BranchMeetingDecision.Model>()({
   registry_id: BranchMeetingDecision.registry_id,
-  version: 1,
+  version: '1.0',
   reads: ({ data, f }) => ({
     coop: () => f.getCooperative(data.coopname, data.block_num),
     vars: () => f.getVars(data.coopname, data.block_num),

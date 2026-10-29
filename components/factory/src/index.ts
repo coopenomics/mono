@@ -4,12 +4,15 @@ export * from './Templates'
 export * from './Schema'
 export * from './Storage'
 export { documentMetaKey } from './Utils/documentMetaKey'
+export * from './Builder/version'
 export { formatCreatedAt, isIsoCreatedAt, isLegacyCreatedAt, nowCreatedAt, parseCreatedAt, splitCreatedAt } from './Utils/documentCreatedAt'
 
-import type { Cooperative as CooperativeModel } from 'cooptypes'
-import type { IDocumentFilter, IGeneratedDocument, Numbers, externalDataTypes, externalDataTypesArrays, internalFilterTypes } from './Interfaces'
+import { type Cooperative as CooperativeModel, DraftContract } from 'cooptypes'
+import type { IDocumentFilter, IGeneratedDocument, externalDataTypes, externalDataTypesArrays, internalFilterTypes } from './Interfaces'
 import type { IGenerate, IGenerateBlank, IGeneratedBlank, IGenerationOptions } from './Interfaces/Documents'
 import * as Actions from './Actions'
+import { type BuilderSet, buildFactories } from './Builder/registry'
+import { type BuilderVersion, FIRST_BUILDER_VERSION, isBuilderVersion, latestMinorOf, templateBuilderMajor } from './Builder/version'
 
 import { DocDataService, type ISearchResult, SearchService } from './Services/Databazor'
 import type { DocumentPage, IFactoryStorage, StoredDocument, Where } from './Storage'
@@ -23,7 +26,7 @@ import { Entrepreneur, Organization, Vars } from './Models'
 import { Cooperative, type CooperativeData } from './Models/Cooperative'
 
 import type { DocFactory } from './Factory'
-import { buildFactories } from './Builder/registry'
+import type { IMetaDeps } from './Meta'
 import type { PaymentData } from './Models/PaymentMethod'
 import { PaymentMethod } from './Models/PaymentMethod'
 import { type ExternalProjectData, Project } from './Models/Project'
@@ -83,6 +86,17 @@ export class UnknownDocumentFactoryError extends Error {
   }
 }
 
+/**
+ * Нужной версии сборщика на узле нет: мета документа называет версию, которой
+ * в пакете фабрики нет, или редакция шаблона объявляет `major` без сборщика.
+ */
+export class UnknownBuilderVersionError extends Error {
+  constructor(public readonly registry_id: number, public readonly builder: string) {
+    super(`Версия сборщика ${builder} для документа #${registry_id} на узле не найдена.`)
+    this.name = 'UnknownBuilderVersionError'
+  }
+}
+
 export class Generator implements IGenerator {
   /**
    * Откуда брать данные цепи. Не задан — читаем прямо из цепи по адресу из
@@ -122,9 +136,19 @@ export class Generator implements IGenerator {
     return this.chainDataSource
   }
 
-  // Определение фабрик
-  factories!: {
-    [K in Numbers]: DocFactory<IGenerate>
+  // Сборщики по номеру реестра и версии (шаг 7: у вида несколько версий)
+  private builders!: Record<number, BuilderSet>
+
+  // Часы и версия генератора для меты новых документов (см. DocFactory.setMetaDeps)
+  private metaDeps: Partial<IMetaDeps> = {}
+
+  /** Закрепить часы и версию генератора в мете новых документов (набор тестов). */
+  setMetaDeps(deps: Partial<IMetaDeps>): void {
+    this.metaDeps = deps
+    for (const set of Object.values(this.builders ?? {})) {
+      for (const factory of set.values())
+        factory.setMetaDeps(deps)
+    }
   }
 
   // Определение хранилища
@@ -148,12 +172,16 @@ export class Generator implements IGenerator {
 
     // Реестр сборщиков собирается из экспортов Actions по номеру реестра
     // шаблона; расхождения с реестром шаблонов — ошибка здесь, при старте.
-    this.factories = buildFactories(Actions as Record<string, unknown>, this.storage) as Generator['factories']
+    this.builders = buildFactories(Actions as Record<string, unknown>, this.storage)
 
     // Источник данных раздаётся фабрикам одним местом — иначе его пришлось бы
     // тянуть через конструктор каждой из десятков фабрик выше.
-    for (const factory of Object.values(this.factories))
-      factory.setDataSource(this.dataSource)
+    for (const set of Object.values(this.builders)) {
+      for (const factory of set.values()) {
+        factory.setDataSource(this.dataSource)
+        factory.setMetaDeps(this.metaDeps)
+      }
+    }
 
     await this.storage.connect()
   }
@@ -163,24 +191,66 @@ export class Generator implements IGenerator {
     await this.storage.disconnect()
   }
 
-  // Метод генерации документа
-  async generate(data: IGenerate, options?: IGenerationOptions): Promise<IGeneratedDocument> {
-    const factory = this.factories[data.registry_id as Numbers] // Get the factory
-
+  /**
+   * Сборщик вида документа нужной версии; без версии — последняя `1.x`
+   * (для проверок и наборов тестов). Неизвестный вид или версия — ошибка.
+   */
+  factoryFor(registry_id: number, version?: string): DocFactory<IGenerate> {
+    const set = this.builders[registry_id]
+    if (!set)
+      throw new UnknownDocumentFactoryError(registry_id)
+    const chosen = version ?? latestMinorOf(set.keys(), 1) ?? FIRST_BUILDER_VERSION
+    const factory = set.get(chosen as BuilderVersion)
     if (!factory)
-      throw new UnknownDocumentFactoryError(data.registry_id)
-
-    // синтезируем документ
-    return await factory.generateDocument(data, options)
+      throw new UnknownBuilderVersionError(registry_id, chosen)
+    return factory
   }
 
-  async generateBlank(data: IGenerateBlank): Promise<IGeneratedBlank> {
-    const factory = this.factories[data.registry_id as Numbers]
+  /** Версии сборщика вида документа, известные узлу. */
+  builderVersions(registry_id: number): BuilderVersion[] {
+    return [...(this.builders[registry_id]?.keys() ?? [])]
+  }
 
-    if (!factory)
+  /**
+   * Какой версией собирать (шаг 7, решение 6 PRD):
+   * - мета документа называет версию (`builder`) — ровно её: пересборка
+   *   подписанного документа и сборка заданной версией;
+   * - пересборка документа до оси версий (дата есть, версии нет) — `1.0`;
+   * - новая сборка — последний `minor` того `major`, который объявляет
+   *   действующая редакция шаблона ключом `x-builder` (нет ключа — `1`).
+   */
+  private async chooseVersion(set: BuilderSet, data: IGenerate): Promise<BuilderVersion> {
+    const named = (data as { builder?: unknown }).builder
+    if (named !== undefined && named !== null) {
+      if (!isBuilderVersion(named) || !set.has(named))
+        throw new UnknownBuilderVersionError(data.registry_id, String(named))
+      return named
+    }
+    if ((data as { created_at?: string }).created_at)
+      return FIRST_BUILDER_VERSION
+
+    const any = set.values().next().value as DocFactory<IGenerate>
+    const template = await any.getTemplate<unknown>(DraftContract.contractName.production, data.registry_id, data.block_num)
+    const major = templateBuilderMajor(template.model)
+    const latest = latestMinorOf(set.keys(), major)
+    if (!latest)
+      throw new UnknownBuilderVersionError(data.registry_id, `${major}.x`)
+    return latest
+  }
+
+  // Метод генерации документа
+  async generate(data: IGenerate, options?: IGenerationOptions): Promise<IGeneratedDocument> {
+    const set = this.builders[data.registry_id]
+    if (!set)
       throw new UnknownDocumentFactoryError(data.registry_id)
 
-    return await factory.generateBlank(data)
+    const version = await this.chooseVersion(set, data)
+    return await set.get(version)!.generateDocument(data, options)
+  }
+
+  // Бланк от версии не зависит: мета бланка не подписывается и версию не несёт.
+  async generateBlank(data: IGenerateBlank): Promise<IGeneratedBlank> {
+    return await this.factoryFor(data.registry_id).generateBlank(data)
   }
 
   async getDocument(filter: IDocumentFilter): Promise<IGeneratedDocument> {

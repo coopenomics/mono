@@ -30,5 +30,6 @@
       "reason": "Повреждена упаковка"
     }
   ],
-  "total_amount": "1505.0000 RUB"
+  "total_amount": "1505.0000 RUB",
+  "builder": "1.0"
 }

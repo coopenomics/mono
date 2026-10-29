@@ -17,7 +17,7 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const dir = join(root, 'src', 'Actions')
 
 const files = readdirSync(dir)
-  .filter(name => /^\d+\.[A-Za-z]+\.ts$/.test(name))
+  .filter(name => /^\d+\.[A-Za-z0-9_]+\.ts$/.test(name))
   .map(name => name.replace(/\.ts$/, ''))
 
 const index = readFileSync(join(dir, 'index.ts'), 'utf8')

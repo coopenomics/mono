@@ -10,7 +10,7 @@ const PERIOD_HUMAN: Record<string, string> = { month: 'один месяц', cou
 /** Заявление о конвертации паевого взноса (Образование): пайщик, подписка, суммы и период. */
 export const Factory = defineBuilder<EducationConvertStatement.Action, EducationConvertStatement.Model>()({
   registry_id: EducationConvertStatement.registry_id,
-  version: 1,
+  version: '1.0',
   reads: ({ data, f }) => ({
     coop: () => f.getCooperative(data.coopname, data.block_num),
     vars: () => f.getVars(data.coopname, data.block_num),

@@ -11,7 +11,7 @@ import type { CooperativeData } from '../Models/Cooperative'
 import { getCurrentBlock } from '../Utils/getCurrentBlock'
 import { FactorySources, type IPaymentMethodFilter, type IUdataFilter, type IUserAt } from '../Sources'
 import * as Format from '../Format'
-import { buildMeta } from '../Meta'
+import { type IMetaDeps, buildMeta } from '../Meta'
 import { renderBlank, renderDocument } from '../Render'
 import { BLANK_PLACEHOLDER } from '../Services/Templator'
 import { DEFAULT_DOCUMENT_TIMEZONE, nowCreatedAt } from '../Utils/documentCreatedAt'
@@ -48,6 +48,18 @@ export abstract class DocFactory<T extends IGenerate> {
 
   setDataSource(dataSource: IChainDataSource): void {
     this.dataSource = dataSource
+  }
+
+  /**
+   * Часы и версия генератора для меты новых документов. По умолчанию —
+   * текущее время и версия пакета; набор тестов закрепляет их, чтобы эталон не
+   * менялся от прогона к прогону. Дата в ДАННЫХ документа означает пересборку
+   * по мете (версия сборщика из меты), поэтому закреплять её надо здесь.
+   */
+  private metaDeps: Partial<IMetaDeps> = {}
+
+  setMetaDeps(deps: Partial<IMetaDeps>): void {
+    this.metaDeps = deps
   }
 
   /**
@@ -327,7 +339,7 @@ export abstract class DocFactory<T extends IGenerate> {
   }
 
   async getMeta<T extends IMetaDocumentPartial>(input: T): Promise<IMetaDocument> {
-    return buildMeta(input, { version: packageVersion, now: nowCreatedAt, currentBlock: getCurrentBlock })
+    return buildMeta(input, { version: packageVersion, now: nowCreatedAt, currentBlock: getCurrentBlock, ...this.metaDeps })
   }
 
   public formatShare(value: string | number, precision: number = 2): string {

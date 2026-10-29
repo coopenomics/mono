@@ -43,5 +43,6 @@
       "votes_abstained_percent": 0,
       "is_accepted": true
     }
-  ]
+  ],
+  "builder": "1.0"
 }

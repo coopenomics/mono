@@ -15,5 +15,6 @@
   "main_wallet_amount": "15000.00 RUB",
   "blagorost_wallet_amount": "25000.00 RUB",
   "to_wallet": true,
-  "to_blagorost": true
+  "to_blagorost": true,
+  "builder": "1.0"
 }
