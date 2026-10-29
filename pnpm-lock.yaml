@@ -81,6 +81,9 @@ importers:
       pug-lexer:
         specifier: ^5.0.1
         version: 5.0.1
+      simple-git-hooks:
+        specifier: ^2.11.1
+        version: 2.13.1
       typescript:
         specifier: ^5.9.3
         version: 5.9.3

@@ -48,7 +48,7 @@
     "migrator": "workspace:*"
   },
   "scripts": {
-    "postinstall": "node scripts/install-native-prebuilds.mjs",
+    "postinstall": "node scripts/install-native-prebuilds.mjs && (simple-git-hooks >/dev/null 2>&1 || true)",
     "setup": "lerna run setup --scope @coopenomics/setup",
     "boot": "lerna run boot --scope @coopenomics/boot",
     "reboot": "cd components/boot/scripts && bash reboot.sh",
@@ -95,13 +95,20 @@
     "test:ui:edubridge": "node components/docs-harness/bin/run-edubridge-all.mjs",
     "registry:sync": "node components/docs-harness/bin/registry-sync.mjs",
     "docs:pull": "node components/docs-harness/bin/pull-run.mjs",
-    "docs:diff": "node components/docs-harness/bin/diff-shots.mjs"
+    "docs:diff": "node components/docs-harness/bin/diff-shots.mjs",
+    "factory:link": "node scripts/factory-link.mjs link",
+    "factory:unlink": "node scripts/factory-link.mjs unlink"
   },
   "devDependencies": {
     "@intlify/message-compiler": "^11.4.12",
     "@vue/compiler-sfc": "^3.4.18",
     "pug-lexer": "^5.0.1",
     "typescript": "^5.9.3",
-    "yaml": "^2.9.0"
+    "yaml": "^2.9.0",
+    "simple-git-hooks": "^2.11.1"
+  },
+  "simple-git-hooks": {
+    "post-merge": "bash scripts/after-pull-install.sh",
+    "post-checkout": "bash scripts/after-pull-install.sh \"$@\""
   }
 }
