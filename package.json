@@ -107,7 +107,7 @@
     "simple-git-hooks": "^2.11.1"
   },
   "simple-git-hooks": {
-    "post-merge": "bash scripts/after-pull-install.sh",
-    "post-checkout": "bash scripts/after-pull-install.sh \"$@\""
+    "post-merge": "[ -f scripts/after-pull-install.sh ] && bash scripts/after-pull-install.sh || true",
+    "post-checkout": "[ -f scripts/after-pull-install.sh ] && bash scripts/after-pull-install.sh \"$@\" || true"
   }
 }
