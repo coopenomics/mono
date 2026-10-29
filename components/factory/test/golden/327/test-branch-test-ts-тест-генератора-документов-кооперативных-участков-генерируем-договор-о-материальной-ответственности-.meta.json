@@ -12,5 +12,6 @@
   "timezone": "Europe/Moscow",
   "hash": "BRANCH_MEETING_HASH_TEST",
   "branch_name": "РОМАШКА",
-  "trustee": "ant"
+  "trustee": "ant",
+  "builder": "1.0"
 }

@@ -13,5 +13,6 @@
   "hash": "BRANCH_MEETING_HASH_TEST",
   "branch_name": "РОМАШКА",
   "address": "г. Красногорск, ул. Ленина, д. 1",
-  "chairman": "ant"
+  "chairman": "ant",
+  "builder": "1.0"
 }

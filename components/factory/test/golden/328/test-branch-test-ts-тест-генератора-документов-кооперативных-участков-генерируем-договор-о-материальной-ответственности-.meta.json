@@ -11,5 +11,6 @@
   "block_num": 0,
   "timezone": "Europe/Moscow",
   "hash": "BRANCH_MEETING_HASH_TEST",
-  "branch_name": "РОМАШКА"
+  "branch_name": "РОМАШКА",
+  "builder": "1.0"
 }

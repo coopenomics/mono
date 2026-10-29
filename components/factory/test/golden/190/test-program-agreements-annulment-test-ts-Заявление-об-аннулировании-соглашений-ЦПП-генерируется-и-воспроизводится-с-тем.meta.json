@@ -49,5 +49,6 @@
       "refund": "2500.0000 RUB"
     }
   ],
-  "total_refund": "12500.0000 RUB"
+  "total_refund": "12500.0000 RUB",
+  "builder": "1.0"
 }

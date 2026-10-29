@@ -29,6 +29,11 @@ enum AuditOutcome {
  * Первый прогон до рефакторинга даёт исходный долг воспроизводимости;
  * после каждого шага рефакторинга отчёт обязан быть не хуже.
  */
+/** Версия сборщика документа; у документа до оси версий её нет — это `1.0`. */
+function builderOf(meta: { builder?: string }): string {
+  return meta.builder ?? FIRST_BUILDER_VERSION;
+}
+
 @Injectable()
 export class DocumentReproducibilityAuditService {
   constructor(private readonly generator: GeneratorInfrastructureService) {}
@@ -44,7 +49,7 @@ export class DocumentReproducibilityAuditService {
     const mismatches: DocumentReproducibilityAuditMismatchDTO[] = [];
 
     for (const document of documents) {
-      const builder = document.meta.builder ?? FIRST_BUILDER_VERSION;
+      const builder = builderOf(document.meta);
       const key = `${document.meta.registry_id}:${builder}`;
       let row = rows.get(key);
       if (!row) {

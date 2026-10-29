@@ -34,5 +34,6 @@
       "recipient_type": "SELF",
       "mechanics": "ADVANCE"
     }
-  ]
+  ],
+  "builder": "1.0"
 }

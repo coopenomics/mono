@@ -29,5 +29,6 @@
       "context": "Тут дополнительная информация о вопросе"
     }
   ],
-  "is_repeated": false
+  "is_repeated": false,
+  "builder": "1.0"
 }

@@ -14,5 +14,6 @@
   "amount": "1500.0000 RUB",
   "rid_type": "lesson_recording",
   "decision_id": 17,
-  "decision_date": "20.09.2026"
+  "decision_date": "20.09.2026",
+  "builder": "1.0"
 }

@@ -11,5 +11,6 @@
   "block_num": 0,
   "timezone": "Europe/Moscow",
   "protocol_number": "01-01-2024",
-  "protocol_day_month_year": "1 января 2024 г."
+  "protocol_day_month_year": "1 января 2024 г.",
+  "builder": "1.0"
 }
