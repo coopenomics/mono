@@ -1,6 +1,6 @@
 {
   "name": "@coopenomics/extension-hello-subgraph",
-  "version": "2026.10.28-5",
+  "version": "2026.10.29",
   "description": "PoC subgraph для smoke-теста @coopenomics/extension-sdk (Epic 10 Story 10.2b). НЕ для прода.",
   "private": true,
   "main": "dist/main.js",

@@ -1,6 +1,6 @@
 {
   "name": "@coopenomics/extension-sdk",
-  "version": "2026.10.28-5",
+  "version": "2026.10.29",
   "publishConfig": {
     "access": "public"
   },
