@@ -12,7 +12,7 @@
 
 # Все сервисы прикладного слоя. Порядок важен: nginx последним, он лишь
 # раскладывает запросы по уже поднятым.
-STACK_INFRA_SERVICES="mongo postgres monoredis minio"
+STACK_INFRA_SERVICES="postgres monoredis minio"
 STACK_AUTH_SERVICES="authentik-server authentik-worker"
 STACK_APP_SERVICES="parser2 coopback desktop nginx"
 
@@ -48,6 +48,9 @@ stack_wipe_containers() {
 # иначе на «чистом» ребуте останутся старая база и старая учётка authentik.
 stack_wipe_volumes() {
   echo "▸ Удаляем тома баз данных..."
+  # Контейнер и том прежней MongoDB (до 10.2026) — сирота проекта compose после
+  # её вывода; снимаем, чтобы на стенде не болтались.
+  docker rm -f "${STACK_PROJECT}-mongo-1" >/dev/null 2>&1 || true
   docker volume rm \
     "${STACK_PROJECT}_postgres_data" \
     "${STACK_PROJECT}_mongo_data" \
@@ -87,8 +90,6 @@ stack_wait_for() {
 }
 
 stack_wait_infra() {
-  stack_wait_for "MongoDB" 60 2 \
-    docker compose exec -T mongo mongosh --quiet --eval "db.adminCommand({ping:1}).ok"
   stack_wait_for "PostgreSQL" 60 2 \
     docker compose exec -T postgres pg_isready -U "${POSTGRES_USERNAME:-postgres}" -d "${POSTGRES_DATABASE:-voskhod}"
   stack_wait_for "MinIO" 60 2 \
