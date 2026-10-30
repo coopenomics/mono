@@ -1,6 +1,5 @@
 import { Mutations } from '@coopenomics/sdk';
-import { Cooperative } from 'cooptypes';
-import { Registry } from '@coopenomics/docs-templates';
+import { type IVars, Registry } from '@coopenomics/docs-templates';
 import { renderTemplate } from './onboarding-templates';
 import { t } from '../../i18n';
 
@@ -35,7 +34,7 @@ type CooperatorAccount = {
 };
 
 type SystemInfoLite = {
-  vars?: Cooperative.Model.IVars | null;
+  vars?: IVars | null;
   contacts?: CoopContacts | null;
   cooperator_account?: CooperatorAccount | null;
 };

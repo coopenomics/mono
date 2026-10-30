@@ -1,14 +1,15 @@
 import type { Cooperative } from 'cooptypes'
+import type { IMetaDocument as DocsIMetaDocument, ZGeneratedDocument } from '@coopenomics/docs-templates'
 import type { Zeus } from '../..'
 /**
  * Интерфейс для метаданных документа.
  */
-export type IMetaDocument = Cooperative.Document.IMetaDocument
+export type IMetaDocument = DocsIMetaDocument
 
 /**
  * Интерфейс для сгенерированного документа, который требуется подписать.
  */
-export type IGeneratedDocument<T = any> = Cooperative.Document.ZGeneratedDocument<T>
+export type IGeneratedDocument<T = any> = ZGeneratedDocument<T>
 
 /**
  * Интерфейс для информации о подписи в документе.

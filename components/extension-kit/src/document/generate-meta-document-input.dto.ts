@@ -9,10 +9,10 @@
 import { IsOptional, IsString, IsNumber, IsArray, IsInt, IsEnum } from 'class-validator';
 import { InputType, Field, Int } from '@nestjs/graphql';
 import { LangType } from './lang-type.enum';
-import type { Cooperative } from 'cooptypes';
+import type { IGenerate } from '@coopenomics/docs-templates';
 
 @InputType('GenerateMetaDocumentInput')
-export class GenerateMetaDocumentInputDTO implements Cooperative.Document.IGenerate {
+export class GenerateMetaDocumentInputDTO implements IGenerate {
   @Field(() => String, { description: 'Название документа', nullable: true })
   @IsOptional()
   @IsString()

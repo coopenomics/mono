@@ -11,6 +11,7 @@ import {
 import { signDocument } from 'src/shared/lib/document';
 import { useSessionStore } from 'src/entities/Session/model';
 import type { Cooperative } from 'cooptypes';
+import type { ZGeneratedDocument } from '@coopenomics/docs-templates';
 import type { IGenerateDocumentInput, IGeneratedDocumentOutput } from 'src/shared/lib/types/document';
 import type { IGetProjectOutput } from 'app/extensions/capital/entities/Project/model';
 import { t } from '../../../../i18n';
@@ -64,7 +65,7 @@ export function useMakeClearance() {
   };
 
   const signGeneratedDocument = async (
-    document: Cooperative.Document.ZGeneratedDocument
+    document: ZGeneratedDocument
   ): Promise<Cooperative.Document.ISignedDocument2> => {
     // Подписываем документ одинарной подписью (signatureId = 1)
     const signedDocument = await signDocument(
@@ -91,7 +92,7 @@ export function useMakeClearance() {
       // Определяем, является ли проект компонентом
       const isComponent = Boolean(project.parent_hash && project.parent_hash !== '0000000000000000000000000000000000000000000000000000000000000000');
 
-      let generatedDocument: Cooperative.Document.ZGeneratedDocument;
+      let generatedDocument: ZGeneratedDocument;
 
       if (isComponent) {
         // Генерируем документ дополнения к приложению для компонента (1003)

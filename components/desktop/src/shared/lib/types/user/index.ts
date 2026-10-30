@@ -1,4 +1,4 @@
-import { Cooperative } from 'cooptypes';
+import type { IEntrepreneurData, IIndividualData, IOrganizationData } from '@coopenomics/docs-templates';
 
 export interface IKeyPair {
   private_key: string;
@@ -28,9 +28,9 @@ export interface IUser {
   username: string;
   email: string;
   private_data:
-    | Cooperative.Users.IEntrepreneurData
-    | Cooperative.Users.IIndividualData
-    | Cooperative.Users.IOrganizationData;
+    | IEntrepreneurData
+    | IIndividualData
+    | IOrganizationData;
   public_key: string;
   referer?: string;
   role: 'user' | 'admin';

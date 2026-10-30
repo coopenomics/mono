@@ -1,6 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { Cooperative } from 'cooptypes';
-import { Registry } from '@coopenomics/docs-templates';
+import { type IGenerate, Registry } from '@coopenomics/docs-templates';
 import httpStatus from 'http-status';
 import type { ISignedDocument, IMonoAccount } from '@coopenomics/innercoop';
 import type { GenerateDocumentOptionsInputDTO, PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
@@ -284,7 +283,7 @@ export class KuService {
   // ───────────────────────────────────────────────────────────────────────────
 
   private async generate(
-    data: Cooperative.Document.IGenerate,
+    data: IGenerate,
     registry_id: number,
     options?: GenerateDocumentOptionsInputDTO
   ): Promise<InnerGeneratedDocument> {

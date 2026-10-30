@@ -18,7 +18,8 @@ import ecc from 'eosjs-ecc'
 import { subscriberIdentity } from '../subscriber-identity'
 import { Client } from 'pg'
 import { connectGenerator } from '../init/factory-storage'
-import { RegistratorContract, type Cooperative } from 'cooptypes'
+import { RegistratorContract } from 'cooptypes'
+import type { IIndividualData } from '@coopenomics/docs-templates'
 import Blockchain from '../blockchain'
 import config from '../configs'
 import { generateRandomSHA256 } from '../utils/randomHash'
@@ -140,7 +141,7 @@ export async function addPlainParticipant(args: Args) {
   // === 5. Хранилище фабрики: individual запись ===
   const generator = await connectGenerator()
 
-  const individual: Cooperative.Users.IIndividualData = {
+  const individual: IIndividualData = {
     username,
     first_name: firstName,
     last_name: lastName,

@@ -1,4 +1,4 @@
-import type { IEntrepreneurData, IIndividualData, IOrganizationData } from '../users'
+import type { IEntrepreneurData, IIndividualData, IOrganizationData } from '@coopenomics/docs-templates'
 
 export interface ITable {
   chain_id: string

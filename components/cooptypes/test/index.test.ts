@@ -18,10 +18,10 @@ describe('cooptypes exports', () => {
     expect(cooptypes.BranchContract).toBeDefined()
   })
 
-  it('exports Cooperative namespace with Models and Users', () => {
+  // Модель документа, субъекты и реквизиты — в @coopenomics/docs-templates.
+  it('exports Cooperative namespace with chain documents and blockchain types', () => {
     expect(cooptypes.Cooperative).toBeDefined()
-    expect(cooptypes.Cooperative.Model).toBeDefined()
-    expect(cooptypes.Cooperative.Users).toBeDefined()
+    expect(cooptypes.Cooperative.Document.canonicalizationForVersion).toBeDefined()
   })
 
   it('exports Interfaces', () => {

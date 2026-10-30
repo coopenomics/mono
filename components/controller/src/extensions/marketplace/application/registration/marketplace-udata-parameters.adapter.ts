@@ -1,5 +1,5 @@
 import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import { Cooperative } from 'cooptypes';
+import { UdataKey } from '@coopenomics/docs-templates';
 import moment from 'moment';
 import { randomBytes } from 'crypto';
 
@@ -47,7 +47,7 @@ export class MarketplaceUdataParametersAdapter
     const existingNumber = await this.udataRepository.get(
       coopname,
       username,
-      Cooperative.Model.UdataKey.MARKETPLACE_AGREEMENT_NUMBER
+      UdataKey.MARKETPLACE_AGREEMENT_NUMBER
     );
 
     if (existingNumber?.value) {
@@ -64,13 +64,13 @@ export class MarketplaceUdataParametersAdapter
       this.udataRepository.save({
         coopname,
         username,
-        key: Cooperative.Model.UdataKey.MARKETPLACE_AGREEMENT_NUMBER,
+        key: UdataKey.MARKETPLACE_AGREEMENT_NUMBER,
         value: number,
       }),
       this.udataRepository.save({
         coopname,
         username,
-        key: Cooperative.Model.UdataKey.MARKETPLACE_AGREEMENT_CREATED_AT,
+        key: UdataKey.MARKETPLACE_AGREEMENT_CREATED_AT,
         value: date,
       }),
     ]);

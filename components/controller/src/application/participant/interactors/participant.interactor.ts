@@ -1,5 +1,4 @@
-import { Cooperative } from 'cooptypes';
-import { Registry } from '@coopenomics/docs-templates';
+import { type IGenerationOptions, Registry } from '@coopenomics/docs-templates';
 import { DocumentDomainService } from '~/domain/document/services/document-domain.service';
 import { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
 import { Inject, Injectable, Logger } from '@nestjs/common';
@@ -66,7 +65,7 @@ export class ParticipantInteractor {
 
   async generateParticipantApplication(
     data: Registry.ParticipantApplication.Action,
-    options: Cooperative.Document.IGenerationOptions
+    options: IGenerationOptions
   ): Promise<DocumentDomainEntity> {
     data.registry_id = Registry.ParticipantApplication.registry_id;
     return await this.documentDomainService.generateDocument({ data, options });
@@ -74,7 +73,7 @@ export class ParticipantInteractor {
 
   async generateParticipantApplicationDecision(
     data: Registry.DecisionOfParticipantApplication.Action,
-    options: Cooperative.Document.IGenerationOptions
+    options: IGenerationOptions
   ): Promise<DocumentDomainEntity> {
     data.registry_id = Registry.DecisionOfParticipantApplication.registry_id;
     return await this.documentDomainService.generateDocument({ data, options });
@@ -82,7 +81,7 @@ export class ParticipantInteractor {
 
   async generateMembershipExitApplication(
     data: Registry.ParticipantExitApplication.Action,
-    options: Cooperative.Document.IGenerationOptions
+    options: IGenerationOptions
   ): Promise<DocumentDomainEntity> {
     data.registry_id = Registry.ParticipantExitApplication.registry_id;
     return await this.documentDomainService.generateDocument({ data, options });
@@ -91,7 +90,7 @@ export class ParticipantInteractor {
   /** Заявление об аннулировании соглашений ЦПП — подписывается вместе с заявлением о выходе. */
   async generateProgramAgreementsAnnulment(
     data: Registry.ProgramAgreementsAnnulmentStatement.Action,
-    options: Cooperative.Document.IGenerationOptions
+    options: IGenerationOptions
   ): Promise<DocumentDomainEntity> {
     data.registry_id = Registry.ProgramAgreementsAnnulmentStatement.registry_id;
     return await this.documentDomainService.generateDocument({ data, options });
@@ -99,7 +98,7 @@ export class ParticipantInteractor {
 
   async generateMembershipExitDecision(
     data: Registry.DecisionOfParticipantExit.Action,
-    options: Cooperative.Document.IGenerationOptions
+    options: IGenerationOptions
   ): Promise<DocumentDomainEntity> {
     data.registry_id = Registry.DecisionOfParticipantExit.registry_id;
     return await this.documentDomainService.generateDocument({ data, options });

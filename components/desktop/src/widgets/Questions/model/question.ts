@@ -1,4 +1,4 @@
-import type { Cooperative } from 'cooptypes';
+import type { IMetaDocument } from '@coopenomics/docs-templates';
 import type { IAgenda } from 'src/entities/Agenda/model';
 import { getShortNameFromCertificate } from 'src/shared/lib/utils/getNameFromCertificate';
 import { t } from 'src/shared/i18n';
@@ -24,7 +24,7 @@ function titleFromTableMeta(meta: unknown): string | null {
  * встаёт в скобках — иначе вопросы одного типа в повестке не различить.
  */
 export function questionTitleOf(agenda: IAgenda): string {
-  const meta = agenda.documents?.statement?.documentAggregate?.rawDocument?.meta as Cooperative.Document.IMetaDocument | undefined;
+  const meta = agenda.documents?.statement?.documentAggregate?.rawDocument?.meta as IMetaDocument | undefined;
   const title = meta?.title || titleFromTableMeta(agenda.table?.statement?.meta) || t('questions.questionCard.untitledQuestion');
   const type = agenda.table?.type;
   const detail = type ? decisionFactory.getTitleDetail(type, agenda) : null;

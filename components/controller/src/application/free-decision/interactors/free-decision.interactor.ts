@@ -1,5 +1,4 @@
-import { Cooperative } from 'cooptypes';
-import { Registry } from '@coopenomics/docs-templates';
+import { type IGenerationOptions, type IProjectData, Registry } from '@coopenomics/docs-templates';
 import { DocumentDomainService } from '~/domain/document/services/document-domain.service';
 import { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
 import { Inject, Injectable } from '@nestjs/common';
@@ -21,14 +20,14 @@ export class FreeDecisionInteractor {
     @Inject(SOVIET_BLOCKCHAIN_PORT) private readonly SovietBlockchainPort: SovietBlockchainPort
   ) {}
 
-  async createProjectOfFreeDecision(data: Cooperative.Document.IProjectData): Promise<ProjectFreeDecisionDomainEntity> {
+  async createProjectOfFreeDecision(data: IProjectData): Promise<ProjectFreeDecisionDomainEntity> {
     await this.projectDecisionRepository.create(data);
     return new ProjectFreeDecisionDomainEntity(data);
   }
 
   async generateProjectOfFreeDecisionDocument(
     data: Registry.ProjectFreeDecision.Action,
-    options?: Cooperative.Document.IGenerationOptions
+    options?: IGenerationOptions
   ): Promise<DocumentDomainEntity> {
     data.registry_id = Registry.ProjectFreeDecision.registry_id;
     return await this.documentDomainService.generateDocument({ data, options });
@@ -36,7 +35,7 @@ export class FreeDecisionInteractor {
 
   async generateFreeDecisionDocument(
     data: Registry.FreeDecision.Action,
-    options: Cooperative.Document.IGenerationOptions
+    options: IGenerationOptions
   ): Promise<DocumentDomainEntity> {
     data.registry_id = Registry.FreeDecision.registry_id;
     return await this.documentDomainService.generateDocument({ data, options });

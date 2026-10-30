@@ -1,8 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { createHash } from 'crypto';
-import { Cooperative } from 'cooptypes';
-import { Registry } from '@coopenomics/docs-templates';
+import { Registry, UdataKey } from '@coopenomics/docs-templates';
 import { chainErrorCode, platformSettings, DomainError } from '@coopenomics/extension-kit';
 import {
   COUNCIL_PORT,
@@ -203,8 +202,8 @@ export class EdubridgeTeacherService {
     const now = signedOn ? new Date(signedOn) : new Date();
     const pad = (n: number) => String(n).padStart(2, '0');
     const createdAt = signedAt || `${pad(now.getDate())}.${pad(now.getMonth() + 1)}.${now.getFullYear()}`;
-    await this.udata.save({ coopname, username: teacher, key: Cooperative.Model.UdataKey.EDUCATION_CONTRACT_NUMBER, value: number });
-    await this.udata.save({ coopname, username: teacher, key: Cooperative.Model.UdataKey.EDUCATION_CONTRACT_CREATED_AT, value: createdAt });
+    await this.udata.save({ coopname, username: teacher, key: UdataKey.EDUCATION_CONTRACT_NUMBER, value: number });
+    await this.udata.save({ coopname, username: teacher, key: UdataKey.EDUCATION_CONTRACT_CREATED_AT, value: createdAt });
   }
 
   /**
@@ -542,7 +541,7 @@ export class EdubridgeTeacherService {
     for (const c of await this.teachers.listContracts(coopname)) {
       if (!grantsTeaching(c) || !c.contract_number) continue;
       try {
-        const existing = await this.udata.get(coopname, c.teacher_username, Cooperative.Model.UdataKey.EDUCATION_CONTRACT_NUMBER);
+        const existing = await this.udata.get(coopname, c.teacher_username, UdataKey.EDUCATION_CONTRACT_NUMBER);
         if (existing?.value) continue;
         await this.saveContractRef(coopname, c.teacher_username, c.contract_number, (c.contract_document ?? { meta: {} }) as unknown as ISignedDocument, c.signed_at);
         this.logger.info(`[EDU.TEACH] ${c.teacher_username}: реквизиты договора ${c.contract_number} записаны в данные пайщика`);

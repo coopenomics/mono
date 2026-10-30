@@ -2,7 +2,7 @@ import { defineStore } from 'pinia';
 import { computed, reactive, ref } from 'vue';
 import { IGeneratedAccount } from 'src/shared/lib/types/user';
 import { type IUserData } from 'src/shared/lib/types/user/IUserData';
-import type { Cooperative } from 'cooptypes';
+import type { IMetaDocument } from '@coopenomics/docs-templates';
 import { useSystemStore } from 'src/entities/System/model';
 import type { IDocument, ISignatureInfo } from 'src/shared/lib/types/document';
 import { Zeus, Queries } from '@coopenomics/sdk';
@@ -124,7 +124,7 @@ const initialUserDataState = (): IUserDataState => ({
 // Начальное состояние для любого документа
 const initialDocumentState = (): IDocument => ({
   hash: '',
-  meta: {} as Cooperative.Document.IMetaDocument,
+  meta: {} as IMetaDocument,
   meta_hash: '',
   version: '',
   doc_hash: '',

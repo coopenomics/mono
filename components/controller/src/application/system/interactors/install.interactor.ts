@@ -13,7 +13,7 @@ import type { CreateUserInputDomainInterface } from '~/domain/registration/inter
 import httpStatus from 'http-status';
 import { randomUUID } from 'crypto';
 import { sha256 } from '~/utils/sha256';
-import type { Cooperative } from 'cooptypes';
+import type { IPaymentData } from '@coopenomics/docs-templates';
 import type { InstallInputDomainInterface } from '~/domain/system/interfaces/install-input-domain.interface';
 import { VARS_REPOSITORY, VarsRepository } from '~/domain/common/repositories/vars.repository';
 import { MONO_STATUS_REPOSITORY, MonoStatusRepository } from '~/domain/common/repositories/mono-status.repository';
@@ -81,7 +81,7 @@ export class InstallInteractor {
     if (userBody.type === 'organization' && userBody.organization_data) {
       const { bank_account, ...userData } = userBody.organization_data || {};
 
-      const paymentMethod: Cooperative.Payments.IPaymentData = {
+      const paymentMethod: IPaymentData = {
         username: userBody.username,
         method_id: randomUUID(),
         method_type: 'bank_transfer',
@@ -96,7 +96,7 @@ export class InstallInteractor {
     if (userBody.type === 'entrepreneur' && userBody.entrepreneur_data) {
       const { bank_account, ...userData } = userBody.entrepreneur_data || {};
 
-      const paymentMethod: Cooperative.Payments.IPaymentData = {
+      const paymentMethod: IPaymentData = {
         username: userBody.username,
         method_id: randomUUID(),
         method_type: 'bank_transfer',

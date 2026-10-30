@@ -1,5 +1,4 @@
-import { Cooperative } from 'cooptypes';
-import { Registry } from '@coopenomics/docs-templates';
+import { type IGenerationOptions, Registry } from '@coopenomics/docs-templates';
 import { DocumentDomainService } from '~/domain/document/services/document-domain.service';
 import { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
 import { Inject, Injectable } from '@nestjs/common';
@@ -35,7 +34,7 @@ export class MeetInteractor {
 
   async generateAnnualGeneralMeetAgendaDocument(
     data: Registry.AnnualGeneralMeetingAgenda.Action,
-    options: Cooperative.Document.IGenerationOptions
+    options: IGenerationOptions
   ): Promise<DocumentDomainEntity> {
     data.registry_id = Registry.AnnualGeneralMeetingAgenda.registry_id;
     return await this.documentDomainService.generateDocument({ data, options });
@@ -87,7 +86,7 @@ export class MeetInteractor {
 
   async generateAnnualGeneralMeetDecisionDocument(
     data: Registry.AnnualGeneralMeetingDecision.Action,
-    options: Cooperative.Document.IGenerationOptions
+    options: IGenerationOptions
   ): Promise<DocumentDomainEntity> {
     data.registry_id = Registry.AnnualGeneralMeetingDecision.registry_id;
     return await this.documentDomainService.generateDocument({ data, options });
@@ -95,7 +94,7 @@ export class MeetInteractor {
 
   async generateAnnualGeneralMeetNotificationDocument(
     data: Registry.AnnualGeneralMeetingNotification.Action,
-    options: Cooperative.Document.IGenerationOptions
+    options: IGenerationOptions
   ): Promise<DocumentDomainEntity> {
     data.registry_id = Registry.AnnualGeneralMeetingNotification.registry_id;
     return await this.documentDomainService.generateDocument({ data, options });
@@ -103,7 +102,7 @@ export class MeetInteractor {
 
   async generateSovietDecisionOnAnnualMeetDocument(
     data: Registry.AnnualGeneralMeetingSovietDecision.Action,
-    options: Cooperative.Document.IGenerationOptions
+    options: IGenerationOptions
   ): Promise<DocumentDomainEntity> {
     data.registry_id = Registry.AnnualGeneralMeetingSovietDecision.registry_id;
     return await this.documentDomainService.generateDocument({ data, options });
@@ -111,7 +110,7 @@ export class MeetInteractor {
 
   async generateBallotForAnnualGeneralMeet(
     data: Registry.AnnualGeneralMeetingVotingBallot.Action,
-    options: Cooperative.Document.IGenerationOptions
+    options: IGenerationOptions
   ): Promise<DocumentDomainEntity> {
     data.registry_id = Registry.AnnualGeneralMeetingVotingBallot.registry_id;
     return await this.documentDomainService.generateDocument({ data, options });
