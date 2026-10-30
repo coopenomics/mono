@@ -270,6 +270,10 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	CapitalContentEntityType: "enum" as const,
 	CapitalContentRevisionOrigin: "enum" as const,
+	CapitalContributionKind: "enum" as const,
+	CapitalContributionsFilter:{
+
+	},
 	CapitalContributorFilter:{
 		status:"ContributorStatus"
 	},
@@ -3125,6 +3129,10 @@ export const AllTypesProps: Record<string,any> = {
 		capitalComponentMetrics:{
 			data:"GetComponentMetricsInput"
 		},
+		capitalContributions:{
+			filter:"CapitalContributionsFilter",
+			options:"PaginationInput"
+		},
 		capitalContributor:{
 			data:"GetContributorInput"
 		},
@@ -4927,6 +4935,14 @@ export const ReturnTypes: Record<string,any> = {
 		restored_from_rev:"Int",
 		rev:"Int",
 		title:"String"
+	},
+	CapitalContribution:{
+		amount:"String",
+		created_at:"String",
+		id:"String",
+		kind:"CapitalContributionKind",
+		memo:"String",
+		process_hash:"String"
 	},
 	CapitalContributor:{
 		_created_at:"DateTime",
@@ -8722,6 +8738,12 @@ export const ReturnTypes: Record<string,any> = {
 		totalCount:"Int",
 		totalPages:"Int"
 	},
+	PaginatedCapitalContributionsPaginationResult:{
+		currentPage:"Int",
+		items:"CapitalContribution",
+		totalCount:"Int",
+		totalPages:"Int"
+	},
 	PaginatedCapitalContributorsPaginationResult:{
 		currentPage:"Int",
 		items:"CapitalContributor",
@@ -9286,6 +9308,7 @@ export const ReturnTypes: Record<string,any> = {
 		capitalCommit:"CapitalCommit",
 		capitalCommits:"PaginatedCapitalCommitsPaginationResult",
 		capitalComponentMetrics:"CapitalComponentMetric",
+		capitalContributions:"PaginatedCapitalContributionsPaginationResult",
 		capitalContributor:"CapitalContributor",
 		capitalContributors:"PaginatedCapitalContributorsPaginationResult",
 		capitalCycles:"PaginatedCapitalCyclesPaginationResult",

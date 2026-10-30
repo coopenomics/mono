@@ -23,6 +23,7 @@ import {
   EXPENSE_CHASSIS_PORT,
   FREE_DECISION_PORT,
   INTEGRATION_SETTINGS_PORT,
+  LEDGER2_HISTORY_PORT,
   LOGGER_PORT,
   MATRIX_ROOM_MESSAGING_PORT,
   MUTATION_LOG_PORT,
@@ -63,6 +64,8 @@ export const capitalPorts = {
     ROLE_ASSIGNMENTS_PORT,
     // Остаток паевого взноса на кошельке Благороста — для страницы трансляции.
     USER_WALLET_PORT,
+    // История паевых взносов пайщика (деньги, имущество, РИД) — для страницы «Мои взносы».
+    LEDGER2_HISTORY_PORT,
     REGISTRATION_DOCUMENT_PARAMETERS_REGISTRY_PORT,
     REGISTRATION_REGISTRY_PORT,
     SECRET_CIPHER_PORT,

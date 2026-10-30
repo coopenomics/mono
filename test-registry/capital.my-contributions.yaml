@@ -1,0 +1,37 @@
+feature: capital.my-contributions
+title: Мои взносы — история паевых взносов пайщика в программы Благороста
+
+# Страница «Мои взносы» (решение владельца 30.10.2026): одна лента взносов
+# деньгами, имуществом и результатами интеллектуальной деятельности, кнопки
+# взносов и заявки в работе. Историю даёт книга учёта (ledger2): взнос
+# внесён, когда по нему прошла операция o.cap.invest / o.cap.actprp /
+# o.cap.ridshr / o.cap.import с именем пайщика.
+
+sources:
+  backend:
+    - components/controller/src/extensions/capital/application/services/contributions-history.service.ts
+    - components/controller/src/extensions/capital/application/resolvers/contributions-history.resolver.ts
+    - components/controller/src/extensions/capital/application/dto/contributions/**
+    - components/controller/src/extensions/capital/domain/enums/contribution-kind.enum.ts
+
+cases:
+  - id: cap.mycontr.be.01
+    level: backend
+    kind: happy
+    scenario: Пайщик открывает историю своих взносов.
+    expect: >
+      книга учёта опрашивается только по операциям взносов этого пайщика, новые
+      первыми; каждая операция становится взносом своего вида (деньги,
+      имущество, результат, перенесённый) с суммой, датой и процессом
+    test: components/controller/tests/unit/capital/contributions-history.test.ts
+    external: unreachable
+    external_reason: "книга учёта подменена в модульном тесте; путь через API проверяется на стенде прогоном взносов"
+    status: written
+
+  - id: cap.mycontr.be.02
+    level: backend
+    kind: side
+    scenario: Пайщик запрашивает историю взносов другого пайщика.
+    expect: отказ по праву Contribution read:own — чужое имя в отборе не подтверждает охват «своё»; совет читает любую историю
+    test: ~
+    status: missing

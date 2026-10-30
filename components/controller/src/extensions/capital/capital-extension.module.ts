@@ -411,6 +411,7 @@ import { ShareTransferService } from './application/services/share-transfer.serv
 import { ShareTransferKyselyRepository } from './infrastructure/repositories/share-transfer.kysely-repository';
 import { DebtManagementService } from './application/services/debt-management.service';
 import { PropertyManagementService } from './application/services/property-management.service';
+import { ContributionsHistoryService } from './application/services/contributions-history.service';
 import { VotingService } from './application/services/voting.service';
 import { ResultSubmissionService } from './application/services/result-submission.service';
 import { DistributionManagementService } from './application/services/distribution-management.service';
@@ -471,6 +472,7 @@ import { InvestsManagementResolver } from './application/resolvers/invests-manag
 import { ShareTransferResolver } from './application/resolvers/share-transfer.resolver';
 import { DebtManagementResolver } from './application/resolvers/debt-management.resolver';
 import { PropertyManagementResolver } from './application/resolvers/property-management.resolver';
+import { ContributionsHistoryResolver } from './application/resolvers/contributions-history.resolver';
 import { TimeTrackerResolver } from './application/resolvers/time-tracker.resolver';
 import { VotingResolver } from './application/resolvers/voting.resolver';
 import { ResultSubmissionResolver } from './application/resolvers/result-submission.resolver';
@@ -889,6 +891,7 @@ IssueIdGenerationService,
     ShareTransferKyselyRepository,
     DebtManagementService,
     PropertyManagementService,
+    ContributionsHistoryService,
     VotingService,
     ResultSubmissionService,
     DistributionManagementService,
@@ -952,6 +955,7 @@ IssueIdGenerationService,
     ShareTransferResolver,
     DebtManagementResolver,
     PropertyManagementResolver,
+    ContributionsHistoryResolver,
     VotingResolver,
     ResultSubmissionResolver,
     DistributionManagementResolver,

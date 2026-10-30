@@ -22,6 +22,7 @@ export * as GetDebt from './getDebt'
 
 export * as GetDebts from './getDebts'
 export * as GetProgramProperties from './getProgramProperties'
+export * as GetContributions from './getContributions'
 
 export * as GetExpense from './getExpense'
 

@@ -3566,6 +3566,29 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on CapitalContentRevisionSummary']?: Omit<ValueTypes["CapitalContentRevisionSummary"], "...on CapitalContentRevisionSummary">
 }>;
+	/** Паевой взнос пайщика в программу Благороста */
+["CapitalContribution"]: AliasType<{
+	/** Сумма взноса */
+	amount?:boolean | `@${string}`,
+	/** Дата взноса */
+	created_at?:boolean | `@${string}`,
+	/** Номер операции в книге учёта */
+	id?:boolean | `@${string}`,
+	/** Вид взноса */
+	kind?:boolean | `@${string}`,
+	/** Пояснение операции */
+	memo?:boolean | `@${string}`,
+	/** Идентификатор процесса: взноса имуществом, результата или инвестиции */
+	process_hash?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on CapitalContribution']?: Omit<ValueTypes["CapitalContribution"], "...on CapitalContribution">
+}>;
+	/** Вид паевого взноса: деньгами, имуществом, результатом интеллектуальной деятельности или перенесённый из учёта до перехода на электронный */
+["CapitalContributionKind"]:CapitalContributionKind;
+	["CapitalContributionsFilter"]: {
+	/** Имя пайщика */
+	username: string | Variable<any, string>
+};
 	/** Участник кооператива в системе CAPITAL */
 ["CapitalContributor"]: AliasType<{
 	/** Дата создания записи */
@@ -14999,6 +15022,18 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 		__typename?: boolean | `@${string}`,
 	['...on PaginatedCapitalCommitsPaginationResult']?: Omit<ValueTypes["PaginatedCapitalCommitsPaginationResult"], "...on PaginatedCapitalCommitsPaginationResult">
 }>;
+	["PaginatedCapitalContributionsPaginationResult"]: AliasType<{
+	/** Текущая страница */
+	currentPage?:boolean | `@${string}`,
+	/** Элементы текущей страницы */
+	items?:ValueTypes["CapitalContribution"],
+	/** Общее количество элементов */
+	totalCount?:boolean | `@${string}`,
+	/** Общее количество страниц */
+	totalPages?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on PaginatedCapitalContributionsPaginationResult']?: Omit<ValueTypes["PaginatedCapitalContributionsPaginationResult"], "...on PaginatedCapitalContributionsPaginationResult">
+}>;
 	["PaginatedCapitalContributorsPaginationResult"]: AliasType<{
 	/** Текущая страница */
 	currentPage?:boolean | `@${string}`,
@@ -16563,6 +16598,7 @@ capitalCandidates?: [{	filter?: ValueTypes["CandidateFilterInput"] | undefined |
 capitalCommit?: [{	data: ValueTypes["GetCapitalCommitByHashInput"] | Variable<any, string>},ValueTypes["CapitalCommit"]],
 capitalCommits?: [{	filter?: ValueTypes["CapitalCommitFilter"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedCapitalCommitsPaginationResult"]],
 capitalComponentMetrics?: [{	data: ValueTypes["GetComponentMetricsInput"] | Variable<any, string>},ValueTypes["CapitalComponentMetric"]],
+capitalContributions?: [{	filter: ValueTypes["CapitalContributionsFilter"] | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedCapitalContributionsPaginationResult"]],
 capitalContributor?: [{	data: ValueTypes["GetContributorInput"] | Variable<any, string>},ValueTypes["CapitalContributor"]],
 capitalContributors?: [{	filter?: ValueTypes["CapitalContributorFilter"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedCapitalContributorsPaginationResult"]],
 capitalCycles?: [{	filter?: ValueTypes["CapitalCycleFilter"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedCapitalCyclesPaginationResult"]],
@@ -21846,6 +21882,28 @@ export type ResolverInputTypes = {
 	title?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	/** Паевой взнос пайщика в программу Благороста */
+["CapitalContribution"]: AliasType<{
+	/** Сумма взноса */
+	amount?:boolean | `@${string}`,
+	/** Дата взноса */
+	created_at?:boolean | `@${string}`,
+	/** Номер операции в книге учёта */
+	id?:boolean | `@${string}`,
+	/** Вид взноса */
+	kind?:boolean | `@${string}`,
+	/** Пояснение операции */
+	memo?:boolean | `@${string}`,
+	/** Идентификатор процесса: взноса имуществом, результата или инвестиции */
+	process_hash?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Вид паевого взноса: деньгами, имуществом, результатом интеллектуальной деятельности или перенесённый из учёта до перехода на электронный */
+["CapitalContributionKind"]:CapitalContributionKind;
+	["CapitalContributionsFilter"]: {
+	/** Имя пайщика */
+	username: string
+};
 	/** Участник кооператива в системе CAPITAL */
 ["CapitalContributor"]: AliasType<{
 	/** Дата создания записи */
@@ -32957,6 +33015,17 @@ walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputType
 	totalPages?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	["PaginatedCapitalContributionsPaginationResult"]: AliasType<{
+	/** Текущая страница */
+	currentPage?:boolean | `@${string}`,
+	/** Элементы текущей страницы */
+	items?:ResolverInputTypes["CapitalContribution"],
+	/** Общее количество элементов */
+	totalCount?:boolean | `@${string}`,
+	/** Общее количество страниц */
+	totalPages?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	["PaginatedCapitalContributorsPaginationResult"]: AliasType<{
 	/** Текущая страница */
 	currentPage?:boolean | `@${string}`,
@@ -34448,6 +34517,7 @@ capitalCandidates?: [{	filter?: ResolverInputTypes["CandidateFilterInput"] | und
 capitalCommit?: [{	data: ResolverInputTypes["GetCapitalCommitByHashInput"]},ResolverInputTypes["CapitalCommit"]],
 capitalCommits?: [{	filter?: ResolverInputTypes["CapitalCommitFilter"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedCapitalCommitsPaginationResult"]],
 capitalComponentMetrics?: [{	data: ResolverInputTypes["GetComponentMetricsInput"]},ResolverInputTypes["CapitalComponentMetric"]],
+capitalContributions?: [{	filter: ResolverInputTypes["CapitalContributionsFilter"],	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedCapitalContributionsPaginationResult"]],
 capitalContributor?: [{	data: ResolverInputTypes["GetContributorInput"]},ResolverInputTypes["CapitalContributor"]],
 capitalContributors?: [{	filter?: ResolverInputTypes["CapitalContributorFilter"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedCapitalContributorsPaginationResult"]],
 capitalCycles?: [{	filter?: ResolverInputTypes["CapitalCycleFilter"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedCapitalCyclesPaginationResult"]],
@@ -39589,6 +39659,26 @@ export type ModelTypes = {
 	rev: number,
 	/** Заголовок на момент редакции */
 	title: string
+};
+	/** Паевой взнос пайщика в программу Благороста */
+["CapitalContribution"]: {
+		/** Сумма взноса */
+	amount: string,
+	/** Дата взноса */
+	created_at: string,
+	/** Номер операции в книге учёта */
+	id: string,
+	/** Вид взноса */
+	kind: ModelTypes["CapitalContributionKind"],
+	/** Пояснение операции */
+	memo?: string | undefined | null,
+	/** Идентификатор процесса: взноса имуществом, результата или инвестиции */
+	process_hash?: string | undefined | null
+};
+	["CapitalContributionKind"]:CapitalContributionKind;
+	["CapitalContributionsFilter"]: {
+	/** Имя пайщика */
+	username: string
 };
 	/** Участник кооператива в системе CAPITAL */
 ["CapitalContributor"]: {
@@ -50675,6 +50765,16 @@ export type ModelTypes = {
 	/** Общее количество страниц */
 	totalPages: number
 };
+	["PaginatedCapitalContributionsPaginationResult"]: {
+		/** Текущая страница */
+	currentPage: number,
+	/** Элементы текущей страницы */
+	items: Array<ModelTypes["CapitalContribution"]>,
+	/** Общее количество элементов */
+	totalCount: number,
+	/** Общее количество страниц */
+	totalPages: number
+};
 	["PaginatedCapitalContributorsPaginationResult"]: {
 		/** Текущая страница */
 	currentPage: number,
@@ -52077,6 +52177,8 @@ export type ModelTypes = {
 	capitalCommits: ModelTypes["PaginatedCapitalCommitsPaginationResult"],
 	/** Цели по мерам на компоненте с фактом */
 	capitalComponentMetrics: Array<ModelTypes["CapitalComponentMetric"]>,
+	/** История паевых взносов пайщика в программы Благороста: деньгами, имуществом и результатами интеллектуальной деятельности */
+	capitalContributions: ModelTypes["PaginatedCapitalContributionsPaginationResult"],
 	/** Получение участника по ID, имени пользователя или хешу участника */
 	capitalContributor?: ModelTypes["CapitalContributor"] | undefined | null,
 	/** Получение списка участников кооператива с фильтрацией */
@@ -57468,6 +57570,29 @@ export type GraphQLTypes = {
 	/** Заголовок на момент редакции */
 	title: string,
 	['...on CapitalContentRevisionSummary']: Omit<GraphQLTypes["CapitalContentRevisionSummary"], "...on CapitalContentRevisionSummary">
+};
+	/** Паевой взнос пайщика в программу Благороста */
+["CapitalContribution"]: {
+	__typename: "CapitalContribution",
+	/** Сумма взноса */
+	amount: string,
+	/** Дата взноса */
+	created_at: string,
+	/** Номер операции в книге учёта */
+	id: string,
+	/** Вид взноса */
+	kind: GraphQLTypes["CapitalContributionKind"],
+	/** Пояснение операции */
+	memo?: string | undefined | null,
+	/** Идентификатор процесса: взноса имуществом, результата или инвестиции */
+	process_hash?: string | undefined | null,
+	['...on CapitalContribution']: Omit<GraphQLTypes["CapitalContribution"], "...on CapitalContribution">
+};
+	/** Вид паевого взноса: деньгами, имуществом, результатом интеллектуальной деятельности или перенесённый из учёта до перехода на электронный */
+["CapitalContributionKind"]: CapitalContributionKind;
+	["CapitalContributionsFilter"]: {
+		/** Имя пайщика */
+	username: string
 };
 	/** Участник кооператива в системе CAPITAL */
 ["CapitalContributor"]: {
@@ -69310,6 +69435,18 @@ export type GraphQLTypes = {
 	totalPages: number,
 	['...on PaginatedCapitalCommitsPaginationResult']: Omit<GraphQLTypes["PaginatedCapitalCommitsPaginationResult"], "...on PaginatedCapitalCommitsPaginationResult">
 };
+	["PaginatedCapitalContributionsPaginationResult"]: {
+	__typename: "PaginatedCapitalContributionsPaginationResult",
+	/** Текущая страница */
+	currentPage: number,
+	/** Элементы текущей страницы */
+	items: Array<GraphQLTypes["CapitalContribution"]>,
+	/** Общее количество элементов */
+	totalCount: number,
+	/** Общее количество страниц */
+	totalPages: number,
+	['...on PaginatedCapitalContributionsPaginationResult']: Omit<GraphQLTypes["PaginatedCapitalContributionsPaginationResult"], "...on PaginatedCapitalContributionsPaginationResult">
+};
 	["PaginatedCapitalContributorsPaginationResult"]: {
 	__typename: "PaginatedCapitalContributorsPaginationResult",
 	/** Текущая страница */
@@ -70888,6 +71025,8 @@ export type GraphQLTypes = {
 	capitalCommits: GraphQLTypes["PaginatedCapitalCommitsPaginationResult"],
 	/** Цели по мерам на компоненте с фактом */
 	capitalComponentMetrics: Array<GraphQLTypes["CapitalComponentMetric"]>,
+	/** История паевых взносов пайщика в программы Благороста: деньгами, имуществом и результатами интеллектуальной деятельности */
+	capitalContributions: GraphQLTypes["PaginatedCapitalContributionsPaginationResult"],
 	/** Получение участника по ID, имени пользователя или хешу участника */
 	capitalContributor?: GraphQLTypes["CapitalContributor"] | undefined | null,
 	/** Получение списка участников кооператива с фильтрацией */
@@ -74072,6 +74211,13 @@ export enum CapitalContentRevisionOrigin {
 	RESTORE = "RESTORE",
 	WEB = "WEB"
 }
+/** Вид паевого взноса: деньгами, имуществом, результатом интеллектуальной деятельности или перенесённый из учёта до перехода на электронный */
+export enum CapitalContributionKind {
+	IMPORT = "IMPORT",
+	MONEY = "MONEY",
+	PROPERTY = "PROPERTY",
+	RESULT = "RESULT"
+}
 /** Тип сущности в избранном: проект, компонент, задача или артефакт */
 export enum CapitalFavoriteTargetType {
 	ARTIFACT = "ARTIFACT",
@@ -75279,6 +75425,8 @@ type ZEUS_VARIABLES = {
 	["CapitalCommitFilter"]: ValueTypes["CapitalCommitFilter"];
 	["CapitalContentEntityType"]: ValueTypes["CapitalContentEntityType"];
 	["CapitalContentRevisionOrigin"]: ValueTypes["CapitalContentRevisionOrigin"];
+	["CapitalContributionKind"]: ValueTypes["CapitalContributionKind"];
+	["CapitalContributionsFilter"]: ValueTypes["CapitalContributionsFilter"];
 	["CapitalContributorFilter"]: ValueTypes["CapitalContributorFilter"];
 	["CapitalCreateProgramExpenseInput"]: ValueTypes["CapitalCreateProgramExpenseInput"];
 	["CapitalCycleFilter"]: ValueTypes["CapitalCycleFilter"];

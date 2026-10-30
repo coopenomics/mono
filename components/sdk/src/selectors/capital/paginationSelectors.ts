@@ -7,6 +7,7 @@ import { rawContributorSelector } from './contributorSelector'
 import { rawCycleSelector } from './cycleSelector'
 import { rawDebtSelector } from './debtSelector'
 import { rawProgramPropertySelector } from './programPropertySelector'
+import { rawContributionSelector } from './contributionSelector'
 import { rawExpenseSelector } from './expenseSelector'
 import { rawProgramExpenseSelector } from './programExpenseSelector'
 import { rawInvestSelector } from './investSelector'
@@ -139,3 +140,9 @@ const rawProgramPropertiesPaginationSelector = { ...paginationSelector, items: r
 const _validateProgramProperties: MakeAllFieldsRequired<ValueTypes['PaginatedCapitalProgramPropertiesPaginationResult']> = rawProgramPropertiesPaginationSelector
 export type programPropertiesPaginationModel = ModelTypes['PaginatedCapitalProgramPropertiesPaginationResult']
 export const programPropertiesPaginationSelector = Selector('PaginatedCapitalProgramPropertiesPaginationResult')(rawProgramPropertiesPaginationSelector)
+
+// Пагинированный селектор истории паевых взносов
+const rawContributionsPaginationSelector = { ...paginationSelector, items: rawContributionSelector }
+const _validateContributions: MakeAllFieldsRequired<ValueTypes['PaginatedCapitalContributionsPaginationResult']> = rawContributionsPaginationSelector
+export type contributionsPaginationModel = ModelTypes['PaginatedCapitalContributionsPaginationResult']
+export const contributionsPaginationSelector = Selector('PaginatedCapitalContributionsPaginationResult')(rawContributionsPaginationSelector)
