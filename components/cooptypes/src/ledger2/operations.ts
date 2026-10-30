@@ -92,8 +92,9 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
   { code: 'o.wal.wthcpl', process_type: 'p.wal.wthdrw', contract: 'wallet', name: 'COMPLETE_WITHDRAW', wallet_op: 'BURN', wallet_from: 'w.wal.wpend', wallet_to: null, debit: 80, credit: 51, human_name: 'Возврат паевого взноса пайщику' },
 
   // capital (ADR-009: единые программные кошельки `w.cap.blago`/`w.cap.gen`)
-  // IMPORT и ACCEPT_PROPERTY — Dr 04 (НМА), не Dr 51: импорт/акт-2 фиксируют
-  // имущественный вклад как РИД, не деньги. Денежные взносы в Благорост — INVEST.
+  // IMPORT — Dr 04 (НМА), не Dr 51: импорт фиксирует взнос как РИД, не деньги.
+  // ACCEPT_PROPERTY — Dr 08: имущество принято во вложения во внеоборотные активы
+  // (решение владельца 30.10.2026). Денежные взносы в Благорост — INVEST.
   { code: 'o.cap.import', process_type: 'p.cap.import', contract: 'capital', name: 'IMPORT', wallet_op: 'ISSUE', wallet_from: null, wallet_to: 'w.cap.blago', debit: 4, credit: 80, human_name: 'Паевой взнос по ЦПП «Благорост» (офлайн-импорт)' },
 
   { code: 'o.cap.invest', process_type: 'p.cap.invest', contract: 'capital', name: 'INVEST', wallet_op: 'TRANSFER', wallet_from: 'w.wal.share', wallet_to: 'w.cap.blago', debit: null, credit: null, human_name: 'Инвестиция в ЦПП «Благорост»' },
@@ -108,7 +109,7 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
 
   { code: 'o.cap.ridshr', process_type: 'p.cap.rid', contract: 'capital', name: 'SETTLE_RID', wallet_op: 'NONE', wallet_from: null, wallet_to: null, debit: 76, credit: 80, human_name: 'Паевой взнос пайщика результатом интеллектуальной деятельности по программе «Генератор»' },
 
-  { code: 'o.cap.actprp', process_type: 'p.cap.prop', contract: 'capital', name: 'ACCEPT_PROPERTY', wallet_op: 'ISSUE', wallet_from: null, wallet_to: 'w.cap.blago', debit: 4, credit: 80, human_name: 'Паевой взнос (имущественный) по программе «Благорост»' },
+  { code: 'o.cap.actprp', process_type: 'p.cap.prop', contract: 'capital', name: 'ACCEPT_PROPERTY', wallet_op: 'ISSUE', wallet_from: null, wallet_to: 'w.cap.blago', debit: 8, credit: 80, human_name: 'Паевой взнос (имущественный) по программе «Благорост»' },
 
   { code: 'o.cap.preimp', process_type: 'p.cap.preimp', contract: 'capital', name: 'PREIMP', wallet_op: 'ISSUE', wallet_from: null, wallet_to: 'w.cap.preimp', debit: 4, credit: 80, human_name: 'Первичный учёт РИД-взноса до перехода на электронный учёт' },
 

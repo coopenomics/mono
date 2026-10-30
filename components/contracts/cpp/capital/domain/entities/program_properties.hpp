@@ -84,7 +84,7 @@ typedef eosio::multi_index<
  */
  inline program_property get_program_property_or_fail(eosio::name coopname, const checksum256 &hash) {
   auto property = get_program_property(coopname, hash);
-  eosio::check(property.has_value(), "Предложение по программному имущественному взносу не найдено");
+  eosio::check(property.has_value(), "CAPITAL_PROPERTY_NOT_FOUND: Предложение по программному имущественному взносу не найдено");
 
   return property.value();
 }
@@ -97,7 +97,7 @@ typedef eosio::multi_index<
 inline void delete_program_property(eosio::name coopname, uint64_t property_id) {
   program_property_index properties(_capital, coopname.value);
   auto property = properties.find(property_id);
-  eosio::check(property != properties.end(), "Предложение по программному имущественному взносу не найдено");
+  eosio::check(property != properties.end(), "CAPITAL_PROPERTY_NOT_FOUND: Предложение по программному имущественному взносу не найдено");
 
   properties.erase(property);
 }
@@ -160,7 +160,7 @@ inline void create_program_property_with_approve(
 inline void update_program_property_status(eosio::name coopname, uint64_t property_id, eosio::name new_status) {
   program_property_index properties(_capital, coopname.value);
   auto property = properties.find(property_id);
-  eosio::check(property != properties.end(), "Предложение по программному имущественному взносу не найдено");
+  eosio::check(property != properties.end(), "CAPITAL_PROPERTY_NOT_FOUND: Предложение по программному имущественному взносу не найдено");
   
   properties.modify(property, RamPayer::of(properties, coopname), [&](auto &p) {
     p.status = new_status;
@@ -174,7 +174,7 @@ inline void set_program_property_approved_statement(eosio::name coopname, uint64
   program_property_index properties(_capital, coopname.value);
   auto property = properties.find(property_id);
   
-  eosio::check(property != properties.end(), "Предложение по программному имущественному взносу не найдено");
+  eosio::check(property != properties.end(), "CAPITAL_PROPERTY_NOT_FOUND: Предложение по программному имущественному взносу не найдено");
   
   properties.modify(property, RamPayer::of(properties, coopname), [&](auto &p) {
     p.statement = approved_statement;
@@ -187,7 +187,7 @@ inline void set_program_property_approved_statement(eosio::name coopname, uint64
 inline void set_program_property_authorization(eosio::name coopname, uint64_t property_id, const document2 &authorization) {
   program_property_index properties(_capital, coopname.value);
   auto property = properties.find(property_id);
-  eosio::check(property != properties.end(), "Предложение по программному имущественному взносу не найдено");
+  eosio::check(property != properties.end(), "CAPITAL_PROPERTY_NOT_FOUND: Предложение по программному имущественному взносу не найдено");
   
   properties.modify(property, RamPayer::of(properties, coopname), [&](auto &p) {
     p.authorization = authorization;
@@ -200,7 +200,7 @@ inline void set_program_property_authorization(eosio::name coopname, uint64_t pr
 inline void set_program_property_act1(eosio::name coopname, uint64_t property_id, const document2 &act1) {
   program_property_index properties(_capital, coopname.value);
   auto property = properties.find(property_id);
-  eosio::check(property != properties.end(), "Предложение по программному имущественному взносу не найдено");
+  eosio::check(property != properties.end(), "CAPITAL_PROPERTY_NOT_FOUND: Предложение по программному имущественному взносу не найдено");
   
   properties.modify(property, RamPayer::of(properties, coopname), [&](auto &p) {
     p.act = act1;
@@ -213,7 +213,7 @@ inline void set_program_property_act1(eosio::name coopname, uint64_t property_id
 inline void set_program_property_act2(eosio::name coopname, uint64_t property_id, const document2 &act2) {
   program_property_index properties(_capital, coopname.value);
   auto property = properties.find(property_id);
-  eosio::check(property != properties.end(), "Предложение по программному имущественному взносу не найдено");
+  eosio::check(property != properties.end(), "CAPITAL_PROPERTY_NOT_FOUND: Предложение по программному имущественному взносу не найдено");
   
   properties.modify(property, RamPayer::of(properties, coopname), [&](auto &p) {
     p.act = act2;

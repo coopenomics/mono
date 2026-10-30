@@ -31,7 +31,7 @@ void capital::approvepgprp(eosio::name coopname, eosio::name username, checksum2
   
   // Проверяем статус
   eosio::check(property.status == Capital::ProgramProperties::Status::CREATED, 
-               "Предложение должно быть в статусе 'created'");
+               "CAPITAL_PROPERTY_NOT_CREATED: Председатель одобряет только новое предложение");
              
   
   // Сохраняем одобренное заявление

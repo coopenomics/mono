@@ -80,7 +80,7 @@ namespace operations {
     inline constexpr eosio::name COMMIT_RID          = "o.cap.commit"_n;   ///< Коммит РИД на ответственное хранение (Dr 08 / Cr 76, ISSUE GENERATOR_FUND). Одобренный мастером коммит — переданный кооперативу объект, паевым взносом он становится по заявлению пайщика и решению совета, поэтому источник актива — обязательство перед пайщиком-владельцем коммита на 76.
     inline constexpr eosio::name ACCEPT_RID          = "o.cap.accept"_n;   ///< Приём РИД в НМА (Dr 04 / Cr 08, NONE — только бухпроводка, кошелёк остаётся на GENERATOR_FUND до конвертации сегмента).
     inline constexpr eosio::name SETTLE_RID          = "o.cap.ridshr"_n;   ///< Признание паевого взноса пайщика по принятому РИД (Dr 76 / Cr 80, NONE — кошелёк переносит convertsegm). Вторая нога акта-2: обязательство перед пайщиком гасится паевым фондом.
-    inline constexpr eosio::name ACCEPT_PROPERTY     = "o.cap.actprp"_n;   ///< Акт-2 имущественный паевой взнос (Dr 04 / Cr 80, ISSUE BLAGOROST_FUND).
+    inline constexpr eosio::name ACCEPT_PROPERTY     = "o.cap.actprp"_n;   ///< Акт-2 имущественный паевой взнос (Dr 08 / Cr 80, ISSUE BLAGOROST_FUND).
     inline constexpr eosio::name PREIMP              = "o.cap.preimp"_n;   ///< Первичный учёт РИД-взноса до перехода на электронный учёт (Dr 04 / Cr 80, ISSUE PREIMP_FUND).
     inline constexpr eosio::name DROP_PREIMP         = "o.cap.drppre"_n;   ///< Закрытие пред-импорт-учёта при переходе на электронный учёт (Dr 80 / Cr 04, BURN PREIMP_FUND). Вызывается из capital::importcontr перед o.cap.import.
     inline constexpr eosio::name LEND                = "o.cap.lend"_n;     ///< Выдача беспроцентного займа пайщику (Dr 58 / Cr 51, ISSUE LOAN_ISSUED).
@@ -387,11 +387,13 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
     ledger2_accounts::OTHER_SETTLEMENTS, ledger2_accounts::SHARE_FUND,
     "Паевой взнос результатом интеллектуальной деятельности по программе «Генератор»" },
 
-  // 9. Акт-2 имущественный паевой взнос: Dr 04 / Cr 80, ISSUE BLAGOROST_FUND (ADR-009).
-  // Имущественный (РИД) — Dr 04 (НМА), не Dr 51 (банк). Денежный паевой —
-  // через o.wal.depcpl или o.cap.invest.
+  // 9. Акт-2 имущественный паевой взнос: Dr 08 / Cr 80, ISSUE BLAGOROST_FUND (ADR-009).
+  // Имущество (не РИД, не деньги) принимается во вложения во внеоборотные
+  // активы — Dr 08 (решение владельца 30.10.2026); дальше бухгалтер переводит
+  // его в основные средства или материалы. Денежный паевой — через
+  // o.wal.depcpl или o.cap.invest.
   { operations::capital::ACCEPT_PROPERTY, processes::capital::PROPERTY, WalletOp::ISSUE, eosio::name{}, ledger2_wallets::BLAGOROST_FUND,
-    ledger2_accounts::INTANGIBLE_ASSETS, ledger2_accounts::SHARE_FUND,
+    ledger2_accounts::NON_CURRENT_INVESTMENTS, ledger2_accounts::SHARE_FUND,
     "Паевой взнос (не денежный) по программе «Благорост»" },
 
   // 9a. Первичный учёт РИД-взноса: Dr 04 / Cr 80, ISSUE PREIMP_FUND.

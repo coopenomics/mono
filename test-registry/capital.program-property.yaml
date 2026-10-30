@@ -1,0 +1,90 @@
+feature: capital.program-property
+title: Паевой взнос имуществом в программу «Благорост»
+
+# Пайщик передаёт кооперативу имущество (одна позиция на заявление) паевым
+# взносом в программу «Благорост»: заявление → одобрение председателя →
+# решение совета → акт приёма-передачи (пайщик, затем председатель в запросах
+# одобрений) → оценка имущества зачисляется на кошелёк программы, Дт 08 / Кт 80.
+#
+# Заведено 30.10.2026: процесс был в контракте без интерфейса. Решения
+# владельца 30.10.2026 — вторая подпись акта через запросы одобрений (как акт
+# РИД преподавателя), проводка на счёт 08, одна позиция имущества на заявление.
+
+sources:
+  contract:
+    - components/contracts/cpp/capital/app/property_management/contribute_property_in_program/**
+    - components/contracts/cpp/capital/domain/entities/program_properties.hpp
+    - components/contracts/cpp/capital/p.cap.prop.standard.yaml
+
+cases:
+  - id: cap.pgprp.happy.01
+    level: contract
+    kind: happy
+    scenario: >
+      Пайщик подаёт заявление на 10 000 RUB, председатель одобряет, совет
+      принимает решение, пайщик подписывает акт, председатель подтверждает
+      одобрение акта с подписями обеих сторон.
+    expect: >
+      кошелёк программы «Благорост» пайщика и паевой фонд выросли на оценку
+      имущества, накопленная сумма взносов имуществом пайщика выросла на ту же
+      сумму, запись предложения удалена
+    test: components/boot/src/tests/capital.test.ts
+    status: written
+
+  - id: cap.pgprp.break.01
+    level: contract
+    kind: break
+    scenario: >
+      Совет вызывает приём акта, под которым стоит только подпись председателя
+      (подписи пайщика нет).
+    expect: отказ проверки документа — акт принимается только с двумя подписями
+    test: components/boot/src/tests/capital.test.ts
+    status: written
+
+  - id: cap.pgprp.break.02
+    level: contract
+    kind: break
+    scenario: Кооператив сам вызывает приём акта, минуя одобрение председателя в совете.
+    expect: отказ авторизации — приём акта вызывает только контракт совета
+    test: components/boot/src/tests/capital.test.ts
+    status: written
+
+  - id: cap.pgprp.side.01
+    level: contract
+    kind: side
+    scenario: Пайщик подписывает акт до решения совета.
+    expect: отказ CAPITAL_PROPERTY_NOT_AUTHORIZED
+    test: components/boot/src/tests/capital.test.ts
+    status: written
+
+  - id: cap.pgprp.side.02
+    level: contract
+    kind: side
+    scenario: Акт подписывает другой пайщик, а не автор заявления.
+    expect: отказ CAPITAL_PROPERTY_NOT_OWNER
+    test: ~
+    status: missing
+
+  - id: cap.pgprp.side.03
+    level: contract
+    kind: side
+    scenario: Председатель отказывает в подписи акта в запросах одобрений.
+    expect: предложение удалено, кошельки и проводки не двигались
+    test: components/boot/src/tests/capital.test.ts
+    status: written
+
+  - id: cap.pgprp.side.04
+    level: contract
+    kind: side
+    scenario: Заявление подписано не тем пайщиком, от имени которого подано.
+    expect: отказ проверки документа на подписанта
+    test: ~
+    status: missing
+
+  - id: cap.pgprp.side.05
+    level: contract
+    kind: side
+    scenario: Нулевая оценка имущества или пустое описание.
+    expect: отказ CAPITAL_PROPERTY_AMOUNT_INVALID либо CAPITAL_PROPERTY_DESCRIPTION_REQUIRED
+    test: ~
+    status: missing
