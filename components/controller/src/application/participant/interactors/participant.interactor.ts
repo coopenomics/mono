@@ -1,4 +1,5 @@
 import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 import { DocumentDomainService } from '~/domain/document/services/document-domain.service';
 import { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
 import { Inject, Injectable, Logger } from '@nestjs/common';
@@ -64,43 +65,43 @@ export class ParticipantInteractor {
   ) {}
 
   async generateParticipantApplication(
-    data: Cooperative.Registry.ParticipantApplication.Action,
+    data: Registry.ParticipantApplication.Action,
     options: Cooperative.Document.IGenerationOptions
   ): Promise<DocumentDomainEntity> {
-    data.registry_id = Cooperative.Registry.ParticipantApplication.registry_id;
+    data.registry_id = Registry.ParticipantApplication.registry_id;
     return await this.documentDomainService.generateDocument({ data, options });
   }
 
   async generateParticipantApplicationDecision(
-    data: Cooperative.Registry.DecisionOfParticipantApplication.Action,
+    data: Registry.DecisionOfParticipantApplication.Action,
     options: Cooperative.Document.IGenerationOptions
   ): Promise<DocumentDomainEntity> {
-    data.registry_id = Cooperative.Registry.DecisionOfParticipantApplication.registry_id;
+    data.registry_id = Registry.DecisionOfParticipantApplication.registry_id;
     return await this.documentDomainService.generateDocument({ data, options });
   }
 
   async generateMembershipExitApplication(
-    data: Cooperative.Registry.ParticipantExitApplication.Action,
+    data: Registry.ParticipantExitApplication.Action,
     options: Cooperative.Document.IGenerationOptions
   ): Promise<DocumentDomainEntity> {
-    data.registry_id = Cooperative.Registry.ParticipantExitApplication.registry_id;
+    data.registry_id = Registry.ParticipantExitApplication.registry_id;
     return await this.documentDomainService.generateDocument({ data, options });
   }
 
   /** Заявление об аннулировании соглашений ЦПП — подписывается вместе с заявлением о выходе. */
   async generateProgramAgreementsAnnulment(
-    data: Cooperative.Registry.ProgramAgreementsAnnulmentStatement.Action,
+    data: Registry.ProgramAgreementsAnnulmentStatement.Action,
     options: Cooperative.Document.IGenerationOptions
   ): Promise<DocumentDomainEntity> {
-    data.registry_id = Cooperative.Registry.ProgramAgreementsAnnulmentStatement.registry_id;
+    data.registry_id = Registry.ProgramAgreementsAnnulmentStatement.registry_id;
     return await this.documentDomainService.generateDocument({ data, options });
   }
 
   async generateMembershipExitDecision(
-    data: Cooperative.Registry.DecisionOfParticipantExit.Action,
+    data: Registry.DecisionOfParticipantExit.Action,
     options: Cooperative.Document.IGenerationOptions
   ): Promise<DocumentDomainEntity> {
-    data.registry_id = Cooperative.Registry.DecisionOfParticipantExit.registry_id;
+    data.registry_id = Registry.DecisionOfParticipantExit.registry_id;
     return await this.documentDomainService.generateDocument({ data, options });
   }
 

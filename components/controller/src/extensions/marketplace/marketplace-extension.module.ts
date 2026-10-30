@@ -16,7 +16,7 @@ import { merge } from 'lodash';
 import { IConfig, defaultConfig, Schema } from './types';
 import { MarketplaceExtensionDomainModule } from './domain/marketplace-domain.module';
 import { MarketplaceExtensionApplicationModule } from './application/marketplace-application.module';
-import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 import { MARKETPLACE_AGREEMENT_TYPE } from './constants/marketplace-agreement-ids';
 import { registerMarketplaceInAgreementRegistry } from './application/registration/register-marketplace-in-agreement-registry';
 import { registerMarketplaceOnboardingSteps } from './application/onboarding/register-marketplace-onboarding-steps';
@@ -191,7 +191,7 @@ export class MarketplaceExtension extends BaseExtensionModule {
       coopAcceptance: {
         accepted: true,
         document_registry_id:
-          Cooperative.Registry.MarketplaceProgramTemplate.registry_id,
+          Registry.MarketplaceProgramTemplate.registry_id,
         accepted_at: acceptedAt,
         accepted_by_board_decision_id: boardDecisionRef,
       },

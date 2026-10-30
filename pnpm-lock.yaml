@@ -32,6 +32,9 @@ importers:
       '@coopenomics/docs-factory':
         specifier: 1.2.0
         version: 1.2.0(chokidar@3.6.0)(cooptypes@components+cooptypes)
+      '@coopenomics/docs-templates':
+        specifier: 1.2.0
+        version: 1.2.0(cooptypes@components+cooptypes)
       '@coopenomics/extension-kit':
         specifier: workspace:*
         version: link:components/extension-kit
@@ -93,6 +96,9 @@ importers:
 
   components/api-tests:
     dependencies:
+      '@coopenomics/docs-templates':
+        specifier: 1.2.0
+        version: 1.2.0(cooptypes@components+cooptypes)
       '@coopenomics/sdk':
         specifier: workspace:*
         version: link:../sdk
@@ -222,6 +228,9 @@ importers:
       '@coopenomics/docs-factory':
         specifier: 1.2.0
         version: 1.2.0(chokidar@3.6.0)(cooptypes@components+cooptypes)
+      '@coopenomics/docs-templates':
+        specifier: 1.2.0
+        version: 1.2.0(cooptypes@components+cooptypes)
       '@coopenomics/sdk':
         specifier: workspace:*
         version: link:../sdk
@@ -317,6 +326,9 @@ importers:
 
   components/contracts/standards-site:
     dependencies:
+      '@coopenomics/docs-templates':
+        specifier: 1.2.0
+        version: 1.2.0(cooptypes@components+cooptypes)
       '@dagrejs/dagre':
         specifier: ^1.1.8
         version: 1.1.8
@@ -387,6 +399,9 @@ importers:
       '@coopenomics/docs-factory':
         specifier: 1.2.0
         version: 1.2.0(chokidar@3.6.0)(cooptypes@components+cooptypes)
+      '@coopenomics/docs-templates':
+        specifier: 1.2.0
+        version: 1.2.0(cooptypes@components+cooptypes)
       '@coopenomics/extension-kit':
         specifier: workspace:*
         version: link:../extension-kit
@@ -935,6 +950,9 @@ importers:
       '@coopenomics/auth':
         specifier: workspace:*
         version: link:../auth
+      '@coopenomics/docs-templates':
+        specifier: 1.2.0
+        version: 1.2.0(cooptypes@components+cooptypes)
       '@coopenomics/i18n':
         specifier: workspace:*
         version: link:../i18n
@@ -1298,6 +1316,9 @@ importers:
       '@casl/ability':
         specifier: ^7.0.0
         version: 7.0.1
+      '@coopenomics/docs-templates':
+        specifier: 1.2.0
+        version: 1.2.0(cooptypes@components+cooptypes)
       '@coopenomics/i18n':
         specifier: workspace:*
         version: link:../i18n
@@ -1446,6 +1467,9 @@ importers:
       '@coopenomics/docs-factory':
         specifier: 1.2.0
         version: 1.2.0(chokidar@3.6.0)(cooptypes@components+cooptypes)
+      '@coopenomics/docs-templates':
+        specifier: 1.2.0
+        version: 1.2.0(cooptypes@components+cooptypes)
       '@wharfkit/antelope':
         specifier: ^1.1.1
         version: 1.2.0

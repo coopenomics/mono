@@ -6,7 +6,7 @@ import type { GetExpenseInputDTO } from '../dto/expenses_management/get-expense-
 import { PaginationInputDTO, PaginationResult, GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO, GenerateDocumentInputDTO } from '@coopenomics/extension-kit';
 import { ExpenseOutputDTO } from '../dto/expenses_management/expense.dto';
 import type { ExpenseDomainEntity } from '../../domain/entities/expense.entity';
-import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 import { DOCUMENT_PORT, type IDocumentPort,
   type InnerTransactResult,
 } from '@coopenomics/innercoop';
@@ -107,7 +107,7 @@ export class ExpensesManagementService {
     const document = await this.documentPort.generate({
       data: {
         ...data,
-        registry_id: Cooperative.Registry.ExpenseStatement.registry_id,
+        registry_id: Registry.ExpenseStatement.registry_id,
       },
       options,
     });
@@ -124,7 +124,7 @@ export class ExpensesManagementService {
     const document = await this.documentPort.generate({
       data: {
         ...data,
-        registry_id: Cooperative.Registry.ExpenseDecision.registry_id,
+        registry_id: Registry.ExpenseDecision.registry_id,
       },
       options,
     });

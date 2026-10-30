@@ -39,6 +39,7 @@
   },
   "dependencies": {
     "@coopenomics/docs-factory": "1.2.0",
+    "@coopenomics/docs-templates": "1.2.0",
     "@coopenomics/sdk": "workspace:*",
     "@types/pg": "^8.16.0",
     "axios": "^1.13.5",

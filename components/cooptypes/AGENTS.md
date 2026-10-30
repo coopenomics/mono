@@ -29,8 +29,6 @@ src/
 │   └── wrap/            — WrapContract: привилегированные действия
 ├── cooperative/
 │   ├── users/           — IIndividualData, IOrganizationData, IEntrepreneurData
-│   ├── registry/        — Реестр шаблонов документов с Markdown-шаблонами
-│   │   ├── index.ts     — Экспорт всех шаблонов по registry_id
 │   │   └── <id>.<Name>/ — Каждая директория = один шаблон
 │   │       ├── index.ts — Метаданные (title, description, context, model, translations)
 │   │       └── template.md — Markdown-шаблон (не у всех)
@@ -69,15 +67,13 @@ RegistratorContract.Tables.Cooperatives.ICooperative // интерфейс ст�
 SovietContract.Actions.Decisions.VoteFor.IVoteForDecision // интерфейс параметров действия
 ```
 
-### Реестр шаблонов (cooperative/registry/)
+### Шаблоны документов — в `@coopenomics/docs-templates`
 
-Каждый шаблон (по `registry_id`) содержит:
-- `title` — название документа
-- `description` — описание
-- `context` — контекст (statement, decision, act, и т.д.)
-- `model` — JSON-модель данных для генерации
-- `translations` — переводы (обычно `{ ru: {...} }`)
-- Опционально: `template.md` — Markdown-шаблон с Handlebars-плейсхолдерами
+Реестр шаблонов (`registry_id`, текст, схема `model`, переводы, типы `Action` и
+`Model`) и реестр решений совета для робота перенесены 30.10.2026 в пакет
+`@coopenomics/docs-templates` (репозиторий C9S/docs-factory, шаг 6б фабрики v2).
+В `cooptypes` остаются модель документа (`Cooperative.Document`,
+`Cooperative.Model`) и типы цепи.
 
 ### IDocument
 

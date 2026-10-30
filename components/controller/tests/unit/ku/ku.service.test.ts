@@ -8,9 +8,9 @@
  */
 
 import { KuService } from '~/extensions/ku/application/services/ku.service';
-import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 
-const R = Cooperative.Registry;
+const R = Registry;
 
 const COOP = 'voskhod';
 const HASH = 'abc123';

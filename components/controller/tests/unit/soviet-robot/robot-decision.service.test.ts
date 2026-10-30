@@ -10,9 +10,9 @@ import { PrivateKey, KeyType } from '@wharfkit/antelope';
 (globalThis as any).window = { crypto: webcrypto };
 import { RobotDecisionService } from '~/extensions/soviet-robot/application/services/robot-decision.service';
 import { RobotDecisionStage } from '~/extensions/soviet-robot/domain/enums/robot-decision-stage.enum';
-import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 
-const R = Cooperative.Registry;
+const R = Registry;
 
 const NO_EXPIRY = '1970-01-01T00:00:00';
 const LIMITS = { max_attempts: 3, retry_backoff_sec: 5, index_lag_attempts: 3, index_lag_pause_ms: 0 };

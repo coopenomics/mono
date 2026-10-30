@@ -544,49 +544,49 @@ documents:
     registry_id: 3004
     signed_by: [teacher]
     stored_in: "реестр документов кооператива"
-    note: "Подписывается преподавателем при вступлении в программу. Редакцию оферты совет принимает в бланке, с прочерками на месте данных пайщика. Источник правды — components/cooptypes/src/cooperative/registry/3004.EducationTeacherOffer"
+    note: "Подписывается преподавателем при вступлении в программу. Редакцию оферты совет принимает в бланке, с прочерками на месте данных пайщика. Источник правды — C9S/docs-factory:packages/docs-templates/src/registry/3004.EducationTeacherOffer"
 
   - action: null
     title: Договор участия в хозяйственной деятельности
     registry_id: 3006
     signed_by: [teacher]
     stored_in: "реестр документов кооператива"
-    note: "Подписывается преподавателем до начала работы по курсам. Редакцию договора совет принимает в бланке, с прочерками на месте данных пайщика. Источник правды — components/cooptypes/src/cooperative/registry/3006.EducationParticipationContract"
+    note: "Подписывается преподавателем до начала работы по курсам. Редакцию договора совет принимает в бланке, с прочерками на месте данных пайщика. Источник правды — C9S/docs-factory:packages/docs-templates/src/registry/3006.EducationParticipationContract"
 
   - action: edubridge::holdrid
     title: Акт передачи материалов занятия на ответственное хранение
     registry_id: 3012
     signed_by: [teacher]
     stored_in: "реестр документов (package = rid_hash); hash — edurids.storage_act_hash"
-    note: "Подписывается преподавателем вместе с отчётом по занятию. Содержит занятие, перечень материалов, оценку и дату окончания гарантийного срока. Источник правды — components/cooptypes/src/cooperative/registry/3012.EducationRidStorageAct"
+    note: "Подписывается преподавателем вместе с отчётом по занятию. Содержит занятие, перечень материалов, оценку и дату окончания гарантийного срока. Источник правды — C9S/docs-factory:packages/docs-templates/src/registry/3012.EducationRidStorageAct"
 
   - action: edubridge::submitrid
     title: Заявление о паевом взносе результатом интеллектуальной деятельности
     registry_id: 3008
     signed_by: [teacher]
     stored_in: "реестр документов (package = rid_hash); hash — edurids.statement_hash"
-    note: "Подписывается преподавателем вместе с актом хранения и публикуется по истечении гарантийного срока. Содержит задание, вид и оценку результата, описание результата со ссылками. Источник правды — components/cooptypes/src/cooperative/registry/3008.EducationRidStatement"
+    note: "Подписывается преподавателем вместе с актом хранения и публикуется по истечении гарантийного срока. Содержит задание, вид и оценку результата, описание результата со ссылками. Источник правды — C9S/docs-factory:packages/docs-templates/src/registry/3008.EducationRidStatement"
 
   - action: edubridge::acceptrid
     title: Протокол совета о приёме паевого взноса РИД
     registry_id: 3009
     signed_by: [chairman]
     stored_in: "реестр документов (package = rid_hash)"
-    note: "Протокол по типовому процессу решения совета; протокол решения совета сопровождает и приём (acceptrid), и закрытие заявления после решения (declinerid); отказ без решения совета протокола не имеет. Источник правды — components/cooptypes/src/cooperative/registry/3009.EducationRidDecision"
+    note: "Протокол по типовому процессу решения совета; протокол решения совета сопровождает и приём (acceptrid), и закрытие заявления после решения (declinerid); отказ без решения совета протокола не имеет. Источник правды — C9S/docs-factory:packages/docs-templates/src/registry/3009.EducationRidDecision"
 
   - action: edubridge::acceptrid
     title: Акт приёма-передачи паевого взноса РИД
     registry_id: 3010
     signed_by: [teacher, chairman]
     stored_in: "реестр документов (package = rid_hash)"
-    note: "Двухподписный акт: первым подписывает преподаватель, вторым — председатель по хэшу. Источник правды — components/cooptypes/src/cooperative/registry/3010.EducationRidAct"
+    note: "Двухподписный акт: первым подписывает преподаватель, вторым — председатель по хэшу. Источник правды — C9S/docs-factory:packages/docs-templates/src/registry/3010.EducationRidAct"
 
   - action: edubridge::wthshare
     title: Заявление о трансляции паевого взноса из ЦПП «Образование» в ЦПП «Цифровой Кошелёк»
     registry_id: 3015
     signed_by: [teacher]
     stored_in: "реестр документов (package = hash заявления)"
-    note: "Подписывается преподавателем при каждом переводе паевого взноса с кошелька программы на главный паевой кошелёк. Содержит сумму трансляции. Источник правды — components/cooptypes/src/cooperative/registry/3015.EducationShareWithdrawStatement"
+    note: "Подписывается преподавателем при каждом переводе паевого взноса с кошелька программы на главный паевой кошелёк. Содержит сумму трансляции. Источник правды — C9S/docs-factory:packages/docs-templates/src/registry/3015.EducationShareWithdrawStatement"
 
 # ── Секция 6. Операции (Ledger2) ────────────────────────────────────────────
 # Шесть операций: приём на хранение, приём результата в состав активов,

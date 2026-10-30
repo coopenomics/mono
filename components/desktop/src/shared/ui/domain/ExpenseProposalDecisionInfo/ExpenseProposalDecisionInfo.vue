@@ -24,7 +24,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import { Queries, Zeus } from '@coopenomics/sdk';
-import type { Cooperative } from 'cooptypes';
+import type { Registry } from '@coopenomics/docs-templates';
 import type { IAgenda } from 'src/entities/Agenda/model';
 import { useSystemStore } from 'src/entities/System/model';
 import { client } from 'src/shared/api/client';
@@ -44,7 +44,7 @@ import type { ExpenseProposalItem, ExpenseProposalRequisite } from '../ExpensePr
  */
 const props = defineProps<{ agenda: IAgenda }>();
 
-type StatementMeta = Partial<Cooperative.Registry.ExpenseProposalStatement.Action>;
+type StatementMeta = Partial<Registry.ExpenseProposalStatement.Action>;
 
 const system = useSystemStore();
 const chainItems = ref<ExpenseProposalItem[]>([]);

@@ -1,7 +1,7 @@
 import { Field, Float, InputType, Int, IntersectionType, OmitType } from '@nestjs/graphql';
 import { IsBoolean, IsInt, IsNumber, IsString, Min, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
-import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 import { SignedDigitalDocumentInputDTO, MetaDocumentInputDTO, GenerateMetaDocumentInputDTO, ExcludeCommonProps } from '@coopenomics/extension-kit';
 
 /**
@@ -13,7 +13,7 @@ import { SignedDigitalDocumentInputDTO, MetaDocumentInputDTO, GenerateMetaDocume
  * только оператор у стойки (`accretrn`); документ уходит в повестку совета,
  * робот берёт из его метаданных деловые поля протокола 1117.
  */
-type action = Cooperative.Registry.MarketplaceReturnCancelStatement.Action;
+type action = Registry.MarketplaceReturnCancelStatement.Action;
 
 @InputType('BaseMarketplaceReturnCancelStatementMetaDocumentInput')
 class BaseMarketplaceReturnCancelStatementMetaDocumentInputDTO implements ExcludeCommonProps<action> {

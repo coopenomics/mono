@@ -23,7 +23,7 @@
 #   • cpp/expense/expense.{hpp,cpp}                        — действия и статусы
 #   • cpp/lib/core/ledger2/operations.hpp                  — EXPENSE_OPERATION_SETS
 #   • cpp/lib/core/ledger2/processes.hpp                   — processes::expense::PROPOSAL
-#   • cooptypes/src/cooperative/registry/2010, 2011        — документы
+#   • C9S/docs-factory:packages/docs-templates/src/registry/2010, 2011        — документы
 # ─────────────────────────────────────────────────────────────────────────────
 
 # ── Секция 1. Паспорт ───────────────────────────────────────────────────────

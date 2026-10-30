@@ -160,7 +160,7 @@ BaseDialog(
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { Mutations, Zeus } from '@coopenomics/sdk';
-import type { Cooperative } from 'cooptypes';
+import type { Registry } from '@coopenomics/docs-templates';
 import { client } from 'src/shared/api/client';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useSystemStore } from 'src/entities/System/model';
@@ -438,7 +438,7 @@ async function submitForm(): Promise<void> {
       );
 
     const digital = new DigitalDocument(generatedDoc);
-    const signed = await digital.sign<Cooperative.Registry.ExpenseProposalStatement.Meta>(
+    const signed = await digital.sign<Registry.ExpenseProposalStatement.Meta>(
       session.username,
       1,
     );

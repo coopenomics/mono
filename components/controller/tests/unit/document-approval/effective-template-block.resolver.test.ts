@@ -1,7 +1,7 @@
 import { EffectiveTemplateBlockResolver } from '~/infrastructure/generator/effective-template-block.resolver';
-import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 
-const R = Cooperative.Registry;
+const R = Registry;
 
 jest.mock('~/config/config', () => ({ __esModule: true, default: { coopname: 'voskhod' } }));
 

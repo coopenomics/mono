@@ -2,14 +2,14 @@ import { InputType, Field, IntersectionType, OmitType, Int } from '@nestjs/graph
 import { validationMessage } from '../errors/domain-error';
 import { IsString, IsNotEmpty, IsArray, ValidateNested, ArrayMinSize, IsInt, IsOptional, Matches } from 'class-validator';
 import { Type } from 'class-transformer';
-import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 import { SignedDigitalDocumentInputDTO } from '../document/signed-digital-document-input.dto';
 import { MetaDocumentInputDTO } from '../document/meta-document-input.dto';
 import { GenerateMetaDocumentInputDTO } from '../document/generate-meta-document-input.dto';
 
-type Action = Cooperative.Registry.ExpenseProposalStatement.Action;
-type ItemAction = Cooperative.Registry.ExpenseProposalStatement.IExpenseItem;
-type HeaderAction = Cooperative.Registry.ExpenseProposalStatement.IExpenseProposalHeader;
+type Action = Registry.ExpenseProposalStatement.Action;
+type ItemAction = Registry.ExpenseProposalStatement.IExpenseItem;
+type HeaderAction = Registry.ExpenseProposalStatement.IExpenseProposalHeader;
 
 /**
  * Позиция-вход генерации СЗ-документа. Приватные поля (имя/реквизиты/назначение)

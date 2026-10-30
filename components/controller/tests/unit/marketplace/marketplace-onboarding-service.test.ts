@@ -16,9 +16,9 @@
  */
 
 import { MarketplaceOnboardingSource } from '~/extensions/marketplace/application/dto/marketplace-onboarding-state.dto';
-import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 
-const R = Cooperative.Registry;
+const R = Registry;
 
 const PROGRAM_ID = 2;
 

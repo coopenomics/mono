@@ -7,7 +7,7 @@ import { BillingProviderClient } from '~/infrastructure/billing/billing-provider
 import { DocumentDomainService } from '~/domain/document/services/document-domain.service';
 import { AmountFormatterUtils, DomainToBlockchainUtils, GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO } from '@coopenomics/extension-kit';
 import { TransactionUtils } from '~/shared/utils/transaction.utils';
-import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 import { BillingConversionStatementGenerateDocumentInputDTO } from '~/application/document/documents-dto/billing-conversion-statement-document.dto';
 import type { BillingConvertInputDTO } from '../dto/billing-convert-input.dto';
 import type { BillingPayInputDTO } from '../dto/billing-pay-input.dto';
@@ -38,7 +38,7 @@ export class BillingService {
     data: BillingConversionStatementGenerateDocumentInputDTO,
     options: GenerateDocumentOptionsInputDTO,
   ): Promise<GeneratedDocumentDTO> {
-    data.registry_id = Cooperative.Registry.BillingConversionStatement.registry_id;
+    data.registry_id = Registry.BillingConversionStatement.registry_id;
     data.convert_amount = AmountFormatterUtils.formatAmount(data.convert_amount);
     const document = await this.documentDomainService.generateDocument({ data, options });
     return document as unknown as GeneratedDocumentDTO;

@@ -1,5 +1,6 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Cooperative, Ledger2 } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 import { Workflows } from '@coopenomics/notifications';
 import { config } from '~/config';
 import { ParticipantInteractor } from '~/application/participant/interactors/participant.interactor';
@@ -59,7 +60,7 @@ export class MembershipExitService {
   ) {}
 
   async generateMembershipExitApplication(
-    data: Cooperative.Registry.ParticipantExitApplication.Action,
+    data: Registry.ParticipantExitApplication.Action,
     options: Cooperative.Document.IGenerationOptions
   ): Promise<GeneratedDocumentDTO> {
     const document = await this.participantInteractor.generateMembershipExitApplication(data, options);
@@ -67,7 +68,7 @@ export class MembershipExitService {
   }
 
   async generateMembershipExitDecision(
-    data: Cooperative.Registry.DecisionOfParticipantExit.Action,
+    data: Registry.DecisionOfParticipantExit.Action,
     options: Cooperative.Document.IGenerationOptions
   ): Promise<GeneratedDocumentDTO> {
     const document = await this.participantInteractor.generateMembershipExitDecision(data, options);
@@ -75,7 +76,7 @@ export class MembershipExitService {
   }
 
   async generateProgramAgreementsAnnulment(
-    data: Cooperative.Registry.ProgramAgreementsAnnulmentStatement.Action,
+    data: Registry.ProgramAgreementsAnnulmentStatement.Action,
     options: Cooperative.Document.IGenerationOptions
   ): Promise<GeneratedDocumentDTO> {
     const document = await this.participantInteractor.generateProgramAgreementsAnnulment(data, options);

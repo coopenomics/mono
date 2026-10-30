@@ -1,9 +1,9 @@
 import { Field, Float, InputType, IntersectionType, OmitType } from '@nestjs/graphql';
 import { IsBoolean, IsNumber, IsOptional, IsString, Min } from 'class-validator';
-import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 import { SignedDigitalDocumentInputDTO, MetaDocumentInputDTO, GenerateMetaDocumentInputDTO, ExcludeCommonProps } from '@coopenomics/extension-kit';
 
-type action = Cooperative.Registry.MarketplaceAplReception.Action;
+type action = Registry.MarketplaceAplReception.Action;
 
 @InputType('BaseMarketplaceAplReceptionMetaDocumentInput')
 class BaseMarketplaceAplReceptionMetaDocumentInputDTO implements ExcludeCommonProps<action> {

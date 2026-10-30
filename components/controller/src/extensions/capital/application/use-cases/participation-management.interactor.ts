@@ -25,7 +25,7 @@ import type { ProjectGenerationContractGenerateDocumentInputDTO } from '../docum
 import type { ComponentGenerationContractGenerateDocumentInputDTO } from '../documents-dto/component-generation-agreement-document.dto';
 import type { GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO } from '@coopenomics/extension-kit';
 import httpStatus from 'http-status';
-import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 import { ProjectManagementInteractor } from '../use-cases/project-management.interactor';
 import type { MakeClearanceInputDTO } from '../dto/participation_management/make-clearance-input.dto';
 import { UdataDocumentParametersService, UDATA_DOCUMENT_PARAMETERS_SERVICE } from '../../domain/services/udata-document-parameters.service';
@@ -479,7 +479,7 @@ export class ParticipationManagementInteractor {
       coopname: data.coopname,
       username: data.username,
       lang: data.lang || 'ru',
-      registry_id: Cooperative.Registry.ProjectGenerationContract.registry_id,
+      registry_id: Registry.ProjectGenerationContract.registry_id,
       appendix_hash,
       contributor_hash: contributor.contributor_hash,
       contributor_created_at: contributor.created_at,
@@ -568,7 +568,7 @@ export class ParticipationManagementInteractor {
       coopname: data.coopname,
       username: data.username,
       lang: data.lang || 'ru',
-      registry_id: Cooperative.Registry.ComponentGenerationContract.registry_id,
+      registry_id: Registry.ComponentGenerationContract.registry_id,
       appendix_hash,
       parent_appendix_hash: parentAppendix.appendix_hash,
       contributor_hash: contributor.contributor_hash,
@@ -688,7 +688,7 @@ export class ParticipationManagementInteractor {
           coopname: data.coopname,
           username: data.username,
           lang,
-          registry_id: Cooperative.Registry.GenerationContract.registry_id,
+          registry_id: Registry.GenerationContract.registry_id,
         },
         options: { skip_save: false },
       });
@@ -713,7 +713,7 @@ export class ParticipationManagementInteractor {
           coopname: data.coopname,
           username: data.username,
           lang,
-          registry_id: Cooperative.Registry.StorageAgreement.registry_id,
+          registry_id: Registry.StorageAgreement.registry_id,
         },
         options: { skip_save: false },
       });
@@ -742,7 +742,7 @@ export class ParticipationManagementInteractor {
           coopname: data.coopname,
           username: data.username,
           lang,
-          registry_id: Cooperative.Registry.BlagorostAgreement.registry_id,
+          registry_id: Registry.BlagorostAgreement.registry_id,
           doc_data_hash: capitalProgramDocDataHash,
         },
         options: { skip_save: false },
@@ -775,7 +775,7 @@ export class ParticipationManagementInteractor {
           coopname: data.coopname,
           username: data.username,
           lang,
-          registry_id: Cooperative.Registry.GeneratorOffer.registry_id,
+          registry_id: Registry.GeneratorOffer.registry_id,
           doc_data_hash: capitalProgramDocDataHash,
         },
         options: { skip_save: false },

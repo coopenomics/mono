@@ -1,5 +1,5 @@
 import { InputType, Field, IntersectionType, OmitType } from '@nestjs/graphql';
-import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 import { SignedDigitalDocumentInputDTO, MetaDocumentInputDTO, GenerateMetaDocumentInputDTO, ExcludeCommonProps } from '@coopenomics/extension-kit';
 import { Type } from 'class-transformer';
 import { IsArray, IsBoolean, IsNotEmpty, IsObject, ValidateNested } from 'class-validator';
@@ -7,7 +7,7 @@ import { AgendaMeetDTO } from '~/application/meet/dto/agenda-meet.dto';
 import { AgendaGeneralMeetQuestionDTO } from '~/application/meet/dto/agenda-general-meet-question.dto';
 
 // интерфейс параметров для генерации
-type action = Cooperative.Registry.AnnualGeneralMeetingAgenda.Action;
+type action = Registry.AnnualGeneralMeetingAgenda.Action;
 
 @InputType(`BaseAnnualGeneralMeetingAgendaMetaDocumentInput`)
 class BaseAnnualGeneralMeetingAgendaMetaDocumentInputDTO implements ExcludeCommonProps<action> {

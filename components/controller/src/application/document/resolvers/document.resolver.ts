@@ -19,7 +19,7 @@ import { GetPublicProvisionInputDTO, PublicProvisionDTO } from '../dto/public-pr
 import { PublicProvisionService } from '../services/public-provision.service';
 import type { IMonoAccount } from '@coopenomics/innercoop';
 import { isCouncilRole } from '~/shared/utils/council-roles';
-import { Cooperative } from 'cooptypes';
+import { decisionTypesRegistry } from '@coopenomics/docs-templates';
 
 /**
  * Протоколы решений совета: их собирает председатель (или член совета) на имя
@@ -27,7 +27,7 @@ import { Cooperative } from 'cooptypes';
  * решений (decisionTypesRegistry), отдельно его нигде не ведём.
  */
 const DECISION_PROTOCOL_REGISTRY_IDS = new Set<number>(
-  Object.values(Cooperative.Document.decisionTypesRegistry).map((info) => Number(info.protocol_registry_id))
+  Object.values(decisionTypesRegistry).map((info) => Number(info.protocol_registry_id))
 );
 
 const paginationResultAggregate = createPaginationResult(DocumentPackageAggregateDTO, 'DocumentsAggregate');

@@ -66,6 +66,7 @@ import {
   type MarketplaceCanonicalBlockchainPort,
 } from '../../domain/ports/marketplace-canonical-blockchain.port';
 import { Cooperative, type MarketContract } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 import { PublicKey, Signature } from '@wharfkit/antelope';
 import http from 'http-status';
 import type { ISignedDocument } from '@coopenomics/innercoop';
@@ -386,8 +387,8 @@ export class MarketplaceAplReceptionService {
       packageSize: input.order.package_size,
       decimals: this.assetConfig.decimals,
     });
-    const action: Cooperative.Registry.MarketplaceAplReception.Action = {
-      registry_id: Cooperative.Registry.MarketplaceAplReception.registry_id,
+    const action: Registry.MarketplaceAplReception.Action = {
+      registry_id: Registry.MarketplaceAplReception.registry_id,
       coopname: input.reception.coopname,
       username: input.reception.offerer_account,
       order_id: input.order.id,

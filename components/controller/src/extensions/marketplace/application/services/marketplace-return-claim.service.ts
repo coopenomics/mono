@@ -1,7 +1,8 @@
 import { Inject, Injectable, Optional } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { createHash, randomUUID } from 'crypto';
-import { Cooperative, SovietContract, type MarketContract } from 'cooptypes';
+import { SovietContract, type MarketContract } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 import { PublicKey, Signature } from '@wharfkit/antelope';
 import http from 'http-status';
 import {
@@ -715,7 +716,7 @@ export class MarketplaceReturnClaimService {
     inspection_result: string
   ): void {
     const sameClaim =
-      meta.registry_id === Cooperative.Registry.MarketplaceReturnCancelStatement.registry_id &&
+      meta.registry_id === Registry.MarketplaceReturnCancelStatement.registry_id &&
       (!meta.order_hash || meta.order_hash === claim.order_hash) &&
       (!meta.request_hash || meta.request_hash === claim.request_hash);
     if (!sameClaim) {
@@ -1271,8 +1272,8 @@ export class MarketplaceReturnClaimService {
     // (материализует их в null) — client-side canonicalize(meta) давал
     // разные meta_hash при подписи и при повторном чтении для со-подписи
     // председателя («Хэш метаданных не совпадает», см. review 2026-07-27).
-    const action: Cooperative.Registry.MarketplaceReturnStatement.Action = {
-      registry_id: Cooperative.Registry.MarketplaceReturnStatement.registry_id,
+    const action: Registry.MarketplaceReturnStatement.Action = {
+      registry_id: Registry.MarketplaceReturnStatement.registry_id,
       coopname: input.order.coopname,
       username: input.orderer,
       order_id: input.order.id,
@@ -1312,8 +1313,8 @@ export class MarketplaceReturnClaimService {
     const offer = await this.offerRepo.findById(order.offer_id);
     const fee_refund = claim.fee_refund ?? '0';
     const total_refund = sumMoney([claim.fact_cost, fee_refund], this.assetConfig.decimals);
-    const action: Cooperative.Registry.MarketplaceReturnCancelStatement.Action = {
-      registry_id: Cooperative.Registry.MarketplaceReturnCancelStatement.registry_id,
+    const action: Registry.MarketplaceReturnCancelStatement.Action = {
+      registry_id: Registry.MarketplaceReturnCancelStatement.registry_id,
       coopname: claim.coopname,
       username: input.operator,
       order_id: order.id,

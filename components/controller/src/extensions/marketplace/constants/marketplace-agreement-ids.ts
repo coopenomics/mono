@@ -1,4 +1,4 @@
-import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 import { ProgramKey } from '@coopenomics/innercoop';
 
 /**
@@ -15,7 +15,7 @@ import { ProgramKey } from '@coopenomics/innercoop';
  *
  * `MARKETPLACE_OFFER_INSTANCE_REGISTRY_ID` — `document_registry_id` шаблона
  * оферты ЦПП «Стол заказов» в платформенной фабрике документов. Story 1.7
- * разместила шаблон в `cooptypes/cooperative/registry/1100.MarketplaceOfferTemplate`;
+ * разместила шаблон в `C9S/docs-factory:packages/docs-templates/src/registry/1100.MarketplaceOfferTemplate`;
  * импортируется отсюда напрямую (по аналогии с Capital + GeneratorOffer/BlagorostOffer).
  */
 
@@ -39,4 +39,4 @@ export const MARKETPLACE_AGREEMENT_TYPE = 'marketplace';
 // утверждения» (бывший 1101) больше нет. Изменение значения = миграция
 // (новые подписи пайщиков идут на новый registry_id); правка текста оферты
 // меняет только содержимое 1102, id остаётся.
-export const MARKETPLACE_OFFER_INSTANCE_REGISTRY_ID = Cooperative.Registry.MarketplaceOffer.registry_id;
+export const MARKETPLACE_OFFER_INSTANCE_REGISTRY_ID = Registry.MarketplaceOffer.registry_id;

@@ -6,7 +6,7 @@ import { MeetInteractor } from '../interactors/meet.interactor';
 import { MeetAggregateDTO } from '../dto/meet-aggregate.dto';
 import { VoteOnAnnualGeneralMeetInputDTO } from '../dto/vote-on-annual-general-meet-input.dto';
 import { RestartAnnualGeneralMeetInputDTO } from '../dto/restart-annual-general-meet-input.dto';
-import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 import { GetMeetInputDTO } from '../dto/get-meet-input.dto';
 import { GetMeetsInputDTO } from '../dto/get-meets-input.dto';
 import { SignBySecretaryOnAnnualGeneralMeetInputDTO } from '../dto/sign-by-secretary-on-annual-general-meet-input.dto';
@@ -117,7 +117,7 @@ export class MeetService {
     options?: GenerateDocumentOptionsInputDTO
   ): Promise<GeneratedDocumentDTO> {
     // Устанавливаем registry_id для документа повестки
-    data.registry_id = Cooperative.Registry.AnnualGeneralMeetingAgenda.registry_id;
+    data.registry_id = Registry.AnnualGeneralMeetingAgenda.registry_id;
 
     const document = await this.meetInteractor.generateAnnualGeneralMeetAgendaDocument(data, options || {});
     //TODO чтобы избавиться от unknown необходимо строго типизировать ответ фабрики документов
@@ -134,7 +134,7 @@ export class MeetService {
     options?: GenerateDocumentOptionsInputDTO
   ): Promise<GeneratedDocumentDTO> {
     // Устанавливаем registry_id для документа решения
-    data.registry_id = Cooperative.Registry.AnnualGeneralMeetingDecision.registry_id;
+    data.registry_id = Registry.AnnualGeneralMeetingDecision.registry_id;
 
     const document = await this.meetInteractor.generateAnnualGeneralMeetDecisionDocument(data, options || {});
     //TODO чтобы избавиться от unknown необходимо строго типизировать ответ фабрики документов
@@ -146,7 +146,7 @@ export class MeetService {
     options?: GenerateDocumentOptionsInputDTO
   ): Promise<GeneratedDocumentDTO> {
     // Устанавливаем registry_id для документа уведомления
-    data.registry_id = Cooperative.Registry.AnnualGeneralMeetingNotification.registry_id;
+    data.registry_id = Registry.AnnualGeneralMeetingNotification.registry_id;
 
     const document = await this.meetInteractor.generateAnnualGeneralMeetNotificationDocument(data, options || {});
     //TODO чтобы избавиться от unknown необходимо строго типизировать ответ фабрики документов
@@ -158,7 +158,7 @@ export class MeetService {
     options?: GenerateDocumentOptionsInputDTO
   ): Promise<GeneratedDocumentDTO> {
     // Устанавливаем registry_id для документа решения совета
-    data.registry_id = Cooperative.Registry.AnnualGeneralMeetingSovietDecision.registry_id;
+    data.registry_id = Registry.AnnualGeneralMeetingSovietDecision.registry_id;
 
     const document = await this.meetInteractor.generateSovietDecisionOnAnnualMeetDocument(data, options || {});
     //TODO чтобы избавиться от unknown необходимо строго типизировать ответ фабрики документов
@@ -170,7 +170,7 @@ export class MeetService {
     options?: GenerateDocumentOptionsInputDTO
   ): Promise<GeneratedDocumentDTO> {
     // Устанавливаем registry_id для документа бюллетеня
-    data.registry_id = Cooperative.Registry.AnnualGeneralMeetingVotingBallot.registry_id;
+    data.registry_id = Registry.AnnualGeneralMeetingVotingBallot.registry_id;
 
     const document = await this.meetInteractor.generateBallotForAnnualGeneralMeet(data, options || {});
     //TODO чтобы избавиться от unknown необходимо строго типизировать ответ фабрики документов

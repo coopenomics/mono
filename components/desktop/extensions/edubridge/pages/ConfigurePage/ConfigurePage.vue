@@ -15,7 +15,7 @@ q-page.edu-onboarding(role="region" :aria-label="$t('edubridge.configurePage.ari
 // realtime: живое обновление шагов подключения — в useExtensionCooperativeOnboarding (ядро), общее для всех ЦПП.
 import { computed, onMounted, ref, watch } from 'vue';
 import { Queries, Zeus } from '@coopenomics/sdk';
-import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 import { client } from 'src/shared/api/client';
 import { useSystemStore } from 'src/entities/System/model';
 import { useDesktopStore } from 'src/entities/Desktop/model';
@@ -43,7 +43,7 @@ interface StepMeta {
 const STEP_META: StepMeta[] = [
   {
     id: 'education_provision',
-    registryId: Cooperative.Registry.EducationProgramTemplate.registry_id,
+    registryId: Registry.EducationProgramTemplate.registry_id,
     title: t('edubridge.configurePage.steps.provision.title'),
     description: t('edubridge.configurePage.steps.provision.description'),
     question: t('edubridge.configurePage.steps.provision.question'),
@@ -51,7 +51,7 @@ const STEP_META: StepMeta[] = [
   },
   {
     id: 'education_parent_offer_template',
-    registryId: Cooperative.Registry.EducationParentOffer.registry_id,
+    registryId: Registry.EducationParentOffer.registry_id,
     title: t('edubridge.configurePage.steps.parentOffer.title'),
     description: t('edubridge.configurePage.steps.parentOffer.description'),
     question: t('edubridge.configurePage.steps.parentOffer.question'),
@@ -59,7 +59,7 @@ const STEP_META: StepMeta[] = [
   },
   {
     id: 'education_teacher_offer_template',
-    registryId: Cooperative.Registry.EducationTeacherOffer.registry_id,
+    registryId: Registry.EducationTeacherOffer.registry_id,
     title: t('edubridge.configurePage.steps.teacherOffer.title'),
     description: t('edubridge.configurePage.steps.teacherOffer.description'),
     question: t('edubridge.configurePage.steps.teacherOffer.question'),
@@ -67,7 +67,7 @@ const STEP_META: StepMeta[] = [
   },
   {
     id: 'education_contract_template',
-    registryId: Cooperative.Registry.EducationParticipationContract.registry_id,
+    registryId: Registry.EducationParticipationContract.registry_id,
     title: t('edubridge.configurePage.steps.contract.title'),
     description: t('edubridge.configurePage.steps.contract.description'),
     question: t('edubridge.configurePage.steps.contract.question'),

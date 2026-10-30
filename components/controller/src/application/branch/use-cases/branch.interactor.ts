@@ -22,6 +22,7 @@ import { BankPaymentMethodDTO } from '~/application/payment-method/dto/bank-paym
 import type { SelectBranchInputDomainInterface } from '~/domain/branch/interfaces/select-branch-domain-input.interface';
 import config from '~/config/config';
 import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 import { DOCUMENT_REPOSITORY, DocumentRepository } from '~/domain/document/repository/document.repository';
 import { DocumentInteractor } from '~/application/document/interactors/document.interactor';
 import { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
@@ -368,7 +369,7 @@ export class BranchInteractor {
     const document = await this.documentRepository.findByHash(data.document.doc_hash);
     if (!document) throw DomainError.badRequest('BRANCH_DOCUMENT_NOT_FOUND');
 
-    if (data.document.meta.registry_id != Cooperative.Registry.SelectBranchStatement.registry_id)
+    if (data.document.meta.registry_id != Registry.SelectBranchStatement.registry_id)
       throw DomainError.badRequest('BRANCH_DOCUMENT_REGISTRY_ID_INVALID');
 
     // подписанное заявление должно быть выписано на того же пайщика,
@@ -393,10 +394,10 @@ export class BranchInteractor {
   }
 
   async generateSelectBranchDocument(
-    data: Cooperative.Registry.SelectBranchStatement.Action,
+    data: Registry.SelectBranchStatement.Action,
     options: Cooperative.Document.IGenerationOptions
   ): Promise<DocumentDomainEntity> {
-    data.registry_id = Cooperative.Registry.SelectBranchStatement.registry_id;
+    data.registry_id = Registry.SelectBranchStatement.registry_id;
     return await this.documentInteractor.generateDocument({ data, options });
   }
 }

@@ -1,10 +1,10 @@
 /** Преподавательский контур: ДУХД и приложение двухподписные через одобрение председателя, взнос РИД, решение совета повесткой контракта, акт → acceptrid, отклонение. */
 import { EdubridgeTeacherService, coursePeriod } from '~/extensions/edubridge/application/services/edubridge-teacher.service';
 import { EduAssignmentStatus, EduContractStatus, EduContributionStatus, EduCouncilOutcome } from '~/extensions/edubridge/domain/enums';
-import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 import { EduAssignmentDTO } from '~/extensions/edubridge/application/dto/edu-teacher.dto';
 
-const R = Cooperative.Registry;
+const R = Registry;
 
 jest.mock('@coopenomics/extension-kit', () => ({
   ...jest.requireActual('@coopenomics/extension-kit'),

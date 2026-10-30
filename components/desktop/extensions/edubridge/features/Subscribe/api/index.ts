@@ -1,4 +1,4 @@
-import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 import { Mutations } from '@coopenomics/sdk';
 import { client } from 'src/shared/api/client';
 import { useSessionStore } from 'src/entities/Session';
@@ -20,7 +20,7 @@ export async function buildConvertStatement(quote: IQuote, courseTitle: string, 
   if (!username) throw new Error(t('edubridge.error.notAuthorized'));
   const document = new DigitalDocument();
   await document.generate({
-    registry_id: Cooperative.Registry.EducationConvertStatement.registry_id,
+    registry_id: Registry.EducationConvertStatement.registry_id,
     coopname: system.info.coopname,
     username,
     sub_hash: quote.sub_hash,

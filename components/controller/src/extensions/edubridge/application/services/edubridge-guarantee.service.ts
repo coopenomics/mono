@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { createHash } from 'crypto';
-import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 import { chainErrorCode, DomainError } from '@coopenomics/extension-kit';
 import {
   COUNCIL_PORT,
@@ -92,8 +92,8 @@ export class EdubridgeGuaranteeService {
   async statement(coopname: string, member: string, enrollmentId: string, reason: string, links: string[]): Promise<InnerGeneratedDocument> {
     const { enrollment, course } = await this.claimable(coopname, member, enrollmentId);
     const end = entryGuaranteeEndsAt(course, enrollment);
-    const action: Cooperative.Registry.EducationGuaranteeStatement.Action = {
-      registry_id: Cooperative.Registry.EducationGuaranteeStatement.registry_id,
+    const action: Registry.EducationGuaranteeStatement.Action = {
+      registry_id: Registry.EducationGuaranteeStatement.registry_id,
       coopname,
       username: member,
       lang: 'ru',

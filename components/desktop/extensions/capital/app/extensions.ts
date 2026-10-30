@@ -1,4 +1,4 @@
-import type { Cooperative } from 'cooptypes';
+import type { Registry } from '@coopenomics/docs-templates';
 import { decisionFactory } from 'src/shared/lib/decision-factory';
 import { useSystemStore } from 'src/entities/System/model';
 import { useSessionStore } from 'src/entities/Session';
@@ -56,7 +56,7 @@ export function registerCapitalDecisionHandlers() {
 
       const parsedDocumentMeta = JSON.parse(
         row.table.statement.meta,
-      ) as Cooperative.Registry.ExpenseProposalStatement.Action;
+      ) as Registry.ExpenseProposalStatement.Action;
 
       if (!parsedDocumentMeta.proposal_hash || !parsedDocumentMeta.items?.length) {
         throw new Error(t('capital.error.invalidCreateexpMeta'));

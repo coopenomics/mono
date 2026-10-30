@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { Cooperative, type MarketContract } from 'cooptypes';
+import { type MarketContract } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 import { PublicKey, Signature } from '@wharfkit/antelope';
 import {
   DOCUMENT_PORT,
@@ -148,8 +149,8 @@ export class MarketplaceConvertService {
     /** Членская часть (взнос за вычетом остатка членского кошелька) — параметр действия convert. */
     fee_units: bigint;
   }): Promise<InnerGeneratedDocument> {
-    const action: Cooperative.Registry.MarketplaceConvertStatement.Action = {
-      registry_id: Cooperative.Registry.MarketplaceConvertStatement.registry_id,
+    const action: Registry.MarketplaceConvertStatement.Action = {
+      registry_id: Registry.MarketplaceConvertStatement.registry_id,
       coopname: input.coopname,
       username: input.username,
       lang: 'ru',
@@ -177,7 +178,7 @@ export class MarketplaceConvertService {
     }
     const meta = signed.meta;
     if (
-      meta.registry_id !== Cooperative.Registry.MarketplaceConvertStatement.registry_id ||
+      meta.registry_id !== Registry.MarketplaceConvertStatement.registry_id ||
       meta.order_hash !== expected.anchor_hash
     ) {
       throw DomainError.badRequest('MARKETPLACE_CONVERT_STATEMENT_WRONG_CHECKOUT');

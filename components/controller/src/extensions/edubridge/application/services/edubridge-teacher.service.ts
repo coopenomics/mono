@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { createHash } from 'crypto';
 import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 import { chainErrorCode, platformSettings, DomainError } from '@coopenomics/extension-kit';
 import {
   COUNCIL_PORT,
@@ -1016,8 +1017,8 @@ export class EdubridgeTeacherService {
     // преподаватель; она же уйдёт в цепь.
     c.hold_until = this.guaranteeEnd(course);
     await this.teachers.saveContribution(c);
-    const action: Cooperative.Registry.EducationRidStorageAct.Action = {
-      registry_id: Cooperative.Registry.EducationRidStorageAct.registry_id,
+    const action: Registry.EducationRidStorageAct.Action = {
+      registry_id: Registry.EducationRidStorageAct.registry_id,
       coopname,
       username: teacher,
       lang: 'ru',
@@ -1106,8 +1107,8 @@ export class EdubridgeTeacherService {
   /** Заявление (3008) без подписи — для ознакомления и подписи на фронте. */
   async statement(coopname: string, teacher: string, contributionId: string): Promise<InnerGeneratedDocument> {
     const c = await this.ownContribution(coopname, teacher, contributionId);
-    const action: Cooperative.Registry.EducationRidStatement.Action = {
-      registry_id: Cooperative.Registry.EducationRidStatement.registry_id,
+    const action: Registry.EducationRidStatement.Action = {
+      registry_id: Registry.EducationRidStatement.registry_id,
       coopname,
       username: teacher,
       lang: 'ru',
@@ -1299,7 +1300,7 @@ export class EdubridgeTeacherService {
     if (c.decision_document) return c.decision_document as unknown as ISignedDocument;
     const generated = await this.documents.generate({
       data: {
-        registry_id: Cooperative.Registry.EducationRidDecision.registry_id,
+        registry_id: Registry.EducationRidDecision.registry_id,
         coopname,
         username: c.teacher_username,
         lang: 'ru',
@@ -1308,7 +1309,7 @@ export class EdubridgeTeacherService {
         amount: c.amount,
         decision_id: Number(c.council_decision_id ?? 0),
         skip_save: false,
-      } as Cooperative.Registry.EducationRidDecision.Action,
+      } as Registry.EducationRidDecision.Action,
     });
     return this.unsigned(generated);
   }
@@ -1317,8 +1318,8 @@ export class EdubridgeTeacherService {
   async act(coopname: string, teacher: string, contributionId: string): Promise<InnerGeneratedDocument> {
     const c = await this.ownContribution(coopname, teacher, contributionId);
     if (c.status !== EduContributionStatus.COUNCIL_APPROVED) throw DomainError.badRequest('EDUBRIDGE_ACT_BEFORE_COUNCIL_DECISION');
-    const action: Cooperative.Registry.EducationRidAct.Action = {
-      registry_id: Cooperative.Registry.EducationRidAct.registry_id,
+    const action: Registry.EducationRidAct.Action = {
+      registry_id: Registry.EducationRidAct.registry_id,
       coopname,
       username: teacher,
       lang: 'ru',
@@ -1465,8 +1466,8 @@ export class EdubridgeTeacherService {
   /** Заявление о трансляции паевого взноса (3015) без подписи — на сумму, которую назвал преподаватель. */
   async shareWithdrawStatement(coopname: string, teacher: string, amount: string): Promise<InnerGeneratedDocument> {
     const asset = await this.withdrawableAmount(coopname, teacher, amount);
-    const action: Cooperative.Registry.EducationShareWithdrawStatement.Action = {
-      registry_id: Cooperative.Registry.EducationShareWithdrawStatement.registry_id,
+    const action: Registry.EducationShareWithdrawStatement.Action = {
+      registry_id: Registry.EducationShareWithdrawStatement.registry_id,
       coopname,
       username: teacher,
       lang: 'ru',

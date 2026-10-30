@@ -11,7 +11,7 @@
 ## Возможности
 
 - **Типы контрактов** — полное описание действий (`Actions`) и таблиц (`Tables`) для каждого смарт-контракта: `SovietContract`, `RegistratorContract`, `DraftContract`, `TokenContract`, `CapitalContract`, `WalletContract`, `GatewayContract`, `FundContract`, `LedgerContract`, `MarketContract`, `MeetContract`, `BranchContract` и др.
-- **Модели кооператива** — структуры данных для пользователей (`Cooperative.Users`) и реестра документов (`Cooperative.Registry`)
+- **Модели кооператива** — структуры данных для пользователей (`Cooperative.Users`) и модели документов (`Cooperative.Document`, `Cooperative.Model`); шаблоны документов — в пакете `@coopenomics/docs-templates`
 - **Интерфейсы** — типизированные интерфейсы для всех доменов: `Soviet`, `Capital`, `Registrator`, `Wallet`, `Gateway`, `Fund`, `Draft`, `Meet`, `Marketplace`, `Branch`, `Ledger`, `Loan`, `Token`, `System`
 - **Реестр шаблонов** — шаблоны юридических документов с markdown-разметкой
 
@@ -57,7 +57,6 @@ src/
 │   └── index.ts            # Реэкспорт всех контрактов
 ├── cooperative/            # Модели данных кооператива
 │   ├── users/              # Типы пользователей
-│   ├── registry/           # Реестр шаблонов документов
 │   └── index.ts
 ├── interfaces/             # Типизированные интерфейсы по доменам
 │   ├── soviet.ts

@@ -12,7 +12,7 @@
  * витрину вступления и в реестр шаблонов соседних наборов.
  */
 import crypto from 'node:crypto'
-import { Cooperative } from 'cooptypes'
+import { Registry } from '@coopenomics/docs-templates'
 // Импорт по модулям, а не из '../core': индекс ядра тянет expect.ts с vitest,
 // а помощники нужны и вне прогона тестов — засеву стенда документации
 // (src/seed/edubridge), который идёт обычным esno.
@@ -30,7 +30,7 @@ import { agendaAll, agendaByHash, authorizeFreeDecision, blank, propose, templat
 
 export const EXTENSION = 'edubridge'
 
-const R = Cooperative.Registry
+const R = Registry
 
 /** Отказ гварда прав расширения. */
 export const NO_RIGHTS = 'EDUBRIDGE_INSUFFICIENT_RIGHTS'

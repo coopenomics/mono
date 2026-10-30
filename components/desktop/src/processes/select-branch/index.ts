@@ -6,7 +6,8 @@ import { useAccountStore } from 'src/entities/Account/model'
 import { useBranchStore } from 'src/entities/Branch/model'
 import { DigitalDocument } from 'src/shared/lib/document'
 import { SuccessAlert, FailAlert } from 'src/shared/api'
-import { BranchContract, Cooperative } from 'cooptypes'
+import { BranchContract } from 'cooptypes'
+import { Registry } from '@coopenomics/docs-templates'
 import { liveTable, useLiveReload } from 'src/shared/lib/realtime'
 import { t } from 'src/shared/i18n';
 
@@ -75,8 +76,8 @@ export function useSelectBranchProcess() {
 
     try {
       isLoading.value = true
-      document.value = await digitalDocument.generate<Cooperative.Registry.SelectBranchStatement.Action>({
-        registry_id: Cooperative.Registry.SelectBranchStatement.registry_id,
+      document.value = await digitalDocument.generate<Registry.SelectBranchStatement.Action>({
+        registry_id: Registry.SelectBranchStatement.registry_id,
         coopname: system.info.coopname,
         username: session.username,
         braname: selectedBranch.value,
@@ -96,7 +97,7 @@ export function useSelectBranchProcess() {
   const sign = async () => {
     try {
       isSubmitting.value = true
-      const doc = await digitalDocument.sign<Cooperative.Registry.SelectBranchStatement.Meta>(session.username)
+      const doc = await digitalDocument.sign<Registry.SelectBranchStatement.Meta>(session.username)
 
       await selectBranch({
         braname: selectedBranch.value,

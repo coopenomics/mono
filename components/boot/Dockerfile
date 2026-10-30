@@ -45,7 +45,8 @@ RUN pnpm install --frozen-lockfile --filter "@coopenomics/boot..." --ignore-scri
  && pnpm rebuild --filter "@coopenomics/boot..."
 
 # Билд графа: cooptypes собирает свой dist/, boot собирает свой bundle с
-# inlined cooptypes и @coopenomics/docs-factory (фабрика — из npm, C9S/docs-factory).
+# inlined cooptypes, @coopenomics/docs-factory и @coopenomics/docs-templates
+# (фабрика и шаблоны — из npm, C9S/docs-factory).
 RUN pnpm --filter "@coopenomics/boot..." build
 
 # Inline-зависимости bundle'а тянут свои npm-deps (handlebars/ajv/kysely/pg у

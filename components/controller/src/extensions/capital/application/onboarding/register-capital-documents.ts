@@ -1,7 +1,7 @@
 import type { IDocumentDeclarationPort, InnerDocumentDeclaration } from '@coopenomics/innercoop';
-import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 
-const R = Cooperative.Registry;
+const R = Registry;
 const EXTENSION = 'capital';
 
 const doc = (

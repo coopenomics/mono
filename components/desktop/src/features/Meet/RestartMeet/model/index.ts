@@ -2,7 +2,7 @@ import { client } from 'src/shared/api/client';
 import { Mutations } from '@coopenomics/sdk';
 import { DigitalDocument } from 'src/shared/lib/document'
 import { useSessionStore } from 'src/entities/Session';
-import type { Cooperative } from 'cooptypes';
+import type { Registry } from '@coopenomics/docs-templates';
 import { computed, ref, type Ref } from 'vue'
 import { useMeetStore } from 'src/entities/Meet'
 import { FailAlert, SuccessAlert } from 'src/shared/api'
@@ -93,7 +93,7 @@ export async function restartMeetWithProposal(data: IRestartMeetWithProposalInpu
 
   // Подписываем документ
   const rawDocument = new DigitalDocument(generatedDocument)
-  const signedDocument = await rawDocument.sign<Cooperative.Registry.AnnualGeneralMeetingAgenda.Meta>(username)
+  const signedDocument = await rawDocument.sign<Registry.AnnualGeneralMeetingAgenda.Meta>(username)
 
   // Перезапускаем собрание
   const result = await restartMeet({

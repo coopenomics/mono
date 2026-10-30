@@ -57,9 +57,7 @@ sources:
     - components/controller/src/extensions/edubridge/application/resolvers/edubridge-teacher.resolver.ts
     - components/controller/src/extensions/edubridge/application/dto/edu-teacher.dto.ts
     - C9S/docs-factory:test/education-contract.test.ts
-    - components/cooptypes/src/cooperative/registry/3006.EducationParticipationContract/**
     - C9S/docs-factory:src/Actions/3006.EducationParticipationContract.ts
-    - components/cooptypes/src/cooperative/registry/3012.EducationRidStorageAct/**
     - C9S/docs-factory:src/Actions/3012.EducationRidStorageAct.ts
     - components/controller/src/extensions/edubridge/domain/lib/lesson-dates.ts
     - components/controller/src/extensions/edubridge/application/onboarding/register-edubridge-documents.ts

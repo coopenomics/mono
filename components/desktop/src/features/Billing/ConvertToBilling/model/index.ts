@@ -1,6 +1,6 @@
 import { ref } from 'vue'
 import type { Mutations } from '@coopenomics/sdk'
-import { Cooperative } from 'cooptypes'
+import { Registry } from '@coopenomics/docs-templates'
 import { DigitalDocument } from 'src/shared/lib/document'
 import { useSystemStore } from 'src/entities/System/model'
 import { useSessionStore } from 'src/entities/Session'
@@ -45,14 +45,14 @@ export function useConvertToBilling() {
   const convert = async (): Promise<IConvertToBillingOutput> => {
     isSubmitting.value = true
     try {
-      await digitalDocument.generate<Cooperative.Registry.BillingConversionStatement.Action>({
-        registry_id: Cooperative.Registry.BillingConversionStatement.registry_id,
+      await digitalDocument.generate<Registry.BillingConversionStatement.Action>({
+        registry_id: Registry.BillingConversionStatement.registry_id,
         coopname: system.info.coopname,
         username: session.username,
         convert_amount: assetAmount(),
       })
 
-      const document = await digitalDocument.sign<Cooperative.Registry.BillingConversionStatement.Meta>(
+      const document = await digitalDocument.sign<Registry.BillingConversionStatement.Meta>(
         session.username,
       )
 

@@ -1,5 +1,6 @@
 import { Mutations } from '@coopenomics/sdk';
 import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 import { renderTemplate } from './onboarding-templates';
 import { t } from '../../i18n';
 
@@ -105,10 +106,10 @@ const createResolver = (info: SystemInfoLite): ((path: string) => string) => {
 };
 
 const buildDecisionFromTemplate = (
-  registry: keyof typeof Cooperative.Registry,
+  registry: keyof typeof Registry,
   info: SystemInfoLite,
 ): string => {
-  const template = Cooperative.Registry[registry] as { context: string; translations: { ru: any } };
+  const template = Registry[registry] as { context: string; translations: { ru: any } };
   const resolve = createResolver(info);
   const passportRequest = info.vars?.passport_request === 'yes' ? 'yes' : 'no';
   return renderTemplate({

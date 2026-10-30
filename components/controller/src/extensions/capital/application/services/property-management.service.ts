@@ -3,7 +3,7 @@ import { PropertyManagementInteractor } from '../use-cases/property-management.i
 import type { CreateProgramPropertyInputDTO } from '../dto/property_management/create-program-property-input.dto';
 import type { CreateProjectPropertyInputDTO } from '../dto/property_management/create-project-property-input.dto';
 import { GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO, GenerateDocumentInputDTO } from '@coopenomics/extension-kit';
-import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 import { DOCUMENT_PORT, type IDocumentPort,
   type InnerTransactResult,
 } from '@coopenomics/innercoop';
@@ -45,7 +45,7 @@ export class PropertyManagementService {
     const document = await this.documentPort.generate({
       data: {
         ...data,
-        registry_id: Cooperative.Registry.GenerationPropertyInvestStatement.registry_id,
+        registry_id: Registry.GenerationPropertyInvestStatement.registry_id,
       },
       options,
     });
@@ -62,7 +62,7 @@ export class PropertyManagementService {
     const document = await this.documentPort.generate({
       data: {
         ...data,
-        registry_id: Cooperative.Registry.GenerationPropertyInvestDecision.registry_id,
+        registry_id: Registry.GenerationPropertyInvestDecision.registry_id,
       },
       options,
     });
@@ -79,7 +79,7 @@ export class PropertyManagementService {
     const document = await this.documentPort.generate({
       data: {
         ...data,
-        registry_id: Cooperative.Registry.GenerationPropertyInvestAct.registry_id,
+        registry_id: Registry.GenerationPropertyInvestAct.registry_id,
       },
       options,
     });
@@ -96,7 +96,7 @@ export class PropertyManagementService {
     const document = await this.documentPort.generate({
       data: {
         ...data,
-        registry_id: Cooperative.Registry.CapitalizationPropertyInvestStatement.registry_id,
+        registry_id: Registry.CapitalizationPropertyInvestStatement.registry_id,
       },
       options,
     });
@@ -113,7 +113,7 @@ export class PropertyManagementService {
     const document = await this.documentPort.generate({
       data: {
         ...data,
-        registry_id: Cooperative.Registry.CapitalizationPropertyInvestDecision.registry_id,
+        registry_id: Registry.CapitalizationPropertyInvestDecision.registry_id,
       },
       options,
     });
@@ -130,7 +130,7 @@ export class PropertyManagementService {
     const document = await this.documentPort.generate({
       data: {
         ...data,
-        registry_id: Cooperative.Registry.CapitalizationPropertyInvestAct.registry_id,
+        registry_id: Registry.CapitalizationPropertyInvestAct.registry_id,
       },
       options,
     });

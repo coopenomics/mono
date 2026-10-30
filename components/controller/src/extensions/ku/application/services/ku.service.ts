@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 import httpStatus from 'http-status';
 import type { ISignedDocument, IMonoAccount } from '@coopenomics/innercoop';
 import type { GenerateDocumentOptionsInputDTO, PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
@@ -292,73 +293,73 @@ export class KuService {
   }
 
   async generateBranchMeetingProposal(
-    data: Cooperative.Registry.BranchMeetingProposal.Action,
+    data: Registry.BranchMeetingProposal.Action,
     options?: GenerateDocumentOptionsInputDTO
   ): Promise<InnerGeneratedDocument> {
-    return this.generate(data, Cooperative.Registry.BranchMeetingProposal.registry_id, options);
+    return this.generate(data, Registry.BranchMeetingProposal.registry_id, options);
   }
 
   async generateBranchMeetingBallot(
-    data: Cooperative.Registry.BranchMeetingBallot.Action,
+    data: Registry.BranchMeetingBallot.Action,
     options?: GenerateDocumentOptionsInputDTO
   ): Promise<InnerGeneratedDocument> {
-    return this.generate(data, Cooperative.Registry.BranchMeetingBallot.registry_id, options);
+    return this.generate(data, Registry.BranchMeetingBallot.registry_id, options);
   }
 
   async generateBranchMeetingDecision(
-    data: Cooperative.Registry.BranchMeetingDecision.Action,
+    data: Registry.BranchMeetingDecision.Action,
     options?: GenerateDocumentOptionsInputDTO
   ): Promise<InnerGeneratedDocument> {
-    return this.generate(data, Cooperative.Registry.BranchMeetingDecision.registry_id, options);
+    return this.generate(data, Registry.BranchMeetingDecision.registry_id, options);
   }
 
   async generateBranchEstablishmentPetition(
-    data: Cooperative.Registry.BranchEstablishmentPetition.Action,
+    data: Registry.BranchEstablishmentPetition.Action,
     options?: GenerateDocumentOptionsInputDTO
   ): Promise<InnerGeneratedDocument> {
-    return this.generate(data, Cooperative.Registry.BranchEstablishmentPetition.registry_id, options);
+    return this.generate(data, Registry.BranchEstablishmentPetition.registry_id, options);
   }
 
   async generateBranchEstablishmentDecision(
-    data: Cooperative.Registry.BranchEstablishmentSovietDecision.Action,
+    data: Registry.BranchEstablishmentSovietDecision.Action,
     options?: GenerateDocumentOptionsInputDTO
   ): Promise<InnerGeneratedDocument> {
-    return this.generate(data, Cooperative.Registry.BranchEstablishmentSovietDecision.registry_id, options);
+    return this.generate(data, Registry.BranchEstablishmentSovietDecision.registry_id, options);
   }
 
   async generateBranchTrustedStatement(
-    data: Cooperative.Registry.BranchTrustedStatement.Action,
+    data: Registry.BranchTrustedStatement.Action,
     options?: GenerateDocumentOptionsInputDTO
   ): Promise<InnerGeneratedDocument> {
-    return this.generate(data, Cooperative.Registry.BranchTrustedStatement.registry_id, options);
+    return this.generate(data, Registry.BranchTrustedStatement.registry_id, options);
   }
 
   async generateBranchTrustedLiabilityAgreement(
-    data: Cooperative.Registry.BranchTrustedLiabilityAgreement.Action,
+    data: Registry.BranchTrustedLiabilityAgreement.Action,
     options?: GenerateDocumentOptionsInputDTO
   ): Promise<InnerGeneratedDocument> {
-    return this.generate(data, Cooperative.Registry.BranchTrustedLiabilityAgreement.registry_id, options);
+    return this.generate(data, Registry.BranchTrustedLiabilityAgreement.registry_id, options);
   }
 
   async generateBranchTrusteeLiabilityAgreement(
-    data: Cooperative.Registry.BranchTrusteeLiabilityAgreement.Action,
+    data: Registry.BranchTrusteeLiabilityAgreement.Action,
     options?: GenerateDocumentOptionsInputDTO
   ): Promise<InnerGeneratedDocument> {
-    return this.generate(data, Cooperative.Registry.BranchTrusteeLiabilityAgreement.registry_id, options);
+    return this.generate(data, Registry.BranchTrusteeLiabilityAgreement.registry_id, options);
   }
 
   async generateBranchTrusteePowerOfAttorney(
-    data: Cooperative.Registry.BranchTrusteePowerOfAttorney.Action,
+    data: Registry.BranchTrusteePowerOfAttorney.Action,
     options?: GenerateDocumentOptionsInputDTO
   ): Promise<InnerGeneratedDocument> {
-    return this.generate(data, Cooperative.Registry.BranchTrusteePowerOfAttorney.registry_id, options);
+    return this.generate(data, Registry.BranchTrusteePowerOfAttorney.registry_id, options);
   }
 
   async generateBranchTrustedPowerOfAttorney(
-    data: Cooperative.Registry.BranchTrustedPowerOfAttorney.Action,
+    data: Registry.BranchTrustedPowerOfAttorney.Action,
     options?: GenerateDocumentOptionsInputDTO
   ): Promise<InnerGeneratedDocument> {
-    return this.generate(data, Cooperative.Registry.BranchTrustedPowerOfAttorney.registry_id, options);
+    return this.generate(data, Registry.BranchTrustedPowerOfAttorney.registry_id, options);
   }
 
   // ───────────────────────────────────────────────────────────────────────────

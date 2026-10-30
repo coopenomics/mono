@@ -1,5 +1,5 @@
 import { computed, ref, watch } from 'vue';
-import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 import { FailAlert } from 'src/shared/api';
 import { useSystemStore } from 'src/entities/System/model';
 import { useDesktopStore } from 'src/entities/Desktop/model';
@@ -31,8 +31,8 @@ import { t } from 'src/shared/i18n';
 // Шаг → рабочий документ, который совет утверждает в бланке. Двойник оферты
 // 1101 выведен: совет утверждает саму оферту 1102 (фабрика утверждений).
 const stepToRegistryId: Record<string, number> = {
-  marketplace_provision: Cooperative.Registry.MarketplaceProgramTemplate.registry_id,
-  marketplace_offer_template: Cooperative.Registry.MarketplaceOffer.registry_id,
+  marketplace_provision: Registry.MarketplaceProgramTemplate.registry_id,
+  marketplace_offer_template: Registry.MarketplaceOffer.registry_id,
 };
 
 interface StepMeta {
