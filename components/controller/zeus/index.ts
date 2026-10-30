@@ -4528,6 +4528,59 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on CapitalProgramExpenseItem']?: Omit<ValueTypes["CapitalProgramExpenseItem"], "...on CapitalProgramExpenseItem">
 }>;
+	/** Паевой взнос имуществом в программу «Благорост» */
+["CapitalProgramProperty"]: AliasType<{
+	/** Дата создания записи */
+	_created_at?:boolean | `@${string}`,
+	/** Внутренний ID базы данных */
+	_id?:boolean | `@${string}`,
+	/** Дата последнего обновления записи */
+	_updated_at?:boolean | `@${string}`,
+	/** Акт приёма-передачи имущества */
+	act?:ValueTypes["DocumentAggregate"],
+	/** Протокол решения совета о приёме имущества */
+	authorization?:ValueTypes["DocumentAggregate"],
+	/** Номер блока последнего обновления */
+	block_num?:boolean | `@${string}`,
+	/** Статус из блокчейна */
+	blockchain_status?:boolean | `@${string}`,
+	/** Название кооператива */
+	coopname?:boolean | `@${string}`,
+	/** Дата создания */
+	created_at?:boolean | `@${string}`,
+	/** ID в блокчейне */
+	id?:boolean | `@${string}`,
+	/** Существует ли запись в блокчейне */
+	present?:boolean | `@${string}`,
+	/** Оценочная стоимость имущества */
+	property_amount?:boolean | `@${string}`,
+	/** Описание имущества, как оно записано в цепи */
+	property_description?:boolean | `@${string}`,
+	/** Описание, характеристики и состояние имущества из заявления */
+	property_details?:boolean | `@${string}`,
+	/** Идентификатор паевого взноса имуществом */
+	property_hash?:boolean | `@${string}`,
+	/** Наименование имущества из заявления */
+	property_name?:boolean | `@${string}`,
+	/** Количество из заявления */
+	property_quantity?:boolean | `@${string}`,
+	/** Единица измерения из заявления */
+	property_unit?:boolean | `@${string}`,
+	/** Заявление пайщика о паевом взносе имуществом */
+	statement?:ValueTypes["DocumentAggregate"],
+	/** Статус паевого взноса имуществом */
+	status?:boolean | `@${string}`,
+	/** Имя пользователя */
+	username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on CapitalProgramProperty']?: Omit<ValueTypes["CapitalProgramProperty"], "...on CapitalProgramProperty">
+}>;
+	["CapitalProgramPropertyFilter"]: {
+	/** Статус взноса */
+	status?: ValueTypes["ProgramPropertyStatus"] | undefined | null | Variable<any, string>,
+	/** Имя пайщика */
+	username?: string | undefined | null | Variable<any, string>
+};
 	["CapitalProgramWallet"]: AliasType<{
 	/** Идентификатор соглашения */
 	agreement_id?:boolean | `@${string}`,
@@ -5512,6 +5565,128 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on CapitalWaveSwing']?: Omit<ValueTypes["CapitalWaveSwing"], "...on CapitalWaveSwing">
 }>;
+	["CapitalizationPropertyInvestDecisionGenerateDocumentInput"]: {
+	/** Номер блока, на котором был создан документ */
+	block_num?: number | undefined | null | Variable<any, string>,
+	/** Название кооператива, связанное с документом */
+	coopname: string | Variable<any, string>,
+	/** Дата и время создания документа */
+	created_at?: string | undefined | null | Variable<any, string>,
+	/** Номер решения совета */
+	decision_id: number | Variable<any, string>,
+	/** Имя генератора, использованного для создания документа */
+	generator?: string | undefined | null | Variable<any, string>,
+	/** Язык документа */
+	lang?: string | undefined | null | Variable<any, string>,
+	/** Ссылки, связанные с документом */
+	links?: Array<string> | undefined | null | Variable<any, string>,
+	/** Оценочная стоимость имущества, например «85000.0000 RUB» */
+	property_amount: string | Variable<any, string>,
+	/** Описание, характеристики и состояние имущества */
+	property_description: string | Variable<any, string>,
+	/** Идентификатор паевого взноса имуществом */
+	property_hash: string | Variable<any, string>,
+	/** Наименование имущества */
+	property_name: string | Variable<any, string>,
+	/** Количество */
+	property_quantity: string | Variable<any, string>,
+	/** Единица измерения */
+	property_unit: string | Variable<any, string>,
+	/** Часовой пояс, в котором был создан документ */
+	timezone?: string | undefined | null | Variable<any, string>,
+	/** Название документа */
+	title?: string | undefined | null | Variable<any, string>,
+	/** Имя пользователя, создавшего документ */
+	username: string | Variable<any, string>,
+	/** Версия генератора, использованного для создания документа */
+	version?: string | undefined | null | Variable<any, string>
+};
+	["CapitalizationPropertyInvestStatementGenerateDocumentInput"]: {
+	/** Номер блока, на котором был создан документ */
+	block_num?: number | undefined | null | Variable<any, string>,
+	/** Название кооператива, связанное с документом */
+	coopname: string | Variable<any, string>,
+	/** Дата и время создания документа */
+	created_at?: string | undefined | null | Variable<any, string>,
+	/** Имя генератора, использованного для создания документа */
+	generator?: string | undefined | null | Variable<any, string>,
+	/** Язык документа */
+	lang?: string | undefined | null | Variable<any, string>,
+	/** Ссылки, связанные с документом */
+	links?: Array<string> | undefined | null | Variable<any, string>,
+	/** Оценочная стоимость имущества, например «85000.0000 RUB» */
+	property_amount: string | Variable<any, string>,
+	/** Описание, характеристики и состояние имущества */
+	property_description: string | Variable<any, string>,
+	/** Идентификатор паевого взноса имуществом */
+	property_hash: string | Variable<any, string>,
+	/** Наименование имущества */
+	property_name: string | Variable<any, string>,
+	/** Количество */
+	property_quantity: string | Variable<any, string>,
+	/** Единица измерения */
+	property_unit: string | Variable<any, string>,
+	/** Часовой пояс, в котором был создан документ */
+	timezone?: string | undefined | null | Variable<any, string>,
+	/** Название документа */
+	title?: string | undefined | null | Variable<any, string>,
+	/** Имя пользователя, создавшего документ */
+	username: string | Variable<any, string>,
+	/** Версия генератора, использованного для создания документа */
+	version?: string | undefined | null | Variable<any, string>
+};
+	["CapitalizationPropertyInvestStatementSignedDocumentInput"]: {
+	/** Хэш содержимого документа */
+	doc_hash: string | Variable<any, string>,
+	/** Общий хэш (doc_hash + meta_hash) */
+	hash: string | Variable<any, string>,
+	/** Метаинформация заявления о паевом взносе имуществом */
+	meta: ValueTypes["CapitalizationPropertyInvestStatementSignedMetaDocumentInput"] | Variable<any, string>,
+	/** Хэш мета-данных */
+	meta_hash: string | Variable<any, string>,
+	/** Вектор подписей */
+	signatures: Array<ValueTypes["SignatureInfoInput"]> | Variable<any, string>,
+	/** Версия стандарта документа */
+	version: string | Variable<any, string>
+};
+	["CapitalizationPropertyInvestStatementSignedMetaDocumentInput"]: {
+	/** Номер блока, на котором был создан документ */
+	block_num: number | Variable<any, string>,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null | Variable<any, string>,
+	/** Название кооператива, связанное с документом */
+	coopname: string | Variable<any, string>,
+	/** Дата и время создания документа */
+	created_at: string | Variable<any, string>,
+	/** Имя генератора, использованного для создания документа */
+	generator: string | Variable<any, string>,
+	/** Язык документа */
+	lang: string | Variable<any, string>,
+	/** Ссылки, связанные с документом */
+	links: Array<string> | Variable<any, string>,
+	/** Оценочная стоимость имущества, например «85000.0000 RUB» */
+	property_amount: string | Variable<any, string>,
+	/** Описание, характеристики и состояние имущества */
+	property_description: string | Variable<any, string>,
+	/** Идентификатор паевого взноса имуществом */
+	property_hash: string | Variable<any, string>,
+	/** Наименование имущества */
+	property_name: string | Variable<any, string>,
+	/** Количество */
+	property_quantity: string | Variable<any, string>,
+	/** Единица измерения */
+	property_unit: string | Variable<any, string>,
+	/** ID документа в реестре */
+	registry_id: number | Variable<any, string>,
+	/** Часовой пояс, в котором был создан документ */
+	timezone: string | Variable<any, string>,
+	/** Название документа */
+	title: string | Variable<any, string>,
+	/** Имя пользователя, создавшего документ */
+	username: string | Variable<any, string>,
+	/** Версия генератора, использованного для создания документа */
+	version: string | Variable<any, string>
+};
 	/** Состояние свидетельства о членстве, выданного кооперативом в сеть «Карта кооператора» */
 ["CardcoopAttestationState"]:CardcoopAttestationState;
 	["CardcoopEntry"]: AliasType<{
@@ -6460,15 +6635,9 @@ export type ValueTypes = {
 	["CreateProgramPropertyInput"]: {
 	/** Имя аккаунта кооператива */
 	coopname: string | Variable<any, string>,
-	/** Сумма имущества */
-	property_amount: string | Variable<any, string>,
-	/** Описание имущества */
-	property_description: string | Variable<any, string>,
-	/** Хэш имущества */
-	property_hash: string | Variable<any, string>,
-	/** Заявление */
-	statement: ValueTypes["SignedDigitalDocumentInput"] | Variable<any, string>,
-	/** Имя пользователя */
+	/** Заявление о паевом взносе имуществом, подписанное пайщиком */
+	statement: ValueTypes["CapitalizationPropertyInvestStatementSignedDocumentInput"] | Variable<any, string>,
+	/** Имя пайщика, передающего имущество */
 	username: string | Variable<any, string>
 };
 	["CreateProjectFreeDecisionInput"]: {
@@ -9410,6 +9579,14 @@ export type ValueTypes = {
 	lang?: string | undefined | null | Variable<any, string>,
 	/** Пропустить сохранение */
 	skip_save?: boolean | undefined | null | Variable<any, string>
+};
+	["GenerateProgramPropertyActInput"]: {
+	/** Имя аккаунта кооператива */
+	coopname: string | Variable<any, string>,
+	/** Идентификатор паевого взноса имуществом */
+	property_hash: string | Variable<any, string>,
+	/** Имя пайщика, передающего имущество */
+	username: string | Variable<any, string>
 };
 	["GenerateRegistrationDocumentsInput"]: {
 	/** Тип аккаунта пайщика */
@@ -14101,9 +14278,9 @@ capitalFinalizeProject?: [{	data: ValueTypes["FinalizeProjectInput"] | Variable<
 capitalFundProgram?: [{	data: ValueTypes["FundProgramInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 capitalGenerateCapitalizationAgreement?: [{	data: ValueTypes["GenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 capitalGenerateCapitalizationMoneyInvestStatement?: [{	data: ValueTypes["GenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
-capitalGenerateCapitalizationPropertyInvestAct?: [{	data: ValueTypes["GenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
-capitalGenerateCapitalizationPropertyInvestDecision?: [{	data: ValueTypes["GenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
-capitalGenerateCapitalizationPropertyInvestStatement?: [{	data: ValueTypes["GenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
+capitalGenerateCapitalizationPropertyInvestAct?: [{	data: ValueTypes["GenerateProgramPropertyActInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
+capitalGenerateCapitalizationPropertyInvestDecision?: [{	data: ValueTypes["CapitalizationPropertyInvestDecisionGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
+capitalGenerateCapitalizationPropertyInvestStatement?: [{	data: ValueTypes["CapitalizationPropertyInvestStatementGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 capitalGenerateCapitalizationToMainWalletConvertStatement?: [{	data: ValueTypes["ShareTransferStatementGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 capitalGenerateComponentGenerationContract?: [{	data: ValueTypes["ComponentGenerationContractGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 capitalGenerateExpenseDecision?: [{	data: ValueTypes["GenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
@@ -14143,6 +14320,7 @@ capitalSetProjectDevelopmentRepositoryUrl?: [{	data: ValueTypes["SetCapitalProje
 capitalSetProjectPriority?: [{	data: ValueTypes["SetCapitalProjectPriorityInput"] | Variable<any, string>},ValueTypes["CapitalProject"]],
 capitalSignActAsChairman?: [{	data: ValueTypes["SignActAsChairmanInput"] | Variable<any, string>},ValueTypes["CapitalSegment"]],
 capitalSignActAsContributor?: [{	data: ValueTypes["SignActAsContributorInput"] | Variable<any, string>},ValueTypes["CapitalSegment"]],
+capitalSignProgramPropertyAct?: [{	data: ValueTypes["SignProgramPropertyActInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 capitalStartProcess?: [{	data: ValueTypes["StartProcessInput"] | Variable<any, string>},ValueTypes["ProcessInstance"]],
 capitalStartProject?: [{	data: ValueTypes["StartProjectInput"] | Variable<any, string>},ValueTypes["CapitalProject"]],
 capitalStartTimer?: [{	data: ValueTypes["CapitalStartTimerInput"] | Variable<any, string>},ValueTypes["CapitalTimerSession"]],
@@ -14928,6 +15106,18 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 	totalPages?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on PaginatedCapitalProgramExpensesPaginationResult']?: Omit<ValueTypes["PaginatedCapitalProgramExpensesPaginationResult"], "...on PaginatedCapitalProgramExpensesPaginationResult">
+}>;
+	["PaginatedCapitalProgramPropertiesPaginationResult"]: AliasType<{
+	/** Текущая страница */
+	currentPage?:boolean | `@${string}`,
+	/** Элементы текущей страницы */
+	items?:ValueTypes["CapitalProgramProperty"],
+	/** Общее количество элементов */
+	totalCount?:boolean | `@${string}`,
+	/** Общее количество страниц */
+	totalPages?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on PaginatedCapitalProgramPropertiesPaginationResult']?: Omit<ValueTypes["PaginatedCapitalProgramPropertiesPaginationResult"], "...on PaginatedCapitalProgramPropertiesPaginationResult">
 }>;
 	["PaginatedCapitalProjectsPaginationResult"]: AliasType<{
 	/** Текущая страница */
@@ -15936,6 +16126,8 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 };
 	/** Ключ выбранной программы регистрации */
 ["ProgramKey"]:ProgramKey;
+	/** Статус паевого взноса имуществом в программу «Благорост» */
+["ProgramPropertyStatus"]:ProgramPropertyStatus;
 	/** Тип целевой потребительской программы */
 ["ProgramType"]:ProgramType;
 	["ProgramWallet"]: AliasType<{
@@ -16400,6 +16592,7 @@ capitalMetricSuperpositionHistory?: [{	data: ValueTypes["GetMetricSuperpositionH
 capitalMetricWave?: [{	data: ValueTypes["GetMetricWaveInput"] | Variable<any, string>},ValueTypes["CapitalMetricWave"]],
 capitalProgramExpense?: [{	coopname: string | Variable<any, string>,	expense_hash: string | Variable<any, string>},ValueTypes["CapitalProgramExpense"]],
 capitalProgramExpenses?: [{	coopname: string | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedCapitalProgramExpensesPaginationResult"]],
+capitalProgramProperties?: [{	filter?: ValueTypes["CapitalProgramPropertyFilter"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedCapitalProgramPropertiesPaginationResult"]],
 capitalProject?: [{	data: ValueTypes["GetProjectInput"] | Variable<any, string>},ValueTypes["CapitalProject"]],
 capitalProjectWithRelations?: [{	data: ValueTypes["GetProjectWithRelationsInput"] | Variable<any, string>},ValueTypes["CapitalProject"]],
 capitalProjects?: [{	filter?: ValueTypes["CapitalProjectFilter"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedCapitalProjectsPaginationResult"]],
@@ -18125,6 +18318,16 @@ verificationReviews?: [{	data?: ValueTypes["VerificationReviewsInput"] | undefin
 	/** Подписанный документ с решением секретаря */
 	secretary_decision: ValueTypes["AnnualGeneralMeetingDecisionSignedDocumentInput"] | Variable<any, string>,
 	/** Имя аккаунта пользователя */
+	username: string | Variable<any, string>
+};
+	["SignProgramPropertyActInput"]: {
+	/** Акт приёма-передачи, подписанный пайщиком */
+	act: ValueTypes["SignedDigitalDocumentInput"] | Variable<any, string>,
+	/** Имя аккаунта кооператива */
+	coopname: string | Variable<any, string>,
+	/** Идентификатор паевого взноса имуществом */
+	property_hash: string | Variable<any, string>,
+	/** Имя пайщика, передающего имущество */
 	username: string | Variable<any, string>
 };
 	["SignatureInfo"]: AliasType<{
@@ -22577,6 +22780,58 @@ export type ResolverInputTypes = {
 	status?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	/** Паевой взнос имуществом в программу «Благорост» */
+["CapitalProgramProperty"]: AliasType<{
+	/** Дата создания записи */
+	_created_at?:boolean | `@${string}`,
+	/** Внутренний ID базы данных */
+	_id?:boolean | `@${string}`,
+	/** Дата последнего обновления записи */
+	_updated_at?:boolean | `@${string}`,
+	/** Акт приёма-передачи имущества */
+	act?:ResolverInputTypes["DocumentAggregate"],
+	/** Протокол решения совета о приёме имущества */
+	authorization?:ResolverInputTypes["DocumentAggregate"],
+	/** Номер блока последнего обновления */
+	block_num?:boolean | `@${string}`,
+	/** Статус из блокчейна */
+	blockchain_status?:boolean | `@${string}`,
+	/** Название кооператива */
+	coopname?:boolean | `@${string}`,
+	/** Дата создания */
+	created_at?:boolean | `@${string}`,
+	/** ID в блокчейне */
+	id?:boolean | `@${string}`,
+	/** Существует ли запись в блокчейне */
+	present?:boolean | `@${string}`,
+	/** Оценочная стоимость имущества */
+	property_amount?:boolean | `@${string}`,
+	/** Описание имущества, как оно записано в цепи */
+	property_description?:boolean | `@${string}`,
+	/** Описание, характеристики и состояние имущества из заявления */
+	property_details?:boolean | `@${string}`,
+	/** Идентификатор паевого взноса имуществом */
+	property_hash?:boolean | `@${string}`,
+	/** Наименование имущества из заявления */
+	property_name?:boolean | `@${string}`,
+	/** Количество из заявления */
+	property_quantity?:boolean | `@${string}`,
+	/** Единица измерения из заявления */
+	property_unit?:boolean | `@${string}`,
+	/** Заявление пайщика о паевом взносе имуществом */
+	statement?:ResolverInputTypes["DocumentAggregate"],
+	/** Статус паевого взноса имуществом */
+	status?:boolean | `@${string}`,
+	/** Имя пользователя */
+	username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["CapitalProgramPropertyFilter"]: {
+	/** Статус взноса */
+	status?: ResolverInputTypes["ProgramPropertyStatus"] | undefined | null,
+	/** Имя пайщика */
+	username?: string | undefined | null
+};
 	["CapitalProgramWallet"]: AliasType<{
 	/** Идентификатор соглашения */
 	agreement_id?:boolean | `@${string}`,
@@ -23537,6 +23792,128 @@ export type ResolverInputTypes = {
 	value?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	["CapitalizationPropertyInvestDecisionGenerateDocumentInput"]: {
+	/** Номер блока, на котором был создан документ */
+	block_num?: number | undefined | null,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at?: string | undefined | null,
+	/** Номер решения совета */
+	decision_id: number,
+	/** Имя генератора, использованного для создания документа */
+	generator?: string | undefined | null,
+	/** Язык документа */
+	lang?: string | undefined | null,
+	/** Ссылки, связанные с документом */
+	links?: Array<string> | undefined | null,
+	/** Оценочная стоимость имущества, например «85000.0000 RUB» */
+	property_amount: string,
+	/** Описание, характеристики и состояние имущества */
+	property_description: string,
+	/** Идентификатор паевого взноса имуществом */
+	property_hash: string,
+	/** Наименование имущества */
+	property_name: string,
+	/** Количество */
+	property_quantity: string,
+	/** Единица измерения */
+	property_unit: string,
+	/** Часовой пояс, в котором был создан документ */
+	timezone?: string | undefined | null,
+	/** Название документа */
+	title?: string | undefined | null,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version?: string | undefined | null
+};
+	["CapitalizationPropertyInvestStatementGenerateDocumentInput"]: {
+	/** Номер блока, на котором был создан документ */
+	block_num?: number | undefined | null,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at?: string | undefined | null,
+	/** Имя генератора, использованного для создания документа */
+	generator?: string | undefined | null,
+	/** Язык документа */
+	lang?: string | undefined | null,
+	/** Ссылки, связанные с документом */
+	links?: Array<string> | undefined | null,
+	/** Оценочная стоимость имущества, например «85000.0000 RUB» */
+	property_amount: string,
+	/** Описание, характеристики и состояние имущества */
+	property_description: string,
+	/** Идентификатор паевого взноса имуществом */
+	property_hash: string,
+	/** Наименование имущества */
+	property_name: string,
+	/** Количество */
+	property_quantity: string,
+	/** Единица измерения */
+	property_unit: string,
+	/** Часовой пояс, в котором был создан документ */
+	timezone?: string | undefined | null,
+	/** Название документа */
+	title?: string | undefined | null,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version?: string | undefined | null
+};
+	["CapitalizationPropertyInvestStatementSignedDocumentInput"]: {
+	/** Хэш содержимого документа */
+	doc_hash: string,
+	/** Общий хэш (doc_hash + meta_hash) */
+	hash: string,
+	/** Метаинформация заявления о паевом взносе имуществом */
+	meta: ResolverInputTypes["CapitalizationPropertyInvestStatementSignedMetaDocumentInput"],
+	/** Хэш мета-данных */
+	meta_hash: string,
+	/** Вектор подписей */
+	signatures: Array<ResolverInputTypes["SignatureInfoInput"]>,
+	/** Версия стандарта документа */
+	version: string
+};
+	["CapitalizationPropertyInvestStatementSignedMetaDocumentInput"]: {
+	/** Номер блока, на котором был создан документ */
+	block_num: number,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at: string,
+	/** Имя генератора, использованного для создания документа */
+	generator: string,
+	/** Язык документа */
+	lang: string,
+	/** Ссылки, связанные с документом */
+	links: Array<string>,
+	/** Оценочная стоимость имущества, например «85000.0000 RUB» */
+	property_amount: string,
+	/** Описание, характеристики и состояние имущества */
+	property_description: string,
+	/** Идентификатор паевого взноса имуществом */
+	property_hash: string,
+	/** Наименование имущества */
+	property_name: string,
+	/** Количество */
+	property_quantity: string,
+	/** Единица измерения */
+	property_unit: string,
+	/** ID документа в реестре */
+	registry_id: number,
+	/** Часовой пояс, в котором был создан документ */
+	timezone: string,
+	/** Название документа */
+	title: string,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version: string
+};
 	/** Состояние свидетельства о членстве, выданного кооперативом в сеть «Карта кооператора» */
 ["CardcoopAttestationState"]:CardcoopAttestationState;
 	["CardcoopEntry"]: AliasType<{
@@ -24461,15 +24838,9 @@ export type ResolverInputTypes = {
 	["CreateProgramPropertyInput"]: {
 	/** Имя аккаунта кооператива */
 	coopname: string,
-	/** Сумма имущества */
-	property_amount: string,
-	/** Описание имущества */
-	property_description: string,
-	/** Хэш имущества */
-	property_hash: string,
-	/** Заявление */
-	statement: ResolverInputTypes["SignedDigitalDocumentInput"],
-	/** Имя пользователя */
+	/** Заявление о паевом взносе имуществом, подписанное пайщиком */
+	statement: ResolverInputTypes["CapitalizationPropertyInvestStatementSignedDocumentInput"],
+	/** Имя пайщика, передающего имущество */
 	username: string
 };
 	["CreateProjectFreeDecisionInput"]: {
@@ -27321,6 +27692,14 @@ export type ResolverInputTypes = {
 	lang?: string | undefined | null,
 	/** Пропустить сохранение */
 	skip_save?: boolean | undefined | null
+};
+	["GenerateProgramPropertyActInput"]: {
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Идентификатор паевого взноса имуществом */
+	property_hash: string,
+	/** Имя пайщика, передающего имущество */
+	username: string
 };
 	["GenerateRegistrationDocumentsInput"]: {
 	/** Тип аккаунта пайщика */
@@ -31875,9 +32254,9 @@ capitalFinalizeProject?: [{	data: ResolverInputTypes["FinalizeProjectInput"]},Re
 capitalFundProgram?: [{	data: ResolverInputTypes["FundProgramInput"]},ResolverInputTypes["Transaction"]],
 capitalGenerateCapitalizationAgreement?: [{	data: ResolverInputTypes["GenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 capitalGenerateCapitalizationMoneyInvestStatement?: [{	data: ResolverInputTypes["GenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
-capitalGenerateCapitalizationPropertyInvestAct?: [{	data: ResolverInputTypes["GenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
-capitalGenerateCapitalizationPropertyInvestDecision?: [{	data: ResolverInputTypes["GenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
-capitalGenerateCapitalizationPropertyInvestStatement?: [{	data: ResolverInputTypes["GenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
+capitalGenerateCapitalizationPropertyInvestAct?: [{	data: ResolverInputTypes["GenerateProgramPropertyActInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
+capitalGenerateCapitalizationPropertyInvestDecision?: [{	data: ResolverInputTypes["CapitalizationPropertyInvestDecisionGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
+capitalGenerateCapitalizationPropertyInvestStatement?: [{	data: ResolverInputTypes["CapitalizationPropertyInvestStatementGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 capitalGenerateCapitalizationToMainWalletConvertStatement?: [{	data: ResolverInputTypes["ShareTransferStatementGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 capitalGenerateComponentGenerationContract?: [{	data: ResolverInputTypes["ComponentGenerationContractGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 capitalGenerateExpenseDecision?: [{	data: ResolverInputTypes["GenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
@@ -31917,6 +32296,7 @@ capitalSetProjectDevelopmentRepositoryUrl?: [{	data: ResolverInputTypes["SetCapi
 capitalSetProjectPriority?: [{	data: ResolverInputTypes["SetCapitalProjectPriorityInput"]},ResolverInputTypes["CapitalProject"]],
 capitalSignActAsChairman?: [{	data: ResolverInputTypes["SignActAsChairmanInput"]},ResolverInputTypes["CapitalSegment"]],
 capitalSignActAsContributor?: [{	data: ResolverInputTypes["SignActAsContributorInput"]},ResolverInputTypes["CapitalSegment"]],
+capitalSignProgramPropertyAct?: [{	data: ResolverInputTypes["SignProgramPropertyActInput"]},ResolverInputTypes["Transaction"]],
 capitalStartProcess?: [{	data: ResolverInputTypes["StartProcessInput"]},ResolverInputTypes["ProcessInstance"]],
 capitalStartProject?: [{	data: ResolverInputTypes["StartProjectInput"]},ResolverInputTypes["CapitalProject"]],
 capitalStartTimer?: [{	data: ResolverInputTypes["CapitalStartTimerInput"]},ResolverInputTypes["CapitalTimerSession"]],
@@ -32670,6 +33050,17 @@ walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputType
 	currentPage?:boolean | `@${string}`,
 	/** Элементы текущей страницы */
 	items?:ResolverInputTypes["CapitalProgramExpense"],
+	/** Общее количество элементов */
+	totalCount?:boolean | `@${string}`,
+	/** Общее количество страниц */
+	totalPages?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["PaginatedCapitalProgramPropertiesPaginationResult"]: AliasType<{
+	/** Текущая страница */
+	currentPage?:boolean | `@${string}`,
+	/** Элементы текущей страницы */
+	items?:ResolverInputTypes["CapitalProgramProperty"],
 	/** Общее количество элементов */
 	totalCount?:boolean | `@${string}`,
 	/** Общее количество страниц */
@@ -33635,6 +34026,8 @@ walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputType
 };
 	/** Ключ выбранной программы регистрации */
 ["ProgramKey"]:ProgramKey;
+	/** Статус паевого взноса имуществом в программу «Благорост» */
+["ProgramPropertyStatus"]:ProgramPropertyStatus;
 	/** Тип целевой потребительской программы */
 ["ProgramType"]:ProgramType;
 	["ProgramWallet"]: AliasType<{
@@ -34084,6 +34477,7 @@ capitalMetricSuperpositionHistory?: [{	data: ResolverInputTypes["GetMetricSuperp
 capitalMetricWave?: [{	data: ResolverInputTypes["GetMetricWaveInput"]},ResolverInputTypes["CapitalMetricWave"]],
 capitalProgramExpense?: [{	coopname: string,	expense_hash: string},ResolverInputTypes["CapitalProgramExpense"]],
 capitalProgramExpenses?: [{	coopname: string,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedCapitalProgramExpensesPaginationResult"]],
+capitalProgramProperties?: [{	filter?: ResolverInputTypes["CapitalProgramPropertyFilter"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedCapitalProgramPropertiesPaginationResult"]],
 capitalProject?: [{	data: ResolverInputTypes["GetProjectInput"]},ResolverInputTypes["CapitalProject"]],
 capitalProjectWithRelations?: [{	data: ResolverInputTypes["GetProjectWithRelationsInput"]},ResolverInputTypes["CapitalProject"]],
 capitalProjects?: [{	filter?: ResolverInputTypes["CapitalProjectFilter"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedCapitalProjectsPaginationResult"]],
@@ -35764,6 +36158,16 @@ verificationReviews?: [{	data?: ResolverInputTypes["VerificationReviewsInput"] |
 	/** Подписанный документ с решением секретаря */
 	secretary_decision: ResolverInputTypes["AnnualGeneralMeetingDecisionSignedDocumentInput"],
 	/** Имя аккаунта пользователя */
+	username: string
+};
+	["SignProgramPropertyActInput"]: {
+	/** Акт приёма-передачи, подписанный пайщиком */
+	act: ResolverInputTypes["SignedDigitalDocumentInput"],
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Идентификатор паевого взноса имуществом */
+	property_hash: string,
+	/** Имя пайщика, передающего имущество */
 	username: string
 };
 	["SignatureInfo"]: AliasType<{
@@ -40091,6 +40495,57 @@ export type ModelTypes = {
 	recipient_type: ModelTypes["ExpenseRecipientType"],
 	status: ModelTypes["ExpenseItemStatus"]
 };
+	/** Паевой взнос имуществом в программу «Благорост» */
+["CapitalProgramProperty"]: {
+		/** Дата создания записи */
+	_created_at: ModelTypes["DateTime"],
+	/** Внутренний ID базы данных */
+	_id: string,
+	/** Дата последнего обновления записи */
+	_updated_at: ModelTypes["DateTime"],
+	/** Акт приёма-передачи имущества */
+	act?: ModelTypes["DocumentAggregate"] | undefined | null,
+	/** Протокол решения совета о приёме имущества */
+	authorization?: ModelTypes["DocumentAggregate"] | undefined | null,
+	/** Номер блока последнего обновления */
+	block_num?: number | undefined | null,
+	/** Статус из блокчейна */
+	blockchain_status?: string | undefined | null,
+	/** Название кооператива */
+	coopname?: string | undefined | null,
+	/** Дата создания */
+	created_at?: string | undefined | null,
+	/** ID в блокчейне */
+	id?: number | undefined | null,
+	/** Существует ли запись в блокчейне */
+	present: boolean,
+	/** Оценочная стоимость имущества */
+	property_amount?: string | undefined | null,
+	/** Описание имущества, как оно записано в цепи */
+	property_description?: string | undefined | null,
+	/** Описание, характеристики и состояние имущества из заявления */
+	property_details?: string | undefined | null,
+	/** Идентификатор паевого взноса имуществом */
+	property_hash: string,
+	/** Наименование имущества из заявления */
+	property_name?: string | undefined | null,
+	/** Количество из заявления */
+	property_quantity?: string | undefined | null,
+	/** Единица измерения из заявления */
+	property_unit?: string | undefined | null,
+	/** Заявление пайщика о паевом взносе имуществом */
+	statement?: ModelTypes["DocumentAggregate"] | undefined | null,
+	/** Статус паевого взноса имуществом */
+	status: ModelTypes["ProgramPropertyStatus"],
+	/** Имя пользователя */
+	username?: string | undefined | null
+};
+	["CapitalProgramPropertyFilter"]: {
+	/** Статус взноса */
+	status?: ModelTypes["ProgramPropertyStatus"] | undefined | null,
+	/** Имя пайщика */
+	username?: string | undefined | null
+};
 	["CapitalProgramWallet"]: {
 		/** Идентификатор соглашения */
 	agreement_id: ModelTypes["ID"],
@@ -41026,6 +41481,128 @@ export type ModelTypes = {
 	/** Значение на экстремуме */
 	value: number
 };
+	["CapitalizationPropertyInvestDecisionGenerateDocumentInput"]: {
+	/** Номер блока, на котором был создан документ */
+	block_num?: number | undefined | null,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at?: string | undefined | null,
+	/** Номер решения совета */
+	decision_id: number,
+	/** Имя генератора, использованного для создания документа */
+	generator?: string | undefined | null,
+	/** Язык документа */
+	lang?: string | undefined | null,
+	/** Ссылки, связанные с документом */
+	links?: Array<string> | undefined | null,
+	/** Оценочная стоимость имущества, например «85000.0000 RUB» */
+	property_amount: string,
+	/** Описание, характеристики и состояние имущества */
+	property_description: string,
+	/** Идентификатор паевого взноса имуществом */
+	property_hash: string,
+	/** Наименование имущества */
+	property_name: string,
+	/** Количество */
+	property_quantity: string,
+	/** Единица измерения */
+	property_unit: string,
+	/** Часовой пояс, в котором был создан документ */
+	timezone?: string | undefined | null,
+	/** Название документа */
+	title?: string | undefined | null,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version?: string | undefined | null
+};
+	["CapitalizationPropertyInvestStatementGenerateDocumentInput"]: {
+	/** Номер блока, на котором был создан документ */
+	block_num?: number | undefined | null,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at?: string | undefined | null,
+	/** Имя генератора, использованного для создания документа */
+	generator?: string | undefined | null,
+	/** Язык документа */
+	lang?: string | undefined | null,
+	/** Ссылки, связанные с документом */
+	links?: Array<string> | undefined | null,
+	/** Оценочная стоимость имущества, например «85000.0000 RUB» */
+	property_amount: string,
+	/** Описание, характеристики и состояние имущества */
+	property_description: string,
+	/** Идентификатор паевого взноса имуществом */
+	property_hash: string,
+	/** Наименование имущества */
+	property_name: string,
+	/** Количество */
+	property_quantity: string,
+	/** Единица измерения */
+	property_unit: string,
+	/** Часовой пояс, в котором был создан документ */
+	timezone?: string | undefined | null,
+	/** Название документа */
+	title?: string | undefined | null,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version?: string | undefined | null
+};
+	["CapitalizationPropertyInvestStatementSignedDocumentInput"]: {
+	/** Хэш содержимого документа */
+	doc_hash: string,
+	/** Общий хэш (doc_hash + meta_hash) */
+	hash: string,
+	/** Метаинформация заявления о паевом взносе имуществом */
+	meta: ModelTypes["CapitalizationPropertyInvestStatementSignedMetaDocumentInput"],
+	/** Хэш мета-данных */
+	meta_hash: string,
+	/** Вектор подписей */
+	signatures: Array<ModelTypes["SignatureInfoInput"]>,
+	/** Версия стандарта документа */
+	version: string
+};
+	["CapitalizationPropertyInvestStatementSignedMetaDocumentInput"]: {
+	/** Номер блока, на котором был создан документ */
+	block_num: number,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at: string,
+	/** Имя генератора, использованного для создания документа */
+	generator: string,
+	/** Язык документа */
+	lang: string,
+	/** Ссылки, связанные с документом */
+	links: Array<string>,
+	/** Оценочная стоимость имущества, например «85000.0000 RUB» */
+	property_amount: string,
+	/** Описание, характеристики и состояние имущества */
+	property_description: string,
+	/** Идентификатор паевого взноса имуществом */
+	property_hash: string,
+	/** Наименование имущества */
+	property_name: string,
+	/** Количество */
+	property_quantity: string,
+	/** Единица измерения */
+	property_unit: string,
+	/** ID документа в реестре */
+	registry_id: number,
+	/** Часовой пояс, в котором был создан документ */
+	timezone: string,
+	/** Название документа */
+	title: string,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version: string
+};
 	["CardcoopAttestationState"]:CardcoopAttestationState;
 	["CardcoopEntry"]: {
 		/** Номер карты кооператора */
@@ -41918,15 +42495,9 @@ export type ModelTypes = {
 	["CreateProgramPropertyInput"]: {
 	/** Имя аккаунта кооператива */
 	coopname: string,
-	/** Сумма имущества */
-	property_amount: string,
-	/** Описание имущества */
-	property_description: string,
-	/** Хэш имущества */
-	property_hash: string,
-	/** Заявление */
-	statement: ModelTypes["SignedDigitalDocumentInput"],
-	/** Имя пользователя */
+	/** Заявление о паевом взносе имуществом, подписанное пайщиком */
+	statement: ModelTypes["CapitalizationPropertyInvestStatementSignedDocumentInput"],
+	/** Имя пайщика, передающего имущество */
 	username: string
 };
 	["CreateProjectFreeDecisionInput"]: {
@@ -44643,6 +45214,14 @@ export type ModelTypes = {
 	lang?: string | undefined | null,
 	/** Пропустить сохранение */
 	skip_save?: boolean | undefined | null
+};
+	["GenerateProgramPropertyActInput"]: {
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Идентификатор паевого взноса имуществом */
+	property_hash: string,
+	/** Имя пайщика, передающего имущество */
+	username: string
 };
 	["GenerateRegistrationDocumentsInput"]: {
 	/** Тип аккаунта пайщика */
@@ -49065,11 +49644,11 @@ export type ModelTypes = {
 	capitalGenerateCapitalizationAgreement: ModelTypes["GeneratedDocument"],
 	/** Сгенерировать заявление об инвестировании в благорост */
 	capitalGenerateCapitalizationMoneyInvestStatement: ModelTypes["GeneratedDocument"],
-	/** Сгенерировать акт об инвестировании имуществом в благорост */
+	/** Сгенерировать акт приёма-передачи имущества по паевому взносу в программу «Благорост» */
 	capitalGenerateCapitalizationPropertyInvestAct: ModelTypes["GeneratedDocument"],
-	/** Сгенерировать решение об инвестировании имуществом в благорост */
+	/** Сгенерировать протокол совета о приёме паевого взноса имуществом в программу «Благорост» */
 	capitalGenerateCapitalizationPropertyInvestDecision: ModelTypes["GeneratedDocument"],
-	/** Сгенерировать заявление об инвестировании имуществом в благорост */
+	/** Сгенерировать заявление о паевом взносе имуществом в программу «Благорост» */
 	capitalGenerateCapitalizationPropertyInvestStatement: ModelTypes["GeneratedDocument"],
 	/** Сгенерировать заявление о трансляции паевого взноса из Благороста в Цифровой Кошелёк на указанную сумму */
 	capitalGenerateCapitalizationToMainWalletConvertStatement: ModelTypes["GeneratedDocument"],
@@ -49149,6 +49728,8 @@ export type ModelTypes = {
 	capitalSignActAsChairman: ModelTypes["CapitalSegment"],
 	/** Подписание акта о вкладе результатов участником */
 	capitalSignActAsContributor: ModelTypes["CapitalSegment"],
+	/** Подписать акт приёма-передачи имущества, вносимого паевым взносом в программу «Благорост» */
+	capitalSignProgramPropertyAct: ModelTypes["Transaction"],
 	/** Запуск экземпляра процесса */
 	capitalStartProcess: ModelTypes["ProcessInstance"],
 	/** Запуск проекта в CAPITAL контракте */
@@ -50184,6 +50765,16 @@ export type ModelTypes = {
 	/** Общее количество страниц */
 	totalPages: number
 };
+	["PaginatedCapitalProgramPropertiesPaginationResult"]: {
+		/** Текущая страница */
+	currentPage: number,
+	/** Элементы текущей страницы */
+	items: Array<ModelTypes["CapitalProgramProperty"]>,
+	/** Общее количество элементов */
+	totalCount: number,
+	/** Общее количество страниц */
+	totalPages: number
+};
 	["PaginatedCapitalProjectsPaginationResult"]: {
 		/** Текущая страница */
 	currentPage: number,
@@ -51076,6 +51667,7 @@ export type ModelTypes = {
 	version: string
 };
 	["ProgramKey"]:ProgramKey;
+	["ProgramPropertyStatus"]:ProgramPropertyStatus;
 	["ProgramType"]:ProgramType;
 	["ProgramWallet"]: {
 		/** Идентификатор соглашения */
@@ -51543,6 +52135,8 @@ export type ModelTypes = {
 	capitalProgramExpense?: ModelTypes["CapitalProgramExpense"] | undefined | null,
 	/** Список программных расходов капитала (через шасси expense). */
 	capitalProgramExpenses: ModelTypes["PaginatedCapitalProgramExpensesPaginationResult"],
+	/** Список паевых взносов имуществом в программу «Благорост» с документами процесса */
+	capitalProgramProperties: ModelTypes["PaginatedCapitalProgramPropertiesPaginationResult"],
 	/** Получение проекта по хешу с компонентами */
 	capitalProject?: ModelTypes["CapitalProject"] | undefined | null,
 	/** Получение проекта с полными отношениями по хешу проекта */
@@ -53366,6 +53960,16 @@ export type ModelTypes = {
 	/** Подписанный документ с решением секретаря */
 	secretary_decision: ModelTypes["AnnualGeneralMeetingDecisionSignedDocumentInput"],
 	/** Имя аккаунта пользователя */
+	username: string
+};
+	["SignProgramPropertyActInput"]: {
+	/** Акт приёма-передачи, подписанный пайщиком */
+	act: ModelTypes["SignedDigitalDocumentInput"],
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Идентификатор паевого взноса имуществом */
+	property_hash: string,
+	/** Имя пайщика, передающего имущество */
 	username: string
 };
 	["SignatureInfo"]: {
@@ -57827,6 +58431,59 @@ export type GraphQLTypes = {
 	status: GraphQLTypes["ExpenseItemStatus"],
 	['...on CapitalProgramExpenseItem']: Omit<GraphQLTypes["CapitalProgramExpenseItem"], "...on CapitalProgramExpenseItem">
 };
+	/** Паевой взнос имуществом в программу «Благорост» */
+["CapitalProgramProperty"]: {
+	__typename: "CapitalProgramProperty",
+	/** Дата создания записи */
+	_created_at: GraphQLTypes["DateTime"],
+	/** Внутренний ID базы данных */
+	_id: string,
+	/** Дата последнего обновления записи */
+	_updated_at: GraphQLTypes["DateTime"],
+	/** Акт приёма-передачи имущества */
+	act?: GraphQLTypes["DocumentAggregate"] | undefined | null,
+	/** Протокол решения совета о приёме имущества */
+	authorization?: GraphQLTypes["DocumentAggregate"] | undefined | null,
+	/** Номер блока последнего обновления */
+	block_num?: number | undefined | null,
+	/** Статус из блокчейна */
+	blockchain_status?: string | undefined | null,
+	/** Название кооператива */
+	coopname?: string | undefined | null,
+	/** Дата создания */
+	created_at?: string | undefined | null,
+	/** ID в блокчейне */
+	id?: number | undefined | null,
+	/** Существует ли запись в блокчейне */
+	present: boolean,
+	/** Оценочная стоимость имущества */
+	property_amount?: string | undefined | null,
+	/** Описание имущества, как оно записано в цепи */
+	property_description?: string | undefined | null,
+	/** Описание, характеристики и состояние имущества из заявления */
+	property_details?: string | undefined | null,
+	/** Идентификатор паевого взноса имуществом */
+	property_hash: string,
+	/** Наименование имущества из заявления */
+	property_name?: string | undefined | null,
+	/** Количество из заявления */
+	property_quantity?: string | undefined | null,
+	/** Единица измерения из заявления */
+	property_unit?: string | undefined | null,
+	/** Заявление пайщика о паевом взносе имуществом */
+	statement?: GraphQLTypes["DocumentAggregate"] | undefined | null,
+	/** Статус паевого взноса имуществом */
+	status: GraphQLTypes["ProgramPropertyStatus"],
+	/** Имя пользователя */
+	username?: string | undefined | null,
+	['...on CapitalProgramProperty']: Omit<GraphQLTypes["CapitalProgramProperty"], "...on CapitalProgramProperty">
+};
+	["CapitalProgramPropertyFilter"]: {
+		/** Статус взноса */
+	status?: GraphQLTypes["ProgramPropertyStatus"] | undefined | null,
+	/** Имя пайщика */
+	username?: string | undefined | null
+};
 	["CapitalProgramWallet"]: {
 	__typename: "CapitalProgramWallet",
 	/** Идентификатор соглашения */
@@ -58811,6 +59468,128 @@ export type GraphQLTypes = {
 	value: number,
 	['...on CapitalWaveSwing']: Omit<GraphQLTypes["CapitalWaveSwing"], "...on CapitalWaveSwing">
 };
+	["CapitalizationPropertyInvestDecisionGenerateDocumentInput"]: {
+		/** Номер блока, на котором был создан документ */
+	block_num?: number | undefined | null,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at?: string | undefined | null,
+	/** Номер решения совета */
+	decision_id: number,
+	/** Имя генератора, использованного для создания документа */
+	generator?: string | undefined | null,
+	/** Язык документа */
+	lang?: string | undefined | null,
+	/** Ссылки, связанные с документом */
+	links?: Array<string> | undefined | null,
+	/** Оценочная стоимость имущества, например «85000.0000 RUB» */
+	property_amount: string,
+	/** Описание, характеристики и состояние имущества */
+	property_description: string,
+	/** Идентификатор паевого взноса имуществом */
+	property_hash: string,
+	/** Наименование имущества */
+	property_name: string,
+	/** Количество */
+	property_quantity: string,
+	/** Единица измерения */
+	property_unit: string,
+	/** Часовой пояс, в котором был создан документ */
+	timezone?: string | undefined | null,
+	/** Название документа */
+	title?: string | undefined | null,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version?: string | undefined | null
+};
+	["CapitalizationPropertyInvestStatementGenerateDocumentInput"]: {
+		/** Номер блока, на котором был создан документ */
+	block_num?: number | undefined | null,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at?: string | undefined | null,
+	/** Имя генератора, использованного для создания документа */
+	generator?: string | undefined | null,
+	/** Язык документа */
+	lang?: string | undefined | null,
+	/** Ссылки, связанные с документом */
+	links?: Array<string> | undefined | null,
+	/** Оценочная стоимость имущества, например «85000.0000 RUB» */
+	property_amount: string,
+	/** Описание, характеристики и состояние имущества */
+	property_description: string,
+	/** Идентификатор паевого взноса имуществом */
+	property_hash: string,
+	/** Наименование имущества */
+	property_name: string,
+	/** Количество */
+	property_quantity: string,
+	/** Единица измерения */
+	property_unit: string,
+	/** Часовой пояс, в котором был создан документ */
+	timezone?: string | undefined | null,
+	/** Название документа */
+	title?: string | undefined | null,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version?: string | undefined | null
+};
+	["CapitalizationPropertyInvestStatementSignedDocumentInput"]: {
+		/** Хэш содержимого документа */
+	doc_hash: string,
+	/** Общий хэш (doc_hash + meta_hash) */
+	hash: string,
+	/** Метаинформация заявления о паевом взносе имуществом */
+	meta: GraphQLTypes["CapitalizationPropertyInvestStatementSignedMetaDocumentInput"],
+	/** Хэш мета-данных */
+	meta_hash: string,
+	/** Вектор подписей */
+	signatures: Array<GraphQLTypes["SignatureInfoInput"]>,
+	/** Версия стандарта документа */
+	version: string
+};
+	["CapitalizationPropertyInvestStatementSignedMetaDocumentInput"]: {
+		/** Номер блока, на котором был создан документ */
+	block_num: number,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at: string,
+	/** Имя генератора, использованного для создания документа */
+	generator: string,
+	/** Язык документа */
+	lang: string,
+	/** Ссылки, связанные с документом */
+	links: Array<string>,
+	/** Оценочная стоимость имущества, например «85000.0000 RUB» */
+	property_amount: string,
+	/** Описание, характеристики и состояние имущества */
+	property_description: string,
+	/** Идентификатор паевого взноса имуществом */
+	property_hash: string,
+	/** Наименование имущества */
+	property_name: string,
+	/** Количество */
+	property_quantity: string,
+	/** Единица измерения */
+	property_unit: string,
+	/** ID документа в реестре */
+	registry_id: number,
+	/** Часовой пояс, в котором был создан документ */
+	timezone: string,
+	/** Название документа */
+	title: string,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version: string
+};
 	/** Состояние свидетельства о членстве, выданного кооперативом в сеть «Карта кооператора» */
 ["CardcoopAttestationState"]: CardcoopAttestationState;
 	["CardcoopEntry"]: {
@@ -59759,15 +60538,9 @@ export type GraphQLTypes = {
 	["CreateProgramPropertyInput"]: {
 		/** Имя аккаунта кооператива */
 	coopname: string,
-	/** Сумма имущества */
-	property_amount: string,
-	/** Описание имущества */
-	property_description: string,
-	/** Хэш имущества */
-	property_hash: string,
-	/** Заявление */
-	statement: GraphQLTypes["SignedDigitalDocumentInput"],
-	/** Имя пользователя */
+	/** Заявление о паевом взносе имуществом, подписанное пайщиком */
+	statement: GraphQLTypes["CapitalizationPropertyInvestStatementSignedDocumentInput"],
+	/** Имя пайщика, передающего имущество */
 	username: string
 };
 	["CreateProjectFreeDecisionInput"]: {
@@ -62709,6 +63482,14 @@ export type GraphQLTypes = {
 	lang?: string | undefined | null,
 	/** Пропустить сохранение */
 	skip_save?: boolean | undefined | null
+};
+	["GenerateProgramPropertyActInput"]: {
+		/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Идентификатор паевого взноса имуществом */
+	property_hash: string,
+	/** Имя пайщика, передающего имущество */
+	username: string
 };
 	["GenerateRegistrationDocumentsInput"]: {
 		/** Тип аккаунта пайщика */
@@ -67456,11 +68237,11 @@ export type GraphQLTypes = {
 	capitalGenerateCapitalizationAgreement: GraphQLTypes["GeneratedDocument"],
 	/** Сгенерировать заявление об инвестировании в благорост */
 	capitalGenerateCapitalizationMoneyInvestStatement: GraphQLTypes["GeneratedDocument"],
-	/** Сгенерировать акт об инвестировании имуществом в благорост */
+	/** Сгенерировать акт приёма-передачи имущества по паевому взносу в программу «Благорост» */
 	capitalGenerateCapitalizationPropertyInvestAct: GraphQLTypes["GeneratedDocument"],
-	/** Сгенерировать решение об инвестировании имуществом в благорост */
+	/** Сгенерировать протокол совета о приёме паевого взноса имуществом в программу «Благорост» */
 	capitalGenerateCapitalizationPropertyInvestDecision: GraphQLTypes["GeneratedDocument"],
-	/** Сгенерировать заявление об инвестировании имуществом в благорост */
+	/** Сгенерировать заявление о паевом взносе имуществом в программу «Благорост» */
 	capitalGenerateCapitalizationPropertyInvestStatement: GraphQLTypes["GeneratedDocument"],
 	/** Сгенерировать заявление о трансляции паевого взноса из Благороста в Цифровой Кошелёк на указанную сумму */
 	capitalGenerateCapitalizationToMainWalletConvertStatement: GraphQLTypes["GeneratedDocument"],
@@ -67540,6 +68321,8 @@ export type GraphQLTypes = {
 	capitalSignActAsChairman: GraphQLTypes["CapitalSegment"],
 	/** Подписание акта о вкладе результатов участником */
 	capitalSignActAsContributor: GraphQLTypes["CapitalSegment"],
+	/** Подписать акт приёма-передачи имущества, вносимого паевым взносом в программу «Благорост» */
+	capitalSignProgramPropertyAct: GraphQLTypes["Transaction"],
 	/** Запуск экземпляра процесса */
 	capitalStartProcess: GraphQLTypes["ProcessInstance"],
 	/** Запуск проекта в CAPITAL контракте */
@@ -68635,6 +69418,18 @@ export type GraphQLTypes = {
 	totalPages: number,
 	['...on PaginatedCapitalProgramExpensesPaginationResult']: Omit<GraphQLTypes["PaginatedCapitalProgramExpensesPaginationResult"], "...on PaginatedCapitalProgramExpensesPaginationResult">
 };
+	["PaginatedCapitalProgramPropertiesPaginationResult"]: {
+	__typename: "PaginatedCapitalProgramPropertiesPaginationResult",
+	/** Текущая страница */
+	currentPage: number,
+	/** Элементы текущей страницы */
+	items: Array<GraphQLTypes["CapitalProgramProperty"]>,
+	/** Общее количество элементов */
+	totalCount: number,
+	/** Общее количество страниц */
+	totalPages: number,
+	['...on PaginatedCapitalProgramPropertiesPaginationResult']: Omit<GraphQLTypes["PaginatedCapitalProgramPropertiesPaginationResult"], "...on PaginatedCapitalProgramPropertiesPaginationResult">
+};
 	["PaginatedCapitalProjectsPaginationResult"]: {
 	__typename: "PaginatedCapitalProjectsPaginationResult",
 	/** Текущая страница */
@@ -69644,6 +70439,8 @@ export type GraphQLTypes = {
 };
 	/** Ключ выбранной программы регистрации */
 ["ProgramKey"]: ProgramKey;
+	/** Статус паевого взноса имуществом в программу «Благорост» */
+["ProgramPropertyStatus"]: ProgramPropertyStatus;
 	/** Тип целевой потребительской программы */
 ["ProgramType"]: ProgramType;
 	["ProgramWallet"]: {
@@ -70149,6 +70946,8 @@ export type GraphQLTypes = {
 	capitalProgramExpense?: GraphQLTypes["CapitalProgramExpense"] | undefined | null,
 	/** Список программных расходов капитала (через шасси expense). */
 	capitalProgramExpenses: GraphQLTypes["PaginatedCapitalProgramExpensesPaginationResult"],
+	/** Список паевых взносов имуществом в программу «Благорост» с документами процесса */
+	capitalProgramProperties: GraphQLTypes["PaginatedCapitalProgramPropertiesPaginationResult"],
 	/** Получение проекта по хешу с компонентами */
 	capitalProject?: GraphQLTypes["CapitalProject"] | undefined | null,
 	/** Получение проекта с полными отношениями по хешу проекта */
@@ -72072,6 +72871,16 @@ export type GraphQLTypes = {
 	/** Подписанный документ с решением секретаря */
 	secretary_decision: GraphQLTypes["AnnualGeneralMeetingDecisionSignedDocumentInput"],
 	/** Имя аккаунта пользователя */
+	username: string
+};
+	["SignProgramPropertyActInput"]: {
+		/** Акт приёма-передачи, подписанный пайщиком */
+	act: GraphQLTypes["SignedDigitalDocumentInput"],
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Идентификатор паевого взноса имуществом */
+	property_hash: string,
+	/** Имя пайщика, передающего имущество */
 	username: string
 };
 	["SignatureInfo"]: {
@@ -74151,6 +74960,16 @@ export enum ProgramKey {
 	MARKETPLACE = "MARKETPLACE",
 	UNDEFINED = "UNDEFINED"
 }
+/** Статус паевого взноса имуществом в программу «Благорост» */
+export enum ProgramPropertyStatus {
+	ACT1 = "ACT1",
+	ACT2 = "ACT2",
+	APPROVED = "APPROVED",
+	AUTHORIZED = "AUTHORIZED",
+	CREATED = "CREATED",
+	DECLINED = "DECLINED",
+	UNDEFINED = "UNDEFINED"
+}
 /** Тип целевой потребительской программы */
 export enum ProgramType {
 	BLAGOROST = "BLAGOROST",
@@ -74478,6 +75297,7 @@ type ZEUS_VARIABLES = {
 	["CapitalOnboardingStep"]: ValueTypes["CapitalOnboardingStep"];
 	["CapitalOnboardingStepInput"]: ValueTypes["CapitalOnboardingStepInput"];
 	["CapitalPauseTimerInput"]: ValueTypes["CapitalPauseTimerInput"];
+	["CapitalProgramPropertyFilter"]: ValueTypes["CapitalProgramPropertyFilter"];
 	["CapitalProjectFilter"]: ValueTypes["CapitalProjectFilter"];
 	["CapitalRestoreContentRevisionInput"]: ValueTypes["CapitalRestoreContentRevisionInput"];
 	["CapitalResumeTimerInput"]: ValueTypes["CapitalResumeTimerInput"];
@@ -74492,6 +75312,10 @@ type ZEUS_VARIABLES = {
 	["CapitalTimeStatsInput"]: ValueTypes["CapitalTimeStatsInput"];
 	["CapitalTopupProgramExpenseInput"]: ValueTypes["CapitalTopupProgramExpenseInput"];
 	["CapitalTransferShareInput"]: ValueTypes["CapitalTransferShareInput"];
+	["CapitalizationPropertyInvestDecisionGenerateDocumentInput"]: ValueTypes["CapitalizationPropertyInvestDecisionGenerateDocumentInput"];
+	["CapitalizationPropertyInvestStatementGenerateDocumentInput"]: ValueTypes["CapitalizationPropertyInvestStatementGenerateDocumentInput"];
+	["CapitalizationPropertyInvestStatementSignedDocumentInput"]: ValueTypes["CapitalizationPropertyInvestStatementSignedDocumentInput"];
+	["CapitalizationPropertyInvestStatementSignedMetaDocumentInput"]: ValueTypes["CapitalizationPropertyInvestStatementSignedMetaDocumentInput"];
 	["CardcoopAttestationState"]: ValueTypes["CardcoopAttestationState"];
 	["CardcoopEntryInput"]: ValueTypes["CardcoopEntryInput"];
 	["CardcoopEntryOutcome"]: ValueTypes["CardcoopEntryOutcome"];
@@ -74696,6 +75520,7 @@ type ZEUS_VARIABLES = {
 	["GenerateCapitalRegistrationDocumentsInputDTO"]: ValueTypes["GenerateCapitalRegistrationDocumentsInputDTO"];
 	["GenerateDocumentInput"]: ValueTypes["GenerateDocumentInput"];
 	["GenerateDocumentOptionsInput"]: ValueTypes["GenerateDocumentOptionsInput"];
+	["GenerateProgramPropertyActInput"]: ValueTypes["GenerateProgramPropertyActInput"];
 	["GenerateRegistrationDocumentsInput"]: ValueTypes["GenerateRegistrationDocumentsInput"];
 	["GenerationContractGenerateDocumentInput"]: ValueTypes["GenerationContractGenerateDocumentInput"];
 	["GenerationContractSignedDocumentInput"]: ValueTypes["GenerationContractSignedDocumentInput"];
@@ -75005,6 +75830,7 @@ type ZEUS_VARIABLES = {
 	["ProgramCapitalizationMoneyInvestStatementSignedDocumentInput"]: ValueTypes["ProgramCapitalizationMoneyInvestStatementSignedDocumentInput"];
 	["ProgramCapitalizationMoneyInvestStatementSignedMetaDocumentInput"]: ValueTypes["ProgramCapitalizationMoneyInvestStatementSignedMetaDocumentInput"];
 	["ProgramKey"]: ValueTypes["ProgramKey"];
+	["ProgramPropertyStatus"]: ValueTypes["ProgramPropertyStatus"];
 	["ProgramType"]: ValueTypes["ProgramType"];
 	["ProgramWalletFilterInput"]: ValueTypes["ProgramWalletFilterInput"];
 	["ProjectFreeDecisionGenerateDocumentInput"]: ValueTypes["ProjectFreeDecisionGenerateDocumentInput"];
@@ -75106,6 +75932,7 @@ type ZEUS_VARIABLES = {
 	["SignActAsContributorInput"]: ValueTypes["SignActAsContributorInput"];
 	["SignByPresiderOnAnnualGeneralMeetInput"]: ValueTypes["SignByPresiderOnAnnualGeneralMeetInput"];
 	["SignBySecretaryOnAnnualGeneralMeetInput"]: ValueTypes["SignBySecretaryOnAnnualGeneralMeetInput"];
+	["SignProgramPropertyActInput"]: ValueTypes["SignProgramPropertyActInput"];
 	["SignatureInfoInput"]: ValueTypes["SignatureInfoInput"];
 	["SignedDigitalDocumentInput"]: ValueTypes["SignedDigitalDocumentInput"];
 	["SovietMemberInput"]: ValueTypes["SovietMemberInput"];

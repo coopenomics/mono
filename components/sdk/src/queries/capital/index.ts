@@ -21,6 +21,7 @@ export * as GetCycles from './getCycles'
 export * as GetDebt from './getDebt'
 
 export * as GetDebts from './getDebts'
+export * as GetProgramProperties from './getProgramProperties'
 
 export * as GetExpense from './getExpense'
 

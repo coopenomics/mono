@@ -445,6 +445,25 @@ export class CapitalBlockchainAdapter implements CapitalBlockchainPort {
   }
 
   /**
+   * Подпись пайщиком акта приёма-передачи имущества в «Благорост»
+   */
+  async signProgramPropertyAct1(
+    data: CapitalContract.Actions.Act1ProgramProperty.IAct1ProgramProperty
+  ): Promise<InnerTransactResult> {
+    const wif = await this.vaultDomainService.getWif(data.coopname);
+    if (!wif) throw new DomainError('CAPITAL_PRIVATE_KEY_NOT_FOUND', {}, httpStatus.BAD_GATEWAY);
+
+    this.blockchainService.initialize(data.coopname, wif);
+
+    return await this.blockchainService.transact({
+      account: CapitalContract.contractName.production,
+      name: CapitalContract.Actions.Act1ProgramProperty.actionName,
+      authorization: [{ actor: data.coopname, permission: 'active' }],
+      data,
+    });
+  }
+
+  /**
    * Запуск голосования в CAPITAL контракте
    */
   async startVoting(data: CapitalContract.Actions.StartVoting.IStartVoting): Promise<InnerTransactResult> {

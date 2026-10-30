@@ -15,6 +15,16 @@ sources:
     - components/contracts/cpp/capital/app/property_management/contribute_property_in_program/**
     - components/contracts/cpp/capital/domain/entities/program_properties.hpp
     - components/contracts/cpp/capital/p.cap.prop.standard.yaml
+  backend:
+    - components/controller/src/extensions/capital/application/use-cases/property-management.interactor.ts
+    - components/controller/src/extensions/capital/application/syncers/program-property-sync.service.ts
+    - components/controller/src/extensions/capital/application/documents-dto/capitalization-property-invest-document.dto.ts
+    - components/controller/src/extensions/capital/application/dto/property_management/**
+    - components/controller/src/extensions/capital/domain/entities/program-property.entity.ts
+    - components/controller/src/extensions/capital/domain/enums/program-property-status.enum.ts
+    - components/controller/src/extensions/capital/infrastructure/repositories/program-property.kysely-repository.ts
+    - components/controller/src/extensions/capital/domain/repositories/program-property.repository.ts
+    - components/controller/src/extensions/capital/domain/interfaces/capital-blockchain.port.ts
 
 cases:
   - id: cap.pgprp.happy.01
@@ -88,3 +98,64 @@ cases:
     expect: отказ CAPITAL_PROPERTY_AMOUNT_INVALID либо CAPITAL_PROPERTY_DESCRIPTION_REQUIRED
     test: ~
     status: missing
+
+  # ── Уровень бэкенда ───────────────────────────────────────────────────────
+
+  - id: cap.pgprp.be.01
+    level: backend
+    kind: happy
+    scenario: Пайщик подаёт подписанное заявление о паевом взносе имуществом.
+    expect: >
+      позиция, оценка и идентификатор взноса берутся из меты заявления, описание
+      в цепи собирается одной строкой; заявление сверяется с черновиком из
+      хранилища документов
+    test: components/controller/tests/unit/capital/program-property.test.ts
+    external: unreachable
+    external_reason: "отправка в цепь подменена в модульном тесте; путь через API проверяется на стенде прогоном процесса"
+    status: written
+
+  - id: cap.pgprp.be.02
+    level: backend
+    kind: side
+    scenario: Вместо заявления 1070 прислан другой документ, или заявление составлено на другого пайщика, или оценка в чужой валюте.
+    expect: отказ CAPITAL_PROPERTY_STATEMENT_INVALID / CAPITAL_PROPERTY_STATEMENT_MISMATCH / отказ валюты до обращения к цепи
+    test: components/controller/tests/unit/capital/program-property.test.ts
+    external: unreachable
+    external_reason: "проверки идут до цепи, их видно в модульном тесте; снаружи нужен подписанный черновик фабрики"
+    status: written
+
+  - id: cap.pgprp.be.03
+    level: backend
+    kind: side
+    scenario: Пайщик подписывает акт до решения совета, чужой пайщик подписывает акт, акт составлен по другому взносу.
+    expect: отказ CAPITAL_PROPERTY_NOT_AUTHORIZED / CAPITAL_PROPERTY_NOT_OWNER / CAPITAL_PROPERTY_ACT_MISMATCH до обращения к цепи
+    test: components/controller/tests/unit/capital/program-property.test.ts
+    external: unreachable
+    external_reason: "нужен взнос в статусе решения совета — его даёт только прогон процесса на стенде"
+    status: written
+
+  - id: cap.pgprp.be.04
+    level: backend
+    kind: happy
+    scenario: Пайщик запрашивает акт приёма-передачи по взносу с решением совета.
+    expect: >
+      акт собирается из позиции заявления и номера решения из протокола;
+      тело акта сохраняется в хранилище документов для второй подписи
+      председателя; без протокола акт не собирается
+    test: components/controller/tests/unit/capital/program-property.test.ts
+    external: unreachable
+    external_reason: "нужен взнос в статусе решения совета — его даёт только прогон процесса на стенде"
+    status: written
+
+  - id: cap.pgprp.be.05
+    level: backend
+    kind: side
+    scenario: Председатель подтвердил одобрение акта либо отказал; строка взноса в цепи удалена.
+    expect: >
+      итог ставится по действию цепи — «принято» на act2pgprp, «отклонено» на
+      declinepgprp; уведомление получателю итог повторно не пишет; статус
+      «отклонено» сохраняется при чтении из базы
+    test: components/controller/tests/unit/capital/program-property.test.ts
+    external: unreachable
+    external_reason: "итог пишется из обработчика действий цепи — снаружи виден только через прогон процесса"
+    status: written

@@ -1329,7 +1329,8 @@
       "programInvestAmount": "сумме программной инвестиции",
       "allocatedAmount": "сумме направляемых средств",
       "returnedAmount": "сумме возвращаемых средств",
-      "shareTransferAmount": "сумме трансляции паевого взноса"
+      "shareTransferAmount": "сумме трансляции паевого взноса",
+      "propertyAmount": "оценке имущества"
     },
     "roles": {
       "shareTransfer": {
@@ -1341,6 +1342,9 @@
           "transfer": "Заявление о трансляции своего паевого взноса в Цифровой Кошелёк"
         }
       }
+    },
+    "programProperty": {
+      "chainDescription": "{name}. {description}. Количество: {quantity} {unit}"
     }
   },
   "errors": {
@@ -1522,6 +1526,13 @@
     "CAPITAL_PROJECT_SYNC_AFTER_START_FAILED": "Не удалось синхронизировать проект {hash} после запуска",
     "CAPITAL_PROJECT_SYNC_AFTER_STOP_FAILED": "Не удалось синхронизировать проект {hash} после остановки",
     "CAPITAL_PROJECT_TITLE_MISSING": "Название проекта не найдено",
+    "CAPITAL_PROPERTY_ACT_MISMATCH": "Акт составлен по другому паевому взносу имуществом",
+    "CAPITAL_PROPERTY_DECISION_MISSING": "Протокол решения совета по паевому взносу имуществом не найден",
+    "CAPITAL_PROPERTY_NOT_AUTHORIZED": "Акт подписывается после решения совета о приёме имущества",
+    "CAPITAL_PROPERTY_NOT_FOUND": "Паевой взнос имуществом не найден",
+    "CAPITAL_PROPERTY_NOT_OWNER": "Акт подписывает пайщик, подавший заявление",
+    "CAPITAL_PROPERTY_STATEMENT_INVALID": "Документ не является заявлением о паевом взносе имуществом",
+    "CAPITAL_PROPERTY_STATEMENT_MISMATCH": "Заявление составлено на другого пайщика или кооператив",
     "CAPITAL_REQUEST_PENDING_REVIEW": "Подождите, ваш запрос на рассмотрении",
     "CAPITAL_REQUIREMENT_CREATE_ISSUE_FORBIDDEN": "У вас нет прав на создание требований для этой задачи.",
     "CAPITAL_REQUIREMENT_CREATE_PROJECT_FORBIDDEN": "У вас нет прав на создание требований для этого проекта.",

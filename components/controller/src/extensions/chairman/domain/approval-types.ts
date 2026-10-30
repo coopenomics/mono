@@ -15,6 +15,10 @@ export const APPROVAL_TYPE_MAP = {
     title: t('chairman.approvalTypes.programContribution.title'),
     description: t('chairman.approvalTypes.programContribution.description'),
   },
+  act2pgprp: {
+    title: t('chairman.approvalTypes.programPropertyAct.title'),
+    description: t('chairman.approvalTypes.programPropertyAct.description'),
+  },
   approvereg: {
     title: t('chairman.approvalTypes.registration.title'),
     description: t('chairman.approvalTypes.registration.description'),

@@ -1,4 +1,4 @@
-import { ObjectType, Field, Int, Float } from '@nestjs/graphql';
+import { ObjectType, Field, Int } from '@nestjs/graphql';
 import { ProgramPropertyStatus } from '../../../domain/enums/program-property-status.enum';
 import { BaseOutputDTO } from '@coopenomics/extension-kit/sync';
 import { DocumentAggregateDTO } from '@coopenomics/extension-kit';
@@ -7,7 +7,7 @@ import { DocumentAggregateDTO } from '@coopenomics/extension-kit';
  * GraphQL Output DTO для сущности ProgramProperty
  */
 @ObjectType('CapitalProgramProperty', {
-  description: 'Программный имущественный взнос в системе CAPITAL',
+  description: 'Паевой взнос имуществом в программу «Благорост»',
 })
 export class ProgramPropertyOutputDTO extends BaseOutputDTO {
   @Field(() => Int, {
@@ -29,12 +29,12 @@ export class ProgramPropertyOutputDTO extends BaseOutputDTO {
   present!: boolean;
 
   @Field(() => ProgramPropertyStatus, {
-    description: 'Статус программного имущественного взноса',
+    description: 'Статус паевого взноса имуществом',
   })
   status!: ProgramPropertyStatus;
 
   @Field(() => String, {
-    description: 'Хеш имущественного взноса',
+    description: 'Идентификатор паевого взноса имуществом',
   })
   property_hash!: string;
 
@@ -56,17 +56,41 @@ export class ProgramPropertyOutputDTO extends BaseOutputDTO {
   })
   blockchain_status?: string;
 
-  @Field(() => Float, {
+  @Field(() => String, {
     nullable: true,
-    description: 'Количество имущества',
+    description: 'Оценочная стоимость имущества',
   })
-  property_amount?: number;
+  property_amount?: string;
 
   @Field(() => String, {
     nullable: true,
-    description: 'Описание имущества',
+    description: 'Описание имущества, как оно записано в цепи',
   })
   property_description?: string;
+
+  @Field(() => String, {
+    nullable: true,
+    description: 'Наименование имущества из заявления',
+  })
+  property_name?: string;
+
+  @Field(() => String, {
+    nullable: true,
+    description: 'Описание, характеристики и состояние имущества из заявления',
+  })
+  property_details?: string;
+
+  @Field(() => String, {
+    nullable: true,
+    description: 'Количество из заявления',
+  })
+  property_quantity?: string;
+
+  @Field(() => String, {
+    nullable: true,
+    description: 'Единица измерения из заявления',
+  })
+  property_unit?: string;
 
   @Field(() => String, {
     nullable: true,
@@ -76,19 +100,19 @@ export class ProgramPropertyOutputDTO extends BaseOutputDTO {
 
   @Field(() => DocumentAggregateDTO, {
     nullable: true,
-    description: 'Заявление об имущественном взносе',
+    description: 'Заявление пайщика о паевом взносе имуществом',
   })
   statement?: DocumentAggregateDTO;
 
   @Field(() => DocumentAggregateDTO, {
     nullable: true,
-    description: 'Авторизация имущественного взноса',
+    description: 'Протокол решения совета о приёме имущества',
   })
   authorization?: DocumentAggregateDTO;
 
   @Field(() => DocumentAggregateDTO, {
     nullable: true,
-    description: 'Акт об имущественном взносе',
+    description: 'Акт приёма-передачи имущества',
   })
   act?: DocumentAggregateDTO;
 }

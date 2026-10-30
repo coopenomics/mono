@@ -5,11 +5,12 @@ export enum ProgramPropertyStatus {
   APPROVED = 'approved', // Программный имущественный взнос одобрен
   AUTHORIZED = 'authorized', // Программный имущественный взнос авторизован
   ACT1 = 'act1', // Первый акт подписан
-  ACT2 = 'act2', // Второй акт подписан
+  ACT2 = 'act2', // Акт подписан обеими сторонами: имущество принято, запись в цепи удалена
+  DECLINED = 'declined', // Отклонено председателем или советом: запись в цепи удалена
   UNDEFINED = 'undefined', // Статус не определен
 }
 
 registerEnumType(ProgramPropertyStatus, {
   name: 'ProgramPropertyStatus',
-  description: 'Статус программного имущественного взноса в системе CAPITAL',
+  description: 'Статус паевого взноса имуществом в программу «Благорост»',
 });

@@ -36,6 +36,7 @@ export * as SignAct2 from './signAct2'
 export * as CreateProgramProperty from './createProgramProperty'
 export * as Act1ProgramProperty from './act1ProgramProperty'
 export * as Act2ProgramProperty from './act2ProgramProperty'
+export * as DeclineProgramProperty from './declineProgramProperty'
 
 // Авторы
 export * as AddAuthor from './addAuthor'

@@ -15,6 +15,10 @@ title: Имущественный взнос в проект — предлож�
 # @coopenomics/docs-templates (`Registry`) вместо `Cooperative.Registry` из
 # cooptypes. Поведение не менялось: тот же реестр шаблонов, другой пакет.
 
+# Правка 30.10.2026: в общих файлах имущественных взносов (резолвер, сервис,
+# интерактор) добавлены запрос и подпись акта паевого взноса имуществом в
+# «Благорост» (capital.program-property). Взнос имуществом в проект не менялся.
+
 sources:
   backend:
     - components/controller/src/extensions/capital/application/resolvers/property-management.resolver.ts

@@ -128,6 +128,18 @@ export class ProgramPropertyDomainEntity
   }
 
   /**
+   * Итог процесса после удаления строки в цепи. Дельта удаления не говорит,
+   * чем кончилось дело: строку стирают и приём акта председателем, и отказ.
+   * Итог ставит обработчик действия (act2pgprp — принято, declinepgprp —
+   * отклонено), он выполняется после дельты того же блока.
+   */
+  markFinal(status: ProgramPropertyStatus.ACT2 | ProgramPropertyStatus.DECLINED): void {
+    this.status = status;
+    this.blockchain_status = status;
+    this.present = false;
+  }
+
+  /**
    * Маппинг статуса из блокчейна в доменный статус
    * Синхронизировано с константами из program_properties.hpp
    */
@@ -143,6 +155,8 @@ export class ProgramPropertyDomainEntity
         return ProgramPropertyStatus.ACT1;
       case 'act2':
         return ProgramPropertyStatus.ACT2;
+      case 'declined':
+        return ProgramPropertyStatus.DECLINED;
       default:
         return ProgramPropertyStatus.UNDEFINED;
     }

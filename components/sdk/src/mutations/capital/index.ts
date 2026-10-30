@@ -43,6 +43,7 @@ export * as GenerateCapitalizationMoneyInvestStatement from './generateCapitaliz
 export * as GenerateCapitalizationPropertyInvestAct from './generateCapitalizationPropertyInvestAct'
 export * as GenerateCapitalizationPropertyInvestDecision from './generateCapitalizationPropertyInvestDecision'
 export * as GenerateCapitalizationPropertyInvestStatement from './generateCapitalizationPropertyInvestStatement'
+export * as SignProgramPropertyAct from './signProgramPropertyAct'
 export * as GenerateCapitalizationToMainWalletConvertStatement from './generateCapitalizationToMainWalletConvertStatement'
 export * as GenerateCapitalRegistrationDocuments from './generateCapitalRegistrationDocuments'
 export * as GenerateComponentGenerationContract from './generateComponentGenerationContract'
