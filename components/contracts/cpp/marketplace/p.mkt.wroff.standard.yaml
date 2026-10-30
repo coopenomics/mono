@@ -304,21 +304,21 @@ documents:
     registry_id: 1108
     signed_by: [chairman]
     stored_in: writeoff_proposals.statement
-    note: "Подписывается председателем перед внесением проекта на рассмотрение совета. Содержит список позиций к списанию (участок, наименование, количество, сумма, причина). Источник правды — components/cooptypes/src/cooperative/registry/1108.MarketplaceWriteoffStatement"
+    note: "Подписывается председателем перед внесением проекта на рассмотрение совета. Содержит список позиций к списанию (участок, наименование, количество, сумма, причина). Источник правды — C9S/docs-factory:packages/docs-templates/src/registry/1108.MarketplaceWriteoffStatement"
 
   - action: marketplace::onmktwoauth
     title: Протокол совета о списании скоропорта
     registry_id: 1107
     signed_by: [chairman]
     stored_in: writeoff_proposals.protocol
-    note: "Протокол по типовому процессу решения совета (стандарт sov.decision). Подписывается председателем после принятия советом положительного решения. Источник правды — components/cooptypes/src/cooperative/registry/1107.MarketplaceWriteoffProtocol"
+    note: "Протокол по типовому процессу решения совета (стандарт sov.decision). Подписывается председателем после принятия советом положительного решения. Источник правды — C9S/docs-factory:packages/docs-templates/src/registry/1107.MarketplaceWriteoffProtocol"
 
   - action: marketplace::confirmwroff
     title: Служебная записка о списании
     registry_id: 1111
     signed_by: [branch_chairman]
     stored_in: "реестр документов (package = proposal_hash)"
-    note: "Подписывается председателем кооперативного участка при подтверждении фактического списания со своего склада. Завершающий документ пути; одна записка на один участок. Источник правды — components/cooptypes/src/cooperative/registry/1111.MarketplaceWriteoffServiceMemo"
+    note: "Подписывается председателем кооперативного участка при подтверждении фактического списания со своего склада. Завершающий документ пути; одна записка на один участок. Источник правды — C9S/docs-factory:packages/docs-templates/src/registry/1111.MarketplaceWriteoffServiceMemo"
 
 # ── Секция 6. Операции (Ledger2) ────────────────────────────────────────────
 # Одна операция — выбытие испорченного имущества со склада в прочие

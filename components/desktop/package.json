@@ -26,6 +26,7 @@
   },
   "dependencies": {
     "@coopenomics/auth": "workspace:*",
+    "@coopenomics/docs-templates": "1.2.0",
     "@coopenomics/i18n": "workspace:*",
     "@coopenomics/notifications": "workspace:*",
     "@coopenomics/sdk": "workspace:*",

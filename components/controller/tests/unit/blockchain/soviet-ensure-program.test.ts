@@ -12,7 +12,7 @@
  * должен падать.
  */
 import { SovietBlockchainAdapter } from '~/infrastructure/blockchain/adapters/soviet-blockchain.adapter';
-import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 
 const MARKETPLACE_TYPE = 'marketplace';
 const MARKETPLACE_PROGRAM_ID = 2;
@@ -21,7 +21,7 @@ const makeCoagreement = (type: string, program_id: number) => ({
   type,
   coopname: 'voskhod',
   program_id,
-  draft_id: Cooperative.Registry.MarketplaceOffer.registry_id,
+  draft_id: Registry.MarketplaceOffer.registry_id,
 });
 
 /**

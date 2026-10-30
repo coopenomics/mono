@@ -11,9 +11,9 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 
 import { MarketplaceCoopAcceptanceService } from '~/extensions/marketplace/application/coop-acceptance/marketplace-coop-acceptance.service';
-import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 
-const R = Cooperative.Registry;
+const R = Registry;
 
 const makeLogger = () =>
   ({

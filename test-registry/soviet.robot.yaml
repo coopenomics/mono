@@ -54,7 +54,6 @@ sources:
     - components/contracts/cpp/soviet/src/decision/authorize.cpp
   backend:
     - components/controller/src/extensions/soviet-robot/**
-    - components/cooptypes/src/cooperative/document/decisionTypesRegistry.ts
     - components/boot/src/tests/soviet-robot-e2e.test.ts
   ui:
     - components/desktop/extensions/robot/**

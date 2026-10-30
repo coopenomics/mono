@@ -1,4 +1,4 @@
-import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 import { Mutations, Queries, Zeus } from '@coopenomics/sdk';
 import { client } from 'src/shared/api/client';
 import { useSessionStore } from 'src/entities/Session';
@@ -10,8 +10,8 @@ export type IEduOnboardingState = Queries.Edubridge.OnboardingState.IOutput['edu
 export type EduOfferKind = Mutations.Edubridge.SignOffer.IInput['input']['kind'];
 
 const REGISTRY_BY_KIND: Record<EduOfferKind, number> = {
-  [Zeus.EduOfferKind.PARENT]: Cooperative.Registry.EducationParentOffer.registry_id,
-  [Zeus.EduOfferKind.TEACHER]: Cooperative.Registry.EducationTeacherOffer.registry_id,
+  [Zeus.EduOfferKind.PARENT]: Registry.EducationParentOffer.registry_id,
+  [Zeus.EduOfferKind.TEACHER]: Registry.EducationTeacherOffer.registry_id,
 };
 
 export async function fetchOnboardingState(): Promise<IEduOnboardingState> {

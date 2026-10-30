@@ -77,6 +77,10 @@ title: Выдача заказа на пункте выдачи — заявле
 # кодом KIT_RIGHT_SCOPE_OWN до входа в операцию; сверки сервиса остаются второй
 # линией. Набор случаев прежний.
 
+# Правка 30.10.2026 (5A8-11): шаблоны документов импортируются из пакета
+# @coopenomics/docs-templates (`Registry`) вместо `Cooperative.Registry` из
+# cooptypes. Поведение не менялось: тот же реестр шаблонов, другой пакет.
+
 sources:
   contract:
     - components/contracts/cpp/marketplace/src/p.mkt.supply/readyissue.cpp

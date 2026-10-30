@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { Cooperative } from 'cooptypes'
+import { Registry } from '@coopenomics/docs-templates'
 import { computed, ref } from 'vue'
 import { DigitalDocument } from 'src/shared/lib/document'
 import { useSessionStore } from 'src/entities/Session'
@@ -103,7 +103,7 @@ export const useConnectionAgreementStore = defineStore(namespace, () => {
       const newDoc = new DigitalDocument()
 
     const params: any = {
-      registry_id: Cooperative.Registry.CoopenomicsAgreement.registry_id,
+      registry_id: Registry.CoopenomicsAgreement.registry_id,
       coopname: 'voskhod',
       username: session.username
     }

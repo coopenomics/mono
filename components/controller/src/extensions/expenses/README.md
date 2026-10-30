@@ -138,4 +138,4 @@ type ExpenseProposalDetails {
 - Issue C28-31: `13-platforma-tsifrovogo-kooperativa/components/14-versiya-3/issues/C28-31-shassi-raskhodov-epik-3-backend-extension-expenses.md`
 - File-storage инфра: `~/infrastructure/file-storage/README.md`
 - Образец extension с blockchain-sync: `~/extensions/capital/`
-- Document2 templates: `components/cooptypes/src/cooperative/registry/2010.ExpenseProposalStatement/`, `2011.ExpenseProposalDecision/`
+- Document2 templates: `C9S/docs-factory:packages/docs-templates/src/registry/2010.ExpenseProposalStatement/`, `2011.ExpenseProposalDecision/`

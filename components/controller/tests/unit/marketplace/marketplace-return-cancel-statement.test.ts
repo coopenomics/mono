@@ -10,9 +10,9 @@
  * не та сделка или не та сумма.
  */
 import { MarketplaceReturnClaimService } from '~/extensions/marketplace/application/services/marketplace-return-claim.service';
-import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 
-const R = Cooperative.Registry;
+const R = Registry;
 
 const COOP = 'voskhod';
 const ORDER_HASH = 'a'.repeat(64);

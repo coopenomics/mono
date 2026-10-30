@@ -1,9 +1,9 @@
 /** Документы ЦПП «Образование» в реестре шаблонов кооператива: состав, вид и порядок. */
 import { registerEdubridgeDocuments } from '~/extensions/edubridge/application/onboarding/register-edubridge-documents';
 import type { InnerDocumentDeclaration } from '@coopenomics/innercoop';
-import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 
-const R = Cooperative.Registry;
+const R = Registry;
 
 function portSpy() {
   const registered: InnerDocumentDeclaration[] = [];

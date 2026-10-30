@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { Classes } from '@coopenomics/sdk';
-import { Cooperative } from 'cooptypes';
+import { decisionTypesRegistry } from '@coopenomics/docs-templates';
 import { DomainToBlockchainUtils, DomainError } from '@coopenomics/extension-kit';
 import {
   DOCUMENT_PORT,
@@ -154,7 +154,7 @@ export class RobotDecisionService {
     limits: RobotLimits
   ): Promise<RobotDecisionDomainEntity> {
     entry.stage = RobotDecisionStage.AWAITING_PROTOCOL;
-    const registryId = Cooperative.Document.decisionTypesRegistry[entry.decision_type]?.protocol_registry_id;
+    const registryId = decisionTypesRegistry[entry.decision_type]?.protocol_registry_id;
     if (!registryId)
       throw DomainError.internal('SOVIET_ROBOT_DECISION_TYPE_UNKNOWN', { decisionType: entry.decision_type });
 

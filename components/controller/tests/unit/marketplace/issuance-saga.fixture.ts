@@ -15,7 +15,7 @@ import {
 import type { MarketplaceOrderDomainEntity } from '~/extensions/marketplace/domain/entities/marketplace-order.entity';
 import type { MarketplaceIssuanceSagaDomainRepository } from '~/extensions/marketplace/domain/repositories/marketplace-issuance-saga.repository';
 import type { MarketplaceAssetConfig } from '~/extensions/marketplace/application/services/marketplace-asset.config';
-import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 
 export const COOP = 'voskhod';
 
@@ -234,7 +234,7 @@ export function buildMocks(opts: {
       html: '<html/>',
       hash: 'hash-1110',
       meta: {
-        registry_id: Cooperative.Registry.MarketplaceConvertStatement.registry_id,
+        registry_id: Registry.MarketplaceConvertStatement.registry_id,
         order_hash: input.anchor_hash,
         amount: toAsset(input.amount_units),
         membership_fee: toAsset(input.fee_units),

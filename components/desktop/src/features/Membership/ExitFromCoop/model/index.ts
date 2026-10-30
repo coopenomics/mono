@@ -5,7 +5,7 @@ import { Mutations, Queries } from '@coopenomics/sdk';
 import { useSystemStore } from 'src/entities/System/model';
 import { useSessionStore } from 'src/entities/Session';
 import { DigitalDocument } from 'src/shared/lib/document';
-import type { Cooperative } from 'cooptypes';
+import type { Registry } from '@coopenomics/docs-templates';
 import { generateUniqueHash } from 'src/shared/lib/utils/generateUniqueHash';
 
 export type IGenerateMembershipExitApplicationData =
@@ -186,13 +186,13 @@ export function useMembershipExit() {
    */
   async function submitSignedApplication(documents: IExitDocuments): Promise<ICreateMembershipExitResult> {
     const statement = await new DigitalDocument(documents.application)
-      .sign<Cooperative.Registry.ParticipantExitApplication.Meta>(session.username);
+      .sign<Registry.ParticipantExitApplication.Meta>(session.username);
 
     // Аннулирование соглашений подписывается тем же действием: пайщик читает оба
     // документа и ставит подпись один раз.
     const annulment = documents.annulment
       ? await new DigitalDocument(documents.annulment)
-        .sign<Cooperative.Registry.ProgramAgreementsAnnulmentStatement.Meta>(session.username)
+        .sign<Registry.ProgramAgreementsAnnulmentStatement.Meta>(session.username)
       : undefined;
 
     return createMembershipExit({

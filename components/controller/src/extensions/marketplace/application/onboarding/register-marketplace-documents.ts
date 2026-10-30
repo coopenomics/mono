@@ -1,8 +1,8 @@
 import type { IDocumentDeclarationPort, InnerDocumentDeclaration } from '@coopenomics/innercoop';
-import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 import { MARKETPLACE_EXTENSION_NAME } from '../../constants/marketplace-agreement-ids';
 
-const R = Cooperative.Registry;
+const R = Registry;
 
 const doc = (
   registry_id: number,

@@ -1,7 +1,7 @@
 import { Field, InputType, IntersectionType, OmitType } from '@nestjs/graphql';
 import { IsBoolean, IsString, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
-import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 import { SignedDigitalDocumentInputDTO, MetaDocumentInputDTO, GenerateMetaDocumentInputDTO, ExcludeCommonProps } from '@coopenomics/extension-kit';
 
 /**
@@ -14,7 +14,7 @@ import { SignedDigitalDocumentInputDTO, MetaDocumentInputDTO, GenerateMetaDocume
  * до заказа; контракт переводит членскую часть и публикует заявление в реестр
  * документов самостоятельным пакетом.
  */
-type action = Cooperative.Registry.MarketplaceConvertStatement.Action;
+type action = Registry.MarketplaceConvertStatement.Action;
 
 @InputType('BaseMarketplaceConvertStatementMetaDocumentInput')
 class BaseMarketplaceConvertStatementMetaDocumentInputDTO implements ExcludeCommonProps<action> {

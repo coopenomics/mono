@@ -22,9 +22,6 @@ sources:
     - components/controller/src/application/membership-exit/**
     - components/controller/src/domain/account/services/member-exit-registry.service.ts
     - components/innercoop/src/core-ports/member-exit.port.ts
-    - components/cooptypes/src/cooperative/registry/190.ProgramAgreementsAnnulmentStatement/**
-    - components/cooptypes/src/cooperative/registry/200.ParticipantExitApplication/**
-    - components/cooptypes/src/cooperative/registry/201.DecisionOfParticipantExit/**
     - components/cooptypes/src/ledger2/wallets.ts
     - C9S/docs-factory:src/Actions/190.ProgramAgreementsAnnulmentStatement.ts
     - C9S/docs-factory:src/Templates/190.ProgramAgreementsAnnulmentStatement.ts

@@ -14,7 +14,7 @@ import { ResultContributionActGenerateInputDTO } from '../dto/result_submission/
 import { ResultContributionStatementGenerateDocumentInputDTO } from '../documents-dto/result-contribution-statement-document.dto';
 import { ResultContributionDecisionGenerateDocumentInputDTO } from '../documents-dto/result-contribution-decision-document.dto';
 import { ResultContributionActGenerateDocumentInputDTO } from '../documents-dto/result-contribution-act-document.dto';
-import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 import { Classes } from '@coopenomics/sdk';
 import { SegmentOutputDTO } from '../dto/segments/segment.dto';
 import { SegmentMapper } from '../../infrastructure/mappers/segment.mapper';
@@ -646,7 +646,7 @@ export class ResultSubmissionService {
       result_hash,
       percent_of_result,
       total_amount,
-      registry_id: Cooperative.Registry.ResultContributionStatement.registry_id,
+      registry_id: Registry.ResultContributionStatement.registry_id,
       lang: options?.lang as any,
     };
 
@@ -766,7 +766,7 @@ export class ResultSubmissionService {
       total_amount: statementMeta.total_amount,
       coopname: platformSettings().coopname,
       username: result.username,
-      registry_id: Cooperative.Registry.ResultContributionDecision.registry_id,
+      registry_id: Registry.ResultContributionDecision.registry_id,
       lang: options?.lang as any,
     };
 
@@ -865,7 +865,7 @@ export class ResultSubmissionService {
       coopname: platformSettings().coopname,
       username: result.username,
       result_hash: data.result_hash,
-      registry_id: Cooperative.Registry.ResultContributionAct.registry_id,
+      registry_id: Registry.ResultContributionAct.registry_id,
       lang: options?.lang as any,
     };
 

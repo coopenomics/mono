@@ -303,14 +303,14 @@ documents:
     registry_id: 1109
     signed_by: [trusted]
     stored_in: aids.statement
-    note: "Подписывается получателем перед внесением заявления на рассмотрение совета. Содержит участок, сумму выплаты и оговорку об удержании налога кооперативом. Источник правды — components/cooptypes/src/cooperative/registry/1109.BranchFinancialAidStatement"
+    note: "Подписывается получателем перед внесением заявления на рассмотрение совета. Содержит участок, сумму выплаты и оговорку об удержании налога кооперативом. Источник правды — C9S/docs-factory:packages/docs-templates/src/registry/1109.BranchFinancialAidStatement"
 
   - action: null
     title: Протокол совета о выплате материальной помощи
     registry_id: 1112
     signed_by: [chairman]
     stored_in: aids.protocol
-    note: "Протокол по типовому процессу решения совета (стандарт sov.decision). Подписывается председателем после принятия советом положительного решения. Источник правды — components/cooptypes/src/cooperative/registry/1112.BranchFinancialAidProtocol"
+    note: "Протокол по типовому процессу решения совета (стандарт sov.decision). Подписывается председателем после принятия советом положительного решения. Источник правды — C9S/docs-factory:packages/docs-templates/src/registry/1112.BranchFinancialAidProtocol"
 
 # ── Секция 6. Операции (Ledger2) ────────────────────────────────────────────
 operations:

@@ -1,6 +1,7 @@
 import { ConflictException, Inject, Injectable, Optional } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { Cooperative, SovietContract, type MarketContract } from 'cooptypes';
+import { SovietContract, type MarketContract } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 import { PublicKey, Signature } from '@wharfkit/antelope';
 import {
   LOGGER_PORT,
@@ -444,7 +445,7 @@ export class MarketplaceIssuanceService {
   ): void {
     const meta = signed_statement.meta;
     if (
-      meta.registry_id !== Cooperative.Registry.MarketplaceShareReturnStatement.registry_id ||
+      meta.registry_id !== Registry.MarketplaceShareReturnStatement.registry_id ||
       meta.order_hash !== order.order_hash
     ) {
       throw DomainError.badRequest('MARKETPLACE_STATEMENT_WRONG_ORDER');
@@ -693,7 +694,7 @@ export class MarketplaceIssuanceService {
     saga: MarketplaceIssuanceSagaDomainEntity
   ): void {
     const meta = signed_act.meta;
-    if (meta.registry_id !== Cooperative.Registry.MarketplaceShareReturnAct.registry_id || meta.order_hash !== order.order_hash) {
+    if (meta.registry_id !== Registry.MarketplaceShareReturnAct.registry_id || meta.order_hash !== order.order_hash) {
       throw DomainError.badRequest('MARKETPLACE_ACT_WRONG_ORDER');
     }
     if (saga.act_document_hash && signed_act.doc_hash !== saga.act_document_hash) {
@@ -912,8 +913,8 @@ export class MarketplaceIssuanceService {
       decimals,
     });
     const unit = presentSaleUnit(input.actual_quantity, input.unit_of_measure, input.package_size);
-    const action: Cooperative.Registry.MarketplaceShareReturnStatement.Action = {
-      registry_id: Cooperative.Registry.MarketplaceShareReturnStatement.registry_id,
+    const action: Registry.MarketplaceShareReturnStatement.Action = {
+      registry_id: Registry.MarketplaceShareReturnStatement.registry_id,
       coopname: input.coopname,
       username: input.orderer_account,
       lang: 'ru',
@@ -935,8 +936,8 @@ export class MarketplaceIssuanceService {
   private async generateStatementDocument(order: MarketplaceOrderDomainEntity, fact: MarketplaceIssuanceSagaFact): Promise<InnerGeneratedDocument> {
     const offer = await this.offerRepo.findById(order.offer_id);
     const unit = presentSaleUnit(fact.actual_quantity, order.unit_of_measure, order.package_size);
-    const action: Cooperative.Registry.MarketplaceShareReturnStatement.Action = {
-      registry_id: Cooperative.Registry.MarketplaceShareReturnStatement.registry_id,
+    const action: Registry.MarketplaceShareReturnStatement.Action = {
+      registry_id: Registry.MarketplaceShareReturnStatement.registry_id,
       coopname: order.coopname,
       username: order.orderer_account,
       lang: 'ru',
@@ -960,8 +961,8 @@ export class MarketplaceIssuanceService {
   private async generateActDocument(order: MarketplaceOrderDomainEntity, saga: MarketplaceIssuanceSagaDomainEntity, decision_id: string): Promise<InnerGeneratedDocument> {
     const offer = await this.offerRepo.findById(order.offer_id);
     const unit = presentSaleUnit(saga.fact.actual_quantity, order.unit_of_measure, order.package_size);
-    const action: Cooperative.Registry.MarketplaceShareReturnAct.Action = {
-      registry_id: Cooperative.Registry.MarketplaceShareReturnAct.registry_id,
+    const action: Registry.MarketplaceShareReturnAct.Action = {
+      registry_id: Registry.MarketplaceShareReturnAct.registry_id,
       coopname: order.coopname,
       username: order.orderer_account,
       lang: 'ru',

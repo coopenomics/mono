@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { FreeDecisionInteractor } from '~/application/free-decision/interactors/free-decision.interactor';
 import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 import { ProjectFreeDecisionDomainEntity } from '~/domain/branch/entities/project-free-decision.entity';
 import { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
 import { PublishProjectFreeDecisionInputDomainInterface } from '~/domain/free-decision/interfaces/publish-project-free-decision.interface';
@@ -15,14 +16,14 @@ export class FreeDecisionAdapter implements IFreeDecisionPort {
   }
 
   async generateProjectOfFreeDecisionDocument(
-    data: Cooperative.Registry.ProjectFreeDecision.Action,
+    data: Registry.ProjectFreeDecision.Action,
     options?: Cooperative.Document.IGenerationOptions
   ): Promise<DocumentDomainEntity> {
     return this.freeDecisionInteractor.generateProjectOfFreeDecisionDocument(data, options);
   }
 
   async generateFreeDecisionDocument(
-    data: Cooperative.Registry.FreeDecision.Action,
+    data: Registry.FreeDecision.Action,
     options: Cooperative.Document.IGenerationOptions
   ): Promise<DocumentDomainEntity> {
     return this.freeDecisionInteractor.generateFreeDecisionDocument(data, options);

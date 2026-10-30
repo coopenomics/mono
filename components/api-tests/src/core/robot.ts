@@ -10,7 +10,7 @@
  * возвращает предустановку перед своими наборами — теми же действиями цепи,
  * что и boot.
  */
-import { Cooperative } from 'cooptypes'
+import { decisionTypesRegistry } from '@coopenomics/docs-templates'
 import { tableRows, transact } from './chain'
 import { COOP, DEFAULT_WIF } from './env'
 
@@ -18,7 +18,7 @@ const ROBOT_PERMISSION = 'robot'
 
 /** Типы решений предустановки: приём пайщика и все решения Стола заказов. */
 export function presetDecisionTypes(): string[] {
-  const registry = Cooperative.Document.decisionTypesRegistry
+  const registry = decisionTypesRegistry
   return [
     registry.joincoop,
     ...Object.values(registry).filter(info => info.extension === 'market'),

@@ -41,6 +41,10 @@ title: Кто читает документы проекта и его пере�
 # разрешает. Чтение документов проекта и приоритеты не менялись; случаи — в
 # capital.project-roles.
 
+# Правка 30.10.2026 (5A8-11): шаблоны документов импортируются из пакета
+# @coopenomics/docs-templates (`Registry`) вместо `Cooperative.Registry` из
+# cooptypes. Поведение не менялось: тот же реестр шаблонов, другой пакет.
+
 sources:
   backend:
     - components/controller/src/extensions/capital/domain/services/access-policy.service.ts

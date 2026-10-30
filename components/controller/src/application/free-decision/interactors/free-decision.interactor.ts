@@ -1,4 +1,5 @@
 import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 import { DocumentDomainService } from '~/domain/document/services/document-domain.service';
 import { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
 import { Inject, Injectable } from '@nestjs/common';
@@ -26,18 +27,18 @@ export class FreeDecisionInteractor {
   }
 
   async generateProjectOfFreeDecisionDocument(
-    data: Cooperative.Registry.ProjectFreeDecision.Action,
+    data: Registry.ProjectFreeDecision.Action,
     options?: Cooperative.Document.IGenerationOptions
   ): Promise<DocumentDomainEntity> {
-    data.registry_id = Cooperative.Registry.ProjectFreeDecision.registry_id;
+    data.registry_id = Registry.ProjectFreeDecision.registry_id;
     return await this.documentDomainService.generateDocument({ data, options });
   }
 
   async generateFreeDecisionDocument(
-    data: Cooperative.Registry.FreeDecision.Action,
+    data: Registry.FreeDecision.Action,
     options: Cooperative.Document.IGenerationOptions
   ): Promise<DocumentDomainEntity> {
-    data.registry_id = Cooperative.Registry.FreeDecision.registry_id;
+    data.registry_id = Registry.FreeDecision.registry_id;
     return await this.documentDomainService.generateDocument({ data, options });
   }
 
@@ -46,9 +47,9 @@ export class FreeDecisionInteractor {
 
     if (!document) throw DomainError.badRequest('DOCUMENT_NOT_FOUND');
 
-    if (data.document.meta.registry_id != Cooperative.Registry.ProjectFreeDecision.registry_id)
+    if (data.document.meta.registry_id != Registry.ProjectFreeDecision.registry_id)
       throw DomainError.badRequest('FREE_DECISION_WRONG_REGISTRY', {
-        expected: Cooperative.Registry.ProjectFreeDecision.registry_id,
+        expected: Registry.ProjectFreeDecision.registry_id,
       });
 
     if (data.coopname != config.coopname)

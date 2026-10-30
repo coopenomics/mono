@@ -1,5 +1,6 @@
 import { Injectable, Inject, Logger } from '@nestjs/common';
 import { Cooperative, Ledger2 } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 import { GeneratorInfrastructureService } from '~/infrastructure/generator/generator.service';
 import { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
 import { WalletBlockchainPort, WALLET_BLOCKCHAIN_PORT } from '~/domain/wallet/ports/wallet-blockchain.port';
@@ -86,11 +87,11 @@ export class WalletInteractor {
    * Генерация документа заявления на возврат паевого взноса (900)
    */
   async generateReturnByMoneyStatementDocument(
-    data: Cooperative.Registry.ReturnByMoney.Action,
+    data: Registry.ReturnByMoney.Action,
     options: Cooperative.Document.IGenerationOptions
   ): Promise<DocumentDomainEntity> {
     // Устанавливаем registry_id для документа заявления
-    data.registry_id = Cooperative.Registry.ReturnByMoney.registry_id;
+    data.registry_id = Registry.ReturnByMoney.registry_id;
     return await this.generatorInfrastructureService.generateDocument({ data, options });
   }
 
@@ -98,11 +99,11 @@ export class WalletInteractor {
    * Генерация документа решения совета о возврате паевого взноса (901)
    */
   async generateReturnByMoneyDecisionDocument(
-    data: Cooperative.Registry.ReturnByMoneyDecision.Action,
+    data: Registry.ReturnByMoneyDecision.Action,
     options: Cooperative.Document.IGenerationOptions
   ): Promise<DocumentDomainEntity> {
     // Устанавливаем registry_id для документа решения
-    data.registry_id = Cooperative.Registry.ReturnByMoneyDecision.registry_id;
+    data.registry_id = Registry.ReturnByMoneyDecision.registry_id;
     return await this.generatorInfrastructureService.generateDocument({ data, options });
   }
 

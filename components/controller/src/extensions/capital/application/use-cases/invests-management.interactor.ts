@@ -14,7 +14,7 @@ import { LOGGER_PORT, type ILoggerPort,
   type InnerTransactResult,
 } from '@coopenomics/innercoop';
 import { GenerationMoneyInvestStatementGenerateDocumentInputDTO } from '../documents-dto/generation-money-invest-statement-document.dto';
-import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 import { PROJECT_REPOSITORY, ProjectRepository } from '../../domain/repositories/project.repository';
 import { SEGMENT_REPOSITORY, SegmentRepository } from '../../domain/repositories/segment.repository';
 import { assertBlockchainProject } from '../../domain/utils/assert-blockchain-project';
@@ -58,7 +58,7 @@ export class InvestsManagementInteractor {
   async prepareGenerationMoneyInvestStatementData(
     data: GenerationMoneyInvestStatementGenerateDocumentInputDTO,
     currentUser: IMonoAccount
-  ): Promise<Cooperative.Registry.GenerationMoneyInvestStatement.Action> {
+  ): Promise<Registry.GenerationMoneyInvestStatement.Action> {
     const projectHash = data.project_hash;
     if (!projectHash) {
       throw DomainError.badRequest('CAPITAL_INVESTMENT_PROJECT_HASH_REQUIRED');

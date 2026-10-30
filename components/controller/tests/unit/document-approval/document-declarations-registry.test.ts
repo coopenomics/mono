@@ -5,9 +5,9 @@ import {
   CORE_DOCUMENTS_OWNER,
   coreDocumentDeclarationsFor,
 } from '~/domain/document-approval/constants/core-document-declarations';
-import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 
-const R = Cooperative.Registry;
+const R = Registry;
 
 jest.mock('~/config/config', () => ({ __esModule: true, default: { coopname: 'voskhod' } }));
 
@@ -81,7 +81,7 @@ describe('DocumentDeclarationsRegistryService', () => {
   });
 
   it('оферту о присоединении к платформе объявляет только оператор платформы', () => {
-    const offer = Cooperative.Registry.CoopenomicsAgreement.registry_id;
+    const offer = Registry.CoopenomicsAgreement.registry_id;
     expect(coreDocumentDeclarationsFor('voskhod').some((d) => d.registry_id === offer)).toBe(true);
     expect(coreDocumentDeclarationsFor('sosedi').some((d) => d.registry_id === offer)).toBe(false);
     expect(coreDocumentDeclarationsFor('sosedi')).toHaveLength(CORE_DOCUMENT_DECLARATIONS.length - 1);

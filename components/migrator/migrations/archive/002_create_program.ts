@@ -1,6 +1,7 @@
 import {Migration} from '../../src/migration_interface'
 import { api } from '../../src/eos'
-import { Cooperative, DraftContract, SovietContract } from 'cooptypes';
+import { DraftContract, SovietContract } from 'cooptypes';
+import { Registry as DocsRegistry } from '@coopenomics/docs-templates';
 import { Registry } from '@coopenomics/docs-factory';
 
 export class InitialMigration implements Migration {
@@ -41,7 +42,7 @@ export class InitialMigration implements Migration {
       await createProgram({
         coopname: 'voskhod',
         username: 'ant',
-        draft_id: Cooperative.Registry.WalletAgreement.registry_id,
+        draft_id: DocsRegistry.WalletAgreement.registry_id,
         title: "Цифровой Кошелёк",
         announce: "",
         description: "",

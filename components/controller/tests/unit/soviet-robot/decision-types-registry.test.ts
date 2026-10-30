@@ -13,7 +13,7 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
-import { Cooperative } from 'cooptypes';
+import { Registry, decisionTypesRegistry } from '@coopenomics/docs-templates';
 
 const CONTRACTS_DIR = path.resolve(__dirname, '../../../../contracts/cpp');
 
@@ -131,7 +131,7 @@ function sovietActions(): string[] {
 }
 
 describe('Реестр решений совета сверен с контрактами', () => {
-  const registry = Cooperative.Document.decisionTypesRegistry;
+  const registry = decisionTypesRegistry;
   const agenda = agendaTypesFromContracts();
 
   it('контракты вообще разобраны: повестки найдены', () => {
@@ -161,7 +161,7 @@ describe('Реестр решений совета сверен с контра�
 
   it('у каждого решения есть шаблон протокола из реестра документов', () => {
     const known = new Set(
-      Object.values(Cooperative.Registry as Record<string, { registry_id?: number }>)
+      Object.values(Registry as Record<string, { registry_id?: number }>)
         .map((document) => document?.registry_id)
         .filter((id): id is number => typeof id === 'number')
     );

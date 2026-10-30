@@ -27,7 +27,8 @@
  */
 import { Client, Mutations, Queries } from '@coopenomics/sdk'
 import { loginChairman } from '../../lib/chairman-login'
-import { Cooperative, SovietContract } from 'cooptypes'
+import { SovietContract } from 'cooptypes'
+import { Registry } from '@coopenomics/docs-templates'
 import Blockchain from '../../../blockchain'
 import config from '../../../configs'
 
@@ -42,7 +43,7 @@ const EXTENSION = 'market'
 // Пять членов совета, порог — больше половины, поэтому хватает трёх голосов.
 const VOTING_MEMBERS = ['petr', 'anna', 'mikhail']
 
-const FREE_DECISION_REGISTRY_ID = Cooperative.Registry.FreeDecision.registry_id
+const FREE_DECISION_REGISTRY_ID = Registry.FreeDecision.registry_id
 
 // registry_id документов шагов. Источник — desktop
 // pages/Marketplace/OnboardingCoopAcceptCpp/model/composable.ts (STEP_REGISTRY):

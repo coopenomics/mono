@@ -1,7 +1,8 @@
 import { BadRequestException, Inject, Injectable, Logger } from '@nestjs/common';
 import { registerEnumType } from '@nestjs/graphql';
 import { createHash, randomBytes } from 'crypto';
-import { Cooperative, type BranchContract } from 'cooptypes';
+import { type BranchContract } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 import { PublicKey, Signature } from '@wharfkit/antelope';
 import http from 'http-status';
 import { LEDGER2_HISTORY_PORT, type ILedger2HistoryPort, type InnerLedger2HistoryResult, EXPENSE_CHASSIS_PORT, type IExpenseChassisPort, DOCUMENT_PORT, type IDocumentPort, type InnerGeneratedDocument } from '@coopenomics/innercoop';
@@ -541,8 +542,8 @@ export class MarketplaceEconomyService {
     const aid_hash = createHash('sha256')
       .update(`${coopname}:${username}:aid:${randomBytes(16).toString('hex')}`)
       .digest('hex');
-    const action: Cooperative.Registry.BranchFinancialAidStatement.Action = {
-      registry_id: Cooperative.Registry.BranchFinancialAidStatement.registry_id,
+    const action: Registry.BranchFinancialAidStatement.Action = {
+      registry_id: Registry.BranchFinancialAidStatement.registry_id,
       coopname,
       username,
       lang: 'ru',
@@ -576,9 +577,9 @@ export class MarketplaceEconomyService {
       | undefined;
     if (
       !meta ||
-      meta.registry_id !== Cooperative.Registry.BranchFinancialAidStatement.registry_id
+      meta.registry_id !== Registry.BranchFinancialAidStatement.registry_id
     ) {
-      throw DomainError.badRequest('MARKETPLACE_AID_STATEMENT_WRONG_REGISTRY', { registryId: Cooperative.Registry.BranchFinancialAidStatement.registry_id });
+      throw DomainError.badRequest('MARKETPLACE_AID_STATEMENT_WRONG_REGISTRY', { registryId: Registry.BranchFinancialAidStatement.registry_id });
     }
     if (meta.aid_hash && meta.aid_hash !== aidHash) {
       throw DomainError.conflict('MARKETPLACE_AID_STATEMENT_WRONG_REQUEST');
@@ -656,7 +657,7 @@ export class MarketplaceEconomyService {
           signedStatement
         ).toDocument() as BranchContract.Actions.CreateAid.ICreateaid['statement'],
         meta: JSON.stringify({
-          registry_id: Cooperative.Registry.BranchFinancialAidStatement.registry_id,
+          registry_id: Registry.BranchFinancialAidStatement.registry_id,
           aid_hash: aidHash,
           braname,
           amount: asset,

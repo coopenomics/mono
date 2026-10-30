@@ -10,7 +10,7 @@ div
 import { computed, onMounted, ref } from 'vue';
 import { useSystemStore } from 'src/entities/System/model';
 import { DocumentHtmlReader } from 'src/shared/ui/DocumentHtmlReader';
-import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 import { fetchPublicProvision } from 'src/features/Agreementer/StaticPrivacyPolicy/api';
 import { t } from 'src/shared/i18n';
 
@@ -39,7 +39,7 @@ onMounted(async () => {
   }
 
   try {
-    const provision = await fetchPublicProvision({ registry_id: Cooperative.Registry.UserAgreement.registry_id });
+    const provision = await fetchPublicProvision({ registry_id: Registry.UserAgreement.registry_id });
     html.value = provision.html;
   } catch (e: any) {
     error.value = e?.message ?? t('agreementer.staticUserAgreement.loadError');

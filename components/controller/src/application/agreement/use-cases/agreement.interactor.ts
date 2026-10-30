@@ -4,7 +4,8 @@ import { USER_DOMAIN_SERVICE, UserDomainService } from '~/domain/user/services/u
 import { DocumentInteractor } from '~/application/document/interactors/document.interactor';
 import { SOVIET_BLOCKCHAIN_PORT, SovietBlockchainPort } from '~/domain/common/ports/soviet-blockchain.port';
 import { WALLET_BLOCKCHAIN_PORT, WalletBlockchainPort } from '~/domain/wallet/ports/wallet-blockchain.port';
-import { Cooperative, SovietContract } from 'cooptypes';
+import { SovietContract } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 import type { TransactResult } from '@wharfkit/session';
 import { SendAgreementInputDTO } from '../dto/send-agreement-input.dto';
 import { ConfirmAgreementInputDTO } from '../dto/confirm-agreement-input.dto';
@@ -63,7 +64,7 @@ export class AgreementInteractor {
     data: GenerateDocumentInputDTO,
     options: GenerateDocumentOptionsInputDTO
   ): Promise<GeneratedDocumentDTO> {
-    data.registry_id = Cooperative.Registry.WalletAgreement.registry_id;
+    data.registry_id = Registry.WalletAgreement.registry_id;
     const document = await this.documentInteractor.generateDocument({ data, options });
     return document as GeneratedDocumentDTO;
   }
@@ -72,7 +73,7 @@ export class AgreementInteractor {
     data: GenerateDocumentInputDTO,
     options: GenerateDocumentOptionsInputDTO
   ): Promise<GeneratedDocumentDTO> {
-    data.registry_id = Cooperative.Registry.PrivacyPolicy.registry_id;
+    data.registry_id = Registry.PrivacyPolicy.registry_id;
     const document = await this.documentInteractor.generateDocument({ data, options });
     return document as GeneratedDocumentDTO;
   }
@@ -81,7 +82,7 @@ export class AgreementInteractor {
     data: GenerateDocumentInputDTO,
     options: GenerateDocumentOptionsInputDTO
   ): Promise<GeneratedDocumentDTO> {
-    data.registry_id = Cooperative.Registry.RegulationElectronicSignature.registry_id;
+    data.registry_id = Registry.RegulationElectronicSignature.registry_id;
     const document = await this.documentInteractor.generateDocument({ data, options });
     return document as GeneratedDocumentDTO;
   }
@@ -90,7 +91,7 @@ export class AgreementInteractor {
     data: GenerateDocumentInputDTO,
     options: GenerateDocumentOptionsInputDTO
   ): Promise<GeneratedDocumentDTO> {
-    data.registry_id = Cooperative.Registry.UserAgreement.registry_id;
+    data.registry_id = Registry.UserAgreement.registry_id;
     const document = await this.documentInteractor.generateDocument({ data, options });
     return document as GeneratedDocumentDTO;
   }

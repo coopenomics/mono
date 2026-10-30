@@ -19,6 +19,10 @@ title: Приём результата интеллектуальной деят
 # редакторы помечены «realtime: нет источника» с причиной. Поведение и набор
 # случаев не менялись.
 
+# Правка 30.10.2026 (5A8-11): шаблоны документов импортируются из пакета
+# @coopenomics/docs-templates (`Registry`) вместо `Cooperative.Registry` из
+# cooptypes. Поведение не менялось: тот же реестр шаблонов, другой пакет.
+
 sources:
   contract:
     - components/contracts/cpp/capital/p.cap.rid.standard.yaml

@@ -5,7 +5,7 @@
  * документы и робот — моки.
  */
 import { ConflictException, ForbiddenException, BadRequestException } from '@nestjs/common';
-import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 import { MarketplaceIssuanceSagaStages } from '~/extensions/marketplace/domain/entities/marketplace-issuance-saga.types';
 import { MarketplaceUnitsOfMeasure } from '~/extensions/marketplace/domain/entities/marketplace-offer.types';
 import {
@@ -22,8 +22,8 @@ import {
   stubSignatureChecks,
 } from './issuance-saga.fixture';
 
-const STATEMENT_ID = Cooperative.Registry.MarketplaceShareReturnStatement.registry_id;
-const ACT_ID = Cooperative.Registry.MarketplaceShareReturnAct.registry_id;
+const STATEMENT_ID = Registry.MarketplaceShareReturnStatement.registry_id;
+const ACT_ID = Registry.MarketplaceShareReturnAct.registry_id;
 
 describe('Готовность к выдаче (readyIssue)', () => {
   it('нельзя отметить готовность, пока на склад по заказу ничего не принято', async () => {

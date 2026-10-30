@@ -1,4 +1,4 @@
-import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 import { decisionFactory } from 'src/shared/lib/decision-factory';
 import { DigitalDocument } from 'src/shared/lib/document';
 import { useSystemStore } from 'src/entities/System/model';
@@ -27,7 +27,7 @@ export function registerBaseDecisionHandlers() {
 
       const parsedDocumentMeta = JSON.parse(
         row.table.statement.meta,
-      ) as Cooperative.Registry.FreeDecision.Action;
+      ) as Registry.FreeDecision.Action;
 
       if (!parsedDocumentMeta.project_id) {
         throw new Error(t('processDecisions.error.projectIdMissing'));
@@ -52,7 +52,7 @@ export function registerBaseDecisionHandlers() {
       // в мете заявления (петиции 324) — реквизиты учреждаемого участка
       const parsedDocumentMeta = JSON.parse(
         row.table.statement.meta,
-      ) as Cooperative.Registry.BranchEstablishmentPetition.Action;
+      ) as Registry.BranchEstablishmentPetition.Action;
 
       const { generateEstablishmentDecision } = useGenerateEstablishmentDecision();
       return await generateEstablishmentDecision({
@@ -96,7 +96,7 @@ export function registerBaseDecisionHandlers() {
         useGenerateSovietDecisionOnAnnualMeet();
       const parsedDocumentMeta = JSON.parse(
         row.table.statement.meta,
-      ) as Cooperative.Registry.AnnualGeneralMeetingAgenda.Action;
+      ) as Registry.AnnualGeneralMeetingAgenda.Action;
       const is_repeated = parsedDocumentMeta.is_repeated || false;
 
       return await generateSovietDecisionOnAnnualMeet({
@@ -120,7 +120,7 @@ export function registerBaseDecisionHandlers() {
 
       const parsedDocumentMeta = JSON.parse(
         row.table.statement.meta,
-      ) as Cooperative.Registry.ReturnByMoney.Action;
+      ) as Registry.ReturnByMoney.Action;
 
       if (!parsedDocumentMeta.payment_hash || !parsedDocumentMeta.quantity || !parsedDocumentMeta.currency) {
         throw new Error(t('processDecisions.error.createwthdMetaInvalid'));
@@ -150,7 +150,7 @@ export function registerBaseDecisionHandlers() {
 
       const statementMeta = JSON.parse(
         row.table.statement.meta,
-      ) as Cooperative.Registry.MarketplaceWriteoffStatement.Action;
+      ) as Registry.MarketplaceWriteoffStatement.Action;
 
       if (!statementMeta.proposal_hash || !Array.isArray(statementMeta.items)) {
         throw new Error(t('processDecisions.error.mktwroffMetaInvalid'));
@@ -158,10 +158,10 @@ export function registerBaseDecisionHandlers() {
 
       const { info } = useSystemStore();
 
-      const protocolAction: Cooperative.Registry.MarketplaceWriteoffProtocol.Action =
+      const protocolAction: Registry.MarketplaceWriteoffProtocol.Action =
         {
           registry_id:
-            Cooperative.Registry.MarketplaceWriteoffProtocol.registry_id,
+            Registry.MarketplaceWriteoffProtocol.registry_id,
           coopname: info.coopname,
           username,
           lang: 'ru',
@@ -192,7 +192,7 @@ export function registerBaseDecisionHandlers() {
 
       const statementMeta = JSON.parse(
         row.table.statement.meta,
-      ) as Cooperative.Registry.BranchFinancialAidStatement.Action;
+      ) as Registry.BranchFinancialAidStatement.Action;
 
       if (
         !statementMeta.aid_hash ||
@@ -205,10 +205,10 @@ export function registerBaseDecisionHandlers() {
 
       const { info } = useSystemStore();
 
-      const protocolAction: Cooperative.Registry.BranchFinancialAidProtocol.Action =
+      const protocolAction: Registry.BranchFinancialAidProtocol.Action =
         {
           registry_id:
-            Cooperative.Registry.BranchFinancialAidProtocol.registry_id,
+            Registry.BranchFinancialAidProtocol.registry_id,
           coopname: info.coopname,
           username,
           lang: 'ru',

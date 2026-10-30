@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common'
 
 import type { InnerExpenseRequisiteItemInput } from '@coopenomics/innercoop'
 import { Cooperative } from 'cooptypes'
+import { Registry } from '@coopenomics/docs-templates'
 import { ExpenseProposalDecisionGenerateDocumentInputDTO } from '../documents-dto/expense-proposal-decision-document.dto'
 import { CreateExpenseProposalInputDTO } from '../dto/create-expense-proposal.input'
 import type { ExpenseItemInputDTO } from '../dto/expense-item.input'
@@ -62,7 +63,7 @@ export class ExpensesMutationsService {
     data: ExpenseProposalStatementGenerateDocumentInputDTO,
     options: Cooperative.Document.IGenerationOptions
   ): Promise<InnerGeneratedDocument> {
-    const registry_id = Cooperative.Registry.ExpenseProposalStatement.registry_id
+    const registry_id = Registry.ExpenseProposalStatement.registry_id
 
     // Фонд списания — параметр шасси, фронт его не передаёт
     const proposal = { ...data.proposal, fund_name: EXPENSES_CHASSIS_CONFIG.fundNameDative }
@@ -90,14 +91,14 @@ export class ExpensesMutationsService {
       })
     )
 
-    const privatePayload: Cooperative.Registry.ExpenseProposalStatement.PrivateData = { items: privateItems }
+    const privatePayload: Registry.ExpenseProposalStatement.PrivateData = { items: privateItems }
     const { hash: doc_data_hash } = await this.generator.saveData(
       privatePayload as unknown as Record<string, unknown>,
       registry_id
     )
 
     // Публичные позиции — без реквизитов/имени/назначения (только структура и суммы).
-    const items: Cooperative.Registry.ExpenseProposalStatement.IExpenseItem[] = data.items.map((item) => ({
+    const items: Registry.ExpenseProposalStatement.IExpenseItem[] = data.items.map((item) => ({
       number: item.number,
       description: item.description,
       amount: item.amount,
@@ -111,7 +112,7 @@ export class ExpensesMutationsService {
       proposal,
       items,
       doc_data_hash,
-    } as unknown as Cooperative.Registry.ExpenseProposalStatement.Action
+    } as unknown as Registry.ExpenseProposalStatement.Action
 
     return this.generator.generate({ data: action, options: options || {} })
   }
@@ -120,8 +121,8 @@ export class ExpensesMutationsService {
     data: ExpenseProposalDecisionGenerateDocumentInputDTO,
     options: Cooperative.Document.IGenerationOptions
   ): Promise<InnerGeneratedDocument> {
-    data.registry_id = Cooperative.Registry.ExpenseProposalDecision.registry_id
-    return this.generator.generate({ data: data as unknown as Cooperative.Registry.ExpenseProposalDecision.Action, options: options || {} })
+    data.registry_id = Registry.ExpenseProposalDecision.registry_id
+    return this.generator.generate({ data: data as unknown as Registry.ExpenseProposalDecision.Action, options: options || {} })
   }
 
   async createExpenseProposal(input: CreateExpenseProposalInputDTO): Promise<InnerTransactResult> {

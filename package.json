@@ -33,6 +33,7 @@
     "@coopenomics/controller": "workspace:*",
     "@coopenomics/desktop": "workspace:*",
     "@coopenomics/docs-factory": "1.2.0",
+    "@coopenomics/docs-templates": "1.2.0",
     "@coopenomics/extension-kit": "workspace:*",
     "@coopenomics/i18n": "workspace:*",
     "@coopenomics/innercoop": "workspace:*",

@@ -12,9 +12,9 @@
 import { BadRequestException } from '@nestjs/common';
 import { MarketplaceConvertService } from '../../../src/extensions/marketplace/application/services/marketplace-convert.service';
 import { COOP, buildMocks, buildOrder, buildSaga, buildService, stubSignatureChecks, signedDoc, toAsset, toUnits } from './issuance-saga.fixture';
-import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 
-const R = Cooperative.Registry;
+const R = Registry;
 
 function buildConvertService(memberAvailable: string, walletName = 'w.mkt.member', shareAvailable = '0.0000 RUB'): MarketplaceConvertService {
   const walletRepo = {

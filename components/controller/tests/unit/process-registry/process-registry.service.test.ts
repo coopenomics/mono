@@ -29,7 +29,7 @@ import type { DeltaDomainInterface as DeltaEntity } from '../../../src/domain/pa
 import type { ActionDomainInterface as ActionEntity } from '../../../src/domain/parser/interfaces/action-domain.interface';
 import type { ProcessDocumentActionsQuery } from '../../../src/domain/process-registry/ports/process-journal.port';
 import type { PaginationInputDTO } from '@coopenomics/extension-kit';
-import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 
 // ---------- helpers ----------
 
@@ -275,7 +275,7 @@ describe('ProcessRegistryService.getProcess', () => {
       hash: docHash,
       doc_hash: docHash,
       meta_hash: 'm'.repeat(64),
-      meta: JSON.stringify({ registry_id: Cooperative.Registry.MarketplaceConvertStatement.registry_id }),
+      meta: JSON.stringify({ registry_id: Registry.MarketplaceConvertStatement.registry_id }),
       signatures: Array.from({ length: signatures }, (_, i) => ({ id: i + 1, signer: `signer${i}` })),
     });
 
@@ -288,7 +288,7 @@ describe('ProcessRegistryService.getProcess', () => {
         global_sequence: '10',
       });
 
-    test(`(h1) заявление ${Cooperative.Registry.MarketplaceConvertStatement.registry_id} из marketplace::convert попадает в документы поставки`, async () => {
+    test(`(h1) заявление ${Registry.MarketplaceConvertStatement.registry_id} из marketplace::convert попадает в документы поставки`, async () => {
       // Заявление о переводе паевого взноса в Стол заказов живёт только в
       // параметре convert: в строку заказа оно не пишется, а хэш заказа лежит
       // в targets. Раньше бухгалтер видел перевод, но не видел заявления.

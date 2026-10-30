@@ -44,6 +44,10 @@ title: Фабрика утверждений документов — утвер
 # (двойник 995 и подобные), отвечает кодом GENERATOR_DOCUMENT_TYPE_UNKNOWN, а не
 # общим «не удалось собрать» с причиной только в журнале.
 
+# Правка 30.10.2026 (5A8-11): шаблоны документов импортируются из пакета
+# @coopenomics/docs-templates (`Registry`) вместо `Cooperative.Registry` из
+# cooptypes. Поведение не менялось: тот же реестр шаблонов, другой пакет.
+
 sources:
   contract:
     - components/contracts/cpp/draft/**

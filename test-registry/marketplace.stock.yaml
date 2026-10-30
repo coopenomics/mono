@@ -57,6 +57,10 @@ title: Обезличенный остаток кооператива — пер
 # сверок в резолвере. Список остатка получает участки отбора от гарда. Набор
 # случаев прежний.
 
+# Правка 30.10.2026 (5A8-11): шаблоны документов импортируются из пакета
+# @coopenomics/docs-templates (`Registry`) вместо `Cooperative.Registry` из
+# cooptypes. Поведение не менялось: тот же реестр шаблонов, другой пакет.
+
 sources:
   backend:
     - components/controller/src/extensions/marketplace/application/services/marketplace-stock.service.ts

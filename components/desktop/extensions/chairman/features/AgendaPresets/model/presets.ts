@@ -1,5 +1,5 @@
 import { useSessionStore } from 'src/entities/Session'
-import { Cooperative } from 'cooptypes'
+import { Registry } from '@coopenomics/docs-templates'
 import type { IDocumentPreset } from './types'
 import { useSystemStore } from 'src/entities/System/model'
 import { t } from '../../../i18n';
@@ -11,7 +11,7 @@ export const useBlagorostPresets = (): IDocumentPreset[] => {
   return [
     {
       id: 'blagorost_program',
-      registry_id: Cooperative.Registry.BlagorostProgramTemplate.registry_id,
+      registry_id: Registry.BlagorostProgramTemplate.registry_id,
       title: t('chairman.blagorostPreset.title'),
       description: t('chairman.blagorostPreset.description'),
       // i18n-ignore: текст вопроса повестки — дословно уходит в протокол решения совета, юридический документ
@@ -21,7 +21,7 @@ export const useBlagorostPresets = (): IDocumentPreset[] => {
       getData: () => ({
         coopname: systemStore.info?.coopname || '',
         username: sessionStore.username,
-        registry_id: Cooperative.Registry.BlagorostProgramTemplate.registry_id,
+        registry_id: Registry.BlagorostProgramTemplate.registry_id,
       }),
     },
     // Пресета оферты «Благорост» здесь больше нет: шаблон-двойник 999 выведен из

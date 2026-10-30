@@ -7,7 +7,7 @@
  * здесь не меняются — сайт только показывает текущую редакцию из репозитория.
  */
 
-import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 import { BLANK_PLACEHOLDER, BlankTemplateEngine } from '@factory-templator';
 
 /** Тип пайщика, под который собирается форма с ветвлением по типу. */
@@ -31,7 +31,7 @@ let byId: Map<number, RegistryTemplate> | null = null;
 function templates(): Map<number, RegistryTemplate> {
   if (byId) return byId;
   byId = new Map();
-  for (const mod of Object.values(Cooperative.Registry as Record<string, unknown>)) {
+  for (const mod of Object.values(Registry as Record<string, unknown>)) {
     const t = mod as Partial<RegistryTemplate> | null;
     if (t && typeof t.registry_id === 'number' && typeof t.context === 'string' && t.translations) {
       byId.set(t.registry_id, t as RegistryTemplate);

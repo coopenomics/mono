@@ -1,4 +1,5 @@
 import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 import { DocumentDomainService } from '~/domain/document/services/document-domain.service';
 import { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
 import { Inject, Injectable } from '@nestjs/common';
@@ -33,10 +34,10 @@ export class MeetInteractor {
   ) {}
 
   async generateAnnualGeneralMeetAgendaDocument(
-    data: Cooperative.Registry.AnnualGeneralMeetingAgenda.Action,
+    data: Registry.AnnualGeneralMeetingAgenda.Action,
     options: Cooperative.Document.IGenerationOptions
   ): Promise<DocumentDomainEntity> {
-    data.registry_id = Cooperative.Registry.AnnualGeneralMeetingAgenda.registry_id;
+    data.registry_id = Registry.AnnualGeneralMeetingAgenda.registry_id;
     return await this.documentDomainService.generateDocument({ data, options });
   }
 
@@ -85,34 +86,34 @@ export class MeetInteractor {
   }
 
   async generateAnnualGeneralMeetDecisionDocument(
-    data: Cooperative.Registry.AnnualGeneralMeetingDecision.Action,
+    data: Registry.AnnualGeneralMeetingDecision.Action,
     options: Cooperative.Document.IGenerationOptions
   ): Promise<DocumentDomainEntity> {
-    data.registry_id = Cooperative.Registry.AnnualGeneralMeetingDecision.registry_id;
+    data.registry_id = Registry.AnnualGeneralMeetingDecision.registry_id;
     return await this.documentDomainService.generateDocument({ data, options });
   }
 
   async generateAnnualGeneralMeetNotificationDocument(
-    data: Cooperative.Registry.AnnualGeneralMeetingNotification.Action,
+    data: Registry.AnnualGeneralMeetingNotification.Action,
     options: Cooperative.Document.IGenerationOptions
   ): Promise<DocumentDomainEntity> {
-    data.registry_id = Cooperative.Registry.AnnualGeneralMeetingNotification.registry_id;
+    data.registry_id = Registry.AnnualGeneralMeetingNotification.registry_id;
     return await this.documentDomainService.generateDocument({ data, options });
   }
 
   async generateSovietDecisionOnAnnualMeetDocument(
-    data: Cooperative.Registry.AnnualGeneralMeetingSovietDecision.Action,
+    data: Registry.AnnualGeneralMeetingSovietDecision.Action,
     options: Cooperative.Document.IGenerationOptions
   ): Promise<DocumentDomainEntity> {
-    data.registry_id = Cooperative.Registry.AnnualGeneralMeetingSovietDecision.registry_id;
+    data.registry_id = Registry.AnnualGeneralMeetingSovietDecision.registry_id;
     return await this.documentDomainService.generateDocument({ data, options });
   }
 
   async generateBallotForAnnualGeneralMeet(
-    data: Cooperative.Registry.AnnualGeneralMeetingVotingBallot.Action,
+    data: Registry.AnnualGeneralMeetingVotingBallot.Action,
     options: Cooperative.Document.IGenerationOptions
   ): Promise<DocumentDomainEntity> {
-    data.registry_id = Cooperative.Registry.AnnualGeneralMeetingVotingBallot.registry_id;
+    data.registry_id = Registry.AnnualGeneralMeetingVotingBallot.registry_id;
     return await this.documentDomainService.generateDocument({ data, options });
   }
 

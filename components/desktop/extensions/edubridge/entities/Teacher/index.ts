@@ -1,5 +1,5 @@
 import type { IDocumentAggregate } from 'src/entities/Document/model';
-import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 import { Mutations, Queries, Zeus } from '@coopenomics/sdk';
 import { client } from 'src/shared/api/client';
 import { useSessionStore } from 'src/entities/Session';
@@ -194,7 +194,7 @@ export async function buildContractDocument(): Promise<IContractDraft> {
   const { username, coopname } = who();
   const contract_number = number16();
   const document = new DigitalDocument();
-  await document.generate({ registry_id: Cooperative.Registry.EducationParticipationContract.registry_id, coopname, username, contract_number, contract_created_at: today() });
+  await document.generate({ registry_id: Registry.EducationParticipationContract.registry_id, coopname, username, contract_number, contract_created_at: today() });
   return { document, contract_number };
 }
 

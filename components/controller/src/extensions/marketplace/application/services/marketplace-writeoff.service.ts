@@ -1,7 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { createHash } from 'crypto';
-import { Cooperative, MarketContract } from 'cooptypes';
+import { MarketContract } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 import { PublicKey, Signature } from '@wharfkit/antelope';
 import http from 'http-status';
 import { LOGGER_PORT, type ILoggerPort, DOCUMENT_PORT, type IDocumentPort, type InnerDocumentAggregate } from '@coopenomics/innercoop';
@@ -580,9 +581,9 @@ export class MarketplaceWriteoffService {
     } | undefined;
     if (
       !statementMeta ||
-      statementMeta.registry_id !== Cooperative.Registry.MarketplaceWriteoffStatement.registry_id
+      statementMeta.registry_id !== Registry.MarketplaceWriteoffStatement.registry_id
     ) {
-      throw DomainError.badRequest('MARKETPLACE_WRITEOFF_STATEMENT_WRONG_REGISTRY_ID', { registryId: Cooperative.Registry.MarketplaceWriteoffStatement.registry_id });
+      throw DomainError.badRequest('MARKETPLACE_WRITEOFF_STATEMENT_WRONG_REGISTRY_ID', { registryId: Registry.MarketplaceWriteoffStatement.registry_id });
     }
 
     const proposalHash = this.computeProposalHash({
@@ -622,7 +623,7 @@ export class MarketplaceWriteoffService {
       })) as MarketContract.Actions.PropWroff.IPropWroff['items'],
       statement: new SignedDigitalDocumentInputDTO(input.signed_statement).toDocument() as MarketContract.Actions.PropWroff.IPropWroff['statement'],
       meta: JSON.stringify({
-        registry_id: Cooperative.Registry.MarketplaceWriteoffStatement.registry_id,
+        registry_id: Registry.MarketplaceWriteoffStatement.registry_id,
         proposal_hash: proposalHash,
         items_count: draft.items.length,
         total_amount: draft.total_amount,
@@ -854,9 +855,9 @@ export class MarketplaceWriteoffService {
     } | undefined;
     if (
       !memoMeta ||
-      memoMeta.registry_id !== Cooperative.Registry.MarketplaceWriteoffServiceMemo.registry_id
+      memoMeta.registry_id !== Registry.MarketplaceWriteoffServiceMemo.registry_id
     ) {
-      throw DomainError.badRequest('MARKETPLACE_WRITEOFF_MEMO_WRONG_REGISTRY_ID', { registryId: Cooperative.Registry.MarketplaceWriteoffServiceMemo.registry_id });
+      throw DomainError.badRequest('MARKETPLACE_WRITEOFF_MEMO_WRONG_REGISTRY_ID', { registryId: Registry.MarketplaceWriteoffServiceMemo.registry_id });
     }
     if (memoMeta.proposal_hash && memoMeta.proposal_hash !== proposal.proposal_hash) {
       throw DomainError.badRequest('MARKETPLACE_WRITEOFF_MEMO_WRONG_PROJECT');

@@ -1,7 +1,7 @@
 import { Field, Float, InputType, Int, IntersectionType, OmitType } from '@nestjs/graphql';
 import { IsBoolean, IsInt, IsNumber, IsOptional, IsString, Min, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
-import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 import { SignedDigitalDocumentInputDTO, MetaDocumentInputDTO, GenerateMetaDocumentInputDTO, ExcludeCommonProps } from '@coopenomics/extension-kit';
 
 /**
@@ -17,7 +17,7 @@ import { SignedDigitalDocumentInputDTO, MetaDocumentInputDTO, GenerateMetaDocume
  * хеширует детерминированный seed `return:<order_hash>:<orderer>:<actual_
  * quantity>` и кладёт результат в оба места.
  */
-type action = Cooperative.Registry.MarketplaceReturnStatement.Action;
+type action = Registry.MarketplaceReturnStatement.Action;
 
 @InputType('MarketplaceReturnStatementRequestPayloadInput')
 export class MarketplaceReturnStatementRequestPayloadInputDTO {

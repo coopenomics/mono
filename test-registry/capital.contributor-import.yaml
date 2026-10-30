@@ -55,6 +55,10 @@ title: Импорт пайщика с бумажными договорами
 # перечитанную после транзакции, а не объект до неё. Участник, заведённый в
 # цепи мимо контроллера, попадает в зеркало с именем из аккаунта.
 
+# Правка 30.10.2026 (5A8-11): шаблоны документов импортируются из пакета
+# @coopenomics/docs-templates (`Registry`) вместо `Cooperative.Registry` из
+# cooptypes. Поведение не менялось: тот же реестр шаблонов, другой пакет.
+
 sources:
   contract:
     - components/contracts/cpp/capital/app/participation_management/import_contributor/importcontr.cpp

@@ -5,7 +5,7 @@ import type { RefreshProgramInputDTO } from '../dto/distribution_management/refr
 import { CurrencyValidationUtil, GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO } from '@coopenomics/extension-kit';
 import { GenerationConvertStatementGenerateDocumentInputDTO } from '../documents-dto/generation-convert-statement-document.dto';
 import type { ShareTransferStatementGenerateDocumentInputDTO } from '../documents-dto/share-transfer-statement-document.dto';
-import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 import { t } from '../../i18n';
 import { DOCUMENT_PORT, type IDocumentPort, type IMonoAccount, type InnerTransactResult } from '@coopenomics/innercoop';
 
@@ -51,7 +51,7 @@ export class DistributionManagementService {
     const document = await this.documentPort.generate({
       data: {
         ...enrichedData,
-        registry_id: Cooperative.Registry.GenerationConvertStatement.registry_id,
+        registry_id: Registry.GenerationConvertStatement.registry_id,
       },
       options,
     });
@@ -71,7 +71,7 @@ export class DistributionManagementService {
     const document = await this.documentPort.generate({
       data: {
         ...data,
-        registry_id: Cooperative.Registry.CapitalizationToMainWalletConvertStatement.registry_id,
+        registry_id: Registry.CapitalizationToMainWalletConvertStatement.registry_id,
       },
       options,
     });

@@ -6,7 +6,7 @@
  * Преподаватель — свежий пайщик: его договор отклоняется, подписывается
  * заново, действует и прекращается в одном прогоне.
  */
-import { Cooperative } from 'cooptypes'
+import { Registry } from '@coopenomics/docs-templates'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { Who } from '../core'
 import { CHAIRMAN, COOP, COUNCIL, caseName, expectCode, freshMember, gql, gqlError, login, tokenOf, waitFor } from '../core'
@@ -42,7 +42,7 @@ const TERMINATE = 'mutation($u:String!,$r:String!){ edubridgeTerminateContract(u
 const DECLINE_APPROVAL = 'mutation($d:DeclineApproveInput!){ chairmanDeclineApprove(data:$d){ _id status } }'
 const GENERATE = 'mutation($i:GenerateAnyDocumentInput!){ generateDocument(input:$i){ full_title html hash } }'
 
-const R = Cooperative.Registry
+const R = Registry
 const RATE = '900.0000 RUB'
 
 describe('Образование: договор преподавателя — отказ, просмотр, прекращение', () => {

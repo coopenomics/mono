@@ -1,7 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { v4 as uuid } from 'uuid';
-import { Cooperative, SovietContract } from 'cooptypes';
+import { SovietContract } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 import {
   DECISION_TRACKING_PORT,
   DecisionEventType,
@@ -334,7 +335,7 @@ export class DocumentApprovalProposalService {
         project_id,
         coopname: input.coopname,
         username: input.username,
-        registry_id: Cooperative.Registry.ProjectFreeDecision.registry_id,
+        registry_id: Registry.ProjectFreeDecision.registry_id,
         title,
       },
       {}

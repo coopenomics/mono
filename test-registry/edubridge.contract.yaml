@@ -16,7 +16,6 @@ sources:
   backend:
     - components/cooptypes/src/contracts/edubridge/**
     - components/cooptypes/src/interfaces/edubridge.ts
-    - components/cooptypes/src/cooperative/registry/30*/**
     - C9S/docs-factory:src/Templates/30*.ts
     - C9S/docs-factory:src/Actions/30*.ts
 

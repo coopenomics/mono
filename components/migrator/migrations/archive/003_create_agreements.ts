@@ -1,6 +1,7 @@
 import {Migration} from '../src/migration_interface'
 import { api } from '../src/eos'
-import { Cooperative, DraftContract, SovietContract } from 'cooptypes';
+import { DraftContract, SovietContract } from 'cooptypes';
+import { Registry as DocsRegistry } from '@coopenomics/docs-templates';
 import { Registry } from '@coopenomics/docs-factory';
 
 export class InitialMigration implements Migration {
@@ -43,7 +44,7 @@ export class InitialMigration implements Migration {
       //   coopname: 'voskhod',
       //   administrator: 'voskhod',
       //   type: "wallet",
-      //   draft_id: Cooperative.Registry.WalletAgreement.registry_id,
+      //   draft_id: DocsRegistry.WalletAgreement.registry_id,
       //   program_id: 1,
       // })
   
@@ -51,7 +52,7 @@ export class InitialMigration implements Migration {
       //   coopname: 'voskhod',
       //   administrator: 'voskhod',
       //   type: "signature",
-      //   draft_id: Cooperative.Registry.RegulationElectronicSignature.registry_id,
+      //   draft_id: DocsRegistry.RegulationElectronicSignature.registry_id,
       //   program_id: 0,
       // })
       
@@ -59,7 +60,7 @@ export class InitialMigration implements Migration {
         coopname: 'voskhod',
         administrator: 'voskhod',
         type: "user",
-        draft_id: Cooperative.Registry.UserAgreement.registry_id,
+        draft_id: DocsRegistry.UserAgreement.registry_id,
         program_id: 0,
       })
   
@@ -67,7 +68,7 @@ export class InitialMigration implements Migration {
         coopname: 'voskhod',
         administrator: 'voskhod',
         type: "privacy",
-        draft_id: Cooperative.Registry.PrivacyPolicy.registry_id,
+        draft_id: DocsRegistry.PrivacyPolicy.registry_id,
         program_id: 0,
       })
   
@@ -75,7 +76,7 @@ export class InitialMigration implements Migration {
         coopname: 'voskhod',
         administrator: 'voskhod',
         type: "coopenomics",
-        draft_id: Cooperative.Registry.CoopenomicsAgreement.registry_id,
+        draft_id: DocsRegistry.CoopenomicsAgreement.registry_id,
         program_id: 0,
       })
       
