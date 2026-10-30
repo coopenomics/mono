@@ -1,20 +1,12 @@
 import { registerEnumType } from '@nestjs/graphql';
-import { DocumentApprovalRequirement as DocsDocumentApprovalRequirement, DocumentApprovalState as DocsDocumentApprovalState, DocumentKind as DocsDocumentKind } from '@coopenomics/docs-templates';
+import { DocumentApprovalRequirement, DocumentApprovalState, DocumentKind } from '@coopenomics/docs-templates';
 
 /**
- * Перечисления фабрики утверждений — из `cooptypes`, чтобы контроллер и
- * рабочий стол читали одни и те же значения. Здесь они только регистрируются
- * в схеме GraphQL.
+ * Перечисления фабрики утверждений — из `@coopenomics/docs-templates`, чтобы
+ * контроллер и рабочий стол читали одни и те же значения. Здесь они только
+ * регистрируются в схеме GraphQL.
  */
-export const DocumentKind: typeof DocsDocumentKind = DocsDocumentKind;
-export type DocumentKind = DocsDocumentKind;
-
-export const DocumentApprovalRequirement: typeof DocsDocumentApprovalRequirement =
-  DocsDocumentApprovalRequirement;
-export type DocumentApprovalRequirement = DocsDocumentApprovalRequirement;
-
-export const DocumentApprovalState: typeof DocsDocumentApprovalState = DocsDocumentApprovalState;
-export type DocumentApprovalState = DocsDocumentApprovalState;
+export { DocumentApprovalRequirement, DocumentApprovalState, DocumentKind };
 
 registerEnumType(DocumentKind, {
   name: 'DocumentKind',

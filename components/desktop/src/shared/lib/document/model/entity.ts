@@ -4,12 +4,12 @@ import { useGlobalStore } from 'src/shared/store';
 import { FailAlert } from 'src/shared/api';
 import type { IDocument, IMetaDocument } from 'src/shared/lib/types/document';
 import type { Cooperative } from 'cooptypes';
-import type { IGenerationOptions, ZGeneratedDocument as DocsZGeneratedDocument } from '@coopenomics/docs-templates';
+import type { IGenerationOptions, ZGeneratedDocument } from '@coopenomics/docs-templates';
 import { Classes } from '@coopenomics/sdk';
 import type { ISignedDocument2 } from 'src/entities/Document/model';
 import { t } from 'src/shared/i18n';
 
-export type ZGeneratedDocument = DocsZGeneratedDocument;
+export type { ZGeneratedDocument };
 
 /**
  * Единственная точка подписи документов на десктопе.

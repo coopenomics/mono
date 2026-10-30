@@ -1,7 +1,7 @@
 import { Inject, Injectable, type OnModuleInit } from '@nestjs/common';
 import { randomBytes } from 'crypto';
 import moment from 'moment';
-import { UdataKey as DocsUdataKey } from '@coopenomics/docs-templates';
+import { UdataKey } from '@coopenomics/docs-templates';
 import {
   LOGGER_PORT,
   REGISTRATION_DOCUMENT_PARAMETERS_REGISTRY_PORT,
@@ -13,7 +13,6 @@ import {
 } from '@coopenomics/innercoop';
 import { EDU_LEARNING_PROGRAM_KEY, EDU_TEACHING_PROGRAM_KEY } from '../../constants/edubridge-agreement-ids';
 
-const UdataKey = DocsUdataKey;
 
 /**
  * Персональные номер и дата оферты — в Udata до генерации документа; фабрики
