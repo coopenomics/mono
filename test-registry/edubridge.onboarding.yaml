@@ -12,6 +12,11 @@ title: Образовательный мост — подключение ЦПП
 # @coopenomics/docs-templates (`Registry`) вместо `Cooperative.Registry` из
 # cooptypes. Поведение не менялось: тот же реестр шаблонов, другой пакет.
 
+# Правка 30.10.2026 (5A8-11): модель документа, данные кооператива, субъекты
+# и реквизиты (`IMetaDocument`, `IGenerate`, `UdataKey`, `IIndividualData`, …)
+# импортируются из @coopenomics/docs-templates вместо cooptypes. Поведение
+# не менялось: те же типы и значения, другой пакет.
+
 sources:
   contract:
     - components/contracts/cpp/lib/core/programs.hpp
