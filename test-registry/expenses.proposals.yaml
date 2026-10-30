@@ -29,6 +29,10 @@ title: Служебная записка на расход — подача, р�
 # Отказы контракта в мутациях шасси приходят 500 без кода CHAIN_ASSERT —
 # тесты проверяют сам отказ и неизменность записки, не код.
 
+# Правка 30.10.2026 (5A8-11): шаблоны документов импортируются из пакета
+# @coopenomics/docs-templates (`Registry`) вместо `Cooperative.Registry` из
+# cooptypes. Поведение не менялось: тот же реестр шаблонов, другой пакет.
+
 sources:
   backend:
     - components/controller/src/extensions/expenses/application/resolvers/expense-mutations.resolver.ts

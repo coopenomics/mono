@@ -8,6 +8,10 @@ title: Образовательный мост — подключение ЦПП
 # 3004, тип eduteacher, program_id 6). Роль = подписанная программная оферта.
 # Параметры оферт (номер/дата) — в Udata общим хуком по ключу программы.
 
+# Правка 30.10.2026 (5A8-11): шаблоны документов импортируются из пакета
+# @coopenomics/docs-templates (`Registry`) вместо `Cooperative.Registry` из
+# cooptypes. Поведение не менялось: тот же реестр шаблонов, другой пакет.
+
 sources:
   contract:
     - components/contracts/cpp/lib/core/programs.hpp

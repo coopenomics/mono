@@ -7,6 +7,10 @@ title: Образовательный мост — обучающиеся, по�
 # convert (w.wal.share → w.edu.member) и opensub/extendsub. Период ведётся
 # раздельно по связке «обучающийся + курс» (sub_hash детерминирован парой).
 
+# Правка 30.10.2026 (5A8-11): шаблоны документов импортируются из пакета
+# @coopenomics/docs-templates (`Registry`) вместо `Cooperative.Registry` из
+# cooptypes. Поведение не менялось: тот же реестр шаблонов, другой пакет.
+
 sources:
   backend:
     - components/controller/src/extensions/edubridge/application/services/edubridge-enrollment.service.ts

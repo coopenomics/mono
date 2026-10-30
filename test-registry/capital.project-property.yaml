@@ -10,6 +10,11 @@ title: Имущественный взнос в проект — предлож�
 # capital_project_properties не трогал ни один сценарий внешнего слоя (карта
 # готовности к уходу с TypeORM, C28-81). У зеркала предложений нет чтения
 # через API — снаружи видны только запись в цепи и итог в базе проекта.
+
+# Правка 30.10.2026 (5A8-11): шаблоны документов импортируются из пакета
+# @coopenomics/docs-templates (`Registry`) вместо `Cooperative.Registry` из
+# cooptypes. Поведение не менялось: тот же реестр шаблонов, другой пакет.
+
 sources:
   backend:
     - components/controller/src/extensions/capital/application/resolvers/property-management.resolver.ts

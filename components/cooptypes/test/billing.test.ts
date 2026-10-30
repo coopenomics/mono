@@ -45,8 +45,6 @@ describe('cooptypes — Epic 12 Single-Hub v5', () => {
     })
   })
 
-  })
-
   describe('ledger2 processes registry', () => {
     it('содержит p.bil.fund → billing::CONVERT', () => {
       const entry = LEDGER2_PROCESS_REGISTRY.find((p) => p.type === 'p.bil.fund')

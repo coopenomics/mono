@@ -31,6 +31,10 @@ title: Разметка во вводе пайщика — запрет в ан�
 # javascript:). Отказ, а не очистка: документ подписывается по хэшу.
 # Определение «исполняемого» одно с очисткой описаний (cooptypes).
 
+# Правка 30.10.2026 (5A8-11): шаблоны документов импортируются из пакета
+# @coopenomics/docs-templates (`Registry`) вместо `Cooperative.Registry` из
+# cooptypes. Поведение не менялось: тот же реестр шаблонов, другой пакет.
+
 sources:
   backend:
     - components/controller/src/shared/validators/no-markup.decorator.ts

@@ -35,6 +35,10 @@ title: Списание скоропорта — проект председат
 # каркаса расширений. Случаи про условия — в marketplace.rights-table; набор
 # случаев этой фичи прежний.
 
+# Правка 30.10.2026 (5A8-11): шаблоны документов импортируются из пакета
+# @coopenomics/docs-templates (`Registry`) вместо `Cooperative.Registry` из
+# cooptypes. Поведение не менялось: тот же реестр шаблонов, другой пакет.
+
 sources:
   contract:
     - components/contracts/cpp/marketplace/src/p.mkt.wroff/confirmwroff.cpp

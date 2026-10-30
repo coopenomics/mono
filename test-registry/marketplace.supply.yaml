@@ -51,6 +51,10 @@ title: Поставка — сборка партии поставщиком, п
 # KIT_RIGHT_SCOPE_OWN_KU, чужой акт у поставщика — KIT_RIGHT_SCOPE_OWN. Набор
 # случаев прежний.
 
+# Правка 30.10.2026 (5A8-11): шаблоны документов импортируются из пакета
+# @coopenomics/docs-templates (`Registry`) вместо `Cooperative.Registry` из
+# cooptypes. Поведение не менялось: тот же реестр шаблонов, другой пакет.
+
 sources:
   contract:
     - components/contracts/cpp/marketplace/src/p.mkt.supply/createorder.cpp

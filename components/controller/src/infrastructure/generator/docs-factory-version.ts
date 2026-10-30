@@ -37,6 +37,8 @@ function assertInstalled(name: string, title: string, installed: string): void {
  * у него — ссылка, а не номер.
  */
 export function assertDocsFactoryVersion(): void {
+  // i18n-ignore: название пакета в отказе при старте, его читает оператор узла в журнале
   assertInstalled('@coopenomics/docs-factory', 'Фабрика документов', DOCS_FACTORY_VERSION);
+  // i18n-ignore: название пакета в отказе при старте, его читает оператор узла в журнале
   assertInstalled('@coopenomics/docs-templates', 'Шаблоны документов', DOCS_TEMPLATES_VERSION);
 }
