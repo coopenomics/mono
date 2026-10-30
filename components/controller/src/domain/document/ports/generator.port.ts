@@ -1,12 +1,13 @@
 import type { IGenerateBlank, IGeneratedBlank, ISearchResult } from '@coopenomics/docs-factory';
 import type { Cooperative } from 'cooptypes';
+import type { ICooperativeData, IGenerate, IGeneratedDocument, IGenerationOptions } from '@coopenomics/docs-templates';
 
 export interface GeneratorPort {
   disconnect(): Promise<void>;
   generate(
-    data: Cooperative.Document.IGenerate,
-    options?: Cooperative.Document.IGenerationOptions
-  ): Promise<Cooperative.Document.IGeneratedDocument>;
+    data: IGenerate,
+    options?: IGenerationOptions
+  ): Promise<IGeneratedDocument>;
   /**
    * Бланк документа: шаблон из цепи с реквизитами кооператива, поля без
    * данных события — прочерком. Не сохраняется и не подписывается.
@@ -20,8 +21,8 @@ export interface GeneratorPort {
     /** Meta подписанного документа: точная версия, когда тело и блок у двух
      * генераций совпали. */
     meta?: unknown;
-  }): Promise<Cooperative.Document.IGeneratedDocument | null>;
-  constructCooperative(username: string, block_num?: number): Promise<Cooperative.Model.ICooperativeData | null>;
+  }): Promise<IGeneratedDocument | null>;
+  constructCooperative(username: string, block_num?: number): Promise<ICooperativeData | null>;
   get<T = any>(collection: string, query: Record<string, any>): Promise<T | null>;
   save(collection: string, data: any): Promise<void>;
   del(collection: string, query: Record<string, any>): Promise<void>;

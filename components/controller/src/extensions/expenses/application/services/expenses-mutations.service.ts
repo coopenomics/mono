@@ -1,8 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common'
 
 import type { InnerExpenseRequisiteItemInput } from '@coopenomics/innercoop'
-import { Cooperative } from 'cooptypes'
-import { Registry } from '@coopenomics/docs-templates'
+import { type IGenerationOptions, Registry } from '@coopenomics/docs-templates'
 import { ExpenseProposalDecisionGenerateDocumentInputDTO } from '../documents-dto/expense-proposal-decision-document.dto'
 import { CreateExpenseProposalInputDTO } from '../dto/create-expense-proposal.input'
 import type { ExpenseItemInputDTO } from '../dto/expense-item.input'
@@ -61,7 +60,7 @@ export class ExpensesMutationsService {
 
   async generateExpenseProposalStatementDocument(
     data: ExpenseProposalStatementGenerateDocumentInputDTO,
-    options: Cooperative.Document.IGenerationOptions
+    options: IGenerationOptions
   ): Promise<InnerGeneratedDocument> {
     const registry_id = Registry.ExpenseProposalStatement.registry_id
 
@@ -119,7 +118,7 @@ export class ExpensesMutationsService {
 
   async generateExpenseProposalDecisionDocument(
     data: ExpenseProposalDecisionGenerateDocumentInputDTO,
-    options: Cooperative.Document.IGenerationOptions
+    options: IGenerationOptions
   ): Promise<InnerGeneratedDocument> {
     data.registry_id = Registry.ExpenseProposalDecision.registry_id
     return this.generator.generate({ data: data as unknown as Registry.ExpenseProposalDecision.Action, options: options || {} })

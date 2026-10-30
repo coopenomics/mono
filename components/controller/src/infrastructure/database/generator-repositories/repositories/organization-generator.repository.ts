@@ -1,6 +1,6 @@
 // infrastructure/repositories/organization.repository.ts
 import { Injectable, Inject } from '@nestjs/common';
-import type { Cooperative } from 'cooptypes';
+import type { IOrganizationData } from '@coopenomics/docs-templates';
 import httpStatus from 'http-status';
 import { OrganizationDomainEntity } from '~/domain/branch/entities/organization-domain.entity';
 import type { OrganizationDomainInterface } from '~/domain/common/interfaces/organization-domain.interface';
@@ -16,7 +16,7 @@ export class OrganizationRepositoryImplementation implements OrganizationReposit
     // Используем генератор для извлечения данных из базы
     const organization = (await this.generatorPort.get('organization', {
       username: coopname,
-    })) as Cooperative.Users.IOrganizationData;
+    })) as IOrganizationData;
     if (!organization) throw DomainError.badRequest('DATABASE_ORGANIZATION_NOT_FOUND', { coopname });
 
     return new OrganizationDomainEntity(organization);

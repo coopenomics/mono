@@ -1,10 +1,10 @@
 // Типы полей — явными thunk'ами: esbuild не эмитит `design:type` (см. соседний
 // generated-document.dto.ts).
 import { InputType, Field } from '@nestjs/graphql';
-import type { Cooperative } from 'cooptypes';
+import type { IGenerationOptions } from '@coopenomics/docs-templates';
 
 @InputType('GenerateDocumentOptionsInput')
-export class GenerateDocumentOptionsInputDTO implements Cooperative.Document.IGenerationOptions {
+export class GenerateDocumentOptionsInputDTO implements IGenerationOptions {
   @Field(() => Boolean, { nullable: true, description: 'Пропустить сохранение' })
   skip_save?: boolean;
 

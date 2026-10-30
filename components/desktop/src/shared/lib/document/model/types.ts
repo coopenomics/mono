@@ -1,8 +1,9 @@
-import { Cooperative } from 'cooptypes';
+import type { ZGeneratedDocument } from '@coopenomics/docs-templates';
 
-export type IGeneratedDocument = Cooperative.Document.ZGeneratedDocument;
-export type IGenerate = Cooperative.Document.IGenerate;
-export type IGenerateJoinCoop = Cooperative.Document.IGenerateJoinCoop;
-export type IGenerateJoinCoopDecision =
-  Cooperative.Document.IGenerateJoinCoopDecision;
-export type IGenerateWalletAgreement = Cooperative.Document.IGenerateWalletAgreement;
+export type IGeneratedDocument = ZGeneratedDocument;
+export type {
+  IGenerate,
+  IGenerateJoinCoop,
+  IGenerateJoinCoopDecision,
+  IGenerateWalletAgreement,
+} from '@coopenomics/docs-templates';

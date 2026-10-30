@@ -6,6 +6,7 @@ import type { GenerateDocumentDomainInterfaceWithOptions } from '~/domain/docume
 import { GeneratorPort } from '~/domain/document/ports/generator.port';
 import { DocumentNotApprovedError, Generator, UnknownDocumentFactoryError, documentMetaKey, type IGenerateBlank, type IGeneratedBlank, type ISearchResult } from '@coopenomics/docs-factory';
 import type { Cooperative } from 'cooptypes';
+import type { ICooperativeData, IGenerate, IGeneratedDocument, IGenerationOptions } from '@coopenomics/docs-templates';
 import { DomainError } from '@coopenomics/extension-kit';
 import { ControllerChainDataSource } from './controller-chain-data.source';
 import { ChainChangesService } from '~/infrastructure/blockchain/chain-changes.service';
@@ -61,9 +62,9 @@ export class GeneratorInfrastructureService implements GeneratorPort, OnModuleIn
   }
 
   async generate(
-    data: Cooperative.Document.IGenerate,
-    options?: Cooperative.Document.IGenerationOptions
-  ): Promise<Cooperative.Document.IGeneratedDocument> {
+    data: IGenerate,
+    options?: IGenerationOptions
+  ): Promise<IGeneratedDocument> {
     return await this.generator.generate(data, options);
   }
 
@@ -82,7 +83,7 @@ export class GeneratorInfrastructureService implements GeneratorPort, OnModuleIn
     hash: string;
     block_num?: number;
     meta?: unknown;
-  }): Promise<Cooperative.Document.IGeneratedDocument | null> {
+  }): Promise<IGeneratedDocument | null> {
     // Точная версия по meta подписанного документа: у двух генераций в одном
     // блоке совпадают и тело, и block_num (C28-80).
     if (query.meta !== undefined && query.meta !== null) {
@@ -123,7 +124,7 @@ export class GeneratorInfrastructureService implements GeneratorPort, OnModuleIn
    * хэшу. Порядок по `_id`, устойчив между порциями.
    */
   async listStoredDocuments(query: { registry_id?: number; offset: number; limit: number }): Promise<
-    Array<Pick<Cooperative.Document.IGeneratedDocument, 'hash' | 'meta' | 'html'>>
+    Array<Pick<IGeneratedDocument, 'hash' | 'meta' | 'html'>>
   > {
     return this.generator.listDocuments({ registry_id: query.registry_id ?? undefined, offset: query.offset, limit: query.limit });
   }
@@ -133,7 +134,7 @@ export class GeneratorInfrastructureService implements GeneratorPort, OnModuleIn
     return this.generator.countDocuments(registry_id ?? undefined);
   }
 
-  async constructCooperative(username: string, block_num?: number): Promise<Cooperative.Model.ICooperativeData | null> {
+  async constructCooperative(username: string, block_num?: number): Promise<ICooperativeData | null> {
     return await this.generator.constructCooperative(username, block_num);
   }
 

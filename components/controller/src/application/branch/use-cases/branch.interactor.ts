@@ -21,8 +21,7 @@ import { randomUUID } from 'crypto';
 import { BankPaymentMethodDTO } from '~/application/payment-method/dto/bank-payment-method.dto';
 import type { SelectBranchInputDomainInterface } from '~/domain/branch/interfaces/select-branch-domain-input.interface';
 import config from '~/config/config';
-import { Cooperative } from 'cooptypes';
-import { Registry } from '@coopenomics/docs-templates';
+import { type IGenerationOptions, Registry } from '@coopenomics/docs-templates';
 import { DOCUMENT_REPOSITORY, DocumentRepository } from '~/domain/document/repository/document.repository';
 import { DocumentInteractor } from '~/application/document/interactors/document.interactor';
 import { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
@@ -395,7 +394,7 @@ export class BranchInteractor {
 
   async generateSelectBranchDocument(
     data: Registry.SelectBranchStatement.Action,
-    options: Cooperative.Document.IGenerationOptions
+    options: IGenerationOptions
   ): Promise<DocumentDomainEntity> {
     data.registry_id = Registry.SelectBranchStatement.registry_id;
     return await this.documentInteractor.generateDocument({ data, options });

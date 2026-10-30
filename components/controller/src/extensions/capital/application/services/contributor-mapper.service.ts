@@ -2,7 +2,7 @@ import { Injectable, Inject } from '@nestjs/common';
 import type { ContributorDomainEntity } from '../../domain/entities/contributor.entity';
 import { ContributorOutputDTO } from '../dto/participation_management/contributor.dto';
 import { ContributorDocumentParametersDTO } from '../dto/participation_management/contributor-document-parameters.dto';
-import { Cooperative } from 'cooptypes';
+import { UdataKey } from '@coopenomics/docs-templates';
 import { CapitalProgramWalletDTO } from '../dto/participation_management/capital-program-wallet.dto';
 import { DOCUMENT_PORT, getProgramId, type IDocumentPort, type IProgramWalletPort, type IUserDataPort, PROGRAM_WALLET_PORT, ProgramType, USER_DATA_PORT } from '@coopenomics/innercoop';
 
@@ -62,14 +62,14 @@ export class ContributorMapperService {
       blagorost_storage_agreement_number,
       blagorost_storage_agreement_created_at,
     ] = await Promise.all([
-      this.udataRepository.get(coopname, username, Cooperative.Model.UdataKey.BLAGOROST_CONTRIBUTOR_CONTRACT_NUMBER),
-      this.udataRepository.get(coopname, username, Cooperative.Model.UdataKey.BLAGOROST_CONTRIBUTOR_CONTRACT_CREATED_AT),
-      this.udataRepository.get(coopname, username, Cooperative.Model.UdataKey.GENERATOR_AGREEMENT_NUMBER),
-      this.udataRepository.get(coopname, username, Cooperative.Model.UdataKey.GENERATOR_AGREEMENT_CREATED_AT),
-      this.udataRepository.get(coopname, username, Cooperative.Model.UdataKey.BLAGOROST_AGREEMENT_NUMBER),
-      this.udataRepository.get(coopname, username, Cooperative.Model.UdataKey.BLAGOROST_AGREEMENT_CREATED_AT),
-      this.udataRepository.get(coopname, username, Cooperative.Model.UdataKey.BLAGOROST_STORAGE_AGREEMENT_NUMBER),
-      this.udataRepository.get(coopname, username, Cooperative.Model.UdataKey.BLAGOROST_STORAGE_AGREEMENT_CREATED_AT),
+      this.udataRepository.get(coopname, username, UdataKey.BLAGOROST_CONTRIBUTOR_CONTRACT_NUMBER),
+      this.udataRepository.get(coopname, username, UdataKey.BLAGOROST_CONTRIBUTOR_CONTRACT_CREATED_AT),
+      this.udataRepository.get(coopname, username, UdataKey.GENERATOR_AGREEMENT_NUMBER),
+      this.udataRepository.get(coopname, username, UdataKey.GENERATOR_AGREEMENT_CREATED_AT),
+      this.udataRepository.get(coopname, username, UdataKey.BLAGOROST_AGREEMENT_NUMBER),
+      this.udataRepository.get(coopname, username, UdataKey.BLAGOROST_AGREEMENT_CREATED_AT),
+      this.udataRepository.get(coopname, username, UdataKey.BLAGOROST_STORAGE_AGREEMENT_NUMBER),
+      this.udataRepository.get(coopname, username, UdataKey.BLAGOROST_STORAGE_AGREEMENT_CREATED_AT),
     ]);
 
     return {

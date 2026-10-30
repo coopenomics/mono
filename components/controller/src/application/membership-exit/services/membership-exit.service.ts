@@ -1,6 +1,6 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { Cooperative, Ledger2 } from 'cooptypes';
-import { Registry } from '@coopenomics/docs-templates';
+import { Ledger2 } from 'cooptypes';
+import { type IGenerationOptions, Registry } from '@coopenomics/docs-templates';
 import { Workflows } from '@coopenomics/notifications';
 import { config } from '~/config';
 import { ParticipantInteractor } from '~/application/participant/interactors/participant.interactor';
@@ -61,7 +61,7 @@ export class MembershipExitService {
 
   async generateMembershipExitApplication(
     data: Registry.ParticipantExitApplication.Action,
-    options: Cooperative.Document.IGenerationOptions
+    options: IGenerationOptions
   ): Promise<GeneratedDocumentDTO> {
     const document = await this.participantInteractor.generateMembershipExitApplication(data, options);
     return document as unknown as GeneratedDocumentDTO;
@@ -69,7 +69,7 @@ export class MembershipExitService {
 
   async generateMembershipExitDecision(
     data: Registry.DecisionOfParticipantExit.Action,
-    options: Cooperative.Document.IGenerationOptions
+    options: IGenerationOptions
   ): Promise<GeneratedDocumentDTO> {
     const document = await this.participantInteractor.generateMembershipExitDecision(data, options);
     return document as unknown as GeneratedDocumentDTO;
@@ -77,7 +77,7 @@ export class MembershipExitService {
 
   async generateProgramAgreementsAnnulment(
     data: Registry.ProgramAgreementsAnnulmentStatement.Action,
-    options: Cooperative.Document.IGenerationOptions
+    options: IGenerationOptions
   ): Promise<GeneratedDocumentDTO> {
     const document = await this.participantInteractor.generateProgramAgreementsAnnulment(data, options);
     return document as unknown as GeneratedDocumentDTO;

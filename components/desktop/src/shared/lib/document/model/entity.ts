@@ -4,11 +4,12 @@ import { useGlobalStore } from 'src/shared/store';
 import { FailAlert } from 'src/shared/api';
 import type { IDocument, IMetaDocument } from 'src/shared/lib/types/document';
 import type { Cooperative } from 'cooptypes';
+import type { IGenerationOptions, ZGeneratedDocument } from '@coopenomics/docs-templates';
 import { Classes } from '@coopenomics/sdk';
 import type { ISignedDocument2 } from 'src/entities/Document/model';
 import { t } from 'src/shared/i18n';
 
-export type ZGeneratedDocument = Cooperative.Document.ZGeneratedDocument;
+export type { ZGeneratedDocument };
 
 /**
  * Единственная точка подписи документов на десктопе.
@@ -66,7 +67,7 @@ export class DigitalDocument {
 
   async generate<T extends IGenerate>(
     data: T,
-    options?: Cooperative.Document.IGenerationOptions,
+    options?: IGenerationOptions,
   ): Promise<IGeneratedDocument> {
     this.data = await api.generateDocument(data, options);
     return this.data;

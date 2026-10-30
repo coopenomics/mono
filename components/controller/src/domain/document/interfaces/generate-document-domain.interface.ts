@@ -1,3 +1,3 @@
-import type { Cooperative } from 'cooptypes';
+import type { IGenerate } from '@coopenomics/docs-templates';
 
-export type GenerateDocumentDomainInterface = Cooperative.Document.IGenerate;
+export type GenerateDocumentDomainInterface = IGenerate;

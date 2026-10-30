@@ -19,7 +19,7 @@ import { UserDomainService, USER_DOMAIN_SERVICE } from '~/domain/user/services/u
 import httpStatus from 'http-status';
 import { USER_REPOSITORY, UserRepository } from '~/domain/user/repositories/user.repository';
 import { randomUUID } from 'crypto';
-import type { Cooperative } from 'cooptypes';
+import type { IPaymentData } from '@coopenomics/docs-templates';
 import { userStatus } from '~/types';
 import type { PrivateAccountDomainInterface } from '../interfaces/private-account-domain.interface';
 import { AccountType } from '~/application/account/enum/account-type.enum';
@@ -82,7 +82,7 @@ export class AccountDomainService {
     if (userBody.type === 'organization' && userBody.organization_data) {
       const { bank_account, ...userData } = userBody.organization_data || {};
 
-      const paymentMethod: Cooperative.Payments.IPaymentData = {
+      const paymentMethod: IPaymentData = {
         username: userBody.username,
         method_id: randomUUID(),
         method_type: 'bank_transfer',
@@ -97,7 +97,7 @@ export class AccountDomainService {
     if (userBody.type === 'entrepreneur' && userBody.entrepreneur_data) {
       const { bank_account, ...userData } = userBody.entrepreneur_data || {};
 
-      const paymentMethod: Cooperative.Payments.IPaymentData = {
+      const paymentMethod: IPaymentData = {
         username: userBody.username,
         method_id: randomUUID(),
         method_type: 'bank_transfer',

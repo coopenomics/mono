@@ -1,6 +1,6 @@
 // infrastructure/repositories/organization.repository.ts
 import { Injectable, Inject } from '@nestjs/common';
-import type { Cooperative } from 'cooptypes';
+import type { IIndividualData } from '@coopenomics/docs-templates';
 import httpStatus from 'http-status';
 import { IndividualDomainEntity } from '~/domain/branch/entities/individual-domain.entity';
 import type { IndividualDomainInterface } from '~/domain/common/interfaces/individual-domain.interface';
@@ -14,7 +14,7 @@ export class IndividualRepositoryImplementation implements IndividualRepository 
 
   async findByUsername(username: string): Promise<IndividualDomainEntity> {
     // Используем генератор для извлечения данных из базы
-    const individual = (await this.generatorPort.get('individual', { username })) as Cooperative.Users.IIndividualData;
+    const individual = (await this.generatorPort.get('individual', { username })) as IIndividualData;
     if (!individual) throw DomainError.badRequest('DATABASE_INDIVIDUAL_NOT_FOUND', { username });
     else return new IndividualDomainEntity(individual);
   }

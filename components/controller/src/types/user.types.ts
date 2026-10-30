@@ -1,4 +1,4 @@
-import type { Cooperative } from 'cooptypes';
+import type { IEntrepreneurData, IIndividualData, IOrganizationData } from '@coopenomics/docs-templates';
 
 export enum userStatus {
   '1_Created' = 'created',
@@ -29,16 +29,16 @@ export interface IUser {
   subscriber_hash: string;
   // Временное поле для хранения private_data
   _privateData?:
-    | Cooperative.Users.IIndividualData
-    | Cooperative.Users.IEntrepreneurData
-    | Cooperative.Users.IOrganizationData
+    | IIndividualData
+    | IEntrepreneurData
+    | IOrganizationData
     | null;
   private_data:
-    | Cooperative.Users.IIndividualData
-    | Cooperative.Users.IEntrepreneurData
-    | Cooperative.Users.IOrganizationData
+    | IIndividualData
+    | IEntrepreneurData
+    | IOrganizationData
     | null;
   getPrivateData(): Promise<
-    Cooperative.Users.IIndividualData | Cooperative.Users.IEntrepreneurData | Cooperative.Users.IOrganizationData | null
+    IIndividualData | IEntrepreneurData | IOrganizationData | null
   >;
 }

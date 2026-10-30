@@ -1,9 +1,9 @@
 import { IsString, IsNumber, IsArray, IsInt, IsOptional } from 'class-validator';
 import { Field, Int, ObjectType } from '@nestjs/graphql';
-import type { Cooperative } from 'cooptypes';
+import type { IMetaDocument } from '@coopenomics/docs-templates';
 
 @ObjectType('MetaDocument')
-export class MetaDocumentDTO implements Cooperative.Document.IMetaDocument {
+export class MetaDocumentDTO implements IMetaDocument {
   @Field({ description: 'Название документа' })
   @IsString()
   title!: string;

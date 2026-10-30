@@ -1,5 +1,5 @@
 import { Injectable, Inject, Logger } from '@nestjs/common';
-import { Cooperative } from 'cooptypes';
+import { UdataKey } from '@coopenomics/docs-templates';
 import moment from 'moment';
 import 'moment/locale/ru';
 import { randomBytes } from 'crypto';
@@ -50,7 +50,7 @@ export class UdataDocumentParametersService {
     const existingNumber = await this.udataRepository.get(
       coopname,
       username,
-      Cooperative.Model.UdataKey.BLAGOROST_AGREEMENT_NUMBER
+      UdataKey.BLAGOROST_AGREEMENT_NUMBER
     );
 
     if (existingNumber?.value) {
@@ -67,13 +67,13 @@ export class UdataDocumentParametersService {
       this.udataRepository.save({
         coopname,
         username,
-        key: Cooperative.Model.UdataKey.BLAGOROST_AGREEMENT_NUMBER,
+        key: UdataKey.BLAGOROST_AGREEMENT_NUMBER,
         value: number,
       }),
       this.udataRepository.save({
         coopname,
         username,
-        key: Cooperative.Model.UdataKey.BLAGOROST_AGREEMENT_CREATED_AT,
+        key: UdataKey.BLAGOROST_AGREEMENT_CREATED_AT,
         value: date,
       }),
     ]);
@@ -89,7 +89,7 @@ export class UdataDocumentParametersService {
     const existingNumber = await this.udataRepository.get(
       coopname,
       username,
-      Cooperative.Model.UdataKey.GENERATOR_AGREEMENT_NUMBER
+      UdataKey.GENERATOR_AGREEMENT_NUMBER
     );
 
     if (existingNumber?.value) {
@@ -106,13 +106,13 @@ export class UdataDocumentParametersService {
       this.udataRepository.save({
         coopname,
         username,
-        key: Cooperative.Model.UdataKey.GENERATOR_AGREEMENT_NUMBER,
+        key: UdataKey.GENERATOR_AGREEMENT_NUMBER,
         value: number,
       }),
       this.udataRepository.save({
         coopname,
         username,
-        key: Cooperative.Model.UdataKey.GENERATOR_AGREEMENT_CREATED_AT,
+        key: UdataKey.GENERATOR_AGREEMENT_CREATED_AT,
         value: date,
       }),
     ]);
@@ -128,7 +128,7 @@ export class UdataDocumentParametersService {
     const existingNumber = await this.udataRepository.get(
       coopname,
       username,
-      Cooperative.Model.UdataKey.BLAGOROST_CONTRIBUTOR_CONTRACT_NUMBER
+      UdataKey.BLAGOROST_CONTRIBUTOR_CONTRACT_NUMBER
     );
 
     if (existingNumber?.value) {
@@ -145,13 +145,13 @@ export class UdataDocumentParametersService {
       this.udataRepository.save({
         coopname,
         username,
-        key: Cooperative.Model.UdataKey.BLAGOROST_CONTRIBUTOR_CONTRACT_NUMBER,
+        key: UdataKey.BLAGOROST_CONTRIBUTOR_CONTRACT_NUMBER,
         value: number,
       }),
       this.udataRepository.save({
         coopname,
         username,
-        key: Cooperative.Model.UdataKey.BLAGOROST_CONTRIBUTOR_CONTRACT_CREATED_AT,
+        key: UdataKey.BLAGOROST_CONTRIBUTOR_CONTRACT_CREATED_AT,
         value: date,
       }),
     ]);
@@ -167,7 +167,7 @@ export class UdataDocumentParametersService {
     const existingNumber = await this.udataRepository.get(
       coopname,
       username,
-      Cooperative.Model.UdataKey.BLAGOROST_STORAGE_AGREEMENT_NUMBER
+      UdataKey.BLAGOROST_STORAGE_AGREEMENT_NUMBER
     );
 
     if (existingNumber?.value) {
@@ -184,13 +184,13 @@ export class UdataDocumentParametersService {
       this.udataRepository.save({
         coopname,
         username,
-        key: Cooperative.Model.UdataKey.BLAGOROST_STORAGE_AGREEMENT_NUMBER,
+        key: UdataKey.BLAGOROST_STORAGE_AGREEMENT_NUMBER,
         value: number,
       }),
       this.udataRepository.save({
         coopname,
         username,
-        key: Cooperative.Model.UdataKey.BLAGOROST_STORAGE_AGREEMENT_CREATED_AT,
+        key: UdataKey.BLAGOROST_STORAGE_AGREEMENT_CREATED_AT,
         value: date,
       }),
     ]);
@@ -210,7 +210,7 @@ export class UdataDocumentParametersService {
     const existingNumber = await this.udataRepository.get(
       coopname,
       username,
-      Cooperative.Model.UdataKey.BLAGOROST_AGREEMENT_NUMBER
+      UdataKey.BLAGOROST_AGREEMENT_NUMBER
     );
 
     if (existingNumber?.value) {
@@ -231,7 +231,7 @@ export class UdataDocumentParametersService {
     const existingNumber = await this.udataRepository.get(
       coopname,
       username,
-      Cooperative.Model.UdataKey.BLAGOROST_CONTRIBUTOR_CONTRACT_NUMBER
+      UdataKey.BLAGOROST_CONTRIBUTOR_CONTRACT_NUMBER
     );
 
     if (existingNumber?.value) {
@@ -249,7 +249,7 @@ export class UdataDocumentParametersService {
     const existingNumber = await this.udataRepository.get(
       coopname,
       username,
-      Cooperative.Model.UdataKey.BLAGOROST_STORAGE_AGREEMENT_NUMBER
+      UdataKey.BLAGOROST_STORAGE_AGREEMENT_NUMBER
     );
 
     if (existingNumber?.value) {
@@ -267,7 +267,7 @@ export class UdataDocumentParametersService {
     const existingNumber = await this.udataRepository.get(
       coopname,
       username,
-      Cooperative.Model.UdataKey.GENERATOR_AGREEMENT_NUMBER
+      UdataKey.GENERATOR_AGREEMENT_NUMBER
     );
 
     if (existingNumber?.value) {
@@ -295,13 +295,13 @@ export class UdataDocumentParametersService {
       this.udataRepository.save({
         coopname,
         username,
-        key: Cooperative.Model.UdataKey.BLAGOROST_AGREEMENT_NUMBER,
+        key: UdataKey.BLAGOROST_AGREEMENT_NUMBER,
         value: agreementNumber,
       }),
       this.udataRepository.save({
         coopname,
         username,
-        key: Cooperative.Model.UdataKey.BLAGOROST_AGREEMENT_CREATED_AT,
+        key: UdataKey.BLAGOROST_AGREEMENT_CREATED_AT,
         value: agreementDate,
       }),
     ]);
@@ -328,13 +328,13 @@ export class UdataDocumentParametersService {
       this.udataRepository.save({
         coopname,
         username,
-        key: Cooperative.Model.UdataKey.BLAGOROST_CONTRIBUTOR_CONTRACT_NUMBER,
+        key: UdataKey.BLAGOROST_CONTRIBUTOR_CONTRACT_NUMBER,
         value: contractNumber,
       }),
       this.udataRepository.save({
         coopname,
         username,
-        key: Cooperative.Model.UdataKey.BLAGOROST_CONTRIBUTOR_CONTRACT_CREATED_AT,
+        key: UdataKey.BLAGOROST_CONTRIBUTOR_CONTRACT_CREATED_AT,
         value: contractDate,
       }),
     ]);

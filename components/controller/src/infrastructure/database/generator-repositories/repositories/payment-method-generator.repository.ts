@@ -2,6 +2,7 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { GENERATOR_PORT, GeneratorPort } from '~/domain/document/ports/generator.port';
 import type { Cooperative } from 'cooptypes';
+import type { IPaymentData } from '@coopenomics/docs-templates';
 import type { PaymentMethodRepository } from '~/domain/common/repositories/payment-method.repository';
 import { PaymentMethodDomainEntity } from '~/domain/payment-method/entities/method-domain.entity';
 import type { ListPaymentMethodsDomainInterface } from '~/domain/payment-method/interfaces/list-payment-methods-input.interface';
@@ -21,7 +22,7 @@ export class PaymentMethodRepositoryImplementation implements PaymentMethodRepos
   }
 
   async get(data: GetPaymentMethodDomainInterface): Promise<PaymentMethodDomainEntity> {
-    const result = (await this.generatorPort.get('paymentMethod', data)) as Cooperative.Payments.IPaymentData;
+    const result = (await this.generatorPort.get('paymentMethod', data)) as IPaymentData;
     return new PaymentMethodDomainEntity(result);
   }
 
@@ -32,7 +33,7 @@ export class PaymentMethodRepositoryImplementation implements PaymentMethodRepos
     const result = (await this.generatorPort.list(
       'paymentMethod',
       filter
-    )) as Cooperative.Document.IGetResponse<Cooperative.Payments.IPaymentData>;
+    )) as Cooperative.Document.IGetResponse<IPaymentData>;
 
     const result2: PaginationResultDomainInterface<PaymentMethodDomainEntity> = {
       items: result.results.map((method) => new PaymentMethodDomainEntity(method)),

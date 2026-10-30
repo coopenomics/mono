@@ -32,7 +32,7 @@ tags:
 
 ### Запись контактов (как в UI председателя)
 
-Отдельной GraphQL-мутации «только контакты кооператива» нет. Действие `updateaccnt` контракта `registrator` с `meta` в виде JSON (`RegistratorContract.Actions.UpdateAccount`, поля `phone` и `email` в `Cooperative.Users.IAccountMeta`; см. `src/features/User/UpdateMeta` на десктопе).
+Отдельной GraphQL-мутации «только контакты кооператива» нет. Действие `updateaccnt` контракта `registrator` с `meta` в виде JSON (`RegistratorContract.Actions.UpdateAccount`, поля `phone` и `email` в `IAccountMeta` из `@coopenomics/docs-templates`; см. `src/features/User/UpdateMeta` на десктопе).
 
 {{ dev_blockchain_note() }}
 

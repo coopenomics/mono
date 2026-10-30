@@ -33,6 +33,11 @@ title: Служебная записка на расход — подача, р�
 # @coopenomics/docs-templates (`Registry`) вместо `Cooperative.Registry` из
 # cooptypes. Поведение не менялось: тот же реестр шаблонов, другой пакет.
 
+# Правка 30.10.2026 (5A8-11): модель документа, данные кооператива, субъекты
+# и реквизиты (`IMetaDocument`, `IGenerate`, `UdataKey`, `IIndividualData`, …)
+# импортируются из @coopenomics/docs-templates вместо cooptypes. Поведение
+# не менялось: те же типы и значения, другой пакет.
+
 sources:
   backend:
     - components/controller/src/extensions/expenses/application/resolvers/expense-mutations.resolver.ts

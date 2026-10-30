@@ -28,12 +28,8 @@ src/
 │   ├── msig/            — MsigContract: мульти-подписи
 │   └── wrap/            — WrapContract: привилегированные действия
 ├── cooperative/
-│   ├── users/           — IIndividualData, IOrganizationData, IEntrepreneurData
-│   │   └── <id>.<Name>/ — Каждая директория = один шаблон
-│   │       ├── index.ts — Метаданные (title, description, context, model, translations)
-│   │       └── template.md — Markdown-шаблон (не у всех)
-│   ├── payments/        — Типы платёжных методов
-│   └── Model.ts         — IVars, основная модель кооператива
+│   ├── document/        — документ в цепи: подписи, хэши, канонизация меты
+│   └── blockchain/      — действия и таблицы из журнала цепи
 ├── interfaces/          — Общие интерфейсы системы
 │   ├── index.ts         — Экспорт всех интерфейсов
 │   ├── branch.ts, capital.ts, draft.ts, fund.ts
@@ -70,10 +66,13 @@ SovietContract.Actions.Decisions.VoteFor.IVoteForDecision // интерфейс 
 ### Шаблоны документов — в `@coopenomics/docs-templates`
 
 Реестр шаблонов (`registry_id`, текст, схема `model`, переводы, типы `Action` и
-`Model`) и реестр решений совета для робота перенесены 30.10.2026 в пакет
+`Model`), реестр решений совета для робота, модель документа (мета, вход
+сборщика, собранный документ, виды утверждения), данные кооператива (`IVars`,
+`UdataKey`), субъекты и реквизиты перенесены 30.10.2026 в пакет
 `@coopenomics/docs-templates` (репозиторий C9S/docs-factory, шаг 6б фабрики v2).
-В `cooptypes` остаются модель документа (`Cooperative.Document`,
-`Cooperative.Model`) и типы цепи.
+В `cooptypes` остаются типы цепи, в том числе документ в цепи
+(`Cooperative.Document`: `IChainDocument2`, `ISignedDocument2`, `SigFile`) —
+мету документа он берёт из пакета шаблонов.
 
 ### IDocument
 

@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url'
 import axios from 'axios'
 import ecc from 'eosjs-ecc'
 import { connectGenerator } from './factory-storage'
-import type { Cooperative } from 'cooptypes'
+import type { IIndividualData, IOrganizationData, IVars } from '@coopenomics/docs-templates'
 import type { Account, Contract } from '../types'
 import config from '../configs'
 import Blockchain from '../blockchain'
@@ -193,7 +193,7 @@ export async function startInfra() {
 }
 
 export async function installInitialData(blockchain: Blockchain, isExtended = false) {
-  const organizationData: Cooperative.Users.IOrganizationData = {
+  const organizationData: IOrganizationData = {
     username: 'voskhod',
     type: 'coop',
     short_name: 'ПК "Восход"',
@@ -242,7 +242,7 @@ export async function installInitialData(blockchain: Blockchain, isExtended = fa
     },
   })
 
-  const userData: Cooperative.Users.IIndividualData = {
+  const userData: IIndividualData = {
     username: 'ant',
     first_name: 'Иван',
     last_name: 'Иванов',
@@ -263,7 +263,7 @@ export async function installInitialData(blockchain: Blockchain, isExtended = fa
   await generator.save('individual', userData)
 
   // добавляем переменные кооператива
-  const vars: Cooperative.Model.IVars = {
+  const vars: IVars = {
     coopname: 'voskhod',
     full_abbr: 'Потребительский Кооператив',
     full_abbr_genitive: 'Потребительского Кооператива',
@@ -399,7 +399,7 @@ export async function installInitialData(blockchain: Blockchain, isExtended = fa
 
     for (const user of extraUsers) {
       // Данные пайщика — в хранилище фабрики
-      const userData: Cooperative.Users.IIndividualData = {
+      const userData: IIndividualData = {
         username: user.username,
         first_name: user.first_name,
         last_name: user.last_name,

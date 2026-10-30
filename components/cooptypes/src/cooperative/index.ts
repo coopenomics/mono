@@ -1,5 +1,2 @@
 export * as Document from './document'
-export * as Users from './users'
 export * as Blockchain from './blockchain'
-export * as Model from './model'
-export * as Payments from './payments'

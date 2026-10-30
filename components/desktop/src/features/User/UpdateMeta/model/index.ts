@@ -1,12 +1,13 @@
 import { TransactResult } from '@wharfkit/session';
-import { Cooperative, RegistratorContract } from 'cooptypes';
+import { RegistratorContract } from 'cooptypes';
+import type { IAccountMeta } from '@coopenomics/docs-templates';
 import { useSessionStore } from 'src/entities/Session';
 import { useGlobalStore } from 'src/shared/store';
 
 export function useUpdateMeta() {
   async function updateMeta(
     account_to_change: string,
-    meta: Cooperative.Users.IAccountMeta
+    meta: IAccountMeta
   ): Promise<TransactResult | undefined> {
     const session = useSessionStore();
 

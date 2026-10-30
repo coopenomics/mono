@@ -1,6 +1,6 @@
 import { Injectable, Inject, Logger } from '@nestjs/common';
-import { Cooperative, Ledger2 } from 'cooptypes';
-import { Registry } from '@coopenomics/docs-templates';
+import { Ledger2 } from 'cooptypes';
+import { type IGenerationOptions, Registry } from '@coopenomics/docs-templates';
 import { GeneratorInfrastructureService } from '~/infrastructure/generator/generator.service';
 import { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
 import { WalletBlockchainPort, WALLET_BLOCKCHAIN_PORT } from '~/domain/wallet/ports/wallet-blockchain.port';
@@ -88,7 +88,7 @@ export class WalletInteractor {
    */
   async generateReturnByMoneyStatementDocument(
     data: Registry.ReturnByMoney.Action,
-    options: Cooperative.Document.IGenerationOptions
+    options: IGenerationOptions
   ): Promise<DocumentDomainEntity> {
     // Устанавливаем registry_id для документа заявления
     data.registry_id = Registry.ReturnByMoney.registry_id;
@@ -100,7 +100,7 @@ export class WalletInteractor {
    */
   async generateReturnByMoneyDecisionDocument(
     data: Registry.ReturnByMoneyDecision.Action,
-    options: Cooperative.Document.IGenerationOptions
+    options: IGenerationOptions
   ): Promise<DocumentDomainEntity> {
     // Устанавливаем registry_id для документа решения
     data.registry_id = Registry.ReturnByMoneyDecision.registry_id;

@@ -3,7 +3,7 @@ import { Injectable, Inject } from '@nestjs/common';
 import type { VarsRepository } from '~/domain/common/repositories/vars.repository';
 import type { VarsDomainInterface } from '~/domain/system/interfaces/vars-domain.interface';
 import { GENERATOR_PORT, GeneratorPort } from '~/domain/document/ports/generator.port';
-import { Cooperative } from 'cooptypes';
+import type { IVars } from '@coopenomics/docs-templates';
 
 @Injectable()
 export class VarsRepositoryImplementation implements VarsRepository {
@@ -19,6 +19,6 @@ export class VarsRepositoryImplementation implements VarsRepository {
     // Служебные поля записи хранилища фабрики — не данные кооператива; новая версия без них
     const { _id, block_num: _block_num, deleted: _deleted, ...cleanData } = data as any;
     //TODO исключить приведение типов здесь после нормальной типизации генератора
-    await this.generatorPort.save('vars', cleanData as Cooperative.Model.IVars);
+    await this.generatorPort.save('vars', cleanData as IVars);
   }
 }

@@ -523,12 +523,18 @@ curl -s "http://127.0.0.1:<DESKTOP_PORT>/config.js?t=$(date +%s)" | grep -i <К�
 `boot`, мигратор). Каталога `components/factory` в монорепе нет.
 
 **Шаблоны документов — пакет `@coopenomics/docs-templates` (с 30.10.2026).**
-Второй пакет того же репозитория, выходит одной версией с фабрикой. Реестр
-шаблонов (`Registry.<Имя>`: номер, текст, схема, переводы, типы `Action` и
-`Model`) и реестр решений совета для робота (`decisionTypesRegistry`)
-импортируются из него: `import { Registry } from '@coopenomics/docs-templates'`.
-`Cooperative.Registry` в `cooptypes` больше нет; модель документа
-(`Cooperative.Document`, `Cooperative.Model`) пока остаётся в `cooptypes`.
+Второй пакет того же репозитория, выходит одной версией с фабрикой, от
+`cooptypes` не зависит. В нём реестр шаблонов (`Registry.<Имя>`: номер, текст,
+схема, переводы, типы `Action` и `Model`), реестр решений совета для робота
+(`decisionTypesRegistry`), модель документа (`IMetaDocument`, `IGenerate`,
+`IGenerationOptions`, `IGeneratedDocument`, виды утверждения), данные
+кооператива (`IVars`, `ICooperativeData`, `UdataKey`), субъекты
+(`IIndividualData`, `IOrganizationData`, `IEntrepreneurData`) и реквизиты
+(`IBankAccount`, `IPaymentData`). Импорт из корня пакета:
+`import { Registry, UdataKey, type IMetaDocument } from '@coopenomics/docs-templates'`.
+В `cooptypes` остались типы цепи, в том числе документ в цепи
+(`Cooperative.Document`: `IChainDocument2`, `ISignedDocument2`, `SigFile`,
+канонизация подписи) — мету документа он берёт из пакета шаблонов.
 
 - **Версию поднимает робот.** Тег `vX.Y.Z` в C9S/docs-factory → эталоны → npm →
   PR в `dev` с новой версией обоих пакетов во всех `package.json` и lock-файле.

@@ -1,6 +1,6 @@
-import type { Cooperative } from 'cooptypes';
+import type { IGenerate, IGenerationOptions } from '@coopenomics/docs-templates';
 
 export interface GenerateDocumentDomainInterfaceWithOptions {
-  data: Cooperative.Document.IGenerate;
-  options?: Cooperative.Document.IGenerationOptions;
+  data: IGenerate;
+  options?: IGenerationOptions;
 }

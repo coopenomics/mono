@@ -1,4 +1,5 @@
-import { Cooperative, SovietContract } from 'cooptypes';
+import { SovietContract } from 'cooptypes';
+import type { IMetaDocument } from '@coopenomics/docs-templates';
 import { useSystemStore } from 'src/entities/System/model';
 import { useSessionStore } from 'src/entities/Session';
 import { api as authorizeDecisionApi } from 'src/features/Decision/AuthorizeAndExecDecision/api';
@@ -51,7 +52,7 @@ export function useDecisionProcessor() {
   function getDocumentTitle(row: IAgenda) {
     // Используем только агрегаты документов
     const rawStatement = row.documents?.statement?.documentAggregate?.rawDocument;
-    const statementMeta = rawStatement?.meta as Cooperative.Document.IMetaDocument | undefined;
+    const statementMeta = rawStatement?.meta as IMetaDocument | undefined;
 
     if (rawStatement?.full_title) {
       return rawStatement.full_title;

@@ -1,5 +1,6 @@
 import type { Mutations, Queries, Zeus } from '@coopenomics/sdk';
 import { SovietContract, GatewayContract, Cooperative } from 'cooptypes';
+import type { IBankAccount, IPaymentData, ISbpDetails } from '@coopenomics/docs-templates';
 
 /**
  * Соглашение пайщика как его отдаёт `getAgreements` (Эпик 2): объединение
@@ -87,12 +88,12 @@ export interface ICreateWithdraw {
   quantity: string;
 }
 
-export type IPaymentMethodData = Cooperative.Payments.IPaymentData;
+export type IPaymentMethodData = IPaymentData;
 export type IGetResponsePaymentMethodData =
   Cooperative.Document.IGetResponse<IPaymentMethodData>;
 
-export type IBankTransferData = Cooperative.Payments.IBankAccount;
-export type ISBPData = Cooperative.Payments.ISbpDetails;
+export type IBankTransferData = IBankAccount;
+export type ISBPData = ISbpDetails;
 
 export interface IGetPaymentMethods {
   username?: string;
