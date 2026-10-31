@@ -99,7 +99,7 @@ namespace operations {
   // Дт 80 / Кт 86) — первого числа месяца после окончания гарантийного срока.
   namespace marketplace {
     inline constexpr eosio::name TRANSLATE_SHARE        = "o.mkt.conv"_n;     ///< Трансляция паевого взноса из ЦПП «Цифровой кошелёк» в ЦПП «Стол заказов» по заявлению 1110 отдельным действием convert до заказа (TRANSFER w.wal.share → w.mkt.share, без Dr/Cr — оба на 80; задача 99D-18). Сумма — недостающая в программе часть тела заказа и обеспечительной части.
-    inline constexpr eosio::name LOCK_ORDER             = "o.mkt.lock"_n;     ///< Паевой резерв под конкретный Order (TRANSFER w.wal.share → w.mkt.order, без Dr/Cr — оба кошелька на 80). Единственный обязательный шаг ledger2 при createorder.
+    inline constexpr eosio::name LOCK_ORDER             = "o.mkt.lock"_n;     ///< ИСТОРИЧЕСКАЯ: паевой резерв под Order прямо с главного паевого (TRANSFER w.wal.share → w.mkt.order, без Dr/Cr). С задачи 99D-18 (решение владельца 31.10.2026) контракт её не проводит: с главного паевого средства приходят только трансляцией по заявлению 1110 (o.mkt.conv), резерв — только со свободного паевого (o.mkt.lockp). Строка реестра оставлена для журнала прежних заказов.
     inline constexpr eosio::name LOCK_FROM_SHARE        = "o.mkt.lockp"_n;    ///< Паевой резерв из свободного паевого «Стола заказов» (TRANSFER w.mkt.share → w.mkt.order, без Dr/Cr — оба на 80). Тело любого заказа и доплата по факту берутся отсюда в первую очередь (сюда возвращаются паевые средства при отменах, недовыдачах и гарантийных возвратах), остаток — LOCK_ORDER с w.wal.share.
     inline constexpr eosio::name UNLOCK_ORDER           = "o.mkt.unlock"_n;   ///< Возврат резерва при отмене Order'а или недовыдаче (TRANSFER w.mkt.order → w.mkt.share, без Dr/Cr — оба на 80). Средства остаются паевыми и остаются в программе: идут на тело следующих заказов (LOCK_FROM_SHARE); в общий паевой не выводятся, RECALL_SHARE — только при выходе из кооператива.
     inline constexpr eosio::name PURCHASE_FROM_SUPPLIER = "o.mkt.purch"_n;    ///< Приёмка имущества кооперативом по АПП приёмки (Dr 10 / Cr 76, ISSUE ∅ → w.mkt.topay по поставщику; имущество — аналитика по 10). Обязательство перед поставщиком на счёте расчётов с разными дебиторами и кредиторами (решение владельца 08.09.2026: 76 вместо 60) и сумма к оплате на кошельке поставщика (задача 99D-16).
@@ -427,9 +427,11 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
     ledger2_accounts::SHARE_FUND, ledger2_accounts::FINANCIAL_INVESTMENTS,
     "Возврат беспроцентного займа пайщика по акту-2" },
 
-  // 12a. p.mkt.supply: Паевой резерв под Order (TRANSFER w.wal.share → w.mkt.order,
-  //      без Dr/Cr — оба кошелька на 80). Единственный обязательный шаг ledger2
-  //      при createorder: паевой взнос остаётся паевым, только меняет кошелёк.
+  // 12a. p.mkt.supply: ИСТОРИЧЕСКАЯ — паевой резерв прямо с главного паевого
+  //      (TRANSFER w.wal.share → w.mkt.order, без Dr/Cr). С задачи 99D-18 не
+  //      проводится: резерв только со свободного паевого (o.mkt.lockp), а на
+  //      него средства приходят трансляцией по заявлению 1110. Строка — для
+  //      журнала прежних заказов.
   { operations::marketplace::LOCK_ORDER, processes::marketplace::SUPPLY, WalletOp::TRANSFER,
     ledger2_wallets::SHARE_FUND_PAY, ledger2_wallets::MARKETPLACE_ORDER_LOCK,
     0, 0,

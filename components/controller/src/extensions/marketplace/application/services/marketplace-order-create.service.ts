@@ -128,9 +128,11 @@ export interface MarketplaceOrderPreparedLine {
  *      +consumed=lifetime сразу для UI каталога (Story 3.5 не должен
  *      показать Offer как «доступный K единиц» в момент гонки).
  *
- *   4. Chain submit `createorder` через canonical adapter. Один шаг
- *      в C++ `ledger2::apply`: o.mkt.lock (TRANSFER w.wal.share → w.mkt.order,
- *      Дт 80 / Кт 86). Любой `eosio::check` фейл = exception → backend ловит,
+ *   4. Chain submit `createorder` через canonical adapter. Контракт берёт
+ *      обеспечительную часть (o.mkt.fee) и тело (o.mkt.lockp) только со
+ *      свободного паевого «Стола заказов»; с Цифрового кошелька средства
+ *      приходят только трансляцией по заявлению 1110 (задача 99D-18), поэтому
+ *      без неё заказ сверх свободного паевого отвергается. Любой `eosio::check` фейл = exception → backend ловит,
  *      выполняет compensating `onOrderRolledBack` и пробрасывает clean
  *      error пайщику.
  *

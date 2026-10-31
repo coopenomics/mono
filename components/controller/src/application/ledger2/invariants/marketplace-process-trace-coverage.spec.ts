@@ -254,7 +254,7 @@ describe('Story 11.2 — синтетическая трассировка apply
   it('full-flow happy supply (createorder → signchair → issueact2) — одна process_hash, все операции under p.mkt.supply', () => {
     const processHash = 'supply-flow-hash'
     const sequence = [
-      'o.mkt.lock',
+      'o.mkt.lockp',
       'o.mkt.purch',
       'o.mkt.payout',
       'o.mkt.consum',

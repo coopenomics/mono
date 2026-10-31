@@ -7,8 +7,7 @@
  *
  * Фондируется как обычный заказ: обеспечительная часть паевого взноса — со
  * свободного паевого «Стола заказов» (o.mkt.fee), тело — с его остатка
- * (o.mkt.lockp), остаток тела с главного паевого Цифрового кошелька
- * (o.mkt.lock). Недостающее пайщик заранее транслировал действием `convert`
+ * (o.mkt.lockp). Недостающее пайщик заранее транслировал действием `convert`
  * по заявлению 1110 (задача 99D-18).
  *
  * @ingroup public_marketplace_actions
@@ -52,8 +51,7 @@ void marketplace::stockorder(eosio::name coopname,
   const eosio::asset membership_fee = Marketplace::calc_membership_fee(
       total_cost, Marketplace::get_membership_fee_percent(coopname));
 
-  // ── Обеспечительная часть — со свободного паевого программы; тело — с его
-  //    остатка и Цифрового кошелька (задача 99D-18) ──
+  // ── Обеспечительная часть и тело — со свободного паевого программы (задача 99D-18) ──
   Marketplace::require_order_funding(coopname, orderer, total_cost, membership_fee);
 
   // ── Создание Order entity сразу в acceptcoop ─────────────────────────
@@ -91,9 +89,7 @@ void marketplace::stockorder(eosio::name coopname,
   // ── o.mkt.fee: обеспечительная часть со свободного паевого (внутри 80) ──
   Marketplace::lock_secure_part(coopname, orderer, order_hash, membership_fee,
                                 Marketplace::Memo::get_secure_part_lock_memo(new_id));
-  // ── тело: o.mkt.lockp со свободного паевого программы, остаток o.mkt.lock с ЦК ──
-  Marketplace::lock_order_body(coopname, new_id, orderer, order_hash, total_cost,
-                               membership_fee,
-                               Marketplace::Memo::get_stock_order_block_memo(new_id),
-                               Marketplace::Memo::get_create_order_block_memo(new_id));
+  // ── тело: o.mkt.lockp с остатка свободного паевого программы ──
+  Marketplace::lock_order_body(coopname, orderer, order_hash, total_cost, membership_fee,
+                               Marketplace::Memo::get_stock_order_block_memo(new_id));
 }

@@ -10,8 +10,8 @@
  *     действием convert до заявления); идёт раньше доплаты тела, потому что
  *     обеспечительная часть берётся только со свободного паевого;
  *  2. корректировка резерва: факт меньше заказа — o.mkt.unlock на разницу
- *     (w.mkt.order → w.mkt.share); факт больше — o.mkt.lockp с w.mkt.share и
- *     o.mkt.lock с w.wal.share на остаток (при нехватке — отказ с суммами);
+ *     (w.mkt.order → w.mkt.share); факт больше — o.mkt.lockp с w.mkt.share
+ *     (при нехватке — отказ с кодом и суммами);
  *  3. o.mkt.consum на fact_cost — BURN w.mkt.order, Дт 80 / Кт 10: возврат
  *     паевого взноса имуществом по протоколу совета; затем факт
  *     обеспечительной части переходит на кошелёк пайщика к списанию
@@ -91,10 +91,9 @@ void marketplace::issueact2(eosio::name coopname,
                    Marketplace::Memo::get_issue_correction_less_memo(o.id));
   } else if (fact_cost > o.total_cost) {
     const eosio::asset diff = fact_cost - o.total_cost;
-    // Доплата тела теми же паевыми кошельками, что и заказ: свободный паевой
-    // программы, остаток — Цифровой кошелёк (при нехватке — отказ с суммами).
-    Marketplace::lock_order_body(coopname, o.id, o.orderer, o.hash, diff, fee_taken,
-                                 Marketplace::Memo::get_issue_correction_more_block_memo(o.id),
+    // Доплата тела со свободного паевого программы, как и заказ (при нехватке —
+    // отказ с кодом и суммами).
+    Marketplace::lock_order_body(coopname, o.orderer, o.hash, diff, fee_taken,
                                  Marketplace::Memo::get_issue_correction_more_block_memo(o.id));
   }
 

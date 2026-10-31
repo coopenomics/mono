@@ -8,9 +8,10 @@
  * первым в той же транзакции оформления):
  *  - `o.mkt.fee` — обеспечительная часть паевого взноса по единой ставке со
  *    свободного паевого w.mkt.share в пул w.mkt.fee (её обязано хватать целиком);
- *  - `o.mkt.lockp` — тело заказа с остатка свободного паевого w.mkt.share;
- *  - `o.mkt.lock` — остаток тела с главного паевого w.wal.share.
- *  Тело — один резерв w.mkt.order (без проводок).
+ *  - `o.mkt.lockp` — тело заказа с остатка свободного паевого w.mkt.share.
+ *  Тело — один резерв w.mkt.order (без проводок). С главного паевого
+ *  w.wal.share без заявления заказ не берёт ничего (решение владельца
+ *  31.10.2026).
  *
  * Guards (из p.mkt.supply.standard.yaml + Locked Decision L6):
  *  - quantity > 0; unit_price > 0 в _root_govern_symbol.
@@ -18,8 +19,8 @@
  *  - Заказчик — активный пайщик кооператива (`get_participant_or_fail`).
  *  - `delivery_braname` существует в `branches` (КУ выдачи задаётся пайщиком
  *    из доступных и неизменен после создания Order'а).
- *  - w.mkt.share >= обеспечительная часть; w.mkt.share + w.wal.share >= тело
- *    плюс обеспечительная часть; иначе createorder фейлится без создания Order'а.
+ *  - w.mkt.share >= обеспечительная часть плюс тело; иначе createorder
+ *    отвергается с кодом без создания Order'а.
  *  - Подписка пайщика на оферту ЦПП «Стол заказов» (L2/L3 онбординг) —
  *    автоматически проверяется в `ledger2::walletop` через
  *    `assert_program_signed` (cross-contract в `wallet::users.programs[]`)
@@ -75,8 +76,7 @@ void marketplace::createorder(eosio::name coopname,
   const eosio::asset membership_fee = Marketplace::calc_membership_fee(
       total_cost, Marketplace::get_membership_fee_percent(coopname));
 
-  // ── Обеспечительная часть — со свободного паевого программы; тело — с его
-  //    остатка и Цифрового кошелька (задача 99D-18) ──
+  // ── Обеспечительная часть и тело — со свободного паевого программы (задача 99D-18) ──
   Marketplace::require_order_funding(coopname, orderer, total_cost, membership_fee);
 
   // ── Создание Order entity (id потребуется для memo) ─────────────────
@@ -114,9 +114,7 @@ void marketplace::createorder(eosio::name coopname,
   // ── o.mkt.fee: обеспечительная часть со свободного паевого (внутри 80) ──
   Marketplace::lock_secure_part(coopname, orderer, order_hash, membership_fee,
                                 Marketplace::Memo::get_secure_part_lock_memo(new_id));
-  // ── тело: o.mkt.lockp со свободного паевого программы, остаток o.mkt.lock с ЦК ──
-  Marketplace::lock_order_body(coopname, new_id, orderer, order_hash, total_cost,
-                               membership_fee,
-                               Marketplace::Memo::get_stock_order_block_memo(new_id),
+  // ── тело: o.mkt.lockp с остатка свободного паевого программы ──
+  Marketplace::lock_order_body(coopname, orderer, order_hash, total_cost, membership_fee,
                                Marketplace::Memo::get_create_order_block_memo(new_id));
 }

@@ -303,8 +303,8 @@ inline void update_claim(eosio::name coopname, uint64_t claim_id,
 // ── Cross-contract read: ledger2 wallet/userwallet balances ─────────────
 //
 // Используется в createorder для guard'а Locked Decision L6 (без отрицательного
-// баланса) — проверка достаточности средств заказчика на паевом кошельке
-// перед вызовом o.mkt.lock.
+// баланса) — проверка достаточности свободного паевого «Стола заказов»
+// перед паевым резервом (o.mkt.lockp).
 //
 // ВАЖНО: контракт marketplace не вызывает ledger2::walletop напрямую, а только
 // читает state (RAM-таблицы wallets2 / userwallets через cross-contract scope).
@@ -359,71 +359,54 @@ inline eosio::asset get_order_membership_fee(const order& o) {
   return o.membership_fee;
 }
 
-/// Достаточность средств заказа (задача 99D-18). Обеспечительная часть паевого
-/// взноса берётся только со свободного паевого «Стола заказов» w.mkt.share —
-/// недостающее пайщик заранее транслирует на него действием convert по заявлению
-/// 1110. Тело — с того, что на w.mkt.share осталось после обеспечительной
-/// части, остаток тела — с Цифрового кошелька w.wal.share. Проверка одним
-/// чтением, до создания заказа: при нехватке заказ не создаётся.
+/// Достаточность средств заказа (задача 99D-18, решение владельца 31.10.2026).
+/// Заказ и доплата по факту берут обеспечительную часть и тело только со
+/// свободного паевого «Стола заказов» w.mkt.share. С главного паевого
+/// Цифрового кошелька средства приходят только трансляцией по заявлению 1110
+/// (действие `convert` первым в транзакции оформления) — пути с главного
+/// паевого без заявления нет. Проверка одним чтением, до создания заказа: при
+/// нехватке заказ не создаётся.
 inline void require_order_funding(eosio::name coopname, eosio::name orderer,
                                   const eosio::asset& body, const eosio::asset& secure_part) {
   auto program = get_user_wallet_balance(coopname, ledger2_wallets::MARKETPLACE_SHARE_FUND, orderer);
-  auto wallet  = get_user_wallet_balance(coopname, ledger2_wallets::SHARE_FUND_PAY, orderer);
   if (secure_part.amount > 0) {
     eosio::check(program.available >= secure_part,
                  std::string{"MARKETPLACE_SECURE_PART_SHORTFALL: Недостаточно свободного паевого Стола заказов на обеспечительную часть: требуется "} +
                    secure_part.to_string() + ", доступно " + program.available.to_string() +
                    ". Сначала подайте заявление о трансляции паевого взноса в программу.");
   }
-  eosio::check(program.available + wallet.available >= body + secure_part,
-               std::string{"MARKETPLACE_SHARE_SHORTFALL: Недостаточно паевых средств для заказа: требуется "} +
-                 (body + secure_part).to_string() + ", доступно " + (program.available + wallet.available).to_string() +
-                 " (свободный паевой Стола заказов " + program.available.to_string() +
-                 " и Цифровой кошелёк " + wallet.available.to_string() + ")");
+  eosio::check(program.available >= body + secure_part,
+               std::string{"MARKETPLACE_SHARE_SHORTFALL: Недостаточно свободного паевого Стола заказов на заказ: требуется "} +
+                 (body + secure_part).to_string() + ", доступно " + program.available.to_string() +
+                 ". Сначала подайте заявление о трансляции паевого взноса в программу.");
 }
 
-/// Паевое тело заказа (и доплата по факту) фондируется двумя паевыми кошельками
-/// каждым в свою очередь: сначала свободный паевой «Стола заказов» w.mkt.share
-/// (туда возвращаются паевые средства при отменах, недовыдачах и гарантийных
-/// возвратах), остаток — с главного паевого Цифрового кошелька w.wal.share.
-/// Обе части ложатся одним паевым резервом w.mkt.order (o.mkt.lockp и
-/// o.mkt.lock, без проводок — все кошельки на 80). При нехватке — отказ.
+/// Паевое тело заказа (и доплата по факту) — резерв w.mkt.order со свободного
+/// паевого «Стола заказов» (o.mkt.lockp, без проводки — оба кошелька на 80).
+/// На свободный паевой возвращаются паевые средства при отменах, недовыдачах и гарантийных
+/// возвратах; недостающее пайщик транслирует заявлением 1110 заранее.
 ///
 /// `share_taken` — сколько это же действие уже взяло со свободного паевого
 /// (обеспечительная часть, o.mkt.fee). Ledger2::apply — инлайн-действие: оно
 /// исполнится после текущего, и таблица кошельков ещё показывает остаток до
-/// него. Без вычета тело взяло бы со свободного паевого больше, чем на нём
-/// останется, и ledger2 отверг бы перевод без кода (задача 99D-18).
-inline void lock_order_body(eosio::name coopname, uint64_t order_id, eosio::name orderer,
+/// него. Без вычета проверка пропустила бы тело, на которое свободного
+/// паевого уже не хватает, и ledger2 отверг бы перевод без кода.
+inline void lock_order_body(eosio::name coopname, eosio::name orderer,
                             const checksum256& order_hash, const eosio::asset& body,
-                            const eosio::asset& share_taken,
-                            const std::string& program_memo, const std::string& wallet_memo) {
+                            const eosio::asset& share_taken, const std::string& memo) {
   if (body.amount <= 0) return;
   auto program = get_user_wallet_balance(coopname, ledger2_wallets::MARKETPLACE_SHARE_FUND, orderer);
   const eosio::asset share_left = program.available > share_taken
       ? program.available - share_taken
       : eosio::asset(0, _root_govern_symbol);
-  const eosio::asset from_program = share_left >= body ? body : share_left;
-  const eosio::asset from_wallet  = body - from_program;
-  if (from_wallet.amount > 0) {
-    auto wallet = get_user_wallet_balance(coopname, ledger2_wallets::SHARE_FUND_PAY, orderer);
-    eosio::check(wallet.available >= from_wallet,
-                 std::string{"Недостаточно паевых средств для заказа: требуется с Цифрового кошелька "} +
-                   from_wallet.to_string() + ", доступно " + wallet.available.to_string() +
-                   " (свободный паевой Стола заказов " + share_left.to_string() + " уже учтён)");
-  }
-  if (from_program.amount > 0) {
-    Ledger2::apply(_marketplace, coopname,
-                   operations::marketplace::LOCK_FROM_SHARE,
-                   processes::marketplace::SUPPLY,
-                   from_program, orderer, order_hash, program_memo);
-  }
-  if (from_wallet.amount > 0) {
-    Ledger2::apply(_marketplace, coopname,
-                   operations::marketplace::LOCK_ORDER,
-                   processes::marketplace::SUPPLY,
-                   from_wallet, orderer, order_hash, wallet_memo);
-  }
+  eosio::check(share_left >= body,
+               std::string{"MARKETPLACE_SHARE_SHORTFALL: Недостаточно свободного паевого Стола заказов на паевой резерв: требуется "} +
+                 body.to_string() + ", доступно " + share_left.to_string() +
+                 ". Сначала подайте заявление о трансляции паевого взноса в программу.");
+  Ledger2::apply(_marketplace, coopname,
+                 operations::marketplace::LOCK_FROM_SHARE,
+                 processes::marketplace::SUPPLY,
+                 body, orderer, order_hash, memo);
 }
 
 /// Обеспечительная часть паевого взноса под заказ со свободного паевого «Стола

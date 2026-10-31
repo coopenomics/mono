@@ -166,14 +166,17 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
     debit: null, credit: null,
     human_name: 'Трансляция паевого взноса из Цифрового кошелька в Стол заказов по заявлению' },
 
+  // Историческая: с задачи 99D-18 контракт её не проводит — с главного паевого
+  // средства приходят только трансляцией по заявлению (o.mkt.conv). Строка
+  // оставлена для журнала прежних заказов.
   { code: 'o.mkt.lock',    process_type: 'p.mkt.supply',  contract: 'marketplace',
     name: 'LOCK_ORDER',     wallet_op: 'TRANSFER', wallet_from: 'w.wal.share', wallet_to: 'w.mkt.order',
     debit: null, credit: null,
     human_name: 'Паевой резерв под заказ' },
 
-  // Тело любого заказа и доплата по факту берутся сначала со свободного паевого
-  // «Стола заказов» (сюда возвращаются паевые средства при отменах и возвратах),
-  // остаток — с паевого Цифрового кошелька (o.mkt.lock).
+  // Тело любого заказа и доплата по факту берутся только со свободного паевого
+  // «Стола заказов»: на него возвращаются паевые средства при отменах и
+  // возвратах и транслируется недостающее по заявлению 1110 (задача 99D-18).
   { code: 'o.mkt.lockp',   process_type: 'p.mkt.supply',  contract: 'marketplace',
     name: 'LOCK_FROM_SHARE', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.share', wallet_to: 'w.mkt.order',
     debit: null, credit: null,

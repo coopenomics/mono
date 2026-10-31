@@ -11,10 +11,11 @@
  *   • со свободного паевого сначала обеспечительная часть (o.mkt.fee), затем
  *     тело (o.mkt.lockp);
  *   • stockorder без покрытой обеспечительной части отвергается так же;
- *   • свободного паевого хватает на обеспечительную часть, но не на тело —
- *     остаток тела берётся с главного паевого (o.mkt.lock), и контракт
- *     учитывает, что обеспечительная часть уже взята в том же действии
- *     (mkt.order.side.43).
+ *   • свободного паевого хватает на обеспечительную часть, но не на тело, а
+ *     на главном паевом деньги есть — заказ без заявления всё равно
+ *     отвергается с кодом MARKETPLACE_SHARE_SHORTFALL: с главного паевого
+ *     средства приходят только трансляцией по заявлению (mkt.order.side.43,
+ *     решение владельца 31.10.2026).
  *
  * Живой стенд с сидом docs-harness (фикстуры пайщиков в state/). Контрактные
  * шаги идут напрямую в цепь ключом кооператива (как это делает бэкенд).
@@ -172,7 +173,7 @@ describe('Стол заказов: заявление 1110 о трансляци
     }])).rejects.toThrow(/MARKETPLACE_SECURE_PART_SHORTFALL/)
   }, 120_000)
 
-  it('mkt.order.side.43: свободного паевого хватает на обеспечительную часть, но не на тело — остаток тела с главного паевого, обеспечительная часть не учитывается дважды', async () => {
+  it('mkt.order.side.43: свободного паевого хватает на обеспечительную часть, но не на тело — без заявления заказ отвергается, с главного паевого не берётся ничего', async () => {
     expect(side34OrderHash, 'нужен заказ случая mkt.order.side.34').not.toBe('')
     // Отмена до акцепта возвращает на свободный паевой стоимость и обеспечительную часть одной единицы.
     await bc.transactWithLogs([{
@@ -183,28 +184,15 @@ describe('Стол заказов: заявление 1110 о трансляци
     }])
     const refunded = await waitForOps(chairmanToken, side34OrderHash, ['o.mkt.unlock', 'o.mkt.refund'])
     const share = sumOf(refunded, 'o.mkt.unlock') + sumOf(refunded, 'o.mkt.refund')
+    expect(share, 'свободного паевого хватает на обеспечительную часть двух единиц').toBeGreaterThan(0)
+    // На главном паевом денег достаточно на весь заказ: отказ — не от нехватки денег у пайщицы.
     await ensureShareFunds(ekaterina.account, unitPrice * 4, ekaterinaToken)
 
     // Заказ на две единицы напрямую в цепь, без заявления: свободного паевого
-    // хватает на обеспечительную часть двух единиц, но не на неё вместе с телом.
+    // хватает на обеспечительную часть, но не на неё вместе с телом.
     const orderHash = sha256Hex(`side43|${Date.now()}`)
-    await createOrderDirect(orderHash, 2)
-    const ops = await waitForOps(chairmanToken, orderHash, ['o.mkt.fee', 'o.mkt.lock'])
-    const fee = sumOf(ops, 'o.mkt.fee')
-    const fromShare = sumOf(ops, 'o.mkt.lockp')
-    const fromWallet = sumOf(ops, 'o.mkt.lock')
-    expect(fee, 'обеспечительная часть двух единиц покрыта свободным паевым').toBeLessThanOrEqual(share + 0.005)
-    expect(fee + fromShare, 'со свободного паевого взято ровно то, что на нём было, — обеспечительная часть не учтена дважды').toBeCloseTo(share, 2)
-    expect(fromWallet, 'остаток тела — с главного паевого').toBeGreaterThan(0)
-    expect(fromShare + fromWallet, 'тело двух единиц целиком паевым резервом').toBeCloseTo(unitPrice * 2, 2)
-    expect(sumOf(ops, 'o.mkt.conv'), 'трансляции по заявлению в этом заказе нет').toBeCloseTo(0, 2)
-
-    // Заказ создан мимо контроллера — отменяем, чтобы резерв не держал пайщицу.
-    await bc.transactWithLogs([{
-      account: 'marketplace',
-      name: 'cancelorder',
-      authorization: [{ actor: COOPNAME, permission: 'active' }],
-      data: { coopname: COOPNAME, orderer: ekaterina.account, order_hash: orderHash },
-    }])
+    await expect(createOrderDirect(orderHash, 2)).rejects.toThrow(/MARKETPLACE_SHARE_SHORTFALL/)
+    const rows = await historyOfProcess(chairmanToken, orderHash).catch(() => [])
+    expect(rows.length, 'отвергнутый заказ не оставляет движений, в том числе с главного паевого').toBe(0)
   }, 300_000)
 })
