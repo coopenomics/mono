@@ -33,6 +33,7 @@ const FROZEN_IDS = [
   'noviy-zakaz-postavschiku',
   'novoe-predlozhenie-na-moderatsii',
   'novoe-zayavlenie-na-garantiyniy-vozvrat',
+  'obespechitelnaya-chast-spisana',
   'oplata-podpiski-prosrochena',
   'otvet-na-zapros-odobreniya',
   'platezh-otmenen',

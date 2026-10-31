@@ -77,8 +77,9 @@ describe('ledger2 wallets registry (generated from C++)', () => {
     for (const r of EXIT_BLOCKER_WALLET_RULES) expect(r.note.length).toBeGreaterThan(0)
   })
 
-  it('членский взнос «Стола заказов» остаётся кооперативу', () => {
-    expect(exitRuleForWallet('w.mkt.member')?.policy).toBe('FORFEIT')
+  it('обеспечительная часть «Стола заказов» к списанию при выходе списывается в членский взнос', () => {
+    expect(exitRuleForWallet('w.mkt.due')?.policy).toBe('FORFEIT')
+    expect(exitRuleForWallet('w.mkt.member')).toBeUndefined()
     expect(exitRuleForWallet('w.edu.member')?.policy).toBe('RETURN_TO_MAIN')
     expect(exitRuleForWallet('w.edu.member')?.transfer_op).toBe('o.edu.retshr')
     // паевой взнос преподавателя по программе при выходе уходит на главный паевой

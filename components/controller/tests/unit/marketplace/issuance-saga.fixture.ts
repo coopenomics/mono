@@ -224,7 +224,7 @@ export function buildMocks(opts: {
       binary: '',
     })),
     verifySigned: jest.fn((signed: any) => {
-      if (!signed) throw new Error('Нет подписанного заявления о переводе');
+      if (!signed) throw new Error('Нет подписанного заявления о трансляции');
       return { hash: signed.hash ?? 'signed-1110', meta: JSON.stringify(signed.meta), signatures: signed.signatures ?? [] };
     }),
   };
