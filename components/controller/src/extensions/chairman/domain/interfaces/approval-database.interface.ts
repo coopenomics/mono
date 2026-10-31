@@ -7,5 +7,5 @@ import type { ISignedDocument } from '@coopenomics/innercoop';
 export interface IApprovalDatabaseData extends IBaseDatabaseData {
   // Специфические поля для approval
   approval_hash?: string; // Ключ синхронизации
-  approved_document?: ISignedDocument | null; // Одобренный документ (заполняется при подтверждении, null — у нового запроса под прежним хэшем)
+  approved_document?: ISignedDocument; // Одобренный документ (заполняется при подтверждении)
 }

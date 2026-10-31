@@ -30,7 +30,7 @@ export class ApprovalRecord extends ChainRecord {
 
   created_at!: Date;
 
-  approved_document?: ISignedDocument | null;
+  approved_document?: ISignedDocument;
 
   status!: ApprovalStatus;
 }
