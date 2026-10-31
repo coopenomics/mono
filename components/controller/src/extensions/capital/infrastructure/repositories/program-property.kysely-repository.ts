@@ -73,4 +73,14 @@ export class ProgramPropertyKyselyRepository
       validatedOptions
     );
   }
+
+  async findByStepHash(hash: string): Promise<ProgramPropertyDomainEntity | null> {
+    const record = await this.repository
+      .sqlBuilder('p')
+      .where("LOWER(p.property_hash) = :hash OR LOWER(p.statement->>'hash') = :hash OR LOWER(p.act->>'hash') = :hash", {
+        hash: hash.toLowerCase(),
+      })
+      .getOne();
+    return record ? ProgramPropertyMapper.toDomain(record) : null;
+  }
 }

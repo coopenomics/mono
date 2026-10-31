@@ -8,7 +8,7 @@
  * - Отправляет на рассмотрение совета
  * @param coopname Наименование кооператива
  * @param username Наименование пользователя, одобрившего программный имущественный взнос
- * @param property_hash Хеш программного имущественного взноса для принятия
+ * @param property_hash Хэш заявления — ключ одобрения (одобрение заводится под хэшем одобряемого документа)
  * @param approved_statement Одобренное заявление председателя
  * @ingroup public_actions
  * @ingroup public_capital_actions
@@ -26,8 +26,8 @@ void capital::approvepgprp(eosio::name coopname, eosio::name username, checksum2
   // Согласие подписано ключом аккаунта председателя.
   verify_signer_keys_or_fail(approved_statement, chairman);
 
-  // Получаем предложение
-  auto property = Capital::ProgramProperties::get_program_property_or_fail(coopname, property_hash);
+  // Совет передаёт ключ одобрения — хэш заявления; дальше работаем по ID строки.
+  auto property = Capital::ProgramProperties::get_program_property_by_statement_or_fail(coopname, property_hash);
   
   // Проверяем статус
   eosio::check(property.status == Capital::ProgramProperties::Status::CREATED, 
@@ -47,7 +47,7 @@ void capital::approvepgprp(eosio::name coopname, eosio::name username, checksum2
     coopname,
     property.username,
     Names::Capital::CREATE_PROGRAM_PROPERTY,
-    property_hash,
+    property.property_hash,
     _capital,
     Names::Capital::AUTHORIZE_PROGRAM_PROPERTY,
     Names::Capital::DECLINE_PROGRAM_PROPERTY,

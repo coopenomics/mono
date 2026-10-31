@@ -197,14 +197,14 @@ describe('Паевой взнос имуществом: акт приёма-пе
 
 describe('Паевой взнос имуществом: итог после удаления строки в цепи', () => {
   function syncer(found: ProgramPropertyDomainEntity | null) {
-    const repo = { findBySyncKey: jest.fn(async () => found), update: jest.fn(async (e: unknown) => e) } as any;
+    const repo = { findByStepHash: jest.fn(async () => found), update: jest.fn(async (e: unknown) => e) } as any;
     const logger = { setContext: jest.fn(), debug: jest.fn(), error: jest.fn(), log: jest.fn(), warn: jest.fn() } as any;
     return { repo, service: new ProgramPropertySyncService(repo, {} as any, logger, {} as any) };
   }
   const action = (name: string, receiver = 'capital') =>
     ({ account: 'capital', receiver, name, data: { property_hash: HASH.toUpperCase() } }) as any;
 
-  it('приём акта председателем (act2pgprp) — статус «принято»', async () => {
+  it('приём акта председателем (act2pgprp, ключ — хэш акта) — статус «принято»', async () => {
     const { repo, service } = syncer(property('act1'));
     await service.handleAccepted(action('act2pgprp'));
     expect(repo.update.mock.calls[0][0]).toMatchObject({ status: ProgramPropertyStatus.ACT2, present: false });
@@ -213,7 +213,7 @@ describe('Паевой взнос имуществом: итог после уд
   it('отказ (declinepgprp) — статус «отклонено»', async () => {
     const { repo, service } = syncer(property('act1'));
     await service.handleDeclined(action('declinepgprp'));
-    expect(repo.findBySyncKey).toHaveBeenCalledWith('property_hash', HASH);
+    expect(repo.findByStepHash).toHaveBeenCalledWith(HASH);
     expect(repo.update.mock.calls[0][0]).toMatchObject({ status: ProgramPropertyStatus.DECLINED });
   });
 

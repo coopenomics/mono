@@ -18,7 +18,7 @@
  *
  * @param coopname Наименование кооператива
  * @param username Наименование подтвердившего одобрение
- * @param property_hash Хеш программного имущественного взноса
+ * @param property_hash Хэш акта — ключ одобрения акта (одобрение заводится под хэшем одобряемого документа)
  * @param act Акт приёма-передачи с подписями пайщика и председателя
  * @ingroup public_actions
  * @ingroup public_capital_actions
@@ -31,7 +31,8 @@ void capital::act2pgprp(eosio::name coopname, eosio::name username, checksum256 
   auto soviet = get_board_by_type_or_fail(coopname, "soviet"_n);
   auto chairman = soviet.get_chairman();
 
-  auto property = Capital::ProgramProperties::get_program_property_or_fail(coopname, property_hash);
+  // Совет передаёт ключ одобрения — хэш акта; дальше работаем по ID строки.
+  auto property = Capital::ProgramProperties::get_program_property_by_act_or_fail(coopname, property_hash);
 
   eosio::check(property.status == Capital::ProgramProperties::Status::ACT1,
                "CAPITAL_PROPERTY_ACT1_REQUIRED: Председатель подписывает акт после подписи пайщика");
@@ -47,10 +48,10 @@ void capital::act2pgprp(eosio::name coopname, eosio::name username, checksum256 
 
   auto contributor = Capital::Contributors::get_active_contributor_or_fail(coopname, property.username);
 
-  std::string memo = Capital::Memo::get_program_property_memo(property_hash);
+  std::string memo = Capital::Memo::get_program_property_memo(property.property_hash);
 
   // Паевой взнос имуществом: ISSUE на w.cap.blago, Дт 08 / Кт 80 (решение владельца 30.10.2026).
-  Ledger2::apply(_capital, coopname, operations::capital::ACCEPT_PROPERTY, processes::capital::PROPERTY, property.property_amount, property.username, property_hash, memo);
+  Ledger2::apply(_capital, coopname, operations::capital::ACCEPT_PROPERTY, processes::capital::PROPERTY, property.property_amount, property.username, property.property_hash, memo);
 
   Capital::Contributors::increase_propertor_contribution(coopname, contributor->id, property.property_amount);
 
@@ -66,7 +67,7 @@ void capital::act2pgprp(eosio::name coopname, eosio::name username, checksum256 
     coopname,
     property.username,
     Names::Capital::SIGN_ACT2_PROGRAM_PROPERTY,
-    property_hash,
+    property.property_hash,
     act
   );
 

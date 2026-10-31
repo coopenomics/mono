@@ -6,7 +6,6 @@ import { getTotalRamUsage, globalRamStats } from '../utils/getTotalRamUsage'
 import { addUser } from '../init/participant'
 import { generateRandomUsername } from '../utils/randomUsername'
 import { generateRandomSHA256 } from '../utils/randomHash'
-import { setDocumentSignatures } from '../utils/setDocumentSignatures'
 import { generateRandomContributionAmount, generateRandomDescription, generateRandomMeta, generateRandomProjectData, generateRandomPropertyDescription, sleep } from '../utils'
 import { getCoopProgramWallet, getLedgerAccountById, getUserProgramWalletAmount } from './wallet/walletUtils'
 import { registerContributor } from './capital/registerContributor'
@@ -23,7 +22,7 @@ import { getProjectSegments, getSegment } from './capital/getSegment'
 import { investInProject } from './capital/investInProject'
 import { processDebt } from './capital/processDebt'
 import { processCreateProjectProperty } from './capital/processCreateProjectProperty'
-import { authorizeProgramProperty, getProgramProperty, processCreateProgramProperty, signProgramPropertyAct1, submitProgramPropertyStatement } from './capital/processCreateProgramProperty'
+import { authorizeProgramProperty, documentWithHash, getProgramProperty, processCreateProgramProperty, signProgramPropertyAct1, submitProgramPropertyStatement } from './capital/processCreateProgramProperty'
 import { processApprove } from './capital/processApprove'
 import { processStartVoting } from './capital/processStartVoting'
 import { createVoteDistribution, submitVote } from './capital/submitVote'
@@ -1126,13 +1125,13 @@ describe('тест контракта CAPITAL', () => {
     }
     const walletBefore = await getCoopProgramWallet(blockchain, coopname, capitalProgramId)
 
-    await submitProgramPropertyStatement(blockchain, data)
+    const { statementHash } = await submitProgramPropertyStatement(blockchain, data)
 
     // cap.pgprp.side.01: акт до решения совета
     await expect(signProgramPropertyAct1(blockchain, coopname, tester5, property_hash)).rejects.toThrow(/CAPITAL_PROPERTY_NOT_AUTHORIZED/)
 
-    await authorizeProgramProperty(blockchain, coopname, property_hash)
-    await signProgramPropertyAct1(blockchain, coopname, tester5, property_hash)
+    await authorizeProgramProperty(blockchain, coopname, statementHash)
+    const { actHash } = await signProgramPropertyAct1(blockchain, coopname, tester5, property_hash)
 
     // cap.pgprp.break.02: кооператив сам вызывает приём акта, минуя одобрение в совете
     const directAct2 = blockchain.api.transact(
@@ -1142,7 +1141,7 @@ describe('тест контракта CAPITAL', () => {
             account: CapitalContract.contractName.production,
             name: CapitalContract.Actions.Act2ProgramProperty.actionName,
             authorization: [{ actor: coopname, permission: 'active' }],
-            data: { coopname, username: 'ant', property_hash, act: setDocumentSignatures([tester5, 'ant']) },
+            data: { coopname, username: 'ant', property_hash: actHash, act: documentWithHash(actHash, [tester5, 'ant']) },
           },
         ],
       },
@@ -1151,7 +1150,7 @@ describe('тест контракта CAPITAL', () => {
     await expect(directAct2).rejects.toThrow(/missing authority/)
 
     // cap.pgprp.break.01: под актом только подпись председателя — совет одобрение проводит, приём акта отказывает
-    await expect(processApprove(blockchain as any, coopname, property_hash, setDocumentSignatures(['ant']))).rejects.toThrow()
+    await expect(processApprove(blockchain as any, coopname, actHash, documentWithHash(actHash, ['ant']))).rejects.toThrow()
     expect((await getProgramProperty(blockchain, coopname, property_hash))?.status).toBe('act1')
 
     // cap.pgprp.side.03: председатель отказывает в подписи акта
@@ -1162,7 +1161,7 @@ describe('тест контракта CAPITAL', () => {
             account: SovietContract.contractName.production,
             name: SovietContract.Actions.Approves.DeclineApprove.actionName,
             authorization: [{ actor: coopname, permission: 'active' }],
-            data: { coopname, username: 'ant', approval_hash: property_hash, reason: 'Имущество не соответствует описанию' },
+            data: { coopname, username: 'ant', approval_hash: actHash, reason: 'Имущество не соответствует описанию' },
           },
         ],
       },

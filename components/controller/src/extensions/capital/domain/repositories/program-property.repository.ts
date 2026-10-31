@@ -9,6 +9,12 @@ export interface ProgramPropertyRepository extends IBlockchainSyncRepository<Pro
     filter?: ProgramPropertyFilterInputDTO,
     options?: PaginationInputDTO
   ): Promise<PaginationResult<ProgramPropertyDomainEntity>>;
+  /**
+   * Взнос по ключу шага процесса: хэш взноса (повестка совета), хэш заявления
+   * (одобрение заявления) или хэш акта (одобрение акта). Одобрения председателя
+   * заводятся под хэшем одобряемого документа.
+   */
+  findByStepHash(hash: string): Promise<ProgramPropertyDomainEntity | null>;
 }
 
 export const PROGRAM_PROPERTY_REPOSITORY = Symbol('ProgramPropertyRepository');

@@ -79,7 +79,8 @@ export class ProgramPropertySyncService
     const hash = String(action.data?.property_hash ?? '').toLowerCase();
     if (!hash) return;
     try {
-      const property = await this.programPropertyRepository.findBySyncKey('property_hash', hash);
+      // act2pgprp приходит под хэшем акта, declinepgprp — под ключом своего шага.
+      const property = await this.programPropertyRepository.findByStepHash(hash);
       if (!property) return;
       property.markFinal(status);
       await this.programPropertyRepository.update(property);

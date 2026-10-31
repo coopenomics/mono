@@ -5,6 +5,7 @@ import { getTotalRamUsage } from '../../utils/getTotalRamUsage'
 import { getCoopProgramWallet, getLedgerAccountById } from '../wallet/walletUtils'
 import { processLastDecision } from '../soviet/processLastDecision'
 import { setDocumentSignatures } from '../../utils/setDocumentSignatures'
+import { generateRandomSHA256 } from '../../utils/randomHash'
 import { processApprove } from './processApprove'
 import { capitalProgramId, circulationAccountId } from './consts'
 import { getContributor } from './programInvest'
@@ -29,32 +30,50 @@ async function transactCapital(blockchain: Blockchain, coopname: string, name: s
   return tx
 }
 
-/** Шаг 1: пайщик подаёт заявление — оно подписано им самим, контракт сверяет подписанта. */
+/**
+ * Подставной документ со своим хэшем: одобрение председателя заводится под
+ * хэшем одобряемого документа, и у заявления и акта хэши должны различаться.
+ */
+export function documentWithHash(hash: string, signers: string[]) {
+  return { ...setDocumentSignatures(signers), hash }
+}
+
+/**
+ * Шаг 1: пайщик подаёт заявление — оно подписано им самим, контракт сверяет
+ * подписанта. Возвращает хэш заявления — ключ одобрения председателя.
+ */
 export async function submitProgramPropertyStatement(
   blockchain: Blockchain,
   data: CapitalContract.Actions.CreateProgramProperty.ICreateProgramProperty,
 ) {
-  return transactCapital(blockchain, data.coopname, CapitalContract.Actions.CreateProgramProperty.actionName, {
+  const statementHash = generateRandomSHA256()
+  const tx = await transactCapital(blockchain, data.coopname, CapitalContract.Actions.CreateProgramProperty.actionName, {
     ...data,
-    statement: setDocumentSignatures([data.username]),
+    statement: documentWithHash(statementHash, [data.username]),
   })
+  return { tx, statementHash }
 }
 
-/** Шаги 2–3: председатель одобряет заявление, совет принимает решение. */
-export async function authorizeProgramProperty(blockchain: Blockchain, coopname: string, property_hash: string) {
-  await processApprove(blockchain as any, coopname, property_hash)
+/** Шаги 2–3: председатель одобряет заявление (ключ — хэш заявления), совет принимает решение. */
+export async function authorizeProgramProperty(blockchain: Blockchain, coopname: string, statementHash: string) {
+  await processApprove(blockchain as any, coopname, statementHash)
   await processLastDecision(blockchain, coopname)
 }
 
-/** Шаг 4: пайщик подписывает акт, контракт ставит председателю запрос одобрения акта. */
+/**
+ * Шаг 4: пайщик подписывает акт, контракт ставит председателю запрос
+ * одобрения акта. Возвращает хэш акта — ключ этого одобрения.
+ */
 export async function signProgramPropertyAct1(blockchain: Blockchain, coopname: string, username: string, property_hash: string) {
+  const actHash = generateRandomSHA256()
   const data: CapitalContract.Actions.Act1ProgramProperty.IAct1ProgramProperty = {
     coopname,
     username,
     property_hash,
-    act: setDocumentSignatures([username]) as any,
+    act: documentWithHash(actHash, [username]) as any,
   }
-  return transactCapital(blockchain, coopname, CapitalContract.Actions.Act1ProgramProperty.actionName, data)
+  const tx = await transactCapital(blockchain, coopname, CapitalContract.Actions.Act1ProgramProperty.actionName, data)
+  return { tx, actHash }
 }
 
 /** Строка предложения в цепи по hash; после приёма или отказа строки нет. */
@@ -84,13 +103,13 @@ export async function processCreateProgramProperty(
   const ledgerShareBefore = await getLedgerAccountById(blockchain, coopname, circulationAccountId)
   const contributorBefore = await getContributor(blockchain, username)
 
-  const txCreate = await submitProgramPropertyStatement(blockchain, data)
-  await authorizeProgramProperty(blockchain, coopname, hash)
-  const txAct1 = await signProgramPropertyAct1(blockchain, coopname, username, hash)
+  const { tx: txCreate, statementHash } = await submitProgramPropertyStatement(blockchain, data)
+  await authorizeProgramProperty(blockchain, coopname, statementHash)
+  const { tx: txAct1, actHash } = await signProgramPropertyAct1(blockchain, coopname, username, hash)
 
-  // Шаг 5: председатель ('ant') подтверждает одобрение акта; совет вызывает
-  // act2pgprp с актом, подписанным пайщиком и председателем.
-  const txAct2 = await processApprove(blockchain as any, coopname, hash, setDocumentSignatures([username, 'ant']))
+  // Шаг 5: председатель ('ant') подтверждает одобрение акта (ключ — хэш акта);
+  // совет вызывает act2pgprp с актом, подписанным пайщиком и председателем.
+  const txAct2 = await processApprove(blockchain as any, coopname, actHash, documentWithHash(actHash, [username, 'ant']))
 
   // Состояния после
   const programWalletAfter = await getCoopProgramWallet(blockchain, coopname, capitalProgramId)

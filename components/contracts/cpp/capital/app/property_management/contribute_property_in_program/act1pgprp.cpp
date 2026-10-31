@@ -9,9 +9,9 @@
  *  - предложение в статусе authorized (совет принял решение);
  *  - акт подписан тем пайщиком, который подал предложение.
  *
- * Одобрение заявления на шаге createpgprp заведено под тем же property_hash и
- * стёрто советом при подтверждении, поэтому второе одобрение с этим хэшем
- * создаётся без конфликта.
+ * Одобрение заводится под хэшем акта: ключ одобрения — одобряемый документ.
+ * Заявление председатель одобрял под хэшем заявления, процесс (повестка,
+ * проводка, пакет документов) идёт под хэшем взноса.
  *
  * @param coopname Наименование кооператива
  * @param username Наименование пайщика, передающего имущество
@@ -50,7 +50,7 @@ void capital::act1pgprp(eosio::name coopname, eosio::name username, checksum256 
     username,
     act,
     Names::Capital::SIGN_ACT1_PROGRAM_PROPERTY,
-    property_hash,
+    act.hash,
     _capital,
     Names::Capital::SIGN_ACT2_PROGRAM_PROPERTY,
     Names::Capital::DECLINE_PROGRAM_PROPERTY,
