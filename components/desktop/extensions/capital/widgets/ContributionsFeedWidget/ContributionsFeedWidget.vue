@@ -127,7 +127,7 @@ const columns: BaseTableColumn<FeedItem>[] = [
   { key: 'date', label: t('capital.contributionsFeed.column.date'), field: (row) => formatDateToHumanDateTime(row.date), width: '180px', nowrap: true },
   { key: 'title', label: t('capital.contributionsFeed.column.contribution'), field: (row) => row.title },
   { key: 'amount', label: t('capital.contributionsFeed.column.amount'), field: (row) => formatAsset2Digits(row.amount), numeric: true, nowrap: true, width: '170px' },
-  { key: 'status', label: t('capital.contributionsFeed.column.status'), field: (row) => row.status.label, nowrap: true, width: '220px' },
+  { key: 'status', label: t('capital.contributionsFeed.column.status'), field: (row) => row.status.label, nowrap: true, width: '320px' },
   { key: 'actions', label: '', field: () => '', nowrap: true, width: '170px', align: 'right' },
 ];
 

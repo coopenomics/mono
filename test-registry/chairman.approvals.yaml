@@ -188,3 +188,19 @@ cases:
     test: components/controller/tests/unit/chairman/chairman-rights.test.ts
     api: components/api-tests/src/chairman/approvals.test.ts
     status: written
+
+  - id: chair.appr.same-hash.01
+    level: backend
+    kind: side
+    scenario: >
+      Под одним approval_hash подряд идут два одобрения: заявление о взносе
+      имуществом и затем акт приёма-передачи. Первое председатель подтвердил,
+      совет стёр строку, второе пришло новой строкой цепи с новым id.
+    expect: >
+      второе одобрение ожидает подписи председателя и видно в «Запросах
+      одобрений»; подпись первого к нему не переносится; повтор той же строки
+      и её удаление статус не трогают
+    test: components/controller/tests/unit/chairman/approval-same-hash.test.ts
+    external: unreachable
+    external_reason: "второе одобрение под тем же хэшем даёт только прогон процесса взноса имуществом в цепи"
+    status: written

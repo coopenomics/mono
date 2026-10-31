@@ -33,7 +33,7 @@ export class ApprovalDomainEntity extends BaseDomainEntity<IApprovalDatabaseData
   public callback_action_decline!: IApprovalBlockchainData['callback_action_decline'];
   public meta!: IApprovalBlockchainData['meta'];
   public created_at!: Date;
-  public approved_document?: ISignedDocument;
+  public approved_document?: ISignedDocument | null;
 
   constructor(databaseData: IApprovalDatabaseData, blockchainData?: IApprovalBlockchainData) {
     // Вызываем конструктор базового класса
@@ -86,6 +86,17 @@ export class ApprovalDomainEntity extends BaseDomainEntity<IApprovalDatabaseData
   }
 
   updateFromBlockchain(blockchainData: IApprovalBlockchainData, blockNum: number, present = true): void {
+    // Одно и то же approval_hash может нести несколько одобрений подряд:
+    // взнос имуществом ставит председателю заявление, а после решения совета —
+    // акт, оба под хэшем взноса. Совет стирает одобрение при подтверждении,
+    // следующее создаётся новой строкой с новым id. Такая строка — новый запрос:
+    // статус и подпись прежнего к нему не относятся.
+    const isNextApproval = present && this.id !== undefined && Number(blockchainData.id) !== this.id;
+    if (isNextApproval) {
+      this.status = ApprovalStatus.PENDING;
+      this.approved_document = null;
+    }
+
     // Обновляем базовые поля через метод базового класса
     this.updateBase({
       block_num: blockNum,
@@ -94,6 +105,7 @@ export class ApprovalDomainEntity extends BaseDomainEntity<IApprovalDatabaseData
 
     // Обновляем специфичные поля из блокчейна
     Object.assign(this, blockchainData);
+    this.id = Number(blockchainData.id);
     this.created_at = new Date(blockchainData.created_at);
 
     // Статус не обновляется из блокчейна (он меняется только через мутации)
