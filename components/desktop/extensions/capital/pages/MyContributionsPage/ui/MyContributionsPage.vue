@@ -1,44 +1,34 @@
 <template lang="pug">
-//- Страница «Мои взносы» (решение владельца 30.10.2026): все паевые взносы
-//- пайщика в Благорост в одном месте — кнопки взносов в шапке, история
-//- внесённого и взносы имуществом с шагами процесса.
+//- Страница «Мои взносы» (решение владельца 30–31.10.2026): все паевые взносы
+//- пайщика в Благорост одной лентой — деньги, имущество и результаты; кнопки
+//- взносов в шапке.
 q-page.contributions(role='region', :aria-label='$t("capital.myContributionsPage.ariaLabel")')
   PageHint(storage-key='capital:my-contributions:banner-dismissed')
     | {{ $t('capital.myContributionsPage.hint') }}
 
-  PageTabs(:tabs='tabs', :active-key='activeKey', @select='(tab) => (activeKey = tab.key)')
-
-  ContributionsHistoryWidget(v-if='activeKey === "history"', ref='history')
-  ProgramPropertiesWidget(v-else, ref='properties')
+  ContributionsFeedWidget(ref='feed')
 </template>
 
 <script lang="ts" setup>
-import { computed, onMounted, ref } from 'vue';
+import { onMounted, ref } from 'vue';
 import { PageHint } from 'src/shared/ui/domain';
-import { PageTabs, type PageTab } from 'src/shared/ui/layout';
 import { useHeaderActions } from 'src/shared/hooks/useHeaderActions';
 import { CreateProgramInvestButton } from 'app/extensions/capital/features/ProgramInvest/CreateProgramInvest/ui';
 import { CreatePropertyContributionButton } from 'app/extensions/capital/features/ProgramProperty';
-import { ContributionsHistoryWidget, ProgramPropertiesWidget } from 'app/extensions/capital/widgets';
-import { t } from '../../../i18n';
+import { ContributionsFeedWidget } from 'app/extensions/capital/widgets';
 
 const { registerAction } = useHeaderActions();
+const feed = ref<InstanceType<typeof ContributionsFeedWidget> | null>(null);
 
-const activeKey = ref<string>('history');
-const tabs = computed<PageTab[]>(() => [
-  { key: 'history', label: t('capital.myContributionsPage.tabHistory') },
-  { key: 'property', label: t('capital.myContributionsPage.tabProperty') },
-]);
-
+// realtime: нет источника — страница только ставит кнопки в шапку; данные ленты живут в виджете по useLiveReload.
 onMounted(() => {
-  // Главные действия страницы — в правом верхнем углу топбара. После заявления
-  // об имуществе пайщик видит его на вкладке «Имущество».
+  // Главные действия страницы — в правом верхнем углу топбара.
   registerAction({ id: 'capital-contributions-money', component: CreateProgramInvestButton, order: 1 });
   registerAction({
     id: 'capital-contributions-property',
     component: CreatePropertyContributionButton,
     order: 2,
-    props: { onSubmitted: () => (activeKey.value = 'property') },
+    props: { onSubmitted: () => feed.value?.reload() },
   });
 });
 </script>

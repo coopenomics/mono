@@ -46,5 +46,4 @@ export * from './InvitationsListWidget';
 export * from './InvitationDetailsWidget';
 export * from './InvitationsListWidget';
 export * from './InvitationDetailsWidget';
-export * from './ProgramPropertiesWidget';
-export * from './ContributionsHistoryWidget';
+export * from './ContributionsFeedWidget';

@@ -143,7 +143,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             component: markRaw(MyContributionsPage),
             meta: {
               title: t('capital.install.contributionsRouteTitle'),
-              icon: 'savings',
+              icon: 'volunteer_activism',
               requires: 'CapitalDesk:use',
               agreements: agreementsBase,
               requiresAuth: true,

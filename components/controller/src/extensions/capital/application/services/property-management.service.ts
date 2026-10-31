@@ -199,6 +199,7 @@ export class PropertyManagementService {
       blockchain_status: property.blockchain_status,
       property_amount: property.property_amount,
       property_description: property.property_description,
+      property_form: position.property_form,
       property_name: position.property_name,
       property_details: position.property_description,
       property_quantity: position.property_quantity,

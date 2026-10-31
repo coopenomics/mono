@@ -14,6 +14,7 @@ const rawProgramPropertySelector = {
   blockchain_status: true,
   property_amount: true,
   property_description: true,
+  property_form: true,
   property_name: true,
   property_details: true,
   property_quantity: true,

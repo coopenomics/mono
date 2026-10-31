@@ -4581,6 +4581,8 @@ export type ValueTypes = {
 	property_description?:boolean | `@${string}`,
 	/** Описание, характеристики и состояние имущества из заявления */
 	property_details?:boolean | `@${string}`,
+	/** Форма имущества из заявления: thing — вещь, intangible — нематериальное имущество */
+	property_form?:boolean | `@${string}`,
 	/** Идентификатор паевого взноса имуществом */
 	property_hash?:boolean | `@${string}`,
 	/** Наименование имущества из заявления */
@@ -5607,6 +5609,8 @@ export type ValueTypes = {
 	property_amount: string | Variable<any, string>,
 	/** Описание, характеристики и состояние имущества */
 	property_description: string | Variable<any, string>,
+	/** Форма имущества: thing — вещь, intangible — нематериальное имущество (документ, методика, файл) */
+	property_form?: string | undefined | null | Variable<any, string>,
 	/** Идентификатор паевого взноса имуществом */
 	property_hash: string | Variable<any, string>,
 	/** Наименование имущества */
@@ -5641,6 +5645,8 @@ export type ValueTypes = {
 	property_amount: string | Variable<any, string>,
 	/** Описание, характеристики и состояние имущества */
 	property_description: string | Variable<any, string>,
+	/** Форма имущества: thing — вещь, intangible — нематериальное имущество (документ, методика, файл) */
+	property_form?: string | undefined | null | Variable<any, string>,
 	/** Идентификатор паевого взноса имуществом */
 	property_hash: string | Variable<any, string>,
 	/** Наименование имущества */
@@ -5691,6 +5697,8 @@ export type ValueTypes = {
 	property_amount: string | Variable<any, string>,
 	/** Описание, характеристики и состояние имущества */
 	property_description: string | Variable<any, string>,
+	/** Форма имущества: thing — вещь, intangible — нематериальное имущество (документ, методика, файл) */
+	property_form?: string | undefined | null | Variable<any, string>,
 	/** Идентификатор паевого взноса имуществом */
 	property_hash: string | Variable<any, string>,
 	/** Наименование имущества */
@@ -22868,6 +22876,8 @@ export type ResolverInputTypes = {
 	property_description?:boolean | `@${string}`,
 	/** Описание, характеристики и состояние имущества из заявления */
 	property_details?:boolean | `@${string}`,
+	/** Форма имущества из заявления: thing — вещь, intangible — нематериальное имущество */
+	property_form?:boolean | `@${string}`,
 	/** Идентификатор паевого взноса имуществом */
 	property_hash?:boolean | `@${string}`,
 	/** Наименование имущества из заявления */
@@ -23869,6 +23879,8 @@ export type ResolverInputTypes = {
 	property_amount: string,
 	/** Описание, характеристики и состояние имущества */
 	property_description: string,
+	/** Форма имущества: thing — вещь, intangible — нематериальное имущество (документ, методика, файл) */
+	property_form?: string | undefined | null,
 	/** Идентификатор паевого взноса имуществом */
 	property_hash: string,
 	/** Наименование имущества */
@@ -23903,6 +23915,8 @@ export type ResolverInputTypes = {
 	property_amount: string,
 	/** Описание, характеристики и состояние имущества */
 	property_description: string,
+	/** Форма имущества: thing — вещь, intangible — нематериальное имущество (документ, методика, файл) */
+	property_form?: string | undefined | null,
 	/** Идентификатор паевого взноса имуществом */
 	property_hash: string,
 	/** Наименование имущества */
@@ -23953,6 +23967,8 @@ export type ResolverInputTypes = {
 	property_amount: string,
 	/** Описание, характеристики и состояние имущества */
 	property_description: string,
+	/** Форма имущества: thing — вещь, intangible — нематериальное имущество (документ, методика, файл) */
+	property_form?: string | undefined | null,
 	/** Идентификатор паевого взноса имуществом */
 	property_hash: string,
 	/** Наименование имущества */
@@ -40615,6 +40631,8 @@ export type ModelTypes = {
 	property_description?: string | undefined | null,
 	/** Описание, характеристики и состояние имущества из заявления */
 	property_details?: string | undefined | null,
+	/** Форма имущества из заявления: thing — вещь, intangible — нематериальное имущество */
+	property_form?: string | undefined | null,
 	/** Идентификатор паевого взноса имуществом */
 	property_hash: string,
 	/** Наименование имущества из заявления */
@@ -41590,6 +41608,8 @@ export type ModelTypes = {
 	property_amount: string,
 	/** Описание, характеристики и состояние имущества */
 	property_description: string,
+	/** Форма имущества: thing — вещь, intangible — нематериальное имущество (документ, методика, файл) */
+	property_form?: string | undefined | null,
 	/** Идентификатор паевого взноса имуществом */
 	property_hash: string,
 	/** Наименование имущества */
@@ -41624,6 +41644,8 @@ export type ModelTypes = {
 	property_amount: string,
 	/** Описание, характеристики и состояние имущества */
 	property_description: string,
+	/** Форма имущества: thing — вещь, intangible — нематериальное имущество (документ, методика, файл) */
+	property_form?: string | undefined | null,
 	/** Идентификатор паевого взноса имуществом */
 	property_hash: string,
 	/** Наименование имущества */
@@ -41674,6 +41696,8 @@ export type ModelTypes = {
 	property_amount: string,
 	/** Описание, характеристики и состояние имущества */
 	property_description: string,
+	/** Форма имущества: thing — вещь, intangible — нематериальное имущество (документ, методика, файл) */
+	property_form?: string | undefined | null,
 	/** Идентификатор паевого взноса имуществом */
 	property_hash: string,
 	/** Наименование имущества */
@@ -58587,6 +58611,8 @@ export type GraphQLTypes = {
 	property_description?: string | undefined | null,
 	/** Описание, характеристики и состояние имущества из заявления */
 	property_details?: string | undefined | null,
+	/** Форма имущества из заявления: thing — вещь, intangible — нематериальное имущество */
+	property_form?: string | undefined | null,
 	/** Идентификатор паевого взноса имуществом */
 	property_hash: string,
 	/** Наименование имущества из заявления */
@@ -59612,6 +59638,8 @@ export type GraphQLTypes = {
 	property_amount: string,
 	/** Описание, характеристики и состояние имущества */
 	property_description: string,
+	/** Форма имущества: thing — вещь, intangible — нематериальное имущество (документ, методика, файл) */
+	property_form?: string | undefined | null,
 	/** Идентификатор паевого взноса имуществом */
 	property_hash: string,
 	/** Наименование имущества */
@@ -59646,6 +59674,8 @@ export type GraphQLTypes = {
 	property_amount: string,
 	/** Описание, характеристики и состояние имущества */
 	property_description: string,
+	/** Форма имущества: thing — вещь, intangible — нематериальное имущество (документ, методика, файл) */
+	property_form?: string | undefined | null,
 	/** Идентификатор паевого взноса имуществом */
 	property_hash: string,
 	/** Наименование имущества */
@@ -59696,6 +59726,8 @@ export type GraphQLTypes = {
 	property_amount: string,
 	/** Описание, характеристики и состояние имущества */
 	property_description: string,
+	/** Форма имущества: thing — вещь, intangible — нематериальное имущество (документ, методика, файл) */
+	property_form?: string | undefined | null,
 	/** Идентификатор паевого взноса имуществом */
 	property_hash: string,
 	/** Наименование имущества */

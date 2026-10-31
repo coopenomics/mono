@@ -27,7 +27,7 @@ sources:
     - components/controller/src/extensions/capital/domain/interfaces/capital-blockchain.port.ts
   ui:
     - components/desktop/extensions/capital/features/ProgramProperty/**
-    - components/desktop/extensions/capital/widgets/ProgramPropertiesWidget/**
+    - components/desktop/extensions/capital/widgets/ContributionsFeedWidget/**
 
 cases:
   - id: cap.pgprp.happy.01
@@ -173,7 +173,7 @@ cases:
       оценку и подписывает заявление; после решения совета нажимает «Подписать
       акт» на вкладке «Имущество».
     expect: >
-      заявление появляется на вкладке «Имущество» со статусом «На одобрении
+      заявление появляется в ленте «Мои взносы» со статусом «На одобрении
       председателя»; после подписи акта статус «Акт у председателя»; после
       подписи председателя — «Принято», взнос появляется в истории
     test: ~
@@ -184,5 +184,26 @@ cases:
     kind: side
     scenario: Пайщик открывает форму взноса имуществом и оставляет поле пустым или вводит нулевую оценку.
     expect: кнопка подачи заявления недоступна, под оценкой — пояснение
+    test: ~
+    status: missing
+
+  - id: cap.pgprp.ui.03
+    level: ui
+    kind: side
+    scenario: >
+      Пайщик заполняет форму взноса имуществом, закрывает окно без подачи,
+      открывает другую страницу и возвращается.
+    expect: форма открывается заполненной; после подачи заявления черновик очищается
+    test: ~
+    status: missing
+
+  - id: cap.pgprp.ui.04
+    level: ui
+    kind: side
+    scenario: Пайщик выбирает «Нематериальное имущество» — методику в виде документа.
+    expect: >
+      подписи и подсказки формы относятся к нематериальному имуществу, единица
+      по умолчанию — «экз.»; в заявлении, протоколе и акте форма имущества —
+      нематериальное имущество
     test: ~
     status: missing

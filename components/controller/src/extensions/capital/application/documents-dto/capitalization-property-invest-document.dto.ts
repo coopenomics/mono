@@ -1,8 +1,9 @@
 import { InputType, Field, Int, IntersectionType, OmitType } from '@nestjs/graphql';
-import { IsInt, IsNotEmpty, IsString } from 'class-validator';
+import { IsIn, IsInt, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 import { Type } from 'class-transformer';
 import { Registry } from '@coopenomics/docs-templates';
 import { SignedDigitalDocumentInputDTO, MetaDocumentInputDTO, GenerateMetaDocumentInputDTO } from '@coopenomics/extension-kit';
+import { ProgramPropertyForm } from '../../domain/enums/program-property-form.enum';
 
 // утилита для выборки повторяющихся параметров из базовых интерфейсов
 type ExcludeCommonProps<T> = Omit<T, 'coopname' | 'username' | 'registry_id'>;
@@ -19,6 +20,14 @@ class BaseCapitalizationPropertyInvestMetaDocumentInputDTO implements ExcludeCom
   @IsString()
   @IsNotEmpty()
   property_hash!: string;
+
+  @Field(() => String, {
+    nullable: true,
+    description: 'Форма имущества: thing — вещь, intangible — нематериальное имущество (документ, методика, файл)',
+  })
+  @IsOptional()
+  @IsIn(Object.values(ProgramPropertyForm))
+  property_form?: string;
 
   @Field({ description: 'Наименование имущества' })
   @IsString()

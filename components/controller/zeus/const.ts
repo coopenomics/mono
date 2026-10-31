@@ -5349,6 +5349,7 @@ export const ReturnTypes: Record<string,any> = {
 		property_amount:"String",
 		property_description:"String",
 		property_details:"String",
+		property_form:"String",
 		property_hash:"String",
 		property_name:"String",
 		property_quantity:"String",

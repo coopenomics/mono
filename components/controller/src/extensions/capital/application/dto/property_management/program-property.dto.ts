@@ -70,6 +70,12 @@ export class ProgramPropertyOutputDTO extends BaseOutputDTO {
 
   @Field(() => String, {
     nullable: true,
+    description: 'Форма имущества из заявления: thing — вещь, intangible — нематериальное имущество',
+  })
+  property_form?: string;
+
+  @Field(() => String, {
+    nullable: true,
     description: 'Наименование имущества из заявления',
   })
   property_name?: string;

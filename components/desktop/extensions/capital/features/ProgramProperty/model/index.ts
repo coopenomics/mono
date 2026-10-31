@@ -34,6 +34,7 @@ export function useProgramProperty() {
         coopname: system.info.coopname,
         username: session.username,
         property_hash: await generateUniqueHash(),
+        property_form: form.form,
         property_name: form.name.trim(),
         property_description: form.description.trim(),
         property_quantity: form.quantity.trim(),

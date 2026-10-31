@@ -15,7 +15,7 @@ sources:
     - components/controller/src/extensions/capital/domain/enums/contribution-kind.enum.ts
   ui:
     - components/desktop/extensions/capital/pages/MyContributionsPage/**
-    - components/desktop/extensions/capital/widgets/ContributionsHistoryWidget/**
+    - components/desktop/extensions/capital/widgets/ContributionsFeedWidget/**
     - components/desktop/extensions/capital/entities/Contribution/**
 
 cases:
@@ -45,9 +45,12 @@ cases:
     kind: happy
     scenario: >
       Пайщик открывает «Мои взносы»: в шапке кнопки «Внести деньгами» и «Внести
-      имуществом», на вкладке «История» — внесённые взносы с видом, датой и
-      суммой; запись открывает правую панель.
-    expect: история показывает взносы деньгами, имуществом и результатами; после взноса лента обновляется без перезагрузки страницы
+      имуществом», ниже — одна лента взносов с датой, видом, суммой и
+      состоянием; строка открывает правую панель.
+    expect: >
+      лента показывает взносы деньгами, имуществом (во всех статусах) и
+      результатами; принятое имущество стоит одной строкой; после взноса лента
+      обновляется без перезагрузки страницы
     test: ~
     status: missing
 

@@ -13,8 +13,12 @@ export type ICreateProgramPropertyInput = Mutations.Capital.CreateProgramPropert
 export type IGeneratePropertyActInput = Mutations.Capital.GenerateCapitalizationPropertyInvestAct.IInput['data'];
 export type ISignPropertyActInput = Mutations.Capital.SignProgramPropertyAct.IInput['data'];
 
+/** Форма имущества: вещь или нематериальное (документ, методика, файл). */
+export type PropertyFormKind = 'thing' | 'intangible';
+
 /** Позиция имущества, которую пайщик описывает в форме заявления. */
 export interface PropertyPositionForm {
+  form: PropertyFormKind;
   name: string;
   description: string;
   quantity: string;

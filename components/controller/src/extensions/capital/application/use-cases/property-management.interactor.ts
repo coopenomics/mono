@@ -17,6 +17,7 @@ import { t } from '../../i18n';
 /** Позиция имущества, как её несут заявление 1070, протокол 1071 и акт 1072. */
 export interface ProgramPropertyPosition {
   property_hash: string;
+  property_form?: string;
   property_name: string;
   property_description: string;
   property_quantity: string;
@@ -138,6 +139,7 @@ export class PropertyManagementInteractor {
     const meta = metaOf(property.statement);
     return {
       property_hash: property.property_hash,
+      property_form: meta.property_form ? String(meta.property_form) : undefined,
       property_name: String(meta.property_name ?? ''),
       property_description: String(meta.property_description ?? ''),
       property_quantity: String(meta.property_quantity ?? ''),
