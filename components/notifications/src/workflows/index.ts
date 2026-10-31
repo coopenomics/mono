@@ -62,6 +62,8 @@ import { workflow as edubridgeAccessGrantedWorkflow } from './edubridge-access-g
 import { workflow as edubridgeAccessExpiringWorkflow } from './edubridge-access-expiring';
 import { workflow as edubridgeAccessNeedsAttentionWorkflow } from './edubridge-access-needs-attention';
 import { workflow as edubridgeRidCouncilApprovedWorkflow } from './edubridge-rid-council-approved';
+import { workflow as capitalPropertyStatementApprovedWorkflow } from './capital-property-statement-approved';
+import { workflow as capitalPropertyAcceptedWorkflow } from './capital-property-accepted';
 import { workflow as branchVotingStartedWorkflow } from './branch-voting-started';
 import { workflow as branchMeetingReminderWorkflow } from './branch-meeting-reminder';
 import { workflow as branchTrustedRequestedWorkflow } from './branch-trusted-requested';
@@ -140,6 +142,8 @@ export * as EdubridgeAccessGranted from './edubridge-access-granted';
 export * as EdubridgeAccessExpiring from './edubridge-access-expiring';
 export * as EdubridgeAccessNeedsAttention from './edubridge-access-needs-attention';
 export * as EdubridgeRidCouncilApproved from './edubridge-rid-council-approved';
+export * as CapitalPropertyStatementApproved from './capital-property-statement-approved';
+export * as CapitalPropertyAccepted from './capital-property-accepted';
 export * as ExpenseAdvanceReportReminder from './expense-advance-report-reminder';
 // Epic 14 — биллинговые оповещения пайщикам
 export * as TrialEnding from './trial-ending';
@@ -213,6 +217,8 @@ export const allWorkflows: WorkflowDefinition[] = [
   edubridgeAccessExpiringWorkflow,
   edubridgeAccessNeedsAttentionWorkflow,
   edubridgeRidCouncilApprovedWorkflow,
+  capitalPropertyStatementApprovedWorkflow,
+  capitalPropertyAcceptedWorkflow,
   marketplaceAidCouncilDecidedWorkflow,
   branchVotingStartedWorkflow,
   branchMeetingReminderWorkflow,

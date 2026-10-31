@@ -27,6 +27,7 @@ import {
   LOGGER_PORT,
   MATRIX_ROOM_MESSAGING_PORT,
   MUTATION_LOG_PORT,
+  NOTIFICATION_PORT,
   DOCUMENT_DECLARATION_PORT,
   CHAIN_CHANGES_PORT,
   ONBOARDING_STEP_REGISTRY_PORT,
@@ -66,6 +67,8 @@ export const capitalPorts = {
     USER_WALLET_PORT,
     // История паевых взносов пайщика (деньги, имущество, РИД) — для страницы «Мои взносы».
     LEDGER2_HISTORY_PORT,
+    // Уведомления пайщику по взносу имуществом: заявление передано в совет, взнос принят.
+    NOTIFICATION_PORT,
     REGISTRATION_DOCUMENT_PARAMETERS_REGISTRY_PORT,
     REGISTRATION_REGISTRY_PORT,
     SECRET_CIPHER_PORT,

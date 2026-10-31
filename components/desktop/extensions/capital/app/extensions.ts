@@ -8,6 +8,7 @@ import { generateExpenseProposalDecisionDocument } from 'app/extensions/expenses
 import { useGenerateResultContributionDecision } from '../features/Result/GenerateResultContributionDecision/model';
 import { CreateResultDecisionInfoWidget } from '../widgets/CreateResultDecisionInfoWidget';
 import { programPropertyApi } from '../features/ProgramProperty';
+import { ProgramPropertyDecisionInfoWidget } from '../widgets/ProgramPropertyDecisionInfoWidget';
 import { t } from '../i18n';
 
 /**
@@ -39,6 +40,8 @@ function registerProgramPropertyDecisionHandler() {
         property_amount: meta.property_amount,
       });
     },
+    // Имущество и оценка прямо в вопросе повестки — без открытия заявления.
+    infoComponent: ProgramPropertyDecisionInfoWidget,
   });
 }
 

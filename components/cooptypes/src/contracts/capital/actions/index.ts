@@ -34,6 +34,7 @@ export * as SignAct1 from './signAct1'
 export * as SignAct2 from './signAct2'
 // Программные имущественные взносы (новые действия)
 export * as CreateProgramProperty from './createProgramProperty'
+export * as ApproveProgramProperty from './approveProgramProperty'
 export * as Act1ProgramProperty from './act1ProgramProperty'
 export * as Act2ProgramProperty from './act2ProgramProperty'
 export * as DeclineProgramProperty from './declineProgramProperty'

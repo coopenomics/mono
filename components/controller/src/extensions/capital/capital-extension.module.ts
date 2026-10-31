@@ -412,6 +412,7 @@ import { ShareTransferKyselyRepository } from './infrastructure/repositories/sha
 import { DebtManagementService } from './application/services/debt-management.service';
 import { PropertyManagementService } from './application/services/property-management.service';
 import { ContributionsHistoryService } from './application/services/contributions-history.service';
+import { ProgramPropertyNotificationListener } from './application/listeners/program-property-notification.listener';
 import { VotingService } from './application/services/voting.service';
 import { ResultSubmissionService } from './application/services/result-submission.service';
 import { DistributionManagementService } from './application/services/distribution-management.service';
@@ -892,6 +893,7 @@ IssueIdGenerationService,
     DebtManagementService,
     PropertyManagementService,
     ContributionsHistoryService,
+    ProgramPropertyNotificationListener,
     VotingService,
     ResultSubmissionService,
     DistributionManagementService,

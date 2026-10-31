@@ -25,8 +25,10 @@ sources:
     - components/controller/src/extensions/capital/infrastructure/repositories/program-property.kysely-repository.ts
     - components/controller/src/extensions/capital/domain/repositories/program-property.repository.ts
     - components/controller/src/extensions/capital/domain/interfaces/capital-blockchain.port.ts
+    - components/controller/src/extensions/capital/application/listeners/program-property-notification.listener.ts
   ui:
     - components/desktop/extensions/capital/features/ProgramProperty/**
+    - components/desktop/extensions/capital/widgets/ProgramPropertyDecisionInfoWidget/**
     - components/desktop/extensions/capital/widgets/ContributionsFeedWidget/**
 
 cases:
@@ -194,5 +196,26 @@ cases:
       Пайщик заполняет форму взноса имуществом, закрывает окно без подачи,
       открывает другую страницу и возвращается.
     expect: форма открывается заполненной; после подачи заявления черновик очищается
+    test: ~
+    status: missing
+
+  - id: cap.pgprp.be.06
+    level: backend
+    kind: side
+    scenario: Председатель одобрил заявление о взносе имуществом; позже подписал акт.
+    expect: >
+      пайщик получает уведомление «Заявление передано в совет» с наименованием
+      и оценкой, а после подписи акта — «Ваш взнос имуществом принят» с
+      зачисленной суммой; сбой отправки процесс не останавливает
+    test: components/controller/tests/unit/capital/program-property-notification.test.ts
+    external: unreachable
+    external_reason: "уведомление отправляет обработчик действий цепи — снаружи видно только прогоном процесса"
+    status: written
+
+  - id: cap.pgprp.ui.05
+    level: ui
+    kind: side
+    scenario: Член совета открывает вопрос повестки о приёме имущества.
+    expect: в вопросе видны пайщик, наименование, оценка, количество и описание имущества без открытия заявления
     test: ~
     status: missing

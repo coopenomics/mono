@@ -1983,6 +1983,12 @@
       "documentsSection": "Документы",
       "signAct": "Подписать акт",
       "signed": "Акт подписан и направлен председателю"
+    },
+    "programPropertyDecisionInfo": {
+      "title": "Паевой взнос имуществом",
+      "applicantLabel": "Пайщик",
+      "quantityLabel": "Количество",
+      "descriptionLabel": "Описание, характеристики и состояние"
     }
   }
 }
