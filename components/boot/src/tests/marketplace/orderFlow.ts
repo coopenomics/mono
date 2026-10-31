@@ -83,7 +83,7 @@ export async function placeOrder(args: {
 
   const sp: any = await gqlAs(token, `query{
     marketplaceCheckoutSignablePayloads{
-      lines{ offer_id package_id order_hash amount membership_fee from_member from_program from_wallet }
+      lines{ offer_id package_id order_hash amount membership_fee from_program from_wallet }
       convert{ amount membership_fee document{ full_title html hash meta binary } }
     }
   }`)

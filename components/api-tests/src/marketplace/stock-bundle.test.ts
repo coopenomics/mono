@@ -159,9 +159,12 @@ describe('Стол заказов: бандл у стойки — две стр�
     expect(amount(stale.convert.amount), 'первая строка в заявление не входит').toBeLessThan(withFee(second) + withFee(topup))
 
     // Между показом и подписью остаток кошельков изменился — прежнее заявление не принимается.
+    // Отменённый заказ поднимает свободный паевой, только если он дороже остатка: недостающее
+    // транслируется с главного паевого, а отмена возвращает на свободный паевой всю сумму.
+    // Заказ дешевле остатка берётся со свободного паевого и возвращается на свободный паевой — остаток не меняется.
     const staleConvert = await signDocument(buyer.wif, stale.convert.document, buyer.account, 1)
     const staleLines = await signedLines(stale)
-    const moved = await leave(withFee(second) / 4)
+    const moved = await leave(share + withFee(second) / 4)
     expect(moved['w.mkt.share'] ?? 0, 'свободный паевой вырос').toBeGreaterThan(share + 0.005)
     const refused = await gqlError(buyerToken, FINALIZE, { d: { proposal_id: proposalId, order_lines: staleLines, signed_convert: staleConvert } })
     expect(['MARKETPLACE_CONVERT_AMOUNT_CHANGED', 'MARKETPLACE_CONVERT_FEE_CHANGED'], JSON.stringify(refused)).toContain(String(refused?.code))
