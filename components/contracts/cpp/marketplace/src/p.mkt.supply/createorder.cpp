@@ -116,6 +116,7 @@ void marketplace::createorder(eosio::name coopname,
                                 Marketplace::Memo::get_secure_part_lock_memo(new_id));
   // ── тело: o.mkt.lockp со свободного паевого программы, остаток o.mkt.lock с ЦК ──
   Marketplace::lock_order_body(coopname, new_id, orderer, order_hash, total_cost,
+                               membership_fee,
                                Marketplace::Memo::get_stock_order_block_memo(new_id),
                                Marketplace::Memo::get_create_order_block_memo(new_id));
 }

@@ -10,7 +10,11 @@
  *     первой операцией его нитки, без проводки;
  *   • со свободного паевого сначала обеспечительная часть (o.mkt.fee), затем
  *     тело (o.mkt.lockp);
- *   • stockorder без покрытой обеспечительной части отвергается так же.
+ *   • stockorder без покрытой обеспечительной части отвергается так же;
+ *   • свободного паевого хватает на обеспечительную часть, но не на тело —
+ *     остаток тела берётся с главного паевого (o.mkt.lock), и контракт
+ *     учитывает, что обеспечительная часть уже взята в том же действии
+ *     (mkt.order.side.43).
  *
  * Живой стенд с сидом docs-harness (фикстуры пайщиков в state/). Контрактные
  * шаги идут напрямую в цепь ключом кооператива (как это делает бэкенд).
@@ -36,6 +40,8 @@ let ekaterinaToken = ''
 let chairmanToken = ''
 let offer: any
 let unitPrice = 0
+/** Заказ случая mkt.order.side.34 — его отмена возвращает на свободный паевой стоимость и обеспечительную часть. */
+let side34OrderHash = ''
 
 function sha256Hex(s: string): string {
   return require('node:crypto').createHash('sha256').update(s).digest('hex')
@@ -124,6 +130,7 @@ describe('Стол заказов: заявление 1110 о трансляци
       marketplaceCheckoutCart(input:$i){ fully_completed created_orders{ id order_hash } failed_lines{ reason } }
     }`, { i: { lines: [{ offer_id: offer.id, package_id: null, order_hash: line.order_hash }], signed_convert: signed } })
     expect(co.marketplaceCheckoutCart.fully_completed, JSON.stringify(co.marketplaceCheckoutCart.failed_lines)).toBe(true)
+    side34OrderHash = line.order_hash
 
     const orderOps = await waitForOps(chairmanToken, line.order_hash, ['o.mkt.conv', 'o.mkt.fee'])
     expect(amount(orderOps.find(r => r.operationCode === 'o.mkt.conv')!.quantity), 'транслирована ровно сумма заявления, и трансляция — в нитке заказа').toBeCloseTo(amount(preview.convert.amount), 2)
@@ -164,4 +171,40 @@ describe('Стол заказов: заявление 1110 о трансляци
       },
     }])).rejects.toThrow(/MARKETPLACE_SECURE_PART_SHORTFALL/)
   }, 120_000)
+
+  it('mkt.order.side.43: свободного паевого хватает на обеспечительную часть, но не на тело — остаток тела с главного паевого, обеспечительная часть не учитывается дважды', async () => {
+    expect(side34OrderHash, 'нужен заказ случая mkt.order.side.34').not.toBe('')
+    // Отмена до акцепта возвращает на свободный паевой стоимость и обеспечительную часть одной единицы.
+    await bc.transactWithLogs([{
+      account: 'marketplace',
+      name: 'cancelorder',
+      authorization: [{ actor: COOPNAME, permission: 'active' }],
+      data: { coopname: COOPNAME, orderer: ekaterina.account, order_hash: side34OrderHash },
+    }])
+    const refunded = await waitForOps(chairmanToken, side34OrderHash, ['o.mkt.unlock', 'o.mkt.refund'])
+    const share = sumOf(refunded, 'o.mkt.unlock') + sumOf(refunded, 'o.mkt.refund')
+    await ensureShareFunds(ekaterina.account, unitPrice * 4, ekaterinaToken)
+
+    // Заказ на две единицы напрямую в цепь, без заявления: свободного паевого
+    // хватает на обеспечительную часть двух единиц, но не на неё вместе с телом.
+    const orderHash = sha256Hex(`side43|${Date.now()}`)
+    await createOrderDirect(orderHash, 2)
+    const ops = await waitForOps(chairmanToken, orderHash, ['o.mkt.fee', 'o.mkt.lock'])
+    const fee = sumOf(ops, 'o.mkt.fee')
+    const fromShare = sumOf(ops, 'o.mkt.lockp')
+    const fromWallet = sumOf(ops, 'o.mkt.lock')
+    expect(fee, 'обеспечительная часть двух единиц покрыта свободным паевым').toBeLessThanOrEqual(share + 0.005)
+    expect(fee + fromShare, 'со свободного паевого взято ровно то, что на нём было, — обеспечительная часть не учтена дважды').toBeCloseTo(share, 2)
+    expect(fromWallet, 'остаток тела — с главного паевого').toBeGreaterThan(0)
+    expect(fromShare + fromWallet, 'тело двух единиц целиком паевым резервом').toBeCloseTo(unitPrice * 2, 2)
+    expect(sumOf(ops, 'o.mkt.conv'), 'трансляции по заявлению в этом заказе нет').toBeCloseTo(0, 2)
+
+    // Заказ создан мимо контроллера — отменяем, чтобы резерв не держал пайщицу.
+    await bc.transactWithLogs([{
+      account: 'marketplace',
+      name: 'cancelorder',
+      authorization: [{ actor: COOPNAME, permission: 'active' }],
+      data: { coopname: COOPNAME, orderer: ekaterina.account, order_hash: orderHash },
+    }])
+  }, 300_000)
 })

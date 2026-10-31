@@ -63,6 +63,9 @@ void marketplace::issueact2(eosio::name coopname,
   const eosio::asset fact_fee = locked_fee.amount > 0
       ? Marketplace::pro_rata(locked_fee, fact_cost.amount, o.total_cost.amount)
       : eosio::asset(0, _root_govern_symbol);
+  // Доплата обеспечительной части берётся со свободного паевого инлайн-операцией:
+  // доплата тела ниже обязана вычесть её из остатка, который ещё виден без неё.
+  eosio::asset fee_taken(0, _root_govern_symbol);
   if (fact_fee < locked_fee) {
     Marketplace::refund_secure_part(coopname, o, locked_fee - fact_fee);
   } else if (fact_fee > locked_fee) {
@@ -75,6 +78,7 @@ void marketplace::issueact2(eosio::name coopname,
                    ". Сначала подайте заявление о трансляции паевого взноса в программу.");
     Marketplace::lock_secure_part(coopname, o.orderer, o.hash, fee_diff,
                                   Marketplace::Memo::get_secure_part_topup_memo(o.id));
+    fee_taken = fee_diff;
   }
 
   // ── 2. Корректировка резерва по факту ──
@@ -89,7 +93,7 @@ void marketplace::issueact2(eosio::name coopname,
     const eosio::asset diff = fact_cost - o.total_cost;
     // Доплата тела теми же паевыми кошельками, что и заказ: свободный паевой
     // программы, остаток — Цифровой кошелёк (при нехватке — отказ с суммами).
-    Marketplace::lock_order_body(coopname, o.id, o.orderer, o.hash, diff,
+    Marketplace::lock_order_body(coopname, o.id, o.orderer, o.hash, diff, fee_taken,
                                  Marketplace::Memo::get_issue_correction_more_block_memo(o.id),
                                  Marketplace::Memo::get_issue_correction_more_block_memo(o.id));
   }

@@ -388,19 +388,29 @@ inline void require_order_funding(eosio::name coopname, eosio::name orderer,
 /// возвратах), остаток — с главного паевого Цифрового кошелька w.wal.share.
 /// Обе части ложатся одним паевым резервом w.mkt.order (o.mkt.lockp и
 /// o.mkt.lock, без проводок — все кошельки на 80). При нехватке — отказ.
+///
+/// `share_taken` — сколько это же действие уже взяло со свободного паевого
+/// (обеспечительная часть, o.mkt.fee). Ledger2::apply — инлайн-действие: оно
+/// исполнится после текущего, и таблица кошельков ещё показывает остаток до
+/// него. Без вычета тело взяло бы со свободного паевого больше, чем на нём
+/// останется, и ledger2 отверг бы перевод без кода (задача 99D-18).
 inline void lock_order_body(eosio::name coopname, uint64_t order_id, eosio::name orderer,
                             const checksum256& order_hash, const eosio::asset& body,
+                            const eosio::asset& share_taken,
                             const std::string& program_memo, const std::string& wallet_memo) {
   if (body.amount <= 0) return;
   auto program = get_user_wallet_balance(coopname, ledger2_wallets::MARKETPLACE_SHARE_FUND, orderer);
-  const eosio::asset from_program = program.available >= body ? body : program.available;
+  const eosio::asset share_left = program.available > share_taken
+      ? program.available - share_taken
+      : eosio::asset(0, _root_govern_symbol);
+  const eosio::asset from_program = share_left >= body ? body : share_left;
   const eosio::asset from_wallet  = body - from_program;
   if (from_wallet.amount > 0) {
     auto wallet = get_user_wallet_balance(coopname, ledger2_wallets::SHARE_FUND_PAY, orderer);
     eosio::check(wallet.available >= from_wallet,
                  std::string{"Недостаточно паевых средств для заказа: требуется с Цифрового кошелька "} +
                    from_wallet.to_string() + ", доступно " + wallet.available.to_string() +
-                   " (свободный паевой Стола заказов " + program.available.to_string() + " уже учтён)");
+                   " (свободный паевой Стола заказов " + share_left.to_string() + " уже учтён)");
   }
   if (from_program.amount > 0) {
     Ledger2::apply(_marketplace, coopname,
