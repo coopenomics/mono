@@ -96,7 +96,7 @@ import { MARKETPLACE_WRITEOFF_PROPOSAL_REPOSITORY } from '../domain/repositories
 import { MARKETPLACE_CART_REPOSITORY } from '../domain/repositories/marketplace-cart.repository';
 import { MARKETPLACE_SUPPLIER_SETTINGS_REPOSITORY } from '../domain/repositories/marketplace-supplier-settings.repository';
 import { MarketplaceLiveFeedSubscriber } from './realtime/marketplace-live-feed.subscriber';
-import { MARKETPLACE_INVENTORY_STORE, MARKETPLACE_ORDER_STORE, marketplaceStoreProviders } from './database/marketplace-stores';
+import { MARKETPLACE_INVENTORY_STORE, MARKETPLACE_ORDER_STORE, MARKETPLACE_SECURE_DUE_STORE, marketplaceStoreProviders } from './database/marketplace-stores';
 
 @Module({
   providers: [
@@ -268,6 +268,8 @@ import { MARKETPLACE_INVENTORY_STORE, MARKETPLACE_ORDER_STORE, marketplaceStoreP
     // Шлюзы, которыми пользуются фоновые задачи слоя application.
     MARKETPLACE_INVENTORY_STORE,
     MARKETPLACE_ORDER_STORE,
+    // Учёт обеспечительной части к списанию (задача 99D-18): сервис списания в слое приложения.
+    MARKETPLACE_SECURE_DUE_STORE,
     CATEGORY_DOMAIN_REPOSITORY,
     TYPE_DOMAIN_REPOSITORY,
     AVAILABLE_CATEGORY_DOMAIN_REPOSITORY,
