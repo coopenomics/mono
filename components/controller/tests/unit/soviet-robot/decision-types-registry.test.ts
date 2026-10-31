@@ -29,7 +29,6 @@ const NOT_AUTOMATABLE: Record<string, string> = {
   capwthdrprog: 'возврат членских взносов по программе: шаблон протокола не описан',
   createdebt: 'ссуда под будущее задание: шаблон протокола не описан',
   createprj: 'повестка проекта Благороста: имени нет даже в soviet_actions контракта',
-  createpgprp: 'повестка программного имущественного взноса: имени нет даже в soviet_actions',
 };
 
 function sources(dir: string): string[] {
