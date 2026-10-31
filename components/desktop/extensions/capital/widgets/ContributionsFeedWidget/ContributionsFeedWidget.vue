@@ -18,6 +18,15 @@
       .contrib-feed__subject(v-if='row.subject') {{ row.subject }}
     template(#cell-status='{ row }')
       BaseBadge(:variant='row.status.variant') {{ row.status.label }}
+    //- Ход за пайщиком — кнопка прямо в строке, без захода в панель.
+    template(#cell-actions='{ row }')
+      BaseButton(
+        v-if='row.needsAction && row.property && canSignAct(row.property)',
+        variant='secondary',
+        size='sm',
+        :loading='signingKey === row.key',
+        @click.stop='sign(row.property, row.key)'
+      ) {{ $t('capital.contributionsFeed.signAct') }}
 
   EmptyState(
     v-else,
@@ -71,7 +80,7 @@
       )
 
     template(#footer, v-if='selected?.property && canSignAct(selected.property)')
-      BaseButton(variant='primary', :loading='isSubmitting', @click='sign(selected.property)') {{ $t('capital.contributionsFeed.signAct') }}
+      BaseButton(variant='primary', :loading='signingKey === selected.key', @click='sign(selected.property, selected.key)') {{ $t('capital.contributionsFeed.signAct') }}
 </template>
 
 <script setup lang="ts">
@@ -89,14 +98,17 @@ import { formatDateToHumanDateTime } from 'src/shared/lib/utils/dates/formatDate
 import { useSessionStore } from 'src/entities/Session';
 import { programPropertyApi, useProgramProperty, type IProgramProperty } from 'app/extensions/capital/features/ProgramProperty';
 import { contributionApi, type IContribution } from 'app/extensions/capital/entities/Contribution';
+import { refreshMenuBadges } from 'src/shared/lib/menuBadges';
 import { buildFeed, type FeedItem } from './feed';
+import { CONTRIBUTIONS_ROUTE } from './attention';
 import { t } from '../../i18n';
 
 const Status = Zeus.ProgramPropertyStatus;
 const PAGE_SIZE = 50;
 
 const session = useSessionStore();
-const { signAct, isSubmitting } = useProgramProperty();
+const { signAct } = useProgramProperty();
+const signingKey = ref<string | null>(null);
 
 const properties = ref<IProgramProperty[]>([]);
 const contributions = ref<IContribution[]>([]);
@@ -116,6 +128,7 @@ const columns: BaseTableColumn<FeedItem>[] = [
   { key: 'title', label: t('capital.contributionsFeed.column.contribution'), field: (row) => row.title },
   { key: 'amount', label: t('capital.contributionsFeed.column.amount'), field: (row) => formatAsset2Digits(row.amount), numeric: true, nowrap: true, width: '170px' },
   { key: 'status', label: t('capital.contributionsFeed.column.status'), field: (row) => row.status.label, nowrap: true, width: '220px' },
+  { key: 'actions', label: '', field: () => '', nowrap: true, width: '170px', align: 'right' },
 ];
 
 const steps = computed<StepperStep[]>(() => [
@@ -186,13 +199,17 @@ async function loadMore(): Promise<void> {
   await load();
 }
 
-async function sign(p: IProgramProperty): Promise<void> {
+async function sign(p: IProgramProperty, key: string): Promise<void> {
+  signingKey.value = key;
   try {
     await signAct(p);
     SuccessAlert(t('capital.contributionsFeed.signed'));
     await live.refresh();
+    void refreshMenuBadges([CONTRIBUTIONS_ROUTE]);
   } catch (e: unknown) {
     FailAlert(e);
+  } finally {
+    signingKey.value = null;
   }
 }
 

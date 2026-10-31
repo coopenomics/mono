@@ -26,6 +26,8 @@ export interface FeedItem {
   amount: string;
   date: string;
   status: FeedStatus;
+  /** Ход за пайщиком: решение совета принято, акт ждёт его подписи. */
+  needsAction: boolean;
   property?: IProgramProperty;
   contribution?: IContribution;
 }
@@ -77,6 +79,7 @@ export function buildFeed(properties: IProgramProperty[], contributions: IContri
     amount: p.property_amount ?? '',
     date: p.created_at ?? p._created_at,
     status: propertyStatusOf(p),
+    needsAction: p.status === Status.AUTHORIZED,
     property: p,
   }));
 
@@ -92,6 +95,7 @@ export function buildFeed(properties: IProgramProperty[], contributions: IContri
         amount: c.amount,
         date: c.created_at,
         status: { label: t('capital.contributionsFeed.status.contributed'), variant: 'pos' },
+        needsAction: false,
         contribution: c,
       };
     });

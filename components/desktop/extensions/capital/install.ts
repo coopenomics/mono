@@ -39,6 +39,10 @@ import { ComponentHistoryPage } from './pages/ComponentHistoryPage';
 import { ActivityFeedPage } from './pages/ActivityFeedPage';
 import { registerCapitalDecisionHandlers } from './app/extensions';
 import { registerExpenseWallet } from 'src/shared/lib/expense-wallets';
+import { refreshMenuBadges, registerMenuBadge } from 'src/shared/lib/menuBadges';
+import { liveTable, registerLiveReload } from 'src/shared/lib/realtime';
+import { CapitalContract } from 'cooptypes';
+import { CONTRIBUTIONS_ROUTE, contributionsAttentionCount } from './widgets/ContributionsFeedWidget';
 import { ComponentsListPage } from './pages/ComponentsListPage';
 import {
   buildProjectTreeChildren,
@@ -52,6 +56,20 @@ import { t } from './i18n';
 export default async function (): Promise<IWorkspaceConfig[]> {
   // Регистрируем обработчики решений для расширения capital
   registerCapitalDecisionHandlers();
+  // Пункт «Мои взносы»: сколько актов приёма-передачи имущества ждут подписи
+  // пайщика. Число меняется по факту из цепи — решение совета, подпись акта.
+  registerMenuBadge(CONTRIBUTIONS_ROUTE, async () => {
+    try {
+      return await contributionsAttentionCount();
+    } catch {
+      // Свои взносы читает только вошедший пайщик — без входа числа нет.
+      return 0;
+    }
+  });
+  registerLiveReload(
+    [liveTable(CapitalContract, CapitalContract.Tables.ProgramProperties), { code: 'capital', table: 'capital_program_properties' }],
+    () => refreshMenuBadges([CONTRIBUTIONS_ROUTE]),
+  );
   // Пул расходов программы — в общесистемный реестр кошельков расходов
   // (страница «Расходы» стола совета собирает пулы всех расширений).
   registerExpenseWallet({
