@@ -77,7 +77,7 @@ export function buildFeed(properties: IProgramProperty[], contributions: IContri
     title: titleOf('property'),
     subject: p.property_name || p.property_description || null,
     amount: p.property_amount ?? '',
-    date: p.created_at ?? p._created_at,
+    date: String(p.created_at ?? p._created_at ?? ''),
     status: propertyStatusOf(p),
     needsAction: p.status === Status.AUTHORIZED,
     property: p,

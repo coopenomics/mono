@@ -14,7 +14,7 @@ export async function contributionsAttentionCount(): Promise<number> {
   if (!session.username) return 0;
   const page = await programPropertyApi.loadProgramProperties({
     filter: { username: session.username, status: Zeus.ProgramPropertyStatus.AUTHORIZED },
-    options: { page: 1, limit: 1 },
+    options: { page: 1, limit: 1, sortOrder: 'DESC' },
   });
   return page.totalCount;
 }
