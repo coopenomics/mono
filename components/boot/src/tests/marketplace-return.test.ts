@@ -127,7 +127,11 @@ describe('стол заказов — денежные места гаранти
       actualQuantity: QTY,
       actualUnitPrice: unitPrice,
     })
-    const supply = await waitForOps(chairmanToken, orderHash, ['o.mkt.consum', 'o.brn.common'])
+    // Выдача переводит обеспечительную часть к списанию (o.mkt.todue); членским
+    // взносом участка она станет только при списании первого числа месяца после
+    // гарантийного срока, поэтому зачисления участку на выдаче нет (задача 99D-18).
+    const supply = await waitForOps(chairmanToken, orderHash, ['o.mkt.consum', 'o.mkt.todue'])
+    expect(sumOf(supply, 'o.brn.common'), 'на выдаче участку ничего не зачисляется').toBeCloseTo(0, 2)
     consumBefore = sumOf(supply, 'o.mkt.consum')
     expect(consumBefore, 'заказ обязан быть выдан целиком до возврата').toBeCloseTo(QTY * unitPrice, 2)
   }, 600_000)
