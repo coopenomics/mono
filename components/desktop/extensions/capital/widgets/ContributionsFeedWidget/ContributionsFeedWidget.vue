@@ -55,7 +55,6 @@
 
       template(v-if='selected.property')
         DataRow(:label='$t("capital.contributionsFeed.nameLabel")', :value='selected.property.property_name || "______"')
-        DataRow(:label='$t("capital.contributionsFeed.formLabel")', :value='formLabelOf(selected.property)')
         DataRow(:label='$t("capital.contributionsFeed.quantityLabel")', :value='quantityOf(selected.property)')
         DataRow(
           :label='$t("capital.contributionsFeed.descriptionLabel")',
@@ -159,10 +158,6 @@ function canSignAct(p: IProgramProperty): boolean {
 
 function quantityOf(p: IProgramProperty): string {
   return [p.property_quantity, p.property_unit].filter(Boolean).join(' ') || '______';
-}
-
-function formLabelOf(p: IProgramProperty): string {
-  return p.property_form === 'intangible' ? t('capital.contributionsFeed.form.intangible') : t('capital.contributionsFeed.form.thing');
 }
 
 function documentsOf(p: IProgramProperty) {

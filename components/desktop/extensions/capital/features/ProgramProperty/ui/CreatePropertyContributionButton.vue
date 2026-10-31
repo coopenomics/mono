@@ -18,21 +18,10 @@ div
   )
     BaseForm(:loading='isSubmitting', @submit='submit')
       p.t-sm.t-muted.q-mt-none {{ $t('capital.createPropertyContributionButton.intro') }}
-      .property-form__kinds
-        BaseRadioCard(
-          v-for='kind in kinds',
-          :key='kind',
-          name='property-form',
-          :model-value='form.form',
-          :value='kind',
-          :title='$t(`capital.createPropertyContributionButton.form.${kind}.title`)',
-          :description='$t(`capital.createPropertyContributionButton.form.${kind}.description`)',
-          @update:model-value='selectKind(kind)'
-        )
       BaseInput(
         v-model='form.name',
         :label='$t("capital.createPropertyContributionButton.nameLabel")',
-        :placeholder='$t(`capital.createPropertyContributionButton.form.${form.form}.namePlaceholder`)',
+        :placeholder='$t("capital.createPropertyContributionButton.namePlaceholder")',
         required
       )
       BaseInput(
@@ -40,13 +29,23 @@ div
         type='textarea',
         autogrow,
         :rows='3',
-        :label='$t(`capital.createPropertyContributionButton.form.${form.form}.descriptionLabel`)',
-        :hint='$t(`capital.createPropertyContributionButton.form.${form.form}.descriptionHint`)',
+        :label='$t("capital.createPropertyContributionButton.descriptionLabel")',
+        :hint='$t("capital.createPropertyContributionButton.descriptionHint")',
         required
       )
       .property-form__row
-        BaseInput(v-model='form.quantity', :label='$t("capital.createPropertyContributionButton.quantityLabel")', required)
-        BaseInput(v-model='form.unit', :label='$t("capital.createPropertyContributionButton.unitLabel")', required)
+        BaseInput(
+          v-model='form.quantity',
+          :label='$t("capital.createPropertyContributionButton.quantityLabel")',
+          :placeholder='$t("capital.createPropertyContributionButton.quantityPlaceholder")',
+          required
+        )
+        BaseInput(
+          v-model='form.unit',
+          :label='$t("capital.createPropertyContributionButton.unitLabel")',
+          :placeholder='$t("capital.createPropertyContributionButton.unitPlaceholder")',
+          required
+        )
       AmountInput(
         v-model='form.amount',
         :label='$t("capital.createPropertyContributionButton.amountLabel")',
@@ -71,12 +70,12 @@ div
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue';
 import { LocalStorage } from 'quasar';
-import { BaseButton, BaseDialog, BaseForm, BaseInput, BaseRadioCard } from 'src/shared/ui/base';
+import { BaseButton, BaseDialog, BaseForm, BaseInput } from 'src/shared/ui/base';
 import { AmountInput } from 'src/shared/ui/domain/AmountInput';
 import { FailAlert, SuccessAlert } from 'src/shared/api/alerts';
 import { useSystemStore } from 'src/entities/System/model';
 import { useSessionStore } from 'src/entities/Session';
-import { useProgramProperty, type PropertyFormKind, type PropertyPositionForm } from '../model';
+import { useProgramProperty, type PropertyPositionForm } from '../model';
 import { t } from '../../../i18n';
 
 const emit = defineEmits<{ submitted: [] }>();
@@ -85,9 +84,7 @@ const system = useSystemStore();
 const session = useSessionStore();
 const { submitStatement, isSubmitting } = useProgramProperty();
 
-const kinds: PropertyFormKind[] = ['thing', 'intangible'];
-const defaultUnit = (kind: PropertyFormKind) => t(`capital.createPropertyContributionButton.form.${kind}.unitDefault`);
-const blank = (): PropertyPositionForm => ({ form: 'thing', name: '', description: '', quantity: '1', unit: defaultUnit('thing'), amount: null });
+const blank = (): PropertyPositionForm => ({ name: '', description: '', quantity: '', unit: '', amount: null });
 
 // Черновик заявления хранится до подачи: окно закрыли, подписали договор,
 // вернулись — форма заполнена. Ключ свой у каждого пайщика.
@@ -110,12 +107,6 @@ const amountError = computed(() =>
   form.amount != null && !isValidAmount.value ? t('capital.createPropertyContributionButton.amountPositiveError') : undefined,
 );
 
-/** Смена формы имущества меняет единицу по умолчанию, если пайщик её не трогал. */
-function selectKind(kind: PropertyFormKind): void {
-  if (form.unit === defaultUnit(form.form)) form.unit = defaultUnit(kind);
-  form.form = kind;
-}
-
 async function submit(): Promise<void> {
   if (!isValid.value) return;
   try {
@@ -132,16 +123,9 @@ async function submit(): Promise<void> {
 </script>
 
 <style scoped lang="scss">
-.property-form__kinds,
 .property-form__row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: var(--p-3);
-}
-
-@media (max-width: 600px) {
-  .property-form__kinds {
-    grid-template-columns: minmax(0, 1fr);
-  }
 }
 </style>
