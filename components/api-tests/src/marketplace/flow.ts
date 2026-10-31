@@ -92,7 +92,7 @@ export async function pickOffer(supplierAccount: string, braname = KRG, preferNa
 
 /**
  * Оформление заказа: корзина → превью → оформление. Заявление 1110 из
- * превью (если членского кошелька не хватает) подписывается ключом пайщика.
+ * превью (если свободного паевого не хватает) подписывается ключом пайщика.
  */
 export async function placeOrder(args: { who: Who, offerId: string, quantity: number, braname?: string }): Promise<{ orderId: string, orderHash: string }> {
   const { who, offerId, quantity, braname = KRG } = args
@@ -108,7 +108,7 @@ export async function placeOrder(args: { who: Who, offerId: string, quantity: nu
   })
   const sp = await gql<any>(token, `query{
     marketplaceCheckoutSignablePayloads{
-      lines{ offer_id package_id order_hash amount membership_fee from_member from_program from_wallet }
+      lines{ offer_id package_id order_hash amount membership_fee from_program from_wallet }
       convert{ amount membership_fee document{ full_title html hash meta binary } }
     }
   }`)

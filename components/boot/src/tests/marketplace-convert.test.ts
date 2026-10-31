@@ -1,15 +1,16 @@
 /**
- * Заявление 1110 и внутренний членский кошелёк Стола заказов — денежные места
- * паевой модели по уточнению владельца 06.09.2026 (реестр: mkt.order.side.33,
- * mkt.order.side.34, mkt.stock.side.08):
- *   • createorder без подготовленного членского кошелька (взнос не покрыт) —
- *     контракт отвергает с подсказкой подать заявление; средств не трогает;
- *   • перевод по заявлению (convert) кладёт на членский кошелёк ровно членскую
- *     часть, после чего тот же createorder проходит; перевод адресован заказу и
- *     идёт первой операцией его нитки (уточнение владельца 08.09.2026);
- *   • заявление — на тело плюс взнос за вычетом остатка членского кошелька;
- *     тело всегда ложится паевым резервом (o.mkt.lock);
- *   • stockorder без покрытого взноса отвергается так же, как createorder.
+ * Заявление 1110 о трансляции паевого взноса и обеспечительная часть Стола
+ * заказов (задача 99D-18; реестр: mkt.order.side.33, mkt.order.side.34,
+ * mkt.stock.side.08):
+ *   • createorder, когда свободного паевого Стола заказов не хватает на
+ *     обеспечительную часть, — контракт отвергает с кодом
+ *     MARKETPLACE_SECURE_PART_SHORTFALL; средств не трогает;
+ *   • трансляция по заявлению (convert) кладёт на свободный паевой ровно сумму
+ *     заявления, после чего заказ проходит; трансляция адресована заказу и идёт
+ *     первой операцией его нитки, без проводки;
+ *   • со свободного паевого сначала обеспечительная часть (o.mkt.fee), затем
+ *     тело (o.mkt.lockp);
+ *   • stockorder без покрытой обеспечительной части отвергается так же.
  *
  * Живой стенд с сидом docs-harness (фикстуры пайщиков в state/). Контрактные
  * шаги идут напрямую в цепь ключом кооператива (как это делает бэкенд).
@@ -40,9 +41,9 @@ function sha256Hex(s: string): string {
   return require('node:crypto').createHash('sha256').update(s).digest('hex')
 }
 
-async function memberAvailable(token: string): Promise<number> {
+async function freeShareAvailable(token: string): Promise<number> {
   const d: any = await gqlAs(token, 'query{ marketplaceMemberWallet{ wallets{ name available } } }').catch(() => null)
-  const row = d?.marketplaceMemberWallet?.wallets?.find((w: any) => w.name === 'w.mkt.member')
+  const row = d?.marketplaceMemberWallet?.wallets?.find((w: any) => w.name === 'w.mkt.share')
   return row ? amount(row.available) : 0
 }
 
@@ -67,7 +68,7 @@ async function createOrderDirect(orderHash: string, quantity: number): Promise<a
   }])
 }
 
-describe('Стол заказов: заявление 1110 и внутренний членский кошелёк', () => {
+describe('Стол заказов: заявление 1110 о трансляции и обеспечительная часть', () => {
   beforeAll(async () => {
     await bc.update_pass_instance()
     ekaterinaToken = await loginAs(ekaterina)
@@ -79,44 +80,43 @@ describe('Стол заказов: заявление 1110 и внутренни
     await ensureShareFunds(ekaterina.account, unitPrice * 6, ekaterinaToken)
   }, 180_000)
 
-  it('mkt.order.side.33: createorder без покрытого членским кошельком взноса отвергается — контракт велит сначала подать заявление', async () => {
-    // Опустошаем членский кошелёк оформлениями: превью переводит ровно недостающую
-    // часть взноса, после заказа остаток кошелька — прежний минус взнос (или ноль).
-    let left = await memberAvailable(ekaterinaToken)
-    for (let i = 0; i < 4 && left >= unitPrice * 0.3 - 0.005; i++) {
+  it('mkt.order.side.33: createorder без покрытой свободным паевым обеспечительной части отвергается — контракт велит сначала подать заявление', async () => {
+    // Опустошаем свободный паевой оформлениями: превью транслирует ровно
+    // недостающее, заказ берёт со свободного паевого обеспечительную часть и тело.
+    let left = await freeShareAvailable(ekaterinaToken)
+    for (let i = 0; i < 6 && left >= unitPrice * 0.3 - 0.005; i++) {
       await placeOrder({ token: ekaterinaToken, who: ekaterina, offerId: offer.id, quantity: 1, braname: BRANAME })
-      left = await memberAvailable(ekaterinaToken)
+      left = await freeShareAvailable(ekaterinaToken)
     }
-    expect(left, 'членского кошелька на взнос очередного заказа не хватает').toBeLessThan(unitPrice * 0.3 - 0.005)
+    expect(left, 'свободного паевого на обеспечительную часть очередного заказа не хватает').toBeLessThan(unitPrice * 0.3 - 0.005)
 
     const orderHash = sha256Hex(`side33|${Date.now()}`)
-    await expect(createOrderDirect(orderHash, 1)).rejects.toThrow(/Недостаточно членских средств Стола заказов на членский взнос/)
+    await expect(createOrderDirect(orderHash, 1)).rejects.toThrow(/MARKETPLACE_SECURE_PART_SHORTFALL/)
     const rows = await historyOfProcess(chairmanToken, orderHash).catch(() => [])
     expect(rows.length, 'отвергнутый заказ не оставляет движений').toBe(0)
   }, 300_000)
 
-  it('mkt.order.side.34: перевод по заявлению кладёт на членский кошелёк ровно членскую часть, после чего заказ проходит', async () => {
-    // Превью: членского кошелька на взнос не хватает — заявление на тело плюс недостающую часть.
+  it('mkt.order.side.34: трансляция по заявлению кладёт на свободный паевой ровно сумму заявления, после чего заказ проходит', async () => {
+    // Превью: свободного паевого не хватает — заявление на недостающее.
     await gqlAs(ekaterinaToken, 'mutation{ marketplaceClearCart{ __typename } }').catch(() => {})
     await gqlAs(ekaterinaToken, 'mutation($i:MarketplaceAddToCartInput!){ marketplaceAddToCart(input:$i){ __typename } }', {
       i: { offer_id: offer.id, quantity: 1, delivery_braname: BRANAME },
     })
     const sp: any = await gqlAs(ekaterinaToken, `query{
       marketplaceCheckoutSignablePayloads{
-        lines{ order_hash amount membership_fee from_member from_program from_wallet }
+        lines{ order_hash amount membership_fee from_program from_wallet }
         convert{ amount membership_fee document{ full_title html hash meta binary } }
       }
     }`)
     const preview = sp.marketplaceCheckoutSignablePayloads
-    expect(preview.convert, 'кошельков программы не хватает — превью обязано принести заявление').toBeTruthy()
+    expect(preview.convert, 'свободного паевого не хватает — превью обязано принести заявление').toBeTruthy()
     const line = preview.lines[0]
-    expect(amount(preview.convert.amount), 'заявление — только на то, чего не хватило в кошельках программы').toBeCloseTo(amount(line.from_wallet), 2)
-    expect(amount(preview.convert.membership_fee), 'членская часть — взнос за вычетом остатка кошелька').toBeCloseTo(amount(line.membership_fee) - amount(line.from_member), 2)
-    expect(amount(preview.convert.membership_fee), 'кошелька на взнос не хватало — членская часть больше нуля').toBeGreaterThan(0)
+    expect(amount(preview.convert.amount), 'заявление — только на то, чего не хватило на свободном паевом').toBeCloseTo(amount(line.from_wallet), 2)
+    expect(amount(line.from_program) + amount(line.from_wallet), 'стоимость и обеспечительная часть покрыты целиком').toBeCloseTo(amount(line.amount), 2)
     const meta = docMeta(preview.convert.document.meta)
     expect(meta.registry_id).toBe(1110)
-    expect(preview.convert.document.html, 'текст заявления — слова владельца').toMatch(/Прошу перевести с баланса моего Цифрового кошелька/)
-    expect(preview.convert.document.html).not.toMatch(/ставк|зачит/i)
+    expect(preview.convert.document.html, 'текст заявления — слова владельца').toMatch(/Прошу транслировать мой паевой взнос/)
+    expect(preview.convert.document.html).not.toMatch(/членск|ставк|зачит/i)
 
     // Оформление: перевод адресован заказу и ложится в его нитку, затем заказ.
     const signed = await signAs(ekaterina.wif, preview.convert.document, ekaterina.account, 1)
@@ -126,16 +126,16 @@ describe('Стол заказов: заявление 1110 и внутренни
     expect(co.marketplaceCheckoutCart.fully_completed, JSON.stringify(co.marketplaceCheckoutCart.failed_lines)).toBe(true)
 
     const orderOps = await waitForOps(chairmanToken, line.order_hash, ['o.mkt.conv', 'o.mkt.fee'])
-    expect(amount(orderOps.find(r => r.operationCode === 'o.mkt.conv')!.quantity), 'переведена ровно членская часть, и перевод — в нитке заказа').toBeCloseTo(amount(preview.convert.membership_fee), 2)
+    expect(amount(orderOps.find(r => r.operationCode === 'o.mkt.conv')!.quantity), 'транслирована ровно сумма заявления, и трансляция — в нитке заказа').toBeCloseTo(amount(preview.convert.amount), 2)
     expect(await historyOfProcess(chairmanToken, preview.convert.document.hash), 'отдельной нитки по хешу заявления быть не должно').toEqual([])
-    expect(sumOf(orderOps, 'o.mkt.lock') + sumOf(orderOps, 'o.mkt.lockp'), 'тело целиком паевым резервом из двух паевых кошельков').toBeCloseTo(amount(line.amount) - amount(line.membership_fee), 2)
-    expect(sumOf(orderOps, 'o.mkt.lockp'), 'свободный паевой программы идёт на тело в первую очередь').toBeCloseTo(amount(line.from_program), 2)
-    expect(amount(orderOps.find(r => r.operationCode === 'o.mkt.fee')!.quantity), 'взнос целиком с членского кошелька').toBeCloseTo(amount(line.membership_fee), 2)
+    expect(sumOf(orderOps, 'o.mkt.lock') + sumOf(orderOps, 'o.mkt.lockp'), 'тело целиком паевым резервом').toBeCloseTo(amount(line.amount) - amount(line.membership_fee), 2)
+    expect(sumOf(orderOps, 'o.mkt.lock'), 'после трансляции тело целиком со свободного паевого').toBeCloseTo(0, 2)
+    expect(amount(orderOps.find(r => r.operationCode === 'o.mkt.fee')!.quantity), 'обеспечительная часть целиком со свободного паевого').toBeCloseTo(amount(line.membership_fee), 2)
   }, 300_000)
 
   it('mkt.stock.side.08: заказ из остатка без покрытого взноса отвергается так же, как обычный', async () => {
-    // Пайщица только что выбрала членский кошелёк до нуля; свободный паевой
-    // Стола заказов у неё может быть — но взнос идёт только с членского.
+    // Пайщица только что выбрала свободный паевой до нуля: трансляция под
+    // прошлый заказ израсходована на него целиком.
     // Весь список предложений — право администратора Стола заказов (Offer:read:all).
     const stock: any = await gqlAs(chairmanToken, `query($i:MarketplaceListAllOffersInput){
       marketplaceListAllOffers(input:$i){ items { id status supplier_account stock_braname price_per_unit unit_of_measure } }
@@ -162,6 +162,6 @@ describe('Стол заказов: заявление 1110 и внутренни
         warranty_period_secs: 0,
         batch_hash: '0'.repeat(64),
       },
-    }])).rejects.toThrow(/Недостаточно членских средств Стола заказов на членский взнос/)
+    }])).rejects.toThrow(/MARKETPLACE_SECURE_PART_SHORTFALL/)
   }, 120_000)
 })

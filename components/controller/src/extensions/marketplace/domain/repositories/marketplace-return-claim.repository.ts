@@ -121,12 +121,6 @@ export interface MarketplaceReturnClaimDomainRepository {
   /** Дописать поля совета без смены статуса. */
   patchCouncil(id: string, patch: MarketplaceReturnClaimCouncilPatch): Promise<MarketplaceReturnClaimDomainEntity>;
 
-  /**
-   * Заявления, у которых членский взнос ждёт пополнения общего кошелька
-   * участка (задача 99D-15) — кандидаты крона на повтор `payretfee`.
-   */
-  listFeeRefundPending(coopname: string, limit?: number): Promise<MarketplaceReturnClaimDomainEntity[]>;
-
   /** Заявления в заданных статусах по кооперативу (для сторожа ожидания совета). */
   listByStatus(
     coopname: string,

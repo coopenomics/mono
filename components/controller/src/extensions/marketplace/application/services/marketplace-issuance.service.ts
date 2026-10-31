@@ -92,7 +92,7 @@ export interface MarketplaceIssuanceSubmitStatementInput {
   signed_statement: MarketplaceShareReturnStatementSignedInputDTO;
   /**
    * Заявление 1110 на доплату по факту: при факте больше заказа и нехватке
-   * внутреннего членского кошелька на довзнос участка. Перевод членской части
+   * свободного паевого «Стола заказов» на доплату. Трансляция недостающего
    * идёт отдельной транзакцией `convert` до заявления о выдаче. Нужно только
    * когда `getConvertSignablePayload` вернул документ.
    */
@@ -302,10 +302,10 @@ export class MarketplaceIssuanceService {
   }
 
   /**
-   * Довзнос членского взноса по факту: при факте больше заказа взнос участка
+   * Доплата обеспечительной части по факту: при факте больше заказа она
    * пересчитывается пропорционально (та же формула, что `pro_rata` контракта,
    * с округлением к ближайшему), и недостающее сверх зафиксированного в
-   * заказе доплачивается с членского кошелька программы на закрывающей подписи.
+   * заказе доплачивается со свободного паевого программы на закрывающей подписи.
    */
   feeTopUp(order: MarketplaceOrderDomainEntity, fact: MarketplaceIssuanceSagaFact): MarketplaceIssuanceFeeTopUp {
     const total = this.economyService.assetToUnits(order.total_cost);
@@ -333,9 +333,9 @@ export class MarketplaceIssuanceService {
 
   /**
    * Заявление 1110 на доплату по факту к подписи заказчиком — только если
-   * факт больше заказа и кошельков программы не хватает: свободного паевого на
-   * доплату тела, членского на довзнос участка; иначе null и подпись не
-   * требуется. Сумма — недостающее с Цифрового кошелька.
+   * факт больше заказа и свободного паевого «Стола заказов» не хватает на
+   * обеспечительную часть и тело доплаты; иначе null и подпись не требуется.
+   * Сумма — недостающее, транслируется из Цифрового кошелька.
    */
   async getConvertSignablePayload(coopname: string, order_id: string, member_account: string): Promise<InnerGeneratedDocument | null> {
     const order = await this.loadOrder(coopname, order_id);
@@ -353,7 +353,7 @@ export class MarketplaceIssuanceService {
     });
   }
 
-  /** Недостающее на доплату по факту: null — кошельков программы хватает или факт не больше заказа. */
+  /** Недостающее на доплату по факту: null — свободного паевого хватает или факт не больше заказа. */
   private async topUpPlan(
     coopname: string,
     order: MarketplaceOrderDomainEntity,
@@ -394,7 +394,7 @@ export class MarketplaceIssuanceService {
     // заявлений о выдаче. Без этой отметки заказ бандла с доплатой тела требовал второе
     // заявление, которого пайщику никто не показывал, и не подписывался (C28-85, находка 57).
     if (!input.convert_settled_by_bundle) {
-      await this.transferMembershipPart(input, order, saga);
+      await this.translateTopUpShare(input, order, saga);
     }
 
     const statement = new SignedDigitalDocumentInputDTO(input.signed_statement).toDocument() as MarketContract.Actions.IssueStmt.IIssueStmt['statement'];
@@ -457,13 +457,13 @@ export class MarketplaceIssuanceService {
   }
 
   /**
-   * Доплата по факту сверх кошельков программы: заявление 1110 на недостающее
-   * с Цифрового кошелька и перевод членской части отдельной транзакцией до
+   * Доплата по факту сверх свободного паевого «Стола заказов»: заявление 1110
+   * и трансляция недостающего из Цифрового кошелька отдельной транзакцией до
    * заявления о выдаче — контракт на issuestmt проверит, что средств хватает
-   * (тело добирается с Цифрового кошелька на закрывающей подписи). Вынесено из
-   * `submitStatement`: ветка нужна только когда факт больше заказа.
+   * (задача 99D-18). Вынесено из `submitStatement`: ветка нужна только когда
+   * факт больше заказа.
    */
-  private async transferMembershipPart(
+  private async translateTopUpShare(
     input: MarketplaceIssuanceSubmitStatementInput,
     order: MarketplaceOrderDomainEntity,
     saga: MarketplaceIssuanceSagaDomainEntity
@@ -481,7 +481,7 @@ export class MarketplaceIssuanceService {
         orderer: order.orderer_account,
         // Доплата по факту адресуется своему заказу: o.mkt.conv ложится в нитку
         // этого заказа, а не заводит отдельную нитку по хэшу заявления.
-        targets: [{ order_hash: order.order_hash, amount: this.economyService.unitsToAsset(topUp.fee_units) }],
+        targets: [{ order_hash: order.order_hash, amount: this.economyService.unitsToAsset(topUp.amount_units) }],
         convert_statement,
       });
     } catch (err) {

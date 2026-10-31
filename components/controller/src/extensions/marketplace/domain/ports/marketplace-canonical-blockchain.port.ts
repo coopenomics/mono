@@ -1,4 +1,4 @@
-import type { BranchContract, Interfaces, Ledger2Contract, MarketContract, SovietContract } from 'cooptypes';
+import type { BranchContract, Ledger2Contract, MarketContract, SovietContract } from 'cooptypes';
 import type { InnerTransactResult } from '@coopenomics/innercoop';
 
 /**
@@ -41,7 +41,7 @@ export type MarketplaceCheckoutOrderAction =
  */
 export interface MarketplaceCheckoutChainInput {
   coopname: string;
-  /** Перевод в членский кошелёк — первым действием; null, если переводить нечего. */
+  /** Трансляция на свободный паевой «Стола заказов» — первым действием; null, если транслировать нечего. */
   convert: MarketContract.Actions.Convert.IConvert | null;
   orders: MarketplaceCheckoutOrderAction[];
 }
@@ -49,7 +49,7 @@ export interface MarketplaceCheckoutChainInput {
 export interface MarketplaceCanonicalBlockchainPort {
   createOrder(data: MarketContract.Actions.CreateOrder.ICreateOrder): Promise<InnerTransactResult>;
 
-  /** Перевод по заявлению и заказы всех строк корзины одной транзакцией. */
+  /** Трансляция по заявлению и заказы всех строк корзины одной транзакцией. */
   checkout(data: MarketplaceCheckoutChainInput): Promise<InnerTransactResult>;
 
   /**
@@ -57,21 +57,21 @@ export interface MarketplaceCanonicalBlockchainPort {
    * Продавец — сам кооператив (offerer == coopname на цепи); Order рождается
    * сразу в `acceptcoop` (имущество уже на счёте 10 после первичной приёмки)
    * и идёт только через выдачу по саге (заявление → совет → акт). Фондируется
-   * из свободного паевого пайщика: o.mkt.lockp (тело, w.mkt.share → w.mkt.order)
-   * и o.mkt.fee (взнос, w.mkt.member → w.mkt.fee); недостающая часть взноса
-   * приходит заранее переводом по заявлению 1110 (o.mkt.conv).
+   * из свободного паевого пайщика: o.mkt.fee (обеспечительная часть,
+   * w.mkt.share → w.mkt.fee) и o.mkt.lockp (тело, w.mkt.share → w.mkt.order);
+   * недостающее приходит заранее трансляцией по заявлению 1110 (o.mkt.conv).
    *
    * Авторизация — кооператив (`require_auth(coopname)`).
    */
   stockOrder(data: MarketContract.Actions.StockOrder.IStockOrder): Promise<InnerTransactResult>;
 
   /**
-   * Перевод паевого взноса во внутренний членский кошелёк «Стола заказов» по
-   * заявлению 1110 — только когда кошелька не хватает (o.mkt.conv с Цифрового
-   * кошелька). Оформление корзины шлёт его первым действием общей транзакции
+   * Трансляция паевого взноса из Цифрового кошелька на свободный паевой «Стола
+   * заказов» по заявлению 1110 — только когда его не хватает (o.mkt.conv).
+   * Оформление корзины шлёт её первым действием общей транзакции
    * (`checkout`); отдельным вызовом пользуются потоки с одним заказом. Сумма адресуется заказам
    * (`targets`): на каждый заказ идёт своя операция с его хэшем как
-   * `process_hash`, поэтому перевод виден первой операцией нитки того заказа,
+   * `process_hash`, поэтому трансляция видна первой операцией нитки того заказа,
    * который оплачивает. Заявление публикуется в реестр документов отдельным
    * пакетом — оно одно на всё оформление.
    */
@@ -288,9 +288,9 @@ export interface MarketplaceCanonicalBlockchainPort {
    */
   confirmWroff(data: MarketContract.Actions.ConfirmWroff.IConfirmWroff): Promise<InnerTransactResult>;
 
-  // ── Экономика КУ (requirement b6): членский взнос и распределение ────
+  // ── Экономика КУ (requirement b6): ставка обеспечительной части и распределение ────
 
-  /** Единая ставка членского взноса кооператива (администратор). */
+  /** Единая ставка обеспечительной части паевого взноса кооператива (администратор). */
   // ── Паевая модель: выдача по заявлению, протоколу совета и акту (компонент 68) ──
 
   /** Оператор участка выдачи отметил поступление имущества: acceptcoop → readyrecv. */
@@ -307,17 +307,11 @@ export interface MarketplaceCanonicalBlockchainPort {
   handBack(data: MarketContract.Actions.HandBack.IHandBack): Promise<InnerTransactResult>;
 
   /**
-   * Довнесение членского взноса по возврату, ждавшему пополнения общего
-   * кошелька участка (`feepend → ∅`, задача 99D-15). Зовёт крон повтора.
+   * Списание обеспечительной части паевого взноса в членский взнос участка по
+   * условиям ЦПП (задача 99D-18). Сумму и момент называет бэкенд по своему
+   * учёту; контракт держит потолок остатка кошелька пайщика к списанию.
    */
-  payRetFee(data: MarketContract.Actions.PayRetFee.IPayRetFee): Promise<InnerTransactResult>;
-
-  /**
-   * Заявление на возврат на цепи по хэшу — null, если запись уже стёрта.
-   * Читается сразу после обратного вызова совета: по статусу `feepend` бэкенд
-   * узнаёт, что взнос ждёт пополнения кошелька участка.
-   */
-  findReturnRequestByHash(coopname: string, request_hash: string): Promise<Interfaces.Marketplace.IReturnRequest | null>;
+  chargeDue(data: MarketContract.Actions.ChargeDue.IChargeDue): Promise<InnerTransactResult>;
 
   // ── p.mkt.claim — гарантийная претензия поставщику (99D-13) ──
   /** Поставщик признал претензию: o.mkt.admit, долг к удержанию из выплат. Несогласие в цепь не пишется. */

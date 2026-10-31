@@ -7214,7 +7214,6 @@ export const ReturnTypes: Record<string,any> = {
 	},
 	MarketplaceCheckoutSignableLine:{
 		amount:"String",
-		from_member:"String",
 		from_program:"String",
 		from_wallet:"String",
 		membership_fee:"String",

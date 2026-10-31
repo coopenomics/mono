@@ -65,10 +65,10 @@ let packaged: any
 let withdrawable: any
 let feeContractPercent: bigint
 
-/** Свободный паевой и членский кошельки программы покрывают тело и взнос мелкого заказа. */
+/** Свободный паевой программы покрывает тело и обеспечительную часть мелкого заказа. */
 async function ensureProgramFunds(minShareRub: number): Promise<void> {
   const w = await settledWallets(mt)
-  if ((w['w.mkt.share'] ?? 0) >= minShareRub && (w['w.mkt.member'] ?? 0) >= minShareRub / 5)
+  if ((w['w.mkt.share'] ?? 0) >= minShareRub)
     return
   const qty = Math.ceil(minShareRub / Number.parseFloat(potato.price_per_unit)) + 10
   await fillCart(mt, [{ offer_id: potato.id, quantity: qty }])
@@ -161,7 +161,7 @@ describe('заказ: отказ цепи в общей транзакции', (
       expect(offerAfter.quantity_blocked).toBe(offerBefore.quantity_blocked)
       expect((await getCart(bt)).items.map((i: any) => i.offer_id)).toEqual([withdrawable.id])
       const w1 = await wallets(bt)
-      for (const name of ['w.wal.share', 'w.mkt.member', 'w.mkt.share', 'w.mkt.order'])
+      for (const name of ['w.wal.share', 'w.mkt.due', 'w.mkt.share', 'w.mkt.order'])
         expect(w1[name] ?? 0).toBe(w0[name] ?? 0)
     }
     finally {
@@ -432,7 +432,7 @@ describe('заказ: остаток предложения и упаковки'
 })
 
 describe('заказ: заявление 1110 при оформлении', () => {
-  it(caseName('mkt.order.side.30', 'план по строкам: взнос — с членского кошелька, тело — со свободного паевого, недостающее — заявлением'), async () => {
+  it(caseName('mkt.order.side.30', 'план по строкам: со свободного паевого сначала обеспечительная часть, затем тело, недостающее — заявлением о трансляции'), async () => {
     const w = await settledWallets(mt)
     const hq = honeyQtyAboveShare(w)
     await fillCart(mt, [{ offer_id: honey.id, quantity: hq }, { offer_id: potato.id, quantity: 1 }])
@@ -440,7 +440,6 @@ describe('заказ: заявление 1110 при оформлении', () =
     expect(pv.lines).toHaveLength(2)
     expect(pv.convert).not.toBeNull()
 
-    let memberLeft = unitsOfRub(w['w.mkt.member'] ?? 0)
     let shareLeft = unitsOfRub(w['w.mkt.share'] ?? 0)
     let transfer = 0n
     let feeConvert = 0n
@@ -451,21 +450,20 @@ describe('заказ: заявление 1110 при оформлении', () =
       expect(l.offer_id).toBe(i === 0 ? honey.id : potato.id)
       expect(units(l.membership_fee)).toBe(fee)
       expect(units(l.amount)).toBe(body + fee)
-      const fromMember = minU(fee, memberLeft)
-      memberLeft -= fromMember
-      const fromProgram = minU(body, shareLeft)
-      shareLeft -= fromProgram
-      expect(units(l.from_member)).toBe(fromMember)
-      expect(units(l.from_program)).toBe(fromProgram)
-      expect(units(l.from_wallet)).toBe(body - fromProgram + fee - fromMember)
+      const feeFromProgram = minU(fee, shareLeft)
+      shareLeft -= feeFromProgram
+      const bodyFromProgram = minU(body, shareLeft)
+      shareLeft -= bodyFromProgram
+      expect(units(l.from_program)).toBe(feeFromProgram + bodyFromProgram)
+      expect(units(l.from_wallet)).toBe(body - bodyFromProgram + fee - feeFromProgram)
       transfer += units(l.from_wallet)
-      feeConvert += fee - fromMember
+      feeConvert += fee - feeFromProgram
     })
     expect(units(pv.convert.amount)).toBe(transfer)
     expect(units(pv.convert.membership_fee)).toBe(feeConvert)
   })
 
-  it(caseName('mkt.order.side.31', 'превью отдаёт заявление 1110: якорь оформления, сумма и членская часть — из плана'), async () => {
+  it(caseName('mkt.order.side.31', 'превью отдаёт заявление 1110: якорь оформления, сумма трансляции и обеспечительная часть в ней — из плана'), async () => {
     const pv = await preview(mt)
     const meta = docMeta(pv.convert.document.meta)
     expect(Number(meta.registry_id)).toBe(1110)

@@ -8,11 +8,11 @@
  * на ПВЗ → бандл выдачи, — и ассертит нитку ledger2 по хэшу заказа:
  *
  *   • o.mkt.lock   — оформление резервирует паевой взнос под заказ (без проводки: паевой остаётся на 80);
- *   • o.mkt.conv   — если внутреннего членского кошелька не хватает, недостающая
- *                    членская часть переводится из паевого по заявлению 1110
- *                    отдельной транзакцией (нитка = хеш заявления);
- *   • o.mkt.fee    — членский взнос по ставке кооператива уходит с членского
- *                    кошелька в пул взносов под заказ; тело всегда паевое;
+ *   • o.mkt.conv   — если свободного паевого Стола заказов не хватает,
+ *                    недостающее транслируется из Цифрового кошелька по
+ *                    заявлению 1110 без проводки (задача 99D-18);
+ *   • o.mkt.fee    — обеспечительная часть паевого взноса по ставке кооператива
+ *                    со свободного паевого в пул под заказ, без проводки;
  *   • o.mkt.purch  — закрывающая подпись приёмки ставит имущество на баланс (Дт 10 / Кт 76)
  *                    по ЦЕНЕ ПРИБЫТИЯ (Дт 10 / Кт 86), а не по цене заказа;
  *   • o.mkt.consum — выдача списывает выданное по цене прибытия (Дт 80 / Кт 10);
@@ -20,10 +20,10 @@
  *                    на ПРИНЯТУЮ стоимость (mkt.supply.happy.33, задача 99D-14),
  *                    даже если заказчице к этому моменту выдали меньше;
  *   • o.mkt.unlock — недовыдача разблокирует невыданный остаток заказчицы;
- *   • o.mkt.refund — неиспользованная часть взноса возвращается пропорционально;
- *   • o.brn.common — фактический взнос зачисляется общему кошельку участка,
- *                    причём НИТКОЙ ПОСТАВКИ по хэшу заказа (l2.pnam.side.01),
- *                    а не ниткой экономики участка.
+ *   • o.mkt.refund — неиспользованная обеспечительная часть возвращается пропорционально;
+ *   • o.mkt.todue  — факт обеспечительной части ложится на кошелёк пайщика к
+ *                    списанию НИТКОЙ ПОСТАВКИ по хэшу заказа; членским взносом
+ *                    участка она станет после гарантийного срока (chargedue).
  *
  * Суммы не захардкожены: эталон берётся из самого заказа (`total_cost`,
  * `membership_fee`), поэтому тест не ломается от смены ставки взноса или
@@ -94,14 +94,14 @@ describe('стол заказов — денежные места поставк
     offer = await pickOffer(chairmanToken, sidorov.account, BRANAME, 'Мёд цветочный')
     unitPrice = amount(offer.price_per_unit)
 
-    // Каждый прогон списывает с паевого заказчицы тело заказа и членский взнос.
+    // Каждый прогон списывает с паевого заказчицы тело заказа и обеспечительную часть.
     // Без дозаправки тест повторяем лишь пока не иссякнет остаток из сида, а
     // потом падает на «Недостаточно средств» — и это выглядит как регресс,
     // хотя это исчерпание фикстуры. Запас — двукратный от тела заказа.
     await ensureShareFunds(ekaterina.account, ORDER_QTY * unitPrice * 2, ekaterinaToken)
   }, 180_000)
 
-  it('оформление заказа: перевод по заявлению (o.mkt.conv), взнос с членского кошелька (o.mkt.fee) и тело паевым резервом (o.mkt.lock) — одной ниткой заказа', async () => {
+  it('оформление заказа: трансляция по заявлению (o.mkt.conv), обеспечительная часть (o.mkt.fee) и тело паевым резервом — одной ниткой заказа без проводок', async () => {
     // Корзина может держать хвост прошлого прогона — начинаем с чистой.
     await gqlAs(ekaterinaToken, 'mutation{ marketplaceClearCart{ __typename } }').catch(() => {})
     await gqlAs(ekaterinaToken, 'mutation($i:MarketplaceAddToCartInput!){ marketplaceAddToCart(input:$i){ __typename } }', {
@@ -109,26 +109,24 @@ describe('стол заказов — денежные места поставк
     })
 
     // Оформление (паевая модель) = превью + мутация оформления корзины.
-    // Взнос покрывается остатком внутреннего членского кошелька, нехватка —
-    // перевод по заявлению 1110 (сумма — тело плюс недостающая часть взноса);
-    // пайщица подписывает его один раз, перевод идёт отдельной транзакцией.
+    // Обеспечительная часть и тело покрываются свободным паевым Стола заказов,
+    // нехватка — трансляция по заявлению 1110; пайщица подписывает его один раз.
     const sp: any = await gqlAs(ekaterinaToken, `query{
       marketplaceCheckoutSignablePayloads{
-        lines{ offer_id package_id order_hash amount membership_fee from_member from_program from_wallet }
+        lines{ offer_id package_id order_hash amount membership_fee from_program from_wallet }
         convert{ amount membership_fee document{ full_title html hash meta binary } }
       }
     }`)
     const preview = sp.marketplaceCheckoutSignablePayloads
     expect(preview.lines.length, 'по позиции корзины обязано прийти превью оформления').toBeGreaterThan(0)
     const line = preview.lines[0]
-    expect(amount(line.from_member) + amount(line.from_program) + amount(line.from_wallet), 'части позиции обязаны складываться в её стоимость с взносом').toBeCloseTo(amount(line.amount), 2)
+    expect(amount(line.from_program) + amount(line.from_wallet), 'части позиции обязаны складываться в её стоимость с обеспечительной частью').toBeCloseTo(amount(line.amount), 2)
     // Заявление есть ровно тогда, когда с Цифрового кошелька что-то уходит.
     expect(!!preview.convert, 'заявление приходит только на недостающее').toBe(amount(line.from_wallet) > 0.005)
-    expectedConvert = preview.convert ? amount(preview.convert.membership_fee) : 0
+    expectedConvert = preview.convert ? amount(preview.convert.amount) : 0
     if (preview.convert) {
       const stmtMeta = docMeta(preview.convert.document.meta)
-      expect(amount(stmtMeta.amount), 'в заявлении — только то, чего не хватило в кошельках программы').toBeCloseTo(amount(line.from_wallet), 2)
-      expect(amount(stmtMeta.membership_fee), 'членская часть — взнос за вычетом остатка членского кошелька').toBeCloseTo(amount(line.membership_fee) - amount(line.from_member), 2)
+      expect(amount(stmtMeta.amount), 'в заявлении — только то, чего не хватило на свободном паевом').toBeCloseTo(amount(line.from_wallet), 2)
       // Общие поля меты любого документа фабрики (версия шаблона, генератор,
       // блок, часовой пояс и пр.) — не данные заявления; «лишним» считается
       // только доменное поле сверх перечня.
@@ -154,15 +152,14 @@ describe('стол заказов — денежные места поставк
     orderHash = created.marketplaceGetOrder.order_hash
 
     ops = await waitForOps(chairmanToken, orderHash, ['o.mkt.fee'])
-    // Тело — паевой резерв из двух паевых кошельков: сначала свободный паевой
-    // программы (o.mkt.lockp), остаток с Цифрового кошелька (o.mkt.lock).
+    // Со свободного паевого программы — сначала обеспечительная часть
+    // (o.mkt.fee), затем тело (o.mkt.lockp); остаток тела — с Цифрового
+    // кошелька (o.mkt.lock), но после трансляции его нет.
     const lockAmount = sumOf(ops, 'o.mkt.lock') + sumOf(ops, 'o.mkt.lockp')
     const feeAmount = sumOf(ops, 'o.mkt.fee')
-    expect(sumOf(ops, 'o.mkt.lockp'), 'из свободного паевого программы берётся ровно столько, сколько превью показало').toBeCloseTo(amount(line.from_program), 2)
-    // Взнос — всегда с внутреннего членского кошелька.
     const rowsCreate = await historyOfProcess(chairmanToken, orderHash)
     for (const r of rowsCreate.filter(r => r.action === 'walletop' && r.operationCode === 'o.mkt.fee')) {
-      expect([r.walletFrom, r.walletTo], 'взнос под заказ берётся с членского кошелька программы').toEqual(['w.mkt.member', 'w.mkt.fee'])
+      expect([r.walletFrom, r.walletTo], 'обеспечительная часть берётся со свободного паевого программы').toEqual(['w.mkt.share', 'w.mkt.fee'])
     }
     for (const r of rowsCreate.filter(r => r.action === 'walletop' && r.operationCode === 'o.mkt.lockp')) {
       expect([r.walletFrom, r.walletTo], 'часть тела со свободного паевого программы').toEqual(['w.mkt.share', 'w.mkt.order'])
@@ -175,11 +172,11 @@ describe('стол заказов — денежные места поставк
     // владельца 08.09.2026) — своей нитки по хешу заявления больше нет.
     if (expectedConvert > 0) {
       const convOps = await waitForOps(chairmanToken, orderHash, ['o.mkt.conv'])
-      expect(sumOf(convOps, 'o.mkt.conv'), 'переводится ровно членская часть из заявления').toBeCloseTo(expectedConvert, 2)
+      expect(sumOf(convOps, 'o.mkt.conv'), 'транслируется ровно сумма заявления').toBeCloseTo(expectedConvert, 2)
       for (const r of rowsCreate.filter(r => r.action === 'walletop' && r.operationCode === 'o.mkt.conv')) {
-        expect([r.walletFrom, r.walletTo], 'перевод идёт с главного паевого на членский кошелёк программы').toEqual(['w.wal.share', 'w.mkt.member'])
+        expect([r.walletFrom, r.walletTo], 'трансляция идёт с главного паевого на свободный паевой программы').toEqual(['w.wal.share', 'w.mkt.share'])
       }
-      expect(await historyOfProcess(chairmanToken, convertHash), 'нитки по хешу заявления быть не должно — перевод живёт в нитке заказа').toEqual([])
+      expect(await historyOfProcess(chairmanToken, convertHash), 'нитки по хешу заявления быть не должно — трансляция живёт в нитке заказа').toEqual([])
     }
 
     // Зеркало бэкенда обязано сойтись с цепью — иначе пайщик видит в кабинете
@@ -195,29 +192,21 @@ describe('стол заказов — денежные места поставк
 
     // Эталон тела заказа — количество × цена предложения.
     expect(totalCost, 'тело заказа обязано считаться от цены предложения').toBeCloseTo(ORDER_QTY * unitPrice, 2)
-    // Взнос — отдельная сумма СВЕРХ тела: пайщик платит тело + взнос.
+    // Обеспечительная часть — отдельная сумма СВЕРХ тела.
     expect(amount(order.total_cost_with_fee)).toBeCloseTo(totalCost + membershipFee, 2)
-    expect(membershipFee, 'ставка членского взноса кооператива обязана быть больше нуля, иначе денежное место не проверяемо').toBeGreaterThan(0)
+    expect(membershipFee, 'ставка обеспечительной части обязана быть больше нуля, иначе денежное место не проверяемо').toBeGreaterThan(0)
 
     expect(lockAmount, 'резерв обязан равняться телу заказа').toBeCloseTo(totalCost, 2)
-    expect(feeAmount, 'взнос обязан равняться ставке, зафиксированной в заказе').toBeCloseTo(membershipFee, 2)
+    expect(feeAmount, 'обеспечительная часть обязана равняться ставке, зафиксированной в заказе').toBeCloseTo(membershipFee, 2)
 
     const lockRow = ops.find(r => r.operationCode === 'o.mkt.lock' || r.operationCode === 'o.mkt.lockp')!
     expect(lockRow.username, 'резерв ставится на заказчицу').toBe(ekaterina.account)
 
-    // Резерв и взнос проводок не порождают: паевой резерв остаётся на 80,
-    // взнос идёт внутри 86. Единственная проводка нитки Дт 80 / Кт 86 — перевод
-    // по заявлению, и он теперь в этой же нитке.
+    // Трансляция, обеспечительная часть и резерв проводок не порождают: всё
+    // остаётся паевым взносом на счёте 80 (задача 99D-18).
     const rows = await historyOfProcess(chairmanToken, orderHash)
     const postings = rows.filter(r => r.action === 'debit' || r.action === 'credit')
-    if (expectedConvert > 0) {
-      expect(postingsFor(rows, 'debit', ACC.SHARE, expectedConvert).length, 'перевод в членский обязан лечь Дт 80').toBeGreaterThan(0)
-      expect(postingsFor(rows, 'credit', ACC.TARGET, expectedConvert).length, 'перевод в членский обязан лечь Кт 86').toBeGreaterThan(0)
-      expect(postings.length, 'кроме перевода по заявлению нитка заказа проводок не порождает').toBe(2)
-    }
-    else {
-      expect(postings.length, 'резерв и взнос под заказ не должны порождать проводок').toBe(0)
-    }
+    expect(postings.length, 'оформление заказа проводок не порождает').toBe(0)
   }, 300_000)
 
   it('закрывающая подпись приёмки ставит имущество на баланс по цене прибытия (o.mkt.purch, Дт 10 / Кт 76)', async () => {
@@ -324,53 +313,74 @@ describe('стол заказов — денежные места поставк
     expect(consumed + unlocked, 'выданное и разблокированное вместе обязаны закрыть весь резерв заказа').toBeCloseTo(totalCost, 2)
   }, 300_000)
 
-  it('членский взнос пересчитывается по факту: излишек возвращается (o.mkt.refund), фактический уходит участку (o.mkt.fee → o.brn.common)', async () => {
-    ops = await waitForOps(chairmanToken, orderHash, ['o.brn.common'])
+  it('обеспечительная часть пересчитывается по факту: излишек возвращается (o.mkt.refund), факт ложится к списанию (o.mkt.todue)', async () => {
+    ops = await waitForOps(chairmanToken, orderHash, ['o.mkt.todue'])
 
     // Пропорция факта к заказу — та же, что применяет контракт (pro_rata).
     const factFee = membershipFee * (ISSUED_QTY / ORDER_QTY)
 
-    expect(sumOf(ops, 'o.brn.common'), 'участку зачисляется взнос, приходящийся на фактически выданное').toBeCloseTo(factFee, 2)
-    expect(sumOf(ops, 'o.mkt.refund'), 'неиспользованная часть взноса обязана вернуться заказчице').toBeCloseTo(membershipFee - factFee, 2)
+    expect(sumOf(ops, 'o.mkt.todue'), 'к списанию ложится обеспечительная часть фактически выданного').toBeCloseTo(factFee, 2)
+    expect(sumOf(ops, 'o.mkt.refund'), 'неиспользованная обеспечительная часть обязана вернуться заказчице').toBeCloseTo(membershipFee - factFee, 2)
+    expect(sumOf(ops, 'o.brn.common'), 'на выдаче членского взноса участку нет: он появится при списании после гарантии').toBeCloseTo(0, 2)
 
-    const accrued = ops.find(r => r.operationCode === 'o.brn.common')!
-    expect(accrued.username, 'взнос зачисляется на кошелёк КУ выдачи, разрез — имя участка').toBe(BRANAME)
+    const due = ops.find(r => r.operationCode === 'o.mkt.todue')!
+    expect(due.username, 'к списанию — на кошелёк заказчицы').toBe(ekaterina.account)
 
-    const refunded = ops.find(r => r.operationCode === 'o.mkt.refund')!
-    expect(refunded.username, 'возврат взноса адресован заказчице').toBe(ekaterina.account)
-
-    // Недовыданный резерв возвращается на свободный паевой «Стола заказов»,
-    // излишек взноса — на членский кошелёк программы: членский остаётся
-    // членским и зачитывается при следующем заказе.
+    // Недовыданный резерв и излишек обеспечительной части возвращаются на
+    // свободный паевой «Стола заказов».
     const rowsAfter = await historyOfProcess(chairmanToken, orderHash)
     const toShare = rowsAfter.filter(r => r.action === 'walletop' && r.walletTo === 'w.mkt.share' && r.operationCode === 'o.mkt.unlock')
     expect(toShare.length, 'недовыданный резерв обязан прийти на свободный паевой «Стола заказов»').toBeGreaterThanOrEqual(1)
-    const refundRows = rowsAfter.filter(r => r.action === 'walletop' && r.operationCode === 'o.mkt.refund')
-    expect(refundRows.length, 'сторно взноса обязано быть переводом по кошелькам').toBeGreaterThan(0)
-    for (const r of refundRows) {
-      expect([r.walletFrom, r.walletTo], 'излишек взноса возвращается на членский кошелёк программы, не на паевой').toEqual(['w.mkt.fee', 'w.mkt.member'])
+    for (const r of rowsAfter.filter(r => r.action === 'walletop' && r.operationCode === 'o.mkt.refund')) {
+      expect([r.walletFrom, r.walletTo], 'излишек обеспечительной части возвращается на свободный паевой').toEqual(['w.mkt.fee', 'w.mkt.share'])
     }
-    expect(rowsAfter.some(r => r.action === 'walletop' && r.walletFrom === 'w.mkt.fee' && r.walletTo === 'w.mkt.share'), 'членский взнос не транслируется обратно в паевой').toBe(false)
+    for (const r of rowsAfter.filter(r => r.action === 'walletop' && r.operationCode === 'o.mkt.todue')) {
+      expect([r.walletFrom, r.walletTo], 'факт обеспечительной части — на кошелёк к списанию').toEqual(['w.mkt.fee', 'w.mkt.due'])
+    }
 
-    // Взнос не должен раздвоиться: зачисленное участку плюс возвращённое
-    // пайщику ровно равны заблокированному при оформлении.
-    expect(sumOf(ops, 'o.brn.common') + sumOf(ops, 'o.mkt.refund'), 'зачисленный и возвращённый взнос вместе обязаны закрыть заблокированный при оформлении').toBeCloseTo(membershipFee, 2)
+    // Обеспечительная часть не раздваивается: к списанию плюс возвращённое
+    // ровно равны внесённому при оформлении.
+    expect(sumOf(ops, 'o.mkt.todue') + sumOf(ops, 'o.mkt.refund'), 'к списанию и возвращённое вместе обязаны закрыть внесённое при оформлении').toBeCloseTo(membershipFee, 2)
 
-    // Движение кошельков взноса: пул «Стола заказов» → общий кошелёк участка.
-    const rows = await historyOfProcess(chairmanToken, orderHash)
-    const toBranch = rows.filter(r => r.action === 'walletop' && r.walletFrom === 'w.mkt.fee' && r.walletTo === 'w.brn.common')
-    expect(toBranch.length, 'взнос обязан физически уйти с пула взносов на общий кошелёк участка').toBeGreaterThan(0)
-    expect(amount(toBranch[0].quantity)).toBeCloseTo(factFee, 2)
+    // До списания счёт 86 нитка заказа не задевает.
+    expect(rowsAfter.filter(r => (r.action === 'debit' || r.action === 'credit') && r.accountId === ACC.TARGET).length, 'до списания счёт 86 не задет').toBe(0)
   }, 300_000)
 
-  it('l2.pnam.side.01: зачисление взноса участку идёт ниткой ПОСТАВКИ по хэшу заказа, а не ниткой экономики участка', async () => {
+  it('mkt.secure.due: списание по условиям ЦПП (chargedue) — Дт 80 / Кт 86 в общий кошелёк участка ниткой поставки; больше остатка — отказ', async () => {
+    const factFee = membershipFee * (ISSUED_QTY / ORDER_QTY)
+    const charge = (sum: number) => bc.transactWithLogs([{
+      account: 'marketplace',
+      name: 'chargedue',
+      authorization: [{ actor: COOP, permission: 'active' }],
+      data: { coopname: COOP, username: ekaterina.account, braname: BRANAME, order_hash: orderHash, amount: `${sum.toFixed(4)} RUB` },
+    }])
+
+    // Контракт держит потолок остатка кошелька к списанию.
+    await expect(charge(1_000_000)).rejects.toThrow(/MARKETPLACE_DUE_EXCEEDS/)
+
+    // Бэкенд списывает первого числа после гарантии; здесь зовём действие
+    // напрямую ключом кооператива — контракт сроки не проверяет.
+    await charge(Number(factFee.toFixed(4)))
+    ops = await waitForOps(chairmanToken, orderHash, ['o.mkt.charge', 'o.brn.common'])
+    expect(sumOf(ops, 'o.mkt.charge'), 'списано ровно названное').toBeCloseTo(factFee, 2)
+    expect(sumOf(ops, 'o.brn.common'), 'вся списанная сумма зачислена участку').toBeCloseTo(factFee, 2)
+    expect(ops.find(r => r.operationCode === 'o.brn.common')!.username, 'зачисление на кошелёк участка выдачи').toBe(BRANAME)
+
+    const rows = await historyOfProcess(chairmanToken, orderHash)
+    expect(postingsFor(rows, 'debit', ACC.SHARE, factFee).length, 'списание обязано лечь Дт 80').toBeGreaterThan(0)
+    expect(postingsFor(rows, 'credit', ACC.TARGET, factFee).length, 'списание обязано лечь Кт 86').toBeGreaterThan(0)
+    const toBranch = rows.filter(r => r.action === 'walletop' && r.walletFrom === 'w.mkt.fee' && r.walletTo === 'w.brn.common')
+    expect(toBranch.length, 'членский взнос обязан физически поступить на общий кошелёк участка').toBeGreaterThan(0)
+  }, 300_000)
+
+  it('l2.pnam.side.01: списание и зачисление участку идут ниткой ПОСТАВКИ по хэшу заказа, а не ниткой экономики участка', async () => {
     const byOp = await processTypeByOperation(chairmanToken, orderHash)
 
     expect(byOp['o.brn.common'], 'инлайн-зачисление экономики КУ обязано называть нитку именем контракта-источника (поставка), '
     + 'иначе процесс заказа на столе бухгалтера подписывается «Членские взносы кооперативного участка»').toBe('p.mkt.supply')
 
-    // Вся нитка заказа — одно имя: приход, выдача, взнос и его возврат.
-    for (const code of ['o.mkt.fee', 'o.mkt.purch', 'o.mkt.consum', 'o.mkt.unlock', 'o.mkt.refund']) {
+    // Вся нитка заказа — одно имя: приход, выдача, обеспечительная часть, её возврат и списание.
+    for (const code of ['o.mkt.fee', 'o.mkt.purch', 'o.mkt.consum', 'o.mkt.unlock', 'o.mkt.refund', 'o.mkt.todue', 'o.mkt.charge']) {
       expect(byOp[code], `проводка ${code} обязана идти ниткой поставки`).toBe('p.mkt.supply')
     }
     for (const code of ['o.mkt.lock', 'o.mkt.lockp']) {
@@ -395,10 +405,12 @@ describe('стол заказов — денежные места поставк
       'o.mkt.consum',
       'o.mkt.unlock',
       'o.mkt.refund',
+      'o.mkt.todue',
+      'o.mkt.charge',
       'o.brn.common',
     ])
-    // Перевод по заявлению живёт в нитке заказа (уточнение владельца 08.09.2026,
-    // проверка оформления выше) — он запланирован, если заявление было.
+    // Трансляция по заявлению живёт в нитке заказа (уточнение владельца 08.09.2026,
+    // проверка оформления выше) — она запланирована, если заявление было.
     if (expectedConvert > 0) expected.add('o.mkt.conv')
     const unexpected = [...codes].filter(c => !expected.has(c))
     expect(unexpected, `в нитке заказа появились незапланированные проводки: ${unexpected.join(', ')}`).toEqual([])

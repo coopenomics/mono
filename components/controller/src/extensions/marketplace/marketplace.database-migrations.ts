@@ -1,5 +1,6 @@
 import { MarketplaceBaseline1790197276758 } from './migrations/database/1790197276758-baseline';
 import { MarketplaceDropFirstVersionCatalog1791028868299 } from './migrations/database/1791028868299-drop-first-version-catalog';
+import { MarketplaceSecureDue1793440000000 } from './migrations/database/1793440000000-secure-due';
 
 /**
  * Миграции таблиц расширения — в порядке появления (метка времени в имени
@@ -10,4 +11,5 @@ import { MarketplaceDropFirstVersionCatalog1791028868299 } from './migrations/da
 export const marketplaceDatabaseMigrations = [
   MarketplaceBaseline1790197276758,
   MarketplaceDropFirstVersionCatalog1791028868299,
+  MarketplaceSecureDue1793440000000,
 ];

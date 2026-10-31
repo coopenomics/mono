@@ -1,11 +1,10 @@
 /**
- * Заявление 1110 о переводе паевого взноса в ЦПП «Стол заказов» (паевая
- * модель, уточнения владельца 06–07.09.2026): два кошелька программы
- * оплачивают каждый свою часть — членский кошелёк взносы, свободный паевой
- * тела; заявление — «прошу перевести с баланса моего Цифрового кошелька на
- * баланс ЦПП «Стол заказов» N, из них членский взнос M» — только на то, чего в
- * них не хватило; перевод M — отдельная транзакция convert до заказа;
- * подписанное заявление сверяется с планом по свежим балансам.
+ * Заявление 1110 о трансляции паевого взноса из ЦПП «Цифровой Кошелёк» в ЦПП
+ * «Стол заказов» (задача 99D-18): обеспечительная часть и тело позиции
+ * покрываются свободным паевым «Стола заказов» — сначала обеспечительная
+ * часть, затем тело; заявление — только на то, чего на нём не хватило;
+ * трансляция — отдельная транзакция convert до заказа; подписанное заявление
+ * сверяется с планом по свежему балансу.
  *
  * Реестр: mkt.order.side.30–32, mkt.order.side.33–34 (контракт), mkt.iss.side.44.
  */
@@ -16,11 +15,10 @@ import { Registry } from '@coopenomics/docs-templates';
 
 const R = Registry;
 
-function buildConvertService(memberAvailable: string, walletName = 'w.mkt.member', shareAvailable = '0.0000 RUB'): MarketplaceConvertService {
+function buildConvertService(shareAvailable: string, walletName = 'w.mkt.share'): MarketplaceConvertService {
   const walletRepo = {
     findByUsername: jest.fn(async () => [
-      { wallet_name: walletName, available: memberAvailable, blocked: '0.0000 RUB' },
-      { wallet_name: 'w.mkt.share', available: shareAvailable, blocked: '0.0000 RUB' },
+      { wallet_name: walletName, available: shareAvailable, blocked: '0.0000 RUB' },
     ]),
   };
   const documentPort = {
@@ -33,52 +31,52 @@ function buildConvertService(memberAvailable: string, walletName = 'w.mkt.member
   return new MarketplaceConvertService(walletRepo as never, documentPort as never, economy as never, { symbol: 'RUB', decimals: 4 } as never);
 }
 
-describe('mkt.order.side.30 — план: членский кошелёк на взнос, свободный паевой на тело, недостающее — с Цифрового кошелька', () => {
+describe('mkt.order.side.30 — план: свободный паевой сначала на обеспечительную часть, затем на тело, недостающее — трансляцией', () => {
   const svc = buildConvertService('0.0000 RUB');
 
-  it('кошельки программы пусты — всё с Цифрового кошелька: заявление на тело плюс взнос', () => {
-    const plan = svc.planFunding({ member: 0n, share: 0n }, [{ body_units: 100_0000n, fee_units: 30_0000n }]);
-    expect(plan.lines[0]).toMatchObject({ fee_member_units: 0n, fee_convert_units: 30_0000n, body_program_units: 0n, body_wallet_units: 100_0000n });
+  it('свободного паевого нет — транслируется всё: тело и обеспечительная часть', () => {
+    const plan = svc.planFunding({ share: 0n }, [{ body_units: 100_0000n, fee_units: 30_0000n }]);
+    expect(plan.lines[0]).toMatchObject({ fee_program_units: 0n, fee_convert_units: 30_0000n, body_program_units: 0n, body_wallet_units: 100_0000n, translate_units: 130_0000n });
     expect(plan.transfer_units).toBe(130_0000n);
     expect(plan.fee_convert_units).toBe(30_0000n);
   });
 
-  it('пример владельца: членский 10, паевой программы 30 — членская часть уменьшает взнос, паевая — тело', () => {
-    const plan = svc.planFunding({ member: 10_0000n, share: 30_0000n }, [{ body_units: 100_0000n, fee_units: 30_0000n }]);
-    expect(plan.lines[0]).toMatchObject({ fee_member_units: 10_0000n, fee_convert_units: 20_0000n, body_program_units: 30_0000n, body_wallet_units: 70_0000n });
+  it('свободный паевой 40 — покрывает обеспечительную часть 30 и 10 тела', () => {
+    const plan = svc.planFunding({ share: 40_0000n }, [{ body_units: 100_0000n, fee_units: 30_0000n }]);
+    expect(plan.lines[0]).toMatchObject({ fee_program_units: 30_0000n, fee_convert_units: 0n, body_program_units: 10_0000n, body_wallet_units: 90_0000n, translate_units: 90_0000n });
     expect(plan.transfer_units).toBe(90_0000n);
-    expect(plan.fee_convert_units).toBe(20_0000n);
+    expect(plan.fee_convert_units).toBe(0n);
   });
 
-  it('кошельков хватает на всё — заявления нет, с Цифрового кошелька ничего не уходит', () => {
-    const plan = svc.planFunding({ member: 500_0000n, share: 500_0000n }, [{ body_units: 100_0000n, fee_units: 30_0000n }]);
+  it('свободный паевой меньше обеспечительной части — недостающая часть транслируется вместе с телом', () => {
+    const plan = svc.planFunding({ share: 10_0000n }, [{ body_units: 100_0000n, fee_units: 30_0000n }]);
+    expect(plan.lines[0]).toMatchObject({ fee_program_units: 10_0000n, fee_convert_units: 20_0000n, body_program_units: 0n, body_wallet_units: 100_0000n });
+    expect(plan.transfer_units).toBe(120_0000n);
+  });
+
+  it('свободного паевого хватает на всё — заявления нет', () => {
+    const plan = svc.planFunding({ share: 500_0000n }, [{ body_units: 100_0000n, fee_units: 30_0000n }]);
     expect(plan.transfer_units).toBe(0n);
   });
 
-  it('кошельки не подменяют друг друга: паевой программы не оплачивает взнос, членский — тело', () => {
-    const plan = svc.planFunding({ member: 0n, share: 500_0000n }, [{ body_units: 100_0000n, fee_units: 30_0000n }]);
-    expect(plan.lines[0]).toMatchObject({ fee_convert_units: 30_0000n, body_wallet_units: 0n });
-    const plan2 = svc.planFunding({ member: 500_0000n, share: 0n }, [{ body_units: 100_0000n, fee_units: 30_0000n }]);
-    expect(plan2.lines[0]).toMatchObject({ fee_convert_units: 0n, body_wallet_units: 100_0000n });
-  });
-
-  it('несколько строк: остатки обоих кошельков тянутся последовательно', () => {
-    const plan = svc.planFunding({ member: 40_0000n, share: 120_0000n }, [{ body_units: 100_0000n, fee_units: 30_0000n }, { body_units: 50_0000n, fee_units: 15_0000n }]);
-    expect(plan.lines[0]).toMatchObject({ fee_member_units: 30_0000n, fee_convert_units: 0n, body_program_units: 100_0000n, body_wallet_units: 0n });
-    expect(plan.lines[1]).toMatchObject({ fee_member_units: 10_0000n, fee_convert_units: 5_0000n, body_program_units: 20_0000n, body_wallet_units: 30_0000n });
+  it('несколько строк: остаток свободного паевого тянется последовательно', () => {
+    const plan = svc.planFunding({ share: 160_0000n }, [{ body_units: 100_0000n, fee_units: 30_0000n }, { body_units: 50_0000n, fee_units: 15_0000n }]);
+    expect(plan.lines[0]).toMatchObject({ fee_program_units: 30_0000n, body_program_units: 100_0000n, translate_units: 0n });
+    expect(plan.lines[1]).toMatchObject({ fee_program_units: 15_0000n, fee_convert_units: 0n, body_program_units: 15_0000n, body_wallet_units: 35_0000n, translate_units: 35_0000n });
     expect(plan.transfer_units).toBe(35_0000n);
   });
 
-  it('нулевой взнос (ставка 0) — в членский переводить нечего при любом балансе', () => {
-    expect(svc.shortfallUnits(0n, 0n)).toBe(0n);
+  it('ставка 0 — обеспечительной части нет, транслируется только недостающее тело', () => {
+    const plan = svc.planFunding({ share: 0n }, [{ body_units: 100_0000n, fee_units: 0n }]);
+    expect(plan.lines[0]).toMatchObject({ fee_convert_units: 0n, translate_units: 100_0000n });
   });
 });
 
-describe(`mkt.order.side.31 — заявление ${R.MarketplaceConvertStatement.registry_id}: только недостающее, членская часть уменьшена на остаток членского кошелька`, () => {
-  it('в мете — якорь, сумма, членская часть; ничего лишнего', async () => {
-    const svc = buildConvertService('10.0000 RUB', 'w.mkt.member', '30.0000 RUB');
+describe(`mkt.order.side.31 — заявление ${R.MarketplaceConvertStatement.registry_id}: только недостающее на свободном паевом`, () => {
+  it('в мете — якорь, сумма трансляции, обеспечительная часть в ней; ничего лишнего', async () => {
+    const svc = buildConvertService('10.0000 RUB');
     const balances = await svc.programBalances(COOP, 'orderer1');
-    expect(balances).toEqual({ member: 10_0000n, share: 30_0000n });
+    expect(balances).toEqual({ share: 10_0000n });
     const plan = svc.planFunding(balances, [{ body_units: 100_0000n, fee_units: 30_0000n }]);
     const doc = await svc.generateStatement({
       coopname: COOP,
@@ -87,13 +85,13 @@ describe(`mkt.order.side.31 — заявление ${R.MarketplaceConvertStateme
       amount_units: plan.transfer_units,
       fee_units: plan.fee_convert_units,
     });
-    expect(doc.meta).toMatchObject({ registry_id: R.MarketplaceConvertStatement.registry_id, order_hash: 'anchor-1', amount: '90.0000 RUB', membership_fee: '20.0000 RUB', skip_save: false });
+    expect(doc.meta).toMatchObject({ registry_id: R.MarketplaceConvertStatement.registry_id, order_hash: 'anchor-1', amount: '120.0000 RUB', membership_fee: '20.0000 RUB', skip_save: false });
     expect(Object.keys(doc.meta as object).sort()).toEqual(['amount', 'coopname', 'lang', 'membership_fee', 'order_hash', 'registry_id', 'skip_save', 'username']);
   });
 
-  it('членский кошелёк ещё не заведён (строки нет) — остаток 0', async () => {
+  it('свободный паевой ещё не заведён (строки нет) — остаток 0', async () => {
     const svc = buildConvertService('5.0000 RUB', 'w.wal.share');
-    expect(await svc.memberAvailableUnits(COOP, 'orderer1')).toBe(0n);
+    expect(await svc.programBalances(COOP, 'orderer1')).toEqual({ share: 0n });
   });
 });
 
@@ -117,8 +115,8 @@ describe('mkt.order.side.32 — подписанное заявление све
     expect(() => svc.verifySigned(signed({}) as never, { ...expected, amount_units: 110_0000n, fee_units: 10_0000n }, 'orderer1')).toThrow(/120\.0000 RUB.*110\.0000 RUB/);
   });
 
-  it('членская часть разошлась при той же сумме — отказ', () => {
-    expect(() => svc.verifySigned(signed({}) as never, { ...expected, fee_units: 25_0000n }, 'orderer1')).toThrow(/Членская часть/);
+  it('обеспечительная часть разошлась при той же сумме — отказ', () => {
+    expect(() => svc.verifySigned(signed({}) as never, { ...expected, fee_units: 25_0000n }, 'orderer1')).toThrow(/Обеспечительная часть/);
   });
 
   it('всё сошлось — возвращается document2 для контракта', () => {
@@ -132,7 +130,7 @@ describe('mkt.order.side.32 — подписанное заявление све
   });
 });
 
-describe(`mkt.iss.side.44 — довзнос по факту: заявление ${R.MarketplaceConvertStatement.registry_id} и перевод convert только когда членского кошелька не хватает`, () => {
+describe(`mkt.iss.side.44 — доплата по факту: заявление ${R.MarketplaceConvertStatement.registry_id} и трансляция convert только когда свободного паевого не хватает`, () => {
   // Денежные поля заказа — голые десятичные строки, как в фикстуре: валюту
   // добавляет форматтер на выходе, а разбор сумм её не принимает.
   const orderWithFee = () => buildOrder({ total_cost: '100.0000', membership_fee: '30.0000' } as never);
@@ -148,40 +146,40 @@ describe(`mkt.iss.side.44 — довзнос по факту: заявление
     expect(m.convertService.generateStatement).not.toHaveBeenCalled();
   });
 
-  it('факт больше заказа и кошельков программы хватает на доплату и довзнос — заявления нет', async () => {
+  it('факт больше заказа и свободного паевого хватает на доплату — заявления нет', async () => {
     const m = buildMocks({ order: orderWithFee(), sagas: [bigFact()] });
     const service = buildService(m);
     expect(await service.getConvertSignablePayload(COOP, 'order-1', 'orderer1')).toBeNull();
   });
 
-  it('факт больше заказа, кошельки программы пусты — заявление на доплату тела и довзнос по пропорции контракта', async () => {
-    const m = buildMocks({ order: orderWithFee(), sagas: [bigFact()], memberAvailableUnits: 0n, shareAvailableUnits: 0n });
+  it('факт больше заказа, свободный паевой пуст — заявление на доплату тела и обеспечительной части по пропорции контракта', async () => {
+    const m = buildMocks({ order: orderWithFee(), sagas: [bigFact()], shareAvailableUnits: 0n });
     const service = buildService(m);
     const doc = await service.getConvertSignablePayload(COOP, 'order-1', 'orderer1');
-    // fact_fee = 30 × 120 / 100 = 36; довзнос = 6; доплата тела = 20 — заявление на 26, из них членский взнос 6.
+    // fact_fee = 30 × 120 / 100 = 36; доплата обеспечительной части = 6; тела = 20 — заявление на 26, из них обеспечительная часть 6.
     expect(doc?.meta).toMatchObject({ order_hash: 'h-order-1', amount: '26.0000 RUB', membership_fee: '6.0000 RUB' });
   });
 
-  it('факт больше заказа, свободного паевого хватает на доплату, членского нет — заявление только на довзнос', async () => {
-    const m = buildMocks({ order: orderWithFee(), sagas: [bigFact()], memberAvailableUnits: 0n });
+  it('факт больше заказа, свободного паевого 10 — покрывает обеспечительную часть 6 и 4 тела, транслируется 16', async () => {
+    const m = buildMocks({ order: orderWithFee(), sagas: [bigFact()], shareAvailableUnits: 10_0000n });
     const service = buildService(m);
     const doc = await service.getConvertSignablePayload(COOP, 'order-1', 'orderer1');
-    expect(doc?.meta).toMatchObject({ amount: '6.0000 RUB', membership_fee: '6.0000 RUB' });
+    expect(doc?.meta).toMatchObject({ amount: '16.0000 RUB', membership_fee: '0.0000 RUB' });
   });
 
-  it(`подача заявления о выдаче без заявления ${R.MarketplaceConvertStatement.registry_id} при нужном довзносе — отказ, цепь не трогаем`, async () => {
-    const m = buildMocks({ order: orderWithFee(), sagas: [bigFact()], memberAvailableUnits: 0n, shareAvailableUnits: 0n });
+  it(`подача заявления о выдаче без заявления ${R.MarketplaceConvertStatement.registry_id} при нужной доплате — отказ, цепь не трогаем`, async () => {
+    const m = buildMocks({ order: orderWithFee(), sagas: [bigFact()], shareAvailableUnits: 0n });
     const service = buildService(m);
     stubSignatureChecks(service);
     await expect(
       service.submitStatement({ coopname: COOP, member_account: 'orderer1', order_id: 'order-1', signed_statement: stmt('120.0000'), signed_convert: null })
-    ).rejects.toThrow(/заявления о переводе/);
+    ).rejects.toThrow(/заявления о трансляции/);
     expect(m.chainPort.convert).not.toHaveBeenCalled();
     expect(m.chainPort.issueStmt).not.toHaveBeenCalled();
   });
 
-  it(`заявление ${R.MarketplaceConvertStatement.registry_id} приложено — сначала convert с Цифрового кошелька на членскую часть, затем issuestmt без документа`, async () => {
-    const m = buildMocks({ order: orderWithFee(), sagas: [bigFact()], memberAvailableUnits: 0n, shareAvailableUnits: 0n });
+  it(`заявление ${R.MarketplaceConvertStatement.registry_id} приложено — сначала convert на всю сумму трансляции, затем issuestmt без документа`, async () => {
+    const m = buildMocks({ order: orderWithFee(), sagas: [bigFact()], shareAvailableUnits: 0n });
     const service = buildService(m);
     stubSignatureChecks(service);
     await service.submitStatement({
@@ -192,11 +190,11 @@ describe(`mkt.iss.side.44 — довзнос по факту: заявление
       signed_convert: signedDoc({ registry_id: R.MarketplaceConvertStatement.registry_id, order_hash: 'h-order-1', amount: '26.0000 RUB', membership_fee: '6.0000 RUB' }, ['orderer1']) as never,
     });
     expect(m.convertService.verifySigned).toHaveBeenCalledWith(expect.anything(), { anchor_hash: 'h-order-1', amount_units: 26_0000n, fee_units: 6_0000n }, 'orderer1');
-    // Перевод адресован своему заказу: операция ложится в нитку этого заказа,
+    // Трансляция адресована своему заказу: операция ложится в нитку этого заказа,
     // а не заводит отдельную по хешу заявления (уточнение владельца 08.09.2026).
     expect(m.chainPort.convert).toHaveBeenCalledWith(expect.objectContaining({
       orderer: 'orderer1',
-      targets: [{ order_hash: 'h-order-1', amount: '6.0000 RUB' }],
+      targets: [{ order_hash: 'h-order-1', amount: '26.0000 RUB' }],
     }));
     expect(m.chainPort.convert).toHaveBeenCalledWith(expect.not.objectContaining({ from_market: expect.anything() }));
     const convertOrder = m.chainPort.convert.mock.invocationCallOrder[0];
@@ -209,7 +207,7 @@ describe(`mkt.iss.side.44 — довзнос по факту: заявление
   // заявлений о выдаче. До 02.10.2026 заказ бандла с доплатой тела требовал второе
   // заявление и не подписывался вовсе (C28-85, находка 57).
   it('заказ бандла: доплата уже переведена общим заявлением — второе заявление не требуется, заявление о выдаче уходит', async () => {
-    const m = buildMocks({ order: orderWithFee(), sagas: [bigFact()], memberAvailableUnits: 0n, shareAvailableUnits: 0n });
+    const m = buildMocks({ order: orderWithFee(), sagas: [bigFact()], shareAvailableUnits: 0n });
     const service = buildService(m);
     stubSignatureChecks(service);
     await service.submitStatement({
@@ -225,7 +223,7 @@ describe(`mkt.iss.side.44 — довзнос по факту: заявление
     expect(m.chainPort.issueStmt).toHaveBeenCalledTimes(1);
   });
 
-  it('обычная выдача без довзноса — convert не зовётся', async () => {
+  it('обычная выдача без доплаты — convert не зовётся', async () => {
     const m = buildMocks({ order: orderWithFee(), sagas: [buildSaga({ fact: { actual_quantity: 5, actual_unit_price: '10.0000', fact_cost: '50.0000' } } as never)] });
     const service = buildService(m);
     stubSignatureChecks(service);

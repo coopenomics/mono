@@ -401,12 +401,13 @@ BaseDialog(
             td {{ $t('marketplace.onsiteSignatureGateOverlay.surchargeFromShareLabel') }}
             td.num
             td.num {{ formatAsset2Digits(proposalDiffs[p.id].surcharge.toFixed(4)) }} ₽
-          //- Членский взнос покрывается остатком внутреннего членского кошелька;
-          //- недостающее — по заявлению о переводе, которое подписывается тем же нажатием.
+          //- Стоимость и обеспечительная часть покрываются свободным паевым Стола
+          //- заказов; недостающее транслируется из Цифрового кошелька по заявлению,
+          //- которое подписывается тем же нажатием (задача 99D-18).
           tr(v-if='proposalConverts[p.id]')
-            td {{ $t('marketplace.onsiteSignatureGateOverlay.feeAboveWalletLabel') }}
+            td {{ $t('marketplace.onsiteSignatureGateOverlay.translateFromWalletLabel') }}
             td.num
-            td.num {{ formatAsset2Digits(proposalConverts[p.id]?.membership_fee) }} ₽
+            td.num {{ formatAsset2Digits(proposalConverts[p.id]?.amount) }} ₽
           tr(v-else)
             td {{ $t('marketplace.onsiteSignatureGateOverlay.feeCoveredByWalletLabel') }}
             td.num

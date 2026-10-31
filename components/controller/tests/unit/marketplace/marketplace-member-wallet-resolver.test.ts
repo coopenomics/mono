@@ -5,11 +5,11 @@
  *   - `w.wal.share`  — паевые взносы деньгами (program_id=1).
  *   - `w.mkt.order`  — паевой резерв под Order (program_id=2). Введён 2026-05-28
  *                       взамен механики .blocked на программном кошельке.
- *   - `w.mkt.share`  — свободный паевой «Стола заказов» (program_id=2): туда
- *                       возвращается тело при отменах и возвратах, оттуда же
- *                       оплачивается тело следующих заказов.
- *   - `w.mkt.member` — членский взнос пайщика в программе (program_id=2):
- *                       оплачивает только взносы участка под следующие заказы.
+ *   - `w.mkt.share`  — свободный паевой «Стола заказов» (program_id=2): на него
+ *                       возвращается тело при отменах и возвратах, с него же
+ *                       оплачиваются тело и обеспечительная часть следующих заказов.
+ *   - `w.mkt.due`    — обеспечительная часть паевого взноса к списанию в членский
+ *                       взнос по условиям ЦПП (program_id=2; задача 99D-18).
  *
  * Каждый кошелёк со своим `name`/`human_name`/`available`/`blocked`, без
  * сворачивания. Источник — core `UserWalletRepository.findByUsername`
@@ -77,9 +77,9 @@ describe('MarketplaceMemberWalletResolver', () => {
       blocked: '0',
     });
     expect(dto.wallets[3]).toMatchObject({
-      name: 'w.mkt.member',
+      name: 'w.mkt.due',
       program_id: 2,
-      label: 'Членский взнос | Стол Заказов',
+      label: 'Обеспечительная часть к списанию | Стол Заказов',
       available: '0',
       blocked: '0',
     });
@@ -100,7 +100,7 @@ describe('MarketplaceMemberWalletResolver', () => {
       'w.wal.share',
       'w.mkt.order',
       'w.mkt.share',
-      'w.mkt.member',
+      'w.mkt.due',
     ]);
   });
 

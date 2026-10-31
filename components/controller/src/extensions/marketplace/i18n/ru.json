@@ -65,10 +65,10 @@
     "MARKETPLACE_CONTAINER_TYPE_NAME_REQUIRED": "Укажите название типа боксов.",
     "MARKETPLACE_CONTAINER_TYPE_NAME_TAKEN": "Тип боксов «{name}» уже заведён.",
     "MARKETPLACE_CONTAINER_TYPE_NOT_FOUND": "Тип боксов не найден.",
-    "MARKETPLACE_CONVERT_AMOUNT_CHANGED": "Недостающая сумма изменилась (в заявлении {statementAmount}, к переводу {expectedAmount}) — обновите оформление.",
-    "MARKETPLACE_CONVERT_FEE_CHANGED": "Членская часть перевода изменилась (в заявлении {statementFee}, к переводу {expectedFee}) — обновите оформление.",
+    "MARKETPLACE_CONVERT_AMOUNT_CHANGED": "Недостающая сумма изменилась (в заявлении {statementAmount}, к трансляции {expectedAmount}) — обновите оформление.",
+    "MARKETPLACE_CONVERT_FEE_CHANGED": "Обеспечительная часть в сумме трансляции изменилась (в заявлении {statementFee}, сейчас {expectedFee}) — обновите оформление.",
     "MARKETPLACE_CONVERT_SIGNATURE_INVALID": "Подпись заявления недействительна.",
-    "MARKETPLACE_CONVERT_STATEMENT_MISSING": "Нет подписанного заявления о переводе паевого взноса в программу на {expectedAmount} — обновите оформление.",
+    "MARKETPLACE_CONVERT_STATEMENT_MISSING": "Нет подписанного заявления о трансляции паевого взноса в программу на {expectedAmount} — обновите оформление.",
     "MARKETPLACE_CONVERT_STATEMENT_WRONG_CHECKOUT": "Заявление подписано для другого оформления — обновите оформление.",
     "MARKETPLACE_CONVERT_WRONG_SIGNER": "Заявление должно быть подписано учётной записью {expectedSigner}.",
     "MARKETPLACE_COOP_NOT_CONNECTED": "Кооператив ещё подключает Стол заказов: совет принимает программу",
@@ -128,7 +128,7 @@
     "MARKETPLACE_LABEL_SPLIT_SHARE_INVALID": "Количество в каждой доле должно быть положительным целым.",
     "MARKETPLACE_LABEL_SPLIT_SUM_MISMATCH": "Сумма долей ({sharesSum}) не равна количеству позиции ({poolTotal}).",
     "MARKETPLACE_MEMBERSHIP_GUARD_NOT_APPLIED": "MarketplaceMembershipGuard не отработал — currentMember отсутствует в context",
-    "MARKETPLACE_MEMBERSHIP_TRANSFER_CHAIN_FAILED": "Перевод в членский кошелёк не принят цепью: {message}. Повторите подписание.",
+    "MARKETPLACE_MEMBERSHIP_TRANSFER_CHAIN_FAILED": "Трансляция паевого взноса в Стол заказов не принята цепью: {message}. Повторите подписание.",
     "MARKETPLACE_NDFL_RATE_NOT_CONFIGURED": "Ставка НДФЛ на {date} неизвестна: справочник юрисдикции не содержит параметров",
     "MARKETPLACE_NOT_A_MEMBER": "Доступ только для пайщиков кооператива",
     "MARKETPLACE_OFFER_COUNTER_INACTIVE": "Предложение неактивно — операция с количеством запрещена.",
@@ -481,9 +481,6 @@
       "readyMeals": "Готовая еда",
       "vegetablesFruits": "Овощи и фрукты"
     },
-    "chainRetryCron": {
-      "alreadySettledNote": "По данным цепи взнос по заявлению уже доведён либо заявка закрыта."
-    },
     "checkout": {
       "chainNoTxHash": "Оформление корзины: цепь не вернула tx_hash. Повторите попытку.",
       "digitalWalletLabel": "Цифровом кошельке",
@@ -509,7 +506,7 @@
       "distributionReserveDetail": "в общем кошельке {commonBalance}, резерв {reserveAmount}, ",
       "distributionReserveViolationIntro": "Распределение нарушает плановый резерв расходов на {horizonDays} дней: ",
       "distributionTitle": "Распределение членских взносов кооперативного участка",
-      "targetMembershipFeeLabel": "Целевой членский взнос"
+      "targetMembershipFeeLabel": "Ставка обеспечительной части паевого взноса"
     },
     "extensionModule": {
       "agreementTitle": "Целевая потребительская программа «Стол заказов»"
@@ -530,7 +527,7 @@
       "reasonNotSpecified": "причина не указана"
     },
     "ledgerInvariants": {
-      "account86CreditMissing": "без перевода в членский (o.mkt.conv) и удержания при отказе (o.mkt.penal)",
+      "account86CreditMissing": "без списания обеспечительной части в членский взнос участка (o.brn.common)",
       "account86DebitMissing": "— у Стола заказов дебета 86 нет",
       "account91CreditMissing": "без признанной претензии (o.mkt.admit)",
       "account91DebitMissing": "без уценки (o.mkt.loss) и списания скоропорта (o.mkt.wroff)",
@@ -540,8 +537,8 @@
       "doubleReserveCloseIssue": "возврат и списание резерва вместе больше внесённого — двойное закрытие резерва.",
       "i1Expected": "по каждому заказу выплата и удержание закрывают принятую стоимость",
       "i1Violation": "I1: расчёт с поставщиком по заказу закрыт не на принятую сумму либо проведён дважды.",
-      "i2Expected": "дебета 86 нет, кредит 86 только переводом в членский и удержанием при отказе",
-      "i2Violation": "I2: на счёте 86 есть marketplace-проводки вне перевода в членский и удержания при отказе.",
+      "i2Expected": "дебета 86 нет, кредит 86 только списанием обеспечительной части в членский взнос участка",
+      "i2Violation": "I2: на счёте 86 есть marketplace-проводки вне списания обеспечительной части в членский взнос участка.",
       "i3Violation": "I3: баланс счёта 10 не совпадает с marketplace-вкладом (purch+return2 − consum−wroff). ",
       "i3ViolationHint": "Возможный источник: пропущенный consum/wroff или дублирующий purch.",
       "i4Expected": "дебет 91 только уценкой и списанием скоропорта, кредит 91 только признанной претензией",
@@ -565,10 +562,10 @@
       }
     },
     "memberWallet": {
-      "membershipFeeLabel": "Членский взнос {'|'} Стол Заказов",
       "shareDigitalWalletLabel": "Паевой {'|'} Цифровой Кошелёк",
       "shareFreeLabel": "Свободный паевой {'|'} Стол Заказов",
-      "shareOrderReserveLabel": "Паевой резерв под заказы {'|'} Стол Заказов"
+      "shareOrderReserveLabel": "Паевой резерв под заказы {'|'} Стол Заказов",
+      "securePartDueLabel": "Обеспечительная часть к списанию {'|'} Стол Заказов"
     },
     "moderation": {
       "approvedStatusLabel": "одобрено",
@@ -581,7 +578,7 @@
       "aidApprovedBody": "Совет одобрил выплату — заявка передана кассиру, ожидайте перевод на указанные реквизиты.",
       "aidRejectedBody": "Совет отказал в выплате — средства остались на вашем кошельке, заявление можно подать заново.",
       "bringPassportHint": " Возьмите с собой паспорт: при первом получении оператор подтвердит вашу личность — это делается один раз.",
-      "councilAcceptedBody": "Совет принял имущество как паевой взнос: стоимость имущества и членский взнос за него восстановлены на Столе заказов.",
+      "councilAcceptedBody": "Совет принял имущество как паевой взнос: стоимость имущества и обеспечительная часть за него восстановлены на Столе заказов.",
       "councilAcceptedRestoredTitle": "Совет принял имущество — паевой взнос восстановлен на Столе заказов",
       "councilApprovedReturnBody": "Совет согласовал возврат паевого взноса имуществом по вашему заказу.",
       "councilRejectedBody": "Совет не принял имущество как паевой взнос: средства не восстанавливаются.",
@@ -617,7 +614,7 @@
       "acceptedLabel": "Принят поставщиком к поставке",
       "chainNoTxHash": "Действие поставщика: цепь не вернула tx_hash. Повторите попытку.",
       "expireChainNoTxHash": "Закрытие заказа по сроку поставки: цепь не вернула tx_hash.",
-      "expiredReturnNote": "Поставщик не привёз заказ в течение 48 часов после принятия — резерв и членский взнос возвращены полностью.",
+      "expiredReturnNote": "Поставщик не привёз заказ в течение 48 часов после принятия — резерв и обеспечительная часть возвращены полностью.",
       "itemFallbackName": "Товар по предложению",
       "rejectedDefectiveLabel": "Отказ в приёмке: некондиция"
     },
@@ -683,9 +680,7 @@
         "remoteRejection": "удалённый отказ"
       },
       "defaultProductTitle": "Товар по предложению",
-      "membershipFeeReturned": "Членский взнос {feeRefund} возвращён на членский кошелёк программы.",
       "propertyAcceptedAsShare": "Совет принял имущество как паевой взнос — все движения по заказу восстановлены.",
-      "propertyAndShareReturned": "Имущество и паевой взнос возвращены; членский взнос {feeRefund} ждёт пополнения общего кошелька участка.",
       "propertyIssuedBack": "Имущество выдано пайщику обратно после отказа совета.",
       "returnedProductTitle": "Возвращённый товар"
     },

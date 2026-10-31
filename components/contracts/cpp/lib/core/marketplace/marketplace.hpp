@@ -330,47 +330,56 @@ inline UserWalletAvailable get_user_wallet_balance(eosio::name coopname,
   return UserWalletAvailable{ it->available, it->blocked, true };
 }
 
-// ── Членский взнос «Стола заказов» (requirement b6 «Экономика КУ») ──────
+// ── Обеспечительная часть паевого взноса «Стола заказов» (задача 99D-18) ──
 
-/// Дефолтная ставка членского взноса нового кооператива — 30% (HUNDR_PERCENTS
-/// = 100%). Действует, пока председатель явно не настроит свою ставку через
-/// `setfee` (в т.ч. явный 0 — взнос осознанно отключён, это по-прежнему
-/// доступно, просто больше не подразумевается молчаливым «не настроено»).
+/// Дефолтная ставка обеспечительной части нового кооператива — 30%
+/// (HUNDR_PERCENTS = 100%). Действует, пока председатель явно не настроит свою
+/// ставку через `setfee` (в т.ч. явный 0 — обеспечительная часть осознанно
+/// отключена).
 constexpr uint64_t DEFAULT_MEMBERSHIP_FEE_PERCENT = 300000;
 
-/// Единая ставка членского взноса кооператива (HUNDR_PERCENTS = 100%);
+/// Единая ставка обеспечительной части паевого взноса кооператива
+/// (HUNDR_PERCENTS = 100%; имя поля историческое — задача 99D-18);
 /// нет явной настройки (singleton не создан) — берётся стандартный дефолт.
 inline uint64_t get_membership_fee_percent(eosio::name coopname) {
   mkt_config_singleton cfg(_marketplace, coopname.value);
   return cfg.exists() ? cfg.get().membership_fee_percent : DEFAULT_MEMBERSHIP_FEE_PERCENT;
 }
 
-/// Сумма членского взноса от базы по ставке (целочисленно, вниз).
+/// Доля суммы по ставке (целочисленно, вниз): обеспечительная часть заказа и
+/// удержание при отказе.
 inline eosio::asset calc_membership_fee(const eosio::asset& base, uint64_t fee_percent) {
   const int64_t amount = static_cast<int64_t>(
       static_cast<uint128_t>(base.amount) * fee_percent / HUNDR_PERCENTS);
   return eosio::asset(amount, _root_govern_symbol);
 }
 
-/// Членский взнос заказа (ноль — взнос не начислялся).
+/// Обеспечительная часть паевого взноса заказа (ноль — не начислялась).
 inline eosio::asset get_order_membership_fee(const order& o) {
   return o.membership_fee;
 }
 
-/// Членский взнос участка под заказ идёт только с внутреннего членского
-/// кошелька программы w.mkt.member (уточнение владельца 06.09.2026: членские
-/// средства, вернувшиеся при отменах и гарантийных возвратах, оплачивают
-/// только членские взносы следующих заказов; тело заказа всегда паевое).
-/// Недостающую часть взноса пайщик заранее перевёл действием convert по
-/// заявлению 1110 — здесь кошелька обязано хватать на взнос целиком.
-inline void require_member_fee(eosio::name coopname, eosio::name orderer,
-                               const eosio::asset& membership_fee) {
-  if (membership_fee.amount <= 0) return;
-  auto member = get_user_wallet_balance(coopname, ledger2_wallets::MARKETPLACE_MEMBER_FUND, orderer);
-  eosio::check(member.available >= membership_fee,
-               std::string{"Недостаточно членских средств Стола заказов на членский взнос участка: требуется "} +
-                 membership_fee.to_string() + ", доступно " + member.available.to_string() +
-                 ". Сначала подайте заявление о переводе паевого взноса в программу.");
+/// Достаточность средств заказа (задача 99D-18). Обеспечительная часть паевого
+/// взноса берётся только со свободного паевого «Стола заказов» w.mkt.share —
+/// недостающее пайщик заранее транслирует на него действием convert по заявлению
+/// 1110. Тело — с того, что на w.mkt.share осталось после обеспечительной
+/// части, остаток тела — с Цифрового кошелька w.wal.share. Проверка одним
+/// чтением, до создания заказа: при нехватке заказ не создаётся.
+inline void require_order_funding(eosio::name coopname, eosio::name orderer,
+                                  const eosio::asset& body, const eosio::asset& secure_part) {
+  auto program = get_user_wallet_balance(coopname, ledger2_wallets::MARKETPLACE_SHARE_FUND, orderer);
+  auto wallet  = get_user_wallet_balance(coopname, ledger2_wallets::SHARE_FUND_PAY, orderer);
+  if (secure_part.amount > 0) {
+    eosio::check(program.available >= secure_part,
+                 std::string{"MARKETPLACE_SECURE_PART_SHORTFALL: Недостаточно свободного паевого Стола заказов на обеспечительную часть: требуется "} +
+                   secure_part.to_string() + ", доступно " + program.available.to_string() +
+                   ". Сначала подайте заявление о трансляции паевого взноса в программу.");
+  }
+  eosio::check(program.available + wallet.available >= body + secure_part,
+               std::string{"MARKETPLACE_SHARE_SHORTFALL: Недостаточно паевых средств для заказа: требуется "} +
+                 (body + secure_part).to_string() + ", доступно " + (program.available + wallet.available).to_string() +
+                 " (свободный паевой Стола заказов " + program.available.to_string() +
+                 " и Цифровой кошелёк " + wallet.available.to_string() + ")");
 }
 
 /// Паевое тело заказа (и доплата по факту) фондируется двумя паевыми кошельками
@@ -407,35 +416,49 @@ inline void lock_order_body(eosio::name coopname, uint64_t order_id, eosio::name
   }
 }
 
-/// Списание членского взноса участка под заказ с внутреннего членского кошелька
-/// (o.mkt.fee, w.mkt.member → w.mkt.fee); no-op для нулевого взноса.
-inline void lock_membership_fee(eosio::name coopname, uint64_t order_id,
-                                eosio::name orderer, const checksum256& order_hash,
-                                const eosio::asset& fee, const std::string& memo) {
-  if (fee.amount <= 0) return;
+/// Обеспечительная часть паевого взноса под заказ со свободного паевого «Стола
+/// заказов» (o.mkt.fee, w.mkt.share → w.mkt.fee); no-op для нулевой суммы.
+/// Идёт раньше тела заказа: тело берёт со свободного паевого то, что осталось.
+inline void lock_secure_part(eosio::name coopname, eosio::name orderer,
+                             const checksum256& order_hash,
+                             const eosio::asset& amount, const std::string& memo) {
+  if (amount.amount <= 0) return;
   Ledger2::apply(_marketplace, coopname,
-                 operations::marketplace::MEMBERSHIP_FEE_LOCK,
+                 operations::marketplace::SECURE_PART_LOCK,
                  processes::marketplace::SUPPLY,
-                 fee, orderer, order_hash, memo);
+                 amount, orderer, order_hash, memo);
 }
 
-/// Полный возврат членского взноса заказа на членский кошелёк «Стола
-/// заказов» w.mkt.member (o.mkt.refund) при отмене/отклонении/истечении; no-op
-/// для заказов без взноса. Частичный возврат при недовыдаче — в issueact2.
-/// Членский остаётся членским: обратно в паевой не транслируется, идёт в
-/// зачёт следующего заказа.
-inline void refund_membership_fee_if_any(eosio::name coopname, const order& o) {
-  const eosio::asset fee = get_order_membership_fee(o);
-  if (fee.amount <= 0) return;
+/// Возврат обеспечительной части на свободный паевой «Стола заказов»
+/// (o.mkt.refund, w.mkt.fee → w.mkt.share); no-op для нулевой суммы.
+inline void refund_secure_part(eosio::name coopname, const order& o, const eosio::asset& amount) {
+  if (amount.amount <= 0) return;
   Ledger2::apply(_marketplace, coopname,
-                 operations::marketplace::MEMBERSHIP_FEE_REFUND,
+                 operations::marketplace::SECURE_PART_REFUND,
                  processes::marketplace::SUPPLY,
-                 fee, o.orderer, o.hash,
-                 Marketplace::Memo::get_membership_fee_refund_memo(o.id));
+                 amount, o.orderer, o.hash,
+                 Marketplace::Memo::get_secure_part_refund_memo(o.id));
 }
 
-/// Полный возврат резерва заказа на свободный паевой «Стола заказов» и
-/// сторно членского взноса (бесплатная отмена: до акцепта поставщиком либо заказ из остатка
+/// Обеспечительная часть к списанию (o.mkt.todue, w.mkt.fee → w.mkt.due);
+/// no-op для нулевой суммы. Когда списывать, решает бэкенд (chargedue).
+inline void move_secure_part_to_due(eosio::name coopname, const order& o, const eosio::asset& amount) {
+  if (amount.amount <= 0) return;
+  Ledger2::apply(_marketplace, coopname,
+                 operations::marketplace::SECURE_TO_DUE,
+                 processes::marketplace::SUPPLY,
+                 amount, o.orderer, o.hash,
+                 Marketplace::Memo::get_secure_to_due_memo(o.id));
+}
+
+/// Полный возврат обеспечительной части заказа при отмене, отклонении,
+/// истечении; no-op для заказов без неё. Частичный — в issueact2.
+inline void refund_secure_part_if_any(eosio::name coopname, const order& o) {
+  refund_secure_part(coopname, o, get_order_membership_fee(o));
+}
+
+/// Полный возврат резерва заказа и обеспечительной части на свободный паевой
+/// «Стола заказов» (бесплатная отмена: до акцепта поставщиком либо заказ из остатка
 /// кооператива — поставщика и его риска нет).
 inline void refund_order_full(eosio::name coopname, const order& o) {
   Ledger2::apply(_marketplace, coopname,
@@ -443,7 +466,7 @@ inline void refund_order_full(eosio::name coopname, const order& o) {
                  processes::marketplace::SUPPLY,
                  o.total_cost, o.orderer, o.hash,
                  Marketplace::Memo::get_cancel_order_memo(o.id));
-  refund_membership_fee_if_any(coopname, o);
+  refund_secure_part_if_any(coopname, o);
 }
 
 /// Доля удержания при отказе пайщика от получения после акцепта поставщиком.
@@ -467,12 +490,13 @@ inline eosio::asset refusal_penalty_share(const eosio::asset& base) {
 }
 
 /// Отказ пайщика от получения позиции после акцепта поставщиком: удержание 50%.
-/// Тело заказа и членский взнос делятся пополам — удержанная половина уходит
-/// в общий кошелёк КУ выдачи (тело — транзитом через пул взносов o.mkt.penalty,
-/// затем единым Branch::accrue вместе с удержанной половиной взноса), вторая
-/// половина возвращается пайщику на свободный паевой «Стола заказов». Имущество
-/// остаётся на складе КУ (без движения по счёту 10) — кооператив несёт риск
-/// уже оплаченной поставки, под который и держится удержание. Долг поставщику
+/// Тело заказа и обеспечительная часть делятся пополам. Удержанные половины
+/// остаются паевыми и ложатся на кошелёк пайщика к списанию w.mkt.due (тело —
+/// o.mkt.penal с резерва, обеспечительная часть — o.mkt.todue из пула); членским
+/// взносом участка они становятся при списании по условиям ЦПП первого числа
+/// месяца (chargedue, решение владельца 31.10.2026, задача 99D-18). Вторые
+/// половины возвращаются на свободный паевой «Стола заказов». Имущество
+/// остаётся на складе участка (без движения по счёту 10). Долг поставщику
 /// (Кт 76 с приёмки) удержание не трогает: он гасится выплатой своим чередом.
 inline void retain_refusal_penalty(eosio::name coopname, const order& o) {
   // ── Тело заказа 50/50 ──
@@ -487,35 +511,18 @@ inline void retain_refusal_penalty(eosio::name coopname, const order& o) {
                    Marketplace::Memo::get_cancel_order_memo(o.id));
   }
   if (penalty_body.amount > 0) {
-    // Транзит: удержанная половина тела → пул членских взносов, откуда уйдёт в КУ.
     Ledger2::apply(_marketplace, coopname,
                    operations::marketplace::REFUSAL_PENALTY,
                    processes::marketplace::SUPPLY,
                    penalty_body, o.orderer, o.hash,
-                   Marketplace::Memo::get_refusal_penalty_transit_memo(o.id));
+                   Marketplace::Memo::get_refusal_penalty_memo(o.id));
   }
 
-  // ── Членский взнос 50/50 ──
+  // ── Обеспечительная часть 50/50 ──
   const eosio::asset fee         = get_order_membership_fee(o);
   const eosio::asset penalty_fee = refusal_penalty_share(fee);
-  const eosio::asset refund_fee  = fee - penalty_fee;
-  if (refund_fee.amount > 0) {
-    Ledger2::apply(_marketplace, coopname,
-                   operations::marketplace::MEMBERSHIP_FEE_REFUND,
-                   processes::marketplace::SUPPLY,
-                   refund_fee, o.orderer, o.hash,
-                   Marketplace::Memo::get_membership_fee_refund_memo(o.id));
-  }
-
-  // ── Удержанное (тело + взнос) — в общий кошелёк КУ выдачи ──
-  // Обе удержанные половины сейчас в пуле членских взносов: тело — транзитом
-  // выше, взнос — ещё с createorder; единым accrue зачисляются в w.brn.common.
-  const eosio::asset to_common = penalty_body + penalty_fee;
-  if (to_common.amount > 0) {
-    Branch::accrue(_marketplace, coopname, o.delivery_braname,
-                   to_common, processes::marketplace::SUPPLY, o.hash,
-                   Marketplace::Memo::get_refusal_penalty_distribute_memo(o.id));
-  }
+  refund_secure_part(coopname, o, fee - penalty_fee);
+  move_secure_part_to_due(coopname, o, penalty_fee);
 }
 
 // ── Факты Стола заказов для других контрактов (shared-слой, задача 99D-16) ──
@@ -543,26 +550,27 @@ inline void check_member_can_exit(eosio::name coopname, eosio::name username) {
                "Выход из кооператива невозможен: открыто заявление на гарантийный возврат в Столе заказов — дождитесь его рассмотрения");
 }
 
-/// Выход состоялся: остаток членского кошелька программы не возвращается и в
-/// паевой не транслируется — через пул взносов (o.mkt.exfee) уходит в общий
-/// кошелёк участка, к которому прикреплён пайщик (o.brn.common). Пайщик без
-/// участка или участок удалён — остаток остаётся в пуле. `actor` — контракт,
-/// проводящий выход (его разрешение подписывает операции).
-inline void settle_member_fund_on_exit(eosio::name actor, eosio::name coopname,
-                                       eosio::name username, const checksum256& exit_hash) {
+/// Выход состоялся: остаток обеспечительной части к списанию w.mkt.due по
+/// условиям ЦПП списывается в членский взнос немедленно (решение владельца
+/// 31.10.2026, задача 99D-18): транзитом через пул (o.mkt.exfee) и далее в
+/// общий кошелёк участка, к которому прикреплён пайщик (o.brn.common,
+/// Дт 80 / Кт 86). Пайщик без участка или участок удалён — остаток остаётся в
+/// пуле. `actor` — контракт, проводящий выход (его разрешение подписывает операции).
+inline void settle_due_on_exit(eosio::name actor, eosio::name coopname,
+                               eosio::name username, const checksum256& exit_hash) {
   const eosio::asset balance =
-      get_user_wallet_balance(coopname, ledger2_wallets::MARKETPLACE_MEMBER_FUND, username).available;
+      get_user_wallet_balance(coopname, ledger2_wallets::MARKETPLACE_SECURE_DUE, username).available;
   if (balance.amount <= 0) return;
 
-  Ledger2::apply(actor, coopname, operations::marketplace::EXIT_FEE_TO_POOL,
+  Ledger2::apply(actor, coopname, operations::marketplace::EXIT_DUE_TO_POOL,
                  processes::wallet::WITHDRAW, balance, username, exit_hash,
-                 "Остаток членского кошелька Стола заказов в пул взносов при выходе, username=" +
+                 "Обеспечительная часть Стола заказов к списанию при выходе, username=" +
                    username.to_string());
 
   const auto braname = ::get_participant_branch(coopname, username);
   if (!braname.has_value() || !Branch::exists(coopname, *braname)) return;
   Branch::accrue(actor, coopname, *braname, balance, processes::wallet::WITHDRAW, exit_hash,
-                 "Остаток членского кошелька Стола заказов в общий кошелёк участка при выходе, username=" +
+                 "Обеспечительная часть Стола заказов списана в членский взнос участка при выходе, username=" +
                    username.to_string());
 }
 

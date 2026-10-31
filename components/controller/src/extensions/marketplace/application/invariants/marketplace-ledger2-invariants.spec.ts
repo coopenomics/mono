@@ -817,7 +817,7 @@ describe('checkAllMarketplaceLedger2Invariants — батч', () => {
   })
 })
 
-describe('I2 — счёт 86: только перевод в членский, удержание при отказе и списание скоропорта', () => {
+describe('I2 — счёт 86: только списание обеспечительной части в членский взнос участка', () => {
   beforeEach(() => {
     seq = 100n
   })
@@ -830,25 +830,27 @@ describe('I2 — счёт 86: только перевод в членский, �
     expect(res.expected).toBe('dr=0.0000 RUB / cr=0.0000 RUB')
   })
 
-  it('happy path: перевод в членский и удержание при отказе (Кт 86) — законные проводки; списание скоропорта 86 не задевает', () => {
+  it('happy path: списание обеспечительной части в членский взнос участка (Кт 86) — законная проводка; списание скоропорта 86 не задевает', () => {
+    // Задача 99D-18: трансляция, обеспечительная часть и удержание при отказе
+    // остаются на 80; на 86 нитка заказа выходит только списанием (chargedue).
     const orderHash = newProcessHash()
     const rows: MarketplaceLedger2OperationRow[] = [
       ...writeoffFlow(40),
       ...buildApplyTrio({
         processHash: orderHash,
-        operationCode: 'o.mkt.conv',
-        amount: 100,
-        walletFrom: 'w.wal.share',
-        walletTo: 'w.mkt.member',
-        debitAccount: 80,
-        creditAccount: 86,
+        operationCode: 'o.mkt.charge',
+        amount: 150,
+        walletFrom: 'w.mkt.due',
+        walletTo: 'w.mkt.fee',
+        debitAccount: null,
+        creditAccount: null,
       }),
       ...buildApplyTrio({
         processHash: orderHash,
-        operationCode: 'o.mkt.penal',
-        amount: 50,
-        walletFrom: 'w.mkt.order',
-        walletTo: 'w.mkt.fee',
+        operationCode: 'o.brn.common',
+        amount: 150,
+        walletFrom: 'w.mkt.fee',
+        walletTo: 'w.brn.common',
         debitAccount: 80,
         creditAccount: 86,
       }),
@@ -856,6 +858,22 @@ describe('I2 — счёт 86: только перевод в членский, �
     const res = checkInvariantI2Account86Usage(rows)
     expect(res.ok).toBe(true)
     expect(res.expected).toBe('dr=0.0000 RUB / cr=150.0000 RUB')
+  })
+
+  it('violation: трансляция с проводкой на 86 — прежняя конвертация в членский при заказе', () => {
+    const res = checkInvariantI2Account86Usage(
+      buildApplyTrio({
+        processHash: newProcessHash(),
+        operationCode: 'o.mkt.conv',
+        amount: 100,
+        walletFrom: 'w.wal.share',
+        walletTo: 'w.mkt.share',
+        debitAccount: 80,
+        creditAccount: 86,
+      }),
+    )
+    expect(res.ok).toBe(false)
+    expect(res.details?.[0]?.message).toMatch(/кредит 86/)
   })
 
   it('violation: дебет 86 в нитке Стола заказов — у программы такого движения нет', () => {
@@ -876,7 +894,7 @@ describe('I2 — счёт 86: только перевод в членский, �
     expect(res.details?.[0]?.message).toMatch(/дебет 86/)
   })
 
-  it('violation: проводка по 86 в нитке Стола заказов вне трёх допустимых операций', () => {
+  it('violation: проводка по 86 в нитке Стола заказов вне списания обеспечительной части', () => {
     // Приёмка легла на 86 вместо 76 — так выглядел бы реестр до перевода
     // закупки на счёт расчётов.
     const res = checkInvariantI2Account86Usage(
@@ -900,7 +918,9 @@ describe('I2 — счёт 86: только перевод в членский, �
     const processHash = newProcessHash()
     const applySeq = nextSeq()
     const rows: MarketplaceLedger2OperationRow[] = [
-      { globalSequence: applySeq, action: 'apply', operationCode: 'o.mkt.penal', processHash, quantity: '40.0000 RUB' },
+      // Нитка заказа: операция Стола заказов делает её ниткой программы.
+      { globalSequence: nextSeq(), action: 'apply', operationCode: 'o.mkt.charge', processHash, quantity: '40.0000 RUB' },
+      { globalSequence: applySeq, action: 'apply', operationCode: 'o.brn.common', processHash, quantity: '40.0000 RUB' },
       { globalSequence: nextSeq(), action: 'debit', processHash, accountId: 80, quantity: '40.0000 RUB', parentApplyGlobalSequence: applySeq },
       { globalSequence: nextSeq(), action: 'credit', processHash, accountId: 86, quantity: '40.0000 RUB', parentApplyGlobalSequence: applySeq },
     ]

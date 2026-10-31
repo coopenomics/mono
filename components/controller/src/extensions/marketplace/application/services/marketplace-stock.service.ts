@@ -529,8 +529,8 @@ export class MarketplaceStockService {
     const package_size_asset = toQuantityAsset(resolved.packageSize, offer.unit_of_measure);
     const warranty_period_secs = offer.warranty_days * 86_400;
 
-    // Паевая модель: внутренний членский кошелёк первым (взнос и тело), остаток
-    // тела — со свободного паевого «Стола заказов»; недостающее пайщик переводит
+    // Паевая модель (задача 99D-18): со свободного паевого «Стола заказов»
+    // сначала обеспечительная часть, затем тело; недостающее пайщик транслирует
     // действием convert в той же транзакции. При нехватке контракт откажет с суммами.
 
     // Optimistic counter ДО chain submit (как в createOrder поставщика).

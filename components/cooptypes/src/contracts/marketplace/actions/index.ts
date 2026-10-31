@@ -113,6 +113,9 @@ export * as CancelIssue from './cancelIssue'
  */
 export * as SetFee from './setFee'
 
+/** Списание обеспечительной части паевого взноса в членский взнос участка по условиям ЦПП (задача 99D-18). */
+export * as ChargeDue from './chargeDue'
+
 /**
  * Отсечка персонального распределения членского взноса КУ (requirement b6).
  * Меняет председатель КУ; применяется при финализации заказов в branch::distribute.
@@ -149,9 +152,6 @@ export * as OnMktRtDecl from './onMktRtDecl'
 
 /** Оператор выдал имущество обратно (после отказа совета или по истечении срока ожидания). */
 export * as HandBack from './handBack'
-
-/** Довнесение членского взноса по возврату, ждавшему пополнения общего кошелька участка (feepend → ∅). */
-export * as PayRetFee from './payRetFee'
 
 // p.mkt.claim — гарантийная претензия поставщику (99D-13): признание; несогласие в цепь не пишется
 export * as AdmitClaim from './admitClaim'

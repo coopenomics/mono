@@ -6,8 +6,10 @@
 import type { Who } from '../core/auth'
 import { tokenOf } from '../core/auth'
 import { type GqlError, gql, gqlRaw } from '../core/client'
-import { amount, ensureShareFunds } from '../core/wallet'
-import { KRG, acceptToCoop, issueOrder, placeOrder } from './flow'
+import { transact } from '../core/chain'
+import { COOP } from '../core/env'
+import { COOP_SIGNER, amount, ensureShareFunds, rub } from '../core/wallet'
+import { KRG, acceptToCoop, getOrder, issueOrder, placeOrder } from './flow'
 
 /** Минимальный валидный PNG 1×1: фото к заявлениям о возврате обязательны. */
 export const PIXEL_PNG = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='
@@ -52,7 +54,7 @@ export async function issuedOrder(args: {
 }): Promise<IssuedOrder> {
   const { member, supplier, operator, offer, quantity, braname = KRG } = args
   const unitPrice = amount(offer.price_per_unit)
-  // Сумма с членским взносом не больше двойной стоимости при любой ставке ≤ 100%.
+  // Сумма с обеспечительной частью не больше двойной стоимости при любой ставке ≤ 100%.
   await fundShare(member, quantity * unitPrice * 2)
   const placed = await placeOrder({ who: member, offerId: offer.id, quantity, braname })
   await acceptToCoop({
@@ -72,6 +74,25 @@ export async function issuedOrder(args: {
     actualUnitPrice: args.issueUnitPrice ?? args.receptionUnitPrice ?? unitPrice,
   })
   return { orderId: placed.orderId, orderHash: placed.orderHash, unitPrice, quantity }
+}
+
+/**
+ * Списание обеспечительной части выданного заказа в членский взнос участка
+ * (задача 99D-18). Узел делает это сам первого числа месяца после окончания
+ * гарантийного срока; набору ждать нельзя, поэтому он зовёт то же действие
+ * цепи ключом кооператива — контракт сроки не проверяет, держит только
+ * потолок остатка кошелька к списанию.
+ */
+export async function chargeSecurePart(args: { member: Who, orderId: string, orderHash: string, braname?: string }): Promise<number> {
+  const order = await getOrder(await tokenOf(args.member), args.orderId)
+  const securePart = amount(order.total_cost_with_fee) - amount(order.total_cost)
+  await transact(COOP_SIGNER, [{
+    account: 'marketplace',
+    name: 'chargedue',
+    authorization: [{ actor: COOP, permission: 'active' }],
+    data: { coopname: COOP, username: args.member.account, braname: args.braname ?? KRG, order_hash: args.orderHash, amount: rub(securePart) },
+  }])
+  return securePart
 }
 
 export const BRANCH_ECONOMY = `query($b:String!){ marketplaceGetBranchEconomy(braname:$b){

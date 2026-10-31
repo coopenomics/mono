@@ -1,4 +1,4 @@
-import { TableStore, notNull, oneOf } from '@coopenomics/extension-kit';
+import { TableStore, oneOf } from '@coopenomics/extension-kit';
 import { MARKETPLACE_RETURN_CLAIM_STORE } from '../../infrastructure/database/marketplace-stores';
 import { Inject, Injectable } from '@nestjs/common';
 import { MarketplaceReturnClaimDomainEntity } from '../../domain/entities/marketplace-return-claim.entity';
@@ -159,10 +159,7 @@ private readonly repo: TableStore<MarketplaceReturnClaimEntity>,
     return this.mapper.toDomain(fresh);
   }
 
-  async listFeeRefundPending(coopname: string, limit = 50): Promise<MarketplaceReturnClaimDomainEntity[]> {
-    const rows = await this.repo.find({ coopname, fee_refund_pending_at: notNull() }, { order: { fee_refund_pending_at: 'ASC' }, limit: limit });
-    return rows.map((r) => this.mapper.toDomain(r));
-  }
+
 
   async listByStatus(
     coopname: string,

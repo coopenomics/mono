@@ -76,23 +76,21 @@ export interface MarketplaceCheckoutSignableLine {
   offer_id: string;
   package_id: string | null;
   order_hash: string;
-  /** Стоимость позиции с членским взносом участка, с валютой. */
+  /** Стоимость позиции с обеспечительной частью паевого взноса, с валютой. */
   amount: string;
-  /** Членский взнос участка по позиции, с валютой. */
+  /** Обеспечительная часть паевого взноса по позиции, с валютой. */
   membership_fee: string;
-  /** Часть взноса, покрытая остатком внутреннего членского кошелька, с валютой. */
-  from_member: string;
-  /** Часть тела, покрытая остатком свободного паевого «Стола заказов», с валютой. */
+  /** Часть стоимости и обеспечительной части, покрытая свободным паевым «Стола заказов», с валютой. */
   from_program: string;
-  /** Уходит с Цифрового кошелька по заявлению: остаток тела и недостающая часть взноса, с валютой. */
+  /** Транслируется из Цифрового кошелька по заявлению: недостающие части, с валютой. */
   from_wallet: string;
 }
 
-/** Заявление 1110 к подписи — только когда кошельков программы на заказ не хватает. */
+/** Заявление 1110 к подписи — только когда свободного паевого «Стола заказов» на заказ не хватает. */
 export interface MarketplaceConvertPayload {
-  /** Сумма перевода с Цифрового кошелька: недостающая часть тела плюс недостающая часть взноса, с валютой. */
+  /** Сумма трансляции из Цифрового кошелька: недостающие части стоимости и обеспечительной части, с валютой. */
   amount: string;
-  /** Членская часть — взнос за вычетом остатка членского кошелька, уходит в членский кошелёк действием convert, с валютой. */
+  /** Обеспечительная часть в сумме трансляции, с валютой. */
   membership_fee: string;
   document: InnerGeneratedDocument;
 }
@@ -116,9 +114,9 @@ type PreparedCheckoutLine =
 
 interface CheckoutPlan {
   lines: CheckoutPlannedLine[];
-  /** Членская часть перевода — параметр действия convert. */
+  /** Обеспечительная часть в сумме трансляции. */
   fee_convert_units: bigint;
-  /** Сумма заявления с Цифрового кошелька: тела сверх свободного паевого плюс недостающие части взносов. */
+  /** Сумма заявления — трансляция из Цифрового кошелька: недостающие части тел и обеспечительных частей. */
   transfer_units: bigint;
 }
 
@@ -153,7 +151,7 @@ function failedLineFromError(
  * Решение владельца 15.09.2026: корзина оформляется ОДНОЙ транзакцией —
  * перевод по заявлению 1110 (если кошельков программы не хватило) и заказы
  * всех строк. Цепь проводит их вместе или откатывает все: частичного
- * оформления и зависшего в членском кошельке перевода не бывает (прежнее
+ * оформления и зависшей на свободном паевом трансляции не бывает (прежнее
  * построчное оформление от 2026-06-02 оставляло перевод проведённым, когда
  * контракт отказывал в заказе). Замер на стенде: перевод 60–140 мс, заказ
  * 7–31 мс при лимите 2 с на транзакцию у боевых нод.
@@ -193,12 +191,11 @@ export class MarketplaceCheckoutService {
   }
 
   /**
-   * Превью оформления. Паевая модель: два кошелька программы оплачивают каждый
-   * свою часть — членский взнос позиции покрывается остатком внутреннего
-   * членского кошелька, тело — остатком свободного паевого «Стола заказов»
-   * (туда возвращаются средства при отменах и возвратах). Заявление 1110 — на
-   * то, чего в них не хватило, с Цифрового кошелька; клиент подписывает его
-   * один раз на всё оформление; если переводить нечего, заявления нет.
+   * Превью оформления (задача 99D-18). Обеспечительная часть и тело позиции
+   * покрываются свободным паевым «Стола заказов» (на него возвращаются
+   * средства при отменах и возвратах). Заявление 1110 о трансляции — на то,
+   * чего на нём не хватило, из Цифрового кошелька; клиент подписывает его
+   * один раз на всё оформление; если транслировать нечего, заявления нет.
    */
   async getSignablePayloads(scope: CheckoutScope): Promise<MarketplaceCheckoutPreview> {
     const cart = await this.cartRepo.getOrCreate(scope.coopname, scope.orderer_account);
@@ -220,9 +217,8 @@ export class MarketplaceCheckoutService {
       order_hash: p.order_hash,
       amount: this.economyService.unitsToAsset(p.plan.body_units + p.plan.fee_units),
       membership_fee: this.economyService.unitsToAsset(p.plan.fee_units),
-      from_member: this.economyService.unitsToAsset(p.plan.fee_member_units),
-      from_program: this.economyService.unitsToAsset(p.plan.body_program_units),
-      from_wallet: this.economyService.unitsToAsset(p.plan.body_wallet_units + p.plan.fee_convert_units),
+      from_program: this.economyService.unitsToAsset(p.plan.fee_program_units + p.plan.body_program_units),
+      from_wallet: this.economyService.unitsToAsset(p.plan.translate_units),
     }));
     const convert =
       planned.transfer_units > 0n
@@ -270,18 +266,18 @@ export class MarketplaceCheckoutService {
     );
 
     const feePercent = await this.economyService.getMembershipFeeContractPercent(scope.coopname);
-    // План по свежему балансу членского кошелька: недостающая сумма обязана
+    // План по свежему балансу свободного паевого: недостающая сумма обязана
     // совпасть с подписанным заявлением, иначе оформление повторяется.
     const planned = await this.planLines(scope, payable, feePercent, orderHashByLine);
 
     // Предвалидация баланса под всю оформляемую корзину (без частичного
-    // списания): с Цифрового кошелька уходит сумма заявления — тела сверх
-    // свободного паевого программы и недостающие части взносов.
+    // списания): из Цифрового кошелька транслируется сумма заявления —
+    // недостающие на свободном паевом части тел и обеспечительных частей.
     if (planned.lines.length > 0) {
       await this.assertSpendable(scope, MAIN_SHARE_WALLET, planned.transfer_units, t('marketplace.checkout.digitalWalletLabel'));
     }
 
-    // ── Заявление 1110: перевод в членский кошелёк идёт первым действием общей транзакции ──
+    // ── Заявление 1110: трансляция на свободный паевой идёт первым действием общей транзакции ──
     let convert: MarketContract.Actions.Convert.IConvert | null = null;
     if (planned.transfer_units > 0n) {
       const convert_statement = this.convertService.verifySigned(
@@ -290,16 +286,16 @@ export class MarketplaceCheckoutService {
         scope.orderer_account
       );
       // Разбивка по заказам: контракт эмитит o.mkt.conv на каждый заказ с его
-      // хэшем как process_hash, поэтому перевод ложится первой операцией
+      // хэшем как process_hash, поэтому трансляция ложится первой операцией
       // нитки того заказа, который оплачивает, а не заводит нитку без анкера.
       convert = {
         coopname: scope.coopname,
         orderer: scope.orderer_account,
         targets: planned.lines
-          .filter((p) => p.plan.fee_convert_units > 0n)
+          .filter((p) => p.plan.translate_units > 0n)
           .map((p) => ({
             order_hash: p.order_hash,
-            amount: this.economyService.unitsToAsset(p.plan.fee_convert_units),
+            amount: this.economyService.unitsToAsset(p.plan.translate_units),
           })),
         convert_statement,
       };
@@ -454,10 +450,10 @@ export class MarketplaceCheckoutService {
   /**
    * План оформления по строкам: тело позиции с учётом способа отпуска
    * (Эпик 18: по мере — цена базовой единицы × количество; упаковкой — цена
-   * упаковки × число упаковок), членский взнос участка той же формулой, что
-   * контракт, и раскладка по кошелькам в порядке проведения — взнос с
-   * внутреннего членского кошелька, тело со свободного паевого программы,
-   * нехватка каждой части — с Цифрового кошелька по заявлению.
+   * упаковки × число упаковок), обеспечительная часть той же формулой, что
+   * контракт, и раскладка в порядке проведения — со свободного паевого
+   * программы сначала обеспечительная часть, затем тело; нехватка каждой
+   * части транслируется из Цифрового кошелька по заявлению.
    * order_hash берётся из строк превью (в нём случайный nonce), иначе
    * рождается здесь. Единый расчёт для превью, проверки баланса и
    * оформления — суммы обязаны совпадать побитово.
@@ -476,7 +472,7 @@ export class MarketplaceCheckoutService {
     const balances =
       payable.length > 0
         ? await this.convertService.programBalances(scope.coopname, scope.orderer_account)
-        : { member: 0n, share: 0n };
+        : { share: 0n };
     const funding = this.convertService.planFunding(balances, inputs);
     const lines: CheckoutPlannedLine[] = payable.map((line, i) => ({
       line,

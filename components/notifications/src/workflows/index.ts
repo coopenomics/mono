@@ -51,6 +51,7 @@ import { workflow as marketplaceWriteoffRejectedWorkflow } from './marketplace-w
 import { workflow as marketplaceNewOrderForSupplierWorkflow } from './marketplace-new-order-for-supplier';
 import { workflow as marketplaceSupplierClaimIssuedWorkflow } from './marketplace-supplier-claim-issued';
 import { workflow as marketplaceOrderDeclinedBySupplierWorkflow } from './marketplace-order-declined-by-supplier';
+import { workflow as marketplaceSecurePartChargedWorkflow } from './marketplace-secure-part-charged';
 import { workflow as marketplaceNewSupplierRequestWorkflow } from './marketplace-new-supplier-request';
 import { workflow as marketplaceOfferOnModerationWorkflow } from './marketplace-offer-on-moderation';
 import { workflow as marketplaceOfferApprovedWorkflow } from './marketplace-offer-approved';
@@ -129,6 +130,7 @@ export * as MarketplaceWriteoffRejected from './marketplace-writeoff-rejected';
 export * as MarketplaceNewOrderForSupplier from './marketplace-new-order-for-supplier';
 export * as MarketplaceSupplierClaimIssued from './marketplace-supplier-claim-issued';
 export * as MarketplaceOrderDeclinedBySupplier from './marketplace-order-declined-by-supplier';
+export * as MarketplaceSecurePartCharged from './marketplace-secure-part-charged';
 export * as MarketplaceNewSupplierRequest from './marketplace-new-supplier-request';
 export * as MarketplaceOfferOnModeration from './marketplace-offer-on-moderation';
 export * as MarketplaceOfferApproved from './marketplace-offer-approved';
@@ -203,6 +205,7 @@ export const allWorkflows: WorkflowDefinition[] = [
   marketplaceNewOrderForSupplierWorkflow,
   marketplaceSupplierClaimIssuedWorkflow,
   marketplaceOrderDeclinedBySupplierWorkflow,
+  marketplaceSecurePartChargedWorkflow,
   marketplaceNewSupplierRequestWorkflow,
   marketplaceOfferOnModerationWorkflow,
   marketplaceOfferApprovedWorkflow,

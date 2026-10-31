@@ -122,9 +122,9 @@ export interface MarketplaceStockAcceptOrderLine {
 
 /**
  * Полезная нагрузка к одной подписи пайщика: заявления по строкам и, если
- * кошельков программы не хватает на бандл (свободного паевого — на тела
- * докладки и доплаты, членского — на взносы и довзносы), одно заявление 1110
- * о переводе недостающего с Цифрового кошелька — на весь бандл.
+ * свободного паевого «Стола заказов» не хватает на бандл (тела и
+ * обеспечительные части докладки и доплаты), одно заявление 1110 о
+ * трансляции недостающего из Цифрового кошелька — на весь бандл.
  */
 export interface MarketplaceStockAcceptPayload {
   order_lines: MarketplaceStockAcceptOrderLine[];
@@ -145,12 +145,12 @@ export interface MarketplaceStockFinalizeInput {
 
 /** План сумм бандла в минимальных единицах (порядок = порядок проведения). */
 interface BundlePlan {
-  /** Недостающая часть взносов — параметр действия convert. */
+  /** Обеспечительная часть в сумме трансляции. */
   fee_convert_units: bigint;
-  /** Сумма заявления с Цифрового кошелька: тела сверх свободного паевого плюс недостающие взносы. */
+  /** Сумма заявления — трансляция из Цифрового кошелька: недостающие части тел и обеспечительных частей. */
   transfer_units: bigint;
-  /** Разбивка недостающей части взносов по заказам бандла — адресаты действия convert. */
-  convert_targets: Array<{ order_hash: string; fee_convert_units: bigint }>;
+  /** Разбивка трансляции по заказам бандла — адресаты действия convert. */
+  convert_targets: Array<{ order_hash: string; translate_units: bigint }>;
 }
 
 /**
@@ -194,8 +194,8 @@ export class MarketplaceStockProposalService {
   /**
    * План сумм по бандлу в порядке проведения (тот же, что в контракте и в
    * `finalizeStockIssuance`): сначала докладка — заказы из остатка рождаются
-   * первыми, взнос с членского кошелька, тело со свободного паевого программы;
-   * затем довзносы и доплаты по существующим заказам при факте больше заказа.
+   * первыми, обеспечительная часть и тело со свободного паевого программы;
+   * затем доплаты по существующим заказам при факте больше заказа.
    * Нехватка каждой части — с Цифрового кошелька по заявлению 1110 на весь бандл.
    */
   private async planBundle(
@@ -206,7 +206,7 @@ export class MarketplaceStockProposalService {
     const feePercent = await this.economyService.getMembershipFeeContractPercent(coopname);
     const inputs: Array<{ body_units: bigint; fee_units: bigint }> = [];
     // Хэши заказов идут параллельно строкам плана: нитка процесса ведётся по
-    // заказу, поэтому перевод адресуется построчно (см. действие convert).
+    // заказу, поэтому трансляция адресуется построчно (см. действие convert).
     const hashes: string[] = [];
     for (const item of proposal.items.filter((i) => !i.order_id)) {
       const { offer, resolved } = await this.validateStockLine(coopname, proposal.braname, item.offer_id, item.quantity, item.package_id);
@@ -222,8 +222,8 @@ export class MarketplaceStockProposalService {
     const balances = await this.convertService.programBalances(coopname, member_account);
     const funding = this.convertService.planFunding(balances, inputs);
     const convert_targets = funding.lines
-      .map((line, i) => ({ order_hash: hashes[i] ?? '', fee_convert_units: line.fee_convert_units }))
-      .filter((t) => t.fee_convert_units > 0n && t.order_hash.length > 0);
+      .map((line, i) => ({ order_hash: hashes[i] ?? '', translate_units: line.translate_units }))
+      .filter((t) => t.translate_units > 0n && t.order_hash.length > 0);
     return { fee_convert_units: funding.fee_convert_units, transfer_units: funding.transfer_units, convert_targets };
   }
 
@@ -236,9 +236,9 @@ export class MarketplaceStockProposalService {
    * Заявления к одной подписи пайщика: по каждой строке бандла — заявление о
    * возврате паевого взноса имуществом (1113). Для существующих заказов
    * документ строится из саги (факт зафиксирован оператором), для докладки —
-   * из строки бандла по детерминированному order_hash. Если внутреннего
-   * членского кошелька на бандл не хватает — ещё одно заявление 1110 о
-   * переводе недостающей суммы со свободного паевого программы.
+   * из строки бандла по детерминированному order_hash. Если свободного
+   * паевого «Стола заказов» на бандл не хватает — ещё одно заявление 1110 о
+   * трансляции недостающей суммы из Цифрового кошелька.
    */
   async getAcceptSignablePayloads(
     coopname: string,
@@ -536,9 +536,9 @@ export class MarketplaceStockProposalService {
         throw DomainError.badRequest('MARKETPLACE_STOCK_PROPOSAL_SIGNING_MISMATCH');
       }
     }
-    // План по свежему балансу членского кошелька: недостающая сумма обязана
+    // План по свежему балансу свободного паевого: недостающая сумма обязана
     // совпасть с подписанным заявлением 1110, иначе подписание повторяется.
-    // Перевод — отдельной транзакцией до заказов из остатка.
+    // Трансляция — отдельной транзакцией до заказов из остатка.
     let plan: BundlePlan;
     try {
       plan = await this.planBundle(coopname, proposal, member_account);
@@ -558,7 +558,7 @@ export class MarketplaceStockProposalService {
           orderer: member_account,
           targets: plan.convert_targets.map((t) => ({
             order_hash: t.order_hash,
-            amount: this.economyService.unitsToAsset(t.fee_convert_units),
+            amount: this.economyService.unitsToAsset(t.translate_units),
           })),
           convert_statement,
         });
@@ -628,7 +628,7 @@ export class MarketplaceStockProposalService {
         member_account,
         order_id,
         signed_statement: signedByHash.get(item.order_hash!)!,
-        // Довзнос по бандлу уже переведён в членский кошелёк выше одним заявлением.
+        // Доплата по бандлу уже транслирована на свободный паевой выше одним заявлением.
         signed_convert: null,
         convert_settled_by_bundle: true,
       });

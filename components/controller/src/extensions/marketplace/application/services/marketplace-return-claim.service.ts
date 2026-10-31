@@ -844,50 +844,6 @@ export class MarketplaceReturnClaimService {
     }
   }
 
-  /**
-   * Совет «за», но общий кошелёк участка был уже распределён: имущество и
-   * паевой возвращены, членский взнос ждёт пополнения кошелька (заявка на
-   * цепи в `feepend`, задача 99D-15). Крон повторяет `payretfee`.
-   */
-  async markFeeRefundPending(input: { coopname: string; request_hash: string; tx_hash: string }): Promise<void> {
-    const claim = await this.claimRepo.findByRequestHash(input.coopname, input.request_hash);
-    if (!claim || claim.fee_refund_pending_at) return;
-    const at = new Date();
-    await this.claimRepo.patchCouncil(claim.id, {
-      fee_refund_pending_at: at,
-      decision_entry: {
-        stage: 'council',
-        decision: 'fee_pending',
-        by_chairman_account: claim.coopname,
-        braname: claim.delivery_braname,
-        comment: t('marketplace.returnClaim.propertyAndShareReturned', { feeRefund: claim.fee_refund }),
-        at,
-        tx_hash: input.tx_hash,
-      },
-    });
-    this.logger.warn(
-      `Заявление на возврат ${claim.id}: взнос ${claim.fee_refund} ждёт пополнения общего кошелька участка ${claim.delivery_braname} — повтор по расписанию.`
-    );
-  }
-
-  /** `payretfee`: взнос довнесён после пополнения кошелька участка — ожидание снято. */
-  async onFeeRefundSettled(input: { coopname: string; request_hash: string; tx_hash: string; comment?: string }): Promise<void> {
-    const claim = await this.claimRepo.findByRequestHash(input.coopname, input.request_hash);
-    if (!claim || !claim.fee_refund_pending_at) return;
-    await this.claimRepo.patchCouncil(claim.id, {
-      fee_refund_pending_at: null,
-      decision_entry: {
-        stage: 'council',
-        decision: 'fee_settled',
-        by_chairman_account: claim.coopname,
-        braname: claim.delivery_braname,
-        comment: input.comment ?? t('marketplace.returnClaim.membershipFeeReturned', { feeRefund: claim.fee_refund }),
-        at: new Date(),
-        tx_hash: input.tx_hash,
-      },
-    });
-    this.logger.log(`Заявление на возврат ${claim.id}: членский взнос ${claim.fee_refund} довнесён (tx=${input.tx_hash}).`);
-  }
 
   /**
    * `onmktrtdecl`: совет «против» либо срок повестки истёк. Имущество ждёт

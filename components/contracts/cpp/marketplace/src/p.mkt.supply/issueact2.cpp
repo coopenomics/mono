@@ -4,18 +4,20 @@
  * (компонент 68, задача 99D-6). Единственная точка движений по выдаче.
  *
  * В одной транзакции по факту, зафиксированному на issuestmt:
- *  1. корректировка резерва: факт меньше заказа — o.mkt.unlock на разницу
+ *  1. обеспечительная часть по факту (задача 99D-18): излишек — o.mkt.refund
+ *     на свободный паевой «Стола заказов» (w.mkt.fee → w.mkt.share),
+ *     недостаток — o.mkt.fee со свободного паевого (недостающее транслировано
+ *     действием convert до заявления); идёт раньше доплаты тела, потому что
+ *     обеспечительная часть берётся только со свободного паевого;
+ *  2. корректировка резерва: факт меньше заказа — o.mkt.unlock на разницу
  *     (w.mkt.order → w.mkt.share); факт больше — o.mkt.lockp с w.mkt.share и
- *     o.mkt.lock с w.wal.share на остаток
- *     (при нехватке — отказ с суммами; автоматического добора с паевого
- *     Цифрового кошелька нет);
- *  2. o.mkt.consum на fact_cost — BURN w.mkt.order, Дт 80 / Кт 10: возврат
- *     паевого взноса имуществом по протоколу совета;
- *  3. членский взнос участка по факту: излишек — o.mkt.refund на членский
- *     кошелёк программы (w.mkt.fee → w.mkt.member), недостаток — o.mkt.fee с
- *     членского кошелька (недостающее переведено действием convert до
- *     заявления), затем branch::accrue → 100 % факта взноса в общий кошелёк
- *     участка выдачи;
+ *     o.mkt.lock с w.wal.share на остаток (при нехватке — отказ с суммами);
+ *  3. o.mkt.consum на fact_cost — BURN w.mkt.order, Дт 80 / Кт 10: возврат
+ *     паевого взноса имуществом по протоколу совета; затем факт
+ *     обеспечительной части переходит на кошелёк пайщика к списанию
+ *     (o.mkt.todue, w.mkt.fee → w.mkt.due). Членским взносом участка он
+ *     станет при списании по условиям ЦПП после гарантийного срока
+ *     (chargedue) — в этой транзакции проводок по счёту 86 нет;
  *  4. `issueact1 → received`, гарантийное окно, `issue_act2` = акт,
  *     `Soviet::make_complete_document` для акта (пакет = order_hash).
  *
@@ -56,7 +58,26 @@ void marketplace::issueact2(eosio::name coopname,
   eosio::check(fact_cost.amount > 0,
                "Итоговая фактическая сумма заказа должна быть больше нуля");
 
-  // ── 1. Корректировка резерва по факту ──
+  // ── 1. Обеспечительная часть по факту — раньше доплаты тела ──
+  const eosio::asset locked_fee = Marketplace::get_order_membership_fee(o);
+  const eosio::asset fact_fee = locked_fee.amount > 0
+      ? Marketplace::pro_rata(locked_fee, fact_cost.amount, o.total_cost.amount)
+      : eosio::asset(0, _root_govern_symbol);
+  if (fact_fee < locked_fee) {
+    Marketplace::refund_secure_part(coopname, o, locked_fee - fact_fee);
+  } else if (fact_fee > locked_fee) {
+    const eosio::asset fee_diff = fact_fee - locked_fee;
+    auto program = Marketplace::get_user_wallet_balance(
+        coopname, ledger2_wallets::MARKETPLACE_SHARE_FUND, o.orderer);
+    eosio::check(program.available >= fee_diff,
+                 std::string{"MARKETPLACE_SECURE_PART_SHORTFALL: Недостаточно свободного паевого Стола заказов на обеспечительную часть доплаты по факту: требуется "} +
+                   fee_diff.to_string() + ", доступно " + program.available.to_string() +
+                   ". Сначала подайте заявление о трансляции паевого взноса в программу.");
+    Marketplace::lock_secure_part(coopname, o.orderer, o.hash, fee_diff,
+                                  Marketplace::Memo::get_secure_part_topup_memo(o.id));
+  }
+
+  // ── 2. Корректировка резерва по факту ──
   if (fact_cost < o.total_cost) {
     const eosio::asset diff = o.total_cost - fact_cost;
     Ledger2::apply(_marketplace, coopname,
@@ -73,44 +94,14 @@ void marketplace::issueact2(eosio::name coopname,
                                  Marketplace::Memo::get_issue_correction_more_block_memo(o.id));
   }
 
-  // ── 2. Возврат паевого взноса имуществом ──
+  // ── 3. Возврат паевого взноса имуществом; обеспечительная часть к списанию ──
   Ledger2::apply(_marketplace, coopname,
                  operations::marketplace::CONSUME_BY_MEMBER,
                  processes::marketplace::SUPPLY,
                  fact_cost, o.orderer, o.hash,
                  Marketplace::Memo::get_consume_by_member_memo(o.id));
 
-  // ── 3. Членский взнос участка по факту ──
-  const eosio::asset locked_fee = Marketplace::get_order_membership_fee(o);
-  if (locked_fee.amount > 0) {
-    const eosio::asset fact_fee =
-        Marketplace::pro_rata(locked_fee, fact_cost.amount, o.total_cost.amount);
-    if (fact_fee < locked_fee) {
-      Ledger2::apply(_marketplace, coopname,
-                     operations::marketplace::MEMBERSHIP_FEE_REFUND,
-                     processes::marketplace::SUPPLY,
-                     locked_fee - fact_fee, o.orderer, o.hash,
-                     Marketplace::Memo::get_membership_fee_refund_memo(o.id));
-    } else if (fact_fee > locked_fee) {
-      const eosio::asset fee_diff = fact_fee - locked_fee;
-      auto bal_member = Marketplace::get_user_wallet_balance(
-          coopname, ledger2_wallets::MARKETPLACE_MEMBER_FUND, o.orderer);
-      eosio::check(bal_member.available >= fee_diff,
-                   std::string{"Недостаточно членского взноса «Стола заказов» для довзноса по факту: требуется "} +
-                     fee_diff.to_string() + ", доступно " + bal_member.available.to_string() +
-                     ". Сначала подайте заявление о переводе паевого взноса в программу.");
-      Ledger2::apply(_marketplace, coopname,
-                     operations::marketplace::MEMBERSHIP_FEE_LOCK,
-                     processes::marketplace::SUPPLY,
-                     fee_diff, o.orderer, o.hash,
-                     Marketplace::Memo::get_membership_fee_topup_memo(o.id));
-    }
-    if (fact_fee.amount > 0) {
-      Branch::accrue(_marketplace, coopname, o.delivery_braname,
-                     fact_fee, processes::marketplace::SUPPLY, o.hash,
-                     Marketplace::Memo::get_membership_fee_distribute_memo(o.id));
-    }
-  }
+  Marketplace::move_secure_part_to_due(coopname, o, fact_fee);
 
   // ── 4. Статус, гарантия, документ ──
   const auto now = eosio::time_point_sec(eosio::current_time_point().sec_since_epoch());

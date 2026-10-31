@@ -4,21 +4,18 @@
  * ledger2.process-naming l2.pnam.side.02).
  *
  * Приём имущества у стойки (`accretrn`) ставит заявление на повестку совета;
- * решение совета (`onmktrtauth`) — это ТРИ ноги в одной
- * транзакции, и все три обязаны идти НИТКОЙ ВОЗВРАТА по хэшу заявки, а не
- * ниткой исходной поставки:
+ * решение совета (`onmktrtauth`) — это ДВЕ ноги в одной транзакции, и обе
+ * обязаны идти НИТКОЙ ВОЗВРАТА по хэшу заявки, а не ниткой исходной поставки:
  *
- *   • o.mkt.return  — восстановление паевого взноса и имущества (Дт 10 / Кт 80,
- *                     ISSUE на членский «Стола заказов» заказчицы);
- *   • o.brn.retfee  — общий кошелёк участка → пул взносов «Стола заказов»
- *                     (инверсия зачисления, без бухпроводки);
- *   • o.mkt.refund  — пул взносов → членский кошелёк «Стола заказов» заказчицы
- *     (членский остаётся членским, p.mkt.return после 99D-15/16).
+ *   • o.mkt.return — восстановление паевого взноса и имущества (Дт 10 / Кт 80,
+ *                    ISSUE на свободный паевой «Стола заказов» заказчицы);
+ *   • o.mkt.undue  — обеспечительная часть за возвращённое: с кошелька к
+ *                    списанию на свободный паевой заказчицы, без проводки
+ *                    (задача 99D-18). В гарантийный срок она ещё не списана в
+ *                    членский взнос, поэтому кошелёк участка не задействован.
  *
- * Двухходовка через пул нужна из-за инварианта walletop «один username на обе
- * стороны»: прямой перевод с кошелька участка на кошелёк пайщика невозможен.
- * Пайщику возвращается ПОЛНАЯ уплаченная сумма — стоимость имущества плюс
- * приходящийся на него членский взнос.
+ * Пайщику возвращается ПОЛНАЯ внесённая сумма — стоимость имущества плюс
+ * приходящаяся на него обеспечительная часть.
  *
  * Возврат — compensating forward, а не откат: исходная o.mkt.consum в журнале
  * не трогается, поэтому нитка поставки после возврата обязана остаться прежней.
@@ -166,13 +163,13 @@ describe('стол заказов — денежные места гаранти
     expect(requestHash, 'у заявки на возврат обязан быть собственный хэш нитки').toBeTruthy()
     expect(requestHash.toLowerCase(), 'нитка возврата обязана отличаться от нитки поставки').not.toBe(orderHash.toLowerCase())
 
-    // Возвращается полная уплаченная сумма: стоимость имущества плюс взнос.
+    // Возвращается полная внесённая сумма: стоимость имущества плюс обеспечительная часть.
     expect(factCost, 'к возврату заявлена стоимость возвращаемого имущества').toBeCloseTo(QTY * unitPrice, 2)
-    expect(totalRefund, 'полный возврат — имущество плюс приходящийся на него членский взнос').toBeCloseTo(factCost + feeRefund, 2)
-    expect(feeRefund, 'при полном возврате заказа возвращается и весь взнос по нему').toBeGreaterThan(0)
+    expect(totalRefund, 'полный возврат — имущество плюс приходящаяся на него обеспечительная часть').toBeCloseTo(factCost + feeRefund, 2)
+    expect(feeRefund, 'при полном возврате заказа возвращается и вся обеспечительная часть по нему').toBeGreaterThan(0)
   }, 300_000)
 
-  it('решение совета по принятому имуществу проводит три ноги: o.mkt.return + o.brn.retfee + o.mkt.refund', async () => {
+  it('решение совета по принятому имуществу проводит две ноги: o.mkt.return + o.mkt.undue', async () => {
     await gqlAs(chairkrgToken, `mutation($d:MarketplaceApproveReturnVisitInput!){
       marketplaceApproveReturnVisit(data:$d){ claim { id status } }
     }`, { d: { claim_id: claimId, braname: BRANAME, comment: 'Приглашение на очный осмотр (контрактный тест).' } })
@@ -197,7 +194,7 @@ describe('стол заказов — денежные места гаранти
     const cancelStatement = docs.cancel_statement
     expect(cancelStatement.meta.registry_id, 'у стойки подписывается заявление об отмене сделки').toBe(1116)
     expect(cancelStatement.meta.orderer, 'в заявлении оператора указана пайщица, чья сделка отменяется').toBe(ekaterina.account)
-    expect(amount(cancelStatement.meta.fee_refund), 'заявление несёт членский взнос к восстановлению').toBeCloseTo(feeRefund, 2)
+    expect(amount(cancelStatement.meta.fee_refund), 'заявление несёт обеспечительную часть к восстановлению').toBeCloseTo(feeRefund, 2)
     expect(docs.reclamation.document.meta.registry_id ?? docs.reclamation.rawDocument.meta.registry_id, 'под вторую подпись идёт рекламация пайщицы').toBe(1106)
     const signedCancel = await signAs(chairkrg.wif, cancelStatement, chairkrg.account, 1)
     const signedReclamation = await signAs(chairkrg.wif, docs.reclamation.rawDocument, chairkrg.account, 2, [docs.reclamation.document])
@@ -239,51 +236,44 @@ describe('стол заказов — денежные места гаранти
       console.warn(`processDecision(${decisionId}) отбит: ${e?.message ?? e} — возможно, решение уже принял робот`)
     })
 
-    ops = await waitForOps(chairmanToken, requestHash, ['o.mkt.return', 'o.brn.retfee', 'o.mkt.refund'])
+    ops = await waitForOps(chairmanToken, requestHash, ['o.mkt.return', 'o.mkt.undue'])
 
     // Нога 1 — имущество и средства возвращаются заказчице.
     expect(sumOf(ops, 'o.mkt.return'), 'возврат обязан восстановить стоимость возвращённого имущества').toBeCloseTo(factCost, 2)
     const returned = ops.find(r => r.operationCode === 'o.mkt.return')!
     expect(returned.username, 'средства восстанавливаются заказчице').toBe(ekaterina.account)
 
-    // Ноги 2 и 3 — взнос идёт обратно тем же путём, что уходил: участок → пул → пайщица.
-    expect(sumOf(ops, 'o.brn.retfee'), 'участок обязан вернуть в пул взносов приходящуюся на возврат долю').toBeCloseTo(feeRefund, 2)
-    expect(sumOf(ops, 'o.mkt.refund'), 'из пула взносов доля обязана дойти до членского кошелька заказчицы').toBeCloseTo(feeRefund, 2)
-
-    const fromBranch = ops.find(r => r.operationCode === 'o.brn.retfee')!
-    expect(fromBranch.username, 'разрез ноги возврата взноса — имя участка').toBe(BRANAME)
+    // Нога 2 — обеспечительная часть за возвращённое: в гарантийный срок она
+    // ещё не списана и возвращается с кошелька к списанию на свободный паевой
+    // заказчицы (задача 99D-18).
+    expect(sumOf(ops, 'o.mkt.undue'), 'обеспечительная часть за возвращённое обязана вернуться заказчице').toBeCloseTo(feeRefund, 2)
+    expect(ops.find(r => r.operationCode === 'o.mkt.undue')!.username, 'разрез ноги возврата обеспечительной части — заказчица').toBe(ekaterina.account)
+    expect(opsCodes(ops).includes('o.brn.retfee'), 'кошелёк участка не трогается: членским взносом обеспечительная часть ещё не стала').toBe(false)
 
     // Итог по пайщице — ровно та сумма, что заявлена к возврату.
-    expect(sumOf(ops, 'o.mkt.return') + sumOf(ops, 'o.mkt.refund'), 'заказчице обязана вернуться полная уплаченная сумма').toBeCloseTo(totalRefund, 2)
+    expect(sumOf(ops, 'o.mkt.return') + sumOf(ops, 'o.mkt.undue'), 'заказчице обязана вернуться полная внесённая сумма').toBeCloseTo(totalRefund, 2)
   }, 300_000)
 
-  it('возврат ложится Дт 10 / Кт 80, а транзит взноса возвращает членский взнос на членский кошелёк без проводок', async () => {
+  it('возврат ложится Дт 10 / Кт 80, а обеспечительная часть возвращается на свободный паевой без проводок', async () => {
     const rows = await historyOfProcess(chairmanToken, requestHash)
 
     expect(postingsFor(rows, 'debit', ACC.MATERIALS, factCost).length, 'возвращённое имущество обязано лечь Дт 10 — оно снова на складе').toBeGreaterThan(0)
     expect(postingsFor(rows, 'credit', ACC.SHARE, factCost).length, 'паевой взнос пайщицы обязан восстановиться Кт 80').toBeGreaterThan(0)
 
-    // Транзит взноса по стандарту p.mkt.return: участок → пул → членский
-    // кошелёк заказчицы, обе ноги без проводок — все три кошелька на счёте 86,
-    // членский взнос остаётся членским и зачитывается в следующий заказ.
-    const feeMoves = rows.filter(r => r.action === 'walletop'
-      && ((r.walletFrom === 'w.brn.common' && r.walletTo === 'w.mkt.fee')
-        || (r.walletFrom === 'w.mkt.fee' && r.walletTo === 'w.mkt.member')))
-    expect(feeMoves.length, 'взнос обязан пройти двумя кошельковыми ходами: участок → пул → пайщица').toBe(2)
-    for (const m of feeMoves) expect(amount(m.quantity)).toBeCloseTo(feeRefund, 2)
+    // Обеспечительная часть по стандарту p.mkt.return: кошелёк к списанию →
+    // свободный паевой заказчицы одним ходом без проводки — оба кошелька на 80.
+    const feeMoves = rows.filter(r => r.action === 'walletop' && r.walletFrom === 'w.mkt.due' && r.walletTo === 'w.mkt.share')
+    expect(feeMoves.length, 'обеспечительная часть обязана вернуться одним кошельковым ходом').toBe(1)
+    expect(amount(feeMoves[0]!.quantity)).toBeCloseTo(feeRefund, 2)
 
-    expect(postingsFor(rows, 'debit', ACC.TARGET, feeRefund).length, 'возврат членского взноса идёт без проводки: членский не становится паевым').toBe(0)
+    expect(postingsFor(rows, 'debit', ACC.TARGET, feeRefund).length, 'счёт 86 гарантийный возврат не задевает').toBe(0)
+    expect(postingsFor(rows, 'credit', ACC.TARGET, feeRefund).length, 'счёт 86 гарантийный возврат не задевает').toBe(0)
   }, 300_000)
 
-  it('l2.pnam.side.02: обе ноги возврата взноса идут ниткой ГАРАНТИЙНОГО ВОЗВРАТА по хэшу заявки', async () => {
+  it('l2.pnam.side.02: обе ноги возврата идут ниткой ГАРАНТИЙНОГО ВОЗВРАТА по хэшу заявки', async () => {
     const byOp = await processTypeByOperation(chairmanToken, requestHash)
 
-    expect(byOp['o.brn.retfee'], 'инверсия зачисления обязана называть нитку именем контракта-источника — гарантийный возврат').toBe('p.mkt.return')
-
-    // o.mkt.refund в реестре операций объявлен под ПОСТАВКОЙ (там он возвращает
-    // неиспользованный взнос по заказу), но здесь он вторая нога возврата —
-    // нитку называет её инициатор, а не реестр кода операции.
-    expect(byOp['o.mkt.refund'], 'имя нитки называет инициатор, а не реестр операции: тот же код в возврате идёт ниткой возврата').toBe('p.mkt.return')
+    expect(byOp['o.mkt.undue'], 'возврат обеспечительной части идёт ниткой гарантийного возврата').toBe('p.mkt.return')
 
     expect(byOp['o.mkt.return'], 'основная нога возврата идёт своей же ниткой').toBe('p.mkt.return')
 
@@ -297,14 +287,14 @@ describe('стол заказов — денежные места гаранти
   it('l2.pnam.side.13: обоснование проводки длиннее 255 байт проходит и сохраняется целиком', async () => {
     // Обоснования пишутся человеческим языком, а кириллица занимает по два
     // байта на символ — любой предел по длине отсекал бы осмысленные
-    // формулировки, поэтому ledger2 длину memo не ограничивает. Самое длинное
-    // обоснование канона — нога возврата взноса: она называет и заявление, и
-    // исходный заказ, и обе стороны транзита.
+    // формулировки, поэтому ledger2 длину memo не ограничивает. Длинное
+    // обоснование канона — нога возврата обеспечительной части: она называет и
+    // заявление, и исходный заказ, и куда возвращаются средства.
     const rows = await historyOfProcess(chairmanToken, requestHash)
-    const retfee = rows.find(r => r.action === 'apply' && r.operationCode === 'o.brn.retfee')
-    expect(retfee, 'нога возврата взноса обязана быть в нитке').toBeTruthy()
+    const undue = rows.find(r => r.action === 'apply' && r.operationCode === 'o.mkt.undue')
+    expect(undue, 'нога возврата обеспечительной части обязана быть в нитке').toBeTruthy()
 
-    const memo = retfee!.memo ?? ''
+    const memo = undue!.memo ?? ''
     const bytes = Buffer.byteLength(memo, 'utf8')
     expect(bytes, 'обоснование этой проводки штатно длиннее 255 байт — иначе случай не проверяем').toBeGreaterThan(255)
 
@@ -313,7 +303,7 @@ describe('стол заказов — денежные места гаранти
     // на границе буфера.
     expect(memo.endsWith('…'), 'memo не должно приходить обрезанным многоточием').toBe(false)
     expect(memo, `обоснование обязано доезжать целиком, пришло ${bytes} байт: «${memo}»`)
-      .toMatch(/из общего кошелька кооперативного участка$/)
+      .toMatch(/на свободный паевой Стола заказов$/)
 
     // И длина не режется по границе байта: строка обязана быть валидным UTF-8
     // без «хвоста» — round-trip через Buffer совпадает с исходной.

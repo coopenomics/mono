@@ -57,14 +57,15 @@ export interface ICreateOrder {
 }
 
 /**
- * Адресат перевода по заявлению 1110: заказ и его доля членской части.
+ * Адресат трансляции по заявлению 1110: заказ и недостающая под него сумма
+ * (часть тела и обеспечительной части паевого взноса; задача 99D-18).
  * Заявление одно на всё оформление, а нитка процесса ведётся по заказу —
  * контракт эмитит `o.mkt.conv` на каждый адресат с `process_hash = order_hash`.
  */
 export interface IConvertTarget {
-  /** Хэш заказа, который оплачивает эта часть перевода (заказа ещё нет). */
+  /** Хэш заказа, который оплачивает эта часть трансляции (заказа ещё нет). */
   order_hash: IChecksum256
-  /** Членская часть перевода под этот заказ. */
+  /** Сумма трансляции под этот заказ. */
   amount: IAsset
 }
 
@@ -98,6 +99,14 @@ export interface IMarkdown {
 export interface ISetFee {
   coopname: IName
   membership_fee_percent: IUint64
+}
+
+export interface IChargeDue {
+  coopname: IName
+  username: IName
+  braname: IName
+  order_hash: IChecksum256
+  amount: IAsset
 }
 
 export interface IMktConfig {
@@ -305,10 +314,6 @@ export interface IHandBack {
   request_hash: IChecksum256
 }
 
-export interface IPayRetFee {
-  coopname: IName
-  request_hash: IChecksum256
-}
 
 // ── p.mkt.wroff: actions ─────────────────────────────────────────────────
 

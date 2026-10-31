@@ -3,7 +3,7 @@
  *        p.mkt.supply).
  *
  * Два случая, оба со стороны поставщика и оба без штрафа — полный возврат
- * резерва и членского взноса заказчику (вина не его):
+ * резерва и обеспечительной части заказчику (вина не его):
  *  1. До акцепта (active) — поставщик не берёт заявку в работу.
  *  2. Отказ в приёмке (accepted / supply_prepared) — поставщик привёз
  *     некондицию; кооператив не принимает позицию (ноль единиц в факт),
@@ -40,8 +40,8 @@ void marketplace::declineorder(eosio::name coopname,
                  o.total_cost, o.orderer, o.hash,
                  Marketplace::Memo::get_decline_order_memo(o.id));
 
-  // Членский взнос возвращается полностью (o.mkt.refund, requirement b6).
-  Marketplace::refund_membership_fee_if_any(coopname, o);
+  // Обеспечительная часть возвращается полностью на свободный паевой (o.mkt.refund).
+  Marketplace::refund_secure_part_if_any(coopname, o);
 
   // Отказ поставщика — терминал жизненного цикла заказа: запись стирается
   // из RAM, история остаётся в журнале действий.

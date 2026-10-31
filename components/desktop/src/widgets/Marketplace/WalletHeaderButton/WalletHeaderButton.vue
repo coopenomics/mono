@@ -19,9 +19,9 @@ import { t } from 'src/shared/i18n';
  *
  * Поэтому баланс стола заказов живёт прямо в шапке каталога, рядом с
  * корзиной, а по нажатию открывается окно с разбивкой по кошелькам и взносом.
- * В шапке стоит общая сумма всех трёх кошельков — человеку важно, на что он
- * вообще может рассчитывать, а не в каком кошельке это лежит; деление по
- * кошелькам ждёт его в окне.
+ * В шапке стоит сумма кошельков, которыми оплачиваются заказы, — человеку
+ * важно, на что он может рассчитывать, а не в каком кошельке это лежит;
+ * деление по кошелькам и обеспечительная часть к списанию ждут его в окне.
  */
 
 const props = defineProps<{ coopname: string }>();
@@ -30,8 +30,12 @@ const props = defineProps<{ coopname: string }>();
 const MARKET_WALLET = 'w.mkt.share';
 /** Главный паевой кошелёк ЦК — источник паевого взноса под заказ. */
 const SHARE_WALLET = 'w.wal.share';
-/** Членский кошелёк «Стола заказов» — членский взнос участка по заявлению о конвертации; остаток зачитывается при следующем заказе. */
-const MEMBER_WALLET = 'w.mkt.member';
+/**
+ * Обеспечительная часть паевого взноса к списанию (задача 99D-18): после выдачи
+ * ждёт конца гарантийного срока и первого числа месяца списывается в членский
+ * взнос. Заказы ею не оплачиваются, поэтому в сумму в шапке она не входит.
+ */
+const DUE_WALLET = 'w.mkt.due';
 
 const walletStore = useWalletStore();
 const session = useSessionStore();
@@ -73,14 +77,16 @@ const WALLET_CARDS = [
     subtitle: t('marketplace.walletHeaderButton.freeShareWalletHint'),
     neutral: false,
     showLocked: true,
+    payable: true,
   },
   {
-    name: MEMBER_WALLET,
-    icon: 'card_membership',
-    title: t('marketplace.walletHeaderButton.membershipWalletLabel'),
-    subtitle: t('marketplace.walletHeaderButton.membershipWalletHint'),
-    neutral: false,
+    name: DUE_WALLET,
+    icon: 'lock_clock',
+    title: t('marketplace.walletHeaderButton.dueWalletLabel'),
+    subtitle: t('marketplace.walletHeaderButton.dueWalletHint'),
+    neutral: true,
     showLocked: false,
+    payable: false,
   },
   {
     name: SHARE_WALLET,
@@ -89,6 +95,7 @@ const WALLET_CARDS = [
     subtitle: t('marketplace.walletHeaderButton.mainShareWalletHint'),
     neutral: true,
     showLocked: false,
+    payable: true,
   },
 ] as const;
 
@@ -101,14 +108,13 @@ const walletCards = computed(() =>
 );
 
 /**
- * В шапке — всё, чем заказчик может расплатиться: свободный паевой и членский
- * Стола заказов вместе с главным паевым. Прежде там стоял один свободный
- * паевой, и у человека с деньгами на главном кошельке в каталоге висел ноль
- * (жалоба 2026-09-14). Из чего сложилась сумма — видно в окне, которое кнопка
- * и открывает.
+ * В шапке — всё, чем заказчик может расплатиться: свободный паевой Стола
+ * заказов и главный паевой. Обеспечительная часть к списанию заказы не
+ * оплачивает и в сумму не входит (задача 99D-18). Из чего сложилась сумма —
+ * видно в окне, которое кнопка и открывает.
  */
 const totalAmount = computed(() => {
-  const sum = WALLET_CARDS.reduce((acc, card) => acc + walletValue(card.name), 0);
+  const sum = WALLET_CARDS.filter((card) => card.payable).reduce((acc, card) => acc + walletValue(card.name), 0);
   return formatAsset2Digits(`${sum.toFixed(4)} ${symbol.value}`);
 });
 

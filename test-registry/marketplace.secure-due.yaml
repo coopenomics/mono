@@ -1,0 +1,110 @@
+feature: marketplace.secure-due
+title: Обеспечительная часть паевого взноса — учёт к списанию и списание в членский взнос первого числа месяца
+
+# Задача 99D-18, решение владельца 31.10.2026. При заказе пайщик сверх
+# стоимости имущества вносит обеспечительную часть паевого взноса по ставке
+# кооператива. На выдаче её факт ложится на кошелёк пайщика к списанию
+# w.mkt.due; на этот кошелёк ложится и удержание при отказе. Членским взносом
+# участка она становится только при списании по условиям ЦПП: первого числа
+# месяца после окончания гарантийного срока заказа, без подписи пайщика.
+# Контракт не хранит, кому и когда списывать; учёт ведёт узел по операциям
+# ledger2, которые провёл контракт, а контракт держит потолок остатка кошелька.
+
+sources:
+  backend:
+    - components/controller/src/extensions/marketplace/application/services/marketplace-secure-due.service.ts
+    - components/controller/src/extensions/marketplace/infrastructure/entities/marketplace-secure-due.entity.ts
+    - components/controller/src/extensions/marketplace/migrations/database/1793440000000-secure-due.ts
+  contract:
+    - components/contracts/cpp/marketplace/src/p.mkt.supply/chargedue.cpp
+
+cases:
+  - id: mkt.secure.due.side.1
+    level: backend
+    kind: side
+    scenario: Выданный заказ с гарантией и без неё — обеспечительная часть к списанию
+    expect: строка учёта с остатком; созревает к концу гарантийного срока, без гарантии — в момент выдачи
+    test: components/controller/tests/unit/marketplace/marketplace-secure-due.test.ts
+    external: unreachable
+    external_reason: "учёт к списанию — внутренняя таблица узла, через API стенда не выведена"
+    status: passing
+
+  - id: mkt.secure.due.side.2
+    level: backend
+    kind: side
+    scenario: Отказ от получения после акцепта — удержание тела и обеспечительной части
+    expect: обе удержанные половины учтены одной строкой заказа и созревают сразу
+    test: components/controller/tests/unit/marketplace/marketplace-secure-due.test.ts
+    external: unreachable
+    external_reason: "учёт к списанию — внутренняя таблица узла, через API стенда не выведена"
+    status: passing
+
+  - id: mkt.secure.due.side.3
+    level: backend
+    kind: break
+    scenario: Повторное событие той же операции цепи
+    expect: остаток не меняется второй раз
+    test: components/controller/tests/unit/marketplace/marketplace-secure-due.test.ts
+    external: unreachable
+    external_reason: "повтор события шины через API стенда не вызвать"
+    status: passing
+
+  - id: mkt.secure.due.side.4
+    level: backend
+    kind: side
+    scenario: Гарантийный возврат по решению совета — обеспечительная часть за возвращённое
+    expect: остаток заказа уменьшен, в списанное не идёт; возврат всего закрывает строку
+    test: components/controller/tests/unit/marketplace/marketplace-secure-due.test.ts
+    external: unreachable
+    external_reason: "учёт к списанию — внутренняя таблица узла, через API стенда не выведена"
+    status: passing
+
+  - id: mkt.secure.due.side.5
+    level: backend
+    kind: side
+    scenario: Выход пайщика с остатком к списанию
+    expect: все строки пайщика закрыты списанием немедленно
+    test: components/controller/tests/unit/marketplace/marketplace-secure-due.test.ts
+    external: unreachable
+    external_reason: "учёт к списанию — внутренняя таблица узла, через API стенда не выведена"
+    status: passing
+
+  - id: mkt.secure.due.side.6
+    level: backend
+    kind: side
+    scenario: Операция цепи, не относящаяся к обеспечительной части
+    expect: учёт не меняется
+    test: components/controller/tests/unit/marketplace/marketplace-secure-due.test.ts
+    external: unreachable
+    external_reason: "учёт к списанию — внутренняя таблица узла, через API стенда не выведена"
+    status: passing
+
+  - id: mkt.secure.due.side.7
+    level: backend
+    kind: side
+    scenario: Первое число месяца по часовому поясу кооператива; гарантия кончилась в прошлом месяце либо ещё идёт
+    expect: созревшее до начала месяца списывается действием chargedue с суммой и участком строки, остальное ждёт
+    test: components/controller/tests/unit/marketplace/marketplace-secure-due.test.ts
+    external: unreachable
+    external_reason: "списание идёт по расписанию в начале месяца; время стенда через API не сдвинуть"
+    status: passing
+
+  - id: mkt.secure.due.side.8
+    level: backend
+    kind: side
+    scenario: По заказу открыт гарантийный возврат
+    expect: строка не списывается, пока совет не решит
+    test: components/controller/tests/unit/marketplace/marketplace-secure-due.test.ts
+    external: unreachable
+    external_reason: "списание идёт по расписанию в начале месяца; время стенда через API не сдвинуть"
+    status: passing
+
+  - id: mkt.secure.due.side.9
+    level: backend
+    kind: side
+    scenario: Письмо пайщику о списании
+    expect: одно письмо за прогон с суммой и числом заказов; при отказе цепи письма нет
+    test: components/controller/tests/unit/marketplace/marketplace-secure-due.test.ts
+    external: unreachable
+    external_reason: "списание идёт по расписанию в начале месяца; время стенда через API не сдвинуть"
+    status: passing

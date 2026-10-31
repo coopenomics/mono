@@ -17,6 +17,7 @@ export default [
   'marketplace_order',
   'marketplace_outgoing_payment_request',
   'marketplace_return_claim',
+  'marketplace_secure_due',
   'marketplace_shipment',
   'marketplace_stock_proposal',
   'marketplace_storage_cell',

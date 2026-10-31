@@ -17,6 +17,7 @@ import { MarketplaceOfferEntity } from '../entities/marketplace-offer.entity';
 import { MarketplaceOrderEntity } from '../entities/marketplace-order.entity';
 import { MarketplaceOutgoingPaymentRequestEntity } from '../entities/marketplace-outgoing-payment-request.entity';
 import { MarketplaceReturnClaimEntity } from '../entities/marketplace-return-claim.entity';
+import { MarketplaceSecureDueEntity } from '../entities/marketplace-secure-due.entity';
 import { MarketplaceShipmentEntity } from '../entities/marketplace-shipment.entity';
 import { MarketplaceStockProposalEntity } from '../entities/marketplace-stock-proposal.entity';
 import { MarketplaceStorageCellEntity } from '../entities/marketplace-storage-cell.entity';
@@ -50,6 +51,7 @@ export const MARKETPLACE_OFFER_STORE = Symbol('Marketplace.MARKETPLACE_OFFER_STO
 export const MARKETPLACE_ORDER_STORE = Symbol('Marketplace.MARKETPLACE_ORDER_STORE');
 export const MARKETPLACE_OUTGOING_PAYMENT_REQUEST_STORE = Symbol('Marketplace.MARKETPLACE_OUTGOING_PAYMENT_REQUEST_STORE');
 export const MARKETPLACE_RETURN_CLAIM_STORE = Symbol('Marketplace.MARKETPLACE_RETURN_CLAIM_STORE');
+export const MARKETPLACE_SECURE_DUE_STORE = Symbol('Marketplace.MARKETPLACE_SECURE_DUE_STORE');
 export const MARKETPLACE_SHIPMENT_STORE = Symbol('Marketplace.MARKETPLACE_SHIPMENT_STORE');
 export const MARKETPLACE_STOCK_PROPOSAL_STORE = Symbol('Marketplace.MARKETPLACE_STOCK_PROPOSAL_STORE');
 export const MARKETPLACE_STORAGE_CELL_STORE = Symbol('Marketplace.MARKETPLACE_STORAGE_CELL_STORE');
@@ -268,6 +270,18 @@ export const marketplaceStoreProviders: Provider[] = [
         table: 'marketplace_return_claim',
         primaryKey: ['id'],
         json: ['photos', 'statement', 'cancel_statement', 'council_protocol', 'decision_log', 'on_site_inspection', 'ledger_snapshot'],
+        updatedAt: 'updated_at',
+        sameNames: true,
+      }),
+  },
+  {
+    provide: MARKETPLACE_SECURE_DUE_STORE,
+    inject: [KYSELY],
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    useFactory: (db: Kysely<any>) =>
+      new TableStore<MarketplaceSecureDueEntity>(db, {
+        table: 'marketplace_secure_due',
+        primaryKey: ['order_hash'],
         updatedAt: 'updated_at',
         sameNames: true,
       }),

@@ -283,7 +283,7 @@ async function ensureShare(who: Who, minimumRub: number): Promise<void> {
   }, { timeoutMs: 120_000, intervalMs: 2_000, label: `зеркало кошелька ${who.account} ≥ ${minimumRub} RUB` })
 }
 
-/** Пул членских взносов не меньше нужного: при нехватке — заказ пайщика. */
+/** Пул обеспечительной части под заказы не меньше нужного: при нехватке — заказ пайщика. */
 async function ensureFeePool(need: number): Promise<void> {
   let rate = 0.1
   for (let round = 0; round < 4; round++) {
@@ -304,7 +304,7 @@ async function ensureFeePool(need: number): Promise<void> {
     if (fee > 0 && cost > 0)
       rate = fee / cost
   }
-  throw new Error(`пул членских взносов w.mkt.fee не набрал ${need} RUB`)
+  throw new Error(`пул обеспечительной части w.mkt.fee не набрал ${need} RUB`)
 }
 
 /**

@@ -14,11 +14,10 @@
  *
  * Движений по средствам нет: до закрывающей подписи акта ничего не состоялось.
  * Достаточность средств на доплату при факте больше заказа проверяется здесь
- * заранее, чтобы отказ был виден до решения совета: доплата тела — со
- * свободного паевого «Стола заказов», остаток с Цифрового кошелька; довзнос
- * участка — с внутреннего членского кошелька (недостающее пайщик заранее
- * перевёл действием `convert` по заявлению 1110); на issueact2 проверка
- * повторяется.
+ * заранее, чтобы отказ был виден до решения совета: обеспечительная часть
+ * доплаты — со свободного паевого «Стола заказов», тело — с его остатка и
+ * Цифрового кошелька (недостающее пайщик заранее транслировал действием
+ * `convert` по заявлению 1110); на issueact2 проверка повторяется.
  *
  * Guards:
  *  - actor coopname (require_auth);
@@ -79,29 +78,18 @@ void marketplace::issuestmt(eosio::name coopname,
   }
 
   // Заранее: хватит ли средств на доплату при факте больше заказа. Движения —
-  // только на issueact2: доплата тела со свободного паевого «Стола заказов»,
-  // довзнос участка — с внутреннего членского кошелька.
+  // только на issueact2: обеспечительная часть доплаты со свободного паевого
+  // «Стола заказов», тело — с его остатка и Цифрового кошелька.
   if (fact_cost > o.total_cost) {
     const eosio::asset body_need = fact_cost - o.total_cost;
-    auto program = Marketplace::get_user_wallet_balance(coopname, ledger2_wallets::MARKETPLACE_SHARE_FUND, orderer);
-    auto wallet  = Marketplace::get_user_wallet_balance(coopname, ledger2_wallets::SHARE_FUND_PAY, orderer);
-    eosio::check(program.available + wallet.available >= body_need,
-                 std::string{"Недостаточно паевых средств для доплаты по факту: требуется "} +
-                   body_need.to_string() + ", доступно " + (program.available + wallet.available).to_string() +
-                   ". Уменьшите состав выдачи до суммы, на которую хватает, либо пополните паевой взнос.");
     const eosio::asset locked_fee = Marketplace::get_order_membership_fee(o);
+    eosio::asset fee_need(0, _root_govern_symbol);
     if (locked_fee.amount > 0) {
       const eosio::asset fact_fee =
           Marketplace::pro_rata(locked_fee, fact_cost.amount, o.total_cost.amount);
-      if (fact_fee > locked_fee) {
-        auto bal_member = Marketplace::get_user_wallet_balance(
-            coopname, ledger2_wallets::MARKETPLACE_MEMBER_FUND, orderer);
-        eosio::check(bal_member.available >= fact_fee - locked_fee,
-                     std::string{"Недостаточно членских средств «Стола заказов» на довзнос участка по факту: требуется "} +
-                       (fact_fee - locked_fee).to_string() + ", доступно " + bal_member.available.to_string() +
-                       ". Сначала подайте заявление о переводе паевого взноса в программу.");
-      }
+      if (fact_fee > locked_fee) fee_need = fact_fee - locked_fee;
     }
+    Marketplace::require_order_funding(coopname, orderer, body_need, fee_need);
   }
 
   Marketplace::update_order(coopname, o.id, [&](auto& upd) {

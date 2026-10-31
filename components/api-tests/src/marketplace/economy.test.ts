@@ -3,8 +3,9 @@
  * кошелёк членских взносов, плановый резерв, сетка весов доверенных,
  * распределение и заявление на материальную помощь — снаружи, через API.
  *
- * Набор ведёт свой заказ до выдачи: членский взнос с него оседает в общем
- * кошельке участка krg, из него и распределяется. Сетка весов участка krg
+ * Набор ведёт свой заказ до выдачи и списывает его обеспечительную часть в
+ * членский взнос: он оседает в общем кошельке участка krg, из него и
+ * распределяется. Сетка весов участка krg
  * задаётся здесь же от лица председателя участка. Суммы сверяются приращениями
  * — стенд общий, на нём работают и другие наборы.
  */
@@ -24,7 +25,7 @@ import {
   waitFor,
 } from '../core'
 import { KRG, pickOffer } from './flow'
-import { type BranchEconomy, branchEconomy, issuedOrder, personalOf, refusal } from './mkt-flows.helpers'
+import { type BranchEconomy, branchEconomy, chargeSecurePart, issuedOrder, personalOf, refusal } from './mkt-flows.helpers'
 
 const ODN = 'odn'
 const TRUSTED_KRG = 'trustedkrg'
@@ -86,12 +87,16 @@ describe('экономика участка: общий кошелёк, сетк
     memberToken = await tokenOf(ekaterina)
     chairmanToken = await tokenOf(CHAIRMAN)
 
-    // Членский взнос с выданного заказа оседает в общем кошельке участка выдачи.
+    // Обеспечительная часть выданного заказа списывается в членский взнос и
+    // оседает в общем кошельке участка выдачи (задача 99D-18).
     const before = amount((await branchEconomy(krgToken, KRG)).common_balance)
     const offer = await pickOffer(sidorov.account, KRG, 'Мёд цветочный')
-    await issuedOrder({ member: ekaterina, supplier: sidorov, operator: chairkrg, offer, quantity: 3 })
+    const issued = await issuedOrder({ member: ekaterina, supplier: sidorov, operator: chairkrg, offer, quantity: 3 })
+    const onIssue = amount((await branchEconomy(krgToken, KRG)).common_balance)
+    expect(onIssue, 'на выдаче членского взноса участку ещё нет').toBeCloseTo(before, 2)
+    await chargeSecurePart({ member: ekaterina, orderId: issued.orderId, orderHash: issued.orderHash })
     const after = amount((await branchEconomy(krgToken, KRG)).common_balance)
-    expect(after, 'членский взнос с выданного заказа обязан попасть в общий кошелёк участка').toBeGreaterThan(before)
+    expect(after, 'списанная обеспечительная часть обязана попасть в общий кошелёк участка').toBeGreaterThan(before)
   }, 900_000)
 
   afterAll(async () => {

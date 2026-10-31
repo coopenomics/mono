@@ -50,7 +50,7 @@ exports[`ledger2 wallets registry (generated from C++) > LEDGER2_USER_SHARED_PRO
   {
     "program_label": "Marketplace",
     "required_program_id": 2,
-    "wallet_name": "w.mkt.member",
+    "wallet_name": "w.mkt.due",
   },
   {
     "program_label": null,
@@ -148,9 +148,9 @@ exports[`ledger2 wallets registry (generated from C++) > LEDGER2_WALLET_REGISTRY
     "name": "w.mkt.share",
   },
   {
-    "human_name": "ЦПП «Стол Заказов» — членский взнос пайщика в программе",
+    "human_name": "ЦПП «Стол Заказов» — обеспечительная часть паевого взноса к списанию",
     "kind": "USER_SHARED",
-    "name": "w.mkt.member",
+    "name": "w.mkt.due",
   },
   {
     "human_name": "ЦПП «Стол Заказов» — непризнанные гарантийные претензии поставщику",
@@ -273,7 +273,7 @@ exports[`ledger2 wallets registry (generated from C++) > LEDGER2_WALLET_REGISTRY
     "name": "w.mkt.payout",
   },
   {
-    "human_name": "Резерв членских взносов «Стола заказов» под заказы",
+    "human_name": "Обеспечительная часть паевых взносов «Стола заказов» под заказы",
     "kind": "COOPERATIVE",
     "name": "w.mkt.fee",
   },

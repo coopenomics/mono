@@ -1,26 +1,25 @@
 /**
- * @brief Перевод паевого взноса пайщика во внутренний членский кошелёк
- *        «Стола заказов» по Заявлению 1110 (паевая модель, уточнения владельца
- *        06–07.09.2026). Первое действие транзакции оформления, перед
- *        заказами, которые оплачивает. Заявление пишется на
- *        то, чего не хватило в кошельках программы: «прошу перевести с баланса
- *        моего Цифрового кошелька на баланс ЦПП «Стол заказов» N, из них
- *        членский взнос M», где M — взнос за вычетом остатка членского
- *        кошелька, N — недостающая часть тела (сверх свободного паевого
- *        программы) плюс M. Здесь двигается только членская часть M — паевая
- *        часть тела уйдёт своим путём при createorder / stockorder.
+ * @brief Трансляция паевого взноса пайщика из ЦПП «Цифровой кошелёк» в ЦПП
+ *        «Стол заказов» по Заявлению 1110 (задача 99D-18, решение владельца
+ *        31.10.2026). Первое действие транзакции оформления, перед заказами,
+ *        которые оплачивает.
+ *
+ * Заявление пишется на то, чего не хватило на свободном паевом «Стола
+ * заказов» w.mkt.share: недостающая часть тела заказов и обеспечительной
+ * части паевого взноса. Обе части остаются паевыми — перевод идёт внутри
+ * счёта 80 без проводки (TRANSFER w.wal.share → w.mkt.share). Затем
+ * createorder / stockorder берут со свободного паевого обеспечительную часть
+ * и тело.
  *
  * Заявление одно на всё оформление, а нитка процесса ведётся по заказу,
  * поэтому сумма приходит разбитой по заказам (`targets`) и на каждый заказ
- * эмитится своя `o.mkt.conv` с `process_hash = order_hash` (TRANSFER
- * w.wal.share → w.mkt.member, Дт 80 / Кт 86). Перевод
- * становится первой операцией нитки того заказа, который оплачивает: своей
- * нитки без анкера он больше не заводит (уточнение владельца 08.09.2026).
+ * эмитится своя `o.mkt.conv` с `process_hash = order_hash`. Перевод
+ * становится первой операцией нитки того заказа, который оплачивает.
  * Пустой `targets` — действие только публикует заявление.
  *
  * Guards: суммы адресатов ≥ 0 в _root_govern_symbol; заявление подписано
  * заказчиком; заказчик — активный пайщик; на Цифровом кошельке достаточно
- * паевого на всю сумму перевода.
+ * паевого на всю сумму трансляции.
  *
  * @ingroup public_marketplace_actions
  */
@@ -31,7 +30,7 @@ void marketplace::convert(eosio::name coopname,
   require_auth(coopname);
 
   eosio::check(!is_empty_document(convert_statement),
-               "Отсутствует заявление о переводе паевого взноса в программу");
+               "MARKETPLACE_CONVERT_STATEMENT_MISSING: Отсутствует заявление о трансляции паевого взноса в программу");
   verify_document_or_fail(convert_statement, { orderer });
   // Заявление о переводе подписывает сам заказчик. Транзакцию шлёт кооператив, поэтому ключ сверяется с аккаунтом.
   verify_signer_keys_or_fail(convert_statement, orderer);
@@ -43,29 +42,29 @@ void marketplace::convert(eosio::name coopname,
   eosio::asset total(0, _root_govern_symbol);
   for (const auto& target : targets) {
     eosio::check(target.amount.is_valid() && target.amount.amount >= 0,
-                 "Некорректная сумма перевода в членский кошелёк");
+                 "MARKETPLACE_CONVERT_AMOUNT_INVALID: Некорректная сумма трансляции паевого взноса");
     eosio::check(target.amount.symbol == _root_govern_symbol,
-                 "Некорректный символ валюты в сумме перевода");
+                 "MARKETPLACE_CONVERT_AMOUNT_INVALID: Некорректный символ валюты в сумме трансляции");
     // Пустой хэш увёл бы операцию в нитку без анкера — ровно то, ради чего
     // адресация и вводилась; сумма без заказа смысла не имеет.
     eosio::check(target.amount.amount == 0 || target.order_hash != checksum256{},
-                 "Не указан заказ, который оплачивает перевод в членский кошелёк");
+                 "MARKETPLACE_CONVERT_ORDER_MISSING: Не указан заказ, который оплачивает трансляция паевого взноса");
     total += target.amount;
   }
 
   if (total.amount > 0) {
     auto bal = Marketplace::get_user_wallet_balance(coopname, ledger2_wallets::SHARE_FUND_PAY, orderer);
     eosio::check(bal.available >= total,
-                 std::string{"Недостаточно паевых средств для перевода в членский кошелёк: требуется "} +
+                 std::string{"MARKETPLACE_CONVERT_SHORTFALL: Недостаточно паевых средств на Цифровом кошельке для трансляции: требуется "} +
                    total.to_string() + ", доступно " + bal.available.to_string());
 
     for (const auto& target : targets) {
       if (target.amount.amount == 0) continue;
       Ledger2::apply(_marketplace, coopname,
-                     operations::marketplace::CONVERT_TO_MEMBER,
+                     operations::marketplace::TRANSLATE_SHARE,
                      processes::marketplace::SUPPLY,
                      target.amount, orderer, target.order_hash,
-                     Marketplace::Memo::get_convert_to_member_memo());
+                     Marketplace::Memo::get_translate_share_memo());
     }
   }
 
