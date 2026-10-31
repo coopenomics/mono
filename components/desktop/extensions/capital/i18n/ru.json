@@ -742,7 +742,8 @@
       "signActRawDocumentMissing": "Сырой документ акта не найден. Невозможно наложить вторую подпись.",
       "signActResultNotFound": "Результат не найден",
       "signActUsernameMissing": "Имя пользователя не найдено",
-      "statementGenerationFailed": "Не удалось сгенерировать заявление"
+      "statementGenerationFailed": "Не удалось сгенерировать заявление",
+      "missingCreatepgprpMeta": "В вопросе повестки нет заявления о паевом взносе имуществом"
     },
     "expandOptionsWidget": {
       "expandAllLabel": "Развернуть всё"

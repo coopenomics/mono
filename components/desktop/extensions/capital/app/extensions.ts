@@ -7,6 +7,7 @@ import { ExpenseProposalDecisionInfo } from 'src/shared/ui/domain/ExpenseProposa
 import { generateExpenseProposalDecisionDocument } from 'app/extensions/expenses/api';
 import { useGenerateResultContributionDecision } from '../features/Result/GenerateResultContributionDecision/model';
 import { CreateResultDecisionInfoWidget } from '../widgets/CreateResultDecisionInfoWidget';
+import { programPropertyApi } from '../features/ProgramProperty';
 import { t } from '../i18n';
 
 /**
@@ -43,6 +44,29 @@ export function registerCapitalDecisionHandlers() {
     },
     // Компонент для отображения дополнительной информации
     infoComponent: CreateResultDecisionInfoWidget,
+  });
+
+  // Обработчик для createpgprp (паевой взнос имуществом в «Благорост»): протокол
+  // 1071 собирается из полей заявления 1070 и номера решения. Имя в протоколе —
+  // пайщик из заявления: по нему фабрика берёт реквизиты его договоров.
+  decisionFactory.registerHandler('createpgprp', {
+    generateHandler: async ({ decision_id, row }) => {
+      if (!row.table?.statement?.meta) {
+        throw new Error(t('capital.error.missingCreatepgprpMeta'));
+      }
+      const meta = JSON.parse(row.table.statement.meta) as Registry.CapitalizationPropertyInvestStatement.Action;
+      return await programPropertyApi.generateDecision({
+        coopname: meta.coopname,
+        username: meta.username,
+        decision_id,
+        property_hash: meta.property_hash,
+        property_name: meta.property_name,
+        property_description: meta.property_description,
+        property_quantity: meta.property_quantity,
+        property_unit: meta.property_unit,
+        property_amount: meta.property_amount,
+      });
+    },
   });
 
   // Обработчик для createexp (служебная записка-смета о расходах, шасси expense).

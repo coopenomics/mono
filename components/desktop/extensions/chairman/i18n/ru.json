@@ -46,7 +46,9 @@
       "eduRidAct": "Акт приёма-передачи результата работы преподавателя по программе «Образование»",
       "eduTeacherContract": "Договор УХД преподавателя по программе «Образование»",
       "unitChairmanLiabilityContract": "Договор о материальной ответственности председателя участка",
-      "unitChairmanPowerOfAttorney": "Доверенность председателю кооперативного участка"
+      "unitChairmanPowerOfAttorney": "Доверенность председателю кооперативного участка",
+      "blagorostPropertyStatement": "Заявление о паевом взносе имуществом в «Благорост»",
+      "blagorostPropertyAct": "Акт приёма-передачи имущества в «Благорост»"
     },
     "approvalsPage": {
       "allStatusesOption": "Все статусы",

@@ -4,6 +4,7 @@ import type { IGeneratedDocumentOutput } from 'src/shared/lib/types/document';
 import type {
   ICreateProgramPropertyInput,
   IGeneratePropertyActInput,
+  IGeneratePropertyDecisionInput,
   IGeneratePropertyStatementInput,
   IGetProgramPropertiesInput,
   IProgramPropertiesPage,
@@ -33,6 +34,15 @@ async function createProgramProperty(data: ICreateProgramPropertyInput) {
   return result;
 }
 
+/** Протокол совета о приёме имущества — для утверждения решения на столе совета. */
+async function generateDecision(data: IGeneratePropertyDecisionInput): Promise<IGeneratedDocumentOutput> {
+  const { [Mutations.Capital.GenerateCapitalizationPropertyInvestDecision.name]: result } = await client.Mutation(
+    Mutations.Capital.GenerateCapitalizationPropertyInvestDecision.mutation,
+    { variables: { data } },
+  );
+  return result;
+}
+
 /** Акт собирает сервер: позиция — из заявления, номер решения — из протокола совета. */
 async function generateAct(data: IGeneratePropertyActInput): Promise<IGeneratedDocumentOutput> {
   const { [Mutations.Capital.GenerateCapitalizationPropertyInvestAct.name]: result } = await client.Mutation(
@@ -53,6 +63,7 @@ export const api = {
   loadProgramProperties,
   generateStatement,
   createProgramProperty,
+  generateDecision,
   generateAct,
   signAct,
 };
